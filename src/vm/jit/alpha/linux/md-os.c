@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 8186 2007-07-05 23:48:16Z michi $
+   $Id: md-os.c 8188 2007-07-06 00:31:03Z michi $
 
 */
 
@@ -118,6 +118,33 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		_mc->sc_pc                   = (ptrint) asm_handle_exception;
 	}
 }
+
+
+/* md_signal_handler_sigusr1 ***************************************************
+
+   Signal handler for suspending threads.
+
+*******************************************************************************/
+
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
+{
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	u1         *pc;
+	u1         *sp;
+
+	_uc = (ucontext_t *) _p;
+	_mc = &_uc->uc_mcontext;
+
+	/* get the PC and SP for this thread */
+	pc = (u1 *) _mc->sc_pc;
+	sp = (u1 *) _mc->sc_regs[REG_SP];
+
+	/* now suspend the current thread */
+	threads_suspend_ack(pc, sp);
+}
+#endif
 
 
 /* md_signal_handler_sigusr2 ***************************************************
