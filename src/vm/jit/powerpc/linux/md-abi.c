@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: md-abi.c 8190 2007-07-08 13:42:06Z twisti $
 
 */
 
@@ -30,8 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
-
-#include "vm/types.h"
+#include <stdint.h>
 
 #include "vm/jit/powerpc/linux/md-abi.h"
 
@@ -42,12 +41,9 @@
 #include "vmcore/descriptor.h"
 
 
-#define _ALIGN(a)    do { if ((a) & 1) (a)++; } while (0)
-
-
 /* register descripton arrays *************************************************/
 
-s4 nregdescint[] = {
+int32_t nregdescint[] = {
 	/* zero,      sp, NO(sys),   a0/v0,   a1/v1,      a2,      a3,      a4,   */
 	REG_RES, REG_RES, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
 
@@ -70,7 +66,7 @@ const char *abi_registers_integer_name[] = {
 	"r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31",
 };
 
-const s4 abi_registers_integer_argument[] = {
+const int32_t abi_registers_integer_argument[] = {
 	3,  /* a0 */
 	4,  /* a1 */
 	5,  /* a2 */
@@ -81,7 +77,7 @@ const s4 abi_registers_integer_argument[] = {
 	10, /* a7 */
 };
 
-const s4 abi_registers_integer_saved[] = {
+const int32_t abi_registers_integer_saved[] = {
 	14, /* s0 */
 	15, /* s1 */
 	24, /* s2 */
@@ -94,7 +90,7 @@ const s4 abi_registers_integer_saved[] = {
 	31, /* s9 */
 };
 
-const s4 abi_registers_integer_temporary[] = {
+const int32_t abi_registers_integer_temporary[] = {
 	17, /* t0 */
 	18, /* t1 */
 	19, /* t2 */
@@ -105,7 +101,7 @@ const s4 abi_registers_integer_temporary[] = {
 };
 
 
-s4 nregdescfloat[] = {
+int32_t nregdescfloat[] = {
 	/*ftmp3,  fa0/v0,     fa1,     fa2,     fa3,     fa4,     fa5,     fa6,   */
 	REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
 
@@ -122,7 +118,7 @@ s4 nregdescfloat[] = {
 };
 
 
-const s4 abi_registers_float_argument[] = {
+const int32_t abi_registers_float_argument[] = {
 	1,  /* fa0  */
 	2,  /* fa1  */
 	3,  /* fa2  */
@@ -133,7 +129,7 @@ const s4 abi_registers_float_argument[] = {
 	8,  /* fa7  */
 };
 
-const s4 abi_registers_float_saved[] = {
+const int32_t abi_registers_float_saved[] = {
 	14, /* fs0  */
 	15, /* fs1  */
 	24, /* fs2  */
@@ -146,7 +142,7 @@ const s4 abi_registers_float_saved[] = {
 	31, /* fs9  */
 };
 
-const s4 abi_registers_float_temporary[] = {
+const int32_t abi_registers_float_temporary[] = {
 	9,  /* ft0  */
 	10, /* ft1  */
 	11, /* ft2  */
@@ -181,10 +177,10 @@ const s4 abi_registers_float_temporary[] = {
 void md_param_alloc(methoddesc *md)
 {
 	paramdesc *pd;
-	s4         i;
-	s4         iarg;
-	s4         farg;
-	s4         stacksize;
+	int32_t    i;
+	int32_t    iarg;
+	int32_t    farg;
+	int32_t    stacksize;
 
 	/* set default values */
 
@@ -214,7 +210,7 @@ void md_param_alloc(methoddesc *md)
 
 		case TYPE_LNG:
 			if (iarg < INT_ARG_CNT - 1) {
-				_ALIGN(iarg);
+				ALIGN_2(iarg);
 				pd->inmemory  = false;
 				pd->regoff    =
 					PACK_REGS(abi_registers_integer_argument[iarg + 1],
@@ -222,7 +218,7 @@ void md_param_alloc(methoddesc *md)
 				iarg += 2;
 			}
 			else {
-				_ALIGN(stacksize);
+				ALIGN_2(stacksize);
 				pd->inmemory  = true;
 				pd->regoff    = stacksize * 4;
 				iarg          = INT_ARG_CNT;
@@ -250,7 +246,7 @@ void md_param_alloc(methoddesc *md)
 				farg++;
 			}
 			else {
-				_ALIGN(stacksize);
+				ALIGN_2(stacksize);
 				pd->inmemory  = true;
 				pd->regoff    = stacksize * 4;
 				stacksize    += 2;
