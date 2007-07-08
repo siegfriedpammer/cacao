@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: emit.c 8191 2007-07-08 15:15:53Z twisti $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -695,10 +696,11 @@ void emit_verbosecall_enter(jitdata *jd)
 	methodinfo   *m;
 	codegendata  *cd;
 	registerdata *rd;
-	s4 s1, p, t, d;
-	int stack_off;
-	int stack_size;
-	methoddesc *md;
+	methoddesc   *md;
+	int32_t       disp;
+	int32_t       i;
+	int32_t       s, d;
+	int32_t       x;
 
 	if (!JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		return;
@@ -710,27 +712,6 @@ void emit_verbosecall_enter(jitdata *jd)
 	rd = jd->rd;
 
 	md = m->parseddesc;
-	
-	/* Build up Stackframe for builtin_trace_args call (a multiple of 16) */
-	/* For Darwin:                                                        */
-	/* LA + TRACE_ARGS_NUM u8 args + methodinfo + LR                      */
-	/* LA_SIZE(=6*4) + 8*8         + 4          + 4  + 0(Padding)         */
-	/* 6 * 4 + 8 * 8 + 2 * 4 = 12 * 8 = 6 * 16                            */
-	/* For Linux:                                                         */
-	/* LA + (TRACE_ARGS_NUM - INT_ARG_CNT/2) u8 args + methodinfo         */
-	/* + INT_ARG_CNT * 4 ( save integer registers) + LR + 8 + 8 (Padding) */
-	/* LA_SIZE(=2*4) + 4 * 8 + 4 + 8 * 4 + 4 + 8                          */
-	/* 2 * 4 + 4 * 8 + 10 * 4 + 1 * 8 + 8= 12 * 8 = 6 * 16                */
-	
-	/* in nativestubs no Place to save the LR (Link Register) would be needed */
-	/* but since the stack frame has to be aligned the 4 Bytes would have to  */
-	/* be padded again */
-
-#if defined(__DARWIN__)
-	stack_size = LA_SIZE + (TRACE_ARGS_NUM + 1) * 8;
-#else
-	stack_size = 6 * 16;
-#endif
 
 	/* mark trace code */
 
@@ -738,175 +719,93 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	M_MFLR(REG_ZERO);
 	M_AST(REG_ZERO, REG_SP, LA_LR_OFFSET);
-	M_STWU(REG_SP, REG_SP, -stack_size);
+	M_STWU(REG_SP, REG_SP, -(LA_SIZE + (1 + ARG_CNT + TMP_CNT) * 8));
 
-	M_CLR(REG_ITMP1);    /* clear help register */
+	M_CLR(REG_ITMP1);                            /* prepare a "zero" register */
 
-	/* save up to TRACE_ARGS_NUM arguments into the reserved stack space */
-#if defined(__DARWIN__)
-	/* Copy Params starting from first to Stack                          */
-	/* since TRACE_ARGS == INT_ARG_CNT all used integer argument regs    */ 
-	/* are saved                                                         */
-	p = 0;
-#else
-	/* Copy Params starting from fifth to Stack (INT_ARG_CNT/2) are in   */
-	/* integer argument regs                                             */
-	/* all integer argument registers have to be saved                   */
-	for (p = 0; p < 8; p++) {
-		d = abi_registers_integer_argument[p];
-		/* save integer argument registers */
-		M_IST(d, REG_SP, LA_SIZE + 4 * 8 + 4 + p * 4);
-	}
-	p = 4;
-#endif
-	stack_off = LA_SIZE;
+	/* save argument registers */
 
-	for (; p < md->paramcount && p < TRACE_ARGS_NUM; p++, stack_off += 8) {
-		t = md->paramtypes[p].type;
+	for (i = 0; i < md->paramcount; i++) {
+		if (!md->params[i].inmemory) {
+			s = md->params[i].regoff;
+			d = LA_SIZE + (1 + i) * 8;
 
-		if (IS_INT_LNG_TYPE(t)) {
-			if (!md->params[p].inmemory) {
-				s1 = md->params[p].regoff;
-
-				if (IS_2_WORD_TYPE(t)) {
-					M_IST(GET_HIGH_REG(s1), REG_SP, stack_off);
-					M_IST(GET_LOW_REG(s1), REG_SP, stack_off + 4);
-				}
-				else {
-					M_IST(REG_ITMP1, REG_SP, stack_off);
-					M_IST(s1, REG_SP, stack_off + 4);
-				}
-			}
-			else {
-				s1 = md->params[p].regoff + cd->stackframesize * 4 
-					+ stack_size;
-				if (IS_2_WORD_TYPE(t)) {
-					M_ILD(REG_ITMP2, REG_SP, s1);
-					M_IST(REG_ITMP2, REG_SP, stack_off);
-					M_ILD(REG_ITMP2, REG_SP, s1 + 4);
-					M_IST(REG_ITMP2, REG_SP, stack_off + 4);
-				}
-				else {
-					M_IST(REG_ITMP1, REG_SP, stack_off);
-					M_ILD(REG_ITMP2, REG_SP, s1);
-					M_IST(REG_ITMP2, REG_SP, stack_off + 4);
-				}
-			}
-		}
-		else {
-			if (!md->params[p].inmemory) {
-				s1 = md->params[p].regoff;
-
-				if (!IS_2_WORD_TYPE(t)) {
-					M_IST(REG_ITMP1, REG_SP, stack_off);
-					M_FST(s1, REG_SP, stack_off + 4);
-				}
-				else
-					M_DST(s1, REG_SP, stack_off);
-			}
-			else {
-				/* this should not happen */
+			switch (md->paramtypes[i].type) {
+			case TYPE_INT:
+			case TYPE_ADR:
+				M_IST(REG_ITMP1, REG_SP, d);            /* high-bits are zero */
+				M_IST(s, REG_SP, d + 4);
+				break;
+			case TYPE_LNG:
+				M_LST(s, REG_SP, d);
+				break;
+			case TYPE_FLT:
+				M_IST(REG_ITMP1, REG_SP, d);            /* high-bits are zero */
+				M_FST(s, REG_SP, d + 4);
+				break;
+			case TYPE_DBL:
+				M_DST(s, REG_SP, d);
+				break;
 			}
 		}
 	}
 
-	/* load first 4 (==INT_ARG_CNT/2) arguments into integer registers */
-#if defined(__DARWIN__)
-	for (p = 0; p < 8; p++) {
-		d = abi_registers_integer_argument[p];
-		M_ILD(d, REG_SP, LA_SIZE + p * 4);
+	/* load arguments as longs */
+
+	d = 0;
+
+	for (i = 0; i < md->paramcount && i < TRACE_ARGS_NUM; i++) {
+		s = LA_SIZE + (1 + i) * 8;
+		x = PACK_REGS(abi_registers_integer_argument[d + 1],
+					  abi_registers_integer_argument[d]);
+
+		M_LLD(x, REG_SP, s);
+
+		d += 2;
 	}
-#else
-	/* LINUX */
-	/* Set integer and float argument registers vor trace_args call */
-	/* offset to saved integer argument registers                   */
 
-	stack_off = LA_SIZE + 4 * 8 + 4;
+	/* put methodinfo pointer as last argument on the stack */
 
-	for (p = 0; (p < 4) && (p < md->paramcount); p++) {
-		t = md->paramtypes[p].type;
-
-		if (IS_INT_LNG_TYPE(t)) {
-			/* "stretch" int types */
-			if (!IS_2_WORD_TYPE(t)) {
-				M_CLR(abi_registers_integer_argument[2 * p]);
-				M_ILD(abi_registers_integer_argument[2 * p + 1], REG_SP,stack_off);
-				stack_off += 4;
-			}
-			else {
-				M_ILD(abi_registers_integer_argument[2 * p + 1], REG_SP,stack_off + 4);
-				M_ILD(abi_registers_integer_argument[2 * p], REG_SP,stack_off);
-				stack_off += 8;
-			}
-		}
-		else {
-			if (!md->params[p].inmemory) {
-				/* use reserved Place on Stack (sp + 5 * 16) to copy  */
-				/* float/double arg reg to int reg                    */
-
-				s1 = md->params[p].regoff;
-
-				if (!IS_2_WORD_TYPE(t)) {
-					M_FST(s1, REG_SP, 5 * 16);
-					M_ILD(abi_registers_integer_argument[2 * p + 1], REG_SP, 5 * 16);
-					M_CLR(abi_registers_integer_argument[2 * p]);
-				}
-				else {
-					M_DST(s1, REG_SP, 5 * 16);
-					M_ILD(abi_registers_integer_argument[2 * p + 1], REG_SP,  5 * 16 + 4);
-					M_ILD(abi_registers_integer_argument[2 * p], REG_SP, 5 * 16);
-				}
-			}
-		}
-	}
-#endif
-
-	/* put methodinfo pointer on Stackframe */
-	p = dseg_add_address(cd, m);
-	M_ALD(REG_ITMP1, REG_PV, p);
+	disp = dseg_add_address(cd, m);
+	M_ALD(REG_ITMP1, REG_PV, disp);
 #if defined(__DARWIN__)
 	M_AST(REG_ITMP1, REG_SP, LA_SIZE + TRACE_ARGS_NUM * 8); 
 #else
-	M_AST(REG_ITMP1, REG_SP, LA_SIZE + 4 * 8);
+	M_AST(REG_ITMP1, REG_SP, LA_SIZE);
 #endif
-	p = dseg_add_functionptr(cd, builtin_verbosecall_enter);
-	M_ALD(REG_ITMP2, REG_PV, p);
+	disp = dseg_add_functionptr(cd, builtin_verbosecall_enter);
+	M_ALD(REG_ITMP2, REG_PV, disp);
 	M_MTCTR(REG_ITMP2);
 	M_JSR;
 
-#if defined(__DARWIN__)
-	/* restore integer argument registers from the reserved stack space */
+	/* restore argument registers */
 
-	stack_off = LA_SIZE;
+	for (i = 0; i < md->paramcount; i++) {
+		if (!md->params[i].inmemory) {
+			s = LA_SIZE + (1 + i) * 8;
+			d = md->params[i].regoff;
 
-	for (p = 0; p < md->paramcount && p < TRACE_ARGS_NUM; p++, stack_off += 8) {
-		t = md->paramtypes[p].type;
-
-		if (IS_INT_LNG_TYPE(t)) {
-			if (!md->params[p].inmemory) {
-				s1 = md->params[p].regoff;
-
-				if (IS_2_WORD_TYPE(t)) {
-					M_ILD(GET_HIGH_REG(s1), REG_SP, stack_off);
-					M_ILD(GET_LOW_REG(s1), REG_SP, stack_off + 4);
-				}
-				else
-					M_ILD(s1, REG_SP, stack_off + 4);
+			switch (md->paramtypes[i].type) {
+			case TYPE_INT:
+			case TYPE_ADR:
+				M_ILD(d, REG_SP, s + 4);                      /* get low-bits */
+				break;
+			case TYPE_LNG:
+				M_LLD(d, REG_SP, s);
+				break;
+			case TYPE_FLT:
+				M_FLD(d, REG_SP, s + 4);                      /* get low-bits */
+				break;
+			case TYPE_DBL:
+				M_DLD(d, REG_SP, s);
+				break;
 			}
 		}
 	}
-#else
-	/* LINUX */
-	for (p = 0; p < 8; p++) {
-		d = abi_registers_integer_argument[p];
-		/* save integer argument registers */
-		M_ILD(d, REG_SP, LA_SIZE + 4 * 8 + 4 + p * 4);
-	}
-#endif
 
-	M_ALD(REG_ZERO, REG_SP, stack_size + LA_LR_OFFSET);
+	M_ALD(REG_ZERO, REG_SP, LA_SIZE + (1 + ARG_CNT + TMP_CNT) * 8 + LA_LR_OFFSET);
 	M_MTLR(REG_ZERO);
-	M_LDA(REG_SP, REG_SP, stack_size);
+	M_LDA(REG_SP, REG_SP, LA_SIZE + (1 + ARG_CNT + TMP_CNT) * 8);
 
 	/* mark trace code */
 
