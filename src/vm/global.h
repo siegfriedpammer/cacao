@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: global.h 8161 2007-06-28 10:30:08Z twisti $
+   $Id: global.h 8193 2007-07-09 14:37:49Z twisti $
 
 */
 
@@ -73,7 +73,7 @@ typedef union {
 
 /* alignment macros ***********************************************************/
 
-#define ALIGN_2(a)    do { if ((a) & 0x1) (a)++; } while (0)
+#define ALIGN_2(a)                      ((a) = (((a) + 1) & ~1))
 
 
 /* forward typedefs ***********************************************************/
