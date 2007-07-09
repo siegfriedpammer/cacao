@@ -161,7 +161,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* generate appropriate exception */
 
-	o = exceptions_new_hardware_exception(NULL, sp, ra, xpc, type, vali, &sfi);
+	o = exceptions_new_hardware_exception(NULL, sp, ra, xpc, type, val, &sfi);
 
 	/* set registers */
 
