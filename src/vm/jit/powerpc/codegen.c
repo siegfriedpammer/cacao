@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8115 2007-06-20 19:14:05Z michi $
+   $Id: codegen.c 8196 2007-07-11 13:54:21Z twisti $
 
 */
 
@@ -305,9 +305,8 @@ bool codegen_emit(jitdata *jd)
 					if (IS_2_WORD_TYPE(t)) {
 						M_DLD(REG_FTMP1, REG_SP, cd->stackframesize * 4 + s1);
 						M_DST(REG_FTMP1, REG_SP, var->vv.regoff);
-						var->vv.regoff = cd->stackframesize + s1;
-
-					} else {
+					}
+					else {
 						M_FLD(REG_FTMP1, REG_SP, cd->stackframesize * 4 + s1);
 						M_FST(REG_FTMP1, REG_SP, var->vv.regoff);
 					}
@@ -3026,34 +3025,22 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* save integer and float argument registers */
 
-	j = 0;
-
 	for (i = 0; i < md->paramcount; i++) {
-		t = md->paramtypes[i].type;
+		if (!md->params[i].inmemory) {
+			s1 = md->params[i].regoff;
 
-		if (IS_INT_LNG_TYPE(t)) {
-			if (!md->params[i].inmemory) {
-				s1 = md->params[i].regoff;
-
-				if (IS_2_WORD_TYPE(t)) {
-					M_IST(GET_HIGH_REG(s1), REG_SP, LA_SIZE + 4 * 4 + j * 4);
-					j++;
-					M_IST(GET_LOW_REG(s1), REG_SP, LA_SIZE + 4 * 4 + j * 4);
-				}
-				else
-					M_IST(s1, REG_SP, LA_SIZE + 4 * 4 + j * 4);
-
-				j++;
-			}
-		}
-	}
-
-	for (i = 0; i < md->paramcount; i++) {
-		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			if (!md->params[i].inmemory) {
-				s1 = md->params[i].regoff;
-				M_DST(s1, REG_SP, LA_SIZE + 4 * 4 + j * 8);
-				j++;
+			switch (md->paramtypes[i].type) {
+			case TYPE_INT:
+			case TYPE_ADR:
+				M_IST(s1, REG_SP, LA_SIZE + 4*4 + i * 8);
+				break;
+			case TYPE_LNG:
+				M_LST(s1, REG_SP, LA_SIZE + 4*4 + i * 8);
+				break;
+			case TYPE_FLT:
+			case TYPE_DBL:
+				M_DST(s1, REG_SP, LA_SIZE + 4*4 + i * 8);
+				break;
 			}
 		}
 	}
@@ -3071,38 +3058,26 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* restore integer and float argument registers */
 
-	j = 0;
-
 	for (i = 0; i < md->paramcount; i++) {
-		t = md->paramtypes[i].type;
+		if (!md->params[i].inmemory) {
+			s1 = md->params[i].regoff;
 
-		if (IS_INT_LNG_TYPE(t)) {
-			if (!md->params[i].inmemory) {
-				s1 = md->params[i].regoff;
-
-				if (IS_2_WORD_TYPE(t)) {
-					M_ILD(GET_HIGH_REG(s1), REG_SP, LA_SIZE + 4 * 4 + j * 4);
-					j++;
-					M_ILD(GET_LOW_REG(s1), REG_SP, LA_SIZE + 4 * 4 + j * 4);
-				}
-				else
-					M_ILD(s1, REG_SP, LA_SIZE + 4 * 4 + j * 4);
-
-				j++;
+			switch (md->paramtypes[i].type) {
+			case TYPE_INT:
+			case TYPE_ADR:
+				M_ILD(s1, REG_SP, LA_SIZE + 4*4 + i * 8);
+				break;
+			case TYPE_LNG:
+				M_LLD(s1, REG_SP, LA_SIZE + 4*4 + i * 8);
+				break;
+			case TYPE_FLT:
+			case TYPE_DBL:
+				M_DLD(s1, REG_SP, LA_SIZE + 4*4 + i * 8);
+				break;
 			}
 		}
 	}
 
-	for (i = 0; i < md->paramcount; i++) {
-		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			if (!md->params[i].inmemory) {
-				s1 = md->params[i].regoff;
-				M_DLD(s1, REG_SP, LA_SIZE + 4 * 4 + j * 8);
-				j++;
-			}
-		}
-	}
-	
 	/* copy or spill arguments to new locations */
 
 	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
