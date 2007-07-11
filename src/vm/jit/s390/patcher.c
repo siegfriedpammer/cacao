@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: patcher.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: patcher.c 8195 2007-07-11 11:27:55Z pm $
 
      GENERATED      PATCHER BRANCH           AFTER PATCH
 
@@ -406,10 +406,9 @@ bool patcher_invokeinterface(u1 *sp)
 	/* get interfacetable index */
 
 	idx = (s4) (OFFSET(vftbl_t, interfacetable[0]) -
-		sizeof(methodptr) * m->class->index) + 
-		N_DISP_MAX;
+		sizeof(methodptr) * m->class->index);
 
-	ASSERT_VALID_DISP(idx);
+	ASSERT_VALID_IMM(idx);
 
 	/* get method offset */
 
@@ -419,8 +418,8 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* patch them */
 
-	*((s4 *)(ra + 4)) |= idx;
-	*((s4 *)(ra + 4 + 4)) |= off;
+	*((s4 *)(ra + 4)) |= (u2)idx;
+	*((s4 *)(ra + 4 + 4 + 4)) |= off;
 
 	return true;
 }

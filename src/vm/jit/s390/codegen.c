@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8152 2007-06-27 20:37:45Z pm $
+   $Id: codegen.c 8195 2007-07-11 11:27:55Z pm $
 
 */
 
@@ -2838,8 +2838,6 @@ gen_method:
 				 * and -0xFFF in index register (itmp1)
 				 */
 
-				N_LHI(REG_ITMP1, -N_DISP_MAX);
-
 				if (lm == NULL) {
 					codegen_addpatchref(cd, PATCHER_invokeinterface, um, 0);
 
@@ -2848,15 +2846,15 @@ gen_method:
 				}
 				else {
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
-						sizeof(methodptr*) * lm->class->index +
-						N_DISP_MAX;
+						sizeof(methodptr*) * lm->class->index;
 
 					s2 = sizeof(methodptr) * (lm - lm->class->methods);
 				}
 
 				/* Implicit null-pointer check */
 				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_objectheader, vftbl));
-				N_L(REG_METHODPTR, s1, REG_ITMP1, REG_METHODPTR);
+				N_LHI(REG_ITMP1, s1);
+				N_L(REG_METHODPTR, 0, REG_ITMP1, REG_METHODPTR);
 				M_ALD(REG_PV, REG_METHODPTR, s2);
 				break;
 			}
