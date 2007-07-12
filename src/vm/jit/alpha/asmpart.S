@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8186 2007-07-05 23:48:16Z michi $
+   $Id: asmpart.S 8198 2007-07-12 07:16:24Z twisti $
 
 */
 
@@ -114,92 +114,72 @@ asm_vm_call_method_long:
 asm_vm_call_method_float:
 asm_vm_call_method_double:
 	ldgp    gp,0(pv)
-	lda     sp,-5*8(sp)               /* allocate stack space                 */
-	stq     ra,0*8(sp)                /* save return address                  */
-	stq     gp,1*8(sp)                /* save global pointer                  */
-	stq     s6,3*8(sp)
+	lda     sp,-5*8(sp)                 /* allocate stack space               */
+	stq     ra,0*8(sp)                  /* save return address                */
+	stq     gp,1*8(sp)                  /* save global pointer                */
 
-	stq     a0,4*8(sp)                /* save method pointer for compiler     */
+	stq     s0,3*8(sp)
+	stq     a0,4*8(sp)                  /* save method PV                     */
 
-	mov     a2,t0                     /* pointer to arg block                 */
-	mov     a1,s6                     /* arg count                            */
+	mov     a1,t0                       /* address of argument array          */
+	mov     a2,t1                       /* stack argument count               */
+	mov     sp,s0                       /* save stack pointer                 */
 
-	ble     s6,calljava_argsloaded
-	lda     s6,-1(s6)
-	ldq     a0,offvmargdata(t0)
-	ldt     $f16,offvmargdata(t0)
-	ble     s6,calljava_argsloaded
+	ldq     a0,0*8(t0)
+	ldq     a1,1*8(t0)
+	ldq     a2,2*8(t0)
+	ldq     a3,3*8(t0)
+	ldq     a4,4*8(t0)
+	ldq     a5,5*8(t0)
 
-	lda     s6,-1(s6)
-	ldq     a1,offvmargdata+sizevmarg*1(t0)
-	ldt     $f17,offvmargdata+sizevmarg*1(t0)
-	ble     s6,calljava_argsloaded
+	ldt     fa0,6*8(t0)
+	ldt     fa1,7*8(t0)
+	ldt     fa2,8*8(t0)
+	ldt     fa3,9*8(t0)
+	ldt     fa4,10*8(t0)
+	ldt     fa5,11*8(t0)
 
-	lda     s6,-1(s6)
-	ldq     a2,offvmargdata+sizevmarg*2(t0)
-	ldt     $f18,offvmargdata+sizevmarg*2(t0)
-	ble     s6,calljava_argsloaded
+	beq     t1,L_asm_vm_call_method_stack_copy_done
 
-	lda     s6,-1(s6)
-	ldq     a3,offvmargdata+sizevmarg*3(t0)
-	ldt     $f19,offvmargdata+sizevmarg*3(t0)
-	ble     s6,calljava_argsloaded
+	negq    t1,t2                       /* calculate stackframe size (* 8)    */
+	s8addq  t2,sp,sp                    /* create stackframe                  */
+	mov     sp,t2                       /* temporary stack pointer            */
 
-	lda     s6,-1(s6)
-	ldq     a4,offvmargdata+sizevmarg*4(t0)
-	ldt     $f20,offvmargdata+sizevmarg*4(t0)
-	ble     s6,calljava_argsloaded
+L_asm_vm_call_method_stack_copy_loop:
+	ldq     t3,12*8(t0)                 /* load argument                      */
+	stq     t3,0(t2)                    /* store argument on stack            */
 
-	lda     s6,-1(s6)
-	ldq     a5,offvmargdata+sizevmarg*5(t0)
-	ldt     $f21,offvmargdata+sizevmarg*5(t0)
-calljava_argsloaded:
-	mov     sp,t4
-	ble     s6,calljava_nocopy
-	negq    s6,t1
-	s8addq  t1,sp,sp
-	s8addq  t1,t4,t2
+	subq    t1,1,t1                     /* subtract 1 argument                */
+	addq    t0,8,t0                     /* load address of next argument      */
+	addq    t2,8,t2                     /* increase stack pointer             */
 
-calljava_copyloop:
-	ldq     t3,offvmargdata+sizevmarg*6(t0)
-	stq     t3,0(t2)
-	lda     t1,1(t1)
-	lda     t0,sizevmarg(t0)
-	lda     t2,8(t2)
-	bne     t1,calljava_copyloop
+	bgt     t1,L_asm_vm_call_method_stack_copy_loop
 
-calljava_nocopy:
-	ldq     itmp1,4*8(t4)             /* pass method pointer via itmp1        */
+L_asm_vm_call_method_stack_copy_done:
+	lda     mptr,4*8(s0)                /* get address of PV                  */
+	ldq     pv,0*8(mptr)                /* load PV                            */
+	jmp     ra,(pv)
+L_asm_vm_call_method_recompute_pv:
+	lda     pv,(asm_vm_call_method - L_asm_vm_call_method_recompute_pv)(ra)
 
-	lda     mptr,asm_call_jit_compiler/* fake virtual function call (2 instr) */
-	stq     mptr,2*8(t4)              /* store function address               */
-	lda     mptr,1*8(t4)              /* set method pointer                   */
+	mov     s0,sp                       /* restore stack pointer              */
 
-	ldq     pv,1*8(mptr)              /* method call as in Java               */
-	jmp     ra,(pv)                   /* call JIT compiler                    */
-calljava_jit2:
-	lda     pv,(asm_vm_call_method - calljava_jit2)(ra)
+L_asm_vm_call_method_recompute_return:
+	ldq     ra,0*8(sp)                  /* restore RA                         */
+	ldq     gp,1*8(sp)                  /* restore global pointer             */
+	ldq     s0,3*8(sp)
 
-	s8addq  s6,sp,sp
-calljava_return2:
-	ldq     ra,0*8(sp)                /* restore return address               */
-	ldq     gp,1*8(sp)                /* restore global pointer               */
-	ldq     s6,3*8(sp)
-	lda     sp,5*8(sp)                /* free stack space                     */
-
-calljava_ret2:
+	lda     sp,5*8(sp)                  /* free stack space                   */
 	jmp     zero,(ra)
 
 asm_vm_call_method_exception_handler:
-	s8addq  s6,sp,sp
-	ldq     gp,1*8(sp)                /* restore global pointer               */
+	mov     s0,sp                       /* restore stack pointer              */
+	ldq     gp,1*8(sp)                  /* restore global pointer             */
 	mov     itmp1,a0
 	jsr     ra,builtin_throw_exception
-	ldq     ra,0*8(sp)                /* restore return address               */
-	ldq     s6,3*8(sp)
-	lda     sp,5*8(sp)                /* free stack space                     */
+
 asm_vm_call_method_end:					
-	jmp     zero,(ra)
+	br      L_asm_vm_call_method_recompute_return
 
 	.end    asm_vm_call_method
 
