@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.h 8123 2007-06-20 23:50:55Z michi $
+   $Id: statistics.h 8199 2007-07-13 00:39:49Z michi $
 
 */
 
@@ -105,6 +105,8 @@ extern s4 size_threadobject;
 extern s4 size_lock_record;
 extern s4 size_lock_hashtable;
 extern s4 size_lock_waiter;
+
+extern s4 size_patchref;
 
 extern u8 count_calls_java_to_native;
 extern u8 count_calls_native_to_java;

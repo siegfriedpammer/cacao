@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: statistics.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: statistics.c 8199 2007-07-13 00:39:49Z michi $
 
 */
 
@@ -102,6 +102,8 @@ s4 size_threadobject     = 0;
 s4 size_lock_record      = 0;
 s4 size_lock_hashtable   = 0;
 s4 size_lock_waiter      = 0;
+
+s4 size_patchref         = 0;
 
 u8 count_calls_java_to_native = 0;
 u8 count_calls_native_to_java = 0;
@@ -697,6 +699,7 @@ void statistics_print_memory_usage(void)
 	log_println("lock record:            %10d", size_lock_record);
 	log_println("lock hashtable:         %10d", size_lock_hashtable);
 	log_println("lock waiter:            %10d", size_lock_waiter);
+	log_println("patcher references:     %10d", size_patchref);
 	log_println("                         ----------");
 
 	sum =
@@ -714,7 +717,8 @@ void statistics_print_memory_usage(void)
 		size_threadobject +
 		size_lock_record +
 		size_lock_hashtable +
-		size_lock_waiter;
+		size_lock_waiter +
+		size_patchref;
 
 	log_println("                        %10d", sum);
 	log_println("");

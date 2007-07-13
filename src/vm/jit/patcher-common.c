@@ -78,6 +78,11 @@ void patcher_list_free(codeinfo *code)
 		list_remove(code->patchers, pr);
 
 		FREE(pr, patchref_t);
+
+#if defined(ENABLE_STATISTICS)
+		if (opt_stat)
+			size_patchref -= sizeof(patchref_t);
+#endif
 	}
 
 	/* free the list itself */
@@ -136,6 +141,11 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
 
 	pr = NEW(patchref_t);
 	list_add_first_unsynced(code->patchers, pr);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_patchref += sizeof(patchref_t);
+#endif
 
     /* set patcher information (mpc is resolved later) */
 
