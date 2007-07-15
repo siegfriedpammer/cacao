@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8169 2007-06-30 12:33:50Z twisti $
+   $Id: class.c 8203 2007-07-15 12:30:04Z twisti $
 
 */
 
@@ -1498,8 +1498,7 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
 
 	/* Primitive classes are only subclasses of themselves. */
 
-	if ((sub->flags & ACC_CLASS_PRIMITIVE) ||
-		(super->flags & ACC_CLASS_PRIMITIVE))
+	if (class_is_primitive(sub) || class_is_primitive(super))
 		return false;
 
 	/* Check for interfaces. */
@@ -1522,6 +1521,21 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
 	}
 
 	return result;
+}
+
+
+/* class_is_primitive **********************************************************
+
+   Checks if the given class is a primitive class.
+
+*******************************************************************************/
+
+bool class_is_primitive(classinfo *c)
+{
+	if (c->flags & ACC_CLASS_PRIMITIVE)
+		return true;
+
+	return false;
 }
 
 

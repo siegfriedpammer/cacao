@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8170 2007-06-30 14:03:18Z twisti $
+   $Id: java_lang_Class.c 8203 2007-07-15 12:30:04Z twisti $
 
 */
 
@@ -261,13 +261,10 @@ JNIEXPORT int32_t JNICALL _Jv_java_lang_Class_isInterface(JNIEnv *env, java_lang
 s4 _Jv_java_lang_Class_isPrimitive(java_lang_Class *klass)
 {
 	classinfo *c;
-	bool       result;
 
 	c = (classinfo *) klass;
 
-	result = primitive_class_is_primitive(c);
-
-	return result;
+	return class_is_primitive(c);
 }
 
 
@@ -435,7 +432,7 @@ java_lang_Class *_Jv_java_lang_Class_getDeclaringClass(java_lang_Class *klass)
 
 	c = (classinfo *) klass;
 
-	if (!primitive_class_is_primitive(c) && (c->name->text[0] != '[')) {
+	if (!class_is_primitive(c) && (c->name->text[0] != '[')) {
 		if (c->innerclasscount == 0)  /* no innerclasses exist */
 			return NULL;
     
@@ -490,7 +487,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass,
 	c = (classinfo *) klass;
 	declaredclasscount = 0;
 
-	if (!primitive_class_is_primitive(c) && (c->name->text[0] != '[')) {
+	if (!class_is_primitive(c) && (c->name->text[0] != '[')) {
 		/* determine number of declared classes */
 
 		for (i = 0; i < c->innerclasscount; i++) {

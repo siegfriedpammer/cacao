@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8169 2007-06-30 12:33:50Z twisti $
+   $Id: class.h 8203 2007-07-15 12:30:04Z twisti $
 
 */
 
@@ -80,8 +80,9 @@ typedef struct castinfo       castinfo;
 /* classinfo ******************************************************************/
 
 /* We define this dummy structure of java_lang_Class so we can
-   bootstrap cacaoh without needing a java_lang_Class.h file.  If the
-   size is big enough, is checked during runtime in vm_create. */
+   bootstrap cacaoh without needing a java_lang_Class.h file.  Whether
+   the size of the dummy structure is big enough is checked during
+   runtime in vm_create. */
 
 typedef struct {
 	java_objectheader header;
@@ -352,6 +353,7 @@ methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *dest, cla
 
 bool class_issubclass(classinfo *sub, classinfo *super);
 bool class_isanysubclass(classinfo *sub, classinfo *super);
+bool class_is_primitive(classinfo *c);
 bool class_is_array(classinfo *c);
 bool class_is_interface(classinfo *c);
 

@@ -105,7 +105,6 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 /* function prototypes ********************************************************/
 
 bool       primitive_init(void);
-bool       primitive_class_is_primitive(classinfo *c);
 classinfo *primitive_class_get_by_name(utf *name);
 classinfo *primitive_class_get_by_type(int32_t type);
 classinfo *primitive_class_get_by_char(char ch);

@@ -797,7 +797,7 @@ jobject JVM_GetProtectionDomain(JNIEnv *env, jclass cls)
 
     /* Primitive types do not have a protection domain. */
 
-	if (primitive_class_is_primitive(c))
+	if (class_is_primitive(c))
 		return NULL;
 }
 
@@ -889,10 +889,15 @@ jboolean JVM_IsArrayClass(JNIEnv *env, jclass cls)
 
 jboolean JVM_IsPrimitiveClass(JNIEnv *env, jclass cls)
 {
+	classinfo *c;
+
+	c = (classinfo *) cls;
+
 #if PRINTJVM
-	log_println("JVM_IsPrimitiveClass: cls=%p", cls);
+	log_println("JVM_IsPrimitiveClass(cls=%p)", cls);
 #endif
-	return primitive_class_is_primitive((classinfo *) cls);
+
+	return class_is_primitive(c);
 }
 
 
@@ -1878,6 +1883,7 @@ jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 {
 	classinfo        *c;
 	classinfo        *pc;
+	java_arrayheader *a;
 	java_objectarray *oa;
 
 	c = (classinfo *) eltClass;
@@ -1888,15 +1894,17 @@ jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 
 	/* create primitive or object array */
 
-	if (primitive_class_is_primitive(c)) {
+	if (class_is_primitive(c)) {
 		pc = primitive_arrayclass_get_by_name(c->name);
-		oa = builtin_newarray(length, pc);
+		a = builtin_newarray(length, pc);
+
+		return (jobject) a;
 	}
 	else {
 		oa = builtin_anewarray(length, c);
-	}
 
-	return (jobject) oa;
+		return (jobject) oa;
+	}
 }
 
 

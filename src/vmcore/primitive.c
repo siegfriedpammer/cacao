@@ -152,26 +152,6 @@ bool primitive_init(void)
 }
 
 
-/* primitive_class_is_primitive ************************************************
-
-   Check if the given class is a primitive class.
-
-*******************************************************************************/
-
-bool primitive_class_is_primitive(classinfo *c)
-{
-	int i;
-
-	/* search table of primitive classes */
-
-	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
-		if (primitivetype_table[i].class_primitive == c)
-			return true;
-
-	return false;
-}
-
-
 /* primitive_class_get_by_name *************************************************
 
    Returns the primitive class of the given class name.
