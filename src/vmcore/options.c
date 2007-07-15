@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.c 8194 2007-07-10 13:44:37Z twisti $
+   $Id: options.c 8206 2007-07-15 14:26:33Z twisti $
 
 */
 
@@ -187,6 +187,7 @@ FILE    *opt_ProfileMemoryUsageGNUPlot = NULL;
 int32_t  opt_ThreadStackSize           = 0;
 int32_t  opt_TraceExceptions           = 0;
 int32_t  opt_TraceJavaCalls            = 0;
+int32_t  opt_TraceJVMCalls             = 0;
 #if defined(ENABLE_REPLACEMENT)
 int32_t  opt_TraceReplacement          = 0;
 #endif
@@ -201,6 +202,7 @@ enum {
 	OPT_ThreadStackSize,
 	OPT_TraceExceptions,
 	OPT_TraceJavaCalls,
+	OPT_TraceJVMCalls,
 	OPT_TraceReplacement
 };
 
@@ -214,6 +216,7 @@ option_t options_XX[] = {
 	{ "ThreadStackSize",           OPT_ThreadStackSize,           "" },
 	{ "TraceExceptions",           OPT_TraceExceptions,           "" },
 	{ "TraceJavaCalls",            OPT_TraceJavaCalls,            "" },
+	{ "TraceJVMCalls",             OPT_TraceJVMCalls,             "" },
 #if defined(ENABLE_REPLACEMENT)
 	{ "TraceReplacement",          OPT_TraceReplacement,          "" },
 #endif
@@ -416,6 +419,10 @@ void options_xx(const char *name)
 	case OPT_TraceJavaCalls:
 		opt_verbosecall = enable;
 		opt_TraceJavaCalls = enable;
+		break;
+
+	case OPT_TraceJVMCalls:
+		opt_TraceJVMCalls = enable;
 		break;
 
 #if defined(ENABLE_REPLACEMENT)

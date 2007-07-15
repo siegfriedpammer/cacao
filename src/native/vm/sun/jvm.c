@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8205 2007-07-15 12:45:40Z twisti $
+   $Id: jvm.c 8206 2007-07-15 14:26:33Z twisti $
 
 */
 
@@ -85,20 +85,21 @@
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/classcache.h"
+#include "vmcore/options.h"
 #include "vmcore/primitive.h"
 
 
 /* debugging macro ************************************************************/
 
 #if !defined(NDEBUG)
-# define DEBUG_JVM(x) \
+# define TRACEJVMCALLS(...) \
     do { \
-        if (opt_TraceJVM) { \
-            log_println("%s", (x)); \
+        if (opt_TraceJVMCalls) { \
+            log_println(__VA_ARGS__); \
         } \
     } while (0)
 #else
-# define DEBUG_JVM(x)
+# define TRACEJVMCALLS(...)
 #endif
 
 
@@ -1858,7 +1859,24 @@ jclass JVM_LoadClass0(JNIEnv *env, jobject receiver, jclass currClass, jstring c
 
 jint JVM_GetArrayLength(JNIEnv *env, jobject arr)
 {
-	log_println("JVM_GetArrayLength: IMPLEMENT ME!");
+	java_arrayheader *a;
+
+	TRACEJVMCALLS("JVM_GetArrayLength(arr=%p)", arr);
+
+	a = (java_arrayheader *) arr;
+
+	if (a == NULL) {
+		exceptions_throw_nullpointerexception();
+		return 0;
+	}
+
+	if (!class_is_array(a->objheader.vftbl->class)) {
+/* 		exceptions_throw_illegalargumentexception("Argument is not an array"); */
+		exceptions_throw_illegalargumentexception();
+		return 0;
+	}
+
+	return a->size;
 }
 
 
