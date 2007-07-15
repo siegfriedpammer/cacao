@@ -1876,10 +1876,27 @@ void JVM_SetPrimitiveArrayElement(JNIEnv *env, jobject arr, jint index, jvalue v
 
 jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 {
+	classinfo        *c;
+	classinfo        *pc;
+	java_objectarray *oa;
+
+	c = (classinfo *) eltClass;
+
 #if PRINTJVM
-	log_println("JVM_NewArray: eltClass=%p, length=%d", eltClass, length);
+	log_println("JVM_NewArray(eltClass=%p, length=%d)", eltClass, length);
 #endif
-	return (jobject) builtin_anewarray(length, (classinfo *) eltClass);
+
+	/* create primitive or object array */
+
+	if (primitive_class_is_primitive(c)) {
+		pc = primitive_arrayclass_get_by_name(c->name);
+		oa = builtin_newarray(length, pc);
+	}
+	else {
+		oa = builtin_anewarray(length, c);
+	}
+
+	return (jobject) oa;
 }
 
 
