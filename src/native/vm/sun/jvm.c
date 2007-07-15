@@ -214,10 +214,17 @@ jlong JVM_NanoTime(JNIEnv *env, jclass ignored)
 
 void JVM_ArrayCopy(JNIEnv *env, jclass ignored, jobject src, jint src_pos, jobject dst, jint dst_pos, jint length)
 {
+	java_arrayheader *s;
+	java_arrayheader *d;
+
+	s = (java_arrayheader *) src;
+	d = (java_arrayheader *) dst;
+
 #if PRINTJVM
 	log_println("JVM_ArrayCopy: src=%p, src_pos=%d, dst=%p, dst_pos=%d, length=%d", src, src_pos, dst, dst_pos, length);
 #endif
-	builtin_arraycopy(src, src_pos, dst, dst_pos, length);
+
+	(void) builtin_arraycopy(s, src_pos, d, dst_pos, length);
 }
 
 
@@ -452,7 +459,7 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 	o->fileName       = filename;
 	o->lineNumber     = linenumber;
 
-	return o;
+	return (jobject) o;
 }
 
 
@@ -706,10 +713,20 @@ jclass JVM_DefineClassWithSource(JNIEnv *env, const char *name, jobject loader, 
 
 jclass JVM_FindLoadedClass(JNIEnv *env, jobject loader, jstring name)
 {
+	classloader *cl;
+	utf         *u;
+	classinfo   *c;
+
+	cl = (classloader *) loader;
+
 #if PRINTJVM
-	log_println("JVM_FindLoadedClass: loader=%p, name=%p", loader, name);
+	log_println("JVM_FindLoadedClass(loader=%p, name=%p)", loader, name);
 #endif
-	return (jclass) classcache_lookup((classloader *) loader, javastring_toutf(name, true));
+
+	u = javastring_toutf((java_objectheader *) name, true);
+	c = classcache_lookup(cl, u);
+
+	return (jclass) c;
 }
 
 
