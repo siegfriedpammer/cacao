@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8203 2007-07-15 12:30:04Z twisti $
+   $Id: class.c 8207 2007-07-16 15:18:32Z twisti $
 
 */
 
@@ -1567,6 +1567,65 @@ bool class_is_interface(classinfo *c)
 		return true;
 
 	return false;
+}
+
+
+/* class_get_declaringclass ****************************************************
+
+   If the class or interface given is a member of another class,
+   return the declaring class.  For array and primitive classes return
+   NULL.
+
+*******************************************************************************/
+
+classinfo *class_get_declaringclass(classinfo *c)
+{
+	classref_or_classinfo  innercr;
+	utf                   *innername;
+	classref_or_classinfo  outercr;
+	classinfo             *outer;
+	int16_t                i;
+
+	/* return NULL for arrayclasses and primitive classes */
+
+	if (class_is_primitive(c) || (c->name->text[0] == '['))
+		return NULL;
+
+	/* no innerclasses exist */
+
+	if (c->innerclasscount == 0)
+		return NULL;
+
+	for (i = 0; i < c->innerclasscount; i++) {
+		/* Check if inner_class is a classref or a real class and get
+		   the class name from the structure. */
+
+		innercr = c->innerclass[i].inner_class;
+
+		innername = IS_CLASSREF(innercr) ?
+			innercr.ref->name : innercr.cls->name;
+
+		/* Is the current innerclass this class? */
+
+		if (innername == c->name) {
+			/* Maybe the outer class is not loaded yet. */
+
+			outercr = c->innerclass[i].outer_class;
+
+			outer = resolve_classref_or_classinfo_eager(outercr, false);
+
+			if (outer == NULL)
+				return NULL;
+
+			if (!(outer->state & CLASS_LINKED))
+				if (!link_class(outer))
+					return NULL;
+
+			return outer;
+		}
+	}
+
+	return NULL;
 }
 
 

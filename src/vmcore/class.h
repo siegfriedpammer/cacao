@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8203 2007-07-15 12:30:04Z twisti $
+   $Id: class.h 8207 2007-07-16 15:18:32Z twisti $
 
 */
 
@@ -351,11 +351,12 @@ methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *dest);
 methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
 methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
 
-bool class_issubclass(classinfo *sub, classinfo *super);
-bool class_isanysubclass(classinfo *sub, classinfo *super);
-bool class_is_primitive(classinfo *c);
-bool class_is_array(classinfo *c);
-bool class_is_interface(classinfo *c);
+bool       class_issubclass(classinfo *sub, classinfo *super);
+bool       class_isanysubclass(classinfo *sub, classinfo *super);
+bool       class_is_primitive(classinfo *c);
+bool       class_is_array(classinfo *c);
+bool       class_is_interface(classinfo *c);
+classinfo *class_get_declaringclass(classinfo *c);
 
 /* some debugging functions */
 
