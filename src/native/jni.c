@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8208 2007-07-17 09:06:22Z twisti $
+   $Id: jni.c 8209 2007-07-17 20:13:23Z twisti $
 
 */
 
@@ -1291,19 +1291,16 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 						   const jbyte *buf, jsize bufLen)
 {
 #if defined(ENABLE_JAVASE)
-	java_lang_ClassLoader *cl;
-	java_lang_String      *s;
-	java_bytearray        *ba;
-	jclass                 c;
+	utf               *u;
+	java_objectheader *cl;
+	classinfo         *c;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_DefineClass(env=%p, name=%s, loader=%p, buf=%p, bufLen=%d", env, name, loader, buf, bufLen);
 
-	cl = (java_lang_ClassLoader *) loader;
-	s  = (java_lang_String *) javastring_new_from_utf_string(name);
-	ba = (java_bytearray *) buf;
+	u  = utf_new_char(name);
+	cl = (java_objectheader *) loader;
 
-	c = (jclass) _Jv_java_lang_ClassLoader_defineClass(cl, s, ba, 0, bufLen,
-													   NULL);
+	c = class_define(u, cl, bufLen, (const uint8_t *) buf);
 
 	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
 #else

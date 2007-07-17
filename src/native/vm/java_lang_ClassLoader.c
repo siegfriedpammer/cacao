@@ -128,7 +128,7 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 		c = class_define(utfname, loader, new_class_data_len, new_class_data); 
 	else
 #endif
-		c = class_define(utfname, loader, len, (u1 *) &data->data[offset]); 
+		c = class_define(utfname, loader, len, (const uint8_t *) &data->data[offset]);
 
 	if (c == NULL)
 		return NULL;

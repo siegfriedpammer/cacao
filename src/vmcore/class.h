@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8207 2007-07-16 15:18:32Z twisti $
+   $Id: class.h 8209 2007-07-17 20:13:23Z twisti $
 
 */
 
@@ -290,18 +290,12 @@ extern classinfo *pseudo_class_New;
 
 /* function prototypes ********************************************************/
 
-/* create a new classinfo struct */
 classinfo *class_create_classinfo(utf *u);
+void       class_postset_header_vftbl(void);
+classinfo *class_define(utf *name, java_objectheader *cl, int32_t length, const uint8_t *data);
+void       class_set_packagename(classinfo *c);
 
-/* postset's the header.vftbl */
-void class_postset_header_vftbl(void);
-
-classinfo *class_define(utf *name, java_objectheader *cl, s4 length, u1 *data);
-
-/* set the package name after the name has been set */
-void class_set_packagename(classinfo *c);
-
-bool class_load_attributes(classbuffer *cb);
+bool       class_load_attributes(classbuffer *cb);
 
 /* retrieve constantpool element */
 voidptr class_getconstant(classinfo *class, u4 pos, u4 ctype);

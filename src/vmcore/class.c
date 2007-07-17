@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8207 2007-07-16 15:18:32Z twisti $
+   $Id: class.c 8209 2007-07-17 20:13:23Z twisti $
 
 */
 
@@ -46,6 +46,7 @@
 
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/resolve.h"
 
 #include "vm/jit/asmpart.h"
 
@@ -284,7 +285,7 @@ void class_postset_header_vftbl(void)
 
 *******************************************************************************/
 
-classinfo *class_define(utf *name, java_objectheader *cl, s4 length, u1 *data)
+classinfo *class_define(utf *name, java_objectheader *cl, int32_t length, const uint8_t *data)
 {
 	classinfo   *c;
 	classinfo   *r;
