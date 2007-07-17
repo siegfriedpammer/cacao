@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8198 2007-07-12 07:16:24Z twisti $
+   $Id: jni.c 8208 2007-07-17 09:06:22Z twisti $
 
 */
 
@@ -114,6 +114,19 @@
 #include "vmcore/options.h"
 #include "vmcore/primitive.h"
 #include "vmcore/statistics.h"
+
+
+/* debug **********************************************************************/
+
+#if !defined(NDEBUG) && 0
+# define TRACEJNICALLS(format, ...) \
+    do { \
+        if (opt_TraceJNICalls) \
+            log_println((format), __VA_ARGS__); \
+    } while (0)
+#else
+# define TRACEJNICALLS(format, ...)
+#endif
 
 
 /* global variables ***********************************************************/
@@ -6427,9 +6440,17 @@ jint JNI_GetDefaultJavaVMInitArgs(void *vm_args)
 
 jint JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 {
-	log_text("JNI_GetCreatedJavaVMs: IMPLEMENT ME!!!");
+	TRACEJNICALLS("JNI_GetCreatedJavaVMs(vmBuf=%p, jsize=%d, jsize=%p)", vmBuf, bufLen, nVMs);
 
-	return 0;
+	if (bufLen <= 0)
+		return JNI_ERR;
+
+	/* We currently only support 1 VM running. */
+
+	vmBuf[0] = (JavaVM *) _Jv_jvm;
+	*nVMs    = 1;
+
+    return JNI_OK;
 }
 
 
@@ -6442,6 +6463,8 @@ jint JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 
 jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 {
+	TRACEJNICALLS("JNI_CreateJavaVM(p_vm=%p, p_env=%p, vm_args=%p)", p_vm, p_env, vm_args);
+
 	/* actually create the JVM */
 
 	if (!vm_createjvm(p_vm, p_env, vm_args))
