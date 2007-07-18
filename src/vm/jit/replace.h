@@ -45,7 +45,6 @@
 #define REPLACEMENT_POINT_RETURN(cd, iptr)
 #define REPLACEMENT_POINT_INVOKE(cd, iptr)
 #define REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr)
-#define REPLACEMENT_EMIT_STUBS(jd)
 
 #else /* defined(ENABLE_REPLACEMENT) */
 
@@ -271,9 +270,6 @@ struct replace_safestack_t {
     if (iptr->opc != ICMD_BUILTIN)                                   \
         cd->replacementpoint[-1].callsize = (cd->mcodeptr - cd->mcodebase)\
                     - (ptrint) cd->replacementpoint[-1].pc;
-
-#define REPLACEMENT_EMIT_STUBS(jd)                                   \
-    emit_replacement_stubs(jd);
 
 /*** prototypes ********************************************************/
 

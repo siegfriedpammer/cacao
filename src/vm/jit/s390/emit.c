@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: emit.c 8211 2007-07-18 19:52:23Z michi $
 
 */
 
@@ -362,57 +362,6 @@ __PORTED__ void emit_patcher_stubs(jitdata *jd)
 	}
 }
 
-
-/* emit_replacement_stubs ******************************************************
-
-   Generates the code for the replacement stubs.
-
-*******************************************************************************/
-
-void emit_replacement_stubs(jitdata *jd)
-{
-#if 0
-	codegendata *cd;
-	codeinfo    *code;
-	rplpoint    *rplp;
-	s4           disp;
-	s4           i;
-
-	/* get required compiler data */
-
-	cd   = jd->cd;
-	code = jd->code;
-
-	rplp = code->rplpoints;
-
-	for (i = 0; i < code->rplpointcount; ++i, ++rplp) {
-		/* check code segment size */
-
-		MCODECHECK(512);
-
-		/* note start of stub code */
-
-		rplp->outcode = (u1 *) (ptrint) (cd->mcodeptr - cd->mcodebase);
-
-		/* make machine code for patching */
-
-		disp = (ptrint) (rplp->outcode - rplp->pc) - 5;
-
-		rplp->mcode = 0xe9 | ((u8) disp << 8);
-
-		/* push address of `rplpoint` struct */
-			
-		M_MOV_IMM(rplp, REG_ITMP3);
-		M_PUSH(REG_ITMP3);
-
-		/* jump to replacement function */
-
-		M_MOV_IMM(asm_replacement_out, REG_ITMP3);
-		M_JMP(REG_ITMP3);
-	}
-#endif
-}
-	
 
 /* emit_verbosecall_enter ******************************************************
 

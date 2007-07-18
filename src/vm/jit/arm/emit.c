@@ -604,30 +604,6 @@ void emit_patcher_traps(jitdata *jd)
 }
 
 
-/* emit_replacement_stubs ******************************************************
-
-   Generates the code for the replacement stubs.
-
-*******************************************************************************/
-
-#if defined(ENABLE_REPLACEMENT)
-void emit_replacement_stubs(jitdata *jd)
-{
-	codegendata *cd;
-	codeinfo    *code;
-	rplpoint    *rplp;
-	u1          *savedmcodeptr;
-	s4           disp;
-	s4           i;
-
-	/* get required compiler data */
-
-	cd   = jd->cd;
-	code = jd->code;
-}
-#endif /* defined(ENABLE_REPLACEMENT) */
-
-
 /* emit_verbosecall_enter ******************************************************
 
    Generates the code for the call trace.

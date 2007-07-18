@@ -682,18 +682,6 @@ void emit_patcher_stubs(jitdata *jd)
 }
 
 
-/* emit_replacement_stubs ******************************************************
-
-   Generates the code for the replacement stubs.
-
-*******************************************************************************/
-
-#if defined(ENABLE_REPLACEMENT)
-void emit_replacement_stubs(jitdata *jd)
-{
-}
-#endif /* defined(ENABLE_REPLACEMENT) */
-
 /* emit_verbosecall_enter ******************************************************
 
    Generates the code for the call trace.

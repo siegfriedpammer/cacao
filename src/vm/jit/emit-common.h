@@ -180,9 +180,6 @@ void emit_exception_check(codegendata *cd, instruction *iptr);
 
 void emit_patcher_stubs(jitdata *jd);
 void emit_patcher_traps(jitdata *jd);
-#if defined(ENABLE_REPLACEMENT)
-void emit_replacement_stubs(jitdata *jd);
-#endif
 
 void emit_verbosecall_enter(jitdata *jd);
 void emit_verbosecall_exit(jitdata *jd);
