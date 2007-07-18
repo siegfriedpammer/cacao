@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.c 8213 2007-07-18 20:08:26Z michi $
+   $Id: options.c 8214 2007-07-18 20:27:12Z michi $
 
 */
 
@@ -228,7 +228,7 @@ option_t options_XX[] = {
 	{ "TraceJavaCalls",            OPT_TraceJavaCalls,            OPT_TYPE_BOOLEAN, "trace Java method calls" },
 	{ "TraceJVMCalls",             OPT_TraceJVMCalls,             OPT_TYPE_BOOLEAN, "TODO" },
 #if defined(ENABLE_REPLACEMENT)
-	{ "TraceReplacement",          OPT_TraceReplacement,          OPT_TYPE_BOOLEAN, "TODO" },
+	{ "TraceReplacement",          OPT_TraceReplacement,          OPT_TYPE_VALUE,   "trace on-stack replacement with the given verbosity level (default: 1)" },
 #endif
 
 	/* end marker */
