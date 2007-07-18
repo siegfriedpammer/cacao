@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.h 8206 2007-07-15 14:26:33Z twisti $
+   $Id: options.h 8212 2007-07-18 19:59:32Z twisti $
 
 */
 
@@ -63,9 +63,10 @@ struct opt_struct {
 typedef struct option_t option_t;
 
 struct option_t {
-	char    *name;
-	int32_t  option;
-	char    *doc;
+	char *name;
+	int   value;
+	int   type;
+	char *doc;
 };
 
 
@@ -193,6 +194,8 @@ extern const char *opt_filter_show_method;
 
 /* NOTE: For better readability keep these alpha-sorted. */
 
+extern int32_t  opt_DebugStackFrameInfo;
+extern int32_t  opt_DebugStackTrace;
 extern int32_t  opt_MaxPermSize;
 extern int32_t  opt_PermSize;
 extern int32_t  opt_ProfileGCMemoryUsage;

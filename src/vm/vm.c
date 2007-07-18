@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8210 2007-07-18 12:51:00Z twisti $
+   $Id: vm.c 8212 2007-07-18 19:59:32Z twisti $
 
 */
 
@@ -316,6 +316,7 @@ opt_struct opts[] = {
 	{ "?",                 false, OPT_HELP },
 	{ "X",                 false, OPT_X },
 	{ "XX:",               true,  OPT_XX },
+	{ "XX",                false, OPT_XX },
 
 	{ "ea:",               true,  OPT_EA },
 	{ "da:",               true,  OPT_DA },
@@ -473,7 +474,7 @@ void usage(void)
 	puts("    -showversion             print product version and continue");
 	puts("    -help, -?                print this help message");
 	puts("    -X                       print help on non-standard Java options");
-	puts("    -XX                      print help on CACAO options");
+	puts("    -XX                      print help on debugging options");
     puts("    -ea[:<packagename>...|:<classname>]");
     puts("    -enableassertions[:<packagename>...|:<classname>]");
 	puts("                             enable assertions with specified granularity");
