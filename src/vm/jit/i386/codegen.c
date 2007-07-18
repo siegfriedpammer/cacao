@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8115 2007-06-20 19:14:05Z michi $
+   $Id: codegen.c 8210 2007-07-18 12:51:00Z twisti $
 
 */
 
@@ -131,9 +131,7 @@ bool codegen_emit(jitdata *jd)
 	/* space to save used callee saved registers */
 
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
-
-	/* float register are saved on 2 4-byte stackslots */
-	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse) * 2;
+	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
 
 	cd->stackframesize = rd->memuse + savedregs_num;
 
@@ -141,25 +139,20 @@ bool codegen_emit(jitdata *jd)
 #if defined(ENABLE_THREADS)
 	/* space to save argument of monitor_enter */
 
-	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-		/* reserve 2 slots for long/double return values for monitorexit */
-
-		if (IS_2_WORD_TYPE(m->parseddesc->returntype.type))
-			cd->stackframesize += 2;
-		else
-			cd->stackframesize++;
-	}
+	if (checksync && (m->flags & ACC_SYNCHRONIZED))
+		cd->stackframesize++;
 #endif
 
 	/* create method header */
 
     /* Keep stack of non-leaf functions 16-byte aligned. */
 
-	if (!jd->isleafmethod)
-		cd->stackframesize |= 0x3;
+	if (!jd->isleafmethod) {
+		ALIGN_ODD(cd->stackframesize);    /* XXX this is wrong, +4 is missing */
+	}
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
 
 #if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -169,7 +162,7 @@ bool codegen_emit(jitdata *jd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_add_unique_s4(cd, (rd->memuse + 1) * 4); /* IsSync        */
+		(void) dseg_add_unique_s4(cd, (rd->memuse + 1) * 8); /* IsSync        */
 	else
 #endif
 		(void) dseg_add_unique_s4(cd, 0);                  /* IsSync          */
@@ -210,16 +203,16 @@ bool codegen_emit(jitdata *jd)
 	/* create stack frame (if necessary) */
 
 	if (cd->stackframesize)
-		M_ASUB_IMM(cd->stackframesize * 4, REG_SP);
+		M_ASUB_IMM(cd->stackframesize * 8, REG_SP);
 
 	/* save return address and used callee saved registers */
 
   	p = cd->stackframesize;
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
- 		p--; M_AST(rd->savintregs[i], REG_SP, p * 4);
+ 		p--; M_AST(rd->savintregs[i], REG_SP, p * 8);
 	}
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-		p-=2; emit_fld_reg(cd, rd->savfltregs[i]); emit_fstpl_membase(cd, REG_SP, p * 4);
+		p--; emit_fld_reg(cd, rd->savfltregs[i]); emit_fstpl_membase(cd, REG_SP, p * 8);
 	}
 
 	/* take arguments out of register or stack frame */
@@ -247,8 +240,8 @@ bool codegen_emit(jitdata *jd)
 			continue;
 
 		var = VAR(varindex);
-		
-		s1 = md->params[p].regoff;
+		s1  = md->params[p].regoff;
+		d   = var->vv.regoff;
 
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
 			if (!md->params[p].inmemory) {           /* register arguments    */
@@ -261,27 +254,25 @@ bool codegen_emit(jitdata *jd)
 					/* rd->argintregs[md->params[p].regoff -> var->vv.regoff * 4 */
 				}
 			} 
-			else {                                   /* stack arguments       */
-				if (!(var->flags & INMEMORY)) {      /* stack arg -> register */
-					emit_mov_membase_reg(           /* + 4 for return address */
-					   cd, REG_SP, cd->stackframesize * 4 + s1 + 4, var->vv.regoff);
-					                                /* + 4 for return address */
+			else {
+				if (!(var->flags & INMEMORY)) {
+					M_ILD(d, REG_SP, cd->stackframesize * 8 + 4 + s1);
 				} 
-				else {                               /* stack arg -> spilled  */
+				else {
 					if (!IS_2_WORD_TYPE(t)) {
 #if defined(ENABLE_SSA)
 						/* no copy avoiding by now possible with SSA */
 						if (ls != NULL) {
 							emit_mov_membase_reg(   /* + 4 for return address */
-								 cd, REG_SP, cd->stackframesize * 4 + s1 + 4,
+								 cd, REG_SP, cd->stackframesize * 8 + s1 + 4,
 								 REG_ITMP1);    
 							emit_mov_reg_membase(
 								 cd, REG_ITMP1, REG_SP, var->vv.regoff);
 						}
 						else 
 #endif /*defined(ENABLE_SSA)*/
-						                  /* reuse Stackslotand avoid copying */
-							var->vv.regoff = cd->stackframesize * 4 + s1 + 4;
+							/* reuse stackslot */
+							var->vv.regoff = cd->stackframesize * 8 + 4 + s1;
 
 					} 
 					else {
@@ -289,20 +280,20 @@ bool codegen_emit(jitdata *jd)
 						/* no copy avoiding by now possible with SSA */
 						if (ls != NULL) {
 							emit_mov_membase_reg(  /* + 4 for return address */
-								 cd, REG_SP, cd->stackframesize * 4 + s1 + 4,
+								 cd, REG_SP, cd->stackframesize * 8 + s1 + 4,
 								 REG_ITMP1);
 							emit_mov_reg_membase(
 								 cd, REG_ITMP1, REG_SP, var->vv.regoff);
 							emit_mov_membase_reg(   /* + 4 for return address */
-								  cd, REG_SP, cd->stackframesize * 4 + s1 + 4 + 4,
+								  cd, REG_SP, cd->stackframesize * 8 + s1 + 4 + 4,
 								  REG_ITMP1);             
 							emit_mov_reg_membase(
 								 cd, REG_ITMP1, REG_SP, var->vv.regoff + 4);
 						}
 						else
 #endif /*defined(ENABLE_SSA)*/
-						                  /* reuse Stackslotand avoid copying */
-							var->vv.regoff = cd->stackframesize * 4 + s1 + 4;
+							/* reuse stackslot */
+							var->vv.regoff = cd->stackframesize * 8 + 4 + s1;
 					}
 				}
 			}
@@ -314,7 +305,7 @@ bool codegen_emit(jitdata *jd)
 				if (!(var->flags & INMEMORY)) {  /* reg arg -> register   */
 					/* rd->argfltregs[md->params[p].regoff -> var->vv.regoff     */
 				} else {			             /* reg arg -> spilled    */
-					/* rd->argfltregs[md->params[p].regoff -> var->vv.regoff * 4 */
+					/* rd->argfltregs[md->params[p].regoff -> var->vv.regoff * 8 */
 				}
 
 			} 
@@ -322,14 +313,14 @@ bool codegen_emit(jitdata *jd)
 				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
 					if (t == TYPE_FLT) {
 						emit_flds_membase(
-                            cd, REG_SP, cd->stackframesize * 4 + s1 + 4);
+                            cd, REG_SP, cd->stackframesize * 8 + s1 + 4);
 						assert(0);
 /* 						emit_fstp_reg(cd, var->vv.regoff + fpu_st_offset); */
 
 					} 
 					else {
 						emit_fldl_membase(
-                            cd, REG_SP, cd->stackframesize * 4 + s1 + 4);
+                            cd, REG_SP, cd->stackframesize * 8 + s1 + 4);
 						assert(0);
 /* 						emit_fstp_reg(cd, var->vv.regoff + fpu_st_offset); */
 					}
@@ -339,28 +330,28 @@ bool codegen_emit(jitdata *jd)
 					/* no copy avoiding by now possible with SSA */
 					if (ls != NULL) {
 						emit_mov_membase_reg(
-						 cd, REG_SP, cd->stackframesize * 4 + s1 + 4, REG_ITMP1);
+						 cd, REG_SP, cd->stackframesize * 8 + s1 + 4, REG_ITMP1);
 						emit_mov_reg_membase(
  									 cd, REG_ITMP1, REG_SP, var->vv.regoff);
 						if (t == TYPE_FLT) {
 							emit_flds_membase(
-								  cd, REG_SP, cd->stackframesize * 4 + s1 + 4);
+								  cd, REG_SP, cd->stackframesize * 8 + s1 + 4);
 							emit_fstps_membase(cd, REG_SP, var->vv.regoff);
 						} 
 						else {
 							emit_fldl_membase(
-								  cd, REG_SP, cd->stackframesize * 4 + s1 + 4);
+								  cd, REG_SP, cd->stackframesize * 8 + s1 + 4);
 							emit_fstpl_membase(cd, REG_SP, var->vv.regoff);
 						}
 					}
 					else
 #endif /*defined(ENABLE_SSA)*/
-						                  /* reuse Stackslotand avoid copying */
-						var->vv.regoff = cd->stackframesize * 4 + s1 + 4;
+						/* reuse stackslot */
+						var->vv.regoff = cd->stackframesize * 8 + 4 + s1;
 				}
 			}
 		}
-	}  /* end for */
+	}
 
 	/* call monitorenter function */
 
@@ -372,13 +363,13 @@ bool codegen_emit(jitdata *jd)
 			M_MOV_IMM(&m->class->object.header, REG_ITMP1);
 		}
 		else {
-			M_ALD(REG_ITMP1, REG_SP, cd->stackframesize * 4 + 4);
+			M_ALD(REG_ITMP1, REG_SP, cd->stackframesize * 8 + 4);
 			M_TEST(REG_ITMP1);
 			M_BNE(6);
 			M_ALD_MEM(REG_ITMP1, EXCEPTION_HARDWARE_NULLPOINTER);
 		}
 
-		M_AST(REG_ITMP1, REG_SP, s1 * 4);
+		M_AST(REG_ITMP1, REG_SP, s1 * 8);
 		M_AST(REG_ITMP1, REG_SP, 0 * 4);
 		M_MOV_IMM(LOCK_monitor_enter, REG_ITMP3);
 		M_CALL(REG_ITMP3);
@@ -1039,9 +1030,9 @@ bool codegen_emit(jitdata *jd)
 				if (iptr->s1.var->flags & INMEMORY) {
 					/* Alpha algorithm */
 					disp = 3;
-					CALCOFFSETBYTES(disp, REG_SP, iptr->s1.var->vv.regoff * 4);
+					CALCOFFSETBYTES(disp, REG_SP, iptr->s1.var->vv.regoff * 8);
 					disp += 3;
-					CALCOFFSETBYTES(disp, REG_SP, iptr->s1.var->vv.regoff * 4 + 4);
+					CALCOFFSETBYTES(disp, REG_SP, iptr->s1.var->vv.regoff * 8 + 4);
 
 					disp += 2;
 					disp += 3;
@@ -1057,16 +1048,16 @@ bool codegen_emit(jitdata *jd)
 					disp += 3;
 					disp += 2;
 
-					emit_mov_membase_reg(cd, REG_SP, iptr->s1.var->vv.regoff * 4, REG_ITMP1);
-					emit_mov_membase_reg(cd, REG_SP, iptr->s1.var->vv.regoff * 4 + 4, REG_ITMP2);
+					emit_mov_membase_reg(cd, REG_SP, iptr->s1.var->vv.regoff * 8, REG_ITMP1);
+					emit_mov_membase_reg(cd, REG_SP, iptr->s1.var->vv.regoff * 8 + 4, REG_ITMP2);
 					
 					emit_alu_imm_reg(cd, ALU_AND, iptr->sx.val.l, REG_ITMP1);
 					emit_alu_imm_reg(cd, ALU_AND, iptr->sx.val.l >> 32, REG_ITMP2);
-					emit_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, iptr->s1.var->vv.regoff * 4 + 4);
+					emit_alu_imm_membase(cd, ALU_CMP, 0, REG_SP, iptr->s1.var->vv.regoff * 8 + 4);
 					emit_jcc(cd, CC_GE, disp);
 
-					emit_mov_membase_reg(cd, REG_SP, iptr->s1.var->vv.regoff * 4, REG_ITMP1);
-					emit_mov_membase_reg(cd, REG_SP, iptr->s1.var->vv.regoff * 4 + 4, REG_ITMP2);
+					emit_mov_membase_reg(cd, REG_SP, iptr->s1.var->vv.regoff * 8, REG_ITMP1);
+					emit_mov_membase_reg(cd, REG_SP, iptr->s1.var->vv.regoff * 8 + 4, REG_ITMP2);
 					
 					emit_neg_reg(cd, REG_ITMP1);
 					emit_alu_imm_reg(cd, ALU_ADC, 0, REG_ITMP2);
@@ -1079,8 +1070,8 @@ bool codegen_emit(jitdata *jd)
 					emit_alu_imm_reg(cd, ALU_ADC, 0, REG_ITMP2);
 					emit_neg_reg(cd, REG_ITMP2);
 
-					emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst.var->vv.regoff * 4);
-					emit_mov_reg_membase(cd, REG_ITMP2, REG_SP, iptr->dst.var->vv.regoff * 4 + 4);
+					emit_mov_reg_membase(cd, REG_ITMP1, REG_SP, iptr->dst.var->vv.regoff * 8);
+					emit_mov_reg_membase(cd, REG_ITMP2, REG_SP, iptr->dst.var->vv.regoff * 8 + 4);
 				}
 			}
 
@@ -2764,25 +2755,25 @@ nowperformreturn:
 
 #if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-				M_ALD(REG_ITMP2, REG_SP, rd->memuse * 4);
+				M_ALD(REG_ITMP2, REG_SP, rd->memuse * 8);
 
 				/* we need to save the proper return value */
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					M_IST(REG_RESULT, REG_SP, rd->memuse * 4);
+					M_IST(REG_RESULT, REG_SP, rd->memuse * 8);
 					break;
 
 				case ICMD_LRETURN:
-					M_LST(REG_RESULT_PACKED, REG_SP, rd->memuse * 4);
+					M_LST(REG_RESULT_PACKED, REG_SP, rd->memuse * 8);
 					break;
 
 				case ICMD_FRETURN:
-					emit_fstps_membase(cd, REG_SP, rd->memuse * 4);
+					emit_fstps_membase(cd, REG_SP, rd->memuse * 8);
 					break;
 
 				case ICMD_DRETURN:
-					emit_fstpl_membase(cd, REG_SP, rd->memuse * 4);
+					emit_fstpl_membase(cd, REG_SP, rd->memuse * 8);
 					break;
 				}
 
@@ -2794,19 +2785,19 @@ nowperformreturn:
 				switch (iptr->opc) {
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					M_ILD(REG_RESULT, REG_SP, rd->memuse * 4);
+					M_ILD(REG_RESULT, REG_SP, rd->memuse * 8);
 					break;
 
 				case ICMD_LRETURN:
-					M_LLD(REG_RESULT_PACKED, REG_SP, rd->memuse * 4);
+					M_LLD(REG_RESULT_PACKED, REG_SP, rd->memuse * 8);
 					break;
 
 				case ICMD_FRETURN:
-					emit_flds_membase(cd, REG_SP, rd->memuse * 4);
+					emit_flds_membase(cd, REG_SP, rd->memuse * 8);
 					break;
 
 				case ICMD_DRETURN:
-					emit_fldl_membase(cd, REG_SP, rd->memuse * 4);
+					emit_fldl_membase(cd, REG_SP, rd->memuse * 8);
 					break;
 				}
 			}
@@ -2815,12 +2806,12 @@ nowperformreturn:
 			/* restore saved registers */
 
 			for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
-				p--; M_ALD(rd->savintregs[i], REG_SP, p * 4);
+				p--; M_ALD(rd->savintregs[i], REG_SP, p * 8);
 			}
 
 			for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
   				p--;
-				emit_fldl_membase(cd, REG_SP, p * 4);
+				emit_fldl_membase(cd, REG_SP, p * 8);
 				if (iptr->opc == ICMD_FRETURN || iptr->opc == ICMD_DRETURN) {
 					assert(0);
 /* 					emit_fstp_reg(cd, rd->savfltregs[i] + fpu_st_offset + 1); */
@@ -2833,7 +2824,7 @@ nowperformreturn:
 			/* deallocate stack */
 
 			if (cd->stackframesize)
-				M_AADD_IMM(cd->stackframesize * 4, REG_SP);
+				M_AADD_IMM(cd->stackframesize * 8, REG_SP);
 
 			emit_ret(cd);
 			}
@@ -2985,7 +2976,7 @@ gen_method:
 				break;
 
 			case ICMD_INVOKESPECIAL:
-				M_ALD(REG_ITMP1, REG_SP, 0 * 4);
+				M_ALD(REG_ITMP1, REG_SP, 0 * 8);
 				emit_nullpointer_check(cd, iptr, REG_ITMP1);
 				/* fall through */
 
@@ -3009,7 +3000,7 @@ gen_method:
 				break;
 
 			case ICMD_INVOKEVIRTUAL:
-				M_ALD(REG_ITMP1, REG_SP, 0 * 4);
+				M_ALD(REG_ITMP1, REG_SP, 0 * 8);
 				emit_nullpointer_check(cd, iptr, s1);
 
 				if (lm == NULL) {
@@ -3033,7 +3024,7 @@ gen_method:
 				break;
 
 			case ICMD_INVOKEINTERFACE:
-				M_ALD(REG_ITMP1, REG_SP, 0 * 4);
+				M_ALD(REG_ITMP1, REG_SP, 0 * 8);
 				emit_nullpointer_check(cd, iptr, s1);
 
 				if (lm == NULL) {
@@ -3555,12 +3546,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
     /* keep stack 16-byte aligned */
 
-	cd->stackframesize |= 0x3;
+	ALIGN_ODD(cd->stackframesize);        /* XXX this is wrong, +4 is missing */
 
 	/* create method header */
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
@@ -3581,7 +3572,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* calculate stackframe size for native function */
 
-	M_ASUB_IMM(cd->stackframesize * 4, REG_SP);
+	M_ASUB_IMM(cd->stackframesize * 8, REG_SP);
 
 #if !defined(NDEBUG)
 	emit_verbosecall_enter(jd);
@@ -3611,17 +3602,17 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* prepare data structures for native function call */
 
 	M_MOV(REG_SP, REG_ITMP1);
-	M_AADD_IMM(cd->stackframesize * 4, REG_ITMP1);
+	M_AADD_IMM(cd->stackframesize * 8, REG_ITMP1);
 
 	M_AST(REG_ITMP1, REG_SP, 0 * 4);
 	M_IST_IMM(0, REG_SP, 1 * 4);
 	dseg_adddata(cd);
 
 	M_MOV(REG_SP, REG_ITMP2);
-	M_AADD_IMM(cd->stackframesize * 4 + SIZEOF_VOID_P, REG_ITMP2);
+	M_AADD_IMM(cd->stackframesize * 8 + SIZEOF_VOID_P, REG_ITMP2);
 
 	M_AST(REG_ITMP2, REG_SP, 2 * 4);
-	M_ALD(REG_ITMP3, REG_SP, cd->stackframesize * 4);
+	M_ALD(REG_ITMP3, REG_SP, cd->stackframesize * 8);
 	M_AST(REG_ITMP3, REG_SP, 3 * 4);
 	M_MOV_IMM(codegen_start_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
@@ -3635,8 +3626,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 		if (!md->params[i].inmemory) {
 			/* no integer argument registers */
-		} else {       /* float/double in memory can be copied like int/longs */
-			s1 = md->params[i].regoff + cd->stackframesize * 4 + 4;
+		}
+		else {
+			/* float/double in memory can be copied like int/longs */
+
+			s1 = md->params[i].regoff + cd->stackframesize * 8 + 4;
 			s2 = nmd->params[j].regoff;
 
 			M_ILD(REG_ITMP1, REG_SP, s1);
@@ -3666,16 +3660,16 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	switch (md->returntype.type) {
 	case TYPE_INT:
 	case TYPE_ADR:
-		M_IST(REG_RESULT, REG_SP, 1 * 4);
+		M_IST(REG_RESULT, REG_SP, 1 * 8);
 		break;
 	case TYPE_LNG:
-		M_LST(REG_RESULT_PACKED, REG_SP, 1 * 4);
+		M_LST(REG_RESULT_PACKED, REG_SP, 1 * 8);
 		break;
 	case TYPE_FLT:
-		emit_fsts_membase(cd, REG_SP, 1 * 4);
+		emit_fsts_membase(cd, REG_SP, 1 * 8);
 		break;
 	case TYPE_DBL:
-		emit_fstl_membase(cd, REG_SP, 1 * 4);
+		emit_fstl_membase(cd, REG_SP, 1 * 8);
 		break;
 	case TYPE_VOID:
 		break;
@@ -3688,7 +3682,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* remove native stackframe info */
 
 	M_MOV(REG_SP, REG_ITMP1);
-	M_AADD_IMM(cd->stackframesize * 4, REG_ITMP1);
+	M_AADD_IMM(cd->stackframesize * 8, REG_ITMP1);
 
 	M_AST(REG_ITMP1, REG_SP, 0 * 4);
 	M_MOV_IMM(codegen_finish_native_call, REG_ITMP1);
@@ -3700,22 +3694,22 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	switch (md->returntype.type) {
 	case TYPE_INT:
 	case TYPE_ADR:
-		M_ILD(REG_RESULT, REG_SP, 1 * 4);
+		M_ILD(REG_RESULT, REG_SP, 1 * 8);
 		break;
 	case TYPE_LNG:
-		M_LLD(REG_RESULT_PACKED, REG_SP, 1 * 4);
+		M_LLD(REG_RESULT_PACKED, REG_SP, 1 * 8);
 		break;
 	case TYPE_FLT:
-		emit_flds_membase(cd, REG_SP, 1 * 4);
+		emit_flds_membase(cd, REG_SP, 1 * 8);
 		break;
 	case TYPE_DBL:
-		emit_fldl_membase(cd, REG_SP, 1 * 4);
+		emit_fldl_membase(cd, REG_SP, 1 * 8);
 		break;
 	case TYPE_VOID:
 		break;
 	}
 
-	M_AADD_IMM(cd->stackframesize * 4, REG_SP);
+	M_AADD_IMM(cd->stackframesize * 8, REG_SP);
 
 	/* check for exception */
 

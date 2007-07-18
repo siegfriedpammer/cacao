@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.h 8198 2007-07-12 07:16:24Z twisti $
+   $Id: asmpart.h 8210 2007-07-18 12:51:00Z twisti $
 
 */
 
@@ -89,7 +89,7 @@ s4   asm_md_init(void);
 void asm_call_jit_compiler(void);
 
 #if defined(ENABLE_JIT)
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
 java_objectheader *asm_vm_call_method(methodinfo *m, s4 vmargscount,
 									  vm_arg *vmargs);
 s4     asm_vm_call_method_int(methodinfo *m, s4 vmargscount, vm_arg *vmargs);

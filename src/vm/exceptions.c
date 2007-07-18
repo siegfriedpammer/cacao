@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8178 2007-07-05 11:13:20Z michi $
+   $Id: exceptions.c 8210 2007-07-18 12:51:00Z twisti $
 
 */
 
@@ -1977,7 +1977,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	if (issync) {
 		/* get synchronization object */
 
-# if defined(__MIPS__) && (SIZEOF_VOID_P == 4)
+# if (defined(__MIPS__) && (SIZEOF_VOID_P == 4)) || defined(__I386__)
 		/* XXX change this if we ever want to use 4-byte stackslots */
 		o = *((java_objectheader **) (sp + issync - 8));
 # else

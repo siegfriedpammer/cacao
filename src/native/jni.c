@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8209 2007-07-17 20:13:23Z twisti $
+   $Id: jni.c 8210 2007-07-18 12:51:00Z twisti $
 
 */
 
@@ -795,7 +795,7 @@ static void _Jv_jni_CallVoidMethodA(java_objectheader *o, vftbl_t *vftbl,
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
 java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 										java_objectarray *params)
 {
@@ -1087,11 +1087,16 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 
 	dumpsize = dump_size();
 
-	/* fill the argument array from a object-array */
+	/* Fill the argument array from a object-array. */
 
 	array = vm_array_from_objectarray(resm, o, params);
 
-	if (array == NULL) {
+	/* The array can be NULL if we don't have any arguments to pass
+	   and the architecture does not have any argument registers
+	   (e.g. i386).  In that case we additionally check for an
+	   exception thrown. */
+
+	if ((array == NULL) && (exceptions_get_exception() != NULL)) {
 		/* release dump area */
 
 		dump_release(dumpsize);

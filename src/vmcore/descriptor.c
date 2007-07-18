@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: descriptor.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: descriptor.c 8210 2007-07-18 12:51:00Z twisti $
 
 */
 
@@ -955,8 +955,8 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 	md->paramcount = paramcount;
 	md->paramslots = paramslots;
 
-	/* If m != ACC_UNDEF we parse a real loaded method, so do param prealloc. */
-	/* Otherwise we do this in stack analysis.                                */
+	/* If mflags != ACC_UNDEF we parse a real loaded method, so do
+	   param prealloc.  Otherwise we do this in stack analysis. */
 
 	if (mflags != ACC_UNDEF) {
 		if (md->paramcount > 0) {
@@ -977,10 +977,18 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 # if defined(ENABLE_INTRP)
 		if (!opt_intrp)
 # endif
-			md_param_alloc(md);
-#endif
+			{
+				/* As builtin-functions are native functions, we have
+				   to pre-allocate for the native ABI. */
 
-	} else {
+				if (mflags & ACC_METHOD_BUILTIN)
+					md_param_alloc_native(md);
+				else
+					md_param_alloc(md);
+			}
+#endif
+	}
+	else {
 		/* params will be allocated later by
 		   descriptor_params_from_paramtypes if necessary */
 
@@ -1071,7 +1079,15 @@ bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp)
 # endif
-		md_param_alloc(md);
+		{
+			/* As builtin-functions are native functions, we have to
+			   pre-allocate for the native ABI. */
+
+			if (mflags & ACC_METHOD_BUILTIN)
+				md_param_alloc_native(md);
+			else
+				md_param_alloc(md);
+		}
 #endif
 
 	return true;

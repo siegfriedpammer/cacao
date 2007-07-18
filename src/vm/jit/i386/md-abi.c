@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: md-abi.c 8210 2007-07-18 12:51:00Z twisti $
 
 */
 
@@ -106,19 +106,20 @@ const s4 abi_registers_float_temporary[] = {
 void md_param_alloc(methoddesc *md)
 {
 	paramdesc *pd;
-	s4        stacksize;
-	s4        i;
+	int        stacksize;
+	int        i;
 
 	pd = md->params;
 	stacksize = 0;
 
 	for (i = 0; i < md->paramcount; i++, pd++) {
 		pd->inmemory = true;
-		pd->regoff = stacksize * 4;
-		stacksize += IS_2_WORD_TYPE(md->paramtypes[i].type) ? 2 : 1;
+		pd->index    = stacksize;
+		pd->regoff   = stacksize * 8;
+		stacksize++;
 	}
 
-	md->memuse = stacksize;
+	md->memuse       = stacksize;
 	md->argintreguse = 0;
 	md->argfltreguse = 0;
 }
@@ -132,10 +133,23 @@ void md_param_alloc(methoddesc *md)
 
 void md_param_alloc_native(methoddesc *md)
 {
-	/* On i386 we use the same ABI for JIT method calls as for native
-	   method calls. */
+	paramdesc *pd;
+	int        stacksize;
+	int        i;
 
-	md_param_alloc(md);
+	pd = md->params;
+	stacksize = 0;
+
+	for (i = 0; i < md->paramcount; i++, pd++) {
+		pd->inmemory  = true;
+		pd->index     = stacksize;
+		pd->regoff    = stacksize * 4;
+		stacksize    += IS_2_WORD_TYPE(md->paramtypes[i].type) ? 2 : 1;
+	}
+
+	md->memuse       = stacksize;
+	md->argintreguse = 0;
+	md->argfltreguse = 0;
 }
 
 

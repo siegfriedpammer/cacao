@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7678 2007-04-09 17:23:55Z twisti $
+   $Id: asmpart.S 8210 2007-07-18 12:51:00Z twisti $
 
 */
 
@@ -152,65 +152,36 @@ asm_vm_call_method_double:
 	mov     s1,1*4(sp)
 	mov     s2,2*4(sp)
 
-	mov     4*4(bp),itmp1               /* pointer to arg block (4(push)+4(return)+4+4)*/
-	mov     3*4(bp),itmp2               /* arg count            (4(push)+4(return)+4 */
+	mov     sp,s1                       /* save stack pointer                 */
 
-	mov     sp,s1                       /* save the stackpointer              */
+	mov     3*4(bp),t0                  /* address of data structure          */
+	mov     4*4(bp),itmp1               /* number of stack arguments          */
 
-	test    itmp2,itmp2                 /* maybe we have no args              */
-	jle     L_asm_vm_call_method_copy_done
+	cmp     $0,itmp1
+	je      L_asm_vm_call_method_stack_copy_done
 
-	mov     itmp2,itmp3                 /* calculate stack size               */
-	mov     itmp1,%edi                  /* save pointer to arg block          */
+	mov     itmp1,itmp2
+	add     $1,itmp2                    /* keep stack 16-byte aligned         */
+	and     $0xfffffffe,itmp2
+	shl     $3,itmp2                    /* calculate stack size               */
+	sub     itmp2,sp                    /* create stack frame                 */
+	mov     sp,itmp2                    /* temporary stack pointer            */
 
-calljava_calcstacksize:
-	mov     offvmargtype(itmp1),t0
-	test    $1,t0                       /* two word type?                     */
-	jz      calljava_onewordtype
+L_asm_vm_call_method_stack_copy_loop:
+	mov     0(t0),itmp3                 /* load argument                      */
+	mov     itmp3,0(itmp2)              /* store argument on stack            */
+	mov     4(t0),itmp3
+	mov     itmp3,4(itmp2)
 
-	sub     $4,sp                       /* add 1 slot to stackframe size      */
+	sub     $1,itmp1                    /* subtract 1 argument                */
+	add     $8,t0                       /* set address of next argument       */
+	add     $8,itmp2                    /* increase SP                        */
 
-calljava_onewordtype:
-	sub     $4,sp                       /* add 1 slot to stackframe size      */
-	sub     $1,itmp3
-	test	itmp3,itmp3                 /* any args left?                     */
-	jz      calljava_setstack
+	cmp     $0,itmp1
+	jg      L_asm_vm_call_method_stack_copy_loop
 
-	add     $sizevmarg,itmp1            /* goto next argument block           */
-	jmp     calljava_calcstacksize
-		
-calljava_setstack:				
-	mov     %edi,itmp1                  /* restore pointer to arg block       */
-	and     $0xfffffff0,sp              /* align stack to 16-byte             */
-	mov     sp,itmp3                    /* initialize pointer for copying     */
-
-calljava_copyloop:
-	mov     offvmargdata(itmp1),t0      /* get 4-bytes of argument            */
-	mov     t0,(itmp3)                  /* and store them on the stack        */
-	add     $4,itmp3                    /* increase sp to next argument       */
-
-	mov     offvmargtype(itmp1),t0      /* get the argument type              */
-	test    $1,t0                       /* two word type?                     */
-	jz      calljava_copynext
-
-	mov     offvmargdata+4(itmp1),t0    /* get upper 4-bytes of 2 word type   */
-	mov     t0,(itmp3)			
-	add     $4,itmp3                    /* increase sp to next argument       */
-
-calljava_copynext:		
-	sub     $1,itmp2                    /* are there any args left?           */
-	test    itmp2,itmp2
-	jle     L_asm_vm_call_method_copy_done
-
-	add     $sizevmarg,itmp1            /* goto next argument block           */
-	jmp     calljava_copyloop
-
-L_asm_vm_call_method_copy_done:
-	mov     2*4(bp),itmp1               /* move function pointer to itmp1     */
-
-	lea     L_asm_call_jit_compiler,mptr
-	mov     mptr,3*4(s1)
-	lea     (3*4-256)(s1),mptr          /* We subtract 256 to force the next  */
+L_asm_vm_call_method_stack_copy_done:
+	lea     (2*4-256)(bp),mptr          /* We subtract 256 to force the next  */
 	                                    /* move instruction to have a 32-bit  */
 	                                    /* offset.                            */
 
@@ -381,11 +352,11 @@ L_asm_handle_exception_no_leaf_stack:
 	cmp     $2,itmp1
 	je      int2
 
-	mov     -3*4(itmp2),s0
+	mov     -3*8(itmp2),s0
 int2:	
-	mov     -2*4(itmp2),s1
+	mov     -2*8(itmp2),s1
 int1:	
-	mov     -1*4(itmp2),s2
+	mov     -1*8(itmp2),s2
 
 	shl     $2,itmp1                    /* multiply by 4 bytes                */
 	sub     itmp1,itmp2

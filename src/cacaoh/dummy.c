@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: dummy.c 8104 2007-06-19 21:15:00Z twisti $
+   $Id: dummy.c 8210 2007-07-18 12:51:00Z twisti $
 
 */
 
@@ -414,6 +414,10 @@ bool lock_monitor_exit(java_objectheader *o)
 /* md *************************************************************************/
 
 void md_param_alloc(methoddesc *md)
+{
+}
+
+void md_param_alloc_native(methoddesc *md)
 {
 }
 

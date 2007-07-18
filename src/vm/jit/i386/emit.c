@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: emit.c 8210 2007-07-18 12:51:00Z twisti $
 
 */
 
@@ -44,6 +44,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 
+#include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
@@ -653,8 +654,9 @@ void emit_verbosecall_enter(jitdata *jd)
 	codegendata  *cd;
 	registerdata *rd;
 	methoddesc   *md;
-	s4            disp;
-	s4            i, t;
+	int32_t       disp;
+	int           i;
+	int           d;
 
 	if (!JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		return;
@@ -673,50 +675,49 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	/* methodinfo* + arguments + return address */
 
-	disp = TRACE_ARGS_NUM * 8 + 4 + INT_TMP_CNT * 4 +
-		cd->stackframesize * 4 + 4;
+	disp = (TRACE_ARGS_NUM + 1 + TMP_CNT) * 8 + cd->stackframesize * 8 + 4;
 
-	M_ASUB_IMM(TRACE_ARGS_NUM * 8 + 4 + INT_TMP_CNT * 4, REG_SP);
+	M_ASUB_IMM((TRACE_ARGS_NUM + 1 + TMP_CNT) * 8, REG_SP);
 
 	/* save temporary registers for leaf methods */
 
 	for (i = 0; i < INT_TMP_CNT; i++)
-		M_IST(rd->tmpintregs[i], REG_SP, TRACE_ARGS_NUM * 8 + 4 + i * 4);
+		M_IST(rd->tmpintregs[i], REG_SP, (TRACE_ARGS_NUM + 1 + i) * 8);
 
-	for (i = 0; i < md->paramcount && i < TRACE_ARGS_NUM; i++) {
-		t = md->paramtypes[i].type;
+	/* save argument registers */
 
-		if (IS_INT_LNG_TYPE(t)) {
-			if (IS_2_WORD_TYPE(t)) {
-				M_LLD(REG_ITMP12_PACKED, REG_SP, disp);
-				M_LST(REG_ITMP12_PACKED, REG_SP, i * 8);
-			}
-			else if (IS_ADR_TYPE(t)) {
-				M_ALD(REG_ITMP1, REG_SP, disp);
-				M_AST(REG_ITMP1, REG_SP, i * 8);
-				M_IST_IMM(0, REG_SP, i * 8 + 4);
-			}
-			else {
-				M_ILD(EAX, REG_SP, disp);
-				emit_cltd(cd);
-				M_LST(EAX_EDX_PACKED, REG_SP, i * 8);
-			}
+	for (i = 0; i < md->paramcount; i++) {
+		d = i * 8;
+
+		switch (md->paramtypes[i].type) {
+		case TYPE_INT:
+			M_ILD(EAX, REG_SP, disp);
+			emit_cltd(cd);
+			M_LST(EAX_EDX_PACKED, REG_SP, d);
+			break;
+		case TYPE_LNG:
+			M_LLD(REG_ITMP12_PACKED, REG_SP, disp);
+			M_LST(REG_ITMP12_PACKED, REG_SP, d);
+			break;
+		case TYPE_ADR:
+			M_ALD(REG_ITMP1, REG_SP, disp);
+			M_AST(REG_ITMP1, REG_SP, d);
+			M_IST_IMM(0, REG_SP, d + 4);                /* high-bits are zero */
+			break;
+		case TYPE_FLT:
+			M_FLD(REG_NULL, REG_SP, disp);
+			M_FST(REG_NULL, REG_SP, d);
+			M_IST_IMM(0, REG_SP, d + 4);                /* high-bits are zero */
+			break;
+		case TYPE_DBL:
+			M_DLD(REG_NULL, REG_SP, disp);
+			M_DST(REG_NULL, REG_SP, d);
+			break;
 		}
-		else {
-			if (IS_2_WORD_TYPE(t)) {
-				M_DLD(REG_NULL, REG_SP, disp);
-				M_DST(REG_NULL, REG_SP, i * 8);
-			}
-			else {
-				M_FLD(REG_NULL, REG_SP, disp);
-				M_FST(REG_NULL, REG_SP, i * 8);
-				M_IST_IMM(0, REG_SP, i * 8 + 4);
-			}
-		}
 
-		disp += (IS_2_WORD_TYPE(t)) ? 8 : 4;
+		disp += 8;
 	}
-	
+
 	M_AST_IMM(m, REG_SP, TRACE_ARGS_NUM * 8);
 
 	M_MOV_IMM(builtin_verbosecall_enter, REG_ITMP1);
@@ -725,9 +726,9 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* restore temporary registers for leaf methods */
 
 	for (i = 0; i < INT_TMP_CNT; i++)
-		M_ILD(rd->tmpintregs[i], REG_SP, TRACE_ARGS_NUM * 8 + 4 + i * 4);
+		M_ILD(rd->tmpintregs[i], REG_SP, (TRACE_ARGS_NUM + 1 + i) * 8);
 
-	M_AADD_IMM(TRACE_ARGS_NUM * 8 + 4 + INT_TMP_CNT * 4, REG_SP);
+	M_AADD_IMM((TRACE_ARGS_NUM + 1 + TMP_CNT) * 8, REG_SP);
 
 	/* mark trace code */
 

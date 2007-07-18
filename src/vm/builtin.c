@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8159 2007-06-28 00:31:31Z michi $
+   $Id: builtin.c 8210 2007-07-18 12:51:00Z twisti $
 
 */
 
@@ -167,26 +167,31 @@ static bool builtintable_init(void)
 
 	descriptor_pool_alloc_parsed_descriptors(descpool);
 
-	/* now parse all descriptors */
+	/* Now parse all descriptors.  NOTE: builtin-functions are treated
+	   like static methods (no `this' pointer). */
 
 	for (bte = builtintable_internal; bte->fp != NULL; bte++) {
-		/* parse the descriptor, builtin is always static (no `this' pointer) */
-
-		bte->md = descriptor_pool_parse_method_descriptor(descpool,
-														  bte->descriptor,
-														  ACC_STATIC, NULL);
+		bte->md =
+			descriptor_pool_parse_method_descriptor(descpool,
+													bte->descriptor,
+													ACC_STATIC | ACC_METHOD_BUILTIN,
+													NULL);
 	}
 
 	for (bte = builtintable_automatic; bte->fp != NULL; bte++) {
-		bte->md = descriptor_pool_parse_method_descriptor(descpool,
-														  bte->descriptor,
-														  ACC_STATIC, NULL);
+		bte->md =
+			descriptor_pool_parse_method_descriptor(descpool,
+													bte->descriptor,
+													ACC_STATIC | ACC_METHOD_BUILTIN,
+													NULL);
 	}
 
 	for (bte = builtintable_function; bte->fp != NULL; bte++) {
-		bte->md = descriptor_pool_parse_method_descriptor(descpool,
-														  bte->descriptor,
-														  ACC_STATIC, NULL);
+		bte->md =
+			descriptor_pool_parse_method_descriptor(descpool,
+													bte->descriptor,
+													ACC_STATIC | ACC_METHOD_BUILTIN,
+													NULL);
 	}
 
 	/* release dump area */
