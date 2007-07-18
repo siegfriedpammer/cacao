@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8212 2007-07-18 19:59:32Z twisti $
+   $Id: vm.c 8213 2007-07-18 20:08:26Z michi $
 
 */
 
@@ -257,8 +257,6 @@ enum {
 	OPT_INLINE_DEBUG_END,
 	OPT_INLINE_DEBUG_MIN,
 	OPT_INLINE_DEBUG_MAX,
-	OPT_INLINE_REPLACE_VERBOSE,
-	OPT_INLINE_REPLACE_VERBOSE2,
 #endif /* defined(ENABLE_INLINING_DEBUG) */
 #endif /* defined(ENABLE_INLINING) */
 
@@ -416,8 +414,6 @@ opt_struct opts[] = {
 	{ "ii",                true,  OPT_INLINE_DEBUG_MIN },
 	{ "im",                true,  OPT_INLINE_DEBUG_MAX },
 	{ "ie",                true,  OPT_INLINE_DEBUG_END },
-	{ "ir",                false, OPT_INLINE_REPLACE_VERBOSE },
-	{ "iR",                false, OPT_INLINE_REPLACE_VERBOSE2 },
 #endif /* defined(ENABLE_INLINING_DEBUG) */
 #if !defined(NDEBUG)
 	{ "il",                false, OPT_INLINE_LOG },
@@ -595,8 +591,6 @@ static void XXusage(void)
 	puts("    -ii <size>               set minimum size for inlined result");
 	puts("    -im <size>               set maximum size for inlined result");
 	puts("    -ie <number>             stop inlining after the given number of roots");
-	puts("    -ir                      log on-stack replacement");
-	puts("    -iR                      log on-stack replacement, more verbose");
 #endif /* defined(ENABLE_INLINING_DEBUG) */
 #endif /* defined(ENABLE_INLINING) */
 
@@ -1336,12 +1330,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 		case OPT_INLINE_DEBUG_MAX:
 			opt_inline_debug_max_size = atoi(opt_arg);
-			break;
-		case OPT_INLINE_REPLACE_VERBOSE:
-			opt_replace_verbose = 1;
-			break;
-		case OPT_INLINE_REPLACE_VERBOSE2:
-			opt_replace_verbose = 2;
 			break;
 #endif /* defined(ENABLE_INLINING_DEBUG) */
 #if !defined(NDEBUG)

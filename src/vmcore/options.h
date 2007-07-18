@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.h 8212 2007-07-18 19:59:32Z twisti $
+   $Id: options.h 8213 2007-07-18 20:08:26Z michi $
 
 */
 
@@ -147,7 +147,6 @@ extern bool opt_prof_bb;
 #if defined(ENABLE_INLINING)
 extern bool opt_inlining;
 #if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
-extern s4 opt_replace_verbose;
 extern s4 opt_inline_debug_min_size;
 extern s4 opt_inline_debug_max_size;
 extern s4 opt_inline_debug_end_counter;
