@@ -97,6 +97,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* get exception-throwing instruction */
 
+	if (xpc == NULL)
+		vm_abort("md_signal_handler_sigsegv: the program counter is NULL");
+
 	mcode = *((s4 *) xpc);
 
 	/* this is a NullPointerException */
