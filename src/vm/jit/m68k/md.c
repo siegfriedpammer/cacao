@@ -122,6 +122,12 @@ u1* md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 			/* found an invokevirtual */
 			/* get offset of load instruction 246b XXXX */
 			offset = *((s2*)(ra - 4));
+
+			/* return NULL if no mptr was specified (used for replacement) */
+
+			if (mptr == NULL)
+				return NULL;
+
 			pa = mptr + offset;			/* mptr contains the magic we want */
 		} else	{
 			/* we had a moveal XXX, %a3 which is a 3 word opcode */

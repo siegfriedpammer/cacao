@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 8178 2007-07-05 11:13:20Z michi $
+   $Id: md.c 8218 2007-07-19 16:33:19Z michi $
 
 */
 
@@ -500,6 +500,11 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 			/* INVOKEVIRTUAL/INTERFACE */
 
 			offset = *((u2 *)(ra + 2)) & 0xFFF;
+
+			/* return NULL if no mptr was specified (used for replacement) */
+
+			if (mptr == NULL)
+				return NULL;
 
 			/* add offset to method pointer */
 			
