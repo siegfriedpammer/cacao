@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8210 2007-07-18 12:51:00Z twisti $
+   $Id: jni.c 8219 2007-07-20 16:52:11Z twisti $
 
 */
 
@@ -1386,15 +1386,18 @@ jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
 jclass _Jv_JNI_GetSuperclass(JNIEnv *env, jclass sub)
 {
 	classinfo *c;
+	classinfo *super;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_GetSuperclass(env=%p, sub=%p)");
 
-	c = ((classinfo *) sub)->super.cls;
+	c = (classinfo *) sub;
 
-	if (!c)
+	if (c == NULL)
 		return NULL;
 
-	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
+	super = class_get_superclass(c);
+
+	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) super);
 }
   
  

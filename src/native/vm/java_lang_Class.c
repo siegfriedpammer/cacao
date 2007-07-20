@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8207 2007-07-16 15:18:32Z twisti $
+   $Id: java_lang_Class.c 8219 2007-07-20 16:52:11Z twisti $
 
 */
 
@@ -276,30 +276,13 @@ s4 _Jv_java_lang_Class_isPrimitive(java_lang_Class *klass)
 java_lang_Class *_Jv_java_lang_Class_getSuperclass(java_lang_Class *klass)
 {
 	classinfo *c;
-	classinfo *sc;
+	classinfo *super;
 
 	c = (classinfo *) klass;
 
-	/* for java.lang.Object, primitive and Void classes we return NULL */
+	super = class_get_superclass(c);
 
-	if (!c->super.any)
-		return NULL;
-
-	/* for interfaces we also return NULL */
-
-	if (c->flags & ACC_INTERFACE)
-		return NULL;
-
-	/* we may have to resolve the super class reference */
-
-	if ((sc = resolve_classref_or_classinfo_eager(c->super, true)) == NULL)
-		return NULL;
-
-	/* store the resolution */
-
-	c->super.cls = sc;
-
-	return (java_lang_Class *) sc;
+	return super;
 }
 
 

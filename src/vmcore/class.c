@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8209 2007-07-17 20:13:23Z twisti $
+   $Id: class.c 8219 2007-07-20 16:52:11Z twisti $
 
 */
 
@@ -1568,6 +1568,45 @@ bool class_is_interface(classinfo *c)
 		return true;
 
 	return false;
+}
+
+
+/* class_get_superclass ********************************************************
+
+   Return the super class of the given class.  If the super-field is a
+   class-reference, resolve it and store it in the classinfo.
+
+*******************************************************************************/
+
+classinfo *class_get_superclass(classinfo *c)
+{
+	classinfo *super;
+
+	/* For java.lang.Object, primitive and Void classes we return
+	   NULL. */
+
+	if (c->super.any == NULL)
+		return NULL;
+
+	/* For interfaces we also return NULL. */
+
+	if (c->flags & ACC_INTERFACE)
+		return NULL;
+
+	/* We may have to resolve the super class reference. */
+
+	if (IS_CLASSREF(c->super)) {
+		super = resolve_classref_or_classinfo_eager(c->super, true);
+
+		if (super == NULL)
+			return NULL;
+
+		/* Store the resolved super class in the class structure. */
+
+		c->super.cls = super;
+	}
+
+	return c->super.cls;
 }
 
 
