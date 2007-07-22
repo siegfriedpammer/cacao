@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8219 2007-07-20 16:52:11Z twisti $
+   $Id: class.c 8223 2007-07-22 20:43:05Z twisti $
 
 */
 
@@ -1666,6 +1666,24 @@ classinfo *class_get_declaringclass(classinfo *c)
 	}
 
 	return NULL;
+}
+
+
+/* class_get_signature *********************************************************
+
+   Return the signature of the given class.  For array and primitive
+   classes return NULL.
+
+*******************************************************************************/
+
+utf *class_get_signature(classinfo *c)
+{
+	/* For array and primitive classes return NULL. */
+
+	if (class_is_array(c) || class_is_primitive(c))
+		return NULL;
+
+	return c->signature;
 }
 
 
