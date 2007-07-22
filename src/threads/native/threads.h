@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 7966 2007-05-25 12:41:03Z pm $
+   $Id: threads.h 8222 2007-07-22 20:07:55Z twisti $
 
 */
 
@@ -179,7 +179,6 @@ bool threads_detach_thread(threadobject *thread);
 void threads_join_all_threads(void);
 
 void threads_sleep(s8 millis, s4 nanos);
-void threads_yield(void);
 
 bool threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
 
