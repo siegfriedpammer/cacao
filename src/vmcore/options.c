@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.c 8214 2007-07-18 20:27:12Z michi $
+   $Id: options.c 8220 2007-07-22 15:37:52Z twisti $
 
 */
 
@@ -188,6 +188,7 @@ FILE    *opt_ProfileMemoryUsageGNUPlot = NULL;
 int32_t  opt_ThreadStackSize           = 0;
 int32_t  opt_TraceExceptions           = 0;
 int32_t  opt_TraceJavaCalls            = 0;
+int32_t  opt_TraceJNICalls             = 0;
 int32_t  opt_TraceJVMCalls             = 0;
 #if defined(ENABLE_REPLACEMENT)
 int32_t  opt_TraceReplacement          = 0;
@@ -210,6 +211,7 @@ enum {
 	OPT_ThreadStackSize,
 	OPT_TraceExceptions,
 	OPT_TraceJavaCalls,
+	OPT_TraceJNICalls,
 	OPT_TraceJVMCalls,
 	OPT_TraceReplacement
 };
@@ -226,6 +228,7 @@ option_t options_XX[] = {
 	{ "ThreadStackSize",           OPT_ThreadStackSize,           OPT_TYPE_VALUE,   "TODO" },
 	{ "TraceExceptions",           OPT_TraceExceptions,           OPT_TYPE_BOOLEAN, "TODO" },
 	{ "TraceJavaCalls",            OPT_TraceJavaCalls,            OPT_TYPE_BOOLEAN, "trace Java method calls" },
+	{ "TraceJNICalls",             OPT_TraceJNICalls,             OPT_TYPE_BOOLEAN, "trace JNI method calls" },
 	{ "TraceJVMCalls",             OPT_TraceJVMCalls,             OPT_TYPE_BOOLEAN, "TODO" },
 #if defined(ENABLE_REPLACEMENT)
 	{ "TraceReplacement",          OPT_TraceReplacement,          OPT_TYPE_VALUE,   "trace on-stack replacement with the given verbosity level (default: 1)" },
@@ -529,6 +532,10 @@ void options_xx(const char *name)
 	case OPT_TraceJavaCalls:
 		opt_verbosecall = enable;
 		opt_TraceJavaCalls = enable;
+		break;
+
+	case OPT_TraceJNICalls:
+		opt_TraceJNICalls = enable;
 		break;
 
 	case OPT_TraceJVMCalls:

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8219 2007-07-20 16:52:11Z twisti $
+   $Id: jni.c 8220 2007-07-22 15:37:52Z twisti $
 
 */
 
@@ -118,11 +118,12 @@
 
 /* debug **********************************************************************/
 
-#if !defined(NDEBUG) && 0
+#if !defined(NDEBUG)
 # define TRACEJNICALLS(format, ...) \
     do { \
-        if (opt_TraceJNICalls) \
+        if (opt_TraceJNICalls) { \
             log_println((format), __VA_ARGS__); \
+        } \
     } while (0)
 #else
 # define TRACEJNICALLS(format, ...)
@@ -4326,6 +4327,8 @@ jsize _Jv_JNI_GetStringLength(JNIEnv *env, jstring str)
 {
 	java_lang_String *s;
 
+	TRACEJNICALLS("_Jv_JNI_GetStringLength(env=%p, str=%p)", env, str);
+
 	s = (java_lang_String *) str;
 
 	return s->count;
@@ -4429,7 +4432,7 @@ jstring _Jv_JNI_NewStringUTF(JNIEnv *env, const char *bytes)
 {
 	java_lang_String *s;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_NewStringUTF(env=%p, bytes=%s)", env, bytes);
 
 	s = (java_lang_String *) javastring_safe_new_from_utf8(bytes);
 
@@ -4444,7 +4447,7 @@ jsize _Jv_JNI_GetStringUTFLength(JNIEnv *env, jstring string)
     java_lang_String *s;
 	s4                length;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_GetStringUTFLength(env=%p, string=%p)", env, string);
 
 	s = (java_lang_String *) string;
 
