@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8220 2007-07-22 15:37:52Z twisti $
+   $Id: jni.c 8221 2007-07-22 19:31:41Z twisti $
 
 */
 
@@ -1389,7 +1389,7 @@ jclass _Jv_JNI_GetSuperclass(JNIEnv *env, jclass sub)
 	classinfo *c;
 	classinfo *super;
 
-	TRACEJNICALLS("_Jv_JNI_GetSuperclass(env=%p, sub=%p)");
+	TRACEJNICALLS("_Jv_JNI_GetSuperclass(env=%p, sub=%p)", env, sub);
 
 	c = (classinfo *) sub;
 
@@ -5547,7 +5547,7 @@ void _Jv_JNI_GetStringUTFRegion(JNIEnv* env, jstring str, jsize start,
 	java_chararray   *ca;
 	s4                i;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_GetStringUTFRegion(env=%p, str=%p, start=%d, len=%d, buf=%p)", env, str, start, len, buf);
 
 	s  = (java_lang_String *) str;
 	ca = s->value;
@@ -5558,10 +5558,8 @@ void _Jv_JNI_GetStringUTFRegion(JNIEnv* env, jstring str, jsize start,
 		return;
 	}
 
-	/* XXX not sure if this is correct */
-
 	for (i = 0; i < len; i++)
-		buf[i] = ca->data[start + i];
+		buf[i] = ca->data[s->offset + start + i];
 
 	buf[i] = '\0';
 }
