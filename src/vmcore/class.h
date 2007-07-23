@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8223 2007-07-22 20:43:05Z twisti $
+   $Id: class.h 8224 2007-07-23 19:07:48Z twisti $
 
 */
 
@@ -125,8 +125,6 @@ struct classinfo {                /* class structure                          */
 
 	s4          methodscount;     /* number of methods                        */
 	methodinfo *methods;          /* method table                             */
-
-	listnode_t  listnode;         /* linkage                                  */
 
 	s4          state;            /* current class state                      */
 	s4          index;            /* hierarchy depth (classes) or index       */
