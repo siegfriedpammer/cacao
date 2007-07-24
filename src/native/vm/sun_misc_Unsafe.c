@@ -49,9 +49,7 @@
 #include "native/include/java_lang_Thread.h"             /* required by s.m.U */
 #include "native/include/java_lang_Throwable.h"
 
-#if defined(WITH_CLASSPATH_SUN)
-# include "native/include/java_security_ProtectionDomain.h" /* required by smU*/
-#endif
+#include "native/include/java_security_ProtectionDomain.h" /* required by smU */
 
 #include "native/include/sun_misc_Unsafe.h"
 
@@ -578,7 +576,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_
 #if defined(WITH_CLASSPATH_GNU)
 	/* set ProtectionDomain */
 
-	o->pd = pd;
+	o->pd = protectionDomain;
 #endif
 
 	return o;
