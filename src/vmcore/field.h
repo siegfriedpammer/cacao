@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: field.h 8227 2007-07-24 11:55:07Z twisti $
+   $Id: field.h 8229 2007-07-24 18:42:44Z twisti $
 */
 
 
@@ -41,6 +41,7 @@ typedef struct fieldinfo fieldinfo;
 
 #include "vmcore/descriptor.h"
 #include "vmcore/class.h"
+#include "vmcore/loader.h"
 #include "vmcore/references.h"
 #include "vmcore/utf8.h"
 
