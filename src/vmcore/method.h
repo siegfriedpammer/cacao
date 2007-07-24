@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.h 8123 2007-06-20 23:50:55Z michi $
+   $Id: method.h 8228 2007-07-24 12:37:25Z twisti $
 */
 
 
@@ -157,6 +157,7 @@ struct lineinfo {
 
 /* function prototypes ********************************************************/
 
+bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool);
 void method_free(methodinfo *m);
 bool method_canoverwrite(methodinfo *m, methodinfo *old);
 
