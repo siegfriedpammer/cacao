@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: descriptor.c 8210 2007-07-18 12:51:00Z twisti $
+   $Id: descriptor.c 8232 2007-07-25 14:51:40Z twisti $
 
 */
 
@@ -38,8 +38,8 @@
 #include "mm/memory.h"
 
 #include "vm/exceptions.h"
-
 #include "vm/jit_interface.h"
+#include "vm/vm.h"
 
 #include "vmcore/descriptor.h"
 #include "vmcore/primitive.h"
@@ -150,24 +150,38 @@ u2 descriptor_to_basic_type(utf *descriptor)
 	assert(descriptor->blength >= 1);
 	
 	switch (descriptor->text[0]) {
-		case 'B': 
-		case 'C':
-		case 'I':
-		case 'S':  
-		case 'Z':  return TYPE_INT;
-		case 'D':  return TYPE_DBL;
-		case 'F':  return TYPE_FLT;
-		case 'J':  return TYPE_LNG;
-		case 'L':
-		case '[':  return TYPE_ADR;
-	}
-			
-	assert(0);
+	case 'Z':
+	case 'B':
+	case 'C':
+	case 'S':
+	case 'I':
+		return TYPE_INT;
 
-	return 0; /* keep the compiler happy */
+	case 'J':
+		return TYPE_LNG;
+
+	case 'F':
+		return TYPE_FLT;
+
+	case 'D':
+		return TYPE_DBL;
+
+	case 'L':
+	case '[':
+		return TYPE_ADR;
+
+	default:
+		vm_abort("descriptor_to_basic_type: invalid type %c",
+				 descriptor->text[0]);
+	}
+
+	/* keep the compiler happy */
+
+	return 0;
 }
 
-/* descriptor_typesize**** ****************************************************
+
+/* descriptor_typesize *********************************************************
 
    Return the size in bytes needed for the given type.
 
@@ -184,17 +198,26 @@ u2 descriptor_typesize(typedesc *td)
 	assert(td);
 
 	switch (td->type) {
-		case TYPE_INT: return 4;
-		case TYPE_LNG: return 8;
-		case TYPE_FLT: return 4;
-		case TYPE_DBL: return 8;
-		case TYPE_ADR: return sizeof(voidptr);
+	case TYPE_INT:
+	case TYPE_FLT:
+		return 4;
+
+	case TYPE_LNG:
+	case TYPE_DBL:
+		return 8;
+
+	case TYPE_ADR:
+		return SIZEOF_VOID_P;
+
+	default:
+		vm_abort("descriptor_typesize: invalid type %d", td->type);
 	}
 
-	assert(0);
+	/* keep the compiler happy */
 
-	return 0; /* keep the compiler happy */
+	return 0;
 }
+
 
 /* name_from_descriptor ********************************************************
 
