@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.c 8220 2007-07-22 15:37:52Z twisti $
+   $Id: options.c 8230 2007-07-25 08:23:10Z twisti $
 
 */
 
@@ -120,7 +120,6 @@ bool opt_getcompilingtime = false; /* compute compile time                   */
 #if defined(ENABLE_VERIFIER)
 bool opt_verify  = true;       /* true if classfiles should be verified      */
 #endif
-bool opt_eager   = false;
 
 #if defined(ENABLE_PROFILING)
 bool opt_prof    = false;

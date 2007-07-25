@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 8228 2007-07-24 12:37:25Z twisti $
+   $Id: loader.c 8230 2007-07-25 08:23:10Z twisti $
 
 */
 
@@ -649,17 +649,6 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 		cptags[forward_classes->thisindex] = CONSTANT_Class;
 
-		if (opt_eager) {
-			classinfo *tc;
-
-			if (!(tc = load_class_bootstrap(name)))
-				return false;
-
-			/* link the class later, because we cannot link the class currently
-			   loading */
-			list_add_first(&unlinkedclasses, tc);
-		}
-
 		/* the classref is created later */
 		cpinfos[forward_classes->thisindex] = name;
 
@@ -1207,9 +1196,6 @@ classinfo *load_class_bootstrap(utf *name)
    The super class and the interfaces implemented by this class need
    not be loaded. The link is set later by the function 'class_link'.
 
-   The loaded class is removed from the list 'unloadedclasses' and
-   added to the list 'unlinkedclasses'.
-	
    SYNCHRONIZATION:
        This function is NOT synchronized!
    
@@ -1809,10 +1795,6 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 
 		assert(comp->state & CLASS_LOADED);
 
-		if (opt_eager)
-			if (!link_class(c))
-				return NULL;
-
 		/* the array's flags are that of the component class */
 		c->flags = (comp->flags & ~ACC_INTERFACE) | ACC_FINAL | ACC_ABSTRACT;
 		c->classloader = comp->classloader;
@@ -1833,10 +1815,6 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 			return NULL;
 
 		assert(comp->state & CLASS_LOADED);
-
-		if (opt_eager)
-			if (!link_class(c))
-				return NULL;
 
 		/* the array's flags are that of the component class */
 		c->flags = (comp->flags & ~ACC_INTERFACE) | ACC_FINAL | ACC_ABSTRACT;
@@ -1870,31 +1848,19 @@ classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
 	c->super.cls = class_java_lang_Object;
 
 #if defined(ENABLE_JAVASE)
-	c->interfacescount = 2;
-    c->interfaces      = MNEW(classref_or_classinfo, 2);
 
-	if (opt_eager) {
-		classinfo *tc;
+	c->interfacescount   = 2;
+    c->interfaces        = MNEW(classref_or_classinfo, 2);
+	c->interfaces[0].cls = class_java_lang_Cloneable;
+	c->interfaces[1].cls = class_java_io_Serializable;
 
-		tc = class_java_lang_Cloneable;
-		assert(tc->state & CLASS_LOADED);
-		list_add_first(&unlinkedclasses, tc);
-		c->interfaces[0].cls = tc;
-
-		tc = class_java_io_Serializable;
-		assert(tc->state & CLASS_LOADED);
-		list_add_first(&unlinkedclasses, tc);
-		c->interfaces[1].cls = tc;
-	}
-	else {
-		c->interfaces[0].cls = class_java_lang_Cloneable;
-		c->interfaces[1].cls = class_java_io_Serializable;
-	}
 #elif defined(ENABLE_JAVAME_CLDC1_1)
-	c->interfacescount = 0;
-	c->interfaces      = NULL;
+
+	c->interfacescount   = 0;
+	c->interfaces        = NULL;
+
 #else
-#error unknow Java configuration
+# error unknow Java configuration
 #endif
 
 	c->methodscount = 1;

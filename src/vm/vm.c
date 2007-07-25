@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8213 2007-07-18 20:08:26Z michi $
+   $Id: vm.c 8230 2007-07-25 08:23:10Z twisti $
 
 */
 
@@ -231,7 +231,6 @@ enum {
 	OPT_VERBOSETC,
 #endif
 #endif /* defined(ENABLE_VERIFIER) */
-	OPT_EAGER,
 
 	/* optimization options */
 
@@ -346,7 +345,6 @@ opt_struct opts[] = {
 	{ "log",               true,  OPT_LOG },
 	{ "c",                 true,  OPT_CHECK },
 	{ "l",                 false, OPT_LOAD },
-	{ "eager",             false, OPT_EAGER },
 
 #if !defined(NDEBUG)
 	{ "all",               false, OPT_ALL },
@@ -561,7 +559,6 @@ static void XXusage(void)
 	puts("    -oloop                   optimize array accesses in loops");
 #endif
 	puts("    -l                       don't start the class after loading");
-	puts("    -eager                   perform eager class loading and linking");
 #if !defined(NDEBUG)
 	puts("    -all                     compile all methods, no execution");
 	puts("    -m                       compile only a specific method");
@@ -1238,10 +1235,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		case OPT_LOAD:
 			opt_run = false;
 			makeinitializations = false;
-			break;
-
-		case OPT_EAGER:
-			opt_eager = true;
 			break;
 
 #if !defined(NDEBUG)

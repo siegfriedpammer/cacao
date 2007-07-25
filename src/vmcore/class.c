@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8223 2007-07-22 20:43:05Z twisti $
+   $Id: class.c 8230 2007-07-25 08:23:10Z twisti $
 
 */
 
@@ -64,10 +64,6 @@
 
 
 /* global variables ***********************************************************/
-
-list_t unlinkedclasses;                 /* this is only used for eager class  */
-                                        /* loading                            */
-
 
 /* frequently used classes ****************************************************/
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8224 2007-07-23 19:07:48Z twisti $
+   $Id: class.h 8230 2007-07-25 08:23:10Z twisti $
 
 */
 
@@ -186,9 +186,6 @@ struct castinfo {
 
 
 /* global variables ***********************************************************/
-
-extern list_t unlinkedclasses; /* this is only used for eager class loading   */
-
 
 /* frequently used classes ****************************************************/
 

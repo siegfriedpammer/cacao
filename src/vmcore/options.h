@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.h 8220 2007-07-22 15:37:52Z twisti $
+   $Id: options.h 8230 2007-07-25 08:23:10Z twisti $
 
 */
 
@@ -135,7 +135,6 @@ extern bool opt_getcompilingtime;
 #if defined(ENABLE_VERIFIER)
 extern bool opt_verify;
 #endif
-extern bool opt_eager;
 
 #if defined(ENABLE_PROFILING)
 extern bool opt_prof;
