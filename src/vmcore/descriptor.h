@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: descriptor.h 8123 2007-06-20 23:50:55Z michi $
+   $Id: descriptor.h 8233 2007-07-25 15:11:20Z twisti $
 
 */
 
@@ -160,8 +160,8 @@ descriptor_pool * descriptor_pool_new(classinfo *referer);
 bool descriptor_pool_add_class(descriptor_pool *pool,utf *name);
 bool descriptor_pool_add(descriptor_pool *pool,utf *desc,int *paramslots);
 
-u2 descriptor_to_basic_type(utf *desc);
-u2 descriptor_typesize(typedesc *td);
+int  descriptor_to_basic_type(utf *desc);
+int  descriptor_typesize(typedesc *td);
 
 constant_classref * descriptor_pool_create_classrefs(descriptor_pool *pool,
 													 s4 *count);

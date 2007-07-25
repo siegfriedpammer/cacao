@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: descriptor.c 8232 2007-07-25 14:51:40Z twisti $
+   $Id: descriptor.c 8233 2007-07-25 15:11:20Z twisti $
 
 */
 
@@ -145,7 +145,7 @@ struct descriptor_hash_entry {
 
 *******************************************************************************/
 
-u2 descriptor_to_basic_type(utf *descriptor)
+int descriptor_to_basic_type(utf *descriptor)
 {
 	assert(descriptor->blength >= 1);
 	
@@ -193,7 +193,7 @@ u2 descriptor_to_basic_type(utf *descriptor)
 
 *******************************************************************************/
 
-u2 descriptor_typesize(typedesc *td)
+int descriptor_typesize(typedesc *td)
 {
 	assert(td);
 
