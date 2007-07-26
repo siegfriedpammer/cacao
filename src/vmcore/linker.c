@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8161 2007-06-28 10:30:08Z twisti $
+   $Id: linker.c 8234 2007-07-26 08:21:25Z twisti $
 
 */
 
@@ -88,6 +88,22 @@ static bool linker_addinterface(classinfo *c, classinfo *ic);
 static s4 class_highestinterface(classinfo *c);
 
 
+/* dummy structures for alinment checks ***************************************/
+
+typedef struct dummy_alignment_long_t   dummy_alignment_long_t;
+typedef struct dummy_alignment_double_t dummy_alignment_double_t;
+
+struct dummy_alignment_long_t {
+	int32_t i;
+	int64_t l;
+};
+
+struct dummy_alignment_double_t {
+	int32_t i;
+	double  d;
+};
+
+
 /* linker_init *****************************************************************
 
    Initializes the linker subsystem.
@@ -96,6 +112,27 @@ static s4 class_highestinterface(classinfo *c);
 
 bool linker_init(void)
 {
+	/* Check for if alignment for long and double matches what we
+	   assume for the current architecture. */
+
+#if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__))
+	if (OFFSET(dummy_alignment_long_t, l) != 4)
+		vm_abort("linker_init: long alignment is different from what assumed: %d != %d",
+				 OFFSET(dummy_alignment_long_t, l), 4);
+
+	if (OFFSET(dummy_alignment_double_t, d) != 4)
+		vm_abort("linker_init: double alignment is different from what assumed: %d != %d",
+				 OFFSET(dummy_alignment_double_t, d), 4);
+#else
+	if (OFFSET(dummy_alignment_long_t, l) != 8)
+		vm_abort("linker_init: long alignment is different from what assumed: %d != %d",
+				 OFFSET(dummy_alignment_long_t, l), 8);
+
+	if (OFFSET(dummy_alignment_double_t, d) != 8)
+		vm_abort("linker_init: double alignment is different from what assumed: %d != %d",
+				 OFFSET(dummy_alignment_double_t, d), 8);
+#endif
+
 	/* reset interface index */
 
 	interfaceindex = 0;
