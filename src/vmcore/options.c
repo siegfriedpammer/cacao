@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.c 8230 2007-07-25 08:23:10Z twisti $
+   $Id: options.c 8236 2007-07-27 10:18:17Z twisti $
 
 */
 
@@ -181,6 +181,7 @@ int32_t  opt_DebugStackFrameInfo       = 0;
 int32_t  opt_DebugStackTrace           = 0;
 int32_t  opt_MaxPermSize               = 0;
 int32_t  opt_PermSize                  = 0;
+int      opt_PrintConfig               = 0;
 int32_t  opt_ProfileGCMemoryUsage      = 0;
 int32_t  opt_ProfileMemoryUsage        = 0;
 FILE    *opt_ProfileMemoryUsageGNUPlot = NULL;
@@ -204,6 +205,7 @@ enum {
 	OPT_DebugStackTrace,
 	OPT_MaxPermSize,
 	OPT_PermSize,
+	OPT_PrintConfig,
 	OPT_ProfileGCMemoryUsage,
 	OPT_ProfileMemoryUsage,
 	OPT_ProfileMemoryUsageGNUPlot,
@@ -221,6 +223,7 @@ option_t options_XX[] = {
 	{ "DebugStackTrace",           OPT_DebugStackTrace,           OPT_TYPE_BOOLEAN, "TODO" },
 	{ "MaxPermSize",               OPT_MaxPermSize,               OPT_TYPE_VALUE,   "not implemented" },
 	{ "PermSize",                  OPT_PermSize,                  OPT_TYPE_VALUE,   "not implemented" },
+	{ "PrintConfig",               OPT_PrintConfig,               OPT_TYPE_BOOLEAN, "print VM configuration" },
 	{ "ProfileGCMemoryUsage",      OPT_ProfileGCMemoryUsage,      OPT_TYPE_VALUE,   "profiles GC memory usage in the given interval, <value> is in seconds (default: 5)" },
 	{ "ProfileMemoryUsage",        OPT_ProfileMemoryUsage,        OPT_TYPE_VALUE,   "TODO" },
 	{ "ProfileMemoryUsageGNUPlot", OPT_ProfileMemoryUsageGNUPlot, OPT_TYPE_VALUE,   "TODO" },
@@ -484,6 +487,10 @@ void options_xx(const char *name)
 
 	case OPT_PermSize:
 		/* currently ignored */
+		break;
+
+	case OPT_PrintConfig:
+		vm_printconfig();
 		break;
 
 	case OPT_ProfileGCMemoryUsage:

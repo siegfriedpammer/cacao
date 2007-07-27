@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: dummy.c 8210 2007-07-18 12:51:00Z twisti $
+   $Id: dummy.c 8236 2007-07-27 10:18:17Z twisti $
 
 */
 
@@ -458,6 +458,10 @@ int32_t dump_size(void)
 
 /* properties *****************************************************************/
 
+void properties_add(char *key, char *value)
+{
+}
+
 char *properties_get(char *key)
 {
 	return NULL;
@@ -588,6 +592,10 @@ void threads_cast_startworld(void)
 
 
 /* vm *************************************************************************/
+
+void vm_printconfig(void)
+{
+}
 
 void vm_abort(const char *text, ...)
 {

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: suck.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: suck.c 8236 2007-07-27 10:18:17Z twisti $
 
 */
 
@@ -322,6 +322,11 @@ void suck_add_from_property(char *key)
 					/* (We use `free` as the memory came from the C library.) */
 
 					free(namelist[i]);
+
+#if defined(ENABLE_JAVASE)
+					properties_add("java.boot.class.path", _Jv_bootclasspath);
+					properties_add("sun.boot.class.path", _Jv_bootclasspath);
+#endif
 				}
 			}
 

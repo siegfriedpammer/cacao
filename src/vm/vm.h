@@ -91,6 +91,7 @@ struct vm_arg {
 /* function prototypes ********************************************************/
 
 void usage(void);
+void vm_printconfig(void);
 
 bool vm_createjvm(JavaVM **p_vm, void **p_env, void *vm_args);
 bool vm_create(JavaVMInitArgs *vm_args);

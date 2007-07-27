@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8230 2007-07-25 08:23:10Z twisti $
+   $Id: vm.c 8236 2007-07-27 10:18:17Z twisti $
 
 */
 
@@ -635,8 +635,34 @@ static void version(bool opt_exit)
 	puts("This program is distributed in the hope that it will be useful, but");
 	puts("WITHOUT ANY WARRANTY; without even the implied warranty of");
 	puts("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU");
-	puts("General Public License for more details.\n");
+	puts("General Public License for more details.");
 
+	/* exit normally, if requested */
+
+	if (opt_exit)
+		exit(0);
+}
+
+
+/* fullversion *****************************************************************
+
+   Prints a Sun compatible version information (required e.g. by
+   jpackage, www.jpackage.org).
+
+*******************************************************************************/
+
+static void fullversion(void)
+{
+	puts("java full version \"cacao-"JAVA_VERSION"\"");
+
+	/* exit normally */
+
+	exit(0);
+}
+
+
+void vm_printconfig(void)
+{
 	puts("Configure/Build options:\n");
 	puts("  ./configure: "VERSION_CONFIGURE_ARGS"");
 #if defined(__VERSION__)
@@ -665,28 +691,6 @@ static void version(bool opt_exit)
 	printf("  java.boot.class.path           : %s\n", _Jv_bootclasspath);
 	printf("  gnu.classpath.boot.library.path: %s\n", classpath_libdir);
 	printf("  java.class.path                : %s\n", _Jv_classpath);
-
-	/* exit normally, if requested */
-
-	if (opt_exit)
-		exit(0);
-}
-
-
-/* fullversion *****************************************************************
-
-   Prints a Sun compatible version information (required e.g. by
-   jpackage, www.jpackage.org).
-
-*******************************************************************************/
-
-static void fullversion(void)
-{
-	puts("java full version \"cacao-"JAVA_VERSION"\"");
-
-	/* exit normally */
-
-	exit(0);
 }
 
 
@@ -935,7 +939,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		strcpy(_Jv_classpath, ".");
 	}
 
-	/* get and set java.library.path */
+	/* Get and set java.library.path. */
 
 	_Jv_java_library_path = getenv("LD_LIBRARY_PATH");
 
@@ -959,10 +963,18 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	jvmti = false;
 #endif
 
-	/* initialize and fill properties before command-line handling */
+	/* Initialize and fill properties before command-line handling. */
 
 	if (!properties_init())
-		vm_abort("properties_init failed");
+		vm_abort("vm_create: properties_init failed");
+
+	/* Set the classpath properties. */
+
+#if defined(ENABLE_JAVASE)
+	properties_add("java.boot.class.path", _Jv_bootclasspath);
+	properties_add("sun.boot.class.path", _Jv_bootclasspath);
+	properties_add("java.class.path", _Jv_classpath);
+#endif
 
 	/* iterate over all passed options */
 
@@ -999,6 +1011,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 			_Jv_classpath = MNEW(char, strlen(opt_arg) + strlen("0"));
 			strcpy(_Jv_classpath, opt_arg);
+
+#if defined(ENABLE_JAVASE)
+			properties_add("java.class.path", _Jv_classpath);
+#endif
 			break;
 
 		case OPT_D:
@@ -1025,6 +1041,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 			_Jv_bootclasspath = MNEW(char, strlen(opt_arg) + strlen("0"));
 			strcpy(_Jv_bootclasspath, opt_arg);
+
+#if defined(ENABLE_JAVASE)
+			properties_add("java.boot.class.path", _Jv_bootclasspath);
+			properties_add("sun.boot.class.path", _Jv_bootclasspath);
+#endif
 			break;
 
 		case OPT_BOOTCLASSPATH_A:
@@ -1040,6 +1061,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 			strcat(_Jv_bootclasspath, ":");
 			strcat(_Jv_bootclasspath, opt_arg);
+
+#if defined(ENABLE_JAVASE)
+			properties_add("java.boot.class.path", _Jv_bootclasspath);
+			properties_add("sun.boot.class.path", _Jv_bootclasspath);
+#endif
 			break;
 
 		case OPT_BOOTCLASSPATH_P:
@@ -1056,6 +1082,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			strcat(_Jv_bootclasspath, cp);
 
 			MFREE(cp, char, len);
+
+#if defined(ENABLE_JAVASE)
+			properties_add("java.boot.class.path", _Jv_bootclasspath);
+			properties_add("sun.boot.class.path", _Jv_bootclasspath);
+#endif
 			break;
 
 		case OPT_BOOTCLASSPATH_C:
@@ -1073,6 +1104,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			strcpy(_Jv_bootclasspath, CACAO_VM_ZIP);
 			strcat(_Jv_bootclasspath, ":");
 			strcat(_Jv_bootclasspath, opt_arg);
+
+#if defined(ENABLE_JAVASE)
+			properties_add("java.boot.class.path", _Jv_bootclasspath);
+			properties_add("sun.boot.class.path", _Jv_bootclasspath);
+#endif
 			break;
 
 #if defined(ENABLE_JVMTI)
@@ -1483,6 +1519,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			_Jv_classpath = MNEW(char, strlen(mainstring) + strlen("0"));
 
 			strcpy(_Jv_classpath, mainstring);
+
+#if defined(ENABLE_JAVASE)
+			properties_add("java.class.path", _Jv_classpath);
+#endif
 		}
 		else {
 			/* replace .'s with /'s in classname */
@@ -1562,16 +1602,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	/* AFTER: utf8_init */
 
 	suck_add(_Jv_bootclasspath);
-
-	/* Now re-set some of the properties that may have changed. This
-	   must be done after _all_ environment variables have been
-	   processes (e.g. -jar handling).
-
-	   AFTER: suck_add_from_property, since it may change the
-	   _Jv_bootclasspath pointer. */
-
-	if (!properties_postinit())
-		vm_abort("vm_create: properties_postinit failed");
 
 	/* initialize the classcache hashtable stuff: lock, hashtable
 	   (must be done _after_ threads_preinit) */
