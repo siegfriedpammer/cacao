@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8234 2007-07-26 08:21:25Z twisti $
+   $Id: linker.c 8237 2007-07-27 16:15:29Z twisti $
 
 */
 
@@ -174,7 +174,6 @@ bool linker_init(void)
 		return false;
 #endif
 
-
 	/* link classes for wrapping primitive types */
 
 #if defined(ENABLE_JAVASE)
@@ -257,6 +256,11 @@ bool linker_init(void)
 
 	if (!link_class(class_java_util_Vector))
 		return false;
+
+# if defined(WITH_CLASSPATH_SUN)
+	if (!link_class(class_sun_reflect_MagicAccessorImpl))
+		return false;
+# endif
 
 	if (!link_class(arrayclass_java_lang_Object))
 		return false;

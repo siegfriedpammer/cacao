@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8231 2007-07-25 14:21:24Z twisti $
+   $Id: class.h 8237 2007-07-27 16:15:29Z twisti $
 
 */
 
@@ -204,6 +204,9 @@ extern classinfo *class_java_lang_VMSystem;
 extern classinfo *class_java_lang_VMThread;
 extern classinfo *class_java_io_Serializable;
 
+#if defined(WITH_CLASSPATH_SUN)
+extern classinfo *class_sun_reflect_MagicAccessorImpl;
+#endif
 
 /* system exception classes required in cacao */
 

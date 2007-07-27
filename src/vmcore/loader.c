@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 8230 2007-07-25 08:23:10Z twisti $
+   $Id: loader.c 8237 2007-07-27 16:15:29Z twisti $
 
 */
 
@@ -216,6 +216,12 @@ bool loader_init(void)
 
 	if (!(class_java_util_Vector = load_class_bootstrap(utf_java_util_Vector)))
 		return false;
+
+# if defined(WITH_CLASSPATH_SUN)
+	if (!(class_sun_reflect_MagicAccessorImpl =
+		  load_class_bootstrap(utf_new_char("sun/reflect/MagicAccessorImpl"))))
+		return false;
+# endif
 
 	if (!(arrayclass_java_lang_Object =
 		  load_class_bootstrap(utf_new_char("[Ljava/lang/Object;"))))
