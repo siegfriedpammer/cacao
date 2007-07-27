@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8237 2007-07-27 16:15:29Z twisti $
+   $Id: class.c 8238 2007-07-27 18:41:53Z twisti $
 
 */
 
@@ -1455,6 +1455,37 @@ fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
 }
 
 
+/* class_resolve_superclass ****************************************************
+
+   Resolves the super class reference of the given class if necessary.
+
+*******************************************************************************/
+
+static classinfo *class_resolve_superclass(classinfo *c)
+{
+	classinfo *super;
+
+	if (c->super.any == NULL)
+		return NULL;
+
+	/* Do we have a super class reference or is it already
+	   resolved? */
+
+	if (IS_CLASSREF(c->super)) {
+		super = resolve_classref_or_classinfo_eager(c->super, true);
+
+		if (super == NULL)
+			return NULL;
+
+		/* Store the resolved super class in the class structure. */
+
+		c->super.cls = super;
+	}
+
+	return c->super.cls;
+}
+
+
 /* class_issubclass ************************************************************
 
    Checks if sub is a descendant of super.
@@ -1463,11 +1494,15 @@ fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
 
 bool class_issubclass(classinfo *sub, classinfo *super)
 {
-	for (; sub != NULL; sub = class_get_superclass(sub))
+	for (;;) {
+		if (sub == NULL)
+			return false;
+
 		if (sub == super)
 			return true;
 
-	return false;
+		sub = class_resolve_superclass(sub);
+	}
 }
 
 
@@ -1590,18 +1625,9 @@ classinfo *class_get_superclass(classinfo *c)
 
 	/* We may have to resolve the super class reference. */
 
-	if (IS_CLASSREF(c->super)) {
-		super = resolve_classref_or_classinfo_eager(c->super, true);
+	super = class_resolve_superclass(c);
 
-		if (super == NULL)
-			return NULL;
-
-		/* Store the resolved super class in the class structure. */
-
-		c->super.cls = super;
-	}
-
-	return c->super.cls;
+	return super;
 }
 
 
