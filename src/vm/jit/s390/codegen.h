@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 8123 2007-06-20 23:50:55Z michi $
+   $Id: codegen.h 8240 2007-07-29 20:36:47Z pm $
 
 */
 
@@ -706,8 +706,8 @@
 #define M_DSUB(a, dest) N_SDBR(dest, a)
 #define M_DADD(a, dest) N_ADBR(dest, a)
 #define M_DDIV(a, dest) N_DDBR(dest, a)
-#define M_CVTFI(src, dst) N_CFEBR(dst, 4, src)
-#define M_CVTDI(src, dst) N_CFDBR(dst, 4, src)
+#define M_CVTFI(src, dst) N_CFEBR(dst, 5, src)
+#define M_CVTDI(src, dst) N_CFDBR(dst, 5, src)
 #define M_IADD(a, dest) N_AR(dest, a)
 #define M_AADD(a, dest) N_AR(dest, a)
 #define M_ISUB(a, dest) N_SR(dest, a)

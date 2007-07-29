@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 8218 2007-07-19 16:33:19Z michi $
+   $Id: md.c 8240 2007-07-29 20:36:47Z pm $
 
 */
 
@@ -168,6 +168,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	switch (xpc[0]) {
 		case 0x58: /* L */
 		case 0x50: /* ST */
+		case 0x55: /* CL (array size check on NULL array) */
 			base = (xpc[2] >> 4) & 0xF;
 			if (base == 0) {
 				is_null = 1;
@@ -582,39 +583,13 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
    Patch the given replacement point.
 
 *******************************************************************************/
-#if 0
-void md_patch_replacement_point(rplpoint *rp)
+#if defined(ENABLE_REPLACEMENT)
+void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *savedmcode)
 {
-    u8 mcode;
-
-	/* XXX this is probably unsafe! */
-
-	/* save the current machine code */
-	mcode = *(u8*)rp->pc;
-
-	/* write spinning instruction */
-	*(u2*)(rp->pc) = 0xebfe;
-
-	/* write 5th byte */
-	rp->pc[4] = (rp->mcode >> 32);
-
-	/* write first word */
-    *(u4*)(rp->pc) = (u4) rp->mcode;
-
-	/* store saved mcode */
-	rp->mcode = mcode;
-	
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-	{
-		u1* u1ptr = rp->pc;
-		DISASSINSTR(u1ptr);
-		fflush(stdout);
-	}
-#endif
-			
-    /* XXX if required asm_cacheflush(rp->pc,8); */
+	assert(0);
 }
 #endif
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

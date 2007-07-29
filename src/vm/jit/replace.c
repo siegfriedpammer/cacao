@@ -85,6 +85,10 @@
 #define REPLACE_RA_LINKAGE_AREA
 #define REPLACE_LEAFMETHODS_RA_REGISTER
 #define REPLACE_REG_RA REG_ITMP3 /* the execution state has the LR in itmp3 */
+/* s390 */
+#elif defined(__S390__)
+#define REPLACE_RA_TOP_OF_FRAME
+#define REPLACE_REG_RA REG_ITMP3
 #endif
 
 
@@ -825,7 +829,7 @@ void replace_activate_replacement_points(codeinfo *code, bool mappable)
 
 		savedmcode -= REPLACEMENT_PATCH_SIZE;
 
-#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
+#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__) || defined(__S390__)) && defined(ENABLE_JIT)
 		md_patch_replacement_point(code, index, rp, savedmcode);
 #endif
 		rp->flags |= RPLPOINT_FLAG_ACTIVE;
@@ -887,7 +891,7 @@ void replace_deactivate_replacement_points(codeinfo *code)
 		DOLOG( printf("deactivate replacement point:\n");
 			   replace_replacement_point_println(rp, 1); fflush(stdout); );
 
-#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
+#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__) || defined(__S390__)) && defined(ENABLE_JIT)
 		md_patch_replacement_point(code, -1, rp, savedmcode);
 #endif
 
@@ -2803,7 +2807,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	/* call the assembler code for the last phase of replacement */
 
-#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__)) && defined(ENABLE_JIT)
+#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__) || defined(__S390__)) && defined(ENABLE_JIT)
 	asm_replacement_in(&(safestack->es), safestack);
 #endif
 
