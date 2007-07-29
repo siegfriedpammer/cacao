@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8236 2007-07-27 10:18:17Z twisti $
+   $Id: vm.c 8239 2007-07-29 19:21:18Z twisti $
 
 */
 
@@ -909,20 +909,54 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		strcat(_Jv_bootclasspath, cacao_prefix);
 		strcat(_Jv_bootclasspath, "/share/classpath/glibj.zip");
 #else
-		len =
 # if defined(WITH_CLASSPATH_GNU)
+		len =
 			strlen(CACAO_VM_ZIP) +
 			strlen(":") +
-# endif
 			strlen(CLASSPATH_CLASSES) +
 			strlen("0");
+# elif defined(WITH_CLASSPATH_SUN)
+		/* This is the bootclasspath taken from HotSpot (see
+		   hotspot/src/share/vm/runtime/os.cpp
+		   (os::set_boot_path)). */
+
+		len =
+			strlen(CLASSPATH_PREFIX"/lib/resources.jar:"
+				   CLASSPATH_PREFIX"/lib/rt.jar:"
+				   CLASSPATH_PREFIX"/lib/sunrsasign.jar:"
+				   CLASSPATH_PREFIX"/lib/jsse.jar:"
+				   CLASSPATH_PREFIX"/lib/jce.jar:"
+				   CLASSPATH_PREFIX"/lib/charsets.jar:"
+				   CLASSPATH_PREFIX"/classes") +
+			strlen("0");
+# elif defined(WITH_CLASSPATH_CLDC1_1)
+		len =
+			strlen(CLASSPATH_CLASSES) +
+			strlen("0");
+# else
+#  error unknown classpath configuration
+# endif
 
 		_Jv_bootclasspath = MNEW(char, len);
+
 # if defined(WITH_CLASSPATH_GNU)
-		strcat(_Jv_bootclasspath, CACAO_VM_ZIP);
+		strcpy(_Jv_bootclasspath, CACAO_VM_ZIP);
 		strcat(_Jv_bootclasspath, ":");
-# endif
 		strcat(_Jv_bootclasspath, CLASSPATH_CLASSES);
+# elif defined(WITH_CLASSPATH_SUN)
+		strcpy(_Jv_bootclasspath,
+			   CLASSPATH_PREFIX"/lib/resources.jar:"
+			   CLASSPATH_PREFIX"/lib/rt.jar:"
+			   CLASSPATH_PREFIX"/lib/sunrsasign.jar:"
+			   CLASSPATH_PREFIX"/lib/jsse.jar:"
+			   CLASSPATH_PREFIX"/lib/jce.jar:"
+			   CLASSPATH_PREFIX"/lib/charsets.jar:"
+			   CLASSPATH_PREFIX"/classes");
+# elif defined(WITH_CLASSPATH_CLDC1_1)
+		strcat(_Jv_bootclasspath, CLASSPATH_CLASSES);
+# else
+#  error unknown classpath configuration
+# endif
 #endif
 	}
 
