@@ -82,7 +82,6 @@ struct codeinfo {
 #if defined(ENABLE_REPLACEMENT)
 	rplpoint     *rplpoints;            /* replacement points                 */
 	rplalloc     *regalloc;             /* register allocation info           */
-	u1           *replacementstubs;     /* beginning of replacement stubs     */
 	s4            rplpointcount;        /* number of replacement points       */
 	s4            globalcount;          /* number of global allocations       */
 	s4            regalloccount;        /* number of total allocations        */

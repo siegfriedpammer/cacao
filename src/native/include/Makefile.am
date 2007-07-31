@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 8132 2007-06-22 11:15:47Z twisti $
+## $Id: Makefile.am 8202 2007-07-15 12:08:18Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -78,7 +78,8 @@ endif
 if WITH_CLASSPATH_SUN
 JAVASE_HEADER_FILES += \
 	java_lang_AssertionStatusDirectives.h \
-	java_nio_ByteBuffer.h
+	java_nio_ByteBuffer.h \
+	sun_reflect_ConstantPool.h
 endif
 
 JAVAME_CLDC1_1_HEADER_FILES = \

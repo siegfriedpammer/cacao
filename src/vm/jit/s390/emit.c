@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: emit.c 8240 2007-07-29 20:36:47Z pm $
 
 */
 
@@ -368,15 +368,15 @@ __PORTED__ void emit_patcher_stubs(jitdata *jd)
    Generates the code for the replacement stubs.
 
 *******************************************************************************/
-
+#if defined(ENABLE_REPLACEMENT)
 void emit_replacement_stubs(jitdata *jd)
 {
-#if 0
 	codegendata *cd;
 	codeinfo    *code;
 	rplpoint    *rplp;
 	s4           disp;
-	s4           i;
+	s4           i, remain;
+	u1          *savedmcodeptr;
 
 	/* get required compiler data */
 
@@ -385,34 +385,58 @@ void emit_replacement_stubs(jitdata *jd)
 
 	rplp = code->rplpoints;
 
+	/* store beginning of replacement stubs */
+
+	code->replacementstubs = (u1*) (cd->mcodeptr - cd->mcodebase);
+
 	for (i = 0; i < code->rplpointcount; ++i, ++rplp) {
+		/* do not generate stubs for non-trappable points */
+
+		if (rplp->flags & RPLPOINT_FLAG_NOTRAP)
+			continue;
+
 		/* check code segment size */
 
 		MCODECHECK(512);
 
-		/* note start of stub code */
+#if !defined(NDEBUG)
+		savedmcodeptr = cd->mcodeptr;
+#endif
 
-		rplp->outcode = (u1 *) (ptrint) (cd->mcodeptr - cd->mcodebase);
+		/* create stack frame - 8-byte aligned */
 
-		/* make machine code for patching */
+		M_ASUB_IMM(REG_SP, 2 * 4);
 
-		disp = (ptrint) (rplp->outcode - rplp->pc) - 5;
+		/* push address of `rplpoint` struct, will be used in asm_replacement_out */
 
-		rplp->mcode = 0xe9 | ((u8) disp << 8);
-
-		/* push address of `rplpoint` struct */
-			
-		M_MOV_IMM(rplp, REG_ITMP3);
-		M_PUSH(REG_ITMP3);
+		disp = dseg_add_address(cd, rplp);
+		M_ALD_DSEG(REG_ITMP3, disp);
+		M_AST(REG_ITMP3, REG_SP, 0 * 4);
 
 		/* jump to replacement function */
 
-		M_MOV_IMM(asm_replacement_out, REG_ITMP3);
-		M_JMP(REG_ITMP3);
+		disp = dseg_add_functionptr(cd, asm_replacement_out);
+		M_ALD_DSEG(REG_ITMP3, disp);
+		M_JMP(RN, REG_ITMP3);
+
+		assert((cd->mcodeptr - savedmcodeptr) <= REPLACEMENT_STUB_SIZE);
+
+		/* pad with NOPs */
+
+		for (remain = REPLACEMENT_STUB_SIZE - (cd->mcodeptr - savedmcodeptr); remain > 0;) {
+			if (remain >= 4) {
+				M_NOP;
+				remain -= 4;
+			} else {
+				M_NOP2;
+				remain -= 2;
+			}
+		}
+
+		assert((cd->mcodeptr - savedmcodeptr) == REPLACEMENT_STUB_SIZE);
 	}
-#endif
 }
-	
+#endif
 
 /* emit_verbosecall_enter ******************************************************
 

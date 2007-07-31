@@ -3023,7 +3023,6 @@ gen_method:
 	/* generate stubs */
 
 	emit_patcher_stubs(jd);
-	REPLACEMENT_EMIT_STUBS(jd);
 	
 	/* everything's ok */
 

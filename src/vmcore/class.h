@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8179 2007-07-05 11:21:08Z michi $
+   $Id: class.h 8245 2007-07-31 09:55:04Z michi $
 
 */
 
@@ -80,8 +80,9 @@ typedef struct castinfo       castinfo;
 /* classinfo ******************************************************************/
 
 /* We define this dummy structure of java_lang_Class so we can
-   bootstrap cacaoh without needing a java_lang_Class.h file.  If the
-   size is big enough, is checked during runtime in vm_create. */
+   bootstrap cacaoh without needing a java_lang_Class.h file.  Whether
+   the size of the dummy structure is big enough is checked during
+   runtime in vm_create. */
 
 typedef struct {
 	java_objectheader header;
@@ -124,8 +125,6 @@ struct classinfo {                /* class structure                          */
 
 	s4          methodscount;     /* number of methods                        */
 	methodinfo *methods;          /* method table                             */
-
-	listnode_t  listnode;         /* linkage                                  */
 
 	s4          state;            /* current class state                      */
 	s4          index;            /* hierarchy depth (classes) or index       */
@@ -188,9 +187,6 @@ struct castinfo {
 
 /* global variables ***********************************************************/
 
-extern list_t unlinkedclasses; /* this is only used for eager class loading   */
-
-
 /* frequently used classes ****************************************************/
 
 /* important system classes */
@@ -208,6 +204,9 @@ extern classinfo *class_java_lang_VMSystem;
 extern classinfo *class_java_lang_VMThread;
 extern classinfo *class_java_io_Serializable;
 
+#if defined(WITH_CLASSPATH_SUN)
+extern classinfo *class_sun_reflect_MagicAccessorImpl;
+#endif
 
 /* system exception classes required in cacao */
 
@@ -289,18 +288,12 @@ extern classinfo *pseudo_class_New;
 
 /* function prototypes ********************************************************/
 
-/* create a new classinfo struct */
 classinfo *class_create_classinfo(utf *u);
+void       class_postset_header_vftbl(void);
+classinfo *class_define(utf *name, classloader *cl, int32_t length, const uint8_t *data);
+void       class_set_packagename(classinfo *c);
 
-/* postset's the header.vftbl */
-void class_postset_header_vftbl(void);
-
-classinfo *class_define(utf *name, classloader *cl, s4 length, u1 *data);
-
-/* set the package name after the name has been set */
-void class_set_packagename(classinfo *c);
-
-bool class_load_attributes(classbuffer *cb);
+bool       class_load_attributes(classbuffer *cb);
 
 /* retrieve constantpool element */
 voidptr class_getconstant(classinfo *class, u4 pos, u4 ctype);
@@ -350,10 +343,17 @@ methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *dest);
 methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
 methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
 
-bool class_issubclass(classinfo *sub, classinfo *super);
-bool class_isanysubclass(classinfo *sub, classinfo *super);
-bool class_is_array(classinfo *c);
-bool class_is_interface(classinfo *c);
+bool       class_issubclass(classinfo *sub, classinfo *super);
+bool       class_isanysubclass(classinfo *sub, classinfo *super);
+bool       class_is_primitive(classinfo *c);
+bool       class_is_array(classinfo *c);
+bool       class_is_interface(classinfo *c);
+classinfo *class_get_superclass(classinfo *c);
+classinfo *class_get_declaringclass(classinfo *c);
+
+#if defined(ENABLE_JAVASE)
+utf       *class_get_signature(classinfo *c);
+#endif
 
 /* some debugging functions */
 

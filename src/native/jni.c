@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8179 2007-07-05 11:21:08Z michi $
+   $Id: jni.c 8245 2007-07-31 09:55:04Z michi $
 
 */
 
@@ -114,6 +114,20 @@
 #include "vmcore/options.h"
 #include "vmcore/primitive.h"
 #include "vmcore/statistics.h"
+
+
+/* debug **********************************************************************/
+
+#if !defined(NDEBUG)
+# define TRACEJNICALLS(format, ...) \
+    do { \
+        if (opt_TraceJNICalls) { \
+            log_println((format), __VA_ARGS__); \
+        } \
+    } while (0)
+#else
+# define TRACEJNICALLS(format, ...)
+#endif
 
 
 /* global variables ***********************************************************/
@@ -813,8 +827,7 @@ static void _Jv_jni_CallVoidMethodA(java_objectheader *o, vftbl_t *vftbl,
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) \
- && !defined(__M68K__) && !defined(__ARM__) && !defined(__SPARC_64__)
+#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
 java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 										java_objectarray *params)
 {
@@ -1106,11 +1119,16 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 
 	dumpsize = dump_size();
 
-	/* fill the argument array from a object-array */
+	/* Fill the argument array from a object-array. */
 
 	array = vm_array_from_objectarray(resm, o, params);
 
-	if (array == NULL) {
+	/* The array can be NULL if we don't have any arguments to pass
+	   and the architecture does not have any argument registers
+	   (e.g. i386).  In that case we additionally check for an
+	   exception thrown. */
+
+	if ((array == NULL) && (exceptions_get_exception() != NULL)) {
 		/* release dump area */
 
 		dump_release(dumpsize);
@@ -1310,19 +1328,16 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 						   const jbyte *buf, jsize bufLen)
 {
 #if defined(ENABLE_JAVASE)
-	java_lang_ClassLoader *cl;
-	java_lang_String      *s;
-	java_bytearray        *ba;
-	jclass                 c;
+	utf               *u;
+	java_objectheader *cl;
+	classinfo         *c;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_DefineClass(env=%p, name=%s, loader=%p, buf=%p, bufLen=%d", env, name, loader, buf, bufLen);
 
-	cl = (java_lang_ClassLoader *) loader;
-	s  = (java_lang_String *) javastring_new_from_utf_string(name);
-	ba = (java_bytearray *) buf;
+	u  = utf_new_char(name);
+	cl = (java_objectheader *) loader;
 
-	c = (jclass) _Jv_java_lang_ClassLoader_defineClass(cl, s, ba, 0, bufLen,
-													   NULL);
+	c = class_define(u, cl, bufLen, (const uint8_t *) buf);
 
 	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
 #else
@@ -1403,15 +1418,18 @@ jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
 jclass _Jv_JNI_GetSuperclass(JNIEnv *env, jclass sub)
 {
 	classinfo *c;
+	classinfo *super;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_GetSuperclass(env=%p, sub=%p)", env, sub);
 
-	c = ((classinfo *) sub)->super.cls;
+	c = (classinfo *) sub;
 
-	if (!c)
+	if (c == NULL)
 		return NULL;
 
-	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
+	super = class_get_superclass(c);
+
+	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) super);
 }
   
  
@@ -4357,6 +4375,8 @@ jsize _Jv_JNI_GetStringLength(JNIEnv *env, jstring str)
 {
 	java_lang_String *s;
 
+	TRACEJNICALLS("_Jv_JNI_GetStringLength(env=%p, str=%p)", env, str);
+
 	s = (java_lang_String *) str;
 
 	return s->count;
@@ -4460,7 +4480,7 @@ jstring _Jv_JNI_NewStringUTF(JNIEnv *env, const char *bytes)
 {
 	java_lang_String *s;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_NewStringUTF(env=%p, bytes=%s)", env, bytes);
 
 	s = (java_lang_String *) javastring_safe_new_from_utf8(bytes);
 
@@ -4475,7 +4495,7 @@ jsize _Jv_JNI_GetStringUTFLength(JNIEnv *env, jstring string)
     java_lang_String *s;
 	s4                length;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_GetStringUTFLength(env=%p, string=%p)", env, string);
 
 	s = (java_lang_String *) string;
 
@@ -5575,7 +5595,7 @@ void _Jv_JNI_GetStringUTFRegion(JNIEnv* env, jstring str, jsize start,
 	java_chararray   *ca;
 	s4                i;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_GetStringUTFRegion(env=%p, str=%p, start=%d, len=%d, buf=%p)", env, str, start, len, buf);
 
 	s  = (java_lang_String *) str;
 	ca = s->value;
@@ -5586,10 +5606,8 @@ void _Jv_JNI_GetStringUTFRegion(JNIEnv* env, jstring str, jsize start,
 		return;
 	}
 
-	/* XXX not sure if this is correct */
-
 	for (i = 0; i < len; i++)
-		buf[i] = ca->data[start + i];
+		buf[i] = ca->data[s->offset + start + i];
 
 	buf[i] = '\0';
 }
@@ -6491,9 +6509,17 @@ jint JNI_GetDefaultJavaVMInitArgs(void *vm_args)
 
 jint JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 {
-	log_text("JNI_GetCreatedJavaVMs: IMPLEMENT ME!!!");
+	TRACEJNICALLS("JNI_GetCreatedJavaVMs(vmBuf=%p, jsize=%d, jsize=%p)", vmBuf, bufLen, nVMs);
 
-	return 0;
+	if (bufLen <= 0)
+		return JNI_ERR;
+
+	/* We currently only support 1 VM running. */
+
+	vmBuf[0] = (JavaVM *) _Jv_jvm;
+	*nVMs    = 1;
+
+    return JNI_OK;
 }
 
 
@@ -6506,6 +6532,8 @@ jint JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 
 jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 {
+	TRACEJNICALLS("JNI_CreateJavaVM(p_vm=%p, p_env=%p, vm_args=%p)", p_vm, p_env, vm_args);
+
 	/* actually create the JVM */
 
 	if (!vm_createjvm(p_vm, p_env, vm_args))

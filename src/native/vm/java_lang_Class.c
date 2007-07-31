@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8179 2007-07-05 11:21:08Z michi $
+   $Id: java_lang_Class.c 8245 2007-07-31 09:55:04Z michi $
 
 */
 
@@ -261,13 +261,10 @@ JNIEXPORT int32_t JNICALL _Jv_java_lang_Class_isInterface(JNIEnv *env, java_lang
 s4 _Jv_java_lang_Class_isPrimitive(java_lang_Class *klass)
 {
 	classinfo *c;
-	bool       result;
 
 	c = (classinfo *) klass;
 
-	result = primitive_class_is_primitive(c);
-
-	return result;
+	return class_is_primitive(c);
 }
 
 
@@ -279,30 +276,13 @@ s4 _Jv_java_lang_Class_isPrimitive(java_lang_Class *klass)
 java_lang_Class *_Jv_java_lang_Class_getSuperclass(java_lang_Class *klass)
 {
 	classinfo *c;
-	classinfo *sc;
+	classinfo *super;
 
 	c = (classinfo *) klass;
 
-	/* for java.lang.Object, primitive and Void classes we return NULL */
+	super = class_get_superclass(c);
 
-	if (!c->super.any)
-		return NULL;
-
-	/* for interfaces we also return NULL */
-
-	if (c->flags & ACC_INTERFACE)
-		return NULL;
-
-	/* we may have to resolve the super class reference */
-
-	if ((sc = resolve_classref_or_classinfo_eager(c->super, true)) == NULL)
-		return NULL;
-
-	/* store the resolution */
-
-	c->super.cls = sc;
-
-	return (java_lang_Class *) sc;
+	return super;
 }
 
 
@@ -427,48 +407,11 @@ s4 _Jv_java_lang_Class_getModifiers(java_lang_Class *klass, s4 ignoreInnerClasse
  */
 java_lang_Class *_Jv_java_lang_Class_getDeclaringClass(java_lang_Class *klass)
 {
-	classinfo             *c;
-	classref_or_classinfo  inner;
-	utf                   *innername;
-	classinfo             *outer;
-	s4                     i;
+	classinfo *c;
 
 	c = (classinfo *) klass;
 
-	if (!primitive_class_is_primitive(c) && (c->name->text[0] != '[')) {
-		if (c->innerclasscount == 0)  /* no innerclasses exist */
-			return NULL;
-    
-		for (i = 0; i < c->innerclasscount; i++) {
-			inner = c->innerclass[i].inner_class;
-
-			/* check if inner_class is a classref or a real class and
-               get the class name from the structure */
-
-			innername = IS_CLASSREF(inner) ? inner.ref->name : inner.cls->name;
-
-			/* innerclass is this class */
-
-			if (innername == c->name) {
-				/* maybe the outer class is not loaded yet */
-
-				if ((outer = resolve_classref_or_classinfo_eager(
-								c->innerclass[i].outer_class,
-								false)) == NULL)
-					return NULL;
-
-				if (!(outer->state & CLASS_LINKED))
-					if (!link_class(outer))
-						return NULL;
-
-				return (java_lang_Class *) outer;
-			}
-		}
-	}
-
-	/* return NULL for arrayclasses and primitive classes */
-
-	return NULL;
+	return (java_lang_Class *) class_get_declaringclass(c);
 }
 
 
@@ -490,7 +433,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass,
 	c = (classinfo *) klass;
 	declaredclasscount = 0;
 
-	if (!primitive_class_is_primitive(c) && (c->name->text[0] != '[')) {
+	if (!class_is_primitive(c) && (c->name->text[0] != '[')) {
 		/* determine number of declared classes */
 
 		for (i = 0; i < c->innerclasscount; i++) {

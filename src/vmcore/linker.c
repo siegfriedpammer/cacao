@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8179 2007-07-05 11:21:08Z michi $
+   $Id: linker.c 8245 2007-07-31 09:55:04Z michi $
 
 */
 
@@ -88,6 +88,22 @@ static bool linker_addinterface(classinfo *c, classinfo *ic);
 static s4 class_highestinterface(classinfo *c);
 
 
+/* dummy structures for alinment checks ***************************************/
+
+typedef struct dummy_alignment_long_t   dummy_alignment_long_t;
+typedef struct dummy_alignment_double_t dummy_alignment_double_t;
+
+struct dummy_alignment_long_t {
+	int32_t i;
+	int64_t l;
+};
+
+struct dummy_alignment_double_t {
+	int32_t i;
+	double  d;
+};
+
+
 /* linker_init *****************************************************************
 
    Initializes the linker subsystem.
@@ -96,6 +112,27 @@ static s4 class_highestinterface(classinfo *c);
 
 bool linker_init(void)
 {
+	/* Check for if alignment for long and double matches what we
+	   assume for the current architecture. */
+
+#if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__))
+	if (OFFSET(dummy_alignment_long_t, l) != 4)
+		vm_abort("linker_init: long alignment is different from what assumed: %d != %d",
+				 OFFSET(dummy_alignment_long_t, l), 4);
+
+	if (OFFSET(dummy_alignment_double_t, d) != 4)
+		vm_abort("linker_init: double alignment is different from what assumed: %d != %d",
+				 OFFSET(dummy_alignment_double_t, d), 4);
+#else
+	if (OFFSET(dummy_alignment_long_t, l) != 8)
+		vm_abort("linker_init: long alignment is different from what assumed: %d != %d",
+				 OFFSET(dummy_alignment_long_t, l), 8);
+
+	if (OFFSET(dummy_alignment_double_t, d) != 8)
+		vm_abort("linker_init: double alignment is different from what assumed: %d != %d",
+				 OFFSET(dummy_alignment_double_t, d), 8);
+#endif
+
 	/* reset interface index */
 
 	interfaceindex = 0;
@@ -136,7 +173,6 @@ bool linker_init(void)
 	if (!link_class(class_java_io_Serializable))
 		return false;
 #endif
-
 
 	/* link classes for wrapping primitive types */
 
@@ -220,6 +256,11 @@ bool linker_init(void)
 
 	if (!link_class(class_java_util_Vector))
 		return false;
+
+# if defined(WITH_CLASSPATH_SUN)
+	if (!link_class(class_sun_reflect_MagicAccessorImpl))
+		return false;
+# endif
 
 	if (!link_class(arrayclass_java_lang_Object))
 		return false;

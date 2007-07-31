@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: method.c 8228 2007-07-24 12:37:25Z twisti $
 
 */
 
@@ -30,13 +30,17 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include "vm/types.h"
 
 #include "mm/memory.h"
 
+#include "threads/lock-common.h"
+
 #include "vm/builtin.h"
+#include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/resolve.h"
 
@@ -49,6 +53,7 @@
 #include "vmcore/loader.h"
 #include "vmcore/method.h"
 #include "vmcore/options.h"
+#include "vmcore/suck.h"
 
 
 #if !defined(NDEBUG) && defined(ENABLE_INLINING)
@@ -56,6 +61,404 @@
 #else
 #define INLINELOG(code)
 #endif
+
+
+/* method_load *****************************************************************
+
+   Loads a method from the class file and fills an existing methodinfo
+   structure.
+
+   method_info {
+       u2 access_flags;
+	   u2 name_index;
+	   u2 descriptor_index;
+	   u2 attributes_count;
+	   attribute_info attributes[attribute_count];
+   }
+
+   attribute_info {
+       u2 attribute_name_index;
+	   u4 attribute_length;
+	   u1 info[attribute_length];
+   }
+
+   LineNumberTable_attribute {
+       u2 attribute_name_index;
+	   u4 attribute_length;
+	   u2 line_number_table_length;
+	   {
+	       u2 start_pc;
+		   u2 line_number;
+	   } line_number_table[line_number_table_length];
+   }
+
+*******************************************************************************/
+
+bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
+{
+	classinfo *c;
+	int argcount;
+	s4         i, j, k, l;
+	utf       *u;
+	u2         name_index;
+	u2         descriptor_index;
+	u2         attributes_count;
+	u2         attribute_name_index;
+	utf       *attribute_name;
+	u2         code_attributes_count;
+	u2         code_attribute_name_index;
+	utf       *code_attribute_name;
+
+	/* get classinfo */
+
+	c = cb->class;
+
+	LOCK_INIT_OBJECT_LOCK(&(m->header));
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		count_all_methods++;
+#endif
+
+	/* all fields of m have been zeroed in load_class_from_classbuffer */
+
+	m->class = c;
+	
+	if (!suck_check_classbuffer_size(cb, 2 + 2 + 2))
+		return false;
+
+	/* access flags */
+
+	m->flags = suck_u2(cb);
+
+	/* name */
+
+	name_index = suck_u2(cb);
+
+	if (!(u = class_getconstant(c, name_index, CONSTANT_Utf8)))
+		return false;
+
+	m->name = u;
+
+	/* descriptor */
+
+	descriptor_index = suck_u2(cb);
+
+	if (!(u = class_getconstant(c, descriptor_index, CONSTANT_Utf8)))
+		return false;
+
+	m->descriptor = u;
+
+	if (!descriptor_pool_add(descpool, u, &argcount))
+		return false;
+
+#ifdef ENABLE_VERIFIER
+	if (opt_verify) {
+		if (!is_valid_name_utf(m->name)) {
+			exceptions_throw_classformaterror(c, "Method with invalid name");
+			return false;
+		}
+
+		if (m->name->text[0] == '<' &&
+			m->name != utf_init && m->name != utf_clinit) {
+			exceptions_throw_classformaterror(c, "Method with invalid special name");
+			return false;
+		}
+	}
+#endif /* ENABLE_VERIFIER */
+	
+	if (!(m->flags & ACC_STATIC))
+		argcount++; /* count the 'this' argument */
+
+#ifdef ENABLE_VERIFIER
+	if (opt_verify) {
+		if (argcount > 255) {
+			exceptions_throw_classformaterror(c, "Too many arguments in signature");
+			return false;
+		}
+
+		/* check flag consistency */
+		if (m->name != utf_clinit) {
+			i = (m->flags & (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED));
+
+			if (i != 0 && i != ACC_PUBLIC && i != ACC_PRIVATE && i != ACC_PROTECTED) {
+				exceptions_throw_classformaterror(c,
+												  "Illegal method modifiers: 0x%X",
+												  m->flags);
+				return false;
+			}
+
+			if (m->flags & ACC_ABSTRACT) {
+				if ((m->flags & (ACC_FINAL | ACC_NATIVE | ACC_PRIVATE |
+								 ACC_STATIC | ACC_STRICT | ACC_SYNCHRONIZED))) {
+					exceptions_throw_classformaterror(c,
+													  "Illegal method modifiers: 0x%X",
+													  m->flags);
+					return false;
+				}
+			}
+
+			if (c->flags & ACC_INTERFACE) {
+				if ((m->flags & (ACC_ABSTRACT | ACC_PUBLIC)) != (ACC_ABSTRACT | ACC_PUBLIC)) {
+					exceptions_throw_classformaterror(c,
+													  "Illegal method modifiers: 0x%X",
+													  m->flags);
+					return false;
+				}
+			}
+
+			if (m->name == utf_init) {
+				if (m->flags & (ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED |
+								ACC_NATIVE | ACC_ABSTRACT)) {
+					exceptions_throw_classformaterror(c, "Instance initialization method has invalid flags set");
+					return false;
+				}
+			}
+		}
+	}
+#endif /* ENABLE_VERIFIER */
+
+	/* mark the method as monomorphic until further notice */
+
+	m->flags |= ACC_METHOD_MONOMORPHIC;
+
+	/* non-abstract methods have an implementation in this class */
+
+	if (!(m->flags & ACC_ABSTRACT))
+		m->flags |= ACC_METHOD_IMPLEMENTED;
+		
+	if (!suck_check_classbuffer_size(cb, 2))
+		return false;
+
+	/* attributes count */
+
+	attributes_count = suck_u2(cb);
+
+	for (i = 0; i < attributes_count; i++) {
+		if (!suck_check_classbuffer_size(cb, 2))
+			return false;
+
+		/* attribute name index */
+
+		attribute_name_index = suck_u2(cb);
+
+		attribute_name =
+			class_getconstant(c, attribute_name_index, CONSTANT_Utf8);
+
+		if (attribute_name == NULL)
+			return false;
+
+		if (attribute_name == utf_Code) {
+			/* Code */
+
+			if (m->flags & (ACC_ABSTRACT | ACC_NATIVE)) {
+				exceptions_throw_classformaterror(c, "Code attribute in native or abstract methods");
+				return false;
+			}
+			
+			if (m->jcode) {
+				exceptions_throw_classformaterror(c, "Multiple Code attributes");
+				return false;
+			}
+
+			if (!suck_check_classbuffer_size(cb, 4 + 2 + 2))
+				return false;
+
+			suck_u4(cb);
+			m->maxstack = suck_u2(cb);
+			m->maxlocals = suck_u2(cb);
+
+			if (m->maxlocals < argcount) {
+				exceptions_throw_classformaterror(c, "Arguments can't fit into locals");
+				return false;
+			}
+			
+			if (!suck_check_classbuffer_size(cb, 4))
+				return false;
+
+			m->jcodelength = suck_u4(cb);
+
+			if (m->jcodelength == 0) {
+				exceptions_throw_classformaterror(c, "Code of a method has length 0");
+				return false;
+			}
+			
+			if (m->jcodelength > 65535) {
+				exceptions_throw_classformaterror(c, "Code of a method longer than 65535 bytes");
+				return false;
+			}
+
+			if (!suck_check_classbuffer_size(cb, m->jcodelength))
+				return false;
+
+			m->jcode = MNEW(u1, m->jcodelength);
+			suck_nbytes(m->jcode, cb, m->jcodelength);
+
+			if (!suck_check_classbuffer_size(cb, 2))
+				return false;
+
+			m->rawexceptiontablelength = suck_u2(cb);
+			if (!suck_check_classbuffer_size(cb, (2 + 2 + 2 + 2) * m->rawexceptiontablelength))
+				return false;
+
+			m->rawexceptiontable = MNEW(raw_exception_entry, m->rawexceptiontablelength);
+
+#if defined(ENABLE_STATISTICS)
+			if (opt_stat) {
+				count_vmcode_len += m->jcodelength + 18;
+				count_extable_len +=
+					m->rawexceptiontablelength * sizeof(raw_exception_entry);
+			}
+#endif
+
+			for (j = 0; j < m->rawexceptiontablelength; j++) {
+				u4 idx;
+				m->rawexceptiontable[j].startpc   = suck_u2(cb);
+				m->rawexceptiontable[j].endpc     = suck_u2(cb);
+				m->rawexceptiontable[j].handlerpc = suck_u2(cb);
+
+				idx = suck_u2(cb);
+
+				if (!idx) {
+					m->rawexceptiontable[j].catchtype.any = NULL;
+				}
+				else {
+					/* the classref is created later */
+					if (!(m->rawexceptiontable[j].catchtype.any =
+						  (utf *) class_getconstant(c, idx, CONSTANT_Class)))
+						return false;
+				}
+			}
+
+			if (!suck_check_classbuffer_size(cb, 2))
+				return false;
+
+			/* code attributes count */
+
+			code_attributes_count = suck_u2(cb);
+
+			for (k = 0; k < code_attributes_count; k++) {
+				if (!suck_check_classbuffer_size(cb, 2))
+					return false;
+
+				/* code attribute name index */
+
+				code_attribute_name_index = suck_u2(cb);
+
+				code_attribute_name =
+					class_getconstant(c, code_attribute_name_index, CONSTANT_Utf8);
+
+				if (code_attribute_name == NULL)
+					return false;
+
+				/* check which code attribute */
+
+				if (code_attribute_name == utf_LineNumberTable) {
+					/* LineNumberTable */
+
+					if (!suck_check_classbuffer_size(cb, 4 + 2))
+						return false;
+
+					/* attribute length */
+
+					(void) suck_u4(cb);
+
+					/* line number table length */
+
+					m->linenumbercount = suck_u2(cb);
+
+					if (!suck_check_classbuffer_size(cb,
+												(2 + 2) * m->linenumbercount))
+						return false;
+
+					m->linenumbers = MNEW(lineinfo, m->linenumbercount);
+
+#if defined(ENABLE_STATISTICS)
+					if (opt_stat)
+						size_lineinfo += sizeof(lineinfo) * m->linenumbercount;
+#endif
+					
+					for (l = 0; l < m->linenumbercount; l++) {
+						m->linenumbers[l].start_pc    = suck_u2(cb);
+						m->linenumbers[l].line_number = suck_u2(cb);
+					}
+				}
+#if defined(ENABLE_JAVASE)
+				else if (code_attribute_name == utf_StackMapTable) {
+					/* StackTableMap */
+
+					if (!stackmap_load_attribute_stackmaptable(cb, m))
+						return false;
+				}
+#endif
+				else {
+					/* unknown code attribute */
+
+					if (!loader_skip_attribute_body(cb))
+						return false;
+				}
+			}
+		}
+		else if (attribute_name == utf_Exceptions) {
+			/* Exceptions */
+
+			if (m->thrownexceptions != NULL) {
+				exceptions_throw_classformaterror(c, "Multiple Exceptions attributes");
+				return false;
+			}
+
+			if (!suck_check_classbuffer_size(cb, 4 + 2))
+				return false;
+
+			/* attribute length */
+
+			(void) suck_u4(cb);
+
+			m->thrownexceptionscount = suck_u2(cb);
+
+			if (!suck_check_classbuffer_size(cb, 2 * m->thrownexceptionscount))
+				return false;
+
+			m->thrownexceptions = MNEW(classref_or_classinfo, m->thrownexceptionscount);
+
+			for (j = 0; j < m->thrownexceptionscount; j++) {
+				/* the classref is created later */
+				if (!((m->thrownexceptions)[j].any =
+					  (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
+					return false;
+			}
+		}
+#if defined(ENABLE_JAVASE)
+		else if (attribute_name == utf_Signature) {
+			/* Signature */
+
+			if (!loader_load_attribute_signature(cb, &(m->signature)))
+				return false;
+		}
+#endif
+		else {
+			/* unknown attribute */
+
+			if (!loader_skip_attribute_body(cb))
+				return false;
+		}
+	}
+
+	if ((m->jcode == NULL) && !(m->flags & (ACC_ABSTRACT | ACC_NATIVE))) {
+		exceptions_throw_classformaterror(c, "Missing Code attribute");
+		return false;
+	}
+
+#if defined(ENABLE_REPLACEMENT)
+	/* initialize the hit countdown field */
+
+	m->hitcountdown = METHOD_INITIAL_HIT_COUNTDOWN;
+#endif
+
+	/* everything was ok */
+
+	return true;
+}
 
 
 /* method_free *****************************************************************

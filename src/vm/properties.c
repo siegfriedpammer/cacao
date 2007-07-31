@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: properties.c 8132 2007-06-22 11:15:47Z twisti $
+   $Id: properties.c 8236 2007-07-27 10:18:17Z twisti $
 
 */
 
@@ -133,6 +133,20 @@ bool properties_init(void)
 	properties_add("java.vm.vendor", "CACAO Team");
 	properties_add("java.vm.name", "CACAO");
 
+# if defined(ENABLE_INTRP)
+	if (opt_intrp) {
+		/* XXX We don't support java.lang.Compiler */
+/*  		properties_add("java.compiler", "cacao.intrp"); */
+		properties_add("java.vm.info", "interpreted mode");
+	}
+	else
+# endif
+	{
+		/* XXX We don't support java.lang.Compiler */
+/*  		properties_add("java.compiler", "cacao.jit"); */
+		properties_add("java.vm.info", "JIT mode");
+	}
+
 # if defined(WITH_CLASSPATH_GNU)
 
 	/* get properties from system */
@@ -183,17 +197,11 @@ bool properties_init(void)
 
 #  if defined(ENABLE_INTRP)
 	if (opt_intrp) {
-		/* XXX We don't support java.lang.Compiler */
-/*  		properties_add("java.compiler", "cacao.intrp"); */
-		properties_add("java.vm.info", "interpreted mode");
 		properties_add("gnu.java.compiler.name", "cacao.intrp");
 	}
 	else
 #  endif
 	{
-		/* XXX We don't support java.lang.Compiler */
-/*  		properties_add("java.compiler", "cacao.jit"); */
-		properties_add("java.vm.info", "JIT mode");
 		properties_add("gnu.java.compiler.name", "cacao.jit");
 	}
 
@@ -313,27 +321,6 @@ bool properties_init(void)
 
 # error unknown Java configuration
 
-#endif
-
-	/* everything's ok */
-
-	return true;
-}
-
-
-/* properties_postinit *********************************************************
-
-   Re-set some properties that may have changed during command-line
-   parsing.
-
-*******************************************************************************/
-
-bool properties_postinit(void)
-{
-#if defined(ENABLE_JAVASE)
-	properties_add("java.class.path", _Jv_classpath);
-	properties_add("java.boot.class.path", _Jv_bootclasspath);
-	properties_add("sun.boot.class.path", _Jv_bootclasspath);
 #endif
 
 	/* everything's ok */

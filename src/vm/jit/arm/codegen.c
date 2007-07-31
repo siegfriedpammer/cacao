@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8183 2007-07-05 20:37:05Z michi $
+   $Id: codegen.c 8245 2007-07-31 09:55:04Z michi $
 
 */
 
@@ -2885,10 +2885,9 @@ bool codegen_emit(jitdata *jd)
 	dseg_createlinenumbertable(cd);
 
 
-	/* generate stubs */
+	/* generate traps */
 
 	emit_patcher_traps(jd);
-	REPLACEMENT_EMIT_STUBS(jd);
 
 	/* everything's ok */
 

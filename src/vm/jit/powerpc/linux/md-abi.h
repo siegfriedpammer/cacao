@@ -22,13 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
-   $Id: md-abi.h 7713 2007-04-15 21:49:48Z twisti $
+   $Id: md-abi.h 8191 2007-07-08 15:15:53Z twisti $
 
 */
 
@@ -86,7 +80,7 @@
 #define FLT_TMP_CNT     11   /* number of float temporary registers           */
 #define FLT_RES_CNT      3   /* number of float reserved registers            */
 
-#define TRACE_ARGS_NUM   8
+#define TRACE_ARGS_NUM   4
 
 
 /* packed register defines ****************************************************/

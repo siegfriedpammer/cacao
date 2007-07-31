@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 8178 2007-07-05 11:13:20Z michi $
+   $Id: md.c 8243 2007-07-31 08:57:54Z michi $
 
 */
 
@@ -168,6 +168,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	switch (xpc[0]) {
 		case 0x58: /* L */
 		case 0x50: /* ST */
+		case 0x55: /* CL (array size check on NULL array) */
 			base = (xpc[2] >> 4) & 0xF;
 			if (base == 0) {
 				is_null = 1;
@@ -192,7 +193,17 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	type = EXCEPTION_HARDWARE_NULLPOINTER;
 	val = 0;
 
-	e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
+	/* generate appropriate exception */
+
+	e = exceptions_new_hardware_exception(xpc, type, val);
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
 
 	_mc->gregs[REG_ITMP2_XPC] = (ptrint) xpc;
 	_mc->gregs[REG_ITMP1_XPTR] = (ptrint) e;
@@ -230,7 +241,17 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
 		sp = (u1 *)_mc->gregs[REG_SP];
 		val = (ptrint)_mc->gregs[reg];
 
-		e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
+		/* create stackframeinfo */
+
+		stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
+		/* generate appropriate exception */
+
+		e = exceptions_new_hardware_exception(xpc, type, val);
+
+		/* remove stackframeinfo */
+
+		stacktrace_remove_stackframeinfo(&sfi);
 
 		_mc->gregs[REG_ITMP1_XPTR] = (ptrint)e;
 		_mc->gregs[REG_ITMP2_XPC] = (ptrint)xpc;
@@ -305,7 +326,17 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 			type = EXCEPTION_HARDWARE_ARITHMETIC;
 			val = 0;
 
-			e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
+			/* create stackframeinfo */
+
+			stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
+			/* generate appropriate exception */
+
+			e = exceptions_new_hardware_exception(xpc, type, val);
+
+			/* remove stackframeinfo */
+
+			stacktrace_remove_stackframeinfo(&sfi);
 
 			_mc->gregs[REG_ITMP1_XPTR] = (ptrint)e;
 			_mc->gregs[REG_ITMP2_XPC] = (ptrint)xpc;
@@ -501,6 +532,11 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 			offset = *((u2 *)(ra + 2)) & 0xFFF;
 
+			/* return NULL if no mptr was specified (used for replacement) */
+
+			if (mptr == NULL)
+				return NULL;
+
 			/* add offset to method pointer */
 			
 			pa = mptr + offset;
@@ -577,39 +613,13 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
    Patch the given replacement point.
 
 *******************************************************************************/
-#if 0
-void md_patch_replacement_point(rplpoint *rp)
+#if defined(ENABLE_REPLACEMENT)
+void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *savedmcode)
 {
-    u8 mcode;
-
-	/* XXX this is probably unsafe! */
-
-	/* save the current machine code */
-	mcode = *(u8*)rp->pc;
-
-	/* write spinning instruction */
-	*(u2*)(rp->pc) = 0xebfe;
-
-	/* write 5th byte */
-	rp->pc[4] = (rp->mcode >> 32);
-
-	/* write first word */
-    *(u4*)(rp->pc) = (u4) rp->mcode;
-
-	/* store saved mcode */
-	rp->mcode = mcode;
-	
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-	{
-		u1* u1ptr = rp->pc;
-		DISASSINSTR(u1ptr);
-		fflush(stdout);
-	}
-#endif
-			
-    /* XXX if required asm_cacheflush(rp->pc,8); */
+	assert(0);
 }
 #endif
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

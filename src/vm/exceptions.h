@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.h 8178 2007-07-05 11:13:20Z michi $
+   $Id: exceptions.h 8243 2007-07-31 08:57:54Z michi $
 
 */
 
@@ -138,7 +138,7 @@ void exceptions_classnotfoundexception_to_noclassdeffounderror(void);
 
 java_objectheader *exceptions_fillinstacktrace(void);
 
-java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 *xpc, s4 type, ptrint val, stackframeinfo *sfi);
+java_objectheader *exceptions_new_hardware_exception(u1 *xpc, s4 type, ptrint val);
 
 void exceptions_print_exception(java_objectheader *xptr);
 void exceptions_print_current_exception(void);

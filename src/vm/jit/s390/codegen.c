@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8152 2007-06-27 20:37:45Z pm $
+   $Id: codegen.c 8240 2007-07-29 20:36:47Z pm $
 
 */
 
@@ -217,6 +217,8 @@ bool codegen_emit(jitdata *jd)
 		ICONST(REG_ITMP2, 1);
 		N_AL(REG_ITMP2, OFFSET(codeinfo, frequency), RN, REG_ITMP1);
 		M_IST(REG_ITMP2, REG_ITMP1, OFFSET(codeinfo, frequency));
+
+		PROFILE_CYCLE_START;
 	}
 #endif
 
@@ -393,9 +395,10 @@ bool codegen_emit(jitdata *jd)
 	}
 
 	/* end of header generation */
-#if 0
-	replacementpoint = jd->code->rplpoints;
-#endif
+
+	/* create replacement points */
+
+	REPLACEMENT_POINTS_INIT(cd, jd);
 
 	/* walk through all basic blocks */
 
@@ -411,35 +414,31 @@ bool codegen_emit(jitdata *jd)
 
 		/* handle replacement points */
 
-#if 0
-		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
-			replacementpoint->pc = (u1*)(ptrint)bptr->mpc; /* will be resolved later */
-			
-			replacementpoint++;
-
-			assert(cd->lastmcodeptr <= cd->mcodeptr);
-			cd->lastmcodeptr = cd->mcodeptr + 5; /* 5 byte jmp patch */
-		}
-#endif
+		REPLACEMENT_POINT_BLOCK_START(cd, bptr);
 
 		/* copy interface registers to their destination */
 
 		len = bptr->indepth;
 		MCODECHECK(512);
 
+#if defined(ENABLE_PROFILING)
 		/* generate basicblock profiling code */
 
 		if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
 			/* count frequency */
 
-			M_MOV_IMM(code->bbfrequency, REG_ITMP3);
-			M_IINC_MEMBASE(REG_ITMP3, bptr->nr * 4);
+			M_ALD_DSEG(REG_ITMP1, CodeinfoPointer);
+			M_ALD(REG_ITMP1, REG_ITMP1, OFFSET(codeinfo, bbfrequency));
+			ICONST(REG_ITMP2, 1);
+			N_AL(REG_ITMP2, bptr->nr * 4, RN, REG_ITMP1);
+			M_IST(REG_ITMP2, REG_ITMP1, bptr->nr * 4);
 
 			/* if this is an exception handler, start profiling again */
 
 			if (bptr->type == BBTYPE_EXH)
 				PROFILE_CYCLE_START;
 		}
+#endif
 
 #if defined(ENABLE_LSRA)
 		if (opt_lsra) {
@@ -496,8 +495,24 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_NOP:        /* ...  ==> ...                                 */
 		case ICMD_POP:        /* ..., value  ==> ...                          */
 		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
-		case ICMD_INLINE_START: /* internal ICMDs                         */
+			break;
+
+		case ICMD_INLINE_START:
+
+			REPLACEMENT_POINT_INLINE_START(cd, iptr);
+			break;
+
+		case ICMD_INLINE_BODY:
+
+			REPLACEMENT_POINT_INLINE_BODY(cd, iptr);
+			dseg_addlinenumber_inline_start(cd, iptr);
+			dseg_addlinenumber(cd, iptr->line);
+			break;
+
 		case ICMD_INLINE_END:
+
+			dseg_addlinenumber_inline_end(cd, iptr);
+			dseg_addlinenumber(cd, iptr->line);
 			break;
 
 		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
@@ -2014,9 +2029,11 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, &(fi->value));
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					codegen_addpatchref(cd, PATCHER_clinit,
-										fi->class, disp);
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+					PROFILE_CYCLE_STOP;
+					codegen_addpatchref(cd, PATCHER_clinit, fi->class, disp);
+					PROFILE_CYCLE_START;
+				}
   			}
 
 			M_ALD_DSEG(REG_ITMP1, disp);
@@ -2166,10 +2183,10 @@ bool codegen_emit(jitdata *jd)
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
+			/* PROFILE_CYCLE_STOP; */
+		
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			M_INTMOVE(s1, REG_ITMP1_XPTR);
-
-			PROFILE_CYCLE_STOP;
 
 #ifdef ENABLE_VERIFIER
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
@@ -2503,7 +2520,9 @@ bool codegen_emit(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				unresolved_class *uc = iptr->sx.s23.s2.uc;
 
+				PROFILE_CYCLE_STOP;
 				codegen_addpatchref(cd, PATCHER_athrow_areturn, uc, 0);
+				PROFILE_CYCLE_START;
 			}
 #endif /* ENABLE_VERIFIER */
 			goto nowperformreturn;
@@ -2608,6 +2627,9 @@ nowperformreturn:
 			if (cd->stackframesize)
 				M_AADD_IMM(cd->stackframesize * 4, REG_SP);
 
+			/* generate method profiling code */
+
+			PROFILE_CYCLE_STOP;
 			M_RET;
 			ALIGNCODENOP;
 			}
@@ -2774,6 +2796,10 @@ gen_method:
 				}
 			}
 
+			/* generate method profiling code */
+
+			PROFILE_CYCLE_STOP;
+
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
 				disp = dseg_add_functionptr(cd, bte->fp);
@@ -2838,8 +2864,6 @@ gen_method:
 				 * and -0xFFF in index register (itmp1)
 				 */
 
-				N_LHI(REG_ITMP1, -N_DISP_MAX);
-
 				if (lm == NULL) {
 					codegen_addpatchref(cd, PATCHER_invokeinterface, um, 0);
 
@@ -2848,15 +2872,15 @@ gen_method:
 				}
 				else {
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
-						sizeof(methodptr*) * lm->class->index +
-						N_DISP_MAX;
+						sizeof(methodptr*) * lm->class->index;
 
 					s2 = sizeof(methodptr) * (lm - lm->class->methods);
 				}
 
 				/* Implicit null-pointer check */
 				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_objectheader, vftbl));
-				N_L(REG_METHODPTR, s1, REG_ITMP1, REG_METHODPTR);
+				N_LHI(REG_ITMP1, s1);
+				N_L(REG_METHODPTR, 0, REG_ITMP1, REG_METHODPTR);
 				M_ALD(REG_PV, REG_METHODPTR, s2);
 				break;
 			}
@@ -2864,9 +2888,8 @@ gen_method:
 			/* generate the actual call */
 
 			M_CALL(REG_PV);
-			REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 			emit_restore_pv(cd);
-	
+
 			/* post call finalization */
 
 			switch (iptr->opc) {
@@ -2876,6 +2899,14 @@ gen_method:
 					break;
 			}
 
+			/* generate method profiling code */
+
+			PROFILE_CYCLE_START;
+
+			/* store size of call code in replacement point */
+
+			REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
+	
 			/* store return value */
 
 			d = md->returntype.type;
@@ -3365,8 +3396,8 @@ gen_method:
 	/* generate stubs */
 
 	emit_patcher_stubs(jd);
-#if 0
-	emit_replacement_stubs(jd);
+#if defined(ENABLE_REPLACEMENT)
+	REPLACEMENT_EMIT_STUBS(jd);
 #endif
 
 	/* everything's ok */
@@ -3480,20 +3511,22 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	(void) dseg_addlinenumbertablesize(cd);
 	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
 
-	/* generate native method profiling code */
-#if 0
-	if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
-		/* count frequency */
-
-		M_MOV_IMM(code, REG_ITMP3);
-		M_IINC_MEMBASE(REG_ITMP3, OFFSET(codeinfo, frequency));
-	}
-#endif
-
 	/* generate stub code */
 
 	N_AHI(REG_SP, -(cd->stackframesize * SIZEOF_VOID_P));
 	N_AHI(REG_PV, N_PV_OFFSET);
+
+	/* generate native method profiling code */
+
+#if defined(ENABLE_PROFILING)
+	if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
+		/* count frequency */
+		M_ALD_DSEG(REG_ITMP1, CodeinfoPointer);
+		ICONST(REG_ITMP2, 1);
+		N_AL(REG_ITMP2, OFFSET(codeinfo, frequency), RN, REG_ITMP1);
+		M_IST(REG_ITMP2, REG_ITMP1, OFFSET(codeinfo, frequency));
+	}
+#endif
 
 	/* save return address */
 

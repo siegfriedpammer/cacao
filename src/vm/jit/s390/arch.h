@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: arch.h 7839 2007-04-29 22:46:56Z pm $
+   $Id: arch.h 8240 2007-07-29 20:36:47Z pm $
 
 */
 
@@ -104,6 +104,11 @@
 /* exceptions *****************************************************************/
 
 #define SUPPORT_HARDWARE_DIVIDE_BY_ZERO  1
+
+/* replacement ****************************************************************/
+
+#define REPLACEMENT_PATCH_SIZE           5             /* bytes */
+#define REPLACEMENT_STUB_SIZE            (4+(4+4+4+4)+4+(4+4+4+4)+2) /* bytes */
 
 /* misc ***********************************************************************/
 

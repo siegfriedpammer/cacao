@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: dummy.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: dummy.c 8245 2007-07-31 09:55:04Z michi $
 
 */
 
@@ -426,6 +426,10 @@ void md_param_alloc(methoddesc *md)
 {
 }
 
+void md_param_alloc_native(methoddesc *md)
+{
+}
+
 
 /* memory *********************************************************************/
 
@@ -462,6 +466,10 @@ int32_t dump_size(void)
 
 
 /* properties *****************************************************************/
+
+void properties_add(char *key, char *value)
+{
+}
 
 char *properties_get(char *key)
 {
@@ -593,6 +601,10 @@ void threads_startworld(void)
 
 
 /* vm *************************************************************************/
+
+void vm_printconfig(void)
+{
+}
 
 void vm_abort(const char *text, ...)
 {

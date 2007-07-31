@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: boehm.c 8179 2007-07-05 11:21:08Z michi $
+   $Id: boehm.c 8245 2007-07-31 09:55:04Z michi $
 
 */
 
@@ -157,7 +157,7 @@ void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
 		return NULL;
 
 	if (finalizer != NULL)
-		GC_REGISTER_FINALIZER(p, finalizer_run, 0, 0, 0);
+		GC_REGISTER_FINALIZER_NO_ORDER(p, finalizer_run, 0, 0, 0);
 
 	/* clear allocated memory region */
 

@@ -30,8 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
-
-#include "vm/types.h"
+#include <stdint.h>
 
 #include "vm/global.h"
 
@@ -82,7 +81,7 @@ bool primitive_init(void)
 	utf       *name;
 	classinfo *c;
 	utf       *u;
-	s4         i;
+	int        i;
 
 	for (i = 0; i < PRIMITIVETYPE_COUNT; i++) {
 		/* skip dummies */
@@ -153,26 +152,6 @@ bool primitive_init(void)
 }
 
 
-/* primitive_class_is_primitive ************************************************
-
-   Check if the given class is a primitive class.
-
-*******************************************************************************/
-
-bool primitive_class_is_primitive(classinfo *c)
-{
-	s4 i;
-
-	/* search table of primitive classes */
-
-	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
-		if (primitivetype_table[i].class_primitive == c)
-			return true;
-
-	return false;
-}
-
-
 /* primitive_class_get_by_name *************************************************
 
    Returns the primitive class of the given class name.
@@ -181,7 +160,7 @@ bool primitive_class_is_primitive(classinfo *c)
 
 classinfo *primitive_class_get_by_name(utf *name)
 {
-	s4 i;
+	int i;
 
 	/* search table of primitive classes */
 
@@ -201,7 +180,7 @@ classinfo *primitive_class_get_by_name(utf *name)
 
 *******************************************************************************/
 
-classinfo *primitive_class_get_by_type(s4 type)
+classinfo *primitive_class_get_by_type(int32_t type)
 {
 	return primitivetype_table[type].class_primitive;
 }
@@ -215,7 +194,7 @@ classinfo *primitive_class_get_by_type(s4 type)
 
 classinfo *primitive_class_get_by_char(char ch)
 {
-	s4 index;
+	int32_t index;
 
 	switch (ch) {
 	case 'I':
@@ -253,13 +232,36 @@ classinfo *primitive_class_get_by_char(char ch)
 }
 
 
+/* primitive_arrayclass_get_by_name ********************************************
+
+   Returns the primitive array-class of the given primitive class
+   name.
+
+*******************************************************************************/
+
+classinfo *primitive_arrayclass_get_by_name(utf *name)
+{
+	int i;
+
+	/* search table of primitive classes */
+
+	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
+		if (primitivetype_table[i].name == name)
+			return primitivetype_table[i].arrayclass;
+
+	/* keep compiler happy */
+
+	return NULL;
+}
+
+
 /* primitive_arrayclass_get_by_type ********************************************
 
    Returns the primitive array-class of the given type.
 
 *******************************************************************************/
 
-classinfo *primitive_arrayclass_get_by_type(s4 type)
+classinfo *primitive_arrayclass_get_by_type(int32_t type)
 {
 	return primitivetype_table[type].arrayclass;
 }

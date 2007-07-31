@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8178 2007-07-05 11:13:20Z michi $
+   $Id: exceptions.c 8244 2007-07-31 09:30:28Z michi $
 
 */
 
@@ -1732,15 +1732,11 @@ java_objectheader *exceptions_fillinstacktrace(void)
 
 *******************************************************************************/
 
-java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 *xpc, s4 type, ptrint val, stackframeinfo *sfi)
+java_objectheader *exceptions_new_hardware_exception(u1 *xpc, s4 type, ptrint val)
 {
 	java_objectheader *e;
 	java_objectheader *o;
 	s4                 index;
-
-	/* create stackframeinfo */
-
-	stacktrace_create_extern_stackframeinfo(sfi, pv, sp, ra, xpc);
 
 	switch (type) {
 	case EXCEPTION_HARDWARE_NULLPOINTER:
@@ -1766,6 +1762,12 @@ java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 
 		break;
 
 	case EXCEPTION_HARDWARE_PATCHER:
+#if defined(ENABLE_REPLACEMENT)
+		if (replace_me_wrapper(xpc)) {
+			e = NULL;
+			break;
+		}
+#endif
 		e = patcher_handler(xpc);
 		break;
 
@@ -1795,10 +1797,6 @@ java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 
 
 		e = NULL;
 	}
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(sfi);
 
 	/* return the exception object */
 
@@ -1977,7 +1975,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	if (issync) {
 		/* get synchronization object */
 
-# if defined(__MIPS__) && (SIZEOF_VOID_P == 4)
+# if (defined(__MIPS__) && (SIZEOF_VOID_P == 4)) || defined(__I386__)
 		/* XXX change this if we ever want to use 4-byte stackslots */
 		o = *((java_objectheader **) (sp + issync - 8));
 # else

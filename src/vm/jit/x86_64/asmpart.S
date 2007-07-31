@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8123 2007-06-20 23:50:55Z michi $
+   $Id: asmpart.S 8197 2007-07-11 19:17:04Z twisti $
 
 */
 
@@ -149,7 +149,8 @@ asm_vm_call_method_double:
 	je      L_asm_vm_call_method_stack_copy_done
 
 	mov     itmp1,itmp2
-	and     $0xfffffffffffffffe,itmp2   /* keep stack 16-byte aligned         */
+	add     $1,itmp2                    /* keep stack 16-byte aligned         */
+	and     $0xfffffffffffffffe,itmp2
 	shl     $3,itmp2                    /* calculate stack size               */
 	sub     itmp2,sp                    /* create stack frame                 */
 	mov     sp,itmp2                    /* temporary stack pointer            */

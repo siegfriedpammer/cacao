@@ -71,7 +71,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	s4                 disp;
 	s4                 type;
 	ptrint             val;
-	java_objectheader *o;
+	java_objectheader *e;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -159,13 +159,21 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		val  = 0;
 	}
 
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, NULL, sp, ra, xpc);
+
 	/* generate appropriate exception */
 
-	o = exceptions_new_hardware_exception(NULL, sp, ra, xpc, type, vali, &sfi);
+	e = exceptions_new_hardware_exception(xpc, type, val);
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
 
 	/* set registers */
 
-	_mc->gregs[REG_RAX] = (ptrint) o;
+	_mc->gregs[REG_RAX] = (ptrint) e;
 	_mc->gregs[REG_R10] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
 	_mc->gregs[REG_RIP] = (ptrint) asm_handle_exception;
 }
@@ -189,7 +197,7 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	u1                *xpc;
 	s4                 type;
 	ptrint             val;
-	java_objectheader *o;
+	java_objectheader *e;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -207,13 +215,21 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	type = EXCEPTION_HARDWARE_ARITHMETIC;
 	val  = 0;
 
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
 	/* generate appropriate exception */
 
-	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
+	e = exceptions_new_hardware_exception(xpc, type, val);
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
 
 	/* set registers */
 
-	_mc->gregs[REG_RAX] = (ptrint) o;
+	_mc->gregs[REG_RAX] = (ptrint) e;
 	_mc->gregs[REG_R10] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
 	_mc->gregs[REG_RIP] = (ptrint) asm_handle_exception;
 }

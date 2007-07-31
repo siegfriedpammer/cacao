@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: global.h 8179 2007-07-05 11:21:08Z michi $
+   $Id: global.h 8245 2007-07-31 09:55:04Z michi $
 
 */
 
@@ -73,7 +73,10 @@ typedef union {
 
 /* alignment macros ***********************************************************/
 
-#define ALIGN_2(a)    do { if ((a) & 0x1) (a)++; } while (0)
+#define ALIGN_EVEN(a)                   ((a) = (((a) + 1) & ~1))
+#define ALIGN_ODD(a)                    ((a) =   (a) | 1       )
+
+#define ALIGN_2(a)                      ALIGN_EVEN(a)
 
 
 /* forward typedefs ***********************************************************/
@@ -186,8 +189,9 @@ typedef struct java_objectarray java_objectarray;
 
 /* special flags used in methodinfo *******************************************/
 
-#define ACC_METHOD_IMPLEMENTED 0x00010000     /* there is an implementation   */
-#define ACC_METHOD_MONOMORPHIC 0x00020000     /* currently monomorphic method */
+#define ACC_METHOD_BUILTIN     0x00010000     /* use for descriptor parsing   */
+#define ACC_METHOD_IMPLEMENTED 0x00020000     /* there is an implementation   */
+#define ACC_METHOD_MONOMORPHIC 0x00040000     /* currently monomorphic method */
 
 
 /* data structures of the runtime system **************************************/

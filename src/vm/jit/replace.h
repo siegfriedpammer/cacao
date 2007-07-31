@@ -45,7 +45,6 @@
 #define REPLACEMENT_POINT_RETURN(cd, iptr)
 #define REPLACEMENT_POINT_INVOKE(cd, iptr)
 #define REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr)
-#define REPLACEMENT_EMIT_STUBS(jd)
 
 #else /* defined(ENABLE_REPLACEMENT) */
 
@@ -280,8 +279,6 @@ struct replace_safestack_t {
 		cd->replacementpoint[-1].callsize = (cd->mcodeptr - cd->mcodebase)\
 					- (ptrint) cd->replacementpoint[-1].pc;
 
-#define REPLACEMENT_EMIT_STUBS(jd)                                   \
-    emit_replacement_stubs(jd);
 
 /*** prototypes ********************************************************/
 
@@ -290,6 +287,8 @@ void replace_free_replacement_points(codeinfo *code);
 
 void replace_activate_replacement_points(codeinfo *code, bool mappable);
 void replace_deactivate_replacement_points(codeinfo *code);
+
+bool replace_me_wrapper(u1 *pc);
 
 void replace_me(rplpoint *rp,executionstate_t *es);
 

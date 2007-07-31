@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 7989 2007-05-30 21:04:42Z twisti $
+   $Id: asmpart.S 8216 2007-07-19 13:51:21Z michi $
 
 */
 
@@ -59,8 +59,6 @@
 	.globl asm_handle_exception
 
 	.globl asm_abstractmethoderror
-
-	.globl asm_patcher_wrapper
 
 #if defined(ENABLE_REPLACEMENT)
 	.globl asm_replacement_out
@@ -978,152 +976,6 @@ asm_abstractmethoderror:
 	b       L_asm_handle_nat_exception
 
 
-/* asm_patcher_wrapper *********************************************************
-
-   XXX
-
-   Stack layout:
-     20   return address into JIT code (patch position)
-     16   pointer to virtual java_objectheader
-     12   machine code (which is patched back later)
-      8   unresolved class/method/field reference
-      4   data segment displacement from load instructions
-      0   patcher function pointer to call (pv is saved here afterwards)
-
-*******************************************************************************/
-
-asm_patcher_wrapper:
-	mflr	r0                    /* get Java return address (leaf)           */
-	stw     r0,6*4(sp)            /* store it in the stub stackframe          */
-	                              /* keep stack 16-bytes aligned: 6+1+37 = 44 */
-	stwu    sp,-(LA_SIZE+(5+58)*4)(sp)
-
-#if defined(__DARWIN__)
-	stw     a0,LA_SIZE+(5+0)*4(sp)      /* save argument registers            */
-	stw     a1,LA_SIZE+(5+1)*4(sp)      /* preserve linkage area (24 bytes)   */
-	stw     a2,LA_SIZE+(5+2)*4(sp)      /* and 4 bytes for 4 argument         */
-	stw     a3,LA_SIZE+(5+3)*4(sp)
-	stw     a4,LA_SIZE+(5+4)*4(sp)
-	stw     a5,LA_SIZE+(5+5)*4(sp)
-	stw     a6,LA_SIZE+(5+6)*4(sp)
-	stw     a7,LA_SIZE+(5+7)*4(sp)
-
-	stfd    fa0,LA_SIZE+(5+8)*4(sp)
-	stfd    fa1,LA_SIZE+(5+10)*4(sp)
-	stfd    fa2,LA_SIZE+(5+12)*4(sp)
-	stfd    fa3,LA_SIZE+(5+14)*4(sp)
-	stfd    fa4,LA_SIZE+(5+16)*4(sp)
-	stfd    fa5,LA_SIZE+(5+18)*4(sp)
-	stfd    fa6,LA_SIZE+(5+20)*4(sp)
-	stfd    fa7,LA_SIZE+(5+22)*4(sp)
-	stfd    fa8,LA_SIZE+(5+24)*4(sp)
-	stfd    fa9,LA_SIZE+(5+26)*4(sp)
-	stfd    fa10,LA_SIZE+(5+28)*4(sp)
-	stfd    fa11,LA_SIZE+(5+30)*4(sp)
-	stfd    fa12,LA_SIZE+(5+32)*4(sp)
-
-	stw     t0,LA_SIZE+(5+33)*4(sp)
-	stw     t1,LA_SIZE+(5+34)*4(sp)
-	stw     t2,LA_SIZE+(5+35)*4(sp)
-	stw     t3,LA_SIZE+(5+36)*4(sp)
-	stw     t4,LA_SIZE+(5+37)*4(sp)
-	stw     t5,LA_SIZE+(5+38)*4(sp)
-	stw     t6,LA_SIZE+(5+39)*4(sp)
-	stw     t7,LA_SIZE+(5+40)*4(sp)
-
-	stfd    ft0,LA_SIZE+(5+42)*4(sp)
-	stfd    ft1,LA_SIZE+(5+44)*4(sp)
-	stfd    ft2,LA_SIZE+(5+46)*4(sp)
-	stfd    ft3,LA_SIZE+(5+48)*4(sp)
-	stfd    ft4,LA_SIZE+(5+50)*4(sp)
-	stfd    ft5,LA_SIZE+(5+52)*4(sp)
-#else
-	/* save 8 int/8 float arguments */
-	SAVE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+1)
-	SAVE_TEMPORARY_REGISTERS(LA_SIZE_IN_POINTERS+1+24)
-#endif
-
-	stw     itmp1,LA_SIZE+(5+54)*4(sp)
-	stw     itmp2,LA_SIZE+(5+55)*4(sp)
-	stw     pv,LA_SIZE+(5+56)*4(sp)
-
-	addi    a0,sp,LA_SIZE+(5+58)*4      /* pass SP of patcher stub            */
-	mr      a1,pv                       /* pass PV                            */
-	mr      a2,r0                       /* pass RA (correct for leafs)        */
-	bl      patcher_wrapper
-	stw     v0,LA_SIZE+(5+57)*4(sp)     /* save return value                  */
-
-#if defined(__DARWIN__)
-	lwz     a0,LA_SIZE+(5+0)*4(sp)
-	lwz     a1,LA_SIZE+(5+1)*4(sp)
-	lwz     a2,LA_SIZE+(5+2)*4(sp)
-	lwz     a3,LA_SIZE+(5+3)*4(sp)
-	lwz     a4,LA_SIZE+(5+4)*4(sp)
-	lwz     a5,LA_SIZE+(5+5)*4(sp)
-	lwz     a6,LA_SIZE+(5+6)*4(sp)
-	lwz     a7,LA_SIZE+(5+7)*4(sp)
-
-	lfd     fa0,LA_SIZE+(5+8)*4(sp)
-	lfd     fa1,LA_SIZE+(5+10)*4(sp)
-	lfd     fa2,LA_SIZE+(5+12)*4(sp)
-	lfd     fa3,LA_SIZE+(5+14)*4(sp)
-	lfd     fa4,LA_SIZE+(5+16)*4(sp)
-	lfd     fa5,LA_SIZE+(5+18)*4(sp)
-	lfd     fa6,LA_SIZE+(5+20)*4(sp)
-	lfd     fa7,LA_SIZE+(5+22)*4(sp)
-	lfd     fa8,LA_SIZE+(5+24)*4(sp)
-	lfd     fa9,LA_SIZE+(5+26)*4(sp)
-	lfd     fa10,LA_SIZE+(5+28)*4(sp)
-	lfd     fa11,LA_SIZE+(5+30)*4(sp)
-	lfd     fa12,LA_SIZE+(5+32)*4(sp)
-
-	lwz     t0,LA_SIZE+(5+33)*4(sp)
-	lwz     t1,LA_SIZE+(5+34)*4(sp)
-	lwz     t2,LA_SIZE+(5+35)*4(sp)
-	lwz     t3,LA_SIZE+(5+36)*4(sp)
-	lwz     t4,LA_SIZE+(5+37)*4(sp)
-	lwz     t5,LA_SIZE+(5+38)*4(sp)
-	lwz     t6,LA_SIZE+(5+39)*4(sp)
-	lwz     t7,LA_SIZE+(5+40)*4(sp)
-
-	lfd     ft0,LA_SIZE+(5+42)*4(sp)
-	lfd     ft1,LA_SIZE+(5+44)*4(sp)
-	lfd     ft2,LA_SIZE+(5+46)*4(sp)
-	lfd     ft3,LA_SIZE+(5+48)*4(sp)
-	lfd     ft4,LA_SIZE+(5+50)*4(sp)
-	lfd     ft5,LA_SIZE+(5+52)*4(sp)
-#else
-	/* restore 8 int/8 float arguments */
-	RESTORE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+1)
-	RESTORE_TEMPORARY_REGISTERS(LA_SIZE_IN_POINTERS+1+24)
-#endif
-
-	lwz     itmp1,LA_SIZE+(5+54)*4(sp)
-	lwz     itmp2,LA_SIZE+(5+55)*4(sp)
-	lwz     pv,LA_SIZE+(5+56)*4(sp)
-	lwz     itmp3,LA_SIZE+(5+57)*4(sp)  /* restore return value into temp reg.*/
-
-	lwz     r0,6*4+LA_SIZE+(5+58)*4(sp) /* restore RA                         */
-	mtlr	r0
-
-	mr.     itmp3,itmp3           /* check for an exception                   */
-	bne     L_asm_patcher_wrapper_exception
-
-	                              /* get return address (into JIT code)       */
-	lwz     itmp3,5*4+LA_SIZE+(5+58)*4(sp)
-
-	                              /* remove stack frame + patcher stub stack  */
-	addi    sp,sp,8*4+LA_SIZE+(5+58)*4
-
-	mtctr   itmp3
-	bctr                          /* jump to new patched code                 */
-
-L_asm_patcher_wrapper_exception:
-	mr      xptr,itmp3                  /* get exception                      */
-	lwz     xpc,5*4+LA_SIZE+(5+58)*4(sp)
-	addi    sp,sp,8*4+LA_SIZE+(5+58)*4
-	b       L_asm_handle_exception
-
 #if defined(ENABLE_REPLACEMENT)
 
 /* asm_replacement_out *********************************************************
@@ -1610,26 +1462,6 @@ L00$_exceptions_asm_new_abstractmethoderror:
 .lazy_symbol_pointer
 L_exceptions_asm_new_abstractmethoderror$lazy_ptr:
 	.indirect_symbol _exceptions_asm_new_abstractmethoderror
-	.long dyld_stub_binding_helper
-
-
-.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
-	.align 2
-L_patcher_wrapper$stub:
-	.indirect_symbol _patcher_wrapper
-	mflr r0
-	bcl 20,31,L00$_patcher_wrapper
-L00$_patcher_wrapper:
-	mflr r11
-	addis r11,r11,ha16(L_patcher_wrapper$lazy_ptr - L00$_patcher_wrapper)
-	mtlr r0
-	lwzu r12,lo16(L_patcher_wrapper$lazy_ptr - L00$_patcher_wrapper)(r11)
-	mtctr r12
-	bctr
-.data
-.lazy_symbol_pointer
-L_patcher_wrapper$lazy_ptr:
-	.indirect_symbol _patcher_wrapper
 	.long dyld_stub_binding_helper
 
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: access.c 7976 2007-05-29 12:22:55Z twisti $
+   $Id: access.c 8237 2007-07-27 16:15:29Z twisti $
 
 */
 
@@ -75,17 +75,31 @@ bool access_is_accessible_class(classinfo *referer, classinfo *cls)
 	assert(referer);
 	assert(cls);
 
-	/* public classes are always accessible */
+	/* Public classes are always accessible. */
 
 	if (cls->flags & ACC_PUBLIC)
 		return true;
 
-	/* a class in the same package is always accessible */
+	/* A class in the same package is always accessible. */
 
 	if (SAME_PACKAGE(referer, cls))
 		return true;
 
-	/* a non-public class in another package is not accessible */
+#if defined(WITH_CLASSPATH_SUN)
+	/* Code for Sun's OpenJDK (see
+	   hotspot/src/share/vm/runtime/reflection.cpp
+	   (Reflection::verify_class_access)): Allow all accesses from
+	   sun/reflect/MagicAccessorImpl subclasses to succeed
+	   trivially. */
+
+	/* NOTE: This check must be before checks that could return
+	   false. */
+
+	if (class_issubclass(cls, class_sun_reflect_MagicAccessorImpl))
+		return true;
+#endif
+
+	/* A non-public class in another package is not accessible. */
 
 	return false;
 }
@@ -120,11 +134,25 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 {
 	assert(referer);
 	assert(declarer);
-	
-	/* public members are accessible */
+
+	/* Public members are accessible. */
 
 	if (memberflags & ACC_PUBLIC)
 		return true;
+
+#if defined(WITH_CLASSPATH_SUN)
+	/* Code for Sun's OpenJDK (see
+	   hotspot/src/share/vm/runtime/reflection.cpp
+	   (Reflection::verify_class_access)): Allow all accesses from
+	   sun/reflect/MagicAccessorImpl subclasses to succeed
+	   trivially. */
+
+	/* NOTE: This check must be before checks that could return
+	   false. */
+
+	if (class_issubclass(declarer, class_sun_reflect_MagicAccessorImpl))
+		return true;
+#endif
 
 	/* {declarer is not an interface} */
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: emit.c 8211 2007-07-18 19:52:23Z michi $
 
 */
 
@@ -505,67 +505,6 @@ void emit_patcher_stubs(jitdata *jd)
 		}
 	}
 }
-
-
-/* emit_replacement_stubs ******************************************************
-
-   Generates the code for the replacement stubs.
-
-*******************************************************************************/
-
-#if defined(ENABLE_REPLACEMENT)
-void emit_replacement_stubs(jitdata *jd)
-{
-	codegendata *cd;
-	codeinfo    *code;
-	rplpoint    *rplp;
-	s4           i;
-#if !defined(NDEBUG)
-	u1          *savedmcodeptr;
-#endif
-
-	/* get required compiler data */
-
-	cd   = jd->cd;
-	code = jd->code;
-
-	rplp = code->rplpoints;
-
-	/* store beginning of replacement stubs */
-
-	code->replacementstubs = (u1*) (cd->mcodeptr - cd->mcodebase);
-
-	for (i = 0; i < code->rplpointcount; ++i, ++rplp) {
-		/* do not generate stubs for non-trappable points */
-
-		if (rplp->flags & RPLPOINT_FLAG_NOTRAP)
-			continue;
-
-		/* check code segment size */
-
-		MCODECHECK(512);
-
-		/* note start of stub code */
-
-#if !defined(NDEBUG)
-		savedmcodeptr = cd->mcodeptr;
-#endif
-
-		/* push address of `rplpoint` struct */
-			
-		M_MOV_IMM(rplp, REG_ITMP3);
-		M_PUSH(REG_ITMP3);
-
-		/* jump to replacement function */
-
-		M_MOV_IMM(asm_replacement_out, REG_ITMP3);
-		M_PUSH(REG_ITMP3);
-		M_RET;
-
-		assert((cd->mcodeptr - savedmcodeptr) == REPLACEMENT_STUB_SIZE);
-	}
-}
-#endif /* defined(ENABLE_REPLACEMENT) */
 
 
 /* emit_verbosecall_enter ******************************************************

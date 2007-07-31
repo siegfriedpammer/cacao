@@ -38,7 +38,6 @@
 #include <ucontext.h>
 
 /* work around name clash */
-#define REG_SP_OS REG_SP
 #undef REG_SP
 
 #include "vm/types.h"
@@ -68,16 +67,17 @@ ptrint md_get_reg_from_context(mcontext_t *_mc, u4 rindex)
 	if (rindex <= 15) {
 		
 		/* register is in global or out range, available in context */
+		val = _mc->gregs[rindex + 3];
 		
 	}
 	else {
 		assert(rindex <= 31);
 		
 		/* register is local or in, need to fetch from regsave area on stack */
-	/*	
-		window = ctx->sigc_regs.u_regs[REG_SP] + BIAS;
+
+		window = (s8 *) (_mc->gregs[REG_O6] + BIAS);
 		val = window[rindex - 16];
-		*/
+
 	}
 	
 	return val;
@@ -95,12 +95,12 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	stackframeinfo     sfi;
 	ucontext_t  *_uc;
 	mcontext_t  *_mc;
-	u4           instr;
 	ptrint       addr;
 	u1          *pv;
 	u1          *sp;
 	u1          *ra;
 	u1          *xpc;
+	u4           mcode;
 	s4           d;
 	s4           s1;
 	s4           disp;
@@ -112,10 +112,10 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	_mc = &_uc->uc_mcontext;
 
 	pv  = (u1 *) md_get_reg_from_context(_mc, REG_PV_CALLEE);
-#if 0
-	sp  = (u1 *) md_get_reg_from_context(ctx, REG_SP);
-	ra  = (u1 *) md_get_reg_from_context(ctx, REG_RA_CALLEE);  /* this is correct for leafs */
-	xpc = (u1 *) ctx->sigc_regs.tpc;
+	sp  = (u1 *) _mc->gregs[REG_O6];
+	ra  = (u1 *) md_get_reg_from_context(_mc, REG_RA_CALLEE);
+	xpc = (u1 *) _mc->gregs[REG_PC];
+
 
 	/* get exception-throwing instruction */	
 
@@ -127,7 +127,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* flush register windows? */
 	
-	val   = md_get_reg_from_context(ctx, d);
+	val   = md_get_reg_from_context(_mc, d);
 
 	/* check for special-load */
 
@@ -140,12 +140,21 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		/* This is a normal NPE: addr must be NULL and the NPE-type
 		   define is 0. */
 
-		addr  = md_get_reg_from_context(ctx, s1);
+		addr  = md_get_reg_from_context(_mc, s1);
 		type = (s4) addr;
 	}
 
-#endif
-	e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
+	/* generate appropriate exception */
+
+	e = exceptions_new_hardware_exception(xpc, type, val);
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
 
 	/* set registers */
 
@@ -153,32 +162,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	_mc->gregs[REG_G3]  = (ptrint) xpc; /* REG_ITMP3_XPC */
 	_mc->gregs[REG_PC]  = (ptrint) asm_handle_exception;
 	_mc->gregs[REG_nPC] = (ptrint) asm_handle_exception + 4;	
-#if 0
-	if (addr == 0) {
-
-		pv  = (u1 *) _mc->gregs[REG_G3];
-		sp  = (u1 *) (_uc->uc_stack.ss_sp);
-		/*ra  = (u1 *) _mc->mc_i7;*/       /* this is correct for leafs */
-		ra  = 0;
-		xpc = (u1 *) _mc->gregs[REG_PC];
-
-		_mc->gregs[REG_G4] =
-			(ptrint) stacktrace_hardware_nullpointerexception(pv, sp, ra, xpc);
-
-		_mc->gregs[REG_G5] = (ptrint) xpc;
-		_mc->gregs[REG_PC] = (ptrint) asm_handle_exception;
-
-	} else {
-		addr += (long) ((instr << 16) >> 16);
-
-		/*
-		throw_cacao_exception_exit(string_java_lang_InternalError,
-								   "Segmentation fault: 0x%016lx at 0x%016lx\n",
-								   addr, _mc->mc_gregs[MC_PC]);
-								   */
-		assert(0);
-	}
-#endif
 }
 
 

@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 8179 2007-07-05 11:21:08Z michi $
+   $Id: codegen-common.c 8245 2007-07-31 09:55:04Z michi $
 
 */
 
@@ -1081,8 +1081,6 @@ void codegen_finish(jitdata *jd)
 	{
 		int i;
 		rplpoint *rp;
-
-		code->replacementstubs += (ptrint) epoint;
 
 		rp = code->rplpoints;
 		for (i=0; i<code->rplpointcount; ++i, ++rp) {

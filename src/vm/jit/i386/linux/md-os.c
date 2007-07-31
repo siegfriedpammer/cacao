@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 8179 2007-07-05 11:21:08Z michi $
+   $Id: md-os.c 8245 2007-07-31 09:55:04Z michi $
 
 */
 
@@ -69,7 +69,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	s4                 disp;
 	ptrint             val;
 	s4                 type;
-	java_objectheader *o;
+	java_objectheader *e;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -111,13 +111,21 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		val  = 0;
 	}
 
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
 	/* generate appropriate exception */
 
-	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
+	e = exceptions_new_hardware_exception(xpc, type, val);
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
 
 	/* set registers */
 
-	_mc->gregs[REG_EAX] = (ptrint) o;
+	_mc->gregs[REG_EAX] = (ptrint) e;
 	_mc->gregs[REG_ECX] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
 	_mc->gregs[REG_EIP] = (ptrint) asm_handle_exception;
 }
@@ -141,7 +149,7 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	u1                *xpc;
 	s4                 type;
 	ptrint             val;
-	java_objectheader *o;
+	java_objectheader *e;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -156,11 +164,19 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	type = EXCEPTION_HARDWARE_ARITHMETIC;
 	val  = 0;
 
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
 	/* generate appropriate exception */
 
-	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
+	e = exceptions_new_hardware_exception(xpc, type, val);
 
-	_mc->gregs[REG_EAX] = (ptrint) o;
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	_mc->gregs[REG_EAX] = (ptrint) e;
 	_mc->gregs[REG_ECX] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
 	_mc->gregs[REG_EIP] = (ptrint) asm_handle_exception;
 }

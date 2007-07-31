@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: builtintable.inc 7936 2007-05-22 17:05:42Z michi $
+   $Id: builtintable.inc 8245 2007-07-31 09:55:04Z michi $
 
 */
 
@@ -965,12 +965,6 @@ static builtintable_entry builtintable_function[] = {
 
 	/* java.lang.VMSystem.arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V STATIC NATIVE */
 
-#if defined(__MIPS__) && (SIZEOF_VOID_P != 4)
-	/* We can't use this optimization on MIPS32, since it has only 4
-	   argument registers and we use 8-byte stack slots.  The code
-	   generated does not access the correct 5th argument (hint: *8
-	   instead of *4). */
-
 	{
 		ICMD_BUILTIN,
 		BUILTINTABLE_FLAG_EXCEPTION,
@@ -984,7 +978,6 @@ static builtintable_entry builtintable_function[] = {
 		NULL,
 		NULL
 	},
-#endif
 
 	/* java.lang.System.arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V PUBLIC STATIC */
 

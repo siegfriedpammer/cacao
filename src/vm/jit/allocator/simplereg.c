@@ -22,7 +22,7 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   $Id: simplereg.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: simplereg.c 8210 2007-07-18 12:51:00Z twisti $
 
 */
 
@@ -440,7 +440,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 						fltalloc = s * 5 + t;
 					}
 					else { /* !IS_FLT_DBL_TYPE(t) */
-#if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+#if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 						/*
 						 * for i386 put all longs in memory
 						 */
@@ -449,7 +449,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 							NEW_MEM_SLOT_INT_LNG(regoff);
 						} 
 						else
-#endif /* defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE...GISTERS) */
+#endif
 							if (intalloc >= 0) {
 								/* Reuse memory slot(s)/register(s) for shared interface slots */
 								flags |= jd->interface_map[intalloc].flags & ~SAVEDVAR;
@@ -515,7 +515,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 						fltalloc = s * 5 + t;
 					}
 					else { /* IS_INT_LNG */
-#if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+#if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 						/*
 						 * for i386 put all longs in memory
 						 */
@@ -694,7 +694,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 
 				} 
 				else {
-#if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+#if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 					/*
 					 * for i386 put all longs in memory
 					 */
@@ -846,7 +846,7 @@ static void simplereg_allocate_locals(jitdata *jd)
 					fltalloc = jd->local_map[s * 5 + t];
 				}
 				else {
-#if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+#if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 					/*
 					 * for i386 put all longs in memory
 					 */
@@ -875,7 +875,7 @@ static void simplereg_allocate_locals(jitdata *jd)
 							v->flags = INMEMORY;
 							NEW_MEM_SLOT_INT_LNG(v->vv.regoff);
 						}
-#if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+#if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 					}
 #endif
 					intalloc = jd->local_map[s * 5 + t];
@@ -1065,7 +1065,7 @@ static void simplereg_new_temp(jitdata *jd, s4 index)
 					}
 				} 
 				else {
-#if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+#if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 					/*
 					 * for i386 put all longs in memory
 					 */
@@ -1121,7 +1121,7 @@ static void simplereg_new_temp(jitdata *jd, s4 index)
 
 				} 
 				else {
-#if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+#if (SIZEOF_VOID_P == 4) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 					/*
 					 * for i386 put all longs in memory
 					 */

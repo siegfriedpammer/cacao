@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: descriptor.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: descriptor.c 8233 2007-07-25 15:11:20Z twisti $
 
 */
 
@@ -38,8 +38,8 @@
 #include "mm/memory.h"
 
 #include "vm/exceptions.h"
-
 #include "vm/jit_interface.h"
+#include "vm/vm.h"
 
 #include "vmcore/descriptor.h"
 #include "vmcore/primitive.h"
@@ -145,29 +145,43 @@ struct descriptor_hash_entry {
 
 *******************************************************************************/
 
-u2 descriptor_to_basic_type(utf *descriptor)
+int descriptor_to_basic_type(utf *descriptor)
 {
 	assert(descriptor->blength >= 1);
 	
 	switch (descriptor->text[0]) {
-		case 'B': 
-		case 'C':
-		case 'I':
-		case 'S':  
-		case 'Z':  return TYPE_INT;
-		case 'D':  return TYPE_DBL;
-		case 'F':  return TYPE_FLT;
-		case 'J':  return TYPE_LNG;
-		case 'L':
-		case '[':  return TYPE_ADR;
-	}
-			
-	assert(0);
+	case 'Z':
+	case 'B':
+	case 'C':
+	case 'S':
+	case 'I':
+		return TYPE_INT;
 
-	return 0; /* keep the compiler happy */
+	case 'J':
+		return TYPE_LNG;
+
+	case 'F':
+		return TYPE_FLT;
+
+	case 'D':
+		return TYPE_DBL;
+
+	case 'L':
+	case '[':
+		return TYPE_ADR;
+
+	default:
+		vm_abort("descriptor_to_basic_type: invalid type %c",
+				 descriptor->text[0]);
+	}
+
+	/* keep the compiler happy */
+
+	return 0;
 }
 
-/* descriptor_typesize**** ****************************************************
+
+/* descriptor_typesize *********************************************************
 
    Return the size in bytes needed for the given type.
 
@@ -179,22 +193,31 @@ u2 descriptor_to_basic_type(utf *descriptor)
 
 *******************************************************************************/
 
-u2 descriptor_typesize(typedesc *td)
+int descriptor_typesize(typedesc *td)
 {
 	assert(td);
 
 	switch (td->type) {
-		case TYPE_INT: return 4;
-		case TYPE_LNG: return 8;
-		case TYPE_FLT: return 4;
-		case TYPE_DBL: return 8;
-		case TYPE_ADR: return sizeof(voidptr);
+	case TYPE_INT:
+	case TYPE_FLT:
+		return 4;
+
+	case TYPE_LNG:
+	case TYPE_DBL:
+		return 8;
+
+	case TYPE_ADR:
+		return SIZEOF_VOID_P;
+
+	default:
+		vm_abort("descriptor_typesize: invalid type %d", td->type);
 	}
 
-	assert(0);
+	/* keep the compiler happy */
 
-	return 0; /* keep the compiler happy */
+	return 0;
 }
+
 
 /* name_from_descriptor ********************************************************
 
@@ -955,8 +978,8 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 	md->paramcount = paramcount;
 	md->paramslots = paramslots;
 
-	/* If m != ACC_UNDEF we parse a real loaded method, so do param prealloc. */
-	/* Otherwise we do this in stack analysis.                                */
+	/* If mflags != ACC_UNDEF we parse a real loaded method, so do
+	   param prealloc.  Otherwise we do this in stack analysis. */
 
 	if (mflags != ACC_UNDEF) {
 		if (md->paramcount > 0) {
@@ -977,10 +1000,18 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 # if defined(ENABLE_INTRP)
 		if (!opt_intrp)
 # endif
-			md_param_alloc(md);
-#endif
+			{
+				/* As builtin-functions are native functions, we have
+				   to pre-allocate for the native ABI. */
 
-	} else {
+				if (mflags & ACC_METHOD_BUILTIN)
+					md_param_alloc_native(md);
+				else
+					md_param_alloc(md);
+			}
+#endif
+	}
+	else {
 		/* params will be allocated later by
 		   descriptor_params_from_paramtypes if necessary */
 
@@ -1071,7 +1102,15 @@ bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp)
 # endif
-		md_param_alloc(md);
+		{
+			/* As builtin-functions are native functions, we have to
+			   pre-allocate for the native ABI. */
+
+			if (mflags & ACC_METHOD_BUILTIN)
+				md_param_alloc_native(md);
+			else
+				md_param_alloc(md);
+		}
 #endif
 
 	return true;

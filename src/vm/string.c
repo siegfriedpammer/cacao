@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: string.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: string.c 8230 2007-07-25 08:23:10Z twisti $
 
 */
 
@@ -565,11 +565,6 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 
 	assert(class_java_lang_String);
 	assert(class_java_lang_String->state & CLASS_LOADED);
-
-	/* if we use eager loading, we have to check loaded String class */
-
-	if (opt_eager)
-		list_add_first(&unlinkedclasses, class_java_lang_String);
 
 	/* create new javastring */
 

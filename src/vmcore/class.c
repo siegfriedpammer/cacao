@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8179 2007-07-05 11:21:08Z michi $
+   $Id: class.c 8245 2007-07-31 09:55:04Z michi $
 
 */
 
@@ -46,6 +46,7 @@
 
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/resolve.h"
 
 #include "vm/jit/asmpart.h"
 
@@ -64,10 +65,6 @@
 
 /* global variables ***********************************************************/
 
-list_t unlinkedclasses;                 /* this is only used for eager class  */
-                                        /* loading                            */
-
-
 /* frequently used classes ****************************************************/
 
 /* important system classes */
@@ -85,6 +82,9 @@ classinfo *class_java_lang_VMSystem;
 classinfo *class_java_lang_VMThread;
 classinfo *class_java_io_Serializable;
 
+#if defined(WITH_CLASSPATH_SUN)
+classinfo *class_sun_reflect_MagicAccessorImpl;
+#endif
 
 /* system exception classes required in cacao */
 
@@ -288,7 +288,7 @@ void class_postset_header_vftbl(void)
 
 *******************************************************************************/
 
-classinfo *class_define(utf *name, classloader *cl, s4 length, u1 *data)
+classinfo *class_define(utf *name, classloader *cl, int32_t length, const uint8_t *data)
 {
 	classinfo   *c;
 	classinfo   *r;
@@ -1459,6 +1459,37 @@ fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
 }
 
 
+/* class_resolve_superclass ****************************************************
+
+   Resolves the super class reference of the given class if necessary.
+
+*******************************************************************************/
+
+static classinfo *class_resolve_superclass(classinfo *c)
+{
+	classinfo *super;
+
+	if (c->super.any == NULL)
+		return NULL;
+
+	/* Do we have a super class reference or is it already
+	   resolved? */
+
+	if (IS_CLASSREF(c->super)) {
+		super = resolve_classref_or_classinfo_eager(c->super, true);
+
+		if (super == NULL)
+			return NULL;
+
+		/* Store the resolved super class in the class structure. */
+
+		c->super.cls = super;
+	}
+
+	return c->super.cls;
+}
+
+
 /* class_issubclass ************************************************************
 
    Checks if sub is a descendant of super.
@@ -1468,13 +1499,13 @@ fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
 bool class_issubclass(classinfo *sub, classinfo *super)
 {
 	for (;;) {
-		if (!sub)
+		if (sub == NULL)
 			return false;
 
 		if (sub == super)
 			return true;
 
-		sub = sub->super.cls;
+		sub = class_resolve_superclass(sub);
 	}
 }
 
@@ -1502,8 +1533,7 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
 
 	/* Primitive classes are only subclasses of themselves. */
 
-	if ((sub->flags & ACC_CLASS_PRIMITIVE) ||
-		(super->flags & ACC_CLASS_PRIMITIVE))
+	if (class_is_primitive(sub) || class_is_primitive(super))
 		return false;
 
 	/* Check for interfaces. */
@@ -1526,6 +1556,21 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
 	}
 
 	return result;
+}
+
+
+/* class_is_primitive **********************************************************
+
+   Checks if the given class is a primitive class.
+
+*******************************************************************************/
+
+bool class_is_primitive(classinfo *c)
+{
+	if (c->flags & ACC_CLASS_PRIMITIVE)
+		return true;
+
+	return false;
 }
 
 
@@ -1558,6 +1603,115 @@ bool class_is_interface(classinfo *c)
 
 	return false;
 }
+
+
+/* class_get_superclass ********************************************************
+
+   Return the super class of the given class.  If the super-field is a
+   class-reference, resolve it and store it in the classinfo.
+
+*******************************************************************************/
+
+classinfo *class_get_superclass(classinfo *c)
+{
+	classinfo *super;
+
+	/* For java.lang.Object, primitive and Void classes we return
+	   NULL. */
+
+	if (c->super.any == NULL)
+		return NULL;
+
+	/* For interfaces we also return NULL. */
+
+	if (c->flags & ACC_INTERFACE)
+		return NULL;
+
+	/* We may have to resolve the super class reference. */
+
+	super = class_resolve_superclass(c);
+
+	return super;
+}
+
+
+/* class_get_declaringclass ****************************************************
+
+   If the class or interface given is a member of another class,
+   return the declaring class.  For array and primitive classes return
+   NULL.
+
+*******************************************************************************/
+
+classinfo *class_get_declaringclass(classinfo *c)
+{
+	classref_or_classinfo  innercr;
+	utf                   *innername;
+	classref_or_classinfo  outercr;
+	classinfo             *outer;
+	int16_t                i;
+
+	/* return NULL for arrayclasses and primitive classes */
+
+	if (class_is_primitive(c) || (c->name->text[0] == '['))
+		return NULL;
+
+	/* no innerclasses exist */
+
+	if (c->innerclasscount == 0)
+		return NULL;
+
+	for (i = 0; i < c->innerclasscount; i++) {
+		/* Check if inner_class is a classref or a real class and get
+		   the class name from the structure. */
+
+		innercr = c->innerclass[i].inner_class;
+
+		innername = IS_CLASSREF(innercr) ?
+			innercr.ref->name : innercr.cls->name;
+
+		/* Is the current innerclass this class? */
+
+		if (innername == c->name) {
+			/* Maybe the outer class is not loaded yet. */
+
+			outercr = c->innerclass[i].outer_class;
+
+			outer = resolve_classref_or_classinfo_eager(outercr, false);
+
+			if (outer == NULL)
+				return NULL;
+
+			if (!(outer->state & CLASS_LINKED))
+				if (!link_class(outer))
+					return NULL;
+
+			return outer;
+		}
+	}
+
+	return NULL;
+}
+
+
+/* class_get_signature *********************************************************
+
+   Return the signature of the given class.  For array and primitive
+   classes return NULL.
+
+*******************************************************************************/
+
+#if defined(ENABLE_JAVASE)
+utf *class_get_signature(classinfo *c)
+{
+	/* For array and primitive classes return NULL. */
+
+	if (class_is_array(c) || class_is_primitive(c))
+		return NULL;
+
+	return c->signature;
+}
+#endif
 
 
 /* class_printflags ************************************************************

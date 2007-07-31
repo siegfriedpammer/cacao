@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit_interface.h 7692 2007-04-12 14:47:24Z twisti $
+   $Id: jit_interface.h 8210 2007-07-18 12:51:00Z twisti $
 
 */
 
@@ -53,6 +53,7 @@ void removenativestub(u1 *stub);
 void jit_invalidate_code(methodinfo *m);
 
 void md_param_alloc(methoddesc *md);
+void md_param_alloc_native(methoddesc *md);
 
 /* stub for throwing AbstractMethodError's */
 #if defined(ENABLE_JIT)

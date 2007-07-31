@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.c 8174 2007-07-01 17:49:25Z twisti $
+   $Id: options.c 8236 2007-07-27 10:18:17Z twisti $
 
 */
 
@@ -120,7 +120,6 @@ bool opt_getcompilingtime = false; /* compute compile time                   */
 #if defined(ENABLE_VERIFIER)
 bool opt_verify  = true;       /* true if classfiles should be verified      */
 #endif
-bool opt_eager   = false;
 
 #if defined(ENABLE_PROFILING)
 bool opt_prof    = false;
@@ -133,7 +132,6 @@ bool opt_prof_bb = false;
 #if defined(ENABLE_INLINING)
 bool opt_inlining = false;
 #if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
-s4 opt_replace_verbose = 0;
 s4 opt_inline_debug_min_size = 0;
 s4 opt_inline_debug_max_size = INT_MAX;
 s4 opt_inline_debug_end_counter = INT_MAX;
@@ -179,41 +177,68 @@ const char *opt_filter_show_method = 0;
 
 /* NOTE: For better readability keep these alpha-sorted. */
 
+int32_t  opt_DebugStackFrameInfo       = 0;
+int32_t  opt_DebugStackTrace           = 0;
 int32_t  opt_MaxPermSize               = 0;
 int32_t  opt_PermSize                  = 0;
+int      opt_PrintConfig               = 0;
 int32_t  opt_ProfileGCMemoryUsage      = 0;
 int32_t  opt_ProfileMemoryUsage        = 0;
 FILE    *opt_ProfileMemoryUsageGNUPlot = NULL;
 int32_t  opt_ThreadStackSize           = 0;
 int32_t  opt_TraceExceptions           = 0;
+int32_t  opt_TraceJavaCalls            = 0;
+int32_t  opt_TraceJNICalls             = 0;
+int32_t  opt_TraceJVMCalls             = 0;
 #if defined(ENABLE_REPLACEMENT)
 int32_t  opt_TraceReplacement          = 0;
 #endif
 
 
 enum {
+	OPT_TYPE_BOOLEAN,
+	OPT_TYPE_VALUE
+};
+
+enum {
+	OPT_DebugStackFrameInfo,
+	OPT_DebugStackTrace,
 	OPT_MaxPermSize,
 	OPT_PermSize,
+	OPT_PrintConfig,
 	OPT_ProfileGCMemoryUsage,
 	OPT_ProfileMemoryUsage,
 	OPT_ProfileMemoryUsageGNUPlot,
 	OPT_ThreadStackSize,
 	OPT_TraceExceptions,
+	OPT_TraceJavaCalls,
+	OPT_TraceJNICalls,
+	OPT_TraceJVMCalls,
 	OPT_TraceReplacement
 };
 
 
 option_t options_XX[] = {
-	{ "MaxPermSize",               OPT_MaxPermSize,               "" },
-	{ "PermSize",                  OPT_PermSize,                  "" },
-	{ "ProfileGCMemoryUsage",      OPT_ProfileGCMemoryUsage,      "" },
-	{ "ProfileMemoryUsage",        OPT_ProfileMemoryUsage,        "" },
-	{ "ProfileMemoryUsageGNUPlot", OPT_ProfileMemoryUsageGNUPlot, "" },
-	{ "ThreadStackSize",           OPT_ThreadStackSize,           "" },
-	{ "TraceExceptions",           OPT_TraceExceptions,           "" },
+	{ "DebugStackFrameInfo",       OPT_DebugStackFrameInfo,       OPT_TYPE_BOOLEAN, "TODO" },
+	{ "DebugStackTrace",           OPT_DebugStackTrace,           OPT_TYPE_BOOLEAN, "TODO" },
+	{ "MaxPermSize",               OPT_MaxPermSize,               OPT_TYPE_VALUE,   "not implemented" },
+	{ "PermSize",                  OPT_PermSize,                  OPT_TYPE_VALUE,   "not implemented" },
+	{ "PrintConfig",               OPT_PrintConfig,               OPT_TYPE_BOOLEAN, "print VM configuration" },
+	{ "ProfileGCMemoryUsage",      OPT_ProfileGCMemoryUsage,      OPT_TYPE_VALUE,   "profiles GC memory usage in the given interval, <value> is in seconds (default: 5)" },
+	{ "ProfileMemoryUsage",        OPT_ProfileMemoryUsage,        OPT_TYPE_VALUE,   "TODO" },
+	{ "ProfileMemoryUsageGNUPlot", OPT_ProfileMemoryUsageGNUPlot, OPT_TYPE_VALUE,   "TODO" },
+	{ "ThreadStackSize",           OPT_ThreadStackSize,           OPT_TYPE_VALUE,   "TODO" },
+	{ "TraceExceptions",           OPT_TraceExceptions,           OPT_TYPE_BOOLEAN, "TODO" },
+	{ "TraceJavaCalls",            OPT_TraceJavaCalls,            OPT_TYPE_BOOLEAN, "trace Java method calls" },
+	{ "TraceJNICalls",             OPT_TraceJNICalls,             OPT_TYPE_BOOLEAN, "trace JNI method calls" },
+	{ "TraceJVMCalls",             OPT_TraceJVMCalls,             OPT_TYPE_BOOLEAN, "TODO" },
 #if defined(ENABLE_REPLACEMENT)
-	{ "TraceReplacement",          OPT_TraceReplacement,          "" },
+	{ "TraceReplacement",          OPT_TraceReplacement,          OPT_TYPE_VALUE,   "trace on-stack replacement with the given verbosity level (default: 1)" },
 #endif
+
+	/* end marker */
+
+	{ NULL,                        -1,                            -1, NULL }
 };
 
 
@@ -299,6 +324,77 @@ s4 options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
 }
 
 
+/* options_xxusage *************************************************************
+
+   Print usage message for debugging options.
+
+*******************************************************************************/
+
+static void options_xxusage(void)
+{
+	option_t *opt;
+	int       length;
+	int       i;
+	char     *c;
+
+	for (opt = options_XX; opt->name != NULL; opt++) {
+		printf("    -XX:");
+
+		switch (opt->type) {
+		case OPT_TYPE_BOOLEAN:
+			printf("+%s", opt->name);
+			length = strlen("    -XX:+") + strlen(opt->name);
+			break;
+		case OPT_TYPE_VALUE:
+			printf("%s=<value>", opt->name);
+			length = strlen("    -XX:") + strlen(opt->name) + strlen("=<value>");
+			break;
+		}
+
+		/* Check if the help fits into one 80-column line.
+		   Documentation starts at column 29. */
+
+		if (length < (29 - 1)) {
+			/* Print missing spaces up to column 29. */
+
+			for (i = length; i < 29; i++)
+				printf(" ");
+		}
+		else {
+			printf("\n");
+			printf("                             "); /* 29 spaces */
+		}
+
+		/* Check documentation length. */
+
+		length = strlen(opt->doc);
+
+		if (length < (80 - 29)) {
+			printf("%s", opt->doc);
+		}
+		else {
+			for (c = opt->doc, i = 29; *c != 0; c++, i++) {
+				/* If we are at the end of the line, break it. */
+
+				if (i == 80) {
+					printf("\n");
+					printf("                             "); /* 29 spaces */
+					i = 29;
+				}
+
+				printf("%c", *c);
+			}
+		}
+
+		printf("\n");
+	}
+
+	/* exit with error code */
+
+	exit(1);
+}
+
+
 /* options_xx ******************************************************************
 
    Handle -XX: options.
@@ -309,13 +405,17 @@ void options_xx(const char *name)
 {
 	const char *start;
 	char       *end;
-	int32_t     length;
-	int32_t     enable;
+	int         length;
+	int         enable;
 	char       *value;
-	int32_t     option;
+	option_t   *opt;
 	char       *filename;
 	FILE       *file;
-	int32_t     i;
+
+	/* Check for help (-XX), in this case name is NULL. */
+
+	if (name == NULL)
+		options_xxusage();
 
 	/* Check if the option is a boolean option. */
 
@@ -348,24 +448,49 @@ void options_xx(const char *name)
 
 	/* search the option in the option array */
 
-	option = OPT_ERROR;
+	for (opt = options_XX; opt->name != NULL; opt++) {
+		if (strncmp(opt->name, start, length) == 0) {
+			/* Check if the options passed fits to the type. */
 
-	for (i = 0; options_XX[i].name != NULL; i++) {
-		if (strncmp(options_XX[i].name, start, length) == 0) {
-			option = options_XX[i].option;
+			switch (opt->type) {
+			case OPT_TYPE_BOOLEAN:
+				if ((enable == -1) || (value != NULL))
+					options_xxusage();
+				break;
+			case OPT_TYPE_VALUE:
+				if ((enable != -1) || (value == NULL))
+					options_xxusage();
+				break;
+			default:
+				vm_abort("options_xx: unknown option type %d for option %s",
+						 opt->type, opt->name);
+			}
+
 			break;
 		}
 	}
 
 	/* process the option */
 
-	switch (option) {
+	switch (opt->value) {
+	case OPT_DebugStackFrameInfo:
+		opt_DebugStackFrameInfo = enable;
+		break;
+
+	case OPT_DebugStackTrace:
+		opt_DebugStackTrace = enable;
+		break;
+
 	case OPT_MaxPermSize:
 		/* currently ignored */
 		break;
 
 	case OPT_PermSize:
 		/* currently ignored */
+		break;
+
+	case OPT_PrintConfig:
+		vm_printconfig();
 		break;
 
 	case OPT_ProfileGCMemoryUsage:
@@ -410,6 +535,19 @@ void options_xx(const char *name)
 		opt_TraceExceptions = enable;
 		break;
 
+	case OPT_TraceJavaCalls:
+		opt_verbosecall = enable;
+		opt_TraceJavaCalls = enable;
+		break;
+
+	case OPT_TraceJNICalls:
+		opt_TraceJNICalls = enable;
+		break;
+
+	case OPT_TraceJVMCalls:
+		opt_TraceJVMCalls = enable;
+		break;
+
 #if defined(ENABLE_REPLACEMENT)
 	case OPT_TraceReplacement:
 		if (value == NULL)
@@ -420,7 +558,7 @@ void options_xx(const char *name)
 #endif
 
 	default:
-		printf("Unknown option: -XX:%s\n", name);
+		printf("Unknown -XX option: %s\n", name);
 		break;
 	}
 }

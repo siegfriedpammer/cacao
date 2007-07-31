@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: options.h 8134 2007-06-22 14:49:10Z twisti $
+   $Id: options.h 8236 2007-07-27 10:18:17Z twisti $
 
 */
 
@@ -63,9 +63,10 @@ struct opt_struct {
 typedef struct option_t option_t;
 
 struct option_t {
-	char    *name;
-	int32_t  option;
-	char    *doc;
+	char *name;
+	int   value;
+	int   type;
+	char *doc;
 };
 
 
@@ -134,7 +135,6 @@ extern bool opt_getcompilingtime;
 #if defined(ENABLE_VERIFIER)
 extern bool opt_verify;
 #endif
-extern bool opt_eager;
 
 #if defined(ENABLE_PROFILING)
 extern bool opt_prof;
@@ -146,7 +146,6 @@ extern bool opt_prof_bb;
 #if defined(ENABLE_INLINING)
 extern bool opt_inlining;
 #if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
-extern s4 opt_replace_verbose;
 extern s4 opt_inline_debug_min_size;
 extern s4 opt_inline_debug_max_size;
 extern s4 opt_inline_debug_end_counter;
@@ -193,13 +192,19 @@ extern const char *opt_filter_show_method;
 
 /* NOTE: For better readability keep these alpha-sorted. */
 
+extern int32_t  opt_DebugStackFrameInfo;
+extern int32_t  opt_DebugStackTrace;
 extern int32_t  opt_MaxPermSize;
 extern int32_t  opt_PermSize;
+extern int      opt_PrintConfig;
 extern int32_t  opt_ProfileGCMemoryUsage;
 extern int32_t  opt_ProfileMemoryUsage;
 extern FILE    *opt_ProfileMemoryUsageGNUPlot;
 extern int32_t  opt_ThreadStackSize;
 extern int32_t  opt_TraceExceptions;
+extern int32_t  opt_TraceJavaCalls;
+extern int32_t  opt_TraceJNICalls;
+extern int32_t  opt_TraceJVMCalls;
 #if defined(ENABLE_REPLACEMENT)
 extern int32_t  opt_TraceReplacement;
 #endif
