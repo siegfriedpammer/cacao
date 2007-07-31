@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: md.c 8247 2007-07-31 12:06:44Z michi $
 
 */
 
@@ -220,7 +220,6 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
 #if defined(ENABLE_REPLACEMENT)
 void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *savedmcode)
 {
-	s4 disp;
 	u8 mcode;
 
 	/* XXX this is probably unsafe! */
@@ -241,11 +240,8 @@ void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *save
 		savedmcode[4] = rp->pc[4];
 
 		/* build the machine code for the patch */
-		disp = (code->replacementstubs - rp->pc)
-			   + index * REPLACEMENT_STUB_SIZE
-			   - 5;
-
-		mcode = 0xe9 | ((u8) disp << 8);
+		assert(0); /* XXX build trap instruction below */
+		mcode = 0;
 
 		/* write spinning instruction */
 		*(u2*)(rp->pc) = 0xebfe;

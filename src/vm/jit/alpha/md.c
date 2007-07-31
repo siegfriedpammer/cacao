@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: md.c 8247 2007-07-31 12:06:44Z michi $
 
 */
 
@@ -288,7 +288,6 @@ void md_icacheflush(u1 *addr, s4 nbytes)
 #if defined(ENABLE_REPLACEMENT)
 void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *savedmcode)
 {
-	s4 disp;
 	u4 mcode;
 
 	if (index < 0) {
@@ -300,12 +299,7 @@ void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *save
 		*(u4*)(savedmcode) = *(u4*)(rp->pc);
 
 		/* build the machine code for the patch */
-		disp = ((u4*)code->replacementstubs - (u4*)rp->pc)
-			   + index * REPLACEMENT_STUB_SIZE
-			   - 1;
-
-		/* BR */
-        mcode = (((s4) (0x30)) << 26) | ((REG_ZERO) << 21) | ((disp) & 0x1fffff);
+		mcode = (0xa41f0000 | (EXCEPTION_HARDWARE_PATCHER));
 
 		/* write the new machine code */
 		*(u4*)(rp->pc) = mcode;

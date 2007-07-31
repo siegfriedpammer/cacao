@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: md.c 8247 2007-07-31 12:06:44Z michi $
 
 */
 
@@ -287,7 +287,6 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
 void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp,
 								u1 *savedmcode)
 {
-	s4 disp;
 	union {
 		u8 both;
 		u4 words[2];
@@ -301,19 +300,9 @@ void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp,
 		/* save the current machine code */
 		*(u8*)(savedmcode) = *(u8*)(rp->pc);
 
-		/* make machine code for patching */
-
-		disp = ((u4*)code->replacementstubs - (u4*)rp->pc)
-			   + index * REPLACEMENT_STUB_SIZE
-			   - 1;
-
-		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff))
-			vm_abort("Jump offset is out of range: %d > +/-%d",
-					 disp, 0x00007fff);
-
-		/* BR */
-        mcode.words[0] = (((0x04) << 26) | ((0) << 21) | ((0) << 16) | ((disp) & 0xffff));
-		mcode.words[1] = 0; /* NOP in delay slot */ 
+		/* build the machine code for the patch */
+		assert(0); /* XXX build trap instruction below */
+		mcode.both = 0;
 
 		/* write the new machine code */
 		*(u8*)(rp->pc) = mcode.both;
