@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 8178 2007-07-05 11:13:20Z michi $
+   $Id: md-os.c 8243 2007-07-31 08:57:54Z michi $
 
 */
 
@@ -101,7 +101,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	ptrint             val;
 	ptrint             addr;
 	s4                 type;
-	java_objectheader *o;
+	java_objectheader *e;
 
 	_uc    = (struct ucontext *) _p;
 	_mc    = &_uc->uc_mcontext;
@@ -172,13 +172,21 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		val  = 0;
 	}
 
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
 	/* generate appropriate exception */
 
-	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
+	e = exceptions_new_hardware_exception(xpc, type, val);
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
 
 	/* set registers */
 
-	_gregs[REG_ITMP1_XPTR] = (ptrint) o;
+	_gregs[REG_ITMP1_XPTR] = (ptrint) e;
 	_gregs[REG_ITMP2_XPC]  = (ptrint) xpc;
 
 #if defined(__UCLIBC__)

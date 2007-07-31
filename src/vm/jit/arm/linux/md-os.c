@@ -82,7 +82,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	ptrint             addr;
 	s4                 type;
 	ptrint             val;
-	java_objectheader *o;
+	java_objectheader *e;
 
 	_uc = (ucontext_t*) _p;
 	_sc = &_uc->uc_mcontext;
@@ -111,13 +111,21 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	if (addr != 0)
 		vm_abort("md_signal_handler_sigsegv: faulting address is not NULL: addr=%p", addr);
 
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
 	/* generate appropriate exception */
 
-	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
+	e = exceptions_new_hardware_exception(xpc, type, val);
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
 
 	/* set registers */
 
-	_sc->arm_r10 = (ptrint) o;
+	_sc->arm_r10 = (ptrint) e;
 	_sc->arm_fp  = (ptrint) xpc;
 	_sc->arm_pc  = (ptrint) asm_handle_exception;
 }
@@ -141,7 +149,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	u4                 mcode;
 	s4                 type;
 	ptrint             val;
-	java_objectheader *o;
+	java_objectheader *e;
 
 	_uc = (ucontext_t*) _p;
 	_sc = &_uc->uc_mcontext;
@@ -166,15 +174,23 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	type = (mcode >> 8) & 0x0fff;
 	val  = *((s4 *) _sc + OFFSET(scontext_t, arm_r0)/4 + (mcode & 0x0f));
 
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
 	/* generate appropriate exception */
 
-	o = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
+	e = exceptions_new_hardware_exception(xpc, type, val);
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
 
 	/* set registers if we have an exception, return continue execution
 	   otherwise (this is needed for patchers to work) */
 
-	if (o != NULL) {
-		_sc->arm_r10 = (ptrint) o;
+	if (e != NULL) {
+		_sc->arm_r10 = (ptrint) e;
 		_sc->arm_fp  = (ptrint) xpc;
 		_sc->arm_pc  = (ptrint) asm_handle_exception;
 	}

@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 8240 2007-07-29 20:36:47Z pm $
+   $Id: md.c 8243 2007-07-31 08:57:54Z michi $
 
 */
 
@@ -193,7 +193,17 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	type = EXCEPTION_HARDWARE_NULLPOINTER;
 	val = 0;
 
-	e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
+	/* generate appropriate exception */
+
+	e = exceptions_new_hardware_exception(xpc, type, val);
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
 
 	_mc->gregs[REG_ITMP2_XPC] = (ptrint) xpc;
 	_mc->gregs[REG_ITMP1_XPTR] = (ptrint) e;
@@ -231,7 +241,17 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
 		sp = (u1 *)_mc->gregs[REG_SP];
 		val = (ptrint)_mc->gregs[reg];
 
-		e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
+		/* create stackframeinfo */
+
+		stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
+		/* generate appropriate exception */
+
+		e = exceptions_new_hardware_exception(xpc, type, val);
+
+		/* remove stackframeinfo */
+
+		stacktrace_remove_stackframeinfo(&sfi);
 
 		_mc->gregs[REG_ITMP1_XPTR] = (ptrint)e;
 		_mc->gregs[REG_ITMP2_XPC] = (ptrint)xpc;
@@ -306,7 +326,17 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 			type = EXCEPTION_HARDWARE_ARITHMETIC;
 			val = 0;
 
-			e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
+			/* create stackframeinfo */
+
+			stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
+			/* generate appropriate exception */
+
+			e = exceptions_new_hardware_exception(xpc, type, val);
+
+			/* remove stackframeinfo */
+
+			stacktrace_remove_stackframeinfo(&sfi);
 
 			_mc->gregs[REG_ITMP1_XPTR] = (ptrint)e;
 			_mc->gregs[REG_ITMP2_XPC] = (ptrint)xpc;

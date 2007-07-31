@@ -144,7 +144,17 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		type = (s4) addr;
 	}
 
-	e = exceptions_new_hardware_exception(pv, sp, ra, xpc, type, val, &sfi);
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
+	/* generate appropriate exception */
+
+	e = exceptions_new_hardware_exception(xpc, type, val);
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
 
 	/* set registers */
 

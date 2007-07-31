@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8210 2007-07-18 12:51:00Z twisti $
+   $Id: exceptions.c 8243 2007-07-31 08:57:54Z michi $
 
 */
 
@@ -1732,15 +1732,11 @@ java_objectheader *exceptions_fillinstacktrace(void)
 
 *******************************************************************************/
 
-java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 *xpc, s4 type, ptrint val, stackframeinfo *sfi)
+java_objectheader *exceptions_new_hardware_exception(u1 *xpc, s4 type, ptrint val)
 {
 	java_objectheader *e;
 	java_objectheader *o;
 	s4                 index;
-
-	/* create stackframeinfo */
-
-	stacktrace_create_extern_stackframeinfo(sfi, pv, sp, ra, xpc);
 
 	switch (type) {
 	case EXCEPTION_HARDWARE_NULLPOINTER:
@@ -1795,10 +1791,6 @@ java_objectheader *exceptions_new_hardware_exception(u1 *pv, u1 *sp, u1 *ra, u1 
 
 		e = NULL;
 	}
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(sfi);
 
 	/* return the exception object */
 
