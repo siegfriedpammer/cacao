@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 8237 2007-07-27 16:15:29Z twisti $
+   $Id: loader.c 8249 2007-07-31 12:59:03Z panzi $
 
 */
 
@@ -226,7 +226,22 @@ bool loader_init(void)
 	if (!(arrayclass_java_lang_Object =
 		  load_class_bootstrap(utf_new_char("[Ljava/lang/Object;"))))
 		return false;
+
+#if defined(ENABLE_ANNOTATIONS)
+	/* needed by annotation support */
+	if (!(class_sun_reflect_ConstantPool = 
+		  load_class_bootstrap(utf_sun_reflect_ConstantPool)))
+		return false;
+
+#if defined(WITH_CLASSPATH_GNU)
+	/* needed by GNU Classpaths annotation support */
+	if (!(class_sun_reflect_annotation_AnnotationParser = 
+		  load_class_bootstrap(utf_sun_reflect_annotation_AnnotationParser)))
+		return false;
 #endif
+#endif
+#endif
+
 
 	return true;
 }

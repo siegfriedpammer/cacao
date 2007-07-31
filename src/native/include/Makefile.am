@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 8202 2007-07-15 12:08:18Z twisti $
+## $Id: Makefile.am 8249 2007-07-31 12:59:03Z panzi $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -73,6 +73,11 @@ JAVASE_HEADER_FILES += \
 	gnu_classpath_Pointer64.h \
 	java_lang_VMObject.h \
 	java_nio_DirectByteBufferImpl.h
+
+if ENABLE_ANNOTATIONS
+JAVASE_HEADER_FILES += \
+	sun_reflect_ConstantPool.h
+endif
 endif
 
 if WITH_CLASSPATH_SUN

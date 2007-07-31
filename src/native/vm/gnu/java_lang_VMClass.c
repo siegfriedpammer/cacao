@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClass.c 8169 2007-06-30 12:33:50Z twisti $
+   $Id: java_lang_VMClass.c 8249 2007-07-31 12:59:03Z panzi $
 
 */
 
@@ -66,7 +66,7 @@ static JNINativeMethod methods[] = {
 	{ "forName",                 "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", (void *) (ptrint) &Java_java_lang_VMClass_forName                 },
 	{ "isArray",                 "(Ljava/lang/Class;)Z",                                          (void *) (ptrint) &Java_java_lang_VMClass_isArray                 },
 	{ "throwException",          "(Ljava/lang/Throwable;)V",                                      (void *) (ptrint) &Java_java_lang_VMClass_throwException          },
-#if 0
+#if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
 	{ "getDeclaredAnnotations",  "(Ljava/lang/Class;)[Ljava/lang/annotation/Annotation;",         (void *) (ptrint) &Java_java_lang_VMClass_getDeclaredAnnotations  },
 #endif
 	{ "getEnclosingClass",       "(Ljava/lang/Class;)Ljava/lang/Class;",                          (void *) (ptrint) &Java_java_lang_VMClass_getEnclosingClass       },
@@ -295,7 +295,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMClass_throwException(JNIEnv *env, jclass
 }
 
 
-#if 0
+#if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
 /*
  * Class:     java/lang/VMClass
  * Method:    getDeclaredAnnotations
@@ -303,6 +303,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMClass_throwException(JNIEnv *env, jclass
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredAnnotations(JNIEnv *env, jclass clazz, java_lang_Class* klass)
 {
+	return _Jv_java_lang_Class_getDeclaredAnnotations(klass);
 }
 #endif
 

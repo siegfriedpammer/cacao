@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.h 8231 2007-07-25 14:21:24Z twisti $
+   $Id: method.h 8249 2007-07-31 12:59:03Z panzi $
 */
 
 
@@ -172,6 +172,12 @@ void method_add_assumption_monomorphic(methodinfo *m, methodinfo *caller);
 void method_break_assumption_monomorphic(methodinfo *m, method_worklist **wl);
 
 s4   method_count_implementations(methodinfo *m, classinfo *c, methodinfo **found);
+
+#if defined(ENABLE_ANNOTATIONS)
+annotation_bytearray_t *method_get_annotations(methodinfo *m);
+annotation_bytearray_t *method_get_parameterannotations(methodinfo *m);
+annotation_bytearray_t *method_get_annotationdefault(methodinfo *m);
+#endif
 
 #if !defined(NDEBUG)
 void method_printflags(methodinfo *m);

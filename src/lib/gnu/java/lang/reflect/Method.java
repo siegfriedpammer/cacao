@@ -83,6 +83,9 @@ extends AccessibleObject implements Member, GenericDeclaration
   Class clazz;
   String name;
   int slot;
+  private byte[] annotations;
+  private byte[] parameterAnnotations;
+  private byte[] annotationDefault;
 
   private static final int METHOD_MODIFIERS
     = Modifier.ABSTRACT | Modifier.FINAL | Modifier.NATIVE

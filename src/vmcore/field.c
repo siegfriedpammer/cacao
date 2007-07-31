@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: field.c 8227 2007-07-24 11:55:07Z twisti $
+   $Id: field.c 8249 2007-07-31 12:59:03Z panzi $
 
 */
 
@@ -33,12 +33,15 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "mm/memory.h"
+
 #include "vm/types.h"
 
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
+#include "vmcore/annotation.h"
 #include "vmcore/class.h"
 #include "vmcore/descriptor.h"
 #include "vmcore/field.h"
@@ -264,6 +267,19 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 			if (!loader_load_attribute_signature(cb, &(f->signature)))
 				return false;
 		}
+
+#if defined(ENABLE_ANNOTATIONS)
+		else if (u == utf_RuntimeVisibleAnnotations) {
+			/* RuntimeVisibleAnnotations */
+			if (!annotation_load_field_attribute_runtimevisibleannotations(cb, f))
+				return false;
+		}
+		else if (u == utf_RuntimeInvisibleAnnotations) {
+			/* RuntimeInvisibleAnnotations */
+			if (!annotation_load_field_attribute_runtimeinvisibleannotations(cb, f))
+				return false;
+		}
+#endif
 #endif
 		else {
 			/* unknown attribute */
@@ -321,6 +337,28 @@ void field_free(fieldinfo *f)
 {
 	/* empty */
 }
+
+
+#if defined(ENABLE_ANNOTATIONS)
+/* field_get_annotations ******************************************************
+
+   Gets a fields' annotations (or NULL if none).
+
+*******************************************************************************/
+
+annotation_bytearray_t *field_get_annotations(fieldinfo *f)
+{
+	classinfo *c = f->class;
+	int slot = f - c->fields;
+
+	if (c->field_annotations != NULL &&
+	    c->field_annotations->size > slot) {
+		return c->field_annotations->data[slot];
+	}
+
+	return NULL;
+}
+#endif
 
 
 /* field_printflags ************************************************************

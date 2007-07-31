@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8219 2007-07-20 16:52:11Z twisti $
+   $Id: java_lang_Class.c 8249 2007-07-31 12:59:03Z panzi $
 
 */
 
@@ -80,6 +80,10 @@
 #include "vmcore/loader.h"
 #include "vmcore/primitive.h"
 
+#if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
+#include "vmcore/annotation.h"
+#include "native/include/sun_reflect_ConstantPool.h"
+#endif
 
 /*
  * Class:     java/lang/Class
@@ -703,7 +707,7 @@ void _Jv_java_lang_Class_throwException(java_lang_Throwable *t)
 }
 
 
-#if 0
+#if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
 /*
  * Class:     java/lang/Class
  * Method:    getDeclaredAnnotations
@@ -711,6 +715,66 @@ void _Jv_java_lang_Class_throwException(java_lang_Throwable *t)
  */
 java_objectarray *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* klass)
 {
+	classinfo *c = (classinfo*)klass;
+	methodinfo *m = NULL;
+	utf *utf_parseAnnotationsIntoArray = NULL;
+	utf *utf_desc = NULL;
+	java_bytearray *annotations = NULL;
+	sun_reflect_ConstantPool *constantPool = NULL;
+
+	if (c == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+	
+	/* Return null for arrays and primitives: */
+	if (class_is_primitive(c) || class_is_array(c)) {
+		return NULL;
+	}
+
+	if (c->annotations != NULL) {
+		uint32_t size = c->annotations->size;
+		annotations = builtin_newarray_byte(size);
+
+		if(annotations != NULL)
+		{
+			MCOPY(annotations->data, c->annotations->data, uint8_t, size);
+		}
+	}
+
+	constantPool = 
+		(sun_reflect_ConstantPool*)native_new_and_init(
+			class_sun_reflect_ConstantPool);
+	
+	if(constantPool == NULL) {
+		/* out of memory */
+		return NULL;
+	}
+
+	constantPool->constantPoolOop = (java_lang_Object*)klass;
+
+	utf_parseAnnotationsIntoArray = utf_new_char("parseAnnotationsIntoArray");
+	utf_desc = utf_new_char(
+		"([BLsun/reflect/ConstantPool;Ljava/lang/Class;)[Ljava/lang/annotation/Annotation;");
+
+	if (utf_parseAnnotationsIntoArray == NULL || utf_desc == NULL) {
+		/* out of memory */
+		return NULL;
+	}
+
+	m = class_resolveclassmethod(
+		class_sun_reflect_annotation_AnnotationParser,
+		utf_parseAnnotationsIntoArray,
+		utf_desc,
+		class_java_lang_Class,
+		true);
+
+	if (m == NULL) {
+		/* method not found */
+		return NULL;
+	}
+
+	return vm_call_method(m, NULL, annotations, constantPool, klass);
 }
 #endif
 

@@ -81,6 +81,7 @@ extends AccessibleObject implements Member
   private Class clazz;
   private String name;
   private int slot;
+  private byte[] annotations;
 
   private static final int FIELD_MODIFIERS
     = Modifier.FINAL | Modifier.PRIVATE | Modifier.PROTECTED

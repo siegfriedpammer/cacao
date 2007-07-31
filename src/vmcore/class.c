@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8238 2007-07-27 18:41:53Z twisti $
+   $Id: class.c 8249 2007-07-31 12:59:03Z panzi $
 
 */
 
@@ -132,6 +132,11 @@ classinfo *class_java_security_PrivilegedAction;
 classinfo *class_java_util_Vector;
 
 classinfo *arrayclass_java_lang_Object;
+
+#if defined(ENABLE_ANNOTATIONS)
+classinfo *class_sun_reflect_ConstantPool;
+classinfo *class_sun_reflect_annotation_AnnotationParser;
+#endif
 #endif
 
 
@@ -598,17 +603,31 @@ bool class_load_attributes(classbuffer *cb)
 			if (!loader_load_attribute_signature(cb, &(c->signature)))
 				return false;
 		}
-#if 0
+#endif
+
+#if defined(ENABLE_ANNOTATIONS)
 		/* XXX We can't do a release with that enabled */
 
 		else if (attribute_name == utf_RuntimeVisibleAnnotations) {
 			/* RuntimeVisibleAnnotations */
-
-			if (!annotation_load_attribute_runtimevisibleannotations(cb))
+			if (!annotation_load_class_attribute_runtimevisibleannotations(cb))
+				return false;
+		}
+		/* XXX RuntimeInvisibleAnnotations should only be loaded
+		 * (or returned to Java) if some commandline options says so.
+		 * Currently there is no such option available in cacao,
+		 * therefore I load them allways (for testing purpose).
+		 * Anyway, bytecode for RuntimeInvisibleAnnotations is only
+		 * generated if you tell javac to do so. So in most cases
+		 * there won't be any.
+		 */
+		else if (attribute_name == utf_RuntimeInvisibleAnnotations) {
+			/* RuntimeInvisibleAnnotations */
+			if (!annotation_load_class_attribute_runtimeinvisibleannotations(cb))
 				return false;
 		}
 #endif
-#endif
+
 		else {
 			/* unknown attribute */
 
@@ -780,6 +799,16 @@ void class_free(classinfo *c)
 		mem_free(c->header.vftbl, sizeof(vftbl) + sizeof(methodptr)*(c->vftbl->vftbllength-1)); */
 	
 /*  	GCFREE(c); */
+
+#if defined(ENABLE_ANNOTATIONS)
+	annotation_bytearray_free(c->annotations);
+
+	annotation_bytearrays_free(c->method_annotations);
+	annotation_bytearrays_free(c->method_parameterannotations);
+	annotation_bytearrays_free(c->method_annotationdefaults);
+
+	annotation_bytearrays_free(c->field_annotations);
+#endif
 }
 
 

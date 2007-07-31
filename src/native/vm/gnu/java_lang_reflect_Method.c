@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Method.c 8132 2007-06-22 11:15:47Z twisti $
+   $Id: java_lang_reflect_Method.c 8249 2007-07-31 12:59:03Z panzi $
 
 */
 
@@ -30,6 +30,10 @@
 #include "config.h"
 
 #include <assert.h>
+
+#if defined(ENABLE_ANNOTATIONS)
+#include "vm/vm.h"
+#endif
 
 #include "vm/types.h"
 
@@ -39,6 +43,10 @@
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_String.h"
+
+#if defined(ENABLE_ANNOTATIONS)
+#include "native/include/sun_reflect_ConstantPool.h"
+#endif
 
 #include "native/include/java_lang_reflect_Method.h"
 
@@ -64,6 +72,9 @@ static JNINativeMethod methods[] = {
 	{ "getExceptionTypes",    "()[Ljava/lang/Class;",                                                        (void *) (ptrint) &Java_java_lang_reflect_Method_getExceptionTypes    },
 	{ "invokeNative",         "(Ljava/lang/Object;[Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;", (void *) (ptrint) &Java_java_lang_reflect_Method_invokeNative         },
 	{ "getSignature",         "()Ljava/lang/String;",                                                        (void *) (ptrint) &Java_java_lang_reflect_Method_getSignature         },
+#if defined(ENABLE_ANNOTATIONS)
+	{ "getDefaultValue",      "()Ljava/lang/Object;",                                                        (void *) (ptrint) &Java_java_lang_reflect_Method_getDefaultValue      },
+#endif
 };
 
 
@@ -194,6 +205,60 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Method_getSignature(J
 	return (java_lang_String *) o;
 }
 
+#if defined(ENABLE_ANNOTATIONS)
+/*
+ * Class:     java/lang/reflect/Method
+ * Method:    getDefaultValue
+ * Signature: ()Ljava/lang/Object;
+ */
+JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Method_getDefaultValue(JNIEnv *env, struct java_lang_reflect_Method* this)
+{
+	methodinfo *m = NULL;
+	utf *utf_parseAnnotationDefault = NULL;
+	utf *utf_desc = NULL;
+	sun_reflect_ConstantPool *constantPool = NULL;
+
+	if (this == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	constantPool = 
+		(sun_reflect_ConstantPool*)native_new_and_init(
+			class_sun_reflect_ConstantPool);
+	
+	if(constantPool == NULL) {
+		/* out of memory */
+		return NULL;
+	}
+
+	constantPool->constantPoolOop = (java_lang_Object*)this->clazz;
+
+	utf_parseAnnotationDefault = utf_new_char("parseAnnotationDefault");
+	utf_desc = utf_new_char(
+		"(Ljava/lang/reflect/Method;[BLsun/reflect/ConstantPool;Ljava/lang/Class;)Ljava/lang/Object;");
+
+	if (utf_parseAnnotationDefault == NULL || utf_desc == NULL) {
+		/* out of memory */
+		return NULL;
+	}
+
+	m = class_resolveclassmethod(
+		class_sun_reflect_annotation_AnnotationParser,
+		utf_parseAnnotationDefault,
+		utf_desc,
+		((java_objectheader*)this)->vftbl->class,
+		true);
+
+	if (m == NULL)
+	{
+		/* method not found */
+		return NULL;
+	}
+
+	return (java_lang_Object*)vm_call_method(m, NULL, this, this->annotationDefault, constantPool, this->clazz);
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8237 2007-07-27 16:15:29Z twisti $
+   $Id: class.h 8249 2007-07-31 12:59:03Z panzi $
 
 */
 
@@ -147,8 +147,15 @@ struct classinfo {                /* class structure                          */
 	utf        *sourcefile;       /* SourceFile attribute                     */
 #if defined(ENABLE_JAVASE)
 	utf        *signature;        /* Signature attribute                      */
-	s4            runtimevisibleannotationscount;
-	annotation_t *runtimevisibleannotations;
+#if defined(ENABLE_ANNOTATIONS)
+	annotation_bytearray_t  *annotations;
+	
+	annotation_bytearrays_t *method_annotations;
+	annotation_bytearrays_t *method_parameterannotations;
+	annotation_bytearrays_t *method_annotationdefaults;
+
+	annotation_bytearrays_t *field_annotations;
+#endif
 #endif
 	java_objectheader *classloader; /* NULL for bootstrap classloader         */
 };
@@ -227,6 +234,13 @@ extern classinfo *class_java_lang_ClassNotFoundException;
 
 #if defined(ENABLE_JAVASE)
 extern classinfo *class_java_lang_Void;
+
+#if defined(ENABLE_ANNOTATIONS)
+extern classinfo *class_sun_reflect_ConstantPool;
+#if defined(WITH_CLASSPATH_GNU)
+extern classinfo *class_sun_reflect_annotation_AnnotationParser;
+#endif
+#endif
 #endif
 
 extern classinfo *class_java_lang_Boolean;

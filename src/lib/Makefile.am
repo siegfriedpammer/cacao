@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 8132 2007-06-22 11:15:47Z twisti $
+## $Id: Makefile.am 8249 2007-07-31 12:59:03Z panzi $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -58,6 +58,29 @@ VM_CLASS_FILES = \
 	classes/java/lang/reflect/Method.class \
 	classes/java/security/VMAccessController.class \
 	classes/sun/misc/Unsafe.class
+
+if WITH_CLASSPATH_GNU
+if ENABLE_ANNOTATIONS
+VM_JAVA_FILES += \
+	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/TypeNotPresentExceptionProxy.java \
+	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationTypeMismatchExceptionProxy.java \
+	$(top_srcdir)/src/lib/gnu/sun/reflect/ConstantPool.java \
+	$(top_srcdir)/src/lib/gnu/sun/reflect/generics/parser/SignatureFormatError.java \
+	$(top_srcdir)/src/lib/gnu/sun/reflect/generics/parser/SignatureParser.java \
+	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationType.java \
+	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationParser.java
+
+VM_CLASS_FILES += \
+	classes/sun/reflect/annotation/TypeNotPresentExceptionProxy.class \
+	classes/sun/reflect/annotation/AnnotationTypeMismatchExceptionProxy.class \
+	classes/sun/reflect/ConstantPool.class \
+	classes/sun/reflect/generics/parser/SignatureFormatError.class \
+	classes/sun/reflect/generics/parser/SignatureParser.class \
+	classes/sun/reflect/annotation/AnnotationType.class \
+	classes/sun/reflect/annotation/AnnotationParser.class
+endif
+endif
+
 
 if ENABLE_ZLIB
 pkgdata_DATA = vm.zip

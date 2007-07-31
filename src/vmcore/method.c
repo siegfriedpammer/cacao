@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.c 8228 2007-07-24 12:37:25Z twisti $
+   $Id: method.c 8249 2007-07-31 12:59:03Z panzi $
 
 */
 
@@ -435,6 +435,34 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 			if (!loader_load_attribute_signature(cb, &(m->signature)))
 				return false;
 		}
+
+#if defined(ENABLE_ANNOTATIONS)
+		else if (attribute_name == utf_RuntimeVisibleAnnotations) {
+			/* RuntimeVisibleAnnotations */
+			if (!annotation_load_method_attribute_runtimevisibleannotations(cb, m))
+				return false;
+		}
+		else if (attribute_name == utf_RuntimeInvisibleAnnotations) {
+			/* RuntimeInvisibleAnnotations */
+			if (!annotation_load_method_attribute_runtimeinvisibleannotations(cb, m))
+				return false;
+		}
+		else if (attribute_name == utf_RuntimeVisibleParameterAnnotations) {
+			/* RuntimeVisibleParameterAnnotations */
+			if (!annotation_load_method_attribute_runtimevisibleparameterannotations(cb, m))
+				return false;
+		}
+		else if (attribute_name == utf_RuntimeInvisibleParameterAnnotations) {
+			/* RuntimeInvisibleParameterAnnotations */
+			if (!annotation_load_method_attribute_runtimeinvisibleparameterannotations(cb, m))
+				return false;
+		}
+		else if (attribute_name == utf_AnnotationDefault) {
+			/* AnnotationDefault */
+			if (!annotation_load_method_attribute_annotationdefault(cb, m))
+				return false;
+		}
+#endif
 #endif
 		else {
 			/* unknown attribute */
@@ -708,6 +736,67 @@ s4 method_count_implementations(methodinfo *m, classinfo *c, methodinfo **found)
 
 	return count;
 }
+
+
+#if defined(ENABLE_ANNOTATIONS)
+/* method_get_annotations ******************************************************
+
+   Gets a methods' annotations (or NULL if none).
+
+*******************************************************************************/
+
+annotation_bytearray_t *method_get_annotations(methodinfo *m)
+{
+	classinfo *c = m->class;
+	int slot = m - c->methods;
+
+	if (c->method_annotations != NULL && c->method_annotations->size > slot) {
+		return c->method_annotations->data[slot];
+	}
+
+	return NULL;
+}
+
+
+/* method_get_parameterannotations ********************************************
+
+   Gets a methods' parameter annotations (or NULL if none).
+
+*******************************************************************************/
+
+annotation_bytearray_t *method_get_parameterannotations(methodinfo *m)
+{
+	classinfo *c = m->class;
+	int slot = m - c->methods;
+
+	if (c->method_parameterannotations != NULL &&
+		c->method_parameterannotations->size > slot) {
+		return c->method_parameterannotations->data[slot];
+	}
+
+	return NULL;
+}
+
+
+/* method_get_annotationdefault ***********************************************
+
+   Gets a methods' annotation default value (or NULL if none).
+
+*******************************************************************************/
+
+annotation_bytearray_t *method_get_annotationdefault(methodinfo *m)
+{
+	classinfo *c = m->class;
+	int slot = m - c->methods;
+
+	if (c->method_annotationdefaults != NULL &&
+		c->method_annotationdefaults->size > slot) {
+		return c->method_annotationdefaults->data[slot];
+	}
+
+	return NULL;
+}
+#endif
 
 
 /* method_add_to_worklist ******************************************************

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: field.h 8229 2007-07-24 18:42:44Z twisti $
+   $Id: field.h 8249 2007-07-31 12:59:03Z panzi $
 */
 
 
@@ -76,6 +76,10 @@ struct fieldinfo {	      /* field of a class                                 */
 bool       field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool);
 classinfo *field_get_type(fieldinfo *f);
 void       field_free(fieldinfo *f);
+
+#if defined(ENABLE_ANNOTATIONS)
+annotation_bytearray_t *field_get_annotations(fieldinfo *f);
+#endif
 
 #if !defined(NDEBUG)
 void field_printflags(fieldinfo *f);

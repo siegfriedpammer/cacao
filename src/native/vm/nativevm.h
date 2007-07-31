@@ -68,6 +68,10 @@ void _Jv_java_security_VMAccessController_init();
 void _Jv_java_util_concurrent_atomic_AtomicLong_init();
 void _Jv_sun_misc_Unsafe_init();
 
+#if defined(ENABLE_ANNOTATIONS)
+void _Jv_sun_reflect_ConstantPool_init();
+#endif
+
 # elif defined(WITH_CLASSPATH_SUN)
 
 void _Jv_sun_misc_Unsafe_init();

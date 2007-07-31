@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: reflect.c 8172 2007-06-30 14:14:52Z twisti $
+   $Id: reflect.c 8249 2007-07-31 12:59:03Z panzi $
 
 */
 
@@ -30,6 +30,10 @@
 #include "config.h"
 
 #include <stdint.h>
+
+#if defined(ENABLE_ANNOTATIONS)
+#include "mm/memory.h"
+#endif
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -72,6 +76,35 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 	java_objectheader             *o;
 	java_lang_reflect_Constructor *rc;
 	int32_t                        slot;
+	java_bytearray *annotations          = NULL;
+	java_bytearray *parameterAnnotations = NULL;
+	annotation_bytearray_t *ba = NULL;
+
+#if defined(ENABLE_ANNOTATIONS)
+	/* get annotations */
+	ba = method_get_annotations(m);
+
+	if (ba != NULL) {
+		annotations = builtin_newarray_byte(ba->size);
+
+		if (annotations == NULL)
+			return NULL;
+		
+		MCOPY(annotations->data, ba->data, uint8_t, ba->size);
+	}
+	
+	/* get parameter annotations */
+	ba = method_get_parameterannotations(m);
+
+	if (ba != NULL) {
+		parameterAnnotations = builtin_newarray_byte(ba->size);
+
+		if (parameterAnnotations == NULL)
+			return NULL;
+		
+		MCOPY(parameterAnnotations->data, ba->data, uint8_t, ba->size);
+	}
+#endif
 
 	/* get declaring class */
 
@@ -97,6 +130,11 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 	rc->clazz                = (java_lang_Class *) c;
 	rc->slot                 = slot;
 
+	/* TODO: add these private fields to java.lang.reflect.Constructor
+	rc->annotations          = annotations;
+	rc->parameterAnnotations = parameterAnnotations;
+	*/
+
 #elif defined(WITH_CLASSPATH_SUN)
 
 	rc->clazz                = (java_lang_Class *) c;
@@ -105,8 +143,8 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 	rc->modifiers            = m->flags & ACC_CLASS_REFLECT_MASK;
 	rc->slot                 = slot;
 	rc->signature            = m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL;
-	rc->annotations          = NULL;
-	rc->parameterAnnotations = NULL;
+	rc->annotations          = annotations;
+	rc->parameterAnnotations = parameterAnnotations;
 
 #else
 # error unknown classpath configuration
@@ -129,6 +167,22 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 	java_objectheader       *o;
 	java_lang_reflect_Field *rf;
 	int32_t                  slot;
+	java_bytearray *annotations = NULL;
+	annotation_bytearray_t *ba = NULL;
+
+#if defined(ENABLE_ANNOTATIONS)
+	/* get annotations */
+	ba = field_get_annotations(f);
+
+	if (ba != NULL) {
+		annotations = builtin_newarray_byte(ba->size);
+
+		if (annotations == NULL)
+			return NULL;
+		
+		MCOPY(annotations->data, ba->data, uint8_t, ba->size);
+	}
+#endif
 
 	/* get declaring class */
 
@@ -158,6 +212,7 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 
 	rf->name           = _Jv_java_lang_String_intern((java_lang_String *) javastring_new(f->name));
 	rf->slot           = slot;
+	rf->annotations    = annotations;
 
 #elif defined(WITH_CLASSPATH_SUN)
 
@@ -171,7 +226,7 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 	rf->modifiers      = f->flags;
 	rf->slot           = slot;
 	rf->signature      = f->signature ? (java_lang_String *) javastring_new(f->signature) : NULL;
-	rf->annotations    = NULL;
+	rf->annotations    = annotations;
 
 #else
 # error unknown classpath configuration
@@ -194,6 +249,48 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 	java_objectheader        *o;
 	java_lang_reflect_Method *rm;
 	int32_t                   slot;
+	java_bytearray *annotations          = NULL;
+	java_bytearray *parameterAnnotations = NULL;
+	java_bytearray *annotationDefault    = NULL;
+	annotation_bytearray_t *ba = NULL;
+
+#if defined(ENABLE_ANNOTATIONS)
+	/* get annotations */
+	ba = method_get_annotations(m);
+
+	if (ba != NULL) {
+		annotations = builtin_newarray_byte(ba->size);
+
+		if (annotations == NULL)
+			return NULL;
+		
+		MCOPY(annotations->data, ba->data, uint8_t, ba->size);
+	}
+	
+	/* get parameter annotations */
+	ba = method_get_parameterannotations(m);
+
+	if (ba != NULL) {
+		parameterAnnotations = builtin_newarray_byte(ba->size);
+
+		if (parameterAnnotations == NULL)
+			return NULL;
+		
+		MCOPY(parameterAnnotations->data, ba->data, uint8_t, ba->size);
+	}
+
+	/* get annotation default value */
+	ba = method_get_annotationdefault(m);
+
+	if (ba != NULL) {
+		annotationDefault = builtin_newarray_byte(ba->size);
+
+		if (annotationDefault == NULL)
+			return NULL;
+		
+		MCOPY(annotationDefault->data, ba->data, uint8_t, ba->size);
+	}
+#endif
 
 	/* get declaring class */
 
@@ -223,6 +320,9 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 
 	rm->name                 = _Jv_java_lang_String_intern((java_lang_String *) javastring_new(m->name));
 	rm->slot                 = slot;
+	rm->annotations          = annotations;
+	rm->parameterAnnotations = parameterAnnotations;
+	rm->annotationDefault    = annotationDefault;
 
 #elif defined(WITH_CLASSPATH_SUN)
 
@@ -238,9 +338,9 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 	rm->modifiers            = m->flags & ACC_CLASS_REFLECT_MASK;
 	rm->slot                 = slot;
 	rm->signature            = m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL;
-	rm->annotations          = NULL;
-	rm->parameterAnnotations = NULL;
-	rm->annotationDefault    = NULL;
+	rm->annotations          = annotations;
+	rm->parameterAnnotations = parameterAnnotations;
+	rm->annotationDefault    = annotationDefault;
 
 #else
 # error unknown classpath configuration
