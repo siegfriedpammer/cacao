@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/md.c - machine dependent SPARC functions
+/* src/vm/jit/sparc64/md.c - machine dependent SPARC functions
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
