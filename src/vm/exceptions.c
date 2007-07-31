@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8243 2007-07-31 08:57:54Z michi $
+   $Id: exceptions.c 8244 2007-07-31 09:30:28Z michi $
 
 */
 
@@ -1762,6 +1762,12 @@ java_objectheader *exceptions_new_hardware_exception(u1 *xpc, s4 type, ptrint va
 		break;
 
 	case EXCEPTION_HARDWARE_PATCHER:
+#if defined(ENABLE_REPLACEMENT)
+		if (replace_me_wrapper(xpc)) {
+			e = NULL;
+			break;
+		}
+#endif
 		e = patcher_handler(xpc);
 		break;
 

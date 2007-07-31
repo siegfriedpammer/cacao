@@ -2728,6 +2728,55 @@ void replace_free_safestack(replace_safestack_t *st, executionstate_t *tmpes)
 }
 
 
+/* replace_me_wrapper **********************************************************
+
+   TODO: Document me!
+
+*******************************************************************************/
+
+bool replace_me_wrapper(u1 *pc)
+{
+	codeinfo         *code;
+	rplpoint         *rp;
+	executionstate_t  es;
+
+	/* search the codeinfo for the given PC */
+
+	code = code_find_codeinfo_for_pc(pc);
+	assert(code);
+
+	/* search for a replacement point at the given PC */
+
+#if 0
+	rp = replace_find_replacement_point_for_pc(code, pc);
+	assert(rp == NULL || rp->pc == pc);
+#else
+	{
+		int i;
+		rplpoint *rp2;
+		rp = NULL;
+		for (i=0,rp2=code->rplpoints; i<code->rplpointcount; i++,rp2++) {
+			if (rp2->pc == pc)
+				rp = rp2;
+		}
+	}
+#endif
+
+	/* check if the replacement point is active */
+
+	if (rp != NULL && (rp->flags & RPLPOINT_FLAG_ACTIVE)) {
+
+		/*md_replace_executionstate_read(&es, context);*/
+
+		replace_me(rp, &es);
+
+		return true;
+	}
+	else
+		return false;
+}
+
+
 /* replace_me ******************************************************************
  
    This function is called by asm_replacement_out when a thread reaches

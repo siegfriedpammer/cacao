@@ -279,6 +279,8 @@ void replace_free_replacement_points(codeinfo *code);
 void replace_activate_replacement_points(codeinfo *code, bool mappable);
 void replace_deactivate_replacement_points(codeinfo *code);
 
+bool replace_me_wrapper(u1 *pc);
+
 void replace_me(rplpoint *rp,executionstate_t *es);
 
 #if !defined(NDEBUG)
