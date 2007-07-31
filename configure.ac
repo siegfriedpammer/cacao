@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8249 2007-07-31 12:59:03Z panzi $
+dnl $Id: configure.ac 8250 2007-07-31 13:16:43Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -850,21 +850,7 @@ AM_CONDITIONAL([ENABLE_STATICVM], test x"${ENABLE_STATICVM}" = "xyes")
 AC_SUBST(ENABLE_STATICVM)
 
 
-dnl check if annotations support should be built
-AC_MSG_CHECKING(wether to build annotations support)
-AC_ARG_ENABLE([annotations],
-              [AS_HELP_STRING(--enable-annotations,build annotations support [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_ANNOTATIONS=yes;;
-                   *) ENABLE_ANNOTATIONS=no;;
-               esac],
-              [ENABLE_ANNOTATIONS=no])
-AC_MSG_RESULT(${ENABLE_ANNOTATIONS})
-AM_CONDITIONAL([ENABLE_ANNOTATIONS], test x"${ENABLE_ANNOTATIONS}" = "xyes")
-   
-if test x"${ENABLE_ANNOTATIONS}" = "xyes"; then
-    AC_DEFINE([ENABLE_ANNOTATIONS], 1, [enable annotations])
-fi
+AC_CHECK_ENABLE_ANNOTATIONS
 
 
 dnl where is CACAO's vm.zip
