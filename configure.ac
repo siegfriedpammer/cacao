@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8163 2007-06-29 18:53:55Z twisti $
+dnl $Id: configure.ac 8248 2007-07-31 12:47:11Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -906,8 +906,19 @@ AC_SUBST(WITH_STATIC_CLASSPATH)
 
 
 dnl check for some programs we need
-AC_PROG_JAVAC
-AC_PROG_JAR
+
+case "${WITH_CLASSPATH}" in
+    cldc1.1 | gnu)
+        AC_PROG_JAVAC
+        AC_PROG_JAR
+        ;;
+    sun)
+        ;;
+    *)
+        AC_MSG_ERROR(unknown classpath configuration ${WITH_CLASSPATH})
+        ;;
+esac
+
 
 AC_CHECK_HEADERS(
 	[regex.h], 
