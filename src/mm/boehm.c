@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: boehm.c 8150 2007-06-27 18:35:40Z twisti $
+   $Id: boehm.c 8242 2007-07-31 08:45:35Z twisti $
 
 */
 
@@ -151,7 +151,7 @@ void *heap_allocate(u4 bytelength, u4 references, methodinfo *finalizer)
 		return NULL;
 
 	if (finalizer != NULL)
-		GC_REGISTER_FINALIZER(p, finalizer_run, 0, 0, 0);
+		GC_REGISTER_FINALIZER_NO_ORDER(p, finalizer_run, 0, 0, 0);
 
 	/* clear allocated memory region */
 
