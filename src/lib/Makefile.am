@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 8249 2007-07-31 12:59:03Z panzi $
+## $Id: Makefile.am 8252 2007-08-01 22:47:17Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -89,7 +89,7 @@ VM_ZIP = ../vm.zip
 
 vm.zip: $(VM_JAVA_FILES)
 	$(mkdir_p) classes
-	$(JAVAC) -d classes $(VM_JAVA_FILES)
+	$(JAVAC) -source 1.5 -target 1.5 -d classes $(VM_JAVA_FILES)
 	@if test "$(JAR)" = "zip" -o "$(JAR)" = "zip.exe"; then \
 	    cd classes && $(JAR) -r -D $(VM_ZIP) .; \
 	else \
