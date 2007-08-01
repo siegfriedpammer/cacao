@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8123 2007-06-20 23:50:55Z michi $
+   $Id: asmpart.S 8251 2007-08-01 15:26:59Z pm $
 
 */
 
@@ -56,8 +56,6 @@
 	.globl asm_handle_nat_exception
 
 	.globl asm_abstractmethoderror
-
-	.globl asm_patcher_wrapper
 
 	.globl asm_replacement_out
 	.globl asm_replacement_in
@@ -709,68 +707,6 @@ asm_abstractmethoderror:
 	jmp     L_asm_handle_exception
 
 #endif
-
-/* asm_patcher_wrapper *********************************************************
-
-   XXX
-
-   Stack layout:
-     20   return address into JIT code (patch position)
-     16   pointer to virtual java_objectheader
-     12   machine code (which is patched back later)
-      8   unresolved class/method/field reference
-      4   data segment displacement from load instructions
-      0   patcher function pointer to call (pv afterwards)
-
-*******************************************************************************/
-
-asm_patcher_wrapper:
-#	define  apw_sfs (96 + 4 + VOLATILE_INTEGER_REGISTERS_SIZE + VOLATILE_FLOAT_REGISTERS_SIZE)
-
-	ahi     sp, -apw_sfs                /* create stack frame */
-
-	/* store all volatile registers and a2, because we will touch it */
-
-	st      a2, 96(sp)
-	STORE_VOLATILE_INTEGER_REGISTERS(96 + 4)
-	STORE_VOLATILE_FLOAT_REGISTERS(96 + 4 + VOLATILE_INTEGER_REGISTERS_SIZE)
-
-	/* pass arguments */
-
-	la      a0, apw_sfs(sp)             /* pass SP of patcher stub */
-	la      a1, 0xffc(pv)               /* pass PV (if NULL, use findmethod)  */
-	lhi     a2, 0                       /* pass RA                            */
-
-	/* call patcher_wrapper */
-
-	bras    itmp1, L_apw_bras           /* call patcher_wrapper */
-	.long   patcher_wrapper
-L_apw_bras:
-	l       itmp1, 0(itmp1)
-	basr    %r14, itmp1
-
-	/* store return value */
-
-	st      v0,0(sp)                    /* save return value */
-
-	/* restore volatile registers */
-
-	l       a2, 96(sp)
-	LOAD_VOLATILE_INTEGER_REGISTERS(96 + 4)
-	LOAD_VOLATILE_FLOAT_REGISTERS(96 + 4 + VOLATILE_INTEGER_REGISTERS_SIZE)
-
-	l       itmp3, 0(sp)                /* restore return value */
-	ltr     itmp3, itmp3                /* exception thrown ? */
-	jne     L_asm_patcher_wrapper_exception /* handle exception */
-	l       itmp3, apw_sfs + (5 * 4)(sp) /* load return address to JIT from stack */
-	ahi     sp, apw_sfs + (6 * 4)       /* remove stack frame, and stack frame by patcher stub */
-	br      itmp3                       /* return */
-
-L_asm_patcher_wrapper_exception:
-	lr      xptr,itmp3                  /* get exception                      */
-	l       xpc, apw_sfs + (5 * 4)(sp)  /* load return address to JIT from stack */
-	ahi     sp, apw_sfs + (6 * 4)       /* remove stack frame, and stack frame by patcher stub */
-	j       L_asm_handle_exception
 
 #if 0
 

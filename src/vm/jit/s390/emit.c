@@ -22,39 +22,34 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8240 2007-07-29 20:36:47Z pm $
+   $Id: emit.c 8251 2007-08-01 15:26:59Z pm $
 
 */
-
 
 #include "config.h"
 
 #include <assert.h>
 
-#include "vm/types.h"
-
-#include "md-abi.h"
-
-#include "vm/jit/s390/codegen.h"
-#include "vm/jit/s390/emit.h"
-
+#include "mm/memory.h"
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
 #endif
-
 #include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
-#include "vm/jit/abi.h"
-#include "vm/global.h"
-#include "mm/memory.h"
-#include "vm/exceptions.h"
-
-#define __PORTED__
+#include "vm/jit/s390/codegen.h"
+#include "vm/jit/s390/emit.h"
+#include "vm/jit/s390/md-abi.h"
+#include "vm/types.h"
+#include "vmcore/options.h"
 
 /* emit_load *******************************************************************
 
@@ -62,7 +57,7 @@
 
 *******************************************************************************/
 
-__PORTED__ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
+s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata *cd;
 	s4           disp;
@@ -108,7 +103,7 @@ __PORTED__ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg
     
 *******************************************************************************/
 
-__PORTED__ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
+void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
 	codegendata *cd;
 
@@ -141,7 +136,7 @@ __PORTED__ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, 
 
 *******************************************************************************/
 
-__PORTED__ void emit_copy(jitdata *jd, instruction *iptr)
+void emit_copy(jitdata *jd, instruction *iptr)
 {
 	codegendata *cd;
 	varinfo     *src;
@@ -210,158 +205,46 @@ __PORTED__ void emit_copy(jitdata *jd, instruction *iptr)
 	}
 }
 
+/* emit_patcher_traps **********************************************************
 
-/* emit_patcher_stubs **********************************************************
-
-   Generates the code for the patcher stubs.
+   Generates the code for the patcher traps.
 
 *******************************************************************************/
 
-__PORTED__ void emit_patcher_stubs(jitdata *jd)
+void emit_patcher_traps(jitdata *jd)
 {
-	
 	codegendata *cd;
-	patchref    *pref;
-	u4           mcode;
+	codeinfo    *code;
+	patchref_t  *pr;
 	u1          *savedmcodeptr;
 	u1          *tmpmcodeptr;
-	s4           targetdisp;
-	s4           disp;
-	u1          *ref;
 
 	/* get required compiler data */
 
-	cd = jd->cd;
+	cd =   jd->cd;
+	code = jd->code;
 
-	/* generate code patching stub call code */
+	/* generate patcher traps code */
 
-	targetdisp = 0;
-
-	for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-		/* check code segment size */
-
-		MCODECHECK(100);
+	for (pr = list_first_unsynced(code->patchers); pr != NULL; pr = list_next_unsynced(code->patchers, pr)) {
 
 		/* Get machine code which is patched back in later. The
-		   call is 1 instruction word long. */
+		   trap is 2 bytes long. */
 
-		tmpmcodeptr = (u1 *) (cd->mcodebase + pref->branchpos);
+		tmpmcodeptr = (u1 *) (cd->mcodebase + pr->mpc);
+		pr->mcode = *((u2 *) tmpmcodeptr);
 
-		mcode = *((u4 *) tmpmcodeptr);
-
-		/* Patch in the call to call the following code (done at
+		/* Patch in the trap to call the signal handler (done at
 		   compile time). */
 
 		savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr              */
 		cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position     */
 
-		disp = (savedmcodeptr) - (tmpmcodeptr);
-
-		if (! N_VALID_BRANCH(disp)) {
-			/* Displacement overflow */
-
-			/* If LONGBRANCHES is not set, the flag and the error flag */
-			
-			if (! CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
-				cd->flags |= (CODEGENDATA_FLAG_ERROR |
-					CODEGENDATA_FLAG_LONGBRANCHES);
-			}
-
-			/* If error flag is set, do nothing. The method has to be recompiled. */
-
-			if (CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd) && CODEGENDATA_HAS_FLAG_ERROR(cd)) {
-				return;
-			}
-		}
-
-		if (CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {	
-
-			/* Generating long branches */
-
-			disp = dseg_add_s4(cd, savedmcodeptr - cd->mcodebase - N_PV_OFFSET);
-	
-			M_ILD_DSEG(REG_ITMP3, disp);
-			M_AADD(REG_PV, REG_ITMP3);
-
-			/* Do the branch at the end of NOP sequence.
-			 * This way the patch position is at a *fixed* offset 
-			 * (PATCHER_LONGBRANCHES_NOPS_SKIP) of the return address.
-			 */
-
-			cd->mcodeptr = tmpmcodeptr + PATCHER_LONGBRANCHES_NOPS_SKIP - SZ_BASR;
-			M_JMP(REG_ITMP3, REG_ITMP3);
-		} else {
-
-			/* Generating short branches */
-
-			M_BSR(REG_ITMP3, disp);
-		}
+		M_ILL(EXCEPTION_HARDWARE_PATCHER);
 
 		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr       */
-
-		/* create stack frame */
-
-		M_ASUB_IMM(6 * 4, REG_SP);
-
-		/* move return address onto stack */
-
-		M_AST(REG_ITMP3, REG_SP, 5 * 4);
-
-		/* move pointer to java_objectheader onto stack */
-
-#if defined(ENABLE_THREADS)
-		/* create a virtual java_objectheader */
-
-		(void) dseg_add_unique_address(cd, NULL);                  /* flcword */
-		(void) dseg_add_unique_address(cd, lock_get_initial_lock_word());
-		disp = dseg_add_unique_address(cd, NULL);                  /* vftbl   */
-
-		M_LDA_DSEG(REG_ITMP3, disp);
-		M_AST(REG_ITMP3, REG_SP, 4 * 4);
-#else
-		/* nothing to do */
-#endif
-
-		/* move machine code onto stack */
-
-		disp = dseg_add_s4(cd, mcode);
-		M_ILD_DSEG(REG_ITMP3, disp);
-		M_IST(REG_ITMP3, REG_SP, 3 * 4);
-
-		/* move class/method/field reference onto stack */
-
-		disp = dseg_add_address(cd, pref->ref);
-		M_ALD_DSEG(REG_ITMP3, disp);
-		M_AST(REG_ITMP3, REG_SP, 2 * 4);
-
-		/* move data segment displacement onto stack */
-
-		disp = dseg_add_s4(cd, pref->disp);
-		M_ILD_DSEG(REG_ITMP3, disp);
-		M_IST(REG_ITMP3, REG_SP, 1 * 4);
-
-		/* move patcher function pointer onto stack */
-
-		disp = dseg_add_functionptr(cd, pref->patcher);
-		M_ALD_DSEG(REG_ITMP3, disp);
-		M_AST(REG_ITMP3, REG_SP, 0 * 4);
-
-		if (targetdisp == 0) {
-			targetdisp = (cd->mcodeptr) - (cd->mcodebase);
-
-			disp = dseg_add_functionptr(cd, asm_patcher_wrapper);
-			M_ALD_DSEG(REG_ITMP3, disp);
-			M_JMP(RN, REG_ITMP3);
-		}
-		else {
-			disp = ((cd->mcodebase) + targetdisp) -
-				(( cd->mcodeptr) );
-
-			emit_branch(cd, disp, BRANCH_UNCONDITIONAL, RN, 0);
-		}
 	}
 }
-
 
 /* emit_replacement_stubs ******************************************************
 
@@ -689,7 +572,7 @@ void emit_verbosecall_exit(jitdata *jd)
 
 *******************************************************************************/
 
-__PORTED__ s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
+s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            disp;
@@ -722,7 +605,7 @@ __PORTED__ s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 te
 
 *******************************************************************************/
 
-__PORTED__ s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
+s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            disp;

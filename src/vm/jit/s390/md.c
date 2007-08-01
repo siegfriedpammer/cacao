@@ -28,7 +28,7 @@
 
    Changes: Edwin Steiner
 
-   $Id: md.c 8243 2007-07-31 08:57:54Z michi $
+   $Id: md.c 8251 2007-08-01 15:26:59Z pm $
 
 */
 
@@ -205,9 +205,13 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	stacktrace_remove_stackframeinfo(&sfi);
 
-	_mc->gregs[REG_ITMP2_XPC] = (ptrint) xpc;
-	_mc->gregs[REG_ITMP1_XPTR] = (ptrint) e;
-	_mc->psw.addr = (ptrint) asm_handle_exception;
+	if (e != NULL) {
+		_mc->gregs[REG_ITMP2_XPC] = (ptrint) xpc;
+		_mc->gregs[REG_ITMP1_XPTR] = (ptrint) e;
+		_mc->psw.addr = (ptrint) asm_handle_exception;
+	} else {
+		_mc->psw.addr = xpc;
+	}
 }
 
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
@@ -253,10 +257,13 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
 
 		stacktrace_remove_stackframeinfo(&sfi);
 
-		_mc->gregs[REG_ITMP1_XPTR] = (ptrint)e;
-		_mc->gregs[REG_ITMP2_XPC] = (ptrint)xpc;
-		_mc->psw.addr = (ptrint) asm_handle_exception;
-
+		if (e != NULL) {
+			_mc->gregs[REG_ITMP1_XPTR] = (ptrint)e;
+			_mc->gregs[REG_ITMP2_XPC] = (ptrint)xpc;
+			_mc->psw.addr = (ptrint) asm_handle_exception;
+		} else {
+			_mc->psw.addr = xpc;
+		}
 	} else {
 #if !defined(NDEBUG)
 		md_dump_context(xpc, _mc);

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 8240 2007-07-29 20:36:47Z pm $
+   $Id: codegen.h 8251 2007-08-01 15:26:59Z pm $
 
 */
 
@@ -54,28 +54,9 @@
 
 /* some patcher defines *******************************************************/
 
-#define PATCHER_CALL_SIZE    4          /* size in bytes of a patcher call    */
-
-#define PATCHER_NOPS \
-    do { \
-		/* do not generate additonal nops for long patcher branches */ \
-		if (! CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) { \
-        	M_NOP; \
-			M_NOP; \
-			M_NOP; \
-		} \
-    } while (0)
-
-#define PATCHER_LONGBRANCHES_NOPS \
-	do { \
-		M_BR(SZ_BRC + (10 * 2)); \
-		M_NOP2; M_NOP2; M_NOP2; M_NOP2; M_NOP2; M_NOP2; M_NOP2; M_NOP2; /* ild */ \
-		M_NOP2; /* aadd */ \
-		M_NOP2; /* jmp */ \
-	} while (0)
-
-#define PATCHER_NOPS_SKIP   12 
-#define PATCHER_LONGBRANCHES_NOPS_SKIP 24
+#define PATCHER_CALL_SIZE    2          /* size in bytes of a patcher call    */
+#define PATCHER_NOPS M_NOP3
+#define PATCHER_NOPS_SKIP   2
 
 /* branch defines ************************************************************/
 
@@ -692,6 +673,7 @@
 #define M_JMP(rs, rd) _IF(rs == RN, N_BCR(DD_ANY, rd), N_BASR(rs, rd))
 #define M_NOP N_BC(0, 0, RN, RN)
 #define M_NOP2 N_BCR(0, RN)
+#define M_NOP3 N_BCR(0, 1)
 #define M_JSR(reg_ret, reg_addr) N_BASR(reg_ret, reg_addr)
 #define M_ICMP(a, b) N_CR(a, b)
 #define M_ICMPU(a, b) N_CLR(a, b)
