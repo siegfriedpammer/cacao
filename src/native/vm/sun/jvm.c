@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8249 2007-07-31 12:59:03Z panzi $
+   $Id: jvm.c 8253 2007-08-02 14:46:00Z twisti $
 
 */
 
@@ -2858,6 +2858,15 @@ void* JVM_RegisterSignal(jint sig, void* handler)
 {
 	log_println("JVM_RegisterSignal: sig=%d, handler=%p, IMPLEMENT ME!", sig, handler);
 	return NULL;
+}
+
+
+/* OS: JVM_RaiseSignal */
+
+jboolean JVM_RaiseSignal(jint sig)
+{
+	log_println("JVM_RaiseSignal: sig=%s", sig);
+	return false;
 }
 
 
