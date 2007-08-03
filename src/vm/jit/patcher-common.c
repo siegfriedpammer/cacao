@@ -62,13 +62,13 @@ void patcher_list_create(codeinfo *code)
 }
 
 
-/* patcher_list_free ***********************************************************
+/* patcher_list_reset **********************************************************
 
    TODO
 
 *******************************************************************************/
 
-void patcher_list_free(codeinfo *code)
+void patcher_list_reset(codeinfo *code)
 {
 	patchref_t *pr;
 
@@ -84,6 +84,21 @@ void patcher_list_free(codeinfo *code)
 			size_patchref -= sizeof(patchref_t);
 #endif
 	}
+}
+
+/* patcher_list_free ***********************************************************
+
+   TODO
+
+*******************************************************************************/
+
+void patcher_list_free(codeinfo *code)
+{
+	patchref_t *pr;
+
+	/* free all elements of the list */
+
+	patcher_list_reset(code);
 
 	/* free the list itself */
 
@@ -136,6 +151,11 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
 	cd       = jd->cd;
     code     = jd->code;
     patchmpc = cd->mcodeptr - cd->mcodebase;
+
+#if !defined(NDEBUG)
+	if (patcher_list_find(code, (u1 *) patchmpc) != NULL)
+		vm_abort("patcher_add_patch_ref: different patchers at same position.");
+#endif
 
     /* allocate patchref on heap (at least freed together with codeinfo) */
 

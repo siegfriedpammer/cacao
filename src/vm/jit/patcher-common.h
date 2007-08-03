@@ -67,6 +67,7 @@ typedef struct patchref_t {
 /* function prototypes ********************************************************/
 
 void patcher_list_create(codeinfo *code);
+void patcher_list_reset(codeinfo *code);
 void patcher_list_free(codeinfo *code);
 
 void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,

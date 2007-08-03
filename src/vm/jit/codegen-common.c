@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 8215 2007-07-18 20:31:21Z michi $
+   $Id: codegen-common.c 8255 2007-08-03 19:06:37Z michi $
 
 */
 
@@ -263,6 +263,11 @@ static void codegen_reset(jitdata *jd)
 		bptr->mpc        = -1;
 		bptr->branchrefs = NULL;
 	}
+
+	/* We need to clear all the patcher references from the codeinfo
+	   since they all will be regenerated */
+
+	patcher_list_reset(code);
 
 #if defined(ENABLE_REPLACEMENT)
 	code->rplpoints     = NULL;
