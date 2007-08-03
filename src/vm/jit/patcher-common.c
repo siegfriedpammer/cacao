@@ -198,7 +198,7 @@ java_objectheader *patcher_handler(u1 *pc)
 
 	if (pr->done) {
 		log_println("patcher_handler: double-patching detected!");
-		LOCK_MONITOR_ENTER(code->patchers);
+		LOCK_MONITOR_EXIT(code->patchers);
 		return NULL;
 	}
 
