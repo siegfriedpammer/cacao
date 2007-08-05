@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "codegen.h"                   /* for PATCHER_NOPS */
 
@@ -94,8 +95,6 @@ void patcher_list_reset(codeinfo *code)
 
 void patcher_list_free(codeinfo *code)
 {
-	patchref_t *pr;
-
 	/* free all elements of the list */
 
 	patcher_list_reset(code);
@@ -153,7 +152,7 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
     patchmpc = cd->mcodeptr - cd->mcodebase;
 
 #if !defined(NDEBUG)
-	if (patcher_list_find(code, (u1 *) patchmpc) != NULL)
+	if (patcher_list_find(code, (u1 *) (intptr_t) patchmpc) != NULL)
 		vm_abort("patcher_add_patch_ref: different patchers at same position.");
 #endif
 
