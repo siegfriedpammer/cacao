@@ -1026,15 +1026,15 @@ static void replace_write_value(executionstate_t *es,
 }
 
 
-/* replace_read_executionstate *************************************************
+/* replace_new_sourceframe *****************************************************
 
-   Read the given executions state and translate it to a source frame.
+   Allocate a new source frame and insert it at the front of the frame list.
    
    IN:
 	   ss...............the source state
 
    OUT:
-	   ss->frames.......set to new frame
+	   ss->frames.......set to new frame (the new head of the frame list).
 
    RETURN VALUE:
        returns the new frame
