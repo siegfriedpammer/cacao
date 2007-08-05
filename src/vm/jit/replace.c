@@ -1057,15 +1057,20 @@ static sourceframe_t *replace_new_sourceframe(sourcestate_t *ss)
 
 /* replace_read_executionstate *************************************************
 
-   Read the given executions state and translate it to a source frame.
+   Read a source frame from the given executions state.
+   The new source frame is pushed to the front of the frame list of the
+   source state.
 
    IN:
        rp...............replacement point at which `es` was taken
 	   es...............execution state
-	   ss...............where to put the source state
+	   ss...............the source state to add the source frame to
+	   topframe.........true, if the first (top-most) source frame on the
+	                    stack is to be read
 
    OUT:
-       *ss..............the source state derived from the execution state
+       *ss..............the source state with the newly created source frame
+	                    added
   
 *******************************************************************************/
 
@@ -1288,13 +1293,16 @@ static void replace_read_executionstate(rplpoint *rp,
 
 /* replace_write_executionstate ************************************************
 
-   Translate the given source state into an execution state.
-   
+   Pop a source frame from the front of the frame list of the given source state
+   and write its values into the execution state.
+
    IN:
        rp...............replacement point for which execution state should be
-	                    creates
-	   es...............where to put the execution state
+	                    created
+	   es...............the execution state to modify
 	   ss...............the given source state
+	   topframe.........true, if this is the last (top-most) source frame to be
+	                    translated
 
    OUT:
        *es..............the execution state derived from the source state
