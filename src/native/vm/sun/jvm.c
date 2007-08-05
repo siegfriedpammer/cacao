@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8253 2007-08-02 14:46:00Z twisti $
+   $Id: jvm.c 8256 2007-08-05 10:58:21Z twisti $
 
 */
 
@@ -1818,15 +1818,11 @@ jint JVM_Write(jint fd, char *buf, jint nbytes)
 
 jint JVM_Available(jint fd, jlong *pbytes)
 {
+	TRACEJVMCALLS("JVM_Available(fd=%d, pbytes=%p)", fd, pbytes);
+
 #if defined(FIONREAD)
-	ssize_t n;
-
-	*pbytes = 0;
-
-	if (ioctl(fd, FIONREAD, (char *) &n) != 0)
+	if (ioctl(fd, FIONREAD, pbytes) < 0)
 		return 0;
-
-	*pbytes = n;
 
 	return 1;
 #elif defined(HAVE_FSTAT)
