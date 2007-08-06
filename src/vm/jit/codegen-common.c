@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 8255 2007-08-03 19:06:37Z michi $
+   $Id: codegen-common.c 8261 2007-08-06 12:42:31Z michi $
 
 */
 
@@ -550,14 +550,6 @@ void codegen_add_patch_ref(codegendata *cd, functionptr patcher, voidptr ref,
 
 	if (opt_shownops)
 		PATCHER_NOPS;
-
-	/* If the codegen provides a PACHER_LONGBRANCHES_NOPS macro, honour it. */
-
-#if defined(PATCHER_LONGBRANCHES_NOPS)
-	if (CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
-		PATCHER_LONGBRANCHES_NOPS;
-	}
-#endif
 
 #if defined(ENABLE_JIT) && (defined(__I386__) || defined(__M68K__) || defined(__MIPS__) \
  || defined(__SPARC_64__) || defined(__X86_64__))
