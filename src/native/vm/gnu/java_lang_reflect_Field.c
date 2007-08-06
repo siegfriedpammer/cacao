@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Field.c 8132 2007-06-22 11:15:47Z twisti $
+   $Id: java_lang_reflect_Field.c 8262 2007-08-06 12:44:01Z panzi $
 
 */
 
@@ -48,6 +48,11 @@
 #include "native/include/java_lang_String.h"
 
 #include "native/include/java_lang_reflect_Field.h"
+
+#if defined(ENABLE_ANNOTATIONS)
+#include "native/include/sun_reflect_ConstantPool.h"
+#include "native/vm/reflect.h"
+#endif
 
 #include "vm/access.h"
 #include "vm/builtin.h"
@@ -88,6 +93,9 @@ static JNINativeMethod methods[] = {
 	{ "setFloat",             "(Ljava/lang/Object;F)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setFloat             },
 	{ "setDouble",            "(Ljava/lang/Object;D)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setDouble            },
 	{ "getSignature",         "()Ljava/lang/String;",                    (void *) (intptr_t) &Java_java_lang_reflect_Field_getSignature         },
+#if defined(ENABLE_ANNOTATIONS)
+	{ "declaredAnnotations",  "()Ljava/util/Map;",                       (void *) (intptr_t) &Java_java_lang_reflect_Field_declaredAnnotations  },
+#endif
 };
 
 
@@ -1261,6 +1269,26 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Field_getSignature(JN
 
 	return (java_lang_String *) o;
 }
+
+
+#if defined(ENABLE_ANNOTATIONS)
+/*
+ * Class:     java/lang/reflect/Field
+ * Method:    declaredAnnotations
+ * Signature: ()Ljava/util/Map;
+ */
+JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Field_declaredAnnotations(JNIEnv *env, struct java_lang_reflect_Field* this)
+{
+	java_objectheader *o = (java_objectheader*)this;
+
+	if (this == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	return reflect_get_declaredannotatios(&(this->declaredAnnotations), this->annotations, this->clazz, o->vftbl->class);
+}
+#endif
 
 
 /*

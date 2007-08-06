@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8249 2007-07-31 12:59:03Z panzi $
+   $Id: java_lang_Class.c 8262 2007-08-06 12:44:01Z panzi $
 
 */
 
@@ -715,12 +715,13 @@ void _Jv_java_lang_Class_throwException(java_lang_Throwable *t)
  */
 java_objectarray *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* klass)
 {
-	classinfo *c = (classinfo*)klass;
-	methodinfo *m = NULL;
-	utf *utf_parseAnnotationsIntoArray = NULL;
-	utf *utf_desc = NULL;
-	java_bytearray *annotations = NULL;
+	classinfo                *c            = (classinfo*)klass;
+	static methodinfo        *m_parseAnnotationsIntoArray   = NULL;
+	utf                      *utf_parseAnnotationsIntoArray = NULL;
+	utf                      *utf_desc     = NULL;
+	java_bytearray           *annotations  = NULL;
 	sun_reflect_ConstantPool *constantPool = NULL;
+	uint32_t                  size         = 0;
 
 	if (c == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -733,11 +734,10 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* kl
 	}
 
 	if (c->annotations != NULL) {
-		uint32_t size = c->annotations->size;
+		size        = c->annotations->size;
 		annotations = builtin_newarray_byte(size);
 
-		if(annotations != NULL)
-		{
+		if(annotations != NULL) {
 			MCOPY(annotations->data, c->annotations->data, uint8_t, size);
 		}
 	}
@@ -753,28 +753,34 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* kl
 
 	constantPool->constantPoolOop = (java_lang_Object*)klass;
 
-	utf_parseAnnotationsIntoArray = utf_new_char("parseAnnotationsIntoArray");
-	utf_desc = utf_new_char(
-		"([BLsun/reflect/ConstantPool;Ljava/lang/Class;)[Ljava/lang/annotation/Annotation;");
+	/* only resolve the method the first time */
+	if (m_parseAnnotationsIntoArray == NULL) {
+		utf_parseAnnotationsIntoArray = utf_new_char("parseAnnotationsIntoArray");
+		utf_desc = utf_new_char(
+			"([BLsun/reflect/ConstantPool;Ljava/lang/Class;)"
+			"[Ljava/lang/annotation/Annotation;");
 
-	if (utf_parseAnnotationsIntoArray == NULL || utf_desc == NULL) {
-		/* out of memory */
-		return NULL;
+		if (utf_parseAnnotationsIntoArray == NULL || utf_desc == NULL) {
+			/* out of memory */
+			return NULL;
+		}
+
+		m_parseAnnotationsIntoArray = class_resolveclassmethod(
+			class_sun_reflect_annotation_AnnotationParser,
+			utf_parseAnnotationsIntoArray,
+			utf_desc,
+			class_java_lang_Class,
+			true);
+
+		if (m_parseAnnotationsIntoArray == NULL) {
+			/* method not found */
+			return NULL;
+		}
 	}
 
-	m = class_resolveclassmethod(
-		class_sun_reflect_annotation_AnnotationParser,
-		utf_parseAnnotationsIntoArray,
-		utf_desc,
-		class_java_lang_Class,
-		true);
-
-	if (m == NULL) {
-		/* method not found */
-		return NULL;
-	}
-
-	return vm_call_method(m, NULL, annotations, constantPool, klass);
+	return vm_call_method(
+		m_parseAnnotationsIntoArray, NULL,
+		annotations, constantPool, klass);
 }
 #endif
 

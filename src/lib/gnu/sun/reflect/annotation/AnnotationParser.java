@@ -32,16 +32,8 @@ import java.nio.BufferUnderflowException;
 import java.lang.reflect.*;
 import sun.reflect.ConstantPool;
 
-import sun.reflect.generics.parser.SignatureFormatError;
-import sun.reflect.generics.parser.SignatureParser;
+import gnu.java.lang.reflect.FieldSignatureParser;
 
-/*
-import sun.reflect.generics.tree.TypeSignature;
-import sun.reflect.generics.factory.GenericsFactory;
-import sun.reflect.generics.factory.CoreReflectionFactory;
-import sun.reflect.generics.visitor.Reifier;
-import sun.reflect.generics.scope.ClassScope;
-*/
 
 /**
  * Parser for Java programming language annotations.  Translates
@@ -51,6 +43,78 @@ import sun.reflect.generics.scope.ClassScope;
  * @since   1.5
  */
 public class AnnotationParser {
+    /**
+     * Parses the annotations described by the passed byte array.
+     * But return Annotation[] so I don't have to do this in C.
+     *
+     * @author Mathias Panzenböck
+     * 
+     * @throws AnnotationFormatError if an annotation is found to be
+     *         malformed.
+     */
+    public static Annotation[] parseAnnotationsIntoArray(
+                byte[] rawAnnotations,
+                ConstantPool constPool,
+                Class container) {
+        Map<Class, Annotation> annotations = parseAnnotations(rawAnnotations, constPool, container);
+        return annotations.values().toArray(EMPTY_ANNOTATIONS_ARRAY);
+    }
+
+    /**
+     * Parses parameter annotations.
+     * 
+     * @author Mathias Panzenböck
+     * 
+     * @throws AnnotationFormatError if an annotation is found to be
+     *         malformed.
+     */
+    public static Annotation[][] parseParameterAnnotations(
+                    byte[] parameterAnnotations,
+                    ConstantPool constPool,
+		    Class container,
+		    int numParameters) {
+        if (parameterAnnotations == null)
+            return new Annotation[numParameters][0];
+
+        Annotation[][] result = parseParameterAnnotations(
+            parameterAnnotations, constPool, container); 
+
+        if (result.length != numParameters)
+            throw new AnnotationFormatError(
+                "Parameter annotations don't match number of parameters (count was " +
+		result.length + " but should be " + numParameters + ").");
+        return result;
+    }
+
+    /**
+     * Parses the annotation default value of the supplied method.
+     * This method is basically copied from OpenJDKs
+     * java.lang.reflect.Method.getAnnotationDefault()
+     * 
+     * @author Mathias Panzenböck
+     *
+     * @throws AnnotationFormatError if an annotation is found to be
+     *         malformed.
+     */
+    public static Object parseAnnotationDefault(Method method,
+                                                byte[] annotationDefault,
+                                                ConstantPool constPool) {
+        if  (annotationDefault == null)
+            return null;
+        
+	Class memberType = AnnotationType.invocationHandlerReturnType(
+            method.getReturnType());
+        
+	Object result = AnnotationParser.parseMemberValue(
+            memberType, ByteBuffer.wrap(annotationDefault),
+            constPool, method.getDeclaringClass());
+
+        if (result instanceof sun.reflect.annotation.ExceptionProxy)
+            throw new AnnotationFormatError("Invalid default: " + method);
+        
+	return result;
+    }
+
     /**
      * Parses the annotations described by the specified byte array.
      * resolving constant references in the specified constant pool.
@@ -79,27 +143,6 @@ public class AnnotationParser {
             throw new AnnotationFormatError(e);
         }
     }
-	
-	/**
-	 * Parses the annotations described by the specified byte array.
-	 * But return Annotation[] so I don't have to do this in C.
-	 * @author Mathias Panzenböck
-	 */
-    public static Annotation[] parseAnnotationsIntoArray(
-                byte[] rawAnnotations,
-                ConstantPool constPool,
-                Class container) {
-		Map<Class, Annotation> annotations = parseAnnotations(rawAnnotations, constPool, container);
-		Annotation[] result = new Annotation[annotations.size()];
-		int i = 0;
-
-		for (Annotation annotation : annotations.values()) {
-			result[i] = annotation;
-			++ i;
-		}
-
-		return result;
-	}
 
     private static Map<Class, Annotation> parseAnnotations2(
                 byte[] rawAnnotations,
@@ -284,29 +327,6 @@ public class AnnotationParser {
             new AnnotationInvocationHandler(type, memberValues));
     }
 
-	/**
-	 * Parses the annotation default value of the supplied method.
-	 * This method is basically copied from
-	 * java.lang.reflect.Method.getAnnotationDefault()
-	 * 
-	 * @author Mathias Panzenböck
-	 */
-    public static Object parseAnnotationDefault(Method method,
-	                                            byte[] annotationDefault,
-                                                ConstantPool constPool,
-                                                Class container) {
-        if  (annotationDefault == null)
-            return null;
-        Class memberType = AnnotationType.invocationHandlerReturnType(
-            method.getReturnType());
-        Object result = AnnotationParser.parseMemberValue(
-            memberType, ByteBuffer.wrap(annotationDefault),
-            constPool, container);
-        if (result instanceof sun.reflect.annotation.ExceptionProxy)
-            throw new AnnotationFormatError("Invalid default: " + method);
-        return result;
-	}
-
     /**
      * Parses the annotation member value at the current position in the
      * specified byte buffer, resolving constant references in the specified
@@ -427,39 +447,25 @@ public class AnnotationParser {
         }
     }
 
+    /**
+     * Parses a return type signature and returns the according Class object.
+     */
     private static Class<?> parseSig(String sig, Class container) {
-        try {
-            return new SignatureParser(sig, container.getClassLoader()).getType();
-        }
-        catch(SignatureFormatError e) {
-            throw new AnnotationFormatError(
-                "Invalid type siganture in annotation: " + sig, e);
-        }
-        catch(ClassNotFoundException e) {
-            throw new AnnotationFormatError(
-                "Class described by this type siganture was not found: " + sig, e);
-        }
+        if (sig.equals("V")) {
+            return void.class;
+	}
+	else {
+            return toClass(new FieldSignatureParser(container, sig).getFieldType());
+	}
     }
 
-	/*
-    private static Class<?> parseSig(String sig, Class container) {
-        if (sig.equals("V")) return void.class;
-        SignatureParser parser = SignatureParser.make();
-        TypeSignature typeSig = parser.parseTypeSig(sig);
-        GenericsFactory factory = CoreReflectionFactory.make(container, ClassScope.make(container));
-        Reifier reify = Reifier.make(factory);
-        typeSig.accept(reify);
-        Type result = reify.getResult();
-        return toClass(result);
-    }
-    static Class toClass(Type o) {
+    static Class<?> toClass(Type o) {
         if (o instanceof GenericArrayType)
             return Array.newInstance(toClass(((GenericArrayType)o).getGenericComponentType()),
                                      0)
                 .getClass();
-        return (Class)o;
+        return (Class<?>)o;
     }
-	*/
 
     /**
      * Parses the enum constant member value at the current position in the

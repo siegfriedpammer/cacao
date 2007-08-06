@@ -42,6 +42,10 @@ import gnu.java.lang.ClassHelper;
 
 import gnu.java.lang.reflect.FieldSignatureParser;
 
+import java.lang.annotation.Annotation;
+import java.util.Map;
+
+
 /**
  * The Field class represents a member variable of a class. It also allows
  * dynamic access to a member, via reflection. This works for both
@@ -81,12 +85,16 @@ extends AccessibleObject implements Member
   private Class clazz;
   private String name;
   private int slot;
-  private byte[] annotations;
+  private byte[] annotations = null;
+  private transient Map<Class, Annotation> declaredAnnotations = null;
 
   private static final int FIELD_MODIFIERS
     = Modifier.FINAL | Modifier.PRIVATE | Modifier.PROTECTED
       | Modifier.PUBLIC | Modifier.STATIC | Modifier.TRANSIENT
       | Modifier.VOLATILE;
+
+  private static final Annotation[] EMPTY_ANNOTATIONS_ARRAY =
+    new Annotation[0];
 
   /**
    * This class is uninstantiable except natively.
@@ -659,4 +667,24 @@ extends AccessibleObject implements Member
    * is no Signature attribute, return null.
    */
   private native String getSignature();
+
+  /**
+   * @throws NullPointerException {@inheritDoc}
+   * @since 1.5
+   */
+  public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
+    if (annotationClass == null)
+      throw new NullPointerException();
+
+    return (T)declaredAnnotations().get(annotationClass);
+  }
+
+  /**
+   * @since 1.5
+   */
+  public Annotation[] getDeclaredAnnotations()  {
+    return declaredAnnotations().values().toArray(EMPTY_ANNOTATIONS_ARRAY);
+  }
+
+  private synchronized native Map<Class, Annotation> declaredAnnotations();
 }

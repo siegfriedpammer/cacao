@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 8252 2007-08-01 22:47:17Z twisti $
+## $Id: Makefile.am 8262 2007-08-06 12:44:01Z panzi $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -40,6 +40,7 @@ VM_JAVA_FILES = \
 	$(top_srcdir)/src/lib/gnu/java/lang/VMString.java \
 	$(top_srcdir)/src/lib/gnu/java/lang/VMThread.java \
 	$(top_srcdir)/src/lib/gnu/java/lang/VMThrowable.java \
+	$(top_srcdir)/src/lib/gnu/java/lang/reflect/Constructor.java \
 	$(top_srcdir)/src/lib/gnu/java/lang/reflect/Field.java \
 	$(top_srcdir)/src/lib/gnu/java/lang/reflect/Method.java \
 	$(top_srcdir)/src/lib/gnu/java/security/VMAccessController.java \
@@ -54,6 +55,7 @@ VM_CLASS_FILES = \
 	classes/java/lang/VMString.class \
 	classes/java/lang/VMThread.class \
 	classes/java/lang/VMThrowable.class \
+	classes/java/lang/reflect/Constructor.class \
 	classes/java/lang/reflect/Field.class \
 	classes/java/lang/reflect/Method.class \
 	classes/java/security/VMAccessController.class \
@@ -65,8 +67,6 @@ VM_JAVA_FILES += \
 	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/TypeNotPresentExceptionProxy.java \
 	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationTypeMismatchExceptionProxy.java \
 	$(top_srcdir)/src/lib/gnu/sun/reflect/ConstantPool.java \
-	$(top_srcdir)/src/lib/gnu/sun/reflect/generics/parser/SignatureFormatError.java \
-	$(top_srcdir)/src/lib/gnu/sun/reflect/generics/parser/SignatureParser.java \
 	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationType.java \
 	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationParser.java
 
@@ -74,8 +74,6 @@ VM_CLASS_FILES += \
 	classes/sun/reflect/annotation/TypeNotPresentExceptionProxy.class \
 	classes/sun/reflect/annotation/AnnotationTypeMismatchExceptionProxy.class \
 	classes/sun/reflect/ConstantPool.class \
-	classes/sun/reflect/generics/parser/SignatureFormatError.class \
-	classes/sun/reflect/generics/parser/SignatureParser.class \
 	classes/sun/reflect/annotation/AnnotationType.class \
 	classes/sun/reflect/annotation/AnnotationParser.class
 endif

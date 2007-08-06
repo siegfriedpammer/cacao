@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: reflect.h 8172 2007-06-30 14:14:52Z twisti $
+   $Id: reflect.h 8262 2007-08-06 12:44:01Z panzi $
 
 */
 
@@ -64,6 +64,19 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m);
 java_lang_reflect_Field       *reflect_field_new(fieldinfo *f);
 java_lang_reflect_Method      *reflect_method_new(methodinfo *m);
 
+#if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
+struct java_util_Map* reflect_get_declaredannotatios(
+	struct java_util_Map **declaredAnnotations,
+	java_bytearray        *annotations,
+	java_lang_Class       *declaringClass,
+	classinfo             *referer);
+
+java_objectarray* reflect_get_parameterannotations(
+	java_objectheader *parameterAnnotations,
+	int32_t            slot,
+	java_lang_Class   *declaringClass,
+	classinfo         *referer);
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

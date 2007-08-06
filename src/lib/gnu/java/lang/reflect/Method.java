@@ -42,6 +42,8 @@ import gnu.java.lang.ClassHelper;
 
 import gnu.java.lang.reflect.MethodSignatureParser;
 
+import java.lang.annotation.Annotation;
+import java.util.Map;
 import java.util.Arrays;
 
 /**
@@ -83,14 +85,18 @@ extends AccessibleObject implements Member, GenericDeclaration
   Class clazz;
   String name;
   int slot;
-  private byte[] annotations;
-  private byte[] parameterAnnotations;
-  private byte[] annotationDefault;
+  private byte[] annotations          = null;
+  private byte[] parameterAnnotations = null;
+  private byte[] annotationDefault    = null;
+  private transient Map<Class, Annotation> declaredAnnotations = null;
 
   private static final int METHOD_MODIFIERS
     = Modifier.ABSTRACT | Modifier.FINAL | Modifier.NATIVE
       | Modifier.PRIVATE | Modifier.PROTECTED | Modifier.PUBLIC
       | Modifier.STATIC | Modifier.STRICT | Modifier.SYNCHRONIZED;
+
+  private static final Annotation[] EMPTY_ANNOTATIONS_ARRAY =
+    new Annotation[0];
 
   /**
    * This class is uninstantiable.
@@ -465,4 +471,42 @@ extends AccessibleObject implements Member, GenericDeclaration
    * @since 1.5
    */
   public native Object getDefaultValue();
+  
+  /**
+   * @throws NullPointerException {@inheritDoc}
+   * @since 1.5
+   */
+  public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
+    if (annotationClass == null)
+      throw new NullPointerException();
+
+    return (T)declaredAnnotations().get(annotationClass);
+  }
+
+  /**
+   * @since 1.5
+   */
+  public Annotation[] getDeclaredAnnotations()  {
+    return declaredAnnotations().values().toArray(EMPTY_ANNOTATIONS_ARRAY);
+  }
+
+  private synchronized native Map<Class, Annotation> declaredAnnotations();
+  
+  /**
+   * Returns an array of arrays that represent the annotations on the formal
+   * parameters, in declaration order, of the method represented by
+   * this <tt>Method</tt> object. (Returns an array of length zero if the
+   * underlying method is parameterless.  If the method has one or more
+   * parameters, a nested array of length zero is returned for each parameter
+   * with no annotations.) The annotation objects contained in the returned
+   * arrays are serializable.  The caller of this method is free to modify
+   * the returned arrays; it will have no effect on the arrays returned to
+   * other callers.
+   *
+   * @return an array of arrays that represent the annotations on the formal
+   *    parameters, in declaration order, of the method represented by this
+   *    Method object
+   * @since 1.5
+   */
+  public native Annotation[][] getParameterAnnotations();
 }

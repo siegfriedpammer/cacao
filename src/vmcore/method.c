@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.c 8249 2007-07-31 12:59:03Z panzi $
+   $Id: method.c 8262 2007-08-06 12:44:01Z panzi $
 
 */
 
@@ -579,6 +579,42 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m)
 }
 
 
+/* method_get_parametercount **************************************************
+
+   Use the descriptor of a method to determine the number of parameters
+   of the method. The this pointer of non-static methods is not counted.
+
+   Returns -1 on error.
+
+*******************************************************************************/
+
+int32_t method_get_parametercount(methodinfo *m)
+{
+	methoddesc *md;
+	int32_t     paramcount = 0;
+
+	md = m->parseddesc;
+	
+	/* is the descriptor fully parsed? */
+
+	if (m->parseddesc->params == NULL) {
+		if (!descriptor_params_from_paramtypes(md, m->flags)) {
+			return -1;
+		}
+	}
+
+	paramcount = md->paramcount;
+
+	/* skip `this' pointer */
+
+	if (!(m->flags & ACC_STATIC)) {
+		--paramcount;
+	}
+
+	return paramcount;
+}
+
+
 /* method_get_parametertypearray ***********************************************
 
    Use the descriptor of a method to generate a java.lang.Class array
@@ -592,9 +628,9 @@ java_objectarray *method_get_parametertypearray(methodinfo *m)
 {
 	methoddesc       *md;
 	typedesc         *paramtypes;
-	s4                paramcount;
-    java_objectarray *oa;
-	s4                i;
+	int32_t           paramcount;
+	java_objectarray *oa;
+	int32_t           i;
 	classinfo        *c;
 
 	md = m->parseddesc;

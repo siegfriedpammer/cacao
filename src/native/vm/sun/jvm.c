@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8256 2007-08-05 10:58:21Z twisti $
+   $Id: jvm.c 8262 2007-08-06 12:44:01Z panzi $
 
 */
 
@@ -967,7 +967,16 @@ jint JVM_GetClassModifiers(JNIEnv *env, jclass cls)
 
 jobjectArray JVM_GetDeclaredClasses(JNIEnv *env, jclass ofClass)
 {
-	log_println("JVM_GetDeclaredClasses: IMPLEMENT ME!");
+	java_lang_Class *c = (java_lang_Class*)ofClass;
+
+	TRACEJVMCALLS("JVM_GetDeclaredClasses: ofClass=%p", ofClass);
+
+	if(c == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	return (jobjectArray)_Jv_java_lang_Class_getDeclaredClasses(c, false);
 }
 
 
@@ -1049,7 +1058,7 @@ jbyteArray JVM_GetFieldAnnotations(JNIEnv *env, jobject field)
 		return NULL;
 	}
 
-	return rf->annotations;
+	return (jbyteArray)rf->annotations;
 }
 
 
@@ -1066,7 +1075,7 @@ jbyteArray JVM_GetMethodAnnotations(JNIEnv *env, jobject method)
 		return NULL;
 	}
 
-	return rm->annotations;
+	return (jbyteArray)rm->annotations;
 }
 
 
@@ -1083,7 +1092,7 @@ jbyteArray JVM_GetMethodDefaultAnnotationValue(JNIEnv *env, jobject method)
 		return NULL;
 	}
 
-	return rm->annotationDefault;
+	return (jbyteArray)rm->annotationDefault;
 }
 
 
@@ -1100,7 +1109,7 @@ jbyteArray JVM_GetMethodParameterAnnotations(JNIEnv *env, jobject method)
 		return NULL;
 	}
 
-	return rm->parameterAnnotations;
+	return (jbyteArray)rm->parameterAnnotations;
 }
 
 
