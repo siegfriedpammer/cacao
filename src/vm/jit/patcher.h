@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.h 8251 2007-08-01 15:26:59Z pm $
+   $Id: patcher.h 8264 2007-08-06 16:02:28Z twisti $
 
 */
 
@@ -41,7 +41,7 @@
 #include "vm/global.h"
 
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__POWERPC__) || defined(__S390__)
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__S390__)
 # error "you should no longer include this file"
 #else
 
