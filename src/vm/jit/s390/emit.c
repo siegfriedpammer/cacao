@@ -22,13 +22,14 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8251 2007-08-01 15:26:59Z pm $
+   $Id: emit.c 8260 2007-08-06 12:19:01Z michi $
 
 */
 
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "mm/memory.h"
 #if defined(ENABLE_THREADS)
@@ -205,45 +206,24 @@ void emit_copy(jitdata *jd, instruction *iptr)
 	}
 }
 
-/* emit_patcher_traps **********************************************************
+/* emit_trap *******************************************************************
 
-   Generates the code for the patcher traps.
+   Emit a trap instruction and return the original machine code.
 
 *******************************************************************************/
 
-void emit_patcher_traps(jitdata *jd)
+uint32_t emit_trap(codegendata *cd)
 {
-	codegendata *cd;
-	codeinfo    *code;
-	patchref_t  *pr;
-	u1          *savedmcodeptr;
-	u1          *tmpmcodeptr;
+	uint32_t mcode;
 
-	/* get required compiler data */
+	/* Get machine code which is patched back in later. The
+	   trap is 2 bytes long. */
 
-	cd =   jd->cd;
-	code = jd->code;
+	mcode = *((u2 *) cd->mcodeptr);
 
-	/* generate patcher traps code */
+	M_ILL(EXCEPTION_HARDWARE_PATCHER);
 
-	for (pr = list_first_unsynced(code->patchers); pr != NULL; pr = list_next_unsynced(code->patchers, pr)) {
-
-		/* Get machine code which is patched back in later. The
-		   trap is 2 bytes long. */
-
-		tmpmcodeptr = (u1 *) (cd->mcodebase + pr->mpc);
-		pr->mcode = *((u2 *) tmpmcodeptr);
-
-		/* Patch in the trap to call the signal handler (done at
-		   compile time). */
-
-		savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr              */
-		cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position     */
-
-		M_ILL(EXCEPTION_HARDWARE_PATCHER);
-
-		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr       */
-	}
+	return mcode;
 }
 
 /* emit_replacement_stubs ******************************************************

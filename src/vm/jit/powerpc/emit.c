@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8216 2007-07-19 13:51:21Z michi $
+   $Id: emit.c 8260 2007-08-06 12:19:01Z michi $
 
 */
 
@@ -51,7 +51,6 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
 
 #include "vmcore/options.h"
@@ -507,46 +506,24 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 }
 
 
-/* emit_patcher_traps **********************************************************
+/* emit_trap *******************************************************************
 
-   Generates the code for the patcher stubs.
+   Emit a trap instruction and return the original machine code.
 
 *******************************************************************************/
 
-void emit_patcher_traps(jitdata *jd)
+uint32_t emit_trap(codegendata *cd)
 {
-	codegendata *cd;
-	codeinfo    *code;
-	patchref_t  *pr;
-	u1          *savedmcodeptr;
-	u1          *tmpmcodeptr;
+	uint32_t mcode;
 
-	/* get required compiler data */
+	/* Get machine code which is patched back in later. The
+	   trap is 1 instruction word long. */
 
-	cd   = jd->cd;
-	code = jd->code;
+	mcode = *((u4 *) cd->mcodeptr);
 
-	/* generate code patching stub call code */
+	M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_PATCHER);
 
-	for (pr = list_first_unsynced(code->patchers); pr != NULL; pr = list_next_unsynced(code->patchers, pr)) {
-
-		/* Get machine code which is patched back in later. The
-		   trap is 1 instruction word long. */
-
-		tmpmcodeptr = (u1 *) (cd->mcodebase + pr->mpc);
-
-		pr->mcode = *((u4 *) tmpmcodeptr);
-
-		/* Patch in the trap to call the signal handler (done at
-		   compile time). */
-
-		savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
-		cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
-
-		M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_PATCHER);
-
-		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
-	}
+	return mcode;
 }
 
 
