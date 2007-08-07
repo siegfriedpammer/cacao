@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8211 2007-07-18 19:52:23Z michi $
+   $Id: codegen.c 8268 2007-08-07 13:24:43Z twisti $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include "vm/types.h"
@@ -2198,7 +2199,7 @@ bool codegen_emit(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = (ptrint) &(fi->value);
+				disp      = (intptr_t) fi->value;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
@@ -2239,7 +2240,7 @@ bool codegen_emit(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = (ptrint) &(fi->value);
+				disp      = (intptr_t) fi->value;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
@@ -2281,7 +2282,7 @@ bool codegen_emit(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = (ptrint) &(fi->value);
+				disp      = (intptr_t) fi->value;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
@@ -2308,21 +2309,17 @@ bool codegen_emit(jitdata *jd)
 			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 
 				codegen_addpatchref(cd, PATCHER_getfield,
 									iptr->sx.s23.s3.uf, 0);
-
-				disp = 0;
-
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-				
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = fi->offset;
+				disp      = fi->offset;
 			}
 
 			switch (fieldtype) {
@@ -2355,13 +2352,11 @@ bool codegen_emit(jitdata *jd)
 			/* must be done here because of code patching */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 			}
 
@@ -2375,16 +2370,15 @@ bool codegen_emit(jitdata *jd)
 				s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
-				codegen_addpatchref(cd, PATCHER_putfield, uf, 0);
-
+				/* XXX */
+				uf   = iptr->sx.s23.s3.uf;
 				disp = 0;
 
+				codegen_addpatchref(cd, PATCHER_putfield, uf, 0);
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				/* XXX */
+				fi   = iptr->sx.s23.s3.fmiref->p.field;
 				disp = fi->offset;
 			}
 
@@ -2413,24 +2407,18 @@ bool codegen_emit(jitdata *jd)
 			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 
 				codegen_addpatchref(cd, PATCHER_putfieldconst,
 									uf, 0);
-
-				disp = 0;
-
 			}
-			else
-			{
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+			else {
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = fi->offset;
+				disp      = fi->offset;
 			}
-
 
 			switch (fieldtype) {
 			case TYPE_INT:

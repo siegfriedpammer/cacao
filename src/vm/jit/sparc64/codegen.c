@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include "vm/types.h"
@@ -1609,16 +1610,16 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				uf = iptr->sx.s23.s3.uf;
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
 			} 
 			else {
-				fi = iptr->sx.s23.s3.fmiref->p.field;
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
@@ -1654,16 +1655,16 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				uf = iptr->sx.s23.s3.uf;
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
 			} 
 			else {
-				fi = iptr->sx.s23.s3.fmiref->p.field;
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
@@ -1702,14 +1703,14 @@ bool codegen_emit(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp = dseg_add_unique_address(cd, uf);
+				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
 			} 
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);

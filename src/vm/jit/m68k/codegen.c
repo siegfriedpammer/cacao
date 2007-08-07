@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "md-abi.h"
 #include "md-os.h"
@@ -1115,21 +1116,27 @@ bool codegen_emit(jitdata *jd)
 
 
 		/* MEMORY *************************************************************/
-		case ICMD_GETSTATIC:
-			if (INSTRUCTION_IS_UNRESOLVED(iptr))	{
+
+		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
+
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
+
 				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, 0);
-			} else	{
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
-				fieldtype = fi->type;
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))	{
-					codegen_addpatchref(cd, PATCHER_initialize_class, fi->class, 0);
-				}
-
-				disp = (ptrint) &(fi->value);
 			}
+			else {
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
+				fieldtype = fi->type;
+				disp      = (intptr_t) fi->value;
+
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))	{
+					codegen_addpatchref(cd, PATCHER_initialize_class, fi->class,
+										0);
+				}
+			}
+
 			M_AMOV_IMM(disp, REG_ATMP1);
 			switch (fieldtype) {
 #if defined(ENABLE_SOFTFLOAT)
@@ -1169,15 +1176,18 @@ bool codegen_emit(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 
 				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, 0);
-			} else {
+			}
+			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = &(fi->value);
+				disp      = (intptr_t) fi->value;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					codegen_addpatchref(cd, PATCHER_initialize_class, fi->class, 0);
+					codegen_addpatchref(cd, PATCHER_initialize_class, fi->class,
+										0);
   			}
 		
 			M_AMOV_IMM(disp, REG_ATMP1);

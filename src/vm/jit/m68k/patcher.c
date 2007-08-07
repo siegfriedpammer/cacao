@@ -29,6 +29,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -348,7 +349,7 @@ bool patcher_get_putstatic(u1 *sp)
 	/* patch the field value's address */
 	if (opt_shownops) disp += PATCHER_CALL_SIZE;
 	assert(*((uint16_t*)(disp)) == 0x247c);
-	*((ptrint *) (disp+2)) = (ptrint) &(fi->value);
+	*((intptr_t *) (disp+2)) = (intptr_t) fi->value;
 
 	/* synchronize inst cache */
 	md_icacheflush(disp+2, SIZEOF_VOID_P);

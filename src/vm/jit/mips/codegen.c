@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8264 2007-08-06 16:02:28Z twisti $
+   $Id: codegen.c 8268 2007-08-07 13:24:43Z twisti $
 
 */
 
@@ -1993,7 +1993,7 @@ bool codegen_emit(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
@@ -2043,7 +2043,7 @@ bool codegen_emit(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
@@ -2081,8 +2081,6 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_PUTSTATICCONST: /* ...  ==> ...                             */
-		                          /* val = value (in current instruction)     */
-		                          /* following NOP)                           */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
@@ -2094,7 +2092,7 @@ bool codegen_emit(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
@@ -2231,15 +2229,14 @@ bool codegen_emit(jitdata *jd)
 			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = 0;
 
 				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = fi->offset;
 			}

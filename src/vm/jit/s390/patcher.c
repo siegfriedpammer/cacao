@@ -28,7 +28,7 @@
 
    Changes: Peter Molnar
 
-   $Id: patcher.c 8251 2007-08-01 15:26:59Z pm $
+   $Id: patcher.c 8268 2007-08-07 13:24:43Z twisti $
 
 */
 
@@ -36,6 +36,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "mm/memory.h"
 #include "native/native.h"
@@ -92,7 +93,7 @@ bool patcher_get_putstatic(patchref_t *pr)
 
 	/* patch the field value's address */
 
-	*((ptrint *) datap) = (ptrint) &(fi->value);
+	*((intptr_t *) datap) = (intptr_t) fi->value;
 
 	return true;
 }

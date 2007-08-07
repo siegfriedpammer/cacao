@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 8249 2007-07-31 12:59:03Z panzi $
+   $Id: loader.c 8268 2007-08-07 13:24:43Z twisti $
 
 */
 
@@ -1421,16 +1421,14 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	RT_TIMING_GET_TIME(time_setup);
 
 	/* load fields */
+
 	if (!suck_check_classbuffer_size(cb, 2))
 		goto return_exception;
 
 	c->fieldscount = suck_u2(cb);
-#if defined(ENABLE_GC_CACAO)
-  	c->fields = MNEW(fieldinfo, c->fieldscount);
+  	c->fields      = MNEW(fieldinfo, c->fieldscount);
+
 	MZERO(c->fields, fieldinfo, c->fieldscount);
-#else
-	c->fields = GCNEW_UNCOLLECTABLE(fieldinfo, c->fieldscount);
-#endif
 
 	for (i = 0; i < c->fieldscount; i++) {
 		if (!field_load(cb, &(c->fields[i]), descpool))
@@ -1440,11 +1438,12 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	RT_TIMING_GET_TIME(time_fields);
 
 	/* load methods */
+
 	if (!suck_check_classbuffer_size(cb, 2))
 		goto return_exception;
 
 	c->methodscount = suck_u2(cb);
-	c->methods = MNEW(methodinfo, c->methodscount);
+	c->methods      = MNEW(methodinfo, c->methodscount);
 
 	MZERO(c->methods, methodinfo, c->methodscount);
 	

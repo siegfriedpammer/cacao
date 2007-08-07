@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8221 2007-07-22 19:31:41Z twisti $
+   $Id: jni.c 8268 2007-08-07 13:24:43Z twisti $
 
 */
 
@@ -170,10 +170,10 @@ localref_table *_no_threads_localref_table;
 /* accessing instance fields macros *******************************************/
 
 #define SET_FIELD(o,type,f,value) \
-    *((type *) ((ptrint) (o) + (ptrint) ((fieldinfo *) (f))->offset)) = (type) (value)
+    *((type *) (((intptr_t) (o)) + ((intptr_t) ((fieldinfo *) (f))->offset))) = (type) (value)
 
 #define GET_FIELD(o,type,f) \
-    *((type *) ((ptrint) (o) + (ptrint) ((fieldinfo *) (f))->offset))
+    *((type *) (((intptr_t) (o)) + ((intptr_t) ((fieldinfo *) (f))->offset)))
 
 
 /* some forward declarations **************************************************/
@@ -3950,7 +3950,7 @@ jobject _Jv_JNI_GetStaticObjectField(JNIEnv *env, jclass clazz,
 		if (!initialize_class(c))
 			return NULL;
 
-	return _Jv_JNI_NewLocalRef(env, f->value.a);
+	return _Jv_JNI_NewLocalRef(env, f->value->a);
 }
 
 
@@ -3969,7 +3969,7 @@ jboolean _Jv_JNI_GetStaticBooleanField(JNIEnv *env, jclass clazz,
 		if (!initialize_class(c))
 			return false;
 
-	return f->value.i;
+	return f->value->i;
 }
 
 
@@ -3987,7 +3987,7 @@ jbyte _Jv_JNI_GetStaticByteField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 		if (!initialize_class(c))
 			return 0;
 
-	return f->value.i;
+	return f->value->i;
 }
 
 
@@ -4005,7 +4005,7 @@ jchar _Jv_JNI_GetStaticCharField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 		if (!initialize_class(c))
 			return 0;
 
-	return f->value.i;
+	return f->value->i;
 }
 
 
@@ -4023,7 +4023,7 @@ jshort _Jv_JNI_GetStaticShortField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 		if (!initialize_class(c))
 			return 0;
 
-	return f->value.i;
+	return f->value->i;
 }
 
 
@@ -4041,7 +4041,7 @@ jint _Jv_JNI_GetStaticIntField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 		if (!initialize_class(c))
 			return 0;
 
-	return f->value.i;
+	return f->value->i;
 }
 
 
@@ -4059,7 +4059,7 @@ jlong _Jv_JNI_GetStaticLongField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 		if (!initialize_class(c))
 			return 0;
 
-	return f->value.l;
+	return f->value->l;
 }
 
 
@@ -4077,7 +4077,7 @@ jfloat _Jv_JNI_GetStaticFloatField(JNIEnv *env, jclass clazz, jfieldID fieldID)
 		if (!initialize_class(c))
 			return 0.0;
 
- 	return f->value.f;
+ 	return f->value->f;
 }
 
 
@@ -4096,7 +4096,7 @@ jdouble _Jv_JNI_GetStaticDoubleField(JNIEnv *env, jclass clazz,
 		if (!initialize_class(c))
 			return 0.0;
 
-	return f->value.d;
+	return f->value->d;
 }
 
 
@@ -4122,7 +4122,7 @@ void _Jv_JNI_SetStaticObjectField(JNIEnv *env, jclass clazz, jfieldID fieldID,
 		if (!initialize_class(c))
 			return;
 
-	f->value.a = value;
+	f->value->a = value;
 }
 
 
@@ -4141,7 +4141,7 @@ void _Jv_JNI_SetStaticBooleanField(JNIEnv *env, jclass clazz, jfieldID fieldID,
 		if (!initialize_class(c))
 			return;
 
-	f->value.i = value;
+	f->value->i = value;
 }
 
 
@@ -4160,7 +4160,7 @@ void _Jv_JNI_SetStaticByteField(JNIEnv *env, jclass clazz, jfieldID fieldID,
 		if (!initialize_class(c))
 			return;
 
-	f->value.i = value;
+	f->value->i = value;
 }
 
 
@@ -4179,7 +4179,7 @@ void _Jv_JNI_SetStaticCharField(JNIEnv *env, jclass clazz, jfieldID fieldID,
 		if (!initialize_class(c))
 			return;
 
-	f->value.i = value;
+	f->value->i = value;
 }
 
 
@@ -4198,7 +4198,7 @@ void _Jv_JNI_SetStaticShortField(JNIEnv *env, jclass clazz, jfieldID fieldID,
 		if (!initialize_class(c))
 			return;
 
-	f->value.i = value;
+	f->value->i = value;
 }
 
 
@@ -4217,7 +4217,7 @@ void _Jv_JNI_SetStaticIntField(JNIEnv *env, jclass clazz, jfieldID fieldID,
 		if (!initialize_class(c))
 			return;
 
-	f->value.i = value;
+	f->value->i = value;
 }
 
 
@@ -4236,7 +4236,7 @@ void _Jv_JNI_SetStaticLongField(JNIEnv *env, jclass clazz, jfieldID fieldID,
 		if (!initialize_class(c))
 			return;
 
-	f->value.l = value;
+	f->value->l = value;
 }
 
 
@@ -4255,7 +4255,7 @@ void _Jv_JNI_SetStaticFloatField(JNIEnv *env, jclass clazz, jfieldID fieldID,
 		if (!initialize_class(c))
 			return;
 
-	f->value.f = value;
+	f->value->f = value;
 }
 
 
@@ -4274,7 +4274,7 @@ void _Jv_JNI_SetStaticDoubleField(JNIEnv *env, jclass clazz, jfieldID fieldID,
 		if (!initialize_class(c))
 			return;
 
-	f->value.d = value;
+	f->value->d = value;
 }
 
 

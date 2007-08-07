@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8211 2007-07-18 19:52:23Z michi $
+   $Id: codegen.c 8268 2007-08-07 13:24:43Z twisti $
 
 */
 
@@ -88,8 +88,6 @@ bool codegen_emit(jitdata *jd)
 	basicblock     *bptr;
 	instruction    *iptr;
 	exception_entry *ex;
-	s4              fieldtype;
-	s4              varindex;
 
 	s4              spilledregs_num;
 	s4              savedregs_num;
@@ -100,6 +98,10 @@ bool codegen_emit(jitdata *jd)
 	unresolved_method  *um;
 	builtintable_entry *bte;
 	methoddesc         *md;
+	fieldinfo          *fi;
+	unresolved_field   *uf;
+	int                 fieldtype;
+	int                 varindex;
 
 	/* get required compiler data */
 
@@ -1373,11 +1375,9 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-
-				disp = dseg_add_unique_address(cd, NULL);
+				disp      = dseg_add_unique_address(cd, NULL);
 
 				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
 
@@ -1385,9 +1385,9 @@ bool codegen_emit(jitdata *jd)
 					M_NOP;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
@@ -1396,8 +1396,6 @@ bool codegen_emit(jitdata *jd)
 					if (opt_showdisassemble)
 						M_NOP;
 				}
-
-				disp = dseg_add_address(cd, &(fi->value));
 			}
 
 			M_DSEG_LOAD(REG_ITMP3, disp);
@@ -1436,11 +1434,9 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-
-				disp = dseg_add_unique_address(cd, NULL);
+				disp      = dseg_add_unique_address(cd, NULL);
 
 				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
 
@@ -1448,9 +1444,9 @@ bool codegen_emit(jitdata *jd)
 					M_NOP;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
@@ -1459,8 +1455,6 @@ bool codegen_emit(jitdata *jd)
 					if (opt_showdisassemble)
 						M_NOP;
 				}
-
-				disp = dseg_add_address(cd, &(fi->value));
 			}
 
 			M_DSEG_LOAD(REG_ITMP3, disp);
@@ -1502,13 +1496,12 @@ bool codegen_emit(jitdata *jd)
 
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = fi->offset;
 			}
@@ -1520,14 +1513,13 @@ bool codegen_emit(jitdata *jd)
 #endif
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
+				/* XXX REMOVE ME */
+				uf = iptr->sx.s23.s3.uf;
 
 				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
-
-				disp = 0;
 			}
 
 			switch (fieldtype) {
@@ -1568,13 +1560,12 @@ bool codegen_emit(jitdata *jd)
 			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = fi->offset;
 			}
@@ -1610,14 +1601,13 @@ bool codegen_emit(jitdata *jd)
 			}
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
+				/* XXX REMOVE ME */
+				uf = iptr->sx.s23.s3.uf;
 
 				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
-
-				disp = 0;
 			}
 
 			switch (fieldtype) {

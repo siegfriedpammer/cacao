@@ -435,7 +435,7 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_staticFieldOffset(JNIEnv *env, su
 	c = (classinfo *) field->clazz;
 	f = &(c->fields[field->slot]);
 
-	return (int64_t) (intptr_t) &(f->value);
+	return (int64_t) (intptr_t) f->value;
 }
 
 

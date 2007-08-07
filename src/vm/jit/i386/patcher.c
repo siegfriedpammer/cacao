@@ -22,12 +22,15 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 8143 2007-06-26 15:47:43Z twisti $
+   $Id: patcher.c 8268 2007-08-07 13:24:43Z twisti $
 
 */
 
 
 #include "config.h"
+
+#include <stdint.h>
+
 #include "vm/types.h"
 
 #include "vm/jit/i386/codegen.h"
@@ -171,7 +174,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* patch the field value's address */
 
-	*((ptrint *) (ra + 1)) = (ptrint) &(fi->value);
+	*((intptr_t *) (ra + 1)) = (intptr_t) fi->value;
 
 	return true;
 }

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: field.c 8249 2007-07-31 12:59:03Z panzi $
+   $Id: field.c 8268 2007-08-07 13:24:43Z twisti $
 
 */
 
@@ -37,7 +37,10 @@
 
 #include "vm/types.h"
 
+#include "mm/memory.h"
+
 #include "vm/exceptions.h"
+#include "vm/global.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -66,21 +69,30 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 {
 	classinfo *c;
 	u4 attrnum, i;
-	u4 jtype;
 	u4 pindex = field_load_NOVALUE;     /* constantvalue_index */
 	utf *u;
 
+	/* Get class. */
+
 	c = cb->class;
+
+	f->class = c;
+
+	/* Get access flags. */
 
 	if (!suck_check_classbuffer_size(cb, 2 + 2 + 2))
 		return false;
 
 	f->flags = suck_u2(cb);
 
+	/* Get name. */
+
 	if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 		return false;
 
 	f->name = u;
+
+	/* Get descriptor. */
 
 	if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 		return false;
@@ -136,46 +148,79 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 
 	/* data type */
 
-	jtype = descriptor_to_basic_type(f->descriptor);
+	f->type = descriptor_to_basic_type(f->descriptor);
 
-	f->class  = c;
-	f->type   = jtype;
-	f->offset = 0;                             /* offset from start of object */
+	/* For static-fields allocate memory for the value and set the
+	   value to 0. */
 
-	switch (f->type) {
-	case TYPE_INT:
-		f->value.i = 0;
-		break;
+	if (f->flags & ACC_STATIC) {
+		switch (f->type) {
+		case TYPE_INT:
+		case TYPE_LNG:
+		case TYPE_FLT:
+		case TYPE_DBL:
+			f->value = NEW(imm_union);
+			break;
 
-	case TYPE_FLT:
-		f->value.f = 0.0;
-		break;
-
-	case TYPE_DBL:
-		f->value.d = 0.0;
-		break;
-
-	case TYPE_ADR:
-		f->value.a = NULL;
-		if (!(f->flags & ACC_STATIC))
-			c->flags |= ACC_CLASS_HAS_POINTERS;
-		break;
-
-	case TYPE_LNG:
-#if U8_AVAILABLE
-		f->value.l = 0;
+		case TYPE_ADR:
+#if defined(ENABLE_GC_CACAO)
+			f->value = NEW(imm_union);
 #else
-		f->value.l.low  = 0;
-		f->value.l.high = 0;
+			f->value = GCNEW_UNCOLLECTABLE(imm_union, 1);
 #endif
-		break;
+			break;
+
+		default:
+			vm_abort("field_load: invalid field type %d", f->type);
+		}
+
+		/* Set the field to zero, for float and double fields set the
+		   correct 0.0 value. */
+
+		switch (f->type) {
+		case TYPE_INT:
+		case TYPE_LNG:
+		case TYPE_ADR:
+			f->value->l = 0;
+			break;
+
+		case TYPE_FLT:
+			f->value->f = 0.0;
+			break;
+
+		case TYPE_DBL:
+			f->value->d = 0.0;
+			break;
+		}
+	}
+	else {
+		/* For instance-fields set the offset to 0. */
+
+		f->offset = 0;
+
+		/* For final fields, which are not static, we need a value
+		   structure. */
+
+		if (f->flags & ACC_FINAL) {
+			f->value = NEW(imm_union);
+			/* XXX hack */
+			f->value->l = 0;
+		}
+
+		switch (f->type) {
+		case TYPE_ADR:
+			c->flags |= ACC_CLASS_HAS_POINTERS;
+			break;
+		}
 	}
 
 	/* read attributes */
+
 	if (!suck_check_classbuffer_size(cb, 2))
 		return false;
 
 	attrnum = suck_u2(cb);
+
 	for (i = 0; i < attrnum; i++) {
 		if (!suck_check_classbuffer_size(cb, 2))
 			return false;
@@ -207,14 +252,14 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 		
 			/* initialize field with value from constantpool */		
 
-			switch (jtype) {
+			switch (f->type) {
 			case TYPE_INT: {
 				constant_integer *ci; 
 
 				if (!(ci = class_getconstant(c, pindex, CONSTANT_Integer)))
 					return false;
 
-				f->value.i = ci->value;
+				f->value->i = ci->value;
 			}
 			break;
 					
@@ -224,7 +269,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 				if (!(cl = class_getconstant(c, pindex, CONSTANT_Long)))
 					return false;
 
-				f->value.l = cl->value;
+				f->value->l = cl->value;
 			}
 			break;
 
@@ -234,7 +279,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 				if (!(cf = class_getconstant(c, pindex, CONSTANT_Float)))
 					return false;
 
-				f->value.f = cf->value;
+				f->value->f = cf->value;
 			}
 			break;
 											
@@ -244,7 +289,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 				if (!(cd = class_getconstant(c, pindex, CONSTANT_Double)))
 					return false;
 
-				f->value.d = cd->value;
+				f->value->d = cd->value;
 			}
 			break;
 						
@@ -252,12 +297,13 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 				if (!(u = class_getconstant(c, pindex, CONSTANT_String)))
 					return false;
 
-				/* create javastring from compressed utf8-string */
-				f->value.a = literalstring_new(u);
+				/* Create Java-string from compressed UTF8-string. */
+
+				f->value->a = literalstring_new(u);
 				break;
 	
 			default: 
-				vm_abort("field_load: invalid field type %d", jtype);
+				vm_abort("field_load: invalid field type %d", f->type);
 			}
 		}
 #if defined(ENABLE_JAVASE)

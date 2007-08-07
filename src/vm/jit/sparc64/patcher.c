@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -196,7 +197,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* patch the field value's address */
 
-	*((ptrint *) (pv + disp)) = (ptrint) &(fi->value);
+	*((intptr_t *) (pv + disp)) = (intptr_t) fi->value;
 
 	/* synchronize data cache */
 

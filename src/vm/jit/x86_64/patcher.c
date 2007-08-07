@@ -22,12 +22,15 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: patcher.c 8268 2007-08-07 13:24:43Z twisti $
 
 */
 
 
 #include "config.h"
+
+#include <stdint.h>
+
 #include "vm/types.h"
 
 #include "vm/jit/x86_64/codegen.h"
@@ -173,7 +176,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* patch the field value's address */
 
-	*((ptrint *) (ra + 7 + disp)) = (ptrint) &(fi->value);
+	*((intptr_t *) (ra + 7 + disp)) = (intptr_t) fi->value;
 
 	return true;
 }
@@ -226,9 +229,9 @@ bool patcher_get_putfield(u1 *sp)
 		byte = *(ra + 3);
 
 		if (byte == 0x24)
-			*((u4 *) (ra + 4)) = (u4) (fi->offset);
+			*((int32_t *) (ra + 4)) = fi->offset;
 		else
-			*((u4 *) (ra + 3)) = (u4) (fi->offset);
+			*((int32_t *) (ra + 3)) = fi->offset;
 	}
 	else {
 		/* check for special case: %rsp or %r12 as base register */
@@ -236,9 +239,9 @@ bool patcher_get_putfield(u1 *sp)
 		byte = *(ra + 5);
 
 		if (byte == 0x24)
-			*((u4 *) (ra + 6)) = (u4) (fi->offset);
+			*((int32_t *) (ra + 6)) = fi->offset;
 		else
-			*((u4 *) (ra + 5)) = (u4) (fi->offset);
+			*((int32_t *) (ra + 5)) = fi->offset;
 	}
 
 	return true;
@@ -287,21 +290,21 @@ bool patcher_putfieldconst(u1 *sp)
 		/* handle special case when the base register is %r12 */
 
 		if (*(ra + 2) == 0x84) {
-			*((u4 *) (ra + 4))      = (u4) (fi->offset);
-			*((u4 *) (ra + 12 + 4)) = (u4) (fi->offset + 4);
+			*((uint32_t *) (ra + 4))      = fi->offset;
+			*((uint32_t *) (ra + 12 + 4)) = fi->offset + 4;
 		}
 		else {
-			*((u4 *) (ra + 3))      = (u4) (fi->offset);
-			*((u4 *) (ra + 11 + 3)) = (u4) (fi->offset + 4);
+			*((uint32_t *) (ra + 3))      = fi->offset;
+			*((uint32_t *) (ra + 11 + 3)) = fi->offset + 4;
 		}
 	}
 	else {
 		/* handle special case when the base register is %r12 */
 
 		if (*(ra + 2) == 0x84)
-			*((u4 *) (ra + 4)) = (u4) (fi->offset);
+			*((uint32_t *) (ra + 4)) = fi->offset;
 		else
-			*((u4 *) (ra + 3)) = (u4) (fi->offset);
+			*((uint32_t *) (ra + 3)) = fi->offset;
 	}
 
 	return true;
