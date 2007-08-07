@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 8132 2007-06-22 11:15:47Z twisti $
+   $Id: threads-common.c 8266 2007-08-07 08:26:38Z twisti $
 
 */
 
@@ -94,7 +94,7 @@ bool threads_pthreads_implementation_nptl;
 void threads_preinit(void)
 {
 	threadobject *mainthread;
-#if defined(__LINUX__)
+#if defined(__LINUX__) && defined(_CS_GNU_LIBPTHREAD_VERSION)
 	char         *pathbuf;
 	size_t        len;
 #endif
