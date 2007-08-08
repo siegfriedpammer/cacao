@@ -52,11 +52,8 @@
  */
 void md_init(void) 
 {
-	assert(sizeof(vm_arg) == sizevmarg);
 	assert(OFFSET(vftbl_t, baseval) == offbaseval);
 	assert(OFFSET(vftbl_t, diffval) == offdiffval);
-	assert(OFFSET(vm_arg, type) == offvmargtype);
-	assert(OFFSET(vm_arg, data) == offvmargdata);
 	assert(OFFSET(castinfo, super_baseval) == offcast_super_baseval);
 	assert(OFFSET(castinfo, super_diffval) == offcast_super_diffval);
 	assert(OFFSET(castinfo, sub_baseval) == offcast_sub_baseval);

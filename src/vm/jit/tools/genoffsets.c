@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: genoffsets.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: genoffsets.c 8271 2007-08-08 14:07:56Z twisti $
 
 */
 
@@ -48,8 +48,6 @@ int main(int argc, char **argv)
 
     printf("/* define some sizeof()'s */\n\n");
 
-	printf("#define sizevmarg                  %3d\n", (s4) sizeof(vm_arg));
-
 #if defined(ENABLE_REPLACEMENT)
 	printf("#define sizeexecutionstate         %3d\n", (s4) sizeof(executionstate_t));
 #endif
@@ -61,9 +59,6 @@ int main(int argc, char **argv)
 	printf("#define offdiffval                 %3d\n", (s4) OFFSET(vftbl_t, diffval));
 	printf("\n\n");
 
-	printf("#define offvmargtype               %3d\n", (s4) OFFSET(vm_arg, type));
-	printf("#define offvmargdata               %3d\n", (s4) OFFSET(vm_arg, data));
-	printf("\n\n");
 
 	printf("#define offcast_super_baseval      %3d\n", (s4) OFFSET(castinfo, super_baseval));
 	printf("#define offcast_super_diffval      %3d\n", (s4) OFFSET(castinfo, super_diffval));

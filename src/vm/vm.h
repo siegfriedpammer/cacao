@@ -68,26 +68,6 @@ extern u1 *intrp_main_stack;
 #endif
 
 
-/* vm_arg **********************************************************************
-
-   Datastructure for arguments to call Java methods via vm_call_method
-   functions.
-
-*******************************************************************************/
-
-typedef struct vm_arg vm_arg;
-
-struct vm_arg {
-	u8 type;
-
-	union {
-		u8     l;
-		float  f;
-		double d;
-	} data;
-};
-
-
 /* function prototypes ********************************************************/
 
 void usage(void);
