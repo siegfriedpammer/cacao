@@ -2865,7 +2865,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 	/* call the assembler code for the last phase of replacement */
 
 #if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__) || defined(__S390__)) && defined(ENABLE_JIT)
-	asm_replacement_in(&(safestack->es), safestack);
+	/*asm_replacement_in(&(safestack->es), safestack);*/
 #endif
 
 	abort(); /* NOT REACHED */

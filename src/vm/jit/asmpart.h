@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.h 8274 2007-08-08 15:58:17Z twisti $
+   $Id: asmpart.h 8278 2007-08-08 17:10:18Z michi $
 
 */
 
@@ -42,8 +42,6 @@
 
 #include "vm/global.h"
 #include "vm/vm.h"
-
-#include "vm/jit/replace.h"
 
 #include "vmcore/linker.h"
 
@@ -104,12 +102,6 @@ void intrp_asm_abstractmethoderror(void);
 
 /* wrapper for code patching functions */
 void asm_patcher_wrapper(void);
-
-/* functions for on-stack replacement */
-#if defined(ENABLE_REPLACEMENT)
-void asm_replacement_out(void);
-void asm_replacement_in(executionstate_t *es, replace_safestack_t *st);
-#endif
 
 long asm_compare_and_swap(volatile long *p, long oldval, long newval);
 void asm_memory_barrier(void);
