@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8273 2007-08-08 15:33:15Z twisti $
+   $Id: class.c 8277 2007-08-08 16:42:11Z michi $
 
 */
 
@@ -52,6 +52,7 @@
 
 #include "vmcore/class.h"
 #include "vmcore/classcache.h"
+#include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 
@@ -1573,11 +1574,12 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
 		if (sub->flags & ACC_INTERFACE)
 			return (super == class_java_lang_Object);
 
-		/* XXX TODO Fix me with a lock. */
-/* 		ASM_GETCLASSVALUES_ATOMIC(super->vftbl, sub->vftbl, &classvalues); */
+		LOCK_MONITOR_ENTER(linker_classrenumber_lock);
 
 		diffval = sub->vftbl->baseval - super->vftbl->baseval;
 		result  = diffval <= (uint32_t) super->vftbl->diffval;
+
+		LOCK_MONITOR_EXIT(linker_classrenumber_lock);
 	}
 
 	return result;

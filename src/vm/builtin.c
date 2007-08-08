@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8273 2007-08-08 15:33:15Z twisti $
+   $Id: builtin.c 8277 2007-08-08 16:42:11Z michi $
 
 */
 
@@ -73,6 +73,7 @@
 #include "vm/jit/asmpart.h"
 
 #include "vmcore/class.h"
+#include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 #include "vmcore/primitive.h"
@@ -622,8 +623,7 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 		if (valuevftbl == componentvftbl)
 			return 1;
 
-		/* XXX TODO Fix me with a lock. */
-/* 		ASM_GETCLASSVALUES_ATOMIC(componentvftbl, valuevftbl, &classvalues); */
+		LOCK_MONITOR_ENTER(linker_classrenumber_lock);
 
 		baseval = componentvftbl->baseval;
 
@@ -637,6 +637,8 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 			diffval = valuevftbl->baseval - componentvftbl->baseval;
 			result  = diffval <= (uint32_t) componentvftbl->diffval;
 		}
+
+		LOCK_MONITOR_EXIT(linker_classrenumber_lock);
 	}
 	else if (valuedesc == NULL) {
 		/* {oa has dimension > 1} */
@@ -693,8 +695,7 @@ s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-	/* XXX TODO Fix me with a lock. */
-/* 	ASM_GETCLASSVALUES_ATOMIC(elementvftbl, valuevftbl, &classvalues); */
+	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
 
 	baseval = elementvftbl->baseval;
 
@@ -707,6 +708,8 @@ s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
 		diffval = valuevftbl->baseval - elementvftbl->baseval;
 		result  = diffval <= (uint32_t) elementvftbl->diffval;
 	}
+
+	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
 
 	return result;
 }
@@ -741,11 +744,12 @@ s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-	/* XXX TODO Fix me with a lock. */
-/* 	ASM_GETCLASSVALUES_ATOMIC(elementvftbl, valuevftbl, &classvalues); */
+	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
 
 	diffval = valuevftbl->baseval - elementvftbl->baseval;
 	result  = diffval <= (uint32_t) elementvftbl->diffval;
+
+	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
 
 	return result;
 }

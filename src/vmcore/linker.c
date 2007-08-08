@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8237 2007-07-27 16:15:29Z twisti $
+   $Id: linker.c 8277 2007-08-08 16:42:11Z michi $
 
 */
 
@@ -1136,6 +1136,12 @@ static arraydescriptor *link_array(classinfo *c)
 /* linker_compute_subclasses ***************************************************
 
    XXX
+
+   ATTENTION: DO NOT REMOVE ANY OF THE LOCKING MECHANISMS BELOW:
+   This function needs to take the class renumber lock and stop the
+   world during class renumbering. The lock is used in C code which
+   is not that performance critical. Whereas JIT code uses critical
+   sections to atomically access the class values.
 
 *******************************************************************************/
 
