@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 8266 2007-08-07 08:26:38Z twisti $
+   $Id: threads-common.c 8272 2007-08-08 14:55:00Z twisti $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <unistd.h>
 
 #include "vm/types.h"
@@ -316,7 +317,8 @@ threadobject *threads_thread_new(void)
 
 void threads_thread_free(threadobject *t)
 {
-	s4 index;
+	int32_t  index;
+	uint32_t state;
 
 	/* lock the threads-lists */
 
@@ -330,15 +332,19 @@ void threads_thread_free(threadobject *t)
 
 	list_remove_unsynced(list_threads, t);
 
-	/* Clear memory, but keep the thread-index. */
+	/* Clear memory, but keep the thread-index and the
+	   thread-state. */
+
 	/* ATTENTION: Do this after list_remove, otherwise the linkage
 	   pointers are invalid. */
 
 	index = t->index;
+	state = t->state;
 
 	MZERO(t, threadobject, 1);
 
 	t->index = index;
+	t->state = state;
 
 	/* add the thread to the free list */
 

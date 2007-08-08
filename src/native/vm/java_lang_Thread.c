@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Thread.c 8132 2007-06-22 11:15:47Z twisti $
+   $Id: java_lang_Thread.c 8272 2007-08-08 14:55:00Z twisti $
 
 */
 
@@ -129,8 +129,11 @@ s4 _Jv_java_lang_Thread_isAlive(java_lang_Thread *this)
 	threadobject *t;
 
 # if defined(WITH_CLASSPATH_GNU)
+
 	t = (threadobject *) this->vmThread->vmdata;
+
 # elif defined(WITH_CLASSPATH_SUN)
+
 	/* XXX this is just a quick hack */
 
 	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
@@ -143,8 +146,14 @@ s4 _Jv_java_lang_Thread_isAlive(java_lang_Thread *this)
 
 	if (t == NULL)
 		return 0;
+
 # elif defined(WITH_CLASSPATH_CLDC1_1)
+
 	t = (threadobject *) this->vm_thread;
+
+	if (t == NULL)
+		return 0;
+
 # else
 #  error unknown classpath configuration
 # endif
