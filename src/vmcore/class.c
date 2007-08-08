@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8249 2007-07-31 12:59:03Z panzi $
+   $Id: class.c 8273 2007-08-08 15:33:15Z twisti $
 
 */
 
@@ -1547,8 +1547,7 @@ bool class_issubclass(classinfo *sub, classinfo *super)
 
 bool class_isanysubclass(classinfo *sub, classinfo *super)
 {
-	castinfo classvalues;
-	u4       diffval;
+	uint32_t diffval;
 	bool     result;
 
 	/* This is the trivial case. */
@@ -1574,10 +1573,11 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
 		if (sub->flags & ACC_INTERFACE)
 			return (super == class_java_lang_Object);
 
-		ASM_GETCLASSVALUES_ATOMIC(super->vftbl, sub->vftbl, &classvalues);
+		/* XXX TODO Fix me with a lock. */
+/* 		ASM_GETCLASSVALUES_ATOMIC(super->vftbl, sub->vftbl, &classvalues); */
 
-		diffval = classvalues.sub_baseval - classvalues.super_baseval;
-		result  = diffval <= (u4) classvalues.super_diffval;
+		diffval = sub->vftbl->baseval - super->vftbl->baseval;
+		result  = diffval <= (uint32_t) super->vftbl->diffval;
 	}
 
 	return result;

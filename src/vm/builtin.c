@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8210 2007-07-18 12:51:00Z twisti $
+   $Id: builtin.c 8273 2007-08-08 15:33:15Z twisti $
 
 */
 
@@ -596,9 +596,9 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 	arraydescriptor *valuedesc;
 	vftbl_t         *componentvftbl;
 	vftbl_t         *valuevftbl;
-	s4               base;
-	castinfo         classvalues;
-	s4               result;
+	int32_t          baseval;
+	uint32_t         diffval;
+	int              result;
 
 	if (o == NULL)
 		return 1;
@@ -622,19 +622,20 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 		if (valuevftbl == componentvftbl)
 			return 1;
 
-		ASM_GETCLASSVALUES_ATOMIC(componentvftbl, valuevftbl, &classvalues);
+		/* XXX TODO Fix me with a lock. */
+/* 		ASM_GETCLASSVALUES_ATOMIC(componentvftbl, valuevftbl, &classvalues); */
 
-		base = classvalues.super_baseval;
+		baseval = componentvftbl->baseval;
 
-		if (base <= 0) {
+		if (baseval <= 0) {
 			/* an array of interface references */
 
-			result = ((valuevftbl->interfacetablelength > -base) &&
-					(valuevftbl->interfacetable[base] != NULL));
+			result = ((valuevftbl->interfacetablelength > -baseval) &&
+					  (valuevftbl->interfacetable[baseval] != NULL));
 		}
 		else {
-			result = ((unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
-				   <= (unsigned) classvalues.super_diffval);
+			diffval = valuevftbl->baseval - componentvftbl->baseval;
+			result  = diffval <= (uint32_t) componentvftbl->diffval;
 		}
 	}
 	else if (valuedesc == NULL) {
@@ -666,13 +667,14 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
 {
 	arraydescriptor *desc;
-	vftbl_t *elementvftbl;
-	vftbl_t *valuevftbl;
-	s4 res;
-	int base;
-	castinfo classvalues;
+	vftbl_t         *elementvftbl;
+	vftbl_t         *valuevftbl;
+	int32_t          baseval;
+	uint32_t         diffval;
+	int              result;
 	
-	if (!o) return 1;
+	if (o == NULL)
+		return 1;
 
 	/* The following is guaranteed (by verifier checks):
 	 *
@@ -691,17 +693,22 @@ s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-	ASM_GETCLASSVALUES_ATOMIC(elementvftbl, valuevftbl, &classvalues);
+	/* XXX TODO Fix me with a lock. */
+/* 	ASM_GETCLASSVALUES_ATOMIC(elementvftbl, valuevftbl, &classvalues); */
 
-	if ((base = classvalues.super_baseval) <= 0)
+	baseval = elementvftbl->baseval;
+
+	if (baseval <= 0) {
 		/* an array of interface references */
-		return (valuevftbl->interfacetablelength > -base &&
-				valuevftbl->interfacetable[base] != NULL);
+		result = ((valuevftbl->interfacetablelength > -baseval) &&
+				  (valuevftbl->interfacetable[baseval] != NULL));
+	}
+	else {
+		diffval = valuevftbl->baseval - elementvftbl->baseval;
+		result  = diffval <= (uint32_t) elementvftbl->diffval;
+	}
 
-	res = (unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
-		<= (unsigned) classvalues.super_diffval;
-
-	return res;
+	return result;
 }
 
 
@@ -709,12 +716,13 @@ s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
  * one-dimensional array of a class type */
 s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 {
-	vftbl_t *elementvftbl;
-	vftbl_t *valuevftbl;
-	s4 res;
-	castinfo classvalues;
+	vftbl_t  *elementvftbl;
+	vftbl_t  *valuevftbl;
+	uint32_t  diffval;
+	int       result;
 	
-	if (!o) return 1;
+	if (o == NULL)
+		return 1;
 
 	/* The following is guaranteed (by verifier checks):
 	 *
@@ -733,12 +741,13 @@ s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-	ASM_GETCLASSVALUES_ATOMIC(elementvftbl, valuevftbl, &classvalues);
+	/* XXX TODO Fix me with a lock. */
+/* 	ASM_GETCLASSVALUES_ATOMIC(elementvftbl, valuevftbl, &classvalues); */
 
-	res = (unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
-		<= (unsigned) classvalues.super_diffval;
+	diffval = valuevftbl->baseval - elementvftbl->baseval;
+	result  = diffval <= (uint32_t) elementvftbl->diffval;
 
-	return res;
+	return result;
 }
 
 
