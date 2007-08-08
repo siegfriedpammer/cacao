@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 8145 2007-06-27 08:54:10Z michi $
+## $Id: Makefile.am 8274 2007-08-08 15:58:17Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -36,7 +36,6 @@ DIST_SUBDIRS = \
 	loop \
 	optimizing \
 	schedule \
-	tools \
 	verify \
 	\
 	intrp \
@@ -54,7 +53,6 @@ DIST_SUBDIRS = \
 
 SUBDIRS = \
 	optimizing \
-	tools \
 	$(ARCH_DIR)
 
 ARCH_LIB = \

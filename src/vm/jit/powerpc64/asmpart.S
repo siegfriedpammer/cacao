@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8123 2007-06-20 23:50:55Z michi $
+   $Id: asmpart.S 8274 2007-08-08 15:58:17Z twisti $
 
 */
 
@@ -36,7 +36,7 @@
 
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/powerpc64/offsets.h"
+
 
 /* export functions ***********************************************************/
 
@@ -58,8 +58,7 @@
 #endif
 
 	.globl asm_cacheflush
-	.globl asm_criticalsections
-	.globl asm_getclassvalues_atomic
+
 
 /* asm_vm_call_method **********************************************************
 *                                                                              *
@@ -793,39 +792,6 @@ asm_cacheflush:
 	isync
 	blr
 
-/*
-		asm_getclassvalues_atomic 
-*/
-	.section ".opd","aw"
-	.align 3
-asm_getclassvalues_atomic:
-		.quad	.asm_getclassvalues_atomic,.TOC.@tocbase,0
-		.previous
-		.size asm_getclassvalues_atomic, 24
-		.type .asm_getclassvalues_atomic,@function
-		.globl .asm_getclassvalues_atomic
-.asm_getclassvalues_atomic:
-
-_crit_restart:
-_crit_begin:
-	lwz     r6,offbaseval(r3)
-	lwz     r7,offdiffval(r3)
-	lwz     r8,offbaseval(r4)
-_crit_end:
-	stw     r6,offcast_super_baseval(r5)
-	stw     r7,offcast_super_diffval(r5)
-	stw     r8,offcast_sub_baseval(r5)
-	blr
-
-	.data
-
-asm_criticalsections:
-#if defined(ENABLE_THREADS)
-	.quad   _crit_begin
-	.quad   _crit_end
-	.quad   _crit_restart
-#endif
-	.quad 0
 
 /* disable exec-stacks ********************************************************/
 

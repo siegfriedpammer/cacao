@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8198 2007-07-12 07:16:24Z twisti $
+   $Id: asmpart.S 8274 2007-08-08 15:58:17Z twisti $
 
 */
 
@@ -31,7 +31,6 @@
 
 #include "vm/jit/alpha/md-abi.h"
 #include "vm/jit/alpha/md-asm.h"
-#include "vm/jit/alpha/offsets.h"
 
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/methodheader.h"
@@ -66,9 +65,6 @@
 
 	.globl asm_compare_and_swap
 	.globl asm_memory_barrier
-
-	.globl asm_criticalsections
-	.globl asm_getclassvalues_atomic
 
 	.globl asm_md_init
 	.globl asm_cacheflush
@@ -699,34 +695,6 @@ asm_memory_barrier:
 	jmp     zero,(ra)
 
 	.end    asm_memory_barrier
-
-
-	.ent    asm_getclassvalues_atomic
-
-asm_getclassvalues_atomic:
-_crit_restart:
-_crit_begin:
-	ldl     t0,offbaseval(a0)
-	ldl     t1,offdiffval(a0)
-	ldl     t2,offbaseval(a1)
-_crit_end:
-	stl     t0,offcast_super_baseval(a2)
-	stl     t1,offcast_super_diffval(a2)
-	stl     t2,offcast_sub_baseval(a2)
-	jmp     zero,(ra)
-
-	.end    asm_getclassvalues_atomic
-
-
-    .data
-
-asm_criticalsections:
-#if defined(ENABLE_THREADS)
-    .quad   _crit_begin
-    .quad   _crit_end
-    .quad   _crit_restart
-#endif
-    .quad   0
 
 
 /* asm_md_init *****************************************************************

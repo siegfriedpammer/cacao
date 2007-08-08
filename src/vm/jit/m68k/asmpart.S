@@ -1,13 +1,38 @@
-/*	src/vm/jit/m68k/asmpart.S
- *	for cacao 
- *	Roland Lezuo
- */
+/* src/vm/jit/m68k/asmpart.S - Java-C interface functions for m68k
+
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
+   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
+   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
+   J. Wenninger, Institut f. Computersprachen - TU Wien
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
+
+   $Id: asmpart.S 8210 2007-07-18 12:51:00Z twisti $
+
+*/
+
 
 #include "config.h"
 
-#include "vm/jit/m68k/offsets.h"
 #include "md-abi.h"
+
 #include "vm/jit/methodheader.h"
+
 
 .text
 
@@ -23,9 +48,7 @@
 
 .globl asm_patcher_wrapper
 
-.globl asm_getclassvalues_atomic
 .globl asm_abstractmethoderror
-.globl asm_criticalsections
 
 .globl asm_handle_exception
 .globl asm_handle_nat_exception
@@ -274,40 +297,6 @@ L_asm_patcher_wrapper_exception:
   jmp		asm_handle_exception		/* handle exception */
   illegal								/* XXX: we never come back */
 
-/********************************************************************************
-	Reads a few values atomically. 
-	C signature:
-	void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out);
-
-	super ... sp@(4)
-	sub   ... sp@(8)
-	out   ... sp@(12)
-********************************************************************************/
-asm_getclassvalues_atomic:
-_crit_restart:
-_crit_begin:
-	moveal 	%sp@(4), %a0
-	movel	%a0@(offbaseval), %d0
-	movel	%a0@(offdiffval), %d1
-	
-	moveal	%sp@(8), %a0
-	moveal	%a0@(offbaseval), %a0
-_crit_end:
-	moveal	%sp@(12), %a1
-	movel	%d0, %a1@(offcast_super_baseval)
-	movel	%d1, %a1@(offcast_super_diffval)
-	movel	%a0, %a1@(offcast_sub_baseval)
-
-	rts
-.data
-asm_criticalsections:
-#if defined(ENABLE_THREADS)
-	.long _crit_begin
-	.long _crit_end
-	.long _crit_restart
-#endif
-	.long 0
-.text
 
 asm_abstractmethoderror:
 

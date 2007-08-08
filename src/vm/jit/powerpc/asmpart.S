@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8270 2007-08-08 13:57:12Z twisti $
+   $Id: asmpart.S 8274 2007-08-08 15:58:17Z twisti $
 
 */
 
@@ -34,7 +34,6 @@
 
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/powerpc/offsets.h"
 
 
 	.text
@@ -69,9 +68,6 @@
 
 	.globl asm_compare_and_swap
 	.globl asm_memory_barrier
-
-	.globl asm_criticalsections
-	.globl asm_getclassvalues_atomic
 
 
 /* asm_vm_call_method **********************************************************
@@ -857,29 +853,6 @@ asm_compare_and_swap:
 asm_memory_barrier:
 	sync
 	blr
-
-
-asm_getclassvalues_atomic:
-_crit_restart:
-_crit_begin:
-	lwz     a3,offbaseval(a0)
-	lwz     a4,offdiffval(a0)
-	lwz     a5,offbaseval(a1)
-_crit_end:
-	stw     a3,offcast_super_baseval(a2)
-	stw     a4,offcast_super_diffval(a2)
-	stw     a5,offcast_sub_baseval(a2)
-	blr
-
-	.data
-
-asm_criticalsections:
-#if defined(ENABLE_THREADS)
-	.long   _crit_begin
-	.long   _crit_end
-	.long   _crit_restart
-#endif
-	.long 0
 
 
 #if defined(__DARWIN__)

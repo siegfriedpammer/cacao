@@ -29,9 +29,10 @@
 
 #include "config.h"
 
-#include "vm/jit/sparc64/md-abi.h"
-#include "vm/jit/sparc64/offsets.h"
 #include "md-asm.h"
+
+#include "vm/jit/sparc64/md-abi.h"
+
 
 	.register %g2,#scratch                         /* define as scratch       */
 	.register %g3,#scratch                    /* XXX  reserve for application */
@@ -55,9 +56,6 @@
 	.global asm_patcher_wrapper
 
 	.global asm_abstractmethoderror
-	
-	.global asm_criticalsections
-	.global asm_getclassvalues_atomic
 	
 	.global asm_store_fp_state_reg
 	.global asm_load_fp_state_reg
@@ -441,34 +439,6 @@ asm_load_fp_state_reg:
 	retl  /* return from leaf */
 	nop
 
-
-
-
-asm_getclassvalues_atomic:
-_crit_restart:
-_crit_begin:
-/* not doing a window save, using the global temporary registers */
-	ldsw    [offbaseval+%o0],itmp1
-	ldsw    [offdiffval+%o0],itmp2
-	ldsw    [offbaseval+%o1],itmp3
-_crit_end:
-	stw     itmp1,[offcast_super_baseval+%o2]
-	stw     itmp2,[offcast_super_diffval+%o2]
-	stw     itmp3,[offcast_sub_baseval+%o2]
-	jmpl    ra_caller+8,zero  /* caller's ra, b/c no window save */
-	nop
-
-
-    .data
-
-asm_criticalsections:
-#if defined(ENABLE_THREADS)
-    .xword   _crit_begin
-    .xword   _crit_end
-    .xword   _crit_restart
-#endif
-    .xword   0
-    
 
 /* disable exec-stacks ********************************************************/
 

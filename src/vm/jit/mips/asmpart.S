@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8264 2007-08-06 16:02:28Z twisti $
+   $Id: asmpart.S 8274 2007-08-08 15:58:17Z twisti $
 
 */
 
@@ -31,7 +31,6 @@
 
 #include "vm/jit/mips/md-abi.h"
 #include "vm/jit/mips/md-asm.h"
-#include "vm/jit/mips/offsets.h"
 
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/methodheader.h"
@@ -62,9 +61,6 @@
 	.globl asm_replacement_out
 	.globl asm_replacement_in
 #endif
-
-	.globl asm_getclassvalues_atomic
-	.globl asm_criticalsections
 
 	.globl compare_and_swap
 
@@ -853,35 +849,6 @@ asm_replacement_in:
 
 #endif /* defined(ENABLE_REPLACEMENT) */
 
-
-	.ent    asm_getclassvalues_atomic
-
-asm_getclassvalues_atomic:
-_crit_restart:
-_crit_begin:
-	lw      t0,offbaseval(a0)
-	lw      t1,offdiffval(a0)
-	lw      t2,offbaseval(a1)
-_crit_end:
-	sw      t0,offcast_super_baseval(a2)
-	sw      t1,offcast_super_diffval(a2)
-	sw      t2,offcast_sub_baseval(a2)
-	j       ra
-
-	.end    asm_getclassvalues_atomic
-
-    .data
-
-asm_criticalsections:
-#if defined(ENABLE_THREADS)
-    .dword  _crit_begin
-    .dword  _crit_end
-    .dword  _crit_restart
-#endif
-    .dword  0
-
-
-	.text
 
 	.ent    compare_and_swap
 

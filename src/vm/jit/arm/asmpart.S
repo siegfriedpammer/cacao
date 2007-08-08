@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8160 2007-06-28 01:52:19Z michi $
+   $Id: asmpart.S 8274 2007-08-08 15:58:17Z twisti $
 
 */
 
@@ -59,22 +59,10 @@
 
 	.globl asm_cacheflush
 
-	.globl asm_getclassvalues_atomic
-	.globl asm_criticalsections
-
-
 #if !defined(ENABLE_THREADS)
 asm_exceptionptr:
 	.word _no_threads_exceptionptr
 #endif
-
-asm_criticalsections:
-#if defined(ENABLE_THREADS)
-	.word _crit_begin
-	.word _crit_end
-	.word _crit_restart
-#endif
-	.word 0
 
 
 /* asm_vm_call_method **********************************************************
@@ -345,23 +333,6 @@ asm_cacheflush:
 	swi   #sys_cacheflush
 	mov   pc, lr
 #endif
-
-
-/********************* function asm_getclassvalues_atomic *********************/
-
-asm_getclassvalues_atomic:
-	stmfd sp!, {r4, r5, r6}
-_crit_restart:
-_crit_begin:
-	ldr   r4,[a0,#offbaseval]
-	ldr   r5,[a0,#offdiffval]
-	ldr   r6,[a1,#offbaseval]
-_crit_end:
-	str   r4,[a2,#offcast_super_baseval]
-	str   r5,[a2,#offcast_super_diffval]
-	str   r6,[a2,#offcast_sub_baseval]
-	ldmfd sp!, {r4, r5, r6}
-	mov   pc, lr
 
 
 /* disable exec-stacks ********************************************************/

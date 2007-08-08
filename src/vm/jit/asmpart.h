@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.h 8270 2007-08-08 13:57:12Z twisti $
+   $Id: asmpart.h 8274 2007-08-08 15:58:17Z twisti $
 
 */
 
@@ -46,34 +46,6 @@
 #include "vm/jit/replace.h"
 
 #include "vmcore/linker.h"
-
-
-/* some macros ****************************************************************/
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-
-#  define ASM_GETCLASSVALUES_ATOMIC(super,sub,out) \
-    do { \
-        if (opt_intrp) \
-            intrp_asm_getclassvalues_atomic((super), (sub), (out)); \
-        else \
-            asm_getclassvalues_atomic((super), (sub), (out)); \
-    } while (0)
-
-# else /* defined(ENABLE_INTRP) */
-
-#  define ASM_GETCLASSVALUES_ATOMIC(super,sub,out) \
-    asm_getclassvalues_atomic((super), (sub), (out))
-
-# endif /* defined(ENABLE_INTRP) */
-
-#else /* defined(ENABLE_JIT) */
-
-#  define ASM_GETCLASSVALUES_ATOMIC(super,sub,out) \
-    intrp_asm_getclassvalues_atomic((super), (sub), (out))
-
-#endif /* defined(ENABLE_JIT) */
 
 
 /* function prototypes ********************************************************/
@@ -141,18 +113,6 @@ void asm_replacement_in(executionstate_t *es, replace_safestack_t *st);
 
 long asm_compare_and_swap(volatile long *p, long oldval, long newval);
 void asm_memory_barrier(void);
-
-#if defined(ENABLE_THREADS)
-extern critical_section_node_t asm_criticalsections;
-#endif
-
-#if defined(ENABLE_JIT)
-void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out);
-#endif
-
-#if defined(ENABLE_INTRP)
-void intrp_asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out);
-#endif
 
 /* cache flush function */
 void asm_cacheflush(u1 *addr, s4 nbytes);

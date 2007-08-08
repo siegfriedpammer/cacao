@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8210 2007-07-18 12:51:00Z twisti $
+   $Id: asmpart.S 8274 2007-08-08 15:58:17Z twisti $
 
 */
 
@@ -33,7 +33,6 @@
 
 #include "vm/jit/i386/arch.h"
 #include "vm/jit/i386/md-abi.h"
-#include "vm/jit/i386/offsets.h"
 
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/methodheader.h"
@@ -74,9 +73,6 @@
 
 	.globl asm_compare_and_swap
 	.globl asm_memory_barrier
-
-	.globl asm_criticalsections
-	.globl asm_getclassvalues_atomic
 
 	.globl asm_get_cycle_count
 
@@ -646,39 +642,6 @@ asm_memory_barrier:
 	ret
 
 		
-asm_getclassvalues_atomic:
-_crit_restart2:
-	mov     4(%esp),%ecx        /* super */
-	mov     8(%esp),%edx        /* sub */
-_crit_begin2:
-	mov     offbaseval(%ecx),%eax
-	mov     offdiffval(%ecx),%ecx
-	mov     offbaseval(%edx),%edx
-_crit_end2:
-	push    %ebx
-	mov     16(%esp),%ebx      /* out */
-	mov     %eax,offcast_super_baseval(%ebx)
-	mov     %ecx,offcast_super_diffval(%ebx)
-	mov     %edx,offcast_sub_baseval(%ebx)
-	pop     %ebx
-	ret
-
-	.data
-
-asm_criticalsections:
-#if defined(ENABLE_THREADS)
-#if 0
-	.long   _crit_begin1
-	.long   _crit_end1
-	.long   _crit_restart1
-#endif
-	.long   _crit_begin2
-	.long   _crit_end2
-	.long   _crit_restart2
-#endif
-	.long 0
-
-
 /* asm_get_cycle_count *********************************************************
 
    Get the current time-stamp counter from the CPU.

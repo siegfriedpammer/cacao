@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8250 2007-07-31 13:16:43Z twisti $
+dnl $Id: configure.ac 8274 2007-08-08 15:58:17Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -1010,7 +1010,6 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/sparc64/Makefile]
 		[src/vm/jit/sparc64/linux/Makefile]
 		[src/vm/jit/sparc64/solaris/Makefile]
-		[src/vm/jit/tools/Makefile]
 		[src/vm/jit/verify/Makefile]
 		[src/vm/jit/x86_64/Makefile]
 		[src/vm/jit/x86_64/freebsd/Makefile]
@@ -1025,7 +1024,7 @@ AC_CONFIG_FILES([Makefile]
 		[tests/regression/resolving/classes1/Makefile]
 		[tests/regression/resolving/classes2/Makefile]
 		[tests/regression/resolving/classes3/Makefile]
-		)
+)
 
 
 dnl now configure subpackages with OPT_CFLAGS and ARCH_CFLAGS

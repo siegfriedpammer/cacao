@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8251 2007-08-01 15:26:59Z pm $
+   $Id: asmpart.S 8274 2007-08-08 15:58:17Z twisti $
 
 */
 
@@ -32,7 +32,6 @@
 #include "vm/jit/s390/arch.h"
 #include "vm/jit/s390/md-abi.h"
 #include "vm/jit/s390/md-asm.h"
-#include "vm/jit/s390/offsets.h"
 
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/methodheader.h"
@@ -64,9 +63,6 @@
 	.globl asm_builtin_f2l
 	.globl asm_builtin_d2i
 	.globl asm_builtin_d2l
-
-	.globl asm_criticalsections
-	.globl asm_getclassvalues_atomic
 
 
 asm_abstractmethoderror:
@@ -841,30 +837,6 @@ asm_replacement_in:
 	/* jump to new code */
 	ret
 #endif
-
-/* TODO use move here ? */
-
-asm_getclassvalues_atomic:
-_crit_restart:
-_crit_begin:
-	l       %r0,offbaseval(a0)
-	l       %r1,offdiffval(a0)
-	l       a3,offbaseval(a1)
-_crit_end:
-	st      %r0,offcast_super_baseval(a2)
-	st      %r1,offcast_super_diffval(a2)
-	st      a3,offcast_sub_baseval(a2)
-	br      %r14
-
-	.data
-		
-asm_criticalsections:
-#if defined(ENABLE_THREADS)
-	.long   _crit_begin
-	.long   _crit_end
-	.long   _crit_restart
-#endif
-	.long 0
 
 
 /*
