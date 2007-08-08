@@ -105,13 +105,9 @@ void vm_exit_handler(void);
 void vm_abort(const char *text, ...);
 
 /* Java method calling functions */
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-bool vm_vmargs_from_objectarray(methodinfo *m, java_objectheader *o,
-								vm_arg *vmargs, java_objectarray *params);
-#else
+
 uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
 									java_objectarray *params);
-#endif
 
 java_objectheader *vm_call_method(methodinfo *m, java_objectheader *o, ...);
 java_objectheader *vm_call_method_valist(methodinfo *m, java_objectheader *o,
@@ -119,20 +115,11 @@ java_objectheader *vm_call_method_valist(methodinfo *m, java_objectheader *o,
 java_objectheader *vm_call_method_jvalue(methodinfo *m, java_objectheader *o,
 										 const jvalue *args);
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-java_objectheader *vm_call_method_vmarg(methodinfo *m, s4 vmargscount,
-										vm_arg *vmargs);
-s4 vm_call_method_int_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
-s8 vm_call_method_long_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
-float vm_call_method_float_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
-double vm_call_method_double_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
-#else
 java_objectheader *vm_call_array(methodinfo *m, uint64_t *array);
 int32_t            vm_call_int_array(methodinfo *m, uint64_t *array);
 int64_t            vm_call_long_array(methodinfo *m, uint64_t *array);
 float              vm_call_float_array(methodinfo *m, uint64_t *array);
 double             vm_call_double_array(methodinfo *m, uint64_t *array);
-#endif
 
 s4 vm_call_method_int(methodinfo *m, java_objectheader *o, ...);
 s4 vm_call_method_int_valist(methodinfo *m, java_objectheader *o, va_list ap);

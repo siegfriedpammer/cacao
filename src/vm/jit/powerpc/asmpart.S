@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8216 2007-07-19 13:51:21Z michi $
+   $Id: asmpart.S 8270 2007-08-08 13:57:12Z twisti $
 
 */
 
@@ -114,7 +114,7 @@ asm_vm_call_method_double:
 	stwu    sp,-40*4(sp)              /* keep stack 16-byte aligned           */
 
 	stw     s0,8*4(sp)                /* save used callee saved registers     */
-	stw     a0,9*4(sp)                /* save method pointer for compiler     */
+	stw     a0,9*4(sp)                /* save method PV                       */
 
 #if defined(__DARWIN__)
 	stw     itmp1,10*4(sp)            /* register r11 is callee saved         */
@@ -141,248 +141,68 @@ asm_vm_call_method_double:
 	stfd	ft4,34*4(sp)
 	stfd	ft5,36*4(sp)
 #else
-	SAVE_TEMPORARY_REGISTERS(18)      /* the offset has to be even            */
+	SAVE_TEMPORARY_REGISTERS(18)        /* the offset has to be even          */
 #endif
 
-	mr      itmp2,a1                  /* arg count                            */
-	mr      itmp1,a2                  /* pointer to arg block                 */
+	mr      t0,a1                       /* address of data structure          */
+	mr      t1,a2                       /* stack argument count               */
 
-	mr      t4,itmp2                  /* save argument count                  */
-	mr      t5,itmp1                  /* save argument block pointer          */
+	mr      s0,sp                       /* save SP                            */
 
-	mr      s0,sp                     /* save current sp to s0                */
+	lwz     a0,0*8+4(t0)                /* we are on big-endian               */
+	lwz     a1,1*8+4(t0)
+	lwz     a2,2*8+4(t0)
+	lwz     a3,3*8+4(t0)
+	lwz     a4,4*8+4(t0)
+	lwz     a5,5*8+4(t0)
+	lwz     a6,6*8+4(t0)
+	lwz     a7,7*8+4(t0)
 
-	addi    itmp1,itmp1,-sizevmarg    /* initialize pointer (smaller code)    */
-	addi    itmp2,itmp2,1             /* initialize argument count            */
-	li      t0,0                      /* initialize integer argument counter  */
-	li      t1,0                      /* initialize float argument counter    */
-	li      t6,0                      /* initialize integer register counter  */
-#if defined(__DARWIN__)
-	li      t7,0                      /* initialize stack slot counter        */
-#endif
-
-	mflr    r0                        /* save link register (PIC code)        */
-	bl      L_asm_vm_call_method_get_pc
-L_asm_vm_call_method_get_pc:
-	mflr    t3                        /* t3 contains the current pc           */
-	mtlr    r0
-
-L_register_copy:
-	addi    itmp1,itmp1,sizevmarg     /* goto next argument block             */
-	addi    itmp2,itmp2,-1            /* argument count - 1                   */
-	mr.     itmp2,itmp2
-	beq     L_register_copy_done
-
-	lwz     itmp3,offvmargtype+4(itmp1)
-	andi.   r0,itmp3,0x0002           /* is this a float/double type?         */
-	bne     L_register_handle_float
-	
-L_register_handle_int:
-	cmpwi   t6,INT_ARG_CNT            /* are we out of integer argument       */
-	beq     L_register_copy           /* registers? yes, next loop            */
-
-	andi.   r0,itmp3,0x0001           /* is this a 2-word type?               */
-	bne     L_register_handle_long
+	lfd     fa0,8*8(t0)
+	lfd     fa1,9*8(t0)
+	lfd     fa2,10*8(t0)
+	lfd     fa3,11*8(t0)
+	lfd     fa4,12*8(t0)
+	lfd     fa5,13*8(t0)
+	lfd     fa6,14*8(t0)
+	lfd     fa7,15*8(t0)
 
 #if defined(__DARWIN__)
-	addis   itmp3,t3,ha16(L_jumptable_int - L_asm_vm_call_method_get_pc)
-	la      itmp3,lo16(L_jumptable_int - L_asm_vm_call_method_get_pc)(itmp3)
-#else
-	lis     itmp3,L_jumptable_int@ha
-	addi    itmp3,itmp3,L_jumptable_int@l
+	lfd     fa8,16*8(t0)
+	lfd     fa9,17*8(t0)
+	lfd     fa10,18*8(t0)
+	lfd     fa11,19*8(t0)
+	lfd     fa12,20*8(t0)
 #endif
 
-	slwi    t2,t6,2                   /* multiple of 4-bytes                  */
-	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
-	lwz     itmp3,0(itmp3)            /* load function address                */
-	mtctr   itmp3
-	addi    t0,t0,1                   /* integer argument counter             */
-	addi    t6,t6,1                   /* integer argument register counter    */
-#if defined(__DARWIN__)
-	addi    t7,t7,1                   /* stack slot counter                   */
-#endif
-	bctr
-
-L_register_handle_long:
-#if defined(__DARWIN__)
-	addis   itmp3,t3,ha16(L_jumptable_long - L_asm_vm_call_method_get_pc)
-	la      itmp3,lo16(L_jumptable_long - L_asm_vm_call_method_get_pc)(itmp3)
-#else
-	lis     itmp3,L_jumptable_long@ha
-	addi    itmp3,itmp3,L_jumptable_long@l
-#endif
-#if !defined(__DARWIN__)
-	addi    t6,t6,1                   /* align to even numbers                */
-	andi.   t6,t6,0xfffe
-#endif
-
-	cmpwi   t6,(INT_ARG_CNT - 1)      /* are we out of integer argument       */
-	blt     L_register_handle_long_continue /* registers?                     */
-
-	li      t6,INT_ARG_CNT            /* yes, set integer argument register   */
-	b       L_register_copy           /* count to max and next loop           */
-
-L_register_handle_long_continue:
-	slwi    t2,t6,2                   /* multiple of 4-bytes                  */
-	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
-	lwz     itmp3,0(itmp3)            /* load function address                */
-	mtctr   itmp3
-	addi    t0,t0,1                   /* integer argument counter             */
-	addi    t6,t6,2                   /* integer argument register counter    */
-#if defined(__DARWIN__)
-	addi    t7,t7,2                   /* stack slot counter                   */
-#endif
-	bctr
-
-L_register_handle_float:
-	cmpwi   t1,FLT_ARG_CNT            /* are we out of float argument         */
-	beq     L_register_copy           /* registers? yes, next loop            */
-
-	andi.   r0,itmp3,0x0001           /* is this a 2-word type?               */
-	bne     L_register_handle_double
-
-#if defined(__DARWIN__)
-	addis   itmp3,t3,ha16(L_jumptable_float - L_asm_vm_call_method_get_pc)
-	la      itmp3,lo16(L_jumptable_float - L_asm_vm_call_method_get_pc)(itmp3)
-#else
-	lis     itmp3,L_jumptable_float@ha
-	addi    itmp3,itmp3,L_jumptable_float@l
-#endif
-
-	slwi    t2,t1,2                   /* multiple of 4-bytes                  */
-	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
-	lwz     itmp3,0(itmp3)            /* load function address                */
-	mtctr   itmp3
-	addi    t1,t1,1                   /* float argument counter               */
-#if defined(__DARWIN__)
-	addi    t7,t7,1                   /* stack slot counter                   */
-	addi    t6,t6,1                   /* skip 1 integer argument register     */
-#endif
-	bctr
-
-L_register_handle_double:
-#if defined(__DARWIN__)
-	addis   itmp3,t3,ha16(L_jumptable_double - L_asm_vm_call_method_get_pc)
-	la      itmp3,lo16(L_jumptable_double - L_asm_vm_call_method_get_pc)(itmp3)
-#else
-	lis     itmp3,L_jumptable_double@ha
-	addi    itmp3,itmp3,L_jumptable_double@l
-#endif
-
-	slwi    t2,t1,2                   /* multiple of 4-bytes                  */
-	add     itmp3,itmp3,t2            /* calculate address of jumptable       */
-	lwz     itmp3,0(itmp3)            /* load function address                */
-	mtctr   itmp3
-	addi    t1,t1,1                   /* float argument counter               */
-#if defined(__DARWIN__)
-	addi    t7,t7,2                   /* stack slot counter                   */
-	addi    t6,t6,2                   /* skip 2 integer argument registers    */
-#endif
-	bctr
-
-L_register_copy_done:
-	                                  /* calculate remaining arguments        */
-	sub     itmp3,t4,t0               /* - integer arguments in registers     */
-	sub     itmp3,itmp3,t1            /* - float arguments in registers       */
-	mr.     itmp3,itmp3
-	beq     L_stack_copy_done
-
-	mr      itmp2,t4                  /* restore argument count               */
-	mr      itmp1,t5                  /* restore argument block pointer       */
-
-	slwi    t4,itmp3,3                /* XXX use 8-bytes slots for now        */
-	addi    t4,t4,LA_SIZE             /* add size of linkage area             */
-
-#if defined(__DARWIN__)
-	slwi    t5,t7,2                   /* add stack space for arguments        */
-	add     t4,t4,t5
-#endif
-
-	sub     sp,sp,t4
-
-	mr      t6,sp                     /* use t6 as temporary sp               */
-	addi    t6,t6,LA_SIZE             /* skip linkage area                    */
-#if defined(__DARWIN__)
-	add     t6,t6,t5                  /* skip stack space for arguments       */
-#endif
-
-	addi    itmp1,itmp1,-sizevmarg    /* initialize pointer (smaller code)    */
-	addi    itmp2,itmp2,1             /* initialize argument count            */
-	
-L_stack_copy_loop:
-	addi    itmp1,itmp1,sizevmarg     /* goto next argument block             */
-	addi    itmp2,itmp2,-1            /* argument count - 1                   */
-	mr.     itmp2,itmp2
-	beq     L_stack_copy_done
-	
-	lwz     itmp3,offvmargtype+4(itmp1)
-	andi.   r0,itmp3,0x0002           /* is this a float/double type?         */
-	bne     L_stack_handle_float
-
-L_stack_handle_int:
-	addi    t0,t0,-1                  /* arguments assigned to registers      */
-	mr.     t0,t0
-	bge     L_stack_copy_loop
-
-	andi.   r0,itmp3,0x0001           /* is this a 2-word type?               */
-	bne     L_stack_handle_long
-
-	lwz     itmp3,offvmargdata+4(itmp1) /* get integer argument               */
-	stw     itmp3,0(t6)               /* and store it on the stack            */
-	addi    t6,t6,4                   /* increase temporary sp by 1 slot      */
-	b       L_stack_copy_loop
-
-L_stack_handle_long:
-#if !defined(__DARWIN__)
-	addi    t6,t6,4                   /* align stack to 8-bytes               */
-	rlwinm  t6,t6,0,30,28             /* clear lower 4-bits                   */
-#endif
-
-	lwz     itmp3,offvmargdata+0(itmp1) /* get long argument                  */
-	stw     itmp3,0(t6)               /* and store it on the stack            */
-	lwz     itmp3,offvmargdata+4(itmp1)
-	stw     itmp3,4(t6)
-	addi    t6,t6,8                   /* increase temporary sp by 2 slots     */
-	b       L_stack_copy_loop
-		
-L_stack_handle_float:
-	addi    t1,t1,-1                  /* arguments assigned to registers      */
 	mr.     t1,t1
-	bge     L_stack_copy_loop
+	beq     L_asm_vm_call_method_stack_copy_done
 
-	andi.   r0,itmp3,0x0001           /* is this a 2-word type?               */
-	bne     L_stack_handle_double
+	slwi    t2,t1,3                     /* calculate stackframe size (* 8)    */
 
-	lfs     ftmp3,offvmargdata(itmp1) /* get float argument                   */
-	stfs    ftmp3,0(t6)               /* and store it on the stack            */
-	addi    t6,t6,4                   /* increase temporary sp by 1 slot      */
-	b       L_stack_copy_loop
+	sub     sp,sp,t2                    /* create stackframe                  */
+	mr      t2,sp                       /* temporary stack pointer            */
 
-L_stack_handle_double:
-#if !defined(__DARWIN__)
-	addi    t6,t6,4                   /* align stack to 8-bytes               */
-	rlwinm  t6,t6,0,30,28             /* clear lower 4-bits                   */
-#endif
-
-	lfd     ftmp3,offvmargdata(itmp1) /* get double argument                  */
-	stfd    ftmp3,0(t6)               /* and store it on the stack            */
-	addi    t6,t6,8                   /* increase temporary sp by 2 slots     */
-	b       L_stack_copy_loop
-
-L_stack_copy_done:
-	lwz     itmp1,9*4(s0)             /* pass method pointer via tmp1         */
-
+L_asm_vm_call_method_stack_copy_loop:
 #if defined(__DARWIN__)
-	addis   mptr,t3,ha16(L_asm_call_jit_compiler - L_asm_vm_call_method_get_pc)
-	la      mptr,lo16(L_asm_call_jit_compiler - L_asm_vm_call_method_get_pc)(mptr)
+	lwz     t3,21*8+0(t0)               /* load argument                      */
+	lwz     t4,21*8+4(t0)
 #else
-	lis     mptr,L_asm_call_jit_compiler@ha
-	addi    mptr,mptr,L_asm_call_jit_compiler@l
+	lwz     t3,16*8+0(t0)               /* load argument                      */
+	lwz     t4,16*8+4(t0)
 #endif
-	stw     mptr,7*4(s0)
-	addi    mptr,s0,7*4
+	stw     t3,0(t2)                    /* store argument on stack            */
+	stw     t4,4(t2)
 
-	lwz     pv,0*4(mptr)
+	addi    t0,t0,8                     /* load address of next argument      */
+	addi    t2,t2,8                     /* increase stack pointer             */
+	addi    t1,t1,-1                    /* subtract 1 argument                */
+	mr.     t1,t1
+	bgt     L_asm_vm_call_method_stack_copy_loop
+
+L_asm_vm_call_method_stack_copy_done:
+	addi    mptr,s0,9*4                 /* get address of PV                  */
+	lwz     pv,0*4(mptr)                /* load PV                            */
 	mtctr   pv
 	bctrl
 1:
@@ -394,17 +214,17 @@ L_stack_copy_done:
 #endif
 
 L_asm_vm_call_method_return:
-	mr      sp,s0                     /* restore the function's sp            */
+	mr      sp,s0                       /* restore the SP                     */
 
-	lwz     s0,8*4(sp)                /* restore used callee saved registers  */
+	lwz     s0,8*4(sp)                  /* restore used callee saved registers*/
 
 #if defined(__DARWIN__)
-	lwz     itmp1,10*4(sp)            /* register r11 is callee saved         */
+	lwz     itmp1,10*4(sp)              /* register r11 is callee saved       */
 #endif
-	lwz     pv,11*4(sp)               /* save PV register                     */
+	lwz     pv,11*4(sp)                 /* save PV register                   */
 
 	lwz     itmp3,12*4(sp)
-	lfd     ftmp1,14*4(sp)            /* registers f14-f31 are callee saved   */
+	lfd     ftmp1,14*4(sp)              /* registers f14-f31 are callee saved */
 	lfd     ftmp2,16*4(sp)
 
 #if defined(__DARWIN__)
@@ -436,250 +256,9 @@ asm_vm_call_method_exception_handler:
 	bl      builtin_throw_exception
 	b       L_asm_vm_call_method_return
 
-
-	.data
-	.align  2
-
-L_jumptable_int:
-	.long   L_handle_a0
-	.long   L_handle_a1
-	.long   L_handle_a2
-	.long   L_handle_a3
-	.long   L_handle_a4
-	.long   L_handle_a5
-	.long   L_handle_a6
-	.long   L_handle_a7
-
-	.text
-	.align  2
-
-L_handle_a0:
-	lwz     a0,offvmargdata+4(itmp1)
-	b       L_register_copy
-L_handle_a1:
-	lwz     a1,offvmargdata+4(itmp1)
-	b       L_register_copy
-L_handle_a2:
-	lwz     a2,offvmargdata+4(itmp1)
-	b       L_register_copy
-L_handle_a3:
-	lwz     a3,offvmargdata+4(itmp1)
-	b       L_register_copy
-L_handle_a4:
-	lwz     a4,offvmargdata+4(itmp1)
-	b       L_register_copy
-L_handle_a5:
-	lwz     a5,offvmargdata+4(itmp1)
-	b       L_register_copy
-L_handle_a6:
-	lwz     a6,offvmargdata+4(itmp1)
-	b       L_register_copy
-L_handle_a7:
-	lwz     a7,offvmargdata+4(itmp1)
-	b       L_register_copy
-
-
-	.data
-	.align  2
-
-L_jumptable_long:
-#if defined(__DARWIN__)
-	.long   L_handle_a0_a1
-	.long   L_handle_a1_a2
-	.long   L_handle_a2_a3
-	.long   L_handle_a3_a4
-	.long   L_handle_a4_a5
-	.long   L_handle_a5_a6
-	.long   L_handle_a6_a7
-#else
-	/* we have two entries here, so we get the even argument register
-	alignment for linux */
-
-	.long   L_handle_a0_a1
-	.long   0
-	.long   L_handle_a2_a3
-	.long   0
-	.long   L_handle_a4_a5
-	.long   0
-	.long   L_handle_a6_a7
-#endif
-
-	.text
-	.align  2
-
-L_handle_a0_a1:
-	lwz     a0,offvmargdata+0(itmp1)
-	lwz     a1,offvmargdata+4(itmp1)
-	b       L_register_copy
-#if defined(__DARWIN__)
-L_handle_a1_a2:
-	lwz     a1,offvmargdata+0(itmp1)
-	lwz     a2,offvmargdata+4(itmp1)
-	b       L_register_copy
-#endif
-L_handle_a2_a3:
-	lwz     a2,offvmargdata+0(itmp1)
-	lwz     a3,offvmargdata+4(itmp1)
-	b       L_register_copy
-#if defined(__DARWIN__)
-L_handle_a3_a4:
-	lwz     a3,offvmargdata+0(itmp1)
-	lwz     a4,offvmargdata+4(itmp1)
-	b       L_register_copy
-#endif
-L_handle_a4_a5:
-	lwz     a4,offvmargdata+0(itmp1)
-	lwz     a5,offvmargdata+4(itmp1)
-	b       L_register_copy
-#if defined(__DARWIN__)
-L_handle_a5_a6:
-	lwz     a5,offvmargdata+0(itmp1)
-	lwz     a6,offvmargdata+4(itmp1)
-	b       L_register_copy
-#endif
-L_handle_a6_a7:
-	lwz     a6,offvmargdata+0(itmp1)
-	lwz     a7,offvmargdata+4(itmp1)
-	b       L_register_copy
-
-
-	.data
-	.align  2
-
-L_jumptable_float:
-	.long   L_handle_fa0
-	.long   L_handle_fa1
-	.long   L_handle_fa2
-	.long   L_handle_fa3
-	.long   L_handle_fa4
-	.long   L_handle_fa5
-	.long   L_handle_fa6
-	.long   L_handle_fa7
-
-#if defined(__DARWIN__)
-	.long   L_handle_fa8
-	.long   L_handle_fa9
-	.long   L_handle_fa10
-	.long   L_handle_fa11
-	.long   L_handle_fa12
-#endif
-
-	.text
-	.align  2
-
-L_handle_fa0:
-	lfs     fa0,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa1:
-	lfs     fa1,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa2:
-	lfs     fa2,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa3:
-	lfs     fa3,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa4:
-	lfs     fa4,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa5:
-	lfs     fa5,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa6:
-	lfs     fa6,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa7:
-	lfs     fa7,offvmargdata(itmp1)
-	b       L_register_copy
-
-#if defined(__DARWIN__)
-L_handle_fa8:
-	lfs     fa8,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa9:
-	lfs     fa9,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa10:
-	lfs     fa10,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa11:
-	lfs     fa11,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fa12:
-	lfs     fa12,offvmargdata(itmp1)
-	b       L_register_copy
-#endif
-
-
-	.data
-	.align  2
-
-L_jumptable_double:
-	.long   L_handle_fda0
-	.long   L_handle_fda1
-	.long   L_handle_fda2
-	.long   L_handle_fda3
-	.long   L_handle_fda4
-	.long   L_handle_fda5
-	.long   L_handle_fda6
-	.long   L_handle_fda7
-
-#if defined(__DARWIN__)
-	.long   L_handle_fda8
-	.long   L_handle_fda9
-	.long   L_handle_fda10
-	.long   L_handle_fda11
-	.long   L_handle_fda12
-#endif
-
-	.text
-	.align  2
-
-L_handle_fda0:
-	lfd     fa0,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda1:
-	lfd     fa1,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda2:
-	lfd     fa2,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda3:
-	lfd     fa3,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda4:
-	lfd     fa4,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda5:
-	lfd     fa5,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda6:
-	lfd     fa6,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda7:
-	lfd     fa7,offvmargdata(itmp1)
-	b       L_register_copy
-
-#if defined(__DARWIN__)
-L_handle_fda8:
-	lfd     fa8,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda9:
-	lfd     fa9,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda10:
-	lfd     fa10,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda11:
-	lfd     fa11,offvmargdata(itmp1)
-	b       L_register_copy
-L_handle_fda12:
-	lfd     fa12,offvmargdata(itmp1)
-	b       L_register_copy
-#endif
-
 asm_vm_call_method_end:
 	nop
+
 
 /* asm_call_jit_compiler *******************************************************
 
@@ -907,16 +486,16 @@ ex_int1:
 	mtctr   t3
 	bctr
 
-	lwz     s0,-10*4(t1)
-	lwz     s1,-9*4(t1)
-	lwz     s2,-8*4(t1)
-	lwz     s3,-7*4(t1)
-	lwz     s4,-6*4(t1)
-	lwz     s5,-5*4(t1)
-	lwz     s6,-4*4(t1)
-	lwz     s7,-3*4(t1)
-	lwz     s8,-2*4(t1)
-	lwz     s9,-1*4(t1)
+	lwz     s0,-10*8(t1)
+	lwz     s1,-9*8(t1)
+	lwz     s2,-8*8(t1)
+	lwz     s3,-7*8(t1)
+	lwz     s4,-6*8(t1)
+	lwz     s5,-5*8(t1)
+	lwz     s6,-4*8(t1)
+	lwz     s7,-3*8(t1)
+	lwz     s8,-2*8(t1)
+	lwz     s9,-1*8(t1)
 
 ex_int2:
 	subf    t1,t2,t1                    /* t1 = t1 - register count * 4       */
