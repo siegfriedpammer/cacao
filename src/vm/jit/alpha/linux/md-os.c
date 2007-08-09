@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 8243 2007-07-31 08:57:54Z michi $
+   $Id: md-os.c 8279 2007-08-09 09:36:57Z michi $
 
 */
 
@@ -150,6 +150,70 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 	pc = (u1 *) _mc->sc_pc;
 
 	tobj->pc = pc;
+}
+#endif
+
+
+/* md_replace_executionstate_read **********************************************
+
+   Read the given context into an executionstate for Replacement.
+
+*******************************************************************************/
+
+#if defined(ENABLE_REPLACEMENT)
+void md_replace_executionstate_read(executionstate_t *es, void *context)
+{
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	s4          i;
+
+	_uc = (ucontext_t *) context;
+	_mc = &_uc->uc_mcontext;
+
+	/* read special registers */
+	es->pc = (u1 *) _mc->sc_pc;
+	es->sp = (u1 *) _mc->sc_regs[REG_SP];
+	es->pv = (u1 *) _mc->sc_regs[REG_PV];
+
+	/* read integer registers */
+	for (i = 0; i < INT_REG_CNT; i++)
+		es->intregs[i] = _mc->sc_regs[i];
+
+	/* read float registers */
+	for (i = 0; i < FLT_REG_CNT; i++)
+		es->fltregs[i] = _mc->sc_fpregs[i];
+}
+#endif
+
+
+/* md_replace_executionstate_write *********************************************
+
+   Write the given executionstate back to the context for Replacement.
+
+*******************************************************************************/
+
+#if defined(ENABLE_REPLACEMENT)
+void md_replace_executionstate_write(executionstate_t *es, void *context)
+{
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	s4          i;
+
+	_uc = (ucontext_t *) context;
+	_mc = &_uc->uc_mcontext;
+
+	/* write integer registers */
+	for (i = 0; i < INT_REG_CNT; i++)
+		_mc->sc_regs[i] = es->intregs[i];
+
+	/* write float registers */
+	for (i = 0; i < FLT_REG_CNT; i++)
+		_mc->sc_fpregs[i] = es->fltregs[i];
+
+	/* write special registers */
+	_mc->sc_pc = es->pc;
+	_mc->sc_regs[REG_SP] = (ptrint) es->sp;
+	_mc->sc_regs[REG_PV] = (ptrint) es->pv;
 }
 #endif
 
