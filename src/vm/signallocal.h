@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signallocal.h 7977 2007-05-29 12:34:20Z twisti $
+   $Id: signallocal.h 8282 2007-08-09 12:18:47Z twisti $
 
 */
 
@@ -34,14 +34,13 @@
 
 #include <signal.h>
 
-#include "vm/types.h"
-
 #include "vm/global.h"
 
 
 /* function prototypes ********************************************************/
 
 bool signal_init(void);
+void signal_register_signal(int signum, void *handler, int flags);
 bool signal_start_thread(void);
 
 /* machine dependent signal handler */

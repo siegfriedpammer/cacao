@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 8005 2007-06-04 13:12:56Z twisti $
+   $Id: signal.c 8282 2007-08-09 12:18:47Z twisti $
 
 */
 
@@ -39,8 +39,6 @@
  included. So let's do it here. */
 # include <sys/types.h>
 #endif
-
-#include "vm/types.h"
 
 #include "arch.h"
 
@@ -77,8 +75,7 @@ void signal_handler_sighup(int sig, siginfo_t *siginfo, void *_p);
 bool signal_init(void)
 {
 #if !defined(__CYGWIN__)
-	sigset_t         mask;
-	struct sigaction act;
+	sigset_t mask;
 
 #if defined(__LINUX__) && defined(ENABLE_THREADS)
 	/* XXX Remove for exact-GC. */
@@ -112,13 +109,11 @@ bool signal_init(void)
 	/* Allocate something so the garbage collector's signal handlers
 	   are installed. */
 
-	(void) GCNEW(u1);
+	(void) GCNEW(int);
 #endif
 
 	/* Install signal handlers for signals we want to catch in all
 	   threads. */
-
-	sigemptyset(&act.sa_mask);
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
@@ -126,41 +121,35 @@ bool signal_init(void)
 # endif
 		/* SIGSEGV handler */
 
-		act.sa_sigaction = md_signal_handler_sigsegv;
-		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
-
-#  if defined(SIGSEGV)
-		sigaction(SIGSEGV, &act, NULL);
-#  endif
+		signal_register_signal(SIGSEGV, (void *) md_signal_handler_sigsegv,
+							   SA_NODEFER | SA_SIGINFO);
 
 #  if defined(SIGBUS)
-		sigaction(SIGBUS, &act, NULL);
+		signal_register_signal(SIGBUS, (void *) md_signal_handler_sigsegv,
+							   SA_NODEFER | SA_SIGINFO);
 #  endif
 
 #  if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
 		/* SIGFPE handler */
 
-		act.sa_sigaction = md_signal_handler_sigfpe;
-		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
-		sigaction(SIGFPE, &act, NULL);
+		signal_register_signal(SIGFPE, (void *) md_signal_handler_sigfpe,
+							   SA_NODEFER | SA_SIGINFO);
 #  endif
 
 #  if defined(__ARM__) || defined(__S390__)
 		/* XXX use better defines for that (in arch.h) */
 		/* SIGILL handler */
 
-		act.sa_sigaction = md_signal_handler_sigill;
-		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
-		sigaction(SIGILL, &act, NULL);
+		signal_register_signal(SIGILL, (void *) md_signal_handler_sigill,
+							   SA_NODEFER | SA_SIGINFO);
 #  endif
 
 #  if defined(__POWERPC__)
 		/* XXX use better defines for that (in arch.h) */
 		/* SIGTRAP handler */
 
-		act.sa_sigaction = md_signal_handler_sigtrap;
-		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
-		sigaction(SIGTRAP, &act, NULL);
+		signal_register_signal(SIGTRAP, (void *) md_signal_handler_sigtrap,
+							   SA_NODEFER | SA_SIGINFO);
 #  endif
 # if defined(ENABLE_INTRP)
 	}
@@ -170,22 +159,45 @@ bool signal_init(void)
 #if defined(ENABLE_THREADS)
 	/* SIGHUP handler for threads_thread_interrupt */
 
-	act.sa_sigaction = signal_handler_sighup;
-	act.sa_flags     = 0;
-	sigaction(SIGHUP, &act, NULL);
+	signal_register_signal(SIGHUP, (void *) signal_handler_sighup, 0);
 #endif
 
 #if defined(ENABLE_THREADS) && defined(ENABLE_PROFILING)
 	/* SIGUSR2 handler for profiling sampling */
 
-	act.sa_sigaction = md_signal_handler_sigusr2;
-	act.sa_flags     = SA_SIGINFO;
-	sigaction(SIGUSR2, &act, NULL);
+	signal_register_signal(SIGUSR2, (void *) md_signal_handler_sigusr2,
+						   SA_SIGINFO);
 #endif
 
 #endif /* !defined(__CYGWIN__) */
 
 	return true;
+}
+
+
+/* signal_register_signal ******************************************************
+
+   Register the specified handler with the specified signal.
+
+*******************************************************************************/
+
+void signal_register_signal(int signum, void *handler, int flags)
+{
+	struct sigaction act;
+	void (*function)(int, siginfo_t *, void *);
+
+	function = (void (*)(int, siginfo_t *, void *)) handler;
+
+	if (sigemptyset(&act.sa_mask) != 0)
+		vm_abort("signal_register_signal: sigemptyset failed: %s",
+				 strerror(errno));
+
+	act.sa_sigaction = function;
+	act.sa_flags     = flags;
+
+	if (sigaction(signum, &act, NULL) != 0)
+		vm_abort("signal_register_signal: sigaction failed: %s",
+				 strerror(errno));
 }
 
 
