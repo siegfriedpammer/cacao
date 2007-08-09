@@ -4,6 +4,7 @@ New in release 0.99 (August x, 2007)
   * Fixed memory leak in Boehm-GC.
   * Use 8-byte stack-slots on all architectures.
   * Faster C-to-Java calls.
+  * Removed genoffsets, cross-compilation is now much easier.
 
 
 New in release 0.98 (June 6, 2007)
