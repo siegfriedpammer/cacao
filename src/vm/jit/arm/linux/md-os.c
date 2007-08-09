@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -71,18 +72,18 @@ typedef struct ucontext {
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo     sfi;
-	ucontext_t        *_uc;
-	scontext_t        *_sc;
-	u1                *pv;
-	u1                *sp;
-	u1                *ra;
-	u1                *xpc;
-	u4                 mcode;
-	ptrint             addr;
-	s4                 type;
-	ptrint             val;
-	java_objectheader *e;
+	stackframeinfo  sfi;
+	ucontext_t     *_uc;
+	scontext_t     *_sc;
+	u1             *pv;
+	u1             *sp;
+	u1             *ra;
+	u1             *xpc;
+	u4              mcode;
+	intptr_t        addr;
+	int             type;
+	intptr_t        val;
+	void           *p;
 
 	_uc = (ucontext_t*) _p;
 	_sc = &_uc->uc_mcontext;
@@ -115,9 +116,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-	/* generate appropriate exception */
+	/* Handle the type. */
 
-	e = exceptions_new_hardware_exception(xpc, type, val);
+	p = signal_handle(xpc, type, val);
 
 	/* remove stackframeinfo */
 
@@ -125,9 +126,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* set registers */
 
-	_sc->arm_r10 = (ptrint) e;
-	_sc->arm_fp  = (ptrint) xpc;
-	_sc->arm_pc  = (ptrint) asm_handle_exception;
+	_sc->arm_r10 = (intptr_t) p;
+	_sc->arm_fp  = (intptr_t) xpc;
+	_sc->arm_pc  = (intptr_t) asm_handle_exception;
 }
 
 
@@ -139,17 +140,17 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo     sfi;
-	ucontext_t        *_uc;
-	scontext_t        *_sc;
-	u1                *pv;
-	u1                *sp;
-	u1                *ra;
-	u1                *xpc;
-	u4                 mcode;
-	s4                 type;
-	ptrint             val;
-	java_objectheader *e;
+	stackframeinfo  sfi;
+	ucontext_t     *_uc;
+	scontext_t     *_sc;
+	u1             *pv;
+	u1             *sp;
+	u1             *ra;
+	u1             *xpc;
+	u4              mcode;
+	int             type;
+	intptr_t        val;
+	void           *p;
 
 	_uc = (ucontext_t*) _p;
 	_sc = &_uc->uc_mcontext;
@@ -178,9 +179,9 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-	/* generate appropriate exception */
+	/* Handle the type. */
 
-	e = exceptions_new_hardware_exception(xpc, type, val);
+	p = signal_handle(xpc, type, val);
 
 	/* remove stackframeinfo */
 
@@ -189,10 +190,10 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	/* set registers if we have an exception, return continue execution
 	   otherwise (this is needed for patchers to work) */
 
-	if (e != NULL) {
-		_sc->arm_r10 = (ptrint) e;
-		_sc->arm_fp  = (ptrint) xpc;
-		_sc->arm_pc  = (ptrint) asm_handle_exception;
+	if (p != NULL) {
+		_sc->arm_r10 = (intptr_t) p;
+		_sc->arm_fp  = (intptr_t) xpc;
+		_sc->arm_pc  = (intptr_t) asm_handle_exception;
 	}
 }
 

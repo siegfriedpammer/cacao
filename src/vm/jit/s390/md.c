@@ -1,6 +1,6 @@
-/* src/vm/jit/x86_64/md.c - machine dependent x86_64 Linux functions
+/* src/vm/jit/s390/md.c - machine dependent s390 Linux functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,21 +22,17 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes: Edwin Steiner
-
-   $Id: md.c 8251 2007-08-01 15:26:59Z pm $
+   $Id: md.c 8283 2007-08-09 15:10:05Z twisti $
 
 */
+
 
 #define _GNU_SOURCE
 
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <ucontext.h>
 
@@ -145,18 +141,18 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo     sfi;
-	ucontext_t        *_uc;
-	mcontext_t        *_mc;
-	u1                *pv;
-	u1                *sp;
-	u1                *ra;
-	u1                *xpc;
-	s4                 type;
-	ptrint             val;
-	java_objectheader *e;
-	s4                 base;
-	s4                 is_null;
+	stackframeinfo  sfi;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	u1             *pv;
+	u1             *sp;
+	u1             *ra;
+	u1             *xpc;
+	int             type;
+	intptr_t        val;
+	void           *p;
+	s4              base;
+	s4              is_null;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -197,35 +193,37 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-	/* generate appropriate exception */
+	/* Handle the type. */
 
-	e = exceptions_new_hardware_exception(xpc, type, val);
+	p = signal_handle(xpc, type, val);
 
 	/* remove stackframeinfo */
 
 	stacktrace_remove_stackframeinfo(&sfi);
 
-	if (e != NULL) {
-		_mc->gregs[REG_ITMP2_XPC] = (ptrint) xpc;
-		_mc->gregs[REG_ITMP1_XPTR] = (ptrint) e;
-		_mc->psw.addr = (ptrint) asm_handle_exception;
-	} else {
-		_mc->psw.addr = xpc;
+	if (p != NULL) {
+		_mc->gregs[REG_ITMP1_XPTR] = (intptr_t) p;
+		_mc->gregs[REG_ITMP2_XPC]  = (intptr_t) xpc;
+		_mc->psw.addr              = (intptr_t) asm_handle_exception;
+	}
+	else {
+		_mc->psw.addr              = (intptr_t) xpc;
 	}
 }
 
-void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
-	stackframeinfo     sfi;
-	ucontext_t        *_uc;
-	mcontext_t        *_mc;
-	u1                *xpc;
-	u1                *ra;
-	u1                *pv;
-	u1                *sp;
-	s4                 type;
-	ptrint             val;
-	java_objectheader *e;
-	s4                 reg;
+void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
+{
+	stackframeinfo  sfi;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	u1             *xpc;
+	u1             *ra;
+	u1             *pv;
+	u1             *sp;
+	int             type;
+	intptr_t        val;
+	void           *p;
+	s4              reg;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -249,20 +247,21 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
 
 		stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-		/* generate appropriate exception */
+		/* Handle the type. */
 
-		e = exceptions_new_hardware_exception(xpc, type, val);
+		p = signal_handle(xpc, type, val);
 
 		/* remove stackframeinfo */
 
 		stacktrace_remove_stackframeinfo(&sfi);
 
-		if (e != NULL) {
-			_mc->gregs[REG_ITMP1_XPTR] = (ptrint)e;
-			_mc->gregs[REG_ITMP2_XPC] = (ptrint)xpc;
-			_mc->psw.addr = (ptrint) asm_handle_exception;
-		} else {
-			_mc->psw.addr = xpc;
+		if (p != NULL) {
+			_mc->gregs[REG_ITMP1_XPTR] = (intptr_t) p;
+			_mc->gregs[REG_ITMP2_XPC]  = (intptr_t) xpc;
+			_mc->psw.addr              = (intptr_t) asm_handle_exception;
+		}
+		else {
+			_mc->psw.addr              = (intptr_t) xpc;
 		}
 	} else {
 #if !defined(NDEBUG)
@@ -281,18 +280,18 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
 
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo      sfi;
-	ucontext_t         *_uc;
-	mcontext_t         *_mc;
-	u1                 *pv;
-	u1                 *sp;
-	u1                 *ra;
-	u1                 *xpc;
-	u1                 *pc;
-	s4                  r1, r2;
-	s4                  type;
-	ptrint              val;
-	java_objectheader  *e;
+	stackframeinfo  sfi;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	u1             *pv;
+	u1             *sp;
+	u1             *ra;
+	u1             *xpc;
+	u1             *pc;
+	int             r1, r2;
+	int             type;
+	intptr_t        val;
+	void           *p;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -323,7 +322,8 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 			_mc->psw.addr = (ptrint) pc;
 
 			return;
-		} else if (_mc->gregs[r2] == 0) {
+		}
+		else if (_mc->gregs[r2] == 0) {
 			/* division by 0 */
 
 			pv = (u1 *)_mc->gregs[REG_PV] - N_PV_OFFSET;
@@ -337,17 +337,17 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 			stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-			/* generate appropriate exception */
+			/* Handle the type. */
 
-			e = exceptions_new_hardware_exception(xpc, type, val);
+			p = signal_handle(xpc, type, val);
 
 			/* remove stackframeinfo */
 
 			stacktrace_remove_stackframeinfo(&sfi);
 
-			_mc->gregs[REG_ITMP1_XPTR] = (ptrint)e;
-			_mc->gregs[REG_ITMP2_XPC] = (ptrint)xpc;
-			_mc->psw.addr = (ptrint) asm_handle_exception;
+			_mc->gregs[REG_ITMP1_XPTR] = (intptr_t) p;
+			_mc->gregs[REG_ITMP2_XPC]  = (intptr_t) xpc;
+			_mc->psw.addr              = (intptr_t) asm_handle_exception;
 
 			return;
 		}

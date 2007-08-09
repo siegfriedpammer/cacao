@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 8282 2007-08-09 12:18:47Z twisti $
+   $Id: signal.c 8283 2007-08-09 15:10:05Z twisti $
 
 */
 
@@ -32,6 +32,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <signal.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #if defined(__DARWIN__)
@@ -50,9 +51,15 @@
 # include "threads/none/threads.h"
 #endif
 
+#include "toolbox/logging.h"
+
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/vm.h"
+
+#include "vm/jit/codegen-common.h"
+#include "vm/jit/disass.h"
+#include "vm/jit/patcher-common.h"
 
 #include "vmcore/options.h"
 
@@ -198,6 +205,83 @@ void signal_register_signal(int signum, void *handler, int flags)
 	if (sigaction(signum, &act, NULL) != 0)
 		vm_abort("signal_register_signal: sigaction failed: %s",
 				 strerror(errno));
+}
+
+
+/* signal_handle ***************************************************************
+
+   Handles the signal caught by a signal handler and calls the correct
+   function.
+
+*******************************************************************************/
+
+void *signal_handle(void *xpc, int type, intptr_t val)
+{
+	void              *p;
+	int32_t            index;
+	java_objectheader *o;
+
+	switch (type) {
+	case EXCEPTION_HARDWARE_NULLPOINTER:
+		p = exceptions_new_nullpointerexception();
+		break;
+
+	case EXCEPTION_HARDWARE_ARITHMETIC:
+		p = exceptions_new_arithmeticexception();
+		break;
+
+	case EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS:
+		index = (s4) val;
+		p = exceptions_new_arrayindexoutofboundsexception(index);
+		break;
+
+	case EXCEPTION_HARDWARE_CLASSCAST:
+		o = (java_objectheader *) val;
+		p = exceptions_new_classcastexception(o);
+		break;
+
+	case EXCEPTION_HARDWARE_EXCEPTION:
+		p = exceptions_fillinstacktrace();
+		break;
+
+	case EXCEPTION_HARDWARE_PATCHER:
+#if defined(ENABLE_REPLACEMENT)
+		if (replace_me_wrapper(xpc)) {
+			p = NULL;
+			break;
+		}
+#endif
+		p = patcher_handler(xpc);
+		break;
+
+	default:
+		/* Let's try to get a backtrace. */
+
+		codegen_get_pv_from_pc(xpc);
+
+		/* If that does not work, print more debug info. */
+
+		log_println("exceptions_new_hardware_exception: unknown exception type %d", type);
+
+#if SIZEOF_VOID_P == 8
+		log_println("PC=0x%016lx", xpc);
+#else
+		log_println("PC=0x%08x", xpc);
+#endif
+
+#if defined(ENABLE_DISASSEMBLER)
+		log_println("machine instruction at PC:");
+		disassinstr(xpc);
+#endif
+
+		vm_abort("Exiting...");
+
+		/* keep compiler happy */
+
+		p = NULL;
+	}
+
+	return p;
 }
 
 

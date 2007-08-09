@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8270 2007-08-08 13:57:12Z twisti $
+   $Id: exceptions.c 8283 2007-08-09 15:10:05Z twisti $
 
 */
 
@@ -51,7 +51,6 @@
 #include "threads/lock-common.h"
 #include "threads/threads-common.h"
 
-#include "toolbox/logging.h"
 #include "toolbox/util.h"
 
 #include "vm/builtin.h"
@@ -61,7 +60,6 @@
 #include "vm/vm.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher-common.h"
@@ -1722,85 +1720,6 @@ java_objectheader *exceptions_fillinstacktrace(void)
 	/* return exception object */
 
 	return o;
-}
-
-
-/* exceptions_new_hardware_exception *******************************************
-
-   Creates the correct exception for a hardware-exception thrown and
-   caught by a signal handler.
-
-*******************************************************************************/
-
-java_objectheader *exceptions_new_hardware_exception(u1 *xpc, s4 type, ptrint val)
-{
-	java_objectheader *e;
-	java_objectheader *o;
-	s4                 index;
-
-	switch (type) {
-	case EXCEPTION_HARDWARE_NULLPOINTER:
-		e = exceptions_new_nullpointerexception();
-		break;
-
-	case EXCEPTION_HARDWARE_ARITHMETIC:
-		e = exceptions_new_arithmeticexception();
-		break;
-
-	case EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS:
-		index = (s4) val;
-		e = exceptions_new_arrayindexoutofboundsexception(index);
-		break;
-
-	case EXCEPTION_HARDWARE_CLASSCAST:
-		o = (java_objectheader *) val;
-		e = exceptions_new_classcastexception(o);
-		break;
-
-	case EXCEPTION_HARDWARE_EXCEPTION:
-		e = exceptions_fillinstacktrace();
-		break;
-
-	case EXCEPTION_HARDWARE_PATCHER:
-#if defined(ENABLE_REPLACEMENT)
-		if (replace_me_wrapper(xpc)) {
-			e = NULL;
-			break;
-		}
-#endif
-		e = patcher_handler(xpc);
-		break;
-
-	default:
-		/* let's try to get a backtrace */
-
-		codegen_get_pv_from_pc(xpc);
-
-		/* if that does not work, print more debug info */
-
-		log_println("exceptions_new_hardware_exception: unknown exception type %d", type);
-
-#if SIZEOF_VOID_P == 8
-		log_println("PC=0x%016lx", xpc);
-#else
-		log_println("PC=0x%08x", xpc);
-#endif
-
-#if defined(ENABLE_DISASSEMBLER)
-		log_println("machine instruction at PC:");
-		disassinstr(xpc);
-#endif
-
-		vm_abort("Exiting...");
-
-		/* keep compiler happy */
-
-		e = NULL;
-	}
-
-	/* return the exception object */
-
-	return e;
 }
 
 

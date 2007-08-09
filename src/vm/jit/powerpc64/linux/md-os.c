@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 8243 2007-07-31 08:57:54Z michi $
+   $Id: md-os.c 8283 2007-08-09 15:10:05Z twisti $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <ucontext.h>
 
 #include "vm/types.h"
@@ -61,32 +62,34 @@
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo   sfi;
-	ucontext_t  	*_uc;
-	mcontext_t  	*_mc;
-	u1          	*pv;
-	u1          	*sp;
-	u1          	*ra;
-	u1          	*xpc;
-	u4          	mcode;
-	s4	    	s1;
-	s4		disp;
-	s4		d;
-	s4 		type;
-	ptrint		addr;
-	ptrint		val;
-	java_objectheader *e;
+	stackframeinfo  sfi;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	u1             *pv;
+	u1             *sp;
+	u1             *ra;
+	u1             *xpc;
+	u4              mcode;
+	int             s1;
+	int16_t         disp;
+	int             d;
+	int             type;
+	intptr_t        addr;
+	intptr_t        val;
+	void           *p;
 
  	_uc = (ucontext_t *) _p;
  	_mc = &(_uc->uc_mcontext);
 
 	/* get register values */
+
 	pv = (u1*) _mc->gp_regs[REG_PV];
 	sp = (u1*) _mc->gp_regs[REG_SP];
 	ra = (u1*) _mc->gp_regs[PT_LNK];                     /* correct for leafs */
 	xpc =(u1*) _mc->gp_regs[PT_NIP];
 
 	/* get the throwing instruction */
+
 	mcode = *((u4*)xpc);
 
 	s1   = M_INSTR_OP2_IMM_A(mcode);
@@ -95,10 +98,11 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	val  = _mc->gp_regs[d];
 
-	if (s1 == REG_ZERO)	{
+	if (s1 == REG_ZERO) {
 		/* we use the exception type as load displacement */
 		type = disp;
-	} else	{
+	}
+	else {
 		/* normal NPE */
 		addr = _mc->gp_regs[s1];
 		type = (s4) addr;
@@ -108,17 +112,17 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-	/* generate appropriate exception */
+	/* Handle the type. */
 
-	e = exceptions_new_hardware_exception(xpc, type, val);
+	p = signal_handle(xpc, type, val);
 
 	/* remove stackframeinfo */
 
 	stacktrace_remove_stackframeinfo(&sfi);
 
-	_mc->gp_regs[REG_ITMP1]     = (ptrint) e;
-	_mc->gp_regs[REG_ITMP2_XPC] = (ptrint) xpc;
-	_mc->gp_regs[PT_NIP]        = (ptrint) asm_handle_exception;
+	_mc->gp_regs[REG_ITMP1]     = (intptr_t) p;
+	_mc->gp_regs[REG_ITMP2_XPC] = (intptr_t) xpc;
+	_mc->gp_regs[PT_NIP]        = (intptr_t) asm_handle_exception;
 }
 
 

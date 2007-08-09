@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 8279 2007-08-09 09:36:57Z michi $
+   $Id: md-os.c 8283 2007-08-09 15:10:05Z twisti $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <ucontext.h>
 
 #include "vm/types.h"
@@ -41,7 +42,6 @@
 # include "threads/native/threads.h"
 #endif
 
-#include "vm/exceptions.h"
 #include "vm/signallocal.h"
 
 #include "vm/jit/asmpart.h"
@@ -57,21 +57,21 @@
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo     sfi;
-	ucontext_t        *_uc;
-	mcontext_t        *_mc;
-	u1                *pv;
-	u1                *sp;
-	u1                *ra;
-	u1                *xpc;
-	u4                 mcode;
-	s4                 d;
-	s4                 s1;
-	s4                 disp;
-	ptrint             val;
-	ptrint             addr;
-	s4                 type;
-	java_objectheader *e;
+	stackframeinfo  sfi;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	u1             *pv;
+	u1             *sp;
+	u1             *ra;
+	u1             *xpc;
+	u4              mcode;
+	s4              d;
+	s4              s1;
+	s4              disp;
+	intptr_t        val;
+	intptr_t        addr;
+	int             type;
+	void           *p;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -89,7 +89,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	s1   = M_MEM_GET_B(mcode);
 	disp = M_MEM_GET_DISP(mcode);
 
-	val   = _mc->sc_regs[d];
+	val  = _mc->sc_regs[d];
 
 	/* check for special-load */
 
@@ -103,16 +103,16 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		   define is 0. */
 
 		addr = _mc->sc_regs[s1];
-		type = (s4) addr;
+		type = (int) addr;
 	}
 
 	/* create stackframeinfo */
 
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-	/* generate appropriate exception */
+	/* Handle the type. */
 
-	e = exceptions_new_hardware_exception(xpc, type, val);
+	p = signal_handle(xpc, type, val);
 
 	/* remove stackframeinfo */
 
@@ -120,10 +120,10 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* set registers */
 
-	if (e != NULL) {
-		_mc->sc_regs[REG_ITMP1_XPTR] = (ptrint) e;
-		_mc->sc_regs[REG_ITMP2_XPC]  = (ptrint) xpc;
-		_mc->sc_pc                   = (ptrint) asm_handle_exception;
+	if (p != NULL) {
+		_mc->sc_regs[REG_ITMP1_XPTR] = (intptr_t) p;
+		_mc->sc_regs[REG_ITMP2_XPC]  = (intptr_t) xpc;
+		_mc->sc_pc                   = (intptr_t) asm_handle_exception;
 	}
 }
 

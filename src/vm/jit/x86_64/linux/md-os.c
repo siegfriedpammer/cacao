@@ -32,6 +32,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <ucontext.h>
 
@@ -58,20 +59,20 @@
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo     sfi;
-	ucontext_t        *_uc;
-	mcontext_t        *_mc;
-	u1                *sp;
-	u1                *ra;
-	u1                *xpc;
-	u1                 opc;
-	u1                 mod;
-	u1                 rm;
-	s4                 d;
-	s4                 disp;
-	s4                 type;
-	ptrint             val;
-	java_objectheader *e;
+	stackframeinfo  sfi;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	u1             *sp;
+	u1             *ra;
+	u1             *xpc;
+	u1              opc;
+	u1              mod;
+	u1              rm;
+	s4              d;
+	s4              disp;
+	int             type;
+	intptr_t        val;
+	void           *p;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -163,9 +164,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	stacktrace_create_extern_stackframeinfo(&sfi, NULL, sp, ra, xpc);
 
-	/* generate appropriate exception */
+	/* Handle the type. */
 
-	e = exceptions_new_hardware_exception(xpc, type, val);
+	p = signal_handle(xpc, type, val);
 
 	/* remove stackframeinfo */
 
@@ -173,9 +174,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* set registers */
 
-	_mc->gregs[REG_RAX] = (ptrint) e;
-	_mc->gregs[REG_R10] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
-	_mc->gregs[REG_RIP] = (ptrint) asm_handle_exception;
+	_mc->gregs[REG_RAX] = (intptr_t) p;
+	_mc->gregs[REG_R10] = (intptr_t) xpc;                    /* REG_ITMP2_XPC */
+	_mc->gregs[REG_RIP] = (intptr_t) asm_handle_exception;
 }
 
 
@@ -188,16 +189,16 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo     sfi;
-	ucontext_t        *_uc;
-	mcontext_t        *_mc;
-	u1                *pv;
-	u1                *sp;
-	u1                *ra;
-	u1                *xpc;
-	s4                 type;
-	ptrint             val;
-	java_objectheader *e;
+	stackframeinfo  sfi;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	u1             *pv;
+	u1             *sp;
+	u1             *ra;
+	u1             *xpc;
+	int             type;
+	intptr_t        val;
+	void           *p;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -219,9 +220,9 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-	/* generate appropriate exception */
+	/* Handle the type. */
 
-	e = exceptions_new_hardware_exception(xpc, type, val);
+	p = signal_handle(xpc, type, val);
 
 	/* remove stackframeinfo */
 
@@ -229,9 +230,9 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 	/* set registers */
 
-	_mc->gregs[REG_RAX] = (ptrint) e;
-	_mc->gregs[REG_R10] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
-	_mc->gregs[REG_RIP] = (ptrint) asm_handle_exception;
+	_mc->gregs[REG_RAX] = (intptr_t) p;
+	_mc->gregs[REG_R10] = (intptr_t) xpc;                    /* REG_ITMP2_XPC */
+	_mc->gregs[REG_RIP] = (intptr_t) asm_handle_exception;
 }
 
 
