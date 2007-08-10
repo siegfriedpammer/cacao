@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8284 2007-08-10 08:58:39Z michi $
+   $Id: builtin.c 8288 2007-08-10 15:12:00Z twisti $
 
 */
 
@@ -69,6 +69,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
+#include "vm/primitive.h"
 #include "vm/stringlocal.h"
 
 #include "vm/jit/asmpart.h"
@@ -77,7 +78,6 @@
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vmcore/primitive.h"
 #include "vmcore/rt-timing.h"
 
 #if defined(ENABLE_VMLOG)

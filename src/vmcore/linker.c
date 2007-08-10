@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8286 2007-08-10 10:46:17Z michi $
+   $Id: linker.c 8288 2007-08-10 15:12:00Z twisti $
 
 */
 
@@ -43,6 +43,7 @@
 
 #include "vm/access.h"
 #include "vm/exceptions.h"
+#include "vm/primitive.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -52,7 +53,6 @@
 #include "vmcore/classcache.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vmcore/primitive.h"
 #include "vmcore/rt-timing.h"
 
 /* #include "vm/resolve.h" */

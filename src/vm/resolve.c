@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: resolve.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: resolve.c 8288 2007-08-10 15:12:00Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 #include "vm/access.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/primitive.h"
 #include "vm/resolve.h"
 
 #include "vm/jit/jit.h"
@@ -48,7 +49,6 @@
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vmcore/primitive.h"
 
 
 /******************************************************************************/

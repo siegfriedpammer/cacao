@@ -1,4 +1,4 @@
-/* src/vmcore/primitive.c - primitive types
+/* src/vm/primitive.c - primitive types
 
    Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -104,12 +104,14 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 
 /* function prototypes ********************************************************/
 
+/* this function is in src/vmcore/primitivecore.c */
 bool       primitive_init(void);
+
 classinfo *primitive_class_get_by_name(utf *name);
-classinfo *primitive_class_get_by_type(int32_t type);
+classinfo *primitive_class_get_by_type(int type);
 classinfo *primitive_class_get_by_char(char ch);
 classinfo *primitive_arrayclass_get_by_name(utf *name);
-classinfo *primitive_arrayclass_get_by_type(int32_t type);
+classinfo *primitive_arrayclass_get_by_type(int type);
 
 #endif /* _PRIMITIVE_H */
 

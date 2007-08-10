@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 8268 2007-08-07 13:24:43Z twisti $
+   $Id: loader.c 8288 2007-08-10 15:12:00Z twisti $
 
 */
 
@@ -44,6 +44,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/primitive.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -60,7 +61,6 @@
 #include "vmcore/loader.h"
 #include "vmcore/method.h"
 #include "vmcore/options.h"
-#include "vmcore/primitive.h"
 #include "vmcore/rt-timing.h"
 
 #if defined(ENABLE_STATISTICS)

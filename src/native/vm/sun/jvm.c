@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8262 2007-08-06 12:44:01Z panzi $
+   $Id: jvm.c 8288 2007-08-10 15:12:00Z twisti $
 
 */
 
@@ -92,16 +92,16 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/initialize.h"
+#include "vm/primitive.h"
 #include "vm/properties.h"
+#include "vm/resolve.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
-#include "vm/resolve.h"
 
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/classcache.h"
 #include "vmcore/options.h"
-#include "vmcore/primitive.h"
 
 
 /* debugging macro ************************************************************/

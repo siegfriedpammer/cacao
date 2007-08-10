@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: typeinfo.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: typeinfo.c 8288 2007-08-10 15:12:00Z twisti $
 
 */
 
@@ -36,6 +36,7 @@
 #include "toolbox/logging.h"
 
 #include "vm/exceptions.h"
+#include "vm/primitive.h"
 #include "vm/resolve.h"
 
 #include "vm/jit/jit.h"
@@ -44,7 +45,6 @@
 #include "vmcore/class.h"
 #include "vmcore/descriptor.h"
 #include "vmcore/loader.h"
-#include "vmcore/primitive.h"
 
 
 /* check if a linked class is an array class. Only use for linked classes! */

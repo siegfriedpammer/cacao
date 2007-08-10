@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: descriptor.c 8233 2007-07-25 15:11:20Z twisti $
+   $Id: descriptor.c 8288 2007-08-10 15:12:00Z twisti $
 
 */
 
@@ -39,10 +39,10 @@
 
 #include "vm/exceptions.h"
 #include "vm/jit_interface.h"
+#include "vm/primitive.h"
 #include "vm/vm.h"
 
 #include "vmcore/descriptor.h"
-#include "vmcore/primitive.h"
 #include "vmcore/options.h"
 
 

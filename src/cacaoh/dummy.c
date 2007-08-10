@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: dummy.c 8236 2007-07-27 10:18:17Z twisti $
+   $Id: dummy.c 8288 2007-08-10 15:12:00Z twisti $
 
 */
 
@@ -38,6 +38,7 @@
 #include "toolbox/logging.h"
 
 #include "vm/global.h"
+#include "vm/primitive.h"
 #include "vm/vm.h"
 
 #include "vmcore/class.h"
@@ -453,6 +454,21 @@ void dump_release(int32_t size)
 int32_t dump_size(void)
 {
 	return 0;
+}
+
+
+/* primitive ******************************************************************/
+
+classinfo *primitive_class_get_by_type(int type)
+{
+	abort();
+	return NULL;
+}
+
+classinfo *primitive_class_get_by_char(char ch)
+{
+	abort();
+	return NULL;
 }
 
 

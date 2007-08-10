@@ -81,8 +81,7 @@ libvmcore_la_SOURCES = \
 	method.h \
 	options.c \
 	options.h \
-	primitive.c \
-	primitive.h \
+	primitivecore.c \
 	references.h \
 	$(RT_TIMING_SOURCES) \
 	$(STACKMAP_SOURCES) \

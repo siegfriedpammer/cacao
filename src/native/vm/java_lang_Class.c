@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8284 2007-08-10 08:58:39Z michi $
+   $Id: java_lang_Class.c 8288 2007-08-10 15:12:00Z twisti $
 
 */
 
@@ -74,12 +74,12 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
+#include "vm/primitive.h"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
-#include "vmcore/primitive.h"
 
 #if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
 #include "vmcore/annotation.h"
