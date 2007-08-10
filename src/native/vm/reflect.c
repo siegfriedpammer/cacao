@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: reflect.c 8284 2007-08-10 08:58:39Z michi $
+   $Id: reflect.c 8289 2007-08-10 15:18:05Z twisti $
 
 */
 
@@ -228,7 +228,7 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	LLNI_field_set_ref(rf, name           = _Jv_java_lang_String_intern((java_lang_String *) javastring_new(f->name)));
+	LLNI_field_set_ref(rf, name          , _Jv_java_lang_String_intern((java_lang_String *) javastring_new(f->name)));
 	LLNI_field_set_cls(rf, type          , (java_lang_Class *) field_get_type(f));
 	LLNI_field_set_val(rf, modifiers     , f->flags);
 	LLNI_field_set_val(rf, slot          , slot);
@@ -333,7 +333,7 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 
 #elif defined(WITH_CLASSPATH_SUN)
 
-	LLNI_field_set_cls(rm, clazz                = (java_lang_Class *) m->class;
+	LLNI_field_set_cls(rm, clazz               , (java_lang_Class *) m->class);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */
