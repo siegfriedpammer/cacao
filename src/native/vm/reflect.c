@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: reflect.c 8262 2007-08-06 12:44:01Z panzi $
+   $Id: reflect.c 8284 2007-08-10 08:58:39Z michi $
 
 */
 
@@ -42,6 +42,7 @@
 #endif
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 /* keep this order of the native includes */
@@ -133,24 +134,24 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 
 #if defined(WITH_CLASSPATH_GNU)
 
-	rc->clazz                = (java_lang_Class *) c;
-	rc->slot                 = slot;
+	LLNI_field_set_cls(rc, clazz               , c);
+	LLNI_field_set_val(rc, slot                , slot);
 
 	/* TODO: add these private fields to java.lang.reflect.Constructor
-	rc->annotations          = annotations;
-	rc->parameterAnnotations = parameterAnnotations;
+	LLNI_field_set_ref(rc, annotations         , annotations);
+	LLNI_field_set_ref(rc, parameterAnnotations, parameterAnnotations);
 	*/
 
 #elif defined(WITH_CLASSPATH_SUN)
 
-	rc->clazz                = (java_lang_Class *) c;
-	rc->parameterTypes       = method_get_parametertypearray(m);
-	rc->exceptionTypes       = method_get_exceptionarray(m);
-	rc->modifiers            = m->flags & ACC_CLASS_REFLECT_MASK;
-	rc->slot                 = slot;
-	rc->signature            = m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL;
-	rc->annotations          = annotations;
-	rc->parameterAnnotations = parameterAnnotations;
+	LLNI_field_set_cls(rc, clazz               , c);
+	LLNI_field_set_ref(rc, parameterTypes      , method_get_parametertypearray(m));
+	LLNI_field_set_ref(rc, exceptionTypes      , method_get_exceptionarray(m));
+	LLNI_field_set_val(rc, modifiers           , m->flags & ACC_CLASS_REFLECT_MASK);
+	LLNI_field_set_val(rc, slot                , slot);
+	LLNI_field_set_ref(rc, signature           , m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL);
+	LLNI_field_set_ref(rc, annotations         , annotations);
+	LLNI_field_set_ref(rc, parameterAnnotations, parameterAnnotations);
 
 #else
 # error unknown classpath configuration
@@ -211,28 +212,28 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 
 #if defined(WITH_CLASSPATH_GNU)
 
-	rf->clazz = (java_lang_Class *) c;
+	LLNI_field_set_cls(rf, clazz         , c);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	rf->name           = _Jv_java_lang_String_intern((java_lang_String *) javastring_new(f->name));
-	rf->slot           = slot;
-	rf->annotations    = annotations;
+	LLNI_field_set_ref(rf, name          , _Jv_java_lang_String_intern((java_lang_String *) javastring_new(f->name)));
+	LLNI_field_set_val(rf, slot          , slot);
+	LLNI_field_set_ref(rf, annotations   , annotations);
 
 #elif defined(WITH_CLASSPATH_SUN)
 
-	rf->clazz          = (java_lang_Class *) c;
+	LLNI_field_set_cls(rf, clazz         , c);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	rf->name           = _Jv_java_lang_String_intern((java_lang_String *) javastring_new(f->name));
-	rf->type           = (java_lang_Class *) field_get_type(f);
-	rf->modifiers      = f->flags;
-	rf->slot           = slot;
-	rf->signature      = f->signature ? (java_lang_String *) javastring_new(f->signature) : NULL;
-	rf->annotations    = annotations;
+	LLNI_field_set_ref(rf, name           = _Jv_java_lang_String_intern((java_lang_String *) javastring_new(f->name)));
+	LLNI_field_set_cls(rf, type          , (java_lang_Class *) field_get_type(f));
+	LLNI_field_set_val(rf, modifiers     , f->flags);
+	LLNI_field_set_val(rf, slot          , slot);
+	LLNI_field_set_ref(rf, signature     , f->signature ? (java_lang_String *) javastring_new(f->signature) : NULL);
+	LLNI_field_set_ref(rf, annotations   , annotations);
 
 #else
 # error unknown classpath configuration
@@ -319,20 +320,20 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 
 #if defined(WITH_CLASSPATH_GNU)
 
-	rm->clazz                = (java_lang_Class *) m->class;
+	LLNI_field_set_cls(rm, clazz               , m->class);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	rm->name                 = _Jv_java_lang_String_intern((java_lang_String *) javastring_new(m->name));
-	rm->slot                 = slot;
-	rm->annotations          = annotations;
-	rm->parameterAnnotations = parameterAnnotations;
-	rm->annotationDefault    = annotationDefault;
+	LLNI_field_set_ref(rm, name                , _Jv_java_lang_String_intern((java_lang_String *) javastring_new(m->name)));
+	LLNI_field_set_val(rm, slot                , slot);
+	LLNI_field_set_ref(rm, annotations         , annotations);
+	LLNI_field_set_ref(rm, parameterAnnotations, parameterAnnotations);
+	LLNI_field_set_ref(rm, annotationDefault   , annotationDefault);
 
 #elif defined(WITH_CLASSPATH_SUN)
 
-	rm->clazz                = (java_lang_Class *) m->class;
+	LLNI_field_set_cls(rm, clazz                = (java_lang_Class *) m->class;
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */

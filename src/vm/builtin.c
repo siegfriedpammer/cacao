@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8277 2007-08-08 16:42:11Z michi $
+   $Id: builtin.c 8284 2007-08-10 08:58:39Z michi $
 
 */
 
@@ -55,6 +55,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 
@@ -514,12 +515,17 @@ void *builtin_throw_exception(java_objectheader *xptr)
 {
 #if !defined(NDEBUG)
     java_lang_Throwable *t;
+	java_lang_String    *s;
 	char                *logtext;
 	s4                   logtextlen;
 	s4                   dumpsize;
 
 	if (opt_verbose) {
 		t = (java_lang_Throwable *) xptr;
+
+		/* get detail message */
+		if (t)
+			LLNI_field_get_ref(t, detailMessage, s);
 
 		/* calculate message length */
 
@@ -528,11 +534,11 @@ void *builtin_throw_exception(java_objectheader *xptr)
 		if (t) {
 			logtextlen +=
 				utf_bytes(xptr->vftbl->class->name);
-			if (t->detailMessage) {
+			if (s) {
 				logtextlen += strlen(": ") +
-					u2_utflength(t->detailMessage->value->data 
-									+ t->detailMessage->offset,
-						     	 t->detailMessage->count);
+					u2_utflength(LLNI_field_direct(s, value)->data 
+									+ LLNI_field_direct(s, offset),
+						     	 LLNI_field_direct(s,count));
 			}
 		} 
 		else {
@@ -550,10 +556,10 @@ void *builtin_throw_exception(java_objectheader *xptr)
 		if (t) {
 			utf_cat_classname(logtext, xptr->vftbl->class->name);
 
-			if (t->detailMessage) {
+			if (s) {
 				char *buf;
 
-				buf = javastring_tochar((java_objectheader *) t->detailMessage);
+				buf = javastring_tochar((java_objectheader *) s);
 				strcat(logtext, ": ");
 				strcat(logtext, buf);
 				MFREE(buf, char, strlen(buf) + 1);

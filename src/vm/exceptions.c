@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8283 2007-08-09 15:10:05Z twisti $
+   $Id: exceptions.c 8284 2007-08-10 08:58:39Z michi $
 
 */
 
@@ -43,6 +43,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_String.h"
@@ -466,6 +467,7 @@ static void exceptions_throw_utf_cause(utf *classname, java_objectheader *cause)
 	classinfo           *c;
 	java_objectheader   *o;
 	methodinfo          *m;
+	java_lang_String    *s;
 	java_lang_Throwable *object;
 
 	object = (java_lang_Throwable *) cause;
@@ -493,7 +495,9 @@ static void exceptions_throw_utf_cause(utf *classname, java_objectheader *cause)
 	if (m == NULL)
 		return;
 
-	(void) vm_call_method(m, o, object->detailMessage);
+	LLNI_field_get_ref(object, detailMessage, s);
+
+	(void) vm_call_method(m, o, s);
 
 	/* call initCause */
 
@@ -1648,7 +1652,7 @@ void exceptions_classnotfoundexception_to_noclassdeffounderror(void)
 	java_objectheader   *o;
 	java_objectheader   *cause;
 	java_lang_Throwable *object;
-	java_objectheader   *s;
+	java_lang_String    *s;
 
 	/* get the cause */
 
@@ -1664,10 +1668,10 @@ void exceptions_classnotfoundexception_to_noclassdeffounderror(void)
 		/* create new error */
 
 		object = (java_lang_Throwable *) cause;
-		s      = (java_objectheader *) object->detailMessage;
+		LLNI_field_get_ref(object, detailMessage, s);
 
 		o = exceptions_new_utf_javastring(utf_java_lang_NoClassDefFoundError,
-										  s);
+										  (java_objectheader *) s);
 
 		/* we had an exception while creating the error */
 
@@ -1931,6 +1935,8 @@ void exceptions_print_exception(java_objectheader *xptr)
 #if defined(ENABLE_JAVASE)
 	java_lang_Throwable   *cause;
 #endif
+	java_lang_String      *s;
+	classinfo             *c;
 	utf                   *u;
 
 	t = (java_lang_Throwable *) xptr;
@@ -1941,15 +1947,18 @@ void exceptions_print_exception(java_objectheader *xptr)
 	}
 
 #if defined(ENABLE_JAVASE)
-	cause = t->cause;
+	LLNI_field_set_ref(t, cause, cause);
 #endif
 
 	/* print the root exception */
 
-	utf_display_printable_ascii_classname(t->header.vftbl->class->name);
+	LLNI_class_get(t, c);
+	utf_display_printable_ascii_classname(c->name);
 
-	if (t->detailMessage != NULL) {
-		u = javastring_toutf((java_objectheader *) t->detailMessage, false);
+	LLNI_field_get_ref(t, detailMessage, s);
+
+	if (s != NULL) {
+		u = javastring_toutf((java_objectheader *) s, false);
 
 		printf(": ");
 		utf_display_printable_ascii(u);
@@ -1962,11 +1971,14 @@ void exceptions_print_exception(java_objectheader *xptr)
 
 	if ((cause != NULL) && (cause != t)) {
 		printf("Caused by: ");
-		utf_display_printable_ascii_classname(cause->header.vftbl->class->name);
+		
+		LLNI_class_get(cause, c);
+		utf_display_printable_ascii_classname(c->name);
 
-		if (cause->detailMessage != NULL) {
-			u = javastring_toutf((java_objectheader *) cause->detailMessage,
-								 false);
+		LLNI_field_get_ref(cause, detailMessage, s);
+
+		if (s != NULL) {
+			u = javastring_toutf((java_objectheader *) s, false);
 
 			printf(": ");
 			utf_display_printable_ascii(u);

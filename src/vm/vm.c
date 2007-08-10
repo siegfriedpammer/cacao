@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8270 2007-08-08 13:57:12Z twisti $
+   $Id: vm.c 8284 2007-08-10 08:58:39Z michi $
 
 */
 
@@ -50,6 +50,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_Object.h"             /* required by j.l.C */
@@ -2757,41 +2758,41 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
 			switch (td->decltype) {
 			case PRIMITIVETYPE_BOOLEAN:
 				if (c == class_java_lang_Boolean)
-					value.i = ((java_lang_Boolean *) param)->value;
+					LLNI_field_get_val((java_lang_Boolean *) param, value, value.i);
 				else
 					goto illegal_arg;
 				break;
 
 			case PRIMITIVETYPE_BYTE:
 				if (c == class_java_lang_Byte)
-					value.i = ((java_lang_Byte *) param)->value;
+					LLNI_field_get_val((java_lang_Byte *) param, value, value.i);
 				else
 					goto illegal_arg;
 				break;
 
 			case PRIMITIVETYPE_CHAR:
 				if (c == class_java_lang_Character)
-					value.i = ((java_lang_Character *) param)->value;
+					LLNI_field_get_val((java_lang_Character *) param, value, value.i);
 				else
 					goto illegal_arg;
 				break;
 
 			case PRIMITIVETYPE_SHORT:
 				if (c == class_java_lang_Short)
-					value.i = ((java_lang_Short *) param)->value;
+					LLNI_field_get_val((java_lang_Short *) param, value, value.i);
 				else if (c == class_java_lang_Byte)
-					value.i = ((java_lang_Byte *) param)->value;
+					LLNI_field_get_val((java_lang_Byte *) param, value, value.i);
 				else
 					goto illegal_arg;
 				break;
 
 			case PRIMITIVETYPE_INT:
 				if (c == class_java_lang_Integer)
-					value.i = ((java_lang_Integer *) param)->value;
+					LLNI_field_get_val((java_lang_Integer *) param, value, value.i);
 				else if (c == class_java_lang_Short)
-					value.i = ((java_lang_Short *) param)->value;
+					LLNI_field_get_val((java_lang_Short *) param, value, value.i);
 				else if (c == class_java_lang_Byte)
-					value.i = ((java_lang_Byte *) param)->value;
+					LLNI_field_get_val((java_lang_Byte *) param, value, value.i);
 				else
 					goto illegal_arg;
 				break;
@@ -2814,13 +2815,13 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
 			switch (td->decltype) {
 			case PRIMITIVETYPE_LONG:
 				if (c == class_java_lang_Long)
-					value.l = ((java_lang_Long *) param)->value;
+					LLNI_field_get_val((java_lang_Long *) param, value, value.l);
 				else if (c == class_java_lang_Integer)
-					value.l = (int64_t) ((java_lang_Integer *) param)->value;
+					value.l = (int64_t) LLNI_field_direct(((java_lang_Integer *) param), value);
 				else if (c == class_java_lang_Short)
-					value.l = (int64_t) ((java_lang_Short *) param)->value;
+					value.l = (int64_t) LLNI_field_direct(((java_lang_Short *) param), value);
 				else if (c == class_java_lang_Byte)
-					value.l = (int64_t) ((java_lang_Byte *) param)->value;
+					value.l = (int64_t) LLNI_field_direct(((java_lang_Byte *) param), value);
 				else
 					goto illegal_arg;
 				break;
@@ -2843,7 +2844,7 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
 			switch (td->decltype) {
 			case PRIMITIVETYPE_FLOAT:
 				if (c == class_java_lang_Float)
-					value.f = ((java_lang_Float *) param)->value;
+					LLNI_field_get_val((java_lang_Float *) param, value, value.f);
 				else
 					goto illegal_arg;
 				break;
@@ -2866,9 +2867,9 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
 			switch (td->decltype) {
 			case PRIMITIVETYPE_DOUBLE:
 				if (c == class_java_lang_Double)
-					value.d = ((java_lang_Double *) param)->value;
+					LLNI_field_get_val((java_lang_Double *) param, value, value.d);
 				else if (c == class_java_lang_Float)
-					value.f = ((java_lang_Float *) param)->value;
+					LLNI_field_get_val((java_lang_Float *) param, value, value.f);
 				else
 					goto illegal_arg;
 				break;

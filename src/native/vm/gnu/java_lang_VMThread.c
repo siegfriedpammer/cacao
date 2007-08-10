@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMThread.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: java_lang_VMThread.c 8284 2007-08-10 08:58:39Z michi $
 
 */
 
@@ -32,6 +32,7 @@
 #include <stdint.h>
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_ThreadGroup.h"
@@ -91,7 +92,11 @@ void _Jv_java_lang_VMThread_init(void)
  */
 JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, java_lang_VMThread *this)
 {
-    return _Jv_java_lang_Thread_countStackFrames(this->thread);
+	java_lang_Thread *thread;
+
+	LLNI_field_get_ref(this, thread, thread);
+
+	return _Jv_java_lang_Thread_countStackFrames(thread);
 }
 
 
@@ -102,7 +107,11 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, 
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMThread *this, int64_t stacksize)
 {
-	_Jv_java_lang_Thread_start(this->thread, stacksize);
+	java_lang_Thread *thread;
+
+	LLNI_field_get_ref(this, thread, thread);
+
+	_Jv_java_lang_Thread_start(thread, stacksize);
 }
 
 
@@ -113,7 +122,11 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMTh
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, java_lang_VMThread *this)
 {
-	_Jv_java_lang_Thread_interrupt(this->thread);
+	java_lang_Thread *thread;
+
+	LLNI_field_get_ref(this, thread, thread);
+
+	_Jv_java_lang_Thread_interrupt(thread);
 }
 
 
@@ -124,7 +137,11 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, java_lang_
  */
 JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, java_lang_VMThread *this)
 {
-	return _Jv_java_lang_Thread_isInterrupted(this->thread);
+	java_lang_Thread *thread;
+
+	LLNI_field_get_ref(this, thread, thread);
+
+	return _Jv_java_lang_Thread_isInterrupted(thread);
 }
 
 
@@ -135,7 +152,11 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, jav
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, java_lang_VMThread *this)
 {
-	_Jv_java_lang_Thread_suspend(this->thread);
+	java_lang_Thread *thread;
+
+	LLNI_field_get_ref(this, thread, thread);
+
+	_Jv_java_lang_Thread_suspend(thread);
 }
 
 
@@ -146,7 +167,11 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, java_lang_VM
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, java_lang_VMThread *this)
 {
-	_Jv_java_lang_Thread_resume(this->thread);
+	java_lang_Thread *thread;
+
+	LLNI_field_get_ref(this, thread, thread);
+
+	_Jv_java_lang_Thread_resume(thread);
 }
 
 
@@ -157,7 +182,11 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, java_lang_VMT
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, java_lang_VMThread *this, int32_t priority)
 {
-	_Jv_java_lang_Thread_setPriority(this->thread, priority);
+	java_lang_Thread *thread;
+
+	LLNI_field_get_ref(this, thread, thread);
+
+	_Jv_java_lang_Thread_setPriority(thread, priority);
 }
 
 
@@ -168,7 +197,11 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, ja
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeStop(JNIEnv *env, java_lang_VMThread *this, java_lang_Throwable *t)
 {
-	_Jv_java_lang_Thread_stop(this->thread, t);
+	java_lang_Thread *thread;
+
+	LLNI_field_get_ref(this, thread, thread);
+
+	_Jv_java_lang_Thread_stop(thread, t);
 }
 
 
@@ -223,7 +256,11 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass 
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMThread_getState(JNIEnv *env, java_lang_VMThread *this)
 {
-	return _Jv_java_lang_Thread_getState(this->thread);
+	java_lang_Thread *thread;
+
+	LLNI_field_get_ref(this, thread, thread);
+
+	return _Jv_java_lang_Thread_getState(thread);
 }
 
 

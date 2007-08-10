@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.c 8139 2007-06-24 10:12:27Z twisti $
+   $Id: stacktrace.c 8284 2007-08-10 08:58:39Z michi $
 
 */
 
@@ -42,6 +42,7 @@
 
 #include "vm/global.h"                   /* required here for native includes */
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/include/java_lang_Throwable.h"
 
 #if defined(WITH_CLASSPATH_GNU)
@@ -1031,8 +1032,8 @@ void stacktrace_print_trace(java_objectheader *xptr)
 	/* now print the stacktrace */
 
 #if defined(WITH_CLASSPATH_GNU)
-	vmt = t->vmState;
-	stc = (stacktracecontainer *) vmt->vmData;
+	LLNI_field_get_ref(t, vmState, vmt);
+	stc = (stacktracecontainer *) LLNI_field_direct(vmt, vmData);
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
 	stc = (stacktracecontainer *) t->backtrace;
 #else

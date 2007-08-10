@@ -32,6 +32,7 @@
 #include <stdlib.h>
 
 #include "native/jni.h"
+#include "native/llni.h"
 
 #include "native/include/java_lang_String.h"
 
@@ -52,7 +53,7 @@ java_lang_String *_Jv_java_lang_String_intern(java_lang_String *s)
 
 	/* search table so identical strings will get identical pointers */
 
-	o = literalstring_u2(s->value, s->count, s->offset, true);
+	o = literalstring_u2(LLNI_field_direct(s, value), LLNI_field_direct(s, count), LLNI_field_direct(s, offset), true);
 
 	return (java_lang_String *) o;
 }

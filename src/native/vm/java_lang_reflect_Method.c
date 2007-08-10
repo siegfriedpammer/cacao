@@ -34,6 +34,7 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_Object.h"
@@ -58,18 +59,21 @@ java_lang_Object *_Jv_java_lang_reflect_Method_invoke(java_lang_reflect_Method *
 	classinfo  *c;
 	methodinfo *m;
 	s4          override;
+	int32_t     slot;
 
-	c = (classinfo *) this->clazz;
-	m = &(c->methods[this->slot]);
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	m = &(c->methods[slot]);
+
 
 	/* check method access */
 
 	/* check if we should bypass security checks (AccessibleObject) */
 
 #if defined(WITH_CLASSPATH_GNU)
-	override = this->flag;
+	LLNI_field_get_val(this, flag, override);
 #elif defined(WITH_CLASSPATH_SUN)
-	override = this->override;
+	LLNI_field_get_val(this, override, override);
 #else
 # error unknown classpath configuration
 #endif

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 8132 2007-06-22 11:15:47Z twisti $
+   $Id: threads.c 8284 2007-08-10 08:58:39Z michi $
 
 */
 
@@ -57,6 +57,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_String.h"
@@ -867,8 +868,8 @@ bool threads_init(void)
 
 	/* set the thread */
 
-	vmt->thread = t;
-	vmt->vmdata = (java_lang_Object *) mainthread;
+	LLNI_field_set_ref(vmt, thread, t);
+	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) mainthread);
 
 	/* call java.lang.Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
 	o = (java_objectheader *) t;
@@ -902,7 +903,7 @@ bool threads_init(void)
 		return false;
 
 #if defined(ENABLE_JAVASE)
-	t->group = threadgroup;
+	LLNI_field_set_ref(t, group, threadgroup);
 
 # if defined(WITH_CLASSPATH_GNU)
 	/* add main thread to java.lang.ThreadGroup */
@@ -1018,7 +1019,7 @@ static void *threads_startup_thread(void *arg)
 
 	/* set our priority */
 
-	threads_set_thread_priority(thread->tid, thread->object->priority);
+	threads_set_thread_priority(thread->tid, LLNI_field_direct(thread->object, priority));
 
 	/* thread is completely initialized */
 
@@ -1085,7 +1086,7 @@ static void *threads_startup_thread(void *arg)
 #if defined(WITH_CLASSPATH_GNU)
 		/* we need to start the run method of java.lang.VMThread */
 
-		vmt = (java_lang_VMThread *) thread->object->vmThread;
+		vmt = (java_lang_VMThread *) LLNI_field_direct(thread->object, vmThread);
 		o   = (java_objectheader *) vmt;
 
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
@@ -1256,6 +1257,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 #if defined(ENABLE_JAVASE)
 	java_lang_ThreadGroup *group;
 	threadobject          *mainthread;
+	classinfo             *c;
 	methodinfo            *m;
 #endif
 
@@ -1328,8 +1330,8 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	/* set the thread */
 
-	vmt->thread = t;
-	vmt->vmdata = (java_lang_Object *) thread;
+	LLNI_field_set_ref(vmt, thread, t);
+	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) thread);
 
 #elif defined(WITH_CLASSPATH_SUN)
 
@@ -1337,7 +1339,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 #elif defined(WITH_CLASSPATH_CLDC1_1)
 
-	t->vm_thread = (java_lang_Object *) thread;
+	LLNI_field_set_val(t, vm_thread, (java_lang_Object *) thread);
 
 #else
 # error unknown classpath configuration
@@ -1355,7 +1357,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 		/* get the main thread */
 
 		mainthread = threads_list_first();
-		group = mainthread->object->group;
+		group = LLNI_field_direct(mainthread->object, group);
 #endif
 	}
 
@@ -1380,11 +1382,13 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 #if defined(ENABLE_JAVASE)
 	/* store the thread group in the object */
 
-	thread->object->group = group;
+	LLNI_field_direct(thread->object, group) = group;
 
 	/* add thread to given thread-group */
 
-	m = class_resolveclassmethod(group->header.vftbl->class,
+	LLNI_class_get(group, c);
+
+	m = class_resolveclassmethod(c,
 								 utf_addThread,
 								 utf_java_lang_Thread__V,
 								 class_java_lang_ThreadGroup,
@@ -1412,6 +1416,7 @@ bool threads_detach_thread(threadobject *thread)
 {
 #if defined(ENABLE_JAVASE)
 	java_lang_ThreadGroup *group;
+	classinfo             *c;
 	methodinfo            *m;
 	java_objectheader     *o;
 	java_lang_Thread      *t;
@@ -1422,19 +1427,21 @@ bool threads_detach_thread(threadobject *thread)
 #if defined(ENABLE_JAVASE)
 	/* remove thread from the thread group */
 
-	group = thread->object->group;
+	group = LLNI_field_direct(thread->object, group);
 
 	/* XXX TWISTI: should all threads be in a ThreadGroup? */
 
 	if (group != NULL) {
+		LLNI_class_get(group, c);
+
 # if defined(WITH_CLASSPATH_GNU)
-		m = class_resolveclassmethod(group->header.vftbl->class,
+		m = class_resolveclassmethod(c,
 									 utf_removeThread,
 									 utf_java_lang_Thread__V,
 									 class_java_lang_ThreadGroup,
 									 true);
 # elif defined(WITH_CLASSPATH_SUN)
-		m = class_resolveclassmethod(group->header.vftbl->class,
+		m = class_resolveclassmethod(c,
 									 utf_remove,
 									 utf_java_lang_Thread__V,
 									 class_java_lang_ThreadGroup,

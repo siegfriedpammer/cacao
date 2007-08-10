@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8270 2007-08-08 13:57:12Z twisti $
+   $Id: jni.c 8284 2007-08-10 08:58:39Z michi $
 
 */
 
@@ -38,6 +38,7 @@
 #include "mm/gc-common.h"
 #include "mm/memory.h"
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #if defined(ENABLE_JAVASE)
@@ -898,7 +899,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		/* setting the value of the object direct */
 
 		bo = (java_lang_Boolean *) ro;
-		bo->value = i;
+		LLNI_field_set_val(bo, value, i);
 	}
 	break;
 
@@ -913,7 +914,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		/* setting the value of the object direct */
 
 		bo = (java_lang_Byte *) ro;
-		bo->value = i;
+		LLNI_field_set_val(bo, value, i);
 	}
 	break;
 
@@ -928,7 +929,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		/* setting the value of the object direct */
 
 		co = (java_lang_Character *) ro;
-		co->value = i;
+		LLNI_field_set_val(co, value, i);
 	}
 	break;
 
@@ -943,7 +944,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		/* setting the value of the object direct */
 
 		so = (java_lang_Short *) ro;
-		so->value = i;
+		LLNI_field_set_val(so, value, i);
 	}
 	break;
 
@@ -958,7 +959,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		/* setting the value of the object direct */
 
 		io = (java_lang_Integer *) ro;
-		io->value = i;
+		LLNI_field_set_val(io, value, i);
 	}
 	break;
 
@@ -973,7 +974,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		/* setting the value of the object direct */
 
 		lo = (java_lang_Long *) ro;
-		lo->value = l;
+		LLNI_field_set_val(lo, value, l);
 	}
 	break;
 
@@ -988,7 +989,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		/* setting the value of the object direct */
 
 		fo = (java_lang_Float *) ro;
-		fo->value = f;
+		LLNI_field_set_val(fo, value, f);
 	}
 	break;
 
@@ -1003,7 +1004,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 		/* setting the value of the object direct */
 
 		_do = (java_lang_Double *) ro;
-		_do->value = d;
+		LLNI_field_set_val(_do, value, d);
 	}
 	break;
 
@@ -1803,15 +1804,15 @@ jmethodID _Jv_JNI_FromReflectedMethod(JNIEnv *env, jobject method)
 		java_lang_reflect_Method *rm;
 
 		rm   = (java_lang_reflect_Method *) method;
-		c    = (classinfo *) (rm->clazz);
-		slot = rm->slot;
+		LLNI_field_get_cls(rm, clazz, c);
+		LLNI_field_get_val(rm, slot , slot);
 	}
 	else if (builtin_instanceof(o, class_java_lang_reflect_Constructor)) {
 		java_lang_reflect_Constructor *rc;
 
 		rc   = (java_lang_reflect_Constructor *) method;
-		c    = (classinfo *) (rc->clazz);
-		slot = rc->slot;
+		LLNI_field_get_cls(rc, clazz, c);
+		LLNI_field_get_val(rc, slot , slot);
 	}
 	else
 		return NULL;
@@ -1841,6 +1842,7 @@ jfieldID _Jv_JNI_FromReflectedField(JNIEnv* env, jobject field)
 	java_lang_reflect_Field *rf;
 	classinfo               *c;
 	fieldinfo               *f;
+	int32_t                  slot
 
 	STATISTICS(jniinvokation());
 
@@ -1849,8 +1851,9 @@ jfieldID _Jv_JNI_FromReflectedField(JNIEnv* env, jobject field)
 	if (rf == NULL)
 		return NULL;
 
-	c = (classinfo *) rf->clazz;
-	f = &(c->fields[rf->slot]);
+	LLNI_field_get_cls(rf, clazz, c);
+	LLNI_field_get_val(rf, slot , slot);
+	f = &(c->fields[slot]);
 
 	return (jfieldID) f;
 #else
@@ -4080,9 +4083,9 @@ jstring _Jv_JNI_NewString(JNIEnv *env, const jchar *buf, jsize len)
 	for (i = 0; i < len; i++)
 		a->data[i] = buf[i];
 
-	s->value  = a;
-	s->offset = 0;
-	s->count  = len;
+	LLNI_field_set_ref(s, value , a);
+	LLNI_field_set_val(s, offset, 0);
+	LLNI_field_set_val(s, count , len);
 
 	return (jstring) _Jv_JNI_NewLocalRef(env, (jobject) s);
 }
@@ -4100,12 +4103,15 @@ static jchar emptyStringJ[]={0,0};
 jsize _Jv_JNI_GetStringLength(JNIEnv *env, jstring str)
 {
 	java_lang_String *s;
+	jsize             len;
 
 	TRACEJNICALLS("_Jv_JNI_GetStringLength(env=%p, str=%p)", env, str);
 
 	s = (java_lang_String *) str;
 
-	return s->count;
+	LLNI_field_get_val(s, count, len);
+
+	return len;
 }
 
 
@@ -4125,19 +4131,19 @@ u2 *javastring_tou2(jstring so)
 	if (!s)
 		return NULL;
 
-	a = s->value;
+	LLNI_field_get_ref(s, value, a);
 
 	if (!a)
 		return NULL;
 
 	/* allocate memory */
 
-	stringbuffer = MNEW(u2, s->count + 1);
+	stringbuffer = MNEW(u2, LLNI_field_direct(s, count) + 1);
 
 	/* copy text */
 
-	for (i = 0; i < s->count; i++)
-		stringbuffer[i] = a->data[s->offset + i];
+	for (i = 0; i < LLNI_field_direct(s, count); i++)
+		stringbuffer[i] = a->data[LLNI_field_direct(s, offset) + i];
 	
 	/* terminate string */
 
@@ -4186,12 +4192,16 @@ const jchar *_Jv_JNI_GetStringChars(JNIEnv *env, jstring str, jboolean *isCopy)
 
 void _Jv_JNI_ReleaseStringChars(JNIEnv *env, jstring str, const jchar *chars)
 {
+	java_lang_String *s;
+
 	STATISTICS(jniinvokation());
 
 	if (chars == emptyStringJ)
 		return;
 
-	MFREE(((jchar *) chars), jchar, ((java_lang_String *) str)->count + 1);
+	s = (java_lang_String *) str;
+
+	MFREE(((jchar *) chars), jchar, LLNI_field_direct(s, count) + 1);
 }
 
 
@@ -4225,7 +4235,7 @@ jsize _Jv_JNI_GetStringUTFLength(JNIEnv *env, jstring string)
 
 	s = (java_lang_String *) string;
 
-    length = u2_utflength(s->value->data, s->count);
+    length = u2_utflength(LLNI_field_direct(s, value)->data, LLNI_field_direct(s, count));
 
 	return length;
 }
@@ -5292,10 +5302,10 @@ void _Jv_JNI_GetStringRegion(JNIEnv* env, jstring str, jsize start, jsize len,
 	STATISTICS(jniinvokation());
 
 	s  = (java_lang_String *) str;
-	ca = s->value;
+	LLNI_field_get_ref(s, value, ca);
 
-	if ((start < 0) || (len < 0) || (start > s->count) ||
-		(start + len > s->count)) {
+	if ((start < 0) || (len < 0) || (start > LLNI_field_direct(s, count)) ||
+		(start + len > LLNI_field_direct(s, count))) {
 		exceptions_throw_stringindexoutofboundsexception();
 		return;
 	}
@@ -5324,16 +5334,16 @@ void _Jv_JNI_GetStringUTFRegion(JNIEnv* env, jstring str, jsize start,
 	TRACEJNICALLS("_Jv_JNI_GetStringUTFRegion(env=%p, str=%p, start=%d, len=%d, buf=%p)", env, str, start, len, buf);
 
 	s  = (java_lang_String *) str;
-	ca = s->value;
+	LLNI_field_get_ref(s, value, ca);
 
-	if ((start < 0) || (len < 0) || (start > s->count) ||
-		(start + len > s->count)) {
+	if ((start < 0) || (len < 0) || (start > LLNI_field_direct(s, count)) ||
+		(start + len > LLNI_field_direct(s, count))) {
 		exceptions_throw_stringindexoutofboundsexception();
 		return;
 	}
 
 	for (i = 0; i < len; i++)
-		buf[i] = ca->data[s->offset + start + i];
+		buf[i] = ca->data[LLNI_field_direct(s, offset) + start + i];
 
 	buf[i] = '\0';
 }
@@ -5608,7 +5618,7 @@ jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 
 	/* fill gnu.classpath.Pointer{32,64} with address */
 
-	paddress->data = (ptrint) address;
+	LLNI_field_set_val(paddress, data, (ptrint) address);
 
 	/* create a java.nio.DirectByteBufferImpl$ReadWrite object */
 
@@ -5641,10 +5651,11 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 #if defined(ENABLE_JAVASE) && defined(WITH_CLASSPATH_GNU)
 	java_nio_DirectByteBufferImpl *nbuf;
 # if SIZEOF_VOID_P == 8
-	gnu_classpath_Pointer64       *address;
+	gnu_classpath_Pointer64       *paddress;
 # else
-	gnu_classpath_Pointer32       *address;
+	gnu_classpath_Pointer32       *paddress;
 # endif
+	void                          *address;
 
 	STATISTICS(jniinvokation());
 
@@ -5654,15 +5665,20 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 	nbuf = (java_nio_DirectByteBufferImpl *) buf;
 
 # if SIZEOF_VOID_P == 8
-	address = (gnu_classpath_Pointer64 *) nbuf->address;
+	LLNI_field_get_ref(nbuf, address, paddress);
+	/* this was the cast to avaoid warning: (gnu_classpath_Pointer64 *) nbuf->address; */
 # else
-	address = (gnu_classpath_Pointer32 *) nbuf->address;
+	LLNI_field_get_ref(nbuf, address, paddress); 
+	/* this was the cast to avaoid warning: (gnu_classpath_Pointer32 *) nbuf->address; */
 # endif
 
-	if (address == NULL)
+	if (paddress == NULL)
 		return NULL;
 
-	return (void *) address->data;
+	LLNI_field_get_val(paddress, data, address);
+	/* this was the cast to avaoid warning: (void *) paddress->data */
+
+	return address;
 #else
 	vm_abort("_Jv_JNI_GetDirectBufferAddress: not implemented in this configuration");
 
@@ -5685,6 +5701,7 @@ jlong _Jv_JNI_GetDirectBufferCapacity(JNIEnv* env, jobject buf)
 #if defined(ENABLE_JAVASE) && defined(WITH_CLASSPATH_GNU)
 	java_objectheader *o;
 	java_nio_Buffer   *nbuf;
+	jlong              capacity;
 
 	STATISTICS(jniinvokation());
 
@@ -5695,7 +5712,9 @@ jlong _Jv_JNI_GetDirectBufferCapacity(JNIEnv* env, jobject buf)
 
 	nbuf = (java_nio_Buffer *) o;
 
-	return (jlong) nbuf->cap;
+	LLNI_field_get_val(nbuf, cap, capacity);
+
+	return capacity;
 #else
 	vm_abort("_Jv_JNI_GetDirectBufferCapacity: not implemented in this configuration");
 

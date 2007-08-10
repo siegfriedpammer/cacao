@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: string.c 8230 2007-07-25 08:23:10Z twisti $
+   $Id: string.c 8284 2007-08-10 08:58:39Z michi $
 
 */
 
@@ -38,6 +38,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 
 #include "native/include/java_lang_String.h"
 
@@ -120,7 +121,7 @@ void stringtable_update(void)
 					vm_abort("stringtable_update: invalid literalstring in hashtable");
 				}
 
-				a = js->value;
+				LLNI_field_get_ref(js, value, a);
 
 				if (!js->header.vftbl) 
 					/* vftbl of javastring is NULL */ 
@@ -187,9 +188,9 @@ static java_objectheader *javastring_new_from_utf_buffer(const char *buffer,
 
 	s = (java_lang_String *) o;
 
-	s->value  = a;
-	s->offset = 0;
-	s->count  = utflength;
+	LLNI_field_set_ref(s, value , a);
+	LLNI_field_set_val(s, offset, 0);
+	LLNI_field_set_val(s, count , utflength);
 
 	return o;
 }
@@ -247,9 +248,9 @@ java_objectheader *javastring_safe_new_from_utf8(const char *text)
 
 	s = (java_lang_String *) o;
 
-	s->value  = a;
-	s->offset = 0;
-	s->count  = len;
+	LLNI_field_set_ref(s, value , a);
+	LLNI_field_set_val(s, offset, 0);
+	LLNI_field_set_val(s, count , len);
 
 	return o;
 }
@@ -321,9 +322,9 @@ java_objectheader *javastring_new(utf *u)
 
 	s = (java_lang_String *) o;
 
-	s->value  = a;
-	s->offset = 0;
-	s->count  = utflength;
+	LLNI_field_set_ref(s, value , a);
+	LLNI_field_set_val(s, offset, 0);
+	LLNI_field_set_val(s, count , utflength);
 
 	return o;
 }
@@ -376,9 +377,9 @@ java_objectheader *javastring_new_slash_to_dot(utf *u)
 
 	s = (java_lang_String *) o;
 
-	s->value  = a;
-	s->offset = 0;
-	s->count  = utflength;
+	LLNI_field_set_ref(s, value , a);
+	LLNI_field_set_val(s, offset, 0);
+	LLNI_field_set_val(s, count , utflength);
 
 	return o;
 }
@@ -430,9 +431,9 @@ java_objectheader *javastring_new_from_ascii(const char *text)
 
 	s = (java_lang_String *) o;
 
-	s->value  = a;
-	s->offset = 0;
-	s->count  = len;
+	LLNI_field_set_ref(s, value , a);
+	LLNI_field_set_val(s, offset, 0);
+	LLNI_field_set_val(s, count , len);
 
 	return o;
 }
@@ -458,15 +459,15 @@ char *javastring_tochar(java_objectheader *so)
 	if (!s)
 		return "";
 
-	a = s->value;
+	LLNI_field_get_ref(s, value, a);
 
 	if (!a)
 		return "";
 
-	buf = MNEW(char, s->count + 1);
+	buf = MNEW(char, LLNI_field_direct(s, count) + 1);
 
-	for (i = 0; i < s->count; i++)
-		buf[i] = a->data[s->offset + i];
+	for (i = 0; i < LLNI_field_direct(s, count); i++)
+		buf[i] = a->data[LLNI_field_direct(s, offset) + i];
 
 	buf[i] = '\0';
 
@@ -489,7 +490,7 @@ utf *javastring_toutf(java_objectheader *string, bool isclassname)
 	if (s == NULL)
 		return utf_null;
 
-	return utf_new_u2(s->value->data + s->offset, s->count, isclassname);
+	return utf_new_u2(LLNI_field_direct(s, value)->data + LLNI_field_direct(s, offset), LLNI_field_direct(s, count), isclassname);
 }
 
 

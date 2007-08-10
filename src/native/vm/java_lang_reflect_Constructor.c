@@ -35,6 +35,7 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #if defined(WITH_CLASSPATH_SUN)
@@ -71,9 +72,11 @@ s4 _Jv_java_lang_reflect_Constructor_getModifiers(JNIEnv *env, java_lang_reflect
 {
 	classinfo  *c;
 	methodinfo *m;
+	int32_t     slot;
 
-	c = (classinfo *) (this->clazz);
-	m = &(c->methods[this->slot]);
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	m = &(c->methods[slot]);
 
 	return m->flags;
 }
@@ -88,9 +91,11 @@ java_objectarray *_Jv_java_lang_reflect_Constructor_getParameterTypes(JNIEnv *en
 {
 	classinfo  *c;
 	methodinfo *m;
+	int32_t     slot;
 
-	c = (classinfo *) this->clazz;
-	m = &(c->methods[this->slot]);
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	m = &(c->methods[slot]);
 
 	return method_get_parametertypearray(m);
 }
@@ -105,9 +110,11 @@ java_objectarray *_Jv_java_lang_reflect_Constructor_getExceptionTypes(JNIEnv *en
 {
 	classinfo  *c;
 	methodinfo *m;
+	int32_t     slot;
 
-	c = (classinfo *) this->clazz;
-	m = &(c->methods[this->slot]);
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	m = &(c->methods[slot]);
 
 	return method_get_exceptionarray(m);
 }
@@ -124,18 +131,20 @@ java_lang_Object *_Jv_java_lang_reflect_Constructor_newInstance(JNIEnv *env, jav
 	methodinfo        *m;
 	s4                 override;
 	java_objectheader *o;
+	int32_t            slot;
 
-	c = (classinfo *) this->clazz;
-	m = &(c->methods[this->slot]);
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	m = &(c->methods[slot]);
 
 	/* check method access */
 
 	/* check if we should bypass security checks (AccessibleObject) */
 
 #if defined(WITH_CLASSPATH_GNU)
-	override = this->flag;
+	LLNI_field_get_val(this, flag, override);
 #elif defined(WITH_CLASSPATH_SUN)
-	override = this->override;
+	LLNI_field_get_val(this, override, override);
 #else
 # error unknown classpath configuration
 #endif
@@ -170,9 +179,11 @@ java_lang_String *_Jv_java_lang_reflect_Constructor_getSignature(JNIEnv *env, ja
 	classinfo         *c;
 	methodinfo        *m;
 	java_objectheader *o;
+	int32_t            slot;
 
-	c = (classinfo *) this->clazz;
-	m = &(c->methods[this->slot]);
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	m = &(c->methods[slot]);
 
 	if (m->signature == NULL)
 		return NULL;

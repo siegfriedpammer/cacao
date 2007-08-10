@@ -39,6 +39,7 @@
 #include "vm/global.h"                          /* required by native headers */
 
 #include "native/jni.h"
+#include "native/llni.h"
 
 /* keep this order of the native includes */
 
@@ -140,7 +141,7 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 #if defined(WITH_CLASSPATH_GNU)
 	/* set ProtectionDomain */
 
-	o->pd = pd;
+	LLNI_field_set_ref(o, pd, pd);
 #endif
 
 	return o;

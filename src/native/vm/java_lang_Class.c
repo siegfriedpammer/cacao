@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8262 2007-08-06 12:44:01Z panzi $
+   $Id: java_lang_Class.c 8284 2007-08-10 08:58:39Z michi $
 
 */
 
@@ -38,6 +38,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 /* keep this order of the native includes */
@@ -94,6 +95,7 @@ java_lang_String *_Jv_java_lang_Class_getName(java_lang_Class *klass)
 {
 	classinfo        *c;
 	java_lang_String *s;
+	java_chararray   *ca;
 	u4                i;
 
 	c = (classinfo *) klass;
@@ -107,9 +109,11 @@ java_lang_String *_Jv_java_lang_Class_getName(java_lang_Class *klass)
 
 	/* return string where '/' is replaced by '.' */
 
-	for (i = 0; i < s->value->header.size; i++) {
-		if (s->value->data[i] == '/')
-			s->value->data[i] = '.';
+	LLNI_field_get_ref(s, value, ca);
+
+	for (i = 0; i < ca->header.size; i++) {
+		if (ca->data[i] == '/')
+			ca->data[i] = '.';
 	}
 
 	return s;
@@ -154,7 +158,7 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 
 	/* name must not contain '/' (mauve test) */
 
-	for (i = 0, pos = name->value->data + name->offset; i < name->count; i++, pos++) {
+	for (i = 0, pos = LLNI_field_direct(name, value)->data + LLNI_field_direct(name, offset); i < LLNI_field_direct(name, count); i++, pos++) {
 		if (*pos == '/') {
 			exceptions_throw_classnotfoundexception(uname);
 			return NULL;

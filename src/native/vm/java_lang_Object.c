@@ -34,6 +34,7 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_String.h"            /* required by j.l.CL */
@@ -92,7 +93,7 @@ java_lang_Class *_Jv_java_lang_Object_getClass(java_lang_Object *obj)
 void _Jv_java_lang_Object_notify(java_lang_Object *this)
 {
 #if defined(ENABLE_THREADS)
-	lock_notify_object(&this->header);
+	lock_notify_object(&LLNI_field_direct(this, header));
 #endif
 }
 
@@ -105,7 +106,7 @@ void _Jv_java_lang_Object_notify(java_lang_Object *this)
 void _Jv_java_lang_Object_notifyAll(java_lang_Object *this)
 {
 #if defined(ENABLE_THREADS)
-	lock_notify_all_object(&this->header);
+	lock_notify_all_object(&LLNI_field_direct(this, header));
 #endif
 }
 
@@ -123,7 +124,7 @@ void _Jv_java_lang_Object_wait(java_lang_Object *o, s8 ms, s4 ns)
 #endif
 
 #if defined(ENABLE_THREADS)
-	lock_wait_for_object(&o->header, ms, ns);
+	lock_wait_for_object(&LLNI_field_direct(o, header), ms, ns);
 #endif
 
 #if defined(ENABLE_JVMTI)

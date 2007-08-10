@@ -34,6 +34,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_Object.h"                  /* before c.l.C */
@@ -371,9 +372,11 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_objectFieldOffset(JNIEnv *env, su
 {
 	classinfo *c;
 	fieldinfo *f;
+	int32_t    slot;
 
-	c = (classinfo *) field->clazz;
-	f = &c->fields[field->slot];
+	LLNI_field_get_cls(field, clazz, c);
+	LLNI_field_get_val(field, slot , slot);
+	f = &c->fields[slot];
 
 	return (int64_t) f->offset;
 }
@@ -431,9 +434,11 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_staticFieldOffset(JNIEnv *env, su
 {
 	classinfo *c;
 	fieldinfo *f;
+	int32_t    slot;
 
-	c = (classinfo *) field->clazz;
-	f = &(c->fields[field->slot]);
+	LLNI_field_get_cls(field, clazz, c);
+	LLNI_field_get_val(field, slot , slot);
+	f = &(c->fields[slot]);
 
 	return (int64_t) (intptr_t) f->value;
 }
@@ -576,7 +581,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_
 #if defined(WITH_CLASSPATH_GNU)
 	/* set ProtectionDomain */
 
-	o->pd = protectionDomain;
+	LLNI_field_set_ref(o, pd, protectionDomain);
 #endif
 
 	return o;

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 8272 2007-08-08 14:55:00Z twisti $
+   $Id: threads-common.c 8284 2007-08-10 08:58:39Z michi $
 
 */
 
@@ -38,6 +38,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_String.h"
@@ -407,12 +408,12 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 	if (vmt == NULL)
 		return false;
 
-	vmt->thread = object;
-	vmt->vmdata = (java_lang_Object *) t;
+	LLNI_field_set_ref(vmt, thread, object);
+	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) t);
 
-	object->vmThread = vmt;
+	LLNI_field_set_ref(object, vmThread, vmt);
 #elif defined(WITH_CLASSPATH_CLDC1_1)
-	object->vm_thread = (java_lang_Object *) t;
+	LLNI_field_set_val(object, vm_thread, (java_lang_Object *) t);
 #endif
 
 	t->object = object;
@@ -420,18 +421,18 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 	/* set java.lang.Thread fields */
 
 #if defined(WITH_CLASSPATH_GNU)
-	object->name     = (java_lang_String *) javastring_new(name);
+	LLNI_field_set_ref(object, name    , (java_lang_String *) javastring_new(name));
 #elif defined(WITH_CLASSPATH_CLDC1_1)
 	/* FIXME: In cldc the name is a char[] */
-/* 	object->name     = (java_chararray *) javastring_new(name); */
-	object->name     = NULL;
+/* 	LLNI_field_set_ref(object, name    , (java_chararray *) javastring_new(name)); */
+	LLNI_field_set_ref(object, name    , NULL);
 #endif
 
 #if defined(ENABLE_JAVASE)
-	object->daemon   = true;
+	LLNI_field_set_val(object, daemon  , true);
 #endif
 
-	object->priority = NORM_PRIORITY;
+	LLNI_field_set_val(object, priority, NORM_PRIORITY);
 
 	/* start the thread */
 
@@ -456,6 +457,9 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 void threads_thread_start(java_lang_Thread *object)
 {
 	threadobject *thread;
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_VMThread *vmt;
+#endif
 
 	/* Enter the join-mutex, so if the main-thread is currently
 	   waiting to join all threads, the number of non-daemon threads
@@ -474,7 +478,7 @@ void threads_thread_start(java_lang_Thread *object)
 #if defined(ENABLE_JAVASE)
 	/* is this a daemon thread? */
 
-	if (object->daemon == true)
+	if (LLNI_field_direct(object, daemon) == true)
 		thread->flags |= THREAD_FLAG_DAEMON;
 #endif
 
@@ -488,12 +492,14 @@ void threads_thread_start(java_lang_Thread *object)
 	thread->object = object;
 
 #if defined(WITH_CLASSPATH_GNU)
-	assert(object->vmThread);
-	assert(object->vmThread->vmdata == NULL);
+	LLNI_field_get_ref(object, vmThread, vmt);
 
-	object->vmThread->vmdata = (java_lang_Object *) thread;
+	assert(vmt);
+	assert(LLNI_field_direct(vmt, vmdata) == NULL);
+
+	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) thread);
 #elif defined(WITH_CLASSPATH_CLDC1_1)
-	object->vm_thread = (java_lang_Object *) thread;
+	LLNI_field_set_val(object, vm_thread, (java_lang_Object *) thread);
 #endif
 
 	/* Start the thread.  Don't pass a function pointer (NULL) since
@@ -524,7 +530,7 @@ void threads_thread_print_info(threadobject *t)
 		/* get thread name */
 
 #if defined(WITH_CLASSPATH_GNU)
-		name = javastring_toutf((java_objectheader *) object->name, false);
+		name = javastring_toutf((java_objectheader *) LLNI_field_direct(object, name), false);
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
 		/* FIXME: In cldc the name is a char[] */
 /* 		name = object->name; */
@@ -540,7 +546,7 @@ void threads_thread_print_info(threadobject *t)
 		if (t->flags & THREAD_FLAG_DAEMON)
 			printf(" daemon");
 
-		printf(" prio=%d", object->priority);
+		printf(" prio=%d", LLNI_field_direct(object, priority));
 
 #if SIZEOF_VOID_P == 8
 		printf(" t=0x%016lx tid=0x%016lx (%ld)",
