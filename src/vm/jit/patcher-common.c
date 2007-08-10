@@ -188,12 +188,24 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
 
 *******************************************************************************/
 
+/*#define TRACE_PATCHER*/
+
+#ifdef TRACE_PATCHER
+/* XXX this indent is not thread safe! */
+/* XXX if you want it thread safe, place patcher_depth in threadobject! */
+static int patcher_depth = 0;
+# define TRACE_PATCHER_INDENT for (i=0; i<patcher_depth; i++) printf("\t")
+#endif
+
 java_objectheader *patcher_handler(u1 *pc)
 {
 	codeinfo          *code;
 	patchref_t        *pr;
 	bool               result;
 	java_objectheader *e;
+#ifdef TRACE_PATCHER
+	int                i;
+#endif
 
 	/* define the patcher function */
 
@@ -221,6 +233,14 @@ java_objectheader *patcher_handler(u1 *pc)
 		return NULL;
 	}
 
+#ifdef TRACE_PATCHER
+	TRACE_PATCHER_INDENT; printf("patching in "); method_print(code->m); printf("\n");
+	TRACE_PATCHER_INDENT; printf("\texception program counter = %p\n", (void *) pr->mpc);
+	TRACE_PATCHER_INDENT; printf("\tmcodes before = "); for (i=0; i<5; i++) printf("0x%08x ", *((u4 *) pr->mpc + i)); printf("\n");
+	patcher_depth++;
+	assert(patcher_depth > 0);
+#endif
+
 	/* cast the passed function to a patcher function */
 
 	patcher_function = (bool (*)(patchref_t *)) (ptrint) pr->patcher;
@@ -228,6 +248,15 @@ java_objectheader *patcher_handler(u1 *pc)
 	/* call the proper patcher function */
 
 	result = (patcher_function)(pr);
+
+#ifdef TRACE_PATCHER
+	assert(patcher_depth > 0);
+	patcher_depth--;
+	TRACE_PATCHER_INDENT; printf("\tmcodes after  = "); for (i=0; i<5; i++) printf("0x%08x ", *((u4 *) pr->mpc + i)); printf("\n");
+	if (result == false) {
+		TRACE_PATCHER_INDENT; printf("\tPATCHER EXCEPTION!\n");
+	}
+#endif
 
 	/* check for return value and exit accordingly */
 

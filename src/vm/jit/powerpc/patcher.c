@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 8268 2007-08-07 13:24:43Z twisti $
+   $Id: patcher.c 8286 2007-08-10 10:46:17Z michi $
 
 */
 
@@ -390,11 +390,13 @@ bool patcher_get_putfield(patchref_t *pr)
 		disp = *((u4 *) (ra + 0 * 4));
 
 		if (disp == 4) {
+			*((u4 *) (ra + 0 * 4)) &= 0xffff0000;
 			*((u4 *) (ra + 0 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
 			*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
 		}
 		else {
 			*((u4 *) (ra + 0 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
+			*((u4 *) (ra + 1 * 4)) &= 0xffff0000;
 			*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
 		}
 	}

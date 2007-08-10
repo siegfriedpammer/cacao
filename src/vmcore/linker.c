@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8277 2007-08-08 16:42:11Z michi $
+   $Id: linker.c 8286 2007-08-10 10:46:17Z michi $
 
 */
 
@@ -115,7 +115,7 @@ bool linker_init(void)
 	/* Check for if alignment for long and double matches what we
 	   assume for the current architecture. */
 
-#if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__))
+#if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__)) || (defined(__POWERPC__) && defined(__DARWIN__))
 	if (OFFSET(dummy_alignment_long_t, l) != 4)
 		vm_abort("linker_init: long alignment is different from what assumed: %d != %d",
 				 OFFSET(dummy_alignment_long_t, l), 4);
@@ -882,7 +882,7 @@ static classinfo *link_class_intern(classinfo *c)
 		if (!(f->flags & ACC_STATIC)) {
 			dsize = descriptor_typesize(f->parseddesc);
 
-#if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__))
+#if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__)) || (defined(__POWERPC__) && defined(__DARWIN__))
 			/* On i386 and ARM we align double and s8 fields to
 			   4-bytes.  This matches what GCC does for struct
 			   members. We must do the same as gcc here because the
