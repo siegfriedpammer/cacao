@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8284 2007-08-10 08:58:39Z michi $
+   $Id: jni.c 8287 2007-08-10 15:10:29Z twisti $
 
 */
 
@@ -1842,7 +1842,7 @@ jfieldID _Jv_JNI_FromReflectedField(JNIEnv* env, jobject field)
 	java_lang_reflect_Field *rf;
 	classinfo               *c;
 	fieldinfo               *f;
-	int32_t                  slot
+	int32_t                  slot;
 
 	STATISTICS(jniinvokation());
 
