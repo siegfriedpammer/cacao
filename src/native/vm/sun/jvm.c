@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8288 2007-08-10 15:12:00Z twisti $
+   $Id: jvm.c 8290 2007-08-11 10:25:40Z twisti $
 
 */
 
@@ -287,10 +287,9 @@ void JVM_OnExit(void (*func)(void))
 
 void JVM_GC(void)
 {
-#if PRINTJVM
-	log_println("JVM_GC");
-#endif
-	_Jv_java_lang_Runtime_gc();
+	TRACEJVMCALLS("JVM_GC()");
+
+	gc_call();
 }
 
 
@@ -322,10 +321,9 @@ void JVM_TraceMethodCalls(jboolean on)
 
 jlong JVM_TotalMemory(void)
 {
-#if PRINTJVM
-	log_println("JVM_TotalMemory");
-#endif
-	return _Jv_java_lang_Runtime_totalMemory();
+	TRACEJVMCALLS("JVM_TotalMemory()");
+
+	return gc_get_heap_size();
 }
 
 
@@ -333,10 +331,9 @@ jlong JVM_TotalMemory(void)
 
 jlong JVM_FreeMemory(void)
 {
-#if PRINTJVM
-	log_println("JVM_FreeMemory");
-#endif
-	return _Jv_java_lang_Runtime_freeMemory();
+	TRACEJVMCALLS("JVM_FreeMemory()");
+
+	return gc_get_free_bytes();
 }
 
 
@@ -2275,11 +2272,10 @@ jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 	java_arrayheader *a;
 	java_objectarray *oa;
 
+	TRACEJVMCALLS("JVM_NewArray(env=%p, eltClass=%p, length=%d)", env, eltClass, length);
+
 	c = (classinfo *) eltClass;
 
-#if PRINTJVM
-	log_println("JVM_NewArray(eltClass=%p, length=%d)", eltClass, length);
-#endif
 	/* create primitive or object array */
 
 	if (class_is_primitive(c)) {
