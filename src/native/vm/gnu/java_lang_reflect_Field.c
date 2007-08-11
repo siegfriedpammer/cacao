@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Field.c 8288 2007-08-10 15:12:00Z twisti $
+   $Id: java_lang_reflect_Field.c 8291 2007-08-11 10:43:45Z twisti $
 
 */
 
@@ -239,12 +239,14 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType(JNIEnv *
  * Method:    get
  * Signature: (Ljava/lang/Object;)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *object)
 {
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
 	int32_t    slot;
+	imm_union  value;
+	java_objectheader *o;
 
 	LLNI_field_get_cls(this, clazz, c);
 	LLNI_field_get_val(this, slot , slot);
@@ -252,115 +254,39 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env
 
 	/* get address of the source field value */
 
-	if ((addr = cacao_get_field_address(this, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, object)) == NULL)
 		return NULL;
 
 	switch (f->parseddesc->decltype) {
-	case PRIMITIVETYPE_BOOLEAN: {
-		java_lang_Boolean *bo;
+	case PRIMITIVETYPE_BOOLEAN:
+	case PRIMITIVETYPE_BYTE:
+	case PRIMITIVETYPE_CHAR:
+	case PRIMITIVETYPE_SHORT:
+	case PRIMITIVETYPE_INT:
+		value.i = *((int32_t *) addr);
+		break;
 
-		/* create wrapping class */
+	case PRIMITIVETYPE_LONG:
+		value.l = *((int64_t *) addr);
+		break;
 
-		if (!(bo = (java_lang_Boolean *) builtin_new(class_java_lang_Boolean)))
-			return NULL;
+	case PRIMITIVETYPE_FLOAT:
+		value.f = *((float *) addr);
+		break;
 
-		/* set the object value */
-
-		LLNI_field_set_val(bo, value, *((int32_t *) addr));
-
-		/* return the wrapped object */
-
-		return (java_lang_Object *) bo;
-	}
-
-	case PRIMITIVETYPE_BYTE: {
-		java_lang_Byte *bo;
-
-		if (!(bo = (java_lang_Byte *) builtin_new(class_java_lang_Byte)))
-			return NULL;
-
-		LLNI_field_set_val(bo, value, *((int32_t *) addr));
-
-		return (java_lang_Object *) bo;
-	}
-
-	case PRIMITIVETYPE_CHAR: {
-		java_lang_Character *co;
-
-		if (!(co = (java_lang_Character *) builtin_new(class_java_lang_Character)))
-			return NULL;
-
-		LLNI_field_set_val(co, value, *((int32_t *) addr));
-
-		return (java_lang_Object *) co;
-	}
-
-	case PRIMITIVETYPE_SHORT: {
-		java_lang_Short *so;
-
-		if (!(so = (java_lang_Short *) builtin_new(class_java_lang_Short)))
-			return NULL;
-
-		LLNI_field_set_val(so, value, (int32_t) *((int32_t *) addr));
-
-		return (java_lang_Object *) so;
-	}
-
-	case PRIMITIVETYPE_INT: {
-		java_lang_Integer *io;
-
-		if (!(io = (java_lang_Integer *) builtin_new(class_java_lang_Integer)))
-			return NULL;
-
-		LLNI_field_set_val(io, value, *((int32_t *) addr));
-
-		return (java_lang_Object *) io;
-	}
-
-	case PRIMITIVETYPE_LONG: {
-		java_lang_Long *lo;
-
-		if (!(lo = (java_lang_Long *) builtin_new(class_java_lang_Long)))
-			return NULL;
-
-		LLNI_field_set_val(lo, value, *((int64_t *) addr));
-
-		return (java_lang_Object *) lo;
-	}
-
-	case PRIMITIVETYPE_FLOAT: {
-		java_lang_Float *fo;
-
-		if (!(fo = (java_lang_Float *) builtin_new(class_java_lang_Float)))
-			return NULL;
-
-		LLNI_field_set_val(fo, value, *((float *) addr));
-
-		return (java_lang_Object *) fo;
-	}
-
-	case PRIMITIVETYPE_DOUBLE: {
-		java_lang_Double *_do;
-
-		if (!(_do = (java_lang_Double *) builtin_new(class_java_lang_Double)))
-			return NULL;
-
-		LLNI_field_set_val(_do, value, *((double *) addr));
-
-		return (java_lang_Object *) _do;
-	}
+	case PRIMITIVETYPE_DOUBLE:
+		value.d = *((double *) addr);
+		break;
 
 	case TYPE_ADR:
 		return (java_lang_Object *) *((java_objectheader **) addr);
 	}
 
-	/* this must not happen */
+	/* Now box the primitive types. */
 
-	assert(0);
+	o = primitive_box(f->parseddesc->decltype, value);
 
-	/* keep compiler happy */
-
-	return NULL;
+	return (java_lang_Object *) o;
 }
 
 

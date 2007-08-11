@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8288 2007-08-10 15:12:00Z twisti $
+   $Id: jni.c 8291 2007-08-11 10:43:45Z twisti $
 
 */
 
@@ -807,6 +807,7 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 	java_objectheader *xptr;
 	int32_t            dumpsize;
 	uint64_t          *array;
+	imm_union          value;
 
 	if (m == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -884,143 +885,39 @@ java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
 	switch (resm->parseddesc->returntype.decltype) {
 	case TYPE_VOID:
 		(void) vm_call_array(resm, array);
-
 		ro = NULL;
 		break;
 
-	case PRIMITIVETYPE_BOOLEAN: {
-		s4 i;
-		java_lang_Boolean *bo;
+	case PRIMITIVETYPE_BOOLEAN:
+	case PRIMITIVETYPE_BYTE:
+	case PRIMITIVETYPE_CHAR:
+	case PRIMITIVETYPE_SHORT:
+	case PRIMITIVETYPE_INT:
+		value.i = vm_call_int_array(resm, array);
+		ro = primitive_box(resm->parseddesc->returntype.decltype, value);
+		break;
 
-		i = vm_call_int_array(resm, array);
+	case PRIMITIVETYPE_LONG:
+		value.l = vm_call_long_array(resm, array);
+		ro = primitive_box(resm->parseddesc->returntype.decltype, value);
+		break;
 
-		ro = builtin_new(class_java_lang_Boolean);
+	case PRIMITIVETYPE_FLOAT:
+		value.f = vm_call_float_array(resm, array);
+		ro = primitive_box(resm->parseddesc->returntype.decltype, value);
+		break;
 
-		/* setting the value of the object direct */
-
-		bo = (java_lang_Boolean *) ro;
-		LLNI_field_set_val(bo, value, i);
-	}
-	break;
-
-	case PRIMITIVETYPE_BYTE: {
-		s4 i;
-		java_lang_Byte *bo;
-
-		i = vm_call_int_array(resm, array);
-
-		ro = builtin_new(class_java_lang_Byte);
-
-		/* setting the value of the object direct */
-
-		bo = (java_lang_Byte *) ro;
-		LLNI_field_set_val(bo, value, i);
-	}
-	break;
-
-	case PRIMITIVETYPE_CHAR: {
-		s4 i;
-		java_lang_Character *co;
-
-		i = vm_call_int_array(resm, array);
-
-		ro = builtin_new(class_java_lang_Character);
-
-		/* setting the value of the object direct */
-
-		co = (java_lang_Character *) ro;
-		LLNI_field_set_val(co, value, i);
-	}
-	break;
-
-	case PRIMITIVETYPE_SHORT: {
-		s4 i;
-		java_lang_Short *so;
-
-		i = vm_call_int_array(resm, array);
-
-		ro = builtin_new(class_java_lang_Short);
-
-		/* setting the value of the object direct */
-
-		so = (java_lang_Short *) ro;
-		LLNI_field_set_val(so, value, i);
-	}
-	break;
-
-	case PRIMITIVETYPE_INT: {
-		s4 i;
-		java_lang_Integer *io;
-
-		i = vm_call_int_array(resm, array);
-
-		ro = builtin_new(class_java_lang_Integer);
-
-		/* setting the value of the object direct */
-
-		io = (java_lang_Integer *) ro;
-		LLNI_field_set_val(io, value, i);
-	}
-	break;
-
-	case PRIMITIVETYPE_LONG: {
-		s8 l;
-		java_lang_Long *lo;
-
-		l = vm_call_long_array(resm, array);
-
-		ro = builtin_new(class_java_lang_Long);
-
-		/* setting the value of the object direct */
-
-		lo = (java_lang_Long *) ro;
-		LLNI_field_set_val(lo, value, l);
-	}
-	break;
-
-	case PRIMITIVETYPE_FLOAT: {
-		float f;
-		java_lang_Float *fo;
-
-		f = vm_call_float_array(resm, array);
-
-		ro = builtin_new(class_java_lang_Float);
-
-		/* setting the value of the object direct */
-
-		fo = (java_lang_Float *) ro;
-		LLNI_field_set_val(fo, value, f);
-	}
-	break;
-
-	case PRIMITIVETYPE_DOUBLE: {
-		double d;
-		java_lang_Double *_do;
-
-		d = vm_call_double_array(resm, array);
-
-		ro = builtin_new(class_java_lang_Double);
-
-		/* setting the value of the object direct */
-
-		_do = (java_lang_Double *) ro;
-		LLNI_field_set_val(_do, value, d);
-	}
-	break;
+	case PRIMITIVETYPE_DOUBLE:
+		value.d = vm_call_double_array(resm, array);
+		ro = primitive_box(resm->parseddesc->returntype.decltype, value);
+		break;
 
 	case TYPE_ADR:
 		ro = vm_call_array(resm, array);
 		break;
 
 	default:
-		/* if this happens the exception has already been set by
-		   fill_callblock_from_objectarray */
-
-		/* release dump area */
-
-		dump_release(dumpsize);
-
-		return NULL;
+		vm_abort("_Jv_jni_invokeNative: invalid return type %d", resm->parseddesc->returntype.decltype);
 	}
 
 	xptr = exceptions_get_exception();

@@ -32,8 +32,22 @@
 #include <assert.h>
 #include <stdint.h>
 
+#include "native/jni.h"
+#include "native/llni.h"
+
+#include "native/include/java_lang_Boolean.h"
+#include "native/include/java_lang_Byte.h"
+#include "native/include/java_lang_Short.h"
+#include "native/include/java_lang_Character.h"
+#include "native/include/java_lang_Integer.h"
+#include "native/include/java_lang_Long.h"
+#include "native/include/java_lang_Float.h"
+#include "native/include/java_lang_Double.h"
+
+#include "vm/builtin.h"
 #include "vm/global.h"
 #include "vm/primitive.h"
+#include "vm/vm.h"
 
 #include "vmcore/class.h"
 #include "vmcore/utf8.h"
@@ -152,6 +166,155 @@ classinfo *primitive_arrayclass_get_by_type(int type)
 {
 	return primitivetype_table[type].arrayclass;
 }
+
+
+/* primitive_box ***************************************************************
+
+   Box a primitive of the given type.
+
+*******************************************************************************/
+
+java_objectheader *primitive_box(int type, imm_union value)
+{
+	java_objectheader *o;
+
+	switch (type) {
+	case PRIMITIVETYPE_BOOLEAN:
+		o = primitive_box_boolean(value.i);
+		break;
+	case PRIMITIVETYPE_BYTE:
+		o = primitive_box_byte(value.i);
+		break;
+	case PRIMITIVETYPE_CHAR:
+		o = primitive_box_char(value.i);
+		break;
+	case PRIMITIVETYPE_SHORT:
+		o = primitive_box_short(value.i);
+		break;
+	case PRIMITIVETYPE_INT:
+		o = primitive_box_int(value.i);
+		break;
+	case PRIMITIVETYPE_LONG:
+		o = primitive_box_long(value.l);
+		break;
+	case PRIMITIVETYPE_FLOAT:
+		o = primitive_box_float(value.f);
+		break;
+	case PRIMITIVETYPE_DOUBLE:
+		o = primitive_box_double(value.d);
+		break;
+	default:
+		vm_abort("primitive_box: invalid primitive type %d", type);
+	}
+
+	return o;
+}
+
+
+/* primitive_unbox *************************************************************
+
+   Unbox a primitive of the given type.
+
+*******************************************************************************/
+
+imm_union primitive_unbox(int type, java_objectheader *o)
+{
+	imm_union value;
+
+	switch (type) {
+	case PRIMITIVETYPE_BOOLEAN:
+		value.i = primitive_unbox_boolean(o);
+		break;
+	case PRIMITIVETYPE_BYTE:
+		value.i = primitive_unbox_byte(o);
+		break;
+	case PRIMITIVETYPE_CHAR:
+		value.i = primitive_unbox_char(o);
+		break;
+	case PRIMITIVETYPE_SHORT:
+		value.i = primitive_unbox_short(o);
+		break;
+	case PRIMITIVETYPE_INT:
+		value.i = primitive_unbox_int(o);
+		break;
+	case PRIMITIVETYPE_LONG:
+		value.l = primitive_unbox_long(o);
+		break;
+	case PRIMITIVETYPE_FLOAT:
+		value.f = primitive_unbox_float(o);
+		break;
+	case PRIMITIVETYPE_DOUBLE:
+		value.d = primitive_unbox_double(o);
+		break;
+	default:
+		vm_abort("primitive_unbox: invalid primitive type %d", type);
+	}
+
+	return value;
+}
+
+
+/* primitive_box_xxx ***********************************************************
+
+   Box a primitive type.
+
+*******************************************************************************/
+
+#define PRIMITIVE_BOX_TYPE(name, object, type)      \
+java_objectheader *primitive_box_##name(type value) \
+{                                                   \
+	java_objectheader  *o;                          \
+	java_lang_##object *jo;                         \
+                                                    \
+	o = builtin_new(class_java_lang_##object);      \
+                                                    \
+	if (o == NULL)                                  \
+		return NULL;                                \
+                                                    \
+	jo = (java_lang_##object *) o;                  \
+                                                    \
+	LLNI_field_set_val(jo, value, value);           \
+                                                    \
+	return o;                                       \
+}
+
+PRIMITIVE_BOX_TYPE(boolean, Boolean,   int32_t)
+PRIMITIVE_BOX_TYPE(byte,    Byte,      int32_t)
+PRIMITIVE_BOX_TYPE(char,    Character, int32_t)
+PRIMITIVE_BOX_TYPE(short,   Short,     int32_t)
+PRIMITIVE_BOX_TYPE(int,     Integer,   int32_t)
+PRIMITIVE_BOX_TYPE(long,    Long,      int64_t)
+PRIMITIVE_BOX_TYPE(float,   Float,     float)
+PRIMITIVE_BOX_TYPE(double,  Double,    double)
+
+
+/* primitive_unbox_xxx *********************************************************
+
+   Unbox a primitive type.
+
+*******************************************************************************/
+
+#define PRIMITIVE_UNBOX_TYPE(name, object, type)  \
+type primitive_unbox_##name(java_objectheader *o) \
+{                                                 \
+	java_lang_##object *jo;                       \
+	type                value;                    \
+                                                  \
+	jo = (java_lang_##object *) o;                \
+                                                  \
+	LLNI_field_get_val(jo, value, value);         \
+                                                  \
+	return value;                                 \
+}
+
+PRIMITIVE_UNBOX_TYPE(boolean, Boolean,   int32_t)
+PRIMITIVE_UNBOX_TYPE(byte,    Byte,      int32_t)
+PRIMITIVE_UNBOX_TYPE(char,    Character, int32_t)
+PRIMITIVE_UNBOX_TYPE(short,   Short,     int32_t)
+PRIMITIVE_UNBOX_TYPE(int,     Integer,   int32_t)
+PRIMITIVE_UNBOX_TYPE(long,    Long,      int64_t)
+PRIMITIVE_UNBOX_TYPE(float,   Float,     float)
+PRIMITIVE_UNBOX_TYPE(double,  Double,    double)
 
 
 /*
