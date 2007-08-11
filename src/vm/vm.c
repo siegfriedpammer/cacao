@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8288 2007-08-10 15:12:00Z twisti $
+   $Id: vm.c 8292 2007-08-11 12:39:28Z twisti $
 
 */
 
@@ -2914,621 +2914,124 @@ illegal_arg:
 
 /* vm_call_method **************************************************************
 
-   Calls a Java method with a variable number of arguments and returns
-   an address.
+   Calls a Java method with a variable number of arguments.
 
 *******************************************************************************/
 
-java_objectheader *vm_call_method(methodinfo *m, java_objectheader *o, ...)
-{
-	va_list            ap;
-	java_objectheader *ro;
-
-	va_start(ap, o);
-	ro = vm_call_method_valist(m, o, ap);
-	va_end(ap);
-
-	return ro;
+#define VM_CALL_METHOD(name, type)                                  \
+type vm_call_method##name(methodinfo *m, java_objectheader *o, ...) \
+{                                                                   \
+	va_list ap;                                                     \
+	type    value;                                                  \
+                                                                    \
+	va_start(ap, o);                                                \
+	value = vm_call_method##name##_valist(m, o, ap);                \
+	va_end(ap);                                                     \
+                                                                    \
+	return value;                                                   \
 }
+
+VM_CALL_METHOD(,        java_objectheader *)
+VM_CALL_METHOD(_int,    int32_t)
+VM_CALL_METHOD(_long,   int64_t)
+VM_CALL_METHOD(_float,  float)
+VM_CALL_METHOD(_double, double)
 
 
 /* vm_call_method_valist *******************************************************
 
    Calls a Java method with a variable number of arguments, passed via
-   a va_list, and returns an address.
+   a va_list.
 
 *******************************************************************************/
 
-java_objectheader *vm_call_method_valist(methodinfo *m, java_objectheader *o,
-										 va_list ap)
-{
-	java_objectheader *ro;
-	int32_t            dumpsize;
-	uint64_t          *array;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_valist(m, o, ap);
-
-	/* call the Java method */
-
-	ro = vm_call_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return ro;
+#define VM_CALL_METHOD_VALIST(name, type)                               \
+type vm_call_method##name##_valist(methodinfo *m, java_objectheader *o, \
+								   va_list ap)                          \
+{                                                                       \
+	int32_t   dumpsize;                                                 \
+	uint64_t *array;                                                    \
+	type      value;                                                    \
+                                                                        \
+	dumpsize = dump_size();                                             \
+	array = vm_array_from_valist(m, o, ap);                             \
+	value = vm_call##name##_array(m, array);                            \
+	dump_release(dumpsize);                                             \
+                                                                        \
+	return value;                                                       \
 }
+
+VM_CALL_METHOD_VALIST(,        java_objectheader *)
+VM_CALL_METHOD_VALIST(_int,    int32_t)
+VM_CALL_METHOD_VALIST(_long,   int64_t)
+VM_CALL_METHOD_VALIST(_float,  float)
+VM_CALL_METHOD_VALIST(_double, double)
 
 
 /* vm_call_method_jvalue *******************************************************
 
    Calls a Java method with a variable number of arguments, passed via
-   a jvalue array, and returns an address.
+   a jvalue array.
 
 *******************************************************************************/
 
-java_objectheader *vm_call_method_jvalue(methodinfo *m, java_objectheader *o,
-										 const jvalue *args)
-{
-	java_objectheader *ro;
-	int32_t            dumpsize;
-	uint64_t          *array;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_jvalue(m, o, args);
-
-	/* call the Java method */
-
-	ro = vm_call_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return ro;
+#define VM_CALL_METHOD_JVALUE(name, type)                               \
+type vm_call_method##name##_jvalue(methodinfo *m, java_objectheader *o, \
+						           const jvalue *args)                  \
+{                                                                       \
+	int32_t   dumpsize;                                                 \
+	uint64_t *array;                                                    \
+	type      value;                                                    \
+                                                                        \
+	dumpsize = dump_size();                                             \
+	array = vm_array_from_jvalue(m, o, args);                           \
+	value = vm_call##name##_array(m, array);                            \
+	dump_release(dumpsize);                                             \
+                                                                        \
+	return value;                                                       \
 }
+
+VM_CALL_METHOD_JVALUE(,        java_objectheader *)
+VM_CALL_METHOD_JVALUE(_int,    int32_t)
+VM_CALL_METHOD_JVALUE(_long,   int64_t)
+VM_CALL_METHOD_JVALUE(_float,  float)
+VM_CALL_METHOD_JVALUE(_double, double)
 
 
 /* vm_call_array ***************************************************************
 
    Calls a Java method with a variable number of arguments, passed via
-   an argument array, and returns an address.
+   an argument array.
 
 *******************************************************************************/
 
-java_objectheader *vm_call_array(methodinfo *m, uint64_t *array)
-{
-	methoddesc        *md;
-	java_objectheader *o;
-
-	md = m->parseddesc;
-
-	/* compile the method if not already done */
-
-	if (m->code == NULL)
-		if (!jit_compile(m))
-			return NULL;
-
-	STATISTICS(count_calls_native_to_java++);
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		o = intrp_asm_vm_call_method(m, vmargscount, vmargs);
-	else
-# endif
-		o = asm_vm_call_method(m->code->entrypoint, array, md->memuse);
-#else
-	o = intrp_asm_vm_call_method(m, vmargscount, vmargs);
-#endif
-
-	return o;
+#define VM_CALL_ARRAY(name, type)                            \
+type vm_call##name##_array(methodinfo *m, uint64_t *array)   \
+{                                                            \
+	methoddesc *md;                                          \
+	void       *pv;                                          \
+	type        value;                                       \
+                                                             \
+	md = m->parseddesc;                                      \
+                                                             \
+	if (m->code == NULL)                                     \
+		if (!jit_compile(m))                                 \
+			return 0;                                        \
+                                                             \
+    pv = m->code->entrypoint;                                \
+                                                             \
+	STATISTICS(count_calls_native_to_java++);                \
+                                                             \
+	value = asm_vm_call_method##name(pv, array, md->memuse); \
+                                                             \
+	return value;                                            \
 }
 
-
-/* vm_call_int_array ***********************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   an argument array, and returns an integer (int32_t).
-
-*******************************************************************************/
-
-int32_t vm_call_int_array(methodinfo *m, uint64_t *array)
-{
-	methoddesc *md;
-	int32_t     i;
-
-	md = m->parseddesc;
-
-	/* compile the method if not already done */
-
-	if (m->code == NULL)
-		if (!jit_compile(m))
-			return 0;
-
-	STATISTICS(count_calls_native_to_java++);
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		i = intrp_asm_vm_call_method_int(m, vmargscount, vmargs);
-	else
-# endif
-		i = asm_vm_call_method_int(m->code->entrypoint, array, md->memuse);
-#else
-	i = intrp_asm_vm_call_method_int(m, vmargscount, vmargs);
-#endif
-
-	return i;
-}
-
-
-/* vm_call_method_int **********************************************************
-
-   Calls a Java method with a variable number of arguments and returns
-   an integer (s4).
-
-*******************************************************************************/
-
-s4 vm_call_method_int(methodinfo *m, java_objectheader *o, ...)
-{
-	va_list ap;
-	s4      i;
-
-	va_start(ap, o);
-	i = vm_call_method_int_valist(m, o, ap);
-	va_end(ap);
-
-	return i;
-}
-
-
-/* vm_call_method_int_valist ***************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   a va_list, and returns an integer (int32_t).
-
-*******************************************************************************/
-
-int32_t vm_call_method_int_valist(methodinfo *m, java_objectheader *o, va_list ap)
-{
-	int32_t   dumpsize;
-	uint64_t *array;
-	int32_t   i;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_valist(m, o, ap);
-
-	/* call the Java method */
-
-	i = vm_call_int_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return i;
-}
-
-
-/* vm_call_method_int_jvalue ***************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   a jvalue array, and returns an integer (s4).
-
-*******************************************************************************/
-
-int32_t vm_call_method_int_jvalue(methodinfo *m, java_objectheader *o,
-								  const jvalue *args)
-{
-	int32_t   dumpsize;
-	uint64_t *array;
-	int32_t   i;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_jvalue(m, o, args);
-
-	/* call the Java method */
-
-	i = vm_call_int_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return i;
-}
-
-
-/* vm_call_long_array **********************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   an argument array, and returns a long (int64_t).
-
-*******************************************************************************/
-
-int64_t vm_call_long_array(methodinfo *m, uint64_t *array)
-{
-	methoddesc *md;
-	int64_t     l;
-
-	md = m->parseddesc;
-
-	/* compile the method if not already done */
-
-	if (m->code == NULL)
-		if (!jit_compile(m))
-			return 0;
-
-	STATISTICS(count_calls_native_to_java++);
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		l = intrp_asm_vm_call_method_long(m, vmargscount, vmargs);
-	else
-# endif
-		l = asm_vm_call_method_long(m->code->entrypoint, array, md->memuse);
-#else
-	l = intrp_asm_vm_call_method_long(m, vmargscount, vmargs);
-#endif
-
-	return l;
-}
-
-
-/* vm_call_method_long *********************************************************
-
-   Calls a Java method with a variable number of arguments and returns
-   a long (s8).
-
-*******************************************************************************/
-
-s8 vm_call_method_long(methodinfo *m, java_objectheader *o, ...)
-{
-	va_list ap;
-	s8      l;
-
-	va_start(ap, o);
-	l = vm_call_method_long_valist(m, o, ap);
-	va_end(ap);
-
-	return l;
-}
-
-
-/* vm_call_method_long_valist **************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   a va_list, and returns a long (s8).
-
-*******************************************************************************/
-
-int64_t vm_call_method_long_valist(methodinfo *m, java_objectheader *o, va_list ap)
-{
-	int32_t   dumpsize;
-	uint64_t *array;
-	int64_t   l;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_valist(m, o, ap);
-
-	/* call the Java method */
-
-	l = vm_call_long_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return l;
-}
-
-
-/* vm_call_method_long_jvalue **************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   a jvalue array, and returns a long (s8).
-
-*******************************************************************************/
-
-int64_t vm_call_method_long_jvalue(methodinfo *m, java_objectheader *o,
-								   const jvalue *args)
-{
-	int32_t   dumpsize;
-	uint64_t *array;
-	int64_t   l;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_jvalue(m, o, args);
-
-	/* call the Java method */
-
-	l = vm_call_long_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return l;
-}
-
-
-/* vm_call_float_array *********************************************************
-
-   Calls a Java method with a variable number of arguments and returns
-   an float.
-
-*******************************************************************************/
-
-float vm_call_float_array(methodinfo *m, uint64_t *array)
-{
-	methoddesc *md;
-	float       f;
-
-	md = m->parseddesc;
-
-	/* compile the method if not already done */
-
-	if (m->code == NULL)
-		if (!jit_compile(m))
-			return 0;
-
-	STATISTICS(count_calls_native_to_java++);
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		f = intrp_asm_vm_call_method_float(m, vmargscount, vmargs);
-	else
-# endif
-		f = asm_vm_call_method_float(m->code->entrypoint, array, md->memuse);
-#else
-	f = intrp_asm_vm_call_method_float(m, vmargscount, vmargs);
-#endif
-
-	return f;
-}
-
-
-/* vm_call_method_float ********************************************************
-
-   Calls a Java method with a variable number of arguments and returns
-   an float.
-
-*******************************************************************************/
-
-float vm_call_method_float(methodinfo *m, java_objectheader *o, ...)
-{
-	va_list ap;
-	float   f;
-
-	va_start(ap, o);
-	f = vm_call_method_float_valist(m, o, ap);
-	va_end(ap);
-
-	return f;
-}
-
-
-/* vm_call_method_float_valist *************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   a va_list, and returns a float.
-
-*******************************************************************************/
-
-float vm_call_method_float_valist(methodinfo *m, java_objectheader *o, va_list ap)
-{
-	int32_t   dumpsize;
-	uint64_t *array;
-	float     f;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_valist(m, o, ap);
-
-	/* call the Java method */
-
-	f = vm_call_float_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return f;
-}
-
-
-/* vm_call_method_float_jvalue *************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   a jvalue array, and returns a float.
-
-*******************************************************************************/
-
-float vm_call_method_float_jvalue(methodinfo *m, java_objectheader *o, const jvalue *args)
-{
-	int32_t   dumpsize;
-	uint64_t *array;
-	float     f;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_jvalue(m, o, args);
-
-	/* call the Java method */
-
-	f = vm_call_float_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return f;
-}
-
-
-/* vm_call_double_array ********************************************************
-
-   Calls a Java method with a variable number of arguments and returns
-   a double.
-
-*******************************************************************************/
-
-double vm_call_double_array(methodinfo *m, uint64_t *array)
-{
-	methoddesc *md;
-	double      d;
-
-	md = m->parseddesc;
-
-	/* compile the method if not already done */
-
-	if (m->code == NULL)
-		if (!jit_compile(m))
-			return 0;
-
-	STATISTICS(count_calls_native_to_java++);
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		d = intrp_asm_vm_call_method_double(m, vmargscount, vmargs);
-	else
-# endif
-		d = asm_vm_call_method_double(m->code->entrypoint, array, md->memuse);
-#else
-	d = intrp_asm_vm_call_method_double(m, vmargscount, vmargs);
-#endif
-
-	return d;
-}
-
-
-/* vm_call_method_double *******************************************************
-
-   Calls a Java method with a variable number of arguments and returns
-   a double.
-
-*******************************************************************************/
-
-double vm_call_method_double(methodinfo *m, java_objectheader *o, ...)
-{
-	va_list ap;
-	double  d;
-
-	va_start(ap, o);
-	d = vm_call_method_double_valist(m, o, ap);
-	va_end(ap);
-
-	return d;
-}
-
-
-/* vm_call_method_double_valist ************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   a va_list, and returns a double.
-
-*******************************************************************************/
-
-double vm_call_method_double_valist(methodinfo *m, java_objectheader *o, va_list ap)
-{
-	int32_t   dumpsize;
-	uint64_t *array;
-	double    d;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_valist(m, o, ap);
-
-	/* call the Java method */
-
-	d = vm_call_double_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return d;
-}
-
-
-/* vm_call_method_double_jvalue ************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   a jvalue array, and returns a double.
-
-*******************************************************************************/
-
-double vm_call_method_double_jvalue(methodinfo *m, java_objectheader *o, const jvalue *args)
-{
-	int32_t   dumpsize;
-	uint64_t *array;
-	double    d;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_jvalue(m, o, args);
-
-	/* call the Java method */
-
-	d = vm_call_double_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return d;
-}
+VM_CALL_ARRAY(,        java_objectheader *)
+VM_CALL_ARRAY(_int,    int32_t)
+VM_CALL_ARRAY(_long,   int64_t)
+VM_CALL_ARRAY(_float,  float)
+VM_CALL_ARRAY(_double, double)
 
 
 /*
