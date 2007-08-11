@@ -196,6 +196,7 @@ void md_param_alloc(methoddesc *md)
 			}
 			break;
 		}
+		assert(pd->regoff != 26);
 	}
 	
 	/* Since O0 is used for passing return values, this */
@@ -225,10 +226,11 @@ void md_param_alloc_native(methoddesc *md)
 	s4         stacksize;
 	s4         min_nat_regs;
 
+	/* Note: regoff will be set relative to a stack base of $sp+16 */
+	 
 	/* set default values */
-
 	reguse = 0;
-	stacksize = 6;
+	stacksize = 6; /* abi params: allocated, but not used */
 
 	/* when we are above this, we have to increase the stacksize with every */
 	/* single argument to create the proper argument array                  */
@@ -245,7 +247,7 @@ void md_param_alloc_native(methoddesc *md)
 		case TYPE_LNG:
 			if (i < INT_NATARG_CNT) {
 				pd->inmemory = false;
-				pd->regoff = reguse;
+				pd->regoff = nat_argintregs[reguse];
 				reguse++;
 				md->argintreguse = reguse;
 
@@ -254,9 +256,6 @@ void md_param_alloc_native(methoddesc *md)
 				pd->regoff = reguse * 8;
 				reguse++;
 			}
-
-			if (i >= min_nat_regs)
-				stacksize++;
 			break;
 		case TYPE_FLT:
 		case TYPE_DBL:
@@ -271,10 +270,11 @@ void md_param_alloc_native(methoddesc *md)
 				reguse++;
 			}
 
-			if (i >= min_nat_regs)
-				stacksize++;
 			break;
 		}
+
+		if (i >= min_nat_regs)
+			stacksize++;
 	}
 	
 	/* Since O0 is used for passing return values, this */

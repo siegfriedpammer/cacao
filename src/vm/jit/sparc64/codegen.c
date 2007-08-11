@@ -311,7 +311,7 @@ bool codegen_emit(jitdata *jd)
 					for (i = 0; i < jd->varcount; i++) {
 						varinfo* uvar = VAR(i);
 
-						if (IS_FLT_DBL_TYPE(uvar->type))
+						if (IS_FLT_DBL_TYPE(uvar->type) || IS_INMEMORY(uvar->flags))
 							continue;
 
 						s2 = uvar->vv.regoff;
@@ -3077,7 +3077,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
 		md->paramcount +                /* for saving arguments over calls    */
-		nmd->memuse +  /* nmd knows about the native stackframe layout */
+		nmd->memuse +              /* nmd->memuse includes the (6) abi params */
 		WINSAVE_CNT;
 
 
@@ -3116,7 +3116,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	}
 #endif
 
-	/* save float argument registers (into abi parameter slots) */
+	/* save float argument registers */
 
 	assert(ABIPARAMS_CNT >= FLT_ARG_CNT);
 
@@ -3165,7 +3165,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				s1 = REG_WINDOW_TRANSPOSE(s1);
 
 				if (!nmd->params[j].inmemory) {
-					s2 = nat_argintregs[nmd->params[j].regoff];
+					s2 = nmd->params[j].regoff;
 					M_INTMOVE(s1, s2);
 				} else {
 					/* nmd's regoff is relative to the start of the param array */
@@ -3184,7 +3184,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				}
 
 				s1 = md->params[i].regoff + cd->stackframesize * 8;
-				s2 = BIAS + WINSAVE_CNT + 8 + nmd->params[j].regoff;
+				s2 = BIAS + WINSAVE_CNT * 8 + nmd->params[j].regoff;
 				M_ALD(REG_ITMP1, REG_SP, CSTACK + s1);
 				M_AST(REG_ITMP1, REG_SP, s2);
 			}
@@ -3218,25 +3218,25 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 			} 
 			else {
-				s1 = md->params[i].regoff + cd->stackframesize * 8;
+				s1 = md->params[i].regoff;
 
 				if (!nmd->params[j].inmemory) {
 
 					/* JIT stack -> NAT reg */
 
-					s2 = BIAS + WINSAVE_CNT * 8 + nmd->params[j].regoff; 
-					M_DLD(s2, REG_SP, s1);
+					s2 = nmd->params[j].regoff;
+					M_DLD(s2, REG_FP, JITSTACK + s1);
 				}
 				else {
 
 					/* JIT stack -> NAT stack */
 
-					s2 = nmd->params[j].regoff - 6 * 8;
+					s2 = WINSAVE_CNT * 8 + nmd->params[j].regoff;
 
 					/* The FTMP register may already be loaded with args */
 					/* we know $f0 is unused because of the env pointer  */
-					M_DLD(REG_F0, REG_SP, CSTACK + s1);
-					M_DST(REG_F0, REG_SP, CSTACK + s2);
+					M_DLD(REG_F0, REG_FP, JITSTACK + s1);
+					M_DST(REG_F0, REG_SP, BIAS + s2);
 				}
 			}
 		}
