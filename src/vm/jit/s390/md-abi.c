@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: md-abi.c 8296 2007-08-11 22:38:38Z pm $
 
 */
 
@@ -111,13 +111,19 @@ const s4 abi_registers_float_temporary[] = {
 	15  /* f15/ft11 */
 };
 
-/* md_param_alloc **************************************************************
+/* md_param_alloc_intern *******************************************************
 
-   XXX
+   Allocates parameters to registers or stackslots for both native and java
+   methods.
+
+   --- in:
+   slot: size in bytes of a stack slot
+   slots1w: number of stack slots used by a 1 word type parameter
+   slots2w: number of stack slots used by a 2 word type parameter
 
 *******************************************************************************/
 
-void md_param_alloc(methoddesc *md)
+static void md_param_alloc_intern(methoddesc *md, s4 slot, s4 slots1w, s4 slots2w)
 {
 	paramdesc *pd;
 	s4         i;
@@ -142,12 +148,14 @@ void md_param_alloc(methoddesc *md)
 			if (iarg < INT_ARG_CNT) {
 				pd->inmemory  = false;
  				pd->regoff    = abi_registers_integer_argument[iarg]; 
+				pd->index     = iarg;
 				iarg++;
 			}
 			else {
 				pd->inmemory  = true;
-				pd->regoff    = stacksize * 4;
-				stacksize++;
+				pd->regoff    = stacksize * slot;
+				pd->index     = stacksize;
+				stacksize += slots1w;
 			}
 			break;
 
@@ -158,14 +166,16 @@ void md_param_alloc(methoddesc *md)
  				pd->regoff    = 
  					PACK_REGS(abi_registers_integer_argument[iarg + 1], 
  							  abi_registers_integer_argument[iarg]); 
+				pd->index     = PACK_REGS(iarg + 1, iarg);
 				iarg += 2;
 			}
 			else {
 				/* _ALIGN(stacksize); */
 				pd->inmemory  = true;
-				pd->regoff    = stacksize * 4;
+				pd->regoff    = stacksize * slot;
+				pd->index     = stacksize;
 				iarg          = INT_ARG_CNT;
-				stacksize    += 2;
+				stacksize    += slots2w;
 			}
 			break;
 
@@ -173,12 +183,14 @@ void md_param_alloc(methoddesc *md)
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory  = false;
  				pd->regoff    = abi_registers_float_argument[farg]; 
+				pd->index     = farg;
 				farg++;
 			}
 			else {
 				pd->inmemory  = true;
-				pd->regoff    = stacksize * 4;
-				stacksize++;
+				pd->regoff    = stacksize * slot;
+				pd->index     = stacksize;
+				stacksize += slots1w;
 			}
 			break;
 
@@ -186,13 +198,15 @@ void md_param_alloc(methoddesc *md)
 			if (farg < FLT_ARG_CNT) {
 				pd->inmemory  = false;
  				pd->regoff    = abi_registers_float_argument[farg]; 
+				pd->index     = farg;
 				farg++;
 			}
 			else {
 				/* _ALIGN(stacksize); */
 				pd->inmemory  = true;
-				pd->regoff    = stacksize * 4;
-				stacksize    += 2;
+				pd->regoff    = stacksize * slot;
+				pd->index     = stacksize;
+				stacksize    += slots2w;
 			}
 			break;
 
@@ -222,12 +236,14 @@ void md_param_alloc(methoddesc *md)
 	md->memuse = stacksize;
 }
 
+void md_param_alloc(methoddesc *md)
+{
+	md_param_alloc_intern(md, 8, 1, 1);
+}
+
 void md_param_alloc_native(methoddesc *md)
 {
-	/* On PowerPC we use the same ABI for JIT method calls as for
-	 *        native method calls. */
-
-	md_param_alloc(md);
+	md_param_alloc_intern(md, 4, 1, 2);
 }
 
 

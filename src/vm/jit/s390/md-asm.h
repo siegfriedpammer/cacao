@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-asm.h 7839 2007-04-29 22:46:56Z pm $
+   $Id: md-asm.h 8296 2007-08-11 22:38:38Z pm $
 
 */
 
@@ -50,6 +50,7 @@
 #define itmp3    %r14
 #define v0       %r2
 #define pv       %r13
+#define ra       %r14
 
 #define mptr     itmp2
 #define xptr     itmp1

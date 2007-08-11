@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 8283 2007-08-09 15:10:05Z twisti $
+   $Id: md.c 8296 2007-08-11 22:38:38Z pm $
 
 */
 
@@ -86,7 +86,7 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 	int i;
 	u1 *pv;
 	methodinfo *m;
-	
+
 	union {
 		u8 l;
 		fpreg_t fr;
@@ -100,7 +100,7 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 	if (pv == NULL) {
 		log_println("No java method found at location.");
 	} else {
-		m = ((codeinfo *)(pv + CodeinfoPointer))->m;
+		m = (*(codeinfo **)(pv + CodeinfoPointer))->m;
 		log_println(
 			"Java method: class %s, method %s, descriptor %s.",
 			utf_bytes(m->class->name), utf_bytes(m->name), utf_bytes(m->descriptor)
@@ -311,7 +311,7 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 			(_mc->gregs[r1 + 1] == 0x80000000) && 
 			(_mc->gregs[r2] == 0xFFFFFFFF)
 		) {
-			/* handle special case */
+			/* handle special case 0x80000000 / 0xFFFFFFFF that fails on hardware */
 			/* next instruction */
 			pc = (u1 *)_mc->psw.addr;
 			/* reminder */
@@ -455,7 +455,7 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
 	/* on S390 the return address is located on the top of the stackframe */
 
-	ra = *((u1 **) (sp + framesize - SIZEOF_VOID_P));
+	ra = *((u1 **) (sp + framesize - 8));
 
 	return ra;
 }

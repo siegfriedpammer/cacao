@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8274 2007-08-08 15:58:17Z twisti $
+   $Id: asmpart.S 8296 2007-08-11 22:38:38Z pm $
 
 */
 
@@ -113,6 +113,84 @@ asm_vm_call_method_int:
 asm_vm_call_method_long:
 asm_vm_call_method_float:
 asm_vm_call_method_double:
+
+	ahi sp, -6*4                /* allocate stack frame */
+
+	/* a0: PV */
+	/* a1: data structure */
+	/* a2: number of stack arguments */
+
+	st    s0, 0*4(sp)           /* store used calle saved registers */
+	st    s1, 1*4(sp)
+	st    a0, 2*4(sp)
+	st    mptr, 3*4(sp)
+	st    pv, 4*4(sp)
+	st    ra, 5*4(sp)
+
+	lr    s0, a1                /* data structure */
+	lr    %r0, a2               /* number of stack arguments */
+
+	l     a0, 0*8+4(s0)         /* big endian */
+	l     a1, 1*8+4(s0)
+	l     a2, 2*8+4(s0)
+	l     a3, 3*8+4(s0)
+	l     a4, 4*8+4(s0)         
+
+	ld    fa0, 5*8(s0)
+	ld    fa1, 6*8(s0)
+
+	lr    s1, sp                /* backup stack pointer */
+
+	ltr   %r0, %r0              /* are there any stack arguments ? */
+	je    L_asm_vm_call_method_stack_copy_done
+	lr    %r1, %r0              /* copy number of stack arguments */
+	sll   %r1, 3                /* calculate stackframe size */ 
+	sr    sp, %r1               /* allocate stack frame */
+	lr    %r1, sp               /* temporary stack pointer */
+
+L_asm_vm_call_method_stack_copy_loop:
+
+	mvc   0(8, %r1), 7*8(s0)    /* copy argument */
+	ahi   %r1, 8                /* increase sp */
+	ahi   s0, 8                 /* set address of next argument */
+	ahi   %r0, -1               /* substract 1 argument */
+	jh    L_asm_vm_call_method_stack_copy_loop
+
+L_asm_vm_call_method_stack_copy_done:
+
+	la    mptr, 2*4(s1)         /* load method pointer */
+	l     pv, 0(mptr)           /* load procedure vector from method pointer */
+	basr  ra, pv                /* call method */
+	lr    sp, s1                /* restore stack pointer */
+
+L_asm_vm_call_method_return:
+
+	l     s0, 0*4(sp)           /* restore used callee saved registers */
+	l     s1, 1*4(sp)
+	l     mptr, 3*4(sp)
+	l     pv, 4*4(sp)
+	l     ra, 5*4(sp)
+
+	ahi   sp, 6*4               /* remove stackframe */
+	br    ra                    /* return */
+
+
+asm_vm_call_method_exception_handler:
+	lr    a0, xptr
+
+	bras  %r14, L_avcmeh_bras
+	.long builtin_throw_exception
+L_avcmeh_bras:
+	l     %r14, 0(%r14)
+	ahi   sp, -96
+	basr  %r14, %r14
+	ahi   sp, 96
+	j     L_asm_vm_call_method_return
+
+asm_vm_call_method_end:
+	brc   0,0	
+
+#if 0
 
 /*
 
@@ -299,7 +377,7 @@ L_stack_handle_int:
 	jne   L_stack_handle_long
 
 	mvc   0(4, s2), offvmargdata+4(itmp1)/* copy integer value */
-	ahi   s2, 4
+	ahi   s2, 8
 	j     L_stack_copy_loop
 
 L_stack_handle_long:
@@ -317,7 +395,7 @@ L_stack_handle_float:
 	jne   L_stack_handle_double
 
 	mvc   0(4, s2), offvmargdata(itmp1)  /* copy float value */
-	ahi   s2, 4
+	ahi   s2, 8
 	j     L_stack_copy_loop
 
 L_stack_handle_double:
@@ -428,8 +506,8 @@ L_handle_d1:
 	ld    fa1, offvmargdata(itmp1)
 	j     L_register_copy
 
-asm_vm_call_method_end:
-	brc   0,0	
+
+#endif
 
 /****************** function asm_call_jit_compiler *****************************
 *                                                                              *
@@ -621,7 +699,7 @@ L_asm_handle_exception_no_leaf_stack:
 
 	l       itmp2,0xfff+FrameSize(itmp3)/* get frame size                     */
 	la      itmp2,0(itmp2,sp)           /* pointer to save area (p1) */
-	ahi     itmp2,-4                    /* skip RA (p2) */
+	ahi     itmp2,-8                    /* skip RA (p2) */
 	ahi     itmp2,-0xfff                /* for negative displacements */
 
 	l       a0,0xfff+IntSave(itmp3)     /* a0 = saved int register count  */
@@ -639,19 +717,19 @@ L_asm_handle_exception_no_leaf_stack:
 	je      int4
 	
 int5:
-	l       s0,0xfff-5*4(itmp2)
+	l       s0,0xfff-5*8(itmp2)
 int4:   
-	l       s1,0xfff-4*4(itmp2)
+	l       s1,0xfff-4*8(itmp2)
 int3:   
-	l       s2,0xfff-3*4(itmp2)
+	l       s2,0xfff-3*8(itmp2)
 int2:   
-	l       s3,0xfff-2*4(itmp2)
+	l       s3,0xfff-2*8(itmp2)
 int1:   
-	l       s4,0xfff-1*4(itmp2)
+	l       s4,0xfff-1*8(itmp2)
 
 noint:
 
-	sll     a0,2                        /* a0 = saved int register count * 4 */
+	sll     a0,3                        /* a0 = saved int register count * 8 */
 	sr      itmp2, a0                   /* skip Int Sav (p3) */
 
 	l       a0,0xfff+FltSave(itmp3)
@@ -668,10 +746,10 @@ flt1:
                 
 noflt:
 
-	l       itmp3,0xfff+FrameSize(itmp3)/* get frame size (at least 4 - RA)   */
-	ahi     itmp3,-4                    /* substract 4 */
+	l       itmp3,0xfff+FrameSize(itmp3)/* get frame size (at least 8 - RA)   */
+	ahi     itmp3,-8                    /* substract 8 */
 	l       xpc,0(itmp3,sp)             /* load the new xpc -  return address */
-	la      sp, 4(itmp3,sp)             /* unwind stack                       */
+	la      sp, 8(itmp3,sp)             /* unwind stack                       */
 
 	                                    /* exception pointer is still set     */
 #if 0

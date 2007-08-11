@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8278 2007-08-08 17:10:18Z michi $
+   $Id: emit.c 8296 2007-08-11 22:38:38Z pm $
 
 */
 
@@ -302,7 +302,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* offset to where first float arg is saved on stack */
 	foff = off + (INT_ARG_CNT * 8); 
 	/* offset to where first argument is passed on stack */
-	aoff = (2 * 8) + stackframesize + (cd->stackframesize * 4);
+	aoff = (2 * 8) + stackframesize + (cd->stackframesize * 8);
 	/* offset to destination on stack */
 	doff = 0; 
 
@@ -321,13 +321,15 @@ void emit_verbosecall_enter(jitdata *jd)
 				N_STD(abi_registers_float_argument[fargctr], doff, RN, REG_SP);
 				fargctr += 1;
 			} else { /* passed on stack */
+				/*
 				if (IS_2_WORD_TYPE(t)) {
 					N_MVC(doff, 8, REG_SP, aoff, REG_SP);
-					aoff += 8;
 				} else {
 					N_MVC(doff + 4, 4, REG_SP, aoff, REG_SP);
-					aoff += 4;
 				}
+				*/
+				N_MVC(doff, 8, REG_SP, aoff, REG_SP);
+				aoff += 8;
 			}
 		} else {
 			if (IS_2_WORD_TYPE(t)) {
@@ -344,7 +346,7 @@ void emit_verbosecall_enter(jitdata *jd)
 					iargctr += 1;
 				} else { /* passed on stack */
 					N_MVC(doff + 4, 4, REG_SP, aoff, REG_SP);
-					aoff += 4;
+					aoff += 8;
 				}
 			}
 		}

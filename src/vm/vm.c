@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: vm.c 8296 2007-08-11 22:38:38Z pm $
 
 */
 
@@ -2468,7 +2468,7 @@ static void vm_array_store_flt(uint64_t *array, paramdesc *pd, uint64_t value)
 #else
 		index        = INT_ARG_CNT + pd->index;
 #endif
-#if WORDS_BIGENDIAN == 1 && !defined(__POWERPC__) && !defined(__POWERPC64__)
+#if WORDS_BIGENDIAN == 1 && !defined(__POWERPC__) && !defined(__POWERPC64__) && !defined(__S390__)
 		array[index] = value >> 32;
 #else
 		array[index] = value;
