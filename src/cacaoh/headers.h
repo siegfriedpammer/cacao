@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: headers.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: headers.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -42,7 +42,8 @@
 
 /* export variables ***********************************************************/
 
-extern java_objectheader *_exceptionptr;
+#warning object or handle???
+extern java_object_t *_exceptionptr;
 extern chain *nativemethod_chain;
 extern chain *nativeclass_chain;
 extern chain *ident_chain;
@@ -53,7 +54,7 @@ extern FILE *file;
 
 void printID(utf *u);
 void printOverloadPart(utf *desc);
-void literalstring_free(java_objectheader *o);
+void literalstring_free(java_object_t *o);
 void printmethod(methodinfo *m);
 void gen_header_filename(char *buffer, utf *u);
 void headerfile_generate(classinfo *c, char *opt_directory);

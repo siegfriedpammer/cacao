@@ -27,7 +27,7 @@
    Authors: Reinhard Grafl
             Christian Thalinger
 
-   $Id: hashtable.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: hashtable.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -102,7 +102,7 @@ hashtable.ptr-->+-------------------+
 
 struct hashtable {            
 #if defined(ENABLE_THREADS)
-	java_objectheader  *header;         /* required for locking               */
+	java_object_t      *header;         /* required for locking               */
 #endif
 	u4                  size;           /* current size of the hashtable      */
 	u4                  entries;        /* number of entries in the table     */

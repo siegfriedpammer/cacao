@@ -113,26 +113,26 @@ classinfo *primitive_class_get_by_char(char ch);
 classinfo *primitive_arrayclass_get_by_name(utf *name);
 classinfo *primitive_arrayclass_get_by_type(int type);
 
-java_objectheader *primitive_box(int type, imm_union value);
-imm_union          primitive_unbox(int type, java_objectheader *o);
+java_handle_t *primitive_box(int type, imm_union value);
+imm_union      primitive_unbox(int type, java_handle_t *o);
 
-java_objectheader *primitive_box_boolean(int32_t value);
-java_objectheader *primitive_box_byte(int32_t value);
-java_objectheader *primitive_box_char(int32_t value);
-java_objectheader *primitive_box_short(int32_t value);
-java_objectheader *primitive_box_int(int32_t value);
-java_objectheader *primitive_box_long(int64_t value);
-java_objectheader *primitive_box_float(float value);
-java_objectheader *primitive_box_double(double value);
+java_handle_t *primitive_box_boolean(int32_t value);
+java_handle_t *primitive_box_byte(int32_t value);
+java_handle_t *primitive_box_char(int32_t value);
+java_handle_t *primitive_box_short(int32_t value);
+java_handle_t *primitive_box_int(int32_t value);
+java_handle_t *primitive_box_long(int64_t value);
+java_handle_t *primitive_box_float(float value);
+java_handle_t *primitive_box_double(double value);
 
-int32_t            primitive_unbox_boolean(java_objectheader *o);
-int32_t            primitive_unbox_byte(java_objectheader *o);
-int32_t            primitive_unbox_char(java_objectheader *o);
-int32_t            primitive_unbox_short(java_objectheader *o);
-int32_t            primitive_unbox_int(java_objectheader *o);
-int64_t            primitive_unbox_long(java_objectheader *o);
-float              primitive_unbox_float(java_objectheader *o);
-double             primitive_unbox_double(java_objectheader *o);
+int32_t        primitive_unbox_boolean(java_handle_t *o);
+int32_t        primitive_unbox_byte(java_handle_t *o);
+int32_t        primitive_unbox_char(java_handle_t *o);
+int32_t        primitive_unbox_short(java_handle_t *o);
+int32_t        primitive_unbox_int(java_handle_t *o);
+int64_t        primitive_unbox_long(java_handle_t *o);
+float          primitive_unbox_float(java_handle_t *o);
+double         primitive_unbox_double(java_handle_t *o);
 
 #endif /* _PRIMITIVE_H */
 

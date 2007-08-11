@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: lock.c 7954 2007-05-23 17:58:18Z twisti $
+   $Id: lock.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -426,7 +426,7 @@ static void lock_hashtable_grow(void)
 static void lock_record_finalizer(void *object, void *p);
 #endif
 
-static lock_record_t *lock_hashtable_get(java_objectheader *o)
+static lock_record_t *lock_hashtable_get(java_object_t *o)
 {
 	ptrint         lockword;
 	u4             slot;
@@ -499,7 +499,7 @@ static lock_record_t *lock_hashtable_get(java_objectheader *o)
 
 *******************************************************************************/
 
-static void lock_hashtable_remove(java_objectheader *o)
+static void lock_hashtable_remove(java_object_t *o)
 {
 	ptrint         lockword;
 	lock_record_t *lr;
@@ -557,11 +557,11 @@ static void lock_hashtable_remove(java_objectheader *o)
 
 static void lock_record_finalizer(void *object, void *p)
 {
-	java_objectheader *o;
-	ptrint             lockword;
-	lock_record_t     *lr;
+	java_object_t *o;
+	ptrint         lockword;
+	lock_record_t *lr;
 
-	o = (java_objectheader *) object;
+	o = (java_object_t *) object;
 
 	/* check for a finalizer function */
 
@@ -598,7 +598,7 @@ static void lock_record_finalizer(void *object, void *p)
 
 *******************************************************************************/
 
-void lock_init_object_lock(java_objectheader *o)
+void lock_init_object_lock(java_object_t *o)
 {
 	assert(o);
 
@@ -683,7 +683,7 @@ static inline void lock_record_exit(threadobject *t, lock_record_t *lr)
 
 *******************************************************************************/
 
-static void lock_inflate(threadobject *t, java_objectheader *o, lock_record_t *lr)
+static void lock_inflate(threadobject *t, java_object_t *o, lock_record_t *lr)
 {
 	ptrint lockword;
 
@@ -736,7 +736,7 @@ static void lock_inflate(threadobject *t, java_objectheader *o, lock_record_t *l
 
 *******************************************************************************/
 
-bool lock_monitor_enter(java_objectheader *o)
+bool lock_monitor_enter(java_object_t *o)
 {
 	threadobject  *t;
 	/* CAUTION: This code assumes that ptrint is unsigned! */
@@ -888,7 +888,7 @@ bool lock_monitor_enter(java_objectheader *o)
 
 *******************************************************************************/
 
-bool lock_monitor_exit(java_objectheader *o)
+bool lock_monitor_exit(java_object_t *o)
 {
 	threadobject *t;
 	ptrint        lockword;
@@ -1143,7 +1143,7 @@ static void lock_record_wait(threadobject *thread, lock_record_t *lr, s8 millis,
    
 *******************************************************************************/
 
-static void lock_monitor_wait(threadobject *t, java_objectheader *o, s8 millis, s4 nanos)
+static void lock_monitor_wait(threadobject *t, java_object_t *o, s8 millis, s4 nanos)
 {
 	ptrint         lockword;
 	lock_record_t *lr;
@@ -1246,7 +1246,7 @@ static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
    
 *******************************************************************************/
 
-static void lock_monitor_notify(threadobject *t, java_objectheader *o, bool one)
+static void lock_monitor_notify(threadobject *t, java_object_t *o, bool one)
 {
 	ptrint lockword;
 	lock_record_t *lr;
@@ -1306,7 +1306,7 @@ static void lock_monitor_notify(threadobject *t, java_objectheader *o, bool one)
    
 *******************************************************************************/
 
-bool lock_is_held_by_current_thread(java_objectheader *o)
+bool lock_is_held_by_current_thread(java_object_t *o)
 {
 	threadobject  *t;
 	ptrint         lockword;
@@ -1352,7 +1352,7 @@ bool lock_is_held_by_current_thread(java_objectheader *o)
    
 *******************************************************************************/
 
-void lock_wait_for_object(java_objectheader *o, s8 millis, s4 nanos)
+void lock_wait_for_object(java_object_t *o, s8 millis, s4 nanos)
 {
 	threadobject *thread;
 
@@ -1371,7 +1371,7 @@ void lock_wait_for_object(java_objectheader *o, s8 millis, s4 nanos)
    
 *******************************************************************************/
 
-void lock_notify_object(java_objectheader *o)
+void lock_notify_object(java_object_t *o)
 {
 	threadobject *thread;
 
@@ -1390,7 +1390,7 @@ void lock_notify_object(java_objectheader *o)
    
 *******************************************************************************/
 
-void lock_notify_all_object(java_objectheader *o)
+void lock_notify_all_object(java_object_t *o)
 {
 	threadobject *thread;
 

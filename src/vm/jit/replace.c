@@ -1766,15 +1766,15 @@ void replace_patch_future_calls(u1 *ra,
 								sourceframe_t *callerframe,
 								sourceframe_t *calleeframe)
 {
-	u1                *patchpos;
-	methodptr          entrypoint;
-	methodptr          oldentrypoint;
-	bool               atentry;
-	stackframeinfo     sfi;
-	codeinfo          *calleecode;
-	methodinfo        *calleem;
-	java_objectheader *obj;
-	vftbl_t           *vftbl;
+	u1             *patchpos;
+	methodptr       entrypoint;
+	methodptr       oldentrypoint;
+	bool            atentry;
+	stackframeinfo  sfi;
+	codeinfo       *calleecode;
+	methodinfo     *calleem;
+	java_object_t  *obj;
+	vftbl_t        *vftbl;
 
 	assert(ra);
 	assert(callerframe->down == calleeframe);
@@ -3214,8 +3214,8 @@ void replace_executionstate_println(executionstate_t *es)
 #if !defined(NDEBUG)
 static void java_value_print(s4 type, replace_val_t value)
 {
-	java_objectheader *obj;
-	utf               *u;
+	java_object_t *obj;
+	utf           *u;
 
 	printf("%016llx",(unsigned long long) value.l);
 

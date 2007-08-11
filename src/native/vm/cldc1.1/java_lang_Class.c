@@ -87,8 +87,8 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_Class_forName(JNIEnv *env, jcl
  */
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_Class_newInstance(JNIEnv *env, java_lang_Class* this)
 {
-	classinfo         *c;
-	java_objectheader *o;
+	classinfo     *c;
+	java_handle_t *o;
 
 	c = (classinfo *) this;
 

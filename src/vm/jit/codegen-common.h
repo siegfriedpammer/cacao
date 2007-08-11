@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen-common.h 7908 2007-05-15 09:55:17Z christian $
+   $Id: codegen-common.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -325,7 +325,7 @@ void removecompilerstub(u1 *stub);
 void removenativestub(u1 *stub);
 
 void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra);
-java_objectheader *codegen_finish_native_call(u1 *datasp);
+java_object_t *codegen_finish_native_call(u1 *datasp);
 
 s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum);
 s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum);

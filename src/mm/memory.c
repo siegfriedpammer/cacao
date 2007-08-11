@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: memory.c 8112 2007-06-20 17:54:36Z twisti $
+   $Id: memory.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -100,11 +100,11 @@ static dumpinfo_t _no_threads_dumpinfo;
 #define DEFAULT_CODE_MEMORY_SIZE    128 * 1024 /* defaulting to 128kB         */
 
 #if defined(ENABLE_THREADS)
-static java_objectheader *lock_code_memory = NULL;
+static java_object_t *lock_code_memory = NULL;
 #endif
-static void              *code_memory      = NULL;
-static int                code_memory_size = 0;
-static int                pagesize         = 0;
+static void          *code_memory      = NULL;
+static int            code_memory_size = 0;
+static int            pagesize         = 0;
 
 
 /* memory_init *****************************************************************
@@ -118,7 +118,7 @@ bool memory_init(void)
 #if defined(ENABLE_THREADS)
 	/* create lock for code memory */
 
-	lock_code_memory = NEW(java_objectheader);
+	lock_code_memory = NEW(java_object_t);
 
 	lock_init_object_lock(lock_code_memory);
 #endif

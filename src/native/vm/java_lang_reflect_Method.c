@@ -91,7 +91,7 @@ java_lang_Object *_Jv_java_lang_reflect_Method_invoke(java_lang_reflect_Method *
 
 	/* call the Java method via a helper function */
 
-	return (java_lang_Object *) _Jv_jni_invokeNative(m, (java_objectheader *) o, args);
+	return (java_lang_Object *) _Jv_jni_invokeNative(m, (java_handle_t *) o, args);
 }
 
 

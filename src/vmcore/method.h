@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.h 8262 2007-08-06 12:44:01Z panzi $
+   $Id: method.h 8295 2007-08-11 17:57:24Z michi $
 */
 
 
@@ -64,7 +64,7 @@ typedef struct codeinfo            codeinfo;
 /* methodinfo *****************************************************************/
 
 struct methodinfo {                 /* method structure                       */
-	java_objectheader header;       /* we need this in jit's monitorenter     */
+	java_object_t header;           /* we need this in jit's monitorenter     */
 	s4            flags;            /* ACC flags                              */
 	utf          *name;             /* name of method                         */
 	utf          *descriptor;       /* JavaVM descriptor string of method     */

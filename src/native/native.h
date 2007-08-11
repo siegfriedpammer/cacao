@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.h 8167 2007-06-29 20:27:41Z twisti $
+   $Id: native.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -79,7 +79,7 @@ typedef struct hashtable_library_loader_entry hashtable_library_loader_entry;
 typedef struct hashtable_library_name_entry   hashtable_library_name_entry;
 
 struct hashtable_library_loader_entry {
-	java_objectheader              *loader;  /* class loader                  */
+	classloader                    *loader;  /* class loader                  */
 	hashtable_library_name_entry   *namelink;/* libs loaded by this loader    */
 	hashtable_library_loader_entry *hashlink;/* link for external chaining    */
 };
@@ -132,20 +132,19 @@ functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 
 # if defined(ENABLE_LTDL)
 lt_dlhandle native_library_open(utf *filename);
-void        native_library_add(utf *filename, java_objectheader *loader,
+void        native_library_add(utf *filename, classloader *loader,
 							   lt_dlhandle handle);
 hashtable_library_name_entry *native_library_find(utf *filename,
-												  java_objectheader *loader);
+												  classloader *loader);
 # endif
 
 functionptr native_resolve_function(methodinfo *m);
 
 #endif /* defined(WITH_STATIC_CLASSPATH) */
 
-java_objectheader *native_new_and_init(classinfo *c);
+java_handle_t *native_new_and_init(classinfo *c);
 
-java_objectheader *native_new_and_init_string(classinfo *c,
-											  java_objectheader *s);
+java_handle_t *native_new_and_init_string(classinfo *c, java_handle_t *s);
 
 #endif /* _NATIVE_H */
 

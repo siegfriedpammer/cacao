@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 8284 2007-08-10 08:58:39Z michi $
+   $Id: threads-common.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -530,7 +530,7 @@ void threads_thread_print_info(threadobject *t)
 		/* get thread name */
 
 #if defined(WITH_CLASSPATH_GNU)
-		name = javastring_toutf((java_objectheader *) LLNI_field_direct(object, name), false);
+		name = javastring_toutf((java_handle_t *) LLNI_field_direct(object, name), false);
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
 		/* FIXME: In cldc the name is a char[] */
 /* 		name = object->name; */

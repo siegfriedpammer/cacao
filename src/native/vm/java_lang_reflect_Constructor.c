@@ -127,11 +127,11 @@ java_objectarray *_Jv_java_lang_reflect_Constructor_getExceptionTypes(JNIEnv *en
  */
 java_lang_Object *_Jv_java_lang_reflect_Constructor_newInstance(JNIEnv *env, java_lang_reflect_Constructor *this, java_objectarray *args)
 {
-	classinfo         *c;
-	methodinfo        *m;
-	s4                 override;
-	java_objectheader *o;
-	int32_t            slot;
+	classinfo     *c;
+	methodinfo    *m;
+	s4             override;
+	java_handle_t *o;
+	int32_t        slot;
 
 	LLNI_field_get_cls(this, clazz, c);
 	LLNI_field_get_val(this, slot , slot);
@@ -176,10 +176,10 @@ java_lang_Object *_Jv_java_lang_reflect_Constructor_newInstance(JNIEnv *env, jav
  */
 java_lang_String *_Jv_java_lang_reflect_Constructor_getSignature(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
-	classinfo         *c;
-	methodinfo        *m;
-	java_objectheader *o;
-	int32_t            slot;
+	classinfo     *c;
+	methodinfo    *m;
+	java_handle_t *o;
+	int32_t        slot;
 
 	LLNI_field_get_cls(this, clazz, c);
 	LLNI_field_get_val(this, slot , slot);

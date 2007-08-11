@@ -73,7 +73,7 @@ void patcher_list_free(codeinfo *code);
 void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
                            s4 disp);
 
-java_objectheader *patcher_handler(u1 *pc);
+java_handle_t *patcher_handler(u1 *pc);
 
 
 /* patcher prototypes and macros **********************************************/

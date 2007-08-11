@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jit.h 8123 2007-06-20 23:50:55Z michi $
+   $Id: jit.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -333,7 +333,7 @@ typedef union {
     float                     f;
     double                    d;
     void                     *anyptr;
-    java_objectheader        *stringconst;       /* for ACONST with string    */
+    java_handle_t            *stringconst;       /* for ACONST with string    */
     classref_or_classinfo     c;                 /* for ACONST with class     */
 } val_operand_t;
 

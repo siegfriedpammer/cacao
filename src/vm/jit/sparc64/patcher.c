@@ -69,12 +69,12 @@
 
 *******************************************************************************/
 
-java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
+java_object_t *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 {
 	stackframeinfo     sfi;
 	u1                *xpc;
 	u1                *javasp;
-	java_objectheader *o;
+	java_object_t *o;
 #if SIZEOF_VOID_P == 8
 	u8                mcode;
 #else
@@ -82,7 +82,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 #endif
 	functionptr        f;
 	bool               result;
-	java_objectheader *e;
+	java_handle_t *e;
 	
 	/* define the patcher function */
 
@@ -93,7 +93,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	/* get stuff from the stack */
 
 	xpc = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	o   = (java_object_t *) *((ptrint *) (sp + 4 * 8));
 	f   = (functionptr)         *((ptrint *) (sp + 0 * 8));
 
 	/* store PV into the patcher function position */

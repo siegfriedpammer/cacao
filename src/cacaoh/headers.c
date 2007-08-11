@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: headers.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: headers.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -201,7 +201,7 @@ static char *printtype(char *utf_ptr)
 		break;
 		
 	case 'L': 
-		addoutputsize ( sizeof(java_objectheader*));
+		addoutputsize ( sizeof(java_object_t*));
 		fprintf (file, "struct ");
 		while ( (c = utf_nextu2(&utf_ptr)) != ';' ) printIDpart (c);   	 
 		fprintf (file, "*");
@@ -241,8 +241,8 @@ static void printfields(classinfo *c)
 	int ident_count;
 	
 	if (!c) {
-		addoutputsize(sizeof(java_objectheader));
-		fprintf(file, "   java_objectheader header;\n");
+		addoutputsize(sizeof(java_object_t));
+		fprintf(file, "   java_object_t header;\n");
 		return;
 	}
 		

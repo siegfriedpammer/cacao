@@ -1730,7 +1730,7 @@ bool codegen_emit(jitdata *jd)
 					/* load object pointer (==argument 0) */
 					M_ALD(REG_ATMP1, REG_SP, 0);
 					/* implicit null-pointer check */
-					M_ALD(REG_METHODPTR, REG_ATMP1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_METHODPTR, REG_ATMP1, OFFSET(java_object_t, vftbl));
 					M_ALD(REG_ATMP3, REG_METHODPTR, s1);
 					/* generate the actual call */
 					M_JSR(REG_ATMP3);
@@ -1749,7 +1749,7 @@ bool codegen_emit(jitdata *jd)
 					M_ALD(REG_ATMP1, REG_SP, 0);
 
 					/* implicit null-pointer check */
-					M_ALD(REG_METHODPTR, REG_ATMP1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_METHODPTR, REG_ATMP1, OFFSET(java_object_t, vftbl));
 					M_ALD(REG_METHODPTR, REG_METHODPTR, s1);
 					M_ALD(REG_ATMP3, REG_METHODPTR, s2);
 
@@ -2037,7 +2037,7 @@ nowperformreturn:
 					emit_label_beq(cd, BRANCH_LABEL_3);
 				}
 
-				M_ALD(REG_ATMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ATMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ILD(REG_ITMP3, REG_ATMP1, OFFSET(vftbl_t, interfacetablelength));
 				M_IADD_IMM(-superindex, REG_ITMP3);	/* -superindex may be patched patched */
 				M_ITST(REG_ITMP3);
@@ -2067,7 +2067,7 @@ nowperformreturn:
 					emit_label_beq(cd, BRANCH_LABEL_5);
 				}
 
-				M_ALD(REG_ATMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ATMP1, s1, OFFSET(java_object_t, vftbl));
 
 				CODEGEN_CRITICAL_SECTION_START;
 
@@ -2157,7 +2157,7 @@ nowperformreturn:
 						emit_label_beq(cd, BRANCH_LABEL_3);
 					}
 
-					M_ALD(REG_ATMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_ATMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ILD(REG_ITMP3, REG_ATMP2, OFFSET(vftbl_t, interfacetablelength));
 	
 					M_IADD_IMM(-superindex, REG_ITMP3);	/* superindex patched */
@@ -2188,7 +2188,7 @@ nowperformreturn:
 						emit_label_beq(cd, BRANCH_LABEL_5);
 					}
 
-					M_ALD(REG_ATMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_ATMP2, s1, OFFSET(java_object_t, vftbl));
 
 					CODEGEN_CRITICAL_SECTION_START;
 

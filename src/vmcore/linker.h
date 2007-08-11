@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.h 8123 2007-06-20 23:50:55Z michi $
+   $Id: linker.h 8295 2007-08-11 17:57:24Z michi $
 */
 
 
@@ -139,7 +139,7 @@ struct arraydescriptor {
 /* This lock must be taken while renumbering classes or while atomically      */
 /* accessing classes.                                                         */
 
-extern java_objectheader *linker_classrenumber_lock;
+extern java_object_t *linker_classrenumber_lock;
 
 
 /* function prototypes ********************************************************/

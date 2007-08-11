@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.h 8132 2007-06-22 11:15:47Z twisti $
+   $Id: jni.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -116,7 +116,7 @@ struct localref_table {
 	s4                 localframes;     /* number of current frames           */
 	s4                 PADDING;         /* 8-byte padding                     */
 	localref_table    *prev;            /* link to prev table (LocalFrame)    */
-	java_objectheader *refs[LOCALREFTABLE_CAPACITY]; /* references            */
+	java_object_t     *refs[LOCALREFTABLE_CAPACITY]; /* references            */
 };
 
 #if defined(ENABLE_THREADS)
@@ -133,7 +133,7 @@ extern localref_table *_no_threads_localref_table;
 typedef struct hashtable_global_ref_entry hashtable_global_ref_entry;
 
 struct hashtable_global_ref_entry {
-	java_objectheader          *o;      /* object pointer of global ref       */
+	java_object_t              *o;      /* object pointer of global ref       */
 	s4                          refs;   /* references of the current pointer  */
 	hashtable_global_ref_entry *hashlink; /* link for external chaining       */
 };
@@ -145,7 +145,7 @@ struct hashtable_global_ref_entry {
 bool jni_init(void);
 bool jni_init_localref_table(void);
 
-java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
+java_handle_t *_Jv_jni_invokeNative(methodinfo *m, java_handle_t *o,
 										java_objectarray *params);
 
 #endif /* _JNI_H */

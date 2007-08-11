@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8268 2007-08-07 13:24:43Z twisti $
+   $Id: codegen.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -3006,7 +3006,7 @@ gen_method:
 				}
 
 				M_ALD(REG_METHODPTR, REG_ITMP1,
-					  OFFSET(java_objectheader, vftbl));
+					  OFFSET(java_object_t, vftbl));
 				M_ALD32(REG_ITMP3, REG_METHODPTR, s1);
 				M_CALL(REG_ITMP3);
 				break;
@@ -3034,7 +3034,7 @@ gen_method:
 				}
 
 				M_ALD(REG_METHODPTR, REG_ITMP1,
-					  OFFSET(java_objectheader, vftbl));
+					  OFFSET(java_object_t, vftbl));
 				M_ALD32(REG_METHODPTR, REG_METHODPTR, s1);
 				M_ALD32(REG_ITMP3, REG_METHODPTR, s2);
 				M_CALL(REG_ITMP3);
@@ -3120,7 +3120,7 @@ gen_method:
 						emit_label_beq(cd, BRANCH_LABEL_3);
 					}
 
-					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 
 					if (super == NULL) {
 						codegen_addpatchref(cd, PATCHER_checkcast_interface,
@@ -3158,7 +3158,7 @@ gen_method:
 						emit_label_beq(cd, BRANCH_LABEL_5);
 					}
 
-					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 
 					if (super == NULL) {
 						codegen_addpatchref(cd, PATCHER_checkcast_class,
@@ -3283,7 +3283,7 @@ gen_method:
 					emit_label_beq(cd, BRANCH_LABEL_3);
 				}
 
-				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 
 				if (super == NULL) {
 					codegen_addpatchref(cd, PATCHER_instanceof_interface,
@@ -3325,7 +3325,7 @@ gen_method:
 					emit_label_beq(cd, BRANCH_LABEL_5);
 				}
 
-				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 
 				if (super == NULL) {
 					codegen_addpatchref(cd, PATCHER_instanceof_class,

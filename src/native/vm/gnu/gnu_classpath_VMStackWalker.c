@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: gnu_classpath_VMStackWalker.c 7910 2007-05-16 08:02:52Z twisti $
+   $Id: gnu_classpath_VMStackWalker.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -114,9 +114,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingCl
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClassLoader(JNIEnv *env, jclass clazz)
 {
-	java_objectarray  *oa;
-	classinfo         *c;
-	java_objectheader *cl;
+	java_objectarray *oa;
+	classinfo        *c;
+	classloader      *cl;
 
 	oa = stacktrace_getClassContext();
 
@@ -140,10 +140,10 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCal
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_firstNonNullClassLoader(JNIEnv *env, jclass clazz)
 {
-	java_objectarray  *oa;
-	classinfo         *c;
-	java_objectheader *cl;
-	s4                 i;
+	java_objectarray *oa;
+	classinfo        *c;
+	classloader      *cl;
+	s4                i;
 
 	oa = stacktrace_getClassContext();
 

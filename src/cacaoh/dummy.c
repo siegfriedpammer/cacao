@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: dummy.c 8288 2007-08-10 15:12:00Z twisti $
+   $Id: dummy.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -53,7 +53,7 @@
 char *_Jv_bootclasspath;
 
 
-java_objectheader *javastring_new_slash_to_dot(utf *u)
+java_handle_t *javastring_new_slash_to_dot(utf *u)
 {
 	vm_abort("javastring_new_slash_to_dot");
 
@@ -102,7 +102,7 @@ void intrp_asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out
 
 /* builtin ********************************************************************/
 
-java_objectheader *builtin_clone(void *env, java_objectheader *o)
+java_handle_t *builtin_clone(void *env, java_handle_t *o)
 {
 	abort();
 
@@ -116,7 +116,7 @@ int32_t builtin_isanysubclass(classinfo *sub, classinfo *super)
 	return 0;
 }
 
-java_objectheader *builtin_new(classinfo *c)
+java_handle_t *builtin_new(classinfo *c)
 {
 	abort();
 
@@ -397,16 +397,16 @@ void jit_invalidate_code(methodinfo *m)
 
 /* lock ***********************************************************************/
 
-void lock_init_object_lock(java_objectheader *o)
+void lock_init_object_lock(java_object_t *o)
 {
 }
 
-bool lock_monitor_enter(java_objectheader *o)
+bool lock_monitor_enter(java_object_t *o)
 {
 	return true;
 }
 
-bool lock_monitor_exit(java_objectheader *o)
+bool lock_monitor_exit(java_object_t *o)
 {
 	return true;
 }
@@ -628,7 +628,7 @@ void vm_abort(const char *text, ...)
 	abort();
 }
 
-java_objectheader *vm_call_method(methodinfo *m, java_objectheader *o, ...)
+java_handle_t *vm_call_method(methodinfo *m, java_handle_t *o, ...)
 {
 	return NULL;
 }
@@ -641,7 +641,7 @@ void stringtable_update(void)
 	log_println("stringtable_update: REMOVE ME!");
 }
 
-java_objectheader *literalstring_new(utf *u)
+java_object_t *literalstring_new(utf *u)
 {
 	log_println("literalstring_new: REMOVE ME!");
 

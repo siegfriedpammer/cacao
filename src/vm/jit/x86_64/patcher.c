@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 8268 2007-08-07 13:24:43Z twisti $
+   $Id: patcher.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -64,14 +64,14 @@
 
 *******************************************************************************/
 
-java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
+java_object_t *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 {
 	stackframeinfo     sfi;
 	u1                *xpc;
-	java_objectheader *o;
+	java_object_t     *o;
 	functionptr        f;
 	bool               result;
-	java_objectheader *e;
+	java_handle_t     *e;
 
 	/* define the patcher function */
 
@@ -80,7 +80,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	/* get stuff from the stack */
 
 	xpc = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	o   = (java_object_t *)     *((ptrint *) (sp + 4 * 8));
 	f   = (functionptr)         *((ptrint *) (sp + 0 * 8));
 
 	/* calculate and set the new return address */

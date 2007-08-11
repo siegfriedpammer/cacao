@@ -78,10 +78,10 @@ void _Jv_java_lang_Object_init(void)
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_Object_getClass(JNIEnv *env, java_lang_Object *obj)
 {
-	java_objectheader *o;
-	classinfo         *c;
+	java_handle_t *o;
+	classinfo     *c;
 
-	o = (java_objectheader *) obj;
+	o = (java_handle_t *) obj;
 
 	if (o == NULL)
 		return NULL;

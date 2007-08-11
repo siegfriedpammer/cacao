@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.h 7246 2007-01-29 18:49:05Z twisti $
+   $Id: loader.h 8295 2007-08-11 17:57:24Z michi $
 */
 
 
@@ -109,6 +109,11 @@ struct classbuffer {
 };
 
 
+/* classloader ****************************************************************/
+
+typedef java_object_t classloader;
+
+
 /* function prototypes ********************************************************/
 
 /* initialize loader, load important systemclasses */
@@ -127,12 +132,12 @@ void loader_close(void);
 
 /* class loading functions */
 classinfo *load_class_from_sysloader(utf *name);
-classinfo *load_class_from_classloader(utf *name, java_objectheader *cl);
+classinfo *load_class_from_classloader(utf *name, classloader *cl);
 classinfo *load_class_bootstrap(utf *name);
 
 /* (don't use the following directly) */
 classinfo *load_class_from_classbuffer(classbuffer *cb);
-classinfo *load_newly_created_array(classinfo *c,java_objectheader *loader);
+classinfo *load_newly_created_array(classinfo *c, classloader *loader);
 
 #endif /* _LOADER_H */
 

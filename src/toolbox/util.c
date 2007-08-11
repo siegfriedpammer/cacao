@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: util.c 5252 2006-08-18 13:07:21Z twisti $
+   $Id: util.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -43,8 +43,6 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
-#include "vm/exceptions.h"
-#include "vm/stringlocal.h"
 #include "vm/vm.h"
 
 

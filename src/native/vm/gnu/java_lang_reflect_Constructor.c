@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Constructor.c 8285 2007-08-10 09:20:04Z michi $
+   $Id: java_lang_reflect_Constructor.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -112,7 +112,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
  */
 JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Constructor_declaredAnnotations(JNIEnv *env, struct java_lang_reflect_Constructor* this)
 {
-	java_objectheader *o = (java_objectheader*)this;
+	java_handle_t *o = (java_handle_t*)this;
 
 	if (this == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -130,14 +130,14 @@ JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Constructor_decla
  */
 JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Constructor_getParameterAnnotations(JNIEnv *env, struct java_lang_reflect_Constructor* this)
 {
-	java_objectheader *o = (java_objectheader*)this;
+	java_handle_t *o = (java_handle_t*)this;
 
 	if (this == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
-	return reflect_get_parameterannotations((java_objectheader*)this->parameterAnnotations, this->slot, this->clazz, o->vftbl->class);
+	return reflect_get_parameterannotations((java_handle_t*)this->parameterAnnotations, this->slot, this->clazz, o->vftbl->class);
 }
 #endif
 

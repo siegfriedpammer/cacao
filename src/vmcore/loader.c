@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 8288 2007-08-10 15:12:00Z twisti $
+   $Id: loader.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -845,9 +845,9 @@ bool loader_load_attribute_signature(classbuffer *cb, utf **signature)
 
 classinfo *load_class_from_sysloader(utf *name)
 {
-	methodinfo        *m;
-	java_objectheader *cl;
-	classinfo         *c;
+	methodinfo  *m;
+	classloader *cl;
+	classinfo   *c;
 
 	assert(class_java_lang_Object);
 	assert(class_java_lang_ClassLoader);
@@ -887,12 +887,12 @@ classinfo *load_class_from_sysloader(utf *name)
 
 *******************************************************************************/
 
-classinfo *load_class_from_classloader(utf *name, java_objectheader *cl)
+classinfo *load_class_from_classloader(utf *name, classloader *cl)
 {
-	java_objectheader *o;
-	classinfo         *c;
-	classinfo         *tmpc;
-	java_objectheader *string;
+	java_handle_t *o;
+	classinfo     *c;
+	classinfo     *tmpc;
+	java_handle_t *string;
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_lookup, time_prepare, time_java, 
 					time_cache;
@@ -1780,7 +1780,7 @@ return_exception:
 
 *******************************************************************************/
 
-classinfo *load_newly_created_array(classinfo *c, java_objectheader *loader)
+classinfo *load_newly_created_array(classinfo *c, classloader *loader)
 {
 	classinfo         *comp = NULL;
 	methodinfo        *clone;

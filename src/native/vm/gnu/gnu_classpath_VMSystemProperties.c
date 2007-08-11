@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: gnu_classpath_VMSystemProperties.c 7910 2007-05-16 08:02:52Z twisti $
+   $Id: gnu_classpath_VMSystemProperties.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -79,9 +79,9 @@ void _Jv_gnu_classpath_VMSystemProperties_init(void)
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env, jclass clazz, java_util_Properties *properties)
 {
-	java_objectheader *p;
+	java_handle_t *p;
 
-	p = (java_objectheader *) properties;
+	p = (java_handle_t *) properties;
 
 	if (p == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -101,13 +101,13 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
  */
 JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *env, jclass clazz, java_util_Properties *properties)
 {
-	java_objectheader *p;
+	java_handle_t *p;
 #if defined(WITH_JRE_LAYOUT)
 	char *path;
 	s4    len;
 #endif
 
-	p = (java_objectheader *) properties;
+	p = (java_handle_t *) properties;
 
 	if (p == NULL) {
 		exceptions_throw_nullpointerexception();

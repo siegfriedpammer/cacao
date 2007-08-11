@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 8283 2007-08-09 15:10:05Z twisti $
+   $Id: signal.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -217,9 +217,9 @@ void signal_register_signal(int signum, void *handler, int flags)
 
 void *signal_handle(void *xpc, int type, intptr_t val)
 {
-	void              *p;
-	int32_t            index;
-	java_objectheader *o;
+	void          *p;
+	int32_t        index;
+	java_object_t *o;
 
 	switch (type) {
 	case EXCEPTION_HARDWARE_NULLPOINTER:
@@ -236,7 +236,7 @@ void *signal_handle(void *xpc, int type, intptr_t val)
 		break;
 
 	case EXCEPTION_HARDWARE_CLASSCAST:
-		o = (java_objectheader *) val;
+		o = (java_object_t *) val;
 		p = exceptions_new_classcastexception(o);
 		break;
 

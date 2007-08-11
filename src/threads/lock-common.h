@@ -54,22 +54,22 @@
 
 void lock_init(void);
 
-void lock_init_object_lock(java_objectheader *);
+void lock_init_object_lock(java_object_t *);
 lock_record_t *lock_get_initial_lock_word(void);
 
 ptrint lock_pre_compute_thinlock(s4 index);
 
-bool lock_monitor_enter(java_objectheader *);
-bool lock_monitor_exit(java_objectheader *);
+bool lock_monitor_enter(java_object_t *);
+bool lock_monitor_exit(java_object_t *);
 
 #define LOCK_monitor_enter    (functionptr) lock_monitor_enter
 #define LOCK_monitor_exit     (functionptr) lock_monitor_exit
 
-bool lock_is_held_by_current_thread(java_objectheader *o);
+bool lock_is_held_by_current_thread(java_object_t *o);
 
-void lock_wait_for_object(java_objectheader *o, s8 millis, s4 nanos);
-void lock_notify_object(java_objectheader *o);
-void lock_notify_all_object(java_objectheader *o);
+void lock_wait_for_object(java_object_t *o, s8 millis, s4 nanos);
+void lock_notify_object(java_object_t *o);
+void lock_notify_all_object(java_object_t *o);
 
 #endif /* ENABLE_THREADS */
 

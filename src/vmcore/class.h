@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8249 2007-07-31 12:59:03Z panzi $
+   $Id: class.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -85,7 +85,7 @@ typedef struct castinfo       castinfo;
    runtime in vm_create. */
 
 typedef struct {
-	java_objectheader header;
+	java_object_t      header;
 #if defined(WITH_CLASSPATH_GNU)
 	intptr_t           padding[4];
 #elif defined(WITH_CLASSPATH_SUN)
@@ -157,7 +157,7 @@ struct classinfo {                /* class structure                          */
 	annotation_bytearrays_t *field_annotations;
 #endif
 #endif
-	java_objectheader *classloader; /* NULL for bootstrap classloader         */
+	classloader *classloader;       /* NULL for bootstrap classloader         */
 };
 
 
@@ -304,7 +304,7 @@ extern classinfo *pseudo_class_New;
 
 classinfo *class_create_classinfo(utf *u);
 void       class_postset_header_vftbl(void);
-classinfo *class_define(utf *name, java_objectheader *cl, int32_t length, const uint8_t *data);
+classinfo *class_define(utf *name, classloader *cl, int32_t length, const uint8_t *data);
 void       class_set_packagename(classinfo *c);
 
 bool       class_load_attributes(classbuffer *cb);

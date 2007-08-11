@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Field.c 8291 2007-08-11 10:43:45Z twisti $
+   $Id: java_lang_reflect_Field.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -177,7 +177,7 @@ static void *cacao_get_field_address(java_lang_reflect_Field *this,
 			return NULL;
 		}
 	
-		if (builtin_instanceof((java_objectheader *) o, c))
+		if (builtin_instanceof((java_handle_t *) o, c))
 			return (void *) (((intptr_t) o) + f->offset);
 	}
 
@@ -246,7 +246,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env
 	void      *addr;
 	int32_t    slot;
 	imm_union  value;
-	java_objectheader *o;
+	java_handle_t *o;
 
 	LLNI_field_get_cls(this, clazz, c);
 	LLNI_field_get_val(this, slot , slot);
@@ -279,7 +279,8 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env
 		break;
 
 	case TYPE_ADR:
-		return (java_lang_Object *) *((java_objectheader **) addr);
+#warning this whole thing needs to be inside a critical section!
+		return (java_lang_Object *) *((java_handle_t **) addr);
 	}
 
 	/* Now box the primitive types. */
@@ -857,7 +858,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 		/* check if value is an instance of the destination class */
 
 		/* XXX TODO */
-		/*  			if (!builtin_instanceof((java_objectheader *) value, df->class)) */
+		/*  			if (!builtin_instanceof((java_handle_t *) value, df->class)) */
 		/*  				break; */
 
 		*((java_lang_Object **) faddr) = value;
@@ -1222,10 +1223,10 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setDouble(JNIEnv *env, java_
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Field_getSignature(JNIEnv *env, java_lang_reflect_Field* this)
 {
-	classinfo         *c;
-	fieldinfo         *f;
-	java_objectheader *o;
-	int32_t    slot;
+	classinfo     *c;
+	fieldinfo     *f;
+	java_handle_t *o;
+	int32_t        slot;
 
 	/* get the class and the field */
 
@@ -1252,7 +1253,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Field_getSignature(JN
  */
 JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Field_declaredAnnotations(JNIEnv *env, struct java_lang_reflect_Field* this)
 {
-	java_objectheader *o = (java_objectheader*)this;
+	java_handle_t *o = (java_handle_t*)this;
 
 	if (this == NULL) {
 		exceptions_throw_nullpointerexception();

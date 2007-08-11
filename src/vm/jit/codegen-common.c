@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 8261 2007-08-06 12:42:31Z michi $
+   $Id: codegen-common.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -1402,7 +1402,7 @@ void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 
 	/* clear the references array (memset is faster the a for-loop) */
 
-	MSET(lrt->refs, 0, java_objectheader*, LOCALREFTABLE_CAPACITY);
+	MSET(lrt->refs, 0, void*, LOCALREFTABLE_CAPACITY);
 
 	LOCALREFTABLE = lrt;
 #endif
@@ -1417,16 +1417,16 @@ void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 
 *******************************************************************************/
 
-java_objectheader *codegen_finish_native_call(u1 *datasp)
+java_object_t *codegen_finish_native_call(u1 *datasp)
 {
-	stackframeinfo     *sfi;
-	stackframeinfo    **psfi;
+	stackframeinfo  *sfi;
+	stackframeinfo **psfi;
 #if defined(ENABLE_JNI)
-	localref_table     *lrt;
-	localref_table     *plrt;
-	s4                  localframes;
+	localref_table  *lrt;
+	localref_table  *plrt;
+	s4               localframes;
 #endif
-	java_objectheader  *e;
+	java_handle_t   *e;
 
 	/* get data structures from stack */
 
@@ -1454,7 +1454,7 @@ java_objectheader *codegen_finish_native_call(u1 *datasp)
 		   the Java heap). */
 
 		if (localframes > 1)
-			MSET(&lrt->refs[0], 0, java_objectheader*, lrt->capacity);
+			MSET(&lrt->refs[0], 0, void*, lrt->capacity);
 
 		lrt->prev = NULL;
 

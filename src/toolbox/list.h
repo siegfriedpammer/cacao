@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: list.h 7905 2007-05-14 14:11:33Z twisti $
+   $Id: list.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -109,7 +109,7 @@ typedef struct list_t list_t;
 
 struct list_t {
 #if defined(ENABLE_THREADS)
-	java_objectheader  lock;            /* threads lock object                */
+	java_object_t      lock;            /* threads lock object                */
 #endif
 	listnode_t        *first;
 	listnode_t        *last;

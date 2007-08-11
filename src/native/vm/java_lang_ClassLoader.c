@@ -76,17 +76,17 @@
  */
 java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl, java_lang_String *name, java_bytearray *data, s4 offset, s4 len, java_security_ProtectionDomain *pd)
 {
-	java_objectheader *loader;
-	utf               *utfname;
-	classinfo         *c;
-	java_lang_Class   *o;
+	classloader     *loader;
+	utf             *utfname;
+	classinfo       *c;
+	java_lang_Class *o;
 
 #if defined(ENABLE_JVMTI)
 	jint new_class_data_len = 0;
 	unsigned char* new_class_data = NULL;
 #endif
 
-	loader = (java_objectheader *) cl;
+	loader = (classloader *) cl;
 
 	/* check if data was passed */
 
@@ -105,7 +105,7 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 	if (name != NULL) {
 		/* convert '.' to '/' in java string */
 
-		utfname = javastring_toutf((java_objectheader *) name, true);
+		utfname = javastring_toutf((java_handle_t *) name, true);
 	} 
 	else {
 		utfname = NULL;
@@ -116,7 +116,7 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 
 	if (jvmti)
 		jvmti_ClassFileLoadHook(utfname, len, (unsigned char *) data->data, 
-								loader, (java_objectheader *) pd, 
+								loader, (java_handle_t *) pd, 
 								&new_class_data_len, &new_class_data);
 #endif
 

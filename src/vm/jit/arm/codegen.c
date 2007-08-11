@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8268 2007-08-07 13:24:43Z twisti $
+   $Id: codegen.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -2318,7 +2318,7 @@ bool codegen_emit(jitdata *jd)
 
 				/* implicit null-pointer check */
 				M_LDR_INTERN(REG_METHODPTR, REG_A0,
-							 OFFSET(java_objectheader, vftbl));
+							 OFFSET(java_object_t, vftbl));
 				M_LDR_INTERN(REG_PV, REG_METHODPTR, s1);
 
 				/* generate the actual call */
@@ -2347,7 +2347,7 @@ bool codegen_emit(jitdata *jd)
 
 				/* implicit null-pointer check */
 				M_LDR_INTERN(REG_METHODPTR, REG_A0,
-							 OFFSET(java_objectheader, vftbl));
+							 OFFSET(java_object_t, vftbl));
 				M_LDR_INTERN(REG_METHODPTR, REG_METHODPTR, s1);
 				M_LDR_INTERN(REG_PV, REG_METHODPTR, s2);
 
@@ -2472,7 +2472,7 @@ bool codegen_emit(jitdata *jd)
 					emit_label_beq(cd, BRANCH_LABEL_3);
 				}
 
-				M_LDR_INTERN(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+				M_LDR_INTERN(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 				M_LDR_INTERN(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, interfacetablelength));
 
 				/* we put unresolved or non-immediate superindices onto dseg */
@@ -2491,7 +2491,7 @@ bool codegen_emit(jitdata *jd)
 				   things differently here! */
 				if ((super == NULL) || !IS_IMM(superindex)) {
 
-					M_LDR_INTERN(REG_ITMP3, s1, OFFSET(java_objectheader, vftbl));
+					M_LDR_INTERN(REG_ITMP3, s1, OFFSET(java_object_t, vftbl));
 
 					/* this assumes something */
 					assert(OFFSET(vftbl_t, interfacetable[0]) == 0);
@@ -2541,7 +2541,7 @@ bool codegen_emit(jitdata *jd)
 					emit_label_beq(cd, BRANCH_LABEL_5);
 				}
 
-				M_LDR_INTERN(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+				M_LDR_INTERN(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 				M_DSEG_LOAD(REG_ITMP3, disp);
 
 				CODEGEN_CRITICAL_SECTION_START;
@@ -2678,7 +2678,7 @@ bool codegen_emit(jitdata *jd)
 					emit_label_beq(cd, BRANCH_LABEL_3);
 				}
 
-				M_LDR_INTERN(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_LDR_INTERN(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_LDR_INTERN(REG_ITMP3,
 							 REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 
@@ -2752,7 +2752,7 @@ bool codegen_emit(jitdata *jd)
 					emit_label_beq(cd, BRANCH_LABEL_5);
 				}
 
-				M_LDR_INTERN(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_LDR_INTERN(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_DSEG_LOAD(REG_ITMP2, disp);
 
 				CODEGEN_CRITICAL_SECTION_START;

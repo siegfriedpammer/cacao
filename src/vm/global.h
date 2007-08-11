@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: global.h 8210 2007-07-18 12:51:00Z twisti $
+   $Id: global.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -81,7 +81,7 @@ typedef union {
 
 /* forward typedefs ***********************************************************/
 
-typedef struct java_objectheader java_objectheader; 
+typedef struct java_object_t java_object_t; 
 typedef struct java_objectarray java_objectarray;
 
 
@@ -196,7 +196,7 @@ typedef struct java_objectarray java_objectarray;
 
 /* data structures of the runtime system **************************************/
 
-/* java_objectheader ***********************************************************
+/* java_object_t ***************************************************************
 
    All objects (and arrays) which resides on the heap need the
    following header at the beginning of the data structure.
@@ -207,7 +207,7 @@ typedef struct java_objectarray java_objectarray;
 
 #define HDRFLAG_FLC 0x01
 
-struct java_objectheader {             /* header for all objects              */
+struct java_object_t {                 /* header for all objects              */
 	struct _vftbl            *vftbl;   /* pointer to virtual function table   */
 #if defined(ENABLE_THREADS)
 	struct lock_record_t *monitorPtr;
@@ -216,6 +216,15 @@ struct java_objectheader {             /* header for all objects              */
 	ptrint                hdrflags;    /* word containing the FLC and GC bits */
 #endif
 };
+
+
+#if 0
+typedef struct java_handle_t {
+	java_object_t *heap_object;
+} java_handle_t;
+#else
+typedef java_object_t java_handle_t;
+#endif
 
 
 /* arrays **********************************************************************
@@ -227,7 +236,7 @@ struct java_objectheader {             /* header for all objects              */
 */
 
 typedef struct java_arrayheader {       /* header for all arrays              */
-	java_objectheader objheader;        /* object header                      */
+	java_object_t objheader;            /* object header                      */
 	s4 size;                            /* array size                         */
 } java_arrayheader;
 
@@ -282,8 +291,8 @@ typedef struct java_doublearray {
     use the same machine code */
 
 struct java_objectarray {
-	java_arrayheader   header;
-	java_objectheader *data[1];
+	java_arrayheader  header;
+	java_object_t    *data[1];
 };
 
 

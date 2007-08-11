@@ -92,12 +92,12 @@ JNIEXPORT void JNICALL Java_java_lang_System_arraycopy(JNIEnv *env, jclass clazz
 
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_System_getProperty0(JNIEnv *env, jclass clazz, java_lang_String *s)
 {
-	java_objectheader *so;
-	char*              key;
-	char*              value;
-	java_objectheader *result;
+	java_handle_t *so;
+	char*          key;
+	char*          value;
+	java_handle_t *result;
 
-	so = (java_objectheader *) s;
+	so = (java_handle_t *) s;
 
 	/* build an ASCII string out of the java/lang/String passed */
 

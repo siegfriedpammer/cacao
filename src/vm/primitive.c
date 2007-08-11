@@ -174,9 +174,9 @@ classinfo *primitive_arrayclass_get_by_type(int type)
 
 *******************************************************************************/
 
-java_objectheader *primitive_box(int type, imm_union value)
+java_handle_t *primitive_box(int type, imm_union value)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
 	switch (type) {
 	case PRIMITIVETYPE_BOOLEAN:
@@ -217,7 +217,7 @@ java_objectheader *primitive_box(int type, imm_union value)
 
 *******************************************************************************/
 
-imm_union primitive_unbox(int type, java_objectheader *o)
+imm_union primitive_unbox(int type, java_handle_t *o)
 {
 	imm_union value;
 
@@ -261,9 +261,9 @@ imm_union primitive_unbox(int type, java_objectheader *o)
 *******************************************************************************/
 
 #define PRIMITIVE_BOX_TYPE(name, object, type)      \
-java_objectheader *primitive_box_##name(type value) \
+java_handle_t *primitive_box_##name(type value)     \
 {                                                   \
-	java_objectheader  *o;                          \
+	java_handle_t      *o;                          \
 	java_lang_##object *jo;                         \
                                                     \
 	o = builtin_new(class_java_lang_##object);      \
@@ -295,7 +295,7 @@ PRIMITIVE_BOX_TYPE(double,  Double,    double)
 *******************************************************************************/
 
 #define PRIMITIVE_UNBOX_TYPE(name, object, type)  \
-type primitive_unbox_##name(java_objectheader *o) \
+type primitive_unbox_##name(java_handle_t *o)     \
 {                                                 \
 	java_lang_##object *jo;                       \
 	type                value;                    \

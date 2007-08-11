@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.c 8284 2007-08-10 08:58:39Z michi $
+   $Id: stacktrace.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -782,7 +782,7 @@ java_objectarray *stacktrace_getClassContext(void)
 			continue;
 		}
 
-		oa->data[i] = (java_objectheader *) ste->method->class;
+		oa->data[i] = (java_object_t *) ste->method->class;
 	}
 
 	/* release dump memory */
@@ -892,7 +892,7 @@ java_objectarray *stacktrace_getStack(void)
 	java_objectarray  *classes;
 	java_objectarray  *methodnames;
 	classinfo         *c;
-	java_objectheader *string;
+	java_handle_t     *string;
 	s4                 i;
 	s4                 dumpsize;
 	CYCLES_STATS_DECLARE_AND_START
@@ -931,15 +931,15 @@ java_objectarray *stacktrace_getStack(void)
 
 	/* set up the 2-dimensional array */
 
-	oa->data[0] = (java_objectheader *) classes;
-	oa->data[1] = (java_objectheader *) methodnames;
+	oa->data[0] = (java_object_t *) classes;
+	oa->data[1] = (java_object_t *) methodnames;
 
 	/* iterate over all stacktrace entries */
 
 	for (i = 0, ste = &(stb->entries[0]); i < stb->used; i++, ste++) {
 		c = ste->method->class;
 
-		classes->data[i] = (java_objectheader *) c;
+		classes->data[i] = (java_object_t *) c;
 
 		string = javastring_new(ste->method->name);
 
@@ -1015,7 +1015,7 @@ void stacktrace_print_trace_from_buffer(stacktracebuffer *stb)
 
 *******************************************************************************/
 
-void stacktrace_print_trace(java_objectheader *xptr)
+void stacktrace_print_trace(java_handle_t *xptr)
 {
 	java_lang_Throwable   *t;
 #if defined(WITH_CLASSPATH_GNU)

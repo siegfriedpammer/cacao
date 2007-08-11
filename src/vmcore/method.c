@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.c 8262 2007-08-06 12:44:01Z panzi $
+   $Id: method.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -664,7 +664,7 @@ java_objectarray *method_get_parametertypearray(methodinfo *m)
 		if (!resolve_class_from_typedesc(&paramtypes[i], true, false, &c))
 			return NULL;
 
-		oa->data[i] = (java_objectheader *) c;
+		oa->data[i] = c;
 	}
 
 	return oa;
@@ -698,7 +698,7 @@ java_objectarray *method_get_exceptionarray(methodinfo *m)
 		if (c == NULL)
 			return NULL;
 
-		oa->data[i] = (java_objectheader *) c;
+		oa->data[i] = c;
 	}
 
 	return oa;

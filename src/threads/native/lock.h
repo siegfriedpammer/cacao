@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: lock.h 7954 2007-05-23 17:58:18Z twisti $
+   $Id: lock.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -66,7 +66,7 @@ struct lock_waiter_t {
 *******************************************************************************/
 
 struct lock_record_t {
-	java_objectheader   *object;             /* object for which this lock is */
+	java_object_t       *object;             /* object for which this lock is */
 	struct threadobject *owner;              /* current owner of this monitor */
 	s4                   count;              /* recursive lock count          */
 	pthread_mutex_t      mutex;              /* mutex for synchronizing       */
@@ -91,10 +91,10 @@ struct lock_hashtable_t {
 
 /* defines ********************************************************************/
 
-#define LOCK_INIT_OBJECT_LOCK(o) lock_init_object_lock((java_objectheader *) (o))
+#define LOCK_INIT_OBJECT_LOCK(o) lock_init_object_lock((java_object_t *) (o))
 
-#define LOCK_MONITOR_ENTER(o)    lock_monitor_enter((java_objectheader *) (o))
-#define LOCK_MONITOR_EXIT(o)     lock_monitor_exit((java_objectheader *) (o))
+#define LOCK_MONITOR_ENTER(o)    lock_monitor_enter((java_object_t *) (o))
+#define LOCK_MONITOR_EXIT(o)     lock_monitor_exit((java_object_t *) (o))
 
 #endif /* _LOCK_H */
 

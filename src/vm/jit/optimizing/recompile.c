@@ -55,8 +55,8 @@
 
 /* global variables ***********************************************************/
 
-static java_objectheader *lock_thread_recompile;
-static list_t            *list_recompile_methods;
+static java_object_t *lock_thread_recompile;
+static list_t        *list_recompile_methods;
 
 
 /* recompile_init **************************************************************
@@ -69,7 +69,7 @@ bool recompile_init(void)
 {
 	/* initialize the recompile lock object */
 
-	lock_thread_recompile = NEW(java_objectheader);
+	lock_thread_recompile = NEW(java_object_t);
 
 	lock_init_object_lock(lock_thread_recompile);
 

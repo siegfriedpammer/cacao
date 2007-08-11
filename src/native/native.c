@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 8166 2007-06-29 19:45:17Z twisti $
+   $Id: native.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -557,8 +557,7 @@ lt_dlhandle native_library_open(utf *filename)
 *******************************************************************************/
 
 #if defined(ENABLE_LTDL)
-void native_library_add(utf *filename, java_objectheader *loader,
-						lt_dlhandle handle)
+void native_library_add(utf *filename, classloader *loader, lt_dlhandle handle)
 {
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne; /* library name                       */
@@ -641,7 +640,7 @@ void native_library_add(utf *filename, java_objectheader *loader,
 
 #if defined(ENABLE_LTDL)
 hashtable_library_name_entry *native_library_find(utf *filename,
-												  java_objectheader *loader)
+												  classloader *loader)
 {
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne; /* library name                       */
@@ -750,7 +749,7 @@ functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 
 functionptr native_resolve_function(methodinfo *m)
 {
-	java_objectheader              *cl;
+	classloader                    *cl;
 	utf                            *name;
 	utf                            *newname;
 	functionptr                     f;
@@ -762,7 +761,7 @@ functionptr native_resolve_function(methodinfo *m)
 #endif
 #if defined(WITH_CLASSPATH_SUN)
 	methodinfo                     *method_findNative;
-	java_objectheader              *s;
+	java_handle_t                  *s;
 #endif
 
 	cl = m->class->classloader;
@@ -892,10 +891,10 @@ functionptr native_resolve_function(methodinfo *m)
 			
 *******************************************************************************/
 
-java_objectheader *native_new_and_init(classinfo *c)
+java_handle_t *native_new_and_init(classinfo *c)
 {
-	methodinfo *m;
-	java_objectheader *o;
+	methodinfo    *m;
+	java_handle_t *o;
 
 	if (c == NULL)
 		vm_abort("native_new_and_init: c == NULL");
@@ -925,10 +924,10 @@ java_objectheader *native_new_and_init(classinfo *c)
 }
 
 
-java_objectheader *native_new_and_init_string(classinfo *c, java_objectheader *s)
+java_handle_t *native_new_and_init_string(classinfo *c, java_handle_t *s)
 {
-	methodinfo        *m;
-	java_objectheader *o;
+	methodinfo    *m;
+	java_handle_t *o;
 
 	if (c == NULL)
 		vm_abort("native_new_and_init_string: c == NULL");

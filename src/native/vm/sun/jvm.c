@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8290 2007-08-11 10:25:40Z twisti $
+   $Id: jvm.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -251,7 +251,7 @@ jobject JVM_InitProperties(JNIEnv *env, jobject properties)
 #if PRINTJVM
 	log_println("JVM_InitProperties: properties=%d", properties);
 #endif
-	properties_system_add_all((java_objectheader *) properties);
+	properties_system_add_all((java_handle_t *) properties);
 }
 
 
@@ -527,7 +527,7 @@ jobject JVM_Clone(JNIEnv* env, jobject handle)
 #if PRINTJVM
 	log_println("JVM_Clone: handle=%p", handle);
 #endif
-	return (jobject) builtin_clone(env, (java_objectheader *) handle);
+	return (jobject) builtin_clone(env, (java_handle_t *) handle);
 }
 
 
@@ -678,7 +678,7 @@ jclass JVM_FindClassFromClassLoader(JNIEnv* env, const char* name, jboolean init
 	log_println("JVM_FindClassFromClassLoader: name=%s, init=%d, loader=%p, throwError=%d", name, init, loader, throwError);
 #endif
 
-	c = load_class_from_classloader(utf_new_char(name), (java_objectheader *) loader);
+	c = load_class_from_classloader(utf_new_char(name), (classloader *) loader);
 
 	if (c == NULL)
 		return NULL;
@@ -717,7 +717,7 @@ jclass JVM_DefineClassWithSource(JNIEnv *env, const char *name, jobject loader, 
 #endif
 	/* XXX do something with pd and source */
 
-	return (jclass) class_define(utf_new_char(name), (java_objectheader *) loader, len, (u1 *) buf);
+	return (jclass) class_define(utf_new_char(name), (classloader *) loader, len, (u1 *) buf);
 
 }
 
@@ -736,7 +736,7 @@ jclass JVM_FindLoadedClass(JNIEnv *env, jobject loader, jstring name)
 	log_println("JVM_FindLoadedClass(loader=%p, name=%p)", loader, name);
 #endif
 
-	u = javastring_toutf((java_objectheader *) name, true);
+	u = javastring_toutf((java_handle_t *) name, true);
 	c = classcache_lookup(cl, u);
 
 	return (jclass) c;
@@ -844,17 +844,17 @@ void JVM_SetProtectionDomain(JNIEnv *env, jclass cls, jobject protection_domain)
 
 jobject JVM_DoPrivileged(JNIEnv *env, jclass cls, jobject action, jobject context, jboolean wrapException)
 {
-	java_objectheader *o;
-	classinfo         *c;
-	methodinfo        *m;
-	java_objectheader *result;
-	java_objectheader *e;
+	java_handle_t *o;
+	classinfo     *c;
+	methodinfo    *m;
+	java_handle_t *result;
+	java_handle_t *e;
 
 #if PRINTJVM
 	log_println("JVM_DoPrivileged: action=%p, context=%p, wrapException=%d", action, context, wrapException);
 #endif
 
-	o = (java_objectheader *) action;
+	o = (java_handle_t *) action;
 	c = o->vftbl->class;
 
 	if (action == NULL) {
@@ -2168,7 +2168,7 @@ jobject JVM_GetArrayElement(JNIEnv *env, jobject arr, jint index)
 /*	log_println("JVM_GetArrayElement: IMPLEMENT ME!"); */
 
 	java_arrayheader *a;
-	java_objectheader *o = NULL;
+	java_handle_t    *o = NULL;
 
 	TRACEJVMCALLS("JVM_GetArrayElement: arr=%p, index=%d", arr, index);
 
@@ -2571,13 +2571,13 @@ jstring JVM_InternString(JNIEnv *env, jstring str)
 
 JNIEXPORT void* JNICALL JVM_RawMonitorCreate(void)
 {
-	java_objectheader *o;
+	java_object_t *o;
 
 #if PRINTJVM
 	log_println("JVM_RawMonitorCreate");
 #endif
 
-	o = NEW(java_objectheader);
+	o = NEW(java_object_t);
 
 	lock_init_object_lock(o);
 
@@ -2592,7 +2592,7 @@ JNIEXPORT void JNICALL JVM_RawMonitorDestroy(void *mon)
 #if PRINTJVM
 	log_println("JVM_RawMonitorDestroy: mon=%p", mon);
 #endif
-	FREE(mon, java_objectheader);
+	FREE(mon, java_object_t);
 }
 
 
@@ -2603,7 +2603,7 @@ JNIEXPORT jint JNICALL JVM_RawMonitorEnter(void *mon)
 #if PRINTJVM
 	log_println("JVM_RawMonitorEnter: mon=%p", mon);
 #endif
-	(void) lock_monitor_enter((java_objectheader *) mon);
+	(void) lock_monitor_enter((java_object_t *) mon);
 
 	return 0;
 }
@@ -2616,7 +2616,7 @@ JNIEXPORT void JNICALL JVM_RawMonitorExit(void *mon)
 #if PRINTJVM
 	log_println("JVM_RawMonitorExit: mon=%p", mon);
 #endif
-	(void) lock_monitor_exit((java_objectheader *) mon);
+	(void) lock_monitor_exit((java_object_t *) mon);
 }
 
 

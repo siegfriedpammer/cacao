@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: reflect.c 8289 2007-08-10 15:18:05Z twisti $
+   $Id: reflect.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -80,7 +80,7 @@
 java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 {
 	classinfo                     *c;
-	java_objectheader             *o;
+	java_handle_t                 *o;
 	java_lang_reflect_Constructor *rc;
 	int32_t                        slot;
 	java_bytearray                *annotations          = NULL;
@@ -171,7 +171,7 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 {
 	classinfo               *c;
-	java_objectheader       *o;
+	java_handle_t           *o;
 	java_lang_reflect_Field *rf;
 	int32_t                  slot;
 	java_bytearray          *annotations = NULL;
@@ -253,7 +253,7 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 {
 	classinfo                *c;
-	java_objectheader        *o;
+	java_handle_t            *o;
 	java_lang_reflect_Method *rm;
 	int32_t                   slot;
 	java_bytearray           *annotations          = NULL;
@@ -431,7 +431,7 @@ struct java_util_Map* reflect_get_declaredannotatios(
 *******************************************************************************/
 
 java_objectarray* reflect_get_parameterannotations(
-	java_objectheader *parameterAnnotations,
+	java_handle_t     *parameterAnnotations,
 	int32_t            slot,
 	java_lang_Class   *declaringClass,
 	classinfo         *referer)

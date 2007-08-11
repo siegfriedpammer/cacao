@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8288 2007-08-10 15:12:00Z twisti $
+   $Id: linker.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -75,7 +75,7 @@ classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls, bool c
 static s4 interfaceindex;       /* sequential numbering of interfaces         */
 static s4 classvalue;
 
-java_objectheader *linker_classrenumber_lock;
+java_object_t *linker_classrenumber_lock;
 
 
 /* private functions **********************************************************/
@@ -140,7 +140,7 @@ bool linker_init(void)
 #if defined(ENABLE_THREADS)
 	/* create the global lock object */
 
-	linker_classrenumber_lock = NEW(java_objectheader);
+	linker_classrenumber_lock = NEW(java_object_t);
 
 	LOCK_INIT_OBJECT_LOCK(linker_classrenumber_lock);
 #endif
@@ -574,7 +574,7 @@ static classinfo *link_class_intern(classinfo *c)
 
 	if (c->super.any == NULL) {                     /* class java.lang.Object */
 		c->index = 0;
-		c->instancesize = sizeof(java_objectheader);
+		c->instancesize = sizeof(java_object_t);
 		
 		vftbllength = supervftbllength = 0;
 

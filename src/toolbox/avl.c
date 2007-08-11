@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: avl.c 7862 2007-05-03 14:53:39Z twisti $
+   $Id: avl.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -63,7 +63,7 @@ avl_tree_t *avl_create(avl_comparator *comparator)
 #if defined(ENABLE_THREADS)
 	/* create lock object for this tree */
 
-	t->lock       = NEW(java_objectheader);
+	t->lock       = NEW(java_object_t);
 
 	LOCK_INIT_OBJECT_LOCK(t->lock);
 #endif

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8278 2007-08-08 17:10:18Z michi $
+   $Id: codegen.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -2851,7 +2851,7 @@ gen_method:
 
 				/* implicit null-pointer check */
 
-				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
 				M_ALD(REG_PV, REG_METHODPTR, s1);
 				break;
 
@@ -2876,7 +2876,7 @@ gen_method:
 				}
 
 				/* Implicit null-pointer check */
-				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
 				N_LHI(REG_ITMP1, s1);
 				N_L(REG_METHODPTR, 0, REG_ITMP1, REG_METHODPTR);
 				M_ALD(REG_PV, REG_METHODPTR, s2);
@@ -3011,7 +3011,7 @@ gen_method:
 						emit_label_beq(cd, LABEL_EXIT_INTERFACE_NULL);
 					}
 
-					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, interfacetablelength));
 					M_ISUB_IMM(superindex, REG_ITMP3);
 					emit_classcast_check(cd, iptr, BRANCH_LE, RN, s1);
@@ -3049,7 +3049,7 @@ gen_method:
 						emit_label_beq(cd, LABEL_EXIT_CLASS_NULL);
 					}
 
-					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ALD_DSEG(REG_ITMP3, disp);
 
 					CODEGEN_CRITICAL_SECTION_START;
@@ -3217,7 +3217,7 @@ gen_method:
 					emit_label_beq(cd, LABEL_EXIT_INTERFACE_NULL);
 				}
 
-				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ILD(REG_ITMP3, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 				M_ISUB_IMM(superindex, REG_ITMP3);
 
@@ -3264,7 +3264,7 @@ gen_method:
 					emit_label_beq(cd, LABEL_EXIT_CLASS_NULL);
 				}
 
-				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ALD_DSEG(REG_ITMP2, disp);
 
 				CODEGEN_CRITICAL_SECTION_START;

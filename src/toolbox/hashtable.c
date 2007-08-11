@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: hashtable.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: hashtable.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -51,11 +51,11 @@ void hashtable_create(hashtable *hash, u4 size)
 	/* initialize locking pointer */
 
 #if defined(ENABLE_THREADS)
-	/* We need to seperately allocate a java_objectheader here, as we
+	/* We need to seperately allocate a java_object_t here, as we
 	   need to store the lock object in the new hashtable if it's
 	   resized.  Otherwise we get an IllegalMonitorStateException. */
 
-	hash->header = NEW(java_objectheader);
+	hash->header = NEW(java_object_t);
 
 	LOCK_INIT_OBJECT_LOCK(hash->header);
 #endif
@@ -91,7 +91,7 @@ hashtable *hashtable_resize(hashtable *hash, u4 size)
 	/* We need to store the old lock object in the new hashtable.
 	   Otherwise we get an IllegalMonitorStateException. */
 
-	FREE(newhash->header, java_objectheader);
+	FREE(newhash->header, java_object_t);
 
 	newhash->header  = hash->header;
 #endif

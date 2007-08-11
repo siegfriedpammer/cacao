@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Thread.c 8284 2007-08-10 08:58:39Z michi $
+   $Id: java_lang_Thread.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -356,9 +356,9 @@ s4 _Jv_java_lang_Thread_interrupted(void)
 s4 _Jv_java_lang_Thread_holdsLock(java_lang_Object* obj)
 {
 #if defined(ENABLE_THREADS)
-	java_objectheader *o;
+	java_handle_t *o;
 
-	o = (java_objectheader *) obj;
+	o = (java_handle_t *) obj;
 
 	if (o == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -380,9 +380,9 @@ s4 _Jv_java_lang_Thread_holdsLock(java_lang_Object* obj)
 java_lang_String *_Jv_java_lang_Thread_getState(java_lang_Thread *this)
 {
 #if defined(ENABLE_THREADS)
-	threadobject      *thread;
-	utf               *u;
-	java_objectheader *o;
+	threadobject  *thread;
+	utf           *u;
+	java_handle_t *o;
 
 # if defined(WITH_CLASSPATH_GNU)
 	thread = (threadobject *) LLNI_field_direct(LLNI_field_direct(this, vmThread), vmdata);

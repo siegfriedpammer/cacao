@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8288 2007-08-10 15:12:00Z twisti $
+   $Id: builtin.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -392,7 +392,7 @@ bool builtintable_replace_function(void *iptr_)
 			 
 *******************************************************************************/
 
-s4 builtin_instanceof(java_objectheader *o, classinfo *class)
+s4 builtin_instanceof(java_handle_t *o, classinfo *class)
 {
 	if (o == NULL)
 		return 0;
@@ -409,7 +409,7 @@ s4 builtin_instanceof(java_objectheader *o, classinfo *class)
 			  
 *******************************************************************************/
 
-s4 builtin_checkcast(java_objectheader *o, classinfo *class)
+s4 builtin_checkcast(java_handle_t *o, classinfo *class)
 {
 	if (o == NULL)
 		return 1;
@@ -479,7 +479,7 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,
 	
 *******************************************************************************/
 
-s4 builtin_arraycheckcast(java_objectheader *o, classinfo *targetclass)
+s4 builtin_arraycheckcast(java_handle_t *o, classinfo *targetclass)
 {
 	arraydescriptor *desc;
 
@@ -495,7 +495,7 @@ s4 builtin_arraycheckcast(java_objectheader *o, classinfo *targetclass)
 }
 
 
-s4 builtin_arrayinstanceof(java_objectheader *o, classinfo *targetclass)
+s4 builtin_arrayinstanceof(java_handle_t *o, classinfo *targetclass)
 {
 	if (o == NULL)
 		return 0;
@@ -511,7 +511,7 @@ s4 builtin_arrayinstanceof(java_objectheader *o, classinfo *targetclass)
 
 *******************************************************************************/
 
-void *builtin_throw_exception(java_objectheader *xptr)
+void *builtin_throw_exception(java_handle_t *xptr)
 {
 #if !defined(NDEBUG)
     java_lang_Throwable *t;
@@ -559,7 +559,7 @@ void *builtin_throw_exception(java_objectheader *xptr)
 			if (s) {
 				char *buf;
 
-				buf = javastring_tochar((java_objectheader *) s);
+				buf = javastring_tochar((java_handle_t *) s);
 				strcat(logtext, ": ");
 				strcat(logtext, buf);
 				MFREE(buf, char, strlen(buf) + 1);
@@ -597,7 +597,7 @@ void *builtin_throw_exception(java_objectheader *xptr)
 
 *******************************************************************************/
 
-s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
+s4 builtin_canstore(java_objectarray *oa, java_handle_t *o)
 {
 	arraydescriptor *desc;
 	arraydescriptor *valuedesc;
@@ -672,7 +672,7 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 
 
 /* This is an optimized version where a is guaranteed to be one-dimensional */
-s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
+s4 builtin_canstore_onedim (java_objectarray *a, java_handle_t *o)
 {
 	arraydescriptor *desc;
 	vftbl_t         *elementvftbl;
@@ -723,7 +723,7 @@ s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
 
 /* This is an optimized version where a is guaranteed to be a
  * one-dimensional array of a class type */
-s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
+s4 builtin_canstore_onedim_class(java_objectarray *a, java_handle_t *o)
 {
 	vftbl_t  *elementvftbl;
 	vftbl_t  *valuevftbl;
@@ -770,9 +770,9 @@ s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 			
 *******************************************************************************/
 
-java_objectheader *builtin_new(classinfo *c)
+java_handle_t *builtin_new(classinfo *c)
 {
-	java_objectheader *o;
+	java_object_t *o;
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_end;
 #endif
@@ -1113,7 +1113,7 @@ static java_arrayheader *builtin_multianewarray_intern(int n,
 		if (!ea)
 			return NULL;
 		
-		((java_objectarray *) a)->data[i] = (java_objectheader *) ea;
+		((java_objectarray *) a)->data[i] = (java_object_t *) ea;
 	}
 
 	return a;
@@ -1167,10 +1167,10 @@ java_arrayheader *builtin_multianewarray(int n, classinfo *arrayclass,
 static s4 methodindent = 0;
 static u4 callcount = 0;
 
-java_objectheader *builtin_trace_exception(java_objectheader *xptr,
-										   methodinfo *m,
-										   void *pos,
-										   s4 indent)
+java_handle_t *builtin_trace_exception(java_handle_t *xptr,
+									   methodinfo *m,
+									   void *pos,
+									   s4 indent)
 {
 	char *logtext;
 	s4    logtextlen;
@@ -1320,7 +1320,7 @@ static char *builtin_print_argument(char *logtext, s4 *logtextlen,
 									typedesc *paramtype, s8 value)
 {
 	imm_union          imu;
-	java_objectheader *o;
+	java_handle_t     *o;
 	classinfo         *c;
 	utf               *u;
 	u4                 len;
@@ -1368,7 +1368,7 @@ static char *builtin_print_argument(char *logtext, s4 *logtextlen,
 
 		/* cast to java.lang.Object */
 
-		o = (java_objectheader *) (ptrint) value;
+		o = (java_handle_t *) (ptrint) value;
 
 		/* check return argument for java.lang.Class or java.lang.String */
 
@@ -2614,7 +2614,7 @@ bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
                 
 		if (destStart <= srcStart) {
 			for (i = 0; i < len; i++) {
-				java_objectheader *o = oas->data[srcStart + i];
+				java_handle_t *o = oas->data[srcStart + i];
 
 				if (!builtin_canstore(oad, o))
 					return false;
@@ -2630,7 +2630,7 @@ bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
 			   index have been copied before the throw. */
 
 			for (i = len - 1; i >= 0; i--) {
-				java_objectheader *o = oas->data[srcStart + i];
+				java_handle_t *o = oas->data[srcStart + i];
 
 				if (!builtin_canstore(oad, o))
 					return false;
@@ -2686,13 +2686,13 @@ s8 builtin_currenttimemillis(void)
 
 *******************************************************************************/
 
-java_objectheader *builtin_clone(void *env, java_objectheader *o)
+java_handle_t *builtin_clone(void *env, java_handle_t *o)
 {
 	arraydescriptor   *ad;
 	java_arrayheader  *ah;
 	u4                 size;
 	classinfo         *c;
-	java_objectheader *co;              /* cloned object header               */
+	java_handle_t     *co;              /* cloned object header               */
 
 	/* get the array descriptor */
 

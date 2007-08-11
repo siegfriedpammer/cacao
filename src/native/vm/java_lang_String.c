@@ -46,7 +46,7 @@
  */
 java_lang_String *_Jv_java_lang_String_intern(java_lang_String *s)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
 	if (s == NULL)
 		return NULL;

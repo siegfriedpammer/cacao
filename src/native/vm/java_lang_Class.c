@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8288 2007-08-10 15:12:00Z twisti $
+   $Id: java_lang_Class.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -132,16 +132,16 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 #endif
 {
 #if defined(ENABLE_JAVASE)
-	java_objectheader *cl;
+	classloader *cl;
 #endif
-	utf               *ufile;
-	utf               *uname;
-	classinfo         *c;
-	u2                *pos;
-	s4                 i;
+	utf         *ufile;
+	utf         *uname;
+	classinfo   *c;
+	u2          *pos;
+	s4           i;
 
 #if defined(ENABLE_JAVASE)
-	cl = (java_objectheader *) loader;
+	cl = (classloader *) loader;
 #endif
 
 	/* illegal argument */
@@ -153,8 +153,8 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 
 	/* create utf string in which '.' is replaced by '/' */
 
-	ufile = javastring_toutf((java_objectheader *) name, true);
-	uname = javastring_toutf((java_objectheader *) name, false);
+	ufile = javastring_toutf((java_handle_t *) name, true);
+	uname = javastring_toutf((java_handle_t *) name, false);
 
 	/* name must not contain '/' (mauve test) */
 
@@ -200,11 +200,11 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
  */
 s4 _Jv_java_lang_Class_isInstance(java_lang_Class *klass, java_lang_Object *o)
 {
-	classinfo         *c;
-	java_objectheader *ob;
+	classinfo     *c;
+	java_handle_t *ob;
 
 	c = (classinfo *) klass;
-	ob = (java_objectheader *) o;
+	ob = (java_handle_t *) o;
 
 	if (!(c->state & CLASS_LINKED))
 		if (!link_class(c))
@@ -320,7 +320,7 @@ java_objectarray *_Jv_java_lang_Class_getInterfaces(java_lang_Class *klass)
 	for (i = 0; i < c->interfacescount; i++) {
 		ic = c->interfaces[i].cls;
 
-		oa->data[i] = (java_objectheader *) ic;
+		oa->data[i] = ic;
 	}
 
 	return oa;
@@ -490,7 +490,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass,
 				if (!link_class(inner))
 					return NULL;
 
-			oa->data[pos++] = (java_objectheader *) inner;
+			oa->data[pos++] = inner;
 		}
 	}
 
@@ -540,7 +540,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, 
 
 			/* store object into array */
 
-			oa->data[pos++] = (java_objectheader *) rf;
+			oa->data[pos++] = rf;
 		}
 	}
 
@@ -603,7 +603,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass,
 
 			/* store object into array */
 
-			oa->data[pos++] = (java_objectheader *) rm;
+			oa->data[pos++] = rm;
 		}
 	}
 
@@ -654,7 +654,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredConstructors(java_lang_Class *k
 
 			/* store object into array */
 
-			oa->data[pos++] = (java_objectheader *) rc;
+			oa->data[pos++] = rc;
 		}
 	}
 
@@ -703,9 +703,9 @@ JNIEXPORT int32_t JNICALL _Jv_java_lang_Class_isArray(JNIEnv *env, java_lang_Cla
  */
 void _Jv_java_lang_Class_throwException(java_lang_Throwable *t)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
-	o = (java_objectheader *) t;
+	o = (java_handle_t *) t;
 
 	exceptions_set_exception(o);
 }
@@ -948,8 +948,8 @@ java_lang_reflect_Method *_Jv_java_lang_Class_getEnclosingMethod(java_lang_Class
  */
 java_lang_String *_Jv_java_lang_Class_getClassSignature(java_lang_Class* klass)
 {
-	classinfo         *c;
-	java_objectheader *o;
+	classinfo     *c;
+	java_handle_t *o;
 
 	c = (classinfo *) klass;
 

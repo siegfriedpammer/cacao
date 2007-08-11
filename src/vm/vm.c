@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8292 2007-08-11 12:39:28Z twisti $
+   $Id: vm.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -1810,12 +1810,12 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 {
 	utf               *mainutf;
 	classinfo         *mainclass;
-	java_objectheader *e;
+	java_handle_t     *e;
 	methodinfo        *m;
 	java_objectarray  *oa; 
 	s4                 oalength;
 	utf               *u;
-	java_objectheader *s;
+	java_handle_t     *s;
 	s4                 status;
 	s4                 i;
 
@@ -2153,10 +2153,10 @@ void vm_abort(const char *text, ...)
 
 static char *vm_get_mainclass_from_jar(char *mainstring)
 {
-	classinfo         *c;
-	java_objectheader *o;
-	methodinfo        *m;
-	java_objectheader *s;
+	classinfo     *c;
+	java_handle_t *o;
+	methodinfo    *m;
+	java_handle_t *s;
 
 	c = load_class_from_sysloader(utf_new_char("java/util/jar/JarFile"));
 
@@ -2558,7 +2558,7 @@ static void vm_array_store_adr(uint64_t *array, paramdesc *pd, void *value)
 
 *******************************************************************************/
 
-uint64_t *vm_array_from_valist(methodinfo *m, java_objectheader *o, va_list ap)
+uint64_t *vm_array_from_valist(methodinfo *m, java_object_t *o, va_list ap)
 {
 	methoddesc *md;
 	paramdesc  *pd;
@@ -2636,7 +2636,7 @@ uint64_t *vm_array_from_valist(methodinfo *m, java_objectheader *o, va_list ap)
 
 *******************************************************************************/
 
-static uint64_t *vm_array_from_jvalue(methodinfo *m, java_objectheader *o,
+static uint64_t *vm_array_from_jvalue(methodinfo *m, java_object_t *o,
 									  const jvalue *args)
 {
 	methoddesc *md;
@@ -2707,18 +2707,18 @@ static uint64_t *vm_array_from_jvalue(methodinfo *m, java_objectheader *o,
 
 *******************************************************************************/
 
-uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
+uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 									java_objectarray *params)
 {
-	methoddesc        *md;
-	paramdesc         *pd;
-	typedesc          *td;
-	uint64_t          *array;
-	java_objectheader *param;
-	classinfo         *c;
-	int32_t            i;
-	int32_t            j;
-	imm_union          value;
+	methoddesc    *md;
+	paramdesc     *pd;
+	typedesc      *td;
+	uint64_t      *array;
+	java_object_t *param;
+	classinfo     *c;
+	int32_t        i;
+	int32_t        j;
+	imm_union      value;
 
 	/* get the descriptors */
 
@@ -2919,7 +2919,7 @@ illegal_arg:
 *******************************************************************************/
 
 #define VM_CALL_METHOD(name, type)                                  \
-type vm_call_method##name(methodinfo *m, java_objectheader *o, ...) \
+type vm_call_method##name(methodinfo *m, java_handle_t *o, ...)     \
 {                                                                   \
 	va_list ap;                                                     \
 	type    value;                                                  \
@@ -2931,7 +2931,7 @@ type vm_call_method##name(methodinfo *m, java_objectheader *o, ...) \
 	return value;                                                   \
 }
 
-VM_CALL_METHOD(,        java_objectheader *)
+VM_CALL_METHOD(,        java_handle_t *)
 VM_CALL_METHOD(_int,    int32_t)
 VM_CALL_METHOD(_long,   int64_t)
 VM_CALL_METHOD(_float,  float)
@@ -2946,7 +2946,7 @@ VM_CALL_METHOD(_double, double)
 *******************************************************************************/
 
 #define VM_CALL_METHOD_VALIST(name, type)                               \
-type vm_call_method##name##_valist(methodinfo *m, java_objectheader *o, \
+type vm_call_method##name##_valist(methodinfo *m, java_handle_t *o,     \
 								   va_list ap)                          \
 {                                                                       \
 	int32_t   dumpsize;                                                 \
@@ -2961,7 +2961,7 @@ type vm_call_method##name##_valist(methodinfo *m, java_objectheader *o, \
 	return value;                                                       \
 }
 
-VM_CALL_METHOD_VALIST(,        java_objectheader *)
+VM_CALL_METHOD_VALIST(,        java_handle_t *)
 VM_CALL_METHOD_VALIST(_int,    int32_t)
 VM_CALL_METHOD_VALIST(_long,   int64_t)
 VM_CALL_METHOD_VALIST(_float,  float)
@@ -2976,7 +2976,7 @@ VM_CALL_METHOD_VALIST(_double, double)
 *******************************************************************************/
 
 #define VM_CALL_METHOD_JVALUE(name, type)                               \
-type vm_call_method##name##_jvalue(methodinfo *m, java_objectheader *o, \
+type vm_call_method##name##_jvalue(methodinfo *m, java_handle_t *o,     \
 						           const jvalue *args)                  \
 {                                                                       \
 	int32_t   dumpsize;                                                 \
@@ -2991,7 +2991,7 @@ type vm_call_method##name##_jvalue(methodinfo *m, java_objectheader *o, \
 	return value;                                                       \
 }
 
-VM_CALL_METHOD_JVALUE(,        java_objectheader *)
+VM_CALL_METHOD_JVALUE(,        java_handle_t *)
 VM_CALL_METHOD_JVALUE(_int,    int32_t)
 VM_CALL_METHOD_JVALUE(_long,   int64_t)
 VM_CALL_METHOD_JVALUE(_float,  float)
@@ -3027,7 +3027,7 @@ type vm_call##name##_array(methodinfo *m, uint64_t *array)   \
 	return value;                                            \
 }
 
-VM_CALL_ARRAY(,        java_objectheader *)
+VM_CALL_ARRAY(,        java_handle_t *)
 VM_CALL_ARRAY(_int,    int32_t)
 VM_CALL_ARRAY(_long,   int64_t)
 VM_CALL_ARRAY(_float,  float)

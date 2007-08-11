@@ -83,7 +83,7 @@ void _Jv_gnu_java_lang_management_VMMemoryMXBeanImpl_init(void)
 JNIEXPORT java_lang_management_MemoryUsage* JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getHeapMemoryUsage(JNIEnv *env, jclass clazz)
 {
 	classinfo                        *class_java_lang_management_MemoryUsage;
-	java_objectheader                *o;
+	java_handle_t                    *o;
 	java_lang_management_MemoryUsage *mu;
 	methodinfo                       *m;
 	s8                                init;

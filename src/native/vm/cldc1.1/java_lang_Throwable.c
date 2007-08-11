@@ -74,9 +74,9 @@ void _Jv_java_lang_Throwable_init(void)
  */
 JNIEXPORT void JNICALL Java_java_lang_Throwable_printStackTrace(JNIEnv *env, java_lang_Throwable *this)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
-	o = (java_objectheader *) this;
+	o = (java_handle_t *) this;
 
 	exceptions_print_exception(o);
 	stacktrace_print_trace(o);

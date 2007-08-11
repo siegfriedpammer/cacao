@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: classcache.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: classcache.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -227,7 +227,7 @@ void classcache_print_statistics(FILE *file) {
 hashtable hashtable_classcache;
 
 #if defined(ENABLE_THREADS)
-static java_objectheader *lock_hashtable_classcache;
+static java_object_t *lock_hashtable_classcache;
 #endif
 
 
@@ -262,7 +262,7 @@ bool classcache_init(void)
 #if defined(ENABLE_THREADS)
 	/* create utf hashtable lock object */
 
-	lock_hashtable_classcache = NEW(java_objectheader);
+	lock_hashtable_classcache = NEW(java_object_t);
 
 	LOCK_INIT_OBJECT_LOCK(lock_hashtable_classcache);
 #endif

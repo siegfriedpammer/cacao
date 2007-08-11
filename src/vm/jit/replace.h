@@ -139,16 +139,16 @@ struct rplpoint {
 
 
 union replace_val_t {
-	s4                 i;
-	s8                 l;
-	ptrint             p;
+	s4             i;
+	s8             l;
+	ptrint         p;
 	struct {
 		u4 lo;
 		u4 hi;
-	}                  words;
-	float              f;
-	double             d;
-	java_objectheader *a;
+	}              words;
+	float          f;
+	double         d;
+	java_object_t *a;
 };
 
 

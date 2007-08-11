@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMRuntime.c 8147 2007-06-27 09:23:24Z twisti $
+   $Id: java_lang_VMRuntime.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -277,9 +277,9 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *e
  */
 JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *libname, java_lang_ClassLoader *loader)
 {
-	java_objectheader *cl;
+	classloader *cl;
 
-	cl = (java_objectheader *) loader;
+	cl = (classloader *) loader;
 
 #if defined(ENABLE_JNI)
 	return _Jv_java_lang_Runtime_loadLibrary(env, libname, cl);
@@ -296,18 +296,18 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclas
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIEnv *env, jclass clazz, java_lang_String *libname)
 {
-	utf               *u;
-	char              *buffer;
-	int32_t            buffer_len;
-	int32_t            dumpsize;
-	java_objectheader *o;
+	utf           *u;
+	char          *buffer;
+	int32_t        buffer_len;
+	int32_t        dumpsize;
+	java_handle_t *o;
 
 	if (libname == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
-	u = javastring_toutf((java_objectheader *) libname, false);
+	u = javastring_toutf((java_handle_t *) libname, false);
 
 	/* calculate length of library name */
 

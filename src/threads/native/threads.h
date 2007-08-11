@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 8222 2007-07-22 20:07:55Z twisti $
+   $Id: threads.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -126,7 +126,7 @@ struct threadobject {
 
 	u1                   *pc;           /* current PC (used for profiling)    */
 
-	java_objectheader    *_exceptionptr;     /* current exception             */
+	java_object_t        *_exceptionptr;     /* current exception             */
 	stackframeinfo       *_stackframeinfo;   /* current native stackframeinfo */
 	localref_table       *_localref_table;   /* JNI local references          */
 

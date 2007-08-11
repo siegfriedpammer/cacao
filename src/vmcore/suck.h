@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: suck.h 7783 2007-04-20 13:28:27Z twisti $
+   $Id: suck.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -53,7 +53,7 @@ typedef struct list_classpath_entry list_classpath_entry;
 
 struct list_classpath_entry {
 #if defined(ENABLE_THREADS)
-	java_objectheader  header;	        /* monitor locking on zip/jar files   */
+	java_object_t      header;	        /* monitor locking on zip/jar files   */
 #endif
 	s4                 type;
 	char              *path;

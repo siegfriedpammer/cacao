@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: finalizer.c 7831 2007-04-26 12:48:16Z twisti $
+   $Id: finalizer.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -52,7 +52,7 @@
 /* global variables ***********************************************************/
 
 #if defined(ENABLE_THREADS)
-static java_objectheader *lock_thread_finalizer;
+static java_object_t *lock_thread_finalizer;
 #endif
 
 
@@ -65,7 +65,7 @@ static java_objectheader *lock_thread_finalizer;
 bool finalizer_init(void)
 {
 #if defined(ENABLE_THREADS)
-	lock_thread_finalizer = NEW(java_objectheader);
+	lock_thread_finalizer = NEW(java_object_t);
 
 	LOCK_INIT_OBJECT_LOCK(lock_thread_finalizer);
 #endif
@@ -168,9 +168,9 @@ void finalizer_notify(void)
 
 void finalizer_run(void *o, void *p)
 {
-	java_objectheader *ob;
+	java_object_t *ob;
 
-	ob = (java_objectheader *) o;
+	ob = (java_object_t *) o;
 
 	/* call the finalizer function */
 

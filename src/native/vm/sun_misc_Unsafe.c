@@ -537,12 +537,12 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_addressSize(JNIEnv *env, sun_misc
  */
 JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_String_2_3BIILjava_lang_ClassLoader_2Ljava_security_ProtectionDomain_2(JNIEnv *env, sun_misc_Unsafe *this, java_lang_String *name, java_bytearray *b, int32_t off, int32_t len, java_lang_ClassLoader *loader, java_security_ProtectionDomain *protectionDomain)
 {
-	java_objectheader *cl;
-	utf               *utfname;
-	classinfo         *c;
-	java_lang_Class   *o;
+	classloader     *cl;
+	utf             *utfname;
+	classinfo       *c;
+	java_lang_Class *o;
 
-	cl = (java_objectheader *) loader;
+	cl = (classloader *) loader;
 
 	/* check if data was passed */
 
@@ -561,7 +561,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_
 	if (name != NULL) {
 		/* convert '.' to '/' in java string */
 
-		utfname = javastring_toutf((java_objectheader *) name, true);
+		utfname = javastring_toutf((java_handle_t *) name, true);
 	} 
 	else {
 		utfname = NULL;
@@ -595,9 +595,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_throwException(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Throwable *ee)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
-	o = (java_objectheader *) ee;
+	o = (java_handle_t *) ee;
 
 	exceptions_set_exception(o);
 }

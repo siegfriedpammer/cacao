@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.h 8293 2007-08-11 12:40:22Z twisti $
+   $Id: vm.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -86,36 +86,36 @@ void vm_abort(const char *text, ...);
 
 /* Java method calling functions */
 
-uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
+uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 									java_objectarray *params);
 
-java_objectheader *vm_call_method(methodinfo *m, java_objectheader *o, ...);
-java_objectheader *vm_call_method_valist(methodinfo *m, java_objectheader *o,
+java_handle_t *vm_call_method(methodinfo *m, java_handle_t *o, ...);
+java_handle_t *vm_call_method_valist(methodinfo *m, java_handle_t *o,
 										 va_list ap);
-java_objectheader *vm_call_method_jvalue(methodinfo *m, java_objectheader *o,
+java_handle_t *vm_call_method_jvalue(methodinfo *m, java_handle_t *o,
 										 const jvalue *args);
 
-java_objectheader *vm_call_array(methodinfo *m, uint64_t *array);
+java_handle_t     *vm_call_array(methodinfo *m, uint64_t *array);
 int32_t            vm_call_int_array(methodinfo *m, uint64_t *array);
 int64_t            vm_call_long_array(methodinfo *m, uint64_t *array);
 float              vm_call_float_array(methodinfo *m, uint64_t *array);
 double             vm_call_double_array(methodinfo *m, uint64_t *array);
 
-int32_t vm_call_method_int(methodinfo *m, java_objectheader *o, ...);
-int32_t vm_call_method_int_valist(methodinfo *m, java_objectheader *o, va_list ap);
-int32_t vm_call_method_int_jvalue(methodinfo *m, java_objectheader *o, const jvalue *args);
+int32_t vm_call_method_int(methodinfo *m, java_handle_t *o, ...);
+int32_t vm_call_method_int_valist(methodinfo *m, java_handle_t *o, va_list ap);
+int32_t vm_call_method_int_jvalue(methodinfo *m, java_handle_t *o, const jvalue *args);
 
-int64_t vm_call_method_long(methodinfo *m, java_objectheader *o, ...);
-int64_t vm_call_method_long_valist(methodinfo *m, java_objectheader *o, va_list ap);
-int64_t vm_call_method_long_jvalue(methodinfo *m, java_objectheader *o, const jvalue *args);
+int64_t vm_call_method_long(methodinfo *m, java_handle_t *o, ...);
+int64_t vm_call_method_long_valist(methodinfo *m, java_handle_t *o, va_list ap);
+int64_t vm_call_method_long_jvalue(methodinfo *m, java_handle_t *o, const jvalue *args);
 
-float   vm_call_method_float(methodinfo *m, java_objectheader *o, ...);
-float   vm_call_method_float_valist(methodinfo *m, java_objectheader *o, va_list ap);
-float   vm_call_method_float_jvalue(methodinfo *m, java_objectheader *o, const jvalue *args);
+float   vm_call_method_float(methodinfo *m, java_handle_t *o, ...);
+float   vm_call_method_float_valist(methodinfo *m, java_handle_t *o, va_list ap);
+float   vm_call_method_float_jvalue(methodinfo *m, java_handle_t *o, const jvalue *args);
 
-double  vm_call_method_double(methodinfo *m, java_objectheader *o, ...);
-double  vm_call_method_double_valist(methodinfo *m, java_objectheader *o, va_list ap);
-double  vm_call_method_double_jvalue(methodinfo *m, java_objectheader *o, const jvalue *args);
+double  vm_call_method_double(methodinfo *m, java_handle_t *o, ...);
+double  vm_call_method_double_valist(methodinfo *m, java_handle_t *o, va_list ap);
+double  vm_call_method_double_jvalue(methodinfo *m, java_handle_t *o, const jvalue *args);
 
 #endif /* _VM_H */
 

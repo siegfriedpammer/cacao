@@ -197,14 +197,14 @@ static int patcher_depth = 0;
 # define TRACE_PATCHER_INDENT for (i=0; i<patcher_depth; i++) printf("\t")
 #endif
 
-java_objectheader *patcher_handler(u1 *pc)
+java_handle_t *patcher_handler(u1 *pc)
 {
-	codeinfo          *code;
-	patchref_t        *pr;
-	bool               result;
-	java_objectheader *e;
+	codeinfo      *code;
+	patchref_t    *pr;
+	bool           result;
+	java_handle_t *e;
 #ifdef TRACE_PATCHER
-	int                i;
+	int            i;
 #endif
 
 	/* define the patcher function */

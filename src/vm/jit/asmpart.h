@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.h 8278 2007-08-08 17:10:18Z michi $
+   $Id: asmpart.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -59,12 +59,12 @@ s4   asm_md_init(void);
 void asm_call_jit_compiler(void);
 
 #if defined(ENABLE_JIT)
-java_objectheader *asm_vm_call_method(void *pv, uint64_t *array, int32_t stackargs);
-int32_t            asm_vm_call_method_int(void *pv, uint64_t *array, int32_t stackargs);
+java_object_t *asm_vm_call_method(void *pv, uint64_t *array, int32_t stackargs);
+int32_t        asm_vm_call_method_int(void *pv, uint64_t *array, int32_t stackargs);
 
-int64_t            asm_vm_call_method_long(void *pv, uint64_t *array, int32_t stackargs);
-float              asm_vm_call_method_float(void *pv, uint64_t *array, int32_t stackargs);
-double             asm_vm_call_method_double(void *pv, uint64_t *array, int32_t stackargs);
+int64_t        asm_vm_call_method_long(void *pv, uint64_t *array, int32_t stackargs);
+float          asm_vm_call_method_float(void *pv, uint64_t *array, int32_t stackargs);
+double         asm_vm_call_method_double(void *pv, uint64_t *array, int32_t stackargs);
 
 void   asm_vm_call_method_exception_handler(void);
 void   asm_vm_call_method_end(void);

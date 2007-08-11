@@ -69,17 +69,14 @@
  */
 java_lang_Class *_Jv_java_lang_Object_getClass(java_lang_Object *obj)
 {
-	java_objectheader *o;
-	classinfo         *c;
+	classinfo     *c;
 
-	o = (java_objectheader *) obj;
-
-	if (o == NULL) {
+	if (obj == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
-	c = o->vftbl->class;
+	LLNI_class_get(obj, c);
 
 	return (java_lang_Class *) c;
 }
@@ -144,10 +141,10 @@ void _Jv_java_lang_Object_wait(java_lang_Object *o, s8 ms, s4 ns)
  */
 java_lang_Object *_Jv_java_lang_Object_clone(java_lang_Cloneable *this)
 {
-	java_objectheader *o;
-	java_objectheader *co;
+	java_handle_t *o;
+	java_handle_t *co;
 
-	o = (java_objectheader *) this;
+	o = (java_handle_t *) this;
 
 	co = builtin_clone(NULL, o);
 

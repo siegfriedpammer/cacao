@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 8284 2007-08-10 08:58:39Z michi $
+   $Id: threads.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -784,10 +784,10 @@ void threads_mutex_join_unlock(void)
 
 bool threads_init(void)
 {
-	threadobject          *mainthread;
-	java_objectheader     *threadname;
-	java_lang_Thread      *t;
-	java_objectheader     *o;
+	threadobject     *mainthread;
+	java_handle_t    *threadname;
+	java_lang_Thread *t;
+	java_handle_t    *o;
 
 #if defined(ENABLE_JAVASE)
 	java_lang_ThreadGroup *threadgroup;
@@ -872,7 +872,7 @@ bool threads_init(void)
 	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) mainthread);
 
 	/* call java.lang.Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
-	o = (java_objectheader *) t;
+	o = (java_handle_t *) t;
 
 	(void) vm_call_method(method_thread_init, o, vmt, threadname, NORM_PRIORITY,
 						  false);
@@ -892,7 +892,7 @@ bool threads_init(void)
 
 	/* call public Thread(String name) */
 
-	o = (java_objectheader *) t;
+	o = (java_handle_t *) t;
 
 	(void) vm_call_method(method_thread_init, o, threadname);
 #else
@@ -914,7 +914,7 @@ bool threads_init(void)
 								 class_java_lang_ThreadGroup,
 								 true);
 
-	o = (java_objectheader *) threadgroup;
+	o = (java_handle_t *) threadgroup;
 
 	(void) vm_call_method(m, o, t);
 
@@ -979,7 +979,7 @@ static void *threads_startup_thread(void *arg)
 	sem_t              *psem;
 	classinfo          *c;
 	methodinfo         *m;
-	java_objectheader  *o;
+	java_handle_t      *o;
 	functionptr         function;
 
 #if defined(ENABLE_INTRP)
@@ -1087,10 +1087,10 @@ static void *threads_startup_thread(void *arg)
 		/* we need to start the run method of java.lang.VMThread */
 
 		vmt = (java_lang_VMThread *) LLNI_field_direct(thread->object, vmThread);
-		o   = (java_objectheader *) vmt;
+		o   = (java_handle_t *) vmt;
 
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
-		o   = (java_objectheader *) thread->object;
+		o   = (java_handle_t *) thread->object;
 #else
 # error unknown classpath configuration
 #endif
@@ -1250,8 +1250,8 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 {
 	threadobject          *thread;
 	utf                   *u;
-	java_objectheader     *s;
-	java_objectheader     *o;
+	java_handle_t         *s;
+	java_handle_t         *o;
 	java_lang_Thread      *t;
 
 #if defined(ENABLE_JAVASE)
@@ -1367,7 +1367,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	/* for convenience */
 
-	o = (java_objectheader *) thread->object;
+	o = (java_handle_t *) thread->object;
 
 #if defined(WITH_CLASSPATH_GNU)
 	(void) vm_call_method(method_thread_init, o, vmt, s, NORM_PRIORITY,
@@ -1394,7 +1394,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 								 class_java_lang_ThreadGroup,
 								 true);
 
-	o = (java_objectheader *) group;
+	o = (java_handle_t *) group;
 
 	(void) vm_call_method(m, o, t);
 
@@ -1418,7 +1418,7 @@ bool threads_detach_thread(threadobject *thread)
 	java_lang_ThreadGroup *group;
 	classinfo             *c;
 	methodinfo            *m;
-	java_objectheader     *o;
+	java_handle_t         *o;
 	java_lang_Thread      *t;
 #endif
 
@@ -1453,7 +1453,7 @@ bool threads_detach_thread(threadobject *thread)
 		if (m == NULL)
 			return false;
 
-		o = (java_objectheader *) group;
+		o = (java_handle_t *) group;
 		t = thread->object;
 
 		(void) vm_call_method(m, o, t);
