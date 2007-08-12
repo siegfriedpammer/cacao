@@ -30,7 +30,7 @@
             Joseph Wenninger
             Edwin Steiner
 
-   $Id: dseg.c 7596 2007-03-28 21:05:53Z twisti $
+   $Id: dseg.c 8298 2007-08-12 18:49:16Z pm $
 
 */
 
@@ -829,6 +829,10 @@ s4 dseg_get_linenumber_from_pc(methodinfo **pm, u1 *pv, u1 *pc)
 	u1                    *lntstart;    /* start of line number table         */
 	linenumbertable_entry *lntentry;    /* points to last entry in the table  */
 	s4                     linenumber;
+
+#if defined(__S390__)
+	pc = (u1 *)((intptr_t)pc & 0x7FFFFFFF);
+#endif
 
 	/* get size of line number table */
 

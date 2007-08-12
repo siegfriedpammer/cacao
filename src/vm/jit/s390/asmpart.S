@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8296 2007-08-11 22:38:38Z pm $
+   $Id: asmpart.S 8298 2007-08-12 18:49:16Z pm $
 
 */
 
@@ -114,7 +114,7 @@ asm_vm_call_method_long:
 asm_vm_call_method_float:
 asm_vm_call_method_double:
 
-	ahi sp, -6*4                /* allocate stack frame */
+	ahi sp, -8*4                /* allocate stack frame */
 
 	/* a0: PV */
 	/* a1: data structure */
@@ -123,9 +123,10 @@ asm_vm_call_method_double:
 	st    s0, 0*4(sp)           /* store used calle saved registers */
 	st    s1, 1*4(sp)
 	st    a0, 2*4(sp)
-	st    mptr, 3*4(sp)
+	st    mptr, 3*4(sp)         /* mptr/itmp2 is callee saved in terms of C abi */
 	st    pv, 4*4(sp)
-	st    ra, 5*4(sp)
+	st    a4, 5*4(sp)           /* a4 is callee saved in terms of C abi */
+	st    ra, 6*4(sp)
 
 	lr    s0, a1                /* data structure */
 	lr    %r0, a2               /* number of stack arguments */
@@ -169,9 +170,10 @@ L_asm_vm_call_method_return:
 	l     s1, 1*4(sp)
 	l     mptr, 3*4(sp)
 	l     pv, 4*4(sp)
-	l     ra, 5*4(sp)
+	l     a4, 5*4(sp)
+	l     ra, 6*4(sp)
 
-	ahi   sp, 6*4               /* remove stackframe */
+	ahi   sp, 8*4               /* remove stackframe */
 	br    ra                    /* return */
 
 
@@ -189,325 +191,6 @@ L_avcmeh_bras:
 
 asm_vm_call_method_end:
 	brc   0,0	
-
-#if 0
-
-/*
-
-a0:   methodinfo *m
-a1:   s4 vmargscount   ---> v0: java_objectheader *
-a2:   vm_arg *vmargs
-r14:  return address
-
-96 ...     on stack parameters (none)
-0 - 96     register save area
--------------------------------------------------- <- SP on asm_vm_... entry
-           local variables
-		   saved return address (important to be at 0(sp) because of md_stacktrace_get_returnaddress)
------------------------------------------ <- SP after stack frame allocation
-           arguments on stack
----------------------------------------------------- <- SP on JIT code entry
-           saved return address (callee saved)
-
-*/
-
-
-/*
-	Regiser usage:
-	itmp1: argument block pointer
-	itmp2: argument counter
-	s0: integer argument counter
-	s1: float argument counter
-	s2: integer register counter
-	s3: backup argument block pointer
-	s4: backup argument count
-*/
-
-	stm   %r6, %r15, 24(sp)               /* save callers regiters */
-	stm   a0, a2, 8(sp)                   /* save arguments */
-	ahi   sp, -8                          /* allocate stack space for local variables */
-	st    %r14, 0(sp)                     /* store RA once more at bottom of stack frame */
-
-	ltr   a1, a1                          /* maybe we have no args... */
-	je    L_no_args
-
-	lr    itmp2, a1                       /* load arg count */
-	lr    itmp1, a2                       /* load arg pointer */
-
-	ahi   itmp1, -sizevmarg               /* initialize arg pointer */
-	ahi   itmp2, 1                        /* initialize arg count */ 
-	lhi   s0, 0                           /* initialize integer arg counter */
-	lhi   s2, 0                           /* initialize integer register counter */
-	lhi   s1, 0                           /* initialize float arg counter */
-
-	lr    s4, a1                          /* backup arg count */
-	lr    s3, a2                          /* backup arg pointer */
-
-L_register_copy:
-
-	ahi   itmp1, sizevmarg                /* forward arg pointer */
-	ahi   itmp2, -1                       /* decrement arg count */
-	je    L_register_copy_done            /* no arguments left */
-
-	tm    offvmargtype+7(itmp1), 0x02     /* is this a float/double type? */
-	jne   L_register_handle_float
-
-L_register_handle_int:
-
-	chi   s2, INT_ARG_CNT	              /* are we out of integer arg registers ? */
-	je    L_register_copy                 /* yes, next loop */
-
-	tm    offvmargtype+7(itmp1), 0x01       /* is this a 2 word type ? */
-	jne   L_register_handle_long
-
-	ahi   s0, 1                           /* increment integer arg counter */
-	ahi   s2, 1                           /* increment integer register counter */
-
-	/* handle argument */
-
-	chi   s2, 1
-	je    L_handle_i0
-	chi   s2, 2
-	je    L_handle_i1
-	chi   s2, 3
-	je    L_handle_i2
-	chi   s2, 4
-	je    L_handle_i3
-	chi   s2, 5
-	je    L_handle_i4
-
-L_register_handle_long:
-
-	chi   s2, (INT_ARG_CNT - 1)           /* are there 2 integer arg registers left ? */
-	jl    L_register_handle_long_continue /* yes */
-	lhi   s2, INT_ARG_CNT                 /* no, drop last register */
-	j     L_register_copy
-
-L_register_handle_long_continue:
-
-	ahi   s0, 1                           /* increment integer arg counter */
-	ahi   s2, 2                           /* consume 2 integer arg registers */
-
-	/* handle argument */
-
-	chi   s2, 2
-	je    L_handle_l0
-	chi   s2, 3
-	je    L_handle_l1
-	chi   s2, 4
-	je    L_handle_l2
-	chi   s2, 5
-	je    L_handle_l3
-
-L_register_handle_float:
-
-	chi   s1, FLT_ARG_CNT                 /* are we out of float arg registers */
-	je    L_register_copy                 /* no arg regisers left */
-
-	ahi   s1, 1                           /* increment float argument counter */
-
-	tm    offvmargtype+7(itmp1), 0x01     /* is this a 2 word type ? */
-	jne   L_register_handle_double
-
-	/* handle argument */
-
-	chi   s1, 1
-	je    L_handle_f0
-	chi   s1, 2
-	je    L_handle_f1
-
-L_register_handle_double:
-
-	/* handle argument */
-
-	chi   s1, 1
-	je    L_handle_d0
-	chi   s1, 2
-	je    L_handle_d1
-
-L_register_copy_done:
-
-/*
-	Regiser usage:
-	itmp1: argument block pointer
-	itmp2: argument counter
-	s0: integer argument counter (initialized by previous code) 
-	s1: float argument counter (initialized by previous code)
-	s2: pointer to current argument on stack
-	s3: backup argument block pointer (used to initialize itmp1)
-	    after used as backup of original stack pointer
-	s4: backup argument count (used to initialize itmp2)
-	    after used as size of parameters on stack
-*/
-
-	lr    itmp2, s4                     /* restore argument counter */
-	lr    itmp1, s3                     /* restore argument block pointer */
-
-	                                    /* calculate remaining arguments */
-	sr    s4, s0                        /* - integer arguments in registers */
-	sr    s4, s1                        /* - float arguments in registers */
-
-	lr    s3, sp                        /* backup stack pointer (does not alter CC) */
-
-	je    L_copy_done                   /* no arguments left for stack */
-
-	sll   s4, 3                         /* allocate 8 bytes per parameter on stack */	
-	sr    sp, s4                        /* allocate stack space for arguments */ 
-
-	lr    s2, sp                        /* points now to current argument on stack */
-
-	ahi   itmp1, -sizevmarg             /* initialize argument block pointer */
-	ahi   itmp2, 1                      /* initialize argument counter */
-
-L_stack_copy_loop:
-
-	ahi   itmp1, sizevmarg              /* forward argument block pointer */
-	ahi   itmp2, -1                     /* decrement argument counter */
-	je    L_copy_done                   /* all arguments done */
-
-	tm    offvmargtype+7(itmp1), 0x02   /* is this a float/double type? */
-	jne   L_stack_handle_float
-
-L_stack_handle_int:
-
-	ahi   s0, -1                         /* decrement number of integer arguments in regs */
-	jhe   L_stack_copy_loop              /* argument is in register */
-
-	tm    offvmargtype+7(itmp1), 0x01    /* is this a 2 word type ? */
-	jne   L_stack_handle_long
-
-	mvc   0(4, s2), offvmargdata+4(itmp1)/* copy integer value */
-	ahi   s2, 8
-	j     L_stack_copy_loop
-
-L_stack_handle_long:
-
-	mvc   0(8, s2), offvmargdata(itmp1)  /* copy long value */
-	ahi   s2, 8
-	j     L_stack_copy_loop
-
-L_stack_handle_float:
-
-	ahi   s1, -1                         /* decrement number of float arguments in regs */
-	jhe   L_stack_copy_loop              /* argument is in register */
-
-	tm    offvmargtype+7(itmp1), 0x01    /* is this a 2 word type ? */
-	jne   L_stack_handle_double
-
-	mvc   0(4, s2), offvmargdata(itmp1)  /* copy float value */
-	ahi   s2, 8
-	j     L_stack_copy_loop
-
-L_stack_handle_double:
-
-	mvc   0(8, s2), offvmargdata(itmp1)  /* copy double value */
-	ahi   s2, 8
-	j     L_stack_copy_loop
-
-L_copy_done:
-
-	/* Now we call the compiler in a rather questionable way i needed
-	 * some days to understand:
-	 *
-	 * We can't simply call asm_call_jit_compiler, but we have to call an 
-	 * address loaded from memory like it is done in JIT code.
-	 *
-	 * This is because the compiler will intercept the instruction before 
-	 * the call instruction, extract the address where the function pointer
-	 * has been loaded from and overwrite it with the code entry.
-	 *
-	 * Arguments are passed in temporary registers.
-	 */
-
-	/* load address of L_asm_call_jit_compiler into memory */
-
-	basr  mptr, 0                         /* store PC */
-L_basr:
-	la    mptr, L_asm_call_jit_compiler-L_basr(mptr) /* add offset to PC */
-	st    mptr, 4(s3)                     /* store on stack */
-
-	l     itmp1, 8+8(s3)                  /* load methodinfo for compiler */
-	la    mptr, 4(s3)                     /* store **function in mptr for compiler */
-
-	/* call L_asm_call_jit_compiler like JIT code would do */
-
-	l     itmp3, 0(mptr)                  /* load address of target from memory */
-	basr  %r14, itmp3                     /* jump to target */
-
-	/* todo will s4 survive the call? */
-	ar    sp, s4                          /* remove stack space for arguments */
-
-L_asm_vm_call_method_return:
-
-	ahi   sp, 8                           /* remove stack space for local variables */
-	lm    %r6, %r15, 24(sp)               /* restore callers registers */
-	br    %r14                            /* return */
-
-asm_vm_call_method_exception_handler:
-	lr    a0, xptr
-
-	bras  %r14, L_avcmeh_bras
-	.long builtin_throw_exception
-L_avcmeh_bras:
-	l     %r14, 0(%r14)
-	ahi   sp, -96
-	basr  %r14, %r14
-	ahi   sp, 96
-
-	j     L_asm_vm_call_method_return
-
-/* .... */
-
-L_no_args:
-	lr    s3, sp
-	lhi   s4, 0
-	j     L_copy_done
-
-L_handle_i0:
-	l     a0, offvmargdata+4(itmp1)
-	j     L_register_copy
-L_handle_i1:
-	l     a1, offvmargdata+4(itmp1)
-	j     L_register_copy
-L_handle_i2:
-	l     a2, offvmargdata+4(itmp1)
-	j     L_register_copy
-L_handle_i3:
-	l     a3, offvmargdata+4(itmp1)
-	j     L_register_copy
-L_handle_i4:
-	l     a4, offvmargdata+4(itmp1)
-	j     L_register_copy
-
-L_handle_l0:
-	lm    a0, a1, offvmargdata(itmp1)
-	j     L_register_copy
-L_handle_l1:
-	lm    a1, a2, offvmargdata(itmp1)
-	j     L_register_copy
-L_handle_l2:
-	lm    a2, a3, offvmargdata(itmp1)
-	j     L_register_copy
-L_handle_l3:
-	lm    a3, a4, offvmargdata(itmp1)
-	j     L_register_copy
-
-L_handle_f0:
-	le    fa0, offvmargdata(itmp1)
-	j     L_register_copy
-L_handle_f1:
-	le    fa1, offvmargdata(itmp1)
-	j     L_register_copy
-
-L_handle_d0:
-	ld    fa0, offvmargdata(itmp1)
-	j     L_register_copy
-L_handle_d1:
-	ld    fa1, offvmargdata(itmp1)
-	j     L_register_copy
-
-
-#endif
 
 /****************** function asm_call_jit_compiler *****************************
 *                                                                              *
@@ -591,7 +274,6 @@ L_bras_acjce:
 	j       L_asm_handle_nat_exception
 
 
-#if 0
 /* asm_handle_exception ********************************************************
 *                                                                              *
 *   This function handles an exception. It does not use the usual calling      *
@@ -602,164 +284,146 @@ L_bras_acjce:
 *                                                                              *
 *******************************************************************************/
 
-#endif
-
 asm_handle_nat_exception:
 L_asm_handle_nat_exception:
 	/* TODO really nothing here ? */
 asm_handle_exception:
-L_asm_handle_exception:                 /* required for PIC code              */
+L_asm_handle_exception:
 
-	ahi     sp, -(ARGUMENT_REGISTERS_SIZE + TEMPORARY_REGISTERS_SIZE) /* create maybe-leaf stackframe */
-	STORE_ARGUMENT_REGISTERS(0)
-	STORE_TEMPORARY_REGISTERS(ARGUMENT_REGISTERS_SIZE)	
-	lhi     a3, (ARGUMENT_REGISTERS_SIZE + TEMPORARY_REGISTERS_SIZE) /* prepare a3 for handle_exception */
+	/* a wrapper for md_handle_exception */
 
-	lhi     %r0, 1                      /* set maybe-leaf flag */
+#	define STACKFRAMESIZE (96 + (16 * 4) + (16 * 8) + (4 * 4))
+#	define REGS 96
+#	define FREGS (96 + (16 * 4))
+#	define OUT (96 + (16 * 4) + (16 * 8))
 
-L_asm_handle_exception_stack_loop:
-	ahi     sp,-(6*4)
-	st      xptr,0*4(sp)                /* save exception pointer             */
-	st      xpc,1*4(sp)                 /* save exception pc                  */
-	la      a3,(6*4)(a3,sp)             /* calculate Java sp into a3...       */
-	st      a3,3*4(sp)                  /* ...and save it                     */
-	st      %r0,4*4(sp)                 /* save maybe-leaf flag               */
+	ahi   sp, -STACKFRAMESIZE   /* allocate stack frame containing the arrays */
 
-	lr      a0,xpc                      /* exception pc                       */
+	/* store special registers to array */
 
-	ahi     sp,-96                      /* add register save area for C code */
+	st    xptr, REGS+(1*4)(sp)
+	st    xpc, REGS+(12*4)(sp)
+	st    pv, REGS+(13*4)(sp)
+	la    itmp3, STACKFRAMESIZE(sp)
+	st    itmp3, REGS+(15*4)(sp)
 
-	bras    %r14,L_ahe_bras             /* call codegen_get_pv_from_pc */
-	.long   codegen_get_pv_from_pc
+	/* store temporary and argument registers */
+
+	stm   a0, a4, REGS+(2*4)(sp)
+	std   %f0, FREGS+(0*8)(sp)
+	std   %f1, FREGS+(1*8)(sp)
+	std   %f2, FREGS+(2*8)(sp)
+	std   %f3, FREGS+(3*8)(sp)
+	std   %f5, FREGS+(5*8)(sp)
+	std   %f7, FREGS+(7*8)(sp)
+	std   %f8, FREGS+(8*8)(sp)
+	std   %f9, FREGS+(9*8)(sp)
+	std   %f10, FREGS+(10*8)(sp)
+	std   %f11, FREGS+(11*8)(sp)
+	std   %f12, FREGS+(12*8)(sp)
+	std   %f13, FREGS+(13*8)(sp)
+	std   %f14, FREGS+(14*8)(sp)
+	std   %f15, FREGS+(15*8)(sp)
+
+	/* call md_handle_exception */
+
+	la    a0, REGS(sp)
+	la    a1, FREGS(sp)
+	la    a2, OUT(sp)
+
+	bras    %r14,L_ahe_bras
+	.long   md_handle_exception
 L_ahe_bras:
 	l       %r14,0(%r14)
 	basr    %r14,%r14
-	st      v0,2*4+96(sp)               /* save data segment pointer          */
-    
-	lr      a2,v0                       /* pass data segment pointer          */
-	l       a0,0*4+96(sp)               /* pass exception pointer             */
-	l       a1,1*4+96(sp)               /* pass exception pc                  */
-	l       a3,3*4+96(sp)               /* pass Java stack pointer            */
 
-	bras    %r14,L_ahe_bras2            /* call exceptions_handle_exception */
-	.long   exceptions_handle_exception
-L_ahe_bras2:
-	l       %r14,0(%r14)
-	basr    %r14,%r14
+	l     itmp3, OUT+(2*4)(sp)  /* out[2] contains maybe leaf flag */
+	ltr   itmp3, itmp3           
+	je    L_restore_saved
 
-	ahi     sp,96                       /* remove regiser save area for C code */
+L_restore_temporary_and_argument:
 
-	ltr     v0,v0
-	jz      L_asm_handle_exception_not_catched
+	/* if we are maybe leaf,
+	 * we have to restore argument and temporary registers
+	 */
 
-	lr      xpc,v0                      /* move handlerpc into xpc            */
-	l       xptr,0*4(sp)                /* restore exception pointer          */
-	l       pv,2*4(sp)                  /* restore PV                         */
-	ahi     pv,-0xffc                   /* offset PV */
-	l       %r0,4*4(sp)                 /* get maybe-leaf flag                */
-	ahi     sp,(6*4)                    /* free stack frame                   */
+	lm    a0, a4, REGS+(2*4)(sp)
+	ld    %f0, FREGS+(0*8)(sp)
+	ld    %f1, FREGS+(1*8)(sp)
+	ld    %f2, FREGS+(2*8)(sp)
+	ld    %f3, FREGS+(3*8)(sp)
+	ld    %f5, FREGS+(5*8)(sp)
+	ld    %f7, FREGS+(7*8)(sp)
+	ld    %f8, FREGS+(8*8)(sp)
+	ld    %f9, FREGS+(9*8)(sp)
+	ld    %f10, FREGS+(10*8)(sp)
+	ld    %f11, FREGS+(11*8)(sp)
+	ld    %f12, FREGS+(12*8)(sp)
+	ld    %f13, FREGS+(13*8)(sp)
+	ld    %f14, FREGS+(14*8)(sp)
+	ld    %f15, FREGS+(15*8)(sp)
 
-	ltr     %r0, %r0
-	jz      L_asm_handle_exception_no_leaf
+	j     L_restore_done
 
-	LOAD_ARGUMENT_REGISTERS(0)
-	LOAD_TEMPORARY_REGISTERS(ARGUMENT_REGISTERS_SIZE)	
+L_restore_saved:
 
-	ahi     sp, (ARGUMENT_REGISTERS_SIZE + TEMPORARY_REGISTERS_SIZE) /* Remove maybe-leaf stackframe */
+	/* if we are not a maybe leaf,
+	 * we have to restore callee saved registers of the callee
+	 */
 
-L_asm_handle_exception_no_leaf:
-	br      xpc                         /* jump to the handler */
+	l     itmp3, OUT+(0*4)(sp)  /* out[0] contains IntSav */
 
-L_asm_handle_exception_not_catched:
-	l       xptr,0*4(sp)                /* restore exception pointer          */
-	l       itmp3,2*4(sp)               /* restore data segment pointer       */
-	ahi     itmp3,-0xfff                /* for negative displacements */
-	l       %r0,4*4(sp)                 /* get maybe-leaf flag                */
-	ahi     sp,(6*4)
+	ahi   itmp3, -1
+	jl    L_int_done
+	l     s4, REGS+(11*4)(sp)
 
-	ltr     %r0,%r0
-	jz      L_asm_handle_exception_no_leaf_stack
+	ahi   itmp3, -1
+	jl    L_int_done
+	l     s3, REGS+(10*4)(sp)
 
-	ahi     sp, (ARGUMENT_REGISTERS_SIZE + TEMPORARY_REGISTERS_SIZE) /* Remove maybe-leaf stackframe */
-	lhi     %r0,0                       /* clear the isleaf flag              */
+	ahi   itmp3, -1
+	jl    L_int_done
+	l     s2, REGS+(9*4)(sp)
 
-	/*
-	+-----------------+-----------+---------+----+
-	| Memuse          | Float Sav | Int Sav | RA |
-	|                 | 0 ... n   | 0 ... n |    |
-	+-----------------+-----------+---------+----+
-	^                 ^           ^
-	SP                F           I
+	ahi   itmp3, -1
+	jl    L_int_done
+	l     s1, REGS+(8*4)(sp)
 
-	                              ^         ^    ^
-                                  p3        p2   p1	
-	*/
+	ahi   itmp3, -1
+	jl    L_int_done
+	l     s0, REGS+(7*4)(sp)
 
-L_asm_handle_exception_no_leaf_stack:
+L_int_done:
 
-	l       itmp2,0xfff+FrameSize(itmp3)/* get frame size                     */
-	la      itmp2,0(itmp2,sp)           /* pointer to save area (p1) */
-	ahi     itmp2,-8                    /* skip RA (p2) */
-	ahi     itmp2,-0xfff                /* for negative displacements */
+	/* restore callee saved float registers */
 
-	l       a0,0xfff+IntSave(itmp3)     /* a0 = saved int register count  */
+	l     itmp3, OUT+(1*4)(sp)   /* out[1] contains FltSav */
 
-	ltr     a0,a0
-	je      noint
+	ahi   itmp3, -1
+	jl    L_flt_done
+	ld    %f6, FREGS+(6*8)(sp)
 
-	chi     a0,1
-	je      int1
-	chi     a0,2
-	je      int2
-	chi     a0,3
-	je      int3
-	chi     a0,4
-	je      int4
-	
-int5:
-	l       s0,0xfff-5*8(itmp2)
-int4:   
-	l       s1,0xfff-4*8(itmp2)
-int3:   
-	l       s2,0xfff-3*8(itmp2)
-int2:   
-	l       s3,0xfff-2*8(itmp2)
-int1:   
-	l       s4,0xfff-1*8(itmp2)
+	ahi   itmp3, -1
+	jl    L_flt_done
+	ld    %f4, FREGS+(4*8)(sp)
 
-noint:
+L_flt_done:
 
-	sll     a0,3                        /* a0 = saved int register count * 8 */
-	sr      itmp2, a0                   /* skip Int Sav (p3) */
+L_restore_done:
 
-	l       a0,0xfff+FltSave(itmp3)
-	ltr	    a0,a0                       /* Number of saved floating point registers */
-	je      noflt
+	/* write new values for special registers */
 
-	chi     a0,1
-	je      flt1
+	l     xptr, REGS+(1*4)(sp)
+	l     xpc, REGS+(12*4)(sp)
+	l     pv, REGS+(13*4)(sp)  
+	l     sp, REGS+(15*4)(sp)   
 
-flt2:   
-	ld    %f4,0xfff-2*8(itmp2)
-flt1:   
-	ld    %f6,0xfff-1*8(itmp2)
-                
-noflt:
+	br    xpc                   /* jump to handler */
 
-	l       itmp3,0xfff+FrameSize(itmp3)/* get frame size (at least 8 - RA)   */
-	ahi     itmp3,-8                    /* substract 8 */
-	l       xpc,0(itmp3,sp)             /* load the new xpc -  return address */
-	la      sp, 8(itmp3,sp)             /* unwind stack                       */
-
-	                                    /* exception pointer is still set     */
-#if 0
-	sub     $3,xpc                      /* subtract 3 bytes for call          */
-#endif
-
-	lhi     a3,0                        /* prepare a3 for handle_exception    */
-	
-	j		L_asm_handle_exception_stack_loop
-
+#	undef STACKFRAMESIZE
+#	undef REGS
+#	undef FREGS
+#	undef OUT
 
 #if 0
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 8296 2007-08-11 22:38:38Z pm $
+   $Id: md.c 8298 2007-08-12 18:49:16Z pm $
 
 */
 
@@ -46,6 +46,7 @@
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/abi.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/stacktrace.h"
 
@@ -626,6 +627,110 @@ void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *save
 	assert(0);
 }
 #endif
+
+void md_handle_exception(int32_t *regs, int64_t *fregs, int32_t *out) {
+
+	uint8_t *xptr;
+	uint8_t *xpc;
+	uint8_t *sp;
+	uint8_t *pv;
+	uint8_t *ra;
+	uint8_t *handler;
+	int32_t framesize;
+	int32_t intsave;
+	int32_t fltsave;
+	int64_t *savearea;
+	int i;
+	int reg;
+	int loops = 0;
+
+	/* get registers */
+
+	xptr = *(uint8_t **)(regs + REG_ITMP1_XPTR);
+	xpc = *(uint8_t **)(regs + REG_ITMP2_XPC);
+	sp = *(uint8_t **)(regs + REG_SP);
+
+
+	/* initialize number of calle saved int regs to restore to 0 */
+	out[0] = 0;
+
+	/* initialize number of calle saved flt regs to restore to 0 */
+	out[1] = 0;
+
+	do {
+
+		++loops;
+
+		pv = codegen_get_pv_from_pc(xpc);
+
+		handler = exceptions_handle_exception(xptr, xpc, pv, sp);
+
+		if (handler == NULL) {
+
+			/* exception was not handled
+			 * get values of calee saved registers and remove stack frame 
+			 */
+
+			/* read stuff from data segment */
+
+			framesize = *(int32_t *)(pv + FrameSize);
+
+			intsave = *(int32_t *)(pv + IntSave);
+			if (intsave > out[0]) {
+				out[0] = intsave;
+			}
+
+			fltsave = *(int32_t *)(pv + FltSave);
+			if (fltsave > out[1]) {
+				out[1] = fltsave;
+			}
+
+			/* pointer to register save area */
+
+			savearea = (int64_t *)(sp + framesize - 8);
+
+			/* return address */
+
+			ra = *(uint8_t **)(sp + framesize - 8);
+
+			/* restore saved registers */
+
+			for (i = 0; i < intsave; ++i) {
+				--savearea;
+				reg = abi_registers_integer_saved[INT_SAV_CNT - 1 - i];
+				regs[reg] = *(int32_t *)(savearea);
+			}
+
+			for (i = 0; i < fltsave; ++i) {
+				--savearea;
+				reg = abi_registers_float_saved[FLT_SAV_CNT - 1 - i];
+				fregs[reg] = *savearea;
+			}
+
+			/* remove stack frame */
+
+			sp += framesize;
+
+			/* new xpc is call before return address */
+
+			xpc = ra;
+
+		} else {
+			xpc = handler;
+		}
+	} while (handler == NULL);
+
+	/* write new values for registers */
+
+	*(uint8_t **)(regs + REG_ITMP1_XPTR) = xptr;
+	*(uint8_t **)(regs + REG_ITMP2_XPC) = xpc;
+	*(uint8_t **)(regs + REG_SP) = sp;
+	*(uint8_t **)(regs + REG_PV) = pv - 0XFFC;
+
+	/* maybe leaf flag */
+
+	out[2] = (loops == 1);
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

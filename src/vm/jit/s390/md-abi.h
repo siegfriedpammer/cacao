@@ -28,7 +28,7 @@
 
    Changes:
 
-   $Id: md-abi.h 7839 2007-04-29 22:46:56Z pm $
+   $Id: md-abi.h 8298 2007-08-12 18:49:16Z pm $
 
 */
 
@@ -127,10 +127,10 @@
 #define INT_RES_CNT     5        /* number of integer reserved registers      */
 
 #define FLT_REG_CNT     16       /* number of float registers                 */
-#define FLT_SAV_CNT     0        /* number of float callee saved registers    */
+#define FLT_SAV_CNT     2        /* number of float callee saved registers    */
 #define FLT_ARG_CNT     2        /* number of float argument registers        */
-#define FLT_TMP_CNT     12        /* number of float temporary registers       */
-#define FLT_RES_CNT     2        /* number of float reserved registers        */
+#define FLT_TMP_CNT     12       /* number of float temporary registers       */
+#define FLT_RES_CNT     0        /* number of float reserved registers        */
 
 #define TRACE_ARGS_NUM  8
 
