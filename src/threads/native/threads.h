@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 8295 2007-08-11 17:57:24Z michi $
+   $Id: threads.h 8297 2007-08-12 00:02:48Z michi $
 
 */
 
@@ -44,6 +44,7 @@ typedef struct threadobject threadobject;
 
 #include "mm/memory.h"
 #include "native/jni.h"
+#include "native/localref.h"
 #include "native/include/java_lang_Thread.h"
 
 #include "threads/native/lock.h"

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: codegen.c 8297 2007-08-12 00:02:48Z michi $
 
 */
 
@@ -41,6 +41,7 @@
 
 #include "mm/memory.h"
 
+#include "native/localref.h"
 #include "native/native.h"
 
 #include "threads/lock-common.h"
