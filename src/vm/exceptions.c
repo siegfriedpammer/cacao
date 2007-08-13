@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8296 2007-08-11 22:38:38Z pm $
+   $Id: exceptions.c 8303 2007-08-13 19:01:52Z twisti $
 
 */
 
@@ -1947,7 +1947,7 @@ void exceptions_print_exception(java_handle_t *xptr)
 	}
 
 #if defined(ENABLE_JAVASE)
-	LLNI_field_set_ref(t, cause, cause);
+	LLNI_field_get_ref(t, cause, cause);
 #endif
 
 	/* print the root exception */
