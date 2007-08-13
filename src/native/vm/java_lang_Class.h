@@ -83,7 +83,7 @@ JNIEXPORT int32_t JNICALL      _Jv_java_lang_Class_isArray(JNIEnv *env, java_lan
 #if defined(ENABLE_JAVASE)
 void                           _Jv_java_lang_Class_throwException(java_lang_Throwable *t);
 
-#if 0
+#if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
 java_objectarray              *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* klass);
 #endif
 

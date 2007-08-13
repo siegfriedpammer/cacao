@@ -123,7 +123,7 @@ void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 		COUNT_WRITE_SPILLS(dst)
 
 		disp = JITSTACK + dst->vv.regoff;
-			
+	
 		switch(dst->type)
 		{
 		case TYPE_INT:
@@ -549,6 +549,27 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 		M_NOP;
 		M_ALD_INTERN(REG_RESULT_CALLER, REG_ZERO, EXCEPTION_HARDWARE_EXCEPTION);
 	}
+}
+
+
+/* emit_trap *******************************************************************
+
+   Emit a trap instruction and return the original machine code.
+
+*******************************************************************************/
+
+uint32_t emit_trap(codegendata *cd)
+{
+	uint32_t mcode;
+
+	/* Get machine code which is patched back in later. The
+	   trap is 1 instruction word long. */
+
+	mcode = *((u4 *) cd->mcodeptr);
+
+	M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_PATCHER);
+
+	return mcode;
 }
 
 

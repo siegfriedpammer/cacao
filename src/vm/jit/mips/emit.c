@@ -50,6 +50,7 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
 
 #include "vmcore/options.h"
@@ -584,162 +585,24 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 }
 
 
-/* emit_patcher_stubs **********************************************************
+/* emit_trap *******************************************************************
 
-   Generates the code for the patcher stubs.
+   Emit a trap instruction and return the original machine code.
 
 *******************************************************************************/
 
-void emit_patcher_stubs(jitdata *jd)
+uint32_t emit_trap(codegendata *cd)
 {
-	codegendata *cd;
-	patchref    *pr;
-	u4           mcode[5];
-	u1          *savedmcodeptr;
-	u1          *tmpmcodeptr;
-	s4           targetdisp;
-	s4           disp;
+	uint32_t mcode;
 
-	/* get required compiler data */
+	/* Get machine code which is patched back in later. The
+	   trap is 1 instruction word long. */
 
-	cd = jd->cd;
+	mcode = *((u4 *) cd->mcodeptr);
 
-	/* generate code patching stub call code */
+	M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_PATCHER);
 
-	targetdisp = 0;
-
-/* 	for (pr = list_first_unsynced(cd->patchrefs); pr != NULL; */
-/* 		 pr = list_next_unsynced(cd->patchrefs, pr)) { */
-	for (pr = cd->patchrefs; pr != NULL; pr = pr->next) {
-		/* check code segment size */
-
-		MCODECHECK(100);
-
-		/* Get machine code which is patched back in later. The
-		   call is 2 instruction words long. */
-
-		tmpmcodeptr = (u1 *) (cd->mcodebase + pr->branchpos);
-
-		/* We use 2 loads here as an unaligned 8-byte read on 64-bit
-		   MIPS causes a SIGSEGV and using the same code for both
-		   architectures is much better. */
-
-		mcode[0] = ((u4 *) tmpmcodeptr)[0];
-		mcode[1] = ((u4 *) tmpmcodeptr)[1];
-
-		mcode[2] = ((u4 *) tmpmcodeptr)[2];
-		mcode[3] = ((u4 *) tmpmcodeptr)[3];
-		mcode[4] = ((u4 *) tmpmcodeptr)[4];
-
-		/* Patch in the call to call the following code (done at
-		   compile time). */
-
-		savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr              */
-		cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position     */
-
-		disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) + 1);
-
-/* 		if ((disp < (s4) 0xffff8000) || (disp > (s4) 0x00007fff)) { */
-			/* Recalculate the displacement to be relative to PV. */
-
-			disp = savedmcodeptr - cd->mcodebase;
-
-			M_LUI(REG_ITMP3, disp >> 16);
-			M_OR_IMM(REG_ITMP3, disp, REG_ITMP3);
-			M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-			M_NOP;
-/* 		} */
-/* 		else { */
-/* 			M_BR(disp); */
-/* 			M_NOP; */
-/* 			M_NOP; */
-/* 			M_NOP; */
-/* 			M_NOP; */
-/* 		} */
-
-		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
-
-		/* create stack frame */
-
-		M_ASUB_IMM(REG_SP, 8 * 8, REG_SP);
-
-		/* calculate return address and move it onto the stack */
-
-		M_LDA(REG_ITMP3, REG_PV, pr->branchpos);
-		M_AST(REG_ITMP3, REG_SP, 7 * 8);
-
-		/* move pointer to java_objectheader onto stack */
-
-#if defined(ENABLE_THREADS)
-		/* create a virtual java_objectheader */
-
-		(void) dseg_add_unique_address(cd, NULL);                  /* flcword */
-		(void) dseg_add_unique_address(cd, lock_get_initial_lock_word());
-		disp = dseg_add_unique_address(cd, NULL);                  /* vftbl   */
-
-		M_LDA(REG_ITMP3, REG_PV, disp);
-		M_AST(REG_ITMP3, REG_SP, 6 * 8);
-#else
-		/* do nothing */
-#endif
-
-		/* move machine code onto stack */
-
-		disp = dseg_add_s4(cd, mcode[0]);
-		M_ILD(REG_ITMP3, REG_PV, disp);
-		M_IST(REG_ITMP3, REG_SP, 3 * 8 + 0);
-
-		disp = dseg_add_s4(cd, mcode[1]);
-		M_ILD(REG_ITMP3, REG_PV, disp);
-		M_IST(REG_ITMP3, REG_SP, 3 * 8 + 4);
-
-		disp = dseg_add_s4(cd, mcode[2]);
-		M_ILD(REG_ITMP3, REG_PV, disp);
-		M_IST(REG_ITMP3, REG_SP, 4 * 8 + 0);
-
-		disp = dseg_add_s4(cd, mcode[3]);
-		M_ILD(REG_ITMP3, REG_PV, disp);
-		M_IST(REG_ITMP3, REG_SP, 4 * 8 + 4);
-
-		disp = dseg_add_s4(cd, mcode[4]);
-		M_ILD(REG_ITMP3, REG_PV, disp);
-		M_IST(REG_ITMP3, REG_SP, 5 * 8 + 0);
-
-		/* move class/method/field reference onto stack */
-
-		disp = dseg_add_address(cd, pr->ref);
-		M_ALD(REG_ITMP3, REG_PV, disp);
-		M_AST(REG_ITMP3, REG_SP, 2 * 8);
-
-		/* move data segment displacement onto stack */
-
-		disp = dseg_add_s4(cd, pr->disp);
-		M_ILD(REG_ITMP3, REG_PV, disp);
-		M_IST(REG_ITMP3, REG_SP, 1 * 8);
-
-		/* move patcher function pointer onto stack */
-
-		disp = dseg_add_functionptr(cd, pr->patcher);
-		M_ALD(REG_ITMP3, REG_PV, disp);
-		M_AST(REG_ITMP3, REG_SP, 0 * 8);
-
-		if (targetdisp == 0) {
-			targetdisp = ((u4 *) cd->mcodeptr) - ((u4 *) cd->mcodebase);
-
-			disp = dseg_add_functionptr(cd, asm_patcher_wrapper);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_JMP(REG_ITMP3);
-			M_NOP;
-		}
-		else {
-			disp = (((u4 *) cd->mcodebase) + targetdisp) -
-				(((u4 *) cd->mcodeptr) + 1);
-
-			M_BR(disp);
-			M_NOP;
-		}
-	}
+	return mcode;
 }
 
 

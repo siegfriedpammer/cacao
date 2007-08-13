@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8245 2007-07-31 09:55:04Z michi $
+   $Id: java_lang_Class.c 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -38,6 +38,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 /* keep this order of the native includes */
@@ -73,13 +74,17 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
+#include "vm/primitive.h"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
-#include "vmcore/primitive.h"
 
+#if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
+#include "vmcore/annotation.h"
+#include "native/include/sun_reflect_ConstantPool.h"
+#endif
 
 /*
  * Class:     java/lang/Class
@@ -90,6 +95,7 @@ java_lang_String *_Jv_java_lang_Class_getName(java_lang_Class *klass)
 {
 	classinfo        *c;
 	java_lang_String *s;
+	java_chararray   *ca;
 	u4                i;
 
 	c = (classinfo *) klass;
@@ -103,9 +109,11 @@ java_lang_String *_Jv_java_lang_Class_getName(java_lang_Class *klass)
 
 	/* return string where '/' is replaced by '.' */
 
-	for (i = 0; i < s->value->header.size; i++) {
-		if (s->value->data[i] == '/')
-			s->value->data[i] = '.';
+	LLNI_field_get_ref(s, value, ca);
+
+	for (i = 0; i < ca->header.size; i++) {
+		if (ca->data[i] == '/')
+			ca->data[i] = '.';
 	}
 
 	return s;
@@ -126,11 +134,11 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 #if defined(ENABLE_JAVASE)
 	classloader *cl;
 #endif
-	utf               *ufile;
-	utf               *uname;
-	classinfo         *c;
-	u2                *pos;
-	s4                 i;
+	utf         *ufile;
+	utf         *uname;
+	classinfo   *c;
+	u2          *pos;
+	s4           i;
 
 #if defined(ENABLE_JAVASE)
 	cl = loader_hashtable_classloader_add((java_objectheader *) loader);
@@ -145,12 +153,12 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 
 	/* create utf string in which '.' is replaced by '/' */
 
-	ufile = javastring_toutf((java_objectheader *) name, true);
-	uname = javastring_toutf((java_objectheader *) name, false);
+	ufile = javastring_toutf((java_handle_t *) name, true);
+	uname = javastring_toutf((java_handle_t *) name, false);
 
 	/* name must not contain '/' (mauve test) */
 
-	for (i = 0, pos = name->value->data + name->offset; i < name->count; i++, pos++) {
+	for (i = 0, pos = LLNI_field_direct(name, value)->data + LLNI_field_direct(name, offset); i < LLNI_field_direct(name, count); i++, pos++) {
 		if (*pos == '/') {
 			exceptions_throw_classnotfoundexception(uname);
 			return NULL;
@@ -192,11 +200,11 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
  */
 s4 _Jv_java_lang_Class_isInstance(java_lang_Class *klass, java_lang_Object *o)
 {
-	classinfo         *c;
-	java_objectheader *ob;
+	classinfo     *c;
+	java_handle_t *ob;
 
 	c = (classinfo *) klass;
-	ob = (java_objectheader *) o;
+	ob = (java_handle_t *) o;
 
 	if (!(c->state & CLASS_LINKED))
 		if (!link_class(c))
@@ -312,7 +320,7 @@ java_objectarray *_Jv_java_lang_Class_getInterfaces(java_lang_Class *klass)
 	for (i = 0; i < c->interfacescount; i++) {
 		ic = c->interfaces[i].cls;
 
-		oa->data[i] = (java_objectheader *) ic;
+		oa->data[i] = ic;
 	}
 
 	return oa;
@@ -482,7 +490,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass,
 				if (!link_class(inner))
 					return NULL;
 
-			oa->data[pos++] = (java_objectheader *) inner;
+			oa->data[pos++] = inner;
 		}
 	}
 
@@ -532,7 +540,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, 
 
 			/* store object into array */
 
-			oa->data[pos++] = (java_objectheader *) rf;
+			oa->data[pos++] = rf;
 		}
 	}
 
@@ -595,7 +603,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass,
 
 			/* store object into array */
 
-			oa->data[pos++] = (java_objectheader *) rm;
+			oa->data[pos++] = rm;
 		}
 	}
 
@@ -646,7 +654,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredConstructors(java_lang_Class *k
 
 			/* store object into array */
 
-			oa->data[pos++] = (java_objectheader *) rc;
+			oa->data[pos++] = rc;
 		}
 	}
 
@@ -698,15 +706,15 @@ JNIEXPORT int32_t JNICALL _Jv_java_lang_Class_isArray(JNIEnv *env, java_lang_Cla
  */
 void _Jv_java_lang_Class_throwException(java_lang_Throwable *t)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
-	o = (java_objectheader *) t;
+	o = (java_handle_t *) t;
 
 	exceptions_set_exception(o);
 }
 
 
-#if 0
+#if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
 /*
  * Class:     java/lang/Class
  * Method:    getDeclaredAnnotations
@@ -714,6 +722,72 @@ void _Jv_java_lang_Class_throwException(java_lang_Throwable *t)
  */
 java_objectarray *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* klass)
 {
+	classinfo                *c            = (classinfo*)klass;
+	static methodinfo        *m_parseAnnotationsIntoArray   = NULL;
+	utf                      *utf_parseAnnotationsIntoArray = NULL;
+	utf                      *utf_desc     = NULL;
+	java_bytearray           *annotations  = NULL;
+	sun_reflect_ConstantPool *constantPool = NULL;
+	uint32_t                  size         = 0;
+
+	if (c == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+	
+	/* Return null for arrays and primitives: */
+	if (class_is_primitive(c) || class_is_array(c)) {
+		return NULL;
+	}
+
+	if (c->annotations != NULL) {
+		size        = c->annotations->size;
+		annotations = builtin_newarray_byte(size);
+
+		if(annotations != NULL) {
+			MCOPY(annotations->data, c->annotations->data, uint8_t, size);
+		}
+	}
+
+	constantPool = 
+		(sun_reflect_ConstantPool*)native_new_and_init(
+			class_sun_reflect_ConstantPool);
+	
+	if(constantPool == NULL) {
+		/* out of memory */
+		return NULL;
+	}
+
+	constantPool->constantPoolOop = (java_lang_Object*)klass;
+
+	/* only resolve the method the first time */
+	if (m_parseAnnotationsIntoArray == NULL) {
+		utf_parseAnnotationsIntoArray = utf_new_char("parseAnnotationsIntoArray");
+		utf_desc = utf_new_char(
+			"([BLsun/reflect/ConstantPool;Ljava/lang/Class;)"
+			"[Ljava/lang/annotation/Annotation;");
+
+		if (utf_parseAnnotationsIntoArray == NULL || utf_desc == NULL) {
+			/* out of memory */
+			return NULL;
+		}
+
+		m_parseAnnotationsIntoArray = class_resolveclassmethod(
+			class_sun_reflect_annotation_AnnotationParser,
+			utf_parseAnnotationsIntoArray,
+			utf_desc,
+			class_java_lang_Class,
+			true);
+
+		if (m_parseAnnotationsIntoArray == NULL) {
+			/* method not found */
+			return NULL;
+		}
+	}
+
+	return vm_call_method(
+		m_parseAnnotationsIntoArray, NULL,
+		annotations, constantPool, klass);
 }
 #endif
 
@@ -877,8 +951,8 @@ java_lang_reflect_Method *_Jv_java_lang_Class_getEnclosingMethod(java_lang_Class
  */
 java_lang_String *_Jv_java_lang_Class_getClassSignature(java_lang_Class* klass)
 {
-	classinfo         *c;
-	java_objectheader *o;
+	classinfo     *c;
+	java_handle_t *o;
 
 	c = (classinfo *) klass;
 

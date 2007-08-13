@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 8245 2007-07-31 09:55:04Z michi $
+   $Id: md-os.c 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <ucontext.h>
 
 #include "vm/types.h"
@@ -41,7 +42,6 @@
 # include "threads/native/threads.h"
 #endif
 
-#include "vm/exceptions.h"
 #include "vm/signallocal.h"
 
 #include "vm/jit/asmpart.h"
@@ -57,21 +57,21 @@
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo     sfi;
-	ucontext_t        *_uc;
-	mcontext_t        *_mc;
-	u1                *pv;
-	u1                *sp;
-	u1                *ra;
-	u1                *xpc;
-	u4                 mcode;
-	s4                 d;
-	s4                 s1;
-	s4                 disp;
-	ptrint             val;
-	ptrint             addr;
-	s4                 type;
-	java_objectheader *e;
+	stackframeinfo  sfi;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	u1             *pv;
+	u1             *sp;
+	u1             *ra;
+	u1             *xpc;
+	u4              mcode;
+	s4              d;
+	s4              s1;
+	s4              disp;
+	intptr_t        val;
+	intptr_t        addr;
+	int             type;
+	void           *p;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -89,7 +89,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	s1   = M_MEM_GET_B(mcode);
 	disp = M_MEM_GET_DISP(mcode);
 
-	val   = _mc->sc_regs[d];
+	val  = _mc->sc_regs[d];
 
 	/* check for special-load */
 
@@ -103,16 +103,16 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		   define is 0. */
 
 		addr = _mc->sc_regs[s1];
-		type = (s4) addr;
+		type = (int) addr;
 	}
 
 	/* create stackframeinfo */
 
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-	/* generate appropriate exception */
+	/* Handle the type. */
 
-	e = exceptions_new_hardware_exception(xpc, type, val);
+	p = signal_handle(xpc, type, val);
 
 	/* remove stackframeinfo */
 
@@ -120,10 +120,10 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* set registers */
 
-	if (e != NULL) {
-		_mc->sc_regs[REG_ITMP1_XPTR] = (ptrint) e;
-		_mc->sc_regs[REG_ITMP2_XPC]  = (ptrint) xpc;
-		_mc->sc_pc                   = (ptrint) asm_handle_exception;
+	if (p != NULL) {
+		_mc->sc_regs[REG_ITMP1_XPTR] = (intptr_t) p;
+		_mc->sc_regs[REG_ITMP2_XPC]  = (intptr_t) xpc;
+		_mc->sc_pc                   = (intptr_t) asm_handle_exception;
 	}
 }
 
@@ -177,6 +177,70 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 	pc = (u1 *) _mc->sc_pc;
 
 	tobj->pc = pc;
+}
+#endif
+
+
+/* md_replace_executionstate_read **********************************************
+
+   Read the given context into an executionstate for Replacement.
+
+*******************************************************************************/
+
+#if defined(ENABLE_REPLACEMENT)
+void md_replace_executionstate_read(executionstate_t *es, void *context)
+{
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	s4          i;
+
+	_uc = (ucontext_t *) context;
+	_mc = &_uc->uc_mcontext;
+
+	/* read special registers */
+	es->pc = (u1 *) _mc->sc_pc;
+	es->sp = (u1 *) _mc->sc_regs[REG_SP];
+	es->pv = (u1 *) _mc->sc_regs[REG_PV];
+
+	/* read integer registers */
+	for (i = 0; i < INT_REG_CNT; i++)
+		es->intregs[i] = _mc->sc_regs[i];
+
+	/* read float registers */
+	for (i = 0; i < FLT_REG_CNT; i++)
+		es->fltregs[i] = _mc->sc_fpregs[i];
+}
+#endif
+
+
+/* md_replace_executionstate_write *********************************************
+
+   Write the given executionstate back to the context for Replacement.
+
+*******************************************************************************/
+
+#if defined(ENABLE_REPLACEMENT)
+void md_replace_executionstate_write(executionstate_t *es, void *context)
+{
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	s4          i;
+
+	_uc = (ucontext_t *) context;
+	_mc = &_uc->uc_mcontext;
+
+	/* write integer registers */
+	for (i = 0; i < INT_REG_CNT; i++)
+		_mc->sc_regs[i] = es->intregs[i];
+
+	/* write float registers */
+	for (i = 0; i < FLT_REG_CNT; i++)
+		_mc->sc_fpregs[i] = es->fltregs[i];
+
+	/* write special registers */
+	_mc->sc_pc = es->pc;
+	_mc->sc_regs[REG_SP] = (ptrint) es->sp;
+	_mc->sc_regs[REG_PV] = (ptrint) es->pv;
 }
 #endif
 

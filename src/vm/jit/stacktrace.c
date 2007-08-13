@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.c 8139 2007-06-24 10:12:27Z twisti $
+   $Id: stacktrace.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -42,6 +42,7 @@
 
 #include "vm/global.h"                   /* required here for native includes */
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/include/java_lang_Throwable.h"
 
 #if defined(WITH_CLASSPATH_GNU)
@@ -781,7 +782,7 @@ java_objectarray *stacktrace_getClassContext(void)
 			continue;
 		}
 
-		oa->data[i] = (java_objectheader *) ste->method->class;
+		oa->data[i] = (java_object_t *) ste->method->class;
 	}
 
 	/* release dump memory */
@@ -891,7 +892,7 @@ java_objectarray *stacktrace_getStack(void)
 	java_objectarray  *classes;
 	java_objectarray  *methodnames;
 	classinfo         *c;
-	java_objectheader *string;
+	java_handle_t     *string;
 	s4                 i;
 	s4                 dumpsize;
 	CYCLES_STATS_DECLARE_AND_START
@@ -930,15 +931,15 @@ java_objectarray *stacktrace_getStack(void)
 
 	/* set up the 2-dimensional array */
 
-	oa->data[0] = (java_objectheader *) classes;
-	oa->data[1] = (java_objectheader *) methodnames;
+	oa->data[0] = (java_object_t *) classes;
+	oa->data[1] = (java_object_t *) methodnames;
 
 	/* iterate over all stacktrace entries */
 
 	for (i = 0, ste = &(stb->entries[0]); i < stb->used; i++, ste++) {
 		c = ste->method->class;
 
-		classes->data[i] = (java_objectheader *) c;
+		classes->data[i] = (java_object_t *) c;
 
 		string = javastring_new(ste->method->name);
 
@@ -1014,7 +1015,7 @@ void stacktrace_print_trace_from_buffer(stacktracebuffer *stb)
 
 *******************************************************************************/
 
-void stacktrace_print_trace(java_objectheader *xptr)
+void stacktrace_print_trace(java_handle_t *xptr)
 {
 	java_lang_Throwable   *t;
 #if defined(WITH_CLASSPATH_GNU)
@@ -1031,8 +1032,8 @@ void stacktrace_print_trace(java_objectheader *xptr)
 	/* now print the stacktrace */
 
 #if defined(WITH_CLASSPATH_GNU)
-	vmt = t->vmState;
-	stc = (stacktracecontainer *) vmt->vmData;
+	LLNI_field_get_ref(t, vmState, vmt);
+	stc = (stacktracecontainer *) LLNI_field_direct(vmt, vmData);
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
 	stc = (stacktracecontainer *) t->backtrace;
 #else

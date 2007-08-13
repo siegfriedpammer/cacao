@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: dummy.c 8245 2007-07-31 09:55:04Z michi $
+   $Id: dummy.c 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -38,6 +38,7 @@
 #include "toolbox/logging.h"
 
 #include "vm/global.h"
+#include "vm/primitive.h"
 #include "vm/vm.h"
 
 #include "vmcore/class.h"
@@ -52,7 +53,7 @@
 char *_Jv_bootclasspath;
 
 
-java_objectheader *javastring_new_slash_to_dot(utf *u)
+java_handle_t *javastring_new_slash_to_dot(utf *u)
 {
 	vm_abort("javastring_new_slash_to_dot");
 
@@ -101,7 +102,7 @@ void intrp_asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out
 
 /* builtin ********************************************************************/
 
-java_objectheader *builtin_clone(void *env, java_objectheader *o)
+java_handle_t *builtin_clone(void *env, java_handle_t *o)
 {
 	abort();
 
@@ -115,7 +116,7 @@ int32_t builtin_isanysubclass(classinfo *sub, classinfo *super)
 	return 0;
 }
 
-java_objectheader *builtin_new(classinfo *c)
+java_handle_t *builtin_new(classinfo *c)
 {
 	abort();
 
@@ -405,16 +406,16 @@ void jit_invalidate_code(methodinfo *m)
 
 /* lock ***********************************************************************/
 
-void lock_init_object_lock(java_objectheader *o)
+void lock_init_object_lock(java_object_t *o)
 {
 }
 
-bool lock_monitor_enter(java_objectheader *o)
+bool lock_monitor_enter(java_object_t *o)
 {
 	return true;
 }
 
-bool lock_monitor_exit(java_objectheader *o)
+bool lock_monitor_exit(java_object_t *o)
 {
 	return true;
 }
@@ -462,6 +463,21 @@ void dump_release(int32_t size)
 int32_t dump_size(void)
 {
 	return 0;
+}
+
+
+/* primitive ******************************************************************/
+
+classinfo *primitive_class_get_by_type(int type)
+{
+	abort();
+	return NULL;
+}
+
+classinfo *primitive_class_get_by_char(char ch)
+{
+	abort();
+	return NULL;
 }
 
 
@@ -621,7 +637,7 @@ void vm_abort(const char *text, ...)
 	abort();
 }
 
-java_objectheader *vm_call_method(methodinfo *m, java_objectheader *o, ...)
+java_handle_t *vm_call_method(methodinfo *m, java_handle_t *o, ...)
 {
 	return NULL;
 }
@@ -634,7 +650,7 @@ void stringtable_update(void)
 	log_println("stringtable_update: REMOVE ME!");
 }
 
-java_objectheader *literalstring_new(utf *u)
+java_object_t *literalstring_new(utf *u)
 {
 	log_println("literalstring_new: REMOVE ME!");
 

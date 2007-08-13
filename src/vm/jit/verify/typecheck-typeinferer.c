@@ -42,6 +42,7 @@
 #include "vm/access.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
+#include "vm/primitive.h"
 #include "vm/resolve.h"
 #include "vm/vm.h"
 
@@ -53,7 +54,6 @@
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vmcore/primitive.h"
 
 #define TYPECHECK_NO_STATISTICS
 #include <typecheck-common.h>

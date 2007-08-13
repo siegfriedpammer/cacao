@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8245 2007-07-31 09:55:04Z michi $
+   $Id: vm.c 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -50,6 +50,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_Object.h"             /* required by j.l.C */
@@ -82,6 +83,7 @@
 #include "vm/finalizer.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
+#include "vm/primitive.h"
 #include "vm/properties.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
@@ -99,7 +101,6 @@
 
 #include "vmcore/classcache.h"
 #include "vmcore/options.h"
-#include "vmcore/primitive.h"
 #include "vmcore/statistics.h"
 #include "vmcore/suck.h"
 
@@ -752,7 +753,7 @@ bool vm_createjvm(JavaVM **p_vm, void **p_env, void *vm_args)
 #if defined(ENABLE_JNI)
 	/* setup the local ref table (must be created after vm_create) */
 
-	if (!jni_init_localref_table())
+	if (!localref_table_init())
 		goto error;
 #endif
 
@@ -1225,7 +1226,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			else if (strcmp("jit", opt_arg) == 0) {
 				opt_verbose = true;
 				loadverbose = true;
-				linkverbose = true;
 				initverbose = true;
 				compileverbose = true;
 			}
@@ -1814,12 +1814,12 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 {
 	utf               *mainutf;
 	classinfo         *mainclass;
-	java_objectheader *e;
+	java_handle_t     *e;
 	methodinfo        *m;
 	java_objectarray  *oa; 
 	s4                 oalength;
 	utf               *u;
-	java_objectheader *s;
+	java_handle_t     *s;
 	s4                 status;
 	s4                 i;
 
@@ -2157,10 +2157,10 @@ void vm_abort(const char *text, ...)
 
 static char *vm_get_mainclass_from_jar(char *mainstring)
 {
-	classinfo         *c;
-	java_objectheader *o;
-	methodinfo        *m;
-	java_objectheader *s;
+	classinfo     *c;
+	java_handle_t *o;
+	methodinfo    *m;
+	java_handle_t *s;
 
 	c = load_class_from_sysloader(utf_new_char("java/util/jar/JarFile"));
 
@@ -2472,7 +2472,7 @@ static void vm_array_store_flt(uint64_t *array, paramdesc *pd, uint64_t value)
 #else
 		index        = INT_ARG_CNT + pd->index;
 #endif
-#if WORDS_BIGENDIAN == 1 && !defined(__POWERPC64__)
+#if WORDS_BIGENDIAN == 1 && !defined(__POWERPC__) && !defined(__POWERPC64__) && !defined(__S390__)
 		array[index] = value >> 32;
 #else
 		array[index] = value;
@@ -2546,7 +2546,7 @@ static void vm_array_store_adr(uint64_t *array, paramdesc *pd, void *value)
 #if SIZEOF_VOID_P == 8
 		array[index] = (uint64_t) (intptr_t) value;
 #else
-# if WORDS_BIGENDIAN == 1 && !defined(__POWERPC64__)
+# if WORDS_BIGENDIAN == 1
 		array[index] = ((uint64_t) (intptr_t) value) << 32;
 # else
 		array[index] = (uint64_t) (intptr_t) value;
@@ -2556,71 +2556,13 @@ static void vm_array_store_adr(uint64_t *array, paramdesc *pd, void *value)
 }
 
 
-/* vm_vmargs_from_valist *******************************************************
+/* vm_array_from_valist ********************************************************
 
    XXX
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-static void vm_vmargs_from_valist(methodinfo *m, java_objectheader *o,
-								  vm_arg *vmargs, va_list ap)
-{
-	typedesc *paramtypes;
-	s4        i;
-
-	paramtypes = m->parseddesc->paramtypes;
-
-	/* if method is non-static fill first block and skip `this' pointer */
-
-	i = 0;
-
-	if (o != NULL) {
-		/* the `this' pointer */
-		vmargs[0].type   = TYPE_ADR;
-		vmargs[0].data.l = (u8) (ptrint) o;
-
-		paramtypes++;
-		i++;
-	} 
-
-	for (; i < m->parseddesc->paramcount; i++, paramtypes++) {
-		switch (paramtypes->type) {
-		case TYPE_INT:
-			vmargs[i].type   = TYPE_INT;
-			vmargs[i].data.l = (s8) va_arg(ap, s4);
-			break;
-
-		case TYPE_LNG:
-			vmargs[i].type   = TYPE_LNG;
-			vmargs[i].data.l = (s8) va_arg(ap, s8);
-			break;
-
-		case TYPE_FLT:
-			vmargs[i].type   = TYPE_FLT;
-#if defined(__ALPHA__)
-			/* this keeps the assembler function much simpler */
-
-			vmargs[i].data.d = (jdouble) va_arg(ap, jdouble);
-#else
-			vmargs[i].data.f = (jfloat) va_arg(ap, jdouble);
-#endif
-			break;
-
-		case TYPE_DBL:
-			vmargs[i].type   = TYPE_DBL;
-			vmargs[i].data.d = (jdouble) va_arg(ap, jdouble);
-			break;
-
-		case TYPE_ADR: 
-			vmargs[i].type   = TYPE_ADR;
-			vmargs[i].data.l = (u8) (ptrint) va_arg(ap, void*);
-			break;
-		}
-	}
-}
-#else
-uint64_t *vm_array_from_valist(methodinfo *m, java_objectheader *o, va_list ap)
+uint64_t *vm_array_from_valist(methodinfo *m, java_object_t *o, va_list ap)
 {
 	methoddesc *md;
 	paramdesc  *pd;
@@ -2665,8 +2607,9 @@ uint64_t *vm_array_from_valist(methodinfo *m, java_objectheader *o, va_list ap)
 			break;
 
 		case TYPE_FLT:
-#if defined(__ALPHA__) || defined(__POWERPC64__)
-			/* this keeps the assembler function much simpler */
+#if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__)
+			/* This is required to load the correct float value in
+			   assembler code. */
 
 			value.d = (double) va_arg(ap, double);
 #else
@@ -2689,75 +2632,15 @@ uint64_t *vm_array_from_valist(methodinfo *m, java_objectheader *o, va_list ap)
 
 	return array;
 }
-#endif
 
 
-/* vm_vmargs_from_jvalue *******************************************************
+/* vm_array_from_jvalue ********************************************************
 
    XXX
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-static void vm_vmargs_from_jvalue(methodinfo *m, java_objectheader *o,
-								  vm_arg *vmargs, const jvalue *args)
-{
-	typedesc *paramtypes;
-	s4        i;
-	s4        j;
-
-	paramtypes = m->parseddesc->paramtypes;
-
-	/* if method is non-static fill first block and skip `this' pointer */
-
-	i = 0;
-
-	if (o != NULL) {
-		/* the `this' pointer */
-		vmargs[0].type   = TYPE_ADR;
-		vmargs[0].data.l = (u8) (ptrint) o;
-
-		paramtypes++;
-		i++;
-	} 
-
-	for (j = 0; i < m->parseddesc->paramcount; i++, j++, paramtypes++) {
-		switch (paramtypes->decltype) {
-		case TYPE_INT:
-			vmargs[i].type   = TYPE_INT;
-			vmargs[i].data.l = (s8) args[j].i;
-			break;
-
-		case TYPE_LNG:
-			vmargs[i].type   = TYPE_LNG;
-			vmargs[i].data.l = (s8) args[j].j;
-			break;
-
-		case TYPE_FLT:
-			vmargs[i].type = TYPE_FLT;
-#if defined(__ALPHA__)
-			/* this keeps the assembler function much simpler */
-
-			vmargs[i].data.d = (jdouble) args[j].f;
-#else
-			vmargs[i].data.f = args[j].f;
-#endif
-			break;
-
-		case TYPE_DBL:
-			vmargs[i].type   = TYPE_DBL;
-			vmargs[i].data.d = args[j].d;
-			break;
-
-		case TYPE_ADR: 
-			vmargs[i].type   = TYPE_ADR;
-			vmargs[i].data.l = (u8) (ptrint) args[j].l;
-			break;
-		}
-	}
-}
-#else
-static uint64_t *vm_array_from_jvalue(methodinfo *m, java_objectheader *o,
+static uint64_t *vm_array_from_jvalue(methodinfo *m, java_object_t *o,
 									  const jvalue *args)
 {
 	methoddesc *md;
@@ -2820,193 +2703,26 @@ static uint64_t *vm_array_from_jvalue(methodinfo *m, java_objectheader *o,
 
 	return array;
 }
-#endif
 
-/* vm_vmargs_from_objectarray **************************************************
+
+/* vm_array_from_objectarray ***************************************************
 
    XXX
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-bool vm_vmargs_from_objectarray(methodinfo *m, java_objectheader *o,
-								vm_arg *vmargs, java_objectarray *params)
-{
-	java_objectheader *param;
-	typedesc          *paramtypes;
-	classinfo         *c;
-	int32_t            i;
-	int32_t            j;
-	int64_t            value;
-
-	paramtypes = m->parseddesc->paramtypes;
-
-	/* if method is non-static fill first block and skip `this' pointer */
-
-	i = 0;
-
-	if (o != NULL) {
-		/* this pointer */
-		vmargs[0].type   = TYPE_ADR;
-		vmargs[0].data.l = (uint64_t) (intptr_t) o;
-
-		paramtypes++;
-		i++;
-	}
-
-	for (j = 0; i < m->parseddesc->paramcount; i++, j++, paramtypes++) {
-		switch (paramtypes->type) {
-		/* primitive types */
-		case TYPE_INT:
-		case TYPE_LNG:
-		case TYPE_FLT:
-		case TYPE_DBL:
-			param = params->data[j];
-
-			if (param == NULL)
-				goto illegal_arg;
-
-			/* internally used data type */
-			vmargs[i].type = paramtypes->type;
-
-			/* convert the value according to its declared type */
-
-			c = param->vftbl->class;
-
-			switch (paramtypes->decltype) {
-			case PRIMITIVETYPE_BOOLEAN:
-				if (c == class_java_lang_Boolean)
-					value = (int64_t) ((java_lang_Boolean *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_BYTE:
-				if (c == class_java_lang_Byte)
-					value = (int64_t) ((java_lang_Byte *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_CHAR:
-				if (c == class_java_lang_Character)
-					value = (int64_t) ((java_lang_Character *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_SHORT:
-				if (c == class_java_lang_Short)
-					value = (int64_t) ((java_lang_Short *) param)->value;
-				else if (c == class_java_lang_Byte)
-					value = (int64_t) ((java_lang_Byte *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_INT:
-				if (c == class_java_lang_Integer)
-					value = (int64_t) ((java_lang_Integer *) param)->value;
-				else if (c == class_java_lang_Short)
-					value = (int64_t) ((java_lang_Short *) param)->value;
-				else if (c == class_java_lang_Byte)
-					value = (int64_t) ((java_lang_Byte *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_LONG:
-				if (c == class_java_lang_Long)
-					value = (int64_t) ((java_lang_Long *) param)->value;
-				else if (c == class_java_lang_Integer)
-					value = (int64_t) ((java_lang_Integer *) param)->value;
-				else if (c == class_java_lang_Short)
-					value = (int64_t) ((java_lang_Short *) param)->value;
-				else if (c == class_java_lang_Byte)
-					value = (int64_t) ((java_lang_Byte *) param)->value;
-				else
-					goto illegal_arg;
-
-				vmargs[i].data.l = value;
-				break;
-
-			case PRIMITIVETYPE_FLOAT:
-				if (c == class_java_lang_Float)
-					vmargs[i].data.f = (jfloat) ((java_lang_Float *) param)->value;
-				else
-					goto illegal_arg;
-				break;
-
-			case PRIMITIVETYPE_DOUBLE:
-				if (c == class_java_lang_Double)
-					vmargs[i].data.d = (jdouble) ((java_lang_Double *) param)->value;
-				else if (c == class_java_lang_Float)
-					vmargs[i].data.f = (jfloat) ((java_lang_Float *) param)->value;
-				else
-					goto illegal_arg;
-				break;
-
-			default:
-				goto illegal_arg;
-			}
-			break;
-		
-		case TYPE_ADR:
-			if (!resolve_class_from_typedesc(paramtypes, true, true, &c))
-				return false;
-
-			if (params->data[j] != 0) {
-				if (paramtypes->arraydim > 0) {
-					if (!builtin_arrayinstanceof(params->data[j], c))
-						goto illegal_arg;
-
-				} else {
-					if (!builtin_instanceof(params->data[j], c))
-						goto illegal_arg;
-				}
-			}
-
-			vmargs[i].type   = TYPE_ADR;
-			vmargs[i].data.l = (u8) (ptrint) params->data[j];
-			break;
-
-		default:
-			goto illegal_arg;
-		}
-	}
-
-/*  	if (rettype) */
-/*  		*rettype = descr->returntype.decltype; */
-
-	return true;
-
-illegal_arg:
-	exceptions_throw_illegalargumentexception();
-	return false;
-}
-#else
-uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
+uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 									java_objectarray *params)
 {
-	methoddesc        *md;
-	paramdesc         *pd;
-	typedesc          *td;
-	uint64_t          *array;
-	java_objectheader *param;
-	classinfo         *c;
-	int32_t            i;
-	int32_t            j;
-	imm_union          value;
+	methoddesc    *md;
+	paramdesc     *pd;
+	typedesc      *td;
+	uint64_t      *array;
+	java_object_t *param;
+	classinfo     *c;
+	int32_t        i;
+	int32_t        j;
+	imm_union      value;
 
 	/* get the descriptors */
 
@@ -3046,41 +2762,41 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
 			switch (td->decltype) {
 			case PRIMITIVETYPE_BOOLEAN:
 				if (c == class_java_lang_Boolean)
-					value.i = ((java_lang_Boolean *) param)->value;
+					LLNI_field_get_val((java_lang_Boolean *) param, value, value.i);
 				else
 					goto illegal_arg;
 				break;
 
 			case PRIMITIVETYPE_BYTE:
 				if (c == class_java_lang_Byte)
-					value.i = ((java_lang_Byte *) param)->value;
+					LLNI_field_get_val((java_lang_Byte *) param, value, value.i);
 				else
 					goto illegal_arg;
 				break;
 
 			case PRIMITIVETYPE_CHAR:
 				if (c == class_java_lang_Character)
-					value.i = ((java_lang_Character *) param)->value;
+					LLNI_field_get_val((java_lang_Character *) param, value, value.i);
 				else
 					goto illegal_arg;
 				break;
 
 			case PRIMITIVETYPE_SHORT:
 				if (c == class_java_lang_Short)
-					value.i = ((java_lang_Short *) param)->value;
+					LLNI_field_get_val((java_lang_Short *) param, value, value.i);
 				else if (c == class_java_lang_Byte)
-					value.i = ((java_lang_Byte *) param)->value;
+					LLNI_field_get_val((java_lang_Byte *) param, value, value.i);
 				else
 					goto illegal_arg;
 				break;
 
 			case PRIMITIVETYPE_INT:
 				if (c == class_java_lang_Integer)
-					value.i = ((java_lang_Integer *) param)->value;
+					LLNI_field_get_val((java_lang_Integer *) param, value, value.i);
 				else if (c == class_java_lang_Short)
-					value.i = ((java_lang_Short *) param)->value;
+					LLNI_field_get_val((java_lang_Short *) param, value, value.i);
 				else if (c == class_java_lang_Byte)
-					value.i = ((java_lang_Byte *) param)->value;
+					LLNI_field_get_val((java_lang_Byte *) param, value, value.i);
 				else
 					goto illegal_arg;
 				break;
@@ -3103,13 +2819,13 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
 			switch (td->decltype) {
 			case PRIMITIVETYPE_LONG:
 				if (c == class_java_lang_Long)
-					value.l = ((java_lang_Long *) param)->value;
+					LLNI_field_get_val((java_lang_Long *) param, value, value.l);
 				else if (c == class_java_lang_Integer)
-					value.l = (int64_t) ((java_lang_Integer *) param)->value;
+					value.l = (int64_t) LLNI_field_direct(((java_lang_Integer *) param), value);
 				else if (c == class_java_lang_Short)
-					value.l = (int64_t) ((java_lang_Short *) param)->value;
+					value.l = (int64_t) LLNI_field_direct(((java_lang_Short *) param), value);
 				else if (c == class_java_lang_Byte)
-					value.l = (int64_t) ((java_lang_Byte *) param)->value;
+					value.l = (int64_t) LLNI_field_direct(((java_lang_Byte *) param), value);
 				else
 					goto illegal_arg;
 				break;
@@ -3132,7 +2848,7 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
 			switch (td->decltype) {
 			case PRIMITIVETYPE_FLOAT:
 				if (c == class_java_lang_Float)
-					value.f = ((java_lang_Float *) param)->value;
+					LLNI_field_get_val((java_lang_Float *) param, value, value.f);
 				else
 					goto illegal_arg;
 				break;
@@ -3155,9 +2871,9 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_objectheader *o,
 			switch (td->decltype) {
 			case PRIMITIVETYPE_DOUBLE:
 				if (c == class_java_lang_Double)
-					value.d = ((java_lang_Double *) param)->value;
+					LLNI_field_get_val((java_lang_Double *) param, value, value.d);
 				else if (c == class_java_lang_Float)
-					value.f = ((java_lang_Float *) param)->value;
+					LLNI_field_get_val((java_lang_Float *) param, value, value.f);
 				else
 					goto illegal_arg;
 				break;
@@ -3198,1140 +2914,129 @@ illegal_arg:
 	exceptions_throw_illegalargumentexception();
 	return NULL;
 }
-#endif
 
 
 /* vm_call_method **************************************************************
 
-   Calls a Java method with a variable number of arguments and returns
-   an address.
+   Calls a Java method with a variable number of arguments.
 
 *******************************************************************************/
 
-java_objectheader *vm_call_method(methodinfo *m, java_objectheader *o, ...)
-{
-	va_list            ap;
-	java_objectheader *ro;
-
-	va_start(ap, o);
-	ro = vm_call_method_valist(m, o, ap);
-	va_end(ap);
-
-	return ro;
+#define VM_CALL_METHOD(name, type)                                  \
+type vm_call_method##name(methodinfo *m, java_handle_t *o, ...)     \
+{                                                                   \
+	va_list ap;                                                     \
+	type    value;                                                  \
+                                                                    \
+	va_start(ap, o);                                                \
+	value = vm_call_method##name##_valist(m, o, ap);                \
+	va_end(ap);                                                     \
+                                                                    \
+	return value;                                                   \
 }
+
+VM_CALL_METHOD(,        java_handle_t *)
+VM_CALL_METHOD(_int,    int32_t)
+VM_CALL_METHOD(_long,   int64_t)
+VM_CALL_METHOD(_float,  float)
+VM_CALL_METHOD(_double, double)
 
 
 /* vm_call_method_valist *******************************************************
 
    Calls a Java method with a variable number of arguments, passed via
-   a va_list, and returns an address.
+   a va_list.
 
 *******************************************************************************/
 
-java_objectheader *vm_call_method_valist(methodinfo *m, java_objectheader *o,
-										 va_list ap)
-{
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-	s4                 vmargscount;
-	vm_arg            *vmargs;
-	java_objectheader *ro;
-	s4                 dumpsize;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* get number of Java method arguments */
-
-	vmargscount = m->parseddesc->paramcount;
-
-	/* allocate vm_arg array */
-
-	vmargs = DMNEW(vm_arg, vmargscount);
-
-	/* fill the vm_arg array from a va_list */
-
-	vm_vmargs_from_valist(m, o, vmargs, ap);
-
-	/* call the Java method */
-
-	ro = vm_call_method_vmarg(m, vmargscount, vmargs);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return ro;
-#else
-	java_objectheader *ro;
-	int32_t            dumpsize;
-	uint64_t          *array;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_valist(m, o, ap);
-
-	/* call the Java method */
-
-	ro = vm_call_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return ro;
-#endif
+#define VM_CALL_METHOD_VALIST(name, type)                               \
+type vm_call_method##name##_valist(methodinfo *m, java_handle_t *o,     \
+								   va_list ap)                          \
+{                                                                       \
+	int32_t   dumpsize;                                                 \
+	uint64_t *array;                                                    \
+	type      value;                                                    \
+                                                                        \
+	dumpsize = dump_size();                                             \
+	array = vm_array_from_valist(m, o, ap);                             \
+	value = vm_call##name##_array(m, array);                            \
+	dump_release(dumpsize);                                             \
+                                                                        \
+	return value;                                                       \
 }
+
+VM_CALL_METHOD_VALIST(,        java_handle_t *)
+VM_CALL_METHOD_VALIST(_int,    int32_t)
+VM_CALL_METHOD_VALIST(_long,   int64_t)
+VM_CALL_METHOD_VALIST(_float,  float)
+VM_CALL_METHOD_VALIST(_double, double)
 
 
 /* vm_call_method_jvalue *******************************************************
 
    Calls a Java method with a variable number of arguments, passed via
-   a jvalue array, and returns an address.
+   a jvalue array.
 
 *******************************************************************************/
 
-java_objectheader *vm_call_method_jvalue(methodinfo *m, java_objectheader *o,
-										 const jvalue *args)
-{
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-	s4                 vmargscount;
-	vm_arg            *vmargs;
-	java_objectheader *ro;
-	s4                 dumpsize;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* get number of Java method arguments */
-
-	vmargscount = m->parseddesc->paramcount;
-
-	/* allocate vm_arg array */
-
-	vmargs = DMNEW(vm_arg, vmargscount);
-
-	/* fill the vm_arg array from a va_list */
-
-	vm_vmargs_from_jvalue(m, o, vmargs, args);
-
-	/* call the Java method */
-
-	ro = vm_call_method_vmarg(m, vmargscount, vmargs);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return ro;
-#else
-	java_objectheader *ro;
-	int32_t            dumpsize;
-	uint64_t          *array;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_jvalue(m, o, args);
-
-	/* call the Java method */
-
-	ro = vm_call_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return ro;
-#endif
+#define VM_CALL_METHOD_JVALUE(name, type)                               \
+type vm_call_method##name##_jvalue(methodinfo *m, java_handle_t *o,     \
+						           const jvalue *args)                  \
+{                                                                       \
+	int32_t   dumpsize;                                                 \
+	uint64_t *array;                                                    \
+	type      value;                                                    \
+                                                                        \
+	dumpsize = dump_size();                                             \
+	array = vm_array_from_jvalue(m, o, args);                           \
+	value = vm_call##name##_array(m, array);                            \
+	dump_release(dumpsize);                                             \
+                                                                        \
+	return value;                                                       \
 }
+
+VM_CALL_METHOD_JVALUE(,        java_handle_t *)
+VM_CALL_METHOD_JVALUE(_int,    int32_t)
+VM_CALL_METHOD_JVALUE(_long,   int64_t)
+VM_CALL_METHOD_JVALUE(_float,  float)
+VM_CALL_METHOD_JVALUE(_double, double)
 
 
 /* vm_call_array ***************************************************************
 
    Calls a Java method with a variable number of arguments, passed via
-   an argument array, and returns an address.
+   an argument array.
 
 *******************************************************************************/
 
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-java_objectheader *vm_call_method_vmarg(methodinfo *m, s4 vmargscount,
-										vm_arg *vmargs)
-{
-	java_objectheader *o;
-
-	STATISTICS(count_calls_native_to_java++);
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
-#endif
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		o = intrp_asm_vm_call_method(m, vmargscount, vmargs);
-	else
-# endif
-		o = asm_vm_call_method(m, vmargscount, vmargs);
-#else
-	o = intrp_asm_vm_call_method(m, vmargscount, vmargs);
-#endif
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-	THREADOBJECT->flags |= THREAD_FLAG_IN_NATIVE;
-#endif
-
-	return o;
-}
-#else
-java_objectheader *vm_call_array(methodinfo *m, uint64_t *array)
-{
-	methoddesc        *md;
-	java_objectheader *o;
-
-	md = m->parseddesc;
-
-	/* compile the method if not already done */
-
-	if (m->code == NULL)
-		if (!jit_compile(m))
-			return NULL;
-
-	STATISTICS(count_calls_native_to_java++);
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		o = intrp_asm_vm_call_method(m, vmargscount, vmargs);
-	else
-# endif
-		o = asm_vm_call_method(m->code->entrypoint, array, md->memuse);
-#else
-	o = intrp_asm_vm_call_method(m, vmargscount, vmargs);
-#endif
-
-	return o;
-}
-#endif
-
-
-/* vm_call_int_array ***********************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   an argument array, and returns an integer (int32_t).
-
-*******************************************************************************/
-
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-s4 vm_call_method_int_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
-{
-	s4 i;
-
-	STATISTICS(count_calls_native_to_java++);
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-        THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
-#endif
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		i = intrp_asm_vm_call_method_int(m, vmargscount, vmargs);
-	else
-# endif
-		i = asm_vm_call_method_int(m, vmargscount, vmargs);
-#else
-	i = intrp_asm_vm_call_method_int(m, vmargscount, vmargs);
-#endif
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-        THREADOBJECT->flags |= THREAD_FLAG_IN_NATIVE;
-#endif
-
-	return i;
-}
-#else
-int32_t vm_call_int_array(methodinfo *m, uint64_t *array)
-{
-	methoddesc *md;
-	int32_t     i;
-
-	md = m->parseddesc;
-
-	/* compile the method if not already done */
-
-	if (m->code == NULL)
-		if (!jit_compile(m))
-			return 0;
-
-	STATISTICS(count_calls_native_to_java++);
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		i = intrp_asm_vm_call_method_int(m, vmargscount, vmargs);
-	else
-# endif
-		i = asm_vm_call_method_int(m->code->entrypoint, array, md->memuse);
-#else
-	i = intrp_asm_vm_call_method_int(m, vmargscount, vmargs);
-#endif
-
-	return i;
-}
-#endif
-
-
-/* vm_call_method_int **********************************************************
-
-   Calls a Java method with a variable number of arguments and returns
-   an integer (s4).
-
-*******************************************************************************/
-
-s4 vm_call_method_int(methodinfo *m, java_objectheader *o, ...)
-{
-	va_list ap;
-	s4      i;
-
-	va_start(ap, o);
-	i = vm_call_method_int_valist(m, o, ap);
-	va_end(ap);
-
-	return i;
+#define VM_CALL_ARRAY(name, type)                            \
+type vm_call##name##_array(methodinfo *m, uint64_t *array)   \
+{                                                            \
+	methoddesc *md;                                          \
+	void       *pv;                                          \
+	type        value;                                       \
+                                                             \
+	md = m->parseddesc;                                      \
+                                                             \
+	if (m->code == NULL)                                     \
+		if (!jit_compile(m))                                 \
+			return 0;                                        \
+                                                             \
+    pv = m->code->entrypoint;                                \
+                                                             \
+	STATISTICS(count_calls_native_to_java++);                \
+                                                             \
+	value = asm_vm_call_method##name(pv, array, md->memuse); \
+                                                             \
+	return value;                                            \
 }
 
+VM_CALL_ARRAY(,        java_handle_t *)
+VM_CALL_ARRAY(_int,    int32_t)
+VM_CALL_ARRAY(_long,   int64_t)
+VM_CALL_ARRAY(_float,  float)
+VM_CALL_ARRAY(_double, double)
 
-/* vm_call_method_int_valist ***************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   a va_list, and returns an integer (int32_t).
-
-*******************************************************************************/
-
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-s4 vm_call_method_int_valist(methodinfo *m, java_objectheader *o, va_list ap)
-{
-	s4      vmargscount;
-	vm_arg *vmargs;
-	s4      i;
-	s4      dumpsize;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* get number of Java method arguments */
-
-	vmargscount = m->parseddesc->paramcount;
-
-	/* allocate vm_arg array */
-
-	vmargs = DMNEW(vm_arg, vmargscount);
-
-	/* fill the vm_arg array from a va_list */
-
-	vm_vmargs_from_valist(m, o, vmargs, ap);
-
-	/* call the Java method */
-
-	i = vm_call_method_int_vmarg(m, vmargscount, vmargs);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return i;
-}
-#else
-int32_t vm_call_method_int_valist(methodinfo *m, java_objectheader *o, va_list ap)
-{
-	int32_t   dumpsize;
-	uint64_t *array;
-	int32_t   i;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_valist(m, o, ap);
-
-	/* call the Java method */
-
-	i = vm_call_int_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return i;
-}
-#endif
-
-
-/* vm_call_method_int_jvalue ***************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   a jvalue array, and returns an integer (s4).
-
-*******************************************************************************/
-
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-s4 vm_call_method_int_jvalue(methodinfo *m, java_objectheader *o,
-							 const jvalue *args)
-{
-	s4      vmargscount;
-	vm_arg *vmargs;
-	s4      i;
-	s4      dumpsize;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* get number of Java method arguments */
-
-	vmargscount = m->parseddesc->paramcount;
-
-	/* allocate vm_arg array */
-
-	vmargs = DMNEW(vm_arg, vmargscount);
-
-	/* fill the vm_arg array from a va_list */
-
-	vm_vmargs_from_jvalue(m, o, vmargs, args);
-
-	/* call the Java method */
-
-	i = vm_call_method_int_vmarg(m, vmargscount, vmargs);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return i;
-}
-#else
-int32_t vm_call_method_int_jvalue(methodinfo *m, java_objectheader *o,
-								  const jvalue *args)
-{
-	int32_t   dumpsize;
-	uint64_t *array;
-	int32_t   i;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_jvalue(m, o, args);
-
-	/* call the Java method */
-
-	i = vm_call_int_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return i;
-}
-#endif
-
-
-/* vm_call_long_array **********************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   an argument array, and returns a long (int64_t).
-
-*******************************************************************************/
-
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-s8 vm_call_method_long_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
-{
-	s8 l;
-
-	STATISTICS(count_calls_native_to_java++);
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
-#endif
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		l = intrp_asm_vm_call_method_long(m, vmargscount, vmargs);
-	else
-# endif
-		l = asm_vm_call_method_long(m, vmargscount, vmargs);
-#else
-	l = intrp_asm_vm_call_method_long(m, vmargscount, vmargs);
-#endif
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-	THREADOBJECT->flags |= THREAD_FLAG_IN_NATIVE;
-#endif
-
-	return l;
-}
-#else
-int64_t vm_call_long_array(methodinfo *m, uint64_t *array)
-{
-	methoddesc *md;
-	int64_t     l;
-
-	md = m->parseddesc;
-
-	/* compile the method if not already done */
-
-	if (m->code == NULL)
-		if (!jit_compile(m))
-			return 0;
-
-	STATISTICS(count_calls_native_to_java++);
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		l = intrp_asm_vm_call_method_long(m, vmargscount, vmargs);
-	else
-# endif
-		l = asm_vm_call_method_long(m->code->entrypoint, array, md->memuse);
-#else
-	l = intrp_asm_vm_call_method_long(m, vmargscount, vmargs);
-#endif
-
-	return l;
-}
-#endif
-
-
-/* vm_call_method_long *********************************************************
-
-   Calls a Java method with a variable number of arguments and returns
-   a long (s8).
-
-*******************************************************************************/
-
-s8 vm_call_method_long(methodinfo *m, java_objectheader *o, ...)
-{
-	va_list ap;
-	s8      l;
-
-	va_start(ap, o);
-	l = vm_call_method_long_valist(m, o, ap);
-	va_end(ap);
-
-	return l;
-}
-
-
-/* vm_call_method_long_valist **************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   a va_list, and returns a long (s8).
-
-*******************************************************************************/
-
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-s8 vm_call_method_long_valist(methodinfo *m, java_objectheader *o, va_list ap)
-{
-	s4      vmargscount;
-	vm_arg *vmargs;
-	s8      l;
-	s4      dumpsize;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* get number of Java method arguments */
-
-	vmargscount = m->parseddesc->paramcount;
-
-	/* allocate vm_arg array */
-
-	vmargs = DMNEW(vm_arg, vmargscount);
-
-	/* fill the vm_arg array from a va_list */
-
-	vm_vmargs_from_valist(m, o, vmargs, ap);
-
-	/* call the Java method */
-
-	l = vm_call_method_long_vmarg(m, vmargscount, vmargs);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return l;
-}
-#else
-int64_t vm_call_method_long_valist(methodinfo *m, java_objectheader *o, va_list ap)
-{
-	int32_t   dumpsize;
-	uint64_t *array;
-	int64_t   l;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_valist(m, o, ap);
-
-	/* call the Java method */
-
-	l = vm_call_long_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return l;
-}
-#endif
-
-
-/* vm_call_method_long_jvalue **************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   a jvalue array, and returns a long (s8).
-
-*******************************************************************************/
-
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-s8 vm_call_method_long_jvalue(methodinfo *m, java_objectheader *o,
-							  const jvalue *args)
-{
-	s4      vmargscount;
-	vm_arg *vmargs;
-	s8      l;
-	s4      dumpsize;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* get number of Java method arguments */
-
-	vmargscount = m->parseddesc->paramcount;
-
-	/* allocate vm_arg array */
-
-	vmargs = DMNEW(vm_arg, vmargscount);
-
-	/* fill the vm_arg array from a va_list */
-
-	vm_vmargs_from_jvalue(m, o, vmargs, args);
-
-	/* call the Java method */
-
-	l = vm_call_method_long_vmarg(m, vmargscount, vmargs);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return l;
-}
-#else
-int64_t vm_call_method_long_jvalue(methodinfo *m, java_objectheader *o,
-								   const jvalue *args)
-{
-	int32_t   dumpsize;
-	uint64_t *array;
-	int64_t   l;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_jvalue(m, o, args);
-
-	/* call the Java method */
-
-	l = vm_call_long_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return l;
-}
-#endif
-
-
-/* vm_call_float_array *********************************************************
-
-   Calls a Java method with a variable number of arguments and returns
-   an float.
-
-*******************************************************************************/
-
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-float vm_call_method_float_vmarg(methodinfo *m, s4 vmargscount, vm_arg *vmargs)
-{
-	float f;
-
-	vm_abort("IMPLEMENT ME!");
-
-	STATISTICS(count_calls_native_to_java++);
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
-#endif
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		f = intrp_asm_vm_call_method_float(m, vmargscount, vmargs);
-	else
-# endif
-		f = asm_vm_call_method_float(m, vmargscount, vmargs);
-#else
-	f = intrp_asm_vm_call_method_float(m, vmargscount, vmargs);
-#endif
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-	THREADOBJECT->flags |= THREAD_FLAG_IN_NATIVE;
-#endif
-
-	return f;
-}
-#else
-float vm_call_float_array(methodinfo *m, uint64_t *array)
-{
-	methoddesc *md;
-	float       f;
-
-	md = m->parseddesc;
-
-	/* compile the method if not already done */
-
-	if (m->code == NULL)
-		if (!jit_compile(m))
-			return 0;
-
-	STATISTICS(count_calls_native_to_java++);
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		f = intrp_asm_vm_call_method_float(m, vmargscount, vmargs);
-	else
-# endif
-		f = asm_vm_call_method_float(m->code->entrypoint, array, md->memuse);
-#else
-	f = intrp_asm_vm_call_method_float(m, vmargscount, vmargs);
-#endif
-
-	return f;
-}
-#endif
-
-/* vm_call_method_float ********************************************************
-
-   Calls a Java method with a variable number of arguments and returns
-   an float.
-
-*******************************************************************************/
-
-float vm_call_method_float(methodinfo *m, java_objectheader *o, ...)
-{
-	va_list ap;
-	float   f;
-
-	va_start(ap, o);
-	f = vm_call_method_float_valist(m, o, ap);
-	va_end(ap);
-
-	return f;
-}
-
-
-/* vm_call_method_float_valist *************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   a va_list, and returns a float.
-
-*******************************************************************************/
-
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-float vm_call_method_float_valist(methodinfo *m, java_objectheader *o,
-								  va_list ap)
-{
-	s4      vmargscount;
-	vm_arg *vmargs;
-	float   f;
-	s4      dumpsize;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* get number of Java method arguments */
-
-	vmargscount = m->parseddesc->paramcount;
-
-	/* allocate vm_arg array */
-
-	vmargs = DMNEW(vm_arg, vmargscount);
-
-	/* fill the vm_arg array from a va_list */
-
-	vm_vmargs_from_valist(m, o, vmargs, ap);
-
-	/* call the Java method */
-
-	f = vm_call_method_float_vmarg(m, vmargscount, vmargs);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return f;
-}
-#else
-float vm_call_method_float_valist(methodinfo *m, java_objectheader *o, va_list ap)
-{
-	int32_t   dumpsize;
-	uint64_t *array;
-	float     f;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_valist(m, o, ap);
-
-	/* call the Java method */
-
-	f = vm_call_float_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return f;
-}
-#endif
-
-/* vm_call_method_float_jvalue *************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   a jvalue array, and returns a float.
-
-*******************************************************************************/
-
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-float vm_call_method_float_jvalue(methodinfo *m, java_objectheader *o,
-								  const jvalue *args)
-{
-	s4      vmargscount;
-	vm_arg *vmargs;
-	float   f;
-	s4      dumpsize;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* get number of Java method arguments */
-
-	vmargscount = m->parseddesc->paramcount;
-
-	/* allocate vm_arg array */
-
-	vmargs = DMNEW(vm_arg, vmargscount);
-
-	/* fill the vm_arg array from a va_list */
-
-	vm_vmargs_from_jvalue(m, o, vmargs, args);
-
-	/* call the Java method */
-
-	f = vm_call_method_float_vmarg(m, vmargscount, vmargs);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return f;
-}
-#else
-float vm_call_method_float_jvalue(methodinfo *m, java_objectheader *o, const jvalue *args)
-{
-	int32_t   dumpsize;
-	uint64_t *array;
-	float     f;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_jvalue(m, o, args);
-
-	/* call the Java method */
-
-	f = vm_call_float_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return f;
-}
-#endif
-
-
-/* vm_call_double_array ********************************************************
-
-   Calls a Java method with a variable number of arguments and returns
-   a double.
-
-*******************************************************************************/
-
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-double vm_call_method_double_vmarg(methodinfo *m, s4 vmargscount,
-								   vm_arg *vmargs)
-{
-	double d;
-
-	vm_abort("IMPLEMENT ME!");
-
-	STATISTICS(count_calls_native_to_java++);
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
-#endif
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		d = intrp_asm_vm_call_method_double(m, vmargscount, vmargs);
-	else
-# endif
-		d = asm_vm_call_method_double(m, vmargscount, vmargs);
-#else
-	d = intrp_asm_vm_call_method_double(m, vmargscount, vmargs);
-#endif
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-	THREADOBJECT->flags |= THREAD_FLAG_IN_NATIVE;
-#endif
-
-	return d;
-}
-#else
-double vm_call_double_array(methodinfo *m, uint64_t *array)
-{
-	methoddesc *md;
-	double      d;
-
-	md = m->parseddesc;
-
-	/* compile the method if not already done */
-
-	if (m->code == NULL)
-		if (!jit_compile(m))
-			return 0;
-
-	STATISTICS(count_calls_native_to_java++);
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		d = intrp_asm_vm_call_method_double(m, vmargscount, vmargs);
-	else
-# endif
-		d = asm_vm_call_method_double(m->code->entrypoint, array, md->memuse);
-#else
-	d = intrp_asm_vm_call_method_double(m, vmargscount, vmargs);
-#endif
-
-	return d;
-}
-#endif
-
-
-/* vm_call_method_double *******************************************************
-
-   Calls a Java method with a variable number of arguments and returns
-   a double.
-
-*******************************************************************************/
-
-double vm_call_method_double(methodinfo *m, java_objectheader *o, ...)
-{
-	va_list ap;
-	double  d;
-
-	va_start(ap, o);
-	d = vm_call_method_double_valist(m, o, ap);
-	va_end(ap);
-
-	return d;
-}
-
-
-/* vm_call_method_double_valist ************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   a va_list, and returns a double.
-
-*******************************************************************************/
-
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-double vm_call_method_double_valist(methodinfo *m, java_objectheader *o,
-									va_list ap)
-{
-	s4      vmargscount;
-	vm_arg *vmargs;
-	double  d;
-	s4      dumpsize;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* get number of Java method arguments */
-
-	vmargscount = m->parseddesc->paramcount;
-
-	/* allocate vm_arg array */
-
-	vmargs = DMNEW(vm_arg, vmargscount);
-
-	/* fill the vm_arg array from a va_list */
-
-	vm_vmargs_from_valist(m, o, vmargs, ap);
-
-	/* call the Java method */
-
-	d = vm_call_method_double_vmarg(m, vmargscount, vmargs);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return d;
-}
-#else
-double vm_call_method_double_valist(methodinfo *m, java_objectheader *o, va_list ap)
-{
-	int32_t   dumpsize;
-	uint64_t *array;
-	double    d;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_valist(m, o, ap);
-
-	/* call the Java method */
-
-	d = vm_call_double_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return d;
-}
-#endif
-
-
-/* vm_call_method_double_jvalue ************************************************
-
-   Calls a Java method with a variable number of arguments, passed via
-   a jvalue array, and returns a double.
-
-*******************************************************************************/
-
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-double vm_call_method_double_jvalue(methodinfo *m, java_objectheader *o,
-									const jvalue *args)
-{
-	s4      vmargscount;
-	vm_arg *vmargs;
-	double  d;
-	s4      dumpsize;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* get number of Java method arguments */
-
-	vmargscount = m->parseddesc->paramcount;
-
-	/* allocate vm_arg array */
-
-	vmargs = DMNEW(vm_arg, vmargscount);
-
-	/* fill the vm_arg array from a va_list */
-
-	vm_vmargs_from_jvalue(m, o, vmargs, args);
-
-	/* call the Java method */
-
-	d = vm_call_method_double_vmarg(m, vmargscount, vmargs);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return d;
-}
-#else
-double vm_call_method_double_jvalue(methodinfo *m, java_objectheader *o, const jvalue *args)
-{
-	int32_t   dumpsize;
-	uint64_t *array;
-	double    d;
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* fill the argument array from a va_list */
-
-	array = vm_array_from_jvalue(m, o, args);
-
-	/* call the Java method */
-
-	d = vm_call_double_array(m, array);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	return d;
-}
-#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

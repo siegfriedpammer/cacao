@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8245 2007-07-31 09:55:04Z michi $
+   $Id: codegen.c 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -41,6 +41,7 @@
 
 #include "mm/memory.h"
 
+#include "native/localref.h"
 #include "native/native.h"
 
 #include "threads/lock-common.h"
@@ -89,8 +90,6 @@ bool codegen_emit(jitdata *jd)
 	basicblock     *bptr;
 	instruction    *iptr;
 	exception_entry *ex;
-	s4              fieldtype;
-	s4              varindex;
 
 	s4              spilledregs_num;
 	s4              savedregs_num;
@@ -101,6 +100,10 @@ bool codegen_emit(jitdata *jd)
 	unresolved_method  *um;
 	builtintable_entry *bte;
 	methoddesc         *md;
+	fieldinfo          *fi;
+	unresolved_field   *uf;
+	int                 fieldtype;
+	int                 varindex;
 
 	/* get required compiler data */
 
@@ -1374,11 +1377,9 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-
-				disp = dseg_add_unique_address(cd, NULL);
+				disp      = dseg_add_unique_address(cd, NULL);
 
 				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
 
@@ -1386,9 +1387,9 @@ bool codegen_emit(jitdata *jd)
 					M_NOP;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
@@ -1397,8 +1398,6 @@ bool codegen_emit(jitdata *jd)
 					if (opt_showdisassemble)
 						M_NOP;
 				}
-
-				disp = dseg_add_address(cd, &(fi->value));
 			}
 
 			M_DSEG_LOAD(REG_ITMP3, disp);
@@ -1437,11 +1436,9 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-
-				disp = dseg_add_unique_address(cd, NULL);
+				disp      = dseg_add_unique_address(cd, NULL);
 
 				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
 
@@ -1449,9 +1446,9 @@ bool codegen_emit(jitdata *jd)
 					M_NOP;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
@@ -1460,8 +1457,6 @@ bool codegen_emit(jitdata *jd)
 					if (opt_showdisassemble)
 						M_NOP;
 				}
-
-				disp = dseg_add_address(cd, &(fi->value));
 			}
 
 			M_DSEG_LOAD(REG_ITMP3, disp);
@@ -1503,13 +1498,12 @@ bool codegen_emit(jitdata *jd)
 
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = fi->offset;
 			}
@@ -1521,14 +1515,13 @@ bool codegen_emit(jitdata *jd)
 #endif
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
+				/* XXX REMOVE ME */
+				uf = iptr->sx.s23.s3.uf;
 
 				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
-
-				disp = 0;
 			}
 
 			switch (fieldtype) {
@@ -1569,13 +1562,12 @@ bool codegen_emit(jitdata *jd)
 			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = fi->offset;
 			}
@@ -1611,14 +1603,13 @@ bool codegen_emit(jitdata *jd)
 			}
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
+				/* XXX REMOVE ME */
+				uf = iptr->sx.s23.s3.uf;
 
 				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
 
 				if (opt_showdisassemble)
 					M_NOP;
-
-				disp = 0;
 			}
 
 			switch (fieldtype) {
@@ -2334,7 +2325,7 @@ bool codegen_emit(jitdata *jd)
 
 				/* implicit null-pointer check */
 				M_LDR_INTERN(REG_METHODPTR, REG_A0,
-							 OFFSET(java_objectheader, vftbl));
+							 OFFSET(java_object_t, vftbl));
 				M_LDR_INTERN(REG_PV, REG_METHODPTR, s1);
 
 				/* generate the actual call */
@@ -2363,7 +2354,7 @@ bool codegen_emit(jitdata *jd)
 
 				/* implicit null-pointer check */
 				M_LDR_INTERN(REG_METHODPTR, REG_A0,
-							 OFFSET(java_objectheader, vftbl));
+							 OFFSET(java_object_t, vftbl));
 				M_LDR_INTERN(REG_METHODPTR, REG_METHODPTR, s1);
 				M_LDR_INTERN(REG_PV, REG_METHODPTR, s2);
 
@@ -2488,7 +2479,7 @@ bool codegen_emit(jitdata *jd)
 					emit_label_beq(cd, BRANCH_LABEL_3);
 				}
 
-				M_LDR_INTERN(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+				M_LDR_INTERN(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 				M_LDR_INTERN(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, interfacetablelength));
 
 				/* we put unresolved or non-immediate superindices onto dseg */
@@ -2507,7 +2498,7 @@ bool codegen_emit(jitdata *jd)
 				   things differently here! */
 				if ((super == NULL) || !IS_IMM(superindex)) {
 
-					M_LDR_INTERN(REG_ITMP3, s1, OFFSET(java_objectheader, vftbl));
+					M_LDR_INTERN(REG_ITMP3, s1, OFFSET(java_object_t, vftbl));
 
 					/* this assumes something */
 					assert(OFFSET(vftbl_t, interfacetable[0]) == 0);
@@ -2557,7 +2548,7 @@ bool codegen_emit(jitdata *jd)
 					emit_label_beq(cd, BRANCH_LABEL_5);
 				}
 
-				M_LDR_INTERN(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+				M_LDR_INTERN(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 				M_DSEG_LOAD(REG_ITMP3, disp);
 
 				CODEGEN_CRITICAL_SECTION_START;
@@ -2694,7 +2685,7 @@ bool codegen_emit(jitdata *jd)
 					emit_label_beq(cd, BRANCH_LABEL_3);
 				}
 
-				M_LDR_INTERN(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_LDR_INTERN(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_LDR_INTERN(REG_ITMP3,
 							 REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 
@@ -2768,7 +2759,7 @@ bool codegen_emit(jitdata *jd)
 					emit_label_beq(cd, BRANCH_LABEL_5);
 				}
 
-				M_LDR_INTERN(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_LDR_INTERN(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_DSEG_LOAD(REG_ITMP2, disp);
 
 				CODEGEN_CRITICAL_SECTION_START;

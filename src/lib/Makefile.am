@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 8132 2007-06-22 11:15:47Z twisti $
+## $Id: Makefile.am 8262 2007-08-06 12:44:01Z panzi $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -40,6 +40,7 @@ VM_JAVA_FILES = \
 	$(top_srcdir)/src/lib/gnu/java/lang/VMString.java \
 	$(top_srcdir)/src/lib/gnu/java/lang/VMThread.java \
 	$(top_srcdir)/src/lib/gnu/java/lang/VMThrowable.java \
+	$(top_srcdir)/src/lib/gnu/java/lang/reflect/Constructor.java \
 	$(top_srcdir)/src/lib/gnu/java/lang/reflect/Field.java \
 	$(top_srcdir)/src/lib/gnu/java/lang/reflect/Method.java \
 	$(top_srcdir)/src/lib/gnu/java/security/VMAccessController.java \
@@ -54,10 +55,30 @@ VM_CLASS_FILES = \
 	classes/java/lang/VMString.class \
 	classes/java/lang/VMThread.class \
 	classes/java/lang/VMThrowable.class \
+	classes/java/lang/reflect/Constructor.class \
 	classes/java/lang/reflect/Field.class \
 	classes/java/lang/reflect/Method.class \
 	classes/java/security/VMAccessController.class \
 	classes/sun/misc/Unsafe.class
+
+if WITH_CLASSPATH_GNU
+if ENABLE_ANNOTATIONS
+VM_JAVA_FILES += \
+	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/TypeNotPresentExceptionProxy.java \
+	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationTypeMismatchExceptionProxy.java \
+	$(top_srcdir)/src/lib/gnu/sun/reflect/ConstantPool.java \
+	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationType.java \
+	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationParser.java
+
+VM_CLASS_FILES += \
+	classes/sun/reflect/annotation/TypeNotPresentExceptionProxy.class \
+	classes/sun/reflect/annotation/AnnotationTypeMismatchExceptionProxy.class \
+	classes/sun/reflect/ConstantPool.class \
+	classes/sun/reflect/annotation/AnnotationType.class \
+	classes/sun/reflect/annotation/AnnotationParser.class
+endif
+endif
+
 
 if ENABLE_ZLIB
 pkgdata_DATA = vm.zip
@@ -66,7 +87,7 @@ VM_ZIP = ../vm.zip
 
 vm.zip: $(VM_JAVA_FILES)
 	$(mkdir_p) classes
-	$(JAVAC) -d classes $(VM_JAVA_FILES)
+	$(JAVAC) -source 1.5 -target 1.5 -d classes $(VM_JAVA_FILES)
 	@if test "$(JAR)" = "zip" -o "$(JAR)" = "zip.exe"; then \
 	    cd classes && $(JAR) -r -D $(VM_ZIP) .; \
 	else \

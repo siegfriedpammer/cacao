@@ -64,7 +64,7 @@
 /* global variables ***********************************************************/
 
 #if defined(ENABLE_THREADS) && !defined(NDEBUG)
-static java_objectheader *show_global_lock;
+static java_object_t *show_global_lock;
 #endif
 
 
@@ -87,7 +87,7 @@ bool show_init(void)
 #if defined(ENABLE_THREADS)
 	/* initialize the show lock */
 
-	show_global_lock = NEW(java_objectheader);
+	show_global_lock = NEW(java_object_t);
 
 	LOCK_INIT_OBJECT_LOCK(show_global_lock);
 #endif
@@ -696,7 +696,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
         if (stage >= SHOW_PARSE) {                                   \
             putchar('"');                                            \
             utf_display_printable_ascii(                             \
-               javastring_toutf((java_objectheader *)(val), false)); \
+               javastring_toutf((java_handle_t *)(val), false));     \
             printf("\" ");                                           \
         }                                                            \
         else {                                                       \

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8245 2007-07-31 09:55:04Z michi $
+   $Id: linker.c 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -43,6 +43,7 @@
 
 #include "vm/access.h"
 #include "vm/exceptions.h"
+#include "vm/primitive.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -52,7 +53,6 @@
 #include "vmcore/classcache.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vmcore/primitive.h"
 #include "vmcore/rt-timing.h"
 
 /* #include "vm/resolve.h" */
@@ -75,7 +75,7 @@ classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls, bool c
 static s4 interfaceindex;       /* sequential numbering of interfaces         */
 static s4 classvalue;
 
-java_objectheader *linker_classrenumber_lock;
+java_object_t *linker_classrenumber_lock;
 
 
 /* private functions **********************************************************/
@@ -115,7 +115,7 @@ bool linker_init(void)
 	/* Check for if alignment for long and double matches what we
 	   assume for the current architecture. */
 
-#if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__))
+#if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__)) || (defined(__POWERPC__) && defined(__DARWIN__))
 	if (OFFSET(dummy_alignment_long_t, l) != 4)
 		vm_abort("linker_init: long alignment is different from what assumed: %d != %d",
 				 OFFSET(dummy_alignment_long_t, l), 4);
@@ -140,7 +140,7 @@ bool linker_init(void)
 #if defined(ENABLE_THREADS)
 	/* create the global lock object */
 
-	linker_classrenumber_lock = NEW(java_objectheader);
+	linker_classrenumber_lock = NEW(java_object_t);
 
 	LOCK_INIT_OBJECT_LOCK(linker_classrenumber_lock);
 #endif
@@ -574,7 +574,7 @@ static classinfo *link_class_intern(classinfo *c)
 
 	if (c->super.any == NULL) {                     /* class java.lang.Object */
 		c->index = 0;
-		c->instancesize = sizeof(java_objectheader);
+		c->instancesize = sizeof(java_object_t);
 		
 		vftbllength = supervftbllength = 0;
 
@@ -882,7 +882,7 @@ static classinfo *link_class_intern(classinfo *c)
 		if (!(f->flags & ACC_STATIC)) {
 			dsize = descriptor_typesize(f->parseddesc);
 
-#if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__))
+#if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__)) || (defined(__POWERPC__) && defined(__DARWIN__))
 			/* On i386 and ARM we align double and s8 fields to
 			   4-bytes.  This matches what GCC does for struct
 			   members. We must do the same as gcc here because the
@@ -1136,6 +1136,12 @@ static arraydescriptor *link_array(classinfo *c)
 /* linker_compute_subclasses ***************************************************
 
    XXX
+
+   ATTENTION: DO NOT REMOVE ANY OF THE LOCKING MECHANISMS BELOW:
+   This function needs to take the class renumber lock and stop the
+   world during class renumbering. The lock is used in C code which
+   is not that performance critical. Whereas JIT code uses critical
+   sections to atomically access the class values.
 
 *******************************************************************************/
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 8137 2007-06-22 16:41:36Z michi $
+   $Id: threads-common.c 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <unistd.h>
 
 #include "vm/types.h"
@@ -37,6 +38,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_String.h"
@@ -94,7 +96,7 @@ bool threads_pthreads_implementation_nptl;
 void threads_preinit(void)
 {
 	threadobject *mainthread;
-#if defined(__LINUX__)
+#if defined(__LINUX__) && defined(_CS_GNU_LIBPTHREAD_VERSION)
 	char         *pathbuf;
 	size_t        len;
 #endif
@@ -327,7 +329,8 @@ threadobject *threads_thread_new(void)
 
 void threads_thread_free(threadobject *t)
 {
-	s4 index;
+	int32_t  index;
+	uint32_t state;
 
 	/* lock the threads-lists */
 
@@ -341,15 +344,19 @@ void threads_thread_free(threadobject *t)
 
 	list_remove_unsynced(list_threads, t);
 
-	/* Clear memory, but keep the thread-index. */
+	/* Clear memory, but keep the thread-index and the
+	   thread-state. */
+
 	/* ATTENTION: Do this after list_remove, otherwise the linkage
 	   pointers are invalid. */
 
 	index = t->index;
+	state = t->state;
 
 	MZERO(t, threadobject, 1);
 
 	t->index = index;
+	t->state = state;
 
 	/* add the thread to the free list */
 
@@ -412,12 +419,12 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 	if (vmt == NULL)
 		return false;
 
-	vmt->thread = object;
-	vmt->vmdata = (java_lang_Object *) t;
+	LLNI_field_set_ref(vmt, thread, object);
+	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) t);
 
-	object->vmThread = vmt;
+	LLNI_field_set_ref(object, vmThread, vmt);
 #elif defined(WITH_CLASSPATH_CLDC1_1)
-	object->vm_thread = (java_lang_Object *) t;
+	LLNI_field_set_val(object, vm_thread, (java_lang_Object *) t);
 #endif
 
 	t->object = object;
@@ -425,18 +432,18 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 	/* set java.lang.Thread fields */
 
 #if defined(WITH_CLASSPATH_GNU)
-	object->name     = (java_lang_String *) javastring_new(name);
+	LLNI_field_set_ref(object, name    , (java_lang_String *) javastring_new(name));
 #elif defined(WITH_CLASSPATH_CLDC1_1)
 	/* FIXME: In cldc the name is a char[] */
-/* 	object->name     = (java_chararray *) javastring_new(name); */
-	object->name     = NULL;
+/* 	LLNI_field_set_ref(object, name    , (java_chararray *) javastring_new(name)); */
+	LLNI_field_set_ref(object, name    , NULL);
 #endif
 
 #if defined(ENABLE_JAVASE)
-	object->daemon   = true;
+	LLNI_field_set_val(object, daemon  , true);
 #endif
 
-	object->priority = NORM_PRIORITY;
+	LLNI_field_set_val(object, priority, NORM_PRIORITY);
 
 	/* start the thread */
 
@@ -461,6 +468,9 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 void threads_thread_start(java_lang_Thread *object)
 {
 	threadobject *thread;
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_VMThread *vmt;
+#endif
 
 	/* Enter the join-mutex, so if the main-thread is currently
 	   waiting to join all threads, the number of non-daemon threads
@@ -479,7 +489,7 @@ void threads_thread_start(java_lang_Thread *object)
 #if defined(ENABLE_JAVASE)
 	/* is this a daemon thread? */
 
-	if (object->daemon == true)
+	if (LLNI_field_direct(object, daemon) == true)
 		thread->flags |= THREAD_FLAG_DAEMON;
 #endif
 
@@ -493,12 +503,14 @@ void threads_thread_start(java_lang_Thread *object)
 	thread->object = object;
 
 #if defined(WITH_CLASSPATH_GNU)
-	assert(object->vmThread);
-	assert(object->vmThread->vmdata == NULL);
+	LLNI_field_get_ref(object, vmThread, vmt);
 
-	object->vmThread->vmdata = (java_lang_Object *) thread;
+	assert(vmt);
+	assert(LLNI_field_direct(vmt, vmdata) == NULL);
+
+	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) thread);
 #elif defined(WITH_CLASSPATH_CLDC1_1)
-	object->vm_thread = (java_lang_Object *) thread;
+	LLNI_field_set_val(object, vm_thread, (java_lang_Object *) thread);
 #endif
 
 	/* Start the thread.  Don't pass a function pointer (NULL) since
@@ -529,7 +541,7 @@ void threads_thread_print_info(threadobject *t)
 		/* get thread name */
 
 #if defined(WITH_CLASSPATH_GNU)
-		name = javastring_toutf((java_objectheader *) object->name, false);
+		name = javastring_toutf((java_handle_t *) LLNI_field_direct(object, name), false);
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
 		/* FIXME: In cldc the name is a char[] */
 /* 		name = object->name; */
@@ -545,7 +557,7 @@ void threads_thread_print_info(threadobject *t)
 		if (t->flags & THREAD_FLAG_DAEMON)
 			printf(" daemon");
 
-		printf(" prio=%d", object->priority);
+		printf(" prio=%d", LLNI_field_direct(object, priority));
 
 #if SIZEOF_VOID_P == 8
 		printf(" t=0x%016lx tid=0x%016lx (%ld)",

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.h 8210 2007-07-18 12:51:00Z twisti $
+   $Id: asmpart.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -43,37 +43,7 @@
 #include "vm/global.h"
 #include "vm/vm.h"
 
-#include "vm/jit/replace.h"
-
 #include "vmcore/linker.h"
-
-
-/* some macros ****************************************************************/
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-
-#  define ASM_GETCLASSVALUES_ATOMIC(super,sub,out) \
-    do { \
-        if (opt_intrp) \
-            intrp_asm_getclassvalues_atomic((super), (sub), (out)); \
-        else \
-            asm_getclassvalues_atomic((super), (sub), (out)); \
-    } while (0)
-
-# else /* defined(ENABLE_INTRP) */
-
-#  define ASM_GETCLASSVALUES_ATOMIC(super,sub,out) \
-    asm_getclassvalues_atomic((super), (sub), (out))
-
-# endif /* defined(ENABLE_INTRP) */
-
-#else /* defined(ENABLE_JIT) */
-
-#  define ASM_GETCLASSVALUES_ATOMIC(super,sub,out) \
-    intrp_asm_getclassvalues_atomic((super), (sub), (out))
-
-#endif /* defined(ENABLE_JIT) */
 
 
 /* function prototypes ********************************************************/
@@ -89,29 +59,15 @@ s4   asm_md_init(void);
 void asm_call_jit_compiler(void);
 
 #if defined(ENABLE_JIT)
-#if !defined(__MIPS__) && !defined(__X86_64__) && !defined(__POWERPC64__) && !defined(__SPARC_64__) && !defined(__M68K__) && !defined(__ARM__) && !defined(__ALPHA__) && !defined(__I386__)
-java_objectheader *asm_vm_call_method(methodinfo *m, s4 vmargscount,
-									  vm_arg *vmargs);
-s4     asm_vm_call_method_int(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
-s8     asm_vm_call_method_long(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
-float  asm_vm_call_method_float(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
-double asm_vm_call_method_double(methodinfo *m, s4 vmargscount, vm_arg *vmargs);
+java_object_t *asm_vm_call_method(void *pv, uint64_t *array, int32_t stackargs);
+int32_t        asm_vm_call_method_int(void *pv, uint64_t *array, int32_t stackargs);
 
-void   asm_vm_call_method_exception_handler(void);
-
-void   asm_vm_call_method_end(void);
-#else
-java_objectheader *asm_vm_call_method(void *pv, uint64_t *array, int32_t stackargs);
-int32_t            asm_vm_call_method_int(void *pv, uint64_t *array, int32_t stackargs);
-
-int64_t            asm_vm_call_method_long(void *pv, uint64_t *array, int32_t stackargs);
-float              asm_vm_call_method_float(void *pv, uint64_t *array, int32_t stackargs);
-double             asm_vm_call_method_double(void *pv, uint64_t *array, int32_t stackargs);
+int64_t        asm_vm_call_method_long(void *pv, uint64_t *array, int32_t stackargs);
+float          asm_vm_call_method_float(void *pv, uint64_t *array, int32_t stackargs);
+double         asm_vm_call_method_double(void *pv, uint64_t *array, int32_t stackargs);
 
 void   asm_vm_call_method_exception_handler(void);
 void   asm_vm_call_method_end(void);
-#endif
-
 #endif
 
 #if defined(ENABLE_INTRP)
@@ -147,26 +103,8 @@ void intrp_asm_abstractmethoderror(void);
 /* wrapper for code patching functions */
 void asm_patcher_wrapper(void);
 
-/* functions for on-stack replacement */
-#if defined(ENABLE_REPLACEMENT)
-void asm_replacement_out(void);
-void asm_replacement_in(executionstate_t *es, replace_safestack_t *st);
-#endif
-
 long asm_compare_and_swap(volatile long *p, long oldval, long newval);
 void asm_memory_barrier(void);
-
-#if defined(ENABLE_THREADS)
-extern critical_section_node_t asm_criticalsections;
-#endif
-
-#if defined(ENABLE_JIT)
-void asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out);
-#endif
-
-#if defined(ENABLE_INTRP)
-void intrp_asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out);
-#endif
 
 /* cache flush function */
 void asm_cacheflush(u1 *addr, s4 nbytes);

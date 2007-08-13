@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClassLoader.c 8141 2007-06-25 13:35:26Z michi $
+   $Id: java_lang_VMClassLoader.c 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -53,6 +53,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/initialize.h"
+#include "vm/primitive.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -63,7 +64,6 @@
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vmcore/primitive.h"
 #include "vmcore/statistics.h"
 #include "vmcore/suck.h"
 #include "vmcore/zip.h"
@@ -175,7 +175,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 
 	/* create utf string in which '.' is replaced by '/' */
 
-	u = javastring_toutf((java_objectheader *) name, true);
+	u = javastring_toutf((java_handle_t *) name, true);
 
 	/* load class */
 
@@ -201,9 +201,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
  */
 JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv *env, jclass clazz, java_lang_String *name)
 {
-	java_objectheader    *o;         /* vector being created     */
+	java_handle_t        *o;         /* vector being created     */
 	methodinfo           *m;         /* "add" method of vector   */
-	java_objectheader    *path;      /* path to be added         */
+	java_handle_t        *path;      /* path to be added         */
 	list_classpath_entry *lce;       /* classpath entry          */
 	utf                  *utfname;   /* utf to look for          */
 	char                 *buffer;    /* char buffer              */
@@ -218,7 +218,7 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 
 	/* get the resource name as utf string */
 
-	utfname = javastring_toutf((java_objectheader *) name, false);
+	utfname = javastring_toutf((java_handle_t *) name, false);
 
 	if (utfname == NULL)
 		return NULL;
@@ -364,7 +364,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_findLoadedClass(
 
 	/* replace `.' by `/', this is required by the classcache */
 
-	u = javastring_toutf((java_objectheader *) name, true);
+	u = javastring_toutf((java_handle_t *) name, true);
 
 	/* lookup for defining classloader */
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-os.c 8245 2007-07-31 09:55:04Z michi $
+   $Id: md-os.c 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -31,6 +31,7 @@
 
 #include <assert.h>
 #include <signal.h>
+#include <stdint.h>
 #include <sys/fpu.h>
 
 #include "vm/types.h"
@@ -40,7 +41,6 @@
 
 #include "mm/gc-common.h"
 
-#include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
@@ -85,21 +85,21 @@ void md_init(void)
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo     sfi;
-	ucontext_t        *_uc;
-	mcontext_t        *_mc;
-	u1                *pv;
-	u1                *sp;
-	u1                *ra;
-	u1                *xpc;
-	u4                 mcode;
-	s4                 d;
-	s4                 s1;
-	s4                 disp;
-	ptrint             val;
-	ptrint             addr;
-	s4                 type;
-	java_objectheader *e;
+	stackframeinfo  sfi;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	u1             *pv;
+	u1             *sp;
+	u1             *ra;
+	u1             *xpc;
+	u4              mcode;
+	int             d;
+	int             s1;
+	int16_t         disp;
+	intptr_t        val;
+	intptr_t        addr;
+	int              type;
+	void           *p;
 
 	_uc = (struct ucontext *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -130,7 +130,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		   define is 0. */
 
 		addr = _mc->gregs[s1];
-		type = (s4) addr;
+		type = (int) addr;
 		val  = 0;
 	}
 
@@ -138,19 +138,21 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-	/* generate appropriate exception */
+	/* Handle the type. */
 
-	e = exceptions_new_hardware_exception(xpc, type, val);
+	p = signal_handle(xpc, type, val);
 
 	/* remove stackframeinfo */
 
 	stacktrace_remove_stackframeinfo(&sfi);
 
-	/* set registers */
+	/* set registers (only if exception object ready) */
 
-	_mc->gregs[REG_ITMP1_XPTR] = (ptrint) e;
-	_mc->gregs[REG_ITMP2_XPC]  = (ptrint) xpc;
-	_mc->gregs[CTX_EPC]        = (ptrint) asm_handle_exception;
+	if (p != NULL) {
+		_mc->gregs[REG_ITMP1_XPTR] = (intptr_t) p;
+		_mc->gregs[REG_ITMP2_XPC]  = (intptr_t) xpc;
+		_mc->gregs[CTX_EPC]        = (intptr_t) asm_handle_exception;
+	}
 }
 
 

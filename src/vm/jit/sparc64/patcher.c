@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -68,12 +69,12 @@
 
 *******************************************************************************/
 
-java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
+java_object_t *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 {
 	stackframeinfo     sfi;
 	u1                *xpc;
 	u1                *javasp;
-	java_objectheader *o;
+	java_object_t *o;
 #if SIZEOF_VOID_P == 8
 	u8                mcode;
 #else
@@ -81,7 +82,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 #endif
 	functionptr        f;
 	bool               result;
-	java_objectheader *e;
+	java_handle_t *e;
 	
 	/* define the patcher function */
 
@@ -92,7 +93,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	/* get stuff from the stack */
 
 	xpc = (u1 *)                *((ptrint *) (sp + 5 * 8));
-	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 8));
+	o   = (java_object_t *) *((ptrint *) (sp + 4 * 8));
 	f   = (functionptr)         *((ptrint *) (sp + 0 * 8));
 
 	/* store PV into the patcher function position */
@@ -199,7 +200,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* patch the field value's address */
 
-	*((ptrint *) (pv + disp)) = (ptrint) &(fi->value);
+	*((intptr_t *) (pv + disp)) = (intptr_t) fi->value;
 
 	/* synchronize data cache */
 

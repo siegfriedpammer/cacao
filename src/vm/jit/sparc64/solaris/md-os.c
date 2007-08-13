@@ -1,6 +1,6 @@
 /* src/vm/jit/sparc64/solaris/md-os.c - machine dependent SPARC Solaris functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,19 +22,15 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
    $Id: md-os.c 4357 2006-01-22 23:33:38Z twisti $
 
 */
 
+
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <ucontext.h>
 
 /* work around name clash */
@@ -83,6 +79,7 @@ ptrint md_get_reg_from_context(mcontext_t *_mc, u4 rindex)
 	return val;
 }
 
+
 /* md_signal_handler_sigsegv ***************************************************
 
    NullPointerException signal handler for hardware null pointer
@@ -92,21 +89,21 @@ ptrint md_get_reg_from_context(mcontext_t *_mc, u4 rindex)
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo     sfi;
-	ucontext_t  *_uc;
-	mcontext_t  *_mc;
-	ptrint       addr;
-	u1          *pv;
-	u1          *sp;
-	u1          *ra;
-	u1          *xpc;
-	u4           mcode;
-	s4           d;
-	s4           s1;
-	s4           disp;
-	ptrint       val;
-	s4           type;
-	java_objectheader *e;
+	stackframeinfo  sfi;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	ptrint          addr;
+	u1             *pv;
+	u1             *sp;
+	u1             *ra;
+	u1             *xpc;
+	u4              mcode;
+	int             d;
+	int             s1;
+	int16_t         disp;
+	intptr_t        val;
+	int             type;
+	void           *p;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -127,7 +124,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* flush register windows? */
 	
-	val   = md_get_reg_from_context(_mc, d);
+	val  = md_get_reg_from_context(_mc, d);
 
 	/* check for special-load */
 
@@ -141,16 +138,16 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		   define is 0. */
 
 		addr  = md_get_reg_from_context(_mc, s1);
-		type = (s4) addr;
+		type = (int) addr;
 	}
 
 	/* create stackframeinfo */
 
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-	/* generate appropriate exception */
+	/* Handle the type. */
 
-	e = exceptions_new_hardware_exception(xpc, type, val);
+	p = signal_handle(xpc, type, val);
 
 	/* remove stackframeinfo */
 
@@ -158,10 +155,10 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* set registers */
 
-	_mc->gregs[REG_G2]  = (ptrint) e; /* REG_ITMP2_XPTR */
-	_mc->gregs[REG_G3]  = (ptrint) xpc; /* REG_ITMP3_XPC */
-	_mc->gregs[REG_PC]  = (ptrint) asm_handle_exception;
-	_mc->gregs[REG_nPC] = (ptrint) asm_handle_exception + 4;	
+	_mc->gregs[REG_G2]  = (intptr_t) p;                     /* REG_ITMP2_XPTR */
+	_mc->gregs[REG_G3]  = (intptr_t) xpc;                    /* REG_ITMP3_XPC */
+	_mc->gregs[REG_PC]  = (intptr_t) asm_handle_exception;
+	_mc->gregs[REG_nPC] = (intptr_t) asm_handle_exception + 4;	
 }
 
 

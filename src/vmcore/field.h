@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: field.h 8229 2007-07-24 18:42:44Z twisti $
+   $Id: field.h 8268 2007-08-07 13:24:43Z twisti $
 */
 
 
@@ -65,9 +65,8 @@ struct fieldinfo {	      /* field of a class                                 */
 	utf       *signature; /* Signature attribute string                       */
 	typedesc  *parseddesc;/* parsed descriptor                                */
 
-	s4         offset;    /* offset from start of object (instance variables) */
-
-	imm_union  value;     /* storage for static values (class variables)      */
+	int32_t    offset;    /* offset from start of object (instance variables) */
+	imm_union *value;     /* storage for static values (class variables)      */
 };
 
 
@@ -76,6 +75,10 @@ struct fieldinfo {	      /* field of a class                                 */
 bool       field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool);
 classinfo *field_get_type(fieldinfo *f);
 void       field_free(fieldinfo *f);
+
+#if defined(ENABLE_ANNOTATIONS)
+annotation_bytearray_t *field_get_annotations(fieldinfo *f);
+#endif
 
 #if !defined(NDEBUG)
 void field_printflags(fieldinfo *f);

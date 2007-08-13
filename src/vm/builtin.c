@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8245 2007-07-31 09:55:04Z michi $
+   $Id: builtin.c 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -55,6 +55,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 
@@ -68,14 +69,15 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
+#include "vm/primitive.h"
 #include "vm/stringlocal.h"
 
 #include "vm/jit/asmpart.h"
 
 #include "vmcore/class.h"
+#include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vmcore/primitive.h"
 #include "vmcore/rt-timing.h"
 
 #if defined(ENABLE_VMLOG)
@@ -397,7 +399,7 @@ bool builtintable_replace_function(void *iptr_)
 			 
 *******************************************************************************/
 
-s4 builtin_instanceof(java_objectheader *o, classinfo *class)
+s4 builtin_instanceof(java_handle_t *o, classinfo *class)
 {
 	if (o == NULL)
 		return 0;
@@ -414,7 +416,7 @@ s4 builtin_instanceof(java_objectheader *o, classinfo *class)
 			  
 *******************************************************************************/
 
-s4 builtin_checkcast(java_objectheader *o, classinfo *class)
+s4 builtin_checkcast(java_handle_t *o, classinfo *class)
 {
 	if (o == NULL)
 		return 1;
@@ -484,7 +486,7 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,
 	
 *******************************************************************************/
 
-s4 builtin_arraycheckcast(java_objectheader *o, classinfo *targetclass)
+s4 builtin_arraycheckcast(java_handle_t *o, classinfo *targetclass)
 {
 	arraydescriptor *desc;
 
@@ -500,7 +502,7 @@ s4 builtin_arraycheckcast(java_objectheader *o, classinfo *targetclass)
 }
 
 
-s4 builtin_arrayinstanceof(java_objectheader *o, classinfo *targetclass)
+s4 builtin_arrayinstanceof(java_handle_t *o, classinfo *targetclass)
 {
 	if (o == NULL)
 		return 0;
@@ -516,16 +518,21 @@ s4 builtin_arrayinstanceof(java_objectheader *o, classinfo *targetclass)
 
 *******************************************************************************/
 
-void *builtin_throw_exception(java_objectheader *xptr)
+void *builtin_throw_exception(java_handle_t *xptr)
 {
 #if !defined(NDEBUG)
     java_lang_Throwable *t;
+	java_lang_String    *s;
 	char                *logtext;
 	s4                   logtextlen;
 	s4                   dumpsize;
 
 	if (opt_verbose) {
 		t = (java_lang_Throwable *) xptr;
+
+		/* get detail message */
+		if (t)
+			LLNI_field_get_ref(t, detailMessage, s);
 
 		/* calculate message length */
 
@@ -534,11 +541,11 @@ void *builtin_throw_exception(java_objectheader *xptr)
 		if (t) {
 			logtextlen +=
 				utf_bytes(xptr->vftbl->class->name);
-			if (t->detailMessage) {
+			if (s) {
 				logtextlen += strlen(": ") +
-					u2_utflength(t->detailMessage->value->data 
-									+ t->detailMessage->offset,
-						     	 t->detailMessage->count);
+					u2_utflength(LLNI_field_direct(s, value)->data 
+									+ LLNI_field_direct(s, offset),
+						     	 LLNI_field_direct(s,count));
 			}
 		} 
 		else {
@@ -556,10 +563,10 @@ void *builtin_throw_exception(java_objectheader *xptr)
 		if (t) {
 			utf_cat_classname(logtext, xptr->vftbl->class->name);
 
-			if (t->detailMessage) {
+			if (s) {
 				char *buf;
 
-				buf = javastring_tochar((java_objectheader *) t->detailMessage);
+				buf = javastring_tochar((java_handle_t *) s);
 				strcat(logtext, ": ");
 				strcat(logtext, buf);
 				MFREE(buf, char, strlen(buf) + 1);
@@ -597,15 +604,15 @@ void *builtin_throw_exception(java_objectheader *xptr)
 
 *******************************************************************************/
 
-s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
+s4 builtin_canstore(java_objectarray *oa, java_handle_t *o)
 {
 	arraydescriptor *desc;
 	arraydescriptor *valuedesc;
 	vftbl_t         *componentvftbl;
 	vftbl_t         *valuevftbl;
-	s4               base;
-	castinfo         classvalues;
-	s4               result;
+	int32_t          baseval;
+	uint32_t         diffval;
+	int              result;
 
 	if (o == NULL)
 		return 1;
@@ -629,20 +636,22 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 		if (valuevftbl == componentvftbl)
 			return 1;
 
-		ASM_GETCLASSVALUES_ATOMIC(componentvftbl, valuevftbl, &classvalues);
+		LOCK_MONITOR_ENTER(linker_classrenumber_lock);
 
-		base = classvalues.super_baseval;
+		baseval = componentvftbl->baseval;
 
-		if (base <= 0) {
+		if (baseval <= 0) {
 			/* an array of interface references */
 
-			result = ((valuevftbl->interfacetablelength > -base) &&
-					(valuevftbl->interfacetable[base] != NULL));
+			result = ((valuevftbl->interfacetablelength > -baseval) &&
+					  (valuevftbl->interfacetable[baseval] != NULL));
 		}
 		else {
-			result = ((unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
-				   <= (unsigned) classvalues.super_diffval);
+			diffval = valuevftbl->baseval - componentvftbl->baseval;
+			result  = diffval <= (uint32_t) componentvftbl->diffval;
 		}
+
+		LOCK_MONITOR_EXIT(linker_classrenumber_lock);
 	}
 	else if (valuedesc == NULL) {
 		/* {oa has dimension > 1} */
@@ -670,16 +679,17 @@ s4 builtin_canstore(java_objectarray *oa, java_objectheader *o)
 
 
 /* This is an optimized version where a is guaranteed to be one-dimensional */
-s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
+s4 builtin_canstore_onedim (java_objectarray *a, java_handle_t *o)
 {
 	arraydescriptor *desc;
-	vftbl_t *elementvftbl;
-	vftbl_t *valuevftbl;
-	s4 res;
-	int base;
-	castinfo classvalues;
+	vftbl_t         *elementvftbl;
+	vftbl_t         *valuevftbl;
+	int32_t          baseval;
+	uint32_t         diffval;
+	int              result;
 	
-	if (!o) return 1;
+	if (o == NULL)
+		return 1;
 
 	/* The following is guaranteed (by verifier checks):
 	 *
@@ -698,30 +708,37 @@ s4 builtin_canstore_onedim (java_objectarray *a, java_objectheader *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-	ASM_GETCLASSVALUES_ATOMIC(elementvftbl, valuevftbl, &classvalues);
+	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
 
-	if ((base = classvalues.super_baseval) <= 0)
+	baseval = elementvftbl->baseval;
+
+	if (baseval <= 0) {
 		/* an array of interface references */
-		return (valuevftbl->interfacetablelength > -base &&
-				valuevftbl->interfacetable[base] != NULL);
+		result = ((valuevftbl->interfacetablelength > -baseval) &&
+				  (valuevftbl->interfacetable[baseval] != NULL));
+	}
+	else {
+		diffval = valuevftbl->baseval - elementvftbl->baseval;
+		result  = diffval <= (uint32_t) elementvftbl->diffval;
+	}
 
-	res = (unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
-		<= (unsigned) classvalues.super_diffval;
+	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
 
-	return res;
+	return result;
 }
 
 
 /* This is an optimized version where a is guaranteed to be a
  * one-dimensional array of a class type */
-s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
+s4 builtin_canstore_onedim_class(java_objectarray *a, java_handle_t *o)
 {
-	vftbl_t *elementvftbl;
-	vftbl_t *valuevftbl;
-	s4 res;
-	castinfo classvalues;
+	vftbl_t  *elementvftbl;
+	vftbl_t  *valuevftbl;
+	uint32_t  diffval;
+	int       result;
 	
-	if (!o) return 1;
+	if (o == NULL)
+		return 1;
 
 	/* The following is guaranteed (by verifier checks):
 	 *
@@ -740,12 +757,14 @@ s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-	ASM_GETCLASSVALUES_ATOMIC(elementvftbl, valuevftbl, &classvalues);
+	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
 
-	res = (unsigned) (classvalues.sub_baseval - classvalues.super_baseval)
-		<= (unsigned) classvalues.super_diffval;
+	diffval = valuevftbl->baseval - elementvftbl->baseval;
+	result  = diffval <= (uint32_t) elementvftbl->diffval;
 
-	return res;
+	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
+
+	return result;
 }
 
 
@@ -758,9 +777,9 @@ s4 builtin_canstore_onedim_class(java_objectarray *a, java_objectheader *o)
 
 *******************************************************************************/
 
-java_objectheader *builtin_new(classinfo *c)
+java_handle_t *builtin_new(classinfo *c)
 {
-	java_objectheader *o;
+	java_object_t *o;
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_end;
 #endif
@@ -1162,7 +1181,7 @@ static java_arrayheader *builtin_multianewarray_intern(int n,
 		if (!ea)
 			return NULL;
 		
-		((java_objectarray *) a)->data[i] = (java_objectheader *) ea;
+		((java_objectarray *) a)->data[i] = (java_object_t *) ea;
 	}
 
 	return a;
@@ -1216,10 +1235,10 @@ java_arrayheader *builtin_multianewarray(int n, classinfo *arrayclass,
 static s4 methodindent = 0;
 static u4 callcount = 0;
 
-java_objectheader *builtin_trace_exception(java_objectheader *xptr,
-										   methodinfo *m,
-										   void *pos,
-										   s4 indent)
+java_handle_t *builtin_trace_exception(java_handle_t *xptr,
+									   methodinfo *m,
+									   void *pos,
+									   s4 indent)
 {
 	char *logtext;
 	s4    logtextlen;
@@ -1369,7 +1388,7 @@ static char *builtin_print_argument(char *logtext, s4 *logtextlen,
 									typedesc *paramtype, s8 value)
 {
 	imm_union          imu;
-	java_objectheader *o;
+	java_handle_t     *o;
 	classinfo         *c;
 	utf               *u;
 	u4                 len;
@@ -1417,7 +1436,7 @@ static char *builtin_print_argument(char *logtext, s4 *logtextlen,
 
 		/* cast to java.lang.Object */
 
-		o = (java_objectheader *) (ptrint) value;
+		o = (java_handle_t *) (ptrint) value;
 
 		/* check return argument for java.lang.Class or java.lang.String */
 
@@ -2663,7 +2682,7 @@ bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
                 
 		if (destStart <= srcStart) {
 			for (i = 0; i < len; i++) {
-				java_objectheader *o = oas->data[srcStart + i];
+				java_handle_t *o = oas->data[srcStart + i];
 
 				if (!builtin_canstore(oad, o))
 					return false;
@@ -2679,7 +2698,7 @@ bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
 			   index have been copied before the throw. */
 
 			for (i = len - 1; i >= 0; i--) {
-				java_objectheader *o = oas->data[srcStart + i];
+				java_handle_t *o = oas->data[srcStart + i];
 
 				if (!builtin_canstore(oad, o))
 					return false;
@@ -2735,13 +2754,13 @@ s8 builtin_currenttimemillis(void)
 
 *******************************************************************************/
 
-java_objectheader *builtin_clone(void *env, java_objectheader *o)
+java_handle_t *builtin_clone(void *env, java_handle_t *o)
 {
 	arraydescriptor   *ad;
 	java_arrayheader  *ah;
 	u4                 size;
 	classinfo         *c;
-	java_objectheader *co;              /* cloned object header               */
+	java_handle_t     *co;              /* cloned object header               */
 
 	/* get the array descriptor */
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.h 8243 2007-07-31 08:57:54Z michi $
+   $Id: exceptions.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -54,7 +54,7 @@
    a base of NULL which should result in a NullPointerException.
 
    NOTE: In exceptions_init() we have a check whether the offset of
-   java_objectheader.data[0] is greater than the largest displacement
+   java_arrayheader.data[0] is greater than the largest displacement
    defined below.  Otherwise normal array loads/stores could trigger
    an exception.
 
@@ -74,34 +74,34 @@
 
 /* function prototypes ********************************************************/
 
-bool               exceptions_init(void);
+bool           exceptions_init(void);
 
-java_objectheader *exceptions_get_exception(void);
-void               exceptions_set_exception(java_objectheader *o);
-void               exceptions_clear_exception(void);
-java_objectheader *exceptions_get_and_clear_exception(void);
+java_handle_t *exceptions_get_exception(void);
+void           exceptions_set_exception(java_handle_t *o);
+void           exceptions_clear_exception(void);
+java_handle_t *exceptions_get_and_clear_exception(void);
 
-java_objectheader *new_exception_utfmessage(const char *classname,
+java_handle_t *new_exception_utfmessage(const char *classname,
 											utf *message);
 
 
 /* functions to generate compiler exceptions */
 
-java_objectheader *exceptions_new_abstractmethoderror(void);
-java_objectheader *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra);
-java_objectheader *exceptions_new_arraystoreexception(void);
+java_handle_t *exceptions_new_abstractmethoderror(void);
+java_handle_t *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra);
+java_handle_t *exceptions_new_arraystoreexception(void);
 
 void exceptions_throw_abstractmethoderror(void);
 void exceptions_throw_classcircularityerror(classinfo *c);
 void exceptions_throw_classformaterror(classinfo *c, const char *message, ...);
 void exceptions_throw_classnotfoundexception(utf *name);
 void exceptions_throw_noclassdeffounderror(utf *name);
-void exceptions_throw_noclassdeffounderror_cause(java_objectheader *cause);
+void exceptions_throw_noclassdeffounderror_cause(java_handle_t *cause);
 void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, utf *name);
 void exceptions_throw_linkageerror(const char *message, classinfo *c);
 void exceptions_throw_nosuchfielderror(classinfo *c, utf *name);
 void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc);
-void exceptions_throw_exceptionininitializererror(java_objectheader *cause);
+void exceptions_throw_exceptionininitializererror(java_handle_t *cause);
 void exceptions_throw_incompatibleclasschangeerror(classinfo *c,
 												   const char *message);
 void exceptions_throw_instantiationerror(classinfo *c);
@@ -112,13 +112,13 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type);
 void exceptions_throw_unsatisfiedlinkerror(utf *name);
 void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi);
 
-java_objectheader *exceptions_new_arithmeticexception(void);
+java_handle_t *exceptions_new_arithmeticexception(void);
 
-java_objectheader *exceptions_new_arrayindexoutofboundsexception(s4 index);
+java_handle_t *exceptions_new_arrayindexoutofboundsexception(s4 index);
 void exceptions_throw_arrayindexoutofboundsexception(void);
 void exceptions_throw_arraystoreexception(void);
 
-java_objectheader *exceptions_new_classcastexception(java_objectheader *o);
+java_handle_t *exceptions_new_classcastexception(java_handle_t *o);
 
 void exceptions_throw_clonenotsupportedexception(void);
 void exceptions_throw_illegalaccessexception(utf *message);
@@ -126,21 +126,19 @@ void exceptions_throw_illegalargumentexception(void);
 void exceptions_throw_illegalmonitorstateexception(void);
 void exceptions_throw_interruptedexception(void);
 void exceptions_throw_instantiationexception(classinfo *c);
-void exceptions_throw_invocationtargetexception(java_objectheader *cause);
+void exceptions_throw_invocationtargetexception(java_handle_t *cause);
 void exceptions_throw_negativearraysizeexception(void);
 
-java_objectheader *exceptions_new_nullpointerexception(void);
+java_handle_t *exceptions_new_nullpointerexception(void);
 void exceptions_throw_nullpointerexception(void);
-void exceptions_throw_privilegedactionexception(java_objectheader *cause);
+void exceptions_throw_privilegedactionexception(java_handle_t *cause);
 void exceptions_throw_stringindexoutofboundsexception(void);
 
 void exceptions_classnotfoundexception_to_noclassdeffounderror(void);
 
-java_objectheader *exceptions_fillinstacktrace(void);
+java_handle_t *exceptions_fillinstacktrace(void);
 
-java_objectheader *exceptions_new_hardware_exception(u1 *xpc, s4 type, ptrint val);
-
-void exceptions_print_exception(java_objectheader *xptr);
+void exceptions_print_exception(java_handle_t *xptr);
 void exceptions_print_current_exception(void);
 void exceptions_print_stacktrace(void);
 

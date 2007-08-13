@@ -22,39 +22,35 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8240 2007-07-29 20:36:47Z pm $
+   $Id: emit.c 8296 2007-08-11 22:38:38Z pm $
 
 */
-
 
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
-#include "vm/types.h"
-
-#include "md-abi.h"
-
-#include "vm/jit/s390/codegen.h"
-#include "vm/jit/s390/emit.h"
-
+#include "mm/memory.h"
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
 #endif
-
 #include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
-#include "vm/jit/abi.h"
-#include "vm/global.h"
-#include "mm/memory.h"
-#include "vm/exceptions.h"
-
-#define __PORTED__
+#include "vm/jit/s390/codegen.h"
+#include "vm/jit/s390/emit.h"
+#include "vm/jit/s390/md-abi.h"
+#include "vm/types.h"
+#include "vmcore/options.h"
 
 /* emit_load *******************************************************************
 
@@ -62,7 +58,7 @@
 
 *******************************************************************************/
 
-__PORTED__ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
+s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata *cd;
 	s4           disp;
@@ -108,7 +104,7 @@ __PORTED__ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg
     
 *******************************************************************************/
 
-__PORTED__ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
+void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
 	codegendata *cd;
 
@@ -141,7 +137,7 @@ __PORTED__ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, 
 
 *******************************************************************************/
 
-__PORTED__ void emit_copy(jitdata *jd, instruction *iptr)
+void emit_copy(jitdata *jd, instruction *iptr)
 {
 	codegendata *cd;
 	varinfo     *src;
@@ -210,233 +206,26 @@ __PORTED__ void emit_copy(jitdata *jd, instruction *iptr)
 	}
 }
 
+/* emit_trap *******************************************************************
 
-/* emit_patcher_stubs **********************************************************
-
-   Generates the code for the patcher stubs.
-
-*******************************************************************************/
-
-__PORTED__ void emit_patcher_stubs(jitdata *jd)
-{
-	
-	codegendata *cd;
-	patchref    *pref;
-	u4           mcode;
-	u1          *savedmcodeptr;
-	u1          *tmpmcodeptr;
-	s4           targetdisp;
-	s4           disp;
-	u1          *ref;
-
-	/* get required compiler data */
-
-	cd = jd->cd;
-
-	/* generate code patching stub call code */
-
-	targetdisp = 0;
-
-	for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-		/* check code segment size */
-
-		MCODECHECK(100);
-
-		/* Get machine code which is patched back in later. The
-		   call is 1 instruction word long. */
-
-		tmpmcodeptr = (u1 *) (cd->mcodebase + pref->branchpos);
-
-		mcode = *((u4 *) tmpmcodeptr);
-
-		/* Patch in the call to call the following code (done at
-		   compile time). */
-
-		savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr              */
-		cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position     */
-
-		disp = (savedmcodeptr) - (tmpmcodeptr);
-
-		if (! N_VALID_BRANCH(disp)) {
-			/* Displacement overflow */
-
-			/* If LONGBRANCHES is not set, the flag and the error flag */
-			
-			if (! CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
-				cd->flags |= (CODEGENDATA_FLAG_ERROR |
-					CODEGENDATA_FLAG_LONGBRANCHES);
-			}
-
-			/* If error flag is set, do nothing. The method has to be recompiled. */
-
-			if (CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd) && CODEGENDATA_HAS_FLAG_ERROR(cd)) {
-				return;
-			}
-		}
-
-		if (CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {	
-
-			/* Generating long branches */
-
-			disp = dseg_add_s4(cd, savedmcodeptr - cd->mcodebase - N_PV_OFFSET);
-	
-			M_ILD_DSEG(REG_ITMP3, disp);
-			M_AADD(REG_PV, REG_ITMP3);
-
-			/* Do the branch at the end of NOP sequence.
-			 * This way the patch position is at a *fixed* offset 
-			 * (PATCHER_LONGBRANCHES_NOPS_SKIP) of the return address.
-			 */
-
-			cd->mcodeptr = tmpmcodeptr + PATCHER_LONGBRANCHES_NOPS_SKIP - SZ_BASR;
-			M_JMP(REG_ITMP3, REG_ITMP3);
-		} else {
-
-			/* Generating short branches */
-
-			M_BSR(REG_ITMP3, disp);
-		}
-
-		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr       */
-
-		/* create stack frame */
-
-		M_ASUB_IMM(6 * 4, REG_SP);
-
-		/* move return address onto stack */
-
-		M_AST(REG_ITMP3, REG_SP, 5 * 4);
-
-		/* move pointer to java_objectheader onto stack */
-
-#if defined(ENABLE_THREADS)
-		/* create a virtual java_objectheader */
-
-		(void) dseg_add_unique_address(cd, NULL);                  /* flcword */
-		(void) dseg_add_unique_address(cd, lock_get_initial_lock_word());
-		disp = dseg_add_unique_address(cd, NULL);                  /* vftbl   */
-
-		M_LDA_DSEG(REG_ITMP3, disp);
-		M_AST(REG_ITMP3, REG_SP, 4 * 4);
-#else
-		/* nothing to do */
-#endif
-
-		/* move machine code onto stack */
-
-		disp = dseg_add_s4(cd, mcode);
-		M_ILD_DSEG(REG_ITMP3, disp);
-		M_IST(REG_ITMP3, REG_SP, 3 * 4);
-
-		/* move class/method/field reference onto stack */
-
-		disp = dseg_add_address(cd, pref->ref);
-		M_ALD_DSEG(REG_ITMP3, disp);
-		M_AST(REG_ITMP3, REG_SP, 2 * 4);
-
-		/* move data segment displacement onto stack */
-
-		disp = dseg_add_s4(cd, pref->disp);
-		M_ILD_DSEG(REG_ITMP3, disp);
-		M_IST(REG_ITMP3, REG_SP, 1 * 4);
-
-		/* move patcher function pointer onto stack */
-
-		disp = dseg_add_functionptr(cd, pref->patcher);
-		M_ALD_DSEG(REG_ITMP3, disp);
-		M_AST(REG_ITMP3, REG_SP, 0 * 4);
-
-		if (targetdisp == 0) {
-			targetdisp = (cd->mcodeptr) - (cd->mcodebase);
-
-			disp = dseg_add_functionptr(cd, asm_patcher_wrapper);
-			M_ALD_DSEG(REG_ITMP3, disp);
-			M_JMP(RN, REG_ITMP3);
-		}
-		else {
-			disp = ((cd->mcodebase) + targetdisp) -
-				(( cd->mcodeptr) );
-
-			emit_branch(cd, disp, BRANCH_UNCONDITIONAL, RN, 0);
-		}
-	}
-}
-
-
-/* emit_replacement_stubs ******************************************************
-
-   Generates the code for the replacement stubs.
+   Emit a trap instruction and return the original machine code.
 
 *******************************************************************************/
-#if defined(ENABLE_REPLACEMENT)
-void emit_replacement_stubs(jitdata *jd)
+
+uint32_t emit_trap(codegendata *cd)
 {
-	codegendata *cd;
-	codeinfo    *code;
-	rplpoint    *rplp;
-	s4           disp;
-	s4           i, remain;
-	u1          *savedmcodeptr;
+	uint32_t mcode;
 
-	/* get required compiler data */
+	/* Get machine code which is patched back in later. The
+	   trap is 2 bytes long. */
 
-	cd   = jd->cd;
-	code = jd->code;
+	mcode = *((u2 *) cd->mcodeptr);
 
-	rplp = code->rplpoints;
+	M_ILL(EXCEPTION_HARDWARE_PATCHER);
 
-	/* store beginning of replacement stubs */
-
-	code->replacementstubs = (u1*) (cd->mcodeptr - cd->mcodebase);
-
-	for (i = 0; i < code->rplpointcount; ++i, ++rplp) {
-		/* do not generate stubs for non-trappable points */
-
-		if (rplp->flags & RPLPOINT_FLAG_NOTRAP)
-			continue;
-
-		/* check code segment size */
-
-		MCODECHECK(512);
-
-#if !defined(NDEBUG)
-		savedmcodeptr = cd->mcodeptr;
-#endif
-
-		/* create stack frame - 8-byte aligned */
-
-		M_ASUB_IMM(REG_SP, 2 * 4);
-
-		/* push address of `rplpoint` struct, will be used in asm_replacement_out */
-
-		disp = dseg_add_address(cd, rplp);
-		M_ALD_DSEG(REG_ITMP3, disp);
-		M_AST(REG_ITMP3, REG_SP, 0 * 4);
-
-		/* jump to replacement function */
-
-		disp = dseg_add_functionptr(cd, asm_replacement_out);
-		M_ALD_DSEG(REG_ITMP3, disp);
-		M_JMP(RN, REG_ITMP3);
-
-		assert((cd->mcodeptr - savedmcodeptr) <= REPLACEMENT_STUB_SIZE);
-
-		/* pad with NOPs */
-
-		for (remain = REPLACEMENT_STUB_SIZE - (cd->mcodeptr - savedmcodeptr); remain > 0;) {
-			if (remain >= 4) {
-				M_NOP;
-				remain -= 4;
-			} else {
-				M_NOP2;
-				remain -= 2;
-			}
-		}
-
-		assert((cd->mcodeptr - savedmcodeptr) == REPLACEMENT_STUB_SIZE);
-	}
+	return mcode;
 }
-#endif
+
 
 /* emit_verbosecall_enter ******************************************************
 
@@ -513,7 +302,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* offset to where first float arg is saved on stack */
 	foff = off + (INT_ARG_CNT * 8); 
 	/* offset to where first argument is passed on stack */
-	aoff = (2 * 8) + stackframesize + (cd->stackframesize * 4);
+	aoff = (2 * 8) + stackframesize + (cd->stackframesize * 8);
 	/* offset to destination on stack */
 	doff = 0; 
 
@@ -532,13 +321,15 @@ void emit_verbosecall_enter(jitdata *jd)
 				N_STD(abi_registers_float_argument[fargctr], doff, RN, REG_SP);
 				fargctr += 1;
 			} else { /* passed on stack */
+				/*
 				if (IS_2_WORD_TYPE(t)) {
 					N_MVC(doff, 8, REG_SP, aoff, REG_SP);
-					aoff += 8;
 				} else {
 					N_MVC(doff + 4, 4, REG_SP, aoff, REG_SP);
-					aoff += 4;
 				}
+				*/
+				N_MVC(doff, 8, REG_SP, aoff, REG_SP);
+				aoff += 8;
 			}
 		} else {
 			if (IS_2_WORD_TYPE(t)) {
@@ -555,7 +346,7 @@ void emit_verbosecall_enter(jitdata *jd)
 					iargctr += 1;
 				} else { /* passed on stack */
 					N_MVC(doff + 4, 4, REG_SP, aoff, REG_SP);
-					aoff += 4;
+					aoff += 8;
 				}
 			}
 		}
@@ -689,7 +480,7 @@ void emit_verbosecall_exit(jitdata *jd)
 
 *******************************************************************************/
 
-__PORTED__ s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
+s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            disp;
@@ -722,7 +513,7 @@ __PORTED__ s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 te
 
 *******************************************************************************/
 
-__PORTED__ s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
+s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 {
 	codegendata  *cd;
 	s4            disp;

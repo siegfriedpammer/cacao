@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include "vm/types.h"
@@ -42,6 +43,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/localref.h"
 #include "native/native.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -310,7 +312,7 @@ bool codegen_emit(jitdata *jd)
 					for (i = 0; i < jd->varcount; i++) {
 						varinfo* uvar = VAR(i);
 
-						if (IS_FLT_DBL_TYPE(uvar->type))
+						if (IS_FLT_DBL_TYPE(uvar->type) || IS_INMEMORY(uvar->flags))
 							continue;
 
 						s2 = uvar->vv.regoff;
@@ -1604,16 +1606,16 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				uf = iptr->sx.s23.s3.uf;
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
 			} 
 			else {
-				fi = iptr->sx.s23.s3.fmiref->p.field;
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
@@ -1649,16 +1651,16 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				uf = iptr->sx.s23.s3.uf;
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
 			} 
 			else {
-				fi = iptr->sx.s23.s3.fmiref->p.field;
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
@@ -1697,14 +1699,14 @@ bool codegen_emit(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
-				disp = dseg_add_unique_address(cd, uf);
+				disp      = dseg_add_unique_address(cd, uf);
 
 				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
 			} 
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
@@ -2570,7 +2572,7 @@ gen_method:
 						sizeof(methodptr) * lm->vftblindex;
 
 				/* implicit null-pointer check */
-				M_ALD(REG_METHODPTR, REG_OUT0,OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_METHODPTR, REG_OUT0,OFFSET(java_object_t, vftbl));
 				M_ALD(REG_PV_CALLER, REG_METHODPTR, s1);
 				
 				/* generate the actual call */
@@ -2600,7 +2602,7 @@ gen_method:
 				}
 
 				/* implicit null-pointer check */
-				M_ALD(REG_METHODPTR, REG_OUT0, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_METHODPTR, REG_OUT0, OFFSET(java_object_t, vftbl));
 				M_ALD(REG_METHODPTR, REG_METHODPTR, s1);
 				M_ALD(REG_PV_CALLER, REG_METHODPTR, s2);
 
@@ -2700,7 +2702,7 @@ gen_method:
 						emit_label_beqz(cd, BRANCH_LABEL_3, s1);
 					}
 
-					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ILD(REG_ITMP3, REG_ITMP2,
  							OFFSET(vftbl_t, interfacetablelength));
 					M_ADD_IMM(REG_ITMP3, -superindex, REG_ITMP3);
@@ -2736,7 +2738,7 @@ gen_method:
 						emit_label_beqz(cd, BRANCH_LABEL_5, s1);
 					}
 
-					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ALD(REG_ITMP3, REG_PV, disp);
 					
 					CODEGEN_CRITICAL_SECTION_START;
@@ -2872,7 +2874,7 @@ gen_method:
 					emit_label_beqz(cd, BRANCH_LABEL_3, s1);
 				}
 
-				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ILD(REG_ITMP3, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 				M_CMP_IMM(REG_ITMP3, superindex);
 				M_BLE(4);
@@ -2906,7 +2908,7 @@ gen_method:
 					emit_label_beqz(cd, BRANCH_LABEL_5, s1);
 				}
 
-				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ALD(REG_ITMP2, REG_PV, disp);
 
 				CODEGEN_CRITICAL_SECTION_START;
@@ -3263,7 +3265,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
 		md->paramcount +                /* for saving arguments over calls    */
-		nmd->memuse +  /* nmd knows about the native stackframe layout */
+		nmd->memuse +              /* nmd->memuse includes the (6) abi params */
 		WINSAVE_CNT;
 
 
@@ -3302,7 +3304,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	}
 #endif
 
-	/* save float argument registers (into abi parameter slots) */
+	/* save float argument registers */
 
 	assert(ABIPARAMS_CNT >= FLT_ARG_CNT);
 
@@ -3351,7 +3353,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				s1 = REG_WINDOW_TRANSPOSE(s1);
 
 				if (!nmd->params[j].inmemory) {
-					s2 = nat_argintregs[nmd->params[j].regoff];
+					s2 = nmd->params[j].regoff;
 					M_INTMOVE(s1, s2);
 				} else {
 					/* nmd's regoff is relative to the start of the param array */
@@ -3370,7 +3372,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				}
 
 				s1 = md->params[i].regoff + cd->stackframesize * 8;
-				s2 = BIAS + WINSAVE_CNT + 8 + nmd->params[j].regoff;
+				s2 = BIAS + WINSAVE_CNT * 8 + nmd->params[j].regoff;
 				M_ALD(REG_ITMP1, REG_SP, CSTACK + s1);
 				M_AST(REG_ITMP1, REG_SP, s2);
 			}
@@ -3404,25 +3406,25 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 			} 
 			else {
-				s1 = md->params[i].regoff + cd->stackframesize * 8;
+				s1 = md->params[i].regoff;
 
 				if (!nmd->params[j].inmemory) {
 
 					/* JIT stack -> NAT reg */
 
-					s2 = BIAS + WINSAVE_CNT * 8 + nmd->params[j].regoff; 
-					M_DLD(s2, REG_SP, s1);
+					s2 = nmd->params[j].regoff;
+					M_DLD(s2, REG_FP, JITSTACK + s1);
 				}
 				else {
 
 					/* JIT stack -> NAT stack */
 
-					s2 = nmd->params[j].regoff - 6 * 8;
+					s2 = WINSAVE_CNT * 8 + nmd->params[j].regoff;
 
 					/* The FTMP register may already be loaded with args */
 					/* we know $f0 is unused because of the env pointer  */
-					M_DLD(REG_F0, REG_SP, CSTACK + s1);
-					M_DST(REG_F0, REG_SP, CSTACK + s2);
+					M_DLD(REG_F0, REG_FP, JITSTACK + s1);
+					M_DST(REG_F0, REG_SP, BIAS + s2);
 				}
 			}
 		}

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stringlocal.h 7967 2007-05-25 15:03:46Z twisti $
+   $Id: stringlocal.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -47,7 +47,7 @@ typedef struct literalstring literalstring;
 
 struct literalstring {
 	literalstring     *hashlink;        /* link for external hash chain       */
-	java_objectheader *string;  
+	java_object_t     *string;  
 };
 
 
@@ -63,35 +63,35 @@ bool string_init(void);
 void stringtable_update(void);
 
 /* creates a new object of type java/lang/String from a utf-text */
-java_objectheader *javastring_new(utf *text);
+java_handle_t *javastring_new(utf *text);
 
 /* creates a new object of type java/lang/String from a utf-text, changes slashes to dots */
-java_objectheader *javastring_new_slash_to_dot(utf *text);
+java_handle_t *javastring_new_slash_to_dot(utf *text);
 
 /* creates a new object of type java/lang/String from an ASCII c-string */
-java_objectheader *javastring_new_from_ascii(const char *text);
+java_handle_t *javastring_new_from_ascii(const char *text);
 
 /* creates a new object of type java/lang/String from UTF-8 */
-java_objectheader *javastring_new_from_utf_string(const char *utfstr);
+java_handle_t *javastring_new_from_utf_string(const char *utfstr);
 
 /* creates a new object of type java/lang/String from (possibly invalid) UTF-8 */
-java_objectheader *javastring_safe_new_from_utf8(const char *text);
+java_handle_t *javastring_safe_new_from_utf8(const char *text);
 
 /* make c-string from a javastring (debugging) */
-char *javastring_tochar(java_objectheader *string);
+char *javastring_tochar(java_handle_t *string);
 
 /* make utf symbol from javastring */
-utf *javastring_toutf(java_objectheader *string, bool isclassname);
+utf *javastring_toutf(java_handle_t *string, bool isclassname);
 
 /* creates a new javastring with the text of the u2-array */
-java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
+java_object_t *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 									bool copymode);
 
 /* creates a new javastring with the text of the utf-symbol */
-java_objectheader *literalstring_new(utf *u);
+java_object_t *literalstring_new(utf *u);
 
 /* dispose a javastring */
-void literalstring_free(java_objectheader*);
+void literalstring_free(java_object_t*);
 
 #endif /* _STRINGLOCAL_H */
 

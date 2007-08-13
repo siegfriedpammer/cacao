@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 8245 2007-07-31 09:55:04Z michi $
+   $Id: codegen-common.c 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -264,6 +264,11 @@ static void codegen_reset(jitdata *jd)
 		bptr->mpc        = -1;
 		bptr->branchrefs = NULL;
 	}
+
+	/* We need to clear all the patcher references from the codeinfo
+	   since they all will be regenerated */
+
+	patcher_list_reset(code);
 
 #if defined(ENABLE_REPLACEMENT)
 	code->rplpoints     = NULL;
@@ -546,14 +551,6 @@ void codegen_add_patch_ref(codegendata *cd, functionptr patcher, voidptr ref,
 
 	if (opt_shownops)
 		PATCHER_NOPS;
-
-	/* If the codegen provides a PACHER_LONGBRANCHES_NOPS macro, honour it. */
-
-#if defined(PATCHER_LONGBRANCHES_NOPS)
-	if (CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
-		PATCHER_LONGBRANCHES_NOPS;
-	}
-#endif
 
 #if defined(ENABLE_JIT) && (defined(__I386__) || defined(__M68K__) || defined(__MIPS__) \
  || defined(__SPARC_64__) || defined(__X86_64__))
@@ -1536,16 +1533,7 @@ void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 #if defined(ENABLE_JNI)
 	/* add current JNI local references table to this thread */
 
-	lrt->capacity    = LOCALREFTABLE_CAPACITY;
-	lrt->used        = 0;
-	lrt->localframes = 1;
-	lrt->prev        = LOCALREFTABLE;
-
-	/* clear the references array (memset is faster the a for-loop) */
-
-	MSET(lrt->refs, 0, java_objectheader*, LOCALREFTABLE_CAPACITY);
-
-	LOCALREFTABLE = lrt;
+	localref_table_add(lrt);
 #endif
 
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
@@ -1564,16 +1552,11 @@ void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 
 *******************************************************************************/
 
-java_objectheader *codegen_finish_native_call(u1 *datasp)
+java_object_t *codegen_finish_native_call(u1 *datasp)
 {
-	stackframeinfo     *sfi;
-	stackframeinfo    **psfi;
-#if defined(ENABLE_JNI)
-	localref_table     *lrt;
-	localref_table     *plrt;
-	s4                  localframes;
-#endif
-	java_objectheader  *e;
+	stackframeinfo  *sfi;
+	stackframeinfo **psfi;
+	java_handle_t   *e;
 
 	/* get data structures from stack */
 
@@ -1592,33 +1575,10 @@ java_objectheader *codegen_finish_native_call(u1 *datasp)
 	*psfi = sfi->prev;
 
 #if defined(ENABLE_JNI)
-	/* release JNI local references tables for this thread */
+	/* release JNI local references table for this thread */
 
-	lrt = LOCALREFTABLE;
-
-	/* release all current local frames */
-
-	for (localframes = lrt->localframes; localframes >= 1; localframes--) {
-		/* get previous frame */
-
-		plrt = lrt->prev;
-
-		/* Clear all reference entries (only for tables allocated on
-		   the Java heap). */
-
-		if (localframes > 1)
-			MSET(&lrt->refs[0], 0, java_objectheader*, lrt->capacity);
-
-		lrt->prev = NULL;
-
-		/* set new local references table */
-
-		lrt = plrt;
-	}
-
-	/* now store the previous local frames in the thread structure */
-
-	LOCALREFTABLE = lrt;
+	localref_frame_pop_all();
+	localref_table_remove();
 #endif
 
 	/* get the exception and return it */

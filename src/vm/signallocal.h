@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signallocal.h 8027 2007-06-07 10:30:33Z michi $
+   $Id: signallocal.h 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -34,15 +34,15 @@
 
 #include <signal.h>
 
-#include "vm/types.h"
-
 #include "vm/global.h"
 
 
 /* function prototypes ********************************************************/
 
-bool signal_init(void);
-bool signal_start_thread(void);
+bool  signal_init(void);
+void  signal_register_signal(int signum, void *handler, int flags);
+void *signal_handle(void *xpc, int type, intptr_t val);
+bool  signal_start_thread(void);
 
 /* machine dependent signal handler */
 

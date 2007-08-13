@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8197 2007-07-11 19:17:04Z twisti $
+   $Id: asmpart.S 8274 2007-08-08 15:58:17Z twisti $
 
 */
 
@@ -32,7 +32,6 @@
 #include "vm/jit/x86_64/arch.h"
 #include "vm/jit/x86_64/md-abi.h"
 #include "vm/jit/x86_64/md-asm.h"
-#include "vm/jit/x86_64/offsets.h"
 
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/methodheader.h"
@@ -72,9 +71,6 @@
 
 	.globl asm_compare_and_swap
 	.globl asm_memory_barrier
-
-	.globl asm_criticalsections
-	.globl asm_getclassvalues_atomic
 
 
 /********************* function asm_calljavafunction ***************************
@@ -705,29 +701,6 @@ asm_compare_and_swap:
 asm_memory_barrier:
 	mfence
 	ret
-
-
-asm_getclassvalues_atomic:
-_crit_restart:
-_crit_begin:
-	movl    offbaseval(a0),itmp1l
-	movl    offdiffval(a0),itmp2l
-	movl    offbaseval(a1),itmp3l
-_crit_end:
-	movl    itmp1l,offcast_super_baseval(a2)
-	movl    itmp2l,offcast_super_diffval(a2)
-	movl    itmp3l,offcast_sub_baseval(a2)
-	ret
-
-	.data
-		
-asm_criticalsections:
-#if defined(ENABLE_THREADS)
-	.quad   _crit_begin
-	.quad   _crit_end
-	.quad   _crit_restart
-#endif
-	.quad 0
 
 
 /* disable exec-stacks ********************************************************/

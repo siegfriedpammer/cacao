@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: builtin.h 8056 2007-06-10 14:49:57Z michi $
+   $Id: builtin.h 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -122,24 +122,24 @@ bool builtintable_replace_function(void *iptr);
  * ICMD_BUILTIN3.)
  */
 
-s4 builtin_instanceof(java_objectheader *obj, classinfo *class);
+s4 builtin_instanceof(java_handle_t *obj, classinfo *class);
 #define BUILTIN_instanceof (functionptr) builtin_instanceof
-s4 builtin_checkcast(java_objectheader *obj, classinfo *class);
+s4 builtin_checkcast(java_handle_t *obj, classinfo *class);
 /* NOT AN OP */
-s4 builtin_arrayinstanceof(java_objectheader *o, classinfo *targetclass);
+s4 builtin_arrayinstanceof(java_handle_t *o, classinfo *targetclass);
 #define BUILTIN_arrayinstanceof (functionptr) builtin_arrayinstanceof
-s4 builtin_arraycheckcast(java_objectheader *o, classinfo *targetclass);
+s4 builtin_arraycheckcast(java_handle_t *o, classinfo *targetclass);
 #define BUILTIN_arraycheckcast (functionptr) builtin_arraycheckcast
 
-void *builtin_throw_exception(java_objectheader *exception);
+void *builtin_throw_exception(java_handle_t *exception);
 /* NOT AN OP */
-java_objectheader *builtin_trace_exception(java_objectheader *xptr,
+java_handle_t *builtin_trace_exception(java_handle_t *xptr,
 										   methodinfo *m,
 										   void *pos,
 										   s4 indent);
 /* NOT AN OP */
 
-java_objectheader *builtin_new(classinfo *c);
+java_handle_t *builtin_new(classinfo *c);
 #define BUILTIN_new (functionptr) builtin_new
 java_objectheader *builtin_fast_new(classinfo *c);
 #define BUILTIN_FAST_new (functionptr) builtin_fast_new
@@ -171,7 +171,7 @@ java_arrayheader *builtin_multianewarray(int n, classinfo *arrayclass,
 										 long *dims);
 #define BUILTIN_multianewarray (functionptr) builtin_multianewarray
 
-s4 builtin_canstore(java_objectarray *oa, java_objectheader *o);
+s4 builtin_canstore(java_objectarray *oa, java_handle_t *o);
 #define BUILTIN_canstore (functionptr) builtin_canstore
 
 #if defined(TRACE_ARGS_NUM)
@@ -297,7 +297,7 @@ s8       asm_builtin_d2l(double a);
 float    builtin_d2f(double a);
 #define BUILTIN_d2f (functionptr) builtin_d2f
 
-java_objectheader *builtin_clone(void *env, java_objectheader *o);
+java_handle_t *builtin_clone(void *env, java_handle_t *o);
 #define BUILTIN_clone (functionptr) builtin_clone
 
 bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8211 2007-07-18 19:52:23Z michi $
+   $Id: codegen.c 8297 2007-08-12 00:02:48Z michi $
 
 */
 
@@ -41,6 +41,7 @@
 
 #include "mm/memory.h"
 
+#include "native/localref.h"
 #include "native/native.h"
 
 #include "threads/lock-common.h"
@@ -56,7 +57,7 @@
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/md.h"
-#include "vm/jit/patcher.h"
+#include "vm/jit/patcher-common.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
 
@@ -490,7 +491,8 @@ bool codegen_emit(jitdata *jd)
 				cr   = iptr->sx.val.c.ref;
 				disp = dseg_add_unique_address(cd, cr);
 
-				codegen_add_patch_ref(cd, PATCHER_aconst, cr, disp);
+				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_classinfo,
+									  cr, disp);
 
 				M_ALD(d, REG_PV, disp);
 			}
@@ -1987,15 +1989,16 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = dseg_add_unique_address(cd, uf);
 
-				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
+				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
+					patcher_add_patch_ref(jd, PATCHER_initialize_class,
+										  fi->class, disp);
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -2036,15 +2039,16 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = dseg_add_unique_address(cd, uf);
 
-				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
+				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
+					patcher_add_patch_ref(jd, PATCHER_initialize_class,
+										  fi->class, disp);
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -2078,23 +2082,22 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_PUTSTATICCONST: /* ...  ==> ...                             */
-		                          /* val = value (in current instruction)     */
-		                          /* following NOP)                           */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = dseg_add_unique_address(cd, uf);
 
-				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
+				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
+					patcher_add_patch_ref(jd, PATCHER_initialize_class,
+										  fi->class, disp);
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -2129,7 +2132,7 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = 0;
 
-				codegen_add_patch_ref(cd, PATCHER_get_putfield, uf, 0);
+				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
@@ -2200,7 +2203,7 @@ bool codegen_emit(jitdata *jd)
 #endif
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr))
-				codegen_add_patch_ref(cd, PATCHER_get_putfield, uf, 0);
+				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
 
 			switch (fieldtype) {
 			case TYPE_INT:
@@ -2227,15 +2230,14 @@ bool codegen_emit(jitdata *jd)
 			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = 0;
 
-				codegen_add_patch_ref(cd, PATCHER_get_putfield, uf, 0);
+				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = fi->offset;
 			}
@@ -2271,7 +2273,7 @@ bool codegen_emit(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uc = iptr->sx.s23.s2.uc;
 
-				codegen_add_patch_ref(cd, PATCHER_athrow_areturn, uc, 0);
+				patcher_add_patch_ref(jd, PATCHER_resolve_class, uc, 0);
 			}
 #endif /* ENABLE_VERIFIER */
 
@@ -2790,7 +2792,7 @@ bool codegen_emit(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uc = iptr->sx.s23.s2.uc;
 
-				codegen_add_patch_ref(cd, PATCHER_athrow_areturn, uc, 0);
+				patcher_add_patch_ref(jd, PATCHER_resolve_class, uc, 0);
 			}
 #endif /* ENABLE_VERIFIER */
 			goto nowperformreturn;
@@ -3125,7 +3127,7 @@ gen_method:
 				if (lm == NULL) {
 					disp = dseg_add_unique_address(cd, um);
 
-					codegen_add_patch_ref(cd, PATCHER_invokestatic_special, um,
+					patcher_add_patch_ref(jd, PATCHER_invokestatic_special, um,
 										  disp);
 				}
 				else
@@ -3146,7 +3148,7 @@ gen_method:
 				emit_nullpointer_check(cd, iptr, REG_A0);
 
 				if (lm == NULL) {
-					codegen_add_patch_ref(cd, PATCHER_invokevirtual, um, 0);
+					patcher_add_patch_ref(jd, PATCHER_invokevirtual, um, 0);
 
 					s1 = 0;
 				}
@@ -3155,7 +3157,7 @@ gen_method:
 						sizeof(methodptr) * lm->vftblindex;
 
 				/* implicit null-pointer check */
-				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
 				M_ALD(REG_PV, REG_METHODPTR, s1);
 
 				/* generate the actual call */
@@ -3171,7 +3173,7 @@ gen_method:
 				emit_nullpointer_check(cd, iptr, REG_A0);
 
 				if (lm == NULL) {
-					codegen_add_patch_ref(cd, PATCHER_invokeinterface, um, 0);
+					patcher_add_patch_ref(jd, PATCHER_invokeinterface, um, 0);
 
 					s1 = 0;
 					s2 = 0;
@@ -3184,7 +3186,7 @@ gen_method:
 				}
 
 				/* implicit null-pointer check */
-				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
 				M_ALD(REG_METHODPTR, REG_METHODPTR, s1);
 				M_ALD(REG_PV, REG_METHODPTR, s2);
 
@@ -3258,7 +3260,7 @@ gen_method:
 					cr   = iptr->sx.s23.s3.c.ref;
 					disp = dseg_add_unique_s4(cd, 0);         /* super->flags */
 
-					codegen_add_patch_ref(cd, PATCHER_checkcast_instanceof_flags,
+					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_flags,
 										  cr, disp);
 
 					M_ILD(REG_ITMP2, REG_PV, disp);
@@ -3272,14 +3274,14 @@ gen_method:
 					if (super == NULL) {
 						cr = iptr->sx.s23.s3.c.ref;
 
-						codegen_add_patch_ref(cd, PATCHER_checkcast_interface,
+						patcher_add_patch_ref(jd, PATCHER_checkcast_interface,
 											  cr, 0);
 					}
 					else {
 						emit_label_beqz(cd, BRANCH_LABEL_3, s1);
 					}
 
-					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ILD(REG_ITMP3, REG_ITMP2,
 						  OFFSET(vftbl_t, interfacetablelength));
 					M_IADD_IMM(REG_ITMP3, -superindex, REG_ITMP3);
@@ -3305,8 +3307,8 @@ gen_method:
 						cr   = iptr->sx.s23.s3.c.ref;
 						disp = dseg_add_unique_address(cd, NULL);
 
-						codegen_add_patch_ref(cd,
-											  PATCHER_checkcast_instanceof_class,
+						patcher_add_patch_ref(jd,
+											  PATCHER_resolve_classref_to_vftbl,
 											  cr, disp);
 					}
 					else {
@@ -3315,7 +3317,7 @@ gen_method:
 						emit_label_beqz(cd, BRANCH_LABEL_5, s1);
 					}
 
-					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ALD(REG_ITMP3, REG_PV, disp);
 
 					CODEGEN_CRITICAL_SECTION_START;
@@ -3359,11 +3361,13 @@ gen_method:
 					cr   = iptr->sx.s23.s3.c.ref;
 					disp = dseg_add_unique_address(cd, NULL);
 
-					codegen_add_patch_ref(cd, PATCHER_builtin_arraycheckcast,
+					patcher_add_patch_ref(jd,
+										  PATCHER_resolve_classref_to_classinfo,
 										  cr, disp);
 				}
-				else
+				else {
 					disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
+				}
 
 				M_ALD(REG_A1, REG_PV, disp);
 				disp = dseg_add_functionptr(cd, BUILTIN_arraycheckcast);
@@ -3419,7 +3423,7 @@ gen_method:
 				cr   = iptr->sx.s23.s3.c.ref;
 				disp = dseg_add_unique_s4(cd, 0);             /* super->flags */
 
-				codegen_add_patch_ref(cd, PATCHER_checkcast_instanceof_flags,
+				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_flags,
 									  cr, disp);
 
 				M_ILD(REG_ITMP3, REG_PV, disp);
@@ -3433,14 +3437,14 @@ gen_method:
 				if (super == NULL) {
 					cr = iptr->sx.s23.s3.c.ref;
 
-					codegen_add_patch_ref(cd, PATCHER_instanceof_interface,
+					patcher_add_patch_ref(jd, PATCHER_instanceof_interface,
 										  cr, 0);
 				}
 				else {
 					emit_label_beqz(cd, BRANCH_LABEL_3, s1);
 				}
 
-				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ILD(REG_ITMP3, REG_ITMP1,
 					  OFFSET(vftbl_t, interfacetablelength));
 				M_IADD_IMM(REG_ITMP3, -superindex, REG_ITMP3);
@@ -3466,7 +3470,7 @@ gen_method:
 					cr   = iptr->sx.s23.s3.c.ref;
 					disp = dseg_add_unique_address(cd, NULL);
 
-					codegen_add_patch_ref(cd, PATCHER_checkcast_instanceof_class,
+					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_vftbl,
 										  cr, disp);
 				}
 				else {
@@ -3475,7 +3479,7 @@ gen_method:
 					emit_label_beqz(cd, BRANCH_LABEL_5, s1);
 				}
 
-				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ALD(REG_ITMP2, REG_PV, disp);
 
 				CODEGEN_CRITICAL_SECTION_START;
@@ -3535,11 +3539,12 @@ gen_method:
 				cr   = iptr->sx.s23.s3.c.ref;
 				disp = dseg_add_unique_address(cd, NULL);
 
-				codegen_add_patch_ref(cd, PATCHER_builtin_multianewarray,
+				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_classinfo,
 									  cr, disp);
 			}
-			else
+			else {
 				disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
+			}
 
 			/* a1 = arraydescriptor */
 
@@ -3592,9 +3597,9 @@ gen_method:
 
 	dseg_createlinenumbertable(cd);
 
-	/* generate stubs */
+	/* generate traps */
 
-	emit_patcher_stubs(jd);
+	emit_patcher_traps(jd);
 
 	/* everything's ok */
 
@@ -3701,7 +3706,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 #if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL)
-		codegen_add_patch_ref(cd, PATCHER_resolve_native, m, funcdisp);
+		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, funcdisp);
 #endif
 
 	/* save integer and float argument registers */
@@ -4028,9 +4033,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	M_JMP(REG_ITMP3);                   /* jump to asm exception handler      */
 	M_ASUB_IMM(REG_RA, 4, REG_ITMP2_XPC); /* get exception address (DELAY)    */
 
-	/* generate patcher stubs */
+	/* Generate patcher traps. */
 
-	emit_patcher_stubs(jd);
+	emit_patcher_traps(jd);
 }
 
 

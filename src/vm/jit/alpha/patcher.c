@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 8186 2007-07-05 23:48:16Z michi $
+   $Id: patcher.c 8268 2007-08-07 13:24:43Z twisti $
 
 */
 
@@ -304,7 +304,7 @@ bool patcher_get_putstatic(patchref_t *pr)
 
 	/* patch the field value's address */
 
-	*((ptrint *) datap) = (ptrint) &(fi->value);
+	*((intptr_t *) datap) = (intptr_t) fi->value;
 
 	return true;
 }

@@ -31,9 +31,11 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 LIBS =
 
 if ENABLE_JAVASE
+if ENABLE_ANNOTATIONS
 ANNOTATION_SOURCES = \
 	annotation.c \
 	annotation.h
+endif
 
 STACKMAP_SOURCES = \
 	stackmap.c \
@@ -79,8 +81,7 @@ libvmcore_la_SOURCES = \
 	method.h \
 	options.c \
 	options.h \
-	primitive.c \
-	primitive.h \
+	primitivecore.c \
 	references.h \
 	$(RT_TIMING_SOURCES) \
 	$(STACKMAP_SOURCES) \

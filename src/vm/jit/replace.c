@@ -1054,15 +1054,15 @@ static void replace_write_value(executionstate_t *es,
 }
 
 
-/* replace_read_executionstate *************************************************
+/* replace_new_sourceframe *****************************************************
 
-   Read the given executions state and translate it to a source frame.
+   Allocate a new source frame and insert it at the front of the frame list.
    
    IN:
 	   ss...............the source state
 
    OUT:
-	   ss->frames.......set to new frame
+	   ss->frames.......set to new frame (the new head of the frame list).
 
    RETURN VALUE:
        returns the new frame
@@ -1085,15 +1085,20 @@ static sourceframe_t *replace_new_sourceframe(sourcestate_t *ss)
 
 /* replace_read_executionstate *************************************************
 
-   Read the given executions state and translate it to a source frame.
+   Read a source frame from the given executions state.
+   The new source frame is pushed to the front of the frame list of the
+   source state.
 
    IN:
        rp...............replacement point at which `es` was taken
 	   es...............execution state
-	   ss...............where to put the source state
+	   ss...............the source state to add the source frame to
+	   topframe.........true, if the first (top-most) source frame on the
+	                    stack is to be read
 
    OUT:
-       *ss..............the source state derived from the execution state
+       *ss..............the source state with the newly created source frame
+	                    added
   
 *******************************************************************************/
 
@@ -1316,13 +1321,16 @@ static void replace_read_executionstate(rplpoint *rp,
 
 /* replace_write_executionstate ************************************************
 
-   Translate the given source state into an execution state.
-   
+   Pop a source frame from the front of the frame list of the given source state
+   and write its values into the execution state.
+
    IN:
        rp...............replacement point for which execution state should be
-	                    creates
-	   es...............where to put the execution state
+	                    created
+	   es...............the execution state to modify
 	   ss...............the given source state
+	   topframe.........true, if this is the last (top-most) source frame to be
+	                    translated
 
    OUT:
        *es..............the execution state derived from the source state
@@ -1786,15 +1794,15 @@ void replace_patch_future_calls(u1 *ra,
 								sourceframe_t *callerframe,
 								sourceframe_t *calleeframe)
 {
-	u1                *patchpos;
-	methodptr          entrypoint;
-	methodptr          oldentrypoint;
-	bool               atentry;
-	stackframeinfo     sfi;
-	codeinfo          *calleecode;
-	methodinfo        *calleem;
-	java_objectheader *obj;
-	vftbl_t           *vftbl;
+	u1             *patchpos;
+	methodptr       entrypoint;
+	methodptr       oldentrypoint;
+	bool            atentry;
+	stackframeinfo  sfi;
+	codeinfo       *calleecode;
+	methodinfo     *calleem;
+	java_object_t  *obj;
+	vftbl_t        *vftbl;
 
 	assert(ra);
 	assert(callerframe->down == calleeframe);
@@ -3011,7 +3019,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 	/* call the assembler code for the last phase of replacement */
 
 #if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__) || defined(__S390__)) && defined(ENABLE_JIT)
-	asm_replacement_in(&(safestack->es), safestack);
+	/*asm_replacement_in(&(safestack->es), safestack);*/
 #endif
 
 	abort(); /* NOT REACHED */
@@ -3395,8 +3403,8 @@ void replace_executionstate_println(executionstate_t *es)
 #if !defined(NDEBUG)
 static void java_value_print(s4 type, replace_val_t value)
 {
-	java_objectheader *obj;
-	utf               *u;
+	java_object_t *obj;
+	utf           *u;
 
 	printf("%016llx",(unsigned long long) value.l);
 

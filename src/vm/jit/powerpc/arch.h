@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: arch.h 7695 2007-04-12 19:49:34Z twisti $
+   $Id: arch.h 8270 2007-08-08 13:57:12Z twisti $
 
 */
 
@@ -92,9 +92,7 @@
 
 
 #define SPECIALMEMUSE
-#define HAS_4BYTE_STACKSLOT
-#define ALIGN_LONGS_IN_MEMORY       /* Align Longs and/or Doubles at         */
-#define ALIGN_DOUBLES_IN_MEMORY     /* 2*Stackslotsize relativ to stackframe */
+
 /* Memory Positions for not Interface Stackslots (allocate_scratch_registers)*/
 /* are not properly aligned in case HAS_4_BYTE_STACKSLOT is not defined!     */
 /* For HAS_4_BYTE_STACKSLOT archs no distinction is made between long and dbl*/
@@ -116,7 +114,6 @@
 /* replacement ****************************************************************/
 
 #define REPLACEMENT_PATCH_SIZE           4 /* bytes */
-#define REPLACEMENT_STUB_SIZE            6 /* words */
 
 #endif /* _ARCH_H */
 

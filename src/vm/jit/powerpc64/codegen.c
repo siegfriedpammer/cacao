@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8211 2007-07-18 19:52:23Z michi $
+   $Id: codegen.c 8297 2007-08-12 00:02:48Z michi $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <signal.h>
 
@@ -42,6 +43,7 @@
 
 #include "mm/memory.h"
 
+#include "native/localref.h"
 #include "native/native.h"
 
 #include "threads/lock-common.h"
@@ -1574,7 +1576,7 @@ bool codegen_emit(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, PATCHER_clinit, fi->class, disp);
@@ -1621,7 +1623,7 @@ bool codegen_emit(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					codegen_addpatchref(cd, PATCHER_clinit, fi->class, disp);
@@ -2229,7 +2231,7 @@ gen_method:
 				}
 
 				/* implicit null-pointer check */
-				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
 				M_ALD(REG_PV, REG_METHODPTR, s1);
 
 				/* generate the actual call */
@@ -2257,7 +2259,7 @@ gen_method:
 				}
 
 				/* implicit null-pointer check */
-				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_objectheader, vftbl));    
+				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));    
 				M_ALD(REG_METHODPTR, REG_METHODPTR, s1);
 				M_ALD(REG_PV, REG_METHODPTR, s2);
 
@@ -2357,7 +2359,7 @@ gen_method:
 						emit_label_beq(cd, BRANCH_LABEL_3);
 					}
 
-					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, interfacetablelength));
 					M_LDATST(REG_ITMP3, REG_ITMP3, -superindex);
 					emit_classcast_check(cd, iptr, BRANCH_LE, REG_ITMP3, s1);
@@ -2390,7 +2392,7 @@ gen_method:
 						emit_label_beq(cd, BRANCH_LABEL_5);
 					}
 
-					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 
 					CODEGEN_CRITICAL_SECTION_START;
 
@@ -2530,7 +2532,7 @@ gen_method:
 					emit_label_beq(cd, BRANCH_LABEL_3);
 				}
 
-				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ILD(REG_ITMP3, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 				M_LDATST(REG_ITMP3, REG_ITMP3, -superindex);
 				M_BLE(4);
@@ -2566,7 +2568,7 @@ gen_method:
 					emit_label_beq(cd, BRANCH_LABEL_5);
 				}
 
-				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ALD(REG_ITMP2, REG_PV, disp);
 
 				CODEGEN_CRITICAL_SECTION_START;

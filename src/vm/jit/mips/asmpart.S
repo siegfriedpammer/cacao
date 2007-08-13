@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8123 2007-06-20 23:50:55Z michi $
+   $Id: asmpart.S 8274 2007-08-08 15:58:17Z twisti $
 
 */
 
@@ -31,7 +31,6 @@
 
 #include "vm/jit/mips/md-abi.h"
 #include "vm/jit/mips/md-asm.h"
-#include "vm/jit/mips/offsets.h"
 
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/methodheader.h"
@@ -58,15 +57,10 @@
 
 	.globl asm_abstractmethoderror
 
-	.globl asm_patcher_wrapper
-
 #if defined(ENABLE_REPLACEMENT)
 	.globl asm_replacement_out
 	.globl asm_replacement_in
 #endif
-
-	.globl asm_getclassvalues_atomic
-	.globl asm_criticalsections
 
 	.globl compare_and_swap
 
@@ -590,112 +584,6 @@ asm_abstractmethoderror:
 	.end    asm_abstractmethoderror
 
 
-/* asm_patcher_wrapper *********************************************************
-
-   XXX
-
-   Stack layout:
-     56   return address into JIT code (patch position)
-     48   pointer to virtual java_objectheader
-     40   machine code (which is patched back later)
-     32   machine code (which is patched back later)
-     24   machine code (which is patched back later)
-     16   unresolved class/method/field reference
-      8   data segment displacement from load instructions
-      0   patcher function pointer to call
-
-*******************************************************************************/
-		
-    .ent    asm_patcher_wrapper
-
-asm_patcher_wrapper:
-#if SIZEOF_VOID_P == 8
-
-	aaddiu  sp,sp,-((2+16+22+4)*8)/* create stack frame                       */
-
-	SAVE_RETURN_REGISTERS(0)      /* save 1 int/1 float return registers      */
-	SAVE_ARGUMENT_REGISTERS(2)    /* save 8 int/8 float argument registers    */
-	SAVE_TEMPORARY_REGISTERS(18)  /* save 5 int/16 float temporary registers  */
-
-	ast     itmp1,(2+16+22+0)*8(sp) /* save itmp1                             */
-	ast     itmp2,(2+16+22+1)*8(sp) /* save itmp2                             */
-	ast     ra,(2+16+22+2)*8(sp)  /* save method return address (for leafs)   */
-	ast     pv,(2+16+22+3)*8(sp)  /* save pv of calling java function         */
-
-	aaddiu  a0,sp,(2+16+22+4)*8   /* pass SP of patcher stub                  */
-	move    a1,pv                 /* pass PV                                  */
-	move    a2,ra                 /* pass RA (correct for leafs)              */
-	jal     patcher_wrapper
-	move    itmp3,v0
-
-	RESTORE_RETURN_REGISTERS(0)   /* restore 1 int/1 float return registers   */
-	RESTORE_ARGUMENT_REGISTERS(2) /* restore 8 int/8 float argument registers */
-	RESTORE_TEMPORARY_REGISTERS(18) /* restore 5 int/16 float temporary reg.  */
-
-	ald     itmp1,(2+16+22+0)*8(sp) /* restore itmp1                          */
-	ald     itmp2,(2+16+22+1)*8(sp) /* restore itmp2                          */
-	ald     ra,(2+16+22+2)*8(sp)  /* restore method return address (for leafs)*/
-	ald     pv,(2+16+22+3)*8(sp)  /* restore pv of calling java function      */
-
-	bnez    itmp3,L_asm_patcher_wrapper_exception
-
-	ald     itmp3,(7+2+16+22+4)*8(sp) /* load RA                              */
-	aaddiu  sp,sp,(8+2+16+22+4)*8 /* remove stack frame                       */
-
-	jr      itmp3                 /* jump to new patched code                 */
-
-L_asm_patcher_wrapper_exception:
-	move    xptr,itmp3            /* get exception                            */
-	ald     xpc,(7+2+16+22+4)*8(sp) /* xpc is RA                              */
-	aaddiu  sp,sp,(8+2+16+22+4)*8 /* remove stack frame                       */
-
-#else /* SIZEOF_VOID_P == 8 */
-
-	aaddiu  sp,sp,-((6+4+8+16+7)*4) /* create stack frame                     */
-	                              /* +7 keeps the SP 16-bytes aligned         */
-
-	SAVE_RETURN_REGISTERS(6)      /* save 2 int / 1 float return registers    */
-	SAVE_ARGUMENT_REGISTERS(10)   /* save 4 int / 2 float argument registers  */
-	SAVE_TEMPORARY_REGISTERS(18)  /* save 8 int / 4 float temporary registers */
-
-	ast     itmp1,(6+4+8+16+0)*4(sp) /* save itmp1                            */
-	ast     itmp2,(6+4+8+16+1)*4(sp) /* save itmp2                            */
-	ast     ra,(6+4+8+16+2)*4(sp) /* save method return address (for leafs)   */
-	ast     pv,(6+4+8+16+3)*4(sp) /* save pv of calling java function         */
-
-	aaddiu  a0,sp,(6+4+8+16+7)*4  /* pass SP of patcher stub                  */
-	move    a1,pv                 /* pass PV                                  */
-	move    a2,ra                 /* pass RA (correct for leafs)              */
-	jal     patcher_wrapper
-	move    itmp3,v0
-
-	RESTORE_RETURN_REGISTERS(6)   /* restore 2 int / 2 float return registers */
-	RESTORE_ARGUMENT_REGISTERS(10) /* restore 4 int / 2 float argument regs   */
-	RESTORE_TEMPORARY_REGISTERS(18) /* restore 8 int / 4 float temporary regs */
-
-	ald     itmp1,(6+4+8+16+0)*4(sp) /* restore itmp1                         */
-	ald     itmp2,(6+4+8+16+1)*4(sp) /* restore itmp2                         */
-	ald     ra,(6+4+8+16+2)*4(sp) /* restore method return address (for leafs)*/
-	ald     pv,(6+4+8+16+3)*4(sp) /* restore pv of calling java function      */
-
-	bnez    itmp3,L_asm_wrapper_patcher_exception
-
-	ald     itmp3,7*8+(6+4+8+16+7)*4(sp) /* load RA                           */
-	aaddiu  sp,sp,8*8+(6+4+8+16+7)*4 /* remove stack frame                    */
-
-	jr      itmp3                 /* jump to new patched code                 */
-
-L_asm_wrapper_patcher_exception:
-	move    xptr,itmp3            /* get exception                            */
-	ald     xpc,7*8+(6+4+8+16+7)*4(sp) /* xpc is RA                           */
-	aaddiu  sp,sp,8*8+(6+4+8+16+7)*4 /* remove stack frame                    */
-
-#endif /* SIZEOF_VOID_P == 8 */
-
-	b       asm_handle_exception
-
-	.end	asm_patcher_wrapper
-
 #if defined(ENABLE_REPLACEMENT)
 		
 /* asm_replacement_out *********************************************************
@@ -961,35 +849,6 @@ asm_replacement_in:
 
 #endif /* defined(ENABLE_REPLACEMENT) */
 
-
-	.ent    asm_getclassvalues_atomic
-
-asm_getclassvalues_atomic:
-_crit_restart:
-_crit_begin:
-	lw      t0,offbaseval(a0)
-	lw      t1,offdiffval(a0)
-	lw      t2,offbaseval(a1)
-_crit_end:
-	sw      t0,offcast_super_baseval(a2)
-	sw      t1,offcast_super_diffval(a2)
-	sw      t2,offcast_sub_baseval(a2)
-	j       ra
-
-	.end    asm_getclassvalues_atomic
-
-    .data
-
-asm_criticalsections:
-#if defined(ENABLE_THREADS)
-    .dword  _crit_begin
-    .dword  _crit_end
-    .dword  _crit_restart
-#endif
-    .dword  0
-
-
-	.text
 
 	.ent    compare_and_swap
 

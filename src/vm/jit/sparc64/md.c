@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/md.c - machine dependent SPARC functions
+/* src/vm/jit/sparc64/md.c - machine dependent SPARC functions
 
    Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -348,10 +348,7 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
 #if defined(ENABLE_REPLACEMENT)
 void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *savedmcode)
 {
-	s4 disp;
 	u4 mcode;
-	
-	assert(0);
 
 	if (index < 0) {
 		/* restore the patched-over instruction */
@@ -362,12 +359,8 @@ void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *save
 		*(u4*)(savedmcode) = *(u4*)(rp->pc);
 
 		/* build the machine code for the patch */
-		disp = ((u4*)code->replacementstubs - (u4*)rp->pc)
-			   + index * REPLACEMENT_STUB_SIZE
-			   - 1;
-
-		mcode = (((s4)(0x00))<<30) | ((0)<<29) | ((0x8)<<25) | (0x1<<22) | (0<<20)
-			  | (1 << 19 ) | ((disp) & 0x007ffff);
+		assert(0); /* XXX build trap instruction below */
+		mcode = 0;
 
 		/* write the new machine code */
 		*(u4*)(rp->pc) = (u4) mcode;

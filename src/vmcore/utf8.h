@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.h 8132 2007-06-22 11:15:47Z twisti $
+   $Id: utf8.h 8249 2007-07-31 12:59:03Z panzi $
 
 */
 
@@ -148,8 +148,25 @@ extern utf *utf_SourceFile;
 #if defined(ENABLE_JAVASE)
 extern utf *utf_EnclosingMethod;
 extern utf *utf_Signature;
-extern utf *utf_RuntimeVisibleAnnotations;
 extern utf *utf_StackMapTable;
+
+#if defined(ENABLE_ANNOTATIONS)
+/* OpenJDKs sun.reflect.ConstantPool class is for now only
+ * used by annotations but will probably be used for other
+ * things in the future. For now I just couple it with
+ * annotation support.
+ */
+extern utf *utf_sun_reflect_ConstantPool;
+#if defined(WITH_CLASSPATH_GNU)
+extern utf *utf_sun_reflect_annotation_AnnotationParser;
+#endif
+
+extern utf *utf_RuntimeVisibleAnnotations;
+extern utf *utf_RuntimeInvisibleAnnotations;
+extern utf *utf_RuntimeVisibleParameterAnnotations;
+extern utf *utf_RuntimeInvisibleParameterAnnotations;
+extern utf *utf_AnnotationDefault;
+#endif
 #endif
 
 extern utf *utf_init;

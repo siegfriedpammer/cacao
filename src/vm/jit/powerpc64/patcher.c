@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 7909 2007-05-15 10:32:16Z tbfg $
+   $Id: patcher.c 8268 2007-08-07 13:24:43Z twisti $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -174,7 +175,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* patch the field value's address */
 
-	*((ptrint *) (pv + disp)) = (ptrint) &(fi->value);
+	*((intptr_t *) (pv + disp)) = (intptr_t) fi->value;
 
 	/* synchronize data cache */
 

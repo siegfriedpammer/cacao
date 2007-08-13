@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emitfuncs.c 4398 2006-01-31 23:43:08Z twisti $
+   $Id: emit-common.c 8265 2007-08-06 16:10:42Z twisti $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -38,6 +39,7 @@
 
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/patcher-common.h"
 
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"
@@ -244,6 +246,53 @@ s4 emit_load_s3_high(jitdata *jd, instruction *iptr, s4 tempreg)
 void emit_store_dst(jitdata *jd, instruction *iptr, s4 d)
 {
 	emit_store(jd, iptr, VAROP(iptr->dst), d);
+}
+
+
+/* emit_patcher_traps **********************************************************
+
+   Generates the code for the patcher traps.
+
+*******************************************************************************/
+
+void emit_patcher_traps(jitdata *jd)
+{
+	codegendata *cd;
+	codeinfo    *code;
+	patchref_t  *pr;
+	u1          *savedmcodeptr;
+	u1          *tmpmcodeptr;
+	uint32_t     mcode;
+
+	/* get required compiler data */
+
+	cd   = jd->cd;
+	code = jd->code;
+
+	/* generate patcher traps code */
+
+	for (pr = list_first_unsynced(code->patchers); pr != NULL; pr = list_next_unsynced(code->patchers, pr)) {
+
+		/* Calculate the patch position where the original machine
+		   code is located and the trap should be placed. */
+
+		tmpmcodeptr = (u1 *) (cd->mcodebase + pr->mpc);
+
+		/* Patch in the trap to call the signal handler (done at
+		   compile time). */
+
+		savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
+		cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
+
+		mcode = emit_trap(cd);
+
+		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
+
+		/* Remember the original machine code which is patched
+		   back in later (done at runtime). */
+
+		pr->mcode = mcode;
+	}
 }
 
 

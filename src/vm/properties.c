@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: properties.c 8236 2007-07-27 10:18:17Z twisti $
+   $Id: properties.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -390,11 +390,11 @@ char *properties_get(char *key)
 
 *******************************************************************************/
 
-void properties_system_add(java_objectheader *p, char *key, char *value)
+void properties_system_add(java_handle_t *p, char *key, char *value)
 {
-	methodinfo        *m;
-	java_objectheader *k;
-	java_objectheader *v;
+	methodinfo    *m;
+	java_handle_t *k;
+	java_handle_t *v;
 
 	/* search for method to add properties */
 
@@ -427,12 +427,12 @@ void properties_system_add(java_objectheader *p, char *key, char *value)
 *******************************************************************************/
 
 #if defined(ENABLE_JAVASE)
-void properties_system_add_all(java_objectheader *p)
+void properties_system_add_all(java_handle_t *p)
 {
 	list_properties_entry *pe;
 	methodinfo            *m;
-	java_objectheader     *key;
-	java_objectheader     *value;
+	java_handle_t         *key;
+	java_handle_t         *value;
 
 	/* search for method to add properties */
 
@@ -454,7 +454,7 @@ void properties_system_add_all(java_objectheader *p)
 		key   = javastring_new_from_utf_string(pe->key);
 		value = javastring_new_from_utf_string(pe->value);
 
-		(void) vm_call_method(m, (java_objectheader *) p, key, value);
+		(void) vm_call_method(m, (java_handle_t *) p, key, value);
 	}
 }
 #endif /* defined(ENABLE_JAVASE) */

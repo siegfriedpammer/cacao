@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 8245 2007-07-31 09:55:04Z michi $
+   $Id: loader.c 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -45,6 +45,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/primitive.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -61,7 +62,6 @@
 #include "vmcore/loader.h"
 #include "vmcore/method.h"
 #include "vmcore/options.h"
-#include "vmcore/primitive.h"
 #include "vmcore/rt-timing.h"
 
 #if defined(ENABLE_STATISTICS)
@@ -237,7 +237,22 @@ bool loader_init(void)
 	if (!(arrayclass_java_lang_Object =
 		  load_class_bootstrap(utf_new_char("[Ljava/lang/Object;"))))
 		return false;
+
+#if defined(ENABLE_ANNOTATIONS)
+	/* needed by annotation support */
+	if (!(class_sun_reflect_ConstantPool = 
+		  load_class_bootstrap(utf_sun_reflect_ConstantPool)))
+		return false;
+
+#if defined(WITH_CLASSPATH_GNU)
+	/* needed by GNU Classpaths annotation support */
+	if (!(class_sun_reflect_annotation_AnnotationParser = 
+		  load_class_bootstrap(utf_sun_reflect_annotation_AnnotationParser)))
+		return false;
 #endif
+#endif
+#endif
+
 
 	return true;
 }
@@ -953,10 +968,10 @@ bool loader_load_attribute_signature(classbuffer *cb, utf **signature)
 
 classinfo *load_class_from_sysloader(utf *name)
 {
-	methodinfo        *m;
-	java_objectheader *clo;
-	classloader       *cl;
-	classinfo         *c;
+	methodinfo    *m;
+	java_handle_t *clo;
+	classloader   *cl;
+	classinfo     *c;
 
 	assert(class_java_lang_Object);
 	assert(class_java_lang_ClassLoader);
@@ -1000,10 +1015,10 @@ classinfo *load_class_from_sysloader(utf *name)
 
 classinfo *load_class_from_classloader(utf *name, classloader *cl)
 {
-	java_objectheader *o;
-	classinfo         *c;
-	classinfo         *tmpc;
-	java_objectheader *string;
+	java_handle_t *o;
+	classinfo     *c;
+	classinfo     *tmpc;
+	java_handle_t *string;
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_lookup, time_prepare, time_java, 
 					time_cache;
@@ -1532,16 +1547,14 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	RT_TIMING_GET_TIME(time_setup);
 
 	/* load fields */
+
 	if (!suck_check_classbuffer_size(cb, 2))
 		goto return_exception;
 
 	c->fieldscount = suck_u2(cb);
-#if defined(ENABLE_GC_CACAO)
-  	c->fields = MNEW(fieldinfo, c->fieldscount);
+  	c->fields      = MNEW(fieldinfo, c->fieldscount);
+
 	MZERO(c->fields, fieldinfo, c->fieldscount);
-#else
-	c->fields = GCNEW_UNCOLLECTABLE(fieldinfo, c->fieldscount);
-#endif
 
 	for (i = 0; i < c->fieldscount; i++) {
 		if (!field_load(cb, &(c->fields[i]), descpool))
@@ -1551,11 +1564,12 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	RT_TIMING_GET_TIME(time_fields);
 
 	/* load methods */
+
 	if (!suck_check_classbuffer_size(cb, 2))
 		goto return_exception;
 
 	c->methodscount = suck_u2(cb);
-	c->methods = MNEW(methodinfo, c->methodscount);
+	c->methods      = MNEW(methodinfo, c->methodscount);
 
 	MZERO(c->methods, methodinfo, c->methodscount);
 	

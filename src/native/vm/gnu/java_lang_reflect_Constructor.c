@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Constructor.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: java_lang_reflect_Constructor.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -32,15 +32,25 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#if defined(ENABLE_ANNOTATIONS)
+#include "vm/vm.h"
+#endif
+
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_reflect_Constructor.h"
+
+#if defined(ENABLE_ANNOTATIONS)
+#include "native/include/sun_reflect_ConstantPool.h"
+#include "native/vm/reflect.h"
+#endif
 
 #include "native/vm/java_lang_reflect_Constructor.h"
 
@@ -50,11 +60,15 @@
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "getModifiersInternal", "()I",                                                       (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getModifiers      },
-	{ "getParameterTypes",    "()[Ljava/lang/Class;",                                      (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getParameterTypes },
-	{ "getExceptionTypes",    "()[Ljava/lang/Class;",                                      (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getExceptionTypes },
-	{ "constructNative",      "([Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;", (void *) (ptrint) &Java_java_lang_reflect_Constructor_constructNative  },
-	{ "getSignature",         "()Ljava/lang/String;",                                      (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getSignature      },
+	{ "getModifiersInternal",    "()I",                                                       (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getModifiers        },
+	{ "getParameterTypes",       "()[Ljava/lang/Class;",                                      (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getParameterTypes   },
+	{ "getExceptionTypes",       "()[Ljava/lang/Class;",                                      (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getExceptionTypes   },
+	{ "constructNative",         "([Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;", (void *) (ptrint) &Java_java_lang_reflect_Constructor_constructNative    },
+	{ "getSignature",            "()Ljava/lang/String;",                                      (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getSignature        },
+#if defined(ENABLE_ANNOTATIONS)
+	{ "declaredAnnotations",     "()Ljava/util/Map;",                                         (void *) (ptrint) &Java_java_lang_reflect_Constructor_declaredAnnotations     },
+	{ "getParameterAnnotations", "()[[Ljava/lang/annotation/Annotation;",                     (void *) (ptrint) &Java_java_lang_reflect_Constructor_getParameterAnnotations },
+#endif
 };
 
 
@@ -83,12 +97,49 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 {
 	/* just to be sure */
 
-	assert(this->clazz == declaringClass);
-	assert(this->slot  == slot);
+	assert(LLNI_field_direct(this, clazz) == declaringClass);
+	assert(LLNI_field_direct(this, slot)  == slot);
 
 	return _Jv_java_lang_reflect_Constructor_newInstance(env, this, args);
 }
 
+
+#if defined(ENABLE_ANNOTATIONS)
+/*
+ * Class:     java/lang/reflect/Constructor
+ * Method:    declaredAnnotations
+ * Signature: ()Ljava/util/Map;
+ */
+JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Constructor_declaredAnnotations(JNIEnv *env, struct java_lang_reflect_Constructor* this)
+{
+	java_handle_t *o = (java_handle_t*)this;
+
+	if (this == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	return reflect_get_declaredannotatios(&(this->declaredAnnotations), this->annotations, this->clazz, o->vftbl->class);
+}
+
+
+/*
+ * Class:     java/lang/reflect/Constructor
+ * Method:    getParameterAnnotations
+ * Signature: ()[[Ljava/lang/annotation/Annotation;
+ */
+JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Constructor_getParameterAnnotations(JNIEnv *env, struct java_lang_reflect_Constructor* this)
+{
+	java_handle_t *o = (java_handle_t*)this;
+
+	if (this == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	return reflect_get_parameterannotations((java_handle_t*)this->parameterAnnotations, this->slot, this->clazz, o->vftbl->class);
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

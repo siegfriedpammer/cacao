@@ -1,6 +1,6 @@
 /* src/vm/jit/i386/darwin/md-os.c - machine dependent i386 Darwin functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
    $Id: md-os.c 5074 2006-07-04 16:05:35Z twisti $
 
 */
@@ -37,6 +31,7 @@
 
 #include <assert.h>
 #include <signal.h>
+#include <stdint.h>
 #include <ucontext.h>
 
 #include "vm/types.h"
@@ -74,11 +69,11 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
     u1                   opc;
     u1                   mod;
     u1                   rm;
-    s4                   d;
-    s4                   disp;
-    ptrint               val;
-    s4                   type;
-    java_objectheader   *e;
+    int                  d;
+    int32_t              disp;
+	intptr_t             val;
+    int                  type;
+    void                *p;
 
 	_uc = (ucontext_t *) _p;
 	_mc = _uc->uc_mcontext;
@@ -125,9 +120,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-	/* generate appropriate exception */
+	/* Handle the type. */
 
-	e = exceptions_new_hardware_exception(xpc, type, val);
+	p = signal_handle(xpc, type, val);
 
 	/* remove stackframeinfo */
 
@@ -135,9 +130,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
     /* set registers */
 
-    _ss->eax = (ptrint) e;
-	_ss->ecx = (ptrint) xpc;
-	_ss->eip = (ptrint) asm_handle_exception;
+    _ss->eax = (intptr_t) p;
+	_ss->ecx = (intptr_t) xpc;
+	_ss->eip = (intptr_t) asm_handle_exception;
 }
 
 
@@ -158,9 +153,9 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	u1                  *sp;
 	u1                  *ra;
 	u1                  *xpc;
-    s4                   type;
-    ptrint               val;
-    java_objectheader   *e;
+    int                  type;
+    intptr_t             val;
+    void                *p;
 
 
 	_uc = (ucontext_t *) _p;
@@ -181,17 +176,17 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-	/* generate appropriate exception */
+	/* Handle the type. */
 
-	e = exceptions_new_hardware_exception(xpc, type, val);
+	p = signal_handle(xpc, type, val);
 
 	/* remove stackframeinfo */
 
 	stacktrace_remove_stackframeinfo(&sfi);
 
-    _ss->eax = (ptrint) e;
-	_ss->ecx = (ptrint) xpc;
-	_ss->eip = (ptrint) asm_handle_exception;
+    _ss->eax = (intptr_t) p;
+	_ss->ecx = (intptr_t) xpc;
+	_ss->eip = (intptr_t) asm_handle_exception;
 }
 
 
@@ -220,6 +215,13 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 	t->pc = pc;
 }
 
+
+/* md_critical_section_restart *************************************************
+
+   Search the critical sections tree for a matching section and set
+   the PC to the restart point, if necessary.
+
+*******************************************************************************/
 
 #if defined(ENABLE_THREADS)
 void thread_restartcriticalsection(ucontext_t *_uc)

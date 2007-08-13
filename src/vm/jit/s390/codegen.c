@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8240 2007-07-29 20:36:47Z pm $
+   $Id: codegen.c 8297 2007-08-12 00:02:48Z michi $
 
 */
 
@@ -30,32 +30,30 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 
-#include "vm/types.h"
-
-#include "md-abi.h"
-
-#include "vm/jit/s390/arch.h"
-#include "vm/jit/s390/codegen.h"
-#include "vm/jit/s390/emit.h"
-
-#include "mm/memory.h"
 #include "native/jni.h"
+#include "native/localref.h"
 #include "native/native.h"
 
+#include "mm/memory.h"
+
 #if defined(ENABLE_THREADS)
+# include "threads/lock-common.h"
 # include "threads/native/lock.h"
 #endif
 
-#include "vm/builtin.h"
-#include "vm/exceptions.h"
-#include "vm/global.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"
-#include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
+#include "vm/global.h"
+#include "vm/jit/abi.h"
+#if defined(ENABLE_LSRA)
+# include "vm/jit/allocator/lsra.h"
+#endif
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
@@ -63,21 +61,37 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/parse.h"
-#include "vm/jit/patcher.h"
+#include "vm/jit/patcher-common.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
+#include "vm/jit/s390/arch.h"
+#include "vm/jit/s390/codegen.h"
+#include "vm/jit/s390/emit.h"
+#include "vm/jit/s390/md-abi.h"
 #include "vm/jit/stacktrace.h"
-#include "vm/jit/abi.h"
-#include "vm/jit/emit-common.h"
+#include "vm/types.h"
+#include "vm/stringlocal.h"
+#include "vm/vm.h"
 
-#if defined(ENABLE_LSRA)
-# include "vm/jit/allocator/lsra.h"
-#endif
+/* DO__LOG generates a call to do__log. No registers are destroyed,
+ * so you may use it anywhere. regs is an array containing all general
+ * purpose registers.
+ */
 
-#define OOPS() assert(0);
+static void do__log(u4 *regs) {
+	/* insert stuff here */
+}
+
+#define DO__LOG \
+	N_AHI(REG_SP, -200); \
+	N_STM(R0, R15, 96, REG_SP); \
+	M_ALD_DSEG(R14, dseg_add_address(cd, &do__log)); \
+	N_LA(R2, 96, RN, REG_SP); \
+	N_BASR(R14, R14); \
+	N_LM(R0, R15, 96, REG_SP); \
+	N_AHI(REG_SP, 200);
+
 #define SUPPORT_HERCULES 1
-
-void panic() { }
 
 /* codegen *********************************************************************
 
@@ -85,6 +99,30 @@ void panic() { }
 
 *******************************************************************************/
 
+/*
+
+Layout of stackframe:
+
+Meaning                                Offset
+===============================================================================
+return_address                         (stackframesize - 1) * 8 
+saved_int_reg[INT_SAV_CNT - 1]         (stackframseize - 2) * 8
+...
+saved_int_reg[rd->savintreguse]  
+saved_flt_reg[FLT_SAV_CNT - 1]
+...
+saved_flt_reg[rd->savfltreguse]        (stackframesize - 1 - savedregs_num) * 8
+
+return_value_tmp                       (rd->memuse + 1) * 8
+monitorenter_argument                  (rd->memuse) * 8 
+???
+local[rd->memuse - 1]                  (rd->memuse - 1) * 8
+....
+local[2]                               2 * 8
+local[1]                               1 * 8
+local[0]                               0 * 8
+
+*/
 
 bool codegen_emit(jitdata *jd)
 {
@@ -136,7 +174,7 @@ bool codegen_emit(jitdata *jd)
 	/* space to save used callee saved registers */
 
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
-	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse) * 2;
+	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
 
 	cd->stackframesize = rd->memuse + savedregs_num + 1  /* space to save RA */;
 
@@ -151,12 +189,9 @@ bool codegen_emit(jitdata *jd)
 	   since both values reside in R2. */
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-		/* reserve 2 slots for long/double return values for monitorexit */
-
-		if (IS_2_WORD_TYPE(m->parseddesc->returntype.type))
-			cd->stackframesize += 3;
-		else
-			cd->stackframesize += 2;
+		/* 1 slot space to save argument of monitor_enter */
+		/* 1 slot to temporary store return value before monitor_exit */
+		cd->stackframesize += 2;
 	}
 #endif
 
@@ -166,12 +201,12 @@ bool codegen_emit(jitdata *jd)
 
 	if (!jd->isleafmethod || opt_verbosecall )
 		/* TODO really 16 bytes ? */
-		cd->stackframesize = (cd->stackframesize + 3) & ~3;
+		cd->stackframesize = (cd->stackframesize + 2) & ~2;
 
 	/* create method header */
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
 
 #if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -181,10 +216,9 @@ bool codegen_emit(jitdata *jd)
 	*/
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_add_unique_s4(cd, (rd->memuse + 1) * 4); /* IsSync        */
+		(void) dseg_add_unique_s4(cd, (rd->memuse + 1) * 8); /* IsSync        */
 	else
 #endif
-
 		(void) dseg_add_unique_s4(cd, 0);                    /* IsSync          */
 
 	(void) dseg_add_unique_s4(cd, jd->isleafmethod);               /* IsLeaf  */
@@ -225,18 +259,18 @@ bool codegen_emit(jitdata *jd)
 	/* create stack frame (if necessary) */
 
 	if (cd->stackframesize)
-		M_ASUB_IMM(cd->stackframesize * 4, REG_SP);
+		M_ASUB_IMM(cd->stackframesize * 8, REG_SP);
 
 	/* save used callee saved registers and return address */
 
   	p = cd->stackframesize;
-	p--; M_AST(REG_RA, REG_SP, p * 4);
+	p--; M_AST(REG_RA, REG_SP, p * 8);
 
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
- 		p--; M_IST(rd->savintregs[i], REG_SP, p * 4);
+ 		p--; M_IST(rd->savintregs[i], REG_SP, p * 8);
 	}
 	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-		p -= 2; M_DST(rd->savfltregs[i], REG_SP, p * 4);
+		p--; M_DST(rd->savfltregs[i], REG_SP, p * 8);
 	}
 
 	/* take arguments out of register or stack frame */
@@ -248,8 +282,9 @@ bool codegen_emit(jitdata *jd)
 		varindex = jd->local_map[l * 5 + t];
 
  		l++;
- 		if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
- 			l++;
+
+		if (IS_2_WORD_TYPE(t))
+			l++;
 
 		if (varindex == UNUSED)
 			continue;
@@ -257,6 +292,7 @@ bool codegen_emit(jitdata *jd)
 		var = VAR(varindex);
 
 		s1 = md->params[p].regoff;
+
 		if (IS_INT_LNG_TYPE(t)) {                    /* integer args          */
 			if (IS_2_WORD_TYPE(t)) {
 				s2 = PACK_REGS(
@@ -268,31 +304,28 @@ bool codegen_emit(jitdata *jd)
 			}
  			if (!md->params[p].inmemory) {           /* register arguments    */
  				if (!IS_INMEMORY(var->flags)) {      /* reg arg -> register   */
-					if (IS_2_WORD_TYPE(t))
+					if (IS_2_WORD_TYPE(t)) {
 						M_LNGMOVE(s2, var->vv.regoff);
-					else
+					} else {
 						M_INTMOVE(s2, var->vv.regoff);
-
+					}
 				} else {                             /* reg arg -> spilled    */
-					if (IS_2_WORD_TYPE(t))
+					if (IS_2_WORD_TYPE(t)) {
 						M_LST(s2, REG_SP, var->vv.regoff);
-					else
+					} else {
 						M_IST(s2, REG_SP, var->vv.regoff);
+					}
 				}
 
 			} else {                                 /* stack arguments       */
  				if (!IS_INMEMORY(var->flags)) {      /* stack arg -> register */
-					if (IS_2_WORD_TYPE(t))
-						M_LLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
-					else
-						M_ILD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
-
-				} else {                             /* stack arg -> spilled  */
 					if (IS_2_WORD_TYPE(t)) {
-						N_MVC(var->vv.regoff, 8, REG_SP, cd->stackframesize * 4 + s1, REG_SP);
+						M_LLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
 					} else {
-						N_MVC(var->vv.regoff, 4, REG_SP, cd->stackframesize * 4 + s1, REG_SP);
+						M_ILD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
 					}
+				} else {                             /* stack arg -> spilled  */
+					N_MVC(var->vv.regoff, 8, REG_SP, cd->stackframesize * 8 + s1, REG_SP);
 				}
 			}
 
@@ -312,19 +345,14 @@ bool codegen_emit(jitdata *jd)
  			} else {                                 /* stack arguments       */
  				if (!IS_INMEMORY(var->flags)) {      /* stack-arg -> register */
 					if (IS_2_WORD_TYPE(t))
-						M_DLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
+						M_DLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
 
 					else
-						M_FLD(var->vv.regoff, REG_SP, cd->stackframesize * 4 + s1);
+						M_FLD(var->vv.regoff, REG_SP, cd->stackframesize * 8 + s1);
 
  				} else {                             /* stack-arg -> spilled  */
-					if (IS_2_WORD_TYPE(t)) {
-						N_MVC(var->vv.regoff, 8, REG_SP, cd->stackframesize * 4 + s1, REG_SP);
-						var->vv.regoff = cd->stackframesize * 4 + s1;
-
-					} else {
-						N_MVC(var->vv.regoff, 4, REG_SP, cd->stackframesize * 4 + s1, REG_SP);
-					}
+					N_MVC(var->vv.regoff, 8, REG_SP, cd->stackframesize * 8 + s1, REG_SP);
+					var->vv.regoff = cd->stackframesize * 8 + s1;
 				}
 			}
 		}
@@ -346,9 +374,9 @@ bool codegen_emit(jitdata *jd)
 				M_IST(abi_registers_integer_argument[p], REG_SP, p * 8);
 
 			for (p = 0; p < FLT_ARG_CNT; p++)
-				M_FST(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
+				M_DST(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
 
-			s1 += ((INT_ARG_CNT + FLT_ARG_CNT) * 2);
+			s1 += ((INT_ARG_CNT + FLT_ARG_CNT));
 		}
 #endif
 
@@ -367,7 +395,7 @@ bool codegen_emit(jitdata *jd)
 		disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
 		M_ALD_DSEG(REG_ITMP3, disp);
 
-		M_AST(REG_A0, REG_SP, s1 * 4);
+		M_AST(REG_A0, REG_SP, s1 * 8);
 
 		M_ASUB_IMM(96, REG_SP);	
 		M_CALL(REG_ITMP3);
@@ -379,7 +407,7 @@ bool codegen_emit(jitdata *jd)
 				M_ILD(abi_registers_integer_argument[p], REG_SP, p * 8);
 
 			for (p = 0; p < FLT_ARG_CNT; p++)
-				M_FLD(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
+				M_DLD(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
 
 			M_AADD_IMM((INT_ARG_CNT + FLT_ARG_CNT) * 8, REG_SP);
 		}
@@ -558,7 +586,7 @@ bool codegen_emit(jitdata *jd)
 
 /* 				PROFILE_CYCLE_STOP; */
 
-				codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_classinfo,
+				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_classinfo,
 									  cr, disp);
 
 /* 				PROFILE_CYCLE_START; */
@@ -1968,19 +1996,19 @@ bool codegen_emit(jitdata *jd)
 
 /* 				PROFILE_CYCLE_STOP; */
 
-				codegen_add_patch_ref(cd, PATCHER_get_putstatic, uf, disp);
+				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
 
 /* 				PROFILE_CYCLE_START; */
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					PROFILE_CYCLE_STOP;
 
-					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, 0);
+					patcher_add_patch_ref(jd, PATCHER_clinit, fi->class, 0);
 
 					PROFILE_CYCLE_START;
 				}
@@ -2022,16 +2050,16 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = dseg_add_unique_address(cd, uf);
 
-				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, disp);
+				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = dseg_add_address(cd, &(fi->value));
+				disp      = dseg_add_address(cd, fi->value);
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					PROFILE_CYCLE_STOP;
-					codegen_addpatchref(cd, PATCHER_clinit, fi->class, disp);
+					patcher_add_patch_ref(jd, PATCHER_clinit, fi->class, disp);
 					PROFILE_CYCLE_START;
 				}
   			}
@@ -2071,7 +2099,7 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = 0;
 
-				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
+				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
@@ -2135,11 +2163,11 @@ bool codegen_emit(jitdata *jd)
 			 * We pass in the disp parameter, how many bytes
 			 * to skip to the to the actual store.
 			 *
-			 * XXX this relies on codegen_add_patch_ref internals
+			 * XXX this relies on patcher_add_patch_ref internals
 			 */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
+				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
 				ref = cd->mcodeptr;
 			}
 
@@ -2154,7 +2182,7 @@ bool codegen_emit(jitdata *jd)
 			}
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				cd->patchrefs->disp = (cd->mcodeptr - ref);
+				((patchref_t *)list_first_unsynced(jd->code->patchers))->disp = (cd->mcodeptr - ref);
 			}
 
 			switch (fieldtype) {
@@ -2192,7 +2220,7 @@ bool codegen_emit(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uc = iptr->sx.s23.s2.uc;
 
-				codegen_add_patch_ref(cd, PATCHER_athrow_areturn, uc, 0);
+				patcher_add_patch_ref(jd, PATCHER_athrow_areturn, uc, 0);
 			}
 #endif /* ENABLE_VERIFIER */
 
@@ -2521,7 +2549,7 @@ bool codegen_emit(jitdata *jd)
 				unresolved_class *uc = iptr->sx.s23.s2.uc;
 
 				PROFILE_CYCLE_STOP;
-				codegen_addpatchref(cd, PATCHER_athrow_areturn, uc, 0);
+				patcher_add_patch_ref(jd, PATCHER_athrow_areturn, uc, 0);
 				PROFILE_CYCLE_START;
 			}
 #endif /* ENABLE_VERIFIER */
@@ -2561,26 +2589,25 @@ nowperformreturn:
 
 #if defined(ENABLE_THREADS)
 			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
-
 				/* we need to save the proper return value */
 
 				switch (iptr->opc) {
 				case ICMD_LRETURN:
-					M_IST(REG_RESULT2, REG_SP, rd->memuse * 4 + 8);
+					M_IST(REG_RESULT2, REG_SP, ((rd->memuse + 1) * 8) + 4);
 					/* fall through */
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					M_IST(REG_RESULT , REG_SP, rd->memuse * 4 + 4);
+					M_IST(REG_RESULT , REG_SP, (rd->memuse + 1) * 8);
 					break;
 				case ICMD_FRETURN:
-					M_FST(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
+					M_FST(REG_FRESULT, REG_SP, (rd->memuse + 1) * 8);
 					break;
 				case ICMD_DRETURN:
-					M_DST(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
+					M_DST(REG_FRESULT, REG_SP, (rd->memuse + 1) * 8);
 					break;
 				}
 
-				M_ALD(REG_A0, REG_SP, rd->memuse * 4);
+				M_ALD(REG_A0, REG_SP, rd->memuse * 8);
 
 				disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
 				M_ALD_DSEG(REG_ITMP3, disp);
@@ -2593,17 +2620,17 @@ nowperformreturn:
 
 				switch (iptr->opc) {
 				case ICMD_LRETURN:
-					M_ILD(REG_RESULT2, REG_SP, rd->memuse * 4 + 8);
+					M_ILD(REG_RESULT2, REG_SP, ((rd->memuse + 1) * 8) + 4);
 					/* fall through */
 				case ICMD_IRETURN:
 				case ICMD_ARETURN:
-					M_ILD(REG_RESULT , REG_SP, rd->memuse * 4 + 4);
+					M_ILD(REG_RESULT , REG_SP, (rd->memuse + 1) * 8);
 					break;
 				case ICMD_FRETURN:
-					M_FLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
+					M_FLD(REG_FRESULT, REG_SP, (rd->memuse + 1) * 8);
 					break;
 				case ICMD_DRETURN:
-					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 4 + 4);
+					M_DLD(REG_FRESULT, REG_SP, (rd->memuse + 1) * 8);
 					break;
 				}
 			}
@@ -2611,25 +2638,26 @@ nowperformreturn:
 
 			/* restore return address                                         */
 
-			p--; M_ALD(REG_RA, REG_SP, p * 4);
+			p--; M_ALD(REG_RA, REG_SP, p * 8);
 
 			/* restore saved registers                                        */
 
 			for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
-				p--; M_ILD(rd->savintregs[i], REG_SP, p * 4);
+				p--; M_ILD(rd->savintregs[i], REG_SP, p * 8);
 			}
 			for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-				p -= 2; M_DLD(rd->savfltregs[i], REG_SP, p * 4);
+				p--; M_DLD(rd->savfltregs[i], REG_SP, p * 8);
 			}
 
 			/* deallocate stack                                               */
 
 			if (cd->stackframesize)
-				M_AADD_IMM(cd->stackframesize * 4, REG_SP);
+				M_AADD_IMM(cd->stackframesize * 8, REG_SP);
 
 			/* generate method profiling code */
 
 			PROFILE_CYCLE_STOP;
+
 			M_RET;
 			ALIGNCODENOP;
 			}
@@ -2824,7 +2852,7 @@ gen_method:
 				if (lm == NULL) {
 					disp = dseg_add_unique_address(cd, um);
 
-					codegen_addpatchref(cd, PATCHER_invokestatic_special,
+					patcher_add_patch_ref(jd, PATCHER_invokestatic_special,
 										um, disp);
 				}
 				else
@@ -2842,7 +2870,7 @@ gen_method:
 				/* TODO softnull REG_A0 */
 
 				if (lm == NULL) {
-					codegen_addpatchref(cd, PATCHER_invokevirtual, um, 0);
+					patcher_add_patch_ref(jd, PATCHER_invokevirtual, um, 0);
 
 					s1 = 0;
 				}
@@ -2853,7 +2881,7 @@ gen_method:
 
 				/* implicit null-pointer check */
 
-				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
 				M_ALD(REG_PV, REG_METHODPTR, s1);
 				break;
 
@@ -2865,7 +2893,7 @@ gen_method:
 				 */
 
 				if (lm == NULL) {
-					codegen_addpatchref(cd, PATCHER_invokeinterface, um, 0);
+					patcher_add_patch_ref(jd, PATCHER_invokeinterface, um, 0);
 
 					s1 = 0;
 					s2 = 0;
@@ -2878,7 +2906,7 @@ gen_method:
 				}
 
 				/* Implicit null-pointer check */
-				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
 				N_LHI(REG_ITMP1, s1);
 				N_L(REG_METHODPTR, 0, REG_ITMP1, REG_METHODPTR);
 				M_ALD(REG_PV, REG_METHODPTR, s2);
@@ -2986,7 +3014,7 @@ gen_method:
 
 					disp = dseg_add_unique_s4(cd, 0);         /* super->flags */
 
-					codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_flags,
+					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_flags,
 										  iptr->sx.s23.s3.c.ref,
 										  disp);
 
@@ -3004,7 +3032,7 @@ gen_method:
 
 				if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
 					if (super == NULL) {
-						codegen_add_patch_ref(cd,
+						patcher_add_patch_ref(jd,
 											  PATCHER_checkcast_instanceof_interface,
 											  iptr->sx.s23.s3.c.ref,
 											  0);
@@ -3013,7 +3041,7 @@ gen_method:
 						emit_label_beq(cd, LABEL_EXIT_INTERFACE_NULL);
 					}
 
-					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, interfacetablelength));
 					M_ISUB_IMM(superindex, REG_ITMP3);
 					emit_classcast_check(cd, iptr, BRANCH_LE, RN, s1);
@@ -3040,7 +3068,7 @@ gen_method:
 					if (super == NULL) {
 						disp = dseg_add_unique_address(cd, NULL);
 
-						codegen_add_patch_ref(cd,
+						patcher_add_patch_ref(jd,
 											  PATCHER_resolve_classref_to_vftbl,
 											  iptr->sx.s23.s3.c.ref,
 											  disp);
@@ -3051,7 +3079,7 @@ gen_method:
 						emit_label_beq(cd, LABEL_EXIT_CLASS_NULL);
 					}
 
-					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ALD_DSEG(REG_ITMP3, disp);
 
 					CODEGEN_CRITICAL_SECTION_START;
@@ -3097,7 +3125,7 @@ gen_method:
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 					disp = dseg_add_unique_address(cd, NULL);
 
-					codegen_add_patch_ref(cd,
+					patcher_add_patch_ref(jd,
 										  PATCHER_resolve_classref_to_classinfo,
 										  iptr->sx.s23.s3.c.ref,
 										  disp);
@@ -3185,7 +3213,7 @@ gen_method:
 
 				disp = dseg_add_unique_s4(cd, 0);             /* super->flags */
 
-				codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_flags,
+				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_flags,
 									  iptr->sx.s23.s3.c.ref, disp);
 
 				ICONST(REG_ITMP2, ACC_INTERFACE);
@@ -3209,7 +3237,7 @@ gen_method:
 					if (d == REG_ITMP2)
 						M_CLR(d);
 
-					codegen_add_patch_ref(cd,
+					patcher_add_patch_ref(jd,
 										  PATCHER_checkcast_instanceof_interface,
 										  iptr->sx.s23.s3.c.ref, 0);
 				}
@@ -3219,7 +3247,7 @@ gen_method:
 					emit_label_beq(cd, LABEL_EXIT_INTERFACE_NULL);
 				}
 
-				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ILD(REG_ITMP3, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 				M_ISUB_IMM(superindex, REG_ITMP3);
 
@@ -3253,7 +3281,7 @@ gen_method:
 				if (super == NULL) {
 					disp = dseg_add_unique_address(cd, NULL);
 
-					codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_vftbl,
+					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_vftbl,
 										  iptr->sx.s23.s3.c.ref,
 										  disp);
 				}
@@ -3266,7 +3294,7 @@ gen_method:
 					emit_label_beq(cd, LABEL_EXIT_CLASS_NULL);
 				}
 
-				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ALD_DSEG(REG_ITMP2, disp);
 
 				CODEGEN_CRITICAL_SECTION_START;
@@ -3333,7 +3361,7 @@ gen_method:
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				disp = dseg_add_unique_address(cd, 0);
 
-				codegen_add_patch_ref(cd, PATCHER_resolve_classref_to_classinfo,
+				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_classinfo,
 									  iptr->sx.s23.s3.c.ref,
 									  disp);
 			}
@@ -3395,10 +3423,7 @@ gen_method:
 
 	/* generate stubs */
 
-	emit_patcher_stubs(jd);
-#if defined(ENABLE_REPLACEMENT)
-	REPLACEMENT_EMIT_STUBS(jd);
-#endif
+	emit_patcher_traps(jd);
 
 	/* everything's ok */
 
@@ -3490,20 +3515,17 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	cd->stackframesize = 
 		1 + /* r14 - return address */ +
-		sizeof(stackframeinfo) / SIZEOF_VOID_P +
-		sizeof(localref_table) / SIZEOF_VOID_P +
+		((sizeof(stackframeinfo) + 7) / 8) +
+		((sizeof(localref_table) + 7) / 8)  +
 		1 + /* itmp3 */
-		(INT_ARG_CNT + FLT_ARG_CNT) * 2 +
+		(INT_ARG_CNT + FLT_ARG_CNT) +
 		nmd->memuse + /* parameter passing */
-		96 / SIZEOF_VOID_P /* required by ABI */;
-
-	cd->stackframesize |= 0x1;                  /* keep stack 8-byte aligned */
-
+		(96 / 8)  /* required by ABI */;
 
 	/* create method header */
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
@@ -3513,7 +3535,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* generate stub code */
 
-	N_AHI(REG_SP, -(cd->stackframesize * SIZEOF_VOID_P));
+	N_AHI(REG_SP, -(cd->stackframesize * 8));
 	N_AHI(REG_PV, N_PV_OFFSET);
 
 	/* generate native method profiling code */
@@ -3530,7 +3552,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* save return address */
 
-	N_ST(R14, (cd->stackframesize - 1) * SIZEOF_VOID_P, RN, REG_SP);
+	N_ST(R14, (cd->stackframesize - 1) * 8, RN, REG_SP);
 
 #if !defined(NDEBUG)
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
@@ -3543,12 +3565,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 #if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL)
-		codegen_add_patch_ref(cd, PATCHER_resolve_native, m, disp);
+		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, disp);
 #endif
 
 	M_ILD_DSEG(REG_ITMP1, disp);
 
-	j = 96 + (nmd->memuse * 4);
+	j = 96 + (nmd->memuse * 8);
 
 	/* todo some arg registers are not volatile in C-abi terms */
 
@@ -3583,10 +3605,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* create dynamic stack info */
 
-	N_LAE(REG_A0, (cd->stackframesize - 1) * 4, RN, REG_SP); /* datasp */
+	N_LAE(REG_A0, (cd->stackframesize - 1) * 8 , RN, REG_SP); /* datasp */
 	N_LA(REG_A1, -N_PV_OFFSET, RN, REG_PV); /* pv */
-	N_LAE(REG_A2, cd->stackframesize * 4, RN, REG_SP); /* old SP */
-	N_L(REG_A3, (cd->stackframesize - 1) * 4, RN, REG_SP); /* return address */
+	N_LAE(REG_A2, cd->stackframesize * 8, RN, REG_SP); /* old SP */
+	N_L(REG_A3, (cd->stackframesize - 1) * 8, RN, REG_SP); /* return address */
 
 	disp = dseg_add_functionptr(cd, codegen_start_native_call);
 	M_ILD_DSEG(REG_ITMP1, disp);
@@ -3595,7 +3617,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* restore integer and float argument registers */
 
-	j = 96 + (nmd->memuse * 4);
+	j = 96 + (nmd->memuse * 8);
 
 	for (i = 0; i < md->paramcount; i++) {
 		if (! md->params[i].inmemory) {
@@ -3669,7 +3691,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				}
 
 			} else {
-				s1 = cd->stackframesize * 4 + md->params[i].regoff;
+				s1 = cd->stackframesize * 8 + md->params[i].regoff;
 				s2 = nmd->params[j].regoff;
 				
 				if (IS_2_WORD_TYPE(t)) {
@@ -3684,7 +3706,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 			/* registers keep unchanged.                                      */
 
 			if (md->params[i].inmemory) {
-				s1 = cd->stackframesize * 4 + md->params[i].regoff;
+				s1 = cd->stackframesize * 8 + md->params[i].regoff;
 				s2 = nmd->params[j].regoff;
 
 				if (IS_2_WORD_TYPE(t)) {
@@ -3739,7 +3761,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* remove native stackframe info */
 
-	N_LAE(REG_A0, (cd->stackframesize - 1) * 4, RN, REG_SP); /* datasp */
+	N_LAE(REG_A0, (cd->stackframesize - 1) * 8, RN, REG_SP); /* datasp */
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_ALD_DSEG(REG_ITMP1, disp);
 	M_CALL(REG_ITMP1);
@@ -3765,11 +3787,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* load return address */
 	
-	N_L(REG_ITMP2, (cd->stackframesize - 1) * 4, RN, REG_SP);
+	N_L(REG_ITMP2, (cd->stackframesize - 1) * 8, RN, REG_SP);
 
 	/* remove stackframe */
 
-	N_AHI(REG_SP, cd->stackframesize * 4);
+	N_AHI(REG_SP, cd->stackframesize * 8);
 
 	/* test for exception */
 
@@ -3796,7 +3818,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* generate patcher stubs */
 
-	emit_patcher_stubs(jd);
+	emit_patcher_traps(jd);
 }
 
 s4 codegen_reg_of_dst_notzero(jitdata *jd, instruction *iptr, s4 tempregnum) {

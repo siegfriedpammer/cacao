@@ -22,12 +22,15 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: patcher.c 8143 2007-06-26 15:47:43Z twisti $
+   $Id: patcher.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
 
 #include "config.h"
+
+#include <stdint.h>
+
 #include "vm/types.h"
 
 #include "vm/jit/i386/codegen.h"
@@ -61,14 +64,14 @@
 
 *******************************************************************************/
 
-java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
+java_object_t *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 {
 	stackframeinfo     sfi;
 	u1                *xpc;
-	java_objectheader *o;
+	java_object_t     *o;
 	functionptr        f;
 	bool               result;
-	java_objectheader *e;
+	java_handle_t     *e;
 
 	/* define the patcher function */
 
@@ -77,7 +80,7 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	/* get stuff from the stack */
 
 	xpc = (u1 *)                *((ptrint *) (sp + 6 * 4));
-	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 4));
+	o   = (java_object_t *)     *((ptrint *) (sp + 4 * 4));
 	f   = (functionptr)         *((ptrint *) (sp + 0 * 4));
 
 	/* calculate and set the new return address */
@@ -171,7 +174,7 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* patch the field value's address */
 
-	*((ptrint *) (ra + 1)) = (ptrint) &(fi->value);
+	*((intptr_t *) (ra + 1)) = (intptr_t) fi->value;
 
 	return true;
 }

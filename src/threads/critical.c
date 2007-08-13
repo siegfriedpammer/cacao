@@ -30,14 +30,13 @@
 #include "config.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
 #include "threads/critical.h"
 
 #include "toolbox/avl.h"
-
-#include "vm/jit/asmpart.h"
 
 
 /* the AVL tree containing the critical sections */
@@ -47,8 +46,7 @@ static avl_tree_t *criticaltree;
 
 /* prototypes *****************************************************************/
 
-static s4 critical_comparator(const void *treenode, const void *node);
-static void critical_register_asm_critical_sections(void);
+static int critical_comparator(const void *treenode, const void *node);
 
 
 /* critical_init ***************************************************************
@@ -60,8 +58,6 @@ static void critical_register_asm_critical_sections(void);
 void critical_init(void)
 {
     criticaltree = avl_create(&critical_comparator);
-
-	critical_register_asm_critical_sections();
 }
 
 
@@ -78,7 +74,7 @@ void critical_init(void)
 
 *******************************************************************************/
 
-static s4 critical_comparator(const void *treenode, const void *node)
+static int critical_comparator(const void *treenode, const void *node)
 {
 	const critical_section_node_t *treecsn;
 	const critical_section_node_t *csn;
@@ -157,24 +153,6 @@ u1 *critical_find_restart_point(u1 *pc)
 		return NULL;
 
 	return csn->restart;
-}
-
-
-/* critical_register_asm_critical_sections *************************************
-
-   Register critical sections defined in the array asm_criticalsections.
-
-*******************************************************************************/
-
-static void critical_register_asm_critical_sections(void)
-{
-	/* XXX TWISTI: this is just a quick hack */
-#if defined(ENABLE_JIT) && defined(ENABLE_THREADS)
-	critical_section_node_t *n = &asm_criticalsections;
-
-	while (n->start)
-		critical_section_register(n++);
-#endif
 }
 
 

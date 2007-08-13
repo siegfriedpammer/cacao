@@ -22,13 +22,14 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md-abi.c 8123 2007-06-20 23:50:55Z michi $
+   $Id: md-abi.c 8270 2007-08-08 13:57:12Z twisti $
 
 */
 
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
 
 #include "vm/jit/powerpc/darwin/md-abi.h"
 
@@ -41,7 +42,7 @@
 
 /* register descripton arrays *************************************************/
 
-s4 nregdescint[] = {
+int nregdescint[] = {
 	/* zero,      sp,      t0,   a0/v0,   a0/v1,      a2,      a3,      a4,   */
 	REG_RES, REG_RES, REG_TMP, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
 
@@ -64,7 +65,7 @@ const char *abi_registers_integer_name[] = {
 	"r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31",
 };
 
-const s4 abi_registers_integer_argument[] = {
+const int abi_registers_integer_argument[] = {
 	3,  /* a0 */
 	4,  /* a1 */
 	5,  /* a2 */
@@ -75,7 +76,7 @@ const s4 abi_registers_integer_argument[] = {
 	10, /* a7 */
 };
 
-const s4 abi_registers_integer_saved[] = {
+const int abi_registers_integer_saved[] = {
 	14, /* s0 */
 	15, /* s1 */
 	24, /* s2 */
@@ -88,7 +89,7 @@ const s4 abi_registers_integer_saved[] = {
 	31, /* s9 */
 };
 
-const s4 abi_registers_integer_temporary[] = {
+const int abi_registers_integer_temporary[] = {
 	2,  /* t0 */
 	17, /* t1 */
 	18, /* t2 */
@@ -100,7 +101,7 @@ const s4 abi_registers_integer_temporary[] = {
 };
 
 
-s4 nregdescfloat[] = {
+int nregdescfloat[] = {
 	/*ftmp3,  fa0/v0,     fa1,     fa2,     fa3,     fa4,     fa5,     fa6,   */
 	REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG,
 
@@ -116,7 +117,7 @@ s4 nregdescfloat[] = {
 	REG_END
 };
 
-const s4 abi_registers_float_argument[] = {
+const int abi_registers_float_argument[] = {
 	1,  /* fa0  */
 	2,  /* fa1  */
 	3,  /* fa2  */
@@ -132,7 +133,7 @@ const s4 abi_registers_float_argument[] = {
 	13, /* fa12 */
 };
 
-const s4 abi_registers_float_saved[] = {
+const int abi_registers_float_saved[] = {
 	14, /* fs0  */
 	15, /* fs1  */
 	24, /* fs2  */
@@ -145,7 +146,7 @@ const s4 abi_registers_float_saved[] = {
 	31, /* fs9  */
 };
 
-const s4 abi_registers_float_temporary[] = {
+const int abi_registers_float_temporary[] = {
 	17, /* ft5  */
 	18, /* ft6  */
 	19, /* ft7  */
@@ -176,10 +177,110 @@ const s4 abi_registers_float_temporary[] = {
 void md_param_alloc(methoddesc *md)
 {
 	paramdesc *pd;
-	s4         i;
-	s4         iarg;
-	s4         farg;
-	s4         stacksize;
+	int        i;
+	int        iarg;
+	int        farg;
+	int        stacksize;
+
+	/* set default values */
+
+	iarg      = 0;
+	farg      = 0;
+	stacksize = LA_SIZE_IN_POINTERS;
+
+	/* get params field of methoddesc */
+
+	pd = md->params;
+
+	for (i = 0; i < md->paramcount; i++, pd++) {
+		switch (md->paramtypes[i].type) {
+		case TYPE_INT:
+		case TYPE_ADR:
+			if (iarg < INT_ARG_CNT) {
+				pd->inmemory = false;
+				pd->index    = iarg;
+				pd->regoff   = abi_registers_integer_argument[iarg];
+				iarg++;
+			}
+			else {
+				pd->inmemory = true;
+				pd->index    = stacksize;
+				pd->regoff   = stacksize * 8;
+				stacksize++;
+			}
+			break;
+
+		case TYPE_LNG:
+			if (iarg < INT_ARG_CNT - 1) {
+				pd->inmemory = false;
+				pd->index    = PACK_REGS(iarg + 1, iarg);
+				pd->regoff   =
+					PACK_REGS(abi_registers_integer_argument[iarg + 1],
+							  abi_registers_integer_argument[iarg]);
+				iarg += 2;
+			}
+			else {
+				pd->inmemory = true;
+				pd->index    = stacksize;
+				pd->regoff   = stacksize * 8;
+				iarg         = INT_ARG_CNT;
+				stacksize++;
+			}
+			break;
+
+		case TYPE_FLT:
+		case TYPE_DBL:
+			if (farg < FLT_ARG_CNT) {
+				pd->inmemory = false;
+				pd->index    = farg;
+				pd->regoff   = abi_registers_float_argument[farg];
+				farg++;
+			}
+			else {
+				pd->inmemory = true;
+				pd->index    = stacksize;
+				pd->regoff   = stacksize * 8;
+				stacksize++;
+			}
+			break;
+		}
+	}
+
+
+	/* Since R3/R4, F1 (==A0/A1, A0) are used for passing return values, this */
+	/* argument register usage has to be regarded, too                        */
+
+	if (IS_INT_LNG_TYPE(md->returntype.type)) {
+		if (iarg < (IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1))
+			iarg = IS_2_WORD_TYPE(md->returntype.type) ? 2 : 1;
+	}
+	else {
+		if (IS_FLT_DBL_TYPE(md->returntype.type))
+			if (farg < 1)
+				farg = 1;
+	}
+
+	/* fill register and stack usage */
+
+	md->argintreguse = iarg;
+	md->argfltreguse = farg;
+	md->memuse       = stacksize;
+}
+
+
+/* md_param_alloc_native *******************************************************
+
+   Pre-allocate arguments according the native ABI.
+
+*******************************************************************************/
+
+void md_param_alloc_native(methoddesc *md)
+{
+	paramdesc *pd;
+	int        i;
+	int        iarg;
+	int        farg;
+	int        stacksize;
 
 	/* set default values */
 
@@ -272,21 +373,6 @@ void md_param_alloc(methoddesc *md)
 	md->argintreguse = iarg;
 	md->argfltreguse = farg;
 	md->memuse       = stacksize;
-}
-
-
-/* md_param_alloc_native *******************************************************
-
-   Pre-allocate arguments according the native ABI.
-
-*******************************************************************************/
-
-void md_param_alloc_native(methoddesc *md)
-{
-	/* On PowerPC we use the same ABI for JIT method calls as for
-	   native method calls. */
-
-	md_param_alloc(md);
 }
 
 

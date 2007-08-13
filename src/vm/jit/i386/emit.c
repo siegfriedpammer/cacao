@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8211 2007-07-18 19:52:23Z michi $
+   $Id: emit.c 8267 2007-08-07 11:07:48Z twisti $
 
 */
 
@@ -573,6 +573,27 @@ void emit_patcher_stubs(jitdata *jd)
 					  (cd->mcodeptr + PATCHER_CALL_SIZE));
 		}
 	}
+}
+
+
+/* emit_trap *******************************************************************
+
+   Emit a trap instruction and return the original machine code.
+
+*******************************************************************************/
+
+uint32_t emit_trap(codegendata *cd)
+{
+	uint32_t mcode;
+
+	/* Get machine code which is patched back in later. The
+	   trap is 1 instruction word long. */
+
+	mcode = *((uint32_t *) cd->mcodeptr);
+
+	M_NOP;
+
+	return mcode;
 }
 
 

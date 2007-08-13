@@ -757,16 +757,37 @@ void emit_patcher_stubs(jitdata *jd)
 }
 
 
+/* emit_trap *******************************************************************
+
+   Emit a trap instruction and return the original machine code.
+
+*******************************************************************************/
+
+uint32_t emit_trap(codegendata *cd)
+{
+	uint32_t mcode;
+
+	/* Get machine code which is patched back in later. The
+	   trap is 1 instruction word long. */
+
+	mcode = *((uint32_t *) cd->mcodeptr);
+
+	M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_PATCHER);
+
+	return mcode;
+}
+
+
 /*
-* These are local overrides for various environment variables in Emacs.
-* Please do not remove this and leave it at the end of the file, where
-* Emacs will automagically detect them.
-* ---------------------------------------------------------------------
-* Local variables:
-* mode: c
-* indent-tabs-mode: t
-* c-basic-offset: 4
-* tab-width: 4
-* End:
-* vim:noexpandtab:sw=4:ts=4:
-*/
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

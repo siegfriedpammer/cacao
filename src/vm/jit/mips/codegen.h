@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 7691 2007-04-12 12:45:10Z twisti $
+   $Id: codegen.h 8264 2007-08-06 16:02:28Z twisti $
 
 */
 
@@ -115,15 +115,11 @@
 
 /* patcher defines ************************************************************/
 
-#define PATCHER_CALL_INSTRUCTIONS    5     /* number of instructions          */
-#define PATCHER_CALL_SIZE            5 * 4 /* size in bytes of a patcher call */
+#define PATCHER_CALL_INSTRUCTIONS    1     /* number of instructions          */
+#define PATCHER_CALL_SIZE            1 * 4 /* size in bytes of a patcher call */
 
 #define PATCHER_NOPS \
     do { \
-        M_NOP; \
-        M_NOP; \
-        M_NOP; \
-        M_NOP; \
         M_NOP; \
     } while (0)
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 8245 2007-07-31 09:55:04Z michi $
+   $Id: threads.h 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -44,6 +44,7 @@ typedef struct threadobject threadobject;
 
 #include "mm/memory.h"
 #include "native/jni.h"
+#include "native/localref.h"
 #include "native/include/java_lang_Thread.h"
 
 #include "threads/native/lock.h"
@@ -140,7 +141,7 @@ struct threadobject {
 
 	u1                   *pc;           /* current PC (used for profiling)    */
 
-	java_objectheader    *_exceptionptr;     /* current exception             */
+	java_object_t        *_exceptionptr;     /* current exception             */
 	stackframeinfo       *_stackframeinfo;   /* current native stackframeinfo */
 	localref_table       *_localref_table;   /* JNI local references          */
 

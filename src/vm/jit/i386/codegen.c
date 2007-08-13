@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8245 2007-07-31 09:55:04Z michi $
+   $Id: codegen.c 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include "vm/types.h"
@@ -41,6 +42,7 @@
 
 #include "mm/memory.h"
 #include "native/jni.h"
+#include "native/localref.h"
 #include "native/native.h"
 
 #include "threads/lock-common.h"
@@ -2199,7 +2201,7 @@ bool codegen_emit(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = (ptrint) &(fi->value);
+				disp      = (intptr_t) fi->value;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
@@ -2240,7 +2242,7 @@ bool codegen_emit(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = (ptrint) &(fi->value);
+				disp      = (intptr_t) fi->value;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
@@ -2282,7 +2284,7 @@ bool codegen_emit(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp      = (ptrint) &(fi->value);
+				disp      = (intptr_t) fi->value;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
 					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
@@ -2309,21 +2311,17 @@ bool codegen_emit(jitdata *jd)
 			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 
 				codegen_addpatchref(cd, PATCHER_getfield,
 									iptr->sx.s23.s3.uf, 0);
-
-				disp = 0;
-
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-				
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = fi->offset;
+				disp      = fi->offset;
 			}
 
 			switch (fieldtype) {
@@ -2356,13 +2354,11 @@ bool codegen_emit(jitdata *jd)
 			/* must be done here because of code patching */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 			}
 
@@ -2376,16 +2372,15 @@ bool codegen_emit(jitdata *jd)
 				s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
-				codegen_addpatchref(cd, PATCHER_putfield, uf, 0);
-
+				/* XXX */
+				uf   = iptr->sx.s23.s3.uf;
 				disp = 0;
 
+				codegen_addpatchref(cd, PATCHER_putfield, uf, 0);
 			}
 			else {
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+				/* XXX */
+				fi   = iptr->sx.s23.s3.fmiref->p.field;
 				disp = fi->offset;
 			}
 
@@ -2414,24 +2409,18 @@ bool codegen_emit(jitdata *jd)
 			emit_nullpointer_check(cd, iptr, s1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_field *uf = iptr->sx.s23.s3.uf;
-
+				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
+				disp      = 0;
 
 				codegen_addpatchref(cd, PATCHER_putfieldconst,
 									uf, 0);
-
-				disp = 0;
-
 			}
-			else
-			{
-				fieldinfo *fi = iptr->sx.s23.s3.fmiref->p.field;
-
+			else {
+				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
-				disp = fi->offset;
+				disp      = fi->offset;
 			}
-
 
 			switch (fieldtype) {
 			case TYPE_INT:
@@ -3024,7 +3013,7 @@ gen_method:
 				}
 
 				M_ALD(REG_METHODPTR, REG_ITMP1,
-					  OFFSET(java_objectheader, vftbl));
+					  OFFSET(java_object_t, vftbl));
 				M_ALD32(REG_ITMP3, REG_METHODPTR, s1);
 				M_CALL(REG_ITMP3);
 				break;
@@ -3052,7 +3041,7 @@ gen_method:
 				}
 
 				M_ALD(REG_METHODPTR, REG_ITMP1,
-					  OFFSET(java_objectheader, vftbl));
+					  OFFSET(java_object_t, vftbl));
 				M_ALD32(REG_METHODPTR, REG_METHODPTR, s1);
 				M_ALD32(REG_ITMP3, REG_METHODPTR, s2);
 				M_CALL(REG_ITMP3);
@@ -3139,7 +3128,7 @@ gen_method:
 						emit_label_beq(cd, BRANCH_LABEL_3);
 					}
 
-					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 
 					if (super == NULL) {
 						codegen_addpatchref(cd, PATCHER_checkcast_interface,
@@ -3177,7 +3166,7 @@ gen_method:
 						emit_label_beq(cd, BRANCH_LABEL_5);
 					}
 
-					M_ALD(REG_ITMP2, s1, OFFSET(java_objectheader, vftbl));
+					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 
 					if (super == NULL) {
 						codegen_addpatchref(cd, PATCHER_checkcast_class,
@@ -3302,7 +3291,7 @@ gen_method:
 					emit_label_beq(cd, BRANCH_LABEL_3);
 				}
 
-				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 
 				if (super == NULL) {
 					codegen_addpatchref(cd, PATCHER_instanceof_interface,
@@ -3344,7 +3333,7 @@ gen_method:
 					emit_label_beq(cd, BRANCH_LABEL_5);
 				}
 
-				M_ALD(REG_ITMP1, s1, OFFSET(java_objectheader, vftbl));
+				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 
 				if (super == NULL) {
 					codegen_addpatchref(cd, PATCHER_instanceof_class,

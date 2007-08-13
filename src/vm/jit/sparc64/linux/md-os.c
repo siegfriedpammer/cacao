@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <signal.h>
 
 #include "vm/types.h"
@@ -37,7 +38,6 @@
 #include "vm/jit/sparc64/codegen.h"
 #include "vm/jit/sparc64/md-abi.h"
 
-#include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
@@ -98,13 +98,13 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *info , void *_p)
 	u1          *ra;
 	u1          *xpc;
 	u4          mcode;
-	s4                 d;
-	s4                 s1;
-	s4                 disp;
-	ptrint             val;
-	ptrint             addr;
-	s4                 type;
-	java_objectheader *e;
+	int         d;
+	int         s1;
+	int16_t     disp;
+	intptr_t    val;
+	intptr_t    addr;
+	int         type;
+	void       *p;
 
 	ctx = (sigcontext *) info;
 
@@ -137,17 +137,17 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *info , void *_p)
 		/* This is a normal NPE: addr must be NULL and the NPE-type
 		   define is 0. */
 
-		addr  = md_get_reg_from_context(ctx, s1);
-		type = (s4) addr;
+		addr = md_get_reg_from_context(ctx, s1);
+		type = (int) addr;
 	}
 
 	/* create stackframeinfo */
 
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-	/* generate appropriate exception */
+	/* Handle the type. */
 
-	e = exceptions_new_hardware_exception(xpc, type, val);
+	p = signal_handle(xpc, type, val);
 
 	/* remove stackframeinfo */
 
@@ -155,12 +155,11 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *info , void *_p)
 
 	/* set registers */
 
-	ctx->sigc_regs.u_regs[REG_ITMP2_XPTR] = (ptrint) e;
-	ctx->sigc_regs.u_regs[REG_ITMP3_XPC]  = (ptrint) xpc;
-	ctx->sigc_regs.tpc                    = (ptrint) asm_handle_exception;
-	ctx->sigc_regs.tnpc                   = (ptrint) asm_handle_exception + 4;
+	ctx->sigc_regs.u_regs[REG_ITMP2_XPTR] = (intptr_t) p;
+	ctx->sigc_regs.u_regs[REG_ITMP3_XPC]  = (intptr_t) xpc;
+	ctx->sigc_regs.tpc                    = (intptr_t) asm_handle_exception;
+	ctx->sigc_regs.tnpc                   = (intptr_t) asm_handle_exception + 4;
 }
-
 
 
 /* md_icacheflush **************************************************************

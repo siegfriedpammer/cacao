@@ -39,6 +39,7 @@
 #include "vm/global.h"                          /* required by native headers */
 
 #include "native/jni.h"
+#include "native/llni.h"
 
 /* keep this order of the native includes */
 
@@ -107,7 +108,7 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 	if (name != NULL) {
 		/* convert '.' to '/' in java string */
 
-		utfname = javastring_toutf((java_objectheader *) name, true);
+		utfname = javastring_toutf((java_handle_t *) name, true);
 	} 
 	else {
 		utfname = NULL;
@@ -120,7 +121,7 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 
 	if (jvmti)
 		jvmti_ClassFileLoadHook(utfname, len, (unsigned char *) data->data, 
-								loader, (java_objectheader *) pd, 
+								loader, (java_handle_t *) pd, 
 								&new_class_data_len, &new_class_data);
 #endif
 
@@ -145,7 +146,7 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 #if defined(WITH_CLASSPATH_GNU)
 	/* set ProtectionDomain */
 
-	o->pd = pd;
+	LLNI_field_set_ref(o, pd, pd);
 #endif
 
 	return o;

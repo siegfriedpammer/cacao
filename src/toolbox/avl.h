@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: avl.h 7860 2007-05-03 12:30:05Z twisti $
+   $Id: avl.h 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -58,7 +58,7 @@ typedef struct avl_node_t avl_node_t;
 
 struct avl_tree_t {
 #if defined(ENABLE_THREADS)
-	java_objectheader *lock;            /* threads lock object                */
+	java_object_t     *lock;            /* threads lock object                */
 #endif
 	avl_node_t        *root;            /* pointer to root node               */
 	avl_comparator    *comparator;      /* pointer to comparison function     */

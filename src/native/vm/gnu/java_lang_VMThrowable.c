@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMThrowable.c 7910 2007-05-16 08:02:52Z twisti $
+   $Id: java_lang_VMThrowable.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -34,6 +34,7 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/gnu_classpath_Pointer.h"
@@ -100,7 +101,7 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 	if (stc == NULL)
 		return NULL;
 
-	o->vmData = (gnu_classpath_Pointer *) stc;
+	LLNI_field_set_ref(o, vmData, (gnu_classpath_Pointer *) stc);
 
 	return o;
 }
@@ -133,12 +134,13 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 
 	/* get the stacktrace buffer from the VMThrowable object */
 
-	stc = (stacktracecontainer *) this->vmData;
+	/*XXX stc = (stacktracecontainer *) this->vmData;*/
+	LLNI_field_get_ref(this, vmData, stc);
 	stb = &(stc->stb);
 
 	/* get the class of the Throwable object */
 
-	c = t->header.vftbl->class;
+	LLNI_class_get(t, c);
 
 	assert(stb != NULL);
 
@@ -255,13 +257,13 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 
 		/* fill the java.lang.StackTraceElement element */
 
-		o->fileName       = filename;
-		o->lineNumber     = linenumber;
-		o->declaringClass = declaringclass;
-		o->methodName     = (java_lang_String *) javastring_new(ste->method->name);
-		o->isNative       = (ste->method->flags & ACC_NATIVE) ? 1 : 0;
+		LLNI_field_set_ref(o, fileName      , filename);
+		LLNI_field_set_val(o, lineNumber    , linenumber);
+		LLNI_field_set_ref(o, declaringClass, declaringclass);
+		LLNI_field_set_ref(o, methodName    , (java_lang_String *) javastring_new(ste->method->name));
+		LLNI_field_set_val(o, isNative      , (ste->method->flags & ACC_NATIVE) ? 1 : 0);
 
-		oa->data[i] = (java_objectheader *) o;
+		oa->data[i] = o;
 	}
 
 	return oa;

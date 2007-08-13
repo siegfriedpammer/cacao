@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.h 8179 2007-07-05 11:21:08Z michi $
+   $Id: native.h 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -133,20 +133,19 @@ functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
 
 # if defined(ENABLE_LTDL)
 lt_dlhandle native_library_open(utf *filename);
-void        native_library_add(utf *filename, java_objectheader *loader,
+void        native_library_add(utf *filename, classloader *loader,
 							   lt_dlhandle handle);
 hashtable_library_name_entry *native_library_find(utf *filename,
-												  java_objectheader *loader);
+												  classloader *loader);
 # endif
 
 functionptr native_resolve_function(methodinfo *m);
 
 #endif /* defined(WITH_STATIC_CLASSPATH) */
 
-java_objectheader *native_new_and_init(classinfo *c);
+java_handle_t *native_new_and_init(classinfo *c);
 
-java_objectheader *native_new_and_init_string(classinfo *c,
-											  java_objectheader *s);
+java_handle_t *native_new_and_init_string(classinfo *c, java_handle_t *s);
 
 #endif /* _NATIVE_H */
 

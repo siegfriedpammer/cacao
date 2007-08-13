@@ -46,7 +46,7 @@
 
 /* exception pointer **********************************************************/
 
-extern java_objectheader    *_no_threads_exceptionptr;
+extern java_object_t        *_no_threads_exceptionptr;
 
 #define exceptionptr        (&_no_threads_exceptionptr)
 

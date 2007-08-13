@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.c 8132 2007-06-22 11:15:47Z twisti $
+   $Id: utf8.c 8249 2007-07-31 12:59:03Z panzi $
 
 */
 
@@ -152,8 +152,20 @@ utf *utf_SourceFile;                    /* SourceFile                         */
 #if defined(ENABLE_JAVASE)
 utf *utf_EnclosingMethod;
 utf *utf_Signature;
-utf *utf_RuntimeVisibleAnnotations;
 utf *utf_StackMapTable;
+
+#if defined(ENABLE_ANNOTATIONS)
+utf *utf_sun_reflect_ConstantPool;
+#if defined(WITH_CLASSPATH_GNU)
+utf *utf_sun_reflect_annotation_AnnotationParser;
+#endif
+
+utf *utf_RuntimeVisibleAnnotations;
+utf *utf_RuntimeInvisibleAnnotations;
+utf *utf_RuntimeVisibleParameterAnnotations;
+utf *utf_RuntimeInvisibleParameterAnnotations;
+utf *utf_AnnotationDefault;
+#endif
 #endif
 
 utf *utf_init;                          /* <init>                             */
@@ -393,8 +405,20 @@ bool utf8_init(void)
 #if defined(ENABLE_JAVASE)
 	utf_EnclosingMethod            = utf_new_char("EnclosingMethod");
 	utf_Signature                  = utf_new_char("Signature");
-	utf_RuntimeVisibleAnnotations  = utf_new_char("RuntimeVisibleAnnotations");
 	utf_StackMapTable              = utf_new_char("StackMapTable");
+
+#if defined(ENABLE_ANNOTATIONS)
+	utf_sun_reflect_ConstantPool                = utf_new_char("sun/reflect/ConstantPool");
+#if defined(WITH_CLASSPATH_GNU)
+	utf_sun_reflect_annotation_AnnotationParser = utf_new_char("sun/reflect/annotation/AnnotationParser");
+#endif
+
+	utf_RuntimeVisibleAnnotations            = utf_new_char("RuntimeVisibleAnnotations");
+	utf_RuntimeInvisibleAnnotations          = utf_new_char("RuntimeInvisibleAnnotations");
+	utf_RuntimeVisibleParameterAnnotations   = utf_new_char("RuntimeVisibleParameterAnnotations");
+	utf_RuntimeInvisibleParameterAnnotations = utf_new_char("RuntimeInvisibleParameterAnnotations");
+	utf_AnnotationDefault                    = utf_new_char("AnnotationDefault");
+#endif
 #endif
 
 	utf_init	                   = utf_new_char("<init>");

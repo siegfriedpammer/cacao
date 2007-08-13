@@ -95,7 +95,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, actual_ucontext_t *_
 	uint16_t	opc;
 	uint32_t 	val, regval, off;
 	bool		adrreg;
-	java_objectheader *e;
+	void        *p;
 	mcontext_t 	*_mc;
 
 	_mc = &_uc->uc_mcontext;
@@ -146,17 +146,17 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, actual_ucontext_t *_
 
 	stacktrace_create_extern_stackframeinfo(&sfi, NULL, sp, xpc, xpc);
 
-	/* generate appropriate exception */
+	/* Handle the type. */
 
-	e = exceptions_new_hardware_exception(xpc, EXCEPTION_HARDWARE_NULLPOINTER, regval);
+	p = signal_handle(xpc, EXCEPTION_HARDWARE_NULLPOINTER, regval);
 
 	/* remove stackframeinfo */
 
 	stacktrace_remove_stackframeinfo(&sfi);
 
-	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (ptrint) e;
-	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (ptrint) xpc;
-	_mc->gregs[R_PC]          = (ptrint) asm_handle_exception;
+	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (intptr_t) p;
+	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (intptr_t) xpc;
+	_mc->gregs[R_PC]                             = (intptr_t) asm_handle_exception;
 }
 
 /* md_signal_handler_sigill *******************************************
@@ -174,7 +174,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, actual_ucontext_t *_u
 	uint16_t	opc;
 	uint32_t	type;
 	uint32_t	val, regval;
-	java_objectheader *e;
+	void        *p;
 	mcontext_t 	*_mc;
 
 	xpc = siginfo->si_addr;
@@ -227,17 +227,17 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, actual_ucontext_t *_u
 
 	stacktrace_create_extern_stackframeinfo(&sfi, NULL, sp, xpc, xpc);
 
-	/* generate appropriate exception */
+	/* Handle the type. */
 
-	e = exceptions_new_hardware_exception(xpc, type, regval);
+	p = signal_handle(xpc, type, val);
 
 	/* remove stackframeinfo */
 
 	stacktrace_remove_stackframeinfo(&sfi);
 
-	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (ptrint) e;
-	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (ptrint) xpc;
-	_mc->gregs[R_PC]          = (ptrint) asm_handle_exception;
+	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (intptr_t) p;
+	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (intptr_t) xpc;
+	_mc->gregs[R_PC]                             = (intptr_t) asm_handle_exception;
 }
 
 /* md_signal_handler_sigusr1 ***************************************************

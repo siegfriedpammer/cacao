@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: initialize.c 7813 2007-04-25 19:20:13Z twisti $
+   $Id: initialize.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -130,8 +130,8 @@ bool initialize_class(classinfo *c)
 
 static bool initialize_class_intern(classinfo *c)
 {
-	methodinfo        *m;
-	java_objectheader *xptr;
+	methodinfo    *m;
+	java_handle_t *xptr;
 
 	/* maybe the class is not already linked */
 

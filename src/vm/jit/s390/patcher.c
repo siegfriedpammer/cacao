@@ -26,150 +26,38 @@
 
    Authors: Christian Thalinger
 
-   Changes:
+   Changes: Peter Molnar
 
-   $Id: patcher.c 8195 2007-07-11 11:27:55Z pm $
-
-     GENERATED      PATCHER BRANCH           AFTER PATCH
-
-   Short patcher call:
-
-     foo            bras %r14, OFFSET        foo
-     bar     ===>   bar                ===>  bar
-     baz            baz                      baz
-
-   Short patcher call with nops:
-                                             PATCHER_NOPS_SKIP <-+
-                                                                 |
-     nop            bras %r14, OFFSET        nop               --+
-     nop     ===>   nop                ===>  nop                 |
-     nop            nop                      nop               --+
-     foo            foo                      foo
-
-   Long pacher call:
-                                PATCHER_LONGBRANCHES_NOPS_SKIP <-+
-                                                                 |
-     br exit:       ild itmp3, disp(pv)      br exit            -+
-	 nop            aadd pv, itmp3           aadd pv, itmp3      | 
-	 nop     ===>   nop                ===>  nop                 |
-	 .....          ....                     ....                |
-	 nop            basr itmp3, itmp3        basr itmp3, itmp3  -+
-   exit:                                   exit:
+   $Id: patcher.c 8268 2007-08-07 13:24:43Z twisti $
 
 */
 
 
 #include "config.h"
-#include "vm/types.h"
 
-#include "vm/jit/s390/codegen.h"
-#include "vm/jit/s390/md-abi.h"
+#include <assert.h>
+#include <stdint.h>
 
 #include "mm/memory.h"
 #include "native/native.h"
 #include "vm/builtin.h"
-#include "vmcore/class.h"
 #include "vm/exceptions.h"
-#include "vmcore/field.h"
 #include "vm/initialize.h"
+#include "vm/jit/patcher-common.h"
+#include "vm/jit/s390/codegen.h"
+#include "vm/jit/s390/md-abi.h"
+#include "vm/jit/stacktrace.h"
+#include "vm/resolve.h"
+#include "vm/types.h"
+#include "vmcore/class.h"
+#include "vmcore/field.h"
 #include "vmcore/options.h"
 #include "vmcore/references.h"
-#include "vm/resolve.h"
-#include "vm/jit/patcher.h"
-#include "vm/jit/stacktrace.h"
 
-#include <assert.h>
-#define OOPS() assert(0);
-#define __PORTED__
+#define PATCH_BACK_ORIGINAL_MCODE \
+	*((u2 *) pr->mpc) = (u2) pr->mcode;
 
-/* A normal patcher branch done using BRAS */
-#define PATCHER_IS_SHORTBRANCH(brcode) ((brcode & 0xFF0F0000) == 0xA7050000)
-
-/* patcher_wrapper *************************************************************
-
-   Wrapper for all patchers.  It also creates the stackframe info
-   structure.
-
-   If the return value of the patcher function is false, it gets the
-   exception object, clears the exception pointer and returns the
-   exception.
-
-*******************************************************************************/
-
-java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
-{
-	stackframeinfo     sfi;
-	u1                *xpc;
-	java_objectheader *o;
-	functionptr        f;
-	bool               result;
-	java_objectheader *e;
-
-	/* define the patcher function */
-
-	bool (*patcher_function)(u1 *);
-
-	/* get stuff from the stack */
-
-	xpc = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 4));
-	f   = (functionptr)         *((ptrint *) (sp + 0 * 4));
-	
-	/* For a normal branch, the patch position is SZ_BRAS bytes before the RA.
-	 * For long branches it is PATCHER_LONGBRANCHES_NOPS_SKIP before the RA.
-	 */
-
-	if (PATCHER_IS_SHORTBRANCH(*(u4 *)(xpc - SZ_BRAS))) {
-		xpc = xpc - SZ_BRAS;
-	} else {
-		xpc = xpc - PATCHER_LONGBRANCHES_NOPS_SKIP;
-	}
-
-	*((ptrint *) (sp + 5 * 4)) = (ptrint) xpc;
-
-	/* store PV into the patcher function position */
-
-	*((ptrint *) (sp + 0 * 4)) = (ptrint) pv;
-
-	/* cast the passed function to a patcher function */
-
-	patcher_function = (bool (*)(u1 *)) (ptrint) f;
-
-	/* enter a monitor on the patching position */
-
-	PATCHER_MONITORENTER;
-
-	/* create the stackframeinfo */
-
-	/* RA is passed as NULL, but the XPC is correct and can be used in
-	   stacktrace_create_extern_stackframeinfo for
-	   md_codegen_get_pv_from_pc. */
-
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + (6 * 4), ra, xpc);
-
-	/* call the proper patcher function */
-
-	result = (patcher_function)(sp);
-
-	/* remove the stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	/* check for return value and exit accordingly */
-
-	if (result == false) {
-		e = exceptions_get_and_clear_exception();
-
-		PATCHER_MONITOREXIT;
-
-		return e;
-	}
-
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
-	return NULL;
-}
-
+#define PATCHER_TRACE 
 
 /* patcher_get_putstatic *******************************************************
 
@@ -177,22 +65,18 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 
 *******************************************************************************/
 
-bool patcher_get_putstatic(u1 *sp)
+bool patcher_get_putstatic(patchref_t *pr)
 {
-	u1               *ra;
-	u4                mcode;
 	unresolved_field *uf;
-	s4                disp;
+	u1               *datap;
 	fieldinfo        *fi;
-	u1               *pv;
+
+	PATCHER_TRACE;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)               *((ptrint *) (sp + 5 * 4));
-	mcode =                      *((u4 *)     (sp + 3 * 4));
-	uf    = (unresolved_field *) *((ptrint *) (sp + 2 * 4));
-	disp  =                      *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)               *((ptrint *) (sp + 0 * 4));
+	uf    = (unresolved_field *) pr->ref;
+	datap = (u1 *)               pr->datap;
 
 	/* get the fieldinfo */
 
@@ -205,11 +89,11 @@ bool patcher_get_putstatic(u1 *sp)
 		if (!initialize_class(fi->class))
 			return false;
 
-	*((ptrint *) (pv + disp)) = (ptrint) &(fi->value);
+	PATCH_BACK_ORIGINAL_MCODE;
 
-	/* patch back original code */
+	/* patch the field value's address */
 
-	*((u4 *) ra) = mcode;
+	*((intptr_t *) datap) = (intptr_t) fi->value;
 
 	return true;
 }
@@ -221,37 +105,31 @@ bool patcher_get_putstatic(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_get_putfield(u1 *sp)
+bool patcher_get_putfield(patchref_t *pr)
 {
 	u1               *ra;
-	u4                mcode, brcode;
 	unresolved_field *uf;
 	fieldinfo        *fi;
-	u1                byte;
 	s4                disp;
+
+	PATCHER_TRACE;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)               *((ptrint *) (sp + 5 * 4));
-	mcode =                      *((u4 *)     (sp + 3 * 4));
-	uf    = (unresolved_field *) *((ptrint *) (sp + 2 * 4));
-	disp  =                      *((s4 *)     (sp + 1 * 4));
+	ra    = (u1 *)               pr->mpc;
+	uf    = (unresolved_field *) pr->ref;
+	disp  =                      pr->disp;
 
 	/* get the fieldinfo */
 
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
-	/* patch back original code */
-
-	brcode = *((u4 *) ra);
-	*((u4 *) ra) = mcode;
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* If NOPs are generated, skip them */
 
-	if (! PATCHER_IS_SHORTBRANCH(brcode))
-		ra += PATCHER_LONGBRANCHES_NOPS_SKIP;
-	else if (opt_shownops)
+	if (opt_shownops)
 		ra += PATCHER_NOPS_SKIP;
 
 	/* If there is an operand load before, skip the load size passed in disp (see ICMD_PUTFIELD) */
@@ -281,39 +159,32 @@ bool patcher_get_putfield(u1 *sp)
 
 *******************************************************************************/
 
-__PORTED__ bool patcher_invokestatic_special(u1 *sp)
+bool patcher_invokestatic_special(patchref_t *pr)
 {
-	u1                *ra;
-	u4                 mcode;
 	unresolved_method *um;
-	s4                 disp;
-	u1                *pv;
+	u1                *datap;
 	methodinfo        *m;
+
+	PATCHER_TRACE;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+	um    = (unresolved_method *) pr->ref;
+	datap = (u1 *)                pr->datap;
 
 	/* get the fieldinfo */
 
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	*((ptrint *) (pv + disp)) = (ptrint) m->stubroutine;
-
-	/* patch back original code */
-
-	*((u4 *) ra) = mcode;
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* patch stubroutine */
 
+	*((ptrint *) datap) = (ptrint) m->stubroutine;
+
 	return true;
 }
-
 
 /* patcher_invokevirtual *******************************************************
 
@@ -321,19 +192,19 @@ __PORTED__ bool patcher_invokestatic_special(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_invokevirtual(u1 *sp)
+bool patcher_invokevirtual(patchref_t *pr)
 {
 	u1                *ra;
-	u4                 mcode, brcode;
 	unresolved_method *um;
 	methodinfo        *m;
-	s4                off;
+	s4                 off;
+
+	PATCHER_TRACE;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 4));
+	ra    = (u1 *)                pr->mpc;
+	um    = (unresolved_method *) pr->ref;
 
 	/* get the fieldinfo */
 
@@ -342,14 +213,11 @@ bool patcher_invokevirtual(u1 *sp)
 
 	/* patch back original code */
 
-	brcode = *((u4 *) ra);
-	*((u4 *) ra) = mcode;
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* If NOPs are generated, skip them */
 
-	if (! PATCHER_IS_SHORTBRANCH(brcode))
-		ra += PATCHER_LONGBRANCHES_NOPS_SKIP;
-	else if (opt_shownops)
+	if (opt_shownops)
 		ra += PATCHER_NOPS_SKIP;
 
 	/* patch vftbl index */
@@ -372,19 +240,19 @@ bool patcher_invokevirtual(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_invokeinterface(u1 *sp)
+bool patcher_invokeinterface(patchref_t *pr)
 {
 	u1                *ra;
-	u4                 mcode, brcode;
 	unresolved_method *um;
 	methodinfo        *m;
 	s4                 idx, off;
 
+	PATCHER_TRACE;
+
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	um    = (unresolved_method *) *((ptrint *) (sp + 2 * 4));
+	ra    = (u1 *)                pr->mpc;
+	um    = (unresolved_method *) pr->ref;
 
 	/* get the fieldinfo */
 
@@ -393,14 +261,11 @@ bool patcher_invokeinterface(u1 *sp)
 
 	/* patch back original code */
 
-	brcode = *((u4 *) ra);
-	*((u4 *) ra) = mcode;
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* If NOPs are generated, skip them */
 
-	if (! PATCHER_IS_SHORTBRANCH(brcode))
-		ra += PATCHER_LONGBRANCHES_NOPS_SKIP;
-	else if (opt_shownops)
+	if (opt_shownops)
 		ra += PATCHER_NOPS_SKIP;
 
 	/* get interfacetable index */
@@ -433,35 +298,29 @@ bool patcher_invokeinterface(u1 *sp)
 
 *******************************************************************************/
 
-__PORTED__ bool patcher_resolve_classref_to_flags(u1 *sp)
+bool patcher_resolve_classref_to_flags(patchref_t *pr)
 {
 	constant_classref *cr;
-	s4                 disp;
-	u1                *pv;
+	u1                *datap;
 	classinfo         *c;
-	u4                 mcode;
-	u1                *ra;
+
+	PATCHER_TRACE;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+	cr    = (constant_classref *) pr->ref;
+	datap = (u1 *)                pr->datap;
 
 	/* get the fieldinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
+	PATCH_BACK_ORIGINAL_MCODE;
+
 	/* patch class flags */
 
-	*((s4 *) (pv + disp)) = (s4) c->flags;
-
-	/* patch back original code */
-
-	*((u4 *) ra) = mcode;
+	*((s4 *) datap) = (s4) c->flags;
 
 	return true;
 }
@@ -474,35 +333,29 @@ __PORTED__ bool patcher_resolve_classref_to_flags(u1 *sp)
 
 *******************************************************************************/
 
-__PORTED__ bool patcher_resolve_classref_to_classinfo(u1 *sp)
+bool patcher_resolve_classref_to_classinfo(patchref_t *pr)
 {
 	constant_classref *cr;
-	s4                 disp;
-	u1                *pv;
+	u1                *datap;
 	classinfo         *c;
-	u4                 mcode;
-	u1                *ra;
+
+	PATCHER_TRACE;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+	cr    = (constant_classref *) pr->ref;
+	datap = (u1 *)                pr->datap;
 
 	/* get the classinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
+	PATCH_BACK_ORIGINAL_MCODE;
+
 	/* patch the classinfo pointer */
 
-	*((ptrint *) (pv + disp)) = (ptrint) c;
-
-	/* patch back original code */
-
-	*((u4 *) ra) = mcode;
+	*((ptrint *) datap) = (ptrint) c;
 
 	return true;
 }
@@ -514,35 +367,29 @@ __PORTED__ bool patcher_resolve_classref_to_classinfo(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_resolve_classref_to_vftbl(u1 *sp)
+bool patcher_resolve_classref_to_vftbl(patchref_t *pr)
 {
 	constant_classref *cr;
-	s4                 disp;
-	u1                *pv;
+	u1                *datap;
 	classinfo         *c;
-	u4                 mcode;
-	u1                *ra;
+
+	PATCHER_TRACE;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
-	disp  =                       *((s4 *)     (sp + 1 * 4));
-	pv    = (u1 *)                *((ptrint *) (sp + 0 * 4));
+	cr    = (constant_classref *) pr->ref;
+	datap = (u1 *)                pr->datap;
 
 	/* get the fieldinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
+	PATCH_BACK_ORIGINAL_MCODE;
+
 	/* patch super class' vftbl */
 
-	*((ptrint *) (pv + disp)) = (ptrint) c->vftbl;
-
-	/* patch back original code */
-
-	*((u4 *) ra) = mcode;
+	*((ptrint *) datap) = (ptrint) c->vftbl;
 
 	return true;
 }
@@ -553,18 +400,19 @@ bool patcher_resolve_classref_to_vftbl(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_checkcast_instanceof_interface(u1 *sp)
+bool patcher_checkcast_instanceof_interface(patchref_t *pr)
 {
+
 	u1                *ra;
-	u4                 mcode, brcode;
 	constant_classref *cr;
 	classinfo         *c;
 
+	PATCHER_TRACE;
+
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 5 * 4));
-	mcode =                       *((u4 *)     (sp + 3 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 2 * 4));
+	ra    = (u1 *)                pr->mpc;
+	cr    = (constant_classref *) pr->ref;
 
 	/* get the fieldinfo */
 
@@ -573,14 +421,11 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 	/* patch back original code */
 
-	brcode = *((u4 *) ra);
-	*((u4 *) ra) = mcode;
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* If NOPs are generated, skip them */
 
-	if (! PATCHER_IS_SHORTBRANCH(brcode))
-		ra += PATCHER_LONGBRANCHES_NOPS_SKIP;
-	else if (opt_shownops)
+	if (opt_shownops)
 		ra += PATCHER_NOPS_SKIP;
 
 	/* patch super class index */
@@ -626,17 +471,15 @@ bool patcher_checkcast_instanceof_interface(u1 *sp)
 
 *******************************************************************************/
 
-__PORTED__ bool patcher_clinit(u1 *sp)
+bool patcher_clinit(patchref_t *pr)
 {
-	u1        *ra;
-	u4         mcode;
 	classinfo *c;
+
+	PATCHER_TRACE;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)        *((ptrint *) (sp + 5 * 4));
-	mcode =               *((u4 *)     (sp + 3 * 4));
-	c     = (classinfo *) *((ptrint *) (sp + 2 * 4));
+	c     = (classinfo *)pr->ref;
 
 	/* check if the class is initialized */
 
@@ -646,7 +489,7 @@ __PORTED__ bool patcher_clinit(u1 *sp)
 
 	/* patch back original code */
 
-	*((u4 *) ra) = mcode;
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	return true;
 }
@@ -661,17 +504,15 @@ __PORTED__ bool patcher_clinit(u1 *sp)
 *******************************************************************************/
 
 #ifdef ENABLE_VERIFIER
-__PORTED__ bool patcher_athrow_areturn(u1 *sp)
+bool patcher_athrow_areturn(patchref_t *pr)
 {
-	u1               *ra;
-	u4                mcode;
 	unresolved_class *uc;
+
+	PATCHER_TRACE;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)               *((ptrint *) (sp + 5 * 4));
-	mcode =                      *((u4 *)     (sp + 3 * 4));
-	uc    = (unresolved_class *) *((ptrint *) (sp + 2 * 4));
+	uc    = (unresolved_class *) pr->ref;
 
 	/* resolve the class and check subtype constraints */
 
@@ -680,7 +521,7 @@ __PORTED__ bool patcher_athrow_areturn(u1 *sp)
 
 	/* patch back original code */
 
-	*((u4 *) ra) = mcode;
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	return true;
 }
@@ -692,40 +533,33 @@ __PORTED__ bool patcher_athrow_areturn(u1 *sp)
 *******************************************************************************/
 
 #if !defined(WITH_STATIC_CLASSPATH)
-__PORTED__ bool patcher_resolve_native(u1 *sp)
+bool patcher_resolve_native_function(patchref_t *pr)
 {
-	u1          *ra;
-	u4           mcode;
 	methodinfo  *m;
+	u1          *datap;
 	functionptr  f;
-	s4           disp;
-	u1          *pv;
+
+	PATCHER_TRACE;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)         *((ptrint *) (sp + 5 * 4));
-	mcode =                *((u4 *)     (sp + 3 * 4));
-	disp  =                *((s4 *)     (sp + 1 * 4));
-	m     = (methodinfo *) *((ptrint *) (sp + 2 * 4));
-	pv    = (u1 *)         *((ptrint *) (sp + 0 * 4));
+	m     = (methodinfo *) pr->ref;
+	datap = (u1 *)         pr->datap;
 
 	/* resolve native function */
 
 	if (!(f = native_resolve_function(m)))
 		return false;
 
+	PATCH_BACK_ORIGINAL_MCODE;
+
 	/* patch native function pointer */
 
-	*((ptrint *) (pv + disp)) = (ptrint) f;
-
-	/* patch back original code */
-
-	*((u4 *) ra) = mcode;
+	*((ptrint *) datap) = (ptrint) f;
 
 	return true;
 }
 #endif /* !defined(WITH_STATIC_CLASSPATH) */
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

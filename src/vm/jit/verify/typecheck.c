@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: typecheck.c 8159 2007-06-28 00:31:31Z michi $
+   $Id: typecheck.c 8288 2007-08-10 15:12:00Z twisti $
 
 */
 
@@ -155,6 +155,7 @@ error reporting.
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/primitive.h"
 #include "vm/resolve.h"
 
 #include "vm/jit/jit.h"
@@ -163,7 +164,6 @@ error reporting.
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vmcore/primitive.h"
 
 #include <typecheck-common.h>
 

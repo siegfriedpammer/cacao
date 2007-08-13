@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: string.c 8230 2007-07-25 08:23:10Z twisti $
+   $Id: string.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -38,6 +38,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 
 #include "native/include/java_lang_String.h"
 
@@ -45,11 +46,11 @@
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
+#include "vm/primitive.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
 #include "vmcore/options.h"
-#include "vmcore/primitive.h"
 #include "vmcore/statistics.h"
 #include "vmcore/utf8.h"
 
@@ -63,7 +64,7 @@
 hashtable hashtable_string;             /* hashtable for javastrings          */
 
 #if defined(ENABLE_THREADS)
-static java_objectheader *lock_hashtable_string;
+static java_object_t *lock_hashtable_string;
 #endif
 
 
@@ -82,7 +83,7 @@ bool string_init(void)
 #if defined(ENABLE_THREADS)
 	/* create string hashtable lock object */
 
-	lock_hashtable_string = NEW(java_objectheader);
+	lock_hashtable_string = NEW(java_object_t);
 
 	LOCK_INIT_OBJECT_LOCK(lock_hashtable_string);
 #endif
@@ -120,7 +121,7 @@ void stringtable_update(void)
 					vm_abort("stringtable_update: invalid literalstring in hashtable");
 				}
 
-				a = js->value;
+				LLNI_field_get_ref(js, value, a);
 
 				if (!js->header.vftbl) 
 					/* vftbl of javastring is NULL */ 
@@ -154,12 +155,12 @@ void stringtable_update(void)
 
 *******************************************************************************/
 
-static java_objectheader *javastring_new_from_utf_buffer(const char *buffer,
+static java_handle_t *javastring_new_from_utf_buffer(const char *buffer,
 														 u4 blength)
 {
 	const char *utf_ptr;            /* current utf character in utf string    */
 	u4 utflength;                   /* length of utf-string if uncompressed   */
-	java_objectheader *o;
+	java_handle_t     *o;
 	java_lang_String  *s;           /* result-string                          */
 	java_chararray    *a;
 	u4 i;
@@ -187,9 +188,9 @@ static java_objectheader *javastring_new_from_utf_buffer(const char *buffer,
 
 	s = (java_lang_String *) o;
 
-	s->value  = a;
-	s->offset = 0;
-	s->count  = utflength;
+	LLNI_field_set_ref(s, value , a);
+	LLNI_field_set_val(s, offset, 0);
+	LLNI_field_set_val(s, count , utflength);
 
 	return o;
 }
@@ -210,11 +211,11 @@ static java_objectheader *javastring_new_from_utf_buffer(const char *buffer,
 
 *******************************************************************************/
 
-java_objectheader *javastring_safe_new_from_utf8(const char *text)
+java_handle_t *javastring_safe_new_from_utf8(const char *text)
 {
-	java_objectheader *o;
-	java_chararray    *a;
-	java_lang_String  *s;
+	java_handle_t    *o;
+	java_chararray   *a;
+	java_lang_String *s;
 	s4 nbytes;
 	s4 len;
 
@@ -247,9 +248,9 @@ java_objectheader *javastring_safe_new_from_utf8(const char *text)
 
 	s = (java_lang_String *) o;
 
-	s->value  = a;
-	s->offset = 0;
-	s->count  = len;
+	LLNI_field_set_ref(s, value , a);
+	LLNI_field_set_val(s, offset, 0);
+	LLNI_field_set_val(s, count , len);
 
 	return o;
 }
@@ -270,7 +271,7 @@ java_objectheader *javastring_safe_new_from_utf8(const char *text)
 
 *******************************************************************************/
 
-java_objectheader *javastring_new_from_utf_string(const char *utfstr)
+java_handle_t *javastring_new_from_utf_string(const char *utfstr)
 {
 	assert(utfstr);
 
@@ -287,13 +288,13 @@ java_objectheader *javastring_new_from_utf_string(const char *utfstr)
 
 *******************************************************************************/
 
-java_objectheader *javastring_new(utf *u)
+java_handle_t *javastring_new(utf *u)
 {
 	char *utf_ptr;                  /* current utf character in utf string    */
 	u4 utflength;                   /* length of utf-string if uncompressed   */
-	java_objectheader *o;
-	java_chararray    *a;
-	java_lang_String  *s;
+	java_handle_t    *o;
+	java_chararray   *a;
+	java_lang_String *s;
 	s4 i;
 
 	if (u == NULL) {
@@ -321,9 +322,9 @@ java_objectheader *javastring_new(utf *u)
 
 	s = (java_lang_String *) o;
 
-	s->value  = a;
-	s->offset = 0;
-	s->count  = utflength;
+	LLNI_field_set_ref(s, value , a);
+	LLNI_field_set_val(s, offset, 0);
+	LLNI_field_set_val(s, count , utflength);
 
 	return o;
 }
@@ -338,13 +339,13 @@ java_objectheader *javastring_new(utf *u)
 
 *******************************************************************************/
 
-java_objectheader *javastring_new_slash_to_dot(utf *u)
+java_handle_t *javastring_new_slash_to_dot(utf *u)
 {
 	char *utf_ptr;                  /* current utf character in utf string    */
 	u4 utflength;                   /* length of utf-string if uncompressed   */
-	java_objectheader *o;
-	java_chararray    *a;
-	java_lang_String  *s;
+	java_handle_t    *o;
+	java_chararray   *a;
+	java_lang_String *s;
 	s4 i;
 	u2 ch;
 
@@ -376,9 +377,9 @@ java_objectheader *javastring_new_slash_to_dot(utf *u)
 
 	s = (java_lang_String *) o;
 
-	s->value  = a;
-	s->offset = 0;
-	s->count  = utflength;
+	LLNI_field_set_ref(s, value , a);
+	LLNI_field_set_val(s, offset, 0);
+	LLNI_field_set_val(s, count , utflength);
 
 	return o;
 }
@@ -398,13 +399,13 @@ java_objectheader *javastring_new_slash_to_dot(utf *u)
 
 *******************************************************************************/
 
-java_objectheader *javastring_new_from_ascii(const char *text)
+java_handle_t *javastring_new_from_ascii(const char *text)
 {
 	s4 i;
 	s4 len;                             /* length of the string               */
-	java_objectheader *o;
-	java_lang_String  *s;
-	java_chararray    *a;
+	java_handle_t    *o;
+	java_lang_String *s;
+	java_chararray   *a;
 
 	if (text == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -430,9 +431,9 @@ java_objectheader *javastring_new_from_ascii(const char *text)
 
 	s = (java_lang_String *) o;
 
-	s->value  = a;
-	s->offset = 0;
-	s->count  = len;
+	LLNI_field_set_ref(s, value , a);
+	LLNI_field_set_val(s, offset, 0);
+	LLNI_field_set_val(s, count , len);
 
 	return o;
 }
@@ -448,7 +449,7 @@ java_objectheader *javastring_new_from_ascii(const char *text)
 	
 *******************************************************************************/
 
-char *javastring_tochar(java_objectheader *so) 
+char *javastring_tochar(java_handle_t *so) 
 {
 	java_lang_String *s = (java_lang_String *) so;
 	java_chararray *a;
@@ -458,15 +459,15 @@ char *javastring_tochar(java_objectheader *so)
 	if (!s)
 		return "";
 
-	a = s->value;
+	LLNI_field_get_ref(s, value, a);
 
 	if (!a)
 		return "";
 
-	buf = MNEW(char, s->count + 1);
+	buf = MNEW(char, LLNI_field_direct(s, count) + 1);
 
-	for (i = 0; i < s->count; i++)
-		buf[i] = a->data[s->offset + i];
+	for (i = 0; i < LLNI_field_direct(s, count); i++)
+		buf[i] = a->data[LLNI_field_direct(s, offset) + i];
 
 	buf[i] = '\0';
 
@@ -480,7 +481,7 @@ char *javastring_tochar(java_objectheader *so)
 
 *******************************************************************************/
 
-utf *javastring_toutf(java_objectheader *string, bool isclassname)
+utf *javastring_toutf(java_handle_t *string, bool isclassname)
 {
 	java_lang_String *s;
 
@@ -489,7 +490,7 @@ utf *javastring_toutf(java_objectheader *string, bool isclassname)
 	if (s == NULL)
 		return utf_null;
 
-	return utf_new_u2(s->value->data + s->offset, s->count, isclassname);
+	return utf_new_u2(LLNI_field_direct(s, value)->data + LLNI_field_direct(s, offset), LLNI_field_direct(s, count), isclassname);
 }
 
 
@@ -502,7 +503,7 @@ utf *javastring_toutf(java_objectheader *string, bool isclassname)
 
 *******************************************************************************/
 
-java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
+java_object_t *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 									bool copymode)
 {
     literalstring    *s;                /* hashtable element                  */
@@ -537,7 +538,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 
 			LOCK_MONITOR_EXIT(lock_hashtable_string);
 
-			return (java_objectheader *) js;
+			return (java_object_t *) js;
 		}
 
 	nomatch:
@@ -594,7 +595,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 #endif
 
 	s->hashlink = hashtable_string.ptr[slot];
-	s->string   = (java_objectheader *) js;
+	s->string   = (java_object_t *) js;
 	hashtable_string.ptr[slot] = s;
 
 	/* update number of hashtable entries */
@@ -644,7 +645,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 
 	LOCK_MONITOR_EXIT(lock_hashtable_string);
 
-	return (java_objectheader *) js;
+	return (java_object_t *) js;
 }
 
 
@@ -655,7 +656,7 @@ java_objectheader *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 
 *******************************************************************************/
 
-java_objectheader *literalstring_new(utf *u)
+java_object_t *literalstring_new(utf *u)
 {
     char           *utf_ptr;         /* pointer to current unicode character  */
 	                                 /* utf string                            */
@@ -683,7 +684,7 @@ java_objectheader *literalstring_new(utf *u)
 
 *******************************************************************************/
 
-void literalstring_free(java_objectheader* string)
+void literalstring_free(java_object_t* string)
 {
 	java_lang_String *s;
 	java_chararray *a;

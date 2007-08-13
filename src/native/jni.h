@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.h 8132 2007-06-22 11:15:47Z twisti $
+   $Id: jni.h 8297 2007-08-12 00:02:48Z michi $
 
 */
 
@@ -51,10 +51,6 @@
 
 #ifndef _JNI_H
 #define _JNI_H
-
-/* forward typedefs ***********************************************************/
-
-typedef struct localref_table localref_table;
 
 
 #include "vm/types.h"
@@ -99,41 +95,12 @@ extern const struct JNIInvokeInterface_ _Jv_JNIInvokeInterface;
 extern struct JNINativeInterface_ _Jv_JNINativeInterface;
 
 
-/* local reference table ******************************************************/
-
-#define LOCALREFTABLE_CAPACITY    16
-
-/* localref_table **************************************************************
-
-   ATTENTION: keep this structure a multiple of 8-bytes!!! This is
-   essential for the native stub on 64-bit architectures.
-
-*******************************************************************************/
-
-struct localref_table {
-	s4                 capacity;        /* table size                         */
-	s4                 used;            /* currently used references          */
-	s4                 localframes;     /* number of current frames           */
-	s4                 PADDING;         /* 8-byte padding                     */
-	localref_table    *prev;            /* link to prev table (LocalFrame)    */
-	java_objectheader *refs[LOCALREFTABLE_CAPACITY]; /* references            */
-};
-
-#if defined(ENABLE_THREADS)
-#define LOCALREFTABLE    (THREADOBJECT->_localref_table)
-#else
-extern localref_table *_no_threads_localref_table;
-
-#define LOCALREFTABLE    (_no_threads_localref_table)
-#endif
-
-
 /* hashtable_global_ref_entry *************************************************/
 
 typedef struct hashtable_global_ref_entry hashtable_global_ref_entry;
 
 struct hashtable_global_ref_entry {
-	java_objectheader          *o;      /* object pointer of global ref       */
+	java_object_t              *o;      /* object pointer of global ref       */
 	s4                          refs;   /* references of the current pointer  */
 	hashtable_global_ref_entry *hashlink; /* link for external chaining       */
 };
@@ -143,9 +110,8 @@ struct hashtable_global_ref_entry {
 
 /* initialize JNI subsystem */
 bool jni_init(void);
-bool jni_init_localref_table(void);
 
-java_objectheader *_Jv_jni_invokeNative(methodinfo *m, java_objectheader *o,
+java_handle_t *_Jv_jni_invokeNative(methodinfo *m, java_handle_t *o,
 										java_objectarray *params);
 
 #endif /* _JNI_H */

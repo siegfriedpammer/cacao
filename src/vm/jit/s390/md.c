@@ -1,6 +1,6 @@
-/* src/vm/jit/x86_64/md.c - machine dependent x86_64 Linux functions
+/* src/vm/jit/s390/md.c - machine dependent s390 Linux functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,21 +22,17 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes: Edwin Steiner
-
-   $Id: md.c 8243 2007-07-31 08:57:54Z michi $
+   $Id: md.c 8298 2007-08-12 18:49:16Z pm $
 
 */
+
 
 #define _GNU_SOURCE
 
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <ucontext.h>
 
@@ -50,6 +46,7 @@
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/abi.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/stacktrace.h"
 
@@ -90,7 +87,7 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 	int i;
 	u1 *pv;
 	methodinfo *m;
-	
+
 	union {
 		u8 l;
 		fpreg_t fr;
@@ -104,7 +101,7 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 	if (pv == NULL) {
 		log_println("No java method found at location.");
 	} else {
-		m = ((codeinfo *)(pv + CodeinfoPointer))->m;
+		m = (*(codeinfo **)(pv + CodeinfoPointer))->m;
 		log_println(
 			"Java method: class %s, method %s, descriptor %s.",
 			utf_bytes(m->class->name), utf_bytes(m->name), utf_bytes(m->descriptor)
@@ -145,18 +142,18 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo     sfi;
-	ucontext_t        *_uc;
-	mcontext_t        *_mc;
-	u1                *pv;
-	u1                *sp;
-	u1                *ra;
-	u1                *xpc;
-	s4                 type;
-	ptrint             val;
-	java_objectheader *e;
-	s4                 base;
-	s4                 is_null;
+	stackframeinfo  sfi;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	u1             *pv;
+	u1             *sp;
+	u1             *ra;
+	u1             *xpc;
+	int             type;
+	intptr_t        val;
+	void           *p;
+	s4              base;
+	s4              is_null;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -197,31 +194,37 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-	/* generate appropriate exception */
+	/* Handle the type. */
 
-	e = exceptions_new_hardware_exception(xpc, type, val);
+	p = signal_handle(xpc, type, val);
 
 	/* remove stackframeinfo */
 
 	stacktrace_remove_stackframeinfo(&sfi);
 
-	_mc->gregs[REG_ITMP2_XPC] = (ptrint) xpc;
-	_mc->gregs[REG_ITMP1_XPTR] = (ptrint) e;
-	_mc->psw.addr = (ptrint) asm_handle_exception;
+	if (p != NULL) {
+		_mc->gregs[REG_ITMP1_XPTR] = (intptr_t) p;
+		_mc->gregs[REG_ITMP2_XPC]  = (intptr_t) xpc;
+		_mc->psw.addr              = (intptr_t) asm_handle_exception;
+	}
+	else {
+		_mc->psw.addr              = (intptr_t) xpc;
+	}
 }
 
-void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
-	stackframeinfo     sfi;
-	ucontext_t        *_uc;
-	mcontext_t        *_mc;
-	u1                *xpc;
-	u1                *ra;
-	u1                *pv;
-	u1                *sp;
-	s4                 type;
-	ptrint             val;
-	java_objectheader *e;
-	s4                 reg;
+void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
+{
+	stackframeinfo  sfi;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	u1             *xpc;
+	u1             *ra;
+	u1             *pv;
+	u1             *sp;
+	int             type;
+	intptr_t        val;
+	void           *p;
+	s4              reg;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -245,18 +248,22 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
 
 		stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-		/* generate appropriate exception */
+		/* Handle the type. */
 
-		e = exceptions_new_hardware_exception(xpc, type, val);
+		p = signal_handle(xpc, type, val);
 
 		/* remove stackframeinfo */
 
 		stacktrace_remove_stackframeinfo(&sfi);
 
-		_mc->gregs[REG_ITMP1_XPTR] = (ptrint)e;
-		_mc->gregs[REG_ITMP2_XPC] = (ptrint)xpc;
-		_mc->psw.addr = (ptrint) asm_handle_exception;
-
+		if (p != NULL) {
+			_mc->gregs[REG_ITMP1_XPTR] = (intptr_t) p;
+			_mc->gregs[REG_ITMP2_XPC]  = (intptr_t) xpc;
+			_mc->psw.addr              = (intptr_t) asm_handle_exception;
+		}
+		else {
+			_mc->psw.addr              = (intptr_t) xpc;
+		}
 	} else {
 #if !defined(NDEBUG)
 		md_dump_context(xpc, _mc);
@@ -274,18 +281,18 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p) {
 
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo      sfi;
-	ucontext_t         *_uc;
-	mcontext_t         *_mc;
-	u1                 *pv;
-	u1                 *sp;
-	u1                 *ra;
-	u1                 *xpc;
-	u1                 *pc;
-	s4                  r1, r2;
-	s4                  type;
-	ptrint              val;
-	java_objectheader  *e;
+	stackframeinfo  sfi;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	u1             *pv;
+	u1             *sp;
+	u1             *ra;
+	u1             *xpc;
+	u1             *pc;
+	int             r1, r2;
+	int             type;
+	intptr_t        val;
+	void           *p;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -305,7 +312,7 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 			(_mc->gregs[r1 + 1] == 0x80000000) && 
 			(_mc->gregs[r2] == 0xFFFFFFFF)
 		) {
-			/* handle special case */
+			/* handle special case 0x80000000 / 0xFFFFFFFF that fails on hardware */
 			/* next instruction */
 			pc = (u1 *)_mc->psw.addr;
 			/* reminder */
@@ -316,7 +323,8 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 			_mc->psw.addr = (ptrint) pc;
 
 			return;
-		} else if (_mc->gregs[r2] == 0) {
+		}
+		else if (_mc->gregs[r2] == 0) {
 			/* division by 0 */
 
 			pv = (u1 *)_mc->gregs[REG_PV] - N_PV_OFFSET;
@@ -330,17 +338,17 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 			stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
-			/* generate appropriate exception */
+			/* Handle the type. */
 
-			e = exceptions_new_hardware_exception(xpc, type, val);
+			p = signal_handle(xpc, type, val);
 
 			/* remove stackframeinfo */
 
 			stacktrace_remove_stackframeinfo(&sfi);
 
-			_mc->gregs[REG_ITMP1_XPTR] = (ptrint)e;
-			_mc->gregs[REG_ITMP2_XPC] = (ptrint)xpc;
-			_mc->psw.addr = (ptrint) asm_handle_exception;
+			_mc->gregs[REG_ITMP1_XPTR] = (intptr_t) p;
+			_mc->gregs[REG_ITMP2_XPC]  = (intptr_t) xpc;
+			_mc->psw.addr              = (intptr_t) asm_handle_exception;
 
 			return;
 		}
@@ -448,7 +456,7 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
 	/* on S390 the return address is located on the top of the stackframe */
 
-	ra = *((u1 **) (sp + framesize - SIZEOF_VOID_P));
+	ra = *((u1 **) (sp + framesize - 8));
 
 	return ra;
 }
@@ -619,6 +627,110 @@ void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *save
 	assert(0);
 }
 #endif
+
+void md_handle_exception(int32_t *regs, int64_t *fregs, int32_t *out) {
+
+	uint8_t *xptr;
+	uint8_t *xpc;
+	uint8_t *sp;
+	uint8_t *pv;
+	uint8_t *ra;
+	uint8_t *handler;
+	int32_t framesize;
+	int32_t intsave;
+	int32_t fltsave;
+	int64_t *savearea;
+	int i;
+	int reg;
+	int loops = 0;
+
+	/* get registers */
+
+	xptr = *(uint8_t **)(regs + REG_ITMP1_XPTR);
+	xpc = *(uint8_t **)(regs + REG_ITMP2_XPC);
+	sp = *(uint8_t **)(regs + REG_SP);
+
+
+	/* initialize number of calle saved int regs to restore to 0 */
+	out[0] = 0;
+
+	/* initialize number of calle saved flt regs to restore to 0 */
+	out[1] = 0;
+
+	do {
+
+		++loops;
+
+		pv = codegen_get_pv_from_pc(xpc);
+
+		handler = exceptions_handle_exception(xptr, xpc, pv, sp);
+
+		if (handler == NULL) {
+
+			/* exception was not handled
+			 * get values of calee saved registers and remove stack frame 
+			 */
+
+			/* read stuff from data segment */
+
+			framesize = *(int32_t *)(pv + FrameSize);
+
+			intsave = *(int32_t *)(pv + IntSave);
+			if (intsave > out[0]) {
+				out[0] = intsave;
+			}
+
+			fltsave = *(int32_t *)(pv + FltSave);
+			if (fltsave > out[1]) {
+				out[1] = fltsave;
+			}
+
+			/* pointer to register save area */
+
+			savearea = (int64_t *)(sp + framesize - 8);
+
+			/* return address */
+
+			ra = *(uint8_t **)(sp + framesize - 8);
+
+			/* restore saved registers */
+
+			for (i = 0; i < intsave; ++i) {
+				--savearea;
+				reg = abi_registers_integer_saved[INT_SAV_CNT - 1 - i];
+				regs[reg] = *(int32_t *)(savearea);
+			}
+
+			for (i = 0; i < fltsave; ++i) {
+				--savearea;
+				reg = abi_registers_float_saved[FLT_SAV_CNT - 1 - i];
+				fregs[reg] = *savearea;
+			}
+
+			/* remove stack frame */
+
+			sp += framesize;
+
+			/* new xpc is call before return address */
+
+			xpc = ra;
+
+		} else {
+			xpc = handler;
+		}
+	} while (handler == NULL);
+
+	/* write new values for registers */
+
+	*(uint8_t **)(regs + REG_ITMP1_XPTR) = xptr;
+	*(uint8_t **)(regs + REG_ITMP2_XPC) = xpc;
+	*(uint8_t **)(regs + REG_SP) = sp;
+	*(uint8_t **)(regs + REG_PV) = pv - 0XFFC;
+
+	/* maybe leaf flag */
+
+	out[2] = (loops == 1);
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

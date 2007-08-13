@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8244 2007-07-31 09:30:28Z michi $
+   $Id: exceptions.c 8296 2007-08-11 22:38:38Z pm $
 
 */
 
@@ -43,6 +43,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_String.h"
@@ -51,7 +52,6 @@
 #include "threads/lock-common.h"
 #include "threads/threads-common.h"
 
-#include "toolbox/logging.h"
 #include "toolbox/util.h"
 
 #include "vm/builtin.h"
@@ -61,7 +61,6 @@
 #include "vm/vm.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher-common.h"
@@ -80,7 +79,7 @@
 /* for raising exceptions from native methods *********************************/
 
 #if !defined(ENABLE_THREADS)
-java_objectheader *_no_threads_exceptionptr = NULL;
+java_object_t *_no_threads_exceptionptr = NULL;
 #endif
 
 
@@ -203,7 +202,7 @@ bool exceptions_init(void)
 
 *******************************************************************************/
 
-java_objectheader *exceptions_get_exception(void)
+java_handle_t *exceptions_get_exception(void)
 {
 	/* return the exception */
 
@@ -217,7 +216,7 @@ java_objectheader *exceptions_get_exception(void)
 
 *******************************************************************************/
 
-void exceptions_set_exception(java_objectheader *o)
+void exceptions_set_exception(java_handle_t *o)
 {
 	/* set the exception */
 
@@ -244,9 +243,9 @@ void exceptions_clear_exception(void)
 
 *******************************************************************************/
 
-java_objectheader *exceptions_get_and_clear_exception(void)
+java_handle_t *exceptions_get_and_clear_exception(void)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
 	/* get the exception */
 
@@ -271,9 +270,9 @@ java_objectheader *exceptions_get_and_clear_exception(void)
 
 *******************************************************************************/
 
-static java_objectheader *exceptions_new_class(classinfo *c)
+static java_handle_t *exceptions_new_class(classinfo *c)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
 	o = native_new_and_init(c);
 
@@ -293,10 +292,10 @@ static java_objectheader *exceptions_new_class(classinfo *c)
 
 *******************************************************************************/
 
-static java_objectheader *exceptions_new_utf(utf *classname)
+static java_handle_t *exceptions_new_utf(utf *classname)
 {
-	classinfo         *c;
-	java_objectheader *o;
+	classinfo     *c;
+	java_handle_t *o;
 
 	c = load_class_bootstrap(classname);
 
@@ -321,7 +320,7 @@ static java_objectheader *exceptions_new_utf(utf *classname)
 
 static void exceptions_throw_class(classinfo *c)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
 	o = exceptions_new_class(c);
 
@@ -367,10 +366,10 @@ static void exceptions_throw_utf(utf *classname)
 *******************************************************************************/
 
 static void exceptions_throw_utf_throwable(utf *classname,
-										   java_objectheader *cause)
+										   java_handle_t *cause)
 {
 	classinfo           *c;
-	java_objectheader   *o;
+	java_handle_t       *o;
 	methodinfo          *m;
 	java_lang_Throwable *object;
 
@@ -417,11 +416,11 @@ static void exceptions_throw_utf_throwable(utf *classname,
 *******************************************************************************/
 
 static void exceptions_throw_utf_exception(utf *classname,
-										   java_objectheader *exception)
+										   java_handle_t *exception)
 {
-	classinfo         *c;
-	java_objectheader *o;
-	methodinfo        *m;
+	classinfo     *c;
+	java_handle_t *o;
+	methodinfo    *m;
 
 	c = load_class_bootstrap(classname);
 
@@ -463,11 +462,12 @@ static void exceptions_throw_utf_exception(utf *classname,
 
 *******************************************************************************/
 
-static void exceptions_throw_utf_cause(utf *classname, java_objectheader *cause)
+static void exceptions_throw_utf_cause(utf *classname, java_handle_t *cause)
 {
 	classinfo           *c;
-	java_objectheader   *o;
+	java_handle_t       *o;
 	methodinfo          *m;
+	java_lang_String    *s;
 	java_lang_Throwable *object;
 
 	object = (java_lang_Throwable *) cause;
@@ -495,7 +495,9 @@ static void exceptions_throw_utf_cause(utf *classname, java_objectheader *cause)
 	if (m == NULL)
 		return;
 
-	(void) vm_call_method(m, o, object->detailMessage);
+	LLNI_field_get_ref(object, detailMessage, s);
+
+	(void) vm_call_method(m, o, s);
 
 	/* call initCause */
 
@@ -529,11 +531,11 @@ static void exceptions_throw_utf_cause(utf *classname, java_objectheader *cause)
 
 *******************************************************************************/
 
-static java_objectheader *exceptions_new_utf_javastring(utf *classname,
-														java_objectheader *message)
+static java_handle_t *exceptions_new_utf_javastring(utf *classname,
+													java_handle_t *message)
 {
-	java_objectheader *o;
-	classinfo         *c;
+	java_handle_t *o;
+	classinfo     *c;
    
 	c = load_class_bootstrap(classname);
 
@@ -559,10 +561,10 @@ static java_objectheader *exceptions_new_utf_javastring(utf *classname,
 
 *******************************************************************************/
 
-static java_objectheader *exceptions_new_class_utf(classinfo *c, utf *message)
+static java_handle_t *exceptions_new_class_utf(classinfo *c, utf *message)
 {
-	java_objectheader *o;
-	java_objectheader *s;
+	java_handle_t *o;
+	java_handle_t *s;
 
 	s = javastring_new(message);
 
@@ -593,10 +595,10 @@ static java_objectheader *exceptions_new_class_utf(classinfo *c, utf *message)
 
 *******************************************************************************/
 
-static java_objectheader *exceptions_new_utf_utf(utf *classname, utf *message)
+static java_handle_t *exceptions_new_utf_utf(utf *classname, utf *message)
 {
-	classinfo         *c;
-	java_objectheader *o;
+	classinfo     *c;
+	java_handle_t *o;
 
 	c = load_class_bootstrap(classname);
 
@@ -622,7 +624,7 @@ static java_objectheader *exceptions_new_utf_utf(utf *classname, utf *message)
 
 static void exceptions_throw_class_utf(classinfo *c, utf *message)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
 	o = exceptions_new_class_utf(c, message);
 
@@ -643,7 +645,7 @@ static void exceptions_throw_class_utf(classinfo *c, utf *message)
 
 static void exceptions_throw_utf_utf(utf *classname, utf *message)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
 	o = exceptions_new_utf_utf(classname, message);
 
@@ -657,9 +659,9 @@ static void exceptions_throw_utf_utf(utf *classname, utf *message)
 
 *******************************************************************************/
 
-java_objectheader *exceptions_new_abstractmethoderror(void)
+java_handle_t *exceptions_new_abstractmethoderror(void)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
 	o = exceptions_new_utf(utf_java_lang_AbstractMethodError);
 
@@ -674,9 +676,9 @@ java_objectheader *exceptions_new_abstractmethoderror(void)
 *******************************************************************************/
 
 #if defined(ENABLE_JAVAME_CLDC1_1)
-static java_objectheader *exceptions_new_error(utf *message)
+static java_handle_t *exceptions_new_error(utf *message)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
 	o = exceptions_new_class_utf(class_java_lang_Error, message);
 
@@ -692,10 +694,10 @@ static java_objectheader *exceptions_new_error(utf *message)
 
 *******************************************************************************/
 
-java_objectheader *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
+java_object_t *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
 {
-	stackframeinfo     sfi;
-	java_objectheader *e;
+	stackframeinfo  sfi;
+	java_handle_t  *e;
 
 	/* create the stackframeinfo (XPC is equal to RA) */
 
@@ -723,9 +725,9 @@ java_objectheader *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
 
 *******************************************************************************/
 
-java_objectheader *exceptions_new_arraystoreexception(void)
+java_handle_t *exceptions_new_arraystoreexception(void)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
 	o = exceptions_new_utf(utf_java_lang_ArrayStoreException);
 
@@ -867,7 +869,7 @@ void exceptions_throw_noclassdeffounderror(utf *name)
 
 *******************************************************************************/
 
-void exceptions_throw_noclassdeffounderror_cause(java_objectheader *cause)
+void exceptions_throw_noclassdeffounderror_cause(java_handle_t *cause)
 {
 	exceptions_throw_utf_cause(utf_java_lang_NoClassDefFoundError, cause);
 }
@@ -917,7 +919,7 @@ void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, utf *name)
 
 *******************************************************************************/
 
-void exceptions_throw_exceptionininitializererror(java_objectheader *cause)
+void exceptions_throw_exceptionininitializererror(java_handle_t *cause)
 {
 	exceptions_throw_utf_throwable(utf_java_lang_ExceptionInInitializerError,
 								   cause);
@@ -1032,9 +1034,9 @@ void exceptions_throw_internalerror(const char *message, ...)
 
 void exceptions_throw_linkageerror(const char *message, classinfo *c)
 {
-	java_objectheader *o;
-	char              *msg;
-	s4                 msglen;
+	java_handle_t *o;
+	char          *msg;
+	s4             msglen;
 
 	/* calculate exception message length */
 
@@ -1383,9 +1385,9 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type)
 
 *******************************************************************************/
 
-java_objectheader *exceptions_new_arithmeticexception(void)
+java_handle_t *exceptions_new_arithmeticexception(void)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
 	o = exceptions_new_utf_utf(utf_java_lang_ArithmeticException,
 							   utf_division_by_zero);
@@ -1401,11 +1403,11 @@ java_objectheader *exceptions_new_arithmeticexception(void)
 
 *******************************************************************************/
 
-java_objectheader *exceptions_new_arrayindexoutofboundsexception(s4 index)
+java_handle_t *exceptions_new_arrayindexoutofboundsexception(s4 index)
 {
-	java_objectheader *o;
-	methodinfo        *m;
-	java_objectheader *s;
+	java_handle_t *o;
+	methodinfo    *m;
+	java_handle_t *s;
 
 	/* convert the index into a String, like Sun does */
 
@@ -1465,10 +1467,10 @@ void exceptions_throw_arraystoreexception(void)
 
 *******************************************************************************/
 
-java_objectheader *exceptions_new_classcastexception(java_objectheader *o)
+java_handle_t *exceptions_new_classcastexception(java_handle_t *o)
 {
-	java_objectheader *e;
-	utf               *classname;
+	java_handle_t *e;
+	utf           *classname;
 
 	classname = o->vftbl->class->name;
 
@@ -1563,7 +1565,7 @@ void exceptions_throw_interruptedexception(void)
 
 *******************************************************************************/
 
-void exceptions_throw_invocationtargetexception(java_objectheader *cause)
+void exceptions_throw_invocationtargetexception(java_handle_t *cause)
 {
 	exceptions_throw_utf_throwable(utf_java_lang_reflect_InvocationTargetException,
 								   cause);
@@ -1589,9 +1591,9 @@ void exceptions_throw_negativearraysizeexception(void)
 
 *******************************************************************************/
 
-java_objectheader *exceptions_new_nullpointerexception(void)
+java_handle_t *exceptions_new_nullpointerexception(void)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
 	o = exceptions_new_class(class_java_lang_NullPointerException);
 
@@ -1618,7 +1620,7 @@ void exceptions_throw_nullpointerexception(void)
 
 *******************************************************************************/
 
-void exceptions_throw_privilegedactionexception(java_objectheader *exception)
+void exceptions_throw_privilegedactionexception(java_handle_t *exception)
 {
 	exceptions_throw_utf_exception(utf_java_security_PrivilegedActionException,
 								   exception);
@@ -1647,10 +1649,10 @@ void exceptions_throw_stringindexoutofboundsexception(void)
 
 void exceptions_classnotfoundexception_to_noclassdeffounderror(void)
 {
-	java_objectheader   *o;
-	java_objectheader   *cause;
+	java_handle_t       *o;
+	java_handle_t       *cause;
 	java_lang_Throwable *object;
-	java_objectheader   *s;
+	java_lang_String    *s;
 
 	/* get the cause */
 
@@ -1666,10 +1668,10 @@ void exceptions_classnotfoundexception_to_noclassdeffounderror(void)
 		/* create new error */
 
 		object = (java_lang_Throwable *) cause;
-		s      = (java_objectheader *) object->detailMessage;
+		LLNI_field_get_ref(object, detailMessage, s);
 
 		o = exceptions_new_utf_javastring(utf_java_lang_NoClassDefFoundError,
-										  s);
+										  (java_handle_t *) s);
 
 		/* we had an exception while creating the error */
 
@@ -1690,10 +1692,10 @@ void exceptions_classnotfoundexception_to_noclassdeffounderror(void)
 
 *******************************************************************************/
 
-java_objectheader *exceptions_fillinstacktrace(void)
+java_handle_t *exceptions_fillinstacktrace(void)
 {
-	java_objectheader *o;
-	methodinfo        *m;
+	java_handle_t *o;
+	methodinfo    *m;
 
 	/* get exception */
 
@@ -1725,85 +1727,6 @@ java_objectheader *exceptions_fillinstacktrace(void)
 }
 
 
-/* exceptions_new_hardware_exception *******************************************
-
-   Creates the correct exception for a hardware-exception thrown and
-   caught by a signal handler.
-
-*******************************************************************************/
-
-java_objectheader *exceptions_new_hardware_exception(u1 *xpc, s4 type, ptrint val)
-{
-	java_objectheader *e;
-	java_objectheader *o;
-	s4                 index;
-
-	switch (type) {
-	case EXCEPTION_HARDWARE_NULLPOINTER:
-		e = exceptions_new_nullpointerexception();
-		break;
-
-	case EXCEPTION_HARDWARE_ARITHMETIC:
-		e = exceptions_new_arithmeticexception();
-		break;
-
-	case EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS:
-		index = (s4) val;
-		e = exceptions_new_arrayindexoutofboundsexception(index);
-		break;
-
-	case EXCEPTION_HARDWARE_CLASSCAST:
-		o = (java_objectheader *) val;
-		e = exceptions_new_classcastexception(o);
-		break;
-
-	case EXCEPTION_HARDWARE_EXCEPTION:
-		e = exceptions_fillinstacktrace();
-		break;
-
-	case EXCEPTION_HARDWARE_PATCHER:
-#if defined(ENABLE_REPLACEMENT)
-		if (replace_me_wrapper(xpc)) {
-			e = NULL;
-			break;
-		}
-#endif
-		e = patcher_handler(xpc);
-		break;
-
-	default:
-		/* let's try to get a backtrace */
-
-		codegen_get_pv_from_pc(xpc);
-
-		/* if that does not work, print more debug info */
-
-		log_println("exceptions_new_hardware_exception: unknown exception type %d", type);
-
-#if SIZEOF_VOID_P == 8
-		log_println("PC=0x%016lx", xpc);
-#else
-		log_println("PC=0x%08x", xpc);
-#endif
-
-#if defined(ENABLE_DISASSEMBLER)
-		log_println("machine instruction at PC:");
-		disassinstr(xpc);
-#endif
-
-		vm_abort("Exiting...");
-
-		/* keep compiler happy */
-
-		e = NULL;
-	}
-
-	/* return the exception object */
-
-	return e;
-}
-
-
 /* exceptions_handle_exception *************************************************
 
    Try to find an exception handler for the given exception and return it.
@@ -1823,7 +1746,7 @@ java_objectheader *exceptions_new_hardware_exception(u1 *xpc, s4 type, ptrint va
 *******************************************************************************/
 
 #if defined(ENABLE_JIT)
-u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp)
+u1 *exceptions_handle_exception(java_object_t *xptr, u1 *xpc, u1 *pv, u1 *sp)
 {
 	methodinfo            *m;
 	codeinfo              *code;
@@ -1834,7 +1757,7 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	classref_or_classinfo  cr;
 	classinfo             *c;
 #if defined(ENABLE_THREADS)
-	java_objectheader     *o;
+	java_object_t         *o;
 #endif
 
 #ifdef __S390__
@@ -1975,12 +1898,12 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 	if (issync) {
 		/* get synchronization object */
 
-# if (defined(__MIPS__) && (SIZEOF_VOID_P == 4)) || defined(__I386__)
+# if (defined(__MIPS__) && (SIZEOF_VOID_P == 4)) || defined(__I386__) || defined(__S390__) || defined(__POWERPC__)
 		/* XXX change this if we ever want to use 4-byte stackslots */
-		o = *((java_objectheader **) (sp + issync - 8));
+		o = *((java_object_t **) (sp + issync - 8));
 # else
-		o = *((java_objectheader **) (sp + issync - SIZEOF_VOID_P));
-#endif
+		o = *((java_object_t **) (sp + issync - SIZEOF_VOID_P));
+# endif
 
 		assert(o != NULL);
 
@@ -2006,12 +1929,14 @@ u1 *exceptions_handle_exception(java_objectheader *xptr, u1 *xpc, u1 *pv, u1 *sp
 
 *******************************************************************************/
 
-void exceptions_print_exception(java_objectheader *xptr)
+void exceptions_print_exception(java_handle_t *xptr)
 {
 	java_lang_Throwable   *t;
 #if defined(ENABLE_JAVASE)
 	java_lang_Throwable   *cause;
 #endif
+	java_lang_String      *s;
+	classinfo             *c;
 	utf                   *u;
 
 	t = (java_lang_Throwable *) xptr;
@@ -2022,15 +1947,18 @@ void exceptions_print_exception(java_objectheader *xptr)
 	}
 
 #if defined(ENABLE_JAVASE)
-	cause = t->cause;
+	LLNI_field_set_ref(t, cause, cause);
 #endif
 
 	/* print the root exception */
 
-	utf_display_printable_ascii_classname(t->header.vftbl->class->name);
+	LLNI_class_get(t, c);
+	utf_display_printable_ascii_classname(c->name);
 
-	if (t->detailMessage != NULL) {
-		u = javastring_toutf((java_objectheader *) t->detailMessage, false);
+	LLNI_field_get_ref(t, detailMessage, s);
+
+	if (s != NULL) {
+		u = javastring_toutf((java_handle_t *) s, false);
 
 		printf(": ");
 		utf_display_printable_ascii(u);
@@ -2043,11 +1971,14 @@ void exceptions_print_exception(java_objectheader *xptr)
 
 	if ((cause != NULL) && (cause != t)) {
 		printf("Caused by: ");
-		utf_display_printable_ascii_classname(cause->header.vftbl->class->name);
+		
+		LLNI_class_get(cause, c);
+		utf_display_printable_ascii_classname(c->name);
 
-		if (cause->detailMessage != NULL) {
-			u = javastring_toutf((java_objectheader *) cause->detailMessage,
-								 false);
+		LLNI_field_get_ref(cause, detailMessage, s);
+
+		if (s != NULL) {
+			u = javastring_toutf((java_handle_t *) s, false);
 
 			printf(": ");
 			utf_display_printable_ascii(u);
@@ -2068,7 +1999,7 @@ void exceptions_print_exception(java_objectheader *xptr)
 
 void exceptions_print_current_exception(void)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
 	o = exceptions_get_exception();
 
@@ -2088,10 +2019,10 @@ void exceptions_print_current_exception(void)
 
 void exceptions_print_stacktrace(void)
 {
-	java_objectheader *oxptr;
-	java_objectheader *xptr;
-	classinfo         *c;
-	methodinfo        *m;
+	java_handle_t *oxptr;
+	java_handle_t *xptr;
+	classinfo     *c;
+	methodinfo    *m;
 
 	/* get original exception */
 

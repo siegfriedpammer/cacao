@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: arch.h 7695 2007-04-12 19:49:34Z twisti $
+   $Id: arch.h 8263 2007-08-06 14:41:05Z twisti $
 
 */
 
@@ -151,7 +151,6 @@
 
 
 #define SUPPORT_COMBINE_INTEGER_REGISTERS
-#define SUPPORT_PASS_FLOATARGS_IN_INTREGS
 
 #if defined(ENABLE_SOFT_FLOAT)
 # define SUPPORT_PASS_FLOATARGS_IN_INTREGS
@@ -175,7 +174,6 @@
 /* replacement ****************************************************************/
 
 #define REPLACEMENT_PATCH_SIZE           (2*4) /* bytes */
-#define REPLACEMENT_STUB_SIZE            6     /* words */
 
 #endif /* _ARCH_H */
 

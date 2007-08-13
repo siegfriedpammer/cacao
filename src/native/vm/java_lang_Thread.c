@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Thread.c 8132 2007-06-22 11:15:47Z twisti $
+   $Id: java_lang_Thread.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -31,6 +31,7 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_String.h"
@@ -108,7 +109,7 @@ void _Jv_java_lang_Thread_interrupt(java_lang_Thread *this)
 	threadobject *thread;
 
 #if defined(WITH_CLASSPATH_GNU)
-	thread = (threadobject *) this->vmThread->vmdata;
+	thread = (threadobject *) LLNI_field_direct(LLNI_field_direct(this, vmThread), vmdata);
 #elif defined(WITH_CLASSPATH_CLDC1_1)
 	thread = (threadobject *) this->vm_thread;
 #endif
@@ -129,8 +130,11 @@ s4 _Jv_java_lang_Thread_isAlive(java_lang_Thread *this)
 	threadobject *t;
 
 # if defined(WITH_CLASSPATH_GNU)
-	t = (threadobject *) this->vmThread->vmdata;
+
+	t = (threadobject *) LLNI_field_direct(LLNI_field_direct(this, vmThread), vmdata);
+
 # elif defined(WITH_CLASSPATH_SUN)
+
 	/* XXX this is just a quick hack */
 
 	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
@@ -143,8 +147,14 @@ s4 _Jv_java_lang_Thread_isAlive(java_lang_Thread *this)
 
 	if (t == NULL)
 		return 0;
+
 # elif defined(WITH_CLASSPATH_CLDC1_1)
+
 	t = (threadobject *) this->vm_thread;
+
+	if (t == NULL)
+		return 0;
+
 # else
 #  error unknown classpath configuration
 # endif
@@ -169,7 +179,7 @@ s4 _Jv_java_lang_Thread_isInterrupted(java_lang_Thread *this)
 	threadobject *t;
 
 # if defined(WITH_CLASSPATH_GNU)
-	t = (threadobject *) this->vmThread->vmdata;
+	t = (threadobject *) LLNI_field_direct(LLNI_field_direct(this, vmThread), vmdata);
 # elif defined(WITH_CLASSPATH_SUN)
 	/* XXX this is just a quick hack */
 
@@ -225,7 +235,7 @@ void _Jv_java_lang_Thread_setPriority(java_lang_Thread *this, s4 priority)
 	threadobject *t;
 
 # if defined(WITH_CLASSPATH_GNU)
-	t = (threadobject *) this->vmThread->vmdata;
+	t = (threadobject *) LLNI_field_direct(LLNI_field_direct(this, vmThread), vmdata);
 # elif defined(WITH_CLASSPATH_SUN)
 	/* XXX this is just a quick hack */
 
@@ -289,13 +299,13 @@ java_lang_Thread *_Jv_java_lang_Thread_currentThread(void)
 		log_text("t ptr is NULL\n");
 
 # if defined(ENABLE_JAVASE)
-	if (t->group == NULL) {
+	if (LLNI_field_direct(t, group) == NULL) {
 		/* ThreadGroup of currentThread is not initialized */
 
-		t->group = (java_lang_ThreadGroup *)
+		LLNI_field_direct(t, group) = (java_lang_ThreadGroup *)
 			native_new_and_init(class_java_lang_ThreadGroup);
 
-		if (t->group == NULL)
+		if (LLNI_field_direct(t, group) == NULL)
 			log_text("unable to create ThreadGroup");
   	}
 # endif
@@ -346,9 +356,9 @@ s4 _Jv_java_lang_Thread_interrupted(void)
 s4 _Jv_java_lang_Thread_holdsLock(java_lang_Object* obj)
 {
 #if defined(ENABLE_THREADS)
-	java_objectheader *o;
+	java_handle_t *o;
 
-	o = (java_objectheader *) obj;
+	o = (java_handle_t *) obj;
 
 	if (o == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -370,12 +380,12 @@ s4 _Jv_java_lang_Thread_holdsLock(java_lang_Object* obj)
 java_lang_String *_Jv_java_lang_Thread_getState(java_lang_Thread *this)
 {
 #if defined(ENABLE_THREADS)
-	threadobject      *thread;
-	utf               *u;
-	java_objectheader *o;
+	threadobject  *thread;
+	utf           *u;
+	java_handle_t *o;
 
 # if defined(WITH_CLASSPATH_GNU)
-	thread = (threadobject *) this->vmThread->vmdata;
+	thread = (threadobject *) LLNI_field_direct(LLNI_field_direct(this, vmThread), vmdata);
 # elif defined(WITH_CLASSPATH_CLDC1_1)
 	thread = (threadobject *) this->vm_thread;
 # endif

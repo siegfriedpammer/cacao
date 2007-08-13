@@ -108,9 +108,9 @@ void _Jv_java_lang_Runtime_gc(void)
  * Signature: (Ljava/lang/String;Ljava/lang/ClassLoader;)I
  */
 #if defined(ENABLE_JNI)
-s4 _Jv_java_lang_Runtime_loadLibrary(JNIEnv *env, java_lang_String *libname, java_objectheader *cl)
+s4 _Jv_java_lang_Runtime_loadLibrary(JNIEnv *env, java_lang_String *libname, classloader *cl)
 #else
-s4 _Jv_java_lang_Runtime_loadLibrary(java_lang_String *libname, java_objectheader *cl)
+s4 _Jv_java_lang_Runtime_loadLibrary(java_lang_String *libname, classloader *cl)
 #endif
 {
 #if defined(ENABLE_LTDL)
@@ -126,7 +126,7 @@ s4 _Jv_java_lang_Runtime_loadLibrary(java_lang_String *libname, java_objectheade
 		return 0;
 	}
 
-	name = javastring_toutf((java_objectheader *) libname, false);
+	name = javastring_toutf((java_handle_t *) libname, false);
 
 	/* is the library already loaded? */
 

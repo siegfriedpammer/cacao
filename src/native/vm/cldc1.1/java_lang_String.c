@@ -246,7 +246,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_equals(JNIEnv *env, java_lang_String*
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_String_intern(JNIEnv *env, java_lang_String *this)
 {
-	java_objectheader *o;
+	java_handle_t *o;
 
 	if (this == NULL)
 		return NULL;

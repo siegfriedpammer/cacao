@@ -45,9 +45,9 @@ s8   _Jv_java_lang_Runtime_totalMemory(void);
 void _Jv_java_lang_Runtime_gc(void);
 
 #if defined(ENABLE_JNI)
-s4   _Jv_java_lang_Runtime_loadLibrary(JNIEnv *env, java_lang_String *libname, java_objectheader *cl);
+s4   _Jv_java_lang_Runtime_loadLibrary(JNIEnv *env, java_lang_String *libname, classloader *cl);
 #else
-s4   _Jv_java_lang_Runtime_loadLibrary(java_lang_String *libname, java_objectheader *cl);
+s4   _Jv_java_lang_Runtime_loadLibrary(java_lang_String *libname, classloader *cl);
 #endif
 
 #if defined(ENABLE_JAVASE)

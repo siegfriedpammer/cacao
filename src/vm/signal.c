@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: signal.c 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -32,6 +32,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <signal.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #if defined(__DARWIN__)
@@ -39,8 +40,6 @@
  included. So let's do it here. */
 # include <sys/types.h>
 #endif
-
-#include "vm/types.h"
 
 #include "arch.h"
 
@@ -52,9 +51,15 @@
 # include "threads/none/threads.h"
 #endif
 
+#include "toolbox/logging.h"
+
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/vm.h"
+
+#include "vm/jit/codegen-common.h"
+#include "vm/jit/disass.h"
+#include "vm/jit/patcher-common.h"
 
 #include "vmcore/options.h"
 
@@ -77,8 +82,7 @@ void signal_handler_sighup(int sig, siginfo_t *siginfo, void *_p);
 bool signal_init(void)
 {
 #if !defined(__CYGWIN__)
-	sigset_t         mask;
-	struct sigaction act;
+	sigset_t mask;
 
 #if defined(__LINUX__) && defined(ENABLE_THREADS)
 	/* XXX Remove for exact-GC. */
@@ -112,13 +116,11 @@ bool signal_init(void)
 	/* Allocate something so the garbage collector's signal handlers
 	   are installed. */
 
-	(void) GCNEW(u1);
+	(void) GCNEW(int);
 #endif
 
 	/* Install signal handlers for signals we want to catch in all
 	   threads. */
-
-	sigemptyset(&act.sa_mask);
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
@@ -126,41 +128,35 @@ bool signal_init(void)
 # endif
 		/* SIGSEGV handler */
 
-		act.sa_sigaction = md_signal_handler_sigsegv;
-		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
-
-#  if defined(SIGSEGV)
-		sigaction(SIGSEGV, &act, NULL);
-#  endif
+		signal_register_signal(SIGSEGV, (void *) md_signal_handler_sigsegv,
+							   SA_NODEFER | SA_SIGINFO);
 
 #  if defined(SIGBUS)
-		sigaction(SIGBUS, &act, NULL);
+		signal_register_signal(SIGBUS, (void *) md_signal_handler_sigsegv,
+							   SA_NODEFER | SA_SIGINFO);
 #  endif
 
 #  if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
 		/* SIGFPE handler */
 
-		act.sa_sigaction = md_signal_handler_sigfpe;
-		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
-		sigaction(SIGFPE, &act, NULL);
+		signal_register_signal(SIGFPE, (void *) md_signal_handler_sigfpe,
+							   SA_NODEFER | SA_SIGINFO);
 #  endif
 
 #  if defined(__ARM__) || defined(__S390__)
 		/* XXX use better defines for that (in arch.h) */
 		/* SIGILL handler */
 
-		act.sa_sigaction = md_signal_handler_sigill;
-		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
-		sigaction(SIGILL, &act, NULL);
+		signal_register_signal(SIGILL, (void *) md_signal_handler_sigill,
+							   SA_NODEFER | SA_SIGINFO);
 #  endif
 
 #  if defined(__POWERPC__)
 		/* XXX use better defines for that (in arch.h) */
 		/* SIGTRAP handler */
 
-		act.sa_sigaction = md_signal_handler_sigtrap;
-		act.sa_flags     = SA_NODEFER | SA_SIGINFO;
-		sigaction(SIGTRAP, &act, NULL);
+		signal_register_signal(SIGTRAP, (void *) md_signal_handler_sigtrap,
+							   SA_NODEFER | SA_SIGINFO);
 #  endif
 # if defined(ENABLE_INTRP)
 	}
@@ -170,9 +166,7 @@ bool signal_init(void)
 #if defined(ENABLE_THREADS)
 	/* SIGHUP handler for threads_thread_interrupt */
 
-	act.sa_sigaction = signal_handler_sighup;
-	act.sa_flags     = 0;
-	sigaction(SIGHUP, &act, NULL);
+	signal_register_signal(SIGHUP, (void *) signal_handler_sighup, 0);
 #endif
 
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
@@ -186,14 +180,116 @@ bool signal_init(void)
 #if defined(ENABLE_THREADS) && defined(ENABLE_PROFILING)
 	/* SIGUSR2 handler for profiling sampling */
 
-	act.sa_sigaction = md_signal_handler_sigusr2;
-	act.sa_flags     = SA_SIGINFO;
-	sigaction(SIGUSR2, &act, NULL);
+	signal_register_signal(SIGUSR2, (void *) md_signal_handler_sigusr2,
+						   SA_SIGINFO);
 #endif
 
 #endif /* !defined(__CYGWIN__) */
 
 	return true;
+}
+
+
+/* signal_register_signal ******************************************************
+
+   Register the specified handler with the specified signal.
+
+*******************************************************************************/
+
+void signal_register_signal(int signum, void *handler, int flags)
+{
+	struct sigaction act;
+	void (*function)(int, siginfo_t *, void *);
+
+	function = (void (*)(int, siginfo_t *, void *)) handler;
+
+	if (sigemptyset(&act.sa_mask) != 0)
+		vm_abort("signal_register_signal: sigemptyset failed: %s",
+				 strerror(errno));
+
+	act.sa_sigaction = function;
+	act.sa_flags     = flags;
+
+	if (sigaction(signum, &act, NULL) != 0)
+		vm_abort("signal_register_signal: sigaction failed: %s",
+				 strerror(errno));
+}
+
+
+/* signal_handle ***************************************************************
+
+   Handles the signal caught by a signal handler and calls the correct
+   function.
+
+*******************************************************************************/
+
+void *signal_handle(void *xpc, int type, intptr_t val)
+{
+	void          *p;
+	int32_t        index;
+	java_object_t *o;
+
+	switch (type) {
+	case EXCEPTION_HARDWARE_NULLPOINTER:
+		p = exceptions_new_nullpointerexception();
+		break;
+
+	case EXCEPTION_HARDWARE_ARITHMETIC:
+		p = exceptions_new_arithmeticexception();
+		break;
+
+	case EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS:
+		index = (s4) val;
+		p = exceptions_new_arrayindexoutofboundsexception(index);
+		break;
+
+	case EXCEPTION_HARDWARE_CLASSCAST:
+		o = (java_object_t *) val;
+		p = exceptions_new_classcastexception(o);
+		break;
+
+	case EXCEPTION_HARDWARE_EXCEPTION:
+		p = exceptions_fillinstacktrace();
+		break;
+
+	case EXCEPTION_HARDWARE_PATCHER:
+#if defined(ENABLE_REPLACEMENT)
+		if (replace_me_wrapper(xpc)) {
+			p = NULL;
+			break;
+		}
+#endif
+		p = patcher_handler(xpc);
+		break;
+
+	default:
+		/* Let's try to get a backtrace. */
+
+		codegen_get_pv_from_pc(xpc);
+
+		/* If that does not work, print more debug info. */
+
+		log_println("exceptions_new_hardware_exception: unknown exception type %d", type);
+
+#if SIZEOF_VOID_P == 8
+		log_println("PC=0x%016lx", xpc);
+#else
+		log_println("PC=0x%08x", xpc);
+#endif
+
+#if defined(ENABLE_DISASSEMBLER)
+		log_println("machine instruction at PC:");
+		disassinstr(xpc);
+#endif
+
+		vm_abort("Exiting...");
+
+		/* keep compiler happy */
+
+		p = NULL;
+	}
+
+	return p;
 }
 
 

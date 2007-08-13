@@ -37,13 +37,12 @@
 #include "mm/memory.h"
 
 #include "vm/global.h"
+#include "vm/primitive.h"
 
 #include "vm/jit/parse.h"
 #include "vm/jit/show.h"
 #include "vm/jit/stack.h"
 #include "vm/jit/verify/typecheck-common.h"
-
-#include "vmcore/primitive.h"
 
 
 /* this #if runs over the whole file: */

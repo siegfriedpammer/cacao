@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Field.c 8132 2007-06-22 11:15:47Z twisti $
+   $Id: java_lang_reflect_Field.c 8295 2007-08-11 17:57:24Z michi $
 
 */
 
@@ -33,6 +33,7 @@
 #include <stdint.h>
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_Boolean.h"
@@ -49,18 +50,23 @@
 
 #include "native/include/java_lang_reflect_Field.h"
 
+#if defined(ENABLE_ANNOTATIONS)
+#include "native/include/sun_reflect_ConstantPool.h"
+#include "native/vm/reflect.h"
+#endif
+
 #include "vm/access.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
+#include "vm/primitive.h"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
 
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/loader.h"
-#include "vmcore/primitive.h"
 #include "vmcore/utf8.h"
 
 
@@ -88,6 +94,9 @@ static JNINativeMethod methods[] = {
 	{ "setFloat",             "(Ljava/lang/Object;F)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setFloat             },
 	{ "setDouble",            "(Ljava/lang/Object;D)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setDouble            },
 	{ "getSignature",         "()Ljava/lang/String;",                    (void *) (intptr_t) &Java_java_lang_reflect_Field_getSignature         },
+#if defined(ENABLE_ANNOTATIONS)
+	{ "declaredAnnotations",  "()Ljava/util/Map;",                       (void *) (intptr_t) &Java_java_lang_reflect_Field_declaredAnnotations  },
+#endif
 };
 
 
@@ -126,14 +135,18 @@ static void *cacao_get_field_address(java_lang_reflect_Field *this,
 {
 	classinfo *c;
 	fieldinfo *f;
+	int32_t    slot;
+	int32_t    flag;
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* check field access */
 	/* check if we should bypass security checks (AccessibleObject) */
 
-	if (this->flag == false) {
+	LLNI_field_get_val(this, flag, flag);
+	if (flag == false) {
 		/* this function is always called like this:
 
 			   java.lang.reflect.Field.xxx (Native Method)
@@ -152,9 +165,9 @@ static void *cacao_get_field_address(java_lang_reflect_Field *this,
 			if (!initialize_class(c))
 				return NULL;
 
-		/* return value address */
+		/* return value pointer */
 
-		return &(f->value);
+		return f->value;
 
 	} else {
 		/* obj is required for not-static fields */
@@ -164,8 +177,8 @@ static void *cacao_get_field_address(java_lang_reflect_Field *this,
 			return NULL;
 		}
 	
-		if (builtin_instanceof((java_objectheader *) o, c))
-			return (void *) ((intptr_t) o + f->offset);
+		if (builtin_instanceof((java_handle_t *) o, c))
+			return (void *) (((intptr_t) o) + f->offset);
 	}
 
 	/* exception path */
@@ -185,9 +198,11 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getModifiersInternal(JNIE
 {
 	classinfo *c;
 	fieldinfo *f;
+	int32_t    slot;
 
-	c = (classinfo *) this->clazz;
-	f = &(c->fields[this->slot]);
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &(c->fields[slot]);
 
 	return f->flags;
 }
@@ -203,9 +218,11 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType(JNIEnv *
 	classinfo *c;
 	typedesc  *desc;
 	classinfo *ret;
+	int32_t    slot;
 
-	c    = (classinfo *) this->clazz;
-	desc = c->fields[this->slot].parseddesc;
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	desc = c->fields[slot].parseddesc;
 
 	if (desc == NULL)
 		return NULL;
@@ -222,126 +239,55 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType(JNIEnv *
  * Method:    get
  * Signature: (Ljava/lang/Object;)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *object)
 {
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
+	imm_union  value;
+	java_handle_t *o;
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get address of the source field value */
 
-	if ((addr = cacao_get_field_address(this, o)) == NULL)
+	if ((addr = cacao_get_field_address(this, object)) == NULL)
 		return NULL;
 
 	switch (f->parseddesc->decltype) {
-	case PRIMITIVETYPE_BOOLEAN: {
-		java_lang_Boolean *bo;
+	case PRIMITIVETYPE_BOOLEAN:
+	case PRIMITIVETYPE_BYTE:
+	case PRIMITIVETYPE_CHAR:
+	case PRIMITIVETYPE_SHORT:
+	case PRIMITIVETYPE_INT:
+		value.i = *((int32_t *) addr);
+		break;
 
-		/* create wrapping class */
+	case PRIMITIVETYPE_LONG:
+		value.l = *((int64_t *) addr);
+		break;
 
-		if (!(bo = (java_lang_Boolean *) builtin_new(class_java_lang_Boolean)))
-			return NULL;
+	case PRIMITIVETYPE_FLOAT:
+		value.f = *((float *) addr);
+		break;
 
-		/* set the object value */
-
-		bo->value = *((int32_t *) addr);
-
-		/* return the wrapped object */
-
-		return (java_lang_Object *) bo;
-	}
-
-	case PRIMITIVETYPE_BYTE: {
-		java_lang_Byte *bo;
-
-		if (!(bo = (java_lang_Byte *) builtin_new(class_java_lang_Byte)))
-			return NULL;
-
-		bo->value = *((int32_t *) addr);
-
-		return (java_lang_Object *) bo;
-	}
-
-	case PRIMITIVETYPE_CHAR: {
-		java_lang_Character *co;
-
-		if (!(co = (java_lang_Character *) builtin_new(class_java_lang_Character)))
-			return NULL;
-
-		co->value = *((int32_t *) addr);
-
-		return (java_lang_Object *) co;
-	}
-
-	case PRIMITIVETYPE_SHORT: {
-		java_lang_Short *so;
-
-		if (!(so = (java_lang_Short *) builtin_new(class_java_lang_Short)))
-			return NULL;
-
-		so->value = (int32_t) *((int32_t *) addr);
-
-		return (java_lang_Object *) so;
-	}
-
-	case PRIMITIVETYPE_INT: {
-		java_lang_Integer *io;
-
-		if (!(io = (java_lang_Integer *) builtin_new(class_java_lang_Integer)))
-			return NULL;
-
-		io->value = *((int32_t *) addr);
-
-		return (java_lang_Object *) io;
-	}
-
-	case PRIMITIVETYPE_LONG: {
-		java_lang_Long *lo;
-
-		if (!(lo = (java_lang_Long *) builtin_new(class_java_lang_Long)))
-			return NULL;
-
-		lo->value = *((int64_t *) addr);
-
-		return (java_lang_Object *) lo;
-	}
-
-	case PRIMITIVETYPE_FLOAT: {
-		java_lang_Float *fo;
-
-		if (!(fo = (java_lang_Float *) builtin_new(class_java_lang_Float)))
-			return NULL;
-
-		fo->value = *((float *) addr);
-
-		return (java_lang_Object *) fo;
-	}
-
-	case PRIMITIVETYPE_DOUBLE: {
-		java_lang_Double *_do;
-
-		if (!(_do = (java_lang_Double *) builtin_new(class_java_lang_Double)))
-			return NULL;
-
-		_do->value = *((double *) addr);
-
-		return (java_lang_Object *) _do;
-	}
+	case PRIMITIVETYPE_DOUBLE:
+		value.d = *((double *) addr);
+		break;
 
 	case TYPE_ADR:
-		return (java_lang_Object *) *((java_objectheader **) addr);
+#warning this whole thing needs to be inside a critical section!
+		return (java_lang_Object *) *((java_handle_t **) addr);
 	}
 
-	/* this must not happen */
+	/* Now box the primitive types. */
 
-	assert(0);
+	o = primitive_box(f->parseddesc->decltype, value);
 
-	/* keep compiler happy */
-
-	return NULL;
+	return (java_lang_Object *) o;
 }
 
 
@@ -355,11 +301,13 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, j
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get the address of the field with an internal helper */
 
@@ -388,11 +336,13 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get the address of the field with an internal helper */
 
@@ -421,11 +371,13 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get the address of the field with an internal helper */
 
@@ -454,11 +406,13 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, jav
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get the address of the field with an internal helper */
 
@@ -488,11 +442,13 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get the address of the field with an internal helper */
 
@@ -524,11 +480,13 @@ JNIEXPORT int64_t JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get the address of the field with an internal helper */
 
@@ -562,11 +520,13 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get the address of the field with an internal helper */
 
@@ -602,11 +562,13 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , ja
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get the address of the field with an internal helper */
 
@@ -646,11 +608,13 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 	fieldinfo *sf;
 	fieldinfo *df;
 	void      *faddr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	dc = (classinfo *) this->clazz;
-	df = &dc->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, dc);
+	LLNI_field_get_val(this, slot , slot);
+	df = &dc->fields[slot];
 
 	/* get the address of the destination field */
 
@@ -662,7 +626,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 	if (value == NULL)
 		sc = NULL;
 	else
-		sc = value->header.vftbl->class;
+		LLNI_class_get(value, sc);
 
 	/* The fieldid is used to set the new value, for primitive
 	   types the value has to be retrieved from the wrapping
@@ -679,7 +643,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		switch (sf->parseddesc->decltype) {
 		case PRIMITIVETYPE_BOOLEAN:
-			val = ((java_lang_Boolean *) value)->value;
+			LLNI_field_get_val((java_lang_Boolean *) value, value, val);
 			break;
 		default:
 			exceptions_throw_illegalargumentexception();
@@ -698,7 +662,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		switch (sf->parseddesc->decltype) {
 		case PRIMITIVETYPE_BYTE:
-			val = ((java_lang_Byte *) value)->value;
+			LLNI_field_get_val((java_lang_Byte *) value, value, val);
 			break;
 		default:	
 			exceptions_throw_illegalargumentexception();
@@ -717,7 +681,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 				   
 		switch (sf->parseddesc->decltype) {
 		case PRIMITIVETYPE_CHAR:
-			val = ((java_lang_Character *) value)->value;
+			LLNI_field_get_val((java_lang_Character *) value, value, val);
 			break;
 		default:
 			exceptions_throw_illegalargumentexception();
@@ -738,10 +702,10 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 				   
 		switch (sf->parseddesc->decltype) {
 		case PRIMITIVETYPE_BYTE:
-			val = ((java_lang_Byte *) value)->value;
+			LLNI_field_get_val((java_lang_Byte *) value, value, val);
 			break;
 		case PRIMITIVETYPE_SHORT:
-			val = ((java_lang_Short *) value)->value;
+			LLNI_field_get_val((java_lang_Short *) value, value, val);
 			break;
 		default:
 			exceptions_throw_illegalargumentexception();
@@ -762,16 +726,16 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		switch (sf->parseddesc->decltype) {
 		case PRIMITIVETYPE_BYTE:
-			val = ((java_lang_Byte *) value)->value;
+			LLNI_field_get_val((java_lang_Byte *) value, value, val);
 			break;
 		case PRIMITIVETYPE_CHAR:
-			val = ((java_lang_Character *) value)->value;
+			LLNI_field_get_val((java_lang_Character *) value, value, val);
 			break;
 		case PRIMITIVETYPE_SHORT:
-			val = ((java_lang_Short *) value)->value;
+			LLNI_field_get_val((java_lang_Short *) value, value, val);
 			break;
 		case PRIMITIVETYPE_INT:
-			val = ((java_lang_Integer *) value)->value;
+			LLNI_field_get_val((java_lang_Integer *) value, value, val);
 			break;
 		default:
 			exceptions_throw_illegalargumentexception();
@@ -792,19 +756,19 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		switch (sf->parseddesc->decltype) {
 		case PRIMITIVETYPE_BYTE:
-			val = ((java_lang_Byte *) value)->value;
+			LLNI_field_get_val((java_lang_Byte *) value, value, val);
 			break;
 		case PRIMITIVETYPE_CHAR:
-			val = ((java_lang_Character *) value)->value;
+			LLNI_field_get_val((java_lang_Character *) value, value, val);
 			break;
 		case PRIMITIVETYPE_SHORT:
-			val = ((java_lang_Short *) value)->value;
+			LLNI_field_get_val((java_lang_Short *) value, value, val);
 			break;
 		case PRIMITIVETYPE_INT:
-			val = ((java_lang_Integer *) value)->value;
+			LLNI_field_get_val((java_lang_Integer *) value, value, val);
 			break;
 		case PRIMITIVETYPE_LONG:
-			val = ((java_lang_Long *) value)->value;
+			LLNI_field_get_val((java_lang_Long *) value, value, val);
 			break;
 		default:
 			exceptions_throw_illegalargumentexception();
@@ -825,22 +789,22 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		switch (sf->parseddesc->decltype) {
 		case PRIMITIVETYPE_BYTE:
-			val = ((java_lang_Byte *) value)->value;
+			LLNI_field_get_val((java_lang_Byte *) value, value, val);
 			break;
 		case PRIMITIVETYPE_CHAR:
-			val = ((java_lang_Character *) value)->value;
+			LLNI_field_get_val((java_lang_Character *) value, value, val);
 			break;
 		case PRIMITIVETYPE_SHORT:
-			val = ((java_lang_Short *) value)->value;
+			LLNI_field_get_val((java_lang_Short *) value, value, val);
 			break;
 		case PRIMITIVETYPE_INT:
-			val = ((java_lang_Integer *) value)->value;
+			LLNI_field_get_val((java_lang_Integer *) value, value, val);
 			break;
 		case PRIMITIVETYPE_LONG:
-			val = ((java_lang_Long *) value)->value;
+			LLNI_field_get_val((java_lang_Long *) value, value, val);
 			break;
 		case PRIMITIVETYPE_FLOAT:
-			val = ((java_lang_Float *) value)->value;
+			LLNI_field_get_val((java_lang_Float *) value, value, val);
 			break;
 		default:
 			exceptions_throw_illegalargumentexception();
@@ -861,25 +825,25 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 		switch (sf->parseddesc->decltype) {
 		case PRIMITIVETYPE_BYTE:
-			val = ((java_lang_Byte *) value)->value;
+			LLNI_field_get_val((java_lang_Byte *) value, value, val);
 			break;
 		case PRIMITIVETYPE_CHAR:
-			val = ((java_lang_Character *) value)->value;
+			LLNI_field_get_val((java_lang_Character *) value, value, val);
 			break;
 		case PRIMITIVETYPE_SHORT:
-			val = ((java_lang_Short *) value)->value;
+			LLNI_field_get_val((java_lang_Short *) value, value, val);
 			break;
 		case PRIMITIVETYPE_INT:
-			val = ((java_lang_Integer *) value)->value;
+			LLNI_field_get_val((java_lang_Integer *) value, value, val);
 			break;
 		case PRIMITIVETYPE_LONG:
-			val = ((java_lang_Long *) value)->value;
+			LLNI_field_get_val((java_lang_Long *) value, value, val);
 			break;
 		case PRIMITIVETYPE_FLOAT:
-			val = ((java_lang_Float *) value)->value;
+			LLNI_field_get_val((java_lang_Float *) value, value, val);
 			break;
 		case PRIMITIVETYPE_DOUBLE:
-			val = ((java_lang_Double *) value)->value;
+			LLNI_field_get_val((java_lang_Double *) value, value, val);
 			break;
 		default:
 			exceptions_throw_illegalargumentexception();
@@ -894,7 +858,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 		/* check if value is an instance of the destination class */
 
 		/* XXX TODO */
-		/*  			if (!builtin_instanceof((java_objectheader *) value, df->class)) */
+		/*  			if (!builtin_instanceof((java_handle_t *) value, df->class)) */
 		/*  				break; */
 
 		*((java_lang_Object **) faddr) = value;
@@ -917,11 +881,13 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setBoolean(JNIEnv *env, java
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get the address of the field with an internal helper */
 
@@ -952,11 +918,13 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setByte(JNIEnv *env, java_la
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get the address of the field with an internal helper */
 
@@ -998,11 +966,13 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setChar(JNIEnv *env, java_la
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get the address of the field with an internal helper */
 
@@ -1043,11 +1013,13 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_l
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get the address of the field with an internal helper */
 
@@ -1088,11 +1060,13 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setInt(JNIEnv *env, java_lan
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get the address of the field with an internal helper */
 
@@ -1132,11 +1106,13 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setLong(JNIEnv *env, java_la
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get the address of the field with an internal helper */
 
@@ -1173,11 +1149,13 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setFloat(JNIEnv *env, java_l
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get the address of the field with an internal helper */
 
@@ -1211,11 +1189,13 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setDouble(JNIEnv *env, java_
 	classinfo *c;
 	fieldinfo *f;
 	void      *addr;
+	int32_t    slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	/* get the address of the field with an internal helper */
 
@@ -1243,14 +1223,16 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setDouble(JNIEnv *env, java_
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Field_getSignature(JNIEnv *env, java_lang_reflect_Field* this)
 {
-	classinfo         *c;
-	fieldinfo         *f;
-	java_objectheader *o;
+	classinfo     *c;
+	fieldinfo     *f;
+	java_handle_t *o;
+	int32_t        slot;
 
 	/* get the class and the field */
 
-	c = (classinfo *) this->clazz;
-	f = &c->fields[this->slot];
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot , slot);
+	f = &c->fields[slot];
 
 	if (f->signature == NULL)
 		return NULL;
@@ -1261,6 +1243,26 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Field_getSignature(JN
 
 	return (java_lang_String *) o;
 }
+
+
+#if defined(ENABLE_ANNOTATIONS)
+/*
+ * Class:     java/lang/reflect/Field
+ * Method:    declaredAnnotations
+ * Signature: ()Ljava/util/Map;
+ */
+JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Field_declaredAnnotations(JNIEnv *env, struct java_lang_reflect_Field* this)
+{
+	java_handle_t *o = (java_handle_t*)this;
+
+	if (this == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	return reflect_get_declaredannotatios(&(this->declaredAnnotations), this->annotations, this->clazz, o->vftbl->class);
+}
+#endif
 
 
 /*

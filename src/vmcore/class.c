@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8245 2007-07-31 09:55:04Z michi $
+   $Id: class.c 8299 2007-08-13 08:41:18Z michi $
 
 */
 
@@ -52,6 +52,7 @@
 
 #include "vmcore/class.h"
 #include "vmcore/classcache.h"
+#include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 
@@ -132,6 +133,11 @@ classinfo *class_java_security_PrivilegedAction;
 classinfo *class_java_util_Vector;
 
 classinfo *arrayclass_java_lang_Object;
+
+#if defined(ENABLE_ANNOTATIONS)
+classinfo *class_sun_reflect_ConstantPool;
+classinfo *class_sun_reflect_annotation_AnnotationParser;
+#endif
 #endif
 
 
@@ -602,17 +608,31 @@ bool class_load_attributes(classbuffer *cb)
 			if (!loader_load_attribute_signature(cb, &(c->signature)))
 				return false;
 		}
-#if 0
+#endif
+
+#if defined(ENABLE_ANNOTATIONS)
 		/* XXX We can't do a release with that enabled */
 
 		else if (attribute_name == utf_RuntimeVisibleAnnotations) {
 			/* RuntimeVisibleAnnotations */
-
-			if (!annotation_load_attribute_runtimevisibleannotations(cb))
+			if (!annotation_load_class_attribute_runtimevisibleannotations(cb))
+				return false;
+		}
+		/* XXX RuntimeInvisibleAnnotations should only be loaded
+		 * (or returned to Java) if some commandline options says so.
+		 * Currently there is no such option available in cacao,
+		 * therefore I load them allways (for testing purpose).
+		 * Anyway, bytecode for RuntimeInvisibleAnnotations is only
+		 * generated if you tell javac to do so. So in most cases
+		 * there won't be any.
+		 */
+		else if (attribute_name == utf_RuntimeInvisibleAnnotations) {
+			/* RuntimeInvisibleAnnotations */
+			if (!annotation_load_class_attribute_runtimeinvisibleannotations(cb))
 				return false;
 		}
 #endif
-#endif
+
 		else {
 			/* unknown attribute */
 
@@ -784,6 +804,16 @@ void class_free(classinfo *c)
 		mem_free(c->header.vftbl, sizeof(vftbl) + sizeof(methodptr)*(c->vftbl->vftbllength-1)); */
 	
 /*  	GCFREE(c); */
+
+#if defined(ENABLE_ANNOTATIONS)
+	annotation_bytearray_free(c->annotations);
+
+	annotation_bytearrays_free(c->method_annotations);
+	annotation_bytearrays_free(c->method_parameterannotations);
+	annotation_bytearrays_free(c->method_annotationdefaults);
+
+	annotation_bytearrays_free(c->field_annotations);
+#endif
 }
 
 
@@ -1522,8 +1552,7 @@ bool class_issubclass(classinfo *sub, classinfo *super)
 
 bool class_isanysubclass(classinfo *sub, classinfo *super)
 {
-	castinfo classvalues;
-	u4       diffval;
+	uint32_t diffval;
 	bool     result;
 
 	/* This is the trivial case. */
@@ -1549,10 +1578,12 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
 		if (sub->flags & ACC_INTERFACE)
 			return (super == class_java_lang_Object);
 
-		ASM_GETCLASSVALUES_ATOMIC(super->vftbl, sub->vftbl, &classvalues);
+		LOCK_MONITOR_ENTER(linker_classrenumber_lock);
 
-		diffval = classvalues.sub_baseval - classvalues.super_baseval;
-		result  = diffval <= (u4) classvalues.super_diffval;
+		diffval = sub->vftbl->baseval - super->vftbl->baseval;
+		result  = diffval <= (uint32_t) super->vftbl->diffval;
+
+		LOCK_MONITOR_EXIT(linker_classrenumber_lock);
 	}
 
 	return result;

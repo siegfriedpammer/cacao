@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7869 2007-05-05 08:08:49Z pm $
+## $Id: Makefile.am 8288 2007-08-10 15:12:00Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -59,6 +59,8 @@ libvm_la_SOURCES = \
 	initialize.c \
 	initialize.h \
 	jit_interface.h \
+	primitive.c \
+	primitive.h \
 	properties.c \
 	properties.h \
 	resolve.c \

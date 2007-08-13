@@ -104,7 +104,6 @@
 /* replacement ****************************************************************/
 
 #define REPLACEMENT_PATCH_SIZE           4 /* bytes */
-#define REPLACEMENT_STUB_SIZE            5 /* words */ /* XXX adapt for sparc64 */
 
 #endif /* _ARCH_H */
 
