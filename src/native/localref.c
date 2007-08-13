@@ -38,6 +38,17 @@
 
 #include "threads/threads-common.h"
 
+#include "toolbox/logging.h"
+
+
+/* debug **********************************************************************/
+
+#if !defined(NDEBUG) && 0
+# define TRACELOCALREF(message) log_println("%s", message)
+#else
+# define TRACELOCALREF(message)
+#endif
+
 
 /* global variables ***********************************************************/
 
@@ -55,6 +66,8 @@ localref_table *_no_threads_localref_table;
 bool localref_table_init(void)
 {
 	localref_table *lrt;
+
+	TRACELOCALREF("table init");
 
 	assert(LOCALREFTABLE == NULL);
 
@@ -107,8 +120,8 @@ void localref_table_remove()
 
 	lrt = LOCALREFTABLE;
 
+	assert(lrt != NULL);
 	assert(lrt->localframes == 1);
-	assert(lrt->prev != NULL);
 
 	lrt = lrt->prev;
 
@@ -129,6 +142,13 @@ bool localref_frame_push(int32_t capacity)
 	localref_table *nlrt;
 	int32_t         additionalrefs;
 
+	TRACELOCALREF("frame push");
+
+	/* get current local reference table from thread */
+
+	lrt = LOCALREFTABLE;
+
+	assert(lrt != NULL);
 	assert(capacity > 0);
 
 	/* Allocate new local reference table on Java heap.  Calculate the
@@ -143,10 +163,6 @@ bool localref_frame_push(int32_t capacity)
 
 	if (nlrt == NULL)
 		return false;
-
-	/* get current local reference table from thread */
-
-	lrt = LOCALREFTABLE;
 
 	/* Set up the new local reference table and add it to the local
 	   frames chain. */
@@ -176,9 +192,13 @@ void localref_frame_pop_all(void)
 	localref_table *plrt;
 	int32_t         localframes;
 
+	TRACELOCALREF("frame pop all");
+
 	/* get current local reference table from thread */
 
 	lrt = LOCALREFTABLE;
+
+	assert(lrt != NULL);
 
 	localframes = lrt->localframes;
 
@@ -229,10 +249,10 @@ void localref_dump()
 
 	lrt = LOCALREFTABLE;
 
-	printf("\n--------- Local Reference Tables Dump ---------\n");
+	log_println("--------- Local Reference Tables Dump ---------");
 
 	while (lrt != NULL) {
-		printf("Frame #%d, Used=%d, Capacity=%d, Addr=%p:\n", lrt->localframes, lrt->used, lrt->capacity, (void *) lrt);
+		log_println("Frame #%d, Used=%d, Capacity=%d, Addr=%p:", lrt->localframes, lrt->used, lrt->capacity, (void *) lrt);
 
 		for (i = 0; i < lrt->used; i++) {
 			printf("\t0x%08lx ", (intptr_t) lrt->refs[i]);
