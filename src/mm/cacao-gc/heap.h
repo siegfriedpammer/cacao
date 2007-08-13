@@ -34,7 +34,7 @@
 
 #include "gc.h"
 #include "region.h"
-#include "vmcore/primitive.h" /* needed for ARRAYTYPE_OBJECT */
+#include "vm/primitive.h" /* needed for ARRAYTYPE_OBJECT */
 
 
 #define GC_SIZE_DUMMY 0xff
@@ -54,11 +54,11 @@ extern regioninfo_t *heap_region_sys;
 extern regioninfo_t *heap_region_main;
 
 
-s4 get_object_size(java_objectheader *o);
+s4 get_object_size(java_object_t *o);
 
 #if !defined(NDEBUG)
 void heap_println_usage();
-void heap_print_object(java_objectheader *o);
+void heap_print_object(java_object_t *o);
 void heap_dump_region(regioninfo_t *region, bool marked_only);
 #endif
 
@@ -77,7 +77,7 @@ void heap_dump_region(regioninfo_t *region, bool marked_only);
 			for (i = 0; i < a->header.size; i++) { \
 				\
 				refptr = &( a->data[i] ); \
-				ref = (java_objectheader *) (a->data[i]); \
+				ref = (java_object_t *) (a->data[i]); \
 				\
 				code; \
 			} \
@@ -99,7 +99,7 @@ void heap_dump_region(regioninfo_t *region, bool marked_only);
 				if (!IS_ADR_TYPE(f->type) || (f->flags & ACC_STATIC)) \
 					continue; \
 				\
-				refptr = (java_objectheader **) ((s1 *) o + f->offset); \
+				refptr = (java_object_t **) ((s1 *) o + f->offset); \
 				ref = *( refptr ); \
 				\
 				code; \

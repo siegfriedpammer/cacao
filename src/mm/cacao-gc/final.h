@@ -53,7 +53,7 @@ typedef struct list_final_entry_t list_final_entry_t;
 struct list_final_entry_t {
 	listnode_t         linkage;
 	u4                 type;
-	java_objectheader *o;
+	java_object_t     *o;
 	methodinfo        *finalizer;
 };
 
@@ -61,7 +61,7 @@ struct list_final_entry_t {
 /* Prototypes *****************************************************************/
 
 void final_init();
-void final_register(java_objectheader *o, methodinfo *finalizer);
+void final_register(java_object_t *o, methodinfo *finalizer);
 void final_invoke();
 void final_set_all_reclaimable();
 

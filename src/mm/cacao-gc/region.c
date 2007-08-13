@@ -64,7 +64,7 @@ void *region_create(regioninfo_t *region, u4 size)
 
 #if defined(ENABLE_THREADS)
 	/* initiate the header for locking */
-	lock_init_object_lock((java_objectheader *) region);
+	lock_init_object_lock((java_object_t *) region);
 #endif
 
 #if defined(ENABLE_MEMCHECK)

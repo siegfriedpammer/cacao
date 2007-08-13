@@ -54,7 +54,7 @@ regioninfo_t *heap_region_sys;
 regioninfo_t *heap_region_main;
 
 
-void heap_init_objectheader(java_objectheader *o, u4 bytelength)
+void heap_init_objectheader(java_object_t *o, u4 bytelength)
 {
 	u4 wordcount;
 
@@ -86,9 +86,9 @@ void heap_init_objectheader(java_objectheader *o, u4 bytelength)
 
 void heap_update_references(rootset_t *rs, regioninfo_t *region, u4 offset)
 {
-	java_objectheader  *o;
-	java_objectheader  *ref;
-	java_objectheader **refptr;
+	java_object_t  *o;
+	java_object_t  *ref;
+	java_object_t **refptr;
 	u1* start;
 	u1* end;
 	int i;
@@ -202,7 +202,7 @@ void heap_increase_size(rootset_t *rs)
 }
 
 
-s4 heap_get_hashcode(java_objectheader *o)
+s4 heap_get_hashcode(java_object_t *o)
 {
 	s4 hashcode;
 
@@ -230,13 +230,13 @@ s4 heap_get_hashcode(java_objectheader *o)
 }
 
 
-static java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region, bool collect)
+static java_object_t *heap_alloc_intern(u4 bytelength, regioninfo_t *region, bool collect)
 {
-	java_objectheader *p;
+	java_object_t *p;
 
 	/* only a quick sanity check */
 	GC_ASSERT(region);
-	GC_ASSERT(bytelength >= sizeof(java_objectheader));
+	GC_ASSERT(bytelength >= sizeof(java_object_t));
 
 	/* align objects in memory */
 	bytelength = GC_ALIGN(bytelength, GC_ALIGN_SIZE);
@@ -262,7 +262,7 @@ static java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region,
 	}
 
 	/* allocate the object in this region */
-	p = (java_objectheader *) region->ptr;
+	p = (java_object_t *) region->ptr;
 	region->ptr += bytelength;
 	region->free -= bytelength;
 
@@ -288,7 +288,7 @@ static java_objectheader *heap_alloc_intern(u4 bytelength, regioninfo_t *region,
 
 void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
 {
-	java_objectheader *p;
+	java_object_t *p;
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_end;
 #endif
@@ -322,7 +322,7 @@ void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
 
 void *heap_alloc_uncollectable(u4 size)
 {
-	java_objectheader *p;
+	java_object_t *p;
 
 	/* loader.c does this a lot for classes with fieldscount equal zero */
 	if (size == 0)
@@ -362,7 +362,7 @@ void heap_println_usage()
 
 
 #if !defined(NDEBUG)
-void heap_print_object_flags(java_objectheader *o)
+void heap_print_object_flags(java_object_t *o)
 {
 	printf("0x%02x [%s%s%s%s]",
 		GC_GET_SIZE(o),
@@ -375,7 +375,7 @@ void heap_print_object_flags(java_objectheader *o)
 
 
 #if !defined(NDEBUG)
-void heap_print_object(java_objectheader *o)
+void heap_print_object(java_object_t *o)
 {
 	java_arrayheader  *a;
 	classinfo         *c;
@@ -453,8 +453,8 @@ void heap_print_object(java_objectheader *o)
 #if !defined(NDEBUG)
 void heap_dump_region(regioninfo_t *region, bool marked_only)
 {
-	java_objectheader *o;
-	u4                 o_size;
+	java_object_t *o;
+	u4             o_size;
 
 	/* some basic sanity checks */
 	GC_ASSERT(region->base <= region->ptr);
@@ -462,7 +462,7 @@ void heap_dump_region(regioninfo_t *region, bool marked_only)
 	printf("Heap-Dump:\n");
 
 	/* walk the region in a linear style */
-	o = (java_objectheader *) region->base;
+	o = (java_object_t *) region->base;
 	while (o < region->ptr) {
 
 		if (!marked_only || GC_IS_MARKED(o)) {
@@ -484,7 +484,7 @@ void heap_dump_region(regioninfo_t *region, bool marked_only)
 #endif
 
 
-s4 get_object_size(java_objectheader *o)
+s4 get_object_size(java_object_t *o)
 {
 	java_arrayheader *a;
 	classinfo        *c;

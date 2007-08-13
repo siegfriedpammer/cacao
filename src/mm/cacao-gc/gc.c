@@ -58,7 +58,7 @@ bool gc_notify_finalizer;
 list_t *gc_reflist;
 
 #if defined(ENABLE_THREADS)
-java_objectheader *gc_global_lock;
+java_object_t *gc_global_lock;
 #endif
 
 #if !defined(ENABLE_THREADS)
@@ -93,7 +93,7 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 
 #if defined(ENABLE_THREADS)
 	/* create global gc lock object */
-	gc_global_lock = NEW(java_objectheader);
+	gc_global_lock = NEW(java_object_t);
 	lock_init_object_lock(gc_global_lock);
 #endif
 
@@ -119,7 +119,7 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 
 *******************************************************************************/
 
-void gc_reference_register(java_objectheader **ref)
+void gc_reference_register(java_object_t **ref)
 {
 	list_gcref_entry_t *re;
 
@@ -145,7 +145,7 @@ void gc_reference_register(java_objectheader **ref)
 }
 
 
-void gc_reference_unregister(java_objectheader **ref)
+void gc_reference_unregister(java_object_t **ref)
 {
 	vm_abort("gc_reference_unregister: IMPLEMENT ME!");
 }

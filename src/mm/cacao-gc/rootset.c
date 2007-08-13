@@ -176,15 +176,15 @@ static rootset_t *rootset_from_classes(rootset_t *rs)
 				continue;
 
 			/* check for outside or null pointers */
-			if (f->value.a == NULL)
+			if (f->value->a == NULL)
 				continue;
 
-			GC_LOG2( printf("Found Static Field Reference: %p\n", (void *) f->value.a);
+			GC_LOG2( printf("Found Static Field Reference: %p\n", (void *) f->value->a);
 					printf("\tfrom field: "); field_print(f); printf("\n");
-					printf("\tto object : "); heap_print_object(f->value.a); printf("\n"); );
+					printf("\tto object : "); heap_print_object(f->value->a); printf("\n"); );
 
 			/* add this static field reference to the root set */
-			ROOTSET_ADD(&( f->value.a ), true, REFTYPE_CLASSREF);
+			ROOTSET_ADD(f->value, true, REFTYPE_CLASSREF);
 
 		}
 
@@ -268,7 +268,7 @@ static rootset_t *rootset_from_thread(threadobject *thread, rootset_t *rs)
 			GC_LOG2( printf("Found Reference (Java Local): %p\n", (void *) sf->javalocals[i].a); );
 
 			/* add this reference to the root set */
-			ROOTSET_ADD((java_objectheader **) &( sf->javalocals[i] ), true, REFTYPE_STACK);
+			ROOTSET_ADD((java_object_t **) &( sf->javalocals[i] ), true, REFTYPE_STACK);
 
 		}
 
@@ -281,7 +281,7 @@ static rootset_t *rootset_from_thread(threadobject *thread, rootset_t *rs)
 			GC_LOG2( printf("Found Reference (Java Stack): %p\n", (void *) sf->javastack[i].a); );
 
 			/* add this reference to the root set */
-			ROOTSET_ADD((java_objectheader **) &( sf->javastack[i] ), true, REFTYPE_STACK);
+			ROOTSET_ADD((java_object_t **) &( sf->javastack[i] ), true, REFTYPE_STACK);
 
 		}
 
@@ -290,7 +290,7 @@ static rootset_t *rootset_from_thread(threadobject *thread, rootset_t *rs)
 			GC_LOG( printf("Found Reference (Sync Slot): %p\n", (void *) sf->syncslots[i].a); );
 
 			/* add this reference to the root set */
-			ROOTSET_ADD((java_objectheader **) &( sf->syncslots[i] ), true, REFTYPE_STACK);
+			ROOTSET_ADD((java_object_t **) &( sf->syncslots[i] ), true, REFTYPE_STACK);
 
 		}
 	}
@@ -399,7 +399,7 @@ static const char* ref_type_names[] = {
 
 void rootset_print(rootset_t *rs)
 {
-	java_objectheader *o;
+	java_object_t *o;
 	int i;
 
 	/* walk through all rootsets in the chain */

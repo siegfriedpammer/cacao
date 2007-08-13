@@ -42,7 +42,7 @@
 
 /* Global Variables ***********************************************************/
 
-static java_objectheader *next;
+static java_object_t *next;
 
 
 static u4 copy_object(u1 *old, u1 *new, u4 size)
@@ -60,7 +60,7 @@ static u4 copy_object(u1 *old, u1 *new, u4 size)
 	new_size = size;
 
 	/* check if we need to attach the hashcode to the object */
-	if (GC_TEST_FLAGS((java_objectheader *) new, HDRFLAG_HASH_TAKEN)) {
+	if (GC_TEST_FLAGS((java_object_t *) new, HDRFLAG_HASH_TAKEN)) {
 
 		GC_LOG( printf("need to attach hash to %p\n", new); );
 
@@ -73,7 +73,7 @@ static u4 copy_object(u1 *old, u1 *new, u4 size)
 #define GC_FORWARD(ref,refptr,start,end) \
 	*(refptr) = copy_forward(ref, start, end)
 
-static void *copy_forward(java_objectheader *o, void *src_start, void *src_end)
+static void *copy_forward(java_object_t *o, void *src_start, void *src_end)
 {
 	s4 o_size;
 
@@ -91,7 +91,7 @@ static void *copy_forward(java_objectheader *o, void *src_start, void *src_end)
 		if (GC_IS_MARKED(o)) {
 
 			GC_LOG2( printf("\tForwarding reference: %p -> ", (void *) o);
-					heap_print_object((java_objectheader *) o->vftbl);
+					heap_print_object((java_object_t *) o->vftbl);
 					printf("\n"); );
 
 			/* return the location of an already existing copy */
@@ -134,15 +134,15 @@ static void *copy_forward(java_objectheader *o, void *src_start, void *src_end)
 
 void copy_me(regioninfo_t *src, regioninfo_t *dst, rootset_t *rs)
 {
-	java_objectheader  *scan;
-	/*java_objectheader *next;*/
-	java_objectheader  *ref;
-	java_objectheader **refptr;
+	java_object_t  *scan;
+	/*java_object_t *next;*/
+	java_object_t  *ref;
+	java_object_t **refptr;
 	int i;
 
 	/* initialize the scan and next pointer */
-	scan = (java_objectheader *) dst->base;
-	next = (java_objectheader *) dst->base;
+	scan = (java_object_t *) dst->base;
+	next = (java_object_t *) dst->base;
 
 	GC_LOG( dolog("GC: Copying object from rootset ..."); );
 

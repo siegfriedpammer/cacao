@@ -60,14 +60,14 @@
 
 *******************************************************************************/
 
-void mark_recursive(java_objectheader *o)
+void mark_recursive(java_object_t *o)
 {
-	vftbl_t           *t;
-	classinfo         *c;
-	fieldinfo         *f;
-	java_objectarray  *oa;
-	arraydescriptor   *desc;
-	java_objectheader *ref;
+	vftbl_t          *t;
+	classinfo        *c;
+	fieldinfo        *f;
+	java_objectarray *oa;
+	arraydescriptor  *desc;
+	java_object_t    *ref;
 	void *start, *end;
 	int i;
 
@@ -112,7 +112,7 @@ void mark_recursive(java_objectheader *o)
 		for (i = 0; i < oa->header.size; i++) {
 
 			/* load the reference value */
-			ref = (java_objectheader *) (oa->data[i]);
+			ref = (java_object_t *) (oa->data[i]);
 
 			/* check for outside or null pointers */
 			if (!POINTS_INTO(ref, start, end))
@@ -142,7 +142,7 @@ void mark_recursive(java_objectheader *o)
 				continue;
 
 			/* load the reference value */
-			ref = *( (java_objectheader **) ((s1 *) o + f->offset) );
+			ref = *( (java_object_t **) ((s1 *) o + f->offset) );
 
 			/* check for outside or null pointers */
 			if (!POINTS_INTO(ref, start, end))
@@ -178,9 +178,9 @@ void mark_recursive(java_objectheader *o)
 
 void mark_classes(void *start, void *end)
 {
-	java_objectheader *ref;
-	classinfo         *c;
-	fieldinfo         *f;
+	java_object_t *ref;
+	classinfo     *c;
+	fieldinfo     *f;
 	void *sys_start, *sys_end;
 	int i;
 
@@ -202,7 +202,7 @@ void mark_classes(void *start, void *end)
 				continue;
 
 			/* load the reference */
-			ref = (java_objectheader *) (f->value.a);
+			ref = (java_object_t *) (f->value);
 
 			/* check for outside or null pointers */
 			if (!POINTS_INTO(ref, start, end))
@@ -231,11 +231,11 @@ void mark_classes(void *start, void *end)
 
 void mark_me(rootset_t *rs)
 {
-	java_objectheader *ref;
+	java_object_t      *ref;
 #if defined(GCCONF_FINALIZER)
-	list_final_entry_t       *fe;
+	list_final_entry_t *fe;
 #endif
-	u4                 f_type;
+	u4                  f_type;
 	void *start, *end;
 	int i;
 

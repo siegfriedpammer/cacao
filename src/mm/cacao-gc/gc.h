@@ -124,8 +124,8 @@ extern list_t *gc_reflist;
 typedef struct list_gcref_entry_t list_gcref_entry_t;
 
 struct list_gcref_entry_t {
-	listnode_t          linkage;
-	java_objectheader **ref;
+	listnode_t      linkage;
+	java_object_t **ref;
 };
 
 

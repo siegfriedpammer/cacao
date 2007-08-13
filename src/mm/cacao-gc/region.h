@@ -45,7 +45,7 @@ typedef struct regioninfo_t regioninfo_t;
 
 struct regioninfo_t {
 #if defined(ENABLE_THREADS)
-	java_objectheader header; /* needed for locking */
+	java_object_t header; /* needed for locking */
 #endif
 	u1 *base;     /* pointer to the start of this region */
 	u1 *end;      /* pointer to the end of this region */

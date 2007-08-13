@@ -64,7 +64,7 @@ typedef struct rootset_t rootset_t;
    the reference */
 
 typedef struct rootset_entry_t {
-	java_objectheader **ref;            /* a pointer to the actual reference */
+	java_object_t     **ref;            /* a pointer to the actual reference */
 	bool                marks;          /* indicates if a reference marks */
 #if !defined(NDEBUG)
 	s4                  type;

@@ -48,7 +48,7 @@ void final_init()
 	final_list = list_create(OFFSET(list_final_entry_t, linkage));
 }
 
-void final_register(java_objectheader *o, methodinfo *finalizer)
+void final_register(java_object_t *o, methodinfo *finalizer)
 {
 	list_final_entry_t *fe;
 
