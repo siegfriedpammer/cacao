@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8296 2007-08-11 22:38:38Z pm $
+   $Id: emit.c 8304 2007-08-14 19:57:20Z pm $
 
 */
 
@@ -234,9 +234,79 @@ uint32_t emit_trap(codegendata *cd)
 *******************************************************************************/
 
 #if !defined(NDEBUG)
+#include "vm/jit/trace.h"
 void emit_verbosecall_enter(jitdata *jd)
 {
+#if 1
+	methodinfo   *m;
+	codegendata  *cd;
+	s4            stackframesize;
+	s4            i, off, disp;
+
+	m  = jd->m;
+	cd = jd->cd;
+
+	/* mark trace code */
+
+	M_NOP;
+
+	/* allocate stack frame */
+
+	stackframesize = 96 + (ARG_CNT * 8);
+	M_ASUB_IMM(stackframesize, REG_SP);
+
+	/* store argument registers in array */
+
+	off = 96;
+
+	for (i = 0; i < INT_ARG_CNT; ++i, off += 8) {
+		M_IST(abi_registers_integer_argument[i], REG_SP, off + 4);
+		/* high bytes are sign extension */
+		M_SRA_IMM(31, abi_registers_integer_argument[i]);
+		M_IST(abi_registers_integer_argument[i], REG_SP, off);
+	}
+
+	for (i = 0; i < FLT_ARG_CNT; ++i, off += 8) {
+		M_DST(abi_registers_float_argument[i], REG_SP, off);
+	}
 	
+	/* load arguments for trace_java_call_enter */
+
+	/* methodinfo */
+	disp = dseg_add_address(cd, m);
+	M_ALD_DSEG(REG_A0, disp);	
+	/* pointer to argument registers array */
+	M_LDA(REG_A1, REG_SP, 96);
+	/* pointer to on stack arguments */
+	M_LDA(REG_A2, REG_SP, stackframesize + (cd->stackframesize * 8));
+
+	/* call trace_java_call_enter */
+
+	disp = dseg_add_functionptr(cd, trace_java_call_enter);
+	M_ALD_DSEG(REG_ITMP3, disp);
+	M_CALL(REG_ITMP3);
+
+	/* restore argument registers */
+
+	off = 96;
+
+	for (i = 0; i < INT_ARG_CNT; ++i, off += 8) {
+		M_ILD(abi_registers_integer_argument[i], REG_SP, off + 4);
+	}
+
+	for (i = 0; i < FLT_ARG_CNT; ++i, off += 8) {
+		M_DLD(abi_registers_float_argument[i], REG_SP, off);
+	}
+
+	/* remove stack frame */
+
+	M_AADD_IMM(stackframesize, REG_SP);
+
+	/* mark trace code */
+
+	M_NOP;
+
+#else
 	methodinfo   *m;
 	codegendata  *cd;
 	methoddesc   *md;
@@ -410,6 +480,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* mark trace code */
 
 	M_NOP;
+#endif
 }
 #endif /* !defined(NDEBUG) */
 
@@ -423,6 +494,61 @@ void emit_verbosecall_enter(jitdata *jd)
 #if !defined(NDEBUG)
 void emit_verbosecall_exit(jitdata *jd)
 {
+#if 1
+	methodinfo   *m;
+	codegendata  *cd;
+	s4            disp;
+	s4            stackframesize;
+
+	m  = jd->m;
+	cd = jd->cd;
+
+	/* mark trace code */
+
+	M_NOP;
+
+	/* allocate stackframe */
+
+	stackframesize = 96 + (3 * 8);
+	M_ASUB_IMM(stackframesize, REG_SP);
+
+	/* store return values in array and sign extend them */
+
+	M_IST(REG_RESULT, REG_SP, 96 + (0 * 8) + 4);
+	M_SRA_IMM(31, REG_RESULT);
+	M_IST(REG_RESULT, REG_SP, 96 + (0 * 8));
+
+	M_IST(REG_RESULT2, REG_SP, 96 + (1 * 8) + 4);
+	M_SRA_IMM(31, REG_RESULT2);
+	M_IST(REG_RESULT2, REG_SP, 96 + (1 * 8));
+
+	M_DST(REG_FRESULT, REG_SP, 96 + (2 * 8));
+
+	/* call trace_java_call_exit */
+
+	disp = dseg_add_address(cd, m);
+	M_ALD_DSEG(REG_A0, disp);
+	M_LDA(REG_A1, REG_SP, 96);
+	disp = dseg_add_functionptr(cd, trace_java_call_exit);
+	M_ALD_DSEG(REG_ITMP3, disp);
+	M_CALL(REG_ITMP3);
+
+	/* restore return values */
+
+	M_ILD(REG_RESULT, REG_SP, 96 + (0 * 8) + 4);
+	M_ILD(REG_RESULT2, REG_SP, 96 + (1 * 8) + 4);
+	M_DLD(REG_FRESULT, REG_SP, 96 + (2 * 8));
+
+	/* remove stackframe */
+
+	M_AADD_IMM(stackframesize, REG_SP);
+
+	/* mark trace code */
+
+	M_NOP;
+
+#else
+
 	methodinfo   *m;
 	codegendata  *cd;
 	registerdata *rd;
@@ -470,6 +596,7 @@ void emit_verbosecall_exit(jitdata *jd)
 	/* mark trace code */
 
 	M_NOP;
+#endif
 }
 #endif /* !defined(NDEBUG) */
 

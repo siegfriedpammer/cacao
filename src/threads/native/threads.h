@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.h 8297 2007-08-12 00:02:48Z michi $
+   $Id: threads.h 8304 2007-08-14 19:57:20Z pm $
 
 */
 
@@ -141,6 +141,11 @@ struct threadobject {
 	u2                    filterverbosecallctr[2]; /* counters for verbose call filter */
 #endif
 
+#if !defined(NDEBUG)
+	s4                    tracejavacallindent;
+	u4                    tracejavacallcount;
+#endif
+
 	listnode_t            linkage;      /* threads-list                       */
 };
 
@@ -158,6 +163,13 @@ struct threadobject {
 
 #if defined(ENABLE_DEBUG_FILTER)
 #	define FILTERVERBOSECALLCTR (THREADOBJECT->filterverbosecallctr)
+#endif
+
+/* state for trace java call **************************************************/
+
+#if !defined(NDEBUG)
+#	define TRACEJAVACALLINDENT (THREADOBJECT->tracejavacallindent)
+#	define TRACEJAVACALLCOUNT (THREADOBJECT->tracejavacallcount)
 #endif
 
 /* functions ******************************************************************/

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: threads.c 8304 2007-08-14 19:57:20Z pm $
 
 */
 
@@ -642,6 +642,11 @@ void threads_impl_thread_new(threadobject *t)
 	/* Initialize filter counters */
 	t->filterverbosecallctr[0] = 0;
 	t->filterverbosecallctr[1] = 0;
+#endif
+
+#if !defined(NDEBUG)
+	t->tracejavacallindent = 0;
+	t->tracejavacallcount = 0;
 #endif
 }
 
