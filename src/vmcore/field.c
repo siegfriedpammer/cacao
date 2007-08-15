@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: field.c 8288 2007-08-10 15:12:00Z twisti $
+   $Id: field.c 8315 2007-08-15 22:49:20Z panzi $
 
 */
 
@@ -39,6 +39,7 @@
 
 #include "mm/memory.h"
 
+#include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/primitive.h"
@@ -392,17 +393,26 @@ void field_free(fieldinfo *f)
 
 *******************************************************************************/
 
-annotation_bytearray_t *field_get_annotations(fieldinfo *f)
+java_bytearray *field_get_annotations(fieldinfo *f)
 {
-	classinfo *c = f->class;
-	int slot = f - c->fields;
-
-	if (c->field_annotations != NULL &&
-	    c->field_annotations->size > slot) {
-		return c->field_annotations->data[slot];
+	classinfo              *c           = f->class;
+	int                     slot        = f - c->fields;
+	annotation_bytearray_t *ba          = NULL;
+	java_bytearray         *annotations = NULL;
+	
+	if (c->field_annotations != NULL && c->field_annotations->size > slot) {
+		ba = c->field_annotations->data[slot];
+		
+		if (ba != NULL) {
+			annotations = builtin_newarray_byte(ba->size);
+			
+			if (annotations != NULL) {
+				MCOPY(annotations->data, ba->data, uint8_t, ba->size);
+			}
+		}
 	}
-
-	return NULL;
+	
+	return annotations;
 }
 #endif
 

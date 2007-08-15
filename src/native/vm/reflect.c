@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: reflect.c 8305 2007-08-15 13:49:26Z panzi $
+   $Id: reflect.c 8315 2007-08-15 22:49:20Z panzi $
 
 */
 
@@ -85,33 +85,6 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 	int32_t                        slot;
 	java_bytearray                *annotations          = NULL;
 	java_bytearray                *parameterAnnotations = NULL;
-	annotation_bytearray_t        *ba                   = NULL;
-
-#if defined(ENABLE_ANNOTATIONS)
-	/* get annotations */
-	ba = method_get_annotations(m);
-
-	if (ba != NULL) {
-		annotations = builtin_newarray_byte(ba->size);
-
-		if (annotations == NULL)
-			return NULL;
-		
-		MCOPY(annotations->data, ba->data, uint8_t, ba->size);
-	}
-	
-	/* get parameter annotations */
-	ba = method_get_parameterannotations(m);
-
-	if (ba != NULL) {
-		parameterAnnotations = builtin_newarray_byte(ba->size);
-
-		if (parameterAnnotations == NULL)
-			return NULL;
-		
-		MCOPY(parameterAnnotations->data, ba->data, uint8_t, ba->size);
-	}
-#endif
 
 	/* get declaring class */
 
@@ -131,6 +104,16 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 	/* calculate the slot */
 
 	slot = m - c->methods;
+
+#if defined(ENABLE_ANNOTATIONS)
+	/* get annotations */
+
+	annotations = method_get_annotations(m);
+
+	/* get parameter annotations */
+
+	parameterAnnotations = method_get_parameterannotations(m);
+#endif
 
 #if defined(WITH_CLASSPATH_GNU)
 
@@ -172,21 +155,6 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 	java_lang_reflect_Field *rf;
 	int32_t                  slot;
 	java_bytearray          *annotations = NULL;
-	annotation_bytearray_t  *ba          = NULL;
-
-#if defined(ENABLE_ANNOTATIONS)
-	/* get annotations */
-	ba = field_get_annotations(f);
-
-	if (ba != NULL) {
-		annotations = builtin_newarray_byte(ba->size);
-
-		if (annotations == NULL)
-			return NULL;
-		
-		MCOPY(annotations->data, ba->data, uint8_t, ba->size);
-	}
-#endif
 
 	/* get declaring class */
 
@@ -206,6 +174,12 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 	/* calculate the slot */
 
 	slot = f - c->fields;
+
+#if defined(ENABLE_ANNOTATIONS)
+	/* get annotations */
+
+	annotations = field_get_annotations(f);
+#endif
 
 #if defined(WITH_CLASSPATH_GNU)
 
@@ -256,45 +230,6 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 	java_bytearray           *annotations          = NULL;
 	java_bytearray           *parameterAnnotations = NULL;
 	java_bytearray           *annotationDefault    = NULL;
-	annotation_bytearray_t   *ba                   = NULL;
-
-#if defined(ENABLE_ANNOTATIONS)
-	/* get annotations */
-	ba = method_get_annotations(m);
-
-	if (ba != NULL) {
-		annotations = builtin_newarray_byte(ba->size);
-
-		if (annotations == NULL)
-			return NULL;
-		
-		MCOPY(annotations->data, ba->data, uint8_t, ba->size);
-	}
-	
-	/* get parameter annotations */
-	ba = method_get_parameterannotations(m);
-
-	if (ba != NULL) {
-		parameterAnnotations = builtin_newarray_byte(ba->size);
-
-		if (parameterAnnotations == NULL)
-			return NULL;
-		
-		MCOPY(parameterAnnotations->data, ba->data, uint8_t, ba->size);
-	}
-
-	/* get annotation default value */
-	ba = method_get_annotationdefault(m);
-
-	if (ba != NULL) {
-		annotationDefault = builtin_newarray_byte(ba->size);
-
-		if (annotationDefault == NULL)
-			return NULL;
-		
-		MCOPY(annotationDefault->data, ba->data, uint8_t, ba->size);
-	}
-#endif
 
 	/* get declaring class */
 
@@ -315,6 +250,20 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 
 	slot = m - c->methods;
 
+#if defined(ENABLE_ANNOTATIONS)
+	/* get annotations */
+
+	annotations = method_get_annotations(m);
+
+	/* get parameter annotations */
+
+	parameterAnnotations = method_get_parameterannotations(m);
+
+	/* get annotation default value */
+
+	annotationDefault = method_get_annotationdefault(m);
+#endif
+
 #if defined(WITH_CLASSPATH_GNU)
 
 	LLNI_field_set_cls(rm, clazz               , m->class);
@@ -330,21 +279,21 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 
 #elif defined(WITH_CLASSPATH_SUN)
 
-	LLNI_field_set_cls(rm, clazz               , (java_lang_Class *) m->class);
+	LLNI_field_set_cls(rm, clazz               , m->class);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	rm->name                 = _Jv_java_lang_String_intern((java_lang_String *) javastring_new(m->name));
-	rm->parameterTypes       = method_get_parametertypearray(m);
-	rm->returnType           = (java_lang_Class *) method_returntype_get(m);
-	rm->exceptionTypes       = method_get_exceptionarray(m);
-	rm->modifiers            = m->flags & ACC_CLASS_REFLECT_MASK;
-	rm->slot                 = slot;
-	rm->signature            = m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL;
-	rm->annotations          = annotations;
-	rm->parameterAnnotations = parameterAnnotations;
-	rm->annotationDefault    = annotationDefault;
+	LLNI_field_set_ref(rm, name                , _Jv_java_lang_String_intern((java_lang_String *) javastring_new(m->name)));
+	LLNI_field_set_ref(rm, parameterTypes      , method_get_parametertypearray(m));
+	LLNI_field_set_cls(rm, returnType          , (java_lang_Class *) method_returntype_get(m));
+	LLNI_field_set_ref(rm, exceptionTypes      , method_get_exceptionarray(m));
+	LLNI_field_set_val(rm, modifiers           , m->flags & ACC_CLASS_REFLECT_MASK);
+	LLNI_field_set_val(rm, slot                , slot);
+	LLNI_field_set_ref(rm, signature           , m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL);
+	LLNI_field_set_ref(rm, annotations         , annotations);
+	LLNI_field_set_ref(rm, parameterAnnotations, parameterAnnotations);
+	LLNI_field_set_ref(rm, annotationDefault   , annotationDefault);
 
 #else
 # error unknown classpath configuration

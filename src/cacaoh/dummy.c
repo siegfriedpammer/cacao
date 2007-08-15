@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: dummy.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: dummy.c 8315 2007-08-15 22:49:20Z panzi $
 
 */
 
@@ -124,6 +124,13 @@ java_handle_t *builtin_new(classinfo *c)
 }
 
 java_objectarray *builtin_anewarray(int32_t size, classinfo *componentclass)
+{
+	abort();
+
+	return NULL;
+}
+
+java_bytearray *builtin_newarray_byte(int32_t size)
 {
 	abort();
 
