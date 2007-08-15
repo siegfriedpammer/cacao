@@ -39,7 +39,7 @@
    memory. All functions writing values into the data area return the offset
    relative the begin of the code area (start of procedure).	
 
-   $Id: codegen-common.c 8297 2007-08-12 00:02:48Z michi $
+   $Id: codegen-common.c 8314 2007-08-15 22:18:44Z twisti $
 
 */
 
@@ -63,6 +63,7 @@
 #include "toolbox/logging.h"
 
 #include "native/jni.h"
+#include "native/localref.h"
 #include "native/native.h"
 
 #include "threads/threads-common.h"
