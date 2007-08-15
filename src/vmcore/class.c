@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: class.c 8307 2007-08-15 15:20:47Z twisti $
 
 */
 
@@ -1718,6 +1718,37 @@ classinfo *class_get_declaringclass(classinfo *c)
 	}
 
 	return NULL;
+}
+
+
+/* class_get_interfaces ********************************************************
+
+   Return an array of interfaces of the given class.
+
+*******************************************************************************/
+
+java_objectarray *class_get_interfaces(classinfo *c)
+{
+	classinfo        *ic;
+	java_objectarray *oa;
+	u4                i;
+
+	if (!(c->state & CLASS_LINKED))
+		if (!link_class(c))
+			return NULL;
+
+	oa = builtin_anewarray(c->interfacescount, class_java_lang_Class);
+
+	if (oa == NULL)
+		return NULL;
+
+	for (i = 0; i < c->interfacescount; i++) {
+		ic = c->interfaces[i].cls;
+
+		oa->data[i] = (java_object_t *) ic;
+	}
+
+	return oa;
 }
 
 

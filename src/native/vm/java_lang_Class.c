@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8305 2007-08-15 13:49:26Z panzi $
+   $Id: java_lang_Class.c 8307 2007-08-15 15:20:47Z twisti $
 
 */
 
@@ -290,7 +290,7 @@ java_lang_Class *_Jv_java_lang_Class_getSuperclass(java_lang_Class *klass)
 
 	super = class_get_superclass(c);
 
-	return super;
+	return (java_lang_Class *) super;
 }
 
 
@@ -302,26 +302,11 @@ java_lang_Class *_Jv_java_lang_Class_getSuperclass(java_lang_Class *klass)
 java_objectarray *_Jv_java_lang_Class_getInterfaces(java_lang_Class *klass)
 {
 	classinfo        *c;
-	classinfo        *ic;
 	java_objectarray *oa;
-	u4                i;
 
 	c = (classinfo *) klass;
 
-	if (!(c->state & CLASS_LINKED))
-		if (!link_class(c))
-			return NULL;
-
-	oa = builtin_anewarray(c->interfacescount, class_java_lang_Class);
-
-	if (oa == NULL)
-		return NULL;
-
-	for (i = 0; i < c->interfacescount; i++) {
-		ic = c->interfaces[i].cls;
-
-		oa->data[i] = ic;
-	}
+	oa = class_get_interfaces(c);
 
 	return oa;
 }
