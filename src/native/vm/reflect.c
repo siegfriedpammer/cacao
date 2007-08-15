@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: reflect.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: reflect.c 8305 2007-08-15 13:49:26Z panzi $
 
 */
 
@@ -136,11 +136,8 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 
 	LLNI_field_set_cls(rc, clazz               , c);
 	LLNI_field_set_val(rc, slot                , slot);
-
-	/* TODO: add these private fields to java.lang.reflect.Constructor
 	LLNI_field_set_ref(rc, annotations         , annotations);
 	LLNI_field_set_ref(rc, parameterAnnotations, parameterAnnotations);
-	*/
 
 #elif defined(WITH_CLASSPATH_SUN)
 
@@ -360,67 +357,61 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 #if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
 /* reflect_get_declaredannotatios *********************************************
 
-   Returnes a java.util.Map<Class, Annotation> of the declared
-   annotations. Only calls the AnnotationParser if the declared
-   annotations are not yet parsed.
+   Returns a java.util.Map<Class, Annotation> of the declared
+   annotations.
 
 *******************************************************************************/
 
 struct java_util_Map* reflect_get_declaredannotatios(
-	struct java_util_Map **declaredAnnotations,
-	java_bytearray        *annotations,
-	java_lang_Class       *declaringClass,
-	classinfo             *referer)
+	java_bytearray       *annotations,
+	java_lang_Class      *declaringClass,
+	classinfo            *referer)
 {
 	static methodinfo        *m_parseAnnotations   = NULL;
 	utf                      *utf_parseAnnotations = NULL;
 	utf                      *utf_desc             = NULL;
 	sun_reflect_ConstantPool *constantPool         = NULL;
+	java_lang_Object         *constantPoolOop      = (java_lang_Object*)declaringClass;
 
-	if (*declaredAnnotations == NULL) {
-		constantPool = 
-			(sun_reflect_ConstantPool*)native_new_and_init(
-				class_sun_reflect_ConstantPool);
+	constantPool = 
+		(sun_reflect_ConstantPool*)native_new_and_init(
+			class_sun_reflect_ConstantPool);
 		
-		if(constantPool == NULL) {
+	if(constantPool == NULL) {
+		/* out of memory */
+		return NULL;
+	}
+		
+	LLNI_field_set_ref(constantPool, constantPoolOop, constantPoolOop);
+		
+	/* only resolve the method the first time */
+	if (m_parseAnnotations == NULL) {
+		utf_parseAnnotations = utf_new_char("parseAnnotations");
+		utf_desc = utf_new_char(
+			"([BLsun/reflect/ConstantPool;Ljava/lang/Class;)"
+			"Ljava/util/Map;");
+
+		if (utf_parseAnnotations == NULL || utf_desc == NULL) {
 			/* out of memory */
 			return NULL;
 		}
 		
-		constantPool->constantPoolOop = (java_lang_Object*)declaringClass;
-		
-		/* only resolve the method the first time */
+		m_parseAnnotations = class_resolveclassmethod(
+			class_sun_reflect_annotation_AnnotationParser,
+			utf_parseAnnotations,
+			utf_desc,
+			referer,
+			true);
+	
 		if (m_parseAnnotations == NULL) {
-			utf_parseAnnotations = utf_new_char("parseAnnotations");
-			utf_desc = utf_new_char(
-				"([BLsun/reflect/ConstantPool;Ljava/lang/Class;)"
-				"Ljava/util/Map;");
-	
-			if (utf_parseAnnotations == NULL || utf_desc == NULL) {
-				/* out of memory */
-				return NULL;
-			}
-		
-			m_parseAnnotations = class_resolveclassmethod(
-				class_sun_reflect_annotation_AnnotationParser,
-				utf_parseAnnotations,
-				utf_desc,
-				referer,
-				true);
-	
-			if (m_parseAnnotations == NULL) {
-				/* method not found */
-				return NULL;
-			}
+			/* method not found */
+			return NULL;
 		}
-	
-		*declaredAnnotations =
-			(struct java_util_Map*)vm_call_method(
-				m_parseAnnotations, NULL, annotations,
-				constantPool, declaringClass);
 	}
 	
-	return *declaredAnnotations;
+	return (struct java_util_Map*)vm_call_method(
+			m_parseAnnotations, NULL, annotations,
+			constantPool, declaringClass);
 }
 
 
@@ -452,11 +443,12 @@ java_objectarray* reflect_get_parameterannotations(
 	 */
 	static methodinfo        *m_parseParameterAnnotations   = NULL;
 	utf                      *utf_parseParameterAnnotations = NULL;
-	utf                      *utf_desc      = NULL;
-	sun_reflect_ConstantPool *constantPool  = NULL;
-	classinfo                *c             = NULL;
-	methodinfo               *m             = NULL;
-	int32_t                   numParameters = -1;
+	utf                      *utf_desc        = NULL;
+	sun_reflect_ConstantPool *constantPool    = NULL;
+	java_lang_Object         *constantPoolOop = (java_lang_Object*)declaringClass;
+	classinfo                *c               = NULL;
+	methodinfo               *m               = NULL;
+	int32_t                   numParameters   = -1;
 
 	/* get parameter count */
 
@@ -481,7 +473,7 @@ java_objectarray* reflect_get_parameterannotations(
 		return NULL;
 	}
 
-	constantPool->constantPoolOop = (java_lang_Object*)declaringClass;
+	LLNI_field_set_ref(constantPool, constantPoolOop, constantPoolOop);
 
 	/* only resolve the method the first time */
 	if (m_parseParameterAnnotations == NULL) {

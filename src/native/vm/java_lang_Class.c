@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: java_lang_Class.c 8305 2007-08-15 13:49:26Z panzi $
 
 */
 
@@ -726,6 +726,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* kl
 	java_bytearray           *annotations  = NULL;
 	sun_reflect_ConstantPool *constantPool = NULL;
 	uint32_t                  size         = 0;
+	java_lang_Object         *o            = (java_lang_Object*)klass;
 
 	if (c == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -755,7 +756,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* kl
 		return NULL;
 	}
 
-	constantPool->constantPoolOop = (java_lang_Object*)klass;
+	LLNI_field_set_ref(constantPool, constantPoolOop, o);
 
 	/* only resolve the method the first time */
 	if (m_parseAnnotationsIntoArray == NULL) {

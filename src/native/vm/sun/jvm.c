@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: jvm.c 8305 2007-08-15 13:49:26Z panzi $
 
 */
 
@@ -52,6 +52,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_AssertionStatusDirectives.h"
@@ -1047,6 +1048,7 @@ jbyteArray JVM_GetClassAnnotations(JNIEnv *env, jclass cls)
 jbyteArray JVM_GetFieldAnnotations(JNIEnv *env, jobject field)
 {
 	java_lang_reflect_Field *rf = (java_lang_reflect_Field*)field;
+	java_bytearray          *ba = NULL;
 
 	TRACEJVMCALLS("JVM_GetFieldAnnotations: field=%p", field);
 
@@ -1055,7 +1057,9 @@ jbyteArray JVM_GetFieldAnnotations(JNIEnv *env, jobject field)
 		return NULL;
 	}
 
-	return (jbyteArray)rf->annotations;
+	LLNI_field_get_ref(rf, annotations, ba);
+
+	return (jbyteArray)ba;
 }
 
 
@@ -1064,6 +1068,7 @@ jbyteArray JVM_GetFieldAnnotations(JNIEnv *env, jobject field)
 jbyteArray JVM_GetMethodAnnotations(JNIEnv *env, jobject method)
 {
 	java_lang_reflect_Method *rm = (java_lang_reflect_Method*)method;
+	java_bytearray           *ba = NULL;
 
 	TRACEJVMCALLS("JVM_GetMethodAnnotations: method=%p", method);
 
@@ -1072,7 +1077,9 @@ jbyteArray JVM_GetMethodAnnotations(JNIEnv *env, jobject method)
 		return NULL;
 	}
 
-	return (jbyteArray)rm->annotations;
+	LLNI_field_get_ref(rm, annotations, ba);
+
+	return (jbyteArray)ba;
 }
 
 
@@ -1081,6 +1088,7 @@ jbyteArray JVM_GetMethodAnnotations(JNIEnv *env, jobject method)
 jbyteArray JVM_GetMethodDefaultAnnotationValue(JNIEnv *env, jobject method)
 {
 	java_lang_reflect_Method *rm = (java_lang_reflect_Method*)method;
+	java_bytearray           *ba = NULL;
 
 	TRACEJVMCALLS("JVM_GetMethodDefaultAnnotationValue: method=%p", method);
 
@@ -1089,7 +1097,9 @@ jbyteArray JVM_GetMethodDefaultAnnotationValue(JNIEnv *env, jobject method)
 		return NULL;
 	}
 
-	return (jbyteArray)rm->annotationDefault;
+	LLNI_field_get_ref(rm, annotationDefault, ba);
+
+	return (jbyteArray)ba;
 }
 
 
@@ -1098,6 +1108,7 @@ jbyteArray JVM_GetMethodDefaultAnnotationValue(JNIEnv *env, jobject method)
 jbyteArray JVM_GetMethodParameterAnnotations(JNIEnv *env, jobject method)
 {
 	java_lang_reflect_Method *rm = (java_lang_reflect_Method*)method;
+	java_bytearray           *ba = NULL;
 
 	TRACEJVMCALLS("JVM_GetMethodParameterAnnotations: method=%p", method);
 
@@ -1106,7 +1117,9 @@ jbyteArray JVM_GetMethodParameterAnnotations(JNIEnv *env, jobject method)
 		return NULL;
 	}
 
-	return (jbyteArray)rm->parameterAnnotations;
+	LLNI_field_get_ref(rm, parameterAnnotations, ba);
+
+	return (jbyteArray)ba;
 }
 
 
@@ -1164,7 +1177,8 @@ jint JVM_GetClassAccessFlags(JNIEnv *env, jclass cls)
 jobject JVM_GetClassConstantPool(JNIEnv *env, jclass cls)
 {
 #if defined(ENABLE_ANNOTATIONS)
-	sun_reflect_ConstantPool *constantPool = NULL;
+	sun_reflect_ConstantPool *constantPool    = NULL;
+	java_lang_Object         *constantPoolOop = (java_lang_Object*)cls;
 	
 	TRACEJVMCALLS("JVM_GetClassConstantPool: cls=%p", cls);
 
@@ -1179,7 +1193,8 @@ jobject JVM_GetClassConstantPool(JNIEnv *env, jclass cls)
 		return NULL;
 	}
 	
-	constantPool->constantPoolOop = (java_lang_Object*)cls;
+	LLNI_field_set_ref(constantPool, constantPoolOop, constantPoolOop);
+
 	return (jobject)constantPool;
 #else
 	log_println("JVM_GetClassConstantPool: cls=%p, not implemented in this configuration!", cls);
@@ -1233,7 +1248,7 @@ jclass JVM_ConstantPoolGetClassAtIfLoaded(JNIEnv *env, jobject unused, jobject j
 		return NULL;
 	}
 	
-	if (!resolve_classref(NULL,ref,resolveLazy,true,true,&c)) {
+	if (!resolve_classref(NULL, ref, resolveLazy, true, true, &c)) {
 		return NULL;
 	}
 
@@ -1281,7 +1296,7 @@ jobject JVM_ConstantPoolGetMethodAtIfLoaded(JNIEnv *env, jobject unused, jobject
 		return NULL;
 	}
 
-	if (!resolve_classref(NULL,ref->p.classref,resolveLazy,true,true,&c)) {
+	if (!resolve_classref(NULL, ref->p.classref, resolveLazy, true, true, &c)) {
 		return NULL;
 	}
 
@@ -1329,7 +1344,7 @@ jobject JVM_ConstantPoolGetFieldAtIfLoaded(JNIEnv *env, jobject unused, jobject 
 		return NULL;
 	}
 
-	if (!resolve_classref(NULL,ref->p.classref,resolveLazy,true,true,&c)) {
+	if (!resolve_classref(NULL, ref->p.classref, resolveLazy, true, true, &c)) {
 		return NULL;
 	}
 
