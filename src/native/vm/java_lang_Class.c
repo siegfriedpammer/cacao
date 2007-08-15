@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8307 2007-08-15 15:20:47Z twisti $
+   $Id: java_lang_Class.c 8309 2007-08-15 16:42:52Z twisti $
 
 */
 
@@ -415,69 +415,12 @@ java_lang_Class *_Jv_java_lang_Class_getDeclaringClass(java_lang_Class *klass)
  */
 java_objectarray *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass, s4 publicOnly)
 {
-	classinfo             *c;
-	classref_or_classinfo  outer;
-	utf                   *outername;
-	s4                     declaredclasscount;  /* number of declared classes */
-	s4                     pos;                     /* current declared class */
-	java_objectarray      *oa;                   /* array of declared classes */
-	s4                     i;
+	classinfo        *c;
+	java_objectarray *oa;
 
 	c = (classinfo *) klass;
-	declaredclasscount = 0;
 
-	if (!class_is_primitive(c) && (c->name->text[0] != '[')) {
-		/* determine number of declared classes */
-
-		for (i = 0; i < c->innerclasscount; i++) {
-			outer = c->innerclass[i].outer_class;
-
-			/* check if outer_class is a classref or a real class and
-               get the class name from the structure */
-
-			outername = IS_CLASSREF(outer) ? outer.ref->name : outer.cls->name;
-
-			/* outer class is this class */
-
-			if ((outername == c->name) &&
-				((publicOnly == 0) || (c->innerclass[i].flags & ACC_PUBLIC)))
-				declaredclasscount++;
-		}
-	}
-
-	/* allocate Class[] and check for OOM */
-
-	oa = builtin_anewarray(declaredclasscount, class_java_lang_Class);
-
-	if (oa == NULL)
-		return NULL;
-
-	for (i = 0, pos = 0; i < c->innerclasscount; i++) {
-		outer = c->innerclass[i].outer_class;
-
-		/* check if outer_class is a classref or a real class and
-		   get the class name from the structure */
-
-		outername = IS_CLASSREF(outer) ? outer.ref->name : outer.cls->name;
-
-		/* outer class is this class */
-
-		if ((outername == c->name) &&
-			((publicOnly == 0) || (c->innerclass[i].flags & ACC_PUBLIC))) {
-			classinfo *inner;
-
-			if ((inner = resolve_classref_or_classinfo_eager(
-											   c->innerclass[i].inner_class,
-											   false)) == NULL)
-				return NULL;
-
-			if (!(inner->state & CLASS_LINKED))
-				if (!link_class(inner))
-					return NULL;
-
-			oa->data[pos++] = inner;
-		}
-	}
+	oa = class_get_declaredclasses(c, publicOnly);
 
 	return oa;
 }

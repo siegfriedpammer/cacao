@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8308 2007-08-15 16:03:28Z pm $
+   $Id: jvm.c 8309 2007-08-15 16:42:52Z twisti $
 
 */
 
@@ -969,16 +969,16 @@ jint JVM_GetClassModifiers(JNIEnv *env, jclass cls)
 
 jobjectArray JVM_GetDeclaredClasses(JNIEnv *env, jclass ofClass)
 {
-	java_lang_Class *c = (java_lang_Class*)ofClass;
+	classinfo        *c;
+	java_objectarray *oa;
 
-	TRACEJVMCALLS("JVM_GetDeclaredClasses: ofClass=%p", ofClass);
+	TRACEJVMCALLS("JVM_GetDeclaredClasses(env=%p, ofClass=%p)", env, ofClass);
 
-	if(c == NULL) {
-		exceptions_throw_nullpointerexception();
-		return NULL;
-	}
+	c = (classinfo *) ofClass;
 
-	return (jobjectArray)_Jv_java_lang_Class_getDeclaredClasses(c, false);
+	oa = class_get_declaredclasses(c, false);
+
+	return (jobjectArray) oa;
 }
 
 

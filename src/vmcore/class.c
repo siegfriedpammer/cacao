@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8307 2007-08-15 15:20:47Z twisti $
+   $Id: class.c 8309 2007-08-15 16:42:52Z twisti $
 
 */
 
@@ -44,6 +44,7 @@
 
 #include "toolbox/logging.h"
 
+#include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/resolve.h"
@@ -1659,6 +1660,82 @@ classinfo *class_get_superclass(classinfo *c)
 	super = class_resolve_superclass(c);
 
 	return super;
+}
+
+
+/* class_get_declaredclasses ***************************************************
+
+   Return an array of declared classes of the given class.
+
+*******************************************************************************/
+
+java_objectarray *class_get_declaredclasses(classinfo *c, bool publicOnly)
+{
+	classref_or_classinfo  inner;
+	classref_or_classinfo  outer;
+	utf                   *outername;
+	int                    declaredclasscount;  /* number of declared classes */
+	int                    pos;                     /* current declared class */
+	java_objectarray      *oa;                   /* array of declared classes */
+	int                    i;
+	classinfo             *ic;
+
+	declaredclasscount = 0;
+
+	if (!class_is_primitive(c) && !class_is_array(c)) {
+		/* Determine number of declared classes. */
+
+		for (i = 0; i < c->innerclasscount; i++) {
+			outer = c->innerclass[i].outer_class;
+
+			/* Check if outer_class is a classref or a real class and
+               get the class name from the structure. */
+
+			outername = IS_CLASSREF(outer) ? outer.ref->name : outer.cls->name;
+
+			/* Outer class is this class. */
+
+			if ((outername == c->name) &&
+				((publicOnly == 0) || (c->innerclass[i].flags & ACC_PUBLIC)))
+				declaredclasscount++;
+		}
+	}
+
+	/* Allocate Class[] and check for OOM. */
+
+	oa = builtin_anewarray(declaredclasscount, class_java_lang_Class);
+
+	if (oa == NULL)
+		return NULL;
+
+	for (i = 0, pos = 0; i < c->innerclasscount; i++) {
+		inner = c->innerclass[i].inner_class;
+		outer = c->innerclass[i].outer_class;
+
+		/* Check if outer_class is a classref or a real class and get
+		   the class name from the structure. */
+
+		outername = IS_CLASSREF(outer) ? outer.ref->name : outer.cls->name;
+
+		/* Outer class is this class. */
+
+		if ((outername == c->name) &&
+			((publicOnly == 0) || (c->innerclass[i].flags & ACC_PUBLIC))) {
+
+			ic = resolve_classref_or_classinfo_eager(inner, false);
+
+			if (ic == NULL)
+				return NULL;
+
+			if (!(ic->state & CLASS_LINKED))
+				if (!link_class(ic))
+					return NULL;
+
+			oa->data[pos++] = (java_object_t *) ic;
+		}
+	}
+
+	return oa;
 }
 
 

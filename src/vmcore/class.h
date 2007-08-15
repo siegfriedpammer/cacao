@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8307 2007-08-15 15:20:47Z twisti $
+   $Id: class.h 8309 2007-08-15 16:42:52Z twisti $
 
 */
 
@@ -362,12 +362,14 @@ bool              class_isanysubclass(classinfo *sub, classinfo *super);
 bool              class_is_primitive(classinfo *c);
 bool              class_is_array(classinfo *c);
 bool              class_is_interface(classinfo *c);
+
 classinfo        *class_get_superclass(classinfo *c);
+java_objectarray *class_get_declaredclasses(classinfo *c, bool publicOnly);
 classinfo        *class_get_declaringclass(classinfo *c);
 java_objectarray *class_get_interfaces(classinfo *c);
 
 #if defined(ENABLE_JAVASE)
-utf               *class_get_signature(classinfo *c);
+utf              *class_get_signature(classinfo *c);
 #endif
 
 /* some debugging functions */
