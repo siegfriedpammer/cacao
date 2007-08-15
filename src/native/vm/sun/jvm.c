@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8309 2007-08-15 16:42:52Z twisti $
+   $Id: jvm.c 8310 2007-08-15 16:49:03Z twisti $
 
 */
 
@@ -763,6 +763,8 @@ jobjectArray JVM_GetClassInterfaces(JNIEnv *env, jclass cls)
 	java_objectarray *oa;
 
 	TRACEJVMCALLS("JVM_GetClassInterfaces(env=%p, cls=%p)", env, cls);
+
+	c = (classinfo *) cls;
 
 	oa = class_get_interfaces(c);
 
