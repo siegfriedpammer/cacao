@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Method.c 8305 2007-08-15 13:49:26Z panzi $
+   $Id: java_lang_reflect_Method.c 8311 2007-08-15 17:03:40Z panzi $
 
 */
 
@@ -232,7 +232,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Method_getDefa
 	utf                      *utf_desc        = NULL;
 	sun_reflect_ConstantPool *constantPool    = NULL;
 	java_handle_t            *o               = (java_handle_t*)this;
-	java_lang_Object         *constantPoolOop = NULL;
+	java_lang_Class          *constantPoolOop = NULL;
 
 	if (this == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -249,7 +249,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Method_getDefa
 	}
 
 	LLNI_field_get_ref(this, clazz, constantPoolOop);
-	LLNI_field_set_ref(constantPool, constantPoolOop, constantPoolOop);
+	LLNI_field_set_ref(constantPool, constantPoolOop, (java_lang_Object*)constantPoolOop);
 
 	/* only resolve the method the first time */
 	if (m_parseAnnotationDefault == NULL) {

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8310 2007-08-15 16:49:03Z twisti $
+   $Id: jvm.c 8311 2007-08-15 17:03:40Z panzi $
 
 */
 
@@ -1463,7 +1463,7 @@ jstring JVM_ConstantPoolGetStringAt(JNIEnv *env, jobject unused, jobject jcpool,
 	}
 
 	/* XXX: I hope literalstring_new is the right Function. */
-	return (java_lang_String*)literalstring_new(ref);
+	return (jstring)literalstring_new(ref);
 }
 
 
@@ -1483,7 +1483,7 @@ jstring JVM_ConstantPoolGetUTF8At(JNIEnv *env, jobject unused, jobject jcpool, j
 	}
 
 	/* XXX: I hope literalstring_new is the right Function. */
-	return (java_lang_String*)literalstring_new(ref);
+	return (jstring)literalstring_new(ref);
 }
 
 
@@ -2192,8 +2192,8 @@ jobject JVM_GetArrayElement(JNIEnv *env, jobject arr, jint index)
 {
 /*	log_println("JVM_GetArrayElement: IMPLEMENT ME!"); */
 
-	java_arrayheader *a;
-	java_handle_t    *o = NULL;
+	java_arrayheader *a = NULL;
+	int32_t elementtype = 0;
 
 	TRACEJVMCALLS("JVM_GetArrayElement: arr=%p, index=%d", arr, index);
 
@@ -2209,58 +2209,37 @@ jobject JVM_GetArrayElement(JNIEnv *env, jobject arr, jint index)
 		return NULL;
 	}
 	
-	if (index < 0 || index > a->size ) {
+	if (index < 0 || index > a->size) {
 		exceptions_new_arrayindexoutofboundsexception(index);
 		return NULL;
 	}
 	
-	switch (a->objheader.vftbl->arraydesc->arraytype) {
-	case ARRAYTYPE_INT:
-		o = builtin_new(class_java_lang_Integer);
-		if (o != NULL)
-			((java_lang_Integer*)o)->value = ((java_intarray*)a)->data[index];
-		break;
-	case ARRAYTYPE_LONG:
-		o = builtin_new(class_java_lang_Long);
-		if (o != NULL)
-			((java_lang_Long*)o)->value = ((java_longarray*)a)->data[index];
-		break;
-	case ARRAYTYPE_FLOAT:
-		o = builtin_new(class_java_lang_Float);
-		if (o != NULL)
-			((java_lang_Float*)o)->value = ((java_floatarray*)a)->data[index];
-		break;
-	case ARRAYTYPE_DOUBLE:
-		o = builtin_new(class_java_lang_Double);
-		if (o != NULL)
-			((java_lang_Double*)o)->value = ((java_doublearray*)a)->data[index];
-		break;
-	case ARRAYTYPE_BYTE:
-		o = builtin_new(class_java_lang_Byte);
-		if (o != NULL)
-			((java_lang_Byte*)o)->value = ((java_bytearray*)a)->data[index];
-		break;
-	case ARRAYTYPE_CHAR:
-		o = builtin_new(class_java_lang_Character);
-		if (o != NULL)
-			((java_lang_Character*)o)->value = ((java_chararray*)a)->data[index];
-		break;
-	case ARRAYTYPE_SHORT:
-		o = builtin_new(class_java_lang_Short);
-		if (o != NULL)
-			((java_lang_Short*)o)->value = ((java_shortarray*)a)->data[index];
-		break;
-	case ARRAYTYPE_BOOLEAN:
-		o = builtin_new(class_java_lang_Boolean);
-		if (o != NULL)
-			((java_lang_Boolean*)o)->value = ((java_booleanarray*)a)->data[index];
-		break;
-	case ARRAYTYPE_OBJECT:
-		o = ((java_objectarray*)a)->data[index];
-		break;
-	}
+	elementtype = a->objheader.vftbl->arraydesc->elementtype;
 
-	return (jobject)o;
+	switch (elementtype) {
+	case ARRAYTYPE_INT:
+		return (jobject)primitive_box_int(((java_intarray*)a)->data[index]);
+	case ARRAYTYPE_LONG:
+		return (jobject)primitive_box_long(((java_longarray*)a)->data[index]);
+	case ARRAYTYPE_FLOAT:
+		return (jobject)primitive_box_float(((java_floatarray*)a)->data[index]);
+	case ARRAYTYPE_DOUBLE:
+		return (jobject)primitive_box_double(((java_doublearray*)a)->data[index]);
+	case ARRAYTYPE_BYTE:
+		return (jobject)primitive_box_byte(((java_bytearray*)a)->data[index]);
+	case ARRAYTYPE_CHAR:
+		return (jobject)primitive_box_char(((java_chararray*)a)->data[index]);
+	case ARRAYTYPE_SHORT:
+		return (jobject)primitive_box_short(((java_shortarray*)a)->data[index]);
+	case ARRAYTYPE_BOOLEAN:
+		return (jobject)primitive_box_boolean(((java_booleanarray*)a)->data[index]);
+	case ARRAYTYPE_OBJECT:
+		return (jobject)((java_objectarray*)a)->data[index];
+	default:
+		/* invalid element type */
+		exceptions_throw_internalerror("invalid element type code in array descriptor: %d", elementtype);
+		return (jobject)NULL;
+	}
 }
 
 

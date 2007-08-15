@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8309 2007-08-15 16:42:52Z twisti $
+   $Id: java_lang_Class.c 8311 2007-08-15 17:03:40Z panzi $
 
 */
 
@@ -82,6 +82,7 @@
 #include "vmcore/loader.h"
 
 #if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
+#include "vm/vm.h"
 #include "vmcore/annotation.h"
 #include "native/include/sun_reflect_ConstantPool.h"
 #endif
@@ -647,14 +648,14 @@ void _Jv_java_lang_Class_throwException(java_lang_Throwable *t)
  */
 java_objectarray *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* klass)
 {
-	classinfo                *c            = (classinfo*)klass;
+	classinfo                *c               = (classinfo*)klass;
 	static methodinfo        *m_parseAnnotationsIntoArray   = NULL;
 	utf                      *utf_parseAnnotationsIntoArray = NULL;
-	utf                      *utf_desc     = NULL;
-	java_bytearray           *annotations  = NULL;
-	sun_reflect_ConstantPool *constantPool = NULL;
-	uint32_t                  size         = 0;
-	java_lang_Object         *o            = (java_lang_Object*)klass;
+	utf                      *utf_desc        = NULL;
+	java_bytearray           *annotations     = NULL;
+	sun_reflect_ConstantPool *constantPool    = NULL;
+	uint32_t                  size            = 0;
+	java_lang_Object         *constantPoolOop = (java_lang_Object*)klass;
 
 	if (c == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -684,7 +685,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* kl
 		return NULL;
 	}
 
-	LLNI_field_set_ref(constantPool, constantPoolOop, o);
+	LLNI_field_set_ref(constantPool, constantPoolOop, constantPoolOop);
 
 	/* only resolve the method the first time */
 	if (m_parseAnnotationsIntoArray == NULL) {
@@ -711,7 +712,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* kl
 		}
 	}
 
-	return vm_call_method(
+	return (java_objectarray*)vm_call_method(
 		m_parseAnnotationsIntoArray, NULL,
 		annotations, constantPool, klass);
 }

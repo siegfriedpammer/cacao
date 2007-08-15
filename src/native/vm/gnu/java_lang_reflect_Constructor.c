@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Constructor.c 8305 2007-08-15 13:49:26Z panzi $
+   $Id: java_lang_reflect_Constructor.c 8311 2007-08-15 17:03:40Z panzi $
 
 */
 
@@ -34,6 +34,7 @@
 
 #if defined(ENABLE_ANNOTATIONS)
 #include "vm/vm.h"
+#include "vm/exceptions.h"
 #endif
 
 #include "vm/types.h"

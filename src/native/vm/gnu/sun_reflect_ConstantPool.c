@@ -50,6 +50,7 @@
 
 #include "vm/vm.h"
 #include "vm/resolve.h"
+#include "vm/stringlocal.h"
 
 #include "vmcore/class.h"
 #include "vmcore/utf8.h"
@@ -128,8 +129,6 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_sun_reflect_ConstantPool_getClass
 	constant_classref *ref;
 	classinfo *c = NULL;
 	classinfo *cls = (classinfo*)jcpool;
-
-	TRACEJVMCALLS("JVM_ConstantPoolGetClassAtIfLoaded: cls=%p, index=%d", cls, index);
 
 	ref = (constant_classref*)class_getconstant(
 		cls, index, CONSTANT_Class);
