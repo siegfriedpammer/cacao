@@ -98,6 +98,18 @@ s4 get_lopart_disp(disp)
 		
 	return lodisp;
 }
+
+#ifndef NDEBUG
+bool check_13bit_imm(s8 imm)
+{
+	s4 check = imm & ~0x1fff;
+	if (check == 0) return true; /* pos imm. */
+	if (check + 0x1fff == -1) return true; /* neg imm. */
+	
+	printf("immediate out-of-bounds: %d\n", imm);
+	return false;
+}
+#endif
 	
 
 /* codegen_emit ****************************************************************
@@ -145,6 +157,7 @@ bool codegen_emit(jitdata *jd)
 	{
 	s4 i, p, t, l;
 	s4 savedregs_num;
+	s4 framesize_disp;
 
 #if 0 /* no leaf optimization yet */
 	savedregs_num = (jd->isleafmethod) ? 0 : 1;       /* space to save the RA */
@@ -172,7 +185,7 @@ bool codegen_emit(jitdata *jd)
 	/* create method header */
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
+	framesize_disp = dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
 
 #if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
@@ -204,9 +217,15 @@ bool codegen_emit(jitdata *jd)
 
 	/* save register window and create stack frame (if necessary) */
 
-	if (cd->stackframesize)
-		M_SAVE(REG_SP, -cd->stackframesize * 8, REG_SP);
-
+	if (cd->stackframesize) {
+		if (cd->stackframesize <= 4095)
+			M_SAVE(REG_SP, -cd->stackframesize * 8, REG_SP);
+		else {
+			M_ILD_INTERN(REG_ITMP3, REG_PV_CALLER, framesize_disp);
+			M_SUB(REG_ZERO, REG_ITMP3, REG_ITMP3);
+			M_SAVE_REG(REG_SP, REG_ITMP3, REG_SP);
+		}
+	}
 
 	/* save callee saved float registers (none right now) */
 #if 0
