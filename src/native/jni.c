@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8297 2007-08-12 00:02:48Z michi $
+   $Id: jni.c 8312 2007-08-15 22:10:22Z twisti $
 
 */
 
@@ -37,8 +37,10 @@
 
 #include "mm/gc-common.h"
 #include "mm/memory.h"
+
 #include "native/jni.h"
 #include "native/llni.h"
+#include "native/localref.h"
 #include "native/native.h"
 
 #if defined(ENABLE_JAVASE)
