@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.c 8318 2007-08-16 10:05:34Z michi $
+   $Id: method.c 8322 2007-08-16 15:54:38Z twisti $
 
 */
 
@@ -776,19 +776,23 @@ s4 method_count_implementations(methodinfo *m, classinfo *c, methodinfo **found)
 }
 
 
-#if defined(ENABLE_ANNOTATIONS)
 /* method_get_annotations ******************************************************
 
    Gets a methods' annotations (or NULL if none).
 
 *******************************************************************************/
 
-java_bytearray *method_get_annotations(methodinfo *m)
+java_handle_bytearray_t *method_get_annotations(methodinfo *m)
 {
-	classinfo              *c           = m->class;
-	int                     slot        = m - c->methods;
-	annotation_bytearray_t *ba          = NULL;
-	java_bytearray         *annotations = NULL;
+#if defined(ENABLE_ANNOTATIONS)
+	classinfo               *c;
+	int                      slot;
+	annotation_bytearray_t  *ba;
+	java_handle_bytearray_t *annotations;
+
+	c           = m->class;
+	slot        = m - c->methods;
+	annotations = NULL;
 	
 	if (c->method_annotations != NULL && c->method_annotations->size > slot) {
 		ba = c->method_annotations->data[slot];
@@ -803,6 +807,9 @@ java_bytearray *method_get_annotations(methodinfo *m)
 	}
 	
 	return annotations;
+#else
+	return NULL;
+#endif
 }
 
 
@@ -812,12 +819,17 @@ java_bytearray *method_get_annotations(methodinfo *m)
 
 *******************************************************************************/
 
-java_bytearray *method_get_parameterannotations(methodinfo *m)
+java_handle_bytearray_t *method_get_parameterannotations(methodinfo *m)
 {
-	classinfo              *c                    = m->class;
-	int                     slot                 = m - c->methods;
-	annotation_bytearray_t *ba                   = NULL;
-	java_bytearray         *parameterAnnotations = NULL;
+#if defined(ENABLE_ANNOTATIONS)
+	classinfo               *c;
+	int                      slot;
+	annotation_bytearray_t  *ba;
+	java_handle_bytearray_t *parameterAnnotations;
+
+	c                    = m->class;
+	slot                 = m - c->methods;
+	parameterAnnotations = NULL;
 
 	if (c->method_parameterannotations != NULL &&
 		c->method_parameterannotations->size > slot) {
@@ -833,6 +845,9 @@ java_bytearray *method_get_parameterannotations(methodinfo *m)
 	}
 	
 	return parameterAnnotations;
+#else
+	return NULL;
+#endif
 }
 
 
@@ -842,12 +857,17 @@ java_bytearray *method_get_parameterannotations(methodinfo *m)
 
 *******************************************************************************/
 
-java_bytearray *method_get_annotationdefault(methodinfo *m)
+java_handle_bytearray_t *method_get_annotationdefault(methodinfo *m)
 {
-	classinfo              *c                 = m->class;
-	int                     slot              = m - c->methods;
-	annotation_bytearray_t *ba                = NULL;
-	java_bytearray         *annotationDefault = NULL;
+#if defined(ENABLE_ANNOTATIONS)
+	classinfo               *c;
+	int                      slot;
+	annotation_bytearray_t  *ba;
+	java_handle_bytearray_t *annotationDefault;
+
+	c                 = m->class;
+	slot              = m - c->methods;
+	annotationDefault = NULL;
 
 	if (c->method_annotationdefaults != NULL &&
 		c->method_annotationdefaults->size > slot) {
@@ -863,8 +883,10 @@ java_bytearray *method_get_annotationdefault(methodinfo *m)
 	}
 	
 	return annotationDefault;
-}
+#else
+	return NULL;
 #endif
+}
 
 
 /* method_add_to_worklist ******************************************************
