@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8332 2007-08-16 19:29:42Z panzi $
+   $Id: jvm.c 8333 2007-08-16 21:46:32Z pm $
 
 */
 
@@ -843,6 +843,8 @@ jobject JVM_GetProtectionDomain(JNIEnv *env, jclass cls)
 
 	if (class_is_primitive(c))
 		return NULL;
+
+	return NULL;
 }
 
 
