@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Field.c 8305 2007-08-15 13:49:26Z panzi $
+   $Id: java_lang_reflect_Field.c 8326 2007-08-16 17:45:49Z twisti $
 
 */
 
@@ -1251,17 +1251,12 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Field_getSignature(JN
  * Method:    declaredAnnotations
  * Signature: ()Ljava/util/Map;
  */
-JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Field_declaredAnnotations(JNIEnv *env, struct java_lang_reflect_Field* this)
+JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Field_declaredAnnotations(JNIEnv *env, java_lang_reflect_Field *this)
 {
-	java_handle_t        *o                   = (java_handle_t*)this;
-	struct java_util_Map *declaredAnnotations = NULL;
-	java_bytearray       *annotations         = NULL;
-	java_lang_Class      *declaringClass      = NULL;
-
-	if (this == NULL) {
-		exceptions_throw_nullpointerexception();
-		return NULL;
-	}
+	java_handle_t           *o                   = (java_handle_t*)this;
+	struct java_util_Map    *declaredAnnotations = NULL;
+	java_handle_bytearray_t *annotations         = NULL;
+	java_lang_Class         *declaringClass      = NULL;
 
 	LLNI_field_get_ref(this, declaredAnnotations, declaredAnnotations);
 
