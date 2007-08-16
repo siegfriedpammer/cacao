@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8328 2007-08-16 17:56:19Z twisti $
+   $Id: vm.c 8329 2007-08-16 17:57:27Z twisti $
 
 */
 
@@ -532,6 +532,7 @@ static void Xusage(void)
 }   
 
 
+#if 0
 static void XXusage(void)
 {
 	puts("    -v                       write state-information");
@@ -610,6 +611,7 @@ static void XXusage(void)
 
 	exit(1);
 }
+#endif
 
 
 /* version *********************************************************************
