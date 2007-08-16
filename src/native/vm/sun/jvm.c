@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8331 2007-08-16 19:21:39Z panzi $
+   $Id: jvm.c 8332 2007-08-16 19:29:42Z panzi $
 
 */
 
@@ -2221,7 +2221,7 @@ jobject JVM_GetArrayElement(JNIEnv *env, jobject arr, jint index)
 	}
 	
 	if (index < 0 || index > a->size) {
-		exceptions_new_arrayindexoutofboundsexception(index);
+		exceptions_throw_arrayindexoutofboundsexception();
 		return NULL;
 	}
 	
