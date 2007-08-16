@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8318 2007-08-16 10:05:34Z michi $
+   $Id: jvm.c 8323 2007-08-16 16:01:05Z twisti $
 
 */
 
@@ -654,10 +654,15 @@ jclass JVM_GetCallerClass(JNIEnv* env, int depth)
 
 jclass JVM_FindPrimitiveClass(JNIEnv* env, const char* utf)
 {
-#if PRINTVM
-	log_println("JVM_FindPrimitiveClass: utf=%s", utf);
-#endif
-	return (jclass) primitive_class_get_by_name(utf_new_char(utf));
+	classinfo *c;
+	utf       *u;
+
+	TRACEJVMCALLS("JVM_FindPrimitiveClass(env=%p, utf=%s)", env, utf);
+
+	u = utf_new_char(utf);
+	c = primitive_class_get_by_name(u);
+
+	return (jclass) c;
 }
 
 
