@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: trace.c 8304 2007-08-14 19:57:20Z pm $
+   $Id: trace.c 8317 2007-08-16 06:53:26Z pm $
 
 */
 
@@ -71,7 +71,7 @@ static imm_union _array_load_param(paramdesc *pd, typedesc *td, uint64_t *arg_re
 		case TYPE_ADR:
 			if (pd->inmemory) {
 #if (SIZEOF_VOID_P == 8)
-				ret.l = (int64_t)stack[pd->index + stack_offset];
+				ret.l = (int64_t)stack[pd->index];
 #else
 				ret.l = *(int32_t *)(stack + pd->index);
 #endif
