@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8318 2007-08-16 10:05:34Z michi $
+   $Id: java_lang_Class.c 8319 2007-08-16 10:43:43Z michi $
 
 */
 
@@ -469,8 +469,8 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class
 
 			/* store object into array */
 
-			pos++;
 			LLNI_objectarray_element_set(oa, pos, rf);
+			pos++;
 		}
 	}
 
@@ -533,8 +533,8 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Clas
 
 			/* store object into array */
 
-			pos++;
 			LLNI_objectarray_element_set(oa, pos, rm);
+			pos++;
 		}
 	}
 
@@ -585,8 +585,8 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredConstructors(java_lang
 
 			/* store object into array */
 
-			pos++;
 			LLNI_objectarray_element_set(oa, pos, rc);
+			pos++;
 		}
 	}
 
