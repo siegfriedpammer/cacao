@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8304 2007-08-14 19:57:20Z pm $
+   $Id: emit.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -950,7 +950,7 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 		/* Size is s4, >= 0
 		 * Do unsigned comparison to catch negative indexes.
 		 */
-		N_CL(s2, OFFSET(java_arrayheader, size), RN, s1);
+		N_CL(s2, OFFSET(java_array_t, size), RN, s1);
         M_BLT(SZ_BRC + SZ_ILL);
 		M_ILL2(s2, EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS);
 	}

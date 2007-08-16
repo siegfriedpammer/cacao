@@ -669,7 +669,7 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
-		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
+		M_ILD(REG_ITMP3, s1, OFFSET(java_array_t, size));
 		M_ICMP(s2, REG_ITMP3);
 		M_BHI(4);
 		M_TRAP_SETREGISTER(s2);

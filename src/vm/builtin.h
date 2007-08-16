@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: builtin.h 8295 2007-08-11 17:57:24Z michi $
+   $Id: builtin.h 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -135,34 +135,34 @@ java_handle_t *builtin_trace_exception(java_handle_t *xptr,
 java_handle_t *builtin_new(classinfo *c);
 #define BUILTIN_new (functionptr) builtin_new
 
-java_arrayheader *builtin_newarray(s4 size, classinfo *arrayclass);
+java_handle_t *builtin_newarray(s4 size, classinfo *arrayclass);
 #define BUILTIN_newarray (functionptr) builtin_newarray
 
-java_objectarray *builtin_anewarray(s4 size, classinfo *componentclass);
+java_handle_objectarray_t *builtin_anewarray(s4 size, classinfo *componentclass);
 #define BUILTIN_anewarray (functionptr) builtin_anewarray
 
-java_booleanarray *builtin_newarray_boolean(s4 size);
+java_handle_booleanarray_t *builtin_newarray_boolean(s4 size);
 #define BUILTIN_newarray_boolean (functionptr) builtin_newarray_boolean
-java_chararray *builtin_newarray_char(s4 size);
+java_handle_chararray_t *builtin_newarray_char(s4 size);
 #define BUILTIN_newarray_char (functionptr) builtin_newarray_char
-java_floatarray *builtin_newarray_float(s4 size);
+java_handle_floatarray_t *builtin_newarray_float(s4 size);
 #define BUILTIN_newarray_float (functionptr) builtin_newarray_float
-java_doublearray *builtin_newarray_double(s4 size);
+java_handle_doublearray_t *builtin_newarray_double(s4 size);
 #define BUILTIN_newarray_double (functionptr) builtin_newarray_double
-java_bytearray *builtin_newarray_byte(s4 size);
+java_handle_bytearray_t *builtin_newarray_byte(s4 size);
 #define BUILTIN_newarray_byte (functionptr) builtin_newarray_byte
-java_shortarray *builtin_newarray_short(s4 size);
+java_handle_shortarray_t *builtin_newarray_short(s4 size);
 #define BUILTIN_newarray_short (functionptr) builtin_newarray_short
-java_intarray *builtin_newarray_int(s4 size);
+java_handle_intarray_t *builtin_newarray_int(s4 size);
 #define BUILTIN_newarray_int (functionptr) builtin_newarray_int
-java_longarray *builtin_newarray_long(s4 size);
+java_handle_longarray_t *builtin_newarray_long(s4 size);
 #define BUILTIN_newarray_long (functionptr) builtin_newarray_long
 
-java_arrayheader *builtin_multianewarray(int n, classinfo *arrayclass,
-										 long *dims);
+java_handle_objectarray_t *builtin_multianewarray(int n, classinfo *arrayclass,
+												  long *dims);
 #define BUILTIN_multianewarray (functionptr) builtin_multianewarray
 
-s4 builtin_canstore(java_objectarray *oa, java_handle_t *o);
+s4 builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o);
 #define BUILTIN_canstore (functionptr) builtin_canstore
 
 #if defined(TRACE_ARGS_NUM)
@@ -291,8 +291,8 @@ float    builtin_d2f(double a);
 java_handle_t *builtin_clone(void *env, java_handle_t *o);
 #define BUILTIN_clone (functionptr) builtin_clone
 
-bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
-					   java_arrayheader *dest, s4 destStart, s4 len);
+bool builtin_arraycopy(java_handle_t *src, s4 srcStart,
+					   java_handle_t *dest, s4 destStart, s4 len);
 #define BUILTIN_arraycopy (functionptr) builtin_arraycopy
 
 s8 builtin_nanotime(void);

@@ -75,9 +75,9 @@ void _Jv_java_lang_management_VMManagementFactory_init(void)
  * Method:    getMemoryPoolNames
  * Signature: ()[Ljava/lang/String;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_management_VMManagementFactory_getMemoryPoolNames(JNIEnv *env, jclass clazz)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_management_VMManagementFactory_getMemoryPoolNames(JNIEnv *env, jclass clazz)
 {
-	java_objectarray *oa;
+	java_handle_objectarray_t *oa;
 
 	log_println("Java_java_lang_management_VMManagementFactory_getMemoryPoolNames: IMPLEMENT ME!");
 
@@ -92,9 +92,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_management_VMManagementFactor
  * Method:    getMemoryManagerNames
  * Signature: ()[Ljava/lang/String;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_management_VMManagementFactory_getMemoryManagerNames(JNIEnv *env, jclass clazz)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_management_VMManagementFactory_getMemoryManagerNames(JNIEnv *env, jclass clazz)
 {
-	java_objectarray *oa;
+	java_handle_objectarray_t *oa;
 
 	log_println("Java_java_lang_management_VMManagementFactory_getMemoryManagerNames: IMPLEMENT ME!");
 
@@ -109,9 +109,9 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_management_VMManagementFactor
  * Method:    getGarbageCollectorNames
  * Signature: ()[Ljava/lang/String;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_management_VMManagementFactory_getGarbageCollectorNames(JNIEnv *env, jclass clazz)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_management_VMManagementFactory_getGarbageCollectorNames(JNIEnv *env, jclass clazz)
 {
-	java_objectarray *oa;
+	java_handle_objectarray_t *oa;
 
 	log_println("Java_java_lang_management_VMManagementFactory_getGarbageCollectorNames: IMPLEMENT ME!");
 

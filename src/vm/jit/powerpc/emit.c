@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8270 2007-08-08 13:57:12Z twisti $
+   $Id: emit.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -437,7 +437,7 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
-		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
+		M_ILD(REG_ITMP3, s1, OFFSET(java_array_t, size));
 		M_TRAPGEU(s2, REG_ITMP3);
 	}
 }

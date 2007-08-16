@@ -74,7 +74,7 @@
  * Method:    defineClass
  * Signature: (Ljava/lang/ClassLoader;Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;
  */
-java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl, java_lang_String *name, java_bytearray *data, s4 offset, s4 len, java_security_ProtectionDomain *pd)
+java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl, java_lang_String *name, java_handle_bytearray_t *data, s4 offset, s4 len, java_security_ProtectionDomain *pd)
 {
 	classloader     *loader;
 	utf             *utfname;
@@ -97,7 +97,7 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 
 	/* check the indexes passed */
 
-	if ((offset < 0) || (len < 0) || ((offset + len) > data->header.size)) {
+	if ((offset < 0) || (len < 0) || ((offset + len) > LLNI_array_size(data))) {
 		exceptions_throw_arrayindexoutofboundsexception();
 		return NULL;
 	}

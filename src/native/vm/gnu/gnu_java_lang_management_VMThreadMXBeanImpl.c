@@ -85,7 +85,7 @@ void _Jv_gnu_java_lang_management_VMThreadMXBeanImpl_init(void)
  * Method:    findMonitorDeadlockedThreads
  * Signature: ()[J
  */
-JNIEXPORT java_longarray* JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_findMonitorDeadlockedThreads(JNIEnv *env, jclass clazz)
+JNIEXPORT java_handle_longarray_t* JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_findMonitorDeadlockedThreads(JNIEnv *env, jclass clazz)
 {
 	log_println("Java_gnu_java_lang_management_VMThreadMXBeanImpl_findMonitorDeadlockedThreads: IMPLEMENT ME!");
 

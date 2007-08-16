@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Constructor.c 8311 2007-08-15 17:03:40Z panzi $
+   $Id: java_lang_reflect_Constructor.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -94,7 +94,7 @@ void _Jv_java_lang_reflect_Constructor_init(void)
  * Method:    constructNative
  * Signature: ([Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative(JNIEnv *env, java_lang_reflect_Constructor *this, java_objectarray *args, java_lang_Class *declaringClass, s4 slot)
+JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative(JNIEnv *env, java_lang_reflect_Constructor *this, java_handle_objectarray_t *args, java_lang_Class *declaringClass, s4 slot)
 {
 	/* just to be sure */
 
@@ -143,7 +143,7 @@ JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Constructor_decla
  * Method:    getParameterAnnotations
  * Signature: ()[[Ljava/lang/annotation/Annotation;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_reflect_Constructor_getParameterAnnotations(JNIEnv *env, struct java_lang_reflect_Constructor* this)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_Constructor_getParameterAnnotations(JNIEnv *env, struct java_lang_reflect_Constructor* this)
 {
 	java_handle_t   *o                    = (java_handle_t*)this;
 	java_bytearray  *parameterAnnotations = NULL;

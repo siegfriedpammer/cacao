@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: reflect.c 8315 2007-08-15 22:49:20Z panzi $
+   $Id: reflect.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -83,8 +83,8 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 	java_handle_t                 *o;
 	java_lang_reflect_Constructor *rc;
 	int32_t                        slot;
-	java_bytearray                *annotations          = NULL;
-	java_bytearray                *parameterAnnotations = NULL;
+	java_handle_bytearray_t       *annotations          = NULL;
+	java_handle_bytearray_t       *parameterAnnotations = NULL;
 
 	/* get declaring class */
 
@@ -154,7 +154,7 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 	java_handle_t           *o;
 	java_lang_reflect_Field *rf;
 	int32_t                  slot;
-	java_bytearray          *annotations = NULL;
+	java_handle_bytearray_t *annotations = NULL;
 
 	/* get declaring class */
 
@@ -227,9 +227,9 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 	java_handle_t            *o;
 	java_lang_reflect_Method *rm;
 	int32_t                   slot;
-	java_bytearray           *annotations          = NULL;
-	java_bytearray           *parameterAnnotations = NULL;
-	java_bytearray           *annotationDefault    = NULL;
+	java_handle_bytearray_t  *annotations          = NULL;
+	java_handle_bytearray_t  *parameterAnnotations = NULL;
+	java_handle_bytearray_t  *annotationDefault    = NULL;
 
 	/* get declaring class */
 
@@ -312,9 +312,9 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 *******************************************************************************/
 
 struct java_util_Map* reflect_get_declaredannotatios(
-	java_bytearray       *annotations,
-	java_lang_Class      *declaringClass,
-	classinfo            *referer)
+	java_handle_bytearray_t *annotations,
+	java_lang_Class         *declaringClass,
+	classinfo               *referer)
 {
 	static methodinfo        *m_parseAnnotations   = NULL;
 	utf                      *utf_parseAnnotations = NULL;
@@ -370,7 +370,7 @@ struct java_util_Map* reflect_get_declaredannotatios(
 
 *******************************************************************************/
 
-java_objectarray* reflect_get_parameterannotations(
+java_handle_objectarray_t* reflect_get_parameterannotations(
 	java_handle_t     *parameterAnnotations,
 	int32_t            slot,
 	java_lang_Class   *declaringClass,
@@ -452,7 +452,7 @@ java_objectarray* reflect_get_parameterannotations(
 		}
 	}
 
-	return (java_objectarray*)vm_call_method(
+	return (java_handle_objectarray_t*)vm_call_method(
 		m_parseParameterAnnotations, NULL, parameterAnnotations,
 		constantPool, declaringClass, numParameters);
 }

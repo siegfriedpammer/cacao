@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8297 2007-08-12 00:02:48Z michi $
+   $Id: codegen.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -1713,7 +1713,7 @@ bool codegen_emit(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			/* TODO softnull */
 			/* implicit null-pointer check */
-			M_ILD(d, s1, OFFSET(java_arrayheader, size));
+			M_ILD(d, s1, OFFSET(java_array_t, size));
 			emit_store_dst(jd, iptr, d);
 
 			break;
@@ -1726,7 +1726,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 
-			N_IC(d, OFFSET(java_bytearray, data[0]), s2, s1);
+			N_IC(d, OFFSET(java_bytearray_t, data[0]), s2, s1);
 
 			M_SLL_IMM(24, d);
 			M_SRA_IMM(24, d);
@@ -1746,7 +1746,7 @@ bool codegen_emit(jitdata *jd)
 			M_INTMOVE(s2, REG_ITMP2);
 			M_SLL_IMM(1, REG_ITMP2);
 
-			N_LH(d, OFFSET(java_chararray, data[0]), REG_ITMP2, s1);
+			N_LH(d, OFFSET(java_chararray_t, data[0]), REG_ITMP2, s1);
 
 			/* N_LH does sign extends, undo ! */
 
@@ -1767,7 +1767,7 @@ bool codegen_emit(jitdata *jd)
 			M_INTMOVE(s2, REG_ITMP2);
 			M_SLL_IMM(1, REG_ITMP2);
 
-			N_LH(d, OFFSET(java_shortarray, data[0]), REG_ITMP2, s1);
+			N_LH(d, OFFSET(java_shortarray_t, data[0]), REG_ITMP2, s1);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1781,7 +1781,7 @@ bool codegen_emit(jitdata *jd)
 			
 			M_INTMOVE(s2, REG_ITMP2);
 			M_SLL_IMM(2, REG_ITMP2); /* scale index by 4 */
-			N_L(d, OFFSET(java_intarray, data[0]), REG_ITMP2, s1);
+			N_L(d, OFFSET(java_intarray_t, data[0]), REG_ITMP2, s1);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1805,8 +1805,8 @@ bool codegen_emit(jitdata *jd)
 				s1 = REG_ITMP3;
 			}
 
-			N_L(GET_HIGH_REG(d) /* evntl. itmp1 */, OFFSET(java_intarray, data[0]), REG_ITMP2, s1);
-			N_L(GET_LOW_REG(d) /* evntl. itmp2 */, OFFSET(java_intarray, data[0]) + 4, REG_ITMP2, s1);
+			N_L(GET_HIGH_REG(d) /* evntl. itmp1 */, OFFSET(java_intarray_t, data[0]), REG_ITMP2, s1);
+			N_L(GET_LOW_REG(d) /* evntl. itmp2 */, OFFSET(java_intarray_t, data[0]) + 4, REG_ITMP2, s1);
 			emit_store_dst(jd, iptr, d);
 
 			break;
@@ -1823,7 +1823,7 @@ bool codegen_emit(jitdata *jd)
 			M_INTMOVE(s2, REG_ITMP2);
 			M_SLL_IMM(2, REG_ITMP2); /* scale index by 4 */
 	
-			N_LE(d, OFFSET(java_floatarray, data[0]), REG_ITMP2, s1);
+			N_LE(d, OFFSET(java_floatarray_t, data[0]), REG_ITMP2, s1);
 
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1839,7 +1839,7 @@ bool codegen_emit(jitdata *jd)
 			M_INTMOVE(s2, REG_ITMP2);
 			M_SLL_IMM(3, REG_ITMP2); /* scale index by 8 */
 	
-			N_LD(d, OFFSET(java_floatarray, data[0]), REG_ITMP2, s1);
+			N_LD(d, OFFSET(java_floatarray_t, data[0]), REG_ITMP2, s1);
 
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1854,7 +1854,7 @@ bool codegen_emit(jitdata *jd)
 			
 			M_INTMOVE(s2, REG_ITMP2);
 			M_SLL_IMM(2, REG_ITMP2); /* scale index by 4 */
-			N_L(d, OFFSET(java_objectarray, data[0]), REG_ITMP2, s1);
+			N_L(d, OFFSET(java_objectarray_t, data[0]), REG_ITMP2, s1);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1865,7 +1865,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 
-			N_STC(s3, OFFSET(java_bytearray, data[0]), s2, s1);
+			N_STC(s3, OFFSET(java_bytearray_t, data[0]), s2, s1);
 			break;
 
 		case ICMD_CASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1879,7 +1879,7 @@ bool codegen_emit(jitdata *jd)
 			M_INTMOVE(s2, REG_ITMP2);
 			M_SLL_IMM(1, REG_ITMP2);
 
-			N_STH(s3, OFFSET(java_chararray, data[0]), REG_ITMP2, s1);
+			N_STH(s3, OFFSET(java_chararray_t, data[0]), REG_ITMP2, s1);
 
 			break;
 
@@ -1893,7 +1893,7 @@ bool codegen_emit(jitdata *jd)
 			M_INTMOVE(s2, REG_ITMP2);
 			M_SLL_IMM(1, REG_ITMP2);
 
-			N_STH(s3, OFFSET(java_shortarray, data[0]), REG_ITMP2, s1);
+			N_STH(s3, OFFSET(java_shortarray_t, data[0]), REG_ITMP2, s1);
 			break;
 
 		case ICMD_IASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1908,7 +1908,7 @@ bool codegen_emit(jitdata *jd)
 			M_INTMOVE(s2, REG_ITMP2);
 			M_SLL_IMM(2, REG_ITMP2);
 
-			N_ST(s3, OFFSET(java_intarray, data[0]), REG_ITMP2, s1);
+			N_ST(s3, OFFSET(java_intarray_t, data[0]), REG_ITMP2, s1);
 			break;
 
 		case ICMD_LASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1922,9 +1922,9 @@ bool codegen_emit(jitdata *jd)
 			M_SLL_IMM(3, REG_ITMP2);
 
 			s3 = emit_load_s3_high(jd, iptr, REG_ITMP3);
-			N_ST(s3, OFFSET(java_intarray, data[0]), REG_ITMP2, s1);
+			N_ST(s3, OFFSET(java_intarray_t, data[0]), REG_ITMP2, s1);
 			s3 = emit_load_s3_low(jd, iptr, REG_ITMP3);
-			N_ST(s3, OFFSET(java_intarray, data[0]) + 4, REG_ITMP2, s1);
+			N_ST(s3, OFFSET(java_intarray_t, data[0]) + 4, REG_ITMP2, s1);
 			break;
 
 		case ICMD_FASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1937,7 +1937,7 @@ bool codegen_emit(jitdata *jd)
 			M_INTMOVE(s2, REG_ITMP2);
 			M_SLL_IMM(2, REG_ITMP2);
 
-			N_STE(s3, OFFSET(java_floatarray, data[0]), REG_ITMP2, s1);
+			N_STE(s3, OFFSET(java_floatarray_t, data[0]), REG_ITMP2, s1);
 			break;
 
 		case ICMD_DASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1950,7 +1950,7 @@ bool codegen_emit(jitdata *jd)
 			M_INTMOVE(s2, REG_ITMP2);
 			M_SLL_IMM(3, REG_ITMP2);
 
-			N_STD(s3, OFFSET(java_doublearray, data[0]), REG_ITMP2, s1);
+			N_STD(s3, OFFSET(java_doublearray_t, data[0]), REG_ITMP2, s1);
 			break;
 
 		case ICMD_AASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1978,7 +1978,7 @@ bool codegen_emit(jitdata *jd)
 
 			M_INTMOVE(s2, REG_ITMP2);
 			M_SLL_IMM(2, REG_ITMP2);
-			N_ST(s3, OFFSET(java_objectarray, data[0]), REG_ITMP2, s1);
+			N_ST(s3, OFFSET(java_objectarray_t, data[0]), REG_ITMP2, s1);
 
 			/*
 			M_SAADDQ(s2, s1, REG_ITMP1); itmp1 := 4 * s2 + s1

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8297 2007-08-12 00:02:48Z michi $
+   $Id: codegen.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -1144,7 +1144,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			/* implicit null-pointer check */
-			M_ILD_INTERN(d, s1, OFFSET(java_arrayheader, size));
+			M_ILD_INTERN(d, s1, OFFSET(java_array_t, size));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1156,7 +1156,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ADD(REG_ITMP1, s1, s2); /* REG_ITMP1 = s1 + 1 * s2 */
-			M_LDRSB(d, REG_ITMP1, OFFSET(java_bytearray, data[0]));
+			M_LDRSB(d, REG_ITMP1, OFFSET(java_bytearray_t, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1168,7 +1168,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ADD(REG_ITMP1, s1, REG_LSL(s2, 1)); /* REG_ITMP1 = s1 + 2 * s2 */
-			M_LDRH(d, REG_ITMP1, OFFSET(java_chararray, data[0]));
+			M_LDRH(d, REG_ITMP1, OFFSET(java_chararray_t, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1180,7 +1180,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ADD(REG_ITMP1, s1, REG_LSL(s2, 1)); /* REG_ITMP1 = s1 + 2 * s2 */
-			M_LDRSH(d, REG_ITMP1, OFFSET(java_shortarray, data[0]));
+			M_LDRSH(d, REG_ITMP1, OFFSET(java_shortarray_t, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1192,7 +1192,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ADD(REG_ITMP1, s1, REG_LSL(s2, 2)); /* REG_ITMP1 = s1 + 4 * s2 */
-			M_ILD_INTERN(d, REG_ITMP1, OFFSET(java_intarray, data[0]));
+			M_ILD_INTERN(d, REG_ITMP1, OFFSET(java_intarray_t, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1204,7 +1204,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ADD(REG_ITMP3, s1, REG_LSL(s2, 3)); /* REG_ITMP3 = s1 + 8 * s2 */
-			M_LLD_INTERN(d, REG_ITMP3, OFFSET(java_longarray, data[0]));
+			M_LLD_INTERN(d, REG_ITMP3, OFFSET(java_longarray_t, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1217,10 +1217,10 @@ bool codegen_emit(jitdata *jd)
 			M_ADD(REG_ITMP1, s1, REG_LSL(s2, 2)); /* REG_ITMP1 = s1 + 4 * s2 */
 #if !defined(ENABLE_SOFTFLOAT)
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			M_FLD_INTERN(d, REG_ITMP1, OFFSET(java_floatarray, data[0]));
+			M_FLD_INTERN(d, REG_ITMP1, OFFSET(java_floatarray_t, data[0]));
 #else
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_ILD_INTERN(d, REG_ITMP1, OFFSET(java_floatarray, data[0]));
+			M_ILD_INTERN(d, REG_ITMP1, OFFSET(java_floatarray_t, data[0]));
 #endif
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1234,10 +1234,10 @@ bool codegen_emit(jitdata *jd)
 			M_ADD(REG_ITMP3, s1, REG_LSL(s2, 3)); /* REG_ITMP3 = s1 + 8 * s2 */
 #if !defined(ENABLE_SOFTFLOAT)
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			M_DLD_INTERN(d, REG_ITMP3, OFFSET(java_doublearray, data[0]));
+			M_DLD_INTERN(d, REG_ITMP3, OFFSET(java_doublearray_t, data[0]));
 #else
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-			M_LLD_INTERN(d, REG_ITMP3, OFFSET(java_doublearray, data[0]));
+			M_LLD_INTERN(d, REG_ITMP3, OFFSET(java_doublearray_t, data[0]));
 #endif
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1250,7 +1250,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ADD(REG_ITMP1, s1, REG_LSL(s2, 2)); /* REG_ITMP1 = s1 + 4 * s2 */
-			M_LDR_INTERN(d, REG_ITMP1, OFFSET(java_objectarray, data[0]));
+			M_LDR_INTERN(d, REG_ITMP1, OFFSET(java_objectarray_t, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1262,7 +1262,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_ADD(REG_ITMP1, s1, s2); /* REG_ITMP1 = s1 + 1 * s2 */
-			M_STRB(s3, REG_ITMP1, OFFSET(java_bytearray, data[0]));
+			M_STRB(s3, REG_ITMP1, OFFSET(java_bytearray_t, data[0]));
 			break;
 
 		case ICMD_CASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1273,7 +1273,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_ADD(REG_ITMP1, s1, REG_LSL(s2, 1)); /* REG_ITMP1 = s1 + 2 * s2 */
-			M_STRH(s3, REG_ITMP1, OFFSET(java_chararray, data[0]));
+			M_STRH(s3, REG_ITMP1, OFFSET(java_chararray_t, data[0]));
 			break;
 
 		case ICMD_SASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1284,7 +1284,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_ADD(REG_ITMP1, s1, REG_LSL(s2, 1)); /* REG_ITMP1 = s1 + 2 * s2 */
-			M_STRH(s3, REG_ITMP1, OFFSET(java_shortarray, data[0]));
+			M_STRH(s3, REG_ITMP1, OFFSET(java_shortarray_t, data[0]));
 			break;
 
 		case ICMD_IASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1295,7 +1295,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_ADD(REG_ITMP1, s1, REG_LSL(s2, 2)); /* REG_ITMP1 = s1 + 4 * s2 */
-			M_IST_INTERN(s3, REG_ITMP1, OFFSET(java_intarray, data[0]));
+			M_IST_INTERN(s3, REG_ITMP1, OFFSET(java_intarray_t, data[0]));
 			break;
 
 		case ICMD_LASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1306,7 +1306,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_ADD(REG_ITMP3, s1, REG_LSL(s2, 3)); /* REG_ITMP3 = s1 + 8 * s2 */
 			s3 = emit_load_s3(jd, iptr, REG_ITMP12_PACKED);
-			M_LST_INTERN(s3, REG_ITMP3, OFFSET(java_longarray, data[0]));
+			M_LST_INTERN(s3, REG_ITMP3, OFFSET(java_longarray_t, data[0]));
 			break;
 
 		case ICMD_FASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1318,10 +1318,10 @@ bool codegen_emit(jitdata *jd)
 			M_ADD(REG_ITMP1, s1, REG_LSL(s2, 2)); /* REG_ITMP1 = s1 + 4 * s2 */
 #if !defined(ENABLE_SOFTFLOAT)
 			s3 = emit_load_s3(jd, iptr, REG_FTMP1);
-			M_FST_INTERN(s3, REG_ITMP1, OFFSET(java_floatarray, data[0]));
+			M_FST_INTERN(s3, REG_ITMP1, OFFSET(java_floatarray_t, data[0]));
 #else
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
-			M_IST_INTERN(s3, REG_ITMP1, OFFSET(java_floatarray, data[0]));
+			M_IST_INTERN(s3, REG_ITMP1, OFFSET(java_floatarray_t, data[0]));
 #endif
 			break;
 
@@ -1334,10 +1334,10 @@ bool codegen_emit(jitdata *jd)
 			M_ADD(REG_ITMP1, s1, REG_LSL(s2, 3)); /* REG_ITMP1 = s1 + 8 * s2 */
 #if !defined(ENABLE_SOFTFLOAT)
 			s3 = emit_load_s3(jd, iptr, REG_FTMP1);
-			M_DST_INTERN(s3, REG_ITMP1, OFFSET(java_doublearray, data[0]));
+			M_DST_INTERN(s3, REG_ITMP1, OFFSET(java_doublearray_t, data[0]));
 #else
 			s3 = emit_load_s3(jd, iptr, REG_ITMP23_PACKED);
-			M_LST_INTERN(s3, REG_ITMP1, OFFSET(java_doublearray, data[0]));
+			M_LST_INTERN(s3, REG_ITMP1, OFFSET(java_doublearray_t, data[0]));
 #endif
 			break;
 
@@ -1370,7 +1370,7 @@ bool codegen_emit(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_ADD(REG_ITMP1, s1, REG_LSL(s2, 2)); /* REG_ITMP1 = s1 + 4 * s2 */
-			M_STR_INTERN(s3, REG_ITMP1, OFFSET(java_objectarray, data[0]));
+			M_STR_INTERN(s3, REG_ITMP1, OFFSET(java_objectarray_t, data[0]));
 			break;
 
 		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: access.c 8237 2007-07-27 16:15:29Z twisti $
+   $Id: access.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -35,6 +35,8 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
+#include "native/llni.h"
 
 #include "vm/access.h"
 #include "vm/builtin.h"
@@ -213,11 +215,11 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 
 bool access_check_field(fieldinfo *f, s4 calldepth)
 {
-	java_objectarray *oa;
-	classinfo        *callerclass;
-	char             *msg;
-	s4                msglen;
-	utf              *u;
+	java_handle_objectarray_t *oa;
+	classinfo                 *callerclass;
+	char                      *msg;
+	s4                         msglen;
+	utf                       *u;
 
 	/* if everything is public, there is nothing to check */
 
@@ -231,7 +233,7 @@ bool access_check_field(fieldinfo *f, s4 calldepth)
 	if (oa == NULL)
 		return false;
 
-	assert(calldepth >= 0 && calldepth < oa->header.size);
+	assert(calldepth >= 0 && calldepth < LLNI_array_size(oa));
 
 	callerclass = (classinfo *) oa->data[calldepth];
 
@@ -294,11 +296,11 @@ bool access_check_field(fieldinfo *f, s4 calldepth)
 
 bool access_check_method(methodinfo *m, s4 calldepth)
 {
-	java_objectarray *oa;
-	classinfo        *callerclass;
-	char             *msg;
-	s4                msglen;
-	utf              *u;
+	java_handle_objectarray_t *oa;
+	classinfo                 *callerclass;
+	char                      *msg;
+	s4                         msglen;
+	utf                       *u;
 
 	/* if everything is public, there is nothing to check */
 
@@ -312,7 +314,7 @@ bool access_check_method(methodinfo *m, s4 calldepth)
 	if (oa == NULL)
 		return false;
 
-	assert(calldepth >= 0 && calldepth < oa->header.size);
+	assert(calldepth >= 0 && calldepth < LLNI_array_size(oa));
 
 	callerclass = (classinfo *) oa->data[calldepth];
 

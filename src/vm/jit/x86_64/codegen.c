@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8297 2007-08-12 00:02:48Z michi $
+   $Id: codegen.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -1501,7 +1501,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			/* implicit null-pointer check */
-			M_ILD(d, s1, OFFSET(java_arrayheader, size));
+			M_ILD(d, s1, OFFSET(java_array_t, size));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1512,7 +1512,7 @@ bool codegen_emit(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-   			emit_movsbq_memindex_reg(cd, OFFSET(java_bytearray, data[0]), s1, s2, 0, d);
+   			emit_movsbq_memindex_reg(cd, OFFSET(java_bytearray_t, data[0]), s1, s2, 0, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1523,7 +1523,7 @@ bool codegen_emit(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			emit_movzwq_memindex_reg(cd, OFFSET(java_chararray, data[0]), s1, s2, 1, d);
+			emit_movzwq_memindex_reg(cd, OFFSET(java_chararray_t, data[0]), s1, s2, 1, d);
 			emit_store_dst(jd, iptr, d);
 			break;			
 
@@ -1534,7 +1534,7 @@ bool codegen_emit(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			emit_movswq_memindex_reg(cd, OFFSET(java_shortarray, data[0]), s1, s2, 1, d);
+			emit_movswq_memindex_reg(cd, OFFSET(java_shortarray_t, data[0]), s1, s2, 1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1545,7 +1545,7 @@ bool codegen_emit(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			emit_movl_memindex_reg(cd, OFFSET(java_intarray, data[0]), s1, s2, 2, d);
+			emit_movl_memindex_reg(cd, OFFSET(java_intarray_t, data[0]), s1, s2, 2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1556,7 +1556,7 @@ bool codegen_emit(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			emit_mov_memindex_reg(cd, OFFSET(java_longarray, data[0]), s1, s2, 3, d);
+			emit_mov_memindex_reg(cd, OFFSET(java_longarray_t, data[0]), s1, s2, 3, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1567,7 +1567,7 @@ bool codegen_emit(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			emit_movss_memindex_reg(cd, OFFSET(java_floatarray, data[0]), s1, s2, 2, d);
+			emit_movss_memindex_reg(cd, OFFSET(java_floatarray_t, data[0]), s1, s2, 2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1578,7 +1578,7 @@ bool codegen_emit(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			emit_movsd_memindex_reg(cd, OFFSET(java_doublearray, data[0]), s1, s2, 3, d);
+			emit_movsd_memindex_reg(cd, OFFSET(java_doublearray_t, data[0]), s1, s2, 3, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1589,7 +1589,7 @@ bool codegen_emit(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			emit_mov_memindex_reg(cd, OFFSET(java_objectarray, data[0]), s1, s2, 3, d);
+			emit_mov_memindex_reg(cd, OFFSET(java_objectarray_t, data[0]), s1, s2, 3, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1601,7 +1601,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
-			emit_movb_reg_memindex(cd, s3, OFFSET(java_bytearray, data[0]), s1, s2, 0);
+			emit_movb_reg_memindex(cd, s3, OFFSET(java_bytearray_t, data[0]), s1, s2, 0);
 			break;
 
 		case ICMD_CASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1611,7 +1611,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
-			emit_movw_reg_memindex(cd, s3, OFFSET(java_chararray, data[0]), s1, s2, 1);
+			emit_movw_reg_memindex(cd, s3, OFFSET(java_chararray_t, data[0]), s1, s2, 1);
 			break;
 
 		case ICMD_SASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1621,7 +1621,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
-			emit_movw_reg_memindex(cd, s3, OFFSET(java_shortarray, data[0]), s1, s2, 1);
+			emit_movw_reg_memindex(cd, s3, OFFSET(java_shortarray_t, data[0]), s1, s2, 1);
 			break;
 
 		case ICMD_IASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1631,7 +1631,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
-			emit_movl_reg_memindex(cd, s3, OFFSET(java_intarray, data[0]), s1, s2, 2);
+			emit_movl_reg_memindex(cd, s3, OFFSET(java_intarray_t, data[0]), s1, s2, 2);
 			break;
 
 		case ICMD_LASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1641,7 +1641,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
-			emit_mov_reg_memindex(cd, s3, OFFSET(java_longarray, data[0]), s1, s2, 3);
+			emit_mov_reg_memindex(cd, s3, OFFSET(java_longarray_t, data[0]), s1, s2, 3);
 			break;
 
 		case ICMD_FASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1651,7 +1651,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_FTMP3);
-			emit_movss_reg_memindex(cd, s3, OFFSET(java_floatarray, data[0]), s1, s2, 2);
+			emit_movss_reg_memindex(cd, s3, OFFSET(java_floatarray_t, data[0]), s1, s2, 2);
 			break;
 
 		case ICMD_DASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1661,7 +1661,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_FTMP3);
-			emit_movsd_reg_memindex(cd, s3, OFFSET(java_doublearray, data[0]), s1, s2, 3);
+			emit_movsd_reg_memindex(cd, s3, OFFSET(java_doublearray_t, data[0]), s1, s2, 3);
 			break;
 
 		case ICMD_AASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1681,7 +1681,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
-			emit_mov_reg_memindex(cd, s3, OFFSET(java_objectarray, data[0]), s1, s2, 3);
+			emit_mov_reg_memindex(cd, s3, OFFSET(java_objectarray_t, data[0]), s1, s2, 3);
 			break;
 
 
@@ -1691,7 +1691,7 @@ bool codegen_emit(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			emit_movb_imm_memindex(cd, iptr->sx.s23.s3.constval, OFFSET(java_bytearray, data[0]), s1, s2, 0);
+			emit_movb_imm_memindex(cd, iptr->sx.s23.s3.constval, OFFSET(java_bytearray_t, data[0]), s1, s2, 0);
 			break;
 
 		case ICMD_CASTORECONST:   /* ..., arrayref, index  ==> ...            */
@@ -1700,7 +1700,7 @@ bool codegen_emit(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			emit_movw_imm_memindex(cd, iptr->sx.s23.s3.constval, OFFSET(java_chararray, data[0]), s1, s2, 1);
+			emit_movw_imm_memindex(cd, iptr->sx.s23.s3.constval, OFFSET(java_chararray_t, data[0]), s1, s2, 1);
 			break;
 
 		case ICMD_SASTORECONST:   /* ..., arrayref, index  ==> ...            */
@@ -1709,7 +1709,7 @@ bool codegen_emit(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			emit_movw_imm_memindex(cd, iptr->sx.s23.s3.constval, OFFSET(java_shortarray, data[0]), s1, s2, 1);
+			emit_movw_imm_memindex(cd, iptr->sx.s23.s3.constval, OFFSET(java_shortarray_t, data[0]), s1, s2, 1);
 			break;
 
 		case ICMD_IASTORECONST: /* ..., arrayref, index  ==> ...              */
@@ -1718,7 +1718,7 @@ bool codegen_emit(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			emit_movl_imm_memindex(cd, iptr->sx.s23.s3.constval, OFFSET(java_intarray, data[0]), s1, s2, 2);
+			emit_movl_imm_memindex(cd, iptr->sx.s23.s3.constval, OFFSET(java_intarray_t, data[0]), s1, s2, 2);
 			break;
 
 		case ICMD_LASTORECONST: /* ..., arrayref, index  ==> ...              */
@@ -1729,11 +1729,11 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 
 			if (IS_IMM32(iptr->sx.s23.s3.constval)) {
-				emit_mov_imm_memindex(cd, (u4) (iptr->sx.s23.s3.constval & 0x00000000ffffffff), OFFSET(java_longarray, data[0]), s1, s2, 3);
+				emit_mov_imm_memindex(cd, (u4) (iptr->sx.s23.s3.constval & 0x00000000ffffffff), OFFSET(java_longarray_t, data[0]), s1, s2, 3);
 			}
 			else {
-				emit_movl_imm_memindex(cd, (u4) (iptr->sx.s23.s3.constval & 0x00000000ffffffff), OFFSET(java_longarray, data[0]), s1, s2, 3);
-				emit_movl_imm_memindex(cd, (u4) (iptr->sx.s23.s3.constval >> 32), OFFSET(java_longarray, data[0]) + 4, s1, s2, 3);
+				emit_movl_imm_memindex(cd, (u4) (iptr->sx.s23.s3.constval & 0x00000000ffffffff), OFFSET(java_longarray_t, data[0]), s1, s2, 3);
+				emit_movl_imm_memindex(cd, (u4) (iptr->sx.s23.s3.constval >> 32), OFFSET(java_longarray_t, data[0]) + 4, s1, s2, 3);
 			}
 			break;
 
@@ -1743,7 +1743,7 @@ bool codegen_emit(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
-			emit_mov_imm_memindex(cd, 0, OFFSET(java_objectarray, data[0]), s1, s2, 3);
+			emit_mov_imm_memindex(cd, 0, OFFSET(java_objectarray_t, data[0]), s1, s2, 3);
 			break;
 
 

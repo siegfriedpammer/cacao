@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: headers.h 8295 2007-08-11 17:57:24Z michi $
+   $Id: headers.h 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -42,7 +42,6 @@
 
 /* export variables ***********************************************************/
 
-#warning object or handle???
 extern java_object_t *_exceptionptr;
 extern chain *nativemethod_chain;
 extern chain *nativeclass_chain;

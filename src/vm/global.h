@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: global.h 8295 2007-08-11 17:57:24Z michi $
+   $Id: global.h 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -82,7 +82,7 @@ typedef union {
 /* forward typedefs ***********************************************************/
 
 typedef struct java_object_t java_object_t; 
-typedef struct java_objectarray java_objectarray;
+typedef struct java_objectarray_t java_objectarray_t;
 
 
 #define MAX_ALIGN 8             /* most generic alignment for JavaVM values   */
@@ -218,15 +218,6 @@ struct java_object_t {                 /* header for all objects              */
 };
 
 
-#if 0
-typedef struct java_handle_t {
-	java_object_t *heap_object;
-} java_handle_t;
-#else
-typedef java_object_t java_handle_t;
-#endif
-
-
 /* arrays **********************************************************************
 
 	All arrays are objects (they need the object header with a pointer
@@ -235,10 +226,10 @@ typedef java_object_t java_handle_t;
 	which is referenced by the vftbl.
 */
 
-typedef struct java_arrayheader {       /* header for all arrays              */
+typedef struct java_array_t {           /* header for all arrays              */
 	java_object_t objheader;            /* object header                      */
 	s4 size;                            /* array size                         */
-} java_arrayheader;
+} java_array_t;
 
 
 
@@ -247,53 +238,82 @@ typedef struct java_arrayheader {       /* header for all arrays              */
 /*  booleanarray and bytearray need identical memory layout (access methods
     use the same machine code */
 
-typedef struct java_booleanarray {
-	java_arrayheader header;
+typedef struct java_booleanarray_t {
+	java_array_t header;
 	u1 data[1];
-} java_booleanarray;
+} java_booleanarray_t;
 
-typedef struct java_bytearray {
-	java_arrayheader header;
+typedef struct java_bytearray_t {
+	java_array_t header;
 	s1 data[1];
-} java_bytearray;
+} java_bytearray_t;
 
-typedef struct java_chararray {
-	java_arrayheader header;
+typedef struct java_chararray_t {
+	java_array_t header;
 	u2 data[1];
-} java_chararray;
+} java_chararray_t;
 
-typedef struct java_shortarray {
-	java_arrayheader header;
+typedef struct java_shortarray_t {
+	java_array_t header;
 	s2 data[1];
-} java_shortarray;
+} java_shortarray_t;
 
-typedef struct java_intarray {
-	java_arrayheader header;
+typedef struct java_intarray_t {
+	java_array_t header;
 	s4 data[1];
-} java_intarray;
+} java_intarray_t;
 
-typedef struct java_longarray {
-	java_arrayheader header;
+typedef struct java_longarray_t {
+	java_array_t header;
 	s8 data[1];
-} java_longarray;
+} java_longarray_t;
 
-typedef struct java_floatarray {
-	java_arrayheader header;
+typedef struct java_floatarray_t {
+	java_array_t header;
 	float data[1];
-} java_floatarray;
+} java_floatarray_t;
 
-typedef struct java_doublearray {
-	java_arrayheader header;
+typedef struct java_doublearray_t {
+	java_array_t header;
 	double data[1];
-} java_doublearray;
+} java_doublearray_t;
 
 /*  objectarray and arrayarray need identical memory layout (access methods
     use the same machine code */
 
-struct java_objectarray {
-	java_arrayheader  header;
-	java_object_t    *data[1];
+struct java_objectarray_t {
+	java_array_t   header;
+	java_object_t *data[1];
 };
+
+
+/* java_handle_t ***************************************************************
+
+   TODO: document me!
+
+*******************************************************************************/
+
+#if 0
+typedef struct java_handle_t {
+	java_object_t *heap_object;
+} java_handle_t;
+#elseif 0
+typedef union {
+	java_object_t    object;
+	java_array_t     array;
+} java_handle_t;
+#else
+typedef java_object_t       java_handle_t;
+typedef java_objectarray_t  java_handle_objectarray_t;
+typedef java_booleanarray_t java_handle_booleanarray_t;
+typedef java_bytearray_t    java_handle_bytearray_t;
+typedef java_chararray_t    java_handle_chararray_t;
+typedef java_shortarray_t   java_handle_shortarray_t;
+typedef java_intarray_t     java_handle_intarray_t;
+typedef java_longarray_t    java_handle_longarray_t;
+typedef java_floatarray_t   java_handle_floatarray_t;
+typedef java_doublearray_t  java_handle_doublearray_t;
+#endif
 
 
 /* global constants related to the verifier ***********************************/

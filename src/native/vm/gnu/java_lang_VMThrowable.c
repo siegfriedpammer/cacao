@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMThrowable.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: java_lang_VMThrowable.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -112,7 +112,7 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
  * Method:    getStackTrace
  * Signature: (Ljava/lang/Throwable;)[Ljava/lang/StackTraceElement;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *env, java_lang_VMThrowable *this, java_lang_Throwable *t)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *env, java_lang_VMThrowable *this, java_lang_Throwable *t)
 {
 	stacktracecontainer         *stc;
 	stacktracebuffer            *stb;
@@ -125,7 +125,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 	bool                         leftexceptionclass;
 
 	methodinfo                  *m;
-	java_objectarray            *oa;
+	java_handle_objectarray_t   *oa;
 	s4                           oalength;
 	java_lang_StackTraceElement *o;
 	java_lang_String            *filename;
@@ -263,7 +263,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNI
 		LLNI_field_set_ref(o, methodName    , (java_lang_String *) javastring_new(ste->method->name));
 		LLNI_field_set_val(o, isNative      , (ste->method->flags & ACC_NATIVE) ? 1 : 0);
 
-		oa->data[i] = o;
+		LLNI_objectarray_element_set(oa, i, o);
 	}
 
 	return oa;

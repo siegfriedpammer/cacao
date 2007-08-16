@@ -1338,7 +1338,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			/* implicit null-pointer check */
-			M_ILD(d, s1, OFFSET(java_arrayheader, size));
+			M_ILD(d, s1, OFFSET(java_array_t, size));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1349,7 +1349,7 @@ bool codegen_emit(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_INTMOVE(s2, REG_ITMP2);
-			M_IADD_IMM(OFFSET(java_bytearray, data[0]), REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_bytearray_t, data[0]), REG_ITMP2);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
@@ -1366,7 +1366,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_INTMOVE(s2, REG_ITMP2);
 			M_ISSL_IMM(1, REG_ITMP2);
-			M_IADD_IMM(OFFSET(java_chararray, data[0]), REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_chararray_t, data[0]), REG_ITMP2);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
@@ -1383,7 +1383,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_INTMOVE(s2, REG_ITMP2);
 			M_ISSL_IMM(1, REG_ITMP2);
-			M_IADD_IMM(OFFSET(java_shortarray, data[0]), REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_shortarray_t, data[0]), REG_ITMP2);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 		
@@ -1401,7 +1401,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_INTMOVE(s2, REG_ITMP2);
 			M_ISSL_IMM(2, REG_ITMP2);
-			M_IADD_IMM(OFFSET(java_intarray, data[0]), REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_intarray_t, data[0]), REG_ITMP2);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
@@ -1417,7 +1417,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_INTMOVE(s2, REG_ITMP1);
 			M_ISSL_IMM(3, REG_ITMP1);
-			M_IADD_IMM(OFFSET(java_longarray, data[0]), REG_ITMP1);
+			M_IADD_IMM(OFFSET(java_longarray_t, data[0]), REG_ITMP1);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP1, REG_ATMP1);
 			/* implicit null-pointer check */
@@ -1431,7 +1431,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_INTMOVE(s2, REG_ITMP2);
 			M_ISSL_IMM(2, REG_ITMP2);
-			M_IADD_IMM(OFFSET(java_floatarray, data[0]), REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_floatarray_t, data[0]), REG_ITMP2);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
@@ -1451,7 +1451,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_INTMOVE(s2, REG_ITMP2);
 			M_ISSL_IMM(3, REG_ITMP2);
-			M_IADD_IMM(OFFSET(java_doublearray, data[0]), REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_doublearray_t, data[0]), REG_ITMP2);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
@@ -1472,7 +1472,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_INTMOVE(s2, REG_ITMP2);
 			M_ISSL_IMM(2, REG_ITMP2);
-			M_IADD_IMM(OFFSET(java_objectarray, data[0]), REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_objectarray_t, data[0]), REG_ITMP2);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 	
@@ -1488,7 +1488,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_INTMOVE(s2, REG_ITMP2);
-			M_IADD_IMM(OFFSET(java_bytearray, data[0]), REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_bytearray_t, data[0]), REG_ITMP2);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
@@ -1502,7 +1502,7 @@ bool codegen_emit(jitdata *jd)
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_INTMOVE(s2, REG_ITMP2);
 			M_ISSL_IMM(1, REG_ITMP2);
-			M_IADD_IMM(OFFSET(java_chararray, data[0]), REG_ITMP2); 
+			M_IADD_IMM(OFFSET(java_chararray_t, data[0]), REG_ITMP2); 
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
@@ -1516,7 +1516,7 @@ bool codegen_emit(jitdata *jd)
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_INTMOVE(s2, REG_ITMP2);
 			M_ISSL_IMM(1, REG_ITMP2);
-			M_IADD_IMM(OFFSET(java_shortarray, data[0]), REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_shortarray_t, data[0]), REG_ITMP2);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
@@ -1530,7 +1530,7 @@ bool codegen_emit(jitdata *jd)
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_INTMOVE(s2, REG_ITMP2);
 			M_ISSL_IMM(2, REG_ITMP2);
-			M_IADD_IMM(OFFSET(java_intarray, data[0]), REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_intarray_t, data[0]), REG_ITMP2);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
@@ -1544,7 +1544,7 @@ bool codegen_emit(jitdata *jd)
 
 			M_INTMOVE(s2, REG_ITMP1);
 			M_ISSL_IMM(3, REG_ITMP1);
-			M_IADD_IMM(OFFSET(java_longarray, data[0]), REG_ITMP1);
+			M_IADD_IMM(OFFSET(java_longarray_t, data[0]), REG_ITMP1);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP1, REG_ATMP1);
 			/* implicit null-pointer check */
@@ -1558,7 +1558,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_INTMOVE(s2, REG_ITMP2);
 			M_ISSL_IMM(2, REG_ITMP2);
-			M_IADD_IMM(OFFSET(java_floatarray, data[0]), REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_floatarray_t, data[0]), REG_ITMP2);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
@@ -1577,7 +1577,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_INTMOVE(s2, REG_ITMP2);
 			M_ISSL_IMM(3, REG_ITMP2);
-			M_IADD_IMM(OFFSET(java_doublearray, data[0]), REG_ITMP2);
+			M_IADD_IMM(OFFSET(java_doublearray_t, data[0]), REG_ITMP2);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP2, REG_ATMP1);
 			/* implicit null-pointer check */
@@ -1611,7 +1611,7 @@ bool codegen_emit(jitdata *jd)
 			s3 = emit_load_s3(jd, iptr, REG_ATMP2);
 			M_INTMOVE(s2, REG_ITMP1);
 			M_ISSL_IMM(2, REG_ITMP1);
-			M_IADD_IMM(OFFSET(java_objectarray, data[0]), REG_ITMP1);
+			M_IADD_IMM(OFFSET(java_objectarray_t, data[0]), REG_ITMP1);
 			M_ADRMOVE(s1, REG_ATMP1);
 			M_AADDINT(REG_ITMP1, REG_ATMP1);
 			/* implicit null-pointer check */

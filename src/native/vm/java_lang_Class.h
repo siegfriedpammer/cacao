@@ -67,14 +67,14 @@ JNIEXPORT int32_t JNICALL      _Jv_java_lang_Class_isInterface(JNIEnv *env, java
 #if defined(ENABLE_JAVASE)
 s4                             _Jv_java_lang_Class_isPrimitive(java_lang_Class *klass);
 java_lang_Class               *_Jv_java_lang_Class_getSuperclass(java_lang_Class *klass);
-java_objectarray              *_Jv_java_lang_Class_getInterfaces(java_lang_Class *klass);
+java_handle_objectarray_t     *_Jv_java_lang_Class_getInterfaces(java_lang_Class *klass);
 java_lang_Class               *_Jv_java_lang_Class_getComponentType(java_lang_Class *klass);
 s4                             _Jv_java_lang_Class_getModifiers(java_lang_Class *klass, s4 ignoreInnerClassesAttrib);
 java_lang_Class               *_Jv_java_lang_Class_getDeclaringClass(java_lang_Class *klass);
-java_objectarray              *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass, s4 publicOnly);
-java_objectarray              *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, s4 publicOnly);
-java_objectarray              *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass, s4 publicOnly);
-java_objectarray              *_Jv_java_lang_Class_getDeclaredConstructors(java_lang_Class *klass, s4 publicOnly);
+java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass, s4 publicOnly);
+java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, s4 publicOnly);
+java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass, s4 publicOnly);
+java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredConstructors(java_lang_Class *klass, s4 publicOnly);
 java_lang_ClassLoader         *_Jv_java_lang_Class_getClassLoader(java_lang_Class *klass);
 #endif
 
@@ -84,7 +84,7 @@ JNIEXPORT int32_t JNICALL      _Jv_java_lang_Class_isArray(JNIEnv *env, java_lan
 void                           _Jv_java_lang_Class_throwException(java_lang_Throwable *t);
 
 #if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
-java_objectarray              *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* klass);
+java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* klass);
 #endif
 
 java_lang_Class               *_Jv_java_lang_Class_getEnclosingClass(java_lang_Class *klass);

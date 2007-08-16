@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8297 2007-08-12 00:02:48Z michi $
+   $Id: vm.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -1808,16 +1808,16 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 {
-	utf               *mainutf;
-	classinfo         *mainclass;
-	java_handle_t     *e;
-	methodinfo        *m;
-	java_objectarray  *oa; 
-	s4                 oalength;
-	utf               *u;
-	java_handle_t     *s;
-	s4                 status;
-	s4                 i;
+	utf                       *mainutf;
+	classinfo                 *mainclass;
+	java_handle_t             *e;
+	methodinfo                *m;
+	java_handle_objectarray_t *oa; 
+	s4                         oalength;
+	utf                       *u;
+	java_handle_t             *s;
+	s4                         status;
+	s4                         i;
 
 #if !defined(NDEBUG)
 	if (compileall) {
@@ -1909,7 +1909,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 		u = utf_new_char(vm_args->options[opt_index + i].optionString);
 		s = javastring_new(u);
 
-		oa->data[i] = s;
+		LLNI_objectarray_element_set(oa, i, s);
 	}
 
 #ifdef TYPEINFO_DEBUG_TEST
@@ -2708,13 +2708,13 @@ static uint64_t *vm_array_from_jvalue(methodinfo *m, java_object_t *o,
 *******************************************************************************/
 
 uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
-									java_objectarray *params)
+									java_handle_objectarray_t *params)
 {
 	methoddesc    *md;
 	paramdesc     *pd;
 	typedesc      *td;
 	uint64_t      *array;
-	java_object_t *param;
+	java_handle_t *param;
 	classinfo     *c;
 	int32_t        i;
 	int32_t        j;
@@ -2744,7 +2744,7 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 	}
 
 	for (j = 0; i < md->paramcount; i++, j++, pd++, td++) {
-		param = params->data[j];
+		LLNI_objectarray_element_get(params, j, param);
 
 		switch (td->type) {
 		case TYPE_INT:

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: string.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: string.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -104,9 +104,9 @@ bool string_init(void)
  
 void stringtable_update(void)
 {
-	java_lang_String *js;   
-	java_chararray *a;
-	literalstring *s;       /* hashtable entry */
+	java_lang_String *js;
+	java_chararray_t *a;
+	literalstring    *s;       /* hashtable entry */
 	int i;
 
 	for (i = 0; i < hashtable_string.size; i++) {
@@ -162,7 +162,7 @@ static java_handle_t *javastring_new_from_utf_buffer(const char *buffer,
 	u4 utflength;                   /* length of utf-string if uncompressed   */
 	java_handle_t     *o;
 	java_lang_String  *s;           /* result-string                          */
-	java_chararray    *a;
+	java_handle_chararray_t *a;
 	u4 i;
 
 	assert(buffer);
@@ -182,7 +182,7 @@ static java_handle_t *javastring_new_from_utf_buffer(const char *buffer,
 	utf_ptr = buffer;
 
 	for (i = 0; i < utflength; i++)
-		a->data[i] = utf_nextu2((char **) &utf_ptr);
+		LLNI_array_direct(a, i) = utf_nextu2((char **) &utf_ptr);
 	
 	/* set fields of the javastring-object */
 
@@ -213,9 +213,9 @@ static java_handle_t *javastring_new_from_utf_buffer(const char *buffer,
 
 java_handle_t *javastring_safe_new_from_utf8(const char *text)
 {
-	java_handle_t    *o;
-	java_chararray   *a;
-	java_lang_String *s;
+	java_handle_t           *o;
+	java_handle_chararray_t *a;
+	java_lang_String        *s;
 	s4 nbytes;
 	s4 len;
 
@@ -292,9 +292,9 @@ java_handle_t *javastring_new(utf *u)
 {
 	char *utf_ptr;                  /* current utf character in utf string    */
 	u4 utflength;                   /* length of utf-string if uncompressed   */
-	java_handle_t    *o;
-	java_chararray   *a;
-	java_lang_String *s;
+	java_handle_t           *o;
+	java_handle_chararray_t *a;
+	java_lang_String        *s;
 	s4 i;
 
 	if (u == NULL) {
@@ -316,7 +316,7 @@ java_handle_t *javastring_new(utf *u)
 	/* decompress utf-string */
 
 	for (i = 0; i < utflength; i++)
-		a->data[i] = utf_nextu2(&utf_ptr);
+		LLNI_array_direct(a, i) = utf_nextu2(&utf_ptr);
 	
 	/* set fields of the javastring-object */
 
@@ -343,9 +343,9 @@ java_handle_t *javastring_new_slash_to_dot(utf *u)
 {
 	char *utf_ptr;                  /* current utf character in utf string    */
 	u4 utflength;                   /* length of utf-string if uncompressed   */
-	java_handle_t    *o;
-	java_chararray   *a;
-	java_lang_String *s;
+	java_handle_t           *o;
+	java_handle_chararray_t *a;
+	java_lang_String        *s;
 	s4 i;
 	u2 ch;
 
@@ -370,7 +370,7 @@ java_handle_t *javastring_new_slash_to_dot(utf *u)
 		ch = utf_nextu2(&utf_ptr);
 		if (ch == '/')
 			ch = '.';
-		a->data[i] = ch;
+		LLNI_array_direct(a, i) = ch;
 	}
 	
 	/* set fields of the javastring-object */
@@ -403,9 +403,9 @@ java_handle_t *javastring_new_from_ascii(const char *text)
 {
 	s4 i;
 	s4 len;                             /* length of the string               */
-	java_handle_t    *o;
-	java_lang_String *s;
-	java_chararray   *a;
+	java_handle_t           *o;
+	java_lang_String        *s;
+	java_handle_chararray_t *a;
 
 	if (text == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -425,7 +425,7 @@ java_handle_t *javastring_new_from_ascii(const char *text)
 	/* copy text */
 
 	for (i = 0; i < len; i++)
-		a->data[i] = text[i];
+		LLNI_array_direct(a, i) = text[i];
 	
 	/* set fields of the javastring-object */
 
@@ -451,8 +451,8 @@ java_handle_t *javastring_new_from_ascii(const char *text)
 
 char *javastring_tochar(java_handle_t *so) 
 {
-	java_lang_String *s = (java_lang_String *) so;
-	java_chararray *a;
+	java_lang_String        *s = (java_lang_String *) so;
+	java_handle_chararray_t *a;
 	char *buf;
 	s4 i;
 	
@@ -503,12 +503,12 @@ utf *javastring_toutf(java_handle_t *string, bool isclassname)
 
 *******************************************************************************/
 
-java_object_t *literalstring_u2(java_chararray *a, u4 length, u4 offset,
-									bool copymode)
+java_object_t *literalstring_u2(java_chararray_t *a, u4 length, u4 offset,
+								bool copymode)
 {
     literalstring    *s;                /* hashtable element                  */
     java_lang_String *js;               /* u2-array wrapped in javastring     */
-    java_chararray   *ca;               /* copy of u2-array                   */
+    java_chararray_t *ca;               /* copy of u2-array                   */
     u4                key;
     u4                slot;
     u2                i;
@@ -534,7 +534,7 @@ java_object_t *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 			/* string already in hashtable, free memory */
 
 			if (!copymode)
-				mem_free(a, sizeof(java_chararray) + sizeof(u2) * (length - 1) + 10);
+				mem_free(a, sizeof(java_chararray_t) + sizeof(u2) * (length - 1) + 10);
 
 			LOCK_MONITOR_EXIT(lock_hashtable_string);
 
@@ -548,10 +548,10 @@ java_object_t *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 
     if (copymode) {
 		/* create copy of u2-array for new javastring */
-		u4 arraysize = sizeof(java_chararray) + sizeof(u2) * (length - 1) + 10;
+		u4 arraysize = sizeof(java_chararray_t) + sizeof(u2) * (length - 1) + 10;
 		ca = mem_alloc(arraysize);
 /*    		memcpy(ca, a, arraysize); */
-  		memcpy(&(ca->header), &(a->header), sizeof(java_arrayheader));
+  		memcpy(&(ca->header), &(a->header), sizeof(java_array_t));
   		memcpy(&(ca->data), &(a->data) + offset, sizeof(u2) * (length - 1) + 10);
 
     } else {
@@ -658,17 +658,17 @@ java_object_t *literalstring_u2(java_chararray *a, u4 length, u4 offset,
 
 java_object_t *literalstring_new(utf *u)
 {
-    char           *utf_ptr;         /* pointer to current unicode character  */
+    char             *utf_ptr;       /* pointer to current unicode character  */
 	                                 /* utf string                            */
-    u4              utflength;       /* length of utf-string if uncompressed  */
-    java_chararray *a;               /* u2-array constructed from utf string  */
-    u4              i;
+    u4                utflength;     /* length of utf-string if uncompressed  */
+    java_chararray_t *a;             /* u2-array constructed from utf string  */
+    u4                i;
 
 	utf_ptr = u->text;
 	utflength = utf_get_number_of_u2s(u);
 
     /* allocate memory */ 
-    a = mem_alloc(sizeof(java_chararray) + sizeof(u2) * (utflength - 1) + 10);
+    a = mem_alloc(sizeof(java_chararray_t) + sizeof(u2) * (utflength - 1) + 10);
 
     /* convert utf-string to u2-array */
     for (i = 0; i < utflength; i++)
@@ -687,7 +687,7 @@ java_object_t *literalstring_new(utf *u)
 void literalstring_free(java_object_t* string)
 {
 	java_lang_String *s;
-	java_chararray *a;
+	java_chararray_t *a;
 
 	s = (java_lang_String *) string;
 	a = s->value;
@@ -696,7 +696,7 @@ void literalstring_free(java_object_t* string)
 	FREE(s, java_lang_String);
 
 	/* dispose memory of java-characterarray */
-	FREE(a, sizeof(java_chararray) + sizeof(u2) * (a->header.size - 1)); /* +10 ?? */
+	FREE(a, sizeof(java_chararray_t) + sizeof(u2) * (a->header.size - 1)); /* +10 ?? */
 }
 
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: stacktrace.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -734,14 +734,14 @@ return_NULL:
 
 *******************************************************************************/
 
-java_objectarray *stacktrace_getClassContext(void)
+java_handle_objectarray_t *stacktrace_getClassContext(void)
 {
-	stacktracebuffer  *stb;
-	stacktrace_entry  *ste;
-	java_objectarray  *oa;
-	s4                 oalength;
-	s4                 i;
-	s4                 dumpsize;
+	stacktracebuffer          *stb;
+	stacktrace_entry          *ste;
+	java_handle_objectarray_t *oa;
+	s4                         oalength;
+	s4                         i;
+	s4                         dumpsize;
 	CYCLES_STATS_DECLARE_AND_START
 
 	/* mark start of dump memory area */
@@ -884,17 +884,17 @@ return_NULL:
 *******************************************************************************/
 
 #if defined(ENABLE_JAVASE)
-java_objectarray *stacktrace_getStack(void)
+java_handle_objectarray_t *stacktrace_getStack(void)
 {
-	stacktracebuffer  *stb;
-	stacktrace_entry  *ste;
-	java_objectarray  *oa;
-	java_objectarray  *classes;
-	java_objectarray  *methodnames;
-	classinfo         *c;
-	java_handle_t     *string;
-	s4                 i;
-	s4                 dumpsize;
+	stacktracebuffer          *stb;
+	stacktrace_entry          *ste;
+	java_handle_objectarray_t *oa;
+	java_handle_objectarray_t *classes;
+	java_handle_objectarray_t *methodnames;
+	classinfo                 *c;
+	java_handle_t             *string;
+	s4                         i;
+	s4                         dumpsize;
 	CYCLES_STATS_DECLARE_AND_START
 
 	/* mark start of dump memory area */

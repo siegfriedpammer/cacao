@@ -257,7 +257,7 @@ JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_sun_reflect_ConstantPool_
  * Method:    getMemberRefInfoAt0
  * Signature: (Ljava/lang/Object;I)[Ljava/lang/String;
  */
-JNIEXPORT java_objectarray* JNICALL Java_sun_reflect_ConstantPool_getMemberRefInfoAt0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool, int32_t index)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_sun_reflect_ConstantPool_getMemberRefInfoAt0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool, int32_t index)
 {
 	log_println("Java_sun_reflect_ConstantPool_getMemberRefInfoAt0: jcpool=%p, index=%d, IMPLEMENT ME!", jcpool, index);
 	return NULL;

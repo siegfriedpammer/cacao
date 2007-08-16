@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8297 2007-08-12 00:02:48Z michi $
+   $Id: codegen.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -1419,7 +1419,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			/* implicit null-pointer check */
-			M_ILD(d, s1, OFFSET(java_arrayheader, size));
+			M_ILD(d, s1, OFFSET(java_array_t, size));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1432,13 +1432,13 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
-				M_BLDU(d, REG_ITMP1, OFFSET (java_bytearray, data[0]));
+				M_BLDU(d, REG_ITMP1, OFFSET (java_bytearray_t, data[0]));
 				M_BSEXT(d, d);
 			}
 			else {
 				M_LADD(s2, s1, REG_ITMP1);
-				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_bytearray, data[0]));
-				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_bytearray, data[0])+1);
+				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_bytearray_t, data[0]));
+				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_bytearray_t, data[0])+1);
 				M_EXTQH(REG_ITMP2, REG_ITMP1, d);
 				M_SRA_IMM(d, 56, d);
 			}
@@ -1455,13 +1455,13 @@ bool codegen_emit(jitdata *jd)
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
 				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_SLDU(d, REG_ITMP1, OFFSET(java_chararray, data[0]));
+				M_SLDU(d, REG_ITMP1, OFFSET(java_chararray_t, data[0]));
 			}
 			else {
 				M_LADD (s2, s1, REG_ITMP1);
 				M_LADD (s2, REG_ITMP1, REG_ITMP1);
-				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_chararray, data[0]));
-				M_LDA  (REG_ITMP1, REG_ITMP1, OFFSET(java_chararray, data[0]));
+				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_chararray_t, data[0]));
+				M_LDA  (REG_ITMP1, REG_ITMP1, OFFSET(java_chararray_t, data[0]));
 				M_EXTWL(REG_ITMP2, REG_ITMP1, d);
 			}
 			emit_store_dst(jd, iptr, d);
@@ -1477,13 +1477,13 @@ bool codegen_emit(jitdata *jd)
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
 				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_SLDU( d, REG_ITMP1, OFFSET (java_shortarray, data[0]));
+				M_SLDU( d, REG_ITMP1, OFFSET (java_shortarray_t, data[0]));
 				M_SSEXT(d, d);
 			} else {
 				M_LADD(s2, s1, REG_ITMP1);
 				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_shortarray, data[0]));
-				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_shortarray, data[0])+2);
+				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_shortarray_t, data[0]));
+				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_shortarray_t, data[0])+2);
 				M_EXTQH(REG_ITMP2, REG_ITMP1, d);
 				M_SRA_IMM(d, 48, d);
 			}
@@ -1498,7 +1498,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_S4ADDQ(s2, s1, REG_ITMP1);
-			M_ILD(d, REG_ITMP1, OFFSET(java_intarray, data[0]));
+			M_ILD(d, REG_ITMP1, OFFSET(java_intarray_t, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1510,7 +1510,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_S8ADDQ(s2, s1, REG_ITMP1);
-			M_LLD(d, REG_ITMP1, OFFSET(java_longarray, data[0]));
+			M_LLD(d, REG_ITMP1, OFFSET(java_longarray_t, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1522,7 +1522,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_S4ADDQ(s2, s1, REG_ITMP1);
-			M_FLD(d, REG_ITMP1, OFFSET(java_floatarray, data[0]));
+			M_FLD(d, REG_ITMP1, OFFSET(java_floatarray_t, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1534,7 +1534,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_S8ADDQ(s2, s1, REG_ITMP1);
-			M_DLD(d, REG_ITMP1, OFFSET(java_doublearray, data[0]));
+			M_DLD(d, REG_ITMP1, OFFSET(java_doublearray_t, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1546,7 +1546,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_SAADDQ(s2, s1, REG_ITMP1);
-			M_ALD(d, REG_ITMP1, OFFSET(java_objectarray, data[0]));
+			M_ALD(d, REG_ITMP1, OFFSET(java_objectarray_t, data[0]));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1560,12 +1560,12 @@ bool codegen_emit(jitdata *jd)
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
-				M_BST(s3, REG_ITMP1, OFFSET(java_bytearray, data[0]));
+				M_BST(s3, REG_ITMP1, OFFSET(java_bytearray_t, data[0]));
 			}
 			else {
 				M_LADD(s2, s1, REG_ITMP1);
-				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_bytearray, data[0]));
-				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_bytearray, data[0]));
+				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_bytearray_t, data[0]));
+				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_bytearray_t, data[0]));
 				M_INSBL(s3, REG_ITMP1, REG_ITMP3);
 				M_MSKBL(REG_ITMP2, REG_ITMP1, REG_ITMP2);
 				M_OR(REG_ITMP2, REG_ITMP3, REG_ITMP2);
@@ -1583,13 +1583,13 @@ bool codegen_emit(jitdata *jd)
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
 				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_SST(s3, REG_ITMP1, OFFSET(java_chararray, data[0]));
+				M_SST(s3, REG_ITMP1, OFFSET(java_chararray_t, data[0]));
 			}
 			else {
 				M_LADD(s2, s1, REG_ITMP1);
 				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_chararray, data[0]));
-				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_chararray, data[0]));
+				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_chararray_t, data[0]));
+				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_chararray_t, data[0]));
 				M_INSWL(s3, REG_ITMP1, REG_ITMP3);
 				M_MSKWL(REG_ITMP2, REG_ITMP1, REG_ITMP2);
 				M_OR(REG_ITMP2, REG_ITMP3, REG_ITMP2);
@@ -1607,13 +1607,13 @@ bool codegen_emit(jitdata *jd)
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
 				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_SST(s3, REG_ITMP1, OFFSET(java_shortarray, data[0]));
+				M_SST(s3, REG_ITMP1, OFFSET(java_shortarray_t, data[0]));
 			}
 			else {
 				M_LADD(s2, s1, REG_ITMP1);
 				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_shortarray, data[0]));
-				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_shortarray, data[0]));
+				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_shortarray_t, data[0]));
+				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_shortarray_t, data[0]));
 				M_INSWL(s3, REG_ITMP1, REG_ITMP3);
 				M_MSKWL(REG_ITMP2, REG_ITMP1, REG_ITMP2);
 				M_OR(REG_ITMP2, REG_ITMP3, REG_ITMP2);
@@ -1629,7 +1629,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_S4ADDQ(s2, s1, REG_ITMP1);
-			M_IST(s3, REG_ITMP1, OFFSET(java_intarray, data[0]));
+			M_IST(s3, REG_ITMP1, OFFSET(java_intarray_t, data[0]));
 			break;
 
 		case ICMD_LASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1640,7 +1640,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_S8ADDQ(s2, s1, REG_ITMP1);
-			M_LST(s3, REG_ITMP1, OFFSET(java_longarray, data[0]));
+			M_LST(s3, REG_ITMP1, OFFSET(java_longarray_t, data[0]));
 			break;
 
 		case ICMD_FASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1651,7 +1651,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_FTMP3);
 			M_S4ADDQ(s2, s1, REG_ITMP1);
-			M_FST(s3, REG_ITMP1, OFFSET(java_floatarray, data[0]));
+			M_FST(s3, REG_ITMP1, OFFSET(java_floatarray_t, data[0]));
 			break;
 
 		case ICMD_DASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1662,7 +1662,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_FTMP3);
 			M_S8ADDQ(s2, s1, REG_ITMP1);
-			M_DST(s3, REG_ITMP1, OFFSET(java_doublearray, data[0]));
+			M_DST(s3, REG_ITMP1, OFFSET(java_doublearray_t, data[0]));
 			break;
 
 		case ICMD_AASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -1687,7 +1687,7 @@ bool codegen_emit(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_SAADDQ(s2, s1, REG_ITMP1);
-			M_AST(s3, REG_ITMP1, OFFSET(java_objectarray, data[0]));
+			M_AST(s3, REG_ITMP1, OFFSET(java_objectarray_t, data[0]));
 			break;
 
 
@@ -1699,12 +1699,12 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
-				M_BST(REG_ZERO, REG_ITMP1, OFFSET(java_bytearray, data[0]));
+				M_BST(REG_ZERO, REG_ITMP1, OFFSET(java_bytearray_t, data[0]));
 			}
 			else {
 				M_LADD(s2, s1, REG_ITMP1);
-				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_bytearray, data[0]));
-				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_bytearray, data[0]));
+				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_bytearray_t, data[0]));
+				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_bytearray_t, data[0]));
 				M_INSBL(REG_ZERO, REG_ITMP1, REG_ITMP3);
 				M_MSKBL(REG_ITMP2, REG_ITMP1, REG_ITMP2);
 				M_OR(REG_ITMP2, REG_ITMP3, REG_ITMP2);
@@ -1721,13 +1721,13 @@ bool codegen_emit(jitdata *jd)
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
 				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_SST(REG_ZERO, REG_ITMP1, OFFSET(java_chararray, data[0]));
+				M_SST(REG_ZERO, REG_ITMP1, OFFSET(java_chararray_t, data[0]));
 			}
 			else {
 				M_LADD(s2, s1, REG_ITMP1);
 				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_chararray, data[0]));
-				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_chararray, data[0]));
+				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_chararray_t, data[0]));
+				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_chararray_t, data[0]));
 				M_INSWL(REG_ZERO, REG_ITMP1, REG_ITMP3);
 				M_MSKWL(REG_ITMP2, REG_ITMP1, REG_ITMP2);
 				M_OR(REG_ITMP2, REG_ITMP3, REG_ITMP2);
@@ -1744,13 +1744,13 @@ bool codegen_emit(jitdata *jd)
 			if (has_ext_instr_set) {
 				M_LADD(s2, s1, REG_ITMP1);
 				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_SST(REG_ZERO, REG_ITMP1, OFFSET(java_shortarray, data[0]));
+				M_SST(REG_ZERO, REG_ITMP1, OFFSET(java_shortarray_t, data[0]));
 			}
 			else {
 				M_LADD(s2, s1, REG_ITMP1);
 				M_LADD(s2, REG_ITMP1, REG_ITMP1);
-				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_shortarray, data[0]));
-				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_shortarray, data[0]));
+				M_LLD_U(REG_ITMP2, REG_ITMP1, OFFSET(java_shortarray_t, data[0]));
+				M_LDA(REG_ITMP1, REG_ITMP1, OFFSET(java_shortarray_t, data[0]));
 				M_INSWL(REG_ZERO, REG_ITMP1, REG_ITMP3);
 				M_MSKWL(REG_ITMP2, REG_ITMP1, REG_ITMP2);
 				M_OR(REG_ITMP2, REG_ITMP3, REG_ITMP2);
@@ -1765,7 +1765,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_S4ADDQ(s2, s1, REG_ITMP1);
-			M_IST(REG_ZERO, REG_ITMP1, OFFSET(java_intarray, data[0]));
+			M_IST(REG_ZERO, REG_ITMP1, OFFSET(java_intarray_t, data[0]));
 			break;
 
 		case ICMD_LASTORECONST:   /* ..., arrayref, index  ==> ...            */
@@ -1775,7 +1775,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_S8ADDQ(s2, s1, REG_ITMP1);
-			M_LST(REG_ZERO, REG_ITMP1, OFFSET(java_longarray, data[0]));
+			M_LST(REG_ZERO, REG_ITMP1, OFFSET(java_longarray_t, data[0]));
 			break;
 
 		case ICMD_AASTORECONST:   /* ..., arrayref, index  ==> ...            */
@@ -1785,7 +1785,7 @@ bool codegen_emit(jitdata *jd)
 			/* implicit null-pointer check */
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			M_SAADDQ(s2, s1, REG_ITMP1);
-			M_AST(REG_ZERO, REG_ITMP1, OFFSET(java_objectarray, data[0]));
+			M_AST(REG_ZERO, REG_ITMP1, OFFSET(java_objectarray_t, data[0]));
 			break;
 
 

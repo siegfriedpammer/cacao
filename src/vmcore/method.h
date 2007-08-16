@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.h 8315 2007-08-15 22:49:20Z panzi $
+   $Id: method.h 8318 2007-08-16 10:05:34Z michi $
 */
 
 
@@ -164,10 +164,10 @@ bool method_canoverwrite(methodinfo *m, methodinfo *old);
 
 methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m);
 
-int32_t           method_get_parametercount(methodinfo *m);
-java_objectarray *method_get_parametertypearray(methodinfo *m);
-java_objectarray *method_get_exceptionarray(methodinfo *m);
-classinfo        *method_returntype_get(methodinfo *m);
+int32_t                    method_get_parametercount(methodinfo *m);
+java_handle_objectarray_t *method_get_parametertypearray(methodinfo *m);
+java_handle_objectarray_t *method_get_exceptionarray(methodinfo *m);
+classinfo                 *method_returntype_get(methodinfo *m);
 
 void method_add_assumption_monomorphic(methodinfo *m, methodinfo *caller);
 void method_break_assumption_monomorphic(methodinfo *m, method_worklist **wl);

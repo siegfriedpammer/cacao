@@ -87,7 +87,7 @@ s4 _Jv_java_lang_reflect_Constructor_getModifiers(JNIEnv *env, java_lang_reflect
  * Method:    getParameterTypes
  * Signature: ()[Ljava/lang/Class;
  */
-java_objectarray *_Jv_java_lang_reflect_Constructor_getParameterTypes(JNIEnv *env, java_lang_reflect_Constructor *this)
+java_handle_objectarray_t *_Jv_java_lang_reflect_Constructor_getParameterTypes(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
 	classinfo  *c;
 	methodinfo *m;
@@ -106,7 +106,7 @@ java_objectarray *_Jv_java_lang_reflect_Constructor_getParameterTypes(JNIEnv *en
  * Method:    getExceptionTypes
  * Signature: ()[Ljava/lang/Class;
  */
-java_objectarray *_Jv_java_lang_reflect_Constructor_getExceptionTypes(JNIEnv *env, java_lang_reflect_Constructor *this)
+java_handle_objectarray_t *_Jv_java_lang_reflect_Constructor_getExceptionTypes(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
 	classinfo  *c;
 	methodinfo *m;
@@ -125,7 +125,7 @@ java_objectarray *_Jv_java_lang_reflect_Constructor_getExceptionTypes(JNIEnv *en
  * Method:    newInstance
  * Signature: ([Ljava/lang/Object;)Ljava/lang/Object;
  */
-java_lang_Object *_Jv_java_lang_reflect_Constructor_newInstance(JNIEnv *env, java_lang_reflect_Constructor *this, java_objectarray *args)
+java_lang_Object *_Jv_java_lang_reflect_Constructor_newInstance(JNIEnv *env, java_lang_reflect_Constructor *this, java_handle_objectarray_t *args)
 {
 	classinfo     *c;
 	methodinfo    *m;

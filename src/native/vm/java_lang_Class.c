@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8311 2007-08-15 17:03:40Z panzi $
+   $Id: java_lang_Class.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -96,7 +96,7 @@ java_lang_String *_Jv_java_lang_Class_getName(java_lang_Class *klass)
 {
 	classinfo        *c;
 	java_lang_String *s;
-	java_chararray   *ca;
+	java_chararray_t *ca;
 	u4                i;
 
 	c = (classinfo *) klass;
@@ -112,9 +112,9 @@ java_lang_String *_Jv_java_lang_Class_getName(java_lang_Class *klass)
 
 	LLNI_field_get_ref(s, value, ca);
 
-	for (i = 0; i < ca->header.size; i++) {
-		if (ca->data[i] == '/')
-			ca->data[i] = '.';
+	for (i = 0; i < LLNI_array_size(ca); i++) {
+		if (LLNI_array_direct(ca, i) == '/')
+			LLNI_array_direct(ca, i) = '.';
 	}
 
 	return s;
@@ -300,10 +300,10 @@ java_lang_Class *_Jv_java_lang_Class_getSuperclass(java_lang_Class *klass)
  * Method:    getInterfaces
  * Signature: ()[Ljava/lang/Class;
  */
-java_objectarray *_Jv_java_lang_Class_getInterfaces(java_lang_Class *klass)
+java_handle_objectarray_t *_Jv_java_lang_Class_getInterfaces(java_lang_Class *klass)
 {
-	classinfo        *c;
-	java_objectarray *oa;
+	classinfo                 *c;
+	java_handle_objectarray_t *oa;
 
 	c = (classinfo *) klass;
 
@@ -414,10 +414,10 @@ java_lang_Class *_Jv_java_lang_Class_getDeclaringClass(java_lang_Class *klass)
  * Method:    getDeclaredClasses
  * Signature: (Z)[Ljava/lang/Class;
  */
-java_objectarray *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass, s4 publicOnly)
+java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass, s4 publicOnly)
 {
-	classinfo        *c;
-	java_objectarray *oa;
+	classinfo                 *c;
+	java_handle_objectarray_t *oa;
 
 	c = (classinfo *) klass;
 
@@ -432,12 +432,12 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass,
  * Method:    getDeclaredFields
  * Signature: (Z)[Ljava/lang/reflect/Field;
  */
-java_objectarray *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, s4 publicOnly)
+java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, s4 publicOnly)
 {
-	classinfo               *c;
-	java_objectarray        *oa;            /* result: array of field-objects */
-	fieldinfo               *f;
-	java_lang_reflect_Field *rf;
+	classinfo                 *c;
+	java_handle_objectarray_t *oa;          /* result: array of field-objects */
+	fieldinfo                 *f;
+	java_lang_reflect_Field   *rf;
 	s4 public_fields;                    /* number of elements in field-array */
 	s4 pos;
 	s4 i;
@@ -469,7 +469,8 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, 
 
 			/* store object into array */
 
-			oa->data[pos++] = rf;
+			pos++;
+			LLNI_objectarray_element_set(oa, pos, rf);
 		}
 	}
 
@@ -482,12 +483,12 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, 
  * Method:    getDeclaredMethods
  * Signature: (Z)[Ljava/lang/reflect/Method;
  */
-java_objectarray *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass, s4 publicOnly)
+java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass, s4 publicOnly)
 {
-	classinfo                *c;
-	java_lang_reflect_Method *rm;
-	java_objectarray         *oa;          /* result: array of Method-objects */
-	methodinfo               *m;      /* the current method to be represented */
+	classinfo                 *c;
+	java_lang_reflect_Method  *rm;
+	java_handle_objectarray_t *oa;         /* result: array of Method-objects */
+	methodinfo                *m;     /* the current method to be represented */
 	s4 public_methods;               /* number of public methods of the class */
 	s4 pos;
 	s4 i;
@@ -532,7 +533,8 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass,
 
 			/* store object into array */
 
-			oa->data[pos++] = rm;
+			pos++;
+			LLNI_objectarray_element_set(oa, pos, rm);
 		}
 	}
 
@@ -545,11 +547,11 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass,
  * Method:    getDeclaredConstructors
  * Signature: (Z)[Ljava/lang/reflect/Constructor;
  */
-java_objectarray *_Jv_java_lang_Class_getDeclaredConstructors(java_lang_Class *klass, s4 publicOnly)
+java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredConstructors(java_lang_Class *klass, s4 publicOnly)
 {
 	classinfo                     *c;
 	methodinfo                    *m; /* the current method to be represented */
-	java_objectarray              *oa;     /* result: array of Method-objects */
+	java_handle_objectarray_t     *oa;     /* result: array of Method-objects */
 	java_lang_reflect_Constructor *rc;
 	s4 public_methods;               /* number of public methods of the class */
 	s4 pos;
@@ -583,7 +585,8 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredConstructors(java_lang_Class *k
 
 			/* store object into array */
 
-			oa->data[pos++] = rc;
+			pos++;
+			LLNI_objectarray_element_set(oa, pos, rc);
 		}
 	}
 
@@ -646,13 +649,13 @@ void _Jv_java_lang_Class_throwException(java_lang_Throwable *t)
  * Method:    getDeclaredAnnotations
  * Signature: (Ljava/lang/Class;)[Ljava/lang/annotation/Annotation;
  */
-java_objectarray *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* klass)
+java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* klass)
 {
 	classinfo                *c               = (classinfo*)klass;
 	static methodinfo        *m_parseAnnotationsIntoArray   = NULL;
 	utf                      *utf_parseAnnotationsIntoArray = NULL;
 	utf                      *utf_desc        = NULL;
-	java_bytearray           *annotations     = NULL;
+	java_handle_bytearray_t  *annotations     = NULL;
 	sun_reflect_ConstantPool *constantPool    = NULL;
 	uint32_t                  size            = 0;
 	java_lang_Object         *constantPoolOop = (java_lang_Object*)klass;
@@ -712,7 +715,7 @@ java_objectarray *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* kl
 		}
 	}
 
-	return (java_objectarray*)vm_call_method(
+	return (java_handle_objectarray_t*)vm_call_method(
 		m_parseAnnotationsIntoArray, NULL,
 		annotations, constantPool, klass);
 }

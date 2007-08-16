@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8309 2007-08-15 16:42:52Z twisti $
+   $Id: class.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -39,6 +39,8 @@
 #include "arch.h"
 
 #include "mm/memory.h"
+
+#include "native/llni.h"
 
 #include "threads/lock-common.h"
 
@@ -1669,14 +1671,14 @@ classinfo *class_get_superclass(classinfo *c)
 
 *******************************************************************************/
 
-java_objectarray *class_get_declaredclasses(classinfo *c, bool publicOnly)
+java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOnly)
 {
 	classref_or_classinfo  inner;
 	classref_or_classinfo  outer;
 	utf                   *outername;
 	int                    declaredclasscount;  /* number of declared classes */
 	int                    pos;                     /* current declared class */
-	java_objectarray      *oa;                   /* array of declared classes */
+	java_handle_objectarray_t *oa;               /* array of declared classes */
 	int                    i;
 	classinfo             *ic;
 
@@ -1731,7 +1733,7 @@ java_objectarray *class_get_declaredclasses(classinfo *c, bool publicOnly)
 				if (!link_class(ic))
 					return NULL;
 
-			oa->data[pos++] = (java_object_t *) ic;
+			LLNI_array_direct(oa, pos++) = (java_object_t *) ic;
 		}
 	}
 
@@ -1804,11 +1806,11 @@ classinfo *class_get_declaringclass(classinfo *c)
 
 *******************************************************************************/
 
-java_objectarray *class_get_interfaces(classinfo *c)
+java_handle_objectarray_t *class_get_interfaces(classinfo *c)
 {
-	classinfo        *ic;
-	java_objectarray *oa;
-	u4                i;
+	classinfo                 *ic;
+	java_handle_objectarray_t *oa;
+	u4                         i;
 
 	if (!(c->state & CLASS_LINKED))
 		if (!link_class(c))
@@ -1822,7 +1824,7 @@ java_objectarray *class_get_interfaces(classinfo *c)
 	for (i = 0; i < c->interfacescount; i++) {
 		ic = c->interfaces[i].cls;
 
-		oa->data[i] = (java_object_t *) ic;
+		LLNI_array_direct(oa, i) = (java_object_t *) ic;
 	}
 
 	return oa;

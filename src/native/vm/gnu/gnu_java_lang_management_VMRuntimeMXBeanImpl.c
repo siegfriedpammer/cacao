@@ -73,7 +73,7 @@ void _Jv_gnu_java_lang_management_VMRuntimeMXBeanImpl_init(void)
  * Method:    getInputArguments
  * Signature: ()[Ljava/lang/String;
  */
-JNIEXPORT java_objectarray* JNICALL Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getInputArguments(JNIEnv *env, jclass clazz)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getInputArguments(JNIEnv *env, jclass clazz)
 {
 	log_println("Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getInputArguments: IMPLEMENT ME!");
 

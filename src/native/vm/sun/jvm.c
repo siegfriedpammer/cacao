@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8311 2007-08-15 17:03:40Z panzi $
+   $Id: jvm.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -231,11 +231,11 @@ jlong JVM_NanoTime(JNIEnv *env, jclass ignored)
 
 void JVM_ArrayCopy(JNIEnv *env, jclass ignored, jobject src, jint src_pos, jobject dst, jint dst_pos, jint length)
 {
-	java_arrayheader *s;
-	java_arrayheader *d;
+	java_handle_t *s;
+	java_handle_t *d;
 
-	s = (java_arrayheader *) src;
-	d = (java_arrayheader *) dst;
+	s = (java_handle_t *) src;
+	d = (java_handle_t *) dst;
 
 #if PRINTJVM
 	log_println("JVM_ArrayCopy: src=%p, src_pos=%d, dst=%p, dst_pos=%d, length=%d", src, src_pos, dst, dst_pos, length);
@@ -631,7 +631,7 @@ char* JVM_NativePath(char* path)
 
 jclass JVM_GetCallerClass(JNIEnv* env, int depth)
 {
-	java_objectarray *oa;
+	java_handle_objectarray_t *oa;
 
 #if PRINTJVM
 	log_println("JVM_GetCallerClass: depth=%d", depth);
@@ -759,8 +759,8 @@ jstring JVM_GetClassName(JNIEnv *env, jclass cls)
 
 jobjectArray JVM_GetClassInterfaces(JNIEnv *env, jclass cls)
 {
-	classinfo        *c;
-	java_objectarray *oa;
+	classinfo                 *c;
+	java_handle_objectarray_t *oa;
 
 	TRACEJVMCALLS("JVM_GetClassInterfaces(env=%p, cls=%p)", env, cls);
 
@@ -971,8 +971,8 @@ jint JVM_GetClassModifiers(JNIEnv *env, jclass cls)
 
 jobjectArray JVM_GetDeclaredClasses(JNIEnv *env, jclass ofClass)
 {
-	classinfo        *c;
-	java_objectarray *oa;
+	classinfo                 *c;
+	java_handle_objectarray_t *oa;
 
 	TRACEJVMCALLS("JVM_GetDeclaredClasses(env=%p, ofClass=%p)", env, ofClass);
 
@@ -1501,10 +1501,10 @@ jboolean JVM_DesiredAssertionStatus(JNIEnv *env, jclass unused, jclass cls)
 
 jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 {
-	classinfo         *c;
+	classinfo                           *c;
 	java_lang_AssertionStatusDirectives *o;
-	java_objectarray  *classes;
-	java_objectarray  *packages;
+	java_handle_objectarray_t           *classes;
+	java_handle_objectarray_t           *packages;
 
 #if PRINTJVM || 1
 	log_println("JVM_AssertionStatusDirectives");
@@ -2271,10 +2271,10 @@ void JVM_SetPrimitiveArrayElement(JNIEnv *env, jobject arr, jint index, jvalue v
 
 jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 {
-	classinfo        *c;
-	classinfo        *pc;
-	java_arrayheader *a;
-	java_objectarray *oa;
+	classinfo                 *c;
+	classinfo                 *pc;
+	java_handle_t             *a;
+	java_handle_objectarray_t *oa;
 
 	TRACEJVMCALLS("JVM_NewArray(env=%p, eltClass=%p, length=%d)", env, eltClass, length);
 
@@ -2759,7 +2759,7 @@ jobject JVM_InvokeMethod(JNIEnv *env, jobject method, jobject obj, jobjectArray 
 #if PRINTJVM
 	log_println("JVM_InvokeMethod: method=%p, obj=%p, args0=%p", method, obj, args0);
 #endif
-	return (jobject) _Jv_java_lang_reflect_Method_invoke((java_lang_reflect_Method *) method, (java_lang_Object *) obj, (java_objectarray *) args0);
+	return (jobject) _Jv_java_lang_reflect_Method_invoke((java_lang_reflect_Method *) method, (java_lang_Object *) obj, (java_handle_objectarray_t *) args0);
 }
 
 
@@ -2770,7 +2770,7 @@ jobject JVM_NewInstanceFromConstructor(JNIEnv *env, jobject c, jobjectArray args
 #if PRINTJVM
 	log_println("JVM_NewInstanceFromConstructor: c=%p, args0=%p", c, args0);
 #endif
-	return (jobject) _Jv_java_lang_reflect_Constructor_newInstance(env, (java_lang_reflect_Constructor *) c, (java_objectarray *) args0);
+	return (jobject) _Jv_java_lang_reflect_Constructor_newInstance(env, (java_lang_reflect_Constructor *) c, (java_handle_objectarray_t *) args0);
 }
 
 

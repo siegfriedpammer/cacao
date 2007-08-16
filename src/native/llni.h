@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: llni.h 8313 2007-08-15 22:11:35Z twisti $
+   $Id: llni.h 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -75,6 +75,23 @@
 /* XXX the direct macros have to be used inside a critical section!!! */
 
 #define LLNI_field_direct(obj, field) ((obj)->field) 
+
+#define LLNI_vftbl_direct(obj) (((java_handle_t *) (obj))->vftbl)
+
+#define LLNI_array_direct(arr, index) ((arr)->data[(index)])
+
+#define LLNI_array_data(arr) ((arr)->data)
+
+#define LLNI_array_size(arr) ((java_array_t *) (arr))->size
+
+/* XXX document me */
+
+#define LLNI_objectarray_element_set(arr, index, reference) \
+	LLNI_array_direct(arr, index) = reference
+
+#define LLNI_objectarray_element_get(arr, index, variable) \
+	(variable) = (java_handle_t *) LLNI_array_direct(arr, index)
+
 
 
 #endif /* _LLNI_H */

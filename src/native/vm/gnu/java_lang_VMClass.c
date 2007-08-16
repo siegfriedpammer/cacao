@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClass.c 8249 2007-07-31 12:59:03Z panzi $
+   $Id: java_lang_VMClass.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -168,7 +168,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *
  * Method:    getInterfaces
  * Signature: (Ljava/lang/Class;)[Ljava/lang/Class;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
 	return _Jv_java_lang_Class_getInterfaces(klass);
 }
@@ -212,7 +212,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIE
  * Method:    getDeclaredClasses
  * Signature: (Ljava/lang/Class;Z)[Ljava/lang/Class;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
 {
 	return _Jv_java_lang_Class_getDeclaredClasses(klass, publicOnly);
 }
@@ -223,7 +223,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JN
  * Method:    getDeclaredFields
  * Signature: (Ljava/lang/Class;Z)[Ljava/lang/reflect/Field;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
 {
 	return _Jv_java_lang_Class_getDeclaredFields(klass, publicOnly);
 }
@@ -234,7 +234,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNI
  * Method:    getDeclaredMethods
  * Signature: (Ljava/lang/Class;Z)[Ljava/lang/reflect/Method;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
 {
 	return _Jv_java_lang_Class_getDeclaredMethods(klass, publicOnly);
 }
@@ -245,7 +245,7 @@ JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JN
  * Method:    getDeclaredConstructors
  * Signature: (Ljava/lang/Class;Z)[Ljava/lang/reflect/Constructor;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredConstructors(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredConstructors(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
 {
 	return _Jv_java_lang_Class_getDeclaredConstructors(klass, publicOnly);
 }
@@ -301,7 +301,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMClass_throwException(JNIEnv *env, jclass
  * Method:    getDeclaredAnnotations
  * Signature: (Ljava/lang/Class;)[Ljava/lang/annotation/Annotation;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_lang_VMClass_getDeclaredAnnotations(JNIEnv *env, jclass clazz, java_lang_Class* klass)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredAnnotations(JNIEnv *env, jclass clazz, java_lang_Class* klass)
 {
 	return _Jv_java_lang_Class_getDeclaredAnnotations(klass);
 }

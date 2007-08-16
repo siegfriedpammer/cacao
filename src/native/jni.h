@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.h 8297 2007-08-12 00:02:48Z michi $
+   $Id: jni.h 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -112,7 +112,7 @@ struct hashtable_global_ref_entry {
 bool jni_init(void);
 
 java_handle_t *_Jv_jni_invokeNative(methodinfo *m, java_handle_t *o,
-										java_objectarray *params);
+									java_handle_objectarray_t *params);
 
 #endif /* _JNI_H */
 

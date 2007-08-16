@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: reflect.h 8305 2007-08-15 13:49:26Z panzi $
+   $Id: reflect.h 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -66,11 +66,11 @@ java_lang_reflect_Method      *reflect_method_new(methodinfo *m);
 
 #if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
 struct java_util_Map* reflect_get_declaredannotatios(
-	java_bytearray       *annotations,
-	java_lang_Class      *declaringClass,
-	classinfo            *referer);
+	java_handle_bytearray_t *annotations,
+	java_lang_Class         *declaringClass,
+	classinfo               *referer);
 
-java_objectarray* reflect_get_parameterannotations(
+java_handle_objectarray_t* reflect_get_parameterannotations(
 	java_handle_t   *parameterAnnotations,
 	int32_t          slot,
 	java_lang_Class *declaringClass,
