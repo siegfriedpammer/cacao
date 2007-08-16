@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8330 2007-08-16 18:15:51Z twisti $
+   $Id: jvm.c 8331 2007-08-16 19:21:39Z panzi $
 
 */
 
@@ -90,8 +90,10 @@
 
 #include "toolbox/logging.h"
 
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
+#include "vm/global.h"
 #include "vm/initialize.h"
 #include "vm/primitive.h"
 #include "vm/properties.h"
@@ -652,14 +654,14 @@ jclass JVM_GetCallerClass(JNIEnv* env, int depth)
 
 /* JVM_FindPrimitiveClass */
 
-jclass JVM_FindPrimitiveClass(JNIEnv* env, const char* utf)
+jclass JVM_FindPrimitiveClass(JNIEnv* env, const char* s)
 {
 	classinfo *c;
 	utf       *u;
 
-	TRACEJVMCALLS("JVM_FindPrimitiveClass(env=%p, utf=%s)", env, utf);
+	TRACEJVMCALLS("JVM_FindPrimitiveClass(env=%p, s=%s)", env, s);
 
-	u = utf_new_char(utf);
+	u = utf_new_char(s);
 	c = primitive_class_get_by_name(u);
 
 	return (jclass) c;
@@ -948,6 +950,7 @@ jboolean JVM_IsPrimitiveClass(JNIEnv *env, jclass cls)
 jclass JVM_GetComponentType(JNIEnv *env, jclass cls)
 {
 	classinfo *component;
+	classinfo *c;
 	
 	TRACEJVMCALLS("JVM_GetComponentType(env=%p, cls=%p)", env, cls);
 
@@ -1025,7 +1028,7 @@ jbyteArray JVM_GetClassAnnotations(JNIEnv *env, jclass cls)
 {
 #if defined(ENABLE_ANNOTATIONS)
 	classinfo *c = (classinfo*)cls;
-	java_bytearray *annotations = NULL;
+	java_handle_bytearray_t *annotations = NULL;
 
 	TRACEJVMCALLS("JVM_GetClassAnnotations: cls=%p", cls);
 
@@ -1064,7 +1067,7 @@ jbyteArray JVM_GetClassAnnotations(JNIEnv *env, jclass cls)
 jbyteArray JVM_GetFieldAnnotations(JNIEnv *env, jobject field)
 {
 	java_lang_reflect_Field *rf = (java_lang_reflect_Field*)field;
-	java_bytearray          *ba = NULL;
+	java_handle_bytearray_t *ba = NULL;
 
 	TRACEJVMCALLS("JVM_GetFieldAnnotations: field=%p", field);
 
@@ -1084,7 +1087,7 @@ jbyteArray JVM_GetFieldAnnotations(JNIEnv *env, jobject field)
 jbyteArray JVM_GetMethodAnnotations(JNIEnv *env, jobject method)
 {
 	java_lang_reflect_Method *rm = (java_lang_reflect_Method*)method;
-	java_bytearray           *ba = NULL;
+	java_handle_bytearray_t  *ba = NULL;
 
 	TRACEJVMCALLS("JVM_GetMethodAnnotations: method=%p", method);
 
@@ -1104,7 +1107,7 @@ jbyteArray JVM_GetMethodAnnotations(JNIEnv *env, jobject method)
 jbyteArray JVM_GetMethodDefaultAnnotationValue(JNIEnv *env, jobject method)
 {
 	java_lang_reflect_Method *rm = (java_lang_reflect_Method*)method;
-	java_bytearray           *ba = NULL;
+	java_handle_bytearray_t  *ba = NULL;
 
 	TRACEJVMCALLS("JVM_GetMethodDefaultAnnotationValue: method=%p", method);
 
@@ -1124,7 +1127,7 @@ jbyteArray JVM_GetMethodDefaultAnnotationValue(JNIEnv *env, jobject method)
 jbyteArray JVM_GetMethodParameterAnnotations(JNIEnv *env, jobject method)
 {
 	java_lang_reflect_Method *rm = (java_lang_reflect_Method*)method;
-	java_bytearray           *ba = NULL;
+	java_handle_bytearray_t  *ba = NULL;
 
 	TRACEJVMCALLS("JVM_GetMethodParameterAnnotations: method=%p", method);
 
@@ -2175,11 +2178,11 @@ jclass JVM_LoadClass0(JNIEnv *env, jobject receiver, jclass currClass, jstring c
 
 jint JVM_GetArrayLength(JNIEnv *env, jobject arr)
 {
-	java_arrayheader *a;
+	java_array_t *a;
 
 	TRACEJVMCALLS("JVM_GetArrayLength(arr=%p)", arr);
 
-	a = (java_arrayheader *) arr;
+	a = (java_array_t *) arr;
 
 	if (a == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -2200,12 +2203,12 @@ jint JVM_GetArrayLength(JNIEnv *env, jobject arr)
 
 jobject JVM_GetArrayElement(JNIEnv *env, jobject arr, jint index)
 {
-	java_arrayheader *a;
-	int               type;
+	java_array_t *a;
+	int           elementtype;
 
 	TRACEJVMCALLS("JVM_GetArrayElement(env=%p, arr=%p, index=%d)", env, arr, index);
 
-	a = (java_arrayheader *) arr;
+	a = (java_array_t *) arr;
 
 	if (a == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -2226,23 +2229,23 @@ jobject JVM_GetArrayElement(JNIEnv *env, jobject arr, jint index)
 
 	switch (elementtype) {
 	case ARRAYTYPE_INT:
-		return (jobject)primitive_box_int(((java_intarray*)a)->data[index]);
+		return (jobject)primitive_box_int(((java_handle_intarray_t*)a)->data[index]);
 	case ARRAYTYPE_LONG:
-		return (jobject)primitive_box_long(((java_longarray*)a)->data[index]);
+		return (jobject)primitive_box_long(((java_handle_longarray_t*)a)->data[index]);
 	case ARRAYTYPE_FLOAT:
-		return (jobject)primitive_box_float(((java_floatarray*)a)->data[index]);
+		return (jobject)primitive_box_float(((java_handle_floatarray_t*)a)->data[index]);
 	case ARRAYTYPE_DOUBLE:
-		return (jobject)primitive_box_double(((java_doublearray*)a)->data[index]);
+		return (jobject)primitive_box_double(((java_handle_doublearray_t*)a)->data[index]);
 	case ARRAYTYPE_BYTE:
-		return (jobject)primitive_box_byte(((java_bytearray*)a)->data[index]);
+		return (jobject)primitive_box_byte(((java_handle_bytearray_t*)a)->data[index]);
 	case ARRAYTYPE_CHAR:
-		return (jobject)primitive_box_char(((java_chararray*)a)->data[index]);
+		return (jobject)primitive_box_char(((java_handle_chararray_t*)a)->data[index]);
 	case ARRAYTYPE_SHORT:
-		return (jobject)primitive_box_short(((java_shortarray*)a)->data[index]);
+		return (jobject)primitive_box_short(((java_handle_shortarray_t*)a)->data[index]);
 	case ARRAYTYPE_BOOLEAN:
-		return (jobject)primitive_box_boolean(((java_booleanarray*)a)->data[index]);
+		return (jobject)primitive_box_boolean(((java_handle_booleanarray_t*)a)->data[index]);
 	case ARRAYTYPE_OBJECT:
-		return (jobject)((java_objectarray*)a)->data[index];
+		return (jobject)((java_handle_objectarray_t*)a)->data[index];
 	default:
 		/* invalid element type */
 		exceptions_throw_internalerror("invalid element type code in array descriptor: %d", elementtype);

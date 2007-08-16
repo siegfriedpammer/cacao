@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.h 8295 2007-08-11 17:57:24Z michi $
+   $Id: linker.h 8331 2007-08-16 19:21:39Z panzi $
 */
 
 
@@ -82,22 +82,22 @@ typedef struct primitivetypeinfo primitivetypeinfo;
    interfacetablelength = 4
 
                   | ...       |            +----------+
-	              +-----------+            | method 2 |---> method z
-	              | class     |            | method 1 |---> method y
-	              +-----------+            | method 0 |---> method x
-	              | ivftbl  0 |----------> +----------+
-	vftblptr ---> +-----------+
+                  +-----------+            | method 2 |---> method z
+                  | class     |            | method 1 |---> method y
+                  +-----------+            | method 0 |---> method x
+                  | ivftbl  0 |----------> +----------+
+    vftblptr ---> +-----------+
                   | ivftbl -1 |--> NULL    +----------+
                   | ivftbl -2 |--> NULL    | method 1 |---> method x
                   | ivftbl -3 |-----+      | method 0 |---> method a
                   +-----------+     +----> +----------+
      
                               +---------------+
-	                          | length 3 = 2  |
-	                          | length 2 = 0  |
-	                          | length 1 = 0  |
-	                          | length 0 = 3  |
-	interfacevftbllength ---> +---------------+
+                              | length 3 = 2  |
+                              | length 2 = 0  |
+                              | length 1 = 0  |
+                              | length 0 = 3  |
+    interfacevftbllength ---> +---------------+
 
 *******************************************************************************/
 
