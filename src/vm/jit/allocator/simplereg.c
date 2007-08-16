@@ -22,7 +22,7 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   $Id: simplereg.c 8210 2007-07-18 12:51:00Z twisti $
+   $Id: simplereg.c 8320 2007-08-16 11:35:14Z michi $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -1177,13 +1178,15 @@ static void simplereg_free(registerdata *rd, s4 flags, s4 regoff, s4 type)
 	/* if this is a copy of another variable, just decrement the copy counter */
 
 	if (flags & INMEMORY) {
+		int32_t memindex;
+
 		if (flags & INOUT)
 			return;
 
-		#warning this will be more efficient if we divide it by SIZE_OF_STACKSLOT
+		memindex = regoff / SIZE_OF_STACKSLOT;
 
-		if (regoff < rd->memcopycountsize && rd->memcopycount[regoff]) {
-			rd->memcopycount[regoff]--;
+		if (memindex < rd->memcopycountsize && rd->memcopycount[memindex]) {
+			rd->memcopycount[memindex]--;
 			return;
 		}
 	}
@@ -1610,14 +1613,15 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 						v = VAROP(iptr->dst);
 
 						if (v->flags & INMEMORY) {
-							if (v->vv.regoff >= rd->memcopycountsize) {
-								int newsize = (v->vv.regoff + 1) * 2;
+							int32_t memindex = v->vv.regoff / SIZE_OF_STACKSLOT;
+							if (memindex >= rd->memcopycountsize) {
+								int newsize = (memindex + 1) * 2;
 								i = rd->memcopycountsize;
 								rd->memcopycount = DMREALLOC(rd->memcopycount, int, i, newsize);
 								MZERO(rd->memcopycount + i, int, newsize - i);
 								rd->memcopycountsize = newsize;
 							}
-							rd->memcopycount[v->vv.regoff]++;
+							rd->memcopycount[memindex]++;
 						}
 						else {
 							/* XXX split reg/mem variables on arm may need special handling here */
