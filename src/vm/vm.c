@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8327 2007-08-16 17:52:48Z twisti $
+   $Id: vm.c 8328 2007-08-16 17:56:19Z twisti $
 
 */
 
@@ -2825,7 +2825,7 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 				goto illegal_arg;
 
 			c    = param->vftbl->class;
-			type = primitive_type_get_by_class(c);
+			type = primitive_type_get_by_wrapperclass(c);
 
 			assert(td->decltype == PRIMITIVETYPE_LONG);
 
@@ -2840,7 +2840,6 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 				goto illegal_arg;
 			}
 
-			log_println("TRACE 2");
 			value = primitive_unbox(param);
 			vm_array_store_lng(array, pd, value.l);
 			break;
@@ -2850,7 +2849,7 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 				goto illegal_arg;
 
 			c    = param->vftbl->class;
-			type = primitive_type_get_by_class(c);
+			type = primitive_type_get_by_wrapperclass(c);
 
 			assert(td->decltype == PRIMITIVETYPE_FLOAT);
 
@@ -2862,7 +2861,6 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 				goto illegal_arg;
 			}
 
-			log_println("TRACE 3");
 			value = primitive_unbox(param);
 			vm_array_store_flt(array, pd, value.l);
 			break;
@@ -2872,7 +2870,7 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 				goto illegal_arg;
 
 			c    = param->vftbl->class;
-			type = primitive_type_get_by_class(c);
+			type = primitive_type_get_by_wrapperclass(c);
 
 			assert(td->decltype == PRIMITIVETYPE_DOUBLE);
 
@@ -2885,7 +2883,6 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 				goto illegal_arg;
 			}
 
-			log_println("TRACE 4");
 			value = primitive_unbox(param);
 			vm_array_store_dbl(array, pd, value.l);
 			break;
