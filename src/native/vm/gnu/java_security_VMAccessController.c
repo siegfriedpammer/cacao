@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_security_VMAccessController.c 7910 2007-05-16 08:02:52Z twisti $
+   $Id: java_security_VMAccessController.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -71,7 +71,7 @@ void _Jv_java_security_VMAccessController_init(void)
  * Method:    getStack
  * Signature: ()[[Ljava/lang/Object;
  */
-JNIEXPORT java_objectarray* JNICALL Java_java_security_VMAccessController_getStack(JNIEnv *env, jclass clazz)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_security_VMAccessController_getStack(JNIEnv *env, jclass clazz)
 {
 	return stacktrace_getStack();
 }

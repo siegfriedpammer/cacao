@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stringlocal.h 8295 2007-08-11 17:57:24Z michi $
+   $Id: stringlocal.h 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -84,8 +84,8 @@ char *javastring_tochar(java_handle_t *string);
 utf *javastring_toutf(java_handle_t *string, bool isclassname);
 
 /* creates a new javastring with the text of the u2-array */
-java_object_t *literalstring_u2(java_chararray *a, u4 length, u4 offset,
-									bool copymode);
+java_object_t *literalstring_u2(java_chararray_t *a, u4 length, u4 offset,
+								bool copymode);
 
 /* creates a new javastring with the text of the utf-symbol */
 java_object_t *literalstring_new(utf *u);

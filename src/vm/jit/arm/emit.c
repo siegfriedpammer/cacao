@@ -512,7 +512,7 @@ void emit_nullpointer_check_force(codegendata *cd, instruction *iptr, s4 reg)
 void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
-		M_ILD_INTERN(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
+		M_ILD_INTERN(REG_ITMP3, s1, OFFSET(java_array_t, size));
 		M_CMP(s2, REG_ITMP3);
 		M_TRAPHS(s2, EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS);
 	}

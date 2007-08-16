@@ -45,7 +45,7 @@
 
 /* function prototypes ********************************************************/
 
-java_lang_Object *_Jv_java_lang_reflect_Method_invoke(java_lang_reflect_Method *this, java_lang_Object *o, java_objectarray *args);
+java_lang_Object *_Jv_java_lang_reflect_Method_invoke(java_lang_reflect_Method *this, java_lang_Object *o, java_handle_objectarray_t *args);
 
 #endif /* _JV_JAVA_LANG_REFLECT_METHOD_H */
 

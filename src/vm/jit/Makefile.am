@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 8274 2007-08-08 15:58:17Z twisti $
+## $Id: Makefile.am 8304 2007-08-14 19:57:20Z pm $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -166,7 +166,9 @@ libjit_la_SOURCES = \
 	show.h \
 	$(STACK_SOURCES) \
 	stacktrace.c \
-	stacktrace.h
+	stacktrace.h \
+	trace.c \
+	trace.h
 
 libjit_la_SOURCES += \
 	cfg.c \

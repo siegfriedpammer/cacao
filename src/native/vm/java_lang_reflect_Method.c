@@ -54,7 +54,7 @@
  * Method:    invoke
  * Signature: (Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
  */
-java_lang_Object *_Jv_java_lang_reflect_Method_invoke(java_lang_reflect_Method *this, java_lang_Object *o, java_objectarray *args)
+java_lang_Object *_Jv_java_lang_reflect_Method_invoke(java_lang_reflect_Method *this, java_lang_Object *o, java_handle_objectarray_t *args)
 {
 	classinfo  *c;
 	methodinfo *m;

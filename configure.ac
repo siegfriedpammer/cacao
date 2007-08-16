@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8299 2007-08-13 08:41:18Z michi $
+dnl $Id: configure.ac 8301 2007-08-13 13:34:12Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -248,6 +248,10 @@ AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
 AC_HEADER_TIME
 AC_STRUCT_TM
+
+dnl Checks for libraries (NOTE: Should be done before function checks,
+dnl as some functions may be in libraries we check for).
+AC_CHECK_LIB(dl, dlopen,,)
 
 dnl Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
@@ -803,36 +807,13 @@ AC_CHECK_ENABLE_ZLIB
 
 dnl check for stuff to be built
 AC_CHECK_ENABLE_JNI
+AC_CHECK_ENABLE_LIBJVM
 
-
-dnl check if a libjvm.so should be built
-AC_MSG_CHECKING(whether to build a libjvm.so)
-AC_ARG_ENABLE([libjvm],
-              [AS_HELP_STRING(--disable-libjvm,build a libjvm.so [[default=yes]])],
-              [case "${enableval}" in
-                  no) ENABLE_LIBJVM=no;;
-                  *) ENABLE_LIBJVM=yes;;
-               esac],
-              [ENABLE_LIBJVM=yes])
-AC_MSG_RESULT(${ENABLE_LIBJVM})
-AM_CONDITIONAL([ENABLE_LIBJVM], test x"${ENABLE_LIBJVM}" = "xyes")
-AC_SUBST(ENABLE_LIBJVM)
-
-if test x"${ENABLE_LIBJVM}" = "xyes"; then
-    AC_DEFINE([ENABLE_LIBJVM], 1, [enable libjvm.so])
-
-    dnl set AC_ENABLE_SHARED and AC_DISABLE_STATIC properly
-    enable_shared=yes
-    enable_static=no
-else
-    enable_shared=no
-    enable_static=yes
-fi
-
-dnl libtool stuff
+dnl ATTENTION: These check must be after setting
+dnl enable_shared/enable_static (happens in AC_CHECK_ENABLE_LIBJVM),
+dnl because libtool uses them to build the correct libraries.
 AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
-
 
 dnl check if CACAO should be linked statically
 AC_MSG_CHECKING(whether to link CACAO statically)

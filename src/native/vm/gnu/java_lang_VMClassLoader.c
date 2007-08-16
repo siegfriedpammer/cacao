@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClassLoader.c 8299 2007-08-13 08:41:18Z michi $
+   $Id: java_lang_VMClassLoader.c 8321 2007-08-16 11:37:25Z michi $
 
 */
 
@@ -107,7 +107,7 @@ void _Jv_java_lang_VMClassLoader_init(void)
  * Method:    defineClass
  * Signature: (Ljava/lang/ClassLoader;Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *cl, java_lang_String *name, java_bytearray *data, s4 offset, s4 len, java_security_ProtectionDomain *pd)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *cl, java_lang_String *name, java_handle_bytearray_t *data, s4 offset, s4 len, java_security_ProtectionDomain *pd)
 {
 	return _Jv_java_lang_ClassLoader_defineClass(cl, name, data, offset, len, pd);
 }

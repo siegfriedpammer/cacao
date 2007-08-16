@@ -50,7 +50,7 @@
 /* function prototypes ********************************************************/
 
 #if defined(ENABLE_JAVASE)
-java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl, java_lang_String *name, java_bytearray *data, s4 offset, s4 len, java_security_ProtectionDomain *pd);
+java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl, java_lang_String *name, java_handle_bytearray_t *data, s4 offset, s4 len, java_security_ProtectionDomain *pd);
 #endif
 
 #endif /* _JV_JAVA_LANG_CLASSLOADER_H */

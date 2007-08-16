@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: headers.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: headers.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -174,24 +174,24 @@ static char *printtype(char *utf_ptr)
 		fprintf(file, "double");
 		break;
 	case '[':
-		addoutputsize ( sizeof(java_arrayheader*) ); 
+		addoutputsize ( sizeof(java_array_t*) ); 
 		switch (utf_nextu2(&utf_ptr)) {
-		case 'I':  fprintf (file, "java_intarray*"); break;
-		case 'J':  fprintf (file, "java_longarray*"); break;
-		case 'Z':  fprintf (file, "java_booleanarray*"); break;
-		case 'B':  fprintf (file, "java_bytearray*"); break;
-		case 'S':  fprintf (file, "java_shortarray*"); break;
-		case 'C':  fprintf (file, "java_chararray*"); break;
-		case 'F':  fprintf (file, "java_floatarray*"); break;
-		case 'D':  fprintf (file, "java_doublearray*"); break;
+		case 'I':  fprintf (file, "java_intarray_t*"); break;
+		case 'J':  fprintf (file, "java_longarray_t*"); break;
+		case 'Z':  fprintf (file, "java_booleanarray_t*"); break;
+		case 'B':  fprintf (file, "java_bytearray_t*"); break;
+		case 'S':  fprintf (file, "java_shortarray_t*"); break;
+		case 'C':  fprintf (file, "java_chararray_t*"); break;
+		case 'F':  fprintf (file, "java_floatarray_t*"); break;
+		case 'D':  fprintf (file, "java_doublearray_t*"); break;
 				
-		case '[': fprintf(file, "java_objectarray*");
+		case '[': fprintf(file, "java_objectarray_t*");
 			while ((c = utf_nextu2(&utf_ptr)) == '[');
 			if (c == 'L')
 				while (utf_nextu2(&utf_ptr) != ';');
 			break;
                            
-		case 'L':  fprintf(file, "java_objectarray*");
+		case 'L':  fprintf(file, "java_objectarray_t*");
 			while (utf_nextu2(&utf_ptr) != ';');
 			break;
 		default:

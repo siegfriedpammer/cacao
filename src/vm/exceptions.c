@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: exceptions.c 8296 2007-08-11 22:38:38Z pm $
+   $Id: exceptions.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -107,8 +107,8 @@ bool exceptions_init(void)
 
 	/* check if we get into trouble with our hardware-exceptions */
 
-	if (OFFSET(java_bytearray, data) <= EXCEPTION_HARDWARE_LARGEST)
-		vm_abort("signal_init: array-data offset is less or equal the maximum hardware-exception displacement: %d <= %d", OFFSET(java_bytearray, data), EXCEPTION_HARDWARE_LARGEST);
+	if (OFFSET(java_bytearray_t, data) <= EXCEPTION_HARDWARE_LARGEST)
+		vm_abort("signal_init: array-data offset is less or equal the maximum hardware-exception displacement: %d <= %d", OFFSET(java_bytearray_t, data), EXCEPTION_HARDWARE_LARGEST);
 
 	/* java/lang/Throwable */
 
@@ -1947,7 +1947,7 @@ void exceptions_print_exception(java_handle_t *xptr)
 	}
 
 #if defined(ENABLE_JAVASE)
-	LLNI_field_set_ref(t, cause, cause);
+	LLNI_field_get_ref(t, cause, cause);
 #endif
 
 	/* print the root exception */

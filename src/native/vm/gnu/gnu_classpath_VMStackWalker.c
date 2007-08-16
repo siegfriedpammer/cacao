@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: gnu_classpath_VMStackWalker.c 8299 2007-08-13 08:41:18Z michi $
+   $Id: gnu_classpath_VMStackWalker.c 8321 2007-08-16 11:37:25Z michi $
 
 */
 
@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_Class.h"
@@ -76,9 +77,9 @@ void _Jv_gnu_classpath_VMStackWalker_init(void)
  * Method:    getClassContext
  * Signature: ()[Ljava/lang/Class;
  */
-JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassContext(JNIEnv *env, jclass clazz)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_gnu_classpath_VMStackWalker_getClassContext(JNIEnv *env, jclass clazz)
 {
-	java_objectarray *oa;
+	java_handle_objectarray_t *oa;
 
 	oa = stacktrace_getClassContext();
 
@@ -93,17 +94,20 @@ JNIEXPORT java_objectarray* JNICALL Java_gnu_classpath_VMStackWalker_getClassCon
  */
 JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClass(JNIEnv *env, jclass clazz)
 {
-	java_objectarray *oa;
+	java_handle_objectarray_t *oa;
+	java_handle_t             *o;
 
 	oa = stacktrace_getClassContext();
 
 	if (oa == NULL)
 		return NULL;
 
-	if (oa->header.size < 2)
+	if (LLNI_array_size(oa) < 2)
 		return NULL;
 
-	return (java_lang_Class *) oa->data[1];
+	LLNI_objectarray_element_get(oa, 1, o);
+
+	return (java_lang_Class *) o;
 }
 
 
@@ -114,20 +118,20 @@ JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingCl
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClassLoader(JNIEnv *env, jclass clazz)
 {
-	java_objectarray *oa;
-	classinfo        *c;
-	classloader      *cl;
+	java_handle_objectarray_t *oa;
+	classinfo                 *c;
+	classloader               *cl;
 
 	oa = stacktrace_getClassContext();
 
 	if (oa == NULL)
 		return NULL;
 
-	if (oa->header.size < 2)
+	if (LLNI_array_size(oa) < 2)
 		return NULL;
   	 
-	c   = (classinfo *) oa->data[1];
-	cl  = c->classloader;
+	c  = (classinfo *) LLNI_array_direct(oa, 1);
+	cl = c->classloader;
 
 	if (cl == NULL)
 		return NULL;
@@ -143,18 +147,18 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCal
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_firstNonNullClassLoader(JNIEnv *env, jclass clazz)
 {
-	java_objectarray *oa;
-	classinfo        *c;
-	classloader      *cl;
-	s4                i;
+	java_handle_objectarray_t *oa;
+	classinfo                 *c;
+	classloader               *cl;
+	s4                         i;
 
 	oa = stacktrace_getClassContext();
 
 	if (oa == NULL)
 		return NULL;
 
-	for (i = 0; i < oa->header.size; i++) {
-		c  = (classinfo *) oa->data[i];
+	for (i = 0; i < LLNI_array_size(oa); i++) {
+		c  = (classinfo *) LLNI_array_direct(oa, i);
 		cl = c->classloader;
 
 		if (cl != NULL)

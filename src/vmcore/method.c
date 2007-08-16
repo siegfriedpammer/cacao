@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: method.c 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -36,6 +36,8 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
+#include "native/llni.h"
 
 #include "threads/lock-common.h"
 
@@ -624,14 +626,14 @@ int32_t method_get_parametercount(methodinfo *m)
 
 *******************************************************************************/
 
-java_objectarray *method_get_parametertypearray(methodinfo *m)
+java_handle_objectarray_t *method_get_parametertypearray(methodinfo *m)
 {
-	methoddesc       *md;
-	typedesc         *paramtypes;
-	int32_t           paramcount;
-	java_objectarray *oa;
-	int32_t           i;
-	classinfo        *c;
+	methoddesc                *md;
+	typedesc                  *paramtypes;
+	int32_t                    paramcount;
+	java_handle_objectarray_t *oa;
+	int32_t                    i;
+	classinfo                 *c;
 
 	md = m->parseddesc;
 
@@ -664,7 +666,7 @@ java_objectarray *method_get_parametertypearray(methodinfo *m)
 		if (!resolve_class_from_typedesc(&paramtypes[i], true, false, &c))
 			return NULL;
 
-		oa->data[i] = c;
+		LLNI_array_direct(oa, i) = (java_object_t *) c;
 	}
 
 	return oa;
@@ -677,11 +679,11 @@ java_objectarray *method_get_parametertypearray(methodinfo *m)
 
 *******************************************************************************/
 
-java_objectarray *method_get_exceptionarray(methodinfo *m)
+java_handle_objectarray_t *method_get_exceptionarray(methodinfo *m)
 {
-	java_objectarray *oa;
-	classinfo        *c;
-	s4                i;
+	java_handle_objectarray_t *oa;
+	classinfo                 *c;
+	s4                         i;
 
 	/* create class-array */
 
@@ -698,7 +700,7 @@ java_objectarray *method_get_exceptionarray(methodinfo *m)
 		if (c == NULL)
 			return NULL;
 
-		oa->data[i] = c;
+		LLNI_array_direct(oa, i) = (java_object_t *) c;
 	}
 
 	return oa;
@@ -781,16 +783,26 @@ s4 method_count_implementations(methodinfo *m, classinfo *c, methodinfo **found)
 
 *******************************************************************************/
 
-annotation_bytearray_t *method_get_annotations(methodinfo *m)
+java_bytearray *method_get_annotations(methodinfo *m)
 {
-	classinfo *c = m->class;
-	int slot = m - c->methods;
-
+	classinfo              *c           = m->class;
+	int                     slot        = m - c->methods;
+	annotation_bytearray_t *ba          = NULL;
+	java_bytearray         *annotations = NULL;
+	
 	if (c->method_annotations != NULL && c->method_annotations->size > slot) {
-		return c->method_annotations->data[slot];
+		ba = c->method_annotations->data[slot];
+		
+		if (ba != NULL) {
+			annotations = builtin_newarray_byte(ba->size);
+			
+			if (annotations != NULL) {
+				MCOPY(annotations->data, ba->data, uint8_t, ba->size);
+			}
+		}
 	}
-
-	return NULL;
+	
+	return annotations;
 }
 
 
@@ -800,17 +812,27 @@ annotation_bytearray_t *method_get_annotations(methodinfo *m)
 
 *******************************************************************************/
 
-annotation_bytearray_t *method_get_parameterannotations(methodinfo *m)
+java_bytearray *method_get_parameterannotations(methodinfo *m)
 {
-	classinfo *c = m->class;
-	int slot = m - c->methods;
+	classinfo              *c                    = m->class;
+	int                     slot                 = m - c->methods;
+	annotation_bytearray_t *ba                   = NULL;
+	java_bytearray         *parameterAnnotations = NULL;
 
 	if (c->method_parameterannotations != NULL &&
 		c->method_parameterannotations->size > slot) {
-		return c->method_parameterannotations->data[slot];
+		ba = c->method_parameterannotations->data[slot];
+		
+		if (ba != NULL) {
+			parameterAnnotations = builtin_newarray_byte(ba->size);
+			
+			if (parameterAnnotations != NULL) {
+				MCOPY(parameterAnnotations->data, ba->data, uint8_t, ba->size);
+			}
+		}
 	}
-
-	return NULL;
+	
+	return parameterAnnotations;
 }
 
 
@@ -820,17 +842,27 @@ annotation_bytearray_t *method_get_parameterannotations(methodinfo *m)
 
 *******************************************************************************/
 
-annotation_bytearray_t *method_get_annotationdefault(methodinfo *m)
+java_bytearray *method_get_annotationdefault(methodinfo *m)
 {
-	classinfo *c = m->class;
-	int slot = m - c->methods;
+	classinfo              *c                 = m->class;
+	int                     slot              = m - c->methods;
+	annotation_bytearray_t *ba                = NULL;
+	java_bytearray         *annotationDefault = NULL;
 
 	if (c->method_annotationdefaults != NULL &&
 		c->method_annotationdefaults->size > slot) {
-		return c->method_annotationdefaults->data[slot];
+		ba = c->method_annotationdefaults->data[slot];
+		
+		if (ba != NULL) {
+			annotationDefault = builtin_newarray_byte(ba->size);
+			
+			if (annotationDefault != NULL) {
+				MCOPY(annotationDefault->data, ba->data, uint8_t, ba->size);
+			}
+		}
 	}
-
-	return NULL;
+	
+	return annotationDefault;
 }
 #endif
 

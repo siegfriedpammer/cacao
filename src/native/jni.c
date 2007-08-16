@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8299 2007-08-13 08:41:18Z michi $
+   $Id: jni.c 8321 2007-08-16 11:37:25Z michi $
 
 */
 
@@ -37,8 +37,10 @@
 
 #include "mm/gc-common.h"
 #include "mm/memory.h"
+
 #include "native/jni.h"
 #include "native/llni.h"
+#include "native/localref.h"
 #include "native/native.h"
 
 #if defined(ENABLE_JAVASE)
@@ -786,7 +788,7 @@ static void _Jv_jni_CallVoidMethodA(java_handle_t *o, vftbl_t *vftbl,
 *******************************************************************************/
 
 java_handle_t *_Jv_jni_invokeNative(methodinfo *m, java_handle_t *o,
-									java_objectarray *params)
+									java_handle_objectarray_t *params)
 {
 	methodinfo    *resm;
 	java_handle_t *ro;
@@ -822,7 +824,7 @@ java_handle_t *_Jv_jni_invokeNative(methodinfo *m, java_handle_t *o,
 	/* check if we got the right number of arguments */
 
 	if (((params == NULL) && (paramcount != 0)) ||
-		(params && (params->header.size != paramcount))) 
+		(params && (LLNI_array_size(params) != paramcount))) 
 	{
 		exceptions_throw_illegalargumentexception();
 		return NULL;
@@ -2634,9 +2636,9 @@ void _Jv_JNI_SetStaticObjectField(JNIEnv *env, jclass clazz, jfieldID fieldID,
 
 jstring _Jv_JNI_NewString(JNIEnv *env, const jchar *buf, jsize len)
 {
-	java_lang_String *s;
-	java_chararray   *a;
-	u4                i;
+	java_lang_String        *s;
+	java_handle_chararray_t *a;
+	u4                       i;
 
 	STATISTICS(jniinvokation());
 	
@@ -2649,7 +2651,7 @@ jstring _Jv_JNI_NewString(JNIEnv *env, const jchar *buf, jsize len)
 
 	/* copy text */
 	for (i = 0; i < len; i++)
-		a->data[i] = buf[i];
+		LLNI_array_direct(a, i) = buf[i];
 
 	LLNI_field_set_ref(s, value , a);
 	LLNI_field_set_val(s, offset, 0);
@@ -2687,10 +2689,12 @@ jsize _Jv_JNI_GetStringLength(JNIEnv *env, jstring str)
 	
 u2 *javastring_tou2(jstring so) 
 {
-	java_lang_String *s;
-	java_chararray   *a;
-	u2               *stringbuffer;
-	u4                i;
+	java_lang_String        *s;
+	java_handle_chararray_t *a;
+	u2                      *stringbuffer;
+	u4                       i;
+	int32_t                  count;
+	int32_t                  offset;
 
 	STATISTICS(jniinvokation());
 	
@@ -2704,14 +2708,17 @@ u2 *javastring_tou2(jstring so)
 	if (!a)
 		return NULL;
 
+	LLNI_field_get_val(s, count, count);
+	LLNI_field_get_val(s, offset, offset);
+
 	/* allocate memory */
 
-	stringbuffer = MNEW(u2, LLNI_field_direct(s, count) + 1);
+	stringbuffer = MNEW(u2, count + 1);
 
 	/* copy text */
 
-	for (i = 0; i < LLNI_field_direct(s, count); i++)
-		stringbuffer[i] = a->data[LLNI_field_direct(s, offset) + i];
+	for (i = 0; i < count; i++)
+		stringbuffer[i] = LLNI_array_direct(a, offset + i);
 	
 	/* terminate string */
 
@@ -2796,14 +2803,14 @@ jstring _Jv_JNI_NewStringUTF(JNIEnv *env, const char *bytes)
 
 jsize _Jv_JNI_GetStringUTFLength(JNIEnv *env, jstring string)
 {   
-    java_lang_String *s;
+	java_lang_String *s;
 	s4                length;
 
 	TRACEJNICALLS("_Jv_JNI_GetStringUTFLength(env=%p, string=%p)", env, string);
 
 	s = (java_lang_String *) string;
 
-    length = u2_utflength(LLNI_field_direct(s, value)->data, LLNI_field_direct(s, count));
+	length = u2_utflength(LLNI_field_direct(s, value)->data, LLNI_field_direct(s, count));
 
 	return length;
 }
@@ -2867,13 +2874,16 @@ void _Jv_JNI_ReleaseStringUTFChars(JNIEnv *env, jstring string, const char *utf)
 
 jsize _Jv_JNI_GetArrayLength(JNIEnv *env, jarray array)
 {
-	java_arrayheader *a;
+	java_handle_t *a;
+	jsize          size;
 
 	STATISTICS(jniinvokation());
 
-	a = (java_arrayheader *) array;
+	a = (java_handle_t *) array;
 
-	return a->size;
+	size = LLNI_array_size(a);
+
+	return size;
 }
 
 
@@ -2887,10 +2897,10 @@ jsize _Jv_JNI_GetArrayLength(JNIEnv *env, jarray array)
 jobjectArray _Jv_JNI_NewObjectArray(JNIEnv *env, jsize length,
 									jclass elementClass, jobject initialElement)
 {
-	classinfo         *c;
-	java_handle_t     *o;
-	java_objectarray  *oa;
-	s4                 i;
+	classinfo                 *c;
+	java_handle_t             *o;
+	java_handle_objectarray_t *oa;
+	s4                         i;
 
 	STATISTICS(jniinvokation());
 
@@ -2910,7 +2920,7 @@ jobjectArray _Jv_JNI_NewObjectArray(JNIEnv *env, jsize length,
 	/* set all elements to initialElement */
 
 	for (i = 0; i < length; i++)
-		oa->data[i] = o;
+		LLNI_objectarray_element_set(oa, i, o);
 
 	return (jobjectArray) _Jv_JNI_NewLocalRef(env, (jobject) oa);
 }
@@ -2919,19 +2929,19 @@ jobjectArray _Jv_JNI_NewObjectArray(JNIEnv *env, jsize length,
 jobject _Jv_JNI_GetObjectArrayElement(JNIEnv *env, jobjectArray array,
 									  jsize index)
 {
-	java_objectarray *oa;
-	java_handle_t    *o;
+	java_handle_objectarray_t *oa;
+	java_handle_t             *o;
 
 	STATISTICS(jniinvokation());
 
-	oa = (java_objectarray *) array;
+	oa = (java_handle_objectarray_t *) array;
 
-	if (index >= oa->header.size) {
+	if (index >= LLNI_array_size(oa)) {
 		exceptions_throw_arrayindexoutofboundsexception();
 		return NULL;
 	}
 
-	o = oa->data[index];
+	LLNI_objectarray_element_get(oa, index, o);
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
@@ -2940,15 +2950,15 @@ jobject _Jv_JNI_GetObjectArrayElement(JNIEnv *env, jobjectArray array,
 void _Jv_JNI_SetObjectArrayElement(JNIEnv *env, jobjectArray array,
 								   jsize index, jobject val)
 {
-	java_objectarray *oa;
-	java_handle_t    *o;
+	java_handle_objectarray_t *oa;
+	java_handle_t             *o;
 
 	STATISTICS(jniinvokation());
 
-	oa = (java_objectarray *) array;
+	oa = (java_handle_objectarray_t *) array;
 	o  = (java_handle_t *) val;
 
-	if (index >= oa->header.size) {
+	if (index >= LLNI_array_size(oa)) {
 		exceptions_throw_arrayindexoutofboundsexception();
 		return;
 	}
@@ -2959,14 +2969,14 @@ void _Jv_JNI_SetObjectArrayElement(JNIEnv *env, jobjectArray array,
 	if (!builtin_canstore(oa, o))
 		return;
 
-	oa->data[index] = o;
+	LLNI_objectarray_element_set(oa, index, o);
 }
 
 
 #define JNI_NEW_ARRAY(name, type, intern)                \
 type _Jv_JNI_New##name##Array(JNIEnv *env, jsize len)    \
 {                                                        \
-	java_##intern##array *a;                             \
+	java_handle_##intern##array_t *a;                    \
                                                          \
 	STATISTICS(jniinvokation());                         \
                                                          \
@@ -3000,16 +3010,16 @@ JNI_NEW_ARRAY(Double,  jdoubleArray,  double)
 type *_Jv_JNI_Get##name##ArrayElements(JNIEnv *env, type##Array array, \
 										 jboolean *isCopy)             \
 {                                                                      \
-	java_##intern##array *a;                                           \
+	java_handle_##intern##array_t *a;                                  \
                                                                        \
 	STATISTICS(jniinvokation());                                       \
                                                                        \
-	a = (java_##intern##array *) array;                                \
+	a = (java_handle_##intern##array_t *) array;                       \
                                                                        \
 	if (isCopy)                                                        \
 		*isCopy = JNI_FALSE;                                           \
                                                                        \
-	return a->data;                                                    \
+	return LLNI_array_data(a);                                         \
 }
 
 JNI_GET_ARRAY_ELEMENTS(Boolean, jboolean, boolean)
@@ -3033,30 +3043,30 @@ JNI_GET_ARRAY_ELEMENTS(Double,  jdouble,  double)
 
 *******************************************************************************/
 
-#define JNI_RELEASE_ARRAY_ELEMENTS(name, type, intern, intern2)           \
-void _Jv_JNI_Release##name##ArrayElements(JNIEnv *env, type##Array array, \
-										  type *elems, jint mode)         \
-{                                                                         \
-	java_##intern##array *a;                                              \
-                                                                          \
-	STATISTICS(jniinvokation());                                          \
-                                                                          \
-	a = (java_##intern##array *) array;                                   \
-                                                                          \
-	if (elems != a->data) {                                               \
-		switch (mode) {                                                   \
-		case JNI_COMMIT:                                                  \
-			MCOPY(a->data, elems, intern2, a->header.size);               \
-			break;                                                        \
-		case 0:                                                           \
-			MCOPY(a->data, elems, intern2, a->header.size);               \
-			/* XXX TWISTI how should it be freed? */                      \
-			break;                                                        \
-		case JNI_ABORT:                                                   \
-			/* XXX TWISTI how should it be freed? */                      \
-			break;                                                        \
-		}                                                                 \
-	}                                                                     \
+#define JNI_RELEASE_ARRAY_ELEMENTS(name, type, intern, intern2)            \
+void _Jv_JNI_Release##name##ArrayElements(JNIEnv *env, type##Array array,  \
+										  type *elems, jint mode)          \
+{                                                                          \
+	java_handle_##intern##array_t *a;                                      \
+                                                                           \
+	STATISTICS(jniinvokation());                                           \
+                                                                           \
+	a = (java_handle_##intern##array_t *) array;                           \
+                                                                           \
+	if (elems != LLNI_array_data(a)) {                                     \
+		switch (mode) {                                                    \
+		case JNI_COMMIT:                                                   \
+			MCOPY(LLNI_array_data(a), elems, intern2, LLNI_array_size(a)); \
+			break;                                                         \
+		case 0:                                                            \
+			MCOPY(LLNI_array_data(a), elems, intern2, LLNI_array_size(a)); \
+			/* XXX TWISTI how should it be freed? */                       \
+			break;                                                         \
+		case JNI_ABORT:                                                    \
+			/* XXX TWISTI how should it be freed? */                       \
+			break;                                                         \
+		}                                                                  \
+	}                                                                      \
 }
 
 JNI_RELEASE_ARRAY_ELEMENTS(Boolean, jboolean, boolean, u1)
@@ -3076,20 +3086,20 @@ JNI_RELEASE_ARRAY_ELEMENTS(Double,  jdouble,  double,  double)
 
 *******************************************************************************/
 
-#define JNI_GET_ARRAY_REGION(name, type, intern, intern2)              \
-void _Jv_JNI_Get##name##ArrayRegion(JNIEnv *env, type##Array array,    \
-									jsize start, jsize len, type *buf) \
-{                                                                      \
-	java_##intern##array *a;                                           \
-                                                                       \
-	STATISTICS(jniinvokation());                                       \
-                                                                       \
-	a = (java_##intern##array *) array;                                \
-                                                                       \
-	if ((start < 0) || (len < 0) || (start + len > a->header.size))    \
-		exceptions_throw_arrayindexoutofboundsexception();             \
-	else                                                               \
-		MCOPY(buf, &a->data[start], intern2, len);                     \
+#define JNI_GET_ARRAY_REGION(name, type, intern, intern2)               \
+void _Jv_JNI_Get##name##ArrayRegion(JNIEnv *env, type##Array array,     \
+									jsize start, jsize len, type *buf)  \
+{                                                                       \
+	java_handle_##intern##array_t *a;                                   \
+                                                                        \
+	STATISTICS(jniinvokation());                                        \
+                                                                        \
+	a = (java_handle_##intern##array_t *) array;                        \
+                                                                        \
+	if ((start < 0) || (len < 0) || (start + len > LLNI_array_size(a))) \
+		exceptions_throw_arrayindexoutofboundsexception();              \
+	else                                                                \
+		MCOPY(buf, &LLNI_array_direct(a, start), intern2, len);         \
 }
 
 JNI_GET_ARRAY_REGION(Boolean, jboolean, boolean, u1)
@@ -3113,16 +3123,16 @@ JNI_GET_ARRAY_REGION(Double,  jdouble,  double,  double)
 void _Jv_JNI_Set##name##ArrayRegion(JNIEnv *env, type##Array array,          \
 									jsize start, jsize len, const type *buf) \
 {                                                                            \
-	java_##intern##array *a;                                                 \
+	java_handle_##intern##array_t *a;                                        \
                                                                              \
 	STATISTICS(jniinvokation());                                             \
                                                                              \
-	a = (java_##intern##array *) array;                                      \
+	a = (java_handle_##intern##array_t *) array;                             \
                                                                              \
-	if ((start < 0) || (len < 0) || (start + len > a->header.size))          \
+	if ((start < 0) || (len < 0) || (start + len > LLNI_array_size(a)))      \
 		exceptions_throw_arrayindexoutofboundsexception();                   \
 	else                                                                     \
-		MCOPY(&a->data[start], buf, intern2, len);                           \
+		MCOPY(&LLNI_array_direct(a, start), buf, intern2, len);              \
 }
 
 JNI_SET_ARRAY_REGION(Boolean, jboolean, boolean, u1)
@@ -3271,8 +3281,8 @@ jint _Jv_JNI_GetJavaVM(JNIEnv *env, JavaVM **vm)
 void _Jv_JNI_GetStringRegion(JNIEnv* env, jstring str, jsize start, jsize len,
 							 jchar *buf)
 {
-	java_lang_String *s;
-	java_chararray   *ca;
+	java_lang_String        *s;
+	java_handle_chararray_t *ca;
 
 	STATISTICS(jniinvokation());
 
@@ -3285,7 +3295,7 @@ void _Jv_JNI_GetStringRegion(JNIEnv* env, jstring str, jsize start, jsize len,
 		return;
 	}
 
-	MCOPY(buf, &ca->data[start], u2, len);
+	MCOPY(buf, &LLNI_array_direct(ca, start), u2, len);
 }
 
 
@@ -3302,23 +3312,26 @@ void _Jv_JNI_GetStringRegion(JNIEnv* env, jstring str, jsize start, jsize len,
 void _Jv_JNI_GetStringUTFRegion(JNIEnv* env, jstring str, jsize start,
 								jsize len, char *buf)
 {
-	java_lang_String *s;
-	java_chararray   *ca;
-	s4                i;
+	java_lang_String        *s;
+	java_handle_chararray_t *ca;
+	s4                       i;
+	int32_t                  count;
+	int32_t                  offset;
 
 	TRACEJNICALLS("_Jv_JNI_GetStringUTFRegion(env=%p, str=%p, start=%d, len=%d, buf=%p)", env, str, start, len, buf);
 
 	s  = (java_lang_String *) str;
 	LLNI_field_get_ref(s, value, ca);
+	LLNI_field_get_val(s, count, count);
+	LLNI_field_get_val(s, offset, offset);
 
-	if ((start < 0) || (len < 0) || (start > LLNI_field_direct(s, count)) ||
-		(start + len > LLNI_field_direct(s, count))) {
+	if ((start < 0) || (len < 0) || (start > count) || (start + len > count)) {
 		exceptions_throw_stringindexoutofboundsexception();
 		return;
 	}
 
 	for (i = 0; i < len; i++)
-		buf[i] = ca->data[LLNI_field_direct(s, offset) + start + i];
+		buf[i] = LLNI_array_direct(ca, offset + start + i);
 
 	buf[i] = '\0';
 }
@@ -3333,10 +3346,10 @@ void _Jv_JNI_GetStringUTFRegion(JNIEnv* env, jstring str, jsize start,
 void *_Jv_JNI_GetPrimitiveArrayCritical(JNIEnv *env, jarray array,
 										jboolean *isCopy)
 {
-	java_bytearray *ba;
-	jbyte          *bp;
+	java_handle_bytearray_t *ba;
+	jbyte                   *bp;
 
-	ba = (java_bytearray *) array;
+	ba = (java_handle_bytearray_t *) array;
 
 	/* do the same as Kaffe does */
 

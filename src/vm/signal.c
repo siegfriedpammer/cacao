@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 8299 2007-08-13 08:41:18Z michi $
+   $Id: signal.c 8321 2007-08-16 11:37:25Z michi $
 
 */
 
@@ -128,18 +128,18 @@ bool signal_init(void)
 # endif
 		/* SIGSEGV handler */
 
-		signal_register_signal(SIGSEGV, (void *) md_signal_handler_sigsegv,
+		signal_register_signal(SIGSEGV, (functionptr) md_signal_handler_sigsegv,
 							   SA_NODEFER | SA_SIGINFO);
 
 #  if defined(SIGBUS)
-		signal_register_signal(SIGBUS, (void *) md_signal_handler_sigsegv,
+		signal_register_signal(SIGBUS, (functionptr) md_signal_handler_sigsegv,
 							   SA_NODEFER | SA_SIGINFO);
 #  endif
 
 #  if SUPPORT_HARDWARE_DIVIDE_BY_ZERO
 		/* SIGFPE handler */
 
-		signal_register_signal(SIGFPE, (void *) md_signal_handler_sigfpe,
+		signal_register_signal(SIGFPE, (functionptr) md_signal_handler_sigfpe,
 							   SA_NODEFER | SA_SIGINFO);
 #  endif
 
@@ -147,7 +147,7 @@ bool signal_init(void)
 		/* XXX use better defines for that (in arch.h) */
 		/* SIGILL handler */
 
-		signal_register_signal(SIGILL, (void *) md_signal_handler_sigill,
+		signal_register_signal(SIGILL, (functionptr) md_signal_handler_sigill,
 							   SA_NODEFER | SA_SIGINFO);
 #  endif
 
@@ -155,7 +155,7 @@ bool signal_init(void)
 		/* XXX use better defines for that (in arch.h) */
 		/* SIGTRAP handler */
 
-		signal_register_signal(SIGTRAP, (void *) md_signal_handler_sigtrap,
+		signal_register_signal(SIGTRAP, (functionptr) md_signal_handler_sigtrap,
 							   SA_NODEFER | SA_SIGINFO);
 #  endif
 # if defined(ENABLE_INTRP)
@@ -166,7 +166,7 @@ bool signal_init(void)
 #if defined(ENABLE_THREADS)
 	/* SIGHUP handler for threads_thread_interrupt */
 
-	signal_register_signal(SIGHUP, (void *) signal_handler_sighup, 0);
+	signal_register_signal(SIGHUP, (functionptr) signal_handler_sighup, 0);
 #endif
 
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
@@ -180,7 +180,7 @@ bool signal_init(void)
 #if defined(ENABLE_THREADS) && defined(ENABLE_PROFILING)
 	/* SIGUSR2 handler for profiling sampling */
 
-	signal_register_signal(SIGUSR2, (void *) md_signal_handler_sigusr2,
+	signal_register_signal(SIGUSR2, (functionptr) md_signal_handler_sigusr2,
 						   SA_SIGINFO);
 #endif
 
@@ -196,7 +196,7 @@ bool signal_init(void)
 
 *******************************************************************************/
 
-void signal_register_signal(int signum, void *handler, int flags)
+void signal_register_signal(int signum, functionptr handler, int flags)
 {
 	struct sigaction act;
 	void (*function)(int, siginfo_t *, void *);

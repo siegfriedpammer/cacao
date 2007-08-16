@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8299 2007-08-13 08:41:18Z michi $
+   $Id: linker.c 8321 2007-08-16 11:37:25Z michi $
 
 */
 
@@ -1039,7 +1039,7 @@ static arraydescriptor *link_array(classinfo *c)
 		/* c is an array of references */
 		desc->arraytype = ARRAYTYPE_OBJECT;
 		desc->componentsize = sizeof(void*);
-		desc->dataoffset = OFFSET(java_objectarray, data);
+		desc->dataoffset = OFFSET(java_objectarray_t, data);
 		
 		compvftbl = comp->vftbl;
 
@@ -1072,49 +1072,49 @@ static arraydescriptor *link_array(classinfo *c)
 		switch (c->name->text[1]) {
 		case 'Z':
 			desc->arraytype = ARRAYTYPE_BOOLEAN;
-			desc->dataoffset = OFFSET(java_booleanarray,data);
+			desc->dataoffset = OFFSET(java_booleanarray_t,data);
 			desc->componentsize = sizeof(u1);
 			break;
 
 		case 'B':
 			desc->arraytype = ARRAYTYPE_BYTE;
-			desc->dataoffset = OFFSET(java_bytearray,data);
+			desc->dataoffset = OFFSET(java_bytearray_t,data);
 			desc->componentsize = sizeof(u1);
 			break;
 
 		case 'C':
 			desc->arraytype = ARRAYTYPE_CHAR;
-			desc->dataoffset = OFFSET(java_chararray,data);
+			desc->dataoffset = OFFSET(java_chararray_t,data);
 			desc->componentsize = sizeof(u2);
 			break;
 
 		case 'D':
 			desc->arraytype = ARRAYTYPE_DOUBLE;
-			desc->dataoffset = OFFSET(java_doublearray,data);
+			desc->dataoffset = OFFSET(java_doublearray_t,data);
 			desc->componentsize = sizeof(double);
 			break;
 
 		case 'F':
 			desc->arraytype = ARRAYTYPE_FLOAT;
-			desc->dataoffset = OFFSET(java_floatarray,data);
+			desc->dataoffset = OFFSET(java_floatarray_t,data);
 			desc->componentsize = sizeof(float);
 			break;
 
 		case 'I':
 			desc->arraytype = ARRAYTYPE_INT;
-			desc->dataoffset = OFFSET(java_intarray,data);
+			desc->dataoffset = OFFSET(java_intarray_t,data);
 			desc->componentsize = sizeof(s4);
 			break;
 
 		case 'J':
 			desc->arraytype = ARRAYTYPE_LONG;
-			desc->dataoffset = OFFSET(java_longarray,data);
+			desc->dataoffset = OFFSET(java_longarray_t,data);
 			desc->componentsize = sizeof(s8);
 			break;
 
 		case 'S':
 			desc->arraytype = ARRAYTYPE_SHORT;
-			desc->dataoffset = OFFSET(java_shortarray,data);
+			desc->dataoffset = OFFSET(java_shortarray_t,data);
 			desc->componentsize = sizeof(s2);
 			break;
 

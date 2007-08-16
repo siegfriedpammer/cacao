@@ -64,6 +64,16 @@ extern u2 _no_threads_filterverbosecallctr[2];
 #define FILTERVERBOSECALLCTR (_no_threads_filterverbosecallctr)
 #endif
 
+/* state for trace java call **************************************************/
+
+#if !defined(NDEBUG)
+extern s4 _no_threads_tracejavacallindent;
+#define TRACEJAVACALLINDENT (_no_threads_tracejavacallindent)
+
+extern u4 _no_threads_tracejavacallcount;
+#define TRACEJAVACALLCOUNT (_no_threads_tracejavacallcount)
+#endif
+
 #endif /* _THREADS_H */
 
 

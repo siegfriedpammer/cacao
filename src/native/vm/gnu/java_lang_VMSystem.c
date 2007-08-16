@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMSystem.c 7918 2007-05-20 20:42:18Z michi $
+   $Id: java_lang_VMSystem.c 8321 2007-08-16 11:37:25Z michi $
 
 */
 
@@ -78,8 +78,8 @@ void _Jv_java_lang_VMSystem_init(void)
  */
 JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass clazz, java_lang_Object *src, s4 srcStart, java_lang_Object *dest, s4 destStart, s4 len)
 {
-	(void) builtin_arraycopy((java_arrayheader *) src, srcStart,
-							 (java_arrayheader *) dest, destStart, len);
+	(void) builtin_arraycopy((java_handle_t *) src, srcStart,
+							 (java_handle_t *) dest, destStart, len);
 }
 
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.h 8299 2007-08-13 08:41:18Z michi $
+   $Id: stacktrace.h 8321 2007-08-16 11:37:25Z michi $
 
 */
 
@@ -105,7 +105,7 @@ struct stacktracebuffer {
 *******************************************************************************/
 
 typedef struct stacktracecontainer {
-	java_arrayheader        header;     /* default array header for the GC    */
+	java_array_t            header;     /* default array header for the GC    */
 	struct stacktracebuffer stb;        /* let entries point to data below    */
 	stacktrace_entry        data[1];    /* the actual array of entries        */
 } stacktracecontainer;
@@ -132,9 +132,9 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi);
 stacktracecontainer *stacktrace_fillInStackTrace(void);
 
 #if defined(ENABLE_JAVASE)
-java_objectarray    *stacktrace_getClassContext(void);
-classinfo           *stacktrace_getCurrentClass(void);
-java_objectarray    *stacktrace_getStack(void);
+java_handle_objectarray_t *stacktrace_getClassContext(void);
+classinfo                 *stacktrace_getCurrentClass(void);
+java_handle_objectarray_t *stacktrace_getStack(void);
 #endif
 
 void stacktrace_print_trace_from_buffer(stacktracebuffer *stb);

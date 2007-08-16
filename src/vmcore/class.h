@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8299 2007-08-13 08:41:18Z michi $
+   $Id: class.h 8321 2007-08-16 11:37:25Z michi $
 
 */
 
@@ -356,16 +356,19 @@ methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *dest);
 methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
 methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
 
-bool       class_issubclass(classinfo *sub, classinfo *super);
-bool       class_isanysubclass(classinfo *sub, classinfo *super);
-bool       class_is_primitive(classinfo *c);
-bool       class_is_array(classinfo *c);
-bool       class_is_interface(classinfo *c);
-classinfo *class_get_superclass(classinfo *c);
-classinfo *class_get_declaringclass(classinfo *c);
+bool              class_issubclass(classinfo *sub, classinfo *super);
+bool              class_isanysubclass(classinfo *sub, classinfo *super);
+bool              class_is_primitive(classinfo *c);
+bool              class_is_array(classinfo *c);
+bool              class_is_interface(classinfo *c);
+
+classinfo                 *class_get_superclass(classinfo *c);
+java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOnly);
+classinfo                 *class_get_declaringclass(classinfo *c);
+java_handle_objectarray_t *class_get_interfaces(classinfo *c);
 
 #if defined(ENABLE_JAVASE)
-utf       *class_get_signature(classinfo *c);
+utf              *class_get_signature(classinfo *c);
 #endif
 
 /* some debugging functions */

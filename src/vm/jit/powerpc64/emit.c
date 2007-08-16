@@ -527,12 +527,12 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 	if (checkbounds) {
 #define SOFTEX 0
 #if SOFTEX
-		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
+		M_ILD(REG_ITMP3, s1, OFFSET(java_array_t, size));
 		M_CMPU(s2, REG_ITMP3);
 		codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
 		BRANCH_NOPS;
 #else
-		M_ILD(REG_ITMP3, s1, OFFSET(java_arrayheader, size));
+		M_ILD(REG_ITMP3, s1, OFFSET(java_array_t, size));
 		M_CMPU(s2, REG_ITMP3);
 		M_BLT(1);
 		/* ALD is 4 byte aligned, ILD 2, onyl LWZ is byte aligned */

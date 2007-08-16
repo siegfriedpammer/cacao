@@ -39,6 +39,14 @@
 
 #include <assert.h>
 
+/* debug defines **************************************************************/
+#ifndef NDEBUG
+# define PASS13BIT(imm) (imm) & 0x1fff
+#else
+# define PASS13BIT(imm)
+#endif
+
+
 /* from md-abi.c */
 s4 nat_argintregs[INT_NATARG_CNT];
 
@@ -142,6 +150,7 @@ s4 nat_argintregs[INT_NATARG_CNT];
  */
 #define M_OP3(op,op3,rd,rs1,rs2,imm) \
 	do { \
+		assert(check_13bit_imm(rs2)); \
 		*((u4 *) cd->mcodeptr) =  ((((s4) (op)) << 30) | ((rd) << 25) | ((op3) << 19) | ((rs1) << 14) | ((imm)<<13) | (imm?((rs2)&0x1fff):(rs2)) ); \
 		cd->mcodeptr += 4; \
 	} while (0)
@@ -415,7 +424,7 @@ s4   get_lopart_disp(s4 disp);
 		} \
 		else { \
 			M_SETHI(sethi_part(~c), rd); \
-			M_XOR_IMM(rd, setlo_part(c) | 0xffffffffffff1c00, rd); \
+			M_XOR_IMM(rd, PASS13BIT(setlo_part(c) | 0xffffffffffff1c00), rd); \
 		} \
 	} while (0)
 	
@@ -561,6 +570,7 @@ s4   get_lopart_disp(s4 disp);
 
 
 #define M_SAVE(rs1,rs2,rd)      M_OP3(0x02,0x3c,rd,rs1,rs2,IMM)
+#define M_SAVE_REG(rs1,rs2,rd)  M_OP3(0x02,0x3c,rd,rs1,rs2,REG)
 #define M_RESTORE(rs1,rs2,rd)   M_OP3(0x02,0x3d,rd,rs1,rs2,IMM)
 
 
@@ -625,7 +635,7 @@ s4   get_lopart_disp(s4 disp);
         } else { \
             M_SETHI(hi&0x3ffff8,rd); \
             M_AADD(rs,rd,rd); \
-            M_DLD_INTERN(rd,rd,lo); \
+            M_DLD_INTERN(rd,rd,PASS13BIT(lo)); \
         } \
     } while (0)
 /* Note for SETHI: sethi has a 22bit imm, only set upper 19 bits */ 
@@ -640,7 +650,7 @@ s4   get_lopart_disp(s4 disp);
         } else { \
             M_SETHI(hi&0x3ffff8,rd); \
             M_AADD(rs,rd,rd); \
-            M_FLD_INTERN(rd,rd,lo); \
+            M_FLD_INTERN(rd,rd,PASS13BIT(lo)); \
         } \
     } while (0)
 
@@ -655,7 +665,7 @@ s4   get_lopart_disp(s4 disp);
         } else { \
             M_SETHI(hi&0x3ffff8,REG_ITMP3); \
             M_AADD(rs,REG_ITMP3,REG_ITMP3); \
-            M_FST_INTERN(rd,REG_ITMP3,lo); \
+            M_FST_INTERN(rd,REG_ITMP3,PASS13BIT(lo)); \
         } \
     } while (0)
     
@@ -670,7 +680,7 @@ s4   get_lopart_disp(s4 disp);
         } else { \
             M_SETHI(hi&0x3ffff8,REG_ITMP3); \
             M_AADD(rs,REG_ITMP3,REG_ITMP3); \
-            M_DST_INTERN(rd,REG_ITMP3,lo); \
+            M_DST_INTERN(rd,REG_ITMP3,PASS13BIT(lo)); \
         } \
     } while (0)
     

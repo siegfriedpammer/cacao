@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8299 2007-08-13 08:41:18Z michi $
+   $Id: builtin.c 8321 2007-08-16 11:37:25Z michi $
 
 */
 
@@ -604,7 +604,7 @@ void *builtin_throw_exception(java_handle_t *xptr)
 
 *******************************************************************************/
 
-s4 builtin_canstore(java_objectarray *oa, java_handle_t *o)
+s4 builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o)
 {
 	arraydescriptor *desc;
 	arraydescriptor *valuedesc;
@@ -679,7 +679,7 @@ s4 builtin_canstore(java_objectarray *oa, java_handle_t *o)
 
 
 /* This is an optimized version where a is guaranteed to be one-dimensional */
-s4 builtin_canstore_onedim (java_objectarray *a, java_handle_t *o)
+s4 builtin_canstore_onedim (java_handle_objectarray_t *a, java_handle_t *o)
 {
 	arraydescriptor *desc;
 	vftbl_t         *elementvftbl;
@@ -730,7 +730,7 @@ s4 builtin_canstore_onedim (java_objectarray *a, java_handle_t *o)
 
 /* This is an optimized version where a is guaranteed to be a
  * one-dimensional array of a class type */
-s4 builtin_canstore_onedim_class(java_objectarray *a, java_handle_t *o)
+s4 builtin_canstore_onedim_class(java_handle_objectarray_t *a, java_handle_t *o)
 {
 	vftbl_t  *elementvftbl;
 	vftbl_t  *valuevftbl;
@@ -909,13 +909,13 @@ java_objectheader *builtin_fast_new(classinfo *c)
 
 *******************************************************************************/
 
-java_arrayheader *builtin_newarray(s4 size, classinfo *arrayclass)
+java_handle_t *builtin_newarray(s4 size, classinfo *arrayclass)
 {
-	arraydescriptor  *desc;
-	s4                dataoffset;
-	s4                componentsize;
-	s4                actualsize;
-	java_arrayheader *a;
+	arraydescriptor *desc;
+	s4               dataoffset;
+	s4               componentsize;
+	s4               actualsize;
+	java_array_t    *a;
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_end;
 #endif
@@ -951,7 +951,7 @@ java_arrayheader *builtin_newarray(s4 size, classinfo *arrayclass)
 	lock_init_object_lock(&a->objheader);
 #endif
 
-	a->size = size;
+	LLNI_array_size(a) = size;
 
 	RT_TIMING_GET_TIME(time_end);
 	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_NEW_ARRAY);
@@ -969,7 +969,7 @@ java_arrayheader *builtin_newarray(s4 size, classinfo *arrayclass)
 
 *******************************************************************************/
 
-java_objectarray *builtin_anewarray(s4 size, classinfo *componentclass)
+java_handle_objectarray_t *builtin_anewarray(s4 size, classinfo *componentclass)
 {
 	classinfo *arrayclass;
 	
@@ -988,7 +988,7 @@ java_objectarray *builtin_anewarray(s4 size, classinfo *componentclass)
 	if (!arrayclass)
 		return NULL;
 
-	return (java_objectarray *) builtin_newarray(size, arrayclass);
+	return (java_handle_objectarray_t *) builtin_newarray(size, arrayclass);
 }
 
 
@@ -1002,9 +1002,9 @@ java_objectarray *builtin_anewarray(s4 size, classinfo *componentclass)
 
 *******************************************************************************/
 
-java_booleanarray *builtin_newarray_boolean(s4 size)
+java_handle_booleanarray_t *builtin_newarray_boolean(s4 size)
 {
-	return (java_booleanarray *)
+	return (java_handle_booleanarray_t *)
 		builtin_newarray(size,
 						 primitivetype_table[ARRAYTYPE_BOOLEAN].arrayclass);
 }
@@ -1019,9 +1019,9 @@ java_booleanarray *builtin_newarray_boolean(s4 size)
 
 *******************************************************************************/
 
-java_bytearray *builtin_newarray_byte(s4 size)
+java_handle_bytearray_t *builtin_newarray_byte(s4 size)
 {
-	return (java_bytearray *)
+	return (java_handle_bytearray_t *)
 		builtin_newarray(size, primitivetype_table[ARRAYTYPE_BYTE].arrayclass);
 }
 
@@ -1035,9 +1035,9 @@ java_bytearray *builtin_newarray_byte(s4 size)
 
 *******************************************************************************/
 
-java_chararray *builtin_newarray_char(s4 size)
+java_handle_chararray_t *builtin_newarray_char(s4 size)
 {
-	return (java_chararray *)
+	return (java_handle_chararray_t *)
 		builtin_newarray(size, primitivetype_table[ARRAYTYPE_CHAR].arrayclass);
 }
 
@@ -1051,9 +1051,9 @@ java_chararray *builtin_newarray_char(s4 size)
 
 *******************************************************************************/
 
-java_shortarray *builtin_newarray_short(s4 size)
+java_handle_shortarray_t *builtin_newarray_short(s4 size)
 {
-	return (java_shortarray *)
+	return (java_handle_shortarray_t *)
 		builtin_newarray(size, primitivetype_table[ARRAYTYPE_SHORT].arrayclass);
 }
 
@@ -1067,9 +1067,9 @@ java_shortarray *builtin_newarray_short(s4 size)
 
 *******************************************************************************/
 
-java_intarray *builtin_newarray_int(s4 size)
+java_handle_intarray_t *builtin_newarray_int(s4 size)
 {
-	return (java_intarray *)
+	return (java_handle_intarray_t *)
 		builtin_newarray(size, primitivetype_table[ARRAYTYPE_INT].arrayclass);
 }
 
@@ -1083,9 +1083,9 @@ java_intarray *builtin_newarray_int(s4 size)
 
 *******************************************************************************/
 
-java_longarray *builtin_newarray_long(s4 size)
+java_handle_longarray_t *builtin_newarray_long(s4 size)
 {
-	return (java_longarray *)
+	return (java_handle_longarray_t *)
 		builtin_newarray(size, primitivetype_table[ARRAYTYPE_LONG].arrayclass);
 }
 
@@ -1099,9 +1099,9 @@ java_longarray *builtin_newarray_long(s4 size)
 
 *******************************************************************************/
 
-java_floatarray *builtin_newarray_float(s4 size)
+java_handle_floatarray_t *builtin_newarray_float(s4 size)
 {
-	return (java_floatarray *)
+	return (java_handle_floatarray_t *)
 		builtin_newarray(size, primitivetype_table[ARRAYTYPE_FLOAT].arrayclass);
 }
 
@@ -1115,9 +1115,9 @@ java_floatarray *builtin_newarray_float(s4 size)
 
 *******************************************************************************/
 
-java_doublearray *builtin_newarray_double(s4 size)
+java_handle_doublearray_t *builtin_newarray_double(s4 size)
 {
-	return (java_doublearray *)
+	return (java_handle_doublearray_t *)
 		builtin_newarray(size,
 						 primitivetype_table[ARRAYTYPE_DOUBLE].arrayclass);
 }
@@ -1138,19 +1138,19 @@ java_doublearray *builtin_newarray_double(s4 size)
 
 ******************************************************************************/
 
-static java_arrayheader *builtin_multianewarray_intern(int n,
-													   classinfo *arrayclass,
-													   long *dims)
+static java_handle_t *builtin_multianewarray_intern(int n,
+													classinfo *arrayclass,
+													long *dims)
 {
-	s4                size;
-	java_arrayheader *a;
-	classinfo        *componentclass;
-	s4                i;
+	s4             size;
+	java_handle_t *a;
+	classinfo     *componentclass;
+	s4             i;
 
 	/* create this dimension */
 
 	size = (s4) dims[0];
-  	a = builtin_newarray(size, arrayclass);
+	a = builtin_newarray(size, arrayclass);
 
 	if (!a)
 		return NULL;
@@ -1169,7 +1169,7 @@ static java_arrayheader *builtin_multianewarray_intern(int n,
 	/* create the component arrays */
 
 	for (i = 0; i < size; i++) {
-		java_arrayheader *ea =
+		java_handle_t *ea =
 #if defined(__MIPS__) && (SIZEOF_VOID_P == 4)
 			/* we save an s4 to a s8 slot, 8-byte aligned */
 
@@ -1181,7 +1181,7 @@ static java_arrayheader *builtin_multianewarray_intern(int n,
 		if (!ea)
 			return NULL;
 		
-		((java_objectarray *) a)->data[i] = (java_object_t *) ea;
+		((java_handle_objectarray_t *) a)->data[i] = (java_object_t *) ea;
 	}
 
 	return a;
@@ -1195,8 +1195,8 @@ static java_arrayheader *builtin_multianewarray_intern(int n,
 
 ******************************************************************************/
 
-java_arrayheader *builtin_multianewarray(int n, classinfo *arrayclass,
-										 long *dims)
+java_handle_objectarray_t *builtin_multianewarray(int n, classinfo *arrayclass,
+												  long *dims)
 {
 	s4 i;
 	s4 size;
@@ -2635,8 +2635,8 @@ float builtin_d2f(double a)
 
 *******************************************************************************/
 
-bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
-					   java_arrayheader *dest, s4 destStart, s4 len)
+bool builtin_arraycopy(java_handle_t *src, s4 srcStart,
+					   java_handle_t *dest, s4 destStart, s4 len)
 {
 	arraydescriptor *sdesc;
 	arraydescriptor *ddesc;
@@ -2647,8 +2647,8 @@ bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
 		return false;
 	}
 
-	sdesc = src->objheader.vftbl->arraydesc;
-	ddesc = dest->objheader.vftbl->arraydesc;
+	sdesc = LLNI_vftbl_direct(src)->arraydesc;
+	ddesc = LLNI_vftbl_direct(dest)->arraydesc;
 
 	if (!sdesc || !ddesc || (sdesc->arraytype != ddesc->arraytype)) {
 		exceptions_throw_arraystoreexception();
@@ -2658,8 +2658,8 @@ bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
 	/* we try to throw exception with the same message as SUN does */
 
 	if ((len < 0) || (srcStart < 0) || (destStart < 0) ||
-		(srcStart  + len < 0) || (srcStart  + len > src->size) ||
-		(destStart + len < 0) || (destStart + len > dest->size)) {
+		(srcStart  + len < 0) || (srcStart  + len > LLNI_array_size(src)) ||
+		(destStart + len < 0) || (destStart + len > LLNI_array_size(dest))) {
 		exceptions_throw_arrayindexoutofboundsexception();
 		return false;
 	}
@@ -2677,8 +2677,8 @@ bool builtin_arraycopy(java_arrayheader *src, s4 srcStart,
 	else {
 		/* We copy references of different type */
 
-		java_objectarray *oas = (java_objectarray *) src;
-		java_objectarray *oad = (java_objectarray *) dest;
+		java_handle_objectarray_t *oas = (java_handle_objectarray_t *) src;
+		java_handle_objectarray_t *oad = (java_handle_objectarray_t *) dest;
                 
 		if (destStart <= srcStart) {
 			for (i = 0; i < len; i++) {
@@ -2756,11 +2756,11 @@ s8 builtin_currenttimemillis(void)
 
 java_handle_t *builtin_clone(void *env, java_handle_t *o)
 {
-	arraydescriptor   *ad;
-	java_arrayheader  *ah;
-	u4                 size;
-	classinfo         *c;
-	java_handle_t     *co;              /* cloned object header               */
+	arraydescriptor *ad;
+	java_handle_t   *ah;
+	u4               size;
+	classinfo       *c;
+	java_handle_t   *co;                /* cloned object header               */
 
 	/* get the array descriptor */
 
@@ -2769,9 +2769,9 @@ java_handle_t *builtin_clone(void *env, java_handle_t *o)
 	/* we are cloning an array */
 
 	if (ad != NULL) {
-		ah = (java_arrayheader *) o;
+		ah = (java_handle_t *) o;
 
-		size = ad->dataoffset + ad->componentsize * ah->size;
+		size = ad->dataoffset + ad->componentsize * LLNI_array_size(ah);
         
 		co = heap_alloc(size, (ad->arraytype == ARRAYTYPE_OBJECT), NULL, true);
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.h 8295 2007-08-11 17:57:24Z michi $
+   $Id: vm.h 8318 2007-08-16 10:05:34Z michi $
 
 */
 
@@ -87,7 +87,7 @@ void vm_abort(const char *text, ...);
 /* Java method calling functions */
 
 uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
-									java_objectarray *params);
+									java_handle_objectarray_t *params);
 
 java_handle_t *vm_call_method(methodinfo *m, java_handle_t *o, ...);
 java_handle_t *vm_call_method_valist(methodinfo *m, java_handle_t *o,
