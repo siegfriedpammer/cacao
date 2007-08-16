@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 8299 2007-08-13 08:41:18Z michi $
+   $Id: loader.c 8324 2007-08-16 16:48:12Z michi $
 
 */
 
@@ -36,6 +36,8 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
+#include "native/llni.h"
 
 #include "threads/lock-common.h"
 
@@ -266,7 +268,7 @@ bool loader_init(void)
 
 *******************************************************************************/
 
-classloader *loader_hashtable_classloader_add(java_objectheader *cl)
+classloader *loader_hashtable_classloader_add(java_handle_t *cl)
 {
 	hashtable_classloader_entry *cle;
 	u4   key;
@@ -277,11 +279,13 @@ classloader *loader_hashtable_classloader_add(java_objectheader *cl)
 
 	LOCK_MONITOR_ENTER(hashtable_classloader->header);
 
+	LLNI_CRITICAL_START;
+
 	/* key for entry is the hashcode of the classloader;
 	   aligned to 16-byte boundaries */
 
 #if defined(ENABLE_GC_CACAO)
-	key  = heap_get_hashcode(cl) >> 4;
+	key  = heap_get_hashcode(LLNI_direct(cl)) >> 4;
 #else
 	key  = ((u4) (ptrint) cl) >> 4;
 #endif
@@ -290,14 +294,15 @@ classloader *loader_hashtable_classloader_add(java_objectheader *cl)
 	cle  = hashtable_classloader->ptr[slot];
 
 	/* search hashchain for existing entry */
-	/* XXX no GC collection is allowed here, make this a critical section */
 
 	while (cle) {
-		if (cle->object == cl)
+		if (cle->object == LLNI_direct(cl))
 			break;
 
 		cle = cle->hashlink;
 	}
+
+	LLNI_CRITICAL_END;
 
 	/* if no classloader was found, we create a new entry here */
 
@@ -310,7 +315,11 @@ classloader *loader_hashtable_classloader_add(java_objectheader *cl)
 		gc_reference_register(&(cle->object));
 #endif
 
-		cle->object = cl;
+		LLNI_CRITICAL_START;
+
+		cle->object = LLNI_direct(cl);
+
+		LLNI_CRITICAL_END;
 
 		/* insert entry into hashtable */
 
@@ -335,7 +344,7 @@ classloader *loader_hashtable_classloader_add(java_objectheader *cl)
 
 *******************************************************************************/
 
-classloader *loader_hashtable_classloader_find(java_objectheader *cl)
+classloader *loader_hashtable_classloader_find(java_handle_t *cl)
 {
 	hashtable_classloader_entry *cle;
 	u4   key;
@@ -344,11 +353,13 @@ classloader *loader_hashtable_classloader_find(java_objectheader *cl)
 	if (cl == NULL)
 		return NULL;
 
+	LLNI_CRITICAL_START;
+
 	/* key for entry is the hashcode of the classloader;
 	   aligned to 16-byte boundaries */
 
 #if defined(ENABLE_GC_CACAO)
-	key  = heap_get_hashcode(cl) >> 4;
+	key  = heap_get_hashcode(LLNI_direct(cl)) >> 4;
 #else
 	key  = ((u4) (ptrint) cl) >> 4;
 #endif
@@ -357,14 +368,15 @@ classloader *loader_hashtable_classloader_find(java_objectheader *cl)
 	cle  = hashtable_classloader->ptr[slot];
 
 	/* search hashchain for existing entry */
-	/* XXX no GC collection is allowed here, make this a critical section */
 
 	while (cle) {
-		if (cle->object == cl)
+		if (cle->object == LLNI_direct(cl))
 			break;
 
 		cle = cle->hashlink;
 	}
+
+	LLNI_CRITICAL_END;
 
 	return cle;
 }
@@ -1128,7 +1140,7 @@ classinfo *load_class_from_classloader(utf *name, classloader *cl)
 
 		RT_TIMING_GET_TIME(time_prepare);
 
-		o = vm_call_method(lc, cl->object, string);
+		o = vm_call_method(lc, (java_handle_t *) cl, string);
 
 		RT_TIMING_GET_TIME(time_java);
 

@@ -81,6 +81,12 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 		dolog("GC: Initialising with heap-size %d (max. %d)",
 			heapstartsize, heapmaxsize);
 
+	/* check our indirection cells */
+	if (OFFSET(java_handle_t, heap_object) != 0)
+		vm_abort("gc_init: indirection cell offset is displaced: %d", OFFSET(java_handle_t, heap_object));
+	if (OFFSET(hashtable_classloader_entry, object) != 0)
+		vm_abort("gc_init: classloader entry cannot be used as indirection cell: %d", OFFSET(hashtable_classloader_entry, object));
+
 	/* finalizer stuff */
 	final_init();
 

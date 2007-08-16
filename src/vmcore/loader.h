@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.h 7921 2007-05-20 23:14:11Z michi $
+   $Id: loader.h 8324 2007-08-16 16:48:12Z michi $
 */
 
 
@@ -109,12 +109,18 @@ struct classbuffer {
 };
 
 
-/* hashtable_classloader_entry ************************************************/
+/* hashtable_classloader_entry *************************************************
+
+   ATTENTION: The pointer to the classloader object needs to be the
+   first field of the entry, so that it can be used as an indirection
+   cell. This is checked by gc_init() during startup.
+
+*******************************************************************************/
 
 typedef struct hashtable_classloader_entry hashtable_classloader_entry;
 
 struct hashtable_classloader_entry {
-	java_objectheader           *object;
+	java_object_t               *object;
 	hashtable_classloader_entry *hashlink;
 };
 
@@ -130,8 +136,8 @@ typedef hashtable_classloader_entry classloader;
 bool loader_init(void);
 
 /* classloader management functions */
-classloader *loader_hashtable_classloader_add(java_objectheader *cl);
-classloader *loader_hashtable_classloader_find(java_objectheader *cl);
+classloader *loader_hashtable_classloader_add(java_handle_t *cl);
+classloader *loader_hashtable_classloader_find(java_handle_t *cl);
 
 void loader_load_all_classes(void);
 

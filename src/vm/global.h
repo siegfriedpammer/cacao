@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: global.h 8321 2007-08-16 11:37:25Z michi $
+   $Id: global.h 8324 2007-08-16 16:48:12Z michi $
 
 */
 
@@ -299,15 +299,20 @@ struct java_objectarray_t {
 
 *******************************************************************************/
 
-#if 0
+#if defined(ENABLE_GC_CACAO)
 typedef struct java_handle_t {
 	java_object_t *heap_object;
 } java_handle_t;
-#elseif 0
-typedef union {
-	java_object_t    object;
-	java_array_t     array;
-} java_handle_t;
+
+typedef struct java_handle_objectarray_t  { java_objectarray_t  *heap_object; } java_handle_objectarray_t;
+typedef struct java_handle_booleanarray_t { java_booleanarray_t *heap_object; } java_handle_booleanarray_t;
+typedef struct java_handle_bytearray_t    { java_bytearray_t    *heap_object; } java_handle_bytearray_t;
+typedef struct java_handle_chararray_t    { java_chararray_t    *heap_object; } java_handle_chararray_t;
+typedef struct java_handle_shortarray_t   { java_shortarray_t   *heap_object; } java_handle_shortarray_t;
+typedef struct java_handle_intarray_t     { java_intarray_t     *heap_object; } java_handle_intarray_t;
+typedef struct java_handle_longarray_t    { java_longarray_t    *heap_object; } java_handle_longarray_t;
+typedef struct java_handle_floatarray_t   { java_floatarray_t   *heap_object; } java_handle_floatarray_t;
+typedef struct java_handle_doublearray_t  { java_doublearray_t  *heap_object; } java_handle_doublearray_t;
 #else
 typedef java_object_t       java_handle_t;
 typedef java_objectarray_t  java_handle_objectarray_t;
