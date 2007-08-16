@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8318 2007-08-16 10:05:34Z michi $
+   $Id: vm.c 8327 2007-08-16 17:52:48Z twisti $
 
 */
 
@@ -2716,6 +2716,7 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 	uint64_t      *array;
 	java_handle_t *param;
 	classinfo     *c;
+	int            type;
 	int32_t        i;
 	int32_t        j;
 	imm_union      value;
@@ -2753,54 +2754,69 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 
 			/* convert the value according to its declared type */
 
-			c = param->vftbl->class;
+			c    = param->vftbl->class;
+			type = primitive_type_get_by_wrapperclass(c);
 
 			switch (td->decltype) {
 			case PRIMITIVETYPE_BOOLEAN:
-				if (c == class_java_lang_Boolean)
-					LLNI_field_get_val((java_lang_Boolean *) param, value, value.i);
-				else
+				switch (type) {
+				case PRIMITIVETYPE_BOOLEAN:
+					/* This type is OK. */
+					break;
+				default:
 					goto illegal_arg;
+				}
 				break;
 
 			case PRIMITIVETYPE_BYTE:
-				if (c == class_java_lang_Byte)
-					LLNI_field_get_val((java_lang_Byte *) param, value, value.i);
-				else
+				switch (type) {
+				case PRIMITIVETYPE_BYTE:
+					/* This type is OK. */
+					break;
+				default:
 					goto illegal_arg;
+				}
 				break;
 
 			case PRIMITIVETYPE_CHAR:
-				if (c == class_java_lang_Character)
-					LLNI_field_get_val((java_lang_Character *) param, value, value.i);
-				else
+				switch (type) {
+				case PRIMITIVETYPE_CHAR:
+					/* This type is OK. */
+					break;
+				default:
 					goto illegal_arg;
+				}
 				break;
 
 			case PRIMITIVETYPE_SHORT:
-				if (c == class_java_lang_Short)
-					LLNI_field_get_val((java_lang_Short *) param, value, value.i);
-				else if (c == class_java_lang_Byte)
-					LLNI_field_get_val((java_lang_Byte *) param, value, value.i);
-				else
+				switch (type) {
+				case PRIMITIVETYPE_BYTE:
+				case PRIMITIVETYPE_SHORT:
+					/* These types are OK. */
+					break;
+				default:
 					goto illegal_arg;
+				}
 				break;
 
 			case PRIMITIVETYPE_INT:
-				if (c == class_java_lang_Integer)
-					LLNI_field_get_val((java_lang_Integer *) param, value, value.i);
-				else if (c == class_java_lang_Short)
-					LLNI_field_get_val((java_lang_Short *) param, value, value.i);
-				else if (c == class_java_lang_Byte)
-					LLNI_field_get_val((java_lang_Byte *) param, value, value.i);
-				else
+				switch (type) {
+				case PRIMITIVETYPE_BYTE:
+				case PRIMITIVETYPE_SHORT:
+				case PRIMITIVETYPE_INT:
+					/* These types are OK. */
+					break;
+				default:
 					goto illegal_arg;
+				}
 				break;
 
 			default:
-				goto illegal_arg;
+				vm_abort("vm_array_from_objectarray: invalid type %d",
+						 td->decltype);
 			}
 
+			value = primitive_unbox(param);
 			vm_array_store_int(array, pd, value.i);
 			break;
 
@@ -2808,28 +2824,24 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 			if (param == NULL)
 				goto illegal_arg;
 
-			/* convert the value according to its declared type */
+			c    = param->vftbl->class;
+			type = primitive_type_get_by_class(c);
 
-			c = param->vftbl->class;
+			assert(td->decltype == PRIMITIVETYPE_LONG);
 
-			switch (td->decltype) {
+			switch (type) {
+			case PRIMITIVETYPE_BYTE:
+			case PRIMITIVETYPE_SHORT:
+			case PRIMITIVETYPE_INT:
 			case PRIMITIVETYPE_LONG:
-				if (c == class_java_lang_Long)
-					LLNI_field_get_val((java_lang_Long *) param, value, value.l);
-				else if (c == class_java_lang_Integer)
-					value.l = (int64_t) LLNI_field_direct(((java_lang_Integer *) param), value);
-				else if (c == class_java_lang_Short)
-					value.l = (int64_t) LLNI_field_direct(((java_lang_Short *) param), value);
-				else if (c == class_java_lang_Byte)
-					value.l = (int64_t) LLNI_field_direct(((java_lang_Byte *) param), value);
-				else
-					goto illegal_arg;
+				/* These types are OK. */
 				break;
-
 			default:
 				goto illegal_arg;
 			}
 
+			log_println("TRACE 2");
+			value = primitive_unbox(param);
 			vm_array_store_lng(array, pd, value.l);
 			break;
 
@@ -2837,22 +2849,21 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 			if (param == NULL)
 				goto illegal_arg;
 
-			/* convert the value according to its declared type */
+			c    = param->vftbl->class;
+			type = primitive_type_get_by_class(c);
 
-			c = param->vftbl->class;
+			assert(td->decltype == PRIMITIVETYPE_FLOAT);
 
-			switch (td->decltype) {
+			switch (type) {
 			case PRIMITIVETYPE_FLOAT:
-				if (c == class_java_lang_Float)
-					LLNI_field_get_val((java_lang_Float *) param, value, value.f);
-				else
-					goto illegal_arg;
+				/* This type is OK. */
 				break;
-
 			default:
 				goto illegal_arg;
 			}
 
+			log_println("TRACE 3");
+			value = primitive_unbox(param);
 			vm_array_store_flt(array, pd, value.l);
 			break;
 
@@ -2860,24 +2871,22 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 			if (param == NULL)
 				goto illegal_arg;
 
-			/* convert the value according to its declared type */
+			c    = param->vftbl->class;
+			type = primitive_type_get_by_class(c);
 
-			c = param->vftbl->class;
+			assert(td->decltype == PRIMITIVETYPE_DOUBLE);
 
-			switch (td->decltype) {
+			switch (type) {
+			case PRIMITIVETYPE_FLOAT:
 			case PRIMITIVETYPE_DOUBLE:
-				if (c == class_java_lang_Double)
-					LLNI_field_get_val((java_lang_Double *) param, value, value.d);
-				else if (c == class_java_lang_Float)
-					LLNI_field_get_val((java_lang_Float *) param, value, value.f);
-				else
-					goto illegal_arg;
+				/* These types are OK. */
 				break;
-
 			default:
 				goto illegal_arg;
 			}
 
+			log_println("TRACE 4");
+			value = primitive_unbox(param);
 			vm_array_store_dbl(array, pd, value.l);
 			break;
 		
@@ -2900,7 +2909,7 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 			break;
 
 		default:
-			goto illegal_arg;
+			vm_abort("vm_array_from_objectarray: invalid type %d", td->type);
 		}
 	}
 

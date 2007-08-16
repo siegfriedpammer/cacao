@@ -110,11 +110,14 @@ bool       primitive_init(void);
 classinfo *primitive_class_get_by_name(utf *name);
 classinfo *primitive_class_get_by_type(int type);
 classinfo *primitive_class_get_by_char(char ch);
+
 classinfo *primitive_arrayclass_get_by_name(utf *name);
 classinfo *primitive_arrayclass_get_by_type(int type);
 
+int        primitive_type_get_by_wrapperclass(classinfo *c);
+
 java_handle_t *primitive_box(int type, imm_union value);
-imm_union      primitive_unbox(int type, java_handle_t *o);
+imm_union      primitive_unbox(java_handle_t *o);
 
 java_handle_t *primitive_box_boolean(int32_t value);
 java_handle_t *primitive_box_byte(int32_t value);
