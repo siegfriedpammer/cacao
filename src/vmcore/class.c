@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8318 2007-08-16 10:05:34Z michi $
+   $Id: class.c 8330 2007-08-16 18:15:51Z twisti $
 
 */
 
@@ -46,6 +46,7 @@
 
 #include "toolbox/logging.h"
 
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -1662,6 +1663,39 @@ classinfo *class_get_superclass(classinfo *c)
 	super = class_resolve_superclass(c);
 
 	return super;
+}
+
+
+/* class_get_componenttype *****************************************************
+
+   Return the component class of the given class.  If the given class
+   is not an array, return NULL.
+
+*******************************************************************************/
+
+classinfo *class_get_componenttype(classinfo *c)
+{
+	classinfo       *component;
+	arraydescriptor *ad;
+	
+	/* XXX maybe we could find a way to do this without linking. */
+	/* This way should be safe and easy, however.                */
+
+	if (!(c->state & CLASS_LINKED))
+		if (!link_class(c))
+			return NULL;
+
+	ad = c->vftbl->arraydesc;
+	
+	if (ad == NULL)
+		return NULL;
+	
+	if (ad->arraytype == ARRAYTYPE_OBJECT)
+		component = ad->componentvftbl->class;
+	else
+		component = primitive_class_get_by_type(ad->arraytype);
+		
+	return component;
 }
 
 

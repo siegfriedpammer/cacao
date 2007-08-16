@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8318 2007-08-16 10:05:34Z michi $
+   $Id: linker.c 8330 2007-08-16 18:15:51Z twisti $
 
 */
 
@@ -42,6 +42,7 @@
 #include "toolbox/logging.h"
 
 #include "vm/access.h"
+#include "vm/array.h"
 #include "vm/exceptions.h"
 #include "vm/primitive.h"
 #include "vm/stringlocal.h"

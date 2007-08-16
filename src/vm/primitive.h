@@ -65,21 +65,6 @@
 #define PRIMITIVETYPE_VOID    TYPE_VOID
 
 
-/* CAUTION: Don't change the numerical values! These constants (with
-   the exception of ARRAYTYPE_OBJECT) are used as indices in the
-   primitive type table. */
-
-#define ARRAYTYPE_INT         PRIMITIVETYPE_INT
-#define ARRAYTYPE_LONG        PRIMITIVETYPE_LONG
-#define ARRAYTYPE_FLOAT       PRIMITIVETYPE_FLOAT
-#define ARRAYTYPE_DOUBLE      PRIMITIVETYPE_DOUBLE
-#define ARRAYTYPE_BYTE        PRIMITIVETYPE_BYTE
-#define ARRAYTYPE_CHAR        PRIMITIVETYPE_CHAR
-#define ARRAYTYPE_SHORT       PRIMITIVETYPE_SHORT
-#define ARRAYTYPE_BOOLEAN     PRIMITIVETYPE_BOOLEAN
-#define ARRAYTYPE_OBJECT      PRIMITIVETYPE_VOID     /* don't use as index! */
-
-
 /* primitivetypeinfo **********************************************************/
 
 struct primitivetypeinfo {

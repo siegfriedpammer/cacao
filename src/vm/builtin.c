@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8318 2007-08-16 10:05:34Z michi $
+   $Id: builtin.c 8330 2007-08-16 18:15:51Z twisti $
 
 */
 
@@ -64,6 +64,7 @@
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
 
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/cycles-stats.h"
 #include "vm/exceptions.h"

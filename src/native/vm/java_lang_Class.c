@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8319 2007-08-16 10:43:43Z michi $
+   $Id: java_lang_Class.c 8330 2007-08-16 18:15:51Z twisti $
 
 */
 
@@ -310,40 +310,6 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getInterfaces(java_lang_Class *kl
 	oa = class_get_interfaces(c);
 
 	return oa;
-}
-
-
-/*
- * Class:     java/lang/Class
- * Method:    getComponentType
- * Signature: ()Ljava/lang/Class;
- */
-java_lang_Class *_Jv_java_lang_Class_getComponentType(java_lang_Class *klass)
-{
-	classinfo       *c;
-	classinfo       *comp;
-	arraydescriptor *desc;
-	
-	c = (classinfo *) klass;
-	
-	/* XXX maybe we could find a way to do this without linking. */
-	/* This way should be safe and easy, however.                */
-
-	if (!(c->state & CLASS_LINKED))
-		if (!link_class(c))
-			return NULL;
-
-	desc = c->vftbl->arraydesc;
-	
-	if (desc == NULL)
-		return NULL;
-	
-	if (desc->arraytype == ARRAYTYPE_OBJECT)
-		comp = desc->componentvftbl->class;
-	else
-		comp = primitive_class_get_by_type(desc->arraytype);
-		
-	return (java_lang_Class *) comp;
 }
 
 

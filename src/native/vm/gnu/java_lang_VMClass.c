@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClass.c 8318 2007-08-16 10:05:34Z michi $
+   $Id: java_lang_VMClass.c 8330 2007-08-16 18:15:51Z twisti $
 
 */
 
@@ -181,7 +181,14 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getInterface
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	return _Jv_java_lang_Class_getComponentType(klass);
+	classinfo *c;
+	classinfo *component;
+	
+	c = (classinfo *) klass;
+	
+	component = class_get_componenttype(c);
+
+	return (java_lang_Class *) component;
 }
 
 

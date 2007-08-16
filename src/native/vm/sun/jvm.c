@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8323 2007-08-16 16:01:05Z twisti $
+   $Id: jvm.c 8330 2007-08-16 18:15:51Z twisti $
 
 */
 
@@ -947,10 +947,15 @@ jboolean JVM_IsPrimitiveClass(JNIEnv *env, jclass cls)
 
 jclass JVM_GetComponentType(JNIEnv *env, jclass cls)
 {
-#if PRINTJVM
-	log_println("JVM_GetComponentType: cls=%p", cls);
-#endif
-	return (jclass) _Jv_java_lang_Class_getComponentType((java_lang_Class *) cls);
+	classinfo *component;
+	
+	TRACEJVMCALLS("JVM_GetComponentType(env=%p, cls=%p)", env, cls);
+
+	c = (classinfo *) cls;
+	
+	component = class_get_componenttype(c);
+
+	return (jclass) component;
 }
 
 
@@ -2195,12 +2200,10 @@ jint JVM_GetArrayLength(JNIEnv *env, jobject arr)
 
 jobject JVM_GetArrayElement(JNIEnv *env, jobject arr, jint index)
 {
-/*	log_println("JVM_GetArrayElement: IMPLEMENT ME!"); */
+	java_arrayheader *a;
+	int               type;
 
-	java_arrayheader *a = NULL;
-	int32_t elementtype = 0;
-
-	TRACEJVMCALLS("JVM_GetArrayElement: arr=%p, index=%d", arr, index);
+	TRACEJVMCALLS("JVM_GetArrayElement(env=%p, arr=%p, index=%d)", env, arr, index);
 
 	a = (java_arrayheader *) arr;
 

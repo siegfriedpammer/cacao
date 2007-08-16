@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: typeinfo.c 8288 2007-08-10 15:12:00Z twisti $
+   $Id: typeinfo.c 8330 2007-08-16 18:15:51Z twisti $
 
 */
 
@@ -33,8 +33,10 @@
 #include <string.h>
 
 #include "mm/memory.h"
+
 #include "toolbox/logging.h"
 
+#include "vm/array.h"
 #include "vm/exceptions.h"
 #include "vm/primitive.h"
 #include "vm/resolve.h"

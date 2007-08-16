@@ -36,6 +36,7 @@
 #include "vm/builtin.h"
 #include "mm/memory.h"
 
+#include "vm/array.h"
 #include "vm/global.h"
 #include "vm/primitive.h"
 
