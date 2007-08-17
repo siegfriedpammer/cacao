@@ -103,7 +103,7 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 	/* add classloader to classloader hashtable */
 
 	assert(cl);
-	loader = loader_hashtable_classloader_add((java_objectheader *) cl);
+	loader = loader_hashtable_classloader_add((java_handle_t *) cl);
 
 	if (name != NULL) {
 		/* convert '.' to '/' in java string */
@@ -134,7 +134,7 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 		c = class_define(utfname, loader, new_class_data_len, new_class_data); 
 	else
 #endif
-		c = class_define(utfname, loader, len, (const uint8_t *) &data->data[offset]);
+		c = class_define(utfname, loader, len, (const uint8_t *) &LLNI_array_direct(data, offset));
 
 	if (c == NULL)
 		return NULL;

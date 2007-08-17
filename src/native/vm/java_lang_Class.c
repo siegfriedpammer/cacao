@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8321 2007-08-16 11:37:25Z michi $
+   $Id: java_lang_Class.c 8335 2007-08-17 11:04:35Z michi $
 
 */
 
@@ -94,10 +94,10 @@
  */
 java_lang_String *_Jv_java_lang_Class_getName(java_lang_Class *klass)
 {
-	classinfo        *c;
-	java_lang_String *s;
-	java_chararray_t *ca;
-	u4                i;
+	classinfo               *c;
+	java_lang_String        *s;
+	java_handle_chararray_t *ca;
+	u4                       i;
 
 	c = (classinfo *) klass;
 
@@ -142,7 +142,7 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 	s4           i;
 
 #if defined(ENABLE_JAVASE)
-	cl = loader_hashtable_classloader_add((java_objectheader *) loader);
+	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 #endif
 
 	/* illegal argument */

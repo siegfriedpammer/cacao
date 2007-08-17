@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClassLoader.c 8321 2007-08-16 11:37:25Z michi $
+   $Id: java_lang_VMClassLoader.c 8335 2007-08-17 11:04:35Z michi $
 
 */
 
@@ -360,7 +360,10 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_findLoadedClass(
 	classinfo   *c;
 	utf         *u;
 
-	cl = loader_hashtable_classloader_add((java_objectheader *) loader);
+	cl = loader_hashtable_classloader_find((java_handle_t *) loader);
+
+	if (cl == NULL)
+		vm_abort("unable to find classloader");
 
 	/* replace `.' by `/', this is required by the classcache */
 

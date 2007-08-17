@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMRuntime.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: java_lang_VMRuntime.c 8335 2007-08-17 11:04:35Z michi $
 
 */
 
@@ -279,7 +279,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclas
 {
 	classloader *cl;
 
-	cl = (classloader *) loader;
+	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 #if defined(ENABLE_JNI)
 	return _Jv_java_lang_Runtime_loadLibrary(env, libname, cl);

@@ -542,7 +542,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_
 	classinfo       *c;
 	java_lang_Class *o;
 
-	cl = (classloader *) loader;
+	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 	/* check if data was passed */
 
@@ -569,7 +569,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_
 
 	/* define the class */
 
-	c = class_define(utfname, cl, len, (const uint8_t *) &b->data[off]);
+	c = class_define(utfname, cl, len, (const uint8_t *) &LLNI_array_direct(b, off));
 
 	if (c == NULL)
 		return NULL;
