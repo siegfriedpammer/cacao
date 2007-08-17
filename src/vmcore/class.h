@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8321 2007-08-16 11:37:25Z michi $
+   $Id: class.h 8336 2007-08-17 11:09:20Z michi $
 
 */
 
@@ -157,6 +157,7 @@ struct classinfo {                /* class structure                          */
 	annotation_bytearrays_t *field_annotations;
 #endif
 	classloader *classloader;     /* NULL for bootstrap classloader           */
+#endif
 };
 
 
