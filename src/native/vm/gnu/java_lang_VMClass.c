@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClass.c 8339 2007-08-17 21:21:51Z twisti $
+   $Id: java_lang_VMClass.c 8340 2007-08-17 21:28:29Z twisti $
 
 */
 
@@ -330,7 +330,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getEnclosingClass(JNIE
 
 	c = (classinfo *) klass;
 
-	result = class_get_enclosingclass(c)
+	result = class_get_enclosingclass(c);
 
 	return (java_lang_Class *) result;
 }
