@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8339 2007-08-17 21:21:51Z twisti $
+   $Id: class.h 8344 2007-08-17 22:03:21Z twisti $
 
 */
 
@@ -139,11 +139,8 @@ struct classinfo {                /* class structure                          */
 	innerclassinfo *innerclass;
 
 	classref_or_classinfo  declaringclass;
-
-#if defined(ENABLE_JAVASE)
 	classref_or_classinfo  enclosingclass;  /* enclosing class                */
 	constant_nameandtype  *enclosingmethod; /* enclosing method               */
-#endif
 
 	utf        *packagename;      /* full name of the package                 */
 	utf        *sourcefile;       /* SourceFile attribute                     */
