@@ -62,12 +62,12 @@
 
 void mark_recursive(java_object_t *o)
 {
-	vftbl_t          *t;
-	classinfo        *c;
-	fieldinfo        *f;
-	java_objectarray *oa;
-	arraydescriptor  *desc;
-	java_object_t    *ref;
+	vftbl_t            *t;
+	classinfo          *c;
+	fieldinfo          *f;
+	java_objectarray_t *oa;
+	arraydescriptor    *desc;
+	java_object_t      *ref;
 	void *start, *end;
 	int i;
 
@@ -108,7 +108,7 @@ void mark_recursive(java_object_t *o)
 			return;
 
 		/* for object-arrays we need to check every entry */
-		oa = (java_objectarray *) o;
+		oa = (java_objectarray_t *) o;
 		for (i = 0; i < oa->header.size; i++) {
 
 			/* load the reference value */

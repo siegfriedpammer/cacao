@@ -67,8 +67,8 @@ void heap_dump_region(regioninfo_t *region, bool marked_only);
 #define IS_ARRAY(o) ((o)->vftbl->arraydesc != NULL)
 #define FOREACH_ARRAY_REF(o,ref,refptr,code) \
 	{ \
-		java_objectarray *a = (java_objectarray *) o; \
-		arraydescriptor  *desc = o->vftbl->arraydesc; \
+		java_objectarray_t *a = (java_objectarray_t *) o; \
+		arraydescriptor    *desc = o->vftbl->arraydesc; \
 		int i; \
 		\
 		GC_ASSERT(desc); \

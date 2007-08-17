@@ -377,8 +377,8 @@ void heap_print_object_flags(java_object_t *o)
 #if !defined(NDEBUG)
 void heap_print_object(java_object_t *o)
 {
-	java_arrayheader  *a;
-	classinfo         *c;
+	java_array_t *a;
+	classinfo    *c;
 
 	/* check for null pointers */
 	if (o == NULL) {
@@ -421,7 +421,7 @@ void heap_print_object(java_object_t *o)
 	} else if (/*IS_ARRAY*/ o->vftbl->arraydesc != NULL) {
 
 		/* get the array information */
-		a = (java_arrayheader *) o;
+		a = (java_array_t *) o;
 		c = o->vftbl->class;
 
 		/* print the array information */
@@ -486,9 +486,9 @@ void heap_dump_region(regioninfo_t *region, bool marked_only)
 
 s4 get_object_size(java_object_t *o)
 {
-	java_arrayheader *a;
-	classinfo        *c;
-	s4                o_size;
+	java_array_t *a;
+	classinfo    *c;
+	s4            o_size;
 
 	/* we can assume someone initialized the header */
 	GC_ASSERT(o->hdrflags != 0);
@@ -510,7 +510,7 @@ s4 get_object_size(java_object_t *o)
 
 		} else if (/*IS_ARRAY*/ o->vftbl->arraydesc != NULL) {
 			/* compute size of this array */
-			a = (java_arrayheader *) o;
+			a = (java_array_t *) o;
 			c = o->vftbl->class;
 			o_size = c->vftbl->arraydesc->dataoffset +
 					a->size * c->vftbl->arraydesc->componentsize;
