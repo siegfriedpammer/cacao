@@ -1,6 +1,6 @@
 /* src/native/vm/gnu/sun_reflect_ConstantPool.c
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, M. S. Panzenböck Institut f. Computersprachen - TU Wien
@@ -22,6 +22,8 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
+   $Id: java_lang_VMClass.c 8341 2007-08-17 21:32:01Z michi $
+
 */
 
 /*******************************************************************************
@@ -40,10 +42,13 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
+
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/sun_reflect_ConstantPool.h"
+
 #include "native/vm/reflect.h"
 
 #include "toolbox/logging.h"
@@ -54,6 +59,7 @@
 
 #include "vmcore/class.h"
 #include "vmcore/utf8.h"
+
 
 /* native methods implemented by this file ************************************/
 
@@ -388,3 +394,18 @@ JNIEXPORT struct java_lang_String* JNICALL Java_sun_reflect_ConstantPool_getUTF8
 	/* XXX: I hope literalstring_new is the right Function. */
 	return (java_lang_String*)literalstring_new(ref);
 }
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */
