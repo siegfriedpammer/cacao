@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 8299 2007-08-13 08:41:18Z michi $
+   $Id: native.c 8337 2007-08-17 18:41:19Z michi $
 
 */
 
@@ -559,7 +559,6 @@ lt_dlhandle native_library_open(utf *filename)
 #if defined(ENABLE_LTDL)
 void native_library_add(utf *filename, classloader *loader, lt_dlhandle handle)
 {
-	hashtable_classloader_entry    *cle;
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne; /* library name                       */
 	u4   key;                           /* hashkey                            */
@@ -567,20 +566,16 @@ void native_library_add(utf *filename, classloader *loader, lt_dlhandle handle)
 
 	LOCK_MONITOR_ENTER(hashtable_library->header);
 
-	/* insert loader into the classloader hashtable */
-
-	cle = loader_hashtable_classloader_add(loader);
-
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-	key  = ((u4) (ptrint) cle) >> 4;        /* align to 16-byte boundaries    */
+	key  = ((u4) (ptrint) loader) >> 4;     /* align to 16-byte boundaries    */
 	slot = key & (hashtable_library->size - 1);
 	le   = hashtable_library->ptr[slot];
 
 	/* search external hash chain for the entry */
 
 	while (le) {
-		if (le->cle == cle)
+		if (le->loader == loader)
 			break;
 
 		le = le->hashlink;                  /* next element in external chain */
@@ -591,7 +586,7 @@ void native_library_add(utf *filename, classloader *loader, lt_dlhandle handle)
 	if (le == NULL) {
 		le = NEW(hashtable_library_loader_entry);
 
-		le->cle   = cle;
+		le->loader   = loader;
 		le->namelink = NULL;
 
 		/* insert entry into hashtable */
@@ -647,29 +642,21 @@ void native_library_add(utf *filename, classloader *loader, lt_dlhandle handle)
 hashtable_library_name_entry *native_library_find(utf *filename,
 												  classloader *loader)
 {
-	hashtable_classloader_entry    *cle;
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne; /* library name                       */
 	u4   key;                           /* hashkey                            */
 	u4   slot;                          /* slot in hashtable                  */
 
-	/* search loader in the classloader hashtable */
-
-	cle = loader_hashtable_classloader_find(loader);
-
-	if (!cle)
-		return NULL;
-
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-	key  = ((u4) (ptrint) cle) >> 4;        /* align to 16-byte boundaries    */
+	key  = ((u4) (ptrint) loader) >> 4;     /* align to 16-byte boundaries    */
 	slot = key & (hashtable_library->size - 1);
 	le   = hashtable_library->ptr[slot];
 
 	/* search external hash chain for the entry */
 
 	while (le) {
-		if (le->cle == cle)
+		if (le->loader == loader)
 			break;
 
 		le = le->hashlink;                  /* next element in external chain */
@@ -980,4 +967,5 @@ java_handle_t *native_new_and_init_string(classinfo *c, java_handle_t *s)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

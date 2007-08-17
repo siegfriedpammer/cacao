@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.h 8299 2007-08-13 08:41:18Z michi $
+   $Id: native.h 8337 2007-08-17 18:41:19Z michi $
 
 */
 
@@ -80,7 +80,7 @@ typedef struct hashtable_library_loader_entry hashtable_library_loader_entry;
 typedef struct hashtable_library_name_entry   hashtable_library_name_entry;
 
 struct hashtable_library_loader_entry {
-	hashtable_classloader_entry    *cle;     /* class loader                  */
+	classloader                    *loader;  /* class loader                  */
 	hashtable_library_name_entry   *namelink;/* libs loaded by this loader    */
 	hashtable_library_loader_entry *hashlink;/* link for external chaining    */
 };
@@ -161,4 +161,5 @@ java_handle_t *native_new_and_init_string(classinfo *c, java_handle_t *s);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
