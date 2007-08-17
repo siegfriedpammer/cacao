@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: typecheck.c 8299 2007-08-13 08:41:18Z michi $
+   $Id: typecheck.c 8343 2007-08-17 21:39:32Z michi $
 
 */
 
@@ -152,6 +152,7 @@ error reporting.
 #include "toolbox/logging.h"
 
 #include "vm/access.h"
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"

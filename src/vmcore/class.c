@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8321 2007-08-16 11:37:25Z michi $
+   $Id: class.c 8343 2007-08-17 21:39:32Z michi $
 
 */
 
@@ -46,6 +46,7 @@
 
 #include "toolbox/logging.h"
 
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -523,11 +524,16 @@ static bool class_load_attribute_enclosingmethod(classbuffer *cb)
 
 bool class_load_attributes(classbuffer *cb)
 {
-	classinfo *c;
-	u4         i, j;
-	u2         attributes_count;
-	u2         attribute_name_index;
-	utf       *attribute_name;
+	classinfo             *c;
+	uint16_t               attributes_count;
+	uint16_t               attribute_name_index;
+	utf                   *attribute_name;
+	innerclassinfo        *info;
+	classref_or_classinfo  inner;
+	classref_or_classinfo  outer;
+	utf                   *name;
+	uint16_t               flags;
+	int                    i, j;
 
 	c = cb->class;
 
@@ -577,19 +583,45 @@ bool class_load_attributes(classbuffer *cb)
 			for (j = 0; j < c->innerclasscount; j++) {
 				/* The innerclass structure contains a class with an encoded
 				   name, its defining scope, its simple name and a bitmask of
-				   the access flags. If an inner class is not a member, its
-				   outer_class is NULL, if a class is anonymous, its name is
-				   NULL. */
+				   the access flags. */
    								
-				innerclassinfo *info = c->innerclass + j;
+				info = c->innerclass + j;
 
-				info->inner_class.ref =
-					innerclass_getconstant(c, suck_u2(cb), CONSTANT_Class);
-				info->outer_class.ref =
-					innerclass_getconstant(c, suck_u2(cb), CONSTANT_Class);
-				info->name =
-					innerclass_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
-				info->flags = suck_u2(cb);
+				inner.ref = innerclass_getconstant(c, suck_u2(cb), CONSTANT_Class);
+				outer.ref = innerclass_getconstant(c, suck_u2(cb), CONSTANT_Class);
+				name      = innerclass_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
+				flags     = suck_u2(cb);
+
+				/* If the current inner-class is the currently loaded
+				   class check for some special flags. */
+
+				if (inner.ref->name == c->name) {
+					/* If an inner-class is not a member, its
+					   outer-class is NULL. */
+
+					if (outer.ref != NULL) {
+						c->flags |= ACC_CLASS_MEMBER;
+
+						/* A member class doesn't have an
+						   EnclosingMethod attribute, so set the
+						   enclosing-class to be the same as the
+						   declaring-class. */
+
+						c->declaringclass = outer;
+						c->enclosingclass = outer;
+					}
+
+					/* If an inner-class is anonymous, its name is
+					   NULL. */
+
+					if (name == NULL)
+						c->flags |= ACC_CLASS_ANONYMOUS;
+				}
+
+				info->inner_class = inner;
+				info->outer_class = outer;
+				info->name        = name;
+				info->flags       = flags;
 			}
 		}
 		else if (attribute_name == utf_SourceFile) {
@@ -1608,6 +1640,21 @@ bool class_is_primitive(classinfo *c)
 }
 
 
+/* class_is_anonymousclass *****************************************************
+
+   Checks if the given class is an anonymous class.
+
+*******************************************************************************/
+
+bool class_is_anonymousclass(classinfo *c)
+{
+	if (c->flags & ACC_CLASS_ANONYMOUS)
+		return true;
+
+	return false;
+}
+
+
 /* class_is_array **************************************************************
 
    Checks if the given class is an array class.
@@ -1633,6 +1680,36 @@ bool class_is_array(classinfo *c)
 bool class_is_interface(classinfo *c)
 {
 	if (c->flags & ACC_INTERFACE)
+		return true;
+
+	return false;
+}
+
+
+/* class_is_localclass *********************************************************
+
+   Checks if the given class is a local class.
+
+*******************************************************************************/
+
+bool class_is_localclass(classinfo *c)
+{
+	if ((c->enclosingmethod != NULL) && !class_is_anonymousclass(c))
+		return true;
+
+	return false;
+}
+
+
+/* class_is_memberclass ********************************************************
+
+   Checks if the given class is a member class.
+
+*******************************************************************************/
+
+bool class_is_memberclass(classinfo *c)
+{
+	if (c->flags & ACC_CLASS_MEMBER)
 		return true;
 
 	return false;
@@ -1669,6 +1746,39 @@ classinfo *class_get_superclass(classinfo *c)
 }
 
 
+/* class_get_componenttype *****************************************************
+
+   Return the component class of the given class.  If the given class
+   is not an array, return NULL.
+
+*******************************************************************************/
+
+classinfo *class_get_componenttype(classinfo *c)
+{
+	classinfo       *component;
+	arraydescriptor *ad;
+	
+	/* XXX maybe we could find a way to do this without linking. */
+	/* This way should be safe and easy, however.                */
+
+	if (!(c->state & CLASS_LINKED))
+		if (!link_class(c))
+			return NULL;
+
+	ad = c->vftbl->arraydesc;
+	
+	if (ad == NULL)
+		return NULL;
+	
+	if (ad->arraytype == ARRAYTYPE_OBJECT)
+		component = ad->componentvftbl->class;
+	else
+		component = primitive_class_get_by_type(ad->arraytype);
+		
+	return component;
+}
+
+
 /* class_get_declaredclasses ***************************************************
 
    Return an array of declared classes of the given class.
@@ -1692,9 +1802,15 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 		/* Determine number of declared classes. */
 
 		for (i = 0; i < c->innerclasscount; i++) {
+			/* Get outer-class.  If the inner-class is not a member
+			   class, the outer-class is NULL. */
+
 			outer = c->innerclass[i].outer_class;
 
-			/* Check if outer_class is a classref or a real class and
+			if (outer.any == NULL)
+				continue;
+
+			/* Check if outer-class is a classref or a real class and
                get the class name from the structure. */
 
 			outername = IS_CLASSREF(outer) ? outer.ref->name : outer.cls->name;
@@ -1717,6 +1833,12 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 	for (i = 0, pos = 0; i < c->innerclasscount; i++) {
 		inner = c->innerclass[i].inner_class;
 		outer = c->innerclass[i].outer_class;
+
+		/* Get outer-class.  If the inner-class is not a member class,
+		   the outer-class is NULL. */
+
+		if (outer.any == NULL)
+			continue;
 
 		/* Check if outer_class is a classref or a real class and get
 		   the class name from the structure. */
@@ -1755,52 +1877,71 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 
 classinfo *class_get_declaringclass(classinfo *c)
 {
-	classref_or_classinfo  innercr;
-	utf                   *innername;
-	classref_or_classinfo  outercr;
-	classinfo             *outer;
-	int16_t                i;
+	classref_or_classinfo  cr;
+	classinfo             *dc;
 
-	/* return NULL for arrayclasses and primitive classes */
+	/* Get declaring class. */
 
-	if (class_is_primitive(c) || (c->name->text[0] == '['))
+	cr = c->declaringclass;
+
+	if (cr.any == NULL)
 		return NULL;
 
-	/* no innerclasses exist */
+	/* Resolve the class if necessary. */
 
-	if (c->innerclasscount == 0)
-		return NULL;
+	if (IS_CLASSREF(cr)) {
+/* 		dc = resolve_classref_eager(cr.ref); */
+		dc = resolve_classref_or_classinfo_eager(cr, true);
 
-	for (i = 0; i < c->innerclasscount; i++) {
-		/* Check if inner_class is a classref or a real class and get
-		   the class name from the structure. */
+		if (dc == NULL)
+			return NULL;
 
-		innercr = c->innerclass[i].inner_class;
+		/* Store the resolved class in the class structure. */
 
-		innername = IS_CLASSREF(innercr) ?
-			innercr.ref->name : innercr.cls->name;
-
-		/* Is the current innerclass this class? */
-
-		if (innername == c->name) {
-			/* Maybe the outer class is not loaded yet. */
-
-			outercr = c->innerclass[i].outer_class;
-
-			outer = resolve_classref_or_classinfo_eager(outercr, false);
-
-			if (outer == NULL)
-				return NULL;
-
-			if (!(outer->state & CLASS_LINKED))
-				if (!link_class(outer))
-					return NULL;
-
-			return outer;
-		}
+		cr.cls = dc;
 	}
 
-	return NULL;
+	dc = cr.cls;
+
+	return dc;
+}
+
+
+/* class_get_enclosingclass ****************************************************
+
+   Return the enclosing class for the given class.
+
+*******************************************************************************/
+
+classinfo *class_get_enclosingclass(classinfo *c)
+{
+	classref_or_classinfo  cr;
+	classinfo             *ec;
+
+	/* Get enclosing class. */
+
+	cr = c->enclosingclass;
+
+	if (cr.any == NULL)
+		return NULL;
+
+	/* Resolve the class if necessary. */
+
+	if (IS_CLASSREF(cr)) {
+/* 		ec = resolve_classref_eager(cr.ref); */
+		ec = resolve_classref_or_classinfo_eager(cr, true);
+
+		if (ec == NULL)
+			return NULL;
+
+		/* Store the resolved class in the class structure. */
+
+		cr.cls = ec;
+	}
+
+	ec = cr.cls;
+
+	return ec;
 }
 
 

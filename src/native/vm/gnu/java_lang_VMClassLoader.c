@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClassLoader.c 8335 2007-08-17 11:04:35Z michi $
+   $Id: java_lang_VMClassLoader.c 8343 2007-08-17 21:39:32Z michi $
 
 */
 
@@ -37,6 +37,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_String.h"
@@ -129,7 +130,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
 		return NULL;
 	}
 
-	return (java_lang_Class *) c;
+	return LLNI_classinfo_wrap(c);
 }
 
 
@@ -142,7 +143,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jc
 {
 	classinfo *ci;
 
-	ci = (classinfo *) c;
+	ci = LLNI_classinfo_unwrap(c);
 
 	if (!ci) {
 		exceptions_throw_nullpointerexception();
@@ -190,7 +191,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 		if (!link_class(c))
 			return NULL;
 
-	return (java_lang_Class *) c;
+	return LLNI_classinfo_wrap(c);
 }
 
 
@@ -378,7 +379,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_findLoadedClass(
 	if (c == NULL)
 		c = classcache_lookup(cl, u);
 
-	return (java_lang_Class *) c;
+	return LLNI_classinfo_wrap(c);
 }
 
 

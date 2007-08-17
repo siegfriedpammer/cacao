@@ -102,11 +102,15 @@ s4 get_lopart_disp(disp)
 #ifndef NDEBUG
 bool check_13bit_imm(s8 imm)
 {
-	s4 check = imm & ~0x1fff;
-	if (check == 0) return true; /* pos imm. */
-	if (check + 0x1fff == -1) return true; /* neg imm. */
+	s4 sign = (imm >> 12) & 0x1;
+
+	if (sign == 0) {
+		if ((imm & ~0xfff) == 0) return true; /* pos imm. */
+	}
+	else
+		if ((imm & ~0xfff) + 0xfff == -1) return true; /* neg imm. */
 	
-	printf("immediate out-of-bounds: %d\n", imm);
+	printf("immediate out-of-bounds: %ld\n", imm);
 	return false;
 }
 #endif
@@ -2336,15 +2340,15 @@ nowperformreturn:
 			if (l == 0) {
 				M_INTMOVE(s1, REG_ITMP1);
 			}
-			else if (l <= 4095) {
+			else if (-l >= 4096 && -l <= 4095) {
 				M_ADD_IMM(s1, -l, REG_ITMP1);
 			}
 			else {
 				ICONST(REG_ITMP2, l);
-				/* XXX: do I need to truncate s1 to 32-bit ? */
 				M_SUB(s1, REG_ITMP2, REG_ITMP1);
 			}
-			i = i - l + 1;
+
+			i = i - l + 1; /* number of targets (>0) */
 
 
 			/* range check */

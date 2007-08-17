@@ -65,21 +65,6 @@
 #define PRIMITIVETYPE_VOID    TYPE_VOID
 
 
-/* CAUTION: Don't change the numerical values! These constants (with
-   the exception of ARRAYTYPE_OBJECT) are used as indices in the
-   primitive type table. */
-
-#define ARRAYTYPE_INT         PRIMITIVETYPE_INT
-#define ARRAYTYPE_LONG        PRIMITIVETYPE_LONG
-#define ARRAYTYPE_FLOAT       PRIMITIVETYPE_FLOAT
-#define ARRAYTYPE_DOUBLE      PRIMITIVETYPE_DOUBLE
-#define ARRAYTYPE_BYTE        PRIMITIVETYPE_BYTE
-#define ARRAYTYPE_CHAR        PRIMITIVETYPE_CHAR
-#define ARRAYTYPE_SHORT       PRIMITIVETYPE_SHORT
-#define ARRAYTYPE_BOOLEAN     PRIMITIVETYPE_BOOLEAN
-#define ARRAYTYPE_OBJECT      PRIMITIVETYPE_VOID     /* don't use as index! */
-
-
 /* primitivetypeinfo **********************************************************/
 
 struct primitivetypeinfo {
@@ -110,11 +95,14 @@ bool       primitive_init(void);
 classinfo *primitive_class_get_by_name(utf *name);
 classinfo *primitive_class_get_by_type(int type);
 classinfo *primitive_class_get_by_char(char ch);
+
 classinfo *primitive_arrayclass_get_by_name(utf *name);
 classinfo *primitive_arrayclass_get_by_type(int type);
 
+int        primitive_type_get_by_wrapperclass(classinfo *c);
+
 java_handle_t *primitive_box(int type, imm_union value);
-imm_union      primitive_unbox(int type, java_handle_t *o);
+imm_union      primitive_unbox(java_handle_t *o);
 
 java_handle_t *primitive_box_boolean(int32_t value);
 java_handle_t *primitive_box_byte(int32_t value);

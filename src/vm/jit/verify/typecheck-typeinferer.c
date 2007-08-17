@@ -39,6 +39,7 @@
 
 #include "toolbox/logging.h"
 
+#include "vm/array.h"
 #include "vm/access.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"

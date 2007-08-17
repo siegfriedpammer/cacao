@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: reflect.c 8321 2007-08-16 11:37:25Z michi $
+   $Id: reflect.c 8343 2007-08-17 21:39:32Z michi $
 
 */
 
@@ -83,12 +83,10 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 	java_handle_t                 *o;
 	java_lang_reflect_Constructor *rc;
 	int32_t                        slot;
-	java_handle_bytearray_t       *annotations          = NULL;
-	java_handle_bytearray_t       *parameterAnnotations = NULL;
 
 	/* get declaring class */
 
-	c = (classinfo *) m->class;
+	c = m->class;
 
 	/* allocate a new object */
 
@@ -105,22 +103,12 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 
 	slot = m - c->methods;
 
-#if defined(ENABLE_ANNOTATIONS)
-	/* get annotations */
-
-	annotations = method_get_annotations(m);
-
-	/* get parameter annotations */
-
-	parameterAnnotations = method_get_parameterannotations(m);
-#endif
-
 #if defined(WITH_CLASSPATH_GNU)
 
 	LLNI_field_set_cls(rc, clazz               , c);
 	LLNI_field_set_val(rc, slot                , slot);
-	LLNI_field_set_ref(rc, annotations         , annotations);
-	LLNI_field_set_ref(rc, parameterAnnotations, parameterAnnotations);
+	LLNI_field_set_ref(rc, annotations         , method_get_annotations(m));
+	LLNI_field_set_ref(rc, parameterAnnotations, method_get_parameterannotations(m));
 
 #elif defined(WITH_CLASSPATH_SUN)
 
@@ -130,8 +118,8 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 	LLNI_field_set_val(rc, modifiers           , m->flags & ACC_CLASS_REFLECT_MASK);
 	LLNI_field_set_val(rc, slot                , slot);
 	LLNI_field_set_ref(rc, signature           , m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL);
-	LLNI_field_set_ref(rc, annotations         , annotations);
-	LLNI_field_set_ref(rc, parameterAnnotations, parameterAnnotations);
+	LLNI_field_set_ref(rc, annotations         , method_get_annotations(m));
+	LLNI_field_set_ref(rc, parameterAnnotations, method_get_parameterannotations(m));
 
 #else
 # error unknown classpath configuration
@@ -154,11 +142,10 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 	java_handle_t           *o;
 	java_lang_reflect_Field *rf;
 	int32_t                  slot;
-	java_handle_bytearray_t *annotations = NULL;
 
 	/* get declaring class */
 
-	c = (classinfo *) f->class;
+	c = f->class;
 
 	/* allocate a new object */
 
@@ -175,12 +162,6 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 
 	slot = f - c->fields;
 
-#if defined(ENABLE_ANNOTATIONS)
-	/* get annotations */
-
-	annotations = field_get_annotations(f);
-#endif
-
 #if defined(WITH_CLASSPATH_GNU)
 
 	LLNI_field_set_cls(rf, clazz         , c);
@@ -190,7 +171,7 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 
 	LLNI_field_set_ref(rf, name          , _Jv_java_lang_String_intern((java_lang_String *) javastring_new(f->name)));
 	LLNI_field_set_val(rf, slot          , slot);
-	LLNI_field_set_ref(rf, annotations   , annotations);
+	LLNI_field_set_ref(rf, annotations   , field_get_annotations(f));
 
 #elif defined(WITH_CLASSPATH_SUN)
 
@@ -204,7 +185,7 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 	LLNI_field_set_val(rf, modifiers     , f->flags);
 	LLNI_field_set_val(rf, slot          , slot);
 	LLNI_field_set_ref(rf, signature     , f->signature ? (java_lang_String *) javastring_new(f->signature) : NULL);
-	LLNI_field_set_ref(rf, annotations   , annotations);
+	LLNI_field_set_ref(rf, annotations   , field_get_annotations(f));
 
 #else
 # error unknown classpath configuration
@@ -227,13 +208,10 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 	java_handle_t            *o;
 	java_lang_reflect_Method *rm;
 	int32_t                   slot;
-	java_handle_bytearray_t  *annotations          = NULL;
-	java_handle_bytearray_t  *parameterAnnotations = NULL;
-	java_handle_bytearray_t  *annotationDefault    = NULL;
 
 	/* get declaring class */
 
-	c = (classinfo *) m->class;
+	c = m->class;
 
 	/* allocate a new object */
 
@@ -250,20 +228,6 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 
 	slot = m - c->methods;
 
-#if defined(ENABLE_ANNOTATIONS)
-	/* get annotations */
-
-	annotations = method_get_annotations(m);
-
-	/* get parameter annotations */
-
-	parameterAnnotations = method_get_parameterannotations(m);
-
-	/* get annotation default value */
-
-	annotationDefault = method_get_annotationdefault(m);
-#endif
-
 #if defined(WITH_CLASSPATH_GNU)
 
 	LLNI_field_set_cls(rm, clazz               , m->class);
@@ -273,9 +237,9 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 
 	LLNI_field_set_ref(rm, name                , _Jv_java_lang_String_intern((java_lang_String *) javastring_new(m->name)));
 	LLNI_field_set_val(rm, slot                , slot);
-	LLNI_field_set_ref(rm, annotations         , annotations);
-	LLNI_field_set_ref(rm, parameterAnnotations, parameterAnnotations);
-	LLNI_field_set_ref(rm, annotationDefault   , annotationDefault);
+	LLNI_field_set_ref(rm, annotations         , method_get_annotations(m));
+	LLNI_field_set_ref(rm, parameterAnnotations, method_get_parameterannotations(m));
+	LLNI_field_set_ref(rm, annotationDefault   , method_get_annotationdefault(m));
 
 #elif defined(WITH_CLASSPATH_SUN)
 
@@ -291,9 +255,9 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 	LLNI_field_set_val(rm, modifiers           , m->flags & ACC_CLASS_REFLECT_MASK);
 	LLNI_field_set_val(rm, slot                , slot);
 	LLNI_field_set_ref(rm, signature           , m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL);
-	LLNI_field_set_ref(rm, annotations         , annotations);
-	LLNI_field_set_ref(rm, parameterAnnotations, parameterAnnotations);
-	LLNI_field_set_ref(rm, annotationDefault   , annotationDefault);
+	LLNI_field_set_ref(rm, annotations         , method_get_annotations(m));
+	LLNI_field_set_ref(rm, parameterAnnotations, method_get_parameterannotations(m));
+	LLNI_field_set_ref(rm, annotationDefault   , method_get_annotationdefault(m));
 
 #else
 # error unknown classpath configuration
@@ -401,7 +365,7 @@ java_handle_objectarray_t* reflect_get_parameterannotations(
 
 	/* get parameter count */
 
-	c = (classinfo *)declaringClass;
+	c = LLNI_classinfo_unwrap(declaringClass);
 	m = &(c->methods[slot]);
 
 	numParameters = method_get_parametercount(m);

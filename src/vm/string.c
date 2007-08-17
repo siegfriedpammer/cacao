@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: string.c 8321 2007-08-16 11:37:25Z michi $
+   $Id: string.c 8343 2007-08-17 21:39:32Z michi $
 
 */
 
@@ -44,6 +44,7 @@
 
 #include "threads/lock-common.h"
 
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/primitive.h"

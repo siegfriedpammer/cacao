@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMThrowable.c 8321 2007-08-16 11:37:25Z michi $
+   $Id: java_lang_VMThrowable.c 8343 2007-08-17 21:39:32Z michi $
 
 */
 
@@ -253,7 +253,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 		/* get declaring class name */
 
 		declaringclass =
-			_Jv_java_lang_Class_getName((java_lang_Class *) ste->method->class);
+			_Jv_java_lang_Class_getName(LLNI_classinfo_wrap(ste->method->class));
 
 		/* fill the java.lang.StackTraceElement element */
 

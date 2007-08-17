@@ -41,9 +41,9 @@
 
 /* debug defines **************************************************************/
 #ifndef NDEBUG
-# define PASS13BIT(imm) (imm) & 0x1fff
+# define PASS13BIT(imm) ((((s4)(imm)&0x1fff)<<19)>>19)
 #else
-# define PASS13BIT(imm)
+# define PASS13BIT(imm) imm
 #endif
 
 
@@ -470,7 +470,7 @@ s4   get_lopart_disp(s4 disp);
         } \
         else { \
         	DO_SETHI_PART(disp,rs,rd); \
-        	M_LDX_INTERN(rd,rd,get_lopart_disp(disp)); \
+        	M_LDX_INTERN(rd,rd,PASS13BIT(get_lopart_disp(disp))); \
         } \
     } while (0)
 
@@ -482,7 +482,7 @@ s4   get_lopart_disp(s4 disp);
        } \
         else { \
             DO_SETHI_PART(disp,rs,rd); \
-            M_ILD_INTERN(rd,rd,get_lopart_disp(disp)); \
+            M_ILD_INTERN(rd,rd,PASS13BIT(get_lopart_disp(disp))); \
         } \
     } while (0)
 
@@ -503,7 +503,7 @@ s4   get_lopart_disp(s4 disp);
         } \
         else { \
             DO_SETHI_PART(disp,rs,REG_ITMP3); \
-            M_STX_INTERN(rd,REG_ITMP3,get_lopart_disp(disp)); \
+            M_STX_INTERN(rd,REG_ITMP3,PASS13BIT(get_lopart_disp(disp))); \
         } \
     } while (0)
 
@@ -516,7 +516,7 @@ s4   get_lopart_disp(s4 disp);
        } \
         else { \
             DO_SETHI_PART(disp,rs,REG_ITMP3); \
-            M_IST_INTERN(rd,REG_ITMP3,get_lopart_disp(disp)); \
+            M_IST_INTERN(rd,REG_ITMP3,PASS13BIT(get_lopart_disp(disp))); \
         } \
     } while (0)
 

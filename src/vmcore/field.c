@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: field.c 8321 2007-08-16 11:37:25Z michi $
+   $Id: field.c 8343 2007-08-17 21:39:32Z michi $
 
 */
 
@@ -386,19 +386,23 @@ void field_free(fieldinfo *f)
 }
 
 
-#if defined(ENABLE_ANNOTATIONS)
 /* field_get_annotations ******************************************************
 
    Gets a fields' annotations (or NULL if none).
 
 *******************************************************************************/
 
-java_bytearray *field_get_annotations(fieldinfo *f)
+java_handle_bytearray_t *field_get_annotations(fieldinfo *f)
 {
-	classinfo              *c           = f->class;
-	int                     slot        = f - c->fields;
-	annotation_bytearray_t *ba          = NULL;
-	java_bytearray         *annotations = NULL;
+#if defined(ENABLE_ANNOTATIONS)
+	classinfo               *c;
+	int                      slot;
+	annotation_bytearray_t  *ba;
+	java_handle_bytearray_t *annotations;
+
+	c           = f->class;
+	slot        = f - c->fields;
+	annotations = NULL;
 	
 	if (c->field_annotations != NULL && c->field_annotations->size > slot) {
 		ba = c->field_annotations->data[slot];
@@ -413,8 +417,10 @@ java_bytearray *field_get_annotations(fieldinfo *f)
 	}
 	
 	return annotations;
-}
+#else
+	return NULL;
 #endif
+}
 
 
 /* field_printflags ************************************************************

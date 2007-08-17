@@ -68,7 +68,6 @@ JNIEXPORT int32_t JNICALL      _Jv_java_lang_Class_isInterface(JNIEnv *env, java
 s4                             _Jv_java_lang_Class_isPrimitive(java_lang_Class *klass);
 java_lang_Class               *_Jv_java_lang_Class_getSuperclass(java_lang_Class *klass);
 java_handle_objectarray_t     *_Jv_java_lang_Class_getInterfaces(java_lang_Class *klass);
-java_lang_Class               *_Jv_java_lang_Class_getComponentType(java_lang_Class *klass);
 s4                             _Jv_java_lang_Class_getModifiers(java_lang_Class *klass, s4 ignoreInnerClassesAttrib);
 java_lang_Class               *_Jv_java_lang_Class_getDeclaringClass(java_lang_Class *klass);
 java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass, s4 publicOnly);
@@ -87,17 +86,10 @@ void                           _Jv_java_lang_Class_throwException(java_lang_Thro
 java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* klass);
 #endif
 
-java_lang_Class               *_Jv_java_lang_Class_getEnclosingClass(java_lang_Class *klass);
 java_lang_reflect_Constructor *_Jv_java_lang_Class_getEnclosingConstructor(java_lang_Class *klass);
 java_lang_reflect_Method      *_Jv_java_lang_Class_getEnclosingMethod(java_lang_Class *klass);
 
 java_lang_String              *_Jv_java_lang_Class_getClassSignature(java_lang_Class* klass);
-#endif
-
-#if 0
-s4                             _Jv_java_lang_Class_isAnonymousClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isLocalClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isMemberClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
 #endif
 
 #endif /* _JV_JAVA_LANG_CLASS_H */

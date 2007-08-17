@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: field.h 8321 2007-08-16 11:37:25Z michi $
+   $Id: field.h 8343 2007-08-17 21:39:32Z michi $
 */
 
 
@@ -76,9 +76,7 @@ bool       field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool);
 classinfo *field_get_type(fieldinfo *f);
 void       field_free(fieldinfo *f);
 
-#if defined(ENABLE_ANNOTATIONS)
-java_bytearray *field_get_annotations(fieldinfo *f);
-#endif
+java_handle_bytearray_t *field_get_annotations(fieldinfo *f);
 
 #if !defined(NDEBUG)
 void field_printflags(fieldinfo *f);

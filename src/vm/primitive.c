@@ -168,6 +168,28 @@ classinfo *primitive_arrayclass_get_by_type(int type)
 }
 
 
+/* primitive_type_get_by_wrapperclass ******************************************
+
+   Returns the primitive type of the given wrapper-class.
+
+*******************************************************************************/
+
+int primitive_type_get_by_wrapperclass(classinfo *c)
+{
+	int i;
+
+	/* Search primitive table. */
+
+	for (i = 0; i < PRIMITIVETYPE_COUNT; i++)
+		if (primitivetype_table[i].class_wrap == c)
+			return i;
+
+	/* Invalid primitive wrapper-class. */
+
+	return -1;
+}
+
+
 /* primitive_box ***************************************************************
 
    Box a primitive of the given type.
@@ -217,9 +239,15 @@ java_handle_t *primitive_box(int type, imm_union value)
 
 *******************************************************************************/
 
-imm_union primitive_unbox(int type, java_handle_t *o)
+imm_union primitive_unbox(java_handle_t *o)
 {
-	imm_union value;
+	classinfo *c;
+	int        type;
+	imm_union  value;
+
+	c = o->vftbl->class;
+
+	type = primitive_type_get_by_wrapperclass(c);
 
 	switch (type) {
 	case PRIMITIVETYPE_BOOLEAN:

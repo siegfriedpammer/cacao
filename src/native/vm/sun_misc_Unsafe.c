@@ -466,7 +466,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_ensureClassInitialized(JNIEnv *env, 
 {
 	classinfo *c;
 
-	c = (classinfo *) class;
+	c = LLNI_classinfo_unwrap(class);
 
 	if (!(c->state & CLASS_INITIALIZED))
 		initialize_class(c);
@@ -483,7 +483,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_arrayBaseOffset(JNIEnv *env, sun_
 	classinfo       *c;
 	arraydescriptor *ad;
 
-	c  = (classinfo *) arrayClass;
+	c  = LLNI_classinfo_unwrap(arrayClass);
 	ad = c->vftbl->arraydesc;
 
 	if (ad == NULL) {
@@ -506,7 +506,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_arrayIndexScale(JNIEnv *env, sun_
 	classinfo       *c;
 	arraydescriptor *ad;
 
-	c  = (classinfo *) arrayClass;
+	c  = LLNI_classinfo_unwrap(arrayClass);
 	ad = c->vftbl->arraydesc;
 
 	if (ad == NULL) {
@@ -576,7 +576,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_
 
 	/* for convenience */
 
-	o = (java_lang_Class *) c;
+	o = LLNI_classinfo_wrap(c);
 
 #if defined(WITH_CLASSPATH_GNU)
 	/* set ProtectionDomain */

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: llni.h 8321 2007-08-16 11:37:25Z michi $
+   $Id: llni.h 8343 2007-08-17 21:39:32Z michi $
 
 */
 
@@ -71,6 +71,21 @@
 
 #define LLNI_class_get(obj, variable) \
 	(variable) = LLNI_field_direct(obj, header.vftbl->class)
+
+
+/* LLNI classinfo wrapping / unwrapping macros *********************************
+
+   The following macros are used to wrap or unwrap a classinfo from
+   or into a handle (typically java_lang_Class).
+
+*******************************************************************************/
+
+#define LLNI_classinfo_wrap(classinfo) \
+	((java_lang_Class *) (classinfo))
+
+#define LLNI_classinfo_unwrap(clazz) \
+	((classinfo *) (clazz))
+
 
 /* XXX the direct macros have to be used inside a critical section!!! */
 

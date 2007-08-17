@@ -141,7 +141,7 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 
 	/* for convenience */
 
-	o = (java_lang_Class *) c;
+	o = LLNI_classinfo_wrap(c);
 
 #if defined(WITH_CLASSPATH_GNU)
 	/* set ProtectionDomain */

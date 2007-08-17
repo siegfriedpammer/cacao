@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Constructor.c 8321 2007-08-16 11:37:25Z michi $
+   $Id: java_lang_reflect_Constructor.c 8343 2007-08-17 21:39:32Z michi $
 
 */
 
@@ -49,8 +49,9 @@
 #include "native/include/java_lang_reflect_Constructor.h"
 
 #if defined(ENABLE_ANNOTATIONS)
-#include "native/include/sun_reflect_ConstantPool.h"
-#include "native/vm/reflect.h"
+# include "native/include/sun_reflect_ConstantPool.h"
+
+# include "native/vm/reflect.h"
 #endif
 
 #include "native/vm/java_lang_reflect_Constructor.h"
@@ -111,18 +112,13 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
  * Method:    declaredAnnotations
  * Signature: ()Ljava/util/Map;
  */
-JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Constructor_declaredAnnotations(JNIEnv *env, struct java_lang_reflect_Constructor* this)
+JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Constructor_declaredAnnotations(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
-	java_handle_t        *o                   = (java_handle_t*)this;
-	struct java_util_Map *declaredAnnotations = NULL;
-	java_bytearray       *annotations         = NULL;
-	java_lang_Class      *declaringClass      = NULL;
+	java_handle_t           *o                   = (java_handle_t*)this;
+	struct java_util_Map    *declaredAnnotations = NULL;
+	java_handle_bytearray_t *annotations         = NULL;
+	java_lang_Class         *declaringClass      = NULL;
 
-	if (this == NULL) {
-		exceptions_throw_nullpointerexception();
-		return NULL;
-	}
-	
 	LLNI_field_get_ref(this, declaredAnnotations, declaredAnnotations);
 
 	if (declaredAnnotations == NULL) {
@@ -143,17 +139,12 @@ JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Constructor_decla
  * Method:    getParameterAnnotations
  * Signature: ()[[Ljava/lang/annotation/Annotation;
  */
-JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_Constructor_getParameterAnnotations(JNIEnv *env, struct java_lang_reflect_Constructor* this)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_Constructor_getParameterAnnotations(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
-	java_handle_t   *o                    = (java_handle_t*)this;
-	java_bytearray  *parameterAnnotations = NULL;
-	int32_t          slot                 = -1;
-	java_lang_Class *declaringClass       = NULL;
-
-	if (this == NULL) {
-		exceptions_throw_nullpointerexception();
-		return NULL;
-	}
+	java_handle_t           *o                    = (java_handle_t*)this;
+	java_handle_bytearray_t *parameterAnnotations = NULL;
+	int32_t                  slot                 = -1;
+	java_lang_Class         *declaringClass       = NULL;
 
 	LLNI_field_get_ref(this, parameterAnnotations, parameterAnnotations);
 	LLNI_field_get_val(this, slot, slot);

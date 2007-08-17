@@ -26,7 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## $Id: Makefile.am 7441 2007-03-02 23:13:10Z michi $
+## $Id: Makefile.am 8343 2007-08-17 21:39:32Z michi $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -54,7 +54,8 @@ SOURCE_FILES = \
 	$(srcdir)/clinitexception.java \
 	$(srcdir)/LoadDisplacementOverflow.java \
 	$(srcdir)/FieldDisplacementOverflow.java \
-	$(srcdir)/StackDisplacementOverflow.java
+	$(srcdir)/StackDisplacementOverflow.java \
+	$(srcdir)/MinimalClassReflection.java
 
 EXTRA_DIST = \
 	$(SOURCE_FILES) \
@@ -67,7 +68,8 @@ EXTRA_DIST = \
 	clinitexception.2output \
 	LoadDisplacementOverflow.output \
 	FieldDisplacementOverflow.output \
-	StackDisplacementOverflow.output
+	StackDisplacementOverflow.output \
+	MinimalClassReflection.output
 
 CLEANFILES = \
 	*.class \
@@ -85,7 +87,8 @@ OUTPUT_JAVA_TESTS = \
 	clinitexception \
 	LoadDisplacementOverflow \
 	FieldDisplacementOverflow \
-	StackDisplacementOverflow
+	StackDisplacementOverflow \
+	MinimalClassReflection
 
 check: build $(SIMPLE_JAVA_TESTS) $(OUTPUT_JAVA_TESTS)
 

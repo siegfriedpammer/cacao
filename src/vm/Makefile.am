@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 8299 2007-08-13 08:41:18Z michi $
+## $Id: Makefile.am 8343 2007-08-17 21:39:32Z michi $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -48,6 +48,8 @@ noinst_LTLIBRARIES = \
 libvm_la_SOURCES = \
 	access.c \
 	access.h \
+	array.c \
+	array.h \
 	builtin.c \
 	builtin.h \
 	builtintable.inc \

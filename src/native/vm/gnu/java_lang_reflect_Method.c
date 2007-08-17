@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Method.c 8321 2007-08-16 11:37:25Z michi $
+   $Id: java_lang_reflect_Method.c 8343 2007-08-17 21:39:32Z michi $
 
 */
 
@@ -135,7 +135,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Method_getReturnType(J
 
 	result = method_returntype_get(m);
 
-	return (java_lang_Class *) result;
+	return LLNI_classinfo_wrap(result);
 }
 
 
@@ -288,17 +288,12 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Method_getDefa
  * Method:    declaredAnnotations
  * Signature: ()Ljava/util/Map;
  */
-JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Method_declaredAnnotations(JNIEnv *env, struct java_lang_reflect_Method* this)
+JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Method_declaredAnnotations(JNIEnv *env, java_lang_reflect_Method *this)
 {
-	java_handle_t        *o                   = (java_handle_t*)this;
-	struct java_util_Map *declaredAnnotations = NULL;
-	java_bytearray       *annotations         = NULL;
-	java_lang_Class      *declaringClass      = NULL;
-
-	if (this == NULL) {
-		exceptions_throw_nullpointerexception();
-		return NULL;
-	}
+	java_handle_t           *o                   = (java_handle_t*)this;
+	struct java_util_Map    *declaredAnnotations = NULL;
+	java_handle_bytearray_t *annotations         = NULL;
+	java_lang_Class         *declaringClass      = NULL;
 
 	LLNI_field_get_ref(this, declaredAnnotations, declaredAnnotations);
 
@@ -320,17 +315,12 @@ JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Method_declaredAn
  * Method:    getParameterAnnotations
  * Signature: ()[[Ljava/lang/annotation/Annotation;
  */
-JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_Method_getParameterAnnotations(JNIEnv *env, struct java_lang_reflect_Method* this)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_Method_getParameterAnnotations(JNIEnv *env, java_lang_reflect_Method *this)
 {
-	java_handle_t   *o                    = (java_handle_t*)this;
-	java_bytearray  *parameterAnnotations = NULL;
-	int32_t          slot                 = -1;
-	java_lang_Class *declaringClass       = NULL;
-
-	if (this == NULL) {
-		exceptions_throw_nullpointerexception();
-		return NULL;
-	}
+	java_handle_t           *o                    = (java_handle_t*)this;
+	java_handle_bytearray_t *parameterAnnotations = NULL;
+	int32_t                  slot                 = -1;
+	java_lang_Class         *declaringClass       = NULL;
 
 	LLNI_field_get_ref(this, parameterAnnotations, parameterAnnotations);
 	LLNI_field_get_val(this, slot, slot);

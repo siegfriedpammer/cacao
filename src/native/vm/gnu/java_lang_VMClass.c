@@ -22,15 +22,19 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClass.c 8321 2007-08-16 11:37:25Z michi $
+   $Id: java_lang_VMClass.c 8343 2007-08-17 21:39:32Z michi $
 
 */
 
 
 #include "config.h"
+
+#include <stdint.h>
+
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_Class.h"
@@ -43,6 +47,8 @@
 #include "native/include/java_lang_VMClass.h"
 
 #include "native/vm/java_lang_Class.h"
+
+#include "vmcore/class.h"
 
 
 /* native methods implemented by this file ************************************/
@@ -73,11 +79,9 @@ static JNINativeMethod methods[] = {
 	{ "getEnclosingConstructor", "(Ljava/lang/Class;)Ljava/lang/reflect/Constructor;",            (void *) (ptrint) &Java_java_lang_VMClass_getEnclosingConstructor },
 	{ "getEnclosingMethod",      "(Ljava/lang/Class;)Ljava/lang/reflect/Method;",                 (void *) (ptrint) &Java_java_lang_VMClass_getEnclosingMethod      },
 	{ "getClassSignature",       "(Ljava/lang/Class;)Ljava/lang/String;",                         (void *) (ptrint) &Java_java_lang_VMClass_getClassSignature       },
-#if 0
 	{ "isAnonymousClass",        "(Ljava/lang/Class;)Z",                                          (void *) (ptrint) &Java_java_lang_VMClass_isAnonymousClass        },
 	{ "isLocalClass",            "(Ljava/lang/Class;)Z",                                          (void *) (ptrint) &Java_java_lang_VMClass_isLocalClass            },
 	{ "isMemberClass",           "(Ljava/lang/Class;)Z",                                          (void *) (ptrint) &Java_java_lang_VMClass_isMemberClass           },
-#endif
 };
 
 
@@ -181,7 +185,14 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getInterface
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	return _Jv_java_lang_Class_getComponentType(klass);
+	classinfo *c;
+	classinfo *component;
+	
+	c = LLNI_classinfo_unwrap(klass);
+	
+	component = class_get_componenttype(c);
+
+	return LLNI_classinfo_wrap(component);
 }
 
 
@@ -315,7 +326,14 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredA
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getEnclosingClass(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	return _Jv_java_lang_Class_getEnclosingClass(klass);
+	classinfo *c;
+	classinfo *result;
+
+	c = LLNI_classinfo_unwrap(klass);
+
+	result = class_get_enclosingclass(c);
+
+	return LLNI_classinfo_wrap(result);
 }
 
 
@@ -352,13 +370,15 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getClassSignature(JNI
 }
 
 
-#if 0
 /*
  * Class:     java/lang/VMClass
  * Method:    isAnonymousClass
  * Signature: (Ljava/lang/Class;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAnonymousClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
+JNIEXPORT int32_t JNICALL Java_java_lang_VMClass_isAnonymousClass(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+{
+	return class_is_anonymousclass(LLNI_classinfo_unwrap(klass));
+}
 
 
 /*
@@ -366,7 +386,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAnonymousClass(JNIEnv *env, jclass
  * Method:    isLocalClass
  * Signature: (Ljava/lang/Class;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isLocalClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
+JNIEXPORT int32_t JNICALL Java_java_lang_VMClass_isLocalClass(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+{
+	return class_is_localclass(LLNI_classinfo_unwrap(klass));
+}
 
 
 /*
@@ -374,8 +397,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isLocalClass(JNIEnv *env, jclass cla
  * Method:    isMemberClass
  * Signature: (Ljava/lang/Class;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isMemberClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
-#endif
+JNIEXPORT int32_t JNICALL Java_java_lang_VMClass_isMemberClass(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+{
+	return class_is_memberclass(LLNI_classinfo_unwrap(klass));
+}
 
 
 /*

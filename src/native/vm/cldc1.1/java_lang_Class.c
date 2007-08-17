@@ -90,7 +90,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_Class_newInstance(JNIEnv *env
 	classinfo     *c;
 	java_handle_t *o;
 
-	c = (classinfo *) this;
+	c = LLNI_classinfo_unwrap(this);
 
 	o = native_new_and_init(c);
 
