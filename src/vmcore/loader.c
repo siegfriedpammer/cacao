@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: loader.c 8341 2007-08-17 21:32:01Z michi $
 
 */
 
@@ -36,6 +36,8 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
+#include "native/llni.h"
 
 #include "threads/lock-common.h"
 
@@ -1006,7 +1008,7 @@ classinfo *load_class_from_classloader(utf *name, classloader *cl)
 
 		RT_TIMING_GET_TIME(time_java);
 
-		c = (classinfo *) o;
+		c = LLNI_classinfo_unwrap(o);
 
 		if (c != NULL) {
 			/* Store this class in the loaded class cache. If another

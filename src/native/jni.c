@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8318 2007-08-16 10:05:34Z michi $
+   $Id: jni.c 8341 2007-08-17 21:32:01Z michi $
 
 */
 
@@ -1028,7 +1028,7 @@ jclass _Jv_JNI_GetSuperclass(JNIEnv *env, jclass sub)
 
 	TRACEJNICALLS("_Jv_JNI_GetSuperclass(env=%p, sub=%p)", env, sub);
 
-	c = (classinfo *) sub;
+	c = LLNI_classinfo_unwrap(sub);
 
 	if (c == NULL)
 		return NULL;
@@ -1095,7 +1095,7 @@ jint _Jv_JNI_ThrowNew(JNIEnv* env, jclass clazz, const char *msg)
 
 	STATISTICS(jniinvokation());
 
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 	if (msg == NULL)
 		msg = "";
 	s = javastring_new_from_utf_string(msg);
@@ -1406,7 +1406,7 @@ jobject _Jv_JNI_AllocObject(JNIEnv *env, jclass clazz)
 
 	STATISTICS(jniinvokation());
 
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 
 	if ((c->flags & ACC_INTERFACE) || (c->flags & ACC_ABSTRACT)) {
 		exceptions_throw_instantiationexception(c);
@@ -1437,7 +1437,7 @@ jobject _Jv_JNI_NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 
 	STATISTICS(jniinvokation());
 
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 	m = (methodinfo *) methodID;
 
 	/* create object */
@@ -1476,7 +1476,7 @@ jobject _Jv_JNI_NewObjectV(JNIEnv* env, jclass clazz, jmethodID methodID,
 
 	STATISTICS(jniinvokation());
 
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 	m = (methodinfo *) methodID;
 
 	/* create object */
@@ -1513,7 +1513,7 @@ jobject _Jv_JNI_NewObjectA(JNIEnv* env, jclass clazz, jmethodID methodID,
 
 	STATISTICS(jniinvokation());
 
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 	m = (methodinfo *) methodID;
 
 	/* create object */
@@ -1750,7 +1750,7 @@ jmethodID _Jv_JNI_GetMethodID(JNIEnv* env, jclass clazz, const char *name,
 
 	STATISTICS(jniinvokation());
 
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 
 	if (c == NULL)
 		return NULL;
@@ -1966,7 +1966,7 @@ type _Jv_JNI_CallNonvirtual##name##Method(JNIEnv *env, jobject obj,         \
 	type           ret;                                                     \
                                                                             \
 	o = (java_handle_t *) obj;                                              \
-	c = (classinfo *) clazz;                                                \
+	c = LLNI_classinfo_unwrap(clazz);                                       \
 	m = (methodinfo *) methodID;                                            \
                                                                             \
 	va_start(ap, methodID);                                                 \
@@ -1997,7 +1997,7 @@ type _Jv_JNI_CallNonvirtual##name##MethodV(JNIEnv *env, jobject obj,         \
 	type           ret;                                                      \
                                                                              \
 	o = (java_handle_t *) obj;                                               \
-	c = (classinfo *) clazz;                                                 \
+	c = LLNI_classinfo_unwrap(clazz);                                        \
 	m = (methodinfo *) methodID;                                             \
                                                                              \
 	ret = _Jv_jni_CallIntMethod(o, c->vftbl, m, args);                       \
@@ -2045,7 +2045,7 @@ jobject _Jv_JNI_CallNonvirtualObjectMethod(JNIEnv *env, jobject obj,
 	va_list        ap;
 
 	o = (java_handle_t *) obj;
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
@@ -2066,7 +2066,7 @@ jobject _Jv_JNI_CallNonvirtualObjectMethodV(JNIEnv *env, jobject obj,
 	java_handle_t *r;
 
 	o = (java_handle_t *) obj;
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 	m = (methodinfo *) methodID;
 
 	r = _Jv_jni_CallObjectMethod(o, c->vftbl, m, args);
@@ -2094,7 +2094,7 @@ void _Jv_JNI_CallNonvirtualVoidMethod(JNIEnv *env, jobject obj, jclass clazz,
 	va_list        ap;
 
 	o = (java_handle_t *) obj;
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
@@ -2111,7 +2111,7 @@ void _Jv_JNI_CallNonvirtualVoidMethodV(JNIEnv *env, jobject obj, jclass clazz,
 	methodinfo    *m;
 
 	o = (java_handle_t *) obj;
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 	m = (methodinfo *) methodID;
 
 	_Jv_jni_CallVoidMethod(o, c->vftbl, m, args);
@@ -2126,7 +2126,7 @@ void _Jv_JNI_CallNonvirtualVoidMethodA(JNIEnv *env, jobject obj, jclass clazz,
 	methodinfo    *m;
 
 	o = (java_handle_t *) obj;
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 	m = (methodinfo *) methodID;
 
 	_Jv_jni_CallVoidMethodA(o, c->vftbl, m, args);
@@ -2154,7 +2154,7 @@ jfieldID _Jv_JNI_GetFieldID(JNIEnv *env, jclass clazz, const char *name,
 
 	STATISTICS(jniinvokation());
 
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 
 	/* XXX NPE check? */
 
@@ -2272,7 +2272,7 @@ jmethodID _Jv_JNI_GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name,
 
 	STATISTICS(jniinvokation());
 
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 
 	if (!c)
 		return NULL;
@@ -2475,7 +2475,7 @@ jfieldID _Jv_JNI_GetStaticFieldID(JNIEnv *env, jclass clazz, const char *name,
 
 	STATISTICS(jniinvokation());
 
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 
 	uname = utf_new_char((char *) name);
 	usig  = utf_new_char((char *) sig);
@@ -2505,7 +2505,7 @@ type _Jv_JNI_GetStatic##name##Field(JNIEnv *env, jclass clazz, \
                                                                \
 	STATISTICS(jniinvokation());                               \
                                                                \
-	c = (classinfo *) clazz;                                   \
+	c = LLNI_classinfo_unwrap(clazz);                          \
 	f = (fieldinfo *) fieldID;                                 \
                                                                \
 	if (!(c->state & CLASS_INITIALIZED))                       \
@@ -2533,7 +2533,7 @@ jobject _Jv_JNI_GetStaticObjectField(JNIEnv *env, jclass clazz,
 
 	STATISTICS(jniinvokation());
 
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 	f = (fieldinfo *) fieldID;
 
 	if (!(c->state & CLASS_INITIALIZED))
@@ -2561,7 +2561,7 @@ void _Jv_JNI_SetStatic##name##Field(JNIEnv *env, jclass clazz, \
                                                                \
 	STATISTICS(jniinvokation());                               \
                                                                \
-	c = (classinfo *) clazz;                                   \
+	c = LLNI_classinfo_unwrap(clazz);                          \
 	f = (fieldinfo *) fieldID;                                 \
                                                                \
 	if (!(c->state & CLASS_INITIALIZED))                       \
@@ -2589,7 +2589,7 @@ void _Jv_JNI_SetStaticObjectField(JNIEnv *env, jclass clazz, jfieldID fieldID,
 
 	STATISTICS(jniinvokation());
 
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 	f = (fieldinfo *) fieldID;
 
 	if (!(c->state & CLASS_INITIALIZED))
@@ -2879,7 +2879,7 @@ jobjectArray _Jv_JNI_NewObjectArray(JNIEnv *env, jsize length,
 
 	STATISTICS(jniinvokation());
 
-	c = (classinfo *) elementClass;
+	c = LLNI_classinfo_unwrap(elementClass);
 	o = (java_handle_t *) initialElement;
 
 	if (length < 0) {
@@ -3139,7 +3139,7 @@ jint _Jv_JNI_RegisterNatives(JNIEnv *env, jclass clazz,
 
 	STATISTICS(jniinvokation());
 
-	c = (classinfo *) clazz;
+	c = LLNI_classinfo_unwrap(clazz);
 
 	/* XXX: if implemented this needs a call to jvmti_NativeMethodBind
 	if (jvmti) jvmti_NativeMethodBind(method, address,  new_address_ptr);

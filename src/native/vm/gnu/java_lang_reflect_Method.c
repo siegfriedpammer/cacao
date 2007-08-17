@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Method.c 8326 2007-08-16 17:45:49Z twisti $
+   $Id: java_lang_reflect_Method.c 8341 2007-08-17 21:32:01Z michi $
 
 */
 
@@ -135,7 +135,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Method_getReturnType(J
 
 	result = method_returntype_get(m);
 
-	return (java_lang_Class *) result;
+	return LLNI_classinfo_wrap(result);
 }
 
 

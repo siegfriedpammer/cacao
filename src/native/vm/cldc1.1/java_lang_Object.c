@@ -88,7 +88,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_Object_getClass(JNIEnv *env, j
 
 	c = o->vftbl->class;
 
-	return (java_lang_Class *) c;
+	return LLNI_classinfo_wrap(c);
 }
 
 

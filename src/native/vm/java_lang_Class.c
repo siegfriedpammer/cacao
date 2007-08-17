@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8339 2007-08-17 21:21:51Z twisti $
+   $Id: java_lang_Class.c 8341 2007-08-17 21:32:01Z michi $
 
 */
 
@@ -99,7 +99,7 @@ java_lang_String *_Jv_java_lang_Class_getName(java_lang_Class *klass)
 	java_chararray_t *ca;
 	u4                i;
 
-	c = (classinfo *) klass;
+	c = LLNI_classinfo_unwrap(klass);
 
 	/* create a java string */
 
@@ -190,7 +190,7 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 		if (!initialize_class(c))
 			return NULL;
 
-	return (java_lang_Class *) c;
+	return LLNI_classinfo_wrap(c);
 }
 
 
@@ -204,7 +204,7 @@ s4 _Jv_java_lang_Class_isInstance(java_lang_Class *klass, java_lang_Object *o)
 	classinfo     *c;
 	java_handle_t *ob;
 
-	c = (classinfo *) klass;
+	c = LLNI_classinfo_unwrap(klass);
 	ob = (java_handle_t *) o;
 
 	if (!(c->state & CLASS_LINKED))
@@ -225,8 +225,8 @@ s4 _Jv_java_lang_Class_isAssignableFrom(java_lang_Class *klass, java_lang_Class 
 	classinfo *kc;
 	classinfo *cc;
 
-	kc = (classinfo *) klass;
-	cc = (classinfo *) c;
+	kc = LLNI_classinfo_unwrap(klass);
+	cc = LLNI_classinfo_unwrap(c);
 
 	if (cc == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -254,7 +254,7 @@ JNIEXPORT int32_t JNICALL _Jv_java_lang_Class_isInterface(JNIEnv *env, java_lang
 {
 	classinfo *c;
 
-	c = (classinfo *) this;
+	c = LLNI_classinfo_unwrap(this);
 
 	return class_is_interface(c);
 }
@@ -271,7 +271,7 @@ s4 _Jv_java_lang_Class_isPrimitive(java_lang_Class *klass)
 {
 	classinfo *c;
 
-	c = (classinfo *) klass;
+	c = LLNI_classinfo_unwrap(klass);
 
 	return class_is_primitive(c);
 }
@@ -287,11 +287,11 @@ java_lang_Class *_Jv_java_lang_Class_getSuperclass(java_lang_Class *klass)
 	classinfo *c;
 	classinfo *super;
 
-	c = (classinfo *) klass;
+	c = LLNI_classinfo_unwrap(klass);
 
 	super = class_get_superclass(c);
 
-	return (java_lang_Class *) super;
+	return LLNI_classinfo_wrap(super);
 }
 
 
@@ -305,7 +305,7 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getInterfaces(java_lang_Class *kl
 	classinfo                 *c;
 	java_handle_objectarray_t *oa;
 
-	c = (classinfo *) klass;
+	c = LLNI_classinfo_unwrap(klass);
 
 	oa = class_get_interfaces(c);
 
@@ -326,7 +326,7 @@ s4 _Jv_java_lang_Class_getModifiers(java_lang_Class *klass, s4 ignoreInnerClasse
 	utf                   *innername;
 	s4                     i;
 
-	c = (classinfo *) klass;
+	c = LLNI_classinfo_unwrap(klass);
 
 	if (!ignoreInnerClassesAttrib && (c->innerclasscount != 0)) {
 		/* search for passed class as inner class */
@@ -368,10 +368,13 @@ s4 _Jv_java_lang_Class_getModifiers(java_lang_Class *klass, s4 ignoreInnerClasse
 java_lang_Class *_Jv_java_lang_Class_getDeclaringClass(java_lang_Class *klass)
 {
 	classinfo *c;
+	classinfo *dc;
 
-	c = (classinfo *) klass;
+	c = LLNI_classinfo_unwrap(klass);
 
-	return (java_lang_Class *) class_get_declaringclass(c);
+	dc = class_get_declaringclass(c);
+
+	return LLNI_classinfo_wrap(dc);
 }
 
 
@@ -385,7 +388,7 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Clas
 	classinfo                 *c;
 	java_handle_objectarray_t *oa;
 
-	c = (classinfo *) klass;
+	c = LLNI_classinfo_unwrap(klass);
 
 	oa = class_get_declaredclasses(c, publicOnly);
 
@@ -408,7 +411,7 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class
 	s4 pos;
 	s4 i;
 
-	c = (classinfo *) klass;
+	c = LLNI_classinfo_unwrap(klass);
 
 	/* determine number of fields */
 
@@ -459,7 +462,7 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Clas
 	s4 pos;
 	s4 i;
 
-	c = (classinfo *) klass;
+	c = LLNI_classinfo_unwrap(klass);
 
 	public_methods = 0;
 
@@ -523,7 +526,7 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredConstructors(java_lang
 	s4 pos;
 	s4 i;
 
-	c = (classinfo *) klass;
+	c = LLNI_classinfo_unwrap(klass);
 
 	/* determine number of constructors */
 
@@ -569,7 +572,7 @@ java_lang_ClassLoader *_Jv_java_lang_Class_getClassLoader(java_lang_Class *klass
 {
 	classinfo *c;
 
-	c = (classinfo *) klass;
+	c = LLNI_classinfo_unwrap(klass);
 
 	return (java_lang_ClassLoader *) c->classloader;
 }
@@ -586,7 +589,7 @@ JNIEXPORT int32_t JNICALL _Jv_java_lang_Class_isArray(JNIEnv *env, java_lang_Cla
 {
 	classinfo *c;
 
-	c = (classinfo *) this;
+	c = LLNI_classinfo_unwrap(this);
 
 	return class_is_array(c);
 }
@@ -617,7 +620,7 @@ void _Jv_java_lang_Class_throwException(java_lang_Throwable *t)
  */
 java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* klass)
 {
-	classinfo                *c               = (classinfo*)klass;
+	classinfo                *c               = LLNI_classinfo_unwrap(klass);
 	static methodinfo        *m_parseAnnotationsIntoArray   = NULL;
 	utf                      *utf_parseAnnotationsIntoArray = NULL;
 	utf                      *utf_desc        = NULL;
@@ -738,7 +741,7 @@ java_lang_reflect_Constructor *_Jv_java_lang_Class_getEnclosingConstructor(java_
 	methodinfo                    *m;
 	java_lang_reflect_Constructor *rc;
 
-	c = (classinfo *) klass;
+	c = LLNI_classinfo_unwrap(klass);
 
 	/* get enclosing method */
 
@@ -771,7 +774,7 @@ java_lang_reflect_Method *_Jv_java_lang_Class_getEnclosingMethod(java_lang_Class
 	methodinfo               *m;
 	java_lang_reflect_Method *rm;
 
-	c = (classinfo *) klass;
+	c = LLNI_classinfo_unwrap(klass);
 
 	/* get enclosing method */
 
@@ -803,7 +806,7 @@ java_lang_String *_Jv_java_lang_Class_getClassSignature(java_lang_Class* klass)
 	classinfo     *c;
 	java_handle_t *o;
 
-	c = (classinfo *) klass;
+	c = LLNI_classinfo_unwrap(klass);
 
 	if (c->signature == NULL)
 		return NULL;

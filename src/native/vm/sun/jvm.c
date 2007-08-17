@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8333 2007-08-16 21:46:32Z pm $
+   $Id: jvm.c 8341 2007-08-17 21:32:01Z michi $
 
 */
 
@@ -466,7 +466,7 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 	/* get declaring class name */
 
 	declaringclass =
-		_Jv_java_lang_Class_getName((java_lang_Class *) ste->method->class);
+		_Jv_java_lang_Class_getName(LLNI_classinfo_wrap(ste->method->class));
 
 	/* fill the java.lang.StackTraceElement element */
 
@@ -664,7 +664,7 @@ jclass JVM_FindPrimitiveClass(JNIEnv* env, const char* s)
 	u = utf_new_char(s);
 	c = primitive_class_get_by_name(u);
 
-	return (jclass) c;
+	return LLNI_classinfo_wrap(c);
 }
 
 
@@ -696,7 +696,7 @@ jclass JVM_FindClassFromClassLoader(JNIEnv* env, const char* name, jboolean init
 			if (!initialize_class(c))
 				return NULL;
 
-	return (jclass) c;
+	return LLNI_classinfo_wrap(c);
 }
 
 
@@ -725,7 +725,7 @@ jclass JVM_DefineClassWithSource(JNIEnv *env, const char *name, jobject loader, 
 #endif
 	/* XXX do something with pd and source */
 
-	return (jclass) class_define(utf_new_char(name), (classloader *) loader, len, (u1 *) buf);
+	return LLNI_classinfo_wrap( class_define(utf_new_char(name), (classloader *) loader, len, (u1 *) buf) );
 
 }
 
@@ -747,7 +747,7 @@ jclass JVM_FindLoadedClass(JNIEnv *env, jobject loader, jstring name)
 	u = javastring_toutf((java_handle_t *) name, true);
 	c = classcache_lookup(cl, u);
 
-	return (jclass) c;
+	return LLNI_classinfo_wrap(c);
 }
 
 
@@ -771,7 +771,7 @@ jobjectArray JVM_GetClassInterfaces(JNIEnv *env, jclass cls)
 
 	TRACEJVMCALLS("JVM_GetClassInterfaces(env=%p, cls=%p)", env, cls);
 
-	c = (classinfo *) cls;
+	c = LLNI_classinfo_unwrap(cls);
 
 	oa = class_get_interfaces(c);
 
@@ -800,7 +800,7 @@ jboolean JVM_IsInterface(JNIEnv *env, jclass cls)
 	log_println("JVM_IsInterface: cls=%p", cls);
 #endif
 
-	c = (classinfo *) cls;
+	c = LLNI_classinfo_unwrap(cls);
 
 	return class_is_interface(c);
 }
@@ -832,7 +832,7 @@ jobject JVM_GetProtectionDomain(JNIEnv *env, jclass cls)
 	log_println("JVM_GetProtectionDomain: cls=%p");
 #endif
 
-	c = (classinfo *) cls;
+	c = LLNI_classinfo_unwrap(cls);
 
 	if (c == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -927,7 +927,7 @@ jboolean JVM_IsArrayClass(JNIEnv *env, jclass cls)
 #if PRINTJVM
 	log_println("JVM_IsArrayClass: cls=%p", cls);
 #endif
-	return class_is_array((classinfo *) cls);
+	return class_is_array(LLNI_classinfo_unwrap(cls));
 }
 
 
@@ -937,7 +937,7 @@ jboolean JVM_IsPrimitiveClass(JNIEnv *env, jclass cls)
 {
 	classinfo *c;
 
-	c = (classinfo *) cls;
+	c = LLNI_classinfo_unwrap(cls);
 
 #if PRINTJVM
 	log_println("JVM_IsPrimitiveClass(cls=%p)", cls);
@@ -956,11 +956,11 @@ jclass JVM_GetComponentType(JNIEnv *env, jclass cls)
 	
 	TRACEJVMCALLS("JVM_GetComponentType(env=%p, cls=%p)", env, cls);
 
-	c = (classinfo *) cls;
+	c = LLNI_classinfo_unwrap(cls);
 	
 	component = class_get_componenttype(c);
 
-	return (jclass) component;
+	return LLNI_classinfo_wrap(component);
 }
 
 
@@ -974,7 +974,7 @@ jint JVM_GetClassModifiers(JNIEnv *env, jclass cls)
 	log_println("JVM_GetClassModifiers: cls=%p", cls);
 #endif
 
-	c = (classinfo *) cls;
+	c = LLNI_classinfo_unwrap(cls);
 
 	/* XXX is this correct? */
 
@@ -991,7 +991,7 @@ jobjectArray JVM_GetDeclaredClasses(JNIEnv *env, jclass ofClass)
 
 	TRACEJVMCALLS("JVM_GetDeclaredClasses(env=%p, ofClass=%p)", env, ofClass);
 
-	c = (classinfo *) ofClass;
+	c = LLNI_classinfo_unwrap(ofClass);
 
 	oa = class_get_declaredclasses(c, false);
 
@@ -1003,7 +1003,7 @@ jobjectArray JVM_GetDeclaredClasses(JNIEnv *env, jclass ofClass)
 
 jclass JVM_GetDeclaringClass(JNIEnv *env, jclass ofClass)
 {
-	classinfo *c = (classinfo*)ofClass;
+	classinfo *c = LLNI_classinfo_unwrap(ofClass);
 
 	TRACEJVMCALLS("JVM_GetDeclaringClass: ofClass=%p", ofClass);
 
@@ -1012,7 +1012,7 @@ jclass JVM_GetDeclaringClass(JNIEnv *env, jclass ofClass)
 		return NULL;
 	}
 
-	return (jclass)class_get_declaringclass(c);
+	return LLNI_classinfo_wrap(class_get_declaringclass(c));
 }
 
 
@@ -1029,7 +1029,7 @@ jstring JVM_GetClassSignature(JNIEnv *env, jclass cls)
 jbyteArray JVM_GetClassAnnotations(JNIEnv *env, jclass cls)
 {
 #if defined(ENABLE_ANNOTATIONS)
-	classinfo *c = (classinfo*)cls;
+	classinfo *c = LLNI_classinfo_unwrap(cls);
 	java_handle_bytearray_t *annotations = NULL;
 
 	TRACEJVMCALLS("JVM_GetClassAnnotations: cls=%p", cls);
@@ -1187,7 +1187,7 @@ jint JVM_GetClassAccessFlags(JNIEnv *env, jclass cls)
 	log_println("JVM_GetClassAccessFlags: cls=%p", cls);
 #endif
 
-	c = (classinfo *) cls;
+	c = LLNI_classinfo_unwrap(cls);
 
 	return c->flags & ACC_CLASS_REFLECT_MASK;
 }
@@ -1228,7 +1228,7 @@ jobject JVM_GetClassConstantPool(JNIEnv *env, jclass cls)
 
 jint JVM_ConstantPoolGetSize(JNIEnv *env, jobject unused, jobject jcpool)
 {
-	classinfo *cls = (classinfo*)jcpool;
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 	TRACEJVMCALLS("JVM_ConstantPoolGetSize: jcpool=%p", jcpool);
 	return cls->cpcount;
 }
@@ -1239,7 +1239,7 @@ jint JVM_ConstantPoolGetSize(JNIEnv *env, jobject unused, jobject jcpool)
 jclass JVM_ConstantPoolGetClassAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
 	constant_classref *ref;
-	classinfo *cls = (classinfo*)jcpool;
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 	
 	TRACEJVMCALLS("JVM_ConstantPoolGetClassAt: jcpool=%p, index=%d", jcpool, index);
 
@@ -1249,7 +1249,7 @@ jclass JVM_ConstantPoolGetClassAt(JNIEnv *env, jobject unused, jobject jcpool, j
 		return NULL;
 	}
 
-	return (jclass)resolve_classref_eager(ref);
+	return LLNI_classinfo_wrap(resolve_classref_eager(ref));
 }
 
 
@@ -1259,7 +1259,7 @@ jclass JVM_ConstantPoolGetClassAtIfLoaded(JNIEnv *env, jobject unused, jobject j
 {
 	constant_classref *ref;
 	classinfo *c = NULL;
-	classinfo *cls = (classinfo*)jcpool;
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetClassAtIfLoaded: jcpool=%p, index=%d", jcpool, index);
 
@@ -1277,7 +1277,7 @@ jclass JVM_ConstantPoolGetClassAtIfLoaded(JNIEnv *env, jobject unused, jobject j
 		return NULL;
 	}
 	
-	return (jclass)c;
+	return LLNI_classinfo_wrap(c);
 }
 
 
@@ -1286,7 +1286,7 @@ jclass JVM_ConstantPoolGetClassAtIfLoaded(JNIEnv *env, jobject unused, jobject j
 jobject JVM_ConstantPoolGetMethodAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
 	constant_FMIref *ref;
-	classinfo *cls = (classinfo*)jcpool;
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 	
 	TRACEJVMCALLS("JVM_ConstantPoolGetMethodAt: jcpool=%p, index=%d", jcpool, index);
 
@@ -1307,7 +1307,7 @@ jobject JVM_ConstantPoolGetMethodAtIfLoaded(JNIEnv *env, jobject unused, jobject
 {
 	constant_FMIref *ref;
 	classinfo *c = NULL;
-	classinfo *cls = (classinfo*)jcpool;
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetMethodAtIfLoaded: jcpool=%p, index=%d", jcpool, index);
 
@@ -1334,7 +1334,7 @@ jobject JVM_ConstantPoolGetMethodAtIfLoaded(JNIEnv *env, jobject unused, jobject
 jobject JVM_ConstantPoolGetFieldAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
 	constant_FMIref *ref;
-	classinfo *cls = (classinfo*)jcpool;
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 	
 	TRACEJVMCALLS("JVM_ConstantPoolGetFieldAt: jcpool=%p, index=%d", jcpool, index);
 
@@ -1354,12 +1354,11 @@ jobject JVM_ConstantPoolGetFieldAtIfLoaded(JNIEnv *env, jobject unused, jobject 
 {
 	constant_FMIref *ref;
 	classinfo *c;
-	classinfo *cls = (classinfo*)jcpool;
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetFieldAtIfLoaded: jcpool=%p, index=%d", jcpool, index);
 
-	ref = (constant_FMIref*)class_getconstant(
-		(classinfo*)cls, index, CONSTANT_Fieldref);
+	ref = (constant_FMIref*)class_getconstant(cls, index, CONSTANT_Fieldref);
 
 	if (ref == NULL) {
 		return NULL;
@@ -1391,7 +1390,7 @@ jobjectArray JVM_ConstantPoolGetMemberRefInfoAt(JNIEnv *env, jobject unused, job
 jint JVM_ConstantPoolGetIntAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
 	constant_integer *ref;
-	classinfo *cls = (classinfo*)jcpool;
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetIntAt: jcpool=%p, index=%d", jcpool, index);
 
@@ -1410,7 +1409,7 @@ jint JVM_ConstantPoolGetIntAt(JNIEnv *env, jobject unused, jobject jcpool, jint 
 jlong JVM_ConstantPoolGetLongAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
 	constant_long *ref;
-	classinfo *cls = (classinfo*)jcpool;
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetLongAt: jcpool=%p, index=%d", jcpool, index);
 
@@ -1429,7 +1428,7 @@ jlong JVM_ConstantPoolGetLongAt(JNIEnv *env, jobject unused, jobject jcpool, jin
 jfloat JVM_ConstantPoolGetFloatAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
 	constant_float *ref;
-	classinfo *cls = (classinfo*)jcpool;
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetFloatAt: jcpool=%p, index=%d", jcpool, index);
 
@@ -1448,7 +1447,7 @@ jfloat JVM_ConstantPoolGetFloatAt(JNIEnv *env, jobject unused, jobject jcpool, j
 jdouble JVM_ConstantPoolGetDoubleAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
 	constant_double *ref;
-	classinfo *cls = (classinfo*)jcpool;
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetDoubleAt: jcpool=%p, index=%d", jcpool, index);
 
@@ -1467,7 +1466,7 @@ jdouble JVM_ConstantPoolGetDoubleAt(JNIEnv *env, jobject unused, jobject jcpool,
 jstring JVM_ConstantPoolGetStringAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
 	utf *ref;
-	classinfo *cls = (classinfo*)jcpool;
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetStringAt: jcpool=%p, index=%d", jcpool, index);
 	
@@ -1487,7 +1486,7 @@ jstring JVM_ConstantPoolGetStringAt(JNIEnv *env, jobject unused, jobject jcpool,
 jstring JVM_ConstantPoolGetUTF8At(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
 	utf *ref;
-	classinfo *cls = (classinfo*)jcpool;
+	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetUTF8At: jcpool=%p, index=%d", jcpool, index);
 
@@ -2291,7 +2290,7 @@ jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 
 	TRACEJVMCALLS("JVM_NewArray(env=%p, eltClass=%p, length=%d)", env, eltClass, length);
 
-	c = (classinfo *) eltClass;
+	c = LLNI_classinfo_unwrap(eltClass);
 
 	/* create primitive or object array */
 

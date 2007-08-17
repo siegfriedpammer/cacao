@@ -78,7 +78,7 @@ java_lang_Class *_Jv_java_lang_Object_getClass(java_lang_Object *obj)
 
 	LLNI_class_get(obj, c);
 
-	return (java_lang_Class *) c;
+	return LLNI_classinfo_wrap(c);
 }
 
 

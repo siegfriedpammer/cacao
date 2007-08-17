@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: reflect.c 8322 2007-08-16 15:54:38Z twisti $
+   $Id: reflect.c 8341 2007-08-17 21:32:01Z michi $
 
 */
 
@@ -86,7 +86,7 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 
 	/* get declaring class */
 
-	c = (classinfo *) m->class;
+	c = m->class;
 
 	/* allocate a new object */
 
@@ -145,7 +145,7 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 
 	/* get declaring class */
 
-	c = (classinfo *) f->class;
+	c = f->class;
 
 	/* allocate a new object */
 
@@ -211,7 +211,7 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 
 	/* get declaring class */
 
-	c = (classinfo *) m->class;
+	c = m->class;
 
 	/* allocate a new object */
 
@@ -365,7 +365,7 @@ java_handle_objectarray_t* reflect_get_parameterannotations(
 
 	/* get parameter count */
 
-	c = (classinfo *)declaringClass;
+	c = LLNI_classinfo_unwrap(declaringClass);
 	m = &(c->methods[slot]);
 
 	numParameters = method_get_parametercount(m);
