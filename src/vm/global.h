@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: global.h 8318 2007-08-16 10:05:34Z michi $
+   $Id: global.h 8339 2007-08-17 21:21:51Z twisti $
 
 */
 
@@ -177,14 +177,16 @@ typedef struct java_objectarray_t java_objectarray_t;
 
 #define ACC_CLASS_REFLECT_MASK      0x0000ffff/* flags reported by reflection */
 
-#define ACC_CLASS_PRIMITIVE         0x00010000/* class is a primitive class   */
+#define ACC_CLASS_PRIMITIVE         0x00010000
+#define ACC_CLASS_MEMBER            0x00020000
+#define ACC_CLASS_ANONYMOUS         0x00040000
 
-#define ACC_CLASS_HAS_POINTERS      0x00020000/* instance contains pointers   */
+#define ACC_CLASS_HAS_POINTERS      0x00080000/* instance contains pointers   */
 
-#define ACC_CLASS_REFERENCE_MASK    0x001c0000
-#define ACC_CLASS_REFERENCE_SOFT    0x00040000
-#define ACC_CLASS_REFERENCE_WEAK    0x00080000
-#define ACC_CLASS_REFERENCE_PHANTOM 0x00100000
+#define ACC_CLASS_REFERENCE_MASK    0x00700000
+#define ACC_CLASS_REFERENCE_SOFT    0x00100000
+#define ACC_CLASS_REFERENCE_WEAK    0x00200000
+#define ACC_CLASS_REFERENCE_PHANTOM 0x00400000
 
 
 /* special flags used in methodinfo *******************************************/

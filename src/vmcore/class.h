@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8330 2007-08-16 18:15:51Z twisti $
+   $Id: class.h 8339 2007-08-17 21:21:51Z twisti $
 
 */
 
@@ -137,6 +137,8 @@ struct classinfo {                /* class structure                          */
 
 	u2          innerclasscount;  /* number of inner classes                  */
 	innerclassinfo *innerclass;
+
+	classref_or_classinfo  declaringclass;
 
 #if defined(ENABLE_JAVASE)
 	classref_or_classinfo  enclosingclass;  /* enclosing class                */
@@ -357,20 +359,25 @@ methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *dest);
 methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
 methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
 
-bool              class_issubclass(classinfo *sub, classinfo *super);
-bool              class_isanysubclass(classinfo *sub, classinfo *super);
-bool              class_is_primitive(classinfo *c);
-bool              class_is_array(classinfo *c);
-bool              class_is_interface(classinfo *c);
+bool class_issubclass(classinfo *sub, classinfo *super);
+bool class_isanysubclass(classinfo *sub, classinfo *super);
+
+bool                       class_is_primitive(classinfo *c);
+bool                       class_is_anonymousclass(classinfo *c);
+bool                       class_is_array(classinfo *c);
+bool                       class_is_interface(classinfo *c);
+bool                       class_is_localclass(classinfo *c);
+bool                       class_is_memberclass(classinfo *c);
 
 classinfo                 *class_get_superclass(classinfo *c);
 classinfo                 *class_get_componenttype(classinfo *c);
 java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOnly);
 classinfo                 *class_get_declaringclass(classinfo *c);
+classinfo                 *class_get_enclosingclass(classinfo *c);
 java_handle_objectarray_t *class_get_interfaces(classinfo *c);
 
 #if defined(ENABLE_JAVASE)
-utf              *class_get_signature(classinfo *c);
+utf                       *class_get_signature(classinfo *c);
 #endif
 
 /* some debugging functions */

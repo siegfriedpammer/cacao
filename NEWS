@@ -5,6 +5,8 @@ New in release 0.99 (August x, 2007)
   * Use 8-byte stack-slots on all architectures.
   * Faster C-to-Java calls.
   * Removed genoffsets, cross-compilation is now much easier.
+  * Implemented Class.isAnonymousClass(), isLocalClass() and
+    isMemberClass() for GNU Classpath.
 
 
 New in release 0.98 (June 6, 2007)

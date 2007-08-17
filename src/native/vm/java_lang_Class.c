@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8330 2007-08-16 18:15:51Z twisti $
+   $Id: java_lang_Class.c 8339 2007-08-17 21:21:51Z twisti $
 
 */
 
@@ -688,41 +688,6 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_
 #endif
 
 
-/*
- * Class:     java/lang/Class
- * Method:    getEnclosingClass
- * Signature: (Ljava/lang/Class;)Ljava/lang/Class;
- */
-java_lang_Class *_Jv_java_lang_Class_getEnclosingClass(java_lang_Class *klass)
-{
-	classinfo             *c;
-	classref_or_classinfo  cr;
-	classinfo             *ec;
-
-	c = (classinfo *) klass;
-
-	/* get enclosing class */
-
-	cr = c->enclosingclass;
-
-	if (cr.any == NULL)
-		return NULL;
-
-	/* resolve the class if necessary */
-
-	if (IS_CLASSREF(cr)) {
-		ec = resolve_classref_eager(cr.ref);
-
-		if (ec == NULL)
-			return NULL;
-	}
-	else
-		ec = cr.cls;
-
-	return (java_lang_Class *) ec;
-}
-
-
 /* _Jv_java_lang_Class_getEnclosingMethod_intern *******************************
 
    Helper function for _Jv_java_lang_Class_getEnclosingConstructor and
@@ -732,34 +697,22 @@ java_lang_Class *_Jv_java_lang_Class_getEnclosingClass(java_lang_Class *klass)
 
 static methodinfo *_Jv_java_lang_Class_getEnclosingMethod_intern(classinfo *c)
 {
-	classref_or_classinfo     cr;
-	constant_nameandtype     *cn;
-	classinfo                *ec;
-	methodinfo               *m;
+	constant_nameandtype *cn;
+	classinfo            *ec;
+	methodinfo           *m;
 
 	/* get enclosing class and method */
 
-	cr = c->enclosingclass;
+	ec = class_get_enclosingclass(c);
 	cn = c->enclosingmethod;
 
 	/* check for enclosing class and method */
 
-	if (cr.any == NULL)
+	if (ec == NULL)
 		return NULL;
 
 	if (cn == NULL)
 		return NULL;
-
-	/* resolve the class if necessary */
-
-	if (IS_CLASSREF(cr)) {
-		ec = resolve_classref_eager(cr.ref);
-
-		if (ec == NULL)
-			return NULL;
-	}
-	else
-		ec = cr.cls;
 
 	/* find method in enclosing class */
 
@@ -861,32 +814,6 @@ java_lang_String *_Jv_java_lang_Class_getClassSignature(java_lang_Class* klass)
 
 	return (java_lang_String *) o;
 }
-
-
-#if 0
-/*
- * Class:     java/lang/Class
- * Method:    isAnonymousClass
- * Signature: (Ljava/lang/Class;)Z
- */
-s4 _Jv_java_lang_Class_isAnonymousClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
-
-
-/*
- * Class:     java/lang/VMClass
- * Method:    isLocalClass
- * Signature: (Ljava/lang/Class;)Z
- */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isLocalClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
-
-
-/*
- * Class:     java/lang/VMClass
- * Method:    isMemberClass
- * Signature: (Ljava/lang/Class;)Z
- */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isMemberClass(JNIEnv *env, jclass clazz, struct java_lang_Class* par1);
-#endif
 
 #endif /* ENABLE_JAVASE */
 
