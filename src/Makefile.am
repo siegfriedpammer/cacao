@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 7596 2007-03-28 21:05:53Z twisti $
+## $Id: Makefile.am 8347 2007-08-18 13:04:59Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -38,11 +38,6 @@ DIST_SUBDIRS = \
 	toolbox \
 	vm \
 	vmcore
-
-if WITH_CLASSPATH_GNU
-VM_DIR = \
-	lib
-endif
 
 if ENABLE_THREADS
 THREADS_DIR = \
@@ -60,7 +55,7 @@ SUBDIRS = \
 	toolbox \
 	vmcore \
 	$(CACAOH_DIR) \
-	$(VM_DIR) \
+	lib \
 	native \
 	fdlibm \
 	mm \

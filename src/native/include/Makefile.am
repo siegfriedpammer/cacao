@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 8249 2007-07-31 12:59:03Z panzi $
+## $Id: Makefile.am 8347 2007-08-18 13:04:59Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -91,6 +91,7 @@ JAVAME_CLDC1_1_HEADER_FILES = \
 	com_sun_cldc_io_ResourceInputStream.h \
 	com_sun_cldc_io_j2me_socket_Protocol.h \
 	com_sun_cldchi_io_ConsoleOutputStream.h \
+	com_sun_cldchi_jvm_FileDescriptor.h \
 	com_sun_cldchi_jvm_JVM.h \
 	java_lang_Math.h \
 	java_lang_Runtime.h \
@@ -168,8 +169,15 @@ endif
 if WITH_CLASSPATH_GNU
 CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_CLASSES)
 VM_ZIP = $(top_builddir)/src/lib/vm.zip
-else
+endif
+
+if WITH_CLASSPATH_SUN
 CLASSPATH = $(CLASSPATH_CLASSES)
+endif
+
+if WITH_CLASSPATH_CLDC1_1
+CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_CLASSES)
+VM_ZIP = $(top_builddir)/src/lib/vm.zip
 endif
 
 noinst_DATA = $(DO_HEADER_FILES)
