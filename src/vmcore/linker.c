@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8330 2007-08-16 18:15:51Z twisti $
+   $Id: linker.c 8350 2007-08-19 17:06:20Z twisti $
 
 */
 
@@ -349,9 +349,9 @@ classinfo *link_class(classinfo *c)
 
 	LOCK_MONITOR_ENTER(c);
 
-	/* maybe the class is already linked */
+	/* Maybe the class is currently linking or is already linked.*/
 
-	if (c->state & CLASS_LINKED) {
+	if ((c->state & CLASS_LINKING) || (c->state & CLASS_LINKED)) {
 		LOCK_MONITOR_EXIT(c);
 
 		return c;
@@ -371,9 +371,10 @@ classinfo *link_class(classinfo *c)
 
 	r = link_class_intern(c);
 
-	/* if return value is NULL, we had a problem and the class is not linked */
+	/* If return value is NULL, we had a problem and the class is not
+	   linked. */
 
-	if (!r)
+	if (r == NULL)
 		c->state &= ~CLASS_LINKING;
 
 #if defined(ENABLE_STATISTICS)
@@ -507,11 +508,6 @@ static classinfo *link_class_intern(classinfo *c)
 
 	RT_TIMING_GET_TIME(time_start);
 
-	/* the class is already linked */
-
-	if (c->state & CLASS_LINKED)
-		return c;
-
 #if !defined(NDEBUG)
 	if (linkverbose)
 		log_message_class("Linking class: ", c);
@@ -521,6 +517,10 @@ static classinfo *link_class_intern(classinfo *c)
 
 	/* XXX should this be a specific exception? */
 	assert(c->state & CLASS_LOADED);
+
+	/* This is check in link_class. */
+
+	assert(!(c->state & CLASS_LINKED));
 
 	/* cache the self-reference of this class                          */
 	/* we do this for cases where the defining loader of the class     */
@@ -581,15 +581,18 @@ static classinfo *link_class_intern(classinfo *c)
 
 		c->finalizer = NULL;
 
-	} else {
-		/* resolve super class */
+	}
+	else {
+		/* Resolve super class. */
 
-		if ((super = resolve_classref_or_classinfo_eager(c->super, true)) == NULL)
+		super = resolve_classref_or_classinfo_eager(c->super, true);
+
+		if (super == NULL)
 			return NULL;
 
 		c->super.cls = super;
 		
-		/* detect circularity */
+		/* Detect circularity. */
 
 		if (super == c) {
 			exceptions_throw_classcircularityerror(c);
