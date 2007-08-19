@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8330 2007-08-16 18:15:51Z twisti $
+   $Id: builtin.c 8348 2007-08-19 09:27:03Z pm $
 
 */
 
@@ -60,6 +60,11 @@
 #include "native/include/java_lang_Throwable.h"
 
 #include "threads/lock-common.h"
+#if defined(ENABLE_THREADS)
+#include "threads/native/threads.h"
+#else
+#include "threads/none/threads.h"
+#endif
 
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
@@ -1187,7 +1192,11 @@ java_handle_t *builtin_trace_exception(java_handle_t *xptr,
 #endif
 
 	if (opt_verbosecall && indent)
+#if defined(__S390__)
+		TRACEJAVACALLINDENT--;
+#else
 		methodindent--;
+#endif
 
 	/* calculate message length */
 
