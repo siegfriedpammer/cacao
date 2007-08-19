@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8301 2007-08-13 13:34:12Z twisti $
+dnl $Id: configure.ac 8351 2007-08-19 17:56:23Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -51,56 +51,69 @@ case "$host_cpu" in
 alpha | alphaev56 | alphapca56 )
     ARCH_DIR="alpha"
     ARCH_CFLAGS="-mieee -D__ALPHA__"
+    JAVA_ARCH="alpha"
     ;;
 
 arm | armv4 | armv4tl | armv5b | armv5l )
     ARCH_DIR="arm"
     ARCH_CFLAGS="-D__ARM__"
+    JAVA_ARCH="arm"
     ;;
 
 hppa2.0 )
     ARCH_DIR="parisc"
     ARCH_CFLAGS="-D__PARISC__"
+    JAVA_ARCH="hppa"
     ;;
 
 i386 | i486 | i586 | i686 )
     ARCH_DIR="i386"
     ARCH_CFLAGS="-D__I386__"
+    JAVA_ARCH="i386"
     ;;
 
 m68k )
     ARCH_DIR="m68k"
     ARCH_CFLAGS="-D__M68K__"
+    JAVA_ARCH="m68k"
     ;;
 
 mips | mipsel )
     ARCH_DIR="mips"
     ARCH_CFLAGS="-D__MIPS__"
+    dnl Is this correct for mipsel?
+    JAVA_ARCH="mips"
     ;;
 
 powerpc )
     ARCH_DIR="powerpc"
     ARCH_CFLAGS="-D__POWERPC__"
+    JAVA_ARCH="ppc"
     ;;
 
 powerpc64 )
     ARCH_DIR="powerpc64"
     ARCH_CFLAGS="-D__POWERPC64__"
+    JAVA_ARCH="ppc64"
     ;;
 
 s390 )
     ARCH_DIR="s390"
     ARCH_CFLAGS="-D__S390__"
+    JAVA_ARCH="s390"
     ;;
 
 sparc | sparc64 )
     ARCH_DIR="sparc64"
     ARCH_CFLAGS="-mcpu=v9 -m64 -D__SPARC_64__"
+    dnl Is this correct for 64-bits?
+    JAVA_ARCH="sparc"
     ;;
 
 x86_64 )
     ARCH_DIR="x86_64"
     ARCH_CFLAGS="-D__X86_64__"
+    JAVA_ARCH="amd64"
     ;;
 
 xdspcore )
@@ -194,6 +207,7 @@ AC_DEFINE_UNQUOTED(VERSION_CFLAGS, "$OPT_CFLAGS $ARCH_CFLAGS", [CFLAGS used])
 
 dnl define and substitute some architecture specific variables
 AC_DEFINE_UNQUOTED([ARCH_DIR], "${ARCH_DIR}", [architecture directory])
+AC_DEFINE_UNQUOTED([JAVA_ARCH], "${JAVA_ARCH}", [Java architecture name])
 AC_SUBST(ARCH_DIR)
 AC_SUBST(OS_DIR)
 AC_SUBST(USE_SCHEDULER)

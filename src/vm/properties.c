@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: properties.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: properties.c 8351 2007-08-19 17:56:23Z twisti $
 
 */
 
@@ -229,22 +229,7 @@ bool properties_init(void)
  	properties_add("os.name", "unknown");
 	properties_add("os.version", "unknown");
 #  else
-	/* We need to set the os.arch hardcoded to be compatible with SUN. */
-
-#   if defined(__I386__)
-	/* map all x86 architectures (i386, i486, i686) to i386 */
-
-	properties_add("os.arch", "i386");
-#   elif defined(__POWERPC__)
-	properties_add("os.arch", "ppc");
-#   elif defined(__X86_64__)
-	properties_add("os.arch", "amd64");
-#   else
-	/* default to what uname returns */
-
-	properties_add("os.arch", utsnamebuf->machine);
-#   endif
-
+	properties_add("os.arch", JAVA_ARCH);
  	properties_add("os.name", utsnamebuf->sysname);
 	properties_add("os.version", utsnamebuf->release);
 #  endif
