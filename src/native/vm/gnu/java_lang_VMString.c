@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMString.c 8017 2007-06-05 23:46:59Z twisti $
+   $Id: java_lang_VMString.c 8357 2007-08-19 22:59:43Z twisti $
 
 */
 
@@ -36,8 +36,6 @@
 
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_VMString.h"
-
-#include "native/vm/java_lang_String.h"
 
 #include "vm/stringlocal.h"
 
@@ -72,7 +70,10 @@ void _Jv_java_lang_VMString_init(void)
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMString_intern(JNIEnv *env, jclass clazz, java_lang_String *str)
 {
-	return _Jv_java_lang_String_intern(str);
+	if (str == NULL)
+		return NULL;
+
+	return (java_lang_String *) javastring_intern((java_handle_t *) str);
 }
 
 

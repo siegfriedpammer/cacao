@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8349 2007-08-19 15:16:39Z panzi $
+   $Id: jvm.c 8357 2007-08-19 22:59:43Z twisti $
 
 */
 
@@ -79,7 +79,6 @@
 #include "native/vm/java_lang_ClassLoader.h"
 #include "native/vm/java_lang_Object.h"
 #include "native/vm/java_lang_Runtime.h"
-#include "native/vm/java_lang_String.h"
 #include "native/vm/java_lang_Thread.h"
 #include "native/vm/java_lang_reflect_Constructor.h"
 #include "native/vm/java_lang_reflect_Method.h"
@@ -2131,7 +2130,11 @@ jint JVM_ClassLoaderDepth(JNIEnv *env)
 
 jstring JVM_GetSystemPackage(JNIEnv *env, jstring name)
 {
-	log_println("JVM_GetSystemPackage: IMPLEMENT ME!");
+	log_println("JVM_GetSystemPackage(env=%p, name=%p)");
+	javastring_print(name);
+	printf("\n");
+
+	return NULL;
 }
 
 
@@ -2583,10 +2586,9 @@ jboolean JVM_IsSupportedJNIVersion(jint version)
 
 jstring JVM_InternString(JNIEnv *env, jstring str)
 {
-#if PRINTJVM
-	log_println("JVM_InternString: str=%p", str);
-#endif
-	return (jstring) _Jv_java_lang_String_intern((java_lang_String *) str);
+	TRACEJVMCALLS("JVM_InternString(env=%p, str=%p)", env, str);
+
+	return (jstring) javastring_intern((java_handle_t *) str);
 }
 
 

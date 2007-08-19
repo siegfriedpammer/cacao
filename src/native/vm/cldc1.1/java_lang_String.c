@@ -267,23 +267,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_equals(JNIEnv *env, java_lang_String*
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_String_intern(JNIEnv *env, java_lang_String *this)
 {
-	java_handle_t *o;
-	java_handle_chararray_t *value;
-	int32_t              	offset;
-	int32_t              	count;
-
 	if (this == NULL)
 		return NULL;
-		
-	LLNI_field_get_val(this, offset, offset);
-	LLNI_field_get_val(this, count, count);
-	LLNI_field_get_ref(this, value, value);
 
-	/* search table so identical strings will get identical pointers */
-
-	o = literalstring_u2(value, count, offset, true);
-
-	return (java_lang_String *) o;
+	return (java_lang_String *) javastring_intern((java_handle_t *) this);
 }
 
 

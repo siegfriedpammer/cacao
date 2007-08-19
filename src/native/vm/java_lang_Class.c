@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8341 2007-08-17 21:32:01Z michi $
+   $Id: java_lang_Class.c 8357 2007-08-19 22:59:43Z twisti $
 
 */
 
@@ -62,7 +62,6 @@
 #endif
 
 #include "native/vm/java_lang_Class.h"
-#include "native/vm/java_lang_String.h"
 
 #if defined(ENABLE_JAVASE)
 # include "native/vm/reflect.h"

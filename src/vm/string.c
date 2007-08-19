@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: string.c 8343 2007-08-17 21:39:32Z michi $
+   $Id: string.c 8357 2007-08-19 22:59:43Z twisti $
 
 */
 
@@ -698,6 +698,61 @@ void literalstring_free(java_object_t* string)
 
 	/* dispose memory of java-characterarray */
 	FREE(a, sizeof(java_chararray_t) + sizeof(u2) * (a->header.size - 1)); /* +10 ?? */
+}
+
+
+/* javastring_intern ***********************************************************
+
+   Intern the given Java string.
+
+*******************************************************************************/
+
+java_handle_t *javastring_intern(java_handle_t *s)
+{
+	java_lang_String *so;
+	java_chararray_t *value;
+	int32_t           count;
+	int32_t           offset;
+/* 	java_lang_String *o; */
+	java_object_t    *o;
+
+	so = (java_lang_String *) s;
+
+	value  = LLNI_field_direct(so, value);
+	count  = LLNI_field_direct(so, count);
+	offset = LLNI_field_direct(so, offset);
+
+	o = literalstring_u2(value, count, offset, true);
+
+	return o;
+}
+
+
+/* javastring_print ************************************************************
+
+   Print the given Java string.
+
+*******************************************************************************/
+
+void javastring_print(java_handle_t *s)
+{
+	java_lang_String *so;
+	java_chararray_t *value;
+	int32_t           count;
+	int32_t           offset;
+	uint16_t          c;
+	int               i;
+
+	so = (java_lang_String *) s;
+
+	value  = LLNI_field_direct(so, value);
+	count  = LLNI_field_direct(so, count);
+	offset = LLNI_field_direct(so, offset);
+
+	for (i = offset; i < offset + count; i++) {
+		c = LLNI_array_direct(value, i);
+		putchar(c);
+	}
 }
 
 

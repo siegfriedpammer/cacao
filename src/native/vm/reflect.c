@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: reflect.c 8343 2007-08-17 21:39:32Z michi $
+   $Id: reflect.c 8357 2007-08-19 22:59:43Z twisti $
 
 */
 
@@ -60,7 +60,6 @@
 #include "native/include/java_lang_reflect_Field.h"
 #include "native/include/java_lang_reflect_Method.h"
 
-#include "native/vm/java_lang_String.h"
 #include "native/vm/reflect.h"
 
 #include "vm/builtin.h"
@@ -169,7 +168,7 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	LLNI_field_set_ref(rf, name          , _Jv_java_lang_String_intern((java_lang_String *) javastring_new(f->name)));
+	LLNI_field_set_ref(rf, name          , javastring_intern((java_lang_String *) javastring_new(f->name)));
 	LLNI_field_set_val(rf, slot          , slot);
 	LLNI_field_set_ref(rf, annotations   , field_get_annotations(f));
 
@@ -180,7 +179,7 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	LLNI_field_set_ref(rf, name          , _Jv_java_lang_String_intern((java_lang_String *) javastring_new(f->name)));
+	LLNI_field_set_ref(rf, name          , javastring_intern((java_lang_String *) javastring_new(f->name)));
 	LLNI_field_set_cls(rf, type          , (java_lang_Class *) field_get_type(f));
 	LLNI_field_set_val(rf, modifiers     , f->flags);
 	LLNI_field_set_val(rf, slot          , slot);
@@ -235,7 +234,7 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	LLNI_field_set_ref(rm, name                , _Jv_java_lang_String_intern((java_lang_String *) javastring_new(m->name)));
+	LLNI_field_set_ref(rm, name                , javastring_intern((java_lang_String *) javastring_new(m->name)));
 	LLNI_field_set_val(rm, slot                , slot);
 	LLNI_field_set_ref(rm, annotations         , method_get_annotations(m));
 	LLNI_field_set_ref(rm, parameterAnnotations, method_get_parameterannotations(m));
@@ -248,7 +247,7 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	LLNI_field_set_ref(rm, name                , _Jv_java_lang_String_intern((java_lang_String *) javastring_new(m->name)));
+	LLNI_field_set_ref(rm, name                , javastring_intern((java_lang_String *) javastring_new(m->name)));
 	LLNI_field_set_ref(rm, parameterTypes      , method_get_parametertypearray(m));
 	LLNI_field_set_cls(rm, returnType          , (java_lang_Class *) method_returntype_get(m));
 	LLNI_field_set_ref(rm, exceptionTypes      , method_get_exceptionarray(m));
