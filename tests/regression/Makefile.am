@@ -26,7 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## $Id: Makefile.am 8343 2007-08-17 21:39:32Z michi $
+## $Id: Makefile.am 8349 2007-08-19 15:16:39Z panzi $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -55,7 +55,8 @@ SOURCE_FILES = \
 	$(srcdir)/LoadDisplacementOverflow.java \
 	$(srcdir)/FieldDisplacementOverflow.java \
 	$(srcdir)/StackDisplacementOverflow.java \
-	$(srcdir)/MinimalClassReflection.java
+	$(srcdir)/MinimalClassReflection.java \
+	$(srcdir)/TestAnnotations.java
 
 EXTRA_DIST = \
 	$(SOURCE_FILES) \
@@ -69,7 +70,8 @@ EXTRA_DIST = \
 	LoadDisplacementOverflow.output \
 	FieldDisplacementOverflow.output \
 	StackDisplacementOverflow.output \
-	MinimalClassReflection.output
+	MinimalClassReflection.output \
+	TestAnnotations.output
 
 CLEANFILES = \
 	*.class \
@@ -88,7 +90,8 @@ OUTPUT_JAVA_TESTS = \
 	LoadDisplacementOverflow \
 	FieldDisplacementOverflow \
 	StackDisplacementOverflow \
-	MinimalClassReflection
+	MinimalClassReflection \
+	TestAnnotations
 
 check: build $(SIMPLE_JAVA_TESTS) $(OUTPUT_JAVA_TESTS)
 

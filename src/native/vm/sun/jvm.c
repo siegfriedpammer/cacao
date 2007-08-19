@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8343 2007-08-17 21:39:32Z michi $
+   $Id: jvm.c 8349 2007-08-19 15:16:39Z panzi $
 
 */
 
@@ -2204,53 +2204,60 @@ jint JVM_GetArrayLength(JNIEnv *env, jobject arr)
 
 jobject JVM_GetArrayElement(JNIEnv *env, jobject arr, jint index)
 {
-	java_array_t *a;
-	int           elementtype;
+	vftbl_t       *v;
+	java_handle_t *a;
+	int            elementtype;
+	int32_t        size;
 
 	TRACEJVMCALLS("JVM_GetArrayElement(env=%p, arr=%p, index=%d)", env, arr, index);
 
-	a = (java_array_t *) arr;
+	a = (java_handle_t *) arr;
 
 	if (a == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
-	if (!class_is_array(a->objheader.vftbl->class)) {
+	v = LLNI_vftbl_direct(a);
+
+	if (!class_is_array(v->class)) {
 		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
+
+	size = LLNI_array_size(a);
 	
-	if (index < 0 || index > a->size) {
+	if (index < 0 || index >= size) {
 		exceptions_throw_arrayindexoutofboundsexception();
 		return NULL;
 	}
 	
-	elementtype = a->objheader.vftbl->arraydesc->elementtype;
+	elementtype = v->arraydesc->elementtype;
 
 	switch (elementtype) {
 	case ARRAYTYPE_INT:
-		return (jobject)primitive_box_int(((java_handle_intarray_t*)a)->data[index]);
+		return (jobject)primitive_box_int(array_intarray_element_get(a, index));
 	case ARRAYTYPE_LONG:
-		return (jobject)primitive_box_long(((java_handle_longarray_t*)a)->data[index]);
+		return (jobject)primitive_box_long(array_longarray_element_get(a, index));
 	case ARRAYTYPE_FLOAT:
-		return (jobject)primitive_box_float(((java_handle_floatarray_t*)a)->data[index]);
+		return (jobject)primitive_box_float(array_floatarray_element_get(a, index));
 	case ARRAYTYPE_DOUBLE:
-		return (jobject)primitive_box_double(((java_handle_doublearray_t*)a)->data[index]);
+		return (jobject)primitive_box_double(array_doublearray_element_get(a, index));
 	case ARRAYTYPE_BYTE:
-		return (jobject)primitive_box_byte(((java_handle_bytearray_t*)a)->data[index]);
+		return (jobject)primitive_box_byte(array_bytearray_element_get(a, index));
 	case ARRAYTYPE_CHAR:
-		return (jobject)primitive_box_char(((java_handle_chararray_t*)a)->data[index]);
+		return (jobject)primitive_box_char(array_chararray_element_get(a, index));
 	case ARRAYTYPE_SHORT:
-		return (jobject)primitive_box_short(((java_handle_shortarray_t*)a)->data[index]);
+		return (jobject)primitive_box_short(array_shortarray_element_get(a, index));
 	case ARRAYTYPE_BOOLEAN:
-		return (jobject)primitive_box_boolean(((java_handle_booleanarray_t*)a)->data[index]);
+		return (jobject)primitive_box_boolean(array_booleanarray_element_get(a, index));
 	case ARRAYTYPE_OBJECT:
-		return (jobject)((java_handle_objectarray_t*)a)->data[index];
+		return (jobject)array_objectarray_element_get(a, index);
 	default:
 		/* invalid element type */
-		exceptions_throw_internalerror("invalid element type code in array descriptor: %d", elementtype);
-		return (jobject)NULL;
+		vm_abort("array_element_primitive_get: invalid array element type %d",
+			 elementtype);
+		return NULL;
 	}
 }
 
