@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: asmpart.S 8298 2007-08-12 18:49:16Z pm $
+   $Id: asmpart.S 8352 2007-08-19 18:32:59Z pm $
 
 */
 
@@ -79,6 +79,24 @@ asm_builtin_d2i:
 	.long 0
 asm_builtin_d2l:
 	.long 0
+
+/* Generates a PIC call.
+ *
+ * func: function to call
+ * tag: tag unique for this call to generate a label
+ * tmp: one temporary register needed for calculation
+ *
+ * The offset table used is located at the bottom of this file.
+ *
+ * Note: destroys r12/itmp2. r12 MUST contain GOT for PIC calls!
+ */
+#define CALL_PIC(func, tag)                                                         \
+	bras   %r14, L_bras_##tag;                           /* get PC */               \
+L_bras_##tag:                                                                       \
+	l      %r12, L_offsets - L_bras_##tag (%r14);        /* load offset to PLT */   \
+	la     %r12, L_offsets - L_bras_##tag (%r12, %r14);  /* load PLT address */     \
+	l      %r14, L_offset_##func - L_bras_##tag (%r14);  /* load offset to func */  \
+	bas    %r14, 0(%r14, %r12);
 
 /********************* function asm_calljavafunction ***************************
 *                                                                              *
@@ -180,13 +198,10 @@ L_asm_vm_call_method_return:
 asm_vm_call_method_exception_handler:
 	lr    a0, xptr
 
-	bras  %r14, L_avcmeh_bras
-	.long builtin_throw_exception
-L_avcmeh_bras:
-	l     %r14, 0(%r14)
 	ahi   sp, -96
-	basr  %r14, %r14
+	CALL_PIC(builtin_throw_exception, avcmeh)
 	ahi   sp, 96
+
 	j     L_asm_vm_call_method_return
 
 asm_vm_call_method_end:
@@ -222,7 +237,7 @@ argument registers: arguments (like in JIT)
 asm_call_jit_compiler:
 L_asm_call_jit_compiler:
 
-#	define ACJC_STACKFRAME (4 + (4 * 4) + (2 * 8) + 96)
+#	define ACJC_STACKFRAME (4 + (4 * 4) + (2 * 8) + 96 + 4)
 
 	ahi     sp,-ACJC_STACKFRAME        /* allocate stack space */
 
@@ -238,13 +253,7 @@ L_asm_call_jit_compiler:
 	la      a2,ACJC_STACKFRAME(sp)     /* pass java sp                       */
 	la      a3,0(%r14)                 /* pass return address, make sure bit 32 is 0 */
 
-	/* call jit_asm_compile in a PIC way */
-
-	bras    itmp2, L_bras_jac
-	.long   jit_asm_compile
-L_bras_jac:
-	l       itmp2, 0(itmp2)
-	basr    %r14, itmp2
+	CALL_PIC(jit_asm_compile, acjc)
 
 	lr      pv, v0                     /* save return value */
 
@@ -263,11 +272,9 @@ jit_code_entry:                        /* label to set breakpoint on */
 
 
 L_asm_call_jit_compiler_exception:
-	bras    itmp2, L_bras_acjce
-	.long exceptions_get_and_clear_exception
-L_bras_acjce:
-	l       itmp2, 0(itmp2)
-	basr    %r14, itmp2
+
+	CALL_PIC(exceptions_get_and_clear_exception, acjce)
+
 	lr      xptr, %r2
 	l       xpc,96+32(sp)              /* restore return address */
 	ahi     sp, ACJC_STACKFRAME        /* remove stack frame */
@@ -331,11 +338,7 @@ L_asm_handle_exception:
 	la    a1, FREGS(sp)
 	la    a2, OUT(sp)
 
-	bras    %r14,L_ahe_bras
-	.long   md_handle_exception
-L_ahe_bras:
-	l       %r14,0(%r14)
-	basr    %r14,%r14
+	CALL_PIC(md_handle_exception, ahe)
 
 	l     itmp3, OUT+(2*4)(sp)  /* out[2] contains maybe leaf flag */
 	ltr   itmp3, itmp3           
@@ -446,139 +449,18 @@ asm_abstractmethoderror:
 
 #endif
 
-#if 0
+/* Offset table for PIC calls, see CALL_PIC */
 
-/* asm_replacement_out *********************************************************
-
-   This code is jumped to from the replacement-out stubs that are executed
-   when a thread reaches an activated replacement point.
-
-   The purpose of asm_replacement_out is to read out the parts of the
-   execution state that cannot be accessed from C code, store this state,
-   and then call the C function replace_me.
-
-   Stack layout:
-      8                 start of stack inside method to replace
-      0   rplpoint *    info on the replacement point that was reached
-
-*******************************************************************************/
-
-/* some room to accomodate changes of the stack frame size during replacement */
-	/* XXX we should find a cleaner solution here */
-#define REPLACEMENT_ROOM  512
-
-asm_replacement_out:
-    /* create stack frame */
-	sub     $(sizeexecutionstate + REPLACEMENT_ROOM),sp
-
-	/* save registers in execution state */
-	mov     %rax,(RAX*8+offes_intregs)(sp)
-	mov     %rbx,(RBX*8+offes_intregs)(sp)
-	mov     %rcx,(RCX*8+offes_intregs)(sp)
-	mov     %rdx,(RDX*8+offes_intregs)(sp)
-	mov     %rsi,(RSI*8+offes_intregs)(sp)
-	mov     %rdi,(RDI*8+offes_intregs)(sp)
-	mov     %rbp,(RBP*8+offes_intregs)(sp)
-	movq    $0  ,(RSP*8+offes_intregs)(sp) /* not used */
-	mov     %r8 ,(R8 *8+offes_intregs)(sp)
-	mov     %r9 ,(R9 *8+offes_intregs)(sp)
-	mov     %r10,(R10*8+offes_intregs)(sp)
-	mov     %r11,(R11*8+offes_intregs)(sp)
-	mov     %r12,(R12*8+offes_intregs)(sp)
-	mov     %r13,(R13*8+offes_intregs)(sp)
-	mov     %r14,(R14*8+offes_intregs)(sp)
-	mov     %r15,(R15*8+offes_intregs)(sp)
-
-	movq    %xmm0 ,(XMM0 *8+offes_fltregs)(sp)
-	movq    %xmm1 ,(XMM1 *8+offes_fltregs)(sp)
-	movq    %xmm2 ,(XMM2 *8+offes_fltregs)(sp)
-	movq    %xmm3 ,(XMM3 *8+offes_fltregs)(sp)
-	movq    %xmm4 ,(XMM4 *8+offes_fltregs)(sp)
-	movq    %xmm5 ,(XMM5 *8+offes_fltregs)(sp)
-	movq    %xmm6 ,(XMM6 *8+offes_fltregs)(sp)
-	movq    %xmm7 ,(XMM7 *8+offes_fltregs)(sp)
-	movq    %xmm8 ,(XMM8 *8+offes_fltregs)(sp)
-	movq    %xmm9 ,(XMM9 *8+offes_fltregs)(sp)
-	movq    %xmm10,(XMM10*8+offes_fltregs)(sp)
-	movq    %xmm11,(XMM11*8+offes_fltregs)(sp)
-	movq    %xmm12,(XMM12*8+offes_fltregs)(sp)
-	movq    %xmm13,(XMM13*8+offes_fltregs)(sp)
-	movq    %xmm14,(XMM14*8+offes_fltregs)(sp)
-	movq    %xmm15,(XMM15*8+offes_fltregs)(sp)
-
-	/* calculate sp of method */
-	mov     sp,itmp1
-	add     $(sizeexecutionstate + REPLACEMENT_ROOM + 8),itmp1
-	mov     itmp1,(offes_sp)(sp)
-
-	/* pv must be looked up via AVL tree */
-	movq    $0,(offes_pv)(sp)
-
-	/* call replace_me */
-	mov     -8(itmp1),a0                /* rplpoint *                         */
-    mov     sp,a1                       /* arg1: execution state              */
-    call    replace_me@PLT              /* call C function replace_me         */
-    call    abort@PLT                   /* NEVER REACHED                      */
-
-/* asm_replacement_in **********************************************************
-
-   This code writes the given execution state and jumps to the replacement
-   code.
-
-   This function never returns!
-
-   C prototype:
-      void asm_replacement_in(executionstate *es);
-
-*******************************************************************************/
-
-asm_replacement_in:
-	mov     a0,%rbp                     /* executionstate *es                 */
-
-	/* set new sp */
-	mov     (offes_sp)(%rbp),%rsp
-	
-	/* store address of new code */
-	push    (offes_pc)(%rbp)
-	
-	/* copy registers from execution state */
-	movq    (XMM0 *8+offes_fltregs)(%rbp),%xmm0
-	movq    (XMM1 *8+offes_fltregs)(%rbp),%xmm1
-	movq    (XMM2 *8+offes_fltregs)(%rbp),%xmm2
-	movq    (XMM3 *8+offes_fltregs)(%rbp),%xmm3
-	movq    (XMM4 *8+offes_fltregs)(%rbp),%xmm4
-	movq    (XMM5 *8+offes_fltregs)(%rbp),%xmm5
-	movq    (XMM6 *8+offes_fltregs)(%rbp),%xmm6
-	movq    (XMM7 *8+offes_fltregs)(%rbp),%xmm7
-	movq    (XMM8 *8+offes_fltregs)(%rbp),%xmm8
-	movq    (XMM9 *8+offes_fltregs)(%rbp),%xmm9
-	movq    (XMM10*8+offes_fltregs)(%rbp),%xmm10
-	movq    (XMM11*8+offes_fltregs)(%rbp),%xmm11
-	movq    (XMM12*8+offes_fltregs)(%rbp),%xmm12
-	movq    (XMM13*8+offes_fltregs)(%rbp),%xmm13
-	movq    (XMM14*8+offes_fltregs)(%rbp),%xmm14
-	movq    (XMM15*8+offes_fltregs)(%rbp),%xmm15
-
-	mov     (RAX*8+offes_intregs)(%rbp),%rax
-	mov     (RBX*8+offes_intregs)(%rbp),%rbx
-	mov     (RCX*8+offes_intregs)(%rbp),%rcx
-	mov     (RDX*8+offes_intregs)(%rbp),%rdx
-	mov     (RSI*8+offes_intregs)(%rbp),%rsi
-	mov     (RDI*8+offes_intregs)(%rbp),%rdi
-	mov     (R8 *8+offes_intregs)(%rbp),%r8
-	mov     (R9 *8+offes_intregs)(%rbp),%r9
-	mov     (R10*8+offes_intregs)(%rbp),%r10
-	mov     (R11*8+offes_intregs)(%rbp),%r11
-	mov     (R12*8+offes_intregs)(%rbp),%r12
-	mov     (R13*8+offes_intregs)(%rbp),%r13
-	mov     (R14*8+offes_intregs)(%rbp),%r14
-	mov     (R15*8+offes_intregs)(%rbp),%r15
-
-	mov     (RBP*8+offes_intregs)(%rbp),%rbp
-
-	/* jump to new code */
-	ret
-#endif
+L_offsets:
+	.long  _GLOBAL_OFFSET_TABLE_ - L_offsets
+L_offset_builtin_throw_exception:
+	.long  builtin_throw_exception@PLTOFF
+L_offset_jit_asm_compile:
+	.long  jit_asm_compile@PLTOFF
+L_offset_exceptions_get_and_clear_exception:
+	.long  exceptions_get_and_clear_exception@PLTOFF
+L_offset_md_handle_exception:
+	.long  md_handle_exception@PLTOFF
 
 
 /*

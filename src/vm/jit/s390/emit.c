@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8318 2007-08-16 10:05:34Z michi $
+   $Id: emit.c 8352 2007-08-19 18:32:59Z pm $
 
 */
 
@@ -252,7 +252,7 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	/* allocate stack frame */
 
-	stackframesize = 96 + (ARG_CNT * 8);
+	stackframesize = 96 + (ARG_CNT * 8) + (TMP_CNT * 8);
 	M_ASUB_IMM(stackframesize, REG_SP);
 
 	/* store argument registers in array */
@@ -270,6 +270,18 @@ void emit_verbosecall_enter(jitdata *jd)
 		M_DST(abi_registers_float_argument[i], REG_SP, off);
 	}
 	
+	/* save temporary registers for leaf methods */
+
+	if (jd->isleafmethod) {
+		for (i = 0; i < INT_TMP_CNT; ++i, off += 8) {
+			M_IST(abi_registers_integer_temporary[i], REG_SP, off);
+		}
+
+		for (i = 0; i < FLT_TMP_CNT; ++i, off += 8) {
+			M_DST(abi_registers_float_temporary[i], REG_SP, off);
+		}
+	}
+
 	/* load arguments for trace_java_call_enter */
 
 	/* methodinfo */
@@ -296,6 +308,18 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	for (i = 0; i < FLT_ARG_CNT; ++i, off += 8) {
 		M_DLD(abi_registers_float_argument[i], REG_SP, off);
+	}
+
+	/* restore temporary registers for leaf methods */
+
+	if (jd->isleafmethod) {
+		for (i = 0; i < INT_TMP_CNT; ++i, off += 8) {
+			M_ILD(abi_registers_integer_temporary[i], REG_SP, off);
+		}
+
+		for (i = 0; i < FLT_TMP_CNT; ++i, off += 8) {
+			M_DLD(abi_registers_float_temporary[i], REG_SP, off);
+		}
 	}
 
 	/* remove stack frame */
