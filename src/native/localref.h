@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: localref.h 8362 2007-08-20 18:35:26Z michi $
+   $Id: localref.h 8364 2007-08-20 19:52:00Z michi $
 
 */
 
@@ -74,8 +74,12 @@ bool localref_table_init(void);
 bool localref_table_destroy(void);
 void localref_table_add(localref_table *lrt);
 void localref_table_remove();
+
 bool localref_frame_push(int32_t capacity);
 void localref_frame_pop_all(void);
+
+java_handle_t *localref_add(java_object_t *o);
+void           localref_del(java_handle_t *h);
 
 #if !defined(NDEBUG)
 void localref_dump(void);

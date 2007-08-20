@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8362 2007-08-20 18:35:26Z michi $
+   $Id: jni.c 8364 2007-08-20 19:52:00Z michi $
 
 */
 
@@ -175,7 +175,6 @@ static methodinfo *dbbirw_init;
 /* some forward declarations **************************************************/
 
 jobject _Jv_JNI_NewLocalRef(JNIEnv *env, jobject ref);
-jint _Jv_JNI_EnsureLocalCapacity(JNIEnv* env, jint capacity);
 
 
 /* jni_init ********************************************************************
@@ -1320,49 +1319,18 @@ jboolean _Jv_JNI_IsSameObject(JNIEnv *env, jobject ref1, jobject ref2)
 
 jobject _Jv_JNI_NewLocalRef(JNIEnv *env, jobject ref)
 {
-	localref_table *lrt;
-	s4              i;
+	java_handle_t *localref;
 
 	STATISTICS(jniinvokation());
 
 	if (ref == NULL)
 		return NULL;
 
-	/* get local reference table (thread specific) */
-
-	lrt = LOCALREFTABLE;
-
-	/* Check if we have space for the requested reference?  No,
-	   allocate a new frame.  This is actually not what the spec says,
-	   but for compatibility reasons... */
-
-	if (lrt->used == lrt->capacity) {
-		if (_Jv_JNI_EnsureLocalCapacity(env, 16) != 0)
-			return NULL;
-
-		/* get the new local reference table */
-
-		lrt = LOCALREFTABLE;
-	}
-
 	/* insert the reference */
 
-	for (i = 0; i < lrt->capacity; i++) {
-		if (lrt->refs[i] == NULL) {
-			lrt->refs[i] = (java_handle_t *) ref;
-			lrt->used++;
+	localref = localref_add(ref);
 
-			return ref;
-		}
-	}
-
-	/* should not happen, just to be sure */
-
-	assert(0);
-
-	/* keep compiler happy */
-
-	return NULL;
+	return localref;
 }
 
 
