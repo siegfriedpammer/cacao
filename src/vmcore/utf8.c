@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.c 8249 2007-07-31 12:59:03Z panzi $
+   $Id: utf8.c 8367 2007-08-20 20:26:16Z twisti $
 
 */
 
@@ -180,6 +180,7 @@ utf *utf_addThread;
 utf *utf_removeThread;
 utf *utf_put;
 utf *utf_get;
+utf *utf_uncaughtException;
 utf *utf_value;
 
 utf *utf_fillInStackTrace;
@@ -219,6 +220,7 @@ utf *utf_java_lang_Object__java_lang_Object;
 utf *utf_java_lang_String__void;        /* (Ljava/lang/String;)V              */
 utf *utf_java_lang_String__java_lang_Class;
 utf *utf_java_lang_Thread__V;           /* (Ljava/lang/Thread;)V              */
+utf *utf_java_lang_Thread_java_lang_Throwable__V;
 utf *utf_java_lang_Throwable__void;     /* (Ljava/lang/Throwable;)V           */
 utf *utf_java_lang_Throwable__java_lang_Throwable;
 
@@ -433,6 +435,7 @@ bool utf8_init(void)
 	utf_removeThread               = utf_new_char("removeThread");
 	utf_put                        = utf_new_char("put");
 	utf_get                        = utf_new_char("get");
+	utf_uncaughtException          = utf_new_char("uncaughtException");
 	utf_value                      = utf_new_char("value");
 
 	utf_fillInStackTrace           = utf_new_char("fillInStackTrace");
@@ -482,6 +485,10 @@ bool utf8_init(void)
 		utf_new_char("(Ljava/lang/String;)Ljava/lang/Class;");
 
 	utf_java_lang_Thread__V        = utf_new_char("(Ljava/lang/Thread;)V");
+
+	utf_java_lang_Thread_java_lang_Throwable__V =
+		utf_new_char("(Ljava/lang/Thread;Ljava/lang/Throwable;)V");
+
 	utf_java_lang_Throwable__void  = utf_new_char("(Ljava/lang/Throwable;)V");
 
 	utf_java_lang_Throwable__java_lang_Throwable =
