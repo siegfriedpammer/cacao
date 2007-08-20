@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 8321 2007-08-16 11:37:25Z michi $
+   $Id: signal.c 8360 2007-08-20 18:02:50Z michi $
 
 */
 
@@ -172,9 +172,8 @@ bool signal_init(void)
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
 	/* SIGUSR1 handler for the exact GC to suspend threads */
 
-	act.sa_sigaction = md_signal_handler_sigusr1;
-	act.sa_flags     = SA_SIGINFO;
-	sigaction(SIGUSR1, &act, NULL);
+	signal_register_signal(SIGUSR1, (functionptr) md_signal_handler_sigusr1,
+						   SA_SIGINFO);
 #endif
 
 #if defined(ENABLE_THREADS) && defined(ENABLE_PROFILING)

@@ -34,7 +34,7 @@
 
 #include "gc.h"
 #include "region.h"
-#include "vm/primitive.h" /* needed for ARRAYTYPE_OBJECT */
+#include "vm/array.h" /* needed for ARRAYTYPE_OBJECT */
 
 
 #define GC_SIZE_DUMMY 0xff

@@ -28,7 +28,7 @@
    calls instead of machine instructions, using the C calling
    convention.
 
-   $Id: builtin.c 8358 2007-08-20 14:25:59Z michi $
+   $Id: builtin.c 8360 2007-08-20 18:02:50Z michi $
 
 */
 
@@ -858,9 +858,9 @@ java_handle_t *builtin_new(classinfo *c)
 
 *******************************************************************************/
 
-java_objectheader *builtin_fast_new(classinfo *c)
+java_object_t *builtin_fast_new(classinfo *c)
 {
-	java_objectheader *o;
+	java_object_t *o;
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_end;
 #endif

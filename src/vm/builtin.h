@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: builtin.h 8321 2007-08-16 11:37:25Z michi $
+   $Id: builtin.h 8360 2007-08-20 18:02:50Z michi $
 
 */
 
@@ -141,7 +141,7 @@ java_handle_t *builtin_trace_exception(java_handle_t *xptr,
 
 java_handle_t *builtin_new(classinfo *c);
 #define BUILTIN_new (functionptr) builtin_new
-java_objectheader *builtin_fast_new(classinfo *c);
+java_object_t *builtin_fast_new(classinfo *c);
 #define BUILTIN_FAST_new (functionptr) builtin_fast_new
 
 java_handle_t *builtin_newarray(s4 size, classinfo *arrayclass);
