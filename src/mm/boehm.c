@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: boehm.c 8245 2007-07-31 09:55:04Z michi $
+   $Id: boehm.c 8371 2007-08-20 22:05:08Z michi $
 
 */
 
@@ -124,7 +124,7 @@ void *heap_alloc_uncollectable(u4 size)
 
 	/* clear allocated memory region */
 
-	MSET(p, 0, u1, bytelength);
+	MSET(p, 0, u1, size);
 
 	return p;
 }
