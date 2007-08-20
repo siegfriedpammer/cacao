@@ -1,6 +1,6 @@
-/* src/native/vm/gnu/java_lang_VMString.c - java/lang/VMString
+/* src/native/vm/java_lang_String.c
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMString.c 8027 2007-06-07 10:30:33Z michi $
+   $Id: java_lang_VMString.c 7910 2007-05-16 08:02:52Z twisti $
 
 */
 
@@ -32,47 +32,30 @@
 #include <stdlib.h>
 
 #include "native/jni.h"
-#include "native/native.h"
+#include "native/llni.h"
 
 #include "native/include/java_lang_String.h"
-#include "native/include/java_lang_VMString.h"
-
-#include "native/vm/java_lang_String.h"
 
 #include "vm/stringlocal.h"
 
 
-/* native methods implemented by this file ************************************/
-
-static JNINativeMethod methods[] = {
-	{ "intern", "(Ljava/lang/String;)Ljava/lang/String;", (void *) (ptrint) &Java_java_lang_VMString_intern },
-};
-
-
-/* _Jv_java_lang_VMString_init *************************************************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_java_lang_VMString_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("java/lang/VMString");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-
-
 /*
- * Class:     java/lang/VMString
+ * Class:     java/lang/String
  * Method:    intern
  * Signature: (Ljava/lang/String;)Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMString_intern(JNIEnv *env, jclass clazz, java_lang_String *str)
+java_lang_String *_Jv_java_lang_String_intern(java_lang_String *s)
 {
-	return _Jv_java_lang_String_intern(str);
+	java_handle_t *o;
+
+	if (s == NULL)
+		return NULL;
+
+	/* search table so identical strings will get identical pointers */
+
+	o = literalstring_u2(LLNI_field_direct(s, value), LLNI_field_direct(s, count), LLNI_field_direct(s, offset), true);
+
+	return (java_lang_String *) o;
 }
 
 

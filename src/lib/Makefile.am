@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 8262 2007-08-06 12:44:01Z panzi $
+## $Id: Makefile.am 8299 2007-08-13 08:41:18Z michi $
 
 ## Process this file with automake to produce Makefile.in
 
