@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8343 2007-08-17 21:39:32Z michi $
+   $Id: vm.c 8362 2007-08-20 18:35:26Z michi $
 
 */
 
@@ -754,6 +754,9 @@ bool vm_createjvm(JavaVM **p_vm, void **p_env, void *vm_args)
 
 #if defined(ENABLE_JNI)
 	/* setup the local ref table (must be created after vm_create) */
+
+	/* XXX this one will never get freed for the main thread;
+	   call localref_table_destroy() if you want to do it! */
 
 	if (!localref_table_init())
 		goto error;

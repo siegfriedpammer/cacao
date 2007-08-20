@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8343 2007-08-17 21:39:32Z michi $
+   $Id: jni.c 8362 2007-08-20 18:35:26Z michi $
 
 */
 
@@ -231,31 +231,6 @@ bool jni_init(void)
 #  endif
 # endif
 #endif /* defined(ENABLE_JAVASE) */
-
-	return true;
-}
-
-
-/* jni_init_localref_table *****************************************************
-
-   Frees the local references table of the current thread.
-
-*******************************************************************************/
-
-bool jni_free_localref_table(void)
-{
-	localref_table *lrt;
-
-#if defined(ENABLE_GC_CACAO)
-	lrt = LOCALREFTABLE;
-
-	assert(lrt);
-	assert(lrt->prev == NULL);
-
-	FREE(lrt, localref_table);
-
-	LOCALREFTABLE = NULL;
-#endif
 
 	return true;
 }
@@ -3824,7 +3799,7 @@ jint _Jv_JNI_DetachCurrentThread(JavaVM *vm)
 	if (thread == NULL)
 		return JNI_ERR;
 
-	if (!jni_free_localref_table())
+	if (!localref_table_destroy())
 		return JNI_ERR;
 
 	if (!threads_detach_thread(thread))

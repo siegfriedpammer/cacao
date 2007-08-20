@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: localref.c 8321 2007-08-16 11:37:25Z michi $
+   $Id: localref.c 8362 2007-08-20 18:35:26Z michi $
 
 */
 
@@ -72,10 +72,10 @@ bool localref_table_init(void)
 	assert(LOCALREFTABLE == NULL);
 
 #if defined(ENABLE_GC_CACAO)
-	/* XXX this one will never get freed for the main thread;
-	   call jni_free_localref_table() if you want to do it! */
+	/* this is freed by localref_table_destroy */
 	lrt = NEW(localref_table);
 #else
+	/* this does not need to be freed again */
 	lrt = GCNEW(localref_table);
 #endif
 
@@ -87,9 +87,37 @@ bool localref_table_init(void)
 	return true;
 }
 
+
+/* localref_table_destroy ******************************************************
+
+   Destroys the complete local references table of the current thread.
+
+*******************************************************************************/
+
+bool localref_table_destroy(void)
+{
+	localref_table *lrt;
+
+	TRACELOCALREF("table destroy");
+
+	lrt = LOCALREFTABLE;
+
+	assert(lrt);
+	assert(lrt->prev == NULL);
+
+#if defined(ENABLE_GC_CACAO)
+	FREE(lrt, localref_table);
+#endif
+
+	LOCALREFTABLE = NULL;
+
+	return true;
+}
+
+
 /* localref_table_add **********************************************************
 
-   Add a new local references table to the current thread.
+   Adds a new local references table to the current thread.
 
 *******************************************************************************/
 
@@ -114,7 +142,7 @@ void localref_table_add(localref_table *lrt)
 
 /* localref_table_remove *******************************************************
 
-   Remoces the local references table from the current thread.
+   Removes the topmost local references table from the current thread.
 
 *******************************************************************************/
 
@@ -201,7 +229,9 @@ void localref_frame_pop_all(void)
 	localref_table *lrt;
 	localref_table *plrt;
 	int32_t         localframes;
+#if defined(ENABLE_GC_CACAO)
 	int32_t         additionalrefs;
+#endif
 
 	TRACELOCALREF("frame pop all");
 
