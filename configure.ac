@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8351 2007-08-19 17:56:23Z twisti $
+dnl $Id: configure.ac 8372 2007-08-20 22:21:43Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -865,19 +865,7 @@ AC_CHECK_WITH_CLASSPATH_CLASSES
 AC_CHECK_WITH_CLASSPATH_LIBDIR
 AC_CHECK_WITH_CLASSPATH_INCLUDEDIR
 
-
-dnl if we compile for a JRE-style directory layout
-AC_MSG_CHECKING(if we compile for a JRE-style directory layout)
-AC_ARG_WITH([jre-layout],
-            [AS_HELP_STRING(--with-jre-layout,compile for JRE-style directory layout [[default=no]])],
-            [case "${enableval}" in
-                yes) WITH_JRE_LAYOUT=yes
-                     AC_DEFINE([WITH_JRE_LAYOUT], 1, [with JRE layout])
-                     ;;
-                *) WITH_JRE_LAYOUT=no;;
-             esac],
-            [WITH_JRE_LAYOUT=no])
-AC_MSG_RESULT(${WITH_JRE_LAYOUT})
+AC_CHECK_WITH_JRE_LAYOUT
 
 
 dnl check if GNU Classpath should be linked statically into CACAO
