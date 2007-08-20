@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMSystem.c 8321 2007-08-16 11:37:25Z michi $
+   $Id: java_lang_VMSystem.c 8363 2007-08-20 19:10:46Z michi $
 
 */
 
@@ -36,6 +36,7 @@
 #include "mm/gc-common.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_Object.h"
@@ -90,11 +91,19 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, java_lang_Object *o)
 {
+	s4 hashcode;
+
+	LLNI_CRITICAL_START;
+
 #if defined(ENABLE_GC_CACAO)
-	return heap_get_hashcode((java_objectheader *) o);
+	hashcode = heap_get_hashcode(LLNI_UNWRAP((java_handle_t *) o));
 #else
-	return (s4) ((ptrint) o);
+	hashcode = (s4) ((ptrint) o);
 #endif
+
+	LLNI_CRITICAL_END;
+
+	return hashcode;
 }
 
 

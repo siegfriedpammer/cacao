@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8343 2007-08-17 21:39:32Z michi $
+   $Id: java_lang_Class.c 8363 2007-08-20 19:10:46Z michi $
 
 */
 
@@ -570,14 +570,22 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredConstructors(java_lang
  */
 java_lang_ClassLoader *_Jv_java_lang_Class_getClassLoader(java_lang_Class *klass)
 {
-	classinfo *c;
+	classinfo   *c;
+	classloader *cl;
 
-	c = LLNI_classinfo_unwrap(klass);
+	c  = LLNI_classinfo_unwrap(klass);
+	cl = c->classloader;
 
-	if (c->classloader == NULL)
+	if (cl == NULL)
 		return NULL;
 	else
-		return (java_lang_ClassLoader *) c->classloader->object;
+#if defined(ENABLE_HANDLES)
+		/* the classloader entry itself is the handle */
+		return (java_lang_ClassLoader *) cl;
+#else
+		/* get the object out of the classloader entry */
+		return (java_lang_ClassLoader *) cl->object;
+#endif
 }
 
 #endif /* defined(ENABLE_JAVASE) */
