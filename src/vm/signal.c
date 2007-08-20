@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 8355 2007-08-19 19:59:52Z twisti $
+   $Id: signal.c 8370 2007-08-20 21:44:10Z twisti $
 
 */
 
@@ -324,14 +324,14 @@ static void signal_thread(void)
 	for (;;) {
 		/* just wait for a signal */
 
+#if defined(ENABLE_THREADS)
+		threads_thread_state_waiting(t);
+#endif
+
 		/* XXX We don't check for an error here, although the man-page
 		   states sigwait does not return an error (which is wrong!),
 		   but it seems to make problems with Boehm-GC.  We should
 		   revisit this code with our new exact-GC. */
-
-#if defined(ENABLE_THREADS)
-		threads_thread_state_waiting(t);
-#endif
 
 /* 		if (sigwait(&mask, &sig) != 0) */
 /* 			vm_abort("signal_thread: sigwait failed: %s", strerror(errno)); */
@@ -341,7 +341,6 @@ static void signal_thread(void)
 		threads_thread_state_runnable(t);
 #endif
 
-		log_println("sig=%d", sig);
 		/* Handle the signal. */
 
 		signal_thread_handler(sig);
@@ -358,8 +357,6 @@ static void signal_thread(void)
 
 void signal_thread_handler(int sig)
 {
-	log_println("signal_thread_handler: sig=%d", sig);
-
 	switch (sig) {
 	case SIGINT:
 		/* exit the vm properly */
