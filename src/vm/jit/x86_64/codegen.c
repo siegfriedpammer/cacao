@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8321 2007-08-16 11:37:25Z michi $
+   $Id: codegen.c 8361 2007-08-20 18:06:03Z michi $
 
 */
 
@@ -2951,6 +2951,7 @@ void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
 
 	cd->stackframesize =
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
+		md->paramcount +                          /* saved argument registers */
 		1;                                                    /* return value */
 
 	cd->stackframesize |= 0x1;                  /* keep stack 16-byte aligned */
