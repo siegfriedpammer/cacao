@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 8343 2007-08-17 21:39:32Z michi $
+   $Id: loader.c 8359 2007-08-20 17:02:14Z michi $
 
 */
 
@@ -1140,7 +1140,7 @@ classinfo *load_class_from_classloader(utf *name, classloader *cl)
 
 		RT_TIMING_GET_TIME(time_prepare);
 
-#if defined(ENABLE_GC_CACAO)
+#if defined(ENABLE_HANDLES)
 		o = vm_call_method(lc, (java_handle_t *) cl, string);
 #else
 		o = vm_call_method(lc, cl->object, string);

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: global.h 8343 2007-08-17 21:39:32Z michi $
+   $Id: global.h 8359 2007-08-20 17:02:14Z michi $
 
 */
 
@@ -301,7 +301,7 @@ struct java_objectarray_t {
 
 *******************************************************************************/
 
-#if defined(ENABLE_GC_CACAO)
+#if defined(ENABLE_HANDLES)
 typedef struct java_handle_t {
 	java_object_t *heap_object;
 } java_handle_t;

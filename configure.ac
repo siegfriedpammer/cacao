@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8321 2007-08-16 11:37:25Z michi $
+dnl $Id: configure.ac 8359 2007-08-20 17:02:14Z michi $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -478,6 +478,23 @@ AM_CONDITIONAL([ENABLE_MEMCHECK], test x"${ENABLE_MEMCHECK}" = "xyes")
 
 if test x"${ENABLE_MEMCHECK}" = "xyes"; then
     AC_DEFINE([ENABLE_MEMCHECK], 1, [perform debugging memory checks])
+fi
+
+
+dnl check for handles (indirection cells) support
+AC_MSG_CHECKING(whether handles (indirection cells) should be enabled)
+AC_ARG_ENABLE([handles],
+              [AS_HELP_STRING(--enable-handles,enable handles (indirection cells) [[default=no]])],
+              [case "${enableval}" in
+                   yes) ENABLE_HANDLES=yes;;
+                   *) ENABLE_HANDLES=no;;
+               esac],
+              [ENABLE_HANDLES=no])
+AC_MSG_RESULT(${ENABLE_HANDLES})
+AM_CONDITIONAL([ENABLE_HANDLES], test x"${ENABLE_HANDLES}" = "xyes")
+
+if test x"${ENABLE_HANDLES}" = "xyes"; then
+    AC_DEFINE([ENABLE_HANDLES], 1, [enable handles (indirection cells)])
 fi
 
 
