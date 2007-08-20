@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 8359 2007-08-20 17:02:14Z michi $
+   $Id: loader.c 8369 2007-08-20 21:39:32Z michi $
 
 */
 
@@ -285,7 +285,7 @@ classloader *loader_hashtable_classloader_add(java_handle_t *cl)
 	   aligned to 16-byte boundaries */
 
 #if defined(ENABLE_GC_CACAO)
-	key  = heap_get_hashcode(LLNI_direct(cl)) >> 4;
+	key  = heap_get_hashcode(LLNI_DIRECT(cl)) >> 4;
 #else
 	key  = ((u4) (ptrint) cl) >> 4;
 #endif
@@ -296,7 +296,7 @@ classloader *loader_hashtable_classloader_add(java_handle_t *cl)
 	/* search hashchain for existing entry */
 
 	while (cle) {
-		if (cle->object == LLNI_direct(cl))
+		if (cle->object == LLNI_DIRECT(cl))
 			break;
 
 		cle = cle->hashlink;
@@ -317,7 +317,7 @@ classloader *loader_hashtable_classloader_add(java_handle_t *cl)
 
 		LLNI_CRITICAL_START;
 
-		cle->object = LLNI_direct(cl);
+		cle->object = LLNI_DIRECT(cl);
 
 		LLNI_CRITICAL_END;
 
@@ -359,7 +359,7 @@ classloader *loader_hashtable_classloader_find(java_handle_t *cl)
 	   aligned to 16-byte boundaries */
 
 #if defined(ENABLE_GC_CACAO)
-	key  = heap_get_hashcode(LLNI_direct(cl)) >> 4;
+	key  = heap_get_hashcode(LLNI_DIRECT(cl)) >> 4;
 #else
 	key  = ((u4) (ptrint) cl) >> 4;
 #endif
@@ -370,7 +370,7 @@ classloader *loader_hashtable_classloader_find(java_handle_t *cl)
 	/* search hashchain for existing entry */
 
 	while (cle) {
-		if (cle->object == LLNI_direct(cl))
+		if (cle->object == LLNI_DIRECT(cl))
 			break;
 
 		cle = cle->hashlink;
