@@ -22,7 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 8297 2007-08-12 00:02:48Z michi $
+## $Id: Makefile.am 8368 2007-08-20 21:36:53Z michi $
 
 ## Process this file with automake to produce Makefile.in
 
@@ -68,6 +68,8 @@ endif
 
 libnative_la_SOURCES = \
 	$(JNI_SOURCES) \
+	llni.c \
+	llni.h \
 	native.c \
 	native.h
 

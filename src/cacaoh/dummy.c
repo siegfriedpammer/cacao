@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: dummy.c 8360 2007-08-20 18:02:50Z michi $
+   $Id: dummy.c 8368 2007-08-20 21:36:53Z michi $
 
 */
 
@@ -409,6 +409,19 @@ s4 heap_get_hashcode(java_object_t *o)
 void jit_invalidate_code(methodinfo *m)
 {
 	vm_abort("jit_invalidate_code");
+}
+
+
+/* llni ***********************************************************************/
+
+void llni_critical_start()
+{
+	vm_abort("llni_critical_start");
+}
+
+void llni_critical_end()
+{
+	vm_abort("llni_critical_end");
 }
 
 
