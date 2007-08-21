@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: properties.c 8381 2007-08-21 13:00:21Z twisti $
+   $Id: properties.c 8382 2007-08-21 13:05:42Z twisti $
 
 */
 
@@ -305,8 +305,6 @@ bool properties_init(void)
 	strcat(java_home, "/jre/lib/"JAVA_ARCH"/server/libjvm.so");
 
 	/* Check if that libjvm.so exists. */
-
-	printf("java_home=%s\n", java_home);
 
 	if (access(java_home, F_OK) == 0) {
 		/* Yes, we add /jre to java.home. */
