@@ -120,6 +120,12 @@ void _Jv_java_lang_Object_wait(java_lang_Object *o, s8 ms, s4 ns)
 	if (jvmti) jvmti_MonitorWaiting(true, o, ms);
 #endif
 
+    if (ms < 0) {
+/* 		exceptions_throw_illegalargumentexception("argument out of range"); */
+		exceptions_throw_illegalargumentexception();
+		return;
+	}
+
 #if defined(ENABLE_THREADS)
 	lock_wait_for_object(&LLNI_field_direct(o, header), ms, ns);
 #endif
