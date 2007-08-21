@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8374 2007-08-21 10:20:33Z michi $
+   $Id: jni.c 8388 2007-08-21 16:24:12Z michi $
 
 */
 
@@ -818,7 +818,7 @@ java_handle_t *_Jv_jni_invokeNative(methodinfo *m, java_handle_t *o,
 
 	if (o != NULL) {
 		/* for instance methods we must do a vftbl lookup */
-		resm = method_vftbl_lookup(o->vftbl, m);
+		resm = method_vftbl_lookup(LLNI_vftbl_direct(o), m);
 	}
 	else {
 		/* for static methods, just for convenience */
@@ -1143,6 +1143,7 @@ jthrowable _Jv_JNI_ExceptionOccurred(JNIEnv *env)
 void _Jv_JNI_ExceptionDescribe(JNIEnv *env)
 {
 	java_handle_t *o;
+	classinfo     *c;
 	methodinfo    *m;
 
 	STATISTICS(jniinvokation());
@@ -1156,7 +1157,9 @@ void _Jv_JNI_ExceptionDescribe(JNIEnv *env)
 
 		/* get printStackTrace method from exception class */
 
-		m = class_resolveclassmethod(o->vftbl->class,
+		LLNI_class_get(o, c);
+
+		m = class_resolveclassmethod(c,
 									 utf_printStackTrace,
 									 utf_void__void,
 									 NULL,
@@ -1418,7 +1421,7 @@ jobject _Jv_JNI_NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	/* call constructor */
 
 	va_start(ap, methodID);
-	_Jv_jni_CallVoidMethod(o, o->vftbl, m, ap);
+	_Jv_jni_CallVoidMethod(o, LLNI_vftbl_direct(o), m, ap);
 	va_end(ap);
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) o);
@@ -1456,7 +1459,7 @@ jobject _Jv_JNI_NewObjectV(JNIEnv* env, jclass clazz, jmethodID methodID,
 
 	/* call constructor */
 
-	_Jv_jni_CallVoidMethod(o, o->vftbl, m, args);
+	_Jv_jni_CallVoidMethod(o, LLNI_vftbl_direct(o), m, args);
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
@@ -1493,7 +1496,7 @@ jobject _Jv_JNI_NewObjectA(JNIEnv* env, jclass clazz, jmethodID methodID,
 
 	/* call constructor */
 
-	_Jv_jni_CallVoidMethodA(o, o->vftbl, m, args);
+	_Jv_jni_CallVoidMethodA(o, LLNI_vftbl_direct(o), m, args);
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
@@ -1514,10 +1517,10 @@ jclass _Jv_JNI_GetObjectClass(JNIEnv *env, jobject obj)
 
 	o = (java_handle_t *) obj;
 
-	if ((o == NULL) || (o->vftbl == NULL))
+	if ((o == NULL) || (LLNI_vftbl_direct(o) == NULL))
 		return NULL;
 
- 	c = o->vftbl->class;
+	LLNI_class_get(o, c);
 
 	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
 }
@@ -1759,7 +1762,7 @@ type _Jv_JNI_Call##name##Method(JNIEnv *env, jobject obj,   \
 	m = (methodinfo *) methodID;                            \
                                                             \
 	va_start(ap, methodID);                                 \
-	ret = _Jv_jni_Call##intern##Method(o, o->vftbl, m, ap); \
+	ret = _Jv_jni_Call##intern##Method(o, LLNI_vftbl_direct(o), m, ap); \
 	va_end(ap);                                             \
                                                             \
 	return ret;                                             \
@@ -1786,7 +1789,7 @@ type _Jv_JNI_Call##name##MethodV(JNIEnv *env, jobject obj,         \
 	o = (java_handle_t *) obj;                                     \
 	m = (methodinfo *) methodID;                                   \
                                                                    \
-	ret = _Jv_jni_Call##intern##Method(o, o->vftbl, m, args);      \
+	ret = _Jv_jni_Call##intern##Method(o, LLNI_vftbl_direct(o), m, args);      \
                                                                    \
 	return ret;                                                    \
 }
@@ -1813,7 +1816,7 @@ type _Jv_JNI_Call##name##MethodA(JNIEnv *env, jobject obj,     \
 	o = (java_handle_t *) obj;                                 \
 	m = (methodinfo *) methodID;                               \
                                                                \
-	ret = _Jv_jni_Call##intern##MethodA(o, o->vftbl, m, args); \
+	ret = _Jv_jni_Call##intern##MethodA(o, LLNI_vftbl_direct(o), m, args); \
                                                                \
 	return ret;                                                \
 }
@@ -1840,7 +1843,7 @@ jobject _Jv_JNI_CallObjectMethod(JNIEnv *env, jobject obj, jmethodID methodID,
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	ret = _Jv_jni_CallObjectMethod(o, o->vftbl, m, ap);
+	ret = _Jv_jni_CallObjectMethod(o, LLNI_vftbl_direct(o), m, ap);
 	va_end(ap);
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) ret);
@@ -1857,7 +1860,7 @@ jobject _Jv_JNI_CallObjectMethodV(JNIEnv *env, jobject obj, jmethodID methodID,
 	o = (java_handle_t *) obj;
 	m = (methodinfo *) methodID;
 
-	ret = _Jv_jni_CallObjectMethod(o, o->vftbl, m, args);
+	ret = _Jv_jni_CallObjectMethod(o, LLNI_vftbl_direct(o), m, args);
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) ret);
 }
@@ -1873,7 +1876,7 @@ jobject _Jv_JNI_CallObjectMethodA(JNIEnv *env, jobject obj, jmethodID methodID,
 	o = (java_handle_t *) obj;
 	m = (methodinfo *) methodID;
 
-	ret = _Jv_jni_CallObjectMethodA(o, o->vftbl, m, args);
+	ret = _Jv_jni_CallObjectMethodA(o, LLNI_vftbl_direct(o), m, args);
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) ret);
 }
@@ -1890,7 +1893,7 @@ void _Jv_JNI_CallVoidMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	_Jv_jni_CallVoidMethod(o, o->vftbl, m, ap);
+	_Jv_jni_CallVoidMethod(o, LLNI_vftbl_direct(o), m, ap);
 	va_end(ap);
 }
 
@@ -1904,7 +1907,7 @@ void _Jv_JNI_CallVoidMethodV(JNIEnv *env, jobject obj, jmethodID methodID,
 	o = (java_handle_t *) obj;
 	m = (methodinfo *) methodID;
 
-	_Jv_jni_CallVoidMethod(o, o->vftbl, m, args);
+	_Jv_jni_CallVoidMethod(o, LLNI_vftbl_direct(o), m, args);
 }
 
 
@@ -1917,7 +1920,7 @@ void _Jv_JNI_CallVoidMethodA(JNIEnv *env, jobject obj, jmethodID methodID,
 	o = (java_handle_t *) obj;
 	m = (methodinfo *) methodID;
 
-	_Jv_jni_CallVoidMethodA(o, o->vftbl, m, args);
+	_Jv_jni_CallVoidMethodA(o, LLNI_vftbl_direct(o), m, args);
 }
 
 
