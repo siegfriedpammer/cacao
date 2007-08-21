@@ -87,6 +87,8 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 		vm_abort("gc_init: indirection cell offset is displaced: %d", OFFSET(java_handle_t, heap_object));
 	if (OFFSET(hashtable_classloader_entry, object) != 0)
 		vm_abort("gc_init: classloader entry cannot be used as indirection cell: %d", OFFSET(hashtable_classloader_entry, object));
+	if (OFFSET(hashtable_global_ref_entry, o) != 0)
+		vm_abort("gc_init: global reference entry cannot be used as indirection cell: %d", OFFSET(hashtable_global_ref_entry, o));
 #endif
 
 	/* finalizer stuff */
