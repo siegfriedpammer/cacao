@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8341 2007-08-17 21:32:01Z michi $
+   $Id: jni.c 8387 2007-08-21 15:37:47Z twisti $
 
 */
 
@@ -938,12 +938,12 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 	classloader *cl;
 	classinfo   *c;
 
-	TRACEJNICALLS("_Jv_JNI_DefineClass(env=%p, name=%s, loader=%p, buf=%p, bufLen=%d", env, name, loader, buf, bufLen);
+	TRACEJNICALLS("_Jv_JNI_DefineClass(env=%p, name=%s, loader=%p, buf=%p, bufLen=%d)", env, name, loader, buf, bufLen);
 
 	u  = utf_new_char(name);
 	cl = (classloader *) loader;
 
-	c = class_define(u, cl, bufLen, (const uint8_t *) buf);
+	c = class_define(u, cl, bufLen, (const uint8_t *) buf, NULL);
 
 	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
 #else
