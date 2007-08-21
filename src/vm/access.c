@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: access.c 8318 2007-08-16 10:05:34Z michi $
+   $Id: access.c 8386 2007-08-21 15:21:36Z twisti $
 
 */
 
@@ -48,10 +48,6 @@
 #include "vmcore/field.h"
 #include "vmcore/method.h"
 
-
-/****************************************************************************/
-/* ACCESS CHECKS                                                            */
-/****************************************************************************/
 
 /* access_is_accessible_class **************************************************
  
@@ -97,7 +93,7 @@ bool access_is_accessible_class(classinfo *referer, classinfo *cls)
 	/* NOTE: This check must be before checks that could return
 	   false. */
 
-	if (class_issubclass(cls, class_sun_reflect_MagicAccessorImpl))
+	if (class_issubclass(referer, class_sun_reflect_MagicAccessorImpl))
 		return true;
 #endif
 
@@ -152,7 +148,7 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 	/* NOTE: This check must be before checks that could return
 	   false. */
 
-	if (class_issubclass(declarer, class_sun_reflect_MagicAccessorImpl))
+	if (class_issubclass(referer, class_sun_reflect_MagicAccessorImpl))
 		return true;
 #endif
 
