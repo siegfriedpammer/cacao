@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8388 2007-08-21 16:24:12Z michi $
+   $Id: jni.c 8390 2007-08-21 19:22:16Z michi $
 
 */
 
@@ -933,9 +933,10 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 						   const jbyte *buf, jsize bufLen)
 {
 #if defined(ENABLE_JAVASE)
-	utf         *u;
-	classloader *cl;
-	classinfo   *c;
+	utf             *u;
+	classloader     *cl;
+	classinfo       *c;
+	java_lang_Class *co;
 
 	TRACEJNICALLS("_Jv_JNI_DefineClass(env=%p, name=%s, loader=%p, buf=%p, bufLen=%d", env, name, loader, buf, bufLen);
 
@@ -944,7 +945,9 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 
 	c = class_define(u, cl, bufLen, (const uint8_t *) buf);
 
-	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
+	co = LLNI_classinfo_wrap(c);
+
+	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) co);
 #else
 	vm_abort("_Jv_JNI_DefineClass: not implemented in this configuration");
 
@@ -966,9 +969,10 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
 {
 #if defined(ENABLE_JAVASE)
-	utf       *u;
-	classinfo *cc;
-	classinfo *c;
+	utf             *u;
+	classinfo       *cc;
+	classinfo       *c;
+	java_lang_Class *co;
 
 	STATISTICS(jniinvokation());
 
@@ -1001,7 +1005,9 @@ jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
 	if (!link_class(c))
 		return NULL;
 
-  	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
+	co = LLNI_classinfo_wrap(c);
+
+  	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) co);
 #else
 	vm_abort("_Jv_JNI_FindClass: not implemented in this configuration");
 
@@ -1022,8 +1028,9 @@ jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
  
 jclass _Jv_JNI_GetSuperclass(JNIEnv *env, jclass sub)
 {
-	classinfo *c;
-	classinfo *super;
+	classinfo       *c;
+	classinfo       *super;
+	java_lang_Class *co;
 
 	TRACEJNICALLS("_Jv_JNI_GetSuperclass(env=%p, sub=%p)", env, sub);
 
@@ -1034,7 +1041,9 @@ jclass _Jv_JNI_GetSuperclass(JNIEnv *env, jclass sub)
 
 	super = class_get_superclass(c);
 
-	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) super);
+	co = LLNI_classinfo_wrap(super);
+
+	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) co);
 }
   
  
@@ -1305,12 +1314,25 @@ void _Jv_JNI_DeleteLocalRef(JNIEnv *env, jobject localRef)
 
 jboolean _Jv_JNI_IsSameObject(JNIEnv *env, jobject ref1, jobject ref2)
 {
+	java_handle_t *o1;
+	java_handle_t *o2;
+	jboolean       result;
+
 	STATISTICS(jniinvokation());
 
-	if (ref1 == ref2)
-		return JNI_TRUE;
+	o1 = (java_handle_t *) ref1;
+	o2 = (java_handle_t *) ref2;
+
+	LLNI_CRITICAL_START;
+
+	if (LLNI_UNWRAP(o1) == LLNI_UNWRAP(o2))
+		result = JNI_TRUE;
 	else
-		return JNI_FALSE;
+		result = JNI_FALSE;
+
+	LLNI_CRITICAL_END;
+
+	return result;
 }
 
 
@@ -1322,6 +1344,7 @@ jboolean _Jv_JNI_IsSameObject(JNIEnv *env, jobject ref1, jobject ref2)
 
 jobject _Jv_JNI_NewLocalRef(JNIEnv *env, jobject ref)
 {
+	java_handle_t *o;
 	java_handle_t *localref;
 
 	STATISTICS(jniinvokation());
@@ -1329,9 +1352,11 @@ jobject _Jv_JNI_NewLocalRef(JNIEnv *env, jobject ref)
 	if (ref == NULL)
 		return NULL;
 
+	o = (java_handle_t *) ref;
+
 	/* insert the reference */
 
-	localref = localref_add(ref);
+	localref = localref_add(LLNI_DIRECT(o));
 
 	return localref;
 }
@@ -1510,8 +1535,9 @@ jobject _Jv_JNI_NewObjectA(JNIEnv* env, jclass clazz, jmethodID methodID,
 
 jclass _Jv_JNI_GetObjectClass(JNIEnv *env, jobject obj)
 {
-	java_handle_t *o;
-	classinfo     *c;
+	java_handle_t   *o;
+	classinfo       *c;
+	java_lang_Class *co;
 
 	STATISTICS(jniinvokation());
 
@@ -1522,7 +1548,9 @@ jclass _Jv_JNI_GetObjectClass(JNIEnv *env, jobject obj)
 
 	LLNI_class_get(o, c);
 
-	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
+	co = LLNI_classinfo_wrap(c);
+
+	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) co);
 }
 
 
@@ -2177,7 +2205,7 @@ jobject _Jv_JNI_GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID)
 
 	STATISTICS(jniinvokation());
 
-#warning this needs to be fixed
+	vm_abort("this needs to be fixed");
 	o = GET_FIELD(obj, java_handle_t*, fieldID);
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) o);
@@ -2216,7 +2244,7 @@ void _Jv_JNI_SetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID,
 {
 	STATISTICS(jniinvokation());
 
-#warning this needs to be fixed
+	vm_abort("this needs to be fixed");
 	SET_FIELD(obj, java_handle_t*, fieldID, value);
 }
 
@@ -2912,7 +2940,7 @@ void _Jv_JNI_SetObjectArrayElement(JNIEnv *env, jobjectArray array,
 	/* check if the class of value is a subclass of the element class
 	   of the array */
 
-	if (!builtin_canstore(oa, o))
+	if (!builtin_canstore(LLNI_DIRECT(oa), LLNI_DIRECT(o)))
 		return;
 
 	LLNI_objectarray_element_set(oa, index, o);
@@ -3386,23 +3414,27 @@ jobject _Jv_JNI_NewGlobalRef(JNIEnv* env, jobject obj)
 
 	LOCK_MONITOR_ENTER(hashtable_global_ref->header);
 
+	LLNI_CRITICAL_START;
+
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-	key  = ((u4) (ptrint) obj) >> 4;           /* align to 16-byte boundaries */
+#if defined(ENABLE_GC_CACAO)
+	key  = heap_get_hashcode(LLNI_DIRECT(o)) >> 4;
+#else
+	key  = ((u4) (ptrint) o) >> 4;             /* align to 16-byte boundaries */
+#endif
 	slot = key & (hashtable_global_ref->size - 1);
 	gre  = hashtable_global_ref->ptr[slot];
 	
 	/* search external hash chain for the entry */
 
 	while (gre) {
-		if (gre->o == o) {
+		if (gre->o == LLNI_DIRECT(o)) {
 			/* global object found, increment the reference */
 
 			gre->refs++;
 
-			LOCK_MONITOR_EXIT(hashtable_global_ref->header);
-
-			return obj;
+			break;
 		}
 
 		gre = gre->hashlink;                /* next element in external chain */
@@ -3410,30 +3442,38 @@ jobject _Jv_JNI_NewGlobalRef(JNIEnv* env, jobject obj)
 
 	/* global ref not found, create a new one */
 
-	gre = NEW(hashtable_global_ref_entry);
+	if (gre == NULL) {
+		gre = NEW(hashtable_global_ref_entry);
 
 #if defined(ENABLE_GC_CACAO)
-	/* register global ref with the GC */
+		/* register global ref with the GC */
 
-	gc_reference_register(&(gre->o), GC_REFTYPE_JNI_GLOBALREF);
+		gc_reference_register(&(gre->o), GC_REFTYPE_JNI_GLOBALREF);
 #endif
 
-	gre->o    = o;
-	gre->refs = 1;
+		gre->o    = LLNI_DIRECT(o);
+		gre->refs = 1;
 
-	/* insert entry into hashtable */
+		/* insert entry into hashtable */
 
-	gre->hashlink = hashtable_global_ref->ptr[slot];
+		gre->hashlink = hashtable_global_ref->ptr[slot];
 
-	hashtable_global_ref->ptr[slot] = gre;
+		hashtable_global_ref->ptr[slot] = gre;
 
-	/* update number of hashtable-entries */
+		/* update number of hashtable-entries */
 
-	hashtable_global_ref->entries++;
+		hashtable_global_ref->entries++;
+	}
+
+	LLNI_CRITICAL_END;
 
 	LOCK_MONITOR_EXIT(hashtable_global_ref->header);
 
+#if defined(ENABLE_HANDLES)
+	return gre;
+#else
 	return obj;
+#endif
 }
 
 
@@ -3457,9 +3497,15 @@ void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 
 	LOCK_MONITOR_ENTER(hashtable_global_ref->header);
 
+	LLNI_CRITICAL_START;
+
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-	key  = ((u4) (ptrint) globalRef) >> 4;     /* align to 16-byte boundaries */
+#if defined(ENABLE_GC_CACAO)
+	key  = heap_get_hashcode(LLNI_DIRECT(o)) >> 4;
+#else
+	key  = ((u4) (ptrint) o) >> 4;             /* align to 16-byte boundaries */
+#endif
 	slot = key & (hashtable_global_ref->size - 1);
 	gre  = hashtable_global_ref->ptr[slot];
 
@@ -3470,7 +3516,7 @@ void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 	/* search external hash chain for the entry */
 
 	while (gre) {
-		if (gre->o == o) {
+		if (gre->o == LLNI_DIRECT(o)) {
 			/* global object found, decrement the reference count */
 
 			gre->refs--;
@@ -3494,6 +3540,8 @@ void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 				FREE(gre, hashtable_global_ref_entry);
 			}
 
+			LLNI_CRITICAL_END;
+
 			LOCK_MONITOR_EXIT(hashtable_global_ref->header);
 
 			return;
@@ -3504,6 +3552,8 @@ void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 	}
 
 	log_println("JNI-DeleteGlobalRef: global reference not found");
+
+	LLNI_CRITICAL_END;
 
 	LOCK_MONITOR_EXIT(hashtable_global_ref->header);
 }
