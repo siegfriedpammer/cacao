@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: classpath.m4 8248 2007-07-31 12:47:11Z twisti $
+dnl $Id: classpath.m4 8299 2007-08-13 08:41:18Z michi $
 
 
 dnl which Java core library should we use
