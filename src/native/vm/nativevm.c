@@ -28,13 +28,20 @@
 
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
+
+#if defined(WITH_CLASSPATH_SUN)
+# include <string.h>
+#endif
 
 #include "native/vm/nativevm.h"
 
 #include "vmcore/method.h"
 
 #if defined(WITH_CLASSPATH_SUN)
+# include "mm/memory.h"
+
 # include "native/native.h"
 
 # include "vm/vm.h"
@@ -87,10 +94,24 @@ bool nativevm_preinit(void)
 
 # elif defined(WITH_CLASSPATH_SUN)
 
+	char        *path;
+	int          len;
 	utf         *u;
 	lt_dlhandle  handle;
 
-	u = utf_new_char(CLASSPATH_LIBDIR"/libjava.so");
+	len =
+		strlen(classpath_libdir) +
+		strlen("/libjava.so") +
+		strlen("0");
+
+	path = MNEW(char, len);
+
+	strcpy(path, classpath_libdir);
+	strcat(path, "/libjava.so");
+
+	u = utf_new_char(path);
+
+	MFREE(path, char, len);
 
 	handle = native_library_open(u);
 	native_library_add(u, NULL, handle);
