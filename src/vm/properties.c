@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: properties.c 8351 2007-08-19 17:56:23Z twisti $
+   $Id: properties.c 8381 2007-08-21 13:00:21Z twisti $
 
 */
 
@@ -31,8 +31,9 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <sys/utsname.h>
 #include <time.h>
+#include <unistd.h>
+#include <sys/utsname.h>
 
 #include "vm/types.h"
 
@@ -287,6 +288,39 @@ bool properties_init(void)
 
 # elif defined(WITH_CLASSPATH_SUN)
 
+	/* Find correct java.home.  We check if there is a JRE
+	   co-located. */
+
+	/* NOTE: We use the server VM here as it should be available on
+	   all architectures. */
+
+	len =
+		strlen(env_java_home) +
+		strlen("/jre/lib/"JAVA_ARCH"/server/libjvm.so") +
+		strlen("0");
+
+	java_home = MNEW(char, len);
+
+	strcpy(java_home, env_java_home);
+	strcat(java_home, "/jre/lib/"JAVA_ARCH"/server/libjvm.so");
+
+	/* Check if that libjvm.so exists. */
+
+	printf("java_home=%s\n", java_home);
+
+	if (access(java_home, F_OK) == 0) {
+		/* Yes, we add /jre to java.home. */
+
+		strcpy(java_home, env_java_home);
+		strcat(java_home, "/jre");
+	}
+	else {
+		/* No, java.home is at it is. */
+
+		strcpy(java_home, env_java_home);
+	}
+
+	properties_add("java.home", java_home);
 	properties_add("sun.boot.library.path", classpath_libdir);
 
 # else

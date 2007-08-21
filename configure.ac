@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8375 2007-08-21 11:04:23Z twisti $
+dnl $Id: configure.ac 8381 2007-08-21 13:00:21Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -275,6 +275,7 @@ AC_FUNC_MMAP
 
 dnl keep them alpha-sorted!
 AC_CHECK_FUNCS([accept])
+AC_CHECK_FUNCS([access])
 AC_CHECK_FUNCS([atoi])
 AC_CHECK_FUNCS([atol])
 AC_CHECK_FUNCS([calloc])
