@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8357 2007-08-19 22:59:43Z twisti $
+   $Id: jvm.c 8384 2007-08-21 14:44:31Z panzi $
 
 */
 
@@ -2182,24 +2182,13 @@ jclass JVM_LoadClass0(JNIEnv *env, jobject receiver, jclass currClass, jstring c
 
 jint JVM_GetArrayLength(JNIEnv *env, jobject arr)
 {
-	java_array_t *a;
+	java_handle_t *a;
 
 	TRACEJVMCALLS("JVM_GetArrayLength(arr=%p)", arr);
 
-	a = (java_array_t *) arr;
+	a = (java_handle_t *) arr;
 
-	if (a == NULL) {
-		exceptions_throw_nullpointerexception();
-		return 0;
-	}
-
-	if (!class_is_array(a->objheader.vftbl->class)) {
-/* 		exceptions_throw_illegalargumentexception("Argument is not an array"); */
-		exceptions_throw_illegalargumentexception();
-		return 0;
-	}
-
-	return a->size;
+	return array_length_get(a);
 }
 
 
@@ -2207,61 +2196,13 @@ jint JVM_GetArrayLength(JNIEnv *env, jobject arr)
 
 jobject JVM_GetArrayElement(JNIEnv *env, jobject arr, jint index)
 {
-	vftbl_t       *v;
 	java_handle_t *a;
-	int            elementtype;
-	int32_t        size;
 
 	TRACEJVMCALLS("JVM_GetArrayElement(env=%p, arr=%p, index=%d)", env, arr, index);
 
 	a = (java_handle_t *) arr;
 
-	if (a == NULL) {
-		exceptions_throw_nullpointerexception();
-		return NULL;
-	}
-
-	v = LLNI_vftbl_direct(a);
-
-	if (!class_is_array(v->class)) {
-		exceptions_throw_illegalargumentexception();
-		return NULL;
-	}
-
-	size = LLNI_array_size(a);
-	
-	if (index < 0 || index >= size) {
-		exceptions_throw_arrayindexoutofboundsexception();
-		return NULL;
-	}
-	
-	elementtype = v->arraydesc->elementtype;
-
-	switch (elementtype) {
-	case ARRAYTYPE_INT:
-		return (jobject)primitive_box_int(array_intarray_element_get(a, index));
-	case ARRAYTYPE_LONG:
-		return (jobject)primitive_box_long(array_longarray_element_get(a, index));
-	case ARRAYTYPE_FLOAT:
-		return (jobject)primitive_box_float(array_floatarray_element_get(a, index));
-	case ARRAYTYPE_DOUBLE:
-		return (jobject)primitive_box_double(array_doublearray_element_get(a, index));
-	case ARRAYTYPE_BYTE:
-		return (jobject)primitive_box_byte(array_bytearray_element_get(a, index));
-	case ARRAYTYPE_CHAR:
-		return (jobject)primitive_box_char(array_chararray_element_get(a, index));
-	case ARRAYTYPE_SHORT:
-		return (jobject)primitive_box_short(array_shortarray_element_get(a, index));
-	case ARRAYTYPE_BOOLEAN:
-		return (jobject)primitive_box_boolean(array_booleanarray_element_get(a, index));
-	case ARRAYTYPE_OBJECT:
-		return (jobject)array_objectarray_element_get(a, index);
-	default:
-		/* invalid element type */
-		vm_abort("array_element_primitive_get: invalid array element type %d",
-			 elementtype);
-		return NULL;
-	}
+	return (jobject)array_element_get(a, index);
 }
 
 
@@ -2277,7 +2218,15 @@ jvalue JVM_GetPrimitiveArrayElement(JNIEnv *env, jobject arr, jint index, jint w
 
 void JVM_SetArrayElement(JNIEnv *env, jobject arr, jint index, jobject val)
 {
-	log_println("JVM_SetArrayElement: IMPLEMENT ME!");
+	java_handle_t *a;
+	java_handle_t *o;
+
+	TRACEJVMCALLS("JVM_SetArrayElement(arr=%p, index=%d, val=%p)", arr, index, val);
+	
+	a = (java_handle_t *) arr;
+	o = (java_handle_t *) val;
+
+	array_element_set(a, index, o);
 }
 
 
