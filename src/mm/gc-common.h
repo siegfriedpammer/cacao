@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: gc-common.h 8302 2007-08-13 13:50:50Z michi $
+   $Id: gc-common.h 8374 2007-08-21 10:20:33Z michi $
 
 */
 
@@ -38,6 +38,17 @@
 #include "vmcore/method.h"
 
 
+/* reference types ************************************************************/
+
+#define GC_REFTYPE_THREADOBJECT  1
+#define GC_REFTYPE_CLASSLOADER   2
+#define GC_REFTYPE_JNI_GLOBALREF 3
+#define GC_REFTYPE_FINALIZER     4
+#define GC_REFTYPE_LOCALREF      5
+#define GC_REFTYPE_STACK         6
+#define GC_REFTYPE_CLASSREF      7
+
+
 /* function prototypes ********************************************************/
 
 void  gc_init(u4 heapmaxsize, u4 heapstartsize);
@@ -50,7 +61,7 @@ void  heap_free(void *p);
 void  heap_init_objectheader(java_object_t *o, u4 size);
 s4    heap_get_hashcode(java_object_t *o);
 
-void  gc_reference_register(java_object_t **ref);
+void  gc_reference_register(java_object_t **ref, int32_t reftype);
 void  gc_reference_unregister(java_object_t **ref);
 #endif
 

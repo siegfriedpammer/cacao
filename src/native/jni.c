@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8364 2007-08-20 19:52:00Z michi $
+   $Id: jni.c 8374 2007-08-21 10:20:33Z michi $
 
 */
 
@@ -3412,7 +3412,7 @@ jobject _Jv_JNI_NewGlobalRef(JNIEnv* env, jobject obj)
 #if defined(ENABLE_GC_CACAO)
 	/* register global ref with the GC */
 
-	gc_reference_register(&(gre->o));
+	gc_reference_register(&(gre->o), GC_REFTYPE_JNI_GLOBALREF);
 #endif
 
 	gre->o    = o;

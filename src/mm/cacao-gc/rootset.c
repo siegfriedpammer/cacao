@@ -92,9 +92,9 @@ rootset_t *rootset_resize(rootset_t *rs)
 #define ROOTSET_ADD(adr,mrk,tp) \
 	if (refcount >= rs->capacity) \
 		rs = rootset_resize(rs); \
-	rs->refs[refcount].ref   = (adr); \
-	rs->refs[refcount].marks = (mrk); \
-	rs->refs[refcount].type  = (tp); \
+	rs->refs[refcount].ref     = (adr); \
+	rs->refs[refcount].marks   = (mrk); \
+	rs->refs[refcount].reftype = (tp); \
 	refcount++;
 
 static rootset_t *rootset_from_globals(rootset_t *rs)
@@ -117,10 +117,10 @@ static rootset_t *rootset_from_globals(rootset_t *rs)
 	re = list_first_unsynced(gc_reflist);
 	while (re) {
 
-		GC_LOG2( printf("Found Registered Reference: %p at %p\n", *(re->ref), re->ref); );
+		GC_LOG2( printf("Found Registered Reference: %p at %p of type %d\n", *(re->ref), re->ref, ref->reftype); );
 
 		/* add this registered reference to the root set */
-		ROOTSET_ADD(re->ref, true, REFTYPE_REGISTERED)
+		ROOTSET_ADD(re->ref, true, re->reftype)
 
 		re = list_next_unsynced(gc_reflist, re);
 	}
@@ -133,7 +133,7 @@ static rootset_t *rootset_from_globals(rootset_t *rs)
 		GC_LOG2( printf("Found Finalizer Entry: %p\n", (void *) fe->o); );
 
 		/* add this object with finalizer to the root set */
-		ROOTSET_ADD(&( fe->o ), false, REFTYPE_FINALIZER)
+		ROOTSET_ADD(&( fe->o ), false, GC_REFTYPE_FINALIZER)
 
 		fe = list_next_unsynced(final_list, fe);
 	}
@@ -184,7 +184,7 @@ static rootset_t *rootset_from_classes(rootset_t *rs)
 					printf("\tto object : "); heap_print_object(f->value->a); printf("\n"); );
 
 			/* add this static field reference to the root set */
-			ROOTSET_ADD(f->value, true, REFTYPE_CLASSREF);
+			ROOTSET_ADD(f->value, true, GC_REFTYPE_CLASSREF);
 
 		}
 
@@ -268,7 +268,7 @@ static rootset_t *rootset_from_thread(threadobject *thread, rootset_t *rs)
 			GC_LOG2( printf("Found Reference (Java Local): %p\n", (void *) sf->javalocals[i].a); );
 
 			/* add this reference to the root set */
-			ROOTSET_ADD((java_object_t **) &( sf->javalocals[i] ), true, REFTYPE_STACK);
+			ROOTSET_ADD((java_object_t **) &( sf->javalocals[i] ), true, GC_REFTYPE_STACK);
 
 		}
 
@@ -281,7 +281,7 @@ static rootset_t *rootset_from_thread(threadobject *thread, rootset_t *rs)
 			GC_LOG2( printf("Found Reference (Java Stack): %p\n", (void *) sf->javastack[i].a); );
 
 			/* add this reference to the root set */
-			ROOTSET_ADD((java_object_t **) &( sf->javastack[i] ), true, REFTYPE_STACK);
+			ROOTSET_ADD((java_object_t **) &( sf->javastack[i] ), true, GC_REFTYPE_STACK);
 
 		}
 
@@ -290,7 +290,7 @@ static rootset_t *rootset_from_thread(threadobject *thread, rootset_t *rs)
 			GC_LOG( printf("Found Reference (Sync Slot): %p\n", (void *) sf->syncslots[i].a); );
 
 			/* add this reference to the root set */
-			ROOTSET_ADD((java_object_t **) &( sf->syncslots[i] ), true, REFTYPE_STACK);
+			ROOTSET_ADD((java_object_t **) &( sf->syncslots[i] ), true, GC_REFTYPE_STACK);
 
 		}
 	}
@@ -308,10 +308,10 @@ static rootset_t *rootset_from_thread(threadobject *thread, rootset_t *rs)
 			/* there should be no null pointers in here */
 			GC_ASSERT(lrt->refs[i] != NULL);
 
-			GC_LOG( printf("Found LocalRef: %p\n", (void *) lrt->refs[i]); );
+			GC_LOG2( printf("Found LocalRef: %p\n", (void *) lrt->refs[i]); );
 
 			/* add this reference to the root set */
-			ROOTSET_ADD(&( lrt->refs[i] ), true, REFTYPE_LOCALREF);
+			ROOTSET_ADD(&( lrt->refs[i] ), true, GC_REFTYPE_LOCALREF);
 
 		}
 
@@ -391,10 +391,10 @@ void rootset_writeback(rootset_t *rs)
 /* Debugging ******************************************************************/
 
 #if !defined(NDEBUG)
-static const char* ref_type_names[] = {
-		"XXXXXX", "REGIST", "CLASSL",
-		"GLOBAL", "FINAL ", "LOCAL ",
-		"STACK ", "STATIC"
+static const char* reftype_names[] = {
+		"XXXXXXXXXXXX", "THREADOBJECT", "CLASSLOADER ",
+		"GLOBAL-REF  ", "FINALIZER   ", "LOCAL-REF   ",
+		"ON-STACK-ADR", "STATIC FIELD"
 };
 
 void rootset_print(rootset_t *rs)
@@ -425,7 +425,7 @@ void rootset_print(rootset_t *rs)
 
 			/*printf("\t\tReference at %p points to ...\n", (void *) rs->refs[i]);*/
 			printf("\t\t");
-			printf("%s ", ref_type_names[rs->refs[i].type]);
+			printf("%s ", reftype_names[rs->refs[i].reftype]);
 			if (rs->refs[i].marks)
 				printf("MARK+UPDATE");
 			else

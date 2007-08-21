@@ -93,6 +93,10 @@
 # error "GC does only work with replacement enabled!"
 #endif
 
+#if 1 && !defined(ENABLE_HANDLES)
+# error "GC does only work with handles (indirection cells) enabled!"
+#endif
+
 #if 1 && !defined(__ALPHA__) && !defined(__ARM__) && !defined(__I386__) && !defined(__POWERPC__) && !defined(__X86_64__) && !defined(__M68K__) && !defined(__SPARC_64__)
 # error "GC was only ported to some architectures so far!"
 #endif
@@ -126,6 +130,9 @@ typedef struct list_gcref_entry_t list_gcref_entry_t;
 struct list_gcref_entry_t {
 	listnode_t      linkage;
 	java_object_t **ref;
+#if !defined(NDEBUG)
+	s4              reftype;
+#endif
 };
 
 

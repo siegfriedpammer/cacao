@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: dummy.c 8368 2007-08-20 21:36:53Z michi $
+   $Id: dummy.c 8374 2007-08-21 10:20:33Z michi $
 
 */
 
@@ -365,7 +365,7 @@ void finalizer_run(void *o, void *p)
 
 /* gc *************************************************************************/
 
-void gc_reference_register(java_object_t **ref)
+void gc_reference_register(java_object_t **ref, int32_t reftype)
 {
 	vm_abort("gc_reference_register");
 }

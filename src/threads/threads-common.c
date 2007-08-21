@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads-common.c 8360 2007-08-20 18:02:50Z michi $
+   $Id: threads-common.c 8374 2007-08-21 10:20:33Z michi $
 
 */
 
@@ -286,7 +286,7 @@ threadobject *threads_thread_new(void)
 #if defined(ENABLE_GC_CACAO)
 		/* register reference to java.lang.Thread with the GC */
 
-		gc_reference_register((java_object_t **) &(t->object));
+		gc_reference_register((java_object_t **) &(t->object), GC_REFTYPE_THREADOBJECT);
 #endif
 	}
 
@@ -529,6 +529,9 @@ void threads_thread_start(java_lang_Thread *object)
 void threads_thread_print_info(threadobject *t)
 {
 	java_lang_Thread *object;
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_String *namestring;
+#endif
 	utf              *name;
 
 	assert(t->state != THREAD_STATE_NEW);
@@ -541,7 +544,8 @@ void threads_thread_print_info(threadobject *t)
 		/* get thread name */
 
 #if defined(WITH_CLASSPATH_GNU)
-		name = javastring_toutf((java_handle_t *) LLNI_field_direct(object, name), false);
+		LLNI_field_get_ref(object, name, namestring);
+		name = javastring_toutf((java_handle_t *) namestring, false);
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
 		/* FIXME: In cldc the name is a char[] */
 /* 		name = object->name; */

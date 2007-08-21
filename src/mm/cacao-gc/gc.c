@@ -127,7 +127,7 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 
 *******************************************************************************/
 
-void gc_reference_register(java_object_t **ref)
+void gc_reference_register(java_object_t **ref, int32_t reftype)
 {
 	list_gcref_entry_t *re;
 
@@ -147,7 +147,10 @@ void gc_reference_register(java_object_t **ref)
 
 	re = NEW(list_gcref_entry_t);
 
-	re->ref = ref;
+	re->ref     = ref;
+#if !defined(NDEBUG)
+	re->reftype = reftype;
+#endif
 
 	list_add_last(gc_reflist, re);
 }

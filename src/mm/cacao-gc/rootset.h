@@ -51,15 +51,6 @@ typedef struct rootset_t rootset_t;
 
 #define ROOTSET_INITIAL_CAPACITY 16
 
-#define REFTYPE_THREADOBJECT 1
-#define REFTYPE_REGISTERED   1
-#define REFTYPE_CLASSLOADER  2
-#define REFTYPE_GLOBALREF    3
-#define REFTYPE_FINALIZER    4
-#define REFTYPE_LOCALREF     5
-#define REFTYPE_STACK        6
-#define REFTYPE_CLASSREF     7
-
 /* rootset is passed as array of pointers, which point to the location of
    the reference */
 
@@ -67,7 +58,7 @@ typedef struct rootset_entry_t {
 	java_object_t     **ref;            /* a pointer to the actual reference */
 	bool                marks;          /* indicates if a reference marks */
 #if !defined(NDEBUG)
-	s4                  type;
+	s4                  reftype;
 #endif
 } rootset_entry_t;
 

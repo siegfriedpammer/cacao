@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.c 8369 2007-08-20 21:39:32Z michi $
+   $Id: loader.c 8374 2007-08-21 10:20:33Z michi $
 
 */
 
@@ -312,7 +312,7 @@ classloader *loader_hashtable_classloader_add(java_handle_t *cl)
 #if defined(ENABLE_GC_CACAO)
 		/* register the classloader object with the GC */
 
-		gc_reference_register(&(cle->object));
+		gc_reference_register(&(cle->object), GC_REFTYPE_CLASSLOADER);
 #endif
 
 		LLNI_CRITICAL_START;
