@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 8372 2007-08-20 22:21:43Z twisti $
+dnl $Id: configure.ac 8375 2007-08-21 11:04:23Z twisti $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -829,22 +829,7 @@ dnl because libtool uses them to build the correct libraries.
 AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
 
-dnl check if CACAO should be linked statically
-AC_MSG_CHECKING(whether to link CACAO statically)
-AC_ARG_ENABLE([staticvm],
-              [AS_HELP_STRING(--enable-staticvm,link CACAO statically [[default=no]])],
-              [case "${enableval}" in
-                  yes) ENABLE_STATICVM=yes
-                       AC_DEFINE([ENABLE_STATICVM], 1, [link CACAO statically])
-                       ;;
-                  *) ENABLE_STATICVM=no;;
-               esac],
-              [ENABLE_STATICVM=no])
-AC_MSG_RESULT(${ENABLE_STATICVM})
-AM_CONDITIONAL([ENABLE_STATICVM], test x"${ENABLE_STATICVM}" = "xyes")
-AC_SUBST(ENABLE_STATICVM)
-
-
+AC_CHECK_ENABLE_STATICVM
 AC_CHECK_ENABLE_ANNOTATIONS
 
 
