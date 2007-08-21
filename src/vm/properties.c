@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: properties.c 8299 2007-08-13 08:41:18Z michi $
+   $Id: properties.c 8380 2007-08-21 12:43:00Z michi $
 
 */
 
@@ -39,6 +39,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 
 #include "vm/global.h"                      /* required by java_lang_String.h */
 #include "native/include/java_lang_String.h"
@@ -52,6 +53,7 @@
 
 #include "vm/jit/asmpart.h"
 
+#include "vmcore/class.h"
 #include "vmcore/method.h"
 #include "vmcore/options.h"
 
@@ -392,13 +394,16 @@ char *properties_get(char *key)
 
 void properties_system_add(java_handle_t *p, char *key, char *value)
 {
+	classinfo     *c;
 	methodinfo    *m;
 	java_handle_t *k;
 	java_handle_t *v;
 
 	/* search for method to add properties */
 
-	m = class_resolveclassmethod(p->vftbl->class,
+	LLNI_class_get(p, c);
+
+	m = class_resolveclassmethod(c,
 								 utf_put,
 								 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
 								 NULL,
@@ -430,13 +435,16 @@ void properties_system_add(java_handle_t *p, char *key, char *value)
 void properties_system_add_all(java_handle_t *p)
 {
 	list_properties_entry *pe;
+	classinfo             *c;
 	methodinfo            *m;
 	java_handle_t         *key;
 	java_handle_t         *value;
 
 	/* search for method to add properties */
 
-	m = class_resolveclassmethod(p->vftbl->class,
+	LLNI_class_get(p, c);
+
+	m = class_resolveclassmethod(c,
 								 utf_put,
 								 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
 								 NULL,

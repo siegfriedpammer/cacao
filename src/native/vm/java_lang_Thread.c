@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Thread.c 8295 2007-08-11 17:57:24Z michi $
+   $Id: java_lang_Thread.c 8380 2007-08-21 12:43:00Z michi $
 
 */
 
@@ -109,7 +109,7 @@ void _Jv_java_lang_Thread_interrupt(java_lang_Thread *this)
 	threadobject *thread;
 
 #if defined(WITH_CLASSPATH_GNU)
-	thread = (threadobject *) LLNI_field_direct(LLNI_field_direct(this, vmThread), vmdata);
+	thread = (threadobject *) LLNI_field_direct(this, vmThread)->vmdata;
 #elif defined(WITH_CLASSPATH_CLDC1_1)
 	thread = (threadobject *) this->vm_thread;
 #endif
@@ -131,7 +131,7 @@ s4 _Jv_java_lang_Thread_isAlive(java_lang_Thread *this)
 
 # if defined(WITH_CLASSPATH_GNU)
 
-	t = (threadobject *) LLNI_field_direct(LLNI_field_direct(this, vmThread), vmdata);
+	t = (threadobject *) LLNI_field_direct(this, vmThread)->vmdata;
 
 # elif defined(WITH_CLASSPATH_SUN)
 
@@ -179,7 +179,7 @@ s4 _Jv_java_lang_Thread_isInterrupted(java_lang_Thread *this)
 	threadobject *t;
 
 # if defined(WITH_CLASSPATH_GNU)
-	t = (threadobject *) LLNI_field_direct(LLNI_field_direct(this, vmThread), vmdata);
+	t = (threadobject *) LLNI_field_direct(this, vmThread)->vmdata;
 # elif defined(WITH_CLASSPATH_SUN)
 	/* XXX this is just a quick hack */
 
@@ -235,7 +235,7 @@ void _Jv_java_lang_Thread_setPriority(java_lang_Thread *this, s4 priority)
 	threadobject *t;
 
 # if defined(WITH_CLASSPATH_GNU)
-	t = (threadobject *) LLNI_field_direct(LLNI_field_direct(this, vmThread), vmdata);
+	t = (threadobject *) LLNI_field_direct(this, vmThread)->vmdata;
 # elif defined(WITH_CLASSPATH_SUN)
 	/* XXX this is just a quick hack */
 
@@ -293,7 +293,7 @@ java_lang_Thread *_Jv_java_lang_Thread_currentThread(void)
 #if defined(ENABLE_THREADS)
 	thread = THREADOBJECT;
 
-	t = thread->object;
+	t = LLNI_WRAP(thread->object);
 
 	if (t == NULL)
 		log_text("t ptr is NULL\n");
@@ -385,7 +385,7 @@ java_lang_String *_Jv_java_lang_Thread_getState(java_lang_Thread *this)
 	java_handle_t *o;
 
 # if defined(WITH_CLASSPATH_GNU)
-	thread = (threadobject *) LLNI_field_direct(LLNI_field_direct(this, vmThread), vmdata);
+	thread = (threadobject *) LLNI_field_direct(this, vmThread)->vmdata;
 # elif defined(WITH_CLASSPATH_CLDC1_1)
 	thread = (threadobject *) this->vm_thread;
 # endif

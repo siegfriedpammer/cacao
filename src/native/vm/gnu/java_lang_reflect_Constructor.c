@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Constructor.c 8343 2007-08-17 21:39:32Z michi $
+   $Id: java_lang_reflect_Constructor.c 8380 2007-08-21 12:43:00Z michi $
 
 */
 
@@ -99,7 +99,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 {
 	/* just to be sure */
 
-	assert(LLNI_field_direct(this, clazz) == declaringClass);
+	assert(LLNI_field_direct(this, clazz) == LLNI_DIRECT(declaringClass));
 	assert(LLNI_field_direct(this, slot)  == slot);
 
 	return _Jv_java_lang_reflect_Constructor_newInstance(env, this, args);
