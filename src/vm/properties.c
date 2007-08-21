@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: properties.c 8382 2007-08-21 13:05:42Z twisti $
+   $Id: properties.c 8389 2007-08-21 18:26:33Z twisti $
 
 */
 
@@ -116,17 +116,6 @@ bool properties_init(void)
 
 	/* fill in system properties */
 
-	/* add /jre to java.home property */
-
-	len = strlen(env_java_home) + strlen("/jre") + strlen("0");
-
-	java_home = MNEW(char, len);
-
-	strcpy(java_home, env_java_home);
-	strcat(java_home, "/jre");
-
-	properties_add("java.home", java_home);
-
 	properties_add("java.vm.specification.version", "1.0");
 	properties_add("java.vm.specification.vendor", "Sun Microsystems Inc.");
 	properties_add("java.vm.specification.name", "Java Virtual Machine Specification");
@@ -149,6 +138,17 @@ bool properties_init(void)
 	}
 
 # if defined(WITH_CLASSPATH_GNU)
+
+	/* Add /jre to java.home property. */
+
+	len = strlen(env_java_home) + strlen("/jre") + strlen("0");
+
+	java_home = MNEW(char, len);
+
+	strcpy(java_home, env_java_home);
+	strcat(java_home, "/jre");
+
+	properties_add("java.home", java_home);
 
 	/* get properties from system */
 
