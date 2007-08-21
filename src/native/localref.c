@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: localref.c 8365 2007-08-20 19:57:08Z michi $
+   $Id: localref.c 8391 2007-08-21 20:34:27Z michi $
 
 */
 
@@ -339,8 +339,6 @@ java_handle_t *localref_add(java_object_t *o)
 
 	/* insert the reference into the local reference table */
 
-	h = NULL;
-
 	for (i = 0; i < lrt->capacity; i++) {
 		if (lrt->refs[i] == NULL) {
 			lrt->refs[i] = o;
@@ -352,26 +350,72 @@ java_handle_t *localref_add(java_object_t *o)
 			h = (java_handle_t *) o;
 #endif
 
-			break;
+#if 0
+			{
+				int count = 0;
+				for (lrt = LOCALREFTABLE; lrt != NULL; lrt = lrt->prev)
+					count += lrt->used;
+				log_println("added localref %p for %p (total count %d)", h, o, count);
+				/*localref_dump();*/
+			}
+#endif
+
+			return h;
 		}
 	}
 
 	/* this should not happen */
 
-	if (h == NULL)
-		assert(0);
+	log_println("localref_add: WARNING: unable to add localref for %p", o);
 
-#if 0
-	{
-		int count = 0;
-		for (lrt = LOCALREFTABLE; lrt != NULL; lrt = lrt->prev)
-			count += lrt->used;
-		log_println("added localref %p for %p (total count %d)", h, o, count);
-		/*localref_dump();*/
-	}
+	return NULL;
+}
+
+
+/* localref_del ****************************************************************
+
+   Deletes an entry from the local reference table.
+
+*******************************************************************************/
+
+void localref_del(java_handle_t *localref)
+{
+	localref_table *lrt;
+	java_handle_t  *h;
+	int32_t         i;
+
+	/* get local reference table from thread */
+
+	lrt = LOCALREFTABLE;
+
+	assert(lrt != NULL);
+
+	/* go through all local frames */
+
+	/* XXX: this is definitely not what the spec wants! */
+	/*for (; lrt != NULL; lrt = lrt->prev) {*/
+
+		/* and try to remove the reference */
+    
+		for (i = 0; i < lrt->capacity; i++) {
+#if defined(ENABLE_HANDLES)
+			h = (java_handle_t *) &(lrt->refs[i]);
+#else
+			h = (java_handle_t *) lrt->refs[i];
 #endif
 
-	return h;
+			if (h == localref) {
+				lrt->refs[i] = NULL;
+				lrt->used--;
+
+				return;
+			}
+		}
+	/*}*/
+
+	/* this should not happen */
+
+	log_println("localref_del: WARNING: unable to find localref %p", localref);
 }
 
 

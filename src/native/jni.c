@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8390 2007-08-21 19:22:16Z michi $
+   $Id: jni.c 8391 2007-08-21 20:34:27Z michi $
 
 */
 
@@ -1271,38 +1271,14 @@ jobject _Jv_JNI_PopLocalFrame(JNIEnv* env, jobject result)
 void _Jv_JNI_DeleteLocalRef(JNIEnv *env, jobject localRef)
 {
 	java_handle_t  *o;
-	localref_table *lrt;
-	s4              i;
 
 	STATISTICS(jniinvokation());
 
 	o = (java_handle_t *) localRef;
 
-	/* get local reference table (thread specific) */
+	/* delete the reference */
 
-	lrt = LOCALREFTABLE;
-
-	/* go through all local frames */
-
-	for (; lrt != NULL; lrt = lrt->prev) {
-
-		/* and try to remove the reference */
-
-		for (i = 0; i < lrt->capacity; i++) {
-			if (lrt->refs[i] == o) {
-				lrt->refs[i] = NULL;
-				lrt->used--;
-
-				return;
-			}
-		}
-	}
-
-	/* this should not happen */
-
-/*  	if (opt_checkjni) */
-/*  	FatalError(env, "Bad global or local ref passed to JNI"); */
-	log_text("JNI-DeleteLocalRef: Local ref passed to JNI not found");
+	localref_del(o);
 }
 
 
