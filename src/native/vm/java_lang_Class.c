@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_Class.c 8357 2007-08-19 22:59:43Z twisti $
+   $Id: java_lang_Class.c 8395 2007-08-22 13:12:46Z panzi $
 
 */
 
@@ -619,32 +619,28 @@ void _Jv_java_lang_Class_throwException(java_lang_Throwable *t)
  */
 java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* klass)
 {
-	classinfo                *c               = LLNI_classinfo_unwrap(klass);
+	classinfo                *c               = NULL;
 	static methodinfo        *m_parseAnnotationsIntoArray   = NULL;
 	utf                      *utf_parseAnnotationsIntoArray = NULL;
 	utf                      *utf_desc        = NULL;
 	java_handle_bytearray_t  *annotations     = NULL;
 	sun_reflect_ConstantPool *constantPool    = NULL;
-	uint32_t                  size            = 0;
 	java_lang_Object         *constantPoolOop = (java_lang_Object*)klass;
 
-	if (c == NULL) {
+	if (klass == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 	
-	/* Return null for arrays and primitives: */
-	if (class_is_primitive(c) || class_is_array(c)) {
+	c = LLNI_classinfo_unwrap(klass);
+
+	/* get annotations: */
+	annotations = class_get_annotations(c);
+
+	if (exceptions_get_exception() != NULL) {
+		/* the only exception possible here should be a out of memory exception
+		 * raised by copying the annotations into a java bytearray */
 		return NULL;
-	}
-
-	if (c->annotations != NULL) {
-		size        = c->annotations->size;
-		annotations = builtin_newarray_byte(size);
-
-		if(annotations != NULL) {
-			MCOPY(annotations->data, c->annotations->data, uint8_t, size);
-		}
 	}
 
 	constantPool = 

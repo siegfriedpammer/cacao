@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8387 2007-08-21 15:37:47Z twisti $
+   $Id: class.c 8395 2007-08-22 13:12:46Z panzi $
 
 */
 
@@ -1984,6 +1984,41 @@ java_handle_objectarray_t *class_get_interfaces(classinfo *c)
 	}
 
 	return oa;
+}
+
+
+/* class_get_annotations *******************************************************
+
+   Return the unparsed declared annotations in an byte array
+   of the given class (or NULL if there aren't any).
+
+*******************************************************************************/
+
+java_handle_bytearray_t *class_get_annotations(classinfo *c)
+{
+#if defined(ENABLE_ANNOTATIONS)
+	java_handle_bytearray_t  *annotations = NULL;
+	uint32_t                  size        = 0;
+	
+	/* Return null for arrays and primitives: */
+	if (class_is_primitive(c) || class_is_array(c)) {
+		return NULL;
+	}
+
+	/* copy the annotations into a java byte array: */
+	if (c->annotations != NULL) {
+		size        = c->annotations->size;
+		annotations = builtin_newarray_byte(size);
+
+		if(annotations != NULL) {
+			MCOPY(annotations->data, c->annotations->data, uint8_t, size);
+		}
+	}
+
+	return annotations;
+#else
+	return NULL;
+#endif
 }
 
 

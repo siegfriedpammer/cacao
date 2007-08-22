@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8393 2007-08-22 01:10:09Z panzi $
+   $Id: class.h 8395 2007-08-22 13:12:46Z panzi $
 
 */
 
@@ -385,6 +385,7 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 classinfo                 *class_get_declaringclass(classinfo *c);
 classinfo                 *class_get_enclosingclass(classinfo *c);
 java_handle_objectarray_t *class_get_interfaces(classinfo *c);
+java_handle_bytearray_t   *class_get_annotations(classinfo *c);
 
 #if defined(ENABLE_JAVASE)
 utf                       *class_get_signature(classinfo *c);

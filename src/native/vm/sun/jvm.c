@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8393 2007-08-22 01:10:09Z panzi $
+   $Id: jvm.c 8395 2007-08-22 13:12:46Z panzi $
 
 */
 
@@ -1067,8 +1067,7 @@ jstring JVM_GetClassSignature(JNIEnv *env, jclass cls)
 
 jbyteArray JVM_GetClassAnnotations(JNIEnv *env, jclass cls)
 {
-#if defined(ENABLE_ANNOTATIONS)
-	classinfo *c = LLNI_classinfo_unwrap(cls);
+	classinfo               *c           = NULL;
 	java_handle_bytearray_t *annotations = NULL;
 
 	TRACEJVMCALLS("JVM_GetClassAnnotations: cls=%p", cls);
@@ -1077,29 +1076,13 @@ jbyteArray JVM_GetClassAnnotations(JNIEnv *env, jclass cls)
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
+	
+	c = LLNI_classinfo_unwrap(cls);
 
-	/* Return null for arrays and primitives: */
-	if(class_is_primitive(c) || class_is_array(c))
-	{
-		return NULL;
-	}
-
-	if(c->annotations != NULL)
-	{
-		uint32_t size = c->annotations->size;
-		annotations = builtin_newarray_byte(size);
-
-		if(annotations != NULL)
-		{
-			MCOPY(annotations->data, c->annotations->data, uint8_t, size);
-		}
-	}
+	/* get annotations: */
+	annotations = class_get_annotations(c);
 
 	return (jbyteArray)annotations;
-#else
-	log_println("JVM_GetClassAnnotations: cls=%p, not implemented in this configuration!", cls);
-	return NULL;
-#endif
 }
 
 
