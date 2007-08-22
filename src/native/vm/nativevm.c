@@ -44,6 +44,7 @@
 
 # include "native/native.h"
 
+# include "vm/properties.h"
 # include "vm/vm.h"
 
 # include "vmcore/class.h"
@@ -94,24 +95,27 @@ bool nativevm_preinit(void)
 
 # elif defined(WITH_CLASSPATH_SUN)
 
-	char        *path;
+	char        *boot_library_path;
 	int          len;
+	char        *p;
 	utf         *u;
 	lt_dlhandle  handle;
 
+	boot_library_path = properties_get("sun.boot.library.path");
+
 	len =
-		strlen(classpath_libdir) +
+		strlen(boot_library_path) +
 		strlen("/libjava.so") +
 		strlen("0");
 
-	path = MNEW(char, len);
+	p = MNEW(char, len);
 
-	strcpy(path, classpath_libdir);
-	strcat(path, "/libjava.so");
+	strcpy(p, boot_library_path);
+	strcat(p, "/libjava.so");
 
-	u = utf_new_char(path);
+	u = utf_new_char(p);
 
-	MFREE(path, char, len);
+	MFREE(p, char, len);
 
 	handle = native_library_open(u);
 	native_library_add(u, NULL, handle);

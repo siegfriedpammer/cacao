@@ -22,18 +22,23 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: properties.c 8399 2007-08-22 18:24:23Z twisti $
+   $Id: properties.c 8401 2007-08-22 18:45:31Z twisti $
 
 */
 
 
 #include "config.h"
 
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
 #include <sys/utsname.h>
+
+#if defined(WITH_JRE_LAYOUT)
+# include <libgen.h>
+#endif
 
 #include "vm/types.h"
 
@@ -181,6 +186,15 @@ void properties_set(void)
 		strcpy(java_home, p);
 		strcat(java_home, "/..");
 	}
+
+	/* Set the path to Java core native libraries. */
+
+	len = strlen(java_home) + strlen("/lib/"JAVA_ARCH) + strlen("0");
+
+	boot_library_path = MNEW(char, len);
+
+	strcpy(boot_library_path, java_home);
+	strcat(boot_library_path, "/lib/"JAVA_ARCH);
 
 # else
 #  error unknown classpath configuration
@@ -504,7 +518,10 @@ void properties_set(void)
 
 # elif defined(WITH_CLASSPATH_SUN)
 
-	/* Nothing to do. */
+	/* Actually this property is set by OpenJDK, but we need it in
+	   nativevm_preinit(). */
+
+	properties_add("sun.boot.library.path", boot_library_path);
 
 # else
 

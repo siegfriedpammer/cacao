@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8399 2007-08-22 18:24:23Z twisti $
+   $Id: vm.c 8401 2007-08-22 18:45:31Z twisti $
 
 */
 
@@ -33,11 +33,6 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
-
-#if defined(WITH_JRE_LAYOUT)
-# include <libgen.h>
-# include <unistd.h>
-#endif
 
 #include "vm/types.h"
 
