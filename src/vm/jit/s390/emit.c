@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8352 2007-08-19 18:32:59Z pm $
+   $Id: emit.c 8400 2007-08-22 18:28:22Z pm $
 
 */
 
@@ -161,52 +161,61 @@ void emit_copy(jitdata *jd, instruction *iptr)
 			return;
 		}
 
-		/* If one of the variables resides in memory, we can eliminate
-		   the register move from/to the temporary register with the
-		   order of getting the destination register and the load. */
-
-		if (IS_INMEMORY(src->flags)) {
-			if (IS_FLT_DBL_TYPE(dst->type)) {
-				d = codegen_reg_of_var(iptr->opc, dst, REG_FTMP1);
+		if (IS_INMEMORY(src->flags) && IS_INMEMORY(dst->flags)) {
+			if (IS_2_WORD_TYPE(src->type)) {
+				N_MVC(dst->vv.regoff, 8, REG_SP, src->vv.regoff, REG_SP);
 			} else {
-				if (IS_2_WORD_TYPE(dst->type)) {
-					d = codegen_reg_of_var(iptr->opc, dst, REG_ITMP12_PACKED);
+				N_MVC(dst->vv.regoff, 4, REG_SP, src->vv.regoff, REG_SP);
+			}
+		} else {
+
+			/* If one of the variables resides in memory, we can eliminate
+			   the register move from/to the temporary register with the
+			   order of getting the destination register and the load. */
+
+			if (IS_INMEMORY(src->flags)) {
+				if (IS_FLT_DBL_TYPE(dst->type)) {
+					d = codegen_reg_of_var(iptr->opc, dst, REG_FTMP1);
 				} else {
-					d = codegen_reg_of_var(iptr->opc, dst, REG_ITMP1);
+					if (IS_2_WORD_TYPE(dst->type)) {
+						d = codegen_reg_of_var(iptr->opc, dst, REG_ITMP12_PACKED);
+					} else {
+						d = codegen_reg_of_var(iptr->opc, dst, REG_ITMP1);
+					}
+				}
+				s1 = emit_load(jd, iptr, src, d);
+			}
+			else {
+				if (IS_FLT_DBL_TYPE(src->type)) {
+					s1 = emit_load(jd, iptr, src, REG_FTMP1);
+				} else {
+					if (IS_2_WORD_TYPE(src->type)) {
+						s1 = emit_load(jd, iptr, src, REG_ITMP12_PACKED);
+					} else {
+						s1 = emit_load(jd, iptr, src, REG_ITMP1);
+					}
+				}
+				d = codegen_reg_of_var(iptr->opc, dst, s1);
+			}
+
+			if (s1 != d) {
+				if (IS_FLT_DBL_TYPE(src->type)) {
+					M_FMOV(s1, d);
+				} else {
+					if (IS_2_WORD_TYPE(src->type)) {
+						M_LNGMOVE(s1, d);
+					} else {
+						M_MOV(s1, d);
+					}
 				}
 			}
-			s1 = emit_load(jd, iptr, src, d);
-		}
-		else {
-			if (IS_FLT_DBL_TYPE(src->type)) {
-				s1 = emit_load(jd, iptr, src, REG_FTMP1);
-			} else {
-				if (IS_2_WORD_TYPE(src->type)) {
-					s1 = emit_load(jd, iptr, src, REG_ITMP12_PACKED);
-				} else {
-					s1 = emit_load(jd, iptr, src, REG_ITMP1);
-				}
-			}
-			d = codegen_reg_of_var(iptr->opc, dst, s1);
-		}
 
-		if (s1 != d) {
-			if (IS_FLT_DBL_TYPE(src->type)) {
-				M_FMOV(s1, d);
-			} else {
-				if (IS_2_WORD_TYPE(src->type)) {
-					M_LNGMOVE(s1, d);
-				} else {
-					M_MOV(s1, d);
-				}
-			}
+			emit_store(jd, iptr, dst, d);
 		}
-
-		emit_store(jd, iptr, dst, d);
 	}
 }
 
-/* emit_trap *******************************************************************
+/* emit_trap****************************************************************
 
    Emit a trap instruction and return the original machine code.
 
