@@ -1,4 +1,4 @@
-dnl m4/zlib.m4
+dnl m4/annotations.m4
 dnl
 dnl Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
 dnl C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: configure.ac 7228 2007-01-19 01:13:48Z edwin $
+dnl $Id$
 
 
 dnl check if annotations support should be built
