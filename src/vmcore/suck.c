@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: suck.c 8399 2007-08-22 18:24:23Z twisti $
+   $Id: suck.c 8403 2007-08-22 19:59:32Z twisti $
 
 */
 
@@ -312,12 +312,12 @@ void suck_add_from_property(char *key)
 					strcat(p, ":");
 					strcat(p, boot_class_path);
 
-					MFREE(boot_class_path, u1, strlen(boot_class_path));
-
 #if defined(ENABLE_JAVASE)
 					properties_add("sun.boot.class.path", p);
 					properties_add("java.boot.class.path", p);
 #endif
+
+					MFREE(boot_class_path, char, strlen(boot_class_path));
 
 					/* free the memory allocated by scandir */
 					/* (We use `free` as the memory came from the C library.) */

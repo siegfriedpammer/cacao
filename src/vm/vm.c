@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8401 2007-08-22 18:45:31Z twisti $
+   $Id: vm.c 8403 2007-08-22 19:59:32Z twisti $
 
 */
 
@@ -869,8 +869,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 			class_path = properties_get("java.class.path");
 
-			MFREE(class_path, char, len);
-
 			p = MNEW(char, strlen(opt_arg) + strlen("0"));
 
 			strcpy(p, opt_arg);
@@ -878,6 +876,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 #if defined(ENABLE_JAVASE)
 			properties_add("java.class.path", p);
 #endif
+
+			MFREE(class_path, char, strlen(class_path));
 			break;
 
 		case OPT_D:
@@ -902,8 +902,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 			boot_class_path = properties_get("sun.boot.class.path");
 
-			MFREE(boot_class_path, char, len);
-
 			p = MNEW(char, strlen(opt_arg) + strlen("0"));
 
 			strcpy(p, opt_arg);
@@ -912,6 +910,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			properties_add("sun.boot.class.path", p);
 			properties_add("java.boot.class.path", p);
 #endif
+
+			MFREE(boot_class_path, char, strlen(boot_class_path));
 			break;
 
 		case OPT_BOOTCLASSPATH_A:
@@ -949,12 +949,12 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			strcat(p, ":");
 			strcat(p, boot_class_path);
 
-			MFREE(boot_class_path, char, len);
-
 #if defined(ENABLE_JAVASE)
 			properties_add("sun.boot.class.path", p);
 			properties_add("java.boot.class.path", p);
 #endif
+
+			MFREE(boot_class_path, char, len);
 			break;
 
 		case OPT_BOOTCLASSPATH_C:
@@ -962,8 +962,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			   classes. */
 
 			boot_class_path = properties_get("sun.boot.class.path");
-
-			MFREE(boot_class_path, char, strlen(boot_class_path));
 
 			len =
 				strlen(CACAO_VM_ZIP) +
@@ -981,6 +979,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			properties_add("sun.boot.class.path", p);
 			properties_add("java.boot.class.path", p);
 #endif
+
+			MFREE(boot_class_path, char, strlen(boot_class_path));
 			break;
 
 #if defined(ENABLE_JVMTI)

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: properties.c 8402 2007-08-22 19:32:27Z twisti $
+   $Id: properties.c 8403 2007-08-22 19:59:32Z twisti $
 
 */
 
@@ -337,7 +337,7 @@ void properties_set(void)
 
 		boot_class_path = MNEW(char, len);
 
-		strcat(boot_class_path, CLASSPATH_CLASSES);
+		strcpy(boot_class_path, CLASSPATH_CLASSES);
 
 # else
 #  error unknown classpath configuration
@@ -345,8 +345,8 @@ void properties_set(void)
 #endif
 	}
 
-	properties_add("java.boot.class.path", boot_class_path);
 	properties_add("sun.boot.class.path", boot_class_path);
+	properties_add("java.boot.class.path", boot_class_path);
 
 #if defined(ENABLE_JAVASE)
 
