@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.h 8318 2007-08-16 10:05:34Z michi $
+   $Id: vm.h 8399 2007-08-22 18:24:23Z twisti $
 
 */
 
@@ -51,14 +51,6 @@ extern _Jv_JNIEnv *_Jv_env;
 
 extern bool vm_initializing;
 extern bool vm_exiting;
-
-extern char      *cacao_prefix;
-extern char      *cacao_libjvm;
-extern char      *classpath_libdir;
-
-extern char      *_Jv_bootclasspath;
-extern char      *_Jv_classpath;
-extern char      *_Jv_java_library_path;
 
 extern char      *mainstring;
 extern classinfo *mainclass;

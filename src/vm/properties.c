@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: properties.c 8389 2007-08-21 18:26:33Z twisti $
+   $Id: properties.c 8399 2007-08-22 18:24:23Z twisti $
 
 */
 
@@ -59,9 +59,9 @@
 
 /* internal property structure ************************************************/
 
-typedef struct list_properties_entry list_properties_entry;
+typedef struct list_properties_entry_t list_properties_entry_t;
 
-struct list_properties_entry {
+struct list_properties_entry_t {
 	char       *key;
 	char       *value;
 	listnode_t  linkage;
@@ -80,12 +80,28 @@ static list_t *list_properties = NULL;
 
 *******************************************************************************/
 
-bool properties_init(void)
+void properties_init(void)
+{
+	list_properties = list_create(OFFSET(list_properties_entry_t, linkage));
+}
+
+
+/* properties_set **************************************************************
+
+   Fill the properties list with default values.
+
+*******************************************************************************/
+
+void properties_set(void)
 {
 #if defined(ENABLE_JAVASE)
-	char           *env_java_home;
+	int             len;
+	char           *p;
+
 	char           *java_home;
-	s4              len;
+	char           *boot_library_path;
+	char           *boot_class_path;
+	char           *class_path;
 
 # if defined(WITH_CLASSPATH_GNU)
 	char           *cwd;
@@ -96,23 +112,237 @@ bool properties_init(void)
 	char           *lang;
 	char           *country;
 	struct utsname *utsnamebuf;
+
+	char           *java_library_path;
 # endif
 #endif
 
-	/* create the properties list */
+#if defined(WITH_JRE_LAYOUT)
+	/* SUN also uses a buffer of 4096-bytes (strace is your friend). */
 
-	list_properties = list_create(OFFSET(list_properties_entry, linkage));
+	p = MNEW(char, 4096);
+
+	if (readlink("/proc/self/exe", p, 4095) == -1)
+		vm_abort("properties_set: readlink failed: %s\n", strerror(errno));
+
+	/* Get the path of the current executable. */
+
+	p = dirname(p);
+
+# if defined(WITH_CLASSPATH_GNU)
+
+	/* Set java.home. */
+
+	len = strlen(path) + strlen("/..") + strlen("0");
+
+	java_home = MNEW(char, len);
+
+	strcpy(java_home, p);
+	strcat(java_home, "/..");
+
+	/* Set the path to Java core native libraries. */
+
+	len = strlen(cacao_prefix) + strlen("/lib/classpath") + strlen("0");
+
+	boot_library_path = MNEW(char, len);
+
+	strcpy(boot_library_path, java_home);
+	strcat(boot_library_path, "/lib/classpath");
+
+# elif defined(WITH_CLASSPATH_SUN)
+
+	/* Find correct java.home.  We check if there is a JRE
+	   co-located. */
+
+	/* NOTE: We use the server VM here as it should be available on
+	   all architectures. */
+
+	len =
+		strlen(p) +
+		strlen("/../jre/lib/"JAVA_ARCH"/server/libjvm.so") +
+		strlen("0");
+
+	java_home = MNEW(char, len);
+
+	strcpy(java_home, p);
+	strcat(java_home, "/../jre/lib/"JAVA_ARCH"/server/libjvm.so");
+
+	/* Check if that libjvm.so exists. */
+
+	if (access(java_home, F_OK) == 0) {
+		/* Yes, we add /jre to java.home. */
+
+		strcpy(java_home, p);
+		strcat(java_home, "/../jre");
+	}
+	else {
+		/* No, java.home is parent directory. */
+
+		strcpy(java_home, p);
+		strcat(java_home, "/..");
+	}
+
+# else
+#  error unknown classpath configuration
+# endif
+
+	/* Free path. */
+
+	MFREE(p, char, len);
+
+#else
+	java_home         = CACAO_PREFIX;
+
+# if defined(WITH_CLASSPATH_GNU)
+	boot_library_path = CLASSPATH_LIBDIR"/classpath";
+# else
+	boot_library_path = CLASSPATH_LIBDIR;
+# endif
+#endif
+
+	properties_add("java.home", java_home);
+
+	/* Set the bootclasspath. */
+
+	p = getenv("BOOTCLASSPATH");
+
+	if (p != NULL) {
+		boot_class_path = MNEW(char, strlen(p) + strlen("0"));
+		strcpy(boot_class_path, p);
+	}
+	else {
+#if defined(WITH_JRE_LAYOUT)
+# if defined(WITH_CLASSPATH_GNU)
+
+		len =
+			strlen(java_home) + strlen("/share/cacao/vm.zip:") +
+			strlen(java_home) + strlen("/share/classpath/glibj.zip") +
+			strlen("0");
+
+		boot_class_path = MNEW(char, len);
+
+		strcpy(boot_class_path, java_home);
+		strcat(boot_class_path, "/share/cacao/vm.zip");
+		strcat(boot_class_path, ":");
+		strcat(boot_class_path, java_home);
+		strcat(boot_class_path, "/share/classpath/glibj.zip");
+
+# elif defined(WITH_CLASSPATH_SUN)
+
+		/* This is the bootclasspath taken from HotSpot (see
+		   hotspot/src/share/vm/runtime/os.cpp
+		   (os::set_boot_path)). */
+
+		len =
+			strlen(java_home) + strlen("/lib/resources.jar:") +
+			strlen(java_home) + strlen("/lib/rt.jar:") +
+			strlen(java_home) + strlen("/lib/sunrsasign.jar:") +
+			strlen(java_home) + strlen("/lib/jsse.jar:") +
+			strlen(java_home) + strlen("/lib/jce.jar:") +
+			strlen(java_home) + strlen("/lib/charsets.jar:") +
+			strlen(java_home) + strlen("/classes") +
+			strlen("0");
+
+		boot_class_path = MNEW(char, len);
+
+		strcpy(boot_class_path, java_home);
+		strcat(boot_class_path, "/lib/resources.jar:");
+		strcat(boot_class_path, java_home);
+		strcat(boot_class_path, "/lib/rt.jar:");
+		strcat(boot_class_path, java_home);
+		strcat(boot_class_path, "/lib/sunrsasign.jar:");
+		strcat(boot_class_path, java_home);
+		strcat(boot_class_path, "/lib/jsse.jar:");
+		strcat(boot_class_path, java_home);
+		strcat(boot_class_path, "/lib/jce.jar:");
+		strcat(boot_class_path, java_home);
+		strcat(boot_class_path, "/lib/charsets.jar:");
+		strcat(boot_class_path, java_home);
+		strcat(boot_class_path, "/classes");
+
+# else
+#  error unknown classpath configuration
+# endif
+#else
+# if defined(WITH_CLASSPATH_GNU)
+
+		len =
+			strlen(CACAO_VM_ZIP) +
+			strlen(":") +
+			strlen(CLASSPATH_CLASSES) +
+			strlen("0");
+
+		boot_class_path = MNEW(char, len);
+
+		strcpy(boot_class_path, CACAO_VM_ZIP);
+		strcat(boot_class_path, ":");
+		strcat(boot_class_path, CLASSPATH_CLASSES);
+
+# elif defined(WITH_CLASSPATH_SUN)
+
+		/* This is the bootclasspath taken from HotSpot (see
+		   hotspot/src/share/vm/runtime/os.cpp
+		   (os::set_boot_path)). */
+
+		len =
+			strlen(CLASSPATH_PREFIX"/lib/resources.jar:") +
+			strlen(CLASSPATH_PREFIX"/lib/rt.jar:") +
+			strlen(CLASSPATH_PREFIX"/lib/sunrsasign.jar:") +
+			strlen(CLASSPATH_PREFIX"/lib/jsse.jar:") +
+			strlen(CLASSPATH_PREFIX"/lib/jce.jar:") +
+			strlen(CLASSPATH_PREFIX"/lib/charsets.jar:") +
+			strlen(CLASSPATH_PREFIX"/classes") +
+			strlen("0");
+
+		boot_class_path = MNEW(char, len);
+
+		strcpy(boot_class_path, CLASSPATH_PREFIX"/lib/resources.jar:");
+		strcat(boot_class_path, CLASSPATH_PREFIX"/lib/rt.jar:");
+		strcat(boot_class_path, CLASSPATH_PREFIX"/lib/sunrsasign.jar:");
+		strcat(boot_class_path, CLASSPATH_PREFIX"/lib/jsse.jar:");
+		strcat(boot_class_path, CLASSPATH_PREFIX"/lib/jce.jar:");
+		strcat(boot_class_path, CLASSPATH_PREFIX"/lib/charsets.jar:");
+		strcat(boot_class_path, CLASSPATH_PREFIX"/classes");
+
+# elif defined(WITH_CLASSPATH_CLDC1_1)
+
+		len =
+			strlen(CLASSPATH_CLASSES) +
+			strlen("0");
+
+		boot_class_path = MNEW(char, len);
+
+		strcat(boot_class_path, CLASSPATH_CLASSES);
+
+# else
+#  error unknown classpath configuration
+# endif
+#endif
+	}
+
+	properties_add("java.boot.class.path", boot_class_path);
+	properties_add("sun.boot.class.path", boot_class_path);
+
+	/* Set the classpath. */
+
+	p = getenv("CLASSPATH");
+
+	if (p != NULL) {
+		class_path = MNEW(char, strlen(p) + strlen("0"));
+		strcpy(class_path, p);
+	}
+	else {
+		class_path = MNEW(char, strlen(".") + strlen("0"));
+		strcpy(class_path, ".");
+	}
+
+	properties_add("java.class.path", class_path);
 
 #if defined(ENABLE_JAVASE)
 
 	/* get properties from system */
 
-	env_java_home = getenv("JAVA_HOME");
-
-	/* set JAVA_HOME to default prefix if not defined */
-
-	if (env_java_home == NULL)
-		env_java_home = cacao_prefix;
+	p = getenv("JAVA_HOME");
 
 	/* fill in system properties */
 
@@ -139,18 +369,7 @@ bool properties_init(void)
 
 # if defined(WITH_CLASSPATH_GNU)
 
-	/* Add /jre to java.home property. */
-
-	len = strlen(env_java_home) + strlen("/jre") + strlen("0");
-
-	java_home = MNEW(char, len);
-
-	strcpy(java_home, env_java_home);
-	strcat(java_home, "/jre");
-
-	properties_add("java.home", java_home);
-
-	/* get properties from system */
+	/* Get properties from system. */
 
 	cwd      = _Jv_getcwd();
 
@@ -173,25 +392,22 @@ bool properties_init(void)
 	properties_add("java.vendor", "GNU Classpath");
 	properties_add("java.vendor.url", "http://www.gnu.org/software/classpath/");
 
-	properties_add("java.class.path", _Jv_classpath);
 	properties_add("java.class.version", CLASS_VERSION);
-
-	/* Set bootclasspath properties. One for GNU classpath and the
-	   other for compatibility with Sun (required by most
-	   applications). */
-
-	properties_add("java.boot.class.path", _Jv_bootclasspath);
-	properties_add("sun.boot.class.path", _Jv_bootclasspath);
 
 #  if defined(WITH_STATIC_CLASSPATH)
 	properties_add("gnu.classpath.boot.library.path", ".");
 	properties_add("java.library.path" , ".");
 #  else
-	/* fill gnu.classpath.boot.library.path with GNU Classpath library
-       path */
+	properties_add("gnu.classpath.boot.library.path", boot_library_path);
 
-	properties_add("gnu.classpath.boot.library.path", classpath_libdir);
-	properties_add("java.library.path", _Jv_java_library_path);
+	/* Get and set java.library.path. */
+
+	java_library_path = getenv("LD_LIBRARY_PATH");
+
+	if (java_library_path == NULL)
+		java_library_path = "";
+
+	properties_add("java.library.path", java_library_path);
 #  endif
 
 	properties_add("java.io.tmpdir", "/tmp");
@@ -208,11 +424,11 @@ bool properties_init(void)
 
 	/* set the java.ext.dirs property */
 
-	len = strlen(env_java_home) + strlen("/jre/lib/ext") + strlen("0");
+	len = strlen(java_home) + strlen("/jre/lib/ext") + strlen("0");
 
 	extdirs = MNEW(char, len);
 
-	strcpy(extdirs, env_java_home);
+	strcpy(extdirs, java_home);
 	strcat(extdirs, "/jre/lib/ext");
 
 	properties_add("java.ext.dirs", extdirs);
@@ -288,38 +504,7 @@ bool properties_init(void)
 
 # elif defined(WITH_CLASSPATH_SUN)
 
-	/* Find correct java.home.  We check if there is a JRE
-	   co-located. */
-
-	/* NOTE: We use the server VM here as it should be available on
-	   all architectures. */
-
-	len =
-		strlen(env_java_home) +
-		strlen("/jre/lib/"JAVA_ARCH"/server/libjvm.so") +
-		strlen("0");
-
-	java_home = MNEW(char, len);
-
-	strcpy(java_home, env_java_home);
-	strcat(java_home, "/jre/lib/"JAVA_ARCH"/server/libjvm.so");
-
-	/* Check if that libjvm.so exists. */
-
-	if (access(java_home, F_OK) == 0) {
-		/* Yes, we add /jre to java.home. */
-
-		strcpy(java_home, env_java_home);
-		strcat(java_home, "/jre");
-	}
-	else {
-		/* No, java.home is at it is. */
-
-		strcpy(java_home, env_java_home);
-	}
-
-	properties_add("java.home", java_home);
-	properties_add("sun.boot.library.path", classpath_libdir);
+	/* Nothing to do. */
 
 # else
 
@@ -339,10 +524,6 @@ bool properties_init(void)
 # error unknown Java configuration
 
 #endif
-
-	/* everything's ok */
-
-	return true;
 }
 
 
@@ -355,7 +536,7 @@ bool properties_init(void)
 
 void properties_add(char *key, char *value)
 {
-	list_properties_entry *pe;
+	list_properties_entry_t *pe;
 
 	/* search for the entry */
 
@@ -372,7 +553,7 @@ void properties_add(char *key, char *value)
 
 	/* entry was not found, insert a new one */
 
-	pe = NEW(list_properties_entry);
+	pe = NEW(list_properties_entry_t);
 
 	pe->key   = key;
 	pe->value = value;
@@ -389,7 +570,7 @@ void properties_add(char *key, char *value)
 
 char *properties_get(char *key)
 {
-	list_properties_entry *pe;
+	list_properties_entry_t *pe;
 
 	for (pe = list_first_unsynced(list_properties); pe != NULL;
 		 pe = list_next_unsynced(list_properties, pe)) {
@@ -446,10 +627,10 @@ void properties_system_add(java_handle_t *p, char *key, char *value)
 #if defined(ENABLE_JAVASE)
 void properties_system_add_all(java_handle_t *p)
 {
-	list_properties_entry *pe;
-	methodinfo            *m;
-	java_handle_t         *key;
-	java_handle_t         *value;
+	list_properties_entry_t *pe;
+	methodinfo              *m;
+	java_handle_t           *key;
+	java_handle_t           *value;
 
 	/* search for method to add properties */
 
