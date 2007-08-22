@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: classpath.m4 8376 2007-08-21 11:09:38Z twisti $
+dnl $Id: classpath.m4 8398 2007-08-22 16:56:45Z twisti $
 
 
 dnl which Java core library should we use
@@ -114,7 +114,7 @@ AC_ARG_WITH([classpath-libdir],
                      CLASSPATH_LIBDIR=${CLASSPATH_PREFIX}/lib/${JAVA_ARCH}
                      ;;
                  *)
-                     CLASSPATH_CLASSES=${CLASSPATH_PREFIX}
+                     CLASSPATH_LIBDIR=${CLASSPATH_PREFIX}
                      ;;
              esac])
 AC_MSG_RESULT(${CLASSPATH_LIBDIR})
