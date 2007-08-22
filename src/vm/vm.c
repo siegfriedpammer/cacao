@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8351 2007-08-19 17:56:23Z twisti $
+   $Id: vm.c 8397 2007-08-22 15:49:38Z twisti $
 
 */
 
@@ -62,15 +62,6 @@
 #endif
 
 #include "native/include/java_lang_Class.h"
-
-#include "native/include/java_lang_Byte.h"
-#include "native/include/java_lang_Character.h"
-#include "native/include/java_lang_Short.h"
-#include "native/include/java_lang_Integer.h"
-#include "native/include/java_lang_Boolean.h"
-#include "native/include/java_lang_Long.h"
-#include "native/include/java_lang_Float.h"
-#include "native/include/java_lang_Double.h"
 
 #include "native/vm/nativevm.h"
 
