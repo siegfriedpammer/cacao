@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Constructor.c 8326 2007-08-16 17:45:49Z twisti $
+   $Id: java_lang_reflect_Constructor.c 8393 2007-08-22 01:10:09Z panzi $
 
 */
 
@@ -118,14 +118,16 @@ JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Constructor_decla
 	struct java_util_Map    *declaredAnnotations = NULL;
 	java_handle_bytearray_t *annotations         = NULL;
 	java_lang_Class         *declaringClass      = NULL;
+	classinfo               *referer             = NULL;
 
 	LLNI_field_get_ref(this, declaredAnnotations, declaredAnnotations);
 
 	if (declaredAnnotations == NULL) {
 		LLNI_field_get_val(this, annotations, annotations);
 		LLNI_field_get_ref(this, clazz, declaringClass);
+		LLNI_class_get(this, referer);
 
-		declaredAnnotations = reflect_get_declaredannotatios(annotations, declaringClass, o->vftbl->class);
+		declaredAnnotations = reflect_get_declaredannotatios(annotations, declaringClass, referer);
 
 		LLNI_field_set_ref(this, declaredAnnotations, declaredAnnotations);
 	}
@@ -145,12 +147,14 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_Constructor_
 	java_handle_bytearray_t *parameterAnnotations = NULL;
 	int32_t                  slot                 = -1;
 	java_lang_Class         *declaringClass       = NULL;
+	classinfo               *referer              = NULL;
 
 	LLNI_field_get_ref(this, parameterAnnotations, parameterAnnotations);
 	LLNI_field_get_val(this, slot, slot);
 	LLNI_field_get_ref(this, clazz, declaringClass);
+	LLNI_class_get(this, referer);
 
-	return reflect_get_parameterannotations((java_handle_t*)parameterAnnotations, slot, declaringClass, o->vftbl->class);
+	return reflect_get_parameterannotations((java_handle_t*)parameterAnnotations, slot, declaringClass, referer);
 }
 #endif
 

@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: reflect.c 8357 2007-08-19 22:59:43Z twisti $
+   $Id: reflect.c 8393 2007-08-22 01:10:09Z panzi $
 
 */
 
@@ -269,8 +269,8 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 #if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
 /* reflect_get_declaredannotatios *********************************************
 
-   Returns a java.util.Map<Class, Annotation> of the declared
-   annotations.
+   Returns a java.util.Map<Class<? extends Annotation>, Annotation>
+   of the declared annotations.
 
 *******************************************************************************/
 

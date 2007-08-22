@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8387 2007-08-21 15:37:47Z twisti $
+   $Id: class.h 8393 2007-08-22 01:10:09Z panzi $
 
 */
 
@@ -147,13 +147,20 @@ struct classinfo {                /* class structure                          */
 #if defined(ENABLE_JAVASE)
 	utf        *signature;        /* Signature attribute                      */
 #if defined(ENABLE_ANNOTATIONS)
-	annotation_bytearray_t  *annotations;
+        /* all the anntation attributes are NULL (and not a zero length array)
+	   if there is nothing */
+	annotation_bytearray_t  *annotations; /* annotations of this class        */
 	
-	annotation_bytearrays_t *method_annotations;
-	annotation_bytearrays_t *method_parameterannotations;
-	annotation_bytearrays_t *method_annotationdefaults;
+	annotation_bytearrays_t *method_annotations; /* array of annotations for  */
+	                              /* the methods                              */
+	annotation_bytearrays_t *method_parameterannotations; /* array of         */
+	                              /* parameter annotations for the methods    */
+	annotation_bytearrays_t *method_annotationdefaults; /* array for          */
+	                              /* annotation default values for the        */
+				      /* methods                                  */
 
-	annotation_bytearrays_t *field_annotations;
+	annotation_bytearrays_t *field_annotations; /* array of annotations for   */
+	                              /* the fields                               */
 #endif
 #endif
 	classloader *classloader;       /* NULL for bootstrap classloader         */

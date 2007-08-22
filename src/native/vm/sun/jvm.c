@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8387 2007-08-21 15:37:47Z twisti $
+   $Id: jvm.c 8393 2007-08-22 01:10:09Z panzi $
 
 */
 
@@ -1240,9 +1240,7 @@ jobject JVM_GetClassConstantPool(JNIEnv *env, jclass cls)
 	sun_reflect_ConstantPool *constantPool    = NULL;
 	java_lang_Object         *constantPoolOop = (java_lang_Object*)cls;
 	
-	TRACEJVMCALLS("JVM_GetClassConstantPool: cls=%p", cls);
-
-	assert(cls != NULL);
+	TRACEJVMCALLS("JVM_GetClassConstantPool(env=%p, cls=%p)", env, cls);
 
 	constantPool = 
 		(sun_reflect_ConstantPool*)native_new_and_init(
@@ -1257,7 +1255,7 @@ jobject JVM_GetClassConstantPool(JNIEnv *env, jclass cls)
 
 	return (jobject)constantPool;
 #else
-	log_println("JVM_GetClassConstantPool: cls=%p, not implemented in this configuration!", cls);
+	log_println("JVM_GetClassConstantPool(env=%p, cls=%p): not implemented in this configuration!", env, cls);
 	return NULL;
 #endif
 }

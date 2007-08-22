@@ -71,8 +71,8 @@ public class AnnotationParser {
     public static Annotation[][] parseParameterAnnotations(
                     byte[] parameterAnnotations,
                     ConstantPool constPool,
-		    Class container,
-		    int numParameters) {
+                    Class container,
+                    int numParameters) {
         if (parameterAnnotations == null)
             return new Annotation[numParameters][0];
 
@@ -453,10 +453,10 @@ public class AnnotationParser {
     private static Class<?> parseSig(String sig, Class container) {
         if (sig.equals("V")) {
             return void.class;
-	}
-	else {
+        }
+        else {
             return toClass(new FieldSignatureParser(container, sig).getFieldType());
-	}
+        }
     }
 
     static Class<?> toClass(Type o) {

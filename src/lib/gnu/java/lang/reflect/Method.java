@@ -88,7 +88,7 @@ extends AccessibleObject implements Member, GenericDeclaration
   private byte[] annotations          = null;
   private byte[] parameterAnnotations = null;
   private byte[] annotationDefault    = null;
-  private transient Map<Class, Annotation> declaredAnnotations = null;
+  private transient Map<Class<? extends Annotation>, Annotation> declaredAnnotations = null;
 
   private static final int METHOD_MODIFIERS
     = Modifier.ABSTRACT | Modifier.FINAL | Modifier.NATIVE
@@ -486,11 +486,11 @@ extends AccessibleObject implements Member, GenericDeclaration
   /**
    * @since 1.5
    */
-  public Annotation[] getDeclaredAnnotations()  {
+  public Annotation[] getDeclaredAnnotations() {
     return declaredAnnotations().values().toArray(EMPTY_ANNOTATIONS_ARRAY);
   }
 
-  private synchronized native Map<Class, Annotation> declaredAnnotations();
+  private synchronized native Map<Class<? extends Annotation>, Annotation> declaredAnnotations();
   
   /**
    * Returns an array of arrays that represent the annotations on the formal

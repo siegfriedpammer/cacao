@@ -86,7 +86,7 @@ extends AccessibleObject implements Member
   private String name;
   private int slot;
   private byte[] annotations = null;
-  private transient Map<Class, Annotation> declaredAnnotations = null;
+  private transient Map<Class<? extends Annotation>, Annotation> declaredAnnotations = null;
 
   private static final int FIELD_MODIFIERS
     = Modifier.FINAL | Modifier.PRIVATE | Modifier.PROTECTED
@@ -682,9 +682,9 @@ extends AccessibleObject implements Member
   /**
    * @since 1.5
    */
-  public Annotation[] getDeclaredAnnotations()  {
+  public Annotation[] getDeclaredAnnotations() {
     return declaredAnnotations().values().toArray(EMPTY_ANNOTATIONS_ARRAY);
   }
 
-  private synchronized native Map<Class, Annotation> declaredAnnotations();
+  private synchronized native Map<Class<? extends Annotation>, Annotation> declaredAnnotations();
 }

@@ -54,26 +54,12 @@ struct annotation_bytearray_t {
 	uint8_t  data[1];
 };
 
+
 /* annotation_bytearrays ******************************************************/
 
 struct annotation_bytearrays_t {
 	uint32_t size;
 	annotation_bytearray_t *data[1];
-};
-
-/* annotation *****************************************************************/
-
-struct annotation_t {
-	utf             *type;
-	s4               element_valuescount;
-	element_value_t *element_values;
-};
-
-/* element_value **************************************************************/
-
-struct element_value_t {
-	utf *name;
-	u1   tag;
 };
 
 

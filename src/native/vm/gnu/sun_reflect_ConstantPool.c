@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: sun_reflect_ConstantPool.c 8346 2007-08-17 22:13:31Z twisti $
+   $Id: sun_reflect_ConstantPool.c 8393 2007-08-22 01:10:09Z panzi $
 
 */
 
@@ -265,7 +265,7 @@ JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_sun_reflect_ConstantPool_
  */
 JNIEXPORT java_handle_objectarray_t* JNICALL Java_sun_reflect_ConstantPool_getMemberRefInfoAt0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool, int32_t index)
 {
-	log_println("Java_sun_reflect_ConstantPool_getMemberRefInfoAt0: jcpool=%p, index=%d, IMPLEMENT ME!", jcpool, index);
+	log_println("Java_sun_reflect_ConstantPool_getMemberRefInfoAt0(env=%p, jcpool=%p, index=%d): IMPLEMENT ME!", env, jcpool, index);
 	return NULL;
 }
 
