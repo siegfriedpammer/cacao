@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: properties.c 8401 2007-08-22 18:45:31Z twisti $
+   $Id: properties.c 8402 2007-08-22 19:32:27Z twisti $
 
 */
 
@@ -99,14 +99,15 @@ void properties_init(void)
 
 void properties_set(void)
 {
-#if defined(ENABLE_JAVASE)
 	int             len;
 	char           *p;
 
 	char           *java_home;
-	char           *boot_library_path;
 	char           *boot_class_path;
+
+#if defined(ENABLE_JAVASE)
 	char           *class_path;
+	char           *boot_library_path;
 
 # if defined(WITH_CLASSPATH_GNU)
 	char           *cwd;
@@ -208,9 +209,19 @@ void properties_set(void)
 	java_home         = CACAO_PREFIX;
 
 # if defined(WITH_CLASSPATH_GNU)
+
 	boot_library_path = CLASSPATH_LIBDIR"/classpath";
-# else
+
+# elif defined(WITH_CLASSPATH_SUN)
+
 	boot_library_path = CLASSPATH_LIBDIR;
+
+# elif defined(WITH_CLASSPATH_CLDC1_1)
+
+	/* No boot_library_path required. */
+
+# else
+#  error unknown classpath configuration
 # endif
 #endif
 
@@ -337,6 +348,8 @@ void properties_set(void)
 	properties_add("java.boot.class.path", boot_class_path);
 	properties_add("sun.boot.class.path", boot_class_path);
 
+#if defined(ENABLE_JAVASE)
+
 	/* Set the classpath. */
 
 	p = getenv("CLASSPATH");
@@ -352,13 +365,7 @@ void properties_set(void)
 
 	properties_add("java.class.path", class_path);
 
-#if defined(ENABLE_JAVASE)
-
-	/* get properties from system */
-
-	p = getenv("JAVA_HOME");
-
-	/* fill in system properties */
+	/* Add java.vm properties. */
 
 	properties_add("java.vm.specification.version", "1.0");
 	properties_add("java.vm.specification.vendor", "Sun Microsystems Inc.");

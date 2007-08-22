@@ -22,7 +22,7 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 8366 2007-08-20 20:24:35Z twisti $
+   $Id: threads.c 8402 2007-08-22 19:32:27Z twisti $
 
 */
 
@@ -1445,9 +1445,9 @@ bool threads_detach_thread(threadobject *t)
 	java_handle_t         *o;
 #endif
 
+#if defined(ENABLE_JAVASE)
 	object = t->object;
 
-#if defined(ENABLE_JAVASE)
 	group = LLNI_field_direct(object, group);
 
     /* If there's an uncaught exception, call uncaughtException on the
