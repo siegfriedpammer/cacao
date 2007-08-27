@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emitfuncs.c 4398 2006-01-31 23:43:08Z twisti $
-
 */
 
 

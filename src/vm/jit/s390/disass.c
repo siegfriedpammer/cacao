@@ -29,8 +29,6 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 7848 2007-05-01 21:40:26Z pm $
-
 */
 
 

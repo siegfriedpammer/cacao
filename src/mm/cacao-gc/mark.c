@@ -26,7 +26,6 @@
 
    Authors: Michael Starzinger
 
-   $Id$
 
 */
 

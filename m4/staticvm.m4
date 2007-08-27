@@ -21,8 +21,6 @@ dnl You should have received a copy of the GNU General Public License
 dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
-dnl 
-dnl $Id: staticvm.m4 8375 2007-08-21 11:04:23Z twisti $
 
 
 dnl check if CACAO should be linked statically

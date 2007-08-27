@@ -21,8 +21,6 @@ dnl You should have received a copy of the GNU General Public License
 dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
-dnl 
-dnl $Id: jre-layout.m4 8373 2007-08-20 22:43:09Z twisti $
 
 
 dnl if we compile for a JRE-style directory layout

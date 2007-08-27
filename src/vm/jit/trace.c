@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: trace.c 8348 2007-08-19 09:27:03Z pm $
-
 */
 
 #include "config.h"

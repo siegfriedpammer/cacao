@@ -22,10 +22,7 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 ##
-## $Id: Makefile.am 8274 2007-08-08 15:58:17Z twisti $
-
-## Process this file with automake to produce Makefile.in
-
+##
 DIST_SUBDIRS = \
 	freebsd \
 	linux

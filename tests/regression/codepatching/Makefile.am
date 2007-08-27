@@ -25,10 +25,7 @@
 ## Contact: cacao@cacaojvm.org
 ##
 ## Authors: Christian Thalinger
-##
-## $Id: Makefile.am 6257 2006-12-28 13:43:06Z twisti $
 
-## Process this file with automake to produce Makefile.in
 
 JAVA      = $(top_builddir)/src/cacao/cacao
 

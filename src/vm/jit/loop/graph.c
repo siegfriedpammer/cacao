@@ -31,8 +31,6 @@
    Contains the functions which build a list, that represents the
    control flow graph of the procedure, that is being analyzed.
 
-   $Id: graph.c 4699 2006-03-28 14:52:32Z twisti $
-
 */
 
 

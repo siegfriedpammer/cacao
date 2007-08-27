@@ -28,8 +28,6 @@
 
    Changes: Peter Molnar
 
-   $Id: patcher.c 8268 2007-08-07 13:24:43Z twisti $
-
 */
 
 

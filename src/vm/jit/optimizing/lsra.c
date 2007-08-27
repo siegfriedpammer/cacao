@@ -26,7 +26,6 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.c $
 
 */
 #include "config.h"

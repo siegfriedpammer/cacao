@@ -28,8 +28,6 @@
 
    Changes: Christian Thalinger
 
-   $Id: fptest.java 4357 2006-01-22 23:33:38Z twisti $
-
 */
 
 public class fptest {

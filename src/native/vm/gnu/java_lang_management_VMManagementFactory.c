@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: VMFrame.c 4996 2006-05-31 13:53:16Z motse $
-
 */
 
 

@@ -27,8 +27,6 @@
 ## Authors: Christian Thalinger
 ##
 ## Changes:
-##
-## $Id: Makefile.am 7882 2007-05-07 14:23:32Z tbfg $
 
 ## Process this file with automake to produce Makefile.in
 

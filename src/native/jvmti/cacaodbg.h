@@ -26,10 +26,7 @@
 
    Authors: Martin Platter
 
-   Changes: 
-
-
-   $Id: cacao.c,v 3.165 2006/01/03 23:44:38 twisti Exp $
+   Changes:
 
 */
 

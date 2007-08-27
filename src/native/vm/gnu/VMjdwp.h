@@ -26,10 +26,7 @@
 
    Author: Martin Platter
 
-   Changes:             
-
-
-   $Id: VMjdwp.c 4661 2006-03-21 00:04:59Z motse $
+   Changes:
 
 */
 

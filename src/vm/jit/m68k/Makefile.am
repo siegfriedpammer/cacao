@@ -21,10 +21,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
-##
-## $Id: Makefile.am 5794 2006-10-18 15:09:56Z twisti $
 
-## Process this file with automake to produce Makefile.in
 
 DIST_SUBDIRS = \
 	linux

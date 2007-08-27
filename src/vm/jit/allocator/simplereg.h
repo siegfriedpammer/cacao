@@ -28,8 +28,6 @@
 
    Changes: Christian Ullrich
 
-   $Id: simplereg.h 5708 2006-10-06 22:37:13Z edwin $
-
 */
 
 

@@ -26,10 +26,7 @@
 
    Author: Martin Platter
 
-   Changes:             
-
-
-   $Id: VMjdwp.c 6213 2006-12-18 17:36:06Z twisti $
+   Changes:
 
 */
 

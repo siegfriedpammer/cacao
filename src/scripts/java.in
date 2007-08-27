@@ -29,7 +29,5 @@
 ## Authors: Christian Thalinger
 ##
 ## Changes:
-##
-## $Id: java.in 5659 2006-10-04 10:37:09Z twisti $
 
 exec cacao ${1+"$@"}

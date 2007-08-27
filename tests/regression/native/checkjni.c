@@ -28,8 +28,6 @@
 
    Changes:
 
-   $Id: checkjni.c 4695 2006-03-28 14:21:14Z twisti $
-
 */
 
 

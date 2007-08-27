@@ -21,8 +21,6 @@ dnl You should have received a copy of the GNU General Public License
 dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
-dnl 
-dnl $Id: configure.ac 7228 2007-01-19 01:13:48Z edwin $
 
 
 dnl check if zlib should be used

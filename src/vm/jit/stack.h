@@ -29,8 +29,6 @@
    Changes: Christian Ullrich
    			Edwin Steiner
 
-   $Id: stack.h 6062 2006-11-27 15:15:54Z edwin $
-
 */
 
 

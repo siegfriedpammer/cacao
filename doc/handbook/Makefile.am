@@ -27,8 +27,6 @@
 ## Authors: Christian Thalinger
 ##
 ## Changes:
-##
-## $Id: Makefile.am 5016 2006-06-06 14:32:01Z michi $
 
 ## Process this file with automake to produce Makefile.in
 

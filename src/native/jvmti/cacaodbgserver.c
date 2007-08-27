@@ -31,8 +31,6 @@
    Changes: Edwin Steiner
             Samuel Vinson
 
-   $Id: cacaodbgserver.c $
-
 */
 
 #include "native/jvmti/cacaodbgserver.h"

@@ -28,8 +28,6 @@
 
    Changes: Edwin Steiner
 
-   $Id: lsra.h 5240 2006-08-16 11:31:02Z christian $
-
 */
 
 

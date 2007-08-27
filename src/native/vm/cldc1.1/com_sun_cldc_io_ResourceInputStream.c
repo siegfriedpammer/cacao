@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMRuntime.c 5900 2006-11-04 17:30:44Z michi $
-
 */
 
 #include <sys/stat.h>

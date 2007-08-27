@@ -28,8 +28,6 @@
 
    Changes:
 
-   $Id: md-asm.h 5179 2006-07-26 10:16:50Z twisti $
-
 */
 
 

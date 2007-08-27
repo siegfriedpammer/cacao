@@ -28,8 +28,6 @@
 
    Changes:
 
-   $Id: emit.h 6049 2006-11-27 14:20:57Z edwin $
-
 */
 
 

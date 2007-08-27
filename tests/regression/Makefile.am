@@ -25,10 +25,7 @@
 ## Contact: cacao@cacaojvm.org
 ##
 ## Authors: Christian Thalinger
-##
-## $Id: Makefile.am 8349 2007-08-19 15:16:39Z panzi $
 
-## Process this file with automake to produce Makefile.in
 
 SUBDIRS = \
 	codepatching \

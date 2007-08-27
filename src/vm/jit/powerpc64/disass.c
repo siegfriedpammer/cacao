@@ -30,7 +30,6 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: disass.c 5279 2006-08-25 11:55:21Z tbfg $
 
 */
 

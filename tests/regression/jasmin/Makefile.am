@@ -26,9 +26,6 @@
 ##
 ## Authors: Christian Thalinger
 ##          Edwin Steiner
-##
-## $Id$
-
 ## Process this file with automake to produce Makefile.in
 
 JAVA      = $(top_builddir)/src/cacao/cacao

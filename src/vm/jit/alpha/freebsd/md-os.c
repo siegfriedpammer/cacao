@@ -28,8 +28,6 @@
 
    Changes:
 
-   $Id: md-os.c 4921 2006-05-15 14:24:36Z twisti $
-
 */
 
 

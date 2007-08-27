@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: arch.h 5330 2006-09-05 18:43:12Z edwin $
-
 */
 #include "config.h"
 

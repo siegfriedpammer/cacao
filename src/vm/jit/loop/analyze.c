@@ -34,8 +34,6 @@
    bounds are never violated. The function to call is
    optimize_loops().
 
-   $Id: analyze.c 5925 2006-11-05 23:11:27Z edwin $
-
 */
 
 

@@ -23,8 +23,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 4722 2006-04-03 15:36:00Z twisti $
-
 */
 
 #ifndef _CODEGEN_H

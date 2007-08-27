@@ -28,8 +28,6 @@
 
    Changes: Christian Thalinger
 
-   $Id: methodheader.h 5090 2006-07-08 22:07:05Z twisti $
-
 */
 
 

@@ -27,8 +27,6 @@
    Authors: Michael Starzinger
             Christian Thalinger
 
-   $Id: md-asm.h 7227 2007-01-18 13:21:36Z twisti $
-
 */
 
 

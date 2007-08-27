@@ -21,10 +21,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
-##
-## $Id: Makefile.am 8347 2007-08-18 13:04:59Z twisti $
 
-## Process this file with automake to produce Makefile.in
 
 EXTRA_DIST = \
 	$(VM_JAVA_FILES)

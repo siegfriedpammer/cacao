@@ -31,8 +31,6 @@
    instruction. For more details see function tracing(basicblock, int,
    int) below.
 
-   $Id: tracing.c 4862 2006-04-30 15:58:53Z edwin $
-
 */
 
 

@@ -28,8 +28,6 @@
 # Authors: Edwin Steiner
 #
 # Changes:
-#
-# $Id$
 
 
 use strict;

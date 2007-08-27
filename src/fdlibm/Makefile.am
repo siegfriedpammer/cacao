@@ -26,10 +26,7 @@
 ##
 ## Authors: Christian Thalinger
 ##
-## $Id: Makefile.am 6230 2006-12-26 23:05:02Z twisti $
-
-## Process this file with automake to produce Makefile.in
-
+##
 AM_CPPFLAGS = -I$(top_builddir)
 
 LIBS =

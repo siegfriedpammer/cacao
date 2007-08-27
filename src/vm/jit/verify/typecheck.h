@@ -26,7 +26,6 @@
 
    Authors: Christian Thalinger
 
-   $Id: typecheck.h 5773 2006-10-13 14:34:19Z edwin $
 
 */
 

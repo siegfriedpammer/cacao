@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMString.c 8017 2007-06-05 23:46:59Z twisti $
-
 */
 
 

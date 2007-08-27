@@ -27,8 +27,6 @@
    Authors: Reinhard Grafl
             Christian Thalinger
 
-   $Id: jctest.java 6263 2007-01-02 16:20:45Z twisti $
-
 */
 
 public class jctest implements jcinterface {

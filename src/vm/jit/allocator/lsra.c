@@ -28,8 +28,6 @@
             Christian Thalinger
             Edwin Steiner
 
-   $Id: lsra.c 6286 2007-01-10 10:03:38Z twisti $
-
 */
 
 

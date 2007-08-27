@@ -29,8 +29,6 @@
 
    Changes: Christian Thalinger
 
-   $Id: threads.h 4866 2006-05-01 21:40:38Z edwin $
-
 */
 
 

@@ -28,8 +28,6 @@
 
    Changes:
 
-   $Id: analyze.h 4699 2006-03-28 14:52:32Z twisti $
-
 */
 
 

@@ -27,8 +27,6 @@
 
    Authors: Mathias Panzenböck
 
-   $Id$
-
 */
 
 import java.lang.annotation.Annotation;

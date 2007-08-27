@@ -31,9 +31,6 @@ Authors: Samuel Vinson
 Changes: 
 
 
-$Id: VMMethod.c $
-
-*/
 
 #include "native/jni.h"
 #include "native/include/gnu_classpath_jdwp_VMMethod.h"
