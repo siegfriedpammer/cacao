@@ -35,8 +35,7 @@
 
 #include "vm/types.h"
 
-#include "mm/memory.h"
-
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -396,13 +395,14 @@ java_handle_bytearray_t *field_get_annotations(fieldinfo *f)
 	classinfo               *c;
 	int                      slot;
 	java_handle_bytearray_t *annotations;
+	java_handle_t           *a;
 
 	c           = f->class;
 	slot        = f - c->fields;
 	annotations = NULL;
+	a           = (java_handle_t*)c->field_annotations;
 	
-	if (c->field_annotations != NULL &&
-	    array_length_get(c->field_annotations) > slot) {
+	if (c->field_annotations != NULL && array_length_get(a) > slot) {
 		annotations = (java_handle_bytearray_t*)
 			array_objectarray_element_get(
 				c->field_annotations, slot);

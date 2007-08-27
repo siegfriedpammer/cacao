@@ -39,6 +39,7 @@
 
 #include "threads/lock-common.h"
 
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -786,12 +787,14 @@ java_handle_bytearray_t *method_get_annotations(methodinfo *m)
 	classinfo               *c;
 	int                      slot;
 	java_handle_bytearray_t *annotations;
+	java_handle_t           *a;
 
 	c           = m->class;
 	slot        = m - c->methods;
 	annotations = NULL;
+	a           = (java_handle_t*)c->method_annotations;
 	
-	if (c->method_annotations != NULL && array_length_get(c->method_annotations) > slot) {
+	if (c->method_annotations != NULL && array_length_get(a) > slot) {
 		annotations = (java_handle_bytearray_t*)array_objectarray_element_get(
 			c->method_annotations, slot);
 	}
@@ -815,13 +818,14 @@ java_handle_bytearray_t *method_get_parameterannotations(methodinfo *m)
 	classinfo               *c;
 	int                      slot;
 	java_handle_bytearray_t *parameterAnnotations;
+	java_handle_t           *a;
 
 	c                    = m->class;
 	slot                 = m - c->methods;
 	parameterAnnotations = NULL;
+	a                    = (java_handle_t*)c->method_parameterannotations;
 
-	if (c->method_parameterannotations != NULL &&
-			array_length_get(c->method_parameterannotations) > slot) {
+	if (c->method_parameterannotations != NULL && array_length_get(a) > slot) {
 		parameterAnnotations =
 			(java_handle_bytearray_t*)array_objectarray_element_get(
 				c->method_parameterannotations, slot);
@@ -846,13 +850,14 @@ java_handle_bytearray_t *method_get_annotationdefault(methodinfo *m)
 	classinfo               *c;
 	int                      slot;
 	java_handle_bytearray_t *annotationDefault;
+	java_handle_t           *a;
 
 	c                 = m->class;
 	slot              = m - c->methods;
 	annotationDefault = NULL;
+	a                 = (java_handle_t*)c->method_annotationdefaults;
 
-	if (c->method_annotationdefaults != NULL &&
-			array_length_get(c->method_annotationdefaults) > slot) {
+	if (c->method_annotationdefaults != NULL && array_length_get(a) > slot) {
 		annotationDefault = 
 			(java_handle_bytearray_t*)array_objectarray_element_get(
 				c->method_annotationdefaults, slot);
