@@ -30,15 +30,14 @@
 
 
 #include "config.h"
-#include "vm/types.h"
 
+#include "vm/types.h"
 #include "vm/global.h"
 
 #include "vmcore/class.h"
 #include "vmcore/field.h"
-#include "vmcore/method.h"
 #include "vmcore/loader.h"
-#include "vmcore/utf8.h"
+#include "vmcore/method.h"
 
 
 /* function prototypes ********************************************************/

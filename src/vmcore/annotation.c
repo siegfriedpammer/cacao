@@ -58,8 +58,6 @@ static bool annotation_bytearrays_resize(java_handle_objectarray_t **bas,
 	uint32_t size)
 {
 	java_handle_objectarray_t *newbas = NULL;
-	java_handle_t             *o;
-	uint32_t i;
 	uint32_t minsize;
 	uint32_t oldsize;
 	
