@@ -1,6 +1,7 @@
 syntax: glob
 .deps
 .libs
+*~
 *.la
 *.lo
 *.a
