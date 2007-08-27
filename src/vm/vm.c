@@ -653,21 +653,35 @@ void vm_printconfig(void)
 	printf("  maximum heap size              : %d\n", HEAP_MAXSIZE);
 	printf("  initial heap size              : %d\n", HEAP_STARTSIZE);
 	printf("  stack size                     : %d\n", STACK_SIZE);
-#if defined(WITH_CLASSPATH_GNU)
-	puts("  java.boot.class.path           : "CACAO_VM_ZIP":"CLASSPATH_CLASSES"");
+
+#if defined(WITH_JRE_LAYOUT)
+	/* When we're building with JRE-layout, the default paths are the
+	   same as the runtime paths. */
 #else
-	puts("  java.boot.class.path           : "CLASSPATH_CLASSES"");
+# if defined(WITH_CLASSPATH_GNU)
+	puts("  gnu.classpath.boot.library.path: "CLASSPATH_LIBDIR);
+	puts("  java.boot.class.path           : "CACAO_VM_ZIP":"CLASSPATH_CLASSES"");
+# elif defined(WITH_CLASSPATH_SUN)
+	puts("  sun.boot.library.path          : "CLASSPATH_LIBDIR);
+	puts("  java.boot.class.path           : "CLASSPATH_CLASSES);
+# endif
 #endif
-	puts("  gnu.classpath.boot.library.path: "CLASSPATH_LIBDIR"/classpath\n");
+
+	puts("");
 
 	puts("Runtime variables:\n");
 	printf("  maximum heap size              : %d\n", opt_heapmaxsize);
 	printf("  initial heap size              : %d\n", opt_heapstartsize);
 	printf("  stack size                     : %d\n", opt_stacksize);
+
+#if defined(WITH_CLASSPATH_GNU)
+	printf("  gnu.classpath.boot.library.path: %s\n", properties_get("gnu.classpath.boot.library.path"));
+#elif defined(WITH_CLASSPATH_SUN)
+	printf("  sun.boot.library.path          : %s\n", properties_get("sun.boot.library.path"));
+#endif
+
 	printf("  java.boot.class.path           : %s\n", properties_get("java.boot.class.path"));
 	printf("  java.class.path                : %s\n", properties_get("java.class.path"));
-
-	printf("  gnu.classpath.boot.library.path: %s\n", properties_get("gnu.classpath.boot.library.path"));
 }
 
 
