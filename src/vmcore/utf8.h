@@ -149,16 +149,6 @@ extern utf *utf_Signature;
 extern utf *utf_StackMapTable;
 
 #if defined(ENABLE_ANNOTATIONS)
-/* OpenJDKs sun.reflect.ConstantPool class is for now only
- * used by annotations but will probably be used for other
- * things in the future. For now I just couple it with
- * annotation support.
- */
-extern utf *utf_sun_reflect_ConstantPool;
-#if defined(WITH_CLASSPATH_GNU)
-extern utf *utf_sun_reflect_annotation_AnnotationParser;
-#endif
-
 extern utf *utf_RuntimeVisibleAnnotations;
 extern utf *utf_RuntimeInvisibleAnnotations;
 extern utf *utf_RuntimeVisibleParameterAnnotations;

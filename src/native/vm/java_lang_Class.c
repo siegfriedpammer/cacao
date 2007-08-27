@@ -79,9 +79,11 @@
 #include "vmcore/loader.h"
 
 #if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
-#include "vm/vm.h"
-#include "vmcore/annotation.h"
 #include "native/include/sun_reflect_ConstantPool.h"
+
+#include "vm/vm.h"
+
+#include "vmcore/annotation.h"
 #endif
 
 /*
@@ -637,7 +639,7 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_
 
 	if (exceptions_get_exception() != NULL) {
 		/* the only exception possible here should be a out of memory exception
-		 * raised by copying the annotations into a java bytearray */
+		 * raised by copying the annotations into a new java bytearray */
 		return NULL;
 	}
 

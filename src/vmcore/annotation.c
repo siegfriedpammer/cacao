@@ -28,7 +28,12 @@
 
 #include <assert.h>
 
+#include "native/llni.h"
+
 #include "vm/types.h"
+#include "vm/array.h"
+#include "vm/builtin.h"
+#include "vm/primitive.h"
 
 #include "mm/memory.h"
 
@@ -42,57 +47,6 @@
 # error annotation support has to be enabled when compling this file!
 #endif
 
-/* annotation_bytearray_new ***************************************************
-
-   Allocate a new bytearray.
-
-*******************************************************************************/
-
-annotation_bytearray_t *annotation_bytearray_new(uint32_t size)
-{
-	annotation_bytearray_t *ba =
-		mem_alloc(sizeof(uint32_t) + sizeof(uint8_t) * size);
-
-	if (ba != NULL) {
-		ba->size = size;
-	}
-
-	return ba;
-}
-
-
-/* annotation_bytearray_free **************************************************
-
-   Free a bytearray.
-
-*******************************************************************************/
-
-void annotation_bytearray_free(annotation_bytearray_t *ba)
-{
-	if (ba != NULL) {
-		mem_free(ba, sizeof(uint32_t) + sizeof(uint8_t) * ba->size);
-	}
-}
-
-
-/* annotation_bytearrays_new **************************************************
-
-   Allocate a new array of bytearrays.
-
-*******************************************************************************/
-
-annotation_bytearrays_t *annotation_bytearrays_new(uint32_t size)
-{
-	annotation_bytearrays_t *bas =
-		mem_alloc(sizeof(uint32_t) + sizeof(annotation_bytearray_t*) * size);
-
-	if (bas != NULL) {
-		bas->size = size;
-	}
-
-	return bas;
-}
-
 
 /* annotation_bytearrays_resize ***********************************************
 
@@ -100,31 +54,39 @@ annotation_bytearrays_t *annotation_bytearrays_new(uint32_t size)
 
 *******************************************************************************/
 
-bool annotation_bytearrays_resize(annotation_bytearrays_t **bas,
+static bool annotation_bytearrays_resize(java_handle_objectarray_t **bas,
 	uint32_t size)
 {
-	annotation_bytearrays_t *newbas = NULL;
+	java_handle_objectarray_t *newbas = NULL;
+	java_handle_t             *o;
 	uint32_t i;
 	uint32_t minsize;
+	uint32_t oldsize;
 	
 	assert(bas != NULL);
 	
-	newbas = annotation_bytearrays_new(size);
+	/* if the size already fits do nothing */
+	if (*bas != NULL) {
+		oldsize = array_length_get((java_handle_t*)*bas);
+
+		if (size == oldsize) {
+			return true;
+		}
+	}
+
+	newbas = builtin_anewarray(size,
+		primitive_arrayclass_get_by_type(PRIMITIVETYPE_BYTE));
 	
 	if (newbas == NULL) {
+		/* out of memory */
 		return false;
 	}
 	
+	/* is there a old byte array array? */
 	if (*bas != NULL) {
-		minsize = size < (*bas)->size ? size : (*bas)->size;
+		minsize = size < oldsize ? size : oldsize;
 
-		for (i = size; i < (*bas)->size; ++ i) {
-			annotation_bytearray_free((*bas)->data[i]);
-		}
-
-		for (i = 0; i < minsize; ++i) {
-			newbas->data[i] = (*bas)->data[i];
-		}
+		MCOPY(LLNI_array_data(newbas), LLNI_array_data(*bas), java_object_t*, minsize);
 	}
 
 	*bas = newbas;
@@ -139,53 +101,42 @@ bool annotation_bytearrays_resize(annotation_bytearrays_t **bas,
 
 *******************************************************************************/
 
-bool annotation_bytearrays_insert(annotation_bytearrays_t **bas,
-	uint32_t index, annotation_bytearray_t *ba)
+static bool annotation_bytearrays_insert(java_handle_objectarray_t **bas,
+	uint32_t index, java_handle_bytearray_t *ba)
 {
+	uint32_t size = 0;
+
 	assert(bas != NULL);
 
-	if (ba != NULL) {
-		if (*bas == NULL || (*bas)->size <= index) {
+	/* do nothing if NULL is inserted but no array exists */
+	if (ba == NULL && *bas == NULL) {
+		return true;
+	}
+
+	/* get lengths if array exists */
+	if (*bas != NULL) {
+		size = array_length_get((java_handle_t*)*bas);
+	}
+
+	if (ba == NULL) {
+		/* insert NULL only if array is big enough */
+		if (size > index) {
+			array_objectarray_element_set(*bas, index, NULL);
+		}
+	}
+	else {
+		/* resize array if it's not enough for inserted value */
+		if (size <= index) {
 			if (!annotation_bytearrays_resize(bas, index + 1)) {
+				/* out of memory */
 				return false;
 			}
 		}
-		else {
-			/* free old bytearray (if any) */
-			annotation_bytearray_free((*bas)->data[index]);
-		}
 
-		/* insert new bytearray */
-		(*bas)->data[index] = ba;
+		array_objectarray_element_set(*bas, index, (java_handle_t*)ba);
 	}
-	else if (*bas != NULL && (*bas)->size > index) {
-		/* do not resize when just inserting NULL,
-		 * but free old bytearray if there is any */
-		annotation_bytearray_free((*bas)->data[index]);
-	}
-
+	
 	return true;
-}
-
-
-/* annotation_bytearrays_free *************************************************
-
-   Free an array of bytearrays.
-
-*******************************************************************************/
-
-void annotation_bytearrays_free(annotation_bytearrays_t *bas)
-{
-	uint32_t i;
-
-	if (bas != NULL) {
-		for (i = 0; i < bas->size; ++ i) {
-			annotation_bytearray_free(bas->data[i]);
-		}
-
-		mem_free(bas, sizeof(uint32_t) +
-			sizeof(annotation_bytearray_t*) * bas->size);
-	}
 }
 
 
@@ -215,10 +166,10 @@ void annotation_bytearrays_free(annotation_bytearrays_t *bas)
 *******************************************************************************/
 
 static bool annotation_load_attribute_body(classbuffer *cb,
-	annotation_bytearray_t **attribute, const char *errormsg_prefix)
+	java_handle_bytearray_t **attribute, const char *errormsg_prefix)
 {
 	uint32_t size = 0;
-	annotation_bytearray_t *ba = NULL;
+	java_handle_bytearray_t *ba = NULL;
 
 	assert(cb != NULL);
 	assert(attribute != NULL);
@@ -239,7 +190,7 @@ static bool annotation_load_attribute_body(classbuffer *cb,
 	/* if attribute_length == 0 then NULL is
 	 * the right value for this attribute */
 	if (size > 0) {
-		ba = annotation_bytearray_new(size);
+		ba = builtin_newarray_byte(size);
 
 		if (ba == NULL) {
 			/* out of memory */
@@ -247,7 +198,7 @@ static bool annotation_load_attribute_body(classbuffer *cb,
 		}
 
 		/* load data */
-		suck_nbytes(ba->data, cb, size);
+		suck_nbytes((uint8_t*)LLNI_array_data(ba), cb, size);
 
 		/* return data */
 		*attribute = ba;
@@ -282,8 +233,8 @@ bool annotation_load_method_attribute_annotationdefault(
 		classbuffer *cb, methodinfo *m)
 {
 	int slot = 0;
-	annotation_bytearray_t   *annotationdefault  = NULL;
-	annotation_bytearrays_t **annotationdefaults = NULL;
+	java_handle_bytearray_t    *annotationdefault  = NULL;
+	java_handle_objectarray_t **annotationdefaults = NULL;
 
 	assert(cb != NULL);
 	assert(m != NULL);
@@ -291,8 +242,8 @@ bool annotation_load_method_attribute_annotationdefault(
 	annotationdefaults = &(m->class->method_annotationdefaults);
 
 	if (!annotation_load_attribute_body(
-		cb, &annotationdefault,
-		"invalid annotation default method attribute")) {
+			cb, &annotationdefault,
+			"invalid annotation default method attribute")) {
 		return false;
 	}
 
@@ -300,8 +251,7 @@ bool annotation_load_method_attribute_annotationdefault(
 		slot = m - m->class->methods;
 
 		if (!annotation_bytearrays_insert(
-			annotationdefaults, slot, annotationdefault)) {
-			annotation_bytearray_free(annotationdefault);
+				annotationdefaults, slot, annotationdefault)) {
 			return false;
 		}
 	}
@@ -339,8 +289,8 @@ bool annotation_load_method_attribute_runtimevisibleparameterannotations(
 		classbuffer *cb, methodinfo *m)
 {
 	int slot = 0;
-	annotation_bytearray_t  *annotations = NULL;
-	annotation_bytearrays_t **parameterannotations = NULL;
+	java_handle_bytearray_t    *annotations          = NULL;
+	java_handle_objectarray_t **parameterannotations = NULL;
 
 	assert(cb != NULL);
 	assert(m != NULL);
@@ -348,8 +298,8 @@ bool annotation_load_method_attribute_runtimevisibleparameterannotations(
 	parameterannotations = &(m->class->method_parameterannotations);
 
 	if (!annotation_load_attribute_body(
-		cb, &annotations,
-		"invalid runtime visible parameter annotations method attribute")) {
+			cb, &annotations,
+			"invalid runtime visible parameter annotations method attribute")) {
 		return false;
 	}
 
@@ -357,8 +307,7 @@ bool annotation_load_method_attribute_runtimevisibleparameterannotations(
 		slot = m - m->class->methods;
 
 		if (!annotation_bytearrays_insert(
-			parameterannotations, slot, annotations)) {
-			annotation_bytearray_free(annotations);
+				parameterannotations, slot, annotations)) {
 			return false;
 		}
 	}
@@ -455,8 +404,8 @@ bool annotation_load_method_attribute_runtimevisibleannotations(
 	classbuffer *cb, methodinfo *m)
 {
 	int slot = 0;
-	annotation_bytearray_t  *annotations = NULL;
-	annotation_bytearrays_t **method_annotations = NULL;
+	java_handle_bytearray_t    *annotations        = NULL;
+	java_handle_objectarray_t **method_annotations = NULL;
 
 	assert(cb != NULL);
 	assert(m != NULL);
@@ -464,8 +413,8 @@ bool annotation_load_method_attribute_runtimevisibleannotations(
 	method_annotations = &(m->class->method_annotations);
 
 	if (!annotation_load_attribute_body(
-		cb, &annotations,
-		"invalid runtime visible annotations method attribute")) {
+			cb, &annotations,
+			"invalid runtime visible annotations method attribute")) {
 		return false;
 	}
 
@@ -473,8 +422,7 @@ bool annotation_load_method_attribute_runtimevisibleannotations(
 		slot = m - m->class->methods;
 
 		if (!annotation_bytearrays_insert(
-			method_annotations, slot, annotations)) {
-			annotation_bytearray_free(annotations);
+				method_annotations, slot, annotations)) {
 			return false;
 		}
 	}
@@ -506,8 +454,8 @@ bool annotation_load_field_attribute_runtimevisibleannotations(
 	classbuffer *cb, fieldinfo *f)
 {
 	int slot = 0;
-	annotation_bytearray_t  *annotations = NULL;
-	annotation_bytearrays_t **field_annotations = NULL;
+	java_handle_bytearray_t    *annotations       = NULL;
+	java_handle_objectarray_t **field_annotations = NULL;
 
 	assert(cb != NULL);
 	assert(f != NULL);
@@ -515,8 +463,8 @@ bool annotation_load_field_attribute_runtimevisibleannotations(
 	field_annotations = &(f->class->field_annotations);
 
 	if (!annotation_load_attribute_body(
-		cb, &annotations,
-		"invalid runtime visible annotations field attribute")) {
+			cb, &annotations,
+			"invalid runtime visible annotations field attribute")) {
 		return false;
 	}
 
@@ -524,8 +472,7 @@ bool annotation_load_field_attribute_runtimevisibleannotations(
 		slot = f - f->class->fields;
 
 		if (!annotation_bytearrays_insert(
-			field_annotations, slot, annotations)) {
-			annotation_bytearray_free(annotations);
+				field_annotations, slot, annotations)) {
 			return false;
 		}
 	}

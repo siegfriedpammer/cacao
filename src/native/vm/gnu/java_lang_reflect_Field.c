@@ -1251,7 +1251,6 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Field_getSignature(JN
  */
 JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Field_declaredAnnotations(JNIEnv *env, java_lang_reflect_Field *this)
 {
-	java_handle_t           *o                   = (java_handle_t*)this;
 	struct java_util_Map    *declaredAnnotations = NULL;
 	java_handle_bytearray_t *annotations         = NULL;
 	java_lang_Class         *declaringClass      = NULL;

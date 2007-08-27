@@ -138,7 +138,9 @@ classinfo *arrayclass_java_lang_Object;
 
 #if defined(ENABLE_ANNOTATIONS)
 classinfo *class_sun_reflect_ConstantPool;
+#if defined(WITH_CLASSPATH_GNU)
 classinfo *class_sun_reflect_annotation_AnnotationParser;
+#endif
 #endif
 #endif
 
@@ -841,16 +843,6 @@ void class_free(classinfo *c)
 		mem_free(c->header.vftbl, sizeof(vftbl) + sizeof(methodptr)*(c->vftbl->vftbllength-1)); */
 	
 /*  	GCFREE(c); */
-
-#if defined(ENABLE_ANNOTATIONS)
-	annotation_bytearray_free(c->annotations);
-
-	annotation_bytearrays_free(c->method_annotations);
-	annotation_bytearrays_free(c->method_parameterannotations);
-	annotation_bytearrays_free(c->method_annotationdefaults);
-
-	annotation_bytearrays_free(c->field_annotations);
-#endif
 }
 
 
@@ -1995,25 +1987,7 @@ java_handle_objectarray_t *class_get_interfaces(classinfo *c)
 java_handle_bytearray_t *class_get_annotations(classinfo *c)
 {
 #if defined(ENABLE_ANNOTATIONS)
-	java_handle_bytearray_t  *annotations = NULL;
-	uint32_t                  size        = 0;
-	
-	/* Return null for arrays and primitives: */
-	if (class_is_primitive(c) || class_is_array(c)) {
-		return NULL;
-	}
-
-	/* copy the annotations into a java byte array: */
-	if (c->annotations != NULL) {
-		size        = c->annotations->size;
-		annotations = builtin_newarray_byte(size);
-
-		if(annotations != NULL) {
-			MCOPY(annotations->data, c->annotations->data, uint8_t, size);
-		}
-	}
-
-	return annotations;
+	return c->annotations;
 #else
 	return NULL;
 #endif

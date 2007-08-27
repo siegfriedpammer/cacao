@@ -395,23 +395,17 @@ java_handle_bytearray_t *field_get_annotations(fieldinfo *f)
 #if defined(ENABLE_ANNOTATIONS)
 	classinfo               *c;
 	int                      slot;
-	annotation_bytearray_t  *ba;
 	java_handle_bytearray_t *annotations;
 
 	c           = f->class;
 	slot        = f - c->fields;
 	annotations = NULL;
 	
-	if (c->field_annotations != NULL && c->field_annotations->size > slot) {
-		ba = c->field_annotations->data[slot];
-		
-		if (ba != NULL) {
-			annotations = builtin_newarray_byte(ba->size);
-			
-			if (annotations != NULL) {
-				MCOPY(annotations->data, ba->data, uint8_t, ba->size);
-			}
-		}
+	if (c->field_annotations != NULL &&
+	    array_length_get(c->field_annotations) > slot) {
+		annotations = (java_handle_bytearray_t*)
+			array_objectarray_element_get(
+				c->field_annotations, slot);
 	}
 	
 	return annotations;

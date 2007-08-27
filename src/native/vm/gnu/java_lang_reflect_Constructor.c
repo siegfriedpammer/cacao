@@ -112,7 +112,6 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
  */
 JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Constructor_declaredAnnotations(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
-	java_handle_t           *o                   = (java_handle_t*)this;
 	struct java_util_Map    *declaredAnnotations = NULL;
 	java_handle_bytearray_t *annotations         = NULL;
 	java_lang_Class         *declaringClass      = NULL;
@@ -141,7 +140,6 @@ JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Constructor_decla
  */
 JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_Constructor_getParameterAnnotations(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
-	java_handle_t           *o                    = (java_handle_t*)this;
 	java_handle_bytearray_t *parameterAnnotations = NULL;
 	int32_t                  slot                 = -1;
 	java_lang_Class         *declaringClass       = NULL;

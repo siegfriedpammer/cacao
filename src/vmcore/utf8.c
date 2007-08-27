@@ -153,11 +153,6 @@ utf *utf_Signature;
 utf *utf_StackMapTable;
 
 #if defined(ENABLE_ANNOTATIONS)
-utf *utf_sun_reflect_ConstantPool;
-#if defined(WITH_CLASSPATH_GNU)
-utf *utf_sun_reflect_annotation_AnnotationParser;
-#endif
-
 utf *utf_RuntimeVisibleAnnotations;
 utf *utf_RuntimeInvisibleAnnotations;
 utf *utf_RuntimeVisibleParameterAnnotations;
@@ -408,11 +403,6 @@ bool utf8_init(void)
 	utf_StackMapTable              = utf_new_char("StackMapTable");
 
 #if defined(ENABLE_ANNOTATIONS)
-	utf_sun_reflect_ConstantPool                = utf_new_char("sun/reflect/ConstantPool");
-#if defined(WITH_CLASSPATH_GNU)
-	utf_sun_reflect_annotation_AnnotationParser = utf_new_char("sun/reflect/annotation/AnnotationParser");
-#endif
-
 	utf_RuntimeVisibleAnnotations            = utf_new_char("RuntimeVisibleAnnotations");
 	utf_RuntimeInvisibleAnnotations          = utf_new_char("RuntimeInvisibleAnnotations");
 	utf_RuntimeVisibleParameterAnnotations   = utf_new_char("RuntimeVisibleParameterAnnotations");

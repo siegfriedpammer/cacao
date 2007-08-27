@@ -230,13 +230,13 @@ bool loader_init(void)
 #if defined(ENABLE_ANNOTATIONS)
 	/* needed by annotation support */
 	if (!(class_sun_reflect_ConstantPool = 
-		  load_class_bootstrap(utf_sun_reflect_ConstantPool)))
+		  load_class_bootstrap(utf_new_char("sun/reflect/ConstantPool"))))
 		return false;
 
 #if defined(WITH_CLASSPATH_GNU)
 	/* needed by GNU Classpaths annotation support */
 	if (!(class_sun_reflect_annotation_AnnotationParser = 
-		  load_class_bootstrap(utf_sun_reflect_annotation_AnnotationParser)))
+		  load_class_bootstrap(utf_new_char("sun/reflect/annotation/AnnotationParser"))))
 		return false;
 #endif
 #endif

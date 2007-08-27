@@ -145,19 +145,19 @@ struct classinfo {                /* class structure                          */
 #if defined(ENABLE_JAVASE)
 	utf        *signature;        /* Signature attribute                      */
 #if defined(ENABLE_ANNOTATIONS)
-        /* all the anntation attributes are NULL (and not a zero length array)
-	   if there is nothing */
-	annotation_bytearray_t  *annotations; /* annotations of this class        */
+	/* All the annotation attributes are NULL (and not a zero length array)   */
+	/* if there is nothing.                                                   */
+	java_handle_bytearray_t   *annotations; /* annotations of this class      */
 	
-	annotation_bytearrays_t *method_annotations; /* array of annotations for  */
-	                              /* the methods                              */
-	annotation_bytearrays_t *method_parameterannotations; /* array of         */
+	java_handle_objectarray_t *method_annotations; /* array of annotations    */
+	                              /* for the methods                          */
+	java_handle_objectarray_t *method_parameterannotations; /* array of       */
 	                              /* parameter annotations for the methods    */
-	annotation_bytearrays_t *method_annotationdefaults; /* array for          */
+	java_handle_objectarray_t *method_annotationdefaults; /* array for        */
 	                              /* annotation default values for the        */
-				      /* methods                                  */
+	                              /* methods                                  */
 
-	annotation_bytearrays_t *field_annotations; /* array of annotations for   */
+	java_handle_objectarray_t *field_annotations; /* array of annotations for */
 	                              /* the fields                               */
 #endif
 #endif
