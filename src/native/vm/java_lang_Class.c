@@ -637,12 +637,6 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_
 	/* get annotations: */
 	annotations = class_get_annotations(c);
 
-	if (exceptions_get_exception() != NULL) {
-		/* the only exception possible here should be a out of memory exception
-		 * raised by copying the annotations into a new java bytearray */
-		return NULL;
-	}
-
 	constantPool = 
 		(sun_reflect_ConstantPool*)native_new_and_init(
 			class_sun_reflect_ConstantPool);

@@ -65,10 +65,10 @@ static bool annotation_bytearrays_resize(java_handle_objectarray_t **bas,
 	
 	assert(bas != NULL);
 	
-	/* if the size already fits do nothing */
 	if (*bas != NULL) {
 		oldsize = array_length_get((java_handle_t*)*bas);
 
+		/* if the size already fits do nothing */
 		if (size == oldsize) {
 			return true;
 		}
