@@ -180,6 +180,18 @@ struct threadobject {
 
 #define STACKFRAMEINFO    (THREADOBJECT->_stackframeinfo)
 
+
+/* native-world flags *********************************************************/
+
+#if defined(ENABLE_GC_CACAO)
+# define THREAD_NATIVEWORLD_ENTER THREADOBJECT->flags |=  THREAD_FLAG_IN_NATIVE
+# define THREAD_NATIVEWORLD_EXIT  THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE
+#else
+# define THREAD_NATIVEWORLD_ENTER /*nop*/
+# define THREAD_NATIVEWORLD_EXIT  /*nop*/
+#endif
+
+
 /* counter for verbose call filter ********************************************/
 
 #if defined(ENABLE_DEBUG_FILTER)

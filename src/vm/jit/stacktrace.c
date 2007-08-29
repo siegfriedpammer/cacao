@@ -234,6 +234,12 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 	/* store new stackframe info pointer */
 
 	*psfi = sfi;
+
+	/* set the native world flag for the current thread */
+	/* ATTENTION: This flag tells the GC how to treat this thread in case of
+	   a collection. Set this flag _after_ a valid stackframe info was set. */
+
+	THREAD_NATIVEWORLD_ENTER;
 }
 
 
@@ -274,6 +280,12 @@ void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 	/* store new stackframe info pointer */
 
 	*psfi = sfi;
+
+	/* set the native world flag for the current thread */
+	/* ATTENTION: This flag tells the GC how to treat this thread in case of
+	   a collection. Set this flag _after_ a valid stackframe info was set. */
+
+	THREAD_NATIVEWORLD_ENTER;
 }
 
 
@@ -286,6 +298,11 @@ void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 void stacktrace_remove_stackframeinfo(stackframeinfo *sfi)
 {
 	stackframeinfo **psfi;
+
+	/* clear the native world flag for the current thread */
+	/* ATTENTION: Clear this flag _before_ removing the stackframe info */
+
+	THREAD_NATIVEWORLD_EXIT;
 
 	/* get current stackframe info pointer */
 
