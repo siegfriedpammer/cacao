@@ -287,11 +287,10 @@ int main(int argc, char **argv)
 
 	suck_add(classpath);
 
-	/* initialize the loader subsystems (must be done _after_
-       classcache_init) */
+	/* AFTER: classcache_init */
 
-	if (!loader_init())
-		vm_abort("loader_init failed\n");
+	loader_preinit();
+	loader_init();
 
 
 	/* load Java classes ******************************************************/

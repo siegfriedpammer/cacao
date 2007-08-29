@@ -115,8 +115,8 @@ typedef java_object_t classloader;
 
 /* function prototypes ********************************************************/
 
-/* initialize loader, load important systemclasses */
-bool loader_init(void);
+void loader_preinit(void);
+void loader_init(void);
 
 void loader_load_all_classes(void);
 
