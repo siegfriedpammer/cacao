@@ -991,15 +991,24 @@ classinfo *load_class_from_classloader(utf *name, classloader *cl)
 			}
 		}
 		
-		assert(class_java_lang_Object);
+#if defined(WITH_CLASSPATH_SUN)
+		/* OpenJDK uses this internal function because it's
+		   synchronized. */
 
+		lc = class_resolveclassmethod(cl->vftbl->class,
+									  utf_loadClassInternal,
+									  utf_java_lang_String__java_lang_Class,
+									  NULL,
+									  true);
+#else
 		lc = class_resolveclassmethod(cl->vftbl->class,
 									  utf_loadClass,
 									  utf_java_lang_String__java_lang_Class,
-									  class_java_lang_Object,
+									  NULL,
 									  true);
+#endif
 
-		if (!lc)
+		if (lc == NULL)
 			return false; /* exception */
 
 		/* move return value into `o' and cast it afterwards to a classinfo* */
