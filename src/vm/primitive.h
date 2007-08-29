@@ -88,7 +88,8 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 /* function prototypes ********************************************************/
 
 /* this function is in src/vmcore/primitivecore.c */
-bool       primitive_init(void);
+void       primitive_init(void);
+void       primitive_postinit(void);
 
 classinfo *primitive_class_get_by_name(utf *name);
 classinfo *primitive_class_get_by_type(int type);

@@ -1518,20 +1518,21 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	intrp_md_init();
 #endif
 
-	/* initialize the loader subsystems (must be done _after_
-       classcache_init) */
+	/* AFTER: utf8_init, classcache_init */
 
-	if (!loader_init())
-		vm_abort("vm_create: loader_init failed");
+	loader_preinit();
+	linker_preinit();
 
-	/* Link some important VM classes. */
-	/* AFTER: utf8_init */
+	/* AFTER: loader_preinit, linker_preinit */
 
-	if (!linker_init())
-		vm_abort("vm_create: linker_init failed");
+	primitive_init();
 
-	if (!primitive_init())
-		vm_abort("vm_create: primitive_init failed");
+	loader_init();
+	linker_init();
+
+	/* AFTER: loader_init, linker_init */
+
+	primitive_postinit();
 
 	if (!exceptions_init())
 		vm_abort("vm_create: exceptions_init failed");

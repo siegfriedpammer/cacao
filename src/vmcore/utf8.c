@@ -181,6 +181,7 @@ utf *utf_findNative;
 utf *utf_getSystemClassLoader;
 utf *utf_initCause;
 utf *utf_loadClass;
+utf *utf_loadClassInternal;
 utf *utf_printStackTrace;
 
 utf *utf_division_by_zero;
@@ -431,6 +432,7 @@ bool utf8_init(void)
 	utf_getSystemClassLoader       = utf_new_char("getSystemClassLoader");
 	utf_initCause                  = utf_new_char("initCause");
 	utf_loadClass                  = utf_new_char("loadClass");
+	utf_loadClassInternal          = utf_new_char("loadClassInternal");
 	utf_printStackTrace            = utf_new_char("printStackTrace");
 
 	utf_division_by_zero           = utf_new_char("/ by zero");

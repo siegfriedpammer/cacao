@@ -43,6 +43,7 @@
 
 #include "vmcore/annotation.h"
 #include "vmcore/class.h"
+#include "vmcore/loader.h"
 #include "vmcore/suck.h"
 
 #if !defined(ENABLE_ANNOTATIONS)
@@ -86,7 +87,8 @@ static bool annotation_bytearrays_resize(java_handle_objectarray_t **bas,
 	if (*bas != NULL) {
 		minsize = size < oldsize ? size : oldsize;
 
-		MCOPY(LLNI_array_data(newbas), LLNI_array_data(*bas), java_object_t*, minsize);
+		MCOPY(LLNI_array_data(newbas), LLNI_array_data(*bas),
+			java_object_t*, minsize);
 	}
 
 	*bas = newbas;
@@ -232,7 +234,7 @@ static bool annotation_load_attribute_body(classbuffer *cb,
 bool annotation_load_method_attribute_annotationdefault(
 		classbuffer *cb, methodinfo *m)
 {
-	int slot = 0;
+	int                         slot               = 0;
 	java_handle_bytearray_t    *annotationdefault  = NULL;
 	java_handle_objectarray_t **annotationdefaults = NULL;
 
@@ -288,7 +290,7 @@ bool annotation_load_method_attribute_annotationdefault(
 bool annotation_load_method_attribute_runtimevisibleparameterannotations(
 		classbuffer *cb, methodinfo *m)
 {
-	int slot = 0;
+	int                         slot                 = 0;
 	java_handle_bytearray_t    *annotations          = NULL;
 	java_handle_objectarray_t **parameterannotations = NULL;
 
@@ -403,7 +405,7 @@ bool annotation_load_class_attribute_runtimeinvisibleannotations(
 bool annotation_load_method_attribute_runtimevisibleannotations(
 	classbuffer *cb, methodinfo *m)
 {
-	int slot = 0;
+	int                         slot               = 0;
 	java_handle_bytearray_t    *annotations        = NULL;
 	java_handle_objectarray_t **method_annotations = NULL;
 
@@ -453,7 +455,7 @@ bool annotation_load_method_attribute_runtimeinvisibleannotations(
 bool annotation_load_field_attribute_runtimevisibleannotations(
 	classbuffer *cb, fieldinfo *f)
 {
-	int slot = 0;
+	int                          slot             = 0;
 	java_handle_bytearray_t    *annotations       = NULL;
 	java_handle_objectarray_t **field_annotations = NULL;
 

@@ -32,6 +32,7 @@
 
 #include "vm/global.h"
 #include "vm/primitive.h"
+#include "vm/vm.h"
 
 #include "vmcore/class.h"
 #include "vmcore/utf8.h"
@@ -68,21 +69,37 @@ primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = {
 };
 
 
-/* primitive_init **************************************************************
+/* primitive_preinit ***********************************************************
 
-   Create classes representing primitive types.
+   Fill the primitive type table with the primitive-type classes,
+   array-classes and wrapper classes.  This is important in the VM
+   startup.
+
+   We split this primitive-type table initialization because of
+   annotations in the bootstrap classes.
+
+   But we may get a problem if we have annotations in:
+
+   java/lang/Object
+   java/lang/Cloneable
+   java/io/Serializable
+
+   Also see: loader_preinit and linker_preinit.
 
 *******************************************************************************/
 
-bool primitive_init(void)
+void primitive_init(void)
 {  
 	utf       *name;
 	classinfo *c;
 	utf       *u;
+	classinfo *ac;
 	int        i;
 
+	/* Load and link primitive-type classes and array-classes. */
+
 	for (i = 0; i < PRIMITIVETYPE_COUNT; i++) {
-		/* skip dummies */
+		/* Skip dummy entries. */
 
 		if (primitivetype_table[i].cname == NULL)
 			continue;
@@ -112,41 +129,100 @@ bool primitive_init(void)
 		/* INFO: don't put primitive classes into the classcache */
 
 		if (!link_class(c))
-			return false;
+			vm_abort("linker_init: linking failed");
+
+		/* Just to be sure. */
+
+		assert(c->state & CLASS_LOADED);
+		assert(c->state & CLASS_LINKED);
 
 		primitivetype_table[i].class_primitive = c;
 
-		/* create class for wrapping the primitive type */
+		/* Create primitive array class. */
+
+		if (primitivetype_table[i].arrayname != NULL) {
+			u  = utf_new_char(primitivetype_table[i].arrayname);
+			ac = class_create_classinfo(u);
+			ac = load_newly_created_array(ac, NULL);
+
+			if (ac == NULL)
+				vm_abort("primitive_init: loading failed");
+
+			assert(ac->state & CLASS_LOADED);
+
+			if (!link_class(ac))
+				vm_abort("primitive_init: linking failed");
+
+			/* Just to be sure. */
+
+			assert(ac->state & CLASS_LOADED);
+			assert(ac->state & CLASS_LINKED);
+
+			primitivetype_table[i].arrayclass = ac;
+		}
+	}
+
+	/* We use two for-loops to have the array-classes already in the
+	   primitive-type table (hint: annotations in wrapper-classes). */
+
+	for (i = 0; i < PRIMITIVETYPE_COUNT; i++) {
+		/* Skip dummy entries. */
+
+		if (primitivetype_table[i].cname == NULL)
+			continue;
+
+		/* Create class for wrapping the primitive type. */
 
 		u = utf_new_char(primitivetype_table[i].wrapname);
 		c = load_class_bootstrap(u);
 
 		if (c == NULL)
-			return false;
+			vm_abort("primitive_init: loading failed");
+
+		if (!link_class(c))
+			vm_abort("primitive_init: linking failed");
+
+		/* Just to be sure. */
+
+		assert(c->state & CLASS_LOADED);
+		assert(c->state & CLASS_LINKED);
 
 		primitivetype_table[i].class_wrap = c;
-
-		/* create the primitive array class */
-
-		if (primitivetype_table[i].arrayname) {
-			u = utf_new_char(primitivetype_table[i].arrayname);
-			c = class_create_classinfo(u);
-			c = load_newly_created_array(c, NULL);
-
-			if (c == NULL)
-				return false;
-
-			primitivetype_table[i].arrayclass = c;
-
-			assert(c->state & CLASS_LOADED);
-
-			if (!(c->state & CLASS_LINKED))
-				if (!link_class(c))
-					return false;
-		}
 	}
+}
 
-	return true;
+
+/* primitive_postinit **********************************************************
+
+   Finish the primitive-type table initialization.  In this step we
+   set the vftbl of the primitive-type classes.
+
+   This is necessary because java/lang/Class is loaded and linked
+   after the primitive types have been linked.
+
+   We have to do that in an extra function, as the primitive types are
+   not stored in the classcache.
+
+*******************************************************************************/
+
+void primitive_postinit(void)
+{
+	classinfo *c;
+	int        i;
+
+	assert(class_java_lang_Class);
+	assert(class_java_lang_Class->vftbl);
+
+	for (i = 0; i < PRIMITIVETYPE_COUNT; i++) {
+		/* Skip dummy entries. */
+
+		if (primitivetype_table[i].cname == NULL)
+			continue;
+
+		c = primitivetype_table[i].class_primitive;
+
+		c->object.header.vftbl = class_java_lang_Class->vftbl;
+	}
 }
 
 

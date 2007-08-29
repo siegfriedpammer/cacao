@@ -177,6 +177,7 @@ extern utf *utf_findNative;
 extern utf *utf_getSystemClassLoader;
 extern utf *utf_initCause;
 extern utf *utf_loadClass;
+extern utf *utf_loadClassInternal;
 extern utf *utf_printStackTrace;
 
 extern utf *utf_division_by_zero;

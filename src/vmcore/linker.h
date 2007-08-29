@@ -143,10 +143,8 @@ extern java_object_t *linker_classrenumber_lock;
 
 /* function prototypes ********************************************************/
 
-/* initialize the linker subsystem */
-bool linker_init(void);
-
-/* link a class */
+void       linker_preinit(void);
+void       linker_init(void);
 classinfo *link_class(classinfo *c);
 
 #endif /* _LINKER_H */
