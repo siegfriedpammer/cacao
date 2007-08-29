@@ -2243,6 +2243,13 @@ jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 
 	TRACEJVMCALLS("JVM_NewArray(env=%p, eltClass=%p, length=%d)", env, eltClass, length);
 
+	if (eltClass == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	/* NegativeArraySizeException is checked in builtin_newarray. */
+
 	c = LLNI_classinfo_unwrap(eltClass);
 
 	/* create primitive or object array */
@@ -2265,7 +2272,52 @@ jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 
 jobject JVM_NewMultiArray(JNIEnv *env, jclass eltClass, jintArray dim)
 {
-	log_println("JVM_NewMultiArray: IMPLEMENT ME!");
+	classinfo                 *c;
+	java_handle_intarray_t    *ia;
+	int32_t                    length;
+	long                      *dims;
+	int32_t                    value;
+	int32_t                    i;
+	classinfo                 *ac;
+	java_handle_objectarray_t *a;
+
+	TRACEJVMCALLS("JVM_NewMultiArray(env=%p, eltClass=%p, dim=%p)", env, eltClass, dim);
+
+	if (eltClass == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	/* NegativeArraySizeException is checked in builtin_newarray. */
+
+	c = LLNI_classinfo_unwrap(eltClass);
+
+	/* XXX This is just a quick hack to get it working. */
+
+	ia = (java_handle_intarray_t *) dim;
+
+	length = array_length_get(ia);
+
+	dims = MNEW(long, length);
+
+	for (i = 0; i < length; i++) {
+		value = LLNI_array_direct(ia, i);
+		dims[i] = (long) value;
+	}
+
+	/* Create an array-class if necessary. */
+
+	if (class_is_primitive(c))
+		ac = primitive_arrayclass_get_by_name(c->name);
+	else
+		ac = class_array_of(c, true);
+
+	if (ac == NULL)
+		return NULL;
+
+	a = builtin_multianewarray(length, ac, dims);
+
+	return (jobject) a;
 }
 
 
