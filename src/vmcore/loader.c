@@ -1224,27 +1224,24 @@ classinfo *load_class_bootstrap(utf *name)
 }
 
 
-/* load_class_from_classbuffer *************************************************
+/* load_class_from_classbuffer_intern ******************************************
 	
-   Loads everything interesting about a class from the class file. The
-   'classinfo' structure must have been allocated previously.
-
-   The super class and the interfaces implemented by this class need
-   not be loaded. The link is set later by the function 'class_link'.
+   Loads a class from a classbuffer into a given classinfo structure.
+   Super-classes are also loaded at this point and some verfication
+   checks are done.
 
    SYNCHRONIZATION:
        This function is NOT synchronized!
    
 *******************************************************************************/
 
-classinfo *load_class_from_classbuffer(classbuffer *cb)
+static bool load_class_from_classbuffer_intern(classbuffer *cb)
 {
 	classinfo *c;
 	utf *name;
 	utf *supername;
 	u4 i,j;
 	u4 ma, mi;
-	s4 dumpsize;
 	descriptor_pool *descpool;
 #if defined(ENABLE_STATISTICS)
 	u4 classrefsize;
@@ -1259,44 +1256,18 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	RT_TIMING_GET_TIME(time_start);
 
-	/* get the classbuffer's class */
+	/* Get the classbuffer's class. */
 
 	c = cb->class;
 
-	/* the class is already loaded */
-
-	if (c->state & CLASS_LOADED)
-		return c;
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		count_class_loads++;
-#endif
-
-#if !defined(NDEBUG)
-	/* output for debugging purposes */
-
-	if (loadverbose)
-		log_message_class("Loading class: ", c);
-#endif
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* class is currently loading */
-
-	c->state |= CLASS_LOADING;
-
 	if (!suck_check_classbuffer_size(cb, 4 + 2 + 2))
-		goto return_exception;
+		return false;
 
 	/* check signature */
 
 	if (suck_u4(cb) != MAGIC) {
 		exceptions_throw_classformaterror(c, "Bad magic number");
-
-		goto return_exception;
+		return false;
 	}
 
 	/* check version */
@@ -1306,7 +1277,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	if (!(ma < MAJOR_VERSION || (ma == MAJOR_VERSION && mi <= MINOR_VERSION))) {
 		exceptions_throw_unsupportedclassversionerror(c, ma, mi);
-		goto return_exception;
+		return false;
 	}
 
 	RT_TIMING_GET_TIME(time_checks);
@@ -1320,14 +1291,14 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	/* load the constant pool */
 
 	if (!load_constantpool(cb, descpool))
-		goto return_exception;
+		return false;
 
 	RT_TIMING_GET_TIME(time_cpool);
 
 	/* ACC flags */
 
 	if (!suck_check_classbuffer_size(cb, 2))
-		goto return_exception;
+		return false;
 
 	/* We OR the flags here, as we set already some flags in
 	   class_create_classinfo. */
@@ -1348,7 +1319,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 			exceptions_throw_classformaterror(c,
 											  "Illegal class modifiers: 0x%X",
 											  c->flags);
-			goto return_exception;
+			return false;
 		}
 
 		if (c->flags & ACC_SUPER) {
@@ -1360,18 +1331,18 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		exceptions_throw_classformaterror(c,
 										  "Illegal class modifiers: 0x%X",
 										  c->flags);
-		goto return_exception;
+		return false;
 	}
 
 	if (!suck_check_classbuffer_size(cb, 2 + 2))
-		goto return_exception;
+		return false;
 
 	/* this class */
 
 	i = suck_u2(cb);
 
 	if (!(name = (utf *) class_getconstant(c, i, CONSTANT_Class)))
-		goto return_exception;
+		return false;
 
 	if (c->name == utf_not_named_yet) {
 		/* we finally have a name for this class */
@@ -1380,7 +1351,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	}
 	else if (name != c->name) {
 		exceptions_throw_noclassdeffounderror_wrong_name(c, name);
-		goto return_exception;
+		return false;
 	}
 
 	/* retrieve superclass */
@@ -1389,48 +1360,49 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	if ((i = suck_u2(cb))) {
 		if (!(supername = (utf *) class_getconstant(c, i, CONSTANT_Class)))
-			goto return_exception;
+			return false;
 
 		/* java.lang.Object may not have a super class. */
 
 		if (c->name == utf_java_lang_Object) {
 			exceptions_throw_classformaterror(NULL, "java.lang.Object with superclass");
-			goto return_exception;
+			return false;
 		}
 
 		/* Interfaces must have java.lang.Object as super class. */
 
 		if ((c->flags & ACC_INTERFACE) && (supername != utf_java_lang_Object)) {
 			exceptions_throw_classformaterror(c, "Interfaces must have java.lang.Object as superclass");
-			goto return_exception;
+			return false;
 		}
-
-	} else {
+	}
+	else {
 		supername = NULL;
 
 		/* This is only allowed for java.lang.Object. */
 
 		if (c->name != utf_java_lang_Object) {
 			exceptions_throw_classformaterror(c, "Bad superclass index");
-			goto return_exception;
+			return false;
 		}
 	}
 
 	/* retrieve interfaces */
 
 	if (!suck_check_classbuffer_size(cb, 2))
-		goto return_exception;
+		return false;
 
 	c->interfacescount = suck_u2(cb);
 
 	if (!suck_check_classbuffer_size(cb, 2 * c->interfacescount))
-		goto return_exception;
+		return false;
 
 	c->interfaces = MNEW(classref_or_classinfo, c->interfacescount);
+
 	for (i = 0; i < c->interfacescount; i++) {
 		/* the classrefs are created later */
 		if (!(c->interfaces[i].any = (utf *) class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
-			goto return_exception;
+			return false;
 	}
 
 	RT_TIMING_GET_TIME(time_setup);
@@ -1438,7 +1410,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	/* load fields */
 
 	if (!suck_check_classbuffer_size(cb, 2))
-		goto return_exception;
+		return false;
 
 	c->fieldscount = suck_u2(cb);
   	c->fields      = MNEW(fieldinfo, c->fieldscount);
@@ -1447,7 +1419,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	for (i = 0; i < c->fieldscount; i++) {
 		if (!field_load(cb, &(c->fields[i]), descpool))
-			goto return_exception;
+			return false;
 	}
 
 	RT_TIMING_GET_TIME(time_fields);
@@ -1455,7 +1427,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	/* load methods */
 
 	if (!suck_check_classbuffer_size(cb, 2))
-		goto return_exception;
+		return false;
 
 	c->methodscount = suck_u2(cb);
 	c->methods      = MNEW(methodinfo, c->methodscount);
@@ -1464,7 +1436,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	
 	for (i = 0; i < c->methodscount; i++) {
 		if (!method_load(cb, &(c->methods[i]), descpool))
-			goto return_exception;
+			return false;
 	}
 
 	RT_TIMING_GET_TIME(time_methods);
@@ -1505,7 +1477,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	if (supername) {
 		c->super.ref = descriptor_pool_lookup_classref(descpool, supername);
 		if (!c->super.ref)
-			goto return_exception;
+			return false;
 	}
 
 	/* set the super interfaces references */
@@ -1515,7 +1487,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 			descriptor_pool_lookup_classref(descpool,
 											(utf *) c->interfaces[i].any);
 		if (!c->interfaces[i].ref)
-			goto return_exception;
+			return false;
 	}
 
 	RT_TIMING_GET_TIME(time_setrefs);
@@ -1527,7 +1499,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 			descriptor_pool_parse_field_descriptor(descpool,
 												   c->fields[i].descriptor);
 		if (!c->fields[i].parseddesc)
-			goto return_exception;
+			return false;
 	}
 
 	RT_TIMING_GET_TIME(time_parsefds);
@@ -1540,23 +1512,25 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 			descriptor_pool_parse_method_descriptor(descpool, m->descriptor,
 													m->flags, class_get_self_classref(m->class));
 		if (!m->parseddesc)
-			goto return_exception;
+			return false;
 
 		for (j = 0; j < m->rawexceptiontablelength; j++) {
 			if (!m->rawexceptiontable[j].catchtype.any)
 				continue;
+
 			if ((m->rawexceptiontable[j].catchtype.ref =
 				 descriptor_pool_lookup_classref(descpool,
 						(utf *) m->rawexceptiontable[j].catchtype.any)) == NULL)
-				goto return_exception;
+				return false;
 		}
 
 		for (j = 0; j < m->thrownexceptionscount; j++) {
 			if (!m->thrownexceptions[j].any)
 				continue;
+
 			if ((m->thrownexceptions[j].ref = descriptor_pool_lookup_classref(descpool,
 						(utf *) m->thrownexceptions[j].any)) == NULL)
-				goto return_exception;
+				return false;
 		}
 	}
 
@@ -1575,13 +1549,14 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 				descriptor_pool_parse_field_descriptor(descpool,
 													   fmi->descriptor);
 			if (!fmi->parseddesc.fd)
-				goto return_exception;
+				return false;
+
 			index = fmi->p.index;
 			fmi->p.classref =
 				(constant_classref *) class_getconstant(c, index,
 														CONSTANT_Class);
 			if (!fmi->p.classref)
-				goto return_exception;
+				return false;
 			break;
 		case CONSTANT_Methodref:
 		case CONSTANT_InterfaceMethodref:
@@ -1591,14 +1566,14 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 				(constant_classref *) class_getconstant(c, index,
 														CONSTANT_Class);
 			if (!fmi->p.classref)
-				goto return_exception;
+				return false;
 			fmi->parseddesc.md =
 				descriptor_pool_parse_method_descriptor(descpool,
 														fmi->descriptor,
 														ACC_UNDEF,
 														fmi->p.classref);
 			if (!fmi->parseddesc.md)
-				goto return_exception;
+				return false;
 			break;
 		}
 	}
@@ -1654,7 +1629,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 					if (c->fields[old].name == fi->name &&
 						c->fields[old].descriptor == fi->descriptor) {
 						exceptions_throw_classformaterror(c, "Repetitive field name/signature");
-						goto return_exception;
+						return false;
 					}
 				} while ((old = next[old]));
 			}
@@ -1671,13 +1646,6 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 			index = ((((size_t) mi->name) +
 					  ((size_t) mi->descriptor)) >> shift) % hashlen;
 
-			/*{ JOWENN
-				int dbg;
-				for (dbg=0;dbg<hashlen+hashlen/5;++dbg){
-					printf("Hash[%d]:%d\n",dbg,hashtab[dbg]);
-				}
-			}*/
-
 			if ((old = hashtab[index])) {
 				old--;
 				next[i] = old;
@@ -1685,7 +1653,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 					if (c->methods[old].name == mi->name &&
 						c->methods[old].descriptor == mi->descriptor) {
 						exceptions_throw_classformaterror(c, "Repetitive method name/signature");
-						goto return_exception;
+						return false;
 					}
 				} while ((old = next[old]));
 			}
@@ -1709,12 +1677,11 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	/* load attribute structures */
 
 	if (!class_load_attributes(cb))
-		goto return_exception;
+		return false;
 
-	/* Pre Java 1.5 version don't check this. This implementation is like
-	   Java 1.5 do it: for class file version 45.3 we don't check it, older
-	   versions are checked.
-	 */
+	/* Pre Java 1.5 version don't check this. This implementation is
+	   like Java 1.5 do it: for class file version 45.3 we don't check
+	   it, older versions are checked. */
 
 	if (((ma == 45) && (mi > 3)) || (ma > 45)) {
 		/* check if all data has been read */
@@ -1722,31 +1689,11 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 		if (classdata_left > 0) {
 			exceptions_throw_classformaterror(c, "Extra bytes at the end of class file");
-			goto return_exception;
+			return false;
 		}
 	}
 
 	RT_TIMING_GET_TIME(time_attrs);
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	/* revert loading state and class is loaded */
-
-	c->state = (c->state & ~CLASS_LOADING) | CLASS_LOADED;
-
-#if defined(ENABLE_JVMTI)
-	/* fire Class Prepare JVMTI event */
-
-	if (jvmti)
-		jvmti_ClassLoadPrepare(true, c);
-#endif
-
-#if !defined(NDEBUG)
-	if (loadverbose)
-		log_message_class("Loading done class: ", c);
-#endif
 
 	RT_TIMING_TIME_DIFF(time_start     , time_checks    , RT_TIMING_LOAD_CHECKS);
 	RT_TIMING_TIME_DIFF(time_checks    , time_ndpool    , RT_TIMING_LOAD_NDPOOL);
@@ -1764,16 +1711,87 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	RT_TIMING_TIME_DIFF(time_verify    , time_attrs     , RT_TIMING_LOAD_ATTRS);
 	RT_TIMING_TIME_DIFF(time_start     , time_attrs     , RT_TIMING_LOAD_TOTAL);
 
-	return c;
+	return true;
+}
 
-return_exception:
-	/* release dump area */
+
+/* load_class_from_classbuffer *************************************************
+
+   Convenience wrapper for load_class_from_classbuffer.
+
+   SYNCHRONIZATION:
+       This function is NOT synchronized!
+   
+*******************************************************************************/
+
+classinfo *load_class_from_classbuffer(classbuffer *cb)
+{
+	classinfo *c;
+	int32_t    dumpsize;
+	bool       result;
+
+	/* Get the classbuffer's class. */
+
+	c = cb->class;
+
+	/* Check if the class is already loaded. */
+
+	if (c->state & CLASS_LOADED)
+		return c;
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		count_class_loads++;
+#endif
+
+#if !defined(NDEBUG)
+	if (loadverbose)
+		log_message_class("Loading class: ", c);
+#endif
+
+	/* Mark start of dump memory area. */
+
+	dumpsize = dump_size();
+
+	/* Class is currently loading. */
+
+	c->state |= CLASS_LOADING;
+
+	/* Parse the classbuffer. */
+
+	result = load_class_from_classbuffer_intern(cb);
+
+	/* Release dump area. */
 
 	dump_release(dumpsize);
 
-	/* an exception has been thrown */
+	/* An error occurred. */
 
-	return NULL;
+	if (result == false) {
+		/* Revert loading state. */
+
+		c->state = (c->state & ~CLASS_LOADING);
+
+		return NULL;
+	}
+
+	/* Revert loading state and set loaded. */
+
+	c->state = (c->state & ~CLASS_LOADING) | CLASS_LOADED;
+
+#if defined(ENABLE_JVMTI)
+	/* fire Class Prepare JVMTI event */
+
+	if (jvmti)
+		jvmti_ClassLoadPrepare(true, c);
+#endif
+
+#if !defined(NDEBUG)
+	if (loadverbose)
+		log_message_class("Loading done class: ", c);
+#endif
+
+	return c;
 }
 
 
