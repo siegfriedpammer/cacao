@@ -910,11 +910,11 @@ java_handle_t *_Jv_jni_invokeNative(methodinfo *m, java_handle_t *o,
 
 jint _Jv_JNI_GetVersion(JNIEnv *env)
 {
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_GetVersion(env=%p)", env);
 
-	/* we support JNI 1.4 */
+	/* We support JNI 1.6. */
 
-	return JNI_VERSION_1_4;
+	return JNI_VERSION_1_6;
 }
 
 
@@ -3686,6 +3686,22 @@ jlong _Jv_JNI_GetDirectBufferCapacity(JNIEnv* env, jobject buf)
 }
 
 
+/* GetObjectRefType ************************************************************
+
+   Returns the type of the object referred to by the obj argument. The
+   argument obj can either be a local, global or weak global
+   reference.
+
+*******************************************************************************/
+
+jobjectRefType jni_GetObjectRefType(JNIEnv *env, jobject obj)
+{
+	log_println("jni_GetObjectRefType: IMPLEMENT ME!");
+
+	return -1;
+}
+
+
 /* DestroyJavaVM ***************************************************************
 
    Unloads a Java VM and reclaims its resources. Only the main thread
@@ -4129,7 +4145,7 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 
 	_Jv_JNI_GetJavaVM,
 
-	/* new JNI 1.2 functions */
+	/* New JNI 1.2 functions. */
 
 	_Jv_JNI_GetStringRegion,
 	_Jv_JNI_GetStringUTFRegion,
@@ -4145,11 +4161,15 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 
 	_Jv_JNI_ExceptionCheck,
 
-	/* new JNI 1.4 functions */
+	/* New JNI 1.4 functions. */
 
 	_Jv_JNI_NewDirectByteBuffer,
 	_Jv_JNI_GetDirectBufferAddress,
-	_Jv_JNI_GetDirectBufferCapacity
+	_Jv_JNI_GetDirectBufferCapacity,
+
+	/* New JNI 1.6 functions. */
+
+	jni_GetObjectRefType
 };
 
 

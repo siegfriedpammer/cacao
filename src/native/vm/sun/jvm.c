@@ -2561,6 +2561,7 @@ jboolean JVM_IsSupportedJNIVersion(jint version)
 	case JNI_VERSION_1_1:
 	case JNI_VERSION_1_2:
 	case JNI_VERSION_1_4:
+	case JNI_VERSION_1_6:
 		return true;
 	default:
 		return false;
