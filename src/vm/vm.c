@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: vm.c 8362 2007-08-20 18:35:26Z michi $
-
 */
 
 
@@ -33,11 +31,6 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
-
-#if defined(WITH_JRE_LAYOUT)
-# include <libgen.h>
-# include <unistd.h>
-#endif
 
 #include "vm/types.h"
 
@@ -62,15 +55,6 @@
 #endif
 
 #include "native/include/java_lang_Class.h"
-
-#include "native/include/java_lang_Byte.h"
-#include "native/include/java_lang_Character.h"
-#include "native/include/java_lang_Short.h"
-#include "native/include/java_lang_Integer.h"
-#include "native/include/java_lang_Boolean.h"
-#include "native/include/java_lang_Long.h"
-#include "native/include/java_lang_Float.h"
-#include "native/include/java_lang_Double.h"
 
 #include "native/vm/nativevm.h"
 
@@ -126,21 +110,8 @@ s4 vms = 0;                             /* number of VMs created              */
 bool vm_initializing = false;
 bool vm_exiting = false;
 
-char      *cacao_prefix = NULL;
-char      *cacao_libjvm = NULL;
-char      *classpath_libdir = NULL;
-
-char      *_Jv_bootclasspath;           /* contains the boot classpath        */
-char      *_Jv_classpath;               /* contains the classpath             */
-char      *_Jv_java_library_path;
-
 char      *mainstring = NULL;
 classinfo *mainclass = NULL;
-
-char *specificmethodname = NULL;
-char *specificsignature = NULL;
-
-bool startit = true;
 
 #if defined(ENABLE_INTRP)
 u1 *intrp_main_stack = NULL;
@@ -329,6 +300,7 @@ opt_struct opts[] = {
 	{ "noasyncgc",         false, OPT_IGNORE },
 #if defined(ENABLE_VERIFIER)
 	{ "noverify",          false, OPT_NOVERIFY },
+	{ "Xverify:none",      false, OPT_NOVERIFY },
 #endif
 	{ "v",                 false, OPT_VERBOSE1 },
 	{ "verbose:",          true,  OPT_VERBOSE },
@@ -679,21 +651,35 @@ void vm_printconfig(void)
 	printf("  maximum heap size              : %d\n", HEAP_MAXSIZE);
 	printf("  initial heap size              : %d\n", HEAP_STARTSIZE);
 	printf("  stack size                     : %d\n", STACK_SIZE);
-#if defined(WITH_CLASSPATH_GNU)
-	puts("  java.boot.class.path           : "CACAO_VM_ZIP":"CLASSPATH_CLASSES"");
+
+#if defined(WITH_JRE_LAYOUT)
+	/* When we're building with JRE-layout, the default paths are the
+	   same as the runtime paths. */
 #else
-	puts("  java.boot.class.path           : "CLASSPATH_CLASSES"");
+# if defined(WITH_CLASSPATH_GNU)
+	puts("  gnu.classpath.boot.library.path: "CLASSPATH_LIBDIR);
+	puts("  java.boot.class.path           : "CACAO_VM_ZIP":"CLASSPATH_CLASSES"");
+# elif defined(WITH_CLASSPATH_SUN)
+	puts("  sun.boot.library.path          : "CLASSPATH_LIBDIR);
+	puts("  java.boot.class.path           : "CLASSPATH_CLASSES);
+# endif
 #endif
-	puts("  gnu.classpath.boot.library.path: "CLASSPATH_LIBDIR"/classpath\n");
+
+	puts("");
 
 	puts("Runtime variables:\n");
 	printf("  maximum heap size              : %d\n", opt_heapmaxsize);
 	printf("  initial heap size              : %d\n", opt_heapstartsize);
 	printf("  stack size                     : %d\n", opt_stacksize);
-	printf("  libjvm.so                      : %s\n", cacao_libjvm);
-	printf("  java.boot.class.path           : %s\n", _Jv_bootclasspath);
-	printf("  gnu.classpath.boot.library.path: %s\n", classpath_libdir);
-	printf("  java.class.path                : %s\n", _Jv_classpath);
+
+#if defined(WITH_CLASSPATH_GNU)
+	printf("  gnu.classpath.boot.library.path: %s\n", properties_get("gnu.classpath.boot.library.path"));
+#elif defined(WITH_CLASSPATH_SUN)
+	printf("  sun.boot.library.path          : %s\n", properties_get("sun.boot.library.path"));
+#endif
+
+	printf("  java.boot.class.path           : %s\n", properties_get("java.boot.class.path"));
+	printf("  java.class.path                : %s\n", properties_get("java.class.path"));
 }
 
 
@@ -787,10 +773,12 @@ bool vm_createjvm(JavaVM **p_vm, void **p_env, void *vm_args)
 
 bool vm_create(JavaVMInitArgs *vm_args)
 {
-	char *cp;
-	s4    len;
-	s4    opt;
-	s4    i, j;
+	int   len;
+	char *p;
+	char *boot_class_path;
+	char *class_path;
+	int   opt;
+	int   i, j;
 	bool  opt_version;
 	bool  opt_exit;
 
@@ -839,153 +827,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	_Jv_jvm->starttime = builtin_currenttimemillis();
 
-	/* get stuff from the environment *****************************************/
-
-#if defined(WITH_JRE_LAYOUT)
-	/* SUN also uses a buffer of 4096-bytes (strace is your friend). */
-
-	cacao_prefix = MNEW(char, 4096);
-
-	if (readlink("/proc/self/exe", cacao_prefix, 4095) == -1)
-		vm_abort("readlink failed: %s\n", strerror(errno));
-
-	/* get the path of the current executable */
-
-	cacao_prefix = dirname(cacao_prefix);
-
-	if ((strlen(cacao_prefix) + strlen("/..") + strlen("0")) > 4096)
-		vm_abort("libjvm name to long for buffer\n");
-
-	/* concatenate the library name */
-
-	strcat(cacao_prefix, "/..");
-
-	/* now set path to libjvm.so */
-
-	len = strlen(cacao_prefix) + strlen("/lib/libjvm") + strlen("0");
-
-	cacao_libjvm = MNEW(char, len);
-	strcpy(cacao_libjvm, cacao_prefix);
-	strcat(cacao_libjvm, "/lib/libjvm");
-
-	/* and finally set the path to GNU Classpath libraries */
-
-	len = strlen(cacao_prefix) + strlen("/lib/classpath") + strlen("0");
-
-	classpath_libdir = MNEW(char, len);
-	strcpy(classpath_libdir, cacao_prefix);
-	strcat(classpath_libdir, "/lib/classpath");
-#else
-	cacao_prefix     = CACAO_PREFIX;
-	cacao_libjvm     = CACAO_LIBDIR"/libjvm";
-
-# if defined(WITH_CLASSPATH_GNU)
-	classpath_libdir = CLASSPATH_LIBDIR"/classpath";
-# else
-	classpath_libdir = CLASSPATH_LIBDIR;
-# endif
-#endif
-
-	/* set the bootclasspath */
-
-	cp = getenv("BOOTCLASSPATH");
-
-	if (cp != NULL) {
-		_Jv_bootclasspath = MNEW(char, strlen(cp) + strlen("0"));
-		strcpy(_Jv_bootclasspath, cp);
-	}
-	else {
-#if defined(WITH_JRE_LAYOUT)
-		len =
-# if defined(WITH_CLASSPATH_GNU)
-			strlen(cacao_prefix) +
-			strlen("/share/cacao/vm.zip") +
-			strlen(":") +
-# endif
-			strlen(cacao_prefix) +
-			strlen("/share/classpath/glibj.zip") +
-			strlen("0");
-
-		_Jv_bootclasspath = MNEW(char, len);
-# if defined(WITH_CLASSPATH_GNU)
-		strcat(_Jv_bootclasspath, cacao_prefix);
-		strcat(_Jv_bootclasspath, "/share/cacao/vm.zip");
-		strcat(_Jv_bootclasspath, ":");
-# endif
-		strcat(_Jv_bootclasspath, cacao_prefix);
-		strcat(_Jv_bootclasspath, "/share/classpath/glibj.zip");
-#else
-# if defined(WITH_CLASSPATH_GNU)
-		len =
-			strlen(CACAO_VM_ZIP) +
-			strlen(":") +
-			strlen(CLASSPATH_CLASSES) +
-			strlen("0");
-# elif defined(WITH_CLASSPATH_SUN)
-		/* This is the bootclasspath taken from HotSpot (see
-		   hotspot/src/share/vm/runtime/os.cpp
-		   (os::set_boot_path)). */
-
-		len =
-			strlen(CLASSPATH_PREFIX"/lib/resources.jar:"
-				   CLASSPATH_PREFIX"/lib/rt.jar:"
-				   CLASSPATH_PREFIX"/lib/sunrsasign.jar:"
-				   CLASSPATH_PREFIX"/lib/jsse.jar:"
-				   CLASSPATH_PREFIX"/lib/jce.jar:"
-				   CLASSPATH_PREFIX"/lib/charsets.jar:"
-				   CLASSPATH_PREFIX"/classes") +
-			strlen("0");
-# elif defined(WITH_CLASSPATH_CLDC1_1)
-		len =
-			strlen(CLASSPATH_CLASSES) +
-			strlen("0");
-# else
-#  error unknown classpath configuration
-# endif
-
-		_Jv_bootclasspath = MNEW(char, len);
-
-# if defined(WITH_CLASSPATH_GNU)
-		strcpy(_Jv_bootclasspath, CACAO_VM_ZIP);
-		strcat(_Jv_bootclasspath, ":");
-		strcat(_Jv_bootclasspath, CLASSPATH_CLASSES);
-# elif defined(WITH_CLASSPATH_SUN)
-		strcpy(_Jv_bootclasspath,
-			   CLASSPATH_PREFIX"/lib/resources.jar:"
-			   CLASSPATH_PREFIX"/lib/rt.jar:"
-			   CLASSPATH_PREFIX"/lib/sunrsasign.jar:"
-			   CLASSPATH_PREFIX"/lib/jsse.jar:"
-			   CLASSPATH_PREFIX"/lib/jce.jar:"
-			   CLASSPATH_PREFIX"/lib/charsets.jar:"
-			   CLASSPATH_PREFIX"/classes");
-# elif defined(WITH_CLASSPATH_CLDC1_1)
-		strcat(_Jv_bootclasspath, CLASSPATH_CLASSES);
-# else
-#  error unknown classpath configuration
-# endif
-#endif
-	}
-
-	/* set the classpath */
-
-	cp = getenv("CLASSPATH");
-
-	if (cp != NULL) {
-		_Jv_classpath = MNEW(char, strlen(cp) + strlen("0"));
-		strcat(_Jv_classpath, cp);
-	}
-	else {
-		_Jv_classpath = MNEW(char, strlen(".") + strlen("0"));
-		strcpy(_Jv_classpath, ".");
-	}
-
-	/* Get and set java.library.path. */
-
-	_Jv_java_library_path = getenv("LD_LIBRARY_PATH");
-
-	if (_Jv_java_library_path == NULL)
-		_Jv_java_library_path = "";
-
 	/* interpret the options **************************************************/
 
 	opt_version       = false;
@@ -1005,16 +846,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	/* Initialize and fill properties before command-line handling. */
 
-	if (!properties_init())
-		vm_abort("vm_create: properties_init failed");
-
-	/* Set the classpath properties. */
-
-#if defined(ENABLE_JAVASE)
-	properties_add("java.boot.class.path", _Jv_bootclasspath);
-	properties_add("sun.boot.class.path", _Jv_bootclasspath);
-	properties_add("java.class.path", _Jv_classpath);
-#endif
+	properties_init();
+	properties_set();
 
 	/* iterate over all passed options */
 
@@ -1046,15 +879,20 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 
 		case OPT_CLASSPATH:
-			/* forget old classpath and set the argument as new classpath */
-			MFREE(_Jv_classpath, char, strlen(_Jv_classpath));
+			/* Forget old classpath and set the argument as new
+			   classpath. */
 
-			_Jv_classpath = MNEW(char, strlen(opt_arg) + strlen("0"));
-			strcpy(_Jv_classpath, opt_arg);
+			class_path = properties_get("java.class.path");
+
+			p = MNEW(char, strlen(opt_arg) + strlen("0"));
+
+			strcpy(p, opt_arg);
 
 #if defined(ENABLE_JAVASE)
-			properties_add("java.class.path", _Jv_classpath);
+			properties_add("java.class.path", p);
 #endif
+
+			MFREE(class_path, char, strlen(class_path));
 			break;
 
 		case OPT_D:
@@ -1077,78 +915,79 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			/* Forget default bootclasspath and set the argument as
 			   new boot classpath. */
 
-			MFREE(_Jv_bootclasspath, char, strlen(_Jv_bootclasspath));
+			boot_class_path = properties_get("sun.boot.class.path");
 
-			_Jv_bootclasspath = MNEW(char, strlen(opt_arg) + strlen("0"));
-			strcpy(_Jv_bootclasspath, opt_arg);
+			p = MNEW(char, strlen(opt_arg) + strlen("0"));
 
-#if defined(ENABLE_JAVASE)
-			properties_add("java.boot.class.path", _Jv_bootclasspath);
-			properties_add("sun.boot.class.path", _Jv_bootclasspath);
-#endif
+			strcpy(p, opt_arg);
+
+			properties_add("sun.boot.class.path", p);
+			properties_add("java.boot.class.path", p);
+
+			MFREE(boot_class_path, char, strlen(boot_class_path));
 			break;
 
 		case OPT_BOOTCLASSPATH_A:
-			/* append to end of bootclasspath */
+			/* Append to bootclasspath. */
 
-			len = strlen(_Jv_bootclasspath);
+			boot_class_path = properties_get("sun.boot.class.path");
 
-			_Jv_bootclasspath = MREALLOC(_Jv_bootclasspath,
-										 char,
-										 len + strlen("0"),
-										 len + strlen(":") +
-										 strlen(opt_arg) + strlen("0"));
+			len = strlen(boot_class_path);
 
-			strcat(_Jv_bootclasspath, ":");
-			strcat(_Jv_bootclasspath, opt_arg);
+			p = MREALLOC(boot_class_path,
+						 char,
+						 len + strlen("0"),
+						 len + strlen(":") +
+						 strlen(opt_arg) + strlen("0"));
 
-#if defined(ENABLE_JAVASE)
-			properties_add("java.boot.class.path", _Jv_bootclasspath);
-			properties_add("sun.boot.class.path", _Jv_bootclasspath);
-#endif
+			strcat(p, ":");
+			strcat(p, opt_arg);
+
+			properties_add("sun.boot.class.path", p);
+			properties_add("java.boot.class.path", p);
 			break;
 
 		case OPT_BOOTCLASSPATH_P:
-			/* prepend in front of bootclasspath */
+			/* Prepend to bootclasspath. */
 
-			cp = _Jv_bootclasspath;
-			len = strlen(cp);
+			boot_class_path = properties_get("sun.boot.class.path");
 
-			_Jv_bootclasspath = MNEW(char, strlen(opt_arg) + strlen(":") +
-									 len + strlen("0"));
+			len = strlen(boot_class_path);
 
-			strcpy(_Jv_bootclasspath, opt_arg);
-			strcat(_Jv_bootclasspath, ":");
-			strcat(_Jv_bootclasspath, cp);
+			p = MNEW(char, strlen(opt_arg) + strlen(":") + len + strlen("0"));
 
-			MFREE(cp, char, len);
+			strcpy(p, opt_arg);
+			strcat(p, ":");
+			strcat(p, boot_class_path);
 
-#if defined(ENABLE_JAVASE)
-			properties_add("java.boot.class.path", _Jv_bootclasspath);
-			properties_add("sun.boot.class.path", _Jv_bootclasspath);
-#endif
+			properties_add("sun.boot.class.path", p);
+			properties_add("java.boot.class.path", p);
+
+			MFREE(boot_class_path, char, len);
 			break;
 
 		case OPT_BOOTCLASSPATH_C:
-			/* use as Java core library, but prepend VM interface classes */
+			/* Use as Java core library, but prepend VM interface
+			   classes. */
 
-			MFREE(_Jv_bootclasspath, char, strlen(_Jv_bootclasspath));
+			boot_class_path = properties_get("sun.boot.class.path");
 
-			len = strlen(CACAO_VM_ZIP) +
+			len =
+				strlen(CACAO_VM_ZIP) +
 				strlen(":") +
 				strlen(opt_arg) +
 				strlen("0");
 
-			_Jv_bootclasspath = MNEW(char, len);
+			p = MNEW(char, len);
 
-			strcpy(_Jv_bootclasspath, CACAO_VM_ZIP);
-			strcat(_Jv_bootclasspath, ":");
-			strcat(_Jv_bootclasspath, opt_arg);
+			strcpy(p, CACAO_VM_ZIP);
+			strcat(p, ":");
+			strcat(p, opt_arg);
 
-#if defined(ENABLE_JAVASE)
-			properties_add("java.boot.class.path", _Jv_bootclasspath);
-			properties_add("sun.boot.class.path", _Jv_bootclasspath);
-#endif
+			properties_add("sun.boot.class.path", p);
+			properties_add("java.boot.class.path", p);
+
+			MFREE(boot_class_path, char, strlen(boot_class_path));
 			break;
 
 #if defined(ENABLE_JVMTI)
@@ -1551,16 +1390,16 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		if (opt_jar == true) {
 			/* free old classpath */
 
-			MFREE(_Jv_classpath, char, strlen(_Jv_classpath));
+/* 			MFREE(_Jv_classpath, char, strlen(_Jv_classpath)); */
 
 			/* put jarfile into classpath */
 
-			_Jv_classpath = MNEW(char, strlen(mainstring) + strlen("0"));
+			p = MNEW(char, strlen(mainstring) + strlen("0"));
 
-			strcpy(_Jv_classpath, mainstring);
+			strcpy(p, mainstring);
 
 #if defined(ENABLE_JAVASE)
-			properties_add("java.class.path", _Jv_classpath);
+			properties_add("java.class.path", p);
 #endif
 		}
 		else {
@@ -1640,7 +1479,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	/* AFTER: utf8_init */
 
-	suck_add(_Jv_bootclasspath);
+	boot_class_path = properties_get("sun.boot.class.path");
+	suck_add(boot_class_path);
 
 	/* initialize the classcache hashtable stuff: lock, hashtable
 	   (must be done _after_ threads_preinit) */
@@ -1681,20 +1521,21 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	intrp_md_init();
 #endif
 
-	/* initialize the loader subsystems (must be done _after_
-       classcache_init) */
+	/* AFTER: utf8_init, classcache_init */
 
-	if (!loader_init())
-		vm_abort("vm_create: loader_init failed");
+	loader_preinit();
+	linker_preinit();
 
-	/* Link some important VM classes. */
-	/* AFTER: utf8_init */
+	/* AFTER: loader_preinit, linker_preinit */
 
-	if (!linker_init())
-		vm_abort("vm_create: linker_init failed");
+	primitive_init();
 
-	if (!primitive_init())
-		vm_abort("vm_create: primitive_init failed");
+	loader_init();
+	linker_init();
+
+	/* AFTER: loader_init, linker_init */
+
+	primitive_postinit();
 
 	if (!exceptions_init())
 		vm_abort("vm_create: exceptions_init failed");

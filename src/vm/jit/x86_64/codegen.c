@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8361 2007-08-20 18:06:03Z michi $
-
 */
 
 

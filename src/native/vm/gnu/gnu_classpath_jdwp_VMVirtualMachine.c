@@ -28,9 +28,6 @@ Authors: Martin Platter
 
 Changes: Samuel Vinson
 
-
-$Id: gnu_classpath_jdwp_VMVirtualMachine.c 6213 2006-12-18 17:36:06Z twisti $
-
 */
 
 #include "toolbox/logging.h"

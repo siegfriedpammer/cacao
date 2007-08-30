@@ -23,8 +23,6 @@
 ## 02110-1301, USA.
 ##
 ## Contact: cacao@cacaojvm.org
-##
-## $Id: Makefile.am 8132 2007-06-22 11:15:47Z twisti $
 
 ## Process this file with automake to produce Makefile.in
 

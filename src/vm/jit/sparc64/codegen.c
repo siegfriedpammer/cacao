@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 4644 2006-03-16 18:44:46Z edwin $
-
 */
 
 
@@ -2419,7 +2417,7 @@ nowperformreturn:
 			md = bte->md;
 			
 			/* XXX: builtin calling with stack arguments not implemented */
-			assert(md->paramcount <= 4 && md->argfltreguse <= 16);
+			assert(md->paramcount <= 5 && md->argfltreguse <= 16);
 			
 			s3 = md->paramcount;
 

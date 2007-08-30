@@ -30,7 +30,6 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id: codegen.h 7691 2007-04-12 12:45:10Z twisti $
 
 */
 

@@ -28,8 +28,6 @@
 
    Changes:
 
-   $Id: cacao.c 4357 2006-01-22 23:33:38Z twisti $
-
 */
 
 

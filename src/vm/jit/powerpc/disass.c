@@ -30,7 +30,6 @@
    Changes: Stefan Ring
             Christian Thalinger
 
-   $Id: disass.c 4712 2006-03-30 11:59:46Z twisti $
 
 */
 

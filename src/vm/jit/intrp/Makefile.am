@@ -27,8 +27,6 @@
 ## Authors: Christian Thalinger
 ##
 ## Changes: Edwin Steiner
-##
-## $Id: Makefile.am 5706 2006-10-06 20:11:03Z edwin $
 
 ## Process this file with automake to produce Makefile.in
 

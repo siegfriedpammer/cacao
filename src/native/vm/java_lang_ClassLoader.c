@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMClass.c 6131 2006-12-06 22:15:57Z twisti $
-
 */
 
 
@@ -76,10 +74,10 @@
  */
 java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl, java_lang_String *name, java_handle_bytearray_t *data, s4 offset, s4 len, java_security_ProtectionDomain *pd)
 {
-	utf               *utfname;
-	classinfo         *c;
-	classloader       *loader;
-	java_lang_Class   *o;
+	utf             *utfname;
+	classinfo       *c;
+	classloader     *loader;
+	java_lang_Class *o;
 
 #if defined(ENABLE_JVMTI)
 	jint new_class_data_len = 0;

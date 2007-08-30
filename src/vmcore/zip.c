@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: zip.c 7601 2007-03-28 23:02:50Z michi $
-
 */
 
 
@@ -62,43 +60,6 @@
 /* all signatures in the ZIP file have a length of 4 bytes ********************/
 
 #define SIGNATURE_LENGTH    4
-
-
-/* Local file header ***********************************************************
-
-   local file header signature     4 bytes  (0x04034b50)
-   version needed to extract       2 bytes
-   general purpose bit flag        2 bytes
-   compression method              2 bytes
-   last mod file time              2 bytes
-   last mod file date              2 bytes
-   crc-32                          4 bytes
-   compressed size                 4 bytes
-   uncompressed size               4 bytes
-   file name length                2 bytes
-   extra field length              2 bytes
-
-   file name (variable size)
-   extra field (variable size)
-
-*******************************************************************************/
-
-#define LFH_HEADER_SIZE              30
-
-#define LFH_SIGNATURE                0x04034b50
-#define LFH_FILE_NAME_LENGTH         26
-#define LFH_EXTRA_FIELD_LENGTH       28
-
-typedef struct lfh lfh;
-
-struct lfh {
-	u2 compressionmethod;
-	u4 compressedsize;
-	u4 uncompressedsize;
-	u2 filenamelength;
-	u2 extrafieldlength;
-};
-
 
 /* Central directory structure *************************************************
 

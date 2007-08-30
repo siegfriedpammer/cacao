@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: dummy.c 8374 2007-08-21 10:20:33Z michi $
-
 */
 
 
@@ -34,6 +32,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "mm/memory.h"
+
+#include "native/llni.h"
 
 #include "toolbox/logging.h"
 
@@ -74,6 +76,60 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 	vm_abort("access_is_accessible_member");
 
 	return true;
+}
+
+
+/* array **********************************************************************/
+
+java_handle_t *array_objectarray_element_get(java_handle_objectarray_t *a, int32_t index)
+{
+	java_handle_t *value;
+	int32_t        size;
+
+	if (a == NULL) {
+		log_println("array_objectarray_element_get(a=%p, index=%d): NullPointerException", a, index);
+		return NULL;
+	}
+
+	size = LLNI_array_size(a);
+
+	if ((index < 0) || (index > size)) {
+		log_println("array_objectarray_element_get(a=%p, index=%d): ArrayIndexOutOfBoundsException", a, index);
+		return NULL;
+	}
+
+	value = LLNI_array_direct(a, index);
+
+	return value;
+}
+
+void array_objectarray_element_set(java_handle_objectarray_t *a, int32_t index, java_handle_t *value)
+{
+	int32_t size;
+
+	if (a == NULL) {
+		log_println("array_objectarray_element_set(a=%p, index=%d): NullPointerException", a, index);
+		return;
+	}
+
+	size = LLNI_array_size(a);
+
+	if ((index < 0) || (index > size)) {
+		log_println("array_objectarray_element_set(a=%p, index=%d): ArrayIndexOutOfBoundsException", a, index);
+		return;
+	}
+
+	LLNI_array_direct(a, index) = value;
+}
+
+int32_t array_length_get(java_handle_t *a)
+{
+	if (a == NULL) {
+		log_println("array_length_get(a=%p): NullPointerException", a);
+		return 0;
+	}
+
+	return LLNI_array_size(a);
 }
 
 
@@ -125,16 +181,26 @@ java_handle_t *builtin_new(classinfo *c)
 
 java_handle_objectarray_t *builtin_anewarray(int32_t size, classinfo *componentclass)
 {
-	abort();
+	java_handle_objectarray_t *oa = (java_handle_objectarray_t*)mem_alloc(
+		sizeof(java_array_t) + size * sizeof(java_object_t*));
 
-	return NULL;
+	if (oa != NULL) {
+		LLNI_array_size(oa) = size;
+	}
+
+	return oa;
 }
 
 java_handle_bytearray_t *builtin_newarray_byte(int32_t size)
 {
-	abort();
+	java_handle_bytearray_t *ba = (java_handle_bytearray_t*)mem_alloc(
+		sizeof(java_array_t) + size * sizeof(int8_t));
 
-	return NULL;
+	if (ba != NULL) {
+		LLNI_array_size(ba) = size;
+	}
+	
+	return ba;
 }
 
 
@@ -489,6 +555,11 @@ int32_t dump_size(void)
 
 /* primitive ******************************************************************/
 
+classinfo *primitive_arrayclass_get_by_type(int type)
+{
+	return NULL;
+}
+
 classinfo *primitive_class_get_by_type(int type)
 {
 	abort();
@@ -628,11 +699,11 @@ intptr_t threads_get_current_tid(void)
 	return 0;
 }
 
-void threads_stopworld(void)
+void threads_cast_stopworld(void)
 {
 }
 
-void threads_startworld(void)
+void threads_cast_startworld(void)
 {
 }
 

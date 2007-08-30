@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMRuntime.c 5900 2006-11-04 17:30:44Z michi $
-
 */
 
 
@@ -35,6 +33,7 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_Object.h"
@@ -82,22 +81,22 @@ void _Jv_java_lang_String_init(void)
  */
 JNIEXPORT s4 JNICALL Java_java_lang_String_hashCode(JNIEnv *env, java_lang_String *this)
 {
-	java_chararray *value;
-	s4              offset;
-	s4              count;
-	s4              hash;
-	s4              i;
+	java_handle_chararray_t *value;
+	int32_t              	offset;
+	int32_t              	count;
+	s4              		hash;
+	s4              		i;
 
 	/* get values from Java object */
-
-	offset = this->offset;
-	count  = this->count;
-	value  = this->value;
+	
+	LLNI_field_get_val(this, offset, offset);
+	LLNI_field_get_val(this, count, count);
+	LLNI_field_get_ref(this, value, value);
 
 	hash = 0;
 
 	for (i = 0; i < count; i++) {
-		hash = (31 * hash) + value->data[offset + i];
+		hash = (31 * hash) + LLNI_array_direct(value, offset + i);
 	}
 
 	return hash;
@@ -111,19 +110,19 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_hashCode(JNIEnv *env, java_lang_Strin
  */
 JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__I(JNIEnv *env, java_lang_String *this, s4 ch)
 {
-	java_chararray *value;
-	s4              offset;
-	s4              count;
-	s4              i;
+	java_handle_chararray_t *value;
+	int32_t              	offset;
+	int32_t              	count;
+	s4              		i;
 
 	/* get values from Java object */
 
-	offset = this->offset;
-	count  = this->count;
-	value  = this->value;
+	LLNI_field_get_val(this, offset, offset);
+	LLNI_field_get_val(this, count, count);
+	LLNI_field_get_ref(this, value, value);
 
 	for (i = 0; i < count; i++) {
-		if (value->data[offset + i] == ch) {
+		if (LLNI_array_direct(value, offset + i) == ch) {
 			return i;
 		}
 	}
@@ -139,16 +138,16 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__I(JNIEnv *env, java_lang_Str
  */
 JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__II(JNIEnv *env, java_lang_String *this, s4 ch, s4 fromIndex)
 {
-	java_chararray *value;
-	s4              offset;
-	s4              count;
-	s4              i;
+	java_handle_chararray_t *value;
+	int32_t              	offset;
+	int32_t              	count;
+	s4              		i;
 
 	/* get values from Java object */
 
-	offset = this->offset;
-	count  = this->count;
-	value  = this->value;
+	LLNI_field_get_val(this, offset, offset);
+	LLNI_field_get_val(this, count, count);
+	LLNI_field_get_ref(this, value, value);
 
 	if (fromIndex < 0) {
 		fromIndex = 0;
@@ -159,7 +158,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__II(JNIEnv *env, java_lang_St
 	}
 
 	for (i = fromIndex ; i < count ; i++) {
-		if (value->data[offset + i] == ch) {
+		if (LLNI_array_direct(value, offset + i) == ch) {
 			return i;
 		}
 	}
@@ -175,7 +174,11 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__II(JNIEnv *env, java_lang_St
  */
 JNIEXPORT s4 JNICALL Java_java_lang_String_lastIndexOf__I(JNIEnv *env, java_lang_String *this, s4 ch)
 {
-	return Java_java_lang_String_lastIndexOf__II(env, this, ch, this->count - 1);
+	int32_t	count;
+	
+	LLNI_field_get_val(this, count, count);
+	
+	return Java_java_lang_String_lastIndexOf__II(env, this, ch, count - 1);
 }
 
 
@@ -186,22 +189,22 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_lastIndexOf__I(JNIEnv *env, java_lang
  */
 JNIEXPORT s4 JNICALL Java_java_lang_String_lastIndexOf__II(JNIEnv *env, java_lang_String *this, s4 ch, s4 fromIndex)
 {
-	java_chararray *value;
-	s4              offset;
-	s4              count;
-	s4              start;
-	s4              i;
+	java_handle_chararray_t *value;
+	int32_t              	offset;
+	int32_t              	count;
+	s4              		start;
+	s4              		i;
 
 	/* get values from Java object */
 
-	offset = this->offset;
-	count  = this->count;
-	value  = this->value;
+	LLNI_field_get_val(this, offset, offset);
+	LLNI_field_get_val(this, count, count);
+	LLNI_field_get_ref(this, value, value);
 
 	start = ((fromIndex >= count) ? count - 1 : fromIndex);
 
 	for (i = start; i >= 0; i--) {
-		if (value->data[offset + i] == ch) {
+		if (LLNI_array_direct(value, offset + i) == ch) {
 			return i;
 		}
 	}
@@ -218,23 +221,39 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_lastIndexOf__II(JNIEnv *env, java_lan
  */
 JNIEXPORT s4 JNICALL Java_java_lang_String_equals(JNIEnv *env, java_lang_String* this, java_lang_Object *o)
 {
-	java_lang_String* s;
+	java_lang_String* 		s;
+	java_handle_chararray_t *value;
+	int32_t              	offset;
+	int32_t              	count;
+	java_handle_chararray_t *dvalue;
+	int32_t              	doffset;
+	int32_t              	dcount;
+	classinfo     			*c;
+	
+	LLNI_field_get_val(this, offset, offset);
+	LLNI_field_get_val(this, count, count);
+	LLNI_field_get_ref(this, value, value);
+	LLNI_class_get(o, c);
 
 	/* TODO: is this the correct implementation for short-circuiting on object identity? */
 	if ((java_lang_Object*)this == o)
 		return 1;
-
-	if (o->header.vftbl->class != class_java_lang_String) 
+	
+	if (c != class_java_lang_String) 
 		return 0;
 
 	s = (java_lang_String *) o;
+	LLNI_field_get_val(this, offset, doffset);
+	LLNI_field_get_val(this, count, dcount);
+	LLNI_field_get_ref(this, value, dvalue);
 
-	if (this->count != s->count)
+	if (count != dcount)
 		return 0;
 
-	return ( 0 == memcmp((void*)(this->value->data + this->offset),
-						 (void*)(s->value->data + s->offset),
-						 this->count) );
+	return ( 0 == memcmp((void*)(LLNI_array_direct(value, offset)),
+						 (void*)(LLNI_array_direct(dvalue, doffset),
+						 count) );
+
 }
 #endif
 
@@ -246,16 +265,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_equals(JNIEnv *env, java_lang_String*
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_String_intern(JNIEnv *env, java_lang_String *this)
 {
-	java_handle_t *o;
-
 	if (this == NULL)
 		return NULL;
 
-	/* search table so identical strings will get identical pointers */
-
-	o = literalstring_u2(this->value, this->count, this->offset, true);
-
-	return (java_lang_String *) o;
+	return (java_lang_String *) javastring_intern((java_handle_t *) this);
 }
 
 

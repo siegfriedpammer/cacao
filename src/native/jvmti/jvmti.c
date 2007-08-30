@@ -31,8 +31,6 @@
             Samuel Vinson
             Christan Thalinger
    
-   $Id: jvmti.c 5900 2006-11-04 17:30:44Z michi $
-
 */
 
 

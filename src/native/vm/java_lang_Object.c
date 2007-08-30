@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMObject.c 6213 2006-12-18 17:36:06Z twisti $
-
 */
 
 
@@ -119,6 +117,12 @@ void _Jv_java_lang_Object_wait(java_lang_Object *o, s8 ms, s4 ns)
 	/* Monitor Wait */
 	if (jvmti) jvmti_MonitorWaiting(true, o, ms);
 #endif
+
+    if (ms < 0) {
+/* 		exceptions_throw_illegalargumentexception("argument out of range"); */
+		exceptions_throw_illegalargumentexception();
+		return;
+	}
 
 #if defined(ENABLE_THREADS)
 	lock_wait_for_object(&LLNI_field_direct(o, header), ms, ns);

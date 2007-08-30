@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stringlocal.h 8321 2007-08-16 11:37:25Z michi $
-
 */
 
 
@@ -92,6 +90,9 @@ java_object_t *literalstring_new(utf *u);
 
 /* dispose a javastring */
 void literalstring_free(java_object_t*);
+
+java_handle_t *javastring_intern(java_handle_t *s);
+void           javastring_print(java_handle_t *s);
 
 #endif /* _STRINGLOCAL_H */
 

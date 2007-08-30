@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: threads.c 8374 2007-08-21 10:20:33Z michi $
-
 */
 
 
@@ -888,13 +886,22 @@ bool threads_init(void)
 								 utf_new_char("(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"),
 								 class_java_lang_Thread,
 								 true);
-#else
+#elif defined(WITH_CLASSPATH_SUN)
 	method_thread_init =
 		class_resolveclassmethod(class_java_lang_Thread,
 								 utf_init,
 								 utf_new_char("(Ljava/lang/String;)V"),
 								 class_java_lang_Thread,
 								 true);
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	method_thread_init =
+		class_resolveclassmethod(class_java_lang_Thread,
+								 utf_init,
+								 utf_new_char("(Ljava/lang/String;)V"),
+								 class_java_lang_Thread,
+								 true);
+#else
+# error unknown classpath configuration
 #endif
 
 	if (method_thread_init == NULL)
@@ -964,10 +971,16 @@ bool threads_init(void)
 
 #elif defined(WITH_CLASSPATH_SUN)
 
-	/* We trick java.lang.Thread.init, which sets the priority of the
-	   current thread to the parent's one. */
+	/* We trick java.lang.Thread.<init>, which sets the priority of
+	   the current thread to the parent's one. */
 
 	t->priority = NORM_PRIORITY;
+
+	/* Call java.lang.Thread.<init>(Ljava/lang/String;)V */
+
+	o = (java_object_t *) t;
+
+	(void) vm_call_method(method_thread_init, o, threadname);
 
 #elif defined(WITH_CLASSPATH_CLDC1_1)
 
@@ -1215,8 +1228,9 @@ static void *threads_startup_thread(void *arg)
 		jvmti_ThreadStartEnd(JVMTI_EVENT_THREAD_END);
 #endif
 
-	if (!threads_detach_thread(thread))
-		vm_abort("threads_startup_thread: threads_detach_thread failed");
+	/* We ignore the return value. */
+
+	(void) threads_detach_thread(thread);
 
 	/* set ThreadMXBean variables */
 
@@ -1497,24 +1511,67 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 *******************************************************************************/
 
-bool threads_detach_thread(threadobject *thread)
+bool threads_detach_thread(threadobject *t)
 {
 #if defined(ENABLE_JAVASE)
+	java_lang_Thread      *object;
 	java_lang_ThreadGroup *group;
+	java_handle_t         *e;
+	java_lang_Object      *handler;
 	classinfo             *c;
 	methodinfo            *m;
 	java_handle_t         *o;
-	java_lang_Thread      *t;
 #endif
 
-	/* XXX implement uncaught exception stuff (like JamVM does) */
-
 #if defined(ENABLE_JAVASE)
-	/* remove thread from the thread group */
+	object = t->object;
 
-	group = LLNI_field_direct(thread->object, group);
+	group = LLNI_field_direct(object, group);
+
+    /* If there's an uncaught exception, call uncaughtException on the
+       thread's exception handler, or the thread's group if this is
+       unset. */
+
+	e = exceptions_get_and_clear_exception();
+
+    if (e != NULL) {
+		/* We use a java_lang_Object here, as it's not trivial to
+		   build the java_lang_Thread_UncaughtExceptionHandler header
+		   file. */
+
+# if defined(WITH_CLASSPATH_GNU)
+		handler = (java_lang_Object *) LLNI_field_direct(object, exceptionHandler);
+# elif defined(WITH_CLASSPATH_SUN)
+		handler = (java_lang_Object *) LLNI_field_direct(object, uncaughtExceptionHandler);
+# endif
+
+		if (handler != NULL) {
+			LLNI_class_get(handler, c);
+			o = (java_handle_t *) handler;
+		}
+		else {
+			LLNI_class_get(group, c);
+			o = (java_handle_t *) group;
+		}
+
+		m = class_resolveclassmethod(c,
+									 utf_uncaughtException,
+									 utf_java_lang_Thread_java_lang_Throwable__V,
+									 NULL,
+									 true);
+
+		if (m == NULL)
+			return false;
+
+		(void) vm_call_method(m, o, object, e);
+
+		if (exceptions_get_exception())
+			return false;
+    }
 
 	/* XXX TWISTI: should all threads be in a ThreadGroup? */
+
+	/* Remove thread from the thread group. */
 
 	if (group != NULL) {
 		LLNI_class_get(group, c);
@@ -1539,9 +1596,8 @@ bool threads_detach_thread(threadobject *thread)
 			return false;
 
 		o = (java_handle_t *) group;
-		t = thread->object;
 
-		(void) vm_call_method(m, o, t);
+		(void) vm_call_method(m, o, object);
 
 		if (exceptions_get_exception())
 			return false;
@@ -1550,12 +1606,12 @@ bool threads_detach_thread(threadobject *thread)
 
 	/* thread is terminated */
 
-	threads_thread_state_terminated(thread);
+	threads_thread_state_terminated(t);
 
 #if !defined(NDEBUG)
 	if (opt_verbosethreads) {
 		printf("[Detaching thread ");
-		threads_thread_print_info(thread);
+		threads_thread_print_info(t);
 		printf("]\n");
 	}
 #endif
@@ -1568,7 +1624,7 @@ bool threads_detach_thread(threadobject *thread)
 
 	/* free the vm internal thread object */
 
-	threads_thread_free(thread);
+	threads_thread_free(t);
 
 	/* Signal that this thread has finished and leave the mutex. */
 

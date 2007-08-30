@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: access.c 8318 2007-08-16 10:05:34Z michi $
-
 */
 
 
@@ -57,17 +55,33 @@
 
 /* function prototypes ********************************************************/
 
-imm_union      array_element_primitive_get(java_handle_t *a, int32_t index);
+java_handle_t *array_element_get(java_handle_t *a, int32_t index);
+void           array_element_set(java_handle_t *a, int32_t index, java_handle_t *o);
 
-uint8_t        array_booleanarray_element_get(java_handle_t *a, int32_t index);
-int8_t         array_bytearray_element_get(java_handle_t *a, int32_t index);
-uint16_t       array_chararray_element_get(java_handle_t *a, int32_t index);
-int16_t        array_shortarray_element_get(java_handle_t *a, int32_t index);
-int32_t        array_intarray_element_get(java_handle_t *a, int32_t index);
-int64_t        array_longarray_element_get(java_handle_t *a, int32_t index);
-float          array_floatarray_element_get(java_handle_t *a, int32_t index);
-double         array_doublearray_element_get(java_handle_t *a, int32_t index);
-java_handle_t *array_objectarray_element_get(java_handle_t *a, int32_t index);
+imm_union      array_element_primitive_get(java_handle_t *a, int32_t index);
+void           array_element_primitive_set(java_handle_t *a, int32_t index, imm_union value);
+
+uint8_t        array_booleanarray_element_get(java_handle_booleanarray_t *a, int32_t index);
+int8_t         array_bytearray_element_get(java_handle_bytearray_t *a, int32_t index);
+uint16_t       array_chararray_element_get(java_handle_chararray_t *a, int32_t index);
+int16_t        array_shortarray_element_get(java_handle_shortarray_t *a, int32_t index);
+int32_t        array_intarray_element_get(java_handle_intarray_t *a, int32_t index);
+int64_t        array_longarray_element_get(java_handle_longarray_t *a, int32_t index);
+float          array_floatarray_element_get(java_handle_floatarray_t *a, int32_t index);
+double         array_doublearray_element_get(java_handle_doublearray_t *a, int32_t index);
+java_handle_t *array_objectarray_element_get(java_handle_objectarray_t *a, int32_t index);
+
+void           array_booleanarray_element_set(java_handle_booleanarray_t *a, int32_t index, uint8_t value);
+void           array_bytearray_element_set(java_handle_bytearray_t *a, int32_t index, int8_t value);
+void           array_chararray_element_set(java_handle_chararray_t *a, int32_t index, uint16_t value);
+void           array_shortarray_element_set(java_handle_shortarray_t *a, int32_t index, int16_t value);
+void           array_intarray_element_set(java_handle_intarray_t *a, int32_t index, int32_t value);
+void           array_longarray_element_set(java_handle_longarray_t *a, int32_t index, int64_t value);
+void           array_floatarray_element_set(java_handle_floatarray_t *a, int32_t index, float value);
+void           array_doublearray_element_set(java_handle_doublearray_t *a, int32_t index, double value);
+void           array_objectarray_element_set(java_handle_objectarray_t *a, int32_t index, java_handle_t *value);
+
+int32_t        array_length_get(java_handle_t *a);
 
 #endif /* _VM_ARRAY_H */
 

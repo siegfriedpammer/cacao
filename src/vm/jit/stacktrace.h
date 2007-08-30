@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: stacktrace.h 8321 2007-08-16 11:37:25Z michi $
-
 */
 
 
@@ -38,8 +36,6 @@ typedef struct stacktrace_entry stacktrace_entry;
 
 #include "config.h"
 #include "vm/types.h"
-
-#include "md-abi.h"
 
 #include "vmcore/class.h"
 #include "vmcore/method.h"

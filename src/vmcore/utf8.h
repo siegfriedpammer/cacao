@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.h 8299 2007-08-13 08:41:18Z michi $
-
 */
 
 
@@ -151,16 +149,6 @@ extern utf *utf_Signature;
 extern utf *utf_StackMapTable;
 
 #if defined(ENABLE_ANNOTATIONS)
-/* OpenJDKs sun.reflect.ConstantPool class is for now only
- * used by annotations but will probably be used for other
- * things in the future. For now I just couple it with
- * annotation support.
- */
-extern utf *utf_sun_reflect_ConstantPool;
-#if defined(WITH_CLASSPATH_GNU)
-extern utf *utf_sun_reflect_annotation_AnnotationParser;
-#endif
-
 extern utf *utf_RuntimeVisibleAnnotations;
 extern utf *utf_RuntimeInvisibleAnnotations;
 extern utf *utf_RuntimeVisibleParameterAnnotations;
@@ -181,6 +169,7 @@ extern utf *utf_addThread;
 extern utf *utf_removeThread;
 extern utf *utf_put;
 extern utf *utf_get;
+extern utf *utf_uncaughtException;
 extern utf *utf_value;
 
 extern utf *utf_fillInStackTrace;
@@ -188,6 +177,7 @@ extern utf *utf_findNative;
 extern utf *utf_getSystemClassLoader;
 extern utf *utf_initCause;
 extern utf *utf_loadClass;
+extern utf *utf_loadClassInternal;
 extern utf *utf_printStackTrace;
 
 extern utf *utf_division_by_zero;
@@ -220,6 +210,7 @@ extern utf *utf_java_lang_Object__java_lang_Object;
 extern utf *utf_java_lang_String__void;
 extern utf *utf_java_lang_String__java_lang_Class;
 extern utf *utf_java_lang_Thread__V;
+extern utf *utf_java_lang_Thread_java_lang_Throwable__V;
 extern utf *utf_java_lang_Throwable__void;
 extern utf *utf_java_lang_Throwable__java_lang_Throwable;
 

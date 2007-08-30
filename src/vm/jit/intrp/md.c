@@ -30,7 +30,6 @@
    Changes: Joseph Wenninger
             Christian Thalinger
 
-   $Id: md.c 5666 2006-10-04 15:04:52Z twisti $
 
 */
 

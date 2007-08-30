@@ -26,7 +26,6 @@
 
    Authors: Christian Ullrich
 
-   $Id: lsra.h,v 1.17 2005/11/22 14:36:16 christian Exp $
 
 */
 

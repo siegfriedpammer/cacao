@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: boehm.c 8371 2007-08-20 22:05:08Z michi $
-
 */
 
 

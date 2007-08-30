@@ -27,8 +27,6 @@
 ## Authors: Christian Thalinger
 ##
 ## Changes: Michael Starzinger
-##
-## $Id$
 
 ## Process this file with automake to produce Makefile.in
 

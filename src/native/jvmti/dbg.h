@@ -26,10 +26,7 @@
 
    Author: Martin Platter
 
-   Changes:             
-
-   
-   $Id: dbg.h 4944 2006-05-23 15:31:19Z motse $
+   Changes:
 
 */
 

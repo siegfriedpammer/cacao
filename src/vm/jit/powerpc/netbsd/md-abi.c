@@ -28,8 +28,6 @@
 
    Changes: Christian Ullrich
 
-   $Id: md-abi.c 4384 2006-01-28 14:42:58Z twisti $
-
 */
 
 

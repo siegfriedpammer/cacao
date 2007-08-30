@@ -22,14 +22,13 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8343 2007-08-17 21:39:32Z michi $
-
 */
 
 
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -107,34 +106,35 @@ struct dummy_alignment_double_t {
 
 /* linker_init *****************************************************************
 
-   Initializes the linker subsystem.
+   Initializes the linker subsystem and links classes required for the
+   primitive table.
 
 *******************************************************************************/
 
-bool linker_init(void)
+void linker_preinit(void)
 {
 	/* Check for if alignment for long and double matches what we
 	   assume for the current architecture. */
 
 #if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__)) || (defined(__POWERPC__) && defined(__DARWIN__))
 	if (OFFSET(dummy_alignment_long_t, l) != 4)
-		vm_abort("linker_init: long alignment is different from what assumed: %d != %d",
+		vm_abort("linker_preinit: long alignment is different from what assumed: %d != %d",
 				 OFFSET(dummy_alignment_long_t, l), 4);
 
 	if (OFFSET(dummy_alignment_double_t, d) != 4)
-		vm_abort("linker_init: double alignment is different from what assumed: %d != %d",
+		vm_abort("linker_preinit: double alignment is different from what assumed: %d != %d",
 				 OFFSET(dummy_alignment_double_t, d), 4);
 #else
 	if (OFFSET(dummy_alignment_long_t, l) != 8)
-		vm_abort("linker_init: long alignment is different from what assumed: %d != %d",
+		vm_abort("linker_preinit: long alignment is different from what assumed: %d != %d",
 				 OFFSET(dummy_alignment_long_t, l), 8);
 
 	if (OFFSET(dummy_alignment_double_t, d) != 8)
-		vm_abort("linker_init: double alignment is different from what assumed: %d != %d",
+		vm_abort("linker_preinit: double alignment is different from what assumed: %d != %d",
 				 OFFSET(dummy_alignment_double_t, d), 8);
 #endif
 
-	/* reset interface index */
+	/* Reset interface index. */
 
 	interfaceindex = 0;
 
@@ -146,94 +146,102 @@ bool linker_init(void)
 	LOCK_INIT_OBJECT_LOCK(linker_classrenumber_lock);
 #endif
 
-	/* link java.lang.Class as first class of the system, because we
-       need it's vftbl for all other classes so we can use a class as
-       object */
-
-	if (!link_class(class_java_lang_Class))
-		return false;
-
-	/* now set the header.vftbl of all classes which were created
-       before java.lang.Class was linked */
-
-	class_postset_header_vftbl();
-
-
-	/* link important system classes */
+	/* Link the most basic classes. */
 
 	if (!link_class(class_java_lang_Object))
-		return false;
-
-	if (!link_class(class_java_lang_String))
-		return false;
+		vm_abort("linker_preinit: linking java/lang/Object failed");
 
 #if defined(ENABLE_JAVASE)
 	if (!link_class(class_java_lang_Cloneable))
-		return false;
+		vm_abort("linker_preinit: linking java/lang/Cloneable failed");
 
 	if (!link_class(class_java_io_Serializable))
-		return false;
+		vm_abort("linker_preinit: linking java/io/Serializable failed");
 #endif
+}
 
-	/* link classes for wrapping primitive types */
+
+/* linker_init *****************************************************************
+
+   Links all classes required in the VM.
+
+*******************************************************************************/
+
+void linker_init(void)
+{
+	/* Link java.lang.Class as first class of the system, because we
+       need it's vftbl for all other classes so we can use a class as
+       object. */
+
+	if (!link_class(class_java_lang_Class))
+		vm_abort("linker_init: linking java/lang/Class failed");
+
+	/* Now set the header.vftbl of all classes which were created
+       before java.lang.Class was linked. */
+
+	class_postset_header_vftbl();
+
+	/* Link primitive-type wrapping classes. */
 
 #if defined(ENABLE_JAVASE)
 	if (!link_class(class_java_lang_Void))
-		return false;
+		vm_abort("linker_init: linking failed");
 #endif
 
 	if (!link_class(class_java_lang_Boolean))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 	if (!link_class(class_java_lang_Byte))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 	if (!link_class(class_java_lang_Character))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 	if (!link_class(class_java_lang_Short))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 	if (!link_class(class_java_lang_Integer))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 	if (!link_class(class_java_lang_Long))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 	if (!link_class(class_java_lang_Float))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 	if (!link_class(class_java_lang_Double))
-		return false;
+		vm_abort("linker_init: linking failed");
 
+	/* Link important system classes. */
 
-	/* load some other important classes */
+	if (!link_class(class_java_lang_String))
+		vm_abort("linker_init: linking java/lang/String failed");
 
 #if defined(ENABLE_JAVASE)
 	if (!link_class(class_java_lang_ClassLoader))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 	if (!link_class(class_java_lang_SecurityManager))
-		return false;
+		vm_abort("linker_init: linking failed");
 #endif
 
 	if (!link_class(class_java_lang_System))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 	if (!link_class(class_java_lang_Thread))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 #if defined(ENABLE_JAVASE)
 	if (!link_class(class_java_lang_ThreadGroup))
-		return false;
+		vm_abort("linker_init: linking failed");
 #endif
 
 #if defined(WITH_CLASSPATH_GNU)
 	if (!link_class(class_java_lang_VMSystem))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 	if (!link_class(class_java_lang_VMThread))
-		return false;
+		vm_abort("linker_init: linking failed");
 #endif
 
 
@@ -241,30 +249,30 @@ bool linker_init(void)
 
 #if defined(ENABLE_JAVASE)
 	if (!link_class(class_java_lang_StackTraceElement))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 	if (!link_class(class_java_lang_reflect_Constructor))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 	if (!link_class(class_java_lang_reflect_Field))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 	if (!link_class(class_java_lang_reflect_Method))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 	if (!link_class(class_java_security_PrivilegedAction))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 	if (!link_class(class_java_util_Vector))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 # if defined(WITH_CLASSPATH_SUN)
 	if (!link_class(class_sun_reflect_MagicAccessorImpl))
-		return false;
+		vm_abort("linker_init: linking failed");
 # endif
 
 	if (!link_class(arrayclass_java_lang_Object))
-		return false;
+		vm_abort("linker_init: linking failed");
 #endif
 
 
@@ -278,22 +286,26 @@ bool linker_init(void)
 	pseudo_class_Arraystub->super.cls         = class_java_lang_Object;
 
 #if defined(ENABLE_JAVASE)
+
 	pseudo_class_Arraystub->interfacescount   = 2;
 	pseudo_class_Arraystub->interfaces        = MNEW(classref_or_classinfo, 2);
 	pseudo_class_Arraystub->interfaces[0].cls = class_java_lang_Cloneable;
 	pseudo_class_Arraystub->interfaces[1].cls = class_java_io_Serializable;
+
 #elif defined(ENABLE_JAVAME_CLDC1_1)
+
 	pseudo_class_Arraystub->interfacescount   = 0;
 	pseudo_class_Arraystub->interfaces        = NULL;
+
+#else
+# error unknown Java configuration
 #endif
 
-	if (!classcache_store_unique(pseudo_class_Arraystub)) {
-		log_text("could not cache pseudo_class_Arraystub");
-		assert(0);
-	}
+	if (!classcache_store_unique(pseudo_class_Arraystub))
+		vm_abort("linker_init: could not cache pseudo_class_Arraystub");
 
 	if (!link_class(pseudo_class_Arraystub))
-		return false;
+		vm_abort("linker_init: linking pseudo_class_Arraystub failed");
 
 	/* pseudo class representing the null type */
 
@@ -305,7 +317,7 @@ bool linker_init(void)
 		vm_abort("linker_init: could not cache pseudo_class_Null");
 
 	if (!link_class(pseudo_class_Null))
-		return false;
+		vm_abort("linker_init: linking failed");
 
 	/* pseudo class representing new uninitialized objects */
     
@@ -321,8 +333,6 @@ bool linker_init(void)
 	   java/lang/String). */
 
 	stringtable_update();
-
-	return true;
 }
 
 
@@ -349,9 +359,9 @@ classinfo *link_class(classinfo *c)
 
 	LOCK_MONITOR_ENTER(c);
 
-	/* maybe the class is already linked */
+	/* Maybe the class is currently linking or is already linked.*/
 
-	if (c->state & CLASS_LINKED) {
+	if ((c->state & CLASS_LINKING) || (c->state & CLASS_LINKED)) {
 		LOCK_MONITOR_EXIT(c);
 
 		return c;
@@ -371,9 +381,10 @@ classinfo *link_class(classinfo *c)
 
 	r = link_class_intern(c);
 
-	/* if return value is NULL, we had a problem and the class is not linked */
+	/* If return value is NULL, we had a problem and the class is not
+	   linked. */
 
-	if (!r)
+	if (r == NULL)
 		c->state &= ~CLASS_LINKING;
 
 #if defined(ENABLE_STATISTICS)
@@ -507,11 +518,6 @@ static classinfo *link_class_intern(classinfo *c)
 
 	RT_TIMING_GET_TIME(time_start);
 
-	/* the class is already linked */
-
-	if (c->state & CLASS_LINKED)
-		return c;
-
 #if !defined(NDEBUG)
 	if (linkverbose)
 		log_message_class("Linking class: ", c);
@@ -521,6 +527,10 @@ static classinfo *link_class_intern(classinfo *c)
 
 	/* XXX should this be a specific exception? */
 	assert(c->state & CLASS_LOADED);
+
+	/* This is check in link_class. */
+
+	assert(!(c->state & CLASS_LINKED));
 
 	/* cache the self-reference of this class                          */
 	/* we do this for cases where the defining loader of the class     */
@@ -581,15 +591,18 @@ static classinfo *link_class_intern(classinfo *c)
 
 		c->finalizer = NULL;
 
-	} else {
-		/* resolve super class */
+	}
+	else {
+		/* Resolve super class. */
 
-		if ((super = resolve_classref_or_classinfo_eager(c->super, true)) == NULL)
+		super = resolve_classref_or_classinfo_eager(c->super, true);
+
+		if (super == NULL)
 			return NULL;
 
 		c->super.cls = super;
 		
-		/* detect circularity */
+		/* Detect circularity. */
 
 		if (super == c) {
 			exceptions_throw_classcircularityerror(c);

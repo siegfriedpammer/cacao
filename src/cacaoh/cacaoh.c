@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: cacaoh.c 8123 2007-06-20 23:50:55Z michi $
-
 */
 
 
@@ -289,11 +287,10 @@ int main(int argc, char **argv)
 
 	suck_add(classpath);
 
-	/* initialize the loader subsystems (must be done _after_
-       classcache_init) */
+	/* AFTER: classcache_init */
 
-	if (!loader_init())
-		vm_abort("loader_init failed\n");
+	loader_preinit();
+	loader_init();
 
 
 	/* load Java classes ******************************************************/

@@ -30,7 +30,6 @@
             Christian Thalinger
             Christian Ullrich
 
-   $Id$
 
 */
 

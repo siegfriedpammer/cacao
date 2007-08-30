@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: properties.h 8295 2007-08-11 17:57:24Z michi $
-
 */
 
 
@@ -31,14 +29,16 @@
 #define _PROPERTIES_H
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
 
 #include "vm/global.h"
 
 
 /* function prototypes ********************************************************/
 
-bool  properties_init(void);
+void  properties_init(void);
+void  properties_set(void);
 
 void  properties_add(char *key, char *value);
 char *properties_get(char *key);

@@ -22,7 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.h 8343 2007-08-17 21:39:32Z michi $
 */
 
 
@@ -144,10 +143,8 @@ extern java_object_t *linker_classrenumber_lock;
 
 /* function prototypes ********************************************************/
 
-/* initialize the linker subsystem */
-bool linker_init(void);
-
-/* link a class */
+void       linker_preinit(void);
+void       linker_init(void);
 classinfo *link_class(classinfo *c);
 
 #endif /* _LINKER_H */

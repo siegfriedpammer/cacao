@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id$
-
 */
 
 
@@ -1235,13 +1233,15 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		else {
 			printf("argcount=%d ", iptr->s1.argcount);
 		}
+		class_classref_or_classinfo_print(iptr->sx.s23.s3.c);
+		putchar(' ');
 		SHOW_DST(iptr);
 		break;
 
 	case ICMD_CHECKCAST:
 		SHOW_S1(iptr);
-		putchar(' ');
 		class_classref_or_classinfo_print(iptr->sx.s23.s3.c);
+		putchar(' ');
 		SHOW_DST(iptr);
 		break;
 

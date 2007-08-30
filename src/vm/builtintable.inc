@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: builtintable.inc 8358 2007-08-20 14:25:59Z michi $
-
 */
 
 

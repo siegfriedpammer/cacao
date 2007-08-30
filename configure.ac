@@ -21,8 +21,6 @@ dnl You should have received a copy of the GNU General Public License
 dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
-dnl 
-dnl $Id: configure.ac 8359 2007-08-20 17:02:14Z michi $
 
 dnl Process this file with autoconf to produce a configure script.
 
@@ -51,56 +49,69 @@ case "$host_cpu" in
 alpha | alphaev56 | alphapca56 )
     ARCH_DIR="alpha"
     ARCH_CFLAGS="-mieee -D__ALPHA__"
+    JAVA_ARCH="alpha"
     ;;
 
 arm | armv4 | armv4tl | armv5b | armv5l )
     ARCH_DIR="arm"
     ARCH_CFLAGS="-D__ARM__"
+    JAVA_ARCH="arm"
     ;;
 
 hppa2.0 )
     ARCH_DIR="parisc"
     ARCH_CFLAGS="-D__PARISC__"
+    JAVA_ARCH="hppa"
     ;;
 
 i386 | i486 | i586 | i686 )
     ARCH_DIR="i386"
     ARCH_CFLAGS="-D__I386__"
+    JAVA_ARCH="i386"
     ;;
 
 m68k )
     ARCH_DIR="m68k"
     ARCH_CFLAGS="-D__M68K__"
+    JAVA_ARCH="m68k"
     ;;
 
 mips | mipsel )
     ARCH_DIR="mips"
     ARCH_CFLAGS="-D__MIPS__"
+    dnl Is this correct for mipsel?
+    JAVA_ARCH="mips"
     ;;
 
 powerpc )
     ARCH_DIR="powerpc"
     ARCH_CFLAGS="-D__POWERPC__"
+    JAVA_ARCH="ppc"
     ;;
 
 powerpc64 )
     ARCH_DIR="powerpc64"
     ARCH_CFLAGS="-D__POWERPC64__"
+    JAVA_ARCH="ppc64"
     ;;
 
 s390 )
     ARCH_DIR="s390"
     ARCH_CFLAGS="-D__S390__"
+    JAVA_ARCH="s390"
     ;;
 
 sparc | sparc64 )
     ARCH_DIR="sparc64"
     ARCH_CFLAGS="-mcpu=v9 -m64 -D__SPARC_64__"
+    dnl Is this correct for 64-bits?
+    JAVA_ARCH="sparc"
     ;;
 
 x86_64 )
     ARCH_DIR="x86_64"
     ARCH_CFLAGS="-D__X86_64__"
+    JAVA_ARCH="amd64"
     ;;
 
 xdspcore )
@@ -194,6 +205,7 @@ AC_DEFINE_UNQUOTED(VERSION_CFLAGS, "$OPT_CFLAGS $ARCH_CFLAGS", [CFLAGS used])
 
 dnl define and substitute some architecture specific variables
 AC_DEFINE_UNQUOTED([ARCH_DIR], "${ARCH_DIR}", [architecture directory])
+AC_DEFINE_UNQUOTED([JAVA_ARCH], "${JAVA_ARCH}", [Java architecture name])
 AC_SUBST(ARCH_DIR)
 AC_SUBST(OS_DIR)
 AC_SUBST(USE_SCHEDULER)
@@ -215,6 +227,7 @@ AC_HEADER_STDC
 
 dnl keep them alpha-sorted!
 AC_CHECK_HEADERS([fcntl.h])
+AC_CHECK_HEADERS([libgen.h])
 AC_CHECK_HEADERS([netdb.h])
 AC_CHECK_HEADERS([stdlib.h])
 AC_CHECK_HEADERS([string.h])
@@ -261,12 +274,14 @@ AC_FUNC_MMAP
 
 dnl keep them alpha-sorted!
 AC_CHECK_FUNCS([accept])
+AC_CHECK_FUNCS([access])
 AC_CHECK_FUNCS([atoi])
 AC_CHECK_FUNCS([atol])
 AC_CHECK_FUNCS([calloc])
 AC_CHECK_FUNCS([close])
 AC_CHECK_FUNCS([confstr])
 AC_CHECK_FUNCS([connect])
+AC_CHECK_FUNCS([dirname])
 AC_CHECK_FUNCS([fflush])
 AC_CHECK_FUNCS([fopen])
 AC_CHECK_FUNCS([fprintf])
@@ -290,6 +305,7 @@ AC_CHECK_FUNCS([malloc])
 AC_CHECK_FUNCS([mmap])
 AC_CHECK_FUNCS([mprotect])
 AC_CHECK_FUNCS([open])
+AC_CHECK_FUNCS([readlink])
 AC_CHECK_FUNCS([recv])
 AC_CHECK_FUNCS([scandir])
 AC_CHECK_FUNCS([select])
@@ -832,22 +848,7 @@ dnl because libtool uses them to build the correct libraries.
 AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
 
-dnl check if CACAO should be linked statically
-AC_MSG_CHECKING(whether to link CACAO statically)
-AC_ARG_ENABLE([staticvm],
-              [AS_HELP_STRING(--enable-staticvm,link CACAO statically [[default=no]])],
-              [case "${enableval}" in
-                  yes) ENABLE_STATICVM=yes
-                       AC_DEFINE([ENABLE_STATICVM], 1, [link CACAO statically])
-                       ;;
-                  *) ENABLE_STATICVM=no;;
-               esac],
-              [ENABLE_STATICVM=no])
-AC_MSG_RESULT(${ENABLE_STATICVM})
-AM_CONDITIONAL([ENABLE_STATICVM], test x"${ENABLE_STATICVM}" = "xyes")
-AC_SUBST(ENABLE_STATICVM)
-
-
+AC_CHECK_ENABLE_STATICVM
 AC_CHECK_ENABLE_ANNOTATIONS
 
 
@@ -868,19 +869,7 @@ AC_CHECK_WITH_CLASSPATH_CLASSES
 AC_CHECK_WITH_CLASSPATH_LIBDIR
 AC_CHECK_WITH_CLASSPATH_INCLUDEDIR
 
-
-dnl if we compile for a JRE-style directory layout
-AC_MSG_CHECKING(if we compile for a JRE-style directory layout)
-AC_ARG_WITH([jre-layout],
-            [AS_HELP_STRING(--with-jre-layout,compile for JRE-style directory layout [[default=no]])],
-            [case "${enableval}" in
-                yes) WITH_JRE_LAYOUT=yes
-                     AC_DEFINE([WITH_JRE_LAYOUT], 1, [with JRE layout])
-                     ;;
-                *) WITH_JRE_LAYOUT=no;;
-             esac],
-            [WITH_JRE_LAYOUT=no])
-AC_MSG_RESULT(${WITH_JRE_LAYOUT})
+AC_CHECK_WITH_JRE_LAYOUT
 
 
 dnl check if GNU Classpath should be linked statically into CACAO

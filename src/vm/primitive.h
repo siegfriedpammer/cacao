@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8042 2007-06-07 17:43:29Z twisti $
-
 */
 
 
@@ -90,7 +88,8 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 /* function prototypes ********************************************************/
 
 /* this function is in src/vmcore/primitivecore.c */
-bool       primitive_init(void);
+void       primitive_init(void);
+void       primitive_postinit(void);
 
 classinfo *primitive_class_get_by_name(utf *name);
 classinfo *primitive_class_get_by_type(int type);

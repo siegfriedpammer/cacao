@@ -28,8 +28,6 @@
 
    Changes:
 
-   $Id: util.h 5252 2006-08-18 13:07:21Z twisti $
-
 */
 
 

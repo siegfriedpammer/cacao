@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: cacao.c 4357 2006-01-22 23:33:38Z twisti $
-
 */
 
 

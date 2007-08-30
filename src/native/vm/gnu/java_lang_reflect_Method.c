@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_reflect_Method.c 8343 2007-08-17 21:39:32Z michi $
-
 */
 
 
@@ -231,8 +229,8 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Method_getDefa
 	utf                      *utf_parseAnnotationDefault = NULL;
 	utf                      *utf_desc        = NULL;
 	sun_reflect_ConstantPool *constantPool    = NULL;
-	java_handle_t            *o               = (java_handle_t*)this;
 	java_lang_Class          *constantPoolOop = NULL;
+	classinfo                *referer         = NULL;
 
 	if (this == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -263,15 +261,16 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Method_getDefa
 			return NULL;
 		}
 
+		LLNI_class_get(this, referer);
+
 		m_parseAnnotationDefault = class_resolveclassmethod(
 			class_sun_reflect_annotation_AnnotationParser,
 			utf_parseAnnotationDefault,
 			utf_desc,
-			o->vftbl->class,
+			referer,
 			true);
 
-		if (m_parseAnnotationDefault == NULL)
-		{
+		if (m_parseAnnotationDefault == NULL) {
 			/* method not found */
 			return NULL;
 		}
@@ -290,18 +289,19 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Method_getDefa
  */
 JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Method_declaredAnnotations(JNIEnv *env, java_lang_reflect_Method *this)
 {
-	java_handle_t           *o                   = (java_handle_t*)this;
 	struct java_util_Map    *declaredAnnotations = NULL;
 	java_handle_bytearray_t *annotations         = NULL;
 	java_lang_Class         *declaringClass      = NULL;
+	classinfo               *referer             = NULL;
 
 	LLNI_field_get_ref(this, declaredAnnotations, declaredAnnotations);
 
 	if (declaredAnnotations == NULL) {
 		LLNI_field_get_val(this, annotations, annotations);
 		LLNI_field_get_ref(this, clazz, declaringClass);
+		LLNI_class_get(this, referer);
 
-		declaredAnnotations = reflect_get_declaredannotatios(annotations, declaringClass, o->vftbl->class);
+		declaredAnnotations = reflect_get_declaredannotatios(annotations, declaringClass, referer);
 
 		LLNI_field_set_ref(this, declaredAnnotations, declaredAnnotations);
 	}
@@ -317,16 +317,17 @@ JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Method_declaredAn
  */
 JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_Method_getParameterAnnotations(JNIEnv *env, java_lang_reflect_Method *this)
 {
-	java_handle_t           *o                    = (java_handle_t*)this;
 	java_handle_bytearray_t *parameterAnnotations = NULL;
 	int32_t                  slot                 = -1;
 	java_lang_Class         *declaringClass       = NULL;
+	classinfo               *referer              = NULL;
 
 	LLNI_field_get_ref(this, parameterAnnotations, parameterAnnotations);
 	LLNI_field_get_val(this, slot, slot);
 	LLNI_field_get_ref(this, clazz, declaringClass);
+	LLNI_class_get(this, referer);
 
-	return reflect_get_parameterannotations((java_handle_t*)parameterAnnotations, slot, declaringClass, o->vftbl->class);
+	return reflect_get_parameterannotations((java_handle_t*)parameterAnnotations, slot, declaringClass, referer);
 }
 #endif
 

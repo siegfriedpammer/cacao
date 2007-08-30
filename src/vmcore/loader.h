@@ -22,7 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: loader.h 8324 2007-08-16 16:48:12Z michi $
 */
 
 
@@ -132,8 +131,8 @@ typedef hashtable_classloader_entry classloader;
 
 /* function prototypes ********************************************************/
 
-/* initialize loader, load important systemclasses */
-bool loader_init(void);
+void loader_preinit(void);
+void loader_init(void);
 
 /* classloader management functions */
 classloader *loader_hashtable_classloader_add(java_handle_t *cl);

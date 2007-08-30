@@ -211,7 +211,12 @@ Copyright (C) 2006 Edwin Steiner <edwin.steiner@gmx.net>
 See contrib/vmlog/COPYING for the full text of the license.
 
 
-* contrib/mapfile-vers-product, src/lib/gnu/sun/misc/Unsafe.java
+* contrib/mapfile-vers-product, src/lib/gnu/sun/misc/Unsafe.java,
+  src/lib/gnu/sun/reflect/ConstantPool.java,
+  src/lib/gnu/sun/reflect/annotation/AnnotationParser.java,
+  src/lib/gnu/sun/reflect/annotation/AnnotationType.java,
+  src/lib/gnu/sun/reflect/annotation/AnnotationTypeMismatchExceptionProxy.java,
+  src/lib/gnu/sun/reflect/annotation/TypeNotPresentExceptionProxy.java
 
 Copyright 2000-2006 Sun Microsystems, Inc.  All Rights Reserved.
 DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.

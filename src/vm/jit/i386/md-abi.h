@@ -28,8 +28,6 @@
 
    Changes:
 
-   $Id: md-abi.h 5106 2006-07-11 18:34:45Z twisti $
-
 */
 
 

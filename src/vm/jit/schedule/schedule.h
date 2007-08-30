@@ -29,8 +29,6 @@
 
    Changes:
 
-   $Id: schedule.h 5785 2006-10-15 22:25:54Z edwin $
-
 */
 
 

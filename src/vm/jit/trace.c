@@ -22,9 +22,9 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: trace.c 8321 2007-08-16 11:37:25Z michi $
-
 */
+
+#include "config.h"
 
 #include "arch.h"
 #include "md-abi.h"
@@ -248,6 +248,19 @@ static char *trace_java_call_print_argument(char *logtext, s4 *logtextlen,
 	return logtext;
 }
 
+/* trace_java_call_enter ******************************************************
+ 
+   Traces an entry into a java method.
+
+   arg_regs: Array of size ARG_CNT containing all argument registers in
+   the same format as in asm_vm_call_method. The array is usually allocated
+   on the stack and used for restoring the argument registers later.
+
+   stack: Pointer to first on stack argument in the same format passed to 
+   asm_vm_call_method.
+
+*******************************************************************************/
+
 void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack) {
 	methoddesc *md;
 	paramdesc *pd;
@@ -367,6 +380,20 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack) {
 
 }
 
+/* trace_java_call_exit ********************************************************
+ 
+   Traces an exit form a java method.
+
+   return_regs: Array of size 3 containing return registers:
+     [0] : REG_RESULT
+	 [1] : REG_RESULT2 (if available on architecture)
+	 [2] : REG_FRESULT
+   The array is usually allocated on the stack and used for restoring the
+   registers later. The format of the array is the same as the format of 
+   register arguments passed to asm_vm_call_method.
+
+*******************************************************************************/
+
 void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 {
 	methoddesc *md;
@@ -452,3 +479,16 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 
 #endif /* !defined(NDEBUG) */
 
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

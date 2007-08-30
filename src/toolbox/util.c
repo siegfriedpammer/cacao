@@ -28,8 +28,6 @@
 
    Changes:
 
-   $Id: util.c 8295 2007-08-11 17:57:24Z michi $
-
 */
 
 

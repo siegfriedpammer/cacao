@@ -21,10 +21,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
-##
-## $Id: Makefile.am 7601 2007-03-28 23:02:50Z michi $
 
-## Process this file with automake to produce Makefile.in
 
 DIST_SUBDIRS = \
 	cacao \
@@ -38,11 +35,6 @@ DIST_SUBDIRS = \
 	toolbox \
 	vm \
 	vmcore
-
-if WITH_CLASSPATH_GNU
-VM_DIR = \
-	lib
-endif
 
 if ENABLE_THREADS
 THREADS_DIR = \
@@ -60,7 +52,7 @@ SUBDIRS = \
 	toolbox \
 	vmcore \
 	$(CACAOH_DIR) \
-	$(VM_DIR) \
+	lib \
 	native \
 	fdlibm \
 	mm \

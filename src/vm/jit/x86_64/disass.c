@@ -29,8 +29,6 @@
 
    Changes: Christian Thalinger
 
-   $Id: disass.c 6259 2006-12-28 20:50:14Z twisti $
-
 */
 
 

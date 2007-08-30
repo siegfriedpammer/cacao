@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: md.c 8299 2007-08-13 08:41:18Z michi $
-
 */
 
 
@@ -104,7 +102,7 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 		m = (*(codeinfo **)(pv + CodeinfoPointer))->m;
 		log_println(
 			"Java method: class %s, method %s, descriptor %s.",
-			utf_bytes(m->class->name), utf_bytes(m->name), utf_bytes(m->descriptor)
+			m->class->name->text, m->name->text, m->descriptor->text
 		);
 	}
 
@@ -174,6 +172,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 			} else {
 				is_null = 0;
 			}
+			break;
+		default:
+			is_null = 0;
 			break;
 	}
 

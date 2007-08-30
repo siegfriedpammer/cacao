@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jni.c 8391 2007-08-21 20:34:27Z michi $
-
 */
 
 
@@ -56,14 +54,6 @@
 #endif
 
 #include "native/include/java_lang_Object.h"
-#include "native/include/java_lang_Byte.h"
-#include "native/include/java_lang_Character.h"
-#include "native/include/java_lang_Short.h"
-#include "native/include/java_lang_Integer.h"
-#include "native/include/java_lang_Boolean.h"
-#include "native/include/java_lang_Long.h"
-#include "native/include/java_lang_Float.h"
-#include "native/include/java_lang_Double.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 
@@ -148,18 +138,28 @@ static hashtable *hashtable_global_ref; /* hashtable for globalrefs           */
 
 #if defined(ENABLE_JAVASE)
 static classinfo *class_java_nio_Buffer;
+
+# if defined(WITH_CLASSPATH_GNU)
+
 static classinfo *class_java_nio_DirectByteBufferImpl;
 static classinfo *class_java_nio_DirectByteBufferImpl_ReadWrite;
 
-# if defined(WITH_CLASSPATH_GNU)
 #  if SIZEOF_VOID_P == 8
 static classinfo *class_gnu_classpath_Pointer64;
 #  else
 static classinfo *class_gnu_classpath_Pointer32;
 #  endif
-# endif
 
 static methodinfo *dbbirw_init;
+
+# elif defined(WITH_CLASSPATH_SUN)
+
+static classinfo *class_sun_nio_ch_DirectBuffer;
+static classinfo *class_java_nio_DirectByteBuffer;
+
+static methodinfo *dbb_init;
+
+# endif
 #endif
 
 
@@ -193,7 +193,7 @@ bool jni_init(void)
 
 
 #if defined(ENABLE_JAVASE)
-	/* direct buffer stuff */
+	/* Direct buffer stuff. */
 
 	if (!(class_java_nio_Buffer =
 		  load_class_bootstrap(utf_new_char("java/nio/Buffer"))) ||
@@ -201,6 +201,7 @@ bool jni_init(void)
 		return false;
 
 # if defined(WITH_CLASSPATH_GNU)
+
 	if (!(class_java_nio_DirectByteBufferImpl =
 		  load_class_bootstrap(utf_new_char("java/nio/DirectByteBufferImpl"))) ||
 		!link_class(class_java_nio_DirectByteBufferImpl))
@@ -228,7 +229,31 @@ bool jni_init(void)
 		!link_class(class_gnu_classpath_Pointer32))
 		return false;
 #  endif
+
+# elif defined(WITH_CLASSPATH_SUN)
+
+	if (!(class_sun_nio_ch_DirectBuffer =
+		  load_class_bootstrap(utf_new_char("sun/nio/ch/DirectBuffer"))))
+		vm_abort("jni_init: loading sun/nio/ch/DirectBuffer failed");
+
+	if (!link_class(class_sun_nio_ch_DirectBuffer))
+		vm_abort("jni_init: linking sun/nio/ch/DirectBuffer failed");
+
+	if (!(class_java_nio_DirectByteBuffer =
+		  load_class_bootstrap(utf_new_char("java/nio/DirectByteBuffer"))))
+		vm_abort("jni_init: loading java/nio/DirectByteBuffer failed");
+
+	if (!link_class(class_java_nio_DirectByteBuffer))
+		vm_abort("jni_init: linking java/nio/DirectByteBuffer failed");
+
+	if (!(dbb_init =
+		  class_resolvemethod(class_java_nio_DirectByteBuffer,
+							  utf_init,
+							  utf_new_char("(JI)V"))))
+		vm_abort("jni_init: resolving java/nio/DirectByteBuffer.init(JI)V failed");
+
 # endif
+
 #endif /* defined(ENABLE_JAVASE) */
 
 	return true;
@@ -911,11 +936,11 @@ java_handle_t *_Jv_jni_invokeNative(methodinfo *m, java_handle_t *o,
 
 jint _Jv_JNI_GetVersion(JNIEnv *env)
 {
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_GetVersion(env=%p)", env);
 
-	/* we support JNI 1.4 */
+	/* We support JNI 1.6. */
 
-	return JNI_VERSION_1_4;
+	return JNI_VERSION_1_6;
 }
 
 
@@ -938,7 +963,7 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 	classinfo       *c;
 	java_lang_Class *co;
 
-	TRACEJNICALLS("_Jv_JNI_DefineClass(env=%p, name=%s, loader=%p, buf=%p, bufLen=%d", env, name, loader, buf, bufLen);
+	TRACEJNICALLS("_Jv_JNI_DefineClass(env=%p, name=%s, loader=%p, buf=%p, bufLen=%d)", env, name, loader, buf, bufLen);
 
 	u  = utf_new_char(name);
 	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
@@ -1133,7 +1158,7 @@ jthrowable _Jv_JNI_ExceptionOccurred(JNIEnv *env)
 {
 	java_handle_t *o;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_ExceptionOccurred(env=%p)", env);
 
 	o = exceptions_get_exception();
 
@@ -1155,15 +1180,14 @@ void _Jv_JNI_ExceptionDescribe(JNIEnv *env)
 	classinfo     *c;
 	methodinfo    *m;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_ExceptionDescribe(env=%p)", env);
 
-	o = exceptions_get_exception();
+	/* Clear exception, because we are probably calling Java code
+	   again. */
 
-	if (o == NULL) {
-		/* clear exception, because we are calling jit code again */
+	o = exceptions_get_and_clear_exception();
 
-		exceptions_clear_exception();
-
+	if (o != NULL) {
 		/* get printStackTrace method from exception class */
 
 		LLNI_class_get(o, c);
@@ -1175,10 +1199,9 @@ void _Jv_JNI_ExceptionDescribe(JNIEnv *env)
 									 true);
 
 		if (m == NULL)
-			/* XXX what should we do? */
-			return;
+			vm_abort("_Jv_JNI_ExceptionDescribe: could not find printStackTrace");
 
-		/* print the stacktrace */
+		/* Print the stacktrace. */
 
 		(void) vm_call_method(m, o);
 	}
@@ -1650,13 +1673,12 @@ jfieldID _Jv_JNI_FromReflectedField(JNIEnv* env, jobject field)
 
 jobject _Jv_JNI_ToReflectedMethod(JNIEnv* env, jclass cls, jmethodID methodID,
 								  jboolean isStatic)
-{
 #if defined(ENABLE_JAVASE)
 	methodinfo                    *m;
 	java_lang_reflect_Constructor *rc;
 	java_lang_reflect_Method      *rm;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_ToReflectedMethod(env=%p, cls=%p, methodID=%p, isStatic=%d)", env, cls, methodID, isStatic);
 
 	m = (methodinfo *) methodID;
 
@@ -2245,11 +2267,11 @@ jmethodID _Jv_JNI_GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name,
 	utf        *udesc;
 	methodinfo *m;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_GetStaticMethodID(env=%p, clazz=%p, name=%s, sig=%s)", env, clazz, name, sig);
 
 	c = LLNI_classinfo_unwrap(clazz);
 
-	if (!c)
+	if (c == NULL)
 		return NULL;
 
 	if (!(c->state & CLASS_INITIALIZED))
@@ -3566,7 +3588,8 @@ jboolean _Jv_JNI_ExceptionCheck(JNIEnv *env)
 
 jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 {
-#if defined(ENABLE_JAVASE) && defined(WITH_CLASSPATH_GNU)
+#if defined(ENABLE_JAVASE)
+# if defined(WITH_CLASSPATH_GNU)
 	java_handle_t           *nbuf;
 
 # if SIZEOF_VOID_P == 8
@@ -3575,7 +3598,7 @@ jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 	gnu_classpath_Pointer32 *paddress;
 # endif
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_NewDirectByteBuffer(env=%p, address=%p, capacity=%ld", env, address, capacity);
 
 	/* alocate a gnu.classpath.Pointer{32,64} object */
 
@@ -3601,6 +3624,31 @@ jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 	/* add local reference and return the value */
 
 	return _Jv_JNI_NewLocalRef(env, nbuf);
+
+# elif defined(WITH_CLASSPATH_SUN)
+
+	jobject o;
+	int64_t addr;
+	int32_t cap;
+
+	TRACEJNICALLS("_Jv_JNI_NewDirectByteBuffer(env=%p, address=%p, capacity=%ld", env, address, capacity);
+
+	/* Be paranoid about address sign-extension. */
+
+	addr = (int64_t) ((uintptr_t) address);
+	cap  = (int32_t) capacity;
+
+	o = (*env)->NewObject(env, (jclass) class_java_nio_DirectByteBuffer,
+						  (jmethodID) dbb_init, addr, cap);
+
+	/* Add local reference and return the value. */
+
+	return _Jv_JNI_NewLocalRef(env, o);
+
+# else
+#  error unknown classpath configuration
+# endif
+
 #else
 	vm_abort("_Jv_JNI_NewDirectByteBuffer: not implemented in this configuration");
 
@@ -3620,29 +3668,31 @@ jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 
 void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 {
-#if defined(ENABLE_JAVASE) && defined(WITH_CLASSPATH_GNU)
+#if defined(ENABLE_JAVASE)
+# if defined(WITH_CLASSPATH_GNU)
+
 	java_nio_DirectByteBufferImpl *nbuf;
-# if SIZEOF_VOID_P == 8
+#  if SIZEOF_VOID_P == 8
 	gnu_classpath_Pointer64       *paddress;
-# else
+#  else
 	gnu_classpath_Pointer32       *paddress;
-# endif
+#  endif
 	void                          *address;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_GetDirectBufferAddress(env=%p, buf=%p)", env, buf);
 
-	if (!builtin_instanceof(buf, class_java_nio_Buffer))
+	if ((buf != NULL) && !builtin_instanceof(buf, class_java_nio_Buffer))
 		return NULL;
 
 	nbuf = (java_nio_DirectByteBufferImpl *) buf;
 
-# if SIZEOF_VOID_P == 8
+#  if SIZEOF_VOID_P == 8
 	LLNI_field_get_ref(nbuf, address, paddress);
 	/* this was the cast to avaoid warning: (gnu_classpath_Pointer64 *) nbuf->address; */
-# else
+#  else
 	LLNI_field_get_ref(nbuf, address, paddress); 
 	/* this was the cast to avaoid warning: (gnu_classpath_Pointer32 *) nbuf->address; */
-# endif
+#  endif
 
 	if (paddress == NULL)
 		return NULL;
@@ -3651,12 +3701,38 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 	/* this was the cast to avaoid warning: (void *) paddress->data */
 
 	return address;
+
+# elif defined(WITH_CLASSPATH_SUN)
+
+	java_nio_Buffer *o;
+	int64_t          address;
+	void            *p;
+
+	TRACEJNICALLS("_Jv_JNI_GetDirectBufferAddress(env=%p, buf=%p)", env, buf);
+
+	if ((buf != NULL) && !builtin_instanceof(buf, class_sun_nio_ch_DirectBuffer))
+		return NULL;
+
+	o = (java_nio_Buffer *) buf;
+
+	LLNI_field_get_val(o, address, address);
+
+	p = (void *) (intptr_t) address;
+
+	return p;
+
+# else
+#  error unknown classpath configuration
+# endif
+
 #else
+
 	vm_abort("_Jv_JNI_GetDirectBufferAddress: not implemented in this configuration");
 
 	/* keep compiler happy */
 
 	return NULL;
+
 #endif
 }
 
@@ -3697,6 +3773,22 @@ jlong _Jv_JNI_GetDirectBufferCapacity(JNIEnv* env, jobject buf)
 }
 
 
+/* GetObjectRefType ************************************************************
+
+   Returns the type of the object referred to by the obj argument. The
+   argument obj can either be a local, global or weak global
+   reference.
+
+*******************************************************************************/
+
+jobjectRefType jni_GetObjectRefType(JNIEnv *env, jobject obj)
+{
+	log_println("jni_GetObjectRefType: IMPLEMENT ME!");
+
+	return -1;
+}
+
+
 /* DestroyJavaVM ***************************************************************
 
    Unloads a Java VM and reclaims its resources. Only the main thread
@@ -3707,9 +3799,9 @@ jlong _Jv_JNI_GetDirectBufferCapacity(JNIEnv* env, jobject buf)
 
 jint _Jv_JNI_DestroyJavaVM(JavaVM *vm)
 {
-	s4 status;
+	int32_t status;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_DestroyJavaVM(vm=%p)", vm);
 
     status = vm_destroy(vm);
 
@@ -4143,7 +4235,7 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 
 	_Jv_JNI_GetJavaVM,
 
-	/* new JNI 1.2 functions */
+	/* New JNI 1.2 functions. */
 
 	_Jv_JNI_GetStringRegion,
 	_Jv_JNI_GetStringUTFRegion,
@@ -4159,11 +4251,15 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 
 	_Jv_JNI_ExceptionCheck,
 
-	/* new JNI 1.4 functions */
+	/* New JNI 1.4 functions. */
 
 	_Jv_JNI_NewDirectByteBuffer,
 	_Jv_JNI_GetDirectBufferAddress,
-	_Jv_JNI_GetDirectBufferCapacity
+	_Jv_JNI_GetDirectBufferCapacity,
+
+	/* New JNI 1.6 functions. */
+
+	jni_GetObjectRefType
 };
 
 

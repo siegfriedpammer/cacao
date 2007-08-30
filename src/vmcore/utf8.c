@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: utf8.c 8299 2007-08-13 08:41:18Z michi $
-
 */
 
 
@@ -155,11 +153,6 @@ utf *utf_Signature;
 utf *utf_StackMapTable;
 
 #if defined(ENABLE_ANNOTATIONS)
-utf *utf_sun_reflect_ConstantPool;
-#if defined(WITH_CLASSPATH_GNU)
-utf *utf_sun_reflect_annotation_AnnotationParser;
-#endif
-
 utf *utf_RuntimeVisibleAnnotations;
 utf *utf_RuntimeInvisibleAnnotations;
 utf *utf_RuntimeVisibleParameterAnnotations;
@@ -180,6 +173,7 @@ utf *utf_addThread;
 utf *utf_removeThread;
 utf *utf_put;
 utf *utf_get;
+utf *utf_uncaughtException;
 utf *utf_value;
 
 utf *utf_fillInStackTrace;
@@ -187,6 +181,7 @@ utf *utf_findNative;
 utf *utf_getSystemClassLoader;
 utf *utf_initCause;
 utf *utf_loadClass;
+utf *utf_loadClassInternal;
 utf *utf_printStackTrace;
 
 utf *utf_division_by_zero;
@@ -219,6 +214,7 @@ utf *utf_java_lang_Object__java_lang_Object;
 utf *utf_java_lang_String__void;        /* (Ljava/lang/String;)V              */
 utf *utf_java_lang_String__java_lang_Class;
 utf *utf_java_lang_Thread__V;           /* (Ljava/lang/Thread;)V              */
+utf *utf_java_lang_Thread_java_lang_Throwable__V;
 utf *utf_java_lang_Throwable__void;     /* (Ljava/lang/Throwable;)V           */
 utf *utf_java_lang_Throwable__java_lang_Throwable;
 
@@ -408,11 +404,6 @@ bool utf8_init(void)
 	utf_StackMapTable              = utf_new_char("StackMapTable");
 
 #if defined(ENABLE_ANNOTATIONS)
-	utf_sun_reflect_ConstantPool                = utf_new_char("sun/reflect/ConstantPool");
-#if defined(WITH_CLASSPATH_GNU)
-	utf_sun_reflect_annotation_AnnotationParser = utf_new_char("sun/reflect/annotation/AnnotationParser");
-#endif
-
 	utf_RuntimeVisibleAnnotations            = utf_new_char("RuntimeVisibleAnnotations");
 	utf_RuntimeInvisibleAnnotations          = utf_new_char("RuntimeInvisibleAnnotations");
 	utf_RuntimeVisibleParameterAnnotations   = utf_new_char("RuntimeVisibleParameterAnnotations");
@@ -433,6 +424,7 @@ bool utf8_init(void)
 	utf_removeThread               = utf_new_char("removeThread");
 	utf_put                        = utf_new_char("put");
 	utf_get                        = utf_new_char("get");
+	utf_uncaughtException          = utf_new_char("uncaughtException");
 	utf_value                      = utf_new_char("value");
 
 	utf_fillInStackTrace           = utf_new_char("fillInStackTrace");
@@ -440,6 +432,7 @@ bool utf8_init(void)
 	utf_getSystemClassLoader       = utf_new_char("getSystemClassLoader");
 	utf_initCause                  = utf_new_char("initCause");
 	utf_loadClass                  = utf_new_char("loadClass");
+	utf_loadClassInternal          = utf_new_char("loadClassInternal");
 	utf_printStackTrace            = utf_new_char("printStackTrace");
 
 	utf_division_by_zero           = utf_new_char("/ by zero");
@@ -482,6 +475,10 @@ bool utf8_init(void)
 		utf_new_char("(Ljava/lang/String;)Ljava/lang/Class;");
 
 	utf_java_lang_Thread__V        = utf_new_char("(Ljava/lang/Thread;)V");
+
+	utf_java_lang_Thread_java_lang_Throwable__V =
+		utf_new_char("(Ljava/lang/Thread;Ljava/lang/Throwable;)V");
+
 	utf_java_lang_Throwable__void  = utf_new_char("(Ljava/lang/Throwable;)V");
 
 	utf_java_lang_Throwable__java_lang_Throwable =

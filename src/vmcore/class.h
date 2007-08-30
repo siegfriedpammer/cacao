@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.h 8343 2007-08-17 21:39:32Z michi $
-
 */
 
 
@@ -139,26 +137,36 @@ struct classinfo {                /* class structure                          */
 	innerclassinfo *innerclass;
 
 	classref_or_classinfo  declaringclass;
-
-#if defined(ENABLE_JAVASE)
 	classref_or_classinfo  enclosingclass;  /* enclosing class                */
 	constant_nameandtype  *enclosingmethod; /* enclosing method               */
-#endif
 
 	utf        *packagename;      /* full name of the package                 */
 	utf        *sourcefile;       /* SourceFile attribute                     */
 #if defined(ENABLE_JAVASE)
 	utf        *signature;        /* Signature attribute                      */
 #if defined(ENABLE_ANNOTATIONS)
-	annotation_bytearray_t  *annotations;
+	/* All the annotation attributes are NULL (and not a zero length array)   */
+	/* if there is nothing.                                                   */
+	java_handle_bytearray_t   *annotations; /* annotations of this class      */
 	
-	annotation_bytearrays_t *method_annotations;
-	annotation_bytearrays_t *method_parameterannotations;
-	annotation_bytearrays_t *method_annotationdefaults;
+	java_handle_objectarray_t *method_annotations; /* array of annotations    */
+	                              /* for the methods                          */
+	java_handle_objectarray_t *method_parameterannotations; /* array of       */
+	                              /* parameter annotations for the methods    */
+	java_handle_objectarray_t *method_annotationdefaults; /* array for        */
+	                              /* annotation default values for the        */
+	                              /* methods                                  */
 
-	annotation_bytearrays_t *field_annotations;
+	java_handle_objectarray_t *field_annotations; /* array of annotations for */
+	                              /* the fields                               */
 #endif
-	classloader *classloader;     /* NULL for bootstrap classloader           */
+#endif
+	classloader *classloader;       /* NULL for bootstrap classloader         */
+
+#if defined(ENABLE_JAVASE)
+# if defined(WITH_CLASSPATH_SUN)
+	java_object_t *protectiondomain;
+# endif
 #endif
 };
 
@@ -306,7 +314,7 @@ extern classinfo *pseudo_class_New;
 
 classinfo *class_create_classinfo(utf *u);
 void       class_postset_header_vftbl(void);
-classinfo *class_define(utf *name, classloader *cl, int32_t length, const uint8_t *data);
+classinfo *class_define(utf *name, classloader *cl, int32_t length, const uint8_t *data, java_handle_t *pd);
 void       class_set_packagename(classinfo *c);
 
 bool       class_load_attributes(classbuffer *cb);
@@ -375,6 +383,7 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 classinfo                 *class_get_declaringclass(classinfo *c);
 classinfo                 *class_get_enclosingclass(classinfo *c);
 java_handle_objectarray_t *class_get_interfaces(classinfo *c);
+java_handle_bytearray_t   *class_get_annotations(classinfo *c);
 
 #if defined(ENABLE_JAVASE)
 utf                       *class_get_signature(classinfo *c);

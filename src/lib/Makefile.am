@@ -21,16 +21,14 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
-##
-## $Id: Makefile.am 8299 2007-08-13 08:41:18Z michi $
 
-## Process this file with automake to produce Makefile.in
 
 EXTRA_DIST = \
 	$(VM_JAVA_FILES)
 
 CLEANFILES = vm.zip
 
+if WITH_CLASSPATH_GNU
 VM_JAVA_FILES = \
 	$(top_srcdir)/src/lib/gnu/gnu/classpath/VMStackWalker.java \
 	$(top_srcdir)/src/lib/gnu/gnu/classpath/VMSystemProperties.java \
@@ -82,7 +80,12 @@ endif
 
 if ENABLE_ZLIB
 pkgdata_DATA = vm.zip
+else
+pkgdata_DATA = nozip
+endif
+endif
 
+if ENABLE_ZLIB
 VM_ZIP = ../vm.zip
 
 vm.zip: $(VM_JAVA_FILES)
@@ -94,11 +97,9 @@ vm.zip: $(VM_JAVA_FILES)
 	    cd classes && $(JAR) cvf $(VM_ZIP) .; \
 	fi
 else
-pkgdata_DATA = nozip
-
 nozip: $(VM_JAVA_FILES)
 	$(mkdir_p) classes
-	$(JAVAC) -d classes $(VM_JAVA_FILES)
+	$(JAVAC) -source 1.5 -target 1.5 -d classes $(VM_JAVA_FILES)
 endif
 
 clean-local:

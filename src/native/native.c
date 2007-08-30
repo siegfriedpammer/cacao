@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: native.c 8337 2007-08-17 18:41:19Z michi $
-
 */
 
 
@@ -568,7 +566,7 @@ void native_library_add(utf *filename, classloader *loader, lt_dlhandle handle)
 
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-	key  = ((u4) (ptrint) loader) >> 4;     /* align to 16-byte boundaries    */
+	key  = ((u4) (ptrint) loader) >> 4;        /* align to 16-byte boundaries */
 	slot = key & (hashtable_library->size - 1);
 	le   = hashtable_library->ptr[slot];
 
@@ -649,7 +647,7 @@ hashtable_library_name_entry *native_library_find(utf *filename,
 
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-	key  = ((u4) (ptrint) loader) >> 4;     /* align to 16-byte boundaries    */
+	key  = ((u4) (ptrint) loader) >> 4;        /* align to 16-byte boundaries */
 	slot = key & (hashtable_library->size - 1);
 	le   = hashtable_library->ptr[slot];
 

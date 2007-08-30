@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: suck.c 8236 2007-07-27 10:18:17Z twisti $
-
 */
 
 
@@ -244,7 +242,8 @@ void suck_add_from_property(char *key)
 	s4              n;
 	s4              i;
 	s4              namlen;
-	char           *tmpbootclasspath;
+	char           *boot_class_path;
+	char           *p;
 
 	/* get the property value */
 
@@ -293,40 +292,33 @@ void suck_add_from_property(char *key)
 					namlen = strlen(namelist[i]->d_name);
 #endif
 
-					/* reallocate memory for bootclasspath */
+					/* Allocate memory for bootclasspath. */
 
-					tmpbootclasspath = MNEW(char,
-											pathlen + strlen("/") + namlen +
-											strlen(":") +
-											strlen(_Jv_bootclasspath) +
-											strlen("0"));
+					boot_class_path = properties_get("sun.boot.class.path");
 
-					/* prepend the file found to bootclasspath */
+					p = MNEW(char,
+							 pathlen + strlen("/") + namlen +
+							 strlen(":") +
+							 strlen(boot_class_path) +
+							 strlen("0"));
 
-					strcpy(tmpbootclasspath, path);
-					strcat(tmpbootclasspath, "/");
-					strcat(tmpbootclasspath, namelist[i]->d_name);
-					strcat(tmpbootclasspath, ":");
+					/* Prepend the file found to the bootclasspath. */
 
-					strcat(tmpbootclasspath, _Jv_bootclasspath);
+					strcpy(p, path);
+					strcat(p, "/");
+					strcat(p, namelist[i]->d_name);
+					strcat(p, ":");
+					strcat(p, boot_class_path);
 
-					/* free old bootclasspath memory */
+					properties_add("sun.boot.class.path", p);
+					properties_add("java.boot.class.path", p);
 
-					MFREE(_Jv_bootclasspath, u1, strlen(_Jv_bootclasspath));
-
-					/* and set the new bootclasspath */
-
-					_Jv_bootclasspath = tmpbootclasspath;
+					MFREE(boot_class_path, char, strlen(boot_class_path));
 
 					/* free the memory allocated by scandir */
 					/* (We use `free` as the memory came from the C library.) */
 
 					free(namelist[i]);
-
-#if defined(ENABLE_JAVASE)
-					properties_add("java.boot.class.path", _Jv_bootclasspath);
-					properties_add("sun.boot.class.path", _Jv_bootclasspath);
-#endif
 				}
 			}
 

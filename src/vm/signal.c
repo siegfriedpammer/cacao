@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signal.c 8360 2007-08-20 18:02:50Z michi $
-
 */
 
 
@@ -96,8 +94,12 @@ bool signal_init(void)
 	if (sigemptyset(&mask) != 0)
 		vm_abort("signal_init: sigemptyset failed: %s", strerror(errno));
 
+#if !defined(WITH_CLASSPATH_SUN)
+	/* Let OpenJDK handle SIGINT itself. */
+
 	if (sigaddset(&mask, SIGINT) != 0)
 		vm_abort("signal_init: sigaddset failed: %s", strerror(errno));
+#endif
 
 #if !defined(__FREEBSD__)
 	if (sigaddset(&mask, SIGQUIT) != 0)
@@ -198,6 +200,7 @@ bool signal_init(void)
 void signal_register_signal(int signum, functionptr handler, int flags)
 {
 	struct sigaction act;
+
 	void (*function)(int, siginfo_t *, void *);
 
 	function = (void (*)(int, siginfo_t *, void *)) handler;
@@ -311,25 +314,29 @@ static void signal_thread(void)
 	if (sigemptyset(&mask) != 0)
 		vm_abort("signal_thread: sigemptyset failed: %s", strerror(errno));
 
+#if !defined(WITH_CLASSPATH_SUN)
+	/* Let OpenJDK handle SIGINT itself. */
+
 	if (sigaddset(&mask, SIGINT) != 0)
 		vm_abort("signal_thread: sigaddset failed: %s", strerror(errno));
+#endif
 
 #if !defined(__FREEBSD__)
 	if (sigaddset(&mask, SIGQUIT) != 0)
 		vm_abort("signal_thread: sigaddset failed: %s", strerror(errno));
 #endif
 
-	while (true) {
+	for (;;) {
 		/* just wait for a signal */
+
+#if defined(ENABLE_THREADS)
+		threads_thread_state_waiting(t);
+#endif
 
 		/* XXX We don't check for an error here, although the man-page
 		   states sigwait does not return an error (which is wrong!),
 		   but it seems to make problems with Boehm-GC.  We should
 		   revisit this code with our new exact-GC. */
-
-#if defined(ENABLE_THREADS)
-		threads_thread_state_waiting(t);
-#endif
 
 /* 		if (sigwait(&mask, &sig) != 0) */
 /* 			vm_abort("signal_thread: sigwait failed: %s", strerror(errno)); */
@@ -339,30 +346,41 @@ static void signal_thread(void)
 		threads_thread_state_runnable(t);
 #endif
 
-		switch (sig) {
-		case SIGINT:
-			/* exit the vm properly */
+		/* Handle the signal. */
 
-			vm_exit(0);
-			break;
+		signal_thread_handler(sig);
+	}
+}
 
-		case SIGQUIT:
-			/* print a thread dump */
+
+/* signal_thread_handler *******************************************************
+
+   Handles the signals caught in the signal handler thread.  Also used
+   from sun.misc.Signal with OpenJDK.
+
+*******************************************************************************/
+
+void signal_thread_handler(int sig)
+{
+	switch (sig) {
+	case SIGINT:
+		/* exit the vm properly */
+
+		vm_exit(0);
+		break;
+
+	case SIGQUIT:
+		/* print a thread dump */
 #if defined(ENABLE_THREADS)
-			threads_dump();
+		threads_dump();
 #endif
 
 #if defined(ENABLE_STATISTICS)
-			if (opt_stat)
-				statistics_print_memory_usage();
+		if (opt_stat)
+			statistics_print_memory_usage();
 #endif
-			break;
-		}
+		break;
 	}
-
-	/* this should not happen */
-
-	vm_abort("signal_thread: this thread should not exit!");
 }
 
 

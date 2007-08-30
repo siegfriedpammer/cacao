@@ -27,8 +27,6 @@
 ## Authors: Christian Ullrich
 ##
 ## Changes: Christian Thalinger
-##
-## $Id: Makefile.am 5234 2006-08-14 17:50:12Z christian $
 
 ## Process this file with automake to produce Makefile.in
 

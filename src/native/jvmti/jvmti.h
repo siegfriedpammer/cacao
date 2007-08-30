@@ -30,7 +30,6 @@
    Changes:             
 
    
-   $Id: jvmti.h 5019 2006-06-06 21:13:41Z motse $
 
 */
 #ifndef _JVMTI_H

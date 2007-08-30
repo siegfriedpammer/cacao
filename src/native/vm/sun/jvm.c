@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: jvm.c 8343 2007-08-17 21:39:32Z michi $
-
 */
 
 
@@ -79,7 +77,6 @@
 #include "native/vm/java_lang_ClassLoader.h"
 #include "native/vm/java_lang_Object.h"
 #include "native/vm/java_lang_Runtime.h"
-#include "native/vm/java_lang_String.h"
 #include "native/vm/java_lang_Thread.h"
 #include "native/vm/java_lang_reflect_Constructor.h"
 #include "native/vm/java_lang_reflect_Method.h"
@@ -87,6 +84,7 @@
 #include "native/vm/reflect.h"
 
 #include "threads/lock-common.h"
+#include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
 
@@ -98,6 +96,7 @@
 #include "vm/primitive.h"
 #include "vm/properties.h"
 #include "vm/resolve.h"
+#include "vm/signallocal.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -107,17 +106,29 @@
 #include "vmcore/options.h"
 
 
-/* debugging macro ************************************************************/
+/* debugging macros ***********************************************************/
 
 #if !defined(NDEBUG)
+
 # define TRACEJVMCALLS(...) \
     do { \
         if (opt_TraceJVMCalls) { \
             log_println(__VA_ARGS__); \
         } \
     } while (0)
+
+# define PRINTJVMWARNINGS(...)
+/*     do { \ */
+/*         if (opt_PrintJVMWarnings) { \ */
+/*             log_println(__VA_ARGS__); \ */
+/*         } \ */
+/*     } while (0) */
+
 #else
+
 # define TRACEJVMCALLS(...)
+# define PRINTJVMWARNINGS(...)
+
 #endif
 
 
@@ -344,7 +355,9 @@ jlong JVM_FreeMemory(void)
 
 jlong JVM_MaxMemory(void)
 {
-	log_println("JVM_MaxMemory: IMPLEMENT ME!");
+	TRACEJVMCALLS("JVM_MaxMemory()");
+
+	return gc_get_max_heap_size();
 }
 
 
@@ -578,7 +591,8 @@ jobject JVM_CompilerCommand(JNIEnv *env, jclass compCls, jobject arg)
 
 void JVM_EnableCompiler(JNIEnv *env, jclass compCls)
 {
-	log_println("JVM_EnableCompiler: IMPLEMENT ME!");
+	TRACEJVMCALLS("JVM_EnableCompiler(env=%p, compCls=%p)", env, compCls);
+	PRINTJVMWARNINGS("JVM_EnableCompiler not supported");
 }
 
 
@@ -586,7 +600,8 @@ void JVM_EnableCompiler(JNIEnv *env, jclass compCls)
 
 void JVM_DisableCompiler(JNIEnv *env, jclass compCls)
 {
-	log_println("JVM_DisableCompiler: IMPLEMENT ME!");
+	TRACEJVMCALLS("JVM_DisableCompiler(env=%p, compCls=%p)", env, compCls);
+	PRINTJVMWARNINGS("JVM_DisableCompiler not supported");
 }
 
 
@@ -618,11 +633,10 @@ jint JVM_GetLastErrorString(char *buf, int len)
 
 /* JVM_NativePath */
 
-char* JVM_NativePath(char* path)
+char *JVM_NativePath(char *path)
 {
-#if PRINTJVM
-	log_println("JVM_NativePath: path=%s", path);
-#endif
+	TRACEJVMCALLS("JVM_NativePath(path=%s)", path);
+
 	/* XXX is this correct? */
 
 	return path;
@@ -635,9 +649,7 @@ jclass JVM_GetCallerClass(JNIEnv* env, int depth)
 {
 	java_handle_objectarray_t *oa;
 
-#if PRINTJVM
-	log_println("JVM_GetCallerClass: depth=%d", depth);
-#endif
+	TRACEJVMCALLS("JVM_GetCallerClass(env=%p, depth=%d)", env, depth);
 
 	oa = stacktrace_getClassContext();
 
@@ -664,7 +676,7 @@ jclass JVM_FindPrimitiveClass(JNIEnv* env, const char* s)
 	u = utf_new_char(s);
 	c = primitive_class_get_by_name(u);
 
-	return LLNI_classinfo_wrap(c);
+	return (jclass) LLNI_classinfo_wrap(c);
 }
 
 
@@ -672,7 +684,8 @@ jclass JVM_FindPrimitiveClass(JNIEnv* env, const char* s)
 
 void JVM_ResolveClass(JNIEnv* env, jclass cls)
 {
-	log_println("JVM_ResolveClass: IMPLEMENT ME!");
+	TRACEJVMCALLS("JVM_ResolveClass(env=%p, cls=%p)", env, cls);
+	PRINTJVMWARNINGS("JVM_ResolveClass not implemented");
 }
 
 
@@ -680,13 +693,16 @@ void JVM_ResolveClass(JNIEnv* env, jclass cls)
 
 jclass JVM_FindClassFromClassLoader(JNIEnv* env, const char* name, jboolean init, jobject loader, jboolean throwError)
 {
-	classinfo *c;
+	classinfo   *c;
+	utf         *u;
+	classloader *cl;
 
-#if PRINTJVM
-	log_println("JVM_FindClassFromClassLoader: name=%s, init=%d, loader=%p, throwError=%d", name, init, loader, throwError);
-#endif
+	TRACEJVMCALLS("JVM_FindClassFromClassLoader: name=%s, init=%d, loader=%p, throwError=%d", name, init, loader, throwError);
 
-	c = load_class_from_classloader(utf_new_char(name), (classloader *) loader);
+	u  = utf_new_char(name);
+	cl = (classloader *) loader;
+
+	c = load_class_from_classloader(u, cl);
 
 	if (c == NULL)
 		return NULL;
@@ -696,7 +712,7 @@ jclass JVM_FindClassFromClassLoader(JNIEnv* env, const char* name, jboolean init
 			if (!initialize_class(c))
 				return NULL;
 
-	return LLNI_classinfo_wrap(c);
+	return (jclass) LLNI_classinfo_wrap(c);
 }
 
 
@@ -720,13 +736,20 @@ jclass JVM_DefineClass(JNIEnv *env, const char *name, jobject loader, const jbyt
 
 jclass JVM_DefineClassWithSource(JNIEnv *env, const char *name, jobject loader, const jbyte *buf, jsize len, jobject pd, const char *source)
 {
-#if PRINTJVM
-	log_println("JVM_DefineClassWithSource: name=%s, loader=%p, buf=%p, len=%d, pd=%p, source=%s", name, loader, buf, len, pd, source);
-#endif
-	/* XXX do something with pd and source */
+	classinfo   *c;
+	utf         *u;
+	classloader *cl;
 
-	return LLNI_classinfo_wrap( class_define(utf_new_char(name), (classloader *) loader, len, (u1 *) buf) );
+	TRACEJVMCALLS("JVM_DefineClassWithSource(env=%p, name=%s, loader=%p, buf=%p, len=%d, pd=%p, source=%s)", env, name, loader, buf, len, pd, source);
 
+	u  = utf_new_char(name);
+	cl = (classloader *) loader;
+
+	/* XXX do something with source */
+
+	c = class_define(u, cl, len, (const uint8_t *) buf, (java_handle_t *) pd);
+
+	return (jclass) LLNI_classinfo_wrap(c);
 }
 
 
@@ -738,16 +761,14 @@ jclass JVM_FindLoadedClass(JNIEnv *env, jobject loader, jstring name)
 	utf         *u;
 	classinfo   *c;
 
-	cl = (classloader *) loader;
+	TRACEJVMCALLS("JVM_FindLoadedClass(env=%p, loader=%p, name=%p)", env, loader, name);
 
-#if PRINTJVM
-	log_println("JVM_FindLoadedClass(loader=%p, name=%p)", loader, name);
-#endif
+	cl = (classloader *) loader;
 
 	u = javastring_toutf((java_handle_t *) name, true);
 	c = classcache_lookup(cl, u);
 
-	return LLNI_classinfo_wrap(c);
+	return (jclass) LLNI_classinfo_wrap(c);
 }
 
 
@@ -783,9 +804,8 @@ jobjectArray JVM_GetClassInterfaces(JNIEnv *env, jclass cls)
 
 jobject JVM_GetClassLoader(JNIEnv *env, jclass cls)
 {
-#if PRINTJVM
-	log_println("JVM_GetClassLoader: cls=%p", cls);
-#endif
+	TRACEJVMCALLS("JVM_GetClassLoader(env=%p, cls=%p)", env, cls);
+
 	return (jobject) _Jv_java_lang_Class_getClassLoader((java_lang_Class *) cls);
 }
 
@@ -828,9 +848,7 @@ jobject JVM_GetProtectionDomain(JNIEnv *env, jclass cls)
 {
 	classinfo *c;
 
-#if PRINTJVM || 1
-	log_println("JVM_GetProtectionDomain: cls=%p");
-#endif
+	TRACEJVMCALLS("JVM_GetProtectionDomain(env=%p, cls=%p)", env, cls);
 
 	c = LLNI_classinfo_unwrap(cls);
 
@@ -844,7 +862,7 @@ jobject JVM_GetProtectionDomain(JNIEnv *env, jclass cls)
 	if (class_is_primitive(c))
 		return NULL;
 
-	return NULL;
+	return (jobject) c->protectiondomain;
 }
 
 
@@ -960,7 +978,7 @@ jclass JVM_GetComponentType(JNIEnv *env, jclass cls)
 	
 	component = class_get_componenttype(c);
 
-	return LLNI_classinfo_wrap(component);
+	return (jclass) LLNI_classinfo_wrap(component);
 }
 
 
@@ -1003,16 +1021,16 @@ jobjectArray JVM_GetDeclaredClasses(JNIEnv *env, jclass ofClass)
 
 jclass JVM_GetDeclaringClass(JNIEnv *env, jclass ofClass)
 {
-	classinfo *c = LLNI_classinfo_unwrap(ofClass);
+	classinfo *c;
+	classinfo *dc;
 
-	TRACEJVMCALLS("JVM_GetDeclaringClass: ofClass=%p", ofClass);
+	TRACEJVMCALLS("JVM_GetDeclaringClass(env=%p, ofClass=%p)", env, ofClass);
 
-	if(c == NULL) {
-		exceptions_throw_nullpointerexception();
-		return NULL;
-	}
+	c = LLNI_classinfo_unwrap(ofClass);
 
-	return LLNI_classinfo_wrap(class_get_declaringclass(c));
+	dc = class_get_declaringclass(c);
+
+	return (jclass) LLNI_classinfo_wrap(dc);
 }
 
 
@@ -1020,7 +1038,26 @@ jclass JVM_GetDeclaringClass(JNIEnv *env, jclass ofClass)
 
 jstring JVM_GetClassSignature(JNIEnv *env, jclass cls)
 {
-	log_println("JVM_GetClassSignature: IMPLEMENT ME!");
+	classinfo     *c;
+	utf           *u;
+	java_object_t *s;
+
+	TRACEJVMCALLS("JVM_GetClassSignature(env=%p, cls=%p)", env, cls);
+
+	c = (classinfo *) cls;
+
+	/* Get the signature of the class. */
+
+	u = class_get_signature(c);
+
+	if (u == NULL)
+		return NULL;
+
+	/* Convert UTF-string to a Java-string. */
+
+	s = javastring_new(u);
+
+	return (jstring) s;
 }
 
 
@@ -1028,8 +1065,7 @@ jstring JVM_GetClassSignature(JNIEnv *env, jclass cls)
 
 jbyteArray JVM_GetClassAnnotations(JNIEnv *env, jclass cls)
 {
-#if defined(ENABLE_ANNOTATIONS)
-	classinfo *c = LLNI_classinfo_unwrap(cls);
+	classinfo               *c           = NULL;
 	java_handle_bytearray_t *annotations = NULL;
 
 	TRACEJVMCALLS("JVM_GetClassAnnotations: cls=%p", cls);
@@ -1038,29 +1074,13 @@ jbyteArray JVM_GetClassAnnotations(JNIEnv *env, jclass cls)
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
+	
+	c = LLNI_classinfo_unwrap(cls);
 
-	/* Return null for arrays and primitives: */
-	if(class_is_primitive(c) || class_is_array(c))
-	{
-		return NULL;
-	}
-
-	if(c->annotations != NULL)
-	{
-		uint32_t size = c->annotations->size;
-		annotations = builtin_newarray_byte(size);
-
-		if(annotations != NULL)
-		{
-			MCOPY(annotations->data, c->annotations->data, uint8_t, size);
-		}
-	}
+	/* get annotations: */
+	annotations = class_get_annotations(c);
 
 	return (jbyteArray)annotations;
-#else
-	log_println("JVM_GetClassAnnotations: cls=%p, not implemented in this configuration!", cls);
-	return NULL;
-#endif
 }
 
 
@@ -1201,9 +1221,7 @@ jobject JVM_GetClassConstantPool(JNIEnv *env, jclass cls)
 	sun_reflect_ConstantPool *constantPool    = NULL;
 	java_lang_Object         *constantPoolOop = (java_lang_Object*)cls;
 	
-	TRACEJVMCALLS("JVM_GetClassConstantPool: cls=%p", cls);
-
-	assert(cls != NULL);
+	TRACEJVMCALLS("JVM_GetClassConstantPool(env=%p, cls=%p)", env, cls);
 
 	constantPool = 
 		(sun_reflect_ConstantPool*)native_new_and_init(
@@ -1218,7 +1236,7 @@ jobject JVM_GetClassConstantPool(JNIEnv *env, jclass cls)
 
 	return (jobject)constantPool;
 #else
-	log_println("JVM_GetClassConstantPool: cls=%p, not implemented in this configuration!", cls);
+	log_println("JVM_GetClassConstantPool(env=%p, cls=%p): not implemented in this configuration!", env, cls);
 	return NULL;
 #endif
 }
@@ -1228,9 +1246,13 @@ jobject JVM_GetClassConstantPool(JNIEnv *env, jclass cls)
 
 jint JVM_ConstantPoolGetSize(JNIEnv *env, jobject unused, jobject jcpool)
 {
-	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
-	TRACEJVMCALLS("JVM_ConstantPoolGetSize: jcpool=%p", jcpool);
-	return cls->cpcount;
+	classinfo *c;
+
+	TRACEJVMCALLS("JVM_ConstantPoolGetSize(env=%p, unused=%p, jcpool=%p)", env, unused, jcpool);
+
+	c = LLNI_classinfo_unwrap(jcpool);
+
+	return c->cpcount;
 }
 
 
@@ -1239,17 +1261,21 @@ jint JVM_ConstantPoolGetSize(JNIEnv *env, jobject unused, jobject jcpool)
 jclass JVM_ConstantPoolGetClassAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
 	constant_classref *ref;
-	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
-	
-	TRACEJVMCALLS("JVM_ConstantPoolGetClassAt: jcpool=%p, index=%d", jcpool, index);
+	classinfo         *c;
+	classinfo         *result;
 
-	ref = (constant_classref*)class_getconstant(cls, index, CONSTANT_Class);
+	TRACEJVMCALLS("JVM_ConstantPoolGetClassAt(env=%p, jcpool=%p, index=%d)", env, jcpool, index);
 
-	if (ref == NULL) {
+	c = LLNI_classinfo_unwrap(jcpool);
+
+	ref = (constant_classref *) class_getconstant(c, index, CONSTANT_Class);
+
+	if (ref == NULL)
 		return NULL;
-	}
 
-	return LLNI_classinfo_wrap(resolve_classref_eager(ref));
+	result = resolve_classref_eager(ref);
+
+	return (jclass) LLNI_classinfo_wrap(result);
 }
 
 
@@ -1258,26 +1284,26 @@ jclass JVM_ConstantPoolGetClassAt(JNIEnv *env, jobject unused, jobject jcpool, j
 jclass JVM_ConstantPoolGetClassAtIfLoaded(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
 	constant_classref *ref;
-	classinfo *c = NULL;
-	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
+	classinfo         *c;
+	classinfo         *result;
 
-	TRACEJVMCALLS("JVM_ConstantPoolGetClassAtIfLoaded: jcpool=%p, index=%d", jcpool, index);
+	TRACEJVMCALLS("JVM_ConstantPoolGetClassAtIfLoaded(env=%p, unused=%p, jcpool=%p, index=%d)", env, unused, jcpool, index);
 
-	ref = (constant_classref*)class_getconstant(cls, index, CONSTANT_Class);
+	c = LLNI_classinfo_unwrap(jcpool);
 
-	if (ref == NULL) {
+	ref = (constant_classref *) class_getconstant(c, index, CONSTANT_Class);
+
+	if (ref == NULL)
+		return NULL;
+	
+	if (!resolve_classref(NULL, ref, resolveLazy, true, true, &result))
+		return NULL;
+
+	if ((result == NULL) || !(result->state & CLASS_LOADED)) {
 		return NULL;
 	}
 	
-	if (!resolve_classref(NULL, ref, resolveLazy, true, true, &c)) {
-		return NULL;
-	}
-
-	if (c == NULL || !(c->state & CLASS_LOADED)) {
-		return NULL;
-	}
-	
-	return LLNI_classinfo_wrap(c);
+	return (jclass) LLNI_classinfo_wrap(result);
 }
 
 
@@ -1505,7 +1531,9 @@ jstring JVM_ConstantPoolGetUTF8At(JNIEnv *env, jobject unused, jobject jcpool, j
 
 jboolean JVM_DesiredAssertionStatus(JNIEnv *env, jclass unused, jclass cls)
 {
-	log_println("JVM_DesiredAssertionStatus: cls=%p, IMPLEMENT ME!", cls);
+	TRACEJVMCALLS("JVM_DesiredAssertionStatus(env=%p, unused=%p, cls=%p)", env, unused, cls);
+
+	/* TODO: Implement this one, but false should be OK. */
 
 	return false;
 }
@@ -1859,10 +1887,12 @@ jint JVM_Write(jint fd, char *buf, jint nbytes)
 
 jint JVM_Available(jint fd, jlong *pbytes)
 {
-	TRACEJVMCALLS("JVM_Available(fd=%d, pbytes=%p)", fd, pbytes);
-
 #if defined(FIONREAD)
 	int bytes;
+
+	TRACEJVMCALLS("JVM_Available(fd=%d, pbytes=%p)", fd, pbytes);
+
+	*pbytes = 0;
 
 	if (ioctl(fd, FIONREAD, &bytes) < 0)
 		return 0;
@@ -1870,58 +1900,8 @@ jint JVM_Available(jint fd, jlong *pbytes)
 	*pbytes = bytes;
 
 	return 1;
-#elif defined(HAVE_FSTAT)
-	struct stat statBuffer;
-	off_t n;
-	int result;
-
-	*pbytes = 0;
-
-	if ((fstat(fd, &statBuffer) == 0) && S_ISREG (statBuffer.st_mode)) {
-		n = lseek (fd, 0, SEEK_CUR);
-
-		if (n != -1) {
-			*pbytes = statBuffer.st_size - n; 
-			result = 1;
-		}
-		else {
-			result = 0;
-		}
-	}
-	else {
-		result = 0;
-	}
-  
-	return result;
-#elif defined(HAVE_SELECT)
-	fd_set filedescriptset;
-	struct timeval tv;
-	int result;
-
-	*pbytes = 0;
-  
-	FD_ZERO(&filedescriptset);
-	FD_SET(fd, &filedescriptset);
-	memset(&tv, 0, sizeof(tv));
-
-	switch (select(fd+1, &filedescriptset, NULL, NULL, &tv))
-		{
-		case -1: 
-			result = errno; 
-			break;
-		case  0:
-			*pbytes = 0;
-			result = CPNATIVE_OK;
-			break;      
-		default: 
-			*pbytes = 1;
-			result = CPNATIVE_OK;
-			break;
-		}
-	return result;
 #else
-	*pbytes = 0;
-	return 0;
+# error FIONREAD not defined
 #endif
 }
 
@@ -2014,7 +1994,9 @@ void JVM_SetThreadPriority(JNIEnv* env, jobject jthread, jint prio)
 
 void JVM_Yield(JNIEnv *env, jclass threadClass)
 {
-	log_println("JVM_Yield: IMPLEMENT ME!");
+	TRACEJVMCALLS("JVM_Yield(env=%p, threadClass=%p)", env, threadClass);
+
+	threads_yield();
 }
 
 
@@ -2096,6 +2078,9 @@ jclass JVM_CurrentLoadedClass(JNIEnv *env)
 
 jobject JVM_CurrentClassLoader(JNIEnv *env)
 {
+    /* XXX if a method in a class in a trusted loader is in a
+	   doPrivileged, return NULL */
+
 	log_println("JVM_CurrentClassLoader: IMPLEMENT ME!");
 }
 
@@ -2131,7 +2116,11 @@ jint JVM_ClassLoaderDepth(JNIEnv *env)
 
 jstring JVM_GetSystemPackage(JNIEnv *env, jstring name)
 {
-	log_println("JVM_GetSystemPackage: IMPLEMENT ME!");
+	log_println("JVM_GetSystemPackage(env=%p, name=%p)");
+	javastring_print((java_handle_t *) name);
+	printf("\n");
+
+	return NULL;
 }
 
 
@@ -2179,24 +2168,13 @@ jclass JVM_LoadClass0(JNIEnv *env, jobject receiver, jclass currClass, jstring c
 
 jint JVM_GetArrayLength(JNIEnv *env, jobject arr)
 {
-	java_array_t *a;
+	java_handle_t *a;
 
 	TRACEJVMCALLS("JVM_GetArrayLength(arr=%p)", arr);
 
-	a = (java_array_t *) arr;
+	a = (java_handle_t *) arr;
 
-	if (a == NULL) {
-		exceptions_throw_nullpointerexception();
-		return 0;
-	}
-
-	if (!class_is_array(a->objheader.vftbl->class)) {
-/* 		exceptions_throw_illegalargumentexception("Argument is not an array"); */
-		exceptions_throw_illegalargumentexception();
-		return 0;
-	}
-
-	return a->size;
+	return array_length_get(a);
 }
 
 
@@ -2204,54 +2182,21 @@ jint JVM_GetArrayLength(JNIEnv *env, jobject arr)
 
 jobject JVM_GetArrayElement(JNIEnv *env, jobject arr, jint index)
 {
-	java_array_t *a;
-	int           elementtype;
+	java_handle_t *a;
+	java_handle_t *o;
 
 	TRACEJVMCALLS("JVM_GetArrayElement(env=%p, arr=%p, index=%d)", env, arr, index);
 
-	a = (java_array_t *) arr;
+	a = (java_handle_t *) arr;
 
-	if (a == NULL) {
-		exceptions_throw_nullpointerexception();
-		return NULL;
-	}
+/* 	if (!class_is_array(a->objheader.vftbl->class)) { */
+/* 		exceptions_throw_illegalargumentexception(); */
+/* 		return NULL; */
+/* 	} */
 
-	if (!class_is_array(a->objheader.vftbl->class)) {
-		exceptions_throw_illegalargumentexception();
-		return NULL;
-	}
-	
-	if (index < 0 || index > a->size) {
-		exceptions_throw_arrayindexoutofboundsexception();
-		return NULL;
-	}
-	
-	elementtype = a->objheader.vftbl->arraydesc->elementtype;
+	o = array_element_get(a, index);
 
-	switch (elementtype) {
-	case ARRAYTYPE_INT:
-		return (jobject)primitive_box_int(((java_handle_intarray_t*)a)->data[index]);
-	case ARRAYTYPE_LONG:
-		return (jobject)primitive_box_long(((java_handle_longarray_t*)a)->data[index]);
-	case ARRAYTYPE_FLOAT:
-		return (jobject)primitive_box_float(((java_handle_floatarray_t*)a)->data[index]);
-	case ARRAYTYPE_DOUBLE:
-		return (jobject)primitive_box_double(((java_handle_doublearray_t*)a)->data[index]);
-	case ARRAYTYPE_BYTE:
-		return (jobject)primitive_box_byte(((java_handle_bytearray_t*)a)->data[index]);
-	case ARRAYTYPE_CHAR:
-		return (jobject)primitive_box_char(((java_handle_chararray_t*)a)->data[index]);
-	case ARRAYTYPE_SHORT:
-		return (jobject)primitive_box_short(((java_handle_shortarray_t*)a)->data[index]);
-	case ARRAYTYPE_BOOLEAN:
-		return (jobject)primitive_box_boolean(((java_handle_booleanarray_t*)a)->data[index]);
-	case ARRAYTYPE_OBJECT:
-		return (jobject)((java_handle_objectarray_t*)a)->data[index];
-	default:
-		/* invalid element type */
-		exceptions_throw_internalerror("invalid element type code in array descriptor: %d", elementtype);
-		return (jobject)NULL;
-	}
+	return (jobject) o;
 }
 
 
@@ -2267,7 +2212,15 @@ jvalue JVM_GetPrimitiveArrayElement(JNIEnv *env, jobject arr, jint index, jint w
 
 void JVM_SetArrayElement(JNIEnv *env, jobject arr, jint index, jobject val)
 {
-	log_println("JVM_SetArrayElement: IMPLEMENT ME!");
+	java_handle_t *a;
+	java_handle_t *value;
+
+	TRACEJVMCALLS("JVM_SetArrayElement(env=%p, arr=%p, index=%d, val=%p)", env, arr, index, val);
+
+	a     = (java_handle_t *) arr;
+	value = (java_handle_t *) val;
+
+	array_element_set(a, index, value);
 }
 
 
@@ -2289,6 +2242,13 @@ jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 	java_handle_objectarray_t *oa;
 
 	TRACEJVMCALLS("JVM_NewArray(env=%p, eltClass=%p, length=%d)", env, eltClass, length);
+
+	if (eltClass == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	/* NegativeArraySizeException is checked in builtin_newarray. */
 
 	c = LLNI_classinfo_unwrap(eltClass);
 
@@ -2312,7 +2272,52 @@ jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 
 jobject JVM_NewMultiArray(JNIEnv *env, jclass eltClass, jintArray dim)
 {
-	log_println("JVM_NewMultiArray: IMPLEMENT ME!");
+	classinfo                 *c;
+	java_handle_intarray_t    *ia;
+	int32_t                    length;
+	long                      *dims;
+	int32_t                    value;
+	int32_t                    i;
+	classinfo                 *ac;
+	java_handle_objectarray_t *a;
+
+	TRACEJVMCALLS("JVM_NewMultiArray(env=%p, eltClass=%p, dim=%p)", env, eltClass, dim);
+
+	if (eltClass == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	/* NegativeArraySizeException is checked in builtin_newarray. */
+
+	c = LLNI_classinfo_unwrap(eltClass);
+
+	/* XXX This is just a quick hack to get it working. */
+
+	ia = (java_handle_intarray_t *) dim;
+
+	length = array_length_get(ia);
+
+	dims = MNEW(long, length);
+
+	for (i = 0; i < length; i++) {
+		value = LLNI_array_direct(ia, i);
+		dims[i] = (long) value;
+	}
+
+	/* Create an array-class if necessary. */
+
+	if (class_is_primitive(c))
+		ac = primitive_arrayclass_get_by_name(c->name);
+	else
+		ac = class_array_of(c, true);
+
+	if (ac == NULL)
+		return NULL;
+
+	a = builtin_multianewarray(length, ac, dims);
+
+	return (jobject) a;
 }
 
 
@@ -2328,9 +2333,8 @@ jint JVM_InitializeSocketLibrary()
 
 jint JVM_Socket(jint domain, jint type, jint protocol)
 {
-#if PRINTJVM || 1
-	log_println("JVM_Socket: domain=%d, type=%d, protocol=%d", domain, type, protocol);
-#endif
+	TRACEJVMCALLS("JVM_Socket(domain=%d, type=%d, protocol=%d)", domain, type, protocol);
+
 	return socket(domain, type, protocol);
 }
 
@@ -2339,9 +2343,8 @@ jint JVM_Socket(jint domain, jint type, jint protocol)
 
 jint JVM_SocketClose(jint fd)
 {
-#if PRINTJVM || 1
-	log_println("JVM_SocketClose: fd=%d", fd);
-#endif
+	TRACEJVMCALLS("JVM_SocketClose(fd=%d)", fd);
+
 	return close(fd);
 }
 
@@ -2350,9 +2353,8 @@ jint JVM_SocketClose(jint fd)
 
 jint JVM_SocketShutdown(jint fd, jint howto)
 {
-#if PRINTJVM || 1
-	log_println("JVM_SocketShutdown: fd=%d, howto=%d", fd, howto);
-#endif
+	TRACEJVMCALLS("JVM_SocketShutdown(fd=%d, howto=%d)", fd, howto);
+
 	return shutdown(fd, howto);
 }
 
@@ -2385,9 +2387,8 @@ jint JVM_Timeout(int fd, long timeout)
 
 jint JVM_Listen(jint fd, jint count)
 {
-#if PRINTJVM || 1
-	log_println("JVM_Listen: fd=%d, count=%d", fd, count);
-#endif
+	TRACEJVMCALLS("JVM_Listen(fd=%d, count=%d)", fd, count);
+
 	return listen(fd, count);
 }
 
@@ -2396,9 +2397,8 @@ jint JVM_Listen(jint fd, jint count)
 
 jint JVM_Connect(jint fd, struct sockaddr *him, jint len)
 {
-#if PRINTJVM || 1
-	log_println("JVM_Connect: fd=%d, him=%p, len=%d", fd, him, len);
-#endif
+	TRACEJVMCALLS("JVM_Connect(fd=%d, him=%p, len=%d)", fd, him, len);
+
 	return connect(fd, him, len);
 }
 
@@ -2415,9 +2415,8 @@ jint JVM_Bind(jint fd, struct sockaddr *him, jint len)
 
 jint JVM_Accept(jint fd, struct sockaddr *him, jint *len)
 {
-#if PRINTJVM || 1
-	log_println("JVM_Accept: fd=%d, him=%p, len=%p", fd, him, len);
-#endif
+	TRACEJVMCALLS("JVM_Accept(fd=%d, him=%p, len=%p)", fd, him, len);
+
 	return accept(fd, him, (socklen_t *) len);
 }
 
@@ -2434,9 +2433,8 @@ jint JVM_RecvFrom(jint fd, char *buf, int nBytes, int flags, struct sockaddr *fr
 
 jint JVM_GetSockName(jint fd, struct sockaddr *him, int *len)
 {
-#if PRINTJVM || 1
-	log_println("JVM_GetSockName: fd=%d, him=%p, len=%p", fd, him, len);
-#endif
+	TRACEJVMCALLS("JVM_GetSockName(fd=%d, him=%p, len=%p)", fd, him, len);
+
 	return getsockname(fd, him, (socklen_t *) len);
 }
 
@@ -2469,9 +2467,8 @@ jint JVM_GetSockOpt(jint fd, int level, int optname, char *optval, int *optlen)
 
 jint JVM_SetSockOpt(jint fd, int level, int optname, const char *optval, int optlen)
 {
-#if PRINTJVM || 1
-	log_println("JVM_SetSockOpt: fd=%d, level=%d, optname=%d, optval=%s, optlen=%d", fd, level, optname, optval, optlen);
-#endif
+	TRACEJVMCALLS("JVM_SetSockOpt(fd=%d, level=%d, optname=%d, optval=%s, optlen=%d)", fd, level, optname, optval, optlen);
+
 	return setsockopt(fd, level, optname, optval, optlen);
 }
 
@@ -2480,9 +2477,8 @@ jint JVM_SetSockOpt(jint fd, int level, int optname, const char *optval, int opt
 
 int JVM_GetHostName(char* name, int namelen)
 {
-#if PRINTJVM || 1
-	log_println("JVM_GetHostName: name=%s, namelen=%d", name, namelen);
-#endif
+	TRACEJVMCALLS("JVM_GetHostName(name=%s, namelen=%d)", name, namelen);
+
 	return gethostname(name, namelen);
 }
 
@@ -2513,12 +2509,15 @@ struct protoent* JVM_GetProtoByName(char* name)
 
 /* JVM_LoadLibrary */
 
-void* JVM_LoadLibrary(const char* name)
+void *JVM_LoadLibrary(const char *name)
 {
-#if PRINTJVM
-	log_println("JVM_LoadLibrary: name=%s", name);
-#endif
-    return native_library_open(utf_new_char(name));
+	utf *u;
+
+	TRACEJVMCALLS("JVM_LoadLibrary(name=%s)", name);
+
+	u = utf_new_char(name);
+
+	return native_library_open(u);
 }
 
 
@@ -2532,13 +2531,11 @@ void JVM_UnloadLibrary(void* handle)
 
 /* JVM_FindLibraryEntry */
 
-void* JVM_FindLibraryEntry(void* handle, const char* name)
+void *JVM_FindLibraryEntry(void *handle, const char *name)
 {
 	lt_ptr symbol;
 
-#if PRINTJVM
-	log_println("JVM_FindLibraryEntry: handle=%p, name=%s", handle, name);
-#endif
+	TRACEJVMCALLS("JVM_FindLibraryEntry(handle=%p, name=%s)", handle, name);
 
 	symbol = lt_dlsym(handle, name);
 
@@ -2558,13 +2555,13 @@ jboolean JVM_IsNaN(jdouble a)
 
 jboolean JVM_IsSupportedJNIVersion(jint version)
 {
-#if PRINTJVM
-	log_println("JVM_IsSupportedJNIVersion: version=%d", version);
-#endif
+	TRACEJVMCALLS("JVM_IsSupportedJNIVersion(version=%d)", version);
+
 	switch (version) {
 	case JNI_VERSION_1_1:
 	case JNI_VERSION_1_2:
 	case JNI_VERSION_1_4:
+	case JNI_VERSION_1_6:
 		return true;
 	default:
 		return false;
@@ -2576,10 +2573,9 @@ jboolean JVM_IsSupportedJNIVersion(jint version)
 
 jstring JVM_InternString(JNIEnv *env, jstring str)
 {
-#if PRINTJVM
-	log_println("JVM_InternString: str=%p", str);
-#endif
-	return (jstring) _Jv_java_lang_String_intern((java_lang_String *) str);
+	TRACEJVMCALLS("JVM_InternString(env=%p, str=%p)", env, str);
+
+	return (jstring) javastring_intern((java_handle_t *) str);
 }
 
 
@@ -2849,15 +2845,212 @@ jobjectArray JVM_GetEnclosingMethodInfo(JNIEnv *env, jclass ofClass)
 
 jintArray JVM_GetThreadStateValues(JNIEnv* env, jint javaThreadState)
 {
-	log_println("JVM_GetThreadStateValues: IMPLEMENT ME!");
+	java_handle_intarray_t *ia;
+
+	TRACEJVMCALLS("JVM_GetThreadStateValues(env=%p, javaThreadState=%d)",
+				  env, javaThreadState);
+
+	/* If new thread states are added in future JDK and VM versions,
+	   this should check if the JDK version is compatible with thread
+	   states supported by the VM.  Return NULL if not compatible.
+	
+	   This function must map the VM java_lang_Thread::ThreadStatus
+	   to the Java thread state that the JDK supports. */
+
+	switch (javaThreadState) {
+    case THREAD_STATE_NEW:
+		ia = builtin_newarray_int(1);
+
+		if (ia == NULL)
+			return NULL;
+
+		array_intarray_element_set(ia, 0, THREAD_STATE_NEW);
+		break; 
+
+    case THREAD_STATE_RUNNABLE:
+		ia = builtin_newarray_int(1);
+
+		if (ia == NULL)
+			return NULL;
+
+		array_intarray_element_set(ia, 0, THREAD_STATE_RUNNABLE);
+		break; 
+
+    case THREAD_STATE_BLOCKED:
+		ia = builtin_newarray_int(1);
+
+		if (ia == NULL)
+			return NULL;
+
+		array_intarray_element_set(ia, 0, THREAD_STATE_BLOCKED);
+		break; 
+
+    case THREAD_STATE_WAITING:
+		ia = builtin_newarray_int(2);
+
+		if (ia == NULL)
+			return NULL;
+
+		array_intarray_element_set(ia, 0, THREAD_STATE_WAITING);
+		/* XXX Implement parked stuff. */
+/* 		array_intarray_element_set(ia, 1, PARKED); */
+		break; 
+
+    case THREAD_STATE_TIMED_WAITING:
+		ia = builtin_newarray_int(3);
+
+		if (ia == NULL)
+			return NULL;
+
+		/* XXX Not sure about that one. */
+/* 		array_intarray_element_set(ia, 0, SLEEPING); */
+		array_intarray_element_set(ia, 0, THREAD_STATE_TIMED_WAITING);
+		/* XXX Implement parked stuff. */
+/* 		array_intarray_element_set(ia, 2, PARKED); */
+		break; 
+
+    case THREAD_STATE_TERMINATED:
+		ia = builtin_newarray_int(1);
+
+		if (ia == NULL)
+			return NULL;
+
+		array_intarray_element_set(ia, 0, THREAD_STATE_TERMINATED);
+		break; 
+
+    default:
+		/* Unknown state - probably incompatible JDK version */
+		return NULL;
+	}
+
+	return (jintArray) ia;
 }
 
 
-/* JVM_GetThreadStateValues */
+/* JVM_GetThreadStateNames */
 
 jobjectArray JVM_GetThreadStateNames(JNIEnv* env, jint javaThreadState, jintArray values)
 {
-	log_println("JVM_GetThreadStateValues: IMPLEMENT ME!");
+	java_handle_intarray_t    *ia;
+	java_handle_objectarray_t *oa;
+	java_object_t             *s;
+
+	TRACEJVMCALLS("JVM_GetThreadStateNames(env=%p, javaThreadState=%d, values=%p)",
+				  env, javaThreadState, values);
+
+	ia = (java_handle_intarray_t *) values;
+
+	/* If new thread states are added in future JDK and VM versions,
+	   this should check if the JDK version is compatible with thread
+	   states supported by the VM.  Return NULL if not compatible.
+	
+	   This function must map the VM java_lang_Thread::ThreadStatus
+	   to the Java thread state that the JDK supports. */
+
+	if (values == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	switch (javaThreadState) {
+    case THREAD_STATE_NEW:
+		assert(ia->header.size == 1 && ia->data[0] == THREAD_STATE_NEW);
+
+		oa = builtin_anewarray(1, class_java_lang_String);
+
+		if (oa == NULL)
+			return NULL;
+
+		s = javastring_new(utf_new_char("NEW"));
+
+		if (s == NULL)
+			return NULL;
+
+		array_objectarray_element_set(oa, 0, s);
+		break; 
+
+    case THREAD_STATE_RUNNABLE:
+		oa = builtin_anewarray(1, class_java_lang_String);
+
+		if (oa == NULL)
+			return NULL;
+
+		s = javastring_new(utf_new_char("RUNNABLE"));
+
+		if (s == NULL)
+			return NULL;
+
+		array_objectarray_element_set(oa, 0, s);
+		break; 
+
+    case THREAD_STATE_BLOCKED:
+		oa = builtin_anewarray(1, class_java_lang_String);
+
+		if (oa == NULL)
+			return NULL;
+
+		s = javastring_new(utf_new_char("BLOCKED"));
+
+		if (s == NULL)
+			return NULL;
+
+		array_objectarray_element_set(oa, 0, s);
+		break; 
+
+    case THREAD_STATE_WAITING:
+		oa = builtin_anewarray(2, class_java_lang_String);
+
+		if (oa == NULL)
+			return NULL;
+
+		s = javastring_new(utf_new_char("WAITING.OBJECT_WAIT"));
+/* 		s = javastring_new(utf_new_char("WAITING.PARKED")); */
+
+		if (s == NULL)
+			return NULL;
+
+		array_objectarray_element_set(oa, 0, s);
+/* 		array_objectarray_element_set(oa, 1, s); */
+		break; 
+
+    case THREAD_STATE_TIMED_WAITING:
+		oa = builtin_anewarray(3, class_java_lang_String);
+
+		if (oa == NULL)
+			return NULL;
+
+/* 		s = javastring_new(utf_new_char("TIMED_WAITING.SLEEPING")); */
+		s = javastring_new(utf_new_char("TIMED_WAITING.OBJECT_WAIT"));
+/* 		s = javastring_new(utf_new_char("TIMED_WAITING.PARKED")); */
+
+		if (s == NULL)
+			return NULL;
+
+/* 		array_objectarray_element_set(oa, 0, s); */
+		array_objectarray_element_set(oa, 0, s);
+/* 		array_objectarray_element_set(oa, 2, s); */
+		break; 
+
+    case THREAD_STATE_TERMINATED:
+		oa = builtin_anewarray(1, class_java_lang_String);
+
+		if (oa == NULL)
+			return NULL;
+
+		s = javastring_new(utf_new_char("TERMINATED"));
+
+		if (s == NULL)
+			return NULL;
+
+		array_objectarray_element_set(oa, 0, s);
+		break; 
+
+	default:
+		/* Unknown state - probably incompatible JDK version */
+		return NULL;
+	}
+
+	return (jobjectArray) oa;
 }
 
 
@@ -2871,10 +3064,44 @@ void JVM_GetVersionInfo(JNIEnv* env, jvm_version_info* info, size_t info_size)
 
 /* OS: JVM_RegisterSignal */
 
-void* JVM_RegisterSignal(jint sig, void* handler)
+void *JVM_RegisterSignal(jint sig, void *handler)
 {
-	log_println("JVM_RegisterSignal: sig=%d, handler=%p, IMPLEMENT ME!", sig, handler);
-	return NULL;
+	functionptr newHandler;
+
+	TRACEJVMCALLS("JVM_RegisterSignal(sig=%d, handler=%p)", sig, handler);
+
+	if (handler == (void *) 2)
+		newHandler = (functionptr) signal_thread_handler;
+	else
+		newHandler = (functionptr) (uintptr_t) handler;
+
+	switch (sig) {
+    case SIGILL:
+    case SIGFPE:
+    case SIGUSR1:
+    case SIGSEGV:
+		/* These signals are already used by the VM. */
+		return (void *) -1;
+
+    case SIGQUIT:
+		/* This signal is used by the VM to dump thread stacks unless
+		   ReduceSignalUsage is set, in which case the user is allowed
+		   to set his own _native_ handler for this signal; thus, in
+		   either case, we do not allow JVM_RegisterSignal to change
+		   the handler. */
+		return (void *) -1;
+
+	case SIGHUP:
+	case SIGINT:
+	case SIGTERM:
+		break;
+	}
+
+	signal_register_signal(sig, newHandler, 0);
+
+	/* XXX Should return old handler. */
+
+	return (void *) 2;
 }
 
 
@@ -2882,7 +3109,7 @@ void* JVM_RegisterSignal(jint sig, void* handler)
 
 jboolean JVM_RaiseSignal(jint sig)
 {
-	log_println("JVM_RaiseSignal: sig=%s", sig);
+	log_println("JVM_RaiseSignal: IMPLEMENT ME! sig=%s", sig);
 	return false;
 }
 
@@ -2891,8 +3118,22 @@ jboolean JVM_RaiseSignal(jint sig)
 
 jint JVM_FindSignal(const char *name)
 {
-	log_println("JVM_FindSignal: name=%s", name);
-	return 0;
+	TRACEJVMCALLS("JVM_FindSignal(name=%s)", name);
+
+#if defined(__LINUX__)
+	if (strcmp(name, "HUP") == 0)
+		return SIGHUP;
+
+	if (strcmp(name, "INT") == 0)
+		return SIGINT;
+
+	if (strcmp(name, "TERM") == 0)
+		return SIGTERM;
+#else
+# error not implemented for this OS
+#endif
+
+	return -1;
 }
 
 

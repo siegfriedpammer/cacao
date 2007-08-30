@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.h 8251 2007-08-01 15:26:59Z pm $
-
 */
 
 
@@ -46,11 +44,6 @@
         if ((cd->mcodeptr + (icnt)) > cd->mcodeend) \
             codegen_increase(cd); \
     } while (0)
-
-#define ALIGNCODENOP \
-    if ((s4) (((ptrint) cd->mcodeptr) & 7)) { \
-        M_NOP; \
-    }
 
 /* some patcher defines *******************************************************/
 
@@ -101,14 +94,13 @@
  * In debug mode, the instructions assert that %r0 was not given as argument.
  */
 
-#if 1
+#if !defined(NDEBUG)
+
 #	include <stdlib.h>
+
 	/* register none */
 #	define RN 16
-	/* Optional register.
-	 * Check that value given is %r1 - %r15 or RN
-	 */
-#	define _WITH_LINE(f, ...) f(__FILE__, __LINE__, __VA_ARGS__)
+
 	static inline int _OR_IMPL(const char *file, int line, int r) {
 		if(!(
 			((0 < r) && (r < 16)) ||
@@ -119,7 +111,7 @@
 		}
 		return ((r == RN) ? 0 : r);
 	}
-#	define _OR(r) _WITH_LINE(_OR_IMPL, r)
+#	define _OR(r) _OR_IMPL(__FILE__, __LINE__, r)
 
 #	define _SMIN(b) (-(1 << (bits - 1)))
 #	define _SMAX(b) ((1 << (b - 1)) - 1)
@@ -133,7 +125,9 @@
 		}
 		return i;
 	}
-#	define _UBITS(i, bits) _WITH_LINE(_UBITS_IMPL, i, bits)
+
+#	define _UBITS(i, bits) _UBITS_IMPL(__FILE__, __LINE__, i, bits)
+
 	static inline int _SBITS_IMPL(const char *file, int line, int i, int bits) {
 		if(!((_SMIN(bits) <= i) && (i <= _SMAX(bits)))) {
 			fprintf(stdout, "%d (0x%X) is not an signed %d bit integer at %s:%d.\n", i, i, bits, file, line);
@@ -141,7 +135,9 @@
 		}
 		return i;
 	}
-#	define _SBITS(i, bits) _WITH_LINE(_SBITS_IMPL, i, bits)
+
+#	define _SBITS(i, bits) _SBITS_IMPL(__FILE__, __LINE__, i, bits)
+
 	static inline int _BITS_IMPL(const char *file, int line, int i, int bits) {
 		if (!(
 			((_UMIN(bits) <= i) && (i <= _UMAX(bits))) ||
@@ -152,7 +148,9 @@
 		}
 		return i;
 	}
-#	define _BITS(i, bits) _WITH_LINE(_BITS_IMPL, i, bits)
+
+#	define _BITS(i, bits) _BITS_IMPL(__FILE__, __LINE__, i, bits)
+
 #else
 #	define RN 0
 #	define _OR(x) (x)
@@ -799,148 +797,13 @@
 
 #define M_ASUB_IMM32(imm, tmpreg, reg) M_ISUB_IMM32(imm, tmpreg, reg)
 
-/* ----------------------------------------------- */
-
-#define _DEPR(x) \
-	do { \
-		fprintf(stdout, \
-			"Using old x86_64 instruction %s at %s (%s:%d), fix this.\n", \
-			#x, __FUNCTION__, __FILE__, __LINE__); \
-	} while (0)
-
-#define M_MOV_IMM(a,b) _DEPR( M_MOV_IMM(a,b) )
-
-#define M_IMOV(a,b) _DEPR( M_IMOV(a,b) )
-#define M_IMOV_IMM(a,b) _DEPR( M_IMOV_IMM(a,b) )
-
-
-#define M_ILD32(a,b,disp) _DEPR( M_ILD32(a,b,disp) )
-#define M_LLD32(a,b,disp) _DEPR( M_LLD32(a,b,disp) )
-
-
-#define M_IST_IMM(a,b,disp) _DEPR( M_IST_IMM(a,b,disp) )
-#define M_LST_IMM32(a,b,disp) _DEPR( M_LST_IMM32(a,b,disp) )
-
-#define M_IST32(a,b,disp) _DEPR( M_IST32(a,b,disp) )
-#define M_LST32(a,b,disp) _DEPR( M_LST32(a,b,disp) )
-
-#define M_IST32_IMM(a,b,disp) _DEPR( M_IST32_IMM(a,b,disp) )
-#define M_LST32_IMM32(a,b,disp) _DEPR( M_LST32_IMM32(a,b,disp) )
-
-
-#define M_LADD(a,b) _DEPR( M_LADD(a,b) )
-#define M_LSUB(a,b) _DEPR( M_LSUB(a,b) )
-#define M_LMUL(a,b) _DEPR( M_LMUL(a,b) )
-
-#define M_LADD_IMM(a,b) _DEPR( M_LADD_IMM(a,b) )
-#define M_LSUB_IMM(a,b) _DEPR( M_LSUB_IMM(a,b) )
-#define M_LMUL_IMM(a,b,c) _DEPR( M_LMUL_IMM(a,b,c) )
-
-#define M_IINC(a) _DEPR( M_IINC(a) )
-#define M_IDEC(a) _DEPR( M_IDEC(a) )
-
-#define M_ALD32(a,b,disp) _DEPR( M_ALD32(a,b,disp) )
-
-#define M_AST_IMM32(a,b,c) _DEPR( M_AST_IMM32(a,b,c) )
-
-#define M_LADD_IMM32(a,b) _DEPR( M_LADD_IMM32(a,b) )
-#define M_AADD_IMM32(a,b) _DEPR( M_AADD_IMM32(a,b) )
-#define M_LSUB_IMM32(a,b) _DEPR( M_LSUB_IMM32(a,b) )
-
-#define M_ILEA(a,b,c) _DEPR( M_ILEA(a,b,c) )
-#define M_LLEA(a,b,c) _DEPR( M_LLEA(a,b,c) )
-#define M_ALEA(a,b,c) _DEPR( M_ALEA(a,b,c) )
-
-#define M_LNEG(a) _DEPR( M_LNEG(a) )
-
-#define M_IAND_IMM(a,b) _DEPR( M_IAND_IMM(a,b) )
-#define M_IOR_IMM(a,b) _DEPR( M_IOR_IMM(a,b) )
-#define M_IXOR_IMM(a,b) _DEPR( M_IXOR_IMM(a,b) )
-
-#define M_LAND(a,b) _DEPR( M_LAND(a,b) )
-#define M_LOR(a,b) _DEPR( M_LOR(a,b) )
-#define M_LXOR(a,b) _DEPR( M_LXOR(a,b) )
-
-#define M_LAND_IMM(a,b) _DEPR( M_LAND_IMM(a,b) )
-#define M_LOR_IMM(a,b) _DEPR( M_LOR_IMM(a,b) )
-#define M_LXOR_IMM(a,b) _DEPR( M_LXOR_IMM(a,b) )
-
-#define M_SSEXT(a,b) _DEPR( M_SSEXT(a,b) )
-#define M_ISEXT(a,b) _DEPR( M_ISEXT(a,b) )
-
-#define M_CZEXT(a,b) _DEPR( M_CZEXT(a,b) )
-
-#define M_ISRA_IMM(a,b) _DEPR( M_ISRA_IMM(a,b) )
-
-#define M_LSLL_IMM(a,b) _DEPR( M_LSLL_IMM(a,b) )
-#define M_LSRA_IMM(a,b) _DEPR( M_LSRA_IMM(a,b) )
-#define M_LSRL_IMM(a,b) _DEPR( M_LSRL_IMM(a,b) )
-
-#define M_LCMP(a,b) _DEPR( M_LCMP(a,b) )
-#define M_LCMP_IMM(a,b) _DEPR( M_LCMP_IMM(a,b) )
-#define M_LCMP_IMM_MEMBASE(a,b,c) _DEPR( M_LCMP_IMM_MEMBASE(a,b,c) )
-#define M_LCMP_MEMBASE(a,b,c) _DEPR( M_LCMP_MEMBASE(a,b,c) )
-
-#define M_ICMP_IMM_MEMBASE(a,b,c) _DEPR( M_ICMP_IMM_MEMBASE(a,b,c) )
-#define M_ICMP_MEMBASE(a,b,c) _DEPR( M_ICMP_MEMBASE(a,b,c) )
-
-#define M_BAE(disp) _DEPR( M_BAE(disp) )
-#define M_BA(disp) _DEPR( M_BA(disp) )
-
-#define M_CMOVEQ(a,b) _DEPR( M_CMOVEQ(a,b) )
-#define M_CMOVNE(a,b) _DEPR( M_CMOVNE(a,b) )
-#define M_CMOVLT(a,b) _DEPR( M_CMOVLT(a,b) )
-#define M_CMOVLE(a,b) _DEPR( M_CMOVLE(a,b) )
-#define M_CMOVGE(a,b) _DEPR( M_CMOVGE(a,b) )
-#define M_CMOVGT(a,b) _DEPR( M_CMOVGT(a,b) )
-
-#define M_CMOVEQ_MEMBASE(a,b,c) _DEPR( M_CMOVEQ_MEMBASE(a,b,c) )
-#define M_CMOVNE_MEMBASE(a,b,c) _DEPR( M_CMOVNE_MEMBASE(a,b,c) )
-#define M_CMOVLT_MEMBASE(a,b,c) _DEPR( M_CMOVLT_MEMBASE(a,b,c) )
-#define M_CMOVLE_MEMBASE(a,b,c) _DEPR( M_CMOVLE_MEMBASE(a,b,c) )
-#define M_CMOVGE_MEMBASE(a,b,c) _DEPR( M_CMOVGE_MEMBASE(a,b,c) )
-#define M_CMOVGT_MEMBASE(a,b,c) _DEPR( M_CMOVGT_MEMBASE(a,b,c) )
-
-#define M_CMOVB(a,b) _DEPR( M_CMOVB(a,b) )
-#define M_CMOVA(a,b) _DEPR( M_CMOVA(a,b) )
-#define M_CMOVP(a,b) _DEPR( M_CMOVP(a,b) )
-
-#define M_PUSH(a) _DEPR( M_PUSH(a) )
-#define M_PUSH_IMM(a) _DEPR( M_PUSH_IMM(a) )
-#define M_POP(a) _DEPR( M_POP(a) )
-
-#define M_JMP_IMM(a) _DEPR( M_JMP_IMM(a) )
-#define M_CALL_IMM(a) _DEPR( M_CALL_IMM(a) )
-
-#define M_FLD32(a,b,disp) _DEPR( M_FLD32(a,b,disp) )
-#define M_DLD32(a,b,disp) _DEPR( M_DLD32(a,b,disp) )
-
-#define M_FST32(a,b,disp) _DEPR( M_FST32(a,b,disp) )
-#define M_DST32(a,b,disp) _DEPR( M_DST32(a,b,disp) )
-
-
-/* system instructions ********************************************************/
-
-#define M_RDTSC _DEPR( M_RDTSC )
-
-#define M_IINC_MEMBASE(a,b) _DEPR( M_IINC_MEMBASE(a,b) )
-
-#define M_IADD_MEMBASE(a,b,c) _DEPR( M_IADD_MEMBASE(a,b,c) )
-#define M_IADC_MEMBASE(a,b,c) _DEPR( M_IADC_MEMBASE(a,b,c) )
-#define M_ISUB_MEMBASE(a,b,c) _DEPR( M_ISUB_MEMBASE(a,b,c) )
-#define M_ISBB_MEMBASE(a,b,c) _DEPR( M_ISBB_MEMBASE(a,b,c) )
-
 #define PROFILE_CYCLE_START 
-#define __PROFILE_CYCLE_START _DEPR( __PROFILE_CYCLE_START )
 
 #define PROFILE_CYCLE_STOP 
-#define __PROFILE_CYCLE_STOP _DEPR( __PROFILE_CYCLE_STOP )
-
-#endif /* _CODEGEN_H */
-
 
 s4 codegen_reg_of_dst_notzero(jitdata *jd, instruction *iptr, s4 tempregnum);
 
+#endif /* _CODEGEN_H */
 
 /*
  * These are local overrides for various environment variables in Emacs.

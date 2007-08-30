@@ -28,70 +28,19 @@
 #ifndef _ANNOTATION_H
 #define _ANNOTATION_H
 
-/* forward typedefs ***********************************************************/
-
-typedef struct annotation_bytearray_t annotation_bytearray_t;
-typedef struct annotation_t           annotation_t;
-typedef struct element_value_t        element_value_t;
-typedef struct annotation_bytearrays_t annotation_bytearrays_t;
 
 #include "config.h"
-#include "vm/types.h"
 
+#include "vm/types.h"
 #include "vm/global.h"
 
 #include "vmcore/class.h"
 #include "vmcore/field.h"
-#include "vmcore/method.h"
 #include "vmcore/loader.h"
-#include "vmcore/utf8.h"
-
-
-/* annotation_bytearray *******************************************************/
-
-struct annotation_bytearray_t {
-	uint32_t size;
-	uint8_t  data[1];
-};
-
-/* annotation_bytearrays ******************************************************/
-
-struct annotation_bytearrays_t {
-	uint32_t size;
-	annotation_bytearray_t *data[1];
-};
-
-/* annotation *****************************************************************/
-
-struct annotation_t {
-	utf             *type;
-	s4               element_valuescount;
-	element_value_t *element_values;
-};
-
-/* element_value **************************************************************/
-
-struct element_value_t {
-	utf *name;
-	u1   tag;
-};
+#include "vmcore/method.h"
 
 
 /* function prototypes ********************************************************/
-
-annotation_bytearray_t *annotation_bytearray_new(uint32_t size);
-
-void annotation_bytearray_free(annotation_bytearray_t *ba);
-
-annotation_bytearrays_t *annotation_bytearrays_new(uint32_t size);
-
-bool annotation_bytearrays_resize(annotation_bytearrays_t **bas,
-	uint32_t size);
-
-bool annotation_bytearrays_insert(annotation_bytearrays_t **bas,
-	uint32_t index, annotation_bytearray_t *ba);
-
-void annotation_bytearrays_free(annotation_bytearrays_t *bas);
 
 bool annotation_load_class_attribute_runtimevisibleannotations(
 	classbuffer *cb);

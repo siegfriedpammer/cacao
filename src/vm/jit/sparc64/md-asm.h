@@ -29,8 +29,6 @@
 
    Changes:
 
-   $Id: md-asm.h 4498 2006-02-12 23:43:09Z twisti $
-
 */
 
 #ifndef _MD_ASM_H

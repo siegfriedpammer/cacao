@@ -31,8 +31,6 @@
             Anton Ertl
 			Edwin Steiner
 
-   $Id: disass.c 5684 2006-10-05 00:06:23Z edwin $
-
 */
 
 

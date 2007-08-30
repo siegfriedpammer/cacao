@@ -28,8 +28,6 @@
 
    Changes:
 
-   $Id: gennativetable.c 6104 2006-12-02 14:54:27Z tbfg $
-
 */
 
 

@@ -27,10 +27,7 @@
 ## Authors: Christian Thalinger
 ##
 ## Changes:
-##
-## $Id: Makefile.am 4379 2006-01-28 11:24:57Z twisti $
 
-## Process this file with automake to produce Makefile.in
 
 ACLOCAL_AMFLAGS = -I m4
 

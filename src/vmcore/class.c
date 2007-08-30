@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: class.c 8343 2007-08-17 21:39:32Z michi $
-
 */
 
 
@@ -140,7 +138,9 @@ classinfo *arrayclass_java_lang_Object;
 
 #if defined(ENABLE_ANNOTATIONS)
 classinfo *class_sun_reflect_ConstantPool;
+#if defined(WITH_CLASSPATH_GNU)
 classinfo *class_sun_reflect_annotation_AnnotationParser;
+#endif
 #endif
 #endif
 
@@ -298,7 +298,7 @@ void class_postset_header_vftbl(void)
 
 *******************************************************************************/
 
-classinfo *class_define(utf *name, classloader *cl, int32_t length, const uint8_t *data)
+classinfo *class_define(utf *name, classloader *cl, int32_t length, const uint8_t *data, java_handle_t *pd)
 {
 	classinfo   *c;
 	classinfo   *r;
@@ -363,6 +363,14 @@ classinfo *class_define(utf *name, classloader *cl, int32_t length, const uint8_
 
 		return NULL;
 	}
+
+#if defined(ENABLE_JAVASE)
+# if defined(WITH_CLASSPATH_SUN)
+	/* Store the protection domain. */
+
+	c->protectiondomain = pd;
+# endif
+#endif
 
 	/* Store the newly defined class in the class cache. This call
 	   also checks whether a class of the same name has already been
@@ -1537,11 +1545,12 @@ static classinfo *class_resolve_superclass(classinfo *c)
 	if (c->super.any == NULL)
 		return NULL;
 
-	/* Do we have a super class reference or is it already
-	   resolved? */
+	/* Check if the super class is a reference. */
 
 	if (IS_CLASSREF(c->super)) {
+		/* XXX I'm very sure this is not correct. */
 		super = resolve_classref_or_classinfo_eager(c->super, true);
+/* 		super = resolve_classref_or_classinfo_eager(c->super, false); */
 
 		if (super == NULL)
 			return NULL;
@@ -1570,7 +1579,13 @@ bool class_issubclass(classinfo *sub, classinfo *super)
 		if (sub == super)
 			return true;
 
-		sub = class_resolve_superclass(sub);
+/* 		sub = class_resolve_superclass(sub); */
+		if (sub->super.any == NULL)
+			return false;
+
+		assert(IS_CLASSREF(sub->super) == 0);
+
+		sub = sub->super.cls;
 	}
 }
 
@@ -1973,6 +1988,23 @@ java_handle_objectarray_t *class_get_interfaces(classinfo *c)
 	}
 
 	return oa;
+}
+
+
+/* class_get_annotations *******************************************************
+
+   Return the unparsed declared annotations in an byte array
+   of the given class (or NULL if there aren't any).
+
+*******************************************************************************/
+
+java_handle_bytearray_t *class_get_annotations(classinfo *c)
+{
+#if defined(ENABLE_ANNOTATIONS)
+	return c->annotations;
+#else
+	return NULL;
+#endif
 }
 
 

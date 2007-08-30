@@ -26,10 +26,7 @@ Contact: cacao@cacaojvm.org
 
 Authors: Martin Platter
 
-Changes: 
-
-
-$Id: gnu_classpath_jdwp_VMFrame.c 6213 2006-12-18 17:36:06Z twisti $
+Changes:
 
 */
 

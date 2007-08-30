@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: emit.c 8321 2007-08-16 11:37:25Z michi $
-
 */
 
 #include "config.h"
@@ -161,48 +159,57 @@ void emit_copy(jitdata *jd, instruction *iptr)
 			return;
 		}
 
-		/* If one of the variables resides in memory, we can eliminate
-		   the register move from/to the temporary register with the
-		   order of getting the destination register and the load. */
-
-		if (IS_INMEMORY(src->flags)) {
-			if (IS_FLT_DBL_TYPE(dst->type)) {
-				d = codegen_reg_of_var(iptr->opc, dst, REG_FTMP1);
+		if (IS_INMEMORY(src->flags) && IS_INMEMORY(dst->flags)) {
+			if (IS_2_WORD_TYPE(src->type)) {
+				N_MVC(dst->vv.regoff, 8, REG_SP, src->vv.regoff, REG_SP);
 			} else {
-				if (IS_2_WORD_TYPE(dst->type)) {
-					d = codegen_reg_of_var(iptr->opc, dst, REG_ITMP12_PACKED);
+				N_MVC(dst->vv.regoff, 4, REG_SP, src->vv.regoff, REG_SP);
+			}
+		} else {
+
+			/* If one of the variables resides in memory, we can eliminate
+			   the register move from/to the temporary register with the
+			   order of getting the destination register and the load. */
+
+			if (IS_INMEMORY(src->flags)) {
+				if (IS_FLT_DBL_TYPE(dst->type)) {
+					d = codegen_reg_of_var(iptr->opc, dst, REG_FTMP1);
 				} else {
-					d = codegen_reg_of_var(iptr->opc, dst, REG_ITMP1);
+					if (IS_2_WORD_TYPE(dst->type)) {
+						d = codegen_reg_of_var(iptr->opc, dst, REG_ITMP12_PACKED);
+					} else {
+						d = codegen_reg_of_var(iptr->opc, dst, REG_ITMP1);
+					}
+				}
+				s1 = emit_load(jd, iptr, src, d);
+			}
+			else {
+				if (IS_FLT_DBL_TYPE(src->type)) {
+					s1 = emit_load(jd, iptr, src, REG_FTMP1);
+				} else {
+					if (IS_2_WORD_TYPE(src->type)) {
+						s1 = emit_load(jd, iptr, src, REG_ITMP12_PACKED);
+					} else {
+						s1 = emit_load(jd, iptr, src, REG_ITMP1);
+					}
+				}
+				d = codegen_reg_of_var(iptr->opc, dst, s1);
+			}
+
+			if (s1 != d) {
+				if (IS_FLT_DBL_TYPE(src->type)) {
+					M_FMOV(s1, d);
+				} else {
+					if (IS_2_WORD_TYPE(src->type)) {
+						M_LNGMOVE(s1, d);
+					} else {
+						M_MOV(s1, d);
+					}
 				}
 			}
-			s1 = emit_load(jd, iptr, src, d);
-		}
-		else {
-			if (IS_FLT_DBL_TYPE(src->type)) {
-				s1 = emit_load(jd, iptr, src, REG_FTMP1);
-			} else {
-				if (IS_2_WORD_TYPE(src->type)) {
-					s1 = emit_load(jd, iptr, src, REG_ITMP12_PACKED);
-				} else {
-					s1 = emit_load(jd, iptr, src, REG_ITMP1);
-				}
-			}
-			d = codegen_reg_of_var(iptr->opc, dst, s1);
-		}
 
-		if (s1 != d) {
-			if (IS_FLT_DBL_TYPE(src->type)) {
-				M_FMOV(s1, d);
-			} else {
-				if (IS_2_WORD_TYPE(src->type)) {
-					M_LNGMOVE(s1, d);
-				} else {
-					M_MOV(s1, d);
-				}
-			}
+			emit_store(jd, iptr, dst, d);
 		}
-
-		emit_store(jd, iptr, dst, d);
 	}
 }
 
@@ -252,7 +259,7 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	/* allocate stack frame */
 
-	stackframesize = 96 + (ARG_CNT * 8);
+	stackframesize = 96 + (ARG_CNT * 8) + (TMP_CNT * 8);
 	M_ASUB_IMM(stackframesize, REG_SP);
 
 	/* store argument registers in array */
@@ -270,6 +277,18 @@ void emit_verbosecall_enter(jitdata *jd)
 		M_DST(abi_registers_float_argument[i], REG_SP, off);
 	}
 	
+	/* save temporary registers for leaf methods */
+
+	if (jd->isleafmethod) {
+		for (i = 0; i < INT_TMP_CNT; ++i, off += 8) {
+			M_IST(abi_registers_integer_temporary[i], REG_SP, off);
+		}
+
+		for (i = 0; i < FLT_TMP_CNT; ++i, off += 8) {
+			M_DST(abi_registers_float_temporary[i], REG_SP, off);
+		}
+	}
+
 	/* load arguments for trace_java_call_enter */
 
 	/* methodinfo */
@@ -296,6 +315,18 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	for (i = 0; i < FLT_ARG_CNT; ++i, off += 8) {
 		M_DLD(abi_registers_float_argument[i], REG_SP, off);
+	}
+
+	/* restore temporary registers for leaf methods */
+
+	if (jd->isleafmethod) {
+		for (i = 0; i < INT_TMP_CNT; ++i, off += 8) {
+			M_ILD(abi_registers_integer_temporary[i], REG_SP, off);
+		}
+
+		for (i = 0; i < FLT_TMP_CNT; ++i, off += 8) {
+			M_DLD(abi_registers_float_temporary[i], REG_SP, off);
+		}
 	}
 
 	/* remove stack frame */

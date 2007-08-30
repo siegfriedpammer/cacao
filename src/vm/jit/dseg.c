@@ -30,7 +30,6 @@
             Joseph Wenninger
             Edwin Steiner
 
-   $Id: dseg.c 8298 2007-08-12 18:49:16Z pm $
 
 */
 

@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: list.c 7915 2007-05-18 14:22:19Z twisti $
-
 */
 
 

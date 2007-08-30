@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: linker.c 8042 2007-06-07 17:43:29Z twisti $
-
 */
 
 
@@ -192,7 +190,8 @@ int primitive_type_get_by_wrapperclass(classinfo *c)
 
 /* primitive_box ***************************************************************
 
-   Box a primitive of the given type.
+   Box a primitive of the given type.  If the type is an object,
+   simply return it.
 
 *******************************************************************************/
 
@@ -225,6 +224,9 @@ java_handle_t *primitive_box(int type, imm_union value)
 	case PRIMITIVETYPE_DOUBLE:
 		o = primitive_box_double(value.d);
 		break;
+	case PRIMITIVETYPE_VOID:
+		o = value.a;
+		break;
 	default:
 		vm_abort("primitive_box: invalid primitive type %d", type);
 	}
@@ -235,7 +237,8 @@ java_handle_t *primitive_box(int type, imm_union value)
 
 /* primitive_unbox *************************************************************
 
-   Unbox a primitive of the given type.
+   Unbox a primitive of the given type.  If the type is an object,
+   simply return it.
 
 *******************************************************************************/
 
@@ -273,6 +276,11 @@ imm_union primitive_unbox(java_handle_t *o)
 		break;
 	case PRIMITIVETYPE_DOUBLE:
 		value.d = primitive_unbox_double(o);
+		break;
+	case -1:
+		/* If type is -1 the object is not a primitive box but a
+		   normal object. */
+		value.a = o;
 		break;
 	default:
 		vm_abort("primitive_unbox: invalid primitive type %d", type);

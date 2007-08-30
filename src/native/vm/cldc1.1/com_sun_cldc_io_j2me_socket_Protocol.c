@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: java_lang_VMRuntime.c 5900 2006-11-04 17:30:44Z michi $
-
 */
 
 
@@ -40,6 +38,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/com_sun_cldc_io_j2me_socket_Protocol.h"
@@ -82,7 +81,7 @@ void _Jv_com_sun_cldc_io_j2me_socket_Protocol_init(void)
  * Method:    open0
  * Signature: ([BII)I
  */
-JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_open0(JNIEnv *env, jclass clazz, java_bytearray *hostname, s4 port, s4 mode)
+JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_open0(JNIEnv *env, jclass clazz, java_handle_bytearray_t *hostname, s4 port, s4 mode)
 {
 	struct hostent *phostent;
     struct sockaddr_in serv_addr;
@@ -92,7 +91,7 @@ JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_open0(JNIEnv *env
 
 	/* The hostname byte-array is a NULL terminated C-string. */
 
-	name = (char *) &(hostname->data);
+	name = (char *) &(LLNI_array_data(hostname));
 
 	/* get the host */
 
@@ -131,14 +130,14 @@ JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_open0(JNIEnv *env
  * Method:    readBuf
  * Signature: (I[BII)I
  */
-JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf(JNIEnv *env, jclass clazz, s4 handle, java_bytearray *b, s4 off, s4 len)
+JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf(JNIEnv *env, jclass clazz, s4 handle, java_handle_bytearray_t *b, s4 off, s4 len)
 {
 	void    *buf;
 	ssize_t  result;
 
 	/* get pointer to the buffer */
 
-	buf = &(b->data[off]);
+	buf = &(LLNI_array_direct(b, off));
 
 	/* receive from the socket */
 
@@ -191,14 +190,14 @@ JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_readByte(JNIEnv *
  * Method:    writeBuf
  * Signature: (I[BII)I
  */
-JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_writeBuf(JNIEnv *env, jclass clazz, s4 handle, java_bytearray* b, s4 off, s4 len) {
+JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_writeBuf(JNIEnv *env, jclass clazz, s4 handle, java_handle_bytearray_t * b, s4 off, s4 len) {
 
 	void    *buf;
 	ssize_t  result;
 
 	/* get pointer to the buffer */
 
-	buf = &(b->data[off]);
+	buf = &(LLNI_array_direct(b, off));
 	
 	/* send the given byte to the socket */
 

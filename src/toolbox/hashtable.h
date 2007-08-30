@@ -27,8 +27,6 @@
    Authors: Reinhard Grafl
             Christian Thalinger
 
-   $Id: hashtable.h 8295 2007-08-11 17:57:24Z michi $
-
 */
 
 

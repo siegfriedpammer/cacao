@@ -29,8 +29,6 @@
 
    Changes: Christian Thalinger
 
-   $Id: codegen.h 4826 2006-04-24 16:06:16Z twisti $
-
 */
 
 

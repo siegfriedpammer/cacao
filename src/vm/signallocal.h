@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: signallocal.h 8321 2007-08-16 11:37:25Z michi $
-
 */
 
 
@@ -42,6 +40,7 @@
 bool  signal_init(void);
 void  signal_register_signal(int signum, functionptr handler, int flags);
 void *signal_handle(void *xpc, int type, intptr_t val);
+void  signal_thread_handler(int sig);
 bool  signal_start_thread(void);
 
 /* machine dependent signal handler */

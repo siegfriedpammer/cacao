@@ -26,7 +26,6 @@
 
    Authors: Edwin Steiner
 
-   $Id$
 
 */
 

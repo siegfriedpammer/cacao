@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: codegen.c 8318 2007-08-16 10:05:34Z michi $
-
 */
 
 
@@ -598,6 +596,16 @@ bool codegen_emit(jitdata *jd)
 				} else {
 					disp = dseg_add_unique_address(cd, iptr->sx.val.anyptr);
 					M_ALD_DSEG(d, disp);
+					/*
+					if (((u4)(iptr->sx.val.anyptr) & 0x00008000) == 0) {
+						N_LHI(d, ((u4)(iptr->sx.val.anyptr) >> 16) & 0xFFFF);
+						M_SLL_IMM(16, d);
+						N_AHI(d, (u4)(iptr->sx.val.anyptr) & 0xFFFF);
+					} else {
+						disp = dseg_add_unique_address(cd, iptr->sx.val.anyptr);
+						M_ALD_DSEG(d, disp);
+					}
+					*/
 				}
 			}
 			emit_store_dst(jd, iptr, d);
@@ -2659,7 +2667,6 @@ nowperformreturn:
 			PROFILE_CYCLE_STOP;
 
 			M_RET;
-			ALIGNCODENOP;
 			}
 			break;
 

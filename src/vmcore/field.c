@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: field.c 8343 2007-08-17 21:39:32Z michi $
-
 */
 
 
@@ -37,8 +35,7 @@
 
 #include "vm/types.h"
 
-#include "mm/memory.h"
-
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -397,23 +394,18 @@ java_handle_bytearray_t *field_get_annotations(fieldinfo *f)
 #if defined(ENABLE_ANNOTATIONS)
 	classinfo               *c;
 	int                      slot;
-	annotation_bytearray_t  *ba;
 	java_handle_bytearray_t *annotations;
+	java_handle_t           *a;
 
 	c           = f->class;
 	slot        = f - c->fields;
 	annotations = NULL;
+	a           = (java_handle_t*)c->field_annotations;
 	
-	if (c->field_annotations != NULL && c->field_annotations->size > slot) {
-		ba = c->field_annotations->data[slot];
-		
-		if (ba != NULL) {
-			annotations = builtin_newarray_byte(ba->size);
-			
-			if (annotations != NULL) {
-				MCOPY(annotations->data, ba->data, uint8_t, ba->size);
-			}
-		}
+	if (c->field_annotations != NULL && array_length_get(a) > slot) {
+		annotations = (java_handle_bytearray_t*)
+			array_objectarray_element_get(
+				c->field_annotations, slot);
 	}
 	
 	return annotations;

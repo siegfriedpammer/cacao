@@ -22,7 +22,7 @@ dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 dnl 
-dnl $Id: classpath.m4 8299 2007-08-13 08:41:18Z michi $
+dnl $Id: classpath.m4 8398 2007-08-22 16:56:45Z twisti $
 
 
 dnl which Java core library should we use
@@ -104,9 +104,19 @@ dnl where are Java core library native libraries installed
 AC_DEFUN([AC_CHECK_WITH_CLASSPATH_LIBDIR],[
 AC_MSG_CHECKING(where Java core library native libraries are installed)
 AC_ARG_WITH([classpath-libdir],
-            [AS_HELP_STRING(--with-classpath-libdir=<dir>,installation directory of Java core library native libraries [[default=CLASSPATH_PREFIX/lib]])],
+            [AS_HELP_STRING(--with-classpath-libdir=<dir>,installation directory of Java core library native libraries [[default=CLASSPATH_PREFIX/{lib,lib/${JAVA_ARCH}]])],
             [CLASSPATH_LIBDIR=${withval}],
-            [CLASSPATH_LIBDIR=${CLASSPATH_PREFIX}/lib])
+            [case "${WITH_CLASSPATH}" in
+                 gnu)
+                     CLASSPATH_LIBDIR=${CLASSPATH_PREFIX}/lib
+                     ;;
+                 sun)
+                     CLASSPATH_LIBDIR=${CLASSPATH_PREFIX}/lib/${JAVA_ARCH}
+                     ;;
+                 *)
+                     CLASSPATH_LIBDIR=${CLASSPATH_PREFIX}
+                     ;;
+             esac])
 AC_MSG_RESULT(${CLASSPATH_LIBDIR})
 
 dnl expand CLASSPATH_LIBDIR to something that is usable in C code

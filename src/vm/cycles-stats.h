@@ -28,8 +28,6 @@
 
    Changes:
 
-   $Id$
-
 */
 
 #ifndef _CYCLES_STATS_H

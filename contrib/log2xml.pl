@@ -17,7 +17,7 @@
 # You may want to edit the opt_ignore options below.
 #
 # Author  : Edwin Steiner
-# Revision: $Id: log2xml.pl 2308 2005-04-15 09:33:34Z edwin $
+# Revision:
 #
 # $Log$
 # Revision 1.5  2005/04/15 09:33:34  edwin

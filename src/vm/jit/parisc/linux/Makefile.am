@@ -25,10 +25,7 @@
 ## Contact: cacao@cacaojvm.org
 ##
 ## Authors: Christian Thalinger
-##
-## $Id: Makefile.am 4563 2006-03-06 13:03:05Z twisti $
 
-## Process this file with automake to produce Makefile.in
 
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)
 

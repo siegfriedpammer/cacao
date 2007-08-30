@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: method.c 8343 2007-08-17 21:39:32Z michi $
-
 */
 
 
@@ -41,6 +39,7 @@
 
 #include "threads/lock-common.h"
 
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -787,23 +786,17 @@ java_handle_bytearray_t *method_get_annotations(methodinfo *m)
 #if defined(ENABLE_ANNOTATIONS)
 	classinfo               *c;
 	int                      slot;
-	annotation_bytearray_t  *ba;
 	java_handle_bytearray_t *annotations;
+	java_handle_t           *a;
 
 	c           = m->class;
 	slot        = m - c->methods;
 	annotations = NULL;
+	a           = (java_handle_t*)c->method_annotations;
 	
-	if (c->method_annotations != NULL && c->method_annotations->size > slot) {
-		ba = c->method_annotations->data[slot];
-		
-		if (ba != NULL) {
-			annotations = builtin_newarray_byte(ba->size);
-			
-			if (annotations != NULL) {
-				MCOPY(annotations->data, ba->data, uint8_t, ba->size);
-			}
-		}
+	if (c->method_annotations != NULL && array_length_get(a) > slot) {
+		annotations = (java_handle_bytearray_t*)array_objectarray_element_get(
+			c->method_annotations, slot);
 	}
 	
 	return annotations;
@@ -824,24 +817,18 @@ java_handle_bytearray_t *method_get_parameterannotations(methodinfo *m)
 #if defined(ENABLE_ANNOTATIONS)
 	classinfo               *c;
 	int                      slot;
-	annotation_bytearray_t  *ba;
 	java_handle_bytearray_t *parameterAnnotations;
+	java_handle_t           *a;
 
 	c                    = m->class;
 	slot                 = m - c->methods;
 	parameterAnnotations = NULL;
+	a                    = (java_handle_t*)c->method_parameterannotations;
 
-	if (c->method_parameterannotations != NULL &&
-		c->method_parameterannotations->size > slot) {
-		ba = c->method_parameterannotations->data[slot];
-		
-		if (ba != NULL) {
-			parameterAnnotations = builtin_newarray_byte(ba->size);
-			
-			if (parameterAnnotations != NULL) {
-				MCOPY(parameterAnnotations->data, ba->data, uint8_t, ba->size);
-			}
-		}
+	if (c->method_parameterannotations != NULL && array_length_get(a) > slot) {
+		parameterAnnotations =
+			(java_handle_bytearray_t*)array_objectarray_element_get(
+				c->method_parameterannotations, slot);
 	}
 	
 	return parameterAnnotations;
@@ -862,24 +849,18 @@ java_handle_bytearray_t *method_get_annotationdefault(methodinfo *m)
 #if defined(ENABLE_ANNOTATIONS)
 	classinfo               *c;
 	int                      slot;
-	annotation_bytearray_t  *ba;
 	java_handle_bytearray_t *annotationDefault;
+	java_handle_t           *a;
 
 	c                 = m->class;
 	slot              = m - c->methods;
 	annotationDefault = NULL;
+	a                 = (java_handle_t*)c->method_annotationdefaults;
 
-	if (c->method_annotationdefaults != NULL &&
-		c->method_annotationdefaults->size > slot) {
-		ba = c->method_annotationdefaults->data[slot];
-		
-		if (ba != NULL) {
-			annotationDefault = builtin_newarray_byte(ba->size);
-			
-			if (annotationDefault != NULL) {
-				MCOPY(annotationDefault->data, ba->data, uint8_t, ba->size);
-			}
-		}
+	if (c->method_annotationdefaults != NULL && array_length_get(a) > slot) {
+		annotationDefault = 
+			(java_handle_bytearray_t*)array_objectarray_element_get(
+				c->method_annotationdefaults, slot);
 	}
 	
 	return annotationDefault;

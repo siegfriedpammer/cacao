@@ -32,7 +32,6 @@
    algorithm that uses dominator trees (found eg. in modern compiler
    implementation by a.w. appel)
 
-   $Id: loop.c 4699 2006-03-28 14:52:32Z twisti $
 
 */
 

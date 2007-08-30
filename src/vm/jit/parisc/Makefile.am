@@ -25,10 +25,7 @@
 ## Contact: cacao@cacaojvm.org
 ##
 ## Authors: Christian Thalinger
-##
-## $Id: Makefile.am 4826 2006-04-24 16:06:16Z twisti $
 
-## Process this file with automake to produce Makefile.in
 
 DIST_SUBDIRS = \
 	linux

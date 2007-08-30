@@ -22,8 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   $Id: classcache.h 7399 2007-02-23 23:29:13Z michi $
-
 */
 
 
@@ -53,7 +51,6 @@
 typedef struct classcache_name_entry classcache_name_entry;
 typedef struct classcache_class_entry classcache_class_entry;
 typedef struct classcache_loader_entry classcache_loader_entry;
-
 
 /* global variables ***********************************************************/
 
