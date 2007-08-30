@@ -77,14 +77,17 @@ static JNINativeMethod methods[] = {
 	{ "getChar",                "(Ljava/lang/Object;J)C",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getChar__Ljava_lang_Object_2J  },
 	{ "putChar",                "(Ljava/lang/Object;JC)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putChar__Ljava_lang_Object_2JC },
 	{ "getLong",                "(Ljava/lang/Object;J)J",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getLong__Ljava_lang_Object_2J  },
+	{ "getFloat",               "(Ljava/lang/Object;J)F",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getFloat__Ljava_lang_Object_2J },
 	{ "putFloat",               "(Ljava/lang/Object;JF)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putFloat__Ljava_lang_Object_2JF },
 	{ "getByte",                "(J)B",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getByte__J                     },
 	{ "putByte",                "(JB)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_putByte__JB                    },
+	{ "getShort",               "(J)S",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getShort__J                    },
 	{ "putShort",               "(JS)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_putShort__JS                   },
 	{ "getInt",                 "(J)I",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getInt__J                      },
 	{ "putInt",                 "(JI)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_putInt__JI                     },
 	{ "getLong",                "(J)J",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getLong__J                     },
 	{ "putLong",                "(JJ)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_putLong__JJ                    },
+	{ "getFloat",               "(J)F",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getFloat__J                    },
 	{ "objectFieldOffset",      "(Ljava/lang/reflect/Field;)J",                               (void *) (intptr_t) &Java_sun_misc_Unsafe_objectFieldOffset              },
 	{ "allocateMemory",         "(J)J",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_allocateMemory                 },
 	{ "setMemory",              "(Ljava/lang/Object;JJB)V",                                   (void *) (intptr_t) &Java_sun_misc_Unsafe_setMemory                      },
@@ -339,6 +342,24 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_getLong__Ljava_lang_Object_2J(JNI
 
 /*
  * Class:     sun/misc/Unsafe
+ * Method:    getFloat
+ * Signature: (Ljava/lang/Object;J)F
+ */
+JNIEXPORT float JNICALL Java_sun_misc_Unsafe_getFloat__Ljava_lang_Object_2J(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset)
+{
+	float *p;
+	float  value;
+
+	p = (float *) (((uint8_t *) o) + offset);
+
+	value = *p;
+
+	return value;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
  * Method:    putFloat
  * Signature: (Ljava/lang/Object;JF)V
  */
@@ -382,6 +403,24 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putByte__JB(JNIEnv *env, sun_misc_Un
 	p = (int8_t *) (intptr_t) address;
 
 	*p = (int8_t) value;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    getShort
+ * Signature: (J)S
+ */
+JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getShort__J(JNIEnv *env, sun_misc_Unsafe *this, int64_t address)
+{
+	int16_t *p;
+	int16_t  value;
+
+	p = (int16_t *) (intptr_t) address;
+
+	value = *p;
+
+	return (int32_t) value;
 }
 
 
@@ -463,6 +502,24 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLong__JJ(JNIEnv *env, sun_misc_Un
 	p = (int64_t *) (intptr_t) address;
 
 	*p = value;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    getFloat
+ * Signature: (J)F
+ */
+JNIEXPORT float JNICALL Java_sun_misc_Unsafe_getFloat__J(JNIEnv *env, sun_misc_Unsafe *this, int64_t address)
+{
+	float *p;
+	float  value;
+
+	p = (float *) (intptr_t) address;
+
+	value = *p;
+
+	return value;
 }
 
 
