@@ -76,14 +76,18 @@ static JNINativeMethod methods[] = {
 	{ "putShort",               "(Ljava/lang/Object;JS)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putShort__Ljava_lang_Object_2JS },
 	{ "getChar",                "(Ljava/lang/Object;J)C",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getChar__Ljava_lang_Object_2J  },
 	{ "putChar",                "(Ljava/lang/Object;JC)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putChar__Ljava_lang_Object_2JC },
+	{ "getLong",                "(Ljava/lang/Object;J)J",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getLong__Ljava_lang_Object_2J  },
 	{ "putFloat",               "(Ljava/lang/Object;JF)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putFloat__Ljava_lang_Object_2JF },
 	{ "getByte",                "(J)B",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getByte__J                     },
+	{ "putByte",                "(JB)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_putByte__JB                    },
+	{ "putShort",               "(JS)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_putShort__JS                   },
 	{ "getInt",                 "(J)I",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getInt__J                      },
 	{ "putInt",                 "(JI)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_putInt__JI                     },
 	{ "getLong",                "(J)J",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getLong__J                     },
 	{ "putLong",                "(JJ)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_putLong__JJ                    },
 	{ "objectFieldOffset",      "(Ljava/lang/reflect/Field;)J",                               (void *) (intptr_t) &Java_sun_misc_Unsafe_objectFieldOffset              },
 	{ "allocateMemory",         "(J)J",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_allocateMemory                 },
+	{ "setMemory",              "(Ljava/lang/Object;JJB)V",                                   (void *) (intptr_t) &Java_sun_misc_Unsafe_setMemory                      },
 	{ "freeMemory",             "(J)V",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_freeMemory                     },
 	{ "staticFieldOffset",      "(Ljava/lang/reflect/Field;)J",                               (void *) (intptr_t) &Java_sun_misc_Unsafe_staticFieldOffset              },
 	{ "staticFieldBase",        "(Ljava/lang/reflect/Field;)Ljava/lang/Object;",              (void *) (intptr_t) &Java_sun_misc_Unsafe_staticFieldBase                },
@@ -317,6 +321,24 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putChar__Ljava_lang_Object_2JC(JNIEn
 
 /*
  * Class:     sun/misc/Unsafe
+ * Method:    getLong
+ * Signature: (Ljava/lang/Object;J)J
+ */
+JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_getLong__Ljava_lang_Object_2J(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset)
+{
+	int64_t *p;
+	int64_t  value;
+
+	p = (int64_t *) (((uint8_t *) o) + offset);
+
+	value = *p;
+
+	return value;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
  * Method:    putFloat
  * Signature: (Ljava/lang/Object;JF)V
  */
@@ -345,6 +367,36 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getByte__J(JNIEnv *env, sun_misc_
 	value = *p;
 
 	return (int32_t) value;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    putByte
+ * Signature: (JB)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putByte__JB(JNIEnv *env, sun_misc_Unsafe *this, int64_t address, int32_t value)
+{
+	int8_t *p;
+
+	p = (int8_t *) (intptr_t) address;
+
+	*p = (int8_t) value;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    putShort
+ * Signature: (JS)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putShort__JS(JNIEnv *env, sun_misc_Unsafe *this, int64_t address, int32_t value)
+{
+	int16_t *p;
+
+	p = (int16_t *) (intptr_t) address;
+
+	*p = (int16_t) value;
 }
 
 
@@ -419,7 +471,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLong__JJ(JNIEnv *env, sun_misc_Un
  * Method:    objectFieldOffset
  * Signature: (Ljava/lang/reflect/Field;)J
  */
-JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_objectFieldOffset(JNIEnv *env, sun_misc_Unsafe* this, java_lang_reflect_Field* field)
+JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_objectFieldOffset(JNIEnv *env, sun_misc_Unsafe *this, java_lang_reflect_Field *field)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -427,6 +479,7 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_objectFieldOffset(JNIEnv *env, su
 
 	LLNI_field_get_cls(field, clazz, c);
 	LLNI_field_get_val(field, slot , slot);
+
 	f = &c->fields[slot];
 
 	return (int64_t) f->offset;
@@ -453,6 +506,33 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_allocateMemory(JNIEnv *env, sun_m
 	p = MNEW(uint8_t, length);
 
 	return (int64_t) (intptr_t) p;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    setMemory
+ * Signature: (Ljava/lang/Object;JJB)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset, int64_t bytes, int32_t value)
+{
+	size_t  length;
+	void   *p;
+
+	length = (size_t) bytes;
+
+	if ((length != (uint64_t) bytes) || (bytes < 0)) {
+		exceptions_throw_illegalargumentexception();
+		return;
+	}
+
+	/* XXX Missing LLNI: we need to unwrap this object. */
+
+	p = (void *) (((uint8_t *) o) + offset);
+
+	/* XXX Not sure this is correct. */
+
+	MSET(p, value, uint8_t, length);
 }
 
 
