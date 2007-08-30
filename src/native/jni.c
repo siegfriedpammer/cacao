@@ -968,7 +968,7 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 	u  = utf_new_char(name);
 	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
-	c = class_define(u, cl, bufLen, (const uint8_t *) buf);
+	c = class_define(u, cl, bufLen, (const uint8_t *) buf, NULL);
 
 	co = LLNI_classinfo_wrap(c);
 
@@ -1673,6 +1673,7 @@ jfieldID _Jv_JNI_FromReflectedField(JNIEnv* env, jobject field)
 
 jobject _Jv_JNI_ToReflectedMethod(JNIEnv* env, jclass cls, jmethodID methodID,
 								  jboolean isStatic)
+{
 #if defined(ENABLE_JAVASE)
 	methodinfo                    *m;
 	java_lang_reflect_Constructor *rc;

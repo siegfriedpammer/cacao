@@ -129,10 +129,10 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 	/* check if the JVMTI wants to modify the class */
 
 	if (new_class_data == NULL)
-		c = class_define(utfname, loader, new_class_data_len, new_class_data); 
+		c = class_define(utfname, loader, new_class_data_len, new_class_data, pd); 
 	else
 #endif
-		c = class_define(utfname, loader, len, (const uint8_t *) &LLNI_array_direct(data, offset));
+		c = class_define(utfname, loader, len, (const uint8_t *) &LLNI_array_direct(data, offset), pd);
 
 	if (c == NULL)
 		return NULL;

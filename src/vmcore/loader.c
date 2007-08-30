@@ -245,7 +245,7 @@ void loader_init(void)
 
 	if (!(arrayclass_java_lang_Object =
 		  load_class_bootstrap(utf_new_char("[Ljava/lang/Object;"))))
-		return false;
+		vm_abort("loader_init: loading failed");
 
 # if defined(ENABLE_ANNOTATIONS)
 	/* needed by annotation support */
@@ -261,9 +261,6 @@ void loader_init(void)
 #  endif
 # endif
 #endif
-
-
-	return true;
 }
 
 
@@ -1140,7 +1137,7 @@ classinfo *load_class_from_classloader(utf *name, classloader *cl)
 									  NULL,
 									  true);
 #else
-		lc = class_resolveclassmethod(cl->vftbl->class,
+		lc = class_resolveclassmethod(cl->object->vftbl->class,
 									  utf_loadClass,
 									  utf_java_lang_String__java_lang_Class,
 									  NULL,
