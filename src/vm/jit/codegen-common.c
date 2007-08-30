@@ -1447,12 +1447,6 @@ void codegen_stub_builtin_enter(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 	/* add a stackframeinfo to the chain */
 
 	stacktrace_create_native_stackframeinfo(sfi, pv, sp, ra);
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-	/* set the native world flag */
-
-	THREADOBJECT->flags |= THREAD_FLAG_IN_NATIVE;
-#endif
 }
 
 
@@ -1476,12 +1470,6 @@ void codegen_stub_builtin_exit(u1 *datasp)
 	psfi = &STACKFRAMEINFO;
 
 	*psfi = sfi->prev;
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-	/* clear the native world flag */
-
-	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
-#endif
 }
 
 
@@ -1534,12 +1522,6 @@ void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 
 	localref_table_add(lrt);
 #endif
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-	/* set the native world flag */
-
-	THREADOBJECT->flags |= THREAD_FLAG_IN_NATIVE;
-#endif
 }
 
 
@@ -1560,12 +1542,6 @@ java_object_t *codegen_finish_native_call(u1 *datasp)
 	/* get data structures from stack */
 
 	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-	/* clear the native world flag */
-
-	THREADOBJECT->flags &= ~THREAD_FLAG_IN_NATIVE;
-#endif
 
 	/* remove current stackframeinfo from chain */
 

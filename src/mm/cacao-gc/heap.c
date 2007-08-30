@@ -236,6 +236,12 @@ static java_object_t *heap_alloc_intern(u4 bytelength, regioninfo_t *region, boo
 	GC_ASSERT(region);
 	GC_ASSERT(bytelength >= sizeof(java_object_t));
 
+#if !defined(NDEBUG) && defined(ENABLE_THREADS)
+	/* check the current VM state for sanity */
+	GC_ASSERT(!THREADOBJECT->gc_critical);
+	GC_ASSERT(THREADOBJECT->flags & THREAD_FLAG_IN_NATIVE);
+#endif
+
 	/* align objects in memory */
 	bytelength = GC_ALIGN(bytelength, GC_ALIGN_SIZE);
 
