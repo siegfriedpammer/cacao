@@ -32,6 +32,7 @@
 
 
 #include <stdio.h>
+#include <string.h>
 
 #include "config.h"
 #include "native/jni.h"
@@ -47,7 +48,69 @@ JNIEXPORT jboolean JNICALL Java_checkjni_IsInstanceOf(JNIEnv *env, jclass clazz,
   return (*env)->IsInstanceOf(env, obj, c);
 }
 
+JNIEXPORT jboolean JNICALL Java_checkjni_IsSameObject(JNIEnv *env, jclass clazz, jobject obj1, jobject obj2)
+{
+  return (*env)->IsSameObject(env, obj1, obj2);
+}
+
 JNIEXPORT jint     JNICALL Java_checkjni_PushLocalFrame(JNIEnv *env, jclass clazz, jint capacity)
 {
   return (*env)->PushLocalFrame(env, capacity);
 }
+
+JNIEXPORT void     JNICALL Java_checkjni_Throw(JNIEnv *env, jclass clazz)
+{
+	jclass c = (*env)->FindClass(env, "java/lang/Exception");
+	(*env)->ThrowNew(env, c, "Exception from JNI");
+}
+
+JNIEXPORT jclass   JNICALL Java_checkjni_GetObjectClass(JNIEnv *env, jclass clazz, jobject obj)
+{
+	return (*env)->GetObjectClass(env, obj);
+}
+
+#define CHECKJNI_GET_STATIC_FIELD(type, name, fieldname, sig) \
+JNIEXPORT type     JNICALL Java_checkjni_GetStatic##name##Field(JNIEnv *env, jclass clazz) \
+{ \
+	jfieldID id = (*env)->GetStaticFieldID(env, clazz, fieldname, sig); \
+	if ((*env)->ExceptionCheck(env)) return 0; \
+	return (*env)->GetStatic##name##Field(env, clazz, id); \
+}
+CHECKJNI_GET_STATIC_FIELD(jint,    Int,    "jsfI", "I")
+CHECKJNI_GET_STATIC_FIELD(jobject, Object, "jsfL", "Ljava/lang/Object;")
+
+#define CHECKJNI_SET_STATIC_FIELD(type, name, fieldname, sig) \
+JNIEXPORT type     JNICALL Java_checkjni_SetStatic##name##Field(JNIEnv *env, jclass clazz, type val) \
+{ \
+	jfieldID id = (*env)->GetStaticFieldID(env, clazz, fieldname, sig); \
+	if ((*env)->ExceptionCheck(env)) return 0; \
+	(*env)->SetStatic##name##Field(env, clazz, id, val); \
+}
+CHECKJNI_SET_STATIC_FIELD(jint,    Int,    "jsfI", "I")
+CHECKJNI_SET_STATIC_FIELD(jobject, Object, "jsfL", "Ljava/lang/Object;")
+
+#define CHECKJNI_NEW_ARRAY(type, name) \
+JNIEXPORT type##Array JNICALL Java_checkjni_New##name##Array(JNIEnv *env, jclass clazz, jint size) \
+{ \
+	int i; \
+	type##Array a; \
+	type *p; \
+	jboolean iscopy; \
+	a = (*env)->New##name##Array(env, size); \
+	p = (*env)->Get##name##ArrayElements(env, a, &iscopy); \
+	for (i = 0; i < size; i++) p[i] = i; \
+	(*env)->Release##name##ArrayElements(env, a, p, 0); \
+	return a; \
+}
+CHECKJNI_NEW_ARRAY(jint,    Int)
+CHECKJNI_NEW_ARRAY(jlong,   Long)
+
+JNIEXPORT jstring  JNICALL Java_checkjni_NewString(JNIEnv *env, jclass clazz, jint type)
+{
+	if (type == 1)
+		return (*env)->NewString(env, (jchar *) "Test String from JNI", (jsize) strlen("Test String from JNI"));
+	else
+		return (*env)->NewStringUTF(env, "Test String from JNI with UTF");
+}
+
+

@@ -32,9 +32,22 @@
 
 
 public class checkjni {
-    public native boolean IsAssignableFrom(Class sub, Class sup);
-    public native boolean IsInstanceOf(Object obj, Class clazz);
-    public native int     PushLocalFrame(int capacity);
+    public static native boolean IsAssignableFrom(Class sub, Class sup);
+    public static native boolean IsInstanceOf(Object obj, Class clazz);
+    public static native boolean IsSameObject(Object obj1, Object obj2);
+    public static native int     PushLocalFrame(int capacity);
+	public static native void    Throw() throws Exception;
+	public static native Class   GetObjectClass(Object obj);
+	public static native String  NewString(int type);
+	public static native int     GetStaticIntField();
+	public static native Object  GetStaticObjectField();
+	public static native void    SetStaticIntField(int val);
+	public static native int     GetIntField();
+	public static native int[]   NewIntArray(int length);
+	public static native long[]  NewLongArray(int length);
+
+	public static int     jsfI = 0x123456;
+	public static Object  jsfL = new Object();
 
     public static void main(String[] argv) {
         System.loadLibrary("checkjni");
@@ -45,7 +58,13 @@ public class checkjni {
     public checkjni() {
         checkIsAssignableFrom();
         checkIsInstanceOf();
+		checkIsSameObject();
         checkPushLocalFrame();
+		checkThrow();
+		checkGetObjectClass();
+		checkFields();
+		checkArrays();
+		checkNewString();
     }
 
     void checkIsAssignableFrom() {
@@ -72,11 +91,86 @@ public class checkjni {
         equal(IsInstanceOf(obj, clazz2), false);
     }
 
+    void checkIsSameObject() {
+        p("IsSameObject:");
+
+        Object obj1 = new Object();
+        Object obj2 = new Integer(1);
+        Class clazz = Object.class;
+
+        equal(IsSameObject(obj1, obj1), true);
+        equal(IsSameObject(clazz, clazz), true);
+        equal(IsSameObject(null, null), true);
+        equal(IsSameObject(obj1, obj2), false);
+        equal(IsSameObject(obj1, clazz), false);
+        equal(IsSameObject(obj1, null), false);
+    }
+
     void checkPushLocalFrame() {
         p("PushLocalFrame:");
 
         equal(PushLocalFrame(100), 0);
     }
+
+	void checkThrow() {
+		p("Throw");
+		
+		try {
+			Throw();
+			p("FAILED, no exception thrown");
+		} catch (Exception e) {
+			p("PASS, " + e);
+		}
+	}
+
+    void checkGetObjectClass() {
+        p("GetObjectClass:");
+
+        Object obj1 = new Object();
+        Object obj2 = new Integer(1);
+        Class clazz1 = Object.class;
+        Class clazz2 = Integer.class;
+
+        equal(GetObjectClass(obj1), clazz1);
+        equal(GetObjectClass(obj2), clazz2);
+        equal(GetObjectClass(null), null);
+    }
+
+	void checkNewString() {
+		p("NewString:");
+		
+		equal(NewString(2), "Test String from JNI with UTF");
+	}
+
+	void checkFields() {
+		p("Field Access:");
+		
+		equal(GetStaticIntField(), jsfI);
+		equal(GetStaticObjectField(), jsfL);
+		
+		SetStaticIntField(0xABCDEF); equal(jsfI, 0xABCDEF);
+	}
+
+	void checkArrays() {
+		p("Array Access:");
+
+		int i;
+		boolean result;
+
+		int[] aI = NewIntArray(10);
+		for (i = 0, result = true; i < aI.length; i++) result &= (aI[i] == i);
+		if (result)
+			p("PASS, size=" + aI.length);
+		else
+			p("FAILED");
+
+		long[] aL = NewLongArray(20);
+		for (i = 0, result = true; i < aL.length; i++) result &= (aL[i] == i);
+		if (result)
+			p("PASS, size=" + aL.length);
+		else
+			p("FAILED");
+	}
 
     void equal(boolean a, boolean b) {
         if (a == b)
@@ -89,7 +183,21 @@ public class checkjni {
         if (a == b)
             p("PASS");
         else
+            p("FAILED ("+a+"!="+b+")");
+    }
+
+    void equal(Object a, Object b) {
+        if (a == b)
+            p("PASS");
+        else
             p("FAILED");
+    }
+
+    void equal(String a, String b) {
+        if (a.equals(b))
+            p("PASS");
+        else
+            p("FAILED ("+a+"!="+b+")");
     }
 
     void p(String s) {

@@ -6,5 +6,27 @@ IsInstanceOf:
 PASS
 PASS
 PASS
+IsSameObject:
+PASS
+PASS
+PASS
+PASS
+PASS
+PASS
 PushLocalFrame:
+PASS
+Throw
+PASS, java.lang.Exception: Exception from JNI
+GetObjectClass:
+PASS
+PASS
+PASS
+Field Access:
+PASS
+PASS
+PASS
+Array Access:
+PASS, size=10
+PASS, size=20
+NewString:
 PASS
