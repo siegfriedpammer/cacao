@@ -359,10 +359,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_findLoadedClass(
 	classinfo   *c;
 	utf         *u;
 
-	cl = loader_hashtable_classloader_find((java_handle_t *) loader);
+	/* XXX is it correct to add the classloader to the hashtable here? */
 
-	if (cl == NULL)
-		vm_abort("unable to find classloader");
+	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 	/* replace `.' by `/', this is required by the classcache */
 
