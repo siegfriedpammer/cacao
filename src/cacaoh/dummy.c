@@ -98,7 +98,7 @@ java_handle_t *array_objectarray_element_get(java_handle_objectarray_t *a, int32
 		return NULL;
 	}
 
-	value = LLNI_array_direct(a, index);
+	LLNI_objectarray_element_get(a, index, value);
 
 	return value;
 }
@@ -119,7 +119,7 @@ void array_objectarray_element_set(java_handle_objectarray_t *a, int32_t index, 
 		return;
 	}
 
-	LLNI_array_direct(a, index) = value;
+	LLNI_objectarray_element_set(a, index, value);
 }
 
 int32_t array_length_get(java_handle_t *a)
@@ -181,26 +181,30 @@ java_handle_t *builtin_new(classinfo *c)
 
 java_handle_objectarray_t *builtin_anewarray(int32_t size, classinfo *componentclass)
 {
-	java_handle_objectarray_t *oa = (java_handle_objectarray_t*)mem_alloc(
+	java_objectarray_t *oa = (java_objectarray_t*) mem_alloc(
 		sizeof(java_array_t) + size * sizeof(java_object_t*));
+	java_handle_objectarray_t *h = (java_handle_objectarray_t*) LLNI_WRAP(
+		(java_object_t*) oa);
 
-	if (oa != NULL) {
-		LLNI_array_size(oa) = size;
+	if (h != NULL) {
+		LLNI_array_size(h) = size;
 	}
 
-	return oa;
+	return h;
 }
 
 java_handle_bytearray_t *builtin_newarray_byte(int32_t size)
 {
-	java_handle_bytearray_t *ba = (java_handle_bytearray_t*)mem_alloc(
+	java_bytearray_t *ba = (java_bytearray_t*) mem_alloc(
 		sizeof(java_array_t) + size * sizeof(int8_t));
+	java_handle_bytearray_t *h = (java_handle_bytearray_t*) LLNI_WRAP(
+		(java_object_t*) ba);
 
-	if (ba != NULL) {
-		LLNI_array_size(ba) = size;
+	if (h != NULL) {
+		LLNI_array_size(h) = size;
 	}
 	
-	return ba;
+	return h;
 }
 
 
@@ -488,6 +492,22 @@ void llni_critical_start()
 void llni_critical_end()
 {
 	vm_abort("llni_critical_end");
+}
+
+
+/* localref *******************************************************************/
+
+java_handle_t *localref_add(java_object_t *o)
+{
+#if defined(ENABLE_HANDLES)
+	java_handle_t *h = (java_handle_t*) mem_alloc(sizeof(java_handle_t));
+
+	h->heap_object = o;
+
+	return h;
+#else
+	return (java_handle_t*) o;
+#endif
 }
 
 

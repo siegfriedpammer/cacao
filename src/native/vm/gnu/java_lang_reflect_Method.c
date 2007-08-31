@@ -44,6 +44,7 @@
 #include "native/include/java_lang_String.h"
 
 #if defined(ENABLE_ANNOTATIONS)
+#include "native/include/java_util_Map.h"
 #include "native/include/sun_reflect_ConstantPool.h"
 #include "native/vm/reflect.h"
 #endif
@@ -225,6 +226,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Method_getSignature(J
  */
 JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Method_getDefaultValue(JNIEnv *env, struct java_lang_reflect_Method* this)
 {
+	java_handle_bytearray_t  *annotationDefault          = NULL;
 	static methodinfo        *m_parseAnnotationDefault   = NULL;
 	utf                      *utf_parseAnnotationDefault = NULL;
 	utf                      *utf_desc        = NULL;
@@ -276,9 +278,11 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Method_getDefa
 		}
 	}
 
+	LLNI_field_get_ref(this, annotationDefault, annotationDefault);
+
 	return (java_lang_Object*)vm_call_method(
 		m_parseAnnotationDefault, NULL,
-		this, this->annotationDefault, constantPool);
+		this, annotationDefault, constantPool);
 }
 
 
@@ -289,7 +293,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_Method_getDefa
  */
 JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Method_declaredAnnotations(JNIEnv *env, java_lang_reflect_Method *this)
 {
-	struct java_util_Map    *declaredAnnotations = NULL;
+	java_util_Map           *declaredAnnotations = NULL;
 	java_handle_bytearray_t *annotations         = NULL;
 	java_lang_Class         *declaringClass      = NULL;
 	classinfo               *referer             = NULL;
@@ -297,13 +301,13 @@ JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Method_declaredAn
 	LLNI_field_get_ref(this, declaredAnnotations, declaredAnnotations);
 
 	if (declaredAnnotations == NULL) {
-		LLNI_field_get_val(this, annotations, annotations);
+		LLNI_field_get_ref(this, annotations, annotations);
 		LLNI_field_get_ref(this, clazz, declaringClass);
 		LLNI_class_get(this, referer);
 
 		declaredAnnotations = reflect_get_declaredannotatios(annotations, declaringClass, referer);
 
-		LLNI_field_set_ref(this, declaredAnnotations, declaredAnnotations);
+		LLNI_field_set_ref(this, declaredAnnotations, (java_handle_t*) declaredAnnotations);
 	}
 
 	return declaredAnnotations;

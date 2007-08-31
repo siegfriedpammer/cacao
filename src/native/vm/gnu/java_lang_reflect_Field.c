@@ -49,6 +49,7 @@
 #include "native/include/java_lang_reflect_Field.h"
 
 #if defined(ENABLE_ANNOTATIONS)
+#include "native/include/java_util_Map.h"
 #include "native/include/sun_reflect_ConstantPool.h"
 #include "native/vm/reflect.h"
 #endif
@@ -1251,7 +1252,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Field_getSignature(JN
  */
 JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Field_declaredAnnotations(JNIEnv *env, java_lang_reflect_Field *this)
 {
-	struct java_util_Map    *declaredAnnotations = NULL;
+	java_util_Map           *declaredAnnotations = NULL;
 	java_handle_bytearray_t *annotations         = NULL;
 	java_lang_Class         *declaringClass      = NULL;
 	classinfo               *referer             = NULL;
@@ -1259,7 +1260,7 @@ JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Field_declaredAnn
 	LLNI_field_get_ref(this, declaredAnnotations, declaredAnnotations);
 
 	if (declaredAnnotations == NULL) {
-		LLNI_field_get_val(this, annotations, annotations);
+		LLNI_field_get_ref(this, annotations, annotations);
 		LLNI_field_get_ref(this, clazz, declaringClass);
 		LLNI_class_get(this, referer);
 
