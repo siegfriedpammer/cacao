@@ -847,16 +847,6 @@ void class_free(classinfo *c)
 		mem_free(c->header.vftbl, sizeof(vftbl) + sizeof(methodptr)*(c->vftbl->vftbllength-1)); */
 	
 /*  	GCFREE(c); */
-
-#if defined(ENABLE_ANNOTATIONS)
-	annotation_bytearray_free(c->annotations);
-
-	annotation_bytearrays_free(c->method_annotations);
-	annotation_bytearrays_free(c->method_parameterannotations);
-	annotation_bytearrays_free(c->method_annotationdefaults);
-
-	annotation_bytearrays_free(c->field_annotations);
-#endif
 }
 
 
