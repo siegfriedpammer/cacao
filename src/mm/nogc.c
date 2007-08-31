@@ -59,7 +59,7 @@ static int mmapsize = 0;
 static void *mmaptop = NULL;
 
 
-void *heap_allocate(u4 size, bool references, methodinfo *finalizer)
+void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
 {
 	void *m;
 
@@ -69,7 +69,7 @@ void *heap_allocate(u4 size, bool references, methodinfo *finalizer)
 	mmapptr = (void *) ((ptrint) mmapptr + size);
 
 	if (mmapptr > mmaptop)
-		vm_abort("heap_allocate: out of memory");
+		vm_abort("heap_alloc: out of memory");
 
 	MSET(m, 0, u1, size);
 
@@ -79,7 +79,7 @@ void *heap_allocate(u4 size, bool references, methodinfo *finalizer)
 
 void *heap_alloc_uncollectable(u4 size)
 {
-	return heap_allocate(size, false, NULL);
+	return heap_alloc(size, false, NULL);
 }
 
 

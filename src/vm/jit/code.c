@@ -125,6 +125,36 @@ codeinfo *code_find_codeinfo_for_pc(u1 *pc)
 }
 
 
+/* code_find_codeinfo_for_pc ***************************************************
+
+   Return the codeinfo for the compilation unit that contains the
+   given PC. This method does not check the return value and is used
+   by the GC.
+
+   IN:
+       pc...............machine code position
+
+   RETURN VALUE:
+       the codeinfo * for the given PC, or NULL
+
+*******************************************************************************/
+
+codeinfo *code_find_codeinfo_for_pc_nocheck(u1 *pc)
+{
+	codeinfo *code;
+	u1 *pv;
+
+	pv = codegen_get_pv_from_pc_nocheck(pc);
+
+	if (pv == NULL)
+		return NULL;
+
+	code = *(codeinfo **)(pv + CodeinfoPointer);
+
+	return code;
+}
+
+
 /* code_get_methodinfo_for_pv **************************************************
 
    Return the methodinfo for the given PV.

@@ -182,6 +182,11 @@ static bool builtintable_init(void)
 													bte->descriptor,
 													ACC_STATIC | ACC_METHOD_BUILTIN,
 													NULL);
+
+		/* generate a builtin stub if we need one */
+
+		if (bte->flags & BUILTINTABLE_FLAG_STUB)
+			codegen_generate_stub_builtin(bte);
 	}
 
 	for (bte = builtintable_automatic; bte->fp != NULL; bte++) {
@@ -190,6 +195,10 @@ static bool builtintable_init(void)
 													bte->descriptor,
 													ACC_STATIC | ACC_METHOD_BUILTIN,
 													NULL);
+
+		/* no stubs should be needed for this table */
+
+		assert(!bte->flags & BUILTINTABLE_FLAG_STUB);
 	}
 
 	for (bte = builtintable_function; bte->fp != NULL; bte++) {
@@ -198,6 +207,11 @@ static bool builtintable_init(void)
 													bte->descriptor,
 													ACC_STATIC | ACC_METHOD_BUILTIN,
 													NULL);
+
+		/* generate a builtin stub if we need one */
+
+		if (bte->flags & BUILTINTABLE_FLAG_STUB)
+			codegen_generate_stub_builtin(bte);
 	}
 
 	/* release dump area */
@@ -315,7 +329,8 @@ builtintable_entry *builtintable_get_automatic(s4 opcode)
 		if (middle->opcode < opcode) {
 			first = middle + 1;
 			entries -= half + 1;
-		} else
+		}
+		else
 			entries = half;
 	}
 
@@ -360,14 +375,15 @@ bool builtintable_replace_function(void *iptr_)
 
 	for (bte = builtintable_function; bte->fp != NULL; bte++) {
 		if ((METHODREF_CLASSNAME(mr) == bte->classname) &&
-			(mr->name             == bte->name) &&
-			(mr->descriptor       == bte->descriptor)) {
+			(mr->name                == bte->name) &&
+			(mr->descriptor          == bte->descriptor)) {
 
 			/* set the values in the instruction */
 
-			iptr->opc   = bte->opcode;
+			iptr->opc           = bte->opcode;
 			iptr->sx.s23.s3.bte = bte;
-			if (bte->checkexception)
+
+			if (bte->flags & BUILTINTABLE_FLAG_EXCEPTION)
 				iptr->flags.bits |= INS_FLAG_CHECK;
 			else
 				iptr->flags.bits &= ~INS_FLAG_CHECK;
@@ -771,7 +787,7 @@ s4 builtin_canstore_onedim_class(java_handle_objectarray_t *a, java_handle_t *o)
 
    Return value: pointer to the object or NULL if no memory is
    available
-			
+
 *******************************************************************************/
 
 java_handle_t *builtin_new(classinfo *c)
@@ -814,8 +830,69 @@ java_handle_t *builtin_new(classinfo *c)
 			return NULL;
 	}
 
-	o = heap_allocate(c->instancesize, c->flags & ACC_CLASS_HAS_POINTERS,
-					  c->finalizer);
+	o = heap_alloc(c->instancesize, c->flags & ACC_CLASS_HAS_POINTERS,
+				   c->finalizer, true);
+
+	if (!o)
+		return NULL;
+
+	o->vftbl = c->vftbl;
+
+#if defined(ENABLE_THREADS)
+	lock_init_object_lock(o);
+#endif
+
+	CYCLES_STATS_GET(cycles_end);
+	RT_TIMING_GET_TIME(time_end);
+
+	CYCLES_STATS_COUNT(builtin_new,cycles_end - cycles_start);
+	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_NEW_OBJECT);
+
+	return o;
+}
+
+
+/* builtin_fast_new ************************************************************
+
+   Creates a new instance of class c on the heap.
+
+   Return value: pointer to the object or NULL if no fast return
+   is possible for any reason.
+
+*******************************************************************************/
+
+java_object_t *builtin_fast_new(classinfo *c)
+{
+	java_object_t *o;
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_end;
+#endif
+#if defined(ENABLE_CYCLES_STATS)
+	u8 cycles_start, cycles_end;
+#endif
+
+	RT_TIMING_GET_TIME(time_start);
+	CYCLES_STATS_GET(cycles_start);
+
+	/* is the class loaded */
+
+	assert(c->state & CLASS_LOADED);
+
+	/* check if we can instantiate this class */
+
+	if (c->flags & ACC_ABSTRACT)
+		return NULL;
+
+	/* is the class linked */
+
+	if (!(c->state & CLASS_LINKED))
+		return NULL;
+
+	if (!(c->state & CLASS_INITIALIZED))
+		return NULL;
+
+	o = heap_alloc(c->instancesize, c->flags & ACC_CLASS_HAS_POINTERS,
+				   c->finalizer, false);
 
 	if (!o)
 		return NULL;
@@ -876,7 +953,7 @@ java_handle_t *builtin_newarray(s4 size, classinfo *arrayclass)
 		return NULL;
 	}
 
-	a = heap_allocate(actualsize, (desc->arraytype == ARRAYTYPE_OBJECT), NULL);
+	a = heap_alloc(actualsize, (desc->arraytype == ARRAYTYPE_OBJECT), NULL, true);
 
 	if (a == NULL)
 		return NULL;
@@ -2713,7 +2790,7 @@ java_handle_t *builtin_clone(void *env, java_handle_t *o)
 
 		size = ad->dataoffset + ad->componentsize * LLNI_array_size(ah);
         
-		co = heap_allocate(size, (ad->arraytype == ARRAYTYPE_OBJECT), NULL);
+		co = heap_alloc(size, (ad->arraytype == ARRAYTYPE_OBJECT), NULL, true);
 
 		if (co == NULL)
 			return NULL;

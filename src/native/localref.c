@@ -69,7 +69,13 @@ bool localref_table_init(void)
 
 	assert(LOCALREFTABLE == NULL);
 
+#if defined(ENABLE_GC_CACAO)
+	/* this is freed by localref_table_destroy */
+	lrt = NEW(localref_table);
+#else
+	/* this does not need to be freed again */
 	lrt = GCNEW(localref_table);
+#endif
 
 	if (lrt == NULL)
 		return false;
@@ -79,9 +85,37 @@ bool localref_table_init(void)
 	return true;
 }
 
+
+/* localref_table_destroy ******************************************************
+
+   Destroys the complete local references table of the current thread.
+
+*******************************************************************************/
+
+bool localref_table_destroy(void)
+{
+	localref_table *lrt;
+
+	TRACELOCALREF("table destroy");
+
+	lrt = LOCALREFTABLE;
+
+	assert(lrt);
+	assert(lrt->prev == NULL);
+
+#if defined(ENABLE_GC_CACAO)
+	FREE(lrt, localref_table);
+#endif
+
+	LOCALREFTABLE = NULL;
+
+	return true;
+}
+
+
 /* localref_table_add **********************************************************
 
-   Add a new local references table to the current thread.
+   Adds a new local references table to the current thread.
 
 *******************************************************************************/
 
@@ -106,7 +140,7 @@ void localref_table_add(localref_table *lrt)
 
 /* localref_table_remove *******************************************************
 
-   Remoces the local references table from the current thread.
+   Removes the topmost local references table from the current thread.
 
 *******************************************************************************/
 
@@ -157,7 +191,11 @@ bool localref_frame_push(int32_t capacity)
 	else
 		additionalrefs = 0;
 
+#if defined(ENABLE_GC_CACAO)
+	nlrt = MNEW(u1, sizeof(localref_table) + additionalrefs * SIZEOF_VOID_P);
+#else
 	nlrt = GCMNEW(u1, sizeof(localref_table) + additionalrefs * SIZEOF_VOID_P);
+#endif
 
 	if (nlrt == NULL)
 		return false;
@@ -189,6 +227,9 @@ void localref_frame_pop_all(void)
 	localref_table *lrt;
 	localref_table *plrt;
 	int32_t         localframes;
+#if defined(ENABLE_GC_CACAO)
+	int32_t         additionalrefs;
+#endif
 
 	TRACELOCALREF("frame pop all");
 
@@ -220,6 +261,18 @@ void localref_frame_pop_all(void)
 
 		lrt->prev = NULL;
 
+#if defined(ENABLE_GC_CACAO)
+		/* for the exact GC local reference tables are not on the heap,
+		   so we need to free them explicitly here. */
+
+		if (lrt->capacity > LOCALREFTABLE_CAPACITY)
+			additionalrefs = lrt->capacity - LOCALREFTABLE_CAPACITY;
+		else
+			additionalrefs = 0;
+
+		MFREE(lrt, u1, sizeof(localref_table) + additionalrefs * SIZEOF_VOID_P);
+#endif
+
 		/* set new local references table */
 
 		lrt = plrt;
@@ -231,6 +284,139 @@ void localref_frame_pop_all(void)
 }
 
 
+/* localref_add ****************************************************************
+
+   Adds a new entry into the local reference table and returns the
+   new local reference.
+
+*******************************************************************************/
+
+java_handle_t *localref_add(java_object_t *o)
+{
+	localref_table *lrt;
+	java_handle_t  *h;
+	int32_t         i;
+
+#if !defined(NDEBUG)
+	if (o == NULL) {
+		log_println("localref_add: WARNING: trying to add localref for (NIL)!");
+		return NULL;
+	}
+#endif
+
+	/* XXX: assert that we are in a GC critical section! */
+
+	/* XXX: this is only an ugly hack */
+#if defined(ENABLE_HANDLES)
+	if (LOCALREFTABLE == NULL) {
+		h = NEW(java_handle_t);
+		h->heap_object = o;
+		log_println("localref_add: WARNING: added preliminary localref %p for %p", h, o);
+		return h;
+	}
+#endif
+
+	/* get current local reference table from thread */
+
+	lrt = LOCALREFTABLE;
+
+	assert(lrt != NULL);
+
+	/* Check if we have space for the requested reference?  No,
+	   allocate a new frame.  This is actually not what the spec says,
+	   but for compatibility reasons... */
+
+    if (lrt->used == lrt->capacity) {
+		if (!localref_frame_push(16))
+			assert(0);
+
+		/* get the new local reference table */ 
+
+		lrt = LOCALREFTABLE;
+	}
+
+	/* insert the reference into the local reference table */
+
+	for (i = 0; i < lrt->capacity; i++) {
+		if (lrt->refs[i] == NULL) {
+			lrt->refs[i] = o;
+			lrt->used++;
+
+#if defined(ENABLE_HANDLES)
+			h = (java_handle_t *) &(lrt->refs[i]);
+#else
+			h = (java_handle_t *) o;
+#endif
+
+#if 0
+			{
+				int count = 0;
+				for (lrt = LOCALREFTABLE; lrt != NULL; lrt = lrt->prev)
+					count += lrt->used;
+				log_println("added localref %p for %p (total count %d)", h, o, count);
+				/*localref_dump();*/
+			}
+#endif
+
+			return h;
+		}
+	}
+
+	/* this should not happen */
+
+	log_println("localref_add: WARNING: unable to add localref for %p", o);
+
+	return NULL;
+}
+
+
+/* localref_del ****************************************************************
+
+   Deletes an entry from the local reference table.
+
+*******************************************************************************/
+
+void localref_del(java_handle_t *localref)
+{
+	localref_table *lrt;
+	java_handle_t  *h;
+	int32_t         i;
+
+	/* get local reference table from thread */
+
+	lrt = LOCALREFTABLE;
+
+	assert(lrt != NULL);
+
+	/* go through all local frames */
+
+	/* XXX: this is definitely not what the spec wants! */
+	/*for (; lrt != NULL; lrt = lrt->prev) {*/
+
+		/* and try to remove the reference */
+    
+		for (i = 0; i < lrt->capacity; i++) {
+#if defined(ENABLE_HANDLES)
+			h = (java_handle_t *) &(lrt->refs[i]);
+#else
+			h = (java_handle_t *) lrt->refs[i];
+#endif
+
+			if (h == localref) {
+				lrt->refs[i] = NULL;
+				lrt->used--;
+
+				return;
+			}
+		}
+	/*}*/
+
+	/* this should not happen */
+
+	log_println("localref_del: WARNING: unable to find localref %p", localref);
+}
+
+
 /* localref_dump ***************************************************************
 
    Dumps all local reference tables, including all frames.
@@ -238,10 +424,11 @@ void localref_frame_pop_all(void)
 *******************************************************************************/
 
 #if !defined(NDEBUG)
+# define LOCALREF_DUMP_REFS_PER_LINE 4
 void localref_dump()
 {
 	localref_table *lrt;
-	int i;
+	int i, j;
 
 	/* get current local reference table from thread */
 
@@ -252,17 +439,29 @@ void localref_dump()
 	while (lrt != NULL) {
 		log_println("Frame #%d, Used=%d, Capacity=%d, Addr=%p:", lrt->localframes, lrt->used, lrt->capacity, (void *) lrt);
 
-		for (i = 0; i < lrt->used; i++) {
-			printf("\t0x%08lx ", (intptr_t) lrt->refs[i]);
-		}
+			if (lrt->used != 0) {
 
-		if (lrt->used != 0)
-			printf("\n");
+				log_start();
+
+				j = 0;
+				for (i = 0; i < lrt->capacity; i++) {
+					if (lrt->refs[i] != NULL) {
+						if (j != 0 && j % LOCALREF_DUMP_REFS_PER_LINE == 0) {
+							log_finish();
+							log_start();
+						}
+						j++;
+						log_print("\t0x%016lx ", (intptr_t) lrt->refs[i]);
+					}
+				}
+
+				log_finish();
+			}
 
 		lrt = lrt->prev;
 	}
 }
-#endif
+#endif /* !defined(NDEBUG) */
 
 
 /*

@@ -60,7 +60,7 @@ void md_init(void)
 	/* dummy allocation here to ensure that the GC is initialized.            */
 
 #if defined(ENABLE_GC_BOEHM)
-	heap_allocate(1, 0, NULL);
+	(void) GCNEW(u1);
 #endif
 
 

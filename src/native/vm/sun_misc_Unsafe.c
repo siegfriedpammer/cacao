@@ -745,7 +745,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_
 	classinfo       *c;
 	java_lang_Class *o;
 
-	cl = (classloader *) loader;
+	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 	/* check if data was passed */
 

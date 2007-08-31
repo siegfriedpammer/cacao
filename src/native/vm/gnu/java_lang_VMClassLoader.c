@@ -27,6 +27,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <sys/stat.h>
 
 #include "vm/types.h"
@@ -358,7 +359,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_findLoadedClass(
 	classinfo   *c;
 	utf         *u;
 
-	cl = (classloader *) loader;
+	/* XXX is it correct to add the classloader to the hashtable here? */
+
+	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 	/* replace `.' by `/', this is required by the classcache */
 

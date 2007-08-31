@@ -66,16 +66,23 @@ typedef struct builtintable_entry builtintable_entry;
 
 struct builtintable_entry {
 	s4           opcode;                /* opcode which is replaced           */
+	u4           flags;                 /* e.g. check for exception           */
 	functionptr  fp;                    /* function pointer of builtin        */
+	u1          *stub;                  /* pointer to builtin stub code       */
 	char        *cclassname;            /* char name of the class             */
 	char        *cname;                 /* char name of the function          */
 	char        *cdescriptor;           /* char name of the descriptor        */
 	utf         *classname;             /* class of the function              */
 	utf         *name;                  /* name of the function               */
 	utf         *descriptor;            /* descriptor of the function         */
-	bool         checkexception;        /* check for exception after return   */
 	methoddesc  *md;
 };
+
+
+/* builtin table flag defines *************************************************/
+
+#define BUILTINTABLE_FLAG_STUB         0x0001 /* builtin needs a stub         */
+#define BUILTINTABLE_FLAG_EXCEPTION    0x0002 /* check for excepion on return */
 
 
 /* function prototypes ********************************************************/
@@ -132,6 +139,8 @@ java_handle_t *builtin_trace_exception(java_handle_t *xptr,
 
 java_handle_t *builtin_new(classinfo *c);
 #define BUILTIN_new (functionptr) builtin_new
+java_object_t *builtin_fast_new(classinfo *c);
+#define BUILTIN_FAST_new (functionptr) builtin_fast_new
 
 java_handle_t *builtin_newarray(s4 size, classinfo *arrayclass);
 #define BUILTIN_newarray (functionptr) builtin_newarray

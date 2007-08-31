@@ -42,6 +42,7 @@
 #include "vm/global.h"
 
 #include "vmcore/class.h"
+#include "vmcore/loader.h"
 #include "vmcore/references.h"
 
 

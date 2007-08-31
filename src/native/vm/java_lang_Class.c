@@ -93,10 +93,10 @@
  */
 java_lang_String *_Jv_java_lang_Class_getName(java_lang_Class *klass)
 {
-	classinfo        *c;
-	java_lang_String *s;
-	java_chararray_t *ca;
-	u4                i;
+	classinfo               *c;
+	java_lang_String        *s;
+	java_handle_chararray_t *ca;
+	u4                       i;
 
 	c = LLNI_classinfo_unwrap(klass);
 
@@ -141,7 +141,7 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 	s4           i;
 
 #if defined(ENABLE_JAVASE)
-	cl = (classloader *) loader;
+	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 #endif
 
 	/* illegal argument */
@@ -569,11 +569,22 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredConstructors(java_lang
  */
 java_lang_ClassLoader *_Jv_java_lang_Class_getClassLoader(java_lang_Class *klass)
 {
-	classinfo *c;
+	classinfo   *c;
+	classloader *cl;
 
-	c = LLNI_classinfo_unwrap(klass);
+	c  = LLNI_classinfo_unwrap(klass);
+	cl = c->classloader;
 
-	return (java_lang_ClassLoader *) c->classloader;
+	if (cl == NULL)
+		return NULL;
+	else
+#if defined(ENABLE_HANDLES)
+		/* the classloader entry itself is the handle */
+		return (java_lang_ClassLoader *) cl;
+#else
+		/* get the object out of the classloader entry */
+		return (java_lang_ClassLoader *) cl->object;
+#endif
 }
 
 #endif /* defined(ENABLE_JAVASE) */

@@ -479,6 +479,74 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 	}
 }
 
+/* emit_replacement_stubs ******************************************************
+
+   Generates the code for the replacement stubs.
+
+*******************************************************************************/
+
+#if defined(ENABLE_REPLACEMENT)
+void emit_replacement_stubs(jitdata *jd)
+{
+	codegendata *cd;
+	codeinfo    *code;
+	rplpoint    *rplp;
+	s4           i;
+	s4           branchmpc;
+	s4           outcode;
+
+	/* get required compiler data */
+
+	cd   = jd->cd;
+	code = jd->code;
+
+	rplp = code->rplpoints;
+
+	/* store beginning of replacement stubs */
+
+	code->replacementstubs = (u1*) (cd->mcodeptr - cd->mcodebase);
+
+	for (i = 0; i < code->rplpointcount; ++i, ++rplp) {
+		/* do not generate stubs for non-trappable points */
+
+		if (rplp->flags & RPLPOINT_FLAG_NOTRAP)
+			continue;
+
+		M_JSR_IMM(0);
+#if 0
+		/* check code segment size */
+
+		MCODECHECK(512);
+
+		/* note start of stub code */
+
+		outcode = (s4) (cd->mcodeptr - cd->mcodebase);
+
+		/* push address of `rplpoint` struct */
+			
+		M_PUSH_IMM(rplp);
+
+		/* jump to replacement function */
+
+		M_PUSH_IMM(asm_replacement_out);
+		M_RET;
+
+		/* add jump reference for COUNTDOWN points */
+
+		if (rplp->flags & RPLPOINT_FLAG_COUNTDOWN) {
+
+			branchmpc = (s4)rplp->pc + (7 + 6);
+
+			md_codegen_patch_branch(cd, branchmpc, (s4) outcode);
+		}
+
+		assert(((cd->mcodeptr - cd->mcodebase) - outcode) == REPLACEMENT_STUB_SIZE);
+#endif
+	}
+}
+#endif /* defined(ENABLE_REPLACEMENT) */
+	
+
 
 #if !defined(NDEBUG)
 /*

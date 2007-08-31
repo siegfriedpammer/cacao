@@ -66,6 +66,7 @@
 
 #include "threads/threads-common.h"
 
+#include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 
@@ -1182,6 +1183,74 @@ u1 *codegen_generate_stub_compiler(methodinfo *m)
 }
 
 
+/* codegen_generate_stub_builtin ***********************************************
+
+   Wrapper for codegen_emit_stub_builtin.
+
+   Returns:
+       Pointer to the entrypoint of the stub.
+
+*******************************************************************************/
+
+void codegen_generate_stub_builtin(builtintable_entry *bte)
+{
+#if defined(__ARM__) || defined(__ALPHA__) || defined(__I386__) || defined(__M68K__) || defined(__SPARC64__) || defined(__X86_64__)
+	jitdata  *jd;
+	codeinfo *code;
+	s4        dumpsize;
+
+	/* mark dump memory */
+
+	dumpsize = dump_size();
+
+	jd = DNEW(jitdata);
+
+	jd->m     = NULL;
+	jd->cd    = DNEW(codegendata);
+	jd->rd    = NULL;
+	jd->flags = 0;
+
+	/* Allocate codeinfo memory from the heap as we need to keep them. */
+
+	jd->code  = code_codeinfo_new(NULL);
+
+	/* get required compiler data */
+
+	code = jd->code;
+
+	/* setup code generation stuff */
+
+	codegen_setup(jd);
+
+	/* generate the code */
+
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (!opt_intrp)
+# endif
+		codegen_emit_stub_builtin(jd, bte);
+#endif
+
+	/* reallocate the memory and finish the code generation */
+
+	codegen_finish(jd);
+
+	/* set the stub entry point in the builtin table */
+
+	bte->stub = code->entrypoint;
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_stub_native += code->mcodelength;
+#endif
+
+	/* release memory */
+
+	dump_release(dumpsize);
+#endif /* architecture list */
+}
+
+
 /* codegen_generate_stub_native ************************************************
 
    Wrapper for codegen_emit_stub_native.
@@ -1345,6 +1414,65 @@ void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end)
 	DISASSEMBLE(start, end);
 }
 #endif
+
+
+/* codegen_stub_builtin_enter **************************************************
+
+   Prepares the stuff required for a builtin function call:
+
+   - adds a stackframe info structure to the chain, for stacktraces
+
+   The layout of the builtin stub stackframe should look like this:
+
+   +---------------------------+ <- SP (of parent Java function)
+   | return address            |
+   +---------------------------+
+   |                           |
+   | stackframe info structure |
+   |                           |
+   +---------------------------+
+   |                           |
+   | arguments (if any)        |
+   |                           |
+   +---------------------------+ <- SP (native stub)
+
+*******************************************************************************/
+
+void codegen_stub_builtin_enter(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
+{
+	stackframeinfo *sfi;
+
+	/* get data structures from stack */
+
+	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
+
+	/* add a stackframeinfo to the chain */
+
+	stacktrace_create_native_stackframeinfo(sfi, pv, sp, ra);
+}
+
+
+/* codegen_stub_builtin_exit ***************************************************
+
+   Removes the stuff required for a builtin function call.
+
+*******************************************************************************/
+
+void codegen_stub_builtin_exit(u1 *datasp)
+{
+	stackframeinfo     *sfi;
+	stackframeinfo    **psfi;
+
+	/* get data structures from stack */
+
+	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
+
+	/* remove current stackframeinfo from chain */
+
+	psfi = &STACKFRAMEINFO;
+
+	*psfi = sfi->prev;
+}
 
 
 /* codegen_start_native_call ***************************************************

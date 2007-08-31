@@ -37,6 +37,8 @@ typedef struct stacktrace_entry stacktrace_entry;
 #include "config.h"
 #include "vm/types.h"
 
+#include "md-abi.h"
+
 #include "vmcore/class.h"
 #include "vmcore/method.h"
 
@@ -55,6 +57,17 @@ struct stackframeinfo {
 	u1             *sp;                 /* SP of parent Java function         */
 	u1             *ra;                 /* RA to parent Java function         */
 	u1             *xpc;                /* XPC (for inline stubs)             */
+#if defined(ENABLE_GC_CACAO)
+	/* 
+	 * The exact GC needs to be able to recover saved registers, so the
+	 * native-stub saves these registers here
+	 */
+# if defined(HAS_ADDRESS_REGISTER_FILE)
+	ptrint          adrregs[ADR_SAV_CNT];
+# else
+	ptrint          intregs[INT_SAV_CNT];
+# endif
+#endif
 };
 
 
@@ -157,4 +170,5 @@ void stacktrace_print_cycles_stats(FILE *file);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -31,7 +31,10 @@
 
 #include "vm/types.h"
 
+#include "mm/gc-common.h"
+
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_Object.h"
@@ -86,7 +89,19 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, java_lang_Object *o)
 {
-	return (s4) ((ptrint) o);
+	s4 hashcode;
+
+	LLNI_CRITICAL_START;
+
+#if defined(ENABLE_GC_CACAO)
+	hashcode = heap_get_hashcode(LLNI_UNWRAP((java_handle_t *) o));
+#else
+	hashcode = (s4) ((ptrint) o);
+#endif
+
+	LLNI_CRITICAL_END;
+
+	return hashcode;
 }
 
 

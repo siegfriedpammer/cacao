@@ -108,6 +108,17 @@ static struct rt_timing_stat rt_timing_stat_defs[] = {
 	{ RT_TIMING_NEW_ARRAY       ,-1                       , "builtin_newarray time" },
     { -1                        ,-1                       , "" },
 
+	{ RT_TIMING_GC_ALLOC        ,-1                       , "heap allocation time" },
+#if defined(ENABLE_GC_CACAO)
+	{ RT_TIMING_GC_SUSPEND      ,RT_TIMING_GC_TOTAL       , "gc: suspending threads" },
+	{ RT_TIMING_GC_ROOTSET1     ,RT_TIMING_GC_TOTAL       , "gc: rootset finding" },
+	{ RT_TIMING_GC_MARK         ,RT_TIMING_GC_TOTAL       , "gc: marking phase" },
+	{ RT_TIMING_GC_COMPACT      ,RT_TIMING_GC_TOTAL       , "gc: compaction phase" },
+	{ RT_TIMING_GC_ROOTSET2     ,RT_TIMING_GC_TOTAL       , "gc: rootset writeback" },
+	{ RT_TIMING_GC_TOTAL        ,-1                       , "total garbage collection time" },
+	{ -1                        ,-1                       , "" },
+#endif
+
     { 0                         ,-1                       , NULL }
 };
 

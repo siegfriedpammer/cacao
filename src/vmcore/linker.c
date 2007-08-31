@@ -1164,7 +1164,7 @@ static void linker_compute_subclasses(classinfo *c)
 	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
 
 #if 0 && defined(ENABLE_THREADS) && !defined(DISABLE_GC)
-	threads_cast_stopworld();
+	threads_stopworld();
 #endif
 
 	if (!(c->flags & ACC_INTERFACE)) {
@@ -1186,7 +1186,7 @@ static void linker_compute_subclasses(classinfo *c)
 	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
 
 #if 0 && defined(ENABLE_THREADS) && !defined(DISABLE_GC)
-	threads_cast_startworld();
+	threads_startworld();
 #endif
 }
 

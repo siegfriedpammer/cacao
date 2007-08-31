@@ -74,17 +74,15 @@
  */
 java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl, java_lang_String *name, java_handle_bytearray_t *data, s4 offset, s4 len, java_security_ProtectionDomain *pd)
 {
-	classloader     *loader;
 	utf             *utfname;
 	classinfo       *c;
+	classloader     *loader;
 	java_lang_Class *o;
 
 #if defined(ENABLE_JVMTI)
 	jint new_class_data_len = 0;
 	unsigned char* new_class_data = NULL;
 #endif
-
-	loader = (classloader *) cl;
 
 	/* check if data was passed */
 
@@ -100,6 +98,11 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 		return NULL;
 	}
 
+	/* add classloader to classloader hashtable */
+
+	assert(cl);
+	loader = loader_hashtable_classloader_add((java_handle_t *) cl);
+
 	if (name != NULL) {
 		/* convert '.' to '/' in java string */
 
@@ -110,6 +113,8 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 	}
 
 #if defined(ENABLE_JVMTI)
+	/* XXX again this will not work because of the indirection cell for classloaders */
+	assert(0);
 	/* fire Class File Load Hook JVMTI event */
 
 	if (jvmti)
@@ -124,10 +129,10 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 	/* check if the JVMTI wants to modify the class */
 
 	if (new_class_data == NULL)
-		c = class_define(utfname, loader, new_class_data_len, new_class_data, pd);
+		c = class_define(utfname, loader, new_class_data_len, new_class_data, pd); 
 	else
 #endif
-		c = class_define(utfname, loader, len, (const uint8_t *) &data->data[offset], pd);
+		c = class_define(utfname, loader, len, (const uint8_t *) &LLNI_array_direct(data, offset), pd);
 
 	if (c == NULL)
 		return NULL;

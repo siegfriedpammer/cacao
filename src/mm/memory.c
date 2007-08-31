@@ -66,15 +66,6 @@
 #endif
 
 
-/* constants for ENABLE_MEMCHECK **********************************************/
-
-#if defined(ENABLE_MEMCHECK)
-#define MEMORY_CANARY_SIZE          16
-#define MEMORY_CANARY_FIRST_BYTE    0xca
-#define MEMORY_CLEAR_BYTE           0xa5
-#endif /* defined(ENABLE_MEMCHECK) */
-
-
 /*******************************************************************************
 
   This structure is used for dump memory allocation if cacao

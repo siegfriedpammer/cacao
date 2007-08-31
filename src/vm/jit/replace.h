@@ -43,6 +43,8 @@
 #define REPLACEMENT_POINT_RETURN(cd, iptr)
 #define REPLACEMENT_POINT_INVOKE(cd, iptr)
 #define REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr)
+#define REPLACEMENT_POINT_FORGC_BUILTIN(cd, iptr)
+#define REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr)
 
 #else /* defined(ENABLE_REPLACEMENT) */
 
@@ -268,6 +270,15 @@ struct replace_safestack_t {
     if (iptr->opc != ICMD_BUILTIN)                                   \
         cd->replacementpoint[-1].callsize = (cd->mcodeptr - cd->mcodebase)\
                     - (ptrint) cd->replacementpoint[-1].pc;
+
+#define REPLACEMENT_POINT_FORGC_BUILTIN(cd, iptr)                    \
+	codegen_set_replacement_point(cd RPLPOINT_CHECK(CALL));
+
+#define REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr)             \
+	if (iptr->opc == ICMD_BUILTIN)                                   \
+		cd->replacementpoint[-1].callsize = (cd->mcodeptr - cd->mcodebase)\
+					- (ptrint) cd->replacementpoint[-1].pc;
+
 
 /*** prototypes ********************************************************/
 

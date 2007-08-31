@@ -229,7 +229,7 @@ bool access_check_field(fieldinfo *f, s4 calldepth)
 
 	assert(calldepth >= 0 && calldepth < LLNI_array_size(oa));
 
-	callerclass = (classinfo *) oa->data[calldepth];
+	callerclass = (classinfo *) LLNI_array_direct(oa, calldepth);
 
 	/* check access rights */
 
@@ -310,7 +310,7 @@ bool access_check_method(methodinfo *m, s4 calldepth)
 
 	assert(calldepth >= 0 && calldepth < LLNI_array_size(oa));
 
-	callerclass = (classinfo *) oa->data[calldepth];
+	callerclass = (classinfo *) LLNI_array_direct(oa, calldepth);
 
 	/* check access rights */
 

@@ -41,6 +41,7 @@
 #include "vm/global.h"
 
 #include "vmcore/class.h"
+#include "vmcore/loader.h"
 #include "vmcore/method.h"
 #include "vmcore/utf8.h"
 
@@ -158,4 +159,5 @@ java_handle_t *native_new_and_init_string(classinfo *c, java_handle_t *s);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

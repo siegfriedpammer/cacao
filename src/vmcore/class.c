@@ -219,8 +219,12 @@ classinfo *class_create_classinfo(utf *classname)
 
 	/* GCNEW_UNCOLLECTABLE clears the allocated memory */
 
+#if defined(ENABLE_GC_CACAO)
+	c = (classinfo *) heap_alloc_uncollectable(sizeof(classinfo));
+#else
 	c = GCNEW_UNCOLLECTABLE(classinfo, 1);
 	/*c=NEW(classinfo);*/
+#endif
 	c->name = classname;
 
 	/* Set the header.vftbl of all loaded classes to the one of

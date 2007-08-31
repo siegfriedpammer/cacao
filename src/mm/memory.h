@@ -86,6 +86,15 @@ struct dumpinfo_t {
 };
 
 
+/* constants for ENABLE_MEMCHECK **********************************************/
+
+#if defined(ENABLE_MEMCHECK)
+#define MEMORY_CANARY_SIZE          16
+#define MEMORY_CANARY_FIRST_BYTE    0xca
+#define MEMORY_CLEAR_BYTE           0xa5
+#endif /* defined(ENABLE_MEMCHECK) */
+
+
 /* internal includes **********************************************************/
 
 #include "mm/gc-common.h"
@@ -173,14 +182,18 @@ Some more macros:
 
 /* GC macros ******************************************************************/
 
+#if !defined(ENABLE_GC_CACAO)
+
 /* Uncollectable memory which can contain references */
 
 #define GCNEW_UNCOLLECTABLE(type,num) ((type *) heap_alloc_uncollectable(sizeof(type) * (num)))
 
-#define GCNEW(type)           heap_allocate(sizeof(type), true, NULL)
-#define GCMNEW(type,num)      heap_allocate(sizeof(type) * (num), true, NULL)
+#define GCNEW(type)           heap_alloc(sizeof(type), true, NULL, true)
+#define GCMNEW(type,num)      heap_alloc(sizeof(type) * (num), true, NULL, true)
 
 #define GCFREE(ptr)           heap_free((ptr))
+
+#endif
 
 
 /* function prototypes ********************************************************/
@@ -220,4 +233,5 @@ void  dump_release(s4 size);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

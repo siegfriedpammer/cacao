@@ -69,10 +69,15 @@ extern localref_table *_no_threads_localref_table;
 /* function prototypes ********************************************************/
 
 bool localref_table_init(void);
+bool localref_table_destroy(void);
 void localref_table_add(localref_table *lrt);
 void localref_table_remove();
+
 bool localref_frame_push(int32_t capacity);
 void localref_frame_pop_all(void);
+
+java_handle_t *localref_add(java_object_t *o);
+void           localref_del(java_handle_t *localref);
 
 #if !defined(NDEBUG)
 void localref_dump(void);

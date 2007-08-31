@@ -22,11 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Michael Starzinger
-
-
 */
 
 
@@ -51,7 +46,7 @@
 #define GC_THREAD(ref, refptr, start, end) \
 	if (POINTS_INTO(ref, start, end)) { \
 		GC_ASSERT(GC_IS_MARKED(ref)); \
-		*refptr = (java_objectheader *) ref->vftbl; \
+		*refptr = (java_object_t *) ref->vftbl; \
 		ref->vftbl = (struct _vftbl *)  GC_SET_THREAD_BIT(refptr); \
 	}
 
@@ -67,25 +62,33 @@
 
 *******************************************************************************/
 
-void compact_thread_rootset(rootset_t *rs, void *start, void *end)
+static void compact_thread_rootset(rootset_t *rs, void *start, void *end)
 {
-	java_objectheader  *ref;
-	java_objectheader **refptr;
+	java_object_t  *ref;
+	java_object_t **refptr;
 	int i;
 
-	GC_LOG2( printf("threading in rootset\n"); );
+	GC_LOG2( printf("threading in rootsets\n"); );
 
-	/* walk through the references of this rootset */
-	for (i = 0; i < rs->refcount; i++) {
+	/* walk through all rootsets */
+	while (rs) {
 
-		/* load the reference */
-		refptr = rs->refs[i];
-		ref = *( refptr );
+		/* walk through the references of this rootset */
+		for (i = 0; i < rs->refcount; i++) {
 
-		GC_LOG2( printf("\troot pointer to %p\n", (void *) ref); );
+			/* load the reference */
+			refptr = rs->refs[i].ref;
+			ref = *( refptr );
 
-		/* thread the references */
-		GC_THREAD(ref, refptr, start, end);
+			GC_LOG2( printf("\troot pointer to %p\n", (void *) ref); );
+
+			/* thread the references */
+			GC_THREAD(ref, refptr, start, end);
+
+		}
+
+		/* skip to next rootset in chain */
+		rs = rs->next;
 
 	}
 }
@@ -101,12 +104,13 @@ void compact_thread_rootset(rootset_t *rs, void *start, void *end)
 
 *******************************************************************************/
 
-void compact_thread_classes(void *start, void *end)
+static void compact_thread_classes(void *start, void *end)
 {
-	java_objectheader  *ref;
-	java_objectheader **refptr;
-	classinfo          *c;
-	fieldinfo          *f;
+	java_object_t  *ref;
+	java_object_t **refptr;
+	classinfo      *c;
+	fieldinfo      *f;
+	/*hashtable_classloader_entry *cle;*/
 	void *sys_start, *sys_end;
 	int i;
 
@@ -116,8 +120,32 @@ void compact_thread_classes(void *start, void *end)
 	sys_start = heap_region_sys->base;
 	sys_end = heap_region_sys->ptr;
 
+#if 0
+	/* walk through all classloaders */
+	for (i = 0; i < hashtable_classloader->size; i++) {
+		cle = hashtable_classloader->ptr[i];
+
+		while (cle) {
+
+			/* thread the classloader */
+			refptr = &( cle->object );
+			ref = *( refptr );
+			GC_LOG2( printf("\tclassloader from hashtable at %p\n", (void *) ref); );
+			GC_THREAD(ref, refptr, start, end);
+
+			cle = cle->hashlink;
+		}
+	}
+#endif
+
 	/* walk through all classinfo blocks */
 	for (c = sys_start; c < (classinfo *) sys_end; c++) {
+
+		/* thread the classloader */
+		/*refptr = &( c->classloader );
+		ref = *( refptr );
+		GC_LOG2( printf("\tclassloader from classinfo at %p\n", (void *) ref); );
+		GC_THREAD(ref, refptr, start, end);*/
 
 		/* walk through all fields */
 		f = c->fields;
@@ -128,7 +156,7 @@ void compact_thread_classes(void *start, void *end)
 				continue;
 
 			/* load the reference */
-			refptr = (java_objectheader **) &(f->value);
+			refptr = (java_object_t **) &(f->value);
 			ref = *( refptr );
 
 			GC_LOG2( printf("\tclass-field points to %p\n", (void *) ref); );
@@ -140,7 +168,7 @@ void compact_thread_classes(void *start, void *end)
 				} else if (GC_IS_THREADED(ref->vftbl)) {
 					printf("(threaded)\n");
 				} else {
-						heap_print_object(ref); printf("\n");
+					heap_print_object(ref); printf("\n");
 				}
 			);*/
 
@@ -165,10 +193,10 @@ void compact_thread_classes(void *start, void *end)
 
 *******************************************************************************/
 
-void compact_thread_references(java_objectheader *o, void *start, void *end)
+static void compact_thread_references(java_object_t *o, void *start, void *end)
 {
-	java_objectheader  *ref;
-	java_objectheader **refptr;
+	java_object_t  *ref;
+	java_object_t **refptr;
 
 	GC_LOG2( printf("threading in ");
 			heap_print_object(o); printf("\n"); );
@@ -212,9 +240,9 @@ void compact_thread_references(java_objectheader *o, void *start, void *end)
 
 *******************************************************************************/
 
-void compact_unthread_references(java_objectheader *o, void *new)
+static void compact_unthread_references(java_object_t *o, void *new)
 {
-	java_objectheader **refptr;
+	java_object_t **refptr;
 	ptrint tmp;
 
 	GC_LOG2( printf("unthreading in ...\n"); );
@@ -224,20 +252,20 @@ void compact_unthread_references(java_objectheader *o, void *new)
 	GC_ASSERT(GC_IS_THREADED(o->vftbl));
 
 	/* walk down the threaded chain */
-	refptr = (java_objectheader **) (ptrint) o->vftbl;
+	refptr = (java_object_t **) (ptrint) o->vftbl;
 	while (GC_IS_THREADED(refptr)) {
 
 		/* remove the threading bit */
-		refptr = (java_objectheader **) GC_REMOVE_THREAD_BIT(refptr);
+		refptr = (java_object_t **) GC_REMOVE_THREAD_BIT(refptr);
 
 		GC_LOG2( printf("\treference at %p\n", (void *) refptr); );
 
 		/* update the reference in the chain */
 		tmp = (ptrint) *refptr;
-		*refptr = (java_objectheader *) (ptrint) new;
+		*refptr = (java_object_t *) (ptrint) new;
 
 		/* skip to the next chain value */
-		refptr = (java_objectheader **) tmp;
+		refptr = (java_object_t **) tmp;
 
 	}
 
@@ -256,38 +284,69 @@ void compact_unthread_references(java_objectheader *o, void *new)
    Moves the content (including header) of an object around in memory
 
    NOTE: Memory locations may overlap!
+   NOTE: The size of the object can change by moving it around (hashcode)!
 
    IN:
       old......Old Location of the object before compaction
       new......New Location of the object after compaction
       size.....Size of the object in bytes
 
+   OUT:
+      New size of the object after moving it
+
 *******************************************************************************/
 
-void compact_move(u1 *old, u1 *new, u4 size)
+static u4 compact_move(u1 *old, u1 *new, u4 size)
 {
+	s4 hashcode;
+	u4 new_size;
 
-	GC_ASSERT(new < old);
+	GC_ASSERT(new <= old);
 
 	/* check if locations overlap */
-	if (old + size >= new) {
+	if (new + size < old) {
 		/* overlapping: NO */
 
 		/* copy old object content to new location */
 		MCOPY(new, old, u1, size);
 
+#if defined(ENABLE_MEMCHECK)
 		/* invalidate old object */
-		MSET(old, 0x44, u1, size);
+		MSET(old, MEMORY_CLEAR_BYTE, u1, size);
+#endif
 
 	} else {
 		/* overlapping: YES */
 
-		GC_LOG( dolog("GC: OVERLAPPING!!!") );
+		GC_LOG2( printf("\tcompact_move(old=%p, new=%p, size=0x%x) overlapps!", old, new, size) );
 
 		/* copy old object content to new location */
 		MMOVE(new, old, u1, size);
 
 	}
+
+	new_size = size;
+
+	/* check if we need to attach the hashcode to the object */
+	if (GC_TEST_FLAGS((java_object_t *) new, HDRFLAG_HASH_TAKEN)) {
+
+		/* TODO: move this whole bunch to heap_attach_hashcode() */
+
+		/* change the flags accordingly */
+		GC_CLEAR_FLAGS((java_object_t *) new, HDRFLAG_HASH_TAKEN);
+		GC_SET_FLAGS((java_object_t *) new, HDRFLAG_HASH_ATTACHED);
+
+		/* attach the hashcode at the end of the object */
+		new_size += SIZEOF_VOID_P;
+		hashcode = (s4) (ptrint) old;
+		*( (s4 *) (new + new_size - SIZEOF_VOID_P) ) = hashcode; /* TODO: clean this up */
+
+		GC_ASSERT(new + SIZEOF_VOID_P < old);
+		GC_LOG2( dolog("GC: Hash attached: %d (0x%08x) to new object at %p", hashcode, hashcode, new); );
+
+	}
+
+	return new_size;
 }
 
 
@@ -306,31 +365,31 @@ void compact_me(rootset_t *rs, regioninfo_t *region)
 {
 	u1 *ptr;
 	u1 *ptr_new;
-	java_objectheader *o;
+	java_object_t *o;
 	u4 o_size;
+	u4 o_size_new;
 	u4 used;
 
-	GC_LOG( dolog("GC: Compaction Phase 1 started ..."); );
+	GC_LOG( dolog("GC: Compaction Phase 0 started ..."); );
 
 	/* Phase 0:
 	 *  - thread all references in classes
 	 *  - thread all references in the rootset */
-	compact_thread_classes(region->base, region->ptr);
+	/*compact_thread_classes(region->base, region->ptr);*/
 	compact_thread_rootset(rs, region->base, region->ptr);
+
+	GC_LOG( dolog("GC: Compaction Phase 1 started ..."); );
 
 	/* Phase 1:
 	 *  - scan the heap
 	 *  - thread all references
 	 *  - update forward references */
 	ptr = region->base; ptr_new = region->base;
-	while (ptr < (u1 *) region->ptr) {
-		o = (java_objectheader *) ptr;
+	while (ptr < region->ptr) {
+		o = (java_object_t *) ptr;
 
-		/* TODO: uncollectable items should never be compacted, but for now we do it */
-		/*GC_ASSERT(!GC_TEST_FLAGS(o, GC_FLAG_UNCOLLECTABLE));*/
-		/*if (GC_TEST_FLAGS(o, GC_FLAG_UNCOLLECTABLE)) {
-			GC_SET_MARKED(o);
-		}*/
+		/* uncollectable items should never be compacted */
+		GC_ASSERT(!GC_TEST_FLAGS(o, HDRFLAG_UNCOLLECTABLE));
 
 		/* if this object is already part of a threaded chain ... */
 		if (GC_IS_THREADED(o->vftbl)) {
@@ -346,11 +405,20 @@ void compact_me(rootset_t *rs, regioninfo_t *region)
 		/* only marked objects survive */
 		if (GC_IS_MARKED(o)) {
 
+#if defined(GCCONF_HDRFLAG_REFERENCING)
+			/* check if this objects contains references */
+			if (GC_TEST_FLAGS(o, HDRFLAG_REFERENCING))
+#endif
+
 			/* thread all the references in this object */
 			compact_thread_references(o, region->base, region->ptr);
 
 			/* object survives, place next object behind it */
 			ptr_new += o_size;
+
+			/* size might change because of attached hashcode */
+			if (GC_TEST_FLAGS(o, HDRFLAG_HASH_TAKEN))
+				ptr_new += SIZEOF_VOID_P;
 		}
 
 		/* skip to next object */
@@ -365,8 +433,8 @@ void compact_me(rootset_t *rs, regioninfo_t *region)
 	 *  - move the objects */
 	used = 0;
 	ptr = region->base; ptr_new = region->base;
-	while (ptr < (u1 *) region->ptr) {
-		o = (java_objectheader *) ptr;
+	while (ptr < region->ptr) {
+		o = (java_object_t *) ptr;
 
 		/* if this object is still part of a threaded chain ... */
 		if (GC_IS_THREADED(o->vftbl)) {
@@ -388,12 +456,12 @@ void compact_me(rootset_t *rs, regioninfo_t *region)
 			/* unmark the object */
 			GC_CLEAR_MARKED(o);
 
-			/* move the object */
-			compact_move(ptr, ptr_new, o_size);
+			/* move the object (size can change) */
+			o_size_new = compact_move(ptr, ptr_new, o_size);
 
 			/* object survives, place next object behind it */
-			ptr_new += o_size;
-			used += o_size;
+			ptr_new += o_size_new;
+			used += o_size_new;
 		}
 
 		/* skip to next object */
@@ -403,6 +471,7 @@ void compact_me(rootset_t *rs, regioninfo_t *region)
 	GC_LOG( dolog("GC: Compaction finished."); );
 
 	GC_LOG( printf("Region-Used: %d -> %d\n", region->size - region->free, used); )
+	GC_LOG( printf("Region-Free: %d -> %d\n", region->free, region->size - used); )
 
 	/* update the region information */
 	region->ptr = ptr_new;

@@ -44,6 +44,7 @@ typedef struct linenumberref          linenumberref;
 #include "config.h"
 #include "vm/types.h"
 
+#include "vm/builtin.h"
 #include "vm/global.h"
 
 #include "vm/jit/dseg.h"
@@ -309,9 +310,11 @@ void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end);
 /* stub functions */
 
 u1       *codegen_generate_stub_compiler(methodinfo *m);
+void      codegen_generate_stub_builtin(builtintable_entry *bte);
 codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f);
 
 void      codegen_emit_stub_compiler(jitdata *jd);
+void      codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte);
 void      codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f);
 
 #if defined(ENABLE_INTRP)
@@ -321,6 +324,9 @@ u1 *intrp_createnativestub(functionptr f, jitdata *jd, methoddesc *md);
 
 void removecompilerstub(u1 *stub);
 void removenativestub(u1 *stub);
+
+void codegen_stub_builtin_enter(u1 *datasp, u1 *pv, u1 *sp, u1 *ra);
+void codegen_stub_builtin_exit(u1 *datasp);
 
 void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra);
 java_object_t *codegen_finish_native_call(u1 *datasp);

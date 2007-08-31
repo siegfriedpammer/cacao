@@ -23,16 +23,30 @@
 ## 02110-1301, USA.
 
 
-AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)/src
 
 LIBS =
 
-noinst_LTLIBRARIES = libgc.la
+noinst_LTLIBRARIES = \
+	libgc.la
 
 libgc_la_SOURCES = \
+	compact.c \
+	compact.h \
+	copy.c \
+	copy.h \
+	final.c \
+	final.h \
 	gc.c \
 	gc.h \
-	mark.c
+	heap.c \
+	heap.h \
+	mark.c \
+	mark.h \
+	region.c \
+	region.h \
+	rootset.c \
+	rootset.h
 
 
 ## Local variables:

@@ -171,6 +171,13 @@ bool signal_init(void)
 	signal_register_signal(SIGHUP, (functionptr) signal_handler_sighup, 0);
 #endif
 
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+	/* SIGUSR1 handler for the exact GC to suspend threads */
+
+	signal_register_signal(SIGUSR1, (functionptr) md_signal_handler_sigusr1,
+						   SA_SIGINFO);
+#endif
+
 #if defined(ENABLE_THREADS) && defined(ENABLE_PROFILING)
 	/* SIGUSR2 handler for profiling sampling */
 

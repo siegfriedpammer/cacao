@@ -431,6 +431,11 @@ void finalizer_run(void *o, void *p)
 
 /* gc *************************************************************************/
 
+void gc_reference_register(java_object_t **ref, int32_t reftype)
+{
+	vm_abort("gc_reference_register");
+}
+
 int64_t gc_get_heap_size(void)
 {
 	return 0;
@@ -459,12 +464,30 @@ void *heap_alloc_uncollectable(uint32_t bytelength)
 	return calloc(bytelength, 1);
 }
 
+s4 heap_get_hashcode(java_object_t *o)
+{
+	return 0;
+}
+
 
 /* jit ************************************************************************/
 
 void jit_invalidate_code(methodinfo *m)
 {
 	vm_abort("jit_invalidate_code");
+}
+
+
+/* llni ***********************************************************************/
+
+void llni_critical_start()
+{
+	vm_abort("llni_critical_start");
+}
+
+void llni_critical_end()
+{
+	vm_abort("llni_critical_end");
 }
 
 

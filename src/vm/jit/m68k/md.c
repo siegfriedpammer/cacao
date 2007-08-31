@@ -56,6 +56,7 @@ void md_init(void)
 	assert(OFFSET(castinfo, super_diffval) == offcast_super_diffval);
 	assert(OFFSET(castinfo, sub_baseval) == offcast_sub_baseval);
 
+#if 0
 #if defined(ENABLE_REPLACEMENT)
 	assert(sizeof(executionstate_t) = sizeexecutionstate);
 	assert(OFFSET(executionstate_t, pc) == offes_pc);
@@ -63,6 +64,7 @@ void md_init(void)
 	assert(OFFSET(executionstate_t, pv) == offes_pv);
 	assert(OFFSET(executionstate_t, intregs) == offes_intregs);
 	assert(OFFSET(executionstate_t, fltregs) == offes_fltregs);
+#endif
 #endif
 
 #ifdef __LINUX__

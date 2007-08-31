@@ -1,6 +1,6 @@
 /* src/mm/cacao-gc/gc.c - main garbage collector methods
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,46 +22,46 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Michael Starzinger
-
-
 */
 
 
 #include "config.h"
 #include <signal.h>
-#include <stdlib.h>
 #include "vm/types.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#else
-# include "threads/none/threads.h"
-#endif
+#include "threads/lock-common.h"
+#include "threads/threads-common.h"
 
+#include "compact.h"
+#include "copy.h"
+#include "final.h"
 #include "gc.h"
 #include "heap.h"
 #include "mark.h"
+#include "region.h"
+#include "rootset.h"
 #include "mm/memory.h"
 #include "toolbox/logging.h"
-#include "vm/exceptions.h"
-#include "vm/options.h"
+#include "vm/finalizer.h"
+#include "vm/vm.h"
+#include "vmcore/rt-timing.h"
 
 
-/* Development Break **********************************************************/
+/* Global Variables ***********************************************************/
+
+bool gc_pending;
+bool gc_running;
+bool gc_notify_finalizer;
+
+list_t *gc_reflist;
 
 #if defined(ENABLE_THREADS)
-# error "GC does not work with threads enabled!"
+java_object_t *gc_global_lock;
 #endif
 
-#if defined(ENABLE_INTRP)
-# error "GC does not work with interpreter enabled!"
-#endif
-
-#if defined(ENABLE_JVMTI)
-# error "GC does not work with JVMTI enabled!"
+#if !defined(ENABLE_THREADS)
+executionstate_t *_no_threads_executionstate;
+sourcestate_t    *_no_threads_sourcestate;
 #endif
 
 
@@ -71,93 +71,433 @@
 
 *******************************************************************************/
 
+#define GC_SYS_SIZE (20*1024*1024)
+
 void gc_init(u4 heapmaxsize, u4 heapstartsize)
 {
 	if (opt_verbosegc)
 		dolog("GC: Initialising with heap-size %d (max. %d)",
 			heapstartsize, heapmaxsize);
 
-	heap_base = malloc(heapstartsize);
+#if defined(ENABLE_HANDLES)
+	/* check our indirection cells */
+	if (OFFSET(java_handle_t, heap_object) != 0)
+		vm_abort("gc_init: indirection cell offset is displaced: %d", OFFSET(java_handle_t, heap_object));
+	if (OFFSET(hashtable_classloader_entry, object) != 0)
+		vm_abort("gc_init: classloader entry cannot be used as indirection cell: %d", OFFSET(hashtable_classloader_entry, object));
+	if (OFFSET(hashtable_global_ref_entry, o) != 0)
+		vm_abort("gc_init: global reference entry cannot be used as indirection cell: %d", OFFSET(hashtable_global_ref_entry, o));
+#endif
 
-	if (heap_base == NULL)
-		exceptions_throw_outofmemory_exit();
+	/* finalizer stuff */
+	final_init();
 
-	/* this is needed for linear allocation */
-	heap_ptr = heap_base;
+	/* set global variables */
+	gc_pending = false;
+	gc_running = false;
+
+	/* create list for external references */
+	gc_reflist = list_create(OFFSET(list_gcref_entry_t, linkage));
+
+#if defined(ENABLE_THREADS)
+	/* create global gc lock object */
+	gc_global_lock = NEW(java_object_t);
+	lock_init_object_lock(gc_global_lock);
+#endif
+
+	/* region for uncollectable objects */
+	heap_region_sys = NEW(regioninfo_t);
+	if (!region_create(heap_region_sys, GC_SYS_SIZE))
+		vm_abort("gc_init: region_create failed: out of memory");
+
+	/* region for java objects */
+	heap_region_main = NEW(regioninfo_t);
+	if (!region_create(heap_region_main, heapstartsize))
+		vm_abort("gc_init: region_create failed: out of memory");
 
 	heap_current_size = heapstartsize;
 	heap_maximal_size = heapmaxsize;
-	heap_free_size = heap_current_size;
-	heap_used_size = 0;
 }
+
+
+/* gc_reference_register *******************************************************
+
+   Register an external reference which points onto the Heap and keeps
+   objects alive (strong reference).
+
+*******************************************************************************/
+
+void gc_reference_register(java_object_t **ref, int32_t reftype)
+{
+	list_gcref_entry_t *re;
+
+	/* the reference needs to be registered before it is set, so make sure the
+	   reference is not yet set */
+	GC_ASSERT(*ref == NULL);
+
+#if defined(ENABLE_THREADS)
+	/* XXX dirty hack because threads_init() not yet called */
+	if (THREADOBJECT == NULL) {
+		GC_LOG( dolog("GC: Unable to register Reference!"); );
+		return;
+	}
+#endif
+
+	GC_LOG2( printf("Registering Reference at %p\n", (void *) ref); );
+
+	re = NEW(list_gcref_entry_t);
+
+	re->ref     = ref;
+#if !defined(NDEBUG)
+	re->reftype = reftype;
+#endif
+
+	list_add_last(gc_reflist, re);
+}
+
+
+void gc_reference_unregister(java_object_t **ref)
+{
+	vm_abort("gc_reference_unregister: IMPLEMENT ME!");
+}
+
+
+/* gc_collect ******************************************************************
+
+   This is the main machinery which manages a collection. It should be run by
+   the thread which triggered the collection.
+
+   IN:
+     XXX
+
+   STEPS OF A COLLECTION:
+     XXX
+
+*******************************************************************************/
+
+void gc_collect(s4 level)
+{
+	rootset_t    *rs;
+	s4            dumpsize;
+#if !defined(NDEBUG)
+	stackframeinfo   *sfi;
+	stacktracebuffer *stb;
+#endif
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_suspend, time_rootset, time_mark, time_compact, time_end;
+#endif
+
+	/* enter the global gc lock */
+	LOCK_MONITOR_ENTER(gc_global_lock);
+
+	/* remember start of dump memory area */
+	dumpsize = dump_size();
+
+	GCSTAT_COUNT(gcstat_collections);
+
+	RT_TIMING_GET_TIME(time_start);
+
+	/* let everyone know we want to do a collection */
+	GC_ASSERT(!gc_pending);
+	gc_pending = true;
+
+	/* finalizer is not notified, unless marking tells us to do so */
+	gc_notify_finalizer = false;
+
+#if defined(ENABLE_THREADS)
+	/* stop the world here */
+	GC_LOG( dolog("GC: Suspending threads ..."); );
+	GC_LOG( threads_dump(); );
+	threads_stopworld();
+	/*GC_LOG( threads_dump(); );*/
+	GC_LOG( dolog("GC: Suspension finished."); );
+#endif
+
+#if !defined(NDEBUG)
+	/* get the stacktrace of the current thread and make sure it is non-empty */
+	GC_LOG( printf("Stacktrace of current thread:\n"); );
+	sfi = STACKFRAMEINFO;
+	stb = stacktrace_create(sfi);
+	if (stb == NULL)
+		vm_abort("gc_collect: no stacktrace available for current thread!");
+	GC_LOG( stacktrace_print_trace_from_buffer(stb); );
+#endif
+
+	/* sourcestate of the current thread, assuming we are in the native world */
+	GC_LOG( dolog("GC: Stackwalking current thread ..."); );
+#if defined(ENABLE_THREADS)
+	GC_ASSERT(THREADOBJECT->flags & THREAD_FLAG_IN_NATIVE);
+#endif
+	replace_gc_from_native(THREADOBJECT, NULL, NULL);
+
+	/* everyone is halted now, we consider ourselves running */
+	GC_ASSERT(!gc_running);
+	gc_pending = false;
+	gc_running = true;
+
+	RT_TIMING_GET_TIME(time_suspend);
+
+	GC_LOG( heap_println_usage(); );
+	/*GC_LOG( heap_dump_region(heap_region_main, false); );*/
+
+	/* find the global and local rootsets */
+	rs = rootset_readout();
+	GC_LOG( rootset_print(rs); );
+
+	RT_TIMING_GET_TIME(time_rootset);
+
+#if 1
+
+	/* mark the objects considering the given rootset */
+	mark_me(rs);
+	/*GC_LOG( heap_dump_region(heap_region_main, false); );*/
+
+	RT_TIMING_GET_TIME(time_mark);
+
+	/* compact the heap */
+	compact_me(rs, heap_region_main);
+	/*GC_LOG( heap_dump_region(heap_region_main, false); );*/
+
+#if defined(ENABLE_MEMCHECK)
+	/* invalidate the rest of the main region */
+	region_invalidate(heap_region_main);
+#endif
+
+	RT_TIMING_GET_TIME(time_compact);
+
+	/* check if we should increase the heap size */
+	if (gc_get_free_bytes() < gc_get_heap_size() / 3) /* TODO: improve this heuristic */
+		heap_increase_size(rs);
+
+#else
+
+	/* copy the heap to new region */
+	{
+		regioninfo_t *src, *dst;
+
+		src = heap_region_main;
+		dst = NEW(regioninfo_t);
+		region_create(dst, heap_current_size);
+		copy_me(heap_region_main, dst, rs);
+		heap_region_main = dst;
+
+		/* invalidate old heap */
+		memset(src->base, 0x66, src->size);
+	}
+#endif
+
+	/* TODO: check my return value! */
+	/*heap_increase_size();*/
+
+	/* write back the rootset to update root references */
+	GC_LOG( rootset_print(rs); );
+	rootset_writeback(rs);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_verbosegc)
+		gcstat_println();
+#endif
+
+	/* we are no longer running */
+	gc_running = false;
+
+#if defined(ENABLE_THREADS)
+	/* start the world again */
+	GC_LOG( dolog("GC: Reanimating world ..."); );
+	threads_startworld();
+	/*GC_LOG( threads_dump(); );*/
+#endif
+
+#if defined(GCCONF_FINALIZER)
+	/* does the finalizer need to be notified */
+	if (gc_notify_finalizer)
+		finalizer_notify();
+#endif
+
+	RT_TIMING_GET_TIME(time_end);
+
+	RT_TIMING_TIME_DIFF(time_start  , time_suspend, RT_TIMING_GC_SUSPEND);
+	RT_TIMING_TIME_DIFF(time_suspend, time_rootset, RT_TIMING_GC_ROOTSET1)
+	RT_TIMING_TIME_DIFF(time_rootset, time_mark   , RT_TIMING_GC_MARK);
+	RT_TIMING_TIME_DIFF(time_mark   , time_compact, RT_TIMING_GC_COMPACT);
+	RT_TIMING_TIME_DIFF(time_compact, time_end    , RT_TIMING_GC_ROOTSET2);
+	RT_TIMING_TIME_DIFF(time_start  , time_end    , RT_TIMING_GC_TOTAL);
+
+    /* free dump memory area */
+    dump_release(dumpsize);
+
+	/* leave the global gc lock */
+	LOCK_MONITOR_EXIT(gc_global_lock);
+
+}
+
+
+#if defined(ENABLE_THREADS)
+bool gc_suspend(threadobject *thread, u1 *pc, u1 *sp)
+{
+	codeinfo         *code;
+
+	/* check if the thread suspended itself */
+	if (pc == NULL) {
+		GC_LOG( dolog("GC: Suspended myself!"); );
+		return true;
+	}
+
+	/* thread was forcefully suspended */
+	GC_LOG( dolog("GC: Suspending thread (tid=%p)", thread->tid); );
+
+	/* check where this thread came to a halt */
+	if (thread->flags & THREAD_FLAG_IN_NATIVE) {
+
+		if (thread->gc_critical) {
+			GC_LOG( dolog("\tNATIVE &  CRITICAL -> retry"); );
+
+			GC_ASSERT(0);
+
+			/* wait till this thread suspends itself */
+			return false;
+
+		} else {
+			GC_LOG( dolog("\tNATIVE & SAFE -> suspend"); );
+
+			/* we assume we are in a native! */
+			replace_gc_from_native(thread, pc, sp);
+
+			/* suspend me now */
+			return true;
+
+		}
+
+	} else {
+		code = code_find_codeinfo_for_pc_nocheck(pc);
+
+		if (code != NULL) {
+			GC_LOG( dolog("\tJIT (pc=%p) & KNOWN(codeinfo=%p) -> replacement",
+					pc, code); );
+
+			/* arm the replacement points of the code this thread is in */
+			replace_activate_replacement_points(code, false);
+
+			/* wait till this thread suspends itself */
+			return false;
+
+		} else {
+			GC_LOG( dolog("\tJIT (pc=%p) & UN-KNOWN -> retry", pc); );
+
+			/* re-suspend me later */
+			/* TODO: implement me! */
+			/* TODO: (this is a rare race condition which was not yet triggered) */
+			GC_ASSERT(0);
+			return false;
+
+		}
+
+	}
+
+	/* this point should never be reached */
+	GC_ASSERT(0);
+
+}
+#endif
 
 
 /* gc_call *********************************************************************
 
    Forces a full collection of the whole Java Heap.
-   This is the function which is called by System.VMRuntime.gc()
+   This is the function which is called by java.lang.Runtime.gc()
 
 *******************************************************************************/
 
 void gc_call(void)
 {
-	rootset_t *rs;
-	s4         dumpsize;
-
 	if (opt_verbosegc)
 		dolog("GC: Forced Collection ...");
 
-	/* TODO: move the following to gc_collect() */
+	GCSTAT_COUNT(gcstat_collections_forced);
 
-	/* remember start of dump memory area */
-	dumpsize = dump_size();
-
-	GC_LOG( heap_println_usage(); );
-	/*GC_LOG( heap_dump_region(heap_base, heap_ptr, false); );*/
-
-	/* find the rootset for the current thread */
-	rs = DNEW(rootset_t);
-	mark_rootset_from_thread(THREADOBJECT, rs);
-
-	/* mark the objects considering the given rootset */
-	mark_me(rs);
-	GC_LOG( heap_dump_region(heap_base, heap_ptr, true); );
-
-	/* compact the heap */
-	/*compact_me(rs, heap_base, heap_ptr);*/
-
-	/* TODO: check my return value! */
-	/*heap_increase_size();*/
-
-    /* free dump memory area */
-    dump_release(dumpsize);
+	gc_collect(0);
 
 	if (opt_verbosegc)
 		dolog("GC: Forced Collection finished.");
 }
 
 
+/* gc_invoke_finalizers ********************************************************
+
+   Forces invocation of all the finalizers for objects which are reclaimable.
+   This is the function which is called by the finalizer thread.
+
+*******************************************************************************/
+
+void gc_invoke_finalizers(void)
+{
+	if (opt_verbosegc)
+		dolog("GC: Invoking finalizers ...");
+
+	final_invoke();
+
+	if (opt_verbosegc)
+		dolog("GC: Invoking finalizers finished.");
+}
+
+
+/* gc_finalize_all *************************************************************
+
+   Forces the finalization of all objects on the Java Heap.
+   This is the function which is called by java.lang.Runtime.exit()
+
+   We do this by setting all objects with finalizers to reclaimable,
+   which is inherently dangerouse because objects may still be alive.
+
+*******************************************************************************/
+
+void gc_finalize_all(void)
+{
+#if !defined(NDEBUG)
+	/* doing this is deprecated, inform the user */
+	dolog("gc_finalize_all: Deprecated!");
+#endif
+
+	/* set all objects with finalizers to reclaimable */
+	final_set_all_reclaimable();
+
+	/* notify the finalizer thread */
+	finalizer_notify();
+}
+
+
 /* Informational getter functions *********************************************/
 
 s8 gc_get_heap_size(void)     { return heap_current_size; }
-s8 gc_get_free_bytes(void)    { return heap_free_size; }
-s8 gc_get_total_bytes(void)   { return heap_used_size; }
+s8 gc_get_free_bytes(void)    { return heap_region_main->free; }
+s8 gc_get_total_bytes(void)   { return heap_region_main->size - heap_region_main->free; }
 s8 gc_get_max_heap_size(void) { return heap_maximal_size; }
 
 
-/* Thread specific stuff ******************************************************/
+/* Statistics *****************************************************************/
 
-#if defined(ENABLE_THREADS)
-int GC_signum1()
-{
-	return SIGUSR1;
-}
+#if defined(ENABLE_STATISTICS)
+int gcstat_collections;
+int gcstat_collections_forced;
+int gcstat_mark_depth;
+int gcstat_mark_depth_max;
+int gcstat_mark_count;
 
-int GC_signum2()
+void gcstat_println()
 {
-	return SIGUSR2;
+	printf("\nGCSTAT - General Statistics:\n");
+	printf("\t# of collections: %d\n", gcstat_collections);
+	printf("\t# of forced collections: %d\n", gcstat_collections_forced);
+
+    printf("\nGCSTAT - Marking Statistics:\n");
+    printf("\t# of objects marked: %d\n", gcstat_mark_count);
+    printf("\tMaximal marking depth: %d\n", gcstat_mark_depth_max);
+
+	printf("\nGCSTAT - Compaction Statistics:\n");
+
+	printf("\n");
 }
-#endif
+#endif /* defined(ENABLE_STATISTICS) */
 
 
 /*

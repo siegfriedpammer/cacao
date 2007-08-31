@@ -39,6 +39,7 @@
 
 #include "threads/lock-common.h"
 
+#include "toolbox/hashtable.h"
 #include "toolbox/logging.h"
 
 #include "vm/builtin.h"
@@ -78,6 +79,11 @@
 #endif
 
 
+/* global variables ***********************************************************/
+
+static hashtable *hashtable_classloader;
+
+
 /* loader_preinit **************************************************************
 
    Initializes the classpath list and loads classes required for the
@@ -98,6 +104,11 @@ void loader_preinit(void)
 			LOCK_INIT_OBJECT_LOCK(lce);
 	}
 #endif
+
+	/* initialize classloader hashtable, 10 entries should be enough */
+
+	hashtable_classloader = NEW(hashtable);
+	hashtable_create(hashtable_classloader, 10);
 
 	/* Load the most basic class. */
 
@@ -250,6 +261,128 @@ void loader_init(void)
 #  endif
 # endif
 #endif
+}
+
+
+/* loader_hashtable_classloader_add ********************************************
+
+   Adds an entry to the classloader hashtable.
+
+   REMEMBER: Also use this to register native loaders!
+
+*******************************************************************************/
+
+classloader *loader_hashtable_classloader_add(java_handle_t *cl)
+{
+	hashtable_classloader_entry *cle;
+	u4   key;
+	u4   slot;
+
+	if (cl == NULL)
+		return NULL;
+
+	LOCK_MONITOR_ENTER(hashtable_classloader->header);
+
+	LLNI_CRITICAL_START;
+
+	/* key for entry is the hashcode of the classloader;
+	   aligned to 16-byte boundaries */
+
+#if defined(ENABLE_GC_CACAO)
+	key  = heap_get_hashcode(LLNI_DIRECT(cl)) >> 4;
+#else
+	key  = ((u4) (ptrint) cl) >> 4;
+#endif
+
+	slot = key & (hashtable_classloader->size - 1);
+	cle  = hashtable_classloader->ptr[slot];
+
+	/* search hashchain for existing entry */
+
+	while (cle) {
+		if (cle->object == LLNI_DIRECT(cl))
+			break;
+
+		cle = cle->hashlink;
+	}
+
+	LLNI_CRITICAL_END;
+
+	/* if no classloader was found, we create a new entry here */
+
+	if (cle == NULL) {
+		cle = NEW(hashtable_classloader_entry);
+
+#if defined(ENABLE_GC_CACAO)
+		/* register the classloader object with the GC */
+
+		gc_reference_register(&(cle->object), GC_REFTYPE_CLASSLOADER);
+#endif
+
+		LLNI_CRITICAL_START;
+
+		cle->object = LLNI_DIRECT(cl);
+
+		LLNI_CRITICAL_END;
+
+		/* insert entry into hashtable */
+
+		cle->hashlink = hashtable_classloader->ptr[slot];
+		hashtable_classloader->ptr[slot] = cle;
+
+		/* update number of entries */
+
+		hashtable_classloader->entries++;
+	}
+
+
+	LOCK_MONITOR_EXIT(hashtable_classloader->header);
+
+	return cle;
+}
+
+
+/* loader_hashtable_classloader_find *******************************************
+
+   Find an entry in the classloader hashtable.
+
+*******************************************************************************/
+
+classloader *loader_hashtable_classloader_find(java_handle_t *cl)
+{
+	hashtable_classloader_entry *cle;
+	u4   key;
+	u4   slot;
+
+	if (cl == NULL)
+		return NULL;
+
+	LLNI_CRITICAL_START;
+
+	/* key for entry is the hashcode of the classloader;
+	   aligned to 16-byte boundaries */
+
+#if defined(ENABLE_GC_CACAO)
+	key  = heap_get_hashcode(LLNI_DIRECT(cl)) >> 4;
+#else
+	key  = ((u4) (ptrint) cl) >> 4;
+#endif
+
+	slot = key & (hashtable_classloader->size - 1);
+	cle  = hashtable_classloader->ptr[slot];
+
+	/* search hashchain for existing entry */
+
+	while (cle) {
+		if (cle->object == LLNI_DIRECT(cl))
+			break;
+
+		cle = cle->hashlink;
+	}
+
+	LLNI_CRITICAL_END;
+
+	return cle;
 }
 
 
@@ -851,9 +984,10 @@ bool loader_load_attribute_signature(classbuffer *cb, utf **signature)
 
 classinfo *load_class_from_sysloader(utf *name)
 {
-	methodinfo  *m;
-	classloader *cl;
-	classinfo   *c;
+	methodinfo    *m;
+	java_handle_t *clo;
+	classloader   *cl;
+	classinfo     *c;
 
 	assert(class_java_lang_Object);
 	assert(class_java_lang_ClassLoader);
@@ -868,10 +1002,12 @@ classinfo *load_class_from_sysloader(utf *name)
 	if (!m)
 		return false;
 
-	cl = vm_call_method(m, NULL);
+	clo = vm_call_method(m, NULL);
 
-	if (!cl)
+	if (!clo)
 		return false;
+
+	cl = loader_hashtable_classloader_add(clo);
 
 	c = load_class_from_classloader(name, cl);
 
@@ -995,13 +1131,13 @@ classinfo *load_class_from_classloader(utf *name, classloader *cl)
 		/* OpenJDK uses this internal function because it's
 		   synchronized. */
 
-		lc = class_resolveclassmethod(cl->vftbl->class,
+		lc = class_resolveclassmethod(cl->object->vftbl->class,
 									  utf_loadClassInternal,
 									  utf_java_lang_String__java_lang_Class,
 									  NULL,
 									  true);
 #else
-		lc = class_resolveclassmethod(cl->vftbl->class,
+		lc = class_resolveclassmethod(cl->object->vftbl->class,
 									  utf_loadClass,
 									  utf_java_lang_String__java_lang_Class,
 									  NULL,
@@ -1017,7 +1153,11 @@ classinfo *load_class_from_classloader(utf *name, classloader *cl)
 
 		RT_TIMING_GET_TIME(time_prepare);
 
-		o = vm_call_method(lc, cl, string);
+#if defined(ENABLE_HANDLES)
+		o = vm_call_method(lc, (java_handle_t *) cl, string);
+#else
+		o = vm_call_method(lc, cl->object, string);
+#endif
 
 		RT_TIMING_GET_TIME(time_java);
 

@@ -108,15 +108,35 @@ struct classbuffer {
 };
 
 
+/* hashtable_classloader_entry *************************************************
+
+   ATTENTION: The pointer to the classloader object needs to be the
+   first field of the entry, so that it can be used as an indirection
+   cell. This is checked by gc_init() during startup.
+
+*******************************************************************************/
+
+typedef struct hashtable_classloader_entry hashtable_classloader_entry;
+
+struct hashtable_classloader_entry {
+	java_object_t               *object;
+	hashtable_classloader_entry *hashlink;
+};
+
+
 /* classloader ****************************************************************/
 
-typedef java_object_t classloader;
+typedef hashtable_classloader_entry classloader;
 
 
 /* function prototypes ********************************************************/
 
 void loader_preinit(void);
 void loader_init(void);
+
+/* classloader management functions */
+classloader *loader_hashtable_classloader_add(java_handle_t *cl);
+classloader *loader_hashtable_classloader_find(java_handle_t *cl);
 
 void loader_load_all_classes(void);
 

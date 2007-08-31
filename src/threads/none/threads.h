@@ -57,6 +57,13 @@ extern struct stackframeinfo       *_no_threads_stackframeinfo;
 
 #define STACKFRAMEINFO      (_no_threads_stackframeinfo)
 
+
+/* native-world flags *********************************************************/
+
+#define THREAD_NATIVEWORLD_ENTER /*nop*/
+#define THREAD_NATIVEWORLD_EXIT  /*nop*/
+
+
 #if defined(ENABLE_DEBUG_FILTER)
 extern u2 _no_threads_filterverbosecallctr[2];
 #define FILTERVERBOSECALLCTR (_no_threads_filterverbosecallctr)

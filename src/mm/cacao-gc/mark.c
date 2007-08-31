@@ -1,6 +1,6 @@
 /* mm/cacao-gc/mark.c - GC module for marking heap objects
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,61 +22,66 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Michael Starzinger
-
-
 */
 
 
 #include "config.h"
 
+#include "gc.h"
+#include "final.h"
 #include "heap.h"
+#include "mark.h"
+#include "rootset.h"
+#include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "vm/global.h"
-#include "vm/linker.h"
-#include "vm/options.h"
+#include "vm/vm.h"
+#include "vmcore/linker.h"
 
 
-/* Debugging ******************************************************************/
+/* Helper Macros **************************************************************/
 
-int mark_depth;
-int mark_depth_max;
-#define MARK_DEPTH_INIT { mark_depth = 0; mark_depth_max = 0; }
-#define MARK_DEPTH_INC { mark_depth++; if (mark_depth>mark_depth_max) mark_depth_max=mark_depth; }
-#define MARK_DEPTH_DEC { mark_depth--; GC_ASSERT(mark_depth >= 0); }
-void mark_println_stats()
-{
-	printf("Maximal marking depth: %d\n", mark_depth_max);
-}
+#define MARK(o) \
+	GCSTAT_COUNT_MAX(gcstat_mark_depth, gcstat_mark_depth_max); \
+	mark_recursive(o); \
+	GCSTAT_DEC(gcstat_mark_depth);
 
 
-/* mark_recursice **************************************************************
+/* mark_recursive **************************************************************
 
    Recursively mark all objects (including this) which are referenced.
+
+   TODO, XXX: We need to implement a non-recursive version of this!!!
 
    IN:
 	  o.....heap-object to be marked (either OBJECT or ARRAY)
 
 *******************************************************************************/
 
-void mark_recursive(java_objectheader *o)
+void mark_recursive(java_object_t *o)
 {
-	vftbl_t           *t;
-	classinfo         *c;
-	fieldinfo         *f;
-	java_objectarray  *oa;
-	arraydescriptor   *desc;
-	java_objectheader *ref;
+	vftbl_t            *t;
+	classinfo          *c;
+	fieldinfo          *f;
+	java_objectarray_t *oa;
+	arraydescriptor    *desc;
+	java_object_t      *ref;
+	void *start, *end;
 	int i;
 
+	/* TODO: this needs cleanup!!! */
+	start = heap_region_main->base;
+	end = heap_region_main->ptr;
+
 	/* uncollectable objects should never get marked this way */
+	/* the reference should point into the heap */
 	GC_ASSERT(o);
-	GC_ASSERT(!GC_TEST_FLAGS(o, GC_FLAG_UNCOLLECTABLE));
+	GC_ASSERT(!GC_TEST_FLAGS(o, HDRFLAG_UNCOLLECTABLE));
+	GC_ASSERT(POINTS_INTO(o, start, end));
 
 	/* mark this object */
 	GC_SET_MARKED(o);
+	GCSTAT_COUNT(gcstat_mark_count);
 
 	/* get the class of this object */
 	/* TODO: maybe we do not need this yet, look to move down! */
@@ -85,13 +90,12 @@ void mark_recursive(java_objectheader *o)
 	c = t->class;
 	GC_ASSERT(c);
 
-	/* TODO: should we mark the class of the object as well? */
-	/*GC_ASSERT(GC_IS_MARKED((java_objectheader *) c));*/
-
+#if defined(GCCONF_HDRFLAG_REFERENCING)
 	/* does this object has pointers? */
 	/* TODO: check how often this happens, maybe remove this check! */
-	/*if (!GC_IS_REFERENCING(o))
-		return;*/
+	if (!GC_TEST_FLAGS(o, HDRFLAG_REFERENCING))
+		return;
+#endif
 
 	/* check if we are marking an array */
 	if ((desc = t->arraydesc) != NULL) {
@@ -102,23 +106,23 @@ void mark_recursive(java_objectheader *o)
 			return;
 
 		/* for object-arrays we need to check every entry */
-		oa = (java_objectarray *) o;
+		oa = (java_objectarray_t *) o;
 		for (i = 0; i < oa->header.size; i++) {
 
 			/* load the reference value */
-			ref = (java_objectheader *) (oa->data[i]);
+			ref = (java_object_t *) (oa->data[i]);
 
 			/* check for outside or null pointers */
-			if (!POINTS_INTO(ref, heap_base, heap_ptr))
+			if (!POINTS_INTO(ref, start, end))
 				continue;
 
-			GC_LOG( printf("Found (%p) from Array\n", (void *) ref); );
+			GC_LOG2( printf("Found (%p) from Array\n", (void *) ref); );
 
 			/* do the recursive marking */
 			if (!GC_IS_MARKED(ref)) {
-				MARK_DEPTH_INC;
+				GCSTAT_COUNT_MAX(gcstat_mark_depth, gcstat_mark_depth_max);
 				mark_recursive(ref);
-				MARK_DEPTH_DEC;
+				GCSTAT_DEC(gcstat_mark_depth);
 			}
 
 		}
@@ -127,6 +131,7 @@ void mark_recursive(java_objectheader *o)
 		/* this is an OBJECT */
 
 		/* for objects we need to check all (non-static) fields */
+		for (; c; c = c->super.cls) {
 		for (i = 0; i < c->fieldscount; i++) {
 			f = &(c->fields[i]);
 
@@ -135,21 +140,74 @@ void mark_recursive(java_objectheader *o)
 				continue;
 
 			/* load the reference value */
-			ref = *( (java_objectheader **) ((s1 *) o + f->offset) );
+			ref = *( (java_object_t **) ((s1 *) o + f->offset) );
 
 			/* check for outside or null pointers */
-			if (!POINTS_INTO(ref, heap_base, heap_ptr))
+			if (!POINTS_INTO(ref, start, end))
 				continue;
 
-			GC_LOG( printf("Found (%p) from Field ", (void *) ref);
+			GC_LOG2( printf("Found (%p) from Field ", (void *) ref);
 					field_print(f); printf("\n"); );
 
 			/* do the recursive marking */
 			if (!GC_IS_MARKED(ref)) {
-				MARK_DEPTH_INC;
+				GCSTAT_COUNT_MAX(gcstat_mark_depth, gcstat_mark_depth_max);
 				mark_recursive(ref);
-				MARK_DEPTH_DEC;
+				GCSTAT_DEC(gcstat_mark_depth);
 			}
+
+		}
+		}
+
+	}
+
+}
+
+
+/* mark_classes ****************************************************************
+
+   Marks all the references from classinfo structures (static fields)
+
+   IN:
+      start.....Region to be marked starts here
+      end.......Region to be marked ends here 
+
+*******************************************************************************/
+
+void mark_classes(void *start, void *end)
+{
+	java_object_t *ref;
+	classinfo     *c;
+	fieldinfo     *f;
+	void *sys_start, *sys_end;
+	int i;
+
+	GC_LOG( dolog("GC: Marking from classes ..."); );
+
+	/* TODO: cleanup!!! */
+	sys_start = heap_region_sys->base;
+	sys_end = heap_region_sys->ptr;
+
+	/* walk through all classinfo blocks */
+	for (c = sys_start; c < (classinfo *) sys_end; c++) {
+
+		/* walk through all fields */
+		f = c->fields;
+		for (i = 0; i < c->fieldscount; i++, f++) {
+
+			/* check if this is a static reference */
+			if (!IS_ADR_TYPE(f->type) || !(f->flags & ACC_STATIC))
+				continue;
+
+			/* load the reference */
+			ref = (java_object_t *) (f->value);
+
+			/* check for outside or null pointers */
+			if (!POINTS_INTO(ref, start, end))
+				continue;
+
+			/* mark the reference */
+			MARK(ref);
 
 		}
 
@@ -158,36 +216,124 @@ void mark_recursive(java_objectheader *o)
 }
 
 
-/* mark ************************************************************************
+/* mark_me *********************************************************************
 
    Marks all Heap Objects which are reachable from a given root-set.
 
+   REMEMBER: Assumes all threads are stopped!
+
+   IN:
+	  rs.....root set containing the references
+
 *******************************************************************************/
 
-/* rootset is passed as array of pointers, which point to the location of
-   the reference */
-/* TODO: this definitely has to change!!! */
-typedef java_objectheader** rootset_t;
-
-void mark(rootset_t *rootset, int rootset_size)
+void mark_me(rootset_t *rs)
 {
-	java_objectheader *ref;
+	java_object_t      *ref;
+#if defined(GCCONF_FINALIZER)
+	list_final_entry_t *fe;
+#endif
+	u4                  f_type;
+	void *start, *end;
 	int i;
 
-	/* recursively mark all references of the rootset */
-	MARK_DEPTH_INIT;
-	MARK_DEPTH_INC;
-	for (i = 0; i < rootset_size; i++) {
+	/* TODO: this needs cleanup!!! */
+	start = heap_region_main->base;
+	end = heap_region_main->ptr;
 
-		ref = *( rootset[i] );
-		mark_recursive(ref);
+	GCSTAT_INIT(gcstat_mark_count);
+	GCSTAT_INIT(gcstat_mark_depth);
+	GCSTAT_INIT(gcstat_mark_depth_max);
 
+	/* recursively mark all references from classes */
+	/*mark_classes(heap_region_main->base, heap_region_main->ptr);*/
+
+	while (rs) {
+		GC_LOG( dolog("GC: Marking from rootset (%d entries) ...", rs->refcount); );
+
+		/* mark all references of the rootset */
+		for (i = 0; i < rs->refcount; i++) {
+
+			/* is this a marking reference? */
+			if (!rs->refs[i].marks)
+				continue;
+
+			/* load the reference */
+			ref = *( rs->refs[i].ref );
+
+			/* check for outside or null pointers */
+			if (!POINTS_INTO(ref, start, end))
+				continue;
+
+			/* do the marking here */
+			MARK(ref);
+
+		}
+
+		rs = rs->next;
 	}
-	MARK_DEPTH_DEC;
-	GC_ASSERT(mark_depth == 0);
-	GC_ASSERT(mark_depth_max > 0);
 
-	GC_LOG( mark_println_stats(); );
+#if defined(GCCONF_FINALIZER)
+	/* objects with finalizers will also be marked here. if they have not been
+	 * marked before the finalization is triggered */
+	/* REMEMBER: all threads are stopped, so we can use unsynced access here */
+	fe = list_first_unsynced(final_list);
+	while (fe) {
+		f_type = fe->type;
+		ref    = fe->o;
+
+		/* we do not care about objects which have been marked already */
+		if (!GC_IS_MARKED(ref)) {
+
+			switch (f_type) {
+
+			case FINAL_REACHABLE: /* object was reachable before */
+				GC_LOG2( printf("Finalizer triggered for: ");
+						heap_print_object(ref); printf("\n"); );
+
+				/* object is now reclaimable */
+				fe->type = FINAL_RECLAIMABLE;
+
+				/* notify the finalizer after collection finished */
+				gc_notify_finalizer = true;
+
+				/* keep the object alive until finalizer finishes */
+				MARK(ref);
+				break;
+
+			case FINAL_RECLAIMABLE: /* object not yet finalized */
+				GC_LOG( printf("Finalizer not yet started for: ");
+						heap_print_object(ref); printf("\n"); );
+
+				/* keep the object alive until finalizer finishes */
+				MARK(ref);
+				break;
+
+#if 0
+			case FINAL_FINALIZING: /* object is still being finalized */
+				GC_LOG( printf("Finalizer not yet finished for: ");
+						heap_print_object(ref); printf("\n"); );
+
+				/* keep the object alive until finalizer finishes */
+				MARK(ref);
+				break;
+#endif
+
+			default: /* case not yet covered */
+				vm_abort("mark_me: uncovered case (type=%d)", f_type);
+
+			}
+		}
+
+		fe = list_next_unsynced(final_list, fe);
+	}
+#endif /*defined(GCCONF_FINALIZER)*/
+
+	GC_LOG( dolog("GC: Marking finished."); );
+
+#if defined(ENABLE_STATISTICS)
+	GC_ASSERT(gcstat_mark_depth == 0);
+#endif
 }
 
 

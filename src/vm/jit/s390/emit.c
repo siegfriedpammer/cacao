@@ -213,7 +213,7 @@ void emit_copy(jitdata *jd, instruction *iptr)
 	}
 }
 
-/* emit_trap****************************************************************
+/* emit_trap *******************************************************************
 
    Emit a trap instruction and return the original machine code.
 

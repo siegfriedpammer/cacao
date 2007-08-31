@@ -175,7 +175,6 @@ static methodinfo *dbb_init;
 /* some forward declarations **************************************************/
 
 jobject _Jv_JNI_NewLocalRef(JNIEnv *env, jobject ref);
-jint _Jv_JNI_EnsureLocalCapacity(JNIEnv* env, jint capacity);
 
 
 /* jni_init ********************************************************************
@@ -844,7 +843,7 @@ java_handle_t *_Jv_jni_invokeNative(methodinfo *m, java_handle_t *o,
 
 	if (o != NULL) {
 		/* for instance methods we must do a vftbl lookup */
-		resm = method_vftbl_lookup(o->vftbl, m);
+		resm = method_vftbl_lookup(LLNI_vftbl_direct(o), m);
 	}
 	else {
 		/* for static methods, just for convenience */
@@ -959,18 +958,21 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 						   const jbyte *buf, jsize bufLen)
 {
 #if defined(ENABLE_JAVASE)
-	utf         *u;
-	classloader *cl;
-	classinfo   *c;
+	utf             *u;
+	classloader     *cl;
+	classinfo       *c;
+	java_lang_Class *co;
 
 	TRACEJNICALLS("_Jv_JNI_DefineClass(env=%p, name=%s, loader=%p, buf=%p, bufLen=%d)", env, name, loader, buf, bufLen);
 
 	u  = utf_new_char(name);
-	cl = (classloader *) loader;
+	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 	c = class_define(u, cl, bufLen, (const uint8_t *) buf, NULL);
 
-	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
+	co = LLNI_classinfo_wrap(c);
+
+	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) co);
 #else
 	vm_abort("_Jv_JNI_DefineClass: not implemented in this configuration");
 
@@ -992,9 +994,10 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
 {
 #if defined(ENABLE_JAVASE)
-	utf       *u;
-	classinfo *cc;
-	classinfo *c;
+	utf             *u;
+	classinfo       *cc;
+	classinfo       *c;
+	java_lang_Class *co;
 
 	STATISTICS(jniinvokation());
 
@@ -1027,7 +1030,9 @@ jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
 	if (!link_class(c))
 		return NULL;
 
-  	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
+	co = LLNI_classinfo_wrap(c);
+
+  	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) co);
 #else
 	vm_abort("_Jv_JNI_FindClass: not implemented in this configuration");
 
@@ -1048,8 +1053,9 @@ jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
  
 jclass _Jv_JNI_GetSuperclass(JNIEnv *env, jclass sub)
 {
-	classinfo *c;
-	classinfo *super;
+	classinfo       *c;
+	classinfo       *super;
+	java_lang_Class *co;
 
 	TRACEJNICALLS("_Jv_JNI_GetSuperclass(env=%p, sub=%p)", env, sub);
 
@@ -1060,7 +1066,9 @@ jclass _Jv_JNI_GetSuperclass(JNIEnv *env, jclass sub)
 
 	super = class_get_superclass(c);
 
-	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) super);
+	co = LLNI_classinfo_wrap(super);
+
+	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) co);
 }
   
  
@@ -1169,6 +1177,7 @@ jthrowable _Jv_JNI_ExceptionOccurred(JNIEnv *env)
 void _Jv_JNI_ExceptionDescribe(JNIEnv *env)
 {
 	java_handle_t *o;
+	classinfo     *c;
 	methodinfo    *m;
 
 	TRACEJNICALLS("_Jv_JNI_ExceptionDescribe(env=%p)", env);
@@ -1179,9 +1188,11 @@ void _Jv_JNI_ExceptionDescribe(JNIEnv *env)
 	o = exceptions_get_and_clear_exception();
 
 	if (o != NULL) {
-		/* Get printStackTrace method from exception class. */
+		/* get printStackTrace method from exception class */
 
-		m = class_resolveclassmethod(o->vftbl->class,
+		LLNI_class_get(o, c);
+
+		m = class_resolveclassmethod(c,
 									 utf_printStackTrace,
 									 utf_void__void,
 									 NULL,
@@ -1283,38 +1294,14 @@ jobject _Jv_JNI_PopLocalFrame(JNIEnv* env, jobject result)
 void _Jv_JNI_DeleteLocalRef(JNIEnv *env, jobject localRef)
 {
 	java_handle_t  *o;
-	localref_table *lrt;
-	s4              i;
 
 	STATISTICS(jniinvokation());
 
 	o = (java_handle_t *) localRef;
 
-	/* get local reference table (thread specific) */
+	/* delete the reference */
 
-	lrt = LOCALREFTABLE;
-
-	/* go through all local frames */
-
-	for (; lrt != NULL; lrt = lrt->prev) {
-
-		/* and try to remove the reference */
-
-		for (i = 0; i < lrt->capacity; i++) {
-			if (lrt->refs[i] == o) {
-				lrt->refs[i] = NULL;
-				lrt->used--;
-
-				return;
-			}
-		}
-	}
-
-	/* this should not happen */
-
-/*  	if (opt_checkjni) */
-/*  	FatalError(env, "Bad global or local ref passed to JNI"); */
-	log_text("JNI-DeleteLocalRef: Local ref passed to JNI not found");
+	localref_del(o);
 }
 
 
@@ -1326,12 +1313,25 @@ void _Jv_JNI_DeleteLocalRef(JNIEnv *env, jobject localRef)
 
 jboolean _Jv_JNI_IsSameObject(JNIEnv *env, jobject ref1, jobject ref2)
 {
+	java_handle_t *o1;
+	java_handle_t *o2;
+	jboolean       result;
+
 	STATISTICS(jniinvokation());
 
-	if (ref1 == ref2)
-		return JNI_TRUE;
+	o1 = (java_handle_t *) ref1;
+	o2 = (java_handle_t *) ref2;
+
+	LLNI_CRITICAL_START;
+
+	if (LLNI_UNWRAP(o1) == LLNI_UNWRAP(o2))
+		result = JNI_TRUE;
 	else
-		return JNI_FALSE;
+		result = JNI_FALSE;
+
+	LLNI_CRITICAL_END;
+
+	return result;
 }
 
 
@@ -1343,49 +1343,21 @@ jboolean _Jv_JNI_IsSameObject(JNIEnv *env, jobject ref1, jobject ref2)
 
 jobject _Jv_JNI_NewLocalRef(JNIEnv *env, jobject ref)
 {
-	localref_table *lrt;
-	s4              i;
+	java_handle_t *o;
+	java_handle_t *localref;
 
 	STATISTICS(jniinvokation());
 
 	if (ref == NULL)
 		return NULL;
 
-	/* get local reference table (thread specific) */
-
-	lrt = LOCALREFTABLE;
-
-	/* Check if we have space for the requested reference?  No,
-	   allocate a new frame.  This is actually not what the spec says,
-	   but for compatibility reasons... */
-
-	if (lrt->used == lrt->capacity) {
-		if (_Jv_JNI_EnsureLocalCapacity(env, 16) != 0)
-			return NULL;
-
-		/* get the new local reference table */
-
-		lrt = LOCALREFTABLE;
-	}
+	o = (java_handle_t *) ref;
 
 	/* insert the reference */
 
-	for (i = 0; i < lrt->capacity; i++) {
-		if (lrt->refs[i] == NULL) {
-			lrt->refs[i] = (java_handle_t *) ref;
-			lrt->used++;
+	localref = localref_add(LLNI_DIRECT(o));
 
-			return ref;
-		}
-	}
-
-	/* should not happen, just to be sure */
-
-	assert(0);
-
-	/* keep compiler happy */
-
-	return NULL;
+	return localref;
 }
 
 
@@ -1473,7 +1445,7 @@ jobject _Jv_JNI_NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	/* call constructor */
 
 	va_start(ap, methodID);
-	_Jv_jni_CallVoidMethod(o, o->vftbl, m, ap);
+	_Jv_jni_CallVoidMethod(o, LLNI_vftbl_direct(o), m, ap);
 	va_end(ap);
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) o);
@@ -1511,7 +1483,7 @@ jobject _Jv_JNI_NewObjectV(JNIEnv* env, jclass clazz, jmethodID methodID,
 
 	/* call constructor */
 
-	_Jv_jni_CallVoidMethod(o, o->vftbl, m, args);
+	_Jv_jni_CallVoidMethod(o, LLNI_vftbl_direct(o), m, args);
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
@@ -1548,7 +1520,7 @@ jobject _Jv_JNI_NewObjectA(JNIEnv* env, jclass clazz, jmethodID methodID,
 
 	/* call constructor */
 
-	_Jv_jni_CallVoidMethodA(o, o->vftbl, m, args);
+	_Jv_jni_CallVoidMethodA(o, LLNI_vftbl_direct(o), m, args);
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
@@ -1562,19 +1534,22 @@ jobject _Jv_JNI_NewObjectA(JNIEnv* env, jclass clazz, jmethodID methodID,
 
 jclass _Jv_JNI_GetObjectClass(JNIEnv *env, jobject obj)
 {
-	java_handle_t *o;
-	classinfo     *c;
+	java_handle_t   *o;
+	classinfo       *c;
+	java_lang_Class *co;
 
 	STATISTICS(jniinvokation());
 
 	o = (java_handle_t *) obj;
 
-	if ((o == NULL) || (o->vftbl == NULL))
+	if ((o == NULL) || (LLNI_vftbl_direct(o) == NULL))
 		return NULL;
 
- 	c = o->vftbl->class;
+	LLNI_class_get(o, c);
 
-	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
+	co = LLNI_classinfo_wrap(c);
+
+	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) co);
 }
 
 
@@ -1814,7 +1789,7 @@ type _Jv_JNI_Call##name##Method(JNIEnv *env, jobject obj,   \
 	m = (methodinfo *) methodID;                            \
                                                             \
 	va_start(ap, methodID);                                 \
-	ret = _Jv_jni_Call##intern##Method(o, o->vftbl, m, ap); \
+	ret = _Jv_jni_Call##intern##Method(o, LLNI_vftbl_direct(o), m, ap); \
 	va_end(ap);                                             \
                                                             \
 	return ret;                                             \
@@ -1841,7 +1816,7 @@ type _Jv_JNI_Call##name##MethodV(JNIEnv *env, jobject obj,         \
 	o = (java_handle_t *) obj;                                     \
 	m = (methodinfo *) methodID;                                   \
                                                                    \
-	ret = _Jv_jni_Call##intern##Method(o, o->vftbl, m, args);      \
+	ret = _Jv_jni_Call##intern##Method(o, LLNI_vftbl_direct(o), m, args);      \
                                                                    \
 	return ret;                                                    \
 }
@@ -1868,7 +1843,7 @@ type _Jv_JNI_Call##name##MethodA(JNIEnv *env, jobject obj,     \
 	o = (java_handle_t *) obj;                                 \
 	m = (methodinfo *) methodID;                               \
                                                                \
-	ret = _Jv_jni_Call##intern##MethodA(o, o->vftbl, m, args); \
+	ret = _Jv_jni_Call##intern##MethodA(o, LLNI_vftbl_direct(o), m, args); \
                                                                \
 	return ret;                                                \
 }
@@ -1895,7 +1870,7 @@ jobject _Jv_JNI_CallObjectMethod(JNIEnv *env, jobject obj, jmethodID methodID,
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	ret = _Jv_jni_CallObjectMethod(o, o->vftbl, m, ap);
+	ret = _Jv_jni_CallObjectMethod(o, LLNI_vftbl_direct(o), m, ap);
 	va_end(ap);
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) ret);
@@ -1912,7 +1887,7 @@ jobject _Jv_JNI_CallObjectMethodV(JNIEnv *env, jobject obj, jmethodID methodID,
 	o = (java_handle_t *) obj;
 	m = (methodinfo *) methodID;
 
-	ret = _Jv_jni_CallObjectMethod(o, o->vftbl, m, args);
+	ret = _Jv_jni_CallObjectMethod(o, LLNI_vftbl_direct(o), m, args);
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) ret);
 }
@@ -1928,7 +1903,7 @@ jobject _Jv_JNI_CallObjectMethodA(JNIEnv *env, jobject obj, jmethodID methodID,
 	o = (java_handle_t *) obj;
 	m = (methodinfo *) methodID;
 
-	ret = _Jv_jni_CallObjectMethodA(o, o->vftbl, m, args);
+	ret = _Jv_jni_CallObjectMethodA(o, LLNI_vftbl_direct(o), m, args);
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) ret);
 }
@@ -1945,7 +1920,7 @@ void _Jv_JNI_CallVoidMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
-	_Jv_jni_CallVoidMethod(o, o->vftbl, m, ap);
+	_Jv_jni_CallVoidMethod(o, LLNI_vftbl_direct(o), m, ap);
 	va_end(ap);
 }
 
@@ -1959,7 +1934,7 @@ void _Jv_JNI_CallVoidMethodV(JNIEnv *env, jobject obj, jmethodID methodID,
 	o = (java_handle_t *) obj;
 	m = (methodinfo *) methodID;
 
-	_Jv_jni_CallVoidMethod(o, o->vftbl, m, args);
+	_Jv_jni_CallVoidMethod(o, LLNI_vftbl_direct(o), m, args);
 }
 
 
@@ -1972,7 +1947,7 @@ void _Jv_JNI_CallVoidMethodA(JNIEnv *env, jobject obj, jmethodID methodID,
 	o = (java_handle_t *) obj;
 	m = (methodinfo *) methodID;
 
-	_Jv_jni_CallVoidMethodA(o, o->vftbl, m, args);
+	_Jv_jni_CallVoidMethodA(o, LLNI_vftbl_direct(o), m, args);
 }
 
 
@@ -2229,7 +2204,7 @@ jobject _Jv_JNI_GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID)
 
 	STATISTICS(jniinvokation());
 
-#warning this needs to be fixed
+	vm_abort("this needs to be fixed");
 	o = GET_FIELD(obj, java_handle_t*, fieldID);
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) o);
@@ -2268,7 +2243,7 @@ void _Jv_JNI_SetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID,
 {
 	STATISTICS(jniinvokation());
 
-#warning this needs to be fixed
+	vm_abort("this needs to be fixed");
 	SET_FIELD(obj, java_handle_t*, fieldID, value);
 }
 
@@ -2964,7 +2939,7 @@ void _Jv_JNI_SetObjectArrayElement(JNIEnv *env, jobjectArray array,
 	/* check if the class of value is a subclass of the element class
 	   of the array */
 
-	if (!builtin_canstore(oa, o))
+	if (!builtin_canstore(LLNI_DIRECT(oa), LLNI_DIRECT(o)))
 		return;
 
 	LLNI_objectarray_element_set(oa, index, o);
@@ -3438,23 +3413,27 @@ jobject _Jv_JNI_NewGlobalRef(JNIEnv* env, jobject obj)
 
 	LOCK_MONITOR_ENTER(hashtable_global_ref->header);
 
+	LLNI_CRITICAL_START;
+
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-	key  = ((u4) (ptrint) obj) >> 4;           /* align to 16-byte boundaries */
+#if defined(ENABLE_GC_CACAO)
+	key  = heap_get_hashcode(LLNI_DIRECT(o)) >> 4;
+#else
+	key  = ((u4) (ptrint) o) >> 4;             /* align to 16-byte boundaries */
+#endif
 	slot = key & (hashtable_global_ref->size - 1);
 	gre  = hashtable_global_ref->ptr[slot];
 	
 	/* search external hash chain for the entry */
 
 	while (gre) {
-		if (gre->o == o) {
+		if (gre->o == LLNI_DIRECT(o)) {
 			/* global object found, increment the reference */
 
 			gre->refs++;
 
-			LOCK_MONITOR_EXIT(hashtable_global_ref->header);
-
-			return obj;
+			break;
 		}
 
 		gre = gre->hashlink;                /* next element in external chain */
@@ -3462,24 +3441,38 @@ jobject _Jv_JNI_NewGlobalRef(JNIEnv* env, jobject obj)
 
 	/* global ref not found, create a new one */
 
-	gre = NEW(hashtable_global_ref_entry);
+	if (gre == NULL) {
+		gre = NEW(hashtable_global_ref_entry);
 
-	gre->o    = o;
-	gre->refs = 1;
+#if defined(ENABLE_GC_CACAO)
+		/* register global ref with the GC */
 
-	/* insert entry into hashtable */
+		gc_reference_register(&(gre->o), GC_REFTYPE_JNI_GLOBALREF);
+#endif
 
-	gre->hashlink = hashtable_global_ref->ptr[slot];
+		gre->o    = LLNI_DIRECT(o);
+		gre->refs = 1;
 
-	hashtable_global_ref->ptr[slot] = gre;
+		/* insert entry into hashtable */
 
-	/* update number of hashtable-entries */
+		gre->hashlink = hashtable_global_ref->ptr[slot];
 
-	hashtable_global_ref->entries++;
+		hashtable_global_ref->ptr[slot] = gre;
+
+		/* update number of hashtable-entries */
+
+		hashtable_global_ref->entries++;
+	}
+
+	LLNI_CRITICAL_END;
 
 	LOCK_MONITOR_EXIT(hashtable_global_ref->header);
 
+#if defined(ENABLE_HANDLES)
+	return gre;
+#else
 	return obj;
+#endif
 }
 
 
@@ -3503,9 +3496,15 @@ void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 
 	LOCK_MONITOR_ENTER(hashtable_global_ref->header);
 
+	LLNI_CRITICAL_START;
+
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-	key  = ((u4) (ptrint) globalRef) >> 4;     /* align to 16-byte boundaries */
+#if defined(ENABLE_GC_CACAO)
+	key  = heap_get_hashcode(LLNI_DIRECT(o)) >> 4;
+#else
+	key  = ((u4) (ptrint) o) >> 4;             /* align to 16-byte boundaries */
+#endif
 	slot = key & (hashtable_global_ref->size - 1);
 	gre  = hashtable_global_ref->ptr[slot];
 
@@ -3516,7 +3515,7 @@ void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 	/* search external hash chain for the entry */
 
 	while (gre) {
-		if (gre->o == o) {
+		if (gre->o == LLNI_DIRECT(o)) {
 			/* global object found, decrement the reference count */
 
 			gre->refs--;
@@ -3531,8 +3530,16 @@ void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 				else
 					prevgre->hashlink = gre->hashlink;
 
+#if defined(ENABLE_GC_CACAO)
+				/* unregister global ref with the GC */
+
+				gc_reference_unregister(&(gre->o));
+#endif
+
 				FREE(gre, hashtable_global_ref_entry);
 			}
+
+			LLNI_CRITICAL_END;
 
 			LOCK_MONITOR_EXIT(hashtable_global_ref->header);
 
@@ -3544,6 +3551,8 @@ void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 	}
 
 	log_println("JNI-DeleteGlobalRef: global reference not found");
+
+	LLNI_CRITICAL_END;
 
 	LOCK_MONITOR_EXIT(hashtable_global_ref->header);
 }
@@ -3878,6 +3887,9 @@ jint _Jv_JNI_DetachCurrentThread(JavaVM *vm)
 	thread = threads_get_current_threadobject();
 
 	if (thread == NULL)
+		return JNI_ERR;
+
+	if (!localref_table_destroy())
 		return JNI_ERR;
 
 	if (!threads_detach_thread(thread))

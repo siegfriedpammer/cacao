@@ -61,6 +61,12 @@
 
 #define ACC_NATIVELY_OVERLOADED    0x10000000
 
+#if defined(ENABLE_HANDLES)
+# define HEAP_PREFIX "heap_"
+#else
+# define HEAP_PREFIX ""
+#endif
+
 chain *ident_chain;     /* chain with method and field names in current class */
 FILE *file = NULL;
 static uint32_t outputsize;
@@ -143,7 +149,7 @@ void printOverloadPart(utf *desc)
 	}
 }
 
-static char *printtype(char *utf_ptr)
+static char *printtype(char *utf_ptr, char *prefix, char *infix)
 {
 	uint16_t c;
 
@@ -174,22 +180,22 @@ static char *printtype(char *utf_ptr)
 	case '[':
 		addoutputsize ( sizeof(java_array_t*) ); 
 		switch (utf_nextu2(&utf_ptr)) {
-		case 'I':  fprintf (file, "java_intarray_t*"); break;
-		case 'J':  fprintf (file, "java_longarray_t*"); break;
-		case 'Z':  fprintf (file, "java_booleanarray_t*"); break;
-		case 'B':  fprintf (file, "java_bytearray_t*"); break;
-		case 'S':  fprintf (file, "java_shortarray_t*"); break;
-		case 'C':  fprintf (file, "java_chararray_t*"); break;
-		case 'F':  fprintf (file, "java_floatarray_t*"); break;
-		case 'D':  fprintf (file, "java_doublearray_t*"); break;
+		case 'I':  fprintf (file, "java%s_intarray_t*", infix); break;
+		case 'J':  fprintf (file, "java%s_longarray_t*", infix); break;
+		case 'Z':  fprintf (file, "java%s_booleanarray_t*", infix); break;
+		case 'B':  fprintf (file, "java%s_bytearray_t*", infix); break;
+		case 'S':  fprintf (file, "java%s_shortarray_t*", infix); break;
+		case 'C':  fprintf (file, "java%s_chararray_t*", infix); break;
+		case 'F':  fprintf (file, "java%s_floatarray_t*", infix); break;
+		case 'D':  fprintf (file, "java%s_doublearray_t*", infix); break;
 				
-		case '[': fprintf(file, "java_objectarray_t*");
+		case '[': fprintf(file, "java%s_objectarray_t*", infix);
 			while ((c = utf_nextu2(&utf_ptr)) == '[');
 			if (c == 'L')
 				while (utf_nextu2(&utf_ptr) != ';');
 			break;
                            
-		case 'L':  fprintf(file, "java_objectarray_t*");
+		case 'L':  fprintf(file, "java%s_objectarray_t*", infix);
 			while (utf_nextu2(&utf_ptr) != ';');
 			break;
 		default:
@@ -200,7 +206,7 @@ static char *printtype(char *utf_ptr)
 		
 	case 'L': 
 		addoutputsize ( sizeof(java_object_t*));
-		fprintf (file, "struct ");
+		fprintf (file, "struct %s", prefix);
 		while ( (c = utf_nextu2(&utf_ptr)) != ';' ) printIDpart (c);   	 
 		fprintf (file, "*");
 		break;
@@ -251,7 +257,7 @@ static void printfields(classinfo *c)
 		
 		if (!(f->flags & ACC_STATIC)) {
 			fprintf(file, "   ");
-			printtype(f->descriptor->text);
+			printtype(f->descriptor->text, HEAP_PREFIX, "");
 			fprintf(file, " ");
 			utf_fprint_printable_ascii(file, f->name);
 
@@ -288,7 +294,7 @@ void printmethod(methodinfo *m)
 
 	/* create prototype */ 			
 	fprintf(file, "JNIEXPORT ");
-	printtype(utf_ptr);
+	printtype(utf_ptr, "", "_handle");
 	fprintf(file, " JNICALL Java_");
 	printID(m->class->name);
 
@@ -318,7 +324,7 @@ void printmethod(methodinfo *m)
 	if ((*utf_ptr) != ')') fprintf(file, ", ");
 			
 	while ((*utf_ptr) != ')') {
-		utf_ptr = printtype(utf_ptr);
+		utf_ptr = printtype(utf_ptr, "", "_handle");
 		fprintf(file, " par%d", paramnum++);
 		if ((*utf_ptr)!=')') fprintf(file, ", ");
 	}
@@ -395,17 +401,30 @@ void headerfile_generate(classinfo *c, char *opt_directory)
 	fprintf(file, "/* Structure information for class: ");
 	utf_fprint_printable_ascii(file, c->name);
 	fprintf(file, " */\n\n");
-	fprintf(file, "typedef struct ");
-	printID(c->name);							
+	fprintf(file, "typedef struct %s", HEAP_PREFIX);
+	printID(c->name);
 	fprintf(file, " {\n");
 	outputsize = 0;
 	dopadding = true;
 
 	printfields(c);
 
+	fprintf(file, "} %s", HEAP_PREFIX);
+	printID(c->name);
+	fprintf(file, ";\n\n");
+
+#if defined(ENABLE_HANDLES)
+	/* create structure for indirection cell */
+	fprintf(file, "typedef struct ");
+	printID(c->name);
+	fprintf(file, " {\n");
+	fprintf(file, "   %s", HEAP_PREFIX);
+	printID(c->name);
+	fprintf(file, " *heap_object;\n");
 	fprintf(file, "} ");
 	printID(c->name);
 	fprintf(file, ";\n\n");
+#endif
 
 	/* create chain for renaming overloaded methods */
 	chain_free(ident_chain);

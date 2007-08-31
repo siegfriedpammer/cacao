@@ -54,6 +54,10 @@
 #include "mm/gc-common.h"
 #include "mm/memory.h"
 
+#if defined(ENABLE_GC_CACAO)
+# include "mm/cacao-gc/gc.h"
+#endif
+
 #include "native/jni.h"
 #include "native/llni.h"
 #include "native/native.h"
@@ -238,7 +242,7 @@ static pthread_cond_t  cond_join;
 /* XXX We disable that whole bunch of code until we have the exact-GC
    running. */
 
-#if 0
+#if 1
 
 /* this is one of the STOPWORLD_FROM_ constants, telling why the world is     */
 /* being stopped                                                              */
@@ -488,65 +492,9 @@ static void threads_cast_irixresume(void)
 	pthread_mutex_unlock(&suspend_ack_lock);
 }
 #endif
-
-#if !defined(DISABLE_GC)
-
-void threads_cast_stopworld(void)
-{
-#if !defined(__DARWIN__) && !defined(__CYGWIN__)
-	s4 count, i;
 #endif
 
-	lock_stopworld(STOPWORLD_FROM_CLASS_NUMBERING);
-
-	/* lock the threads lists */
-
-	threads_list_lock();
-
-#if defined(__DARWIN__)
-	threads_cast_darwinstop();
-#elif defined(__CYGWIN__)
-	/* TODO */
-	assert(0);
-#else
-	/* send all threads the suspend signal */
-
-	count = threads_cast_sendsignals(GC_signum1());
-
-	/* wait for all threads signaled to suspend */
-
-	for (i = 0; i < count; i++)
-		threads_sem_wait(&suspend_ack);
-#endif
-
-	/* ATTENTION: Don't unlock the threads-lists here so that
-	   non-signaled NEW threads can't change their state and execute
-	   code. */
-}
-
-
-void threads_cast_startworld(void)
-{
-#if defined(__DARWIN__)
-	threads_cast_darwinresume();
-#elif defined(__MIPS__)
-	threads_cast_irixresume();
-#elif defined(__CYGWIN__)
-	/* TODO */
-	assert(0);
-#else
-	(void) threads_cast_sendsignals(GC_signum2());
-#endif
-
-	/* unlock the threads lists */
-
-	threads_list_unlock();
-
-	unlock_stopworld();
-}
-
-
-#if !defined(__DARWIN__)
+#if defined(ENABLE_GC_BOEHM) && !defined(__DARWIN__)
 static void threads_sigsuspend_handler(ucontext_t *_uc)
 {
 	int sig;
@@ -568,7 +516,6 @@ static void threads_sigsuspend_handler(ucontext_t *_uc)
 	/* TODO */
 	assert(0);
 #else
-	threads_sem_post(&suspend_ack);
 
 	sig = GC_signum2();
 	sigfillset(&sigs);
@@ -576,24 +523,143 @@ static void threads_sigsuspend_handler(ucontext_t *_uc)
 	sigsuspend(&sigs);
 #endif
 }
+#endif
+
+/* threads_stopworld ***********************************************************
+
+   Stops the world from turning. All threads except the calling one
+   are suspended. The function returns as soon as all threads have
+   acknowledged their suspension.
+
+*******************************************************************************/
+
+#if !defined(DISABLE_GC)
+void threads_stopworld(void)
+{
+#if !defined(__DARWIN__) && !defined(__CYGWIN__)
+	threadobject *t;
+	threadobject *self;
+	bool result;
+	s4 count, i;
+#endif
+
+	lock_stopworld(STOPWORLD_FROM_CLASS_NUMBERING);
+
+	/* lock the threads lists */
+
+	threads_list_lock();
+
+#if defined(__DARWIN__)
+	/*threads_cast_darwinstop();*/
+	assert(0);
+#elif defined(__CYGWIN__)
+	/* TODO */
+	assert(0);
+#else
+	self = THREADOBJECT;
+
+	count = 0;
+
+	/* suspend all running threads */
+	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+		/* don't send the signal to ourself */
+
+		if (t == self)
+			continue;
+
+		/* don't send the signal to NEW threads (because they are not
+		   completely initialized) */
+
+		if (t->state == THREAD_STATE_NEW)
+			continue;
+
+		/* send the signal */
+
+		result = threads_suspend_thread(t, SUSPEND_REASON_STOPWORLD);
+		assert(result);
+
+		/* increase threads count */
+
+		count++;
+	}
+
+	/* wait for all threads signaled to suspend */
+	for (i = 0; i < count; i++)
+		threads_sem_wait(&suspend_ack);
+#endif
+
+	/* ATTENTION: Don't unlock the threads-lists here so that
+	   non-signaled NEW threads can't change their state and execute
+	   code. */
+}
+#endif /* !defined(DISABLE_GC) */
+
+
+/* threads_startworld **********************************************************
+
+   Starts the world again after it has previously been stopped. 
+
+*******************************************************************************/
+
+#if !defined(DISABLE_GC)
+void threads_startworld(void)
+{
+#if !defined(__DARWIN__) && !defined(__CYGWIN__)
+	threadobject *t;
+	threadobject *self;
+	bool result;
+	s4 count, i;
+#endif
+
+#if defined(__DARWIN__)
+	/*threads_cast_darwinresume();*/
+	assert(0);
+#elif defined(__MIPS__)
+	threads_cast_irixresume();
+#elif defined(__CYGWIN__)
+	/* TODO */
+	assert(0);
+#else
+	self = THREADOBJECT;
+
+	count = 0;
+
+	/* resume all thread we haltet */
+	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+		/* don't send the signal to ourself */
+
+		if (t == self)
+			continue;
+
+		/* don't send the signal to NEW threads (because they are not
+		   completely initialized) */
+
+		if (t->state == THREAD_STATE_NEW)
+			continue;
+
+		/* send the signal */
+
+		result = threads_resume_thread(t);
+		assert(result);
+
+		/* increase threads count */
+
+		count++;
+	}
+
+	/* wait for all threads signaled to suspend */
+	for (i = 0; i < count; i++)
+		threads_sem_wait(&suspend_ack);
 
 #endif
 
+	/* unlock the threads lists */
 
-/* This function is called from Boehm GC code. */
+	threads_list_unlock();
 
-int cacao_suspendhandler(ucontext_t *_uc)
-{
-	if (stopworldwhere != STOPWORLD_FROM_CLASS_NUMBERING)
-		return 0;
-
-	threads_sigsuspend_handler(_uc);
-	return 1;
+	unlock_stopworld();
 }
-
-#endif /* DISABLE_GC */
-
-#endif /* 0 */
+#endif
 
 
 /* threads_set_current_threadobject ********************************************
@@ -635,6 +701,8 @@ void threads_impl_thread_new(threadobject *t)
 
 	pthread_mutex_init(&(t->waitmutex), NULL);
 	pthread_cond_init(&(t->waitcond), NULL);
+	pthread_mutex_init(&(t->suspendmutex), NULL);
+	pthread_cond_init(&(t->suspendcond), NULL);
 
 #if defined(ENABLE_DEBUG_FILTER)
 	/* Initialize filter counters */
@@ -669,6 +737,14 @@ void threads_impl_thread_free(threadobject *t)
 	if (pthread_cond_destroy(&(t->waitcond)) != 0)
 		vm_abort("threads_impl_thread_free: pthread_cond_destroy failed: %s",
 				 strerror(errno));
+
+	if (pthread_mutex_destroy(&(t->suspendmutex)) != 0)
+		vm_abort("threads_impl_thread_free: pthread_mutex_destroy failed: %s",
+				 strerror(errno));
+
+	if (pthread_cond_destroy(&(t->suspendcond)) != 0)
+		vm_abort("threads_impl_thread_free: pthread_cond_destroy failed: %s",
+				 strerror(errno));
 }
 
 
@@ -677,7 +753,7 @@ void threads_impl_thread_free(threadobject *t)
    Return the threadobject of the current thread.
    
    RETURN VALUE:
-       the current threadobject * (an instance of java.lang.Thread)
+       the current threadobject *
 
 *******************************************************************************/
 
@@ -714,7 +790,7 @@ void threads_impl_preinit(void)
 	pthread_key_create(&threads_current_threadobject_key, NULL);
 #endif
 
-/* 	threads_sem_init(&suspend_ack, 0, 0); */
+ 	threads_sem_init(&suspend_ack, 0, 0);
 }
 
 
@@ -837,6 +913,12 @@ bool threads_init(void)
 	   thread in the list). */
 
 	mainthread = threads_list_first();
+
+#if defined(ENABLE_GC_CACAO)
+	/* register reference to java.lang.Thread with the GC */
+
+	gc_reference_register((java_object_t **) &(mainthread->object), GC_REFTYPE_THREADOBJECT);
+#endif
 
 	/* create a java.lang.Thread for the main thread */
 
@@ -1550,6 +1632,138 @@ bool threads_detach_thread(threadobject *t)
 
 	pthread_cond_signal(&cond_join);
 	threads_mutex_join_unlock();
+
+	return true;
+}
+
+
+/* threads_suspend_thread ******************************************************
+
+   Suspend the passed thread. Execution stops until the thread
+   is explicitly resumend again.
+
+   IN:
+     reason.....Reason for suspending this thread.
+
+*******************************************************************************/
+
+bool threads_suspend_thread(threadobject *thread, s4 reason)
+{
+	/* acquire the suspendmutex */
+	if (pthread_mutex_lock(&(thread->suspendmutex)) != 0)
+		vm_abort("threads_suspend_thread: pthread_mutex_lock failed: %s",
+				 strerror(errno));
+
+	if (thread->suspended) {
+		pthread_mutex_unlock(&(thread->suspendmutex));
+		return false;
+	}
+
+	/* set the reason for the suspension */
+	thread->suspend_reason = reason;
+
+	/* send the suspend signal to the thread */
+	assert(thread != THREADOBJECT);
+	if (pthread_kill(thread->tid, SIGUSR1) != 0)
+		vm_abort("threads_suspend_thread: pthread_kill failed: %s",
+				 strerror(errno));
+
+	/* REMEMBER: do not release the suspendmutex, this is done
+	   by the thread itself in threads_suspend_ack().  */
+
+	return true;
+}
+
+
+/* threads_suspend_ack *********************************************************
+
+   Acknowledges the suspension of the current thread.
+
+   IN:
+     pc.....The PC where the thread suspended its execution.
+     sp.....The SP before the thread suspended its execution.
+
+*******************************************************************************/
+
+void threads_suspend_ack(u1* pc, u1* sp)
+{
+	threadobject *thread;
+
+	thread = THREADOBJECT;
+
+	assert(thread->suspend_reason != 0);
+
+	/* TODO: remember dump memory size */
+
+#if defined(ENABLE_GC_CACAO)
+	/* inform the GC about the suspension */
+	if (thread->suspend_reason == SUSPEND_REASON_STOPWORLD && gc_pending) {
+
+		/* check if the GC wants to leave the thread running */
+		if (!gc_suspend(thread, pc, sp)) {
+
+			/* REMEMBER: we do not unlock the suspendmutex because the thread
+			   will suspend itself again at a later time */
+			return;
+
+		}
+	}
+#endif
+
+	/* mark this thread as suspended and remember the PC */
+	thread->pc        = pc;
+	thread->suspended = true;
+
+	/* if we are stopping the world, we should send a global ack */
+	if (thread->suspend_reason == SUSPEND_REASON_STOPWORLD) {
+		threads_sem_post(&suspend_ack);
+	}
+
+	/* release the suspension mutex and wait till we are resumed */
+	/*printf("thread down %p\n", thread);*/
+	pthread_cond_wait(&(thread->suspendcond), &(thread->suspendmutex));
+	/*printf("thread up %p\n", thread);*/
+
+	/* if we are stopping the world, we should send a global ack */
+	if (thread->suspend_reason == SUSPEND_REASON_STOPWORLD) {
+		threads_sem_post(&suspend_ack);
+	}
+
+	/* TODO: free dump memory */
+
+	/* release the suspendmutex */
+	if (pthread_mutex_unlock(&(thread->suspendmutex)) != 0)
+		vm_abort("threads_suspend_ack: pthread_mutex_unlock failed: %s",
+				 strerror(errno));
+}
+
+
+/* threads_resume_thread *******************************************************
+
+   Resumes the execution of the passed thread.
+
+*******************************************************************************/
+
+bool threads_resume_thread(threadobject *thread)
+{
+	/* acquire the suspendmutex */
+	if (pthread_mutex_lock(&(thread->suspendmutex)) != 0)
+		vm_abort("threads_resume_ack: pthread_mutex_unlock failed: %s",
+				 strerror(errno));
+
+	if (!thread->suspended) {
+		pthread_mutex_unlock(&(thread->suspendmutex));
+		return false;
+	}
+
+	thread->suspended = false;
+
+	/* tell everyone that the thread should resume */
+	assert(thread != THREADOBJECT);
+	pthread_cond_broadcast(&(thread->suspendcond));
+
+	/* release the suspendmutex */
+	pthread_mutex_unlock(&(thread->suspendmutex));
 
 	return true;
 }

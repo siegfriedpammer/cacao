@@ -55,6 +55,7 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/abi.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
@@ -1620,6 +1621,8 @@ bool codegen_emit(jitdata *jd)
 
 		/* METHOD INVOCATION *********************************************************/
 		case ICMD_BUILTIN:      /* ..., [arg1, [arg2 ...]] ==> ...            */
+			REPLACEMENT_POINT_FORGC_BUILTIN(cd, iptr);
+
 			bte = iptr->sx.s23.s3.bte;
 			md  = bte->md;
 			goto gen_method;
@@ -1761,6 +1764,7 @@ bool codegen_emit(jitdata *jd)
 				}	/* switch (iptr->opc) */
 
 				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
+				REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr);
 				
 				/* store return value */
 				d = md->returntype.type;
@@ -2404,6 +2408,169 @@ void codegen_emit_stub_compiler(jitdata *jd)
 	M_AMOV_IMM(asm_call_jit_compiler, REG_ATMP3);
 	M_JMP(REG_ATMP3);
 }
+
+/* codegen_emit_stub_builtin ***************************************************
+
+   Creates a stub routine which calls a builtin function.
+
+*******************************************************************************/
+
+void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
+{
+	codeinfo    *code;
+	codegendata *cd;
+	methoddesc  *md;
+	s4           i;
+	s4           disp;
+	s4           s1, s2;
+
+	/* get required compiler data */
+	code = jd->code;
+	cd   = jd->cd;
+
+	/* set some variables */
+	md = bte->md;
+
+	/* calculate stack frame size */
+	cd->stackframesize =
+		sizeof(stackframeinfo) / SIZEOF_VOID_P +
+		4;                              /* 4 arguments or return value        */
+
+	/* create method header */
+	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
+	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
+	(void) dseg_addlinenumbertablesize(cd);
+	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
+
+	/* generate stub code */
+	M_AADD_IMM(-(cd->stackframesize*4), REG_SP);
+
+#if defined(ENABLE_GC_CACAO)
+	/* Save callee saved integer registers in stackframeinfo (GC may
+	   need to recover them during a collection). */
+
+	disp = cd->stackframesize * 4 - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, adrregs);
+
+	for (i = 0; i < ADR_SAV_CNT; i++)
+		M_AST(abi_registers_address_saved[i], REG_SP, disp + i * 4);
+#endif
+
+	/* create dynamic stack info */
+
+	M_AMOV(REG_SP, REG_ATMP1);
+	M_AADD_IMM(cd->stackframesize * 4, REG_ATMP1);
+	M_AST(REG_ATMP1, REG_SP, 0 * 4);	/* datasp */
+
+	M_AMOV_IMM(0, REG_ATMP1);			/* we need pv patched in */
+	dseg_adddata(cd);					/* this does the trick */
+	M_AST(REG_ATMP1, REG_SP, 1 * 4);	/* pv */
+
+	M_AMOV(REG_SP, REG_ATMP1);
+	M_AADD_IMM(cd->stackframesize * 4 + SIZEOF_VOID_P, REG_ATMP1);
+	M_AST(REG_ATMP1, REG_SP, 2 * 4);			/* sp */
+
+	M_ALD(REG_ATMP3, REG_SP, cd->stackframesize * 4);
+	M_AST(REG_ATMP3, REG_SP, 3 * 4);			/* ra */
+
+	M_JSR_IMM(codegen_stub_builtin_enter);
+
+	/* builtins are allowed to have 4 arguments max */
+
+	assert(md->paramcount <= 4);
+
+	/* copy arguments into new stackframe */
+
+	for (i = 0; i < md->paramcount; i++) {
+		if (!md->params[i].inmemory) {
+			log_text("No integer argument registers available!");
+			assert(0);
+
+		} else {       /* float/double in memory can be copied like int/longs */
+			s1 = md->params[i].regoff + cd->stackframesize * 4 + 4;
+			s2 = md->params[i].regoff;
+
+			M_ILD(REG_ITMP1, REG_SP, s1);
+			M_IST(REG_ITMP1, REG_SP, s2);
+			if (IS_2_WORD_TYPE(md->paramtypes[i].type)) {
+				M_ILD(REG_ITMP1, REG_SP, s1 + 4);
+				M_IST(REG_ITMP1, REG_SP, s2 + 4);
+			}
+
+		}
+	}
+
+	/* call the builtin function */
+
+	M_AMOV_IMM(bte->fp, REG_ATMP3);
+	M_JSR(REG_ATMP3);
+
+	/* save return value */
+	switch (md->returntype.type)	{
+		case TYPE_VOID: break;
+
+		/* natives return float arguments in %d0, %d1, cacao expects them in %fp0 */
+		case TYPE_DBL:
+		case TYPE_LNG:
+			M_IST(REG_D1, REG_SP, 2 * 4);
+			/* fall through */
+
+		case TYPE_FLT:
+		case TYPE_INT:
+		case TYPE_ADR:
+			M_IST(REG_D0, REG_SP, 1 * 4);
+			break;
+
+		default: assert(0);
+	}
+
+	/* remove native stackframe info */
+
+	M_AMOV(REG_SP, REG_ATMP1);
+	M_AADD_IMM(cd->stackframesize * 4, REG_ATMP1);
+	M_AST(REG_ATMP1, REG_SP, 0 * 4);
+
+	M_JSR_IMM(codegen_stub_builtin_exit);
+
+	/* restore return value */
+	switch (md->returntype.type)	{
+		case TYPE_VOID: break;
+
+		case TYPE_DBL:
+		case TYPE_LNG:
+			M_ILD(REG_D1, REG_SP, 2 * 4);
+			/* fall through */
+
+		case TYPE_FLT:
+		case TYPE_INT:
+		case TYPE_ADR:
+			M_ILD(REG_D0, REG_SP, 1 * 4);
+			break;
+
+		default: assert(0);
+	}
+
+#if defined(ENABLE_GC_CACAO)
+	/* Restore callee saved integer registers from stackframeinfo (GC
+	   might have modified them during a collection). */
+        
+	disp = cd->stackframesize * 4 - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, adrregs);
+
+	for (i = 0; i < ADR_SAV_CNT; i++)
+		M_ALD(abi_registers_address_saved[i], REG_SP, disp + i * 4);
+#endif
+
+	/* remove stackframe */
+	M_AADD_IMM(cd->stackframesize * 4, REG_SP);
+	M_RET;
+}
+
+
 
 
 /* codegen_emit_stub_native ****************************************************

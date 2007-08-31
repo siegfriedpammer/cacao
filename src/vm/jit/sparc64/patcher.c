@@ -113,6 +113,8 @@ java_object_t *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 
 	/* create the stackframeinfo */
 
+	printf("patcher opening sfi for xpc=%p\n", xpc);
+
 	stacktrace_create_extern_stackframeinfo(&sfi, pv, javasp, ra, xpc);
 
 	/* call the proper patcher function */
@@ -122,6 +124,7 @@ java_object_t *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	/* remove the stackframeinfo */
 
 	stacktrace_remove_stackframeinfo(&sfi);
+	printf("patcher closing sfi for xpc=%p\n", xpc);
 
 	/* check for return value and exit accordingly */
 

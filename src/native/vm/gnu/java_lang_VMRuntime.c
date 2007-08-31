@@ -277,7 +277,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclas
 {
 	classloader *cl;
 
-	cl = (classloader *) loader;
+	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 #if defined(ENABLE_JNI)
 	return _Jv_java_lang_Runtime_loadLibrary(env, libname, cl);
