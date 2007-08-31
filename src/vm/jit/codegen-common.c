@@ -1194,6 +1194,7 @@ u1 *codegen_generate_stub_compiler(methodinfo *m)
 
 void codegen_generate_stub_builtin(builtintable_entry *bte)
 {
+#if defined(__ARM__) || defined(__ALPHA__) || defined(__I386__) || defined(__M68K__) || defined(__SPARC64__) || defined(__X86_64__)
 	jitdata  *jd;
 	codeinfo *code;
 	s4        dumpsize;
@@ -1246,6 +1247,7 @@ void codegen_generate_stub_builtin(builtintable_entry *bte)
 	/* release memory */
 
 	dump_release(dumpsize);
+#endif /* architecture list */
 }
 
 

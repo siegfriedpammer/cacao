@@ -550,7 +550,8 @@ void threads_stopworld(void)
 	threads_list_lock();
 
 #if defined(__DARWIN__)
-	threads_cast_darwinstop();
+	/*threads_cast_darwinstop();*/
+	assert(0);
 #elif defined(__CYGWIN__)
 	/* TODO */
 	assert(0);
@@ -611,7 +612,8 @@ void threads_startworld(void)
 #endif
 
 #if defined(__DARWIN__)
-	threads_cast_darwinresume();
+	/*threads_cast_darwinresume();*/
+	assert(0);
 #elif defined(__MIPS__)
 	threads_cast_irixresume();
 #elif defined(__CYGWIN__)
