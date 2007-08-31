@@ -59,7 +59,6 @@ VM_CLASS_FILES = \
 	classes/java/security/VMAccessController.class \
 	classes/sun/misc/Unsafe.class
 
-if WITH_CLASSPATH_GNU
 if ENABLE_ANNOTATIONS
 VM_JAVA_FILES += \
 	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/TypeNotPresentExceptionProxy.java \
@@ -75,8 +74,20 @@ VM_CLASS_FILES += \
 	classes/sun/reflect/annotation/AnnotationType.class \
 	classes/sun/reflect/annotation/AnnotationParser.class
 endif
+
+if ENABLE_ZLIB
+pkgdata_DATA = vm.zip
+else
+pkgdata_DATA = nozip
+endif
 endif
 
+if WITH_CLASSPATH_CLDC1_1
+VM_JAVA_FILES = \
+	$(top_srcdir)/src/lib/cldc1.1/com/sun/cldchi/jvm/FileDescriptor.java
+
+VM_CLASS_FILES = \
+	classes/com/sun/cldchi/jvm/FileDescriptor.class
 
 if ENABLE_ZLIB
 pkgdata_DATA = vm.zip
