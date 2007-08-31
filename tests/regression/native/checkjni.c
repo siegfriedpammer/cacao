@@ -69,6 +69,17 @@ JNIEXPORT jclass   JNICALL Java_checkjni_GetObjectClass(JNIEnv *env, jclass claz
 	return (*env)->GetObjectClass(env, obj);
 }
 
+#define CHECKJNI_GET_FIELD(type, name, fieldname, sig) \
+JNIEXPORT type     JNICALL Java_checkjni_Get##name##Field(JNIEnv *env, jclass clazz, jobject obj) \
+{ \
+	jclass c = (*env)->GetObjectClass(env, obj); \
+	jfieldID id = (*env)->GetFieldID(env, c, fieldname, sig); \
+	if ((*env)->ExceptionCheck(env)) return 0; \
+	return (*env)->Get##name##Field(env, obj, id); \
+}
+CHECKJNI_GET_FIELD(jint,    Int,    "jfI", "I")
+CHECKJNI_GET_FIELD(jobject, Object, "jfL", "Ljava/lang/Object;")
+
 #define CHECKJNI_GET_STATIC_FIELD(type, name, fieldname, sig) \
 JNIEXPORT type     JNICALL Java_checkjni_GetStatic##name##Field(JNIEnv *env, jclass clazz) \
 { \

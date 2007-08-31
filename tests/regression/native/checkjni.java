@@ -39,6 +39,8 @@ public class checkjni {
 	public static native void    Throw() throws Exception;
 	public static native Class   GetObjectClass(Object obj);
 	public static native String  NewString(int type);
+	public static native int     GetIntField(Object obj);
+	public static native Object  GetObjectField(Object obj);
 	public static native int     GetStaticIntField();
 	public static native Object  GetStaticObjectField();
 	public static native void    SetStaticIntField(int val);
@@ -48,6 +50,11 @@ public class checkjni {
 
 	public static int     jsfI = 0x123456;
 	public static Object  jsfL = new Object();
+
+	class checkjniobj {
+		public int    jfI = 0x123456;
+		public Object jfL = new Object();
+	}
 
     public static void main(String[] argv) {
         System.loadLibrary("checkjni");
@@ -147,6 +154,11 @@ public class checkjni {
 		
 		equal(GetStaticIntField(), jsfI);
 		equal(GetStaticObjectField(), jsfL);
+		
+		checkjniobj o = new checkjniobj();
+
+		equal(GetIntField(o), o.jfI);
+		equal(GetObjectField(o), o.jfL);
 		
 		SetStaticIntField(0xABCDEF); equal(jsfI, 0xABCDEF);
 	}

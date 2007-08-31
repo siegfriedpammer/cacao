@@ -25,6 +25,8 @@ Field Access:
 PASS
 PASS
 PASS
+PASS
+PASS
 Array Access:
 PASS, size=10
 PASS, size=20

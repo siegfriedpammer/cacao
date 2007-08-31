@@ -2202,10 +2202,13 @@ jobject _Jv_JNI_GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID)
 {
 	java_handle_t *o;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_GetObjectField(env=%p, obj=%p, fieldId=%p)", env, obj, fieldID);
 
-	vm_abort("this needs to be fixed");
-	o = GET_FIELD(obj, java_handle_t*, fieldID);
+	LLNI_CRITICAL_START;
+
+	o = LLNI_WRAP(GET_FIELD(obj, java_handle_t*, fieldID));
+
+	LLNI_CRITICAL_END;
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
@@ -2241,10 +2244,13 @@ JNI_SET_FIELD(Double,  jdouble,  double)
 void _Jv_JNI_SetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID,
 							jobject value)
 {
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_SetObjectField(env=%p, obj=%p, fieldId=%p, value=%p)", env, obj, fieldID, value);
 
-	vm_abort("this needs to be fixed");
-	SET_FIELD(obj, java_handle_t*, fieldID, value);
+	LLNI_CRITICAL_START;
+
+	SET_FIELD(obj, java_handle_t*, fieldID, LLNI_UNWRAP(value));
+
+	LLNI_CRITICAL_END;
 }
 
 
