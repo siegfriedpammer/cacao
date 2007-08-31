@@ -3577,10 +3577,6 @@ void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
 	M_MOV_IMM(codegen_stub_builtin_enter, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
-	/* builtins are allowed to have 4 arguments max */
-
-	assert(md->paramcount <= 4);
-
 	/* copy arguments into new stackframe */
 
 	for (i = 0; i < md->paramcount; i++) {
