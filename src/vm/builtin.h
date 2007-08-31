@@ -121,7 +121,7 @@ bool builtintable_replace_function(void *iptr);
  */
 
 s4 builtin_instanceof(java_handle_t *obj, classinfo *class);
-#define BUILTIN_instanceof (functionptr) builtin_instanceof
+/* NOT AN OP */
 s4 builtin_checkcast(java_handle_t *obj, classinfo *class);
 /* NOT AN OP */
 s4 builtin_arrayinstanceof(java_handle_t *o, classinfo *targetclass);
@@ -129,12 +129,7 @@ s4 builtin_arrayinstanceof(java_handle_t *o, classinfo *targetclass);
 s4 builtin_arraycheckcast(java_handle_t *o, classinfo *targetclass);
 #define BUILTIN_arraycheckcast (functionptr) builtin_arraycheckcast
 
-void *builtin_throw_exception(java_handle_t *exception);
-/* NOT AN OP */
-java_handle_t *builtin_trace_exception(java_handle_t *xptr,
-										   methodinfo *m,
-										   void *pos,
-										   s4 indent);
+void *builtin_throw_exception(java_object_t *exception);
 /* NOT AN OP */
 
 java_handle_t *builtin_new(classinfo *c);
@@ -169,8 +164,12 @@ java_handle_objectarray_t *builtin_multianewarray(int n, classinfo *arrayclass,
 												  long *dims);
 #define BUILTIN_multianewarray (functionptr) builtin_multianewarray
 
+
 s4 builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o);
-#define BUILTIN_canstore (functionptr) builtin_canstore
+/* NOT AN OP */
+s4 builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o);
+#define BUILTIN_FAST_canstore (functionptr) builtin_canstore
+#define BUILTIN_canstore BUILTIN_FAST_canstore /* XXX remove this "dont break trunk" macro */
 
 #if defined(TRACE_ARGS_NUM)
 void builtin_verbosecall_enter(s8 a0, s8 a1,

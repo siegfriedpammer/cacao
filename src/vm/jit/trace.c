@@ -45,6 +45,7 @@
 #include "vm/jit/trace.h"
 #include "vm/jit/show.h"
 
+#include "vmcore/options.h"
 #include "vmcore/utf8.h"
 
 #include <stdio.h>
@@ -476,6 +477,143 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 	dump_release(dumpsize);
 
 }
+
+
+void trace_exception(java_object_t *xptr, methodinfo *m, void *pos, s4 indent)
+{
+	char *logtext;
+	s4    logtextlen;
+	s4    dumpsize;
+	codeinfo *code;
+
+#if defined(ENABLE_DEBUG_FILTER)
+	if (! show_filters_test_verbosecall_exit(m)) return;
+#endif
+
+#if defined(ENABLE_VMLOG)
+	return;
+#endif
+
+	if (opt_verbosecall && indent)
+		TRACEJAVACALLINDENT--;
+
+	/* calculate message length */
+
+	if (xptr) {
+		logtextlen =
+			strlen("Exception ") + utf_bytes(xptr->vftbl->class->name);
+	} 
+	else {
+		logtextlen = strlen("Some Throwable");
+	}
+
+	logtextlen += strlen(" thrown in ");
+
+	if (m) {
+		logtextlen +=
+			utf_bytes(m->class->name) +
+			strlen(".") +
+			utf_bytes(m->name) +
+			utf_bytes(m->descriptor) +
+			strlen("(NOSYNC,NATIVE");
+
+#if SIZEOF_VOID_P == 8
+		logtextlen +=
+			strlen(")(0x123456789abcdef0) at position 0x123456789abcdef0 (");
+#else
+		logtextlen += strlen(")(0x12345678) at position 0x12345678 (");
+#endif
+
+		if (m->class->sourcefile == NULL)
+			logtextlen += strlen("<NO CLASSFILE INFORMATION>");
+		else
+			logtextlen += utf_bytes(m->class->sourcefile);
+
+		logtextlen += strlen(":65536)");
+
+	} 
+	else {
+		logtextlen += strlen("call_java_method");
+	}
+
+	logtextlen += strlen("0");
+
+	/* allocate memory */
+
+	dumpsize = dump_size();
+
+	logtext = DMNEW(char, logtextlen);
+
+	if (xptr) {
+		strcpy(logtext, "Exception ");
+		utf_cat_classname(logtext, xptr->vftbl->class->name);
+
+	} else {
+		strcpy(logtext, "Some Throwable");
+	}
+
+	strcat(logtext, " thrown in ");
+
+	if (m) {
+		utf_cat_classname(logtext, m->class->name);
+		strcat(logtext, ".");
+		utf_cat(logtext, m->name);
+		utf_cat(logtext, m->descriptor);
+
+		if (m->flags & ACC_SYNCHRONIZED)
+			strcat(logtext, "(SYNC");
+		else
+			strcat(logtext, "(NOSYNC");
+
+		if (m->flags & ACC_NATIVE) {
+			strcat(logtext, ",NATIVE");
+
+			code = m->code;
+
+#if SIZEOF_VOID_P == 8
+			sprintf(logtext + strlen(logtext),
+					")(0x%016lx) at position 0x%016lx",
+					(ptrint) code->entrypoint, (ptrint) pos);
+#else
+			sprintf(logtext + strlen(logtext),
+					")(0x%08x) at position 0x%08x",
+					(ptrint) code->entrypoint, (ptrint) pos);
+#endif
+
+		} else {
+
+			/* XXX preliminary: This should get the actual codeinfo */
+			/* in which the exception happened.                     */
+			code = m->code;
+			
+#if SIZEOF_VOID_P == 8
+			sprintf(logtext + strlen(logtext),
+					")(0x%016lx) at position 0x%016lx (",
+					(ptrint) code->entrypoint, (ptrint) pos);
+#else
+			sprintf(logtext + strlen(logtext),
+					")(0x%08x) at position 0x%08x (",
+					(ptrint) code->entrypoint, (ptrint) pos);
+#endif
+
+			if (m->class->sourcefile == NULL)
+				strcat(logtext, "<NO CLASSFILE INFORMATION>");
+			else
+				utf_cat(logtext, m->class->sourcefile);
+
+			sprintf(logtext + strlen(logtext), ":%d)", 0);
+		}
+
+	} else
+		strcat(logtext, "call_java_method");
+
+	log_text(logtext);
+
+	/* release memory */
+
+	dump_release(dumpsize);
+}
+
 
 #endif /* !defined(NDEBUG) */
 

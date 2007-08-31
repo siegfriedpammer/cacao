@@ -63,6 +63,7 @@
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trace.h"
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
@@ -1803,7 +1804,7 @@ u1 *exceptions_handle_exception(java_object_t *xptr, u1 *xpc, u1 *pv, u1 *sp)
 	/* print exception trace */
 
 	if (opt_verbose || opt_verbosecall || opt_TraceExceptions)
-		builtin_trace_exception(xptr, m, xpc, 1);
+		trace_exception(xptr, m, xpc, 1);
 #endif
 
 #if defined(ENABLE_VMLOG)

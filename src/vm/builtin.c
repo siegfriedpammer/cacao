@@ -414,10 +414,14 @@ bool builtintable_replace_function(void *iptr_)
 
 s4 builtin_instanceof(java_handle_t *o, classinfo *class)
 {
+	classinfo *c;
+
 	if (o == NULL)
 		return 0;
 
-	return class_isanysubclass(o->vftbl->class, class);
+	LLNI_class_get(o, c);
+
+	return class_isanysubclass(c, class);
 }
 
 
@@ -431,10 +435,14 @@ s4 builtin_instanceof(java_handle_t *o, classinfo *class)
 
 s4 builtin_checkcast(java_handle_t *o, classinfo *class)
 {
+	classinfo *c;
+
 	if (o == NULL)
 		return 1;
 
-	if (class_isanysubclass(o->vftbl->class, class))
+	LLNI_class_get(o, c);
+
+	if (class_isanysubclass(c, class))
 		return 1;
 
 	return 0;
@@ -506,7 +514,7 @@ s4 builtin_arraycheckcast(java_handle_t *o, classinfo *targetclass)
 	if (o == NULL)
 		return 1;
 
-	desc = o->vftbl->arraydesc;
+	desc = LLNI_vftbl_direct(o)->arraydesc;
 
 	if (desc == NULL)
 		return 0;
@@ -531,7 +539,7 @@ s4 builtin_arrayinstanceof(java_handle_t *o, classinfo *targetclass)
 
 *******************************************************************************/
 
-void *builtin_throw_exception(java_handle_t *xptr)
+void *builtin_throw_exception(java_object_t *xptr)
 {
 #if !defined(NDEBUG)
     java_lang_Throwable *t;
@@ -619,6 +627,20 @@ void *builtin_throw_exception(java_handle_t *xptr)
 
 s4 builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o)
 {
+	s4 result;
+
+	LLNI_CRITICAL_START;
+
+	builtin_fast_canstore(LLNI_UNWRAP(oa), LLNI_UNWRAP(o));
+
+	LLNI_CRITICAL_END;
+
+	return result;
+}
+
+
+s4 builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
+{
 	arraydescriptor *desc;
 	arraydescriptor *valuedesc;
 	vftbl_t         *componentvftbl;
@@ -692,7 +714,7 @@ s4 builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o)
 
 
 /* This is an optimized version where a is guaranteed to be one-dimensional */
-s4 builtin_canstore_onedim (java_handle_objectarray_t *a, java_handle_t *o)
+s4 builtin_canstore_onedim (java_objectarray_t *a, java_object_t *o)
 {
 	arraydescriptor *desc;
 	vftbl_t         *elementvftbl;
@@ -743,7 +765,7 @@ s4 builtin_canstore_onedim (java_handle_objectarray_t *a, java_handle_t *o)
 
 /* This is an optimized version where a is guaranteed to be a
  * one-dimensional array of a class type */
-s4 builtin_canstore_onedim_class(java_handle_objectarray_t *a, java_handle_t *o)
+s4 builtin_canstore_onedim_class(java_objectarray_t *a, java_object_t *o)
 {
 	vftbl_t  *elementvftbl;
 	vftbl_t  *valuevftbl;
@@ -1193,8 +1215,8 @@ static java_handle_t *builtin_multianewarray_intern(int n,
 
 		if (!ea)
 			return NULL;
-		
-		((java_handle_objectarray_t *) a)->data[i] = (java_object_t *) ea;
+
+		LLNI_objectarray_element_set((java_handle_objectarray_t *) a, i, ea);
 	}
 
 	return a;
@@ -1247,150 +1269,6 @@ java_handle_objectarray_t *builtin_multianewarray(int n, classinfo *arrayclass,
 #if !defined(NDEBUG)
 static s4 methodindent = 0;
 static u4 callcount = 0;
-
-java_handle_t *builtin_trace_exception(java_handle_t *xptr,
-									   methodinfo *m,
-									   void *pos,
-									   s4 indent)
-{
-	char *logtext;
-	s4    logtextlen;
-	s4    dumpsize;
-	codeinfo *code;
-
-#if defined(ENABLE_DEBUG_FILTER)
-	if (! show_filters_test_verbosecall_exit(m)) return xptr;
-#endif
-
-#if defined(ENABLE_VMLOG)
-	return xptr;
-#endif
-
-	if (opt_verbosecall && indent)
-#if defined(__S390__)
-		TRACEJAVACALLINDENT--;
-#else
-		methodindent--;
-#endif
-
-	/* calculate message length */
-
-	if (xptr) {
-		logtextlen =
-			strlen("Exception ") + utf_bytes(xptr->vftbl->class->name);
-	} 
-	else {
-		logtextlen = strlen("Some Throwable");
-	}
-
-	logtextlen += strlen(" thrown in ");
-
-	if (m) {
-		logtextlen +=
-			utf_bytes(m->class->name) +
-			strlen(".") +
-			utf_bytes(m->name) +
-			utf_bytes(m->descriptor) +
-			strlen("(NOSYNC,NATIVE");
-
-#if SIZEOF_VOID_P == 8
-		logtextlen +=
-			strlen(")(0x123456789abcdef0) at position 0x123456789abcdef0 (");
-#else
-		logtextlen += strlen(")(0x12345678) at position 0x12345678 (");
-#endif
-
-		if (m->class->sourcefile == NULL)
-			logtextlen += strlen("<NO CLASSFILE INFORMATION>");
-		else
-			logtextlen += utf_bytes(m->class->sourcefile);
-
-		logtextlen += strlen(":65536)");
-
-	} 
-	else {
-		logtextlen += strlen("call_java_method");
-	}
-
-	logtextlen += strlen("0");
-
-	/* allocate memory */
-
-	dumpsize = dump_size();
-
-	logtext = DMNEW(char, logtextlen);
-
-	if (xptr) {
-		strcpy(logtext, "Exception ");
-		utf_cat_classname(logtext, xptr->vftbl->class->name);
-
-	} else {
-		strcpy(logtext, "Some Throwable");
-	}
-
-	strcat(logtext, " thrown in ");
-
-	if (m) {
-		utf_cat_classname(logtext, m->class->name);
-		strcat(logtext, ".");
-		utf_cat(logtext, m->name);
-		utf_cat(logtext, m->descriptor);
-
-		if (m->flags & ACC_SYNCHRONIZED)
-			strcat(logtext, "(SYNC");
-		else
-			strcat(logtext, "(NOSYNC");
-
-		if (m->flags & ACC_NATIVE) {
-			strcat(logtext, ",NATIVE");
-
-			code = m->code;
-
-#if SIZEOF_VOID_P == 8
-			sprintf(logtext + strlen(logtext),
-					")(0x%016lx) at position 0x%016lx",
-					(ptrint) code->entrypoint, (ptrint) pos);
-#else
-			sprintf(logtext + strlen(logtext),
-					")(0x%08x) at position 0x%08x",
-					(ptrint) code->entrypoint, (ptrint) pos);
-#endif
-
-		} else {
-
-			/* XXX preliminary: This should get the actual codeinfo */
-			/* in which the exception happened.                     */
-			code = m->code;
-			
-#if SIZEOF_VOID_P == 8
-			sprintf(logtext + strlen(logtext),
-					")(0x%016lx) at position 0x%016lx (",
-					(ptrint) code->entrypoint, (ptrint) pos);
-#else
-			sprintf(logtext + strlen(logtext),
-					")(0x%08x) at position 0x%08x (",
-					(ptrint) code->entrypoint, (ptrint) pos);
-#endif
-
-			if (m->class->sourcefile == NULL)
-				strcat(logtext, "<NO CLASSFILE INFORMATION>");
-			else
-				utf_cat(logtext, m->class->sourcefile);
-
-			sprintf(logtext + strlen(logtext), ":%d)", 0);
-		}
-
-	} else
-		strcat(logtext, "call_java_method");
-
-	log_text(logtext);
-
-	/* release memory */
-
-	dump_release(dumpsize);
-
-	return xptr;
-}
 #endif /* !defined(NDEBUG) */
 
 
@@ -1405,7 +1283,7 @@ static char *builtin_print_argument(char *logtext, s4 *logtextlen,
 									typedesc *paramtype, s8 value)
 {
 	imm_union          imu;
-	java_handle_t     *o;
+	java_object_t     *o;
 	classinfo         *c;
 	utf               *u;
 	u4                 len;
@@ -1453,7 +1331,7 @@ static char *builtin_print_argument(char *logtext, s4 *logtextlen,
 
 		/* cast to java.lang.Object */
 
-		o = (java_handle_t *) (ptrint) value;
+		o = (java_object_t *) (ptrint) value;
 
 		/* check return argument for java.lang.Class or java.lang.String */
 
@@ -2696,15 +2574,17 @@ bool builtin_arraycopy(java_handle_t *src, s4 srcStart,
 
 		java_handle_objectarray_t *oas = (java_handle_objectarray_t *) src;
 		java_handle_objectarray_t *oad = (java_handle_objectarray_t *) dest;
-                
+ 
 		if (destStart <= srcStart) {
 			for (i = 0; i < len; i++) {
-				java_handle_t *o = oas->data[srcStart + i];
+				java_handle_t *o;
+
+				LLNI_objectarray_element_get(oas, srcStart + i, o);
 
 				if (!builtin_canstore(oad, o))
 					return false;
 
-				oad->data[destStart + i] = o;
+				LLNI_objectarray_element_set(oad, destStart + i, o);
 			}
 		}
 		else {
@@ -2715,12 +2595,14 @@ bool builtin_arraycopy(java_handle_t *src, s4 srcStart,
 			   index have been copied before the throw. */
 
 			for (i = len - 1; i >= 0; i--) {
-				java_handle_t *o = oas->data[srcStart + i];
+				java_handle_t *o;
+
+				LLNI_objectarray_element_get(oas, srcStart + i, o);
 
 				if (!builtin_canstore(oad, o))
 					return false;
 
-				oad->data[destStart + i] = o;
+				LLNI_objectarray_element_set(oad, destStart + i, o);
 			}
 		}
 	}
@@ -2781,7 +2663,7 @@ java_handle_t *builtin_clone(void *env, java_handle_t *o)
 
 	/* get the array descriptor */
 
-	ad = o->vftbl->arraydesc;
+	ad = LLNI_vftbl_direct(o)->arraydesc;
 
 	/* we are cloning an array */
 
@@ -2817,7 +2699,7 @@ java_handle_t *builtin_clone(void *env, java_handle_t *o)
 
 	/* get the class of the object */
 
-    c = o->vftbl->class;
+	LLNI_class_get(o, c);
 
 	/* create new object */
 
