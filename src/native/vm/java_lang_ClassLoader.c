@@ -100,7 +100,6 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 
 	/* add classloader to classloader hashtable */
 
-	assert(cl);
 	loader = loader_hashtable_classloader_add((java_handle_t *) cl);
 
 	if (name != NULL) {
