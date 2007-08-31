@@ -184,7 +184,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(J
 {
 	/* just to be sure */
 
-	assert(LLNI_field_direct(this, clazz) == clazz);
+	assert(LLNI_field_direct(this, clazz) == LLNI_DIRECT(clazz));
 	assert(LLNI_field_direct(this, slot)  == slot);
 
 	return _Jv_java_lang_reflect_Method_invoke(this, o, args);

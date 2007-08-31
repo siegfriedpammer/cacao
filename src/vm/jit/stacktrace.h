@@ -37,6 +37,8 @@ typedef struct stacktrace_entry stacktrace_entry;
 #include "config.h"
 #include "vm/types.h"
 
+#include "md-abi.h"
+
 #include "vmcore/class.h"
 #include "vmcore/method.h"
 

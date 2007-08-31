@@ -797,7 +797,7 @@ java_handle_objectarray_t *stacktrace_getClassContext(void)
 			continue;
 		}
 
-		oa->data[i] = (java_object_t *) ste->method->class;
+		LLNI_array_direct(oa, i) = (java_object_t *) ste->method->class;
 	}
 
 	/* release dump memory */
@@ -946,22 +946,22 @@ java_handle_objectarray_t *stacktrace_getStack(void)
 
 	/* set up the 2-dimensional array */
 
-	oa->data[0] = (java_object_t *) classes;
-	oa->data[1] = (java_object_t *) methodnames;
+	LLNI_objectarray_element_set(oa, 0, classes);
+	LLNI_objectarray_element_set(oa, 1, methodnames);
 
 	/* iterate over all stacktrace entries */
 
 	for (i = 0, ste = &(stb->entries[0]); i < stb->used; i++, ste++) {
 		c = ste->method->class;
 
-		classes->data[i] = (java_object_t *) c;
+		LLNI_array_direct(classes, i) = (java_object_t *) c;
 
 		string = javastring_new(ste->method->name);
 
 		if (string == NULL)
 			goto return_NULL;
 
-		methodnames->data[i] = string;
+		LLNI_objectarray_element_set(methodnames, i, string);
 	}
 
 	/* return the 2-dimensional array */

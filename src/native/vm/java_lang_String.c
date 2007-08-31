@@ -53,7 +53,7 @@ java_lang_String *_Jv_java_lang_String_intern(java_lang_String *s)
 
 	o = literalstring_u2(LLNI_field_direct(s, value), LLNI_field_direct(s, count), LLNI_field_direct(s, offset), true);
 
-	return (java_lang_String *) o;
+	return (java_lang_String *) LLNI_WRAP(o);
 }
 
 
