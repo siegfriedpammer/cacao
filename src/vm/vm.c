@@ -2067,7 +2067,9 @@ static char *vm_get_mainclass_from_jar(char *mainstring)
 
 	/* get Main Attributes */
 
-	m = class_resolveclassmethod(o->vftbl->class,
+	LLNI_class_get(o, c);
+
+	m = class_resolveclassmethod(c,
 								 utf_new_char("getMainAttributes"), 
 								 utf_new_char("()Ljava/util/jar/Attributes;"),
 								 class_java_lang_Object,
@@ -2088,7 +2090,9 @@ static char *vm_get_mainclass_from_jar(char *mainstring)
 
 	/* get property Main-Class */
 
-	m = class_resolveclassmethod(o->vftbl->class,
+	LLNI_class_get(o, c);
+
+	m = class_resolveclassmethod(c,
 								 utf_new_char("getValue"), 
 								 utf_new_char("(Ljava/lang/String;)Ljava/lang/String;"),
 								 class_java_lang_Object,
@@ -2408,7 +2412,7 @@ static void vm_array_store_adr(uint64_t *array, paramdesc *pd, void *value)
 
 *******************************************************************************/
 
-uint64_t *vm_array_from_valist(methodinfo *m, java_object_t *o, va_list ap)
+uint64_t *vm_array_from_valist(methodinfo *m, java_handle_t *o, va_list ap)
 {
 	methoddesc *md;
 	paramdesc  *pd;
@@ -2486,7 +2490,7 @@ uint64_t *vm_array_from_valist(methodinfo *m, java_object_t *o, va_list ap)
 
 *******************************************************************************/
 
-static uint64_t *vm_array_from_jvalue(methodinfo *m, java_object_t *o,
+static uint64_t *vm_array_from_jvalue(methodinfo *m, java_handle_t *o,
 									  const jvalue *args)
 {
 	methoddesc *md;
@@ -2557,7 +2561,7 @@ static uint64_t *vm_array_from_jvalue(methodinfo *m, java_object_t *o,
 
 *******************************************************************************/
 
-uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
+uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 									java_handle_objectarray_t *params)
 {
 	methoddesc    *md;
@@ -2604,7 +2608,7 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 
 			/* convert the value according to its declared type */
 
-			c    = param->vftbl->class;
+			LLNI_class_get(param, c);
 			type = primitive_type_get_by_wrapperclass(c);
 
 			switch (td->decltype) {
@@ -2674,9 +2678,7 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 			if (param == NULL)
 				goto illegal_arg;
 
-			c    = param->vftbl->class;
-			type = primitive_type_get_by_wrapperclass(c);
-
+			LLNI_class_get(param, c);
 			assert(td->decltype == PRIMITIVETYPE_LONG);
 
 			switch (type) {
@@ -2698,7 +2700,7 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 			if (param == NULL)
 				goto illegal_arg;
 
-			c    = param->vftbl->class;
+			LLNI_class_get(param, c);
 			type = primitive_type_get_by_wrapperclass(c);
 
 			assert(td->decltype == PRIMITIVETYPE_FLOAT);
@@ -2719,7 +2721,7 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_object_t *o,
 			if (param == NULL)
 				goto illegal_arg;
 
-			c    = param->vftbl->class;
+			LLNI_class_get(param, c);
 			type = primitive_type_get_by_wrapperclass(c);
 
 			assert(td->decltype == PRIMITIVETYPE_DOUBLE);
@@ -2874,7 +2876,7 @@ type vm_call##name##_array(methodinfo *m, uint64_t *array)   \
 		if (!jit_compile(m))                                 \
 			return 0;                                        \
                                                              \
-    pv = m->code->entrypoint;                                \
+	pv = m->code->entrypoint;                                \
                                                              \
 	STATISTICS(count_calls_native_to_java++);                \
                                                              \
@@ -2901,4 +2903,5 @@ VM_CALL_ARRAY(_double, double)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

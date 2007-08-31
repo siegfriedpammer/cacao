@@ -86,7 +86,7 @@ java_handle_t *new_exception_utfmessage(const char *classname,
 /* functions to generate compiler exceptions */
 
 java_handle_t *exceptions_new_abstractmethoderror(void);
-java_handle_t *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra);
+java_object_t *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra);
 java_handle_t *exceptions_new_arraystoreexception(void);
 
 void exceptions_throw_abstractmethoderror(void);

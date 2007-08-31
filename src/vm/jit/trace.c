@@ -149,7 +149,7 @@ static imm_union _array_load_return_value(typedesc *td, uint64_t *return_regs) {
 static char *trace_java_call_print_argument(char *logtext, s4 *logtextlen,
 								         	typedesc *paramtype, imm_union imu)
 {
-	java_handle_t     *o;
+	java_object_t     *o;
 	classinfo         *c;
 	utf               *u;
 	u4                 len;
@@ -188,7 +188,7 @@ static char *trace_java_call_print_argument(char *logtext, s4 *logtextlen,
 
 		/* cast to java.lang.Object */
 
-		o = (java_handle_t *) (ptrint) imu.l;
+		o = (java_object_t *) (ptrint) imu.l;
 
 		/* check return argument for java.lang.Class or java.lang.String */
 

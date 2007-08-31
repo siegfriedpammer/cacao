@@ -202,9 +202,19 @@ bool exceptions_init(void)
 
 java_handle_t *exceptions_get_exception(void)
 {
+	java_handle_t *e;
+
+	/* get the exception */
+
+	LLNI_CRITICAL_START;
+
+	e = LLNI_WRAP(*exceptionptr);
+
+	LLNI_CRITICAL_END;
+
 	/* return the exception */
 
-	return *exceptionptr;
+	return e;
 }
 
 
@@ -218,7 +228,11 @@ void exceptions_set_exception(java_handle_t *o)
 {
 	/* set the exception */
 
-	*exceptionptr = o;
+	LLNI_CRITICAL_START;
+
+	*exceptionptr = LLNI_UNWRAP(o);
+
+	LLNI_CRITICAL_END;
 }
 
 
@@ -1468,9 +1482,12 @@ void exceptions_throw_arraystoreexception(void)
 java_handle_t *exceptions_new_classcastexception(java_handle_t *o)
 {
 	java_handle_t *e;
+	classinfo     *c;
 	utf           *classname;
 
-	classname = o->vftbl->class->name;
+	LLNI_class_get(o, c);
+
+	classname = c->name;
 
 	e = exceptions_new_class_utf(class_java_lang_ClassCastException, classname);
 
@@ -1693,6 +1710,7 @@ void exceptions_classnotfoundexception_to_noclassdeffounderror(void)
 java_handle_t *exceptions_fillinstacktrace(void)
 {
 	java_handle_t *o;
+	classinfo     *c;
 	methodinfo    *m;
 
 	/* get exception */
@@ -1703,12 +1721,14 @@ java_handle_t *exceptions_fillinstacktrace(void)
 
 	/* resolve methodinfo pointer from exception object */
 
+	LLNI_class_get(o, c);
+
 #if defined(ENABLE_JAVASE)
-	m = class_resolvemethod(o->vftbl->class,
+	m = class_resolvemethod(c,
 							utf_fillInStackTrace,
 							utf_void__java_lang_Throwable);
 #elif defined(ENABLE_JAVAME_CLDC1_1)
-	m = class_resolvemethod(o->vftbl->class,
+	m = class_resolvemethod(c,
 							utf_fillInStackTrace,
 							utf_void__void);
 #else
@@ -2031,7 +2051,7 @@ void exceptions_print_stacktrace(void)
 
 	/* clear exception, because we are calling jit code again */
 
-	c = oxptr->vftbl->class;
+	LLNI_class_get(oxptr, c);
 
 	/* find the printStackTrace() method */
 
