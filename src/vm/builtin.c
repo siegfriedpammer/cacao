@@ -631,7 +631,7 @@ s4 builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o)
 
 	LLNI_CRITICAL_START;
 
-	builtin_fast_canstore(LLNI_UNWRAP(oa), LLNI_UNWRAP(o));
+	result = builtin_fast_canstore(LLNI_UNWRAP(oa), LLNI_UNWRAP(o));
 
 	LLNI_CRITICAL_END;
 
