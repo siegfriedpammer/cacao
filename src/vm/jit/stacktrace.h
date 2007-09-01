@@ -89,9 +89,9 @@ struct stacktrace_entry {
 #define STACKTRACE_CAPACITY_INCREMENT    80
 
 struct stacktracebuffer {
-	s4                capacity;         /* size of the buffer                 */
-	s4                used;             /* current entries in the buffer      */
-	stacktrace_entry *entries;          /* the actual entries                 */
+	s4               capacity;          /* size of the buffer                 */
+	s4               used;              /* current entries in the buffer      */
+	stacktrace_entry entries[80];       /* the actual entries                 */
 };
 
 
@@ -104,8 +104,7 @@ struct stacktracebuffer {
 
 typedef struct stacktracecontainer {
 	java_array_t            header;     /* default array header for the GC    */
-	struct stacktracebuffer stb;        /* let entries point to data below    */
-	stacktrace_entry        data[1];    /* the actual array of entries        */
+	struct stacktracebuffer stb;        /* wrapped stacktracebuffer           */
 } stacktracecontainer;
 
 

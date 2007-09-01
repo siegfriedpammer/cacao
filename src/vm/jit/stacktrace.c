@@ -318,17 +318,28 @@ void stacktrace_remove_stackframeinfo(stackframeinfo *sfi)
 
 *******************************************************************************/
 
-static void stacktrace_add_entry(stacktracebuffer *stb, methodinfo *m, u2 line)
+static stacktracebuffer *stacktrace_add_entry(stacktracebuffer *stb,
+											  methodinfo *m, u2 line)
 {
 	stacktrace_entry *ste;
+	u4                stb_size_old;
+	u4                stb_size_new;
 
 	/* check if we already reached the buffer capacity */
 
 	if (stb->used >= stb->capacity) {
+		/* calculate size of stacktracebuffer */
+
+		stb_size_old = sizeof(stacktracebuffer) +
+					   sizeof(stacktrace_entry) * stb->capacity -
+					   sizeof(stacktrace_entry) * STACKTRACE_CAPACITY_DEFAULT;
+
+		stb_size_new = stb_size_old +
+					   sizeof(stacktrace_entry) * STACKTRACE_CAPACITY_INCREMENT;
+
 		/* reallocate new memory */
 
-		stb->entries = DMREALLOC(stb->entries, stacktrace_entry, stb->capacity,
-								 stb->capacity + STACKTRACE_CAPACITY_INCREMENT);
+		stb = DMREALLOC(stb, u1, stb_size_old, stb_size_new);
 
 		/* set new buffer capacity */
 
@@ -345,6 +356,8 @@ static void stacktrace_add_entry(stacktracebuffer *stb, methodinfo *m, u2 line)
 	/* increase entries used count */
 
 	stb->used += 1;
+
+	return stb;
 }
 
 
@@ -359,15 +372,15 @@ static void stacktrace_add_entry(stacktracebuffer *stb, methodinfo *m, u2 line)
 	   pc..........position of program counter within the method's code
 
    OUT:
-       true, if stacktrace entries were successfully created, false otherwise.
+       stacktracebuffer after possible reallocation.
 
    [1] In case of inlined methods there may be more than one stacktrace
        entry for a codegen-level method. (see doc/inlining_stacktrace.txt)
 
 *******************************************************************************/
 
-static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
-								  u1 *pc)
+static stacktracebuffer *stacktrace_add_method(stacktracebuffer *stb,
+											   methodinfo *m, u1 *pv, u1 *pc)
 {
 	codeinfo *code;                     /* compiled realization of method     */
 	s4        linenumber;
@@ -382,9 +395,9 @@ static bool stacktrace_add_method(stacktracebuffer *stb, methodinfo *m, u1 *pv,
 
 	/* now add a new entry to the staktrace */
 
-	stacktrace_add_entry(stb, m, linenumber);
+	stb = stacktrace_add_entry(stb, m, linenumber);
 
-	return true;
+	return stb;
 }
 
 
@@ -428,7 +441,6 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 
 	stb->capacity = STACKTRACE_CAPACITY_DEFAULT;
 	stb->used     = 0;
-	stb->entries  = DMNEW(stacktrace_entry, STACKTRACE_CAPACITY_DEFAULT);
 
 #define PRINTMETHODS 0
 
@@ -458,7 +470,7 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 				ra = sfi->ra;
 
 				if (m)
-					stacktrace_add_entry(stb, m, 0);
+					stb = stacktrace_add_entry(stb, m, 0);
 
 #if PRINTMETHODS
 				printf("ra=%p sp=%p, ", ra, sp);
@@ -537,7 +549,7 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 
 					/* add the method to the stacktrace */
 
-					stacktrace_add_method(stb, m, pv, (u1 *) ((ptrint) xpc));
+					stb = stacktrace_add_method(stb, m, pv, (u1 *) ((ptrint) xpc));
 
 					/* get the current stack frame size */
 
@@ -602,7 +614,7 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 			   1 from the return address since it points the the
 			   instruction after call). */
 
-			stacktrace_add_method(stb, m, pv, (u1 *) ((ptrint) ra) - 1);
+			stb = stacktrace_add_method(stb, m, pv, (u1 *) ((ptrint) ra) - 1);
 
 			/* get the current stack frame size */
 
@@ -709,17 +721,14 @@ stacktracecontainer *stacktrace_fillInStackTrace(void)
        an array */
 
 	gcstc_size = sizeof(stacktracebuffer) +
-	             sizeof(stacktrace_entry) * stb->used;
+	             sizeof(stacktrace_entry) * stb->used -
+				 sizeof(stacktrace_entry) * STACKTRACE_CAPACITY_DEFAULT;
 	gcstc = (stacktracecontainer *) builtin_newarray_byte(gcstc_size);
 
 	if (gcstc == NULL)
 		goto return_NULL;
 
-	gcstc->stb.capacity = stb->capacity;
-	gcstc->stb.used     = stb->used;
-	gcstc->stb.entries  = gcstc->data;
-
-	MCOPY(gcstc->data, stb->entries, stacktrace_entry, stb->used);
+	MCOPY(&(gcstc->stb), stb, u1, gcstc_size);
 
 	/* release dump memory */
 
