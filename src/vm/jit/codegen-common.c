@@ -61,6 +61,7 @@
 #include "toolbox/logging.h"
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/localref.h"
 #include "native/native.h"
 
@@ -1460,8 +1461,7 @@ void codegen_stub_builtin_enter(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 
 void codegen_stub_builtin_exit(u1 *datasp)
 {
-	stackframeinfo     *sfi;
-	stackframeinfo    **psfi;
+	stackframeinfo *sfi;
 
 	/* get data structures from stack */
 
@@ -1469,9 +1469,7 @@ void codegen_stub_builtin_exit(u1 *datasp)
 
 	/* remove current stackframeinfo from chain */
 
-	psfi = &STACKFRAMEINFO;
-
-	*psfi = sfi->prev;
+	stacktrace_remove_stackframeinfo(sfi);
 }
 
 
@@ -1537,9 +1535,9 @@ void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 
 java_object_t *codegen_finish_native_call(u1 *datasp)
 {
-	stackframeinfo  *sfi;
-	stackframeinfo **psfi;
-	java_handle_t   *e;
+	stackframeinfo *sfi;
+	java_handle_t  *e;
+	java_object_t  *o;
 
 	/* get data structures from stack */
 
@@ -1547,9 +1545,14 @@ java_object_t *codegen_finish_native_call(u1 *datasp)
 
 	/* remove current stackframeinfo from chain */
 
-	psfi = &STACKFRAMEINFO;
+	stacktrace_remove_stackframeinfo(sfi);
 
-	*psfi = sfi->prev;
+	/* get and unwrap the exception */
+	/* ATTENTION: do the this _after_ the stackframeinfo was
+       removed but _before_ the localref_table gets removed! */
+
+	e = exceptions_get_and_clear_exception();
+	o = LLNI_UNWRAP(e);
 
 #if defined(ENABLE_JNI)
 	/* release JNI local references table for this thread */
@@ -1558,11 +1561,7 @@ java_object_t *codegen_finish_native_call(u1 *datasp)
 	localref_table_remove();
 #endif
 
-	/* get the exception and return it */
-
-	e = exceptions_get_and_clear_exception();
-
-	return e;
+	return o;
 }
 
 
