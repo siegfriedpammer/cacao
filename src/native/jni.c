@@ -994,12 +994,13 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
 {
 #if defined(ENABLE_JAVASE)
+
 	utf             *u;
 	classinfo       *cc;
 	classinfo       *c;
 	java_lang_Class *co;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_FindClass(env=%p, name=%s)", env, name);
 
 	u = utf_new_char_classname((char *) name);
 
@@ -1033,6 +1034,25 @@ jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
 	co = LLNI_classinfo_wrap(c);
 
   	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) co);
+
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+
+	utf       *u;
+	classinfo *c;
+
+	TRACEJNICALLS("_Jv_JNI_FindClass(env=%p, name=%s)", env, name);
+
+	u = utf_new_char_classname((char *) name);
+	c = load_class_bootstrap(u);
+
+	if (c == NULL)
+		return NULL;
+
+	if (!link_class(c))
+		return NULL;
+
+  	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
+  	
 #else
 	vm_abort("_Jv_JNI_FindClass: not implemented in this configuration");
 
