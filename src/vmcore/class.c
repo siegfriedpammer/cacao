@@ -806,7 +806,7 @@ void class_free(classinfo *c)
 		
 	class_freecpool(c);
 
-	if (c->interfaces)
+	if (c->interfaces != NULL)
 		MFREE(c->interfaces, classinfo*, c->interfacescount);
 
 	if (c->fields) {
@@ -1240,7 +1240,7 @@ methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *desc)
 		if (name == utf_init || name == utf_clinit)
 			return NULL;
 
-		c = c->super.cls;
+		c = c->super;
 	}
 
 	return NULL;
@@ -1266,11 +1266,10 @@ static methodinfo *class_resolveinterfacemethod_intern(classinfo *c,
 	if (m != NULL)
 		return m;
 
-	/* no method found? try the superinterfaces */
+	/* No method found?  Try the super interfaces. */
 
 	for (i = 0; i < c->interfacescount; i++) {
-		m = class_resolveinterfacemethod_intern(c->interfaces[i].cls,
-													name, desc);
+		m = class_resolveinterfacemethod_intern(c->interfaces[i], name, desc);
 
 		if (m != NULL)
 			return m;
@@ -1315,11 +1314,10 @@ methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *desc,
 	if (m != NULL)
 		goto found;
 
-	/* try the superinterfaces */
+	/* Try the super interfaces. */
 
 	for (i = 0; i < c->interfacescount; i++) {
-		m = class_resolveinterfacemethod_intern(c->interfaces[i].cls,
-												name, desc);
+		m = class_resolveinterfacemethod_intern(c->interfaces[i], name, desc);
 
 		if (m != NULL)
 			goto found;
@@ -1400,8 +1398,8 @@ fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc)
 		if ((c->fields[i].name == name) && (c->fields[i].descriptor == desc))
 			return &(c->fields[i]);
 
-	if (c->super.cls)
-		return class_findfield(c->super.cls, name, desc);
+	if (c->super != NULL)
+		return class_findfield(c->super, name, desc);
 
 	return NULL;
 }
@@ -1474,18 +1472,19 @@ static fieldinfo *class_resolvefield_int(classinfo *c, utf *name, utf *desc)
 		}
     }
 
-	/* try superinterfaces recursively */
+	/* Try super interfaces recursively. */
 
 	for (i = 0; i < c->interfacescount; i++) {
-		fi = class_resolvefield_int(c->interfaces[i].cls, name, desc);
-		if (fi)
+		fi = class_resolvefield_int(c->interfaces[i], name, desc);
+
+		if (fi != NULL)
 			return fi;
 	}
 
-	/* try superclass */
+	/* Try super class. */
 
-	if (c->super.cls)
-		return class_resolvefield_int(c->super.cls, name, desc);
+	if (c->super != NULL)
+		return class_resolvefield_int(c->super, name, desc);
 
 	/* not found */
 
@@ -1522,38 +1521,6 @@ fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
 }
 
 
-/* class_resolve_superclass ****************************************************
-
-   Resolves the super class reference of the given class if necessary.
-
-*******************************************************************************/
-
-static classinfo *class_resolve_superclass(classinfo *c)
-{
-	classinfo *super;
-
-	if (c->super.any == NULL)
-		return NULL;
-
-	/* Check if the super class is a reference. */
-
-	if (IS_CLASSREF(c->super)) {
-		/* XXX I'm very sure this is not correct. */
-		super = resolve_classref_or_classinfo_eager(c->super, true);
-/* 		super = resolve_classref_or_classinfo_eager(c->super, false); */
-
-		if (super == NULL)
-			return NULL;
-
-		/* Store the resolved super class in the class structure. */
-
-		c->super.cls = super;
-	}
-
-	return c->super.cls;
-}
-
-
 /* class_issubclass ************************************************************
 
    Checks if sub is a descendant of super.
@@ -1562,20 +1529,23 @@ static classinfo *class_resolve_superclass(classinfo *c)
 
 bool class_issubclass(classinfo *sub, classinfo *super)
 {
+	classinfo *c;
+
+	c = sub;
+
 	for (;;) {
-		if (sub == NULL)
+		/* We reached java/lang/Object and did not find the requested
+		   super class. */
+
+		if (c == NULL)
 			return false;
 
-		if (sub == super)
+		/* We found the requested super class. */
+
+		if (c == super)
 			return true;
 
-/* 		sub = class_resolve_superclass(sub); */
-		if (sub->super.any == NULL)
-			return false;
-
-		assert(IS_CLASSREF(sub->super) == 0);
-
-		sub = sub->super.cls;
+		c = c->super;
 	}
 }
 
@@ -1723,31 +1693,21 @@ bool class_is_memberclass(classinfo *c)
 
 /* class_get_superclass ********************************************************
 
-   Return the super class of the given class.  If the super-field is a
-   class-reference, resolve it and store it in the classinfo.
+   Return the super class of the given class.
 
 *******************************************************************************/
 
 classinfo *class_get_superclass(classinfo *c)
 {
-	classinfo *super;
-
-	/* For java.lang.Object, primitive and Void classes we return
-	   NULL. */
-
-	if (c->super.any == NULL)
-		return NULL;
-
-	/* For interfaces we also return NULL. */
+	/* For interfaces we return NULL. */
 
 	if (c->flags & ACC_INTERFACE)
 		return NULL;
 
-	/* We may have to resolve the super class reference. */
+	/* For java/lang/Object, primitive-type and Void classes c->super
+	   is NULL and we return NULL. */
 
-	super = class_resolve_superclass(c);
-
-	return super;
+	return c->super;
 }
 
 
@@ -1972,7 +1932,7 @@ java_handle_objectarray_t *class_get_interfaces(classinfo *c)
 		return NULL;
 
 	for (i = 0; i < c->interfacescount; i++) {
-		ic = c->interfaces[i].cls;
+		ic = c->interfaces[i];
 
 		LLNI_array_direct(oa, i) = (java_object_t *) ic;
 	}
@@ -2262,9 +2222,9 @@ void class_showmethods (classinfo *c)
 	utf_display_printable_ascii(c->name);
 	printf("\n");
 
-	if (c->super.cls) {
+	if (c->super) {
 		printf("Super: ");
-		utf_display_printable_ascii(c->super.cls->name);
+		utf_display_printable_ascii(c->super->name);
 		printf ("\n");
 	}
 
@@ -2273,8 +2233,8 @@ void class_showmethods (classinfo *c)
 	printf("Interfaces:\n");	
 	for (i = 0; i < c->interfacescount; i++) {
 		printf("   ");
-		utf_display_printable_ascii(c->interfaces[i].cls->name);
-		printf (" (%d)\n", c->interfaces[i].cls->index);
+		utf_display_printable_ascii(c->interfaces[i]->name);
+		printf (" (%d)\n", c->interfaces[i]->index);
 	}
 
 	printf("Fields:\n");

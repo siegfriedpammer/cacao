@@ -1549,7 +1549,7 @@ methodinfo * resolve_method_invokespecial_lookup(methodinfo *refmethod,
 		/* lookup starting with the direct super class of referer      */
 
 		if ((referer->flags & ACC_SUPER) != 0) {
-			mi = class_resolvemethod(referer->super.cls,
+			mi = class_resolvemethod(referer->super,
 									 mi->name,
 									 mi->descriptor);
 

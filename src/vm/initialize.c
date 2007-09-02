@@ -142,19 +142,19 @@ static bool initialize_class_intern(classinfo *c)
 		count_class_inits++;
 #endif
 
-	/* initialize super class */
+	/* Initialize super class. */
 
-	if (c->super.cls) {
-		if (!(c->super.cls->state & CLASS_INITIALIZED)) {
+	if (c->super != NULL) {
+		if (!(c->super->state & CLASS_INITIALIZED)) {
 #if !defined(NDEBUG)
 			if (initverbose)
 				log_message_class_message_class("Initialize super class ",
-												c->super.cls,
+												c->super,
 												" from ",
 												c);
 #endif
 
-			if (!initialize_class(c->super.cls))
+			if (!initialize_class(c->super))
 				return false;
 		}
 	}
@@ -163,7 +163,7 @@ static bool initialize_class_intern(classinfo *c)
 
 	m = class_findmethod(c, utf_clinit, utf_void__void);
 
-	if (!m) {
+	if (m == NULL) {
 #if !defined(NDEBUG)
 		if (initverbose)
 			log_message_class("Class has no static class initializer: ", c);

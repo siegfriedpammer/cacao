@@ -69,7 +69,7 @@ primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT] = {
 };
 
 
-/* primitive_preinit ***********************************************************
+/* primitive_init **************************************************************
 
    Fill the primitive type table with the primitive-type classes,
    array-classes and wrapper classes.  This is important in the VM
@@ -114,9 +114,9 @@ void primitive_init(void)
 
 		c = class_create_classinfo(name);
 
-		/* primitive classes don't have a super class */
+		/* Primitive type classes don't have a super class. */
 
-		c->super.any = NULL;
+		c->super = NULL;
 
 		/* set flags and mark it as primitive class */
 

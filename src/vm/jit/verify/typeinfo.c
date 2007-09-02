@@ -418,13 +418,13 @@ interface_extends_interface(classinfo *cls,classinfo *interf)
 
     /* first check direct superinterfaces */
     for (i=0; i<cls->interfacescount; ++i) {
-        if (cls->interfaces[i].cls == interf)
+        if (cls->interfaces[i] == interf)
             return true;
     }
     
     /* check indirect superinterfaces */
     for (i=0; i<cls->interfacescount; ++i) {
-        if (interface_extends_interface(cls->interfaces[i].cls,interf))
+        if (interface_extends_interface(cls->interfaces[i],interf))
             return true;
     }
     
@@ -1852,13 +1852,16 @@ typeinfo_merge_nonarrays(typeinfo *dest,
     /* {We know: y is at least as deep in the hierarchy as x.} */
 
     /* Find nearest common anchestor for the classes. */
+
     common = x.cls;
-    tcls = y.cls;
+    tcls   = y.cls;
+
     while (tcls->index > common->index)
-        tcls = tcls->super.cls;
+        tcls = tcls->super;
+
     while (common != tcls) {
-        common = common->super.cls;
-        tcls = tcls->super.cls;
+        common = common->super;
+        tcls = tcls->super;
     }
 
     /* {common == nearest common anchestor of x and y.} */

@@ -280,22 +280,22 @@ void linker_init(void)
 
     /* pseudo class for Arraystubs (extends java.lang.Object) */
 
-	pseudo_class_Arraystub =
+	pseudo_class_Arraystub                   =
 		class_create_classinfo(utf_new_char("$ARRAYSTUB$"));
-	pseudo_class_Arraystub->state            |= CLASS_LOADED;
-	pseudo_class_Arraystub->super.cls         = class_java_lang_Object;
+	pseudo_class_Arraystub->state           |= CLASS_LOADED;
+	pseudo_class_Arraystub->super            = class_java_lang_Object;
 
 #if defined(ENABLE_JAVASE)
 
-	pseudo_class_Arraystub->interfacescount   = 2;
-	pseudo_class_Arraystub->interfaces        = MNEW(classref_or_classinfo, 2);
-	pseudo_class_Arraystub->interfaces[0].cls = class_java_lang_Cloneable;
-	pseudo_class_Arraystub->interfaces[1].cls = class_java_io_Serializable;
+	pseudo_class_Arraystub->interfacescount  = 2;
+	pseudo_class_Arraystub->interfaces       = MNEW(classinfo*, 2);
+	pseudo_class_Arraystub->interfaces[0]    = class_java_lang_Cloneable;
+	pseudo_class_Arraystub->interfaces[1]    = class_java_io_Serializable;
 
 #elif defined(ENABLE_JAVAME_CLDC1_1)
 
-	pseudo_class_Arraystub->interfacescount   = 0;
-	pseudo_class_Arraystub->interfaces        = NULL;
+	pseudo_class_Arraystub->interfacescount    = 0;
+	pseudo_class_Arraystub->interfaces         = NULL;
 
 #else
 # error unknown Java configuration
@@ -309,9 +309,9 @@ void linker_init(void)
 
 	/* pseudo class representing the null type */
 
-	pseudo_class_Null = class_create_classinfo(utf_new_char("$NULL$"));
+	pseudo_class_Null         = class_create_classinfo(utf_new_char("$NULL$"));
 	pseudo_class_Null->state |= CLASS_LOADED;
-	pseudo_class_Null->super.cls = class_java_lang_Object;
+	pseudo_class_Null->super  = class_java_lang_Object;
 
 	if (!classcache_store_unique(pseudo_class_Null))
 		vm_abort("linker_init: could not cache pseudo_class_Null");
@@ -321,10 +321,10 @@ void linker_init(void)
 
 	/* pseudo class representing new uninitialized objects */
     
-	pseudo_class_New = class_create_classinfo(utf_new_char("$NEW$"));
+	pseudo_class_New         = class_create_classinfo(utf_new_char("$NEW$"));
 	pseudo_class_New->state |= CLASS_LOADED;
 	pseudo_class_New->state |= CLASS_LINKED; /* XXX is this allright? */
-	pseudo_class_New->super.cls = class_java_lang_Object;
+	pseudo_class_New->super  = class_java_lang_Object;
 
 	if (!classcache_store_unique(pseudo_class_New))
 		vm_abort("linker_init: could not cache pseudo_class_New");
@@ -549,30 +549,10 @@ static classinfo *link_class_intern(classinfo *c)
 	arraydesc = NULL;
 	worklist = NULL;
 
-	/* check interfaces */
+	/* Link the super interfaces. */
 
 	for (i = 0; i < c->interfacescount; i++) {
-		/* resolve this super interface */
-
-		if ((tc = resolve_classref_or_classinfo_eager(c->interfaces[i], true)) == NULL)
-			return NULL;
-
-		c->interfaces[i].cls = tc;
-		
-		/* detect circularity */
-
-		if (tc == c) {
-			exceptions_throw_classcircularityerror(c);
-			return NULL;
-		}
-
-		assert(tc->state & CLASS_LOADED);
-
-		if (!(tc->flags & ACC_INTERFACE)) {
-			exceptions_throw_incompatibleclasschangeerror(tc,
-														  "Implementing class");
-			return NULL;
-		}
+		tc = c->interfaces[i];
 
 		if (!(tc->state & CLASS_LINKED))
 			if (!link_class(tc))
@@ -583,49 +563,22 @@ static classinfo *link_class_intern(classinfo *c)
 
 	super = NULL;
 
-	if (c->super.any == NULL) {                     /* class java.lang.Object */
+	/* Check for java/lang/Object. */
+
+	if (c->super == NULL) {
 		c->index = 0;
 		c->instancesize = sizeof(java_object_t);
 		
 		vftbllength = supervftbllength = 0;
 
 		c->finalizer = NULL;
-
 	}
 	else {
-		/* Resolve super class. */
+		/* Get super class. */
 
-		super = resolve_classref_or_classinfo_eager(c->super, true);
+		super = c->super;
 
-		if (super == NULL)
-			return NULL;
-
-		c->super.cls = super;
-		
-		/* Detect circularity. */
-
-		if (super == c) {
-			exceptions_throw_classcircularityerror(c);
-			return NULL;
-		}
-
-		assert(super->state & CLASS_LOADED);
-
-		if (super->flags & ACC_INTERFACE) {
-			/* java.lang.IncompatibleClassChangeError: class a has interface java.lang.Cloneable as super class */
-			log_text("Interface specified as super class");
-			assert(0);
-		}
-
-		/* Don't allow extending final classes */
-
-		if (super->flags & ACC_FINAL) {
-			exceptions_throw_verifyerror(NULL,
-										 "Cannot inherit from final class");
-			return NULL;
-		}
-
-		/* link the superclass if necessary */
+		/* Link the super class if necessary. */
 		
 		if (!(super->state & CLASS_LINKED))
 			if (!link_class(super))
@@ -689,7 +642,7 @@ static classinfo *link_class_intern(classinfo *c)
 					}
 				}
 
-				tc = tc->super.cls;
+				tc = tc->super;
 			}
 
 		notfoundvftblindex:
@@ -719,7 +672,7 @@ static classinfo *link_class_intern(classinfo *c)
 		/* check all interfaces of the abstract class */
 
 		for (i = 0; i < c->interfacescount; i++) {
-			ic = c->interfaces[i].cls;
+			ic = c->interfaces[i];
 
 			for (j = 0; j < ic->methodscount; j++) {
 				im = &(ic->methods[j]);
@@ -729,7 +682,7 @@ static classinfo *link_class_intern(classinfo *c)
 				if ((im->name == utf_clinit) || (im->name == utf_init))
 					continue;
 
-				for (tc = c; tc != NULL; tc = tc->super.cls) {
+				for (tc = c; tc != NULL; tc = tc->super) {
 					for (k = 0; k < tc->methodscount; k++) {
 						if (method_canoverwrite(im, &(tc->methods[k])))
 							goto noabstractmethod;
@@ -752,7 +705,7 @@ static classinfo *link_class_intern(classinfo *c)
 								  c->methodscount + abstractmethodscount);
 
 			for (i = 0; i < c->interfacescount; i++) {
-				ic = c->interfaces[i].cls;
+				ic = c->interfaces[i];
 
 				for (j = 0; j < ic->methodscount; j++) {
 					im = &(ic->methods[j]);
@@ -762,7 +715,7 @@ static classinfo *link_class_intern(classinfo *c)
 					if ((im->name == utf_clinit) || (im->name == utf_init))
 						continue;
 
-					for (tc = c; tc != NULL; tc = tc->super.cls) {
+					for (tc = c; tc != NULL; tc = tc->super) {
 						for (k = 0; k < tc->methodscount; k++) {
 							if (method_canoverwrite(im, &(tc->methods[k])))
 								goto noabstractmethod2;
@@ -800,9 +753,9 @@ static classinfo *link_class_intern(classinfo *c)
 
 	interfacetablelength = 0;
 
-	for (tc = c; tc != NULL; tc = tc->super.cls) {
+	for (tc = c; tc != NULL; tc = tc->super) {
 		for (i = 0; i < tc->interfacescount; i++) {
-			s4 h = class_highestinterface(tc->interfaces[i].cls) + 1;
+			s4 h = class_highestinterface(tc->interfaces[i]) + 1;
 
 			if (h > interfacetablelength)
 				interfacetablelength = h;
@@ -931,9 +884,9 @@ static classinfo *link_class_intern(classinfo *c)
 
 	/* add interfaces */
 
-	for (tc = c; tc != NULL; tc = tc->super.cls)
+	for (tc = c; tc != NULL; tc = tc->super)
 		for (i = 0; i < tc->interfacescount; i++)
-			if (!linker_addinterface(c, tc->interfaces[i].cls))
+			if (!linker_addinterface(c, tc->interfaces[i]))
 				return NULL;
 
 	RT_TIMING_GET_TIME(time_fill_iftbl);
@@ -1172,9 +1125,9 @@ static void linker_compute_subclasses(classinfo *c)
 		c->sub     = NULL;
 	}
 
-	if (!(c->flags & ACC_INTERFACE) && (c->super.any != NULL)) {
-		c->nextsub        = c->super.cls->sub;
-		c->super.cls->sub = c;
+	if (!(c->flags & ACC_INTERFACE) && (c->super != NULL)) {
+		c->nextsub    = c->super->sub;
+		c->super->sub = c;
 	}
 
 	classvalue = 0;
@@ -1261,7 +1214,7 @@ static bool linker_addinterface(classinfo *c, classinfo *ic)
 #endif
 
 		for (j = 0; j < ic->methodscount; j++) {
-			for (sc = c; sc != NULL; sc = sc->super.cls) {
+			for (sc = c; sc != NULL; sc = sc->super) {
 				for (k = 0; k < sc->methodscount; k++) {
 					m = &(sc->methods[k]);
 
@@ -1318,7 +1271,7 @@ static bool linker_addinterface(classinfo *c, classinfo *ic)
 	/* add superinterfaces of this interface */
 
 	for (j = 0; j < ic->interfacescount; j++)
-		if (!linker_addinterface(c, ic->interfaces[j].cls))
+		if (!linker_addinterface(c, ic->interfaces[j]))
 			return false;
 
 	/* everything ok */
@@ -1345,7 +1298,7 @@ static s4 class_highestinterface(classinfo *c)
     h = c->index;
 
 	for (i = 0; i < c->interfacescount; i++) {
-		h2 = class_highestinterface(c->interfaces[i].cls);
+		h2 = class_highestinterface(c->interfaces[i]);
 
 		if (h2 > h)
 			h = h2;

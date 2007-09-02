@@ -46,6 +46,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/primitive.h"
+#include "vm/resolve.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -1377,9 +1378,15 @@ classinfo *load_class_bootstrap(utf *name)
 
 static bool load_class_from_classbuffer_intern(classbuffer *cb)
 {
-	classinfo *c;
-	utf *name;
-	utf *supername;
+	classinfo          *c;
+	classinfo          *tc;
+	utf                *name;
+	utf                *supername;
+	utf               **interfacesnames;
+	utf                *u;
+	constant_classref  *cr;
+	int16_t             index;
+
 	u4 i,j;
 	u4 ma, mi;
 	descriptor_pool *descpool;
@@ -1477,11 +1484,13 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	if (!suck_check_classbuffer_size(cb, 2 + 2))
 		return false;
 
-	/* this class */
+	/* This class. */
 
-	i = suck_u2(cb);
+	index = suck_u2(cb);
 
-	if (!(name = (utf *) class_getconstant(c, i, CONSTANT_Class)))
+	name = (utf *) class_getconstant(c, index, CONSTANT_Class);
+
+	if (name == NULL)
 		return false;
 
 	if (c->name == utf_not_named_yet) {
@@ -1494,18 +1503,39 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		return false;
 	}
 
-	/* retrieve superclass */
+	/* Retrieve superclass. */
 
-	c->super.any = NULL;
+	c->super = NULL;
 
-	if ((i = suck_u2(cb))) {
-		if (!(supername = (utf *) class_getconstant(c, i, CONSTANT_Class)))
+	index = suck_u2(cb);
+
+	if (index == 0) {
+		supername = NULL;
+
+		/* This is only allowed for java.lang.Object. */
+
+		if (c->name != utf_java_lang_Object) {
+			exceptions_throw_classformaterror(c, "Bad superclass index");
+			return false;
+		}
+	}
+	else {
+		supername = (utf *) class_getconstant(c, index, CONSTANT_Class);
+
+		if (supername == NULL)
 			return false;
 
 		/* java.lang.Object may not have a super class. */
 
 		if (c->name == utf_java_lang_Object) {
 			exceptions_throw_classformaterror(NULL, "java.lang.Object with superclass");
+			return false;
+		}
+
+		/* Detect circularity. */
+
+		if (supername == c->name) {
+			exceptions_throw_classcircularityerror(c);
 			return false;
 		}
 
@@ -1516,18 +1546,8 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 			return false;
 		}
 	}
-	else {
-		supername = NULL;
 
-		/* This is only allowed for java.lang.Object. */
-
-		if (c->name != utf_java_lang_Object) {
-			exceptions_throw_classformaterror(c, "Bad superclass index");
-			return false;
-		}
-	}
-
-	/* retrieve interfaces */
+	/* Parse the super interfaces. */
 
 	if (!suck_check_classbuffer_size(cb, 2))
 		return false;
@@ -1537,17 +1557,26 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	if (!suck_check_classbuffer_size(cb, 2 * c->interfacescount))
 		return false;
 
-	c->interfaces = MNEW(classref_or_classinfo, c->interfacescount);
+	c->interfaces = MNEW(classinfo*, c->interfacescount);
+
+	/* Get the names of the super interfaces. */
+
+	interfacesnames = DMNEW(utf*, c->interfacescount);
 
 	for (i = 0; i < c->interfacescount; i++) {
-		/* the classrefs are created later */
-		if (!(c->interfaces[i].any = (utf *) class_getconstant(c, suck_u2(cb), CONSTANT_Class)))
+		index = suck_u2(cb);
+
+		u = (utf *) class_getconstant(c, index, CONSTANT_Class);
+
+		if (u == NULL)
 			return false;
+
+		interfacesnames[i] = u;
 	}
 
 	RT_TIMING_GET_TIME(time_setup);
 
-	/* load fields */
+	/* Parse fields. */
 
 	if (!suck_check_classbuffer_size(cb, 2))
 		return false;
@@ -1564,7 +1593,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	RT_TIMING_GET_TIME(time_fields);
 
-	/* load methods */
+	/* Parse methods. */
 
 	if (!suck_check_classbuffer_size(cb, 2))
 		return false;
@@ -1605,6 +1634,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	RT_TIMING_GET_TIME(time_descs);
 
 	/* put the classrefs in the constant pool */
+
 	for (i = 0; i < c->cpcount; i++) {
 		if (c->cptags[i] == CONSTANT_Class) {
 			utf *name = (utf *) c->cpinfos[i];
@@ -1612,27 +1642,76 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		}
 	}
 
-	/* set the super class reference */
+	/* Resolve the super class. */
 
-	if (supername) {
-		c->super.ref = descriptor_pool_lookup_classref(descpool, supername);
-		if (!c->super.ref)
+	if (supername != NULL) {
+		cr = descriptor_pool_lookup_classref(descpool, supername);
+
+		if (cr == NULL)
 			return false;
+
+		/* XXX This should be done better. */
+		tc = resolve_classref_or_classinfo_eager(CLASSREF_OR_CLASSINFO(cr), false);
+
+		if (tc == NULL)
+			return false;
+
+		/* Interfaces are not allowed as super classes. */
+
+		if (tc->flags & ACC_INTERFACE) {
+			exceptions_throw_incompatibleclasschangeerror(c, "class %s has interface %s as super class");
+			return false;
+		}
+
+		/* Don't allow extending final classes */
+
+		if (tc->flags & ACC_FINAL) {
+			exceptions_throw_verifyerror(NULL,
+										 "Cannot inherit from final class");
+			return false;
+		}
+
+		/* Store the super class. */
+
+		c->super = tc;
 	}
 
-	/* set the super interfaces references */
+	/* Resolve the super interfaces. */
 
 	for (i = 0; i < c->interfacescount; i++) {
-		c->interfaces[i].ref =
-			descriptor_pool_lookup_classref(descpool,
-											(utf *) c->interfaces[i].any);
-		if (!c->interfaces[i].ref)
+		u  = interfacesnames[i];
+		cr = descriptor_pool_lookup_classref(descpool, u);
+
+		if (cr == NULL)
 			return false;
+
+		/* XXX This should be done better. */
+		tc = resolve_classref_or_classinfo_eager(CLASSREF_OR_CLASSINFO(cr), false);
+
+		if (tc == NULL)
+			return false;
+
+		/* Detect circularity. */
+
+		if (tc == c) {
+			exceptions_throw_classcircularityerror(c);
+			return false;
+		}
+
+		if (!(tc->flags & ACC_INTERFACE)) {
+			exceptions_throw_incompatibleclasschangeerror(tc,
+														  "Implementing class");
+			return false;
+		}
+
+		/* Store the super interface. */
+
+		c->interfaces[i] = tc;
 	}
 
 	RT_TIMING_GET_TIME(time_setrefs);
 
-	/* parse field descriptors */
+	/* Parse the field descriptors. */
 
 	for (i = 0; i < c->fieldscount; i++) {
 		c->fields[i].parseddesc =
@@ -2036,31 +2115,33 @@ classinfo *load_newly_created_array(classinfo *c, classloader *loader)
 	assert(class_java_io_Serializable);
 #endif
 
-	/* setup the array class */
+	/* Setup the array class. */
 
-	c->super.cls = class_java_lang_Object;
+	c->super = class_java_lang_Object;
 
 #if defined(ENABLE_JAVASE)
 
-	c->interfacescount   = 2;
-    c->interfaces        = MNEW(classref_or_classinfo, 2);
-	c->interfaces[0].cls = class_java_lang_Cloneable;
-	c->interfaces[1].cls = class_java_io_Serializable;
+	c->interfacescount = 2;
+    c->interfaces      = MNEW(classinfo*, 2);
+	c->interfaces[0]   = class_java_lang_Cloneable;
+	c->interfaces[1]   = class_java_io_Serializable;
 
 #elif defined(ENABLE_JAVAME_CLDC1_1)
 
-	c->interfacescount   = 0;
-	c->interfaces        = NULL;
+	c->interfacescount = 0;
+	c->interfaces      = NULL;
 
 #else
 # error unknow Java configuration
 #endif
 
 	c->methodscount = 1;
-	c->methods = MNEW(methodinfo, c->methodscount);
+	c->methods      = MNEW(methodinfo, c->methodscount);
+
 	MZERO(c->methods, methodinfo, c->methodscount);
 
 	classrefs = MNEW(constant_classref, 2);
+
 	CLASSREF_INIT(classrefs[0], c, c->name);
 	CLASSREF_INIT(classrefs[1], c, utf_java_lang_Object);
 

@@ -111,17 +111,17 @@ struct classinfo {                /* class structure                          */
 	s4          parseddescsize;   /* size of the parsed descriptors block     */
 	u1         *parseddescs;      /* parsed descriptors                       */
 
-	classref_or_classinfo super;  /* super class                              */
+	classinfo  *super;            /* super class                              */
 	classinfo  *sub;              /* sub class pointer                        */
 	classinfo  *nextsub;          /* pointer to next class in sub class list  */
 
-	s4          interfacescount;  /* number of interfaces                     */
-	classref_or_classinfo *interfaces; /* superinterfaces                     */
+	int32_t     interfacescount;  /* number of interfaces                     */
+	classinfo **interfaces;       /* super interfaces                         */
 
-	s4          fieldscount;      /* number of fields                         */
+	int32_t     fieldscount;      /* number of fields                         */
 	fieldinfo  *fields;           /* field table                              */
 
-	s4          methodscount;     /* number of methods                        */
+	int32_t     methodscount;     /* number of methods                        */
 	methodinfo *methods;          /* method table                             */
 
 	s4          state;            /* current class state                      */

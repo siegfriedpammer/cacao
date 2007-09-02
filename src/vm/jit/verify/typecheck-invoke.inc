@@ -235,7 +235,7 @@
 
 			/* if lazy resolving did not succeed, it's not one of the allowed classes */
 			/* otherwise we check it directly                                         */
-			if (cls == NULL || (cls != state->m->class && cls != state->m->class->super.cls)) {
+			if (cls == NULL || (cls != state->m->class && cls != state->m->class->super)) {
 				TYPECHECK_VERIFYERROR_bool("<init> calling <init> of the wrong class");
 			}
 

@@ -250,7 +250,7 @@ static void printfields(classinfo *c)
 		return;
 	}
 		
-	printfields(c->super.cls);
+	printfields(c->super);
 	
 	for (i = 0; i < c->fieldscount; i++) {
 		f = &(c->fields[i]);
