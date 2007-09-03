@@ -210,6 +210,43 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 }
 
 
+/* md_signal_handler_sigusr1 ***************************************************
+
+   Signal handler for suspending threads.
+
+*******************************************************************************/
+
+#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
+void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
+{
+	ucontext_t    *_uc;
+	mcontext_t    *_mc;
+	unsigned long *_gregs;
+	u1            *pc;
+	u1            *sp;
+
+	_uc = (ucontext_t *) _p;
+
+#if defined(__UCLIBC__)
+	_mc    = &(_uc->uc_mcontext);
+	_gregs = _mc->regs->gpr;
+#else
+	_mc    = _uc->uc_mcontext.uc_regs;
+	_gregs = _mc->gregs;
+#endif
+
+	/* get the PC and SP for this thread */
+
+	pc = (u1 *) _gregs[PT_NIP];
+	sp = (u1 *) _gregs[REG_SP];
+
+	/* now suspend the current thread */
+
+	threads_suspend_ack(pc, sp);
+}
+#endif
+
+
 /* md_signal_handler_sigusr2 ***************************************************
 
    Signal handler for profiling sampling.
