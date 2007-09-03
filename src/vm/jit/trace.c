@@ -26,16 +26,18 @@
 
 #include "config.h"
 
+#include <stdio.h>
+
 #include "arch.h"
 #include "md-abi.h"
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-#include "threads/native/threads.h"
-#else
-#include "threads/none/threads.h"
-#endif
+#include "native/llni.h"
+#include "native/include/java_lang_String.h"
+#include "native/include/java_lang_Throwable.h"
+
+#include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
 
@@ -48,14 +50,17 @@
 #include "vmcore/options.h"
 #include "vmcore/utf8.h"
 
-#include <stdio.h>
 
 #if !defined(NDEBUG)
+
+
+/* global variables ***********************************************************/
 
 #if !defined(ENABLE_THREADS)
 s4 _no_threads_tracejavacallindent = 0;
 u4 _no_threads_tracejavacallcount= 0;
 #endif
+
 
 /* _array_load_param **********************************************************
  
@@ -64,7 +69,8 @@ u4 _no_threads_tracejavacallcount= 0;
 
 *******************************************************************************/
 
-static imm_union _array_load_param(paramdesc *pd, typedesc *td, uint64_t *arg_regs, uint64_t *stack) {
+static imm_union _array_load_param(paramdesc *pd, typedesc *td, uint64_t *arg_regs, uint64_t *stack)
+{
 	imm_union ret;
 
 	switch (td->type) {
@@ -119,7 +125,8 @@ static imm_union _array_load_param(paramdesc *pd, typedesc *td, uint64_t *arg_re
 
 *******************************************************************************/
 
-static imm_union _array_load_return_value(typedesc *td, uint64_t *return_regs) {
+static imm_union _array_load_return_value(typedesc *td, uint64_t *return_regs)
+{
 	imm_union ret;
 
 	switch (td->type) {
@@ -147,8 +154,15 @@ static imm_union _array_load_return_value(typedesc *td, uint64_t *return_regs) {
 	return ret;
 }
 
+
+/* trace_java_call_print_argument **********************************************
+
+   XXX: Document me!
+
+*******************************************************************************/
+
 static char *trace_java_call_print_argument(char *logtext, s4 *logtextlen,
-								         	typedesc *paramtype, imm_union imu)
+											typedesc *paramtype, imm_union imu)
 {
 	java_object_t     *o;
 	classinfo         *c;
@@ -262,7 +276,8 @@ static char *trace_java_call_print_argument(char *logtext, s4 *logtextlen,
 
 *******************************************************************************/
 
-void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack) {
+void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
+{
 	methoddesc *md;
 	paramdesc *pd;
 	typedesc *td;
@@ -346,14 +361,14 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack) {
 	if (m->flags & ACC_PUBLIC)       strcat(logtext, " PUBLIC");
 	if (m->flags & ACC_PRIVATE)      strcat(logtext, " PRIVATE");
 	if (m->flags & ACC_PROTECTED)    strcat(logtext, " PROTECTED");
-   	if (m->flags & ACC_STATIC)       strcat(logtext, " STATIC");
-   	if (m->flags & ACC_FINAL)        strcat(logtext, " FINAL");
-   	if (m->flags & ACC_SYNCHRONIZED) strcat(logtext, " SYNCHRONIZED");
-   	if (m->flags & ACC_VOLATILE)     strcat(logtext, " VOLATILE");
-   	if (m->flags & ACC_TRANSIENT)    strcat(logtext, " TRANSIENT");
-   	if (m->flags & ACC_NATIVE)       strcat(logtext, " NATIVE");
-   	if (m->flags & ACC_INTERFACE)    strcat(logtext, " INTERFACE");
-   	if (m->flags & ACC_ABSTRACT)     strcat(logtext, " ABSTRACT");
+	if (m->flags & ACC_STATIC)       strcat(logtext, " STATIC");
+	if (m->flags & ACC_FINAL)        strcat(logtext, " FINAL");
+	if (m->flags & ACC_SYNCHRONIZED) strcat(logtext, " SYNCHRONIZED");
+	if (m->flags & ACC_VOLATILE)     strcat(logtext, " VOLATILE");
+	if (m->flags & ACC_TRANSIENT)    strcat(logtext, " TRANSIENT");
+	if (m->flags & ACC_NATIVE)       strcat(logtext, " NATIVE");
+	if (m->flags & ACC_INTERFACE)    strcat(logtext, " INTERFACE");
+	if (m->flags & ACC_ABSTRACT)     strcat(logtext, " ABSTRACT");
 
 	strcat(logtext, "(");
 
@@ -382,13 +397,13 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack) {
 }
 
 /* trace_java_call_exit ********************************************************
- 
+
    Traces an exit form a java method.
 
    return_regs: Array of size 3 containing return registers:
      [0] : REG_RESULT
-	 [1] : REG_RESULT2 (if available on architecture)
-	 [2] : REG_FRESULT
+     [1] : REG_RESULT2 (if available on architecture)
+     [2] : REG_FRESULT
    The array is usually allocated on the stack and used for restoring the
    registers later. The format of the array is the same as the format of 
    register arguments passed to asm_vm_call_method.
@@ -406,7 +421,8 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 	imm_union   val;
 
 #if defined(ENABLE_DEBUG_FILTER)
-	if (! show_filters_test_verbosecall_exit(m)) return;
+	if (!show_filters_test_verbosecall_exit(m))
+		return;
 #endif
 
 #if defined(ENABLE_VMLOG)
@@ -415,6 +431,13 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 #endif
 
 	md = m->parseddesc;
+
+	/* outdent the log message */
+
+	if (TRACEJAVACALLINDENT)
+		TRACEJAVACALLINDENT--;
+	else
+		log_text("trace_java_call_exit: WARNING: unmatched unindent");
 
 	/* calculate message length */
 
@@ -438,13 +461,6 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 	dumpsize = dump_size();
 
 	logtext = DMNEW(char, logtextlen);
-
-	/* outdent the log message */
-
-	if (TRACEJAVACALLINDENT)
-		TRACEJAVACALLINDENT--;
-	else
-		log_text("WARNING: unmatched TRACEJAVACALLINDENT--");
 
 	/* generate the message */
 
@@ -479,23 +495,18 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 }
 
 
-void trace_exception(java_object_t *xptr, methodinfo *m, void *pos, s4 indent)
+/* trace_exception *************************************************************
+
+   Traces an exception which is handled by exceptions_handle_exception.
+
+*******************************************************************************/
+
+void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 {
 	char *logtext;
 	s4    logtextlen;
 	s4    dumpsize;
 	codeinfo *code;
-
-#if defined(ENABLE_DEBUG_FILTER)
-	if (! show_filters_test_verbosecall_exit(m)) return;
-#endif
-
-#if defined(ENABLE_VMLOG)
-	return;
-#endif
-
-	if (opt_verbosecall && indent)
-		TRACEJAVACALLINDENT--;
 
 	/* calculate message length */
 
@@ -615,7 +626,78 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos, s4 indent)
 }
 
 
+/* trace_exception_builtin *****************************************************
+
+   Traces an exception which is thrown by builtin_throw_exception.
+
+*******************************************************************************/
+
+void trace_exception_builtin(java_object_t *xptr)
+{
+	java_lang_Throwable *t;
+	java_lang_String    *s;
+	char                *logtext;
+	s4                   logtextlen;
+	s4                   dumpsize;
+
+	t = (java_lang_Throwable *) xptr;
+
+	/* get detail message */
+	if (t)
+		LLNI_field_get_ref(t, detailMessage, s);
+
+	/* calculate message length */
+
+	logtextlen = strlen("Builtin exception thrown: ") + strlen("0");
+
+	if (t) {
+		logtextlen +=
+			utf_bytes(xptr->vftbl->class->name);
+		if (s) {
+			logtextlen += strlen(": ") +
+				u2_utflength(LLNI_field_direct(s, value)->data 
+								+ LLNI_field_direct(s, offset),
+							 LLNI_field_direct(s,count));
+		}
+	} 
+	else {
+		logtextlen += strlen("(nil)");
+	}
+
+	/* allocate memory */
+
+	dumpsize = dump_size();
+
+	logtext = DMNEW(char, logtextlen);
+
+	strcpy(logtext, "Builtin exception thrown: ");
+
+	if (t) {
+		utf_cat_classname(logtext, xptr->vftbl->class->name);
+
+		if (s) {
+			char *buf;
+
+			buf = javastring_tochar((java_handle_t *) s);
+			strcat(logtext, ": ");
+			strcat(logtext, buf);
+			MFREE(buf, char, strlen(buf) + 1);
+		}
+
+	} else {
+		strcat(logtext, "(nil)");
+	}
+
+	log_text(logtext);
+
+	/* release memory */
+
+	dump_release(dumpsize);
+}
+
+
 #endif /* !defined(NDEBUG) */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

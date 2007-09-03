@@ -54,15 +54,9 @@
 
 #include "native/jni.h"
 #include "native/llni.h"
-#include "native/include/java_lang_String.h"
-#include "native/include/java_lang_Throwable.h"
 
 #include "threads/lock-common.h"
-#if defined(ENABLE_THREADS)
-#include "threads/native/threads.h"
-#else
-#include "threads/none/threads.h"
-#endif
+#include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
@@ -77,6 +71,7 @@
 #include "vm/stringlocal.h"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/trace.h"
 
 #include "vmcore/class.h"
 #include "vmcore/linker.h"
@@ -542,67 +537,10 @@ s4 builtin_arrayinstanceof(java_handle_t *o, classinfo *targetclass)
 void *builtin_throw_exception(java_object_t *xptr)
 {
 #if !defined(NDEBUG)
-    java_lang_Throwable *t;
-	java_lang_String    *s;
-	char                *logtext;
-	s4                   logtextlen;
-	s4                   dumpsize;
+	/* print exception trace */
 
-	if (opt_verbose) {
-		t = (java_lang_Throwable *) xptr;
-
-		/* get detail message */
-		if (t)
-			LLNI_field_get_ref(t, detailMessage, s);
-
-		/* calculate message length */
-
-		logtextlen = strlen("Builtin exception thrown: ") + strlen("0");
-
-		if (t) {
-			logtextlen +=
-				utf_bytes(xptr->vftbl->class->name);
-			if (s) {
-				logtextlen += strlen(": ") +
-					u2_utflength(LLNI_field_direct(s, value)->data 
-									+ LLNI_field_direct(s, offset),
-						     	 LLNI_field_direct(s,count));
-			}
-		} 
-		else {
-			logtextlen += strlen("(nil)");
-		}
-
-		/* allocate memory */
-
-		dumpsize = dump_size();
-
-		logtext = DMNEW(char, logtextlen);
-
-		strcpy(logtext, "Builtin exception thrown: ");
-
-		if (t) {
-			utf_cat_classname(logtext, xptr->vftbl->class->name);
-
-			if (s) {
-				char *buf;
-
-				buf = javastring_tochar((java_handle_t *) s);
-				strcat(logtext, ": ");
-				strcat(logtext, buf);
-				MFREE(buf, char, strlen(buf) + 1);
-			}
-
-		} else {
-			strcat(logtext, "(nil)");
-		}
-
-		log_text(logtext);
-
-		/* release memory */
-
-		dump_release(dumpsize);
-	}
+	if (opt_TraceExceptions)
+		trace_exception_builtin(xptr);
 #endif /* !defined(NDEBUG) */
 
 	/* actually set the exception */
@@ -1266,12 +1204,6 @@ java_handle_objectarray_t *builtin_multianewarray(int n, classinfo *arrayclass,
 	
 *****************************************************************************/
 
-#if !defined(NDEBUG)
-static s4 methodindent = 0;
-static u4 callcount = 0;
-#endif /* !defined(NDEBUG) */
-
-
 /* builtin_print_argument ******************************************************
 
    Prints arguments and return values for the call trace.
@@ -1419,6 +1351,8 @@ void builtin_verbosecall_enter(s8 a0, s8 a1,
 	s4          dumpsize;
 	s4          i;
 	s4          pos;
+	int         methodindent;
+	int         callcount;
 
 #if defined(ENABLE_DEBUG_FILTER)
 	if (! show_filters_test_verbosecall_enter(m)) return;
@@ -1430,6 +1364,8 @@ void builtin_verbosecall_enter(s8 a0, s8 a1,
 #endif
 
 	md = m->parseddesc;
+
+	methodindent = TRACEJAVACALLINDENT;
 
 	/* calculate message length */
 
@@ -1473,7 +1409,7 @@ void builtin_verbosecall_enter(s8 a0, s8 a1,
 
 	logtext = DMNEW(char, logtextlen);
 
-	callcount++;
+	callcount = ++TRACEJAVACALLCOUNT;
 
 	sprintf(logtext, "%10d ", callcount);
 	sprintf(logtext + strlen(logtext), "-%d-", methodindent);
@@ -1577,7 +1513,7 @@ void builtin_verbosecall_enter(s8 a0, s8 a1,
 
 	dump_release(dumpsize);
 
-	methodindent++;
+	TRACEJAVACALLINDENT++;
 
 }
 #endif
@@ -1600,6 +1536,7 @@ void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m)
 	s4          i;
 	s4          pos;
 	imm_union   val;
+	int         methodindent;
 
 #if defined(ENABLE_DEBUG_FILTER)
 	if (! show_filters_test_verbosecall_exit(m)) return;
@@ -1611,6 +1548,15 @@ void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m)
 #endif
 
 	md = m->parseddesc;
+
+	/* outdent the log message */
+
+	if (TRACEJAVACALLINDENT)
+		TRACEJAVACALLINDENT--;
+	else
+		log_text("WARNING: unmatched methodindent--");
+
+	methodindent = TRACEJAVACALLINDENT;
 
 	/* calculate message length */
 
@@ -1634,13 +1580,6 @@ void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m)
 	dumpsize = dump_size();
 
 	logtext = DMNEW(char, logtextlen);
-
-	/* outdent the log message */
-
-	if (methodindent)
-		methodindent--;
-	else
-		log_text("WARNING: unmatched methodindent--");
 
 	/* generate the message */
 

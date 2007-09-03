@@ -700,7 +700,7 @@ jclass JVM_FindClassFromClassLoader(JNIEnv* env, const char* name, jboolean init
 	TRACEJVMCALLS("JVM_FindClassFromClassLoader: name=%s, init=%d, loader=%p, throwError=%d", name, init, loader, throwError);
 
 	u  = utf_new_char(name);
-	cl = (classloader *) loader;
+	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 	c = load_class_from_classloader(u, cl);
 
@@ -743,7 +743,7 @@ jclass JVM_DefineClassWithSource(JNIEnv *env, const char *name, jobject loader, 
 	TRACEJVMCALLS("JVM_DefineClassWithSource(env=%p, name=%s, loader=%p, buf=%p, len=%d, pd=%p, source=%s)", env, name, loader, buf, len, pd, source);
 
 	u  = utf_new_char(name);
-	cl = (classloader *) loader;
+	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 	/* XXX do something with source */
 
@@ -763,7 +763,7 @@ jclass JVM_FindLoadedClass(JNIEnv *env, jobject loader, jstring name)
 
 	TRACEJVMCALLS("JVM_FindLoadedClass(env=%p, loader=%p, name=%p)", env, loader, name);
 
-	cl = (classloader *) loader;
+	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 	u = javastring_toutf((java_handle_t *) name, true);
 	c = classcache_lookup(cl, u);

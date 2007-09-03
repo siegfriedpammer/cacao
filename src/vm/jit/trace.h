@@ -36,14 +36,14 @@
 #if !defined(NDEBUG)
 
 void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack);
-
 void trace_java_call_exit(methodinfo *m, uint64_t *return_regs);
 
-void trace_exception(java_object_t *xptr, methodinfo *m, void *pos, s4 indent);
+void trace_exception(java_object_t *xptr, methodinfo *m, void *pos);
+void trace_exception_builtin(java_object_t *xptr);
 
 #endif /* !defined(NDEBUG) */
 
-#endif
+#endif /* _VM_JIT_TRACE_H */
 
 /*
  * These are local overrides for various environment variables in Emacs.
