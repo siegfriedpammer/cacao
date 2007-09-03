@@ -61,13 +61,15 @@
 #define EXCEPTION_HARDWARE_NULLPOINTER              0
 #define EXCEPTION_HARDWARE_ARITHMETIC               1
 #define EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS    2
-#define EXCEPTION_HARDWARE_CLASSCAST                3
+#define EXCEPTION_HARDWARE_ARRAYSTORE               3
 
-#define EXCEPTION_HARDWARE_EXCEPTION                5
-#define EXCEPTION_HARDWARE_PATCHER                  6
-#define EXCEPTION_HARDWARE_COMPILER                 7
+#define EXCEPTION_HARDWARE_CLASSCAST                5
+#define EXCEPTION_HARDWARE_EXCEPTION                6
+#define EXCEPTION_HARDWARE_PATCHER                  7
 
-#define EXCEPTION_HARDWARE_LARGEST                  7
+#define EXCEPTION_HARDWARE_COMPILER                 9
+
+#define EXCEPTION_HARDWARE_LARGEST                  9
 
 
 /* function prototypes ********************************************************/

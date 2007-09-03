@@ -1354,7 +1354,7 @@ bool codegen_emit(jitdata *jd)
 			M_INTMOVE(s3, REG_A1);
 
 			/* call builtin function */
-			disp = dseg_add_functionptr(cd, BUILTIN_canstore);
+			disp = dseg_add_functionptr(cd, BUILTIN_FAST_canstore);
 			M_DSEG_BRANCH(disp);
 
 			/* recompute pv */
@@ -1362,7 +1362,7 @@ bool codegen_emit(jitdata *jd)
 			M_RECOMPUTE_PV(s1);
 
 			/* check resturn value of builtin */
-			emit_exception_check(cd, iptr);
+			emit_arraystore_check(cd, iptr);
 
 			/* finally store address into array */
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);

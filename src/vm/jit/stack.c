@@ -3369,7 +3369,7 @@ store_tail:
 						COUNT(count_check_bound);
 						COUNT(count_pcmd_mem);
 
-						bte = builtintable_get_internal(BUILTIN_canstore);
+						bte = builtintable_get_internal(BUILTIN_FAST_canstore);
 						md = bte->md;
 
 						if (md->memuse > rd->memuse)

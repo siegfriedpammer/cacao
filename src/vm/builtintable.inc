@@ -356,10 +356,10 @@ static builtintable_entry builtintable_internal[] = {
 	{
 		ICMD_AASTORE,
 		0,
-		BUILTIN_canstore,
+		BUILTIN_FAST_canstore,
 		NULL,
 		NULL,
-		"canstore",
+		"fast-canstore",
 		"([Ljava/lang/Object;Ljava/lang/Object;)I",
 		NULL,
 		NULL,

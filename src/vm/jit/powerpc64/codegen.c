@@ -1539,7 +1539,7 @@ bool codegen_emit(jitdata *jd)
 			emit_arrayindexoutofbounds_check(cd, iptr, s1, s2);
 			s3 = emit_load_s3(jd, iptr, REG_A1);
 
-			disp = dseg_add_functionptr(cd, BUILTIN_canstore);
+			disp = dseg_add_functionptr(cd, BUILTIN_FAST_canstore);
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_ALD(REG_ITMP3, REG_ITMP3, 0); /* TOC */
 			M_MTCTR(REG_ITMP3);
@@ -1548,7 +1548,7 @@ bool codegen_emit(jitdata *jd)
 			M_INTMOVE(s3, REG_A1);
 
 			M_JSR;
-			emit_exception_check(cd, iptr);
+			emit_arraystore_check(cd, iptr);
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);

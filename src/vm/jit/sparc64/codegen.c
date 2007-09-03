@@ -1552,11 +1552,11 @@ bool codegen_emit(jitdata *jd)
 
 			M_MOV(s1, REG_OUT0);
 			M_MOV(s3, REG_OUT1);
-			disp = dseg_add_functionptr(cd, BUILTIN_canstore);
+			disp = dseg_add_functionptr(cd, BUILTIN_FAST_canstore);
 			M_ALD(REG_ITMP3, REG_PV, disp);
 			M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
 			M_NOP;
-			emit_exception_check(cd, iptr);
+			emit_arraystore_check(cd, iptr);
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);

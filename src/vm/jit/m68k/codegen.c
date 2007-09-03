@@ -1598,12 +1598,12 @@ bool codegen_emit(jitdata *jd)
 			s3 = emit_load_s3(jd, iptr, REG_ATMP2);
 
 			/* XXX what if array is NULL */
-			disp = dseg_add_functionptr(cd, BUILTIN_canstore);
+			disp = dseg_add_functionptr(cd, BUILTIN_FAST_canstore);
 
 			M_AST(s1, REG_SP, 0*4);
 			M_AST(s3, REG_SP, 1*4);
-			M_JSR_IMM(BUILTIN_canstore);	
-			emit_exception_check(cd, iptr);
+			M_JSR_IMM(BUILTIN_FAST_canstore);
+			emit_arraystore_check(cd, iptr);
 
 			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP1);

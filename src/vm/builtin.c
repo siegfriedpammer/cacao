@@ -627,13 +627,18 @@ void *builtin_throw_exception(java_object_t *xptr)
 
 s4 builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o)
 {
-	s4 result;
+	int result;
 
 	LLNI_CRITICAL_START;
 
-	result = builtin_fast_canstore(LLNI_UNWRAP(oa), LLNI_UNWRAP(o));
+	result = builtin_fast_canstore(LLNI_DIRECT(oa), LLNI_UNWRAP(o));
 
 	LLNI_CRITICAL_END;
+
+	/* if not possible, throw an exception */
+
+	if (result == 0)
+		exceptions_throw_arraystoreexception();
 
 	return result;
 }
@@ -701,11 +706,6 @@ s4 builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 
 		result = builtin_descriptorscompatible(valuedesc, componentvftbl->arraydesc);
 	}
-
-	/* if not possible, throw an exception */
-
-	if (result == 0)
-		exceptions_throw_arraystoreexception();
 
 	/* return result */
 

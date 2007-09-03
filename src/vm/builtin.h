@@ -168,8 +168,7 @@ java_handle_objectarray_t *builtin_multianewarray(int n, classinfo *arrayclass,
 s4 builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o);
 /* NOT AN OP */
 s4 builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o);
-#define BUILTIN_FAST_canstore (functionptr) builtin_canstore
-#define BUILTIN_canstore BUILTIN_FAST_canstore /* XXX remove this "dont break trunk" macro */
+#define BUILTIN_FAST_canstore (functionptr) builtin_fast_canstore
 
 #if defined(TRACE_ARGS_NUM)
 void builtin_verbosecall_enter(s8 a0, s8 a1,

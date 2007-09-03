@@ -987,6 +987,23 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 	}
 }
 
+
+/* emit_arraystore_check *******************************************************
+
+   Emit an ArrayStoreException check.
+
+*******************************************************************************/
+
+void emit_arraystore_check(codegendata *cd, instruction *iptr)
+{
+	if (INSTRUCTION_MUST_CHECK(iptr)) {
+		M_TEST(REG_RESULT);
+		M_BNE(SZ_BRC + SZ_ILL);
+		M_ILL(EXCEPTION_HARDWARE_ARRAYSTORE);
+	}
+}
+
+
 void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 reg, s4 s1) {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		if (reg != RN) {

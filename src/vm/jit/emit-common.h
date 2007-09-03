@@ -172,6 +172,7 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 options);
 
 void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg);
 void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2);
+void emit_arraystore_check(codegendata *cd, instruction *iptr);
 void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 reg, s4 s1);
 void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg);
 void emit_exception_check(codegendata *cd, instruction *iptr);

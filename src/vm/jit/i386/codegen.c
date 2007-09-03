@@ -2110,9 +2110,9 @@ bool codegen_emit(jitdata *jd)
 
 			M_AST(s1, REG_SP, 0 * 4);
 			M_AST(s3, REG_SP, 1 * 4);
-			M_MOV_IMM(BUILTIN_canstore, REG_ITMP1);
+			M_MOV_IMM(BUILTIN_FAST_canstore, REG_ITMP1);
 			M_CALL(REG_ITMP1);
-			emit_exception_check(cd, iptr);
+			emit_arraystore_check(cd, iptr);
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);

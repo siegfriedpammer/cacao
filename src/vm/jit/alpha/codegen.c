@@ -1674,12 +1674,12 @@ bool codegen_emit(jitdata *jd)
 			M_INTMOVE(s1, REG_A0);
 			M_INTMOVE(s3, REG_A1);
 
-			disp = dseg_add_functionptr(cd, BUILTIN_canstore);
+			disp = dseg_add_functionptr(cd, BUILTIN_FAST_canstore);
 			M_ALD(REG_PV, REG_PV, disp);
 			M_JSR(REG_RA, REG_PV);
 			disp = (s4) (cd->mcodeptr - cd->mcodebase);
 			M_LDA(REG_PV, REG_RA, -disp);
-			emit_exception_check(cd, iptr);
+			emit_arraystore_check(cd, iptr);
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);

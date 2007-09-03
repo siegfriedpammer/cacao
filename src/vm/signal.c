@@ -245,6 +245,10 @@ void *signal_handle(void *xpc, int type, intptr_t val)
 		p = exceptions_new_arrayindexoutofboundsexception(index);
 		break;
 
+	case EXCEPTION_HARDWARE_ARRAYSTORE:
+		p = exceptions_new_arraystoreexception();
+		break;
+
 	case EXCEPTION_HARDWARE_CLASSCAST:
 		o = (java_object_t *) val;
 		p = exceptions_new_classcastexception(o);
