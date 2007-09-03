@@ -284,17 +284,17 @@ ARRAY_TYPEARRAY_ELEMENT_SET(object,  java_handle_t*)
 
 int32_t array_length_get(java_handle_t *a)
 {
-	vftbl_t *v;
-	int32_t  size;
+	classinfo *c;
+	int32_t    size;
 
 	if (a == NULL) {
 		exceptions_throw_nullpointerexception();
 		return 0;
 	}
 
-	v = LLNI_vftbl_direct(a);
+	LLNI_class_get(a, c);
 
-	if (!class_is_array(v->class)) {
+	if (!class_is_array(c)) {
 /* 		exceptions_throw_illegalargumentexception("Argument is not an array"); */
 		exceptions_throw_illegalargumentexception();
 		return 0;
