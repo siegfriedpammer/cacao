@@ -712,6 +712,7 @@ java_object_t *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
 {
 	stackframeinfo  sfi;
 	java_handle_t  *e;
+	java_object_t  *o;
 
 	/* create the stackframeinfo (XPC is equal to RA) */
 
@@ -729,7 +730,12 @@ java_object_t *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
 
 	stacktrace_remove_stackframeinfo(&sfi);
 
-	return e;
+	/* unwrap the exception */
+	/* ATTENTION: do the this _after_ the stackframeinfo was removed */
+
+	o = LLNI_UNWRAP(e);
+
+	return o;
 }
 
 
