@@ -33,7 +33,9 @@
 
 #include "mm/memory.h"
 
+#include "native/jni.h"
 #include "native/llni.h"
+
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 
