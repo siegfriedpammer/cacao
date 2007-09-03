@@ -62,6 +62,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher-common.h"
+#include "vm/jit/show.h"
 #include "vm/jit/stacktrace.h"
 #include "vm/jit/trace.h"
 
@@ -1803,12 +1804,12 @@ u1 *exceptions_handle_exception(java_object_t *xptr, u1 *xpc, u1 *pv, u1 *sp)
 #if !defined(NDEBUG)
 	/* print exception trace */
 
-	if (opt_verbose || opt_verbosecall || opt_TraceExceptions)
-		trace_exception(xptr, m, xpc, 1);
-#endif
+	if (opt_TraceExceptions)
+		trace_exception(xptr, m, xpc);
 
-#if defined(ENABLE_VMLOG)
+# if defined(ENABLE_VMLOG)
 	vmlog_cacao_throw(xptr);
+# endif
 #endif
 
 	for (i = 0; i < exceptiontablelength; i++) {
@@ -1835,9 +1836,9 @@ u1 *exceptions_handle_exception(java_object_t *xptr, u1 *xpc, u1 *pv, u1 *sp)
 #if !defined(NDEBUG)
 				/* Print stacktrace of exception when caught. */
 
-#if defined(ENABLE_VMLOG)
+# if defined(ENABLE_VMLOG)
 				vmlog_cacao_catch(xptr);
-#endif
+# endif
 
 				if (opt_TraceExceptions) {
 					exceptions_print_exception(xptr);
@@ -1896,9 +1897,9 @@ u1 *exceptions_handle_exception(java_object_t *xptr, u1 *xpc, u1 *pv, u1 *sp)
 #if !defined(NDEBUG)
 				/* Print stacktrace of exception when caught. */
 
-#if defined(ENABLE_VMLOG)
+# if defined(ENABLE_VMLOG)
 				vmlog_cacao_catch(xptr);
-#endif
+# endif
 
 				if (opt_TraceExceptions) {
 					exceptions_print_exception(xptr);
@@ -1932,9 +1933,28 @@ u1 *exceptions_handle_exception(java_object_t *xptr, u1 *xpc, u1 *pv, u1 *sp)
 
 	/* none of the exceptions catch this one */
 
-#if defined(ENABLE_VMLOG)
+#if !defined(NDEBUG)
+# if defined(ENABLE_VMLOG)
 	vmlog_cacao_unwnd_method(m);
-#endif
+# endif
+
+# if defined(ENABLE_DEBUG_FILTER)
+	if (show_filters_test_verbosecall_exit(m)) {
+# endif
+
+	/* outdent the log message */
+
+	if (opt_verbosecall) {
+		if (TRACEJAVACALLINDENT)
+			TRACEJAVACALLINDENT--;
+		else
+			log_text("exceptions_handle_exception: WARNING: unmatched unindent");
+	}
+
+# if defined(ENABLE_DEBUG_FILTER)
+	}
+# endif
+#endif /* !defined(NDEBUG) */
 
 	return NULL;
 }
