@@ -1359,18 +1359,18 @@ enum EnumA {
 @Retention(value = RetentionPolicy.RUNTIME)
 @interface AnnotationC {
 	byte               aByte()            default 100;
-	char               aChar()            default 'ß';
+	char               aChar()            default 's';
 	short              aShort()           default 88;
 	int                aInt()             default Integer.MIN_VALUE;
 	long               aLong()            default Long.MAX_VALUE;
 	float              aFloat()           default 23.42f;
 	double             aDouble()          default 555.0815d;
-	String             aString()          default "ÄÖÜ";
+	String             aString()          default "AOU";
 	EnumA              aEnum()            default EnumA.VALUE2;
 	Class<?>           aClass()           default EnumA.class;
 	SuppressWarnings   aAnnotation()      default @SuppressWarnings("unchecked");
 	byte[]             aByteArray()       default {(byte)255};
-	char[]             aCharArray()       default {'ä', 'ö', 'ü'};
+	char[]             aCharArray()       default {'a', 'o', 'u'};
 	short[]            aShortArray()      default {512};
 	int[]              aIntArray()        default {640, 480};
 	long[]             aLongArray()       default {1204l, 2048l};
@@ -1659,20 +1659,20 @@ public class TestAnnotations {
 			classBar.putDeclaredAnnotation(
 					AnnotationC.class,
 					new Entry("aByte",            (byte)100),
-					new Entry("aChar",            (char)'ß'),
+					new Entry("aChar",            (char)'s'),
 					new Entry("aShort",           (short)88),
 					new Entry("aInt",             Integer.MIN_VALUE),
 					new Entry("aLong",            Long.MAX_VALUE),
 					new Entry("aFloat",           (float)23.42f),
 					new Entry("aDouble",          (double)555.0815d),
-					new Entry("aString",          "ÄÖÜ"),
+					new Entry("aString",          "AOU"),
 					new Entry("aEnum",            EnumA.VALUE2),
 					new Entry("aClass",           EnumA.class),
 					new Entry("aAnnotation",      new AnnotationTester(
 							SuppressWarnings.class,
 							new Entry("value", new String[] {"unchecked"}))),
 					new Entry("aByteArray",       new byte[]   {(byte) 255}),
-					new Entry("aCharArray",       new char[]   {'ä', 'ö', 'ü'}),
+					new Entry("aCharArray",       new char[]   {'a', 'o', 'u'}),
 					new Entry("aShortArray",      new short[]  {512}),
 					new Entry("aIntArray",        new int[]    {640, 480}),
 					new Entry("aLongArray",       new long[]   {1204l, 2048l}),
