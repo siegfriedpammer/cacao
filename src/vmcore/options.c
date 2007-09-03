@@ -218,7 +218,7 @@ enum {
 
 option_t options_XX[] = {
 	{ "DebugStackFrameInfo",       OPT_DebugStackFrameInfo,       OPT_TYPE_BOOLEAN, "TODO" },
-	{ "DebugStackTrace",           OPT_DebugStackTrace,           OPT_TYPE_BOOLEAN, "TODO" },
+	{ "DebugStackTrace",           OPT_DebugStackTrace,           OPT_TYPE_BOOLEAN, "debug stacktrace creation" },
 	{ "MaxPermSize",               OPT_MaxPermSize,               OPT_TYPE_VALUE,   "not implemented" },
 	{ "PermSize",                  OPT_PermSize,                  OPT_TYPE_VALUE,   "not implemented" },
 	{ "PrintConfig",               OPT_PrintConfig,               OPT_TYPE_BOOLEAN, "print VM configuration" },
@@ -226,7 +226,7 @@ option_t options_XX[] = {
 	{ "ProfileMemoryUsage",        OPT_ProfileMemoryUsage,        OPT_TYPE_VALUE,   "TODO" },
 	{ "ProfileMemoryUsageGNUPlot", OPT_ProfileMemoryUsageGNUPlot, OPT_TYPE_VALUE,   "TODO" },
 	{ "ThreadStackSize",           OPT_ThreadStackSize,           OPT_TYPE_VALUE,   "TODO" },
-	{ "TraceExceptions",           OPT_TraceExceptions,           OPT_TYPE_BOOLEAN, "TODO" },
+	{ "TraceExceptions",           OPT_TraceExceptions,           OPT_TYPE_BOOLEAN, "trace Exception throwing" },
 	{ "TraceJavaCalls",            OPT_TraceJavaCalls,            OPT_TYPE_BOOLEAN, "trace Java method calls" },
 	{ "TraceJNICalls",             OPT_TraceJNICalls,             OPT_TYPE_BOOLEAN, "trace JNI method calls" },
 	{ "TraceJVMCalls",             OPT_TraceJVMCalls,             OPT_TYPE_BOOLEAN, "TODO" },

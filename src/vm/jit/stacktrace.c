@@ -442,11 +442,11 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 	stb->capacity = STACKTRACE_CAPACITY_DEFAULT;
 	stb->used     = 0;
 
-#define PRINTMETHODS 0
-
-#if PRINTMETHODS
-	printf("\n\nfillInStackTrace start:\n");
-	fflush(stdout);
+#if !defined(NDEBUG)
+	if (opt_DebugStackTrace) {
+		printf("\n\n---> stacktrace creation start (fillInStackTrace):\n");
+		fflush(stdout);
+	}
 #endif
 
 	/* Loop while we have a method pointer (asm_calljavafunction has
@@ -472,11 +472,13 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 				if (m)
 					stb = stacktrace_add_entry(stb, m, 0);
 
-#if PRINTMETHODS
-				printf("ra=%p sp=%p, ", ra, sp);
-				method_print(m);
-				printf(": native stub\n");
-				fflush(stdout);
+#if !defined(NDEBUG)
+				if (opt_DebugStackTrace) {
+					printf("ra=%p sp=%p, ", ra, sp);
+					method_print(m);
+					printf(": native stub\n");
+					fflush(stdout);
+				}
 #endif
 				/* This is an native stub stackframe info, so we can
 				   get the parent pv from the return address
@@ -518,10 +520,12 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 				ra  = sfi->ra;          /* ra of parent Java function         */
 				xpc = sfi->xpc;         /* actual exception position          */
 
-#if PRINTMETHODS
-				printf("ra=%p sp=%p, ", ra, sp);
-				printf("NULL: inline stub\n");
-				fflush(stdout);
+#if !defined(NDEBUG)
+				if (opt_DebugStackTrace) {
+					printf("ra=%p sp=%p, ", ra, sp);
+					printf("NULL: extern stackframe\n");
+					fflush(stdout);
+				}
 #endif
 
 				/* get methodinfo from current Java method */
@@ -536,11 +540,13 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 				/* if m == NULL, this is a asm_calljavafunction call */
 
 				if (m != NULL) {
-#if PRINTMETHODS
-					printf("ra=%p sp=%p, ", ra, sp);
-					method_print(m);
-					printf(": inline stub parent");
-					fflush(stdout);
+#if !defined(NDEBUG)
+					if (opt_DebugStackTrace) {
+						printf("ra=%p sp=%p, ", ra, sp);
+						method_print(m);
+						printf(": extern stackframe parent");
+						fflush(stdout);
+					}
 #endif
 
 #if defined(ENABLE_INTRP)
@@ -555,9 +561,11 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 
 					framesize = *((u4 *) (pv + FrameSize));
 
-#if PRINTMETHODS
-					printf(", framesize=%d\n", framesize);
-					fflush(stdout);
+#if !defined(NDEBUG)
+					if (opt_DebugStackTrace) {
+						printf(", framesize=%d\n", framesize);
+						fflush(stdout);
+					}
 #endif
 
 					/* Set stack pointer to stackframe of parent Java
@@ -589,11 +597,13 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 					}
 #endif
 				}
-#if PRINTMETHODS
+#if !defined(NDEBUG)
 				else {
-					printf("ra=%p sp=%p, ", ra, sp);
-					printf("asm_calljavafunction\n");
-					fflush(stdout);
+					if (opt_DebugStackTrace) {
+						printf("ra=%p sp=%p, ", ra, sp);
+						printf("asm_calljavafunction\n");
+						fflush(stdout);
+					}
 				}
 #endif
 			}
@@ -603,11 +613,13 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 			sfi = sfi->prev;
 
 		} else {
-#if PRINTMETHODS
-			printf("ra=%p sp=%p, ", ra, sp);
-			method_print(m);
-			printf(": JIT");
-			fflush(stdout);
+#if !defined(NDEBUG)
+			if (opt_DebugStackTrace) {
+				printf("ra=%p sp=%p, ", ra, sp);
+				method_print(m);
+				printf(": JIT");
+				fflush(stdout);
+			}
 #endif
 
 			/* JIT method found, add it to the stacktrace (we subtract
@@ -620,9 +632,11 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 
 			framesize = *((u4 *) (pv + FrameSize));
 
-#if PRINTMETHODS
-			printf(", framesize=%d\n", framesize);
-			fflush(stdout);
+#if !defined(NDEBUG)
+			if (opt_DebugStackTrace) {
+				printf(", framesize=%d\n", framesize);
+				fflush(stdout);
+			}
 #endif
 
 			/* get return address of current stack frame */
@@ -680,6 +694,13 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 				}
 		}
 	}
+
+#if !defined(NDEBUG)
+	if (opt_DebugStackTrace) {
+		printf("---> stacktrace creation finished.\n\n");
+		fflush(stdout);
+	}
+#endif
 
 	/* return the stacktracebuffer */
 
