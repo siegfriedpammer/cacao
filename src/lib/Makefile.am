@@ -61,16 +61,20 @@ VM_CLASS_FILES = \
 
 if ENABLE_ANNOTATIONS
 VM_JAVA_FILES += \
+	$(top_srcdir)/src/lib/gnu/sun/reflect/ConstantPool.java \
+	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/ExceptionProxy.java \
+	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/EnumConstantNotPresentExceptionProxy.java \
 	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/TypeNotPresentExceptionProxy.java \
 	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationTypeMismatchExceptionProxy.java \
-	$(top_srcdir)/src/lib/gnu/sun/reflect/ConstantPool.java \
 	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationType.java \
 	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationParser.java
 
 VM_CLASS_FILES += \
+	classes/sun/reflect/ConstantPool.class \
+	classes/sun/reflect/annotation/ExceptionProxy.class \
+	classes/sun/reflect/annotation/EnumConstantNotPresentExceptionProxy.class \
 	classes/sun/reflect/annotation/TypeNotPresentExceptionProxy.class \
 	classes/sun/reflect/annotation/AnnotationTypeMismatchExceptionProxy.class \
-	classes/sun/reflect/ConstantPool.class \
 	classes/sun/reflect/annotation/AnnotationType.class \
 	classes/sun/reflect/annotation/AnnotationParser.class
 endif
