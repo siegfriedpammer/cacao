@@ -3915,6 +3915,10 @@ jint _Jv_JNI_DetachCurrentThread(JavaVM *vm)
 	if (thread == NULL)
 		return JNI_ERR;
 
+	/* We need to pop all frames before we can destroy the table. */
+
+	localref_frame_pop_all();
+
 	if (!localref_table_destroy())
 		return JNI_ERR;
 
