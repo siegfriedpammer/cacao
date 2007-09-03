@@ -19,3 +19,12 @@ JNIEXPORT jobject JNICALL Java_NativeGlobalRef_getReference(JNIEnv *env, jclass 
 
 	return ref;
 }
+
+JNIEXPORT void JNICALL Java_NativeGlobalRef_delReference(JNIEnv *env, jclass c)
+{
+	printf("Native-World: delReference()\n");
+
+	(*env)->DeleteGlobalRef(env, ref);
+
+	return;
+}

@@ -1,6 +1,7 @@
 public class NativeGlobalRef {
 	public native static void setReference(Object o);
 	public native static Object getReference();
+	public native static void delReference();
 
 	public static void main(String args[]) {
 		Object o;
@@ -28,5 +29,8 @@ public class NativeGlobalRef {
 		/* is the object still there? */
 		o = getReference();
 		System.out.println(o);
+
+		/* delete the reference inside the native world */
+		delReference();
 	}
 }
