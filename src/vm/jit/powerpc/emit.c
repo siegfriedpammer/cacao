@@ -725,7 +725,11 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_FLTMOVE(REG_FRESULT, REG_FA1);
 
 	disp = dseg_add_address(cd, m);
+#if defined(__DARWIN__)
+	M_ALD(REG_A2 + 3, REG_PV, disp);
+#else
 	M_ALD(REG_A2, REG_PV, disp);
+#endif
 
 	disp = dseg_add_functionptr(cd, builtin_verbosecall_exit);
 	M_ALD(REG_ITMP2, REG_PV, disp);
