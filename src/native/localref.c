@@ -380,6 +380,7 @@ void localref_del(java_handle_t *localref)
 {
 	localref_table *lrt;
 	java_handle_t  *h;
+	int32_t         localframes;
 	int32_t         i;
 
 	/* get local reference table from thread */
@@ -388,10 +389,12 @@ void localref_del(java_handle_t *localref)
 
 	assert(lrt != NULL);
 
-	/* go through all local frames */
+	localframes = lrt->localframes;
 
-	/* XXX: this is definitely not what the spec wants! */
-	/*for (; lrt != NULL; lrt = lrt->prev) {*/
+	/* go through all local frames of the current table */
+	/* XXX: this is propably not what the spec wants! */
+
+	for (; localframes > 0; localframes--) {
 
 		/* and try to remove the reference */
     
@@ -409,7 +412,9 @@ void localref_del(java_handle_t *localref)
 				return;
 			}
 		}
-	/*}*/
+
+		lrt = lrt->prev;
+	}
 
 	/* this should not happen */
 
