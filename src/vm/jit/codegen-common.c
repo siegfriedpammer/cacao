@@ -54,6 +54,8 @@
 # include "codegen.h"
 #endif
 
+#include "md-abi.h"
+
 #include "mm/memory.h"
 
 #include "toolbox/avl.h"
@@ -83,6 +85,7 @@
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/md.h"
+#include "vm/jit/methodheader.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
 #if defined(ENABLE_SSA)
@@ -90,6 +93,7 @@
 # include "vm/jit/optimizing/ssa.h"
 #endif
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trace.h"
 
 #if defined(ENABLE_INTRP)
 #include "vm/jit/intrp/intrp.h"
@@ -1482,9 +1486,9 @@ void codegen_stub_builtin_exit(u1 *datasp)
 
    The layout of the native stub stackframe should look like this:
 
-   +---------------------------+ <- SP (of parent Java function)
+   +---------------------------+ <- java SP (of parent Java function)
    | return address            |
-   +---------------------------+
+   +---------------------------+ <- data SP
    |                           |
    | stackframe info structure |
    |                           |
@@ -1494,18 +1498,87 @@ void codegen_stub_builtin_exit(u1 *datasp)
    |                           |
    +---------------------------+
    |                           |
+   | saved registers (if any)  |
+   |                           |
+   +---------------------------+
+   |                           |
    | arguments (if any)        |
    |                           |
-   +---------------------------+ <- SP (native stub)
+   +---------------------------+ <- current SP (native stub)
 
 *******************************************************************************/
 
-void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
+void codegen_start_native_call(u1 *currentsp, u1 *pv)
 {
 	stackframeinfo *sfi;
 	localref_table *lrt;
+	codeinfo       *code;
+	methodinfo     *m;
+	int32_t         framesize;
+
+	uint8_t  *datasp;
+	uint8_t  *javasp;
+	uint8_t  *javara;
+#if !defined(NDEBUG)
+	uint64_t *args_regs;
+	uint64_t *args_stack;
+#endif
 
 	STATISTICS(count_calls_java_to_native++);
+
+	/* get information from method header */
+
+	code      = *((codeinfo **) (pv + CodeinfoPointer));
+	framesize = *((int32_t *)   (pv + FrameSize));
+
+	assert(code);
+	assert(framesize > sizeof(stackframeinfo) + sizeof(localref_table));
+
+	/* get the methodinfo */
+
+	m = code->m;
+
+	assert(m);
+
+	/* calculate needed values */
+
+#if defined(__ALPHA__) || defined(__ARM__)
+	datasp = currentsp + framesize - SIZEOF_VOID_P;
+	javasp = currentsp + framesize;
+	javara = *((uint8_t **) datasp);
+#elif defined(__MIPS__) || defined(__S390__)
+	/* MIPS and S390 always uses 8 bytes to store the RA */
+	datasp = currentsp + framesize - 8;
+	javasp = currentsp + framesize;
+	javara = *((uint8_t **) datasp);
+#elif defined(__I386__) || defined (__M68K__) || defined (__X86_64__)
+	datasp = currentsp + framesize;
+	javasp = currentsp + framesize + SIZEOF_VOID_P;
+	javara = *((uint8_t **) datasp);
+#elif defined(__POWERPC__) || defined(__POWERPC64__)
+	datasp = currentsp + framesize;
+	javasp = currentsp + framesize;
+	javara = *((uint8_t **) (datasp + LA_LR_OFFSET));
+#else
+	/* XXX is was unable to do this port for SPARC64, sorry. (-michi) */
+	/* XXX maybe we need to pass the RA as argument there */
+	vm_abort("codegen_start_native_call: unsupported architecture");
+#endif
+
+#if 0
+	printf("NATIVE (framesize=%d): ", framesize);
+	method_print(m);
+	printf("\n");
+	fflush(stdout);
+#endif
+
+#if 0 && !defined(NDEBUG)
+	if (opt_TraceJavaCalls) {
+		args_regs  = currentsp;
+		args_stack = javasp;
+		trace_java_call_enter(m, args_regs, args_stack);
+	}
+#endif
 
 	/* get data structures from stack */
 
@@ -1513,15 +1586,17 @@ void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 	lrt = (localref_table *) (datasp - sizeof(stackframeinfo) - 
 							  sizeof(localref_table));
 
-	/* add a stackframeinfo to the chain */
-
-	stacktrace_create_native_stackframeinfo(sfi, pv, sp, ra);
-
 #if defined(ENABLE_JNI)
 	/* add current JNI local references table to this thread */
 
 	localref_table_add(lrt);
 #endif
+
+	/* XXX add references to lrt here!!! */
+
+	/* add a stackframeinfo to the chain */
+
+	stacktrace_create_native_stackframeinfo(sfi, pv, javasp, javara);
 }
 
 

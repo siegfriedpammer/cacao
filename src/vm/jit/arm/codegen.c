@@ -3137,11 +3137,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* create native stackframe info */
 
-	assert(IS_IMM(4*4 + cd->stackframesize));
-	M_ADD_IMM(REG_A0, REG_SP, 4*4 + cd->stackframesize - SIZEOF_VOID_P);
+	M_ADD_IMM(REG_A0, REG_SP, 4*4);
 	M_MOV(REG_A1, REG_PV);
-	M_ADD_IMM(REG_A2, REG_SP, 4*4 + cd->stackframesize);
-	M_LDR_INTERN(REG_A3, REG_SP, 4*4 + cd->stackframesize - SIZEOF_VOID_P);
 	disp = dseg_add_functionptr(cd, codegen_start_native_call);
 	M_DSEG_BRANCH(disp);
 

@@ -3225,10 +3225,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* create native stack info */
 
-	M_AADD_IMM(REG_SP, cd->stackframesize * 8, REG_A0);
+	M_MOV(REG_SP, REG_A0);
 	M_MOV(REG_PV, REG_A1);
-	M_AADD_IMM(REG_SP, cd->stackframesize * 8, REG_A2);
-	M_ALD(REG_A3, REG_SP, cd->stackframesize * 8 + LA_LR_OFFSET);
 	disp = dseg_add_functionptr(cd, codegen_start_native_call);
 	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_MTCTR(REG_ITMP1);

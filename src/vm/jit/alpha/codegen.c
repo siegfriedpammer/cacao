@@ -3385,10 +3385,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* prepare data structures for native function call */
 
-	M_LDA(REG_A0, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
+	M_MOV(REG_SP, REG_A0);
 	M_MOV(REG_PV, REG_A1);
-	M_LDA(REG_A2, REG_SP, cd->stackframesize * 8);
-	M_ALD(REG_A3, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
 	disp = dseg_add_functionptr(cd, codegen_start_native_call);
 	M_ALD(REG_PV, REG_PV, disp);
 	M_JSR(REG_RA, REG_PV);

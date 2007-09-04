@@ -3769,18 +3769,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* prepare data structures for native function call */
 
 	M_MOV(REG_SP, REG_ITMP1);
-	M_AADD_IMM(cd->stackframesize * 8, REG_ITMP1);
-
 	M_AST(REG_ITMP1, REG_SP, 0 * 4);
 	M_IST_IMM(0, REG_SP, 1 * 4);
 	dseg_adddata(cd);
 
-	M_MOV(REG_SP, REG_ITMP2);
-	M_AADD_IMM(cd->stackframesize * 8 + SIZEOF_VOID_P, REG_ITMP2);
-
-	M_AST(REG_ITMP2, REG_SP, 2 * 4);
-	M_ALD(REG_ITMP3, REG_SP, cd->stackframesize * 8);
-	M_AST(REG_ITMP3, REG_SP, 3 * 4);
 	M_MOV_IMM(codegen_start_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 

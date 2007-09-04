@@ -2635,15 +2635,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra) */
 	
 	M_AMOV(REG_SP, REG_ATMP1);
-	M_AADD_IMM(cd->stackframesize * 4, REG_ATMP1);
-
-	M_ALD(REG_ATMP3, REG_ATMP1, 0 * 4);
-	M_AST(REG_ATMP3, REG_SP, 3 * 4);		/* ra */
-
-	M_AST(REG_ATMP1, REG_SP, 0 * 4);		/* datasp */
-
-	M_AADD_IMM(1 * 4 , REG_ATMP1);			
-	M_AST(REG_ATMP1, REG_SP, 2 * 4);		/* sp */
+	M_AST(REG_ATMP1, REG_SP, 0 * 4);		/* currentsp */
 
 	M_AMOV_IMM(0, REG_ATMP2);			/* 0 needs to patched */
 	dseg_adddata(cd);				    /* this patches it */
