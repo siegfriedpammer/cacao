@@ -28,53 +28,37 @@
 #include "config.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "native/jni.h"
 
 
 JNIEXPORT jobject JNICALL Java_testarguments_adr(JNIEnv *env, jclass clazz, jint i)
 {
-  switch (i) {
-  case 1:
-    return (jobject) 0x11111111;
-  case 2:
-    return (jobject) 0x22222222;
-  case 3:
-    return (jobject) 0x33333333;
-  case 4:
-    return (jobject) 0x44444444;
-  case 5:
-    return (jobject) 0x55555555;
-  case 6:
-    return (jobject) 0x66666666;
-  case 7:
-    return (jobject) 0x77777777;
-  case 8:
-    return (jobject) 0x88888888;
-  case 9:
-    return (jobject) 0x99999999;
-  case 10:
-    return (jobject) 0xaaaaaaaa;
-  case 11:
-    return (jobject) 0xbbbbbbbb;
-  case 12:
-    return (jobject) 0xcccccccc;
-  case 13:
-    return (jobject) 0xdddddddd;
-  case 14:
-    return (jobject) 0xeeeeeeee;
-  case 15:
-    return (jobject) 0xffffffff;
-  }
+  intptr_t p;
+
+  p = 0x11111111 * ((intptr_t) i);
+
+#if defined(ENABLE_HANDLES)
+  return (*env)->NewLocalRef(env, &p);
+#else
+  return (jobject) p;
+#endif
 }
 
 
 JNIEXPORT void JNICALL Java_testarguments_np(JNIEnv *env, jclass clazz, jobject o)
 {
-#if SIZEOF_VOID_P == 8
-    printf(" 0x%lx", (long) o);
+#if defined(ENABLE_HANDLES)
+    intptr_t p = *((intptr_t *) o);
 #else
-    printf(" 0x%x", (int) o);
+    intptr_t p = (intptr_t) o;
+#endif
+
+#if SIZEOF_VOID_P == 8
+    printf(" 0x%lx", (long) p);
+#else
+    printf(" 0x%x", (int) p);
 #endif
 
     fflush(stdout);
@@ -201,10 +185,22 @@ JNIEXPORT void JNICALL Java_testarguments_nasub(JNIEnv *env, jclass clazz, jobje
 {
     jmethodID mid;
 
-#if SIZEOF_VOID_P == 8
-    printf("java-native: 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx\n", (long) a, (long) b, (long) c, (long) d, (long) e, (long) f, (long) g, (long) h, (long) i, (long) j, (long) k, (long) l, (long) m, (long) n, (long) o);
+#if defined(ENABLE_HANDLES)
+
+# if SIZEOF_VOID_P == 8
+    printf("java-native: 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx\n", *((long*) a), *((long*) b), *((long*) c), *((long*) d), *((long*) e), *((long*) f), *((long*) g), *((long*) h), *((long*) i), *((long*) j), *((long*) k), *((long*) l), *((long*) m), *((long*) n), *((long*) o));
+# else
+    printf("java-native: 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\n", *((int*) a), *((int*) b), *((int*) c), *((int*) d), *((int*) e), *((int*) f), *((int*) g), *((int*) h), *((int*) i), *((int*) j), *((int*) k), *((int*) l), *((int*) m), *((int*) n), *((int*) o));
+# endif
+
 #else
+
+# if SIZEOF_VOID_P == 8
+    printf("java-native: 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx 0x%lx\n", (long) a, (long) b, (long) c, (long) d, (long) e, (long) f, (long) g, (long) h, (long) i, (long) j, (long) k, (long) l, (long) m, (long) n, (long) o);
+# else
     printf("java-native: 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\n", (int) a, (int) b, (int) c, (int) d, (int) e, (int) f, (int) g, (int) h, (int) i, (int) j, (int) k, (int) l, (int) m, (int) n, (int) o);
+# endif
+
 #endif
 
     fflush(stdout);
