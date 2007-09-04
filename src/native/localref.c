@@ -38,6 +38,8 @@
 
 #include "toolbox/logging.h"
 
+#include "vm/vm.h"
+
 
 /* debug **********************************************************************/
 
@@ -192,9 +194,11 @@ bool localref_frame_push(int32_t capacity)
 		additionalrefs = 0;
 
 #if defined(ENABLE_GC_CACAO)
-	nlrt = MNEW(u1, sizeof(localref_table) + additionalrefs * SIZEOF_VOID_P);
+	nlrt = (localref_table *)
+			MNEW(u1, sizeof(localref_table) + additionalrefs * SIZEOF_VOID_P);
 #else
-	nlrt = GCMNEW(u1, sizeof(localref_table) + additionalrefs * SIZEOF_VOID_P);
+	nlrt = (localref_table *)
+			GCMNEW(u1, sizeof(localref_table) + additionalrefs * SIZEOF_VOID_P);
 #endif
 
 	if (nlrt == NULL)
@@ -419,6 +423,85 @@ void localref_del(java_handle_t *localref)
 	/* this should not happen */
 
 	log_println("localref_del: WARNING: unable to find localref %p", localref);
+}
+
+
+void _array_store_param(paramdesc *pd, typedesc *td, uint64_t *arg_regs, uint64_t *stack, imm_union param)
+{
+	switch (td->type) {
+		case TYPE_ADR:
+			if (pd->inmemory) {
+#if (SIZEOF_VOID_P == 8)
+				stack[pd->index] = param.l;
+#else
+				assert(0);
+#endif
+			} else {
+				arg_regs[pd->index] = param.l;
+			}
+			break;
+		default:
+			vm_abort("_array_store_param: type not implemented");
+			break;
+	}
+}
+
+
+/* localref_fill ***************************************************************
+
+   Insert arguments to a native method into the local reference table.
+   This is done by the native stub through codegen_start_native_call.
+
+*******************************************************************************/
+
+/* XXX these two function are in trace.c and above ...
+ * move them somewhere else!!! */
+imm_union _array_load_param(paramdesc *pd, typedesc *td, uint64_t *arg_regs, uint64_t *stack);
+void _array_store_param(paramdesc *pd, typedesc *td, uint64_t *arg_regs, uint64_t *stack, imm_union param);
+
+void localref_fill(methodinfo *m, uint64_t *args_regs, uint64_t *args_stack)
+{
+	localref_table *lrt;
+	methoddesc     *md;
+	paramdesc      *pd;
+	typedesc       *td;
+	imm_union       arg;
+	java_handle_t  *h;
+	int i;
+
+	/* get local reference table from thread */
+
+	lrt = LOCALREFTABLE;
+
+	assert(lrt != NULL);
+	assert(m != NULL);
+
+	md = m->parseddesc;
+
+	/* walk through all parameters to the method */
+
+	for (i = 0; i < md->paramcount; ++i) {
+		pd = &md->params[i];
+		td = &md->paramtypes[i];
+
+		/* load TYPE_ADR parameters ... */
+
+		if (td->type == TYPE_ADR) {
+			arg = _array_load_param(pd, td, args_regs, args_stack);
+
+			if (arg.a == NULL)
+				continue;
+
+			/* ... and insert them into the table */
+
+			h = localref_add((java_object_t *) arg.a);
+
+			/* update the parameter */
+
+			arg.a = (void *) h;
+			_array_store_param(pd, td, args_regs, args_stack, arg);
+		}
+	}
 }
 
 

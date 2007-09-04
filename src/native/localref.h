@@ -37,6 +37,8 @@ typedef struct localref_table localref_table;
 
 #include "vm/global.h"
 
+#include "vmcore/method.h"
+
 
 /* localref_table **************************************************************
 
@@ -78,6 +80,8 @@ void localref_frame_pop_all(void);
 
 java_handle_t *localref_add(java_object_t *o);
 void           localref_del(java_handle_t *localref);
+
+void localref_fill(methodinfo *m, uint64_t *args_regs, uint64_t *args_stack);
 
 #if !defined(NDEBUG)
 void localref_dump(void);

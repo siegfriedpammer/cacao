@@ -71,7 +71,7 @@ u4 _no_threads_tracejavacallcount= 0;
 
 *******************************************************************************/
 
-static imm_union _array_load_param(paramdesc *pd, typedesc *td, uint64_t *arg_regs, uint64_t *stack)
+imm_union _array_load_param(paramdesc *pd, typedesc *td, uint64_t *arg_regs, uint64_t *stack)
 {
 	imm_union ret;
 

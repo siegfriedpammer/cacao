@@ -1533,10 +1533,8 @@ void codegen_start_native_call(u1 *currentsp, u1 *pv)
 	uint8_t  *datasp;
 	uint8_t  *javasp;
 	uint8_t  *javara;
-#if !defined(NDEBUG)
 	uint64_t *args_regs;
 	uint64_t *args_stack;
-#endif
 
 	STATISTICS(count_calls_java_to_native++);
 
@@ -1557,18 +1555,22 @@ void codegen_start_native_call(u1 *currentsp, u1 *pv)
 	/* calculate needed values */
 
 #if defined(__ALPHA__) || defined(__ARM__)
-	datasp = currentsp + framesize - SIZEOF_VOID_P;
-	javasp = currentsp + framesize;
-	javara = *((uint8_t **) datasp);
+	datasp     = currentsp + framesize - SIZEOF_VOID_P;
+	javasp     = currentsp + framesize;
+	javara     = *((uint8_t **) datasp);
+	args_regs  = (uint64_t *) currentsp;
+	args_stack = (uint64_t *) javasp;
 #elif defined(__MIPS__) || defined(__S390__)
 	/* MIPS and S390 always uses 8 bytes to store the RA */
 	datasp = currentsp + framesize - 8;
 	javasp = currentsp + framesize;
 	javara = *((uint8_t **) datasp);
 #elif defined(__I386__) || defined (__M68K__) || defined (__X86_64__)
-	datasp = currentsp + framesize;
-	javasp = currentsp + framesize + SIZEOF_VOID_P;
-	javara = *((uint8_t **) datasp);
+	datasp     = currentsp + framesize;
+	javasp     = currentsp + framesize + SIZEOF_VOID_P;
+	javara     = *((uint8_t **) datasp);
+	args_regs  = (uint64_t *) currentsp;
+	args_stack = (uint64_t *) javasp;
 #elif defined(__POWERPC__) || defined(__POWERPC64__)
 	datasp = currentsp + framesize;
 	javasp = currentsp + framesize;
@@ -1579,19 +1581,11 @@ void codegen_start_native_call(u1 *currentsp, u1 *pv)
 	vm_abort("codegen_start_native_call: unsupported architecture");
 #endif
 
-#if 0
-	printf("NATIVE (framesize=%d): ", framesize);
-	method_print(m);
-	printf("\n");
-	fflush(stdout);
-#endif
-
 #if 0 && !defined(NDEBUG)
-	if (opt_TraceJavaCalls) {
-		args_regs  = currentsp;
-		args_stack = javasp;
+	/* print the call-trace if necesarry */
+
+	if (opt_TraceJavaCalls)
 		trace_java_call_enter(m, args_regs, args_stack);
-	}
 #endif
 
 	/* get data structures from stack */
@@ -1606,7 +1600,11 @@ void codegen_start_native_call(u1 *currentsp, u1 *pv)
 	localref_table_add(lrt);
 #endif
 
-	/* XXX add references to lrt here!!! */
+#if defined(ENABLE_HANDLES)
+	/* place all references into the local reference table */
+
+	localref_fill(m, args_regs, args_stack);
+#endif
 
 	/* add a stackframeinfo to the chain */
 
