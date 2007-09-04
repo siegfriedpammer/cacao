@@ -1231,9 +1231,23 @@ void codegen_generate_stub_builtin(builtintable_entry *bte)
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
-	if (!opt_intrp)
+	if (!opt_intrp) {
 # endif
+		/* XXX This is only a hack for builtin_arraycopy and should be done better! */
+		if (bte->flags & BUILTINTABLE_FLAG_EXCEPTION) {
+			assert(bte->md->returntype.type == TYPE_VOID);
+			bte->md->returntype.type = TYPE_INT;
+		}
+
 		codegen_emit_stub_builtin(jd, bte);
+
+		/* XXX see above */
+		if (bte->flags & BUILTINTABLE_FLAG_EXCEPTION) {
+			bte->md->returntype.type = TYPE_VOID;
+		}
+# if defined(ENABLE_INTRP)
+	}
+# endif
 #endif
 
 	/* reallocate the memory and finish the code generation */

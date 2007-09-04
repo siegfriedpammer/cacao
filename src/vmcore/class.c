@@ -2111,7 +2111,7 @@ void class_classref_or_classinfo_print(classref_or_classinfo c)
 
 void class_classref_or_classinfo_println(classref_or_classinfo c)
 {
-	class_classref_or_classinfo_println(c);
+	class_classref_or_classinfo_print(c);
 	printf("\n");
 }
 
