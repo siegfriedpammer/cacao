@@ -772,7 +772,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_
 
 	/* define the class */
 
-	c = class_define(utfname, cl, len, (const uint8_t *) &b->data[off],
+	c = class_define(utfname, cl, len, (const uint8_t *) &(LLNI_array_direct(b, off)),
 					 protectionDomain);
 
 	if (c == NULL)
@@ -800,7 +800,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_
 JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_allocateInstance(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Class *cls)
 {
 	classinfo     *c;
-	java_object_t *o;
+	java_handle_t *o;
 
 	c = LLNI_classinfo_unwrap(cls);
 
