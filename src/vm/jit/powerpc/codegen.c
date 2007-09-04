@@ -3062,9 +3062,6 @@ void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
 		M_DST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 8);
 		break;
 	case TYPE_VOID:
-		/* XXX This should be done better. */
-		if (bte->flags & BUILTINTABLE_FLAG_EXCEPTION)
-			M_IST(REG_RESULT, REG_SP, LA_SIZE + 1 * 8);
 		break;
 	}
 
@@ -3091,9 +3088,6 @@ void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
 		M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 8);
 		break;
 	case TYPE_VOID:
-		/* XXX This should be done better. */
-		if (bte->flags & BUILTINTABLE_FLAG_EXCEPTION)
-			M_ILD(REG_RESULT, REG_SP, LA_SIZE + 1 * 8);
 		break;
 	}
 
