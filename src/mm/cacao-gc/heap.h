@@ -90,7 +90,7 @@ void heap_dump_region(regioninfo_t *region, bool marked_only);
 		\
 		GC_ASSERT(c); \
 		\
-		for (; c; c = c->super.cls) { \
+		for (; c; c = c->super) { \
 			for (i = 0; i < c->fieldscount; i++) { \
 				f = &(c->fields[i]); \
 				\

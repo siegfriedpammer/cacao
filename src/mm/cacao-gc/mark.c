@@ -131,7 +131,7 @@ void mark_recursive(java_object_t *o)
 		/* this is an OBJECT */
 
 		/* for objects we need to check all (non-static) fields */
-		for (; c; c = c->super.cls) {
+		for (; c; c = c->super) {
 		for (i = 0; i < c->fieldscount; i++) {
 			f = &(c->fields[i]);
 
