@@ -1192,7 +1192,8 @@ java_handle_objectarray_t *builtin_multianewarray(int n, classinfo *arrayclass,
 
 	/* now call the real function */
 
-	return builtin_multianewarray_intern(n, arrayclass, dims);
+	return (java_handle_objectarray_t *)
+		builtin_multianewarray_intern(n, arrayclass, dims);
 }
 
 
