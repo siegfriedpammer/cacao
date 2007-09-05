@@ -3776,6 +3776,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	M_MOV_IMM(codegen_start_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
+	/* remember class argument */
+
+	if (m->flags & ACC_STATIC)
+		M_MOV(REG_RESULT, REG_ITMP2);
+
 	M_ALD(REG_ITMP3, REG_SP, 4 * 4);
 
 	/* copy arguments into new stackframe */
@@ -3804,7 +3809,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* if function is static, put class into second argument */
 
 	if (m->flags & ACC_STATIC)
-		M_AST_IMM(m->class, REG_SP, 1 * 4);
+		M_AST(REG_ITMP2, REG_SP, 1 * 4);
 
 	/* put env into first argument */
 

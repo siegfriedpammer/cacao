@@ -67,6 +67,8 @@
 #include "native/localref.h"
 #include "native/native.h"
 
+#include "native/include/java_lang_Class.h"
+
 #include "threads/threads-common.h"
 
 #include "vm/builtin.h"
@@ -1522,7 +1524,7 @@ void codegen_stub_builtin_exit(u1 *datasp)
 
 *******************************************************************************/
 
-void codegen_start_native_call(u1 *currentsp, u1 *pv)
+java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 {
 	stackframeinfo *sfi;
 	localref_table *lrt;
@@ -1609,6 +1611,13 @@ void codegen_start_native_call(u1 *currentsp, u1 *pv)
 	/* add a stackframeinfo to the chain */
 
 	stacktrace_create_native_stackframeinfo(sfi, pv, javasp, javara);
+
+	/* return a wrapped classinfo for static methods */
+
+	if (m->flags & ACC_STATIC)
+		return LLNI_classinfo_wrap(m->class);
+	else
+		return NULL;
 }
 
 

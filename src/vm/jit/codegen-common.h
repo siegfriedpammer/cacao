@@ -328,7 +328,7 @@ void removenativestub(u1 *stub);
 void codegen_stub_builtin_enter(u1 *datasp, u1 *pv, u1 *sp, u1 *ra);
 void codegen_stub_builtin_exit(u1 *datasp);
 
-void codegen_start_native_call(u1 *currentsp, u1 *pv);
+java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv);
 java_object_t *codegen_finish_native_call(u1 *datasp);
 
 s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum);

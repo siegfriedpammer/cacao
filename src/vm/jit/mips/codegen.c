@@ -3756,6 +3756,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	M_JSR(REG_RA, REG_ITMP3);
 	M_NOP; /* XXX fill me! */
 
+	/* remember class argument */
+
+	if (m->flags & ACC_STATIC)
+		M_MOV(REG_RESULT, REG_ITMP3);
+
 	/* restore integer and float argument registers */
 
 #if SIZEOF_VOID_P == 8
@@ -3922,10 +3927,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* put class into second argument register */
 
-	if (m->flags & ACC_STATIC) {
-		disp = dseg_add_address(cd, m->class);
-		M_ALD(REG_A1, REG_PV, disp);
-	}
+	if (m->flags & ACC_STATIC)
+		M_MOV(REG_ITMP3, REG_A1);
 
 	/* put env into first argument register */
 
