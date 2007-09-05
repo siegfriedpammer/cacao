@@ -3178,10 +3178,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	if (f == NULL)
 		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, funcdisp);
 
-	/* emit trace code */
-
-	emit_verbosecall_enter(jd);
-
 #if defined(ENABLE_GC_CACAO)
 	/* Save callee saved integer registers in stackframeinfo (GC may
 	   need to recover them during a collection). */

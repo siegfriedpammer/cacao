@@ -71,7 +71,8 @@ u4 _no_threads_tracejavacallcount= 0;
 
 *******************************************************************************/
 
-imm_union _array_load_param(paramdesc *pd, typedesc *td, uint64_t *arg_regs, uint64_t *stack)
+imm_union _array_load_param(paramdesc *pd, typedesc *td, int32_t index,
+							uint64_t *arg_regs, uint64_t *stack)
 {
 	imm_union ret;
 
@@ -85,35 +86,32 @@ imm_union _array_load_param(paramdesc *pd, typedesc *td, uint64_t *arg_regs, uin
 				ret.l = *(int32_t *)(stack + pd->index);
 #endif
 			} else {
-				ret.l = arg_regs[pd->index];
+#if (SIZEOF_VOID_P == 8)
+				ret.l = arg_regs[index];
+#else
+				ret.l = *(int32_t *)(arg_regs + index);
+#endif
 			}
 			break;
 		case TYPE_LNG:
 			if (pd->inmemory) {
 				ret.l = (int64_t)stack[pd->index];
 			} else {
-#if (SIZEOF_VOID_P == 8)
-				ret.l = (int64_t)arg_regs[pd->index];
-#else
-				ret.l = (int64_t)(
-					(arg_regs[GET_HIGH_REG(pd->index)] << 32) |
-					(arg_regs[GET_LOW_REG(pd->index)] & 0xFFFFFFFF)
-				);
-#endif
+				ret.l = (int64_t)arg_regs[index];
 			}
 			break;
 		case TYPE_FLT:
 			if (pd->inmemory) {
 				ret.l = (int64_t)stack[pd->index];
 			} else {
-				ret.l = (int64_t)arg_regs[pd->index + INT_ARG_CNT];
+				ret.l = (int64_t)arg_regs[index];
 			}
 			break;
 		case TYPE_DBL:
 			if (pd->inmemory) {
 				ret.l = (int64_t)stack[pd->index];
 			} else {
-				ret.l = (int64_t)arg_regs[pd->index + INT_ARG_CNT];
+				ret.l = (int64_t)arg_regs[index];
 			}
 			break;
 	}
@@ -134,22 +132,20 @@ static imm_union _array_load_return_value(typedesc *td, uint64_t *return_regs)
 	switch (td->type) {
 		case TYPE_INT:
 		case TYPE_ADR:
-			ret.l = return_regs[0];
-			break;
-		case TYPE_LNG:
 #if (SIZEOF_VOID_P == 8)
-			ret.l = (int64_t)return_regs[0];
+			ret.l = return_regs[0];
 #else
-			ret.l = (int64_t)(
-				(return_regs[0] << 32) | (return_regs[1] & 0xFFFFFFFF)
-			);
+			ret.l = *(int32_t *)return_regs;
 #endif
 			break;
+		case TYPE_LNG:
+			ret.l = *(int64_t *)return_regs;
+			break;
 		case TYPE_FLT:
-			ret.l = (int64_t)return_regs[2];
+			ret.l = *(int64_t *)return_regs;
 			break;
 		case TYPE_DBL:
-			ret.l = (int64_t)return_regs[2];
+			ret.l = *(int64_t *)return_regs;
 			break;
 	}
 
@@ -269,8 +265,8 @@ static char *trace_java_call_print_argument(char *logtext, s4 *logtextlen,
  
    Traces an entry into a java method.
 
-   arg_regs: Array of size ARG_CNT containing all argument registers in
-   the same format as in asm_vm_call_method. The array is usually allocated
+   arg_regs: Array containing all argument registers as int64_t values in
+   the same order as listed in m->methoddesc. The array is usually allocated
    on the stack and used for restoring the argument registers later.
 
    stack: Pointer to first on stack argument in the same format passed to 
@@ -377,7 +373,7 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 	for (i = 0; i < md->paramcount; ++i) {
 		pd = &md->params[i];
 		td = &md->paramtypes[i];
-		arg = _array_load_param(pd, td, arg_regs, stack);
+		arg = _array_load_param(pd, td, i, arg_regs, stack);
 		logtext = trace_java_call_print_argument(
 			logtext, &logtextlen, td, arg
 		);
@@ -402,13 +398,9 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 
    Traces an exit form a java method.
 
-   return_regs: Array of size 3 containing return registers:
-     [0] : REG_RESULT
-     [1] : REG_RESULT2 (if available on architecture)
-     [2] : REG_FRESULT
+   return_regs: Array of size 1 containing return register.
    The array is usually allocated on the stack and used for restoring the
-   registers later. The format of the array is the same as the format of 
-   register arguments passed to asm_vm_call_method.
+   registers later.
 
 *******************************************************************************/
 
