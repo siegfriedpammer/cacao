@@ -50,6 +50,7 @@
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
+#include "vm/jit/trace.h"
 
 #include "vmcore/options.h"
 
@@ -553,7 +554,6 @@ void emit_verbosecall_enter(jitdata *jd)
 	int32_t       disp;
 	int32_t       i;
 	int32_t       s, d;
-	int32_t       x;
 
 	if (!JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		return;
@@ -570,31 +570,30 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	M_NOP;
 
+	/* On Darwin we need to allocate an additional 3*4 bytes of stack
+	   for the arguments to trace_java_call_enter, we make it 2*8. */
+
 	M_MFLR(REG_ZERO);
 	M_AST(REG_ZERO, REG_SP, LA_LR_OFFSET);
-	M_STWU(REG_SP, REG_SP, -(LA_SIZE + (1 + ARG_CNT + TMP_CNT) * 8));
-
-	M_CLR(REG_ITMP1);                            /* prepare a "zero" register */
+	M_STWU(REG_SP, REG_SP, -(LA_SIZE + (2 + ARG_CNT + TMP_CNT) * 8));
 
 	/* save argument registers */
 
 	for (i = 0; i < md->paramcount; i++) {
 		if (!md->params[i].inmemory) {
 			s = md->params[i].regoff;
-			d = LA_SIZE + (1 + i) * 8;
+			d = LA_SIZE + (i + 2) * 8;
 
 			switch (md->paramtypes[i].type) {
 			case TYPE_INT:
 			case TYPE_ADR:
-				M_IST(REG_ITMP1, REG_SP, d);            /* high-bits are zero */
-				M_IST(s, REG_SP, d + 4);
+				M_IST(s, REG_SP, d);
 				break;
 			case TYPE_LNG:
 				M_LST(s, REG_SP, d);
 				break;
 			case TYPE_FLT:
-				M_IST(REG_ITMP1, REG_SP, d);            /* high-bits are zero */
-				M_FST(s, REG_SP, d + 4);
+				M_FST(s, REG_SP, d);
 				break;
 			case TYPE_DBL:
 				M_DST(s, REG_SP, d);
@@ -603,30 +602,14 @@ void emit_verbosecall_enter(jitdata *jd)
 		}
 	}
 
-	/* load arguments as longs */
-
-	d = 0;
-
-	for (i = 0; i < md->paramcount && i < TRACE_ARGS_NUM; i++) {
-		s = LA_SIZE + (1 + i) * 8;
-		x = PACK_REGS(abi_registers_integer_argument[d + 1],
-					  abi_registers_integer_argument[d]);
-
-		M_LLD(x, REG_SP, s);
-
-		d += 2;
-	}
-
-	/* put methodinfo pointer as last argument on the stack */
+	/* pass methodinfo and pointers to the tracer function */
 
 	disp = dseg_add_address(cd, m);
-	M_ALD(REG_ITMP1, REG_PV, disp);
-#if defined(__DARWIN__)
-	M_AST(REG_ITMP1, REG_SP, LA_SIZE + TRACE_ARGS_NUM * 8); 
-#else
-	M_AST(REG_ITMP1, REG_SP, LA_SIZE);
-#endif
-	disp = dseg_add_functionptr(cd, builtin_verbosecall_enter);
+	M_ALD(REG_A0, REG_PV, disp);
+	M_AADD_IMM(REG_SP, LA_SIZE + 2 * 8, REG_A1);
+	M_AADD_IMM(REG_SP, LA_SIZE + (2 + ARG_CNT + TMP_CNT + cd->stackframesize) * 8, REG_A2);
+	
+	disp = dseg_add_functionptr(cd, trace_java_call_enter);
 	M_ALD(REG_ITMP2, REG_PV, disp);
 	M_MTCTR(REG_ITMP2);
 	M_JSR;
@@ -635,19 +618,19 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	for (i = 0; i < md->paramcount; i++) {
 		if (!md->params[i].inmemory) {
-			s = LA_SIZE + (1 + i) * 8;
+			s = LA_SIZE + (i + 2) * 8;
 			d = md->params[i].regoff;
 
 			switch (md->paramtypes[i].type) {
 			case TYPE_INT:
 			case TYPE_ADR:
-				M_ILD(d, REG_SP, s + 4);                      /* get low-bits */
+				M_ILD(d, REG_SP, s);
 				break;
 			case TYPE_LNG:
 				M_LLD(d, REG_SP, s);
 				break;
 			case TYPE_FLT:
-				M_FLD(d, REG_SP, s + 4);                      /* get low-bits */
+				M_FLD(d, REG_SP, s);
 				break;
 			case TYPE_DBL:
 				M_DLD(d, REG_SP, s);
@@ -656,9 +639,9 @@ void emit_verbosecall_enter(jitdata *jd)
 		}
 	}
 
-	M_ALD(REG_ZERO, REG_SP, LA_SIZE + (1 + ARG_CNT + TMP_CNT) * 8 + LA_LR_OFFSET);
+	M_ALD(REG_ZERO, REG_SP, LA_SIZE + (2 + ARG_CNT + TMP_CNT) * 8 + LA_LR_OFFSET);
 	M_MTLR(REG_ZERO);
-	M_LDA(REG_SP, REG_SP, LA_SIZE + (1 + ARG_CNT + TMP_CNT) * 8);
+	M_LDA(REG_SP, REG_SP, LA_SIZE + (2 + ARG_CNT + TMP_CNT) * 8);
 
 	/* mark trace code */
 
@@ -699,51 +682,65 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	M_NOP;
 
+	/* On Darwin we need to allocate an additional 2*4 bytes of stack
+	   for the arguments to trace_java_call_exit, we make it 1*8. */
+
 	M_MFLR(REG_ZERO);
 	M_AST(REG_ZERO, REG_SP, LA_LR_OFFSET);
-	M_STWU(REG_SP, REG_SP, -(LA_SIZE + (1 + 2 + 2 + 1 + 4) * 4));
+	M_STWU(REG_SP, REG_SP, -(LA_SIZE + (1 + 1) * 8));
 
-	/* save return registers */
+	/* save return value */
 
-	M_LST(REG_RESULT_PACKED, REG_SP, LA_SIZE + (1 + 2 + 2 + 1 + 0) * 4);
-	M_DST(REG_FRESULT, REG_SP, LA_SIZE + (1 + 2 + 2 + 1 + 2) * 4);
-
-	/* keep this order */
 	switch (md->returntype.type) {
 	case TYPE_INT:
 	case TYPE_ADR:
-		M_INTMOVE(REG_RESULT, REG_A1);
-		M_CLR(REG_A0);
+		M_IST(REG_RESULT, REG_SP, LA_SIZE + 1 * 8);
 		break;
-
 	case TYPE_LNG:
-		M_LNGMOVE(REG_RESULT_PACKED, REG_A0_A1_PACKED);
+		M_LST(REG_RESULT_PACKED, REG_SP, LA_SIZE + 1 * 8);
+		break;
+	case TYPE_FLT:
+		M_FST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 8);
+		break;
+	case TYPE_DBL:
+		M_DST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 8);
+		break;
+	case TYPE_VOID:
 		break;
 	}
 
-	M_FLTMOVE(REG_FRESULT, REG_FA0);
-	M_FLTMOVE(REG_FRESULT, REG_FA1);
-
 	disp = dseg_add_address(cd, m);
-#if defined(__DARWIN__)
-	M_ALD(REG_A2 + 3, REG_PV, disp);
-#else
-	M_ALD(REG_A2, REG_PV, disp);
-#endif
+	M_ALD(REG_A0, REG_PV, disp);
+	M_AADD_IMM(REG_SP, LA_SIZE + 1 * 8, REG_A1);
 
-	disp = dseg_add_functionptr(cd, builtin_verbosecall_exit);
+	disp = dseg_add_functionptr(cd, trace_java_call_exit);
 	M_ALD(REG_ITMP2, REG_PV, disp);
 	M_MTCTR(REG_ITMP2);
 	M_JSR;
 
-	/* restore return registers */
+	/* restore return value */
 
-	M_LLD(REG_RESULT_PACKED, REG_SP, LA_SIZE + (1 + 2 + 2 + 1 + 0) * 4);
-	M_DLD(REG_FRESULT, REG_SP, LA_SIZE + (1 + 2 + 2 + 1 + 2) * 4);
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_ADR:
+		M_ILD(REG_RESULT, REG_SP, LA_SIZE + 1 * 8);
+		break;
+	case TYPE_LNG:
+		M_LLD(REG_RESULT_PACKED, REG_SP, LA_SIZE + 1 * 8);
+		break;
+	case TYPE_FLT:
+		M_FLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 8);
+		break;
+	case TYPE_DBL:
+		M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 8);
+		break;
+	case TYPE_VOID:
+		break;
+	}
 
-	M_ALD(REG_ZERO, REG_SP, LA_SIZE + (1 + 2 + 2 + 1 + 4) * 4 + LA_LR_OFFSET);
+	M_ALD(REG_ZERO, REG_SP, LA_SIZE + (1 + 1) * 8 + LA_LR_OFFSET);
 	M_MTLR(REG_ZERO);
-	M_LDA(REG_SP, REG_SP, LA_SIZE + (1 + 2 + 2 + 1 + 4) * 4);
+	M_LDA(REG_SP, REG_SP, LA_SIZE + (1 + 1) * 8);
 
 	/* mark trace code */
 

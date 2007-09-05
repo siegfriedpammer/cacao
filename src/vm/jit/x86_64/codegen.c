@@ -3159,11 +3159,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	M_ASUB_IMM(cd->stackframesize * 8, REG_SP);
 
-#if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_enter(jd);
-#endif
-
 	/* get function address (this must happen before the stackframeinfo) */
 
 	if (f == NULL)
@@ -3307,14 +3302,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		break;
 	}
 
-#if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_exit(jd);
-#endif
-
 	/* remove native stackframe info */
 
-	M_ALEA(REG_SP, cd->stackframesize * 8, REG_A0);
+	M_MOV(REG_SP, REG_A0);
+	emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase), REG_A1);
 	M_MOV_IMM(codegen_finish_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 	M_MOV(REG_RESULT, REG_ITMP3);

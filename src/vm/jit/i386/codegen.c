@@ -3844,9 +3844,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* remove native stackframe info */
 
 	M_MOV(REG_SP, REG_ITMP1);
-	M_AADD_IMM(cd->stackframesize * 8, REG_ITMP1);
-
 	M_AST(REG_ITMP1, REG_SP, 0 * 4);
+	M_IST_IMM(0, REG_SP, 1 * 4);
+	dseg_adddata(cd);
+
 	M_MOV_IMM(codegen_finish_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 	M_MOV(REG_RESULT, REG_ITMP2);                 /* REG_ITMP3 == REG_RESULT2 */
