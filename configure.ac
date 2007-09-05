@@ -352,130 +352,21 @@ AC_SUBST(CACAO_LIBDIR)
 AC_CHECK_ENABLE_LTDL
 
 AC_CHECK_ENABLE_JAVA
+
 AC_CHECK_ENABLE_JIT
-
-AC_CHECK_WITH_CACAOH
-
-AC_CHECK_SOFTFLOAT
-AC_CHECK_SOFT_FLOAT_CMP
-AC_CHECK_SOFT_DOUBLE_CMP
-
-
-dnl check for interpreter
-AC_ARG_ENABLE([intrp], [AS_HELP_STRING(--enable-intrp,enable interpreter [[default=no]])])
-
-AC_MSG_CHECKING(whether interpreter should be compiled)
-if test x"$enable_intrp" = "xyes"; then
-    AC_MSG_RESULT(yes)
-    AC_DEFINE([ENABLE_INTRP], 1, [enable interpreter])
-    AM_CONDITIONAL([ENABLE_INTRP], [true])
-    ENABLE_INTRP=yes
-
-    AC_ASM_SKIP16
-
-    dnl check for libffi
-    AC_ARG_WITH([ffi],
-                [AS_HELP_STRING(--with-ffi,use libffi to call native functions)],
-                [WITH_FFI=yes
-                 AC_CHECK_HEADERS([ffi.h],, [AC_MSG_ERROR(cannot find ffi.h)])
-                 AC_CHECK_LIB(ffi, ffi_call,, [AC_MSG_ERROR(cannot find libffi)])
-                 AC_DEFINE([WITH_FFI], 1, [use libffi])],
-                [WITH_FFI=no])
-
-    dnl check for libffcall
-    AC_ARG_WITH([ffcall],
-                [AS_HELP_STRING(--with-ffcall,use libffcall to call native functions)],
-                [WITH_FFCALL=yes
-                 AC_CHECK_HEADERS([avcall.h],, [AC_MSG_ERROR(cannot find avcall.h)])
-                 AC_CHECK_LIB(avcall, __builtin_avcall,, [AC_MSG_ERROR(cannot find libavcall (from libffcall))])
-                 AC_DEFINE([WITH_FFCALL], 1, [use libffcall])],
-                [WITH_FFCALL=no])
-
-    dnl check for libffi or libffcall
-    if test x"${WITH_FFI}" = "xyes" -a x"${WITH_FFCALL}" = "xyes"; then
-        AC_ERROR(Enable only libffi or libffcall.)
-    fi
-    if test x"${WITH_FFI}" = "xno" -a x"${WITH_FFCALL}" = "xno"; then
-        AC_ERROR(Enable one of libffi or libffcall.)
-    fi
-
-else
-    AC_MSG_RESULT(no)
-    AM_CONDITIONAL([ENABLE_INTRP], [false])
-    ENABLE_INTRP="no"
-fi
+AC_CHECK_ENABLE_INTRP
 
 if test x"${ENABLE_JIT}" = "xno" -a x"${ENABLE_INTRP}" = "xno"; then
     AC_ERROR(You have to enable at least the JIT or the interpreter.)
 fi
 
+AC_CHECK_SOFTFLOAT
+AC_CHECK_SOFT_FLOAT_CMP
+AC_CHECK_SOFT_DOUBLE_CMP
 
-dnl check for garbage collector usage
-AC_ARG_ENABLE([gc], [AS_HELP_STRING(--enable-gc,enable garbage collector support (none,boehm,cacao) [[default=boehm]])])
-AC_MSG_CHECKING(whether GC should be enabled)
-enable_gc=${enable_gc:-boehm}
-case "$enable_gc" in
-no | none)
-    AC_DEFINE([DISABLE_GC], 1, [disable garbage collector])
-    ENABLE_GC=none
-    AC_MSG_RESULT(no)
-    ;;
-
-boehm)
-    AC_DEFINE([ENABLE_GC_BOEHM], 1, [enable conservative boehm-gc])
-    ENABLE_GC=boehm
-    AC_MSG_RESULT(yes, boehm-gc)
-    ;;
-
-cacao)
-    AC_DEFINE([ENABLE_GC_CACAO], 1, [enable exact cacao-gc])
-    ENABLE_GC=cacao
-    AC_MSG_RESULT(yes, cacao-gc)
-    ;;
-
-*)
-    AC_MSG_ERROR($enable_gc is an unknown garbage collector package)
-    ;;
-esac
-AM_CONDITIONAL([DISABLE_GC], test x"${ENABLE_GC}" = "xnone")
-AM_CONDITIONAL([ENABLE_GC_BOEHM], test x"${ENABLE_GC}" = "xboehm")
-AM_CONDITIONAL([ENABLE_GC_CACAO], test x"${ENABLE_GC}" = "xcacao")
-
-
-
-dnl check for dump memory usage
-AC_MSG_CHECKING(whether dump memory should be disabled)
-AC_ARG_ENABLE([dump],
-              [AS_HELP_STRING(--disable-dump,disable dump memory (for debugging only!) [[default=yes]])],
-              [case "${enableval}" in
-                   no)
-                       DISABLE_DUMP=yes
-                       AC_DEFINE([DISABLE_DUMP], 1, [disable dump memory])
-                       ;;
-                   *) DISABLE_DUMP=no;;
-               esac],
-               [DISABLE_DUMP=no])
-AC_MSG_RESULT(${DISABLE_DUMP})
-
-
-dnl check for debug
-AC_MSG_CHECKING(whether debug code generation should be enabled)
-AC_ARG_ENABLE([debug],
-              [AS_HELP_STRING(--disable-debug,disable debug code generation [[default=yes]])],
-              [case "${enableval}" in
-                   no) NDEBUG=yes
-                       AC_DEFINE([NDEBUG], 1, [disable debug code])
-                       ;;
-                   *) NDEBUG=no;;
-               esac],
-              [NDEBUG=no])
-
-if test x"${NDEBUG}" = "xno"; then
-    AC_MSG_RESULT(yes)
-else
-    AC_MSG_RESULT(no)
-fi
-AM_CONDITIONAL([NDEBUG], test x"${NDEBUG}" = "xyes")
+AC_CHECK_ENABLE_GC
+AC_CHECK_ENABLE_DEBUG
+AC_CHECK_ENABLE_DUMP
 
 
 dnl check for memcheck support
@@ -861,12 +752,12 @@ AC_DEFINE_UNQUOTED([CACAO_VM_ZIP], "${CACAO_VM_ZIP}", [CACAO's vm.zip])
 AC_SUBST(CACAO_VM_ZIP)
 
 
+AC_CHECK_WITH_CACAOH
 AC_CHECK_WITH_CLASSPATH
 AC_CHECK_WITH_CLASSPATH_PREFIX
 AC_CHECK_WITH_CLASSPATH_CLASSES
 AC_CHECK_WITH_CLASSPATH_LIBDIR
 AC_CHECK_WITH_CLASSPATH_INCLUDEDIR
-
 AC_CHECK_WITH_JRE_LAYOUT
 
 
