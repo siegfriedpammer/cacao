@@ -669,109 +669,6 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 }
 
 
-/* emit_patcher_stubs **********************************************************
-
-   Generates the code for the patcher stubs.
-
-*******************************************************************************/
-void emit_patcher_stubs(jitdata *jd)
-{
-	codegendata *cd;
-	patchref    *pref;
-	u4           mcode;
-	u1          *savedmcodeptr;
-	u1          *tmpmcodeptr;
-	s4           targetdisp;
-	s4           disp;
-
-	cd = jd->cd;
-
-	/* generate code patching stub call code */
-
-	targetdisp = 0;
-
-	for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-		/* check code segment size */
-
-		MCODECHECK(32);
-
-		/* Get machine code which is patched back in later. The
-		   call is 1 instruction word long. */
-
-		tmpmcodeptr = (u1 *) (cd->mcodebase + pref->branchpos);
-
-		mcode = *((u4 *) tmpmcodeptr);
-
-		/* Patch in the call to call the following code (done at
-		   compile time). */
-
-		savedmcodeptr = cd->mcodeptr;   /* save current mcodeptr          */
-		cd->mcodeptr  = tmpmcodeptr;    /* set mcodeptr to patch position */
-
-		disp = ((u4 *) savedmcodeptr) - (((u4 *) tmpmcodeptr) + 1);
-		M_BR(disp);
-
-		cd->mcodeptr = savedmcodeptr;   /* restore the current mcodeptr   */
-
-		/* create stack frame - keep stack 16-byte aligned */
-		M_AADD_IMM(REG_SP, -8 * 8, REG_SP);
-
-		/* calculate return address and move it onto the stack */
-		M_LDA(REG_ITMP3, REG_PV, pref->branchpos);
-		M_AST_INTERN(REG_ITMP3, REG_SP, 5 * 8);
-
-		/* move pointer to java_objectheader onto stack */
-
-#if defined(ENABLE_THREADS)
-		/* order reversed because of data segment layout */
-
-		(void) dseg_add_unique_address(cd, NULL);                         /* flcword    */
-		(void) dseg_add_unique_address(cd, lock_get_initial_lock_word()); /* monitorPtr */
-		disp = dseg_add_unique_address(cd, NULL);                         /* vftbl      */
-
-		M_LDA(REG_ITMP3, REG_PV, disp);
-		M_AST_INTERN(REG_ITMP3, REG_SP, 4 * 8);
-#else
-		/* do nothing */
-#endif
-
-		/* move machine code onto stack */
-		disp = dseg_add_s4(cd, mcode);
-		M_ILD(REG_ITMP3, REG_PV, disp);
-		M_IST_INTERN(REG_ITMP3, REG_SP, 3 * 8);
-
-		/* move class/method/field reference onto stack */
-		disp = dseg_add_address(cd, pref->ref);
-		M_ALD(REG_ITMP3, REG_PV, disp);
-		M_AST_INTERN(REG_ITMP3, REG_SP, 2 * 8);
-
-		/* move data segment displacement onto stack */
-		disp = dseg_add_s4(cd, pref->disp);
-		M_ILD(REG_ITMP3, REG_PV, disp);
-		M_IST_INTERN(REG_ITMP3, REG_SP, 1 * 8);
-
-		/* move patcher function pointer onto stack */
-		disp = dseg_add_functionptr(cd, pref->patcher);
-		M_ALD(REG_ITMP3, REG_PV, disp);
-		M_AST_INTERN(REG_ITMP3, REG_SP, 0 * 8);
-
-		if (targetdisp == 0) {
-			targetdisp = ((u4 *) cd->mcodeptr) - ((u4 *) cd->mcodebase);
-
-			disp = dseg_add_functionptr(cd, asm_patcher_wrapper);
-			M_ALD(REG_ITMP3, REG_PV, disp);
-			M_MTCTR(REG_ITMP3);
-			M_RTS;
-		}
-		else {
-			disp = (((u4 *) cd->mcodebase) + targetdisp) -
-				(((u4 *) cd->mcodeptr) + 1);
-			M_BR(disp);
-		}
-	}
-}
-
-
 /* emit_trap *******************************************************************
 
    Emit a trap instruction and return the original machine code.
@@ -787,7 +684,8 @@ uint32_t emit_trap(codegendata *cd)
 
 	mcode = *((uint32_t *) cd->mcodeptr);
 
-	M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_PATCHER);
+	/* ALD is 4 byte aligned, ILD 2, onyl LWZ is byte aligned */
+	M_LWZ(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_PATCHER);
 
 	return mcode;
 }

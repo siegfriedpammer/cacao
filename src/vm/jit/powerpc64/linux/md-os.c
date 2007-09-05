@@ -118,9 +118,13 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	stacktrace_remove_stackframeinfo(&sfi);
 
-	_mc->gp_regs[REG_ITMP1]     = (intptr_t) p;
-	_mc->gp_regs[REG_ITMP2_XPC] = (intptr_t) xpc;
-	_mc->gp_regs[PT_NIP]        = (intptr_t) asm_handle_exception;
+	/* set registers (only if exception object ready) */
+
+	if (p != NULL) {
+		_mc->gp_regs[REG_ITMP1]     = (intptr_t) p;
+		_mc->gp_regs[REG_ITMP2_XPC] = (intptr_t) xpc;
+		_mc->gp_regs[PT_NIP]        = (intptr_t) asm_handle_exception;
+	}
 }
 
 

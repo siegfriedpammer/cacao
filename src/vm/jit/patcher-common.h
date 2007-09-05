@@ -76,7 +76,7 @@ java_handle_t *patcher_handler(u1 *pc);
 
 /* patcher prototypes and macros **********************************************/
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__MIPS__) || defined(__POWERPC__) || defined (__S390__)
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined (__S390__)
 
 /* new patcher functions */
 
@@ -137,7 +137,7 @@ bool patcher_invokevirtual(patchref_t *pr);
 bool patcher_invokeinterface(patchref_t *pr);
 #define PATCHER_invokeinterface (functionptr) patcher_invokeinterface
 
-#if defined(__ALPHA__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__S390__) 
+#if defined(__ALPHA__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) 
 
 bool patcher_checkcast_interface(patchref_t *pr);
 #define PATCHER_checkcast_interface (functionptr) patcher_checkcast_interface
@@ -145,12 +145,12 @@ bool patcher_checkcast_interface(patchref_t *pr);
 bool patcher_instanceof_interface(patchref_t *pr);
 #define PATCHER_instanceof_interface (functionptr) patcher_instanceof_interface
 
-#endif /* defined(__ALPHA__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__S390__) */
+#endif /* defined(__ALPHA__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) */
 
 /* very old patcher functions */
 /* XXX use newer patcher function names above! */
 
-#if defined(__S390__)
+#if defined(__POWERPC64__) || defined(__S390__)
 
 bool patcher_clinit(patchref_t *pr);
 #define PATCHER_clinit (functionptr) patcher_clinit
@@ -161,7 +161,10 @@ bool patcher_athrow_areturn(patchref_t *pr);
 bool patcher_checkcast_instanceof_interface(patchref_t *pr);
 #define PATCHER_checkcast_instanceof_interface (functionptr) patcher_checkcast_instanceof_interface
 
-#endif /* defined (__S390__) */
+bool patcher_checkcast_instanceof_flags(patchref_t *pr);
+#define PATCHER_checkcast_instanceof_flags (functionptr) patcher_checkcast_instanceof_flags
+
+#endif /* defined(__POWERPC64__) || defined(__S390__) */
 
 #endif /* architecture list */
 

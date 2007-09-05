@@ -48,8 +48,6 @@
 
 	.globl asm_abstractmethoderror
 
-	.globl asm_patcher_wrapper
-
 #if defined(ENABLE_REPLACEMENT)
 	.globl asm_replacement_out
 	.globl .asm_replacement_in
@@ -466,69 +464,6 @@ asm_abstractmethoderror:
 	addi    xpc,xpc,-4                  /* exception address is ra - 4        */
 	b       L_asm_handle_nat_exception
 
-
-/* asm_patcher_wrapper *********************************************************
-
-   XXX
-
-   Stack layout:
-     40   return address into JIT code (patch position)
-     32   pointer to virtual java_objectheader
-     24   machine code (which is patched back later)
-     16   unresolved class/method/field reference
-      8   data segment displacement from load instructions
-      0   patcher function pointer to call (pv is saved here afterwards)
-
-*******************************************************************************/
-
-asm_patcher_wrapper:
-	mflr	r0                    /* get Java return address (leaf)           */
-	std     r0,6*8(sp)            /* store it in the stub stackframe          */
-	                              /* keep stack 16-bytes aligned: 6+1+37 = 44 */
-	stdu    sp,-(LA_SIZE+PA_SIZE+ARG_CNT*8+TMP_CNT*8+4*8)(sp)
-
-	SAVE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+PA_SIZE_IN_POINTERS) /* save 8 int/8 float arguments   */
-	SAVE_TEMPORARY_REGISTERS(LA_SIZE_IN_POINTERS+PA_SIZE_IN_POINTERS+ARG_CNT)
-
-	std     itmp1,LA_SIZE+PA_SIZE+(ARG_CNT+TMP_CNT)*8+1*8(sp)
-	std     itmp2,LA_SIZE+PA_SIZE+(ARG_CNT+TMP_CNT)*8+2*8(sp)
-	std     pv,LA_SIZE+PA_SIZE+(ARG_CNT+TMP_CNT)*8+3*8(sp)
-
-	addi    a0,sp,LA_SIZE+PA_SIZE+ARG_CNT*8+TMP_CNT*8+4*8      /* pass SP of patcher stub            */
-	mr      a1,pv                       /* pass PV                            */
-	mr      a2,r0                       /* pass RA (correct for leafs)        */
-	bl      patcher_wrapper
-	std     v0,LA_SIZE+PA_SIZE+(ARG_CNT+TMP_CNT)*8+4*8(sp)     /* save return value                  */
-
-
-	RESTORE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+PA_SIZE_IN_POINTERS) /* restore 8 int/8 float args  */
-	RESTORE_TEMPORARY_REGISTERS(LA_SIZE_IN_POINTERS+PA_SIZE_IN_POINTERS+ARG_CNT)
-
-	ld     itmp1,LA_SIZE+PA_SIZE+(ARG_CNT+TMP_CNT)*8+1*8(sp)
-	ld     itmp2,LA_SIZE+PA_SIZE+(ARG_CNT+TMP_CNT)*8+2*8(sp)
-	ld     pv,LA_SIZE+PA_SIZE+(ARG_CNT+TMP_CNT)*8+3*8(sp)
-	ld     itmp3,LA_SIZE+PA_SIZE+(ARG_CNT+TMP_CNT)*8+4*8(sp)
-
-	ld    	r0,LA_SIZE+PA_SIZE+ARG_CNT*8+TMP_CNT*8+4*8+6*8(sp) /* restore RA                      */
-	mtlr	r0
-
-	mr.     itmp3,itmp3           /* check for an exception                   */
-	bne     L_asm_patcher_wrapper_exception
-
-	                              /* get return address (into JIT code)       */
-	ld     itmp3,LA_SIZE+PA_SIZE+ARG_CNT*8+TMP_CNT*8+4*8+5*8(sp)
-
-	                              /* remove stack frame + patcher stub stack  */
-	addi    sp,sp,LA_SIZE+PA_SIZE+ARG_CNT*8+TMP_CNT*8+4*8+8*8
-
-	mtctr   itmp3
-	bctr                          /* jump to new patched code                 */
-
-L_asm_patcher_wrapper_exception:
-	mr      xptr,itmp3                  /* get exception                      */
-	ld      xpc,LA_SIZE+PA_SIZE+ARG_CNT*8+TMP_CNT*8+4*8+5*8(sp)
-	addi    sp,sp,LA_SIZE+PA_SIZE+ARG_CNT*8+TMP_CNT*8+4*8+8*8
-	b       L_asm_handle_exception
 
 #if defined(ENABLE_REPLACEMENT)
 
