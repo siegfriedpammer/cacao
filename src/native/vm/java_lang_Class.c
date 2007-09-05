@@ -561,25 +561,6 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredConstructors(java_lang
 	return oa;
 }
 
-#endif /* defined(ENABLE_JAVASE) */
-
-
-/*
- * Class:     java/lang/Class
- * Method:    isArray
- * Signature: ()Z
- */
-JNIEXPORT int32_t JNICALL _Jv_java_lang_Class_isArray(JNIEnv *env, java_lang_Class *this)
-{
-	classinfo *c;
-
-	c = LLNI_classinfo_unwrap(this);
-
-	return class_is_array(c);
-}
-
-
-#if defined(ENABLE_JAVASE)
 
 /*
  * Class:     java/lang/Class

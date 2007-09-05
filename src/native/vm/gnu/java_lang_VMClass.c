@@ -273,7 +273,7 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader(J
 	c  = LLNI_classinfo_unwrap(klass);
 	cl = class_get_classloader(c);
 
-	return cl;
+	return (java_lang_ClassLoader *) cl;
 }
 
 
@@ -293,9 +293,13 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, j
  * Method:    isArray
  * Signature: (Ljava/lang/Class;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isArray(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+JNIEXPORT int32_t JNICALL Java_java_lang_VMClass_isArray(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	return _Jv_java_lang_Class_isArray(env, klass);
+	classinfo *c;
+
+	c = LLNI_classinfo_unwrap(klass);
+
+	return class_is_array(c);
 }
 
 
