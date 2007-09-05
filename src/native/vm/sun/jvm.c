@@ -804,9 +804,15 @@ jobjectArray JVM_GetClassInterfaces(JNIEnv *env, jclass cls)
 
 jobject JVM_GetClassLoader(JNIEnv *env, jclass cls)
 {
+	classinfo   *c;
+	classloader *cl;
+
 	TRACEJVMCALLS("JVM_GetClassLoader(env=%p, cls=%p)", env, cls);
 
-	return (jobject) _Jv_java_lang_Class_getClassLoader((java_lang_Class *) cls);
+	c  = LLNI_classinfo_unwrap(cls);
+	cl = class_get_classloader(c);
+
+	return (jobject) cl;
 }
 
 

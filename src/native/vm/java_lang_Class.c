@@ -561,32 +561,6 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredConstructors(java_lang
 	return oa;
 }
 
-
-/*
- * Class:     java/lang/Class
- * Method:    getClassLoader
- * Signature: ()Ljava/lang/ClassLoader;
- */
-java_lang_ClassLoader *_Jv_java_lang_Class_getClassLoader(java_lang_Class *klass)
-{
-	classinfo   *c;
-	classloader *cl;
-
-	c  = LLNI_classinfo_unwrap(klass);
-	cl = c->classloader;
-
-	if (cl == NULL)
-		return NULL;
-	else
-#if defined(ENABLE_HANDLES)
-		/* the classloader entry itself is the handle */
-		return (java_lang_ClassLoader *) cl;
-#else
-		/* get the object out of the classloader entry */
-		return (java_lang_ClassLoader *) cl->object;
-#endif
-}
-
 #endif /* defined(ENABLE_JAVASE) */
 
 

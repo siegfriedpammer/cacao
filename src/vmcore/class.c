@@ -1691,6 +1691,34 @@ bool class_is_memberclass(classinfo *c)
 }
 
 
+/* class_get_classloader *******************************************************
+
+   Return the classloader of the given class.
+
+*******************************************************************************/
+
+classloader *class_get_classloader(classinfo *c)
+{
+	classloader *cl;
+
+	cl = c->classloader;
+
+	if (cl == NULL)
+		return NULL;
+
+#if defined(ENABLE_HANDLES)
+	/* The classloader entry itself is the handle. */
+
+	return cl;
+#else
+	/* Get the object out of the classloader entry. */
+	/* Cast to prevent warning (will be removed). */
+
+	return (classloader *) cl->object;
+#endif
+}
+
+
 /* class_get_superclass ********************************************************
 
    Return the super class of the given class.

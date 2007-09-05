@@ -267,7 +267,13 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredC
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	return _Jv_java_lang_Class_getClassLoader(klass);
+	classinfo   *c;
+	classloader *cl;
+
+	c  = LLNI_classinfo_unwrap(klass);
+	cl = class_get_classloader(c);
+
+	return cl;
 }
 
 

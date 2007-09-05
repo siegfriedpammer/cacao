@@ -72,7 +72,6 @@ java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredClasses(java_lang_
 java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, s4 publicOnly);
 java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass, s4 publicOnly);
 java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredConstructors(java_lang_Class *klass, s4 publicOnly);
-java_lang_ClassLoader         *_Jv_java_lang_Class_getClassLoader(java_lang_Class *klass);
 #endif
 
 JNIEXPORT int32_t JNICALL      _Jv_java_lang_Class_isArray(JNIEnv *env, java_lang_Class *this);

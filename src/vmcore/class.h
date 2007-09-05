@@ -377,6 +377,7 @@ bool                       class_is_interface(classinfo *c);
 bool                       class_is_localclass(classinfo *c);
 bool                       class_is_memberclass(classinfo *c);
 
+classloader               *class_get_classloader(classinfo *c);
 classinfo                 *class_get_superclass(classinfo *c);
 classinfo                 *class_get_componenttype(classinfo *c);
 java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOnly);
