@@ -177,6 +177,10 @@ const char *opt_filter_show_method = 0;
 
 int32_t  opt_DebugStackFrameInfo       = 0;
 int32_t  opt_DebugStackTrace           = 0;
+#if defined(ENABLE_GC_CACAO)
+int32_t  opt_GCDebugRootSet            = 0;
+int32_t  opt_GCStress                  = 0;
+#endif
 int32_t  opt_MaxPermSize               = 0;
 int32_t  opt_PermSize                  = 0;
 int      opt_PrintConfig               = 0;
@@ -201,6 +205,8 @@ enum {
 enum {
 	OPT_DebugStackFrameInfo,
 	OPT_DebugStackTrace,
+	OPT_GCDebugRootSet,
+	OPT_GCStress,
 	OPT_MaxPermSize,
 	OPT_PermSize,
 	OPT_PrintConfig,
@@ -219,6 +225,10 @@ enum {
 option_t options_XX[] = {
 	{ "DebugStackFrameInfo",       OPT_DebugStackFrameInfo,       OPT_TYPE_BOOLEAN, "TODO" },
 	{ "DebugStackTrace",           OPT_DebugStackTrace,           OPT_TYPE_BOOLEAN, "debug stacktrace creation" },
+#if defined(ENABLE_GC_CACAO)
+	{ "GCDebugRootSet",            OPT_GCDebugRootSet,            OPT_TYPE_BOOLEAN, "GC: print root-set at collection" },
+	{ "GCStress",                  OPT_GCStress,                  OPT_TYPE_BOOLEAN, "GC: forced collection at every allocation" },
+#endif
 	{ "MaxPermSize",               OPT_MaxPermSize,               OPT_TYPE_VALUE,   "not implemented" },
 	{ "PermSize",                  OPT_PermSize,                  OPT_TYPE_VALUE,   "not implemented" },
 	{ "PrintConfig",               OPT_PrintConfig,               OPT_TYPE_BOOLEAN, "print VM configuration" },
@@ -478,6 +488,16 @@ void options_xx(const char *name)
 	case OPT_DebugStackTrace:
 		opt_DebugStackTrace = enable;
 		break;
+
+#if defined(ENABLE_GC_CACAO)
+	case OPT_GCDebugRootSet:
+		opt_GCDebugRootSet = enable;
+		break;
+
+	case OPT_GCStress:
+		opt_GCStress = enable;
+		break;
+#endif
 
 	case OPT_MaxPermSize:
 		/* currently ignored */

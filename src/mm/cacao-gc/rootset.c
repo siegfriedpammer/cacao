@@ -338,6 +338,11 @@ rootset_t *rootset_readout()
 	rs = rs_top;
 #if defined(ENABLE_THREADS)
 	for (thread = threads_list_first(); thread != NULL; thread = threads_list_next(thread)) {
+
+		/* ignore threads which are in state NEW */
+		if (thread->state == THREAD_STATE_NEW)
+			continue;
+
 		rs->next = rootset_create();
 		rs->next = rootset_from_thread(thread, rs->next);
 

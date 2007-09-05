@@ -37,10 +37,12 @@
 #include "region.h"
 #include "mm/memory.h"
 #include "native/include/java_lang_String.h"
+#include "native/llni.h"
 #include "toolbox/logging.h"
 #include "vm/global.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
+#include "vmcore/options.h"
 #include "vmcore/rt-timing.h"
 
 
@@ -248,9 +250,9 @@ static java_object_t *heap_alloc_intern(u4 bytelength, regioninfo_t *region, boo
 	/* lock the region */
 	LOCK_MONITOR_ENTER(region);
 
-#if 0
+#if !defined(NDEBUG)
 	/* heavy stress test */
-	if (collect)
+	if (opt_GCStress && collect)
 		gc_collect(0);
 #endif
 
@@ -260,7 +262,15 @@ static java_object_t *heap_alloc_intern(u4 bytelength, regioninfo_t *region, boo
 
 		if (collect) {
 			gc_collect(0);
+#if 0
 			GC_ASSERT(region->free >= bytelength);
+#else
+			if (region->free < bytelength) {
+				dolog("GC: OOM OOM OOM OOM OOM OOM OOM OOM OOM OOM");
+				exceptions_throw_outofmemoryerror();
+				return NULL;
+			}
+#endif
 		} else
 			return NULL;
 	}
@@ -293,6 +303,7 @@ static java_object_t *heap_alloc_intern(u4 bytelength, regioninfo_t *region, boo
 void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
 {
 	java_object_t *p;
+	java_handle_t *h;
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_end;
 #endif
@@ -317,10 +328,12 @@ void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
 		final_register(p, finalizer);
 	}
 
+	h = LLNI_WRAP(p);
+
 	RT_TIMING_GET_TIME(time_end);
 	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_GC_ALLOC);
 
-	return p;
+	return h;
 }
 
 

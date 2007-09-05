@@ -192,6 +192,10 @@ extern const char *opt_filter_show_method;
 
 extern int32_t  opt_DebugStackFrameInfo;
 extern int32_t  opt_DebugStackTrace;
+#if defined(ENABLE_GC_CACAO)
+extern int32_t  opt_GCDebugRootSet;
+extern int32_t  opt_GCStress;
+#endif
 extern int32_t  opt_MaxPermSize;
 extern int32_t  opt_PermSize;
 extern int      opt_PrintConfig;

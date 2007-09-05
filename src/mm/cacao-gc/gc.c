@@ -242,7 +242,12 @@ void gc_collect(s4 level)
 
 	/* find the global and local rootsets */
 	rs = rootset_readout();
-	GC_LOG( rootset_print(rs); );
+
+#if !defined(NDEBUG)
+	/* print the rootsets if debugging is enabled */
+	if (opt_GCDebugRootSet)
+		rootset_print(rs);
+#endif
 
 	RT_TIMING_GET_TIME(time_rootset);
 
