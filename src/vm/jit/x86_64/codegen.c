@@ -3213,6 +3213,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	M_MOV_IMM(codegen_start_native_call, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
+	/* remember class argument */
+
+	if (m->flags & ACC_STATIC)
+		M_MOV(REG_RESULT, REG_ITMP2);
+
 	/* restore integer and float argument registers */
 
 	for (i = 0; i < md->paramcount; i++) {
@@ -3278,7 +3283,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* put class into second argument register */
 
 	if (m->flags & ACC_STATIC)
-		M_MOV_IMM(m->class, REG_A1);
+		M_MOV(REG_ITMP2, REG_A1);
 
 	/* put env into first argument register */
 

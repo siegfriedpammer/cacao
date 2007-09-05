@@ -3349,6 +3349,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
 	M_NOP; /* XXX fill me! */
 
+	/* remember class argument */
+
+	if (m->flags & ACC_STATIC)
+		M_MOV(REG_RESULT_CALLER, REG_ITMP3);
+
 	/* keep float arguments on stack */
 #if 0
 	for (i = 0, j = 0; i < md->paramcount && i < FLT_ARG_CNT; i++) {
@@ -3454,10 +3459,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* put class into second argument register */
 
-	if (m->flags & ACC_STATIC) {
-		disp = dseg_add_address(cd, m->class);
-		M_ALD(REG_OUT1, REG_PV_CALLEE, disp);
-	}
+	if (m->flags & ACC_STATIC)
+		M_MOV(REG_ITMP3, REG_OUT1);
 
 	/* put env into first argument register */
 

@@ -2644,6 +2644,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	M_JSR_IMM(codegen_start_native_call);
 
+	/* remember class argument */
+	if (m->flags & ACC_STATIC)
+		M_INT2ADRMOVE(REG_RESULT, REG_ATMP3);
+
 	/* load function pointer */
 	M_ALD(REG_ATMP2, REG_SP, 4 * 4);
 
@@ -2666,10 +2670,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	}
 
 	/* for static function class as second arg */
-	if (m->flags & ACC_STATIC)	{
-		M_AMOV_IMM(m->class, REG_ATMP1);
-		M_AST(REG_ATMP1, REG_SP, 1 * 4);
-	}
+	if (m->flags & ACC_STATIC)
+		M_AST(REG_ATMP3, REG_SP, 1 * 4);
+
 	/* env ist first argument */
 	M_AMOV_IMM(_Jv_env, REG_ATMP1);
 	M_AST(REG_ATMP1, REG_SP, 0 * 4);

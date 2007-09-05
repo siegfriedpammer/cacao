@@ -3393,6 +3393,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	disp = (s4) (cd->mcodeptr - cd->mcodebase);
 	M_LDA(REG_PV, REG_RA, -disp);
 
+	/* remember class argument */
+
+	if (m->flags & ACC_STATIC)
+		M_MOV(REG_RESULT, REG_ITMP3);
+
 	/* restore integer and float argument registers */
 
 	for (i = 0; i < md->paramcount; i++) {
@@ -3463,10 +3468,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* put class into second argument register */
 
-	if (m->flags & ACC_STATIC) {
-		disp = dseg_add_address(cd, m->class);
-		M_ALD(REG_A1, REG_PV, disp);
-	}
+	if (m->flags & ACC_STATIC)
+		M_MOV(REG_ITMP3, REG_A1);
 
 	/* put env into first argument register */
 
