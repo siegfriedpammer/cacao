@@ -3159,11 +3159,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	M_ASUB_IMM(cd->stackframesize * 8, REG_SP);
 
-#if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_enter(jd);
-#endif
-
 	/* get function address (this must happen before the stackframeinfo) */
 
 	if (f == NULL)
@@ -3306,11 +3301,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	case TYPE_VOID:
 		break;
 	}
-
-#if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_exit(jd);
-#endif
 
 	/* remove native stackframe info */
 
