@@ -2622,11 +2622,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	M_AADD_IMM(-(cd->stackframesize*4), REG_SP);
 
 	/* get function address (this must happen before the stackframeinfo) */
-#if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL)	{
 		codegen_addpatchref(cd, PATCHER_resolve_native_function, m, 0);
 	}
-#endif
+
 	M_AMOV_IMM(f, REG_ATMP2); /* do not move this line, the patcher is needed */
 
 	M_AST(REG_ATMP2, REG_SP, 4 * 4);

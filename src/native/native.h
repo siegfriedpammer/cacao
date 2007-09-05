@@ -51,14 +51,6 @@
 #define NATIVE_METHODS_COUNT    sizeof(methods) / sizeof(JNINativeMethod)
 
 
-/* table for locating native methods */
-
-#if defined(WITH_STATIC_CLASSPATH)
-typedef struct nativeref nativeref;
-typedef struct nativecompref nativecompref;
-#endif
-
-
 /* native_methods_node_t ******************************************************/
 
 typedef struct native_methods_node_t native_methods_node_t;
@@ -96,25 +88,6 @@ struct hashtable_library_name_entry {
 #endif
 
 
-struct nativeref {
-	char       *classname;
-	char       *methodname;
-	char       *descriptor;
-	bool        isstatic;
-	functionptr func;
-};
-
-/* table for fast string comparison */
-
-struct nativecompref {
-	utf        *classname;
-	utf        *methodname;
-	utf        *descriptor;
-	bool        isstatic;
-	functionptr func;
-};
-
-
 /* function prototypes ********************************************************/
 
 bool native_init(void);
@@ -122,27 +95,17 @@ bool native_init(void);
 void native_method_register(utf *classname, const JNINativeMethod *methods,
 							int32_t count);
 
-#if defined(WITH_STATIC_CLASSPATH)
-
-functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
-								bool isstatic);
-
-#else /* defined(WITH_STATIC_CLASSPATH) */
-
-# if defined(ENABLE_LTDL)
+#if defined(ENABLE_LTDL)
 lt_dlhandle native_library_open(utf *filename);
 void        native_library_add(utf *filename, classloader *loader,
 							   lt_dlhandle handle);
 hashtable_library_name_entry *native_library_find(utf *filename,
 												  classloader *loader);
-# endif
+#endif
 
 functionptr native_resolve_function(methodinfo *m);
 
-#endif /* defined(WITH_STATIC_CLASSPATH) */
-
 java_handle_t *native_new_and_init(classinfo *c);
-
 java_handle_t *native_new_and_init_string(classinfo *c, java_handle_t *s);
 
 #endif /* _NATIVE_H */

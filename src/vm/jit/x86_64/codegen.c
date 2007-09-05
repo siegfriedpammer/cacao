@@ -3166,10 +3166,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* get function address (this must happen before the stackframeinfo) */
 
-#if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL)
 		codegen_add_patch_ref(cd, PATCHER_resolve_native, m, 0);
-#endif
 
 	M_MOV_IMM(f, REG_ITMP3);
 

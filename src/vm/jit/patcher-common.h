@@ -98,10 +98,8 @@ bool patcher_resolve_classref_to_index(patchref_t *pr);
 bool patcher_resolve_classref_to_flags(patchref_t *pr);
 #define PATCHER_resolve_classref_to_flags (functionptr) patcher_resolve_classref_to_flags
 
-#if !defined(WITH_STATIC_CLASSPATH)
 bool patcher_resolve_native_function(patchref_t *pr);
 #define PATCHER_resolve_native_function (functionptr) patcher_resolve_native_function
-#endif
 
 /* old patcher functions */
 

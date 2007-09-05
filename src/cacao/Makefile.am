@@ -67,35 +67,6 @@ CACAO_LIBS = \
 	libjvm.la
 endif
 
-if WITH_STATIC_CLASSPATH
-cacao_LDFLAGS += \
-	$(LTLIBICONV)
-
-CLASSPATH_LIBS = \
-	$(CLASSPATH_LIBDIR)/classpath/libjavaio.a \
-	$(CLASSPATH_LIBDIR)/classpath/libjavanio.a \
-	$(CLASSPATH_LIBDIR)/classpath/libjavanet.a \
-	$(CLASSPATH_LIBDIR)/classpath/libjavautil.a \
-	$(CLASSPATH_LIBDIR)/classpath/libjavalang.a \
-	$(CLASSPATH_LIBDIR)/classpath/libjavalangreflect.a
-
-CACAO_LIBS += \
-	$(CLASSPATH_LIBS)
-
-#if USE_GTK_PEER
-#cacao_CFLAGS = \
-#	$(GTK_CFLAGS) $(CAIRO_CFLAGS) $(PANGOFT2_CFLAGS) \
-#	$(XML_CFLAGS) $(XSLT_CFLAGS)
-#
-#cacao_LDFLAGS += \
-#	$(GTK_LIBS) $(CAIRO_LIBS) $(PANGOFT2_LIBS) $(X_LIBS) -lXtst \
-#	$(XML_LIBS) $(XSLT_LIBS)
-#
-#CLASSPATH_LIBS += \
-#	$(CLASSPATH_LIBDIR)/classpath/libgtkpeer.a
-#endif
-endif
-
 if ENABLE_RT_TIMING
 cacao_LDFLAGS += -lrt
 endif

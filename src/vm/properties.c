@@ -415,10 +415,6 @@ void properties_set(void)
 
 	properties_add("java.class.version", CLASS_VERSION);
 
-#  if defined(WITH_STATIC_CLASSPATH)
-	properties_add("gnu.classpath.boot.library.path", ".");
-	properties_add("java.library.path" , ".");
-#  else
 	properties_add("gnu.classpath.boot.library.path", boot_library_path);
 
 	/* Get and set java.library.path. */
@@ -429,7 +425,6 @@ void properties_set(void)
 		java_library_path = "";
 
 	properties_add("java.library.path", java_library_path);
-#  endif
 
 	properties_add("java.io.tmpdir", "/tmp");
 
@@ -472,17 +467,10 @@ void properties_set(void)
 	properties_add("os.version", utsnamebuf->release);
 #  endif
 
-#  if defined(WITH_STATIC_CLASSPATH)
-	/* This is just for debugging purposes and can cause troubles in
-       GNU Classpath. */
-
-	properties_add("gnu.cpu.endian", "unknown");
-#  else
-#   if WORDS_BIGENDIAN == 1
+#  if WORDS_BIGENDIAN == 1
 	properties_add("gnu.cpu.endian", "big");
-#   else
+#  else
 	properties_add("gnu.cpu.endian", "little");
-#   endif
 #  endif
 
 	properties_add("file.separator", "/");

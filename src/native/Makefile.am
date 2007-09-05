@@ -31,26 +31,9 @@ SUBDIRS = \
 	include \
 	vm
 
-CLEANFILES = \
-	nativetable.inc
-
 if ENABLE_JVMTI
 SUBDIRS += jvmti
 JVMTI_LIB = jvmti/libjvmti.la
-endif
-
-if WITH_STATIC_CLASSPATH
-SUBDIRS += tools
-
-GENNATIVETABLE=$(top_builddir)/src/native/tools/gennativetable
-
-CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_GLIBJ_ZIP)
-
-$(srcdir)/native.c: nativetable.inc
-
-nativetable.inc: $(CACAO_VM_ZIP) $(CLASSPATH_GLIBJ_ZIP) $(top_builddir)/src/native/tools/gennativetable
-	echo	$(GENNATIVETABLE) -bootclasspath $(CLASSPATH) > $(top_builddir)/src/native/nativetable.inc
-	if `$(GENNATIVETABLE) -bootclasspath $(CLASSPATH) > $(top_builddir)/src/native/nativetable.inc` ; then true; else rm -f $(top_builddir)/src/native/nativetable.inc; exit 1; fi
 endif
 
 noinst_LTLIBRARIES = libnative.la

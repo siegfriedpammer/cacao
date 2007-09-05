@@ -69,26 +69,6 @@
 #endif
 
 
-/* include table of native functions ******************************************/
-
-#if defined(WITH_STATIC_CLASSPATH)
-# include "native/nativetable.inc"
-#endif
-
-
-/* tables for methods *********************************************************/
-
-#if defined(WITH_STATIC_CLASSPATH)
-#define NATIVETABLESIZE  (sizeof(nativetable)/sizeof(struct nativeref))
-
-/* table for fast string comparison */
-static nativecompref nativecomptable[NATIVETABLESIZE];
-
-/* string comparsion table initialized */
-static bool nativecompdone = false;
-#endif
-
-
 /* global variables ***********************************************************/
 
 static avl_tree_t *tree_native_methods;
@@ -184,7 +164,6 @@ static s4 native_tree_native_methods_comparator(const void *treenode, const void
 
 *******************************************************************************/
 
-#if !defined(WITH_STATIC_CLASSPATH)
 static utf *native_make_overloaded_function(utf *name, utf *descriptor)
 {
 	char *newname;
@@ -680,63 +659,6 @@ hashtable_library_name_entry *native_library_find(utf *filename,
 
 	return ne;
 }
-#endif /* !defined(WITH_STATIC_CLASSPATH) */
-
-
-/* native_findfunction *********************************************************
-
-   Looks up a method (must have the same class name, method name,
-   descriptor and 'static'ness) and returns a function pointer to it.
-   Returns: function pointer or NULL (if there is no such method)
-
-   Remark: For faster operation, the names/descriptors are converted
-   from C strings to Unicode the first time this function is called.
-
-*******************************************************************************/
-
-#if defined(WITH_STATIC_CLASSPATH)
-functionptr native_findfunction(utf *cname, utf *mname, utf *desc,
-								bool isstatic)
-{
-	/* entry of table for fast string comparison */
-	struct nativecompref *n;
-	s4 i;
-
-	isstatic = isstatic ? true : false;
-	
-	if (!nativecompdone) {
-		for (i = 0; i < NATIVETABLESIZE; i++) {
-			nativecomptable[i].classname  = 
-				utf_new_char(nativetable[i].classname);
-
-			nativecomptable[i].methodname = 
-				utf_new_char(nativetable[i].methodname);
-
-			nativecomptable[i].descriptor =
-				utf_new_char(nativetable[i].descriptor);
-
-			nativecomptable[i].isstatic   = nativetable[i].isstatic;
-			nativecomptable[i].func       = nativetable[i].func;
-		}
-
-		nativecompdone = true;
-	}
-
-	for (i = 0; i < NATIVETABLESIZE; i++) {
-		n = &(nativecomptable[i]);
-
-		if (cname == n->classname && mname == n->methodname &&
-		    desc == n->descriptor && isstatic == n->isstatic)
-			return n->func;
-	}
-
-	/* no function was found, throw exception */
-
-	exceptions_throw_unsatisfiedlinkerror(mname);
-
-	return NULL;
-}
-#endif /* defined(WITH_STATIC_CLASSPATH) */
 
 
 /* native_resolve_function *****************************************************
@@ -879,7 +801,7 @@ functionptr native_resolve_function(methodinfo *m)
 
 	return f;
 }
-#endif /* !defined(WITH_STATIC_CLASSPATH) */
+#endif
 
 
 /* native_new_and_init *********************************************************

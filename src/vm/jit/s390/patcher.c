@@ -530,7 +530,6 @@ bool patcher_athrow_areturn(patchref_t *pr)
 
 *******************************************************************************/
 
-#if !defined(WITH_STATIC_CLASSPATH)
 bool patcher_resolve_native_function(patchref_t *pr)
 {
 	methodinfo  *m;
@@ -557,7 +556,7 @@ bool patcher_resolve_native_function(patchref_t *pr)
 
 	return true;
 }
-#endif /* !defined(WITH_STATIC_CLASSPATH) */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

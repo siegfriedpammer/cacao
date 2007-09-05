@@ -122,21 +122,6 @@ ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	java_security_VMAccessController.h
 endif
 
-ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES = \
-	java_net_DatagramPacket.h \
-	java_net_InetAddress.h \
-	\
-	gnu_java_net_PlainDatagramSocketImpl.h \
-	gnu_java_net_PlainSocketImpl.h \
-	gnu_java_nio_PipeImpl.h \
-	gnu_java_nio_channels_FileChannelImpl.h \
-	gnu_java_nio_charset_iconv_IconvEncoder.h \
-	gnu_java_nio_charset_iconv_IconvDecoder.h \
-	java_lang_VMProcess.h \
-	java_net_SocketImpl.h \
-	java_nio_MappedByteBufferImpl.h \
-	java_nio_channels_spi_SelectorProvider.h
-
 CLEANFILES = \
 	*.h
 
@@ -157,11 +142,6 @@ endif
 if ENABLE_JVMTI
 DO_HEADER_FILES += \
 	$(GEN_JVMTI_HEADER_FILES)
-endif
-
-if WITH_STATIC_CLASSPATH
-DO_HEADER_FILES += \
-	$(ADDITIONAL_STATIC_CLASSPATH_HEADER_FILES)
 endif
 
 if WITH_CLASSPATH_GNU

@@ -920,7 +920,6 @@ bool patcher_athrow_areturn(u1 *sp)
 
 *******************************************************************************/
 
-#if !defined(WITH_STATIC_CLASSPATH)
 bool patcher_resolve_native(u1 *sp)
 {
 	u1          *ra;
@@ -954,7 +953,6 @@ bool patcher_resolve_native(u1 *sp)
 
 	return true;
 }
-#endif /* !defined(WITH_STATIC_CLASSPATH) */
 
 
 /*

@@ -1290,14 +1290,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	if (m->flags & ACC_NATIVE) {
 		functionptr f;
 
-#if defined(WITH_STATIC_CLASSPATH)
-		f = native_findfunction(m->class->name,	m->name, m->descriptor,
-								(m->flags & ACC_STATIC));
-		if (f == NULL)
-			return NULL;
-#else
 		f = NULL;
-#endif
 
 		code = codegen_generate_stub_native(m, f);
 

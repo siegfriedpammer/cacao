@@ -67,7 +67,7 @@ static JavaVMInitArgs *cacao_options_prepare(int argc, char **argv);
 
 int main(int argc, char **argv)
 {
-#if defined(ENABLE_LIBJVM) && !defined(WITH_STATIC_CLASSPATH)
+#if defined(ENABLE_LIBJVM)
 	char           *path;
 #endif
 
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 	
 	/* load and initialize a Java VM, return a JNI interface pointer in env */
 
-#if defined(ENABLE_LIBJVM) && !defined(WITH_STATIC_CLASSPATH)
+#if defined(ENABLE_LIBJVM)
 # if defined(WITH_JRE_LAYOUT)
 	/* SUN also uses a buffer of 4096-bytes (strace is your friend). */
 
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 	if (jvmti) jvmti_set_phase(JVMTI_PHASE_START);
 #endif
 
-#if !defined(WITH_STATIC_CLASSPATH) && defined(ENABLE_LIBJVM)
+#if defined(ENABLE_LIBJVM)
 	if (!(libjvm_vm_run = lt_dlsym(libjvm_handle, "vm_run"))) {
 		fprintf(stderr, "lt_dlsym failed: %s\n", lt_dlerror());
 		abort();

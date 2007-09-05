@@ -3570,10 +3570,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	disp = dseg_add_functionptr(cd, f);
 
-#if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL)
 		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, disp);
-#endif
 
 	M_ILD_DSEG(REG_ITMP1, disp);
 

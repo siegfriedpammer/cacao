@@ -632,7 +632,6 @@ bool patcher_checkcast_interface(u1 *sp)
 
 *******************************************************************************/
 
-#if !defined(WITH_STATIC_CLASSPATH)
 bool patcher_resolve_native_function(u1 *sp)
 {
 	methodinfo  *m;
@@ -659,7 +658,6 @@ bool patcher_resolve_native_function(u1 *sp)
 
 	return true;
 }
-#endif /* !defined(WITH_STATIC_CLASSPATH) */
 
 
 /* patcher_invokeinterface *****************************************************

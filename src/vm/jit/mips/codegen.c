@@ -3702,10 +3702,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	funcdisp = dseg_add_functionptr(cd, f);
 
-#if !defined(WITH_STATIC_CLASSPATH)
 	if (f == NULL)
 		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, funcdisp);
-#endif
 
 	/* save integer and float argument registers */
 

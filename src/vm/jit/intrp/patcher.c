@@ -350,7 +350,6 @@ bool intrp_patcher_checkcast_instanceof(u1 *sp)
 
 *******************************************************************************/
 
-#if !defined(WITH_STATIC_CLASSPATH)
 bool intrp_patcher_resolve_native(u1 *sp)
 {
 	ptrint      *ip;
@@ -371,7 +370,6 @@ bool intrp_patcher_resolve_native(u1 *sp)
 
 	return true;
 }
-#endif /* !defined(WITH_STATIC_CLASSPATH) */
 
 
 /*

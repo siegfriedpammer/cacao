@@ -109,10 +109,8 @@ bool patcher_resolve_classref_to_vftbl(u1 *sp);
 bool patcher_resolve_classref_to_flags(u1 *sp);
 #define PATCHER_resolve_classref_to_flags (functionptr) patcher_resolve_classref_to_flags
 
-#if !defined(WITH_STATIC_CLASSPATH)
 bool patcher_resolve_native_function(u1 *sp);
 #define PATCHER_resolve_native_function (functionptr) patcher_resolve_native_function
-#endif
 
 
 bool patcher_get_putstatic(u1 *sp);
@@ -197,10 +195,8 @@ bool patcher_clinit(u1 *sp);
 bool patcher_athrow_areturn(u1 *sp);
 #define PATCHER_athrow_areturn (functionptr) patcher_athrow_areturn
 
-#if !defined(WITH_STATIC_CLASSPATH)
 bool patcher_resolve_native(u1 *sp);
 #define PATCHER_resolve_native (functionptr) patcher_resolve_native
-#endif
 
 
 /* stuff for the interpreter **************************************************/

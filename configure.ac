@@ -349,15 +349,13 @@ AC_DEFINE_UNQUOTED([CACAO_LIBDIR], "${CACAO_LIBDIR}", [library installation pref
 AC_SUBST(CACAO_LIBDIR)
 
 
-dnl Features
+AC_CHECK_ENABLE_LTDL
 
 AC_CHECK_ENABLE_JAVA
 AC_CHECK_ENABLE_JIT
 
-dnl with-options
 AC_CHECK_WITH_CACAOH
 
-dnl check for stuff that should be done in software
 AC_CHECK_SOFTFLOAT
 AC_CHECK_SOFT_FLOAT_CMP
 AC_CHECK_SOFT_DOUBLE_CMP
@@ -872,29 +870,6 @@ AC_CHECK_WITH_CLASSPATH_INCLUDEDIR
 AC_CHECK_WITH_JRE_LAYOUT
 
 
-dnl check if GNU Classpath should be linked statically into CACAO
-AC_MSG_CHECKING(whether to link GNU Classpath native libraries statically into CACAO)
-AC_ARG_WITH([static-classpath],
-            [AS_HELP_STRING(--with-static-classpath,link GNU classpath native libraries statically into CACAO [[default=no]])],
-            [case "${enableval}" in
-                yes) WITH_STATIC_CLASSPATH=yes;;
-                *) WITH_STATIC_CLASSPATH=no;;
-             esac],
-            [WITH_STATIC_CLASSPATH=no])
-AC_MSG_RESULT(${WITH_STATIC_CLASSPATH})
-
-if test x"${WITH_STATIC_CLASSPATH}" = "xyes"; then
-    AC_DEFINE([WITH_STATIC_CLASSPATH], 1, [link GNU classpath native libraries statically into CACAO])
-
-    dnl check for some classpath related stuff when we link statically
-    AM_ICONV_LINK
-else
-    AC_CHECK_ENABLE_LTDL
-fi
-AM_CONDITIONAL([WITH_STATIC_CLASSPATH], test x"${WITH_STATIC_CLASSPATH}" = "xyes")
-AC_SUBST(WITH_STATIC_CLASSPATH)
-
-
 dnl check for some programs we need
 
 case "${WITH_CLASSPATH}" in
@@ -950,7 +925,6 @@ AC_CONFIG_FILES([Makefile]
 		[src/native/Makefile]
 		[src/native/include/Makefile]
 		[src/native/jvmti/Makefile]
-		[src/native/tools/Makefile]
 		[src/native/vm/Makefile]
 		[src/native/vm/cldc1.1/Makefile]
 		[src/native/vm/gnu/Makefile]
