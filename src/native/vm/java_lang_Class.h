@@ -67,7 +67,6 @@ s4                             _Jv_java_lang_Class_isPrimitive(java_lang_Class *
 java_lang_Class               *_Jv_java_lang_Class_getSuperclass(java_lang_Class *klass);
 java_handle_objectarray_t     *_Jv_java_lang_Class_getInterfaces(java_lang_Class *klass);
 s4                             _Jv_java_lang_Class_getModifiers(java_lang_Class *klass, s4 ignoreInnerClassesAttrib);
-java_lang_Class               *_Jv_java_lang_Class_getDeclaringClass(java_lang_Class *klass);
 java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass, s4 publicOnly);
 java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, s4 publicOnly);
 java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass, s4 publicOnly);

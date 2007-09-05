@@ -212,7 +212,14 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, jclass cla
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	return _Jv_java_lang_Class_getDeclaringClass(klass);
+	classinfo *c;
+	classinfo *dc;
+
+	c = LLNI_classinfo_unwrap(klass);
+
+	dc = class_get_declaringclass(c);
+
+	return LLNI_classinfo_wrap(dc);
 }
 
 

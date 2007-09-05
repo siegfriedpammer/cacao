@@ -361,24 +361,6 @@ s4 _Jv_java_lang_Class_getModifiers(java_lang_Class *klass, s4 ignoreInnerClasse
 
 /*
  * Class:     java/lang/Class
- * Method:    getDeclaringClass
- * Signature: ()Ljava/lang/Class;
- */
-java_lang_Class *_Jv_java_lang_Class_getDeclaringClass(java_lang_Class *klass)
-{
-	classinfo *c;
-	classinfo *dc;
-
-	c = LLNI_classinfo_unwrap(klass);
-
-	dc = class_get_declaringclass(c);
-
-	return LLNI_classinfo_wrap(dc);
-}
-
-
-/*
- * Class:     java/lang/Class
  * Method:    getDeclaredClasses
  * Signature: (Z)[Ljava/lang/Class;
  */
