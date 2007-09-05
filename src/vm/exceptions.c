@@ -1772,8 +1772,10 @@ java_handle_t *exceptions_fillinstacktrace(void)
 *******************************************************************************/
 
 #if defined(ENABLE_JIT)
-u1 *exceptions_handle_exception(java_object_t *xptr, u1 *xpc, u1 *pv, u1 *sp)
+u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 {
+	stackframeinfo         sfi;
+	java_handle_t         *xptr;
 	methodinfo            *m;
 	codeinfo              *code;
 	s4                     issync;
@@ -1785,6 +1787,7 @@ u1 *exceptions_handle_exception(java_object_t *xptr, u1 *xpc, u1 *pv, u1 *sp)
 #if defined(ENABLE_THREADS)
 	java_object_t         *o;
 #endif
+	u1                    *result;
 
 #ifdef __S390__
 	/* Addresses are 31 bit integers */
@@ -1793,7 +1796,14 @@ u1 *exceptions_handle_exception(java_object_t *xptr, u1 *xpc, u1 *pv, u1 *sp)
 #	define ADDR_MASK(x) (x)
 #endif
 
-	xpc = ADDR_MASK(xpc);
+	xptr = LLNI_WRAP(xptro);
+	xpc  = ADDR_MASK(xpc);
+
+	/* create the stackframeinfo (XPC is equal to RA) */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, xpc, xpc);
+
+	result = NULL;
 
 	/* get info from the method header */
 
@@ -1811,7 +1821,7 @@ u1 *exceptions_handle_exception(java_object_t *xptr, u1 *xpc, u1 *pv, u1 *sp)
 	/* print exception trace */
 
 	if (opt_TraceExceptions)
-		trace_exception(xptr, m, xpc);
+		trace_exception(LLNI_DIRECT(xptr), m, xpc);
 
 # if defined(ENABLE_VMLOG)
 	vmlog_cacao_throw(xptr);
@@ -1828,8 +1838,10 @@ u1 *exceptions_handle_exception(java_object_t *xptr, u1 *xpc, u1 *pv, u1 *sp)
 		   special case of asm_vm_call_method.  So, just return the
 		   proper exception handler. */
 
-		if ((ex->startpc == NULL) && (ex->endpc == NULL))
-			return (u1 *) (ptrint) &asm_vm_call_method_exception_handler;
+		if ((ex->startpc == NULL) && (ex->endpc == NULL)) {
+			result = (u1 *) (ptrint) &asm_vm_call_method_exception_handler;
+			goto exceptions_handle_exception_return;
+		}
 
 		/* is the xpc is the current catch range */
 
@@ -1852,7 +1864,8 @@ u1 *exceptions_handle_exception(java_object_t *xptr, u1 *xpc, u1 *pv, u1 *sp)
 				}
 #endif
 
-				return ex->handlerpc;
+				result = ex->handlerpc;
+				goto exceptions_handle_exception_return;
 			}
 
 			/* resolve or load/link the exception class */
@@ -1871,7 +1884,7 @@ u1 *exceptions_handle_exception(java_object_t *xptr, u1 *xpc, u1 *pv, u1 *sp)
 
 				if (c == NULL) {
 					/* Exception resolving the exception class, argh! */
-					return NULL;
+					goto exceptions_handle_exception_return;
 				}
 
 				/* Ok, we resolved it. Enter it in the table, so we don't */
@@ -1887,14 +1900,14 @@ u1 *exceptions_handle_exception(java_object_t *xptr, u1 *xpc, u1 *pv, u1 *sp)
 					/* use the methods' classloader */
 					if (!load_class_from_classloader(c->name,
 													 m->class->classloader))
-						return NULL;
+						goto exceptions_handle_exception_return;
 
 				/* XXX I think, if it is not linked, we can be sure that     */
 				/* the exception object is no (indirect) instance of it, no? */
 				/* -Edwin                                                    */
 				if (!(c->state & CLASS_LINKED))
 					if (!link_class(c))
-						return NULL;
+						goto exceptions_handle_exception_return;
 			}
 
 			/* is the thrown exception an instance of the catch class? */
@@ -1913,7 +1926,8 @@ u1 *exceptions_handle_exception(java_object_t *xptr, u1 *xpc, u1 *pv, u1 *sp)
 				}
 #endif
 
-				return ex->handlerpc;
+				result = ex->handlerpc;
+				goto exceptions_handle_exception_return;
 			}
 		}
 	}
@@ -1962,7 +1976,15 @@ u1 *exceptions_handle_exception(java_object_t *xptr, u1 *xpc, u1 *pv, u1 *sp)
 # endif
 #endif /* !defined(NDEBUG) */
 
-	return NULL;
+	result = NULL;
+
+exceptions_handle_exception_return:
+
+	/* remove the stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	return result;
 }
 #endif /* defined(ENABLE_JIT) */
 
