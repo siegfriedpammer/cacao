@@ -2911,10 +2911,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	if (md->returntype.type != TYPE_VOID) {
 		if (IS_INT_LNG_TYPE(md->returntype.type)) {
-			M_LST(REG_RESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
+			M_LST(REG_RESULT, REG_SP, LA_SIZE + PA_SIZE + 2 * 8);
 		}
 		else {
-			M_DST(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
+			M_DST(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 2 * 8);
 		}
 	}
 
@@ -2928,7 +2928,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* remove native stackframe info */
 
-	M_AADD_IMM(REG_SP, cd->stackframesize * 8, REG_A0);
+	M_MOV(REG_SP, REG_A0);
+	M_MOV(REG_PV, REG_A1);
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_ALD(REG_ITMP1, REG_ITMP1, 0);	/* XXX what about TOC? */
@@ -2940,13 +2941,13 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	if (md->returntype.type != TYPE_VOID) {
 		if (IS_INT_LNG_TYPE(md->returntype.type)) {
-			M_LLD(REG_RESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
+			M_LLD(REG_RESULT, REG_SP, LA_SIZE + PA_SIZE + 2 * 8);
 		}
 		else {
 /*			if (IS_2_WORD_TYPE(md->returntype.type)) */
-				M_DLD(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8);
+				M_DLD(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 2 * 8);
 /*			else
-				M_FLD(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 1 * 8); F XXX
+				M_FLD(REG_FRESULT, REG_SP, LA_SIZE + PA_SIZE + 2 * 8); F XXX
 				*/
 		}
 	}

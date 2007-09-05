@@ -1544,14 +1544,12 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 
 	code      = *((codeinfo **) (pv + CodeinfoPointer));
 	framesize = *((int32_t *)   (pv + FrameSize));
-
 	assert(code);
 	assert(framesize > sizeof(stackframeinfo) + sizeof(localref_table));
 
 	/* get the methodinfo */
 
 	m = code->m;
-
 	assert(m);
 
 	/* calculate needed values */
@@ -1633,11 +1631,59 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 
 *******************************************************************************/
 
-java_object_t *codegen_finish_native_call(u1 *datasp)
+java_object_t *codegen_finish_native_call(u1 *currentsp, u1 *pv)
 {
 	stackframeinfo *sfi;
 	java_handle_t  *e;
 	java_object_t  *o;
+	codeinfo       *code;
+	methodinfo     *m;
+	int32_t         framesize;
+
+	uint8_t  *datasp;
+	uint64_t *ret_regs;
+
+	/* get information from method header */
+
+	code      = *((codeinfo **) (pv + CodeinfoPointer));
+	framesize = *((int32_t *)   (pv + FrameSize));
+	assert(code);
+
+	/* get the methodinfo */
+
+	m = code->m;
+	assert(m);
+
+	/* calculate needed values */
+
+#if defined(__ALPHA__) || defined(__ARM__)
+	datasp   = currentsp + framesize - SIZEOF_VOID_P;
+	ret_regs = (uint64_t *) currentsp;
+#elif defined(__MIPS__) || defined(__S390__)
+	/* MIPS and S390 always uses 8 bytes to store the RA */
+	datasp   = currentsp + framesize - 8;
+#elif defined(__I386__)
+	datasp   = currentsp + framesize;
+	ret_regs = (uint64_t *) (currentsp + 2 * SIZEOF_VOID_P);
+#elif defined (__M68K__) || defined (__X86_64__)
+	datasp   = currentsp + framesize;
+	ret_regs = (uint64_t *) currentsp;
+#elif defined(__POWERPC__) || defined(__POWERPC64__)
+	datasp   = currentsp + framesize;
+	ret_regs = (uint64_t *) (currentsp + LA_SIZE + 2 * SIZEOF_VOID_P);
+#else
+	vm_abort("codegen_finish_native_call: unsupported architecture");
+#endif
+
+
+#if !defined(NDEBUG)
+# if defined(__POWERPC__)
+	/* print the call-trace if necesarry */
+
+	if (opt_TraceJavaCalls)
+		trace_java_call_exit(m, ret_regs);
+# endif
+#endif
 
 	/* get data structures from stack */
 
@@ -1646,6 +1692,8 @@ java_object_t *codegen_finish_native_call(u1 *datasp)
 	/* remove current stackframeinfo from chain */
 
 	stacktrace_remove_stackframeinfo(sfi);
+
+	/* XXX unfill lrt here!!! */
 
 	/* get and unwrap the exception */
 	/* ATTENTION: do the this _after_ the stackframeinfo was

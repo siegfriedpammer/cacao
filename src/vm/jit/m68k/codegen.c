@@ -2692,7 +2692,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		case TYPE_FLT:
 		case TYPE_INT:
 		case TYPE_ADR:
-			M_IST(REG_D0, REG_SP, 1 * 4);
+			M_IST(REG_D0, REG_SP, 2 * 4);
 			break;
 
 		default: assert(0);
@@ -2707,9 +2707,14 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* remove native stackframe info */
 	/* therefore we call: java_objectheader *codegen_finish_native_call(u1 *datasp) */
 
-	M_AMOV(REG_SP, REG_ATMP3);
-	M_AADD_IMM(cd->stackframesize * 4, REG_ATMP3);
-	M_AST(REG_ATMP3, REG_SP, 0 * 4);			/* datasp */
+	M_AMOV(REG_SP, REG_ATMP1);
+	M_AST(REG_ATMP1, REG_SP, 0 * 4);		/* currentsp */
+
+	M_AMOV_IMM(0, REG_ATMP2);			/* 0 needs to patched */
+	dseg_adddata(cd);				    /* this patches it */
+
+	M_AST(REG_ATMP2, REG_SP, 1 * 4);		/* pv */
+
 	M_JSR_IMM(codegen_finish_native_call);
 	
 	M_INT2ADRMOVE(REG_RESULT, REG_ATMP1);
@@ -2724,7 +2729,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		case TYPE_FLT:
 		case TYPE_INT:
 		case TYPE_ADR:
-			M_ILD(REG_D0, REG_SP, 1 * 4);
+			M_ILD(REG_D0, REG_SP, 2 * 4);
 			break;
 
 		default: assert(0);
@@ -2734,10 +2739,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		 * as cacao jit code expects them there */
 	switch (md->returntype.type)	{
 		case TYPE_FLT:
-			M_FLD(REG_D0, REG_SP, 1 * 4);
+			M_FLD(REG_D0, REG_SP, 2 * 4);
 			break;
 		case TYPE_DBL:	
-			M_DLD(REG_D0, REG_SP, 1 * 4);
+			M_DLD(REG_D0, REG_SP, 2 * 4);
 			break;
 	}
 #endif

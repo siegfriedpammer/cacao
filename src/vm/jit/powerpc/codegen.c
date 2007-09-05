@@ -3317,23 +3317,19 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	M_MTCTR(REG_ITMP3);
 	M_JSR;
 
-	/* print call trace */
-
-	emit_verbosecall_exit(jd);
-
 	/* save return value */
 
 	switch (md->returntype.type) {
 	case TYPE_INT:
 	case TYPE_ADR:
-		M_IST(REG_RESULT, REG_SP, LA_SIZE + 1 * 8);
+		M_IST(REG_RESULT, REG_SP, LA_SIZE + 2 * 4);
 		break;
 	case TYPE_LNG:
-		M_LST(REG_RESULT_PACKED, REG_SP, LA_SIZE + 1 * 8);
+		M_LST(REG_RESULT_PACKED, REG_SP, LA_SIZE + 2 * 4);
 		break;
 	case TYPE_FLT:
 	case TYPE_DBL:
-		M_DST(REG_FRESULT, REG_SP, LA_SIZE + 1 * 8);
+		M_DST(REG_FRESULT, REG_SP, LA_SIZE + 2 * 4);
 		break;
 	case TYPE_VOID:
 		break;
@@ -3341,7 +3337,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* remove native stackframe info */
 
-	M_AADD_IMM(REG_SP, cd->stackframesize * 8, REG_A0);
+	M_MOV(REG_SP, REG_A0);
+	M_MOV(REG_PV, REG_A1);
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_MTCTR(REG_ITMP1);
@@ -3353,14 +3350,14 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	switch (md->returntype.type) {
 	case TYPE_INT:
 	case TYPE_ADR:
-		M_ILD(REG_RESULT, REG_SP, LA_SIZE + 1 * 8);
+		M_ILD(REG_RESULT, REG_SP, LA_SIZE + 2 * 4);
 		break;
 	case TYPE_LNG:
-		M_LLD(REG_RESULT_PACKED, REG_SP, LA_SIZE + 1 * 8);
+		M_LLD(REG_RESULT_PACKED, REG_SP, LA_SIZE + 2 * 4);
 		break;
 	case TYPE_FLT:
 	case TYPE_DBL:
-		M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 1 * 8);
+		M_DLD(REG_FRESULT, REG_SP, LA_SIZE + 2 * 4);
 		break;
 	case TYPE_VOID:
 		break;

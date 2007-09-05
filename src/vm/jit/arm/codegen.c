@@ -3252,7 +3252,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	M_STMFD(BITMASK_RESULT, REG_SP);
 
-	M_ADD_IMM(REG_A0, REG_SP, 2*4 + cd->stackframesize - SIZEOF_VOID_P);
+	M_ADD_IMM(REG_A0, REG_SP, 2*4);
+	M_MOV(REG_A1, REG_PV);
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_DSEG_BRANCH(disp);
 	s1 = (s4) (cd->mcodeptr - cd->mcodebase);

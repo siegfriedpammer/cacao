@@ -3767,7 +3767,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* remove native stackframe info */
 
-	N_LAE(REG_A0, (cd->stackframesize - 1) * 8, RN, REG_SP); /* datasp */
+	N_MOV(REG_SP, REG_A0); /* currentsp */
+	N_LA(REG_A1, -N_PV_OFFSET, RN, REG_PV); /* pv */
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_ALD_DSEG(REG_ITMP1, disp);
 	M_CALL(REG_ITMP1);
