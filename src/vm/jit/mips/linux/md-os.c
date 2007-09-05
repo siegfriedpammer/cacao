@@ -39,6 +39,7 @@
 #include "vm/jit/mips/md-abi.h"
 
 #include "mm/gc-common.h"
+#include "mm/memory.h"
 
 #include "vm/signallocal.h"
 
@@ -54,11 +55,12 @@
 
 void md_init(void)
 {
-	/* The Boehm GC initialization blocks the SIGSEGV signal. So we do a      */
-	/* dummy allocation here to ensure that the GC is initialized.            */
+	/* The Boehm GC initialization blocks the SIGSEGV signal. So we do
+	   a dummy allocation here to ensure that the GC is
+	   initialized. */
 
 #if defined(ENABLE_GC_BOEHM)
-	(void) GCNEW(u1);
+	(void) GCNEW(int);
 #endif
 
 #if 0
