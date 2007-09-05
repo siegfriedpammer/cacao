@@ -102,7 +102,7 @@
 /* XXX document me */
 
 #define LLNI_objectarray_element_set(arr, index, reference) \
-	LLNI_array_direct(arr, index) = LLNI_DIRECT(reference)
+	LLNI_array_direct(arr, index) = (java_object_t *) LLNI_DIRECT(reference)
 
 #define LLNI_objectarray_element_get(arr, index, variable) \
 	(variable) = LLNI_WRAP(LLNI_array_direct(arr, index))
@@ -121,8 +121,8 @@
 # define LLNI_UNWRAP(hdl) ((hdl) == NULL ? NULL : (hdl)->heap_object)
 # define LLNI_DIRECT(obj) ((obj)->heap_object)
 #else
-# define LLNI_WRAP(obj)   ((java_handle_t *) obj)
-# define LLNI_UNWRAP(hdl) ((java_object_t *) hdl)
+# define LLNI_WRAP(obj)   (obj)
+# define LLNI_UNWRAP(hdl) (hdl)
 # define LLNI_DIRECT(obj) (obj)
 #endif
 
