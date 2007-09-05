@@ -40,7 +40,9 @@
 
 #include "native/include/java_lang_Object.h"
 
-#include "native/vm/java_lang_Object.h"
+#include "threads/lock-common.h"
+
+#include "vm/exceptions.h"
 
 
 /* native methods implemented by this file ************************************/
@@ -77,15 +79,14 @@ void _Jv_java_lang_Object_init(void)
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_Object_getClass(JNIEnv *env, java_lang_Object *obj)
 {
-	java_handle_t *o;
-	classinfo     *c;
+	classinfo *c;
 
-	o = (java_handle_t *) obj;
-
-	if (o == NULL)
+	if (obj == NULL) {
+		exceptions_throw_nullpointerexception();
 		return NULL;
+	}
 
-	c = o->vftbl->class;
+	LLNI_class_get(obj, c);
 
 	return LLNI_classinfo_wrap(c);
 }
@@ -96,12 +97,12 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_Object_getClass(JNIEnv *env, j
  * Method:    hashCode
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Object_hashCode(JNIEnv *env, java_lang_Object *this)
+JNIEXPORT int32_t JNICALL Java_java_lang_Object_hashCode(JNIEnv *env, java_lang_Object *this)
 {
 #if defined(ENABLE_GC_CACAO)
 	assert(0);
 #else
-	return (s4) ((ptrint) this);
+	return (int32_t) ((intptr_t) this);
 #endif
 }
 
@@ -113,7 +114,11 @@ JNIEXPORT s4 JNICALL Java_java_lang_Object_hashCode(JNIEnv *env, java_lang_Objec
  */
 JNIEXPORT void JNICALL Java_java_lang_Object_notify(JNIEnv *env, java_lang_Object *this)
 {
-	_Jv_java_lang_Object_notify(this);
+#if defined(ENABLE_THREADS)
+	LLNI_CRITICAL_START;
+	lock_notify_object((java_object_t *) LLNI_DIRECT(this));
+	LLNI_CRITICAL_END;
+#endif
 }
 
 
@@ -124,7 +129,11 @@ JNIEXPORT void JNICALL Java_java_lang_Object_notify(JNIEnv *env, java_lang_Objec
  */
 JNIEXPORT void JNICALL Java_java_lang_Object_notifyAll(JNIEnv *env, java_lang_Object *this)
 {
-	_Jv_java_lang_Object_notifyAll(this);
+#if defined(ENABLE_THREADS)
+	LLNI_CRITICAL_START;
+	lock_notify_all_object((java_object_t *) LLNI_DIRECT(this));
+	LLNI_CRITICAL_END;
+#endif
 }
 
 
@@ -135,7 +144,22 @@ JNIEXPORT void JNICALL Java_java_lang_Object_notifyAll(JNIEnv *env, java_lang_Ob
  */
 JNIEXPORT void JNICALL Java_java_lang_Object_wait(JNIEnv *env, java_lang_Object *this, s8 timeout)
 {
-	_Jv_java_lang_Object_wait(this, timeout, 0);
+#if defined(ENABLE_JVMTI)
+	/* Monitor Wait */
+	if (jvmti) jvmti_MonitorWaiting(true, this, timeout);
+#endif
+
+#if defined(ENABLE_THREADS)
+	LLNI_CRITICAL_START;
+	lock_wait_for_object((java_object_t *) LLNI_DIRECT(this), timeout, 0);
+	LLNI_CRITICAL_END;
+#endif
+
+#if defined(ENABLE_JVMTI)
+	/* Monitor Waited */
+	/* XXX: How do you know if wait timed out ?*/
+	if (jvmti) jvmti_MonitorWaiting(false, this, 0);
+#endif
 }
 
 

@@ -75,7 +75,6 @@
 
 #include "native/vm/java_lang_Class.h"
 #include "native/vm/java_lang_ClassLoader.h"
-#include "native/vm/java_lang_Object.h"
 #include "native/vm/java_lang_Runtime.h"
 #include "native/vm/java_lang_Thread.h"
 #include "native/vm/java_lang_reflect_Constructor.h"
@@ -507,10 +506,24 @@ jint JVM_IHashCode(JNIEnv* env, jobject handle)
 
 void JVM_MonitorWait(JNIEnv* env, jobject handle, jlong ms)
 {
-#if PRINTJVM
-	log_println("JVM_MonitorWait: handle=%p, ms=%ld", handle, ms);
+#if defined(ENABLE_THREADS)
+	java_handle_t *o;
 #endif
-	_Jv_java_lang_Object_wait((java_lang_Object *) handle, ms, 0);
+
+	TRACEJVMCALLS("JVM_MonitorWait(env=%p, handle=%p, ms=%ld)", env, handle, ms);
+    if (ms < 0) {
+/* 		exceptions_throw_illegalargumentexception("argument out of range"); */
+		exceptions_throw_illegalargumentexception();
+		return;
+	}
+
+#if defined(ENABLE_THREADS)
+	o = (java_handle_t *) handle;
+
+	LLNI_CRITICAL_START;
+	lock_wait_for_object(LLNI_DIRECT(o), ms, 0);
+	LLNI_CRITICAL_END;
+#endif
 }
 
 
@@ -518,10 +531,19 @@ void JVM_MonitorWait(JNIEnv* env, jobject handle, jlong ms)
 
 void JVM_MonitorNotify(JNIEnv* env, jobject handle)
 {
-#if PRINTJVM
-	log_println("JVM_MonitorNotify: IMPLEMENT ME!");
+#if defined(ENABLE_THREADS)
+	java_handle_t *o;
 #endif
-	_Jv_java_lang_Object_notify((java_lang_Object *) handle);
+
+	TRACEJVMCALLS("JVM_MonitorNotify(env=%p, handle=%p)", env, handle);
+
+#if defined(ENABLE_THREADS)
+	o = (java_handle_t *) handle;
+
+	LLNI_CRITICAL_START;
+	lock_notify_object(LLNI_DIRECT(o));
+	LLNI_CRITICAL_END;
+#endif
 }
 
 
@@ -529,10 +551,19 @@ void JVM_MonitorNotify(JNIEnv* env, jobject handle)
 
 void JVM_MonitorNotifyAll(JNIEnv* env, jobject handle)
 {
-#if PRINTJVM
-	log_println("JVM_MonitorNotifyAll: handle=%p", handle);
+#if defined(ENABLE_THREADS)
+	java_handle_t *o;
 #endif
-	_Jv_java_lang_Object_notifyAll((java_lang_Object *) handle);
+
+	TRACEJVMCALLS("JVM_MonitorNotifyAll(env=%p, handle=%p)", env, handle);
+
+#if defined(ENABLE_THREADS)
+	o = (java_handle_t *) handle;
+
+	LLNI_CRITICAL_START;
+	lock_notify_all_object(LLNI_DIRECT(o));
+	LLNI_CRITICAL_END;
+#endif
 }
 
 

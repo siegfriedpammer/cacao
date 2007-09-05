@@ -30,6 +30,7 @@
 #include <stdint.h>
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_Class.h"            /* required by j.l.VMO */
@@ -38,7 +39,10 @@
 
 #include "native/include/java_lang_VMObject.h"
 
-#include "native/vm/java_lang_Object.h"
+#include "threads/lock-common.h"
+
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
 
 #include "vmcore/utf8.h"
 
@@ -77,7 +81,16 @@ void _Jv_java_lang_VMObject_init(void)
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMObject_getClass(JNIEnv *env, jclass clazz, java_lang_Object *obj)
 {
-	return _Jv_java_lang_Object_getClass(obj);
+	classinfo *c;
+
+	if (obj == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	LLNI_class_get(obj, c);
+
+	return LLNI_classinfo_wrap(c);
 }
 
 
@@ -88,7 +101,14 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMObject_getClass(JNIEnv *env,
  */
 JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, jclass clazz, java_lang_Cloneable *this)
 {
-	return _Jv_java_lang_Object_clone(this);
+	java_handle_t *o;
+	java_handle_t *co;
+
+	o = (java_handle_t *) this;
+
+	co = builtin_clone(NULL, o);
+
+	return (java_lang_Object *) co;
 }
 
 
@@ -99,7 +119,11 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
  */
 JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz, java_lang_Object *this)
 {
-	_Jv_java_lang_Object_notify(this);
+#if defined(ENABLE_THREADS)
+	LLNI_CRITICAL_START;
+	lock_notify_object((java_object_t *) LLNI_DIRECT(this));
+	LLNI_CRITICAL_END;
+#endif
 }
 
 
@@ -110,7 +134,11 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz,
  */
 JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass clazz, java_lang_Object *this)
 {
-	_Jv_java_lang_Object_notifyAll(this);
+#if defined(ENABLE_THREADS)
+	LLNI_CRITICAL_START;
+	lock_notify_all_object((java_object_t *) LLNI_DIRECT(this));
+	LLNI_CRITICAL_END;
+#endif
 }
 
 
@@ -121,7 +149,22 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass cla
  */
 JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, java_lang_Object *o, int64_t ms, int32_t ns)
 {
-	_Jv_java_lang_Object_wait(o, ms, ns);
+#if defined(ENABLE_JVMTI)
+	/* Monitor Wait */
+	if (jvmti) jvmti_MonitorWaiting(true, o, ms);
+#endif
+
+#if defined(ENABLE_THREADS)
+	LLNI_CRITICAL_START;
+	lock_wait_for_object((java_object_t *) LLNI_DIRECT(o), ms, ns);
+	LLNI_CRITICAL_END;
+#endif
+
+#if defined(ENABLE_JVMTI)
+	/* Monitor Waited */
+	/* XXX: How do you know if wait timed out ?*/
+	if (jvmti) jvmti_MonitorWaiting(false, o, 0);
+#endif
 }
 
 
