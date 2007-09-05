@@ -52,6 +52,7 @@
 #include "toolbox/logging.h"
 
 #include "vm/vm.h"
+#include "vm/exceptions.h"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
 
@@ -116,6 +117,7 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_sun_reflect_ConstantPool_getClass
 		cls, index, CONSTANT_Class);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 
@@ -138,6 +140,7 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_sun_reflect_ConstantPool_getClass
 		cls, index, CONSTANT_Class);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 	
@@ -167,6 +170,7 @@ JNIEXPORT struct java_lang_reflect_Member* JNICALL Java_sun_reflect_ConstantPool
 		cls, index, CONSTANT_Methodref);
 	
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 
@@ -190,6 +194,7 @@ JNIEXPORT struct java_lang_reflect_Member* JNICALL Java_sun_reflect_ConstantPool
 		cls, index, CONSTANT_Methodref);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 
@@ -219,6 +224,7 @@ JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_sun_reflect_ConstantPool_
 		cls, index, CONSTANT_Fieldref);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 
@@ -241,6 +247,7 @@ JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_sun_reflect_ConstantPool_
 		cls, index, CONSTANT_Fieldref);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 
@@ -282,6 +289,7 @@ JNIEXPORT int32_t JNICALL Java_sun_reflect_ConstantPool_getIntAt0(JNIEnv *env, s
 		cls, index, CONSTANT_Integer);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 
@@ -303,6 +311,7 @@ JNIEXPORT int64_t JNICALL Java_sun_reflect_ConstantPool_getLongAt0(JNIEnv *env, 
 		cls, index, CONSTANT_Long);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 
@@ -324,6 +333,7 @@ JNIEXPORT float JNICALL Java_sun_reflect_ConstantPool_getFloatAt0(JNIEnv *env, s
 		cls, index, CONSTANT_Float);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 
@@ -345,6 +355,7 @@ JNIEXPORT double JNICALL Java_sun_reflect_ConstantPool_getDoubleAt0(JNIEnv *env,
 		cls, index, CONSTANT_Double);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 
@@ -365,6 +376,7 @@ JNIEXPORT struct java_lang_String* JNICALL Java_sun_reflect_ConstantPool_getStri
 	ref = (utf*)class_getconstant(cls, index, CONSTANT_String);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 
@@ -386,6 +398,7 @@ JNIEXPORT struct java_lang_String* JNICALL Java_sun_reflect_ConstantPool_getUTF8
 	ref = (utf*)class_getconstant(cls, index, CONSTANT_Utf8);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 

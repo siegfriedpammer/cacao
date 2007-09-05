@@ -1276,8 +1276,10 @@ jclass JVM_ConstantPoolGetClassAt(JNIEnv *env, jobject unused, jobject jcpool, j
 
 	ref = (constant_classref *) class_getconstant(c, index, CONSTANT_Class);
 
-	if (ref == NULL)
+	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return NULL;
+	}
 
 	result = resolve_classref_eager(ref);
 
@@ -1299,11 +1301,14 @@ jclass JVM_ConstantPoolGetClassAtIfLoaded(JNIEnv *env, jobject unused, jobject j
 
 	ref = (constant_classref *) class_getconstant(c, index, CONSTANT_Class);
 
-	if (ref == NULL)
+	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return NULL;
+	}
 	
-	if (!resolve_classref(NULL, ref, resolveLazy, true, true, &result))
+	if (!resolve_classref(NULL, ref, resolveLazy, true, true, &result)) {
 		return NULL;
+	}
 
 	if ((result == NULL) || !(result->state & CLASS_LOADED)) {
 		return NULL;
@@ -1325,6 +1330,7 @@ jobject JVM_ConstantPoolGetMethodAt(JNIEnv *env, jobject unused, jobject jcpool,
 	ref = (constant_FMIref*)class_getconstant(cls, index, CONSTANT_Methodref);
 	
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 
@@ -1346,6 +1352,7 @@ jobject JVM_ConstantPoolGetMethodAtIfLoaded(JNIEnv *env, jobject unused, jobject
 	ref = (constant_FMIref*)class_getconstant(cls, index, CONSTANT_Methodref);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 
@@ -1373,6 +1380,7 @@ jobject JVM_ConstantPoolGetFieldAt(JNIEnv *env, jobject unused, jobject jcpool, 
 	ref = (constant_FMIref*)class_getconstant(cls, index, CONSTANT_Fieldref);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 
@@ -1393,6 +1401,7 @@ jobject JVM_ConstantPoolGetFieldAtIfLoaded(JNIEnv *env, jobject unused, jobject 
 	ref = (constant_FMIref*)class_getconstant(cls, index, CONSTANT_Fieldref);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 
@@ -1429,6 +1438,7 @@ jint JVM_ConstantPoolGetIntAt(JNIEnv *env, jobject unused, jobject jcpool, jint 
 	ref = (constant_integer*)class_getconstant(cls, index, CONSTANT_Integer);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 
@@ -1448,6 +1458,7 @@ jlong JVM_ConstantPoolGetLongAt(JNIEnv *env, jobject unused, jobject jcpool, jin
 	ref = (constant_long*)class_getconstant(cls, index, CONSTANT_Long);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 
@@ -1467,6 +1478,7 @@ jfloat JVM_ConstantPoolGetFloatAt(JNIEnv *env, jobject unused, jobject jcpool, j
 	ref = (constant_float*)class_getconstant(cls, index, CONSTANT_Float);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 
@@ -1486,6 +1498,7 @@ jdouble JVM_ConstantPoolGetDoubleAt(JNIEnv *env, jobject unused, jobject jcpool,
 	ref = (constant_double*)class_getconstant(cls, index, CONSTANT_Double);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return 0;
 	}
 
@@ -1505,6 +1518,7 @@ jstring JVM_ConstantPoolGetStringAt(JNIEnv *env, jobject unused, jobject jcpool,
 	ref = (utf*)class_getconstant(cls, index, CONSTANT_String);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 
@@ -1525,6 +1539,7 @@ jstring JVM_ConstantPoolGetUTF8At(JNIEnv *env, jobject unused, jobject jcpool, j
 	ref = (utf*)class_getconstant(cls, index, CONSTANT_Utf8);
 
 	if (ref == NULL) {
+		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 
