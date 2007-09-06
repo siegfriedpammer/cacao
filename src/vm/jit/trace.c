@@ -45,6 +45,7 @@
 
 #include "vm/global.h"
 #include "vm/stringlocal.h"
+#include "vm/jit/argument.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/trace.h"
 #include "vm/jit/show.h"
@@ -64,95 +65,6 @@ u4 _no_threads_tracejavacallcount= 0;
 #endif
 
 
-/* _array_load_param **********************************************************
- 
-   Returns the argument specified by pd and td from one of the passed arrays
-   and returns it.
-
-*******************************************************************************/
-
-imm_union _array_load_param(paramdesc *pd, typedesc *td, int32_t index,
-							uint64_t *arg_regs, uint64_t *stack)
-{
-	imm_union ret;
-
-	switch (td->type) {
-		case TYPE_INT:
-		case TYPE_ADR:
-			if (pd->inmemory) {
-#if (SIZEOF_VOID_P == 8)
-				ret.l = (int64_t)stack[pd->index];
-#else
-				ret.l = *(int32_t *)(stack + pd->index);
-#endif
-			} else {
-#if (SIZEOF_VOID_P == 8)
-				ret.l = arg_regs[index];
-#else
-				ret.l = *(int32_t *)(arg_regs + index);
-#endif
-			}
-			break;
-		case TYPE_LNG:
-			if (pd->inmemory) {
-				ret.l = (int64_t)stack[pd->index];
-			} else {
-				ret.l = (int64_t)arg_regs[index];
-			}
-			break;
-		case TYPE_FLT:
-			if (pd->inmemory) {
-				ret.l = (int64_t)stack[pd->index];
-			} else {
-				ret.l = (int64_t)arg_regs[index];
-			}
-			break;
-		case TYPE_DBL:
-			if (pd->inmemory) {
-				ret.l = (int64_t)stack[pd->index];
-			} else {
-				ret.l = (int64_t)arg_regs[index];
-			}
-			break;
-	}
-
-	return ret;
-}
-
-/* _array_load_return_value ***************************************************
-
-   Loads the proper return value form the return registers array and returns it.
-
-*******************************************************************************/
-
-static imm_union _array_load_return_value(typedesc *td, uint64_t *return_regs)
-{
-	imm_union ret;
-
-	switch (td->type) {
-		case TYPE_INT:
-		case TYPE_ADR:
-#if (SIZEOF_VOID_P == 8)
-			ret.l = return_regs[0];
-#else
-			ret.l = *(int32_t *)return_regs;
-#endif
-			break;
-		case TYPE_LNG:
-			ret.l = *(int64_t *)return_regs;
-			break;
-		case TYPE_FLT:
-			ret.l = *(int64_t *)return_regs;
-			break;
-		case TYPE_DBL:
-			ret.l = *(int64_t *)return_regs;
-			break;
-	}
-
-	return ret;
-}
-
-
 /* trace_java_call_print_argument **********************************************
 
    XXX: Document me!
@@ -162,10 +74,10 @@ static imm_union _array_load_return_value(typedesc *td, uint64_t *return_regs)
 static char *trace_java_call_print_argument(char *logtext, s4 *logtextlen,
 											typedesc *paramtype, imm_union imu)
 {
-	java_object_t     *o;
-	classinfo         *c;
-	utf               *u;
-	u4                 len;
+	java_object_t *o;
+	classinfo     *c;
+	utf           *u;
+	u4             len;
 
 	switch (paramtype->type) {
 	case TYPE_INT:
@@ -277,9 +189,7 @@ static char *trace_java_call_print_argument(char *logtext, s4 *logtextlen,
 void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 {
 	methoddesc *md;
-	paramdesc *pd;
-	typedesc *td;
-	imm_union arg;
+	imm_union   arg;
 	char       *logtext;
 	s4          logtextlen;
 	s4          dumpsize;
@@ -287,7 +197,8 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 	s4          pos;
 
 #if defined(ENABLE_DEBUG_FILTER)
-	if (! show_filters_test_verbosecall_enter(m)) return;
+	if (!show_filters_test_verbosecall_enter(m))
+		return;
 #endif
 
 #if defined(ENABLE_VMLOG)
@@ -371,11 +282,9 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 	strcat(logtext, "(");
 
 	for (i = 0; i < md->paramcount; ++i) {
-		pd = &md->params[i];
-		td = &md->paramtypes[i];
-		arg = _array_load_param(pd, td, i, arg_regs, stack);
+		arg = argument_jitarray_load(md, i, arg_regs, stack);
 		logtext = trace_java_call_print_argument(
-			logtext, &logtextlen, td, arg
+			logtext, &logtextlen, &md->paramtypes[i], arg
 		);
 		if (i != (md->paramcount - 1)) {
 			strcat(logtext, ", ");
@@ -474,7 +383,7 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 
 	if (!IS_VOID_TYPE(md->returntype.type)) {
 		strcat(logtext, "->");
-		val = _array_load_return_value(&md->returntype, return_regs);
+		val = argument_jitreturn_load(md, return_regs);
 
 		logtext =
 			trace_java_call_print_argument(logtext, &logtextlen, &md->returntype, val);

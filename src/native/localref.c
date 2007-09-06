@@ -40,6 +40,8 @@
 
 #include "vm/vm.h"
 
+#include "vm/jit/argument.h"
+
 
 /* debug **********************************************************************/
 
@@ -426,27 +428,6 @@ void localref_del(java_handle_t *localref)
 }
 
 
-void _array_store_param(paramdesc *pd, typedesc *td, uint64_t *arg_regs, uint64_t *stack, imm_union param)
-{
-	switch (td->type) {
-		case TYPE_ADR:
-			if (pd->inmemory) {
-#if (SIZEOF_VOID_P == 8)
-				stack[pd->index] = param.l;
-#else
-				assert(0);
-#endif
-			} else {
-				arg_regs[pd->index] = param.l;
-			}
-			break;
-		default:
-			vm_abort("_array_store_param: type not implemented");
-			break;
-	}
-}
-
-
 /* localref_fill ***************************************************************
 
    Insert arguments to a native method into the local reference table.
@@ -454,17 +435,10 @@ void _array_store_param(paramdesc *pd, typedesc *td, uint64_t *arg_regs, uint64_
 
 *******************************************************************************/
 
-/* XXX these two function are in trace.c and above ...
- * move them somewhere else!!! */
-imm_union _array_load_param(paramdesc *pd, typedesc *td, uint64_t *arg_regs, uint64_t *stack);
-void _array_store_param(paramdesc *pd, typedesc *td, uint64_t *arg_regs, uint64_t *stack, imm_union param);
-
 void localref_fill(methodinfo *m, uint64_t *args_regs, uint64_t *args_stack)
 {
 	localref_table *lrt;
 	methoddesc     *md;
-	paramdesc      *pd;
-	typedesc       *td;
 	imm_union       arg;
 	java_handle_t  *h;
 	int i;
@@ -481,13 +455,10 @@ void localref_fill(methodinfo *m, uint64_t *args_regs, uint64_t *args_stack)
 	/* walk through all parameters to the method */
 
 	for (i = 0; i < md->paramcount; ++i) {
-		pd = &md->params[i];
-		td = &md->paramtypes[i];
-
 		/* load TYPE_ADR parameters ... */
 
-		if (td->type == TYPE_ADR) {
-			arg = _array_load_param(pd, td, args_regs, args_stack);
+		if (md->paramtypes[i].type == TYPE_ADR) {
+			arg = argument_jitarray_load(md, i, args_regs, args_stack);
 
 			if (arg.a == NULL)
 				continue;
@@ -499,7 +470,7 @@ void localref_fill(methodinfo *m, uint64_t *args_regs, uint64_t *args_stack)
 			/* update the parameter */
 
 			arg.a = (void *) h;
-			_array_store_param(pd, td, args_regs, args_stack, arg);
+			argument_jitarray_store(md, i, args_regs, args_stack, arg);
 		}
 	}
 }
