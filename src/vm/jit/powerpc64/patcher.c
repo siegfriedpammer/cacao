@@ -338,53 +338,6 @@ bool patcher_invokeinterface(patchref_t *pr)
 }
 
 
-/* patcher_resolve_classref_to_flags *******************************************
-
-   Machine code:
-
-   <patched call position>
-   818dff7c    lwz   r12,-132(r13)
-
-*******************************************************************************/
-
-bool patcher_resolve_classref_to_flags(patchref_t *pr)
-{
-	u1                *ra;
-	u4                 mcode;
-	constant_classref *cr;
-	u1                *datap;
-	classinfo         *c;
-
-	/* get stuff from the stack */
-
-	ra    = (u1 *)                pr->mpc;
-	mcode =                       pr->mcode;
-	cr    = (constant_classref *) pr->ref;
-	datap = (u1 *)                pr->datap;
-
-	/* get the fieldinfo */
-
-	if (!(c = resolve_classref_eager(cr)))
-		return false;
-
-	/* patch back original code */
-
-	*((u4 *) ra) = mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 4);
-
-	/* patch class flags */
-
-	*((s4 *) datap) = (s4) c->flags;
-
-	/* synchronize data cache */
-
-	md_dcacheflush(datap, SIZEOF_VOID_P);
-
-	return true;
-}
 /* patcher_checkcast_interface **************************************
 
    Machine code:
@@ -398,13 +351,14 @@ bool patcher_resolve_classref_to_flags(patchref_t *pr)
    800c0000    lwz   r0,0(r12)
 
 *******************************************************************************/
+
 bool patcher_checkcast_interface(patchref_t *pr)
 {
-	u1 *ra;
+	u1                *ra;
 	constant_classref *cr;
-	classinfo *c;
-	s4 disp;
-	u4 mcode;
+	classinfo         *c;
+	s4                 disp;
+	u4                 mcode;
 
 	/* get stuff from stack */
 	ra    = (u1 *)                pr->mpc;
@@ -506,56 +460,6 @@ bool patcher_instanceof_interface(patchref_t *pr)
 }
 
 
-/* patcher_checkcast_class *****************************************************
-
-   Machine code:
-
-   <patched call position>
-   81870000    lwz   r12,0(r7)
-   800c0014    lwz   r0,20(r12)
-   818dff78    lwz   r12,-136(r13)
-
-*******************************************************************************/
-
-bool patcher_checkcast_class(patchref_t *pr)
-{
-	u1                *ra;
-	u4                 mcode;
-	constant_classref *cr;
-	u1                *datap;
-	classinfo         *c;
-
-	/* get stuff from the stack */
-
-	ra    = (u1 *)                pr->mpc;
-	mcode =                       pr->mcode;
-	cr    = (constant_classref *) pr->ref;
-	datap = (u1 *)                pr->datap;
-
-	/* get the fieldinfo */
-
-	if (!(c = resolve_classref_eager(cr)))
-		return false;
-
-	/* patch back original code */
-
-	*((u4 *) ra) = mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 4);
-
-	/* patch super class' vftbl */
-
-	*((ptrint *) datap) = (ptrint) c->vftbl;
-
-	/* synchronize data cache */
-
-	md_dcacheflush(datap, SIZEOF_VOID_P);
-
-	return true;
-}
-
 /* patcher_resolve_classref_to_classinfo ***************************************
 
    ACONST:
@@ -591,7 +495,7 @@ bool patcher_resolve_classref_to_classinfo(patchref_t *pr)
 {
 	constant_classref *cr;
 	u1                *datap, *ra;
-	u4         mcode;
+	u4                 mcode;
 	classinfo         *c;
 
 	/* get stuff from the stack */
@@ -626,56 +530,6 @@ bool patcher_resolve_classref_to_classinfo(patchref_t *pr)
 }
 
 
-
-/* patcher_instanceof_class ****************************************************
-
-   Machine code:
-
-   <patched call position>
-   817d0000    lwz   r11,0(r29)
-   818dff8c    lwz   r12,-116(r13)
-
-*******************************************************************************/
-
-bool patcher_instanceof_class(patchref_t *pr)
-{
-	u1                *ra;
-	u4                 mcode;
-	constant_classref *cr;
-	u1                *datap;
-	classinfo         *c;
-
-	/* get stuff from the stack */
-
-	ra    = (u1 *)                pr->mpc;
-	mcode =                       pr->mcode;
-	cr    = (constant_classref *) pr->ref;
-	datap = (u1 *)                pr->datap;
-
-	/* get the fieldinfo */
-
-	if (!(c = resolve_classref_eager(cr)))
-		return false;
-
-	/* patch back original code */
-
-	*((u4 *) ra) = mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 4);
-
-	/* patch super class' vftbl */
-
-	*((ptrint *) datap) = (ptrint) c->vftbl;
-
-	/* synchronize data cache */
-
-	md_dcacheflush(datap, SIZEOF_VOID_P);
-
-	return true;
-}
-
 /* patcher_resolve_classref_to_vftbl *******************************************
 
    CHECKCAST (class):
@@ -698,7 +552,7 @@ bool patcher_resolve_classref_to_vftbl(patchref_t *pr)
 {
 	constant_classref *cr;
 	u1                *datap, *ra;
-	u4         mcode;
+	u4                 mcode;
 	classinfo         *c;
 
 	/* get stuff from the stack */
@@ -745,7 +599,7 @@ bool patcher_resolve_classref_to_flags(patchref_t *pr)
 {
 	constant_classref *cr;
 	u1                *datap, *ra;
-	u4         mcode;
+	u4                 mcode;
 	classinfo         *c;
 
 	/* get stuff from the stack */
