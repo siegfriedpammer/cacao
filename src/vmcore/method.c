@@ -539,6 +539,37 @@ bool method_canoverwrite(methodinfo *m, methodinfo *old)
 }
 
 
+/* method_new_builtin **********************************************************
+
+   Creates a minimal methodinfo structure for builtins. This comes handy
+   when dealing with builtin stubs or stacktraces.
+
+*******************************************************************************/
+
+methodinfo *method_new_builtin(builtintable_entry *bte)
+{
+	methodinfo *m;
+
+	/* allocate the methodinfo structure */
+
+	m = NEW(methodinfo);
+
+	/* initialize methodinfo structure */
+
+	MZERO(m, methodinfo, 1);
+	LOCK_INIT_OBJECT_LOCK(&(m->header));
+
+	m->flags      = ACC_METHOD_BUILTIN;
+	m->parseddesc = bte->md;
+	m->name       = bte->name;
+	m->descriptor = bte->descriptor;
+
+	/* return the newly created methodinfo */
+
+	return m;
+}
+
+
 /* method_vftbl_lookup *********************************************************
 
    Does a method lookup in the passed virtual function table.  This
@@ -970,19 +1001,20 @@ void method_printflags(methodinfo *m)
 		return;
 	}
 
-	if (m->flags & ACC_PUBLIC)       printf(" PUBLIC");
-	if (m->flags & ACC_PRIVATE)      printf(" PRIVATE");
-	if (m->flags & ACC_PROTECTED)    printf(" PROTECTED");
-   	if (m->flags & ACC_STATIC)       printf(" STATIC");
-   	if (m->flags & ACC_FINAL)        printf(" FINAL");
-   	if (m->flags & ACC_SYNCHRONIZED) printf(" SYNCHRONIZED");
-   	if (m->flags & ACC_VOLATILE)     printf(" VOLATILE");
-   	if (m->flags & ACC_TRANSIENT)    printf(" TRANSIENT");
-   	if (m->flags & ACC_NATIVE)       printf(" NATIVE");
-   	if (m->flags & ACC_INTERFACE)    printf(" INTERFACE");
-   	if (m->flags & ACC_ABSTRACT)     printf(" ABSTRACT");
-   	if (m->flags & ACC_METHOD_MONOMORPHIC) printf(" (mono)");
-   	if (m->flags & ACC_METHOD_IMPLEMENTED) printf(" (impl)");
+	if (m->flags & ACC_PUBLIC)             printf(" PUBLIC");
+	if (m->flags & ACC_PRIVATE)            printf(" PRIVATE");
+	if (m->flags & ACC_PROTECTED)          printf(" PROTECTED");
+	if (m->flags & ACC_STATIC)             printf(" STATIC");
+	if (m->flags & ACC_FINAL)              printf(" FINAL");
+	if (m->flags & ACC_SYNCHRONIZED)       printf(" SYNCHRONIZED");
+	if (m->flags & ACC_VOLATILE)           printf(" VOLATILE");
+	if (m->flags & ACC_TRANSIENT)          printf(" TRANSIENT");
+	if (m->flags & ACC_NATIVE)             printf(" NATIVE");
+	if (m->flags & ACC_INTERFACE)          printf(" INTERFACE");
+	if (m->flags & ACC_ABSTRACT)           printf(" ABSTRACT");
+	if (m->flags & ACC_METHOD_BUILTIN)     printf(" (builtin)");
+	if (m->flags & ACC_METHOD_MONOMORPHIC) printf(" (mono)");
+	if (m->flags & ACC_METHOD_IMPLEMENTED) printf(" (impl)");
 }
 #endif /* !defined(NDEBUG) */
 
@@ -1003,7 +1035,10 @@ void method_print(methodinfo *m)
 		return;
 	}
 
-	utf_display_printable_ascii_classname(m->class->name);
+	if (m->class != NULL)
+		utf_display_printable_ascii_classname(m->class->name);
+	else
+		printf("NULL");
 	printf(".");
 	utf_display_printable_ascii(m->name);
 	utf_display_printable_ascii(m->descriptor);

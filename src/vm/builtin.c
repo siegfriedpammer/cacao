@@ -107,6 +107,7 @@ static bool builtintable_init(void)
 	descriptor_pool    *descpool;
 	s4                  dumpsize;
 	builtintable_entry *bte;
+	methodinfo         *m;
 
 	/* mark start of dump memory area */
 
@@ -127,8 +128,7 @@ static bool builtintable_init(void)
 	/* first add all descriptors to the pool */
 
 	for (bte = builtintable_internal; bte->fp != NULL; bte++) {
-		/* create a utf8 string from descriptor */
-
+		bte->name       = utf_new_char(bte->cname);
 		bte->descriptor = utf_new_char(bte->cdescriptor);
 
 		if (!descriptor_pool_add(descpool, bte->descriptor, NULL)) {
@@ -180,8 +180,10 @@ static bool builtintable_init(void)
 
 		/* generate a builtin stub if we need one */
 
-		if (bte->flags & BUILTINTABLE_FLAG_STUB)
-			codegen_generate_stub_builtin(bte);
+		if (bte->flags & BUILTINTABLE_FLAG_STUB) {
+			m = method_new_builtin(bte);
+			codegen_generate_stub_builtin(m, bte);
+		}
 	}
 
 	for (bte = builtintable_automatic; bte->fp != NULL; bte++) {
@@ -205,8 +207,10 @@ static bool builtintable_init(void)
 
 		/* generate a builtin stub if we need one */
 
-		if (bte->flags & BUILTINTABLE_FLAG_STUB)
-			codegen_generate_stub_builtin(bte);
+		if (bte->flags & BUILTINTABLE_FLAG_STUB) {
+			m = method_new_builtin(bte);
+			codegen_generate_stub_builtin(m, bte);
+		}
 	}
 
 	/* release dump area */

@@ -40,6 +40,7 @@ typedef struct codeinfo            codeinfo;
 #include "config.h"
 #include "vm/types.h"
 
+#include "vm/builtin.h"
 #include "vm/global.h"
 
 #include "vmcore/descriptor.h"
@@ -160,6 +161,8 @@ struct lineinfo {
 bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool);
 void method_free(methodinfo *m);
 bool method_canoverwrite(methodinfo *m, methodinfo *old);
+
+methodinfo *method_create_builtin(builtintable_entry *bte);
 
 methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m);
 

@@ -28,6 +28,10 @@
 #ifndef _BUILTIN_H
 #define _BUILTIN_H
 
+/* forward typedefs ***********************************************************/
+
+typedef struct builtintable_entry builtintable_entry;
+
 #include "config.h"
 #include "vm/types.h"
 
@@ -61,8 +65,6 @@
 
 
 /* builtin functions table ****************************************************/
-
-typedef struct builtintable_entry builtintable_entry;
 
 struct builtintable_entry {
 	s4           opcode;                /* opcode which is replaced           */
