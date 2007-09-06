@@ -338,7 +338,7 @@ bool patcher_invokeinterface(patchref_t *pr)
 }
 
 
-/* patcher_checkcast_instanceof_flags ******************************************
+/* patcher_resolve_classref_to_flags *******************************************
 
    Machine code:
 
@@ -347,7 +347,7 @@ bool patcher_invokeinterface(patchref_t *pr)
 
 *******************************************************************************/
 
-bool patcher_checkcast_instanceof_flags(patchref_t *pr)
+bool patcher_resolve_classref_to_flags(patchref_t *pr)
 {
 	u1                *ra;
 	u4                 mcode;
@@ -824,7 +824,7 @@ bool patcher_initialize_class(patchref_t *pr)
 *******************************************************************************/
 
 #ifdef ENABLE_VERIFIER
-bool patcher_athrow_areturn(patchref_t *pr)
+bool patcher_resolve_class(patchref_t *pr)
 {
 	u1               *ra;
 	u4                mcode;

@@ -1753,7 +1753,7 @@ bool codegen_emit(jitdata *jd)
 
 #ifdef ENABLE_VERIFIER
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				patcher_add_patch_ref(jd, PATCHER_athrow_areturn,
+				patcher_add_patch_ref(jd, PATCHER_resolve_class,
 									iptr->sx.s23.s2.uc, 0);
 			}
 #endif /* ENABLE_VERIFIER */
@@ -1926,7 +1926,7 @@ bool codegen_emit(jitdata *jd)
 
 #ifdef ENABLE_VERIFIER
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				patcher_add_patch_ref(jd, PATCHER_athrow_areturn,
+				patcher_add_patch_ref(jd, PATCHER_resolve_class,
 									iptr->sx.s23.s2.uc, 0);
 			}
 #endif /* ENABLE_VERIFIER */
@@ -2334,7 +2334,7 @@ gen_method:
 					disp = dseg_add_unique_s4(cd, 0);                     /* super->flags */
 
 					patcher_add_patch_ref(jd,
-										PATCHER_checkcast_instanceof_flags,
+										PATCHER_resolve_classref_to_flags,
 										iptr->sx.s23.s3.c.ref,
 										disp);
 
@@ -2509,7 +2509,7 @@ gen_method:
 				emit_label_beq(cd, BRANCH_LABEL_1);
 				disp = dseg_add_unique_s4(cd, 0);                     /* super->flags */
 
-				patcher_add_patch_ref(jd, PATCHER_checkcast_instanceof_flags,
+				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_flags,
 									iptr->sx.s23.s3.c.ref, disp);
 
 				M_ILD(REG_ITMP3, REG_PV, disp);

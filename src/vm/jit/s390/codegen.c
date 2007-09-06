@@ -2016,7 +2016,7 @@ bool codegen_emit(jitdata *jd)
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					PROFILE_CYCLE_STOP;
 
-					patcher_add_patch_ref(jd, PATCHER_clinit, fi->class, 0);
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class, 0);
 
 					PROFILE_CYCLE_START;
 				}
@@ -2067,7 +2067,7 @@ bool codegen_emit(jitdata *jd)
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					PROFILE_CYCLE_STOP;
-					patcher_add_patch_ref(jd, PATCHER_clinit, fi->class, disp);
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class, disp);
 					PROFILE_CYCLE_START;
 				}
   			}
@@ -2228,7 +2228,7 @@ bool codegen_emit(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uc = iptr->sx.s23.s2.uc;
 
-				patcher_add_patch_ref(jd, PATCHER_athrow_areturn, uc, 0);
+				patcher_add_patch_ref(jd, PATCHER_resolve_class, uc, 0);
 			}
 #endif /* ENABLE_VERIFIER */
 
@@ -2557,7 +2557,7 @@ bool codegen_emit(jitdata *jd)
 				unresolved_class *uc = iptr->sx.s23.s2.uc;
 
 				PROFILE_CYCLE_STOP;
-				patcher_add_patch_ref(jd, PATCHER_athrow_areturn, uc, 0);
+				patcher_add_patch_ref(jd, PATCHER_resolve_class, uc, 0);
 				PROFILE_CYCLE_START;
 			}
 #endif /* ENABLE_VERIFIER */

@@ -147,24 +147,13 @@ bool patcher_instanceof_interface(patchref_t *pr);
 
 #endif /* defined(__ALPHA__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) */
 
-/* very old patcher functions */
-/* XXX use newer patcher function names above! */
-
-#if defined(__POWERPC64__) || defined(__S390__)
-
-bool patcher_clinit(patchref_t *pr);
-#define PATCHER_clinit (functionptr) patcher_clinit
-
-bool patcher_athrow_areturn(patchref_t *pr);
-#define PATCHER_athrow_areturn (functionptr) patcher_athrow_areturn
+#if defined(__S390__)
 
 bool patcher_checkcast_instanceof_interface(patchref_t *pr);
 #define PATCHER_checkcast_instanceof_interface (functionptr) patcher_checkcast_instanceof_interface
 
-bool patcher_checkcast_instanceof_flags(patchref_t *pr);
-#define PATCHER_checkcast_instanceof_flags (functionptr) patcher_checkcast_instanceof_flags
+#endif /* defined(__S390__) */
 
-#endif /* defined(__POWERPC64__) || defined(__S390__) */
 
 #endif /* architecture list */
 
