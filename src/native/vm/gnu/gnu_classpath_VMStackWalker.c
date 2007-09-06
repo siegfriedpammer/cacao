@@ -129,12 +129,9 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCal
 		return NULL;
   	 
 	c  = (classinfo *) LLNI_array_direct(oa, 1);
-	cl = c->classloader;
+	cl = class_get_classloader(c);
 
-	if (cl == NULL)
-		return NULL;
-
-	return (java_lang_ClassLoader *) cl->object;
+	return (java_lang_ClassLoader *) cl;
 }
 
 
@@ -157,10 +154,10 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_firstN
 
 	for (i = 0; i < LLNI_array_size(oa); i++) {
 		c  = (classinfo *) LLNI_array_direct(oa, i);
-		cl = c->classloader;
+		cl = class_get_classloader(c);
 
 		if (cl != NULL)
-			return (java_lang_ClassLoader *) cl->object;
+			return (java_lang_ClassLoader *) cl;
 	}
 
 	return NULL;

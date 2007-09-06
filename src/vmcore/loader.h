@@ -124,9 +124,19 @@ struct hashtable_classloader_entry {
 };
 
 
-/* classloader ****************************************************************/
+/* classloader *****************************************************************
 
+   [!ENABLE_HANDLES]: The classloader is a Java Object which cannot move.
+   [ENABLE_HANDLES] : The classloader entry itself is a static handle for a
+                      given classloader (use loader_hashtable_classloader_foo).
+
+*******************************************************************************/
+
+#if defined(ENABLE_HANDLES)
 typedef hashtable_classloader_entry classloader;
+#else
+typedef java_object_t classloader;
+#endif
 
 
 /* function prototypes ********************************************************/
