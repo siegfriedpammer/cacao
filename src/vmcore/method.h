@@ -162,7 +162,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool);
 void method_free(methodinfo *m);
 bool method_canoverwrite(methodinfo *m, methodinfo *old);
 
-methodinfo *method_create_builtin(builtintable_entry *bte);
+methodinfo *method_new_builtin(builtintable_entry *bte);
 
 methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m);
 
