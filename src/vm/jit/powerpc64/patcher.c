@@ -53,6 +53,24 @@
 #include "vm/resolve.h"
 
 
+/* patcher_patch_code **********************************************************
+
+   Just patches back the original machine code.
+
+*******************************************************************************/
+
+void patcher_patch_code(patchref_t *pr)
+{
+	/* patch back original code */
+
+	*((u4 *) pr->mpc) = pr->mcode;
+
+	/* synchronize instruction cache */
+
+	md_icacheflush(pr->mpc, 4);
+}
+
+
 /* patcher_get_putstatic *******************************************************
 
    Machine code:
@@ -632,80 +650,6 @@ bool patcher_resolve_classref_to_flags(patchref_t *pr)
 
 	return true;
 }
-
-/* patcher_initialize_class ****************************************************
-
-   XXX
-
-*******************************************************************************/
-
-bool patcher_initialize_class(patchref_t *pr)
-{
-	u1        *ra;
-	u4         mcode;
-	classinfo *c;
-
-	/* get stuff from the stack */
-
-	ra    = (u1 *)        pr->mpc;
-	mcode =               pr->mcode;
-	c     = (classinfo *) pr->ref;
-
-	/* check if the class is initialized */
-
-	if (!(c->state & CLASS_INITIALIZED))
-		if (!initialize_class(c))
-			return false;
-
-	/* patch back original code */
-
-	*((u4 *) ra) = mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 4);
-
-	return true;
-}
-
-
-/* patcher_athrow_areturn ******************************************************
-
-   Machine code:
-
-   <patched call position>
-
-*******************************************************************************/
-
-#ifdef ENABLE_VERIFIER
-bool patcher_resolve_class(patchref_t *pr)
-{
-	u1               *ra;
-	u4                mcode;
-	unresolved_class *uc;
-
-	/* get stuff from the stack */
-
-	ra    = (u1 *)               pr->mpc;
-	mcode =                      pr->mcode;
-	uc    = (unresolved_class *) pr->ref;
-
-	/* resolve the class and check subtype constraints */
-
-	if (!resolve_class_eager_no_access_check(uc))
-		return false;
-
-	/* patch back original code */
-
-	*((u4 *) ra) = mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 4);
-
-	return true;
-}
-#endif /* ENABLE_VERIFIER */
 
 
 /* patcher_resolve_native_function *********************************************

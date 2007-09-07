@@ -57,6 +57,19 @@
 
 #define PATCHER_TRACE 
 
+
+/* patcher_patch_code **********************************************************
+
+   Just patches back the original machine code.
+
+*******************************************************************************/
+
+void patcher_patch_code(patchref_t *pr)
+{
+	PATCH_BACK_ORIGINAL_MCODE;
+}
+
+
 /* patcher_get_putstatic *******************************************************
 
    Machine code:
@@ -460,70 +473,6 @@ bool patcher_checkcast_instanceof_interface(patchref_t *pr)
 
 	return true;
 }
-
-/* patcher_initialize_class ****************************************************
-
-   May be used for GET/PUTSTATIC and in native stub.
-
-   Machine code:
-
-*******************************************************************************/
-
-bool patcher_initialize_class(patchref_t *pr)
-{
-	classinfo *c;
-
-	PATCHER_TRACE;
-
-	/* get stuff from the stack */
-
-	c     = (classinfo *)pr->ref;
-
-	/* check if the class is initialized */
-
-	if (!(c->state & CLASS_INITIALIZED))
-		if (!initialize_class(c))
-			return false;
-
-	/* patch back original code */
-
-	PATCH_BACK_ORIGINAL_MCODE;
-
-	return true;
-}
-
-
-/* patcher_athrow_areturn ******************************************************
-
-   Machine code:
-
-   <patched call position>
-
-*******************************************************************************/
-
-#ifdef ENABLE_VERIFIER
-bool patcher_resolve_class(patchref_t *pr)
-{
-	unresolved_class *uc;
-
-	PATCHER_TRACE;
-
-	/* get stuff from the stack */
-
-	uc    = (unresolved_class *) pr->ref;
-
-	/* resolve the class and check subtype constraints */
-
-	if (!resolve_class_eager_no_access_check(uc))
-		return false;
-
-	/* patch back original code */
-
-	PATCH_BACK_ORIGINAL_MCODE;
-
-	return true;
-}
-#endif /* ENABLE_VERIFIER */
 
 
 /* patcher_resolve_native ******************************************************
