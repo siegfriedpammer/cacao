@@ -235,7 +235,7 @@ void md_icacheflush(u1 *addr, s4 nbytes)
 
 void md_dcacheflush(u1 *addr, s4 nbytes)
 {
-	asm_cacheflush(addr, nbytes);
+	/* do nothing */
 }
 
 
