@@ -55,8 +55,6 @@
 
 	.globl asm_abstractmethoderror
 
-	.globl asm_patcher_wrapper
-
 #if defined(ENABLE_REPLACEMENT)
 	.globl asm_replacement_out
 	.globl asm_replacement_in
@@ -404,61 +402,6 @@ asm_abstractmethoderror:
 	sub     $3,xpc                      /* exception address is ra - 3        */
 	jmp     L_asm_handle_exception
 
-
-/* asm_patcher_wrapper *********************************************************
-
-   XXX
-
-   Stack layout:
-     40   return address
-     32   pointer to virtual java_objectheader
-     24   machine code (which is patched back later)
-     16   unresolved class/method/field reference
-      8   data segment displacement from load instructions
-      0   pointer to patcher function
-     -8   bp
-
-*******************************************************************************/
-
-asm_patcher_wrapper:
-	push    bp                          /* save base pointer                  */
-	mov     sp,bp                       /* move actual sp to bp               */
-	sub     $(3+ARG_CNT+TMP_CNT)*8,sp
-	and     $0xfffffffffffffff0,sp      /* align sp to 16-byte (this is for   */
-	                                    /* leaf functions)                    */
-
-	SAVE_ARGUMENT_REGISTERS(3)
-	SAVE_TEMPORARY_REGISTERS(3+ARG_CNT)
-
-	mov     itmp1,0*8(sp)               /* save itmp1 and itmp2               */
-	mov     itmp2,1*8(sp)               /* can be used by some instructions   */
-
-	mov     bp,a0                       /* pass SP of patcher stub            */
-	add     $(1*8),a0
-	mov     $0,a1                       /* pass PV (if NULL, use findmethod)  */
-	mov     $0,a2                       /* pass RA (it's on the stack)        */
-	call    patcher_wrapper@PLT
-	mov     v0,2*8(sp)                  /* save return value                  */
-
-	RESTORE_ARGUMENT_REGISTERS(3)
-	RESTORE_TEMPORARY_REGISTERS(3+ARG_CNT)
-
-	mov     0*8(sp),itmp1               /* restore itmp1 and itmp2            */
-	mov     1*8(sp),itmp2               /* can be used by some instructions   */
-	mov     2*8(sp),itmp3               /* restore return value               */
-
-	mov     bp,sp                       /* restore original sp                */
-	pop     bp                          /* restore bp                         */
-	add     $(5*8),sp                   /* remove patcher stackframe, keep RA */
-
-	test    itmp3,itmp3                 /* exception thrown?                  */
-	jne     L_asm_patcher_wrapper_exception
-	ret                                 /* call new patched code              */
-
-L_asm_patcher_wrapper_exception:
-	mov     itmp3,xptr                  /* get exception                      */
-	pop     xpc                         /* get and remove return address      */
-	jmp     L_asm_handle_exception
 
 #if defined(ENABLE_REPLACEMENT)
 
