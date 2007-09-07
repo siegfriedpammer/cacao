@@ -469,7 +469,7 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 				sp = sfi->sp;           /* sp of parent Java function         */
 				ra = sfi->ra;
 
-				if (m)
+				if (m && !(m->flags & ACC_METHOD_BUILTIN))
 					stb = stacktrace_add_entry(stb, m, 0);
 
 #if !defined(NDEBUG)
