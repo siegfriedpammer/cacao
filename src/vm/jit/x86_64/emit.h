@@ -266,7 +266,6 @@ void emit_imul_imm_membase_reg(codegendata *cd, s8 imm, s8 basereg, s8 disp, s8 
 void emit_imull_imm_membase_reg(codegendata *cd, s8 imm, s8 basereg, s8 disp, s8 dreg);
 void emit_idiv_reg(codegendata *cd, s8 reg);
 void emit_idivl_reg(codegendata *cd, s8 reg);
-void emit_ret(codegendata *cd);
 void emit_shift_reg(codegendata *cd, s8 opc, s8 reg);
 void emit_shiftl_reg(codegendata *cd, s8 opc, s8 reg);
 void emit_shift_membase(codegendata *cd, s8 opc, s8 basereg, s8 disp);
@@ -293,7 +292,6 @@ void emit_push_reg(codegendata *cd, s8 reg);
 void emit_push_imm(codegendata *cd, s8 imm);
 void emit_pop_reg(codegendata *cd, s8 reg);
 void emit_xchg_reg_reg(codegendata *cd, s8 reg, s8 dreg);
-void emit_nop(codegendata *cd);
 void emit_call_reg(codegendata *cd, s8 reg);
 void emit_call_imm(codegendata *cd, s8 imm);
 void emit_call_mem(codegendata *cd, ptrint mem);
