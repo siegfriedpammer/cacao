@@ -77,8 +77,8 @@ void _Jv_java_lang_VMSystem_init(void)
  */
 JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass clazz, java_lang_Object *src, s4 srcStart, java_lang_Object *dest, s4 destStart, s4 len)
 {
-	(void) builtin_arraycopy((java_handle_t *) src, srcStart,
-							 (java_handle_t *) dest, destStart, len);
+	builtin_arraycopy((java_handle_t *) src, srcStart,
+					  (java_handle_t *) dest, destStart, len);
 }
 
 

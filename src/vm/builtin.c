@@ -2469,12 +2469,9 @@ float builtin_d2f(double a)
 
    Builtin for java.lang.System.arraycopy.
 
-   ATTENTION: This builtin function returns a boolean value to signal
-   the ICMD_BUILTIN if there was an exception.
-
 *******************************************************************************/
 
-bool builtin_arraycopy(java_handle_t *src, s4 srcStart,
+void builtin_arraycopy(java_handle_t *src, s4 srcStart,
 					   java_handle_t *dest, s4 destStart, s4 len)
 {
 	arraydescriptor *sdesc;
@@ -2483,7 +2480,7 @@ bool builtin_arraycopy(java_handle_t *src, s4 srcStart,
 
 	if ((src == NULL) || (dest == NULL)) { 
 		exceptions_throw_nullpointerexception();
-		return false;
+		return;
 	}
 
 	sdesc = LLNI_vftbl_direct(src)->arraydesc;
@@ -2491,7 +2488,7 @@ bool builtin_arraycopy(java_handle_t *src, s4 srcStart,
 
 	if (!sdesc || !ddesc || (sdesc->arraytype != ddesc->arraytype)) {
 		exceptions_throw_arraystoreexception();
-		return false;
+		return;
 	}
 
 	/* we try to throw exception with the same message as SUN does */
@@ -2500,7 +2497,7 @@ bool builtin_arraycopy(java_handle_t *src, s4 srcStart,
 		(srcStart  + len < 0) || (srcStart  + len > LLNI_array_size(src)) ||
 		(destStart + len < 0) || (destStart + len > LLNI_array_size(dest))) {
 		exceptions_throw_arrayindexoutofboundsexception();
-		return false;
+		return;
 	}
 
 	if (sdesc->componentvftbl == ddesc->componentvftbl) {
@@ -2526,7 +2523,7 @@ bool builtin_arraycopy(java_handle_t *src, s4 srcStart,
 				LLNI_objectarray_element_get(oas, srcStart + i, o);
 
 				if (!builtin_canstore(oad, o))
-					return false;
+					return;
 
 				LLNI_objectarray_element_set(oad, destStart + i, o);
 			}
@@ -2544,14 +2541,12 @@ bool builtin_arraycopy(java_handle_t *src, s4 srcStart,
 				LLNI_objectarray_element_get(oas, srcStart + i, o);
 
 				if (!builtin_canstore(oad, o))
-					return false;
+					return;
 
 				LLNI_objectarray_element_set(oad, destStart + i, o);
 			}
 		}
 	}
-
-	return true;
 }
 
 

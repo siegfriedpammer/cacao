@@ -298,7 +298,7 @@ float    builtin_d2f(double a);
 java_handle_t *builtin_clone(void *env, java_handle_t *o);
 #define BUILTIN_clone (functionptr) builtin_clone
 
-bool builtin_arraycopy(java_handle_t *src, s4 srcStart,
+void builtin_arraycopy(java_handle_t *src, s4 srcStart,
 					   java_handle_t *dest, s4 destStart, s4 len);
 #define BUILTIN_arraycopy (functionptr) builtin_arraycopy
 
