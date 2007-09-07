@@ -3146,9 +3146,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	cd->stackframesize =
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
-		4 +                             /* 4 stackframeinfo arguments (darwin)*/
-		nmd->paramcount +
-		nmd->memuse;
+		md->paramcount +               /* saved argument registers            */
+		2 +                            /* saved return value                  */
+		4 +                            /* 4 stackframeinfo arguments (darwin) */
+		((nmd == NULL) ? 0 : nmd->paramcount) +
+		((nmd == NULL) ? 0 : nmd->memuse);
 
 	/* keep stack 16-byte aligned */
 
@@ -3247,69 +3249,71 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		}
 	}
 
-	/* copy or spill arguments to new locations */
+	/* copy or spill arguments to new locations (skip for builtins) */
 
-	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
-		t = md->paramtypes[i].type;
+	if (nmd != NULL) {
+		for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
+			t = md->paramtypes[i].type;
 
-		if (IS_INT_LNG_TYPE(t)) {
-			if (!md->params[i].inmemory) {
-				s1 = md->params[i].regoff;
-				s2 = nmd->params[j].regoff;
+			if (IS_INT_LNG_TYPE(t)) {
+				if (!md->params[i].inmemory) {
+					s1 = md->params[i].regoff;
+					s2 = nmd->params[j].regoff;
 
-				if (!nmd->params[j].inmemory) {
-					if (IS_2_WORD_TYPE(t))
-						M_LNGMOVE(s1, s2);
-					else
-						M_INTMOVE(s1, s2);
+					if (!nmd->params[j].inmemory) {
+						if (IS_2_WORD_TYPE(t))
+							M_LNGMOVE(s1, s2);
+						else
+							M_INTMOVE(s1, s2);
+					}
+					else {
+						if (IS_2_WORD_TYPE(t))
+							M_LST(s1, REG_SP, s2);
+						else
+							M_IST(s1, REG_SP, s2);
+					}
 				}
 				else {
+					s1 = md->params[i].regoff + cd->stackframesize * 8;
+					s2 = nmd->params[j].regoff;
+
+					M_ILD(REG_ITMP1, REG_SP, s1);
 					if (IS_2_WORD_TYPE(t))
-						M_LST(s1, REG_SP, s2);
-					else
-						M_IST(s1, REG_SP, s2);
+						M_ILD(REG_ITMP2, REG_SP, s1 + 4);
+
+					M_IST(REG_ITMP1, REG_SP, s2);
+					if (IS_2_WORD_TYPE(t))
+						M_IST(REG_ITMP2, REG_SP, s2 + 4);
 				}
 			}
 			else {
-				s1 = md->params[i].regoff + cd->stackframesize * 8;
-				s2 = nmd->params[j].regoff;
+				/* We only copy spilled float arguments, as the float
+				   argument registers keep unchanged. */
 
-				M_ILD(REG_ITMP1, REG_SP, s1);
-				if (IS_2_WORD_TYPE(t))
-					M_ILD(REG_ITMP2, REG_SP, s1 + 4);
+				if (md->params[i].inmemory) {
+					s1 = md->params[i].regoff + cd->stackframesize * 8;
+					s2 = nmd->params[j].regoff;
 
-				M_IST(REG_ITMP1, REG_SP, s2);
-				if (IS_2_WORD_TYPE(t))
-					M_IST(REG_ITMP2, REG_SP, s2 + 4);
+					M_DLD(REG_FTMP1, REG_SP, s1);
+
+					if (IS_2_WORD_TYPE(t))
+						M_DST(REG_FTMP1, REG_SP, s2);
+					else
+						M_FST(REG_FTMP1, REG_SP, s2);
+				}
 			}
 		}
-		else {
-			/* We only copy spilled float arguments, as the float
-			   argument registers keep unchanged. */
 
-			if (md->params[i].inmemory) {
-				s1 = md->params[i].regoff + cd->stackframesize * 8;
-				s2 = nmd->params[j].regoff;
+		/* put class into second argument register */
 
-				M_DLD(REG_FTMP1, REG_SP, s1);
+		if (m->flags & ACC_STATIC)
+			M_MOV(REG_ITMP3, REG_A1);
 
-				if (IS_2_WORD_TYPE(t))
-					M_DST(REG_FTMP1, REG_SP, s2);
-				else
-					M_FST(REG_FTMP1, REG_SP, s2);
-			}
-		}
+		/* put env into first argument register */
+
+		disp = dseg_add_address(cd, _Jv_env);
+		M_ALD(REG_A0, REG_PV, disp);
 	}
-
-	/* put class into second argument register */
-
-	if (m->flags & ACC_STATIC)
-		M_MOV(REG_ITMP3, REG_A1);
-
-	/* put env into first argument register */
-
-	disp = dseg_add_address(cd, _Jv_env);
-	M_ALD(REG_A0, REG_PV, disp);
 
 	/* generate the actual native call */
 
