@@ -234,6 +234,63 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 }
 
 
+/* md_signal_handler_sigill ****************************************************
+
+   Signal handler for patchers.
+
+*******************************************************************************/
+
+void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
+{
+	stackframeinfo  sfi;
+	ucontext_t     *_uc;
+	mcontext_t     *_mc;
+	u1             *pv;
+	u1             *sp;
+	u1             *ra;
+	u1             *xpc;
+	int             type;
+	intptr_t        val;
+	void           *p;
+
+	_uc = (ucontext_t *) _p;
+	_mc = &_uc->uc_mcontext;
+
+	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
+	   different to the ones in <ucontext.h>. */
+
+	pv  = NULL;
+	sp  = (u1 *) _mc->gregs[REG_RSP];
+	xpc = (u1 *) _mc->gregs[REG_RIP];
+	ra  = xpc;                          /* return address is equal to xpc     */
+
+	/* This is a patcher. */
+
+	type = EXCEPTION_HARDWARE_PATCHER;
+	val  = 0;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
+	/* Handle the type. */
+
+	p = signal_handle(xpc, type, val);
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	/* set registers */
+
+	if (p != NULL) {
+		_mc->gregs[REG_RAX] = (intptr_t) p;
+		_mc->gregs[REG_R10] = (intptr_t) xpc;                /* REG_ITMP2_XPC */
+		_mc->gregs[REG_RIP] = (intptr_t) asm_handle_exception;
+	}
+}
+
+
 /* md_signal_handler_sigusr1 ***************************************************
 
    Signal handler for suspending threads.

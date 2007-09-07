@@ -122,13 +122,10 @@
 
 /* patcher defines ************************************************************/
 
-#define PATCHER_CALL_SIZE    5          /* size in bytes of a patcher call    */
+#define PATCHER_CALL_SIZE    2          /* size in bytes of a patcher call    */
 
 #define PATCHER_NOPS \
     do { \
-        M_NOP; \
-        M_NOP; \
-        M_NOP; \
         M_NOP; \
         M_NOP; \
     } while (0)
@@ -200,7 +197,14 @@
 #define M_IINC(a)               emit_incl_reg(cd, (a))
 #define M_IDEC(a)               emit_decl_reg(cd, (a))
 
-#define M_ALD(a,b,disp)         M_LLD(a,b,disp)
+#define M_ALD(a,b,disp) \
+    do { \
+        if (b == RIP) \
+            M_LLD(a, b, disp + -((cd->mcodeptr + 7) - cd->mcodebase)); \
+        else \
+            M_LLD(a, b, disp); \
+    } while (0)
+
 #define M_ALD32(a,b,disp)       M_LLD32(a,b,disp)
 
 #define M_ALD_MEM(a,disp)       emit_mov_mem_reg(cd, (disp), (a))
