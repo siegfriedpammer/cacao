@@ -41,7 +41,7 @@
 #include "vm/exceptions.h"
 #include "vm/initialize.h"
 
-#include "vm/jit/patcher.h"
+#include "vm/jit/patcher-common.h"
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/class.h"
@@ -51,80 +51,7 @@
 #include "vmcore/references.h"
 
 
-/* patcher_wrapper *************************************************************
-
-   Wrapper for all patchers.  It also creates the stackframe info
-   structure.
-
-   If the return value of the patcher function is false, it gets the
-   exception object, clears the exception pointer and returns the
-   exception.
-
-*******************************************************************************/
-
-java_object_t *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
-{
-	stackframeinfo     sfi;
-	u1                *xpc;
-	java_object_t     *o;
-	functionptr        f;
-	bool               result;
-	java_handle_t     *e;
-
-	/* define the patcher function */
-
-	bool (*patcher_function)(u1 *);
-
-	/* get stuff from the stack */
-
-	xpc = (u1 *)                *((ptrint *) (sp + 6 * 4));
-	o   = (java_object_t *)     *((ptrint *) (sp + 4 * 4));
-	f   = (functionptr)         *((ptrint *) (sp + 0 * 4));
-
-	/* calculate and set the new return address */
-
-	xpc = xpc - PATCHER_CALL_SIZE;
-
-	*((ptrint *) (sp + 6 * 4)) = (ptrint) xpc;
-
-	/* cast the passed function to a patcher function */
-
-	patcher_function = (bool (*)(u1 *)) (ptrint) f;
-
-	/* enter a monitor on the patching position */
-
-	PATCHER_MONITORENTER;
-
-	/* create the stackframeinfo */
-
-	/* RA is passed as NULL, but the XPC is correct and can be used in
-	   stacktrace_create_extern_stackframeinfo for
-	   md_codegen_get_pv_from_pc. */
-
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 7 * 4, xpc, xpc);
-
-	/* call the proper patcher function */
-
-	result = (patcher_function)(sp);
-
-	/* remove the stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	/* check for return value and exit accordingly */
-
-	if (result == false) {
-		e = exceptions_get_and_clear_exception();
-
-		PATCHER_MONITOREXIT;
-
-		return e;
-	}
-
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
-	return NULL;
-}
+#define PATCH_BACK_ORIGINAL_MCODE *((u2 *) ra) = (u2) pr->mcode
 
 
 /* patcher_get_putstatic *******************************************************
@@ -136,18 +63,16 @@ java_object_t *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 
 *******************************************************************************/
 
-bool patcher_get_putstatic(u1 *sp)
+bool patcher_get_putstatic(patchref_t *pr)
 {
 	u1               *ra;
-	u8                mcode;
 	unresolved_field *uf;
 	fieldinfo        *fi;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)               *((ptrint *) (sp + 6 * 4));
-	mcode =                      *((u8 *)     (sp + 2 * 4));
-	uf    = (unresolved_field *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)               pr->mpc;
+	uf    = (unresolved_field *) pr->ref;
 
 	/* get the fieldinfo */
 
@@ -160,15 +85,12 @@ bool patcher_get_putstatic(u1 *sp)
 		if (!initialize_class(fi->class))
 			return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch the field value's address */
 
@@ -187,33 +109,28 @@ bool patcher_get_putstatic(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_getfield(u1 *sp)
+bool patcher_getfield(patchref_t *pr)
 {
 	u1               *ra;
-	u8                mcode;
 	unresolved_field *uf;
 	fieldinfo        *fi;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)               *((ptrint *) (sp + 6 * 4));
-	mcode =                      *((u8 *)     (sp + 2 * 4));
-	uf    = (unresolved_field *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)               pr->mpc;
+	uf    = (unresolved_field *) pr->ref;
 
 	/* get the fieldinfo */
 
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch the field's offset */
 
@@ -237,33 +154,28 @@ bool patcher_getfield(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_putfield(u1 *sp)
+bool patcher_putfield(patchref_t *pr)
 {
 	u1               *ra;
-	u8                mcode;
 	unresolved_field *uf;
 	fieldinfo        *fi;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)               *((ptrint *) (sp + 6 * 4));
-	mcode =                      *((u8 *)     (sp + 2 * 4));
-	uf    = (unresolved_field *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)               pr->mpc;
+	uf    = (unresolved_field *) pr->ref;
 
 	/* get the fieldinfo */
 
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch the field's offset */
 
@@ -294,33 +206,28 @@ bool patcher_putfield(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_putfieldconst(u1 *sp)
+bool patcher_putfieldconst(patchref_t *pr)
 {
 	u1               *ra;
-	u8                mcode;
 	unresolved_field *uf;
 	fieldinfo        *fi;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)               *((ptrint *) (sp + 6 * 4));
-	mcode =                      *((u8 *)     (sp + 2 * 4));
-	uf    = (unresolved_field *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)               pr->mpc;
+	uf    = (unresolved_field *) pr->ref;
 
 	/* get the fieldinfo */
 
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch the field's offset */
 
@@ -352,33 +259,28 @@ bool patcher_putfieldconst(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_aconst(u1 *sp)
+bool patcher_aconst(patchref_t *pr)
 {
 	u1                *ra;
-	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 6 * 4));
-	mcode =                       *((u8 *)     (sp + 2 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)                pr->mpc;
+	cr    = (constant_classref *) pr->ref;
 
 	/* get the classinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch the classinfo pointer */
 
@@ -403,33 +305,28 @@ bool patcher_aconst(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_builtin_multianewarray(u1 *sp)
+bool patcher_builtin_multianewarray(patchref_t *pr)
 {
 	u1                *ra;
-	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 6 * 4));
-	mcode =                       *((u8 *)     (sp + 2 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)                pr->mpc;
+	cr    = (constant_classref *) pr->ref;
 
 	/* get the classinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch the classinfo pointer */
 
@@ -450,33 +347,28 @@ bool patcher_builtin_multianewarray(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_builtin_arraycheckcast(u1 *sp)
+bool patcher_builtin_arraycheckcast(patchref_t *pr)
 {
 	u1                *ra;
-	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 6 * 4));
-	mcode =                       *((u8 *)     (sp + 2 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)                pr->mpc;
+	cr    = (constant_classref *) pr->ref;
 
 	/* get the classinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch the classinfo pointer */
 
@@ -500,33 +392,28 @@ bool patcher_builtin_arraycheckcast(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_invokestatic_special(u1 *sp)
+bool patcher_invokestatic_special(patchref_t *pr)
 {
 	u1                *ra;
-	u8                 mcode;
 	unresolved_method *um;
 	methodinfo        *m;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 6 * 4));
-	mcode =                       *((u8 *)     (sp + 2 * 4));
-	um    = (unresolved_method *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)                pr->mpc;
+	um    = (unresolved_method *) pr->ref;
 
 	/* get the fieldinfo */
 
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch stubroutine */
 
@@ -547,33 +434,28 @@ bool patcher_invokestatic_special(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_invokevirtual(u1 *sp)
+bool patcher_invokevirtual(patchref_t *pr)
 {
 	u1                *ra;
-	u8                 mcode;
 	unresolved_method *um;
 	methodinfo        *m;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 6 * 4));
-	mcode =                       *((u8 *)     (sp + 2 * 4));
-	um    = (unresolved_method *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)                pr->mpc;
+	um    = (unresolved_method *) pr->ref;
 
 	/* get the fieldinfo */
 
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch vftbl index */
 
@@ -596,33 +478,28 @@ bool patcher_invokevirtual(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_invokeinterface(u1 *sp)
+bool patcher_invokeinterface(patchref_t *pr)
 {
 	u1                *ra;
-	u8                 mcode;
 	unresolved_method *um;
 	methodinfo        *m;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 6 * 4));
-	mcode =                       *((u8 *)     (sp + 2 * 4));
-	um    = (unresolved_method *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)                pr->mpc;
+	um    = (unresolved_method *) pr->ref;
 
 	/* get the fieldinfo */
 
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch interfacetable index */
 
@@ -647,33 +524,28 @@ bool patcher_invokeinterface(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_checkcast_instanceof_flags(u1 *sp)
+bool patcher_checkcast_instanceof_flags(patchref_t *pr)
 {
 	u1                *ra;
-	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 6 * 4));
-	mcode =                       *((u8 *)     (sp + 2 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)                pr->mpc;
+	cr    = (constant_classref *) pr->ref;
 
 	/* get the fieldinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch class flags */
 
@@ -697,33 +569,28 @@ bool patcher_checkcast_instanceof_flags(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_checkcast_interface(u1 *sp)
+bool patcher_checkcast_interface(patchref_t *pr)
 {
 	u1                *ra;
-	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 6 * 4));
-	mcode =                       *((u8 *)     (sp + 2 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)                pr->mpc;
+	cr    = (constant_classref *) pr->ref;
 
 	/* get the fieldinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch super class index */
 
@@ -750,33 +617,28 @@ bool patcher_checkcast_interface(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_instanceof_interface(u1 *sp)
+bool patcher_instanceof_interface(patchref_t *pr)
 {
 	u1                *ra;
-	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 6 * 4));
-	mcode =                       *((u8 *)     (sp + 2 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)                pr->mpc;
+	cr    = (constant_classref *) pr->ref;
 
 	/* get the fieldinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch super class index */
 
@@ -803,33 +665,28 @@ bool patcher_instanceof_interface(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_checkcast_class(u1 *sp)
+bool patcher_checkcast_class(patchref_t *pr)
 {
 	u1                *ra;
-	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 6 * 4));
-	mcode =                       *((u8 *)     (sp + 2 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)                pr->mpc;
+	cr    = (constant_classref *) pr->ref;
 
 	/* get the fieldinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch super class' vftbl */
 
@@ -852,33 +709,28 @@ bool patcher_checkcast_class(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_instanceof_class(u1 *sp)
+bool patcher_instanceof_class(patchref_t *pr)
 {
 	u1                *ra;
-	u8                 mcode;
 	constant_classref *cr;
 	classinfo         *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)                *((ptrint *) (sp + 6 * 4));
-	mcode =                       *((u8 *)     (sp + 2 * 4));
-	cr    = (constant_classref *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)                pr->mpc;
+	cr    = (constant_classref *) pr->ref;
 
 	/* get the fieldinfo */
 
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch super class' vftbl */
 
@@ -888,7 +740,7 @@ bool patcher_instanceof_class(u1 *sp)
 }
 
 
-/* patcher_clinit **************************************************************
+/* patcher_initialize_class ****************************************************
 
    Is used int PUT/GETSTATIC and native stub.
 
@@ -898,17 +750,15 @@ bool patcher_instanceof_class(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_clinit(u1 *sp)
+bool patcher_initialize_class(patchref_t *pr)
 {
 	u1        *ra;
-	u8         mcode;
 	classinfo *c;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)        *((ptrint *) (sp + 6 * 4));
-	mcode =               *((u8 *)     (sp + 2 * 4));
-	c     = (classinfo *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)        pr->mpc;
+	c     = (classinfo *) pr->ref;
 
 	/* check if the class is initialized */
 
@@ -916,16 +766,13 @@ bool patcher_clinit(u1 *sp)
 		if (!initialize_class(c))
 			return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	return true;
 }
 
 
-/* patcher_athrow_areturn ******************************************************
+/* patcher_resolve_class *******************************************************
 
    Machine code:
 
@@ -934,34 +781,29 @@ bool patcher_clinit(u1 *sp)
 *******************************************************************************/
 
 #ifdef ENABLE_VERIFIER
-bool patcher_athrow_areturn(u1 *sp)
+bool patcher_resolve_class(patchref_t *pr)
 {
 	u1               *ra;
-	u8                mcode;
 	unresolved_class *uc;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)               *((ptrint *) (sp + 6 * 4));
-	mcode =                      *((u8 *)     (sp + 2 * 4));
-	uc    = (unresolved_class *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)               pr->mpc;
+	uc    = (unresolved_class *) pr->ref;
 
 	/* resolve the class and check subtype constraints */
 
 	if (!resolve_class_eager_no_access_check(uc))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	return true;
 }
 #endif /* ENABLE_VERIFIER */
 
 
-/* patcher_resolve_native ******************************************************
+/* patcher_resolve_native_function *********************************************
 
    Is used in native stub.
 
@@ -972,33 +814,28 @@ bool patcher_athrow_areturn(u1 *sp)
 
 *******************************************************************************/
 
-bool patcher_resolve_native(u1 *sp)
+bool patcher_resolve_native_function(patchref_t *pr)
 {
 	u1          *ra;
-	u8           mcode;
 	methodinfo  *m;
 	functionptr  f;
 
 	/* get stuff from the stack */
 
-	ra    = (u1 *)         *((ptrint *) (sp + 6 * 4));
-	mcode =                *((u8 *)     (sp + 2 * 4));
-	m     = (methodinfo *) *((ptrint *) (sp + 1 * 4));
+	ra    = (u1 *)         pr->mpc;
+	m     = (methodinfo *) pr->ref;
 
 	/* resolve native function */
 
 	if (!(f = native_resolve_function(m)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) (ra + 0)) = (u4) mcode;
-	*((u1 *) (ra + 4)) = (u1) (mcode >> 32);
+	PATCH_BACK_ORIGINAL_MCODE;
 
 	/* if we show disassembly, we have to skip the nop's */
 
 	if (opt_shownops)
-		ra = ra + 5;
+		ra = ra + PATCHER_CALL_SIZE;
 
 	/* patch native function pointer */
 

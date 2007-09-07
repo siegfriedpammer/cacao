@@ -1152,18 +1152,20 @@ classinfo *load_class_from_classloader(utf *name, classloader *cl)
 				return c;
 			}
 		}
-		
+
+		LLNI_class_get(cl, c);
+
 #if defined(WITH_CLASSPATH_SUN)
 		/* OpenJDK uses this internal function because it's
 		   synchronized. */
 
-		lc = class_resolveclassmethod(cl->vftbl->class,
+		lc = class_resolveclassmethod(c,
 									  utf_loadClassInternal,
 									  utf_java_lang_String__java_lang_Class,
 									  NULL,
 									  true);
 #else
-		lc = class_resolveclassmethod(cl->vftbl->class,
+		lc = class_resolveclassmethod(c,
 									  utf_loadClass,
 									  utf_java_lang_String__java_lang_Class,
 									  NULL,

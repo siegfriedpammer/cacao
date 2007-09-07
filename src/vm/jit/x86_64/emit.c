@@ -1628,12 +1628,6 @@ void emit_idivl_reg(codegendata *cd, s8 reg) {
 
 
 
-void emit_ret(codegendata *cd) {
-    *(cd->mcodeptr++) = 0xc3;
-}
-
-
-
 /*
  * shift ops
  */
@@ -1826,11 +1820,6 @@ void emit_xchg_reg_reg(codegendata *cd, s8 reg, s8 dreg) {
 	emit_rex(1,(reg),0,(dreg));
 	*(cd->mcodeptr++) = 0x87;
 	emit_reg((reg),(dreg));
-}
-
-
-void emit_nop(codegendata *cd) {
-    *(cd->mcodeptr++) = 0x90;
 }
 
 

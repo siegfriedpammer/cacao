@@ -47,6 +47,7 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
 
 #include "vmcore/options.h"
@@ -506,90 +507,6 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 }
 
 
-/* emit_patcher_stubs **********************************************************
-
-   Generates the code for the patcher stubs.
-
-*******************************************************************************/
-
-void emit_patcher_stubs(jitdata *jd)
-{
-	codegendata *cd;
-	patchref    *pref;
-	u8           mcode;
-	u1          *savedmcodeptr;
-	u1          *tmpmcodeptr;
-	s4           targetdisp;
-	s4           disp;
-
-	/* get required compiler data */
-
-	cd = jd->cd;
-
-	/* generate code patching stub call code */
-
-	targetdisp = 0;
-
-	for (pref = cd->patchrefs; pref != NULL; pref = pref->next) {
-		/* check code segment size */
-
-		MCODECHECK(512);
-
-		/* Get machine code which is patched back in later. A
-		   `call rel32' is 5 bytes long. */
-
-		savedmcodeptr = cd->mcodebase + pref->branchpos;
-		mcode = *((u8 *) savedmcodeptr);
-
-		/* patch in `call rel32' to call the following code */
-
-		tmpmcodeptr  = cd->mcodeptr;    /* save current mcodeptr              */
-		cd->mcodeptr = savedmcodeptr;   /* set mcodeptr to patch position     */
-
-		M_CALL_IMM(tmpmcodeptr - (savedmcodeptr + PATCHER_CALL_SIZE));
-
-		cd->mcodeptr = tmpmcodeptr;     /* restore the current mcodeptr       */
-
-		/* save REG_ITMP3 */
-
-		M_PUSH(REG_ITMP3);
-
-		/* move pointer to java_objectheader onto stack */
-
-#if defined(ENABLE_THREADS)
-		(void) dseg_add_unique_address(cd, NULL);                  /* flcword */
-		(void) dseg_add_unique_address(cd, lock_get_initial_lock_word());
-		disp = dseg_add_unique_address(cd, NULL);                  /* vftbl   */
-
-		M_MOV_IMM(0, REG_ITMP3);
-		dseg_adddata(cd);
-		M_AADD_IMM(disp, REG_ITMP3);
-		M_PUSH(REG_ITMP3);
-#else
-		M_PUSH_IMM(0);
-#endif
-
-		/* move machine code bytes and classinfo pointer into registers */
-
-		M_PUSH_IMM(mcode >> 32);
-		M_PUSH_IMM(mcode);
-		M_PUSH_IMM(pref->ref);
-		M_PUSH_IMM(pref->patcher);
-
-		if (targetdisp == 0) {
-			targetdisp = cd->mcodeptr - cd->mcodebase;
-
-			M_MOV_IMM(asm_patcher_wrapper, REG_ITMP3);
-			M_JMP(REG_ITMP3);
-		}
-		else {
-			M_JMP_IMM((cd->mcodebase + targetdisp) -
-					  (cd->mcodeptr + PATCHER_CALL_SIZE));
-		}
-	}
-}
-
-
 /* emit_trap *******************************************************************
 
    Emit a trap instruction and return the original machine code.
@@ -598,16 +515,22 @@ void emit_patcher_stubs(jitdata *jd)
 
 uint32_t emit_trap(codegendata *cd)
 {
-	uint32_t mcode;
+	uint16_t mcode;
 
 	/* Get machine code which is patched back in later. The
-	   trap is 1 instruction word long. */
+	   trap is 2 bytes long. */
 
-	mcode = *((uint32_t *) cd->mcodeptr);
+	mcode = *((uint16_t *) cd->mcodeptr);
 
-	M_NOP;
+#if 0
+	/* XXX this breaks GDB, so we disable it for now */
+	*(cd->mcodeptr++) = 0xcc;
+#else
+	*(cd->mcodeptr++) = 0x0f;
+	*(cd->mcodeptr++) = 0x0b;
+#endif
 
-	return mcode;
+	return (uint32_t) mcode;
 }
 
 

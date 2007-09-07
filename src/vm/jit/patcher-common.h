@@ -76,7 +76,7 @@ java_handle_t *patcher_handler(u1 *pc);
 
 /* patcher prototypes and macros **********************************************/
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined (__S390__)
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined (__S390__)
 
 /* new patcher functions */
 
@@ -137,7 +137,7 @@ bool patcher_invokevirtual(patchref_t *pr);
 bool patcher_invokeinterface(patchref_t *pr);
 #define PATCHER_invokeinterface (functionptr) patcher_invokeinterface
 
-#if defined(__ALPHA__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) 
+#if defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) 
 
 bool patcher_checkcast_interface(patchref_t *pr);
 #define PATCHER_checkcast_interface (functionptr) patcher_checkcast_interface
@@ -145,7 +145,7 @@ bool patcher_checkcast_interface(patchref_t *pr);
 bool patcher_instanceof_interface(patchref_t *pr);
 #define PATCHER_instanceof_interface (functionptr) patcher_instanceof_interface
 
-#endif /* defined(__ALPHA__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) */
+#endif /* defined(__ALPHA__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) */
 
 #if defined(__S390__)
 
@@ -153,6 +153,28 @@ bool patcher_checkcast_instanceof_interface(patchref_t *pr);
 #define PATCHER_checkcast_instanceof_interface (functionptr) patcher_checkcast_instanceof_interface
 
 #endif /* defined(__S390__) */
+
+#if defined(__I386__)
+
+bool patcher_aconst(patchref_t *pr);
+#define PATCHER_aconst (functionptr) patcher_aconst
+
+bool patcher_builtin_multianewarray(patchref_t *pr);
+#define PATCHER_builtin_multianewarray (functionptr) patcher_builtin_multianewarray
+
+bool patcher_builtin_arraycheckcast(patchref_t *pr);
+#define PATCHER_builtin_arraycheckcast (functionptr) patcher_builtin_arraycheckcast
+
+bool patcher_checkcast_instanceof_flags(patchref_t *pr);
+#define PATCHER_checkcast_instanceof_flags (functionptr) patcher_checkcast_instanceof_flags
+
+bool patcher_checkcast_class(patchref_t *pr);
+#define PATCHER_checkcast_class (functionptr) patcher_checkcast_class
+
+bool patcher_instanceof_class(patchref_t *pr);
+#define PATCHER_instanceof_class (functionptr) patcher_instanceof_class
+
+#endif /* defined(__I386__) */
 
 
 #endif /* architecture list */

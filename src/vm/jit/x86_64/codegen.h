@@ -141,6 +141,20 @@
 
 /* macros to create code ******************************************************/
 
+#define M_BYTE1(a) \
+    do { \
+        *(cd->mcodeptr) = (a); \
+        cd->mcodeptr++; \
+    } while (0)
+
+
+#define M_BYTE2(a, b) \
+    do { \
+        M_BYTE1(a); \
+        M_BYTE1(b); \
+    } while (0)
+
+
 #define M_MOV(a,b)              emit_mov_reg_reg(cd, (a), (b))
 #define M_MOV_IMM(a,b)          emit_mov_imm_reg(cd, (u8) (a), (b))
 
@@ -296,9 +310,10 @@
 #define M_JMP_IMM(a)            emit_jmp_imm(cd, (a))
 #define M_CALL(a)               emit_call_reg(cd, (a))
 #define M_CALL_IMM(a)           emit_call_imm(cd, (a))
-#define M_RET                   emit_ret(cd)
+#define M_RET                   M_BYTE1(0xc3)
 
-#define M_NOP                   emit_nop(cd)
+#define M_NOP                   M_BYTE1(0x90)
+#define M_UD2                   M_BYTE2(0x0f, 0x0b)
 
 #define M_CLR(a)                M_LXOR(a,a)
 
