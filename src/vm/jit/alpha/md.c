@@ -277,6 +277,18 @@ void md_icacheflush(u1 *addr, s4 nbytes)
 }
 
 
+/* md_dcacheflush **************************************************************
+
+   Calls the system's function to flush the data cache.
+
+*******************************************************************************/
+
+void md_dcacheflush(u1 *addr, s4 nbytes)
+{
+	/* do nothing */
+}
+
+
 /* md_patch_replacement_point **************************************************
 
    Patch the given replacement point.
