@@ -74,6 +74,11 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
 java_handle_t *patcher_handler(u1 *pc);
 
 
+/* empty patcher (just patches back original mcode) ***************************/
+
+void patcher_patch_code(patchref_t *pr);
+
+
 /* patcher prototypes and macros **********************************************/
 
 #if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined (__S390__)

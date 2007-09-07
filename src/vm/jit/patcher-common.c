@@ -40,6 +40,8 @@
 #include "toolbox/logging.h"           /* XXX remove me! */
 
 #include "vm/exceptions.h"
+#include "vm/initialize.h"
+#include "vm/resolve.h"
 #include "vm/vm.h"                     /* for vm_abort */
 
 #include "vm/jit/code.h"
@@ -121,6 +123,11 @@ static patchref_t *patcher_list_find(codeinfo *code, u1 *pc)
 	pr = list_first_unsynced(code->patchers);
 	while (pr) {
 
+/*#define TRACE_PATCHER_FIND*/
+#ifdef TRACE_PATCHER_FIND
+		log_println("patcher_list_find: %p == %p", pr->mpc, pc);
+#endif
+
 		if (pr->mpc == (ptrint) pc)
 			return pr;
 
@@ -192,8 +199,22 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
 /* XXX this indent is not thread safe! */
 /* XXX if you want it thread safe, place patcher_depth in threadobject! */
 static int patcher_depth = 0;
-# define TRACE_PATCHER_INDENT for (i=0; i<patcher_depth; i++) printf("\t")
-#endif
+#define TRACE_PATCHER_INDENT for (i=0; i<patcher_depth; i++) printf("\t")
+
+typedef struct patcher_function_list_t {
+	functionptr  patcher;
+	char        *name;
+} patcher_function_list_t;
+
+static patcher_function_list_t patcher_function_list[] = {
+	{ PATCHER_initialize_class,              "initialize_class" },
+	{ PATCHER_resolve_class,                 "resolve_class" },
+	{ PATCHER_invokestatic_special,          "invokestatic_special" },
+	{ PATCHER_invokevirtual,                 "invokevirtual" },
+	{ PATCHER_invokeinterface,               "invokeinterface" },
+	{ NULL, "-UNKNOWN PATCHER FUNCTION-" }
+};
+#endif /* TRACE_PATCHER */
 
 java_handle_t *patcher_handler(u1 *pc)
 {
@@ -202,7 +223,8 @@ java_handle_t *patcher_handler(u1 *pc)
 	bool           result;
 	java_handle_t *e;
 #ifdef TRACE_PATCHER
-	int            i;
+	patcher_function_list_t *l;
+	int                      i;
 #endif
 
 	/* define the patcher function */
@@ -232,8 +254,13 @@ java_handle_t *patcher_handler(u1 *pc)
 	}
 
 #ifdef TRACE_PATCHER
+	for (l = patcher_function_list; l->patcher != NULL; l++)
+		if (l->patcher == pr->patcher)
+			break;
+
 	TRACE_PATCHER_INDENT; printf("patching in "); method_print(code->m); printf("\n");
 	TRACE_PATCHER_INDENT; printf("\texception program counter = %p\n", (void *) pr->mpc);
+	TRACE_PATCHER_INDENT; printf("\tpatcher function = %s\n", l->name);
 	TRACE_PATCHER_INDENT; printf("\tmcodes before = "); for (i=0; i<5; i++) printf("0x%08x ", *((u4 *) pr->mpc + i)); printf("\n");
 	patcher_depth++;
 	assert(patcher_depth > 0);
@@ -272,6 +299,65 @@ java_handle_t *patcher_handler(u1 *pc)
 
 	return NULL;
 }
+
+
+/* patcher_initialize_class ****************************************************
+
+   Initalizes a given classinfo pointer.
+   This function does not patch any data.
+
+*******************************************************************************/
+
+bool patcher_initialize_class(patchref_t *pr)
+{
+	classinfo *c;
+
+	/* get stuff from the patcher reference */
+
+	c = (classinfo *) pr->ref;
+
+	/* check if the class is initialized */
+
+	if (!(c->state & CLASS_INITIALIZED))
+		if (!initialize_class(c))
+			return false;
+
+	/* patch back original code */
+
+	patcher_patch_code(pr);
+
+	return true;
+}
+
+
+/* patcher_resolve_class *******************************************************
+
+   Resolves a given unresolved class reference.
+   This function does not patch any data.
+
+*******************************************************************************/
+
+#ifdef ENABLE_VERIFIER
+bool patcher_resolve_class(patchref_t *pr)
+{
+	unresolved_class *uc;
+
+	/* get stuff from the patcher reference */
+
+	uc = (unresolved_class *) pr->ref;
+
+	/* resolve the class and check subtype constraints */
+
+	if (!resolve_class_eager_no_access_check(uc))
+		return false;
+
+	/* patch back original code */
+
+	patcher_patch_code(pr);
+
+	return true;
+}
+#endif /* ENABLE_VERIFIER */
 
 
 /*

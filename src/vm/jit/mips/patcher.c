@@ -58,59 +58,16 @@
 	md_icacheflush((u1 *) pr->mpc, PATCHER_CALL_SIZE);
 
 
-/* patcher_initialize_class ****************************************************
+/* patcher_patch_code **********************************************************
 
-   Initalizes a given classinfo pointer.  This function does not patch
-   any data.
-
-*******************************************************************************/
-
-bool patcher_initialize_class(patchref_t *pr)
-{
-	classinfo *c;
-
-	/* get stuff from the stack */
-
-	c = (classinfo *) pr->ref;
-
-	/* check if the class is initialized */
-
-	if (!(c->state & CLASS_INITIALIZED))
-		if (!initialize_class(c))
-			return false;
-
-	PATCH_BACK_ORIGINAL_MCODE;
-
-	return true;
-}
-
-
-/* patcher_resolve_class *****************************************************
-
-   Initalizes a given classinfo pointer.  This function does not patch
-   any data.
+   Just patches back the original machine code.
 
 *******************************************************************************/
 
-#ifdef ENABLE_VERIFIER
-bool patcher_resolve_class(patchref_t *pr)
+void patcher_patch_code(patchref_t *pr)
 {
-	unresolved_class *uc;
-
-	/* get stuff from the stack */
-
-	uc = (unresolved_class *) pr->ref;
-
-	/* resolve the class and check subtype constraints */
-
-	if (!resolve_class_eager_no_access_check(uc))
-		return false;
-
 	PATCH_BACK_ORIGINAL_MCODE;
-
-	return true;
 }
-#endif /* ENABLE_VERIFIER */
 
 
 /* patcher_get_putstatic *******************************************************

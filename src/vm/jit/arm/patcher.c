@@ -66,6 +66,18 @@
 	}
 
 
+/* patcher_patch_code **********************************************************
+
+   Just patches back the original machine code.
+
+*******************************************************************************/
+
+void patcher_patch_code(patchref_t *pr)
+{
+	PATCH_BACK_ORIGINAL_MCODE;
+}
+
+
 /* patcher_get_putstatic *******************************************************
 
    Machine code:
@@ -467,61 +479,6 @@ bool patcher_resolve_classref_to_vftbl(patchref_t *pr)
 
 	return true;
 }
-
-
-/* patcher_initialize_class ****************************************************
-
-   XXX
-
-*******************************************************************************/
-
-bool patcher_initialize_class(patchref_t *pr)
-{
-	classinfo *c;
-
-	/* get stuff from the stack */
-
-	c = (classinfo *) pr->ref;
-
-	/* check if the class is initialized */
-
-	if (!(c->state & CLASS_INITIALIZED))
-		if (!initialize_class(c))
-			return false;
-
-	PATCH_BACK_ORIGINAL_MCODE;
-
-	return true;
-}
-
-
-/* patcher_resolve_class *******************************************************
-
-   Machine code:
-
-   <patched call position>
-
-*******************************************************************************/
-
-#ifdef ENABLE_VERIFIER
-bool patcher_resolve_class(patchref_t *pr)
-{
-	unresolved_class *uc;
-
-	/* get stuff from the stack */
-
-	uc = (unresolved_class *) pr->ref;
-
-	/* resolve the class and check subtype constraints */
-
-	if (!resolve_class_eager_no_access_check(uc))
-		return false;
-
-	PATCH_BACK_ORIGINAL_MCODE;
-
-	return true;
-}
-#endif /* ENABLE_VERIFIER */
 
 
 /* patcher_resolve_native_function *********************************************

@@ -51,7 +51,19 @@
 #include "vmcore/references.h"
 
 
-#define PATCH_BACK_ORIGINAL_MCODE *((u2 *) ra) = (u2) pr->mcode
+#define PATCH_BACK_ORIGINAL_MCODE *((u2 *) pr->mpc) = (u2) pr->mcode
+
+
+/* patcher_patch_code **********************************************************
+
+   Just patches back the original machine code.
+
+*******************************************************************************/
+
+void patcher_patch_code(patchref_t *pr)
+{
+	PATCH_BACK_ORIGINAL_MCODE;
+}
 
 
 /* patcher_get_putstatic *******************************************************
@@ -738,69 +750,6 @@ bool patcher_instanceof_class(patchref_t *pr)
 
 	return true;
 }
-
-
-/* patcher_initialize_class ****************************************************
-
-   Is used int PUT/GETSTATIC and native stub.
-
-   Machine code:
-
-   <patched call position>
-
-*******************************************************************************/
-
-bool patcher_initialize_class(patchref_t *pr)
-{
-	u1        *ra;
-	classinfo *c;
-
-	/* get stuff from the stack */
-
-	ra    = (u1 *)        pr->mpc;
-	c     = (classinfo *) pr->ref;
-
-	/* check if the class is initialized */
-
-	if (!(c->state & CLASS_INITIALIZED))
-		if (!initialize_class(c))
-			return false;
-
-	PATCH_BACK_ORIGINAL_MCODE;
-
-	return true;
-}
-
-
-/* patcher_resolve_class *******************************************************
-
-   Machine code:
-
-   <patched call position>
-
-*******************************************************************************/
-
-#ifdef ENABLE_VERIFIER
-bool patcher_resolve_class(patchref_t *pr)
-{
-	u1               *ra;
-	unresolved_class *uc;
-
-	/* get stuff from the stack */
-
-	ra    = (u1 *)               pr->mpc;
-	uc    = (unresolved_class *) pr->ref;
-
-	/* resolve the class and check subtype constraints */
-
-	if (!resolve_class_eager_no_access_check(uc))
-		return false;
-
-	PATCH_BACK_ORIGINAL_MCODE;
-
-	return true;
-}
-#endif /* ENABLE_VERIFIER */
 
 
 /* patcher_resolve_native_function *********************************************
