@@ -187,6 +187,21 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
 
     if (opt_shownops)
         PATCHER_NOPS;
+
+#if defined(ENABLE_JIT) && (defined(__I386__) || defined(__M68K__) || defined(__SPARC_64__) || defined(__X86_64__))
+
+	/* XXX We can remove that when we don't use UD2 anymore on i386
+	   and x86_64. */
+
+	/* On some architectures the patcher stub call instruction might
+	   be longer than the actual instruction generated.  On this
+	   architectures we store the last patcher call position and after
+	   the basic block code generation is completed, we check the
+	   range and maybe generate some nop's. */
+	/* The nops are generated in codegen_emit in each codegen */
+
+	cd->lastmcodeptr = cd->mcodeptr + PATCHER_CALL_SIZE;
+#endif
 }
 
 
