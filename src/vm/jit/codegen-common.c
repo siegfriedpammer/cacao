@@ -1194,9 +1194,6 @@ u1 *codegen_generate_stub_compiler(methodinfo *m)
 
    Wrapper for codegen_emit_stub_builtin.
 
-   Returns:
-       Pointer to the entrypoint of the stub.
-
 *******************************************************************************/
 
 void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
@@ -1235,18 +1232,8 @@ void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp) {
 # endif
-		/* XXX This is only a hack for builtin_arraycopy and should be done better! */
-		if (bte->flags & BUILTINTABLE_FLAG_EXCEPTION) {
-			assert(bte->md->returntype.type == TYPE_VOID);
-			bte->md->returntype.type = TYPE_INT;
-		}
-
-		codegen_emit_stub_native(jd, NULL, bte->fp);
-
-		/* XXX see above */
-		if (bte->flags & BUILTINTABLE_FLAG_EXCEPTION) {
-			bte->md->returntype.type = TYPE_VOID;
-		}
+		assert(bte->fp != NULL);
+		codegen_emit_stub_native(jd, bte->md, bte->fp);
 # if defined(ENABLE_INTRP)
 	}
 # endif
@@ -1437,70 +1424,6 @@ void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end)
 #endif
 
 
-/* codegen_stub_builtin_enter **************************************************
-
-   Prepares the stuff required for a builtin function call:
-
-   - adds a stackframe info structure to the chain, for stacktraces
-
-   The layout of the builtin stub stackframe should look like this:
-
-   +---------------------------+ <- SP (of parent Java function)
-   | return address            |
-   +---------------------------+
-   |                           |
-   | stackframe info structure |
-   |                           |
-   +---------------------------+
-   |                           |
-   | arguments (if any)        |
-   |                           |
-   +---------------------------+ <- SP (native stub)
-
-*******************************************************************************/
-
-void codegen_stub_builtin_enter(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
-{
-#if 0
-	stackframeinfo *sfi;
-
-	/* get data structures from stack */
-
-	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
-
-	/* add a stackframeinfo to the chain */
-
-	stacktrace_create_native_stackframeinfo(sfi, pv, sp, ra);
-#else
-	vm_abort("codegen_stub_builtin_enter: REMOVE ME!");
-#endif
-}
-
-
-/* codegen_stub_builtin_exit ***************************************************
-
-   Removes the stuff required for a builtin function call.
-
-*******************************************************************************/
-
-void codegen_stub_builtin_exit(u1 *datasp)
-{
-#if 0
-	stackframeinfo *sfi;
-
-	/* get data structures from stack */
-
-	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
-
-	/* remove current stackframeinfo from chain */
-
-	stacktrace_remove_stackframeinfo(sfi);
-#else
-	vm_abort("codegen_stub_builtin_exit: REMOVE ME!");
-#endif
-}
-
-
 /* codegen_start_native_call ***************************************************
 
    Prepares the stuff required for a native (JNI) function call:
@@ -1622,7 +1545,7 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 
 	stacktrace_create_native_stackframeinfo(sfi, pv, javasp, javara);
 
-	/* return a wrapped classinfo for static methods */
+	/* return a wrapped classinfo for static native methods */
 
 	if (m->flags & ACC_STATIC)
 		return LLNI_classinfo_wrap(m->class);
