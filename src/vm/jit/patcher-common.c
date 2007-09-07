@@ -34,6 +34,8 @@
 
 #include "mm/memory.h"
 
+#include "native/native.h"
+
 #include "threads/lock-common.h"
 
 #include "toolbox/list.h"
@@ -46,6 +48,7 @@
 
 #include "vm/jit/code.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/md.h"
 #include "vm/jit/patcher-common.h"
 
 #include "vmcore/options.h"
@@ -209,6 +212,7 @@ typedef struct patcher_function_list_t {
 static patcher_function_list_t patcher_function_list[] = {
 	{ PATCHER_initialize_class,              "initialize_class" },
 	{ PATCHER_resolve_class,                 "resolve_class" },
+	{ PATCHER_resolve_native_function,       "resolve_native_function" },
 	{ PATCHER_invokestatic_special,          "invokestatic_special" },
 	{ PATCHER_invokevirtual,                 "invokevirtual" },
 	{ PATCHER_invokeinterface,               "invokeinterface" },
@@ -358,6 +362,45 @@ bool patcher_resolve_class(patchref_t *pr)
 	return true;
 }
 #endif /* ENABLE_VERIFIER */
+
+
+/* patcher_resolve_native_function *********************************************
+
+   Resolves the native function for a given methodinfo.
+   This function patches one data segment word.
+
+*******************************************************************************/
+
+bool patcher_resolve_native_function(patchref_t *pr)
+{
+	methodinfo  *m;
+	uint8_t     *datap;
+	functionptr  f;
+
+	/* get stuff from the patcher reference */
+
+	m     = (methodinfo *) pr->ref;
+	datap = (uint8_t *)    pr->datap;
+
+	/* resolve native function */
+
+	if (!(f = native_resolve_function(m)))
+		return false;
+
+	/* patch native function pointer */
+
+	*((intptr_t *) datap) = (intptr_t) f;
+
+	/* synchronize data cache */
+
+	md_dcacheflush(datap, SIZEOF_VOID_P);
+
+	/* patch back original code */
+
+	patcher_patch_code(pr);
+
+	return true;
+}
 
 
 /*

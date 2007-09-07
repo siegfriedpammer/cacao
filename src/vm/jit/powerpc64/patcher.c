@@ -652,53 +652,6 @@ bool patcher_resolve_classref_to_flags(patchref_t *pr)
 }
 
 
-/* patcher_resolve_native_function *********************************************
-
-   XXX
-
-*******************************************************************************/
-
-bool patcher_resolve_native_function(patchref_t *pr)
-{
-	u1          *ra;
-	u4           mcode;
-	methodinfo  *m;
-	u1          *datap;
-	functionptr  f;
-
-	/* get stuff from the stack */
-
-
-	ra    = (u1 *)                pr->mpc;
-	mcode =                       pr->mcode;
-	m     = (methodinfo *)        pr->ref;
-	datap = (u1 *)                pr->datap;
-
-	/* resolve native function */
-
-	if (!(f = native_resolve_function(m)))
-		return false;
-
-	/* patch back original code */
-
-	*((u4 *) ra) = mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 4);
-
-	/* patch native function pointer */
-
-	*((ptrint *) datap) = (ptrint) f;
-
-	/* synchronize data cache */
-
-	md_dcacheflush(datap, SIZEOF_VOID_P);
-
-	return true;
-}
-
-
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

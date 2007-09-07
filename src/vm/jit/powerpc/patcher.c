@@ -217,42 +217,6 @@ bool patcher_resolve_classref_to_flags(patchref_t *pr)
 }
 
 
-/* patcher_resolve_native_function *********************************************
-
-   XXX
-
-*******************************************************************************/
-
-bool patcher_resolve_native_function(patchref_t *pr)
-{
-	methodinfo  *m;
-	u1          *datap;
-	functionptr  f;
-
-	/* get stuff from the stack */
-
-	m     = (methodinfo *) pr->ref;
-	datap = (u1 *)         pr->datap;
-
-	/* resolve native function */
-
-	if (!(f = native_resolve_function(m)))
-		return false;
-
-	PATCH_BACK_ORIGINAL_MCODE;
-
-	/* patch native function pointer */
-
-	*((ptrint *) datap) = (ptrint) f;
-
-	/* synchronize data cache */
-
-	md_dcacheflush(datap, SIZEOF_VOID_P);
-
-	return true;
-}
-
-
 /* patcher_get_putstatic *******************************************************
 
    Machine code:
