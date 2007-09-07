@@ -1241,7 +1241,7 @@ void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 			bte->md->returntype.type = TYPE_INT;
 		}
 
-		codegen_emit_stub_builtin(jd, bte);
+		codegen_emit_stub_native(jd, NULL, bte->fp);
 
 		/* XXX see above */
 		if (bte->flags & BUILTINTABLE_FLAG_EXCEPTION) {
@@ -1461,6 +1461,7 @@ void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end)
 
 void codegen_stub_builtin_enter(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 {
+#if 0
 	stackframeinfo *sfi;
 
 	/* get data structures from stack */
@@ -1470,6 +1471,9 @@ void codegen_stub_builtin_enter(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 	/* add a stackframeinfo to the chain */
 
 	stacktrace_create_native_stackframeinfo(sfi, pv, sp, ra);
+#else
+	vm_abort("codegen_stub_builtin_enter: REMOVE ME!");
+#endif
 }
 
 
@@ -1481,6 +1485,7 @@ void codegen_stub_builtin_enter(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
 
 void codegen_stub_builtin_exit(u1 *datasp)
 {
+#if 0
 	stackframeinfo *sfi;
 
 	/* get data structures from stack */
@@ -1490,6 +1495,9 @@ void codegen_stub_builtin_exit(u1 *datasp)
 	/* remove current stackframeinfo from chain */
 
 	stacktrace_remove_stackframeinfo(sfi);
+#else
+	vm_abort("codegen_stub_builtin_exit: REMOVE ME!");
+#endif
 }
 
 
