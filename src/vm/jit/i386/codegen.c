@@ -3678,7 +3678,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	s4           i, j;                 /* count variables                    */
 	s4           t;
 	s4           s1, s2;
-	s4            disp;
+	s4           disp;
+	s4           funcdisp;
 
 	/* get required compiler data */
 
@@ -3736,10 +3737,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* get function address (this must happen before the stackframeinfo) */
 
-	if (f == NULL)
-		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, 0);
+	funcdisp = dseg_add_functionptr(cd, f);
 
-	M_AST_IMM((ptrint) f, REG_SP, 4 * 4);
+	if (f == NULL)
+		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, funcdisp);
 
 	/* Mark the whole fpu stack as free for native functions (only for saved  */
 	/* register count == 0).                                                  */
@@ -3779,8 +3780,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	if (m->flags & ACC_STATIC)
 		M_MOV(REG_RESULT, REG_ITMP2);
 
-	M_ALD(REG_ITMP3, REG_SP, 4 * 4);
-
 	/* copy arguments into new stackframe */
 
 	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
@@ -3815,6 +3814,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* call the native function */
 
+	emit_mov_imm_reg(cd, 0, REG_ITMP3);
+	dseg_adddata(cd);
+	M_ALD(REG_ITMP3, REG_ITMP3, funcdisp);
 	M_CALL(REG_ITMP3);
 
 	/* save return value */

@@ -752,48 +752,6 @@ bool patcher_instanceof_class(patchref_t *pr)
 }
 
 
-/* patcher_resolve_native_function *********************************************
-
-   Is used in native stub.
-
-   Machine code:
-
-   <patched call position>
-   c7 44 24 04 28 90 01 40    movl   $0x40019028,0x4(%esp)
-
-*******************************************************************************/
-
-bool patcher_resolve_native_function(patchref_t *pr)
-{
-	u1          *ra;
-	methodinfo  *m;
-	functionptr  f;
-
-	/* get stuff from the stack */
-
-	ra    = (u1 *)         pr->mpc;
-	m     = (methodinfo *) pr->ref;
-
-	/* resolve native function */
-
-	if (!(f = native_resolve_function(m)))
-		return false;
-
-	PATCH_BACK_ORIGINAL_MCODE;
-
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_shownops)
-		ra = ra + PATCHER_CALL_SIZE;
-
-	/* patch native function pointer */
-
-	*((ptrint *) (ra + 4)) = (ptrint) f;
-
-	return true;
-}
-
-
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
