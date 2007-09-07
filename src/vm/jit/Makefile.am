@@ -139,6 +139,8 @@ noinst_LTLIBRARIES = \
 	libjit.la
 
 libjit_la_SOURCES = \
+	argument.c \
+	argument.h \
 	code.c \
 	code.h \
 	codegen-common.c \

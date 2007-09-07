@@ -326,6 +326,14 @@ classloader *loader_hashtable_classloader_add(java_handle_t *cl)
 
 		LLNI_CRITICAL_END;
 
+/*#define LOADER_DEBUG_CLASSLOADER*/
+#ifdef LOADER_DEBUG_CLASSLOADER
+		printf("CLASSLOADER: adding new classloader entry %p for %p: ", cle, cl);
+		class_print(LLNI_vftbl_direct(cl)->class);
+		printf("\n");
+		fflush(stdout);
+#endif
+
 		/* insert entry into hashtable */
 
 		cle->hashlink = hashtable_classloader->ptr[slot];
@@ -339,7 +347,11 @@ classloader *loader_hashtable_classloader_add(java_handle_t *cl)
 
 	LOCK_MONITOR_EXIT(hashtable_classloader->header);
 
+#if defined(ENABLE_HANDLES)
 	return cle;
+#else
+	return cl;
+#endif
 }
 
 
@@ -381,9 +393,22 @@ classloader *loader_hashtable_classloader_find(java_handle_t *cl)
 		cle = cle->hashlink;
 	}
 
+#ifdef LOADER_DEBUG_CLASSLOADER
+	if (cle == NULL) {
+		printf("CLASSLOADER: unable to find classloader entry for %p: ", cl);
+		class_print(LLNI_vftbl_direct(cl)->class);
+		printf("\n");
+		fflush(stdout);
+	}
+#endif
+
 	LLNI_CRITICAL_END;
 
+#if defined(ENABLE_HANDLES)
 	return cle;
+#else
+	return cl;
+#endif
 }
 
 
@@ -1127,18 +1152,20 @@ classinfo *load_class_from_classloader(utf *name, classloader *cl)
 				return c;
 			}
 		}
-		
+
+		LLNI_class_get(cl, c);
+
 #if defined(WITH_CLASSPATH_SUN)
 		/* OpenJDK uses this internal function because it's
 		   synchronized. */
 
-		lc = class_resolveclassmethod(cl->object->vftbl->class,
+		lc = class_resolveclassmethod(c,
 									  utf_loadClassInternal,
 									  utf_java_lang_String__java_lang_Class,
 									  NULL,
 									  true);
 #else
-		lc = class_resolveclassmethod(cl->object->vftbl->class,
+		lc = class_resolveclassmethod(c,
 									  utf_loadClass,
 									  utf_java_lang_String__java_lang_Class,
 									  NULL,
@@ -1154,11 +1181,7 @@ classinfo *load_class_from_classloader(utf *name, classloader *cl)
 
 		RT_TIMING_GET_TIME(time_prepare);
 
-#if defined(ENABLE_HANDLES)
 		o = vm_call_method(lc, (java_handle_t *) cl, string);
-#else
-		o = vm_call_method(lc, cl->object, string);
-#endif
 
 		RT_TIMING_GET_TIME(time_java);
 

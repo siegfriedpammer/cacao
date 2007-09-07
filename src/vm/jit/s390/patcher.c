@@ -461,7 +461,7 @@ bool patcher_checkcast_instanceof_interface(patchref_t *pr)
 	return true;
 }
 
-/* patcher_clinit **************************************************************
+/* patcher_initialize_class ****************************************************
 
    May be used for GET/PUTSTATIC and in native stub.
 
@@ -469,7 +469,7 @@ bool patcher_checkcast_instanceof_interface(patchref_t *pr)
 
 *******************************************************************************/
 
-bool patcher_clinit(patchref_t *pr)
+bool patcher_initialize_class(patchref_t *pr)
 {
 	classinfo *c;
 
@@ -502,7 +502,7 @@ bool patcher_clinit(patchref_t *pr)
 *******************************************************************************/
 
 #ifdef ENABLE_VERIFIER
-bool patcher_athrow_areturn(patchref_t *pr)
+bool patcher_resolve_class(patchref_t *pr)
 {
 	unresolved_class *uc;
 

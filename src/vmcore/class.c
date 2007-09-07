@@ -1706,16 +1706,7 @@ classloader *class_get_classloader(classinfo *c)
 	if (cl == NULL)
 		return NULL;
 
-#if defined(ENABLE_HANDLES)
-	/* The classloader entry itself is the handle. */
-
 	return cl;
-#else
-	/* Get the object out of the classloader entry. */
-	/* Cast to prevent warning (will be removed). */
-
-	return (classloader *) cl->object;
-#endif
 }
 
 

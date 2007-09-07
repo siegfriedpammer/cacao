@@ -669,11 +669,11 @@ hashtable_library_name_entry *native_library_find(utf *filename,
 
 functionptr native_resolve_function(methodinfo *m)
 {
-	classloader                    *cl;
 	utf                            *name;
 	utf                            *newname;
 	functionptr                     f;
 #if defined(ENABLE_LTDL)
+	classloader                    *cl;
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne;
 	u4                              key;    /* hashkey                        */
@@ -683,8 +683,6 @@ functionptr native_resolve_function(methodinfo *m)
 	methodinfo                     *method_findNative;
 	java_handle_t                  *s;
 #endif
-
-	cl = m->class->classloader;
 
 	/* verbose output */
 
@@ -710,6 +708,10 @@ functionptr native_resolve_function(methodinfo *m)
 	f = NULL;
 
 #if defined(ENABLE_LTDL)
+	/* Get the classloader. */
+
+	cl = class_get_classloader(m->class);
+
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
 	key  = ((u4) (ptrint) cl) >> 4;                       /* align to 16-byte */

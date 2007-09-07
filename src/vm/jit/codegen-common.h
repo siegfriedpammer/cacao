@@ -310,7 +310,7 @@ void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end);
 /* stub functions */
 
 u1       *codegen_generate_stub_compiler(methodinfo *m);
-void      codegen_generate_stub_builtin(builtintable_entry *bte);
+void      codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte);
 codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f);
 
 void      codegen_emit_stub_compiler(jitdata *jd);

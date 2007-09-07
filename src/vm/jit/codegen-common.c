@@ -1199,7 +1199,7 @@ u1 *codegen_generate_stub_compiler(methodinfo *m)
 
 *******************************************************************************/
 
-void codegen_generate_stub_builtin(builtintable_entry *bte)
+void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 {
 #if defined(__ARM__) || defined(__ALPHA__) || defined(__I386__) || defined(__M68K__) || defined(__POWERPC__) || defined(__SPARC64__) || defined(__X86_64__)
 	jitdata  *jd;
@@ -1212,14 +1212,14 @@ void codegen_generate_stub_builtin(builtintable_entry *bte)
 
 	jd = DNEW(jitdata);
 
-	jd->m     = NULL;
+	jd->m     = m;
 	jd->cd    = DNEW(codegendata);
 	jd->rd    = NULL;
 	jd->flags = 0;
 
 	/* Allocate codeinfo memory from the heap as we need to keep them. */
 
-	jd->code  = code_codeinfo_new(NULL);
+	jd->code  = code_codeinfo_new(m); /* XXX check allocation */
 
 	/* get required compiler data */
 
