@@ -148,15 +148,12 @@
 
 /* patcher defines ************************************************************/
 
-#define PATCHER_CALL_SIZE    5          /* size in bytes of a patcher call    */
+#define PATCHER_CALL_SIZE    2          /* size in bytes of a patcher call    */
 
 #define PATCHER_NOPS \
     do { \
-        M_NOP; \
-        M_NOP; \
-        M_NOP; \
-        M_NOP; \
-        M_NOP; \
+	M_NOP; \
+	M_NOP; \
     } while (0)
 
 

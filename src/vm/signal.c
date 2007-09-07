@@ -145,7 +145,7 @@ bool signal_init(void)
 							   SA_NODEFER | SA_SIGINFO);
 #  endif
 
-#  if defined(__ARM__) || defined(__S390__)
+#  if defined(__ARM__) || defined(__I386__) || defined(__S390__)
 		/* XXX use better defines for that (in arch.h) */
 		/* SIGILL handler */
 

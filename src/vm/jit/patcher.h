@@ -39,7 +39,7 @@
 #include "vm/global.h"
 
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__)
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__)
 # error "you should no longer include this file"
 #else
 

@@ -58,7 +58,7 @@
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
-#include "vm/jit/patcher.h"
+#include "vm/jit/patcher-common.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/stacktrace.h"
@@ -612,7 +612,7 @@ bool codegen_emit(jitdata *jd)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				codegen_addpatchref(cd, PATCHER_aconst,
+				patcher_add_patch_ref(jd, PATCHER_aconst,
 									iptr->sx.val.c.ref, 0);
 
 				M_MOV_IMM(NULL, d);
@@ -2193,7 +2193,7 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = 0;
 
-				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, 0);
+				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, 0);
 
 			}
 			else {
@@ -2202,7 +2202,7 @@ bool codegen_emit(jitdata *jd)
 				disp      = (intptr_t) fi->value;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class, 0);
   			}
 
 			M_MOV_IMM(disp, REG_ITMP1);
@@ -2235,7 +2235,7 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = 0;
 
-				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, 0);
+				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, 0);
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
@@ -2243,7 +2243,7 @@ bool codegen_emit(jitdata *jd)
 				disp      = (intptr_t) fi->value;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class, 0);
   			}
 
 			M_MOV_IMM(disp, REG_ITMP1);
@@ -2277,7 +2277,7 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = 0;
 
-				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, 0);
+				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, 0);
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
@@ -2285,7 +2285,7 @@ bool codegen_emit(jitdata *jd)
 				disp      = (intptr_t) fi->value;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					codegen_addpatchref(cd, PATCHER_clinit, fi->class, 0);
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class, 0);
   			}
 
 			M_MOV_IMM(disp, REG_ITMP1);
@@ -2313,7 +2313,7 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = 0;
 
-				codegen_addpatchref(cd, PATCHER_getfield,
+				patcher_add_patch_ref(jd, PATCHER_getfield,
 									iptr->sx.s23.s3.uf, 0);
 			}
 			else {
@@ -2374,7 +2374,7 @@ bool codegen_emit(jitdata *jd)
 				uf   = iptr->sx.s23.s3.uf;
 				disp = 0;
 
-				codegen_addpatchref(cd, PATCHER_putfield, uf, 0);
+				patcher_add_patch_ref(jd, PATCHER_putfield, uf, 0);
 			}
 			else {
 				/* XXX */
@@ -2411,7 +2411,7 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = 0;
 
-				codegen_addpatchref(cd, PATCHER_putfieldconst,
+				patcher_add_patch_ref(jd, PATCHER_putfieldconst,
 									uf, 0);
 			}
 			else {
@@ -2444,7 +2444,7 @@ bool codegen_emit(jitdata *jd)
 
 #ifdef ENABLE_VERIFIER
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				codegen_addpatchref(cd, PATCHER_athrow_areturn,
+				patcher_add_patch_ref(jd, PATCHER_resolve_class,
 									iptr->sx.s23.s2.uc, 0);
 			}
 #endif /* ENABLE_VERIFIER */
@@ -2714,7 +2714,7 @@ bool codegen_emit(jitdata *jd)
 
 #ifdef ENABLE_VERIFIER
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				codegen_addpatchref(cd, PATCHER_athrow_areturn,
+				patcher_add_patch_ref(jd, PATCHER_resolve_class,
 									iptr->sx.s23.s2.uc, 0);
 			}
 #endif /* ENABLE_VERIFIER */
@@ -2977,7 +2977,7 @@ gen_method:
 				if (lm == NULL) {
 					unresolved_method *um = iptr->sx.s23.s3.um;
 
-					codegen_addpatchref(cd, PATCHER_invokestatic_special,
+					patcher_add_patch_ref(jd, PATCHER_invokestatic_special,
 										um, 0);
 
 					disp = 0;
@@ -2999,7 +2999,7 @@ gen_method:
 				if (lm == NULL) {
 					unresolved_method *um = iptr->sx.s23.s3.um;
 
-					codegen_addpatchref(cd, PATCHER_invokevirtual, um, 0);
+					patcher_add_patch_ref(jd, PATCHER_invokevirtual, um, 0);
 
 					s1 = 0;
 					d = md->returntype.type;
@@ -3023,7 +3023,7 @@ gen_method:
 				if (lm == NULL) {
 					unresolved_method *um = iptr->sx.s23.s3.um;
 
-					codegen_addpatchref(cd, PATCHER_invokeinterface, um, 0);
+					patcher_add_patch_ref(jd, PATCHER_invokeinterface, um, 0);
 
 					s1 = 0;
 					s2 = 0;
@@ -3110,7 +3110,7 @@ gen_method:
 					M_TEST(s1);
 					emit_label_beq(cd, BRANCH_LABEL_1);
 
-					codegen_addpatchref(cd, PATCHER_checkcast_instanceof_flags,
+					patcher_add_patch_ref(jd, PATCHER_checkcast_instanceof_flags,
 										iptr->sx.s23.s3.c.ref, 0);
 
 					M_MOV_IMM(0, REG_ITMP2);                  /* super->flags */
@@ -3129,7 +3129,7 @@ gen_method:
 					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 
 					if (super == NULL) {
-						codegen_addpatchref(cd, PATCHER_checkcast_interface,
+						patcher_add_patch_ref(jd, PATCHER_checkcast_interface,
 											iptr->sx.s23.s3.c.ref,
 											0);
 					}
@@ -3167,7 +3167,7 @@ gen_method:
 					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 
 					if (super == NULL) {
-						codegen_addpatchref(cd, PATCHER_checkcast_class,
+						patcher_add_patch_ref(jd, PATCHER_checkcast_class,
 											iptr->sx.s23.s3.c.ref,
 											0);
 					}
@@ -3217,7 +3217,7 @@ gen_method:
 				M_AST(s1, REG_SP, 0 * 4);
 
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-					codegen_addpatchref(cd, PATCHER_builtin_arraycheckcast,
+					patcher_add_patch_ref(jd, PATCHER_builtin_arraycheckcast,
 										iptr->sx.s23.s3.c.ref, 0);
 				}
 
@@ -3273,7 +3273,7 @@ gen_method:
 				M_TEST(s1);
 				emit_label_beq(cd, BRANCH_LABEL_1);
 
-				codegen_addpatchref(cd, PATCHER_checkcast_instanceof_flags,
+				patcher_add_patch_ref(jd, PATCHER_checkcast_instanceof_flags,
 									iptr->sx.s23.s3.c.ref, 0);
 
 				M_MOV_IMM(0, REG_ITMP3);                      /* super->flags */
@@ -3292,7 +3292,7 @@ gen_method:
 				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 
 				if (super == NULL) {
-					codegen_addpatchref(cd, PATCHER_instanceof_interface,
+					patcher_add_patch_ref(jd, PATCHER_instanceof_interface,
 										iptr->sx.s23.s3.c.ref, 0);
 				}
 
@@ -3334,7 +3334,7 @@ gen_method:
 				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 
 				if (super == NULL) {
-					codegen_addpatchref(cd, PATCHER_instanceof_class,
+					patcher_add_patch_ref(jd, PATCHER_instanceof_class,
 										iptr->sx.s23.s3.c.ref, 0);
 				}
 
@@ -3391,7 +3391,7 @@ gen_method:
 			/* is a patcher function set? */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				codegen_addpatchref(cd, PATCHER_builtin_multianewarray,
+				patcher_add_patch_ref(jd, PATCHER_builtin_multianewarray,
 									iptr->sx.s23.s3.c.ref, 0);
 
 				disp = 0;
@@ -3469,7 +3469,7 @@ gen_method:
 
 	/* generate stubs */
 
-	emit_patcher_stubs(jd);
+	emit_patcher_traps(jd);
 
 	/* everything's ok */
 
@@ -3737,7 +3737,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* get function address (this must happen before the stackframeinfo) */
 
 	if (f == NULL)
-		codegen_addpatchref(cd, PATCHER_resolve_native, m, 0);
+		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, 0);
 
 	M_AST_IMM((ptrint) f, REG_SP, 4 * 4);
 
@@ -3903,7 +3903,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* generate patcher stubs */
 
-	emit_patcher_stubs(jd);
+	emit_patcher_traps(jd);
 }
 
 

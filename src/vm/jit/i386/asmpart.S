@@ -57,8 +57,6 @@
 
 	.globl asm_abstractmethoderror
 
-	.globl asm_patcher_wrapper
-
 #if defined(ENABLE_REPLACEMENT)
 	.globl asm_replacement_out
 	.globl asm_replacement_in
@@ -416,52 +414,6 @@ asm_abstractmethoderror:
 	sub     $2,xpc                      /* exception address is ra - 2        */
 	jmp     L_asm_handle_exception
 
-
-/* asm_patcher_wrapper *********************************************************
-
-   XXX
-
-   Stack layout:
-     24   return address
-     20   REG_ITMP3
-     16   pointer to virtual java_objectheader
-     12   last byte of machine code (xmcode)
-      8   machine code (which is patched back later)
-      4   unresolved field reference
-      0   patcher function pointer to call
-
-*******************************************************************************/
-
-asm_patcher_wrapper:
-	sub     $((1+4+4)*4),sp             /* keep stack 16-byte aligned         */
-
-	mov     itmp1,(0+4)*4(sp)           /* save itmp1 and itmp2               */
-	mov     itmp2,(1+4)*4(sp)
-
-	mov     sp,itmp1                    /* pass SP of patcher stub            */
-	add     $((1+4+4)*4),itmp1
-	mov     itmp1,0*4(sp)
-	movl    $0,1*4(sp)                  /* pass PV (if NULL, use findmethod)  */
-	movl    $0,2*4(sp)                  /* pass RA (it's on the stack)        */
-	call    patcher_wrapper
-	mov     v0,itmp3                    /* save return value                  */
-
-	mov     (0+4)*4(sp),itmp1           /* restore itmp1 and itmp2            */
-	mov     (1+4)*4(sp),itmp2
-
-	test    itmp3,itmp3                 /* exception thrown?                  */
-	jne     L_asm_patcher_wrapper_exception
-
-	mov     (5+1+4+4)*4(sp),itmp3       /* restore itmp3                      */
-	add     $((6+1+4+4)*4),sp           /* remove stack frame, keep RA        */
-
-	ret                                 /* jump to new patched code           */
-
-L_asm_patcher_wrapper_exception:
-	add     $((6+1+4+4)*4),sp           /* remove stack frame, keep RA        */
-	mov     itmp3,xptr                  /* get exception                      */
-	pop     xpc                         /* get and remove return address      */
-	jmp     L_asm_handle_exception
 
 #if defined(ENABLE_REPLACEMENT)
 

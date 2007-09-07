@@ -208,6 +208,60 @@ void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
 #endif
 
 
+/* md_signal_handler_sigill ****************************************************
+
+   Signal handler for hardware patcher traps (ud2).
+
+*******************************************************************************/
+
+void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
+{
+	stackframeinfo     sfi;
+	ucontext_t        *_uc;
+	mcontext_t        *_mc;
+	u1                *pv;
+	u1                *sp;
+	u1                *ra;
+	u1                *xpc;
+	s4                 type;
+	ptrint             val;
+	void              *p;
+
+	_uc = (ucontext_t *) _p;
+	_mc = &_uc->uc_mcontext;
+
+	pv  = NULL;                 /* is resolved during stackframeinfo creation */
+	sp  = (u1 *) _mc->gregs[REG_ESP];
+	xpc = (u1 *) _mc->gregs[REG_EIP];
+	ra  = xpc;                            /* return address is equal to xpc   */
+
+	/* this is an ArithmeticException */
+
+	type = EXCEPTION_HARDWARE_PATCHER;
+	val  = 0;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+
+	/* generate appropriate exception */
+
+	p = signal_handle(xpc, type, val);
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
+
+	/* set registers (only if exception object ready) */
+
+	if (p != NULL) {
+		_mc->gregs[REG_EAX] = (ptrint) p;
+		_mc->gregs[REG_ECX] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
+		_mc->gregs[REG_EIP] = (ptrint) asm_handle_exception;
+	}
+}
+
+
 /* md_signal_handler_sigusr2 ***************************************************
 
    Signal handler for profiling sampling.
