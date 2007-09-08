@@ -1252,6 +1252,21 @@ void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 		size_stub_native += code->mcodelength;
 #endif
 
+#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
+	/* disassemble native stub */
+
+	if (opt_DisassembleStubs) {
+		codegen_disassemble_stub(m,
+								 (u1 *) (ptrint) code->entrypoint,
+								 (u1 *) (ptrint) code->entrypoint + (code->mcodelength - jd->cd->dseglen));
+
+		/* show data segment */
+
+		if (opt_showddatasegment)
+			dseg_display(jd);
+	}
+#endif /* !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER) */
+
 	/* release memory */
 
 	dump_release(dumpsize);
@@ -1371,19 +1386,17 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 		size_stub_native += code->mcodelength;
 #endif
 
-#if !defined(NDEBUG)
+#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 	/* disassemble native stub */
 
-	if (opt_shownativestub) {
-#if defined(ENABLE_DEBUG_FILTER)
+	if (opt_DisassembleStubs) {
+# if defined(ENABLE_DEBUG_FILTER)
 		if (m->filtermatches & SHOW_FILTER_FLAG_SHOW_METHOD)
-#endif
+# endif
 		{
-#if defined(ENABLE_DISASSEMBLER)
-			codegen_disassemble_nativestub(m,
-										   (u1 *) (ptrint) code->entrypoint,
-										   (u1 *) (ptrint) code->entrypoint + (code->mcodelength - jd->cd->dseglen));
-#endif
+			codegen_disassemble_stub(m,
+									 (u1 *) (ptrint) code->entrypoint,
+									 (u1 *) (ptrint) code->entrypoint + (code->mcodelength - jd->cd->dseglen));
 
 			/* show data segment */
 
@@ -1391,7 +1404,7 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 				dseg_display(jd);
 		}
 	}
-#endif /* !defined(NDEBUG) */
+#endif /* !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER) */
 
 	/* release memory */
 
@@ -1405,19 +1418,22 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 
 /* codegen_disassemble_nativestub **********************************************
 
-   Disassembles the generated native stub.
+   Disassembles the generated builtin or native stub.
 
 *******************************************************************************/
 
 #if defined(ENABLE_DISASSEMBLER)
-void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end)
+void codegen_disassemble_stub(methodinfo *m, u1 *start, u1 *end)
 {
-	printf("Native stub: ");
-	utf_fprint_printable_ascii_classname(stdout, m->class->name);
+	printf("Stub code: ");
+	if (m->class != NULL)
+		utf_fprint_printable_ascii_classname(stdout, m->class->name);
+	else
+		printf("NULL");
 	printf(".");
 	utf_fprint_printable_ascii(stdout, m->name);
 	utf_fprint_printable_ascii(stdout, m->descriptor);
-	printf("\n\nLength: %d\n\n", (s4) (end - start));
+	printf("\nLength: %d\n\n", (s4) (end - start));
 
 	DISASSEMBLE(start, end);
 }

@@ -548,7 +548,6 @@ static void XXusage(void)
 	puts("      (a)ssembler            disassembled listing");
 	puts("      n(o)ps                 show NOPs in disassembler output");
 	puts("      (e)xceptionstubs       disassembled exception stubs (only with -sa)");
-	puts("      (n)ative               disassembled native stubs");
 #endif
 	puts("      (d)atasegment          data segment listing");
 
@@ -1201,10 +1200,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 				case 'e':
 					opt_showexceptionstubs = true;
-					break;
-
-				case 'n':
-					opt_shownativestub = true;
 					break;
 #endif
 

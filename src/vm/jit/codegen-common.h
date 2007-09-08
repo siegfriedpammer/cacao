@@ -304,7 +304,7 @@ void codegen_set_replacement_point(codegendata *cd);
 void codegen_finish(jitdata *jd);
 
 #if defined(ENABLE_DISASSEMBLER)
-void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end);
+void codegen_disassemble_stub(methodinfo *m, u1 *start, u1 *end);
 #endif
 
 /* stub functions */
