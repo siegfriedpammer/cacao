@@ -419,9 +419,6 @@ bool codegen_emit(jitdata *jd)
 				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_classinfo,
 				                    iptr->sx.val.c.ref, disp);
 
-				if (opt_showdisassemble)
-					M_NOP;
-
 				M_DSEG_LOAD(d, disp);
 			}
 			else {
@@ -1380,9 +1377,6 @@ bool codegen_emit(jitdata *jd)
 				disp      = dseg_add_unique_address(cd, NULL);
 
 				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
@@ -1392,9 +1386,6 @@ bool codegen_emit(jitdata *jd)
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
 					                    fi->class, 0);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 			}
 
@@ -1439,9 +1430,6 @@ bool codegen_emit(jitdata *jd)
 				disp      = dseg_add_unique_address(cd, NULL);
 
 				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
@@ -1451,9 +1439,6 @@ bool codegen_emit(jitdata *jd)
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
 					                    fi->class, 0);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 			}
 
@@ -1517,9 +1502,6 @@ bool codegen_emit(jitdata *jd)
 				uf = iptr->sx.s23.s3.uf;
 
 				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 
 			switch (fieldtype) {
@@ -1605,9 +1587,6 @@ bool codegen_emit(jitdata *jd)
 				uf = iptr->sx.s23.s3.uf;
 
 				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 
 			switch (fieldtype) {
@@ -1647,9 +1626,6 @@ bool codegen_emit(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				patcher_add_patch_ref(jd, PATCHER_resolve_class,
 									iptr->sx.s23.s2.uc, 0);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 			disp = dseg_add_functionptr(cd, asm_handle_exception);
 			M_DSEG_LOAD(REG_ITMP3, disp);
@@ -2104,9 +2080,6 @@ bool codegen_emit(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				patcher_add_patch_ref(jd, PATCHER_resolve_class,
 									iptr->sx.s23.s2.uc, 0);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 			goto ICMD_RETURN_do;
 
@@ -2277,8 +2250,6 @@ bool codegen_emit(jitdata *jd)
 				M_MOV(REG_PC, REG_PV);
 				s1 = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_RECOMPUTE_PV(s1);
-
-				emit_exception_check(cd, iptr);
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -2291,9 +2262,6 @@ bool codegen_emit(jitdata *jd)
 
 					patcher_add_patch_ref(jd, PATCHER_invokestatic_special,
 										um, disp);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 				else
 					disp = dseg_add_address(cd, lm->stubroutine);
@@ -2311,9 +2279,6 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_INVOKEVIRTUAL:
 				if (lm == NULL) {
 					patcher_add_patch_ref(jd, PATCHER_invokevirtual, um, 0);
-
-					if (opt_showdisassemble)
-						M_NOP;
 
 					s1 = 0;
 				}
@@ -2337,9 +2302,6 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_INVOKEINTERFACE:
 				if (lm == NULL) {
 					patcher_add_patch_ref(jd, PATCHER_invokeinterface, um, 0);
-
-					if (opt_showdisassemble)
-						M_NOP;
 
 					s1 = 0;
 					s2 = 0;
@@ -2449,9 +2411,6 @@ bool codegen_emit(jitdata *jd)
 				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_flags,
 				                    iptr->sx.s23.s3.c.ref, disp);
 
-				if (opt_showdisassemble)
-					M_NOP;
-
 				M_DSEG_LOAD(REG_ITMP2, disp);
 				disp = dseg_add_s4(cd, ACC_INTERFACE);
 				M_DSEG_LOAD(REG_ITMP3, disp);
@@ -2468,9 +2427,6 @@ bool codegen_emit(jitdata *jd)
 				if (super == NULL) {
 					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_index,
 					                    iptr->sx.s23.s3.c.ref, disp);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 				else {
 					M_TST(s1, s1);
@@ -2535,9 +2491,6 @@ bool codegen_emit(jitdata *jd)
 					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_vftbl,
 					                    iptr->sx.s23.s3.c.ref,
 										disp);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 				else {
 					disp = dseg_add_address(cd, super->vftbl);
@@ -2585,9 +2538,6 @@ bool codegen_emit(jitdata *jd)
 					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_classinfo,
 										iptr->sx.s23.s3.c.ref,
 										disp);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 				else
 					disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
@@ -2649,9 +2599,6 @@ bool codegen_emit(jitdata *jd)
 				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_flags,
 				                    iptr->sx.s23.s3.c.ref, disp);
 
-				if (opt_showdisassemble)
-					M_NOP;
-
 				M_DSEG_LOAD(REG_ITMP2, disp);
 				disp = dseg_add_s4(cd, ACC_INTERFACE);
 				M_DSEG_LOAD(REG_ITMP3, disp);
@@ -2673,9 +2620,6 @@ bool codegen_emit(jitdata *jd)
 
 					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_index,
 					                    iptr->sx.s23.s3.c.ref, disp);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 				else {
 					M_EOR(d, d, d);
@@ -2745,9 +2689,6 @@ bool codegen_emit(jitdata *jd)
 
 					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_vftbl,
 					                    iptr->sx.s23.s3.c.ref, disp);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 				else {
 					disp = dseg_add_address(cd, super->vftbl);
@@ -2819,9 +2760,6 @@ bool codegen_emit(jitdata *jd)
 
 				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_classinfo,
 									iptr->sx.s23.s3.c.ref, disp);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 			else
 				disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
@@ -2973,12 +2911,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	funcdisp = dseg_add_functionptr(cd, f);
 
-	if (f == NULL) {
+	if (f == NULL)
 		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, funcdisp);
-
-		if (opt_showdisassemble)
-			M_NOP;
-	}
 
 #if defined(ENABLE_GC_CACAO)
 	/* Save callee saved integer registers in stackframeinfo (GC may

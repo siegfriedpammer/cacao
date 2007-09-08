@@ -137,7 +137,7 @@ bool patcher_get_putfield(patchref_t *pr)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 1 * 4;
 
 	/* patch the field's offset into the instruction */
@@ -299,7 +299,7 @@ bool patcher_invokevirtual(patchref_t *pr)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 1 * 4;
 
 	/* patch vftbl index */
@@ -348,7 +348,7 @@ bool patcher_invokeinterface(patchref_t *pr)
 
 	/* if we show disassembly, we have to skip the nop */
 
-	if (opt_showdisassemble)
+	if (opt_shownops)
 		ra = ra + 1 * 4;
 
 	/* patch interfacetable index */
