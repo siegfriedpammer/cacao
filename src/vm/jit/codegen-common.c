@@ -1192,13 +1192,12 @@ u1 *codegen_generate_stub_compiler(methodinfo *m)
 
 /* codegen_generate_stub_builtin ***********************************************
 
-   Wrapper for codegen_emit_stub_builtin.
+   Wrapper for codegen_emit_stub_native.
 
 *******************************************************************************/
 
 void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 {
-#if defined(__ARM__) || defined(__ALPHA__) || defined(__I386__) || defined(__M68K__) || defined(__POWERPC__) || defined(__SPARC64__) || defined(__X86_64__)
 	jitdata  *jd;
 	codeinfo *code;
 	int       skipparams;
@@ -1275,7 +1274,6 @@ void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 	/* release memory */
 
 	dump_release(dumpsize);
-#endif /* architecture list */
 }
 
 
@@ -1523,17 +1521,23 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 	datasp    = currentsp + framesize - 8;
 	javasp    = currentsp + framesize;
 	javara    = *((uint8_t **) datasp);
-#elif defined(__I386__) || defined (__M68K__) || defined (__X86_64__)
+#elif defined(__I386__) || defined(__M68K__) || defined(__X86_64__)
 	datasp    = currentsp + framesize;
 	javasp    = currentsp + framesize + SIZEOF_VOID_P;
 	javara    = *((uint8_t **) datasp);
 	arg_regs  = (uint64_t *) currentsp;
 	arg_stack = (uint64_t *) javasp;
-#elif defined(__POWERPC__) || defined(__POWERPC64__)
+#elif defined(__POWERPC__)
 	datasp    = currentsp + framesize;
 	javasp    = currentsp + framesize;
 	javara    = *((uint8_t **) (datasp + LA_LR_OFFSET));
 	arg_regs  = (uint64_t *) (currentsp + LA_SIZE + 4 * SIZEOF_VOID_P);
+	arg_stack = (uint64_t *) javasp;
+#elif defined(__POWERPC64__)
+	datasp    = currentsp + framesize;
+	javasp    = currentsp + framesize;
+	javara    = *((uint8_t **) (datasp + LA_LR_OFFSET));
+	arg_regs  = (uint64_t *) (currentsp + PA_SIZE + LA_SIZE + 4 * SIZEOF_VOID_P);
 	arg_stack = (uint64_t *) javasp;
 #else
 	/* XXX is was unable to do this port for SPARC64, sorry. (-michi) */
@@ -1542,7 +1546,7 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 #endif
 
 #if !defined(NDEBUG)
-# if defined(__POWERPC__) || defined (__X86_64__)
+# if defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 
 	if (opt_TraceJavaCalls)
@@ -1623,19 +1627,22 @@ java_object_t *codegen_finish_native_call(u1 *currentsp, u1 *pv)
 #elif defined(__I386__)
 	datasp   = currentsp + framesize;
 	ret_regs = (uint64_t *) (currentsp + 2 * SIZEOF_VOID_P);
-#elif defined (__M68K__) || defined (__X86_64__)
+#elif defined(__M68K__) || defined(__X86_64__)
 	datasp   = currentsp + framesize;
 	ret_regs = (uint64_t *) currentsp;
-#elif defined(__POWERPC__) || defined(__POWERPC64__)
+#elif defined(__POWERPC__)
 	datasp   = currentsp + framesize;
 	ret_regs = (uint64_t *) (currentsp + LA_SIZE + 2 * SIZEOF_VOID_P);
+#elif defined(__POWERPC64__)
+	datasp   = currentsp + framesize;
+	ret_regs = (uint64_t *) (currentsp + PA_SIZE + LA_SIZE + 2 * SIZEOF_VOID_P);
 #else
 	vm_abort("codegen_finish_native_call: unsupported architecture");
 #endif
 
 
 #if !defined(NDEBUG)
-# if defined(__POWERPC__) || defined (__X86_64__)
+# if defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 
 	if (opt_TraceJavaCalls)
