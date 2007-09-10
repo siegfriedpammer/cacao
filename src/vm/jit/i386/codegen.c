@@ -2960,12 +2960,11 @@ gen_method:
 
 				if (bte->stub == NULL) {
 					M_MOV_IMM(bte->fp, REG_ITMP1);
-				} else {
+				}
+				else {
 					M_MOV_IMM(bte->stub, REG_ITMP1);
 				}
 				M_CALL(REG_ITMP1);
-
-				emit_exception_check(cd, iptr);
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -3476,6 +3475,7 @@ gen_method:
 	return true;
 }
 
+
 /* codegen_emit_stub_compiler **************************************************
 
    Emit a stub routine which calls the compiler.
@@ -3500,186 +3500,24 @@ void codegen_emit_stub_compiler(jitdata *jd)
 }
 
 
-/* codegen_emit_stub_builtin ***************************************************
-
-   Creates a stub routine which calls a builtin function.
-
-*******************************************************************************/
-
-void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
-{
-	codeinfo    *code;
-	codegendata *cd;
-	methoddesc  *md;
-	s4           i;
-	s4           disp;
-	s4           s1, s2;
-
-	/* get required compiler data */
-
-	code = jd->code;
-	cd   = jd->cd;
-
-	/* set some variables */
-
-	md = bte->md;
-
-	/* calculate stack frame size */
-
-	cd->stackframesize =
-		sizeof(stackframeinfo) / SIZEOF_VOID_P +
-		4;                              /* 4 arguments or return value        */
-
-	cd->stackframesize |= 0x3;          /* keep stack 16-byte aligned         */
-
-	/* create method header */
-
-	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4); /* FrameSize       */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
-	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
-	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
-
-	/* generate stub code */
-
-	M_ASUB_IMM(cd->stackframesize * 4, REG_SP);
-
-#if defined(ENABLE_GC_CACAO)
-	/* Save callee saved integer registers in stackframeinfo (GC may
-	   need to recover them during a collection). */
-
-	disp = cd->stackframesize * 4 - sizeof(stackframeinfo) +
-		OFFSET(stackframeinfo, intregs);
-
-	for (i = 0; i < INT_SAV_CNT; i++)
-		M_AST(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
-#endif
-
-	/* create dynamic stack info */
-
-	M_MOV(REG_SP, REG_ITMP1);
-	M_AADD_IMM(cd->stackframesize * 4, REG_ITMP1);
-	M_AST(REG_ITMP1, REG_SP, 0 * 4);
-
-	M_IST_IMM(0, REG_SP, 1 * 4);
-	dseg_adddata(cd);
-
-	M_MOV(REG_SP, REG_ITMP2);
-	M_AADD_IMM(cd->stackframesize * 4 + SIZEOF_VOID_P, REG_ITMP2);
-	M_AST(REG_ITMP2, REG_SP, 2 * 4);
-
-	M_ALD(REG_ITMP3, REG_SP, cd->stackframesize * 4);
-	M_AST(REG_ITMP3, REG_SP, 3 * 4);
-
-	M_MOV_IMM(codegen_stub_builtin_enter, REG_ITMP1);
-	M_CALL(REG_ITMP1);
-
-	/* copy arguments into new stackframe */
-
-	for (i = 0; i < md->paramcount; i++) {
-		if (!md->params[i].inmemory) {
-			log_text("No integer argument registers available!");
-			assert(0);
-
-		} else {       /* float/double in memory can be copied like int/longs */
-			s1 = md->params[i].regoff + cd->stackframesize * 4 + 4;
-			s2 = md->params[i].regoff;
-
-			M_ILD(REG_ITMP1, REG_SP, s1);
-			M_IST(REG_ITMP1, REG_SP, s2);
-			if (IS_2_WORD_TYPE(md->paramtypes[i].type)) {
-				M_ILD(REG_ITMP1, REG_SP, s1 + 4);
-				M_IST(REG_ITMP1, REG_SP, s2 + 4);
-			}
-
-		}
-	}
-
-	/* call the builtin function */
-
-	M_MOV_IMM(bte->fp, REG_ITMP3);
-	M_CALL(REG_ITMP3);
-
-	/* save return value */
-
-	if (md->returntype.type != TYPE_VOID) {
-		if (IS_INT_LNG_TYPE(md->returntype.type)) {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_IST(REG_RESULT2, REG_SP, 2 * 4);
-			M_IST(REG_RESULT, REG_SP, 1 * 4);
-		}
-		else {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				emit_fstl_membase(cd, REG_SP, 1 * 4);
-			else
-				emit_fsts_membase(cd, REG_SP, 1 * 4);
-		}
-	}
-
-	/* remove native stackframe info */
-
-	M_MOV(REG_SP, REG_ITMP1);
-	M_AADD_IMM(cd->stackframesize * 4, REG_ITMP1);
-	M_AST(REG_ITMP1, REG_SP, 0 * 4);
-
-	M_MOV_IMM(codegen_stub_builtin_exit, REG_ITMP1);
-	M_CALL(REG_ITMP1);
-
-	/* restore return value */
-
-	if (md->returntype.type != TYPE_VOID) {
-		if (IS_INT_LNG_TYPE(md->returntype.type)) {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				M_ILD(REG_RESULT2, REG_SP, 2 * 4);
-			M_ILD(REG_RESULT, REG_SP, 1 * 4);
-		}
-		else {
-			if (IS_2_WORD_TYPE(md->returntype.type))
-				emit_fldl_membase(cd, REG_SP, 1 * 4);
-			else
-				emit_flds_membase(cd, REG_SP, 1 * 4);
-		}
-	}
-
-#if defined(ENABLE_GC_CACAO)
-	/* Restore callee saved integer registers from stackframeinfo (GC
-	   might have modified them during a collection). */
-        
-	disp = cd->stackframesize * 4 - sizeof(stackframeinfo) +
-		OFFSET(stackframeinfo, intregs);
-
-	for (i = 0; i < INT_SAV_CNT; i++)
-		M_ALD(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
-#endif
-
-	/* remove stackframe */
-
-	M_AADD_IMM(cd->stackframesize * 4, REG_SP);
-	M_RET;
-}
-
-
 /* codegen_emit_stub_native ****************************************************
 
    Emits a stub routine which calls a native method.
 
 *******************************************************************************/
 
-void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
+void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int skipparams)
 {
 	methodinfo  *m;
 	codeinfo    *code;
 	codegendata *cd;
 	methoddesc  *md;
-	s4           nativeparams;
-	s4           i, j;                 /* count variables                    */
-	s4           t;
-	s4           s1, s2;
-	s4           disp;
-	s4           funcdisp;
+	int          i, j;                 /* count variables                    */
+	int          s1, s2;
+	int          funcdisp;
+#if defined(ENABLE_GC_CACAO)
+	int          disp;
+#endif
 
 	/* get required compiler data */
 
@@ -3690,14 +3528,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* set some variables */
 
 	md = m->parseddesc;
-	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
 
 	/* calculate stackframe size */
 
 	cd->stackframesize =
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
-		1 +                             /* function pointer                   */
 		4 +                             /* 4 arguments (start_native_call)    */
 		nmd->memuse;
 
@@ -3730,10 +3566,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* calculate stackframe size for native function */
 
 	M_ASUB_IMM(cd->stackframesize * 8, REG_SP);
-
-#if !defined(NDEBUG)
-	emit_verbosecall_enter(jd);
-#endif
 
 	/* get function address (this must happen before the stackframeinfo) */
 
@@ -3778,46 +3610,53 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* remember class argument */
 
 	if (m->flags & ACC_STATIC)
-		M_MOV(REG_RESULT, REG_ITMP2);
+		M_MOV(REG_RESULT, REG_ITMP3);
 
-	/* copy arguments into new stackframe */
+	/* Copy or spill arguments to new locations. */
 
-	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
-		t = md->paramtypes[i].type;
+	for (i = md->paramcount - 1, j = i + skipparams; i >= 0; i--, j--) {
+		if (!md->params[i].inmemory)
+			assert(0);
 
-		if (!md->params[i].inmemory) {
-			/* no integer argument registers */
-		}
-		else {
-			/* float/double in memory can be copied like int/longs */
+		s1 = md->params[i].regoff + cd->stackframesize * 8 + 4;
+		s2 = nmd->params[j].regoff;
 
-			s1 = md->params[i].regoff + cd->stackframesize * 8 + 4;
-			s2 = nmd->params[j].regoff;
+		/* float/double in memory can be copied like int/longs */
 
+		switch (md->paramtypes[i].type) {
+		case TYPE_INT:
+		case TYPE_FLT:
+		case TYPE_ADR:
 			M_ILD(REG_ITMP1, REG_SP, s1);
 			M_IST(REG_ITMP1, REG_SP, s2);
-			if (IS_2_WORD_TYPE(t)) {
-				M_ILD(REG_ITMP1, REG_SP, s1 + 4);
-				M_IST(REG_ITMP1, REG_SP, s2 + 4);
-			}
+			break;
+		case TYPE_LNG:
+		case TYPE_DBL:
+			M_LLD(REG_ITMP12_PACKED, REG_SP, s1);
+			M_LST(REG_ITMP12_PACKED, REG_SP, s2);
+			break;
 		}
 	}
 
-	/* if function is static, put class into second argument */
+	/* Handle native Java methods. */
 
-	if (m->flags & ACC_STATIC)
-		M_AST(REG_ITMP2, REG_SP, 1 * 4);
+	if (m->flags & ACC_NATIVE) {
+		/* if function is static, put class into second argument */
 
-	/* put env into first argument */
+		if (m->flags & ACC_STATIC)
+			M_AST(REG_ITMP3, REG_SP, 1 * 4);
 
-	M_AST_IMM(_Jv_env, REG_SP, 0 * 4);
+		/* put env into first argument */
+
+		M_AST_IMM(_Jv_env, REG_SP, 0 * 4);
+	}
 
 	/* call the native function */
 
 	emit_mov_imm_reg(cd, 0, REG_ITMP3);
 	dseg_adddata(cd);
-	M_ALD(REG_ITMP3, REG_ITMP3, funcdisp);
-	M_CALL(REG_ITMP3);
+	M_ALD(REG_ITMP1, REG_ITMP3, funcdisp);
+	M_CALL(REG_ITMP1);
 
 	/* save return value */
 
@@ -3838,10 +3677,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	case TYPE_VOID:
 		break;
 	}
-
-#if !defined(NDEBUG)
-	emit_verbosecall_exit(jd);
-#endif
 
 	/* remove native stackframe info */
 

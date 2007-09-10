@@ -1201,6 +1201,7 @@ void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 #if defined(__ARM__) || defined(__ALPHA__) || defined(__I386__) || defined(__M68K__) || defined(__POWERPC__) || defined(__SPARC64__) || defined(__X86_64__)
 	jitdata  *jd;
 	codeinfo *code;
+	int       skipparams;
 	s4        dumpsize;
 
 	/* mark dump memory */
@@ -1216,7 +1217,7 @@ void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 
 	/* Allocate codeinfo memory from the heap as we need to keep them. */
 
-	jd->code  = code_codeinfo_new(m); /* XXX check allocation */
+	jd->code  = code_codeinfo_new(m);
 
 	/* get required compiler data */
 
@@ -1226,6 +1227,10 @@ void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 
 	codegen_setup(jd);
 
+	/* Set the number of native arguments we need to skip. */
+
+	skipparams = 0;
+
 	/* generate the code */
 
 #if defined(ENABLE_JIT)
@@ -1233,7 +1238,7 @@ void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 	if (!opt_intrp) {
 # endif
 		assert(bte->fp != NULL);
-		codegen_emit_stub_native(jd, bte->md, bte->fp);
+		codegen_emit_stub_native(jd, bte->md, bte->fp, skipparams);
 # if defined(ENABLE_INTRP)
 	}
 # endif
@@ -1290,7 +1295,7 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 	s4           dumpsize;
 	methoddesc  *md;
 	methoddesc  *nmd;	
-	s4           nativeparams;
+	int          skipparams;
 
 	/* mark dump memory */
 
@@ -1305,7 +1310,7 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 
 	/* Allocate codeinfo memory from the heap as we need to keep them. */
 
-	jd->code  = code_codeinfo_new(m); /* XXX check allocation */
+	jd->code  = code_codeinfo_new(m);
 
 	/* get required compiler data */
 
@@ -1335,13 +1340,19 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 	/* create new method descriptor with additional native parameters */
 
 	md = m->parseddesc;
-	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
+
+	/* Set the number of native arguments we need to skip. */
+
+	if (m->flags & ACC_STATIC)
+		skipparams = 2;
+	else
+		skipparams = 1;
 	
 	nmd = (methoddesc *) DMNEW(u1, sizeof(methoddesc) - sizeof(typedesc) +
 							   md->paramcount * sizeof(typedesc) +
-							   nativeparams * sizeof(typedesc));
+							   skipparams * sizeof(typedesc));
 
-	nmd->paramcount = md->paramcount + nativeparams;
+	nmd->paramcount = md->paramcount + skipparams;
 
 	nmd->params = DMNEW(paramdesc, nmd->paramcount);
 
@@ -1350,7 +1361,7 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 	if (m->flags & ACC_STATIC)
 		nmd->paramtypes[1].type = TYPE_ADR; /* add class pointer              */
 
-	MCOPY(nmd->paramtypes + nativeparams, md->paramtypes, typedesc,
+	MCOPY(nmd->paramtypes + skipparams, md->paramtypes, typedesc,
 		  md->paramcount);
 
 #if defined(ENABLE_JIT)
@@ -1370,7 +1381,7 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 		intrp_createnativestub(f, jd, nmd);
 	else
 # endif
-		codegen_emit_stub_native(jd, nmd, f);
+		codegen_emit_stub_native(jd, nmd, f, skipparams);
 #else
 	intrp_createnativestub(f, jd, nmd);
 #endif
@@ -1492,7 +1503,7 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 	code      = *((codeinfo **) (pv + CodeinfoPointer));
 	framesize = *((int32_t *)   (pv + FrameSize));
 	assert(code);
-	assert(framesize > sizeof(stackframeinfo) + sizeof(localref_table));
+	assert(framesize >= sizeof(stackframeinfo) + sizeof(localref_table));
 
 	/* get the methodinfo */
 
