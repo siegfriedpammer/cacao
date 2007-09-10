@@ -2837,7 +2837,10 @@ gen_method:
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
-				disp = dseg_add_functionptr(cd, bte->fp);
+				if (bte->stub == NULL)
+					disp = dseg_add_functionptr(cd, bte->fp);
+				else
+					disp = dseg_add_functionptr(cd, bte->stub);
 
 				M_ASUB_IMM(96, REG_SP); /* register save area as required by C abi */	
 				if (N_VALID_DSEG_DISP(disp)) {
@@ -2930,7 +2933,6 @@ gen_method:
 			switch (iptr->opc) {
 				case ICMD_BUILTIN:
 					M_AADD_IMM(96, REG_SP); /* remove C abi register save area */
-					emit_exception_check(cd, iptr); /* check for exception */
 					break;
 			}
 

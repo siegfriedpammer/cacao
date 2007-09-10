@@ -2614,8 +2614,6 @@ gen_method:
 				REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr);
 				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, -disp);
-
-				emit_exception_check(cd, iptr);
 				break;
 
 			case ICMD_INVOKESPECIAL:

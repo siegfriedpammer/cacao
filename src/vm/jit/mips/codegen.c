@@ -3099,7 +3099,10 @@ gen_method:
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
-				disp = dseg_add_functionptr(cd, bte->fp);
+				if (bte->stub == NULL)
+					disp = dseg_add_functionptr(cd, bte->fp);
+				else
+					disp = dseg_add_functionptr(cd, bte->stub);
 
 				M_ALD(REG_ITMP3, REG_PV, disp);  /* built-in-function pointer */
 
@@ -3113,8 +3116,6 @@ gen_method:
 				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, -disp);
-
-				emit_exception_check(cd, iptr);
 				break;
 
 			case ICMD_INVOKESPECIAL:

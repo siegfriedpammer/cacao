@@ -2547,7 +2547,6 @@ gen_method:
 			    /* REG_RA holds the value of the jmp instruction, therefore +8 */
 			    M_LDA(REG_ZERO, REG_RA_CALLER, -disp + 8); 
 
-				emit_exception_check(cd, iptr);
 				if (md->returntype.type == TYPE_FLT) {
 					/* special handling for float return value in %f0 */
 					M_FMOV_INTERN(0,1);

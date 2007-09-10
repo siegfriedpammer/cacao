@@ -2177,20 +2177,23 @@ gen_method:
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
-				disp = dseg_add_functionptr(cd, bte->fp);
-				M_ALD(REG_PV, REG_PV, disp);
-				M_ALD(REG_PV, REG_PV, 0);	/* TOC */
+				if (bte->stub == NULL) {
+					disp = dseg_add_functionptr(cd, bte->fp);
+					M_ALD(REG_PV, REG_PV, disp);
+					M_ALD(REG_PV, REG_PV, 0);	/* TOC */
+				}
+				else {
+					disp = dseg_add_functionptr(cd, bte->stub);
+					M_ALD(REG_PV, REG_PV, disp);
+				}
 
 				/* generate the actual call */
-				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 				M_MTCTR(REG_PV);
 				M_JSR;
 				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_MFLR(REG_ITMP1);
 				M_LDA(REG_PV, REG_ITMP1, -disp);
-
-				emit_exception_check(cd, iptr);
 				break;
 
 
