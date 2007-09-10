@@ -3956,14 +3956,14 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 #else
 	case TYPE_INT:
 	case TYPE_ADR:
-		M_IST(REG_RESULT, REG_SP, 1*4 + 0 * 8);
+		M_IST(REG_RESULT, REG_SP, 2*4 + 0 * 8);
 		break;
 	case TYPE_LNG:
-		M_LST(REG_RESULT_PACKED, REG_SP, 1*4 + 0 * 8);
+		M_LST(REG_RESULT_PACKED, REG_SP, 2*4 + 0 * 8);
 		break;
 	case TYPE_FLT:
 	case TYPE_DBL:
-		M_DST(REG_FRESULT, REG_SP, 1*4 + 0 * 8);
+		M_DST(REG_FRESULT, REG_SP, 2*4 + 0 * 8);
 		break;
 #endif
 	case TYPE_VOID:
@@ -4001,14 +4001,14 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 #else
 	case TYPE_INT:
 	case TYPE_ADR:
-		M_ILD(REG_RESULT, REG_SP, 1*4 + 0 * 8);
+		M_ILD(REG_RESULT, REG_SP, 2*4 + 0 * 8);
 		break;
 	case TYPE_LNG:
-		M_LLD(REG_RESULT_PACKED, REG_SP, 1*4 + 0 * 8);
+		M_LLD(REG_RESULT_PACKED, REG_SP, 2*4 + 0 * 8);
 		break;
 	case TYPE_FLT:
 	case TYPE_DBL:
-		M_DLD(REG_FRESULT, REG_SP, 1*4 + 0 * 8);
+		M_DLD(REG_FRESULT, REG_SP, 2*4 + 0 * 8);
 		break;
 #endif
 	case TYPE_VOID:
