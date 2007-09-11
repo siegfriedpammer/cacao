@@ -85,9 +85,26 @@ extends AccessibleObject implements Member, GenericDeclaration
   Class clazz;
   String name;
   int slot;
+  
+  /**
+   * Unparsed annotations.
+   */
   private byte[] annotations          = null;
+
+  /**
+   * Unparsed parameter annotations.
+   */
   private byte[] parameterAnnotations = null;
+  
+  /**
+   * Unparsed annotation default value.
+   */
   private byte[] annotationDefault    = null;
+
+  /**
+   * Annotations get parsed the first time they are
+   * accessed and are then cached it this map.
+   */
   private transient Map<Class<? extends Annotation>, Annotation> declaredAnnotations = null;
 
   private static final int METHOD_MODIFIERS
@@ -95,6 +112,9 @@ extends AccessibleObject implements Member, GenericDeclaration
       | Modifier.PRIVATE | Modifier.PROTECTED | Modifier.PUBLIC
       | Modifier.STATIC | Modifier.STRICT | Modifier.SYNCHRONIZED;
 
+  /**
+   * Helper array for creating a new array from a java.util.Container.
+   */
   private static final Annotation[] EMPTY_ANNOTATIONS_ARRAY =
     new Annotation[0];
 
@@ -490,6 +510,10 @@ extends AccessibleObject implements Member, GenericDeclaration
     return declaredAnnotations().values().toArray(EMPTY_ANNOTATIONS_ARRAY);
   }
 
+  /**
+   * Parses the annotations if they aren't parsed yet and stores them into
+   * the declaredAnnotations map and return this map.
+   */
   private synchronized native Map<Class<? extends Annotation>, Annotation> declaredAnnotations();
   
   /**

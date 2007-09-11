@@ -1102,8 +1102,8 @@ jstring JVM_GetClassSignature(JNIEnv *env, jclass cls)
 
 jbyteArray JVM_GetClassAnnotations(JNIEnv *env, jclass cls)
 {
-	classinfo               *c           = NULL;
-	java_handle_bytearray_t *annotations = NULL;
+	classinfo               *c           = NULL; /* classinfo for 'cls'  */
+	java_handle_bytearray_t *annotations = NULL; /* unparsed annotations */
 
 	TRACEJVMCALLS("JVM_GetClassAnnotations: cls=%p", cls);
 
@@ -1125,8 +1125,8 @@ jbyteArray JVM_GetClassAnnotations(JNIEnv *env, jclass cls)
 
 jbyteArray JVM_GetFieldAnnotations(JNIEnv *env, jobject field)
 {
-	java_lang_reflect_Field *rf = (java_lang_reflect_Field*)field;
-	java_handle_bytearray_t *ba = NULL;
+	java_lang_reflect_Field *rf = NULL; /* java.lang.reflect.Field for 'field' */
+	java_handle_bytearray_t *ba = NULL; /* unparsed annotations */
 
 	TRACEJVMCALLS("JVM_GetFieldAnnotations: field=%p", field);
 
@@ -1134,6 +1134,8 @@ jbyteArray JVM_GetFieldAnnotations(JNIEnv *env, jobject field)
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
+
+	rf = (java_lang_reflect_Field*)field;
 
 	LLNI_field_get_ref(rf, annotations, ba);
 
@@ -1145,8 +1147,8 @@ jbyteArray JVM_GetFieldAnnotations(JNIEnv *env, jobject field)
 
 jbyteArray JVM_GetMethodAnnotations(JNIEnv *env, jobject method)
 {
-	java_lang_reflect_Method *rm = (java_lang_reflect_Method*)method;
-	java_handle_bytearray_t  *ba = NULL;
+	java_lang_reflect_Method *rm = NULL; /* java.lang.reflect.Method for 'method' */
+	java_handle_bytearray_t  *ba = NULL; /* unparsed annotations */
 
 	TRACEJVMCALLS("JVM_GetMethodAnnotations: method=%p", method);
 
@@ -1154,6 +1156,8 @@ jbyteArray JVM_GetMethodAnnotations(JNIEnv *env, jobject method)
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
+
+	rm = (java_lang_reflect_Method*)method;
 
 	LLNI_field_get_ref(rm, annotations, ba);
 
@@ -1165,8 +1169,8 @@ jbyteArray JVM_GetMethodAnnotations(JNIEnv *env, jobject method)
 
 jbyteArray JVM_GetMethodDefaultAnnotationValue(JNIEnv *env, jobject method)
 {
-	java_lang_reflect_Method *rm = (java_lang_reflect_Method*)method;
-	java_handle_bytearray_t  *ba = NULL;
+	java_lang_reflect_Method *rm = NULL; /* java.lang.reflect.Method for 'method' */
+	java_handle_bytearray_t  *ba = NULL; /* unparsed annotation default value */
 
 	TRACEJVMCALLS("JVM_GetMethodDefaultAnnotationValue: method=%p", method);
 
@@ -1174,6 +1178,8 @@ jbyteArray JVM_GetMethodDefaultAnnotationValue(JNIEnv *env, jobject method)
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
+
+	rm = (java_lang_reflect_Method*)method;
 
 	LLNI_field_get_ref(rm, annotationDefault, ba);
 
@@ -1185,8 +1191,8 @@ jbyteArray JVM_GetMethodDefaultAnnotationValue(JNIEnv *env, jobject method)
 
 jbyteArray JVM_GetMethodParameterAnnotations(JNIEnv *env, jobject method)
 {
-	java_lang_reflect_Method *rm = (java_lang_reflect_Method*)method;
-	java_handle_bytearray_t  *ba = NULL;
+	java_lang_reflect_Method *rm = NULL; /* java.lang.reflect.Method for 'method' */
+	java_handle_bytearray_t  *ba = NULL; /* unparsed parameter annotations */
 
 	TRACEJVMCALLS("JVM_GetMethodParameterAnnotations: method=%p", method);
 
@@ -1194,6 +1200,8 @@ jbyteArray JVM_GetMethodParameterAnnotations(JNIEnv *env, jobject method)
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
+
+	rm = (java_lang_reflect_Method*)method;
 
 	LLNI_field_get_ref(rm, parameterAnnotations, ba);
 
@@ -1256,8 +1264,10 @@ jobject JVM_GetClassConstantPool(JNIEnv *env, jclass cls)
 {
 #if defined(ENABLE_ANNOTATIONS)
 	sun_reflect_ConstantPool *constantPool    = NULL;
+	              /* constant pool object for the class refered by 'cls' */
 	java_lang_Object         *constantPoolOop = (java_lang_Object*)cls;
-	
+	              /* constantPoolOop field of the constant pool object   */
+
 	TRACEJVMCALLS("JVM_GetClassConstantPool(env=%p, cls=%p)", env, cls);
 
 	constantPool = 
@@ -1283,7 +1293,7 @@ jobject JVM_GetClassConstantPool(JNIEnv *env, jclass cls)
 
 jint JVM_ConstantPoolGetSize(JNIEnv *env, jobject unused, jobject jcpool)
 {
-	classinfo *c;
+	classinfo *c; /* classinfo of the class for which 'this' is the constant pool */
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetSize(env=%p, unused=%p, jcpool=%p)", env, unused, jcpool);
 
@@ -1297,9 +1307,9 @@ jint JVM_ConstantPoolGetSize(JNIEnv *env, jobject unused, jobject jcpool)
 
 jclass JVM_ConstantPoolGetClassAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	constant_classref *ref;
-	classinfo         *c;
-	classinfo         *result;
+	constant_classref *ref;    /* classref to the class at constant pool index 'index' */
+	classinfo         *c;      /* classinfo of the class for which 'this' is the constant pool */
+	classinfo         *result; /* classinfo of the class at constant pool index 'index' */
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetClassAt(env=%p, jcpool=%p, index=%d)", env, jcpool, index);
 
@@ -1322,9 +1332,9 @@ jclass JVM_ConstantPoolGetClassAt(JNIEnv *env, jobject unused, jobject jcpool, j
 
 jclass JVM_ConstantPoolGetClassAtIfLoaded(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	constant_classref *ref;
-	classinfo         *c;
-	classinfo         *result;
+	constant_classref *ref;    /* classref to the class at constant pool index 'index' */
+	classinfo         *c;      /* classinfo of the class for which 'this' is the constant pool */
+	classinfo         *result; /* classinfo of the class at constant pool index 'index' */
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetClassAtIfLoaded(env=%p, unused=%p, jcpool=%p, index=%d)", env, unused, jcpool, index);
 
@@ -1353,11 +1363,12 @@ jclass JVM_ConstantPoolGetClassAtIfLoaded(JNIEnv *env, jobject unused, jobject j
 
 jobject JVM_ConstantPoolGetMethodAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	constant_FMIref *ref;
-	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
+	constant_FMIref *ref; /* reference to the method in constant pool at index 'index' */
+	classinfo *cls;       /* classinfo of the class for which 'this' is the constant pool */
 	
 	TRACEJVMCALLS("JVM_ConstantPoolGetMethodAt: jcpool=%p, index=%d", jcpool, index);
-
+	
+	cls = LLNI_classinfo_unwrap(jcpool);
 	ref = (constant_FMIref*)class_getconstant(cls, index, CONSTANT_Methodref);
 	
 	if (ref == NULL) {
@@ -1374,12 +1385,13 @@ jobject JVM_ConstantPoolGetMethodAt(JNIEnv *env, jobject unused, jobject jcpool,
 
 jobject JVM_ConstantPoolGetMethodAtIfLoaded(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	constant_FMIref *ref;
-	classinfo *c = NULL;
-	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
+	constant_FMIref *ref; /* reference to the method in constant pool at index 'index' */
+	classinfo *c = NULL;  /* resolved declaring class of the method */
+	classinfo *cls;       /* classinfo of the class for which 'this' is the constant pool */
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetMethodAtIfLoaded: jcpool=%p, index=%d", jcpool, index);
 
+	cls = LLNI_classinfo_unwrap(jcpool);
 	ref = (constant_FMIref*)class_getconstant(cls, index, CONSTANT_Methodref);
 
 	if (ref == NULL) {
@@ -1403,11 +1415,12 @@ jobject JVM_ConstantPoolGetMethodAtIfLoaded(JNIEnv *env, jobject unused, jobject
 
 jobject JVM_ConstantPoolGetFieldAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	constant_FMIref *ref;
-	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
+	constant_FMIref *ref; /* reference to the field in constant pool at index 'index' */
+	classinfo *cls;       /* classinfo of the class for which 'this' is the constant pool */
 	
 	TRACEJVMCALLS("JVM_ConstantPoolGetFieldAt: jcpool=%p, index=%d", jcpool, index);
 
+	cls = LLNI_classinfo_unwrap(jcpool);
 	ref = (constant_FMIref*)class_getconstant(cls, index, CONSTANT_Fieldref);
 
 	if (ref == NULL) {
@@ -1423,12 +1436,13 @@ jobject JVM_ConstantPoolGetFieldAt(JNIEnv *env, jobject unused, jobject jcpool, 
 
 jobject JVM_ConstantPoolGetFieldAtIfLoaded(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	constant_FMIref *ref;
-	classinfo *c;
-	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
+	constant_FMIref *ref; /* reference to the field in constant pool at index 'index' */
+	classinfo *c;         /* resolved declaring class for the field */
+	classinfo *cls;       /* classinfo of the class for which 'this' is the constant pool */
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetFieldAtIfLoaded: jcpool=%p, index=%d", jcpool, index);
 
+	cls = LLNI_classinfo_unwrap(jcpool);
 	ref = (constant_FMIref*)class_getconstant(cls, index, CONSTANT_Fieldref);
 
 	if (ref == NULL) {
@@ -1453,6 +1467,9 @@ jobject JVM_ConstantPoolGetFieldAtIfLoaded(JNIEnv *env, jobject unused, jobject 
 jobjectArray JVM_ConstantPoolGetMemberRefInfoAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
 	log_println("JVM_ConstantPoolGetMemberRefInfoAt: jcpool=%p, index=%d, IMPLEMENT ME!", jcpool, index);
+
+	/* TODO: implement. (this is yet unused be OpenJDK but, so very low priority) */
+
 	return NULL;
 }
 
@@ -1461,11 +1478,12 @@ jobjectArray JVM_ConstantPoolGetMemberRefInfoAt(JNIEnv *env, jobject unused, job
 
 jint JVM_ConstantPoolGetIntAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	constant_integer *ref;
-	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
+	constant_integer *ref; /* reference to the int value in constant pool at index 'index' */
+	classinfo *cls;        /* classinfo of the class for which 'this' is the constant pool */
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetIntAt: jcpool=%p, index=%d", jcpool, index);
 
+	cls = LLNI_classinfo_unwrap(jcpool);
 	ref = (constant_integer*)class_getconstant(cls, index, CONSTANT_Integer);
 
 	if (ref == NULL) {
@@ -1481,11 +1499,12 @@ jint JVM_ConstantPoolGetIntAt(JNIEnv *env, jobject unused, jobject jcpool, jint 
 
 jlong JVM_ConstantPoolGetLongAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	constant_long *ref;
-	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
+	constant_long *ref; /* reference to the long value in constant pool at index 'index' */
+	classinfo *cls;     /* classinfo of the class for which 'this' is the constant pool */
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetLongAt: jcpool=%p, index=%d", jcpool, index);
 
+	cls = LLNI_classinfo_unwrap(jcpool);
 	ref = (constant_long*)class_getconstant(cls, index, CONSTANT_Long);
 
 	if (ref == NULL) {
@@ -1501,11 +1520,12 @@ jlong JVM_ConstantPoolGetLongAt(JNIEnv *env, jobject unused, jobject jcpool, jin
 
 jfloat JVM_ConstantPoolGetFloatAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	constant_float *ref;
-	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
+	constant_float *ref; /* reference to the float value in constant pool at index 'index' */
+	classinfo *cls;      /* classinfo of the class for which 'this' is the constant pool */
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetFloatAt: jcpool=%p, index=%d", jcpool, index);
 
+	cls = LLNI_classinfo_unwrap(jcpool);
 	ref = (constant_float*)class_getconstant(cls, index, CONSTANT_Float);
 
 	if (ref == NULL) {
@@ -1521,11 +1541,12 @@ jfloat JVM_ConstantPoolGetFloatAt(JNIEnv *env, jobject unused, jobject jcpool, j
 
 jdouble JVM_ConstantPoolGetDoubleAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	constant_double *ref;
-	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
+	constant_double *ref; /* reference to the double value in constant pool at index 'index' */
+	classinfo *cls;       /* classinfo of the class for which 'this' is the constant pool */
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetDoubleAt: jcpool=%p, index=%d", jcpool, index);
 
+	cls = LLNI_classinfo_unwrap(jcpool);
 	ref = (constant_double*)class_getconstant(cls, index, CONSTANT_Double);
 
 	if (ref == NULL) {
@@ -1541,11 +1562,12 @@ jdouble JVM_ConstantPoolGetDoubleAt(JNIEnv *env, jobject unused, jobject jcpool,
 
 jstring JVM_ConstantPoolGetStringAt(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	utf *ref;
-	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
+	utf *ref;       /* utf object for the string in constant pool at index 'index' */
+	classinfo *cls; /* classinfo of the class for which 'this' is the constant pool */
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetStringAt: jcpool=%p, index=%d", jcpool, index);
 	
+	cls = LLNI_classinfo_unwrap(jcpool);
 	ref = (utf*)class_getconstant(cls, index, CONSTANT_String);
 
 	if (ref == NULL) {
@@ -1562,11 +1584,12 @@ jstring JVM_ConstantPoolGetStringAt(JNIEnv *env, jobject unused, jobject jcpool,
 
 jstring JVM_ConstantPoolGetUTF8At(JNIEnv *env, jobject unused, jobject jcpool, jint index)
 {
-	utf *ref;
-	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
+	utf *ref; /* utf object for the utf8 data in constant pool at index 'index' */
+	classinfo *cls; /* classinfo of the class for which 'this' is the constant pool */
 
 	TRACEJVMCALLS("JVM_ConstantPoolGetUTF8At: jcpool=%p, index=%d", jcpool, index);
 
+	cls = LLNI_classinfo_unwrap(jcpool);
 	ref = (utf*)class_getconstant(cls, index, CONSTANT_Utf8);
 
 	if (ref == NULL) {

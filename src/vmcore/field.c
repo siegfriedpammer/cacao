@@ -385,23 +385,33 @@ void field_free(fieldinfo *f)
 
 /* field_get_annotations ******************************************************
 
-   Gets a fields' annotations (or NULL if none).
+   Gat a fields' unparsed annotations in a byte array.
+
+   IN:
+       f........the field of which the annotations should be returned
+
+   RETURN VALUE:
+       The unparsed annotations in a byte array (or NULL if there aren't any).
 
 *******************************************************************************/
 
 java_handle_bytearray_t *field_get_annotations(fieldinfo *f)
 {
 #if defined(ENABLE_ANNOTATIONS)
-	classinfo               *c;
-	int                      slot;
-	java_handle_bytearray_t *annotations;
-	java_handle_t           *a;
+	classinfo               *c;           /* declaring class           */
+	int                      slot;        /* slot of this field        */
+	java_handle_bytearray_t *annotations; /* unparsed annotations      */
+	java_handle_t           *a;           /* unparsed annotations cast */
+	                                      /* into java_handle_t*       */
 
 	c           = f->class;
 	slot        = f - c->fields;
 	annotations = NULL;
 	a           = (java_handle_t*)c->field_annotations;
 	
+	/* the field_annotations array might be shorter then the field
+	 * count if the fields above a certain index have no annotations.
+	 */
 	if (c->field_annotations != NULL && array_length_get(a) > slot) {
 		annotations = (java_handle_bytearray_t*)
 			array_objectarray_element_get(

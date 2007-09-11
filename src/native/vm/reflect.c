@@ -267,8 +267,18 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 #if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
 /* reflect_get_declaredannotatios *********************************************
 
-   Returns a java.util.Map<Class<? extends Annotation>, Annotation>
-   of the declared annotations.
+   Calls the annotation parser with the unparsed annotations and returnes
+   the parsed annotations as a map.
+   
+   IN:
+       annotations........the unparsed annotations
+       declaringClass.....the class in which the annotated element is declared
+       referer............the calling class (for the 'referer' parameter of
+                          vm_call_method())
+
+   RETURN VALUE:
+       The parsed annotations as a
+	   java.util.Map<Class<? extends Annotation>, Annotation>.
 
 *******************************************************************************/
 
@@ -278,10 +288,16 @@ struct java_util_Map* reflect_get_declaredannotatios(
 	classinfo               *referer)
 {
 	static methodinfo        *m_parseAnnotations   = NULL;
+	                            /* parser method (chached, therefore static)  */
 	utf                      *utf_parseAnnotations = NULL;
+	                            /* parser method name                         */
 	utf                      *utf_desc             = NULL;
+	                            /* parser method descriptor (signature)       */
 	sun_reflect_ConstantPool *constantPool         = NULL;
+	                            /* constant pool of the declaring class       */
 	java_lang_Object         *constantPoolOop      = (java_lang_Object*)declaringClass;
+	                            /* constantPoolOop field of the constant pool */
+	                            /* object (sun.reflect.ConstantPool)          */
 
 	constantPool = 
 		(sun_reflect_ConstantPool*)native_new_and_init(
@@ -294,7 +310,7 @@ struct java_util_Map* reflect_get_declaredannotatios(
 		
 	LLNI_field_set_ref(constantPool, constantPoolOop, constantPoolOop);
 		
-	/* only resolve the method the first time */
+	/* only resolve the parser method the first time */
 	if (m_parseAnnotations == NULL) {
 		utf_parseAnnotations = utf_new_char("parseAnnotations");
 		utf_desc = utf_new_char(
@@ -327,7 +343,20 @@ struct java_util_Map* reflect_get_declaredannotatios(
 
 /* reflect_get_parameterannotations *******************************************
 
-   Parses and returns the parameter annotations of a method.
+   Calls the annotation parser with the unparsed parameter annotations of
+   a method and returnes the parsed parameter annotations in a 2 dimensional
+   array.
+   
+   IN:
+       parameterAnnotations....the unparsed parameter annotations
+	   slot....................the slot of the method
+       declaringClass..........the class in which the annotated element is
+	                           declared
+       referer.................the calling class (for the 'referer' parameter
+                               of vm_call_method())
+
+   RETURN VALUE:
+       The parsed parameter annotations in a 2 dimensional array.
 
 *******************************************************************************/
 
@@ -344,21 +373,29 @@ java_handle_objectarray_t* reflect_get_parameterannotations(
 	 * ones).
 	 *
 	 * ConstantPool constPool = new ConstantPool();
-	 * constPool.constantPoolOop = getDeclaringClass();
+	 * constPool.constantPoolOop = method.getDeclaringClass();
 	 * return sun.reflect.AnnotationParser.parseParameterAnnotations(
-	 * 	parameterAnnotations,
-	 * 	constPool,
-	 * 	getDeclaringClass(),
-	 * 	getParameterTypes().length);
+	 * 	  parameterAnnotations,
+	 * 	  constPool,
+	 * 	  method.getDeclaringClass(),
+	 * 	  method.getParameterTypes().length);
 	 */
 	static methodinfo        *m_parseParameterAnnotations   = NULL;
+	                     /* parser method (cached, therefore static)          */
 	utf                      *utf_parseParameterAnnotations = NULL;
+	                     /* parser method name                                */
 	utf                      *utf_desc        = NULL;
+	                     /* parser method descriptor (signature)              */
 	sun_reflect_ConstantPool *constantPool    = NULL;
+	                     /* constant pool of the declaring class              */
 	java_lang_Object         *constantPoolOop = (java_lang_Object*)declaringClass;
+	                     /* constantPoolOop field of the constant pool object */
 	classinfo                *c               = NULL;
+	                     /* classinfo of the decaring class                   */
 	methodinfo               *m               = NULL;
+	                     /* method info of the annotated method               */
 	int32_t                   numParameters   = -1;
+	                     /* parameter count of the annotated method           */
 
 	/* get parameter count */
 
@@ -385,7 +422,7 @@ java_handle_objectarray_t* reflect_get_parameterannotations(
 
 	LLNI_field_set_ref(constantPool, constantPoolOop, constantPoolOop);
 
-	/* only resolve the method the first time */
+	/* only resolve the parser method the first time */
 	if (m_parseParameterAnnotations == NULL) {
 		utf_parseParameterAnnotations = utf_new_char("parseParameterAnnotations");
 		utf_desc = utf_new_char(

@@ -654,21 +654,11 @@ bool class_load_attributes(classbuffer *cb)
 #endif
 
 #if defined(ENABLE_ANNOTATIONS)
-		/* XXX We can't do a release with that enabled */
-
 		else if (attribute_name == utf_RuntimeVisibleAnnotations) {
 			/* RuntimeVisibleAnnotations */
 			if (!annotation_load_class_attribute_runtimevisibleannotations(cb))
 				return false;
 		}
-		/* XXX RuntimeInvisibleAnnotations should only be loaded
-		 * (or returned to Java) if some commandline options says so.
-		 * Currently there is no such option available in cacao,
-		 * therefore I load them allways (for testing purpose).
-		 * Anyway, bytecode for RuntimeInvisibleAnnotations is only
-		 * generated if you tell javac to do so. So in most cases
-		 * there won't be any.
-		 */
 		else if (attribute_name == utf_RuntimeInvisibleAnnotations) {
 			/* RuntimeInvisibleAnnotations */
 			if (!annotation_load_class_attribute_runtimeinvisibleannotations(cb))
@@ -1962,8 +1952,15 @@ java_handle_objectarray_t *class_get_interfaces(classinfo *c)
 
 /* class_get_annotations *******************************************************
 
-   Return the unparsed declared annotations in an byte array
-   of the given class (or NULL if there aren't any).
+   Get the unparsed declared annotations in a byte array
+   of the given class.
+
+   IN:
+       c........the class of which the annotations should be returned
+
+   RETURN VALUE:
+       The unparsed declared annotations in a byte array
+       (or NULL if there aren't any).
 
 *******************************************************************************/
 

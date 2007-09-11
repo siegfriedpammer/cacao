@@ -153,11 +153,11 @@ utf *utf_Signature;
 utf *utf_StackMapTable;
 
 #if defined(ENABLE_ANNOTATIONS)
-utf *utf_RuntimeVisibleAnnotations;
-utf *utf_RuntimeInvisibleAnnotations;
-utf *utf_RuntimeVisibleParameterAnnotations;
-utf *utf_RuntimeInvisibleParameterAnnotations;
-utf *utf_AnnotationDefault;
+utf *utf_RuntimeVisibleAnnotations;            /* RuntimeVisibleAnnotations            */
+utf *utf_RuntimeInvisibleAnnotations;          /* RuntimeInvisibleAnnotations          */
+utf *utf_RuntimeVisibleParameterAnnotations;   /* RuntimeVisibleParameterAnnotations   */
+utf *utf_RuntimeInvisibleParameterAnnotations; /* RuntimeInvisibleParameterAnnotations */
+utf *utf_AnnotationDefault;                    /* AnnotationDefault                    */
 #endif
 #endif
 

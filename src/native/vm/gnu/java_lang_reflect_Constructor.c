@@ -110,16 +110,21 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
  * Class:     java/lang/reflect/Constructor
  * Method:    declaredAnnotations
  * Signature: ()Ljava/util/Map;
+ *
+ * Parses the annotations (if they aren't parsed yet) and stores them into
+ * the declaredAnnotations map and return this map.
  */
 JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Constructor_declaredAnnotations(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
-	java_util_Map           *declaredAnnotations = NULL;
-	java_handle_bytearray_t *annotations         = NULL;
-	java_lang_Class         *declaringClass      = NULL;
-	classinfo               *referer             = NULL;
+	java_util_Map           *declaredAnnotations = NULL; /* parsed annotations                                */
+	java_handle_bytearray_t *annotations         = NULL; /* unparsed annotations                              */
+	java_lang_Class         *declaringClass      = NULL; /* the constant pool of this class is used           */
+	classinfo               *referer             = NULL; /* class, which calles the annotation parser         */
+	                                                     /* (for the parameter 'referer' of vm_call_method()) */
 
 	LLNI_field_get_ref(this, declaredAnnotations, declaredAnnotations);
 
+	/* are the annotations parsed yet? */
 	if (declaredAnnotations == NULL) {
 		LLNI_field_get_ref(this, annotations, annotations);
 		LLNI_field_get_ref(this, clazz, declaringClass);
@@ -138,13 +143,16 @@ JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Constructor_decla
  * Class:     java/lang/reflect/Constructor
  * Method:    getParameterAnnotations
  * Signature: ()[[Ljava/lang/annotation/Annotation;
+ *
+ * Parses the parameter annotations and returns them in an 2 dimensional array.
  */
 JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_Constructor_getParameterAnnotations(JNIEnv *env, java_lang_reflect_Constructor *this)
 {
-	java_handle_bytearray_t *parameterAnnotations = NULL;
-	int32_t                  slot                 = -1;
-	java_lang_Class         *declaringClass       = NULL;
-	classinfo               *referer              = NULL;
+	java_handle_bytearray_t *parameterAnnotations = NULL; /* unparsed parameter annotations                    */
+	int32_t                  slot                 = -1;   /* slot of the method                                */
+	java_lang_Class         *declaringClass       = NULL; /* the constant pool of this class is used           */
+	classinfo               *referer              = NULL; /* class, which calles the annotation parser         */
+	                                                      /* (for the parameter 'referer' of vm_call_method()) */
 
 	LLNI_field_get_ref(this, parameterAnnotations, parameterAnnotations);
 	LLNI_field_get_val(this, slot, slot);

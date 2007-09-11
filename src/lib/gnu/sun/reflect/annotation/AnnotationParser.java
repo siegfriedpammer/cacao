@@ -44,11 +44,15 @@ import gnu.java.lang.reflect.FieldSignatureParser;
  */
 public class AnnotationParser {
     /**
-     * Parses the annotations described by the passed byte array.
-     * But return Annotation[] so I don't have to do this in C.
+     * Parses the annotations described by the passed byte array,
+     * but returns Annotation[] so I don't have to do this in C.
      *
      * @author Mathias Panzenböck
      * 
+     * @param rawAnnotations are the unparsed annotations
+     * @param constPool is the constant pool of the declaring class
+     * @param container is the containing class
+     * @return the parsed annotations in an array
      * @throws AnnotationFormatError if an annotation is found to be
      *         malformed.
      */
@@ -65,6 +69,10 @@ public class AnnotationParser {
      * 
      * @author Mathias Panzenböck
      * 
+     * @param parameterAnnotations are the unparsed parameter annotations
+     * @param constPool is the constant pool of the declaring class
+     * @param container is the containing class
+     * @return the parsed parameter annotations in an array 2 dimensional array
      * @throws AnnotationFormatError if an annotation is found to be
      *         malformed.
      */
@@ -93,6 +101,10 @@ public class AnnotationParser {
      * 
      * @author Mathias Panzenböck
      *
+     * @param method represents the method for which the annotation default value has to be parsed
+     * @param annotationDefault is the unparsed annotation default value
+     * @param constPool is the constant pool of the declaring class
+     * @return the parsed annotation default value (boxed, if it's a primitive type)
      * @throws AnnotationFormatError if an annotation is found to be
      *         malformed.
      */

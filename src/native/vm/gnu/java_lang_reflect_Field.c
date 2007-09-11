@@ -1252,13 +1252,15 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Field_getSignature(JN
  */
 JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Field_declaredAnnotations(JNIEnv *env, java_lang_reflect_Field *this)
 {
-	java_util_Map           *declaredAnnotations = NULL;
-	java_handle_bytearray_t *annotations         = NULL;
-	java_lang_Class         *declaringClass      = NULL;
-	classinfo               *referer             = NULL;
+	java_util_Map           *declaredAnnotations = NULL; /* parsed annotations                                */
+	java_handle_bytearray_t *annotations         = NULL; /* unparsed annotations                              */
+	java_lang_Class         *declaringClass      = NULL; /* the constant pool of this class is used           */
+	classinfo               *referer             = NULL; /* class, which calles the annotation parser         */
+	                                                     /* (for the parameter 'referer' of vm_call_method()) */
 
 	LLNI_field_get_ref(this, declaredAnnotations, declaredAnnotations);
 
+	/* are the annotations parsed yet? */
 	if (declaredAnnotations == NULL) {
 		LLNI_field_get_ref(this, annotations, annotations);
 		LLNI_field_get_ref(this, clazz, declaringClass);

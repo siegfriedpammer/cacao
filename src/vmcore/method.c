@@ -616,20 +616,24 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m)
    Use the descriptor of a method to determine the number of parameters
    of the method. The this pointer of non-static methods is not counted.
 
-   Returns -1 on error.
+   IN:
+       m........the method of which the parameters should be counted
+
+   RETURN VALUE:
+       The parameter count or -1 on error.
 
 *******************************************************************************/
 
 int32_t method_get_parametercount(methodinfo *m)
 {
-	methoddesc *md;
-	int32_t     paramcount = 0;
+	methoddesc *md;             /* method descriptor of m   */
+	int32_t     paramcount = 0; /* the parameter count of m */
 
 	md = m->parseddesc;
 	
 	/* is the descriptor fully parsed? */
 
-	if (m->parseddesc->params == NULL) {
+	if (md->params == NULL) {
 		if (!descriptor_params_from_paramtypes(md, m->flags)) {
 			return -1;
 		}
@@ -808,23 +812,33 @@ s4 method_count_implementations(methodinfo *m, classinfo *c, methodinfo **found)
 
 /* method_get_annotations ******************************************************
 
-   Gets a methods' annotations (or NULL if none).
+   Get a methods' unparsed annotations in a byte array.
+
+   IN:
+       m........the method of which the annotations should be returned
+
+   RETURN VALUE:
+       The unparsed annotations in a byte array (or NULL if there aren't any).
 
 *******************************************************************************/
 
 java_handle_bytearray_t *method_get_annotations(methodinfo *m)
 {
 #if defined(ENABLE_ANNOTATIONS)
-	classinfo               *c;
-	int                      slot;
-	java_handle_bytearray_t *annotations;
-	java_handle_t           *a;
+	classinfo               *c;           /* methods' declaring class      */
+	int                      slot;        /* methods' slot                 */
+	java_handle_bytearray_t *annotations; /* methods' unparsed annotations */
+	java_handle_t           *a;           /* methods' unparsed annotations */
+	                                      /* cast into a java_handle_t*    */
 
 	c           = m->class;
 	slot        = m - c->methods;
 	annotations = NULL;
 	a           = (java_handle_t*)c->method_annotations;
-	
+
+	/* the method_annotations array might be shorter then the method
+	 * count if the methods above a certain index have no annotations.
+	 */	
 	if (c->method_annotations != NULL && array_length_get(a) > slot) {
 		annotations = (java_handle_bytearray_t*)array_objectarray_element_get(
 			c->method_annotations, slot);
@@ -839,17 +853,29 @@ java_handle_bytearray_t *method_get_annotations(methodinfo *m)
 
 /* method_get_parameterannotations ********************************************
 
-   Gets a methods' parameter annotations (or NULL if none).
+   Get a methods' unparsed parameter annotations in an array of byte
+   arrays.
+
+   IN:
+       m........the method of which the parameter annotations should be
+	            returned
+
+   RETURN VALUE:
+       The unparsed parameter annotations in a byte array (or NULL if
+	   there aren't any).
 
 *******************************************************************************/
 
 java_handle_bytearray_t *method_get_parameterannotations(methodinfo *m)
 {
 #if defined(ENABLE_ANNOTATIONS)
-	classinfo               *c;
-	int                      slot;
-	java_handle_bytearray_t *parameterAnnotations;
-	java_handle_t           *a;
+	classinfo               *c;                  /* methods' declaring class */
+	int                      slot;               /* methods' slot            */
+	java_handle_bytearray_t *parameterAnnotations; /* methods' unparsed      */
+	                                             /* parameter annotations    */
+	java_handle_t           *a;                  /* methods' unparsed        */
+	                                             /* parameter annotations    */
+												 /* cast into java_handle_t* */
 
 	c                    = m->class;
 	slot                 = m - c->methods;
@@ -871,17 +897,28 @@ java_handle_bytearray_t *method_get_parameterannotations(methodinfo *m)
 
 /* method_get_annotationdefault ***********************************************
 
-   Gets a methods' annotation default value (or NULL if none).
+   Get a methods' unparsed annotation default value in a byte array.
+   
+   IN:
+       m........the method of which the annotation default value should be
+	            returned
+
+   RETURN VALUE:
+       The unparsed annotation default value in a byte array (or NULL if
+	   there isn't one).
 
 *******************************************************************************/
 
 java_handle_bytearray_t *method_get_annotationdefault(methodinfo *m)
 {
 #if defined(ENABLE_ANNOTATIONS)
-	classinfo               *c;
-	int                      slot;
-	java_handle_bytearray_t *annotationDefault;
-	java_handle_t           *a;
+	classinfo               *c;                 /* methods' declaring class */
+	int                      slot;              /* methods' slot            */
+	java_handle_bytearray_t *annotationDefault; /* methods' unparsed        */
+	                                            /* annotation default value */
+	java_handle_t           *a;                 /* methods' unparsed        */
+	                                            /* annotation default value */
+	                                            /* cast into java_handle_t* */
 
 	c                 = m->class;
 	slot              = m - c->methods;

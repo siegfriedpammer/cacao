@@ -93,6 +93,7 @@ public class AnnotationType {
 	AnnotationType result = sun.misc.SharedSecrets.getJavaLangAccess(). 
             getAnnotationType(annotationClass); 
         */
+	// emulating OpenJDKs SharedSecrets in GNU Classpath:
 	AnnotationType result = annotationTypes.get(annotationClass); 
 	if (result == null)
             result = new AnnotationType((Class<?>) annotationClass);
@@ -139,7 +140,7 @@ public class AnnotationType {
         sun.misc.SharedSecrets.getJavaLangAccess(). 
             setAnnotationType(annotationClass, this); 
         */
-        
+	// emulating OpenJDKs SharedSecrets in GNU Classpath:
 	annotationTypes.put(annotationClass, this);
 
         // Initialize retention, & inherited fields.  Special treatment

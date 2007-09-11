@@ -55,45 +55,44 @@
 
    Resize an array of bytearrays.
 
+   IN:
+       bas.....array of bytearrays (bas is short for 'bytearrays')
+       size....new size of the refered array
+   
+   RETURN VALUE:
+       The new array if a resize was neccessarry, the old if the given size
+       equals the current size or NULL if an error occured.
+
 *******************************************************************************/
 
-static bool annotation_bytearrays_resize(java_handle_objectarray_t **bas,
-	uint32_t size)
+static java_handle_objectarray_t *annotation_bytearrays_resize(
+	java_handle_objectarray_t *bas, uint32_t size)
 {
-	java_handle_objectarray_t *newbas = NULL;
-	uint32_t minsize;
-	uint32_t oldsize;
+	java_handle_objectarray_t *newbas = NULL; /* new array     */
+	uint32_t minsize = 0;      /* count of object refs to copy */
+	uint32_t oldsize = 0;      /* size of old array            */
 	
-	assert(bas != NULL);
-	
-	if (*bas != NULL) {
-		oldsize = array_length_get((java_handle_t*)*bas);
-
+	if (bas != NULL) {
+		oldsize = array_length_get((java_handle_t*)bas);
+		
 		/* if the size already fits do nothing */
 		if (size == oldsize) {
-			return true;
+			return bas;
 		}
 	}
-
+	
 	newbas = builtin_anewarray(size,
 		primitive_arrayclass_get_by_type(PRIMITIVETYPE_BYTE));
 	
-	if (newbas == NULL) {
-		/* out of memory */
-		return false;
-	}
-	
 	/* is there a old byte array array? */
-	if (*bas != NULL) {
+	if (newbas != NULL && bas != NULL) {
 		minsize = size < oldsize ? size : oldsize;
 
-		MCOPY(LLNI_array_data(newbas), LLNI_array_data(*bas),
+		MCOPY(LLNI_array_data(newbas), LLNI_array_data(bas),
 			java_object_t*, minsize);
 	}
 
-	*bas = newbas;
-
-	return true;
+	return newbas;
 }
 
 
@@ -101,44 +100,54 @@ static bool annotation_bytearrays_resize(java_handle_objectarray_t **bas,
 
    Insert a bytearray into an array of bytearrays.
 
+   IN:
+       bas........array of bytearrays where 'ba' has to be insertet into at
+                  position 'index'.
+       index......position where 'ba' has to be inserted into 'bas'.
+       ba.........byte array which has to be inserted into 'bas'.
+
+   RETURN VALUE:
+       The new array if a resize was neccessarry, the old if the given size
+       equals the current size or NULL if an error occured.
+
 *******************************************************************************/
 
-static bool annotation_bytearrays_insert(java_handle_objectarray_t **bas,
-	uint32_t index, java_handle_bytearray_t *ba)
+static java_handle_objectarray_t *annotation_bytearrays_insert(
+	java_handle_objectarray_t *bas,	uint32_t index, java_handle_bytearray_t *ba)
 {
-	uint32_t size = 0;
-
-	assert(bas != NULL);
+	uint32_t size = 0; /* current size of the array */
 
 	/* do nothing if NULL is inserted but no array exists */
-	if (ba == NULL && *bas == NULL) {
-		return true;
+	if (ba == NULL && bas == NULL) {
+		return bas;
 	}
 
 	/* get lengths if array exists */
-	if (*bas != NULL) {
-		size = array_length_get((java_handle_t*)*bas);
+	if (bas != NULL) {
+		size = array_length_get((java_handle_t*)bas);
 	}
 
 	if (ba == NULL) {
 		/* insert NULL only if array is big enough */
 		if (size > index) {
-			array_objectarray_element_set(*bas, index, NULL);
+			array_objectarray_element_set(bas, index, NULL);
 		}
 	}
 	else {
 		/* resize array if it's not enough for inserted value */
 		if (size <= index) {
-			if (!annotation_bytearrays_resize(bas, index + 1)) {
+			bas = annotation_bytearrays_resize(bas, index + 1);
+
+			if (bas == NULL) {
 				/* out of memory */
-				return false;
+				return NULL;
 			}
 		}
 
-		array_objectarray_element_set(*bas, index, (java_handle_t*)ba);
+		array_objectarray_element_set(bas, index, (java_handle_t*)ba);
 	}
 	
-	return true;
+	return bas;
 }
 
 
@@ -170,8 +179,8 @@ static bool annotation_bytearrays_insert(java_handle_objectarray_t **bas,
 static bool annotation_load_attribute_body(classbuffer *cb,
 	java_handle_bytearray_t **attribute, const char *errormsg_prefix)
 {
-	uint32_t size = 0;
-	java_handle_bytearray_t *ba = NULL;
+	uint32_t                 size = 0;    /* size of the attribute     */
+	java_handle_bytearray_t *ba   = NULL; /* the raw attributes' bytes */
 
 	assert(cb != NULL);
 	assert(attribute != NULL);
@@ -234,14 +243,20 @@ static bool annotation_load_attribute_body(classbuffer *cb,
 bool annotation_load_method_attribute_annotationdefault(
 		classbuffer *cb, methodinfo *m)
 {
-	int                         slot               = 0;
-	java_handle_bytearray_t    *annotationdefault  = NULL;
-	java_handle_objectarray_t **annotationdefaults = NULL;
+	int                        slot               = 0;
+	                           /* the slot of the method                      */
+	java_handle_bytearray_t   *annotationdefault  = NULL;
+	                           /* unparsed annotation defalut value           */
+	java_handle_objectarray_t *annotationdefaults = NULL;
+	                           /* array of unparsed annotation default values */
 
 	assert(cb != NULL);
 	assert(m != NULL);
 
-	annotationdefaults = &(m->class->method_annotationdefaults);
+	/* XXX: Wait for michis reply if it should be:
+	 * LLNI_field_get_ref(m->class, method_annotations, annotationdefaults);
+	 */
+	annotationdefaults = m->class->method_annotationdefaults;
 
 	if (!annotation_load_attribute_body(
 			cb, &annotationdefault,
@@ -251,11 +266,17 @@ bool annotation_load_method_attribute_annotationdefault(
 
 	if (annotationdefault != NULL) {
 		slot = m - m->class->methods;
+		annotationdefaults = annotation_bytearrays_insert(
+				annotationdefaults, slot, annotationdefault);
 
-		if (!annotation_bytearrays_insert(
-				annotationdefaults, slot, annotationdefault)) {
+		if (annotationdefaults == NULL) {
 			return false;
 		}
+
+	/* XXX: Wait for michis reply if it should be:
+	 * LLNI_field_set_ref(m->class, method_annotations, annotationdefaults);
+	 */
+		m->class->method_annotationdefaults = annotationdefaults;
 	}
 
 	return true;
@@ -290,14 +311,20 @@ bool annotation_load_method_attribute_annotationdefault(
 bool annotation_load_method_attribute_runtimevisibleparameterannotations(
 		classbuffer *cb, methodinfo *m)
 {
-	int                         slot                 = 0;
-	java_handle_bytearray_t    *annotations          = NULL;
-	java_handle_objectarray_t **parameterannotations = NULL;
+	int                        slot                 = 0;
+	                           /* the slot of the method */
+	java_handle_bytearray_t   *annotations          = NULL;
+	                           /* unparsed parameter annotations */
+	java_handle_objectarray_t *parameterannotations = NULL;
+	                           /* array of unparsed parameter annotations */
 
 	assert(cb != NULL);
 	assert(m != NULL);
 
-	parameterannotations = &(m->class->method_parameterannotations);
+	/* XXX: Wait for michis reply if it should be:
+	 * LLNI_field_get_ref(m->class, method_parameterannotations, parameterannotations);
+	 */
+	parameterannotations = m->class->method_parameterannotations;
 
 	if (!annotation_load_attribute_body(
 			cb, &annotations,
@@ -307,11 +334,17 @@ bool annotation_load_method_attribute_runtimevisibleparameterannotations(
 
 	if (annotations != NULL) {
 		slot = m - m->class->methods;
+		parameterannotations = annotation_bytearrays_insert(
+				parameterannotations, slot, annotations);
 
-		if (!annotation_bytearrays_insert(
-				parameterannotations, slot, annotations)) {
+		if (parameterannotations == NULL) {
 			return false;
 		}
+
+	/* XXX: Wait for michis reply if it should be:
+	 * LLNI_field_set_ref(m->class, method_parameterannotations, parameterannotations);
+	 */
+		m->class->method_parameterannotations = parameterannotations;
 	}
 
 	return true;
@@ -334,7 +367,7 @@ bool annotation_load_method_attribute_runtimevisibleparameterannotations(
 
    Hotspot loads them into the same bytearray as the runtime visible parameter
    annotations (after the runtime visible parameter annotations). But in J2SE
-   the bytearray will only be parsed as if ther is only one annotation
+   the bytearray will only be parsed as if there is only one annotation
    structure in it, so the runtime invisible parameter annotatios will be
    ignored.
 
@@ -372,14 +405,31 @@ bool annotation_load_method_attribute_runtimeinvisibleparameterannotations(
    
    Load runtime visible annotations of a class.
    
+   IN:
+       cb........the classbuffer from which the attribute has to be loaded.
+
+   RETURN VALUE:
+       true if all went good. false otherwhise.
+
 *******************************************************************************/
 
 bool annotation_load_class_attribute_runtimevisibleannotations(
 	classbuffer *cb)
 {
-	return annotation_load_attribute_body(
-		cb, &(cb->class->annotations),
-		"invalid runtime visible annotations class attribute");
+	java_handle_bytearray_t *annotations = NULL; /* unparsed annotations */
+	
+	if (!annotation_load_attribute_body(
+			cb, &annotations,
+			"invalid runtime visible annotations class attribute")) {
+		return false;
+	}
+
+	/* XXX: Wait for michis reply if it should be:
+	 * LLNI_field_set_ref(cb->class, annotations, annotations);
+	 */
+	cb->class->annotations = annotations;
+
+	return true;
 }
 
 
@@ -387,6 +437,12 @@ bool annotation_load_class_attribute_runtimevisibleannotations(
    
    Load runtime invisible annotations of a class (just skip them).
    
+   IN:
+       cb........the classbuffer from which the attribute has to be loaded.
+
+   RETURN VALUE:
+       true if all went good. false otherwhise.
+
 *******************************************************************************/
 
 bool annotation_load_class_attribute_runtimeinvisibleannotations(
@@ -399,20 +455,34 @@ bool annotation_load_class_attribute_runtimeinvisibleannotations(
 /* annotation_load_method_attribute_runtimevisibleannotations *****************
    
    Load runtime visible annotations of a method.
-   
+  
+   IN:
+       cb........the classbuffer from which the attribute has to be loaded.
+       m.........the method of which the runtime visible annotations have
+                 to be loaded.
+
+   RETURN VALUE:
+       true if all went good. false otherwhise.
+
 *******************************************************************************/
 
 bool annotation_load_method_attribute_runtimevisibleannotations(
 	classbuffer *cb, methodinfo *m)
 {
-	int                         slot               = 0;
-	java_handle_bytearray_t    *annotations        = NULL;
-	java_handle_objectarray_t **method_annotations = NULL;
+	int                        slot               = 0;
+	                           /* slot of the method */
+	java_handle_bytearray_t   *annotations        = NULL;
+	                           /* unparsed annotations */
+	java_handle_objectarray_t *method_annotations = NULL;
+	                           /* array of unparsed method annotations */
 
 	assert(cb != NULL);
 	assert(m != NULL);
 
-	method_annotations = &(m->class->method_annotations);
+	/* XXX: Wait for michis reply if it should be:
+	 * LLNI_field_get_ref(m->class, method_annotations, method_annotations);
+	 */
+	method_annotations = m->class->method_annotations;
 
 	if (!annotation_load_attribute_body(
 			cb, &annotations,
@@ -422,11 +492,17 @@ bool annotation_load_method_attribute_runtimevisibleannotations(
 
 	if (annotations != NULL) {
 		slot = m - m->class->methods;
+		method_annotations = annotation_bytearrays_insert(
+				method_annotations, slot, annotations);
 
-		if (!annotation_bytearrays_insert(
-				method_annotations, slot, annotations)) {
+		if (method_annotations == NULL) {
 			return false;
 		}
+		
+	/* XXX: Wait for michis reply if it should be:
+	 * LLNI_field_set_ref(m->class, method_annotations, method_annotations);
+	 */
+		m->class->method_annotations = method_annotations;
 	}
 
 	return true;
@@ -437,6 +513,14 @@ bool annotation_load_method_attribute_runtimevisibleannotations(
    
    Load runtime invisible annotations of a method (just skip them).
    
+   IN:
+       cb........the classbuffer from which the attribute has to be loaded.
+       m.........the method of which the runtime invisible annotations have
+                 to be loaded.
+
+   RETURN VALUE:
+       true if all went good. false otherwhise.
+
 *******************************************************************************/
 
 bool annotation_load_method_attribute_runtimeinvisibleannotations(
@@ -450,19 +534,33 @@ bool annotation_load_method_attribute_runtimeinvisibleannotations(
    
    Load runtime visible annotations of a field.
    
+   IN:
+       cb........the classbuffer from which the attribute has to be loaded.
+       f.........the field of which the runtime visible annotations have
+                 to be loaded.
+
+   RETURN VALUE:
+       true if all went good. false otherwhise.
+
 *******************************************************************************/
 
 bool annotation_load_field_attribute_runtimevisibleannotations(
 	classbuffer *cb, fieldinfo *f)
 {
-	int                          slot             = 0;
-	java_handle_bytearray_t    *annotations       = NULL;
-	java_handle_objectarray_t **field_annotations = NULL;
+	int                        slot              = 0;
+	                           /* slot of the field */
+	java_handle_bytearray_t   *annotations       = NULL;
+	                           /* unparsed annotations */
+	java_handle_objectarray_t *field_annotations = NULL;
+	                           /* array of unparsed field annotations */
 
 	assert(cb != NULL);
 	assert(f != NULL);
 
-	field_annotations = &(f->class->field_annotations);
+	/* XXX: Wait for michis reply if it should be:
+	 * LLNI_field_get_ref(f->class, method_annotations, method_annotations);
+	 */
+	field_annotations = f->class->field_annotations;
 
 	if (!annotation_load_attribute_body(
 			cb, &annotations,
@@ -472,11 +570,17 @@ bool annotation_load_field_attribute_runtimevisibleannotations(
 
 	if (annotations != NULL) {
 		slot = f - f->class->fields;
+		field_annotations = annotation_bytearrays_insert(
+				field_annotations, slot, annotations);
 
-		if (!annotation_bytearrays_insert(
-				field_annotations, slot, annotations)) {
+		if (field_annotations == NULL) {
 			return false;
 		}
+
+	/* XXX: Wait for michis reply if it should be:
+	 * LLNI_field_set_ref(f->class, method_annotations, method_annotations);
+	 */
+		f->class->field_annotations = field_annotations;
 	}
 
 	return true;
@@ -487,6 +591,14 @@ bool annotation_load_field_attribute_runtimevisibleannotations(
    
    Load runtime invisible annotations of a field (just skip them).
    
+   IN:
+       cb........the classbuffer from which the attribute has to be loaded.
+       f.........the field of which the runtime invisible annotations have
+                 to be loaded.
+
+   RETURN VALUE:
+       true if all went good. false otherwhise.
+
 *******************************************************************************/
 
 bool annotation_load_field_attribute_runtimeinvisibleannotations(

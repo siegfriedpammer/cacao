@@ -29,6 +29,16 @@
 
 */
 
+/**
+ * Test following methos of java.lang.Class for proper function:
+ *  getSuperclass()
+ *  getDeclaringClass()
+ *  getEnclosingClass()
+ *  getEnclosingConstructor()
+ *  getEnclosingMethod()
+ *
+ * I wrote this because getSuperclass() sometimes made problems.
+ */
 import java.lang.reflect.Method;
 import java.lang.reflect.Constructor;
 

@@ -28,7 +28,12 @@
 
    XXX: The Methods in this file are very redundant to thouse in
         src/native/vm/sun/jvm.c Unless someone has a good idea how to cover
-	such redundancy I leave it how it is.
+        such redundancy I leave it how it is.
+
+  The ConstantPool class represents an interface to the constant pool of a
+  class and is used by the annotations parser (sun.reflect.annotation.
+  AnnotationParser) to get the values of the constants refered by the
+  annotations.
 
 *******************************************************************************/
 
@@ -80,7 +85,7 @@ static JNINativeMethod methods[] = {
 };
 
 
-/* _Jv_sun_reflect_ConstantPool_init ********************************************
+/* _Jv_sun_reflect_ConstantPool_init ******************************************
 
    Register native functions.
 

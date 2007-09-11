@@ -552,13 +552,14 @@ void _Jv_java_lang_Class_throwException(java_lang_Throwable *t)
  */
 java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* klass)
 {
-	classinfo                *c               = NULL;
-	static methodinfo        *m_parseAnnotationsIntoArray   = NULL;
-	utf                      *utf_parseAnnotationsIntoArray = NULL;
-	utf                      *utf_desc        = NULL;
-	java_handle_bytearray_t  *annotations     = NULL;
-	sun_reflect_ConstantPool *constantPool    = NULL;
-	java_lang_Object         *constantPoolOop = (java_lang_Object*)klass;
+	classinfo                *c               = NULL; /* classinfo for the java.lang.Class object 'klass'       */
+	static methodinfo        *m_parseAnnotationsIntoArray   = NULL; /* parser method (cached, therefore static) */
+	utf                      *utf_parseAnnotationsIntoArray = NULL; /* parser method name     */
+	utf                      *utf_desc        = NULL;               /* parser method descriptor (signature)     */
+	java_handle_bytearray_t  *annotations     = NULL;               /* unparsed annotations   */
+	sun_reflect_ConstantPool *constantPool    = NULL;               /* constant pool of klass */
+	java_lang_Object         *constantPoolOop = (java_lang_Object*)klass; /* constantPoolOop field of */
+	                                                                      /* sun.reflect.ConstantPool */
 
 	if (klass == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -574,14 +575,14 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_
 		(sun_reflect_ConstantPool*)native_new_and_init(
 			class_sun_reflect_ConstantPool);
 	
-	if(constantPool == NULL) {
+	if (constantPool == NULL) {
 		/* out of memory */
 		return NULL;
 	}
 
 	LLNI_field_set_ref(constantPool, constantPoolOop, constantPoolOop);
 
-	/* only resolve the method the first time */
+	/* only resolve the parser method the first time */
 	if (m_parseAnnotationsIntoArray == NULL) {
 		utf_parseAnnotationsIntoArray = utf_new_char("parseAnnotationsIntoArray");
 		utf_desc = utf_new_char(
