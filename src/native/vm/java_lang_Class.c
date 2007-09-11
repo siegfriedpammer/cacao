@@ -263,21 +263,6 @@ JNIEXPORT int32_t JNICALL _Jv_java_lang_Class_isInterface(JNIEnv *env, java_lang
 
 /*
  * Class:     java/lang/Class
- * Method:    isPrimitive
- * Signature: ()Z
- */
-s4 _Jv_java_lang_Class_isPrimitive(java_lang_Class *klass)
-{
-	classinfo *c;
-
-	c = LLNI_classinfo_unwrap(klass);
-
-	return class_is_primitive(c);
-}
-
-
-/*
- * Class:     java/lang/Class
  * Method:    getSuperclass
  * Signature: ()Ljava/lang/Class;
  */

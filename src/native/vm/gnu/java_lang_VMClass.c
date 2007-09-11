@@ -137,9 +137,13 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInterface(JNIEnv *env, jclass claz
  * Method:    isPrimitive
  * Signature: (Ljava/lang/Class;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, jclass clazz, java_lang_Class *klass)
+JNIEXPORT int32_t JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	return  _Jv_java_lang_Class_isPrimitive(klass);
+	classinfo *c;
+
+	c = LLNI_classinfo_unwrap(klass);
+
+	return class_is_primitive(c);
 }
 
 
