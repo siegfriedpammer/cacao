@@ -263,24 +263,6 @@ JNIEXPORT int32_t JNICALL _Jv_java_lang_Class_isInterface(JNIEnv *env, java_lang
 
 /*
  * Class:     java/lang/Class
- * Method:    getSuperclass
- * Signature: ()Ljava/lang/Class;
- */
-java_lang_Class *_Jv_java_lang_Class_getSuperclass(java_lang_Class *klass)
-{
-	classinfo *c;
-	classinfo *super;
-
-	c = LLNI_classinfo_unwrap(klass);
-
-	super = class_get_superclass(c);
-
-	return LLNI_classinfo_wrap(super);
-}
-
-
-/*
- * Class:     java/lang/Class
  * Method:    getInterfaces
  * Signature: ()[Ljava/lang/Class;
  */

@@ -165,7 +165,14 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getName(JNIEnv *env, 
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	return _Jv_java_lang_Class_getSuperclass(klass);
+	classinfo *c;
+	classinfo *super;
+
+	c = LLNI_classinfo_unwrap(klass);
+
+	super = class_get_superclass(c);
+
+	return LLNI_classinfo_wrap(super);
 }
 
 
