@@ -101,6 +101,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *en
 {
 	java_handle_t *p;
 #if defined(WITH_JRE_LAYOUT)
+	char *java_home;
 	char *path;
 	s4    len;
 #endif
@@ -118,18 +119,20 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *en
 	/* XXX when we do it that way, we can't set these properties on
 	   commandline */
 
-	properties_system_add(p, "gnu.classpath.home", cacao_prefix);
+	java_home = properties_get("java.home");
+
+	properties_system_add(p, "gnu.classpath.home", java_home);
 
 	len =
 		strlen("file://") +
-		strlen(cacao_prefix) +
+		strlen(java_home) +
 		strlen("/lib") +
 		strlen("0");
 
 	path = MNEW(char, len);
 
 	strcpy(path, "file://");
-	strcat(path, cacao_prefix);
+	strcat(path, java_home);
 	strcat(path, "/lib");
 
 	properties_system_add(p, "gnu.classpath.home.url", path);

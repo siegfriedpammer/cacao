@@ -139,7 +139,7 @@ void properties_set(void)
 
 	/* Set java.home. */
 
-	len = strlen(path) + strlen("/..") + strlen("0");
+	len = strlen(p) + strlen("/..") + strlen("0");
 
 	java_home = MNEW(char, len);
 
@@ -148,7 +148,7 @@ void properties_set(void)
 
 	/* Set the path to Java core native libraries. */
 
-	len = strlen(cacao_prefix) + strlen("/lib/classpath") + strlen("0");
+	len = strlen(java_home) + strlen("/lib/classpath") + strlen("0");
 
 	boot_library_path = MNEW(char, len);
 
