@@ -175,6 +175,7 @@ const char *opt_filter_show_method = 0;
 
 /* NOTE: For better readability keep these alpha-sorted. */
 
+int      opt_DebugPatcher              = 0;
 int32_t  opt_DebugStackFrameInfo       = 0;
 int32_t  opt_DebugStackTrace           = 0;
 #if defined(ENABLE_GC_CACAO)
@@ -203,6 +204,7 @@ enum {
 };
 
 enum {
+	OPT_DebugPatcher,
 	OPT_DebugStackFrameInfo,
 	OPT_DebugStackTrace,
 	OPT_GCDebugRootSet,
@@ -223,6 +225,7 @@ enum {
 
 
 option_t options_XX[] = {
+	{ "DebugPatcher",              OPT_DebugPatcher,              OPT_TYPE_BOOLEAN, "debug JIT code patching" },
 	{ "DebugStackFrameInfo",       OPT_DebugStackFrameInfo,       OPT_TYPE_BOOLEAN, "TODO" },
 	{ "DebugStackTrace",           OPT_DebugStackTrace,           OPT_TYPE_BOOLEAN, "debug stacktrace creation" },
 #if defined(ENABLE_GC_CACAO)
@@ -481,6 +484,10 @@ void options_xx(const char *name)
 	/* process the option */
 
 	switch (opt->value) {
+	case OPT_DebugPatcher:
+		opt_DebugPatcher = enable;
+		break;
+
 	case OPT_DebugStackFrameInfo:
 		opt_DebugStackFrameInfo = enable;
 		break;

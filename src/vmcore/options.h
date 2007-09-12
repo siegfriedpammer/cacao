@@ -190,6 +190,7 @@ extern const char *opt_filter_show_method;
 
 /* NOTE: For better readability keep these alpha-sorted. */
 
+extern int      opt_DebugPatcher;
 extern int32_t  opt_DebugStackFrameInfo;
 extern int32_t  opt_DebugStackTrace;
 #if defined(ENABLE_GC_CACAO)
