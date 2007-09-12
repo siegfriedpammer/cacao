@@ -51,25 +51,6 @@
 #endif
 
 
-/* LLNI_objectarray_copy ******************************************************
- 
-   Copy nmemb members from object array src to object array dest.
-
-   WARNING: No bound, type or NULL pointer checks are made!
-
-   This should be placed into src/native/llni.h when it's finally decided
-   to do it this way.
-
-******************************************************************************/
-
-#define LLNI_objectarray_copy(dest, src, nmemb) \
-	LLNI_CRITICAL_START; \
-	MCOPY(LLNI_array_data((java_handle_objectarray_t*)(dest)), \
-		LLNI_array_data((java_handle_objectarray_t*)(src)), \
-		java_object_t*, (nmemb)); \
-	LLNI_CRITICAL_END
-
-
 /* annotation_bytearrays_resize ***********************************************
 Set a field from classinfo that is a java objects.
    Resize an array of bytearrays.
@@ -107,7 +88,11 @@ static java_handle_objectarray_t *annotation_bytearrays_resize(
 	if (newbas != NULL && bytearrays != NULL) {
 		minsize = size < oldsize ? size : oldsize;
 
-		LLNI_objectarray_copy(newbas, bytearrays, minsize);
+		LLNI_CRITICAL_START;
+		MCOPY(
+			LLNI_array_data(newbas), LLNI_array_data(bytearrays),
+			java_object_t*, minsize);
+		LLNI_CRITICAL_END;
 	}
 
 	return newbas;
