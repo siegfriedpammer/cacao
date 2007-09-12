@@ -46,6 +46,9 @@
 
 #include "native/vm/java_lang_Class.h"
 
+#include "vm/exceptions.h"
+#include "vm/stringlocal.h"
+
 #include "vmcore/class.h"
 
 
@@ -128,7 +131,11 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInterface(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	return _Jv_java_lang_Class_isInterface(env, klass);
+	classinfo *c;
+
+	c = LLNI_classinfo_unwrap(klass);
+
+	return class_is_interface(c);
 }
 
 
@@ -183,7 +190,14 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getSuperclass(JNIEnv *
  */
 JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getInterfaces(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	return _Jv_java_lang_Class_getInterfaces(klass);
+	classinfo                 *c;
+	java_handle_objectarray_t *oa;
+
+	c = LLNI_classinfo_unwrap(klass);
+
+	oa = class_get_interfaces(c);
+
+	return oa;
 }
 
 
@@ -241,7 +255,14 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIE
  */
 JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
 {
-	return _Jv_java_lang_Class_getDeclaredClasses(klass, publicOnly);
+	classinfo                 *c;
+	java_handle_objectarray_t *oa;
+
+	c = LLNI_classinfo_unwrap(klass);
+
+	oa = class_get_declaredclasses(c, publicOnly);
+
+	return oa;
 }
 
 
@@ -328,7 +349,11 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMClass_isArray(JNIEnv *env, jclass cla
  */
 JNIEXPORT void JNICALL Java_java_lang_VMClass_throwException(JNIEnv *env, jclass clazz, java_lang_Throwable *t)
 {
-	_Jv_java_lang_Class_throwException(t);
+	java_handle_t *o;
+
+	o = (java_handle_t *) t;
+
+	exceptions_set_exception(o);
 }
 
 
@@ -392,7 +417,22 @@ JNIEXPORT java_lang_reflect_Method* JNICALL Java_java_lang_VMClass_getEnclosingM
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getClassSignature(JNIEnv *env, jclass clazz, java_lang_Class* klass)
 {
-	return _Jv_java_lang_Class_getClassSignature(klass);
+	classinfo     *c;
+	utf           *u;
+	java_handle_t *s;
+
+	c = LLNI_classinfo_unwrap(klass);
+
+	u = class_get_signature(c);
+
+	if (u == NULL)
+		return NULL;
+
+	s = javastring_new(u);
+
+	/* in error case s is NULL */
+
+	return (java_lang_String *) s;
 }
 
 

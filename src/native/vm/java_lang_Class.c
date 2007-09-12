@@ -244,40 +244,7 @@ s4 _Jv_java_lang_Class_isAssignableFrom(java_lang_Class *klass, java_lang_Class 
 }
 
 
-/*
- * Class:     java/lang/Class
- * Method:    isInterface
- * Signature: ()Z
- */
-JNIEXPORT int32_t JNICALL _Jv_java_lang_Class_isInterface(JNIEnv *env, java_lang_Class *this)
-{
-	classinfo *c;
-
-	c = LLNI_classinfo_unwrap(this);
-
-	return class_is_interface(c);
-}
-
-
 #if defined(ENABLE_JAVASE)
-
-/*
- * Class:     java/lang/Class
- * Method:    getInterfaces
- * Signature: ()[Ljava/lang/Class;
- */
-java_handle_objectarray_t *_Jv_java_lang_Class_getInterfaces(java_lang_Class *klass)
-{
-	classinfo                 *c;
-	java_handle_objectarray_t *oa;
-
-	c = LLNI_classinfo_unwrap(klass);
-
-	oa = class_get_interfaces(c);
-
-	return oa;
-}
-
 
 /*
  * Class:     java/lang/Class
@@ -323,24 +290,6 @@ s4 _Jv_java_lang_Class_getModifiers(java_lang_Class *klass, s4 ignoreInnerClasse
 	/* passed class is no inner class or it was not requested */
 
 	return c->flags & ACC_CLASS_REFLECT_MASK;
-}
-
-
-/*
- * Class:     java/lang/Class
- * Method:    getDeclaredClasses
- * Signature: (Z)[Ljava/lang/Class;
- */
-java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass, s4 publicOnly)
-{
-	classinfo                 *c;
-	java_handle_objectarray_t *oa;
-
-	c = LLNI_classinfo_unwrap(klass);
-
-	oa = class_get_declaredclasses(c, publicOnly);
-
-	return oa;
 }
 
 
@@ -508,21 +457,6 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredConstructors(java_lang
 	}
 
 	return oa;
-}
-
-
-/*
- * Class:     java/lang/Class
- * Method:    throwException
- * Signature: (Ljava/lang/Throwable;)V
- */
-void _Jv_java_lang_Class_throwException(java_lang_Throwable *t)
-{
-	java_handle_t *o;
-
-	o = (java_handle_t *) t;
-
-	exceptions_set_exception(o);
 }
 
 
@@ -698,29 +632,6 @@ java_lang_reflect_Method *_Jv_java_lang_Class_getEnclosingMethod(java_lang_Class
 	rm = reflect_method_new(m);
 
 	return rm;
-}
-
-
-/*
- * Class:     java/lang/Class
- * Method:    getClassSignature
- * Signature: (Ljava/lang/Class;)Ljava/lang/String;
- */
-java_lang_String *_Jv_java_lang_Class_getClassSignature(java_lang_Class* klass)
-{
-	classinfo     *c;
-	java_handle_t *o;
-
-	c = LLNI_classinfo_unwrap(klass);
-
-	if (c->signature == NULL)
-		return NULL;
-
-	o = javastring_new(c->signature);
-
-	/* in error case o is NULL */
-
-	return (java_lang_String *) o;
 }
 
 #endif /* ENABLE_JAVASE */

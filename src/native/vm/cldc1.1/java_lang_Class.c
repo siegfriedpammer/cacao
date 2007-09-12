@@ -47,7 +47,7 @@ static JNINativeMethod methods[] = {
 	{ "newInstance",      "()Ljava/lang/Object;",                 (void *) (ptrint) &Java_java_lang_Class_newInstance      },
 	{ "isInstance",       "(Ljava/lang/Object;)Z",                (void *) (ptrint) &Java_java_lang_Class_isInstance       },
 	{ "isAssignableFrom", "(Ljava/lang/Class;)Z",                 (void *) (ptrint) &Java_java_lang_Class_isAssignableFrom },
-	{ "isInterface",      "()Z",                                  (void *) (ptrint) &_Jv_java_lang_Class_isInterface       },
+	{ "isInterface",      "()Z",                                  (void *) (ptrint) &Java_java_lang_Class_isInterface      },
 	{ "isArray",          "()Z",                                  (void *) (ptrint) &Java_java_lang_Class_isArray          },
 	{ "getName",          "()Ljava/lang/String;",                 (void *) (ptrint) &Java_java_lang_Class_getName          },
 };
@@ -116,6 +116,21 @@ JNIEXPORT s4 JNICALL Java_java_lang_Class_isInstance(JNIEnv *env, java_lang_Clas
 JNIEXPORT s4 JNICALL Java_java_lang_Class_isAssignableFrom(JNIEnv *env, java_lang_Class *this, java_lang_Class *cls)
 {
 	return _Jv_java_lang_Class_isAssignableFrom(this, cls);
+}
+
+
+/*
+ * Class:     java/lang/Class
+ * Method:    isInterface
+ * Signature: ()Z
+ */
+JNIEXPORT int32_t JNICALL Java_java_lang_Class_isInterface(JNIEnv *env, java_lang_Class *this)
+{
+	classinfo *c;
+
+	c = LLNI_classinfo_unwrap(this);
+
+	return class_is_interface(c);
 }
 
 

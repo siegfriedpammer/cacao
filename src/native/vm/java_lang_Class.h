@@ -60,16 +60,12 @@ java_lang_Class               *_Jv_java_lang_Class_forName(java_lang_String *nam
 
 s4                             _Jv_java_lang_Class_isInstance(java_lang_Class *klass, java_lang_Object *o);
 s4                             _Jv_java_lang_Class_isAssignableFrom(java_lang_Class *klass, java_lang_Class *c);
-JNIEXPORT int32_t JNICALL      _Jv_java_lang_Class_isInterface(JNIEnv *env, java_lang_Class *this);
 
 #if defined(ENABLE_JAVASE)
-java_handle_objectarray_t     *_Jv_java_lang_Class_getInterfaces(java_lang_Class *klass);
 s4                             _Jv_java_lang_Class_getModifiers(java_lang_Class *klass, s4 ignoreInnerClassesAttrib);
-java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredClasses(java_lang_Class *klass, s4 publicOnly);
 java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class *klass, s4 publicOnly);
 java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Class *klass, s4 publicOnly);
 java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredConstructors(java_lang_Class *klass, s4 publicOnly);
-void                           _Jv_java_lang_Class_throwException(java_lang_Throwable *t);
 
 #if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
 java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredAnnotations(java_lang_Class* klass);
@@ -77,8 +73,6 @@ java_handle_objectarray_t     *_Jv_java_lang_Class_getDeclaredAnnotations(java_l
 
 java_lang_reflect_Constructor *_Jv_java_lang_Class_getEnclosingConstructor(java_lang_Class *klass);
 java_lang_reflect_Method      *_Jv_java_lang_Class_getEnclosingMethod(java_lang_Class *klass);
-
-java_lang_String              *_Jv_java_lang_Class_getClassSignature(java_lang_Class* klass);
 #endif
 
 #endif /* _JV_JAVA_LANG_CLASS_H */
