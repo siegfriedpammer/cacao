@@ -142,7 +142,9 @@ asm_vm_call_method_double:
 	st    mptr, 3*4(sp)         /* mptr/itmp2 is callee saved in terms of C abi */
 	st    pv, 4*4(sp)
 	st    a4, 5*4(sp)           /* a4 is callee saved in terms of C abi */
-	st    ra, 6*4(sp)
+	std   ftmp1, 6*4(sp)        /* ftmp1 and ftmp2 are callees saved in terms of C abi */
+	std   ftmp2, 8*4(sp)
+	st    ra, 10*4(sp)
 
 	lr    s0, a1                /* data structure */
 	lr    %r0, a2               /* number of stack arguments */
@@ -187,7 +189,9 @@ L_asm_vm_call_method_return:
 	l     mptr, 3*4(sp)
 	l     pv, 4*4(sp)
 	l     a4, 5*4(sp)
-	l     ra, 6*4(sp)
+	ld    ftmp1, 6*4(sp)
+	ld    ftmp2, 8*4(sp)
+	l     ra, 10*4(sp)
 
 	ahi   sp, 8*4               /* remove stackframe */
 	br    ra                    /* return */

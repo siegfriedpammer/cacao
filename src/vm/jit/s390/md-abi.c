@@ -30,16 +30,16 @@
 
 */
 
-
 #include "config.h"
-#include "vm/types.h"
 
-#include "vm/jit/s390/md-abi.h"
-
-#include "vmcore/descriptor.h"
 #include "vm/global.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/s390/md-abi.h"
+#include "vm/types.h"
 
+#include "vmcore/descriptor.h"
+
+#include <assert.h>
 
 /* register descripton array **************************************************/
 
@@ -79,7 +79,7 @@ const s4 abi_registers_integer_temporary[] = {
 };
 
 s4 nregdescfloat[] = {
-	REG_ARG, REG_TMP, REG_ARG, REG_TMP, REG_SAV, REG_TMP, REG_SAV, REG_TMP,
+	REG_ARG, REG_TMP, REG_ARG, REG_TMP, REG_RES, REG_TMP, REG_RES, REG_TMP,
 	REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP, REG_TMP,
     REG_END
 };
@@ -90,8 +90,7 @@ const s4 abi_registers_float_argument[] = {
 };
 
 const s4 abi_registers_float_saved[] = {
-	4, /* f4 */
-	6  /* f6 */
+	-1 /* none */
 };
 
 const s4 abi_registers_float_temporary[] = {

@@ -62,6 +62,8 @@
 
 #define fa0 %f0
 #define fa1 %f2
+#define ftmp1 %r4
+#define ftmp2 %r6
 
 /* save and restore macros ****************************************************/
 

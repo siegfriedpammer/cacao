@@ -3610,7 +3610,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* create dynamic stack info */
 
-	N_MOV(REG_SP, REG_A0); /* currentsp */
+	M_MOV(REG_SP, REG_A0); /* currentsp */
 	N_LA(REG_A1, -N_PV_OFFSET, RN, REG_PV); /* pv */
 
 	disp = dseg_add_functionptr(cd, codegen_start_native_call);
@@ -3767,7 +3767,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* remove native stackframe info */
 
-	N_MOV(REG_SP, REG_A0); /* currentsp */
+	M_MOV(REG_SP, REG_A0); /* currentsp */
 	N_LA(REG_A1, -N_PV_OFFSET, RN, REG_PV); /* pv */
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_ALD_DSEG(REG_ITMP1, disp);
