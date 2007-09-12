@@ -297,6 +297,9 @@
 #define N_VALID_BRANCH(x) ((N_BRANCH_MIN <= (x)) && ((x) <= N_BRANCH_MAX))
 #define ASSERT_VALID_BRANCH(x) assert(N_VALID_BRANCH(x))
 
+#define N_IS_EVEN_ODD(x) \
+	(((GET_HIGH_REG(x) % 2) == 0) && (GET_LOW_REG(x) == (GET_HIGH_REG(x) + 1)))
+
 /* Condition codes */
 
 #define DD_O 1
@@ -800,8 +803,6 @@
 #define PROFILE_CYCLE_START 
 
 #define PROFILE_CYCLE_STOP 
-
-s4 codegen_reg_of_dst_notzero(jitdata *jd, instruction *iptr, s4 tempregnum);
 
 #endif /* _CODEGEN_H */
 

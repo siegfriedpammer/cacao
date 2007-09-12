@@ -302,8 +302,8 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* call trace_java_call_enter */
 
 	disp = dseg_add_functionptr(cd, trace_java_call_enter);
-	M_ALD_DSEG(REG_ITMP3, disp);
-	M_CALL(REG_ITMP3);
+	M_ALD_DSEG(REG_ITMP2, disp);
+	M_CALL(REG_ITMP2);
 
 	/* restore argument registers */
 
@@ -561,8 +561,8 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_ALD_DSEG(REG_A0, disp);
 	M_LDA(REG_A1, REG_SP, 96);
 	disp = dseg_add_functionptr(cd, trace_java_call_exit);
-	M_ALD_DSEG(REG_ITMP3, disp);
-	M_CALL(REG_ITMP3);
+	M_ALD_DSEG(REG_ITMP2, disp);
+	M_CALL(REG_ITMP2);
 
 	/* restore return values */
 
@@ -698,32 +698,6 @@ s4 emit_load_low(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	return reg;
 }
 
-s4 emit_load_s1_notzero(jitdata *jd, instruction *iptr, s4 tempreg) {
-	codegendata *cd = jd->cd;
-	s4 reg = emit_load_s1(jd, iptr, tempreg);
-	if (reg == 0) {
-		M_MOV(reg, tempreg);
-		return tempreg;
-	} else {
-		return reg;
-	}
-}
-
-s4 emit_load_s2_notzero(jitdata *jd, instruction *iptr, s4 tempreg) {
-	codegendata *cd = jd->cd;
-	s4 reg = emit_load_s2(jd, iptr, tempreg);
-	if (reg == 0) {
-		if (IS_FLT_DBL_TYPE(VAROP(iptr->sx.s23.s2)->type)) {
-			M_FMOV(reg, tempreg);
-		} else {
-			M_MOV(reg, tempreg);
-		}
-		return tempreg;
-	} else {
-		return reg;
-	}
-}
-
 s4 emit_load_s1_but(jitdata *jd, instruction *iptr, s4 tempreg, s4 notreg) {
 	codegendata *cd = jd->cd;
 	s4 reg = emit_load_s1(jd, iptr, tempreg);
@@ -751,96 +725,6 @@ s4 emit_load_s2_but(jitdata *jd, instruction *iptr, s4 tempreg, s4 notreg) {
 		return tempreg;
 	} else {
 		return reg;
-	}
-}
-
-s4 emit_alloc_dst_even_odd(jitdata *jd, instruction *iptr, s4 htmpreg, s4 ltmpreg, s4 breg) {
-	codegendata *cd;
-	s4           hr, lr;
-	varinfo     *dst;
-
-	/* (r0, r1)    
-	 * (r2, r3)
-	 * (r4, r5)
-	 * (r6, r7)
-	 * (r8, r9)
-	 * (r10, r11)
-	 * (r12, r13) Illegal, because r13 is PV
-	 * (r14, r15) Illegal, because r15 is SP
-	 */
-
-	cd = jd->cd;
-	dst = VAROP(iptr->dst);
-
-	if (IS_INMEMORY(dst->flags)) {
-		if (! IS_REG_ITMP(ltmpreg)) {
-			M_INTMOVE(ltmpreg, breg);
-		}
-		if (! IS_REG_ITMP(htmpreg)) {
-			M_INTMOVE(htmpreg, breg);
-		}
-		return PACK_REGS(ltmpreg, htmpreg);
-	} else {
-		hr = GET_HIGH_REG(dst->vv.regoff);
-		lr = GET_LOW_REG(dst->vv.regoff);
-		if (((hr % 2) == 0) && lr == (hr + 1)) {
-			/* the result is already in a even-odd pair */
-			return dst->vv.regoff;			
-		} else if (((hr % 2) == 0) && (hr < R12)) {
-			/* the high register is at a even position */
-			M_INTMOVE(hr + 1, breg);
-			return PACK_REGS(hr + 1, hr);
-		} else if (((lr % 2) == 1) && (lr < R12)) {
-			/* the low register is at a odd position */
-			M_INTMOVE(lr - 1, breg);
-			return PACK_REGS(lr, lr - 1);
-		} else {
-			/* no way to create an even-odd pair by 1 copy operation,
-			 * Use the temporary register pair.
-			 */
-			if (! IS_REG_ITMP(ltmpreg)) {
-				M_INTMOVE(ltmpreg, breg);
-			}
-			if (! IS_REG_ITMP(htmpreg)) {
-				M_INTMOVE(htmpreg, breg);
-			}
-			return PACK_REGS(ltmpreg, htmpreg);
-		}
-	}
-}
-
-void emit_restore_dst_even_odd(jitdata *jd, instruction *iptr, s4 htmpreg, s4 ltmpreg, s4 breg) {
-	codegendata *cd;
-	s4           hr, lr;
-	varinfo     *dst;
-
-	cd = jd->cd;
-	dst = VAROP(iptr->dst);
-
-	if (IS_INMEMORY(dst->flags)) {
-		if (! IS_REG_ITMP(ltmpreg)) {
-			M_INTMOVE(breg, ltmpreg);
-		}
-		if (! IS_REG_ITMP(htmpreg)) {
-			M_INTMOVE(breg, htmpreg);
-		}
-	} else {
-		hr = GET_HIGH_REG(dst->vv.regoff);
-		lr = GET_LOW_REG(dst->vv.regoff);
-		if (((hr % 2) == 0) && lr == (hr + 1)) {
-			return;
-		} else if (((hr % 2) == 0) && (hr < R12)) {
-			M_INTMOVE(breg, hr + 1);
-		} else if (((lr % 2) == 1) && (lr < R12)) {
-			M_INTMOVE(breg, lr - 1);
-		} else {
-			if (! IS_REG_ITMP(ltmpreg)) {
-				M_INTMOVE(breg, ltmpreg);
-			}
-			if (! IS_REG_ITMP(htmpreg)) {
-				M_INTMOVE(breg, htmpreg);
-			}
-		}
 	}
 }
 
@@ -949,9 +833,9 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt) {
 		/* The actual long branch */
 
 		disp = dseg_add_s4(cd, branchmpc + disp - N_PV_OFFSET);
-		M_ILD_DSEG(REG_ITMP3, disp);
-		M_AADD(REG_PV, REG_ITMP3);
-		M_JMP(RN, REG_ITMP3);
+		M_ILD_DSEG(REG_ITMP2, disp);
+		M_AADD(REG_PV, REG_ITMP2);
+		M_JMP(RN, REG_ITMP2);
 
 		/* Patch back the displacement */
 

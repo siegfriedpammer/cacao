@@ -44,10 +44,10 @@
 /* register descripton array **************************************************/
 
 s4 nregdescint[] = {
-	/*   r0,   itmp1,      a0,      a1,      a2,      a3,      a4,      s0, */
-	REG_TMP, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_SAV,
-	/*   s1,      s2,      s3,      s4,   itmp2,    pv,  ra/itmp3,      sp */
-  	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_RES, REG_RES, REG_RES, REG_RES,
+	/*itmp3,   itmp1,      a0,      a1,      a2,      a3,      a4,      s0, */
+	REG_RES, REG_RES, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_ARG, REG_SAV,
+	/*   s1,      s2,      s3,      s4,      s5,    pv,  ra/itmp2,      sp */
+  	REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_SAV, REG_RES, REG_RES, REG_RES,
     REG_END
 };
 
@@ -71,11 +71,12 @@ const s4 abi_registers_integer_saved[] = {
 	8,  /* r8/s1 */
 	9,  /* r9/s2 */
 	10, /* r10/s3 */
-	11  /* r11/s4 */
+	11, /* r11/s4 */
+	12  /* r12/s5 */
 };
 
 const s4 abi_registers_integer_temporary[] = {
-	0, /* r0 */
+	-1 /* none */
 };
 
 s4 nregdescfloat[] = {

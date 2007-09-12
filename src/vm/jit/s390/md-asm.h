@@ -44,21 +44,22 @@
 
 #define sp       %r15
 #define itmp1    %r1
-#define itmp2    %r12
-#define itmp3    %r14
+#define itmp2    %r14
+#define itmp3    %r0
 #define v0       %r2
 #define pv       %r13
 #define ra       %r14
 
-#define mptr     itmp2
-#define xptr     itmp1
-#define xpc      itmp2
+#define mptr     itmp1
+#define xptr     itmp3
+#define xpc      itmp1
 
 #define s0 %r7
 #define s1 %r8
 #define s2 %r9
 #define s3 %r10
 #define s4 %r11
+#define s5 %r12
 
 #define fa0 %f0
 #define fa1 %f2

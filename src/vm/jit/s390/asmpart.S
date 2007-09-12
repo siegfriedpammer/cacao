@@ -86,7 +86,7 @@ asm_builtin_d2l:
  *
  * The offset table used is located at the bottom of this file.
  *
- * Note: destroys r12/itmp2. r12 MUST contain GOT for PIC calls!
+ * Note: destroys r12. r12 MUST contain GOT for PIC calls!
  */
 #define CALL_PIC(func, tag)                                                         \
 	bras   %r14, L_bras_##tag;                           /* get PC */               \
@@ -139,7 +139,7 @@ asm_vm_call_method_double:
 	st    s0, 0*4(sp)           /* store used calle saved registers */
 	st    s1, 1*4(sp)
 	st    a0, 2*4(sp)
-	st    mptr, 3*4(sp)         /* mptr/itmp2 is callee saved in terms of C abi */
+	st    %r12, 3*4(sp)         /* %r12 is callee saved, we'll need it as GOT */
 	st    pv, 4*4(sp)
 	st    a4, 5*4(sp)           /* a4 is callee saved in terms of C abi */
 	std   ftmp1, 6*4(sp)        /* ftmp1 and ftmp2 are callees saved in terms of C abi */
@@ -186,7 +186,7 @@ L_asm_vm_call_method_return:
 
 	l     s0, 0*4(sp)           /* restore used callee saved registers */
 	l     s1, 1*4(sp)
-	l     mptr, 3*4(sp)
+	l     %r12, 3*4(sp)
 	l     pv, 4*4(sp)
 	l     a4, 5*4(sp)
 	ld    ftmp1, 6*4(sp)
@@ -213,8 +213,8 @@ asm_vm_call_method_end:
 *                                                                              *
 *   invokes the compiler for untranslated JavaVM methods.                      *
 *                                                                              *
-*   itmp1: methodinfo pointer                                                  *
-*   itmp2: method pointer                                                      *
+*   itmp3: methodinfo pointer                                                  *
+*   itmp1: method pointer                                                      *
 *                                                                              *
 *******************************************************************************/
 
@@ -239,19 +239,20 @@ argument registers: arguments (like in JIT)
 asm_call_jit_compiler:
 L_asm_call_jit_compiler:
 
-#	define ACJC_STACKFRAME (4 + (4 * 4) + (2 * 8) + 96 + 4)
+#	define ACJC_STACKFRAME ((2 * 4) + (4 * 4) + (2 * 8) + 96)
 
 	ahi     sp,-ACJC_STACKFRAME        /* allocate stack space */
 
 	stm	    %r2,%r5,96(sp)             /* store volatile int arg regs */
 	std     %f0,96+16(sp)              /* store volatile float arg regs */
 	std     %f2,96+24(sp)              
-	st      %r14,96+32(sp)             /* store return address */
+	st      %r12,96+32(sp)             /* store %r12, used as GOT pointer */
+	st      %r14,96+36(sp)             /* store return address */
 
 	/* load arguments */
 
-	lr      a0,itmp1                   /* pass methodinfo pointer            */
-	lr      a1,itmp2                   /* pass method pointer                */
+	lr      a0,itmp3                   /* pass methodinfo pointer            */
+	lr      a1,mptr                    /* pass method pointer                */
 	la      a2,ACJC_STACKFRAME(sp)     /* pass java sp                       */
 	la      a3,0(%r14)                 /* pass return address, make sure bit 32 is 0 */
 
@@ -266,7 +267,8 @@ L_asm_call_jit_compiler:
 	ltr     pv,pv
 	je      L_asm_call_jit_compiler_exception
 
-	l       %r14,96+32(sp)             /* restore return address */
+	l       %r12,96+32(sp)             /* restore %r12 */
+	l       %r14,96+36(sp)             /* restore return address */
 	ahi     sp, ACJC_STACKFRAME        /* remove stack frame */
 
 jit_code_entry:                        /* label to set breakpoint on */
@@ -278,7 +280,8 @@ L_asm_call_jit_compiler_exception:
 	CALL_PIC(exceptions_get_and_clear_exception, acjce)
 
 	lr      xptr, %r2
-	l       xpc,96+32(sp)              /* restore return address */
+	l       xpc,96+36(sp)              /* restore return address */
+	l       %r12,96+32(sp)             /* restore %r12 */
 	ahi     sp, ACJC_STACKFRAME        /* remove stack frame */
 	j       L_asm_handle_nat_exception
 
@@ -310,8 +313,8 @@ L_asm_handle_exception:
 
 	/* store special registers to array */
 
-	st    xptr, REGS+(1*4)(sp)
-	st    xpc, REGS+(12*4)(sp)
+	st    xptr, REGS+(0*4)(sp)
+	st    xpc, REGS+(1*4)(sp)
 	st    pv, REGS+(13*4)(sp)
 	la    itmp3, STACKFRAMESIZE(sp)
 	st    itmp3, REGS+(15*4)(sp)
@@ -334,6 +337,10 @@ L_asm_handle_exception:
 	std   %f14, FREGS+(14*8)(sp)
 	std   %f15, FREGS+(15*8)(sp)
 
+	/* store %r12 used as GOT */
+	
+	st    %r12, REGS+(12*4)(sp)
+
 	/* call md_handle_exception */
 
 	la    a0, REGS(sp)
@@ -341,6 +348,10 @@ L_asm_handle_exception:
 	la    a2, OUT(sp)
 
 	CALL_PIC(md_handle_exception, ahe)
+
+	/* restore %r12 */
+
+	l     %r12, REGS+(12*4)(sp)
 
 	l     itmp3, OUT+(2*4)(sp)  /* out[2] contains maybe leaf flag */
 	ltr   itmp3, itmp3           
@@ -380,6 +391,10 @@ L_restore_saved:
 
 	ahi   itmp3, -1
 	jl    L_int_done
+	l     s5, REGS+(12*4)(sp)
+
+	ahi   itmp3, -1
+	jl    L_int_done
 	l     s4, REGS+(11*4)(sp)
 
 	ahi   itmp3, -1
@@ -402,15 +417,7 @@ L_int_done:
 
 	/* restore callee saved float registers */
 
-	l     itmp3, OUT+(1*4)(sp)   /* out[1] contains FltSav */
-
-	ahi   itmp3, -1
-	jl    L_flt_done
-	ld    %f6, FREGS+(6*8)(sp)
-
-	ahi   itmp3, -1
-	jl    L_flt_done
-	ld    %f4, FREGS+(4*8)(sp)
+	/* there are currently none */
 
 L_flt_done:
 
@@ -418,8 +425,8 @@ L_restore_done:
 
 	/* write new values for special registers */
 
-	l     xptr, REGS+(1*4)(sp)
-	l     xpc, REGS+(12*4)(sp)
+	l     xptr, REGS+(0*4)(sp)
+	l     xpc, REGS+(1*4)(sp)
 	l     pv, REGS+(13*4)(sp)  
 	l     sp, REGS+(15*4)(sp)   
 

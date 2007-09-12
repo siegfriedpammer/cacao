@@ -78,22 +78,25 @@
 #define REG_RESULT2     R3
 
 #define REG_ITMP1       R1      /* temporary register                        */
-#define REG_ITMP2       R12     /* temporary register and method pointer     */
-#define REG_ITMP3       R14     /* temporary register                        */
+#define REG_ITMP2       R14     /* temporary register and method pointer     */
+#define REG_ITMP3       R0      /* temporary register                        */
 
 #define IS_REG_ITMP(x) (((x) == REG_ITMP1) || ((x) == REG_ITMP2) || ((x) == REG_ITMP3))
 
 #define REG_ITMP12_PACKED    PACK_REGS(REG_ITMP2, REG_ITMP1)
 #define REG_ITMP23_PACKED    PACK_REGS(REG_ITMP3, REG_ITMP2)
+#define REG_ITMP13_PACKED    PACK_REGS(REG_ITMP3, REG_ITMP1)
+/* even odd */
+#define REG_ITMP31_PACKED    PACK_REGS(REG_ITMP1, REG_ITMP3)
 #define REG_RESULT_PACKED    PACK_REGS(REG_RESULT2, REG_RESULT)
 
-#define REG_METHODPTR   REG_ITMP2/* pointer to the place from where the       */
+#define REG_METHODPTR   REG_ITMP1/* pointer to the place from where the       */
                                  /* procedure vector has been fetched         */
 
 #define REG_NULL        -1       /* used for reg_of_var where d is not needed */
 
-#define REG_ITMP1_XPTR  REG_ITMP1/* exception pointer = temporary register 1  */
-#define REG_ITMP2_XPC   REG_ITMP2/* exception pc = temporary register 2       */
+#define REG_ITMP3_XPTR  REG_ITMP3/* exception pointer = temporary register 3  */
+#define REG_ITMP1_XPC   REG_ITMP1/* exception pc = temporary register 1       */
 
 #define REG_SP          R15      /* stack pointer                             */
 #define REG_RA          R14      /* same as itmp3 */
@@ -119,9 +122,9 @@
 /* No ftmp3 */
 
 #define INT_REG_CNT     16       /* number of integer registers               */
-#define INT_SAV_CNT     5        /* number of integer callee saved registers  */
+#define INT_SAV_CNT     6        /* number of integer callee saved registers  */
 #define INT_ARG_CNT     5        /* number of integer argument registers      */
-#define INT_TMP_CNT     1        /* number of integer temporary registers     */
+#define INT_TMP_CNT     0        /* number of integer temporary registers     */
 #define INT_RES_CNT     5        /* number of integer reserved registers      */
 
 #define FLT_REG_CNT     16       /* number of float registers                 */

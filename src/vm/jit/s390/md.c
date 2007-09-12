@@ -204,8 +204,8 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	stacktrace_remove_stackframeinfo(&sfi);
 
 	if (p != NULL) {
-		_mc->gregs[REG_ITMP1_XPTR] = (intptr_t) p;
-		_mc->gregs[REG_ITMP2_XPC]  = (intptr_t) xpc;
+		_mc->gregs[REG_ITMP3_XPTR] = (intptr_t) p;
+		_mc->gregs[REG_ITMP1_XPC]  = (intptr_t) xpc;
 		_mc->psw.addr              = (intptr_t) asm_handle_exception;
 	}
 	else {
@@ -258,8 +258,8 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 		stacktrace_remove_stackframeinfo(&sfi);
 
 		if (p != NULL) {
-			_mc->gregs[REG_ITMP1_XPTR] = (intptr_t) p;
-			_mc->gregs[REG_ITMP2_XPC]  = (intptr_t) xpc;
+			_mc->gregs[REG_ITMP3_XPTR] = (intptr_t) p;
+			_mc->gregs[REG_ITMP1_XPC]  = (intptr_t) xpc;
 			_mc->psw.addr              = (intptr_t) asm_handle_exception;
 		}
 		else {
@@ -347,8 +347,8 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 			stacktrace_remove_stackframeinfo(&sfi);
 
-			_mc->gregs[REG_ITMP1_XPTR] = (intptr_t) p;
-			_mc->gregs[REG_ITMP2_XPC]  = (intptr_t) xpc;
+			_mc->gregs[REG_ITMP3_XPTR] = (intptr_t) p;
+			_mc->gregs[REG_ITMP1_XPC]  = (intptr_t) xpc;
 			_mc->psw.addr              = (intptr_t) asm_handle_exception;
 
 			return;
@@ -512,16 +512,16 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 	/* check for the different calls */
 
 	switch (base) {
-		case 0xd:
+		case REG_PV:
 			/* INVOKESTATIC/SPECIAL */
 
 		
 			switch (index) {
-				case 0x0:
+				case R0:
 					/* the offset is in the load instruction */
 					offset = ((*(u2 *)(ra + 2)) & 0xFFF) + N_PV_OFFSET;
 					break;
-				case 0x1:
+				case REG_ITMP1:
 					/* the offset is in the immediate load before the load */
 					offset = *((s2 *) (ra - 2));
 					break;
@@ -535,7 +535,7 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 			break;
 
-		case 0xc:
+		case REG_METHODPTR:
 			/* mptr relative */
 			/* INVOKEVIRTUAL/INTERFACE */
 
@@ -647,8 +647,8 @@ void md_handle_exception(int32_t *regs, int64_t *fregs, int32_t *out) {
 
 	/* get registers */
 
-	xptr = *(uint8_t **)(regs + REG_ITMP1_XPTR);
-	xpc = *(uint8_t **)(regs + REG_ITMP2_XPC);
+	xptr = *(uint8_t **)(regs + REG_ITMP3_XPTR);
+	xpc = *(uint8_t **)(regs + REG_ITMP1_XPC);
 	sp = *(uint8_t **)(regs + REG_SP);
 
 
@@ -723,8 +723,8 @@ void md_handle_exception(int32_t *regs, int64_t *fregs, int32_t *out) {
 
 	/* write new values for registers */
 
-	*(uint8_t **)(regs + REG_ITMP1_XPTR) = xptr;
-	*(uint8_t **)(regs + REG_ITMP2_XPC) = xpc;
+	*(uint8_t **)(regs + REG_ITMP3_XPTR) = xptr;
+	*(uint8_t **)(regs + REG_ITMP1_XPC) = xpc;
 	*(uint8_t **)(regs + REG_SP) = sp;
 	*(uint8_t **)(regs + REG_PV) = pv - 0XFFC;
 
