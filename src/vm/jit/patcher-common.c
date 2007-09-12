@@ -54,9 +54,35 @@
 #include "vmcore/options.h"
 
 
+/* patcher_function_list *******************************************************
+
+   This is a list which maps patcher function pointers to the according
+   names of the patcher functions. It is only usefull for debugging
+   purposes.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+typedef struct patcher_function_list_t {
+	functionptr  patcher;
+	char        *name;
+} patcher_function_list_t;
+
+static patcher_function_list_t patcher_function_list[] = {
+	{ PATCHER_initialize_class,              "initialize_class" },
+	{ PATCHER_resolve_class,                 "resolve_class" },
+	{ PATCHER_resolve_native_function,       "resolve_native_function" },
+	{ PATCHER_invokestatic_special,          "invokestatic_special" },
+	{ PATCHER_invokevirtual,                 "invokevirtual" },
+	{ PATCHER_invokeinterface,               "invokeinterface" },
+	{ NULL,                                  "-UNKNOWN PATCHER FUNCTION-" }
+};
+#endif
+
+
 /* patcher_list_create *********************************************************
 
-   TODO
+   Creates an empty patcher list for the given codeinfo.
 
 *******************************************************************************/
 
@@ -68,7 +94,8 @@ void patcher_list_create(codeinfo *code)
 
 /* patcher_list_reset **********************************************************
 
-   TODO
+   Resets the patcher list inside a codeinfo. This is usefull when
+   resetting a codeinfo for recompiling.
 
 *******************************************************************************/
 
@@ -92,7 +119,7 @@ void patcher_list_reset(codeinfo *code)
 
 /* patcher_list_free ***********************************************************
 
-   TODO
+   Frees the patcher list and all its entries for the given codeinfo.
 
 *******************************************************************************/
 
@@ -110,7 +137,8 @@ void patcher_list_free(codeinfo *code)
 
 /* patcher_list_find ***********************************************************
 
-   TODO
+   Find an entry inside the patcher list for the given codeinfo
+   by specifying the program counter of the patcher position.
 
    NOTE: Caller should hold the patcher list lock or maintain
    exclusive access otherwise.
@@ -151,20 +179,20 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
                            s4 disp)
 {
 	codegendata *cd;
-    codeinfo    *code;
-    patchref_t  *pr;
-    s4           patchmpc;
+	codeinfo    *code;
+	patchref_t  *pr;
+	s4           patchmpc;
 
 	cd       = jd->cd;
-    code     = jd->code;
-    patchmpc = cd->mcodeptr - cd->mcodebase;
+	code     = jd->code;
+	patchmpc = cd->mcodeptr - cd->mcodebase;
 
 #if !defined(NDEBUG)
 	if (patcher_list_find(code, (u1 *) (intptr_t) patchmpc) != NULL)
 		vm_abort("patcher_add_patch_ref: different patchers at same position.");
 #endif
 
-    /* allocate patchref on heap (at least freed together with codeinfo) */
+	/* allocate patchref on heap (at least freed together with codeinfo) */
 
 	pr = NEW(patchref_t);
 	list_add_first_unsynced(code->patchers, pr);
@@ -174,19 +202,19 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
 		size_patchref += sizeof(patchref_t);
 #endif
 
-    /* set patcher information (mpc is resolved later) */
+	/* set patcher information (mpc is resolved later) */
 
-    pr->mpc     = patchmpc;
-    pr->disp    = disp;
-    pr->patcher = patcher;
-    pr->ref     = ref;
+	pr->mpc     = patchmpc;
+	pr->disp    = disp;
+	pr->patcher = patcher;
+	pr->ref     = ref;
 	pr->mcode   = 0;
 	pr->done    = false;
 
-    /* Generate NOPs for opt_shownops. */
+	/* Generate NOPs for opt_shownops. */
 
-    if (opt_shownops)
-        PATCHER_NOPS;
+	if (opt_shownops)
+		PATCHER_NOPS;
 
 #if defined(ENABLE_JIT) && (defined(__I386__) || defined(__M68K__) || defined(__SPARC_64__) || defined(__X86_64__))
 
@@ -207,33 +235,23 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
 
 /* patcher_handler *************************************************************
 
-   TODO
+   Handles the request to patch JIT code at the given patching
+   position. This function is normally called by the signal
+   handler.
+
+   NOTE: The patcher list lock is used to maintain exclusive
+   access of the patched position (in fact of the whole code).
+   After patching has suceeded, the patcher reference should be
+   removed from the patcher list to avoid double patching.
 
 *******************************************************************************/
 
-/*#define TRACE_PATCHER*/
-
-#ifdef TRACE_PATCHER
+#if !defined(NDEBUG)
 /* XXX this indent is not thread safe! */
 /* XXX if you want it thread safe, place patcher_depth in threadobject! */
 static int patcher_depth = 0;
 #define TRACE_PATCHER_INDENT for (i=0; i<patcher_depth; i++) printf("\t")
-
-typedef struct patcher_function_list_t {
-	functionptr  patcher;
-	char        *name;
-} patcher_function_list_t;
-
-static patcher_function_list_t patcher_function_list[] = {
-	{ PATCHER_initialize_class,              "initialize_class" },
-	{ PATCHER_resolve_class,                 "resolve_class" },
-	{ PATCHER_resolve_native_function,       "resolve_native_function" },
-	{ PATCHER_invokestatic_special,          "invokestatic_special" },
-	{ PATCHER_invokevirtual,                 "invokevirtual" },
-	{ PATCHER_invokeinterface,               "invokeinterface" },
-	{ NULL, "-UNKNOWN PATCHER FUNCTION-" }
-};
-#endif /* TRACE_PATCHER */
+#endif /* !defined(NDEBUG) */
 
 java_handle_t *patcher_handler(u1 *pc)
 {
@@ -241,7 +259,7 @@ java_handle_t *patcher_handler(u1 *pc)
 	patchref_t    *pr;
 	bool           result;
 	java_handle_t *e;
-#ifdef TRACE_PATCHER
+#if !defined(NDEBUG)
 	patcher_function_list_t *l;
 	int                      i;
 #endif
@@ -272,17 +290,18 @@ java_handle_t *patcher_handler(u1 *pc)
 		return NULL;
 	}
 
-#ifdef TRACE_PATCHER
-	for (l = patcher_function_list; l->patcher != NULL; l++)
-		if (l->patcher == pr->patcher)
-			break;
+#if !defined(NDEBUG)
+	if (opt_DebugPatcher) {
+		for (l = patcher_function_list; l->patcher != NULL; l++)
+			if (l->patcher == pr->patcher)
+				break;
 
-	TRACE_PATCHER_INDENT; printf("patching in "); method_print(code->m); printf("\n");
-	TRACE_PATCHER_INDENT; printf("\texception program counter = %p\n", (void *) pr->mpc);
-	TRACE_PATCHER_INDENT; printf("\tpatcher function = %s\n", l->name);
-	TRACE_PATCHER_INDENT; printf("\tmcodes before = "); for (i=0; i<5; i++) printf("0x%08x ", *((u4 *) pr->mpc + i)); printf("\n");
-	patcher_depth++;
-	assert(patcher_depth > 0);
+		TRACE_PATCHER_INDENT; printf("patching in "); method_print(code->m); printf(" at %p\n", (void *) pr->mpc);
+		TRACE_PATCHER_INDENT; printf("\tpatcher function = %s <%p>\n", l->name, (void *) pr->patcher);
+		TRACE_PATCHER_INDENT; printf("\tmcodes before = "); for (i=0; i<5; i++) printf("0x%08x ", *((u4 *) pr->mpc + i)); printf("\n");
+		patcher_depth++;
+		assert(patcher_depth > 0);
+	}
 #endif
 
 	/* cast the passed function to a patcher function */
@@ -293,12 +312,14 @@ java_handle_t *patcher_handler(u1 *pc)
 
 	result = (patcher_function)(pr);
 
-#ifdef TRACE_PATCHER
-	assert(patcher_depth > 0);
-	patcher_depth--;
-	TRACE_PATCHER_INDENT; printf("\tmcodes after  = "); for (i=0; i<5; i++) printf("0x%08x ", *((u4 *) pr->mpc + i)); printf("\n");
-	if (result == false) {
-		TRACE_PATCHER_INDENT; printf("\tPATCHER EXCEPTION!\n");
+#if !defined(NDEBUG)
+	if (opt_DebugPatcher) {
+		assert(patcher_depth > 0);
+		patcher_depth--;
+		TRACE_PATCHER_INDENT; printf("\tmcodes after  = "); for (i=0; i<5; i++) printf("0x%08x ", *((u4 *) pr->mpc + i)); printf("\n");
+		if (result == false) {
+			TRACE_PATCHER_INDENT; printf("\tPATCHER EXCEPTION!\n");
+		}
 	}
 #endif
 
