@@ -1077,11 +1077,11 @@ jstring JVM_GetClassSignature(JNIEnv *env, jclass cls)
 {
 	classinfo     *c;
 	utf           *u;
-	java_object_t *s;
+	java_handle_t *s;
 
 	TRACEJVMCALLS("JVM_GetClassSignature(env=%p, cls=%p)", env, cls);
 
-	c = (classinfo *) cls;
+	c = LLNI_classinfo_unwrap(cls);
 
 	/* Get the signature of the class. */
 
