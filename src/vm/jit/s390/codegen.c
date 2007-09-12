@@ -3573,12 +3573,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* generate stub code */
 
-	N_AHI(REG_SP, -(cd->stackframesize * 8));
-	N_AHI(REG_PV, N_PV_OFFSET);
+	M_ASUB_IMM(cd->stackframesize * 8, REG_SP);
+	M_AADD_IMM(N_PV_OFFSET, REG_PV);
 
 	/* save return address */
 
-	N_ST(REG_RA, (cd->stackframesize - 1) * 8, RN, REG_SP);
+	M_AST(REG_RA, REG_SP, (cd->stackframesize - 1) * 8);
 
 	/* generate native method profiling code */
 
@@ -3619,17 +3619,15 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 			if (IS_INT_LNG_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
-					/* todo store multiple */
-					N_ST(GET_HIGH_REG(s1), j, RN, REG_SP);
-					N_ST(GET_LOW_REG(s1), j + 4, RN, REG_SP);
+					M_LST(s1, REG_SP, j);
 				} else {
-					N_ST(s1, j, RN, REG_SP);
+					M_IST(s1, REG_SP, j);
 				}
 			} else {
 				if (IS_2_WORD_TYPE(t)) {
-					N_STD(s1, j, RN, REG_SP);
+					M_DST(s1, REG_SP, j);
 				} else {
-					N_STE(s1, j, RN, REG_SP);
+					M_FST(s1, REG_SP, j);
 				}
 			}
 
@@ -3637,12 +3635,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		}
 	}
 
-	N_ST(REG_ITMP1, j, RN, REG_SP);
+	M_AST(REG_ITMP1, REG_SP, j);
 
 	/* create dynamic stack info */
 
 	M_MOV(REG_SP, REG_A0); /* currentsp */
-	N_LA(REG_A1, -N_PV_OFFSET, RN, REG_PV); /* pv */
+	M_LDA(REG_A1, REG_PV, -N_PV_OFFSET); /* pv */
 
 	disp = dseg_add_functionptr(cd, codegen_start_native_call);
 	M_ALD_DSEG(REG_ITMP1, disp);
@@ -3651,8 +3649,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* remember class argument */
 
-	if (m->flags & ACC_STATIC)
-		N_LR(REG_ITMP3, REG_RESULT);
+	if (m->flags & ACC_STATIC) {
+		M_MOV(REG_RESULT, REG_ITMP3);
+	}
 
 	/* restore integer and float argument registers */
 
@@ -3665,17 +3664,15 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 			if (IS_INT_LNG_TYPE(t)) {
 				if (IS_2_WORD_TYPE(t)) {
-					/* todo load multiple ! */
-					N_L(GET_HIGH_REG(s1), j, RN, REG_SP);
-					N_L(GET_LOW_REG(s1), j + 4, RN, REG_SP);
+					M_LLD(s1, REG_SP, j);
 				} else {
-					N_L(s1, j, RN, REG_SP);
+					M_ILD(s1, REG_SP, j);
 				}
 			} else {
 				if (IS_2_WORD_TYPE(t)) {
-					N_LD(s1, j, RN, REG_SP);
+					M_DLD(s1, REG_SP, j);
 				} else {
-					N_LE(s1, j, RN, REG_SP);
+					M_FLD(s1, REG_SP, j);
 				}
 			}
 
@@ -3683,7 +3680,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		}
 	}
 
-	N_L(REG_ITMP1, j, RN, REG_SP);
+	M_ALD(REG_ITMP1, REG_SP, j);
 
 	/* copy or spill arguments to new locations */
 
@@ -3692,40 +3689,23 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 		if (IS_INT_LNG_TYPE(t)) {
 
-			if (!md->params[i].inmemory) {
+			if (! md->params[i].inmemory) {
 
 				s1 = md->params[i].regoff;
 
-				if (!nmd->params[j].inmemory) {
+				if (! nmd->params[j].inmemory) {
 					s2 = nmd->params[j].regoff;
 					if (IS_2_WORD_TYPE(t)) {
-						N_LR(
-							GET_LOW_REG(s2), 
-							GET_LOW_REG(s1)
-						);
-						N_LR(
-							GET_HIGH_REG(s2), 
-							GET_HIGH_REG(s1)
-						);
+						M_LNGMOVE(s1, s2);
 					} else {
-						N_LR(
-							s2, 
-							s1
-						);
+						M_MOV(s1, s2);
 					}
 				} else {
 					s2 = nmd->params[j].regoff;
 					if (IS_2_WORD_TYPE(t)) {
-						N_STM(
-							GET_HIGH_REG(s1), 
-							GET_LOW_REG(s1), 
-							96 + s2, REG_SP
-						);
+						M_LST(s1, REG_SP, 96 + s2);
 					} else {
-						N_ST(
-							s1, 
-							96 + s2, RN, REG_SP
-						);
+						M_IST(s1, REG_SP, 96 + s2);
 					}
 				}
 
@@ -3759,8 +3739,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* put class into second argument register */
 
-	if (m->flags & ACC_STATIC)
+	if (m->flags & ACC_STATIC) {
 		M_MOV(REG_ITMP3, REG_A1);
+	}
 
 	/* put env into first argument register */
 
@@ -3778,15 +3759,15 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	if (t != TYPE_VOID) {
 		if (IS_INT_LNG_TYPE(t)) {
 			if (IS_2_WORD_TYPE(t)) {
-				N_STM(REG_RESULT, REG_RESULT2, 96, REG_SP);
+				M_LST(REG_RESULT_PACKED, REG_SP, 96);
 			} else {
-				N_ST(REG_RESULT, 96, RN, REG_SP);
+				M_IST(REG_RESULT, REG_SP, 96);
 			}
 		} else {
 			if (IS_2_WORD_TYPE(t)) {
-				N_STD(REG_FRESULT, 96, RN, REG_SP);
+				M_DST(REG_FRESULT, REG_SP, 96);
 			} else {
-				N_STE(REG_FRESULT, 96, RN, REG_SP);
+				M_FST(REG_FRESULT, REG_SP, 96);
 			}
 		}
 	}
@@ -3799,56 +3780,51 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* remove native stackframe info */
 
 	M_MOV(REG_SP, REG_A0); /* currentsp */
-	N_LA(REG_A1, -N_PV_OFFSET, RN, REG_PV); /* pv */
+	M_LDA(REG_A1, REG_PV, -N_PV_OFFSET); /* pv */
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_ALD_DSEG(REG_ITMP1, disp);
 	M_CALL(REG_ITMP1);
-	N_LR(REG_ITMP3, REG_RESULT);
+	M_MOV(REG_RESULT, REG_ITMP3);
 
 	/* restore return value */
 
 	if (t != TYPE_VOID) {
 		if (IS_INT_LNG_TYPE(t)) {
 			if (IS_2_WORD_TYPE(t)) {
-				N_LM(REG_RESULT, REG_RESULT2, 96, REG_SP);
+				M_LLD(REG_RESULT_PACKED, REG_SP, 96);
 			} else {
-				N_L(REG_RESULT, 96, RN, REG_SP);
+				M_ILD(REG_RESULT, REG_SP, 96);
 			}
 		} else {
 			if (IS_2_WORD_TYPE(t)) {
-				N_LD(REG_FRESULT, 96, RN, REG_SP);
+				M_DLD(REG_FRESULT, REG_SP, 96);
 			} else {
-				N_LE(REG_FRESULT, 96, RN, REG_SP);
+				M_FLD(REG_FRESULT, REG_SP, 96);
 			}
 		}
 	}
 
 	/* load return address */
 	
-	N_L(REG_ITMP2, (cd->stackframesize - 1) * 8, RN, REG_SP);
+	M_ALD(REG_ITMP2, REG_SP, (cd->stackframesize - 1) * 8);
 
 	/* remove stackframe */
 
-	N_AHI(REG_SP, cd->stackframesize * 8);
+	M_AADD_IMM(cd->stackframesize * 8, REG_SP);
 
 	/* test for exception */
 
-	N_LTR(REG_ITMP3, REG_ITMP3);
-	N_BRC(DD_NE, SZ_BRC + SZ_BCR);
+	M_TEST(REG_ITMP3);
+	M_BNE(SZ_BRC + SZ_BCR);
 
 	/* return */
 
-	N_BCR(DD_ANY, REG_ITMP2); 
+	M_JMP(RN, REG_ITMP2);
 
 	/* handle exception */
 
 	M_MOV(REG_ITMP3, REG_ITMP3_XPTR);
 	M_MOV(REG_ITMP2, REG_ITMP1_XPC); /* get return address from stack */
-
-#if 0
-	/* TODO */
-	M_ASUB_IMM(3, REG_ITMP2_XPC);                                    /* callq */
-#endif
 
 	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
 	M_ALD_DSEG(REG_ITMP2, disp);
