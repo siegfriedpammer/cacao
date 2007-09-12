@@ -260,6 +260,33 @@ bool jni_init(void)
 }
 
 
+/* jni_version_check ************************************************************
+
+   Check if the given JNI version is supported.
+
+   IN:
+       version....JNI version to check
+
+   RETURN VALUE:
+       true.......supported
+       false......not supported
+
+********************************************************************************/
+
+bool jni_version_check(int version)
+{
+	switch (version) {
+	case JNI_VERSION_1_1:
+	case JNI_VERSION_1_2:
+	case JNI_VERSION_1_4:
+	case JNI_VERSION_1_6:
+		return true;
+	default:
+		return false;
+	}
+}
+
+
 /* _Jv_jni_CallObjectMethod ****************************************************
 
    Internal function to call Java Object methods.

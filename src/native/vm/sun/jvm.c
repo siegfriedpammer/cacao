@@ -2631,15 +2631,7 @@ jboolean JVM_IsSupportedJNIVersion(jint version)
 {
 	TRACEJVMCALLS("JVM_IsSupportedJNIVersion(version=%d)", version);
 
-	switch (version) {
-	case JNI_VERSION_1_1:
-	case JNI_VERSION_1_2:
-	case JNI_VERSION_1_4:
-	case JNI_VERSION_1_6:
-		return true;
-	default:
-		return false;
-	}
+	return jni_version_check(version);
 }
 
 

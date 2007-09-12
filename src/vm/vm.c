@@ -792,17 +792,12 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	vmlog_cacao_init(vm_args);
 #endif
 
+#if defined(ENABLE_JNI)
 	/* Check the JNI version requested. */
 
-	switch (vm_args->version) {
-	case JNI_VERSION_1_1:
-		break;
-	case JNI_VERSION_1_2:
-	case JNI_VERSION_1_4:
-		break;
-	default:
+	if (!jni_version_check(vm_args->version))
 		return false;
-	}
+#endif
 
 	/* We only support 1 JVM instance. */
 
@@ -825,7 +820,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	opt_heapstartsize = HEAP_STARTSIZE;
 	opt_stacksize     = STACK_SIZE;
 
-	/* Initialize the properties list before command-line handling. */
+	/* Initialize the properties list before command-line handling.
+	   Otherwise -XX:+PrintConfig crashes. */
 
 	properties_init();
 
