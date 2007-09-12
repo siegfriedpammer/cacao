@@ -32,7 +32,7 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/vm/java_util_concurrent_atomic_AtomicLong.h"
+#include "native/include/java_util_concurrent_atomic_AtomicLong.h"
 
 #include "vmcore/utf8.h"
 
@@ -40,7 +40,7 @@
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "VMSupportsCS8", "()Z", (void *) (intptr_t) &_Jv_java_util_concurrent_atomic_AtomicLong_VMSupportsCS8 },
+	{ "VMSupportsCS8", "()Z", (void *) (intptr_t) &Java_java_util_concurrent_atomic_AtomicLong_VMSupportsCS8 },
 };
 
 
@@ -57,6 +57,19 @@ void _Jv_java_util_concurrent_atomic_AtomicLong_init(void)
 	u = utf_new_char("java/util/concurrent/atomic/AtomicLong");
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+
+
+/*
+ * Class:     java/util/concurrent/atomic/AtomicLong
+ * Method:    VMSupportsCS8
+ * Signature: ()Z
+ */
+JNIEXPORT int32_t JNICALL Java_java_util_concurrent_atomic_AtomicLong_VMSupportsCS8(JNIEnv *env, jclass clazz)
+{
+	/* IMPLEMENT ME */
+
+	return 0;
 }
 
 

@@ -79,7 +79,6 @@
 #include "native/vm/java_lang_Thread.h"
 #include "native/vm/java_lang_reflect_Constructor.h"
 #include "native/vm/java_lang_reflect_Method.h"
-#include "native/vm/java_util_concurrent_atomic_AtomicLong.h"
 #include "native/vm/reflect.h"
 
 #include "threads/lock-common.h"
@@ -2861,10 +2860,11 @@ jobject JVM_NewInstanceFromConstructor(JNIEnv *env, jobject c, jobjectArray args
 
 jboolean JVM_SupportsCX8()
 {
-#if PRINTJVM
-	log_println("JVM_SupportsCX8");
-#endif
-	return _Jv_java_util_concurrent_atomic_AtomicLong_VMSupportsCS8(NULL, NULL);
+	TRACEJVMCALLS("JVM_SupportsCX8()");
+
+	/* IMPLEMENT ME */
+
+	return 0;
 }
 
 
