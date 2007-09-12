@@ -285,7 +285,6 @@ opt_struct opts[] = {
 	{ "?",                 false, OPT_HELP },
 	{ "X",                 false, OPT_X },
 	{ "XX:",               true,  OPT_XX },
-	{ "XX",                false, OPT_XX },
 
 	{ "ea:",               true,  OPT_EA },
 	{ "da:",               true,  OPT_DA },
@@ -810,6 +809,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (vms > 0)
 		return false;
 
+	/* First of all, parse the -XX options. */
+
+	options_xx(vm_args);
+
 	if (atexit(vm_exit_handler))
 		vm_abort("atexit failed: %s\n", strerror(errno));
 
@@ -1271,7 +1274,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 
 		case OPT_XX:
-			options_xx(opt_arg);
+			/* Already parsed. */
 			break;
 
 		case OPT_EA:

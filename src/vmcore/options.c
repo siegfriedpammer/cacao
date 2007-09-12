@@ -176,6 +176,7 @@ const char *opt_filter_show_method = 0;
 /* NOTE: For better readability keep these alpha-sorted. */
 
 int      opt_DebugPatcher              = 0;
+int      opt_DebugProperties           = 0;
 int32_t  opt_DebugStackFrameInfo       = 0;
 int32_t  opt_DebugStackTrace           = 0;
 #if defined(ENABLE_GC_CACAO)
@@ -205,6 +206,7 @@ enum {
 
 enum {
 	OPT_DebugPatcher,
+	OPT_DebugProperties,
 	OPT_DebugStackFrameInfo,
 	OPT_DebugStackTrace,
 	OPT_GCDebugRootSet,
@@ -226,6 +228,7 @@ enum {
 
 option_t options_XX[] = {
 	{ "DebugPatcher",              OPT_DebugPatcher,              OPT_TYPE_BOOLEAN, "debug JIT code patching" },
+	{ "DebugProperties",           OPT_DebugProperties,           OPT_TYPE_BOOLEAN, "print debug information for properties" },
 	{ "DebugStackFrameInfo",       OPT_DebugStackFrameInfo,       OPT_TYPE_BOOLEAN, "TODO" },
 	{ "DebugStackTrace",           OPT_DebugStackTrace,           OPT_TYPE_BOOLEAN, "debug stacktrace creation" },
 #if defined(ENABLE_GC_CACAO)
@@ -412,8 +415,9 @@ static void options_xxusage(void)
 
 *******************************************************************************/
 
-void options_xx(const char *name)
+void options_xx(JavaVMInitArgs *vm_args)
 {
+	const char *name;
 	const char *start;
 	char       *end;
 	int         length;
@@ -422,169 +426,186 @@ void options_xx(const char *name)
 	option_t   *opt;
 	char       *filename;
 	FILE       *file;
+	int         i;
 
-	/* Check for help (-XX), in this case name is NULL. */
+	/* Iterate over all passed options. */
 
-	if (name == NULL)
-		options_xxusage();
+	for (i = 0; i < vm_args->nOptions; i++) {
+		/* Get the current option. */
 
-	/* Check if the option is a boolean option. */
+		name = vm_args->options[i].optionString;
 
-	if (name[0] == '+') {
-		start  = name + 1;
-		enable = 1;
-	}
-	else if (name[0] == '-') {
-		start  = name + 1;
-		enable = 0;
-	}
-	else {
-		start  = name;
-		enable = -1;
-	}
+		/* Check for help (-XX). */
 
-	/* Search for a '=' in the option name and get the option name
-	   length and the value of the option. */
+		if (strcmp(name, "-XX") == 0)
+			options_xxusage();
 
-	end = strchr(start, '=');
+		/* Check if the option start with -XX. */
 
-	if (end == NULL) {
-		length = strlen(start);
-		value  = NULL;
-	}
-	else {
-		length = end - start;
-		value  = end + 1;
-	}
+		start = strstr(name, "-XX:");
 
-	/* search the option in the option array */
+		if ((start == NULL) || (start != name))
+			continue;
 
-	for (opt = options_XX; opt->name != NULL; opt++) {
-		if (strncmp(opt->name, start, length) == 0) {
-			/* Check if the options passed fits to the type. */
+		/* Check if the option is a boolean option. */
 
-			switch (opt->type) {
-			case OPT_TYPE_BOOLEAN:
-				if ((enable == -1) || (value != NULL))
-					options_xxusage();
-				break;
-			case OPT_TYPE_VALUE:
-				if ((enable != -1) || (value == NULL))
-					options_xxusage();
-				break;
-			default:
-				vm_abort("options_xx: unknown option type %d for option %s",
-						 opt->type, opt->name);
-			}
-
-			break;
+		if (name[4] == '+') {
+			start  = name + 4 + 1;
+			enable = 1;
 		}
-	}
+		else if (name[4] == '-') {
+			start  = name + 4 + 1;
+			enable = 0;
+		}
+		else {
+			start  = name + 4;
+			enable = -1;
+		}
 
-	/* process the option */
+		/* Search for a '=' in the option name and get the option name
+		   length and the value of the option. */
 
-	switch (opt->value) {
-	case OPT_DebugPatcher:
-		opt_DebugPatcher = enable;
-		break;
+		end = strchr(start, '=');
 
-	case OPT_DebugStackFrameInfo:
-		opt_DebugStackFrameInfo = enable;
-		break;
+		if (end == NULL) {
+			length = strlen(start);
+			value  = NULL;
+		}
+		else {
+			length = end - start;
+			value  = end + 1;
+		}
 
-	case OPT_DebugStackTrace:
-		opt_DebugStackTrace = enable;
-		break;
+		/* Search the option in the option array. */
+
+		for (opt = options_XX; opt->name != NULL; opt++) {
+			if (strncmp(opt->name, start, length) == 0) {
+				/* Check if the options passed fits to the type. */
+
+				switch (opt->type) {
+				case OPT_TYPE_BOOLEAN:
+					if ((enable == -1) || (value != NULL))
+						options_xxusage();
+					break;
+				case OPT_TYPE_VALUE:
+					if ((enable != -1) || (value == NULL))
+						options_xxusage();
+					break;
+				default:
+					vm_abort("options_xx: unknown option type %d for option %s",
+							 opt->type, opt->name);
+				}
+
+				break;
+			}
+		}
+
+		/* Process the option. */
+
+		switch (opt->value) {
+		case OPT_DebugPatcher:
+			opt_DebugPatcher = enable;
+			break;
+
+		case OPT_DebugProperties:
+			opt_DebugProperties = enable;
+			break;
+
+		case OPT_DebugStackFrameInfo:
+			opt_DebugStackFrameInfo = enable;
+			break;
+
 
 #if defined(ENABLE_GC_CACAO)
-	case OPT_GCDebugRootSet:
-		opt_GCDebugRootSet = enable;
-		break;
+		case OPT_GCDebugRootSet:
+			opt_GCDebugRootSet = enable;
+			break;
 
-	case OPT_GCStress:
-		opt_GCStress = enable;
-		break;
+		case OPT_GCStress:
+			opt_GCStress = enable;
+			break;
 #endif
 
-	case OPT_MaxPermSize:
-		/* currently ignored */
-		break;
+		case OPT_MaxPermSize:
+			/* currently ignored */
+			break;
 
-	case OPT_PermSize:
-		/* currently ignored */
-		break;
+		case OPT_PermSize:
+			/* currently ignored */
+			break;
 
-	case OPT_PrintConfig:
-		vm_printconfig();
-		break;
+		case OPT_PrintConfig:
+			vm_printconfig();
+			break;
 
-	case OPT_ProfileGCMemoryUsage:
-		if (value == NULL)
-			opt_ProfileGCMemoryUsage = 5;
-		else
-			opt_ProfileGCMemoryUsage = atoi(value);
-		break;
+		case OPT_ProfileGCMemoryUsage:
+			if (value == NULL)
+				opt_ProfileGCMemoryUsage = 5;
+			else
+				opt_ProfileGCMemoryUsage = atoi(value);
+			break;
 
-	case OPT_ProfileMemoryUsage:
-		if (value == NULL)
-			opt_ProfileMemoryUsage = 5;
-		else
-			opt_ProfileMemoryUsage = atoi(value);
+		case OPT_ProfileMemoryUsage:
+			if (value == NULL)
+				opt_ProfileMemoryUsage = 5;
+			else
+				opt_ProfileMemoryUsage = atoi(value);
 
 # if defined(ENABLE_STATISTICS)
-		/* we also need statistics */
+			/* we also need statistics */
 
-		opt_stat = true;
+			opt_stat = true;
 # endif
-		break;
+			break;
 
-	case OPT_ProfileMemoryUsageGNUPlot:
-		if (value == NULL)
-			filename = "profile.dat";
-		else
-			filename = value;
+		case OPT_ProfileMemoryUsageGNUPlot:
+			if (value == NULL)
+				filename = "profile.dat";
+			else
+				filename = value;
 
-		file = fopen(filename, "w");
+			file = fopen(filename, "w");
 
-		if (file == NULL)
-			vm_abort("options_xx: fopen failed: %s", strerror(errno));
+			if (file == NULL)
+				vm_abort("options_xx: fopen failed: %s", strerror(errno));
 
-		opt_ProfileMemoryUsageGNUPlot = file;
-		break;
+			opt_ProfileMemoryUsageGNUPlot = file;
+			break;
 
-	case OPT_ThreadStackSize:
-		/* currently ignored */
-		break;
+		case OPT_ThreadStackSize:
+			/* currently ignored */
+			break;
 
-	case OPT_TraceExceptions:
-		opt_TraceExceptions = enable;
-		break;
+		case OPT_TraceExceptions:
+			opt_TraceExceptions = enable;
+			break;
 
-	case OPT_TraceJavaCalls:
-		opt_verbosecall = enable;
-		opt_TraceJavaCalls = enable;
-		break;
+		case OPT_TraceJavaCalls:
+			opt_verbosecall = enable;
+			opt_TraceJavaCalls = enable;
+			break;
 
-	case OPT_TraceJNICalls:
-		opt_TraceJNICalls = enable;
-		break;
+		case OPT_TraceJNICalls:
+			opt_TraceJNICalls = enable;
+			break;
 
-	case OPT_TraceJVMCalls:
-		opt_TraceJVMCalls = enable;
-		break;
+		case OPT_TraceJVMCalls:
+			opt_TraceJVMCalls = enable;
+			break;
 
 #if defined(ENABLE_REPLACEMENT)
-	case OPT_TraceReplacement:
-		if (value == NULL)
-			opt_TraceReplacement = 1;
-		else
-			opt_TraceReplacement = atoi(value);
-		break;
+		case OPT_TraceReplacement:
+			if (value == NULL)
+				opt_TraceReplacement = 1;
+			else
+				opt_TraceReplacement = atoi(value);
+			break;
 #endif
 
-	default:
-		printf("Unknown -XX option: %s\n", name);
-		break;
+		default:
+			printf("Unknown -XX option: %s\n", name);
+			break;
+		}
 	}
 }
 

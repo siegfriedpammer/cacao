@@ -191,6 +191,7 @@ extern const char *opt_filter_show_method;
 /* NOTE: For better readability keep these alpha-sorted. */
 
 extern int      opt_DebugPatcher;
+extern int      opt_DebugProperties;
 extern int32_t  opt_DebugStackFrameInfo;
 extern int32_t  opt_DebugStackTrace;
 #if defined(ENABLE_GC_CACAO)
@@ -216,7 +217,7 @@ extern int32_t  opt_TraceReplacement;
 /* function prototypes ********************************************************/
 
 s4   options_get(opt_struct *opts, JavaVMInitArgs *vm_args);
-void options_xx(const char *name);
+void options_xx(JavaVMInitArgs *vm_args);
 
 #endif /* _OPTIONS_H */
 

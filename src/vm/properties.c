@@ -557,6 +557,13 @@ void properties_add(char *key, char *value)
 		if (strcmp(pe->key, key) == 0) {
 			/* entry was found, replace the value */
 
+#if !defined(NDEBUG)
+			if (opt_DebugProperties) {
+				printf("[properties_add: key=%s, old value=%s, new value=%s]\n",
+					   key, pe->value, value);
+			}
+#endif
+
 			pe->value = value;
 
 			return;
@@ -564,6 +571,12 @@ void properties_add(char *key, char *value)
 	}
 
 	/* entry was not found, insert a new one */
+
+#if !defined(NDEBUG)
+	if (opt_DebugProperties) {
+		printf("[properties_add: key=%s, value=%s]\n", key, value);
+	}
+#endif
 
 	pe = NEW(list_properties_entry_t);
 
