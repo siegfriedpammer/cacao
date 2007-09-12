@@ -1546,7 +1546,7 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 #endif
 
 #if !defined(NDEBUG)
-# if defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
+# if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 
 	if (opt_TraceJavaCalls)
@@ -1642,7 +1642,7 @@ java_object_t *codegen_finish_native_call(u1 *currentsp, u1 *pv)
 
 
 #if !defined(NDEBUG)
-# if defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
+# if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 
 	if (opt_TraceJavaCalls)

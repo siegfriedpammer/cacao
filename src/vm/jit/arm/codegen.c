@@ -2851,12 +2851,11 @@ void codegen_emit_stub_compiler(jitdata *jd)
 
 *******************************************************************************/
 
-void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
+void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int skipparams)
 {
 	methodinfo  *m;
 	codeinfo    *code;
 	codegendata *cd;
-	s4           nativeparams;
 	methoddesc  *md;
 	s4           i, j;
 	s4           t;
@@ -2871,8 +2870,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* initialize variables */
 
 	md = m->parseddesc;
-	nativeparams  = (m->flags & ACC_NATIVE) ? 1 : 0;
-	nativeparams += (m->flags & ACC_STATIC) ? 1 : 0;
 
 	/* calculate stackframe size */
 
@@ -2957,7 +2954,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* copy or spill arguments to new locations */
 	/* ATTENTION: the ARM has only integer argument registers! */
 
-	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
+	for (i = md->paramcount - 1, j = i + skipparams; i >= 0; i--, j--) {
 		t = md->paramtypes[i].type;
 
 		if (!md->params[i].inmemory) {
@@ -3000,14 +2997,16 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		}
 	}
 
-	/* put class into second argument register */
-
-	if (m->flags & ACC_STATIC)
-		M_MOV(REG_A1, REG_ITMP3);
-
-	/* put env into first argument register */
+	/* Handle native Java methods. */
 
 	if (m->flags & ACC_NATIVE) {
+		/* put class into second argument register */
+
+		if (m->flags & ACC_STATIC)
+			M_MOV(REG_A1, REG_ITMP3);
+
+		/* put env into first argument register */
+
 		disp = dseg_add_address(cd, _Jv_env);
 		M_DSEG_LOAD(REG_A0, disp);
 	}
