@@ -1967,7 +1967,11 @@ java_handle_objectarray_t *class_get_interfaces(classinfo *c)
 java_handle_bytearray_t *class_get_annotations(classinfo *c)
 {
 #if defined(ENABLE_ANNOTATIONS)
-	return c->annotations;
+	java_handle_t *annotations; /* unparsed annotations */
+
+	LLNI_classinfo_field_get(c, annotations, annotations);
+
+	return (java_handle_bytearray_t*)annotations;
 #else
 	return NULL;
 #endif

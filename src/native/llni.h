@@ -73,6 +73,30 @@
 	(variable) = LLNI_field_direct((java_handle_t *) obj, vftbl->class)
 
 
+/* LLNI_classinfo_field_get ***************************************************
+ 
+   Get a field from classinfo that is a java object.
+
+******************************************************************************/
+
+#define LLNI_classinfo_field_get(cls, field, variable) \
+	LLNI_CRITICAL_START; \
+	(variable) = LLNI_WRAP((cls)->field); \
+	LLNI_CRITICAL_END
+
+
+/* LLNI_classinfo_field_set ***************************************************
+ 
+   Set a field from classinfo that is a java object.
+
+******************************************************************************/
+
+#define LLNI_classinfo_field_set(cls, field, variable) \
+	LLNI_CRITICAL_START; \
+	(cls)->field = LLNI_UNWRAP(variable); \
+	LLNI_CRITICAL_END
+
+
 /* LLNI classinfo wrapping / unwrapping macros *********************************
 
    The following macros are used to wrap or unwrap a classinfo from

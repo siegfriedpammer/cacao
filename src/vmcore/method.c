@@ -825,26 +825,28 @@ s4 method_count_implementations(methodinfo *m, classinfo *c, methodinfo **found)
 java_handle_bytearray_t *method_get_annotations(methodinfo *m)
 {
 #if defined(ENABLE_ANNOTATIONS)
-	classinfo               *c;           /* methods' declaring class      */
-	int                      slot;        /* methods' slot                 */
-	java_handle_bytearray_t *annotations; /* methods' unparsed annotations */
-	java_handle_t           *a;           /* methods' unparsed annotations */
-	                                      /* cast into a java_handle_t*    */
+	classinfo     *c;                  /* methods' declaring class          */
+	int            slot;               /* methods' slot                     */
+	java_handle_t *annotations;        /* methods' unparsed annotations     */
+	java_handle_t *method_annotations; /* all methods' unparsed annotations */
+	                                   /* of the declaring class            */
 
 	c           = m->class;
 	slot        = m - c->methods;
 	annotations = NULL;
-	a           = (java_handle_t*)c->method_annotations;
+
+	LLNI_classinfo_field_get(c, method_annotations, method_annotations);
 
 	/* the method_annotations array might be shorter then the method
 	 * count if the methods above a certain index have no annotations.
 	 */	
-	if (c->method_annotations != NULL && array_length_get(a) > slot) {
-		annotations = (java_handle_bytearray_t*)array_objectarray_element_get(
-			c->method_annotations, slot);
+	if (method_annotations != NULL &&
+		array_length_get(method_annotations) > slot) {
+		annotations = array_objectarray_element_get(
+			(java_handle_objectarray_t*)method_annotations, slot);
 	}
 	
-	return annotations;
+	return (java_handle_bytearray_t*)annotations;
 #else
 	return NULL;
 #endif
@@ -869,26 +871,32 @@ java_handle_bytearray_t *method_get_annotations(methodinfo *m)
 java_handle_bytearray_t *method_get_parameterannotations(methodinfo *m)
 {
 #if defined(ENABLE_ANNOTATIONS)
-	classinfo               *c;                  /* methods' declaring class */
-	int                      slot;               /* methods' slot            */
-	java_handle_bytearray_t *parameterAnnotations; /* methods' unparsed      */
-	                                             /* parameter annotations    */
-	java_handle_t           *a;                  /* methods' unparsed        */
-	                                             /* parameter annotations    */
-												 /* cast into java_handle_t* */
+	classinfo     *c;                           /* methods' declaring class */
+	int            slot;                        /* methods' slot            */
+	java_handle_t *parameterAnnotations;        /* methods' unparsed        */
+	                                            /* parameter annotations    */
+	java_handle_t *method_parameterannotations; /* all methods' unparsed    */
+	                                            /* parameter annotations of */
+	                                            /* the declaring class      */
 
 	c                    = m->class;
 	slot                 = m - c->methods;
 	parameterAnnotations = NULL;
-	a                    = (java_handle_t*)c->method_parameterannotations;
 
-	if (c->method_parameterannotations != NULL && array_length_get(a) > slot) {
-		parameterAnnotations =
-			(java_handle_bytearray_t*)array_objectarray_element_get(
-				c->method_parameterannotations, slot);
+	LLNI_classinfo_field_get(
+		c, method_parameterannotations, method_parameterannotations);
+
+	/* the method_annotations array might be shorter then the method
+	 * count if the methods above a certain index have no annotations.
+	 */	
+	if (method_parameterannotations != NULL &&
+		array_length_get(method_parameterannotations) > slot) {
+		parameterAnnotations = array_objectarray_element_get(
+				(java_handle_objectarray_t*)method_parameterannotations,
+				slot);
 	}
 	
-	return parameterAnnotations;
+	return (java_handle_bytearray_t*)parameterAnnotations;
 #else
 	return NULL;
 #endif
@@ -912,26 +920,31 @@ java_handle_bytearray_t *method_get_parameterannotations(methodinfo *m)
 java_handle_bytearray_t *method_get_annotationdefault(methodinfo *m)
 {
 #if defined(ENABLE_ANNOTATIONS)
-	classinfo               *c;                 /* methods' declaring class */
-	int                      slot;              /* methods' slot            */
-	java_handle_bytearray_t *annotationDefault; /* methods' unparsed        */
-	                                            /* annotation default value */
-	java_handle_t           *a;                 /* methods' unparsed        */
-	                                            /* annotation default value */
-	                                            /* cast into java_handle_t* */
+	classinfo     *c;                         /* methods' declaring class     */
+	int            slot;                      /* methods' slot                */
+	java_handle_t *annotationDefault;         /* methods' unparsed            */
+	                                          /* annotation default value     */
+	java_handle_t *method_annotationdefaults; /* all methods' unparsed        */
+	                                          /* annotation default values of */
+	                                          /* the declaring class          */
 
 	c                 = m->class;
 	slot              = m - c->methods;
 	annotationDefault = NULL;
-	a                 = (java_handle_t*)c->method_annotationdefaults;
 
-	if (c->method_annotationdefaults != NULL && array_length_get(a) > slot) {
-		annotationDefault = 
-			(java_handle_bytearray_t*)array_objectarray_element_get(
-				c->method_annotationdefaults, slot);
+	LLNI_classinfo_field_get(
+		c, method_annotationdefaults, method_annotationdefaults);
+
+	/* the method_annotations array might be shorter then the method
+	 * count if the methods above a certain index have no annotations.
+	 */	
+	if (method_annotationdefaults != NULL &&
+		array_length_get(method_annotationdefaults) > slot) {
+		annotationDefault = array_objectarray_element_get(
+				(java_handle_objectarray_t*)method_annotationdefaults, slot);
 	}
 	
-	return annotationDefault;
+	return (java_handle_bytearray_t*)annotationDefault;
 #else
 	return NULL;
 #endif

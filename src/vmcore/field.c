@@ -33,6 +33,8 @@
 
 #include "mm/memory.h"
 
+#include "native/llni.h"
+
 #include "vm/types.h"
 
 #include "vm/array.h"
@@ -385,7 +387,7 @@ void field_free(fieldinfo *f)
 
 /* field_get_annotations ******************************************************
 
-   Gat a fields' unparsed annotations in a byte array.
+   Get a fields' unparsed annotations in a byte array.
 
    IN:
        f........the field of which the annotations should be returned
@@ -401,21 +403,22 @@ java_handle_bytearray_t *field_get_annotations(fieldinfo *f)
 	classinfo               *c;           /* declaring class           */
 	int                      slot;        /* slot of this field        */
 	java_handle_bytearray_t *annotations; /* unparsed annotations      */
-	java_handle_t           *a;           /* unparsed annotations cast */
-	                                      /* into java_handle_t*       */
+	java_handle_t           *field_annotations;  /* array of unparsed  */
+	               /* annotations of all fields of the declaring class */
 
 	c           = f->class;
 	slot        = f - c->fields;
 	annotations = NULL;
-	a           = (java_handle_t*)c->field_annotations;
-	
+
+	LLNI_classinfo_field_get(c, field_annotations, field_annotations);
+
 	/* the field_annotations array might be shorter then the field
 	 * count if the fields above a certain index have no annotations.
 	 */
-	if (c->field_annotations != NULL && array_length_get(a) > slot) {
-		annotations = (java_handle_bytearray_t*)
-			array_objectarray_element_get(
-				c->field_annotations, slot);
+	if (field_annotations != NULL &&
+		array_length_get(field_annotations) > slot) {
+		annotations = (java_handle_bytearray_t*)array_objectarray_element_get(
+				(java_handle_objectarray_t*)field_annotations, slot);
 	}
 	
 	return annotations;
@@ -547,4 +550,5 @@ void field_fieldref_println(constant_FMIref *fr)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

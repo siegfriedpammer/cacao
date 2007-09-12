@@ -51,13 +51,32 @@
 #endif
 
 
-/* annotation_bytearrays_resize ***********************************************
+/* LLNI_objectarray_copy ******************************************************
+ 
+   Copy nmemb members from object array src to object array dest.
 
+   WARNING: No bound, type or NULL pointer checks are made!
+
+   This should be placed into src/native/llni.h when it's finally decided
+   to do it this way.
+
+******************************************************************************/
+
+#define LLNI_objectarray_copy(dest, src, nmemb) \
+	LLNI_CRITICAL_START; \
+	MCOPY(LLNI_array_data((java_handle_objectarray_t*)(dest)), \
+		LLNI_array_data((java_handle_objectarray_t*)(src)), \
+		java_object_t*, (nmemb)); \
+	LLNI_CRITICAL_END
+
+
+/* annotation_bytearrays_resize ***********************************************
+Set a field from classinfo that is a java objects.
    Resize an array of bytearrays.
 
    IN:
-       bas.....array of bytearrays (bas is short for 'bytearrays')
-       size....new size of the refered array
+       bytearrays.....array of bytearrays
+       size...........new size of the refered array
    
    RETURN VALUE:
        The new array if a resize was neccessarry, the old if the given size
@@ -66,18 +85,18 @@
 *******************************************************************************/
 
 static java_handle_objectarray_t *annotation_bytearrays_resize(
-	java_handle_objectarray_t *bas, uint32_t size)
+	java_handle_objectarray_t *bytearrays, uint32_t size)
 {
 	java_handle_objectarray_t *newbas = NULL; /* new array     */
 	uint32_t minsize = 0;      /* count of object refs to copy */
 	uint32_t oldsize = 0;      /* size of old array            */
-	
-	if (bas != NULL) {
-		oldsize = array_length_get((java_handle_t*)bas);
+
+	if (bytearrays != NULL) {
+		oldsize = array_length_get((java_handle_t*)bytearrays);
 		
 		/* if the size already fits do nothing */
 		if (size == oldsize) {
-			return bas;
+			return bytearrays;
 		}
 	}
 	
@@ -85,11 +104,10 @@ static java_handle_objectarray_t *annotation_bytearrays_resize(
 		primitive_arrayclass_get_by_type(PRIMITIVETYPE_BYTE));
 	
 	/* is there a old byte array array? */
-	if (newbas != NULL && bas != NULL) {
+	if (newbas != NULL && bytearrays != NULL) {
 		minsize = size < oldsize ? size : oldsize;
 
-		MCOPY(LLNI_array_data(newbas), LLNI_array_data(bas),
-			java_object_t*, minsize);
+		LLNI_objectarray_copy(newbas, bytearrays, minsize);
 	}
 
 	return newbas;
@@ -101,10 +119,12 @@ static java_handle_objectarray_t *annotation_bytearrays_resize(
    Insert a bytearray into an array of bytearrays.
 
    IN:
-       bas........array of bytearrays where 'ba' has to be insertet into at
-                  position 'index'.
-       index......position where 'ba' has to be inserted into 'bas'.
-       ba.........byte array which has to be inserted into 'bas'.
+       bytearrays........array of bytearrays where 'bytearray' has to be
+                         inserted at position 'index'.
+       index.............position where 'ba' has to be inserted into
+                         'bytearrays'.
+       bytearray.........byte array which has to be inserted into
+                         'bytearrays'.
 
    RETURN VALUE:
        The new array if a resize was neccessarry, the old if the given size
@@ -112,22 +132,26 @@ static java_handle_objectarray_t *annotation_bytearrays_resize(
 
 *******************************************************************************/
 
-static java_handle_objectarray_t *annotation_bytearrays_insert(
-	java_handle_objectarray_t *bas,	uint32_t index, java_handle_bytearray_t *ba)
+static java_handle_t *annotation_bytearrays_insert(
+	java_handle_t *bytearrays, uint32_t index,
+	java_handle_bytearray_t *bytearray)
 {
-	uint32_t size = 0; /* current size of the array */
+	java_handle_objectarray_t *bas; /* bytearrays                */
+	uint32_t size = 0;              /* current size of the array */
 
 	/* do nothing if NULL is inserted but no array exists */
-	if (ba == NULL && bas == NULL) {
-		return bas;
+	if (bytearray == NULL && bytearrays == NULL) {
+		return NULL;
 	}
 
 	/* get lengths if array exists */
-	if (bas != NULL) {
-		size = array_length_get((java_handle_t*)bas);
+	if (bytearrays != NULL) {
+		size = array_length_get(bytearrays);
 	}
 
-	if (ba == NULL) {
+	bas = (java_handle_objectarray_t*)bytearrays;
+
+	if (bytearray == NULL) {
 		/* insert NULL only if array is big enough */
 		if (size > index) {
 			array_objectarray_element_set(bas, index, NULL);
@@ -144,10 +168,10 @@ static java_handle_objectarray_t *annotation_bytearrays_insert(
 			}
 		}
 
-		array_objectarray_element_set(bas, index, (java_handle_t*)ba);
+		array_objectarray_element_set(bas, index, (java_handle_t*)bytearray);
 	}
 	
-	return bas;
+	return (java_handle_t*)bas;
 }
 
 
@@ -209,7 +233,11 @@ static bool annotation_load_attribute_body(classbuffer *cb,
 		}
 
 		/* load data */
+		LLNI_CRITICAL_START;
+
 		suck_nbytes((uint8_t*)LLNI_array_data(ba), cb, size);
+
+		LLNI_CRITICAL_END;
 
 		/* return data */
 		*attribute = ba;
@@ -243,20 +271,18 @@ static bool annotation_load_attribute_body(classbuffer *cb,
 bool annotation_load_method_attribute_annotationdefault(
 		classbuffer *cb, methodinfo *m)
 {
-	int                        slot               = 0;
-	                           /* the slot of the method                      */
-	java_handle_bytearray_t   *annotationdefault  = NULL;
-	                           /* unparsed annotation defalut value           */
-	java_handle_objectarray_t *annotationdefaults = NULL;
-	                           /* array of unparsed annotation default values */
+	int                      slot               = 0;
+	                         /* the slot of the method                        */
+	java_handle_bytearray_t *annotationdefault  = NULL;
+	                         /* unparsed annotation defalut value             */
+	java_handle_t           *annotationdefaults = NULL;
+	                         /* array of unparsed annotation default values   */
 
 	assert(cb != NULL);
 	assert(m != NULL);
 
-	/* XXX: Wait for michis reply if it should be:
-	 * LLNI_field_get_ref(m->class, method_annotations, annotationdefaults);
-	 */
-	annotationdefaults = m->class->method_annotationdefaults;
+	LLNI_classinfo_field_get(
+		m->class, method_annotationdefaults, annotationdefaults);
 
 	if (!annotation_load_attribute_body(
 			cb, &annotationdefault,
@@ -273,10 +299,8 @@ bool annotation_load_method_attribute_annotationdefault(
 			return false;
 		}
 
-	/* XXX: Wait for michis reply if it should be:
-	 * LLNI_field_set_ref(m->class, method_annotations, annotationdefaults);
-	 */
-		m->class->method_annotationdefaults = annotationdefaults;
+		LLNI_classinfo_field_set(
+			m->class, method_annotationdefaults, annotationdefaults);
 	}
 
 	return true;
@@ -311,20 +335,18 @@ bool annotation_load_method_attribute_annotationdefault(
 bool annotation_load_method_attribute_runtimevisibleparameterannotations(
 		classbuffer *cb, methodinfo *m)
 {
-	int                        slot                 = 0;
-	                           /* the slot of the method */
-	java_handle_bytearray_t   *annotations          = NULL;
-	                           /* unparsed parameter annotations */
-	java_handle_objectarray_t *parameterannotations = NULL;
-	                           /* array of unparsed parameter annotations */
+	int                      slot                 = 0;
+	                         /* the slot of the method                  */
+	java_handle_bytearray_t *annotations          = NULL;
+	                         /* unparsed parameter annotations          */
+	java_handle_t           *parameterannotations = NULL;
+	                         /* array of unparsed parameter annotations */
 
 	assert(cb != NULL);
 	assert(m != NULL);
 
-	/* XXX: Wait for michis reply if it should be:
-	 * LLNI_field_get_ref(m->class, method_parameterannotations, parameterannotations);
-	 */
-	parameterannotations = m->class->method_parameterannotations;
+	LLNI_classinfo_field_get(
+		m->class, method_parameterannotations, parameterannotations);
 
 	if (!annotation_load_attribute_body(
 			cb, &annotations,
@@ -341,10 +363,8 @@ bool annotation_load_method_attribute_runtimevisibleparameterannotations(
 			return false;
 		}
 
-	/* XXX: Wait for michis reply if it should be:
-	 * LLNI_field_set_ref(m->class, method_parameterannotations, parameterannotations);
-	 */
-		m->class->method_parameterannotations = parameterannotations;
+		LLNI_classinfo_field_set(
+			m->class, method_parameterannotations, parameterannotations);
 	}
 
 	return true;
@@ -424,10 +444,8 @@ bool annotation_load_class_attribute_runtimevisibleannotations(
 		return false;
 	}
 
-	/* XXX: Wait for michis reply if it should be:
-	 * LLNI_field_set_ref(cb->class, annotations, annotations);
-	 */
-	cb->class->annotations = annotations;
+	LLNI_classinfo_field_set(
+		cb->class, annotations, (java_handle_t*)annotations);
 
 	return true;
 }
@@ -469,20 +487,18 @@ bool annotation_load_class_attribute_runtimeinvisibleannotations(
 bool annotation_load_method_attribute_runtimevisibleannotations(
 	classbuffer *cb, methodinfo *m)
 {
-	int                        slot               = 0;
-	                           /* slot of the method */
-	java_handle_bytearray_t   *annotations        = NULL;
-	                           /* unparsed annotations */
-	java_handle_objectarray_t *method_annotations = NULL;
-	                           /* array of unparsed method annotations */
+	int                      slot               = 0;
+	                         /* slot of the method */
+	java_handle_bytearray_t *annotations        = NULL;
+	                         /* unparsed annotations */
+	java_handle_t           *method_annotations = NULL;
+	                         /* array of unparsed method annotations */
 
 	assert(cb != NULL);
 	assert(m != NULL);
 
-	/* XXX: Wait for michis reply if it should be:
-	 * LLNI_field_get_ref(m->class, method_annotations, method_annotations);
-	 */
-	method_annotations = m->class->method_annotations;
+	LLNI_classinfo_field_get(
+		m->class, method_annotations, method_annotations);
 
 	if (!annotation_load_attribute_body(
 			cb, &annotations,
@@ -499,10 +515,8 @@ bool annotation_load_method_attribute_runtimevisibleannotations(
 			return false;
 		}
 		
-	/* XXX: Wait for michis reply if it should be:
-	 * LLNI_field_set_ref(m->class, method_annotations, method_annotations);
-	 */
-		m->class->method_annotations = method_annotations;
+		LLNI_classinfo_field_set(
+			m->class, method_annotations, method_annotations);
 	}
 
 	return true;
@@ -547,20 +561,18 @@ bool annotation_load_method_attribute_runtimeinvisibleannotations(
 bool annotation_load_field_attribute_runtimevisibleannotations(
 	classbuffer *cb, fieldinfo *f)
 {
-	int                        slot              = 0;
-	                           /* slot of the field */
-	java_handle_bytearray_t   *annotations       = NULL;
-	                           /* unparsed annotations */
-	java_handle_objectarray_t *field_annotations = NULL;
-	                           /* array of unparsed field annotations */
+	int                      slot              = 0;
+	                         /* slot of the field                   */
+	java_handle_bytearray_t *annotations       = NULL;
+	                         /* unparsed annotations                */
+	java_handle_t           *field_annotations = NULL;
+	                         /* array of unparsed field annotations */
 
 	assert(cb != NULL);
 	assert(f != NULL);
 
-	/* XXX: Wait for michis reply if it should be:
-	 * LLNI_field_get_ref(f->class, method_annotations, method_annotations);
-	 */
-	field_annotations = f->class->field_annotations;
+	LLNI_classinfo_field_get(
+		f->class, field_annotations, field_annotations);
 
 	if (!annotation_load_attribute_body(
 			cb, &annotations,
@@ -577,10 +589,8 @@ bool annotation_load_field_attribute_runtimevisibleannotations(
 			return false;
 		}
 
-	/* XXX: Wait for michis reply if it should be:
-	 * LLNI_field_set_ref(f->class, method_annotations, method_annotations);
-	 */
-		f->class->field_annotations = field_annotations;
+		LLNI_classinfo_field_set(
+			f->class, field_annotations, field_annotations);
 	}
 
 	return true;

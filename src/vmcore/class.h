@@ -147,18 +147,16 @@ struct classinfo {                /* class structure                          */
 #if defined(ENABLE_ANNOTATIONS)
 	/* All the annotation attributes are NULL (and not a zero length array)   */
 	/* if there is nothing.                                                   */
-	java_handle_bytearray_t   *annotations; /* annotations of this class      */
+	java_object_t *annotations;   /* annotations of this class                */
 	
-	java_handle_objectarray_t *method_annotations; /* array of annotations    */
-	                              /* for the methods                          */
-	java_handle_objectarray_t *method_parameterannotations; /* array of       */
-	                              /* parameter annotations for the methods    */
-	java_handle_objectarray_t *method_annotationdefaults; /* array for        */
-	                              /* annotation default values for the        */
-	                              /* methods                                  */
+	java_object_t *method_annotations; /* array of annotations of the methods */
+	java_object_t *method_parameterannotations; /* array of parameter         */
+	                              /* annotations of the methods               */
+	java_object_t *method_annotationdefaults; /* array of annotation default  */
+	                              /* values of the methods                    */
 
-	java_handle_objectarray_t *field_annotations; /* array of annotations for */
-	                              /* the fields                               */
+	java_object_t *field_annotations; /* array of annotations of the fields   */
+
 #endif
 #endif
 	classloader *classloader;       /* NULL for bootstrap classloader         */
