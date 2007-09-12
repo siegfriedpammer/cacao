@@ -792,7 +792,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	vmlog_cacao_init(vm_args);
 #endif
 
-	/* check the JNI version requested */
+	/* Check the JNI version requested. */
 
 	switch (vm_args->version) {
 	case JNI_VERSION_1_1:
@@ -804,20 +804,34 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		return false;
 	}
 
-	/* we only support 1 JVM instance */
+	/* We only support 1 JVM instance. */
 
 	if (vms > 0)
 		return false;
 
-	/* First of all, parse the -XX options. */
-
-	options_xx(vm_args);
+	/* Install the exit handler. */
 
 	if (atexit(vm_exit_handler))
 		vm_abort("atexit failed: %s\n", strerror(errno));
 
-	if (opt_verbose)
-		log_text("CACAO started -------------------------------------------------------");
+	/* Set some options. */
+
+	opt_version       = false;
+	opt_exit          = false;
+
+	opt_noieee        = false;
+
+	opt_heapmaxsize   = HEAP_MAXSIZE;
+	opt_heapstartsize = HEAP_STARTSIZE;
+	opt_stacksize     = STACK_SIZE;
+
+	/* Initialize the properties list before command-line handling. */
+
+	properties_init();
+
+	/* First of all, parse the -XX options. */
+
+	options_xx(vm_args);
 
 	/* We need to check if the actual size of a java.lang.Class object
 	   is smaller or equal than the assumption made in
@@ -830,26 +844,13 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	_Jv_jvm->starttime = builtin_currenttimemillis();
 
-	/* interpret the options **************************************************/
-
-	opt_version       = false;
-	opt_exit          = false;
-
-	opt_noieee        = false;
-
-	opt_heapmaxsize   = HEAP_MAXSIZE;
-	opt_heapstartsize = HEAP_STARTSIZE;
-	opt_stacksize     = STACK_SIZE;
-
-
 #if defined(ENABLE_JVMTI)
 	/* initialize JVMTI related  **********************************************/
 	jvmti = false;
 #endif
 
-	/* Initialize and fill properties before command-line handling. */
+	/* Fill the properties before command-line handling. */
 
-	properties_init();
 	properties_set();
 
 	/* iterate over all passed options */
