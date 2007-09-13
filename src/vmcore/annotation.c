@@ -52,7 +52,7 @@
 
 
 /* annotation_bytearrays_resize ***********************************************
-Set a field from classinfo that is a java objects.
+
    Resize an array of bytearrays.
 
    IN:
