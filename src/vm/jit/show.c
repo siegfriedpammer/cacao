@@ -376,10 +376,10 @@ void show_method(jitdata *jd, int stage)
 	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next)
 		show_basicblock(jd, bptr, stage);
 
-#if defined(ENABLE_DISASSEMBLER)
-	/* show stubs code */
+#if 0 && defined(ENABLE_DISASSEMBLER)
+	/* show code after last basic block */
 
-	if (stage >= SHOW_CODE && opt_showdisassemble && opt_showexceptionstubs) {
+	if (stage >= SHOW_CODE && opt_showdisassemble) {
 		printf("\nStubs code:\n");
 		printf("Length: %d\n\n", (s4) (code->mcodelength -
 									   ((ptrint) cd->dseglen + lastbptr->mpc)));

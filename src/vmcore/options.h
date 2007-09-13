@@ -113,7 +113,6 @@ extern bool opt_showdisassemble;
 extern bool opt_shownops;
 extern bool opt_showddatasegment;
 extern bool opt_showintermediate;
-extern bool opt_showexceptionstubs;
 
 extern bool checkbounds;
 extern bool opt_noieee;
