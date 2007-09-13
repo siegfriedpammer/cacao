@@ -198,7 +198,7 @@ static void lock_hashtable_init(void);
 
 static void lock_record_enter(threadobject *t, lock_record_t *lr);
 static void lock_record_exit(threadobject *t, lock_record_t *lr);
-static void lock_record_wait(threadobject *t, lock_record_t *lr, s8 millis, s4 nanos);
+static bool lock_record_wait(threadobject *t, lock_record_t *lr, s8 millis, s4 nanos);
 static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one);
 
 
@@ -858,7 +858,7 @@ bool lock_monitor_enter(java_object_t *o)
 			LOCK_LOG(("thread %d waiting for notification on %p lr %p\n",
 					  t->index, (void*) o, (void*) lr));
 
-			lock_record_wait(t, lr, 0, 0);
+			(void) lock_record_wait(t, lr, 0, 0);
 		}
 	}
 
@@ -1077,13 +1077,17 @@ static void lock_record_remove_waiter(lock_record_t *lr, threadobject *thread)
 	  millis.......milliseconds of timeout
 	  nanos........nanoseconds of timeout
 
+   RETURN VALUE:
+      true.........we have been interrupted,
+      false........everything ok
+
    PRE-CONDITION:
       The current thread must be the owner of the lock record.
 	  This is NOT checked by this function!
    
 *******************************************************************************/
 
-static void lock_record_wait(threadobject *thread, lock_record_t *lr, s8 millis, s4 nanos)
+static bool lock_record_wait(threadobject *thread, lock_record_t *lr, s8 millis, s4 nanos)
 {
 	s4   lockcount;
 	bool wasinterrupted;
@@ -1119,10 +1123,9 @@ static void lock_record_wait(threadobject *thread, lock_record_t *lr, s8 millis,
 
 	lr->count = lockcount;
 
-	/* if we have been interrupted, throw the appropriate exception */
+	/* return if we have been interrupted */
 
-	if (wasinterrupted)
-		exceptions_throw_interruptedexception();
+	return wasinterrupted;
 }
 
 
@@ -1179,7 +1182,8 @@ static void lock_monitor_wait(threadobject *t, java_object_t *o, s8 millis, s4 n
 
 	/* { the thread t owns the fat lock record lr on the object o } */
 
-	lock_record_wait(t, lr, millis, nanos);
+	if (lock_record_wait(t, lr, millis, nanos))
+		exceptions_throw_interruptedexception();
 }
 
 
