@@ -250,7 +250,10 @@ bool codegen_emit(jitdata *jd)
 		else {
 			if (!md->params[i].inmemory) {
 				if (!(var->flags & INMEMORY)) {
-					M_CAST_INT_TO_FLT_TYPED(t, s1, var->vv.regoff);
+					if (IS_2_WORD_TYPE(t))
+						M_CAST_L2D(s1, var->vv.regoff);
+					else
+						M_CAST_I2F(s1, var->vv.regoff);
 				}
 				else {
 					if (IS_2_WORD_TYPE(t))
@@ -919,7 +922,7 @@ bool codegen_emit(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			M_MNFS(d, s1);
+			M_FNEG(s1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -928,7 +931,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			M_ADFS(d, s1, s2);
+			M_FADD(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -937,7 +940,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			M_SUFS(d, s1, s2);
+			M_FSUB(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -946,7 +949,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			M_MUFS(d, s1, s2);
+			M_FMUL(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -954,13 +957,14 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			M_DVFS(d, s1, s2);
+			M_FDIV(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		/* ATTENTION: Jave does not want IEEE behaviour in FREM, do
 		   not use this */
 
+#if 0
 		case ICMD_FREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
@@ -969,12 +973,13 @@ bool codegen_emit(jitdata *jd)
 			M_RMFS(d, s1, s2);
 			emit_store_dst(jd, iptr, d);
 			break;
+#endif
 
 		case ICMD_DNEG:       /* ..., value  ==> ..., - value                 */
 
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			M_MNFD(d, s1);
+			M_DNEG(s1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -983,7 +988,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			M_ADFD(d, s1, s2);
+			M_DADD(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -992,7 +997,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			M_SUFD(d, s1, s2);
+			M_DSUB(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1001,7 +1006,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			M_MUFD(d, s1, s2);
+			M_DMUL(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1010,13 +1015,14 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			M_DVFD(d, s1, s2);
+			M_DDIV(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
 		/* ATTENTION: Jave does not want IEEE behaviour in DREM, do
 		   not use this */
 
+#if 0
 		case ICMD_DREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
@@ -1025,12 +1031,13 @@ bool codegen_emit(jitdata *jd)
 			M_RMFD(d, s1, s2);
 			emit_store_dst(jd, iptr, d);
 			break;
+#endif
 
 		case ICMD_I2F:       /* ..., value  ==> ..., (float) value            */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			M_FLTS(d, s1);
+			M_CVTIF(s1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1038,7 +1045,7 @@ bool codegen_emit(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			M_FLTD(d, s1);
+			M_CVTID(s1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1047,10 +1054,12 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			/* this uses round towards zero, as Java likes it */
-			M_FIX(d, s1);
+			M_CVTFI(s1, d);
+#if !defined(__VFP_FP__)
 			/* this checks for NaN; to return zero as Java likes it */
-			M_CMF(s1, 0x8);
+			M_FCMP(s1, 0x8);
 			M_MOVVS_IMM(0, d);
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1059,10 +1068,12 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 			/* this uses round towards zero, as Java likes it */
-			M_FIX(d, s1);
+			M_CVTDI(s1, d);
+#if !defined(__VFP_FP__)
 			/* this checks for NaN; to return zero as Java likes it */
-			M_CMF(s1, 0x8);
+			M_DCMP(s1, 0x8);
 			M_MOVVS_IMM(0, d);
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1070,7 +1081,7 @@ bool codegen_emit(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
-			M_MVFS(d,s1);
+			M_CVTDF(s1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1078,7 +1089,7 @@ bool codegen_emit(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
-			M_MVFD(d,s1);
+			M_CVTFD(s1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1087,8 +1098,11 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_CMF(s2, s1);
+			M_FCMP(s2, s1);
 			M_MOV_IMM(d, 0);
+#if defined(__VFP_FP__)
+			M_FMSTAT; /* on VFP we need to transfer the flags */
+#endif
 			M_SUBGT_IMM(d, d, 1);
 			M_ADDLT_IMM(d, d, 1);
 			emit_store_dst(jd, iptr, d);
@@ -1099,8 +1113,11 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_CMF(s2, s1);
+			M_DCMP(s2, s1);
 			M_MOV_IMM(d, 0);
+#if defined(__VFP_FP__)
+			M_FMSTAT; /* on VFP we need to transfer the flags */
+#endif
 			M_SUBGT_IMM(d, d, 1);
 			M_ADDLT_IMM(d, d, 1);
 			emit_store_dst(jd, iptr, d);
@@ -1111,8 +1128,11 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_CMF(s1, s2);
+			M_FCMP(s1, s2);
 			M_MOV_IMM(d, 0);
+#if defined(__VFP_FP__)
+			M_FMSTAT; /* on VFP we need to transfer the flags */
+#endif
 			M_SUBLT_IMM(d, d, 1);
 			M_ADDGT_IMM(d, d, 1);
 			emit_store_dst(jd, iptr, d);
@@ -1123,8 +1143,11 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_CMF(s1, s2);
+			M_DCMP(s1, s2);
 			M_MOV_IMM(d, 0);
+#if defined(__VFP_FP__)
+			M_FMSTAT; /* on VFP we need to transfer the flags */
+#endif
 			M_SUBLT_IMM(d, d, 1);
 			M_ADDGT_IMM(d, d, 1);
 			emit_store_dst(jd, iptr, d);
@@ -2045,7 +2068,7 @@ bool codegen_emit(jitdata *jd)
 #if !defined(ENABLE_SOFTFLOAT)
 			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			M_CAST_FLT_TO_INT_TYPED(VAROP(iptr->s1)->type, s1, REG_RESULT);
+			M_CAST_F2I(s1, REG_RESULT);
 			goto ICMD_RETURN_do;
 #endif
 
@@ -2061,7 +2084,7 @@ bool codegen_emit(jitdata *jd)
 #if !defined(ENABLE_SOFTFLOAT)
 			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			M_CAST_FLT_TO_INT_TYPED(VAROP(iptr->s1)->type, s1, REG_RESULT_PACKED);
+			M_CAST_D2L(s1, REG_RESULT_PACKED);
 			goto ICMD_RETURN_do;
 #endif
 
@@ -2220,7 +2243,10 @@ bool codegen_emit(jitdata *jd)
 				else {
 					if (!md->params[s3].inmemory) {
 						s1 = emit_load(jd, iptr, var, REG_FTMP1);
-						M_CAST_FLT_TO_INT_TYPED(var->type, s1, d);
+						if (IS_2_WORD_TYPE(var->type))
+							M_CAST_D2L(s1, d);
+						else
+							M_CAST_F2I(s1, d);
 					}
 					else {
 						s1 = emit_load(jd, iptr, var, REG_FTMP1);
@@ -2371,7 +2397,10 @@ bool codegen_emit(jitdata *jd)
 #if !defined(ENABLE_SOFTFLOAT)
 				} else {
 					s1 = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-					M_CAST_INT_TO_FLT_TYPED(VAROP(iptr->dst)->type, REG_RESULT_TYPED(VAROP(iptr->dst)->type), s1);
+					if (IS_2_WORD_TYPE(d))
+						M_CAST_L2D(REG_RESULT_PACKED, s1);
+					else
+						M_CAST_I2F(REG_RESULT, s1);
 				}
 #endif /* !defined(ENABLE_SOFTFLOAT) */
 

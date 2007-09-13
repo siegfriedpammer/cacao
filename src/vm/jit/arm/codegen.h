@@ -31,7 +31,9 @@
 #include "config.h"
 
 
-/* helper macros for generating code ******************************************/
+/******************************************************************************/
+/* register splitting stuff (ugly) ********************************************/
+/******************************************************************************/
 
 #if defined(__ARMEL__)
 #define SPLIT_OPEN(type, reg, tmpreg) \
@@ -71,6 +73,10 @@
 	}
 #endif
 
+
+/******************************************************************************/
+/* checking macros ************************************************************/
+/******************************************************************************/
 
 #define MCODECHECK(icnt) \
     do { \
@@ -136,7 +142,9 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #endif
 
 
+/******************************************************************************/
 /* macros to create code ******************************************************/
+/******************************************************************************/
 
 /* the condition field */
 #define COND_EQ 0x0  /* Equal        Z set   */
@@ -307,6 +315,13 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
     } while (0)
 
 
+#define M_CPDP(cond,p,q,r,s,cp_num,D,N,M,Fd,Fn,Fm) \
+	do { \
+		*((u4 *) cd->mcodeptr) = (((cond) << 28) | (0x0e << 24) | ((p) << 23) | ((q) << 21) | ((r) << 20) | ((s) << 6) | ((cp_num) << 8) | ((D) << 22) | ((N) << 7) | ((M) << 5) | ((Fd) << 12) | ((Fn) << 16) | ((Fm) & 0x0f)); \
+		cd->mcodeptr += 4; \
+	} while (0)
+
+
 /* M_CPDT **********************************************************************
 
    Floating-Point Coprocessor Data Transfer
@@ -324,6 +339,12 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
         cd->mcodeptr += 4; \
     } while (0)
 
+#define M_CPLS(cond,L,P,U,W,cp_num,D,Fd,n,off) \
+	do { \
+		*((u4 *) cd->mcodeptr) = (((cond) << 28) | (0x0c << 24) | ((P) << 24) | ((U) << 23) | ((W) << 21) | ((L) << 20) | ((cp_num) << 8) | ((D) << 22) | ((Fd) << 12) | ((n) << 16) | ((off) & 0xff)); \
+		cd->mcodeptr += 4; \
+	} while (0)
+
 
 /* M_CPRT **********************************************************************
 
@@ -332,6 +353,12 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
    XXX
 
 *******************************************************************************/
+
+#define M_CPRT(cond,op,L,cp_num,N,Fn,n) \
+	do { \
+		*((u4 *) cd->mcodeptr) = (((cond) << 28) | (0x0e << 24) | (1 << 4) | ((op) << 21) | ((L) << 20) | ((cp_num) << 8) | ((N) << 7) | ((Fn) << 16) | ((n) << 12)); \
+		cd->mcodeptr += 4; \
+	} while (0)
 
 #define M_CPRTS(cond,L,d,Fn,Fm) \
     do { \
@@ -386,7 +413,10 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define IMM_ROTR(imm, rot) ( ((imm) & 0xff) | (((rot) & 0x0f) << 8) )
 #define IMM_ROTL(imm, rot) IMM_ROTR(imm, 16-(rot))
 
-/* macros for all arm instructions ********************************************/
+
+/******************************************************************************/
+/* macros for all basic arm instructions **************************************/
+/******************************************************************************/
 
 #define M_ADD(d,a,b)       M_DAT(UNCOND,0x04,d,a,0,0,b)         /* d = a +  b */
 #define M_ADC(d,a,b)       M_DAT(UNCOND,0x05,d,a,0,0,b)         /* d = a +  b (with Carry) */
@@ -447,6 +477,23 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 
 #define M_MUL(d,a,b)       M_MULT(UNCOND,d,a,b,0,0,0x0)         /* d = a *  b */
 
+#define M_B(off)           M_BRA(UNCOND,0,off)    /* unconditional branch */
+#define M_BL(off)          M_BRA(UNCOND,1,off)    /* branch and link      */
+#define M_BEQ(off)         M_BRA(COND_EQ,0,off)   /* conditional branches */
+#define M_BNE(off)         M_BRA(COND_NE,0,off)
+#define M_BGE(off)         M_BRA(COND_GE,0,off)
+#define M_BGT(off)         M_BRA(COND_GT,0,off)
+#define M_BLT(off)         M_BRA(COND_LT,0,off)
+#define M_BLE(off)         M_BRA(COND_LE,0,off)
+#define M_BHI(off)         M_BRA(COND_HI,0,off)   /* unsigned conditional */
+#define M_BHS(off)         M_BRA(COND_CS,0,off)
+#define M_BLO(off)         M_BRA(COND_CC,0,off)
+#define M_BLS(off)         M_BRA(COND_LS,0,off)
+
+
+/******************************************************************************/
+/* macros for load and store instructions *************************************/
+/******************************************************************************/
 
 #define M_LDMFD(regs,base) M_MEM_MULTI(UNCOND,1,0,regs,base,0,1,1)
 #define M_STMFD(regs,base) M_MEM_MULTI(UNCOND,0,0,regs,base,1,0,1)
@@ -510,98 +557,6 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
         assert(off >= 0); \
         M_MEM(UNCOND,0,1,d,base,off,0,1,1,0); \
     } while (0)
-
-												      
-#if !defined(ENABLE_SOFTFLOAT)
-
-#define M_LDFS_INTERN(d,base,off) \
-    do { \
-        CHECK_OFFSET(off, 0x03ff); \
-        M_CPDT(UNCOND,1,0,0,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2),1,(((off) < 0) ? 0 : 1),0); \
-    } while (0)
-
-#define M_LDFD_INTERN(d,base,off) \
-    do { \
-        CHECK_OFFSET(off, 0x03ff); \
-        M_CPDT(UNCOND,1,0,1,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2),1,(((off) < 0) ? 0 : 1),0); \
-    } while (0)
-
-#define M_STFS_INTERN(d,base,off) \
-    do { \
-        CHECK_OFFSET(off, 0x03ff); \
-        M_CPDT(UNCOND,0,0,0,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2),1,(((off) < 0) ? 0 : 1),0); \
-    } while (0)
-
-#define M_STFD_INTERN(d,base,off) \
-    do { \
-        CHECK_OFFSET(off, 0x03ff); \
-        M_CPDT(UNCOND,0,0,1,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2),1,(((off) < 0) ? 0 : 1),0); \
-    } while (0)
-
-#define M_LDFS_UPDATE(d,base,off) \
-    do { \
-        CHECK_OFFSET(off, 0x03ff); \
-        M_CPDT(UNCOND,1,0,0,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2),0,(((off) < 0) ? 0 : 1),1); \
-    } while (0)
-
-#define M_LDFD_UPDATE(d,base,off) \
-    do { \
-        CHECK_OFFSET(off, 0x03ff); \
-        M_CPDT(UNCOND,1,0,1,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2),0,(((off) < 0) ? 0 : 1),1); \
-    } while (0)
-
-#define M_STFS_UPDATE(d,base,off) \
-    do { \
-        CHECK_OFFSET(off, 0x03ff); \
-        M_CPDT(UNCOND,0,0,0,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2),1,(((off) < 0) ? 0 : 1),1); \
-    } while (0)
-
-#define M_STFD_UPDATE(d,base,off) \
-    do { \
-        CHECK_OFFSET(off, 0x03ff); \
-        M_CPDT(UNCOND,0,0,1,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2),1,(((off) < 0) ? 0 : 1),1); \
-    } while (0)
-
-#define M_ADFS(d,a,b)      M_CPDOS(UNCOND,0x00,0,d,a,b)         /* d = a +  b */
-#define M_SUFS(d,a,b)      M_CPDOS(UNCOND,0x02,0,d,a,b)         /* d = a -  b */
-#define M_RSFS(d,a,b)      M_CPDOS(UNCOND,0x03,0,d,a,b)         /* d = b -  a */
-#define M_MUFS(d,a,b)      M_CPDOS(UNCOND,0x01,0,d,a,b)         /* d = a *  b */
-#define M_DVFS(d,a,b)      M_CPDOS(UNCOND,0x04,0,d,a,b)         /* d = a /  b */
-#define M_RMFS(d,a,b)      M_CPDOS(UNCOND,0x08,0,d,a,b)         /* d = a %  b */
-#define M_ADFD(d,a,b)      M_CPDOD(UNCOND,0x00,0,d,a,b)         /* d = a +  b */
-#define M_SUFD(d,a,b)      M_CPDOD(UNCOND,0x02,0,d,a,b)         /* d = a -  b */
-#define M_RSFD(d,a,b)      M_CPDOD(UNCOND,0x03,0,d,a,b)         /* d = b -  a */
-#define M_MUFD(d,a,b)      M_CPDOD(UNCOND,0x01,0,d,a,b)         /* d = a *  b */
-#define M_DVFD(d,a,b)      M_CPDOD(UNCOND,0x04,0,d,a,b)         /* d = a /  b */
-#define M_RMFD(d,a,b)      M_CPDOD(UNCOND,0x08,0,d,a,b)         /* d = a %  b */
-#define M_MVFS(d,a)        M_CPDOS(UNCOND,0x00,1,d,0,a)         /* d =      a */
-#define M_MVFD(d,a)        M_CPDOD(UNCOND,0x00,1,d,0,a)         /* d =      a */
-#define M_MNFS(d,a)        M_CPDOS(UNCOND,0x01,1,d,0,a)         /* d =    - a */
-#define M_MNFD(d,a)        M_CPDOD(UNCOND,0x01,1,d,0,a)         /* d =    - a */
-#define M_CMF(a,b)         M_CPRTX(UNCOND,1,0x0f,a,b)           /* COMPARE a;  b */
-#define M_FLTS(d,a)        M_CPRTS(UNCOND,0,a,d,0)              /* d = (float) a */
-#define M_FLTD(d,a)        M_CPRTD(UNCOND,0,a,d,0)              /* d = (float) a */
-#define M_FIX(d,a)         M_CPRTI(UNCOND,1,d,0,a)              /* d = (int)   a */
-
-#endif /* !defined(ENABLE_SOFTFLOAT) */
-
-
-#define M_B(off)           M_BRA(UNCOND,0,off)    /* unconditional branch */
-#define M_BL(off)          M_BRA(UNCOND,1,off)    /* branch and link      */
-#define M_BEQ(off)         M_BRA(COND_EQ,0,off)   /* conditional branches */
-#define M_BNE(off)         M_BRA(COND_NE,0,off)
-#define M_BGE(off)         M_BRA(COND_GE,0,off)
-#define M_BGT(off)         M_BRA(COND_GT,0,off)
-#define M_BLT(off)         M_BRA(COND_LT,0,off)
-#define M_BLE(off)         M_BRA(COND_LE,0,off)
-#define M_BHI(off)         M_BRA(COND_HI,0,off)   /* unsigned conditional */
-#define M_BHS(off)         M_BRA(COND_CS,0,off)
-#define M_BLO(off)         M_BRA(COND_CC,0,off)
-#define M_BLS(off)         M_BRA(COND_LS,0,off)
-
-
-#define M_FMOV(a,b)        M_MVFS(b,a)
-#define M_DMOV(a,b)        M_MVFD(b,a)
 
 
 #define M_TRAP(a,i)        M_UNDEFINED(UNCOND,i,a);
@@ -692,6 +647,223 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #endif /* defined(__ARMEB__) */
 
 
+/******************************************************************************/
+/* macros for all floating point instructions *********************************/
+/******************************************************************************/
+
+#if !defined(ENABLE_SOFTFLOAT)
+
+#if defined(__VFP_FP__)
+#define M_FADD(a,b,d)      M_CPDP(UNCOND,0,1,1,0,10,0,0,0,d,a,b)/* d = a +  b */
+#define M_FSUB(a,b,d)      M_CPDP(UNCOND,0,1,1,1,10,0,0,0,d,a,b)/* d = a -  b */
+#define M_FMUL(a,b,d)      M_CPDP(UNCOND,0,1,0,0,10,0,0,0,d,a,b)/* d = a *  b */
+#define M_FDIV(a,b,d)      M_CPDP(UNCOND,1,0,0,0,10,0,0,0,d,a,b)/* d = a /  b */
+#define M_DADD(a,b,d)      M_CPDP(UNCOND,0,1,1,0,11,0,0,0,d,a,b)/* d = a +  b */
+#define M_DSUB(a,b,d)      M_CPDP(UNCOND,0,1,1,1,11,0,0,0,d,a,b)/* d = a -  b */
+#define M_DMUL(a,b,d)      M_CPDP(UNCOND,0,1,0,0,11,0,0,0,d,a,b)/* d = a *  b */
+#define M_DDIV(a,b,d)      M_CPDP(UNCOND,1,0,0,0,11,0,0,0,d,a,b)/* d = a /  b */
+
+#define M_FMOV(a,d)        M_CPDP(UNCOND,1,1,1,1,10,0,0,0,d,0x0,a)
+#define M_DMOV(a,d)        M_CPDP(UNCOND,1,1,1,1,11,0,0,0,d,0x0,a)
+#define M_FNEG(a,d)        M_CPDP(UNCOND,1,1,1,1,10,0,0,0,d,0x1,a)
+#define M_DNEG(a,d)        M_CPDP(UNCOND,1,1,1,1,11,0,0,0,d,0x1,a)
+
+#define M_FCMP(a,b)        M_CPDP(UNCOND,1,1,1,1,10,0,0,0,a,0x4,b)
+#define M_DCMP(a,b)        M_CPDP(UNCOND,1,1,1,1,11,0,0,0,a,0x4,b)
+
+#define M_CVTDF(a,d)       M_CPDP(UNCOND,1,1,1,1,11,0,1,0,d,0x7,a)
+#define M_CVTFD(a,d)       M_CPDP(UNCOND,1,1,1,1,10,0,1,0,d,0x7,a)
+#define M_CVTIF(a,d)       M_CPDP(UNCOND,1,1,1,1,10,0,1,0,d,0x8,a)
+#define M_CVTID(a,d)       M_CPDP(UNCOND,1,1,1,1,11,0,1,0,d,0x8,a)
+#define M_CVTFI(a,d)       M_CPDP(UNCOND,1,1,1,1,10,0,1,0,d,0xc,a)
+#define M_CVTDI(a,d)       M_CPDP(UNCOND,1,1,1,1,11,0,1,0,d,0xc,a)
+
+#define M_FMSTAT           M_CPRT(UNCOND,0x07,1,10,0,0x1,0xf)
+
+#define M_FMSR(a,Fb)       M_CPRT(UNCOND,0x00,0,10,0,Fb,a)
+#define M_FMRS(Fa,b)       M_CPRT(UNCOND,0x00,1,10,0,Fa,b)
+#define M_FMDLR(a,Fb)      M_CPRT(UNCOND,0x00,0,11,0,Fb,a)
+#define M_FMRDL(Fa,b)      M_CPRT(UNCOND,0x00,1,11,0,Fa,b)
+#define M_FMDHR(a,Fb)      M_CPRT(UNCOND,0x01,0,11,0,Fb,a)
+#define M_FMRDH(Fa,b)      M_CPRT(UNCOND,0x01,1,11,0,Fa,b)
+#else
+#define M_FADD(a,b,d)      M_CPDOS(UNCOND,0x00,0,d,a,b)         /* d = a +  b */
+#define M_FSUB(a,b,d)      M_CPDOS(UNCOND,0x02,0,d,a,b)         /* d = a -  b */
+#define M_FMUL(a,b,d)      M_CPDOS(UNCOND,0x01,0,d,a,b)         /* d = a *  b */
+#define M_FDIV(a,b,d)      M_CPDOS(UNCOND,0x04,0,d,a,b)         /* d = a /  b */
+#define M_RMFS(d,a,b)      M_CPDOS(UNCOND,0x08,0,d,a,b)         /* d = a %  b */
+#define M_DADD(a,b,d)      M_CPDOD(UNCOND,0x00,0,d,a,b)         /* d = a +  b */
+#define M_DSUB(a,b,d)      M_CPDOD(UNCOND,0x02,0,d,a,b)         /* d = a -  b */
+#define M_DMUL(a,b,d)      M_CPDOD(UNCOND,0x01,0,d,a,b)         /* d = a *  b */
+#define M_DDIV(a,b,d)      M_CPDOD(UNCOND,0x04,0,d,a,b)         /* d = a /  b */
+#define M_RMFD(d,a,b)      M_CPDOD(UNCOND,0x08,0,d,a,b)         /* d = a %  b */
+
+#define M_FMOV(a,d)        M_CPDOS(UNCOND,0x00,1,d,0,a)         /* d =      a */
+#define M_DMOV(a,d)        M_CPDOD(UNCOND,0x00,1,d,0,a)         /* d =      a */
+#define M_FNEG(a,d)        M_CPDOS(UNCOND,0x01,1,d,0,a)         /* d =    - a */
+#define M_DNEG(a,d)        M_CPDOD(UNCOND,0x01,1,d,0,a)         /* d =    - a */
+
+#define M_FCMP(a,b)        M_CPRTX(UNCOND,1,0x0f,a,b)           /* COMPARE a;  b */
+#define M_DCMP(a,b)        M_CPRTX(UNCOND,1,0x0f,a,b)           /* COMPARE a;  b */
+
+#define M_CVTDF(a,b)       M_FMOV(a,b)
+#define M_CVTFD(a,b)       M_DMOV(a,b)
+#define M_CVTIF(a,d)       M_CPRTS(UNCOND,0,a,d,0)              /* d = (float) a */
+#define M_CVTID(a,d)       M_CPRTD(UNCOND,0,a,d,0)              /* d = (float) a */
+#define M_CVTFI(a,d)       M_CPRTI(UNCOND,1,d,0,a)              /* d = (int)   a */
+#define M_CVTDI(a,d)       M_CPRTI(UNCOND,1,d,0,a)              /* d = (int)   a */
+#endif
+
+
+/* M_CAST_x2x:
+   loads the value of the integer-register a (argument or result) into
+   float-register Fb. (and vice versa)
+*/
+
+#if defined(__VFP_FP__)
+
+#define M_CAST_I2F(a,Fb) M_FMSR(a,Fb)
+
+#define M_CAST_F2I(Fa,b) M_FMRS(Fa,b)
+
+#define M_CAST_L2D(a,Fb) \
+	do { \
+		M_FMDLR(GET_LOW_REG(a), Fb); \
+		M_FMDHR(GET_HIGH_REG(a), Fb); \
+	} while (0)
+
+#define M_CAST_D2L(Fa,b) \
+	do { \
+		M_FMRDL(Fa, GET_LOW_REG(b)); \
+		M_FMRDH(Fa, GET_HIGH_REG(b)); \
+	} while (0)
+
+#else
+
+#define M_CAST_I2F(a,Fb) \
+	do { \
+		CHECK_FLT_REG(Fb); \
+		CHECK_INT_REG(a); \
+		M_STR_UPDATE(a, REG_SP, -4); \
+		M_FLD_UPDATE(Fb, REG_SP, 4); \
+	} while (0)
+
+#define M_CAST_L2D(a,Fb) \
+	do { \
+		CHECK_FLT_REG(Fb); \
+		CHECK_INT_REG(GET_LOW_REG(a)); \
+		CHECK_INT_REG(GET_HIGH_REG(a)); \
+		M_STRD_UPDATE(a, REG_SP, -8); \
+		M_DLD_UPDATE(Fb, REG_SP, 8); \
+	} while (0)
+
+#define M_CAST_F2I(Fa,b) \
+	do { \
+		CHECK_FLT_REG(Fa); \
+		CHECK_INT_REG(b); \
+		M_FST_UPDATE(Fa, REG_SP, -4); \
+		M_LDR_UPDATE(b, REG_SP, 4); \
+	} while (0)
+
+#define M_CAST_D2L(Fa,b) \
+	do { \
+		CHECK_INT_REG(GET_LOW_REG(b)); \
+		CHECK_INT_REG(GET_HIGH_REG(b)); \
+		M_DST_UPDATE(Fa, REG_SP, -8); \
+		M_LDRD_UPDATE(b, REG_SP, 8); \
+	} while (0)
+
+#endif
+
+/* M_xLD_xx & M_xST_xx:
+   XXX document me!
+*/
+
+#if defined(__VFP_FP__)
+
+#define M_FLD_INTERN(d,base,off) \
+    do { \
+        CHECK_OFFSET(off, 0x03ff); \
+        M_CPLS(UNCOND,1,1,(((off) < 0) ? 0 : 1),0,10,0,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2)); \
+    } while (0)
+
+#define M_DLD_INTERN(d,base,off) \
+    do { \
+        CHECK_OFFSET(off, 0x03ff); \
+		M_CPLS(UNCOND,1,1,(((off) < 0) ? 0 : 1),0,11,0,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2)); \
+    } while (0)
+
+#define M_FST_INTERN(d,base,off) \
+    do { \
+        CHECK_OFFSET(off, 0x03ff); \
+		M_CPLS(UNCOND,0,1,(((off) < 0) ? 0 : 1),0,10,0,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2)); \
+    } while (0)
+
+#define M_DST_INTERN(d,base,off) \
+    do { \
+        CHECK_OFFSET(off, 0x03ff); \
+		M_CPLS(UNCOND,0,1,(((off) < 0) ? 0 : 1),0,11,0,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2)); \
+    } while (0)
+
+#else
+
+#define M_FLD_INTERN(d,base,off) \
+    do { \
+        CHECK_OFFSET(off, 0x03ff); \
+        M_CPDT(UNCOND,1,0,0,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2),1,(((off) < 0) ? 0 : 1),0); \
+    } while (0)
+
+#define M_DLD_INTERN(d,base,off) \
+    do { \
+        CHECK_OFFSET(off, 0x03ff); \
+        M_CPDT(UNCOND,1,0,1,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2),1,(((off) < 0) ? 0 : 1),0); \
+    } while (0)
+
+#define M_FST_INTERN(d,base,off) \
+    do { \
+        CHECK_OFFSET(off, 0x03ff); \
+        M_CPDT(UNCOND,0,0,0,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2),1,(((off) < 0) ? 0 : 1),0); \
+    } while (0)
+
+#define M_DST_INTERN(d,base,off) \
+    do { \
+        CHECK_OFFSET(off, 0x03ff); \
+        M_CPDT(UNCOND,0,0,1,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2),1,(((off) < 0) ? 0 : 1),0); \
+    } while (0)
+
+#define M_FLD_UPDATE(d,base,off) \
+    do { \
+        CHECK_OFFSET(off, 0x03ff); \
+        M_CPDT(UNCOND,1,0,0,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2),0,(((off) < 0) ? 0 : 1),1); \
+    } while (0)
+
+#define M_DLD_UPDATE(d,base,off) \
+    do { \
+        CHECK_OFFSET(off, 0x03ff); \
+        M_CPDT(UNCOND,1,0,1,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2),0,(((off) < 0) ? 0 : 1),1); \
+    } while (0)
+
+#define M_FST_UPDATE(d,base,off) \
+    do { \
+        CHECK_OFFSET(off, 0x03ff); \
+        M_CPDT(UNCOND,0,0,0,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2),1,(((off) < 0) ? 0 : 1),1); \
+    } while (0)
+
+#define M_DST_UPDATE(d,base,off) \
+    do { \
+        CHECK_OFFSET(off, 0x03ff); \
+        M_CPDT(UNCOND,0,0,1,d,base,(((off) < 0) ? -(off) >> 2 : (off) >> 2),1,(((off) < 0) ? 0 : 1),1); \
+    } while (0)
+
+#endif
+
+#endif /* !defined(ENABLE_SOFTFLOAT) */
+
+
+/******************************************************************************/
+/* wrapper macros for load and store instructions *****************************/
+/******************************************************************************/
+
 /* M_LDR/M_STR:
    these are replacements for the original LDR/STR instructions, which can
    handle longer offsets (up to 20bits). the original functions are now
@@ -758,18 +930,19 @@ do { \
 } while (0)
 
 #if !defined(ENABLE_SOFTFLOAT)
+
 #define M_LDFS(d, base, offset) \
 do { \
 	CHECK_OFFSET(offset, 0x03ffff); \
 	if (IS_OFFSET(offset, 0x03ff)) { \
-		M_LDFS_INTERN(d, base, offset); \
+		M_FLD_INTERN(d, base, offset); \
 	} else { \
 		if ((offset) > 0) { \
 			M_ADD_IMM(REG_ITMP3, base, IMM_ROTL((offset) >> 10, 5)); \
-			M_LDFS_INTERN(d, REG_ITMP3, (offset) & 0x03ff); \
+			M_FLD_INTERN(d, REG_ITMP3, (offset) & 0x03ff); \
 		} else { \
 			M_SUB_IMM(REG_ITMP3, base, IMM_ROTL((-(offset)) >> 10, 5)); \
-			M_LDFS_INTERN(d, REG_ITMP3, -(-(offset) & 0x03ff)); \
+			M_FLD_INTERN(d, REG_ITMP3, -(-(offset) & 0x03ff)); \
 		} \
 	} \
 } while (0)
@@ -778,14 +951,14 @@ do { \
 do { \
 	CHECK_OFFSET(offset, 0x03ffff); \
 	if (IS_OFFSET(offset, 0x03ff)) { \
-		M_LDFD_INTERN(d, base, offset); \
+		M_DLD_INTERN(d, base, offset); \
 	} else { \
 		if ((offset) > 0) { \
 			M_ADD_IMM(REG_ITMP3, base, IMM_ROTL((offset) >> 10, 5)); \
-			M_LDFD_INTERN(d, REG_ITMP3, (offset) & 0x03ff); \
+			M_DLD_INTERN(d, REG_ITMP3, (offset) & 0x03ff); \
 		} else { \
 			M_SUB_IMM(REG_ITMP3, base, IMM_ROTL((-(offset)) >> 10, 5)); \
-			M_LDFD_INTERN(d, REG_ITMP3, -(-(offset) & 0x03ff)); \
+			M_DLD_INTERN(d, REG_ITMP3, -(-(offset) & 0x03ff)); \
 		} \
 	} \
 } while (0)
@@ -836,14 +1009,14 @@ do { \
 do { \
 	CHECK_OFFSET(offset, 0x03ffff); \
 	if (IS_OFFSET(offset, 0x03ff)) { \
-		M_STFS_INTERN(d, base, offset); \
+		M_FST_INTERN(d, base, offset); \
 	} else { \
 		if ((offset) > 0) { \
 			M_ADD_IMM(REG_ITMP3, base, IMM_ROTL((offset) >> 10, 5)); \
-			M_STFS_INTERN(d, REG_ITMP3, (offset) & 0x03ff); \
+			M_FST_INTERN(d, REG_ITMP3, (offset) & 0x03ff); \
 		} else { \
 			M_SUB_IMM(REG_ITMP3, base, IMM_ROTL((-(offset)) >> 10, 5)); \
-			M_STFS_INTERN(d, REG_ITMP3, -(-(offset) & 0x03ff)); \
+			M_FST_INTERN(d, REG_ITMP3, -(-(offset) & 0x03ff)); \
 		} \
 	} \
 } while (0)
@@ -852,19 +1025,24 @@ do { \
 do { \
 	CHECK_OFFSET(offset, 0x03ffff); \
 	if (IS_OFFSET(offset, 0x03ff)) { \
-		M_STFD_INTERN(d, base, offset); \
+		M_DST_INTERN(d, base, offset); \
 	} else { \
 		if ((offset) > 0) { \
 			M_ADD_IMM(REG_ITMP3, base, IMM_ROTL((offset) >> 10, 5)); \
-			M_STFD_INTERN(d, REG_ITMP3, (offset) & 0x03ff); \
+			M_DST_INTERN(d, REG_ITMP3, (offset) & 0x03ff); \
 		} else { \
 			M_SUB_IMM(REG_ITMP3, base, IMM_ROTL((-(offset)) >> 10, 5)); \
-			M_STFD_INTERN(d, REG_ITMP3, -(-(offset) & 0x03ff)); \
+			M_DST_INTERN(d, REG_ITMP3, -(-(offset) & 0x03ff)); \
 		} \
 	} \
 } while (0)
 
 #endif /* !defined(ENABLE_SOFTFLOAT) */
+
+
+/******************************************************************************/
+/* additional helper macros ***************************************************/
+/******************************************************************************/
 
 /* M_???_IMM_EXT_MUL4:
    extended immediate operations, to handle immediates lager than 8bit.
@@ -895,15 +1073,6 @@ do { \
 */
 
 #define ICONST(d,c)                     emit_iconst(cd, (d), (c))
-
-#define ICONST_CONDITIONAL(cond,d,const) \
-	if (IS_IMM(const)) { \
-		/* M_MOV_IMM */ M_DAT(cond,0x0d,d,0,0,1,const); \
-	} else { \
-		disp = dseg_adds4(cd, const); \
-		/* TODO: implement this using M_DSEG_LOAD!!! */ \
-		/* M_LDR_INTERN */ CHECK_OFFSET(disp,0x0fff); M_MEM(cond,1,0,d,REG_PV,(disp<0)?-disp:disp,0,1,(disp<0)?0:1,0); \
-	}
 
 #define LCONST(d,c) \
 	if (IS_IMM((c) >> 32)) { \
@@ -970,59 +1139,6 @@ do { \
             M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
         } \
     } while (0)
-
-
-#if !defined(ENABLE_SOFTFLOAT)
-
-/* M_FLTMOVE:
-   generates a floating-point-move from register a to b.
-   if a and b are the same float-register, no code will be generated.
-*/
-
-#define M_FLTMOVE(a,b) \
-    do { \
-        if ((a) != (b)) \
-            M_FMOV(a, b); \
-    } while (0)
-
-#define M_DBLMOVE(a,b) \
-    do { \
-        if ((a) != (b)) \
-            M_DMOV(a, b); \
-    } while (0)
-
-#endif
-
-#if !defined(ENABLE_SOFTFLOAT)
-/* M_CAST_INT_TO_FLT_TYPED:
-   loads the value of the integer-register a (argument or result) into
-   float-register Fb. (and vice versa)
-*/
-#define M_CAST_INT_TO_FLT_TYPED(t,a,Fb) \
-	CHECK_FLT_REG(Fb); \
-	if ((t) == TYPE_FLT) { \
-		CHECK_INT_REG(a); \
-		M_STR_UPDATE(a, REG_SP, -4); \
-		M_LDFS_UPDATE(Fb, REG_SP, 4); \
-	} else { \
-		CHECK_INT_REG(GET_LOW_REG(a)); \
-		CHECK_INT_REG(GET_HIGH_REG(a)); \
-		M_STRD_UPDATE(a, REG_SP, -8); \
-		M_LDFD_UPDATE(Fb, REG_SP, 8); \
-	}
-#define M_CAST_FLT_TO_INT_TYPED(t,Fa,b) \
-	CHECK_FLT_REG(Fa); \
-	if ((t) == TYPE_FLT) { \
-		CHECK_INT_REG(b); \
-		M_STFS_UPDATE(Fa, REG_SP, -4); \
-		M_LDR_UPDATE(b, REG_SP, 4); \
-	} else { \
-		CHECK_INT_REG(GET_LOW_REG(b)); \
-		CHECK_INT_REG(GET_HIGH_REG(b)); \
-		M_STFD_UPDATE(Fa, REG_SP, -8); \
-		M_LDRD_UPDATE(b, REG_SP, 8); \
-	}
-#endif /* !defined(ENABLE_SOFTFLOAT) */
 
 
 /* M_COMPARE:
@@ -1095,15 +1211,8 @@ do { \
 #define M_FLD(a,b,c)                    M_LDFS(a,b,c)
 #define M_DLD(a,b,c)                    M_LDFD(a,b,c)
 
-#define M_FLD_INTERN(a,b,c)             M_LDFS_INTERN(a,b,c)
-#define M_DLD_INTERN(a,b,c)             M_LDFD_INTERN(a,b,c)
-
-
 #define M_FST(a,b,c)                    M_STFS(a,b,c)
 #define M_DST(a,b,c)                    M_STFD(a,b,c)
-
-#define M_FST_INTERN(a,b,c)             M_STFS_INTERN(a,b,c)
-#define M_DST_INTERN(a,b,c)             M_STFD_INTERN(a,b,c)
 
 #endif /* !defined(ENABLE_SOFTFLOAT) */
 
