@@ -1876,58 +1876,57 @@ static bool threads_current_time_is_earlier_than(const struct timespec *tv)
 
 *******************************************************************************/
 
-static bool threads_wait_with_timeout(threadobject *thread,
-									  struct timespec *wakeupTime)
+static bool threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTime)
 {
 	bool wasinterrupted;
 
 	/* acquire the waitmutex */
 
-	pthread_mutex_lock(&thread->waitmutex);
+	pthread_mutex_lock(&t->waitmutex);
 
 	/* mark us as sleeping */
 
-	thread->sleeping = true;
+	t->sleeping = true;
 
 	/* wait on waitcond */
 
 	if (wakeupTime->tv_sec || wakeupTime->tv_nsec) {
 		/* with timeout */
-		while (!thread->interrupted && !thread->signaled
+		while (!t->interrupted && !t->signaled
 			   && threads_current_time_is_earlier_than(wakeupTime))
 		{
-			threads_thread_state_timed_waiting(thread);
+			threads_thread_state_timed_waiting(t);
 
-			pthread_cond_timedwait(&thread->waitcond, &thread->waitmutex,
+			pthread_cond_timedwait(&t->waitcond, &t->waitmutex,
 								   wakeupTime);
 
-			threads_thread_state_runnable(thread);
+			threads_thread_state_runnable(t);
 		}
 	}
 	else {
 		/* no timeout */
-		while (!thread->interrupted && !thread->signaled) {
-			threads_thread_state_waiting(thread);
+		while (!t->interrupted && !t->signaled) {
+			threads_thread_state_waiting(t);
 
-			pthread_cond_wait(&thread->waitcond, &thread->waitmutex);
+			pthread_cond_wait(&t->waitcond, &t->waitmutex);
 
-			threads_thread_state_runnable(thread);
+			threads_thread_state_runnable(t);
 		}
 	}
 
 	/* check if we were interrupted */
 
-	wasinterrupted = thread->interrupted;
+	wasinterrupted = t->interrupted;
 
 	/* reset all flags */
 
-	thread->interrupted = false;
-	thread->signaled    = false;
-	thread->sleeping    = false;
+	t->interrupted = false;
+	t->signaled    = false;
+	t->sleeping    = false;
 
 	/* release the waitmutex */
 
-	pthread_mutex_unlock(&thread->waitmutex);
+	pthread_mutex_unlock(&t->waitmutex);
 
 	return wasinterrupted;
 }
