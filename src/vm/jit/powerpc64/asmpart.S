@@ -683,7 +683,6 @@ asm_replacement_out:
 #endif /* defined(ENABLE_REPLACEMENT) */
 
 /* asm_cacheflush **************************************************************
-	copied from linux/arch/ppc64/kernel/vdso64/cacheflush.S
 	assumes 128 byte cache line size.
 	All registers used may be trashed for fun and profit.
 *******************************************************************************/
