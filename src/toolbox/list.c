@@ -27,6 +27,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <stdlib.h>
 
 #include "vm/types.h"
@@ -61,6 +62,20 @@ list_t *list_create(s4 nodeoffset)
 }
 
 
+/* list_free *******************************************************************
+
+   Free a list.
+
+*******************************************************************************/
+
+void list_free(list_t *l)
+{
+	assert(l != NULL);
+
+	FREE(l, list_t);
+}
+
+
 /* list_create_dump ************************************************************
 
    Allocates a new list on the dump memory.
@@ -81,6 +96,30 @@ list_t *list_create_dump(s4 nodeoffset)
 	l->size       = 0;
 
 	return l;
+}
+
+
+/* list_lock *******************************************************************
+
+   Locks the list.
+
+*******************************************************************************/
+
+void list_lock(list_t *l)
+{
+	LOCK_MONITOR_ENTER(l);
+}
+
+
+/* list_unlock *****************************************************************
+
+   Unlocks the list.
+
+*******************************************************************************/
+
+void list_unlock(list_t *l)
+{
+	LOCK_MONITOR_EXIT(l);
 }
 
 

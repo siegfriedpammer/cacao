@@ -120,6 +120,10 @@ struct list_t {
 
 list_t *list_create(s4 nodeoffset);
 list_t *list_create_dump(s4 nodeoffset);
+void    list_free(list_t *l);
+
+void    list_lock(list_t *l);
+void    list_unlock(list_t *l);
 
 void    list_add_first(list_t *l, void *element);
 void    list_add_first_unsynced(list_t *l, void *element);
