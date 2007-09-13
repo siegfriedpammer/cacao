@@ -204,6 +204,7 @@ bool exceptions_init(void)
 
 java_handle_t *exceptions_get_exception(void)
 {
+	java_object_t *o;
 	java_handle_t *e;
 #if defined(ENABLE_THREADS)
 	threadobject  *t;
@@ -216,10 +217,12 @@ java_handle_t *exceptions_get_exception(void)
 	LLNI_CRITICAL_START;
 
 #if defined(ENABLE_THREADS)
-	e = LLNI_WRAP(t->_exceptionptr);
+	o = t->_exceptionptr;
 #else
-	e = LLNI_WRAP(_no_threads_exceptionptr);
+	o = _no_threads_exceptionptr;
 #endif
+
+	e = LLNI_WRAP(o);
 
 	LLNI_CRITICAL_END;
 
@@ -235,22 +238,36 @@ java_handle_t *exceptions_get_exception(void)
 
 *******************************************************************************/
 
-void exceptions_set_exception(java_handle_t *o)
+void exceptions_set_exception(java_handle_t *e)
 {
-#if defined(ENABLE_THREADS)
-	threadobject *t;
+	threadobject  *t;
+	java_object_t *o;
 
+#if defined(ENABLE_THREADS)
 	t = THREADOBJECT;
+#else
+	t = NULL;
 #endif
 
 	/* Set the exception. */
 
 	LLNI_CRITICAL_START;
 
+	o = LLNI_UNWRAP(e);
+
+#if !defined(NDEBUG)
+	if (opt_DebugExceptions) {
+		printf("[exceptions_set_exception  : t=%p, o=%p, class=",
+			   (void *) t, (void *) o);
+		class_print(o->vftbl->class);
+		printf("]\n");
+	}
+#endif
+
 #if defined(ENABLE_THREADS)
-	t->_exceptionptr = LLNI_UNWRAP(o);
+	t->_exceptionptr = o;
 #else
-	_no_threads_exceptionptr = LLNI_UNWRAP(o);
+	_no_threads_exceptionptr = o;
 #endif
 
 	LLNI_CRITICAL_END;
@@ -265,7 +282,27 @@ void exceptions_set_exception(java_handle_t *o)
 
 void exceptions_clear_exception(void)
 {
-	exceptions_set_exception(NULL);
+	threadobject *t;
+
+#if defined(ENABLE_THREADS)
+	t = THREADOBJECT;
+#else
+	t = NULL;
+#endif
+
+	/* Set the exception. */
+
+#if !defined(NDEBUG)
+	if (opt_DebugExceptions) {
+		printf("[exceptions_clear_exception: t=%p]\n", (void *) t);
+	}
+#endif
+
+#if defined(ENABLE_THREADS)
+	t->_exceptionptr = NULL;
+#else
+	_no_threads_exceptionptr = NULL;
+#endif
 }
 
 
@@ -280,13 +317,14 @@ java_handle_t *exceptions_get_and_clear_exception(void)
 {
 	java_handle_t *o;
 
-	/* get the exception */
+	/* Get the exception... */
 
 	o = exceptions_get_exception();
 
-	/* and clear the exception */
+	/* ...and clear the exception if it is set. */
 
-	exceptions_clear_exception();
+	if (o != NULL)
+		exceptions_clear_exception();
 
 	/* return the exception */
 

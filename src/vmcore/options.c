@@ -173,6 +173,7 @@ const char *opt_filter_show_method = 0;
 
 /* NOTE: For better readability keep these alpha-sorted. */
 
+int      opt_DebugExceptions           = 0;
 int      opt_DebugPatcher              = 0;
 int      opt_DebugProperties           = 0;
 int32_t  opt_DebugStackFrameInfo       = 0;
@@ -206,6 +207,7 @@ enum {
 };
 
 enum {
+	OPT_DebugExceptions,
 	OPT_DebugPatcher,
 	OPT_DebugProperties,
 	OPT_DebugStackFrameInfo,
@@ -229,6 +231,7 @@ enum {
 
 
 option_t options_XX[] = {
+	{ "DebugExceptions",           OPT_DebugExceptions,           OPT_TYPE_BOOLEAN, "debug exceptions" },
 	{ "DebugPatcher",              OPT_DebugPatcher,              OPT_TYPE_BOOLEAN, "debug JIT code patching" },
 	{ "DebugProperties",           OPT_DebugProperties,           OPT_TYPE_BOOLEAN, "print debug information for properties" },
 	{ "DebugStackFrameInfo",       OPT_DebugStackFrameInfo,       OPT_TYPE_BOOLEAN, "TODO" },
@@ -508,6 +511,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 		/* Process the option. */
 
 		switch (opt->value) {
+		case OPT_DebugExceptions:
+			opt_DebugExceptions = enable;
+			break;
+
 		case OPT_DebugPatcher:
 			opt_DebugPatcher = enable;
 			break;
