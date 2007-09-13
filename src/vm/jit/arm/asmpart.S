@@ -58,11 +58,6 @@
 
 	.globl asm_cacheflush
 
-#if !defined(ENABLE_THREADS)
-asm_exceptionptr:
-	.word _no_threads_exceptionptr
-#endif
-
 
 /* asm_vm_call_method **********************************************************
 
