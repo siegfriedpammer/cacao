@@ -189,6 +189,7 @@ static char *trace_java_call_print_argument(char *logtext, s4 *logtextlen,
 void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 {
 	methoddesc *md;
+	classinfo  *c;
 	imm_union   arg;
 	char       *logtext;
 	s4          logtextlen;
@@ -215,7 +216,7 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 		strlen("-2147483647-") +        /* INT_MAX should be sufficient       */
 		TRACEJAVACALLINDENT +
 		strlen("called: ") +
-		utf_bytes(m->class->name) +
+		((m->class == NULL) ? strlen("NULL") : utf_bytes(m->class->name)) +
 		strlen(".") +
 		utf_bytes(m->name) +
 		utf_bytes(m->descriptor);
@@ -234,7 +235,8 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 		strlen(" TRANSIENT") +
 		strlen(" NATIVE") +
 		strlen(" INTERFACE") +
-		strlen(" ABSTRACT");
+		strlen(" ABSTRACT") +
+		strlen(" METHOD_BUILTIN");
 
 	/* add maximal argument length */
 
@@ -262,22 +264,26 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 
 	strcpy(logtext + pos, "called: ");
 
-	utf_cat_classname(logtext, m->class->name);
+	if (m->class != NULL)
+		utf_cat_classname(logtext, m->class->name);
+	else
+		strcat(logtext, "NULL");
 	strcat(logtext, ".");
 	utf_cat(logtext, m->name);
 	utf_cat(logtext, m->descriptor);
 
-	if (m->flags & ACC_PUBLIC)       strcat(logtext, " PUBLIC");
-	if (m->flags & ACC_PRIVATE)      strcat(logtext, " PRIVATE");
-	if (m->flags & ACC_PROTECTED)    strcat(logtext, " PROTECTED");
-	if (m->flags & ACC_STATIC)       strcat(logtext, " STATIC");
-	if (m->flags & ACC_FINAL)        strcat(logtext, " FINAL");
-	if (m->flags & ACC_SYNCHRONIZED) strcat(logtext, " SYNCHRONIZED");
-	if (m->flags & ACC_VOLATILE)     strcat(logtext, " VOLATILE");
-	if (m->flags & ACC_TRANSIENT)    strcat(logtext, " TRANSIENT");
-	if (m->flags & ACC_NATIVE)       strcat(logtext, " NATIVE");
-	if (m->flags & ACC_INTERFACE)    strcat(logtext, " INTERFACE");
-	if (m->flags & ACC_ABSTRACT)     strcat(logtext, " ABSTRACT");
+	if (m->flags & ACC_PUBLIC)         strcat(logtext, " PUBLIC");
+	if (m->flags & ACC_PRIVATE)        strcat(logtext, " PRIVATE");
+	if (m->flags & ACC_PROTECTED)      strcat(logtext, " PROTECTED");
+	if (m->flags & ACC_STATIC)         strcat(logtext, " STATIC");
+	if (m->flags & ACC_FINAL)          strcat(logtext, " FINAL");
+	if (m->flags & ACC_SYNCHRONIZED)   strcat(logtext, " SYNCHRONIZED");
+	if (m->flags & ACC_VOLATILE)       strcat(logtext, " VOLATILE");
+	if (m->flags & ACC_TRANSIENT)      strcat(logtext, " TRANSIENT");
+	if (m->flags & ACC_NATIVE)         strcat(logtext, " NATIVE");
+	if (m->flags & ACC_INTERFACE)      strcat(logtext, " INTERFACE");
+	if (m->flags & ACC_ABSTRACT)       strcat(logtext, " ABSTRACT");
+	if (m->flags & ACC_METHOD_BUILTIN) strcat(logtext, " METHOD_BUILTIN");
 
 	strcat(logtext, "(");
 
@@ -349,7 +355,7 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 		strlen("-2147483647-") +        /* INT_MAX should be sufficient       */
 		TRACEJAVACALLINDENT +
 		strlen("finished: ") +
-		utf_bytes(m->class->name) +
+		((m->class == NULL) ? strlen("NULL") : utf_bytes(m->class->name)) +
 		strlen(".") +
 		utf_bytes(m->name) +
 		utf_bytes(m->descriptor) +
@@ -376,7 +382,10 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 		logtext[pos++] = '\t';
 
 	strcpy(logtext + pos, "finished: ");
-	utf_cat_classname(logtext, m->class->name);
+	if (m->class != NULL)
+		utf_cat_classname(logtext, m->class->name);
+	else
+		strcat(logtext, "NULL");
 	strcat(logtext, ".");
 	utf_cat(logtext, m->name);
 	utf_cat(logtext, m->descriptor);

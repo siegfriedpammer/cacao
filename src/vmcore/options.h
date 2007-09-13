@@ -114,7 +114,6 @@ extern bool opt_shownops;
 extern bool opt_showddatasegment;
 extern bool opt_showintermediate;
 extern bool opt_showexceptionstubs;
-extern bool opt_shownativestub;
 
 extern bool checkbounds;
 extern bool opt_noieee;
@@ -194,6 +193,9 @@ extern int      opt_DebugPatcher;
 extern int      opt_DebugProperties;
 extern int32_t  opt_DebugStackFrameInfo;
 extern int32_t  opt_DebugStackTrace;
+#if defined(ENABLE_DISASSEMBLER)
+extern int      opt_DisassembleStubs;
+#endif
 #if defined(ENABLE_GC_CACAO)
 extern int32_t  opt_GCDebugRootSet;
 extern int32_t  opt_GCStress;

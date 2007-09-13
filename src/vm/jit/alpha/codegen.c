@@ -2614,8 +2614,6 @@ gen_method:
 				REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr);
 				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, -disp);
-
-				emit_exception_check(cd, iptr);
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -3102,198 +3100,18 @@ void codegen_emit_stub_compiler(jitdata *jd)
 }
 
 
-/* codegen_emit_stub_builtin ***************************************************
-
-   Emits a stub routine which calls a builtin function.
-
-*******************************************************************************/
-
-void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
-{
-	codeinfo    *code;
-	codegendata *cd;
-	methoddesc  *md;
-	s4           i;
-	s4           disp;
-	s4           s1;
-
-	/* get required compiler data */
-
-	code = jd->code;
-	cd   = jd->cd;
-
-	/* set some variables */
-
-	md = bte->md;
-
-	/* calculate stack frame size */
-
-	cd->stackframesize =
-		1 +                             /* return address                     */
-		sizeof(stackframeinfo) / SIZEOF_VOID_P +
-		md->paramcount;
-
-	/* create method header */
-
-	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
-	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
-	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
-
-	/* generate stub code */
-
-	M_LDA(REG_SP, REG_SP, -(cd->stackframesize * 8));
-	M_AST(REG_RA, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
-
-
-#if defined(ENABLE_GC_CACAO)
-	/* Save callee saved integer registers in stackframeinfo (GC may
-	   need to recover them during a collection). */
-
-	disp = cd->stackframesize * 8 - SIZEOF_VOID_P - sizeof(stackframeinfo) +
-		OFFSET(stackframeinfo, intregs);
-
-	for (i = 0; i < INT_SAV_CNT; i++)
-		M_AST(abi_registers_integer_saved[i], REG_SP, disp + i * 8);
-#endif
-
-	/* save integer and float argument registers */
-
-	for (i = 0; i < md->paramcount; i++) {
-		if (!md->params[i].inmemory) {
-			s1 = md->params[i].regoff;
-
-			switch (md->paramtypes[i].type) {
-			case TYPE_INT:
-			case TYPE_LNG:
-			case TYPE_ADR:
-				M_LST(s1, REG_SP, i * 8);
-				break;
-			case TYPE_FLT:
-			case TYPE_DBL:
-				M_DST(s1, REG_SP, i * 8);
-				break;
-			}
-		}
-	}
-
-	/* prepare data structures for native function call */
-
-	M_LDA(REG_A0, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
-	M_MOV(REG_PV, REG_A1);
-	M_LDA(REG_A2, REG_SP, cd->stackframesize * 8);
-	M_ALD(REG_A3, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
-	disp = dseg_add_functionptr(cd, codegen_stub_builtin_enter);
-	M_ALD(REG_PV, REG_PV, disp);
-	M_JSR(REG_RA, REG_PV);
-	disp = (s4) (cd->mcodeptr - cd->mcodebase);
-	M_LDA(REG_PV, REG_RA, -disp);
-
-	/* restore integer and float argument registers */
-
-	for (i = 0; i < md->paramcount; i++) {
-		if (!md->params[i].inmemory) {
-			s1 = md->params[i].regoff;
-
-			switch (md->paramtypes[i].type) {
-			case TYPE_INT:
-			case TYPE_LNG:
-			case TYPE_ADR:
-				M_LLD(s1, REG_SP, i * 8);
-				break;
-			case TYPE_FLT:
-			case TYPE_DBL:
-				M_DLD(s1, REG_SP, i * 8);
-				break;
-			}
-		}
-	}
-
-	/* do the builtin function call */
-
-	disp = dseg_add_functionptr(cd, bte->fp);
-	M_ALD(REG_PV, REG_PV, disp);
-	M_JSR(REG_RA, REG_PV);
-	disp = (s4) (cd->mcodeptr - cd->mcodebase);
-	M_LDA(REG_PV, REG_RA, -disp);       /* recompute pv from ra               */
-
-	/* save return value */
-
-	switch (md->returntype.type) {
-	case TYPE_INT:
-	case TYPE_LNG:
-	case TYPE_ADR:
-		M_LST(REG_RESULT, REG_SP, 0 * 8);
-		break;
-	case TYPE_FLT:
-	case TYPE_DBL:
-		M_DST(REG_FRESULT, REG_SP, 0 * 8);
-		break;
-	case TYPE_VOID:
-		break;
-	}
-
-	/* remove native stackframe info */
-
-	M_LDA(REG_A0, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
-	disp = dseg_add_functionptr(cd, codegen_stub_builtin_exit);
-	M_ALD(REG_PV, REG_PV, disp);
-	M_JSR(REG_RA, REG_PV);
-	disp = (s4) (cd->mcodeptr - cd->mcodebase);
-	M_LDA(REG_PV, REG_RA, -disp);
-	M_MOV(REG_RESULT, REG_ITMP1_XPTR);
-
-	/* restore return value */
-
-	switch (md->returntype.type) {
-	case TYPE_INT:
-	case TYPE_LNG:
-	case TYPE_ADR:
-		M_LLD(REG_RESULT, REG_SP, 0 * 8);
-		break;
-	case TYPE_FLT:
-	case TYPE_DBL:
-		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
-		break;
-	case TYPE_VOID:
-		break;
-	}
-
-#if defined(ENABLE_GC_CACAO)
-	/* Restore callee saved integer registers from stackframeinfo (GC
-	   might have modified them during a collection). */
-  	 
-	disp = cd->stackframesize * 8 - SIZEOF_VOID_P - sizeof(stackframeinfo) +
-		OFFSET(stackframeinfo, intregs);
-
-	for (i = 0; i < INT_SAV_CNT; i++)
-		M_ALD(abi_registers_integer_saved[i], REG_SP, disp + i * 8);
-#endif
-
-	M_ALD(REG_RA, REG_SP, (cd->stackframesize - 1) * 8); /* get RA            */
-	M_LDA(REG_SP, REG_SP, cd->stackframesize * 8);
-
-	M_RET(REG_ZERO, REG_RA);            /* return to caller                   */
-}
-
-
 /* codegen_emit_stub_native ****************************************************
 
    Emits a stub routine which calls a native method.
 
 *******************************************************************************/
 
-void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
+void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int skipparams)
 {
 	methodinfo  *m;
 	codeinfo    *code;
 	codegendata *cd;
 	methoddesc  *md;
-	s4           nativeparams;
 	s4           i, j;                 /* count variables                    */
 	s4           t;
 	s4           s1, s2, disp;
@@ -3308,7 +3126,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* initialize variables */
 
 	md = m->parseddesc;
-	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
 
 	/* calculate stack frame size */
 
@@ -3335,13 +3152,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	M_LDA(REG_SP, REG_SP, -(cd->stackframesize * 8));
 	M_AST(REG_RA, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
-
-	/* call trace function */
-
-#if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_enter(jd);
-#endif
 
 	/* get function address (this must happen before the stackframeinfo) */
 
@@ -3418,7 +3228,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* copy or spill arguments to new locations */
 
-	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
+	for (i = md->paramcount - 1, j = i + skipparams; i >= 0; i--, j--) {
 		t = md->paramtypes[i].type;
 
 		if (IS_INT_LNG_TYPE(t)) {
@@ -3464,15 +3274,19 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		}
 	}
 
-	/* put class into second argument register */
+	/* Handle native Java methods. */
 
-	if (m->flags & ACC_STATIC)
-		M_MOV(REG_ITMP3, REG_A1);
+	if (m->flags & ACC_NATIVE) {
+		/* put class into second argument register */
 
-	/* put env into first argument register */
+		if (m->flags & ACC_STATIC)
+			M_MOV(REG_ITMP3, REG_A1);
 
-	disp = dseg_add_address(cd, _Jv_env);
-	M_ALD(REG_A0, REG_PV, disp);
+		/* put env into first argument register */
+
+		disp = dseg_add_address(cd, _Jv_env);
+		M_ALD(REG_A0, REG_PV, disp);
+	}
 
 	/* do the native function call */
 
@@ -3496,13 +3310,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	case TYPE_VOID:
 		break;
 	}
-
-	/* call finished trace */
-
-#if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_exit(jd);
-#endif
 
 	/* remove native stackframe info */
 

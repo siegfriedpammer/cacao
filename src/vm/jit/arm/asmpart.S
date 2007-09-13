@@ -27,6 +27,8 @@
 
 #include "config.h"
 
+#include <sys/syscall.h>
+
 #include "vm/jit/arm/md-asm.h"
 
 #include "vm/jit/methodheader.h"
@@ -313,23 +315,34 @@ asm_abstractmethoderror:
 *                                                                              *
 *******************************************************************************/
 
-#if 1
-.equ sys_cacheflush, 0x9f0002
+.equ sys_cacheflush,__ARM_NR_cacheflush /* syscall number for cache flushing  */
+
 asm_cacheflush:
 	add   a1, a0, a1
 	mov   a2, #0
 
-#if 0
-	/* TWISTI: required on iyonix, maybe a linux-2.4 bug */
-	/* TODO: repeair this! */
-	/* cacheflush is messed up beyond all repair! */
-	mov a0, #0x0
-	mov a1, #0xff000000
+#if defined(__ARM_EABI__)
+	/* According to EABI, the syscall number should be passed via R7,
+	   see "http://wiki.debian.org/ArmEabiPort" for additional details. */
+
+	stmfd sp!, {r7}
+	mov   r7, #0x0f0000
+	add   r7, r7, #0x000002
 #endif
 
-	swi   #sys_cacheflush
-	mov   pc, lr
+#if 0
+	/* TWISTI: required on iyonix, maybe a linux-2.4 bug */
+	mov   a0, #0x0
+	mov   a1, #0xff000000
 #endif
+
+	swi   sys_cacheflush
+
+#if defined(__ARM_EABI__)
+	ldmfd sp!, {r7}
+#endif
+
+	mov   pc, lr
 
 
 /* disable exec-stacks ********************************************************/

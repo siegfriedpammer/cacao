@@ -252,7 +252,7 @@ void JVM_ArrayCopy(JNIEnv *env, jclass ignored, jobject src, jint src_pos, jobje
 	log_println("JVM_ArrayCopy: src=%p, src_pos=%d, dst=%p, dst_pos=%d, length=%d", src, src_pos, dst, dst_pos, length);
 #endif
 
-	(void) builtin_arraycopy(s, src_pos, d, dst_pos, length);
+	builtin_arraycopy(s, src_pos, d, dst_pos, length);
 }
 
 

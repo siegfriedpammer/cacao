@@ -1692,13 +1692,15 @@ bool codegen_emit(jitdata *jd)
 
 			/* arguments in place now */
 			switch(iptr->opc)	{
-				case ICMD_BUILTIN: 
-					disp = (ptrint) bte->fp;
+				case ICMD_BUILTIN:
+					if (bte->stub == NULL)
+						disp = (ptrint) bte->fp;
+					else
+						disp = (ptrint) bte->stub;
 					d = md->returntype.type;
 					M_JSR_IMM(disp);
 
 					REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
-					emit_exception_check(cd, iptr);
 					break;
 
 				case ICMD_INVOKESPECIAL: 

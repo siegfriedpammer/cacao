@@ -37,6 +37,32 @@
 #include "vm/jit/disass.h"
 
 
+/* disass_pseudo_instr *********************************************************
+
+   Outputs the disassembler listing of one pseudo instruction on
+   'stdout'. Trap instructions fall under this category.
+
+   Returns true if the instruction really was a pseudo instruction
+
+   code: pointer to machine code
+
+*******************************************************************************/
+
+static bool disass_pseudo_instr(u1 *code)
+{
+	s4 mcode;
+
+	mcode = *((s4 *) code);
+
+	if ((mcode & 0x0ff000f0) == 0x07f000f0) {
+		printf("ill\t#%d, #%d (condition:0x%x) (pseudo)", ((mcode >> 8) & 0x0fff), ((mcode >> 0) & 0x0f), ((mcode >> 28) & 0x0f));
+		return true;
+	}
+	else
+		return false;
+}
+
+
 /* disassinstr *****************************************************************
 
    Outputs a disassembler listing of one machine code instruction on
@@ -50,16 +76,22 @@ u1 *disassinstr(u1 *code)
 {
 	if (!disass_initialized) {
 		INIT_DISASSEMBLE_INFO(info, stdout, disass_printf);
+
+		/* setting the struct members must be done after
+		   INIT_DISASSEMBLE_INFO */
+
 		info.read_memory_func = &disass_buffer_read_memory;
+
 		disass_initialized = true;
 	}
 
 	printf("0x%08x:   %08x    ", (u4) code, *((s4 *) code));
 
+	if (!disass_pseudo_instr(code))
 #if defined(__ARMEL__)
-	print_insn_little_arm((bfd_vma) code, &info);
+		print_insn_little_arm((bfd_vma) code, &info);
 #else
-	print_insn_big_arm((bfd_vma) code, &info);
+		print_insn_big_arm((bfd_vma) code, &info);
 #endif
 
 	printf("\n");

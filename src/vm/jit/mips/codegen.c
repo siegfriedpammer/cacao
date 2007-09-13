@@ -3099,22 +3099,31 @@ gen_method:
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
-				disp = dseg_add_functionptr(cd, bte->fp);
+				if (bte->stub == NULL) {
+					disp = dseg_add_functionptr(cd, bte->fp);
+					M_ALD(REG_ITMP3, REG_PV, disp);  /* built-in-function pointer */
 
-				M_ALD(REG_ITMP3, REG_PV, disp);  /* built-in-function pointer */
+					/* generate the actual call */
 
-				/* generate the actual call */
+					/* TWISTI: i actually don't know the reason for using
+					   REG_ITMP3 here instead of REG_PV. */
 
-				/* TWISTI: i actually don't know the reason for using
-				   REG_ITMP3 here instead of REG_PV. */
+					M_JSR(REG_RA, REG_ITMP3);
+					M_NOP;
+				}
+				else {
+					disp = dseg_add_functionptr(cd, bte->stub);
+					M_ALD(REG_PV, REG_PV, disp);          /* method pointer in pv */
 
-				M_JSR(REG_RA, REG_ITMP3);
-				M_NOP;
+					/* generate the actual call */
+
+					M_JSR(REG_RA, REG_PV);
+					M_NOP;
+				}
+
 				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
 				disp = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_LDA(REG_PV, REG_RA, -disp);
-
-				emit_exception_check(cd, iptr);
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -3636,13 +3645,12 @@ void codegen_emit_stub_compiler(jitdata *jd)
 
 *******************************************************************************/
 
-void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
+void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int skipparams)
 {
 	methodinfo  *m;
 	codeinfo    *code;
 	codegendata *cd;
 	methoddesc  *md;
-	s4           nativeparams;
 	s4           i, j;
 	s4           t;
 	s4           s1, s2, disp;
@@ -3657,7 +3665,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* initialize variables */
 
 	md = m->parseddesc;
-	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
 
 	/* calculate stack frame size */
 
@@ -3801,7 +3808,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* copy or spill arguments to new locations */
 
-	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
+	for (i = md->paramcount - 1, j = i + skipparams; i >= 0; i--, j--) {
 		t = md->params[i].type;
 
 		if (IS_INT_LNG_TYPE(t)) {
@@ -3923,15 +3930,19 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		}
 	}
 
-	/* put class into second argument register */
+	/* Handle native Java methods. */
 
-	if (m->flags & ACC_STATIC)
-		M_MOV(REG_ITMP3, REG_A1);
+	if (m->flags & ACC_NATIVE) {
+		/* put class into second argument register */
 
-	/* put env into first argument register */
+		if (m->flags & ACC_STATIC)
+			M_MOV(REG_ITMP3, REG_A1);
 
-	disp = dseg_add_address(cd, _Jv_env);
-	M_ALD(REG_A0, REG_PV, disp);
+		/* put env into first argument register */
+
+		disp = dseg_add_address(cd, _Jv_env);
+		M_ALD(REG_A0, REG_PV, disp);
+	}
 
 	/* do the native function call */
 

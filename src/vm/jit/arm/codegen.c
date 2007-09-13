@@ -419,9 +419,6 @@ bool codegen_emit(jitdata *jd)
 				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_classinfo,
 				                    iptr->sx.val.c.ref, disp);
 
-				if (opt_showdisassemble)
-					M_NOP;
-
 				M_DSEG_LOAD(d, disp);
 			}
 			else {
@@ -1380,9 +1377,6 @@ bool codegen_emit(jitdata *jd)
 				disp      = dseg_add_unique_address(cd, NULL);
 
 				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
@@ -1392,9 +1386,6 @@ bool codegen_emit(jitdata *jd)
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
 					                    fi->class, 0);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 			}
 
@@ -1439,9 +1430,6 @@ bool codegen_emit(jitdata *jd)
 				disp      = dseg_add_unique_address(cd, NULL);
 
 				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
@@ -1451,9 +1439,6 @@ bool codegen_emit(jitdata *jd)
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
 					                    fi->class, 0);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 			}
 
@@ -1517,9 +1502,6 @@ bool codegen_emit(jitdata *jd)
 				uf = iptr->sx.s23.s3.uf;
 
 				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 
 			switch (fieldtype) {
@@ -1605,9 +1587,6 @@ bool codegen_emit(jitdata *jd)
 				uf = iptr->sx.s23.s3.uf;
 
 				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 
 			switch (fieldtype) {
@@ -1647,9 +1626,6 @@ bool codegen_emit(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				patcher_add_patch_ref(jd, PATCHER_resolve_class,
 									iptr->sx.s23.s2.uc, 0);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 			disp = dseg_add_functionptr(cd, asm_handle_exception);
 			M_DSEG_LOAD(REG_ITMP3, disp);
@@ -2104,9 +2080,6 @@ bool codegen_emit(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				patcher_add_patch_ref(jd, PATCHER_resolve_class,
 									iptr->sx.s23.s2.uc, 0);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 			goto ICMD_RETURN_do;
 
@@ -2277,8 +2250,6 @@ bool codegen_emit(jitdata *jd)
 				M_MOV(REG_PC, REG_PV);
 				s1 = (s4) (cd->mcodeptr - cd->mcodebase);
 				M_RECOMPUTE_PV(s1);
-
-				emit_exception_check(cd, iptr);
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -2291,9 +2262,6 @@ bool codegen_emit(jitdata *jd)
 
 					patcher_add_patch_ref(jd, PATCHER_invokestatic_special,
 										um, disp);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 				else
 					disp = dseg_add_address(cd, lm->stubroutine);
@@ -2311,9 +2279,6 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_INVOKEVIRTUAL:
 				if (lm == NULL) {
 					patcher_add_patch_ref(jd, PATCHER_invokevirtual, um, 0);
-
-					if (opt_showdisassemble)
-						M_NOP;
 
 					s1 = 0;
 				}
@@ -2337,9 +2302,6 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_INVOKEINTERFACE:
 				if (lm == NULL) {
 					patcher_add_patch_ref(jd, PATCHER_invokeinterface, um, 0);
-
-					if (opt_showdisassemble)
-						M_NOP;
 
 					s1 = 0;
 					s2 = 0;
@@ -2449,9 +2411,6 @@ bool codegen_emit(jitdata *jd)
 				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_flags,
 				                    iptr->sx.s23.s3.c.ref, disp);
 
-				if (opt_showdisassemble)
-					M_NOP;
-
 				M_DSEG_LOAD(REG_ITMP2, disp);
 				disp = dseg_add_s4(cd, ACC_INTERFACE);
 				M_DSEG_LOAD(REG_ITMP3, disp);
@@ -2468,9 +2427,6 @@ bool codegen_emit(jitdata *jd)
 				if (super == NULL) {
 					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_index,
 					                    iptr->sx.s23.s3.c.ref, disp);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 				else {
 					M_TST(s1, s1);
@@ -2535,9 +2491,6 @@ bool codegen_emit(jitdata *jd)
 					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_vftbl,
 					                    iptr->sx.s23.s3.c.ref,
 										disp);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 				else {
 					disp = dseg_add_address(cd, super->vftbl);
@@ -2585,9 +2538,6 @@ bool codegen_emit(jitdata *jd)
 					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_classinfo,
 										iptr->sx.s23.s3.c.ref,
 										disp);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 				else
 					disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
@@ -2649,9 +2599,6 @@ bool codegen_emit(jitdata *jd)
 				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_flags,
 				                    iptr->sx.s23.s3.c.ref, disp);
 
-				if (opt_showdisassemble)
-					M_NOP;
-
 				M_DSEG_LOAD(REG_ITMP2, disp);
 				disp = dseg_add_s4(cd, ACC_INTERFACE);
 				M_DSEG_LOAD(REG_ITMP3, disp);
@@ -2673,9 +2620,6 @@ bool codegen_emit(jitdata *jd)
 
 					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_index,
 					                    iptr->sx.s23.s3.c.ref, disp);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 				else {
 					M_EOR(d, d, d);
@@ -2745,9 +2689,6 @@ bool codegen_emit(jitdata *jd)
 
 					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_vftbl,
 					                    iptr->sx.s23.s3.c.ref, disp);
-
-					if (opt_showdisassemble)
-						M_NOP;
 				}
 				else {
 					disp = dseg_add_address(cd, super->vftbl);
@@ -2819,9 +2760,6 @@ bool codegen_emit(jitdata *jd)
 
 				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_classinfo,
 									iptr->sx.s23.s3.c.ref, disp);
-
-				if (opt_showdisassemble)
-					M_NOP;
 			}
 			else
 				disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
@@ -2907,155 +2845,17 @@ void codegen_emit_stub_compiler(jitdata *jd)
 }
 
 
-/* codegen_emit_stub_builtin ***************************************************
-
-   Emits a stub routine which calls a builtin function.
-
-*******************************************************************************/
-
-void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
-{
-	codeinfo    *code;
-	codegendata *cd;
-	methoddesc  *md;
-	s4           i;
-	s4           disp;
-	s4           s1;
-
-	/* get required compiler data */
-
-	code = jd->code;
-	cd   = jd->cd;
-
-	/* set some variables */
-
-	md = bte->md;
-
-	/* calculate stack frame size */
-
-	cd->stackframesize =
-		SIZEOF_VOID_P +                                    /* return address  */
-		sizeof(stackframeinfo);                            /* stackframeinfo  */
-
-	/* align stack to 8-byte */
-
-	cd->stackframesize = (cd->stackframesize + 4) & ~4;
-
-	/* create method header */
-
-	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize);     /* FrameSize       */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
-	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
-	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
-
-	/* generate stub code */
-
-	M_SUB_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize / 4 - 1);
-	M_STMFD(1<<REG_LR, REG_SP);
-
-#if defined(ENABLE_GC_CACAO)
-	/* Save callee saved integer registers in stackframeinfo (GC may
-	   need to recover them during a collection). */
-
-	disp = cd->stackframesize - sizeof(stackframeinfo) +
-		OFFSET(stackframeinfo, intregs);
-
-	for (i = 0; i < INT_SAV_CNT; i++)
-		M_STR_INTERN(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
-#endif
-
-	/* Save integer and float argument registers (these are 4
-	   registers, stack is 8-byte aligned). */
-
-	M_STMFD(BITMASK_ARGS, REG_SP);
-
-	/* create builtin stackframe info */
-
-	assert(IS_IMM(4*4 + cd->stackframesize));
-	M_ADD_IMM(REG_A0, REG_SP, 4*4 + cd->stackframesize);
-	M_MOV(REG_A1, REG_PV);
-	M_ADD_IMM(REG_A2, REG_SP, 4*4 + cd->stackframesize);
-	M_LDR_INTERN(REG_A3, REG_SP, 4*4);
-	disp = dseg_add_functionptr(cd, codegen_stub_builtin_enter);
-	M_DSEG_BRANCH(disp);
-
-	s1 = (s4) (cd->mcodeptr - cd->mcodebase);
-	M_RECOMPUTE_PV(s1);
-
-	/* Restore integer and float argument registers (these are 4
-	   registers, stack is 8-byte aligned). */
-
-	M_LDMFD(BITMASK_ARGS, REG_SP);
-
-	/* builtins are allowed to have 4 arguments max */
-
-	assert(md->paramcount <= 4);
-	for (i = 0; i < md->paramcount; i++) {
-		assert(!IS_2_WORD_TYPE(md->paramtypes[i].type));
-	}
-
-	/* call the builtin function */
-
-	disp = dseg_add_functionptr(cd, bte->fp);
-	M_DSEG_BRANCH(disp);
-
-	/* recompute pv */
-
-	s1 = (s4) (cd->mcodeptr - cd->mcodebase);
-	M_RECOMPUTE_PV(s1);
-
-	/* save return value */
-
-	assert(!IS_FLT_DBL_TYPE(md->returntype.type));
-	M_STMFD(BITMASK_RESULT, REG_SP);
-
-	/* remove builtin stackframe info */
-
-	M_ADD_IMM(REG_A0, REG_SP, 2*4 + cd->stackframesize);
-	disp = dseg_add_functionptr(cd, codegen_stub_builtin_exit);
-	M_DSEG_BRANCH(disp);
-	/*s1 = (s4) (cd->mcodeptr - cd->mcodebase);
-	M_RECOMPUTE_PV(s1);*/
-
-	/* restore return value */
-
-	M_LDMFD(BITMASK_RESULT, REG_SP);
-
-#if defined(ENABLE_GC_CACAO)
-	/* Restore callee saved integer registers from stackframeinfo (GC
-	   might have modified them during a collection). */
-        
-	disp = cd->stackframesize - sizeof(stackframeinfo) +
-		OFFSET(stackframeinfo, intregs);
-
-	for (i = 0; i < INT_SAV_CNT; i++)
-		M_LDR_INTERN(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
-#endif
-
-	/* remove stackframe and return */
-
-	M_LDMFD(1<<REG_LR, REG_SP);
-	M_ADD_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize / 4 - 1);
-	M_MOV(REG_PC, REG_LR);
-}
-
-
 /* codegen_emit_stub_native ****************************************************
 
    Emits a stub routine which calls a native method.
 
 *******************************************************************************/
 
-void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
+void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int skipparams)
 {
 	methodinfo  *m;
 	codeinfo    *code;
 	codegendata *cd;
-	s4           nativeparams;
 	methoddesc  *md;
 	s4           i, j;
 	s4           t;
@@ -3070,7 +2870,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* initialize variables */
 
 	md = m->parseddesc;
-	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
 
 	/* calculate stackframe size */
 
@@ -3109,12 +2908,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	funcdisp = dseg_add_functionptr(cd, f);
 
-	if (f == NULL) {
+	if (f == NULL)
 		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, funcdisp);
-
-		if (opt_showdisassemble)
-			M_NOP;
-	}
 
 #if defined(ENABLE_GC_CACAO)
 	/* Save callee saved integer registers in stackframeinfo (GC may
@@ -3159,7 +2954,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* copy or spill arguments to new locations */
 	/* ATTENTION: the ARM has only integer argument registers! */
 
-	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
+	for (i = md->paramcount - 1, j = i + skipparams; i >= 0; i--, j--) {
 		t = md->paramtypes[i].type;
 
 		if (!md->params[i].inmemory) {
@@ -3202,15 +2997,19 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		}
 	}
 
-	/* put class into second argument register */
+	/* Handle native Java methods. */
 
-	if (m->flags & ACC_STATIC)
-		M_MOV(REG_A1, REG_ITMP3);
+	if (m->flags & ACC_NATIVE) {
+		/* put class into second argument register */
 
-	/* put env into first argument register */
+		if (m->flags & ACC_STATIC)
+			M_MOV(REG_A1, REG_ITMP3);
 
-	disp = dseg_add_address(cd, _Jv_env);
-	M_DSEG_LOAD(REG_A0, disp);
+		/* put env into first argument register */
+
+		disp = dseg_add_address(cd, _Jv_env);
+		M_DSEG_LOAD(REG_A0, disp);
+	}
 
 	/* do the native function call */
 

@@ -1192,18 +1192,15 @@ u1 *codegen_generate_stub_compiler(methodinfo *m)
 
 /* codegen_generate_stub_builtin ***********************************************
 
-   Wrapper for codegen_emit_stub_builtin.
-
-   Returns:
-       Pointer to the entrypoint of the stub.
+   Wrapper for codegen_emit_stub_native.
 
 *******************************************************************************/
 
 void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 {
-#if defined(__ARM__) || defined(__ALPHA__) || defined(__I386__) || defined(__M68K__) || defined(__POWERPC__) || defined(__SPARC64__) || defined(__X86_64__)
 	jitdata  *jd;
 	codeinfo *code;
+	int       skipparams;
 	s4        dumpsize;
 
 	/* mark dump memory */
@@ -1219,7 +1216,7 @@ void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 
 	/* Allocate codeinfo memory from the heap as we need to keep them. */
 
-	jd->code  = code_codeinfo_new(m); /* XXX check allocation */
+	jd->code  = code_codeinfo_new(m);
 
 	/* get required compiler data */
 
@@ -1229,24 +1226,18 @@ void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 
 	codegen_setup(jd);
 
+	/* Set the number of native arguments we need to skip. */
+
+	skipparams = 0;
+
 	/* generate the code */
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (!opt_intrp) {
 # endif
-		/* XXX This is only a hack for builtin_arraycopy and should be done better! */
-		if (bte->flags & BUILTINTABLE_FLAG_EXCEPTION) {
-			assert(bte->md->returntype.type == TYPE_VOID);
-			bte->md->returntype.type = TYPE_INT;
-		}
-
-		codegen_emit_stub_builtin(jd, bte);
-
-		/* XXX see above */
-		if (bte->flags & BUILTINTABLE_FLAG_EXCEPTION) {
-			bte->md->returntype.type = TYPE_VOID;
-		}
+		assert(bte->fp != NULL);
+		codegen_emit_stub_native(jd, bte->md, bte->fp, skipparams);
 # if defined(ENABLE_INTRP)
 	}
 # endif
@@ -1265,10 +1256,24 @@ void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 		size_stub_native += code->mcodelength;
 #endif
 
+#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
+	/* disassemble native stub */
+
+	if (opt_DisassembleStubs) {
+		codegen_disassemble_stub(m,
+								 (u1 *) (ptrint) code->entrypoint,
+								 (u1 *) (ptrint) code->entrypoint + (code->mcodelength - jd->cd->dseglen));
+
+		/* show data segment */
+
+		if (opt_showddatasegment)
+			dseg_display(jd);
+	}
+#endif /* !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER) */
+
 	/* release memory */
 
 	dump_release(dumpsize);
-#endif /* architecture list */
 }
 
 
@@ -1288,7 +1293,7 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 	s4           dumpsize;
 	methoddesc  *md;
 	methoddesc  *nmd;	
-	s4           nativeparams;
+	int          skipparams;
 
 	/* mark dump memory */
 
@@ -1303,7 +1308,7 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 
 	/* Allocate codeinfo memory from the heap as we need to keep them. */
 
-	jd->code  = code_codeinfo_new(m); /* XXX check allocation */
+	jd->code  = code_codeinfo_new(m);
 
 	/* get required compiler data */
 
@@ -1333,13 +1338,19 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 	/* create new method descriptor with additional native parameters */
 
 	md = m->parseddesc;
-	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
+
+	/* Set the number of native arguments we need to skip. */
+
+	if (m->flags & ACC_STATIC)
+		skipparams = 2;
+	else
+		skipparams = 1;
 	
 	nmd = (methoddesc *) DMNEW(u1, sizeof(methoddesc) - sizeof(typedesc) +
 							   md->paramcount * sizeof(typedesc) +
-							   nativeparams * sizeof(typedesc));
+							   skipparams * sizeof(typedesc));
 
-	nmd->paramcount = md->paramcount + nativeparams;
+	nmd->paramcount = md->paramcount + skipparams;
 
 	nmd->params = DMNEW(paramdesc, nmd->paramcount);
 
@@ -1348,7 +1359,7 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 	if (m->flags & ACC_STATIC)
 		nmd->paramtypes[1].type = TYPE_ADR; /* add class pointer              */
 
-	MCOPY(nmd->paramtypes + nativeparams, md->paramtypes, typedesc,
+	MCOPY(nmd->paramtypes + skipparams, md->paramtypes, typedesc,
 		  md->paramcount);
 
 #if defined(ENABLE_JIT)
@@ -1368,7 +1379,7 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 		intrp_createnativestub(f, jd, nmd);
 	else
 # endif
-		codegen_emit_stub_native(jd, nmd, f);
+		codegen_emit_stub_native(jd, nmd, f, skipparams);
 #else
 	intrp_createnativestub(f, jd, nmd);
 #endif
@@ -1384,19 +1395,17 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 		size_stub_native += code->mcodelength;
 #endif
 
-#if !defined(NDEBUG)
+#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 	/* disassemble native stub */
 
-	if (opt_shownativestub) {
-#if defined(ENABLE_DEBUG_FILTER)
+	if (opt_DisassembleStubs) {
+# if defined(ENABLE_DEBUG_FILTER)
 		if (m->filtermatches & SHOW_FILTER_FLAG_SHOW_METHOD)
-#endif
+# endif
 		{
-#if defined(ENABLE_DISASSEMBLER)
-			codegen_disassemble_nativestub(m,
-										   (u1 *) (ptrint) code->entrypoint,
-										   (u1 *) (ptrint) code->entrypoint + (code->mcodelength - jd->cd->dseglen));
-#endif
+			codegen_disassemble_stub(m,
+									 (u1 *) (ptrint) code->entrypoint,
+									 (u1 *) (ptrint) code->entrypoint + (code->mcodelength - jd->cd->dseglen));
 
 			/* show data segment */
 
@@ -1404,7 +1413,7 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 				dseg_display(jd);
 		}
 	}
-#endif /* !defined(NDEBUG) */
+#endif /* !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER) */
 
 	/* release memory */
 
@@ -1418,79 +1427,26 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 
 /* codegen_disassemble_nativestub **********************************************
 
-   Disassembles the generated native stub.
+   Disassembles the generated builtin or native stub.
 
 *******************************************************************************/
 
 #if defined(ENABLE_DISASSEMBLER)
-void codegen_disassemble_nativestub(methodinfo *m, u1 *start, u1 *end)
+void codegen_disassemble_stub(methodinfo *m, u1 *start, u1 *end)
 {
-	printf("Native stub: ");
-	utf_fprint_printable_ascii_classname(stdout, m->class->name);
+	printf("Stub code: ");
+	if (m->class != NULL)
+		utf_fprint_printable_ascii_classname(stdout, m->class->name);
+	else
+		printf("NULL");
 	printf(".");
 	utf_fprint_printable_ascii(stdout, m->name);
 	utf_fprint_printable_ascii(stdout, m->descriptor);
-	printf("\n\nLength: %d\n\n", (s4) (end - start));
+	printf("\nLength: %d\n\n", (s4) (end - start));
 
 	DISASSEMBLE(start, end);
 }
 #endif
-
-
-/* codegen_stub_builtin_enter **************************************************
-
-   Prepares the stuff required for a builtin function call:
-
-   - adds a stackframe info structure to the chain, for stacktraces
-
-   The layout of the builtin stub stackframe should look like this:
-
-   +---------------------------+ <- SP (of parent Java function)
-   | return address            |
-   +---------------------------+
-   |                           |
-   | stackframe info structure |
-   |                           |
-   +---------------------------+
-   |                           |
-   | arguments (if any)        |
-   |                           |
-   +---------------------------+ <- SP (native stub)
-
-*******************************************************************************/
-
-void codegen_stub_builtin_enter(u1 *datasp, u1 *pv, u1 *sp, u1 *ra)
-{
-	stackframeinfo *sfi;
-
-	/* get data structures from stack */
-
-	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
-
-	/* add a stackframeinfo to the chain */
-
-	stacktrace_create_native_stackframeinfo(sfi, pv, sp, ra);
-}
-
-
-/* codegen_stub_builtin_exit ***************************************************
-
-   Removes the stuff required for a builtin function call.
-
-*******************************************************************************/
-
-void codegen_stub_builtin_exit(u1 *datasp)
-{
-	stackframeinfo *sfi;
-
-	/* get data structures from stack */
-
-	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
-
-	/* remove current stackframeinfo from chain */
-
-	stacktrace_remove_stackframeinfo(sfi);
-}
 
 
 /* codegen_start_native_call ***************************************************
@@ -1545,7 +1501,7 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 	code      = *((codeinfo **) (pv + CodeinfoPointer));
 	framesize = *((int32_t *)   (pv + FrameSize));
 	assert(code);
-	assert(framesize > sizeof(stackframeinfo) + sizeof(localref_table));
+	assert(framesize >= sizeof(stackframeinfo) + sizeof(localref_table));
 
 	/* get the methodinfo */
 
@@ -1565,17 +1521,23 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 	datasp    = currentsp + framesize - 8;
 	javasp    = currentsp + framesize;
 	javara    = *((uint8_t **) datasp);
-#elif defined(__I386__) || defined (__M68K__) || defined (__X86_64__)
+#elif defined(__I386__) || defined(__M68K__) || defined(__X86_64__)
 	datasp    = currentsp + framesize;
 	javasp    = currentsp + framesize + SIZEOF_VOID_P;
 	javara    = *((uint8_t **) datasp);
 	arg_regs  = (uint64_t *) currentsp;
 	arg_stack = (uint64_t *) javasp;
-#elif defined(__POWERPC__) || defined(__POWERPC64__)
+#elif defined(__POWERPC__)
 	datasp    = currentsp + framesize;
 	javasp    = currentsp + framesize;
 	javara    = *((uint8_t **) (datasp + LA_LR_OFFSET));
 	arg_regs  = (uint64_t *) (currentsp + LA_SIZE + 4 * SIZEOF_VOID_P);
+	arg_stack = (uint64_t *) javasp;
+#elif defined(__POWERPC64__)
+	datasp    = currentsp + framesize;
+	javasp    = currentsp + framesize;
+	javara    = *((uint8_t **) (datasp + LA_LR_OFFSET));
+	arg_regs  = (uint64_t *) (currentsp + PA_SIZE + LA_SIZE + 4 * SIZEOF_VOID_P);
 	arg_stack = (uint64_t *) javasp;
 #else
 	/* XXX is was unable to do this port for SPARC64, sorry. (-michi) */
@@ -1584,7 +1546,7 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 #endif
 
 #if !defined(NDEBUG)
-# if defined(__POWERPC__) || defined (__X86_64__)
+# if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 
 	if (opt_TraceJavaCalls)
@@ -1614,7 +1576,7 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 
 	stacktrace_create_native_stackframeinfo(sfi, pv, javasp, javara);
 
-	/* return a wrapped classinfo for static methods */
+	/* return a wrapped classinfo for static native methods */
 
 	if (m->flags & ACC_STATIC)
 		return LLNI_classinfo_wrap(m->class);
@@ -1665,19 +1627,22 @@ java_object_t *codegen_finish_native_call(u1 *currentsp, u1 *pv)
 #elif defined(__I386__)
 	datasp   = currentsp + framesize;
 	ret_regs = (uint64_t *) (currentsp + 2 * SIZEOF_VOID_P);
-#elif defined (__M68K__) || defined (__X86_64__)
+#elif defined(__M68K__) || defined(__X86_64__)
 	datasp   = currentsp + framesize;
 	ret_regs = (uint64_t *) currentsp;
-#elif defined(__POWERPC__) || defined(__POWERPC64__)
+#elif defined(__POWERPC__)
 	datasp   = currentsp + framesize;
 	ret_regs = (uint64_t *) (currentsp + LA_SIZE + 2 * SIZEOF_VOID_P);
+#elif defined(__POWERPC64__)
+	datasp   = currentsp + framesize;
+	ret_regs = (uint64_t *) (currentsp + PA_SIZE + LA_SIZE + 2 * SIZEOF_VOID_P);
 #else
 	vm_abort("codegen_finish_native_call: unsupported architecture");
 #endif
 
 
 #if !defined(NDEBUG)
-# if defined(__POWERPC__) || defined (__X86_64__)
+# if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 
 	if (opt_TraceJavaCalls)

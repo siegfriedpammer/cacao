@@ -99,7 +99,6 @@ bool opt_shownops           = false;
 bool opt_showddatasegment   = false;    /* generate data segment listing      */
 bool opt_showintermediate   = false;    /* generate intermediate code listing */
 bool opt_showexceptionstubs = false;
-bool opt_shownativestub     = false;
 
 bool checkbounds = true;       /* check array bounds                         */
 bool opt_noieee = false;       /* don't implement ieee compliant floats      */
@@ -179,6 +178,9 @@ int      opt_DebugPatcher              = 0;
 int      opt_DebugProperties           = 0;
 int32_t  opt_DebugStackFrameInfo       = 0;
 int32_t  opt_DebugStackTrace           = 0;
+#if defined(ENABLE_DISASSEMBLER)
+int      opt_DisassembleStubs          = 0;
+#endif
 #if defined(ENABLE_GC_CACAO)
 int32_t  opt_GCDebugRootSet            = 0;
 int32_t  opt_GCStress                  = 0;
@@ -209,6 +211,7 @@ enum {
 	OPT_DebugProperties,
 	OPT_DebugStackFrameInfo,
 	OPT_DebugStackTrace,
+	OPT_DisassembleStubs,
 	OPT_GCDebugRootSet,
 	OPT_GCStress,
 	OPT_MaxPermSize,
@@ -231,6 +234,9 @@ option_t options_XX[] = {
 	{ "DebugProperties",           OPT_DebugProperties,           OPT_TYPE_BOOLEAN, "print debug information for properties" },
 	{ "DebugStackFrameInfo",       OPT_DebugStackFrameInfo,       OPT_TYPE_BOOLEAN, "TODO" },
 	{ "DebugStackTrace",           OPT_DebugStackTrace,           OPT_TYPE_BOOLEAN, "debug stacktrace creation" },
+#if defined(ENABLE_DISASSEMBLER)
+	{ "DisassembleStubs",          OPT_DisassembleStubs,          OPT_TYPE_BOOLEAN, "disassemble builtin and native stubs when generated" },
+#endif
 #if defined(ENABLE_GC_CACAO)
 	{ "GCDebugRootSet",            OPT_GCDebugRootSet,            OPT_TYPE_BOOLEAN, "GC: print root-set at collection" },
 	{ "GCStress",                  OPT_GCStress,                  OPT_TYPE_BOOLEAN, "GC: forced collection at every allocation" },
@@ -515,6 +521,12 @@ void options_xx(JavaVMInitArgs *vm_args)
 			opt_DebugStackFrameInfo = enable;
 			break;
 
+
+#if defined(ENABLE_DISASSEMBLER)
+	case OPT_DisassembleStubs:
+		opt_DisassembleStubs = enable;
+		break;
+#endif
 
 #if defined(ENABLE_GC_CACAO)
 		case OPT_GCDebugRootSet:

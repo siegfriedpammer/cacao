@@ -2398,12 +2398,11 @@ gen_method:
 			case ICMD_BUILTIN:
 				if (bte->stub == NULL) {
 					M_MOV_IMM(bte->fp, REG_ITMP1);
-				} else {
+				}
+				else {
 					M_MOV_IMM(bte->stub, REG_ITMP1);
 				}
 				M_CALL(REG_ITMP1);
-
-				emit_exception_check(cd, iptr);
 				break;
 
 			case ICMD_INVOKESPECIAL:
@@ -2904,192 +2903,20 @@ void codegen_emit_stub_compiler(jitdata *jd)
 }
 
 
-/* codegen_emit_stub_builtin ***************************************************
-
-   Creates a stub routine which calls a builtin function.
-
-*******************************************************************************/
-
-void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
-{
-	codeinfo    *code;
-	codegendata *cd;
-	methoddesc  *md;
-	s4           i, j;
-	s4           s1, disp;
-
-	/* get required compiler data */
-
-	code = jd->code;
-	cd   = jd->cd;
-
-	md = bte->md;
-
-	/* calculate stack frame size */
-
-	cd->stackframesize =
-		sizeof(stackframeinfo) / SIZEOF_VOID_P +
-		md->paramcount +                          /* saved argument registers */
-		1;                                                    /* return value */
-
-	cd->stackframesize |= 0x1;                  /* keep stack 16-byte aligned */
-
-	/* create method header */
-
-	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
-	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
-	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
-
-	/* generate stub code */
-
-	M_ASUB_IMM(cd->stackframesize * 8, REG_SP);
-
-#if defined(ENABLE_GC_CACAO)
-	/* Save callee saved integer registers in stackframeinfo (GC may
-	   need to recover them during a collection). */
-
-	disp = cd->stackframesize * 8 - sizeof(stackframeinfo) +
-		OFFSET(stackframeinfo, intregs);
-
-	for (i = 0; i < INT_SAV_CNT; i++)
-		M_AST(abi_registers_integer_saved[i], REG_SP, disp + i * 8);
-#endif
-
-	/* save integer and float argument registers */
-
-	for (i = 0, j = 0; i < md->paramcount; i++) {
-		if (!md->params[i].inmemory) {
-			s1 = md->params[i].regoff;
-
-			switch (md->paramtypes[i].type) {
-			case TYPE_INT:
-			case TYPE_LNG:
-			case TYPE_ADR:
-				M_LST(s1, REG_SP, j * 8);
-				break;
-			case TYPE_FLT:
-			case TYPE_DBL:
-				M_DST(s1, REG_SP, j * 8);
-				break;
-			}
-
-			j++;
-		}
-	}
-
-	/* create dynamic stack info */
-
-	M_ALEA(REG_SP, cd->stackframesize * 8, REG_A0);
-	emit_lea_membase_reg(cd, RIP, -((cd->mcodeptr + 7) - cd->mcodebase), REG_A1);
-	M_ALEA(REG_SP, cd->stackframesize * 8 + SIZEOF_VOID_P, REG_A2);
-	M_ALD(REG_A3, REG_SP, cd->stackframesize * 8);
-	M_MOV_IMM(codegen_stub_builtin_enter, REG_ITMP1);
-	M_CALL(REG_ITMP1);
-
-	/* restore integer and float argument registers */
-
-	for (i = 0, j = 0; i < md->paramcount; i++) {
-		if (!md->params[i].inmemory) {
-			s1 = md->params[i].regoff;
-
-			switch (md->paramtypes[i].type) {
-			case TYPE_INT:
-			case TYPE_LNG:
-			case TYPE_ADR:
-				M_LLD(s1, REG_SP, j * 8);
-				break;
-			case TYPE_FLT:
-			case TYPE_DBL:
-				M_DLD(s1, REG_SP, j * 8);
-				break;
-			}
-
-			j++;
-		}
-	}
-
-	/* call the builtin function */
-
-	M_MOV_IMM(bte->fp, REG_ITMP3);
-	M_CALL(REG_ITMP3);
-
-	/* save return value */
-
-	switch (md->returntype.type) {
-	case TYPE_INT:
-	case TYPE_LNG:
-	case TYPE_ADR:
-		M_LST(REG_RESULT, REG_SP, 0 * 8);
-		break;
-	case TYPE_FLT:
-	case TYPE_DBL:
-		M_DST(REG_FRESULT, REG_SP, 0 * 8);
-		break;
-	case TYPE_VOID:
-		break;
-	}
-
-	/* remove native stackframe info */
-
-	M_ALEA(REG_SP, cd->stackframesize * 8, REG_A0);
-	M_MOV_IMM(codegen_stub_builtin_exit, REG_ITMP1);
-	M_CALL(REG_ITMP1);
-
-	/* restore return value */
-
-	switch (md->returntype.type) {
-	case TYPE_INT:
-	case TYPE_LNG:
-	case TYPE_ADR:	
-		M_LLD(REG_RESULT, REG_SP, 0 * 8);
-		break;
-	case TYPE_FLT:
-	case TYPE_DBL:
-		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
-		break;
-	case TYPE_VOID:
-		break;
-	}
-
-#if defined(ENABLE_GC_CACAO)
-	/* Restore callee saved integer registers from stackframeinfo (GC
-	   might have modified them during a collection). */
-        
-	disp = cd->stackframesize * 8 - sizeof(stackframeinfo) +
-		OFFSET(stackframeinfo, intregs);
-
-	for (i = 0; i < INT_SAV_CNT; i++)
-		M_ALD(abi_registers_integer_saved[i], REG_SP, disp + i * 8);
-#endif
-
-	/* remove stackframe */
-
-	M_AADD_IMM(cd->stackframesize * 8, REG_SP);
-	M_RET;
-}
-
-
 /* codegen_emit_stub_native ****************************************************
 
    Emits a stub routine which calls a native method.
 
 *******************************************************************************/
 
-void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
+void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int skipparams)
 {
 	methodinfo  *m;
 	codeinfo    *code;
 	codegendata *cd;
 	methoddesc  *md;
-	s4           nativeparams;
-	s4           i, j;
-	s4           t;
-	s4           s1, s2;
+	int          i, j;
+	int          s1, s2;
 	int          funcdisp;
 #if defined(ENABLE_GC_CACAO)
 	int          disp;
@@ -3104,7 +2931,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	/* initialize variables */
 
 	md = m->parseddesc;
-	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
 
 	/* calculate stack frame size */
 
@@ -3112,10 +2938,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
 		md->paramcount +
-		1 +                       /* functionptr, TODO: store in data segment */
 		nmd->memuse;
 
-	cd->stackframesize |= 0x1;                  /* keep stack 16-byte aligned */
+	ALIGN_ODD(cd->stackframesize);              /* keep stack 16-byte aligned */
 
 	/* create method header */
 
@@ -3213,13 +3038,15 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 		}
 	}
 
-	/* copy or spill arguments to new locations */
+	/* Copy or spill arguments to new locations. */
 
-	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
-		t  = md->paramtypes[i].type;
+	for (i = md->paramcount - 1, j = i + skipparams; i >= 0; i--, j--) {
 		s2 = nmd->params[j].regoff;
 
-		if (IS_INT_LNG_TYPE(t)) {
+		switch (md->paramtypes[i].type) {
+		case TYPE_INT:
+		case TYPE_LNG:
+		case TYPE_ADR:
 			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
 
@@ -3233,34 +3060,40 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 				M_LLD(REG_ITMP1, REG_SP, s1);
 				M_LST(REG_ITMP1, REG_SP, s2);
 			}
-		}
-		else {
+			break;
+		case TYPE_FLT:
 			/* We only copy spilled float arguments, as the float
 			   argument registers keep unchanged. */
 
 			if (md->params[i].inmemory) {
 				s1 = md->params[i].regoff + cd->stackframesize * 8 + 8;/* +1 (RA) */
 
-				if (IS_2_WORD_TYPE(t)) {
-					M_DLD(REG_FTMP1, REG_SP, s1);
-					M_DST(REG_FTMP1, REG_SP, s2);
-				}
-				else {
-					M_FLD(REG_FTMP1, REG_SP, s1);
-					M_FST(REG_FTMP1, REG_SP, s2);
-				}
+				M_FLD(REG_FTMP1, REG_SP, s1);
+				M_FST(REG_FTMP1, REG_SP, s2);
 			}
+			break;
+		case TYPE_DBL:
+			if (md->params[i].inmemory) {
+				s1 = md->params[i].regoff + cd->stackframesize * 8 + 8;/* +1 (RA) */
+				M_DLD(REG_FTMP1, REG_SP, s1);
+				M_DST(REG_FTMP1, REG_SP, s2);
+			}
+			break;
 		}
 	}
 
-	/* put class into second argument register */
+	/* Handle native Java methods. */
 
-	if (m->flags & ACC_STATIC)
-		M_MOV(REG_ITMP2, REG_A1);
+	if (m->flags & ACC_NATIVE) {
+		/* put class into second argument register */
 
-	/* put env into first argument register */
+		if (m->flags & ACC_STATIC)
+			M_MOV(REG_ITMP2, REG_A1);
 
-	M_MOV_IMM(_Jv_env, REG_A0);
+		/* put env into first argument register */
+
+		M_MOV_IMM(_Jv_env, REG_A0);
+	}
 
 	/* do the native function call */
 

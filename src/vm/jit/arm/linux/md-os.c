@@ -32,6 +32,8 @@
 
 #include "vm/types.h"
 
+#include "vm/jit/disass.h"
+
 #include "vm/jit/arm/md-abi.h"
 
 #define ucontext broken_glibc_ucontext
@@ -167,8 +169,13 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 
 	/* check for undefined instruction we use */
 
-	if ((mcode & 0x0ff000f0) != 0x07f000f0)
-		vm_abort("md_signal_handler_sigill: unknown illegal instruction");
+	if ((mcode & 0x0ff000f0) != 0x07f000f0) {
+		log_println("md_signal_handler_sigill: unknown illegal instruction: inst=%x", mcode);
+#if defined(ENABLE_DISASSEMBLER)
+		DISASSINSTR(xpc);
+#endif
+		assert(0);
+	}
 
 	type = (mcode >> 8) & 0x0fff;
 	val  = *((s4 *) _sc + OFFSET(scontext_t, arm_r0)/4 + (mcode & 0x0f));

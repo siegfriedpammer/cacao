@@ -370,7 +370,7 @@ static builtintable_entry builtintable_internal[] = {
 #if defined(ENABLE_THREADS)
 	{
 		ICMD_MONITORENTER,
-		0,
+		BUILTINTABLE_FLAG_STUB,
 		LOCK_monitor_enter,
 		NULL,
 		NULL,
@@ -383,7 +383,7 @@ static builtintable_entry builtintable_internal[] = {
 	},
 	{
 		ICMD_MONITOREXIT,
-		0,
+		BUILTINTABLE_FLAG_STUB,
 		LOCK_monitor_exit,
 		NULL,
 		NULL,

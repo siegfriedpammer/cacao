@@ -36,6 +36,8 @@
 
 #include "vm/types.h"
 
+#include "vm/global.h"
+
 #if defined(ENABLE_DISASSEMBLER)
 
 /* some macros ****************************************************************/

@@ -98,7 +98,7 @@
 #if !defined(__DARWIN__)
 # if defined(__LINUX__)
 #  define GC_LINUX_THREADS
-# elif defined(__MIPS__)
+# elif defined(__IRIX__)
 #  define GC_IRIX_THREADS
 # endif
 # include <semaphore.h>
@@ -250,7 +250,7 @@ static volatile int stopworldwhere;
 
 /* semaphore used for acknowleding thread suspension                          */
 static sem_t suspend_ack;
-#if defined(__MIPS__)
+#if defined(__IRIX__)
 static pthread_mutex_t suspend_ack_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t suspend_cond = PTHREAD_COND_INITIALIZER;
 #endif
@@ -484,7 +484,7 @@ static void threads_cast_darwinresume(void)
 
 #endif
 
-#if defined(__MIPS__)
+#if defined(__IRIX__)
 static void threads_cast_irixresume(void)
 {
 	pthread_mutex_lock(&suspend_ack_lock);
@@ -614,7 +614,7 @@ void threads_startworld(void)
 #if defined(__DARWIN__)
 	/*threads_cast_darwinresume();*/
 	assert(0);
-#elif defined(__MIPS__)
+#elif defined(__IRIX__)
 	threads_cast_irixresume();
 #elif defined(__CYGWIN__)
 	/* TODO */
