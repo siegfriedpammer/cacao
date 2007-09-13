@@ -2141,7 +2141,7 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 		debug_verify_inlined_code = 0;
 		DOLOG( printf("VERIFYING INLINED RESULT...\n"); fflush(stdout); );
 		if (!typecheck(n_jd)) {
-			*exceptionptr = NULL;
+			exceptions_clear_exception();
 			DOLOG( printf("XXX INLINED RESULT DID NOT PASS VERIFIER XXX\n") );
 			return false;
 		}

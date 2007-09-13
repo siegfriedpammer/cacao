@@ -205,16 +205,25 @@ bool exceptions_init(void)
 java_handle_t *exceptions_get_exception(void)
 {
 	java_handle_t *e;
+#if defined(ENABLE_THREADS)
+	threadobject  *t;
 
-	/* get the exception */
+	t = THREADOBJECT;
+#endif
+
+	/* Get the exception. */
 
 	LLNI_CRITICAL_START;
 
-	e = LLNI_WRAP(*exceptionptr);
+#if defined(ENABLE_THREADS)
+	e = LLNI_WRAP(t->_exceptionptr);
+#else
+	e = LLNI_WRAP(_no_threads_exceptionptr);
+#endif
 
 	LLNI_CRITICAL_END;
 
-	/* return the exception */
+	/* Return the exception. */
 
 	return e;
 }
@@ -228,11 +237,21 @@ java_handle_t *exceptions_get_exception(void)
 
 void exceptions_set_exception(java_handle_t *o)
 {
-	/* set the exception */
+#if defined(ENABLE_THREADS)
+	threadobject *t;
+
+	t = THREADOBJECT;
+#endif
+
+	/* Set the exception. */
 
 	LLNI_CRITICAL_START;
 
-	*exceptionptr = LLNI_UNWRAP(o);
+#if defined(ENABLE_THREADS)
+	t->_exceptionptr = LLNI_UNWRAP(o);
+#else
+	_no_threads_exceptionptr = LLNI_UNWRAP(o);
+#endif
 
 	LLNI_CRITICAL_END;
 }

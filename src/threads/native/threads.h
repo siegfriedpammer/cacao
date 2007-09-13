@@ -169,11 +169,6 @@ struct threadobject {
 };
 
 
-/* exception pointer **********************************************************/
-
-#define exceptionptr      (&(THREADOBJECT->_exceptionptr))
-
-
 /* stackframeinfo *************************************************************/
 
 #define STACKFRAMEINFO    (THREADOBJECT->_stackframeinfo)

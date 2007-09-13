@@ -42,13 +42,6 @@
 #define threadobject      void
 
 
-/* exception pointer **********************************************************/
-
-extern java_object_t        *_no_threads_exceptionptr;
-
-#define exceptionptr        (&_no_threads_exceptionptr)
-
-
 /* stackframeinfo *************************************************************/
 
 struct stackframeinfo;

@@ -40,7 +40,6 @@
 
 /* export variables ***********************************************************/
 
-extern java_object_t *_exceptionptr;
 extern chain *nativemethod_chain;
 extern chain *nativeclass_chain;
 extern chain *ident_chain;
