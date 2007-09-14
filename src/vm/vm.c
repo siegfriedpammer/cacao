@@ -2593,8 +2593,10 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 
 		switch (td->type) {
 		case TYPE_INT:
-			if (param == NULL)
-				goto illegal_arg;
+			if (param == NULL) {
+				exceptions_throw_illegalargumentexception();
+				return NULL;
+			}
 
 			/* convert the value according to its declared type */
 
@@ -2608,7 +2610,8 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 					/* This type is OK. */
 					break;
 				default:
-					goto illegal_arg;
+					exceptions_throw_illegalargumentexception();
+					return NULL;
 				}
 				break;
 
@@ -2618,7 +2621,8 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 					/* This type is OK. */
 					break;
 				default:
-					goto illegal_arg;
+					exceptions_throw_illegalargumentexception();
+					return NULL;
 				}
 				break;
 
@@ -2628,7 +2632,8 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 					/* This type is OK. */
 					break;
 				default:
-					goto illegal_arg;
+					exceptions_throw_illegalargumentexception();
+					return NULL;
 				}
 				break;
 
@@ -2639,7 +2644,8 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 					/* These types are OK. */
 					break;
 				default:
-					goto illegal_arg;
+					exceptions_throw_illegalargumentexception();
+					return NULL;
 				}
 				break;
 
@@ -2651,7 +2657,8 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 					/* These types are OK. */
 					break;
 				default:
-					goto illegal_arg;
+					exceptions_throw_illegalargumentexception();
+					return NULL;
 				}
 				break;
 
@@ -2665,8 +2672,10 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 			break;
 
 		case TYPE_LNG:
-			if (param == NULL)
-				goto illegal_arg;
+			if (param == NULL) {
+				exceptions_throw_illegalargumentexception();
+				return NULL;
+			}
 
 			LLNI_class_get(param, c);
 			assert(td->decltype == PRIMITIVETYPE_LONG);
@@ -2679,7 +2688,8 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 				/* These types are OK. */
 				break;
 			default:
-				goto illegal_arg;
+				exceptions_throw_illegalargumentexception();
+				return NULL;
 			}
 
 			value = primitive_unbox(param);
@@ -2687,8 +2697,10 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 			break;
 
 		case TYPE_FLT:
-			if (param == NULL)
-				goto illegal_arg;
+			if (param == NULL) {
+				exceptions_throw_illegalargumentexception();
+				return NULL;
+			}
 
 			LLNI_class_get(param, c);
 			type = primitive_type_get_by_wrapperclass(c);
@@ -2700,7 +2712,8 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 				/* This type is OK. */
 				break;
 			default:
-				goto illegal_arg;
+				exceptions_throw_illegalargumentexception();
+				return NULL;
 			}
 
 			value = primitive_unbox(param);
@@ -2708,8 +2721,10 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 			break;
 
 		case TYPE_DBL:
-			if (param == NULL)
-				goto illegal_arg;
+			if (param == NULL) {
+				exceptions_throw_illegalargumentexception();
+				return NULL;
+			}
 
 			LLNI_class_get(param, c);
 			type = primitive_type_get_by_wrapperclass(c);
@@ -2722,7 +2737,8 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 				/* These types are OK. */
 				break;
 			default:
-				goto illegal_arg;
+				exceptions_throw_illegalargumentexception();
+				return NULL;
 			}
 
 			value = primitive_unbox(param);
@@ -2731,16 +2747,20 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 		
 		case TYPE_ADR:
 			if (!resolve_class_from_typedesc(td, true, true, &c))
-				return false;
+				return NULL;
 
 			if (param != NULL) {
 				if (td->arraydim > 0) {
-					if (!builtin_arrayinstanceof(param, c))
-						goto illegal_arg;
+					if (!builtin_arrayinstanceof(param, c)) {
+						exceptions_throw_illegalargumentexception();
+						return NULL;
+					}
 				}
 				else {
-					if (!builtin_instanceof(param, c))
-						goto illegal_arg;
+					if (!builtin_instanceof(param, c)) {
+						exceptions_throw_illegalargumentexception();
+						return NULL;
+					}
 				}
 			}
 
@@ -2753,10 +2773,6 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 	}
 
 	return array;
-
-illegal_arg:
-	exceptions_throw_illegalargumentexception();
-	return NULL;
 }
 
 
