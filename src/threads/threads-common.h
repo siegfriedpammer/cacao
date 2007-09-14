@@ -95,7 +95,7 @@ void          threads_thread_state_timed_waiting(threadobject *t);
 void          threads_thread_state_terminated(threadobject *t);
 utf          *threads_thread_get_state(threadobject *t);
 
-bool          threads_thread_is_alive(threadobject *thread);
+bool          threads_thread_is_alive(threadobject *t);
 
 void          threads_dump(void);
 void          threads_thread_print_stacktrace(threadobject *thread);

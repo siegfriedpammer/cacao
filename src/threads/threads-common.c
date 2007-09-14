@@ -628,15 +628,19 @@ ptrint threads_get_current_tid(void)
 
    Set the current state of the given thread to THREAD_STATE_RUNNABLE.
 
+   NOTE: If the thread has already terminated, don't set the state.
+         This is important for threads_detach_thread.
+
 *******************************************************************************/
 
 void threads_thread_state_runnable(threadobject *t)
 {
-	/* set the state inside the lock */
+	/* Set the state inside a lock. */
 
 	threads_list_lock();
 
-	t->state = THREAD_STATE_RUNNABLE;
+	if (t->state != THREAD_STATE_TERMINATED)
+		t->state = THREAD_STATE_RUNNABLE;
 
 	threads_list_unlock();
 }
@@ -646,15 +650,19 @@ void threads_thread_state_runnable(threadobject *t)
 
    Set the current state of the given thread to THREAD_STATE_WAITING.
 
+   NOTE: If the thread has already terminated, don't set the state.
+         This is important for threads_detach_thread.
+
 *******************************************************************************/
 
 void threads_thread_state_waiting(threadobject *t)
 {
-	/* set the state in the lock */
+	/* Set the state inside a lock. */
 
 	threads_list_lock();
 
-	t->state = THREAD_STATE_WAITING;
+	if (t->state != THREAD_STATE_TERMINATED)
+		t->state = THREAD_STATE_WAITING;
 
 	threads_list_unlock();
 }
@@ -665,15 +673,19 @@ void threads_thread_state_waiting(threadobject *t)
    Set the current state of the given thread to
    THREAD_STATE_TIMED_WAITING.
 
+   NOTE: If the thread has already terminated, don't set the state.
+         This is important for threads_detach_thread.
+
 *******************************************************************************/
 
 void threads_thread_state_timed_waiting(threadobject *t)
 {
-	/* set the state in the lock */
+	/* Set the state inside a lock. */
 
 	threads_list_lock();
 
-	t->state = THREAD_STATE_TIMED_WAITING;
+	if (t->state != THREAD_STATE_TERMINATED)
+		t->state = THREAD_STATE_TIMED_WAITING;
 
 	threads_list_unlock();
 }
@@ -745,32 +757,26 @@ utf *threads_thread_get_state(threadobject *t)
 
 *******************************************************************************/
 
-bool threads_thread_is_alive(threadobject *thread)
+bool threads_thread_is_alive(threadobject *t)
 {
-	bool result;
-
-	switch (thread->state) {
+	switch (t->state) {
 	case THREAD_STATE_NEW:
 	case THREAD_STATE_TERMINATED:
-		result = false;
-		break;
+		return false;
 
 	case THREAD_STATE_RUNNABLE:
 	case THREAD_STATE_BLOCKED:
 	case THREAD_STATE_WAITING:
 	case THREAD_STATE_TIMED_WAITING:
-		result = true;
-		break;
+		return true;
 
 	default:
-		vm_abort("threads_is_alive: unknown thread state %d", thread->state);
-
-		/* keep compiler happy */
-
-		result = false;
+		vm_abort("threads_thread_is_alive: unknown thread state %d", t->state);
 	}
 
-	return result;
+	/* keep compiler happy */
+
+	return false;
 }
 
 
