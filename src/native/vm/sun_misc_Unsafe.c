@@ -73,12 +73,16 @@ static JNINativeMethod methods[] = {
 	{ "putBoolean",             "(Ljava/lang/Object;JZ)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putBoolean                     },
 	{ "getByte",                "(Ljava/lang/Object;J)B",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getByte__Ljava_lang_Object_2J  },
 	{ "putByte",                "(Ljava/lang/Object;JB)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putByte__Ljava_lang_Object_2JB },
+	{ "getShort",               "(Ljava/lang/Object;J)S",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getShort__Ljava_lang_Object_2J },
 	{ "putShort",               "(Ljava/lang/Object;JS)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putShort__Ljava_lang_Object_2JS },
 	{ "getChar",                "(Ljava/lang/Object;J)C",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getChar__Ljava_lang_Object_2J  },
 	{ "putChar",                "(Ljava/lang/Object;JC)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putChar__Ljava_lang_Object_2JC },
 	{ "getLong",                "(Ljava/lang/Object;J)J",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getLong__Ljava_lang_Object_2J  },
+	{ "putLong",                "(Ljava/lang/Object;JJ)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putLong__Ljava_lang_Object_2JJ },
 	{ "getFloat",               "(Ljava/lang/Object;J)F",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getFloat__Ljava_lang_Object_2J },
 	{ "putFloat",               "(Ljava/lang/Object;JF)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putFloat__Ljava_lang_Object_2JF },
+	{ "getDouble",              "(Ljava/lang/Object;J)D",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getDouble__Ljava_lang_Object_2J },
+	{ "putDouble",              "(Ljava/lang/Object;JD)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putDouble__Ljava_lang_Object_2JD },
 	{ "getByte",                "(J)B",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getByte__J                     },
 	{ "putByte",                "(JB)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_putByte__JB                    },
 	{ "getShort",               "(J)S",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getShort__J                    },
@@ -276,6 +280,24 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putByte__Ljava_lang_Object_2JB(JNIEn
 
 /*
  * Class:     sun/misc/Unsafe
+ * Method:    getShort
+ * Signature: (Ljava/lang/Object;J)S
+ */
+JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getShort__Ljava_lang_Object_2J(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset)
+{
+	int32_t *p;
+	int32_t  value;
+
+	p = (int32_t *) (((uint8_t *) o) + offset);
+
+	value = *p;
+
+	return value;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
  * Method:    putShort
  * Signature: (Ljava/lang/Object;JS)V
  */
@@ -342,6 +364,21 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_getLong__Ljava_lang_Object_2J(JNI
 
 /*
  * Class:     sun/misc/Unsafe
+ * Method:    putLong
+ * Signature: (Ljava/lang/Object;JJ)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLong__Ljava_lang_Object_2JJ(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset, int64_t x)
+{
+	int64_t *p;
+
+	p = (int64_t *) (((uint8_t *) o) + offset);
+
+	*p = x;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
  * Method:    getFloat
  * Signature: (Ljava/lang/Object;J)F
  */
@@ -368,6 +405,39 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putFloat__Ljava_lang_Object_2JF(JNIE
 	float *p;
 
 	p = (float *) (((uint8_t *) o) + offset);
+
+	*p = x;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    getDouble
+ * Signature: (Ljava/lang/Object;J)D
+ */
+JNIEXPORT double JNICALL Java_sun_misc_Unsafe_getDouble__Ljava_lang_Object_2J(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset)
+{
+	double *p;
+	double  value;
+
+	p = (double *) (((uint8_t *) o) + offset);
+
+	value = *p;
+
+	return value;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    putDouble
+ * Signature: (Ljava/lang/Object;JD)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putDouble__Ljava_lang_Object_2JD(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset, double x)
+{
+	double *p;
+
+	p = (double *) (((uint8_t *) o) + offset);
 
 	*p = x;
 }
