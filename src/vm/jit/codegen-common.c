@@ -67,6 +67,13 @@
 #include "native/localref.h"
 #include "native/native.h"
 
+#if defined(WITH_CLASSPATH_SUN)
+# include "native/include/java_lang_Object.h"
+# include "native/include/java_lang_String.h"
+# include "native/include/java_nio_ByteBuffer.h"        /* required by j.l.CL */
+# include "native/include/java_lang_ClassLoader.h"
+#endif
+
 #include "native/include/java_lang_Class.h"
 
 #include "threads/threads-common.h"
