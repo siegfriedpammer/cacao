@@ -79,16 +79,17 @@
 #endif
 
 
-/******************************************************************************/
-/* DEBUGGING MACROS                                                           */
-/******************************************************************************/
+/* debug **********************************************************************/
 
-/* #define LOCK_VERBOSE */
-
-#if defined(LOCK_VERBOSE)
-#define LOCK_LOG(args)  do { printf args; fflush(stdout); } while (0)
+#if !defined(NDEBUG)
+# define DEBUGLOCKS(format) \
+    do { \
+        if (opt_DebugLocks) { \
+            log_println format; \
+        } \
+    } while (0)
 #else
-#define LOCK_LOG(args)
+# define DEBUGLOCKS(format)
 #endif
 
 
@@ -275,6 +276,8 @@ static lock_record_t *lock_record_new(void)
 
 	pthread_mutex_init(&(lr->mutex), NULL);
 
+	DEBUGLOCKS(("[lock_record_new   : lr=%p]", (void *) lr));
+
 	return lr;
 }
 
@@ -290,6 +293,8 @@ static lock_record_t *lock_record_new(void)
 
 static void lock_record_free(lock_record_t *lr)
 {
+	DEBUGLOCKS(("[lock_record_free  : lr=%p]", (void *) lr));
+
 	/* Destroy the mutex. */
 
 	pthread_mutex_destroy(&(lr->mutex));
@@ -361,7 +366,7 @@ static void lock_hashtable_grow(void)
 	oldsize = lock_hashtable.size;
 	newsize = oldsize*2 + 1; /* XXX should use prime numbers */
 
-	LOCK_LOG(("growing lock hashtable to size %d\n", newsize));
+	DEBUGLOCKS(("growing lock hashtable to size %d", newsize));
 
 	oldtable = lock_hashtable.ptr;
 	newtable = MNEW(lock_record_t *, newsize);
@@ -459,9 +464,6 @@ static lock_record_t *lock_hashtable_get(java_object_t *o)
 
 	GC_REGISTER_FINALIZER(o, lock_record_finalizer, 0, 0, 0);
 #endif
-
-	LOCK_LOG(("thread %d allocated for %p new lr %p\n",
-			  t->index, (void*) o, (void*) lr));
 
 	/* enter it in the hashtable */
 
@@ -697,8 +699,8 @@ static void lock_inflate(threadobject *t, java_object_t *o, lock_record_t *lr)
 		lr->count = (lockword & THIN_LOCK_COUNT_MASK) >> THIN_LOCK_COUNT_SHIFT;
 	}
 
-	LOCK_LOG(("thread %3d: inflating lock of object %p current lockword %lx, count %d\n",
-			t->index, (void*) o, (long)o->monitorPtr, (int)lr->count));
+	DEBUGLOCKS(("[lock_inflate      : lr=%p, t=%p, o=%p, o->monitorPtr=%lx, count=%d]",
+				lr, t, o, o->monitorPtr, lr->count));
 
 	/* clear flat-lock-contention bit */
 
@@ -835,25 +837,22 @@ bool lock_monitor_enter(java_object_t *o)
 
 		LOCK_SET_FLC_BIT(o);
 
-		LOCK_LOG(("thread %d set flc bit on %p lr %p\n",
-				  t->index, (void*) o, (void*) lr));
+		DEBUGLOCKS(("thread %d set flc bit on %p lr %p",
+					t->index, (void*) o, (void*) lr));
 
 		/* try to lock the object */
 
 		if (COMPARE_AND_SWAP_SUCCEEDS(&(o->monitorPtr), THIN_UNLOCKED, thinlock)) {
 			/* we can inflate the lock ourselves */
 
-			LOCK_LOG(("thread %d inflating lock of %p to lr %p\n",
-					  t->index, (void*) o, (void*) lr));
+			DEBUGLOCKS(("thread %d inflating lock of %p to lr %p",
+						t->index, (void*) o, (void*) lr));
 
 			lock_inflate(t, o, lr);
 		}
 		else {
-			/* wait until another thread sees the flc bit and notifies
-			   us of unlocking */
-
-			LOCK_LOG(("thread %d waiting for notification on %p lr %p\n",
-					  t->index, (void*) o, (void*) lr));
+			/* Wait until another thread sees the flc bit and notifies
+			   us of unlocking. */
 
 			(void) lock_record_wait(t, lr, 0, 0);
 		}
@@ -916,15 +915,15 @@ bool lock_monitor_exit(java_object_t *o)
 		if (LOCK_TEST_FLC_BIT(o)) {
 			lock_record_t *lr;
 
-			LOCK_LOG(("thread %d saw flc bit on %p %s\n",
-					t->index, (void*) o, o->vftbl->class->name->text));
+			DEBUGLOCKS(("thread %d saw flc bit on %p",
+						t->index, (void*) o));
 
 			/* there has been a contention on this thin lock */
 
 			lr = lock_hashtable_get(o);
 
-			LOCK_LOG(("thread %d for %p got lr %p\n",
-					t->index, (void*) o, (void*) lr));
+			DEBUGLOCKS(("thread %d for %p got lr %p",
+						t->index, (void*) o, (void*) lr));
 
 			lock_record_enter(t, lr);
 
@@ -1094,6 +1093,9 @@ static bool lock_record_wait(threadobject *thread, lock_record_t *lr, s8 millis,
 	s4   lockcount;
 	bool wasinterrupted;
 
+	DEBUGLOCKS(("[lock_record_wait  : lr=%p, t=%p, millis=%lld, nanos=%d]",
+				lr, thread, millis, nanos));
+
 	/* { the thread t owns the fat lock record lr on the object o } */
 
 	/* register us as waiter for this object */
@@ -1224,6 +1226,9 @@ static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
 		/* Enter the wait-mutex. */
 
 		pthread_mutex_lock(&(waitingthread->waitmutex));
+
+		DEBUGLOCKS(("[lock_record_notify: lr=%p, t=%p, waitingthread=%p, sleeping=%d, one=%d]",
+					lr, t, waitingthread, waitingthread->sleeping, one));
 
 		/* Signal the thread if it's sleeping. */
 

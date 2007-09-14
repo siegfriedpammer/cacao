@@ -189,6 +189,7 @@ extern const char *opt_filter_show_method;
 /* NOTE: For better readability keep these alpha-sorted. */
 
 extern int      opt_DebugExceptions;
+extern int      opt_DebugLocks;
 extern int      opt_DebugPatcher;
 extern int      opt_DebugProperties;
 extern int32_t  opt_DebugStackFrameInfo;
