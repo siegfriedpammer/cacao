@@ -34,15 +34,17 @@
 
 #include "vm/types.h"
 
+#include "toolbox/list.h"
+
 #include "vm/global.h"
 
 
 
 /* typedefs *******************************************************************/
 
-typedef struct lock_record_t             lock_record_t;
-typedef struct lock_waiter_t             lock_waiter_t;
-typedef struct lock_hashtable_t          lock_hashtable_t;
+typedef struct lock_record_t    lock_record_t;
+typedef struct lock_waiter_t    lock_waiter_t;
+typedef struct lock_hashtable_t lock_hashtable_t;
 
 
 /* lock_waiter_t ***************************************************************
@@ -52,8 +54,8 @@ typedef struct lock_hashtable_t          lock_hashtable_t;
 *******************************************************************************/
 
 struct lock_waiter_t {
-	struct threadobject *waiter;         /* the waiting thread                */
-	lock_waiter_t       *next;           /* next in list                      */
+	struct threadobject *thread;        /* the waiting thread                 */
+	listnode_t           linkage;
 };
 
 
@@ -68,7 +70,7 @@ struct lock_record_t {
 	struct threadobject *owner;              /* current owner of this monitor */
 	s4                   count;              /* recursive lock count          */
 	pthread_mutex_t      mutex;              /* mutex for synchronizing       */
-	lock_waiter_t       *waiters;            /* list of threads waiting       */
+	list_t              *waiters;            /* list of threads waiting       */
 	lock_record_t       *hashlink;           /* next record in hash chain     */
 };
 

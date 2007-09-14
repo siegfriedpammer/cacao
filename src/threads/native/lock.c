@@ -40,6 +40,8 @@
 #include "threads/native/lock.h"
 #include "threads/native/threads.h"
 
+#include "toolbox/list.h"
+
 #include "vm/global.h"
 #include "vm/exceptions.h"
 #include "vm/finalizer.h"
@@ -267,7 +269,7 @@ static lock_record_t *lock_record_new(void)
 	lr->object  = NULL;
 	lr->owner   = NULL;
 	lr->count   = 0;
-	lr->waiters = NULL;
+	lr->waiters = list_create(OFFSET(lock_waiter_t, linkage));
 
 	/* initialize the mutex */
 
@@ -288,20 +290,15 @@ static lock_record_t *lock_record_new(void)
 
 static void lock_record_free(lock_record_t *lr)
 {
-#if 0
-	/* check the members */
-
-	lr->object  = o;
-	lr->owner   = NULL;
-	lr->count   = 0;
-	lr->waiters = NULL;
-#endif
-
-	/* destroy the mutex */
+	/* Destroy the mutex. */
 
 	pthread_mutex_destroy(&(lr->mutex));
 
-	/* free the data structure */
+	/* Free the waiters list. */
+
+	list_free(lr->waiters);
+
+	/* Free the data structure. */
 
 	FREE(lr, lock_record_t);
 
@@ -1004,21 +1001,24 @@ bool lock_monitor_exit(java_object_t *o)
 
 static void lock_record_add_waiter(lock_record_t *lr, threadobject *thread)
 {
-	lock_waiter_t *waiter;
+	lock_waiter_t *w;
 
-	/* allocate a waiter data structure */
+	/* Allocate a waiter data structure. */
 
-	waiter = NEW(lock_waiter_t);
+	w = NEW(lock_waiter_t);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		size_lock_waiter += sizeof(lock_waiter_t);
 #endif
 
-	waiter->waiter = thread;
-	waiter->next   = lr->waiters;
+	/* Store the thread in the waiter structure. */
 
-	lr->waiters = waiter;
+	w->thread = thread;
+
+	/* Add the waiter as last entry to waiters list. */
+
+	list_add_last(lr->waiters, w);
 }
 
 
@@ -1037,16 +1037,20 @@ static void lock_record_add_waiter(lock_record_t *lr, threadobject *thread)
 
 static void lock_record_remove_waiter(lock_record_t *lr, threadobject *thread)
 {
-	lock_waiter_t **link;
-	lock_waiter_t  *w;
+	list_t        *l;
+	lock_waiter_t *w;
 
-	link = &(lr->waiters);
+	/* Get the waiters list. */
 
-	while ((w = *link)) {
-		if (w->waiter == thread) {
-			*link = w->next;
+	l = lr->waiters;
 
-			/* free the waiter data structure */
+	for (w = list_first_unsynced(l); w != NULL; w = list_next_unsynced(l, w)) {
+		if (w->thread == thread) {
+			/* Remove the waiter entry from the list. */
+
+			list_remove_unsynced(l, w);
+
+			/* Free the waiter data structure. */
 
 			FREE(w, lock_waiter_t);
 
@@ -1057,13 +1061,11 @@ static void lock_record_remove_waiter(lock_record_t *lr, threadobject *thread)
 
 			return;
 		}
-
-		link = &(w->next);
 	}
 
-	/* this should never happen */
+	/* This should never happen. */
 
-	vm_abort("lock_record_remove_waiter: waiting thread not found in list of waiters\n");
+	vm_abort("lock_record_remove_waiter: thread not found in list of waiters\n");
 }
 
 
@@ -1204,27 +1206,37 @@ static void lock_monitor_wait(threadobject *t, java_object_t *o, s8 millis, s4 n
 
 static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
 {
-	lock_waiter_t *waiter;
-	threadobject *waitingthread;
+	list_t        *l;
+	lock_waiter_t *w;
+	threadobject  *waitingthread;
 
 	/* { the thread t owns the fat lock record lr on the object o } */
 
-	/* for each waiter: */
+	/* Get the waiters list. */
 
-	for (waiter = lr->waiters; waiter != NULL; waiter = waiter->next) {
+	l = lr->waiters;
 
+	for (w = list_first_unsynced(l); w != NULL; w = list_next_unsynced(l, w)) {
 		/* signal the waiting thread */
 
-		waitingthread = waiter->waiter;
+		waitingthread = w->thread;
 
-		pthread_mutex_lock(&waitingthread->waitmutex);
+		/* Enter the wait-mutex. */
+
+		pthread_mutex_lock(&(waitingthread->waitmutex));
+
+		/* Signal the thread if it's sleeping. */
 
 		if (waitingthread->sleeping)
-			pthread_cond_signal(&waitingthread->waitcond);
+			pthread_cond_signal(&(waitingthread->waitcond));
+
+		/* Mark the thread as signaled. */
 
 		waitingthread->signaled = true;
 
-		pthread_mutex_unlock(&waitingthread->waitmutex);
+		/* Leave the wait-mutex. */
+
+		pthread_mutex_unlock(&(waitingthread->waitmutex));
 
 		/* if we should only wake one, we are done */
 
