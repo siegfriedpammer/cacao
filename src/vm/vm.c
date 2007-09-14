@@ -2678,6 +2678,8 @@ uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
 			}
 
 			LLNI_class_get(param, c);
+			type = primitive_type_get_by_wrapperclass(c);
+
 			assert(td->decltype == PRIMITIVETYPE_LONG);
 
 			switch (type) {
