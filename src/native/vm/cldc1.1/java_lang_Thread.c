@@ -26,6 +26,9 @@
 
 
 #include "config.h"
+
+#include <stdint.h>
+
 #include "vm/types.h"
 
 #include "native/jni.h"
@@ -125,9 +128,25 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_start0(JNIEnv *env, java_lang_Threa
  * Method:    isAlive
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, java_lang_Thread *this)
+JNIEXPORT int32_t JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, java_lang_Thread *this)
 {
-	return _Jv_java_lang_Thread_isAlive(this);
+#if defined(ENABLE_THREADS)
+	threadobject *t;
+	bool          result;
+
+	t = (threadobject *) this->vm_thread;
+
+	if (t == NULL)
+		return 0;
+
+	result = threads_thread_is_alive(t);
+
+	return result;
+#else
+	/* If threads are disabled, the only thread running is alive. */
+
+	return 1;
+#endif
 }
 
 

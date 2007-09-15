@@ -2030,10 +2030,27 @@ void JVM_StopThread(JNIEnv* env, jobject jthread, jobject throwable)
 
 jboolean JVM_IsThreadAlive(JNIEnv* env, jobject jthread)
 {
-#if PRINTJVM
-	log_println("JVM_IsThreadAlive: jthread=%p", jthread);
-#endif
-	return _Jv_java_lang_Thread_isAlive((java_lang_Thread *) jthread);
+	threadobject *t;
+	bool          result;
+
+	TRACEJVMCALLS("JVM_IsThreadAlive(env=%p, jthread=%p)", env, jthread);
+
+	/* XXX this is just a quick hack */
+
+	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+		if (t->object == jthread)
+			break;
+	}
+
+	/* The threadobject is null when a thread is created in Java. The
+	   priority is set later during startup. */
+
+	if (t == NULL)
+		return 0;
+
+	result = threads_thread_is_alive(t);
+
+	return result;
 }
 
 

@@ -119,55 +119,6 @@ void _Jv_java_lang_Thread_interrupt(java_lang_Thread *this)
 
 /*
  * Class:     java/lang/Thread
- * Method:    isAlive
- * Signature: ()Z
- */
-s4 _Jv_java_lang_Thread_isAlive(java_lang_Thread *this)
-{
-#if defined(ENABLE_THREADS)
-	threadobject *t;
-
-# if defined(WITH_CLASSPATH_GNU)
-
-	t = (threadobject *) LLNI_field_direct(this, vmThread)->vmdata;
-
-# elif defined(WITH_CLASSPATH_SUN)
-
-	/* XXX this is just a quick hack */
-
-	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
-		if (t->object == this)
-			break;
-	}
-
-	/* The threadobject is null when a thread is created in Java. The
-	   priority is set later during startup. */
-
-	if (t == NULL)
-		return 0;
-
-# elif defined(WITH_CLASSPATH_CLDC1_1)
-
-	t = (threadobject *) this->vm_thread;
-
-	if (t == NULL)
-		return 0;
-
-# else
-#  error unknown classpath configuration
-# endif
-
-	return threads_thread_is_alive(t);
-#else
-	/* if threads are disabled, the only thread running is alive */
-
-	return 1;
-#endif
-}
-
-
-/*
- * Class:     java/lang/Thread
  * Method:    isInterrupted
  * Signature: ()Z
  */
