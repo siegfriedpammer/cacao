@@ -154,36 +154,47 @@ classinfo *pseudo_class_New;
 
 /* class_set_packagename *******************************************************
 
-   Derive the package name from the class name and store it in the struct.
+   Derive the package name from the class name and store it in the
+   struct.
+
+   An internal package name consists of the package name plus the
+   trailing '/', e.g. "java/lang/".
+
+   For classes in the unnamed package, the package name is set to
+   NULL.
 
 *******************************************************************************/
 
 void class_set_packagename(classinfo *c)
 {
-	char *p = UTF_END(c->name) - 1;
-	char *start = c->name->text;
+	char *p;
+	char *start;
 
-	/* set the package name */
-	/* classes in the unnamed package keep packagename == NULL */
+	p     = UTF_END(c->name) - 1;
+	start = c->name->text;
 
 	if (c->name->text[0] == '[') {
-		/* set packagename of arrays to the element's package */
+		/* Set packagename of arrays to the element's package. */
 
 		for (; *start == '['; start++);
 
-		/* skip the 'L' in arrays of references */
+		/* Skip the 'L' in arrays of references. */
+
 		if (*start == 'L')
 			start++;
-
-		for (; (p > start) && (*p != '/'); --p);
-
-		c->packagename = utf_new(start, p - start);
-
-	} else {
-		for (; (p > start) && (*p != '/'); --p);
-
-		c->packagename = utf_new(start, p - start);
 	}
+
+	/* Search for last '/'. */
+
+	for (; (p > start) && (*p != '/'); --p);
+
+	/* If we found a '/' we set the package name plus the trailing
+	   '/'.  Otherwise we set the packagename to NULL. */
+
+	if (p > start)
+		c->packagename = utf_new(start, p - start + 1);
+	else
+		c->packagename = NULL;
 }
 
 
