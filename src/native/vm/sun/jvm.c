@@ -2008,7 +2008,9 @@ jint JVM_SetLength(jint fd, jlong length)
 
 jint JVM_Sync(jint fd)
 {
-	log_println("JVM_Sync: IMPLEMENT ME!");
+	TRACEJVMCALLS("JVM_Sync(fd=%d)", fd);
+
+	return fsync(fd);
 }
 
 
