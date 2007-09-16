@@ -28,7 +28,10 @@
 #include "config.h"
 
 #include <stdlib.h>
-#include <sys/mman.h>
+
+#if defined(HAVE_SYS_MMAN_H)
+# include <sys/mman.h>
+#endif
 
 #include "vm/types.h"
 
@@ -79,7 +82,7 @@ void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
 
 void *heap_alloc_uncollectable(u4 size)
 {
-	return heap_alloc(size, false, NULL);
+	return heap_alloc(size, false, NULL, false);
 }
 
 
@@ -94,6 +97,7 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 {
 	heapmaxsize = MEMORY_ALIGN(heapmaxsize, ALIGNSIZE);
 
+#if defined(HAVE_MMAP)
 	mmapptr = mmap((void *) MMAP_HEAPADDRESS,
 				   (size_t) heapmaxsize,
 				   PROT_READ | PROT_WRITE,
@@ -110,6 +114,12 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 
 	if (mmapptr == MAP_FAILED)
 		vm_abort("gc_init: out of memory");
+#else
+	mmapptr = malloc(heapmaxsize);
+
+	if (mmapptr == NULL)
+		vm_abort("gc_init: out of memory");
+#endif
 
 	mmapsize = heapmaxsize;
 	mmaptop = (void *) ((ptrint) mmapptr + mmapsize);
