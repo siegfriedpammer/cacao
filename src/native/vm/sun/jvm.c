@@ -971,7 +971,13 @@ jobject JVM_GetInheritedAccessControlContext(JNIEnv *env, jclass cls)
 
 jobject JVM_GetStackAccessControlContext(JNIEnv *env, jclass cls)
 {
-	log_println("JVM_GetStackAccessControlContext: IMPLEMENT ME!");
+	TRACEJVMCALLS("JVM_GetStackAccessControlContext(env=%p, cls=%p): IMPLEMENT ME!", env, cls);
+
+	/* XXX All stuff I tested so far works without that function.  At
+	   some point we have to implement it, but I disable the output
+	   for now to make IcedTea happy. */
+
+	return NULL;
 }
 
 
@@ -1623,9 +1629,8 @@ jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 	java_handle_objectarray_t           *classes;
 	java_handle_objectarray_t           *packages;
 
-#if PRINTJVM || 1
-	log_println("JVM_AssertionStatusDirectives");
-#endif
+	TRACEJVMCALLS("JVM_AssertionStatusDirectives(env=%p, unused=%p): COMPLETE ME!", env, unused);
+
 	/* XXX this is not completely implemented */
 
 	c = load_class_bootstrap(utf_new_char("java/lang/AssertionStatusDirectives"));
