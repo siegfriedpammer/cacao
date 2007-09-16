@@ -2032,6 +2032,7 @@ void JVM_StopThread(JNIEnv* env, jobject jthread, jobject throwable)
 jboolean JVM_IsThreadAlive(JNIEnv* env, jobject jthread)
 {
 	threadobject *t;
+	bool          equal;
 	bool          result;
 
 	TRACEJVMCALLS("JVM_IsThreadAlive(env=%p, jthread=%p)", env, jthread);
@@ -2039,7 +2040,9 @@ jboolean JVM_IsThreadAlive(JNIEnv* env, jobject jthread)
 	/* XXX this is just a quick hack */
 
 	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
-		if (t->object == jthread)
+		LLNI_equals(t->object, jthread, equal);
+
+		if (equal == true)
 			break;
 	}
 
