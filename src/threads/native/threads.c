@@ -1606,7 +1606,7 @@ bool threads_detach_thread(threadobject *t)
 	}
 #endif
 
-	/* thread is terminated */
+	/* Thread has terminated. */
 
 	threads_thread_state_terminated(t);
 
@@ -1617,6 +1617,19 @@ bool threads_detach_thread(threadobject *t)
 		printf("]\n");
 	}
 #endif
+
+    /* Notify all threads waiting on this thread.  These are joining
+	   this thread. */
+
+	o = (java_object_t *) object;
+
+	/* XXX Care about exceptions? */
+	(void) lock_monitor_enter(o);
+	
+	lock_notify_all_object(o);
+
+	/* XXX Care about exceptions? */
+	(void) lock_monitor_exit(o);
 
 	/* Enter the join-mutex before calling threads_thread_free, so
 	   threads_join_all_threads gets the correct number of non-daemon
