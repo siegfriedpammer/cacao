@@ -688,17 +688,11 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_freeMemory(JNIEnv *env, sun_misc_Uns
  * Method:    staticFieldOffset
  * Signature: (Ljava/lang/reflect/Field;)J
  */
-JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_staticFieldOffset(JNIEnv *env, sun_misc_Unsafe *this, java_lang_reflect_Field *field)
+JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_staticFieldOffset(JNIEnv *env, sun_misc_Unsafe *this, java_lang_reflect_Field *f)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	/* The offset of static fields is 0. */
 
-	LLNI_field_get_cls(field, clazz, c);
-	LLNI_field_get_val(field, slot , slot);
-	f = &(c->fields[slot]);
-
-	return (int64_t) (intptr_t) f->value;
+	return 0;
 }
 
 
@@ -707,11 +701,18 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_staticFieldOffset(JNIEnv *env, su
  * Method:    staticFieldBase
  * Signature: (Ljava/lang/reflect/Field;)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_staticFieldBase(JNIEnv *env, sun_misc_Unsafe *this, java_lang_reflect_Field *f)
+JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_staticFieldBase(JNIEnv *env, sun_misc_Unsafe *this, java_lang_reflect_Field *rf)
 {
-	/* In CACAO we return the absolute address in staticFieldOffset. */
+	classinfo *c;
+	fieldinfo *f;
+	int32_t    slot;
 
-	return NULL;
+	LLNI_field_get_cls(rf, clazz, c);
+	LLNI_field_get_val(rf, slot , slot);
+
+	f = &(c->fields[slot]);
+
+	return (java_lang_Object *) (f->value);
 }
 
 
