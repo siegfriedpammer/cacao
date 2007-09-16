@@ -1030,16 +1030,15 @@ jclass JVM_GetComponentType(JNIEnv *env, jclass cls)
 jint JVM_GetClassModifiers(JNIEnv *env, jclass cls)
 {
 	classinfo *c;
+	int32_t    flags;
 
-#if PRINTJVM
-	log_println("JVM_GetClassModifiers: cls=%p", cls);
-#endif
+	TRACEJVMCALLS("JVM_GetClassModifiers(env=%p, cls=%p)", env, cls);
 
 	c = LLNI_classinfo_unwrap(cls);
 
-	/* XXX is this correct? */
+	flags = class_get_modifiers(c, false);
 
-	return c->flags & ACC_CLASS_REFLECT_MASK;
+	return flags;
 }
 
 

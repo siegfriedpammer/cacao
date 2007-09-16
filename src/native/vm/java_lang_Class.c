@@ -248,53 +248,6 @@ s4 _Jv_java_lang_Class_isAssignableFrom(java_lang_Class *klass, java_lang_Class 
 
 /*
  * Class:     java/lang/Class
- * Method:    getModifiers
- * Signature: (Z)I
- */
-s4 _Jv_java_lang_Class_getModifiers(java_lang_Class *klass, s4 ignoreInnerClassesAttrib)
-{
-	classinfo             *c;
-	classref_or_classinfo  inner;
-	classref_or_classinfo  outer;
-	utf                   *innername;
-	s4                     i;
-
-	c = LLNI_classinfo_unwrap(klass);
-
-	if (!ignoreInnerClassesAttrib && (c->innerclasscount != 0)) {
-		/* search for passed class as inner class */
-
-		for (i = 0; i < c->innerclasscount; i++) {
-			inner = c->innerclass[i].inner_class;
-			outer = c->innerclass[i].outer_class;
-
-			/* Check if inner is a classref or a real class and get
-               the name of the structure */
-
-			innername = IS_CLASSREF(inner) ? inner.ref->name : inner.cls->name;
-
-			/* innerclass is this class */
-
-			if (innername == c->name) {
-				/* has the class actually an outer class? */
-
-				if (outer.any)
-					/* return flags got from the outer class file */
-					return c->innerclass[i].flags & ACC_CLASS_REFLECT_MASK;
-				else
-					return c->flags & ACC_CLASS_REFLECT_MASK;
-			}
-		}
-	}
-
-	/* passed class is no inner class or it was not requested */
-
-	return c->flags & ACC_CLASS_REFLECT_MASK;
-}
-
-
-/*
- * Class:     java/lang/Class
  * Method:    getDeclaredFields
  * Signature: (Z)[Ljava/lang/reflect/Field;
  */

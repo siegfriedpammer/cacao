@@ -224,9 +224,16 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getComponentType(JNIEn
  * Method:    getModifiers
  * Signature: (Ljava/lang/Class;Z)I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 ignoreInnerClassesAttrib)
+JNIEXPORT int32_t JNICALL Java_java_lang_VMClass_getModifiers(JNIEnv *env, jclass clazz, java_lang_Class *klass, int32_t ignoreInnerClassesAttrib)
 {
-	return _Jv_java_lang_Class_getModifiers(klass, ignoreInnerClassesAttrib);
+	classinfo *c;
+	int32_t    flags;
+
+	c = LLNI_classinfo_unwrap(klass);
+
+	flags = class_get_modifiers(c, ignoreInnerClassesAttrib);
+
+	return flags;
 }
 
 

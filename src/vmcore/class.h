@@ -383,6 +383,7 @@ classinfo                 *class_get_declaringclass(classinfo *c);
 classinfo                 *class_get_enclosingclass(classinfo *c);
 java_handle_objectarray_t *class_get_interfaces(classinfo *c);
 java_handle_bytearray_t   *class_get_annotations(classinfo *c);
+int32_t                    class_get_modifiers(classinfo *c, bool ignoreInnerClassesAttrib);
 
 #if defined(ENABLE_JAVASE)
 utf                       *class_get_signature(classinfo *c);

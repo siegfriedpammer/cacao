@@ -1989,6 +1989,57 @@ java_handle_bytearray_t *class_get_annotations(classinfo *c)
 }
 
 
+/* class_get_modifiers *********************************************************
+
+   Get the modifier flags of the given class.
+
+   IN:
+       c....the class of which the modifier flags should be returned
+	   ignoreInnerClassesAttrib
+   RETURN VALUE:
+       modifier flags
+
+*******************************************************************************/
+
+int32_t class_get_modifiers(classinfo *c, bool ignoreInnerClassesAttrib)
+{
+	classref_or_classinfo  inner;
+	classref_or_classinfo  outer;
+	utf                   *innername;
+	int                    i;
+
+	if (!ignoreInnerClassesAttrib && (c->innerclasscount != 0)) {
+		/* search for passed class as inner class */
+
+		for (i = 0; i < c->innerclasscount; i++) {
+			inner = c->innerclass[i].inner_class;
+			outer = c->innerclass[i].outer_class;
+
+			/* Check if inner is a classref or a real class and get
+               the name of the structure */
+
+			innername = IS_CLASSREF(inner) ? inner.ref->name : inner.cls->name;
+
+			/* innerclass is this class */
+
+			if (innername == c->name) {
+				/* has the class actually an outer class? */
+
+				if (outer.any)
+					/* return flags got from the outer class file */
+					return c->innerclass[i].flags & ACC_CLASS_REFLECT_MASK;
+				else
+					return c->flags & ACC_CLASS_REFLECT_MASK;
+			}
+		}
+	}
+
+	/* passed class is no inner class or it was not requested */
+
+	return c->flags & ACC_CLASS_REFLECT_MASK;
+}
+
+
 /* class_get_signature *********************************************************
 
    Return the signature of the given class.  For array and primitive
