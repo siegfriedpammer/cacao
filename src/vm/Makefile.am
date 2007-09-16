@@ -59,6 +59,8 @@ libvm_la_SOURCES = \
 	initialize.c \
 	initialize.h \
 	jit_interface.h \
+	package.c \
+	package.h \
 	primitive.c \
 	primitive.h \
 	properties.c \

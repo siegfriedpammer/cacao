@@ -67,6 +67,7 @@
 #include "vm/finalizer.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
+#include "vm/package.h"
 #include "vm/primitive.h"
 #include "vm/properties.h"
 #include "vm/signallocal.h"
@@ -122,7 +123,7 @@ u1 *intrp_main_stack = NULL;
 
 #define HEAP_MAXSIZE      128 * 1024 * 1024 /* default 128MB                  */
 #define HEAP_STARTSIZE      2 * 1024 * 1024 /* default 2MB                    */
-#define STACK_SIZE                64 * 1024 /* default 64kB                   */
+#define STACK_SIZE               128 * 1024 /* default 64kB                   */
 
 
 /* define command line options ************************************************/
@@ -1510,6 +1511,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 #else
 	intrp_md_init();
 #endif
+
+	/* BEFORE: loader_preinit */
+
+	package_init();
 
 	/* AFTER: utf8_init, classcache_init */
 

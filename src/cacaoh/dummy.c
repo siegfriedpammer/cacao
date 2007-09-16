@@ -573,6 +573,15 @@ int32_t dump_size(void)
 }
 
 
+/* package ********************************************************************/
+
+/* void package_add(java_handle_t *packagename) */
+void package_add(utf *packagename)
+{
+	/* Do nothing. */
+}
+
+
 /* primitive ******************************************************************/
 
 classinfo *primitive_arrayclass_get_by_type(int type)

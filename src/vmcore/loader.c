@@ -45,6 +45,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/package.h"
 #include "vm/primitive.h"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
@@ -1335,21 +1336,26 @@ classinfo *load_class_bootstrap(utf *name)
 
 	RT_TIMING_GET_TIME(time_load);
 	
-	if (!r) {
+	if (r == NULL) {
 		/* the class could not be loaded, free the classinfo struct */
 
 		class_free(c);
-
-	} else {
+	}
+	else {
 		/* Store this class in the loaded class cache this step also
-		checks the loading constraints. If the class has been loaded
-		before, the earlier loaded class is returned. */
+		   checks the loading constraints. If the class has been
+		   loaded before, the earlier loaded class is returned. */
 
 	   	classinfo *res = classcache_store(NULL, c, true);
 
-		if (!res) {
+		if (res == NULL) {
 			/* exception */
 			class_free(c);
+		}
+		else {
+			/* Add the package name to the boot packages. */
+
+			package_add(c->packagename);
 		}
 
 		r = res;

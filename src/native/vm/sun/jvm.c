@@ -91,6 +91,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
+#include "vm/package.h"
 #include "vm/primitive.h"
 #include "vm/properties.h"
 #include "vm/resolve.h"
@@ -2207,11 +2208,21 @@ jint JVM_ClassLoaderDepth(JNIEnv *env)
 
 jstring JVM_GetSystemPackage(JNIEnv *env, jstring name)
 {
-	log_println("JVM_GetSystemPackage(env=%p, name=%p)");
-	javastring_print((java_handle_t *) name);
-	printf("\n");
+	java_handle_t *s;
+	utf *u;
+	utf *result;
 
-	return NULL;
+	TRACEJVMCALLS("JVM_GetSystemPackage(env=%p, name=%p)", env, name);
+
+/* 	s = package_find(name); */
+	u = javastring_toutf(name, false);
+	result = package_find(u);
+	if (result != NULL)
+		s = javastring_new(result);
+	else
+		s = NULL;
+
+	return (jstring) s;
 }
 
 
