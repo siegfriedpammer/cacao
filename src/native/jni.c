@@ -3430,9 +3430,7 @@ void _Jv_JNI_ReleaseStringCritical(JNIEnv *env, jstring string,
 
 jweak _Jv_JNI_NewWeakGlobalRef(JNIEnv* env, jobject obj)
 {
-	STATISTICS(jniinvokation());
-
-	log_text("JNI-Call: NewWeakGlobalRef: IMPLEMENT ME!");
+	TRACEJNICALLS("_Jv_JNI_NewWeakGlobalRef(env=%p, obj=%p): IMPLEMENT ME!", env, obj);
 
 	return obj;
 }
@@ -3440,9 +3438,7 @@ jweak _Jv_JNI_NewWeakGlobalRef(JNIEnv* env, jobject obj)
 
 void _Jv_JNI_DeleteWeakGlobalRef(JNIEnv* env, jweak ref)
 {
-	STATISTICS(jniinvokation());
-
-	log_text("JNI-Call: DeleteWeakGlobalRef: IMPLEMENT ME");
+	TRACEJNICALLS("_Jv_JNI_DeleteWeakGlobalRef(env=%p, ref=%p): IMPLEMENT ME", env, ref);
 }
 
 
