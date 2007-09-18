@@ -32,8 +32,29 @@
 
 SUBDIRS = handbook
 
+dist_noinst_DATA = annotations.tex jsr.bib
+
 EXTRA_DIST = inlining_stacktrace.txt native_threads.txt stack.txt
 
+annotations:
+	latex annotations
+	bibtex annotations
+	latex annotations
+	latex annotations
+
+clean:
+	rm -f \
+	annotations.aux \
+	annotations.bbl \
+	annotations.blg \
+	annotations.dvi \
+	annotations.lof \
+	annotations.log \
+	annotations.lot \
+	annotations.toc \
+	annotations.idx \
+	annotations.out \
+	annotations.tex~
 
 ## Local variables:
 ## mode: Makefile
