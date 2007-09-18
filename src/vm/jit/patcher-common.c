@@ -285,7 +285,11 @@ java_handle_t *patcher_handler(u1 *pc)
 		vm_abort("patcher_handler: Unable to find patcher reference.");
 
 	if (pr->done) {
-		log_println("patcher_handler: double-patching detected!");
+#if !defined(NDEBUG)
+		if (opt_DebugPatcher) {
+			log_println("patcher_handler: double-patching detected!");
+		}
+#endif
 		LOCK_MONITOR_EXIT(code->patchers);
 		return NULL;
 	}
