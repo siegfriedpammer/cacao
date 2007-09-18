@@ -1253,11 +1253,11 @@ jint JVM_GetClassAccessFlags(JNIEnv *env, jclass cls)
 {
 	classinfo *c;
 
-#if PRINTJVM
-	log_println("JVM_GetClassAccessFlags: cls=%p", cls);
-#endif
+	TRACEJVMCALLS("JVM_GetClassAccessFlags(env=%p, cls=%p)", env, cls);
 
 	c = LLNI_classinfo_unwrap(cls);
+
+	/* Primitive type classes have the correct access flags. */
 
 	return c->flags & ACC_CLASS_REFLECT_MASK;
 }
