@@ -1223,6 +1223,12 @@ static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
 
 		waitingthread = w->thread;
 
+		/* If the thread was already signaled but hasn't removed
+		   itself from the list yet, just ignore it. */
+
+		if (waitingthread->signaled == true)
+			continue;
+
 		/* Enter the wait-mutex. */
 
 		pthread_mutex_lock(&(waitingthread->waitmutex));
