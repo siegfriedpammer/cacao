@@ -75,7 +75,6 @@ bool opt_debugcolor = false;	/* use ANSI terminal sequences 		      */
 bool compileall = false;
 
 bool loadverbose = false;
-bool linkverbose = false;
 bool initverbose = false;
 
 bool opt_verboseclass     = false;
@@ -198,6 +197,7 @@ int32_t  opt_TraceExceptions           = 0;
 int32_t  opt_TraceJavaCalls            = 0;
 int32_t  opt_TraceJNICalls             = 0;
 int32_t  opt_TraceJVMCalls             = 0;
+int32_t  opt_TraceLinkClass            = 0;
 #if defined(ENABLE_REPLACEMENT)
 int32_t  opt_TraceReplacement          = 0;
 #endif
@@ -230,6 +230,7 @@ enum {
 	OPT_TraceJavaCalls,
 	OPT_TraceJNICalls,
 	OPT_TraceJVMCalls,
+	OPT_TraceLinkClass,
 	OPT_TraceReplacement
 };
 
@@ -260,6 +261,7 @@ option_t options_XX[] = {
 	{ "TraceJavaCalls",            OPT_TraceJavaCalls,            OPT_TYPE_BOOLEAN, "trace Java method calls" },
 	{ "TraceJNICalls",             OPT_TraceJNICalls,             OPT_TYPE_BOOLEAN, "trace JNI method calls" },
 	{ "TraceJVMCalls",             OPT_TraceJVMCalls,             OPT_TYPE_BOOLEAN, "TODO" },
+	{ "TraceLinkClass",            OPT_TraceLinkClass,            OPT_TYPE_BOOLEAN, "trace class linking" },
 #if defined(ENABLE_REPLACEMENT)
 	{ "TraceReplacement",          OPT_TraceReplacement,          OPT_TYPE_VALUE,   "trace on-stack replacement with the given verbosity level (default: 1)" },
 #endif
@@ -567,7 +569,7 @@ void options_xx(JavaVMInitArgs *vm_args)
 			break;
 
 		case OPT_PrintConfig:
-			vm_printconfig();
+			opt_PrintConfig = enable;
 			break;
 
 		case OPT_ProfileGCMemoryUsage:
@@ -624,6 +626,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 		case OPT_TraceJVMCalls:
 			opt_TraceJVMCalls = enable;
 			break;
+
+	case OPT_TraceLinkClass:
+		opt_TraceLinkClass = enable;
+		break;
 
 #if defined(ENABLE_REPLACEMENT)
 		case OPT_TraceReplacement:

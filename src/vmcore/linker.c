@@ -55,6 +55,25 @@
 #include "vmcore/options.h"
 #include "vmcore/rt-timing.h"
 
+
+/* debugging macros ***********************************************************/
+
+#if !defined(NDEBUG)
+# define TRACELINKCLASS(c) \
+    do { \
+        if (opt_TraceLinkClass) { \
+            log_start(); \
+            log_print("[Linking "); \
+            class_print((c)); \
+            log_print("]"); \
+            log_finish(); \
+        } \
+    } while (0)
+#else
+# define TRACELINKCLASS(c)
+#endif
+
+
 /* #include "vm/resolve.h" */
 /* copied prototype to avoid bootstrapping problem: */
 classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls, bool checkaccess);
@@ -518,10 +537,7 @@ static classinfo *link_class_intern(classinfo *c)
 
 	RT_TIMING_GET_TIME(time_start);
 
-#if !defined(NDEBUG)
-	if (linkverbose)
-		log_message_class("Linking class: ", c);
-#endif
+	TRACELINKCLASS(c);
 
 	/* the class must be loaded */
 
@@ -929,11 +945,6 @@ static classinfo *link_class_intern(classinfo *c)
 		/* XXX put worklist into dump memory? */
 		FREE(wi, method_worklist);
 	}
-
-#if !defined(NDEBUG)
-	if (linkverbose)
-		log_message_class("Linking done class: ", c);
-#endif
 
 	RT_TIMING_TIME_DIFF(time_start        ,time_resolving    ,RT_TIMING_LINK_RESOLVE);
 	RT_TIMING_TIME_DIFF(time_resolving    ,time_compute_vftbl,RT_TIMING_LINK_C_VFTBL);

@@ -634,7 +634,7 @@ static void fullversion(void)
 }
 
 
-void vm_printconfig(void)
+static void vm_printconfig(void)
 {
 	puts("Configure/Build options:\n");
 	puts("  ./configure: "VERSION_CONFIGURE_ARGS"");
@@ -1638,6 +1638,14 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	/* initialization is done */
 
 	vm_initializing = false;
+
+#if !defined(NDEBUG)
+	/* Print the VM configuration after all stuff is set and the VM is
+	   initialized. */
+
+	if (opt_PrintConfig)
+		vm_printconfig();
+#endif
 
 	/* everything's ok */
 

@@ -90,7 +90,6 @@ extern bool opt_debugcolor;
 extern bool compileall;
 
 extern bool loadverbose;         /* Print debug messages during loading */
-extern bool linkverbose;
 extern bool initverbose;         /* Log class initialization */ 
 
 extern bool opt_verboseclass;
@@ -213,6 +212,7 @@ extern int32_t  opt_TraceExceptions;
 extern int32_t  opt_TraceJavaCalls;
 extern int32_t  opt_TraceJNICalls;
 extern int32_t  opt_TraceJVMCalls;
+extern int32_t  opt_TraceLinkClass;
 #if defined(ENABLE_REPLACEMENT)
 extern int32_t  opt_TraceReplacement;
 #endif

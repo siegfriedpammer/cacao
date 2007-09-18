@@ -247,7 +247,6 @@ int main(int argc, char **argv)
 		case OPT_VERBOSE:
 			opt_verbose = true;
 			loadverbose = true;
-			linkverbose = true;
 			break;
 
 		default:
