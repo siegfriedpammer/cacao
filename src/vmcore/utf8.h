@@ -63,7 +63,6 @@ extern utf *utf_java_lang_ClassLoader;
 extern utf *utf_java_lang_Cloneable;
 extern utf *utf_java_lang_SecurityManager;
 extern utf *utf_java_lang_String;
-extern utf *utf_java_lang_System;
 extern utf *utf_java_lang_ThreadGroup;
 extern utf *utf_java_lang_ref_SoftReference;
 extern utf *utf_java_lang_ref_WeakReference;

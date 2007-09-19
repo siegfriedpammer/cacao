@@ -169,7 +169,8 @@ void loader_init(void)
 		load_class_bootstrap(utf_java_lang_SecurityManager);
 #endif
 
-	class_java_lang_System     = load_class_bootstrap(utf_java_lang_System);
+	class_java_lang_System     =
+		load_class_bootstrap(utf_new_char("java/lang/System"));
 
 	class_java_lang_Thread     =
 		load_class_bootstrap(utf_new_char("java/lang/Thread"));

@@ -67,7 +67,6 @@ utf *utf_java_lang_ClassLoader;
 utf *utf_java_lang_Cloneable;
 utf *utf_java_lang_SecurityManager;
 utf *utf_java_lang_String;
-utf *utf_java_lang_System;
 utf *utf_java_lang_ThreadGroup;
 utf *utf_java_lang_ref_SoftReference;
 utf *utf_java_lang_ref_WeakReference;
@@ -247,7 +246,6 @@ bool utf8_init(void)
 	utf_java_lang_Cloneable        = utf_new_char("java/lang/Cloneable");
 	utf_java_lang_SecurityManager  = utf_new_char("java/lang/SecurityManager");
 	utf_java_lang_String           = utf_new_char("java/lang/String");
-	utf_java_lang_System           = utf_new_char("java/lang/System");
 	utf_java_lang_ThreadGroup      = utf_new_char("java/lang/ThreadGroup");
 
 	utf_java_lang_ref_SoftReference =
