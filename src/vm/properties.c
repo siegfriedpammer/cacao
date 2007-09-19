@@ -689,6 +689,26 @@ void properties_system_add_all(java_handle_t *p)
 #endif /* defined(ENABLE_JAVASE) */
 
 
+/* properties_dump *************************************************************
+
+   Dump all property entries.
+
+*******************************************************************************/
+
+void properties_dump(void)
+{
+	list_t                  *l;
+	list_properties_entry_t *pe;
+
+	l = list_properties;
+
+	for (pe = list_first_unsynced(l); pe != NULL;
+		 pe = list_next_unsynced(l, pe)) {
+		log_println("[properties_dump: key=%s, value=%s]", pe->key, pe->value);
+	}
+}
+
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

@@ -49,6 +49,8 @@ void  properties_system_add(java_handle_t *p, char *key, char *value);
 void  properties_system_add_all(java_handle_t *p);
 #endif
 
+void  properties_dump(void);
+
 #endif /* _PROPERTIES_H */
 
 
