@@ -1532,8 +1532,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	primitive_postinit();
 
-	if (!exceptions_init())
-		vm_abort("vm_create: exceptions_init failed");
+	exceptions_init();
 
 	if (!builtin_init())
 		vm_abort("vm_create: builtin_init failed");

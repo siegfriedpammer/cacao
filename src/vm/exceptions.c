@@ -89,7 +89,7 @@ java_object_t *_no_threads_exceptionptr = NULL;
 
 *******************************************************************************/
 
-bool exceptions_init(void)
+void exceptions_init(void)
 {
 #if !(defined(__ARM__) && defined(__LINUX__))
 	/* On arm-linux the first memory page can't be mmap'ed, as it
@@ -109,15 +109,6 @@ bool exceptions_init(void)
 
 	if (OFFSET(java_bytearray_t, data) <= EXCEPTION_HARDWARE_LARGEST)
 		vm_abort("signal_init: array-data offset is less or equal the maximum hardware-exception displacement: %d <= %d", OFFSET(java_bytearray_t, data), EXCEPTION_HARDWARE_LARGEST);
-
-	/* java/lang/Throwable */
-
-	if (!(class_java_lang_Throwable =
-		  load_class_bootstrap(utf_java_lang_Throwable)) ||
-		!link_class(class_java_lang_Throwable))
-		return false;
-
-	return true;
 }
 
 
@@ -994,10 +985,9 @@ void exceptions_throw_internalerror(const char *message, ...)
 
 void exceptions_throw_linkageerror(const char *message, classinfo *c)
 {
-	java_handle_t *o;
-	utf           *u;
-	char          *msg;
-	int            len;
+	utf  *u;
+	char *msg;
+	int   len;
 
 	/* calculate exception message length */
 
@@ -1019,16 +1009,11 @@ void exceptions_throw_linkageerror(const char *message, classinfo *c)
 
 	u = utf_new_char(msg);
 
-	o = exceptions_new_utf_utf(utf_java_lang_LinkageError, u);
-
 	/* free memory */
 
 	MFREE(msg, char, len);
 
-	if (o == NULL)
-		return;
-
-	exceptions_set_exception(o);
+	exceptions_throw_utf_utf(utf_java_lang_LinkageError, u);
 }
 
 

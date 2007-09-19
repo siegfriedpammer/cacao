@@ -74,15 +74,12 @@
 
 /* function prototypes ********************************************************/
 
-bool           exceptions_init(void);
+void           exceptions_init(void);
 
 java_handle_t *exceptions_get_exception(void);
 void           exceptions_set_exception(java_handle_t *o);
 void           exceptions_clear_exception(void);
 java_handle_t *exceptions_get_and_clear_exception(void);
-
-java_handle_t *new_exception_utfmessage(const char *classname,
-											utf *message);
 
 
 /* functions to generate compiler exceptions */
