@@ -91,6 +91,9 @@ static hashtable *hashtable_classloader;
    Initializes the classpath list and loads classes required for the
    primitive table.
 
+   NOTE: Exceptions thrown during VM initialization are caught in the
+         exception functions themselves.
+
 *******************************************************************************/
  
 void loader_preinit(void)
@@ -112,19 +115,15 @@ void loader_preinit(void)
 	hashtable_classloader = NEW(hashtable);
 	hashtable_create(hashtable_classloader, 10);
 
-	/* Load the most basic class. */
+	/* Load the most basic classes. */
 
-	if (!(class_java_lang_Object = load_class_bootstrap(utf_java_lang_Object)))
-		vm_abort("loader_preinit: loading java/lang/Object failed");
+	assert(vm_initializing == true);
+
+	class_java_lang_Object     = load_class_bootstrap(utf_java_lang_Object);
 
 #if defined(ENABLE_JAVASE)
-	if (!(class_java_lang_Cloneable =
-		  load_class_bootstrap(utf_java_lang_Cloneable)))
-		vm_abort("loader_preinit: loading java/lang/Cloneable failed");
-
-	if (!(class_java_io_Serializable =
-		  load_class_bootstrap(utf_java_io_Serializable)))
-		vm_abort("loader_preinit: loading java/io/Serializable failed");
+	class_java_lang_Cloneable  = load_class_bootstrap(utf_java_lang_Cloneable);
+	class_java_io_Serializable = load_class_bootstrap(utf_java_io_Serializable);
 #endif
 }
 
@@ -133,133 +132,103 @@ void loader_preinit(void)
 
    Loads all classes required in the VM.
 
+   NOTE: Exceptions thrown during VM initialization are caught in the
+         exception functions themselves.
+
 *******************************************************************************/
  
 void loader_init(void)
 {
 	/* Load primitive-type wrapping classes. */
 
+	assert(vm_initializing == true);
+
 #if defined(ENABLE_JAVASE)
-	if (!(class_java_lang_Void = load_class_bootstrap(utf_java_lang_Void)))
-		vm_abort("loader_init: loading failed");
+	class_java_lang_Void       = load_class_bootstrap(utf_java_lang_Void);
 #endif
 
-	if (!(class_java_lang_Boolean =
-		  load_class_bootstrap(utf_java_lang_Boolean)))
-		vm_abort("loader_init: loading failed");
-
-	if (!(class_java_lang_Byte = load_class_bootstrap(utf_java_lang_Byte)))
-		vm_abort("loader_init: loading failed");
-
-	if (!(class_java_lang_Character =
-		  load_class_bootstrap(utf_java_lang_Character)))
-		vm_abort("loader_init: loading failed");
-
-	if (!(class_java_lang_Short = load_class_bootstrap(utf_java_lang_Short)))
-		vm_abort("loader_init: loading failed");
-
-	if (!(class_java_lang_Integer =
-		  load_class_bootstrap(utf_java_lang_Integer)))
-		vm_abort("loader_init: loading failed");
-
-	if (!(class_java_lang_Long = load_class_bootstrap(utf_java_lang_Long)))
-		vm_abort("loader_init: loading failed");
-
-	if (!(class_java_lang_Float = load_class_bootstrap(utf_java_lang_Float)))
-		vm_abort("loader_init: loading failed");
-
-	if (!(class_java_lang_Double = load_class_bootstrap(utf_java_lang_Double)))
-		vm_abort("loader_init: loading failed");
+	class_java_lang_Boolean    = load_class_bootstrap(utf_java_lang_Boolean);
+	class_java_lang_Byte       = load_class_bootstrap(utf_java_lang_Byte);
+	class_java_lang_Character  = load_class_bootstrap(utf_java_lang_Character);
+	class_java_lang_Short      = load_class_bootstrap(utf_java_lang_Short);
+	class_java_lang_Integer    = load_class_bootstrap(utf_java_lang_Integer);
+	class_java_lang_Long       = load_class_bootstrap(utf_java_lang_Long);
+	class_java_lang_Float      = load_class_bootstrap(utf_java_lang_Float);
+	class_java_lang_Double     = load_class_bootstrap(utf_java_lang_Double);
 
 	/* Load important system classes. */
 
-	if (!(class_java_lang_Class = load_class_bootstrap(utf_java_lang_Class)))
-		vm_abort("loader_init: loading failed");
-
-	if (!(class_java_lang_String = load_class_bootstrap(utf_java_lang_String)))
-		vm_abort("loader_init: loading failed");
+	class_java_lang_Class      = load_class_bootstrap(utf_java_lang_Class);
+	class_java_lang_String     = load_class_bootstrap(utf_java_lang_String);
 
 #if defined(ENABLE_JAVASE)
-	if (!(class_java_lang_ClassLoader =
-		  load_class_bootstrap(utf_java_lang_ClassLoader)))
-		vm_abort("loader_init: loading failed");
+	class_java_lang_ClassLoader =
+		load_class_bootstrap(utf_java_lang_ClassLoader);
 
-	if (!(class_java_lang_SecurityManager =
-		  load_class_bootstrap(utf_java_lang_SecurityManager)))
-		vm_abort("loader_init: loading failed");
+	class_java_lang_SecurityManager =
+		load_class_bootstrap(utf_java_lang_SecurityManager);
 #endif
 
-	if (!(class_java_lang_System = load_class_bootstrap(utf_java_lang_System)))
-		vm_abort("loader_init: loading failed");
+	class_java_lang_System     = load_class_bootstrap(utf_java_lang_System);
 
-	if (!(class_java_lang_Thread =
-		  load_class_bootstrap(utf_new_char("java/lang/Thread"))))
-		vm_abort("loader_init: loading failed");
+	class_java_lang_Thread     =
+		load_class_bootstrap(utf_new_char("java/lang/Thread"));
 
 #if defined(ENABLE_JAVASE)
-	if (!(class_java_lang_ThreadGroup =
-		  load_class_bootstrap(utf_java_lang_ThreadGroup)))
-		vm_abort("loader_init: loading failed");
+	class_java_lang_ThreadGroup =
+		load_class_bootstrap(utf_java_lang_ThreadGroup);
 #endif
+
+	class_java_lang_Throwable  = load_class_bootstrap(utf_java_lang_Throwable);
 
 #if defined(WITH_CLASSPATH_GNU)
-	if (!(class_java_lang_VMSystem =
-		  load_class_bootstrap(utf_new_char("java/lang/VMSystem"))))
-		vm_abort("loader_init: loading failed");
+	class_java_lang_VMSystem   =
+		load_class_bootstrap(utf_new_char("java/lang/VMSystem"));
 
-	if (!(class_java_lang_VMThread =
-		  load_class_bootstrap(utf_new_char("java/lang/VMThread"))))
-		vm_abort("loader_init: loading failed");
+	class_java_lang_VMThread   =
+		load_class_bootstrap(utf_new_char("java/lang/VMThread"));
+
+	class_java_lang_VMThrowable =
+		load_class_bootstrap(utf_new_char("java/lang/VMThrowable"));
 #endif
 
-
-	/* some classes which may be used more often */
+	/* Some classes which may be used often. */
 
 #if defined(ENABLE_JAVASE)
-	if (!(class_java_lang_StackTraceElement =
-		  load_class_bootstrap(utf_java_lang_StackTraceElement)))
-		vm_abort("loader_init: loading failed");
+	class_java_lang_StackTraceElement =
+		load_class_bootstrap(utf_java_lang_StackTraceElement);
 
-	if (!(class_java_lang_reflect_Constructor =
-		  load_class_bootstrap(utf_java_lang_reflect_Constructor)))
-		vm_abort("loader_init: loading failed");
+	class_java_lang_reflect_Constructor =
+		load_class_bootstrap(utf_java_lang_reflect_Constructor);
 
-	if (!(class_java_lang_reflect_Field =
-		  load_class_bootstrap(utf_java_lang_reflect_Field)))
-		vm_abort("loader_init: loading failed");
+	class_java_lang_reflect_Field =
+		load_class_bootstrap(utf_java_lang_reflect_Field);
 
-	if (!(class_java_lang_reflect_Method =
-		  load_class_bootstrap(utf_java_lang_reflect_Method)))
-		vm_abort("loader_init: loading failed");
+	class_java_lang_reflect_Method =
+		load_class_bootstrap(utf_java_lang_reflect_Method);
 
-	if (!(class_java_security_PrivilegedAction =
-		  load_class_bootstrap(utf_new_char("java/security/PrivilegedAction"))))
-		vm_abort("loader_init: loading failed");
+	class_java_security_PrivilegedAction =
+		load_class_bootstrap(utf_new_char("java/security/PrivilegedAction"));
 
-	if (!(class_java_util_Vector = load_class_bootstrap(utf_java_util_Vector)))
-		vm_abort("loader_init: loading failed");
+	class_java_util_Vector     = load_class_bootstrap(utf_java_util_Vector);
 
 # if defined(WITH_CLASSPATH_SUN)
-	if (!(class_sun_reflect_MagicAccessorImpl =
-		  load_class_bootstrap(utf_new_char("sun/reflect/MagicAccessorImpl"))))
-		vm_abort("loader_init: loading failed");
+	class_sun_reflect_MagicAccessorImpl =
+		load_class_bootstrap(utf_new_char("sun/reflect/MagicAccessorImpl"));
 # endif
 
-	if (!(arrayclass_java_lang_Object =
-		  load_class_bootstrap(utf_new_char("[Ljava/lang/Object;"))))
-		vm_abort("loader_init: loading failed");
+	arrayclass_java_lang_Object =
+		load_class_bootstrap(utf_new_char("[Ljava/lang/Object;"));
 
 # if defined(ENABLE_ANNOTATIONS)
 	/* needed by annotation support */
-	if (!(class_sun_reflect_ConstantPool = 
-		  load_class_bootstrap(utf_new_char("sun/reflect/ConstantPool"))))
-		vm_abort("loader_init: loading failed");
+	class_sun_reflect_ConstantPool =
+		load_class_bootstrap(utf_new_char("sun/reflect/ConstantPool"));
 
 #  if defined(WITH_CLASSPATH_GNU)
 	/* needed by GNU Classpaths annotation support */
-	if (!(class_sun_reflect_annotation_AnnotationParser = 
-		  load_class_bootstrap(utf_new_char("sun/reflect/annotation/AnnotationParser"))))
-		vm_abort("loader_init: loading failed");
+	class_sun_reflect_annotation_AnnotationParser =
+		load_class_bootstrap(utf_new_char("sun/reflect/annotation/AnnotationParser"));
 #  endif
 # endif
 #endif
@@ -1318,13 +1287,7 @@ classinfo *load_class_bootstrap(utf *name)
 	cb = suck_start(c);
 
 	if (cb == NULL) {
-		/* this normally means, the classpath was not set properly */
-
-		if (name == utf_java_lang_Object)
-			vm_abort("java/lang/NoClassDefFoundError: java/lang/Object");
-
 		exceptions_throw_classnotfoundexception(name);
-
 		return NULL;
 	}
 

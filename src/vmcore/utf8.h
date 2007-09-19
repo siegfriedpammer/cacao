@@ -90,10 +90,6 @@ extern utf *utf_java_lang_UnsupportedClassVersionError;
 extern utf *utf_java_lang_VerifyError;
 extern utf *utf_java_lang_VirtualMachineError;
 
-#if defined(WITH_CLASSPATH_GNU)
-extern utf *utf_java_lang_VMThrowable;
-#endif
-
 extern utf *utf_java_lang_Exception;
 
 extern utf *utf_java_lang_ArithmeticException;

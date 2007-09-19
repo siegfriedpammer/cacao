@@ -255,11 +255,17 @@ void linker_init(void)
 		vm_abort("linker_init: linking failed");
 #endif
 
+	if (!link_class(class_java_lang_Throwable))
+		vm_abort("linker_init: linking failed");
+
 #if defined(WITH_CLASSPATH_GNU)
 	if (!link_class(class_java_lang_VMSystem))
 		vm_abort("linker_init: linking failed");
 
 	if (!link_class(class_java_lang_VMThread))
+		vm_abort("linker_init: linking failed");
+
+	if (!link_class(class_java_lang_VMThrowable))
 		vm_abort("linker_init: linking failed");
 #endif
 

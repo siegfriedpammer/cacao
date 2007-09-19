@@ -81,30 +81,18 @@ classinfo *class_java_lang_String;
 classinfo *class_java_lang_System;
 classinfo *class_java_lang_Thread;
 classinfo *class_java_lang_ThreadGroup;
+classinfo *class_java_lang_Throwable;
+classinfo *class_java_io_Serializable;
+
+#if defined(WITH_CLASSPATH_GNU)
 classinfo *class_java_lang_VMSystem;
 classinfo *class_java_lang_VMThread;
-classinfo *class_java_io_Serializable;
+classinfo *class_java_lang_VMThrowable;
+#endif
 
 #if defined(WITH_CLASSPATH_SUN)
 classinfo *class_sun_reflect_MagicAccessorImpl;
 #endif
-
-/* system exception classes required in cacao */
-
-classinfo *class_java_lang_Throwable;
-classinfo *class_java_lang_Error;
-classinfo *class_java_lang_LinkageError;
-classinfo *class_java_lang_NoClassDefFoundError;
-classinfo *class_java_lang_OutOfMemoryError;
-classinfo *class_java_lang_VirtualMachineError;
-
-#if defined(WITH_CLASSPATH_GNU)
-classinfo *class_java_lang_VMThrowable;
-#endif
-
-classinfo *class_java_lang_Exception;
-classinfo *class_java_lang_ClassCastException;
-classinfo *class_java_lang_ClassNotFoundException;
 
 #if defined(ENABLE_JAVASE)
 classinfo *class_java_lang_Void;
@@ -118,12 +106,6 @@ classinfo *class_java_lang_Long;
 classinfo *class_java_lang_Float;
 classinfo *class_java_lang_Double;
 
-
-/* some runtime exception */
-
-classinfo *class_java_lang_NullPointerException;
-
-
 /* some classes which may be used more often */
 
 #if defined(ENABLE_JAVASE)
@@ -136,14 +118,13 @@ classinfo *class_java_util_Vector;
 
 classinfo *arrayclass_java_lang_Object;
 
-#if defined(ENABLE_ANNOTATIONS)
+# if defined(ENABLE_ANNOTATIONS)
 classinfo *class_sun_reflect_ConstantPool;
-#if defined(WITH_CLASSPATH_GNU)
+#  if defined(WITH_CLASSPATH_GNU)
 classinfo *class_sun_reflect_annotation_AnnotationParser;
+#  endif
+# endif
 #endif
-#endif
-#endif
-
 
 /* pseudo classes for the typechecker */
 

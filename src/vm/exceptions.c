@@ -83,9 +83,9 @@ java_object_t *_no_threads_exceptionptr = NULL;
 #endif
 
 
-/* init_system_exceptions ******************************************************
+/* exceptions_init *************************************************************
 
-   Load and link exceptions used in the system.
+   Initialize the exceptions subsystem.
 
 *******************************************************************************/
 
@@ -116,81 +116,6 @@ bool exceptions_init(void)
 		  load_class_bootstrap(utf_java_lang_Throwable)) ||
 		!link_class(class_java_lang_Throwable))
 		return false;
-
-	/* java/lang/Error */
-
-	if (!(class_java_lang_Error = load_class_bootstrap(utf_java_lang_Error)) ||
-		!link_class(class_java_lang_Error))
-		return false;
-
-#if defined(ENABLE_JAVASE)
-	/* java/lang/LinkageError */
-
-	if (!(class_java_lang_LinkageError =
-		  load_class_bootstrap(utf_java_lang_LinkageError)) ||
-		!link_class(class_java_lang_LinkageError))
-		return false;
-#endif
-
-	/* java/lang/NoClassDefFoundError */
-
-	if (!(class_java_lang_NoClassDefFoundError =
-		  load_class_bootstrap(utf_java_lang_NoClassDefFoundError)) ||
-		!link_class(class_java_lang_NoClassDefFoundError))
-		return false;
-
-	/* java/lang/OutOfMemoryError */
-
-	if (!(class_java_lang_OutOfMemoryError =
-		  load_class_bootstrap(utf_java_lang_OutOfMemoryError)) ||
-		!link_class(class_java_lang_OutOfMemoryError))
-		return false;
-
-	/* java/lang/VirtualMachineError */
-
-	if (!(class_java_lang_VirtualMachineError =
-		  load_class_bootstrap(utf_java_lang_VirtualMachineError)) ||
-		!link_class(class_java_lang_VirtualMachineError))
-		return false;
-
-
-	/* java/lang/Exception */
-
-	if (!(class_java_lang_Exception =
-		  load_class_bootstrap(utf_java_lang_Exception)) ||
-		!link_class(class_java_lang_Exception))
-		return false;
-
-	/* java/lang/ClassCastException */
-
-	if (!(class_java_lang_ClassCastException =
-		  load_class_bootstrap(utf_java_lang_ClassCastException)) ||
-		!link_class(class_java_lang_ClassCastException))
-		return false;
-
-	/* java/lang/ClassNotFoundException */
-
-	if (!(class_java_lang_ClassNotFoundException =
-		  load_class_bootstrap(utf_java_lang_ClassNotFoundException)) ||
-		!link_class(class_java_lang_ClassNotFoundException))
-		return false;
-
-	/* java/lang/NullPointerException */
-
-	if (!(class_java_lang_NullPointerException =
-		  load_class_bootstrap(utf_java_lang_NullPointerException)) ||
-		!link_class(class_java_lang_NullPointerException))
-		return false;
-
-
-#if defined(WITH_CLASSPATH_GNU)
-	/* java/lang/VMThrowable */
-
-	if (!(class_java_lang_VMThrowable =
-		  load_class_bootstrap(utf_java_lang_VMThrowable)) ||
-		!link_class(class_java_lang_VMThrowable))
-		return false;
-#endif
 
 	return true;
 }
@@ -332,25 +257,31 @@ java_handle_t *exceptions_get_and_clear_exception(void)
 }
 
 
-/* exceptions_new_class ********************************************************
+/* exceptions_abort ************************************************************
 
-   Creates an exception object from the given class and initalizes it.
+   Prints exception to be thrown and aborts.
 
    IN:
-      class....class pointer
+      classname....class name
+      message......exception message
 
 *******************************************************************************/
 
-static java_handle_t *exceptions_new_class(classinfo *c)
+static void exceptions_abort(utf *classname, utf *message)
 {
-	java_handle_t *o;
+	log_println("exception thrown while VM is initializing: ");
 
-	o = native_new_and_init(c);
+	log_start();
+	utf_display_printable_ascii_classname(classname);
 
-	if (o == NULL)
-		return exceptions_get_exception();
+	if (message != NULL) {
+		log_print(": ");
+		utf_display_printable_ascii_classname(message);
+	}
 
-	return o;
+	log_finish();
+
+	vm_abort("Aborting...");
 }
 
 
@@ -368,37 +299,20 @@ static java_handle_t *exceptions_new_utf(utf *classname)
 	classinfo     *c;
 	java_handle_t *o;
 
+	if (vm_initializing)
+		exceptions_abort(classname, NULL);
+
 	c = load_class_bootstrap(classname);
 
 	if (c == NULL)
 		return exceptions_get_exception();
 
-	o = exceptions_new_class(c);
-
-	return o;
-}
-
-
-/* exceptions_throw_class ******************************************************
-
-   Creates an exception object from the given class, initalizes and
-   throws it.
-
-   IN:
-      class....class pointer
-
-*******************************************************************************/
-
-static void exceptions_throw_class(classinfo *c)
-{
-	java_handle_t *o;
-
-	o = exceptions_new_class(c);
+	o = native_new_and_init(c);
 
 	if (o == NULL)
-		return;
+		return exceptions_get_exception();
 
-	exceptions_set_exception(o);
+	return o;
 }
 
 
@@ -414,14 +328,14 @@ static void exceptions_throw_class(classinfo *c)
 
 static void exceptions_throw_utf(utf *classname)
 {
-	classinfo *c;
+	java_handle_t *o;
 
-	c = load_class_bootstrap(classname);
+	o = exceptions_new_utf(classname);
 
-	if (c == NULL)
+	if (o == NULL)
 		return;
 
-	exceptions_throw_class(c);
+	exceptions_set_exception(o);
 }
 
 
@@ -443,6 +357,9 @@ static void exceptions_throw_utf_throwable(utf *classname,
 	java_handle_t       *o;
 	methodinfo          *m;
 	java_lang_Throwable *object;
+
+	if (vm_initializing)
+		exceptions_abort(classname, NULL);
 
 	object = (java_lang_Throwable *) cause;
 
@@ -493,6 +410,9 @@ static void exceptions_throw_utf_exception(utf *classname,
 	java_handle_t *o;
 	methodinfo    *m;
 
+	if (vm_initializing)
+		exceptions_abort(classname, NULL);
+
 	c = load_class_bootstrap(classname);
 
 	if (c == NULL)
@@ -540,6 +460,9 @@ static void exceptions_throw_utf_cause(utf *classname, java_handle_t *cause)
 	methodinfo          *m;
 	java_lang_String    *s;
 	java_lang_Throwable *object;
+
+	if (vm_initializing)
+		exceptions_abort(classname, NULL);
 
 	object = (java_lang_Throwable *) cause;
 
@@ -608,41 +531,15 @@ static java_handle_t *exceptions_new_utf_javastring(utf *classname,
 	java_handle_t *o;
 	classinfo     *c;
    
+	if (vm_initializing)
+		exceptions_abort(classname, NULL);
+
 	c = load_class_bootstrap(classname);
 
 	if (c == NULL)
 		return exceptions_get_exception();
 
 	o = native_new_and_init_string(c, message);
-
-	if (o == NULL)
-		return exceptions_get_exception();
-
-	return o;
-}
-
-
-/* exceptions_new_class_utf ****************************************************
-
-   Creates an exception object of the given class and initalizes it.
-
-   IN:
-      c..........class pointer
-      message....the message as UTF-8 string
-
-*******************************************************************************/
-
-static java_handle_t *exceptions_new_class_utf(classinfo *c, utf *message)
-{
-	java_handle_t *o;
-	java_handle_t *s;
-
-	s = javastring_new(message);
-
-	if (s == NULL)
-		return exceptions_get_exception();
-
-	o = native_new_and_init_string(c, s);
 
 	if (o == NULL)
 		return exceptions_get_exception();
@@ -669,37 +566,28 @@ static java_handle_t *exceptions_new_class_utf(classinfo *c, utf *message)
 static java_handle_t *exceptions_new_utf_utf(utf *classname, utf *message)
 {
 	classinfo     *c;
+	java_handle_t *s;
 	java_handle_t *o;
+
+	if (vm_initializing)
+		exceptions_abort(classname, message);
 
 	c = load_class_bootstrap(classname);
 
 	if (c == NULL)
 		return exceptions_get_exception();
 
-	o = exceptions_new_class_utf(c, message);
+	s = javastring_new(message);
+
+	if (s == NULL)
+		return exceptions_get_exception();
+
+	o = native_new_and_init_string(c, s);
+
+	if (o == NULL)
+		return exceptions_get_exception();
 
 	return o;
-}
-
-
-/* exceptions_throw_class_utf **************************************************
-
-   Creates an exception object of the given class, initalizes and
-   throws it with the given utf message.
-
-   IN:
-      c..........class pointer
-	  message....the message as an UTF-8
-
-*******************************************************************************/
-
-static void exceptions_throw_class_utf(classinfo *c, utf *message)
-{
-	java_handle_t *o;
-
-	o = exceptions_new_class_utf(c, message);
-
-	exceptions_set_exception(o);
 }
 
 
@@ -751,7 +639,7 @@ static java_handle_t *exceptions_new_error(utf *message)
 {
 	java_handle_t *o;
 
-	o = exceptions_new_class_utf(class_java_lang_Error, message);
+	o = exceptions_new_utf_utf(utf_java_lang_Error, message);
 
 	return o;
 }
@@ -914,10 +802,8 @@ void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
 *******************************************************************************/
 
 void exceptions_throw_classnotfoundexception(utf *name)
-{
-	/* we use class here, as this one is rather frequent */
-
-	exceptions_throw_class_utf(class_java_lang_ClassNotFoundException, name);
+{	
+	exceptions_throw_utf_utf(utf_java_lang_ClassNotFoundException, name);
 }
 
 
@@ -932,10 +818,7 @@ void exceptions_throw_classnotfoundexception(utf *name)
 
 void exceptions_throw_noclassdeffounderror(utf *name)
 {
-	if (vm_initializing)
-		vm_abort("java.lang.NoClassDefFoundError: %s", name->text);
-
-	exceptions_throw_class_utf(class_java_lang_NoClassDefFoundError, name);
+	exceptions_throw_utf_utf(utf_java_lang_NoClassDefFoundError, name);
 }
 
 
@@ -1112,33 +995,35 @@ void exceptions_throw_internalerror(const char *message, ...)
 void exceptions_throw_linkageerror(const char *message, classinfo *c)
 {
 	java_handle_t *o;
+	utf           *u;
 	char          *msg;
-	s4             msglen;
+	int            len;
 
 	/* calculate exception message length */
 
-	msglen = strlen(message) + 1;
+	len = strlen(message) + 1;
 
 	if (c != NULL)
-		msglen += utf_bytes(c->name);
+		len += utf_bytes(c->name);
 		
 	/* allocate memory */
 
-	msg = MNEW(char, msglen);
+	msg = MNEW(char, len);
 
 	/* generate message */
 
-	strcpy(msg,message);
+	strcpy(msg, message);
 
 	if (c != NULL)
 		utf_cat_classname(msg, c->name);
 
-	o = native_new_and_init_string(class_java_lang_LinkageError,
-								   javastring_new_from_utf_string(msg));
+	u = utf_new_char(msg);
+
+	o = exceptions_new_utf_utf(utf_java_lang_LinkageError, u);
 
 	/* free memory */
 
-	MFREE(msg, char, msglen);
+	MFREE(msg, char, len);
 
 	if (o == NULL)
 		return;
@@ -1231,7 +1116,7 @@ void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
 #if defined(ENABLE_JAVASE)
 	exceptions_throw_utf_utf(utf_java_lang_NoSuchMethodError, u);
 #else
-	exceptions_throw_class_utf(class_java_lang_Error, u);
+	exceptions_throw_utf_utf(utf_java_lang_Error, u);
 #endif
 }
 
@@ -1244,7 +1129,7 @@ void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
 
 void exceptions_throw_outofmemoryerror(void)
 {
-	exceptions_throw_class(class_java_lang_OutOfMemoryError);
+	exceptions_throw_utf(utf_java_lang_OutOfMemoryError);
 }
 
 
@@ -1263,7 +1148,7 @@ void exceptions_throw_unsatisfiedlinkerror(utf *name)
 #if defined(ENABLE_JAVASE)
 	exceptions_throw_utf_utf(utf_java_lang_UnsatisfiedLinkError, name);
 #else
-	exceptions_throw_class_utf(class_java_lang_Error, name);
+	exceptions_throw_utf_utf(utf_java_lang_Error, name);
 #endif
 }
 
@@ -1534,7 +1419,6 @@ void exceptions_throw_arrayindexoutofboundsexception(void)
 void exceptions_throw_arraystoreexception(void)
 {
 	exceptions_throw_utf(utf_java_lang_ArrayStoreException);
-/*  	e = native_new_and_init(class_java_lang_ArrayStoreException); */
 }
 
 
@@ -1554,7 +1438,7 @@ java_handle_t *exceptions_new_classcastexception(java_handle_t *o)
 
 	classname = c->name;
 
-	e = exceptions_new_class_utf(class_java_lang_ClassCastException, classname);
+	e = exceptions_new_utf_utf(utf_java_lang_ClassCastException, classname);
 
 	return e;
 }
@@ -1675,7 +1559,7 @@ java_handle_t *exceptions_new_nullpointerexception(void)
 {
 	java_handle_t *o;
 
-	o = exceptions_new_class(class_java_lang_NullPointerException);
+	o = exceptions_new_utf(utf_java_lang_NullPointerException);
 
 	return o;
 }
@@ -1690,7 +1574,7 @@ java_handle_t *exceptions_new_nullpointerexception(void)
 
 void exceptions_throw_nullpointerexception(void)
 {
-	exceptions_throw_class(class_java_lang_NullPointerException);
+	exceptions_throw_utf(utf_java_lang_NullPointerException);
 }
 
 
@@ -1729,18 +1613,27 @@ void exceptions_throw_stringindexoutofboundsexception(void)
 
 void exceptions_classnotfoundexception_to_noclassdeffounderror(void)
 {
+	classinfo           *c;
 	java_handle_t       *o;
 	java_handle_t       *cause;
 	java_lang_Throwable *object;
 	java_lang_String    *s;
 
-	/* get the cause */
+	/* Load java/lang/ClassNotFoundException for the instanceof
+	   check. */
+
+	c = load_class_bootstrap(utf_java_lang_ClassNotFoundException);
+
+	if (c == NULL)
+		return;
+
+	/* Get the cause. */
 
 	cause = exceptions_get_exception();
 
-	/* convert ClassNotFoundException's to NoClassDefFoundError's */
+	/* Convert ClassNotFoundException's to NoClassDefFoundError's. */
 
-	if (builtin_instanceof(cause, class_java_lang_ClassNotFoundException)) {
+	if (builtin_instanceof(cause, c)) {
 		/* clear exception, because we are calling jit code again */
 
 		exceptions_clear_exception();

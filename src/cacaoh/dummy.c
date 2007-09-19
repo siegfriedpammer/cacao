@@ -52,6 +52,7 @@
 
 /* global variables ***********************************************************/
 
+bool  vm_initializing = true;
 char *_Jv_bootclasspath;
 
 

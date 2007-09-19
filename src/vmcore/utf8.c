@@ -94,10 +94,6 @@ utf *utf_java_lang_UnsupportedClassVersionError;
 utf *utf_java_lang_VerifyError;
 utf *utf_java_lang_VirtualMachineError;
 
-#if defined(WITH_CLASSPATH_GNU)
-utf *utf_java_lang_VMThrowable;
-#endif
-
 utf *utf_java_lang_Exception;
 
 utf *utf_java_lang_ArithmeticException;
@@ -310,10 +306,6 @@ bool utf8_init(void)
 
 	utf_java_lang_NoSuchMethodError =
 		utf_new_char("java/lang/NoSuchMethodError");
-#endif
-
-#if defined(WITH_CLASSPATH_GNU)
-	utf_java_lang_VMThrowable      = utf_new_char("java/lang/VMThrowable");
 #endif
 
 	utf_java_lang_Exception        = utf_new_char("java/lang/Exception");

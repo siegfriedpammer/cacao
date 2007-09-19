@@ -129,7 +129,8 @@ bool initialize_class(classinfo *c)
 static bool initialize_class_intern(classinfo *c)
 {
 	methodinfo    *m;
-	java_handle_t *xptr;
+	java_handle_t *cause;
+	classinfo     *class;
 
 	/* maybe the class is not already linked */
 
@@ -187,23 +188,30 @@ static bool initialize_class_intern(classinfo *c)
 
 	/* we have an exception or error */
 
-	xptr = exceptions_get_exception();
+	cause = exceptions_get_exception();
 
-	if (xptr != NULL) {
+	if (cause != NULL) {
 		/* class is NOT initialized and is marked with error */
 
 		c->state |= CLASS_ERROR;
 
-		/* is this an exception, than wrap it */
+		/* Load java/lang/Exception for the instanceof check. */
 
-		if (builtin_instanceof(xptr, class_java_lang_Exception)) {
+		class = load_class_bootstrap(utf_java_lang_Exception);
+
+		if (class == NULL)
+			return false;
+
+		/* Is this an exception?  Yes, than wrap it. */
+
+		if (builtin_instanceof(cause, class)) {
 			/* clear exception, because we are calling jit code again */
 
 			exceptions_clear_exception();
 
 			/* wrap the exception */
 
-			exceptions_throw_exceptionininitializererror(xptr);
+			exceptions_throw_exceptionininitializererror(cause);
 		}
 
 		return false;

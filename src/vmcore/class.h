@@ -215,40 +215,21 @@ extern classinfo *class_java_lang_String;
 extern classinfo *class_java_lang_System;
 extern classinfo *class_java_lang_Thread;
 extern classinfo *class_java_lang_ThreadGroup;
+extern classinfo *class_java_lang_Throwable;
+extern classinfo *class_java_io_Serializable;
+
+#if defined(WITH_CLASSPATH_GNU)
 extern classinfo *class_java_lang_VMSystem;
 extern classinfo *class_java_lang_VMThread;
-extern classinfo *class_java_io_Serializable;
+extern classinfo *class_java_lang_VMThrowable;
+#endif
 
 #if defined(WITH_CLASSPATH_SUN)
 extern classinfo *class_sun_reflect_MagicAccessorImpl;
 #endif
 
-/* system exception classes required in cacao */
-
-extern classinfo *class_java_lang_Throwable;
-extern classinfo *class_java_lang_Error;
-extern classinfo *class_java_lang_LinkageError;
-extern classinfo *class_java_lang_NoClassDefFoundError;
-extern classinfo *class_java_lang_OutOfMemoryError;
-extern classinfo *class_java_lang_VirtualMachineError;
-
-#if defined(WITH_CLASSPATH_GNU)
-extern classinfo *class_java_lang_VMThrowable;
-#endif
-
-extern classinfo *class_java_lang_Exception;
-extern classinfo *class_java_lang_ClassCastException;
-extern classinfo *class_java_lang_ClassNotFoundException;
-
 #if defined(ENABLE_JAVASE)
 extern classinfo *class_java_lang_Void;
-
-#if defined(ENABLE_ANNOTATIONS)
-extern classinfo *class_sun_reflect_ConstantPool;
-#if defined(WITH_CLASSPATH_GNU)
-extern classinfo *class_sun_reflect_annotation_AnnotationParser;
-#endif
-#endif
 #endif
 
 extern classinfo *class_java_lang_Boolean;
@@ -259,12 +240,6 @@ extern classinfo *class_java_lang_Integer;
 extern classinfo *class_java_lang_Long;
 extern classinfo *class_java_lang_Float;
 extern classinfo *class_java_lang_Double;
-
-
-/* some runtime exception */
-
-extern classinfo *class_java_lang_NullPointerException;
-
 
 /* some classes which may be used more often */
 
@@ -277,6 +252,13 @@ extern classinfo *class_java_security_PrivilegedAction;
 extern classinfo *class_java_util_Vector;
 
 extern classinfo *arrayclass_java_lang_Object;
+
+# if defined(ENABLE_ANNOTATIONS)
+extern classinfo *class_sun_reflect_ConstantPool;
+#  if defined(WITH_CLASSPATH_GNU)
+extern classinfo *class_sun_reflect_annotation_AnnotationParser;
+#  endif
+# endif
 #endif
 
 
