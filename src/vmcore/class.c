@@ -2172,11 +2172,13 @@ void class_classref_or_classinfo_print(classref_or_classinfo c)
 
 *******************************************************************************/
 
+#if !defined(NDEBUG)
 void class_classref_or_classinfo_println(classref_or_classinfo c)
 {
 	class_classref_or_classinfo_print(c);
 	printf("\n");
 }
+#endif
 
 
 /* class_showconstantpool ******************************************************
