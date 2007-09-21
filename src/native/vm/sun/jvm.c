@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <ltdl.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -44,6 +45,7 @@
 
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #include "vm/types.h"
 
@@ -2155,7 +2157,21 @@ jboolean JVM_IsInterrupted(JNIEnv* env, jobject jthread, jboolean clear_interrup
 
 jboolean JVM_HoldsLock(JNIEnv* env, jclass threadClass, jobject obj)
 {
-	log_println("JVM_HoldsLock: IMPLEMENT ME!");
+	java_handle_t *h;
+	bool           result;
+
+	TRACEJVMCALLS("JVM_HoldsLock(env=%p, threadClass=%p, obj=%p)", env, threadClass, obj);
+
+	h = (java_handle_t *) obj;
+
+	if (h == NULL) {
+		exceptions_throw_nullpointerexception();
+		return JNI_FALSE;
+	}
+
+	result = lock_is_held_by_current_thread(h);
+
+	return result;
 }
 
 
@@ -2562,7 +2578,22 @@ jint JVM_SendTo(jint fd, char *buf, int len, int flags, struct sockaddr *to, int
 
 jint JVM_SocketAvailable(jint fd, jint *pbytes)
 {
-	log_println("JVM_SocketAvailable: IMPLEMENT ME!");
+#if defined(FIONREAD)
+	int bytes;
+
+	TRACEJVMCALLS("JVM_SocketAvailable(fd=%d, pbytes=%p)", fd, pbytes);
+
+	*pbytes = 0;
+
+	if (ioctl(fd, FIONREAD, &bytes) < 0)
+		return 0;
+
+	*pbytes = bytes;
+
+	return 1;
+#else
+# error FIONREAD not defined
+#endif
 }
 
 
@@ -2570,7 +2601,13 @@ jint JVM_SocketAvailable(jint fd, jint *pbytes)
 
 jint JVM_GetSockOpt(jint fd, int level, int optname, char *optval, int *optlen)
 {
-	log_println("JVM_GetSockOpt: IMPLEMENT ME!");
+#if defined(HAVE_GETSOCKOPT)
+	TRACEJVMCALLS("JVM_GetSockOpt(fd=%d, level=%d, optname=%d, optval=%s, optlen=%p)", fd, level, optname, optval, optlen);
+
+	return getsockopt(fd, level, optname, optval, (socklen_t *) optlen);
+#else
+# error getsockopt not available
+#endif
 }
 
 
@@ -2578,9 +2615,13 @@ jint JVM_GetSockOpt(jint fd, int level, int optname, char *optval, int *optlen)
 
 jint JVM_SetSockOpt(jint fd, int level, int optname, const char *optval, int optlen)
 {
+#if defined(HAVE_SETSOCKOPT)
 	TRACEJVMCALLS("JVM_SetSockOpt(fd=%d, level=%d, optname=%d, optval=%s, optlen=%d)", fd, level, optname, optval, optlen);
 
 	return setsockopt(fd, level, optname, optval, optlen);
+#else
+# error setsockopt not available
+#endif
 }
 
 
