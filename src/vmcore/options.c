@@ -178,7 +178,7 @@ int      opt_DebugPackage              = 0;
 int      opt_DebugPatcher              = 0;
 int      opt_DebugProperties           = 0;
 int32_t  opt_DebugStackFrameInfo       = 0;
-int32_t  opt_DebugStackTrace           = 0;
+int      opt_DebugStackTrace           = 0;
 #if defined(ENABLE_DISASSEMBLER)
 int      opt_DisassembleStubs          = 0;
 #endif
@@ -543,11 +543,14 @@ void options_xx(JavaVMInitArgs *vm_args)
 			opt_DebugStackFrameInfo = enable;
 			break;
 
+		case OPT_DebugStackTrace:
+			opt_DebugStackTrace = enable;
+			break;
 
 #if defined(ENABLE_DISASSEMBLER)
-	case OPT_DisassembleStubs:
-		opt_DisassembleStubs = enable;
-		break;
+		case OPT_DisassembleStubs:
+			opt_DisassembleStubs = enable;
+			break;
 #endif
 
 #if defined(ENABLE_GC_CACAO)

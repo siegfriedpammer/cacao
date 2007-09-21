@@ -193,7 +193,7 @@ extern int      opt_DebugPatcher;
 extern int      opt_DebugPackage;
 extern int      opt_DebugProperties;
 extern int32_t  opt_DebugStackFrameInfo;
-extern int32_t  opt_DebugStackTrace;
+extern int      opt_DebugStackTrace;
 #if defined(ENABLE_DISASSEMBLER)
 extern int      opt_DisassembleStubs;
 #endif
