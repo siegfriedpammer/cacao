@@ -3184,6 +3184,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 				M_LST(s1, REG_SP, i * 8);
 				break;
 			case TYPE_FLT:
+				M_FST(s1, REG_SP, i * 8);
+				break;
 			case TYPE_DBL:
 				M_DST(s1, REG_SP, i * 8);
 				break;
@@ -3219,6 +3221,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 				M_LLD(s1, REG_SP, i * 8);
 				break;
 			case TYPE_FLT:
+				M_FLD(s1, REG_SP, i * 8);
+				break;
 			case TYPE_DBL:
 				M_DLD(s1, REG_SP, i * 8);
 				break;
@@ -3304,6 +3308,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		M_LST(REG_RESULT, REG_SP, 0 * 8);
 		break;
 	case TYPE_FLT:
+		M_FST(REG_FRESULT, REG_SP, 0 * 8);
+		break;
 	case TYPE_DBL:
 		M_DST(REG_FRESULT, REG_SP, 0 * 8);
 		break;
@@ -3331,6 +3337,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		M_LLD(REG_RESULT, REG_SP, 0 * 8);
 		break;
 	case TYPE_FLT:
+		M_FLD(REG_FRESULT, REG_SP, 0 * 8);
+		break;
 	case TYPE_DBL:
 		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
 		break;
