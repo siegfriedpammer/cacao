@@ -118,10 +118,11 @@ const s4 abi_registers_float_temporary[] = {
    slot: size in bytes of a stack slot
    slots1w: number of stack slots used by a 1 word type parameter
    slots2w: number of stack slots used by a 2 word type parameter
+   stackoff: offset on stack frame where to start placing arguments
 
 *******************************************************************************/
 
-static void md_param_alloc_intern(methoddesc *md, s4 slot, s4 slots1w, s4 slots2w)
+static void md_param_alloc_intern(methoddesc *md, s4 slot, s4 slots1w, s4 slots2w, s4 stackoff)
 {
 	paramdesc *pd;
 	s4         i;
@@ -151,7 +152,7 @@ static void md_param_alloc_intern(methoddesc *md, s4 slot, s4 slots1w, s4 slots2
 			}
 			else {
 				pd->inmemory  = true;
-				pd->regoff    = stacksize * slot;
+				pd->regoff    = (stacksize * slot) + stackoff;
 				pd->index     = stacksize;
 				stacksize += slots1w;
 			}
@@ -170,7 +171,7 @@ static void md_param_alloc_intern(methoddesc *md, s4 slot, s4 slots1w, s4 slots2
 			else {
 				/* _ALIGN(stacksize); */
 				pd->inmemory  = true;
-				pd->regoff    = stacksize * slot;
+				pd->regoff    = (stacksize * slot) + stackoff;
 				pd->index     = stacksize;
 				iarg          = INT_ARG_CNT;
 				stacksize    += slots2w;
@@ -186,7 +187,7 @@ static void md_param_alloc_intern(methoddesc *md, s4 slot, s4 slots1w, s4 slots2
 			}
 			else {
 				pd->inmemory  = true;
-				pd->regoff    = stacksize * slot;
+				pd->regoff    = (stacksize * slot) + stackoff;
 				pd->index     = stacksize;
 				stacksize += slots1w;
 			}
@@ -202,7 +203,7 @@ static void md_param_alloc_intern(methoddesc *md, s4 slot, s4 slots1w, s4 slots2
 			else {
 				/* _ALIGN(stacksize); */
 				pd->inmemory  = true;
-				pd->regoff    = stacksize * slot;
+				pd->regoff    = (stacksize * slot) + stackoff;
 				pd->index     = stacksize;
 				stacksize    += slots2w;
 			}
@@ -236,12 +237,12 @@ static void md_param_alloc_intern(methoddesc *md, s4 slot, s4 slots1w, s4 slots2
 
 void md_param_alloc(methoddesc *md)
 {
-	md_param_alloc_intern(md, 8, 1, 1);
+	md_param_alloc_intern(md, 8, 1, 1, 0);
 }
 
 void md_param_alloc_native(methoddesc *md)
 {
-	md_param_alloc_intern(md, 4, 1, 2);
+	md_param_alloc_intern(md, 4, 1, 2, 96);
 }
 
 

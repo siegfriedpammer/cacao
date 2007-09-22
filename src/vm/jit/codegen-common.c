@@ -1523,11 +1523,17 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 	javara    = *((uint8_t **) datasp);
 	arg_regs  = (uint64_t *) currentsp;
 	arg_stack = (uint64_t *) javasp;
-#elif defined(__MIPS__) || defined(__S390__)
-	/* MIPS and S390 always uses 8 bytes to store the RA */
+#elif defined(__MIPS__)
+	/* MIPS always uses 8 bytes to store the RA */
 	datasp    = currentsp + framesize - 8;
 	javasp    = currentsp + framesize;
 	javara    = *((uint8_t **) datasp);
+#elif defined(__S390__)
+	datasp    = currentsp + framesize - 8;
+	javasp    = currentsp + framesize;
+	javara    = *((uint8_t **) datasp);
+	arg_regs  = (uint64_t *) (currentsp + 96);
+	arg_stack = (uint64_t *) javasp;
 #elif defined(__I386__) || defined(__M68K__) || defined(__X86_64__)
 	datasp    = currentsp + framesize;
 	javasp    = currentsp + framesize + SIZEOF_VOID_P;
@@ -1553,7 +1559,7 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 #endif
 
 #if !defined(NDEBUG)
-# if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
+# if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__) || defined(__S390__)
 	/* print the call-trace if necesarry */
 
 	if (opt_TraceJavaCalls)
@@ -1628,9 +1634,12 @@ java_object_t *codegen_finish_native_call(u1 *currentsp, u1 *pv)
 #if defined(__ALPHA__) || defined(__ARM__)
 	datasp   = currentsp + framesize - SIZEOF_VOID_P;
 	ret_regs = (uint64_t *) currentsp;
-#elif defined(__MIPS__) || defined(__S390__)
-	/* MIPS and S390 always uses 8 bytes to store the RA */
+#elif defined(__MIPS__)
+	/* MIPS always uses 8 bytes to store the RA */
 	datasp   = currentsp + framesize - 8;
+#elif defined(__S390__)
+	datasp   = currentsp + framesize - 8;
+	ret_regs = (uint64_t *) (currentsp + 96);
 #elif defined(__I386__)
 	datasp   = currentsp + framesize;
 	ret_regs = (uint64_t *) (currentsp + 2 * SIZEOF_VOID_P);
@@ -1649,7 +1658,7 @@ java_object_t *codegen_finish_native_call(u1 *currentsp, u1 *pv)
 
 
 #if !defined(NDEBUG)
-# if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
+# if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__) || defined(__S390__)
 	/* print the call-trace if necesarry */
 
 	if (opt_TraceJavaCalls)

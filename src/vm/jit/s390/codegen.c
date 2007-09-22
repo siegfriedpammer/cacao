@@ -2840,12 +2840,13 @@ gen_method:
 
 			switch (iptr->opc) {
 			case ICMD_BUILTIN:
-				if (bte->stub == NULL)
+				if (bte->stub == NULL) {
 					disp = dseg_add_functionptr(cd, bte->fp);
-				else
+					M_ASUB_IMM(96, REG_SP); /* register save area as required by C abi */	
+				} else {
 					disp = dseg_add_functionptr(cd, bte->stub);
+				}
 
-				M_ASUB_IMM(96, REG_SP); /* register save area as required by C abi */	
 				if (N_VALID_DSEG_DISP(disp)) {
 					N_L(REG_PV, N_DSEG_DISP(disp), RN, REG_PV);
 				} else {
@@ -2935,7 +2936,9 @@ gen_method:
 
 			switch (iptr->opc) {
 				case ICMD_BUILTIN:
-					M_AADD_IMM(96, REG_SP); /* remove C abi register save area */
+					if (bte->stub == NULL) {
+						M_AADD_IMM(96, REG_SP); /* remove C abi register save area */
+					}
 					break;
 			}
 
@@ -3526,41 +3529,40 @@ void codegen_emit_stub_compiler(jitdata *jd)
                                                             SP after method entry
 */
 
-void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
+void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int skipparams)
 {
-	methodinfo   *m;
-	codeinfo     *code;
-	codegendata  *cd;
-	registerdata *rd;
-	methoddesc   *md;
-	s4            nativeparams;
-	s4            i, j;                 /* count variables                    */
-	s4            t;
-	s4            s1, s2;
-	s4            disp;
+	methodinfo  *m;
+	codeinfo    *code;
+	codegendata *cd;
+	methoddesc  *md;
+	s4           i, j;                 /* count variables                    */
+	s4           t;
+	s4           s1, s2, disp;
+	s4           funcdisp;
 
 	/* get required compiler data */
 
 	m    = jd->m;
 	code = jd->code;
 	cd   = jd->cd;
-	rd   = jd->rd;
 
-	/* initialize variables */
+	/* set some variables */
 
 	md = m->parseddesc;
-	nativeparams = (m->flags & ACC_STATIC) ? 2 : 1;
 
-	/* calculate stack frame size */
+	/* calculate stackframe size */
 
-	cd->stackframesize = 
-		1 + /* r14 - return address */ +
-		((sizeof(stackframeinfo) + 7) / 8) +
-		((sizeof(localref_table) + 7) / 8)  +
-		1 + /* itmp3 */
-		(INT_ARG_CNT + FLT_ARG_CNT) +
-		nmd->memuse + /* parameter passing */
-		(96 / 8)  /* required by ABI */;
+	cd->stackframesize =
+		1 + /* return address */
+		sizeof(stackframeinfo) / 8 +
+		sizeof(localref_table) / 8 +
+		nmd->paramcount +
+		nmd->memuse +
+		(96 / 8); /* linkage area */
+
+	/* keep stack 8-byte aligned */
+
+	/*ALIGN_2(cd->stackframesize);*/
 
 	/* create method header */
 
@@ -3573,266 +3575,241 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 	(void) dseg_addlinenumbertablesize(cd);
 	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
 
-	/* generate stub code */
+	/* generate code */
 
 	M_ASUB_IMM(cd->stackframesize * 8, REG_SP);
 	M_AADD_IMM(N_PV_OFFSET, REG_PV);
 
-	/* save return address */
+	/* store return address */
 
 	M_AST(REG_RA, REG_SP, (cd->stackframesize - 1) * 8);
 
-	/* generate native method profiling code */
-
-#if defined(ENABLE_PROFILING)
-	if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
-		/* count frequency */
-		M_ALD_DSEG(REG_ITMP1, CodeinfoPointer);
-		ICONST(REG_ITMP2, 1);
-		N_AL(REG_ITMP2, OFFSET(codeinfo, frequency), RN, REG_ITMP1);
-		M_IST(REG_ITMP2, REG_ITMP1, OFFSET(codeinfo, frequency));
-	}
-#endif
-
-#if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_enter(jd);
-#endif
-
 	/* get function address (this must happen before the stackframeinfo) */
 
-	disp = dseg_add_functionptr(cd, f);
+	funcdisp = dseg_add_functionptr(cd, f);
 
 	if (f == NULL)
-		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, disp);
+		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, funcdisp);
 
-	M_ALD_DSEG(REG_ITMP1, disp);
+#if defined(ENABLE_GC_CACAO)
+	/* Save callee saved integer registers in stackframeinfo (GC may
+	   need to recover them during a collection). */
 
-	j = 96 + (nmd->memuse * 8);
+	disp = cd->stackframesize * 8 - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, intregs);
 
-	/* todo some arg registers are not volatile in C-abi terms */
+	for (i = 0; i < INT_SAV_CNT; i++)
+		M_AST(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
+#endif
 
 	/* save integer and float argument registers */
 
 	for (i = 0; i < md->paramcount; i++) {
-		if (! md->params[i].inmemory) {
+		if (!md->params[i].inmemory) {
 			s1 = md->params[i].regoff;
-			t = md->paramtypes[i].type;
 
-			if (IS_INT_LNG_TYPE(t)) {
-				if (IS_2_WORD_TYPE(t)) {
-					M_LST(s1, REG_SP, j);
-				} else {
-					M_IST(s1, REG_SP, j);
-				}
-			} else {
-				if (IS_2_WORD_TYPE(t)) {
-					M_DST(s1, REG_SP, j);
-				} else {
-					M_FST(s1, REG_SP, j);
-				}
+			switch (md->paramtypes[i].type) {
+			case TYPE_INT:
+			case TYPE_ADR:
+				M_IST(s1, REG_SP, 96 + i * 8);
+				break;
+			case TYPE_LNG:
+				M_LST(s1, REG_SP, 96 + i * 8);
+				break;
+			case TYPE_FLT:
+			case TYPE_DBL:
+				M_DST(s1, REG_SP, 96 + i * 8);
+				break;
 			}
-
-			j += 8;
 		}
 	}
 
-	M_AST(REG_ITMP1, REG_SP, j);
+	/* create native stack info */
 
-	/* create dynamic stack info */
-
-	M_MOV(REG_SP, REG_A0); /* currentsp */
-	M_LDA(REG_A1, REG_PV, -N_PV_OFFSET); /* pv */
-
+	M_MOV(REG_SP, REG_A0);
+	M_LDA(REG_A1, REG_PV, -N_PV_OFFSET);
 	disp = dseg_add_functionptr(cd, codegen_start_native_call);
-	M_ALD_DSEG(REG_ITMP1, disp);
-
-	M_CALL(REG_ITMP1); /* call */
+	M_ALD_DSEG(REG_ITMP2, disp);
+	M_CALL(REG_ITMP2);
 
 	/* remember class argument */
 
-	if (m->flags & ACC_STATIC) {
+	if (m->flags & ACC_STATIC)
 		M_MOV(REG_RESULT, REG_ITMP3);
-	}
 
 	/* restore integer and float argument registers */
 
-	j = 96 + (nmd->memuse * 8);
-
 	for (i = 0; i < md->paramcount; i++) {
-		if (! md->params[i].inmemory) {
+		if (!md->params[i].inmemory) {
 			s1 = md->params[i].regoff;
-			t = md->paramtypes[i].type;
 
-			if (IS_INT_LNG_TYPE(t)) {
-				if (IS_2_WORD_TYPE(t)) {
-					M_LLD(s1, REG_SP, j);
-				} else {
-					M_ILD(s1, REG_SP, j);
-				}
-			} else {
-				if (IS_2_WORD_TYPE(t)) {
-					M_DLD(s1, REG_SP, j);
-				} else {
-					M_FLD(s1, REG_SP, j);
-				}
+			switch (md->paramtypes[i].type) {
+			case TYPE_INT:
+			case TYPE_ADR:
+				M_ILD(s1, REG_SP, 96 + i * 8);
+				break;
+			case TYPE_LNG:
+				M_LLD(s1, REG_SP, 96 + i * 8);
+				break;
+			case TYPE_FLT:
+			case TYPE_DBL:
+				M_DLD(s1, REG_SP, 96 + i * 8);
+				break;
 			}
-
-			j += 8;
 		}
 	}
-
-	M_ALD(REG_ITMP1, REG_SP, j);
 
 	/* copy or spill arguments to new locations */
 
-	for (i = md->paramcount - 1, j = i + nativeparams; i >= 0; i--, j--) {
+	for (i = md->paramcount - 1, j = i + skipparams; i >= 0; i--, j--) {
 		t = md->paramtypes[i].type;
 
 		if (IS_INT_LNG_TYPE(t)) {
-
-			if (! md->params[i].inmemory) {
-
+			if (!md->params[i].inmemory) {
 				s1 = md->params[i].regoff;
-
-				if (! nmd->params[j].inmemory) {
-					s2 = nmd->params[j].regoff;
-					if (IS_2_WORD_TYPE(t)) {
-						M_LNGMOVE(s1, s2);
-					} else {
-						M_MOV(s1, s2);
-					}
-				} else {
-					s2 = nmd->params[j].regoff;
-					if (IS_2_WORD_TYPE(t)) {
-						M_LST(s1, REG_SP, 96 + s2);
-					} else {
-						M_IST(s1, REG_SP, 96 + s2);
-					}
-				}
-
-			} else {
-				s1 = cd->stackframesize * 8 + md->params[i].regoff;
 				s2 = nmd->params[j].regoff;
-				
-				if (IS_2_WORD_TYPE(t)) {
-					N_MVC(96 + s2, 8, REG_SP, s1, REG_SP);
-				} else {
-					N_MVC(96 + s2, 4, REG_SP, s1, REG_SP);
+
+				if (!nmd->params[j].inmemory) {
+					if (IS_2_WORD_TYPE(t))
+						M_LNGMOVE(s1, s2);
+					else
+						M_INTMOVE(s1, s2);
+				}
+				else {
+					if (IS_2_WORD_TYPE(t))
+						M_LST(s1, REG_SP, s2);
+					else
+						M_IST(s1, REG_SP, s2);
 				}
 			}
-
-		} else {
-			/* We only copy spilled float arguments, as the float argument    */
-			/* registers keep unchanged.                                      */
-
-			if (md->params[i].inmemory) {
-				s1 = cd->stackframesize * 8 + md->params[i].regoff;
+			else {
+				s1 = md->params[i].regoff + cd->stackframesize * 8;
 				s2 = nmd->params[j].regoff;
 
 				if (IS_2_WORD_TYPE(t)) {
-					N_MVC(96 + s2, 8, REG_SP, s1, REG_SP);
+					N_MVC(s2, 8, REG_SP, s1, REG_SP);
 				} else {
-					N_MVC(96 + s2, 4, REG_SP, s1, REG_SP);
+					N_MVC(s2, 4, REG_SP, s1, REG_SP);
+				}
+			}
+		}
+		else {
+			/* We only copy spilled float arguments, as the float
+			   argument registers keep unchanged. */
+
+			if (md->params[i].inmemory) {
+				s1 = md->params[i].regoff + cd->stackframesize * 8;
+				s2 = nmd->params[j].regoff;
+
+				if (IS_2_WORD_TYPE(t)) {
+					N_MVC(s2, 8, REG_SP, s1, REG_SP);
+				} else {
+					N_MVC(s2, 4, REG_SP, s1, REG_SP);
 				}
 			}
 		}
 	}
 
-	/* put class into second argument register */
+	/* Handle native Java methods. */
 
-	if (m->flags & ACC_STATIC) {
-		M_MOV(REG_ITMP3, REG_A1);
+	if (m->flags & ACC_NATIVE) {
+		/* put class into second argument register */
+
+		if (m->flags & ACC_STATIC)
+			M_MOV(REG_ITMP3, REG_A1);
+
+		/* put env into first argument register */
+
+		disp = dseg_add_address(cd, _Jv_env);
+		M_ALD_DSEG(REG_A0, disp);
 	}
 
-	/* put env into first argument register */
+	/* generate the actual native call */
 
-	disp = dseg_add_address(cd, _Jv_env);
-	M_ILD_DSEG(REG_A0, disp);
-
-	/* do the native function call */
-
-	M_CALL(REG_ITMP1); /* call */
+	M_ALD_DSEG(REG_ITMP2, funcdisp);
+	M_CALL(REG_ITMP2);
 
 	/* save return value */
 
-	t = md->returntype.type;
-
-	if (t != TYPE_VOID) {
-		if (IS_INT_LNG_TYPE(t)) {
-			if (IS_2_WORD_TYPE(t)) {
-				M_LST(REG_RESULT_PACKED, REG_SP, 96);
-			} else {
-				M_IST(REG_RESULT, REG_SP, 96);
-			}
-		} else {
-			if (IS_2_WORD_TYPE(t)) {
-				M_DST(REG_FRESULT, REG_SP, 96);
-			} else {
-				M_FST(REG_FRESULT, REG_SP, 96);
-			}
-		}
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_ADR:
+		M_IST(REG_RESULT, REG_SP, 96);
+		break;
+	case TYPE_LNG:
+		M_LST(REG_RESULT_PACKED, REG_SP, 96);
+		break;
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DST(REG_FRESULT, REG_SP, 96);
+		break;
+	case TYPE_VOID:
+		break;
 	}
-
-#if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_exit(jd);
-#endif
 
 	/* remove native stackframe info */
 
-	M_MOV(REG_SP, REG_A0); /* currentsp */
-	M_LDA(REG_A1, REG_PV, -N_PV_OFFSET); /* pv */
+	M_MOV(REG_SP, REG_A0);
+	M_LDA(REG_A1, REG_PV, -N_PV_OFFSET);
 	disp = dseg_add_functionptr(cd, codegen_finish_native_call);
 	M_ALD_DSEG(REG_ITMP1, disp);
 	M_CALL(REG_ITMP1);
-	M_MOV(REG_RESULT, REG_ITMP3);
+
+	M_MOV(REG_RESULT, REG_ITMP3_XPTR);
 
 	/* restore return value */
 
-	if (t != TYPE_VOID) {
-		if (IS_INT_LNG_TYPE(t)) {
-			if (IS_2_WORD_TYPE(t)) {
-				M_LLD(REG_RESULT_PACKED, REG_SP, 96);
-			} else {
-				M_ILD(REG_RESULT, REG_SP, 96);
-			}
-		} else {
-			if (IS_2_WORD_TYPE(t)) {
-				M_DLD(REG_FRESULT, REG_SP, 96);
-			} else {
-				M_FLD(REG_FRESULT, REG_SP, 96);
-			}
-		}
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_ADR:
+		M_ILD(REG_RESULT, REG_SP, 96);
+		break;
+	case TYPE_LNG:
+		M_LLD(REG_RESULT_PACKED, REG_SP, 96);
+		break;
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DLD(REG_FRESULT, REG_SP, 96);
+		break;
+	case TYPE_VOID:
+		break;
 	}
 
-	/* load return address */
-	
-	M_ALD(REG_ITMP2, REG_SP, (cd->stackframesize - 1) * 8);
+#if defined(ENABLE_GC_CACAO)
+	/* Restore callee saved integer registers from stackframeinfo (GC
+	   might have modified them during a collection). */
+  	 
+	disp = cd->stackframesize * 8 - sizeof(stackframeinfo) +
+		OFFSET(stackframeinfo, intregs);
 
-	/* remove stackframe */
+	for (i = 0; i < INT_SAV_CNT; i++)
+		M_ALD(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
+#endif
+
+	/* load return address */
+
+	M_ALD(REG_RA, REG_SP, (cd->stackframesize - 1) * 8);
+
+	/* remove stackframe       */
 
 	M_AADD_IMM(cd->stackframesize * 8, REG_SP);
 
-	/* test for exception */
+	/* check for exception */
 
-	M_TEST(REG_ITMP3);
-	M_BNE(SZ_BRC + SZ_BCR);
+	M_TEST(REG_ITMP3_XPTR);
+	M_BNE(SZ_BRC + SZ_BCR);                     /* if no exception then return        */
 
-	/* return */
-
-	M_JMP(RN, REG_ITMP2);
+	M_RET;
 
 	/* handle exception */
 
-	M_MOV(REG_ITMP3, REG_ITMP3_XPTR);
-	M_MOV(REG_ITMP2, REG_ITMP1_XPC); /* get return address from stack */
+	M_MOV(REG_RA, REG_ITMP1_XPC);
 
 	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
 	M_ALD_DSEG(REG_ITMP2, disp);
 	M_JMP(RN, REG_ITMP2);
 
-	/* generate patcher stubs */
+	/* generate patcher traps */
 
 	emit_patcher_traps(jd);
 }
