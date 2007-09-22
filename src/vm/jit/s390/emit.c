@@ -44,6 +44,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
+#include "vm/jit/trace.h"
 #include "vm/jit/s390/codegen.h"
 #include "vm/jit/s390/emit.h"
 #include "vm/jit/s390/md-abi.h"
@@ -241,17 +242,17 @@ uint32_t emit_trap(codegendata *cd)
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-#include "vm/jit/trace.h"
 void emit_verbosecall_enter(jitdata *jd)
 {
-#if 1
 	methodinfo   *m;
 	codegendata  *cd;
+	methoddesc   *md;
 	s4            stackframesize;
-	s4            i, off, disp;
+	s4            i, off, disp, s;
 
 	m  = jd->m;
 	cd = jd->cd;
+	md = m->parseddesc;
 
 	/* mark trace code */
 
@@ -259,27 +260,57 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	/* allocate stack frame */
 
-	stackframesize = 96 + (ARG_CNT * 8) + (TMP_CNT * 8);
+	stackframesize = 96 + (md->paramcount * 8);
+
+	/* for leaf methods we need to store unused argument and temporary registers */
+
+	if (jd->isleafmethod) {
+		stackframesize += (ARG_CNT + TMP_CNT) * 8;
+	}
+
+	/* allocate stack frame */
+
 	M_ASUB_IMM(stackframesize, REG_SP);
 
 	/* store argument registers in array */
 
 	off = 96;
 
-	for (i = 0; i < INT_ARG_CNT; ++i, off += 8) {
-		M_IST(abi_registers_integer_argument[i], REG_SP, off + 4);
-		/* high bytes are sign extension */
-		M_SRA_IMM(31, abi_registers_integer_argument[i]);
-		M_IST(abi_registers_integer_argument[i], REG_SP, off);
+	for (i = 0; i < md->paramcount; i++) {
+		if (! md->params[i].inmemory) {
+			s = md->params[i].regoff;
+			switch (md->paramtypes[i].type) {
+				case TYPE_INT:
+				case TYPE_ADR:
+					M_IST(s, REG_SP, off);
+					break;
+				case TYPE_LNG:
+					M_LST(s, REG_SP, off);
+					break;
+				case TYPE_FLT:
+					M_FST(s, REG_SP, off);
+					break;
+				case TYPE_DBL:
+					M_DST(s, REG_SP, off);
+					break;
+			}
+		}
+		off += 8;
 	}
 
-	for (i = 0; i < FLT_ARG_CNT; ++i, off += 8) {
-		M_DST(abi_registers_float_argument[i], REG_SP, off);
-	}
-	
+	/* save unused (currently all) argument registers for leaf methods */
 	/* save temporary registers for leaf methods */
 
 	if (jd->isleafmethod) {
+
+		for (i = 0; i < INT_ARG_CNT; ++i, off += 8) {
+			M_IST(abi_registers_integer_argument[i], REG_SP, off);
+		}
+
+		for (i = 0; i < FLT_ARG_CNT; ++i, off += 8) {
+			M_DST(abi_registers_float_argument[i], REG_SP, off);
+		}
+
 		for (i = 0; i < INT_TMP_CNT; ++i, off += 8) {
 			M_IST(abi_registers_integer_temporary[i], REG_SP, off);
 		}
@@ -292,6 +323,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* load arguments for trace_java_call_enter */
 
 	/* methodinfo */
+
 	disp = dseg_add_address(cd, m);
 	M_ALD_DSEG(REG_A0, disp);	
 	/* pointer to argument registers array */
@@ -305,27 +337,50 @@ void emit_verbosecall_enter(jitdata *jd)
 	M_ALD_DSEG(REG_ITMP2, disp);
 	M_CALL(REG_ITMP2);
 
-	/* restore argument registers */
-
-	off = 96;
-
-	for (i = 0; i < INT_ARG_CNT; ++i, off += 8) {
-		M_ILD(abi_registers_integer_argument[i], REG_SP, off + 4);
-	}
-
-	for (i = 0; i < FLT_ARG_CNT; ++i, off += 8) {
-		M_DLD(abi_registers_float_argument[i], REG_SP, off);
-	}
-
-	/* restore temporary registers for leaf methods */
+	/* restore used argument registers */
+	/* for leaf methods restore all argument and temporary registers */
 
 	if (jd->isleafmethod) {
+		off = 96 + (8 * md->paramcount);
+
+		for (i = 0; i < INT_ARG_CNT; ++i, off += 8) {
+			M_ILD(abi_registers_integer_argument[i], REG_SP, off);
+		}
+
+		for (i = 0; i < FLT_ARG_CNT; ++i, off += 8) {
+			M_DLD(abi_registers_float_argument[i], REG_SP, off);
+		}
+
 		for (i = 0; i < INT_TMP_CNT; ++i, off += 8) {
 			M_ILD(abi_registers_integer_temporary[i], REG_SP, off);
 		}
 
 		for (i = 0; i < FLT_TMP_CNT; ++i, off += 8) {
 			M_DLD(abi_registers_float_temporary[i], REG_SP, off);
+		}
+	} else {
+		off = 96;
+
+		for (i = 0; i < md->paramcount; i++) {
+			if (! md->params[i].inmemory) {
+				s = md->params[i].regoff;
+				switch (md->paramtypes[i].type) {
+					case TYPE_INT:
+					case TYPE_ADR:
+						M_ILD(s, REG_SP, off);
+						break;
+					case TYPE_LNG:
+						M_LLD(s, REG_SP, off);
+						break;
+					case TYPE_FLT:
+						M_FLD(s, REG_SP, off);
+						break;
+					case TYPE_DBL:
+						M_DLD(s, REG_SP, off);
+						break;
+				}
+			}
+			off += 8;
 		}
 	}
 
@@ -337,181 +392,6 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	M_NOP;
 
-#else
-	methodinfo   *m;
-	codegendata  *cd;
-	methoddesc   *md;
-	s4            i, j, k;
-	s4            stackframesize, off, foff, aoff, doff, t, iargctr, fargctr, disp;
-
-	/* get required compiler data */
-
-	m  = jd->m;
-	cd = jd->cd;
-
-	md = m->parseddesc;
-
-	/* mark trace code */
-
-	M_NOP;
-
-	stackframesize = 
-		(6 * 8) + /* s8 on stack parameters x 6 */
-		(1 * 4) + /* methodinfo on stack parameter */
-		(ARG_CNT * 8) +
-		(TMP_CNT * 8) 
-		;
-
-	M_ASUB_IMM(stackframesize, REG_SP); /* allocate stackframe */
-
-	/* save argument registers */
-
-	off = (6 * 8) + (1 * 4);
-
-	for (i = 0; i < INT_ARG_CNT; i++, off += 8)
-		M_IST(abi_registers_integer_argument[i], REG_SP, off);
-
-	for (i = 0; i < FLT_ARG_CNT; i++, off += 8)
-		M_DST(abi_registers_float_argument[i], REG_SP, off);
-
-	/* save temporary registers for leaf methods */
-
-	if (jd->isleafmethod) {
-		for (i = 0; i < INT_TMP_CNT; i++, off += 8)
-			M_LST(abi_registers_integer_temporary[i], REG_SP, off);
-
-		for (i = 0; i < FLT_TMP_CNT; i++, off += 8)
-			M_DST(abi_registers_float_temporary[i], REG_SP, off);
-	}
-
-	/* Load arguments to new locations */
-
-	/* First move all arguments to stack
-	 *
-	 * (s8) a7
-	 * (s8) a2
-	 *   ...
-	 * (s8) a1 \ Auxilliary stack frame
-	 * (s8) a0 /
-	 * ------- <---- SP
-	 */
-
-	M_ASUB_IMM(2 * 8, REG_SP);
-	
-	/* offset to where first integer arg is saved on stack */
-	off = (2 * 8) + (6 * 8) + (1 * 4); 
-	/* offset to where first float arg is saved on stack */
-	foff = off + (INT_ARG_CNT * 8); 
-	/* offset to where first argument is passed on stack */
-	aoff = (2 * 8) + stackframesize + (cd->stackframesize * 8);
-	/* offset to destination on stack */
-	doff = 0; 
-
-	iargctr = fargctr = 0;
-
-	ICONST(REG_ITMP1, 0);
-
-	for (i = 0; i < md->paramcount && i < 8; i++) {
-		t = md->paramtypes[i].type;
-
-		M_IST(REG_ITMP1, REG_SP, doff);
-		M_IST(REG_ITMP1, REG_SP, doff + 4);
-
-		if (IS_FLT_DBL_TYPE(t)) {
-			if (fargctr < 2) { /* passed in register */
-				N_STD(abi_registers_float_argument[fargctr], doff, RN, REG_SP);
-				fargctr += 1;
-			} else { /* passed on stack */
-				/*
-				if (IS_2_WORD_TYPE(t)) {
-					N_MVC(doff, 8, REG_SP, aoff, REG_SP);
-				} else {
-					N_MVC(doff + 4, 4, REG_SP, aoff, REG_SP);
-				}
-				*/
-				N_MVC(doff, 8, REG_SP, aoff, REG_SP);
-				aoff += 8;
-			}
-		} else {
-			if (IS_2_WORD_TYPE(t)) {
-				if (iargctr < 4) { /* passed in 2 registers */
-					N_STM(REG_A0 + iargctr, REG_A0 + iargctr + 1, doff, REG_SP);
-					iargctr += 2;
-				} else { /* passed on stack */
-					N_MVC(doff, 8, REG_SP, aoff, REG_SP);
-					aoff += 8;
-				}
-			} else {
-				if (iargctr < 5) { /* passed in register */
-					N_ST(REG_A0 + iargctr, doff + 4, RN, REG_SP);
-					iargctr += 1;
-				} else { /* passed on stack */
-					N_MVC(doff + 4, 4, REG_SP, aoff, REG_SP);
-					aoff += 8;
-				}
-			}
-		}
-
-		doff += 8;
-	}
-
-	/* Now move a0 and a1 to registers
-	 *
-	 * (s8) a7
-	 *   ...
-	 * (s8) a2
-	 * ------- <- SP
-	 * (s8) a0 ==> a0, a1
-	 * (s8) a1 ==> a2, a3
-	 */
-
-	N_LM(REG_A0, REG_A1, 0, REG_SP);
-	N_LM(REG_A2, REG_A3, 8, REG_SP);
-
-	M_AADD_IMM(2 * 8, REG_SP);
-
-	/* Finally load methodinfo argument */
-
-	disp = dseg_add_address(cd, m);
-	M_ALD_DSEG(REG_ITMP2, disp);	
-	M_AST(REG_ITMP2, REG_SP, 6 * 8);
-
-	/* Call builtin_verbosecall_enter */
-
-	disp = dseg_add_address(cd, builtin_verbosecall_enter);
-	M_ALD_DSEG(REG_ITMP2, disp);
-	M_ASUB_IMM(96, REG_SP);
-	M_CALL(REG_ITMP2);
-	M_AADD_IMM(96, REG_SP);
-
-	/* restore argument registers */
-
-	off = (6 * 8) + (1 * 4);
-
-	for (i = 0; i < INT_ARG_CNT; i++, off += 8)
-		M_ILD(abi_registers_integer_argument[i], REG_SP, off);
-
-	for (i = 0; i < FLT_ARG_CNT; i++, off += 8)
-		M_DLD(abi_registers_float_argument[i], REG_SP, off);
-
-	/* restore temporary registers for leaf methods */
-
-	if (jd->isleafmethod) {
-		for (i = 0; i < INT_TMP_CNT; i++, off += 8)
-			M_ILD(abi_registers_integer_temporary[i], REG_SP, off);
-
-		for (i = 0; i < FLT_TMP_CNT; i++, off += 8)
-			M_DLD(abi_registers_float_temporary[i], REG_SP, off);
-	}
-
-	/* remove stackframe */
-
-	M_AADD_IMM(stackframesize, REG_SP);
-
-	/* mark trace code */
-
-	M_NOP;
-#endif
 }
 #endif /* !defined(NDEBUG) */
 
@@ -525,14 +405,16 @@ void emit_verbosecall_enter(jitdata *jd)
 #if !defined(NDEBUG)
 void emit_verbosecall_exit(jitdata *jd)
 {
-#if 1
 	methodinfo   *m;
 	codegendata  *cd;
 	s4            disp;
 	s4            stackframesize;
+	s4            off;
+	s4            t;
 
 	m  = jd->m;
 	cd = jd->cd;
+	t = m->parseddesc->returntype.type;
 
 	/* mark trace code */
 
@@ -540,35 +422,43 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	/* allocate stackframe */
 
-	stackframesize = 96 + (3 * 8);
+	stackframesize = 96 + (1 * 8);
 	M_ASUB_IMM(stackframesize, REG_SP);
 
-	/* store return values in array and sign extend them */
+	off = 96;
 
-	M_IST(REG_RESULT, REG_SP, 96 + (0 * 8) + 4);
-	M_SRA_IMM(31, REG_RESULT);
-	M_IST(REG_RESULT, REG_SP, 96 + (0 * 8));
+	/* store return values in array */
 
-	M_IST(REG_RESULT2, REG_SP, 96 + (1 * 8) + 4);
-	M_SRA_IMM(31, REG_RESULT2);
-	M_IST(REG_RESULT2, REG_SP, 96 + (1 * 8));
-
-	M_DST(REG_FRESULT, REG_SP, 96 + (2 * 8));
+	if (IS_INT_LNG_TYPE(t)) {
+		if (IS_2_WORD_TYPE(t)) {
+			M_LST(REG_RESULT_PACKED, REG_SP, off);
+		} else {
+			M_IST(REG_RESULT, REG_SP, off);
+		}
+	} else {
+		M_DST(REG_FRESULT, REG_SP, off);
+	}
 
 	/* call trace_java_call_exit */
 
 	disp = dseg_add_address(cd, m);
 	M_ALD_DSEG(REG_A0, disp);
-	M_LDA(REG_A1, REG_SP, 96);
+	M_LDA(REG_A1, REG_SP, off);
 	disp = dseg_add_functionptr(cd, trace_java_call_exit);
 	M_ALD_DSEG(REG_ITMP2, disp);
 	M_CALL(REG_ITMP2);
 
-	/* restore return values */
+	/* restore return value */
 
-	M_ILD(REG_RESULT, REG_SP, 96 + (0 * 8) + 4);
-	M_ILD(REG_RESULT2, REG_SP, 96 + (1 * 8) + 4);
-	M_DLD(REG_FRESULT, REG_SP, 96 + (2 * 8));
+	if (IS_INT_LNG_TYPE(t)) {
+		if (IS_2_WORD_TYPE(t)) {
+			M_LLD(REG_RESULT_PACKED, REG_SP, off);
+		} else {
+			M_ILD(REG_RESULT, REG_SP, off);
+		}
+	} else {
+		M_DLD(REG_FRESULT, REG_SP, off);
+	}
 
 	/* remove stackframe */
 
@@ -577,57 +467,6 @@ void emit_verbosecall_exit(jitdata *jd)
 	/* mark trace code */
 
 	M_NOP;
-
-#else
-
-	methodinfo   *m;
-	codegendata  *cd;
-	registerdata *rd;
-	s4            disp;
-
-	/* get required compiler data */
-
-	m  = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
-
-	/* mark trace code */
-
-	M_NOP;
-
-	M_ASUB_IMM(2 * 8, REG_SP);
-
-	N_STM(REG_RESULT, REG_RESULT2, 0 * 8, REG_SP);
-	M_DST(REG_FRESULT, REG_SP, 1 * 8);
-
-	if (IS_2_WORD_TYPE(m->parseddesc->returntype.type)) {
-		/* (REG_A0, REG_A1) == (REG_RESULT, REG_RESULT2), se no need to move */
-	} else {
-		M_INTMOVE(REG_RESULT, REG_A1);
-		ICONST(REG_A0, 0);
-	}
-
-	disp = dseg_add_address(cd, m);
-	M_ALD_DSEG(REG_A2, disp);
-
-	/* REG_FRESULT is REG_FA0, so no need to move */
-	M_FLTMOVE(REG_FRESULT, REG_FA1);
-
-	disp = dseg_add_address(cd, builtin_verbosecall_exit);
-	M_ALD_DSEG(REG_ITMP1, disp);
-	M_ASUB_IMM(96, REG_SP);
-	M_CALL(REG_ITMP1);
-	M_AADD_IMM(96, REG_SP);
-
-	N_LM(REG_RESULT, REG_RESULT2, 0 * 8, REG_SP);
-	M_DLD(REG_FRESULT, REG_SP, 1 * 8);
-
-	M_AADD_IMM(2 * 8, REG_SP);
-
-	/* mark trace code */
-
-	M_NOP;
-#endif
 }
 #endif /* !defined(NDEBUG) */
 
