@@ -29,6 +29,9 @@
 #define _STATISTICS_H
 
 #include "config.h"
+
+#include <stdint.h>
+
 #include "vm/types.h"
 
 #include "vm/global.h"
@@ -99,6 +102,7 @@ extern s4 size_stack_map;
 extern s4 size_string;
 
 extern s4 size_threadobject;
+extern int32_t size_thread_index_t;
 
 extern s4 size_lock_record;
 extern s4 size_lock_hashtable;

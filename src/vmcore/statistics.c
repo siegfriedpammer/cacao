@@ -27,6 +27,7 @@
 
 #include "config.h"
 
+#include <stdint.h>
 #include <string.h> 
 
 #if defined(HAVE_TIME_H)
@@ -96,6 +97,7 @@ s4 size_stack_map        = 0;
 s4 size_string           = 0;
 
 s4 size_threadobject     = 0;
+int32_t size_thread_index_t = 0;
 
 s4 size_lock_record      = 0;
 s4 size_lock_hashtable   = 0;
@@ -694,6 +696,7 @@ void statistics_print_memory_usage(void)
 	log_println("stack map:              %10d", size_stack_map);
 	log_println("string:                 %10d", size_string);
 	log_println("threadobject:           %10d", size_threadobject);
+	log_println("thread index:           %10d", size_thread_index_t);
 	log_println("lock record:            %10d", size_lock_record);
 	log_println("lock hashtable:         %10d", size_lock_hashtable);
 	log_println("lock waiter:            %10d", size_lock_waiter);
@@ -713,6 +716,7 @@ void statistics_print_memory_usage(void)
 		size_stack_map +
 		size_string +
 		size_threadobject +
+		size_thread_index_t +
 		size_lock_record +
 		size_lock_hashtable +
 		size_lock_waiter +

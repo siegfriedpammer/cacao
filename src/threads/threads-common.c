@@ -74,7 +74,13 @@
 static list_t *list_threads;
 
 /* global threads free-list */
-static list_t *list_threads_free;
+
+typedef struct thread_index_t {
+	int32_t    index;
+	listnode_t linkage;
+} thread_index_t;
+
+static list_t *list_free_thread_index;
 
 #if defined(__LINUX__)
 /* XXX Remove for exact-GC. */
@@ -133,8 +139,8 @@ void threads_preinit(void)
 
 	/* initialize the threads lists */
 
-	list_threads      = list_create(OFFSET(threadobject, linkage));
-	list_threads_free = list_create(OFFSET(threadobject, linkage));
+	list_threads           = list_create(OFFSET(threadobject, linkage));
+	list_free_thread_index = list_create(OFFSET(thread_index_t, linkage));
 
 	/* Initialize the threads implementation (sets the thinlock on the
 	   main thread). */
@@ -242,73 +248,86 @@ s4 threads_list_get_non_daemons(void)
 
 threadobject *threads_thread_new(void)
 {
-	threadobject *t;
-
+	thread_index_t *ti;
+	int32_t         index;
+	threadobject   *t;
+	
 	/* lock the threads-lists */
 
 	threads_list_lock();
 
-	/* try to get a thread from the free-list */
+	/* Try to get a thread index from the free-list. */
 
-	t = list_first_unsynced(list_threads_free);
+	ti = list_first_unsynced(list_free_thread_index);
 
-	/* is a free thread available? */
+	/* Is a free thread index available? */
 
-	if (t != NULL) {
-		/* yes, remove it from the free list */
+	if (ti != NULL) {
+		/* Yes, remove it from the free list, get the index and free
+		   the entry. */
 
-		list_remove_unsynced(list_threads_free, t);
-	}
-	else {
-		/* no, allocate a new one */
+		list_remove_unsynced(list_free_thread_index, ti);
 
-#if defined(ENABLE_GC_BOEHM)
-		t = GCNEW_UNCOLLECTABLE(threadobject, 1);
-#else
-		t = NEW(threadobject);
-#endif
+		index = ti->index;
+
+		FREE(ti, thread_index_t);
 
 #if defined(ENABLE_STATISTICS)
 		if (opt_stat)
-			size_threadobject += sizeof(threadobject);
-#endif
-
-		/* clear memory */
-
-		MZERO(t, threadobject, 1);
-
-		/* set the threads-index */
-
-		t->index = list_threads->size + 1;
-
-#if defined(ENABLE_GC_CACAO)
-		/* register reference to java.lang.Thread with the GC */
-
-		gc_reference_register((java_object_t **) &(t->object), GC_REFTYPE_THREADOBJECT);
+			size_thread_index_t -= sizeof(thread_index_t);
 #endif
 	}
+	else {
+		/* Get a new the thread index. */
 
-	/* pre-compute the thinlock-word */
+		index = list_threads->size + 1;
+	}
 
-	assert(t->index != 0);
+	/* Allocate a thread data structure. */
 
-	t->thinlock = lock_pre_compute_thinlock(t->index);
-	t->flags    = 0;
-	t->state    = THREAD_STATE_NEW;
-
-#if defined(ENABLE_GC_CACAO)
-	t->flags |= THREAD_FLAG_IN_NATIVE; 
+#if defined(ENABLE_GC_BOEHM)
+	t = GCNEW_UNCOLLECTABLE(threadobject, 1);
+#else
+	t = NEW(threadobject);
 #endif
 
-	/* initialize the implementation-specific bits */
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_threadobject += sizeof(threadobject);
+#endif
+
+	/* Clear memory. */
+
+	MZERO(t, threadobject, 1);
+
+#if defined(ENABLE_GC_CACAO)
+	/* Register reference to java.lang.Thread with the GC. */
+
+	gc_reference_register((java_object_t **) &(t->object), GC_REFTYPE_THREADOBJECT);
+#endif
+
+	/* Pre-compute the thinlock-word. */
+
+	assert(index != 0);
+
+	t->index     = index;
+	t->thinlock  = lock_pre_compute_thinlock(t->index);
+	t->flags     = 0;
+	t->state     = THREAD_STATE_NEW;
+
+#if defined(ENABLE_GC_CACAO)
+	t->flags    |= THREAD_FLAG_IN_NATIVE; 
+#endif
+
+	/* Initialize the implementation-specific bits. */
 
 	threads_impl_thread_new(t);
 
-	/* add the thread to the threads-list */
+	/* Add the thread to the threads-list. */
 
 	list_add_last_unsynced(list_threads, t);
 
-	/* unlock the threads-lists */
+	/* Unlock the threads-lists. */
 
 	threads_list_unlock();
 
@@ -318,49 +337,58 @@ threadobject *threads_thread_new(void)
 
 /* threads_thread_free *********************************************************
 
-   Frees an internal thread data-structure by removing it from the
-   threads-list and adding it to the free-list.
+   Remove the thread from the threads-list and free the internal
+   thread data structure.  The thread index is added to the
+   thread-index free-list.
 
-   NOTE: The data-structure is NOT freed, the pointer keeps valid!
+   IN:
+       t....thread data structure
 
 *******************************************************************************/
 
 void threads_thread_free(threadobject *t)
 {
-	int32_t  index;
-	uint32_t state;
+	thread_index_t *ti;
 
-	/* lock the threads-lists */
+	/* Lock the threads lists. */
 
 	threads_list_lock();
 
-	/* cleanup the implementation-specific bits */
+	/* Cleanup the implementation specific bits. */
 
 	threads_impl_thread_free(t);
 
-	/* remove the thread from the threads-list */
+	/* Remove the thread from the threads-list. */
 
 	list_remove_unsynced(list_threads, t);
 
-	/* Clear memory, but keep the thread-index and the
-	   thread-state. */
+	/* Add the thread index to the free list. */
 
-	/* ATTENTION: Do this after list_remove, otherwise the linkage
-	   pointers are invalid. */
+	ti = NEW(thread_index_t);
 
-	index = t->index;
-	state = t->state;
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_thread_index_t += sizeof(thread_index_t);
+#endif
 
-	MZERO(t, threadobject, 1);
+	ti->index = t->index;
 
-	t->index = index;
-	t->state = state;
+	list_add_last_unsynced(list_free_thread_index, ti);
 
-	/* add the thread to the free list */
+	/* Free the thread data structure. */
 
-	list_add_first_unsynced(list_threads_free, t);
+#if defined(ENABLE_GC_BOEHM)
+	GCFREE(t);
+#else
+	FREE(t, threadobject);
+#endif
 
-	/* unlock the threads-lists */
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		size_threadobject -= sizeof(threadobject);
+#endif
+
+	/* Unlock the threads lists. */
 
 	threads_list_unlock();
 }
