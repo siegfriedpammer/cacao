@@ -1260,7 +1260,7 @@ void threads_impl_thread_start(threadobject *thread, functionptr f)
 	sem_t          sem_first;
 	pthread_attr_t attr;
 	startupinfo    startup;
-	int            ret;
+	int            result;
 
 	/* fill startupinfo structure passed by pthread_create to
 	 * threads_startup_thread */
@@ -1273,37 +1273,43 @@ void threads_impl_thread_start(threadobject *thread, functionptr f)
 	threads_sem_init(&sem, 0, 0);
 	threads_sem_init(&sem_first, 0, 0);
 
-	/* initialize thread attributes */
+	/* Initialize thread attributes. */
 
-	if (pthread_attr_init(&attr) != 0)
+	result = pthread_attr_init(&attr);
+
+	if (result != 0)
 		vm_abort("threads_impl_thread_start: pthread_attr_init failed: %s",
-				 strerror(errno));
+				 strerror(result));
 
-    if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0)
+    result = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+    if (result != 0)
 		vm_abort("threads_impl_thread_start: pthread_attr_setdetachstate failed: %s",
-				 strerror(errno));
+				 strerror(result));
 
 	/* initialize thread stacksize */
 
-	if (pthread_attr_setstacksize(&attr, opt_stacksize))
+	result = pthread_attr_setstacksize(&attr, opt_stacksize);
+
+	if (result != 0)
 		vm_abort("threads_impl_thread_start: pthread_attr_setstacksize failed: %s",
-				 strerror(errno));
+				 strerror(result));
 
 	/* create the thread */
 
-	ret = pthread_create(&(thread->tid), &attr, threads_startup_thread, &startup);
+	result = pthread_create(&(thread->tid), &attr, threads_startup_thread, &startup);
+
+	if (result != 0)
+		vm_abort("threads_impl_thread_start: pthread_create failed: %s",
+				 strerror(result));
 
 	/* destroy the thread attributes */
 
-	if (pthread_attr_destroy(&attr) != 0)
+	result = pthread_attr_destroy(&attr);
+
+	if (result != 0)
 		vm_abort("threads_impl_thread_start: pthread_attr_destroy failed: %s",
-				 strerror(errno));
-
-	/* check for pthread_create error */
-
-	if (ret != 0)
-		vm_abort("threads_impl_thread_start: pthread_create failed: %s",
-				 strerror(errno));
+				 strerror(result));
 
 	/* signal that pthread_create has returned, so thread->tid is valid */
 
