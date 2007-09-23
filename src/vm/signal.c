@@ -275,7 +275,7 @@ void *signal_handle(void *xpc, int type, intptr_t val)
 
 		/* If that does not work, print more debug info. */
 
-		log_println("exceptions_new_hardware_exception: unknown exception type %d", type);
+		log_println("signal_handle: unknown hardware exception type %d", type);
 
 #if SIZEOF_VOID_P == 8
 		log_println("PC=0x%016lx", xpc);
