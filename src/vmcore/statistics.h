@@ -103,6 +103,7 @@ extern s4 size_string;
 
 extern s4 size_threadobject;
 extern int32_t size_thread_index_t;
+extern int32_t size_stacksize;
 
 extern s4 size_lock_record;
 extern s4 size_lock_hashtable;
