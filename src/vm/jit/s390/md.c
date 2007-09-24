@@ -623,7 +623,7 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
 
 *******************************************************************************/
 #if defined(ENABLE_REPLACEMENT)
-void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *savedmcode)
+void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 {
 	assert(0);
 }

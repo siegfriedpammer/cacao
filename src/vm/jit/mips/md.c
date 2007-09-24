@@ -282,33 +282,32 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
 *******************************************************************************/
 
 #if defined(ENABLE_REPLACEMENT)
-void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp,
-								u1 *savedmcode)
+void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 {
 	union {
 		u8 both;
 		u4 words[2];
 	} mcode;
 
-	if (index < 0) {
+	if (revert) {
 		/* restore the patched-over instruction */
-		*(u8*)(rp->pc) = *(u8*)(savedmcode);
+		*(u8*)(pc) = *(u8*)(savedmcode);
 	}
 	else {
 		/* save the current machine code */
-		*(u8*)(savedmcode) = *(u8*)(rp->pc);
+		*(u8*)(savedmcode) = *(u8*)(pc);
 
 		/* build the machine code for the patch */
 		assert(0); /* XXX build trap instruction below */
 		mcode.both = 0;
 
 		/* write the new machine code */
-		*(u8*)(rp->pc) = mcode.both;
+		*(u8*)(pc) = mcode.both;
 	}
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 	{
-		u1* u1ptr = rp->pc;
+		u1* u1ptr = pc;
 		DISASSINSTR(u1ptr);
 		DISASSINSTR(u1ptr);
 		fflush(stdout);
@@ -316,7 +315,7 @@ void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp,
 #endif
 
 	/* flush instruction cache */
-    md_icacheflush(rp->pc,2*4);
+    md_icacheflush(pc,2*4);
 }
 #endif /* defined(ENABLE_REPLACEMENT) */
 

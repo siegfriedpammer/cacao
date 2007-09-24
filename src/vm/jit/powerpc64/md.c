@@ -35,6 +35,7 @@
 
 #include "vm/jit/powerpc64/codegen.h"
 
+#include "vm/exceptions.h"
 #include "vm/global.h"
 
 #include "vm/jit/asmpart.h"
@@ -326,36 +327,35 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
 *******************************************************************************/
 
 #if defined(ENABLE_REPLACEMENT)
-void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *savedmcode)
+void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 {
 	u4 mcode;
 
-	if (index < 0) {
+	if (revert) {
 		/* restore the patched-over instruction */
-		*(u4*)(rp->pc) = *(u4*)(savedmcode);
+		*(u4*)(pc) = *(u4*)(savedmcode);
 	}
 	else {
 		/* save the current machine code */
-		*(u4*)(savedmcode) = *(u4*)(rp->pc);
+		*(u4*)(savedmcode) = *(u4*)(pc);
 
 		/* build the machine code for the patch */
-		assert(0); /* XXX build trap instruction below */
-		mcode = 0;
+		mcode = (0x80000000 | (EXCEPTION_HARDWARE_PATCHER));
 
 		/* write the new machine code */
-		*(u4*)(rp->pc) = (u4) mcode;
+		*(u4*)(pc) = (u4) mcode;
 	}
-	
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
+
+#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER) && 0
 	{
-		u1* u1ptr = rp->pc;
+		u1* u1ptr = pc;
 		DISASSINSTR(u1ptr);
 		fflush(stdout);
 	}
 #endif
-			
+
 	/* flush instruction cache */
-    md_icacheflush(rp->pc,4);
+    md_icacheflush(pc,4);
 }
 #endif /* defined(ENABLE_REPLACEMENT) */
 

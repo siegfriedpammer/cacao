@@ -230,50 +230,34 @@ void md_dcacheflush(u1 *addr, s4 nbytes)
 *******************************************************************************/
 
 #if defined(ENABLE_REPLACEMENT)
-void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp, u1 *savedmcode)
+void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 {
-	u8 mcode;
+	u2 mcode;
 
-	/* XXX this is probably unsafe! */
-
-	if (index < 0) {
-		/* write spinning instruction */
-		*(u2*)(rp->pc) = 0xebfe;
-
-		/* write 5th byte */
-		rp->pc[4] = savedmcode[4];
-
-		/* write first word */
-		*(u4*)(rp->pc) = *(u4*)(savedmcode);
+	if (revert) {
+		/* write saved machine code */
+		*(u2*)(pc) = *(u2*)(savedmcode);
 	}
 	else {
 		/* save the current machine code */
-		*(u4*)(savedmcode) = *(u4*)(rp->pc);
-		savedmcode[4] = rp->pc[4];
+		*(u2*)(savedmcode) = *(u2*)(pc);
 
 		/* build the machine code for the patch */
-		assert(0); /* XXX build trap instruction below */
-		mcode = 0;
+		mcode = 0x0b0f;
 
-		/* write spinning instruction */
-		*(u2*)(rp->pc) = 0xebfe;
-
-		/* write 5th byte */
-		rp->pc[4] = (mcode >> 32);
-
-		/* write first word */
-		*(u4*)(rp->pc) = (u4) mcode;
+		/* write new machine code */
+		*(u2*)(pc) = (u2) mcode;
 	}
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER) && 0
 	{
-		u1* u1ptr = rp->pc;
+		u1* u1ptr = pc;
 		DISASSINSTR(u1ptr);
 		fflush(stdout);
 	}
 #endif
 			
-    /* XXX if required asm_cacheflush(rp->pc,8); */
+    /* XXX if required asm_cacheflush(pc,8); */
 }
 #endif /* defined(ENABLE_REPLACEMENT) */
 
