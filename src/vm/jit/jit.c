@@ -1503,6 +1503,13 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code done: ");
 
+#if !defined(NDEBUG) && defined(ENABLE_REPLACEMENT)
+	/* activate replacement points inside newly created code */
+
+	if (opt_TestReplacement)
+		replace_activate_replacement_points(code, false);
+#endif
+
 #if !defined(NDEBUG)
 #if defined(ENABLE_DEBUG_FILTER)
 	if (jd->m->filtermatches & SHOW_FILTER_FLAG_SHOW_METHOD)

@@ -207,6 +207,9 @@ extern int      opt_PrintConfig;
 extern int32_t  opt_ProfileGCMemoryUsage;
 extern int32_t  opt_ProfileMemoryUsage;
 extern FILE    *opt_ProfileMemoryUsageGNUPlot;
+#if defined(ENABLE_REPLACEMENT)
+extern int      opt_TestReplacement;
+#endif
 extern int32_t  opt_ThreadStackSize;
 extern int32_t  opt_TraceExceptions;
 extern int32_t  opt_TraceJavaCalls;

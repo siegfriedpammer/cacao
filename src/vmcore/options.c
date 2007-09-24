@@ -192,6 +192,9 @@ int      opt_PrintConfig               = 0;
 int32_t  opt_ProfileGCMemoryUsage      = 0;
 int32_t  opt_ProfileMemoryUsage        = 0;
 FILE    *opt_ProfileMemoryUsageGNUPlot = NULL;
+#if defined(ENABLE_REPLACEMENT)
+int      opt_TestReplacement           = 0;
+#endif
 int32_t  opt_ThreadStackSize           = 0;
 int32_t  opt_TraceExceptions           = 0;
 int32_t  opt_TraceJavaCalls            = 0;
@@ -225,6 +228,7 @@ enum {
 	OPT_ProfileGCMemoryUsage,
 	OPT_ProfileMemoryUsage,
 	OPT_ProfileMemoryUsageGNUPlot,
+	OPT_TestReplacement,
 	OPT_ThreadStackSize,
 	OPT_TraceExceptions,
 	OPT_TraceJavaCalls,
@@ -256,6 +260,9 @@ option_t options_XX[] = {
 	{ "ProfileGCMemoryUsage",      OPT_ProfileGCMemoryUsage,      OPT_TYPE_VALUE,   "profiles GC memory usage in the given interval, <value> is in seconds (default: 5)" },
 	{ "ProfileMemoryUsage",        OPT_ProfileMemoryUsage,        OPT_TYPE_VALUE,   "TODO" },
 	{ "ProfileMemoryUsageGNUPlot", OPT_ProfileMemoryUsageGNUPlot, OPT_TYPE_VALUE,   "TODO" },
+#if defined(ENABLE_REPLACEMENT)
+	{ "TestReplacement"          , OPT_TestReplacement,           OPT_TYPE_BOOLEAN, "activate all replacement points during code generation" },
+#endif
 	{ "ThreadStackSize",           OPT_ThreadStackSize,           OPT_TYPE_VALUE,   "TODO" },
 	{ "TraceExceptions",           OPT_TraceExceptions,           OPT_TYPE_BOOLEAN, "trace Exception throwing" },
 	{ "TraceJavaCalls",            OPT_TraceJavaCalls,            OPT_TYPE_BOOLEAN, "trace Java method calls" },
@@ -609,6 +616,12 @@ void options_xx(JavaVMInitArgs *vm_args)
 			opt_ProfileMemoryUsageGNUPlot = file;
 			break;
 
+#if defined(ENABLE_REPLACEMENT)
+		case OPT_TestReplacement:
+			opt_TestReplacement = enable;
+			break;
+#endif
+
 		case OPT_ThreadStackSize:
 			/* currently ignored */
 			break;
@@ -630,9 +643,9 @@ void options_xx(JavaVMInitArgs *vm_args)
 			opt_TraceJVMCalls = enable;
 			break;
 
-	case OPT_TraceLinkClass:
-		opt_TraceLinkClass = enable;
-		break;
+		case OPT_TraceLinkClass:
+			opt_TraceLinkClass = enable;
+			break;
 
 #if defined(ENABLE_REPLACEMENT)
 		case OPT_TraceReplacement:
