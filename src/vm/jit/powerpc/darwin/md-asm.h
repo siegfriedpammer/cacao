@@ -239,9 +239,6 @@
 
 #define asm_patcher_wrapper                   _asm_patcher_wrapper
 
-#define asm_replacement_out                   _asm_replacement_out
-#define asm_replacement_in                    _asm_replacement_in
-
 #define asm_cacheflush                        _asm_cacheflush
 
 

@@ -54,9 +54,6 @@
 
 	.globl asm_abstractmethoderror
 
-	.globl asm_replacement_out
-	.globl asm_replacement_in
-
 	.globl asm_builtin_f2i
 	.globl asm_builtin_f2l
 	.globl asm_builtin_d2i
@@ -64,10 +61,6 @@
 
 
 asm_abstractmethoderror:
-	.long 0
-asm_replacement_out:
-	.long 0
-asm_replacement_in:
 	.long 0
 asm_builtin_f2i:
 	.long 0

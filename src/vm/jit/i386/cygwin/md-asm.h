@@ -95,9 +95,6 @@
 
 #define asm_patcher_wrapper                   _asm_patcher_wrapper
 
-#define asm_replacement_out                   _asm_replacement_out
-#define asm_replacement_in                    _asm_replacement_in
-
 #define asm_builtin_f2i                       _asm_builtin_f2i
 #define asm_builtin_f2l                       _asm_builtin_f2l
 #define asm_builtin_d2i                       _asm_builtin_d2i

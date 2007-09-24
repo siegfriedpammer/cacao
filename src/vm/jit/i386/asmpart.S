@@ -57,11 +57,6 @@
 
 	.globl asm_abstractmethoderror
 
-#if defined(ENABLE_REPLACEMENT)
-	.globl asm_replacement_out
-	.globl asm_replacement_in
-#endif
-
 	.globl asm_builtin_f2i
 	.globl asm_builtin_f2l
 	.globl asm_builtin_d2i
@@ -413,114 +408,6 @@ asm_abstractmethoderror:
 	pop     xpc                         /* get exception address              */
 	sub     $2,xpc                      /* exception address is ra - 2        */
 	jmp     L_asm_handle_exception
-
-
-#if defined(ENABLE_REPLACEMENT)
-
-/* asm_replacement_out *********************************************************
-
-   This code is jumped to from the replacement-out stubs that are executed
-   when a thread reaches an activated replacement point.
-
-   The purpose of asm_replacement_out is to read out the parts of the
-   execution state that cannot be accessed from C code, store this state,
-   and then call the C function replace_me.
-
-   Stack layout:
-      4                 start of stack inside method to replace
-      0   rplpoint *    info on the replacement point that was reached
-
-*******************************************************************************/
-
-/* some room to accomodate changes of the stack frame size during replacement */
-	/* XXX we should find a cleaner solution here */
-#define REPLACEMENT_ROOM  512
-
-asm_replacement_out:
-    /* create stack frame */
-	sub     $(sizeexecutionstate + REPLACEMENT_ROOM),sp
-
-	/* save registers in execution state */
-	mov     %eax,(EAX*4+offes_intregs)(sp)
-	mov     %ebx,(EBX*4+offes_intregs)(sp)
-	mov     %ecx,(ECX*4+offes_intregs)(sp)
-	mov     %edx,(EDX*4+offes_intregs)(sp)
-	mov     %esi,(ESI*4+offes_intregs)(sp)
-	mov     %edi,(EDI*4+offes_intregs)(sp)
-	mov     %ebp,(EBP*4+offes_intregs)(sp)
-	movl    $0  ,(ESP*4+offes_intregs)(sp) /* not used */
-
-	/* calculate sp of method */
-	mov     sp,itmp1
-	add     $(sizeexecutionstate + REPLACEMENT_ROOM + 4),itmp1
-	mov     itmp1,(offes_sp)(sp)
-
-	/* pv must be looked up via AVL tree */
-	movl    $0,(offes_pv)(sp)
-
-	/* call replace_me */
-	mov     -4(itmp1),itmp1             /* rplpoint *                         */
-    push    sp                          /* arg1: execution state              */
-    push    itmp1                       /* arg0: replacement point            */
-    call    replace_me                  /* call C function replace_me         */
-
-
-/* asm_replacement_in **********************************************************
-
-   This code writes the given execution state and jumps to the replacement
-   code.
-
-   This function never returns!
-
-   C prototype:
-      void asm_replacement_in(executionstate *es, replace_safestack_t *st);
-
-*******************************************************************************/
-
-asm_replacement_in:
-	/* get arguments */
-	mov     8(sp),%esi                  /* replace_safestack_t *st            */
-	mov     4(sp),%ebp                  /* executionstate *es == safe stack   */
-
-	/* switch to the safe stack and build a stack frame */
-	mov     %ebp,sp
-	sub		$(1*4),sp
-
-	/* call replace_build_execution_state(st) */
-	mov		%esi,(0*4)(sp)
-	call    replace_build_execution_state
-
-	/* set new sp */
-	mov     (offes_sp)(%ebp),sp
-
-	/* push address of new code */
-	push    (offes_pc)(%ebp)
-
-	/* allocate an executionstate_t on the stack */
-	sub		$(sizeexecutionstate),sp
-
-	/* call replace_free_safestack(st,& of allocated executionstate_t) */
-	push    sp   /* tmpes */
-	push    %esi /* st    */
-	call    replace_free_safestack
-	add     $(2*4),sp
-
-	/* copy registers from execution state */
-	mov     (EAX*4+offes_intregs)(sp),%eax
-	mov     (EBX*4+offes_intregs)(sp),%ebx
-	mov     (ECX*4+offes_intregs)(sp),%ecx
-	mov     (EDX*4+offes_intregs)(sp),%edx
-	mov     (ESI*4+offes_intregs)(sp),%esi
-	mov     (EDI*4+offes_intregs)(sp),%edi
-	mov     (EBP*4+offes_intregs)(sp),%ebp
-
-	/* pop the execution state off the stack */
-	add		$(sizeexecutionstate),sp
-
-	/* jump to new code, hold your thumbs! ;) */
-	ret
-
-#endif /* defined(ENABLE_REPLACEMENT) */
 
 
 /************************ function asm_builtin_x2x *****************************
