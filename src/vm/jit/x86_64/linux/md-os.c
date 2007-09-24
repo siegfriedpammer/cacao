@@ -57,7 +57,6 @@
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo  sfi;
 	ucontext_t     *_uc;
 	mcontext_t     *_mc;
 	u1             *sp;
@@ -158,17 +157,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		val  = 0;
 	}
 
-	/* create stackframeinfo */
-
-	stacktrace_create_extern_stackframeinfo(&sfi, NULL, sp, ra, xpc);
-
 	/* Handle the type. */
 
-	p = signal_handle(xpc, type, val);
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
+	p = signal_handle(type, val, NULL, sp, ra, xpc, _p);
 
 	/* set registers */
 
@@ -187,7 +178,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo  sfi;
 	ucontext_t     *_uc;
 	mcontext_t     *_mc;
 	u1             *pv;
@@ -214,17 +204,9 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	type = EXCEPTION_HARDWARE_ARITHMETIC;
 	val  = 0;
 
-	/* create stackframeinfo */
-
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
 	/* Handle the type. */
 
-	p = signal_handle(xpc, type, val);
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
+	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* set registers */
 
@@ -242,7 +224,6 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo  sfi;
 	ucontext_t     *_uc;
 	mcontext_t     *_mc;
 	u1             *pv;
@@ -269,17 +250,9 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	type = EXCEPTION_HARDWARE_PATCHER;
 	val  = 0;
 
-	/* create stackframeinfo */
-
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
 	/* Handle the type. */
 
-	p = signal_handle(xpc, type, val);
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
+	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* set registers */
 

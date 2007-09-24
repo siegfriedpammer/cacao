@@ -39,7 +39,10 @@
 
 bool  signal_init(void);
 void  signal_register_signal(int signum, functionptr handler, int flags);
-void *signal_handle(void *xpc, int type, intptr_t val);
+
+void *signal_handle(int type, intptr_t val,
+					void *pv, void *sp, void *ra, void *xpc, void *context);
+
 void  signal_thread_handler(int sig);
 bool  signal_start_thread(void);
 

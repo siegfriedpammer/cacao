@@ -60,7 +60,6 @@
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo  sfi;
 	ucontext_t     *_uc;
 	mcontext_t     *_mc;
 	u1             *pv;
@@ -106,17 +105,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		type = (s4) addr;
 	}
 
-	/* create stackframeinfo */
-
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
 	/* Handle the type. */
 
-	p = signal_handle(xpc, type, val);
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
+	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* set registers (only if exception object ready) */
 

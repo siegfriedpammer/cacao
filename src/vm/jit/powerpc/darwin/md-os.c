@@ -59,7 +59,6 @@
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo      sfi;
 	ucontext_t         *_uc;
 	mcontext_t          _mc;
 	ppc_thread_state_t *_ss;
@@ -120,17 +119,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 			vm_abort("md_signal_handler_sigsegv: faulting address is not NULL: addr=%p", addr);
 	}
 
-	/* create stackframeinfo */
-
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
 	/* Handle the type. */
 
-	p = signal_handle(xpc, type, val);
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
+	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* set registers (only if exception object ready) */
 
@@ -150,7 +141,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo      sfi;
 	ucontext_t         *_uc;
 	mcontext_t          _mc;
 	ppc_thread_state_t *_ss;
@@ -191,17 +181,9 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 	type = EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS;
 	val  = gregs[s1];
 
-	/* create stackframeinfo */
-
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
 	/* Handle the type. */
 
-	p = signal_handle(xpc, type, val);
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
+	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* set registers */
 

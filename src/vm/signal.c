@@ -225,11 +225,17 @@ void signal_register_signal(int signum, functionptr handler, int flags)
 
 *******************************************************************************/
 
-void *signal_handle(void *xpc, int type, intptr_t val)
+void *signal_handle(int type, intptr_t val,
+					void *pv, void *sp, void *ra, void *xpc, void *context)
 {
-	void          *p;
-	int32_t        index;
-	java_object_t *o;
+	stackframeinfo  sfi;
+	void           *p;
+	int32_t         index;
+	java_object_t  *o;
+
+	/* create stackframeinfo */
+
+	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
 
 	switch (type) {
 	case EXCEPTION_HARDWARE_NULLPOINTER:
@@ -294,6 +300,10 @@ void *signal_handle(void *xpc, int type, intptr_t val)
 
 		p = NULL;
 	}
+
+	/* remove stackframeinfo */
+
+	stacktrace_remove_stackframeinfo(&sfi);
 
 	return p;
 }

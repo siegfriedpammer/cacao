@@ -72,7 +72,6 @@ typedef struct ucontext {
 
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo  sfi;
 	ucontext_t     *_uc;
 	scontext_t     *_sc;
 	u1             *pv;
@@ -112,17 +111,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	if (addr != 0)
 		vm_abort("md_signal_handler_sigsegv: faulting address is not NULL: addr=%p", addr);
 
-	/* create stackframeinfo */
-
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
 	/* Handle the type. */
 
-	p = signal_handle(xpc, type, val);
-
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
+	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* set registers */
 
@@ -140,7 +131,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
-	stackframeinfo  sfi;
 	ucontext_t     *_uc;
 	scontext_t     *_sc;
 	u1             *pv;
@@ -180,19 +170,11 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	type = (mcode >> 8) & 0x0fff;
 	val  = *((s4 *) _sc + OFFSET(scontext_t, arm_r0)/4 + (mcode & 0x0f));
 
-	/* create stackframeinfo */
-
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
-
 	/* Handle the type. */
 
-	p = signal_handle(xpc, type, val);
+	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
 
-	/* remove stackframeinfo */
-
-	stacktrace_remove_stackframeinfo(&sfi);
-
-	/* set registers if we have an exception, return continue execution
+	/* set registers if we have an exception, continue execution
 	   otherwise (this is needed for patchers to work) */
 
 	if (p != NULL) {
