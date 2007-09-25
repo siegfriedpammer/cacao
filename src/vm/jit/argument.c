@@ -119,11 +119,11 @@ void argument_jitarray_store(methoddesc *md, int32_t index,
 				assert(0);
 #endif
 			} else {
-				arg_regs[pd->index] = param.l;
+				arg_regs[index] = param.l;
 			}
 			break;
 		default:
-			vm_abort("_array_store_param: type not implemented");
+			vm_abort("argument_jitarray_store: type not implemented");
 			break;
 	}
 }
@@ -160,6 +160,29 @@ imm_union argument_jitreturn_load(methoddesc *md, uint64_t *return_regs)
 	}
 
 	return ret;
+}
+
+
+/* argument_jitreturn_store ****************************************************
+
+   Stores the proper return value into the return registers.
+
+*******************************************************************************/
+
+void argument_jitreturn_store(methoddesc *md, uint64_t *return_regs, imm_union ret)
+{
+	switch (md->returntype.type) {
+		case TYPE_ADR:
+#if (SIZEOF_VOID_P == 8)
+			return_regs[0] = ret.l;
+#else
+			assert(0);
+#endif
+			break;
+		default:
+			vm_abort("argument_jitreturn_store: type not implemented");
+			break;
+	}
 }
 
 

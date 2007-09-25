@@ -81,7 +81,8 @@ void localref_frame_pop_all(void);
 java_handle_t *localref_add(java_object_t *o);
 void           localref_del(java_handle_t *localref);
 
-void localref_fill(methodinfo *m, uint64_t *args_regs, uint64_t *args_stack);
+void localref_native_enter(methodinfo *m, uint64_t *argument_regs, uint64_t *argument_stack);
+void localref_native_exit(methodinfo *m, uint64_t *return_regs);
 
 #if !defined(NDEBUG)
 void localref_dump(void);

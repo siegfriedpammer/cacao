@@ -1564,15 +1564,6 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 	vm_abort("codegen_start_native_call: unsupported architecture");
 #endif
 
-#if !defined(NDEBUG)
-# if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__) || defined(__S390__)
-	/* print the call-trace if necesarry */
-
-	if (opt_TraceJavaCalls)
-		trace_java_call_enter(m, arg_regs, arg_stack);
-# endif
-#endif
-
 	/* get data structures from stack */
 
 	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
@@ -1585,10 +1576,21 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 	localref_table_add(lrt);
 #endif
 
+#if !defined(NDEBUG)
+# if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__) || defined(__S390__)
+	/* print the call-trace if necesarry */
+	/* BEFORE: filling the local reference table */
+
+	if (opt_TraceJavaCalls)
+		trace_java_call_enter(m, arg_regs, arg_stack);
+# endif
+#endif
+
 #if defined(ENABLE_HANDLES)
 	/* place all references into the local reference table */
+	/* BEFORE: creating stackframeinfo */
 
-	localref_fill(m, arg_regs, arg_stack);
+	localref_native_enter(m, arg_regs, arg_stack);
 #endif
 
 	/* add a stackframeinfo to the chain */
@@ -1662,16 +1664,6 @@ java_object_t *codegen_finish_native_call(u1 *currentsp, u1 *pv)
 	vm_abort("codegen_finish_native_call: unsupported architecture");
 #endif
 
-
-#if !defined(NDEBUG)
-# if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__) || defined(__S390__)
-	/* print the call-trace if necesarry */
-
-	if (opt_TraceJavaCalls)
-		trace_java_call_exit(m, ret_regs);
-# endif
-#endif
-
 	/* get data structures from stack */
 
 	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
@@ -1680,11 +1672,17 @@ java_object_t *codegen_finish_native_call(u1 *currentsp, u1 *pv)
 
 	stacktrace_remove_stackframeinfo(sfi);
 
-	/* XXX unfill lrt here!!! */
+#if defined(ENABLE_HANDLES)
+	/* unwrap the return value from the local reference table */
+	/* AFTER: removing the stackframeinfo */
+	/* BEFORE: releasing the local reference table */
+
+	localref_native_exit(m, ret_regs);
+#endif
 
 	/* get and unwrap the exception */
-	/* ATTENTION: do the this _after_ the stackframeinfo was
-       removed but _before_ the localref_table gets removed! */
+	/* AFTER: removing the stackframe info */
+	/* BEFORE: releasing the local reference table */
 
 	e = exceptions_get_and_clear_exception();
 	o = LLNI_UNWRAP(e);
@@ -1694,6 +1692,16 @@ java_object_t *codegen_finish_native_call(u1 *currentsp, u1 *pv)
 
 	localref_frame_pop_all();
 	localref_table_remove();
+#endif
+
+#if !defined(NDEBUG)
+# if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__) || defined(__S390__)
+	/* print the call-trace if necesarry */
+	/* AFTER: unwrapping the return value */
+
+	if (opt_TraceJavaCalls)
+		trace_java_call_exit(m, ret_regs);
+# endif
 #endif
 
 	return o;

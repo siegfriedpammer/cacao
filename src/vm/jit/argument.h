@@ -39,12 +39,13 @@
 
 imm_union argument_jitarray_load(methoddesc *md, int32_t index,
 								 uint64_t *arg_regs, uint64_t *stack);
-
-void argument_jitarray_store(methoddesc *md, int32_t index,
-							 uint64_t *arg_regs, uint64_t *stack,
-							 imm_union param);
+void      argument_jitarray_store(methoddesc *md, int32_t index,
+								  uint64_t *arg_regs, uint64_t *stack,
+								  imm_union param);
 
 imm_union argument_jitreturn_load(methoddesc *md, uint64_t *return_regs);
+void      argument_jitreturn_store(methoddesc *md, uint64_t *return_regs,
+								   imm_union ret);
 
 #endif /* _VM_JIT_ARGUMENT_H */
 

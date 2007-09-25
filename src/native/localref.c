@@ -428,14 +428,14 @@ void localref_del(java_handle_t *localref)
 }
 
 
-/* localref_fill ***************************************************************
+/* localref_native_enter *******************************************************
 
    Insert arguments to a native method into the local reference table.
    This is done by the native stub through codegen_start_native_call.
 
 *******************************************************************************/
 
-void localref_fill(methodinfo *m, uint64_t *args_regs, uint64_t *args_stack)
+void localref_native_enter(methodinfo *m, uint64_t *argument_regs, uint64_t *argument_stack)
 {
 	localref_table *lrt;
 	methoddesc     *md;
@@ -458,7 +458,7 @@ void localref_fill(methodinfo *m, uint64_t *args_regs, uint64_t *args_stack)
 		/* load TYPE_ADR parameters ... */
 
 		if (md->paramtypes[i].type == TYPE_ADR) {
-			arg = argument_jitarray_load(md, i, args_regs, args_stack);
+			arg = argument_jitarray_load(md, i, argument_regs, argument_stack);
 
 			if (arg.a == NULL)
 				continue;
@@ -467,13 +467,67 @@ void localref_fill(methodinfo *m, uint64_t *args_regs, uint64_t *args_stack)
 
 			h = localref_add((java_object_t *) arg.a);
 
-			/* update the parameter */
+#if defined(ENABLE_HANDLES)
+			/* update the modified parameter if necesarry */
 
 			arg.a = (void *) h;
-			argument_jitarray_store(md, i, args_regs, args_stack, arg);
+			argument_jitarray_store(md, i, argument_regs, argument_stack, arg);
+#endif
 		}
 	}
 }
+
+
+/* localref_native_exit ********************************************************
+
+   Undo the wrapping of the return value of a native method. This is
+   done by the native stub through codegen_finish_native_call.
+
+   NOTE: This function is only useful if handles are enabled.
+
+*******************************************************************************/
+
+#if defined(ENABLE_HANDLES)
+void localref_native_exit(methodinfo *m, uint64_t *return_regs)
+{
+	localref_table *lrt;
+	methoddesc     *md;
+	imm_union       ret;
+	java_handle_t  *h;
+
+	/* get local reference table from thread */
+
+	lrt = LOCALREFTABLE;
+
+	assert(lrt != NULL);
+	assert(m != NULL);
+
+	md = m->parseddesc;
+
+	/* load TYPE_ADR return values ... */
+
+	if (md->returntype.type == TYPE_ADR) {
+		ret = argument_jitreturn_load(md, return_regs);
+
+		if (ret.a == NULL)
+			return;
+
+		h = (java_handle_t *) ret.a;
+
+		/* update the modified return valie */
+
+		ret.a = (void *) h->heap_object;
+		argument_jitreturn_store(md, return_regs, ret);
+
+#if !defined(NDEBUG)
+		/* removing the entry from the local reference table is not really
+		   necesarry, but gives us warnings if the entry does not exist. */
+
+		localref_del(h);
+#endif
+	}
+}
+#endif /* defined(ENABLE_HANDLES) */
 
 
 /* localref_dump ***************************************************************
