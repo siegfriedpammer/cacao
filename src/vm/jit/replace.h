@@ -55,7 +55,6 @@ typedef struct rplpoint rplpoint;
 typedef struct executionstate_t executionstate_t;
 typedef struct sourcestate_t sourcestate_t;
 typedef struct sourceframe_t sourceframe_t;
-typedef struct replace_safestack_t replace_safestack_t;
 typedef union  replace_val_t replace_val_t;
 
 #include "arch.h"
@@ -65,16 +64,6 @@ typedef union  replace_val_t replace_val_t;
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/method.h"
-
-
-/* alignment for the safe stack used during replacement */
-
-#define REPLACE_STACK_ALIGNMENT  16
-
-/* the size of the safe stack we use during replacement */
-/* Must be a multiple of REPLACE_STACK_ALIGNMENT.       */
-
-#define REPLACE_SAFESTACK_SIZE  16384  /* bytes */
 
 
 /*** structs *********************************************************/
@@ -218,28 +207,6 @@ struct sourcestate_t {
 };
 
 
-/* replace_safestack_t *********************************************************
-
-   This struct is used to allocate a safe stack area to be used during the
-   last phase of replacement. It also contains copies of all data needed
-   during this phase. (The data cannot be kept in normal variables, as
-   the C stack may be destroyed during replacement.)
-
-   CAUTION: Do not change the layout of this struct! The assembler code
-            depends on the order of fields. (`stack` must be first,
-			directly followed by `es`.)
-
-*******************************************************************************/
-
-struct replace_safestack_t {
-	u1                stack[REPLACE_SAFESTACK_SIZE];
-	executionstate_t  es;
-	sourcestate_t    *ss;
-	u1               *mem;             /* start of the allocated memory chunk */
-	s4                dumpsize;
-};
-
-
 /*** macros for the codegens *******************************************/
 
 #define REPLACEMENT_POINTS_INIT(cd, jd)                              \
@@ -271,6 +238,11 @@ struct replace_safestack_t {
         cd->replacementpoint[-1].callsize = (cd->mcodeptr - cd->mcodebase)\
                     - (ptrint) cd->replacementpoint[-1].pc;
 
+
+/*** macros for the codegens (for GC) **********************************/
+
+#if defined(ENABLE_GC_CACAO)
+
 #define REPLACEMENT_POINT_FORGC_BUILTIN(cd, iptr)                    \
 	codegen_set_replacement_point(cd RPLPOINT_CHECK(CALL));
 
@@ -278,6 +250,13 @@ struct replace_safestack_t {
 	if (iptr->opc == ICMD_BUILTIN)                                   \
 		cd->replacementpoint[-1].callsize = (cd->mcodeptr - cd->mcodebase)\
 					- (ptrint) cd->replacementpoint[-1].pc;
+
+#else /* defined(ENABLE_GC_CACAO) */
+
+#define REPLACEMENT_POINT_FORGC_BUILTIN(cd, iptr)
+#define REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr)
+
+#endif /* defined(ENABLE_GC_CACAO) */
 
 
 /*** prototypes ********************************************************/
@@ -288,9 +267,7 @@ void replace_free_replacement_points(codeinfo *code);
 void replace_activate_replacement_points(codeinfo *code, bool mappable);
 void replace_deactivate_replacement_points(codeinfo *code);
 
-bool replace_me_wrapper(u1 *pc);
-
-void replace_me(rplpoint *rp,executionstate_t *es);
+bool replace_me_wrapper(u1 *pc, void *context);
 
 #if !defined(NDEBUG)
 void replace_show_replacement_points(codeinfo *code);
@@ -304,9 +281,13 @@ void replace_source_frame_println(sourceframe_t *frame);
 /* machine dependent functions (code in ARCH_DIR/md.c) */
 
 #if defined(ENABLE_JIT)
-void md_patch_replacement_point(codeinfo *code, s4 index, rplpoint *rp,
-								u1 *savedmcode);
+void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert);
 #endif
+
+/* machine and OS dependent functions (code in ARCH_DIR/OS_DIR/md-os.c) */
+
+void md_replace_executionstate_read(executionstate_t *es, void *context);
+void md_replace_executionstate_write(executionstate_t *es, void *context);
 
 #endif /* defined(ENABLE_REPLACEMENT) */
 

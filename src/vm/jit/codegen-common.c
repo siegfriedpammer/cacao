@@ -932,6 +932,12 @@ void codegen_set_replacement_point(codegendata *cd)
 
 	cd->replacementpoint++;
 
+#if !defined(NDEBUG)
+	/* XXX actually we should use an own REPLACEMENT_NOPS here! */
+	if (opt_TestReplacement)
+		PATCHER_NOPS;
+#endif
+
 	/* XXX assert(cd->lastmcodeptr <= cd->mcodeptr); */
 
 	cd->lastmcodeptr = cd->mcodeptr + PATCHER_CALL_SIZE;

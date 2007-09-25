@@ -805,7 +805,6 @@ void replace_activate_replacement_points(codeinfo *code, bool mappable)
 	rplpoint *rp;
 	s4        i;
 	s4        count;
-	s4        index;
 	u1       *savedmcode;
 
 	assert(code->savedmcode == NULL);
@@ -813,14 +812,11 @@ void replace_activate_replacement_points(codeinfo *code, bool mappable)
 	/* count trappable replacement points */
 
 	count = 0;
-	index = 0;
 	i = code->rplpointcount;
 	rp = code->rplpoints;
 	for (; i--; rp++) {
 		if (rp->flags & RPLPOINT_FLAG_NOTRAP)
 			continue;
-
-		index++;
 
 		if (mappable && (rp->type == RPLPOINT_TYPE_RETURN))
 			continue;
@@ -845,8 +841,6 @@ void replace_activate_replacement_points(codeinfo *code, bool mappable)
 		if (rp->flags & RPLPOINT_FLAG_NOTRAP)
 			continue;
 
-		index--;
-
 		if (mappable && (rp->type == RPLPOINT_TYPE_RETURN))
 			continue;
 
@@ -855,9 +849,10 @@ void replace_activate_replacement_points(codeinfo *code, bool mappable)
 
 		savedmcode -= REPLACEMENT_PATCH_SIZE;
 
-#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__) || defined(__S390__)) && defined(ENABLE_JIT)
-		md_patch_replacement_point(code, index, rp, savedmcode);
+#if defined(ENABLE_JIT)
+		md_patch_replacement_point(rp->pc, savedmcode, false);
 #endif
+
 		rp->flags |= RPLPOINT_FLAG_ACTIVE;
 	}
 
@@ -917,8 +912,8 @@ void replace_deactivate_replacement_points(codeinfo *code)
 		DOLOG( printf("deactivate replacement point:\n");
 			   replace_replacement_point_println(rp, 1); fflush(stdout); );
 
-#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__) || defined(__S390__)) && defined(ENABLE_JIT)
-		md_patch_replacement_point(code, -1, rp, savedmcode);
+#if defined(ENABLE_JIT)
+		md_patch_replacement_point(rp->pc, savedmcode, true);
 #endif
 
 		rp->flags &= ~RPLPOINT_FLAG_ACTIVE;
@@ -2656,7 +2651,7 @@ static void replace_map_source_state_identity(sourcestate_t *ss)
 #endif
 
 
-/* replace_build_execution_state_intern ****************************************
+/* replace_build_execution_state ***********************************************
 
    Build an execution state for the given (mapped) source state.
 
@@ -2674,8 +2669,8 @@ static void replace_map_source_state_identity(sourcestate_t *ss)
 
 *******************************************************************************/
 
-void replace_build_execution_state_intern(sourcestate_t *ss,
-												 executionstate_t *es)
+static void replace_build_execution_state(sourcestate_t *ss,
+										  executionstate_t *es)
 {
 	rplpoint      *rp;
 	sourceframe_t *prevframe;
@@ -2737,197 +2732,41 @@ void replace_build_execution_state_intern(sourcestate_t *ss,
 }
 
 
-/* replace_build_execution_state ***********************************************
-
-   This function contains the final phase of replacement. It builds the new
-   execution state, releases dump memory, and returns to the calling
-   assembler function which finishes replacement.
-
-   NOTE: This function is called from asm_replacement_in, with the stack
-         pointer at the start of the safe stack area.
-
-   THIS FUNCTION MUST BE CALLED USING A SAFE STACK AREA!
-
-   CAUTION: This function and its children must not use a lot of stack!
-            There are only REPLACE_SAFESTACK_SIZE bytes of C stack
-			available.
-
-   IN:
-       st...............the safestack contained the necessary data
-
-*******************************************************************************/
-
-void replace_build_execution_state(replace_safestack_t *st)
-{
-	replace_build_execution_state_intern(st->ss, &(st->es));
-
-	DOLOG( replace_executionstate_println(&(st->es)); );
-
-	/* release dump area */
-
-	dump_release(st->dumpsize);
-
-	/* new code is entered after returning */
-
-	DOLOG( printf("JUMPING IN!\n"); fflush(stdout); );
-}
-
-
-/* replace_alloc_safestack *****************************************************
-
-   Allocate a safe stack area to use during the final phase of replacement.
-   The returned area is not initialized. This must be done by the caller.
-
-   RETURN VALUE:
-       a newly allocated replace_safestack_t *
-
-*******************************************************************************/
-
-static replace_safestack_t *replace_alloc_safestack()
-{
-	u1 *mem;
-	replace_safestack_t *st;
-
-	mem = MNEW(u1, sizeof(replace_safestack_t) + REPLACE_STACK_ALIGNMENT - 1);
-
-	st = (replace_safestack_t *) ((ptrint)(mem + REPLACE_STACK_ALIGNMENT - 1)
-										& ~(REPLACE_STACK_ALIGNMENT - 1));
-
-#if !defined(NDEBUG)
-	memset(st, 0xa5, sizeof(replace_safestack_t));
-#endif
-
-	st->mem = mem;
-
-	return st;
-}
-
-
-/* replace_free_safestack ******************************************************
-
-   Free the given safestack structure, making a copy of the contained
-   execution state before freeing it.
-
-   NOTE: This function is called from asm_replacement_in.
-
-   IN:
-       st...............the safestack to free
-	   tmpes............where to copy the execution state to
-
-   OUT:
-	   *tmpes...........receives a copy of st->es
-
-*******************************************************************************/
-
-void replace_free_safestack(replace_safestack_t *st, executionstate_t *tmpes)
-{
-	u1 *mem;
-
-	/* copy the executionstate_t to the temporary location */
-
-	*tmpes = st->es;
-
-	/* get the memory address to free */
-
-	mem = st->mem;
-
-	/* destroy memory (in debug mode) */
-
-#if !defined(NDEBUG)
-	memset(st, 0xa5, sizeof(replace_safestack_t));
-#endif
-
-	/* free the safe stack struct */
-
-	MFREE(mem, u1, sizeof(replace_safestack_t) + REPLACE_STACK_ALIGNMENT - 1);
-}
-
-
-/* replace_me_wrapper **********************************************************
-
-   TODO: Document me!
-
-*******************************************************************************/
-
-bool replace_me_wrapper(u1 *pc)
-{
-	codeinfo         *code;
-	rplpoint         *rp;
-	executionstate_t  es;
-
-	/* search the codeinfo for the given PC */
-
-	code = code_find_codeinfo_for_pc(pc);
-	assert(code);
-
-	/* search for a replacement point at the given PC */
-
-#if 0
-	rp = replace_find_replacement_point_for_pc(code, pc);
-	assert(rp == NULL || rp->pc == pc);
-#else
-	{
-		int i;
-		rplpoint *rp2;
-		rp = NULL;
-		for (i=0,rp2=code->rplpoints; i<code->rplpointcount; i++,rp2++) {
-			if (rp2->pc == pc)
-				rp = rp2;
-		}
-	}
-#endif
-
-	/* check if the replacement point is active */
-
-	if (rp != NULL && (rp->flags & RPLPOINT_FLAG_ACTIVE)) {
-
-		/*md_replace_executionstate_read(&es, context);*/
-
-		replace_me(rp, &es);
-
-		return true;
-	}
-	else
-		return false;
-}
-
-
 /* replace_me ******************************************************************
  
-   This function is called by asm_replacement_out when a thread reaches
+   This function is called by the signal handler when a thread reaches
    a replacement point. `replace_me` must map the execution state to the
    target replacement point and let execution continue there.
 
-   This function never returns!
-  
+   THIS FUNCTION MUST BE CALLED USING A SAFE STACK AREA!
+
    IN:
        rp...............replacement point that has been reached
-	   es...............execution state read by asm_replacement_out
+       es...............execution state read by signal handler
   
 *******************************************************************************/
 
-void replace_me(rplpoint *rp, executionstate_t *es)
+static void replace_me(rplpoint *rp, executionstate_t *es)
 {
 	stackframeinfo      *sfi;
 	sourcestate_t       *ss;
 	sourceframe_t       *frame;
 	s4                   dumpsize;
+	codeinfo            *origcode;
 	rplpoint            *origrp;
-	replace_safestack_t *safestack;
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
 	threadobject        *thread;
 #endif
 
-	origrp = rp;
-	es->code = code_find_codeinfo_for_pc(rp->pc);
+	origcode = es->code;
+	origrp   = rp;
 
 	DOLOG_SHORT( printf("REPLACING(%d %p): (id %d %p) ",
 				 stat_replacements, (void*)THREADOBJECT,
 				 rp->id, (void*)rp);
 				 method_println(es->code->m); );
 
-	DOLOG( replace_replacement_point_println(rp, 1);
-		   replace_executionstate_println(es); );
+	DOLOG( replace_replacement_point_println(rp, 1); );
 
 	REPLACE_COUNT(stat_replacements);
 
@@ -2959,10 +2798,7 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 		/* since we enter the same method again, we turn off rps now */
 		/* XXX michi: can we really do this? what if the rp was active before
 		   we activated it for the gc? */
-		frame = ss->frames;
-		while (frame->down)
-			frame = frame->down;
-		replace_deactivate_replacement_points(frame->tocode);
+		replace_deactivate_replacement_points(origcode);
 
 		/* remember executionstate and sourcestate for this thread */
 		GC_EXECUTIONSTATE = es;
@@ -2985,42 +2821,127 @@ void replace_me(rplpoint *rp, executionstate_t *es)
 
 	DOLOG_SHORT( replace_sourcestate_println_short(ss); );
 
-	/* avoid infinite loops by self-replacement */
+#if !defined(NDEBUG)
+	/* avoid infinite loops by self-replacement, only if not in testing mode */
 
-	frame = ss->frames;
-	while (frame->down)
-		frame = frame->down;
+	if (!opt_TestReplacement) {
+		frame = ss->frames;
+		while (frame->down)
+			frame = frame->down;
 
-	if (frame->torp == origrp) {
-		DOLOG_SHORT(
-			printf("WARNING: identity replacement, turning off rps to avoid infinite loop\n");
-		);
-		replace_deactivate_replacement_points(frame->tocode);
+		if (frame->torp == origrp) {
+			DOLOG_SHORT(
+				printf("WARNING: identity replacement, turning off rps to avoid infinite loop\n");
+			);
+			replace_deactivate_replacement_points(origcode);
+		}
 	}
+#endif
 
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
 	}
 #endif
 
-	/* write execution state of new code */
+	/* build the new execution state */
 
-	DOLOG( replace_executionstate_println(es); );
+	replace_build_execution_state(ss, es);
 
-	/* allocate a safe stack area and copy all needed data there */
+#if !defined(NDEBUG)
+	/* continue execution after patched machine code, if testing mode enabled */
 
-	safestack = replace_alloc_safestack();
-
-	safestack->es = *es;
-	safestack->ss = ss;
-	safestack->dumpsize = dumpsize;
-
-	/* call the assembler code for the last phase of replacement */
-
-#if (defined(__I386__) || defined(__X86_64__) || defined(__ALPHA__) || defined(__POWERPC__) || defined(__MIPS__) || defined(__S390__)) && defined(ENABLE_JIT)
-	/*asm_replacement_in(&(safestack->es), safestack);*/
+	if (opt_TestReplacement)
+		es->pc += REPLACEMENT_PATCH_SIZE;
 #endif
 
-	abort(); /* NOT REACHED */
+	/* release dump area */
+
+	dump_release(dumpsize);
+}
+
+
+/* replace_me_wrapper **********************************************************
+
+   This function is called by the signal handler. It determines if there
+   is an active replacement point pending at the given PC and returns
+   accordingly.
+
+   THIS FUNCTION MUST BE CALLED USING A SAFE STACK AREA!
+
+   IN:
+       pc...............the program counter that triggered the replacement.
+       context..........the context (machine state) to which the
+	                    replacement should be applied.
+
+   OUT:
+       context..........the context after replacement finished.
+
+   RETURN VALUE:
+       true.............replacement done, everything went ok
+       false............no replacement done, context unchanged
+
+*******************************************************************************/
+
+bool replace_me_wrapper(u1 *pc, void *context)
+{
+	codeinfo         *code;
+	rplpoint         *rp;
+	executionstate_t  es;
+
+	/* search the codeinfo for the given PC */
+
+	code = code_find_codeinfo_for_pc(pc);
+	assert(code);
+
+	/* search for a replacement point at the given PC */
+
+#if 0
+	rp = replace_find_replacement_point_for_pc(code, pc);
+	assert(rp == NULL || rp->pc == pc);
+#else
+	{
+		int i;
+		rplpoint *rp2;
+		rp = NULL;
+		for (i=0,rp2=code->rplpoints; i<code->rplpointcount; i++,rp2++) {
+			if (rp2->pc == pc)
+				rp = rp2;
+		}
+	}
+#endif
+
+	/* check if the replacement point is active */
+
+	if (rp != NULL && (rp->flags & RPLPOINT_FLAG_ACTIVE)) {
+
+		/* set codeinfo pointer in execution state */
+
+		es.code = code;
+
+		/* read execution state from current context */
+
+		md_replace_executionstate_read(&es, context);
+
+		DOLOG( printf("REPLACEMENT READ: ");
+			   replace_executionstate_println(&es); );
+
+		/* do the actual replacement */
+
+		replace_me(rp, &es);
+
+		/* write execution state to current context */
+
+		md_replace_executionstate_write(&es, context);
+
+		DOLOG( printf("REPLACEMENT WRITE: ");
+			   replace_executionstate_println(&es); );
+
+		/* new code is entered after returning */
+
+		DOLOG( printf("JUMPING IN!\n"); fflush(stdout); );
+		return true;
+	}
+	else
+		return false;
 }
 
 

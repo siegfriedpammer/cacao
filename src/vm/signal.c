@@ -266,7 +266,7 @@ void *signal_handle(int type, intptr_t val,
 
 	case EXCEPTION_HARDWARE_PATCHER:
 #if defined(ENABLE_REPLACEMENT)
-		if (replace_me_wrapper(xpc)) {
+		if (replace_me_wrapper(xpc, context)) {
 			p = NULL;
 			break;
 		}
