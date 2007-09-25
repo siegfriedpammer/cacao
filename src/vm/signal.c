@@ -43,6 +43,8 @@
 
 #include "mm/memory.h"
 
+#include "native/llni.h"
+
 #if defined(ENABLE_THREADS)
 # include "threads/threads-common.h"
 #else
@@ -229,9 +231,22 @@ void *signal_handle(int type, intptr_t val,
 					void *pv, void *sp, void *ra, void *xpc, void *context)
 {
 	stackframeinfo  sfi;
-	void           *p;
 	int32_t         index;
-	java_object_t  *o;
+	java_handle_t  *o;
+	java_handle_t  *p;
+
+	/* wrap the value into a handle if it is a reference */
+	/* BEFORE: creating stackframeinfo */
+
+	switch (type) {
+	case EXCEPTION_HARDWARE_CLASSCAST:
+		o = LLNI_WRAP((java_object_t *) val);
+		break;
+
+	default:
+		/* do nothing */
+		break;
+	}
 
 	/* create stackframeinfo */
 
@@ -256,7 +271,6 @@ void *signal_handle(int type, intptr_t val,
 		break;
 
 	case EXCEPTION_HARDWARE_CLASSCAST:
-		o = (java_object_t *) val;
 		p = exceptions_new_classcastexception(o);
 		break;
 
@@ -305,7 +319,10 @@ void *signal_handle(int type, intptr_t val,
 
 	stacktrace_remove_stackframeinfo(&sfi);
 
-	return p;
+	/* unwrap and return the exception object */
+	/* AFTER: removing stackframeinfo */
+
+	return LLNI_UNWRAP(p);
 }
 
 
