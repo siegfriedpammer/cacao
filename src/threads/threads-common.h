@@ -83,7 +83,7 @@ threadobject *threads_thread_new(void);
 void          threads_thread_free(threadobject *t);
 
 bool          threads_thread_start_internal(utf *name, functionptr f);
-void          threads_thread_start(java_lang_Thread *object);
+void          threads_thread_start(java_handle_t *object);
 
 void          threads_thread_print_info(threadobject *t);
 

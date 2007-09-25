@@ -929,7 +929,7 @@ bool threads_init(void)
 
 	/* set the object in the internal data structure */
 
-	mainthread->object = t;
+	mainthread->object = LLNI_DIRECT(t);
 
 #if defined(ENABLE_INTRP)
 	/* create interpreter stack */
@@ -1073,6 +1073,7 @@ static void *threads_startup_thread(void *arg)
 {
 	startupinfo        *startup;
 	threadobject       *thread;
+	java_lang_Thread   *object;
 #if defined(WITH_CLASSPATH_GNU)
 	java_lang_VMThread *vmt;
 #endif
@@ -1117,9 +1118,13 @@ static void *threads_startup_thread(void *arg)
 
 	threads_set_current_threadobject(thread);
 
+	/* get the java.lang.Thread object for this thread */
+
+	object = (java_lang_Thread *) LLNI_WRAP(thread->object);
+
 	/* set our priority */
 
-	threads_set_thread_priority(thread->tid, LLNI_field_direct(thread->object, priority));
+	threads_set_thread_priority(thread->tid, LLNI_field_direct(object, priority));
 
 	/* thread is completely initialized */
 
@@ -1163,7 +1168,7 @@ static void *threads_startup_thread(void *arg)
 
 		c = class_java_lang_VMThread;
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
-		c = thread->object->header.vftbl->class;
+		LLNI_class_get(object, c);
 #else
 # error unknown classpath configuration
 #endif
@@ -1186,11 +1191,11 @@ static void *threads_startup_thread(void *arg)
 #if defined(WITH_CLASSPATH_GNU)
 		/* we need to start the run method of java.lang.VMThread */
 
-		vmt = (java_lang_VMThread *) LLNI_field_direct(thread->object, vmThread);
+		LLNI_field_get_ref(object, vmThread, vmt);
 		o   = (java_handle_t *) vmt;
 
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
-		o   = (java_handle_t *) thread->object;
+		o   = (java_handle_t *) object;
 #else
 # error unknown classpath configuration
 #endif
@@ -1364,6 +1369,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 #if defined(ENABLE_JAVASE)
 	java_lang_ThreadGroup *group;
 	threadobject          *mainthread;
+	java_lang_Thread      *mainthreado;
 	classinfo             *c;
 	methodinfo            *m;
 #endif
@@ -1402,7 +1408,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	if (t == NULL)
 		return false;
 
-	thread->object = t;
+	thread->object = LLNI_DIRECT(t);
 
 	/* thread is completely initialized */
 
@@ -1464,7 +1470,8 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 		/* get the main thread */
 
 		mainthread = threads_list_first();
-		group = LLNI_field_direct(mainthread->object, group);
+		mainthreado = (java_lang_Thread *) LLNI_WRAP(mainthread->object);
+		group = LLNI_field_direct(mainthreado, group);
 #endif
 	}
 
@@ -1474,7 +1481,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	/* for convenience */
 
-	o = (java_handle_t *) thread->object;
+	o = (java_handle_t *) t;
 
 #if defined(WITH_CLASSPATH_GNU)
 	(void) vm_call_method(method_thread_init, o, vmt, s, NORM_PRIORITY,
@@ -1489,7 +1496,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 #if defined(ENABLE_JAVASE)
 	/* store the thread group in the object */
 
-	LLNI_field_direct(thread->object, group) = group;
+	LLNI_field_set_ref(t, group, group);
 
 	/* add thread to given thread-group */
 
@@ -1532,9 +1539,9 @@ bool threads_detach_thread(threadobject *t)
 #endif
 
 #if defined(ENABLE_JAVASE)
-	object = t->object;
+	object = (java_lang_Thread *) LLNI_WRAP(t->object);
 
-	group = LLNI_field_direct(object, group);
+	LLNI_field_get_ref(object, group, group);
 
     /* If there's an uncaught exception, call uncaughtException on the
        thread's exception handler, or the thread's group if this is
@@ -1548,9 +1555,9 @@ bool threads_detach_thread(threadobject *t)
 		   file. */
 
 # if defined(WITH_CLASSPATH_GNU)
-		handler = (java_lang_Object *) LLNI_field_direct(object, exceptionHandler);
+		LLNI_field_get_ref(object, exceptionHandler, handler);
 # elif defined(WITH_CLASSPATH_SUN)
-		handler = (java_lang_Object *) LLNI_field_direct(object, uncaughtExceptionHandler);
+		LLNI_field_get_ref(object, uncaughtExceptionHandler, handler);
 # endif
 
 		if (handler != NULL) {

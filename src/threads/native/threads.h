@@ -43,7 +43,6 @@ typedef struct threadobject threadobject;
 #include "mm/memory.h"
 #include "native/jni.h"
 #include "native/localref.h"
-#include "native/include/java_lang_Thread.h"
 
 #include "threads/native/lock.h"
 
@@ -109,7 +108,7 @@ extern pthread_key_t threads_current_threadobject_key;
 
 
 struct threadobject {
-	java_lang_Thread     *object;       /* link to java.lang.Thread object    */
+	java_object_t        *object;       /* link to java.lang.Thread object    */
 
 	ptrint                thinlock;     /* pre-computed thin lock value       */
 

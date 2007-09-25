@@ -153,7 +153,7 @@ void threads_preinit(void)
 
 	/* thread is a Java thread and running */
 
-	mainthread->flags = THREAD_FLAG_JAVA;
+	mainthread->flags |= THREAD_FLAG_JAVA;
 	mainthread->state = THREAD_STATE_RUNNABLE;
 
 	/* store the internal thread data-structure in the TSD */
@@ -453,7 +453,7 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 	LLNI_field_set_val(object, vm_thread, (java_lang_Object *) t);
 #endif
 
-	t->object = object;
+	t->object = LLNI_DIRECT(object);
 
 	/* set java.lang.Thread fields */
 
@@ -491,12 +491,15 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 
 *******************************************************************************/
 
-void threads_thread_start(java_lang_Thread *object)
+void threads_thread_start(java_handle_t *object)
 {
-	threadobject *thread;
+	java_lang_Thread   *o;
+	threadobject       *thread;
 #if defined(WITH_CLASSPATH_GNU)
 	java_lang_VMThread *vmt;
 #endif
+
+	o = (java_lang_Thread *) object;
 
 	/* Enter the join-mutex, so if the main-thread is currently
 	   waiting to join all threads, the number of non-daemon threads
@@ -515,7 +518,7 @@ void threads_thread_start(java_lang_Thread *object)
 #if defined(ENABLE_JAVASE)
 	/* is this a daemon thread? */
 
-	if (LLNI_field_direct(object, daemon) == true)
+	if (LLNI_field_direct(o, daemon) == true)
 		thread->flags |= THREAD_FLAG_DAEMON;
 #endif
 
@@ -526,17 +529,17 @@ void threads_thread_start(java_lang_Thread *object)
 
 	/* link the two objects together */
 
-	thread->object = object;
+	thread->object = LLNI_DIRECT(object);
 
 #if defined(WITH_CLASSPATH_GNU)
-	LLNI_field_get_ref(object, vmThread, vmt);
+	LLNI_field_get_ref(o, vmThread, vmt);
 
 	assert(vmt);
 	assert(LLNI_field_direct(vmt, vmdata) == NULL);
 
 	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) thread);
 #elif defined(WITH_CLASSPATH_CLDC1_1)
-	LLNI_field_set_val(object, vm_thread, (java_lang_Object *) thread);
+	LLNI_field_set_val(o, vm_thread, (java_lang_Object *) thread);
 #endif
 
 	/* Start the thread.  Don't pass a function pointer (NULL) since
@@ -564,7 +567,7 @@ void threads_thread_print_info(threadobject *t)
 
 	/* the thread may be currently in initalization, don't print it */
 
-	object = t->object;
+	object = (java_lang_Thread *) LLNI_WRAP(t->object);
 
 	if (object != NULL) {
 		/* get thread name */
