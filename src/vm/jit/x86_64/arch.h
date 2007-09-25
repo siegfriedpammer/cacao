@@ -110,7 +110,7 @@
 
 /* replacement ****************************************************************/
 
-#define REPLACEMENT_PATCH_SIZE           5             /* bytes */
+#define REPLACEMENT_PATCH_SIZE           2             /* bytes */
 
 #endif /* _ARCH_H */
 
