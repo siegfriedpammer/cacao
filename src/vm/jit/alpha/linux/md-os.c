@@ -227,7 +227,7 @@ void md_replace_executionstate_write(executionstate_t *es, void *context)
 		_mc->sc_fpregs[i] = es->fltregs[i];
 
 	/* write special registers */
-	_mc->sc_pc = es->pc;
+	_mc->sc_pc           = (ptrint) es->pc;
 	_mc->sc_regs[REG_SP] = (ptrint) es->sp;
 	_mc->sc_regs[REG_PV] = (ptrint) es->pv;
 }

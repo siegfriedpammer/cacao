@@ -323,6 +323,147 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 #endif
 
 
+/* md_replace_executionstate_read **********************************************
+
+   Read the given context into an executionstate for Replacement.
+
+*******************************************************************************/
+
+#if defined(ENABLE_REPLACEMENT)
+void md_replace_executionstate_read(executionstate_t *es, void *context)
+{
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	s4          i;
+	s4          d;
+
+	_uc = (ucontext_t *) context;
+	_mc = &_uc->uc_mcontext;
+
+	/* read special registers */
+	es->pc = (u1 *) _mc->gregs[REG_RSP];
+	es->sp = (u1 *) _mc->gregs[REG_RSP];
+	es->pv = NULL;
+
+	/* read integer registers */
+	for (i = 0; i < INT_REG_CNT; i++) {
+		/* XXX FIX ME! */
+
+		switch (i) {
+		case 0:  /* REG_RAX == 13 */
+			d = REG_RAX;
+			break;
+		case 1:  /* REG_RCX == 14 */
+			d = REG_RCX;
+			break;
+		case 2:  /* REG_RDX == 12 */
+			d = REG_RDX;
+			break;
+		case 3:  /* REG_RBX == 11 */
+			d = REG_RBX;
+			break;
+		case 4:  /* REG_RSP == 15 */
+			d = REG_RSP;
+			break;
+		case 5:  /* REG_RBP == 10 */
+			d = REG_RBP;
+			break;
+		case 6:  /* REG_RSI == 9  */
+			d = REG_RSI;
+			break;
+		case 7:  /* REG_RDI == 8  */
+			d = REG_RDI;
+			break;
+		case 8:  /* REG_R8  == 0  */
+		case 9:  /* REG_R9  == 1  */
+		case 10: /* REG_R10 == 2  */
+		case 11: /* REG_R11 == 3  */
+		case 12: /* REG_R12 == 4  */
+		case 13: /* REG_R13 == 5  */
+		case 14: /* REG_R14 == 6  */
+		case 15: /* REG_R15 == 7  */
+			d = i - 8;
+			break;
+		}
+
+		es->intregs[i] = _mc->gregs[d];
+	}
+
+	/* read float registers */
+	for (i = 0; i < FLT_REG_CNT; i++)
+		es->fltregs[i] = 0xdeadbeefdeadbeefL;
+}
+#endif
+
+
+/* md_replace_executionstate_write *********************************************
+
+   Write the given executionstate back to the context for Replacement.
+
+*******************************************************************************/
+
+#if defined(ENABLE_REPLACEMENT)
+void md_replace_executionstate_write(executionstate_t *es, void *context)
+{
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	s4          i;
+	s4          d;
+
+	_uc = (ucontext_t *) context;
+	_mc = &_uc->uc_mcontext;
+
+	/* write integer registers */
+	for (i = 0; i < INT_REG_CNT; i++) {
+		/* XXX FIX ME! */
+
+		switch (i) {
+		case 0:  /* REG_RAX == 13 */
+			d = REG_RAX;
+			break;
+		case 1:  /* REG_RCX == 14 */
+			d = REG_RCX;
+			break;
+		case 2:  /* REG_RDX == 12 */
+			d = REG_RDX;
+			break;
+		case 3:  /* REG_RBX == 11 */
+			d = REG_RBX;
+			break;
+		case 4:  /* REG_RSP == 15 */
+			d = REG_RSP;
+			break;
+		case 5:  /* REG_RBP == 10 */
+			d = REG_RBP;
+			break;
+		case 6:  /* REG_RSI == 9  */
+			d = REG_RSI;
+			break;
+		case 7:  /* REG_RDI == 8  */
+			d = REG_RDI;
+			break;
+		case 8:  /* REG_R8  == 0  */
+		case 9:  /* REG_R9  == 1  */
+		case 10: /* REG_R10 == 2  */
+		case 11: /* REG_R11 == 3  */
+		case 12: /* REG_R12 == 4  */
+		case 13: /* REG_R13 == 5  */
+		case 14: /* REG_R14 == 6  */
+		case 15: /* REG_R15 == 7  */
+			d = i - 8;
+			break;
+		}
+
+		_mc->gregs[d] = es->intregs[i];
+	}
+
+	/* write special registers */
+	_mc->gregs[REG_RIP] = (ptrint) es->pc;
+	_mc->gregs[REG_RSP] = (ptrint) es->sp;
+}
+#endif
+
+
 /* md_critical_section_restart *************************************************
 
    Search the critical sections tree for a matching section and set
