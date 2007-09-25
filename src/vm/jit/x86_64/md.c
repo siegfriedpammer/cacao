@@ -40,15 +40,6 @@
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/stacktrace.h"
 
-#if defined(ENABLE_REPLACEMENT)
-# include "vm/exceptions.h"
-#endif
-
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-#include "vmcore/options.h" /* XXX debug */
-#include "vm/jit/disass.h" /* XXX debug */
-#endif
-
 
 /* md_init *********************************************************************
 
@@ -249,14 +240,6 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 		*(u2*)(pc) = (u2) mcode;
 	}
 
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER) && 0
-	{
-		u1* u1ptr = pc;
-		DISASSINSTR(u1ptr);
-		fflush(stdout);
-	}
-#endif
-			
     /* XXX if required asm_cacheflush(pc,8); */
 }
 #endif /* defined(ENABLE_REPLACEMENT) */

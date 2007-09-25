@@ -41,11 +41,6 @@
 #include "vm/jit/codegen-common.h" /* REMOVEME: only for codegendata */
 #include "vm/jit/stacktrace.h"
 
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-#include "vmcore/options.h" /* XXX debug */
-#include "vm/jit/disass.h" /* XXX debug */
-#endif
-
 
 /* md_stacktrace_get_returnaddress *********************************************
 
@@ -304,15 +299,6 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 		/* write the new machine code */
 		*(u8*)(pc) = mcode.both;
 	}
-
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-	{
-		u1* u1ptr = pc;
-		DISASSINSTR(u1ptr);
-		DISASSINSTR(u1ptr);
-		fflush(stdout);
-	}
-#endif
 
 	/* flush instruction cache */
     md_icacheflush(pc,2*4);

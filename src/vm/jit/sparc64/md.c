@@ -363,15 +363,7 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 		/* write the new machine code */
 		*(u4*)(pc) = (u4) mcode;
 	}
-	
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-	{
-		u1* u1ptr = pc;
-		DISASSINSTR(u1ptr);
-		fflush(stdout);
-	}
-#endif
-			
+
 	/* flush instruction cache */
     /* md_icacheflush(pc,4); */
 }

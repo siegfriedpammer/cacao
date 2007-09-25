@@ -851,7 +851,17 @@ void replace_activate_replacement_points(codeinfo *code, bool mappable)
 		savedmcode -= REPLACEMENT_PATCH_SIZE;
 
 #if defined(ENABLE_JIT)
+# if defined(ENABLE_DISASSEMBLER)
+		DOLOG( printf("\tinstruction before: ");
+			   disassinstr(rp->pc); fflush(stdout); );
+# endif
+
 		md_patch_replacement_point(rp->pc, savedmcode, false);
+
+# if defined(ENABLE_DISASSEMBLER)
+		DOLOG( printf("\tinstruction after : ");
+			   disassinstr(rp->pc); fflush(stdout); );
+# endif
 #endif
 
 		rp->flags |= RPLPOINT_FLAG_ACTIVE;
@@ -914,7 +924,17 @@ void replace_deactivate_replacement_points(codeinfo *code)
 			   replace_replacement_point_println(rp, 1); fflush(stdout); );
 
 #if defined(ENABLE_JIT)
+# if defined(ENABLE_DISASSEMBLER)
+		DOLOG( printf("\tinstruction before: ");
+			   disassinstr(rp->pc); fflush(stdout); );
+# endif
+
 		md_patch_replacement_point(rp->pc, savedmcode, true);
+
+# if defined(ENABLE_DISASSEMBLER)
+		DOLOG( printf("\tinstruction before: ");
+			   disassinstr(rp->pc); fflush(stdout); );
+# endif
 #endif
 
 		rp->flags &= ~RPLPOINT_FLAG_ACTIVE;

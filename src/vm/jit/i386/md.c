@@ -37,11 +37,6 @@
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/md.h"
 
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-#include "vmcore/options.h" /* XXX debug */
-#include "vm/jit/disass.h" /* XXX debug */
-#endif
-
 
 /* md_init *********************************************************************
 
@@ -235,14 +230,6 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 		*(u2*)(pc) = mcode;
 	}
 
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER) && 0
-	{
-		u1* u1ptr = pc;
-		DISASSINSTR(u1ptr);
-		fflush(stdout);
-	}
-#endif
-			
     /* XXX if required asm_cacheflush(pc,8); */
 }
 #endif /* defined(ENABLE_REPLACEMENT) */

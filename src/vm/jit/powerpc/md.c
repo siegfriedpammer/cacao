@@ -39,11 +39,6 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
 
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-# include "vm/jit/disass.h" /* XXX debug */
-# include "vmcore/options.h" /* XXX debug */
-#endif
-
 
 /* md_init *********************************************************************
 
@@ -300,14 +295,6 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 		*(u4*)(pc) = (u4) mcode;
 	}
 	
-#if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER) && 0
-	{
-		u1* u1ptr = pc;
-		DISASSINSTR(u1ptr);
-		fflush(stdout);
-	}
-#endif
-			
 	/* flush instruction cache */
     md_icacheflush(pc,4);
 }
