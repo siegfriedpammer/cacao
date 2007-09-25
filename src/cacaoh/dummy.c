@@ -487,12 +487,10 @@ void jit_invalidate_code(methodinfo *m)
 
 void llni_critical_start()
 {
-	vm_abort("llni_critical_start");
 }
 
 void llni_critical_end()
 {
-	vm_abort("llni_critical_end");
 }
 
 
