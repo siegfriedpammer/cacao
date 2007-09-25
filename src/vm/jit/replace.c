@@ -28,6 +28,7 @@
 #include "vm/types.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "arch.h"
@@ -2126,7 +2127,9 @@ no_match:
 
 /* replace_find_replacement_point_for_pc ***************************************
 
-   Find the nearest replacement point at or before the given PC.
+   Find the nearest replacement point at or before the given PC. The
+   given PC has to be between (rp->pc) and (rp->pc+rp->callsize) for
+   the replacement point to be found.
 
    IN:
        code.............compilation unit the PC is in
@@ -2144,20 +2147,17 @@ rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc)
 	rplpoint *rp;
 	s4        i;
 
-	DOLOG( printf("searching for rp in %p ", (void*)code);
-		   method_println(code->m);
-		   printf("PC = %p\n", (void*)pc); );
+	DOLOG( printf("searching for rp at pc:%p in %p ", (void*)pc, (void*)code);
+		   method_println(code->m); );
 
 	found = NULL;
 
 	rp = code->rplpoints;
 	for (i=0; i<code->rplpointcount; ++i, ++rp) {
 		DOLOG( replace_replacement_point_println(rp, 2); );
-		if (rp->pc <= pc)
+		if (rp->pc <= pc && rp->pc + rp->callsize >= pc)
 			found = rp;
 	}
-
-	assert(found == NULL || found->pc + found->callsize >= pc);
 
 	return found;
 }
@@ -2894,24 +2894,11 @@ bool replace_me_wrapper(u1 *pc, void *context)
 
 	/* search for a replacement point at the given PC */
 
-#if 0
 	rp = replace_find_replacement_point_for_pc(code, pc);
-	assert(rp == NULL || rp->pc == pc);
-#else
-	{
-		int i;
-		rplpoint *rp2;
-		rp = NULL;
-		for (i=0,rp2=code->rplpoints; i<code->rplpointcount; i++,rp2++) {
-			if (rp2->pc == pc)
-				rp = rp2;
-		}
-	}
-#endif
 
-	/* check if the replacement point is active */
+	/* check if the replacement point belongs to given PC and is active */
 
-	if (rp != NULL && (rp->flags & RPLPOINT_FLAG_ACTIVE)) {
+	if ((rp != NULL) && (rp->pc == pc) && (rp->flags & RPLPOINT_FLAG_ACTIVE)) {
 
 		/* set codeinfo pointer in execution state */
 
