@@ -29,6 +29,9 @@
 #define _GLOBAL_H
 
 #include "config.h"
+
+#include <stdint.h>
+
 #include "vm/types.h"
 
 
@@ -214,12 +217,12 @@ typedef struct java_objectarray_t java_objectarray_t;
 #define HDRFLAG_REFERENCING   0x40
 
 struct java_object_t {                 /* header for all objects              */
-	struct _vftbl            *vftbl;   /* pointer to virtual function table   */
+	struct _vftbl *vftbl;              /* pointer to virtual function table   */
 #if defined(ENABLE_THREADS)
-	struct lock_record_t *monitorPtr;
+	uintptr_t      lockword;
 #endif
 #if defined(ENABLE_THREADS) || defined(ENABLE_GC_CACAO)
-	ptrint                hdrflags;    /* word containing the FLC and GC bits */
+	uintptr_t      hdrflags;           /* word containing the FLC and GC bits */
 #endif
 };
 

@@ -27,9 +27,10 @@
 
 #include "config.h"
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <assert.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/time.h>
 #include <pthread.h>
 
@@ -102,7 +103,7 @@
 
 #define LOCK_INITIAL_HASHTABLE_SIZE  1613  /* a prime in the middle between 1024 and 2048 */
 
-#define LOCK_HASH(obj)  ((ptrint)(obj))
+#define LOCK_HASH(obj)  ((uintptr_t) (obj))
 
 #define COMPARE_AND_SWAP_OLD_VALUE(address, oldvalue, newvalue) \
 	((ptrint) compare_and_swap((long *)(address), (long)(oldvalue), (long)(newvalue)))
@@ -140,7 +141,7 @@
  *	   Implementation (Montreal, Canada), SIGPLAN Notices volume 33, number 6,
  *	   June 1998
  *
- * In thin lock mode the lockword (monitorPtr) looks like this:
+ * In thin lock mode the lockword looks like this:
  *
  *     ,----------------------,-----------,---,
  *     |      thread ID       |   count   | 0 |
@@ -182,7 +183,7 @@
 #define IS_FAT_LOCK(lockword)     ((lockword) & THIN_LOCK_SHAPE_BIT)
 
 #define GET_FAT_LOCK(lockword)  ((lock_record_t *) ((lockword) & ~THIN_LOCK_SHAPE_BIT))
-#define MAKE_FAT_LOCK(ptr)      ((ptrint)(ptr) | THIN_LOCK_SHAPE_BIT)
+#define MAKE_FAT_LOCK(ptr)      ((uintptr_t) (ptr) | THIN_LOCK_SHAPE_BIT)
 
 #define LOCK_WORD_WITHOUT_COUNT(lockword) ((lockword) & ~THIN_LOCK_COUNT_MASK)
 
@@ -428,11 +429,11 @@ static void lock_record_finalizer(void *object, void *p);
 
 static lock_record_t *lock_hashtable_get(java_object_t *o)
 {
-	ptrint         lockword;
+	uintptr_t      lockword;
 	u4             slot;
 	lock_record_t *lr;
 
-	lockword = (ptrint) o->monitorPtr;
+	lockword = o->lockword;
 
 	if (IS_FAT_LOCK(lockword))
 		return GET_FAT_LOCK(lockword);
@@ -498,7 +499,7 @@ static lock_record_t *lock_hashtable_get(java_object_t *o)
 
 static void lock_hashtable_remove(java_object_t *o)
 {
-	ptrint         lockword;
+	uintptr_t      lockword;
 	lock_record_t *lr;
 	u4             slot;
 	lock_record_t *tmplr;
@@ -509,7 +510,7 @@ static void lock_hashtable_remove(java_object_t *o)
 
 	/* get lock record */
 
-	lockword = (ptrint) o->monitorPtr;
+	lockword = o->lockword;
 
 	assert(IS_FAT_LOCK(lockword));
 
@@ -555,7 +556,7 @@ static void lock_hashtable_remove(java_object_t *o)
 static void lock_record_finalizer(void *object, void *p)
 {
 	java_object_t *o;
-	ptrint         lockword;
+	uintptr_t      lockword;
 	lock_record_t *lr;
 
 	o = (java_object_t *) object;
@@ -571,7 +572,7 @@ static void lock_record_finalizer(void *object, void *p)
 
 	/* get lock record */
 
-	lockword = (ptrint) o->monitorPtr;
+	lockword = o->lockword;
 
 	assert(IS_FAT_LOCK(lockword));
 
@@ -599,7 +600,7 @@ void lock_init_object_lock(java_object_t *o)
 {
 	assert(o);
 
-	o->monitorPtr = (lock_record_t *) THIN_UNLOCKED;
+	o->lockword = THIN_UNLOCKED;
 	LOCK_CLEAR_FLC_BIT(o);
 }
 
@@ -682,25 +683,25 @@ static inline void lock_record_exit(threadobject *t, lock_record_t *lr)
 
 static void lock_inflate(threadobject *t, java_object_t *o, lock_record_t *lr)
 {
-	ptrint lockword;
+	uintptr_t lockword;
 
 	/* get the current lock count */
 
-	lockword = (ptrint) o->monitorPtr;
+	lockword = o->lockword;
 
 	if (IS_FAT_LOCK(lockword)) {
 		assert(GET_FAT_LOCK(lockword) == lr);
 	}
 	else {
-		assert( LOCK_WORD_WITHOUT_COUNT(lockword) == t->thinlock );
+		assert(LOCK_WORD_WITHOUT_COUNT(lockword) == t->thinlock);
 
 		/* copy the count from the thin lock */
 
 		lr->count = (lockword & THIN_LOCK_COUNT_MASK) >> THIN_LOCK_COUNT_SHIFT;
 	}
 
-	DEBUGLOCKS(("[lock_inflate      : lr=%p, t=%p, o=%p, o->monitorPtr=%lx, count=%d]",
-				lr, t, o, o->monitorPtr, lr->count));
+	DEBUGLOCKS(("[lock_inflate      : lr=%p, t=%p, o=%p, o->lockword=%lx, count=%d]",
+				lr, t, o, o->lockword, lr->count));
 
 	/* clear flat-lock-contention bit */
 
@@ -712,7 +713,7 @@ static void lock_inflate(threadobject *t, java_object_t *o, lock_record_t *lr)
 
 	/* install it */
 
-	o->monitorPtr = (lock_record_t *) MAKE_FAT_LOCK(lr);
+	o->lockword = MAKE_FAT_LOCK(lr);
 }
 
 
@@ -752,7 +753,7 @@ bool lock_monitor_enter(java_object_t *o)
 
 	/* most common case: try to thin-lock an unlocked object */
 
-	if ((lockword = COMPARE_AND_SWAP_OLD_VALUE(&(o->monitorPtr), THIN_UNLOCKED, thinlock)) == THIN_UNLOCKED) {
+	if ((lockword = COMPARE_AND_SWAP_OLD_VALUE(&(o->lockword), THIN_UNLOCKED, thinlock)) == THIN_UNLOCKED) {
 		/* success. we locked it */
 		/* The Java Memory Model requires a memory barrier here: */
 		MEMORY_BARRIER();
@@ -771,7 +772,7 @@ bool lock_monitor_enter(java_object_t *o)
 		{
 			/* the recursion count is low enough */
 
-			o->monitorPtr = (lock_record_t *) (lockword + THIN_LOCK_COUNT_INCR);
+			o->lockword = lockword + THIN_LOCK_COUNT_INCR;
 
 			/* success. we locked it */
 			return true;
@@ -831,7 +832,7 @@ bool lock_monitor_enter(java_object_t *o)
 
 	/* inflation loop */
 
-	while (IS_THIN_LOCK(lockword = (ptrint) o->monitorPtr)) {
+	while (IS_THIN_LOCK(lockword = o->lockword)) {
 		/* Set the flat lock contention bit to let the owning thread
 		   know that we want to be notified of unlocking. */
 
@@ -842,7 +843,7 @@ bool lock_monitor_enter(java_object_t *o)
 
 		/* try to lock the object */
 
-		if (COMPARE_AND_SWAP_SUCCEEDS(&(o->monitorPtr), THIN_UNLOCKED, thinlock)) {
+		if (COMPARE_AND_SWAP_SUCCEEDS(&(o->lockword), THIN_UNLOCKED, thinlock)) {
 			/* we can inflate the lock ourselves */
 
 			DEBUGLOCKS(("thread %d inflating lock of %p to lr %p",
@@ -885,7 +886,7 @@ bool lock_monitor_enter(java_object_t *o)
 bool lock_monitor_exit(java_object_t *o)
 {
 	threadobject *t;
-	ptrint        lockword;
+	uintptr_t     lockword;
 	ptrint        thinlock;
 
 	if (o == NULL) {
@@ -898,7 +899,7 @@ bool lock_monitor_exit(java_object_t *o)
 	/* We don't have to worry about stale values here, as any stale value */
 	/* will indicate that we don't own the lock.                          */
 
-	lockword = (ptrint) o->monitorPtr;
+	lockword = o->lockword;
 	thinlock = t->thinlock;
 
 	/* most common case: we release a thin lock that we hold once */
@@ -906,7 +907,7 @@ bool lock_monitor_exit(java_object_t *o)
 	if (lockword == thinlock) {
 		/* memory barrier for Java Memory Model */
 		MEMORY_BARRIER();
-		o->monitorPtr = THIN_UNLOCKED;
+		o->lockword = THIN_UNLOCKED;
 		/* memory barrier for thin locking */
 		MEMORY_BARRIER();
 
@@ -942,7 +943,7 @@ bool lock_monitor_exit(java_object_t *o)
 	/* next common case: we release a recursive lock, count > 0 */
 
 	if (LOCK_WORD_WITHOUT_COUNT(lockword) == thinlock) {
-		o->monitorPtr = (lock_record_t *) (lockword - THIN_LOCK_COUNT_INCR);
+		o->lockword = lockword - THIN_LOCK_COUNT_INCR;
 		return true;
 	}
 
@@ -1150,10 +1151,10 @@ static bool lock_record_wait(threadobject *thread, lock_record_t *lr, s8 millis,
 
 static void lock_monitor_wait(threadobject *t, java_object_t *o, s8 millis, s4 nanos)
 {
-	ptrint         lockword;
+	uintptr_t      lockword;
 	lock_record_t *lr;
 
-	lockword = (ptrint) o->monitorPtr;
+	lockword = o->lockword;
 
 	/* check if we own this monitor */
 	/* We don't have to worry about stale values here, as any stale value */
@@ -1273,10 +1274,10 @@ static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
 
 static void lock_monitor_notify(threadobject *t, java_object_t *o, bool one)
 {
-	ptrint lockword;
+	uintptr_t      lockword;
 	lock_record_t *lr;
 
-	lockword = (ptrint) o->monitorPtr;
+	lockword = o->lockword;
 
 	/* check if we own this monitor */
 	/* We don't have to worry about stale values here, as any stale value */
@@ -1334,7 +1335,7 @@ static void lock_monitor_notify(threadobject *t, java_object_t *o, bool one)
 bool lock_is_held_by_current_thread(java_object_t *o)
 {
 	threadobject  *t;
-	ptrint         lockword;
+	uintptr_t      lockword;
 	lock_record_t *lr;
 
 	t = THREADOBJECT;
@@ -1343,7 +1344,7 @@ bool lock_is_held_by_current_thread(java_object_t *o)
 	/* We don't have to worry about stale values here, as any stale value */
 	/* will fail this check.                                              */
 
-	lockword = (ptrint) o->monitorPtr;
+	lockword = o->lockword;
 
 	if (IS_FAT_LOCK(lockword)) {
 		/* it's a fat lock */
