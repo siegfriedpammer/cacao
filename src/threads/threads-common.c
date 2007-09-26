@@ -303,7 +303,8 @@ threadobject *threads_thread_new(void)
 #if defined(ENABLE_GC_CACAO)
 	/* Register reference to java.lang.Thread with the GC. */
 
-	gc_reference_register((java_object_t **) &(t->object), GC_REFTYPE_THREADOBJECT);
+	gc_reference_register(&(t->object), GC_REFTYPE_THREADOBJECT);
+	gc_reference_register(&(t->_exceptionptr), GC_REFTYPE_THREADOBJECT);
 #endif
 
 	/* Pre-compute the thinlock-word. */

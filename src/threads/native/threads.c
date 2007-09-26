@@ -918,12 +918,6 @@ bool threads_init(void)
 
 	mainthread = threads_list_first();
 
-#if defined(ENABLE_GC_CACAO)
-	/* register reference to java.lang.Thread with the GC */
-
-	gc_reference_register((java_object_t **) &(mainthread->object), GC_REFTYPE_THREADOBJECT);
-#endif
-
 	/* create a java.lang.Thread for the main thread */
 
 	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
