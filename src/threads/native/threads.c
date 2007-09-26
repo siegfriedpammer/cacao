@@ -558,6 +558,8 @@ void threads_stopworld(void)
 #else
 	self = THREADOBJECT;
 
+	DEBUGTHREADS("stops World", self);
+
 	count = 0;
 
 	/* suspend all running threads */
@@ -621,6 +623,8 @@ void threads_startworld(void)
 	assert(0);
 #else
 	self = THREADOBJECT;
+
+	DEBUGTHREADS("starts World", self);
 
 	count = 0;
 
@@ -1036,13 +1040,7 @@ bool threads_init(void)
 		vm_abort("threads_init: pthread_attr_setdetachstate failed: %s",
 				 strerror(errno));
 
-#if !defined(NDEBUG)
-	if (opt_verbosethreads) {
-		printf("[Starting thread ");
-		threads_thread_print_info(mainthread);
-		printf("]\n");
-	}
-#endif
+	DEBUGTHREADS("starting (main)", mainthread);
 
 	/* everything's ok */
 
@@ -1150,13 +1148,7 @@ static void *threads_startup_thread(void *arg)
 		jvmti_ThreadStartEnd(JVMTI_EVENT_THREAD_START);
 #endif
 
-#if !defined(NDEBUG)
-	if (opt_verbosethreads) {
-		printf("[Starting thread ");
-		threads_thread_print_info(thread);
-		printf("]\n");
-	}
-#endif
+	DEBUGTHREADS("starting", thread);
 
 	/* find and run the Thread.run()V method if no other function was passed */
 
@@ -1220,13 +1212,7 @@ static void *threads_startup_thread(void *arg)
 		(function)();
 	}
 
-#if !defined(NDEBUG)
-	if (opt_verbosethreads) {
-		printf("[Stopping thread ");
-		threads_thread_print_info(thread);
-		printf("]\n");
-	}
-#endif
+	DEBUGTHREADS("stopping", thread);
 
 #if defined(ENABLE_JVMTI)
 	/* fire thread end event */
@@ -1414,13 +1400,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	threads_thread_state_runnable(thread);
 
-#if !defined(NDEBUG)
-	if (opt_verbosethreads) {
-		printf("[Attaching thread ");
-		threads_thread_print_info(thread);
-		printf("]\n");
-	}
-#endif
+	DEBUGTHREADS("attaching", thread);
 
 #if defined(ENABLE_INTRP)
 	/* create interpreter stack */
@@ -1623,13 +1603,7 @@ bool threads_detach_thread(threadobject *t)
 
 	threads_thread_state_terminated(t);
 
-#if !defined(NDEBUG)
-	if (opt_verbosethreads) {
-		printf("[Detaching thread ");
-		threads_thread_print_info(t);
-		printf("]\n");
-	}
-#endif
+	DEBUGTHREADS("detaching", t);
 
     /* Notify all threads waiting on this thread.  These are joining
 	   this thread. */
@@ -1745,10 +1719,12 @@ void threads_suspend_ack(u1* pc, u1* sp)
 		threads_sem_post(&suspend_ack);
 	}
 
+	DEBUGTHREADS("suspending", thread);
+
 	/* release the suspension mutex and wait till we are resumed */
-	/*printf("thread down %p\n", thread);*/
 	pthread_cond_wait(&(thread->suspendcond), &(thread->suspendmutex));
-	/*printf("thread up %p\n", thread);*/
+
+	DEBUGTHREADS("resuming", thread);
 
 	/* if we are stopping the world, we should send a global ack */
 	if (thread->suspend_reason == SUSPEND_REASON_STOPWORLD) {
@@ -2039,6 +2015,8 @@ void threads_thread_interrupt(threadobject *thread)
 	   interrupted. */
 
 	pthread_mutex_lock(&thread->waitmutex);
+
+	DEBUGTHREADS("interrupted", thread);
 
 	/* Interrupt blocking system call using a signal. */
 

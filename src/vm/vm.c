@@ -509,8 +509,7 @@ static void XXusage(void)
 {
 	puts("    -v                       write state-information");
 #if !defined(NDEBUG)
-	puts("    -verbose[:jit|threads]");
-	puts("                             enable specific verbose output");
+	puts("    -verbose:jit             enable specific verbose output");
 	puts("    -debug-color             colored output for ANSI terms");
 #endif
 #ifdef TYPECHECK_VERBOSE
@@ -1071,9 +1070,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 				loadverbose = true;
 				initverbose = true;
 				compileverbose = true;
-			}
-			else if (strcmp("threads", opt_arg) == 0) {
-				opt_verbosethreads = true;
 			}
 #endif
 			else {

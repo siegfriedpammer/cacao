@@ -673,6 +673,8 @@ void threads_thread_state_runnable(threadobject *t)
 	if (t->state != THREAD_STATE_TERMINATED)
 		t->state = THREAD_STATE_RUNNABLE;
 
+	DEBUGTHREADS("is RUNNABLE", t);
+
 	threads_list_unlock();
 }
 
@@ -694,6 +696,8 @@ void threads_thread_state_waiting(threadobject *t)
 
 	if (t->state != THREAD_STATE_TERMINATED)
 		t->state = THREAD_STATE_WAITING;
+
+	DEBUGTHREADS("is WAITING", t);
 
 	threads_list_unlock();
 }
@@ -718,6 +722,8 @@ void threads_thread_state_timed_waiting(threadobject *t)
 	if (t->state != THREAD_STATE_TERMINATED)
 		t->state = THREAD_STATE_TIMED_WAITING;
 
+	DEBUGTHREADS("is TIMED_WAITING", t);
+
 	threads_list_unlock();
 }
 
@@ -736,6 +742,8 @@ void threads_thread_state_terminated(threadobject *t)
 	threads_list_lock();
 
 	t->state = THREAD_STATE_TERMINATED;
+
+	DEBUGTHREADS("is TERMINATED", t);
 
 	threads_list_unlock();
 }

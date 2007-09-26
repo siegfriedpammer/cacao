@@ -65,6 +65,22 @@
 #define MAX_PRIORITY     10
 
 
+/* debug **********************************************************************/
+
+#if !defined(NDEBUG)
+# define DEBUGTHREADS(message, thread) \
+	do { \
+		if (opt_DebugThreads) { \
+			printf("[Thread %-16s: ", message); \
+			threads_thread_print_info(thread); \
+			printf("]\n"); \
+		} \
+	} while (0)
+#else
+# define DEBUGTHREADS(message, thread)
+#endif
+
+
 #if defined(__LINUX__)
 /* XXX Remove for exact-GC. */
 extern bool threads_pthreads_implementation_nptl;

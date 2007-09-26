@@ -96,7 +96,6 @@ extern bool opt_verboseclass;
 extern bool opt_verbosegc;
 extern bool opt_verbosejni;
 extern bool opt_verbosecall;
-extern bool opt_verbosethreads;
 
 extern bool showmethods;
 extern bool showconstantpool;
@@ -194,6 +193,7 @@ extern int      opt_DebugPackage;
 extern int      opt_DebugProperties;
 extern int32_t  opt_DebugStackFrameInfo;
 extern int      opt_DebugStackTrace;
+extern int      opt_DebugThreads;
 #if defined(ENABLE_DISASSEMBLER)
 extern int      opt_DisassembleStubs;
 #endif

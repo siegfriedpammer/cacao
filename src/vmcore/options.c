@@ -81,7 +81,6 @@ bool opt_verboseclass     = false;
 bool opt_verbosegc        = false;
 bool opt_verbosejni       = false;
 bool opt_verbosecall      = false;      /* trace all method invocation        */
-bool opt_verbosethreads   = false;
 
 bool showmethods = false;
 bool showconstantpool = false;
@@ -179,6 +178,7 @@ int      opt_DebugPatcher              = 0;
 int      opt_DebugProperties           = 0;
 int32_t  opt_DebugStackFrameInfo       = 0;
 int      opt_DebugStackTrace           = 0;
+int      opt_DebugThreads              = 0;
 #if defined(ENABLE_DISASSEMBLER)
 int      opt_DisassembleStubs          = 0;
 #endif
@@ -219,6 +219,7 @@ enum {
 	OPT_DebugProperties,
 	OPT_DebugStackFrameInfo,
 	OPT_DebugStackTrace,
+	OPT_DebugThreads,
 	OPT_DisassembleStubs,
 	OPT_GCDebugRootSet,
 	OPT_GCStress,
@@ -247,6 +248,7 @@ option_t options_XX[] = {
 	{ "DebugProperties",           OPT_DebugProperties,           OPT_TYPE_BOOLEAN, "print debug information for properties" },
 	{ "DebugStackFrameInfo",       OPT_DebugStackFrameInfo,       OPT_TYPE_BOOLEAN, "TODO" },
 	{ "DebugStackTrace",           OPT_DebugStackTrace,           OPT_TYPE_BOOLEAN, "debug stacktrace creation" },
+	{ "DebugThreads",              OPT_DebugThreads,              OPT_TYPE_BOOLEAN, "print debug information for threads" },
 #if defined(ENABLE_DISASSEMBLER)
 	{ "DisassembleStubs",          OPT_DisassembleStubs,          OPT_TYPE_BOOLEAN, "disassemble builtin and native stubs when generated" },
 #endif
@@ -552,6 +554,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 		case OPT_DebugStackTrace:
 			opt_DebugStackTrace = enable;
+			break;
+
+		case OPT_DebugThreads:
+			opt_DebugThreads = enable;
 			break;
 
 #if defined(ENABLE_DISASSEMBLER)
