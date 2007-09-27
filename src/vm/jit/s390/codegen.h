@@ -292,8 +292,8 @@
 #define N_DSEG_DISP(x) ((x) - N_PV_OFFSET)
 #define N_VALID_DSEG_DISP(x) N_VALID_DISP(N_DSEG_DISP(x))
 
-#define N_BRANCH_MIN -32768
-#define N_BRANCH_MAX 32767
+#define N_BRANCH_MIN (-32768 * 2)
+#define N_BRANCH_MAX (32767 * 2)
 #define N_VALID_BRANCH(x) ((N_BRANCH_MIN <= (x)) && ((x) <= N_BRANCH_MAX))
 #define ASSERT_VALID_BRANCH(x) assert(N_VALID_BRANCH(x))
 
