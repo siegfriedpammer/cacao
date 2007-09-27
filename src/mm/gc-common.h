@@ -31,6 +31,8 @@
 #include "config.h"
 #include "vm/types.h"
 
+#include <stdint.h>
+
 #include "vm/global.h"
 
 #include "vmcore/method.h"
@@ -71,6 +73,19 @@ s8    gc_get_max_heap_size(void);
 void  gc_invoke_finalizers(void);
 void  gc_finalize_all(void);
 void *gc_out_of_memory(size_t bytes_requested);
+
+
+/* inlined functions **********************************************************/
+
+static inline int32_t heap_hashcode(java_object_t *obj)
+{
+#if defined(ENABLE_GC_CACAO)
+	return heap_get_hashcode(obj);
+#else
+	return (int32_t)(intptr_t) obj;
+#endif
+}
+
 
 #endif /* _GC_COMMON_H */
 

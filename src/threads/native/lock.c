@@ -103,8 +103,6 @@
 
 #define LOCK_INITIAL_HASHTABLE_SIZE  1613  /* a prime in the middle between 1024 and 2048 */
 
-#define LOCK_HASH(obj)  ((uintptr_t) (obj))
-
 #define COMPARE_AND_SWAP_OLD_VALUE(address, oldvalue, newvalue) \
 	((ptrint) compare_and_swap((long *)(address), (long)(oldvalue), (long)(newvalue)))
 
@@ -386,7 +384,7 @@ static void lock_hashtable_grow(void)
 		while (lr) {
 			next = lr->hashlink;
 
-			h = LOCK_HASH(lr->object);
+			h = heap_hashcode(lr->object);
 			newslot = h % newsize;
 
 			lr->hashlink = newtable[newslot];
@@ -444,7 +442,7 @@ static lock_record_t *lock_hashtable_get(java_object_t *o)
 
 	/* lookup the lock record in the hashtable */
 
-	slot = LOCK_HASH(o) % lock_hashtable.size;
+	slot = heap_hashcode(o) % lock_hashtable.size;
 	lr   = lock_hashtable.ptr[slot];
 
 	for (; lr != NULL; lr = lr->hashlink) {
@@ -518,7 +516,7 @@ static void lock_hashtable_remove(java_object_t *o)
 
 	/* remove the lock-record from the hashtable */
 
-	slot  = LOCK_HASH(o) % lock_hashtable.size;
+	slot  = heap_hashcode(o) % lock_hashtable.size;
 	tmplr = lock_hashtable.ptr[slot];
 
 	if (tmplr == lr) {

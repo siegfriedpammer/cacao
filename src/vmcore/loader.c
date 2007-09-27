@@ -260,12 +260,7 @@ classloader *loader_hashtable_classloader_add(java_handle_t *cl)
 	/* key for entry is the hashcode of the classloader;
 	   aligned to 16-byte boundaries */
 
-#if defined(ENABLE_GC_CACAO)
-	key  = heap_get_hashcode(LLNI_DIRECT(cl)) >> 4;
-#else
-	key  = ((u4) (ptrint) cl) >> 4;
-#endif
-
+	key  = heap_hashcode(LLNI_DIRECT(cl)) >> 4;
 	slot = key & (hashtable_classloader->size - 1);
 	cle  = hashtable_classloader->ptr[slot];
 
@@ -346,12 +341,7 @@ classloader *loader_hashtable_classloader_find(java_handle_t *cl)
 	/* key for entry is the hashcode of the classloader;
 	   aligned to 16-byte boundaries */
 
-#if defined(ENABLE_GC_CACAO)
-	key  = heap_get_hashcode(LLNI_DIRECT(cl)) >> 4;
-#else
-	key  = ((u4) (ptrint) cl) >> 4;
-#endif
-
+	key  = heap_hashcode(LLNI_DIRECT(cl)) >> 4;
 	slot = key & (hashtable_classloader->size - 1);
 	cle  = hashtable_classloader->ptr[slot];
 

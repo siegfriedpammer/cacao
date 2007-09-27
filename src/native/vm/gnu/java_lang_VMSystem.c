@@ -93,11 +93,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclas
 
 	LLNI_CRITICAL_START;
 
-#if defined(ENABLE_GC_CACAO)
-	hashcode = heap_get_hashcode(LLNI_UNWRAP((java_handle_t *) o));
-#else
-	hashcode = (s4) ((ptrint) o);
-#endif
+	hashcode = heap_hashcode(LLNI_UNWRAP((java_handle_t *) o));
 
 	LLNI_CRITICAL_END;
 

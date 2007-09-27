@@ -3466,11 +3466,7 @@ jobject _Jv_JNI_NewGlobalRef(JNIEnv* env, jobject obj)
 
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-#if defined(ENABLE_GC_CACAO)
-	key  = heap_get_hashcode(LLNI_DIRECT(o)) >> 4;
-#else
-	key  = ((u4) (ptrint) o) >> 4;             /* align to 16-byte boundaries */
-#endif
+	key  = heap_hashcode(LLNI_DIRECT(o)) >> 4; /* align to 16-byte boundaries */
 	slot = key & (hashtable_global_ref->size - 1);
 	gre  = hashtable_global_ref->ptr[slot];
 	
@@ -3549,11 +3545,7 @@ void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
-#if defined(ENABLE_GC_CACAO)
-	key  = heap_get_hashcode(LLNI_DIRECT(o)) >> 4;
-#else
-	key  = ((u4) (ptrint) o) >> 4;             /* align to 16-byte boundaries */
-#endif
+	key  = heap_hashcode(LLNI_DIRECT(o)) >> 4; /* align to 16-byte boundaries */
 	slot = key & (hashtable_global_ref->size - 1);
 	gre  = hashtable_global_ref->ptr[slot];
 
