@@ -47,6 +47,13 @@ imm_union argument_jitreturn_load(methoddesc *md, uint64_t *return_regs);
 void      argument_jitreturn_store(methoddesc *md, uint64_t *return_regs,
 								   imm_union ret);
 
+uint64_t *argument_vmarray_from_valist(methodinfo *m, java_handle_t *o,
+									   va_list ap);
+uint64_t *argument_vmarray_from_jvalue(methodinfo *m, java_handle_t *o,
+									   const jvalue *args);
+uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
+											java_handle_objectarray_t *params);
+
 #endif /* _VM_JIT_ARGUMENT_H */
 
 

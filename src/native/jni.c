@@ -100,6 +100,7 @@
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
+#include "vm/jit/argument.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/stacktrace.h"
@@ -883,7 +884,7 @@ java_handle_t *_Jv_jni_invokeNative(methodinfo *m, java_handle_t *o,
 
 	/* Fill the argument array from a object-array. */
 
-	array = vm_array_from_objectarray(resm, o, params);
+	array = argument_vmarray_from_objectarray(resm, o, params);
 
 	/* The array can be NULL if we don't have any arguments to pass
 	   and the architecture does not have any argument registers

@@ -75,9 +75,6 @@ void vm_abort(const char *text, ...);
 
 /* Java method calling functions */
 
-uint64_t *vm_array_from_objectarray(methodinfo *m, java_handle_t *o,
-									java_handle_objectarray_t *params);
-
 java_handle_t *vm_call_method(methodinfo *m, java_handle_t *o, ...);
 java_handle_t *vm_call_method_valist(methodinfo *m, java_handle_t *o,
 										 va_list ap);
