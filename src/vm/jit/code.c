@@ -173,6 +173,11 @@ methodinfo *code_get_methodinfo_for_pv(u1 *pv)
 
 	code = *((codeinfo **) (pv + CodeinfoPointer));
 
+	/* This is the case for asm_vm_call_method. */
+
+	if (code == NULL)
+		return NULL;
+
 	return code->m;
 }
 
