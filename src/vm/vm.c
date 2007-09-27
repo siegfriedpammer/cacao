@@ -2238,6 +2238,41 @@ static void vm_compile_method(void)
 #endif /* !defined(NDEBUG) */
 
 
+/* vm_call_array ***************************************************************
+
+   Calls a Java method with a variable number of arguments, passed via
+   an argument array.
+
+   ATTENTION: This function has to be used outside the nativeworld.
+
+*******************************************************************************/
+
+#define VM_CALL_ARRAY(name, type)                                 \
+static type vm_call##name##_array(methodinfo *m, uint64_t *array) \
+{                                                                 \
+	methoddesc *md;                                               \
+	void       *pv;                                               \
+	type        value;                                            \
+                                                                  \
+	assert(m->code != NULL);                                      \
+                                                                  \
+	md = m->parseddesc;                                           \
+	pv = m->code->entrypoint;                                     \
+                                                                  \
+	STATISTICS(count_calls_native_to_java++);                     \
+                                                                  \
+	value = asm_vm_call_method##name(pv, array, md->memuse);      \
+                                                                  \
+	return value;                                                 \
+}
+
+VM_CALL_ARRAY(,        java_handle_t *)
+VM_CALL_ARRAY(_int,    int32_t)
+VM_CALL_ARRAY(_long,   int64_t)
+VM_CALL_ARRAY(_float,  float)
+VM_CALL_ARRAY(_double, double)
+
+
 /* vm_call_method **************************************************************
 
    Calls a Java method with a variable number of arguments.
@@ -2279,10 +2314,18 @@ type vm_call_method##name##_valist(methodinfo *m, java_handle_t *o,     \
 	uint64_t *array;                                                    \
 	type      value;                                                    \
                                                                         \
+	if (m->code == NULL)                                                \
+		if (!jit_compile(m))                                            \
+			return 0;                                                   \
+                                                                        \
+	THREAD_NATIVEWORLD_EXIT;                                            \
+                                                                        \
 	dumpsize = dump_size();                                             \
 	array = argument_vmarray_from_valist(m, o, ap);                     \
 	value = vm_call##name##_array(m, array);                            \
 	dump_release(dumpsize);                                             \
+                                                                        \
+	THREAD_NATIVEWORLD_ENTER;                                           \
                                                                         \
 	return value;                                                       \
 }
@@ -2309,10 +2352,18 @@ type vm_call_method##name##_jvalue(methodinfo *m, java_handle_t *o,     \
 	uint64_t *array;                                                    \
 	type      value;                                                    \
                                                                         \
+	if (m->code == NULL)                                                \
+		if (!jit_compile(m))                                            \
+			return 0;                                                   \
+                                                                        \
+	THREAD_NATIVEWORLD_EXIT;                                            \
+                                                                        \
 	dumpsize = dump_size();                                             \
 	array = argument_vmarray_from_jvalue(m, o, args);                   \
 	value = vm_call##name##_array(m, array);                            \
 	dump_release(dumpsize);                                             \
+                                                                        \
+	THREAD_NATIVEWORLD_ENTER;                                           \
                                                                         \
 	return value;                                                       \
 }
@@ -2324,40 +2375,115 @@ VM_CALL_METHOD_JVALUE(_float,  float)
 VM_CALL_METHOD_JVALUE(_double, double)
 
 
-/* vm_call_array ***************************************************************
+/* vm_call_method_objectarray **************************************************
 
-   Calls a Java method with a variable number of arguments, passed via
-   an argument array.
+   Calls a Java method with a variable number if arguments, passed via
+   an objectarray of boxed values. Returns a boxed value.
 
 *******************************************************************************/
 
-#define VM_CALL_ARRAY(name, type)                            \
-type vm_call##name##_array(methodinfo *m, uint64_t *array)   \
-{                                                            \
-	methoddesc *md;                                          \
-	void       *pv;                                          \
-	type        value;                                       \
-                                                             \
-	md = m->parseddesc;                                      \
-                                                             \
-	if (m->code == NULL)                                     \
-		if (!jit_compile(m))                                 \
-			return 0;                                        \
-                                                             \
-	pv = m->code->entrypoint;                                \
-                                                             \
-	STATISTICS(count_calls_native_to_java++);                \
-                                                             \
-	value = asm_vm_call_method##name(pv, array, md->memuse); \
-                                                             \
-	return value;                                            \
-}
+java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
+										  java_handle_objectarray_t *params)
+{
+	int32_t        dumpsize;
+	uint64_t      *array;
+	java_handle_t *xptr;
+	java_handle_t *ro;
+	imm_union      value;
 
-VM_CALL_ARRAY(,        java_handle_t *)
-VM_CALL_ARRAY(_int,    int32_t)
-VM_CALL_ARRAY(_long,   int64_t)
-VM_CALL_ARRAY(_float,  float)
-VM_CALL_ARRAY(_double, double)
+	/* compile methods which are not yet compiled */
+
+	if (m->code == NULL)
+		if (!jit_compile(m))
+			return NULL;
+
+	/* leave the nativeworld */
+
+	THREAD_NATIVEWORLD_EXIT;
+
+	/* mark start of dump memory area */
+
+	dumpsize = dump_size();
+
+	/* Fill the argument array from a object-array. */
+
+	array = argument_vmarray_from_objectarray(m, o, params);
+
+	/* The array can be NULL if we don't have any arguments to pass
+	   and the architecture does not have any argument registers
+	   (e.g. i386).  In that case we additionally check for an
+	   exception thrown. */
+
+	if ((array == NULL) && (exceptions_get_exception() != NULL)) {
+		/* release dump area */
+
+		dump_release(dumpsize);
+
+		/* enter the nativeworld again */
+
+		THREAD_NATIVEWORLD_ENTER;
+
+		return NULL;
+	}
+
+	switch (m->parseddesc->returntype.decltype) {
+	case TYPE_VOID:
+		(void) vm_call_array(m, array);
+		ro = NULL;
+		break;
+
+	case PRIMITIVETYPE_BOOLEAN:
+	case PRIMITIVETYPE_BYTE:
+	case PRIMITIVETYPE_CHAR:
+	case PRIMITIVETYPE_SHORT:
+	case PRIMITIVETYPE_INT:
+		value.i = vm_call_int_array(m, array);
+		ro = primitive_box(m->parseddesc->returntype.decltype, value);
+		break;
+
+	case PRIMITIVETYPE_LONG:
+		value.l = vm_call_long_array(m, array);
+		ro = primitive_box(m->parseddesc->returntype.decltype, value);
+		break;
+
+	case PRIMITIVETYPE_FLOAT:
+		value.f = vm_call_float_array(m, array);
+		ro = primitive_box(m->parseddesc->returntype.decltype, value);
+		break;
+
+	case PRIMITIVETYPE_DOUBLE:
+		value.d = vm_call_double_array(m, array);
+		ro = primitive_box(m->parseddesc->returntype.decltype, value);
+		break;
+
+	case TYPE_ADR:
+		ro = vm_call_array(m, array);
+		break;
+
+	default:
+		vm_abort("_Jv_jni_invokeNative: invalid return type %d", m->parseddesc->returntype.decltype);
+	}
+
+	xptr = exceptions_get_exception();
+
+	if (xptr != NULL) {
+		/* clear exception pointer, we are calling JIT code again */
+
+		exceptions_clear_exception();
+
+		exceptions_throw_invocationtargetexception(xptr);
+	}
+
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	/* enter the nativeworld again */
+
+	THREAD_NATIVEWORLD_ENTER;
+
+	return ro;
+}
 
 
 /*

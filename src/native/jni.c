@@ -821,10 +821,6 @@ java_handle_t *_Jv_jni_invokeNative(methodinfo *m, java_handle_t *o,
 	java_handle_t *ro;
 	s4             argcount;
 	s4             paramcount;
-	java_handle_t *xptr;
-	int32_t        dumpsize;
-	uint64_t      *array;
-	imm_union          value;
 
 	if (m == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -878,78 +874,7 @@ java_handle_t *_Jv_jni_invokeNative(methodinfo *m, java_handle_t *o,
 		resm = m;
 	}
 
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* Fill the argument array from a object-array. */
-
-	array = argument_vmarray_from_objectarray(resm, o, params);
-
-	/* The array can be NULL if we don't have any arguments to pass
-	   and the architecture does not have any argument registers
-	   (e.g. i386).  In that case we additionally check for an
-	   exception thrown. */
-
-	if ((array == NULL) && (exceptions_get_exception() != NULL)) {
-		/* release dump area */
-
-		dump_release(dumpsize);
-
-		return NULL;
-	}
-
-	switch (resm->parseddesc->returntype.decltype) {
-	case TYPE_VOID:
-		(void) vm_call_array(resm, array);
-		ro = NULL;
-		break;
-
-	case PRIMITIVETYPE_BOOLEAN:
-	case PRIMITIVETYPE_BYTE:
-	case PRIMITIVETYPE_CHAR:
-	case PRIMITIVETYPE_SHORT:
-	case PRIMITIVETYPE_INT:
-		value.i = vm_call_int_array(resm, array);
-		ro = primitive_box(resm->parseddesc->returntype.decltype, value);
-		break;
-
-	case PRIMITIVETYPE_LONG:
-		value.l = vm_call_long_array(resm, array);
-		ro = primitive_box(resm->parseddesc->returntype.decltype, value);
-		break;
-
-	case PRIMITIVETYPE_FLOAT:
-		value.f = vm_call_float_array(resm, array);
-		ro = primitive_box(resm->parseddesc->returntype.decltype, value);
-		break;
-
-	case PRIMITIVETYPE_DOUBLE:
-		value.d = vm_call_double_array(resm, array);
-		ro = primitive_box(resm->parseddesc->returntype.decltype, value);
-		break;
-
-	case TYPE_ADR:
-		ro = vm_call_array(resm, array);
-		break;
-
-	default:
-		vm_abort("_Jv_jni_invokeNative: invalid return type %d", resm->parseddesc->returntype.decltype);
-	}
-
-	xptr = exceptions_get_exception();
-
-	if (xptr != NULL) {
-		/* clear exception pointer, we are calling JIT code again */
-
-		exceptions_clear_exception();
-
-		exceptions_throw_invocationtargetexception(xptr);
-	}
-
-	/* release dump area */
-
-	dump_release(dumpsize);
+	ro = vm_call_method_objectarray(resm, o, params);
 
 	return ro;
 }
