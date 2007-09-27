@@ -59,9 +59,9 @@
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/class.h"
+#include "vmcore/options.h"
 
 #if defined(ENABLE_STATISTICS)
-# include "vmcore/options.h"
 # include "vmcore/statistics.h"
 #endif
 
