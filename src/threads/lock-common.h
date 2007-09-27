@@ -33,10 +33,6 @@
 
 #include "vm/global.h"
 
-/* ATTENTION: Don't include a threads header here, as it could include
-   java_lang_Thread.h and thus break the build (means, it recompiles
-   every time)!  Take care of that... */
-
 #if defined(ENABLE_THREADS)
 # include "threads/native/lock.h"
 #else

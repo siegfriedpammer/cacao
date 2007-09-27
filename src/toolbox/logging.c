@@ -34,6 +34,7 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+#include "threads/threads-common.h"
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
 #include "vm/global.h"
@@ -66,17 +67,6 @@ void log_init(const char *fname)
    to stdout.
 
 *******************************************************************************/
-
-/* ATTENTION: Don't include threads-common.h, because we can't
-   bootstrap this file in that case (missing java_lang_Thread.h).
-   Instead we declare threads_get_current_threadobject differently: */
-
-/* #if defined(ENABLE_THREADS) */
-/* # include "threads/threads-common.h" */
-/* #endif */
-
-extern ptrint threads_get_current_tid(void);
-
 
 void log_start(void)
 {
