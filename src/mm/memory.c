@@ -170,7 +170,7 @@ void *memory_mmap_anon(void *addr, size_t len, int prot, int flags)
 
 *******************************************************************************/
 
-void memory_mprotect(const void *addr, size_t len, int prot)
+void memory_mprotect(void *addr, size_t len, int prot)
 {
 	if (mprotect(addr, len, prot) != 0)
 		vm_abort("memory_mprotect: mprotect failed: %s", strerror(errno));

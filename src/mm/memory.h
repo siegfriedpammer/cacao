@@ -202,7 +202,7 @@ Some more macros:
 bool memory_init(void);
 
 void *memory_mmap_anon(void *addr, size_t len, int prot, int flags);
-void  memory_mprotect(const void *addr, size_t len, int prot);
+void  memory_mprotect(void *addr, size_t len, int prot);
 
 void *memory_cnew(s4 size);
 void  memory_cfree(void *p, s4 size);
