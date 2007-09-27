@@ -290,6 +290,137 @@ extern classinfo *pseudo_class_Null;
 extern classinfo *pseudo_class_New;
 
 
+/* inline functions ***********************************************************/
+
+/* class_is_primitive **********************************************************
+
+   Checks if the given class is a primitive class.
+
+*******************************************************************************/
+
+static inline bool class_is_primitive(classinfo *c)
+{
+	if (c->flags & ACC_CLASS_PRIMITIVE)
+		return true;
+
+	return false;
+}
+
+
+/* class_is_anonymousclass *****************************************************
+
+   Checks if the given class is an anonymous class.
+
+*******************************************************************************/
+
+static inline bool class_is_anonymousclass(classinfo *c)
+{
+	if (c->flags & ACC_CLASS_ANONYMOUS)
+		return true;
+
+	return false;
+}
+
+
+/* class_is_array **************************************************************
+
+   Checks if the given class is an array class.
+
+*******************************************************************************/
+
+static inline bool class_is_array(classinfo *c)
+{
+	if (!(c->state & CLASS_LINKED))
+		if (!link_class(c))
+			return false;
+
+	return (c->vftbl->arraydesc != NULL);
+}
+
+
+/* class_is_interface **********************************************************
+
+   Checks if the given class is an interface.
+
+*******************************************************************************/
+
+static inline bool class_is_interface(classinfo *c)
+{
+	if (c->flags & ACC_INTERFACE)
+		return true;
+
+	return false;
+}
+
+
+/* class_is_localclass *********************************************************
+
+   Checks if the given class is a local class.
+
+*******************************************************************************/
+
+static inline bool class_is_localclass(classinfo *c)
+{
+	if ((c->enclosingmethod != NULL) && !class_is_anonymousclass(c))
+		return true;
+
+	return false;
+}
+
+
+/* class_is_memberclass ********************************************************
+
+   Checks if the given class is a member class.
+
+*******************************************************************************/
+
+static inline bool class_is_memberclass(classinfo *c)
+{
+	if (c->flags & ACC_CLASS_MEMBER)
+		return true;
+
+	return false;
+}
+
+
+/* class_get_classloader *******************************************************
+
+   Return the classloader of the given class.
+
+*******************************************************************************/
+
+static inline classloader *class_get_classloader(classinfo *c)
+{
+	classloader *cl;
+
+	cl = c->classloader;
+
+	/* The classloader may be NULL. */
+
+	return cl;
+}
+
+
+/* class_get_superclass ********************************************************
+
+   Return the super class of the given class.
+
+*******************************************************************************/
+
+static inline classinfo *class_get_superclass(classinfo *c)
+{
+	/* For interfaces we return NULL. */
+
+	if (c->flags & ACC_INTERFACE)
+		return NULL;
+
+	/* For java/lang/Object, primitive-type and Void classes c->super
+	   is NULL and we return NULL. */
+
+	return c->super;
+}
+
+
 /* function prototypes ********************************************************/
 
 classinfo *class_create_classinfo(utf *u);
