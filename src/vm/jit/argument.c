@@ -333,11 +333,18 @@ static void argument_vmarray_store_dbl(uint64_t *array, paramdesc *pd, uint64_t 
    Helper function to store an address into the argument array, taking
    care of architecture specific issues.
 
+   ATTENTION: This function has to be used outside the nativeworld.
+
 *******************************************************************************/
 
-static void argument_vmarray_store_adr(uint64_t *array, paramdesc *pd, void *value)
+static void argument_vmarray_store_adr(uint64_t *array, paramdesc *pd, java_handle_t *h)
 {
-	int32_t index;
+	void    *value;
+	int32_t  index;
+
+	/* Take the reference value out of the handle. */
+
+	value = LLNI_UNWRAP(h);
 
 	if (!pd->inmemory) {
 #if defined(HAS_ADDRESS_REGISTER_FILE)
@@ -368,6 +375,8 @@ static void argument_vmarray_store_adr(uint64_t *array, paramdesc *pd, void *val
 /* argument_vmarray_from_valist ************************************************
 
    XXX
+
+   ATTENTION: This function has to be used outside the native world.
 
 *******************************************************************************/
 
@@ -447,6 +456,8 @@ uint64_t *argument_vmarray_from_valist(methodinfo *m, java_handle_t *o, va_list 
 
    XXX
 
+   ATTENTION: This function has to be used outside the native world.
+
 *******************************************************************************/
 
 uint64_t *argument_vmarray_from_jvalue(methodinfo *m, java_handle_t *o,
@@ -517,6 +528,8 @@ uint64_t *argument_vmarray_from_jvalue(methodinfo *m, java_handle_t *o,
 /* argument_vmarray_from_objectarray *******************************************
 
    XXX
+
+   ATTENTION: This function has to be used outside the native world.
 
 *******************************************************************************/
 

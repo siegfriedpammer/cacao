@@ -2266,7 +2266,27 @@ static type vm_call##name##_array(methodinfo *m, uint64_t *array) \
 	return value;                                                 \
 }
 
-VM_CALL_ARRAY(,        java_handle_t *)
+static java_handle_t *vm_call_array(methodinfo *m, uint64_t *array)
+{
+	methoddesc    *md;
+	void          *pv;
+	java_object_t *o;
+
+	assert(m->code != NULL);
+
+	md = m->parseddesc;
+	pv = m->code->entrypoint;
+
+	STATISTICS(count_calls_native_to_java++);
+
+	o = asm_vm_call_method(pv, array, md->memuse);
+
+	if (md->returntype.type == TYPE_VOID)
+		o = NULL;
+
+	return LLNI_WRAP(o);
+}
+
 VM_CALL_ARRAY(_int,    int32_t)
 VM_CALL_ARRAY(_long,   int64_t)
 VM_CALL_ARRAY(_float,  float)
@@ -2461,7 +2481,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 		break;
 
 	default:
-		vm_abort("_Jv_jni_invokeNative: invalid return type %d", m->parseddesc->returntype.decltype);
+		vm_abort("vm_call_method_objectarray: invalid return type %d", m->parseddesc->returntype.decltype);
 	}
 
 	xptr = exceptions_get_exception();
