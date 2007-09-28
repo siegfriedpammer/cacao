@@ -164,58 +164,6 @@ void mark_recursive(java_object_t *o)
 }
 
 
-/* mark_classes ****************************************************************
-
-   Marks all the references from classinfo structures (static fields)
-
-   IN:
-      start.....Region to be marked starts here
-      end.......Region to be marked ends here 
-
-*******************************************************************************/
-
-void mark_classes(void *start, void *end)
-{
-	java_object_t *ref;
-	classinfo     *c;
-	fieldinfo     *f;
-	void *sys_start, *sys_end;
-	int i;
-
-	GC_LOG( dolog("GC: Marking from classes ..."); );
-
-	/* TODO: cleanup!!! */
-	sys_start = heap_region_sys->base;
-	sys_end = heap_region_sys->ptr;
-
-	/* walk through all classinfo blocks */
-	for (c = sys_start; c < (classinfo *) sys_end; c++) {
-
-		/* walk through all fields */
-		f = c->fields;
-		for (i = 0; i < c->fieldscount; i++, f++) {
-
-			/* check if this is a static reference */
-			if (!IS_ADR_TYPE(f->type) || !(f->flags & ACC_STATIC))
-				continue;
-
-			/* load the reference */
-			ref = (java_object_t *) (f->value);
-
-			/* check for outside or null pointers */
-			if (!POINTS_INTO(ref, start, end))
-				continue;
-
-			/* mark the reference */
-			MARK(ref);
-
-		}
-
-	}
-
-}
-
-
 /* mark_me *********************************************************************
 
    Marks all Heap Objects which are reachable from a given root-set.
@@ -244,9 +192,6 @@ void mark_me(rootset_t *rs)
 	GCSTAT_INIT(gcstat_mark_count);
 	GCSTAT_INIT(gcstat_mark_depth);
 	GCSTAT_INIT(gcstat_mark_depth_max);
-
-	/* recursively mark all references from classes */
-	/*mark_classes(heap_region_main->base, heap_region_main->ptr);*/
 
 	while (rs) {
 		GC_LOG( dolog("GC: Marking from rootset (%d entries) ...", rs->refcount); );

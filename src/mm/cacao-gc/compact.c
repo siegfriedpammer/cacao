@@ -94,94 +94,6 @@ static void compact_thread_rootset(rootset_t *rs, void *start, void *end)
 }
 
 
-/* compact_thread_classes ******************************************************
-
-   Threads all the references from classinfo structures (static fields)
-
-   IN:
-      start.....Region to be compacted start here
-      end.......Region to be compacted ends here 
-
-*******************************************************************************/
-
-static void compact_thread_classes(void *start, void *end)
-{
-	java_object_t  *ref;
-	java_object_t **refptr;
-	classinfo      *c;
-	fieldinfo      *f;
-	/*hashtable_classloader_entry *cle;*/
-	void *sys_start, *sys_end;
-	int i;
-
-	GC_LOG2( printf("threading in classes\n"); );
-
-	/* TODO: cleanup!!! */
-	sys_start = heap_region_sys->base;
-	sys_end = heap_region_sys->ptr;
-
-#if 0
-	/* walk through all classloaders */
-	for (i = 0; i < hashtable_classloader->size; i++) {
-		cle = hashtable_classloader->ptr[i];
-
-		while (cle) {
-
-			/* thread the classloader */
-			refptr = &( cle->object );
-			ref = *( refptr );
-			GC_LOG2( printf("\tclassloader from hashtable at %p\n", (void *) ref); );
-			GC_THREAD(ref, refptr, start, end);
-
-			cle = cle->hashlink;
-		}
-	}
-#endif
-
-	/* walk through all classinfo blocks */
-	for (c = sys_start; c < (classinfo *) sys_end; c++) {
-
-		/* thread the classloader */
-		/*refptr = &( c->classloader );
-		ref = *( refptr );
-		GC_LOG2( printf("\tclassloader from classinfo at %p\n", (void *) ref); );
-		GC_THREAD(ref, refptr, start, end);*/
-
-		/* walk through all fields */
-		f = c->fields;
-		for (i = 0; i < c->fieldscount; i++, f++) {
-
-			/* check if this is a static reference */
-			if (!IS_ADR_TYPE(f->type) || !(f->flags & ACC_STATIC))
-				continue;
-
-			/* load the reference */
-			refptr = (java_object_t **) &(f->value);
-			ref = *( refptr );
-
-			GC_LOG2( printf("\tclass-field points to %p\n", (void *) ref); );
-			/*GC_LOG2(
-				printf("\tfield: "); field_print(f); printf("\n");
-				printf("\tclass-field points to ");
-				if (ref == NULL) {
-					printf("(NULL)\n");
-				} else if (GC_IS_THREADED(ref->vftbl)) {
-					printf("(threaded)\n");
-				} else {
-					heap_print_object(ref); printf("\n");
-				}
-			);*/
-
-			/* thread the reference */
-			GC_THREAD(ref, refptr, start, end);
-
-		}
-
-	}
-
-}
-
-
 /* compact_thread_references ***************************************************
 
    Threads all the references of an object.
@@ -373,9 +285,7 @@ void compact_me(rootset_t *rs, regioninfo_t *region)
 	GC_LOG( dolog("GC: Compaction Phase 0 started ..."); );
 
 	/* Phase 0:
-	 *  - thread all references in classes
 	 *  - thread all references in the rootset */
-	/*compact_thread_classes(region->base, region->ptr);*/
 	compact_thread_rootset(rs, region->base, region->ptr);
 
 	GC_LOG( dolog("GC: Compaction Phase 1 started ..."); );
