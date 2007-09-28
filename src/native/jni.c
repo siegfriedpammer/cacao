@@ -260,7 +260,7 @@ bool jni_init(void)
 }
 
 
-/* jni_version_check ************************************************************
+/* jni_version_check ***********************************************************
 
    Check if the given JNI version is supported.
 
@@ -271,7 +271,7 @@ bool jni_init(void)
        true.......supported
        false......not supported
 
-********************************************************************************/
+*******************************************************************************/
 
 bool jni_version_check(int version)
 {
@@ -3964,7 +3964,7 @@ jint _Jv_JNI_DetachCurrentThread(JavaVM *vm)
 
 jint _Jv_JNI_GetEnv(JavaVM *vm, void **env, jint version)
 {
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS("_Jv_JNI_GetEnv(vm=%p, env=%p, %d=version)", vm, env, version);
 
 #if defined(ENABLE_THREADS)
 	if (threads_get_current_threadobject() == NULL) {
@@ -3974,17 +3974,11 @@ jint _Jv_JNI_GetEnv(JavaVM *vm, void **env, jint version)
 	}
 #endif
 
-	/* check the JNI version */
+	/* Check the JNI version. */
 
-	switch (version) {
-	case JNI_VERSION_1_1:
-	case JNI_VERSION_1_2:
-	case JNI_VERSION_1_4:
+	if (jni_version_check(version) == true) {
 		*env = _Jv_env;
 		return JNI_OK;
-
-	default:
-		;
 	}
 
 #if defined(ENABLE_JVMTI)
