@@ -211,6 +211,7 @@ extern FILE    *opt_ProfileMemoryUsageGNUPlot;
 extern int      opt_TestReplacement;
 #endif
 extern int32_t  opt_ThreadStackSize;
+extern int      opt_TraceCompilerCalls;
 extern int32_t  opt_TraceExceptions;
 extern int32_t  opt_TraceJavaCalls;
 extern int32_t  opt_TraceJNICalls;

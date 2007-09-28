@@ -196,6 +196,7 @@ FILE    *opt_ProfileMemoryUsageGNUPlot = NULL;
 int      opt_TestReplacement           = 0;
 #endif
 int32_t  opt_ThreadStackSize           = 0;
+int      opt_TraceCompilerCalls        = 0;
 int32_t  opt_TraceExceptions           = 0;
 int32_t  opt_TraceJavaCalls            = 0;
 int32_t  opt_TraceJNICalls             = 0;
@@ -231,6 +232,7 @@ enum {
 	OPT_ProfileMemoryUsageGNUPlot,
 	OPT_TestReplacement,
 	OPT_ThreadStackSize,
+	OPT_TraceCompilerCalls,
 	OPT_TraceExceptions,
 	OPT_TraceJavaCalls,
 	OPT_TraceJNICalls,
@@ -266,6 +268,7 @@ option_t options_XX[] = {
 	{ "TestReplacement"          , OPT_TestReplacement,           OPT_TYPE_BOOLEAN, "activate all replacement points during code generation" },
 #endif
 	{ "ThreadStackSize",           OPT_ThreadStackSize,           OPT_TYPE_VALUE,   "TODO" },
+	{ "TraceCompilerCalls",        OPT_TraceCompilerCalls,        OPT_TYPE_BOOLEAN, "trace JIT compiler calls" },
 	{ "TraceExceptions",           OPT_TraceExceptions,           OPT_TYPE_BOOLEAN, "trace Exception throwing" },
 	{ "TraceJavaCalls",            OPT_TraceJavaCalls,            OPT_TYPE_BOOLEAN, "trace Java method calls" },
 	{ "TraceJNICalls",             OPT_TraceJNICalls,             OPT_TYPE_BOOLEAN, "trace JNI method calls" },
@@ -630,6 +633,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 		case OPT_ThreadStackSize:
 			/* currently ignored */
+			break;
+
+		case OPT_TraceCompilerCalls:
+			opt_TraceCompilerCalls = enable;
 			break;
 
 		case OPT_TraceExceptions:

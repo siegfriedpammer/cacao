@@ -94,17 +94,32 @@
 /* debug macros ***************************************************************/
 
 #if !defined(NDEBUG)
-#define DEBUG_JIT_COMPILEVERBOSE(x) \
-    do { \
-        if (compileverbose) { \
-            log_message_method(x, m); \
-        } \
+#define DEBUG_JIT_COMPILEVERBOSE(x)				\
+    do {										\
+        if (compileverbose) {					\
+            log_message_method(x, m);			\
+        }										\
     } while (0)
 #else
 #define DEBUG_JIT_COMPILEVERBOSE(x)    /* nothing */
 #endif
 
- 
+#if !defined(NDEBUG)
+# define TRACECOMPILERCALLS()								\
+	do {													\
+		if (opt_TraceCompilerCalls) {						\
+			log_start();									\
+			log_print("[JIT compiler started: method=");	\
+			method_print(m);								\
+			log_print("]");									\
+			log_finish();									\
+		}													\
+	} while (0)
+#else
+# define TRACECOMPILERCALLS()
+#endif
+
+
 /* the ICMD table ************************************************************/
 
 #if !defined(NDEBUG)
@@ -1025,6 +1040,8 @@ u1 *jit_compile(methodinfo *m)
 		return m->code->entrypoint;
 	}
 
+	TRACECOMPILERCALLS();
+
 	STATISTICS(count_methods++);
 
 #if defined(ENABLE_STATISTICS)
@@ -1277,10 +1294,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 	code = jd->code;
 	cd   = jd->cd;
 	
-	/* print log message for compiled method */
-
-	DEBUG_JIT_COMPILEVERBOSE("Compiling: ");
-
 #if defined(ENABLE_DEBUG_FILTER)
 	show_filters_apply(jd->m);
 #endif
@@ -1531,8 +1544,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 			dseg_display(jd);
 	}
 #endif
-
-	DEBUG_JIT_COMPILEVERBOSE("Compiling done: ");
 
 	/* switch to the newly generated code */
 
