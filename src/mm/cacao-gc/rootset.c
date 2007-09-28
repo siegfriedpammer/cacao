@@ -362,8 +362,6 @@ rootset_t *rootset_readout()
 void rootset_writeback(rootset_t *rs)
 {
 	threadobject     *thread;
-	sourcestate_t    *ss;
-	executionstate_t *es;
 
 	/* walk through all rootsets */
 	while (rs) {
@@ -379,10 +377,8 @@ void rootset_writeback(rootset_t *rs)
 			GC_LOG( dolog("GC: Writing back Root-Set to single-thread ..."); );
 #endif
 
-			/* now write back the modified sourcestate */
-			ss = GC_SOURCESTATE;
-			es = GC_EXECUTIONSTATE;
-			replace_build_execution_state_intern(ss, es);
+			/* now rebuild the stack of the thread */
+			replace_gc_into_native(thread);
 		}
 
 		rs = rs->next;

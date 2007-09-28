@@ -2986,6 +2986,21 @@ void replace_gc_from_native(threadobject *thread, u1 *pc, u1 *sp)
 }
 #endif
 
+#if defined(ENABLE_GC_CACAO)
+void replace_gc_into_native(threadobject *thread)
+{
+	executionstate_t *es;
+	sourcestate_t    *ss;
+
+	/* get the executionstate and sourcestate for the given thread */
+	es = GC_EXECUTIONSTATE;
+	ss = GC_SOURCESTATE;
+
+	/* rebuild the stack of the given thread */
+	replace_build_execution_state(ss, es);
+}
+#endif
+
 
 /******************************************************************************/
 /* NOTE: No important code below.                                             */
