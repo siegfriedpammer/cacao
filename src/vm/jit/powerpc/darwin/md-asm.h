@@ -22,12 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
 */
 
 
@@ -227,17 +221,12 @@
 
 #define asm_vm_call_method_exception_handler  _asm_vm_call_method_exception_handler
 
-#define jumptable_int                         _jumptable_int
-#define jumptable_long                        _jumptable_long
-
 #define asm_call_jit_compiler                 _asm_call_jit_compiler
 
 #define asm_handle_nat_exception              _asm_handle_nat_exception
 #define asm_handle_exception                  _asm_handle_exception
 
 #define asm_abstractmethoderror               _asm_abstractmethoderror
-
-#define asm_patcher_wrapper                   _asm_patcher_wrapper
 
 #define asm_cacheflush                        _asm_cacheflush
 
@@ -256,18 +245,6 @@
 
 #define exceptions_asm_new_abstractmethoderror \
     L_exceptions_asm_new_abstractmethoderror$stub
-
-#define patcher_wrapper                       L_patcher_wrapper$stub
-
-#define replace_me                            L_replace_me$stub
-#define replace_build_execution_state         L_replace_build_execution_state$stub
-#define replace_free_safestack                L_replace_free_safestack$stub
-
-#define stacktrace_create_extern_stackframeinfo \
-    L_stacktrace_create_extern_stackframeinfo$stub
-
-#define stacktrace_remove_stackframeinfo \
-    L_stacktrace_remove_stackframeinfo$stub
 
 #endif /* _MD_ASM_H */
 

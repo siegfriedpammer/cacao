@@ -666,26 +666,6 @@ L_exceptions_handle_exception$lazy_ptr:
 
 .section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
 	.align 2
-L_stacktrace_create_extern_stackframeinfo$stub:
-	.indirect_symbol _stacktrace_create_extern_stackframeinfo
-	mflr r0
-	bcl 20,31,L00$_stacktrace_create_extern_stackframeinfo
-L00$_stacktrace_create_extern_stackframeinfo:
-	mflr r11
-	addis r11,r11,ha16(L_stacktrace_create_extern_stackframeinfo$lazy_ptr - L00$_stacktrace_create_extern_stackframeinfo)
-	mtlr r0
-	lwzu r12,lo16(L_stacktrace_create_extern_stackframeinfo$lazy_ptr - L00$_stacktrace_create_extern_stackframeinfo)(r11)
-	mtctr r12
-	bctr
-.data
-.lazy_symbol_pointer
-L_stacktrace_create_extern_stackframeinfo$lazy_ptr:
-	.indirect_symbol _stacktrace_create_extern_stackframeinfo
-	.long dyld_stub_binding_helper
-
-
-.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
-	.align 2
 L_jit_asm_compile$stub:
 	.indirect_symbol _jit_asm_compile
 	mflr r0
@@ -701,26 +681,6 @@ L00$_jit_asm_compile:
 .lazy_symbol_pointer
 L_jit_asm_compile$lazy_ptr:
 	.indirect_symbol _jit_asm_compile
-	.long dyld_stub_binding_helper
-
-
-.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
-	.align 2
-L_stacktrace_remove_stackframeinfo$stub:
-	.indirect_symbol _stacktrace_remove_stackframeinfo
-	mflr r0
-	bcl 20,31,L00$_stacktrace_remove_stackframeinfo
-L00$_stacktrace_remove_stackframeinfo:
-	mflr r11
-	addis r11,r11,ha16(L_stacktrace_remove_stackframeinfo$lazy_ptr - L00$_stacktrace_remove_stackframeinfo)
-	mtlr r0
-	lwzu r12,lo16(L_stacktrace_remove_stackframeinfo$lazy_ptr - L00$_stacktrace_remove_stackframeinfo)(r11)
-	mtctr r12
-	bctr
-.data
-.lazy_symbol_pointer
-L_stacktrace_remove_stackframeinfo$lazy_ptr:
-	.indirect_symbol _stacktrace_remove_stackframeinfo
 	.long dyld_stub_binding_helper
 
 
@@ -762,70 +722,6 @@ L00$_exceptions_asm_new_abstractmethoderror:
 L_exceptions_asm_new_abstractmethoderror$lazy_ptr:
 	.indirect_symbol _exceptions_asm_new_abstractmethoderror
 	.long dyld_stub_binding_helper
-
-
-# if defined(ENABLE_REPLACEMENT)
-
-.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
-	.align 2
-L_replace_me$stub:
-	.indirect_symbol _replace_me
-	mflr r0
-	bcl 20,31,L00$_replace_me
-L00$_replace_me:
-	mflr r11
-	addis r11,r11,ha16(L_replace_me$lazy_ptr - L00$_replace_me)
-	mtlr r0
-	lwzu r12,lo16(L_replace_me$lazy_ptr - L00$_replace_me)(r11)
-	mtctr r12
-	bctr
-.data
-.lazy_symbol_pointer
-L_replace_me$lazy_ptr:
-	.indirect_symbol _replace_me
-	.long dyld_stub_binding_helper
-
-
-.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
-	.align 2
-L_replace_build_execution_state$stub:
-	.indirect_symbol _replace_build_execution_state
-	mflr r0
-	bcl 20,31,L00$_replace_build_execution_state
-L00$_replace_build_execution_state:
-	mflr r11
-	addis r11,r11,ha16(L_replace_build_execution_state$lazy_ptr - L00$_replace_build_execution_state)
-	mtlr r0
-	lwzu r12,lo16(L_replace_build_execution_state$lazy_ptr - L00$_replace_build_execution_state)(r11)
-	mtctr r12
-	bctr
-.data
-.lazy_symbol_pointer
-L_replace_build_execution_state$lazy_ptr:
-	.indirect_symbol _replace_build_execution_state
-	.long dyld_stub_binding_helper
-
-
-.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
-	.align 2
-L_replace_free_safestack$stub:
-	.indirect_symbol _replace_free_safestack
-	mflr r0
-	bcl 20,31,L00$_replace_free_safestack
-L00$_replace_free_safestack:
-	mflr r11
-	addis r11,r11,ha16(L_replace_free_safestack$lazy_ptr - L00$_replace_free_safestack)
-	mtlr r0
-	lwzu r12,lo16(L_replace_free_safestack$lazy_ptr - L00$_replace_free_safestack)(r11)
-	mtctr r12
-	bctr
-.data
-.lazy_symbol_pointer
-L_replace_free_safestack$lazy_ptr:
-	.indirect_symbol _replace_free_safestack
-	.long dyld_stub_binding_helper
-
-# endif /* ENABLE_REPLACEMENT */
 
 #endif /* defined(__DARWIN__) */
 
