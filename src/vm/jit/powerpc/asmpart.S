@@ -103,7 +103,6 @@ asm_vm_call_method_double:
 	stwu    sp,-40*4(sp)              /* keep stack 16-byte aligned           */
 
 	stw     s0,8*4(sp)                /* save used callee saved registers     */
-	stw     a0,9*4(sp)                /* save method PV                       */
 
 #if defined(__DARWIN__)
 	stw     itmp1,10*4(sp)            /* register r11 is callee saved         */
@@ -132,6 +131,9 @@ asm_vm_call_method_double:
 #else
 	SAVE_TEMPORARY_REGISTERS(18)        /* the offset has to be even          */
 #endif
+
+	mr      pv,a0                       /* move PV into PV register           */
+	mtctr   pv                          /* move PV into branch register       */
 
 	mr      t0,a1                       /* address of data structure          */
 	mr      t1,a2                       /* stack argument count               */
@@ -190,9 +192,6 @@ L_asm_vm_call_method_stack_copy_loop:
 	bgt     L_asm_vm_call_method_stack_copy_loop
 
 L_asm_vm_call_method_stack_copy_done:
-	addi    mptr,s0,9*4                 /* get address of PV                  */
-	lwz     pv,0*4(mptr)                /* load PV                            */
-	mtctr   pv
 	bctrl
 1:
 	mflr    itmp1
