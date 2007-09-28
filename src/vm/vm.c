@@ -2429,12 +2429,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 
 	array = argument_vmarray_from_objectarray(m, o, params);
 
-	/* The array can be NULL if we don't have any arguments to pass
-	   and the architecture does not have any argument registers
-	   (e.g. i386).  In that case we additionally check for an
-	   exception thrown. */
-
-	if ((array == NULL) && (exceptions_get_exception() != NULL)) {
+	if (array == NULL) {
 		/* release dump area */
 
 		dump_release(dumpsize);
@@ -2442,6 +2437,8 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 		/* enter the nativeworld again */
 
 		THREAD_NATIVEWORLD_ENTER;
+
+		exceptions_throw_illegalargumentexception();
 
 		return NULL;
 	}
@@ -2484,6 +2481,16 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 		vm_abort("vm_call_method_objectarray: invalid return type %d", m->parseddesc->returntype.decltype);
 	}
 
+	/* release dump area */
+
+	dump_release(dumpsize);
+
+	/* enter the nativeworld again */
+
+	THREAD_NATIVEWORLD_ENTER;
+
+	/* check for an exception */
+
 	xptr = exceptions_get_exception();
 
 	if (xptr != NULL) {
@@ -2493,14 +2500,6 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 
 		exceptions_throw_invocationtargetexception(xptr);
 	}
-
-	/* release dump area */
-
-	dump_release(dumpsize);
-
-	/* enter the nativeworld again */
-
-	THREAD_NATIVEWORLD_ENTER;
 
 	return ro;
 }

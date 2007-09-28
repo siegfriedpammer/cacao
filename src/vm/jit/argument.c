@@ -36,7 +36,6 @@
 
 #include "native/llni.h"
 
-#include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/primitive.h"
 #include "vm/resolve.h"
@@ -374,7 +373,8 @@ static void argument_vmarray_store_adr(uint64_t *array, paramdesc *pd, java_hand
 
 /* argument_vmarray_from_valist ************************************************
 
-   XXX
+   Creates an argument array which can be passed to asm_vm_call_method.
+   The array is created from the passed valist.
 
    ATTENTION: This function has to be used outside the native world.
 
@@ -454,7 +454,8 @@ uint64_t *argument_vmarray_from_valist(methodinfo *m, java_handle_t *o, va_list 
 
 /* argument_vmarray_from_jvalue ************************************************
 
-   XXX
+   Creates an argument array which can be passed to asm_vm_call_method.
+   The array is created from the passed jvalue array.
 
    ATTENTION: This function has to be used outside the native world.
 
@@ -527,9 +528,15 @@ uint64_t *argument_vmarray_from_jvalue(methodinfo *m, java_handle_t *o,
 
 /* argument_vmarray_from_objectarray *******************************************
 
-   XXX
+   Creates an argument array which can be passed to asm_vm_call_method.
+   The array is created from the passed objectarray of boxed values.
 
    ATTENTION: This function has to be used outside the native world.
+
+   RETURN VALUE:
+      NULL.........indicates an error while creating the array
+      (-1).........no error, but an empty array
+      otherwise....array containing the argument values
 
 *******************************************************************************/
 
@@ -557,6 +564,14 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 
 	array = DMNEW(uint64_t, INT_ARG_CNT + FLT_ARG_CNT + md->memuse);
 
+	/* The array can be NULL if we don't have any arguments to pass
+	   and the architecture does not have any argument registers
+	   (e.g. i386).  In that case we return (-1) to indicate
+	   that no exception should be thrown */
+
+	if (array == NULL)
+		array = (uint64_t *)(-1);
+
 	/* if method is non-static fill first block and skip `this' pointer */
 
 	i = 0;
@@ -575,10 +590,8 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 
 		switch (td->type) {
 		case TYPE_INT:
-			if (param == NULL) {
-				exceptions_throw_illegalargumentexception();
+			if (param == NULL)
 				return NULL;
-			}
 
 			/* convert the value according to its declared type */
 
@@ -592,7 +605,6 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 					/* This type is OK. */
 					break;
 				default:
-					exceptions_throw_illegalargumentexception();
 					return NULL;
 				}
 				break;
@@ -603,7 +615,6 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 					/* This type is OK. */
 					break;
 				default:
-					exceptions_throw_illegalargumentexception();
 					return NULL;
 				}
 				break;
@@ -614,7 +625,6 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 					/* This type is OK. */
 					break;
 				default:
-					exceptions_throw_illegalargumentexception();
 					return NULL;
 				}
 				break;
@@ -626,7 +636,6 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 					/* These types are OK. */
 					break;
 				default:
-					exceptions_throw_illegalargumentexception();
 					return NULL;
 				}
 				break;
@@ -639,7 +648,6 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 					/* These types are OK. */
 					break;
 				default:
-					exceptions_throw_illegalargumentexception();
 					return NULL;
 				}
 				break;
@@ -654,10 +662,8 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 			break;
 
 		case TYPE_LNG:
-			if (param == NULL) {
-				exceptions_throw_illegalargumentexception();
+			if (param == NULL)
 				return NULL;
-			}
 
 			LLNI_class_get(param, c);
 			type = primitive_type_get_by_wrapperclass(c);
@@ -672,7 +678,6 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 				/* These types are OK. */
 				break;
 			default:
-				exceptions_throw_illegalargumentexception();
 				return NULL;
 			}
 
@@ -681,10 +686,8 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 			break;
 
 		case TYPE_FLT:
-			if (param == NULL) {
-				exceptions_throw_illegalargumentexception();
+			if (param == NULL)
 				return NULL;
-			}
 
 			LLNI_class_get(param, c);
 			type = primitive_type_get_by_wrapperclass(c);
@@ -696,7 +699,6 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 				/* This type is OK. */
 				break;
 			default:
-				exceptions_throw_illegalargumentexception();
 				return NULL;
 			}
 
@@ -705,10 +707,8 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 			break;
 
 		case TYPE_DBL:
-			if (param == NULL) {
-				exceptions_throw_illegalargumentexception();
+			if (param == NULL)
 				return NULL;
-			}
 
 			LLNI_class_get(param, c);
 			type = primitive_type_get_by_wrapperclass(c);
@@ -721,7 +721,6 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 				/* These types are OK. */
 				break;
 			default:
-				exceptions_throw_illegalargumentexception();
 				return NULL;
 			}
 
@@ -735,16 +734,12 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 
 			if (param != NULL) {
 				if (td->arraydim > 0) {
-					if (!builtin_arrayinstanceof(param, c)) {
-						exceptions_throw_illegalargumentexception();
+					if (!builtin_arrayinstanceof(param, c))
 						return NULL;
-					}
 				}
 				else {
-					if (!builtin_instanceof(param, c)) {
-						exceptions_throw_illegalargumentexception();
+					if (!builtin_instanceof(param, c))
 						return NULL;
-					}
 				}
 			}
 
