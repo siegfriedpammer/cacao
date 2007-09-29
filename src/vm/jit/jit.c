@@ -1696,7 +1696,7 @@ u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra)
 
 	/* get the method patch address */
 
-	pa = md_get_method_patch_address(ra, &sfi, mptr);
+	pa = md_jit_method_patch_address(sfi.pv, (void *) ra, mptr);
 
 	/* patch the method entry point */
 

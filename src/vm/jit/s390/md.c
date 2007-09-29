@@ -436,7 +436,7 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 }
 
 
-/* md_get_method_patch_address *************************************************
+/* md_jit_method_patch_address *************************************************
 
    Gets the patch address of the currently compiled method. The offset
    is extracted from the load instruction(s) before the jump and added
@@ -467,20 +467,21 @@ last 2 instructions the same as in invokevirtual
 
 *******************************************************************************/
 
-u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
+void *md_jit_method_patch_address(void* pv, void *ra, void *mptr)
 {
-	u1  base, index;
-	s4  offset;
-	u1 *pa;                             /* patch address                      */
+	uint8_t *pc;
+	uint8_t  base, index;
+	int32_t  offset;
+	void    *pa;                        /* patch address                      */
 
 	/* go back to the load before the call instruction */
 
-	ra = ra - 2 /* sizeof bcr */ - 4 /* sizeof l */;
+	pc = ((uint8_t *) ra) - 2 /* sizeof bcr */ - 4 /* sizeof l */;
 
 	/* get the base register of the load */
 
-	base = ra[2] >> 4;
-	index = ra[1] & 0xF;
+	base  = pc[2] >> 4;
+	index = pc[1] & 0xF;
 
 	/* check for the different calls */
 
@@ -492,11 +493,11 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 			switch (index) {
 				case R0:
 					/* the offset is in the load instruction */
-					offset = ((*(u2 *)(ra + 2)) & 0xFFF) + N_PV_OFFSET;
+					offset = ((*(uint16_t *) (pc + 2)) & 0xFFF) + N_PV_OFFSET;
 					break;
 				case REG_ITMP1:
 					/* the offset is in the immediate load before the load */
-					offset = *((s2 *) (ra - 2));
+					offset = *((int16_t *) (pc - 2));
 					break;
 				default:
 					assert(0);
@@ -504,15 +505,14 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 			/* add the offset to the procedure vector */
 
-			pa = sfi->pv + offset;
-
+			pa = ((uint8_t *) pv) + offset;
 			break;
 
 		case REG_METHODPTR:
 			/* mptr relative */
 			/* INVOKEVIRTUAL/INTERFACE */
 
-			offset = *((u2 *)(ra + 2)) & 0xFFF;
+			offset = *((uint16_t *) (pc + 2)) & 0xFFF;
 
 			/* return NULL if no mptr was specified (used for replacement) */
 
@@ -523,9 +523,10 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 			
 			pa = mptr + offset;
 			break;
+
 		default:
 			/* catch any problems */
-			assert(0); 
+			vm_abort("md_jit_method_patch_address");
 			break;
 	}
 

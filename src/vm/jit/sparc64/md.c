@@ -28,7 +28,7 @@
 #include "config.h"
 
 #include <assert.h>
-
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -36,8 +36,11 @@
 
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
+
 #include "vm/jit/asmpart.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/codegen-common.h"
+#include "vm/jit/jit.h"
+
 
 /* assembler function prototypes **********************************************/
 void asm_store_fp_state_reg(u8 *mem);
@@ -131,6 +134,7 @@ u1 *md_get_pv_from_stackframe(u1 *sp)
 	return pv;
 }
 
+
 /* md_codegen_get_pv_from_pc ***************************************************
 
    This reconstructs and returns the PV of a method given a return address
@@ -186,7 +190,8 @@ u1 *md_codegen_get_pv_from_pc(u1 *ra)
 	return pv;
 }
 
-/* md_get_method_patch_address *************************************************
+
+/* md_jit_method_patch_address *************************************************
 
    Gets the patch address of the currently compiled method. The offset
    is extracted from the load instruction(s) before the jump and added
@@ -223,24 +228,30 @@ u1 *md_codegen_get_pv_from_pc(u1 *ra)
 
 *******************************************************************************/
 
-u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
+void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 {
-	u4  mcode, mcode_sethi, mcode_masked;
-	s4  offset;
-	u1 *pa, *iptr;
+	uint32_t *pc;
+	uint32_t  mcode, mcode_sethi, mcode_masked;
+	int32_t   disp;
+	uint8_t  *iptr;
+	void     *pa;
 
-	/* go back to the location of a possible sethi (3 instruction before jump) */
-	/* note: ra is the address of the jump instruction on SPARC                */
+	/* Go back to the location of a possible sethi (3 instruction
+	   before jump). */
 
-	mcode_sethi = *((u4 *) (ra - 3 * 4));
+	pc = ((uint32_t *) ra) - 3;
+
+	/* note: ra is the address of the jump instruction on SPARC */
+
+	mcode_sethi = pc[0];
 
 	/* check for sethi instruction */
 
 	if (IS_SETHI(mcode_sethi)) {
 		u4 mcode_sub, mcode_ldx;
 
-		mcode_sub = *((u4 *) (ra - 2 * 4));
-		mcode_ldx = *((u4 *) (ra - 1 * 4));
+		mcode_sub = pc[1];
+		mcode_ldx = pc[2];
 
 		/* make sure the sequence of instructions is a loadhi */
 		if ((IS_SUB(mcode_sub)) && (IS_LDX_IMM(mcode_ldx)))
@@ -249,22 +260,22 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 		/* get 22-bit immediate of sethi instruction */
 
-		offset = (s4) (mcode_sethi & 0x3fffff);
-		offset = offset << 10;
+		disp = (int32_t) (mcode_sethi & 0x3fffff);
+		disp = disp << 10;
 		
 		/* goto next instruction */
 		
 		/* make sure it's a sub instruction (pv - big_disp) */
 		assert(IS_SUB(mcode_sub));
-		offset = -offset;
+		disp = -disp;
 
 		/* get displacement of load instruction */
 
 		assert(IS_LDX_IMM(mcode_ldx));
 
-		offset += decode_13bit_imm(mcode_ldx);
+		disp += decode_13bit_imm(mcode_ldx);
 		
-		pa = sfi->pv + offset;
+		pa = ((uint8_t *) pv) + disp;
 
 		return pa;
 		}
@@ -272,8 +283,8 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 	/* we didn't find a sethi, or it didn't belong to a loadhi */
 	/* check for simple (one-instruction) load */
-	iptr = ra - 1 * 4;
-	mcode = *((u4 *) iptr);
+
+	mcode = pc[2];
 
 	/* shift and mask rd */
 
@@ -281,7 +292,7 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 	
 	/* get the offset from the instruction */
 
-	offset = decode_13bit_imm(mcode);
+	disp = decode_13bit_imm(mcode);
 
 	/* check for call with rs1 == REG_METHODPTR: ldx [g2+x],pv_caller */
 
@@ -293,7 +304,7 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 		if (mptr == NULL)
 			return NULL;
 
-		pa = mptr + offset;
+		pa = ((uint8_t *) mptr) + disp;
 
 	} else {
 		/* in the normal case we check for a `ldx [i5+x],pv_caller' instruction */
@@ -302,9 +313,8 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 		/* and get the final data segment address */
 
-		pa = sfi->pv + offset;
+		pa = ((uint8_t *) pv) + disp;
 	}
-	
 
 	return pa;
 }

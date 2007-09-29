@@ -28,6 +28,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -35,6 +36,7 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
+#include "vm/jit/jit.h"
 #include "vm/jit/md.h"
 
 
@@ -69,7 +71,7 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 }
 
 
-/* md_get_method_patch_address *************************************************
+/* md_jit_method_patch_address *************************************************
 
    Gets the patch address of the currently compiled method. The offset
    is extracted from the load instruction(s) before the jump and added
@@ -95,19 +97,20 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
 *******************************************************************************/
 
-u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
+void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 {
-	u1  mcode;
-	s4  offset;
-	u1 *pa;                             /* patch address                      */
+	uint8_t *pc;
+	uint8_t  mcode;
+	int32_t  offset;
+	void    *pa;                        /* patch address                      */
 
 	/* go back to the actual call instruction (2-bytes) */
 
-	ra = ra - 2;
+	pc = ((uint8_t *) ra) - 2;
 
 	/* get the last byte of the call */
 
-	mcode = ra[1];
+	mcode = pc[1];
 
 	/* check for the different calls */
 
@@ -116,7 +119,7 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 		/* patch address is 4-bytes before the call instruction */
 
-		pa = ra - 4;
+		pa = pc - 4;
 	}
 	else if (mcode == 0xd2) {
 		/* INVOKEVIRTUAL/INTERFACE */
@@ -129,18 +132,20 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 		/* Get the offset from the instruction (the offset address is
 		   4-bytes before the call instruction). */
 
-		offset = *((s4 *) (ra - 4));
+		offset = *((int32_t *) (pc - 4));
 
 		/* add the offset to the method pointer */
 
-		pa = mptr + offset;
+		pa = ((uint8_t *) mptr) + offset;
 	}
 	else {
 		/* catch any problems */
 
-		pa = NULL; /* avoid warnings */
-
 		vm_abort("couldn't find a proper call instruction sequence");
+
+		/* Keep compiler happy. */
+
+		pa = NULL;
 	}
 
 	return pa;

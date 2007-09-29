@@ -39,8 +39,6 @@
 #if defined(ENABLE_JIT)
 void md_init(void);
 
-u1  *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr);
-
 void md_cacheflush(u1 *addr, s4 nbytes);
 void md_icacheflush(u1 *addr, s4 nbytes);
 void md_dcacheflush(u1 *addr, s4 nbytes);

@@ -1808,15 +1808,15 @@ void replace_patch_future_calls(u1 *ra,
 								sourceframe_t *callerframe,
 								sourceframe_t *calleeframe)
 {
-	u1             *patchpos;
-	methodptr       entrypoint;
-	methodptr       oldentrypoint;
-	bool            atentry;
-	stackframeinfo  sfi;
-	codeinfo       *calleecode;
-	methodinfo     *calleem;
-	java_object_t  *obj;
-	vftbl_t        *vftbl;
+	u1            *patchpos;
+	methodptr      entrypoint;
+	methodptr      oldentrypoint;
+	bool           atentry;
+	void          *pv;
+	codeinfo      *calleecode;
+	methodinfo    *calleem;
+	java_object_t *obj;
+	vftbl_t       *vftbl;
 
 	assert(ra);
 	assert(callerframe->down == calleeframe);
@@ -1839,8 +1839,8 @@ void replace_patch_future_calls(u1 *ra,
 
 	/* get the position to patch, in case it was a statically bound call   */
 
-	sfi.pv = callerframe->fromcode->entrypoint;
-	patchpos = md_get_method_patch_address(ra, &sfi, NULL);
+	pv = callerframe->fromcode->entrypoint;
+	patchpos = md_jit_method_patch_address(pv, ra, NULL);
 
 	if (patchpos == NULL) {
 		/* the call was dispatched dynamically */

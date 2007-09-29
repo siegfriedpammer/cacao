@@ -23,9 +23,12 @@
    02110-1301, USA.
 
 */
+
+
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "md-os.h"
 
@@ -40,6 +43,8 @@
 #include "vmcore/method.h"
 #include "mm/memory.h"
 #include "vm/jit/asmpart.h"
+
+
 /*
  *	As a sanity measuremnt we assert the offset.h values in here as m68k gets
  *	crosscompiled for sure and noone thinks of offset.h wen changing compile flags
@@ -86,7 +91,7 @@ u1* md_codegen_get_pv_from_pc(u1 *ra)
 	return pv;
 }
 
-/* md_get_method_patch_address *************************************************
+/* md_jit_method_patch_address *************************************************
  
    Gets the patch address of the currently compiled method. Has to be 
    extracted from the load instructions which lead to the jump.
@@ -109,33 +114,36 @@ from invokevirtual
 
 *******************************************************************************/
 
-u1* md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr) 
+void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 {
-	u1 * pa;
-	s2   offset;
+	uint8_t *pc;
+	int16_t  disp;
+	void    *pa;
 
-	if (*((u2*)(ra - 2)) == 0x4e94)	{		/* jsr %a4@ */
-		if (*((u2*)(ra - 6)) == 0x286b)	{
+	pc = (uint8_t *) ra;
+
+	if (*((u2*)(pc - 2)) == 0x4e94)	{		/* jsr %a4@ */
+		if (*((u2*)(pc - 6)) == 0x286b)	{
 			/* found an invokevirtual */
 			/* get offset of load instruction 246b XXXX */
-			offset = *((s2*)(ra - 4));
+			disp = *((s2*)(pc - 4));
 
 			/* return NULL if no mptr was specified (used for replacement) */
 
 			if (mptr == NULL)
 				return NULL;
 
-			pa = mptr + offset;			/* mptr contains the magic we want */
+			pa = ((uint8_t *) mptr) + disp;/* mptr contains the magic we want */
 		} else	{
 			/* we had a moveal XXX, %a3 which is a 3 word opcode */
 			/* 2679 0000 0000 */
-			assert(*(u2*)(ra - 8) == 0x2879);		/* moveal */
-			pa = *((u4*)(ra - 6));				/* another indirection ! */
+			assert(*(u2*)(pc - 8) == 0x2879);		/* moveal */
+			pa = *((u4*)(pc - 6));				/* another indirection ! */
 		}
-	} else if (*((u2*)(ra - 2)) == 0x4e92)	{		/* jsr %a2@ */
-		if (*(u2*)(ra - 8) == 0x247c)	{
+	} else if (*((u2*)(pc - 2)) == 0x4e92)	{		/* jsr %a2@ */
+		if (*(u2*)(pc - 8) == 0x247c)	{
 			/* found a invokestatic/invokespecial */
-			pa = ((u4*)(ra - 6));			/* no indirection ! */
+			pa = ((u4*)(pc - 6));			/* no indirection ! */
 		} else {
 			assert(0);
 		}

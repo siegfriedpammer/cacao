@@ -28,6 +28,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -38,8 +39,6 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/md.h"
-
-#include "vm/jit/codegen-common.h" /* REMOVE ME: for codegendata */
 
 
 /* md_init *********************************************************************
@@ -75,7 +74,7 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 }
 
 
-/* md_assembler_get_patch_address **********************************************
+/* md_jit_method_patch_address *************************************************
 
    Gets the patch address of the currently compiled method. The offset
    is extracted from the load instruction(s) before the jump and added
@@ -103,21 +102,29 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
 *******************************************************************************/
 
-u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
+void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 {
-	u4  mcode;
-	s4  offset;
-	u1 *pa;                             /* patch address                      */
+	uint32_t *pc;
+	uint32_t  mcode;
+	int32_t   offset;
+	void     *pa;                       /* patch address                      */
+
+	/* Go back to the actual load instruction. */
+
+	pc = ((uint32_t *) ra) - 3;
+
+	/* Get first instruction word on current PC. */
+
+	mcode = pc[0];
 
 	/* sanity check: are we inside jit code? */
 
-	assert(*((u4 *) (ra - 2*4)) == 0xe1a0e00f /*MOV LR,PC*/);
-	assert(*((u4 *) (ra - 1*4)) == 0xe1a0f00c /*MOV PC,IP*/);
+	assert(pc[1] == 0xe1a0e00f /*MOV LR,PC*/);
+	assert(pc[2] == 0xe1a0f00c /*MOV PC,IP*/);
 
 	/* get the load instruction and offset */
 
-	mcode  = *((u4 *) (ra - 12));
-	offset = (s4) (mcode & 0x0fff);
+	offset = (int32_t) (mcode & 0x0fff);
 
 	assert ((mcode & 0xff70f000) == 0xe510c000);
 
@@ -133,7 +140,7 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 		/* we loaded from REG_METHODPTR */
 
-		pa = mptr + offset;
+		pa = ((uint8_t *) mptr) + offset;
 	}
 	else {
 		/* sanity check: we loaded from REG_IP; offset was negative or zero */
@@ -143,16 +150,16 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 		/* we loaded from data segment; offset can be larger */
 
-		mcode = *((u4 *) (ra - 4*4));
+		mcode = pc[-1];
 
 		/* check for "SUB IP, IP, #??, ROTL 12" */
 
 		if ((mcode & 0xffffff00) == 0xe24cca00)
-			offset += (s4) ((mcode & 0x00ff) << 12);
+			offset += (int32_t) ((mcode & 0x00ff) << 12);
 
 		/* and get the final data segment address */
 
-		pa = sfi->pv - offset;        
+		pa = ((uint8_t *) pv) - offset;        
 	}
 
 	return pa;

@@ -28,6 +28,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <ucontext.h>
 
 #if defined(__LINUX__)
@@ -39,13 +40,15 @@ extern void ieee_set_fp_control(unsigned long fp_control);
 
 #include "vm/types.h"
 
+#include "vm/jit/alpha/codegen.h"
 #include "vm/jit/alpha/md-abi.h"
 
 #include "vm/exceptions.h"
-#include "vm/stringlocal.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/codegen-common.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/md.h"
 
 
 /* global variables ***********************************************************/
@@ -101,7 +104,7 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 }
 
 
-/* md_get_method_patch_address *************************************************
+/* md_jit_method_patch_address *************************************************
 
    Gets the patch address of the currently compiled method. The offset
    is extracted from the load instruction(s) before the jump and added
@@ -127,68 +130,69 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
 *******************************************************************************/
 
-u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
+void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 {
-	u4  mcode;
-	s4  offset;
-	u1 *pa;                             /* patch address                      */
+	uint32_t *pc;
+	uint32_t  mcode;
+	int       opcode;
+	int       base;
+	int32_t   disp;
+	void     *pa;                       /* patch address                      */
 
-	/* go back to the actual load instruction (2 instructions on Alpha) */
+	/* Go back to the load instruction (2 instructions). */
 
-	ra = ra - 2 * 4;
+	pc = ((uint32_t *) ra) - 2;
 
-	/* get first instruction word on current PC */
+	/* Get first instruction word. */
 
-	mcode = *((u4 *) ra);
+	mcode = pc[0];
 
-	/* check if we have 2 instructions (lui) */
+	/* Get opcode, base register and displacement. */
 
-	if ((mcode >> 16) == 0x3c19) {
-		/* XXX write a regression for this */
-		assert(0);
+	opcode = M_MEM_GET_Opcode(mcode);
+	base   = M_MEM_GET_Rb(mcode);
+	disp   = M_MEM_GET_Memory_disp(mcode);
 
-		/* get displacement of first instruction (lui) */
+	/* Check for short or long load (2 instructions). */
 
-		offset = (s4) (mcode << 16);
+	switch (opcode) {
+	case 0x29: /* LDQ: TODO use define */
+		switch (base) {
+		case REG_PV:
+			/* Calculate the data segment address. */
 
-		/* get displacement of second instruction (daddiu) */
+			pa = ((uint8_t *) pv) + disp;
+			break;
 
-		mcode = *((u4 *) (ra + 1 * 4));
-
-		assert((mcode >> 16) == 0x6739);
-
-		offset += (s2) (mcode & 0x0000ffff);
-
-	} else {
-		/* get first instruction (ldq) */
-
-		mcode = *((u4 *) ra);
-
-		/* get the offset from the instruction */
-
-		offset = (s2) (mcode & 0x0000ffff);
-
-		/* check for call with REG_METHODPTR: ldq pv,0(at) */
-
-		if ((mcode >> 16) == 0xa77c) {
-			/* in this case we use the passed method pointer */
-
-			/* return NULL if no mptr was specified (used for replacement) */
+		case REG_METHODPTR:
+			/* Return NULL if no mptr was specified (used for
+			   replacement). */
 
 			if (mptr == NULL)
 				return NULL;
 
-			pa = mptr + offset;
+			/* Calculate the address in the vftbl. */
 
-		} else {
-			/* in the normal case we check for a `ldq pv,-72(pv)' instruction */
+			pa = ((uint8_t *) mptr) + disp;
+			break;
 
-			assert((mcode >> 16) == 0xa77b);
-
-			/* and get the final data segment address */
-
-			pa = sfi->pv + offset;
+		default:
+			vm_abort_disassemble(pc, 2, "md_jit_method_patch_address: unknown instruction %x", mcode);
+			return NULL;
 		}
+		break;
+
+	case 0x09: /* LDAH: TODO use define */
+		/* XXX write a regression for this */
+
+		vm_abort("md_jit_method_patch_address: IMPLEMENT ME!");
+
+		pa = NULL;
+		break;
+
+	default:
+		vm_abort_disassemble(pc, 2, "md_jit_method_patch_address: unknown instruction %x", mcode);
+		return NULL;
 	}
 
 	return pa;

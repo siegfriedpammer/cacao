@@ -1318,6 +1318,8 @@ void jit_renumber_basicblocks(jitdata *jd);
 void jit_check_basicblock_numbers(jitdata *jd);
 #endif
 
+void *md_jit_method_patch_address(void *pv, void *ra, void *mptr);
+
 #endif /* _JIT_H */
 
 

@@ -28,6 +28,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -39,7 +40,9 @@
 #include "vm/global.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/codegen-common.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/md.h"
 
 
 /* md_init *********************************************************************
@@ -113,8 +116,7 @@ void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
 }
 
 
-
-/* md_get_method_patch_address *************************************************
+/* md_jit_method_patch_address *************************************************
 
    Gets the patch address of the currently compiled method. The offset
    is extracted from the load instruction(s) before the jump and added
@@ -144,19 +146,20 @@ FIXME   81ac0000    lwz     r13,0(r12)
 
 *******************************************************************************/
 
-u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
+void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 {
-	u4  mcode;
-	s4  offset;
-	u1 *pa;
+	uint32_t *pc;
+	uint32_t  mcode;
+	int32_t   offset;
+	void     *pa;
 
-	/* go back to the actual load instruction (3 instructions) */
+	/* Go back to the actual load instruction (3 instructions). */
 
-	ra = ra - 3 * 4;
+	pc = ((uint32_t *) ra) - 3;
 
 	/* get first instruction word (lwz) */
 
-	mcode = *((u4 *) ra);
+	mcode = pc[0];
 
 	/* check if we have 2 instructions (addis, addi) */
 
@@ -167,27 +170,27 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 
 		/* get displacement of first instruction (addis) */
 
-		offset = (s4) (mcode << 16);
+		offset = (int32_t) (mcode << 16);
 
 		/* get displacement of second instruction (addi) */
 
-		mcode = *((u4 *) (ra + 1 * 4));
+		mcode = pc[1];
 
 		assert((mcode >> 16) != 0x6739);
 
-		offset += (s2) (mcode & 0x0000ffff);
+		offset += (int16_t) (mcode & 0x0000ffff);
 	}
 	else {
 		/* get the offset from the instruction */
 
-		offset = (s2) (mcode & 0x0000ffff);
+		offset = (int16_t) (mcode & 0x0000ffff);
 
 		/* check for load from PV */
 
 		if ((mcode >> 16) == 0xe9ce) {	
 			/* get the final data segment address */
 
-			pa = sfi->pv + offset;
+			pa = ((uint8_t *) pv) + offset;
 		}
 		else if ((mcode >> 16) == 0xe9cc) { 
 			/* in this case we use the passed method pointer */
@@ -197,12 +200,12 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 			if (mptr == NULL)
 				return NULL;
 
-			pa = mptr + offset;
+			pa = ((uint8_t *) mptr) + offset;
 		}
 		else {
 			/* catch any problems */
 
-			vm_abort("md_get_method_patch_address: unknown instruction %x",
+			vm_abort("md_jit_method_patch_address: unknown instruction %x",
 					 mcode);
 
 			/* keep compiler happy */

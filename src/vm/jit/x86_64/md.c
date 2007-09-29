@@ -28,17 +28,16 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "vm/jit/x86_64/md-abi.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
+#include "vm/vm.h"
 
-#include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/jit.h"
+#include "vm/jit/md.h"
 
 
 /* md_init *********************************************************************
@@ -72,7 +71,7 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 }
 
 
-/* md_get_method_patch_address *************************************************
+/* md_jit_method_patch_address *************************************************
 
    Gets the patch address of the currently compiled method. The offset
    is extracted from the load instruction(s) before the jump and added
@@ -98,19 +97,20 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
 *******************************************************************************/
 
-u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
+void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 {
-	u1  mcode;
-	s4  offset;
-	u1 *pa;                             /* patch address                      */
+	uint8_t *pc;
+	uint8_t  mcode;
+	int32_t  offset;
+	void    *pa;                        /* patch address                      */
 
 	/* go back to the actual call instruction (3-bytes) */
 
-	ra = ra - 3;
+	pc = ((uint8_t *) ra) - 3;
 
 	/* get the last byte of the call */
 
-	mcode = ra[2];
+	mcode = pc[2];
 
 	/* check for the different calls */
 
@@ -120,11 +120,11 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 		/* Get the offset from the instruction (the offset address is
 		   4-bytes before the call instruction). */
 
-		offset = *((s4 *) (ra - 4));
+		offset = *((int32_t *) (pc - 4));
 
 		/* add the offset to the return address (IP-relative addressing) */
 
-		pa = ra + offset;
+		pa = pc + offset;
 	}
 	else if (mcode == 0xd3) {
 		/* INVOKEVIRTUAL/INTERFACE */
@@ -137,16 +137,16 @@ u1 *md_get_method_patch_address(u1 *ra, stackframeinfo *sfi, u1 *mptr)
 		/* Get the offset from the instruction (the offset address is
 		   4-bytes before the call instruction). */
 
-		offset = *((s4 *) (ra - 4));
+		offset = *((int32_t *) (pc - 4));
 
 		/* add the offset to the method pointer */
 
-		pa = mptr + offset;
+		pa = ((uint8_t *) mptr) + offset;
 	}
 	else {
 		/* catch any problems */
 
-		vm_abort("md_get_method_patch_address: unknown instruction %x", mcode);
+		vm_abort("md_jit_method_patch_address: unknown instruction %x", mcode);
 
 		/* keep compiler happy */
 
