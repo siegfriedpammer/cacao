@@ -150,15 +150,15 @@ bool patcher_get_putfield(patchref_t *pr)
 	/* patch correct offset */
 
 	if (fi->type == TYPE_LNG) {
-		assert(N_VALID_DISP(fi->offset + 4));
+		ASSERT_VALID_DISP(fi->offset + 4);
 		/* 2 RX operations, for 2 words; each already contains a 0 or 4 offset. */
-		*((u4 *) ra ) |= (fi->offset + (*((u4 *) ra) & 0xF));
-		ra += 4;
-		*((u4 *) ra ) |= (fi->offset + (*((u4 *) ra) & 0xF));
+		N_RX_SET_DISP(ra, fi->offset + N_RX_GET_DISP(ra));
+		ra += SZ_RX;
+		N_RX_SET_DISP(ra, fi->offset + N_RX_GET_DISP(ra));
 	} else {
-		assert(N_VALID_DISP(fi->offset));
+		ASSERT_VALID_DISP(fi->offset);
 		/* 1 RX operation */
-		*((u4 *) ra) |= fi->offset;
+		N_RX_SET_DISP(ra, fi->offset);
 	}
 
 	return true;
@@ -237,9 +237,9 @@ bool patcher_invokevirtual(patchref_t *pr)
 	off = (s4) (OFFSET(vftbl_t, table[0]) +
 								   sizeof(methodptr) * m->vftblindex);
 
-	assert(N_VALID_DISP(off));
+	ASSERT_VALID_DISP(off);
 
-	*((s4 *)(ra + 4)) |= off;
+	N_RX_SET_DISP(ra + SZ_RX, off);
 
 	return true;
 }
@@ -290,12 +290,13 @@ bool patcher_invokeinterface(patchref_t *pr)
 
 	off =
 		(s4) (sizeof(methodptr) * (m - m->class->methods));
+
 	ASSERT_VALID_DISP(off);
 
 	/* patch them */
 
-	*((s4 *)(ra + 4)) |= (u2)idx;
-	*((s4 *)(ra + 4 + 4 + 4)) |= off;
+	N_RI_SET_IMM(ra + SZ_L, idx);
+	N_RX_SET_DISP(ra + SZ_L + SZ_LHI + SZ_L, off);
 
 	return true;
 }
@@ -443,27 +444,27 @@ bool patcher_checkcast_instanceof_interface(patchref_t *pr)
 
 	/* From here, split your editor and open codegen.c */
 
-	switch (*(ra + 1) >> 4) {
+	switch (N_RX_GET_REG(ra)) {
 		case REG_ITMP1: 
 			/* First M_ALD is into ITMP1 */
 			/* INSTANCEOF code */
 
-			*(u4 *)(ra + SZ_L + SZ_L) |= (u2)(s2)(- c->index);
-			*(u4 *)(ra + SZ_L + SZ_L + SZ_AHI + SZ_BRC) |=
-				(u2)(s2)(OFFSET(vftbl_t, interfacetable[0]) -
-					c->index * sizeof(methodptr*));
-
+			N_RI_SET_IMM(ra + SZ_L + SZ_L, - c->index);
+			N_RI_SET_IMM(
+				ra + SZ_L + SZ_L + SZ_AHI + SZ_BRC,
+				(int16_t)(OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*))
+			);
 			break;
 
 		case REG_ITMP2:
 			/* First M_ALD is into ITMP2 */
 			/* CHECKCAST code */
 
-			*(u4 *)(ra + SZ_L + SZ_L) |= (u2)(s2)(- c->index);
-			*(u4 *)(ra + SZ_L + SZ_L + SZ_AHI + SZ_BRC + SZ_ILL) |=
-				(u2)(s2)(OFFSET(vftbl_t, interfacetable[0]) -
-					c->index * sizeof(methodptr*));
-
+			N_RI_SET_IMM(ra + SZ_L + SZ_L, c->index);
+			N_RI_SET_IMM(
+				ra + SZ_L + SZ_L + SZ_AHI + SZ_BRC + SZ_ILL,
+				(int16_t)(OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*))
+			);
 			break;
 
 		default:

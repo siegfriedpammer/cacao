@@ -207,6 +207,18 @@
 
 #define SZ_RR 2
 
+static inline uint8_t N_RR_GET_OPC(uint8_t *instrp) {
+	return instrp[0];
+}
+
+static inline uint8_t N_RR_GET_REG1(uint8_t *instrp) {
+	return (instrp[1] >> 4) & 0xF;
+}
+
+static inline uint8_t N_RR_GET_REG2(uint8_t *instrp) {
+	return (instrp[1] & 0xF);
+}
+
 #define N_RR2(op, i) \
 	_CODE2( (_OP(op) << 8) | _I8(i) )
 
@@ -215,8 +227,40 @@
 
 #define SZ_RX 4
 
+static inline uint8_t N_RX_GET_OPC(uint8_t *instrp) {
+	return instrp[0];
+}
+
+static inline uint8_t N_RX_GET_REG(uint8_t *instrp) {
+	return (instrp[1] >> 4) & 0xF;	
+}
+
+static inline uint8_t N_RX_GET_INDEX(uint8_t *instrp) {
+	return (instrp[1] & 0xF);	
+}
+
+static inline uint8_t N_RX_GET_BASE(uint8_t *instrp) {
+	return (instrp[2] >> 4) & 0xF;
+}
+
+static inline uint16_t N_RX_GET_DISP(uint8_t *instrp) {
+	return *(uint16_t *)(instrp + 2) & 0xFFF;
+}
+
+static inline void N_RX_SET_DISP(uint8_t *instrp, uint16_t disp) {
+	*(uint16_t *)(instrp + 2) |= (disp & 0xFFF);
+}
+
 #define N_RI(op1, op2, r1, i2) \
 	_CODE4( (_OP(op1) << 24) | (_R(r1) << 20) | (_OP4(op2) << 16) | (u2)_SI16(i2) )
+
+static inline int16_t N_RI_GET_IMM(uint8_t *instrp) {
+	return *(int16_t *)(instrp + 2);
+}
+
+static inline void N_RI_SET_IMM(uint8_t *instrp, int16_t imm) {
+	*(int16_t *)(instrp + 2) = imm;
+}
 
 #define N_RI2(op1, op2, r1, i2) \
 	_CODE4( (_OP(op1) << 24) | (_R(r1) << 20) | (_OP4(op2) << 16) | (u2)_UI16(i2) )
@@ -336,7 +380,16 @@
  * 0                 15
  */
 #define N_ILL(data) _CODE2(0x0200 | _UBITS(data, 8))
-#define SZ_ILL 2
+#	define OPC_ILL 0x02
+#	define SZ_ILL 2
+
+static inline uint8_t N_ILL_GET_REG(uint8_t *instrp) {
+	return (instrp[1] >> 4) & 0xF;
+}
+
+static inline uint8_t N_ILL_GET_TYPE(uint8_t *instrp) {
+	return (instrp[1] & 0xF);
+}
 
 #define N_LONG(l) _CODE4(l)
 #define SZ_LONG 4
@@ -395,6 +448,7 @@
 #define N_CHI(r1, i2) N_RI(0xA7, 0xE, r1, i2)
 #define N_CLR(r1, r2) N_RR(0x15, r1, r2)
 #define N_CL(r1, d2, x2, b2) N_RX(0x55, r1, d2, x2, b2)
+#	define OPC_CL 0x55
 #define N_CLI(d1, b1, i2) N_SI(0x95, d1, b1, i2)
 #define N_CLC(d1, l, b1, d2, b2) N_SS(0xD5, d1, (l - 1), b1, d2, b2)
 #define N_CLM(r1, m3, d2, b2) N_RS(0xBD, r1, m3, d2, b2)
@@ -408,6 +462,7 @@
 #define N_CUTFU(r1, r2) N_RRE(0xB2A7, r1, r2)
 #define N_CPYA(r1, r2) N_RRE(0xB240, r1, r2)
 #define N_DR(r1, r2) N_RR(0x1D, r1, r2)
+#	define OPC_DR 0x1D
 #define N_D(r1, d2, x2, b2) N_RX(0x5D, r1, d2, x2, b2)
 #define N_XR(r1, r2) N_RR(0x17, r1, r2)
 #define N_X(r1, d2, x2, b2) N_RX(0x57, r1, d2, x2, b2)
@@ -421,6 +476,7 @@
 #define N_LR(r1, r2) N_RR(0x18, r1, r2)
 #define N_L(r1, d2, x2, b2) N_RX(0x58, r1, d2, x2, b2)
 #	define SZ_L SZ_RX
+#	define OPC_L 0x58
 #define N_LAM(r1, r3, d2, b2) N_RS(0x9A, r1, r3, d2, b2)
 #define N_LA(r1, d2, x2, b2) N_RX(0x41, r1, d2, x2, b2)
 #define N_LAE(r1, d2, x2, b2) N_RX(0x51, r1, d2, x2, b2)
@@ -468,6 +524,7 @@
 #define N_SRA(r1, d2, b2) N_RS(0x8A, r1, 0x00, d2, b2)
 #define N_SRL(r1, d2, b2) N_RS(0x88, r1, 0x00, d2, b2)
 #define N_ST(r1, d2, x2, b2) N_RX(0x50, r1, d2, x2, b2)
+#	define OPC_ST 0x50
 #define N_STAM(r1, r3, d2, b2) N_RS(0x9B, r1, r3, d2, b2)
 #define N_STC(r1, d2, x2, b2) N_RX(0x42, r1, d2, x2, b2)
 #define N_STCM(r1, m3, d2, b2) N_RS(0xBE, r1, m3, d2, b2)

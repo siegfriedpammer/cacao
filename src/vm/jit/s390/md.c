@@ -159,11 +159,11 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Check opcodes and verify it is a null pointer exception */
 
-	switch (xpc[0]) {
-		case 0x58: /* L */
-		case 0x50: /* ST */
-		case 0x55: /* CL (array size check on NULL array) */
-			base = (xpc[2] >> 4) & 0xF;
+	switch (N_RX_GET_OPC(xpc)) {
+		case OPC_L:
+		case OPC_ST:
+		case OPC_CL: /* array size check on NULL array */
+			base = N_RX_GET_BASE(xpc);
 			if (base == 0) {
 				is_null = 1;
 			} else if (_mc->gregs[base] == 0) {
@@ -223,13 +223,13 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Our trap instruction has the format: { 0x02, one_byte_of_data }. */
 
-	if ((siginfo->si_code == ILL_ILLOPC) && (xpc[0] == 0x02)) {
+	if ((siginfo->si_code == ILL_ILLOPC) && (N_RR_GET_OPC(xpc) == OPC_ILL)) {
 
 		/* bits 7-4 contain a register holding a value */
-		reg = (xpc[1] >> 4) & 0xF;
+		reg = N_ILL_GET_REG(xpc);
 
 		/* bits 3-0 designate the exception type */
-		type = xpc[1] & 0xF;  
+		type = N_ILL_GET_TYPE(xpc);
 
 		pv = (u1 *)_mc->gregs[REG_PV] - N_PV_OFFSET;
 		sp = (u1 *)_mc->gregs[REG_SP];
@@ -284,10 +284,10 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Check opcodes */
 
-	if (xpc[0] == 0x1D) { /* DR */
+	if (N_RR_GET_OPC(xpc) == OPC_DR) { /* DR */
 
-		r1 = (xpc[1] >> 4) & 0xF;
-		r2 = xpc[1] & 0xF;
+		r1 = N_RR_GET_REG1(xpc);
+		r2 = N_RR_GET_REG2(xpc);
 
 		if (
 			(_mc->gregs[r1] == 0xFFFFFFFF) &&
@@ -476,12 +476,12 @@ void *md_jit_method_patch_address(void* pv, void *ra, void *mptr)
 
 	/* go back to the load before the call instruction */
 
-	pc = ((uint8_t *) ra) - 2 /* sizeof bcr */ - 4 /* sizeof l */;
+	pc = ((uint8_t *) ra) - SZ_BCR - SZ_L;
 
 	/* get the base register of the load */
 
-	base  = pc[2] >> 4;
-	index = pc[1] & 0xF;
+	base  = N_RX_GET_BASE(pc);
+	index = N_RX_GET_INDEX(pc);
 
 	/* check for the different calls */
 
@@ -489,15 +489,14 @@ void *md_jit_method_patch_address(void* pv, void *ra, void *mptr)
 		case REG_PV:
 			/* INVOKESTATIC/SPECIAL */
 
-		
 			switch (index) {
 				case R0:
 					/* the offset is in the load instruction */
-					offset = ((*(uint16_t *) (pc + 2)) & 0xFFF) + N_PV_OFFSET;
+					offset = N_RX_GET_DISP(pc) + N_PV_OFFSET;
 					break;
 				case REG_ITMP1:
 					/* the offset is in the immediate load before the load */
-					offset = *((int16_t *) (pc - 2));
+					offset = N_RI_GET_IMM(pc - SZ_L);
 					break;
 				default:
 					assert(0);
@@ -512,7 +511,7 @@ void *md_jit_method_patch_address(void* pv, void *ra, void *mptr)
 			/* mptr relative */
 			/* INVOKEVIRTUAL/INTERFACE */
 
-			offset = *((uint16_t *) (pc + 2)) & 0xFFF;
+			offset = N_RX_GET_DISP(pc);
 
 			/* return NULL if no mptr was specified (used for replacement) */
 

@@ -2534,9 +2534,8 @@ bool codegen_emit(jitdata *jd)
 					assert(0);
 				}
 
-
 				if (out_ref != NULL) {
-					*(u4 *)out_ref |= (u4)(cd->mcodeptr - out_ref) / 2;
+					N_BRC_BACK_PATCH(out_ref);
 				}
 
 			}

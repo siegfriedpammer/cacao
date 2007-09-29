@@ -678,9 +678,7 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt) {
 
 		/* Patch back the displacement */
 
-		if (ref != NULL) {
-			*(u4 *)ref |= (u4)((cd->mcodeptr - ref) / 2);
-		}
+		N_BRC_BACK_PATCH(ref);
 	}
 }
 
