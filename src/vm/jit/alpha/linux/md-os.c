@@ -82,9 +82,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	mcode = *((u4 *) xpc);
 
-	d    = M_MEM_GET_A(mcode);
-	s1   = M_MEM_GET_B(mcode);
-	disp = M_MEM_GET_DISP(mcode);
+	d    = M_MEM_GET_Ra(mcode);
+	s1   = M_MEM_GET_Rb(mcode);
+	disp = M_MEM_GET_Memory_disp(mcode);
 
 	val  = _mc->sc_regs[d];
 

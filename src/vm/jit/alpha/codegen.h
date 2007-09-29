@@ -113,6 +113,42 @@
 
 /* macros to create code ******************************************************/
 
+/* M_MEM - memory instruction format *******************************************
+
+    Opcode ........ opcode
+    Ra ............ source/target register for memory access
+    Rb ............ base register
+    Memory_disp ... memory displacement (16 bit signed) to be added to Rb
+
+*******************************************************************************/
+
+#define M_MEM(Opcode,Ra,Rb,Memory_disp) \
+    do { \
+        *((uint32_t *) cd->mcodeptr) = ((((Opcode)) << 26) | ((Ra) << 21) | ((Rb) << 16) | ((Memory_disp) & 0xffff)); \
+        cd->mcodeptr += 4; \
+    } while (0)
+
+#define M_MEM_GET_Opcode(x)             (          (((x) >> 26) & 0x3f  ))
+#define M_MEM_GET_Ra(x)                 (          (((x) >> 21) & 0x1f  ))
+#define M_MEM_GET_Rb(x)                 (          (((x) >> 16) & 0x1f  ))
+#define M_MEM_GET_Memory_disp(x)        ((int16_t) ( (x)        & 0xffff))
+
+
+/* M_BRA - branch instruction format *******************************************
+
+    Opcode ........ opcode
+    Ra ............ register to be tested
+    Branch_disp ... relative address to be jumped to (divided by 4)
+
+*******************************************************************************/
+
+#define M_BRA(Opcode,Ra,Branch_disp) \
+    do { \
+        *((uint32_t *) cd->mcodeptr) = ((((Opcode)) << 26) | ((Ra) << 21) | ((Branch_disp) & 0x1fffff)); \
+        cd->mcodeptr += 4; \
+    } while (0)
+
+
 #define REG   0
 #define CONST 1
 
@@ -146,37 +182,6 @@
         *((u4 *) cd->mcodeptr) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << 16) | ((fu) << 5) | (c)); \
         cd->mcodeptr += 4; \
     } while (0)
-
-
-/* branch instructions: M_BRA 
-      op ..... opcode
-      a ...... register to be tested
-      disp ... relative address to be jumped to (divided by 4)
-*/
-
-#define M_BRA(op,a,disp) \
-    do { \
-        *((u4 *) cd->mcodeptr) = ((((s4) (op)) << 26) | ((a) << 21) | ((disp) & 0x1fffff)); \
-        cd->mcodeptr += 4; \
-    } while (0)
-
-
-/* memory operations: M_MEM
-      op ..... opcode
-      a ...... source/target register for memory access
-      b ...... base register
-      disp ... displacement (16 bit signed) to be added to b
-*/ 
-
-#define M_MEM(op,a,b,disp) \
-    do { \
-        *((u4 *) cd->mcodeptr) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << 16) | ((disp) & 0xffff)); \
-        cd->mcodeptr += 4; \
-    } while (0)
-
-#define M_MEM_GET_A(x)                  (((x) >> 21) & 0x1f  )
-#define M_MEM_GET_B(x)                  (((x) >> 16) & 0x1f  )
-#define M_MEM_GET_DISP(x)               ( (x)        & 0xffff)
 
 
 /* macros for all used commands (see an Alpha-manual for description) *********/
