@@ -72,6 +72,7 @@ void vm_shutdown(s4 status);
 void vm_exit_handler(void);
 
 void vm_abort(const char *text, ...);
+void vm_abort_disassemble(void *pc, int count, const char *text, ...);
 
 /* Java method calling functions */
 

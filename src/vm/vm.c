@@ -76,6 +76,11 @@
 
 #include "vm/jit/argument.h"
 #include "vm/jit/asmpart.h"
+
+#if defined(ENABLE_DISASSEMBLER)
+# include "vm/jit/disass.h"
+#endif
+
 #include "vm/jit/jit.h"
 #include "vm/jit/md.h"
 
@@ -1991,6 +1996,53 @@ void vm_abort(const char *text, ...)
 	/* now abort the VM */
 
 	abort();
+}
+
+
+/* vm_abort_disassemble ********************************************************
+
+   Prints an error message, disassemble the given code range (if
+   enabled) and aborts the VM.
+
+   IN:
+       pc.......PC to disassemble
+	   count....number of instructions to disassemble
+
+*******************************************************************************/
+
+void vm_abort_disassemble(void *pc, int count, const char *text, ...)
+{
+	va_list ap;
+	int     i;
+
+	/* Print debug message. */
+
+	log_start();
+
+	va_start(ap, text);
+	log_vprint(text, ap);
+	va_end(ap);
+
+	log_finish();
+
+	/* Print the PC. */
+
+#if SIZEOF_VOID_P == 8
+	log_println("PC=0x%016lx", pc);
+#else
+	log_println("PC=0x%08x", pc);
+#endif
+
+#if defined(ENABLE_DISASSEMBLER)
+	log_println("machine instructions at PC:");
+
+	/* Disassemble the given number of instructions. */
+
+	for (i = 0; i < count; i++)
+		pc = disassinstr(pc);
+#endif
+
+	vm_abort("Aborting...");
 }
 
 
