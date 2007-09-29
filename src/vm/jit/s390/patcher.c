@@ -460,7 +460,7 @@ bool patcher_checkcast_instanceof_interface(patchref_t *pr)
 			/* First M_ALD is into ITMP2 */
 			/* CHECKCAST code */
 
-			N_RI_SET_IMM(ra + SZ_L + SZ_L, c->index);
+			N_RI_SET_IMM(ra + SZ_L + SZ_L, - c->index);
 			N_RI_SET_IMM(
 				ra + SZ_L + SZ_L + SZ_AHI + SZ_BRC + SZ_ILL,
 				(int16_t)(OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*))
