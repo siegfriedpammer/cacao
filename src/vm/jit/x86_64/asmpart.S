@@ -48,8 +48,6 @@
 	.globl asm_vm_call_method_exception_handler
 	.globl asm_vm_call_method_end
 
-	.globl asm_call_jit_compiler
-
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
 
@@ -180,62 +178,6 @@ asm_vm_call_method_exception_handler:
 
 asm_vm_call_method_end:
 	nop
-
-
-/****************** function asm_call_jit_compiler *****************************
-*                                                                              *
-*   invokes the compiler for untranslated JavaVM methods.                      *
-*                                                                              *
-*   Register R0 contains a pointer to the method info structure (prepared      *
-*   by createcompilerstub). Using the return address in R26 and the            *
-*   offset in the LDA instruction or using the value in methodptr R28 the      *
-*   patching address for storing the method address can be computed:           *
-*                                                                              *
-*   method address was either loaded using                                     *
-*                                                                              *
-*   i386_mov_imm_reg(a, REG_ITMP2)                ; invokestatic/special       *
-*   i386_call_reg(REG_ITMP2)                                                   *
-*                                                                              *
-*   or                                                                         *
-*                                                                              *
-*   i386_mov_membase_reg(REG_SP, 0, REG_ITMP2)    ; invokevirtual/interface    *
-*   i386_mov_membase_reg(REG_ITMP2, OFFSET(, vftbl), REG_ITMP3)                *
-*   i386_mov_membase_reg(REG_ITMP3, OFFSET(vftbl, table[0]) + \                *
-*       sizeof(methodptr) * m->vftblindex, REG_ITMP1)                          *
-*   i386_call_reg(REG_ITMP1)                                                   *
-*                                                                              *
-*   in the static case the method pointer can be computed using the            *
-*   return address and the lda function following the jmp instruction          *
-*                                                                              *
-*******************************************************************************/
-
-asm_call_jit_compiler:
-L_asm_call_jit_compiler:                /* required for PIC code              */
-	sub     $(ARG_CNT+1)*8,sp           /* +1: keep stack 16-byte aligned     */
-
-	SAVE_ARGUMENT_REGISTERS(0)
-
-	mov     itmp1,a0                    /* pass methodinfo pointer            */
-	mov     mptr,a1                     /* pass method pointer                */
-	mov     sp,a2                       /* pass java sp                       */
-	add     $(1+ARG_CNT+1)*8,a2
-	mov     (ARG_CNT+1)*8(sp),a3	    /* pass ra to java function           */
-	call    jit_asm_compile@PLT
-
-	RESTORE_ARGUMENT_REGISTERS(0)
-
-	add     $(ARG_CNT+1)*8,sp           /* remove stack frame                 */
-
-	test    v0,v0                       /* check for exception                */
-	je      L_asm_call_jit_compiler_exception
-
-	jmp     *v0                         /* ...and now call the new method     */
-
-L_asm_call_jit_compiler_exception:
-	call    exceptions_get_and_clear_exception@PLT
-	pop     xpc                         /* delete return address              */
-	sub     $3,xpc                      /* faulting address is ra - 3         */
-	jmp     L_asm_handle_exception
 
 
 /* asm_handle_exception ********************************************************

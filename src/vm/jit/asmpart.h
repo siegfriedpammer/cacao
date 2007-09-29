@@ -49,12 +49,14 @@
 /* machine dependent initialization */
 s4   asm_md_init(void);
 
+#if !defined(JIT_COMPILER_VIA_SIGNAL)
 /* 
    invokes the compiler for untranslated JavaVM methods.
    Register R0 contains a pointer to the method info structure
    (prepared by createcompilerstub).
 */
 void asm_call_jit_compiler(void);
+#endif
 
 #if defined(ENABLE_JIT)
 java_object_t *asm_vm_call_method(void *pv, uint64_t *array, int32_t stackargs);

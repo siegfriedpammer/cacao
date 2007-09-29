@@ -288,6 +288,10 @@ void *signal_handle(int type, intptr_t val,
 		p = patcher_handler(xpc);
 		break;
 
+	case EXCEPTION_HARDWARE_COMPILER:
+		p = jit_compile_handle(xpc, pv, ra, (void *) val);
+		break;
+
 	default:
 		/* Let's try to get a backtrace. */
 
@@ -322,7 +326,10 @@ void *signal_handle(int type, intptr_t val,
 	/* unwrap and return the exception object */
 	/* AFTER: removing stackframeinfo */
 
-	return LLNI_UNWRAP(p);
+	if (type == EXCEPTION_HARDWARE_COMPILER)
+		return p;
+	else
+		return LLNI_UNWRAP(p);
 }
 
 

@@ -313,7 +313,9 @@ u1       *codegen_generate_stub_compiler(methodinfo *m);
 void      codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte);
 codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f);
 
+#if !defined(JIT_COMPILER_VIA_SIGNAL)
 void      codegen_emit_stub_compiler(jitdata *jd);
+#endif
 void      codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int skipparams);
 
 #if defined(ENABLE_INTRP)

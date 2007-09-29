@@ -1160,6 +1160,7 @@ u1 *codegen_generate_stub_compiler(methodinfo *m)
 
 	cd = jd->cd;
 
+#if !defined(JIT_COMPILER_VIA_SIGNAL)
 	/* allocate code memory */
 
 	c = CNEW(u1, 3 * SIZEOF_VOID_P + COMPILERSTUB_CODESIZE);
@@ -1192,6 +1193,39 @@ u1 *codegen_generate_stub_compiler(methodinfo *m)
 	/* flush caches */
 
 	md_cacheflush(cd->mcodebase, 3 * SIZEOF_VOID_P + COMPILERSTUB_CODESIZE);
+#else
+	/* Allocate code memory. */
+
+	c = CNEW(uint8_t, 2 * SIZEOF_VOID_P + COMPILERSTUB_CODESIZE);
+
+	/* Set pointers correctly. */
+
+	d = (ptrint *) c;
+
+	cd->mcodebase = c;
+
+	c = c + 2 * SIZEOF_VOID_P;
+	cd->mcodeptr = c;
+
+	/* NOTE: The codeinfo pointer is actually a pointer to the
+	   methodinfo (this fakes a codeinfo structure). */
+
+	d[0] = (ptrint) m;
+	d[1] = (ptrint) &d[0];                                    /* fake code->m */
+
+	/* Emit the trap instruction. */
+
+	emit_trap_compiler(cd);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat)
+		count_cstub_len += 2 * SIZEOF_VOID_P + COMPILERSTUB_CODESIZE;
+#endif
+
+	/* Flush caches. */
+
+	md_cacheflush(cd->mcodebase, 2 * SIZEOF_VOID_P + COMPILERSTUB_CODESIZE);
+#endif
 
 	/* release dump memory */
 

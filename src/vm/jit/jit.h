@@ -50,6 +50,7 @@ typedef struct exception_entry exception_entry;
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
+#include "vm/jit/stacktrace.h"
 
 #if defined(ENABLE_INLINING)
 # include "vm/jit/inline/inline.h"
@@ -1309,7 +1310,10 @@ codeinfo *jit_get_current_code(methodinfo *m);
 void jit_request_optimization(methodinfo *m);
 
 /* patch the method entrypoint */
+#if !defined(JIT_COMPILER_VIA_SIGNAL)
 u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra);
+#endif
+void *jit_compile_handle(void *pc, void *pv, void *ra, void *mptr);
 
 s4 jit_complement_condition(s4 opcode);
 

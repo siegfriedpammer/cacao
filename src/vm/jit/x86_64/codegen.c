@@ -2877,32 +2877,6 @@ gen_method:
 }
 
 
-/* codegen_emit_stub_compiler **************************************************
-
-   Emit a stub routine which calls the compiler.
-	
-*******************************************************************************/
-
-void codegen_emit_stub_compiler(jitdata *jd)
-{
-	methodinfo  *m;
-	codegendata *cd;
-
-	/* get required compiler data */
-
-	m  = jd->m;
-	cd = jd->cd;
-
-	/* code for the stub */
-
-	M_LLD(REG_ITMP1, RIP, -(7 * 1 + 2 * SIZEOF_VOID_P));               /* methodinfo  */
-/* 	M_ALD(REG_ITMP1, RIP, -(2 * SIZEOF_VOID_P));               /\* methodinfo  *\/ */
-	M_LLD(REG_ITMP3, RIP, -(7 * 2 + 3 * SIZEOF_VOID_P));          /* compiler pointer */
-/* 	M_ALD(REG_ITMP3, RIP, -(3 * SIZEOF_VOID_P));          /\* compiler pointer *\/ */
-	M_JMP(REG_ITMP3);
-}
-
-
 /* codegen_emit_stub_native ****************************************************
 
    Emits a stub routine which calls a native method.

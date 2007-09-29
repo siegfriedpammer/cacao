@@ -1669,6 +1669,7 @@ codeinfo *jit_get_current_code(methodinfo *m)
 *******************************************************************************/
 
 #if defined(ENABLE_JIT)
+#if !defined(JIT_COMPILER_VIA_SIGNAL)
 u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra)
 {
 	stackframeinfo  sfi;
@@ -1709,6 +1710,56 @@ u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra)
 	md_icacheflush(pa, SIZEOF_VOID_P);
 
 	return entrypoint;
+}
+#endif
+
+/* jit_compile_handle **********************************************************
+
+   This method is called from the appropriate signal handler which
+   handles compiler-traps and does the following:
+
+     - compile the method
+     - patch the entrypoint of the method into the calculated address in
+       the JIT code
+     - flush the instruction cache
+
+*******************************************************************************/
+
+void *jit_compile_handle(void *pc, void *pv, void *ra, void *mptr)
+{
+	methodinfo *m;
+	void       *newpv;                              /* new compiled method PV */
+	void       *pa;                                          /* patch address */
+	uintptr_t  *p;                                     /* convenience pointer */
+
+	/* Get methodinfo pointer. */
+
+	m = *((methodinfo **) (((intptr_t) pc) - 2 * SIZEOF_VOID_P));
+
+	/* Compile the method. */
+
+	newpv = jit_compile(m);
+
+	/* There was a problem during compilation. */
+
+	if (newpv == NULL)
+		return NULL;
+
+	/* Get the method patch address. */
+
+	pa = md_jit_method_patch_address(pv, ra, mptr);
+
+	/* Patch the method entry point. */
+
+	p = (uintptr_t *) pa;
+
+	*p = (uintptr_t) newpv;
+
+	/* Flush the instruction cache. */
+
+	md_icacheflush(p, SIZEOF_VOID_P);
+
+	return newpv;
 }
 #endif /* defined(ENABLE_JIT) */
 

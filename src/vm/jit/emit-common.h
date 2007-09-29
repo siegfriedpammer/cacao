@@ -177,6 +177,7 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg);
 void emit_exception_check(codegendata *cd, instruction *iptr);
 
+void emit_trap_compiler(codegendata *cd);
 uint32_t emit_trap(codegendata *cd);
 
 void emit_patcher_stubs(jitdata *jd);
