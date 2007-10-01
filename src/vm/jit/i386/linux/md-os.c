@@ -104,14 +104,23 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		val = _mc->gregs[REG_EAX - d];
 
 		if (type == EXCEPTION_HARDWARE_COMPILER) {
+			/* The PV from the compiler stub is equal to the XPC. */
+
+			pv = xpc;
+
 			/* We use a framesize of zero here because the call pushed
 			   the return addres onto the stack. */
 
 			ra = md_stacktrace_get_returnaddress(sp, 0);
 
-			/* And remove the RA from the stack. */
+			/* Skip the RA on the stack. */
 
 			sp = sp + 1 * SIZEOF_VOID_P;
+
+			/* The XPC is the RA minus 2, because the RA points to the
+			   instruction after the call. */
+
+			xpc = ra - 2;
 		}
 	}
 	else {
@@ -131,12 +140,10 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		if (p == NULL) {
 			o = exceptions_get_and_clear_exception();
 
-			ra = ra - 2;                     /* XPC is before the actual call */
-
 			_mc->gregs[REG_ESP] = (uintptr_t) sp;    /* Remove RA from stack. */
 
 			_mc->gregs[REG_EAX] = (uintptr_t) o;
-			_mc->gregs[REG_ECX] = (uintptr_t) ra;            /* REG_ITMP2_XPC */
+			_mc->gregs[REG_ECX] = (uintptr_t) xpc;           /* REG_ITMP2_XPC */
 			_mc->gregs[REG_EIP] = (uintptr_t) asm_handle_exception;
 		}
 		else {
