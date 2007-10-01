@@ -264,10 +264,15 @@ void JVM_ArrayCopy(JNIEnv *env, jclass ignored, jobject src, jint src_pos, jobje
 
 jobject JVM_InitProperties(JNIEnv *env, jobject properties)
 {
-#if PRINTJVM
-	log_println("JVM_InitProperties: properties=%d", properties);
-#endif
-	properties_system_add_all((java_handle_t *) properties);
+	java_handle_t *h;
+
+	TRACEJVMCALLS("JVM_InitProperties(env=%p, properties=%p)", env, properties);
+
+	h = (java_handle_t *) properties;
+
+	properties_system_add_all(h);
+
+	return properties;
 }
 
 
