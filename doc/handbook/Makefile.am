@@ -52,14 +52,14 @@ dist_noinst_DATA = \
 	x86.tex \
 	x86_64.tex
 
+CLEANFILES = \
+	*.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.toc
+
 handbook:
 	latex cacao
 	bibtex cacao
 	latex cacao
 	latex cacao
-
-clean:
-	rm -f *.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.toc
 
 
 ## Local variables:

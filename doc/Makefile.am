@@ -36,14 +36,7 @@ dist_noinst_DATA = annotations.tex jsr.bib
 
 EXTRA_DIST = inlining_stacktrace.txt native_threads.txt stack.txt
 
-annotations:
-	latex annotations
-	bibtex annotations
-	latex annotations
-	latex annotations
-
-clean:
-	rm -f \
+CLEANFILES = \
 	annotations.aux \
 	annotations.bbl \
 	annotations.blg \
@@ -55,6 +48,12 @@ clean:
 	annotations.idx \
 	annotations.out \
 	annotations.tex~
+
+annotations:
+	latex annotations
+	bibtex annotations
+	latex annotations
+	latex annotations
 
 ## Local variables:
 ## mode: Makefile
