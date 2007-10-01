@@ -57,17 +57,10 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
+#include "vm/system.h"
 #include "vm/vm.h"
 
 #include "vmcore/utf8.h"
-
-
-/* this should work on BSD */
-/*
-#if defined(__DARWIN__)
-#include <sys/sysctl.h>
-#endif
-*/
 
 
 /* native methods implemented by this file ************************************/
@@ -229,42 +222,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceMethodCalls(JNIEnv *env, jc
  */
 JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, jclass clazz)
 {
-#if defined(_SC_NPROC_ONLN)
-	return (int32_t) sysconf(_SC_NPROC_ONLN);
-
-#elif defined(_SC_NPROCESSORS_ONLN)
-	return (int32_t) sysconf(_SC_NPROCESSORS_ONLN);
-
-#elif defined(__DARWIN__)
-	/* this should work in BSD */
-	/*
-	int ncpu, mib[2], rc;
-	size_t len;
-
-	mib[0] = CTL_HW;
-	mib[1] = HW_NCPU;
-	len = sizeof(ncpu);
-	rc = sysctl(mib, 2, &ncpu, &len, NULL, 0);
-
-	return (int32_t) ncpu;
-	*/
-
-	host_basic_info_data_t hinfo;
-	mach_msg_type_number_t hinfo_count = HOST_BASIC_INFO_COUNT;
-	kern_return_t rc;
-
-	rc = host_info(mach_host_self(), HOST_BASIC_INFO,
-				   (host_info_t) &hinfo, &hinfo_count);
- 
-	if (rc != KERN_SUCCESS) {
-		return -1;
-	}
-
-    return (int32_t) hinfo.avail_cpus;
-
-#else
-	return 1;
-#endif
+	return system_processors_online();
 }
 
 
