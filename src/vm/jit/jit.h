@@ -1313,7 +1313,7 @@ void jit_request_optimization(methodinfo *m);
 #if !defined(JIT_COMPILER_VIA_SIGNAL)
 u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra);
 #endif
-void *jit_compile_handle(void *pc, void *pv, void *ra, void *mptr);
+void *jit_compile_handle(methodinfo *m, void *pv, void *ra, void *mptr);
 
 s4 jit_complement_condition(s4 opcode);
 

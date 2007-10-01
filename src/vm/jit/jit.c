@@ -1737,16 +1737,12 @@ u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra)
 
 *******************************************************************************/
 
-void *jit_compile_handle(void *pc, void *pv, void *ra, void *mptr)
+void *jit_compile_handle(methodinfo *m, void *pv, void *ra, void *mptr)
 {
-	methodinfo *m;
 	void       *newpv;                              /* new compiled method PV */
+	void       *parentpv;                   /* PV from the parent Java method */
 	void       *pa;                                          /* patch address */
 	uintptr_t  *p;                                     /* convenience pointer */
-
-	/* Get methodinfo pointer. */
-
-	m = *((methodinfo **) (((intptr_t) pc) - 2 * SIZEOF_VOID_P));
 
 	/* Compile the method. */
 
@@ -1767,9 +1763,9 @@ void *jit_compile_handle(void *pc, void *pv, void *ra, void *mptr)
 
 	*p = (uintptr_t) newpv;
 
-	/* Flush the instruction cache. */
+	/* Flush both caches. */
 
-	md_icacheflush(pa, SIZEOF_VOID_P);
+	md_cacheflush(pa, SIZEOF_VOID_P);
 
 	return newpv;
 }

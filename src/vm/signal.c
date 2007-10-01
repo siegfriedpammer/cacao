@@ -233,6 +233,7 @@ void *signal_handle(int type, intptr_t val,
 	stackframeinfo  sfi;
 	int32_t         index;
 	java_handle_t  *o;
+	methodinfo     *m;
 	java_handle_t  *p;
 
 	/* wrap the value into a handle if it is a reference */
@@ -241,6 +242,16 @@ void *signal_handle(int type, intptr_t val,
 	switch (type) {
 	case EXCEPTION_HARDWARE_CLASSCAST:
 		o = LLNI_WRAP((java_object_t *) val);
+		break;
+
+	case EXCEPTION_HARDWARE_COMPILER:
+		/* In this case the passed PV points to the compiler stub.  We
+		   get the methodinfo pointer here and set PV to NULL so
+		   stacktrace_stackframeinfo_create determines the PV for the
+		   parent Java method. */
+
+		m  = code_get_methodinfo_for_pv(pv);
+		pv = NULL;
 		break;
 
 	default:
@@ -289,7 +300,7 @@ void *signal_handle(int type, intptr_t val,
 		break;
 
 	case EXCEPTION_HARDWARE_COMPILER:
-		p = jit_compile_handle(xpc, pv, ra, (void *) val);
+		p = jit_compile_handle(m, sfi.pv, ra, (void *) val);
 		break;
 
 	default:

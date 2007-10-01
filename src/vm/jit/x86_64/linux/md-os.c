@@ -59,6 +59,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t     *_uc;
 	mcontext_t     *_mc;
+	void           *pv;
 	u1             *sp;
 	u1             *ra;
 	u1             *xpc;
@@ -78,9 +79,10 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
 	   different to the ones in <ucontext.h>. */
 
+	pv  = NULL;                 /* is resolved during stackframeinfo creation */
 	sp  = (u1 *) _mc->gregs[REG_RSP];
 	xpc = (u1 *) _mc->gregs[REG_RIP];
-	ra  = xpc;                          /* return address is equal to xpc     */
+	ra  = xpc;                              /* return address is equal to XPC */
 
 #if 0
 	/* check for StackOverflowException */
@@ -152,14 +154,23 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		val = _mc->gregs[d];
 
 		if (type == EXCEPTION_HARDWARE_COMPILER) {
+			/* The PV from the compiler stub is equal to the XPC. */
+
+			pv = xpc;
+
 			/* We use a framesize of zero here because the call pushed
 			   the return addres onto the stack. */
 
 			ra = md_stacktrace_get_returnaddress(sp, 0);
 
-			/* And remove the RA from the stack. */
+			/* Skip the RA on the stack. */
 
 			sp = sp + 1 * SIZEOF_VOID_P;
+
+			/* The XPC is the RA minus 1, because the RA points to the
+			   instruction after the call. */
+
+			xpc = ra - 3;
 		}
 	}
 	else {
@@ -171,7 +182,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Handle the type. */
 
-	p = signal_handle(type, val, NULL, sp, ra, xpc, _p);
+	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* Set registers. */
 
@@ -179,12 +190,10 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		if (p == NULL) {
 			o = exceptions_get_and_clear_exception();
 
-			ra = ra - 3;                     /* XPC is before the actual call */
-
 			_mc->gregs[REG_RSP] = (uintptr_t) sp;    /* Remove RA from stack. */
 
 			_mc->gregs[REG_RAX] = (uintptr_t) o;
-			_mc->gregs[REG_R10] = (uintptr_t) ra;            /* REG_ITMP2_XPC */
+			_mc->gregs[REG_R10] = (uintptr_t) xpc;           /* REG_ITMP2_XPC */
 			_mc->gregs[REG_RIP] = (uintptr_t) asm_handle_exception;
 		}
 		else {
