@@ -163,7 +163,8 @@ struct classinfo {                /* class structure                          */
 
 #if defined(ENABLE_JAVASE)
 # if defined(WITH_CLASSPATH_SUN)
-	java_object_t *protectiondomain;
+	java_object_t      *protectiondomain;
+	java_objectarray_t *signers;
 # endif
 #endif
 };

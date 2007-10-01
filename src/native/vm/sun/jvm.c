@@ -877,7 +877,24 @@ jobjectArray JVM_GetClassSigners(JNIEnv *env, jclass cls)
 
 void JVM_SetClassSigners(JNIEnv *env, jclass cls, jobjectArray signers)
 {
-	log_println("JVM_SetClassSigners: IMPLEMENT ME!");
+	classinfo                 *c;
+	java_handle_objectarray_t *hoa;
+
+	TRACEJVMCALLS("JVM_SetClassSigners(env=%p, cls=%p, signers=%p)", env, cls, signers);
+
+	c = LLNI_classinfo_unwrap(cls);
+
+	hoa = (java_handle_objectarray_t *) signers;
+
+    /* This call is ignored for primitive types and arrays.  Signers
+	   are only set once, ClassLoader.java, and thus shouldn't be
+	   called with an array.  Only the bootstrap loader creates
+	   arrays. */
+
+	if (class_is_primitive(c) || class_is_array(c))
+		return;
+
+	LLNI_classinfo_field_set(c, signers, hoa);
 }
 
 
