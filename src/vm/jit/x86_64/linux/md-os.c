@@ -179,7 +179,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		if (p == NULL) {
 			o = exceptions_get_and_clear_exception();
 
-			log_println("compiler exception");
 			ra = ra - 3;                     /* XPC is before the actual call */
 
 			_mc->gregs[REG_RSP] = (uintptr_t) sp;    /* Remove RA from stack. */
