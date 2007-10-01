@@ -33,6 +33,7 @@
 #include "vm/types.h"
 
 #include "vm/global.h"
+#include "vm/vm.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
@@ -99,53 +100,52 @@ u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
 
 void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 {
-	uint8_t *pc;
-	uint8_t  mcode;
-	int32_t  offset;
-	void    *pa;                        /* patch address                      */
+	uint8_t  *pc;
+	uint16_t  opcode;
+	int32_t   disp;
+	void     *pa;                                            /* patch address */
 
 	/* go back to the actual call instruction (2-bytes) */
 
 	pc = ((uint8_t *) ra) - 2;
 
-	/* get the last byte of the call */
+	/* Get the opcode of the call. */
 
-	mcode = pc[1];
+	opcode = *((uint16_t *) pc);
 
 	/* check for the different calls */
 
-	if (mcode == 0xd1) {
+	switch (opcode) {
+	case 0xd1ff:
 		/* INVOKESTATIC/SPECIAL */
 
-		/* patch address is 4-bytes before the call instruction */
+		/* Patch address is 4-bytes before the call instruction. */
 
 		pa = pc - 4;
-	}
-	else if (mcode == 0xd2) {
+		break;
+
+	case 0xd2ff:
 		/* INVOKEVIRTUAL/INTERFACE */
 
-		/* return NULL if no mptr was specified (used for replacement) */
+		/* Return NULL if no mptr was specified (used for
+		   replacement). */
 
 		if (mptr == NULL)
 			return NULL;
 
-		/* Get the offset from the instruction (the offset address is
-		   4-bytes before the call instruction). */
+		/* Get the displacement from the instruction (the displacement
+		   address is 4-bytes before the call instruction). */
 
-		offset = *((int32_t *) (pc - 4));
+		disp = *((int32_t *) (pc - 4));
 
-		/* add the offset to the method pointer */
+		/* Add the displacement to the method pointer. */
 
-		pa = ((uint8_t *) mptr) + offset;
-	}
-	else {
-		/* catch any problems */
+		pa = ((uint8_t *) mptr) + disp;
+		break;
 
-		vm_abort("couldn't find a proper call instruction sequence");
-
-		/* Keep compiler happy. */
-
-		pa = NULL;
+	default:
+		vm_abort_disassemble(pc, 1, "md_jit_method_patch_address: unknown instruction %x", opcode);
+		return NULL;
 	}
 
 	return pa;
