@@ -435,9 +435,9 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 }
 
 
-/* emit_trap *******************************************************************
+/* emit_trap_compiler **********************************************************
 
-   Emit a JIT compiler trap instruction.
+   Emit a trap instruction which calls the JIT compiler.
 
 *******************************************************************************/
 
