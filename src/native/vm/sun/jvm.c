@@ -99,6 +99,7 @@
 #include "vm/resolve.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
+#include "vm/system.h"
 #include "vm/vm.h"
 
 #include "vm/jit/stacktrace.h"
@@ -366,7 +367,9 @@ jlong JVM_MaxMemory(void)
 
 jint JVM_ActiveProcessorCount(void)
 {
-	log_println("JVM_ActiveProcessorCount: IMPLEMENT ME!");
+	TRACEJVMCALLS("JVM_ActiveProcessorCount()");
+
+	return system_processors_online();
 }
 
 
