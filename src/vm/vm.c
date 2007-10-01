@@ -2013,7 +2013,9 @@ void vm_abort(const char *text, ...)
 void vm_abort_disassemble(void *pc, int count, const char *text, ...)
 {
 	va_list ap;
+#if defined(ENABLE_DISASSEMBLER)
 	int     i;
+#endif
 
 	/* Print debug message. */
 

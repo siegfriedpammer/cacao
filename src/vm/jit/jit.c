@@ -1769,7 +1769,7 @@ void *jit_compile_handle(void *pc, void *pv, void *ra, void *mptr)
 
 	/* Flush the instruction cache. */
 
-	md_icacheflush(p, SIZEOF_VOID_P);
+	md_icacheflush(pa, SIZEOF_VOID_P);
 
 	return newpv;
 }
