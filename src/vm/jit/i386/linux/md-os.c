@@ -68,6 +68,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	ptrint          val;
 	s4              type;
 	void           *p;
+	java_object_t  *o;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -101,6 +102,17 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		   here. */
 
 		val = _mc->gregs[REG_EAX - d];
+
+		if (type == EXCEPTION_HARDWARE_COMPILER) {
+			/* We use a framesize of zero here because the call pushed
+			   the return addres onto the stack. */
+
+			ra = md_stacktrace_get_returnaddress(sp, 0);
+
+			/* And remove the RA from the stack. */
+
+			sp = sp + 1 * SIZEOF_VOID_P;
+		}
 	}
 	else {
 		/* this was a normal NPE */
@@ -113,11 +125,29 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
 
-	/* set registers */
+	/* Set registers. */
 
-	_mc->gregs[REG_EAX] = (intptr_t) p;
-	_mc->gregs[REG_ECX] = (intptr_t) xpc;                    /* REG_ITMP2_XPC */
-	_mc->gregs[REG_EIP] = (intptr_t) asm_handle_exception;
+	if (type == EXCEPTION_HARDWARE_COMPILER) {
+		if (p == NULL) {
+			o = exceptions_get_and_clear_exception();
+
+			ra = ra - 2;                     /* XPC is before the actual call */
+
+			_mc->gregs[REG_ESP] = (uintptr_t) sp;    /* Remove RA from stack. */
+
+			_mc->gregs[REG_EAX] = (uintptr_t) o;
+			_mc->gregs[REG_ECX] = (uintptr_t) ra;            /* REG_ITMP2_XPC */
+			_mc->gregs[REG_EIP] = (uintptr_t) asm_handle_exception;
+		}
+		else {
+			_mc->gregs[REG_EIP] = (uintptr_t) p;
+		}
+	}
+	else {
+		_mc->gregs[REG_EAX] = (intptr_t) p;
+		_mc->gregs[REG_ECX] = (intptr_t) xpc;                /* REG_ITMP2_XPC */
+		_mc->gregs[REG_EIP] = (intptr_t) asm_handle_exception;
+	}
 }
 
 

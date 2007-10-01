@@ -51,7 +51,6 @@
 	.globl asm_vm_call_method_exception_handler
 	.globl asm_vm_call_method_end
 
-	.globl asm_call_jit_compiler
 	.globl asm_handle_nat_exception
 	.globl asm_handle_exception
 
@@ -191,61 +190,6 @@ asm_vm_call_method_exception_handler:
 	add     $4,sp
 asm_vm_call_method_end:
 	jmp     L_asm_vm_call_method_return
-
-
-/* asm_call_jit_compiler *******************************************************
-
-   Invokes the compiler for untranslated JavaVM methods.
-
-   Register R0 contains a pointer to the method info structure (prepared
-   by createcompilerstub). Using the return address in R26 and the
-   offset in the LDA instruction or using the value in methodptr R28 the
-   patching address for storing the method address can be computed:
-
-   Method address was either loaded using
-
-   i386_mov_imm_reg(a, REG_ITMP2)                ; invokestatic/special
-   i386_call_reg(REG_ITMP2)
-
-   or
-
-   i386_mov_membase_reg(REG_SP, 0, REG_ITMP1)    ; invokevirtual/interface
-   i386_mov_membase_reg(REG_ITMP1, OFFSET(, vftbl), REG_ITMP2)
-   i386_mov_membase_reg(REG_ITMP2, OFFSET(vftbl, table[0]) + \
-       sizeof(methodptr) * m->vftblindex, REG_ITMP1)
-   i386_call_reg(REG_ITMP1)
-
-   In the static case the method pointer can be computed using the
-   return address and the lda function following the jmp instruction.
-
-*******************************************************************************/
-
-asm_call_jit_compiler:
-L_asm_call_jit_compiler:                /* required for PIC code              */
-	sub     $(4*4),sp                   /* keep stack 16-byte aligned         */
-
-	mov     itmp1,0*4(sp)               /* pass methodinfo pointer            */
-	mov     mptr,1*4(sp)                /* pass method pointer                */
-	mov     sp,itmp2                    /* pass java sp                       */
-	add     $((1+4)*4),itmp2
-	mov     itmp2,2*4(sp)
-	mov     4*4(sp),itmp3               /* pass java ra                       */
-	mov     itmp3,3*4(sp)
-	call    jit_asm_compile
-
-	add     $(4*4),sp                   /* remove stack frame                 */
-
-	test    v0,v0                       /* check for exception                */
-	je      L_asm_call_jit_compiler_exception
-
-	jmp		*v0                         /* ...and now call the new method     */
-
-L_asm_call_jit_compiler_exception:
-	call    exceptions_get_and_clear_exception
-	                                    /* v0 == xptr                         */
-	pop     xpc                         /* get return address                 */
-	sub     $2,xpc                      /* faulting address is ra - 2         */
-	jmp     L_asm_handle_exception
 
 
 /* asm_handle_exception ********************************************************

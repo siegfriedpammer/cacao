@@ -507,6 +507,18 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 }
 
 
+/* emit_trap_compiler **********************************************************
+
+   Emit a trap instruction which calls the JIT compiler.
+
+*******************************************************************************/
+
+void emit_trap_compiler(codegendata *cd)
+{
+	M_ALD_MEM(REG_METHODPTR, EXCEPTION_HARDWARE_COMPILER);
+}
+
+
 /* emit_trap *******************************************************************
 
    Emit a trap instruction and return the original machine code.
@@ -525,9 +537,9 @@ uint32_t emit_trap(codegendata *cd)
 #if 0
 	/* XXX this breaks GDB, so we disable it for now */
 	*(cd->mcodeptr++) = 0xcc;
+	M_INT3;
 #else
-	*(cd->mcodeptr++) = 0x0f;
-	*(cd->mcodeptr++) = 0x0b;
+	M_UD2;
 #endif
 
 	return (uint32_t) mcode;
@@ -1063,12 +1075,6 @@ void emit_dec_mem(codegendata *cd, s4 mem)
 }
 
 
-void emit_cltd(codegendata *cd)
-{
-	*(cd->mcodeptr++) = 0x99;
-}
-
-
 void emit_imul_reg_reg(codegendata *cd, s4 reg, s4 dreg)
 {
 	*(cd->mcodeptr++) = 0x0f;
@@ -1145,12 +1151,6 @@ void emit_idiv_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0xf7;
 	emit_reg(7,(reg));
-}
-
-
-void emit_ret(codegendata *cd)
-{
-	*(cd->mcodeptr++) = 0xc3;
 }
 
 
@@ -1306,12 +1306,6 @@ void emit_pop_reg(codegendata *cd, s4 reg)
 void emit_push_reg(codegendata *cd, s4 reg)
 {
 	*(cd->mcodeptr++) = 0x50 + (0x07 & (u1) (reg));
-}
-
-
-void emit_nop(codegendata *cd)
-{
-	*(cd->mcodeptr++) = 0x90;
 }
 
 

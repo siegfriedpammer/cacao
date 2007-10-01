@@ -159,10 +159,24 @@
 
 /* stub defines ***************************************************************/
 
-#define COMPILERSTUB_CODESIZE    12
+#define COMPILERSTUB_CODESIZE    6
 
 
 /* macros to create code ******************************************************/
+
+#define M_BYTE1(a) \
+    do { \
+        *(cd->mcodeptr) = (a); \
+        cd->mcodeptr++; \
+    } while (0)
+
+
+#define M_BYTE2(a, b) \
+    do { \
+        M_BYTE1(a); \
+        M_BYTE1(b); \
+    } while (0)
+
 
 #define M_ILD(a,b,disp)         emit_mov_membase_reg(cd, (b), (disp), (a))
 #define M_ILD32(a,b,disp)       emit_mov_membase32_reg(cd, (b), (disp), (a))
@@ -287,7 +301,7 @@
 
 #define M_CZEXT(a,b)            emit_movzwl_reg_reg(cd, (a), (b))
 
-#define M_CLTD                  emit_cltd(cd)
+#define M_CLTD                  M_BYTE1(0x99)
 
 #define M_SLL(a)                emit_shift_reg(cd, SHIFT_SHL, (a))
 #define M_SRA(a)                emit_shift_reg(cd, SHIFT_SAR, (a))
@@ -305,7 +319,7 @@
 
 #define M_CALL(a)               emit_call_reg(cd, (a))
 #define M_CALL_IMM(a)           emit_call_imm(cd, (a))
-#define M_RET                   emit_ret(cd)
+#define M_RET                   M_BYTE1(0xc3)
 
 #define M_BEQ(a)                emit_jcc(cd, CC_E, (a))
 #define M_BNE(a)                emit_jcc(cd, CC_NE, (a))
@@ -324,7 +338,8 @@
 #define M_JMP(a)                emit_jmp_reg(cd, (a))
 #define M_JMP_IMM(a)            emit_jmp_imm(cd, (a))
 
-#define M_NOP                   emit_nop(cd)
+#define M_NOP                   M_BYTE1(0x90)
+#define M_UD2                   M_BYTE2(0x0f, 0x0b)
 
 
 #define M_FLD(a,b,disp)         emit_flds_membase(cd, (b), (disp))

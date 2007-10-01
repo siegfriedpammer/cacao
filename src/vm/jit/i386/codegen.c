@@ -2814,7 +2814,7 @@ nowperformreturn:
 			if (cd->stackframesize)
 				M_AADD_IMM(cd->stackframesize * 8, REG_SP);
 
-			emit_ret(cd);
+			M_RET;
 			}
 			break;
 
@@ -3473,30 +3473,6 @@ gen_method:
 	/* everything's ok */
 
 	return true;
-}
-
-
-/* codegen_emit_stub_compiler **************************************************
-
-   Emit a stub routine which calls the compiler.
-	
-*******************************************************************************/
-
-void codegen_emit_stub_compiler(jitdata *jd)
-{
-	methodinfo  *m;
-	codegendata *cd;
-
-	/* get required compiler data */
-
-	m  = jd->m;
-	cd = jd->cd;
-
-	/* code for the stub */
-
-	M_MOV_IMM(m, REG_ITMP1);
-	M_MOV_IMM(asm_call_jit_compiler, REG_ITMP3);
-	M_JMP(REG_ITMP3);
 }
 
 
