@@ -29,16 +29,6 @@
 
 #include <stdint.h>
 
-#if defined(ENABLE_ANNOTATIONS)
-#include "mm/memory.h"
-
-#if defined(WITH_CLASSPATH_GNU)
-#include "vm/vm.h"
-
-#include "native/include/sun_reflect_ConstantPool.h"
-#endif
-#endif
-
 #include "native/jni.h"
 #include "native/llni.h"
 #include "native/native.h"
@@ -57,6 +47,11 @@
 #include "native/include/java_lang_reflect_Constructor.h"
 #include "native/include/java_lang_reflect_Field.h"
 #include "native/include/java_lang_reflect_Method.h"
+
+#if defined(ENABLE_ANNOTATIONS) && defined(WITH_CLASSPATH_GNU)
+# include "vm/vm.h"
+# include "native/include/sun_reflect_ConstantPool.h"
+#endif
 
 #include "native/vm/reflect.h"
 
