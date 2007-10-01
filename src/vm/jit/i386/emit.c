@@ -597,7 +597,7 @@ void emit_verbosecall_enter(jitdata *jd)
 		switch (md->paramtypes[i].type) {
 		case TYPE_INT:
 			M_ILD(EAX, REG_SP, disp);
-			emit_cltd(cd);
+			M_CLTD;
 			M_LST(EAX_EDX_PACKED, REG_SP, d);
 			break;
 		case TYPE_LNG:
