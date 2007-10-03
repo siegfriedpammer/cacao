@@ -1739,10 +1739,9 @@ u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra)
 
 void *jit_compile_handle(methodinfo *m, void *pv, void *ra, void *mptr)
 {
-	void       *newpv;                              /* new compiled method PV */
-	void       *parentpv;                   /* PV from the parent Java method */
-	void       *pa;                                          /* patch address */
-	uintptr_t  *p;                                     /* convenience pointer */
+	void      *newpv;                               /* new compiled method PV */
+	void      *pa;                                           /* patch address */
+	uintptr_t *p;                                      /* convenience pointer */
 
 	/* Compile the method. */
 
