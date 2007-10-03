@@ -95,19 +95,6 @@ struct stacktracebuffer {
 };
 
 
-/* stacktracecontainer ********************************************************
-
-   ATTENTION: Use the stacktracecontainer to place a stacktrace onto the heap
-   with stacktrace_fillInStackTrace() so that the GC does not get confused.
-
-*******************************************************************************/
-
-typedef struct stacktracecontainer {
-	java_array_t            header;     /* default array header for the GC    */
-	struct stacktracebuffer stb;        /* wrapped stacktracebuffer           */
-} stacktracecontainer;
-
-
 /* function prototypes ********************************************************/
 
 #if defined(ENABLE_INTRP)
@@ -126,7 +113,7 @@ void stacktrace_remove_stackframeinfo(stackframeinfo *sfi);
 
 stacktracebuffer *stacktrace_create(stackframeinfo *sfi);
 
-stacktracecontainer *stacktrace_fillInStackTrace(void);
+java_handle_bytearray_t   *stacktrace_fillInStackTrace(void);
 
 #if defined(ENABLE_JAVASE)
 java_handle_objectarray_t *stacktrace_getClassContext(void);

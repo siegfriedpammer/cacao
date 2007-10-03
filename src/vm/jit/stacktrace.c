@@ -476,7 +476,10 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 				if (opt_DebugStackTrace) {
 					printf("ra=%p sp=%p, ", ra, sp);
 					method_print(m);
-					printf(": native stub\n");
+					if (m)
+						printf(": native stub\n");
+					else
+						printf(": builtin stub\n");
 					fflush(stdout);
 				}
 #endif
@@ -718,12 +721,12 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 
 *******************************************************************************/
 
-stacktracecontainer *stacktrace_fillInStackTrace(void)
+java_handle_bytearray_t *stacktrace_fillInStackTrace(void)
 {
-	stacktracebuffer    *stb;
-	stacktracecontainer *gcstc;
-	s4                   gcstc_size;
-	s4                   dumpsize;
+	stacktracebuffer        *stb;
+	java_handle_bytearray_t *ba;
+	s4                       ba_size;
+	s4                       dumpsize;
 	CYCLES_STATS_DECLARE_AND_START_WITH_OVERHEAD
 
 	/* mark start of dump memory area */
@@ -738,18 +741,17 @@ stacktracecontainer *stacktrace_fillInStackTrace(void)
 		goto return_NULL;
 
 	/* allocate memory from the GC heap and copy the stacktrace buffer */
-	/* ATTENTION: use stacktracecontainer for this and make it look like
-       an array */
+	/* ATTENTION: use a bytearray for this to not confuse the GC */
 
-	gcstc_size = sizeof(stacktracebuffer) +
-	             sizeof(stacktrace_entry) * stb->used -
-				 sizeof(stacktrace_entry) * STACKTRACE_CAPACITY_DEFAULT;
-	gcstc = (stacktracecontainer *) builtin_newarray_byte(gcstc_size);
+	ba_size = sizeof(stacktracebuffer) +
+	          sizeof(stacktrace_entry) * stb->used -
+	          sizeof(stacktrace_entry) * STACKTRACE_CAPACITY_DEFAULT;
+	ba = builtin_newarray_byte(ba_size);
 
-	if (gcstc == NULL)
+	if (ba == NULL)
 		goto return_NULL;
 
-	MCOPY(&(gcstc->stb), stb, u1, gcstc_size);
+	MCOPY(LLNI_array_data(ba), stb, u1, ba_size);
 
 	/* release dump memory */
 
@@ -757,7 +759,7 @@ stacktracecontainer *stacktrace_fillInStackTrace(void)
 
 	CYCLES_STATS_END_WITH_OVERHEAD(stacktrace_fillInStackTrace,
 								   stacktrace_overhead)
-	return gcstc;
+	return ba;
 
 return_NULL:
 	dump_release(dumpsize);
@@ -1062,12 +1064,12 @@ void stacktrace_print_trace_from_buffer(stacktracebuffer *stb)
 
 void stacktrace_print_trace(java_handle_t *xptr)
 {
-	java_lang_Throwable   *t;
+	java_lang_Throwable     *t;
 #if defined(WITH_CLASSPATH_GNU)
-	java_lang_VMThrowable *vmt;
+	java_lang_VMThrowable   *vmt;
 #endif
-	stacktracecontainer   *stc;
-	stacktracebuffer      *stb;
+	java_handle_bytearray_t *ba;
+	stacktracebuffer        *stb;
 
 	t = (java_lang_Throwable *) xptr;
 
@@ -1078,14 +1080,15 @@ void stacktrace_print_trace(java_handle_t *xptr)
 
 #if defined(WITH_CLASSPATH_GNU)
 	LLNI_field_get_ref(t, vmState, vmt);
-	stc = (stacktracecontainer *) LLNI_field_direct(vmt, vmData);
+	LLNI_field_get_ref(vmt, vmData, ba);
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
-	stc = (stacktracecontainer *) t->backtrace;
+	LLNI_field_get_ref(t, backtrace, ba);
 #else
 # error unknown classpath configuration
 #endif
 
-	stb = &(stc->stb);
+	assert(ba);
+	stb = (stacktracebuffer *) LLNI_array_data(ba);
 
 	stacktrace_print_trace_from_buffer(stb);
 }

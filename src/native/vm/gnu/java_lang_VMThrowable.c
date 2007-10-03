@@ -86,8 +86,8 @@ void _Jv_java_lang_VMThrowable_init(void)
  */
 JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackTrace(JNIEnv *env, jclass clazz, java_lang_Throwable *t)
 {
-	java_lang_VMThrowable *o;
-	stacktracecontainer   *stc;
+	java_lang_VMThrowable   *o;
+	java_handle_bytearray_t *ba;
 
 	o = (java_lang_VMThrowable *)
 		native_new_and_init(class_java_lang_VMThrowable);
@@ -95,12 +95,12 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 	if (o == NULL)
 		return NULL;
 
-	stc = stacktrace_fillInStackTrace();
+	ba = stacktrace_fillInStackTrace();
 
-	if (stc == NULL)
+	if (ba == NULL)
 		return NULL;
 
-	LLNI_field_set_ref(o, vmData, (gnu_classpath_Pointer *) stc);
+	LLNI_field_set_ref(o, vmData, (gnu_classpath_Pointer *) ba);
 
 	return o;
 }
@@ -113,7 +113,7 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
  */
 JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *env, java_lang_VMThrowable *this, java_lang_Throwable *t)
 {
-	stacktracecontainer         *stc;
+	java_handle_bytearray_t     *ba;
 	stacktracebuffer            *stb;
 	stacktrace_entry            *ste;
 	stacktrace_entry            *tmpste;
@@ -133,9 +133,8 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 
 	/* get the stacktrace buffer from the VMThrowable object */
 
-	/*XXX stc = (stacktracecontainer *) this->vmData;*/
-	LLNI_field_get_ref(this, vmData, stc);
-	stb = &(stc->stb);
+	LLNI_field_get_ref(this, vmData, ba);
+	stb = (stacktracebuffer *) LLNI_array_data(ba);
 
 	/* get the class of the Throwable object */
 

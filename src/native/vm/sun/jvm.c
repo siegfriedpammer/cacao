@@ -382,8 +382,8 @@ jint JVM_ActiveProcessorCount(void)
 
 void JVM_FillInStackTrace(JNIEnv *env, jobject receiver)
 {
-	java_lang_Throwable *o;
-	stacktracecontainer *stc;
+	java_lang_Throwable     *o;
+	java_handle_bytearray_t *ba;
 
 #if PRINTJVM
 	log_println("JVM_FillInStackTrace: receiver=%p", receiver);
@@ -391,12 +391,12 @@ void JVM_FillInStackTrace(JNIEnv *env, jobject receiver)
 
 	o = (java_lang_Throwable *) receiver;
 
-	stc = stacktrace_fillInStackTrace();
+	ba = stacktrace_fillInStackTrace();
 
-	if (stc == NULL)
+	if (ba == NULL)
 		return;
 
-    o->backtrace = (java_lang_Object *) stc;
+	o->backtrace = (java_lang_Object *) ba;
 }
 
 
@@ -412,17 +412,17 @@ void JVM_PrintStackTrace(JNIEnv *env, jobject receiver, jobject printable)
 
 jint JVM_GetStackTraceDepth(JNIEnv *env, jobject throwable)
 {
-	java_lang_Throwable *o;
-	stacktracecontainer *stc;
-	stacktracebuffer    *stb;
+	java_lang_Throwable     *o;
+	java_handle_bytearray_t *ba;
+	stacktracebuffer        *stb;
 
 #if PRINTJVM
 	log_println("JVM_GetStackTraceDepth: throwable=%p", throwable);
 #endif
 
 	o   = (java_lang_Throwable *) throwable;
-	stc = (stacktracecontainer *) o->backtrace;
-	stb = &(stc->stb);
+	ba  = (java_handle_bytearray_t *) o->backtrace;
+	stb = (stacktracebuffer *) LLNI_array_data(ba);
 
 	return stb->used;
 }
@@ -433,9 +433,9 @@ jint JVM_GetStackTraceDepth(JNIEnv *env, jobject throwable)
 jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 {
 	java_lang_Throwable *t;
-	stacktracecontainer *stc;
-	stacktracebuffer    *stb;
-	stacktrace_entry    *ste;
+	java_handle_bytearray_t     *ba;
+	stacktracebuffer            *stb;
+	stacktrace_entry            *ste;
 	java_lang_StackTraceElement *o;
 	java_lang_String            *declaringclass;
 	java_lang_String            *filename;
@@ -446,8 +446,8 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 #endif
 
 	t   = (java_lang_Throwable *) throwable;
-	stc = (stacktracecontainer *) t->backtrace;
-	stb = &(stc->stb);
+	ba  = (java_handle_bytearray_t *) t->backtrace;
+	stb = (stacktracebuffer *) LLNI_array_data(ba);
 
 	if ((index < 0) || (index >= stb->used)) {
 		/* XXX This should be an IndexOutOfBoundsException (check this

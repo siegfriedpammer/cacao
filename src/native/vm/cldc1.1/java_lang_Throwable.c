@@ -88,14 +88,14 @@ JNIEXPORT void JNICALL Java_java_lang_Throwable_printStackTrace(JNIEnv *env, jav
  */
 JNIEXPORT void JNICALL Java_java_lang_Throwable_fillInStackTrace(JNIEnv *env, java_lang_Throwable *this)
 {
-	stacktracecontainer *stc;
+	java_handle_bytearray_t *ba;
 
-	stc = stacktrace_fillInStackTrace();
+	ba = stacktrace_fillInStackTrace();
 
-	if (stc == NULL)
+	if (ba == NULL)
 		return;
 
-	this->backtrace = (java_lang_Object *) stc;
+	this->backtrace = (java_lang_Object *) ba;
 }
 
 
