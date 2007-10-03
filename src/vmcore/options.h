@@ -187,6 +187,7 @@ extern const char *opt_filter_show_method;
 /* NOTE: For better readability keep these alpha-sorted. */
 
 extern int      opt_DebugExceptions;
+extern int      opt_DebugLocalReferences;
 extern int      opt_DebugLocks;
 extern int      opt_DebugPatcher;
 extern int      opt_DebugPackage;

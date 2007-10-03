@@ -42,13 +42,26 @@
 
 #include "vm/jit/argument.h"
 
+#include "vmcore/options.h"
+
 
 /* debug **********************************************************************/
 
-#if !defined(NDEBUG) && 0
-# define TRACELOCALREF(message) log_println("%s", message)
+#if !defined(NDEBUG)
+# define DEBUGLOCALREF(message, index) \
+	do { \
+		if (opt_DebugLocalReferences) { \
+			localref_table *dlrt = LOCALREFTABLE; \
+			log_start(); \
+			log_print("[local reference %-12s: lrt=%016p frame=%d capacity=%d used=%d", message, dlrt, dlrt->localframes, dlrt->capacity, dlrt->used); \
+			if (index >= 0) \
+				log_print(" localref=%p object=%p", &(dlrt->refs[index]), dlrt->refs[index]); \
+			log_print("]"); \
+			log_finish(); \
+		} \
+	} while (0)
 #else
-# define TRACELOCALREF(message)
+# define DEBUGLOCALREF(message, index)
 #endif
 
 
@@ -57,6 +70,11 @@
 #if !defined(ENABLE_THREADS)
 localref_table *_no_threads_localref_table;
 #endif
+
+
+/* some forward declarations **************************************************/
+
+static bool localref_check_uncleared();
 
 
 /* localref_table_init *********************************************************
@@ -68,8 +86,6 @@ localref_table *_no_threads_localref_table;
 bool localref_table_init(void)
 {
 	localref_table *lrt;
-
-	TRACELOCALREF("table init");
 
 	assert(LOCALREFTABLE == NULL);
 
@@ -86,6 +102,8 @@ bool localref_table_init(void)
 
 	localref_table_add(lrt);
 
+	DEBUGLOCALREF("table init", -1);
+
 	return true;
 }
 
@@ -100,12 +118,11 @@ bool localref_table_destroy(void)
 {
 	localref_table *lrt;
 
-	TRACELOCALREF("table destroy");
-
 	lrt = LOCALREFTABLE;
-
-	assert(lrt);
+	assert(lrt != NULL);
 	assert(lrt->prev == NULL);
+
+	DEBUGLOCALREF("table destroy", -1);
 
 #if !defined(ENABLE_GC_BOEHM)
 	FREE(lrt, localref_table);
@@ -139,6 +156,8 @@ void localref_table_add(localref_table *lrt)
 	/* add given local references table to this thread */
 
 	LOCALREFTABLE = lrt;
+
+	/*DEBUGLOCALREF("table add", -1);*/
 }
 
 
@@ -152,12 +171,19 @@ void localref_table_remove()
 {
 	localref_table *lrt;
 
+#if !defined(NDEBUG)
+	/* check for uncleared local references */
+
+	localref_check_uncleared();
+#endif
+
 	/* get current local reference table from thread */
 
 	lrt = LOCALREFTABLE;
-
 	assert(lrt != NULL);
 	assert(lrt->localframes == 1);
+
+	/*DEBUGLOCALREF("table remove", -1);*/
 
 	lrt = lrt->prev;
 
@@ -178,12 +204,9 @@ bool localref_frame_push(int32_t capacity)
 	localref_table *nlrt;
 	int32_t         additionalrefs;
 
-	TRACELOCALREF("frame push");
-
 	/* get current local reference table from thread */
 
 	lrt = LOCALREFTABLE;
-
 	assert(lrt != NULL);
 	assert(capacity > 0);
 
@@ -218,6 +241,8 @@ bool localref_frame_push(int32_t capacity)
 
 	LOCALREFTABLE = nlrt;
 
+	DEBUGLOCALREF("frame push", -1);
+
 	return true;
 }
 
@@ -237,12 +262,9 @@ void localref_frame_pop_all(void)
 	int32_t         additionalrefs;
 #endif
 
-	TRACELOCALREF("frame pop all");
-
 	/* get current local reference table from thread */
 
 	lrt = LOCALREFTABLE;
-
 	assert(lrt != NULL);
 
 	localframes = lrt->localframes;
@@ -260,6 +282,8 @@ void localref_frame_pop_all(void)
 		/* get previous frame */
 
 		plrt = lrt->prev;
+
+		DEBUGLOCALREF("frame pop", -1);
 
 		/* clear all reference entries */
 
@@ -310,30 +334,18 @@ java_handle_t *localref_add(java_object_t *o)
 	}
 #endif
 
-	/* XXX: assert that we are in a GC critical section! */
-
-	/* XXX: this is only an ugly hack */
-#if defined(ENABLE_HANDLES)
-	if (LOCALREFTABLE == NULL) {
-		h = NEW(java_handle_t);
-		h->heap_object = o;
-		log_println("localref_add: WARNING: added preliminary localref %p for %p", h, o);
-		return h;
-	}
-#endif
-
 	/* get current local reference table from thread */
 
 	lrt = LOCALREFTABLE;
-
 	assert(lrt != NULL);
+	/* XXX: assert that we are in a GC critical section! */
 
 	/* Check if we have space for the requested reference?  No,
 	   allocate a new frame.  This is actually not what the spec says,
 	   but for compatibility reasons... */
 
     if (lrt->used == lrt->capacity) {
-		if (!localref_frame_push(16))
+		if (!localref_frame_push(64))
 			assert(0);
 
 		/* get the new local reference table */ 
@@ -354,15 +366,7 @@ java_handle_t *localref_add(java_object_t *o)
 			h = (java_handle_t *) o;
 #endif
 
-#if 0
-			{
-				int count = 0;
-				for (lrt = LOCALREFTABLE; lrt != NULL; lrt = lrt->prev)
-					count += lrt->used;
-				log_println("added localref %p for %p (total count %d)", h, o, count);
-				/*localref_dump();*/
-			}
-#endif
+			/*DEBUGLOCALREF("entry add", i);*/
 
 			return h;
 		}
@@ -392,7 +396,6 @@ void localref_del(java_handle_t *localref)
 	/* get local reference table from thread */
 
 	lrt = LOCALREFTABLE;
-
 	assert(lrt != NULL);
 
 	localframes = lrt->localframes;
@@ -412,6 +415,8 @@ void localref_del(java_handle_t *localref)
 #endif
 
 			if (h == localref) {
+				DEBUGLOCALREF("entry delete", i);
+
 				lrt->refs[i] = NULL;
 				lrt->used--;
 
@@ -446,7 +451,6 @@ void localref_native_enter(methodinfo *m, uint64_t *argument_regs, uint64_t *arg
 	/* get local reference table from thread */
 
 	lrt = LOCALREFTABLE;
-
 	assert(lrt != NULL);
 	assert(m != NULL);
 
@@ -498,7 +502,6 @@ void localref_native_exit(methodinfo *m, uint64_t *return_regs)
 	/* get local reference table from thread */
 
 	lrt = LOCALREFTABLE;
-
 	assert(lrt != NULL);
 	assert(m != NULL);
 
@@ -519,7 +522,7 @@ void localref_native_exit(methodinfo *m, uint64_t *return_regs)
 		ret.a = (void *) h->heap_object;
 		argument_jitreturn_store(md, return_regs, ret);
 
-#if !defined(NDEBUG)
+#if !defined(NDEBUG) && 0
 		/* removing the entry from the local reference table is not really
 		   necesarry, but gives us warnings if the entry does not exist. */
 
@@ -575,6 +578,57 @@ void localref_dump()
 	}
 }
 #endif /* !defined(NDEBUG) */
+
+
+/* localref_check_uncleared ****************************************************
+
+   Checks the topmost local reference table for uncleared references.
+
+*******************************************************************************/
+
+#if !defined(NDEBUG)
+static bool localref_check_uncleared()
+{
+	localref_table *lrt;
+	int32_t         localframes;
+	int32_t         lrt_uncleared;
+	int32_t         lrt_used;
+	int i;
+
+	/* get current local reference table from thread */
+
+	lrt = LOCALREFTABLE;
+	assert(lrt != NULL);
+	assert(lrt->localframes > 0);
+
+	localframes   = lrt->localframes;
+	lrt_uncleared = 0;
+	lrt_used      = 0;
+
+	for (; localframes > 0; localframes--) {
+		lrt_used += lrt->used;
+
+		for (i = 0; i < lrt->capacity; i++) {
+			if (lrt->refs[i] != NULL)
+				lrt_uncleared++;
+		}
+
+		lrt = lrt->prev;
+	}
+
+	if (lrt_uncleared != lrt_used) {
+		localref_dump();
+		vm_abort("localref_check_uncleared: (uncleared=%d) != (used=%d)", lrt_uncleared, lrt_used);
+	}
+
+	if (lrt_uncleared <= 1)
+		return true;
+	else {
+		/*log_println("localref_check_uncleared: %d uncleared local references", lrt_uncleared);*/
+		return false;
+	}
+}
+#endif
 
 
 /*
