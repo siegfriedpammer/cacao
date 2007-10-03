@@ -209,14 +209,15 @@ classinfo *class_create_classinfo(utf *classname)
 		log_message_utf("Creating class: ", classname);
 #endif
 
-	/* GCNEW_UNCOLLECTABLE clears the allocated memory */
-
-#if defined(ENABLE_GC_CACAO)
+#if !defined(ENABLE_GC_BOEHM)
 	c = (classinfo *) heap_alloc_uncollectable(sizeof(classinfo));
+	/*c = NEW(classinfo);
+	MZERO(c, classinfo, 1);*/
 #else
 	c = GCNEW_UNCOLLECTABLE(classinfo, 1);
-	/*c=NEW(classinfo);*/
+	/* GCNEW_UNCOLLECTABLE clears the allocated memory */
 #endif
+
 	c->name = classname;
 
 	/* Set the header.vftbl of all loaded classes to the one of
@@ -785,7 +786,7 @@ void class_free(classinfo *c)
 {
 	s4 i;
 	vftbl_t *v;
-		
+
 	class_freecpool(c);
 
 	if (c->interfaces != NULL)
@@ -794,9 +795,7 @@ void class_free(classinfo *c)
 	if (c->fields) {
 		for (i = 0; i < c->fieldscount; i++)
 			field_free(&(c->fields[i]));
-#if defined(ENABLE_CACAO_GC)
 		MFREE(c->fields, fieldinfo, c->fieldscount);
-#endif
 	}
 	
 	if (c->methods) {

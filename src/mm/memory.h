@@ -180,9 +180,9 @@ Some more macros:
 #define CFREE(ptr,num)        memory_cfree((ptr),(num))
 
 
-/* GC macros ******************************************************************/
+/* GC macros (boehm only) *****************************************************/
 
-#if !defined(ENABLE_GC_CACAO)
+#if defined(ENABLE_GC_BOEHM)
 
 /* Uncollectable memory which can contain references */
 

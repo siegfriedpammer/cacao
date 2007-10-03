@@ -73,7 +73,7 @@ bool localref_table_init(void)
 
 	assert(LOCALREFTABLE == NULL);
 
-#if defined(ENABLE_GC_CACAO)
+#if !defined(ENABLE_GC_BOEHM)
 	/* this is freed by localref_table_destroy */
 	lrt = NEW(localref_table);
 #else
@@ -107,7 +107,7 @@ bool localref_table_destroy(void)
 	assert(lrt);
 	assert(lrt->prev == NULL);
 
-#if defined(ENABLE_GC_CACAO)
+#if !defined(ENABLE_GC_BOEHM)
 	FREE(lrt, localref_table);
 #endif
 
@@ -195,7 +195,7 @@ bool localref_frame_push(int32_t capacity)
 	else
 		additionalrefs = 0;
 
-#if defined(ENABLE_GC_CACAO)
+#if !defined(ENABLE_GC_BOEHM)
 	nlrt = (localref_table *)
 			MNEW(u1, sizeof(localref_table) + additionalrefs * SIZEOF_VOID_P);
 #else
@@ -233,7 +233,7 @@ void localref_frame_pop_all(void)
 	localref_table *lrt;
 	localref_table *plrt;
 	int32_t         localframes;
-#if defined(ENABLE_GC_CACAO)
+#if !defined(ENABLE_GC_BOEHM)
 	int32_t         additionalrefs;
 #endif
 
@@ -267,7 +267,7 @@ void localref_frame_pop_all(void)
 
 		lrt->prev = NULL;
 
-#if defined(ENABLE_GC_CACAO)
+#if !defined(ENABLE_GC_BOEHM)
 		/* for the exact GC local reference tables are not on the heap,
 		   so we need to free them explicitly here. */
 

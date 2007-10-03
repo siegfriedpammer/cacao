@@ -163,7 +163,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 			break;
 
 		case TYPE_ADR:
-#if defined(ENABLE_GC_CACAO)
+#if !defined(ENABLE_GC_BOEHM)
 			f->value = NEW(imm_union);
 #else
 			f->value = GCNEW_UNCOLLECTABLE(imm_union, 1);
@@ -381,7 +381,13 @@ classinfo *field_get_type(fieldinfo *f)
 
 void field_free(fieldinfo *f)
 {
-	/* empty */
+	/* free memory for fields which have a value */
+
+	if (f->value)
+#if defined(ENABLE_GC_BOEHM)
+		if (f->type != TYPE_ADR)
+#endif
+			FREE(f->value, imm_union);
 }
 
 
