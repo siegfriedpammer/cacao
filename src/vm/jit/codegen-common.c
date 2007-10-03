@@ -1527,70 +1527,60 @@ void codegen_disassemble_stub(methodinfo *m, u1 *start, u1 *end)
 
 *******************************************************************************/
 
-java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
+java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 {
 	stackframeinfo *sfi;
 	localref_table *lrt;
-	codeinfo       *code;
 	methodinfo     *m;
 	int32_t         framesize;
 
 	uint8_t  *datasp;
 	uint8_t  *javasp;
-	uint8_t  *javara;
 	uint64_t *arg_regs;
 	uint64_t *arg_stack;
 
 	STATISTICS(count_calls_java_to_native++);
 
-	/* get information from method header */
+	/* Get the methodinfo. */
 
-	code      = *((codeinfo **) (pv + CodeinfoPointer));
-	framesize = *((int32_t *)   (pv + FrameSize));
-	assert(code);
-	assert(framesize >= sizeof(stackframeinfo) + sizeof(localref_table));
+	m = code_get_methodinfo_for_pv(pv);
 
-	/* get the methodinfo */
-
-	m = code->m;
 	assert(m);
+
+	framesize = *((int32_t *) (pv + FrameSize));
+
+	assert(framesize >= sizeof(stackframeinfo) + sizeof(localref_table));
 
 	/* calculate needed values */
 
 #if defined(__ALPHA__) || defined(__ARM__)
-	datasp    = currentsp + framesize - SIZEOF_VOID_P;
-	javasp    = currentsp + framesize;
-	javara    = *((uint8_t **) datasp);
-	arg_regs  = (uint64_t *) currentsp;
+	datasp    = sp + framesize - SIZEOF_VOID_P;
+	javasp    = sp + framesize;
+	arg_regs  = (uint64_t *) sp;
 	arg_stack = (uint64_t *) javasp;
 #elif defined(__MIPS__)
 	/* MIPS always uses 8 bytes to store the RA */
-	datasp    = currentsp + framesize - 8;
-	javasp    = currentsp + framesize;
-	javara    = *((uint8_t **) datasp);
+	datasp    = sp + framesize - 8;
+	javasp    = sp + framesize;
 #elif defined(__S390__)
-	datasp    = currentsp + framesize - 8;
-	javasp    = currentsp + framesize;
-	javara    = *((uint8_t **) datasp);
-	arg_regs  = (uint64_t *) (currentsp + 96);
+	datasp    = sp + framesize - 8;
+	javasp    = sp + framesize;
+	arg_regs  = (uint64_t *) (sp + 96);
 	arg_stack = (uint64_t *) javasp;
 #elif defined(__I386__) || defined(__M68K__) || defined(__X86_64__)
-	datasp    = currentsp + framesize;
-	javasp    = currentsp + framesize + SIZEOF_VOID_P;
-	javara    = *((uint8_t **) datasp);
-	arg_regs  = (uint64_t *) currentsp;
+	datasp    = sp + framesize;
+	javasp    = sp + framesize + SIZEOF_VOID_P;
+	arg_regs  = (uint64_t *) sp;
 	arg_stack = (uint64_t *) javasp;
 #elif defined(__POWERPC__)
-	datasp    = currentsp + framesize;
-	javasp    = currentsp + framesize;
-	javara    = *((uint8_t **) (datasp + LA_LR_OFFSET));
-	arg_regs  = (uint64_t *) (currentsp + LA_SIZE + 4 * SIZEOF_VOID_P);
+	datasp    = sp + framesize;
+	javasp    = sp + framesize;
+	arg_regs  = (uint64_t *) (sp + LA_SIZE + 4 * SIZEOF_VOID_P);
 	arg_stack = (uint64_t *) javasp;
 #elif defined(__POWERPC64__)
-	datasp    = currentsp + framesize;
-	javasp    = currentsp + framesize;
-	javara    = *((uint8_t **) (datasp + LA_LR_OFFSET));
-	arg_regs  = (uint64_t *) (currentsp + PA_SIZE + LA_SIZE + 4 * SIZEOF_VOID_P);
+	datasp    = sp + framesize;
+	javasp    = sp + framesize;
+	arg_regs  = (uint64_t *) (sp + PA_SIZE + LA_SIZE + 4 * SIZEOF_VOID_P);
 	arg_stack = (uint64_t *) javasp;
 #else
 	/* XXX is was unable to do this port for SPARC64, sorry. (-michi) */
@@ -1627,11 +1617,13 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 	localref_native_enter(m, arg_regs, arg_stack);
 #endif
 
-	/* add a stackframeinfo to the chain */
+	/* Add a stackframeinfo for this native method.  We don't have RA
+	   and XPC here.  These are determined in
+	   stacktrace_stackframeinfo_create. */
 
-	stacktrace_create_native_stackframeinfo(sfi, pv, javasp, javara);
+	stacktrace_create_extern_stackframeinfo(sfi, pv, sp, NULL, NULL);
 
-	/* return a wrapped classinfo for static native methods */
+	/* Return a wrapped classinfo for static methods. */
 
 	if (m->flags & ACC_STATIC)
 		return LLNI_classinfo_wrap(m->class);
@@ -1648,7 +1640,7 @@ java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv)
 
 *******************************************************************************/
 
-java_object_t *codegen_finish_native_call(u1 *currentsp, u1 *pv)
+java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 {
 	stackframeinfo *sfi;
 	java_handle_t  *e;
@@ -1674,26 +1666,26 @@ java_object_t *codegen_finish_native_call(u1 *currentsp, u1 *pv)
 	/* calculate needed values */
 
 #if defined(__ALPHA__) || defined(__ARM__)
-	datasp   = currentsp + framesize - SIZEOF_VOID_P;
-	ret_regs = (uint64_t *) currentsp;
+	datasp   = sp + framesize - SIZEOF_VOID_P;
+	ret_regs = (uint64_t *) sp;
 #elif defined(__MIPS__)
 	/* MIPS always uses 8 bytes to store the RA */
-	datasp   = currentsp + framesize - 8;
+	datasp   = sp + framesize - 8;
 #elif defined(__S390__)
-	datasp   = currentsp + framesize - 8;
-	ret_regs = (uint64_t *) (currentsp + 96);
+	datasp   = sp + framesize - 8;
+	ret_regs = (uint64_t *) (sp + 96);
 #elif defined(__I386__)
-	datasp   = currentsp + framesize;
-	ret_regs = (uint64_t *) (currentsp + 2 * SIZEOF_VOID_P);
+	datasp   = sp + framesize;
+	ret_regs = (uint64_t *) (sp + 2 * SIZEOF_VOID_P);
 #elif defined(__M68K__) || defined(__X86_64__)
-	datasp   = currentsp + framesize;
-	ret_regs = (uint64_t *) currentsp;
+	datasp   = sp + framesize;
+	ret_regs = (uint64_t *) sp;
 #elif defined(__POWERPC__)
-	datasp   = currentsp + framesize;
-	ret_regs = (uint64_t *) (currentsp + LA_SIZE + 2 * SIZEOF_VOID_P);
+	datasp   = sp + framesize;
+	ret_regs = (uint64_t *) (sp + LA_SIZE + 2 * SIZEOF_VOID_P);
 #elif defined(__POWERPC64__)
-	datasp   = currentsp + framesize;
-	ret_regs = (uint64_t *) (currentsp + PA_SIZE + LA_SIZE + 2 * SIZEOF_VOID_P);
+	datasp   = sp + framesize;
+	ret_regs = (uint64_t *) (sp + PA_SIZE + LA_SIZE + 2 * SIZEOF_VOID_P);
 #else
 	vm_abort("codegen_finish_native_call: unsupported architecture");
 #endif

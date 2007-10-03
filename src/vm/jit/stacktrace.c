@@ -28,6 +28,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -154,6 +155,7 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 											 u1 *sp, u1 *ra, u1 *xpc)
 {
 	stackframeinfo **psfi;
+	methodinfo      *m;
 #if !defined(__I386__) && !defined(__X86_64__) && !defined(__S390__) && !defined(__M68K__)
 	bool             isleafmethod;
 #endif
@@ -184,6 +186,13 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 #endif
 			}
 	}
+
+	/* Get methodinfo pointer for the parent Java method. */
+
+	m = code_get_methodinfo_for_pv(pv);
+
+	/* XXX */
+/* 	assert(m != NULL); */
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
@@ -218,64 +227,27 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 # if defined(ENABLE_INTRP)
 	}
 # endif
-#endif /* defined(ENABLE_JIT) */
+#endif
 
-	/* fill new stackframe info structure */
+	/* Calculate XPC when not given.  The XPC is then the return
+	   address of the current method minus 1 because the RA points to
+	   the instruction after the call instruction.  This is required
+	   e.g. for method stubs. */
+
+	if (xpc == NULL) {
+		xpc = (void *) (((intptr_t) ra) - 1);
+	}
+
+	/* Fill new stackframeinfo structure. */
 
 	sfi->prev   = *psfi;
-	sfi->method = NULL;
+	sfi->method = m;
 	sfi->pv     = pv;
 	sfi->sp     = sp;
 	sfi->ra     = ra;
 	sfi->xpc    = xpc;
 
-	/* store new stackframe info pointer */
-
-	*psfi = sfi;
-
-	/* set the native world flag for the current thread */
-	/* ATTENTION: This flag tells the GC how to treat this thread in case of
-	   a collection. Set this flag _after_ a valid stackframe info was set. */
-
-	THREAD_NATIVEWORLD_ENTER;
-}
-
-
-/* stacktrace_create_native_stackframeinfo *************************************
-
-   Creates a stackframe info structure for a native stub.
-
-*******************************************************************************/
-
-void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
-											 u1 *sp, u1 *ra)
-{
-	stackframeinfo **psfi;
-	methodinfo      *m;
-	codeinfo        *code;
-
-	/* get codeinfo pointer from data segment */
-
-	code = *((codeinfo **) (pv + CodeinfoPointer));
-
-	/* For asm_vm_call_method the codeinfo pointer is NULL. */
-
-	m = (code == NULL) ? NULL : code->m;
-
-	/* get current stackframe info pointer */
-
-	psfi = &STACKFRAMEINFO;
-
-	/* fill new stackframe info structure */
-
-	sfi->prev   = *psfi;
-	sfi->method = m;
-	sfi->pv     = NULL;
-	sfi->sp     = sp;
-	sfi->ra     = ra;
-	sfi->xpc    = NULL;
-
-	/* store new stackframe info pointer */
+	/* Store new stackframeinfo pointer. */
 
 	*psfi = sfi;
 
@@ -312,14 +284,13 @@ void stacktrace_remove_stackframeinfo(stackframeinfo *sfi)
 }
 
 
-/* stacktrace_add_entry ********************************************************
+/* stacktrace_entry_add ********************************************************
 
    Adds a new entry to the stacktrace buffer.
 
 *******************************************************************************/
 
-static stacktracebuffer *stacktrace_add_entry(stacktracebuffer *stb,
-											  methodinfo *m, u2 line)
+static inline stacktracebuffer *stacktrace_entry_add(stacktracebuffer *stb, methodinfo *m, u2 line)
 {
 	stacktrace_entry *ste;
 	u4                stb_size_old;
@@ -361,16 +332,14 @@ static stacktracebuffer *stacktrace_add_entry(stacktracebuffer *stb,
 }
 
 
-/* stacktrace_add_method *******************************************************
+/* stacktrace_method_add *******************************************************
 
-   Add stacktrace entries[1] for the given method to the stacktrace buffer.
+   Add stacktrace entries[1] for the given method to the stacktrace
+   buffer.
 
    IN:
-       stb.........stacktracebuffer to fill
-	   m...........method for which entries should be created
-	   pv..........pv of method
-	   pc..........position of program counter within the method's code
-
+       stb....stacktracebuffer to fill
+	   sfi....current stackframeinfo
    OUT:
        stacktracebuffer after possible reallocation.
 
@@ -379,25 +348,128 @@ static stacktracebuffer *stacktrace_add_entry(stacktracebuffer *stb,
 
 *******************************************************************************/
 
-static stacktracebuffer *stacktrace_add_method(stacktracebuffer *stb,
-											   methodinfo *m, u1 *pv, u1 *pc)
+static inline stacktracebuffer *stacktrace_method_add(stacktracebuffer *stb, stackframeinfo *sfi)
 {
-	codeinfo *code;                     /* compiled realization of method     */
-	s4        linenumber;
+	methodinfo *m;
+	void       *pv;
+	void       *xpc;
+	int32_t     linenumber;
 
-	/* find the realization of the method the pc is in */
+	/* Get values from the stackframeinfo. */
 
-	code = *((codeinfo **) (pv + CodeinfoPointer));
+	m   = sfi->method;
+	pv  = sfi->pv;
+	xpc = sfi->xpc;
 
-	/* search the line number table */
+	/* Skip builtin methods. */
 
-	linenumber = dseg_get_linenumber_from_pc(&m, pv, pc);
+	if (m->flags & ACC_METHOD_BUILTIN)
+		return stb;
 
-	/* now add a new entry to the staktrace */
+	/* Search the line number table. */
 
-	stb = stacktrace_add_entry(stb, m, linenumber);
+	linenumber = dseg_get_linenumber_from_pc(&m, pv, xpc);
+
+	/* Add a new entry to the staktrace. */
+
+	stb = stacktrace_entry_add(stb, m, linenumber);
 
 	return stb;
+}
+
+
+/* stacktrace_stack_walk *******************************************************
+
+   Walk the stack (or the stackframeinfo-chain) to the next method.
+
+   IN:
+       sfi....stackframeinfo of current method
+
+*******************************************************************************/
+
+static inline void stacktrace_stack_walk(stackframeinfo *sfi)
+{
+	methodinfo *m;
+	void       *pv;
+	void       *sp;
+	void       *ra;
+	void       *xpc;
+	uint32_t    framesize;
+
+	/* Get values from the stackframeinfo. */
+
+	m   = sfi->method;
+	pv  = sfi->pv;
+	sp  = sfi->sp;
+	ra  = sfi->ra;
+	xpc = sfi->xpc;
+
+	/* Get the current stack frame size. */
+
+	framesize = *((uint32_t *) (((intptr_t) pv) + FrameSize));
+
+	/* Get the RA of the current stack frame (RA to the parent Java
+	   method). */
+
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (opt_intrp)
+		ra = intrp_md_stacktrace_get_returnaddress(sp, framesize);
+	else
+# endif
+		ra = md_stacktrace_get_returnaddress(sp, framesize);
+#else
+	ra = intrp_md_stacktrace_get_returnaddress(sp, framesize);
+#endif
+
+	/* Get the PV for the parent Java method. */
+
+#if defined(ENABLE_INTRP)
+	if (opt_intrp)
+		pv = codegen_get_pv_from_pc(ra);
+	else
+#endif
+		{
+#if defined(ENABLE_JIT)
+# if defined(__SPARC_64__)
+			sp = md_get_framepointer(sp);
+			pv = md_get_pv_from_stackframe(sp);
+# else
+			pv = md_codegen_get_pv_from_pc(ra);
+# endif
+#endif
+		}
+
+	/* Get the methodinfo pointer for the parent Java method. */
+
+	m = code_get_methodinfo_for_pv(pv);
+
+	/* Calculate the SP for the parent Java method. */
+
+#if defined(ENABLE_INTRP)
+	if (opt_intrp)
+		sp = *(u1 **) (sp - framesize);
+	else
+#endif
+		{
+#if defined(__I386__) || defined (__X86_64__) || defined (__M68K__)
+			sp = (void *) (((intptr_t) sp) + framesize + SIZEOF_VOID_P);
+#elif defined(__SPARC_64__)
+			/* already has the new sp */
+#else
+			sp = (void *) (((intptr_t) sp) + framesize);
+#endif
+		}
+
+	/* Store the new values in the stackframeinfo.  NOTE: We subtract
+	   1 from the RA to get the XPC, because the RA points to the
+	   instruction after the call instruction. */
+
+	sfi->method = m;
+	sfi->pv     = pv;
+	sfi->sp     = sp;
+	sfi->ra     = ra;
+	sfi->xpc    = (void *) (((intptr_t) ra) - 1);
 }
 
 
@@ -421,21 +493,9 @@ static stacktracebuffer *stacktrace_add_method(stacktracebuffer *stb,
 stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 {
 	stacktracebuffer *stb;
-	methodinfo       *m;
-	codeinfo         *code;
-	u1               *pv;
-	u1               *sp;
-	u4                framesize;
-	u1               *ra;
-	u1               *xpc;
+	stackframeinfo    tmpsfi;
 
-	/* prevent compiler warnings */
-
-	pv = NULL;
-	sp = NULL;
-	ra = NULL;
-
-	/* create a stacktracebuffer in dump memory */
+	/* Create a stacktracebuffer in dump memory. */
 
 	stb = DNEW(stacktracebuffer);
 
@@ -449,252 +509,74 @@ stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
 	}
 #endif
 
-	/* Loop while we have a method pointer (asm_calljavafunction has
-	   NULL) or there is a stackframeinfo in the chain. */
+	/* Put the data from the stackframeinfo into a temporary one. */
 
-	m = NULL;
+	/* XXX This is not correct, but a workaround for threads-dump for
+	   now. */
+/* 	assert(sfi != NULL); */
+	if (sfi == NULL)
+		return NULL;
 
-	while ((m != NULL) || (sfi != NULL)) {
-		/* m == NULL should only happen for the first time and inline
-		   stackframe infos, like from the exception stubs or the
-		   patcher wrapper. */
+	tmpsfi.method = sfi->method;
+	tmpsfi.pv     = sfi->pv;
+	tmpsfi.sp     = sfi->sp;
+	tmpsfi.ra     = sfi->ra;
+	tmpsfi.xpc    = sfi->xpc;
 
-		if (m == NULL) {
-			/* for native stub stackframe infos, pv is always NULL */
+	/* Iterate till we're done. */
 
-			if (sfi->pv == NULL) {
-				/* get methodinfo, sp and ra from the current stackframe info */
-
-				m  = sfi->method;
-				sp = sfi->sp;           /* sp of parent Java function         */
-				ra = sfi->ra;
-
-				if (m && !(m->flags & ACC_METHOD_BUILTIN))
-					stb = stacktrace_add_entry(stb, m, 0);
-
+	for (;;) {
 #if !defined(NDEBUG)
-				if (opt_DebugStackTrace) {
-					printf("ra=%p sp=%p, ", ra, sp);
-					method_print(m);
-					if (m)
-						printf(": native stub\n");
-					else
-						printf(": builtin stub\n");
-					fflush(stdout);
-				}
-#endif
-				/* This is an native stub stackframe info, so we can
-				   get the parent pv from the return address
-				   (ICMD_INVOKE*). */
+		/* Print current method information. */
 
-#if defined(ENABLE_INTRP)
-				if (opt_intrp)
-					pv = codegen_get_pv_from_pc(ra);
-				else
-#endif
-					{
-#if defined(ENABLE_JIT)
-						pv = md_codegen_get_pv_from_pc(ra);
-#endif
-					}
-
-				/* get methodinfo pointer from parent data segment */
-
-				code = *((codeinfo **) (pv + CodeinfoPointer));
-
-				/* For asm_vm_call_method the codeinfo pointer is
-				   NULL. */
-
-				m = (code == NULL) ? NULL : code->m;
-
-			} else {
-				/* Inline stackframe infos are special: they have a
-				   xpc of the actual exception position and the return
-				   address saved since an inline stackframe info can
-				   also be in a leaf method (no return address saved
-				   on stack!!!).  ATTENTION: This one is also for
-				   hardware exceptions!!! */
-
-				/* get methodinfo, sp and ra from the current stackframe info */
-
-				m   = sfi->method;      /* m == NULL                          */
-				pv  = sfi->pv;          /* pv of parent Java function         */
-				sp  = sfi->sp;          /* sp of parent Java function         */
-				ra  = sfi->ra;          /* ra of parent Java function         */
-				xpc = sfi->xpc;         /* actual exception position          */
-
-#if !defined(NDEBUG)
-				if (opt_DebugStackTrace) {
-					printf("ra=%p sp=%p, ", ra, sp);
-					printf("NULL: extern stackframe\n");
-					fflush(stdout);
-				}
+		if (opt_DebugStackTrace) {
+			log_start();
+			log_print("[stacktrace: method=%p, pv=%p, sp=%p, ra=%p, xpc=%p, method=",
+					  tmpsfi.method, tmpsfi.pv, tmpsfi.sp, tmpsfi.ra,
+					  tmpsfi.xpc);
+			method_print(tmpsfi.method);
+			log_print("]");
+			log_finish();
+		}
 #endif
 
-				/* get methodinfo from current Java method */
+		/* Check for Throwable.fillInStackTrace(). */
 
-				code = *((codeinfo **) (pv + CodeinfoPointer));
+/* 		if (tmpsfi.method->name != utf_fillInStackTrace) { */
+			
+			/* Add this method to the stacktrace. */
 
-				/* For asm_vm_call_method the codeinfo pointer is
-				   NULL. */
+			stb = stacktrace_method_add(stb, &tmpsfi);
+/* 		} */
 
-				m = (code == NULL) ? NULL : code->m;
+		/* Walk the stack (or the stackframeinfo chain) and get the
+		   next method. */
 
-				/* if m == NULL, this is a asm_calljavafunction call */
+		stacktrace_stack_walk(&tmpsfi);
 
-				if (m != NULL) {
-#if !defined(NDEBUG)
-					if (opt_DebugStackTrace) {
-						printf("ra=%p sp=%p, ", ra, sp);
-						method_print(m);
-						printf(": extern stackframe parent");
-						fflush(stdout);
-					}
-#endif
+		/* If the new methodinfo pointer is NULL we reached a
+		   asm_vm_call_method function.  In this case we get the next
+		   values from the previous stackframeinfo in the chain.
+		   Otherwise the new values have been calculated before. */
 
-#if defined(ENABLE_INTRP)
-					if (!opt_intrp) {
-#endif
-
-					/* add the method to the stacktrace */
-
-					stb = stacktrace_add_method(stb, m, pv, (u1 *) ((ptrint) xpc));
-
-					/* get the current stack frame size */
-
-					framesize = *((u4 *) (pv + FrameSize));
-
-#if !defined(NDEBUG)
-					if (opt_DebugStackTrace) {
-						printf(", framesize=%d\n", framesize);
-						fflush(stdout);
-					}
-#endif
-
-					/* Set stack pointer to stackframe of parent Java
-					   function of the current Java function. */
-
-#if defined(__I386__) || defined (__X86_64__) || defined (__M68K__)
-					sp += framesize + SIZEOF_VOID_P;
-#elif defined(__SPARC_64__)
-					sp = md_get_framepointer(sp);
-#else
-					sp += framesize;
-#endif
-
-					/* get data segment and methodinfo pointer from
-					   parent method */
-
-#if defined(ENABLE_JIT)
-					pv = md_codegen_get_pv_from_pc(ra);
-#endif
-
-					code = *((codeinfo **) (pv + CodeinfoPointer));
-
-					/* For asm_vm_call_method the codeinfo pointer is
-					   NULL. */
-
-					m = (code == NULL) ? NULL : code->m;
-
-#if defined(ENABLE_INTRP)
-					}
-#endif
-				}
-#if !defined(NDEBUG)
-				else {
-					if (opt_DebugStackTrace) {
-						printf("ra=%p sp=%p, ", ra, sp);
-						printf("asm_calljavafunction\n");
-						fflush(stdout);
-					}
-				}
-#endif
-			}
-
-			/* get previous stackframeinfo in the chain */
-
+		if (tmpsfi.method == NULL) {
 			sfi = sfi->prev;
 
-		} else {
-#if !defined(NDEBUG)
-			if (opt_DebugStackTrace) {
-				printf("ra=%p sp=%p, ", ra, sp);
-				method_print(m);
-				printf(": JIT");
-				fflush(stdout);
-			}
-#endif
+			/* If the previous stackframeinfo in the chain is NULL we
+			   reached the top of the stacktrace and leave the
+			   loop. */
 
-			/* JIT method found, add it to the stacktrace (we subtract
-			   1 from the return address since it points the the
-			   instruction after call). */
+			if (sfi == NULL)
+				break;
 
-			stb = stacktrace_add_method(stb, m, pv, (u1 *) ((ptrint) ra) - 1);
+			/* Fill the temporary stackframeinfo with the new
+			   values. */
 
-			/* get the current stack frame size */
-
-			framesize = *((u4 *) (pv + FrameSize));
-
-#if !defined(NDEBUG)
-			if (opt_DebugStackTrace) {
-				printf(", framesize=%d\n", framesize);
-				fflush(stdout);
-			}
-#endif
-
-			/* get return address of current stack frame */
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-			if (opt_intrp)
-				ra = intrp_md_stacktrace_get_returnaddress(sp, framesize);
-			else
-# endif
-				ra = md_stacktrace_get_returnaddress(sp, framesize);
-#else
-			ra = intrp_md_stacktrace_get_returnaddress(sp, framesize);
-#endif
-
-			/* get data segment and methodinfo pointer from parent method */
-
-#if defined(ENABLE_INTRP)
-			if (opt_intrp)
-				pv = codegen_get_pv_from_pc(ra);
-			else
-#endif
-				{
-#if defined(ENABLE_JIT)
-# if defined(__SPARC_64__)
-					sp = md_get_framepointer(sp);
-					pv = md_get_pv_from_stackframe(sp);
-# else
-					pv = md_codegen_get_pv_from_pc(ra);
-# endif
-#endif
-				}
-
-			code = *((codeinfo **) (pv + CodeinfoPointer));
-
-			/* For asm_vm_call_method the codeinfo pointer is NULL. */
-
-			m = (code == NULL) ? NULL : code->m;
-
-			/* walk the stack */
-
-#if defined(ENABLE_INTRP)
-			if (opt_intrp)
-				sp = *(u1 **) (sp - framesize);
-			else
-#endif
-				{
-#if defined(__I386__) || defined (__X86_64__) || defined (__M68K__)
-					sp += framesize + SIZEOF_VOID_P;
-#elif defined(__SPARC_64__)
-					/* already has the new sp */
-#else
-					sp += framesize;
-#endif
-				}
+			tmpsfi.method = sfi->method;
+			tmpsfi.pv     = sfi->pv;
+			tmpsfi.sp     = sfi->sp;
+			tmpsfi.ra     = sfi->ra;
+			tmpsfi.xpc    = sfi->xpc;
 		}
 	}
 
