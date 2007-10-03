@@ -328,6 +328,20 @@ static builtintable_entry builtintable_internal[] = {
 		NULL
 	},
 	{
+		ICMD_MULTIANEWARRAY,
+		BUILTINTABLE_FLAG_STUB,
+		BUILTIN_multianewarray,
+		NULL,
+		NULL,
+		"multianewarray",
+		/* XXX it should be: "(ILjava/lang/Class;[I)[Ljava/lang/Object;", */
+		"(ILjava/lang/Class;I)[Ljava/lang/Object;",
+		NULL,
+		NULL,
+		NULL,
+		NULL
+	},
+	{
 		ICMD_CHECKCAST,
 		0,
 		BUILTIN_arraycheckcast,
