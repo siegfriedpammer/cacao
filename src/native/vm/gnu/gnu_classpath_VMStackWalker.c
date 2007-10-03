@@ -36,6 +36,7 @@
 
 #include "native/include/gnu_classpath_VMStackWalker.h"
 
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/global.h"
 
@@ -103,7 +104,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingCl
 	if (LLNI_array_size(oa) < 2)
 		return NULL;
 
-	LLNI_objectarray_element_get(oa, 1, o);
+	o = array_objectarray_element_get(oa, 1);
 
 	return (java_lang_Class *) o;
 }

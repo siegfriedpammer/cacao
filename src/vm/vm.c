@@ -62,6 +62,7 @@
 
 #include "toolbox/logging.h"
 
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/finalizer.h"
@@ -1763,7 +1764,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 		u = utf_new_char(vm_args->options[opt_index + i].optionString);
 		s = javastring_new(u);
 
-		LLNI_objectarray_element_set(oa, i, s);
+		array_objectarray_element_set(oa, i, s);
 	}
 
 #ifdef TYPEINFO_DEBUG_TEST

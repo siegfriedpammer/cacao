@@ -67,6 +67,7 @@
 
 #include "toolbox/logging.h"
 
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -288,7 +289,7 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredFields(java_lang_Class
 
 			/* store object into array */
 
-			LLNI_objectarray_element_set(oa, pos, rf);
+			array_objectarray_element_set(oa, pos, (java_handle_t *) rf);
 			pos++;
 		}
 	}
@@ -352,7 +353,7 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredMethods(java_lang_Clas
 
 			/* store object into array */
 
-			LLNI_objectarray_element_set(oa, pos, rm);
+			array_objectarray_element_set(oa, pos, (java_handle_t *) rm);
 			pos++;
 		}
 	}
@@ -404,7 +405,7 @@ java_handle_objectarray_t *_Jv_java_lang_Class_getDeclaredConstructors(java_lang
 
 			/* store object into array */
 
-			LLNI_objectarray_element_set(oa, pos, rc);
+			array_objectarray_element_set(oa, pos, (java_handle_t *) rc);
 			pos++;
 		}
 	}

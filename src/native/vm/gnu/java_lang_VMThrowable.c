@@ -44,6 +44,7 @@
 
 #include "native/vm/java_lang_Class.h"
 
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
@@ -261,7 +262,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 		LLNI_field_set_ref(o, methodName    , (java_lang_String *) javastring_new(ste->method->name));
 		LLNI_field_set_val(o, isNative      , (ste->method->flags & ACC_NATIVE) ? 1 : 0);
 
-		LLNI_objectarray_element_set(oa, i, o);
+		array_objectarray_element_set(oa, i, (java_handle_t *) o);
 	}
 
 	return oa;
