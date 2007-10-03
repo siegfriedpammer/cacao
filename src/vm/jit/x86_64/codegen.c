@@ -2912,6 +2912,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		sizeof(stackframeinfo) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
 		md->paramcount +
+		(md->returntype.type == TYPE_VOID ? 0 : 1) +
 		nmd->memuse;
 
 	ALIGN_ODD(cd->stackframesize);              /* keep stack 16-byte aligned */
