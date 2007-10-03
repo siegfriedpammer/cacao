@@ -228,6 +228,30 @@ type array_##name##array_element_get(java_handle_##name##array_t *a, int32_t ind
 	return value;                                                              \
 }
 
+java_handle_t *array_objectarray_element_get(java_handle_objectarray_t *a, int32_t index)
+{
+	java_handle_t *value;
+	int32_t size;
+
+	if (a == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	size = LLNI_array_size(a);
+
+	if ((index < 0) || (index > size)) {
+		exceptions_throw_arrayindexoutofboundsexception();
+		return NULL;
+	}
+
+	LLNI_CRITICAL_START;
+	value = LLNI_WRAP(LLNI_array_direct(a, index));
+	LLNI_CRITICAL_END;
+
+	return value;
+}
+
 ARRAY_TYPEARRAY_ELEMENT_GET(boolean, uint8_t)
 ARRAY_TYPEARRAY_ELEMENT_GET(byte,    int8_t)
 ARRAY_TYPEARRAY_ELEMENT_GET(char,    uint16_t)
@@ -236,7 +260,6 @@ ARRAY_TYPEARRAY_ELEMENT_GET(int,     int32_t)
 ARRAY_TYPEARRAY_ELEMENT_GET(long,    int64_t)
 ARRAY_TYPEARRAY_ELEMENT_GET(float,   float)
 ARRAY_TYPEARRAY_ELEMENT_GET(double,  double)
-ARRAY_TYPEARRAY_ELEMENT_GET(object,  java_handle_t*)
 
 
 /* array_xxxarray_element_set **************************************************
@@ -265,6 +288,27 @@ void array_##name##array_element_set(java_handle_##name##array_t *a, int32_t ind
 	LLNI_array_direct(a, index) = value;                                       \
 }
 
+void array_objectarray_element_set(java_handle_objectarray_t *a, int32_t index, java_handle_t *value)
+{
+	int32_t size;
+
+	if (a == NULL) {
+		exceptions_throw_nullpointerexception();
+		return;
+	}
+
+	size = LLNI_array_size(a);
+
+	if ((index < 0) || (index > size)) {
+		exceptions_throw_arrayindexoutofboundsexception();
+		return;
+	}
+
+	LLNI_CRITICAL_START;
+	LLNI_array_direct(a, index) = LLNI_UNWRAP(value);
+	LLNI_CRITICAL_END;
+}
+
 ARRAY_TYPEARRAY_ELEMENT_SET(boolean, uint8_t)
 ARRAY_TYPEARRAY_ELEMENT_SET(byte,    int8_t)
 ARRAY_TYPEARRAY_ELEMENT_SET(char,    uint16_t)
@@ -273,7 +317,6 @@ ARRAY_TYPEARRAY_ELEMENT_SET(int,     int32_t)
 ARRAY_TYPEARRAY_ELEMENT_SET(long,    int64_t)
 ARRAY_TYPEARRAY_ELEMENT_SET(float,   float)
 ARRAY_TYPEARRAY_ELEMENT_SET(double,  double)
-ARRAY_TYPEARRAY_ELEMENT_SET(object,  java_handle_t*)
 
 
 /* array_length_get ***********************************************************

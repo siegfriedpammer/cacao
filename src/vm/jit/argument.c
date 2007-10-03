@@ -36,6 +36,7 @@
 
 #include "native/llni.h"
 
+#include "vm/array.h"
 #include "vm/global.h"
 #include "vm/primitive.h"
 #include "vm/resolve.h"
@@ -586,7 +587,9 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 	}
 
 	for (j = 0; i < md->paramcount; i++, j++, pd++, td++) {
-		LLNI_objectarray_element_get(params, j, param);
+		/* XXX This function can throw an exception, which should not happend
+		   here, since we are outside the nativeworld. */
+		param = array_objectarray_element_get(params, j);
 
 		switch (td->type) {
 		case TYPE_INT:

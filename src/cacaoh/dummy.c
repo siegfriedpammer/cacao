@@ -99,7 +99,7 @@ java_handle_t *array_objectarray_element_get(java_handle_objectarray_t *a, int32
 		return NULL;
 	}
 
-	LLNI_objectarray_element_get(a, index, value);
+	value = LLNI_WRAP(LLNI_array_direct(a, index));
 
 	return value;
 }
@@ -120,7 +120,7 @@ void array_objectarray_element_set(java_handle_objectarray_t *a, int32_t index, 
 		return;
 	}
 
-	LLNI_objectarray_element_set(a, index, value);
+	LLNI_array_direct(a, index) = LLNI_UNWRAP(value);
 }
 
 int32_t array_length_get(java_handle_t *a)

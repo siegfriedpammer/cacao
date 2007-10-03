@@ -56,6 +56,7 @@
 
 #include "toolbox/logging.h"
 
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/cycles-stats.h"
 #include "vm/exceptions.h"
@@ -799,8 +800,8 @@ java_handle_objectarray_t *stacktrace_getStack(void)
 
 	/* set up the 2-dimensional array */
 
-	LLNI_objectarray_element_set(oa, 0, classes);
-	LLNI_objectarray_element_set(oa, 1, methodnames);
+	array_objectarray_element_set(oa, 0, (java_handle_t *) classes);
+	array_objectarray_element_set(oa, 1, (java_handle_t *) methodnames);
 
 	/* iterate over all stacktrace entries */
 
@@ -814,7 +815,7 @@ java_handle_objectarray_t *stacktrace_getStack(void)
 		if (string == NULL)
 			goto return_NULL;
 
-		LLNI_objectarray_element_set(methodnames, i, string);
+		array_objectarray_element_set(methodnames, i, string);
 	}
 
 	/* return the 2-dimensional array */
