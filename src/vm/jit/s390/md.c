@@ -387,36 +387,6 @@ void md_critical_section_restart(ucontext_t *_uc)
 #endif
 
 
-/* md_codegen_patch_branch *****************************************************
-
-   Back-patches a branch instruction.
-
-*******************************************************************************/
-
-void md_codegen_patch_branch(codegendata *cd, s4 branchmpc, s4 targetmpc)
-{
-
-	s4 *mcodeptr;
-	s4  disp;                           /* branch displacement                */
-
-	/* calculate the patch position */
-
-	mcodeptr = (s4 *) (cd->mcodebase + branchmpc);
-
-	/* Calculate the branch displacement. */
-
-	disp = targetmpc - branchmpc;
-	disp += 4; /* size of branch */
-	disp /= 2; /* specified in halfwords */
-
-	ASSERT_VALID_BRANCH(disp);	
-
-	/* patch the branch instruction before the mcodeptr */
-
-	mcodeptr[-1] |= (disp & 0xFFFF);
-}
-
-
 /* md_stacktrace_get_returnaddress *********************************************
 
    Returns the return address of the current stackframe, specified by
