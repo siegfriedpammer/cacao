@@ -49,8 +49,6 @@
 	.globl asm_vm_call_method_exception_handler
 	.globl asm_vm_call_method_end
 
-	.globl asm_call_jit_compiler
-
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
 
@@ -171,54 +169,6 @@ asm_vm_call_method_end:
 	br      L_asm_vm_call_method_recompute_return
 
 	.end    asm_vm_call_method
-
-
-/* asm_call_jit_compiler *******************************************************
-
-   Invokes the compiler for untranslated Java methods.
-
-*******************************************************************************/
-
-	.ent    asm_call_jit_compiler
-
-asm_call_jit_compiler:
-	ldgp    gp,0(pv)
-	lda     sp,-(ARG_CNT+2)*8(sp) /* +2: keep stack 16-byte aligned           */
-
-	stq     ra,0*8(sp)            /* save return address                      */
-
-	SAVE_ARGUMENT_REGISTERS(1)    /* save 6 int/6 float argument registers    */
-
-	mov     itmp1,a0              /* pass methodinfo pointer                  */
-	mov     mptr,a1               /* pass method pointer                      */
-	lda     a2,(ARG_CNT+2)*8(sp)  /* pass java sp                             */
-	mov     ra,a3
-	jsr     ra,jit_asm_compile    /* call jit compiler                        */
-	mov     v0,pv
-
-	ldq     ra,0*8(sp)            /* load return address                      */
-
-	RESTORE_ARGUMENT_REGISTERS(1) /* restore 6 int/6 float argument registers */
-
-	lda     sp,(ARG_CNT+2)*8(sp)  /* remove stack frame                       */
-
-	beq     pv,L_asm_call_jit_compiler_exception
-
-	jmp     zero,(pv)             /* and call method, the method returns      */
-	                              /* directly to the caller (ra).             */
-
-L_asm_call_jit_compiler_exception:
-	subq    sp,2*8,sp
-	stq     ra,0*8(sp)            /* save return address (xpc)                */
-	jsr     ra,exceptions_get_and_clear_exception
-	ldq     ra,0*8(sp)            /* restore return address (xpc)             */
-	addq    sp,2*8,sp
-
-	mov     v0,xptr               /* get exception                            */
-	subq    ra,4,xpc              /* exception address is ra - 4              */
-	br      L_asm_handle_nat_exception
-
-	.end    asm_call_jit_compiler
 
 
 /* asm_handle_exception ********************************************************

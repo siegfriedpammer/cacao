@@ -1,4 +1,4 @@
-/* vm/jit/alpha/codegen.h - code generation macros and definitions for Alpha
+/* src/vm/jit/alpha/codegen.h - code generation macros and definitions for Alpha
 
    Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -108,7 +108,7 @@
 
 /* stub defines ***************************************************************/
 
-#define COMPILERSTUB_CODESIZE    3 * 4
+#define COMPILERSTUB_CODESIZE    1 * 4
 
 
 /* macros to create code ******************************************************/
