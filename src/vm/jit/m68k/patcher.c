@@ -101,20 +101,19 @@ java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 	/* create the stackframeinfo */
 
 	/* RA is passed as NULL, but the XPC is correct and can be used in
-	   stacktrace_create_extern_stackframeinfo for
-	   md_codegen_get_pv_from_pc. */
+	   stacktrace_stackframeinfo_add for md_codegen_get_pv_from_pc. */
 
 	/*
 	fprintf(stderr, "EXT STACKFRAME: sfi=%x pv=%x, sp=%x, xpc=%x\n", &sfi, pv, sp+7*4, xpc);
 	*/
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp + 7 * 4, xpc, xpc);
+	stacktrace_stackframeinfo_add(&sfi, pv, sp + 7 * 4, xpc, xpc);
 
 	/* call the proper patcher function */
 	result = (patcher_function)(sp);
 
 
 	/* remove the stackframeinfo */
-	stacktrace_remove_stackframeinfo(&sfi);
+	stacktrace_stackframeinfo_remove(&sfi);
 
 	/* check for return value and exit accordingly */
 	if (result == false) {

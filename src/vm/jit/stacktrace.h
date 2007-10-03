@@ -97,18 +97,8 @@ struct stacktracebuffer {
 
 /* function prototypes ********************************************************/
 
-#if defined(ENABLE_INTRP)
-void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv, u1 *sp,
-									  u1 *ra);
-#endif
-
-void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
-											 u1 *sp, u1 *ra, u1 *xpc);
-
-void stacktrace_create_native_stackframeinfo(stackframeinfo *sfi, u1 *pv,
-											 u1 *sp, u1 *ra);
-
-void stacktrace_remove_stackframeinfo(stackframeinfo *sfi);
+void stacktrace_stackframeinfo_add(stackframeinfo *sfi, u1 *pv, u1 *sp, u1 *ra, u1 *xpc);
+void stacktrace_stackframeinfo_remove(stackframeinfo *sfi);
 
 
 stacktracebuffer *stacktrace_create(stackframeinfo *sfi);

@@ -650,9 +650,9 @@ java_object_t *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
 	java_handle_t  *e;
 	java_object_t  *o;
 
-	/* create the stackframeinfo (XPC is equal to RA) */
+	/* Fill and add a stackframeinfo (XPC is equal to RA). */
 
-	stacktrace_create_extern_stackframeinfo(&sfi, NULL, sp, ra, ra);
+	stacktrace_stackframeinfo_add(&sfi, NULL, sp, ra, ra);
 
 	/* create the exception */
 
@@ -662,9 +662,9 @@ java_object_t *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
 	e = exceptions_new_error(utf_java_lang_AbstractMethodError);
 #endif
 
-	/* remove the stackframeinfo */
+	/* Remove the stackframeinfo. */
 
-	stacktrace_remove_stackframeinfo(&sfi);
+	stacktrace_stackframeinfo_remove(&sfi);
 
 	/* unwrap the exception */
 	/* ATTENTION: do the this _after_ the stackframeinfo was removed */
@@ -1734,9 +1734,9 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 	xptr = LLNI_WRAP(xptro);
 	xpc  = ADDR_MASK(xpc);
 
-	/* create the stackframeinfo (XPC is equal to RA) */
+	/* Fill and add a stackframeinfo (XPC is equal to RA). */
 
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, xpc, xpc);
+	stacktrace_stackframeinfo_add(&sfi, pv, sp, xpc, xpc);
 
 	result = NULL;
 
@@ -1915,9 +1915,9 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 
 exceptions_handle_exception_return:
 
-	/* remove the stackframeinfo */
+	/* Remove the stackframeinfo. */
 
-	stacktrace_remove_stackframeinfo(&sfi);
+	stacktrace_stackframeinfo_remove(&sfi);
 
 	return result;
 }

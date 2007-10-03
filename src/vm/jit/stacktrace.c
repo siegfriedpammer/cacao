@@ -83,76 +83,14 @@ CYCLES_STATS_DECLARE(stacktrace_getCurrentClass ,40,5000)
 CYCLES_STATS_DECLARE(stacktrace_getStack        ,40,10000)
 
 
-/* stacktrace_create_stackframeinfo ********************************************
+/* stacktrace_stackframeinfo_add ***********************************************
 
-   Creates an stackframe info structure for inline code in the
-   interpreter.
-
-*******************************************************************************/
-
-#if defined(ENABLE_INTRP)
-void stacktrace_create_stackframeinfo(stackframeinfo *sfi, u1 *pv, u1 *sp,
-									  u1 *ra)
-{
-	stackframeinfo **psfi;
-	methodinfo      *m;
-	codeinfo        *code;
-
-	/* get current stackframe info pointer */
-
-	psfi = &STACKFRAMEINFO;
-
-	/* if we don't have pv handy */
-
-	if (pv == NULL) {
-#if defined(ENABLE_INTRP)
-		if (opt_intrp)
-			pv = codegen_get_pv_from_pc(ra);
-		else
-#endif
-			{
-#if defined(ENABLE_JIT)
-				pv = md_codegen_get_pv_from_pc(ra);
-#endif
-			}
-	}
-
-	/* get codeinfo pointer from data segment */
-
-	code = *((codeinfo **) (pv + CodeinfoPointer));
-
-	/* For asm_vm_call_method the codeinfo pointer is NULL. */
-
-	m = (code == NULL) ? NULL : code->m;
-
-	/* fill new stackframe info structure */
-
-	sfi->prev   = *psfi;
-	sfi->method = m;
-	sfi->pv     = pv;
-	sfi->sp     = sp;
-	sfi->ra     = ra;
-
-	/* xpc is the same as ra, but is required in stacktrace_create */
-
-	sfi->xpc    = ra;
-
-	/* store new stackframe info pointer */
-
-	*psfi = sfi;
-}
-#endif /* defined(ENABLE_INTRP) */
-
-
-/* stacktrace_create_extern_stackframeinfo *************************************
-
-   Creates an stackframe info structure for an extern exception
-   (hardware or assembler).
+   Fills a stackframe info structure with the given or calculated
+   values and adds it to the chain.
 
 *******************************************************************************/
 
-void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
-											 u1 *sp, u1 *ra, u1 *xpc)
+void stacktrace_stackframeinfo_add(stackframeinfo *sfi, u1 *pv, u1 *sp, u1 *ra, u1 *xpc)
 {
 	stackframeinfo **psfi;
 	methodinfo      *m;
@@ -259,13 +197,14 @@ void stacktrace_create_extern_stackframeinfo(stackframeinfo *sfi, u1 *pv,
 }
 
 
-/* stacktrace_remove_stackframeinfo ********************************************
+/* stacktrace_stackframeinfo_remove ********************************************
 
-   Remove the topmost stackframeinfo in the current thread.
+   Remove the given stackframeinfo from the chain in the current
+   thread.
 
 *******************************************************************************/
 
-void stacktrace_remove_stackframeinfo(stackframeinfo *sfi)
+void stacktrace_stackframeinfo_remove(stackframeinfo *sfi)
 {
 	stackframeinfo **psfi;
 

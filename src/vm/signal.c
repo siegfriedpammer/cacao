@@ -247,7 +247,7 @@ void *signal_handle(int type, intptr_t val,
 	case EXCEPTION_HARDWARE_COMPILER:
 		/* In this case the passed PV points to the compiler stub.  We
 		   get the methodinfo pointer here and set PV to NULL so
-		   stacktrace_stackframeinfo_create determines the PV for the
+		   stacktrace_stackframeinfo_add determines the PV for the
 		   parent Java method. */
 
 		m  = code_get_methodinfo_for_pv(pv);
@@ -259,9 +259,9 @@ void *signal_handle(int type, intptr_t val,
 		break;
 	}
 
-	/* create stackframeinfo */
+	/* Fill and add a stackframeinfo. */
 
-	stacktrace_create_extern_stackframeinfo(&sfi, pv, sp, ra, xpc);
+	stacktrace_stackframeinfo_add(&sfi, pv, sp, ra, xpc);
 
 	switch (type) {
 	case EXCEPTION_HARDWARE_NULLPOINTER:
@@ -330,9 +330,9 @@ void *signal_handle(int type, intptr_t val,
 		p = NULL;
 	}
 
-	/* remove stackframeinfo */
+	/* Remove stackframeinfo. */
 
-	stacktrace_remove_stackframeinfo(&sfi);
+	stacktrace_stackframeinfo_remove(&sfi);
 
 	/* unwrap and return the exception object */
 	/* AFTER: removing stackframeinfo */

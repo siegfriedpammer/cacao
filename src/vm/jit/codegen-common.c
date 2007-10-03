@@ -1619,9 +1619,9 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 
 	/* Add a stackframeinfo for this native method.  We don't have RA
 	   and XPC here.  These are determined in
-	   stacktrace_stackframeinfo_create. */
+	   stacktrace_stackframeinfo_add. */
 
-	stacktrace_create_extern_stackframeinfo(sfi, pv, sp, NULL, NULL);
+	stacktrace_stackframeinfo_add(sfi, pv, sp, NULL, NULL);
 
 	/* Return a wrapped classinfo for static methods. */
 
@@ -1694,9 +1694,9 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 
 	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
 
-	/* remove current stackframeinfo from chain */
+	/* Remove current stackframeinfo from chain. */
 
-	stacktrace_remove_stackframeinfo(sfi);
+	stacktrace_stackframeinfo_remove(sfi);
 
 #if defined(ENABLE_HANDLES)
 	/* unwrap the return value from the local reference table */

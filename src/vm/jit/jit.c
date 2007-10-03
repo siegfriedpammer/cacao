@@ -1692,7 +1692,7 @@ u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra)
 	/* create the stackframeinfo (subtract 1 from RA as it points to the */
 	/* instruction after the call)                                       */
 
-	stacktrace_create_extern_stackframeinfo(&sfi, NULL, sp, ra, ra-1);
+	stacktrace_stackframeinfo_add(&sfi, NULL, sp, ra, ra-1);
 
 	/* actually compile the method */
 
@@ -1700,7 +1700,7 @@ u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra)
 
 	/* remove the stackframeinfo */
 
-	stacktrace_remove_stackframeinfo(&sfi);
+	stacktrace_stackframeinfo_remove(&sfi);
 
 	/* there was a problem during compilation */
 
