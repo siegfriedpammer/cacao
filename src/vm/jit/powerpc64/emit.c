@@ -669,6 +669,18 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 }
 
 
+/* emit_trap_compiler **********************************************************
+
+   Emit a trap instruction which calls the JIT compiler.
+
+*******************************************************************************/
+
+void emit_trap_compiler(codegendata *cd)
+{
+	M_LWZ(REG_METHODPTR, REG_ZERO, EXCEPTION_HARDWARE_COMPILER);
+}
+
+
 /* emit_trap *******************************************************************
 
    Emit a trap instruction and return the original machine code.
@@ -684,7 +696,7 @@ uint32_t emit_trap(codegendata *cd)
 
 	mcode = *((uint32_t *) cd->mcodeptr);
 
-	/* ALD is 4 byte aligned, ILD 2, onyl LWZ is byte aligned */
+	/* ALD is 4 byte aligned, ILD 2, only LWZ is byte aligned */
 	M_LWZ(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_PATCHER);
 
 	return mcode;

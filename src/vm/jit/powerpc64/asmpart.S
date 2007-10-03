@@ -41,8 +41,6 @@
 	.globl asm_vm_call_method_exception_handler
 	.globl asm_vm_call_method_end
 
-	.globl asm_call_jit_compiler
-
 	.globl asm_handle_nat_exception
 	.globl asm_handle_exception
 
@@ -227,54 +225,6 @@ asm_vm_call_method_exception_handler:
 
 asm_vm_call_method_end:
 	nop
-
-/* asm_call_jit_compiler *******************************************************
-
-   Invokes the compiler for untranslated JavaVM methods.
-
-*******************************************************************************/
-
-asm_call_jit_compiler:
-L_asm_call_jit_compiler:                /* required for PIC code              */
-	mflr    r0
-	std     r0,LA_LR_OFFSET(sp)         /* save return address                */
-	stdu    r1,-(LA_SIZE+PA_SIZE+ARG_CNT*8)(sp)
-
-	SAVE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+PA_SIZE_IN_POINTERS)
-
-	mr      a0,itmp1
-	mr      a1,mptr
-	addi    a2,sp,(LA_SIZE + PA_SIZE+ ARG_CNT*8)
-	ld      a3,(LA_SIZE + PA_SIZE + ARG_CNT*8)+LA_LR_OFFSET(sp)
-	bl      jit_asm_compile
-	ori	r0,r0,0			    /* nop needed after jump to function desc. */
-	mr      pv,v0                       /* move address to pv register        */
-
-	RESTORE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS+PA_SIZE_IN_POINTERS)
-
-	ld     itmp1,(LA_SIZE + PA_SIZE + ARG_CNT*8)+LA_LR_OFFSET(sp)
-	mtlr   itmp1
-
-	addi    sp,sp,(LA_SIZE + PA_SIZE + ARG_CNT*8)
-
-	mr.     pv,pv                       /* test for exception                 */
-	beq     L_asm_call_jit_compiler_exception
-
-	mtctr   pv                          /* move method address to control reg */
-	bctr                                /* and call the Java method           */
-
-L_asm_call_jit_compiler_exception:
-	mflr	r0
-	std     r0,LA_LR_OFFSET(sp)
-	stdu    sp,-LA_SIZE_ALIGNED(sp)     /* preserve linkage area              */
-	bl      exceptions_get_and_clear_exception
-	ld      xpc,LA_SIZE_ALIGNED+LA_LR_OFFSET(sp)
-	mtlr    xpc	
-	addi    sp,sp,LA_SIZE_ALIGNED
-
-	mr      xptr,v0                     /* get exception                      */
-	addi    xpc,xpc,-4                  /* exception address is ra - 4        */
-	b       L_asm_handle_nat_exception
 
 
 /********************* function asm_handle_exception ***************************
