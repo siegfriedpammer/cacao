@@ -1202,7 +1202,6 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_FCMPL:      /* ..., val1, val2  ==> ..., val1 fcmpg val2    */
 		case ICMD_DCMPL:      /* == => 0, < => 1, > => -1                     */
 
-
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
@@ -1231,109 +1230,8 @@ bool codegen_emit(jitdata *jd)
 			M_IADD_IMM(REG_ZERO, -1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
+
 			
-		case ICMD_IF_FCMPEQ:    /* ..., value, value ==> ...                  */
-		case ICMD_IF_DCMPEQ:
-
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
-			M_FCMPU(s1, s2);
-			M_BNAN(1);
-			emit_beq(cd, iptr->dst.block);
-			break;
-
-		case ICMD_IF_FCMPNE:    /* ..., value, value ==> ...                  */
-		case ICMD_IF_DCMPNE:
-
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
-			M_FCMPU(s1, s2);
-			emit_bnan(cd, iptr->dst.block);
-			emit_bne(cd, iptr->dst.block);
-			break;
-
-
-		case ICMD_IF_FCMPL_LT:  /* ..., value, value ==> ...                  */
-		case ICMD_IF_DCMPL_LT:
-
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
-			M_FCMPU(s1, s2);
-			emit_bnan(cd, iptr->dst.block);
-			emit_blt(cd, iptr->dst.block);
-			break;
-
-		case ICMD_IF_FCMPL_GT:  /* ..., value, value ==> ...                  */
-		case ICMD_IF_DCMPL_GT:
-
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
-			M_FCMPU(s1, s2);
-			M_BNAN(1);
-			emit_bgt(cd, iptr->dst.block);
-			break;
-
-		case ICMD_IF_FCMPL_LE:  /* ..., value, value ==> ...                  */
-		case ICMD_IF_DCMPL_LE:
-
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
-			M_FCMPU(s1, s2);
-			emit_bnan(cd, iptr->dst.block);
-			emit_ble(cd, iptr->dst.block);
-			break;
-
-		case ICMD_IF_FCMPL_GE:  /* ..., value, value ==> ...                  */
-		case ICMD_IF_DCMPL_GE:
-
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
-			M_FCMPU(s1, s2);
-			M_BNAN(1);
-			emit_bge(cd, iptr->dst.block);
-			break;
-
-		case ICMD_IF_FCMPG_LT:  /* ..., value, value ==> ...                  */
-		case ICMD_IF_DCMPG_LT:
-
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
-			M_FCMPU(s1, s2);
-			M_BNAN(1);
-			emit_blt(cd, iptr->dst.block);
-			break;
-
-		case ICMD_IF_FCMPG_GT:  /* ..., value, value ==> ...                  */
-		case ICMD_IF_DCMPG_GT:
-
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
-			M_FCMPU(s1, s2);
-			emit_bnan(cd, iptr->dst.block);
-			emit_bgt(cd, iptr->dst.block);
-			break;
-
-		case ICMD_IF_FCMPG_LE:  /* ..., value, value ==> ...                  */
-		case ICMD_IF_DCMPG_LE:
-
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
-			M_FCMPU(s1, s2);
-			M_BNAN(1);
-			emit_ble(cd, iptr->dst.block);
-			break;
-
-		case ICMD_IF_FCMPG_GE:  /* ..., value, value ==> ...                  */
-		case ICMD_IF_DCMPG_GE:
-
-			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
-			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
-			M_FCMPU(s1, s2);
-			emit_bnan(cd, iptr->dst.block);
-			emit_bge(cd, iptr->dst.block);
-			break;
-
-
 		/* memory operations **************************************************/
 
 		case ICMD_ARRAYLENGTH: /* ..., arrayref  ==> ..., length              */

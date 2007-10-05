@@ -1242,32 +1242,6 @@ extern int stackreq[256];
 #define ICMD_IMULPOW2         214
 #define ICMD_LMULPOW2         215
 
-#define ICMD_IF_FCMPEQ        216
-#define ICMD_IF_FCMPNE        217
-
-#define ICMD_IF_FCMPL_LT      218
-#define ICMD_IF_FCMPL_GE      219
-#define ICMD_IF_FCMPL_GT      220
-#define ICMD_IF_FCMPL_LE      221
-
-#define ICMD_IF_FCMPG_LT      222
-#define ICMD_IF_FCMPG_GE      223
-#define ICMD_IF_FCMPG_GT      224
-#define ICMD_IF_FCMPG_LE      225
-
-#define ICMD_IF_DCMPEQ        226
-#define ICMD_IF_DCMPNE        227
-
-#define ICMD_IF_DCMPL_LT      228
-#define ICMD_IF_DCMPL_GE      229
-#define ICMD_IF_DCMPL_GT      230
-#define ICMD_IF_DCMPL_LE      231
-
-#define ICMD_IF_DCMPG_LT      232
-#define ICMD_IF_DCMPG_GE      233
-#define ICMD_IF_DCMPG_GT      234
-#define ICMD_IF_DCMPG_LE      235
-
 #define ICMD_INLINE_START     251       /* instruction before inlined method  */
 #define ICMD_INLINE_END       252       /* instruction after inlined method   */
 #define ICMD_INLINE_BODY      253       /* start of inlined body              */

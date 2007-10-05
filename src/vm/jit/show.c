@@ -1351,32 +1351,6 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 	case ICMD_IF_LCMPGT:
 	case ICMD_IF_LCMPLE:
 
-	case ICMD_IF_FCMPEQ:
-	case ICMD_IF_FCMPNE:
-
-	case ICMD_IF_FCMPL_LT:
-	case ICMD_IF_FCMPL_GE:
-	case ICMD_IF_FCMPL_GT:
-	case ICMD_IF_FCMPL_LE:
-
-	case ICMD_IF_FCMPG_LT:
-	case ICMD_IF_FCMPG_GE:
-	case ICMD_IF_FCMPG_GT:
-	case ICMD_IF_FCMPG_LE:
-
-	case ICMD_IF_DCMPEQ:
-	case ICMD_IF_DCMPNE:
-
-	case ICMD_IF_DCMPL_LT:
-	case ICMD_IF_DCMPL_GE:
-	case ICMD_IF_DCMPL_GT:
-	case ICMD_IF_DCMPL_LE:
-
-	case ICMD_IF_DCMPG_LT:
-	case ICMD_IF_DCMPG_GE:
-	case ICMD_IF_DCMPG_GT:
-	case ICMD_IF_DCMPG_LE:
-
 	case ICMD_IF_ACMPEQ:
 	case ICMD_IF_ACMPNE:
 		SHOW_S1(iptr);

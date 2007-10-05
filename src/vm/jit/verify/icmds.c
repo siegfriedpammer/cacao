@@ -415,32 +415,6 @@ case ICMD_IF_LCMPLT:       /* {ALL} */
 case ICMD_IF_LCMPGE:       /* {ALL} */
 case ICMD_IF_LCMPGT:       /* {ALL} */
 case ICMD_IF_LCMPLE:       /* {ALL} */
-
-case ICMD_IF_FCMPEQ:       /* {ALL} */
-case ICMD_IF_FCMPNE:       /* {ALL} */
-
-case ICMD_IF_FCMPL_LT:     /* {ALL} */
-case ICMD_IF_FCMPL_GE:     /* {ALL} */
-case ICMD_IF_FCMPL_GT:     /* {ALL} */
-case ICMD_IF_FCMPL_LE:     /* {ALL} */
-
-case ICMD_IF_FCMPG_LT:     /* {ALL} */
-case ICMD_IF_FCMPG_GE:     /* {ALL} */
-case ICMD_IF_FCMPG_GT:     /* {ALL} */
-case ICMD_IF_FCMPG_LE:     /* {ALL} */
-
-case ICMD_IF_DCMPEQ:       /* {ALL} */
-case ICMD_IF_DCMPNE:       /* {ALL} */
-
-case ICMD_IF_DCMPL_LT:     /* {ALL} */
-case ICMD_IF_DCMPL_GE:     /* {ALL} */
-case ICMD_IF_DCMPL_GT:     /* {ALL} */
-case ICMD_IF_DCMPL_LE:     /* {ALL} */
-
-case ICMD_IF_DCMPG_LT:     /* {ALL} */
-case ICMD_IF_DCMPG_GE:     /* {ALL} */
-case ICMD_IF_DCMPG_GT:     /* {ALL} */
-case ICMD_IF_DCMPG_LE:     /* {ALL} */
 	/* {RESULTNOW} */
 	TYPECHECK_COUNT(stat_ins_branch);
 
