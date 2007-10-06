@@ -1266,11 +1266,14 @@ jobject _Jv_JNI_PopLocalFrame(JNIEnv* env, jobject result)
 
 void _Jv_JNI_DeleteLocalRef(JNIEnv *env, jobject localRef)
 {
-	java_handle_t  *o;
+	java_handle_t *o;
 
 	STATISTICS(jniinvokation());
 
 	o = (java_handle_t *) localRef;
+
+	if (o == NULL)
+		return NULL;
 
 	/* delete the reference */
 
@@ -1321,10 +1324,10 @@ jobject _Jv_JNI_NewLocalRef(JNIEnv *env, jobject ref)
 
 	STATISTICS(jniinvokation());
 
-	if (ref == NULL)
-		return NULL;
-
 	o = (java_handle_t *) ref;
+
+	if (o == NULL)
+		return NULL;
 
 	/* insert the reference */
 

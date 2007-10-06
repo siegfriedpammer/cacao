@@ -327,17 +327,11 @@ java_handle_t *localref_add(java_object_t *o)
 	java_handle_t  *h;
 	int32_t         i;
 
-#if !defined(NDEBUG)
-	if (o == NULL) {
-		log_println("localref_add: WARNING: trying to add localref for (NIL)!");
-		return NULL;
-	}
-#endif
-
 	/* get current local reference table from thread */
 
 	lrt = LOCALREFTABLE;
 	assert(lrt != NULL);
+	assert(o != NULL);
 	/* XXX: assert that we are in a GC critical section! */
 
 	/* Check if we have space for the requested reference?  No,
@@ -397,6 +391,7 @@ void localref_del(java_handle_t *localref)
 
 	lrt = LOCALREFTABLE;
 	assert(lrt != NULL);
+	assert(localref != NULL);
 
 	localframes = lrt->localframes;
 
