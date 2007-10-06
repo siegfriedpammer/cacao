@@ -490,6 +490,156 @@ static functionptr native_method_find(methodinfo *m)
 }
 
 
+/* native_method_resolve *******************************************************
+
+   Resolves a native method, maybe from a dynamic library.
+
+   IN:
+       m ... methodinfo of the native Java method to resolve
+
+   RESULT:
+       pointer to the resolved method (symbol)
+
+*******************************************************************************/
+
+functionptr native_method_resolve(methodinfo *m)
+{
+	utf                            *name;
+	utf                            *newname;
+	functionptr                     f;
+#if defined(ENABLE_LTDL)
+	classloader                    *cl;
+	hashtable_library_loader_entry *le;
+	hashtable_library_name_entry   *ne;
+	u4                              key;    /* hashkey                        */
+	u4                              slot;   /* slot in hashtable              */
+#endif
+#if defined(WITH_CLASSPATH_SUN)
+	methodinfo                     *method_findNative;
+	java_handle_t                  *s;
+#endif
+
+	/* verbose output */
+
+	if (opt_verbosejni) {
+		printf("[Dynamic-linking native method ");
+		utf_display_printable_ascii_classname(m->class->name);
+		printf(".");
+		utf_display_printable_ascii(m->name);
+		printf(" ... ");
+	}
+
+	/* generate method symbol string */
+
+	name = native_method_symbol(m->class->name, m->name);
+
+	/* generate overloaded function (having the types in it's name)           */
+
+	newname = native_make_overloaded_function(name, m->descriptor);
+
+	/* check the library hash entries of the classloader of the
+	   methods's class  */
+
+	f = NULL;
+
+#if defined(ENABLE_LTDL)
+	/* Get the classloader. */
+
+	cl = class_get_classloader(m->class);
+
+	/* normally addresses are aligned to 4, 8 or 16 bytes */
+
+	key  = ((u4) (ptrint) cl) >> 4;                       /* align to 16-byte */
+	slot = key & (hashtable_library->size - 1);
+	le   = hashtable_library->ptr[slot];
+
+	/* iterate through loaders in this hash slot */
+
+	while ((le != NULL) && (f == NULL)) {
+		/* iterate through names in this loader */
+
+		ne = le->namelink;
+			
+		while ((ne != NULL) && (f == NULL)) {
+			f = (functionptr) (ptrint) lt_dlsym(ne->handle, name->text);
+
+			if (f == NULL)
+				f = (functionptr) (ptrint) lt_dlsym(ne->handle, newname->text);
+
+			ne = ne->hashlink;
+		}
+
+		le = le->hashlink;
+	}
+
+# if defined(WITH_CLASSPATH_SUN)
+	if (f == NULL) {
+		/* We can resolve the function directly from
+		   java.lang.ClassLoader as it's a static function. */
+		/* XXX should be done in native_init */
+
+		method_findNative =
+			class_resolveclassmethod(class_java_lang_ClassLoader,
+									 utf_findNative,
+									 utf_java_lang_ClassLoader_java_lang_String__J,
+									 class_java_lang_ClassLoader,
+									 true);
+
+		if (method_findNative == NULL)
+			return NULL;
+
+		/* try the normal name */
+
+		s = javastring_new(name);
+
+		f = (functionptr) (intptr_t) vm_call_method_long(method_findNative,
+														 NULL, cl, s);
+
+		/* if not found, try the mangled name */
+
+		if (f == NULL) {
+			s = javastring_new(newname);
+
+			f = (functionptr) (intptr_t) vm_call_method_long(method_findNative,
+															 NULL, cl, s);
+		}
+	}
+# endif
+
+	if (f != NULL)
+		if (opt_verbosejni)
+			printf("JNI ]\n");
+#endif
+
+	/* If not found, try to find the native function symbol in the
+	   main program. */
+
+	if (f == NULL) {
+		f = native_method_find(m);
+
+		if (f != NULL)
+			if (opt_verbosejni)
+				printf("internal ]\n");
+	}
+
+#if defined(ENABLE_JVMTI)
+	/* fire Native Method Bind event */
+	if (jvmti) jvmti_NativeMethodBind(m, f, &f);
+#endif
+
+	/* no symbol found? throw exception */
+
+	if (f == NULL) {
+		if (opt_verbosejni)
+			printf("failed ]\n");
+
+		exceptions_throw_unsatisfiedlinkerror(m->name);
+	}
+
+	return f;
+}
+
+
 /* native_library_open *********************************************************
 
    Open a native library with the given utf8 name.
@@ -658,150 +808,6 @@ hashtable_library_name_entry *native_library_find(utf *filename,
 	/* return entry, if no entry was found, ne is NULL */
 
 	return ne;
-}
-
-
-/* native_resolve_function *****************************************************
-
-   Resolves a native function, maybe from a dynamic library.
-
-*******************************************************************************/
-
-functionptr native_resolve_function(methodinfo *m)
-{
-	utf                            *name;
-	utf                            *newname;
-	functionptr                     f;
-#if defined(ENABLE_LTDL)
-	classloader                    *cl;
-	hashtable_library_loader_entry *le;
-	hashtable_library_name_entry   *ne;
-	u4                              key;    /* hashkey                        */
-	u4                              slot;   /* slot in hashtable              */
-#endif
-#if defined(WITH_CLASSPATH_SUN)
-	methodinfo                     *method_findNative;
-	java_handle_t                  *s;
-#endif
-
-	/* verbose output */
-
-	if (opt_verbosejni) {
-		printf("[Dynamic-linking native method ");
-		utf_display_printable_ascii_classname(m->class->name);
-		printf(".");
-		utf_display_printable_ascii(m->name);
-		printf(" ... ");
-	}
-
-	/* generate method symbol string */
-
-	name = native_method_symbol(m->class->name, m->name);
-
-	/* generate overloaded function (having the types in it's name)           */
-
-	newname = native_make_overloaded_function(name, m->descriptor);
-
-	/* check the library hash entries of the classloader of the
-	   methods's class  */
-
-	f = NULL;
-
-#if defined(ENABLE_LTDL)
-	/* Get the classloader. */
-
-	cl = class_get_classloader(m->class);
-
-	/* normally addresses are aligned to 4, 8 or 16 bytes */
-
-	key  = ((u4) (ptrint) cl) >> 4;                       /* align to 16-byte */
-	slot = key & (hashtable_library->size - 1);
-	le   = hashtable_library->ptr[slot];
-
-	/* iterate through loaders in this hash slot */
-
-	while ((le != NULL) && (f == NULL)) {
-		/* iterate through names in this loader */
-
-		ne = le->namelink;
-			
-		while ((ne != NULL) && (f == NULL)) {
-			f = (functionptr) (ptrint) lt_dlsym(ne->handle, name->text);
-
-			if (f == NULL)
-				f = (functionptr) (ptrint) lt_dlsym(ne->handle, newname->text);
-
-			ne = ne->hashlink;
-		}
-
-		le = le->hashlink;
-	}
-
-# if defined(WITH_CLASSPATH_SUN)
-	if (f == NULL) {
-		/* We can resolve the function directly from
-		   java.lang.ClassLoader as it's a static function. */
-		/* XXX should be done in native_init */
-
-		method_findNative =
-			class_resolveclassmethod(class_java_lang_ClassLoader,
-									 utf_findNative,
-									 utf_java_lang_ClassLoader_java_lang_String__J,
-									 class_java_lang_ClassLoader,
-									 true);
-
-		if (method_findNative == NULL)
-			return NULL;
-
-		/* try the normal name */
-
-		s = javastring_new(name);
-
-		f = (functionptr) (intptr_t) vm_call_method_long(method_findNative,
-														 NULL, cl, s);
-
-		/* if not found, try the mangled name */
-
-		if (f == NULL) {
-			s = javastring_new(newname);
-
-			f = (functionptr) (intptr_t) vm_call_method_long(method_findNative,
-															 NULL, cl, s);
-		}
-	}
-# endif
-
-	if (f != NULL)
-		if (opt_verbosejni)
-			printf("JNI ]\n");
-#endif
-
-	/* If not found, try to find the native function symbol in the
-	   main program. */
-
-	if (f == NULL) {
-		f = native_method_find(m);
-
-		if (f != NULL)
-			if (opt_verbosejni)
-				printf("internal ]\n");
-	}
-
-#if defined(ENABLE_JVMTI)
-	/* fire Native Method Bind event */
-	if (jvmti) jvmti_NativeMethodBind(m, f, &f);
-#endif
-
-	/* no symbol found? throw exception */
-
-	if (f == NULL) {
-		if (opt_verbosejni)
-			printf("failed ]\n");
-
-		exceptions_throw_unsatisfiedlinkerror(m->name);
-	}
-
-	return f;
 }
 #endif
 

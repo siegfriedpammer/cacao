@@ -424,7 +424,7 @@ bool patcher_resolve_native_function(patchref_t *pr)
 
 	/* resolve native function */
 
-	if (!(f = native_resolve_function(m)))
+	if (!(f = native_method_resolve(m)))
 		return false;
 
 	/* patch native function pointer */
