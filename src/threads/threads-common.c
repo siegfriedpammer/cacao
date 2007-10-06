@@ -454,7 +454,7 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 	LLNI_field_set_val(object, vm_thread, (java_lang_Object *) t);
 #endif
 
-	t->object = LLNI_DIRECT(object);
+	threads_thread_set_object(t, object);
 
 	/* set java.lang.Thread fields */
 
@@ -530,7 +530,7 @@ void threads_thread_start(java_handle_t *object)
 
 	/* link the two objects together */
 
-	thread->object = LLNI_DIRECT(object);
+	threads_thread_set_object(thread, object);
 
 #if defined(WITH_CLASSPATH_GNU)
 	LLNI_field_get_ref(o, vmThread, vmt);
@@ -568,7 +568,7 @@ void threads_thread_print_info(threadobject *t)
 
 	/* the thread may be currently in initalization, don't print it */
 
-	object = (java_lang_Thread *) LLNI_WRAP(t->object);
+	object = (java_lang_Thread *) threads_thread_get_object(t);
 
 	if (object != NULL) {
 		/* get thread name */

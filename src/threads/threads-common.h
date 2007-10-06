@@ -33,7 +33,7 @@
 
 #include "vm/global.h"
 
-#include "native/jni.h"
+#include "native/llni.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"
@@ -85,6 +85,32 @@
 /* XXX Remove for exact-GC. */
 extern bool threads_pthreads_implementation_nptl;
 #endif
+
+
+/* inline functions ***********************************************************/
+
+/* threads_thread_get_object ***************************************************
+
+   Return the java.lang.Thread object for the given thread.
+
+*******************************************************************************/
+
+static inline java_handle_t *threads_thread_get_object(threadobject *t)
+{
+	return LLNI_WRAP(t->object);
+}
+
+
+/* threads_thread_set_object ***************************************************
+
+   Set the java.lang.Thread object for the given thread.
+
+*******************************************************************************/
+
+static inline void threads_thread_set_object(threadobject *t, java_handle_t *object)
+{
+	t->object = LLNI_DIRECT(object);
+}
 
 
 /* function prototypes ********************************************************/

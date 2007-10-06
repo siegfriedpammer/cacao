@@ -91,7 +91,7 @@ void _Jv_java_lang_Thread_sleep(s8 millis)
 void _Jv_java_lang_Thread_start(java_lang_Thread *this, s8 stacksize)
 {
 #if defined(ENABLE_THREADS)
-	threads_thread_start(this);
+	threads_thread_start((java_handle_t *) this);
 #endif
 }
 
@@ -235,32 +235,39 @@ void _Jv_java_lang_Thread_stop(java_lang_Thread *this, java_lang_Throwable *t)
 java_lang_Thread *_Jv_java_lang_Thread_currentThread(void)
 {
 #if defined(ENABLE_THREADS)
-	threadobject     *thread;
+	threadobject          *thread;
 #endif
-	java_lang_Thread *t;
+	java_lang_Thread      *t;
+#if defined(ENABLE_JAVASE)
+	java_lang_ThreadGroup *group;
+#endif
 
 #if defined(ENABLE_THREADS)
 	thread = THREADOBJECT;
 
-	t = LLNI_WRAP(thread->object);
+	t = (java_lang_Thread *) threads_thread_get_object(thread);
 
 	if (t == NULL)
 		log_text("t ptr is NULL\n");
 
 # if defined(ENABLE_JAVASE)
-	if (LLNI_field_direct(t, group) == NULL) {
+	LLNI_field_get_ref(t, group, group);
+
+	if (group == NULL) {
 		/* ThreadGroup of currentThread is not initialized */
 
-		LLNI_field_direct(t, group) = (java_lang_ThreadGroup *)
+		group = (java_lang_ThreadGroup *)
 			native_new_and_init(class_java_lang_ThreadGroup);
 
-		if (LLNI_field_direct(t, group) == NULL)
+		if (group == NULL)
 			log_text("unable to create ThreadGroup");
+
+		LLNI_field_set_ref(t, group, group);
   	}
 # endif
 #else
 	/* we just return a fake java.lang.Thread object, otherwise we get
-       NullPointerException's in GNU classpath */
+	   NullPointerException's in GNU classpath */
 
 	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 #endif

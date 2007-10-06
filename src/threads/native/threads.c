@@ -927,7 +927,7 @@ bool threads_init(void)
 
 	/* set the object in the internal data structure */
 
-	mainthread->object = LLNI_DIRECT(t);
+	threads_thread_set_object(mainthread, t);
 
 #if defined(ENABLE_INTRP)
 	/* create interpreter stack */
@@ -1112,7 +1112,7 @@ static void *threads_startup_thread(void *arg)
 
 	/* get the java.lang.Thread object for this thread */
 
-	object = (java_lang_Thread *) LLNI_WRAP(thread->object);
+	object = (java_lang_Thread *) threads_thread_get_object(thread);
 
 	/* set our priority */
 
@@ -1388,7 +1388,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	if (t == NULL)
 		return false;
 
-	thread->object = LLNI_DIRECT(t);
+	threads_thread_set_object(thread, t);
 
 	/* thread is completely initialized */
 
@@ -1444,7 +1444,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 		/* get the main thread */
 
 		mainthread = threads_list_first();
-		mainthreado = (java_lang_Thread *) LLNI_WRAP(mainthread->object);
+		mainthreado = (java_lang_Thread *) threads_thread_get_object(mainthread);
 		group = LLNI_field_direct(mainthreado, group);
 #endif
 	}
@@ -1513,7 +1513,7 @@ bool threads_detach_thread(threadobject *t)
 #endif
 
 #if defined(ENABLE_JAVASE)
-	object = (java_lang_Thread *) LLNI_WRAP(t->object);
+	object = (java_lang_Thread *) threads_thread_get_object(t);
 
 	LLNI_field_get_ref(object, group, group);
 
