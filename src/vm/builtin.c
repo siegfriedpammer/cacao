@@ -1158,7 +1158,7 @@ static java_handle_t *builtin_multianewarray_intern(int n,
 		if (!ea)
 			return NULL;
 
-		LLNI_objectarray_element_set((java_handle_objectarray_t *) a, i, ea);
+		array_objectarray_element_set((java_handle_objectarray_t *) a, i, ea);
 	}
 
 	return a;
@@ -2520,12 +2520,12 @@ void builtin_arraycopy(java_handle_t *src, s4 srcStart,
 			for (i = 0; i < len; i++) {
 				java_handle_t *o;
 
-				LLNI_objectarray_element_get(oas, srcStart + i, o);
+				o = array_objectarray_element_get(oas, srcStart + i);
 
 				if (!builtin_canstore(oad, o))
 					return;
 
-				LLNI_objectarray_element_set(oad, destStart + i, o);
+				array_objectarray_element_set(oad, destStart + i, o);
 			}
 		}
 		else {
@@ -2538,12 +2538,12 @@ void builtin_arraycopy(java_handle_t *src, s4 srcStart,
 			for (i = len - 1; i >= 0; i--) {
 				java_handle_t *o;
 
-				LLNI_objectarray_element_get(oas, srcStart + i, o);
+				o = array_objectarray_element_get(oas, srcStart + i);
 
 				if (!builtin_canstore(oad, o))
 					return;
 
-				LLNI_objectarray_element_set(oad, destStart + i, o);
+				array_objectarray_element_set(oad, destStart + i, o);
 			}
 		}
 	}

@@ -135,15 +135,6 @@
 #define LLNI_array_size(arr)          (LLNI_DIRECT((java_handle_objectarray_t *) (arr))->header.size)
 
 
-/* XXX document me */
-
-#define LLNI_objectarray_element_set(arr, index, reference) \
-	LLNI_array_direct(arr, index) = (java_object_t *) LLNI_DIRECT(reference)
-
-#define LLNI_objectarray_element_get(arr, index, variable) \
-	(variable) = LLNI_WRAP(LLNI_array_direct(arr, index))
-
-
 /* LLNI wrapping / unwrapping macros *******************************************
 
    ATTENTION: Only use these macros inside a LLNI critical section!

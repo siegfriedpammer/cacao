@@ -91,6 +91,7 @@
 
 #include "toolbox/logging.h"
 
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -2875,7 +2876,7 @@ jobjectArray _Jv_JNI_NewObjectArray(JNIEnv *env, jsize length,
 	/* set all elements to initialElement */
 
 	for (i = 0; i < length; i++)
-		LLNI_objectarray_element_set(oa, i, o);
+		array_objectarray_element_set(oa, i, o);
 
 	return (jobjectArray) _Jv_JNI_NewLocalRef(env, (jobject) oa);
 }
@@ -2896,7 +2897,7 @@ jobject _Jv_JNI_GetObjectArrayElement(JNIEnv *env, jobjectArray array,
 		return NULL;
 	}
 
-	LLNI_objectarray_element_get(oa, index, o);
+	o = array_objectarray_element_get(oa, index);
 
 	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
@@ -2924,7 +2925,7 @@ void _Jv_JNI_SetObjectArrayElement(JNIEnv *env, jobjectArray array,
 	if (!builtin_canstore(LLNI_DIRECT(oa), LLNI_DIRECT(o)))
 		return;
 
-	LLNI_objectarray_element_set(oa, index, o);
+	array_objectarray_element_set(oa, index, o);
 }
 
 
