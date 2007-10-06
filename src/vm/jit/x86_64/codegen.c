@@ -2891,12 +2891,13 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	methoddesc  *md;
 	int          i, j;
 	int          s1, s2;
-	int          funcdisp;
-#if defined(ENABLE_GC_CACAO)
 	int          disp;
-#endif
 
-	/* get required compiler data */
+	/* Sanity check. */
+
+	assert(f != NULL);
+
+	/* Get required compiler data. */
 
 	m    = jd->m;
 	code = jd->code;
@@ -2942,13 +2943,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* generate stub code */
 
 	M_ASUB_IMM(cd->stackframesize * 8, REG_SP);
-
-	/* get function address (this must happen before the stackframeinfo) */
-
-	funcdisp = dseg_add_functionptr(cd, f);
-
-	if (f == NULL)
-		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, funcdisp);
 
 #if defined(ENABLE_GC_CACAO)
 	/* Save callee saved integer registers in stackframeinfo (GC may
@@ -3070,9 +3064,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		M_MOV_IMM(_Jv_env, REG_A0);
 	}
 
-	/* do the native function call */
+	/* Call the native function. */
 
-	M_ALD(REG_ITMP1, RIP, funcdisp);
+	disp = dseg_add_functionptr(cd, f);
+	M_ALD(REG_ITMP1, RIP, disp);
 	M_CALL(REG_ITMP1);
 
 	/* save return value */
@@ -3144,10 +3139,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	M_MOV_IMM(asm_handle_nat_exception, REG_ITMP3);
 	M_JMP(REG_ITMP3);
-
-	/* Generate patcher traps. */
-
-	emit_patcher_traps(jd);
 }
 
 

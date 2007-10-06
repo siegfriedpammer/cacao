@@ -1303,11 +1303,17 @@ static u1 *jit_compile_intern(jitdata *jd)
 	if (m->flags & ACC_NATIVE) {
 		functionptr f;
 
-		f = NULL;
+		f = native_method_resolve(m);
+
+		if (f == NULL)
+			return NULL;
 
 		code = codegen_generate_stub_native(m, f);
 
-		assert(!m->code); /* native methods are never recompiled */
+		/* Native methods are never recompiled. */
+		
+		assert(!m->code);
+
 		m->code = code;
 		
 		return code->entrypoint;
