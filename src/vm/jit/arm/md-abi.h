@@ -94,8 +94,6 @@
 # define FLT_RES_CNT    2    /* number of reserved float registers            */
 #endif /* defined(ENABLE_SOFTFLOAT) */
 
-#define TRACE_ARGS_NUM  4
-
 
 /* Register Pack/Unpack Macros ************************************************/
 
@@ -106,7 +104,6 @@
 # define REG_RESULT_PACKED    PACK_REGS(REG_RESULT, REG_RESULT2)
 
 # define REG_A0_A1_PACKED     PACK_REGS(REG_A0, REG_A1)
-# define REG_A1_A2_PACKED     PACK_REGS(REG_A1, REG_A2)
 # define REG_A2_A3_PACKED     PACK_REGS(REG_A2, REG_A3)
 
 #else /* defined(__ARMEB__) */
@@ -116,7 +113,6 @@
 # define REG_RESULT_PACKED    PACK_REGS(REG_RESULT2, REG_RESULT)
 
 # define REG_A0_A1_PACKED     PACK_REGS(REG_A1, REG_A0)
-# define REG_A1_A2_PACKED     PACK_REGS(REG_A2, REG_A1)
 # define REG_A2_A3_PACKED     PACK_REGS(REG_A3, REG_A2)
 
 #endif

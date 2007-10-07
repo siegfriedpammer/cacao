@@ -40,7 +40,6 @@
 
 #include "threads/lock-common.h"
 
-#include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
 
@@ -50,6 +49,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
+#include "vm/jit/trace.h"
 
 #include "toolbox/logging.h" /* XXX for debugging only */
 
@@ -609,9 +609,8 @@ void emit_verbosecall_enter(jitdata *jd)
 	codegendata  *cd;
 	registerdata *rd;
 	methoddesc   *md;
-	s4            stackframesize;
 	s4            disp;
-	s4            i, t, s1, s2;
+	s4            i, s;
 
 	/* get required compiler data */
 
@@ -621,87 +620,73 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	md = m->parseddesc;
 
-	/* stackframesize is changed below */
-
-	stackframesize = cd->stackframesize;
-
 	/* mark trace code */
 
 	M_NOP;
 
-	/* Save argument registers to stack (including LR and PV).  Keep
-	   stack 8-byte aligned. */
+	/* Keep stack 8-byte aligned. */
 
-	M_STMFD(BITMASK_ARGS | (1<<REG_LR) | (1<<REG_PV), REG_SP);
-	M_SUB_IMM(REG_SP, REG_SP, (2 + 2 + 1 + 1) * 4); /* space for a3, a4 and m */
+	M_STMFD((1<<REG_LR) | (1<<REG_PV), REG_SP);
+	M_SUB_IMM(REG_SP, REG_SP, md->paramcount * 8);
 
-	stackframesize += (6 + 2 + 2 + 1 + 1) * 4;
+	/* save argument registers */
 
-	/* prepare args for tracer */
-
-	i = md->paramcount - 1;
-
-	if (i > 3)
-		i = 3;
-
-	for (; i >= 0; i--) {
-		t = md->paramtypes[i].type;
-
-		/* load argument into register (s1) and make it of TYPE_LNG */
-
+	for (i = 0; i < md->paramcount; i++) {
 		if (!md->params[i].inmemory) {
-			s1 = md->params[i].regoff;
+			s = md->params[i].regoff;
 
-			if (!IS_2_WORD_TYPE(t)) {
-				M_MOV_IMM(REG_ITMP1, 0);
-				s1 = PACK_REGS(s1, REG_ITMP1);
+			switch (md->paramtypes[i].type) {
+			case TYPE_ADR:
+			case TYPE_INT:
+				M_IST(s, REG_SP, i * 8);
+				break;
+			case TYPE_LNG:
+				M_LST(s, REG_SP, i * 8);
+				break;
+			case TYPE_FLT:
+				M_FST(s, REG_SP, i * 8);
+				break;
+			case TYPE_DBL:
+				M_DST(s, REG_SP, i * 8);
+				break;
 			}
-		}
-		else {
-			s1 = REG_ITMP12_PACKED;
-			s2 = md->params[i].regoff + stackframesize;
-
-			if (IS_2_WORD_TYPE(t))
-				M_LLD(s1, REG_SP, s2);
-			else {
-				M_ILD(GET_LOW_REG(s1), REG_SP, s2);
-				M_MOV_IMM(GET_HIGH_REG(s1), 0);
-			}
-		}
-
-		/* place argument for tracer */
-
-		if (i < 2) {
-#if defined(__ARMEL__)
-			s2 = PACK_REGS(abi_registers_integer_argument[i * 2],
-						   abi_registers_integer_argument[i * 2 + 1]);
-#else /* defined(__ARMEB__) */
-			s2 = PACK_REGS(abi_registers_integer_argument[i * 2 + 1],
-						   abi_registers_integer_argument[i * 2]);
-#endif          
-			M_LNGMOVE(s1, s2);
-		}
-		else {
-			s2 = (i - 2) * 2;
-			M_LST(s1, REG_SP, s2 * 4);
 		}
 	}
 
-	/* prepare methodinfo pointer for tracer */
-
 	disp = dseg_add_address(cd, m);
-	M_DSEG_LOAD(REG_ITMP1, disp);
-	M_STR_INTERN(REG_ITMP1, REG_SP, 16);
+	M_DSEG_LOAD(REG_A0, disp);
+	M_MOV(REG_A1, REG_SP);
+	M_ADD_IMM(REG_A2, REG_SP, md->paramcount * 8 + 2 * 4 + cd->stackframesize);
+	M_LONGBRANCH(trace_java_call_enter);
 
-	/* call tracer here (we use a long branch) */
+	/* restore argument registers */
 
-	M_LONGBRANCH(builtin_verbosecall_enter);
+	for (i = 0; i < md->paramcount; i++) {
+		if (!md->params[i].inmemory) {
+			s = md->params[i].regoff;
 
-	/* Restore argument registers from stack.  Keep stack 8-byte
-	   aligned. */
+			switch (md->paramtypes[i].type) {
+			case TYPE_ADR:
+			case TYPE_INT:
+				M_ILD(s, REG_SP, i * 8);
+				break;
+			case TYPE_LNG:
+				M_LLD(s, REG_SP, i * 8);
+				break;
+			case TYPE_FLT:
+				M_FLD(s, REG_SP, i * 8);
+				break;
+			case TYPE_DBL:
+				M_DLD(s, REG_SP, i * 8);
+				break;
+			}
+		}
+	}
 
-	M_ADD_IMM(REG_SP, REG_SP, (2 + 2 + 1 + 1) * 4);    /* free argument stack */
-	M_LDMFD(BITMASK_ARGS | (1<<REG_LR) | (1<<REG_PV), REG_SP);
+	/* Keep stack 8-byte aligned. */
+
+	M_ADD_IMM(REG_SP, REG_SP, md->paramcount * 8);
+	M_LDMFD((1<<REG_LR) | (1<<REG_PV), REG_SP);
 
 	/* mark trace code */
 
@@ -713,8 +698,6 @@ void emit_verbosecall_enter(jitdata *jd)
 /* emit_verbosecall_exit *******************************************************
 
    Generates the code for the call trace.
-
-   void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m);
 
 *******************************************************************************/
 
@@ -741,38 +724,49 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	/* Keep stack 8-byte aligned. */
 
-	M_STMFD(BITMASK_RESULT | (1<<REG_LR) | (1<<REG_PV), REG_SP);
-	M_SUB_IMM(REG_SP, REG_SP, (1 + 1) * 4);              /* space for f and m */
+	M_STMFD((1<<REG_LR) | (1<<REG_PV), REG_SP);
+	M_SUB_IMM(REG_SP, REG_SP, 1 * 8);
+
+	/* save argument registers */
 
 	switch (md->returntype.type) {
 	case TYPE_ADR:
 	case TYPE_INT:
-		M_INTMOVE(REG_RESULT, GET_LOW_REG(REG_A0_A1_PACKED));
-		M_MOV_IMM(GET_HIGH_REG(REG_A0_A1_PACKED), 0);
+	case TYPE_FLT:
+		M_IST(REG_RESULT, REG_SP, 0 * 8);
 		break;
 
 	case TYPE_LNG:
-		M_LNGMOVE(REG_RESULT_PACKED, REG_A0_A1_PACKED);
-		break;
-
-	case TYPE_FLT:
-		M_IST(REG_RESULT, REG_SP, 0 * 4);
-		break;
-
 	case TYPE_DBL:
-		M_LNGMOVE(REG_RESULT_PACKED, REG_A2_A3_PACKED);
+		M_LST(REG_RESULT_PACKED, REG_SP, 0 * 8);
 		break;
 	}
 
 	disp = dseg_add_address(cd, m);
-	M_DSEG_LOAD(REG_ITMP1, disp);
-	M_AST(REG_ITMP1, REG_SP, 1 * 4);
-	M_LONGBRANCH(builtin_verbosecall_exit);
+	M_DSEG_LOAD(REG_A0, disp);
+	M_MOV(REG_A1, REG_SP);
+	M_LONGBRANCH(trace_java_call_exit);
+
+	/* restore argument registers */
+
+	switch (md->returntype.type) {
+	case TYPE_ADR:
+	case TYPE_INT:
+	case TYPE_FLT:
+		M_ILD(REG_RESULT, REG_SP, 0 * 8);
+		break;
+
+	case TYPE_LNG:
+	case TYPE_DBL:
+		M_LLD(REG_RESULT_PACKED, REG_SP, 0 * 8);
+		break;
+	}
+
 
 	/* Keep stack 8-byte aligned. */
 
-	M_ADD_IMM(REG_SP, REG_SP, (1 + 1) * 4);            /* free argument stack */
-	M_LDMFD(BITMASK_RESULT | (1<<REG_LR) | (1<<REG_PV), REG_SP);
+	M_ADD_IMM(REG_SP, REG_SP, 1 * 8);
+	M_LDMFD((1<<REG_LR) | (1<<REG_PV), REG_SP);
 
 	/* mark trace code */
 
