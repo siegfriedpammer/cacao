@@ -75,8 +75,6 @@
 #define FLT_TMP_CNT     0       /* number of float temporary registers        */
 #define FLT_RES_CNT     8       /* numebr of float reserved registers         */
 
-#define TRACE_ARGS_NUM  8
-
 #define REG_RES_CNT     3       /* number of reserved registers               */
 
 

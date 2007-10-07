@@ -39,7 +39,6 @@
 
 #include "threads/lock-common.h"
 
-#include "vm/builtin.h"
 #include "vm/exceptions.h"
 
 #include "vm/jit/abi.h"
@@ -49,6 +48,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
+#include "vm/jit/trace.h"
 
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"
@@ -559,9 +559,8 @@ void emit_verbosecall_enter(jitdata *jd)
 	codegendata  *cd;
 	registerdata *rd;
 	methoddesc   *md;
-	int32_t       disp;
+	int32_t       stackframesize;
 	int           i;
-	int           d;
 
 	if (!JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		return;
@@ -578,62 +577,39 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	M_NOP;
 
-	/* methodinfo* + arguments + return address */
+	/* keep stack 16-byte aligned */
 
-	disp = (TRACE_ARGS_NUM + 1 + TMP_CNT) * 8 + cd->stackframesize * 8 + 4;
+	stackframesize = 2 + TMP_CNT;
+	ALIGN_2(stackframesize);
 
-	M_ASUB_IMM((TRACE_ARGS_NUM + 1 + TMP_CNT) * 8, REG_SP);
+	M_ASUB_IMM(stackframesize * 8, REG_SP);
 
 	/* save temporary registers for leaf methods */
 
-	for (i = 0; i < INT_TMP_CNT; i++)
-		M_IST(rd->tmpintregs[i], REG_SP, (TRACE_ARGS_NUM + 1 + i) * 8);
-
-	/* save argument registers */
-
-	for (i = 0; i < md->paramcount; i++) {
-		d = i * 8;
-
-		switch (md->paramtypes[i].type) {
-		case TYPE_INT:
-			M_ILD(EAX, REG_SP, disp);
-			M_CLTD;
-			M_LST(EAX_EDX_PACKED, REG_SP, d);
-			break;
-		case TYPE_LNG:
-			M_LLD(REG_ITMP12_PACKED, REG_SP, disp);
-			M_LST(REG_ITMP12_PACKED, REG_SP, d);
-			break;
-		case TYPE_ADR:
-			M_ALD(REG_ITMP1, REG_SP, disp);
-			M_AST(REG_ITMP1, REG_SP, d);
-			M_IST_IMM(0, REG_SP, d + 4);                /* high-bits are zero */
-			break;
-		case TYPE_FLT:
-			M_FLD(REG_NULL, REG_SP, disp);
-			M_FST(REG_NULL, REG_SP, d);
-			M_IST_IMM(0, REG_SP, d + 4);                /* high-bits are zero */
-			break;
-		case TYPE_DBL:
-			M_DLD(REG_NULL, REG_SP, disp);
-			M_DST(REG_NULL, REG_SP, d);
-			break;
-		}
-
-		disp += 8;
+	if (jd->isleafmethod) {
+		for (i = 0; i < INT_TMP_CNT; i++)
+			M_IST(rd->tmpintregs[i], REG_SP, (2 + i) * 8);
 	}
 
-	M_AST_IMM(m, REG_SP, TRACE_ARGS_NUM * 8);
+	/* no argument registers to save */
 
-	M_MOV_IMM(builtin_verbosecall_enter, REG_ITMP1);
+	M_AST_IMM(m, REG_SP, 0 * 4);
+	M_AST_IMM(0, REG_SP, 1 * 4);
+	M_AST(REG_SP, REG_SP, 2 * 4);
+	M_IADD_IMM_MEMBASE(stackframesize * 8 + cd->stackframesize * 8 + 4, REG_SP, 2 * 4);
+	M_MOV_IMM(trace_java_call_enter, REG_ITMP1);
 	M_CALL(REG_ITMP1);
+
+	/* no argument registers to restore */
 
 	/* restore temporary registers for leaf methods */
 
-	for (i = 0; i < INT_TMP_CNT; i++)
-		M_ILD(rd->tmpintregs[i], REG_SP, (TRACE_ARGS_NUM + 1 + i) * 8);
+	if (jd->isleafmethod) {
+		for (i = 0; i < INT_TMP_CNT; i++)
+			M_ILD(rd->tmpintregs[i], REG_SP, (2 + i) * 8);
+	}
 
-	M_AADD_IMM((TRACE_ARGS_NUM + 1 + TMP_CNT) * 8, REG_SP);
+	M_AADD_IMM(stackframesize * 8, REG_SP);
 
 	/* mark trace code */
 
@@ -646,8 +622,6 @@ void emit_verbosecall_enter(jitdata *jd)
 
    Generates the code for the call trace.
 
-   void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m);
-
 *******************************************************************************/
 
 #if !defined(NDEBUG)
@@ -656,6 +630,7 @@ void emit_verbosecall_exit(jitdata *jd)
 	methodinfo   *m;
 	codegendata  *cd;
 	registerdata *rd;
+	methoddesc   *md;
 
 	if (!JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		return;
@@ -666,25 +641,53 @@ void emit_verbosecall_exit(jitdata *jd)
 	cd = jd->cd;
 	rd = jd->rd;
 
+	md = m->parseddesc;
+
 	/* mark trace code */
 
 	M_NOP;
 
-	M_ASUB_IMM(8 + 8 + 4 + 4 + 8, REG_SP);  /* +8: keep stack 16-byte aligned */
+	/* keep stack 16-byte aligned */
 
-	M_LST(REG_RESULT_PACKED, REG_SP, 0 * 8);
+	M_ASUB_IMM(4 + 4 + 8, REG_SP);
 
-	M_DSTNP(REG_NULL, REG_SP, 1 * 8);
-	M_FSTNP(REG_NULL, REG_SP, 2 * 8);
+	/* save return value */
 
-	M_AST_IMM(m, REG_SP, 2 * 8 + 1 * 4);
+	switch (md->returntype.type) {
+	case TYPE_ADR:
+	case TYPE_INT:
+		M_IST(REG_RESULT, REG_SP, 2 * 4);
+		break;
+	case TYPE_LNG:
+		M_LST(REG_RESULT_PACKED, REG_SP, 2 * 4);
+		break;
+	case TYPE_FLT:
+		M_FSTNP(REG_NULL, REG_SP, 2 * 4);
+		break;
+	case TYPE_DBL:
+		M_DSTNP(REG_NULL, REG_SP, 2 * 4);
+		break;
+	}
 
-	M_MOV_IMM(builtin_verbosecall_exit, REG_ITMP1);
+	M_AST_IMM(m, REG_SP, 0 * 4);
+	M_AST(REG_SP, REG_SP, 1 * 4);
+	M_IADD_IMM_MEMBASE(2 * 4, REG_SP, 1 * 4);
+	M_MOV_IMM(trace_java_call_exit, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
-	M_LLD(REG_RESULT_PACKED, REG_SP, 0 * 4);
+	/* restore return value */
 
-	M_AADD_IMM(8 + 8 + 4 + 4 + 8, REG_SP);
+	switch (md->returntype.type) {
+	case TYPE_ADR:
+	case TYPE_INT:
+		M_ILD(REG_RESULT, REG_SP, 2 * 4);
+		break;
+	case TYPE_LNG:
+		M_LLD(REG_RESULT_PACKED, REG_SP, 2 * 4);
+		break;
+	}
+
+	M_AADD_IMM(4 + 4 + 8, REG_SP);
 
 	/* mark trace code */
 
