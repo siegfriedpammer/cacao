@@ -78,8 +78,6 @@
 #define FLT_TMP_CNT      6   /* number of float temporary registers           */
 #define FLT_RES_CNT      3   /* number of float reserved registers            */
 
-#define TRACE_ARGS_NUM   4
-
 
 /* packed register defines ****************************************************/
 

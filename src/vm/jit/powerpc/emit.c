@@ -40,7 +40,6 @@
 
 #include "threads/lock-common.h"
 
-#include "vm/builtin.h"
 #include "vm/exceptions.h"
 
 #include "vm/jit/abi.h"
@@ -653,8 +652,6 @@ void emit_verbosecall_enter(jitdata *jd)
 /* emit_verbosecall_exit *******************************************************
 
    Generates the code for the call trace.
-
-   void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m);
 
 *******************************************************************************/
 

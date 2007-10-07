@@ -133,8 +133,6 @@
 #define FLT_TMP_CNT     12       /* number of float temporary registers       */
 #define FLT_RES_CNT     2        /* number of float reserved registers        */
 
-#define TRACE_ARGS_NUM  8
-
 #endif /* _MD_ABI_H */
 
 

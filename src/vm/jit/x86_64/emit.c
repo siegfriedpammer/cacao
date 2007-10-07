@@ -39,7 +39,6 @@
 
 #include "threads/lock-common.h"
 
-#include "vm/builtin.h"
 #include "vm/exceptions.h"
 
 #include "vm/jit/abi.h"
@@ -50,6 +49,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
+#include "vm/jit/trace.h"
 
 #include "vmcore/options.h"
 
@@ -484,7 +484,8 @@ void emit_verbosecall_enter(jitdata *jd)
 	codegendata  *cd;
 	registerdata *rd;
 	methoddesc   *md;
-	s4            i, j, k;
+	s4            stackframesize;
+	s4            i, s;
 
 	/* get required compiler data */
 
@@ -498,69 +499,94 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	M_NOP;
 
-	/* additional +1 is for 16-byte stack alignment */
+	/* keep 16-byte stack alignment */
 
-	M_LSUB_IMM((ARG_CNT + TMP_CNT + 1 + 1) * 8, REG_SP);
+	stackframesize = md->paramcount + ARG_CNT + TMP_CNT;
+	ALIGN_2(stackframesize);
+
+	M_LSUB_IMM(stackframesize * 8, REG_SP);
 
 	/* save argument registers */
 
-	for (i = 0; i < INT_ARG_CNT; i++)
-		M_LST(abi_registers_integer_argument[i], REG_SP, (1 + i) * 8);
+	for (i = 0; i < md->paramcount; i++) {
+		if (!md->params[i].inmemory) {
+			s = md->params[i].regoff;
 
-	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DST(abi_registers_float_argument[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
-
-	/* save temporary registers for leaf methods */
-
-	if (jd->isleafmethod) {
-		for (i = 0; i < INT_TMP_CNT; i++)
-			M_LST(rd->tmpintregs[i], REG_SP, (1 + ARG_CNT + i) * 8);
-
-		for (i = 0; i < FLT_TMP_CNT; i++)
-			M_DST(rd->tmpfltregs[i], REG_SP, (1 + ARG_CNT + INT_TMP_CNT + i) * 8);
-	}
-
-	/* show integer hex code for float arguments */
-
-	for (i = 0, j = 0; i < md->paramcount && i < INT_ARG_CNT; i++) {
-		/* If the paramtype is a float, we have to right shift all
-		   following integer registers. */
-	
-		if (IS_FLT_DBL_TYPE(md->paramtypes[i].type)) {
-			for (k = INT_ARG_CNT - 2; k >= i; k--)
-				M_MOV(abi_registers_integer_argument[k],
-					  abi_registers_integer_argument[k + 1]);
-
-			emit_movd_freg_reg(cd, abi_registers_float_argument[j],
-							   abi_registers_integer_argument[i]);
-			j++;
+			switch (md->paramtypes[i].type) {
+			case TYPE_ADR:
+			case TYPE_INT:
+			case TYPE_LNG:
+				M_LST(s, REG_SP, i * 8);
+				break;
+			case TYPE_FLT:
+			case TYPE_DBL:
+				M_DST(s, REG_SP, i * 8);
+				break;
+			}
 		}
 	}
 
-	M_MOV_IMM(m, REG_ITMP2);
-	M_AST(REG_ITMP2, REG_SP, 0 * 8);
-	M_MOV_IMM(builtin_verbosecall_enter, REG_ITMP1);
+	/* save all argument and temporary registers for leaf methods */
+
+	if (jd->isleafmethod) {
+		for (i = 0; i < INT_ARG_CNT; i++)
+			M_LST(abi_registers_integer_argument[i], REG_SP, (md->paramcount + i) * 8);
+
+		for (i = 0; i < FLT_ARG_CNT; i++)
+			M_DST(abi_registers_float_argument[i], REG_SP, (md->paramcount + INT_ARG_CNT + i) * 8);
+
+		for (i = 0; i < INT_TMP_CNT; i++)
+			M_LST(rd->tmpintregs[i], REG_SP, (md->paramcount + ARG_CNT + i) * 8);
+
+		for (i = 0; i < FLT_TMP_CNT; i++)
+			M_DST(rd->tmpfltregs[i], REG_SP, (md->paramcount + ARG_CNT + INT_TMP_CNT + i) * 8);
+	}
+
+	M_MOV_IMM(m, REG_A0);
+	M_MOV(REG_SP, REG_A1);
+	M_MOV(REG_SP, REG_A2);
+	M_AADD_IMM((stackframesize + cd->stackframesize + 1) * 8, REG_A2);
+	M_MOV_IMM(trace_java_call_enter, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
 	/* restore argument registers */
 
-	for (i = 0; i < INT_ARG_CNT; i++)
-		M_LLD(abi_registers_integer_argument[i], REG_SP, (1 + i) * 8);
+	for (i = 0; i < md->paramcount; i++) {
+		if (!md->params[i].inmemory) {
+			s = md->params[i].regoff;
 
-	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DLD(abi_registers_float_argument[i], REG_SP, (1 + INT_ARG_CNT + i) * 8);
-
-	/* restore temporary registers for leaf methods */
-
-	if (jd->isleafmethod) {
-		for (i = 0; i < INT_TMP_CNT; i++)
-			M_LLD(rd->tmpintregs[i], REG_SP, (1 + ARG_CNT + i) * 8);
-
-		for (i = 0; i < FLT_TMP_CNT; i++)
-			M_DLD(rd->tmpfltregs[i], REG_SP, (1 + ARG_CNT + INT_TMP_CNT + i) * 8);
+			switch (md->paramtypes[i].type) {
+			case TYPE_ADR:
+			case TYPE_INT:
+			case TYPE_LNG:
+				M_LLD(s, REG_SP, i * 8);
+				break;
+			case TYPE_FLT:
+			case TYPE_DBL:
+				M_DLD(s, REG_SP, i * 8);
+				break;
+			}
+		}
 	}
 
-	M_LADD_IMM((ARG_CNT + TMP_CNT + 1 + 1) * 8, REG_SP);
+
+	/* restore all argument and temporary registers for leaf methods */
+
+	if (jd->isleafmethod) {
+		for (i = 0; i < INT_ARG_CNT; i++)
+			M_LLD(abi_registers_integer_argument[i], REG_SP, (md->paramcount + i) * 8);
+
+		for (i = 0; i < FLT_ARG_CNT; i++)
+			M_DLD(abi_registers_float_argument[i], REG_SP, (md->paramcount + INT_ARG_CNT + i) * 8);
+
+		for (i = 0; i < INT_TMP_CNT; i++)
+			M_LLD(rd->tmpintregs[i], REG_SP, (md->paramcount + ARG_CNT + i) * 8);
+
+		for (i = 0; i < FLT_TMP_CNT; i++)
+			M_DLD(rd->tmpfltregs[i], REG_SP, (md->paramcount + ARG_CNT + INT_TMP_CNT + i) * 8);
+	}
+
+	M_LADD_IMM(stackframesize * 8, REG_SP);
 
 	/* mark trace code */
 
@@ -581,6 +607,7 @@ void emit_verbosecall_exit(jitdata *jd)
 	methodinfo   *m;
 	codegendata  *cd;
 	registerdata *rd;
+	methoddesc   *md;
 
 	/* get required compiler data */
 
@@ -588,25 +615,49 @@ void emit_verbosecall_exit(jitdata *jd)
 	cd = jd->cd;
 	rd = jd->rd;
 
+	md = m->parseddesc;
+
 	/* mark trace code */
 
 	M_NOP;
 
+	/* keep 16-byte stack alignment */
+
 	M_ASUB_IMM(2 * 8, REG_SP);
 
-	M_LST(REG_RESULT, REG_SP, 0 * 8);
-	M_DST(REG_FRESULT, REG_SP, 1 * 8);
+	/* save return value */
 
-	M_INTMOVE(REG_RESULT, REG_A0);
-	M_FLTMOVE(REG_FRESULT, REG_FA0);
-	M_FLTMOVE(REG_FRESULT, REG_FA1);
-	M_MOV_IMM(m, REG_A1);
+	switch (md->returntype.type) {
+	case TYPE_ADR:
+	case TYPE_INT:
+	case TYPE_LNG:
+		M_LST(REG_RESULT, REG_SP, 0 * 8);
+		break;
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DST(REG_FRESULT, REG_SP, 0 * 8);
+		break;
+	}
 
-	M_MOV_IMM(builtin_verbosecall_exit, REG_ITMP1);
+	M_MOV_IMM(m, REG_A0);
+	M_MOV(REG_SP, REG_A1);
+
+	M_MOV_IMM(trace_java_call_exit, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
-	M_LLD(REG_RESULT, REG_SP, 0 * 8);
-	M_DLD(REG_FRESULT, REG_SP, 1 * 8);
+	/* restore return value */
+
+	switch (md->returntype.type) {
+	case TYPE_ADR:
+	case TYPE_INT:
+	case TYPE_LNG:
+		M_LLD(REG_RESULT, REG_SP, 0 * 8);
+		break;
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DLD(REG_FRESULT, REG_SP, 0 * 8);
+		break;
+	}
 
 	M_AADD_IMM(2 * 8, REG_SP);
 
