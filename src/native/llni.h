@@ -55,7 +55,7 @@
 	LLNI_field_direct(obj, field) = (value)
 
 #define LLNI_field_set_ref(obj, field, reference) \
-	LLNI_field_direct(obj, field) = LLNI_DIRECT(reference)
+	LLNI_field_direct(obj, field) = LLNI_UNWRAP(reference)
 
 #define LLNI_field_set_cls(obj, field, value) \
 	LLNI_field_direct(obj, field) = (java_lang_Class *) (value)
