@@ -40,21 +40,29 @@
 *******************************************************************************/
 
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-void llni_critical_start(void)
+void llni_critical_start_thread(threadobject *t)
 {
-	threadobject *t = THREADOBJECT;
-
 	assert(!t->gc_critical);
 	t->gc_critical = true;
 }
 
 
-void llni_critical_end(void)
+void llni_critical_end_thread(threadobject *t)
 {
-	threadobject *t = THREADOBJECT;
-
 	assert(t->gc_critical);
 	t->gc_critical = false;
+}
+
+
+void llni_critical_start()
+{
+	llni_critical_start_thread(THREADOBJECT);
+}
+
+
+void llni_critical_end()
+{
+	llni_critical_end_thread(THREADOBJECT);
 }
 #endif /* defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO) */
 

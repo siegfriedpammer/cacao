@@ -32,6 +32,12 @@
 
 #include "native/localref.h"
 
+#if defined(ENABLE_THREADS)
+# include "threads/native/threads.h"
+#else
+# include "threads/none/threads.h"
+#endif
+
 
 /* LLNI macros *****************************************************************
 
@@ -166,14 +172,21 @@
 *******************************************************************************/
 
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-void llni_critical_start(void);
-void llni_critical_end(void);
-# define LLNI_CRITICAL_START llni_critical_start()
-# define LLNI_CRITICAL_END   llni_critical_end()
+# define LLNI_CRITICAL_START           llni_critical_start()
+# define LLNI_CRITICAL_END             llni_critical_end()
+# define LLNI_CRITICAL_START_THREAD(t) llni_critical_start_thread(t)
+# define LLNI_CRITICAL_END_THREAD(t)   llni_critical_end_thread(t)
 #else
 # define LLNI_CRITICAL_START
 # define LLNI_CRITICAL_END
+# define LLNI_CRITICAL_START_THREAD(t)
+# define LLNI_CRITICAL_END_THREAD(t)
 #endif
+
+void llni_critical_start();
+void llni_critical_end();
+void llni_critical_start_thread(threadobject *t);
+void llni_critical_end_thread(threadobject *t);
 
 
 #endif /* _LLNI_H */
