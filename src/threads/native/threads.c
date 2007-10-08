@@ -1512,6 +1512,8 @@ bool threads_detach_thread(threadobject *t)
 	java_handle_t         *o;
 #endif
 
+	DEBUGTHREADS("detaching", t);
+
 #if defined(ENABLE_JAVASE)
 	object = (java_lang_Thread *) threads_thread_get_object(t);
 
@@ -1597,12 +1599,10 @@ bool threads_detach_thread(threadobject *t)
 
 	threads_thread_state_terminated(t);
 
-	DEBUGTHREADS("detaching", t);
-
-    /* Notify all threads waiting on this thread.  These are joining
+	/* Notify all threads waiting on this thread.  These are joining
 	   this thread. */
 
-	o = (java_object_t *) object;
+	o = (java_handle_t *) object;
 
 	/* XXX Care about exceptions? */
 	(void) lock_monitor_enter(o);
