@@ -38,6 +38,10 @@
 
 #include "mm/memory.h"
 
+#include "native/llni.h"
+
+#include "threads/lock-common.h"
+
 #include "threads/native/lock.h"
 #include "threads/native/threads.h"
 
@@ -105,10 +109,6 @@
 
 #define COMPARE_AND_SWAP_OLD_VALUE(address, oldvalue, newvalue) \
 	((ptrint) compare_and_swap((long *)(address), (long)(oldvalue), (long)(newvalue)))
-
-/* CAUTION: oldvalue is evaluated twice! */
-#define COMPARE_AND_SWAP_SUCCEEDS(address, oldvalue, newvalue) \
-	(compare_and_swap((long *)(address), (long)(oldvalue), (long)(newvalue)) == (long)(oldvalue))
 
 
 /******************************************************************************/
@@ -198,6 +198,8 @@ static lock_hashtable_t lock_hashtable;
 
 static void lock_hashtable_init(void);
 
+static inline uintptr_t lock_lockword_get(threadobject *t, java_handle_t *o);
+static inline void lock_lockword_set(threadobject *t, java_handle_t *o, uintptr_t lockword);
 static void lock_record_enter(threadobject *t, lock_record_t *lr);
 static void lock_record_exit(threadobject *t, lock_record_t *lr);
 static bool lock_record_wait(threadobject *t, lock_record_t *lr, s8 millis, s4 nanos);
@@ -414,6 +416,7 @@ static void lock_hashtable_grow(void)
    yet, create it and enter it in the hashtable.
 
    IN:
+      t....the current thread
 	  o....the object to look up
 
    RETURN VALUE:
@@ -425,13 +428,13 @@ static void lock_hashtable_grow(void)
 static void lock_record_finalizer(void *object, void *p);
 #endif
 
-static lock_record_t *lock_hashtable_get(java_object_t *o)
+static lock_record_t *lock_hashtable_get(threadobject *t, java_handle_t *o)
 {
 	uintptr_t      lockword;
 	u4             slot;
 	lock_record_t *lr;
 
-	lockword = o->lockword;
+	lockword = lock_lockword_get(t, o);
 
 	if (IS_FAT_LOCK(lockword))
 		return GET_FAT_LOCK(lockword);
@@ -442,38 +445,42 @@ static lock_record_t *lock_hashtable_get(java_object_t *o)
 
 	/* lookup the lock record in the hashtable */
 
-	slot = heap_hashcode(o) % lock_hashtable.size;
+	LLNI_CRITICAL_START_THREAD(t);
+	slot = heap_hashcode(LLNI_DIRECT(o)) % lock_hashtable.size;
 	lr   = lock_hashtable.ptr[slot];
 
 	for (; lr != NULL; lr = lr->hashlink) {
-		if (lr->object == o) {
-			pthread_mutex_unlock(&(lock_hashtable.mutex));
-			return lr;
-		}
+		if (lr->object == LLNI_DIRECT(o))
+			break;
 	}
+	LLNI_CRITICAL_END_THREAD(t);
 
-	/* not found, we must create a new one */
+	if (lr == NULL) {
+		/* not found, we must create a new one */
 
-	lr = lock_record_new();
+		lr = lock_record_new();
 
-	lr->object = o;
+		LLNI_CRITICAL_START_THREAD(t);
+		lr->object = LLNI_DIRECT(o);
+		LLNI_CRITICAL_END_THREAD(t);
 
 #if defined(ENABLE_GC_BOEHM)
-	/* register new finalizer to clean up the lock record */
+		/* register new finalizer to clean up the lock record */
 
-	GC_REGISTER_FINALIZER(o, lock_record_finalizer, 0, 0, 0);
+		GC_REGISTER_FINALIZER(o, lock_record_finalizer, 0, 0, 0);
 #endif
 
-	/* enter it in the hashtable */
+		/* enter it in the hashtable */
 
-	lr->hashlink             = lock_hashtable.ptr[slot];
-	lock_hashtable.ptr[slot] = lr;
-	lock_hashtable.entries++;
+		lr->hashlink             = lock_hashtable.ptr[slot];
+		lock_hashtable.ptr[slot] = lr;
+		lock_hashtable.entries++;
 
-	/* check whether the hash should grow */
+		/* check whether the hash should grow */
 
-	if (lock_hashtable.entries * 3 > lock_hashtable.size * 4) {
-		lock_hashtable_grow();
+		if (lock_hashtable.entries * 3 > lock_hashtable.size * 4) {
+			lock_hashtable_grow();
+		}
 	}
 
 	/* unlock the hashtable */
@@ -623,6 +630,47 @@ lock_record_t *lock_get_initial_lock_word(void)
 /*============================================================================*/
 
 
+/* lock_lockword_get ***********************************************************
+
+   Get the lockword for the given object.
+
+   IN:
+      t............the current thread
+      o............the object
+
+*******************************************************************************/
+
+static inline uintptr_t lock_lockword_get(threadobject *t, java_handle_t *o)
+{
+	uintptr_t lockword;
+
+	LLNI_CRITICAL_START_THREAD(t);
+	lockword = LLNI_DIRECT(o)->lockword;
+	LLNI_CRITICAL_END_THREAD(t);
+
+	return lockword;
+}
+
+
+/* lock_lockword_set ***********************************************************
+
+   Set the lockword for the given object.
+
+   IN:
+      t............the current thread
+      o............the object
+	  lockword.....the new lockword value
+
+*******************************************************************************/
+
+static inline void lock_lockword_set(threadobject *t, java_handle_t *o, uintptr_t lockword)
+{
+	LLNI_CRITICAL_START_THREAD(t);
+	LLNI_DIRECT(o)->lockword = lockword;
+	LLNI_CRITICAL_END_THREAD(t);
+}
+
+
 /* lock_record_enter ***********************************************************
 
    Enter the lock represented by the given lock record.
@@ -636,7 +684,6 @@ lock_record_t *lock_get_initial_lock_word(void)
 static inline void lock_record_enter(threadobject *t, lock_record_t *lr)
 {
 	pthread_mutex_lock(&(lr->mutex));
-
 	lr->owner = t;
 }
 
@@ -679,13 +726,13 @@ static inline void lock_record_exit(threadobject *t, lock_record_t *lr)
 
 *******************************************************************************/
 
-static void lock_inflate(threadobject *t, java_object_t *o, lock_record_t *lr)
+static void lock_inflate(threadobject *t, java_handle_t *o, lock_record_t *lr)
 {
 	uintptr_t lockword;
 
 	/* get the current lock count */
 
-	lockword = o->lockword;
+	lockword = lock_lockword_get(t, o);
 
 	if (IS_FAT_LOCK(lockword)) {
 		assert(GET_FAT_LOCK(lockword) == lr);
@@ -699,11 +746,13 @@ static void lock_inflate(threadobject *t, java_object_t *o, lock_record_t *lr)
 	}
 
 	DEBUGLOCKS(("[lock_inflate      : lr=%p, t=%p, o=%p, o->lockword=%lx, count=%d]",
-				lr, t, o, o->lockword, lr->count));
+				lr, t, o, lockword, lr->count));
 
 	/* clear flat-lock-contention bit */
 
-	LOCK_CLEAR_FLC_BIT(o);
+	LLNI_CRITICAL_START_THREAD(t);
+	LOCK_CLEAR_FLC_BIT(LLNI_DIRECT(o));
+	LLNI_CRITICAL_END_THREAD(t);
 
 	/* notify waiting objects */
 
@@ -711,7 +760,7 @@ static void lock_inflate(threadobject *t, java_object_t *o, lock_record_t *lr)
 
 	/* install it */
 
-	o->lockword = MAKE_FAT_LOCK(lr);
+	lock_lockword_set(t, o, MAKE_FAT_LOCK(lr));
 }
 
 
@@ -732,7 +781,7 @@ static void lock_inflate(threadobject *t, java_object_t *o, lock_record_t *lr)
 
 *******************************************************************************/
 
-bool lock_monitor_enter(java_object_t *o)
+bool lock_monitor_enter(java_handle_t *o)
 {
 	threadobject  *t;
 	/* CAUTION: This code assumes that ptrint is unsigned! */
@@ -751,7 +800,11 @@ bool lock_monitor_enter(java_object_t *o)
 
 	/* most common case: try to thin-lock an unlocked object */
 
-	if ((lockword = COMPARE_AND_SWAP_OLD_VALUE(&(o->lockword), THIN_UNLOCKED, thinlock)) == THIN_UNLOCKED) {
+	LLNI_CRITICAL_START_THREAD(t);
+	lockword = COMPARE_AND_SWAP_OLD_VALUE(&(LLNI_DIRECT(o)->lockword), THIN_UNLOCKED, thinlock);
+	LLNI_CRITICAL_END_THREAD(t);
+
+	if (lockword == THIN_UNLOCKED) {
 		/* success. we locked it */
 		/* The Java Memory Model requires a memory barrier here: */
 		MEMORY_BARRIER();
@@ -770,7 +823,7 @@ bool lock_monitor_enter(java_object_t *o)
 		{
 			/* the recursion count is low enough */
 
-			o->lockword = lockword + THIN_LOCK_COUNT_INCR;
+			lock_lockword_set(t, o, lockword + THIN_LOCK_COUNT_INCR);
 
 			/* success. we locked it */
 			return true;
@@ -778,7 +831,7 @@ bool lock_monitor_enter(java_object_t *o)
 		else {
 			/* recursion count overflow */
 
-			lr = lock_hashtable_get(o);
+			lr = lock_hashtable_get(t, o);
 			lock_record_enter(t, lr);
 			lock_inflate(t, o, lr);
 			lr->count++;
@@ -812,7 +865,7 @@ bool lock_monitor_enter(java_object_t *o)
 
 	/* first obtain the lock record for this object */
 
-	lr = lock_hashtable_get(o);
+	lr = lock_hashtable_get(t, o);
 
 #if defined(ENABLE_JVMTI)
 	/* Monitor Contended Enter */
@@ -830,18 +883,24 @@ bool lock_monitor_enter(java_object_t *o)
 
 	/* inflation loop */
 
-	while (IS_THIN_LOCK(lockword = o->lockword)) {
+	while (IS_THIN_LOCK(lockword = lock_lockword_get(t, o))) {
 		/* Set the flat lock contention bit to let the owning thread
 		   know that we want to be notified of unlocking. */
 
-		LOCK_SET_FLC_BIT(o);
+		LLNI_CRITICAL_START_THREAD(t);
+		LOCK_SET_FLC_BIT(LLNI_DIRECT(o));
+		LLNI_CRITICAL_END_THREAD(t);
 
 		DEBUGLOCKS(("thread %d set flc bit on %p lr %p",
 					t->index, (void*) o, (void*) lr));
 
 		/* try to lock the object */
 
-		if (COMPARE_AND_SWAP_SUCCEEDS(&(o->lockword), THIN_UNLOCKED, thinlock)) {
+		LLNI_CRITICAL_START_THREAD(t);
+		lockword = COMPARE_AND_SWAP_OLD_VALUE(&(LLNI_DIRECT(o)->lockword), THIN_UNLOCKED, thinlock);
+		LLNI_CRITICAL_END_THREAD(t);
+
+		if (lockword == THIN_UNLOCKED) {
 			/* we can inflate the lock ourselves */
 
 			DEBUGLOCKS(("thread %d inflating lock of %p to lr %p",
@@ -881,7 +940,7 @@ bool lock_monitor_enter(java_object_t *o)
 
 *******************************************************************************/
 
-bool lock_monitor_exit(java_object_t *o)
+bool lock_monitor_exit(java_handle_t *o)
 {
 	threadobject *t;
 	uintptr_t     lockword;
@@ -894,24 +953,25 @@ bool lock_monitor_exit(java_object_t *o)
 
 	t = THREADOBJECT;
 
+	thinlock = t->thinlock;
+
 	/* We don't have to worry about stale values here, as any stale value */
 	/* will indicate that we don't own the lock.                          */
 
-	lockword = o->lockword;
-	thinlock = t->thinlock;
+	lockword = lock_lockword_get(t, o);
 
 	/* most common case: we release a thin lock that we hold once */
 
 	if (lockword == thinlock) {
 		/* memory barrier for Java Memory Model */
 		MEMORY_BARRIER();
-		o->lockword = THIN_UNLOCKED;
+		lock_lockword_set(t, o, THIN_UNLOCKED);
 		/* memory barrier for thin locking */
 		MEMORY_BARRIER();
 
 		/* check if there has been a flat lock contention on this object */
 
-		if (LOCK_TEST_FLC_BIT(o)) {
+		if (LOCK_TEST_FLC_BIT(LLNI_DIRECT(o))) {
 			lock_record_t *lr;
 
 			DEBUGLOCKS(("thread %d saw flc bit on %p",
@@ -919,14 +979,14 @@ bool lock_monitor_exit(java_object_t *o)
 
 			/* there has been a contention on this thin lock */
 
-			lr = lock_hashtable_get(o);
+			lr = lock_hashtable_get(t, o);
 
 			DEBUGLOCKS(("thread %d for %p got lr %p",
 						t->index, (void*) o, (void*) lr));
 
 			lock_record_enter(t, lr);
 
-			if (LOCK_TEST_FLC_BIT(o)) {
+			if (LOCK_TEST_FLC_BIT(LLNI_DIRECT(o))) {
 				/* notify a thread that it can try to inflate the lock now */
 
 				lock_record_notify(t, lr, true);
@@ -941,7 +1001,7 @@ bool lock_monitor_exit(java_object_t *o)
 	/* next common case: we release a recursive lock, count > 0 */
 
 	if (LOCK_WORD_WITHOUT_COUNT(lockword) == thinlock) {
-		o->lockword = lockword - THIN_LOCK_COUNT_INCR;
+		lock_lockword_set(t, o, lockword - THIN_LOCK_COUNT_INCR);
 		return true;
 	}
 
@@ -1147,12 +1207,12 @@ static bool lock_record_wait(threadobject *thread, lock_record_t *lr, s8 millis,
    
 *******************************************************************************/
 
-static void lock_monitor_wait(threadobject *t, java_object_t *o, s8 millis, s4 nanos)
+static void lock_monitor_wait(threadobject *t, java_handle_t *o, s8 millis, s4 nanos)
 {
 	uintptr_t      lockword;
 	lock_record_t *lr;
 
-	lockword = o->lockword;
+	lockword = lock_lockword_get(t, o);
 
 	/* check if we own this monitor */
 	/* We don't have to worry about stale values here, as any stale value */
@@ -1177,8 +1237,7 @@ static void lock_monitor_wait(threadobject *t, java_object_t *o, s8 millis, s4 n
 
 		/* inflate this lock */
 
-		lr = lock_hashtable_get(o);
-
+		lr = lock_hashtable_get(t, o);
 		lock_record_enter(t, lr);
 		lock_inflate(t, o, lr);
 	}
@@ -1270,12 +1329,12 @@ static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
    
 *******************************************************************************/
 
-static void lock_monitor_notify(threadobject *t, java_object_t *o, bool one)
+static void lock_monitor_notify(threadobject *t, java_handle_t *o, bool one)
 {
 	uintptr_t      lockword;
 	lock_record_t *lr;
 
-	lockword = o->lockword;
+	lockword = lock_lockword_get(t, o);
 
 	/* check if we own this monitor */
 	/* We don't have to worry about stale values here, as any stale value */
@@ -1300,8 +1359,7 @@ static void lock_monitor_notify(threadobject *t, java_object_t *o, bool one)
 
 		/* inflate this lock */
 
-		lr = lock_hashtable_get(o);
-
+		lr = lock_hashtable_get(t, o);
 		lock_record_enter(t, lr);
 		lock_inflate(t, o, lr);
 	}
@@ -1330,7 +1388,7 @@ static void lock_monitor_notify(threadobject *t, java_object_t *o, bool one)
    
 *******************************************************************************/
 
-bool lock_is_held_by_current_thread(java_object_t *o)
+bool lock_is_held_by_current_thread(java_handle_t *o)
 {
 	threadobject  *t;
 	uintptr_t      lockword;
@@ -1342,7 +1400,7 @@ bool lock_is_held_by_current_thread(java_object_t *o)
 	/* We don't have to worry about stale values here, as any stale value */
 	/* will fail this check.                                              */
 
-	lockword = o->lockword;
+	lockword = lock_lockword_get(t, o);
 
 	if (IS_FAT_LOCK(lockword)) {
 		/* it's a fat lock */
@@ -1376,7 +1434,7 @@ bool lock_is_held_by_current_thread(java_object_t *o)
    
 *******************************************************************************/
 
-void lock_wait_for_object(java_object_t *o, s8 millis, s4 nanos)
+void lock_wait_for_object(java_handle_t *o, s8 millis, s4 nanos)
 {
 	threadobject *thread;
 
@@ -1395,7 +1453,7 @@ void lock_wait_for_object(java_object_t *o, s8 millis, s4 nanos)
    
 *******************************************************************************/
 
-void lock_notify_object(java_object_t *o)
+void lock_notify_object(java_handle_t *o)
 {
 	threadobject *thread;
 
@@ -1414,7 +1472,7 @@ void lock_notify_object(java_object_t *o)
    
 *******************************************************************************/
 
-void lock_notify_all_object(java_object_t *o)
+void lock_notify_all_object(java_handle_t *o)
 {
 	threadobject *thread;
 
