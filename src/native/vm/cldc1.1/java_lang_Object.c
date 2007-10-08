@@ -115,9 +115,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_Object_hashCode(JNIEnv *env, java_lang_
 JNIEXPORT void JNICALL Java_java_lang_Object_notify(JNIEnv *env, java_lang_Object *this)
 {
 #if defined(ENABLE_THREADS)
-	LLNI_CRITICAL_START;
-	lock_notify_object((java_object_t *) LLNI_DIRECT(this));
-	LLNI_CRITICAL_END;
+	lock_notify_object((java_handle_t *) this);
 #endif
 }
 
@@ -130,9 +128,7 @@ JNIEXPORT void JNICALL Java_java_lang_Object_notify(JNIEnv *env, java_lang_Objec
 JNIEXPORT void JNICALL Java_java_lang_Object_notifyAll(JNIEnv *env, java_lang_Object *this)
 {
 #if defined(ENABLE_THREADS)
-	LLNI_CRITICAL_START;
-	lock_notify_all_object((java_object_t *) LLNI_DIRECT(this));
-	LLNI_CRITICAL_END;
+	lock_notify_all_object((java_handle_t *) this);
 #endif
 }
 
@@ -150,9 +146,7 @@ JNIEXPORT void JNICALL Java_java_lang_Object_wait(JNIEnv *env, java_lang_Object 
 #endif
 
 #if defined(ENABLE_THREADS)
-	LLNI_CRITICAL_START;
-	lock_wait_for_object((java_object_t *) LLNI_DIRECT(this), timeout, 0);
-	LLNI_CRITICAL_END;
+	lock_wait_for_object((java_handle_t *) this, timeout, 0);
 #endif
 
 #if defined(ENABLE_JVMTI)

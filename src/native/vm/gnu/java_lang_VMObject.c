@@ -120,9 +120,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
 JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz, java_lang_Object *this)
 {
 #if defined(ENABLE_THREADS)
-	LLNI_CRITICAL_START;
-	lock_notify_object((java_object_t *) LLNI_DIRECT(this));
-	LLNI_CRITICAL_END;
+	lock_notify_object((java_handle_t *) this);
 #endif
 }
 
@@ -135,9 +133,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz,
 JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass clazz, java_lang_Object *this)
 {
 #if defined(ENABLE_THREADS)
-	LLNI_CRITICAL_START;
-	lock_notify_all_object((java_object_t *) LLNI_DIRECT(this));
-	LLNI_CRITICAL_END;
+	lock_notify_all_object((java_handle_t *) this);
 #endif
 }
 
@@ -155,9 +151,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, j
 #endif
 
 #if defined(ENABLE_THREADS)
-	LLNI_CRITICAL_START;
-	lock_wait_for_object((java_object_t *) LLNI_DIRECT(o), ms, ns);
-	LLNI_CRITICAL_END;
+	lock_wait_for_object((java_handle_t *) o, ms, ns);
 #endif
 
 #if defined(ENABLE_JVMTI)
