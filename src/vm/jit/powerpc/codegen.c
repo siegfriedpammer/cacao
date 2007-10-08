@@ -2834,8 +2834,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	methoddesc  *md;
 	s4           i, j;                 /* count variables                    */
 	s4           t;
-	s4           s1, s2, disp;
-	s4           funcdisp;
+	s4           s1, s2;
+	int          disp;
 
 	/* get required compiler data */
 
@@ -2876,13 +2876,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	M_MFLR(REG_ZERO);
 	M_AST_INTERN(REG_ZERO, REG_SP, LA_LR_OFFSET);
 	M_STWU(REG_SP, REG_SP, -(cd->stackframesize * 8));
-
-	/* get function address (this must happen before the stackframeinfo) */
-
-	funcdisp = dseg_add_functionptr(cd, f);
-
-	if (f == NULL)
-		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, funcdisp);
 
 #if defined(ENABLE_GC_CACAO)
 	/* Save callee saved integer registers in stackframeinfo (GC may
@@ -3021,9 +3014,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		M_ALD(REG_A0, REG_PV, disp);
 	}
 
-	/* generate the actual native call */
+	/* Call the native function. */
 
-	M_ALD(REG_ITMP3, REG_PV, funcdisp);
+	disp = dseg_add_functionptr(cd, f);
+	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_MTCTR(REG_ITMP3);
 	M_JSR;
 
@@ -3103,10 +3097,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_MTCTR(REG_ITMP3);
 	M_RTS;
-
-	/* generate patcher traps */
-
-	emit_patcher_traps(jd);
 }
 
 
