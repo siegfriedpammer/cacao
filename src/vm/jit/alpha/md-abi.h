@@ -83,8 +83,6 @@
 #define FLT_RES_CNT      4   /* number of reserved float registers            */
                              /* the one "missing" register is the return reg  */
 
-#define TRACE_ARGS_NUM   6
-
 #endif /* _MD_ABI_H */
 
 
