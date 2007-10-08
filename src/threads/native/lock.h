@@ -34,6 +34,8 @@
 
 #include "vm/types.h"
 
+#include "native/llni.h"
+
 #include "toolbox/list.h"
 
 #include "vm/global.h"
@@ -93,8 +95,11 @@ struct lock_hashtable_t {
 
 #define LOCK_INIT_OBJECT_LOCK(o) lock_init_object_lock((java_object_t *) (o))
 
-#define LOCK_MONITOR_ENTER(o)    lock_monitor_enter((java_object_t *) (o))
-#define LOCK_MONITOR_EXIT(o)     lock_monitor_exit((java_object_t *) (o))
+#define LOCK_MONITOR_ENTER(o)    lock_monitor_enter((java_handle_t *) LLNI_QUICKWRAP(o))
+#define LOCK_MONITOR_EXIT(o)     lock_monitor_exit((java_handle_t *) LLNI_QUICKWRAP(o))
+
+#define LOCK_WAIT_FOREVER(o)     lock_wait_for_object((java_handle_t *) LLNI_QUICKWRAP(o), 0, 0)
+#define LOCK_NOTIFY(o)           lock_notify_object((java_handle_t *) LLNI_QUICKWRAP(o))
 
 #endif /* _LOCK_H */
 

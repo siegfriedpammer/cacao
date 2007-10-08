@@ -88,15 +88,15 @@ static void finalizer_thread(void)
 	while (true) {
 		/* get the lock on the finalizer lock object, so we can call wait */
 
-		lock_monitor_enter(lock_thread_finalizer);
+		LOCK_MONITOR_ENTER(lock_thread_finalizer);
 
-		/* wait forever (0, 0) on that object till we are signaled */
+		/* wait forever on that object till we are signaled */
 	
-		lock_wait_for_object(lock_thread_finalizer, 0, 0);
+		LOCK_WAIT_FOREVER(lock_thread_finalizer);
 
 		/* leave the lock */
 
-		lock_monitor_exit(lock_thread_finalizer);
+		LOCK_MONITOR_EXIT(lock_thread_finalizer);
 
 		/* and call the finalizers */
 
@@ -141,15 +141,15 @@ void finalizer_notify(void)
 #if defined(ENABLE_THREADS)
 	/* get the lock on the finalizer lock object, so we can call wait */
 
-	lock_monitor_enter(lock_thread_finalizer);
+	LOCK_MONITOR_ENTER(lock_thread_finalizer);
 
 	/* signal the finalizer thread */
 	
-	lock_notify_object(lock_thread_finalizer);
+	LOCK_NOTIFY(lock_thread_finalizer);
 
 	/* leave the lock */
 
-	lock_monitor_exit(lock_thread_finalizer);
+	LOCK_MONITOR_EXIT(lock_thread_finalizer);
 #else
 	/* if we don't have threads, just run the finalizers */
 
