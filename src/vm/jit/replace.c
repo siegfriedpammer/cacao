@@ -430,9 +430,9 @@ bool replace_create_replacement_points(jitdata *jd)
 	m = code->m;
 
 	/* set codeinfo flags */
-
+	/* REMOVE ME */
 	if (jd->isleafmethod)
-		CODE_SETFLAG_LEAFMETHOD(code);
+		code_flag_leafmethod(code);
 
 	/* in instance methods, we may need a rplpoint at the method entry */
 
@@ -1523,7 +1523,7 @@ u1* replace_pop_activation_record(executionstate_t *es,
 	/* read the return address */
 
 #if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
-	if (CODE_IS_LEAFMETHOD(es->code))
+	if (code_is_leafmethod(es->code))
 		ra = (u1*) (ptrint) es->intregs[REPLACE_REG_RA];
 	else
 #endif
@@ -1554,14 +1554,14 @@ u1* replace_pop_activation_record(executionstate_t *es,
 
 #if defined(REPLACE_RA_TOP_OF_FRAME)
 #if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
-	if (!CODE_IS_LEAFMETHOD(es->code))
+	if (!code_is_leafmethod(es->code))
 #endif
 		es->intregs[REPLACE_REG_RA] = *--basesp;
 #endif /* REPLACE_RA_TOP_OF_FRAME */
 
 #if defined(REPLACE_RA_LINKAGE_AREA)
 #if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
-	if (!CODE_IS_LEAFMETHOD(es->code))
+	if (!code_is_leafmethod(es->code))
 #endif
 		es->intregs[REPLACE_REG_RA] = basesp[LA_LR_OFFSET / sizeof(stackslot_t)];
 #endif /* REPLACE_RA_LINKAGE_AREA */
@@ -1976,14 +1976,14 @@ void replace_push_activation_record(executionstate_t *es,
 
 #if defined(REPLACE_RA_TOP_OF_FRAME)
 #if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
-	if (!CODE_IS_LEAFMETHOD(calleecode))
+	if (!code_is_leafmethod(calleecode))
 #endif
 		*--basesp = (ptrint) ra;
 #endif /* REPLACE_RA_TOP_OF_FRAME */
 
 #if defined(REPLACE_RA_LINKAGE_AREA)
 #if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
-	if (!CODE_IS_LEAFMETHOD(calleecode))
+	if (!code_is_leafmethod(calleecode))
 #endif
 		basesp[LA_LR_OFFSET / sizeof(stackslot_t)] = (ptrint) ra;
 #endif /* REPLACE_RA_LINKAGE_AREA */
