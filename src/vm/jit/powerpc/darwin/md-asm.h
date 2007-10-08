@@ -221,8 +221,6 @@
 
 #define asm_vm_call_method_exception_handler  _asm_vm_call_method_exception_handler
 
-#define asm_call_jit_compiler                 _asm_call_jit_compiler
-
 #define asm_handle_nat_exception              _asm_handle_nat_exception
 #define asm_handle_exception                  _asm_handle_exception
 
@@ -233,15 +231,10 @@
 
 /* external defines ***********************************************************/
 
-#define exceptions_get_and_clear_exception \
-    L_exceptions_get_and_clear_exception$stub
-
 #define builtin_throw_exception               L_builtin_throw_exception$stub
 
 #define md_codegen_get_pv_from_pc             L_md_codegen_get_pv_from_pc$stub
 #define exceptions_handle_exception           L_exceptions_handle_exception$stub
-
-#define jit_asm_compile                       L_jit_asm_compile$stub
 
 #define exceptions_asm_new_abstractmethoderror \
     L_exceptions_asm_new_abstractmethoderror$stub
