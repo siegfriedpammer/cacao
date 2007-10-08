@@ -315,7 +315,7 @@ JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Method_declaredAn
 
 		declaredAnnotations = reflect_get_declaredannotatios(annotations, declaringClass, referer);
 
-		LLNI_field_set_ref(this, declaredAnnotations, (java_handle_t*) declaredAnnotations);
+		LLNI_field_set_ref(this, declaredAnnotations, declaredAnnotations);
 	}
 
 	return declaredAnnotations;
