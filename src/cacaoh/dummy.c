@@ -516,12 +516,12 @@ void lock_init_object_lock(java_object_t *o)
 {
 }
 
-bool lock_monitor_enter(java_object_t *o)
+bool lock_monitor_enter(java_handle_t *o)
 {
 	return true;
 }
 
-bool lock_monitor_exit(java_object_t *o)
+bool lock_monitor_exit(java_handle_t *o)
 {
 	return true;
 }
