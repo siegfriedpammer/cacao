@@ -727,7 +727,7 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_STMFD((1<<REG_LR) | (1<<REG_PV), REG_SP);
 	M_SUB_IMM(REG_SP, REG_SP, 1 * 8);
 
-	/* save argument registers */
+	/* save return value */
 
 	switch (md->returntype.type) {
 	case TYPE_ADR:
@@ -735,7 +735,6 @@ void emit_verbosecall_exit(jitdata *jd)
 	case TYPE_FLT:
 		M_IST(REG_RESULT, REG_SP, 0 * 8);
 		break;
-
 	case TYPE_LNG:
 	case TYPE_DBL:
 		M_LST(REG_RESULT_PACKED, REG_SP, 0 * 8);
@@ -747,7 +746,7 @@ void emit_verbosecall_exit(jitdata *jd)
 	M_MOV(REG_A1, REG_SP);
 	M_LONGBRANCH(trace_java_call_exit);
 
-	/* restore argument registers */
+	/* restore return value */
 
 	switch (md->returntype.type) {
 	case TYPE_ADR:
@@ -755,13 +754,11 @@ void emit_verbosecall_exit(jitdata *jd)
 	case TYPE_FLT:
 		M_ILD(REG_RESULT, REG_SP, 0 * 8);
 		break;
-
 	case TYPE_LNG:
 	case TYPE_DBL:
 		M_LLD(REG_RESULT_PACKED, REG_SP, 0 * 8);
 		break;
 	}
-
 
 	/* Keep stack 8-byte aligned. */
 
