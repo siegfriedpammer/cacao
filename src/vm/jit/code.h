@@ -63,7 +63,7 @@ struct codeinfo {
 	methodinfo   *m;                    /* method this is a realization of    */
 	codeinfo     *prev;                 /* previous codeinfo of this method   */
 
-	u4            codeflags;            /* or of CODE_FLAG_ constants         */
+	uint32_t      flags;                /* OR of CODE_FLAG_ constants         */
 
 	u1            optlevel;             /* optimization level of this code    */
 	s4            basicblockcount;      /* number of basic blocks             */
@@ -101,16 +101,50 @@ struct codeinfo {
 };
 
 
-/* macros *********************************************************************/
+/* inline functions ***********************************************************/
 
-#define CODE_IS_VALID(code)       (!((code)->codeflags & CODE_FLAG_INVALID))
-#define CODE_IS_INVALID(code)     ((code)->codeflags & CODE_FLAG_INVALID)
-#define CODE_IS_LEAFMETHOD(code)  ((code)->codeflags & CODE_FLAG_LEAFMETHOD)
+/* code_xxx_invalid ************************************************************
 
-#define CODE_SETFLAG_INVALID(code)                                   \
-            ((code)->codeflags |= CODE_FLAG_INVALID)
-#define CODE_SETFLAG_LEAFMETHOD(code)                                \
-            ((code)->codeflags |= CODE_FLAG_LEAFMETHOD)
+   Functions for CODE_FLAG_INVALID.
+
+*******************************************************************************/
+
+inline static int code_is_invalid(codeinfo *code)
+{
+	return (code->flags & CODE_FLAG_INVALID);
+}
+
+inline static void code_flag_invalid(codeinfo *code)
+{
+	code->flags |= CODE_FLAG_INVALID;
+}
+
+inline static void code_unflag_invalid(codeinfo *code)
+{
+	code->flags &= ~CODE_FLAG_INVALID;
+}
+
+
+/* code_xxx_leafmethod *********************************************************
+
+   Functions for CODE_FLAG_LEAFMETHOD.
+
+*******************************************************************************/
+
+inline static int code_is_leafmethod(codeinfo *code)
+{
+	return (code->flags & CODE_FLAG_LEAFMETHOD);
+}
+
+inline static void code_flag_leafmethod(codeinfo *code)
+{
+	code->flags |= CODE_FLAG_LEAFMETHOD;
+}
+
+inline static void code_unflag_leafmethod(codeinfo *code)
+{
+	code->flags &= ~CODE_FLAG_LEAFMETHOD;
+}
 
 
 /* function prototypes ********************************************************/

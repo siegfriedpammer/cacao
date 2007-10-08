@@ -1602,10 +1602,11 @@ void jit_invalidate_code(methodinfo *m)
 	codeinfo *code;
 
 	code = m->code;
-	if (code == NULL || CODE_IS_INVALID(code))
+
+	if (code == NULL || code_is_invalid(code))
 		return;
 
-	CODE_SETFLAG_INVALID(code);
+	code_flag_invalid(code);
 
 	/* activate mappable replacement points */
 
@@ -1660,7 +1661,7 @@ codeinfo *jit_get_current_code(methodinfo *m)
 
 	/* if we have valid code, return it */
 
-	if (m->code && CODE_IS_VALID(m->code))
+	if (m->code && !code_is_invalid(m->code))
 		return m->code;
 
 	/* otherwise: recompile */
