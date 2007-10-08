@@ -98,9 +98,19 @@ static void finalizer_thread(void)
 
 		LOCK_MONITOR_EXIT(lock_thread_finalizer);
 
+#if !defined(NDEBUG)
+		if (opt_DebugFinalizer)
+			log_println("[finalizer thread    : status=awake]");
+#endif
+
 		/* and call the finalizers */
 
 		gc_invoke_finalizers();
+
+#if !defined(NDEBUG)
+		if (opt_DebugFinalizer)
+			log_println("[finalizer thread    : status=sleeping]");
+#endif
 	}
 }
 #endif
@@ -138,6 +148,11 @@ bool finalizer_start_thread(void)
 
 void finalizer_notify(void)
 {
+#if !defined(NDEBUG)
+	if (opt_DebugFinalizer)
+		log_println("[finalizer notified]");
+#endif
+
 #if defined(ENABLE_THREADS)
 	/* get the lock on the finalizer lock object, so we can call wait */
 
@@ -166,13 +181,39 @@ void finalizer_notify(void)
 
 void finalizer_run(void *o, void *p)
 {
-	java_object_t *ob;
+	java_handle_t *h;
+	classinfo     *c;
 
-	ob = (java_object_t *) o;
+	h = (java_handle_t *) o;
+
+#if !defined(ENABLE_GC_CACAO) && defined(ENABLE_HANDLES)
+	/* XXX this is only a dirty hack to make Boehm work with handles */
+
+	h = LLNI_WRAP((java_object_t *) h);
+#endif
+
+	LLNI_class_get(h, c);
+
+#if !defined(NDEBUG)
+	if (opt_DebugFinalizer) {
+		log_start();
+		log_print("[finalizer running   : o=%p p=%p class=", o, p);
+		class_print(c);
+		log_print("]");
+		log_finish();
+	}
+#endif
 
 	/* call the finalizer function */
 
-	(void) vm_call_method(ob->vftbl->class->finalizer, ob);
+	(void) vm_call_method(c->finalizer, h);
+
+#if !defined(NDEBUG)
+	if (opt_DebugFinalizer && (exceptions_get_exception() != NULL)) {
+		log_println("[finalizer exception]");
+		exceptions_print_stacktrace();
+	}
+#endif
 
 	/* if we had an exception in the finalizer, ignore it */
 
