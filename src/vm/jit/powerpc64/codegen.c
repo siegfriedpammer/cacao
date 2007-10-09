@@ -2597,8 +2597,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	methoddesc  *md;
 	s4           i, j;
 	s4           t;
-	s4           s1, s2, disp;
-	s4           funcdisp;
+	int          s1, s2;
+	int          disp;
 
 	/* get required compiler data */
 
@@ -2623,27 +2623,20 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	/* create method header */
 
-	(void) dseg_add_unique_address(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8);             /* FrameSize       */
-	(void) dseg_add_unique_s4(cd, 0);                              /* IsSync          */
-	(void) dseg_add_unique_s4(cd, 0);                              /* IsLeaf          */
-	(void) dseg_add_unique_s4(cd, 0);                              /* IntSave         */
-	(void) dseg_add_unique_s4(cd, 0);                              /* FltSave         */
+	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
+	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
 	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_add_unique_s4(cd, 0);                              /* ExTableSize     */
+	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
 
 	/* generate code */
 
 	M_MFLR(REG_ZERO);
 	M_AST_INTERN(REG_ZERO, REG_SP, LA_LR_OFFSET);
 	M_STDU(REG_SP, REG_SP, -(cd->stackframesize * 8));
-
-	/* get function address (this must happen before the stackframeinfo) */
-
-	funcdisp = dseg_add_functionptr(cd, f);
-
-	if (f == NULL)
-		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, funcdisp);
 
 	/* save integer and float argument registers */
 
@@ -2670,7 +2663,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	M_MOV(REG_SP, REG_A0);
 	M_MOV(REG_PV, REG_A1);
 	disp = dseg_add_functionptr(cd, codegen_start_native_call);
-
 	M_ALD(REG_ITMP1, REG_PV, disp);
 	M_ALD(REG_ITMP1, REG_ITMP1, 0);		/* TOC */
 	M_MTCTR(REG_ITMP1);
@@ -2756,11 +2748,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		M_ALD(REG_A0, REG_PV, disp);
 	}
 
-	/* generate the actual native call */
+	/* Call the native function. */
 	/* native functions have a different TOC for sure */
 
 	M_AST(REG_TOC, REG_SP, 40);	/* save old TOC */
-	M_ALD(REG_ITMP3, REG_PV, funcdisp);
+	disp = dseg_add_functionptr(cd, f);
+	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_ALD(REG_TOC, REG_ITMP3, 8);	/* load TOC from func. descriptor */
 	M_ALD(REG_ITMP3, REG_ITMP3, 0);		
 	M_MTCTR(REG_ITMP3);
@@ -2819,10 +2812,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_MTCTR(REG_ITMP3);
 	M_RTS;
-
-	/* generate patcher traps */
-
-	emit_patcher_traps(jd);
 }
 
 
