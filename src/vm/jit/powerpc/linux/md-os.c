@@ -107,6 +107,13 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		/* we use the exception type as load displacement */
 
 		type = disp;
+
+		if (type == EXCEPTION_HARDWARE_COMPILER) {
+			/* The XPC is the RA minus 4, because the RA points to the
+			   instruction after the call. */
+
+			xpc = ra - 4;
+		}
 	}
 	else {
 		/* This is a normal NPE: addr must be NULL and the NPE-type
@@ -123,12 +130,40 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
 
-	/* set registers (only if exception object ready) */
+	/* Set registers. */
 
-	if (p != NULL) {
-		_gregs[REG_ITMP1_XPTR] = (intptr_t) p;
-		_gregs[REG_ITMP2_XPC]  = (intptr_t) xpc;
-		_gregs[PT_NIP]         = (intptr_t) asm_handle_exception;
+	switch (type) {
+	case EXCEPTION_HARDWARE_COMPILER:
+		if (p != NULL) {
+			_gregs[REG_PV] = (uintptr_t) p;
+			_gregs[PT_NIP] = (uintptr_t) p;
+			break;
+		}
+
+		/* Get and set the PV from the parent Java method. */
+
+		pv = md_codegen_get_pv_from_pc(ra);
+
+		_gregs[REG_PV] = (uintptr_t) pv;
+
+		/* Get the exception object. */
+
+		p = exceptions_get_and_clear_exception();
+
+		assert(p != NULL);
+
+		/* fall-through */
+
+	case EXCEPTION_HARDWARE_PATCHER:
+		if (p == NULL)
+			break;
+
+		/* fall-through */
+		
+	default:
+		_gregs[REG_ITMP1_XPTR] = (uintptr_t) p;
+		_gregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
+		_gregs[PT_NIP]         = (uintptr_t) asm_handle_exception;
 	}
 }
 

@@ -69,7 +69,7 @@ bool recompile_init(void)
 
 	lock_thread_recompile = NEW(java_object_t);
 
-	lock_init_object_lock(lock_thread_recompile);
+	LOCK_INIT_OBJECT_LOCK(lock_thread_recompile);
 
 	/* create method list */
 
@@ -164,15 +164,15 @@ static void recompile_thread(void)
 	while (true) {
 		/* get the lock on the recompile lock object, so we can call wait */
 
-		lock_monitor_enter(lock_thread_recompile);
+		LOCK_MONITOR_ENTER(lock_thread_recompile);
 
-		/* wait forever (0, 0) on that object till we are signaled */
+		/* wait forever on that object till we are signaled */
 	
-		lock_wait_for_object(lock_thread_recompile, 0, 0);
+		LOCK_WAIT_FOREVER(lock_thread_recompile);
 
 		/* leave the lock */
 
-		lock_monitor_exit(lock_thread_recompile);
+		LOCK_MONITOR_EXIT(lock_thread_recompile);
 
 		/* get the next method and recompile it */
 
@@ -245,15 +245,15 @@ void recompile_queue_method(methodinfo *m)
 
 	/* get the lock on the recompile lock object, so we can call notify */
 
-	lock_monitor_enter(lock_thread_recompile);
+	LOCK_MONITOR_ENTER(lock_thread_recompile);
 
 	/* signal the recompiler thread */
 	
-	lock_notify_object(lock_thread_recompile);
+	LOCK_NOTIFY(lock_thread_recompile);
 
 	/* leave the lock */
 
-	lock_monitor_exit(lock_thread_recompile);
+	LOCK_MONITOR_EXIT(lock_thread_recompile);
 }
 
 

@@ -186,6 +186,17 @@ void stacktrace_stackframeinfo_add(stackframeinfo *sfi, u1 *pv, u1 *sp, u1 *ra, 
 	sfi->ra     = ra;
 	sfi->xpc    = xpc;
 
+#if !defined(NDEBUG)
+	if (opt_DebugStackFrameInfo) {
+		log_start();
+		log_print("[stackframeinfo add   : sfi=%p, method=%p, pv=%p, sp=%p, ra=%p, xpc=%p, method=",
+				  sfi, sfi->method, sfi->pv, sfi->sp, sfi->ra, sfi->xpc);
+		method_print(sfi->method);
+		log_print("]");
+		log_finish();
+	}
+#endif
+
 	/* Store new stackframeinfo pointer. */
 
 	*psfi = sfi;
@@ -217,6 +228,17 @@ void stacktrace_stackframeinfo_remove(stackframeinfo *sfi)
 	/* get current stackframe info pointer */
 
 	psfi = &STACKFRAMEINFO;
+
+#if !defined(NDEBUG)
+	if (opt_DebugStackFrameInfo) {
+		log_start();
+		log_print("[stackframeinfo remove: sfi=%p, method=%p, pv=%p, sp=%p, ra=%p, xpc=%p, method=",
+				  sfi, sfi->method, sfi->pv, sfi->sp, sfi->ra, sfi->xpc);
+		method_print(sfi->method);
+		log_print("]");
+		log_finish();
+	}
+#endif
 
 	/* restore the old pointer */
 
@@ -349,7 +371,9 @@ static inline void stacktrace_stack_walk(stackframeinfo *sfi)
 	framesize = *((uint32_t *) (((intptr_t) pv) + FrameSize));
 
 	/* Get the RA of the current stack frame (RA to the parent Java
-	   method). */
+	   method) if the current method is a non-leaf method.  Otherwise
+	   the value in the stackframeinfo is correct (from the signal
+	   handler). */
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
@@ -357,7 +381,16 @@ static inline void stacktrace_stack_walk(stackframeinfo *sfi)
 		ra = intrp_md_stacktrace_get_returnaddress(sp, framesize);
 	else
 # endif
-		ra = md_stacktrace_get_returnaddress(sp, framesize);
+		{
+			/* TODO Remove jd->isleafmethod and use the flags in
+			   codeinfo. */
+
+/* 			if (!CODE_IS_LEAFMETHOD(m->code)) { */
+			int32_t isleafmethod = *((int32_t *) (((intptr_t) pv) + IsLeaf));
+			if (!isleafmethod) {
+				ra = md_stacktrace_get_returnaddress(sp, framesize);
+			}
+		}
 #else
 	ra = intrp_md_stacktrace_get_returnaddress(sp, framesize);
 #endif

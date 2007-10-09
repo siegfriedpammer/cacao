@@ -150,13 +150,15 @@
 *******************************************************************************/
 
 #if defined(ENABLE_HANDLES)
-# define LLNI_WRAP(obj)   ((obj) == NULL ? NULL : localref_add(obj))
-# define LLNI_UNWRAP(hdl) ((hdl) == NULL ? NULL : (hdl)->heap_object)
-# define LLNI_DIRECT(obj) ((obj)->heap_object)
+# define LLNI_WRAP(obj)      ((obj) == NULL ? NULL : localref_add(obj))
+# define LLNI_UNWRAP(hdl)    ((hdl) == NULL ? NULL : (hdl)->heap_object)
+# define LLNI_QUICKWRAP(obj) ((obj) == NULL ? NULL : &(obj))
+# define LLNI_DIRECT(hdl)    ((hdl)->heap_object)
 #else
-# define LLNI_WRAP(obj)   (obj)
-# define LLNI_UNWRAP(hdl) (hdl)
-# define LLNI_DIRECT(obj) (obj)
+# define LLNI_WRAP(obj)      (obj)
+# define LLNI_UNWRAP(hdl)    (hdl)
+# define LLNI_QUICKWRAP(obj) (obj)
+# define LLNI_DIRECT(hdl)    (hdl)
 #endif
 
 

@@ -1,4 +1,6 @@
 public class extest {
+    final static int COLUMN = 55;
+
     final static int INDEX1 = 0xcafebabe;
     final static int INDEX2 = 0xbabecafe;
     final static int INDEX3 = 0xdeadbeef;
@@ -15,20 +17,20 @@ public class extest {
 //              if (argv[0].equals("stacktrace"))
 //                  printStackTrace = true;
 
-        boolean catched = false;
+        boolean caught = false;
 
-	pln("---------- normal exceptions --------------------");
+	pheader("normal exceptions");
 
    	try {
             p("throw new Exception():");
     	    throw new Exception();
     	} catch (Exception e) {
-            catched = true;
+            caught = true;
       	    ok();
 	    pstacktrace(e);
     	} finally {
             /* check if catch block was executed */
-            if (!catched) {
+            if (!caught) {
                 failed();
             }
         }
@@ -55,8 +57,7 @@ public class extest {
 	pln();
 
 
-	pln("---------- test soft inline exceptions ----------");
-	pln("/* thrown twice to check the inline jump code */");
+	pheader("exceptions thrown in JIT code");
 
         try {
             p("ArithmeticException (only w/ -softnull):");
@@ -73,23 +74,6 @@ public class extest {
                 pstacktrace(e);
             }
   	}
-
-        try {
-            p("ArithmeticException (only w/ -softnull):");
-            long i = 1, j = 0, k = i / j;
-            failed();
-        } catch (ArithmeticException e) {
-	    String msg = e.getMessage();
-
-	    if (msg == null || !msg.equals("/ by zero")) {
-		pln("FAILED: wrong message: " + msg + ", should be: / by zero");
-
-	    } else {
-                ok();
-                pstacktrace(e);
-            }
-  	}
-
 
         try {
             p("ArrayIndexOutOfBoundsException:");
@@ -109,24 +93,6 @@ public class extest {
   	}
 
         try {
-            p("ArrayIndexOutOfBoundsException:");
-            int[] ia = new int[1];
-            ia[INDEX2] = 1;
-            failed();
-        } catch (ArrayIndexOutOfBoundsException e) {
-	    String msg = e.getMessage();
-
-	    if (msg == null || !msg.equals(String.valueOf(INDEX2))) {
-		pln("FAILED: wrong index: " + msg + ", should be: " + INDEX2);
-		pstacktrace(e);
-	    } else {
-		ok();
-	        pstacktrace(e);
-	    }
-  	}
-
-
-        try {
             p("ArrayStoreException:");
 	    Integer[] ia = new Integer[1];
             Object[] oa = (Object[]) ia;
@@ -136,18 +102,6 @@ public class extest {
   	    ok();
 	    pstacktrace(e);
   	}
-
-        try {
-            p("ArrayStoreException:");
-	    Integer[] ia = new Integer[1];
-            Object[] oa = (Object[]) ia;
-	    oa[0] = new Object();
-            failed();
-        } catch (ArrayStoreException e) {
-  	    ok();
-	    pstacktrace(e);
-  	}
-
 
         try {
             p("ClassCastException:");
@@ -155,27 +109,6 @@ public class extest {
             Integer i = (Integer) o;
             failed();
         } catch (ClassCastException e) {
-  	    ok();
-	    pstacktrace(e);
-  	}
-
-        try {
-            p("ClassCastException:");
-            Object o = new Object();
-            Integer i = null;
-            i = (Integer) o;
-            failed();
-        } catch (ClassCastException e) {
-  	    ok();
-	    pstacktrace(e);
-  	}
-
-
-        try {
-            p("NegativeArraySizeException (newarray):");
-            int[] ia = new int[-1];
-            failed();
-        } catch (NegativeArraySizeException e) {
   	    ok();
 	    pstacktrace(e);
   	}
@@ -198,27 +131,6 @@ public class extest {
 	    pstacktrace(e);
   	}
 
-        
-        try {
-            p("NullPointerException (only w/ -softnull):");
-            int[] ia = null;
-            int i = ia.length;
-            failed();
-        } catch (NullPointerException e) {
-  	    ok();
-	    pstacktrace(e);
-  	}
-
-        try {
-            p("NullPointerException (only w/ -softnull):");
-            int[] ia = null;
-            int i = ia.length;
-            failed();
-        } catch (NullPointerException e) {
-  	    ok();
-	    pstacktrace(e);
-  	}
-
         try {
             p("OutOfMemoryError:");
 	    /* use twice the heap size */
@@ -229,16 +141,6 @@ public class extest {
 	    pstacktrace(e);
   	}
 
-        try {
-            p("OutOfMemoryError:");
-	    /* use twice the heap size */
-	    byte[] ba = new byte[maxmem * 2];
-            failed();
-        } catch (OutOfMemoryError e) {
-  	    ok();
-	    pstacktrace(e);
-  	}
-        
         try {
             p("OutOfMemoryError (multianewarray):");
 	    byte[][] ba = new byte[maxmem][maxmem];
@@ -251,7 +153,7 @@ public class extest {
 	pln();
 
 
-	pln("---------- exceptions in leaf functions ---------");
+	pheader("exceptions in leaf functions");
 
         try {
             p("ArithmeticException:");
@@ -297,10 +199,19 @@ public class extest {
             pstacktrace(e);
         }
 
+        try {
+            p("Exception in <clinit> triggered from a leaf method:");
+            extest_clinit_patcher.i = 1;
+            failed();
+        } catch (ExceptionInInitializerError e) {
+            ok();
+            pstacktrace(e);
+        }
+
 	pln();
 
 
-	pln("---------- exception related things -------------");
+	pheader("exception related things");
 
         try {
             p("load/link an exception class in asmpart:");
@@ -316,17 +227,13 @@ public class extest {
         pln();
 
 
-	pln("---------- native stub exceptions ---------------");
+	pheader("native stub exceptions");
 
         try {
             p("NullPointerException in <clinit>:");
             extest_clinit.sub();
             failed();
         } catch (ExceptionInInitializerError e) {
-            ok();
-            pstacktrace(e);
-        } catch (UnsatisfiedLinkError e) {
-            /* catch this one for ENABLE_STATICVM and say it's ok */
             ok();
             pstacktrace(e);
         }
@@ -352,7 +259,7 @@ public class extest {
         pln();
 
 
-	pln("---------- special exceptions -------------------");
+	pheader("special exceptions");
 
   	try {
             p("OutOfMemoryError (array clone):");
@@ -368,7 +275,7 @@ public class extest {
         pln();
 
 
-	pln("---------- no OK beyond this point --------------");
+	pheader("exception thrown to command-line");
 
         pln("NullPointerException (without catch):");
         String s = null;
@@ -412,9 +319,18 @@ public class extest {
 
     static void p(String s) {
 	System.out.print(s);
-        for (int i = s.length(); i < 46; i++) {
+        for (int i = s.length(); i < COLUMN; i++) {
             System.out.print(" ");
         }
+    }
+
+    static void pheader(String s) {
+	System.out.print(s);
+        for (int i = s.length(); i < COLUMN + 3; i++) {
+            System.out.print("-");
+        }
+        System.out.println();
+        System.out.println();
     }
 
     static void pln() {
@@ -438,5 +354,23 @@ public class extest {
             return;
 	e.printStackTrace();
 	System.out.println();
+    }
+}
+
+class extest_clinit {
+    static {
+        String s = null;
+        s.length();
+    }
+
+    public static native void sub();
+}
+
+class extest_clinit_patcher {
+    static int i;
+
+    static {
+        int[] ia = null;
+        int a = ia.length;
     }
 }

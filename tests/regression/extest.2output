@@ -1,143 +1,123 @@
----------- normal exceptions --------------------
-throw new Exception():                        OK
-java.lang.Exception
-   at extest.main(extest.java:24)
+normal exceptions-----------------------------------------
 
-throw new Exception() (from subroutines):     OK
+throw new Exception():                                 OK
 java.lang.Exception
-   at extest.sub4(extest.java:392)
-   at extest.sub3(extest.java:388)
-   at extest.sub2(extest.java:384)
-   at extest.sub(extest.java:380)
-   at extest.main(extest.java:38)
+   at extest.main(extest.java:26)
 
-NullPointerException:                         OK
+throw new Exception() (from subroutines):              OK
+java.lang.Exception
+   at extest.sub4(extest.java:299)
+   at extest.sub3(extest.java:295)
+   at extest.sub2(extest.java:291)
+   at extest.sub(extest.java:287)
+   at extest.main(extest.java:40)
+
+NullPointerException:                                  OK
 java.lang.NullPointerException
-   at extest.main(extest.java:48)
+   at extest.main(extest.java:50)
 
 
----------- test soft inline exceptions ----------
-/* thrown twice to check the inline jump code */
-ArithmeticException (only w/ -softnull):      OK
+exceptions thrown in JIT code-----------------------------
+
+ArithmeticException (only w/ -softnull):               OK
 java.lang.ArithmeticException: / by zero
-   at extest.main(extest.java:63)
+   at extest.main(extest.java:64)
 
-ArithmeticException (only w/ -softnull):      OK
-java.lang.ArithmeticException: / by zero
-   at extest.main(extest.java:79)
-
-ArrayIndexOutOfBoundsException:               OK
+ArrayIndexOutOfBoundsException:                        OK
 java.lang.ArrayIndexOutOfBoundsException: -889275714
-   at extest.main(extest.java:97)
+   at extest.main(extest.java:81)
 
-ArrayIndexOutOfBoundsException:               OK
-java.lang.ArrayIndexOutOfBoundsException: -1161901314
-   at extest.main(extest.java:114)
-
-ArrayStoreException:                          OK
+ArrayStoreException:                                   OK
 java.lang.ArrayStoreException
-   at extest.main(extest.java:133)
+   at extest.main(extest.java:99)
 
-ArrayStoreException:                          OK
-java.lang.ArrayStoreException
-   at extest.main(extest.java:144)
-
-ClassCastException:                           OK
+ClassCastException:                                    OK
 java.lang.ClassCastException: java/lang/Object
-   at extest.main(extest.java:155)
+   at extest.main(extest.java:109)
 
-ClassCastException:                           OK
-java.lang.ClassCastException: java/lang/Object
-   at extest.main(extest.java:166)
-
-NegativeArraySizeException (newarray):        OK
+NegativeArraySizeException (newarray):                 OK
 java.lang.NegativeArraySizeException
-   at extest.main(extest.java:176)
+   at extest.main(extest.java:118)
 
-NegativeArraySizeException (newarray):        OK
+NegativeArraySizeException (multianewarray):           OK
 java.lang.NegativeArraySizeException
-   at extest.main(extest.java:185)
+   at extest.main(extest.java:127)
 
-NegativeArraySizeException (multianewarray):  OK
-java.lang.NegativeArraySizeException
-   at extest.main(extest.java:194)
-
-NullPointerException (only w/ -softnull):     OK
-java.lang.NullPointerException
-   at extest.main(extest.java:205)
-
-NullPointerException (only w/ -softnull):     OK
-java.lang.NullPointerException
-   at extest.main(extest.java:215)
-
-OutOfMemoryError:                             OK
+OutOfMemoryError:                                      OK
 java.lang.OutOfMemoryError
-   at extest.main(extest.java:225)
+   at extest.main(extest.java:137)
 
-OutOfMemoryError:                             OK
+OutOfMemoryError (multianewarray):                     OK
 java.lang.OutOfMemoryError
-   at extest.main(extest.java:235)
-
-OutOfMemoryError (multianewarray):            OK
-java.lang.OutOfMemoryError
-   at extest.main(extest.java:244)
+   at extest.main(extest.java:146)
 
 
----------- exceptions in leaf functions ---------
-ArithmeticException:                          OK
+exceptions in leaf functions------------------------------
+
+ArithmeticException:                                   OK
 java.lang.ArithmeticException: / by zero
-   at extest.aesub(extest.java:396)
-   at extest.main(extest.java:258)
+   at extest.aesub(extest.java:303)
+   at extest.main(extest.java:160)
 
-ArrayIndexOutOfBoundsException:               OK
+ArrayIndexOutOfBoundsException:                        OK
 java.lang.ArrayIndexOutOfBoundsException: -559038737
-   at extest.aioobesub(extest.java:400)
-   at extest.main(extest.java:267)
+   at extest.aioobesub(extest.java:307)
+   at extest.main(extest.java:169)
 
-ClassCastException:                           OK
+ClassCastException:                                    OK
 java.lang.ClassCastException: java/lang/Object
-   at extest.ccesub(extest.java:404)
-   at extest.main(extest.java:284)
+   at extest.ccesub(extest.java:311)
+   at extest.main(extest.java:186)
 
-NullPointerException:                         OK
+NullPointerException:                                  OK
 java.lang.NullPointerException
-   at extest.npesub(extest.java:408)
-   at extest.main(extest.java:293)
+   at extest.npesub(extest.java:315)
+   at extest.main(extest.java:195)
 
-
----------- exception related things -------------
-load/link an exception class in asmpart:      OK
-java.lang.Exception
-   at extest.main(extest.java:307)
-
-
----------- native stub exceptions ---------------
-NullPointerException in <clinit>:             OK
+Exception in <clinit> triggered from a leaf method:    OK
 java.lang.ExceptionInInitializerError
-   at extest.main(extest.java:323)
+   at extest.main(extest.java:204)
 Caused by: java.lang.NullPointerException
-   at extest_clinit.<clinit>(extest_clinit.java:4)
-   at extest.main(extest.java:323)
+   at extest_clinit_patcher.<clinit>(extest.java:374)
+   at extest.main(extest.java:204)
 
-UnsatisfiedLinkError:                         OK
+
+exception related things----------------------------------
+
+load/link an exception class in asmpart:               OK
+java.lang.Exception
+   at extest.main(extest.java:218)
+
+
+native stub exceptions------------------------------------
+
+NullPointerException in <clinit>:                      OK
+java.lang.ExceptionInInitializerError
+   at extest.main(extest.java:234)
+Caused by: java.lang.NullPointerException
+   at extest_clinit.<clinit>(extest.java:363)
+   at extest.main(extest.java:234)
+
+UnsatisfiedLinkError:                                  OK
 java.lang.UnsatisfiedLinkError: nsub
-   at extest.nsub(Native Method)
-   at extest.main(extest.java:336)
+   at extest.main(extest.java:243)
 
-NullPointerException (native):                OK
+NullPointerException (native):                         OK
 java.lang.NullPointerException
-   at java.lang.System.arraycopy(System.java:281)
-   at extest.main(extest.java:345)
+   at java.lang.System.arraycopy(System.java:297)
+   at extest.main(extest.java:252)
 
 
----------- special exceptions -------------------
-OutOfMemoryError (array clone):               OK
+special exceptions----------------------------------------
+
+OutOfMemoryError (array clone):                        OK
 java.lang.OutOfMemoryError
    at [B.clone(Native Method)
-   at extest.main(extest.java:361)
+   at extest.main(extest.java:268)
 
 
----------- no OK beyond this point --------------
+exception thrown to command-line--------------------------
+
 NullPointerException (without catch):
 Exception in thread "main" java.lang.NullPointerException
-   at extest.main(extest.java:375)
+   at extest.main(extest.java:282)

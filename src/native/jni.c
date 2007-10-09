@@ -62,6 +62,7 @@
 #  include "native/include/java_nio_ByteBuffer.h"       /* required by j.l.CL */
 # endif
 
+# include "native/include/java_lang_Class.h"
 # include "native/include/java_lang_ClassLoader.h"
 
 # include "native/include/java_lang_reflect_Constructor.h"
@@ -163,15 +164,6 @@ static methodinfo *dbb_init;
 
 # endif
 #endif
-
-
-/* accessing instance fields macros *******************************************/
-
-#define SET_FIELD(o,type,f,value) \
-    *((type *) (((intptr_t) (o)) + ((intptr_t) ((fieldinfo *) (f))->offset))) = (type) (value)
-
-#define GET_FIELD(o,type,f) \
-    *((type *) (((intptr_t) (o)) + ((intptr_t) ((fieldinfo *) (f))->offset)))
 
 
 /* some forward declarations **************************************************/
@@ -1274,7 +1266,7 @@ void _Jv_JNI_DeleteLocalRef(JNIEnv *env, jobject localRef)
 	o = (java_handle_t *) localRef;
 
 	if (o == NULL)
-		return NULL;
+		return;
 
 	/* delete the reference */
 
@@ -2153,6 +2145,9 @@ jfieldID _Jv_JNI_GetFieldID(JNIEnv *env, jclass clazz, const char *name,
 
 *******************************************************************************/
 
+#define GET_FIELD(o,type,f) \
+    *((type *) (((intptr_t) (o)) + ((intptr_t) ((fieldinfo *) (f))->offset)))
+
 #define JNI_GET_FIELD(name, type, intern)                                 \
 type _Jv_JNI_Get##name##Field(JNIEnv *env, jobject obj, jfieldID fieldID) \
 {                                                                         \
@@ -2160,7 +2155,11 @@ type _Jv_JNI_Get##name##Field(JNIEnv *env, jobject obj, jfieldID fieldID) \
                                                                           \
 	STATISTICS(jniinvokation());                                          \
                                                                           \
-	ret = GET_FIELD(obj, intern, fieldID);                                \
+	LLNI_CRITICAL_START;                                                  \
+                                                                          \
+	ret = GET_FIELD(LLNI_DIRECT((java_handle_t *) obj), intern, fieldID); \
+                                                                          \
+	LLNI_CRITICAL_END;                                                    \
                                                                           \
 	return (type) ret;                                                    \
 }
@@ -2183,11 +2182,11 @@ jobject _Jv_JNI_GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID)
 
 	LLNI_CRITICAL_START;
 
-	o = LLNI_WRAP(GET_FIELD(obj, java_handle_t*, fieldID));
+	o = LLNI_WRAP(GET_FIELD(LLNI_DIRECT((java_handle_t *) obj), java_object_t*, fieldID));
 
 	LLNI_CRITICAL_END;
 
-	return _Jv_JNI_NewLocalRef(env, (jobject) o);
+	return _Jv_JNI_NewLocalRef(env, o);
 }
 
 
@@ -2199,13 +2198,20 @@ jobject _Jv_JNI_GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID)
 
 *******************************************************************************/
 
-#define JNI_SET_FIELD(name, type, intern)                                 \
-void _Jv_JNI_Set##name##Field(JNIEnv *env, jobject obj, jfieldID fieldID, \
-							  type value)                                 \
-{                                                                         \
-	STATISTICS(jniinvokation());                                          \
-                                                                          \
-	SET_FIELD(obj, intern, fieldID, value);                               \
+#define SET_FIELD(o,type,f,value) \
+    *((type *) (((intptr_t) (o)) + ((intptr_t) ((fieldinfo *) (f))->offset))) = (type) (value)
+
+#define JNI_SET_FIELD(name, type, intern)                                  \
+void _Jv_JNI_Set##name##Field(JNIEnv *env, jobject obj, jfieldID fieldID,  \
+							  type value)                                  \
+{                                                                          \
+	STATISTICS(jniinvokation());                                           \
+                                                                           \
+	LLNI_CRITICAL_START;                                                   \
+                                                                           \
+	SET_FIELD(LLNI_DIRECT((java_handle_t *) obj), intern, fieldID, value); \
+	                                                                       \
+	LLNI_CRITICAL_START;                                                   \
 }
 
 JNI_SET_FIELD(Boolean, jboolean, s4)
@@ -2225,7 +2231,7 @@ void _Jv_JNI_SetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID,
 
 	LLNI_CRITICAL_START;
 
-	SET_FIELD(obj, java_handle_t*, fieldID, LLNI_UNWRAP(value));
+	SET_FIELD(obj, java_handle_t*, fieldID, LLNI_UNWRAP((java_handle_t*) value));
 
 	LLNI_CRITICAL_END;
 }
@@ -2509,8 +2515,9 @@ JNI_GET_STATIC_FIELD(Double,  jdouble,  d)
 jobject _Jv_JNI_GetStaticObjectField(JNIEnv *env, jclass clazz,
 									 jfieldID fieldID)
 {
-	classinfo *c;
-	fieldinfo *f;
+	classinfo     *c;
+	fieldinfo     *f;
+	java_handle_t *h;
 
 	STATISTICS(jniinvokation());
 
@@ -2521,7 +2528,9 @@ jobject _Jv_JNI_GetStaticObjectField(JNIEnv *env, jclass clazz,
 		if (!initialize_class(c))
 			return NULL;
 
-	return _Jv_JNI_NewLocalRef(env, f->value->a);
+	h = LLNI_WRAP(f->value->a);
+
+	return _Jv_JNI_NewLocalRef(env, h);
 }
 
 
@@ -2577,7 +2586,7 @@ void _Jv_JNI_SetStaticObjectField(JNIEnv *env, jclass clazz, jfieldID fieldID,
 		if (!initialize_class(c))
 			return;
 
-	f->value->a = value;
+	f->value->a = LLNI_UNWRAP((java_handle_t *) value);
 }
 
 
@@ -2922,7 +2931,7 @@ void _Jv_JNI_SetObjectArrayElement(JNIEnv *env, jobjectArray array,
 	/* check if the class of value is a subclass of the element class
 	   of the array */
 
-	if (!builtin_canstore(LLNI_DIRECT(oa), LLNI_DIRECT(o)))
+	if (!builtin_canstore(oa, o))
 		return;
 
 	array_objectarray_element_set(oa, index, o);
@@ -2975,7 +2984,7 @@ type *_Jv_JNI_Get##name##ArrayElements(JNIEnv *env, type##Array array, \
 	if (isCopy)                                                        \
 		*isCopy = JNI_FALSE;                                           \
                                                                        \
-	return LLNI_array_data(a);                                         \
+	return (type *) LLNI_array_data(a);                                \
 }
 
 JNI_GET_ARRAY_ELEMENTS(Boolean, jboolean, boolean)
@@ -3009,7 +3018,7 @@ void _Jv_JNI_Release##name##ArrayElements(JNIEnv *env, type##Array array,  \
                                                                            \
 	a = (java_handle_##intern##array_t *) array;                           \
                                                                            \
-	if (elems != LLNI_array_data(a)) {                                     \
+	if (elems != (type *) LLNI_array_data(a)) {                            \
 		switch (mode) {                                                    \
 		case JNI_COMMIT:                                                   \
 			MCOPY(LLNI_array_data(a), elems, intern2, LLNI_array_size(a)); \
@@ -3414,6 +3423,8 @@ jobject _Jv_JNI_NewGlobalRef(JNIEnv* env, jobject obj)
 		gre = gre->hashlink;                /* next element in external chain */
 	}
 
+	LLNI_CRITICAL_END;
+
 	/* global ref not found, create a new one */
 
 	if (gre == NULL) {
@@ -3425,8 +3436,12 @@ jobject _Jv_JNI_NewGlobalRef(JNIEnv* env, jobject obj)
 		gc_reference_register(&(gre->o), GC_REFTYPE_JNI_GLOBALREF);
 #endif
 
+		LLNI_CRITICAL_START;
+
 		gre->o    = LLNI_DIRECT(o);
 		gre->refs = 1;
+
+		LLNI_CRITICAL_END;
 
 		/* insert entry into hashtable */
 
@@ -3438,8 +3453,6 @@ jobject _Jv_JNI_NewGlobalRef(JNIEnv* env, jobject obj)
 
 		hashtable_global_ref->entries++;
 	}
-
-	LLNI_CRITICAL_END;
 
 	LOCK_MONITOR_EXIT(hashtable_global_ref->header);
 
@@ -3658,13 +3671,7 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 	nbuf = (java_nio_DirectByteBufferImpl *) buf;
 
-#  if SIZEOF_VOID_P == 8
 	LLNI_field_get_ref(nbuf, address, paddress);
-	/* this was the cast to avaoid warning: (gnu_classpath_Pointer64 *) nbuf->address; */
-#  else
-	LLNI_field_get_ref(nbuf, address, paddress); 
-	/* this was the cast to avaoid warning: (gnu_classpath_Pointer32 *) nbuf->address; */
-#  endif
 
 	if (paddress == NULL)
 		return NULL;

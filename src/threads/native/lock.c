@@ -467,7 +467,7 @@ static lock_record_t *lock_hashtable_get(threadobject *t, java_handle_t *o)
 #if defined(ENABLE_GC_BOEHM)
 		/* register new finalizer to clean up the lock record */
 
-		GC_REGISTER_FINALIZER(o, lock_record_finalizer, 0, 0, 0);
+		GC_REGISTER_FINALIZER(LLNI_DIRECT(o), lock_record_finalizer, 0, 0, 0);
 #endif
 
 		/* enter it in the hashtable */
@@ -495,14 +495,16 @@ static lock_record_t *lock_hashtable_get(threadobject *t, java_handle_t *o)
 
 /* lock_hashtable_remove *******************************************************
 
-   Remove the lock record for the given object from the hashtable.
+   Remove the lock record for the given object from the hashtable
+   and free it afterwards.
 
    IN:
+       t....the current thread
        o....the object to look up
 
 *******************************************************************************/
 
-static void lock_hashtable_remove(java_object_t *o)
+static void lock_hashtable_remove(threadobject *t, java_handle_t *o)
 {
 	uintptr_t      lockword;
 	lock_record_t *lr;
@@ -515,7 +517,7 @@ static void lock_hashtable_remove(java_object_t *o)
 
 	/* get lock record */
 
-	lockword = o->lockword;
+	lockword = lock_lockword_get(t, o);
 
 	assert(IS_FAT_LOCK(lockword));
 
@@ -523,8 +525,10 @@ static void lock_hashtable_remove(java_object_t *o)
 
 	/* remove the lock-record from the hashtable */
 
-	slot  = heap_hashcode(o) % lock_hashtable.size;
+	LLNI_CRITICAL_START_THREAD(t);
+	slot  = heap_hashcode(LLNI_DIRECT(o)) % lock_hashtable.size;
 	tmplr = lock_hashtable.ptr[slot];
+	LLNI_CRITICAL_END_THREAD(t);
 
 	if (tmplr == lr) {
 		/* special handling if it's the first in the chain */
@@ -549,6 +553,10 @@ static void lock_hashtable_remove(java_object_t *o)
 	/* unlock the hashtable */
 
 	pthread_mutex_unlock(&(lock_hashtable.mutex));
+
+	/* free the lock record */
+
+	lock_record_free(lr);
 }
 
 
@@ -560,32 +568,37 @@ static void lock_hashtable_remove(java_object_t *o)
 
 static void lock_record_finalizer(void *object, void *p)
 {
-	java_object_t *o;
-	uintptr_t      lockword;
-	lock_record_t *lr;
+	java_handle_t *o;
+	classinfo     *c;
 
-	o = (java_object_t *) object;
+	o = (java_handle_t *) object;
+
+#if !defined(ENABLE_GC_CACAO) && defined(ENABLE_HANDLES)
+	/* XXX this is only a dirty hack to make Boehm work with handles */
+
+	o = LLNI_WRAP((java_object_t *) o);
+#endif
+
+	LLNI_class_get(o, c);
+
+#if !defined(NDEBUG)
+	if (opt_DebugFinalizer) {
+		log_start();
+		log_print("[finalizer lockrecord: o=%p p=%p class=", object, p);
+		class_print(c);
+		log_print("]");
+		log_finish();
+	}
+#endif
 
 	/* check for a finalizer function */
 
-	if (o->vftbl->class->finalizer != NULL)
+	if (c->finalizer != NULL)
 		finalizer_run(object, p);
 
-	/* remove the lock-record entry from the hashtable */
+	/* remove the lock-record entry from the hashtable and free it */
 
-	lock_hashtable_remove(o);
-
-	/* get lock record */
-
-	lockword = o->lockword;
-
-	assert(IS_FAT_LOCK(lockword));
-
-	lr = GET_FAT_LOCK(lockword);
-
-	/* now release the lock record */
-
-	lock_record_free(lr);
+	lock_hashtable_remove(THREADOBJECT, o);
 }
 
 

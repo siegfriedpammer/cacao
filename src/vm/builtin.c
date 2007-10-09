@@ -83,9 +83,6 @@
 #include <vmlog_cacao.h>
 #endif
 
-#if defined(ENABLE_DEBUG_FILTER)
-#	include "vm/jit/show.h"
-#endif
 
 /* include builtin tables *****************************************************/
 
@@ -94,6 +91,11 @@
 
 CYCLES_STATS_DECLARE(builtin_new         ,100,5)
 CYCLES_STATS_DECLARE(builtin_overhead    , 80,1)
+
+
+/*============================================================================*/
+/* BUILTIN TABLE MANAGEMENT FUNCTIONS                                         */
+/*============================================================================*/
 
 /* builtintable_init ***********************************************************
 
@@ -396,9 +398,9 @@ bool builtintable_replace_function(void *iptr_)
 #endif /* defined(ENABLE_JIT) */
 
 
-/*****************************************************************************
-								TYPE CHECKS
-*****************************************************************************/
+/*============================================================================*/
+/* INTERNAL BUILTIN FUNCTIONS                                                 */
+/*============================================================================*/
 
 /* builtin_instanceof **********************************************************
 
@@ -406,9 +408,12 @@ bool builtintable_replace_function(void *iptr_)
    of that class). If class is an interface, checks if the interface
    is implemented.
 
-   Return value: 1 ... o is an instance of class or implements the interface
-                 0 ... otherwise or if o == NULL
-			 
+   RETURN VALUE:
+     1......o is an instance of class or implements the interface
+     0......otherwise or if o == NULL
+
+   NOTE: This builtin can be called from NATIVE code only.
+
 *******************************************************************************/
 
 s4 builtin_instanceof(java_handle_t *o, classinfo *class)
@@ -427,9 +432,11 @@ s4 builtin_instanceof(java_handle_t *o, classinfo *class)
 
 /* builtin_checkcast ***********************************************************
 
-   The same as builtin_instanceof except that 1 is returned when o ==
-   NULL.
-			  
+   The same as builtin_instanceof but with the exception
+   that 1 is returned when (o == NULL).
+
+   NOTE: This builtin can be called from NATIVE code only.
+
 *******************************************************************************/
 
 s4 builtin_checkcast(java_handle_t *o, classinfo *class)
@@ -450,10 +457,11 @@ s4 builtin_checkcast(java_handle_t *o, classinfo *class)
 
 /* builtin_descriptorscompatible ***********************************************
 
-   Checks if two array type descriptors are assignment compatible
+   Checks if two array type descriptors are assignment compatible.
 
-   Return value: 1 ... target = desc is possible
-                 0 ... otherwise
+   RETURN VALUE:
+      1......target = desc is possible
+      0......otherwise
 			
 *******************************************************************************/
 
@@ -503,17 +511,19 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,
    arrays of arrays (which in turn can again be arrays of arrays), the
    types at the lowest level have to satisfy the corresponding sub
    class relation.
-	
+
+   NOTE: This is a FAST builtin and can be called from JIT code only.
+
 *******************************************************************************/
 
-s4 builtin_arraycheckcast(java_handle_t *o, classinfo *targetclass)
+s4 builtin_fast_arraycheckcast(java_object_t *o, classinfo *targetclass)
 {
 	arraydescriptor *desc;
 
 	if (o == NULL)
 		return 1;
 
-	desc = LLNI_vftbl_direct(o)->arraydesc;
+	desc = o->vftbl->arraydesc;
 
 	if (desc == NULL)
 		return 0;
@@ -522,19 +532,48 @@ s4 builtin_arraycheckcast(java_handle_t *o, classinfo *targetclass)
 }
 
 
-s4 builtin_arrayinstanceof(java_handle_t *o, classinfo *targetclass)
+/* builtin_fast_arrayinstanceof ************************************************
+
+   NOTE: This is a FAST builtin and can be called from JIT code only.
+
+*******************************************************************************/
+
+s4 builtin_fast_arrayinstanceof(java_object_t *o, classinfo *targetclass)
 {
 	if (o == NULL)
 		return 0;
 
-	return builtin_arraycheckcast(o, targetclass);
+	return builtin_fast_arraycheckcast(o, targetclass);
+}
+
+
+/* builtin_arrayinstanceof *****************************************************
+
+   NOTE: This builtin can be called from NATIVE code only.
+
+*******************************************************************************/
+
+s4 builtin_arrayinstanceof(java_handle_t *h, classinfo *targetclass)
+{
+	s4 result;
+
+	LLNI_CRITICAL_START;
+
+	result = builtin_fast_arrayinstanceof(LLNI_UNWRAP(h), targetclass);
+
+	LLNI_CRITICAL_END;
+
+	return result;
 }
 
 
 /* builtin_throw_exception *****************************************************
 
-   Sets the exceptionptr with the thrown exception and prints some
-   debugging information.  Called from asm_vm_call_method.
+   Sets the exception pointer with the thrown exception and prints some
+   debugging information.
+   
+   NOTE: This is a FAST builtin and can be called from JIT code,
+   or from asm_vm_call_method.
 
 *******************************************************************************/
 
@@ -549,7 +588,7 @@ void *builtin_throw_exception(java_object_t *xptr)
 
 	/* actually set the exception */
 
-	exceptions_set_exception(xptr);
+	exceptions_set_exception(LLNI_QUICKWRAP(xptr));
 
 	/* Return a NULL pointer.  This is required for vm_call_method to
 	   check for an exception.  This is for convenience. */
@@ -562,8 +601,11 @@ void *builtin_throw_exception(java_object_t *xptr)
 
    Checks, if an object can be stored in an array.
 
-   Return value: 1 ... possible
-                 0 ... otherwise (throws an ArrayStoreException)
+   RETURN VALUE:
+      1......possible
+      0......otherwise (throws an ArrayStoreException)
+
+   NOTE: This is a SLOW builtin and can be called from JIT & NATIVE code.
 
 *******************************************************************************/
 
@@ -586,6 +628,18 @@ s4 builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o)
 }
 
 
+/* builtin_fast_canstore *******************************************************
+
+   Checks, if an object can be stored in an array.
+
+   RETURN VALUE:
+      1......possible
+      0......otherwise (no exception thrown!)
+
+   NOTE: This is a FAST builtin and can be called from JIT code only.
+
+*******************************************************************************/
+
 s4 builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 {
 	arraydescriptor *desc;
@@ -605,7 +659,7 @@ s4 builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 	 *     *) oa->...vftbl->arraydesc->componentvftbl != NULL
 	 *     *) o->vftbl is not an interface vftbl
 	 */
-	
+
 	desc           = oa->header.objheader.vftbl->arraydesc;
 	componentvftbl = desc->componentvftbl;
 	valuevftbl     = o->vftbl;
@@ -656,7 +710,7 @@ s4 builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 
 
 /* This is an optimized version where a is guaranteed to be one-dimensional */
-s4 builtin_canstore_onedim (java_objectarray_t *a, java_object_t *o)
+s4 builtin_fast_canstore_onedim(java_objectarray_t *a, java_object_t *o)
 {
 	arraydescriptor *desc;
 	vftbl_t         *elementvftbl;
@@ -707,7 +761,7 @@ s4 builtin_canstore_onedim (java_objectarray_t *a, java_object_t *o)
 
 /* This is an optimized version where a is guaranteed to be a
  * one-dimensional array of a class type */
-s4 builtin_canstore_onedim_class(java_objectarray_t *a, java_object_t *o)
+s4 builtin_fast_canstore_onedim_class(java_objectarray_t *a, java_object_t *o)
 {
 	vftbl_t  *elementvftbl;
 	vftbl_t  *valuevftbl;
@@ -749,14 +803,16 @@ s4 builtin_canstore_onedim_class(java_objectarray_t *a, java_object_t *o)
 
    Creates a new instance of class c on the heap.
 
-   Return value: pointer to the object or NULL if no memory is
-   available
+   RETURN VALUE:
+      pointer to the object, or NULL if no memory is available
+
+   NOTE: This builtin can be called from NATIVE code only.
 
 *******************************************************************************/
 
 java_handle_t *builtin_new(classinfo *c)
 {
-	java_object_t *o;
+	java_handle_t *o;
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_end;
 #endif
@@ -800,10 +856,16 @@ java_handle_t *builtin_new(classinfo *c)
 	if (!o)
 		return NULL;
 
-	o->vftbl = c->vftbl;
+#if !defined(ENABLE_GC_CACAO) && defined(ENABLE_HANDLES)
+	/* XXX this is only a dirty hack to make Boehm work with handles */
+
+	o = LLNI_WRAP((java_object_t *) o);
+#endif
+
+	LLNI_vftbl_direct(o) = c->vftbl;
 
 #if defined(ENABLE_THREADS)
-	lock_init_object_lock(o);
+	lock_init_object_lock(LLNI_DIRECT(o));
 #endif
 
 	CYCLES_STATS_GET(cycles_end);
@@ -816,12 +878,27 @@ java_handle_t *builtin_new(classinfo *c)
 }
 
 
+/* builtin_java_new ************************************************************
+
+   NOTE: This is a SLOW builtin and can be called from JIT code only.
+
+*******************************************************************************/
+
+java_handle_t *builtin_java_new(java_handle_t *clazz)
+{
+	return builtin_new(LLNI_classinfo_unwrap(clazz));
+}
+
+
 /* builtin_fast_new ************************************************************
 
    Creates a new instance of class c on the heap.
 
-   Return value: pointer to the object or NULL if no fast return
-   is possible for any reason.
+   RETURN VALUE:
+      pointer to the object, or NULL if no fast return
+      is possible for any reason.
+
+   NOTE: This is a FAST builtin and can be called from JIT code only.
 
 *******************************************************************************/
 
@@ -882,7 +959,10 @@ java_object_t *builtin_fast_new(classinfo *c)
    Creates an array with the given vftbl on the heap. This function
    takes as class argument an array class.
 
-   Return value: pointer to the array or NULL if no memory is available
+   RETURN VALUE:
+      pointer to the array or NULL if no memory is available
+
+   NOTE: This builtin can be called from NATIVE code only.
 
 *******************************************************************************/
 
@@ -892,7 +972,7 @@ java_handle_t *builtin_newarray(s4 size, classinfo *arrayclass)
 	s4               dataoffset;
 	s4               componentsize;
 	s4               actualsize;
-	java_array_t    *a;
+	java_handle_t   *a;
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_end;
 #endif
@@ -922,10 +1002,16 @@ java_handle_t *builtin_newarray(s4 size, classinfo *arrayclass)
 	if (a == NULL)
 		return NULL;
 
-	a->objheader.vftbl = arrayclass->vftbl;
+#if !defined(ENABLE_GC_CACAO) && defined(ENABLE_HANDLES)
+	/* XXX this is only a dirty hack to make Boehm work with handles */
+
+	a = LLNI_WRAP((java_object_t *) a);
+#endif
+
+	LLNI_vftbl_direct(a) = arrayclass->vftbl;
 
 #if defined(ENABLE_THREADS)
-	lock_init_object_lock(&a->objheader);
+	lock_init_object_lock(LLNI_DIRECT(a));
 #endif
 
 	LLNI_array_size(a) = size;
@@ -937,12 +1023,27 @@ java_handle_t *builtin_newarray(s4 size, classinfo *arrayclass)
 }
 
 
+/* builtin_java_newarray *******************************************************
+
+   NOTE: This is a SLOW builtin and can be called from JIT code only.
+
+*******************************************************************************/
+
+java_handle_t *builtin_java_newarray(s4 size, java_handle_t *arrayclazz)
+{
+	return builtin_newarray(size, LLNI_classinfo_unwrap(arrayclazz));
+}
+
+
 /* builtin_anewarray ***********************************************************
 
    Creates an array of references to the given class type on the heap.
 
-   Return value: pointer to the array or NULL if no memory is
-   available
+   RETURN VALUE:
+      pointer to the array or NULL if no memory is
+      available
+
+   NOTE: This builtin can be called from NATIVE code only.
 
 *******************************************************************************/
 
@@ -969,135 +1070,32 @@ java_handle_objectarray_t *builtin_anewarray(s4 size, classinfo *componentclass)
 }
 
 
-/* builtin_newarray_boolean ****************************************************
+/* builtin_newarray_type ****************************************************
 
-   Creates an array of bytes on the heap. The array is designated as
-   an array of booleans (important for casts)
+   Creates an array of [type]s on the heap.
 	
-   Return value: pointer to the array or NULL if no memory is
-   available
+   RETURN VALUE:
+      pointer to the array or NULL if no memory is available
+
+   NOTE: This is a SLOW builtin and can be called from JIT & NATIVE code.
 
 *******************************************************************************/
 
-java_handle_booleanarray_t *builtin_newarray_boolean(s4 size)
-{
-	return (java_handle_booleanarray_t *)
-		builtin_newarray(size,
-						 primitivetype_table[ARRAYTYPE_BOOLEAN].arrayclass);
+#define BUILTIN_NEWARRAY_TYPE(type, arraytype)                             \
+java_handle_##type##array_t *builtin_newarray_##type(s4 size)              \
+{                                                                          \
+	return (java_handle_##type##array_t *)                                 \
+		builtin_newarray(size, primitivetype_table[arraytype].arrayclass); \
 }
 
-
-/* builtin_newarray_byte *******************************************************
-
-   Creates an array of 8 bit Integers on the heap.
-
-   Return value: pointer to the array or NULL if no memory is
-   available
-
-*******************************************************************************/
-
-java_handle_bytearray_t *builtin_newarray_byte(s4 size)
-{
-	return (java_handle_bytearray_t *)
-		builtin_newarray(size, primitivetype_table[ARRAYTYPE_BYTE].arrayclass);
-}
-
-
-/* builtin_newarray_char *******************************************************
-
-   Creates an array of characters on the heap.
-
-   Return value: pointer to the array or NULL if no memory is
-   available
-
-*******************************************************************************/
-
-java_handle_chararray_t *builtin_newarray_char(s4 size)
-{
-	return (java_handle_chararray_t *)
-		builtin_newarray(size, primitivetype_table[ARRAYTYPE_CHAR].arrayclass);
-}
-
-
-/* builtin_newarray_short ******************************************************
-
-   Creates an array of 16 bit Integers on the heap.
-
-   Return value: pointer to the array or NULL if no memory is
-   available
-
-*******************************************************************************/
-
-java_handle_shortarray_t *builtin_newarray_short(s4 size)
-{
-	return (java_handle_shortarray_t *)
-		builtin_newarray(size, primitivetype_table[ARRAYTYPE_SHORT].arrayclass);
-}
-
-
-/* builtin_newarray_int ********************************************************
-
-   Creates an array of 32 bit Integers on the heap.
-
-   Return value: pointer to the array or NULL if no memory is
-   available
-
-*******************************************************************************/
-
-java_handle_intarray_t *builtin_newarray_int(s4 size)
-{
-	return (java_handle_intarray_t *)
-		builtin_newarray(size, primitivetype_table[ARRAYTYPE_INT].arrayclass);
-}
-
-
-/* builtin_newarray_long *******************************************************
-
-   Creates an array of 64 bit Integers on the heap.
-
-   Return value: pointer to the array or NULL if no memory is
-   available
-
-*******************************************************************************/
-
-java_handle_longarray_t *builtin_newarray_long(s4 size)
-{
-	return (java_handle_longarray_t *)
-		builtin_newarray(size, primitivetype_table[ARRAYTYPE_LONG].arrayclass);
-}
-
-
-/* builtin_newarray_float ******************************************************
-
-   Creates an array of 32 bit IEEE floats on the heap.
-
-   Return value: pointer to the array or NULL if no memory is
-   available
-
-*******************************************************************************/
-
-java_handle_floatarray_t *builtin_newarray_float(s4 size)
-{
-	return (java_handle_floatarray_t *)
-		builtin_newarray(size, primitivetype_table[ARRAYTYPE_FLOAT].arrayclass);
-}
-
-
-/* builtin_newarray_double *****************************************************
-
-   Creates an array of 64 bit IEEE floats on the heap.
-
-   Return value: pointer to the array or NULL if no memory is
-   available
-
-*******************************************************************************/
-
-java_handle_doublearray_t *builtin_newarray_double(s4 size)
-{
-	return (java_handle_doublearray_t *)
-		builtin_newarray(size,
-						 primitivetype_table[ARRAYTYPE_DOUBLE].arrayclass);
-}
+BUILTIN_NEWARRAY_TYPE(boolean, ARRAYTYPE_BOOLEAN)
+BUILTIN_NEWARRAY_TYPE(byte,    ARRAYTYPE_BYTE)
+BUILTIN_NEWARRAY_TYPE(char,    ARRAYTYPE_CHAR)
+BUILTIN_NEWARRAY_TYPE(short,   ARRAYTYPE_SHORT)
+BUILTIN_NEWARRAY_TYPE(int,     ARRAYTYPE_INT)
+BUILTIN_NEWARRAY_TYPE(long,    ARRAYTYPE_LONG)
+BUILTIN_NEWARRAY_TYPE(float,   ARRAYTYPE_FLOAT)
+BUILTIN_NEWARRAY_TYPE(double,  ARRAYTYPE_DOUBLE)
 
 
 /* builtin_multianewarray_intern ***********************************************
@@ -1105,13 +1103,13 @@ java_handle_doublearray_t *builtin_newarray_double(s4 size)
    Creates a multi-dimensional array on the heap. The dimensions are
    passed in an array of longs.
 
-   Arguments:
-       n.............number of dimensions to create
-       arrayclass....the array class
-       dims..........array containing the size of each dimension to create
+   ARGUMENTS:
+      n.............number of dimensions to create
+      arrayclass....the array class
+      dims..........array containing the size of each dimension to create
 
-   Return value: pointer to the array or NULL if no memory is
-   available
+   RETURN VALUE:
+      pointer to the array or NULL if no memory is available
 
 ******************************************************************************/
 
@@ -1170,13 +1168,17 @@ static java_handle_t *builtin_multianewarray_intern(int n,
    Wrapper for builtin_multianewarray_intern which checks all
    dimensions before we start allocating.
 
+   NOTE: This is a SLOW builtin and can be called from JIT code only.
+
 ******************************************************************************/
 
-java_handle_objectarray_t *builtin_multianewarray(int n, classinfo *arrayclass,
+java_handle_objectarray_t *builtin_multianewarray(int n,
+												  java_handle_t *arrayclazz,
 												  long *dims)
 {
-	s4 i;
-	s4 size;
+	classinfo *c;
+	s4         i;
+	s4         size;
 
 	/* check all dimensions before doing anything */
 
@@ -1194,16 +1196,20 @@ java_handle_objectarray_t *builtin_multianewarray(int n, classinfo *arrayclass,
 		}
 	}
 
+	c = LLNI_classinfo_unwrap(arrayclazz);
+
 	/* now call the real function */
 
 	return (java_handle_objectarray_t *)
-		builtin_multianewarray_intern(n, arrayclass, dims);
+		builtin_multianewarray_intern(n, c, dims);
 }
 
 
 /* builtin_verbosecall_enter ***************************************************
 
    Print method call with arguments for -verbose:call.
+
+   XXX: Remove mew once all archs use the new tracer!
 
 *******************************************************************************/
 
@@ -1231,6 +1237,8 @@ void builtin_verbosecall_enter(s8 a0, s8 a1,
 
    Print method exit for -verbose:call.
 
+   XXX: Remove mew once all archs use the new tracer!
+
 *******************************************************************************/
 
 #if !defined(NDEBUG)
@@ -1241,24 +1249,9 @@ void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m)
 #endif /* !defined(NDEBUG) */
 
 
-#if defined(ENABLE_CYCLES_STATS)
-void builtin_print_cycles_stats(FILE *file)
-{
-	fprintf(file,"builtin cylce count statistics:\n");
-
-	CYCLES_STATS_PRINT_OVERHEAD(builtin_overhead,file);
-	CYCLES_STATS_PRINT(builtin_new         ,file);
-
-	fprintf(file,"\n");
-}
-#endif /* defined(ENABLE_CYCLES_STATS) */
-
-
-/*****************************************************************************
-			  MISCELLANEOUS HELPER FUNCTIONS
-*****************************************************************************/
-
-
+/*============================================================================*/
+/* MISCELLANEOUS MATHEMATICAL HELPER FUNCTIONS                                */
+/*============================================================================*/
 
 /*********** Functions for integer divisions *****************************
  
@@ -2071,9 +2064,15 @@ float builtin_d2f(double a)
 #endif /* !(SUPPORT_FLOAT && SUPPORT_DOUBLE) */
 
 
+/*============================================================================*/
+/* AUTOMATICALLY REPLACED FUNCTIONS                                           */
+/*============================================================================*/
+
 /* builtin_arraycopy ***********************************************************
 
    Builtin for java.lang.System.arraycopy.
+
+   NOTE: This is a SLOW builtin and can be called from JIT & NATIVE code.
 
 *******************************************************************************/
 
@@ -2084,7 +2083,7 @@ void builtin_arraycopy(java_handle_t *src, s4 srcStart,
 	arraydescriptor *ddesc;
 	s4               i;
 
-	if ((src == NULL) || (dest == NULL)) { 
+	if ((src == NULL) || (dest == NULL)) {
 		exceptions_throw_nullpointerexception();
 		return;
 	}
@@ -2112,9 +2111,13 @@ void builtin_arraycopy(java_handle_t *src, s4 srcStart,
 		s4 dataoffset = sdesc->dataoffset;
 		s4 componentsize = sdesc->componentsize;
 
-		memmove(((u1 *) dest) + dataoffset + componentsize * destStart,
-				((u1 *) src)  + dataoffset + componentsize * srcStart,
-				(size_t) len * componentsize);
+		LLNI_CRITICAL_START;
+
+		MMOVE(((u1 *) LLNI_DIRECT(dest)) + dataoffset + componentsize * destStart,
+			  ((u1 *) LLNI_DIRECT(src))  + dataoffset + componentsize * srcStart,
+			  u1, (size_t) len * componentsize);
+
+		LLNI_CRITICAL_END;
 	}
 	else {
 		/* We copy references of different type */
@@ -2196,12 +2199,13 @@ s8 builtin_currenttimemillis(void)
 
    Function for cloning objects or arrays.
 
+   NOTE: This is a SLOW builtin and can be called from JIT & NATIVE code.
+
 *******************************************************************************/
 
 java_handle_t *builtin_clone(void *env, java_handle_t *o)
 {
 	arraydescriptor *ad;
-	java_handle_t   *ah;
 	u4               size;
 	classinfo       *c;
 	java_handle_t   *co;                /* cloned object header               */
@@ -2213,24 +2217,32 @@ java_handle_t *builtin_clone(void *env, java_handle_t *o)
 	/* we are cloning an array */
 
 	if (ad != NULL) {
-		ah = (java_handle_t *) o;
-
-		size = ad->dataoffset + ad->componentsize * LLNI_array_size(ah);
+		size = ad->dataoffset + ad->componentsize * LLNI_array_size(o);
         
 		co = heap_alloc(size, (ad->arraytype == ARRAYTYPE_OBJECT), NULL, true);
 
 		if (co == NULL)
 			return NULL;
 
-		MCOPY(co, o, u1, size);
+#if !defined(ENABLE_GC_CACAO) && defined(ENABLE_HANDLES)
+		/* XXX this is only a dirty hack to make Boehm work with handles */
+
+		co = LLNI_WRAP((java_object_t *) co);
+#endif
+
+		LLNI_CRITICAL_START;
+
+		MCOPY(LLNI_DIRECT(co), LLNI_DIRECT(o), u1, size);
 
 #if defined(ENABLE_GC_CACAO)
-		heap_init_objectheader(co, size);
+		heap_init_objectheader(LLNI_DIRECT(co), size);
 #endif
 
 #if defined(ENABLE_THREADS)
-		lock_init_object_lock(co);
+		lock_init_object_lock(LLNI_DIRECT(co));
 #endif
+
+		LLNI_CRITICAL_END;
 
 		return co;
 	}
@@ -2253,18 +2265,36 @@ java_handle_t *builtin_clone(void *env, java_handle_t *o)
     if (co == NULL)
         return NULL;
 
-    MCOPY(co, o, u1, c->instancesize);
+	LLNI_CRITICAL_START;
+
+	MCOPY(LLNI_DIRECT(co), LLNI_DIRECT(o), u1, c->instancesize);
 
 #if defined(ENABLE_GC_CACAO)
-	heap_init_objectheader(co, c->instancesize);
+	heap_init_objectheader(LLNI_DIRECT(co), c->instancesize);
 #endif
 
 #if defined(ENABLE_THREADS)
-	lock_init_object_lock(co);
+	lock_init_object_lock(LLNI_DIRECT(co));
 #endif
+
+	LLNI_CRITICAL_END;
 
     return co;
 }
+
+
+#if defined(ENABLE_CYCLES_STATS)
+void builtin_print_cycles_stats(FILE *file)
+{
+	fprintf(file,"builtin cylce count statistics:\n");
+
+	CYCLES_STATS_PRINT_OVERHEAD(builtin_overhead,file);
+	CYCLES_STATS_PRINT(builtin_new         ,file);
+
+	fprintf(file,"\n");
+}
+#endif /* defined(ENABLE_CYCLES_STATS) */
+
 
 #if defined(ENABLE_VMLOG)
 #define NDEBUG

@@ -126,7 +126,7 @@
 
 /* stub defines ***************************************************************/
 
-#define COMPILERSTUB_CODESIZE    4 * 4
+#define COMPILERSTUB_CODESIZE    1 * 4
 
 
 /* macros to create code ******************************************************/

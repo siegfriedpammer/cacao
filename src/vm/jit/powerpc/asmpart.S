@@ -50,8 +50,6 @@
 	.globl asm_vm_call_method_exception_handler
 	.globl asm_vm_call_method_end
 
-	.globl asm_call_jit_compiler
-
 	.globl asm_handle_nat_exception
 	.globl asm_handle_exception
 
@@ -246,104 +244,6 @@ asm_vm_call_method_exception_handler:
 
 asm_vm_call_method_end:
 	nop
-
-
-/* asm_call_jit_compiler *******************************************************
-
-   Invokes the compiler for untranslated JavaVM methods.
-
-*******************************************************************************/
-
-asm_call_jit_compiler:
-L_asm_call_jit_compiler:                /* required for PIC code              */
-	mflr    r0
-	stw     r0,LA_LR_OFFSET(sp)         /* save return address                */
-	stwu    sp,-(LA_SIZE + 4*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)(sp)
-
-#if defined(__DARWIN__)
-	stw     a0,LA_SIZE+(4+0)*4(sp)
-	stw     a1,LA_SIZE+(4+1)*4(sp)
-	stw     a2,LA_SIZE+(4+2)*4(sp)
-	stw     a3,LA_SIZE+(4+3)*4(sp)
-	stw     a4,LA_SIZE+(4+4)*4(sp)
-	stw     a5,LA_SIZE+(4+5)*4(sp)
-	stw     a6,LA_SIZE+(4+6)*4(sp)
-	stw     a7,LA_SIZE+(4+7)*4(sp)
-
-	stfd    fa0,LA_SIZE+(4+8)*4(sp)
-	stfd    fa1,LA_SIZE+(4+10)*4(sp)
-	stfd    fa2,LA_SIZE+(4+12)*4(sp)
-	stfd    fa3,LA_SIZE+(4+14)*4(sp)
-	stfd    fa4,LA_SIZE+(4+16)*4(sp)
-	stfd    fa5,LA_SIZE+(4+18)*4(sp)
-	stfd    fa6,LA_SIZE+(4+20)*4(sp)
-	stfd    fa7,LA_SIZE+(4+22)*4(sp)
-	stfd    fa8,LA_SIZE+(4+24)*4(sp)
-	stfd    fa9,LA_SIZE+(4+26)*4(sp)
-	stfd    fa10,LA_SIZE+(4+28)*4(sp)
-	stfd    fa11,LA_SIZE+(4+30)*4(sp)
-	stfd    fa12,LA_SIZE+(4+32)*4(sp)
-#else
-	SAVE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS)
-#endif
-
-	mr      a0,itmp1
-	mr      a1,mptr
-	addi    a2,sp,(LA_SIZE + 4*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)
-	lwz     a3,(LA_SIZE + 4*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)+LA_LR_OFFSET(sp)
-	bl      jit_asm_compile
-	mr      pv,v0                       /* move address to pv register        */
-
-#if defined(__DARWIN__)
-	lwz     a0,LA_SIZE+(4+0)*4(sp)
-	lwz     a1,LA_SIZE+(4+1)*4(sp)
-	lwz     a2,LA_SIZE+(4+2)*4(sp)
-	lwz     a3,LA_SIZE+(4+3)*4(sp)
-	lwz     a4,LA_SIZE+(4+4)*4(sp)
-	lwz     a5,LA_SIZE+(4+5)*4(sp)
-	lwz     a6,LA_SIZE+(4+6)*4(sp)
-	lwz     a7,LA_SIZE+(4+7)*4(sp)
-
-	lfd     fa0,LA_SIZE+(4+8)*4(sp)
-	lfd     fa1,LA_SIZE+(4+10)*4(sp)
-	lfd     fa2,LA_SIZE+(4+12)*4(sp)
-	lfd     fa3,LA_SIZE+(4+14)*4(sp)
-	lfd     fa4,LA_SIZE+(4+16)*4(sp)
-	lfd     fa5,LA_SIZE+(4+18)*4(sp)
-	lfd     fa6,LA_SIZE+(4+20)*4(sp)
-	lfd     fa7,LA_SIZE+(4+22)*4(sp)
-	lfd     fa8,LA_SIZE+(4+24)*4(sp)
-	lfd     fa9,LA_SIZE+(4+26)*4(sp)
-	lfd     fa10,LA_SIZE+(4+28)*4(sp)
-	lfd     fa11,LA_SIZE+(4+30)*4(sp)
-	lfd     fa12,LA_SIZE+(4+32)*4(sp)
-#else
-	RESTORE_ARGUMENT_REGISTERS(LA_SIZE_IN_POINTERS)
-#endif
-
-	lwz     itmp1,(LA_SIZE + 4*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)+LA_LR_OFFSET(sp)
-	mtlr    itmp1
-
-	addi    sp,sp,(LA_SIZE + 4*4 + INT_ARG_CNT*4 + FLT_ARG_CNT*8)
-
-	mr.     pv,pv                       /* test for exception                 */
-	beq     L_asm_call_jit_compiler_exception
-
-	mtctr   pv                          /* move method address to control reg */
-	bctr                                /* and call the Java method           */
-
-L_asm_call_jit_compiler_exception:
-	mflr	r0
-	stw     r0,LA_LR_OFFSET(sp)
-	stwu    sp,-LA_SIZE_ALIGNED(sp)     /* preserve linkage area              */
-	bl      exceptions_get_and_clear_exception
-	lwz     xpc,LA_SIZE_ALIGNED+LA_LR_OFFSET(sp)
-	mtlr    xpc	
-	addi    sp,sp,LA_SIZE_ALIGNED
-
-	mr      xptr,v0                     /* get exception                      */
-	addi    xpc,xpc,-4                  /* exception address is ra - 4        */
-	b       L_asm_handle_nat_exception
 
 
 /********************* function asm_handle_exception ***************************
@@ -660,46 +560,6 @@ L00$_exceptions_handle_exception:
 .lazy_symbol_pointer
 L_exceptions_handle_exception$lazy_ptr:
 	.indirect_symbol _exceptions_handle_exception
-	.long dyld_stub_binding_helper
-
-
-.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
-	.align 2
-L_jit_asm_compile$stub:
-	.indirect_symbol _jit_asm_compile
-	mflr r0
-	bcl 20,31,L00$_jit_asm_compile
-L00$_jit_asm_compile:
-	mflr r11
-	addis r11,r11,ha16(L_jit_asm_compile$lazy_ptr - L00$_jit_asm_compile)
-	mtlr r0
-	lwzu r12,lo16(L_jit_asm_compile$lazy_ptr - L00$_jit_asm_compile)(r11)
-	mtctr r12
-	bctr
-.data
-.lazy_symbol_pointer
-L_jit_asm_compile$lazy_ptr:
-	.indirect_symbol _jit_asm_compile
-	.long dyld_stub_binding_helper
-
-
-.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
-	.align 2
-L_exceptions_get_and_clear_exception$stub:
-	.indirect_symbol _exceptions_get_and_clear_exception
-	mflr r0
-	bcl 20,31,L00$_exceptions_get_and_clear_exception
-L00$_exceptions_get_and_clear_exception:
-	mflr r11
-	addis r11,r11,ha16(L_exceptions_get_and_clear_exception$lazy_ptr - L00$_exceptions_get_and_clear_exception)
-	mtlr r0
-	lwzu r12,lo16(L_exceptions_get_and_clear_exception$lazy_ptr - L00$_exceptions_get_and_clear_exception)(r11)
-	mtctr r12
-	bctr
-.data
-.lazy_symbol_pointer
-L_exceptions_get_and_clear_exception$lazy_ptr:
-	.indirect_symbol _exceptions_get_and_clear_exception
 	.long dyld_stub_binding_helper
 
 
