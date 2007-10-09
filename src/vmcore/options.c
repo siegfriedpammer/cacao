@@ -172,6 +172,7 @@ const char *opt_filter_show_method = 0;
 /* NOTE: For better readability keep these alpha-sorted. */
 
 int      opt_DebugExceptions           = 0;
+int      opt_DebugFinalizer            = 0;
 int      opt_DebugLocalReferences      = 0;
 int      opt_DebugLocks                = 0;
 int      opt_DebugPackage              = 0;
@@ -215,6 +216,7 @@ enum {
 
 enum {
 	OPT_DebugExceptions,
+	OPT_DebugFinalizer,
 	OPT_DebugLocalReferences,
 	OPT_DebugLocks,
 	OPT_DebugPackage,
@@ -246,6 +248,7 @@ enum {
 
 option_t options_XX[] = {
 	{ "DebugExceptions",           OPT_DebugExceptions,           OPT_TYPE_BOOLEAN, "debug exceptions" },
+	{ "DebugFinalizer",            OPT_DebugFinalizer,            OPT_TYPE_BOOLEAN, "debug finalizer thread" },
 	{ "DebugLocalReferences",      OPT_DebugLocalReferences,      OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
 	{ "DebugLocks",                OPT_DebugLocks,                OPT_TYPE_BOOLEAN, "print debug information for locks" },
 	{ "DebugPackage",              OPT_DebugPackage,              OPT_TYPE_BOOLEAN, "debug Java boot-packages" },
@@ -536,6 +539,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 		switch (opt->value) {
 		case OPT_DebugExceptions:
 			opt_DebugExceptions = enable;
+			break;
+
+		case OPT_DebugFinalizer:
+			opt_DebugFinalizer = enable;
 			break;
 
 		case OPT_DebugLocalReferences:

@@ -530,9 +530,7 @@ void JVM_MonitorWait(JNIEnv* env, jobject handle, jlong ms)
 #if defined(ENABLE_THREADS)
 	o = (java_handle_t *) handle;
 
-	LLNI_CRITICAL_START;
-	lock_wait_for_object(LLNI_DIRECT(o), ms, 0);
-	LLNI_CRITICAL_END;
+	lock_wait_for_object(o, ms, 0);
 #endif
 }
 
@@ -550,9 +548,7 @@ void JVM_MonitorNotify(JNIEnv* env, jobject handle)
 #if defined(ENABLE_THREADS)
 	o = (java_handle_t *) handle;
 
-	LLNI_CRITICAL_START;
-	lock_notify_object(LLNI_DIRECT(o));
-	LLNI_CRITICAL_END;
+	lock_notify_object(o);
 #endif
 }
 
@@ -570,9 +566,7 @@ void JVM_MonitorNotifyAll(JNIEnv* env, jobject handle)
 #if defined(ENABLE_THREADS)
 	o = (java_handle_t *) handle;
 
-	LLNI_CRITICAL_START;
-	lock_notify_all_object(LLNI_DIRECT(o));
-	LLNI_CRITICAL_END;
+	lock_notify_all_object(o);
 #endif
 }
 

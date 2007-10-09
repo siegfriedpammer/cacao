@@ -44,6 +44,7 @@
 
 #include "native/jni.h"
 #include "native/llni.h"
+#include "native/localref.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_Object.h"             /* required by j.l.C */
@@ -741,16 +742,6 @@ bool vm_createjvm(JavaVM **p_vm, void **p_env, void *vm_args)
 
 	if (!vm_create(_vm_args))
 		goto error;
-
-#if defined(ENABLE_JNI)
-	/* setup the local ref table (must be created after vm_create) */
-
-	/* XXX this one will never get freed for the main thread;
-	   call localref_table_destroy() if you want to do it! */
-
-	if (!localref_table_init())
-		goto error;
-#endif
 
 	/* now return the values */
 
@@ -1559,6 +1550,14 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	if (!jni_init())
 		vm_abort("vm_create: jni_init failed");
+#endif
+
+#if defined(ENABLE_JNI) || defined(ENABLE_HANDLES)
+	/* Initialize the local reference table for the main thread. */
+	/* BEFORE: threads_init */
+
+	if (!localref_table_init())
+		vm_abort("vm_create: localref_table_init failed");
 #endif
 
 #if defined(ENABLE_THREADS)

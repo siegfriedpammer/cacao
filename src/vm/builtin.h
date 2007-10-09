@@ -126,24 +126,35 @@ s4 builtin_instanceof(java_handle_t *obj, classinfo *class);
 /* NOT AN OP */
 s4 builtin_checkcast(java_handle_t *obj, classinfo *class);
 /* NOT AN OP */
-s4 builtin_arrayinstanceof(java_handle_t *o, classinfo *targetclass);
-#define BUILTIN_arrayinstanceof (functionptr) builtin_arrayinstanceof
-s4 builtin_arraycheckcast(java_handle_t *o, classinfo *targetclass);
-#define BUILTIN_arraycheckcast (functionptr) builtin_arraycheckcast
+s4 builtin_arrayinstanceof(java_handle_t *h, classinfo *targetclass);
+/* NOT AN OP */
+s4 builtin_fast_arrayinstanceof(java_object_t *o, classinfo *targetclass);
+#define BUILTIN_arrayinstanceof (functionptr) builtin_fast_arrayinstanceof
+s4 builtin_fast_arraycheckcast(java_object_t *o, classinfo *targetclass);
+#define BUILTIN_arraycheckcast (functionptr) builtin_fast_arraycheckcast
+
+s4 builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o);
+/* NOT AN OP */
+s4 builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o);
+#define BUILTIN_FAST_canstore (functionptr) builtin_fast_canstore
 
 void *builtin_throw_exception(java_object_t *exception);
 /* NOT AN OP */
 
 java_handle_t *builtin_new(classinfo *c);
-#define BUILTIN_new (functionptr) builtin_new
+/* NOT AN OP */
+java_handle_t *builtin_java_new(java_handle_t *c);
+#define BUILTIN_new (functionptr) builtin_java_new
 java_object_t *builtin_fast_new(classinfo *c);
 #define BUILTIN_FAST_new (functionptr) builtin_fast_new
 
 java_handle_t *builtin_newarray(s4 size, classinfo *arrayclass);
-#define BUILTIN_newarray (functionptr) builtin_newarray
+/* NOT AN OP */
+java_handle_t *builtin_java_newarray(s4 size, java_handle_t *arrayclass);
+#define BUILTIN_newarray (functionptr) builtin_java_newarray
 
 java_handle_objectarray_t *builtin_anewarray(s4 size, classinfo *componentclass);
-#define BUILTIN_anewarray (functionptr) builtin_anewarray
+/* NOT AN OP */
 
 java_handle_booleanarray_t *builtin_newarray_boolean(s4 size);
 #define BUILTIN_newarray_boolean (functionptr) builtin_newarray_boolean
@@ -162,15 +173,10 @@ java_handle_intarray_t *builtin_newarray_int(s4 size);
 java_handle_longarray_t *builtin_newarray_long(s4 size);
 #define BUILTIN_newarray_long (functionptr) builtin_newarray_long
 
-java_handle_objectarray_t *builtin_multianewarray(int n, classinfo *arrayclass,
+java_handle_objectarray_t *builtin_multianewarray(int n,
+												  java_handle_t *arrayclass,
 												  long *dims);
 #define BUILTIN_multianewarray (functionptr) builtin_multianewarray
-
-
-s4 builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o);
-/* NOT AN OP */
-s4 builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o);
-#define BUILTIN_FAST_canstore (functionptr) builtin_fast_canstore
 
 #if defined(TRACE_ARGS_NUM)
 void builtin_verbosecall_enter(s8 a0, s8 a1,
@@ -324,4 +330,5 @@ void builtin_print_cycles_stats(FILE *file);
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
