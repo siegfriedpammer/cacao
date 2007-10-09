@@ -28,9 +28,10 @@
 #ifndef _CODE_H
 #define _CODE_H
 
-/* forward typedefs ***********************************************************/
-
 #include "config.h"
+
+#include <stdint.h>
+
 #include "vm/types.h"
 
 #include "toolbox/list.h"
@@ -44,8 +45,9 @@
 
 /* constants ******************************************************************/
 
-#define CODE_FLAG_INVALID     0x0001
-#define CODE_FLAG_LEAFMETHOD  0x0002
+#define CODE_FLAG_INVALID         0x0001
+#define CODE_FLAG_LEAFMETHOD      0x0002
+#define CODE_FLAG_SYNCHRONIZED    0x0004
 
 
 /* codeinfo *******************************************************************
@@ -144,6 +146,28 @@ inline static void code_flag_leafmethod(codeinfo *code)
 inline static void code_unflag_leafmethod(codeinfo *code)
 {
 	code->flags &= ~CODE_FLAG_LEAFMETHOD;
+}
+
+
+/* code_xxx_synchronized *******************************************************
+
+   Functions for CODE_FLAG_SYNCHRONIZED.
+
+*******************************************************************************/
+
+inline static int code_is_synchronized(codeinfo *code)
+{
+	return (code->flags & CODE_FLAG_SYNCHRONIZED);
+}
+
+inline static void code_flag_synchronized(codeinfo *code)
+{
+	code->flags |= CODE_FLAG_SYNCHRONIZED;
+}
+
+inline static void code_unflag_synchronized(codeinfo *code)
+{
+	code->flags &= ~CODE_FLAG_SYNCHRONIZED;
 }
 
 
