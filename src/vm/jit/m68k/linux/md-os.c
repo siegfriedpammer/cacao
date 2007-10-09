@@ -32,10 +32,11 @@
 #include "vm/vm.h"
 #include "vm/exceptions.h"
 #include "vm/jit/asmpart.h"
+#include "vm/signallocal.h"
 
 #include <assert.h>
 #include <stdlib.h>
-#include <signal.h>
+/*#include <signal.h>*/
 #include <stdint.h>
 #include <sys/ucontext.h> /* has br0ken ucontext_t*/
 
@@ -83,18 +84,21 @@ void md_init_linux()
 
 /* md_signal_handler_sigsegv ******************************************
  *
- * Invoked when a Nullpointerexception occured, or when the cm 
+ * Invoked when a Nullpointerexception occured, or when the vm 
  * crashes, hard to tell the difference. 
  **********************************************************************/
-void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, actual_ucontext_t *_uc) 
+void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 { 	
 	uint32_t	xpc, sp;
 	uint16_t	opc;
 	uint32_t 	val, regval, off;
 	bool		adrreg;
 	void        *p;
-	mcontext_t 	*_mc;
+	actual_mcontext_t 	*_mc;
+	actual_ucontext_t	*_uc;
 
+
+	_uc = (actual_ucontext_t*)_p;
 	_mc = &_uc->uc_mcontext;
 	sp = _mc->gregs[R_SP];
 	xpc = _mc->gregs[R_PC];
@@ -141,7 +145,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, actual_ucontext_t *_
 
 	/* Handle the type. */
 
-	p = signal_handle(EXCEPTION_HARDWARE_NULLPOINTER, regval, NULL, sp, xpc, xpc, _p);
+	p = signal_handle(EXCEPTION_HARDWARE_NULLPOINTER, regval, NULL, (void*)sp, (void*)xpc, (void*)xpc, _p);
 
 	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (intptr_t) p;
 	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (intptr_t) xpc;
@@ -156,16 +160,18 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, actual_ucontext_t *_
  * been created directly before the trap instruction (2 bytes long).
  * the last 3 bit of this tst instruction contain the register number.
  **********************************************************************/
-void md_signal_handler_sigill(int sig, siginfo_t *siginfo, actual_ucontext_t *_uc) 
+void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
 	uint32_t	xpc, sp;
 	uint16_t	opc;
 	uint32_t	type;
 	uint32_t	val, regval;
 	void        *p;
-	mcontext_t 	*_mc;
+	actual_mcontext_t 	*_mc;
+	actual_ucontext_t 	*_uc;
 
-	xpc = siginfo->si_addr;
+	_uc = (actual_ucontext_t*)_p;
+	xpc = (uint32_t)siginfo->si_addr;
 
 	if (siginfo->si_code == ILL_ILLOPC)	{
 		vm_abort("md_signal_handler_sigill: the illegal instruction @ 0x%x, aborting", xpc);
@@ -213,7 +219,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, actual_ucontext_t *_u
 
 	/* Handle the type. */
 
-	p = signal_handle(type, val, NULL, sp, xpc, xpc, _p);
+	p = signal_handle(type, val, NULL, (void*)sp, (void*)xpc, (void*)xpc, _p);
 
 	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (intptr_t) p;
 	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (intptr_t) xpc;
