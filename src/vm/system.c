@@ -30,12 +30,14 @@
 #include <stdint.h>
 #include <unistd.h>
 
-/* this should work on BSD */
-/*
 #if defined(__DARWIN__)
-#include <sys/sysctl.h>
+# include <mach/mach.h>
+# include <mach/mach_host.h>
+# include <mach/host_info.h>
 #endif
-*/
+
+/* this should work on BSD */
+/* #include <sys/sysctl.h> */
 
 
 /* system_processors_online ****************************************************
@@ -59,6 +61,24 @@ int system_processors_online(void)
 
 #elif defined(__DARWIN__)
 
+	host_basic_info_data_t hinfo;
+	mach_msg_type_number_t hinfo_count = HOST_BASIC_INFO_COUNT;
+	kern_return_t rc;
+
+	rc = host_info(mach_host_self(), HOST_BASIC_INFO,
+				   (host_info_t) &hinfo, &hinfo_count);
+ 
+	if (rc != KERN_SUCCESS) {
+		return -1;
+	}
+
+	/* XXX michi: according to my infos this should be
+	   hinfo.max_cpus, can someone please confirm or deny that? */
+	return (int) hinfo.avail_cpus;
+
+#elif defined(__FREEBSD__)
+# error IMPLEMENT ME!
+
 	/* this should work in BSD */
 	/*
 	int ncpu, mib[2], rc;
@@ -71,19 +91,6 @@ int system_processors_online(void)
 
 	return (int32_t) ncpu;
 	*/
-
-	host_basic_info_data_t hinfo;
-	mach_msg_type_number_t hinfo_count = HOST_BASIC_INFO_COUNT;
-	kern_return_t rc;
-
-	rc = host_info(mach_host_self(), HOST_BASIC_INFO,
-				   (host_info_t) &hinfo, &hinfo_count);
- 
-	if (rc != KERN_SUCCESS) {
-		return -1;
-	}
-
-    return (int) hinfo.avail_cpus;
 
 #else
 

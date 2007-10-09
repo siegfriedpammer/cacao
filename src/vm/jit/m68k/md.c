@@ -36,7 +36,6 @@
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/md.h"
 
-#include "offsets.h"
 #include "vm/vm.h"
 #include "vmcore/class.h"
 #include "vmcore/linker.h"
@@ -55,23 +54,6 @@
  */
 void md_init(void) 
 {
-	assert(OFFSET(vftbl_t, baseval) == offbaseval);
-	assert(OFFSET(vftbl_t, diffval) == offdiffval);
-	assert(OFFSET(castinfo, super_baseval) == offcast_super_baseval);
-	assert(OFFSET(castinfo, super_diffval) == offcast_super_diffval);
-	assert(OFFSET(castinfo, sub_baseval) == offcast_sub_baseval);
-
-#if 0
-#if defined(ENABLE_REPLACEMENT)
-	assert(sizeof(executionstate_t) = sizeexecutionstate);
-	assert(OFFSET(executionstate_t, pc) == offes_pc);
-	assert(OFFSET(executionstate_t, sp) == offes_sp);
-	assert(OFFSET(executionstate_t, pv) == offes_pv);
-	assert(OFFSET(executionstate_t, intregs) == offes_intregs);
-	assert(OFFSET(executionstate_t, fltregs) == offes_fltregs);
-#endif
-#endif
-
 #ifdef __LINUX__
 	md_init_linux();
 #endif
@@ -138,7 +120,7 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 			/* we had a moveal XXX, %a3 which is a 3 word opcode */
 			/* 2679 0000 0000 */
 			assert(*(u2*)(pc - 8) == 0x2879);		/* moveal */
-			pa = *((u4*)(pc - 6));				/* another indirection ! */
+			pa = (void*)*((u4*)(pc - 6));				/* another indirection ! */
 		}
 	} else if (*((u2*)(pc - 2)) == 0x4e92)	{		/* jsr %a2@ */
 		if (*(u2*)(pc - 8) == 0x247c)	{
@@ -209,9 +191,9 @@ extern int cacheflush(unsigned long addr, int scope, int cache, unsigned long le
 #include "asm/cachectl.h"	/* found more traces of the cacheflush function */
 #include "errno.h"
 
-void md_cacheflush(u1 *addr, s4 nbytes)  { cacheflush(addr, FLUSH_SCOPE_PAGE, FLUSH_CACHE_BOTH, nbytes); }
-void md_dcacheflush(u1 *addr, s4 nbytes) { cacheflush(addr, FLUSH_SCOPE_PAGE, FLUSH_CACHE_DATA, nbytes); }
-void md_icacheflush(u1* addr, s4 nbytes) { cacheflush(addr, FLUSH_SCOPE_LINE, FLUSH_CACHE_INSN, nbytes); }
+void md_cacheflush(u1 *addr, s4 nbytes)  { cacheflush((unsigned long)addr, FLUSH_SCOPE_PAGE, FLUSH_CACHE_BOTH, nbytes); }
+void md_dcacheflush(u1 *addr, s4 nbytes) { cacheflush((unsigned long)addr, FLUSH_SCOPE_PAGE, FLUSH_CACHE_DATA, nbytes); }
+void md_icacheflush(u1* addr, s4 nbytes) { cacheflush((unsigned long)addr, FLUSH_SCOPE_LINE, FLUSH_CACHE_INSN, nbytes); }
 
 /* md_stacktrace_get_returnaddress *********************************************
 

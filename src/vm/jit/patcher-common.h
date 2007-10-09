@@ -81,7 +81,7 @@ void patcher_patch_code(patchref_t *pr);
 
 /* patcher prototypes and macros **********************************************/
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined (__S390__) || defined(__X86_64__)
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined (__S390__) || defined(__X86_64__) || defined(__M68K__)
 
 /* new patcher functions */
 
