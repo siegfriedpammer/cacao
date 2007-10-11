@@ -1502,21 +1502,21 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 bool threads_detach_thread(threadobject *t)
 {
-#if defined(ENABLE_JAVASE)
 	java_lang_Thread      *object;
+	java_handle_t         *o;
+#if defined(ENABLE_JAVASE)
 	java_lang_ThreadGroup *group;
 	java_handle_t         *e;
 	java_lang_Object      *handler;
 	classinfo             *c;
 	methodinfo            *m;
-	java_handle_t         *o;
 #endif
 
 	DEBUGTHREADS("detaching", t);
 
-#if defined(ENABLE_JAVASE)
 	object = (java_lang_Thread *) threads_thread_get_object(t);
 
+#if defined(ENABLE_JAVASE)
 	LLNI_field_get_ref(object, group, group);
 
     /* If there's an uncaught exception, call uncaughtException on the
