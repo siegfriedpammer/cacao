@@ -1530,7 +1530,7 @@ u1* replace_pop_activation_record(executionstate_t *es,
 		ra = md_stacktrace_get_returnaddress(es->sp,
 				SIZE_OF_STACKSLOT * es->code->stackframesize);
 
-	DOLOG( printf("return address: %p\n", (void*)ra); );
+	DOLOG( printf("RA = %p\n", (void*)ra); );
 
 	assert(ra);
 
@@ -1613,14 +1613,9 @@ u1* replace_pop_activation_record(executionstate_t *es,
 	/* find the new codeinfo */
 
 	pv = md_codegen_get_pv_from_pc(ra);
-
 	DOLOG( printf("PV = %p\n", (void*) pv); );
 
-	if (pv == NULL) /* XXX can this really happen? */
-		return NULL;
-
-	code = *(codeinfo **)(pv + CodeinfoPointer);
-
+	code = code_get_codeinfo_for_pv(pv);
 	DOLOG( printf("CODE = %p\n", (void*) code); );
 
 	/* return NULL if we reached native code */
@@ -1678,8 +1673,8 @@ static void replace_patch_method_pointer(methodptr *mpp,
 				  (void*) *mpp, (void*)entrypoint); );
 
 #if !defined(NDEBUG)
-	oldcode = *(codeinfo **)((u1*)(*mpp) + CodeinfoPointer);
-	newcode = *(codeinfo **)((u1*)(entrypoint) + CodeinfoPointer);
+	oldcode = code_get_codeinfo_for_pv(*mpp);
+	newcode = code_get_codeinfo_for_pv(entrypoint);
 
 	DOLOG_SHORT( printf("\tpatch %s %p ", kind, (void*) oldcode);
 				 method_println(oldcode->m);
@@ -1754,12 +1749,6 @@ struct replace_patch_data_t {
 	u1         *entrypoint;
 };
 
-#define CODEINFO_OF_CODE(entrypoint) \
-	(*(codeinfo **)((u1*)(entrypoint) + CodeinfoPointer))
-
-#define METHOD_OF_CODE(entrypoint) \
-	(CODEINFO_OF_CODE(entrypoint)->m)
-
 void replace_patch_callback(classinfo *c, struct replace_patch_data_t *pd)
 {
 	vftbl_t *vftbl = c->vftbl;
@@ -1767,7 +1756,7 @@ void replace_patch_callback(classinfo *c, struct replace_patch_data_t *pd)
 	if (vftbl != NULL
 		&& vftbl->vftbllength > pd->m->vftblindex
 		&& vftbl->table[pd->m->vftblindex] != &asm_abstractmethoderror
-		&& METHOD_OF_CODE(vftbl->table[pd->m->vftblindex]) == pd->m)
+		&& code_get_methodinfo_for_pv(vftbl->table[pd->m->vftblindex]) == pd->m)
 	{
 		replace_patch_class(c->vftbl, pd->m, pd->oldentrypoint, pd->entrypoint);
 	}
@@ -2280,29 +2269,21 @@ static void replace_pop_native_frame(executionstate_t *es,
 # endif
 #endif
 
-	/* restore pv, pc, and sp */
+	/* restore codeinfo of the native stub */
 
-	if (sfi->pv == NULL) {
-		/* frame of a native function call */
-		es->pv = md_codegen_get_pv_from_pc(sfi->ra);
-	}
-	else {
-		es->pv = sfi->pv;
-	}
-	es->pc = ((sfi->xpc) ? sfi->xpc : sfi->ra) - 1;
-	es->sp = sfi->sp;
+	code = code_get_codeinfo_for_pv(sfi->pv);
 
-	/* find the new codeinfo */
+	/* restore sp, pv, pc and codeinfo of the parent method */
 
-	DOLOG( printf("PV = %p\n", (void*) es->pv); );
-
-	assert(es->pv != NULL);
-
-	code = *(codeinfo **)(es->pv + CodeinfoPointer);
-
-	DOLOG( printf("CODE = %p\n", (void*) code); );
-
-	es->code = code;
+	/* XXX michi: use this instead:
+	es->sp = sfi->sp + code->stackframesize; */
+	es->sp   = sfi->sp + (*(s4 *) (sfi->pv + FrameSize));
+#if defined(REPLACE_RA_BETWEEN_FRAMES)
+	es->sp  += SIZE_OF_STACKSLOT; /* skip return address */
+#endif
+	es->pv   = md_codegen_get_pv_from_pc(sfi->ra);
+	es->pc   = ((sfi->xpc) ? sfi->xpc : sfi->ra) - 1;
+	es->code = code_get_codeinfo_for_pv(es->pv);
 }
 
 
@@ -2342,6 +2323,13 @@ static void replace_push_native_frame(executionstate_t *es, sourcestate_t *ss)
 	assert(REPLACE_IS_NATIVE_FRAME(frame));
 
 	ss->frames = frame->down;
+
+	/* skip sp for the native stub */
+
+	es->sp -= (*(s4 *) (frame->sfi->pv + FrameSize));
+#if defined(REPLACE_RA_BETWEEN_FRAMES)
+	es->sp -= SIZE_OF_STACKSLOT; /* skip return address */
+#endif
 
 	/* assert that the native frame has not moved */
 

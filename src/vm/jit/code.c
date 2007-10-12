@@ -121,7 +121,7 @@ codeinfo *code_find_codeinfo_for_pc(u1 *pc)
 	pv = codegen_get_pv_from_pc(pc);
 	assert(pv);
 
-	return *(codeinfo **)(pv + CodeinfoPointer);
+	return code_get_codeinfo_for_pv(pv);
 }
 
 
@@ -141,7 +141,6 @@ codeinfo *code_find_codeinfo_for_pc(u1 *pc)
 
 codeinfo *code_find_codeinfo_for_pc_nocheck(u1 *pc)
 {
-	codeinfo *code;
 	u1 *pv;
 
 	pv = codegen_get_pv_from_pc_nocheck(pc);
@@ -149,7 +148,29 @@ codeinfo *code_find_codeinfo_for_pc_nocheck(u1 *pc)
 	if (pv == NULL)
 		return NULL;
 
-	code = *(codeinfo **)(pv + CodeinfoPointer);
+	return code_get_codeinfo_for_pv(pv);
+}
+
+
+/* code_get_codeinfo_for_pv ****************************************************
+
+   Return the codeinfo for the given PV.
+
+   IN:
+       pv...............PV
+
+   RETURN VALUE:
+       the codeinfo *
+
+*******************************************************************************/
+
+codeinfo *code_get_codeinfo_for_pv(u1 *pv)
+{
+	codeinfo *code;
+
+	assert(pv != NULL);
+
+	code = *((codeinfo **) (pv + CodeinfoPointer));
 
 	return code;
 }
@@ -171,7 +192,7 @@ methodinfo *code_get_methodinfo_for_pv(u1 *pv)
 {
 	codeinfo *code;
 
-	code = *((codeinfo **) (pv + CodeinfoPointer));
+	code = code_get_codeinfo_for_pv(pv);
 
 	/* This is the case for asm_vm_call_method. */
 
