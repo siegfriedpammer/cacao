@@ -777,7 +777,11 @@ jclass JVM_DefineClassWithSource(JNIEnv *env, const char *name, jobject loader, 
 
 	TRACEJVMCALLS("JVM_DefineClassWithSource(env=%p, name=%s, loader=%p, buf=%p, len=%d, pd=%p, source=%s)", env, name, loader, buf, len, pd, source);
 
-	u  = utf_new_char(name);
+	if (name != NULL)
+		u = utf_new_char(name);
+	else
+		u = NULL;
+
 	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 	/* XXX do something with source */
@@ -2010,9 +2014,8 @@ jint JVM_Available(jint fd, jlong *pbytes)
 
 jlong JVM_Lseek(jint fd, jlong offset, jint whence)
 {
-#if PRINTJVM
-	log_println("JVM_Lseek: fd=%d, offset=%ld, whence=%d", fd, offset, whence);
-#endif
+	TRACEJVMCALLS("JVM_Lseek(fd=%d, offset=%ld, whence=%d)", fd, offset, whence);
+
 	return (jlong) lseek(fd, (off_t) offset, whence);
 }
 
@@ -2021,7 +2024,9 @@ jlong JVM_Lseek(jint fd, jlong offset, jint whence)
 
 jint JVM_SetLength(jint fd, jlong length)
 {
-	log_println("JVM_SetLength: IMPLEMENT ME!");
+	TRACEJVMCALLS("JVM_SetLength(fd=%d, length=%ld)", length);
+
+	return ftruncate(fd, length);
 }
 
 
