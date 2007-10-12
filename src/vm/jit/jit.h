@@ -125,7 +125,6 @@ struct jitdata {
 #endif
 
 	u4               flags;           /* contains JIT compiler flags          */
-	bool             isleafmethod;    /* true, if no subroutines are called   */
 
 	instruction     *instructions;    /* ICMDs, valid between parse and stack */
 	basicblock      *basicblocks;     /* start of basic block list            */

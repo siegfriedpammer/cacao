@@ -22,12 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Ullrich
-            Christian Thalinger
-            Edwin Steiner
-
 */
 
 
@@ -1051,7 +1045,7 @@ void lsra_reg_setup(jitdata *jd, struct lsra_register *int_reg,
 
 	int_reg->nregdesc = nregdescint;
 	flt_reg->nregdesc = nregdescfloat;
-	if (jd->isleafmethod) { 
+	if (code_is_leafmethod(code)) { 
 		/* Temp and Argumentregister can be used as saved registers */
 
 		int_reg->sav_top = INT_ARG_CNT + INT_TMP_CNT + INT_SAV_CNT;
@@ -1489,7 +1483,7 @@ void _lsra_main(jitdata *jd, int *lifet, int lifetimecount,
 		lsra_expire_old_intervalls(jd, lt, reg);
 		reg_index = -1;
 		temp = false;
-		if (lt->savedvar || jd->isleafmethod) {
+		if (lt->savedvar || code_is_leafmethod(code)) {
 			/* use Saved Reg (in case of leafmethod all regs are saved regs) */
 			if (reg->sav_top > regsneeded) {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
@@ -1568,7 +1562,7 @@ void _lsra_expire_old_intervalls(jitdata *jd, struct lifetime *lt,
 		if (active[i]->i_end > lt->i_start) break;
 
 		/* make active[i]->reg available again */
-		if (jd->isleafmethod) { 
+		if (code_is_leafmethod(code)) { 
 			/* leafmethod -> don't care about type -> put all again into */
 			/* reg->sav_reg */
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
@@ -1612,7 +1606,7 @@ void _lsra_expire_old_intervalls(jitdata *jd, struct lifetime *lt,
 
 void spill_at_intervall(jitdata *jd, struct lifetime *lt )
 {
-	if (lt->savedvar || jd->isleafmethod) {
+	if (lt->savedvar || code_is_leafmethod(code)) {
 		_spill_at_intervall(lt, jd->ls->active_sav, &(jd->ls->active_sav_top));
 	} else {
 		_spill_at_intervall(lt, jd->ls->active_tmp, &(jd->ls->active_tmp_top));

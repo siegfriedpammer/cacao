@@ -118,7 +118,7 @@ bool codegen_emit(jitdata *jd)
 	s4 i, p, t, l;
 	s4 savedregs_num;
 
-	savedregs_num = (jd->isleafmethod) ? 0 : 1;       /* space to save the RA */
+	savedregs_num = code_is_leafmethod(code) ? 0 : 1; /* space to save the RA */
 
 	/* space to save used callee saved registers */
 
@@ -154,7 +154,13 @@ bool codegen_emit(jitdata *jd)
 #endif
 		(void) dseg_add_unique_s4(cd, 0);                          /* IsSync  */
 
-	(void) dseg_add_unique_s4(cd, jd->isleafmethod);               /* IsLeaf  */
+	/* REMOVEME: We still need it for exception handling in assembler. */
+
+	if (code_is_leafmethod(code))
+		(void) dseg_add_unique_s4(cd, 1);
+	else
+		(void) dseg_add_unique_s4(cd, 0);
+
 	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
 	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
 
@@ -179,7 +185,7 @@ bool codegen_emit(jitdata *jd)
 	/* save return address and used callee saved registers */
 
 	p = cd->stackframesize;
-	if (!jd->isleafmethod) {
+	if (!code_is_leafmethod(code)) {
 		p--; M_AST(REG_RA, REG_SP, p * 8);
 	}
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
@@ -2423,7 +2429,7 @@ nowperformreturn:
 
 			/* restore return address                                         */
 
-			if (!jd->isleafmethod) {
+			if (!code_is_leafmethod(code)) {
 				p--; M_LLD(REG_RA, REG_SP, p * 8);
 			}
 

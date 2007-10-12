@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/ssa.c - static single-assignment form
 
-   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -22,12 +22,11 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Christian Ullrich
-
-
 */
+
+
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -235,7 +234,7 @@ void ssa_init(jitdata *jd) {
 # if defined(SSA_DEBUG_VERBOSE)
 	if (compileverbose) {
 		printf("%s %s ",m->class->name->text, m->name->text);
-		if (jd->isleafmethod)
+		if (code_is_leafmethod(code))
 			printf("**Leafmethod**");
 		printf("\n");
 	}
@@ -750,7 +749,7 @@ void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd)
 # if defined(SSA_DEBUG_VERBOSE)
 	if (compileverbose) {
 		printf("%s %s ",jd->m->class->name->text, jd->m->name->text);
-		if (jd->isleafmethod)
+		if (code_is_leafmethod(code))
 			printf("**Leafmethod**");
 		printf("\n");
 	}

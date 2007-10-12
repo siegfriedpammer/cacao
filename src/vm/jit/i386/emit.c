@@ -556,6 +556,7 @@ uint32_t emit_trap(codegendata *cd)
 void emit_verbosecall_enter(jitdata *jd)
 {
 	methodinfo   *m;
+	codeinfo     *code;
 	codegendata  *cd;
 	registerdata *rd;
 	methoddesc   *md;
@@ -567,9 +568,10 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	/* get required compiler data */
 
-	m  = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
 
 	md = m->parseddesc;
 
@@ -586,7 +588,7 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	/* save temporary registers for leaf methods */
 
-	if (jd->isleafmethod) {
+	if (code_is_leafmethod(code)) {
 		for (i = 0; i < INT_TMP_CNT; i++)
 			M_IST(rd->tmpintregs[i], REG_SP, (2 + i) * 8);
 	}
@@ -604,7 +606,7 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	/* restore temporary registers for leaf methods */
 
-	if (jd->isleafmethod) {
+	if (code_is_leafmethod(code)) {
 		for (i = 0; i < INT_TMP_CNT; i++)
 			M_ILD(rd->tmpintregs[i], REG_SP, (2 + i) * 8);
 	}

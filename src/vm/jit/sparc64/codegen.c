@@ -162,7 +162,7 @@ bool codegen_emit(jitdata *jd)
 	s4 framesize_disp;
 
 #if 0 /* no leaf optimization yet */
-	savedregs_num = (jd->isleafmethod) ? 0 : 1;       /* space to save the RA */
+	savedregs_num = (code_is_leafmethod(code)) ? 0 : 1;       /* space to save the RA */
 #endif
 	savedregs_num = WINSAVE_CNT + ABIPARAMS_CNT; /* register-window save area */ 
 
@@ -202,7 +202,13 @@ bool codegen_emit(jitdata *jd)
 #endif
 		(void) dseg_add_unique_s4(cd, 0);                  /* IsSync          */
 	                                       
-	(void) dseg_add_unique_s4(cd, jd->isleafmethod);       /* IsLeaf          */
+	/* REMOVEME: We still need it for exception handling in assembler. */
+
+	if (code_is_leafmethod(code))
+		(void) dseg_add_unique_s4(cd, 1);
+	else
+		(void) dseg_add_unique_s4(cd, 0);
+
 	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
 	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
 	dseg_addlinenumbertablesize(cd);

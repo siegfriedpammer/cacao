@@ -3024,6 +3024,7 @@ static void inline_gather_statistics(inline_node *iln)
 
 static void inline_post_process(jitdata *jd)
 {
+	codeinfo   *code;
 	basicblock *bptr;
 	instruction *iptr;
 	instruction *iend;
@@ -3032,6 +3033,10 @@ static void inline_post_process(jitdata *jd)
 	s4 *live;
 	methoddesc *md;
 	builtintable_entry *bte;
+
+	/* Get required compiler data. */
+
+	code = jd->code;
 
 	/* reset the SAVEDVAR flag of all variables */
 
@@ -3070,7 +3075,7 @@ static void inline_post_process(jitdata *jd)
 					POSTPROCESS_SRCOP(s1);
 				case DF_0_TO_0:
 					if (icmdt->flags & ICMDTABLE_CALLS) {
-						jd->isleafmethod = false;
+						code_unflag_leafmethod(code);
 						MARK_ALL_SAVED;
 					}
 					break;
@@ -3082,7 +3087,7 @@ static void inline_post_process(jitdata *jd)
 					POSTPROCESS_SRCOP(s1);
 				case DF_0_TO_1:
 					if (icmdt->flags & ICMDTABLE_CALLS) {
-						jd->isleafmethod = false;
+						code_unflag_leafmethod(code);
 						MARK_ALL_SAVED;
 					}
 				case DF_COPY:
@@ -3094,7 +3099,7 @@ static void inline_post_process(jitdata *jd)
 						POSTPROCESS_SRC(iptr->sx.s23.s2.args[i]);
 					}
 					if (icmdt->flags & ICMDTABLE_CALLS) {
-						jd->isleafmethod = false;
+						code_unflag_leafmethod(code);
 						MARK_ALL_SAVED;
 					}
 					POSTPROCESS_DSTOP(dst);
@@ -3103,7 +3108,7 @@ static void inline_post_process(jitdata *jd)
 				case DF_INVOKE:
 					INSTRUCTION_GET_METHODDESC(iptr, md);
 		post_process_call:
-					jd->isleafmethod = false;
+					code_unflag_leafmethod(code);
 					for (i=0; i<md->paramcount; ++i) {
 						POSTPROCESS_SRC(iptr->sx.s23.s2.args[i]);
 					}

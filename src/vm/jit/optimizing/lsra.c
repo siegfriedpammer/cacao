@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/lsra.inc - linear scan register allocator
 
-   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -22,12 +22,9 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Christian Ullrich
-
-
 */
+
+
 #include "config.h"
 
 #include <stdio.h>
@@ -153,7 +150,7 @@ void lsra(jitdata *jd) {
 #if defined(LSRA_DEBUG_VERBOSE)
 	if (compileverbose) {
 		printf("%s %s ",m->class->name->text, m->name->text);
-		if (jd->isleafmethod)
+		if (code_is_leafmethod(code))
 			printf("**Leafmethod**");
 		printf("\n");
 	}
@@ -275,7 +272,7 @@ void lsra_reg_setup(jitdata *jd,
 
 	int_reg->nregdesc = nregdescint;
 	flt_reg->nregdesc = nregdescfloat;
-	if (jd->isleafmethod) { 
+	if (code_is_leafmethod(code)) { 
 		/* Temp and Argumentregister can be used as saved registers */
 
 		int_reg->sav_top = INT_ARG_CNT + INT_TMP_CNT + INT_SAV_CNT;
@@ -707,7 +704,7 @@ void _lsra_main( jitdata *jd, int *lifet, int lifetimecount,
 #ifdef LSRA_SAVEDVAR
 		lt->savedvar = SAVEDVAR;
 #endif
-		if (lt->savedvar || jd->isleafmethod) {
+		if (lt->savedvar || code_is_leafmethod(code)) {
 			/* use Saved Reg (in case of leafmethod all regs are saved regs) */
 			if (reg->sav_top > regsneeded) {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
@@ -790,7 +787,7 @@ void _lsra_expire_old_intervalls(jitdata *jd, struct lifetime *lt,
 		if (active[i]->i_end > lt->i_start) break;
 
 		/* make active[i]->reg available again */
-		if (jd->isleafmethod) { 
+		if (code_is_leafmethod(code)) { 
 			/* leafmethod -> don't care about type -> put all again into */
 			/* reg->sav_reg */
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
@@ -838,7 +835,7 @@ void spill_at_intervall(jitdata *jd, struct lifetime *lt )
 
 	ls = jd->ls;
 
-	if (lt->savedvar || jd->isleafmethod) {
+	if (lt->savedvar || code_is_leafmethod(code)) {
 		_spill_at_intervall(lt, ls->active_sav, &(ls->active_sav_top));
 	} else {
 		_spill_at_intervall(lt, ls->active_tmp, &(ls->active_tmp_top));

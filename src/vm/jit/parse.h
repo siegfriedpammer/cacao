@@ -251,19 +251,19 @@
     } while (0)
 
 #define OP_BUILTIN_CHECK_EXCEPTION(bte)                              \
-    jd->isleafmethod         = false;                                \
+    code_unflag_leafmethod(code);                                    \
     OP_PREPARE_FLAGS(ICMD_BUILTIN, INS_FLAG_CHECK);                  \
     iptr->sx.s23.s3.bte      = (bte);                                \
     PINC
 
 #define OP_BUILTIN_NO_EXCEPTION(bte)                                 \
-    jd->isleafmethod         = false;                                \
+    code_unflag_leafmethod(code);                                    \
     OP_PREPARE_ZEROFLAGS(ICMD_BUILTIN);                              \
     iptr->sx.s23.s3.bte      = (bte);                                \
     PINC
 
 #define OP_BUILTIN_ARITHMETIC(opcode, bte)                           \
-    jd->isleafmethod         = false;                                \
+    code_unflag_leafmethod(code);                                    \
     OP_PREPARE_FLAGS(opcode, INS_FLAG_CHECK);                        \
     iptr->sx.s23.s3.bte      = (bte);                                \
     PINC

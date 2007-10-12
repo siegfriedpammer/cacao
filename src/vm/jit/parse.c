@@ -371,6 +371,7 @@ static bool parse_resolve_exception_table(jitdata *jd, parsedata_t *pd)
 bool parse(jitdata *jd)
 {
 	methodinfo  *m;                     /* method being parsed                */
+	codeinfo    *code;
 	parsedata_t  pd;
 	instruction *iptr;                  /* current ptr into instruction array */
 
@@ -412,7 +413,8 @@ bool parse(jitdata *jd)
 
 	/* get required compiler data */
 
-	m = jd->m;
+	m    = jd->m;
+	code = jd->code;
 
 	/* allocate buffers for local variable renaming */
 
@@ -908,7 +910,6 @@ fetch_opcode:
 			break;
 
 		case JAVA_MULTIANEWARRAY:
-			jd->isleafmethod = false;
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
  			j = SUCK_BE_U1(m->jcode + bcindex + 3);
   
@@ -923,6 +924,7 @@ fetch_opcode:
   
  			iptr->s1.argcount = j;
  			OP_S3_CLASSINFO_OR_CLASSREF(opcode, c, cr, INS_FLAG_CHECK);
+			code_unflag_leafmethod(code);
 			break;
 
 		/* control flow instructions ******************************************/
@@ -1148,7 +1150,7 @@ jsr_tail:
 
 		case JAVA_AASTORE:
 			OP(opcode);
-			jd->isleafmethod = false;
+			code_unflag_leafmethod(code);
 			break;
 
 		case JAVA_GETSTATIC:
@@ -1244,7 +1246,7 @@ invoke_nonstatic_method:
 					return false;
 
 invoke_method:
-			jd->isleafmethod = false;
+			code_unflag_leafmethod(code);
 
 			iptr->sx.s23.s3.fmiref = fmi;
 
@@ -1325,7 +1327,7 @@ invoke_method:
 			if (cr->name->text[0] == '[') {
 				/* array type cast-check */
 				flags = INS_FLAG_CHECK | INS_FLAG_ARRAY;
-				jd->isleafmethod = false;
+				code_unflag_leafmethod(code);
 			}
 			else {
 				/* object type cast-check */

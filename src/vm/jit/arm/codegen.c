@@ -120,7 +120,8 @@ bool codegen_emit(jitdata *jd)
 	
 	/* space to save used callee saved registers */
 
-	savedregs_num = (jd->isleafmethod) ? 0 : 1;       /* space to save the LR */
+	savedregs_num = code_is_leafmethod(code) ? 0 : 1; /* space to save the LR */
+
 	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
 	/*savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);*/
 	assert((FLT_SAV_CNT - rd->savfltreguse) == 0);
@@ -159,7 +160,13 @@ bool codegen_emit(jitdata *jd)
 #endif
 		(void) dseg_add_unique_s4(cd, 0);                  /* IsSync          */
 
-	(void) dseg_add_unique_s4(cd, jd->isleafmethod);       /* IsLeaf          */
+	/* REMOVEME: We still need it for exception handling in assembler. */
+
+	if (code_is_leafmethod(code))
+		(void) dseg_add_unique_s4(cd, 1);
+	else
+		(void) dseg_add_unique_s4(cd, 0);
+
 	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
 	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
 	(void) dseg_addlinenumbertablesize(cd);
@@ -178,7 +185,7 @@ bool codegen_emit(jitdata *jd)
 
 	savedregs_bitmask = 0;
 
-	if (!jd->isleafmethod)
+	if (!code_is_leafmethod(code))
 		savedregs_bitmask = (1<<REG_LR);
 
 	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--)
@@ -2165,7 +2172,7 @@ bool codegen_emit(jitdata *jd)
 			/* restore callee saved registers + do return */
 
 			if (savedregs_bitmask) {
-				if (!jd->isleafmethod) {
+				if (!code_is_leafmethod(code)) {
 					savedregs_bitmask &= ~(1<<REG_LR);
 					savedregs_bitmask |= (1<<REG_PC);
 				}
@@ -2174,7 +2181,7 @@ bool codegen_emit(jitdata *jd)
 
 			/* if LR was not on stack, we need to return manually */
 
-			if (jd->isleafmethod)
+			if (code_is_leafmethod(code))
 				M_MOV(REG_PC, REG_LR);
 			break;
 

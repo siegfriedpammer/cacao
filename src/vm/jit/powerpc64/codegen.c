@@ -168,8 +168,15 @@ bool codegen_emit(jitdata *jd)
 	else
 #endif
 		(void) dseg_add_unique_s4(cd, 0);                          /* IsSync          */
+
 	                                       
-	(void) dseg_add_unique_s4(cd, jd->isleafmethod);                /* IsLeaf          */
+	/* REMOVEME: We still need it for exception handling in assembler. */
+
+	if (code_is_leafmethod(code))
+		(void) dseg_add_unique_s4(cd, 1);
+	else
+		(void) dseg_add_unique_s4(cd, 0);
+
 	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave         */
 	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave         */
 
@@ -188,7 +195,7 @@ bool codegen_emit(jitdata *jd)
 	
 	/* create stack frame (if necessary) */
 
-	if (!jd->isleafmethod) {
+	if (!code_is_leafmethod(code)) {
 		M_MFLR(REG_ZERO);
 		M_AST(REG_ZERO, REG_SP, LA_LR_OFFSET);
 	}
@@ -1660,12 +1667,16 @@ bool codegen_emit(jitdata *jd)
 			M_ALD(REG_ITMP2, REG_PV, disp);
 			M_MTCTR(REG_ITMP2);
 
-			if (jd->isleafmethod) M_MFLR(REG_ITMP3);         /* save LR        */
+			if (code_is_leafmethod(code))
+				M_MFLR(REG_ITMP3);                          /* save LR        */
+
 			M_BL(0);                                        /* get current PC */
 			M_MFLR(REG_ITMP2_XPC);
-			if (jd->isleafmethod) M_MTLR(REG_ITMP3);         /* restore LR     */
-			M_RTS;                                          /* jump to CTR    */
 
+			if (code_is_leafmethod(code))
+				M_MTLR(REG_ITMP3);                          /* restore LR     */
+
+			M_RTS;                                          /* jump to CTR    */
 			ALIGNCODENOP;
 			break;
 
@@ -1904,7 +1915,7 @@ nowperformreturn:
 
 			/* restore return address                                         */
 
-			if (!jd->isleafmethod) {
+			if (!code_is_leafmethod(code)) {
 				/* ATTENTION: Don't use REG_ZERO (r0) here, as M_ALD
 				   may have a displacement overflow. */
 

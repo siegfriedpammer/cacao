@@ -197,7 +197,7 @@ bool codegen_emit(jitdata *jd)
 	   native code e.g. libc or jni (alignment problems with
 	   movaps). */
 
-	if (!jd->isleafmethod || opt_verbosecall )
+	if (!code_is_leafmethod(code) || opt_verbosecall )
 		/* TODO really 16 bytes ? */
 		cd->stackframesize = (cd->stackframesize + 2) & ~2;
 
@@ -219,7 +219,13 @@ bool codegen_emit(jitdata *jd)
 #endif
 		(void) dseg_add_unique_s4(cd, 0);                    /* IsSync          */
 
-	(void) dseg_add_unique_s4(cd, jd->isleafmethod);               /* IsLeaf  */
+	/* REMOVEME: We still need it for exception handling in assembler. */
+
+	if (code_is_leafmethod(code))
+		(void) dseg_add_unique_s4(cd, 1);
+	else
+		(void) dseg_add_unique_s4(cd, 0);
+
 	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
 	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
 

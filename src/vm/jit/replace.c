@@ -430,9 +430,8 @@ bool replace_create_replacement_points(jitdata *jd)
 	m = code->m;
 
 	/* set codeinfo flags */
-	/* REMOVE ME */
-	if (jd->isleafmethod)
-		code_flag_leafmethod(code);
+
+	code_flag_leafmethod(code);
 
 	/* in instance methods, we may need a rplpoint at the method entry */
 

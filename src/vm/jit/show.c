@@ -179,7 +179,7 @@ void show_method(jitdata *jd, int stage)
 
 	method_println(m);
 
-	if (jd->isleafmethod)
+	if (code_is_leafmethod(code))
 		printf("LEAFMETHOD\n");
 
 	printf("\nBasic blocks: %d\n", jd->basicblockcount);

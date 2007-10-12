@@ -148,7 +148,7 @@ bool codegen_emit(jitdata *jd)
 
     /* Keep stack of non-leaf functions 16-byte aligned. */
 
-	if (!jd->isleafmethod) {
+	if (!code_is_leafmethod(code)) {
 		ALIGN_ODD(cd->stackframesize);    /* XXX this is wrong, +4 is missing */
 	}
 
@@ -168,7 +168,11 @@ bool codegen_emit(jitdata *jd)
 #endif
 		(void) dseg_add_unique_s4(cd, 0);                  /* IsSync          */
 	                                       
-	(void) dseg_add_unique_s4(cd, jd->isleafmethod);       /* IsLeaf          */
+	if (code_is_leafmethod(code))
+		(void) dseg_add_unique_s4(cd, 1);                  /* IsLeaf          */
+	else
+		(void) dseg_add_unique_s4(cd, 0);                  /* IsLeaf          */
+
 	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
 	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
 

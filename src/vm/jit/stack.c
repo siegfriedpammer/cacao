@@ -2010,6 +2010,7 @@ static void stack_init_javalocals(stackdata_t *sd)
 bool stack_analyse(jitdata *jd)
 {
 	methodinfo   *m;              /* method being analyzed                    */
+	codeinfo     *code;
 	registerdata *rd;
 	stackdata_t   sd;
 	int           stackdepth;
@@ -2052,6 +2053,7 @@ bool stack_analyse(jitdata *jd)
 	/* get required compiler data - initialization */
 
 	m    = jd->m;
+	code = jd->code;
 	rd   = jd->rd;
 
 	/* initialize the stackdata_t struct */
@@ -2287,7 +2289,7 @@ bool stack_analyse(jitdata *jd)
 						iptr->flags.bits    &= INS_FLAG_ID_MASK;
 						iptr->sx.s23.s3.bte  = bte;
 						/* iptr->line is already set */
-						jd->isleafmethod     = false;
+						code_unflag_leafmethod(code);
 						goto icmd_BUILTIN;
 					}
 

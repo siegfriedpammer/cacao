@@ -317,6 +317,7 @@ bool regalloc(jitdata *jd)
 static void simplereg_allocate_interfaces(jitdata *jd)
 {
 	methodinfo   *m;
+	codeinfo     *code;
 	codegendata  *cd;
 	registerdata *rd;
 
@@ -334,9 +335,10 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 
 	/* get required compiler data */
 
-	m  = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
 
 	/* rd->memuse was already set in stack.c to allocate stack space
 	   for passing arguments to called methods. */
@@ -349,7 +351,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 	}
 #endif
 
-	if (jd->isleafmethod) {
+	if (code_is_leafmethod(code)) {
 		/* Reserve argument register, which will be used for Locals acting */
 		/* as Parameters */
 		if (rd->argintreguse < m->parseddesc->argintreguse)
@@ -396,7 +398,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 			if (!saved) {
 #if defined(HAS_ADDRESS_REGISTER_FILE)
 				if (IS_ADR_TYPE(t)) {
-					if (!jd->isleafmethod && AVAIL_ARG_ADR) {
+					if (!code_is_leafmethod(code) && AVAIL_ARG_ADR) {
 						flags |= ARGREG;
 						TAKE_ARG_ADR(regoff);
 					} 
@@ -775,6 +777,7 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 	
 static void simplereg_allocate_locals(jitdata *jd)
 {
+	codeinfo     *code;
 	codegendata  *cd;
 	registerdata *rd;
 
@@ -789,10 +792,11 @@ static void simplereg_allocate_locals(jitdata *jd)
 
 	/* get required compiler data */
 
-	cd = jd->cd;
-	rd = jd->rd;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
 
-	if (jd->isleafmethod) {
+	if (code_is_leafmethod(code)) {
 		simplereg_allocate_locals_leafmethod(jd);
 		return;
 	}

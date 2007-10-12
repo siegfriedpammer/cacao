@@ -759,7 +759,7 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	/* save temporary registers for leaf methods */
 /* XXX no leaf optimization yet
-	if (jd->isleafmethod) {
+	if (code_is_leafmethod(code)) {
 		for (i = 0; i < INT_TMP_CNT; i++)
 			M_LST(rd->tmpintregs[i], REG_SP, (2 + ARG_CNT + i) * 8);
 
@@ -830,7 +830,7 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	/* restore temporary registers for leaf methods */
 /* XXX no leaf optimization yet
-	if (jd->isleafmethod) {
+	if (code_is_leafmethod(code)) {
 		for (i = 0; i < INT_TMP_CNT; i++)
 			M_LLD(rd->tmpintregs[i], REG_SP, (2 + ARG_CNT + i) * 8);
 

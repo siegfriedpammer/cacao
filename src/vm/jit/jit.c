@@ -950,7 +950,8 @@ static u1 *do_nothing_function(void)
 
 jitdata *jit_jitdata_new(methodinfo *m)
 {
-	jitdata *jd;
+	jitdata  *jd;
+	codeinfo *code;
 
 	/* allocate jitdata structure and fill it */
 
@@ -965,10 +966,23 @@ jitdata *jit_jitdata_new(methodinfo *m)
 
 	/* Allocate codeinfo memory from the heap as we need to keep them. */
 
-	jd->code  = code_codeinfo_new(m);
+	code = code_codeinfo_new(m);
+
+	/* Set codeinfo flags. */
+
+#if defined(ENABLE_THREADS)
+	if (checksync && (m->flags & ACC_SYNCHRONIZED))
+		code_flag_synchronized(code);
+
+	if (checksync && (m->flags & ACC_SYNCHRONIZED))
+		code_unflag_leafmethod(code);
+#endif
+	else
+		code_flag_leafmethod(code);
 
 	/* initialize variables */
 
+	jd->code                 = code;
 	jd->flags                = 0;
 	jd->exceptiontable       = NULL;
 	jd->exceptiontablelength = 0;
@@ -978,13 +992,6 @@ jitdata *jit_jitdata_new(methodinfo *m)
 	jd->returncount          = 0;
 	jd->returnblock          = NULL;
 	jd->maxlocals            = m->maxlocals;
-
-#if defined(ENABLE_THREADS)
-	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		jd->isleafmethod = false;
-	else
-#endif
-		jd->isleafmethod = true;
 
 	return jd;
 }

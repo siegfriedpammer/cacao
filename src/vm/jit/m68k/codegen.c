@@ -145,7 +145,13 @@ bool codegen_emit(jitdata *jd)
 		else
 #endif
 		(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
-		(void) dseg_add_unique_s4(cd, jd->isleafmethod);       /* IsLeaf          */
+
+		/* REMOVEME: We still need it for exception handling in assembler. */
+
+		if (code_is_leafmethod(code))
+			(void) dseg_add_unique_s4(cd, 1);
+		else
+			(void) dseg_add_unique_s4(cd, 0);
 
 		/* XXX we use the IntSave a split field for the adr now */
 		(void) dseg_add_unique_s4(cd, (ADR_SAV_CNT - rd->savadrreguse) << 16 | (INT_SAV_CNT - rd->savintreguse)); /* IntSave */
@@ -1950,7 +1956,7 @@ nowperformreturn:
 
 			/* restore return address                                         */
 #if 0
-			if (!jd->isleafmethod) {
+			if (!code_is_leafmethod(code)) {
 				/* ATTENTION: Don't use REG_ZERO (r0) here, as M_ALD
 				   may have a displacement overflow. */
 

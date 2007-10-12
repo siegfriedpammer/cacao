@@ -469,6 +469,7 @@ uint32_t emit_trap(codegendata *cd)
 void emit_verbosecall_enter(jitdata *jd)
 {
 	methodinfo   *m;
+	codeinfo     *code;
 	codegendata  *cd;
 	registerdata *rd;
 	methoddesc   *md;
@@ -478,9 +479,10 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	/* get required compiler data */
 
-	m  = jd->m;
-	cd = jd->cd;
-	rd = jd->rd;
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+	rd   = jd->rd;
 
 	md = m->parseddesc;
 
@@ -495,7 +497,7 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	/* save all argument and temporary registers for leaf methods */
 
-	if (jd->isleafmethod) {
+	if (code_is_leafmethod(code)) {
 		j = 1 + md->paramcount;
 
 		for (i = 0; i < INT_ARG_CNT; i++, j++)
@@ -565,7 +567,7 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	/* restore all argument and temporary registers for leaf methods */
 
-	if (jd->isleafmethod) {
+	if (code_is_leafmethod(code)) {
 		j = 1 + md->paramcount;
 
 		for (i = 0; i < INT_ARG_CNT; i++, j++)

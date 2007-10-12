@@ -245,14 +245,17 @@ uint32_t emit_trap(codegendata *cd)
 void emit_verbosecall_enter(jitdata *jd)
 {
 	methodinfo   *m;
+	codeinfo     *code;
 	codegendata  *cd;
 	methoddesc   *md;
 	s4            stackframesize;
 	s4            i, off, disp, s;
 
-	m  = jd->m;
-	cd = jd->cd;
-	md = m->parseddesc;
+	m    = jd->m;
+	code = jd->code;
+	cd   = jd->cd;
+
+	md   = m->parseddesc;
 
 	/* mark trace code */
 
@@ -264,7 +267,7 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	/* for leaf methods we need to store unused argument and temporary registers */
 
-	if (jd->isleafmethod) {
+	if (code_is_leafmethod(code)) {
 		stackframesize += (ARG_CNT + TMP_CNT) * 8;
 	}
 
@@ -301,7 +304,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* save unused (currently all) argument registers for leaf methods */
 	/* save temporary registers for leaf methods */
 
-	if (jd->isleafmethod) {
+	if (code_is_leafmethod(code)) {
 
 		for (i = 0; i < INT_ARG_CNT; ++i, off += 8) {
 			M_IST(abi_registers_integer_argument[i], REG_SP, off);
@@ -340,7 +343,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	/* restore used argument registers */
 	/* for leaf methods restore all argument and temporary registers */
 
-	if (jd->isleafmethod) {
+	if (code_is_leafmethod(code)) {
 		off = 96 + (8 * md->paramcount);
 
 		for (i = 0; i < INT_ARG_CNT; ++i, off += 8) {

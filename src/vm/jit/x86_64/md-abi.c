@@ -229,13 +229,15 @@ void md_param_alloc_native(methoddesc *md)
 void md_return_alloc(jitdata *jd, stackptr stackslot)
 {
 	methodinfo   *m;
+	codeinfo     *code;
 	registerdata *rd;
 	methoddesc   *md;
 
 	/* get required compiler data */
 
-	m  = jd->m;
-	rd = jd->rd;
+	m    = jd->m;
+	code = jd->code;
+	rd   = jd->rd;
 
 	md = m->parseddesc;
 
@@ -249,7 +251,7 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 		   to their argument register -> so leafmethods with
 		   paramcount > 0 could already use a00! */
 
-		if (!jd->isleafmethod || (md->paramcount == 0)) {
+		if (!code_is_leafmethod(code) || (md->paramcount == 0)) {
 			/* Only precolor the stackslot, if it is not a SAVEDVAR
 			   <-> has not to survive method invokations */
 

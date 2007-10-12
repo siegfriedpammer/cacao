@@ -29,6 +29,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -54,6 +55,7 @@
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/code.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
@@ -142,7 +144,7 @@ bool codegen_emit(jitdata *jd)
 	   native code e.g. libc or jni (alignment problems with
 	   movaps). */
 
-	if (!jd->isleafmethod || opt_verbosecall)
+	if (!code_is_leafmethod(code) || opt_verbosecall)
 		cd->stackframesize |= 0x1;
 
 	/* create method header */
@@ -163,7 +165,11 @@ bool codegen_emit(jitdata *jd)
 #endif
 		(void) dseg_add_unique_s4(cd, 0);                  /* IsSync          */
 	                                       
-	(void) dseg_add_unique_s4(cd, jd->isleafmethod);               /* IsLeaf  */
+	if (code_is_leafmethod(code))
+		(void) dseg_add_unique_s4(cd, 1);                  /* IsLeaf          */
+	else
+		(void) dseg_add_unique_s4(cd, 0);                  /* IsLeaf          */
+
 	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
 	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
 
