@@ -50,7 +50,6 @@ extern FILE *file;
 
 void printID(utf *u);
 void printOverloadPart(utf *desc);
-void literalstring_free(java_object_t *o);
 void printmethod(methodinfo *m);
 void gen_header_filename(char *buffer, utf *u);
 void headerfile_generate(classinfo *c, char *opt_directory);

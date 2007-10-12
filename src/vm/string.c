@@ -67,6 +67,16 @@ static java_object_t *lock_hashtable_string;
 #endif
 
 
+/* XXX preliminary typedef, will be removed once string.c and utf8.c are
+   unified. */
+
+#if defined(ENABLE_HANDLES)
+typedef heap_java_lang_String heapstring_t;
+#else
+typedef java_lang_String heapstring_t;
+#endif
+
+
 /* string_init *****************************************************************
 
    Initialize the string hashtable lock.
@@ -103,7 +113,7 @@ bool string_init(void)
  
 void stringtable_update(void)
 {
-	java_lang_String *js;
+	heapstring_t     *js;
 	java_chararray_t *a;
 	literalstring    *s;       /* hashtable entry */
 	int i;
@@ -112,7 +122,7 @@ void stringtable_update(void)
 		s = hashtable_string.ptr[i];
 		if (s) {
 			while (s) {
-				js = (java_lang_String *) s->string;
+				js = (heapstring_t *) s->string;
                                
 				if ((js == NULL) || (js->value == NULL)) {
 					/* error in hashtable found */
@@ -120,7 +130,7 @@ void stringtable_update(void)
 					vm_abort("stringtable_update: invalid literalstring in hashtable");
 				}
 
-				LLNI_field_get_ref(js, value, a);
+				a = js->value;
 
 				if (!js->header.vftbl) 
 					/* vftbl of javastring is NULL */ 
@@ -241,7 +251,7 @@ java_handle_t *javastring_safe_new_from_utf8(const char *text)
 
 	/* decompress UTF-8 string */
 
-	utf8_safe_convert_to_u2s(text, nbytes, a->data);
+	utf8_safe_convert_to_u2s(text, nbytes, LLNI_array_data(a));
 
 	/* set fields of the String object */
 
@@ -452,6 +462,8 @@ char *javastring_tochar(java_handle_t *so)
 {
 	java_lang_String        *s = (java_lang_String *) so;
 	java_handle_chararray_t *a;
+	int32_t                  count;
+	int32_t                  offset;
 	char *buf;
 	s4 i;
 	
@@ -463,10 +475,13 @@ char *javastring_tochar(java_handle_t *so)
 	if (!a)
 		return "";
 
-	buf = MNEW(char, LLNI_field_direct(s, count) + 1);
+	LLNI_field_get_val(s, count, count);
+	LLNI_field_get_val(s, offset, offset);
 
-	for (i = 0; i < LLNI_field_direct(s, count); i++)
-		buf[i] = a->data[LLNI_field_direct(s, offset) + i];
+	buf = MNEW(char, count + 1);
+
+	for (i = 0; i < count; i++)
+		buf[i] = LLNI_array_direct(a, offset + i);
 
 	buf[i] = '\0';
 
@@ -482,31 +497,38 @@ char *javastring_tochar(java_handle_t *so)
 
 utf *javastring_toutf(java_handle_t *string, bool isclassname)
 {
-	java_lang_String *s;
+	java_lang_String        *s;
+	java_handle_chararray_t *value;
+	int32_t                  count;
+	int32_t                  offset;
 
 	s = (java_lang_String *) string;
 
 	if (s == NULL)
 		return utf_null;
 
-	return utf_new_u2(LLNI_field_direct(s, value)->data + LLNI_field_direct(s, offset), LLNI_field_direct(s, count), isclassname);
+	LLNI_field_get_ref(s, value, value);
+	LLNI_field_get_val(s, count, count);
+	LLNI_field_get_val(s, offset, offset);
+
+	return utf_new_u2(LLNI_array_data(value) + offset, count, isclassname);
 }
 
 
 /* literalstring_u2 ************************************************************
 
-   Searches for the javastring with the specified u2-array in the
+   Searches for the literalstring with the specified u2-array in the
    string hashtable, if there is no such string a new one is created.
 
    If copymode is true a copy of the u2-array is made.
 
 *******************************************************************************/
 
-java_object_t *literalstring_u2(java_chararray_t *a, u4 length, u4 offset,
-								bool copymode)
+static java_object_t *literalstring_u2(java_chararray_t *a, u4 length,
+									   u4 offset, bool copymode)
 {
     literalstring    *s;                /* hashtable element                  */
-    java_lang_String *js;               /* u2-array wrapped in javastring     */
+    heapstring_t     *js;               /* u2-array wrapped in javastring     */
     java_chararray_t *ca;               /* copy of u2-array                   */
     u4                key;
     u4                slot;
@@ -521,7 +543,7 @@ java_object_t *literalstring_u2(java_chararray_t *a, u4 length, u4 offset,
     s    = hashtable_string.ptr[slot];
 
     while (s) {
-		js = (java_lang_String *) s->string;
+		js = (heapstring_t *) s->string;
 
 		if (length == js->count) {
 			/* compare text */
@@ -568,11 +590,11 @@ java_object_t *literalstring_u2(java_chararray_t *a, u4 length, u4 offset,
 
 	/* create new javastring */
 
-	js = NEW(java_lang_String);
+	js = NEW(heapstring_t);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
-		size_string += sizeof(java_lang_String);
+		size_string += sizeof(heapstring_t);
 #endif
 
 #if defined(ENABLE_THREADS)
@@ -607,11 +629,11 @@ java_object_t *literalstring_u2(java_chararray_t *a, u4 length, u4 offset,
 		/* reorganization of hashtable, average length of the external
 		   chains is approx. 2 */
 
-		u4                i;
-		literalstring    *s;
-		literalstring    *nexts;
-		java_lang_String *tmpjs;
-		hashtable         newhash;                       /* the new hashtable */
+		u4             i;
+		literalstring *s;
+		literalstring *nexts;
+		heapstring_t  *tmpjs;
+		hashtable      newhash;                          /* the new hashtable */
       
 		/* create new hashtable, double the size */
 
@@ -625,7 +647,7 @@ java_object_t *literalstring_u2(java_chararray_t *a, u4 length, u4 offset,
 
 			while (s) {
 				nexts = s->hashlink;
-				tmpjs = (java_lang_String *) s->string;
+				tmpjs = (heapstring_t *) s->string;
 				slot  = unicode_hashkey(tmpjs->value->data, tmpjs->count) & (newhash.size - 1);
 	  
 				s->hashlink = newhash.ptr[slot];
@@ -650,8 +672,8 @@ java_object_t *literalstring_u2(java_chararray_t *a, u4 length, u4 offset,
 
 /* literalstring_new ***********************************************************
 
-   Creates a new javastring with the text of the utf-symbol and inserts it into
-   the string hashtable.
+   Creates a new literalstring with the text of the utf-symbol and inserts
+   it into the string hashtable.
 
 *******************************************************************************/
 
@@ -679,20 +701,20 @@ java_object_t *literalstring_new(utf *u)
 
 /* literalstring_free **********************************************************
 
-   Removes a javastring from memory.
+   Removes a literalstring from memory.
 
 *******************************************************************************/
 
-void literalstring_free(java_object_t* string)
+static void literalstring_free(java_object_t* string)
 {
-	java_lang_String *s;
+	heapstring_t     *s;
 	java_chararray_t *a;
 
-	s = (java_lang_String *) string;
+	s = (heapstring_t *) string;
 	a = s->value;
 
 	/* dispose memory of java.lang.String object */
-	FREE(s, java_lang_String);
+	FREE(s, heapstring_t);
 
 	/* dispose memory of java-characterarray */
 	FREE(a, sizeof(java_chararray_t) + sizeof(u2) * (a->header.size - 1)); /* +10 ?? */
@@ -703,6 +725,9 @@ void literalstring_free(java_object_t* string)
 
    Intern the given Java string.
 
+   XXX NOTE: Literal Strings are direct references since they are not placed
+   onto the GC-Heap. That's why this function looks so "different".
+
 *******************************************************************************/
 
 java_handle_t *javastring_intern(java_handle_t *s)
@@ -712,17 +737,17 @@ java_handle_t *javastring_intern(java_handle_t *s)
 	int32_t           count;
 	int32_t           offset;
 /* 	java_lang_String *o; */
-	java_object_t    *o;
+	java_object_t    *o; /* XXX see note above */
 
 	so = (java_lang_String *) s;
 
-	value  = LLNI_field_direct(so, value);
-	count  = LLNI_field_direct(so, count);
-	offset = LLNI_field_direct(so, offset);
+	value  = LLNI_field_direct(so, value); /* XXX see note above */
+	LLNI_field_get_val(so, count, count);
+	LLNI_field_get_val(so, offset, offset);
 
 	o = literalstring_u2(value, count, offset, true);
 
-	return o;
+	return LLNI_WRAP(o); /* XXX see note above */
 }
 
 
@@ -734,18 +759,18 @@ java_handle_t *javastring_intern(java_handle_t *s)
 
 void javastring_print(java_handle_t *s)
 {
-	java_lang_String *so;
-	java_chararray_t *value;
-	int32_t           count;
-	int32_t           offset;
-	uint16_t          c;
-	int               i;
+	java_lang_String        *so;
+	java_handle_chararray_t *value;
+	int32_t                  count;
+	int32_t                  offset;
+	uint16_t                 c;
+	int                      i;
 
 	so = (java_lang_String *) s;
 
-	value  = LLNI_field_direct(so, value);
-	count  = LLNI_field_direct(so, count);
-	offset = LLNI_field_direct(so, offset);
+	LLNI_field_get_ref(so, value, value);
+	LLNI_field_get_val(so, count, count);
+	LLNI_field_get_val(so, offset, offset);
 
 	for (i = offset; i < offset + count; i++) {
 		c = LLNI_array_direct(value, i);

@@ -81,15 +81,8 @@ char *javastring_tochar(java_handle_t *string);
 /* make utf symbol from javastring */
 utf *javastring_toutf(java_handle_t *string, bool isclassname);
 
-/* creates a new javastring with the text of the u2-array */
-java_object_t *literalstring_u2(java_chararray_t *a, u4 length, u4 offset,
-								bool copymode);
-
 /* creates a new javastring with the text of the utf-symbol */
 java_object_t *literalstring_new(utf *u);
-
-/* dispose a javastring */
-void literalstring_free(java_object_t*);
 
 java_handle_t *javastring_intern(java_handle_t *s);
 void           javastring_print(java_handle_t *s);
