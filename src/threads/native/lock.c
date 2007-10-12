@@ -273,6 +273,12 @@ static lock_record_t *lock_record_new(void)
 	lr->count   = 0;
 	lr->waiters = list_create(OFFSET(lock_waiter_t, linkage));
 
+#if defined(ENABLE_GC_CACAO)
+	/* register the lock object as weak reference with the GC */
+
+	gc_weakreference_register(&(lr->object), GC_REFTYPE_LOCKRECORD);
+#endif
+
 	/* initialize the mutex */
 
 	pthread_mutex_init(&(lr->mutex), NULL);
@@ -299,6 +305,12 @@ static void lock_record_free(lock_record_t *lr)
 	/* Destroy the mutex. */
 
 	pthread_mutex_destroy(&(lr->mutex));
+
+#if defined(ENABLE_GC_CACAO)
+	/* unregister the lock object reference with the GC */
+
+	gc_weakreference_unregister(&(lr->object));
+#endif
 
 	/* Free the waiters list. */
 
@@ -408,6 +420,67 @@ static void lock_hashtable_grow(void)
 		size_lock_hashtable -= sizeof(lock_record_t *) * oldsize;
 #endif
 }
+
+
+/* lock_hashtable_cleanup ******************************************************
+
+   Removes (and frees) lock records which have a cleared object reference
+   from the hashtable. The locked object was reclaimed by the GC.
+
+*******************************************************************************/
+
+#if defined(ENABLE_GC_CACAO)
+void lock_hashtable_cleanup(void)
+{
+	threadobject  *t;
+	lock_record_t *lr;
+	lock_record_t *prev;
+	lock_record_t *next;
+	int i;
+
+	t = THREADOBJECT;
+
+	/* lock the hashtable */
+
+	pthread_mutex_lock(&(lock_hashtable.mutex));
+
+	/* search the hashtable for cleared references */
+
+	for (i = 0; i < lock_hashtable.size; i++) {
+		lr = lock_hashtable.ptr[i];
+		prev = NULL;
+
+		while (lr) {
+			next = lr->hashlink;
+
+			/* remove lock records with cleared references */
+
+			if (lr->object == NULL) {
+
+				/* unlink the lock record from the hashtable */
+
+				if (prev == NULL)
+					lock_hashtable.ptr[i] = next;
+				else
+					prev->hashlink = next;
+
+				/* free the lock record */
+
+				lock_record_free(lr);
+
+			} else {
+				prev = lr;
+			}
+
+			lr = next;
+		}
+	}
+
+	/* unlock the hashtable */
+
+	pthread_mutex_unlock(&(lock_hashtable.mutex));
+}
+#endif
 
 
 /* lock_hashtable_get **********************************************************

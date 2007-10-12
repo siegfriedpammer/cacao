@@ -164,24 +164,23 @@ void mark_recursive(java_object_t *o)
 }
 
 
-/* mark_me *********************************************************************
+/* mark_post *******************************************************************
 
-   Marks all Heap Objects which are reachable from a given root-set.
+   Perform some post-marking cleanup tasks.
 
-   REMEMBER: Assumes all threads are stopped!
-
-   IN:
-	  rs.....root set containing the references
+   TASKS:
+      - mark unmarked objects with Finalizers
+      - clear unmarked Weak References
 
 *******************************************************************************/
 
-void mark_me(rootset_t *rs)
+void mark_post(rootset_t *rs)
 {
 	java_object_t      *ref;
 #if defined(GCCONF_FINALIZER)
 	list_final_entry_t *fe;
-#endif
 	u4                  f_type;
+#endif
 	void *start, *end;
 	int i;
 
@@ -189,38 +188,9 @@ void mark_me(rootset_t *rs)
 	start = heap_region_main->base;
 	end = heap_region_main->ptr;
 
-	GCSTAT_INIT(gcstat_mark_count);
-	GCSTAT_INIT(gcstat_mark_depth);
-	GCSTAT_INIT(gcstat_mark_depth_max);
-
-	while (rs) {
-		GC_LOG( dolog("GC: Marking from rootset (%d entries) ...", rs->refcount); );
-
-		/* mark all references of the rootset */
-		for (i = 0; i < rs->refcount; i++) {
-
-			/* is this a marking reference? */
-			if (!rs->refs[i].marks)
-				continue;
-
-			/* load the reference */
-			ref = *( rs->refs[i].ref );
-
-			/* check for outside or null pointers */
-			if (!POINTS_INTO(ref, start, end))
-				continue;
-
-			/* do the marking here */
-			MARK(ref);
-
-		}
-
-		rs = rs->next;
-	}
-
 #if defined(GCCONF_FINALIZER)
 	/* objects with finalizers will also be marked here. if they have not been
-	 * marked before the finalization is triggered */
+	   marked before the finalization is triggered */
 	/* REMEMBER: all threads are stopped, so we can use unsynced access here */
 	fe = list_first_unsynced(final_list);
 	while (fe) {
@@ -265,7 +235,7 @@ void mark_me(rootset_t *rs)
 #endif
 
 			default: /* case not yet covered */
-				vm_abort("mark_me: uncovered case (type=%d)", f_type);
+				vm_abort("mark_post: uncovered case (type=%d)", f_type);
 
 			}
 		}
@@ -273,6 +243,99 @@ void mark_me(rootset_t *rs)
 		fe = list_next_unsynced(final_list, fe);
 	}
 #endif /*defined(GCCONF_FINALIZER)*/
+
+	/* Clear all references in the rootset which have not yet been
+	   marked. This applies to registered weak references. */
+
+	while (rs) {
+		GC_LOG( dolog("GC: Clearing in rootset (%d entries) ...", rs->refcount); );
+
+		/* mark all references of the rootset */
+		for (i = 0; i < rs->refcount; i++) {
+
+			/* load the reference */
+			ref = *( rs->refs[i].ref );
+
+			/* check for outside or null pointers */
+			if (!POINTS_INTO(ref, start, end))
+				continue;
+
+			/* is this a marking reference? */
+			if (rs->refs[i].marks) {
+				assert(GC_IS_MARKED(ref));
+			} else {
+
+				/* clear unmarked references */
+				if (!GC_IS_MARKED(ref)) {
+					GC_LOG( printf("Clearing Weak Reference %p at %p\n", ref, rs->refs[i]); );
+
+					*( rs->refs[i].ref ) = NULL;
+				}
+			}
+		}
+
+		rs = rs->next;
+	}
+
+}
+
+
+/* mark_me *********************************************************************
+
+   Marks all Heap Objects which are reachable from a given root-set.
+
+   REMEMBER: Assumes all threads are stopped!
+
+   IN:
+	  rs.....root set containing the references
+
+*******************************************************************************/
+
+void mark_me(rootset_t *rs)
+{
+	rootset_t     *rstop;
+	java_object_t *ref;
+	void *start, *end;
+	int i;
+
+	/* TODO: this needs cleanup!!! */
+	start = heap_region_main->base;
+	end = heap_region_main->ptr;
+	rstop = rs;
+
+	GCSTAT_INIT(gcstat_mark_count);
+	GCSTAT_INIT(gcstat_mark_depth);
+	GCSTAT_INIT(gcstat_mark_depth_max);
+
+	while (rs) {
+		GC_LOG( dolog("GC: Marking from rootset (%d entries) ...", rs->refcount); );
+
+		/* mark all references of the rootset */
+		for (i = 0; i < rs->refcount; i++) {
+
+			/* is this a marking reference? */
+			if (!rs->refs[i].marks)
+				continue;
+
+			/* load the reference */
+			ref = *( rs->refs[i].ref );
+
+			/* check for outside or null pointers */
+			if (!POINTS_INTO(ref, start, end))
+				continue;
+
+			/* do the marking here */
+			MARK(ref);
+
+		}
+
+		rs = rs->next;
+	}
+
+	GC_LOG( dolog("GC: Marking postprocessing ..."); );
+
+	/* perform some post processing of the marked heap */
+	mark_post(rstop);
 
 	GC_LOG( dolog("GC: Marking finished."); );
 

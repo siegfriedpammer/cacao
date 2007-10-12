@@ -53,7 +53,8 @@ bool gc_pending;
 bool gc_running;
 bool gc_notify_finalizer;
 
-list_t *gc_reflist;
+list_t *gc_reflist_strong;
+list_t *gc_reflist_weak;
 
 #if defined(ENABLE_THREADS)
 java_object_t *gc_global_lock;
@@ -97,7 +98,8 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 	gc_running = false;
 
 	/* create list for external references */
-	gc_reflist = list_create(OFFSET(list_gcref_entry_t, linkage));
+	gc_reflist_strong = list_create(OFFSET(list_gcref_entry_t, linkage));
+	gc_reflist_weak   = list_create(OFFSET(list_gcref_entry_t, linkage));
 
 #if defined(ENABLE_THREADS)
 	/* create global gc lock object */
@@ -127,14 +129,47 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 
 *******************************************************************************/
 
-void gc_reference_register(java_object_t **ref, int32_t reftype)
+static void gc_reference_register_intern(list_t *list, java_object_t **ref, int32_t reftype)
 {
 	list_gcref_entry_t *re;
+
+	GC_LOG2( printf("Registering Reference at %p\n", (void *) ref); );
 
 	/* the reference needs to be registered before it is set, so make sure the
 	   reference is not yet set */
 	GC_ASSERT(*ref == NULL);
 
+	re = NEW(list_gcref_entry_t);
+
+	re->ref      = ref;
+#if !defined(NDEBUG)
+	re->reftype  = reftype;
+#endif
+
+	list_add_last(list, re);
+}
+
+static void gc_reference_unregister_intern(list_t *list, java_object_t **ref)
+{
+	list_gcref_entry_t *re;
+
+	GC_LOG2( printf("Un-Registering Reference at %p\n", (void *) ref); );
+
+	for (re = list_first(list); re != NULL; re = list_next(list, re)) {
+		if (re->ref == ref) {
+			list_remove(list, re);
+
+			FREE(re, list_gcref_entry_t);
+
+			break;
+		}
+	}
+
+	assert(re != NULL);
+}
+
+void gc_reference_register(java_object_t **ref, int32_t reftype)
+{
 #if defined(ENABLE_THREADS)
 	/* XXX dirty hack because threads_init() not yet called */
 	if (THREADOBJECT == NULL) {
@@ -143,22 +178,22 @@ void gc_reference_register(java_object_t **ref, int32_t reftype)
 	}
 #endif
 
-	GC_LOG2( printf("Registering Reference at %p\n", (void *) ref); );
-
-	re = NEW(list_gcref_entry_t);
-
-	re->ref     = ref;
-#if !defined(NDEBUG)
-	re->reftype = reftype;
-#endif
-
-	list_add_last(gc_reflist, re);
+	gc_reference_register_intern(gc_reflist_strong, ref, reftype);
 }
 
+void gc_weakreference_register(java_object_t **ref, int32_t reftype)
+{
+	gc_reference_register_intern(gc_reflist_weak, ref, reftype);
+}
 
 void gc_reference_unregister(java_object_t **ref)
 {
-	vm_abort("gc_reference_unregister: IMPLEMENT ME!");
+	gc_reference_unregister_intern(gc_reflist_strong, ref);
+}
+
+void gc_weakreference_unregister(java_object_t **ref)
+{
+	gc_reference_unregister_intern(gc_reflist_weak, ref);
 }
 
 
@@ -334,6 +369,8 @@ void gc_collect(s4 level)
 	/* leave the global gc lock */
 	LOCK_MONITOR_EXIT(gc_global_lock);
 
+	/* XXX move this to an appropriate place */
+	lock_hashtable_cleanup();
 }
 
 

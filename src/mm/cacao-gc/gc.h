@@ -118,7 +118,8 @@
 extern bool gc_pending;
 extern bool gc_notify_finalizer;
 
-extern list_t *gc_reflist;
+extern list_t *gc_reflist_strong;
+extern list_t *gc_reflist_weak;
 
 
 /* Structures *****************************************************************/

@@ -79,6 +79,9 @@ rootset_t *rootset_resize(rootset_t *rs)
    Searches global variables to compile the global root set out of references
    contained in them.
 
+   REMEMBER: All threads are stopped, so we can use unsynced access
+   in this function.
+
    SEARCHES IN:
      - thread objects (threads.c)
      - classloader objects (loader.c)
@@ -110,30 +113,28 @@ static rootset_t *rootset_from_globals(rootset_t *rs)
 
 	refcount = rs->refcount;
 
-	/* walk through all registered references */
-	/* REMEMBER: all threads are stopped, so we can use unsynced access here */
-	re = list_first_unsynced(gc_reflist);
-	while (re) {
-
+	/* walk through all registered strong references */
+	for (re = list_first_unsynced(gc_reflist_strong); re != NULL; re = list_next_unsynced(gc_reflist_strong, re)) {
 		GC_LOG2( printf("Found Registered Reference: %p at %p of type %d\n", *(re->ref), re->ref, ref->reftype); );
 
 		/* add this registered reference to the root set */
 		ROOTSET_ADD(re->ref, true, re->reftype)
+	}
 
-		re = list_next_unsynced(gc_reflist, re);
+	/* walk through all registered weak references */
+	for (re = list_first_unsynced(gc_reflist_weak); re != NULL; re = list_next_unsynced(gc_reflist_weak, re)) {
+		GC_LOG2( printf("Found Registered Weak Reference: %p at %p of type %d\n", *(re->ref), re->ref, ref->reftype); );
+
+		/* add this registered reference to the root set */
+		ROOTSET_ADD(re->ref, false, re->reftype)
 	}
 
 	/* walk through all finalizer entries */
-	/* REMEMBER: all threads are stopped, so we can use unsynced access here */
-	fe = list_first_unsynced(final_list);
-	while (fe) {
-
+	for (fe = list_first_unsynced(final_list); fe != NULL; fe = list_next_unsynced(final_list, fe)) {
 		GC_LOG2( printf("Found Finalizer Entry: %p\n", (void *) fe->o); );
 
 		/* add this object with finalizer to the root set */
 		ROOTSET_ADD(&( fe->o ), false, GC_REFTYPE_FINALIZER)
-
-		fe = list_next_unsynced(final_list, fe);
 	}
 
 	/* remeber how many references there are inside this root set */
@@ -391,9 +392,9 @@ void rootset_writeback(rootset_t *rs)
 
 #if !defined(NDEBUG)
 static const char* reftype_names[] = {
-		"XXXXXXXXXXXX", "THREADOBJECT", "CLASSLOADER ",
-		"GLOBAL-REF  ", "FINALIZER   ", "LOCAL-REF   ",
-		"ON-STACK-ADR", "STATIC FIELD"
+		"THREADOBJECT", "CLASSLOADER ", "GLOBAL-REF  ",
+		"FINALIZER   ", "LOCAL-REF   ", "ON-STACK-ADR",
+		"STATIC FIELD", "LOCKRECORD  "
 };
 
 void rootset_print(rootset_t *rs)
@@ -426,9 +427,9 @@ void rootset_print(rootset_t *rs)
 			printf("\t\t");
 			printf("%s ", reftype_names[rs->refs[i].reftype]);
 			if (rs->refs[i].marks)
-				printf("MARK+UPDATE");
+				printf("STRONG");
 			else
-				printf("     UPDATE");
+				printf("  WEAK");
 			printf(" ");
 			heap_print_object(o);
 			printf("\n");

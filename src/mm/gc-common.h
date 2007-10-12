@@ -40,13 +40,16 @@
 
 /* reference types ************************************************************/
 
-#define GC_REFTYPE_THREADOBJECT  1
-#define GC_REFTYPE_CLASSLOADER   2
-#define GC_REFTYPE_JNI_GLOBALREF 3
-#define GC_REFTYPE_FINALIZER     4
-#define GC_REFTYPE_LOCALREF      5
-#define GC_REFTYPE_STACK         6
-#define GC_REFTYPE_CLASSREF      7
+enum {
+	GC_REFTYPE_THREADOBJECT,
+	GC_REFTYPE_CLASSLOADER,
+	GC_REFTYPE_JNI_GLOBALREF,
+	GC_REFTYPE_FINALIZER,
+	GC_REFTYPE_LOCALREF,
+	GC_REFTYPE_STACK,
+	GC_REFTYPE_CLASSREF,
+	GC_REFTYPE_LOCKRECORD
+};
 
 
 /* function prototypes ********************************************************/
@@ -63,6 +66,9 @@ s4    heap_get_hashcode(java_object_t *o);
 
 void  gc_reference_register(java_object_t **ref, int32_t reftype);
 void  gc_reference_unregister(java_object_t **ref);
+
+void  gc_weakreference_register(java_object_t **ref, int32_t reftype);
+void  gc_weakreference_unregister(java_object_t **ref);
 #endif
 
 void  gc_call(void);
