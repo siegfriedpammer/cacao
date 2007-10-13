@@ -139,7 +139,7 @@ struct threadobject {
 	u1                   *pc;           /* current PC (used for profiling)    */
 
 	java_object_t        *_exceptionptr;     /* current exception             */
-	stackframeinfo       *_stackframeinfo;   /* current native stackframeinfo */
+	stackframeinfo_t     *_stackframeinfo;   /* current native stackframeinfo */
 	localref_table       *_localref_table;   /* JNI local references          */
 
 #if defined(ENABLE_INTRP)

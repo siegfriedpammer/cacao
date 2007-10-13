@@ -74,7 +74,7 @@
 
 /* global variables ***********************************************************/
 #if !defined(ENABLE_THREADS)
-stackframeinfo *_no_threads_stackframeinfo = NULL;
+stackframeinfo_t *_no_threads_stackframeinfo = NULL;
 #endif
 
 CYCLES_STATS_DECLARE(stacktrace_overhead        ,100,1)
@@ -91,15 +91,15 @@ CYCLES_STATS_DECLARE(stacktrace_getStack        ,40,10000)
 
 *******************************************************************************/
 
-void stacktrace_stackframeinfo_add(stackframeinfo *sfi, u1 *pv, u1 *sp, u1 *ra, u1 *xpc)
+void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra, u1 *xpc)
 {
-	stackframeinfo **psfi;
-	methodinfo      *m;
+	stackframeinfo_t **psfi;
+	methodinfo        *m;
 #if !defined(__I386__) && !defined(__X86_64__) && !defined(__S390__) && !defined(__M68K__)
-	bool             isleafmethod;
+	bool               isleafmethod;
 #endif
 #if defined(ENABLE_JIT)
-	s4               framesize;
+	s4                 framesize;
 #endif
 
 	/* get current stackframe info pointer */
@@ -216,9 +216,9 @@ void stacktrace_stackframeinfo_add(stackframeinfo *sfi, u1 *pv, u1 *sp, u1 *ra, 
 
 *******************************************************************************/
 
-void stacktrace_stackframeinfo_remove(stackframeinfo *sfi)
+void stacktrace_stackframeinfo_remove(stackframeinfo_t *sfi)
 {
-	stackframeinfo **psfi;
+	stackframeinfo_t **psfi;
 
 	/* clear the native world flag for the current thread */
 	/* ATTENTION: Clear this flag _before_ removing the stackframe info */
@@ -310,7 +310,7 @@ static inline stacktracebuffer *stacktrace_entry_add(stacktracebuffer *stb, meth
 
 *******************************************************************************/
 
-static inline stacktracebuffer *stacktrace_method_add(stacktracebuffer *stb, stackframeinfo *sfi)
+static inline stacktracebuffer *stacktrace_method_add(stacktracebuffer *stb, stackframeinfo_t *sfi)
 {
 	methodinfo *m;
 	void       *pv;
@@ -349,7 +349,7 @@ static inline stacktracebuffer *stacktrace_method_add(stacktracebuffer *stb, sta
 
 *******************************************************************************/
 
-static inline void stacktrace_stack_walk(stackframeinfo *sfi)
+static inline void stacktrace_stack_walk(stackframeinfo_t *sfi)
 {
 	methodinfo *m;
 	void       *pv;
@@ -463,10 +463,10 @@ static inline void stacktrace_stack_walk(stackframeinfo *sfi)
 
 *******************************************************************************/
 
-stacktracebuffer *stacktrace_create(stackframeinfo *sfi)
+stacktracebuffer *stacktrace_create(stackframeinfo_t *sfi)
 {
 	stacktracebuffer *stb;
-	stackframeinfo    tmpsfi;
+	stackframeinfo_t  tmpsfi;
 
 	/* Create a stacktracebuffer in dump memory. */
 

@@ -3113,7 +3113,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	cd->stackframesize =
 		1 +                             /* return address                     */
-		sizeof(stackframeinfo) / SIZEOF_VOID_P +
+		sizeof(stackframeinfo_t) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
 		1 +                             /* methodinfo for call trace          */
 		md->paramcount +
@@ -3146,8 +3146,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* Save callee saved integer registers in stackframeinfo (GC may
 	   need to recover them during a collection). */
 
-	disp = cd->stackframesize * 8 - SIZEOF_VOID_P - sizeof(stackframeinfo) +
-		OFFSET(stackframeinfo, intregs);
+	disp = cd->stackframesize * 8 - SIZEOF_VOID_P - sizeof(stackframeinfo_t) +
+		OFFSET(stackframeinfo_t, intregs);
 
 	for (i = 0; i < INT_SAV_CNT; i++)
 		M_AST(abi_registers_integer_saved[i], REG_SP, disp + i * 8);
@@ -3332,8 +3332,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* Restore callee saved integer registers from stackframeinfo (GC
 	   might have modified them during a collection). */
   	 
-	disp = cd->stackframesize * 8 - SIZEOF_VOID_P - sizeof(stackframeinfo) +
-		OFFSET(stackframeinfo, intregs);
+	disp = cd->stackframesize * 8 - SIZEOF_VOID_P - sizeof(stackframeinfo_t) +
+		OFFSET(stackframeinfo_t, intregs);
 
 	for (i = 0; i < INT_SAV_CNT; i++)
 		M_ALD(abi_registers_integer_saved[i], REG_SP, disp + i * 8);

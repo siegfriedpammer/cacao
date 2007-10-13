@@ -65,7 +65,7 @@
 #if 0
 java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 {
-	stackframeinfo     sfi;
+	stackframeinfo_t   sfi;
 	u1                *xpc;
 	java_objectheader *o;
 	functionptr        f;

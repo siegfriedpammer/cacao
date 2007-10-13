@@ -1698,10 +1698,10 @@ codeinfo *jit_get_current_code(methodinfo *m)
 #if !defined(JIT_COMPILER_VIA_SIGNAL)
 u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra)
 {
-	stackframeinfo  sfi;
-	u1             *entrypoint;
-	u1             *pa;
-	ptrint         *p;
+	stackframeinfo_t  sfi;
+	u1               *entrypoint;
+	u1               *pa;
+	ptrint           *p;
 
 	/* create the stackframeinfo (subtract 1 from RA as it points to the */
 	/* instruction after the call)                                       */

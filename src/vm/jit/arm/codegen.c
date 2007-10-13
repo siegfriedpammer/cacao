@@ -2911,7 +2911,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	cd->stackframesize =
 		4 +                                                /* return address  */
-		sizeof(stackframeinfo) +                           /* stackframeinfo  */
+		sizeof(stackframeinfo_t) +                         /* stackframeinfo  */
 		sizeof(localref_table) +                           /* localref_table  */
 		nmd->memuse * 4;                                   /* stack arguments */
 
@@ -2951,8 +2951,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* Save callee saved integer registers in stackframeinfo (GC may
 	   need to recover them during a collection). */
 
-	disp = cd->stackframesize - SIZEOF_VOID_P - sizeof(stackframeinfo) +
-		OFFSET(stackframeinfo, intregs);
+	disp = cd->stackframesize - SIZEOF_VOID_P - sizeof(stackframeinfo_t) +
+		OFFSET(stackframeinfo_t, intregs);
 
 	for (i = 0; i < INT_SAV_CNT; i++)
 		M_STR_INTERN(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
@@ -3101,8 +3101,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* restore callee saved int registers from stackframeinfo (GC might have  */
 	/* modified them during a collection).                                    */
 
-	disp = cd->stackframesize - SIZEOF_VOID_P - sizeof(stackframeinfo) +
-		OFFSET(stackframeinfo, intregs);
+	disp = cd->stackframesize - SIZEOF_VOID_P - sizeof(stackframeinfo_t) +
+		OFFSET(stackframeinfo_t, intregs);
 
 	for (i = 0; i < INT_SAV_CNT; i++)
 		M_LDR_INTERN(abi_registers_integer_saved[i], REG_SP, disp + i * 4);

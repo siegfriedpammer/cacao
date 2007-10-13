@@ -1529,10 +1529,10 @@ void codegen_disassemble_stub(methodinfo *m, u1 *start, u1 *end)
 
 java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 {
-	stackframeinfo *sfi;
-	localref_table *lrt;
-	methodinfo     *m;
-	int32_t         framesize;
+	stackframeinfo_t *sfi;
+	localref_table   *lrt;
+	methodinfo       *m;
+	int32_t           framesize;
 
 	uint8_t  *datasp;
 	uint8_t  *javasp;
@@ -1549,7 +1549,7 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 
 	framesize = *((int32_t *) (pv + FrameSize));
 
-	assert(framesize >= sizeof(stackframeinfo) + sizeof(localref_table));
+	assert(framesize >= sizeof(stackframeinfo_t) + sizeof(localref_table));
 
 	/* calculate needed values */
 
@@ -1590,9 +1590,9 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 
 	/* get data structures from stack */
 
-	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
-	lrt = (localref_table *) (datasp - sizeof(stackframeinfo) - 
-							  sizeof(localref_table));
+	sfi = (stackframeinfo_t *) (datasp - sizeof(stackframeinfo_t));
+	lrt = (localref_table *)   (datasp - sizeof(stackframeinfo_t) - 
+								sizeof(localref_table));
 
 #if defined(ENABLE_JNI)
 	/* add current JNI local references table to this thread */
@@ -1642,12 +1642,12 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 
 java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 {
-	stackframeinfo *sfi;
-	java_handle_t  *e;
-	java_object_t  *o;
-	codeinfo       *code;
-	methodinfo     *m;
-	int32_t         framesize;
+	stackframeinfo_t *sfi;
+	java_handle_t    *e;
+	java_object_t    *o;
+	codeinfo         *code;
+	methodinfo       *m;
+	int32_t           framesize;
 
 	uint8_t  *datasp;
 	uint64_t *ret_regs;
@@ -1692,7 +1692,7 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 
 	/* get data structures from stack */
 
-	sfi = (stackframeinfo *) (datasp - sizeof(stackframeinfo));
+	sfi = (stackframeinfo_t *) (datasp - sizeof(stackframeinfo_t));
 
 	/* Remove current stackframeinfo from chain. */
 

@@ -30,11 +30,14 @@
 
 /* forward typedefs ***********************************************************/
 
-typedef struct stackframeinfo stackframeinfo;
+typedef struct stackframeinfo_t stackframeinfo_t;
 typedef struct stacktracebuffer stacktracebuffer;
 typedef struct stacktrace_entry stacktrace_entry;
 
 #include "config.h"
+
+#include <stdint.h>
+
 #include "vm/types.h"
 
 #include "md-abi.h"
@@ -50,22 +53,22 @@ typedef struct stacktrace_entry stacktrace_entry;
 
 *******************************************************************************/
 
-struct stackframeinfo {
-	stackframeinfo *prev;               /* pointer to prev stackframeinfo     */
-	methodinfo     *method;             /* methodinfo of current function     */
-	u1             *pv;                 /* PV of current function             */
-	u1             *sp;                 /* SP of parent Java function         */
-	u1             *ra;                 /* RA to parent Java function         */
-	u1             *xpc;                /* XPC (for inline stubs)             */
+struct stackframeinfo_t {
+	stackframeinfo_t *prev;             /* pointer to prev stackframeinfo     */
+	methodinfo       *method;           /* methodinfo of current function     */
+	u1               *pv;               /* PV of current function             */
+	u1               *sp;               /* SP of parent Java function         */
+	u1               *ra;               /* RA to parent Java function         */
+	u1               *xpc;              /* XPC (for inline stubs)             */
 #if defined(ENABLE_GC_CACAO)
 	/* 
 	 * The exact GC needs to be able to recover saved registers, so the
 	 * native-stub saves these registers here
 	 */
 # if defined(HAS_ADDRESS_REGISTER_FILE)
-	ptrint          adrregs[ADR_SAV_CNT];
+	uintptr_t         adrregs[ADR_SAV_CNT];
 # else
-	ptrint          intregs[INT_SAV_CNT];
+	uintptr_t         intregs[INT_SAV_CNT];
 # endif
 #endif
 };
@@ -97,11 +100,11 @@ struct stacktracebuffer {
 
 /* function prototypes ********************************************************/
 
-void stacktrace_stackframeinfo_add(stackframeinfo *sfi, u1 *pv, u1 *sp, u1 *ra, u1 *xpc);
-void stacktrace_stackframeinfo_remove(stackframeinfo *sfi);
+void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra, u1 *xpc);
+void stacktrace_stackframeinfo_remove(stackframeinfo_t *sfi);
 
 
-stacktracebuffer *stacktrace_create(stackframeinfo *sfi);
+stacktracebuffer *stacktrace_create(stackframeinfo_t *sfi);
 
 java_handle_bytearray_t   *stacktrace_fillInStackTrace(void);
 

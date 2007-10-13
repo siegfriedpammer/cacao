@@ -2440,11 +2440,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	md = m->parseddesc;
 
 	/* calc stackframe size */
-	cd->stackframesize = 	sizeof(stackframeinfo) / SIZEOF_VOID_P +
-				sizeof(localref_table) / SIZEOF_VOID_P +
-				nmd->memuse +
-				1 +						/* functionptr */
-				4;						/* args for codegen_start_native_call */
+	cd->stackframesize =
+		sizeof(stackframeinfo_t) / SIZEOF_VOID_P +
+		sizeof(localref_table) / SIZEOF_VOID_P +
+		nmd->memuse +
+		1 +						/* functionptr */
+		4;						/* args for codegen_start_native_call */
 
 	/* create method header */
 	(void) dseg_add_unique_address(cd, code);                      /* CodeinfoPointer */

@@ -868,7 +868,7 @@ void threads_dump(void)
 
 void threads_thread_print_stacktrace(threadobject *thread)
 {
-	stackframeinfo   *sfi;
+	stackframeinfo_t *sfi;
 	stacktracebuffer *stb;
 	s4                dumpsize;
 

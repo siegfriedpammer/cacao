@@ -233,7 +233,7 @@ void gc_collect(s4 level)
 	rootset_t    *rs;
 	s4            dumpsize;
 #if !defined(NDEBUG)
-	stackframeinfo   *sfi;
+	stackframeinfo_t *sfi;
 	stacktracebuffer *stb;
 #endif
 #if defined(ENABLE_RT_TIMING)

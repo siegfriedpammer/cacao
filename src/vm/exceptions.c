@@ -646,9 +646,9 @@ static java_handle_t *exceptions_new_error(utf *message)
 
 java_object_t *exceptions_asm_new_abstractmethoderror(u1 *sp, u1 *ra)
 {
-	stackframeinfo  sfi;
-	java_handle_t  *e;
-	java_object_t  *o;
+	stackframeinfo_t  sfi;
+	java_handle_t    *e;
+	java_object_t    *o;
 
 	/* Fill and add a stackframeinfo (XPC is equal to RA). */
 
@@ -1709,7 +1709,7 @@ java_handle_t *exceptions_fillinstacktrace(void)
 #if defined(ENABLE_JIT)
 u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 {
-	stackframeinfo         sfi;
+	stackframeinfo_t       sfi;
 	java_handle_t         *xptr;
 	methodinfo            *m;
 	codeinfo              *code;

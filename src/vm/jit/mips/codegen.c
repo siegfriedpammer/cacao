@@ -3676,7 +3676,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	cd->stackframesize =
 		1 +                             /* return address                     */
-		sizeof(stackframeinfo) / SIZEOF_VOID_P +
+		sizeof(stackframeinfo_t) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
 		md->paramcount +                /* for saving arguments over calls    */
 #if SIZEOF_VOID_P == 4

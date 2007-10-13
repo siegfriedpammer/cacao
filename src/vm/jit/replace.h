@@ -188,7 +188,7 @@ struct sourceframe_t {
 	codeinfo      *tocode;            /* code this frame was mapped to */
 
 	/* info for native frames */
-	stackframeinfo *sfi;      /* sfi for native frames, otherwise NULL */
+	stackframeinfo_t *sfi;      /* sfi for native frames, otherwise NULL */
 	s4             nativeframesize;    /* size (bytes) of native frame */
 	u1            *nativepc;
 	ptrint         nativesavint[INT_SAV_CNT]; /* XXX temporary */

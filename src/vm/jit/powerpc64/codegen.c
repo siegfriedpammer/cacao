@@ -2624,7 +2624,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* calculate stackframe size */
 
 	cd->stackframesize =
-		sizeof(stackframeinfo) / SIZEOF_VOID_P +
+		sizeof(stackframeinfo_t) / SIZEOF_VOID_P +
 		sizeof(localref_table) / SIZEOF_VOID_P +
 		4 +                            /* 4 stackframeinfo arguments (darwin)*/
 		nmd->paramcount  + 

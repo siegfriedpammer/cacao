@@ -3111,7 +3111,7 @@ void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
 		WINSAVE_CNT +
 		ABIPARAMS_CNT +
 		FLT_ARG_CNT +
-		sizeof(stackframeinfo) / SIZEOF_VOID_P +
+		sizeof(stackframeinfo_t) / SIZEOF_VOID_P +
 		4;                              /* 4 arguments or return value        */
 
 
@@ -3138,8 +3138,8 @@ void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
 	/* Save callee saved integer registers in stackframeinfo (GC may
 	   need to recover them during a collection). */
 
-	disp = cd->stackframesize * 8 - sizeof(stackframeinfo) +
-		OFFSET(stackframeinfo, intregs) + BIAS;
+	disp = cd->stackframesize * 8 - sizeof(stackframeinfo_t) +
+		OFFSET(stackframeinfo_t, intregs) + BIAS;
 
 	for (i = 0; i < INT_SAV_CNT; i++)
 		M_AST(abi_registers_integer_saved[i], REG_SP, disp + i * 8);
@@ -3240,8 +3240,8 @@ void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
 	/* Restore callee saved integer registers from stackframeinfo (GC
 	   might have modified them during a collection). */
         
-	disp = cd->stackframesize * 8 - sizeof(stackframeinfo) +
-		OFFSET(stackframeinfo, intregs) + BIAS;
+	disp = cd->stackframesize * 8 - sizeof(stackframeinfo_t) +
+		OFFSET(stackframeinfo_t, intregs) + BIAS;
 
 	for (i = 0; i < INT_SAV_CNT; i++)
 		M_ALD(abi_registers_integer_saved[i], REG_SP, disp + i * 8);

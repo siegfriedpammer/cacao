@@ -3559,7 +3559,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	cd->stackframesize =
 		1 + /* return address */
-		sizeof(stackframeinfo) / 8 +
+		sizeof(stackframeinfo_t) / 8 +
 		sizeof(localref_table) / 8 +
 		nmd->paramcount +
 		nmd->memuse +
@@ -3600,8 +3600,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* Save callee saved integer registers in stackframeinfo (GC may
 	   need to recover them during a collection). */
 
-	disp = cd->stackframesize * 8 - sizeof(stackframeinfo) +
-		OFFSET(stackframeinfo, intregs);
+	disp = cd->stackframesize * 8 - sizeof(stackframeinfo_t) +
+		OFFSET(stackframeinfo_t, intregs);
 
 	for (i = 0; i < INT_SAV_CNT; i++)
 		M_AST(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
@@ -3784,8 +3784,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* Restore callee saved integer registers from stackframeinfo (GC
 	   might have modified them during a collection). */
   	 
-	disp = cd->stackframesize * 8 - sizeof(stackframeinfo) +
-		OFFSET(stackframeinfo, intregs);
+	disp = cd->stackframesize * 8 - sizeof(stackframeinfo_t) +
+		OFFSET(stackframeinfo_t, intregs);
 
 	for (i = 0; i < INT_SAV_CNT; i++)
 		M_ALD(abi_registers_integer_saved[i], REG_SP, disp + i * 4);

@@ -114,7 +114,7 @@ typedef u8 stackslot_t;
 
 #if !defined(NDEBUG)
 static void java_value_print(s4 type, replace_val_t value);
-static void replace_stackframeinfo_println(stackframeinfo *sfi);
+static void replace_stackframeinfo_println(stackframeinfo_t *sfi);
 #endif
 
 #if !defined(NDEBUG)
@@ -2189,7 +2189,7 @@ rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc)
 
 static void replace_pop_native_frame(executionstate_t *es,
 									 sourcestate_t *ss,
-									 stackframeinfo *sfi)
+									 stackframeinfo_t *sfi)
 {
 	sourceframe_t *frame;
 	codeinfo      *code;
@@ -2401,7 +2401,7 @@ static void replace_push_native_frame(executionstate_t *es, sourcestate_t *ss)
 *******************************************************************************/
 
 sourcestate_t *replace_recover_source_state(rplpoint *rp,
-											stackframeinfo *sfi,
+											stackframeinfo_t *sfi,
 										    executionstate_t *es)
 {
 	sourcestate_t *ss;
@@ -2755,7 +2755,7 @@ static void replace_build_execution_state(sourcestate_t *ss,
 
 static void replace_me(rplpoint *rp, executionstate_t *es)
 {
-	stackframeinfo      *sfi;
+	stackframeinfo_t    *sfi;
 	sourcestate_t       *ss;
 	sourceframe_t       *frame;
 	s4                   dumpsize;
@@ -2946,7 +2946,7 @@ bool replace_me_wrapper(u1 *pc, void *context)
 #if defined(ENABLE_GC_CACAO)
 void replace_gc_from_native(threadobject *thread, u1 *pc, u1 *sp)
 {
-	stackframeinfo   *sfi;
+	stackframeinfo_t *sfi;
 	executionstate_t *es;
 	sourcestate_t    *ss;
 
@@ -3553,7 +3553,7 @@ void replace_sourcestate_println_short(sourcestate_t *ss)
 #endif
 
 #if !defined(NDEBUG)
-static void replace_stackframeinfo_println(stackframeinfo *sfi)
+static void replace_stackframeinfo_println(stackframeinfo_t *sfi)
 {
 	printf("prev=%p pv=%p sp=%p ra=%p xpc=%p method=",
 			(void*)sfi->prev, (void*)sfi->pv, (void*)sfi->sp,

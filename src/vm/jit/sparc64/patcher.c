@@ -69,7 +69,7 @@
 
 java_object_t *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
 {
-	stackframeinfo     sfi;
+	stackframeinfo_t   sfi;
 	u1                *xpc;
 	u1                *javasp;
 	java_object_t *o;

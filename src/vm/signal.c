@@ -230,11 +230,11 @@ void signal_register_signal(int signum, functionptr handler, int flags)
 void *signal_handle(int type, intptr_t val,
 					void *pv, void *sp, void *ra, void *xpc, void *context)
 {
-	stackframeinfo  sfi;
-	int32_t         index;
-	java_handle_t  *o;
-	methodinfo     *m;
-	java_handle_t  *p;
+	stackframeinfo_t  sfi;
+	int32_t           index;
+	java_handle_t    *o;
+	methodinfo       *m;
+	java_handle_t    *p;
 
 	/* wrap the value into a handle if it is a reference */
 	/* BEFORE: creating stackframeinfo */
