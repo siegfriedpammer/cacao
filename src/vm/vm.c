@@ -2498,9 +2498,8 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 	}
 
 	switch (m->parseddesc->returntype.decltype) {
-	case TYPE_VOID:
-		(void) vm_call_array(m, array);
-		ro = NULL;
+	case PRIMITIVETYPE_VOID:
+		value.a = vm_call_array(m, array);
 		break;
 
 	case PRIMITIVETYPE_BOOLEAN:
@@ -2509,22 +2508,18 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 	case PRIMITIVETYPE_SHORT:
 	case PRIMITIVETYPE_INT:
 		value.i = vm_call_int_array(m, array);
-		ro = primitive_box(m->parseddesc->returntype.decltype, value);
 		break;
 
 	case PRIMITIVETYPE_LONG:
 		value.l = vm_call_long_array(m, array);
-		ro = primitive_box(m->parseddesc->returntype.decltype, value);
 		break;
 
 	case PRIMITIVETYPE_FLOAT:
 		value.f = vm_call_float_array(m, array);
-		ro = primitive_box(m->parseddesc->returntype.decltype, value);
 		break;
 
 	case PRIMITIVETYPE_DOUBLE:
 		value.d = vm_call_double_array(m, array);
-		ro = primitive_box(m->parseddesc->returntype.decltype, value);
 		break;
 
 	case TYPE_ADR:
@@ -2542,6 +2537,11 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 	/* enter the nativeworld again */
 
 	THREAD_NATIVEWORLD_ENTER;
+
+	/* box the return value if necesarry */
+
+	if (m->parseddesc->returntype.decltype != TYPE_ADR)
+		ro = primitive_box(m->parseddesc->returntype.decltype, value);
 
 	/* check for an exception */
 
