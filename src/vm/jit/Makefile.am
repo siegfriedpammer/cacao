@@ -132,8 +132,7 @@ noinst_HEADERS = \
 	abi-asm.h \
 	asmpart.h \
 	md.h \
-	methodheader.h \
-	patcher.h 
+	methodheader.h
 
 noinst_LTLIBRARIES = \
 	libjit.la
