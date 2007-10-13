@@ -135,6 +135,17 @@ struct list_gcref_entry_t {
 };
 
 
+/* Global GC mutext stuff *****************************************************/
+
+#if defined(ENABLE_THREADS)
+# define GC_MUTEX_LOCK   threads_mutex_gc_lock()
+# define GC_MUTEX_UNLOCK threads_mutex_gc_unlock()
+#else
+# define GC_MUTEX_LOCK
+# define GC_MUTEX_UNLOCK
+#endif
+
+
 /* No-Thread specific stuff ***************************************************/
 
 #if defined(ENABLE_THREADS)

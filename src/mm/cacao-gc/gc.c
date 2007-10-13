@@ -56,10 +56,6 @@ bool gc_notify_finalizer;
 list_t *gc_reflist_strong;
 list_t *gc_reflist_weak;
 
-#if defined(ENABLE_THREADS)
-java_object_t *gc_global_lock;
-#endif
-
 #if !defined(ENABLE_THREADS)
 executionstate_t *_no_threads_executionstate;
 sourcestate_t    *_no_threads_sourcestate;
@@ -101,12 +97,6 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 	gc_reflist_strong = list_create(OFFSET(list_gcref_entry_t, linkage));
 	gc_reflist_weak   = list_create(OFFSET(list_gcref_entry_t, linkage));
 
-#if defined(ENABLE_THREADS)
-	/* create global gc lock object */
-	gc_global_lock = NEW(java_object_t);
-	lock_init_object_lock(gc_global_lock);
-#endif
-
 	/* region for uncollectable objects */
 	heap_region_sys = NEW(regioninfo_t);
 	if (!region_create(heap_region_sys, GC_SYS_SIZE))
@@ -124,8 +114,12 @@ void gc_init(u4 heapmaxsize, u4 heapstartsize)
 
 /* gc_reference_register *******************************************************
 
-   Register an external reference which points onto the Heap and keeps
-   objects alive (strong reference).
+   Register an external reference which points onto the Heap. The
+   reference needs to be cleared (set to NULL) when registering and
+   has to be set after it has been registered (to avoid a race condition).
+   
+   STRONG REFERENCE: gets updated and keeps objects alive
+   WEAK REFERENCE:   only gets updated (or maybe cleared)
 
 *******************************************************************************/
 
@@ -133,57 +127,81 @@ static void gc_reference_register_intern(list_t *list, java_object_t **ref, int3
 {
 	list_gcref_entry_t *re;
 
+	/* the global GC lock also guards the reference lists */
+	GC_MUTEX_LOCK;
+
 	GC_LOG2( printf("Registering Reference at %p\n", (void *) ref); );
 
 	/* the reference needs to be registered before it is set, so make sure the
 	   reference is not yet set */
 	GC_ASSERT(*ref == NULL);
 
-	re = NEW(list_gcref_entry_t);
-
-	re->ref      = ref;
 #if !defined(NDEBUG)
-	re->reftype  = reftype;
+	/* check if this reference is already registered */
+	for (re = list_first_unsynced(list); re != NULL; re = list_next_unsynced(list, re)) {
+		if (re->ref == ref)
+			vm_abort("gc_reference_register_intern: reference already registered");
+	}
 #endif
 
-	list_add_last(list, re);
-}
+	/* create a new reference entry */
+	re = NEW(list_gcref_entry_t);
 
-static void gc_reference_unregister_intern(list_t *list, java_object_t **ref)
-{
-	list_gcref_entry_t *re;
+	re->ref     = ref;
+#if !defined(NDEBUG)
+	re->reftype = reftype;
+#endif
 
-	GC_LOG2( printf("Un-Registering Reference at %p\n", (void *) ref); );
+	/* add the entry to the given list */
+	list_add_last_unsynced(list, re);
 
-	for (re = list_first(list); re != NULL; re = list_next(list, re)) {
-		if (re->ref == ref) {
-			list_remove(list, re);
-
-			FREE(re, list_gcref_entry_t);
-
-			break;
-		}
-	}
-
-	assert(re != NULL);
+	/* the global GC lock also guards the reference lists */
+	GC_MUTEX_UNLOCK;
 }
 
 void gc_reference_register(java_object_t **ref, int32_t reftype)
 {
-#if defined(ENABLE_THREADS)
-	/* XXX dirty hack because threads_init() not yet called */
-	if (THREADOBJECT == NULL) {
-		GC_LOG( dolog("GC: Unable to register Reference!"); );
-		return;
-	}
-#endif
-
 	gc_reference_register_intern(gc_reflist_strong, ref, reftype);
 }
 
 void gc_weakreference_register(java_object_t **ref, int32_t reftype)
 {
 	gc_reference_register_intern(gc_reflist_weak, ref, reftype);
+}
+
+
+/* gc_reference_unregister *****************************************************
+
+   Unregister a previously registered external reference.
+
+*******************************************************************************/
+
+static void gc_reference_unregister_intern(list_t *list, java_object_t **ref)
+{
+	list_gcref_entry_t *re;
+
+	/* the global GC lock also guards the reference lists */
+	GC_MUTEX_LOCK;
+
+	GC_LOG2( printf("Un-Registering Reference at %p\n", (void *) ref); );
+
+	/* search for the appropriate reference entry */
+	for (re = list_first_unsynced(list); re != NULL; re = list_next_unsynced(list, re)) {
+		if (re->ref == ref) {
+			/* remove the entry from the given list */
+			list_remove_unsynced(list, re);
+
+			/* free the reference entry */
+			FREE(re, list_gcref_entry_t);
+
+			break;
+		}
+	}
+
+	vm_abort("gc_reference_unregister_intern: reference not found");
+
+	/* the global GC lock also guards the reference lists */
+	GC_MUTEX_UNLOCK;
 }
 
 void gc_reference_unregister(java_object_t **ref)
@@ -223,7 +241,7 @@ void gc_collect(s4 level)
 #endif
 
 	/* enter the global gc lock */
-	LOCK_MONITOR_ENTER(gc_global_lock);
+	GC_MUTEX_LOCK;
 
 	/* remember start of dump memory area */
 	dumpsize = dump_size();
@@ -367,7 +385,7 @@ void gc_collect(s4 level)
     dump_release(dumpsize);
 
 	/* leave the global gc lock */
-	LOCK_MONITOR_EXIT(gc_global_lock);
+	GC_MUTEX_UNLOCK;
 
 	/* XXX move this to an appropriate place */
 	lock_hashtable_cleanup();

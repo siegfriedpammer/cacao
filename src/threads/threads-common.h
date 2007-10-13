@@ -151,6 +151,11 @@ void          threads_impl_preinit(void);
 void          threads_list_lock(void);
 void          threads_list_unlock(void);
 
+#if defined(ENABLE_GC_CACAO)
+void          threads_mutex_gc_lock(void);
+void          threads_mutex_gc_unlock(void);
+#endif
+
 void          threads_mutex_join_lock(void);
 void          threads_mutex_join_unlock(void);
 

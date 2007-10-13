@@ -235,6 +235,11 @@ static pthread_mutex_t mutex_threads_list;
 /* global mutex for stop-the-world                                            */
 static pthread_mutex_t stopworldlock;
 
+#if defined(ENABLE_GC_CACAO)
+/* global mutex for the GC */
+static pthread_mutex_t mutex_gc;
+#endif
+
 /* global mutex and condition for joining threads on exit */
 static pthread_mutex_t mutex_join;
 static pthread_cond_t  cond_join;
@@ -786,6 +791,12 @@ void threads_impl_preinit(void)
 	pthread_mutex_init(&mutex_join, NULL);
 	pthread_cond_init(&cond_join, NULL);
 
+#if defined(ENABLE_GC_CACAO)
+	/* initialize the GC mutext */
+
+	pthread_mutex_init(&mutex_gc, NULL);
+#endif
+
 	/* initialize the threads-list mutex */
 
 	pthread_mutex_init(&mutex_threads_list, NULL);
@@ -830,6 +841,37 @@ void threads_list_unlock(void)
 				 strerror(errno));
 }
 
+
+/* threads_mutex_gc_lock *******************************************************
+
+   Enter the global GC mutex.
+
+*******************************************************************************/
+
+#if defined(ENABLE_GC_CACAO)
+void threads_mutex_gc_lock(void)
+{
+	if (pthread_mutex_lock(&mutex_gc) != 0)
+		vm_abort("threads_mutex_gc_lock: pthread_mutex_lock failed: %s",
+				 strerror(errno));
+}
+#endif
+
+
+/* threads_mutex_gc_unlock *****************************************************
+
+   Leave the global GC mutex.
+
+*******************************************************************************/
+
+#if defined(ENABLE_GC_CACAO)
+void threads_mutex_gc_unlock(void)
+{
+	if (pthread_mutex_unlock(&mutex_gc) != 0)
+		vm_abort("threads_mutex_gc_unlock: pthread_mutex_unlock failed: %s",
+				 strerror(errno));
+}
+#endif
 
 /* threads_mutex_join_lock *****************************************************
 
