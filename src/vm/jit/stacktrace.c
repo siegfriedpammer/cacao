@@ -385,14 +385,8 @@ static inline void stacktrace_stack_walk(stackframeinfo_t *sfi)
 	else
 # endif
 		{
-			/* TODO Remove jd->isleafmethod and use the flags in
-			   codeinfo. */
-
-/* 			if (!CODE_IS_LEAFMETHOD(m->code)) { */
-			int32_t isleafmethod = *((int32_t *) (((intptr_t) pv) + IsLeaf));
-			if (!isleafmethod) {
+			if (!code_is_leafmethod(code))
 				ra = md_stacktrace_get_returnaddress(sp, framesize);
-			}
 		}
 #else
 	ra = intrp_md_stacktrace_get_returnaddress(sp, framesize);
