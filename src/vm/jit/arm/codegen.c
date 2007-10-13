@@ -154,7 +154,7 @@ bool codegen_emit(jitdata *jd)
 	*/
 	/* XXX Remove this "offset by one". */
 
-	code->synchronizedoffset = rd->memuse * 8 + 4;
+	code->synchronizedoffset = (rd->memuse + 1) * 8;
 
 	/* REMOVEME: We still need it for exception handling in assembler. */
 
