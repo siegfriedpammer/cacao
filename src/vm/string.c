@@ -508,6 +508,10 @@ utf *javastring_toutf(java_handle_t *string, bool isclassname)
 		return utf_null;
 
 	LLNI_field_get_ref(s, value, value);
+
+	if (value == NULL)
+		return utf_null;
+
 	LLNI_field_get_val(s, count, count);
 	LLNI_field_get_val(s, offset, offset);
 
