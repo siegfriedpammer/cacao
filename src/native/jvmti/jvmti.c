@@ -1213,7 +1213,7 @@ GetFrameLocation (jvmtiEnv * env, jthread thread, jint depth,
 	
 	if (i>depth) return JVMTI_ERROR_NO_MORE_FRAMES;
 
-	*method_ptr=(jmethodID)sfi->method;
+	*method_ptr=(jmethodID)sfi->code->m;
 	*location_ptr = 0; /* todo: location MachinePC not avilable - Linenumber not expected */
 	
     return JVMTI_ERROR_NONE;

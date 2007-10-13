@@ -94,7 +94,7 @@ CYCLES_STATS_DECLARE(stacktrace_getStack        ,40,10000)
 void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra, u1 *xpc)
 {
 	stackframeinfo_t **psfi;
-	methodinfo        *m;
+	codeinfo          *code;
 #if !defined(__I386__) && !defined(__X86_64__) && !defined(__S390__) && !defined(__M68K__)
 	bool               isleafmethod;
 #endif
@@ -126,9 +126,9 @@ void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra
 			}
 	}
 
-	/* Get methodinfo pointer for the parent Java method. */
+	/* Get codeinfo pointer for the parent Java method. */
 
-	m = code_get_methodinfo_for_pv(pv);
+	code = code_get_codeinfo_for_pv(pv);
 
 	/* XXX */
 /* 	assert(m != NULL); */
@@ -179,19 +179,19 @@ void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra
 
 	/* Fill new stackframeinfo structure. */
 
-	sfi->prev   = *psfi;
-	sfi->method = m;
-	sfi->pv     = pv;
-	sfi->sp     = sp;
-	sfi->ra     = ra;
-	sfi->xpc    = xpc;
+	sfi->prev = *psfi;
+	sfi->code = code;
+	sfi->pv   = pv;
+	sfi->sp   = sp;
+	sfi->ra   = ra;
+	sfi->xpc  = xpc;
 
 #if !defined(NDEBUG)
 	if (opt_DebugStackFrameInfo) {
 		log_start();
 		log_print("[stackframeinfo add   : sfi=%p, method=%p, pv=%p, sp=%p, ra=%p, xpc=%p, method=",
-				  sfi, sfi->method, sfi->pv, sfi->sp, sfi->ra, sfi->xpc);
-		method_print(sfi->method);
+				  sfi, sfi->code->m, sfi->pv, sfi->sp, sfi->ra, sfi->xpc);
+		method_print(sfi->code->m);
 		log_print("]");
 		log_finish();
 	}
@@ -233,8 +233,8 @@ void stacktrace_stackframeinfo_remove(stackframeinfo_t *sfi)
 	if (opt_DebugStackFrameInfo) {
 		log_start();
 		log_print("[stackframeinfo remove: sfi=%p, method=%p, pv=%p, sp=%p, ra=%p, xpc=%p, method=",
-				  sfi, sfi->method, sfi->pv, sfi->sp, sfi->ra, sfi->xpc);
-		method_print(sfi->method);
+				  sfi, sfi->code->m, sfi->pv, sfi->sp, sfi->ra, sfi->xpc);
+		method_print(sfi->code->m);
 		log_print("]");
 		log_finish();
 	}
@@ -312,16 +312,19 @@ static inline stacktracebuffer *stacktrace_entry_add(stacktracebuffer *stb, meth
 
 static inline stacktracebuffer *stacktrace_method_add(stacktracebuffer *stb, stackframeinfo_t *sfi)
 {
-	methodinfo *m;
+	codeinfo   *code;
 	void       *pv;
 	void       *xpc;
+	methodinfo *m;
 	int32_t     linenumber;
 
 	/* Get values from the stackframeinfo. */
 
-	m   = sfi->method;
-	pv  = sfi->pv;
-	xpc = sfi->xpc;
+	code = sfi->code;
+	pv   = sfi->pv;
+	xpc  = sfi->xpc;
+
+	m = code->m;
 
 	/* Skip builtin methods. */
 
@@ -351,20 +354,20 @@ static inline stacktracebuffer *stacktrace_method_add(stacktracebuffer *stb, sta
 
 static inline void stacktrace_stack_walk(stackframeinfo_t *sfi)
 {
-	methodinfo *m;
-	void       *pv;
-	void       *sp;
-	void       *ra;
-	void       *xpc;
-	uint32_t    framesize;
+	codeinfo *code;
+	void     *pv;
+	void     *sp;
+	void     *ra;
+	void     *xpc;
+	uint32_t  framesize;
 
 	/* Get values from the stackframeinfo. */
 
-	m   = sfi->method;
-	pv  = sfi->pv;
-	sp  = sfi->sp;
-	ra  = sfi->ra;
-	xpc = sfi->xpc;
+	code = sfi->code;
+	pv   = sfi->pv;
+	sp   = sfi->sp;
+	ra   = sfi->ra;
+	xpc  = sfi->xpc;
 
 	/* Get the current stack frame size. */
 
@@ -413,9 +416,9 @@ static inline void stacktrace_stack_walk(stackframeinfo_t *sfi)
 #endif
 		}
 
-	/* Get the methodinfo pointer for the parent Java method. */
+	/* Get the codeinfo pointer for the parent Java method. */
 
-	m = code_get_methodinfo_for_pv(pv);
+	code = code_get_codeinfo_for_pv(pv);
 
 	/* Calculate the SP for the parent Java method. */
 
@@ -438,11 +441,11 @@ static inline void stacktrace_stack_walk(stackframeinfo_t *sfi)
 	   1 from the RA to get the XPC, because the RA points to the
 	   instruction after the call instruction. */
 
-	sfi->method = m;
-	sfi->pv     = pv;
-	sfi->sp     = sp;
-	sfi->ra     = ra;
-	sfi->xpc    = (void *) (((intptr_t) ra) - 1);
+	sfi->code = code;
+	sfi->pv   = pv;
+	sfi->sp   = sp;
+	sfi->ra   = ra;
+	sfi->xpc  = (void *) (((intptr_t) ra) - 1);
 }
 
 
@@ -490,11 +493,11 @@ stacktracebuffer *stacktrace_create(stackframeinfo_t *sfi)
 	if (sfi == NULL)
 		return NULL;
 
-	tmpsfi.method = sfi->method;
-	tmpsfi.pv     = sfi->pv;
-	tmpsfi.sp     = sfi->sp;
-	tmpsfi.ra     = sfi->ra;
-	tmpsfi.xpc    = sfi->xpc;
+	tmpsfi.code = sfi->code;
+	tmpsfi.pv   = sfi->pv;
+	tmpsfi.sp   = sfi->sp;
+	tmpsfi.ra   = sfi->ra;
+	tmpsfi.xpc  = sfi->xpc;
 
 	/* Iterate till we're done. */
 
@@ -505,9 +508,9 @@ stacktracebuffer *stacktrace_create(stackframeinfo_t *sfi)
 		if (opt_DebugStackTrace) {
 			log_start();
 			log_print("[stacktrace: method=%p, pv=%p, sp=%p, ra=%p, xpc=%p, method=",
-					  tmpsfi.method, tmpsfi.pv, tmpsfi.sp, tmpsfi.ra,
+					  tmpsfi.code->m, tmpsfi.pv, tmpsfi.sp, tmpsfi.ra,
 					  tmpsfi.xpc);
-			method_print(tmpsfi.method);
+			method_print(tmpsfi.code->m);
 			log_print("]");
 			log_finish();
 		}
@@ -527,12 +530,12 @@ stacktracebuffer *stacktrace_create(stackframeinfo_t *sfi)
 
 		stacktrace_stack_walk(&tmpsfi);
 
-		/* If the new methodinfo pointer is NULL we reached a
+		/* If the new codeinfo pointer is NULL we reached a
 		   asm_vm_call_method function.  In this case we get the next
 		   values from the previous stackframeinfo in the chain.
 		   Otherwise the new values have been calculated before. */
 
-		if (tmpsfi.method == NULL) {
+		if (tmpsfi.code == NULL) {
 			sfi = sfi->prev;
 
 			/* If the previous stackframeinfo in the chain is NULL we
@@ -545,11 +548,11 @@ stacktracebuffer *stacktrace_create(stackframeinfo_t *sfi)
 			/* Fill the temporary stackframeinfo with the new
 			   values. */
 
-			tmpsfi.method = sfi->method;
-			tmpsfi.pv     = sfi->pv;
-			tmpsfi.sp     = sfi->sp;
-			tmpsfi.ra     = sfi->ra;
-			tmpsfi.xpc    = sfi->xpc;
+			tmpsfi.code = sfi->code;
+			tmpsfi.pv   = sfi->pv;
+			tmpsfi.sp   = sfi->sp;
+			tmpsfi.ra   = sfi->ra;
+			tmpsfi.xpc  = sfi->xpc;
 		}
 	}
 

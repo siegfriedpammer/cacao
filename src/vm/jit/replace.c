@@ -3559,8 +3559,8 @@ static void replace_stackframeinfo_println(stackframeinfo_t *sfi)
 			(void*)sfi->prev, (void*)sfi->pv, (void*)sfi->sp,
 			(void*)sfi->ra, (void*)sfi->xpc);
 
-	if (sfi->method)
-		method_println(sfi->method);
+	if (sfi->code)
+		method_println(sfi->code->m);
 	else
 		printf("(nil)\n");
 }

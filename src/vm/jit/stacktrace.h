@@ -55,7 +55,7 @@ typedef struct stacktrace_entry stacktrace_entry;
 
 struct stackframeinfo_t {
 	stackframeinfo_t *prev;             /* pointer to prev stackframeinfo     */
-	methodinfo       *method;           /* methodinfo of current function     */
+	codeinfo         *code;             /* codeinfo of current method         */
 	u1               *pv;               /* PV of current function             */
 	u1               *sp;               /* SP of parent Java function         */
 	u1               *ra;               /* RA to parent Java function         */
