@@ -1201,18 +1201,11 @@ void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 
 	dumpsize = dump_size();
 
-	jd = DNEW(jitdata);
+	/* Create JIT data structure. */
 
-	jd->m     = m;
-	jd->cd    = DNEW(codegendata);
-	jd->rd    = NULL;
-	jd->flags = 0;
+	jd = jit_jitdata_new(m);
 
-	/* Allocate codeinfo memory from the heap as we need to keep them. */
-
-	jd->code  = code_codeinfo_new(m);
-
-	/* get required compiler data */
+	/* Get required compiler data. */
 
 	code = jd->code;
 
@@ -1293,18 +1286,11 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 
 	dumpsize = dump_size();
 
-	jd = DNEW(jitdata);
+	/* Create JIT data structure. */
 
-	jd->m     = m;
-	jd->cd    = DNEW(codegendata);
-	jd->rd    = DNEW(registerdata);
-	jd->flags = 0;
+	jd = jit_jitdata_new(m);
 
-	/* Allocate codeinfo memory from the heap as we need to keep them. */
-
-	jd->code  = code_codeinfo_new(m);
-
-	/* get required compiler data */
+	/* Get required compiler data. */
 
 	code = jd->code;
 
