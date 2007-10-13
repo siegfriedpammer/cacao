@@ -1872,12 +1872,7 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 	if (code_is_synchronized(code)) {
 		/* Get synchronization object. */
 
-# if defined(__ARM__) || (defined(__MIPS__) && (SIZEOF_VOID_P == 4)) || defined(__I386__) || defined(__S390__) || defined(__POWERPC__)
-		/* XXX change this if we ever want to use 4-byte stackslots */
-		o = *((java_object_t **) (sp + code->synchronizedoffset - 8));
-# else
-		o = *((java_object_t **) (sp + code->synchronizedoffset - SIZEOF_VOID_P));
-# endif
+		o = *((java_object_t **) (sp + code->synchronizedoffset));
 
 		assert(o != NULL);
 

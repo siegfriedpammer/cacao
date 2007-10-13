@@ -140,9 +140,7 @@ bool codegen_emit(jitdata *jd)
 		(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
 		(void) dseg_add_unique_s4(cd, cd->stackframesize); 	   /* FrameSize       */
 
-		/* XXX Remove this "offset by one". */
-
-		code->synchronizedoffset = (rd->memuse + 1) * 8;
+		code->synchronizedoffset = rd->memuse * 8;
 
 		/* REMOVEME: We still need it for exception handling in assembler. */
 

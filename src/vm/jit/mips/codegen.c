@@ -150,14 +150,7 @@ bool codegen_emit(jitdata *jd)
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
 	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
 
-	/* IsSync contains the offset relative to the stack pointer for the
-	   argument of monitor_exit used in the exception handler. Since the
-	   offset could be zero and give a wrong meaning of the flag it is
-	   offset by one.
-	*/
-	/* XXX Remove this "offset by one". */
-
-	code->synchronizedoffset = (rd->memuse + 1) * 8;
+	code->synchronizedoffset = rd->memuse * 8;
 
 	/* REMOVEME: We still need it for exception handling in assembler. */
 
