@@ -161,9 +161,6 @@ bool codegen_emit(jitdata *jd)
 
 	code->synchronizedoffset = (rd->memuse + 1) * 8;
 
-	/* REMOVEME dummy IsSync */
-	(void) dseg_add_unique_s4(cd, 0);
-	                                       
 	if (code_is_leafmethod(code))
 		(void) dseg_add_unique_s4(cd, 1);                  /* IsLeaf          */
 	else

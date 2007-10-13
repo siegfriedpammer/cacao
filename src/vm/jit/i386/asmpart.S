@@ -120,7 +120,6 @@ asm_md_init:
 	.long   0                           /* fltsave                            */
 	.long   0                           /* intsave                            */
 	.long   0                           /* isleaf                             */
-	.long   0                           /* IsSync                             */
 	.long   0                           /* frame size                         */
 	.long   0                           /* codeinfo pointer                   */
 

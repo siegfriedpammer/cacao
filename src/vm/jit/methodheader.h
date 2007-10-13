@@ -22,12 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Joseph Wenninger
-
-   Changes: Christian Thalinger
-
 */
 
 
@@ -43,29 +37,26 @@
 
 #define CodeinfoPointer         -8
 #define FrameSize               -12
-#define IsSync                  -16
-#define IsLeaf                  -20
-#define IntSave                 -24
-#define FltSave                 -28
+#define IsLeaf                  -16
+#define IntSave                 -20
+#define FltSave                 -24
+#define LineNumberTableSize     -32
+#define LineNumberTableStart    -40
 /* 4-byte alignment padding */
-#define LineNumberTableSize     -40
-#define LineNumberTableStart    -48
-/* 4-byte alignment padding */
-#define ExTableSize             -56
-#define ExTableStart            -56
+#define ExTableSize             -48
+#define ExTableStart            -48
        
 #else /* SIZEOF_VOID_P == 8 */
 
 #define CodeinfoPointer         -4
 #define FrameSize               -8
-#define IsSync                  -12
-#define IsLeaf                  -16
-#define IntSave                 -20
-#define FltSave                 -24
-#define LineNumberTableSize     -28
-#define LineNumberTableStart    -32
-#define ExTableSize             -36
-#define ExTableStart            -36
+#define IsLeaf                  -12
+#define IntSave                 -16
+#define FltSave                 -20
+#define LineNumberTableSize     -24
+#define LineNumberTableStart    -28
+#define ExTableSize             -32
+#define ExTableStart            -32
 
 #endif /* SIZEOF_VOID_P == 8 */
 

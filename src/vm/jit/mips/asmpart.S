@@ -91,11 +91,9 @@
 	.word   0                           /* 4-byte ALIGNMENT PADDING           */
 	.dword  0                           /* line number table start            */
 	.dword  0                           /* line number table size             */
-	.word   0                           /* 4-byte ALIGNMENT PADDING           */
 	.word   0                           /* fltsave                            */
 	.word   0                           /* intsave                            */
 	.word   0                           /* isleaf                             */
-	.word   0                           /* IsSync                             */
 	.word   0                           /* frame size                         */
 	.dword  0                           /* codeinfo pointer                   */
 
@@ -111,7 +109,6 @@
 	.word   0                           /* fltsave                            */
 	.word   0                           /* intsave                            */
 	.word   0                           /* isleaf                             */
-	.word   0                           /* IsSync                             */
 	.word   0                           /* frame size                         */
 	.word   0                           /* method pointer (pointer to name)   */
 

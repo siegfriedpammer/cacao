@@ -80,11 +80,9 @@
 	.word  0                         /* ALIGNMENT PADDING */
 	.xword 0                         /* line number table start */
 	.xword 0                         /* line number table size */
-	.word  0                         /* ALIGNMENT PADDING */
 	.word  0                         /* fltsave */
 	.word  1                         /* intsave */
 	.word  0                         /* isleaf */
-	.word  0                         /* IsSync */
 	.word  0                         /* frame size */
 	.xword 0                         /* method pointer (pointer to name)*/ 
 

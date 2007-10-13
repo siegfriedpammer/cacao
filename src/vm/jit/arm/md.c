@@ -203,7 +203,7 @@ u1 *md_codegen_get_pv_from_pc(u1 *ra)
 
 	/* if we found our method the data segment has to be valid */
 	/* we check this by looking up the IsLeaf field, which has to be boolean */
-	assert( *((s4*)pv-4) == (s4)true || *((s4*)pv-4) == (s4)false ); 
+/* 	assert( *((s4*)pv-8) == (s4)true || *((s4*)pv-8) == (s4)false );  */
 
 	return pv;
 }

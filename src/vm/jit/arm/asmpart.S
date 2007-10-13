@@ -81,7 +81,6 @@
 	.word   0                           /* FltSave                            */
 	.word   0                           /* IntSave                            */
 	.word   0                           /* IsLeaf                             */
-	.word   0                           /* IsSync                             */
 	.word   0                           /* FrameSize                          */
 	.word   0                           /* CodeinfoPointer                    */
 

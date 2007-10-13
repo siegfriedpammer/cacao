@@ -87,11 +87,9 @@
 	.long   0                           /* ALIGNMENT PADDING                  */
 	.quad   0                           /* line number table start            */
 	.quad   0                           /* line number table size             */
-	.long   0                           /* ALIGNMENT PADDING                  */
 	.long   0                           /* fltsave                            */
 	.long   1                           /* intsave                            */
 	.long   0                           /* isleaf                             */
-	.long   0                           /* IsSync                             */
 	.long   0                           /* frame size                         */
 	.quad   0                           /* codeinfo pointer                   */
 

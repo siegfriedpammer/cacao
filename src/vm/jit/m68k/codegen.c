@@ -144,9 +144,6 @@ bool codegen_emit(jitdata *jd)
 
 		code->synchronizedoffset = (rd->memuse + 1) * 8;
 
-		/* REMOVEME dummy IsSync */
-		(void) dseg_add_unique_s4(cd, 0);
-
 		/* REMOVEME: We still need it for exception handling in assembler. */
 
 		if (code_is_leafmethod(code))

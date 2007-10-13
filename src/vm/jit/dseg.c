@@ -593,12 +593,6 @@ void dseg_add_target(codegendata *cd, basicblock *target)
 
 void dseg_addlinenumbertablesize(codegendata *cd)
 {
-#if SIZEOF_VOID_P == 8
-	/* 4-byte ALIGNMENT PADDING */
-
-	dseg_add_unique_s4(cd, 0);
-#endif
-
 	cd->linenumbertablesizepos  = dseg_add_unique_address(cd, NULL);
 	cd->linenumbertablestartpos = dseg_add_unique_address(cd, NULL);
 
