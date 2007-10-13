@@ -43,6 +43,7 @@
 #include "native/include/java_lang_Thread.h"
 
 #if defined(WITH_CLASSPATH_GNU)
+# include "native/include/java_lang_Throwable.h"
 # include "native/include/java_lang_VMThread.h"
 #endif
 
@@ -454,7 +455,7 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 	LLNI_field_set_val(object, vm_thread, (java_lang_Object *) t);
 #endif
 
-	threads_thread_set_object(t, object);
+	threads_thread_set_object(t, (java_handle_t *) object);
 
 	/* set java.lang.Thread fields */
 

@@ -969,7 +969,7 @@ bool threads_init(void)
 
 	/* set the object in the internal data structure */
 
-	threads_thread_set_object(mainthread, t);
+	threads_thread_set_object(mainthread, (java_handle_t *) t);
 
 #if defined(ENABLE_INTRP)
 	/* create interpreter stack */
@@ -1430,7 +1430,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	if (t == NULL)
 		return false;
 
-	threads_thread_set_object(thread, t);
+	threads_thread_set_object(thread, (java_handle_t *) t);
 
 	/* thread is completely initialized */
 
@@ -1487,7 +1487,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 		mainthread = threads_list_first();
 		mainthreado = (java_lang_Thread *) threads_thread_get_object(mainthread);
-		group = LLNI_field_direct(mainthreado, group);
+		LLNI_field_get_ref(mainthreado, group, group);
 #endif
 	}
 
