@@ -344,7 +344,7 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 	   for passing arguments to called methods. */
 
 #if defined(__I386__)
-	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+	if (checksync && code_is_synchronized(code)) {
 		/* reserve 0(%esp) for Monitorenter/exit Argument on i386 */
 		if (rd->memuse < 1)
 			rd->memuse = 1;

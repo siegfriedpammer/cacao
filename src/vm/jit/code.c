@@ -228,7 +228,7 @@ int code_get_sync_slot_count(codeinfo *code)
 	if (!checksync)
 		return 0;
 
-	if (!(code->m->flags & ACC_SYNCHRONIZED))
+	if (!code_is_synchronized(code))
 		return 0;
 
 	count = 1;

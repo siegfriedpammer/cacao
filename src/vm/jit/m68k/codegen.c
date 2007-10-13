@@ -126,7 +126,7 @@ bool codegen_emit(jitdata *jd)
 #if 0
 #if defined(ENABLE_THREADS)
 		/* we need additional space to save argument of monitor_enter */
-		if (checksync && (m->flags & ACC_SYNCHRONIZED))	{
+		if (checksync && code_is_synchronized(code))	{
 			if (IS_2_WORD_TYPE(m->parseddesc->returntype.type))	{
 				cd->stackframesize += 2;
 			} else	{
@@ -139,12 +139,13 @@ bool codegen_emit(jitdata *jd)
 		/* create method header */
 		(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
 		(void) dseg_add_unique_s4(cd, cd->stackframesize); 	   /* FrameSize       */
-#if defined(ENABLE_THREADS)
-		if (checksync && (m->flags & ACC_SYNCHRONIZED))
-			(void) dseg_add_unique_s4(cd, (rd->memuse + 1) * 8);/* IsSync         */
-		else
-#endif
-		(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
+
+		/* XXX Remove this "offset by one". */
+
+		code->synchronizedoffset = (rd->memuse + 1) * 8;
+
+		/* REMOVEME dummy IsSync */
+		(void) dseg_add_unique_s4(cd, 0);
 
 		/* REMOVEME: We still need it for exception handling in assembler. */
 
@@ -269,7 +270,7 @@ bool codegen_emit(jitdata *jd)
 
 #if defined(ENABLE_THREADS)
 	/* call lock_monitor_enter function */
-	if (checksync && (m->flags & ACC_SYNCHRONIZED))	{
+	if (checksync && code_is_synchronized(code))	{
 		if (m->flags & ACC_STATIC)	{
 			M_AMOV_IMM((&m->class->object.header), REG_ATMP1);
 		} else	{
@@ -1893,7 +1894,7 @@ nowperformreturn:
 
 #if defined(ENABLE_THREADS)
 			/* call lock_monitor_exit */
-			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+			if (checksync && code_is_synchronized(code)) {
 				M_ILD(REG_ITMP3, REG_SP, rd->memuse * 8);
 
 				/* we need to save the proper return value */

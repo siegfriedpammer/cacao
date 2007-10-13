@@ -70,6 +70,8 @@ struct codeinfo {
 	u1            optlevel;             /* optimization level of this code    */
 	s4            basicblockcount;      /* number of basic blocks             */
 
+	int32_t       synchronizedoffset;   /* stack offset of synchronized obj.  */
+
 	/* machine code */
 	u1           *mcode;                /* pointer to machine code            */
 	u1           *entrypoint;           /* machine code entry point           */

@@ -1713,7 +1713,6 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 	java_handle_t         *xptr;
 	methodinfo            *m;
 	codeinfo              *code;
-	s4                     issync;
 	dseg_exception_entry  *ex;
 	s4                     exceptiontablelength;
 	s4                     i;
@@ -1740,10 +1739,10 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 
 	result = NULL;
 
-	/* get info from the method header */
+	/* Get the codeinfo for the current method. */
 
-	code                 = *((codeinfo **)            (pv + CodeinfoPointer));
-	issync               = *((s4 *)                   (pv + IsSync));
+	code = code_get_codeinfo_for_pv(pv);
+
 	ex                   =   (dseg_exception_entry *) (pv + ExTableStart);
 	exceptiontablelength = *((s4 *)                   (pv + ExTableSize));
 
@@ -1868,16 +1867,16 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 	}
 
 #if defined(ENABLE_THREADS)
-	/* is this method synchronized? */
+	/* Is this method realization synchronized? */
 
-	if (issync) {
-		/* get synchronization object */
+	if (code_is_synchronized(code)) {
+		/* Get synchronization object. */
 
 # if (defined(__MIPS__) && (SIZEOF_VOID_P == 4)) || defined(__I386__) || defined(__S390__) || defined(__POWERPC__)
 		/* XXX change this if we ever want to use 4-byte stackslots */
-		o = *((java_object_t **) (sp + issync - 8));
+		o = *((java_object_t **) (sp + code->synchronizedoffset - 8));
 # else
-		o = *((java_object_t **) (sp + issync - SIZEOF_VOID_P));
+		o = *((java_object_t **) (sp + code->synchronizedoffset - SIZEOF_VOID_P));
 # endif
 
 		assert(o != NULL);

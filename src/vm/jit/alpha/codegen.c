@@ -128,7 +128,7 @@ bool codegen_emit(jitdata *jd)
 	cd->stackframesize = rd->memuse + savedregs_num;
 
 #if defined(ENABLE_THREADS)        /* space to save argument of monitor_enter */
-	if (checksync && (m->flags & ACC_SYNCHRONIZED))
+	if (checksync && code_is_synchronized(code))
 		cd->stackframesize++;
 #endif
 
@@ -141,18 +141,17 @@ bool codegen_emit(jitdata *jd)
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
 	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
 
-#if defined(ENABLE_THREADS)
 	/* IsSync contains the offset relative to the stack pointer for the
 	   argument of monitor_exit used in the exception handler. Since the
 	   offset could be zero and give a wrong meaning of the flag it is
 	   offset by one.
 	*/
+	/* XXX Remove this "offset by one". */
 
-	if (checksync && (m->flags & ACC_SYNCHRONIZED))
-		(void) dseg_add_unique_s4(cd, (rd->memuse + 1) * 8);       /* IsSync  */
-	else
-#endif
-		(void) dseg_add_unique_s4(cd, 0);                          /* IsSync  */
+	code->synchronizedoffset = (rd->memuse + 1) * 8;
+
+	/* REMOVEME dummy IsSync */
+	(void) dseg_add_unique_s4(cd, 0);
 
 	/* REMOVEME: We still need it for exception handling in assembler. */
 
@@ -248,7 +247,7 @@ bool codegen_emit(jitdata *jd)
 	/* call monitorenter function */
 
 #if defined(ENABLE_THREADS)
-	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+	if (checksync && code_is_synchronized(code)) {
 		/* stack offset for monitor argument */
 
 		s1 = rd->memuse;
@@ -2392,7 +2391,7 @@ nowperformreturn:
 #endif
 
 #if defined(ENABLE_THREADS)
-			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+			if (checksync && code_is_synchronized(code)) {
 				M_ALD(REG_A0, REG_SP, rd->memuse * 8);
 
 				switch (iptr->opc) {
