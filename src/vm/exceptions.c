@@ -1747,9 +1747,15 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 	exceptiontablelength = *((s4 *)                   (pv + ExTableSize));
 
 	/* Get the methodinfo pointer from the codeinfo pointer. For
-	   asm_vm_call_method the codeinfo pointer is NULL. */
+	   asm_vm_call_method the codeinfo pointer is NULL and we simply
+	   can return the proper exception handler. */
 
-	m = (code == NULL) ? NULL : code->m;
+	if (code == NULL) {
+		result = (u1 *) (uintptr_t) &asm_vm_call_method_exception_handler;
+		goto exceptions_handle_exception_return;
+	}
+
+	m = code->m;
 
 #if !defined(NDEBUG)
 	/* print exception trace */
@@ -1767,15 +1773,6 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
            pointer before the loop executes! */
 
 		ex--;
-
-		/* If the start and end PC is NULL, this means we have the
-		   special case of asm_vm_call_method.  So, just return the
-		   proper exception handler. */
-
-		if ((ex->startpc == NULL) && (ex->endpc == NULL)) {
-			result = (u1 *) (ptrint) &asm_vm_call_method_exception_handler;
-			goto exceptions_handle_exception_return;
-		}
 
 		/* is the xpc is the current catch range */
 
