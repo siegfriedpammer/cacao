@@ -696,21 +696,6 @@ void lock_init_object_lock(java_object_t *o)
 }
 
 
-/* lock_get_initial_lock_word **************************************************
-
-   Returns the initial (unlocked) lock word. The pointer is
-   required in the code generator to set up a virtual
-   java_objectheader for code patch locking.
-
-*******************************************************************************/
-
-lock_record_t *lock_get_initial_lock_word(void)
-{
-	return (lock_record_t *) THIN_UNLOCKED;
-}
-
-
-
 /*============================================================================*/
 /* LOCKING ALGORITHM                                                          */
 /*============================================================================*/

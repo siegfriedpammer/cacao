@@ -81,8 +81,6 @@ void patcher_patch_code(patchref_t *pr);
 
 /* patcher prototypes and macros **********************************************/
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined (__S390__) || defined(__X86_64__) || defined(__M68K__)
-
 /* new patcher functions */
 
 bool patcher_resolve_class(patchref_t *pr);
@@ -180,9 +178,6 @@ bool patcher_instanceof_class(patchref_t *pr);
 #define PATCHER_instanceof_class (functionptr) patcher_instanceof_class
 
 #endif /* defined(__I386__) */
-
-
-#endif /* architecture list */
 
 
 #endif /* _PATCHER_COMMON_H */

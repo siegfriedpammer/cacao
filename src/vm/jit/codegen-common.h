@@ -37,7 +37,6 @@ typedef struct critical_section_ref_t critical_section_ref_t;
 typedef struct jumpref                jumpref;
 typedef struct dataref                dataref;
 typedef struct exceptionref           exceptionref;
-typedef struct patchref               patchref;
 typedef struct linenumberref          linenumberref;
 
 
@@ -133,8 +132,6 @@ struct codegendata {
 	dataref        *datareferences; /* list of data segment references        */
 #endif
 
-/* 	list_t         *patchrefs; */
-	patchref       *patchrefs;
 	list_t         *brancheslabel;
 	list_t         *listcritical;   /* list of critical sections              */
 
@@ -216,18 +213,6 @@ struct dataref {
 };
 
 
-/* patchref *******************************************************************/
-
-struct patchref {
-	s4           branchpos;     /* relative offset to method entrypoint       */
-	s4           disp;          /* displacement of ref in the data segment    */
-	functionptr  patcher;       /* patcher function to call                   */
-	voidptr      ref;           /* reference passed                           */
-/* 	listnode     linkage; */
-	patchref    *next;
-};
-
-
 /* linenumberref **************************************************************/
 
 struct linenumberref {
@@ -280,12 +265,6 @@ void codegen_add_branch_ref(codegendata *cd, basicblock *target, s4 condition, s
 void codegen_resolve_branchrefs(codegendata *cd, basicblock *bptr);
 
 void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options);
-
-
-void codegen_add_patch_ref(codegendata *cd, functionptr patcher, voidptr ref,
-						   s4 disp);
-/* XXX REMOVE ME: don't-break-trunk macro */
-#define codegen_addpatchref codegen_add_patch_ref
 
 void codegen_insertmethod(u1 *startpc, u1 *endpc);
 u1 *codegen_get_pv_from_pc(u1 *pc);

@@ -49,11 +49,7 @@
 
 #include "vm/types.h"
 
-#if defined(ENABLE_JIT)
-/* this is required PATCHER_CALL_SIZE */
-# include "codegen.h"
-#endif
-
+#include "codegen.h"
 #include "md-abi.h"
 
 #include "mm/memory.h"
@@ -212,8 +208,6 @@ void codegen_setup(jitdata *jd)
 	cd->datareferences = NULL;
 #endif
 
-/* 	cd->patchrefs      = list_create_dump(OFFSET(patchref, linkage)); */
-	cd->patchrefs      = NULL;
 	cd->brancheslabel  = list_create_dump(OFFSET(branch_label_ref_t, linkage));
 	cd->listcritical   = list_create_dump(OFFSET(critical_section_ref_t, linkage));
 
@@ -260,8 +254,6 @@ static void codegen_reset(jitdata *jd)
 	cd->datareferences  = NULL;
 #endif
 
-/* 	cd->patchrefs       = list_create_dump(OFFSET(patchref, linkage)); */
-	cd->patchrefs       = NULL;
 	cd->brancheslabel   = list_create_dump(OFFSET(branch_label_ref_t, linkage));
 	cd->listcritical    = list_create_dump(OFFSET(critical_section_ref_t, linkage));
 
@@ -532,51 +524,6 @@ void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u
 	/* add the branch to the list */
 
 	list_add_last_unsynced(list, br);
-}
-
-
-/* codegen_add_patch_ref *******************************************************
-
-   Appends a new patcher reference to the list of patching positions.
-
-*******************************************************************************/
-
-void codegen_add_patch_ref(codegendata *cd, functionptr patcher, voidptr ref,
-						   s4 disp)
-{
-	patchref *pr;
-	s4        branchmpc;
-
-	branchmpc = cd->mcodeptr - cd->mcodebase;
-
-	pr = DNEW(patchref);
-
-	pr->branchpos = branchmpc;
-	pr->disp      = disp;
-	pr->patcher   = patcher;
-	pr->ref       = ref;
-
-/* 	list_add_first(cd->patchrefs, pr); */
-	pr->next      = cd->patchrefs;
-	cd->patchrefs = pr;
-
-	/* Generate NOPs for opt_shownops. */
-
-	if (opt_shownops)
-		PATCHER_NOPS;
-
-#if defined(ENABLE_JIT) && (defined(__I386__) || defined(__M68K__) || defined(__MIPS__) \
- || defined(__SPARC_64__) || defined(__X86_64__))
-
-	/* On some architectures the patcher stub call instruction might
-	   be longer than the actual instruction generated.  On this
-	   architectures we store the last patcher call position and after
-	   the basic block code generation is completed, we check the
-	   range and maybe generate some nop's. */
-	/* The nops are generated in codegen_emit in each codegen */
-
-	cd->lastmcodeptr = cd->mcodeptr + PATCHER_CALL_SIZE;
-#endif
 }
 
 

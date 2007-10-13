@@ -49,7 +49,6 @@
 void lock_init(void);
 
 void lock_init_object_lock(java_object_t *);
-lock_record_t *lock_get_initial_lock_word(void);
 
 ptrint lock_pre_compute_thinlock(s4 index);
 
