@@ -3659,8 +3659,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	methoddesc  *md;
 	s4           i, j;
 	s4           t;
-	s4           s1, s2, disp;
-	s4           funcdisp;              /* displacement of the function       */
+	int          s1, s2;
+	int          disp;
 
 	/* get required compiler data */
 
@@ -3710,13 +3710,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		emit_verbosecall_enter(jd);
 #endif
-
-	/* get function address (this must happen before the stackframeinfo) */
-
-	funcdisp = dseg_add_functionptr(cd, f);
-
-	if (f == NULL)
-		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, funcdisp);
 
 	/* save integer and float argument registers */
 
@@ -3950,9 +3943,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		M_ALD(REG_A0, REG_PV, disp);
 	}
 
-	/* do the native function call */
+	/* Call the native function. */
 
-	M_ALD(REG_ITMP3, REG_PV, funcdisp); /* load adress of native method       */
+	disp = dseg_add_functionptr(cd, f);
+	M_ALD(REG_ITMP3, REG_PV, disp);     /* load adress of native method       */
 	M_JSR(REG_RA, REG_ITMP3);           /* call native method                 */
 	M_NOP;                              /* delay slot                         */
 
