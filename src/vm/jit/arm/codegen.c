@@ -2895,7 +2895,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	methoddesc  *md;
 	s4           i, j;
 	s4           t;
-	s4           disp, funcdisp, s1, s2;
+	int          s1, s2;
+	int          disp;
 
 	/* get required compiler data */
 
@@ -2939,13 +2940,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		emit_verbosecall_enter(jd);
 #endif
-
-	/* get function address (this must happen before the stackframeinfo) */
-
-	funcdisp = dseg_add_functionptr(cd, f);
-
-	if (f == NULL)
-		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, funcdisp);
 
 #if defined(ENABLE_GC_CACAO)
 	/* Save callee saved integer registers in stackframeinfo (GC may
@@ -3047,9 +3041,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		M_DSEG_LOAD(REG_A0, disp);
 	}
 
-	/* do the native function call */
+	/* Call the native function. */
 
-	M_DSEG_BRANCH(funcdisp);
+	disp = dseg_add_functionptr(cd, f);
+	M_DSEG_BRANCH(disp);
 
 	/* recompute pv */
 	/* TODO: this is only needed because of the tracer ... do we
