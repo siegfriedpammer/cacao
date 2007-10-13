@@ -70,8 +70,6 @@ public class LockRecords {
 		System.out.println("Cleaning up ...");
 		v = null;
 		System.gc();
-		//System.gc();
-		//System.gc();
 
 		System.out.println("Waiting some seconds ...");
 		try {
@@ -79,6 +77,9 @@ public class LockRecords {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+
+		System.out.println("Cleaning up again ...");
+		System.gc();
 	}
 
 	public static void main(String args[])
