@@ -91,7 +91,6 @@ bool codegen_emit(jitdata *jd)
 	varinfo            *var;
 	basicblock         *bptr;
 	instruction        *iptr;
-	exception_entry    *ex;
 	u2                  currentline;
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
 	unresolved_method  *um;
