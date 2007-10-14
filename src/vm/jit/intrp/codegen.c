@@ -290,7 +290,6 @@ bool intrp_codegen(jitdata *jd)
 	s4                  i, len, s1, s2, d;
 	basicblock         *bptr;
 	instruction        *iptr;
-	exception_entry    *ex;
 	u2                  currentline;
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
 	unresolved_method  *um;
@@ -318,7 +317,7 @@ bool intrp_codegen(jitdata *jd)
 	cd->stackframesize = m->maxlocals;
 
 #if defined(ENABLE_THREADS)
-	if (checksync && (m->flags & ACC_SYNCHRONIZED))
+	if (checksync && code_is_synchronized(code))
 		cd->stackframesize += 1;
 #endif
 
@@ -327,29 +326,19 @@ bool intrp_codegen(jitdata *jd)
 	(void) dseg_add_unique_address(cd, jd->code);
 	(void) dseg_add_unique_s4(cd, cd->stackframesize * SIZEOF_VOID_P);
 
-#if defined(ENABLE_THREADS)
-	if (checksync && (m->flags & ACC_SYNCHRONIZED))
+	code->synchronizedoffset = rd->memuse * 8;
+
+	/* REMOVEME: We still need it for exception handling in assembler. */
+
+	if (code_is_leafmethod(code))
 		(void) dseg_add_unique_s4(cd, 1);
 	else
-#endif
 		(void) dseg_add_unique_s4(cd, 0);
-	                                       
-	(void) dseg_add_unique_s4(cd, 0);
+
 	(void) dseg_add_unique_s4(cd, 0);
 	(void) dseg_add_unique_s4(cd, 0);
 
 	dseg_addlinenumbertablesize(cd);
-
-	(void) dseg_add_unique_s4(cd, jd->exceptiontablelength);
-
-	/* create exception table */
-
-	for (ex = jd->exceptiontable; ex != NULL; ex = ex->down) {
-		dseg_add_target(cd, ex->start);
-   		dseg_add_target(cd, ex->end);
-		dseg_add_target(cd, ex->handler);
-		(void) dseg_add_unique_address(cd, ex->catchtype.any);
-	}
 
 #if 0	
 	/* initialize mcode variables */
@@ -361,7 +350,7 @@ bool intrp_codegen(jitdata *jd)
 	gen_BBSTART;
 
 #if defined(ENABLE_THREADS)
-	if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+	if (checksync && code_is_synchronized(code)) {
 		if (m->flags & ACC_STATIC) {
 			gen_ACONST(cd, (java_objectheader *) m->class);
 		}
@@ -1526,7 +1515,7 @@ dont_opt_IF_LCMPxx:
 		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
 
 #if defined(ENABLE_THREADS)
-			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+			if (checksync && code_is_synchronized(code)) {
 				if (m->flags & ACC_STATIC) {
 					gen_ACONST(cd, (java_objectheader *) m->class);
 				} else {
@@ -1545,7 +1534,7 @@ dont_opt_IF_LCMPxx:
 		case ICMD_DRETURN:      /* ..., retvalue ==> ...                      */
 
 #if defined(ENABLE_THREADS)
-			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+			if (checksync && code_is_synchronized(code)) {
 				if (m->flags & ACC_STATIC) {
 					gen_ACONST(cd, (java_objectheader *) m->class);
 				} else {
@@ -1563,7 +1552,7 @@ dont_opt_IF_LCMPxx:
 		case ICMD_RETURN:       /* ...  ==> ...                               */
 
 #if defined(ENABLE_THREADS)
-			if (checksync && (m->flags & ACC_SYNCHRONIZED)) {
+			if (checksync && code_is_synchronized(code)) {
 				if (m->flags & ACC_STATIC) {
 					gen_ACONST(cd, (java_objectheader *) m->class);
 				} else {
@@ -1883,7 +1872,7 @@ u1 *intrp_createcompilerstub(methodinfo *m)
 		stackframesize = m->maxlocals;
 
 #if defined(ENABLE_THREADS)
-		if (checksync && (m->flags & ACC_SYNCHRONIZED))
+		if (checksync && code_is_synchronized(code))
 			stackframesize += 1;
 #endif
 	}
