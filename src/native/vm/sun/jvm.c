@@ -112,11 +112,11 @@
 
 #if !defined(NDEBUG)
 
-# define TRACEJVMCALLS(...) \
-    do { \
-        if (opt_TraceJVMCalls) { \
-            log_println(__VA_ARGS__); \
-        } \
+# define TRACEJVMCALLS(...)						\
+    do {										\
+        if (opt_TraceJVMCalls) {				\
+            log_println(__VA_ARGS__);			\
+        }										\
     } while (0)
 
 # define PRINTJVMWARNINGS(...)
@@ -416,12 +416,19 @@ jint JVM_GetStackTraceDepth(JNIEnv *env, jobject throwable)
 	java_handle_bytearray_t *ba;
 	stacktracebuffer        *stb;
 
-#if PRINTJVM
-	log_println("JVM_GetStackTraceDepth: throwable=%p", throwable);
-#endif
+	TRACEJVMCALLS("JVM_GetStackTraceDepth(env=%p, throwable=%p)", env, throwable);
+
+	if (throwable == NULL) {
+		exceptions_throw_nullpointerexception();
+		return 0;
+	}
 
 	o   = (java_lang_Throwable *) throwable;
 	ba  = (java_handle_bytearray_t *) o->backtrace;
+
+	if (ba == NULL)
+		return 0;
+
 	stb = (stacktracebuffer *) LLNI_array_data(ba);
 
 	return stb->used;

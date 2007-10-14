@@ -348,26 +348,31 @@ static inline stacktracebuffer *stacktrace_method_add(stacktracebuffer *stb, sta
    Walk the stack (or the stackframeinfo-chain) to the next method.
 
    IN:
-       sfi....stackframeinfo of current method
+       tmpsfi ... stackframeinfo of current method
+
+   RETURN:
+       true .... the sfi is filled with the new values
+       false ... we reached the top of the stacktrace
 
 *******************************************************************************/
 
-static inline void stacktrace_stack_walk(stackframeinfo_t *sfi)
+static inline bool stacktrace_stack_walk(stackframeinfo_t *tmpsfi)
 {
-	codeinfo *code;
-	void     *pv;
-	void     *sp;
-	void     *ra;
-	void     *xpc;
-	uint32_t  framesize;
+	codeinfo         *code;
+	void             *pv;
+	void             *sp;
+	void             *ra;
+	void             *xpc;
+	uint32_t          framesize;
+	stackframeinfo_t *prevsfi;
 
 	/* Get values from the stackframeinfo. */
 
-	code = sfi->code;
-	pv   = sfi->pv;
-	sp   = sfi->sp;
-	ra   = sfi->ra;
-	xpc  = sfi->xpc;
+	code = tmpsfi->code;
+	pv   = tmpsfi->pv;
+	sp   = tmpsfi->sp;
+	ra   = tmpsfi->ra;
+	xpc  = tmpsfi->xpc;
 
 	/* Get the current stack frame size. */
 
@@ -431,15 +436,46 @@ static inline void stacktrace_stack_walk(stackframeinfo_t *sfi)
 #endif
 		}
 
-	/* Store the new values in the stackframeinfo.  NOTE: We subtract
-	   1 from the RA to get the XPC, because the RA points to the
-	   instruction after the call instruction. */
+	/* If the new codeinfo pointer is NULL we reached a
+	   asm_vm_call_method function.  In this case we get the next
+	   values from the previous stackframeinfo in the chain.
+	   Otherwise the new values have been calculated before. */
 
-	sfi->code = code;
-	sfi->pv   = pv;
-	sfi->sp   = sp;
-	sfi->ra   = ra;
-	sfi->xpc  = (void *) (((intptr_t) ra) - 1);
+	if (code == NULL) {
+		prevsfi = tmpsfi->prev;
+
+		/* If the previous stackframeinfo in the chain is NULL we
+		   reached the top of the stacktrace and return false. */
+
+		if (prevsfi == NULL)
+			return false;
+
+		/* Fill the temporary stackframeinfo with the new values. */
+
+		tmpsfi->code = prevsfi->code;
+		tmpsfi->pv   = prevsfi->pv;
+		tmpsfi->sp   = prevsfi->sp;
+		tmpsfi->ra   = prevsfi->ra;
+		tmpsfi->xpc  = prevsfi->xpc;
+
+		/* Set the previous stackframe info of the temporary one to
+		   the next in the chain. */
+
+		tmpsfi->prev = prevsfi->prev;
+	}
+	else {
+		/* Store the new values in the stackframeinfo.  NOTE: We
+		   subtract 1 from the RA to get the XPC, because the RA
+		   points to the instruction after the call instruction. */
+
+		tmpsfi->code = code;
+		tmpsfi->pv   = pv;
+		tmpsfi->sp   = sp;
+		tmpsfi->ra   = ra;
+		tmpsfi->xpc  = (void *) (((intptr_t) ra) - 1);
+	}
+
+	return true;
 }
 
 
@@ -464,6 +500,11 @@ stacktracebuffer *stacktrace_create(stackframeinfo_t *sfi)
 {
 	stacktracebuffer *stb;
 	stackframeinfo_t  tmpsfi;
+	bool              skip_fillInStackTrace;
+	bool              skip_init;
+
+	skip_fillInStackTrace = true;
+	skip_init             = true;
 
 	/* Create a stacktracebuffer in dump memory. */
 
@@ -493,9 +534,14 @@ stacktracebuffer *stacktrace_create(stackframeinfo_t *sfi)
 	tmpsfi.ra   = sfi->ra;
 	tmpsfi.xpc  = sfi->xpc;
 
+	/* Initially set the previous stackframe info of the temporary one
+	   to the next in the chain. */
+
+	tmpsfi.prev = sfi->prev;
+
 	/* Iterate till we're done. */
 
-	for (;;) {
+	do {
 #if !defined(NDEBUG)
 		/* Print current method information. */
 
@@ -510,45 +556,50 @@ stacktracebuffer *stacktrace_create(stackframeinfo_t *sfi)
 		}
 #endif
 
-		/* Check for Throwable.fillInStackTrace(). */
+		/* This logic is taken from
+		   hotspot/src/share/vm/classfile/javaClasses.cpp
+		   (java_lang_Throwable::fill_in_stack_trace). */
 
-/* 		if (tmpsfi.method->name != utf_fillInStackTrace) { */
-			
-			/* Add this method to the stacktrace. */
+		if (skip_fillInStackTrace == true) {
+			/* Check "fillInStackTrace" only once, so we negate the
+			   flag after the first time check. */
 
-			stb = stacktrace_method_add(stb, &tmpsfi);
-/* 		} */
+#if defined(WITH_CLASSPATH_GNU)
+			/* For GNU Classpath we also need to skip
+			   VMThrowable.fillInStackTrace(). */
 
-		/* Walk the stack (or the stackframeinfo chain) and get the
-		   next method. */
+			if ((tmpsfi.code->m->class == class_java_lang_VMThrowable) &&
+				(tmpsfi.code->m->name  == utf_fillInStackTrace))
+				continue;
+#endif
 
-		stacktrace_stack_walk(&tmpsfi);
+			skip_fillInStackTrace = false;
 
-		/* If the new codeinfo pointer is NULL we reached a
-		   asm_vm_call_method function.  In this case we get the next
-		   values from the previous stackframeinfo in the chain.
-		   Otherwise the new values have been calculated before. */
-
-		if (tmpsfi.code == NULL) {
-			sfi = sfi->prev;
-
-			/* If the previous stackframeinfo in the chain is NULL we
-			   reached the top of the stacktrace and leave the
-			   loop. */
-
-			if (sfi == NULL)
-				break;
-
-			/* Fill the temporary stackframeinfo with the new
-			   values. */
-
-			tmpsfi.code = sfi->code;
-			tmpsfi.pv   = sfi->pv;
-			tmpsfi.sp   = sfi->sp;
-			tmpsfi.ra   = sfi->ra;
-			tmpsfi.xpc  = sfi->xpc;
+			if (tmpsfi.code->m->name == utf_fillInStackTrace)
+				continue;
 		}
-	}
+
+		/* Skip <init> methods of the exceptions klass.  If there is
+		   <init> methods that belongs to a superclass of the
+		   exception we are going to skipping them in stack trace. */
+
+		if (skip_init == true) {
+			if (tmpsfi.code->m->name == utf_init) {
+/* 				throwable->is_a(method->method_holder())) { */
+				continue;
+			}
+			else {
+				/* If no "Throwable.init()" method found, we stop
+				   checking it next time. */
+
+				skip_init = false;
+			}
+		}
+
+		/* Add this method to the stacktrace. */
+
+		stb = stacktrace_method_add(stb, &tmpsfi);
+	} while (stacktrace_stack_walk(&tmpsfi) == true);
 
 #if !defined(NDEBUG)
 	if (opt_DebugStackTrace) {

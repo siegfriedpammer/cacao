@@ -119,10 +119,6 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 	stacktrace_entry            *tmpste;
 	s4                           size;
 	s4                           i;
-	classinfo                   *c;
-	bool                         inexceptionclass;
-	bool                         leftexceptionclass;
-
 	methodinfo                  *m;
 	java_handle_objectarray_t   *oa;
 	s4                           oalength;
@@ -136,61 +132,10 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 	LLNI_field_get_ref(this, vmData, ba);
 	stb = (stacktracebuffer *) LLNI_array_data(ba);
 
-	/* get the class of the Throwable object */
-
-	LLNI_class_get(t, c);
-
 	assert(stb != NULL);
 
+	ste  = stb->entries;
 	size = stb->used;
-
-	assert(size >= 2);
-
-	/* skip first 2 elements in stacktrace buffer:                            */
-	/*   0: VMThrowable.fillInStackTrace                                      */
-	/*   1: Throwable.fillInStackTrace                                        */
-
-	ste = &(stb->entries[2]);
-	size -= 2;
-
-	if ((size > 0) && (ste->method != 0)) {
-		/* not a builtin native wrapper*/
-
-		if ((ste->method->class->name == utf_java_lang_Throwable) &&
-			(ste->method->name == utf_init)) {
-			/* We assume that we are within the initializer of the
-			   exception object, the exception object itself should
-			   not appear in the stack trace, so we skip till we reach
-			   the first function, which is not an init function. */
-
-			inexceptionclass = false;
-			leftexceptionclass = false;
-
-			while (size > 0) {
-				/* check if we are in the exception class */
-
-				if (ste->method->class == c)
-					inexceptionclass = true;
-
-				/* check if we left the exception class */
-
-				if (inexceptionclass && (ste->method->class != c))
-					leftexceptionclass = true;
-
-				/* Found exception start point if we left the
-				   initalizers or we left the exception class. */
-
-				if ((ste->method->name != utf_init) || leftexceptionclass)
-					break;
-
-				/* go to next stacktrace element */
-
-				ste++;
-				size--;
-			}
-		}
-	}
-
 
 	/* now fill the stacktrace into java objects */
 
@@ -201,13 +146,13 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 	if (m == NULL)
 		return NULL;
 
-	/* count entries with a method name */
+	/* Count entries with a method name. */
 
 	for (oalength = 0, i = size, tmpste = ste; i > 0; i--, tmpste++)
 		if (tmpste->method)
 			oalength++;
 
-	/* create the stacktrace element array */
+	/* Create the stacktrace element array. */
 
 	oa = builtin_anewarray(oalength, class_java_lang_StackTraceElement);
 
