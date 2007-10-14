@@ -32,7 +32,6 @@
 
 typedef struct dsegentry             dsegentry;
 typedef struct linenumbertable_entry linenumbertable_entry;
-typedef struct dseg_exception_entry  dseg_exception_entry;
 
 
 #include "config.h"
@@ -74,21 +73,6 @@ struct dsegentry {
 struct linenumbertable_entry {
 	ptrint  line;               /* NOTE: see doc/inlining_stacktrace.txt for  */
 	u1     *pc;                 /*       special meanings of line and pc.     */
-};
-
-
-/* dseg_exception_entry ********************************************************
-
-   Datastructure which represents an exception entry in the exception
-   table residing in the data segment.
-
-*******************************************************************************/
-
-struct dseg_exception_entry {
-	classref_or_classinfo  catchtype;
-	u1                    *handlerpc;
-	u1                    *endpc;
-	u1                    *startpc;
 };
 
 
