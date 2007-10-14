@@ -66,12 +66,6 @@
 
 	.align	3
 
-	.quad   0                           /* catch type all                     */
-	.quad   0                           /* handler pc                         */
-	.quad   0                           /* end pc                             */
-	.quad   0                           /* start pc                           */
-	.long   1                           /* extable size                       */
-	.long   0                           /* ALIGNMENT PADDING                  */
 	.quad   0                           /* line number table  start           */
 	.quad   0                           /* line number table  size            */
 	.long   0                           /* fltsave                            */

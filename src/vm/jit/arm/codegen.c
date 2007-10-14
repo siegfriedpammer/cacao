@@ -87,7 +87,6 @@ bool codegen_emit(jitdata *jd)
 	varinfo        *var;
 	basicblock     *bptr;
 	instruction    *iptr;
-	exception_entry *ex;
 
 	s4              spilledregs_num;
 	s4              savedregs_num;
@@ -158,17 +157,8 @@ bool codegen_emit(jitdata *jd)
 
 	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
 	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
+
 	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_add_unique_s4(cd, jd->exceptiontablelength); /* ExTableSize   */
-
-	/* create exception table */
-
-	for (ex = jd->exceptiontable; ex != NULL; ex = ex->down) {
-		dseg_add_target(cd, ex->start);
-		dseg_add_target(cd, ex->end);
-		dseg_add_target(cd, ex->handler);
-		(void) dseg_add_unique_address(cd, ex->catchtype.any);
-	}
 
 	/* save return address and used callee saved registers */
 

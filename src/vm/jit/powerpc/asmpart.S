@@ -77,11 +77,6 @@
 
 	.align 2
 
-	.long   0                         /* catch type all                       */
-	.long   0                         /* exception handler pc                 */
-	.long   0                         /* end pc                               */
-	.long   0                         /* start pc                             */
-	.long   1                         /* extable size                         */
 	.long   0                         /* line number table start              */
 	.long   0                         /* line number table size               */
 	.long   0                         /* fltsave                              */

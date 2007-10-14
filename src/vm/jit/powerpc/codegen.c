@@ -168,17 +168,6 @@ bool codegen_emit(jitdata *jd)
 
 	dseg_addlinenumbertablesize(cd);
 
-	(void) dseg_add_unique_s4(cd, jd->exceptiontablelength); /* ExTableSize   */
-
-	/* create exception table */
-
-	for (ex = jd->exceptiontable; ex != NULL; ex = ex->down) {
-		dseg_add_target(cd, ex->start);
-   		dseg_add_target(cd, ex->end);
-		dseg_add_target(cd, ex->handler);
-		(void) dseg_add_unique_address(cd, ex->catchtype.any);
-	}
-
 #if defined(ENABLE_PROFILING)
 	/* generate method profiling code */
 

@@ -71,11 +71,6 @@
 
 	.align  2
 
-	.word   0                           /* catch type all                     */
-	.word   0                           /* handler pc                         */
-	.word   0                           /* end pc                             */
-	.word   0                           /* start pc                           */
-	.word   1                           /* extable size                       */
 	.word   0                           /* line number table start            */
 	.word   0                           /* line number table size             */
 	.word   0                           /* FltSave                            */

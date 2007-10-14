@@ -150,6 +150,8 @@ libjit_la_SOURCES = \
 	dseg.h \
 	emit-common.c \
 	emit-common.h \
+	exceptiontable.c \
+	exceptiontable.h \
 	icmdtable.inc \
 	jit.c \
 	jit.h \

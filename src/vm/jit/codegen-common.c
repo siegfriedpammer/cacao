@@ -1000,6 +1000,10 @@ void codegen_finish(jitdata *jd)
 	}
 #endif
 
+	/* Create the exception table. */
+
+	exceptiontable_create(jd);
+
 	/* jump table resolving */
 
 	for (jr = cd->jumpreferences; jr != NULL; jr = jr->next)

@@ -134,7 +134,6 @@ bool codegen_emit(jitdata *jd)
 	varinfo            *var, *var1, *var2, *dst;
 	basicblock         *bptr;
 	instruction        *iptr;
-	exception_entry    *ex;
 	constant_classref  *cr;
 	unresolved_class   *uc;
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
@@ -219,17 +218,6 @@ bool codegen_emit(jitdata *jd)
 	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
 
 	(void) dseg_addlinenumbertablesize(cd);
-
-	(void) dseg_add_unique_s4(cd, jd->exceptiontablelength); /* ExTableSize   */
-
-	/* create exception table */
-
-	for (ex = jd->exceptiontable; ex != NULL; ex = ex->down) {
-		dseg_add_target(cd, ex->start);
-   		dseg_add_target(cd, ex->end);
-		dseg_add_target(cd, ex->handler);
-		(void) dseg_add_unique_address(cd, ex->catchtype.any);
-	}
 
 	/* Offset PV */
 

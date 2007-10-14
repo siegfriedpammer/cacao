@@ -83,12 +83,6 @@
 
 #if SIZEOF_VOID_P == 8
 
-	.dword  0                           /* catch type all                     */
-	.dword  0                           /* handler pc                         */
-	.dword  0                           /* end pc                             */
-	.dword  0                           /* start pc                           */
-	.word   1                           /* extable size                       */
-	.word   0                           /* 4-byte ALIGNMENT PADDING           */
 	.dword  0                           /* line number table start            */
 	.dword  0                           /* line number table size             */
 	.word   0                           /* fltsave                            */
@@ -99,11 +93,6 @@
 
 #else /* SIZEOF_VOID_P == 8 */
 
-	.word   0                           /* catch type all                     */
-	.word   0                           /* handler pc                         */
-	.word   0                           /* end pc                             */
-	.word   0                           /* start pc                           */
-	.word   1                           /* extable size                       */
 	.word   0                           /* line number table start            */
 	.word   0                           /* line number table size             */
 	.word   0                           /* fltsave                            */

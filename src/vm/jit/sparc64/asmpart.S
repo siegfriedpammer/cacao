@@ -72,12 +72,6 @@
 
 	.align 8	/* v9: All data types are aligned to their size */
 
-	.xword 0                         /* catch type all */
-	.xword 0                         /* handler pc */
-	.xword 0                         /* end pc */
-	.xword 0                         /* start pc */
-	.word  1                         /* extable size */
-	.word  0                         /* ALIGNMENT PADDING */
 	.xword 0                         /* line number table start */
 	.xword 0                         /* line number table size */
 	.word  0                         /* fltsave */

@@ -91,7 +91,6 @@ bool codegen_emit(jitdata *jd)
 	varinfo            *var, *var1;
 	basicblock         *bptr;
 	instruction        *iptr;
-	exception_entry    *ex;
 	u2                  currentline;
 	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
 	builtintable_entry *bte;
@@ -173,17 +172,6 @@ bool codegen_emit(jitdata *jd)
 	   instructions. During code optimization the position could have changed
 	   to the information gotten from the class file */
 	(void) dseg_addlinenumbertablesize(cd);
-
-	(void) dseg_add_unique_s4(cd, jd->exceptiontablelength); /* ExTableSize   */
-	
-	/* create exception table */
-
-	for (ex = jd->exceptiontable; ex != NULL; ex = ex->down) {
-		dseg_add_target(cd, ex->start);
-   		dseg_add_target(cd, ex->end);
-		dseg_add_target(cd, ex->handler);
-		(void) dseg_add_unique_address(cd, ex->catchtype.any);
-	}
 
 #if defined(ENABLE_PROFILING)
 	/* generate method profiling code */

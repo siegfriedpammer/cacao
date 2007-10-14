@@ -42,9 +42,6 @@
 #define FltSave                 -24
 #define LineNumberTableSize     -32
 #define LineNumberTableStart    -40
-/* 4-byte alignment padding */
-#define ExTableSize             -48
-#define ExTableStart            -48
        
 #else /* SIZEOF_VOID_P == 8 */
 
@@ -55,8 +52,6 @@
 #define FltSave                 -20
 #define LineNumberTableSize     -24
 #define LineNumberTableStart    -28
-#define ExTableSize             -32
-#define ExTableStart            -32
 
 #endif /* SIZEOF_VOID_P == 8 */
 

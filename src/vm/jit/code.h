@@ -38,6 +38,7 @@
 
 #include "vm/global.h"
 
+#include "vm/jit/exceptiontable.h"
 #include "vm/jit/replace.h"
 
 #include "vmcore/method.h"
@@ -76,6 +77,8 @@ struct codeinfo {
 	u1           *mcode;                /* pointer to machine code            */
 	u1           *entrypoint;           /* machine code entry point           */
 	s4            mcodelength;          /* length of generated machine code   */
+
+	exceptiontable_t *exceptiontable;
 
 	/* patcher list */
 	list_t       *patchers;

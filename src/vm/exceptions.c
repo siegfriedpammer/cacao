@@ -1709,19 +1709,19 @@ java_handle_t *exceptions_fillinstacktrace(void)
 #if defined(ENABLE_JIT)
 u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 {
-	stackframeinfo_t       sfi;
-	java_handle_t         *xptr;
-	methodinfo            *m;
-	codeinfo              *code;
-	dseg_exception_entry  *ex;
-	s4                     exceptiontablelength;
-	s4                     i;
-	classref_or_classinfo  cr;
-	classinfo             *c;
+	stackframeinfo_t        sfi;
+	java_handle_t          *xptr;
+	methodinfo             *m;
+	codeinfo               *code;
+	exceptiontable_t       *et;
+	exceptiontable_entry_t *ete;
+	s4                      i;
+	classref_or_classinfo   cr;
+	classinfo              *c;
 #if defined(ENABLE_THREADS)
-	java_object_t         *o;
+	java_object_t          *o;
 #endif
-	u1                    *result;
+	u1                     *result;
 
 #ifdef __S390__
 	/* Addresses are 31 bit integers */
@@ -1742,9 +1742,6 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 	/* Get the codeinfo for the current method. */
 
 	code = code_get_codeinfo_for_pv(pv);
-
-	ex                   =   (dseg_exception_entry *) (pv + ExTableStart);
-	exceptiontablelength = *((s4 *)                   (pv + ExTableSize));
 
 	/* Get the methodinfo pointer from the codeinfo pointer. For
 	   asm_vm_call_method the codeinfo pointer is NULL and we simply
@@ -1768,16 +1765,20 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 # endif
 #endif
 
-	for (i = 0; i < exceptiontablelength; i++) {
-		/* ATTENTION: keep this here, as we need to decrement the
-           pointer before the loop executes! */
+	/* Get the exception table. */
 
-		ex--;
+	et = code->exceptiontable;
 
+	if (et != NULL) {
+	/* Iterate over all exception table entries. */
+
+	ete = et->entries;
+
+	for (i = 0; i < et->length; i++, ete++) {
 		/* is the xpc is the current catch range */
 
-		if ((ADDR_MASK(ex->startpc) <= xpc) && (xpc < ADDR_MASK(ex->endpc))) {
-			cr = ex->catchtype;
+		if ((ADDR_MASK(ete->startpc) <= xpc) && (xpc < ADDR_MASK(ete->endpc))) {
+			cr = ete->catchtype;
 
 			/* NULL catches everything */
 
@@ -1795,7 +1796,7 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 				}
 #endif
 
-				result = ex->handlerpc;
+				result = ete->handlerpc;
 				goto exceptions_handle_exception_return;
 			}
 
@@ -1803,13 +1804,14 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 
 			if (IS_CLASSREF(cr)) {
 				/* The exception class reference is unresolved. */
-				/* We have to do _eager_ resolving here. While the class of */
-				/* the exception object is guaranteed to be loaded, it may  */
-				/* well have been loaded by a different loader than the     */
-				/* defining loader of m's class, which is the one we must   */
-				/* use to resolve the catch class. Thus lazy resolving      */
-				/* might fail, even if the result of the resolution would   */
-				/* be an already loaded class.                              */
+				/* We have to do _eager_ resolving here. While the
+				   class of the exception object is guaranteed to be
+				   loaded, it may well have been loaded by a different
+				   loader than the defining loader of m's class, which
+				   is the one we must use to resolve the catch
+				   class. Thus lazy resolving might fail, even if the
+				   result of the resolution would be an already loaded
+				   class. */
 
 				c = resolve_classref_eager(cr.ref);
 
@@ -1818,12 +1820,13 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 					goto exceptions_handle_exception_return;
 				}
 
-				/* Ok, we resolved it. Enter it in the table, so we don't */
-				/* have to do this again.                                 */
-				/* XXX this write should be atomic. Is it?                */
+				/* Ok, we resolved it. Enter it in the table, so we
+				   don't have to do this again. */
+				/* XXX this write should be atomic. Is it? */
 
-				ex->catchtype.cls = c;
-			} else {
+				ete->catchtype.cls = c;
+			}
+			else {
 				c = cr.cls;
 
 				/* XXX I don't think this case can ever happen. -Edwin */
@@ -1833,9 +1836,9 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 													 m->class->classloader))
 						goto exceptions_handle_exception_return;
 
-				/* XXX I think, if it is not linked, we can be sure that     */
-				/* the exception object is no (indirect) instance of it, no? */
-				/* -Edwin                                                    */
+				/* XXX I think, if it is not linked, we can be sure
+				   that the exception object is no (indirect) instance
+				   of it, no?  -Edwin  */
 				if (!(c->state & CLASS_LINKED))
 					if (!link_class(c))
 						goto exceptions_handle_exception_return;
@@ -1857,10 +1860,11 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 				}
 #endif
 
-				result = ex->handlerpc;
+				result = ete->handlerpc;
 				goto exceptions_handle_exception_return;
 			}
 		}
+	}
 	}
 
 #if defined(ENABLE_THREADS)
