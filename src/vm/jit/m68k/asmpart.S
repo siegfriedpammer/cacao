@@ -44,8 +44,6 @@
 
 .globl asm_call_jit_compiler
 
-.globl asm_patcher_wrapper
-
 .globl asm_abstractmethoderror
 
 .globl asm_handle_exception
@@ -219,77 +217,6 @@ L_asm_call_jit_compiler_exception:
 	moveal	%sp@+, %a3								/* pop return address into exception address reg */
 	jmp asm_handle_exception						/* handle exception */
 
-
-/* asm_patcher_wrapper ********************************************************
-	
-  prepares arguments on stack
-  calls patcher_wrapper signature: java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra);
-
-  Stack layout:
-     24   return address
-     20   REG_ITMP3
-     16   pointer to virtual java_objectheader
-     12   last byte of machine code (xmcode)
-      8   machine code (which is patched back later)
-      4   unresolved field reference
-      0   patcher function pointer to call
-*******************************************************************************/
-asm_patcher_wrapper:
-
-  /* save scratch registers */
-  movel %a0, %sp@-
-  movel %a1, %sp@-
-  movel %d0, %sp@-
-  movel %d1, %sp@-
-
-#if defined(ENABLE_SOFTFLOAT)
-  /* calculate original value of sp */
-  movel %sp, %d0
-  addil #4*4, %d0
-#else
-  addal #-8*2, %sp
-  fmovemd %fp0/%fp1, %sp@
-
-  movel %sp, %d0
-  addil #8*4, %d0
-#endif
-
-  clrl	%sp@-				/* pass ra */
-  clrl	%sp@-				/* pass pv, if null use findmethod */
-  movel %d0, %sp@-			/* pass sp of patcher stub */
-  jsr	patcher_wrapper		/* return value in %d0 */
-
-  lea	%sp@(3*4), %sp		/* pop arguments off stack */
-  tst	%d0					/* test if exception occured */
-  bne	L_asm_patcher_wrapper_exception
-
-#if !defined(ENABLE_SOFTFLOAT)
-  fmovemd %sp@, %fp0/%fp1
-  addal #8*2, %sp
-#endif
-  movel %sp@+, %d1
-  movel %sp@+, %d0
-  movel %sp@+, %a1
-  movel %sp@+, %a0
-
-  lea   %sp@(6*4), %sp			/* restore stack and remove patcher stub*/
-  rts							/* back to jit code */
-
-L_asm_patcher_wrapper_exception:
-  /* WARNING: the stack is still disturbed, look at asm_patcher_wrapper for details */
-  /* we do not need to restore the content of the registers, I hope */
-#if !defined(ENABLE_SOFTFLOAT)
-	lea		%sp@(8*4), %sp
-#else
-	lea		%sp@(4*4), %sp
-#endif
-
-  lea   	%sp@(5*4), %sp				/* restore stack and remove patcher stub*/
-  movel		%sp@+, %d4					/* restore REG_ITMP3, stored in emit_patcher_stubs */
-  moveal	%d0, %a2					/* xptr, pointer to exception object */
-  moveal	%sp@+, %a3					/* pop return address into exception address register */
-  jmp		asm_handle_exception		/* handle exception */
-  illegal								/* XXX: we never come back */
 
 
 asm_abstractmethoderror:
