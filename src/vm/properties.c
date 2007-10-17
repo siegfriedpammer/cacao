@@ -108,13 +108,14 @@ void properties_set(void)
 #if defined(ENABLE_JAVASE)
 	char           *class_path;
 	char           *boot_library_path;
+	char           *extdirs;
+	char           *endorseddirs;
 
 # if defined(WITH_CLASSPATH_GNU)
 	char           *cwd;
 	char           *env_user;
 	char           *env_home;
 	char           *env_lang;
-	char           *extdirs;
 	char           *lang;
 	char           *country;
 	struct utsname *utsnamebuf;
@@ -438,18 +439,25 @@ void properties_set(void)
 		properties_add("gnu.java.compiler.name", "cacao.jit");
 	}
 
-	/* set the java.ext.dirs property */
+	/* Set the java.ext.dirs property. */
 
 	len = strlen(java_home) + strlen("/jre/lib/ext") + strlen("0");
 
 	extdirs = MNEW(char, len);
 
-	strcpy(extdirs, java_home);
-	strcat(extdirs, "/jre/lib/ext");
+	sprintf(extdirs, "%s/jre/lib/ext", java_home);
 
 	properties_add("java.ext.dirs", extdirs);
 
-	properties_add("java.endorsed.dirs", ""CACAO_PREFIX"/jre/lib/endorsed");
+	/* Set the java.ext.endorsed property. */
+
+	len = strlen(java_home) + strlen("/lib/endorsed") + strlen("0");
+
+	endorseddirs = MNEW(char, len);
+
+	sprintf(endorseddirs, "%s/jre/lib/endorsed", java_home);
+
+	properties_add("java.endorsed.dirs", endorseddirs);
 
 #  if defined(DISABLE_GC)
 	/* When we disable the GC, we mmap the whole heap to a specific
@@ -517,6 +525,30 @@ void properties_set(void)
 	   nativevm_preinit(). */
 
 	properties_add("sun.boot.library.path", boot_library_path);
+
+	/* Set the java.ext.dirs property. */
+
+	len =
+		strlen(java_home) + strlen("/lib/ext") +
+		strlen(":") +
+		strlen("/usr/java/packages/lib/ext") +
+		strlen("0");
+
+	extdirs = MNEW(char, len);
+
+	sprintf(extdirs, "%s/lib/ext:/usr/java/packages/lib/ext", java_home);
+
+	properties_add("java.ext.dirs", extdirs);
+
+	/* Set the java.ext.endorsed property. */
+
+	len = strlen(java_home) + strlen("/lib/endorsed") + strlen("0");
+
+	endorseddirs = MNEW(char, len);
+
+	sprintf(endorseddirs, "%s/lib/endorsed", java_home);
+
+	properties_add("java.endorsed.dirs", endorseddirs);
 
 # else
 
