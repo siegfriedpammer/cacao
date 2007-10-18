@@ -1,4 +1,4 @@
-/* src/vm/system.h - system (OS) functions
+/* src/vmcore/system.h - system (OS) functions
 
    Copyright (C) 2007
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
@@ -23,19 +23,103 @@
 */
 
 
-#ifndef _VM_SYSTEM_H
-#define _VM_SYSTEM_H
+#ifndef _VMCORE_SYSTEM_H
+#define _VMCORE_SYSTEM_H
 
 #include "config.h"
 
-#include <stdint.h>
+/* NOTE: In this file we check for all system headers, because we wrap
+   all system calls into inline functions for better portability. */
+
+#if defined(HAVE_STDINT_H)
+# include <stdint.h>
+#endif
+
+#if defined(HAVE_STDLIB_H)
+# include <stdlib.h>
+#endif
+
+#if defined(HAVE_STRING_H)
+# include <string.h>
+#endif
+
+#if defined(HAVE_UNISTD_H)
+# include <unistd.h>
+#endif
+
+
+/* inline functions ***********************************************************/
+
+inline static void *system_calloc(size_t nmemb, size_t size)
+{
+#if defined(HAVE_CALLOC)
+	return calloc(nmemb, size);
+#else
+# error calloc not available
+#endif
+}
+
+inline static void system_free(void *ptr)
+{
+#if defined(HAVE_FREE)
+	free(ptr);
+#else
+# error free not available
+#endif
+}
+
+inline static int system_getpagesize(void)
+{
+#if defined(HAVE_GETPAGESIZE)
+	return getpagesize();
+#else
+# error getpagesize not available
+#endif
+}
+
+inline static void *system_malloc(size_t size)
+{
+#if defined(HAVE_MALLOC)
+	return malloc(size);
+#else
+# error malloc not available
+#endif
+}
+
+inline static void *system_memcpy(void *dest, const void *src, size_t n)
+{
+#if defined(HAVE_MEMCPY)
+	return memcpy(dest, src, n);
+#else
+# error memcpy not available
+#endif
+}
+
+inline static void *system_memset(void *s, int c, size_t n)
+{
+#if defined(HAVE_MEMSET)
+	return memset(s, c, n);
+#else
+# error memset not available
+#endif
+}
+
+inline static void *system_realloc(void *ptr, size_t size)
+{
+#if defined(HAVE_REALLOC)
+	return realloc(ptr, size);
+#else
+# error realloc not available
+#endif
+}
 
 
 /* function prototypes ********************************************************/
 
-int system_processors_online(void);
+void *system_mmap_anonymous(void *addr, size_t len, int prot, int flags);
+int   system_processors_online(void);
 
-#endif /* _VM_SYSTEM_H */
+#endif /* _VMCORE_SYSTEM_H */
 
 
 /*
