@@ -1877,7 +1877,7 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 
 		assert(o != NULL);
 
-		lock_monitor_exit(o);
+		lock_monitor_exit(LLNI_QUICKWRAP(o));
 	}
 #endif
 
