@@ -843,6 +843,10 @@ void threads_dump(void)
 	/* iterate over all started threads */
 
 	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+		/* ignore threads which are in state NEW */
+		if (t->state == THREAD_STATE_NEW)
+			continue;
+
 		/* print thread info */
 
 		printf("\n");
