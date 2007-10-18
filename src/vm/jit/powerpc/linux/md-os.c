@@ -40,6 +40,7 @@
 # include "threads/native/threads.h"
 #endif
 
+#include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
@@ -148,7 +149,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		/* Get the exception object. */
 
-		p = exceptions_get_and_clear_exception();
+		p = builtin_retrieve_exception();
 
 		assert(p != NULL);
 

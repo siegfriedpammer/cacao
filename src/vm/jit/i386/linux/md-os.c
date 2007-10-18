@@ -38,6 +38,7 @@
 
 #include "threads/threads-common.h"
 
+#include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
@@ -138,7 +139,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	if (type == EXCEPTION_HARDWARE_COMPILER) {
 		if (p == NULL) {
-			o = exceptions_get_and_clear_exception();
+			o = builtin_retrieve_exception();
 
 			_mc->gregs[REG_ESP] = (uintptr_t) sp;    /* Remove RA from stack. */
 

@@ -597,6 +597,32 @@ void *builtin_throw_exception(java_object_t *xptr)
 }
 
 
+/* builtin_retrieve_exception **************************************************
+
+   Gets and clears the exception pointer of the current thread.
+
+   RETURN VALUE:
+      the exception object, or NULL if no exception was thrown.
+
+   NOTE: This is a FAST builtin and can be called from JIT code,
+   or from the signal handlers.
+
+*******************************************************************************/
+
+java_object_t *builtin_retrieve_exception(void)
+{
+	java_handle_t *h;
+	java_object_t *o;
+
+	/* actually get and clear the exception */
+
+	h = exceptions_get_and_clear_exception();
+	o = LLNI_UNWRAP(h);
+
+	return o;
+}
+
+
 /* builtin_canstore ************************************************************
 
    Checks, if an object can be stored in an array.
