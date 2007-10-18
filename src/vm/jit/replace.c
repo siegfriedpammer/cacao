@@ -429,10 +429,6 @@ bool replace_create_replacement_points(jitdata *jd)
 
 	m = code->m;
 
-	/* set codeinfo flags */
-
-	code_flag_leafmethod(code);
-
 	/* in instance methods, we may need a rplpoint at the method entry */
 
 #if defined(REPLACE_PATCH_DYNAMIC_CALL)

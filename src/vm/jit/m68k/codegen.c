@@ -52,12 +52,12 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
+#include "vm/jit/patcher-common.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/abi.h"
 #include "vm/jit/parse.h"
-#include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/stacktrace.h"
@@ -2372,7 +2372,7 @@ nowperformreturn:
 	dseg_createlinenumbertable(cd);
 
 	/* generate stubs */
-	emit_patcher_stubs(jd);
+	emit_patcher_traps(jd);
 
 	return true;
 }
@@ -2595,7 +2595,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	M_JSR_IMM(0);
 
 	/* generate patcher stub call code */
-	emit_patcher_stubs(jd);
+	emit_patcher_traps(jd);
 }
 
 

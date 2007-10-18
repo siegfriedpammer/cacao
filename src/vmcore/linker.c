@@ -135,7 +135,7 @@ void linker_preinit(void)
 	/* Check for if alignment for long and double matches what we
 	   assume for the current architecture. */
 
-#if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__)) || (defined(__POWERPC__) && defined(__DARWIN__))
+#if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__)) || (defined(__POWERPC__) && defined(__DARWIN__)) || defined(__M68K__)
 	if (OFFSET(dummy_alignment_long_t, l) != 4)
 		vm_abort("linker_preinit: long alignment is different from what assumed: %d != %d",
 				 OFFSET(dummy_alignment_long_t, l), 4);

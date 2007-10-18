@@ -300,7 +300,6 @@ bool patcher_resolve_class(patchref_t *pr)
 #endif /* ENABLE_VERIFIER */
 #endif
 
-#if 0
 /* patcher_resolve_classref_to_classinfo ***************************************
   ACONST:
   	0x4028f2ca:   2479 0000 0000    moveal 0x00000000,%a2
@@ -313,8 +312,8 @@ bool patcher_resolve_classref_to_classinfo(patchref_t *pr)
 	classinfo         *c;
 
 	/* get stuff from the stack */
-	cr   = (constant_classref *) *((ptrint *) (sp + 1 * 4));
-	disp =                       *((s4 *)     (sp + 6 * 4));
+	cr   = (constant_classref *) pr->ref;
+	disp =                       pr->mpc;
 
 	/* get the classinfo */
 	if (!(c = resolve_classref_eager(cr)))
@@ -332,7 +331,6 @@ bool patcher_resolve_classref_to_classinfo(patchref_t *pr)
 
 	return true;
 }
-#endif
 
 /* patcher_get_putstatic *******************************************************
 
