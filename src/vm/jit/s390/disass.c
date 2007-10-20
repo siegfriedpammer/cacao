@@ -36,6 +36,7 @@
 
 #include <dis-asm.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -83,7 +84,7 @@ static s4 disass_pseudo_instr(u1 *code) {
 	switch (code[0]) {
 		/* Trap */
 		case 0x02:
-			snprintf(disass_buf, 512, "ill\t0x%02hhx (pseudo)", code[1]);
+			snprintf(disass_buf, 512, "ill\t0x%02x (pseudo)", (int)code[1]);
 			return 2;
 		/* Not recognized */
 		default:
@@ -124,7 +125,7 @@ u1 *disassinstr(u1 *code)
 	seqlen = disass_pseudo_instr(code);
 
 	if (seqlen == 0) {
-		seqlen = print_insn_s390((bfd_vma) code, &info);
+		seqlen = print_insn_s390((bfd_vma)(intptr_t)code, &info);
 	}
 
 	for (i = 0; i < seqlen; i++, code++) {

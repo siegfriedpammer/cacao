@@ -76,9 +76,10 @@
  * purpose registers.
  */
 
+/*
 static void do__log(u4 *regs) {
-	/* insert stuff here */
 }
+*/
 
 #define DO__LOG \
 	N_AHI(REG_SP, -200); \
@@ -89,7 +90,11 @@ static void do__log(u4 *regs) {
 	N_LM(R0, R15, 96, REG_SP); \
 	N_AHI(REG_SP, 200);
 
-#define SUPPORT_HERCULES 1
+/* If the following macro is defined, workaround code for hercules quirks
+ * is generated
+ */
+
+/* #define SUPPORT_HERCULES 1 */
 
 /* codegen *********************************************************************
 
@@ -130,8 +135,7 @@ bool codegen_emit(jitdata *jd)
 	registerdata       *rd;
 	s4                  len, s1, s2, s3, d, dd, disp;
 	u2                  currentline;
-	ptrint              a;
-	varinfo            *var, *var1, *var2, *dst;
+	varinfo            *var;
 	basicblock         *bptr;
 	instruction        *iptr;
 	constant_classref  *cr;
@@ -1619,7 +1623,9 @@ bool codegen_emit(jitdata *jd)
 
 		case ICMD_F2D:       /* ..., value  ==> ..., (double) value           */
 			{
+#ifdef SUPPORT_HERCULES
 				u1 *ref;
+#endif
 				s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
 #ifdef SUPPORT_HERCULES
