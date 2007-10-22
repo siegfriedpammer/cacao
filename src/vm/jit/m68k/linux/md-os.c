@@ -212,6 +212,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 			break;
 		case EXCEPTION_HARDWARE_PATCHER:
 			xpc -= 2;
+			ra = xpc;
 			break;
 
 		default: assert(0);
@@ -224,26 +225,36 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	p = signal_handle(type, regval, pv, (void*)sp, (void*)ra, (void*)xpc, _p);
 
 
-	if (type == EXCEPTION_HARDWARE_COMPILER)	{
-		if (p == NULL)	{
-			/* exception when compiling the method */
-			java_object_t *o = exceptions_get_and_clear_exceptions();
+	switch (type)	{
+		case EXCEPTION_HARDWARE_COMPILER:
+			if (p == NULL)	{
+				/* exception when compiling the method */
+				java_object_t *o = exceptions_get_and_clear_exceptions();
 
-			_mc->gregs[R_SP] = sp;	/* remove RA from stack */
+				_mc->gregs[R_SP] = sp;	/* remove RA from stack */
 
-			_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (intptr_t) o;
+				_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (intptr_t) o;
+				_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (intptr_t) xpc;
+				_mc->gregs[R_PC]                             = (intptr_t) asm_handle_exception;
+
+			} else	{
+				/* compilation ok, execute */
+				_mc->gregs[R_PC] = p;
+			}
+			break;
+
+		case EXCEPTION_HARDWARE_PATCHER:
+			if (p == NULL) { 
+				/* no expcetion while patching, continue */
+				_mc->gregs[R_PC] = xpc;	
+				return;	
+			}
+			/* fall-through in case of exception */
+		default:
+			/* a normal exception with normal expcetion handling */
+			_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (intptr_t) p;
 			_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (intptr_t) xpc;
 			_mc->gregs[R_PC]                             = (intptr_t) asm_handle_exception;
-
-		} else	{
-			/* compilation ok, execute */
-			_mc->gregs[R_PC] = p;
-		}
-
-	} else	{
-		_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (intptr_t) p;
-		_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (intptr_t) xpc;
-		_mc->gregs[R_PC]                             = (intptr_t) asm_handle_exception;
 	}
 }
 

@@ -485,47 +485,77 @@ void emit_verbosecall_exit(jitdata* jd)
 
 	/* void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m); */
 
+    /* void trace_java_call_exit(methodinfo *m, uint64_t *return_regs) */
 
 	/* mark trace code */
 	M_NOP;
 
-#if !defined(ENABLE_SOFTFLOAT)
-	M_AADD_IMM(-8, REG_SP);
-	M_FSTORE(REG_D1, REG_SP, 0);
-#endif
+	/* to store result on stack */
+	M_AADD_IMM(-8, REG_SP);			/* create space for array */
 
+	switch (md->returntype.type)	{
+		case TYPE_ADR:
+		case TYPE_INT:
+	#if defined(ENABLE_SOFTFLOAT)
+		case TYPE_FLT:
+	#endif
+			M_IST(REG_D0, REG_SP, 0);
+			break;
+
+		case TYPE_LNG:
+	#if defined(ENABLE_SOFTFLOAT)
+		case TYPE_DBL:
+	#endif
+			M_LST(REG_D1, REG_SP, 0);
+			break;
+
+	#if !defined(ENABLE_SOFTFLOAT)
+		case TYPE_FLT:	/* FIXME */
+		case TYPE_DBL:  /* FIXME */
+	#endif
+
+		case TYPE_VOID: /* nothing */
+			break;
+
+		default:
+			assert(0);
+	}
+
+	M_APUSH(REG_SP);				/* push address of array */
 	M_IPUSH_IMM(m);					/* push methodinfo */
+	M_JSR_IMM(trace_java_call_exit);
 
-#if !defined(ENABLE_SOFTFLOAT)
-	M_AADD_IMM(-3*4, REG_SP);
-	M_FST(REG_D0, REG_SP, 8);
-	M_DST(REG_D0, REG_SP, 0);
-#else
-	M_IPUSH_IMM(0);
-
-	M_IPUSH_IMM(0);
-	M_IPUSH_IMM(0);
-#endif
-
-	M_IPUSH(GET_HIGH_REG(REG_RESULT_PACKED))
-	M_IPUSH(GET_LOW_REG(REG_RESULT_PACKED))		/* push long result */
-
-	M_JSR_IMM(builtin_verbosecall_exit);
-
+	M_AADD_IMM(8, REG_SP);			/* remove args */
 	/* poping result registers from stack */
-	M_IPOP(GET_LOW_REG(REG_RESULT_PACKED))
-	M_IPOP(GET_HIGH_REG(REG_RESULT_PACKED))
+	switch (md->returntype.type)	{
+		case TYPE_ADR:
+		case TYPE_INT:
+	#if defined(ENABLE_SOFTFLOAT)
+		case TYPE_FLT:
+	#endif
+			M_ILD(REG_D0, REG_SP, 0);
+			break;
 
-#if !defined(ENABLE_SOFTFLOAT)
-	M_DLD(REG_D0, REG_SP, 0)
-	M_FLD(REG_D0, REG_SP, 8)
-#endif
-	M_AADD_IMM(3*4 + 4, REG_SP);
+		case TYPE_LNG:
+	#if defined(ENABLE_SOFTFLOAT)
+		case TYPE_DBL:
+	#endif
+			M_LLD(REG_D1, REG_SP, 0);
+			break;
 
-#if !defined(ENABLE_SOFTFLOAT)
-	M_FLOAD(REG_D1, REG_SP, 0)
-	M_AADD_IMM(8, REG_SP);
-#endif
+	#if !defined(ENABLE_SOFTFLOAT)
+		case TYPE_FLT:	/* FIXME */
+		case TYPE_DBL:  /* FIXME */
+	#endif
+
+		case TYPE_VOID: /* nothing */
+			break;
+
+		default:
+			assert(0);
+	}
+
+	M_AADD_IMM(8, REG_SP);			/* remove space for array */
 
 	M_NOP;
 }
@@ -662,16 +692,16 @@ void emit_trap_compiler(codegendata *cd)
 
 uint32_t emit_trap(codegendata *cd)
 {
-	uint16_t mcode;
+	uint32_t mcode;
 
 	/* Get machine code which is patched back in later. The
 	   trap is 2 bytes long. */
 
-	mcode = *((uint16_t *) cd->mcodeptr);
+	mcode = *((uint32_t *) cd->mcodeptr);
 
 	M_TRAP(EXCEPTION_HARDWARE_PATCHER);
 
-	return (uint32_t) mcode;
+	return mcode;
 }
 
 

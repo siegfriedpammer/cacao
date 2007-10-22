@@ -51,86 +51,7 @@
 
 #include "codegen.h"
 
-/* patcher_wrapper *************************************************************
-
-   Wrapper for all patchers.  It also creates the stackframe info
-   structure.
-
-   If the return value of the patcher function is false, it gets the
-   exception object, clears the exception pointer and returns the
-   exception.
-
-*******************************************************************************/
-
-#if 0
-java_objectheader *patcher_wrapper(u1 *sp, u1 *pv, u1 *ra)
-{
-	stackframeinfo_t   sfi;
-	u1                *xpc;
-	java_objectheader *o;
-	functionptr        f;
-	bool               result;
-	java_objectheader *e;
-
-	/* define the patcher function */
-
-	bool (*patcher_function)(u1 *);
-
-	/* get stuff from the stack */
-
-	xpc = (u1 *)                *((ptrint *) (sp + 6 * 4));
-	/* REG_ITMP3 				  sp + 5 * 4 */
-	o   = (java_objectheader *) *((ptrint *) (sp + 4 * 4));
-	/*mcode = 				    *((u4*)      (sp + 3 * 4));*/
-	/*xmcode = 		   			*((u4*)      (sp + 2 * 4));*/
-	/* unresolved file                        sp + 1 * 4 */
-	f   = (functionptr)         *((ptrint *) (sp + 0 * 4));
-
-
-	/* calculate and set the new return address */
-	xpc = xpc - PATCHER_CALL_SIZE;
-	*((ptrint *) (sp + 6 * 4)) = (ptrint) xpc;
-
-
-	/* cast the passed function to a patcher function */
-	patcher_function = (bool (*)(u1 *)) (ptrint) f;
-
-	/* enter a monitor on the patching position */
-	PATCHER_MONITORENTER;
-
-	/* create the stackframeinfo */
-
-	/* RA is passed as NULL, but the XPC is correct and can be used in
-	   stacktrace_stackframeinfo_add for md_codegen_get_pv_from_pc. */
-
-	/*
-	fprintf(stderr, "EXT STACKFRAME: sfi=%x pv=%x, sp=%x, xpc=%x\n", &sfi, pv, sp+7*4, xpc);
-	*/
-	stacktrace_stackframeinfo_add(&sfi, pv, sp + 7 * 4, xpc, xpc);
-
-	/* call the proper patcher function */
-	result = (patcher_function)(sp);
-
-
-	/* remove the stackframeinfo */
-	stacktrace_stackframeinfo_remove(&sfi);
-
-	/* check for return value and exit accordingly */
-	if (result == false) {
-		e = exceptions_get_and_clear_exception();
-
-		PATCHER_MONITOREXIT;
-
-		return e;
-	}
-	PATCHER_MARK_PATCHED_MONITOREXIT;
-
-	return NULL;
-}
-#endif
-
-
-#define PATCH_BACK_ORIGINAL_MCODE  *((u8*)(pr->mpc)) = pr->mcode
+#define PATCH_BACK_ORIGINAL_MCODE  *((u4*)(pr->mpc)) = pr->mcode
 
 /* patcher_initialize_class ****************************************************
 
@@ -151,7 +72,7 @@ void patcher_patch_code(patchref_t *pr)
 #endif
 
 	PATCH_BACK_ORIGINAL_MCODE;
-	md_icacheflush((void*)pr->mpc, 8);
+	md_icacheflush((void*)pr->mpc, 2);
 
 }
 
@@ -223,7 +144,7 @@ bool patcher_invokevirtual(patchref_t *pr)
 	*((s2 *) (ra + 10)) = disp;
 
 	/* synchronize instruction cache */
-	md_icacheflush(ra + 10, 2);
+	md_icacheflush(pr->mpc, 10 + 2 + PATCHER_CALL_SIZE);
 
 	return true;
 }
@@ -263,42 +184,11 @@ bool patcher_invokestatic_special(patchref_t *pr)
 
 	/* synchronize inst cache */
 
-	md_icacheflush((void*)(disp+2), SIZEOF_VOID_P);
+	md_icacheflush(pr->mpc, PATCHER_CALL_SIZE+2+SIZEOF_VOID_P);
 
 	return true;
 }
 
-
-#if 0
-/* patcher_resolve_class *******************************************************
-
-   Resolves a given unresolved_class pointer.  This function does not
-   patch any data.
-
-*******************************************************************************/
-
-#ifdef ENABLE_VERIFIER
-bool patcher_resolve_class(patchref_t *pr)
-{
-	unresolved_class *uc;
-	classinfo        *c;
-	s4				disp;
-
-	/* get stuff from the stack */
-	uc = (unresolved_class *) *((ptrint *) (sp + 1 * 4));
-	disp =                    *((s4 *)     (sp + 6 * 4));
-
-	/* resolve the class */
-	if (!resolve_class(uc, resolveEager, false, &c))
-		return false;
-
-	/* patch back original code */
-	PATCH_BACK_ORIGINAL_MCODE;
-
-	return true;
-}
-#endif /* ENABLE_VERIFIER */
-#endif
 
 /* patcher_resolve_classref_to_classinfo ***************************************
   ACONST:
@@ -327,7 +217,7 @@ bool patcher_resolve_classref_to_classinfo(patchref_t *pr)
 	*((ptrint *) (disp+2)) = (ptrint) c;
 
 	/* synchronize inst cache */
-	md_icacheflush(disp+2, SIZEOF_VOID_P);
+	md_icacheflush(pr->mpc, PATCHER_CALL_SIZE + 2 + SIZEOF_VOID_P);
 
 	return true;
 }
@@ -359,6 +249,7 @@ bool patcher_get_putstatic(patchref_t *pr)
 
 	/* patch back original code */
 	PATCH_BACK_ORIGINAL_MCODE;
+	md_icacheflush(pr->mpc, 2);
 
 	/* patch the field value's address */
 	if (opt_shownops) disp += PATCHER_CALL_SIZE;
@@ -394,6 +285,7 @@ bool patcher_get_putfield(patchref_t *pr)
 
 	/* patch back original code */
 	PATCH_BACK_ORIGINAL_MCODE;
+	md_icacheflush(pr->mpc, 2);
 
 	/* if we show NOPs, we have to skip them */
 	if (opt_shownops) ra += PATCHER_CALL_SIZE;
@@ -480,6 +372,7 @@ bool patcher_resolve_classref_to_flags(patchref_t *pr)
 
 	/* patch back original code */
 	PATCH_BACK_ORIGINAL_MCODE;
+	md_icacheflush(pr->mpc, 2);
 
 	/* patch class flags */
 	if (opt_shownops) disp += PATCHER_CALL_SIZE;
@@ -523,6 +416,7 @@ bool patcher_resolve_classref_to_vftbl(patchref_t *pr)
 
 	/* patch back original code */
 	PATCH_BACK_ORIGINAL_MCODE;
+	md_icacheflush(pr->mpc, 2);
 
 	/* patch super class' vftbl */
 	if (opt_shownops) disp += PATCHER_CALL_SIZE;
@@ -568,6 +462,7 @@ bool patcher_instanceof_interface(patchref_t *pr)
 
 	/* patch back original code */
 	PATCH_BACK_ORIGINAL_MCODE;
+	md_icacheflush(pr->mpc, 2);
 
 	/* if we show NOPs, we have to skip them */
 	if (opt_shownops) ra += PATCHER_CALL_SIZE;
@@ -621,6 +516,7 @@ bool patcher_checkcast_interface(patchref_t *pr)
 
 	/* patch back original code */
 	PATCH_BACK_ORIGINAL_MCODE;
+	md_icacheflush(pr->mpc, 2);
 
 	/* if we show NOPs, we have to skip them */
 	if (opt_shownops) ra += PATCHER_CALL_SIZE;
@@ -664,6 +560,7 @@ bool patcher_resolve_native_function(patchref_t *pr)
 
 	/* patch back original code */
 	PATCH_BACK_ORIGINAL_MCODE;
+	md_icacheflush(pr->mpc, 2);
 
 	/* patch native function pointer */
 	if (opt_shownops) disp += PATCHER_CALL_SIZE;
@@ -705,6 +602,7 @@ bool patcher_invokeinterface(patchref_t *pr)
 
 	/* patch back original code */
 	PATCH_BACK_ORIGINAL_MCODE;
+	md_icacheflush(pr->mpc, 2);
 
 	/* if we show NOPs, we have to skip them */
 	if (opt_shownops) ra += PATCHER_CALL_SIZE;
