@@ -385,12 +385,15 @@ bool codegen_emit(jitdata *jd)
 
 			MCODECHECK(64);   /* an instruction usually needs < 64 words      */
 
-			/* the big switch */
-			switch (iptr->opc) {
-		case ICMD_NOP:        /* ... ==> ...                                  */
+		/* the big switch */
+		switch (iptr->opc) {
+
+		case ICMD_NOP:        /* ...  ==> ...                                 */
+		case ICMD_POP:        /* ..., value  ==> ...                          */
+		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
 			break;
 
-	/* constant operations ************************************************/
+		/* constant operations ************************************************/
 
 		case ICMD_ICONST:     /* ...  ==> ..., constant                       */
 
@@ -468,17 +471,9 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_ASTORE:
+
 			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
 				emit_copy(jd, iptr);
-			break;
-
-		/* pop operations *****************************************************/
-
-		/* attention: double and longs are only one entry in CACAO ICMDs      */
-
-		case ICMD_POP:        /* ..., value  ==> ...                          */
-		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
-
 			break;
 
 
