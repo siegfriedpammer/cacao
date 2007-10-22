@@ -1707,7 +1707,7 @@ java_handle_t *exceptions_fillinstacktrace(void)
 *******************************************************************************/
 
 #if defined(ENABLE_JIT)
-u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
+void *exceptions_handle_exception(java_object_t *xptro, void *xpc, void *pv, void *sp)
 {
 	stackframeinfo_t        sfi;
 	java_handle_t          *xptr;
@@ -1721,11 +1721,11 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 #if defined(ENABLE_THREADS)
 	java_object_t          *o;
 #endif
-	u1                     *result;
+	void                   *result;
 
 #ifdef __S390__
 	/* Addresses are 31 bit integers */
-#	define ADDR_MASK(x) (u1 *)((u4)(x) & 0x7FFFFFFF)
+#	define ADDR_MASK(x) (void *) ((uintptr_t) (x) & 0x7FFFFFFF)
 #else
 #	define ADDR_MASK(x) (x)
 #endif
@@ -1748,7 +1748,7 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 	   can return the proper exception handler. */
 
 	if (code == NULL) {
-		result = (u1 *) (uintptr_t) &asm_vm_call_method_exception_handler;
+		result = (void *) (uintptr_t) &asm_vm_call_method_exception_handler;
 		goto exceptions_handle_exception_return;
 	}
 
@@ -1873,7 +1873,7 @@ u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp)
 	if (code_is_synchronized(code)) {
 		/* Get synchronization object. */
 
-		o = *((java_object_t **) (sp + code->synchronizedoffset));
+		o = *((java_object_t **) (((uintptr_t) sp) + code->synchronizedoffset));
 
 		assert(o != NULL);
 
