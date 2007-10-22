@@ -567,7 +567,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 			if (bptr->next != NULL) {
 				for (; pc < (u1 *) (code->mcode + cd->dseglen + bptr->next->mpc);) {
 					currentlinenumber =
-						dseg_get_linenumber_from_pc(&m, code->entrypoint, pc);
+						linenumbertable_linenumber_for_pc(&m, code->entrypoint, pc);
 
 					if (currentlinenumber != linenumber) {
 						linenumber = currentlinenumber;
@@ -580,7 +580,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 			else {
 				for (; pc < (u1 *) (code->mcode + code->mcodelength);) {
 					currentlinenumber =
-						dseg_get_linenumber_from_pc(&m, code->entrypoint, pc);
+						linenumbertable_linenumber_for_pc(&m, code->entrypoint, pc);
 
 					if (currentlinenumber != linenumber) {
 						linenumber = currentlinenumber;
