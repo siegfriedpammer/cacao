@@ -70,6 +70,7 @@
 #include "vmcore/loader.h"
 #include "vmcore/method.h"
 #include "vmcore/options.h"
+#include "vmcore/system.h"
 
 #if defined(ENABLE_VMLOG)
 #include <vmlog_cacao.h>
@@ -100,9 +101,9 @@ void exceptions_init(void)
 	/* mmap a memory page at address 0x0, so our hardware-exceptions
 	   work. */
 
-	pagesize = getpagesize();
+	pagesize = system_getpagesize();
 
-	(void) memory_mmap_anon(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
+	(void) system_mmap_anonymous(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
 #endif
 
 	/* check if we get into trouble with our hardware-exceptions */
