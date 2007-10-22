@@ -71,8 +71,6 @@
 
 	.align  2
 
-	.word   0                           /* line number table start            */
-	.word   0                           /* line number table size             */
 	.word   0                           /* FltSave                            */
 	.word   0                           /* IntSave                            */
 	.word   0                           /* IsLeaf                             */

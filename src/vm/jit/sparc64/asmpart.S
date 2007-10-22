@@ -72,8 +72,6 @@
 
 	.align 8	/* v9: All data types are aligned to their size */
 
-	.xword 0                         /* line number table start */
-	.xword 0                         /* line number table size */
 	.word  0                         /* fltsave */
 	.word  1                         /* intsave */
 	.word  0                         /* isleaf */

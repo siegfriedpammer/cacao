@@ -30,8 +30,7 @@
 
 /* forward typedefs ***********************************************************/
 
-typedef struct dsegentry             dsegentry;
-typedef struct linenumbertable_entry linenumbertable_entry;
+typedef struct dsegentry dsegentry;
 
 
 #include "config.h"
@@ -65,17 +64,6 @@ struct dsegentry {
 };
 
 
-/* linenumbertable_entry ******************************************************/
-
-/* Keep the type of line the same as the pointer type, otherwise we
-   run into alignment troubles (like on MIPS64). */
-
-struct linenumbertable_entry {
-	ptrint  line;               /* NOTE: see doc/inlining_stacktrace.txt for  */
-	u1     *pc;                 /*       special meanings of line and pc.     */
-};
-
-
 /* function prototypes ********************************************************/
 
 void dseg_finish(jitdata *jd);
@@ -94,15 +82,6 @@ s4 dseg_add_address(codegendata *cd, void *value);
 
 void dseg_add_unique_target(codegendata *cd, basicblock *target);
 void dseg_add_target(codegendata *cd, basicblock *target);
-
-void dseg_addlinenumbertablesize(codegendata *cd);
-void dseg_addlinenumber(codegendata *cd, u2 linenumber);
-void dseg_addlinenumber_inline_start(codegendata *cd, instruction *iptr);
-void dseg_addlinenumber_inline_end(codegendata *cd, instruction *iptr);
-
-void dseg_createlinenumbertable(codegendata *cd);
-
-s4 dseg_get_linenumber_from_pc(methodinfo **pm, u1 *pv, u1 *pc);
 
 #if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(__M68K__) || defined(ENABLE_INTRP)
 void dseg_adddata(codegendata *cd);

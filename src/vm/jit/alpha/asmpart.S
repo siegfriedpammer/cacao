@@ -79,8 +79,6 @@
 
 	.align  3
 
-	.quad   0                           /* line number table start            */
-	.quad   0                           /* line number table size             */
 	.long   0                           /* fltsave                            */
 	.long   1                           /* intsave                            */
 	.long   0                           /* isleaf                             */

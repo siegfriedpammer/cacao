@@ -55,6 +55,7 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/linenumbertable.h"
 #include "vm/jit/md.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/parse.h"
@@ -157,8 +158,6 @@ bool codegen_emit(jitdata *jd)
 
 	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
 	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
-
-	(void) dseg_addlinenumbertablesize(cd);
 
 	/* save return address and used callee saved registers */
 
@@ -379,7 +378,7 @@ bool codegen_emit(jitdata *jd)
 
 			/* add line number */
 			if (iptr->line != currentline) {
-				dseg_addlinenumber(cd, iptr->line);
+				linenumbertable_list_entry_add(cd, iptr->line);
 				currentline = iptr->line;
 			}
 
@@ -2819,9 +2818,6 @@ bool codegen_emit(jitdata *jd)
 
 	} /* for all basic blocks */
 
-	dseg_createlinenumbertable(cd);
-
-
 	/* generate traps */
 
 	emit_patcher_traps(jd);
@@ -2898,12 +2894,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
 	(void) dseg_add_unique_s4(cd, cd->stackframesize);     /* FrameSize       */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
 	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
-	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
 
 	/* generate stub code */
 

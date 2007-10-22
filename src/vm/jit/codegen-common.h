@@ -134,13 +134,7 @@ struct codegendata {
 
 	list_t         *brancheslabel;
 	list_t         *listcritical;   /* list of critical sections              */
-
-	linenumberref  *linenumberreferences; /* list of line numbers and the     */
-	                                /* program counters of their first        */
-	                                /* instruction                            */
-	s4              linenumbertablesizepos;
-	s4              linenumbertablestartpos;
-	s4              linenumbertab;
+	list_t         *linenumbers;    /* list of line numbers                   */
 
 	methodinfo     *method;
 

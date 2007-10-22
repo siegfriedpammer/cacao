@@ -89,6 +89,7 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/linenumbertable.h"
 #include "vm/jit/md.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher-common.h"
@@ -210,11 +211,7 @@ void codegen_setup(jitdata *jd)
 
 	cd->brancheslabel  = list_create_dump(OFFSET(branch_label_ref_t, linkage));
 	cd->listcritical   = list_create_dump(OFFSET(critical_section_ref_t, linkage));
-
-	cd->linenumberreferences = NULL;
-	cd->linenumbertablesizepos = 0;
-	cd->linenumbertablestartpos = 0;
-	cd->linenumbertab = 0;
+	cd->linenumbers    = list_create_dump(OFFSET(linenumbertable_list_entry_t, linkage));
 }
 
 
@@ -256,11 +253,7 @@ static void codegen_reset(jitdata *jd)
 
 	cd->brancheslabel   = list_create_dump(OFFSET(branch_label_ref_t, linkage));
 	cd->listcritical    = list_create_dump(OFFSET(critical_section_ref_t, linkage));
-
-	cd->linenumberreferences    = NULL;
-	cd->linenumbertablesizepos  = 0;
-	cd->linenumbertablestartpos = 0;
-	cd->linenumbertab           = 0;
+	cd->linenumbers     = list_create_dump(OFFSET(linenumbertable_list_entry_t, linkage));
 	
 	/* We need to clear the mpc and the branch references from all
 	   basic blocks as they will definitely change. */
@@ -1004,35 +997,15 @@ void codegen_finish(jitdata *jd)
 
 	exceptiontable_create(jd);
 
+	/* Create the linenumber table. */
+
+	linenumbertable_create(jd);
+
 	/* jump table resolving */
 
 	for (jr = cd->jumpreferences; jr != NULL; jr = jr->next)
 		*((functionptr *) ((ptrint) epoint + jr->tablepos)) =
 			(functionptr) ((ptrint) epoint + (ptrint) jr->target->mpc);
-
-	/* line number table resolving */
-	{
-		linenumberref *lr;
-		ptrint lrtlen = 0;
-		ptrint target;
-
-		for (lr = cd->linenumberreferences; lr != NULL; lr = lr->next) {
-			lrtlen++;
-			target = lr->targetmpc;
-			/* if the entry contains an mcode pointer (normal case), resolve it */
-			/* (see doc/inlining_stacktrace.txt for details)                    */
-			if (lr->linenumber >= -2) {
-			    target += (ptrint) epoint;
-			}
-			*((functionptr *) ((ptrint) epoint + (ptrint) lr->tablepos)) = 
-				(functionptr) target;
-		}
-		
-		*((functionptr *) ((ptrint) epoint + cd->linenumbertablestartpos)) =
-			(functionptr) ((ptrint) epoint + cd->linenumbertab);
-
-		*((ptrint *) ((ptrint) epoint + cd->linenumbertablesizepos)) = lrtlen;
-	}
 
 	/* patcher resolving */
 

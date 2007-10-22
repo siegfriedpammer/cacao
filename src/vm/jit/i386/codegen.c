@@ -57,6 +57,7 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/linenumbertable.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/reg.h"
@@ -165,13 +166,6 @@ bool codegen_emit(jitdata *jd)
 
 	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
 	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
-
-	/* adds a reference for the length of the line number counter. We don't
-	   know the size yet, since we evaluate the information during code
-	   generation, to save one additional iteration over the whole
-	   instructions. During code optimization the position could have changed
-	   to the information gotten from the class file */
-	(void) dseg_addlinenumbertablesize(cd);
 
 #if defined(ENABLE_PROFILING)
 	/* generate method profiling code */
@@ -482,7 +476,7 @@ bool codegen_emit(jitdata *jd)
 
 		for (iptr = bptr->iinstr; len > 0; len--, iptr++) {
 			if (iptr->line != currentline) {
-				dseg_addlinenumber(cd, iptr->line);
+				linenumbertable_list_entry_add(cd, iptr->line);
 				currentline = iptr->line;
 			}
 
@@ -502,14 +496,14 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_INLINE_BODY:
 
 			REPLACEMENT_POINT_INLINE_BODY(cd, iptr);
-			dseg_addlinenumber_inline_start(cd, iptr);
-			dseg_addlinenumber(cd, iptr->line);
+			linenumbertable_list_entry_add_inline_start(cd, iptr);
+			linenumbertable_list_entry_add(cd, iptr->line);
 			break;
 
 		case ICMD_INLINE_END:
 
-			dseg_addlinenumber_inline_end(cd, iptr);
-			dseg_addlinenumber(cd, iptr->line);
+			linenumbertable_list_entry_add_inline_end(cd, iptr);
+			linenumbertable_list_entry_add(cd, iptr->line);
 			break;
 
 		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
@@ -3447,8 +3441,6 @@ gen_method:
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
-	dseg_createlinenumbertable(cd);
-
 	/* generate stubs */
 
 	emit_patcher_traps(jd);
@@ -3504,12 +3496,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
 	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
 	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
-	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
 
 #if defined(ENABLE_PROFILING)
 	/* generate native method profiling code */

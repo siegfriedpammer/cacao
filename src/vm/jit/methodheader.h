@@ -40,8 +40,6 @@
 #define IsLeaf                  -16
 #define IntSave                 -20
 #define FltSave                 -24
-#define LineNumberTableSize     -32
-#define LineNumberTableStart    -40
        
 #else /* SIZEOF_VOID_P == 8 */
 
@@ -50,8 +48,6 @@
 #define IsLeaf                  -12
 #define IntSave                 -16
 #define FltSave                 -20
-#define LineNumberTableSize     -24
-#define LineNumberTableStart    -28
 
 #endif /* SIZEOF_VOID_P == 8 */
 

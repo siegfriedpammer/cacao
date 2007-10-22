@@ -103,8 +103,6 @@ L_bras_##tag:                                                                   
 *                                                                              *
 *******************************************************************************/
 
-	.long   0                         /* line number table start              */
-	.long   0                         /* line number table size               */
 	.long   0                         /* fltsave                              */
 	.long   0                         /* intsave                              */
 	.long   0                         /* IsLeaf                               */

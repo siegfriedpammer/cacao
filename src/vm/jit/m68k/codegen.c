@@ -57,6 +57,7 @@
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/abi.h"
+#include "vm/jit/linenumbertable.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
@@ -151,8 +152,6 @@ bool codegen_emit(jitdata *jd)
 		/* XXX we use the IntSave a split field for the adr now */
 		(void) dseg_add_unique_s4(cd, (ADR_SAV_CNT - rd->savadrreguse) << 16 | (INT_SAV_CNT - rd->savintreguse)); /* IntSave */
 		(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
-
-		dseg_addlinenumbertablesize(cd);
 
 #if defined(ENABLE_PROFILING)
 		assert(0);
@@ -321,7 +320,7 @@ bool codegen_emit(jitdata *jd)
 
 	for (iptr = bptr->iinstr; len > 0; len--, iptr++) {
 		if (iptr->line != currentline) {
-			dseg_addlinenumber(cd, iptr->line);
+			linenumbertable_list_entry_add(cd, iptr->line);
 			currentline = iptr->line;
 		}
 
@@ -341,14 +340,14 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_INLINE_BODY:
 
 			REPLACEMENT_POINT_INLINE_BODY(cd, iptr);
-			dseg_addlinenumber_inline_start(cd, iptr);
-			dseg_addlinenumber(cd, iptr->line);
+			linenumbertable_list_entry_add_inline_start(cd, iptr);
+			linenumbertable_list_entry_add(cd, iptr->line);
 			break;
 
 		case ICMD_INLINE_END:
 
-			dseg_addlinenumber_inline_end(cd, iptr);
-			dseg_addlinenumber(cd, iptr->line);
+			linenumbertable_list_entry_add_inline_end(cd, iptr);
+			linenumbertable_list_entry_add(cd, iptr->line);
 			break;
 
 		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
@@ -2369,8 +2368,6 @@ nowperformreturn:
 	} /* if (btpre->flags >= BBREACHED) */
 	} /* for each basic block */
 
-	dseg_createlinenumbertable(cd);
-
 	/* generate stubs */
 	emit_patcher_traps(jd);
 
@@ -2433,14 +2430,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		4;						/* args for codegen_start_native_call */
 
 	/* create method header */
-	(void) dseg_add_unique_address(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4);         /* FrameSize       */
-	(void) dseg_add_unique_s4(cd, 0);                              /* IsSync          */
-	(void) dseg_add_unique_s4(cd, 0);                              /* IsLeaf          */
-	(void) dseg_add_unique_s4(cd, 0);                              /* IntSave         */
-	(void) dseg_add_unique_s4(cd, 0);                              /* FltSave         */
-	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_add_unique_s4(cd, 0);                              /* ExTableSize     */
+	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
+	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
+	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
 
 	/* print call trace */
 #if !defined(NDEBUG)
