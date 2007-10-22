@@ -976,8 +976,8 @@ jitdata *jit_jitdata_new(methodinfo *m)
 
 	if (checksync && (m->flags & ACC_SYNCHRONIZED))
 		code_unflag_leafmethod(code);
-#endif
 	else
+#endif
 		code_flag_leafmethod(code);
 
 	/* initialize variables */

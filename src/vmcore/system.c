@@ -1,4 +1,4 @@
-/* src/vm/system.c - system (OS) functions
+/* src/vmcore/system.c - system (OS) functions
 
    Copyright (C) 2007
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
@@ -25,8 +25,28 @@
 
 #include "config.h"
 
-#include <stdint.h>
-#include <unistd.h>
+/* NOTE: In this file we check for all system headers, because we wrap
+   all system calls into functions for better portability. */
+
+#if defined(HAVE_ERRNO_H)
+# include <errno.h>
+#endif
+
+#if defined(HAVE_STDINT_H)
+# include <stdint.h>
+#endif
+
+#if defined(HAVE_STRING_H)
+# include <string.h>
+#endif
+
+#if defined(HAVE_UNISTD_H)
+# include <unistd.h>
+#endif
+
+#if defined(HAVE_SYS_MMAN_H)
+# include <sys/mman.h>
+#endif
 
 #if defined(__DARWIN__)
 # include <mach/mach.h>
@@ -36,6 +56,49 @@
 
 /* this should work on BSD */
 /* #include <sys/sysctl.h> */
+
+#include "vm/vm.h"
+
+
+/* system_mmap_anonymous *******************************************************
+
+   Maps anonymous memory, even on systems not defining
+   MAP_ANON(YMOUS).
+
+*******************************************************************************/
+
+void *system_mmap_anonymous(void *addr, size_t len, int prot, int flags)
+{
+	void *p;
+
+#if defined(MAP_ANON) || defined(MAP_ANONYMOUS)
+	p = mmap(addr, len, prot,
+# if defined(MAP_ANON)
+			 MAP_ANON | flags,
+# else
+			 MAP_ANONYMOUS | flags,
+# endif
+			 -1, 0);
+#else
+	int fd;
+
+	fd = open("/dev/zero", O_RDONLY, 0);
+
+	if (fd == -1)
+		vm_abort("system_mmap_anonymous: open failed: %s", strerror(errno));
+
+	p = mmap(addr, len, prot, flags, fd, 0);
+#endif
+
+#if defined(MAP_FAILED)
+	if (p == MAP_FAILED)
+#else
+	if (p == (void *) -1)
+#endif
+		vm_abort("system_mmap_anonymous: mmap failed: %s", strerror(errno));
+
+	return p;
+}
 
 
 /* system_processors_online ****************************************************

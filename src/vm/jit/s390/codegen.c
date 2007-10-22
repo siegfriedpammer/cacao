@@ -57,6 +57,7 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/linenumbertable.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher-common.h"
@@ -76,9 +77,10 @@
  * purpose registers.
  */
 
+/*
 static void do__log(u4 *regs) {
-	/* insert stuff here */
 }
+*/
 
 #define DO__LOG \
 	N_AHI(REG_SP, -200); \
@@ -89,7 +91,11 @@ static void do__log(u4 *regs) {
 	N_LM(R0, R15, 96, REG_SP); \
 	N_AHI(REG_SP, 200);
 
-#define SUPPORT_HERCULES 1
+/* If the following macro is defined, workaround code for hercules quirks
+ * is generated
+ */
+
+/* #define SUPPORT_HERCULES 1 */
 
 /* codegen *********************************************************************
 
@@ -130,8 +136,7 @@ bool codegen_emit(jitdata *jd)
 	registerdata       *rd;
 	s4                  len, s1, s2, s3, d, dd, disp;
 	u2                  currentline;
-	ptrint              a;
-	varinfo            *var, *var1, *var2, *dst;
+	varinfo            *var;
 	basicblock         *bptr;
 	instruction        *iptr;
 	constant_classref  *cr;
@@ -216,8 +221,6 @@ bool codegen_emit(jitdata *jd)
 
 	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
 	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
-
-	(void) dseg_addlinenumbertablesize(cd);
 
 	/* Offset PV */
 
@@ -498,7 +501,7 @@ bool codegen_emit(jitdata *jd)
 
 		for (iptr = bptr->iinstr; len > 0; len--, iptr++) {
 			if (iptr->line != currentline) {
-				dseg_addlinenumber(cd, iptr->line);
+				linenumbertable_list_entry_add(cd, iptr->line);
 				currentline = iptr->line;
 			}
 
@@ -518,14 +521,14 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_INLINE_BODY:
 
 			REPLACEMENT_POINT_INLINE_BODY(cd, iptr);
-			dseg_addlinenumber_inline_start(cd, iptr);
-			dseg_addlinenumber(cd, iptr->line);
+			linenumbertable_list_entry_add_inline_start(cd, iptr);
+			linenumbertable_list_entry_add(cd, iptr->line);
 			break;
 
 		case ICMD_INLINE_END:
 
-			dseg_addlinenumber_inline_end(cd, iptr);
-			dseg_addlinenumber(cd, iptr->line);
+			linenumbertable_list_entry_add_inline_end(cd, iptr);
+			linenumbertable_list_entry_add(cd, iptr->line);
 			break;
 
 		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
@@ -1619,7 +1622,9 @@ bool codegen_emit(jitdata *jd)
 
 		case ICMD_F2D:       /* ..., value  ==> ..., (double) value           */
 			{
+#ifdef SUPPORT_HERCULES
 				u1 *ref;
+#endif
 				s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
 #ifdef SUPPORT_HERCULES
@@ -3444,8 +3449,6 @@ gen_method:
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 
-	dseg_createlinenumbertable(cd);
-
 	/* generate stubs */
 
 	emit_patcher_traps(jd);
@@ -3550,12 +3553,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
 	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
 	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
-	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
 
 	/* generate code */
 

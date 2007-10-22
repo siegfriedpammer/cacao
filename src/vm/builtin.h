@@ -140,6 +140,8 @@ s4 builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o);
 
 void *builtin_throw_exception(java_object_t *exception);
 /* NOT AN OP */
+java_object_t *builtin_retrieve_exception(void);
+/* NOT AN OP */
 
 java_handle_t *builtin_new(classinfo *c);
 /* NOT AN OP */

@@ -55,6 +55,7 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/linenumbertable.h"
 #include "vm/jit/md.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/parse.h"
@@ -157,8 +158,6 @@ bool codegen_emit(jitdata *jd)
 
 	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
 	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
-
-	(void) dseg_addlinenumbertablesize(cd);
 
 	/* save return address and used callee saved registers */
 
@@ -379,18 +378,21 @@ bool codegen_emit(jitdata *jd)
 
 			/* add line number */
 			if (iptr->line != currentline) {
-				dseg_addlinenumber(cd, iptr->line);
+				linenumbertable_list_entry_add(cd, iptr->line);
 				currentline = iptr->line;
 			}
 
 			MCODECHECK(64);   /* an instruction usually needs < 64 words      */
 
-			/* the big switch */
-			switch (iptr->opc) {
-		case ICMD_NOP:        /* ... ==> ...                                  */
+		/* the big switch */
+		switch (iptr->opc) {
+
+		case ICMD_NOP:        /* ...  ==> ...                                 */
+		case ICMD_POP:        /* ..., value  ==> ...                          */
+		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
 			break;
 
-	/* constant operations ************************************************/
+		/* constant operations ************************************************/
 
 		case ICMD_ICONST:     /* ...  ==> ..., constant                       */
 
@@ -468,17 +470,9 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_ASTORE:
+
 			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
 				emit_copy(jd, iptr);
-			break;
-
-		/* pop operations *****************************************************/
-
-		/* attention: double and longs are only one entry in CACAO ICMDs      */
-
-		case ICMD_POP:        /* ..., value  ==> ...                          */
-		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
-
 			break;
 
 
@@ -2824,9 +2818,6 @@ bool codegen_emit(jitdata *jd)
 
 	} /* for all basic blocks */
 
-	dseg_createlinenumbertable(cd);
-
-
 	/* generate traps */
 
 	emit_patcher_traps(jd);
@@ -2903,12 +2894,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
 	(void) dseg_add_unique_s4(cd, cd->stackframesize);     /* FrameSize       */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
 	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
-	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
 
 	/* generate stub code */
 

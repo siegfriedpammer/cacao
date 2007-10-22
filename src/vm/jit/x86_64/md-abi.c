@@ -61,7 +61,7 @@ const s4 abi_registers_integer_argument[] = {
 };
 
 const s4 abi_registers_integer_saved[] = {
-	7,  /* s0 */
+	5,  /* s0 */
 	12, /* s1 */
 	13, /* s2 */
 	14, /* s3 */

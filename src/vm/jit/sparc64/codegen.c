@@ -37,6 +37,7 @@
 
 /* #include "vm/jit/sparc64/arch.h" */
 #include "vm/jit/sparc64/codegen.h"
+#include "vm/jit/sparc64/emit.h"
 
 #include "mm/memory.h"
 
@@ -52,13 +53,14 @@
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
-#include "vm/jit/sparc64/emit.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/linenumbertable.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/stacktrace.h"
+
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 
@@ -199,8 +201,6 @@ bool codegen_emit(jitdata *jd)
 
 	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
 	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
-
-	dseg_addlinenumbertablesize(cd);
 
 	/* save register window and create stack frame (if necessary) */
 
@@ -446,7 +446,7 @@ bool codegen_emit(jitdata *jd)
 
 		for (iptr = bptr->iinstr; len > 0; len--, iptr++) {
 			if (iptr->line != currentline) {
-				dseg_addlinenumber(cd, iptr->line);
+				linenumbertable_list_entry_add(cd, iptr->line);
 				currentline = iptr->line;
 			}
 
@@ -3025,8 +3025,6 @@ gen_method:
 	} /* if (bptr -> flags >= BBREACHED) */
 	} /* for basic block */
 	
-	dseg_createlinenumbertable(cd);
-
 	/* generate stubs */
 
 	emit_patcher_stubs(jd);
@@ -3102,16 +3100,12 @@ void codegen_emit_stub_builtin(jitdata *jd, builtintable_entry *bte)
 	/* create method header */
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
 	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4); /* FrameSize       */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
 	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
-	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
-
 
 	/* generate stub code */
-	M_SAVE(REG_SP, -cd->stackframesize * 8, REG_SP); /* build up stackframe    */
+	M_SAVE(REG_SP, -cd->stackframesize * 8, REG_SP); /* build up stackframe   */
 
 #if defined(ENABLE_GC_CACAO)
 	/* Save callee saved integer registers in stackframeinfo (GC may
@@ -3283,12 +3277,9 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
 	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
-	(void) dseg_add_unique_s4(cd, 0);                      /* IsSync          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
 	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
-	(void) dseg_addlinenumbertablesize(cd);
-	(void) dseg_add_unique_s4(cd, 0);                      /* ExTableSize     */
 
 	/* generate stub code */
 

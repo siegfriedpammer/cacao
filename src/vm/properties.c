@@ -451,7 +451,7 @@ void properties_set(void)
 
 	/* Set the java.ext.endorsed property. */
 
-	len = strlen(java_home) + strlen("/lib/endorsed") + strlen("0");
+	len = strlen(java_home) + strlen("/jre/lib/endorsed") + strlen("0");
 
 	endorseddirs = MNEW(char, len);
 

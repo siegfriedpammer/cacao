@@ -83,8 +83,6 @@
 
 #if SIZEOF_VOID_P == 8
 
-	.dword  0                           /* line number table start            */
-	.dword  0                           /* line number table size             */
 	.word   0                           /* fltsave                            */
 	.word   0                           /* intsave                            */
 	.word   0                           /* isleaf                             */
@@ -93,8 +91,6 @@
 
 #else /* SIZEOF_VOID_P == 8 */
 
-	.word   0                           /* line number table start            */
-	.word   0                           /* line number table size             */
 	.word   0                           /* fltsave                            */
 	.word   0                           /* intsave                            */
 	.word   0                           /* isleaf                             */

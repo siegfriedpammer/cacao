@@ -71,8 +71,6 @@ libvm_la_SOURCES = \
 	signallocal.h \
 	string.c \
 	stringlocal.h \
-	system.c \
-	system.h \
 	vm.c \
 	vm.h
 

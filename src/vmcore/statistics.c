@@ -104,6 +104,9 @@ s4 size_lock_record      = 0;
 s4 size_lock_hashtable   = 0;
 s4 size_lock_waiter      = 0;
 
+int32_t count_linenumbertable = 0;
+int32_t size_linenumbertable  = 0;
+
 s4 size_patchref         = 0;
 
 u8 count_calls_java_to_native = 0;
@@ -659,22 +662,24 @@ void statistics_print_memory_usage(void)
 
 	log_println("memory usage ----------------------");
 	log_println("");
-	log_println("code:                   %10d", count_code_len);
-	log_println("data:                   %10d", count_data_len);
-	log_println("                         ----------");
+	log_println("code:                      %10d", count_code_len);
+	log_println("data:                      %10d", count_data_len);
+	log_println("                            ----------");
 
 	sum =
 		count_code_len +
 		count_data_len;
 
-	log_println("                        %10d", sum);
+	log_println("                           %10d", sum);
+
 	log_println("");
-	log_println("classinfo  (%3d B):     %10d", (int) sizeof(classinfo), size_classinfo);
-	log_println("fieldinfo  (%3d B):     %10d", (int) sizeof(fieldinfo), size_fieldinfo);
-	log_println("methodinfo (%3d B):     %10d", (int) sizeof(methodinfo), size_methodinfo);
-	log_println("lineinfo   (%3d B):     %10d", (int) sizeof(lineinfo), size_lineinfo);
-	log_println("codeinfo   (%3d B):     %10d", (int) sizeof(codeinfo), size_codeinfo);
-	log_println("                         ----------");
+
+	log_println("classinfo  (%3d B):        %10d", (int) sizeof(classinfo), size_classinfo);
+	log_println("fieldinfo  (%3d B):        %10d", (int) sizeof(fieldinfo), size_fieldinfo);
+	log_println("methodinfo (%3d B):        %10d", (int) sizeof(methodinfo), size_methodinfo);
+	log_println("lineinfo   (%3d B):        %10d", (int) sizeof(lineinfo), size_lineinfo);
+	log_println("codeinfo   (%3d B):        %10d", (int) sizeof(codeinfo), size_codeinfo);
+	log_println("                            ----------");
 
 	sum =
 		size_classinfo +
@@ -683,27 +688,41 @@ void statistics_print_memory_usage(void)
 		size_lineinfo +
 		size_codeinfo;
 
-	log_println("                        %10d", sum);
+	log_println("                           %10d", sum);
+
 	log_println("");
-	log_println("constant pool:          %10d", count_const_pool_len);
-	log_println("classref:               %10d", count_classref_len);
-	log_println("parsed descriptors:     %10d", count_parsed_desc_len);
-	log_println("vftbl:                  %10d", count_vftbl_len);
-	log_println("compiler stubs:         %10d", count_cstub_len);
-	log_println("native stubs:           %10d", size_stub_native);
-	log_println("utf:                    %10d", count_utf_len);
-	log_println("vmcode:                 %10d", count_vmcode_len);
-	log_println("exception tables:       %10d", count_extable_len);
-	log_println("stack map:              %10d", size_stack_map);
-	log_println("string:                 %10d", size_string);
-	log_println("threadobject:           %10d", size_threadobject);
-	log_println("thread index:           %10d", size_thread_index_t);
-	log_println("stack size:             %10d", size_stacksize);
-	log_println("lock record:            %10d", size_lock_record);
-	log_println("lock hashtable:         %10d", size_lock_hashtable);
-	log_println("lock waiter:            %10d", size_lock_waiter);
-	log_println("patcher references:     %10d", size_patchref);
-	log_println("                         ----------");
+
+	log_println("linenumber tables (%5d): %10d", count_linenumbertable, size_linenumbertable);
+	log_println("exception tables:          %10d", count_extable_len);
+	log_println("patcher references:        %10d", size_patchref);
+	log_println("                            ----------");
+
+	sum =
+		size_linenumbertable +
+		count_extable_len +
+		size_patchref;
+
+	log_println("                           %10d", sum);
+
+	log_println("");
+
+	log_println("constant pool:             %10d", count_const_pool_len);
+	log_println("classref:                  %10d", count_classref_len);
+	log_println("parsed descriptors:        %10d", count_parsed_desc_len);
+	log_println("vftbl:                     %10d", count_vftbl_len);
+	log_println("compiler stubs:            %10d", count_cstub_len);
+	log_println("native stubs:              %10d", size_stub_native);
+	log_println("utf:                       %10d", count_utf_len);
+	log_println("vmcode:                    %10d", count_vmcode_len);
+	log_println("stack map:                 %10d", size_stack_map);
+	log_println("string:                    %10d", size_string);
+	log_println("threadobject:              %10d", size_threadobject);
+	log_println("thread index:              %10d", size_thread_index_t);
+	log_println("stack size:                %10d", size_stacksize);
+	log_println("lock record:               %10d", size_lock_record);
+	log_println("lock hashtable:            %10d", size_lock_hashtable);
+	log_println("lock waiter:               %10d", size_lock_waiter);
+	log_println("                            ----------");
 
 	sum =
 		count_const_pool_len +
@@ -714,7 +733,6 @@ void statistics_print_memory_usage(void)
 		size_stub_native +
 		count_utf_len +
 		count_vmcode_len +
-		count_extable_len +
 		size_stack_map +
 		size_string +
 		size_threadobject +
@@ -722,17 +740,19 @@ void statistics_print_memory_usage(void)
 		size_stacksize +
 		size_lock_record +
 		size_lock_hashtable +
-		size_lock_waiter +
-		size_patchref;
+		size_lock_waiter;
 
-	log_println("                        %10d", sum);
+	log_println("                           %10d", sum);
+
 	log_println("");
-	log_println("max. code memory:       %10d", maxcodememusage);
-	log_println("max. heap memory:       %10d", maxmemusage);
-	log_println("max. dump memory:       %10d", maxdumpsize);
+
+	log_println("max. code memory:          %10d", maxcodememusage);
+	log_println("max. heap memory:          %10d", maxmemusage);
+	log_println("max. dump memory:          %10d", maxdumpsize);
 	log_println("");
-	log_println("heap memory not freed:  %10d", (s4) memoryusage);
-	log_println("dump memory not freed:  %10d", (s4) globalallocateddumpsize);
+	log_println("heap memory not freed:     %10d", (int32_t) memoryusage);
+	log_println("dump memory not freed:     %10d", (int32_t) globalallocateddumpsize);
+
 	log_println("");
 }
 

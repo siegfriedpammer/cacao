@@ -65,6 +65,7 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
+#include "vm/jit/linenumbertable.h"
 #include "vm/jit/methodheader.h"
 
 #include "vmcore/class.h"
@@ -333,7 +334,7 @@ static inline stacktracebuffer *stacktrace_method_add(stacktracebuffer *stb, sta
 
 	/* Search the line number table. */
 
-	linenumber = dseg_get_linenumber_from_pc(&m, pv, xpc);
+	linenumber = linenumbertable_linenumber_for_pc(&m, code, xpc);
 
 	/* Add a new entry to the staktrace. */
 

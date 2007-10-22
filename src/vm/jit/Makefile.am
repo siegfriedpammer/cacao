@@ -155,6 +155,8 @@ libjit_la_SOURCES = \
 	icmdtable.inc \
 	jit.c \
 	jit.h \
+	linenumbertable.c \
+	linenumbertable.h \
 	parse.c \
 	parse.h \
 	patcher-common.c \

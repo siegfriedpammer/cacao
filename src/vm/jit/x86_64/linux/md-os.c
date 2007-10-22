@@ -42,6 +42,7 @@
 # include "threads/native/threads.h"
 #endif
 
+#include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 
@@ -71,7 +72,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	int             type;
 	intptr_t        val;
 	void           *p;
-	java_handle_t  *o;
+	java_object_t  *o;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -188,7 +189,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	if (type == EXCEPTION_HARDWARE_COMPILER) {
 		if (p == NULL) {
-			o = exceptions_get_and_clear_exception();
+			o = builtin_retrieve_exception();
 
 			_mc->gregs[REG_RSP] = (uintptr_t) sp;    /* Remove RA from stack. */
 

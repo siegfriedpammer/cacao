@@ -99,13 +99,13 @@
 #include "vm/resolve.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
-#include "vm/system.h"
 #include "vm/vm.h"
 
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/classcache.h"
 #include "vmcore/options.h"
+#include "vmcore/system.h"
 
 
 /* debugging macros ***********************************************************/

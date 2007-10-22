@@ -226,6 +226,8 @@ AC_HEADER_DIRENT
 AC_HEADER_STDC
 
 dnl keep them alpha-sorted!
+AC_CHECK_HEADERS([assert.h])
+AC_CHECK_HEADERS([errno.h])
 AC_CHECK_HEADERS([fcntl.h])
 AC_CHECK_HEADERS([libgen.h])
 AC_CHECK_HEADERS([netdb.h])
@@ -305,10 +307,13 @@ AC_CHECK_FUNCS([localtime])
 AC_CHECK_FUNCS([localtime_r])
 AC_CHECK_FUNCS([lseek])
 AC_CHECK_FUNCS([malloc])
+AC_CHECK_FUNCS([memcpy])
+AC_CHECK_FUNCS([memset])
 AC_CHECK_FUNCS([mmap])
 AC_CHECK_FUNCS([mprotect])
 AC_CHECK_FUNCS([open])
 AC_CHECK_FUNCS([readlink])
+AC_CHECK_FUNCS([realloc])
 AC_CHECK_FUNCS([recv])
 AC_CHECK_FUNCS([scandir])
 AC_CHECK_FUNCS([select])

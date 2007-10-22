@@ -57,9 +57,9 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
-#include "vm/system.h"
 #include "vm/vm.h"
 
+#include "vmcore/system.h"
 #include "vmcore/utf8.h"
 
 

@@ -57,9 +57,10 @@
 #include "vm/jit/s390/codegen.h"
 
 #include <assert.h>
-#define OOPS() assert(0);
 
 /* prototypes *****************************************************************/
+
+u1 *exceptions_handle_exception(java_object_t *xptro, u1 *xpc, u1 *pv, u1 *sp);
 
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p);
 
@@ -490,7 +491,7 @@ void *md_jit_method_patch_address(void* pv, void *ra, void *mptr)
 
 			/* add offset to method pointer */
 			
-			pa = mptr + offset;
+			pa = (uint8_t *)mptr + offset;
 			break;
 
 		default:
@@ -607,7 +608,7 @@ void md_handle_exception(int32_t *regs, int64_t *fregs, int32_t *out) {
 
 		pv = codegen_get_pv_from_pc(xpc);
 
-		handler = exceptions_handle_exception(xptr, xpc, pv, sp);
+		handler = exceptions_handle_exception((java_object_t *)xptr, xpc, pv, sp);
 
 		if (handler == NULL) {
 
