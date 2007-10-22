@@ -109,6 +109,9 @@ extern s4 size_lock_record;
 extern s4 size_lock_hashtable;
 extern s4 size_lock_waiter;
 
+extern int32_t count_linenumbertable;
+extern int32_t size_linenumbertable;
+
 extern s4 size_patchref;
 
 extern u8 count_calls_java_to_native;

@@ -34,6 +34,11 @@
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/linenumbertable.h"
 
+#if defined(ENABLE_STATISTICS)
+# include "vmcore/options.h"
+# include "vmcore/statistics.h"
+#endif
+
 
 /* linenumbertable_create ******************************************************
 
@@ -70,6 +75,16 @@ void linenumbertable_create(jitdata *jd)
 
 	lnt  = NEW(linenumbertable_t);
 	lnte = MNEW(linenumbertable_entry_t, l->size);
+
+#if defined(ENABLE_STATISTICS)
+	if (opt_stat) {
+		count_linenumbertable++;
+
+		size_linenumbertable +=
+			sizeof(linenumbertable_t) +
+			sizeof(linenumbertable_entry_t) * l->size;
+	}
+#endif
 
 	/* Fill the linenumber table. */
 
