@@ -453,7 +453,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 	int          irstage;
 #if defined(ENABLE_DISASSEMBLER)
 	methodinfo  *m;                     /* this is only a dummy               */
-	u1          *pc;
+	void        *pc;
 	s4           linenumber;
 	s4           currentlinenumber;
 #endif
@@ -561,13 +561,13 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 			(!deadcode)) 
 		{
 			printf("\n");
-			pc         = (u1 *) (code->mcode + cd->dseglen + bptr->mpc);
+			pc         = (void *) (code->mcode + cd->dseglen + bptr->mpc);
 			linenumber = 0;
 
 			if (bptr->next != NULL) {
-				for (; pc < (u1 *) (code->mcode + cd->dseglen + bptr->next->mpc);) {
+				for (; pc < (void *) (code->mcode + cd->dseglen + bptr->next->mpc);) {
 					currentlinenumber =
-						linenumbertable_linenumber_for_pc(&m, code->entrypoint, pc);
+						linenumbertable_linenumber_for_pc(&m, code, pc);
 
 					if (currentlinenumber != linenumber) {
 						linenumber = currentlinenumber;
@@ -578,9 +578,9 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 				}
 			}
 			else {
-				for (; pc < (u1 *) (code->mcode + code->mcodelength);) {
+				for (; pc < (void *) (code->mcode + code->mcodelength);) {
 					currentlinenumber =
-						linenumbertable_linenumber_for_pc(&m, code->entrypoint, pc);
+						linenumbertable_linenumber_for_pc(&m, code, pc);
 
 					if (currentlinenumber != linenumber) {
 						linenumber = currentlinenumber;
