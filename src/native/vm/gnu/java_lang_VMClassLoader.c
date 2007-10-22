@@ -42,12 +42,20 @@
 #include "native/include/java_security_ProtectionDomain.h"  /* required by... */
 #include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_util_Vector.h"
+#include "native/include/java_util_HashMap.h"
+#include "native/include/java_util_Map.h"
+#include "native/include/java_lang_Boolean.h"
 
 #include "native/include/java_lang_VMClassLoader.h"
 
 #include "native/vm/java_lang_ClassLoader.h"
 
 #include "toolbox/logging.h"
+#include "toolbox/list.h"
+
+#if defined(ENABLE_ASSERTION)
+#include "vm/assertion.h"
+#endif
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -71,17 +79,19 @@
 #include "native/jvmti/cacaodbg.h"
 #endif
 
-
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "defineClass",            "(Ljava/lang/ClassLoader;Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;", (void *) (ptrint) &Java_java_lang_VMClassLoader_defineClass            },
-	{ "getPrimitiveClass",      "(C)Ljava/lang/Class;",                                                                             (void *) (ptrint) &Java_java_lang_VMClassLoader_getPrimitiveClass      },
-	{ "resolveClass",           "(Ljava/lang/Class;)V",                                                                             (void *) (ptrint) &Java_java_lang_VMClassLoader_resolveClass           },
-	{ "loadClass",              "(Ljava/lang/String;Z)Ljava/lang/Class;",                                                           (void *) (ptrint) &Java_java_lang_VMClassLoader_loadClass              },
-	{ "nativeGetResources",     "(Ljava/lang/String;)Ljava/util/Vector;",                                                           (void *) (ptrint) &Java_java_lang_VMClassLoader_nativeGetResources     },
-	{ "defaultAssertionStatus", "()Z",                                                                                              (void *) (ptrint) &Java_java_lang_VMClassLoader_defaultAssertionStatus },
-	{ "findLoadedClass",        "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/lang/Class;",                                     (void *) (ptrint) &Java_java_lang_VMClassLoader_findLoadedClass        },
+	{ "defineClass",                "(Ljava/lang/ClassLoader;Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;", (void *) (ptrint) &Java_java_lang_VMClassLoader_defineClass                },
+	{ "getPrimitiveClass",          "(C)Ljava/lang/Class;",                                                                             (void *) (ptrint) &Java_java_lang_VMClassLoader_getPrimitiveClass          },
+	{ "resolveClass",               "(Ljava/lang/Class;)V",                                                                             (void *) (ptrint) &Java_java_lang_VMClassLoader_resolveClass               },
+	{ "loadClass",                  "(Ljava/lang/String;Z)Ljava/lang/Class;",                                                           (void *) (ptrint) &Java_java_lang_VMClassLoader_loadClass                  },
+	{ "nativeGetResources",         "(Ljava/lang/String;)Ljava/util/Vector;",                                                           (void *) (ptrint) &Java_java_lang_VMClassLoader_nativeGetResources         },
+	{ "defaultAssertionStatus",     "()Z",                                                                                              (void *) (ptrint) &Java_java_lang_VMClassLoader_defaultAssertionStatus     },
+	{ "defaultUserAssertionStatus", "()Z",                                                                                              (void *) (ptrint) &Java_java_lang_VMClassLoader_defaultUserAssertionStatus },
+	{ "packageAssertionStatus0",    "(Ljava/lang/Boolean;Ljava/lang/Boolean;)Ljava/util/Map;",                                          (void *) (ptrint) &Java_java_lang_VMClassLoader_packageAssertionStatus0    },
+	{ "classAssertionStatus0",      "(Ljava/lang/Boolean;Ljava/lang/Boolean;)Ljava/util/Map;",                                          (void *) (ptrint) &Java_java_lang_VMClassLoader_classAssertionStatus0      },
+	{ "findLoadedClass",            "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/lang/Class;",                                     (void *) (ptrint) &Java_java_lang_VMClassLoader_findLoadedClass            },
 };
 
 
@@ -344,7 +354,165 @@ return_NULL:
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClassLoader_defaultAssertionStatus(JNIEnv *env, jclass clazz)
 {
-	return _Jv_jvm->Java_java_lang_VMClassLoader_defaultAssertionStatus;
+#if defined(ENABLE_ASSERTION)
+	return assertion_system_enabled;
+#else
+	return false;
+#endif
+}
+
+/*
+ * Class:     java/lang/VMClassLoader
+ * Method:    userAssertionStatus
+ * Signature: ()Z
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_VMClassLoader_defaultUserAssertionStatus(JNIEnv *env, jclass clazz)
+{
+#if defined(ENABLE_ASSERTION)
+	return assertion_user_enabled;
+#else
+	return false;
+#endif
+}
+
+/*
+ * Class:     java/lang/VMClassLoader
+ * Method:    packageAssertionStatus
+ * Signature: ()Ljava_util_Map;
+ */
+JNIEXPORT java_util_Map* JNICALL Java_java_lang_VMClassLoader_packageAssertionStatus0(JNIEnv *env, jclass clazz, java_lang_Boolean *jtrue, java_lang_Boolean *jfalse)
+{
+	java_handle_t     *hm;
+#if defined(ENABLE_ASSERTION)
+	java_handle_t     *js;
+	methodinfo        *m;
+	assertion_name_t  *item;
+#endif
+
+	/* new HashMap() */
+
+	hm = native_new_and_init(class_java_util_HashMap);
+	if (hm == NULL) {
+		return NULL;
+	}
+
+#if defined(ENABLE_ASSERTION)
+	/* if nothing todo, return now */
+
+	if (assertion_package_count == 0) {
+		return (java_util_Map *) hm;
+	}
+
+	/* get HashMap.put method */
+
+	m = class_resolveclassmethod(class_java_util_HashMap,
+                                 utf_put,
+                                 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
+                                 NULL,
+                                 true);
+
+	if (m == NULL) {
+		return NULL;
+	}
+
+	item = (assertion_name_t *)list_first(list_assertion_names);
+
+	while (item != NULL) {
+		if (item->package == false) {
+			item = (assertion_name_t *)list_next(list_assertion_names, item);
+			continue;
+		}
+		
+		if (strcmp(item->name, "") == 0) {
+			/* unnamed package wanted */
+			js = NULL;
+		}
+		else {
+			js = javastring_new_from_ascii(item->name);
+			if (js == NULL) {
+				return NULL;
+			}
+		}
+
+		if (item->enabled == true) {
+			vm_call_method(m, hm, js, jtrue);
+		}
+		else {
+			vm_call_method(m, hm, js, jfalse);
+		}
+
+		item = (assertion_name_t *)list_next(list_assertion_names, item);
+	}
+#endif
+
+	return (java_util_Map *) hm;
+}
+
+/*
+ * Class:     java/lang/VMClassLoader
+ * Method:    classAssertionStatus
+ * Signature: ()Ljava_util_Map;
+ */
+JNIEXPORT java_util_Map* JNICALL Java_java_lang_VMClassLoader_classAssertionStatus0(JNIEnv *env, jclass clazz, java_lang_Boolean *jtrue, java_lang_Boolean *jfalse)
+{
+	java_handle_t     *hm;
+#if defined(ENABLE_ASSERTION)
+	java_handle_t     *js;
+	methodinfo        *m;
+	assertion_name_t  *item;
+#endif
+
+	/* new HashMap() */
+
+	hm = native_new_and_init(class_java_util_HashMap);
+	if (hm == NULL) {
+		return NULL;
+	}
+
+#if defined(ENABLE_ASSERTION)
+	/* if nothing todo, return now */
+
+	if (assertion_class_count == 0) {
+		return (java_util_Map *) hm;
+	}
+
+	/* get HashMap.put method */
+
+	m = class_resolveclassmethod(class_java_util_HashMap,
+                                 utf_put,
+                                 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
+                                 NULL,
+                                 true);
+
+	if (m == NULL) {
+		return NULL;
+	}
+
+	item = (assertion_name_t *)list_first(list_assertion_names);
+
+	while (item != NULL) {
+		if (item->package == true) {
+			item = (assertion_name_t *)list_next(list_assertion_names, item);
+			continue;
+		}
+
+		js = javastring_new_from_ascii(item->name);
+		if (js == NULL) {
+			return NULL;
+		}
+
+		if (item->enabled == true) {
+			vm_call_method(m, hm, js, jtrue);
+		}
+		else {
+			vm_call_method(m, hm, js, jfalse);
+		}
+
+		item = (assertion_name_t *)list_next(list_assertion_names, item);
+	}
+#endif
+
+	return (java_util_Map *) hm;
 }
 
 

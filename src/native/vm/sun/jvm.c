@@ -87,8 +87,14 @@
 #include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
+#include "toolbox/list.h"
 
 #include "vm/array.h"
+
+#if defined(ENABLE_ASSERTION)
+#include "vm/assertion.h"
+#endif
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
@@ -1643,11 +1649,42 @@ jstring JVM_ConstantPoolGetUTF8At(JNIEnv *env, jobject unused, jobject jcpool, j
 
 jboolean JVM_DesiredAssertionStatus(JNIEnv *env, jclass unused, jclass cls)
 {
+#if defined(ENABLE_ASSERTION)
+	assertion_name_t  *item;
+	classinfo         *c;
+	jboolean           status;
+	utf               *name;
+
 	TRACEJVMCALLS("JVM_DesiredAssertionStatus(env=%p, unused=%p, cls=%p)", env, unused, cls);
 
-	/* TODO: Implement this one, but false should be OK. */
+	c = LLNI_classinfo_unwrap(cls);
 
-	return false;
+	if (c->classloader == NULL) {
+		status = (jboolean)assertion_system_enabled;
+	}
+	else {
+		status = (jboolean)assertion_user_enabled;
+	}
+
+	if (list_assertion_names != NULL) {
+		item = (assertion_name_t *)list_first(list_assertion_names);
+		while (item != NULL) {
+			name = utf_new_char(item->name);
+			if (name == c->packagename) {
+				status = (jboolean)item->enabled;
+			}
+			else if (name == c->name) {
+				status = (jboolean)item->enabled;
+			}
+
+			item = (assertion_name_t *)list_next(list_assertion_names, item);
+		}
+	}
+
+	return status;
+#else
+	return (jboolean)false;
+#endif
 }
 
 
@@ -1655,14 +1692,19 @@ jboolean JVM_DesiredAssertionStatus(JNIEnv *env, jclass unused, jclass cls)
 
 jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 {
-	classinfo                           *c;
-	java_lang_AssertionStatusDirectives *o;
-	java_handle_objectarray_t           *classes;
-	java_handle_objectarray_t           *packages;
+	classinfo                             *c;
+	java_lang_AssertionStatusDirectives   *o;
+	java_handle_objectarray_t             *classes;
+	java_handle_objectarray_t             *packages;
+	java_booleanarray_t                   *classEnabled;
+	java_booleanarray_t                   *packageEnabled;
+#if defined(ENABLE_ASSERTION)
+	assertion_name_t                      *item;
+	java_handle_t                         *js;
+	s4                                     i, j;
+#endif
 
-	TRACEJVMCALLS("JVM_AssertionStatusDirectives(env=%p, unused=%p): COMPLETE ME!", env, unused);
-
-	/* XXX this is not completely implemented */
+	TRACEJVMCALLS("JVM_AssertionStatusDirectives(env=%p, unused=%p)", env, unused);
 
 	c = load_class_bootstrap(utf_new_char("java/lang/AssertionStatusDirectives"));
 
@@ -1674,20 +1716,74 @@ jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 	if (o == NULL)
 		return NULL;
 
+#if defined(ENABLE_ASSERTION)
+	classes = builtin_anewarray(assertion_class_count, class_java_lang_Object);
+#else
 	classes = builtin_anewarray(0, class_java_lang_Object);
-
+#endif
 	if (classes == NULL)
 		return NULL;
 
+#if defined(ENABLE_ASSERTION)
+	packages = builtin_anewarray(assertion_package_count, class_java_lang_Object);
+#else
 	packages = builtin_anewarray(0, class_java_lang_Object);
-
+#endif
 	if (packages == NULL)
 		return NULL;
+	
+#if defined(ENABLE_ASSERTION)
+	classEnabled = builtin_newarray_boolean(assertion_class_count);
+#else
+	classEnabled = builtin_newarray_boolean(0);
+#endif
+	if (classEnabled == NULL)
+		return NULL;
+
+#if defined(ENABLE_ASSERTION)
+	packageEnabled = builtin_newarray_boolean(assertion_package_count);
+#else
+	packageEnabled = builtin_newarray_boolean(0);
+#endif
+	if (packageEnabled == NULL)
+		return NULL;
+
+#if defined(ENABLE_ASSERTION)
+	/* initialize arrays */
+
+	if (list_assertion_names != NULL) {
+		i = 0;
+		j = 0;
+		
+		item = (assertion_name_t *)list_first(list_assertion_names);
+		while (item != NULL) {
+			js = javastring_new_from_ascii(item->name);
+			if (js == NULL) {
+				return NULL;
+			}
+
+			if (item->package == false) {
+				classes->data[i] = js;
+				classEnabled->data[i] = (jboolean) item->enabled;
+				i += 1;
+			}
+			else {
+				packages->data[j] = js;
+				packageEnabled->data[j] = (jboolean) item->enabled;
+				j += 1;
+			}
+
+			item = (assertion_name_t *)list_next(list_assertion_names, item);
+		}
+	}
+#endif
 
 	/* set instance fields */
 
 	o->classes  = classes;
 	o->packages = packages;
+	o->classEnabled = classEnabled;
+	o->packageEnabled = packageEnabled;
 
 	return (jobject) o;
 }

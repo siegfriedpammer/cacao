@@ -115,6 +115,7 @@ classinfo *class_java_lang_reflect_Field;
 classinfo *class_java_lang_reflect_Method;
 classinfo *class_java_security_PrivilegedAction;
 classinfo *class_java_util_Vector;
+classinfo *class_java_util_HashMap;
 
 classinfo *arrayclass_java_lang_Object;
 

@@ -83,7 +83,6 @@ struct _Jv_JavaVM {
 	s4 java_lang_management_ThreadMXBean_PeakThreadCount;
 	s4 java_lang_management_ThreadMXBean_ThreadCount;
 	s8 java_lang_management_ThreadMXBean_TotalStartedThreadCount;
-	s4 Java_java_lang_VMClassLoader_defaultAssertionStatus;
 };
 
 

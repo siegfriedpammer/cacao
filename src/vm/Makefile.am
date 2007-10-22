@@ -30,6 +30,12 @@ LIBS =
 
 SUBDIRS = jit
 
+if ENABLE_ASSERTION
+ASSERTION_SOURCES = \
+	assertion.c \
+	assertion.h
+endif
+
 if ENABLE_CYCLES_STATS
 CYCLES_STATS_SOURCES = \
 	cycles-stats.c \
@@ -44,6 +50,7 @@ noinst_LTLIBRARIES = \
 	libvm.la
 
 libvm_la_SOURCES = \
+	$(ASSERTION_SOURCES) \
 	access.c \
 	access.h \
 	array.c \

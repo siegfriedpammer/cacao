@@ -41,7 +41,9 @@ COMMON_HEADER_FILES = \
 	java_lang_Integer.h \
 	java_lang_Long.h \
 	java_lang_Short.h \
-	java_util_Vector.h
+	java_util_Vector.h \
+	java_util_HashMap.h \
+	java_util_Map.h
 
 JAVASE_HEADER_FILES = \
 	java_lang_ClassLoader.h \

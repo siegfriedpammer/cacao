@@ -59,6 +59,8 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.zip.ZipFile;
+import java.util.Collections;
+import java.lang.Boolean;
 
 /**
  * java.lang.VMClassLoader is a package-private helper for VMs to implement
@@ -360,45 +362,46 @@ final class VMClassLoader
    * classes (those with a null ClassLoader), as well as the initial value for
    * every ClassLoader's default assertion status.
    *
-   * XXX - Not implemented yet; this requires native help.
-   *
    * @return the system-wide default assertion status
    */
-//   static final boolean defaultAssertionStatus()
-//   {
-//     return true;
-//   }
   static native final boolean defaultAssertionStatus();
 
+  static native final boolean defaultUserAssertionStatus();
+
+
+  static final Map packageAssertionMap = 
+    Collections.unmodifiableMap(packageAssertionStatus0(Boolean.TRUE, Boolean.FALSE));
+  
+  static native final Map packageAssertionStatus0(Boolean jtrue, Boolean jfalse);
   /**
    * The system default for package assertion status. This is used for all
    * ClassLoader's packageAssertionStatus defaults. It must be a map of
    * package names to Boolean.TRUE or Boolean.FALSE, with the unnamed package
    * represented as a null key.
    *
-   * XXX - Not implemented yet; this requires native help.
-   *
    * @return a (read-only) map for the default packageAssertionStatus
    */
-  static final Map packageAssertionStatus()
-  {
-    return new HashMap();
+   
+  static final Map packageAssertionStatus() {
+    return packageAssertionMap;
   }
+
+  static final Map classAssertionMap = 
+    Collections.unmodifiableMap(classAssertionStatus0(Boolean.TRUE, Boolean.FALSE));
+  
+  static native final Map classAssertionStatus0(Boolean jtrue, Boolean jfalse);
 
   /**
    * The system default for class assertion status. This is used for all
    * ClassLoader's classAssertionStatus defaults. It must be a map of
    * class names to Boolean.TRUE or Boolean.FALSE
    *
-   * XXX - Not implemented yet; this requires native help.
-   *
    * @return a (read-only) map for the default classAssertionStatus
    */
-  static final Map classAssertionStatus()
-  {
-    return new HashMap();
+  static final Map classAssertionStatus() {
+    return classAssertionMap;
   }
-
+  
   static ClassLoader getSystemClassLoader()
   {
     return ClassLoader.defaultGetSystemClassLoader();

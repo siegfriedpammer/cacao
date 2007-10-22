@@ -64,6 +64,11 @@
 #include "toolbox/logging.h"
 
 #include "vm/array.h"
+
+#if defined(ENABLE_ASSERTION)
+#include "vm/assertion.h"
+#endif
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/finalizer.h"
@@ -1260,19 +1265,27 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 
 		case OPT_EA:
-			/* currently ignored */
+#if defined(ENABLE_ASSERTION)
+			assertion_ea_da(opt_arg, true);
+#endif
 			break;
 
 		case OPT_DA:
-			/* currently ignored */
+#if defined(ENABLE_ASSERTION)
+			assertion_ea_da(opt_arg, false);
+#endif
 			break;
 
 		case OPT_ESA:
-			_Jv_jvm->Java_java_lang_VMClassLoader_defaultAssertionStatus = true;
+#if defined(ENABLE_ASSERTION)
+			assertion_system_enabled = true;
+#endif
 			break;
 
 		case OPT_DSA:
-			_Jv_jvm->Java_java_lang_VMClassLoader_defaultAssertionStatus = false;
+#if defined(ENABLE_ASSERTION)
+			assertion_system_enabled = false;
+#endif
 			break;
 
 #if defined(ENABLE_PROFILING)

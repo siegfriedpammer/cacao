@@ -211,6 +211,9 @@ void loader_init(void)
 	class_java_security_PrivilegedAction =
 		load_class_bootstrap(utf_new_char("java/security/PrivilegedAction"));
 
+	class_java_util_HashMap = 
+		load_class_bootstrap(utf_new_char("java/util/HashMap"));
+
 	class_java_util_Vector     = load_class_bootstrap(utf_java_util_Vector);
 
 # if defined(WITH_CLASSPATH_SUN)

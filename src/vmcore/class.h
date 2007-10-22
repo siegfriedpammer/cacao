@@ -251,6 +251,7 @@ extern classinfo *class_java_lang_reflect_Field;
 extern classinfo *class_java_lang_reflect_Method;
 extern classinfo *class_java_security_PrivilegedAction;
 extern classinfo *class_java_util_Vector;
+extern classinfo *class_java_util_HashMap;
 
 extern classinfo *arrayclass_java_lang_Object;
 

@@ -291,6 +291,9 @@ void linker_init(void)
 	if (!link_class(class_java_util_Vector))
 		vm_abort("linker_init: linking failed");
 
+	if (!link_class(class_java_util_HashMap))
+		vm_abort("linker_init: linking failed");
+
 # if defined(WITH_CLASSPATH_SUN)
 	if (!link_class(class_sun_reflect_MagicAccessorImpl))
 		vm_abort("linker_init: linking failed");
