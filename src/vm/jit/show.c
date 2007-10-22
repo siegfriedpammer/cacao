@@ -28,6 +28,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -618,7 +619,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 
 #define SHOW_INT_CONST(val)                                          \
         if (stage >= SHOW_PARSE) {                                   \
-            printf("%d (0x%08x) ", (val), (val));                    \
+            printf("%d (0x%08x) ", (int32_t) (val), (int32_t) (val)); \
         }                                                            \
         else {                                                       \
             printf("iconst ");                                       \
