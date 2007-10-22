@@ -67,20 +67,6 @@ typedef struct actual_ucontext {
 } actual_ucontext_t;
 
 
-/*
- *	linux specific initializations
- */
-void md_init_linux()
-{
-	struct sigaction act;
-	
-	act.sa_sigaction = md_signal_handler_sigill;
-	act.sa_flags     = SA_NODEFER | SA_SIGINFO;
-
-	if (sigaction(SIGILL, &act, NULL) == -1)	{
-		vm_abort("md_linux_init: Error registering signal handler");
-	}
-}
 
 /* md_signal_handler_sigsegv ******************************************
  *
@@ -162,16 +148,19 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
  **********************************************************************/
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
-	uint32_t	xpc, sp;
+	uint32_t	xpc, sp, ra, pv;
 	uint16_t	opc;
 	uint32_t	type;
-	uint32_t	val, regval;
+	uint32_t	regval;
 	void        *p;
 	actual_mcontext_t 	*_mc;
 	actual_ucontext_t 	*_uc;
 
 	_uc = (actual_ucontext_t*)_p;
 	xpc = (uint32_t)siginfo->si_addr;
+
+	pv = NULL;	/* we have no pv */
+	ra = xpc;	/* that is ture for most cases */
 
 	if (siginfo->si_code == ILL_ILLOPC)	{
 		vm_abort("md_signal_handler_sigill: the illegal instruction @ 0x%x, aborting", xpc);
@@ -210,6 +199,20 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 		case M68K_EXCEPTION_HARDWARE_NULLPOINTER:
 			type = EXCEPTION_HARDWARE_NULLPOINTER;
 			break;
+		case EXCEPTION_HARDWARE_COMPILER:
+			regval = *(uint16_t*)(xpc-4);
+			assert( (regval&0xfff0) == 0x4a00 );
+			/* was in a address register */
+			regval = _mc->gregs[ GREGS_ADRREG_OFF + (regval & 0x7) ];
+
+			pv = xpc-4;	/* the compiler stub consists of 2 instructions */
+			ra = md_stacktrace_get_returnaddress(sp, 0);
+			sp = sp + SIZEOF_VOID_P;
+			xpc = ra - 2;
+			break;
+		case EXCEPTION_HARDWARE_PATCHER:
+			xpc -= 2;
+			break;
 
 		default: assert(0);
 	}
@@ -218,12 +221,30 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	*/
 
 	/* Handle the type. */
+	p = signal_handle(type, regval, pv, (void*)sp, (void*)ra, (void*)xpc, _p);
 
-	p = signal_handle(type, val, NULL, (void*)sp, (void*)xpc, (void*)xpc, _p);
 
-	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (intptr_t) p;
-	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (intptr_t) xpc;
-	_mc->gregs[R_PC]                             = (intptr_t) asm_handle_exception;
+	if (type == EXCEPTION_HARDWARE_COMPILER)	{
+		if (p == NULL)	{
+			/* exception when compiling the method */
+			java_object_t *o = exceptions_get_and_clear_exceptions();
+
+			_mc->gregs[R_SP] = sp;	/* remove RA from stack */
+
+			_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (intptr_t) o;
+			_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (intptr_t) xpc;
+			_mc->gregs[R_PC]                             = (intptr_t) asm_handle_exception;
+
+		} else	{
+			/* compilation ok, execute */
+			_mc->gregs[R_PC] = p;
+		}
+
+	} else	{
+		_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (intptr_t) p;
+		_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (intptr_t) xpc;
+		_mc->gregs[R_PC]                             = (intptr_t) asm_handle_exception;
+	}
 }
 
 /* md_signal_handler_sigusr1 ***************************************************

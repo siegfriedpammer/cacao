@@ -42,8 +42,6 @@
 .globl asm_vm_call_method_end
 .globl asm_vm_call_method_exception_handler
 
-.globl asm_call_jit_compiler
-
 .globl asm_abstractmethoderror
 
 .globl asm_handle_exception
@@ -107,8 +105,8 @@ asm_vm_call_method_double:
 	movel	%sp@(12*4+6*8+2*4),%a2				/* arg array */
 	movel	%sp@(12*4+6*8+3*4),%d2				/* arg count */
 
-	movel	%a3, %sp@(11*4+6*8)					/* copy method address to stackslot */
-	leal	%sp@(11*4+6*8), %a3					/* and store that address in %a3 */
+	movel	%a3, %sp@(12*4+6*8)					/* copy method address to stackslot */
+	leal	%sp@(12*4+6*8), %a3					/* and store that address in %a3 */
 #endif
 
 	moveal	%sp, %a5					/* memorize stack */
@@ -168,55 +166,6 @@ asm_vm_call_method_exception_handler:
 	jsr 	builtin_throw_exception
 	lea	%sp@(4), %sp			/* pop arg off stack */
 	jmp 	L_asm_vm_call_method_return
-
-
-/* asm_call_jit_compiler ************************************************************************************
- *	Invokes compiler for untranslated java methods.
- *	C prototype: void asm_call_jit_compiler(void);
- *	BUT: this does not match reality, arguments _ARE_ passed via createcompilerstub and asm_vm_call_method...
- *	arguments passed via %a2(methodinfo) == REG_ATMP1
- *                       %a3(mptr)       == REG_ATMP2
- ************************************************************************************************************/
-asm_call_jit_compiler:
-	addal	#(-4*4),%sp						/* create stackframe to save registers */
-	moveml	%a0/%a1/%d0/%d1,%sp@			/* save volatile registers */
-#if !defined(ENABLE_SOFTFLOAT)
-	addal	#-8*2, %sp
-	fmovemd	%fp0/%fp1, %sp@
-	movel	%sp@(8*4), %sp@-
-	pea		%sp@(8*4+8)
-#else
-	movel 	%sp@(4*4), %sp@-				/* push arguments onto stack (ra)*/
-	pea 	%sp@(4*4+8)						/* the old stack pointer*/
-#endif
-	movel 	%a3,%sp@-						/* mptr */
-	movel 	%a2,%sp@-						/* methodinfo */
-
-	/* C prototype: u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra); */
-	jsr	jit_asm_compile						/* invoke compiler */
-	addal	#(4*4),%sp						/* pop arguments off stack */
-	moveal	%d0, %a2						/* to tmp register */
-
-#if !defined(ENABLE_SOFTFLOAT)
-	fmovemd	%sp@, %fp0/%fp1
-	addal	#8*2, %sp
-#endif
-
-	moveml %sp@,%a0/%a1/%d0/%d1				/* restore volatile registers */
-	addal	#(4*4),%sp						/* remove stackframe */
-
-	tstl	%a2								/* check for exception */
-	beq	L_asm_call_jit_compiler_exception
-
-	jmp	%a2@								/* invoke java method */
-	jsr 	0								/* we should not ever return here */
-
-L_asm_call_jit_compiler_exception:
-	jsr		exceptions_get_and_clear_exception		/* exception object in %d0 now */
-	moveal	%d0, %a2								/* move exception object into sptr register */
-	moveal	%sp@+, %a3								/* pop return address into exception address reg */
-	jmp asm_handle_exception						/* handle exception */
-
 
 
 asm_abstractmethoderror:

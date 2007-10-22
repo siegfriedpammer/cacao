@@ -34,6 +34,7 @@
 #include "vm/exceptions.h"
 #include "vm/jit/asmpart.h"
 #include "vm/builtin.h"
+#include "vm/jit/trace.h"
 
 #include "mm/memory.h"
 
@@ -419,8 +420,6 @@ void emit_verbosecall_enter(jitdata* jd)
 	codegendata  *cd;
 	registerdata *rd;
 	methoddesc   *md;
-	s4 	disp,i,t;
-
 
 	if (!JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		return;
@@ -438,47 +437,22 @@ void emit_verbosecall_enter(jitdata* jd)
 	M_IPUSH(REG_D1);
 	M_APUSH(REG_A0);
 	M_APUSH(REG_A1);
+	M_AMOV(REG_SP, REG_A0);	/* simpyfy stack offset calculation */
 
 #if !defined(ENABLE_SOFTFLOAT)
 	M_AADD_IMM(-8*2, REG_SP);
 	M_FSTORE(REG_F0, REG_SP, 8);
 	M_FSTORE(REG_F1, REG_SP, 0);
-
-	disp = 4*4 + 8*2 + 4;	/* points to old argument stack initially */
-#else
-	disp = 4*4 + 4;
 #endif
-	/* builtin_verbosecall_enter takes all args as s8 type */
-	/* TRACE_ARGS_NUM is the number of args the builtin_verbosecall_enter expects */
-	M_IPUSH_IMM(m);
 	
-
-	/* travel up stack to the first argument of the function which needs to be copied */
-	for (i=0; (i < md->paramcount) && (i < TRACE_ARGS_NUM); i++)	{
-		disp += 8;
-	}
-
-	/* disp now points to the first arg which gets copied to the trace stack, relative to REG_SP! */
-	for (i=TRACE_ARGS_NUM-1; i>=0; --i) {
-		if (i < md->paramcount)	{
-			/* traced function has such an argument */
-			t = md->paramtypes[i].type;
-			
-			/* copy from original argument stack */
-			M_ILD(REG_ITMP1, REG_SP, disp);
-			M_ILD(REG_ITMP2, REG_SP, disp-4);
-			M_IPUSH(REG_ITMP2);
-			M_IPUSH(REG_ITMP1);
-		} else	{
-			/* function has no arg here, push nothing and adapt displacement */
-			M_IPUSH_IMM(0);
-			M_IPUSH_IMM(0);
-			disp += 8;
-		}
-	}
-	M_JSR_IMM(builtin_verbosecall_enter);
+	M_AADD_IMM(4*4 + 4, REG_A0);
+	M_APUSH(REG_A0);		/* third arg is original argument stack */
+	M_IPUSH_IMM(0);			/* second arg is number of argument registers (=0) */
+	M_IPUSH_IMM(m);			/* first arg is methodpointer */
+	
+	M_JSR_IMM(trace_java_call_enter);
 	/* pop arguments off stack */
-	M_AADD_IMM(TRACE_ARGS_NUM*8+4, REG_SP);
+	M_AADD_IMM(3*4, REG_SP);
 
 #if !defined(ENABLE_SOFTFLOAT)
 	M_FSTORE(REG_F1, REG_SP, 0);
@@ -666,6 +640,40 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 		M_TRAP(EXCEPTION_HARDWARE_EXCEPTION);
 	}
 }
+
+/* emit_trap_compiler **********************************************************
+
+   Emit a trap instruction which calls the JIT compiler.
+
+*******************************************************************************/
+
+void emit_trap_compiler(codegendata *cd)
+{
+	M_TRAP_SETREGISTER(REG_METHODPTR);
+	M_TRAP(EXCEPTION_HARDWARE_COMPILER);
+}
+
+
+/* emit_trap *******************************************************************
+
+   Emit a trap instruction and return the original machine code.
+
+*******************************************************************************/
+
+uint32_t emit_trap(codegendata *cd)
+{
+	uint16_t mcode;
+
+	/* Get machine code which is patched back in later. The
+	   trap is 2 bytes long. */
+
+	mcode = *((uint16_t *) cd->mcodeptr);
+
+	M_TRAP(EXCEPTION_HARDWARE_PATCHER);
+
+	return (uint32_t) mcode;
+}
+
 
 
 /*

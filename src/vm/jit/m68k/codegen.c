@@ -1017,7 +1017,7 @@ bool codegen_emit(jitdata *jd)
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				constant_classref *cr = iptr->sx.val.c.ref;;
-				codegen_addpatchref(cd, PATCHER_resolve_classref_to_classinfo, cr, 0);
+				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_classinfo, cr, 0);
 				M_AMOV_IMM(0, d);
 			} else {
 				M_AMOV_IMM(iptr->sx.val.anyptr, d);
@@ -1035,7 +1035,7 @@ bool codegen_emit(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				unresolved_class *uc = iptr->sx.s23.s2.uc;
 
-				codegen_addpatchref(cd, PATCHER_resolve_class, uc, 0);
+				patcher_add_patch_ref(jd, PATCHER_resolve_class, uc, 0);
 			}
 #endif /* ENABLE_VERIFIER */
 			M_JSR_PCREL(2);				/* get current PC */
@@ -1114,7 +1114,7 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = 0;
 
-				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, 0);
+				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, 0);
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
@@ -1122,7 +1122,7 @@ bool codegen_emit(jitdata *jd)
 				disp      = (intptr_t) fi->value;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))	{
-					codegen_addpatchref(cd, PATCHER_initialize_class, fi->class,
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class,
 										0);
 				}
 			}
@@ -1168,7 +1168,7 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = 0;
 
-				codegen_addpatchref(cd, PATCHER_get_putstatic, uf, 0);
+				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, 0);
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
@@ -1176,7 +1176,7 @@ bool codegen_emit(jitdata *jd)
 				disp      = (intptr_t) fi->value;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					codegen_addpatchref(cd, PATCHER_initialize_class, fi->class,
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class,
 										0);
   			}
 		
@@ -1223,7 +1223,7 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = uf->fieldref->parseddesc.fd->type;
 				disp      = 0;
 
-				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
+				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
@@ -1291,7 +1291,7 @@ bool codegen_emit(jitdata *jd)
 			}
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr))
-				codegen_addpatchref(cd, PATCHER_get_putfield, uf, 0);
+				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
 
 			/* implicit null-pointer check */
 			switch (fieldtype) {
@@ -1700,7 +1700,7 @@ bool codegen_emit(jitdata *jd)
 					/* fall through */
 				case ICMD_INVOKESTATIC: 
 					if (lm == NULL) {
-						codegen_addpatchref(cd, PATCHER_invokestatic_special, um, 0);
+						patcher_add_patch_ref(jd, PATCHER_invokestatic_special, um, 0);
 						disp = 0;
 						M_AMOV_IMM(disp, REG_ATMP1);
 					} else	{
@@ -1716,7 +1716,7 @@ bool codegen_emit(jitdata *jd)
 
 				case ICMD_INVOKEVIRTUAL:
 					if (lm == NULL) {
-						codegen_addpatchref(cd, PATCHER_invokevirtual, um, 0);
+						patcher_add_patch_ref(jd, PATCHER_invokevirtual, um, 0);
 						s1 = 0;
 					} else {
 						s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * lm->vftblindex;
@@ -1731,7 +1731,7 @@ bool codegen_emit(jitdata *jd)
 					break;
 				case ICMD_INVOKEINTERFACE: 
 					if (lm == NULL) {
-						codegen_addpatchref(cd, PATCHER_invokeinterface, um, 0);
+						patcher_add_patch_ref(jd, PATCHER_invokeinterface, um, 0);
 
 						s1 = 0;
 						s2 = 0;
@@ -1832,7 +1832,7 @@ bool codegen_emit(jitdata *jd)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				unresolved_class *uc = iptr->sx.s23.s2.uc;
 
-				codegen_addpatchref(cd, PATCHER_resolve_class, uc, 0);
+				patcher_add_patch_ref(jd, PATCHER_resolve_class, uc, 0);
 			}
 #endif /* ENABLE_VERIFIER */
 			goto nowperformreturn;
@@ -2015,7 +2015,7 @@ nowperformreturn:
 				M_ATST(s1);
 				emit_label_beq(cd, BRANCH_LABEL_1);
 
-				codegen_addpatchref(cd, PATCHER_resolve_classref_to_flags, iptr->sx.s23.s3.c.ref, 0);
+				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_flags, iptr->sx.s23.s3.c.ref, 0);
 
 				M_IMOV_IMM32(0, REG_ITMP3);
 				M_IAND_IMM(ACC_INTERFACE, REG_ITMP3);
@@ -2026,7 +2026,7 @@ nowperformreturn:
 
 			if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
 				if (super == NULL) {
-					codegen_addpatchref(cd, PATCHER_instanceof_interface, iptr->sx.s23.s3.c.ref, 0);
+					patcher_add_patch_ref(jd, PATCHER_instanceof_interface, iptr->sx.s23.s3.c.ref, 0);
 				} else {
 					M_ATST(s1);
 					emit_label_beq(cd, BRANCH_LABEL_3);
@@ -2054,7 +2054,7 @@ nowperformreturn:
 				if (super == NULL) {
 					emit_label(cd, BRANCH_LABEL_2);
 
-					codegen_addpatchref(cd, PATCHER_resolve_classref_to_vftbl, iptr->sx.s23.s3.c.ref, 0);
+					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_vftbl, iptr->sx.s23.s3.c.ref, 0);
 					M_AMOV_IMM(0, REG_ATMP2);
 				} else {
 					M_AMOV_IMM(super->vftbl, REG_ATMP2);
@@ -2135,7 +2135,7 @@ nowperformreturn:
 					M_ATST(s1);
 					emit_label_beq(cd, BRANCH_LABEL_1);
 
-					codegen_addpatchref(cd, PATCHER_resolve_classref_to_flags, iptr->sx.s23.s3.c.ref, 0);
+					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_flags, iptr->sx.s23.s3.c.ref, 0);
 			
 					M_IMOV_IMM32(0, REG_ITMP2);
 					M_IAND_IMM(ACC_INTERFACE, REG_ITMP2);
@@ -2146,7 +2146,7 @@ nowperformreturn:
 
 				if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
 					if (super == NULL) {
-						codegen_addpatchref(cd, PATCHER_checkcast_interface, iptr->sx.s23.s3.c.ref, 0);
+						patcher_add_patch_ref(jd, PATCHER_checkcast_interface, iptr->sx.s23.s3.c.ref, 0);
 					} else {
 						M_ATST(s1);
 						emit_label_beq(cd, BRANCH_LABEL_3);
@@ -2175,7 +2175,7 @@ nowperformreturn:
 					if (super == NULL) {
 						emit_label(cd, BRANCH_LABEL_2);
 
-						codegen_addpatchref(cd, PATCHER_resolve_classref_to_vftbl, iptr->sx.s23.s3.c.ref, 0);
+						patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_vftbl, iptr->sx.s23.s3.c.ref, 0);
 						M_AMOV_IMM(0, REG_ATMP3);
 					} else {
 						M_AMOV_IMM(super->vftbl, REG_ATMP3);
@@ -2214,7 +2214,7 @@ nowperformreturn:
 				s1 = emit_load_s1(jd, iptr, REG_ATMP2);
 
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-					codegen_addpatchref(cd, PATCHER_resolve_classref_to_classinfo, iptr->sx.s23.s3.c.ref, 0);
+					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_classinfo, iptr->sx.s23.s3.c.ref, 0);
 					M_AMOV_IMM(0, REG_ATMP1);
 				} else {
 					M_AMOV_IMM(iptr->sx.s23.s3.c.cls, REG_ATMP1);
@@ -2321,7 +2321,7 @@ nowperformreturn:
 
 			/* a1 = arraydescriptor */
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				codegen_addpatchref(cd, PATCHER_resolve_classref_to_classinfo, iptr->sx.s23.s3.c.ref, 0);
+				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_classinfo, iptr->sx.s23.s3.c.ref, 0);
 				M_AMOV_IMM(0, REG_ATMP1);
 			} else	{
 				M_AMOV_IMM(iptr->sx.s23.s3.c.cls, REG_ATMP1);
@@ -2376,8 +2376,7 @@ nowperformreturn:
 
 	return true;
 }
-
-
+#if 0
 /* codegen_emit_stub_compiler **************************************************
 
    Emits a stub routine which calls the compiler.
@@ -2400,6 +2399,8 @@ void codegen_emit_stub_compiler(jitdata *jd)
 	M_AMOV_IMM(asm_call_jit_compiler, REG_ATMP3);
 	M_JMP(REG_ATMP3);
 }
+#endif
+
 /* codegen_emit_stub_native ****************************************************
 
    Emits a stub routine which calls a native method.
@@ -2434,7 +2435,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	/* create method header */
 	(void) dseg_add_unique_address(cd, code);                      /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 4);         /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8);         /* FrameSize       */
 	(void) dseg_add_unique_s4(cd, 0);                              /* IsSync          */
 	(void) dseg_add_unique_s4(cd, 0);                              /* IsLeaf          */
 	(void) dseg_add_unique_s4(cd, 0);                              /* IntSave         */
@@ -2450,11 +2451,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 #endif
 
 	/* generate code */
-	M_AADD_IMM(-(cd->stackframesize*4), REG_SP);
+	M_AADD_IMM(-(cd->stackframesize*8), REG_SP);
 
 	/* get function address (this must happen before the stackframeinfo) */
 	if (f == NULL)	{
-		codegen_addpatchref(cd, PATCHER_resolve_native_function, m, 0);
+		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, 0);
 	}
 
 	M_AMOV_IMM(f, REG_ATMP2); /* do not move this line, the patcher is needed */
@@ -2487,7 +2488,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		/* all arguments via stack */
 		assert(md->params[i].inmemory);						
 
-		s1 = md->params[i].regoff + cd->stackframesize * 4 + 4;
+		s1 = md->params[i].regoff + cd->stackframesize * 8 + 4;
 		s2 = nmd->params[j].regoff;
 
 		/* simply copy argument stack */
@@ -2517,13 +2518,13 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		/* natives return float arguments in %d0, %d1, cacao expects them in %fp0 */
 		case TYPE_DBL:
 		case TYPE_LNG:
-			M_IST(REG_D1, REG_SP, 2 * 4);
+			M_IST(REG_D1, REG_SP, 2 * 8);
 			/* fall through */
 
 		case TYPE_FLT:
 		case TYPE_INT:
 		case TYPE_ADR:
-			M_IST(REG_D0, REG_SP, 2 * 4);
+			M_IST(REG_D0, REG_SP, 2 * 8);	/* XXX can this be correct ? */
 			break;
 
 		default: assert(0);
@@ -2554,13 +2555,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		case TYPE_VOID: break;
 
 		case TYPE_DBL:
-		case TYPE_LNG:
-			M_ILD(REG_D1, REG_SP, 2 * 4);
+		case TYPE_LNG:		M_ILD(REG_D1, REG_SP, 2 * 8);
 			/* fall through */
 		case TYPE_FLT:
 		case TYPE_INT:
 		case TYPE_ADR:
-			M_ILD(REG_D0, REG_SP, 2 * 4);
+			M_ILD(REG_D0, REG_SP, 2 * 8);	/* XXX */
 			break;
 
 		default: assert(0);
@@ -2570,16 +2570,16 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		 * as cacao jit code expects them there */
 	switch (md->returntype.type)	{
 		case TYPE_FLT:
-			M_FLD(REG_D0, REG_SP, 2 * 4);
+			M_FLD(REG_D0, REG_SP, 2 * 8);
 			break;
 		case TYPE_DBL:	
-			M_DLD(REG_D0, REG_SP, 2 * 4);
+			M_DLD(REG_D0, REG_SP, 2 * 8);	/* XXX */
 			break;
 	}
 #endif
 	/* restore saved registers */
 
-	M_AADD_IMM(cd->stackframesize*4, REG_SP);
+	M_AADD_IMM(cd->stackframesize*8, REG_SP);
 	/* check for exception */
 	M_ATST(REG_ATMP1);
 	M_BNE(2);

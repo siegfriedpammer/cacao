@@ -54,9 +54,6 @@
  */
 void md_init(void) 
 {
-#ifdef __LINUX__
-	md_init_linux();
-#endif
 }
 
 /* md_codegen_get_pv_from_pc ***************************************************

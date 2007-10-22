@@ -871,7 +871,7 @@ static classinfo *link_class_intern(classinfo *c)
 		if (!(f->flags & ACC_STATIC)) {
 			dsize = descriptor_typesize(f->parseddesc);
 
-#if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__)) || (defined(__POWERPC__) && defined(__DARWIN__))
+#if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__)) || (defined(__POWERPC__) && defined(__DARWIN__)) || defined(__M68K__)
 			/* On i386 and ARM we align double and s8 fields to
 			   4-bytes.  This matches what GCC does for struct
 			   members. We must do the same as gcc here because the

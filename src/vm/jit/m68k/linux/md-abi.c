@@ -121,8 +121,8 @@ void md_param_alloc(methoddesc *md)
 
 	for (i=0; i<md->paramcount; i++, pd++)	{
 		pd->inmemory = true;
-		pd->regoff = stacksize * 4;
-		stacksize += IS_2_WORD_TYPE(md->paramtypes[i].type) ? 2:1;
+		pd->regoff = stacksize * 8;
+/*		stacksize += IS_2_WORD_TYPE(md->paramtypes[i].type) ? 2:1;*/
 	}
 
 	md->memuse = stacksize;
