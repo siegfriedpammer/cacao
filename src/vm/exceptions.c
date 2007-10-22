@@ -31,7 +31,6 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <sys/mman.h>
 
 #include "vm/types.h"
