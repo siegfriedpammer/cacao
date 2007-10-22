@@ -44,10 +44,6 @@
 
 /* stackframeinfo *************************************************************/
 
-struct stackframeinfo;
-
-extern struct stackframeinfo       *_no_threads_stackframeinfo;
-
 #define STACKFRAMEINFO      (_no_threads_stackframeinfo)
 
 
