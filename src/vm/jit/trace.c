@@ -189,7 +189,6 @@ static char *trace_java_call_print_argument(char *logtext, s4 *logtextlen,
 void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 {
 	methoddesc *md;
-	classinfo  *c;
 	imm_union   arg;
 	char       *logtext;
 	s4          logtextlen;
