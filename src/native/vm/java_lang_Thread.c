@@ -98,27 +98,6 @@ void _Jv_java_lang_Thread_start(java_lang_Thread *this, s8 stacksize)
 
 /*
  * Class:     java/lang/Thread
- * Method:    interrupt
- * Signature: ()V
- */
-void _Jv_java_lang_Thread_interrupt(java_lang_Thread *this)
-{
-#if defined(ENABLE_THREADS)
-	threadobject *thread;
-
-#if defined(WITH_CLASSPATH_GNU)
-	thread = (threadobject *) LLNI_field_direct(this, vmThread)->vmdata;
-#elif defined(WITH_CLASSPATH_CLDC1_1)
-	thread = (threadobject *) this->vm_thread;
-#endif
-
-	threads_thread_interrupt(thread);
-#endif
-}
-
-
-/*
- * Class:     java/lang/Thread
  * Method:    isInterrupted
  * Signature: ()Z
  */

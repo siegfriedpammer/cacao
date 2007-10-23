@@ -51,7 +51,6 @@
 s4                _Jv_java_lang_Thread_countStackFrames(java_lang_Thread *this);
 void              _Jv_java_lang_Thread_sleep(s8 millis);
 void              _Jv_java_lang_Thread_start(java_lang_Thread *this, s8 stacksize);
-void              _Jv_java_lang_Thread_interrupt(java_lang_Thread *this);
 s4                _Jv_java_lang_Thread_isInterrupted(java_lang_Thread *this);
 void              _Jv_java_lang_Thread_suspend(java_lang_Thread *this);
 void              _Jv_java_lang_Thread_resume(java_lang_Thread *this);

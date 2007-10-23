@@ -120,11 +120,18 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMTh
  */
 JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, java_lang_VMThread *this)
 {
-	java_lang_Thread *thread;
+#if defined(ENABLE_THREADS)
+	java_lang_Thread *object;
+	threadobject     *t;
 
-	LLNI_field_get_ref(this, thread, thread);
+	/* XXX TWISTI: I think this and object->vmThread are equal. */
 
-	_Jv_java_lang_Thread_interrupt(thread);
+	LLNI_field_get_ref(this, thread, object);
+
+	t = (threadobject *) LLNI_field_direct(object, vmThread)->vmdata;
+
+	threads_thread_interrupt(t);
+#endif
 }
 
 
