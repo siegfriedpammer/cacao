@@ -136,6 +136,11 @@ void linker_preinit(void)
 	   assume for the current architecture. */
 
 #if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__)) || (defined(__POWERPC__) && defined(__DARWIN__)) || defined(__M68K__)
+	/* Define a define here which is later checked when we use this
+	   offset. */
+
+# define LINKER_ALIGNMENT_LONG_DOUBLE 4
+
 	if (OFFSET(dummy_alignment_long_t, l) != 4)
 		vm_abort("linker_preinit: long alignment is different from what assumed: %d != %d",
 				 OFFSET(dummy_alignment_long_t, l), 4);
@@ -144,6 +149,9 @@ void linker_preinit(void)
 		vm_abort("linker_preinit: double alignment is different from what assumed: %d != %d",
 				 OFFSET(dummy_alignment_double_t, d), 4);
 #else
+
+# define LINKER_ALIGNMENT_LONG_DOUBLE 8
+
 	if (OFFSET(dummy_alignment_long_t, l) != 8)
 		vm_abort("linker_preinit: long alignment is different from what assumed: %d != %d",
 				 OFFSET(dummy_alignment_long_t, l), 8);
@@ -875,15 +883,24 @@ static classinfo *link_class_intern(classinfo *c)
 			dsize = descriptor_typesize(f->parseddesc);
 
 #if defined(__I386__) || (defined(__ARM__) && !defined(__ARM_EABI__)) || (defined(__POWERPC__) && defined(__DARWIN__)) || defined(__M68K__)
-			/* On i386 and ARM we align double and s8 fields to
-			   4-bytes.  This matches what GCC does for struct
-			   members. We must do the same as gcc here because the
-			   offsets in native header structs like java_lang_Double
-			   must match the offsets of the Java fields
-			   (eg. java.lang.Double.value).  */
+			/* On some architectures and configurations we need to
+			   align long (int64_t) and double fields to 4-bytes to
+			   match what GCC does for struct members.  We must do the
+			   same as GCC here because the offsets in native header
+			   structs like java_lang_Double must match the offsets of
+			   the Java fields (eg. java.lang.Double.value). */
+
+# if LINKER_ALIGNMENT_LONG_DOUBLE != 4
+#  error alignment of long and double is not 4
+# endif
 
 			c->instancesize = MEMORY_ALIGN(c->instancesize, 4);
 #else
+
+# if LINKER_ALIGNMENT_LONG_DOUBLE != 8
+#  error alignment of long and double is not 8
+# endif
+
 			c->instancesize = MEMORY_ALIGN(c->instancesize, dsize);
 #endif
 
