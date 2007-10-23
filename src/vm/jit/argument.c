@@ -518,7 +518,7 @@ uint64_t *argument_vmarray_from_jvalue(methodinfo *m, java_handle_t *o,
 			break;
 
 		case TYPE_ADR: 
-			argument_vmarray_store_adr(array, pd, args[j].l);
+			argument_vmarray_store_adr(array, pd, (java_handle_t *) args[j].l);
 			break;
 		}
 	}
