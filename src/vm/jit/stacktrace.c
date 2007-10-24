@@ -344,20 +344,51 @@ static inline stacktracebuffer *stacktrace_method_add(stacktracebuffer *stb, sta
 }
 
 
-/* stacktrace_stack_walk *******************************************************
+/* stacktrace_stackframeinfo_fill **********************************************
 
-   Walk the stack (or the stackframeinfo-chain) to the next method.
+   Fill the temporary stackframeinfo structure with the values given
+   in sfi.
 
    IN:
-       tmpsfi ... stackframeinfo of current method
-
-   RETURN:
-       true .... the sfi is filled with the new values
-       false ... we reached the top of the stacktrace
+       tmpsfi ... temporary stackframeinfo
+       sfi ...... stackframeinfo to be used in the next iteration
 
 *******************************************************************************/
 
-static inline bool stacktrace_stack_walk(stackframeinfo_t *tmpsfi)
+static inline void stacktrace_stackframeinfo_fill(stackframeinfo_t *tmpsfi, stackframeinfo_t *sfi)
+{
+	/* Sanity checks. */
+
+	assert(tmpsfi != NULL);
+	assert(sfi != NULL);
+
+	/* Fill the temporary stackframeinfo. */
+
+	tmpsfi->code = sfi->code;
+	tmpsfi->pv   = sfi->pv;
+	tmpsfi->sp   = sfi->sp;
+	tmpsfi->ra   = sfi->ra;
+	tmpsfi->xpc  = sfi->xpc;
+
+	/* Set the previous stackframe info of the temporary one to the
+	   next in the chain. */
+
+	tmpsfi->prev = sfi->prev;
+}
+
+
+/* stacktrace_stackframeinfo_next **********************************************
+
+   Walk the stack (or the stackframeinfo-chain) to the next method and
+   return the new stackframe values in the temporary stackframeinfo
+   passed.
+
+   IN:
+       tmpsfi ... temporary stackframeinfo of current method
+
+*******************************************************************************/
+
+static inline void stacktrace_stackframeinfo_next(stackframeinfo_t *tmpsfi)
 {
 	codeinfo         *code;
 	void             *pv;
@@ -366,6 +397,10 @@ static inline bool stacktrace_stack_walk(stackframeinfo_t *tmpsfi)
 	void             *xpc;
 	uint32_t          framesize;
 	stackframeinfo_t *prevsfi;
+
+	/* Sanity check. */
+
+	assert(tmpsfi != NULL);
 
 	/* Get values from the stackframeinfo. */
 
@@ -446,23 +481,19 @@ static inline bool stacktrace_stack_walk(stackframeinfo_t *tmpsfi)
 		prevsfi = tmpsfi->prev;
 
 		/* If the previous stackframeinfo in the chain is NULL we
-		   reached the top of the stacktrace and return false. */
+		   reached the top of the stacktrace.  We set code and prev to
+		   NULL to mark the end, which is checked in
+		   stacktrace_stackframeinfo_end_check. */
 
-		if (prevsfi == NULL)
-			return false;
+		if (prevsfi == NULL) {
+			tmpsfi->code = NULL;
+			tmpsfi->prev = NULL;
+			return;
+		}
 
 		/* Fill the temporary stackframeinfo with the new values. */
 
-		tmpsfi->code = prevsfi->code;
-		tmpsfi->pv   = prevsfi->pv;
-		tmpsfi->sp   = prevsfi->sp;
-		tmpsfi->ra   = prevsfi->ra;
-		tmpsfi->xpc  = prevsfi->xpc;
-
-		/* Set the previous stackframe info of the temporary one to
-		   the next in the chain. */
-
-		tmpsfi->prev = prevsfi->prev;
+		stacktrace_stackframeinfo_fill(tmpsfi, prevsfi);
 	}
 	else {
 		/* Store the new values in the stackframeinfo.  NOTE: We
@@ -475,8 +506,32 @@ static inline bool stacktrace_stack_walk(stackframeinfo_t *tmpsfi)
 		tmpsfi->ra   = ra;
 		tmpsfi->xpc  = (void *) (((intptr_t) ra) - 1);
 	}
+}
 
-	return true;
+
+/* stacktrace_stackframeinfo_end_check *****************************************
+
+   Check if we reached the end of the stacktrace.
+
+   IN:
+       tmpsfi ... temporary stackframeinfo of current method
+
+   RETURN:
+       true .... the end is reached
+	   false ... the end is not reached
+
+*******************************************************************************/
+
+static inline bool stacktrace_stackframeinfo_end_check(stackframeinfo_t *tmpsfi)
+{
+	/* Sanity check. */
+
+	assert(tmpsfi != NULL);
+
+	if ((tmpsfi->code == NULL) && (tmpsfi->prev == NULL))
+		return true;
+
+	return false;
 }
 
 
@@ -529,20 +584,11 @@ stacktracebuffer *stacktrace_create(stackframeinfo_t *sfi)
 	if (sfi == NULL)
 		return NULL;
 
-	tmpsfi.code = sfi->code;
-	tmpsfi.pv   = sfi->pv;
-	tmpsfi.sp   = sfi->sp;
-	tmpsfi.ra   = sfi->ra;
-	tmpsfi.xpc  = sfi->xpc;
-
-	/* Initially set the previous stackframe info of the temporary one
-	   to the next in the chain. */
-
-	tmpsfi.prev = sfi->prev;
-
 	/* Iterate till we're done. */
 
-	do {
+	for (stacktrace_stackframeinfo_fill(&tmpsfi, sfi);
+		 stacktrace_stackframeinfo_end_check(&tmpsfi) == false;
+		 stacktrace_stackframeinfo_next(&tmpsfi)) {
 #if !defined(NDEBUG)
 		/* Print current method information. */
 
@@ -600,7 +646,7 @@ stacktracebuffer *stacktrace_create(stackframeinfo_t *sfi)
 		/* Add this method to the stacktrace. */
 
 		stb = stacktrace_method_add(stb, &tmpsfi);
-	} while (stacktrace_stack_walk(&tmpsfi) == true);
+	}
 
 #if !defined(NDEBUG)
 	if (opt_DebugStackTrace) {
