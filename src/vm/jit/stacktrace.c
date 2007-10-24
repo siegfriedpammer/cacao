@@ -1005,14 +1005,14 @@ void stacktrace_print_trace_from_buffer(stacktracebuffer *stb)
 }
 
 
-/* stacktrace_print_trace ******************************************************
+/* stacktrace_print_exception **************************************************
 
    Print the stacktrace of a given exception. More or less a wrapper
    to stacktrace_print_trace_from_buffer.
 
 *******************************************************************************/
 
-void stacktrace_print_trace(java_handle_t *xptr)
+void stacktrace_print_exception(java_handle_t *h)
 {
 	java_lang_Throwable     *t;
 #if defined(WITH_CLASSPATH_GNU)
@@ -1021,7 +1021,7 @@ void stacktrace_print_trace(java_handle_t *xptr)
 	java_handle_bytearray_t *ba;
 	stacktracebuffer        *stb;
 
-	t = (java_lang_Throwable *) xptr;
+	t = (java_lang_Throwable *) h;
 
 	if (t == NULL)
 		return;
@@ -1029,10 +1029,14 @@ void stacktrace_print_trace(java_handle_t *xptr)
 	/* now print the stacktrace */
 
 #if defined(WITH_CLASSPATH_GNU)
-	LLNI_field_get_ref(t, vmState, vmt);
-	LLNI_field_get_ref(vmt, vmData, ba);
+
+	LLNI_field_get_ref(t,   vmState, vmt);
+	LLNI_field_get_ref(vmt, vmData,  ba);
+
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
+
 	LLNI_field_get_ref(t, backtrace, ba);
+
 #else
 # error unknown classpath configuration
 #endif

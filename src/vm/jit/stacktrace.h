@@ -115,7 +115,7 @@ java_handle_objectarray_t *stacktrace_getStack(void);
 #endif
 
 void stacktrace_print_trace_from_buffer(stacktracebuffer *stb);
-void stacktrace_print_trace(java_handle_t *xptr);
+void stacktrace_print_exception(java_handle_t *h);
 
 /* machine dependent functions (code in ARCH_DIR/md.c) */
 

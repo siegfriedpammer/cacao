@@ -1792,7 +1792,7 @@ void *exceptions_handle_exception(java_object_t *xptro, void *xpc, void *pv, voi
 
 				if (opt_TraceExceptions) {
 					exceptions_print_exception(xptr);
-					stacktrace_print_trace(xptr);
+					stacktrace_print_exception(xptr);
 				}
 #endif
 
@@ -1856,7 +1856,7 @@ void *exceptions_handle_exception(java_object_t *xptro, void *xpc, void *pv, voi
 
 				if (opt_TraceExceptions) {
 					exceptions_print_exception(xptr);
-					stacktrace_print_trace(xptr);
+					stacktrace_print_exception(xptr);
 				}
 #endif
 
@@ -2063,13 +2063,13 @@ void exceptions_print_stacktrace(void)
 		/* now print original exception */
 
 		exceptions_print_exception(xptr);
-		stacktrace_print_trace(xptr);
+		stacktrace_print_exception(xptr);
 
 		/* now print original exception */
 
 		fprintf(stderr, "Original exception was: ");
 		exceptions_print_exception(oxptr);
-		stacktrace_print_trace(oxptr);
+		stacktrace_print_exception(oxptr);
 	}
 
 	fflush(stderr);
