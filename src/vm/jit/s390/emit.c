@@ -800,6 +800,17 @@ void emit_restore_pv(codegendata *cd) {
 	}
 }
 
+/* emit_trap_compiler **********************************************************
+
+   Emit a trap instruction which calls the JIT compiler.
+
+*******************************************************************************/
+
+void emit_trap_compiler(codegendata *cd)
+{
+	M_ILL2(REG_METHODPTR, EXCEPTION_HARDWARE_COMPILER);
+}
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

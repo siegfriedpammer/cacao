@@ -47,8 +47,6 @@
 	.globl asm_vm_call_method_exception_handler
 	.globl asm_vm_call_method_end
 
-	.globl asm_call_jit_compiler
-
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
 
@@ -193,83 +191,6 @@ asm_vm_call_method_exception_handler:
 
 asm_vm_call_method_end:
 	brc   0,0	
-
-/****************** function asm_call_jit_compiler *****************************
-*                                                                              *
-*   invokes the compiler for untranslated JavaVM methods.                      *
-*                                                                              *
-*   itmp3: methodinfo pointer                                                  *
-*   itmp1: method pointer                                                      *
-*                                                                              *
-*******************************************************************************/
-
-/*
-
-argument registers: arguments (like in JIT)
-
-        arguments on stack (like in JIT)
-------------------------------------------------------------- <- SP on entry
-
-        saved return address                                           \
-        stored volatile (in terms of C ABI) floag argument registers   | 
-96      stored volatile (in terms of C ABI) integer argument registers | ACJC_STACKFRAME
-0 - 96  register save area (C ABI)                                     /
--------------------------------------------------- <- SP for jit_asm_compile
-*/
-
-/* This is called from a compiler stub.
- * Arguments are already in registers and the stack is setup like in CACAO.
- */
-
-asm_call_jit_compiler:
-L_asm_call_jit_compiler:
-
-#	define ACJC_STACKFRAME ((2 * 4) + (4 * 4) + (2 * 8) + 96)
-
-	ahi     sp,-ACJC_STACKFRAME        /* allocate stack space */
-
-	stm	    %r2,%r5,96(sp)             /* store volatile int arg regs */
-	std     %f0,96+16(sp)              /* store volatile float arg regs */
-	std     %f2,96+24(sp)              
-	st      %r12,96+32(sp)             /* store %r12, used as GOT pointer */
-	st      %r14,96+36(sp)             /* store return address */
-
-	/* load arguments */
-
-	lr      a0,itmp3                   /* pass methodinfo pointer            */
-	lr      a1,mptr                    /* pass method pointer                */
-	la      a2,ACJC_STACKFRAME(sp)     /* pass java sp                       */
-	la      a3,0(%r14)                 /* pass return address, make sure bit 32 is 0 */
-
-	CALL_PIC(jit_asm_compile, acjc)
-
-	lr      pv, v0                     /* save return value */
-
-	lm      %r2,%r5,96(sp)             /* restore volatile int arg regs */
-	ld      %f0,96+16(sp)              /* restore volatile float arg regs */
-	ld      %f2,96+24(sp)              /* restore volatile float arg regs */
-
-	ltr     pv,pv
-	je      L_asm_call_jit_compiler_exception
-
-	l       %r12,96+32(sp)             /* restore %r12 */
-	l       %r14,96+36(sp)             /* restore return address */
-	ahi     sp, ACJC_STACKFRAME        /* remove stack frame */
-
-jit_code_entry:                        /* label to set breakpoint on */
-	br      pv                         /* call the method, it will return to the caller */
-
-
-L_asm_call_jit_compiler_exception:
-
-	CALL_PIC(exceptions_get_and_clear_exception, acjce)
-
-	lr      xptr, %r2
-	l       xpc,96+36(sp)              /* restore return address */
-	l       %r12,96+32(sp)             /* restore %r12 */
-	ahi     sp, ACJC_STACKFRAME        /* remove stack frame */
-	j       L_asm_handle_nat_exception
-
 
 /* asm_handle_exception ********************************************************
 *                                                                              *

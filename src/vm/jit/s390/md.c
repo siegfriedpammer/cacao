@@ -236,17 +236,38 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 		sp = (u1 *)_mc->gregs[REG_SP];
 		val = (ptrint)_mc->gregs[reg];
 
+		if (EXCEPTION_HARDWARE_COMPILER == type) {
+			/* The PV from the compiler stub is equal to the XPC. */
+
+			pv = xpc;
+
+			/* The return address in is REG_RA */
+
+			ra = (u1 *)_mc->gregs[REG_RA];
+		}
+
 		/* Handle the type. */
 
 		p = signal_handle(type, val, pv, sp, ra, xpc, _p);
 
-		if (p != NULL) {
-			_mc->gregs[REG_ITMP3_XPTR] = (intptr_t) p;
-			_mc->gregs[REG_ITMP1_XPC]  = (intptr_t) xpc;
-			_mc->psw.addr              = (intptr_t) asm_handle_exception;
-		}
-		else {
-			_mc->psw.addr              = (intptr_t) xpc;
+		if (EXCEPTION_HARDWARE_COMPILER == type) {
+			if (NULL == p) {
+				_mc->gregs[REG_ITMP3_XPTR] = (intptr_t) builtin_retrieve_exception();
+				_mc->gregs[REG_ITMP1_XPC]  = (intptr_t) xpc;
+				_mc->psw.addr              = (intptr_t) asm_handle_exception;
+			} else {
+				_mc->gregs[REG_PV]         = (intptr_t) p;
+				_mc->psw.addr              = (intptr_t) p;
+			}
+		} else {
+			if (p != NULL) {
+				_mc->gregs[REG_ITMP3_XPTR] = (intptr_t) p;
+				_mc->gregs[REG_ITMP1_XPC]  = (intptr_t) xpc;
+				_mc->psw.addr              = (intptr_t) asm_handle_exception;
+			}
+			else {
+				_mc->psw.addr              = (intptr_t) xpc;
+			}
 		}
 	} else {
 #if !defined(NDEBUG)

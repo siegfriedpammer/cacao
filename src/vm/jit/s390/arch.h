@@ -112,6 +112,8 @@
 /* #define HAS_4BYTE_STACKSLOT */
 #define SUPPORT_COMBINE_INTEGER_REGISTERS
 
+#define JIT_COMPILER_VIA_SIGNAL
+
 #endif /* _ARCH_H */
 
 

@@ -3458,36 +3458,6 @@ gen_method:
 	return true;
 }
 
-
-/* codegen_emit_stub_compiler **************************************************
-
-   Emits a stub routine which calls the compiler.
-	
-*******************************************************************************/
-
-void codegen_emit_stub_compiler(jitdata *jd)
-{
-	methodinfo  *m;
-	codegendata *cd;
-
-	/* get required compiler data */
-
-	m  = jd->m;
-	cd = jd->cd;
-
-	/* code for the stub */
-
-	/* don't touch ITMP2 as it cointains the return address */
-
-	M_AADD_IMM(N_PV_OFFSET, REG_PV); /* suppress negative displacements */
-
-	/* REG_METHODPTR (REG_ITMP1) already used */
-	M_ILD_DSEG(REG_ITMP3, -2 * SIZEOF_VOID_P); /* methodinfo  */
-	M_ILD_DSEG(REG_PV, -3 * SIZEOF_VOID_P); /* compiler pointer */
-	N_BR(REG_PV);
-}
-
-
 /* codegen_emit_stub_native ****************************************************
 
    Emits a stub routine which calls a native method.
