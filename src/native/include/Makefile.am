@@ -75,7 +75,6 @@ JAVASE_HEADER_FILES += \
 
 if ENABLE_ANNOTATIONS
 JAVASE_HEADER_FILES += \
-	java_util_Map.h \
 	sun_reflect_ConstantPool.h
 endif
 endif
