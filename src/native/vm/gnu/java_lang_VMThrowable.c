@@ -119,7 +119,6 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 	stacktrace_entry            *tmpste;
 	s4                           size;
 	s4                           i;
-	methodinfo                  *m;
 	java_handle_objectarray_t   *oa;
 	s4                           oalength;
 	java_lang_StackTraceElement *o;
@@ -136,15 +135,6 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 
 	ste  = stb->entries;
 	size = stb->used;
-
-	/* now fill the stacktrace into java objects */
-
-	m = class_findmethod(class_java_lang_StackTraceElement,
-						 utf_init,
-						 utf_new_char("(Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;Z)V"));
-
-	if (m == NULL)
-		return NULL;
 
 	/* Count entries with a method name. */
 
