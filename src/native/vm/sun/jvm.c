@@ -391,9 +391,7 @@ void JVM_FillInStackTrace(JNIEnv *env, jobject receiver)
 	java_lang_Throwable     *o;
 	java_handle_bytearray_t *ba;
 
-#if PRINTJVM
-	log_println("JVM_FillInStackTrace: receiver=%p", receiver);
-#endif
+	TRACEJVMCALLS("JVM_FillInStackTrace(env=%p, receiver=%p)", env, receiver);
 
 	o = (java_lang_Throwable *) receiver;
 
@@ -454,9 +452,7 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 	java_lang_String            *filename;
 	s4                           linenumber;
 
-#if PRINTJVM
-	log_println("JVM_GetStackTraceElement: throwable=%p, index=%d", throwable, index);
-#endif
+	TRACEJVMCALLS("JVM_GetStackTraceElement(env=%p, throwable=%p, index=%d)", env, throwable, index);
 
 	t   = (java_lang_Throwable *) throwable;
 	ba  = (java_handle_bytearray_t *) t->backtrace;
@@ -518,9 +514,8 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 
 jint JVM_IHashCode(JNIEnv* env, jobject handle)
 {
-#if PRINTJVM
-	log_println("JVM_IHashCode: jobject=%p", handle);
-#endif
+	TRACEJVMCALLS("JVM_IHashCode(env=%p, jobject=%p)", env, handle);
+
 	return (jint) ((ptrint) handle);
 }
 
