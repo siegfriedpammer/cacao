@@ -37,15 +37,9 @@
 /* function prototypes ********************************************************/
 
 #if defined(ENABLE_JIT)
-void md_init(void);
-
 void md_cacheflush(u1 *addr, s4 nbytes);
 void md_icacheflush(u1 *addr, s4 nbytes);
 void md_dcacheflush(u1 *addr, s4 nbytes);
-#endif
-
-#if defined(ENABLE_INTRP)
-void intrp_md_init(void);
 #endif
 
 #endif /* _MD_H */

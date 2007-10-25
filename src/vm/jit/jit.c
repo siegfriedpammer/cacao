@@ -51,7 +51,6 @@
 #include "vm/jit/disass.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/md.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 
@@ -919,6 +918,19 @@ void jit_init(void)
 	/* initialize code subsystem */
 
 	(void) code_init();
+
+	/* Machine dependent initialization. */
+
+#if defined(ENABLE_JIT)
+# if defined(ENABLE_INTRP)
+	if (opt_intrp)
+		intrp_md_init();
+	else
+# endif
+		md_init();
+#else
+	intrp_md_init();
+#endif
 }
 
 

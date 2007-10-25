@@ -89,7 +89,6 @@
 #endif
 
 #include "vm/jit/jit.h"
-#include "vm/jit/md.h"
 
 #if defined(ENABLE_PROFILING)
 # include "vm/jit/optimizing/profile.h"
@@ -1505,19 +1504,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	/* initializes jit compiler */
 
 	jit_init();
-
-	/* machine dependent initialization */
-
-#if defined(ENABLE_JIT)
-# if defined(ENABLE_INTRP)
-	if (opt_intrp)
-		intrp_md_init();
-	else
-# endif
-		md_init();
-#else
-	intrp_md_init();
-#endif
 
 	/* BEFORE: loader_preinit */
 
