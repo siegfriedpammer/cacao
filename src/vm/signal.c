@@ -236,6 +236,11 @@ void *signal_handle(int type, intptr_t val,
 	methodinfo       *m;
 	java_handle_t    *p;
 
+	/* Prevent compiler warnings. */
+
+	o = NULL;
+	m = NULL;
+
 	/* wrap the value into a handle if it is a reference */
 	/* BEFORE: creating stackframeinfo */
 

@@ -228,6 +228,7 @@ java_handle_t *primitive_box(int type, imm_union value)
 		o = value.a;
 		break;
 	default:
+		o = NULL;
 		vm_abort("primitive_box: invalid primitive type %d", type);
 	}
 
