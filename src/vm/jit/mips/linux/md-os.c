@@ -45,7 +45,6 @@
 #include "vm/signallocal.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/md.h"
 #include "vm/jit/stacktrace.h"
 
 
@@ -183,28 +182,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	/* Handle the type. */
 
 	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
-
-#if 0
-	/* set registers (only if exception object ready) */
-
-	if (p != NULL) {
-		_gregs[REG_ITMP1_XPTR] = (intptr_t) p;
-		_gregs[REG_ITMP2_XPC]  = (intptr_t) xpc;
-
-#if defined(__UCLIBC__)
-		_gregs[CTX_EPC]        = (intptr_t) asm_handle_exception;
-#else
-		_mc->pc                = (intptr_t) asm_handle_exception;
-#endif
-	}
-	else {
-#if defined(__UCLIBC__)
-		_gregs[CTX_EPC]        = (intptr_t) xpc;
-#else
-		_mc->pc                = (intptr_t) xpc;
-#endif
-	}
-#endif
 
 	/* Set registers. */
 
