@@ -48,8 +48,6 @@
 	.globl asm_vm_call_method_exception_handler
 	.globl asm_vm_call_method_end
 
-	.globl asm_call_jit_compiler
-
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
 
@@ -248,95 +246,6 @@ asm_vm_call_method_end:
 	b       calljava_return2
 
 	.end    asm_vm_call_method
-
-
-/****************** function asm_call_jit_compiler *****************************
-*                                                                              *
-*   invokes the compiler for untranslated JavaVM methods.                      *
-*                                                                              *
-*   Register REG_ITEMP1 contains a pointer to the method info structure        *
-*   (prepared by createcompilerstub). Using the return address in R31 and the  *
-*   offset in the LDA instruction or using the value in methodptr R25 the      *
-*   patching address for storing the method address can be computed:           *
-*                                                                              *
-*   method address was either loaded using                                     *
-*   M_ALD (REG_PV, REG_PV, a)        ; invokestatic/special    ($28)           *
-*   M_JSR (REG_RA, REG_PV);                                                    *
-*   M_NOP                                                                      *
-*   M_LDA (REG_PV, REG_RA, val)                                                *
-*   or                                                                         *
-*   M_ALD (REG_PV, REG_METHODPTR, m) ; invokevirtual/interface ($25)           *
-*   M_JSR (REG_RA, REG_PV);                                                    *
-*   M_NOP                                                                      *
-*   in the static case the method pointer can be computed using the            *
-*   return address and the lda function following the jmp instruction          *
-*                                                                              *
-*******************************************************************************/
-
-	.ent    asm_call_jit_compiler
-
-asm_call_jit_compiler:
-#if SIZEOF_VOID_P == 8
-
-	aaddiu  sp,sp,-(ARG_CNT+2)*8  /* +2: keep stack 16-bytes aligned          */
-
-	ast     ra,0*8(sp)            /* save return address                      */
-
-	SAVE_ARGUMENT_REGISTERS(1)
-
-	move    a0,itmp1              /* pass methodinfo pointer                  */
-	move    a1,mptr               /* pass method pointer                      */
-	aaddiu  a2,sp,(ARG_CNT+2)*8   /* pass java sp                             */
-	move    a3,ra
-	jal     jit_asm_compile       /* call jit compiler                        */
-	move    pv,v0
-
-	ald     ra,0*8(sp)            /* restore return address                   */
-
-	RESTORE_ARGUMENT_REGISTERS(1)
-
-	aaddiu  sp,sp,(ARG_CNT+2)*8   /* remove stack frame                       */
-
-#else /* SIZEOF_VOID_P == 8 */
-
-	aaddiu  sp,sp,-(ARG_CNT+2)*8  /* +4: keep stack 16-bytes aligned          */
-
-	ast     ra,4*4+0*4(sp)        /* save return address                      */
-
-	SAVE_ARGUMENT_REGISTERS(6)
-
-	move    a0,itmp1              /* pass methodinfo pointer                  */
-	move    a1,mptr               /* pass method pointer                      */
-	aaddiu  a2,sp,(ARG_CNT+2)*8   /* pass java sp                             */
-	move    a3,ra
-	jal     jit_asm_compile       /* call jit compiler                        */
-	move    pv,v0
-
-	ald     ra,4*4+0*4(sp)        /* restore return address                   */
-
-	RESTORE_ARGUMENT_REGISTERS(6)
-
-	aaddiu  sp,sp,(ARG_CNT+2)*8   /* remove stack frame                       */
-
-#endif /* SIZEOF_VOID_P == 8 */
-
-	beqz    pv,L_asm_call_jit_compiler_exception
-
-	jr      pv                    /* and call method. The method returns      */
-	                              /* directly to the caller (ra).             */
-
-L_asm_call_jit_compiler_exception:
-	aaddiu  sp,sp,-2*8
-	ast     ra,0*8(sp)
-	jal     exceptions_get_and_clear_exception
-	ald     ra,0*8(sp)
-	aaddiu  sp,sp,2*8
-
-	move    xptr,v0               /* get exception                            */
-	aaddiu  xpc,ra,-4             /* exception address is RA - 4              */
-	b       asm_handle_nat_exception
-
-	.end    asm_call_jit_compiler
 
 
 /* asm_handle_exception ********************************************************

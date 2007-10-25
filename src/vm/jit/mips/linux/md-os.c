@@ -41,9 +41,11 @@
 #include "mm/gc-common.h"
 #include "mm/memory.h"
 
+#include "vm/exceptions.h"
 #include "vm/signallocal.h"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/md.h"
 #include "vm/jit/stacktrace.h"
 
 
@@ -161,6 +163,13 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		type = disp;
 		val  = _gregs[d];
+
+		if (type == EXCEPTION_HARDWARE_COMPILER) {
+			/* The XPC is the RA minus 4, because the RA points to the
+			   instruction after the call. */
+
+			xpc = ra - 4;
+		}
 	}
 	else {
 		/* This is a normal NPE: addr must be NULL and the NPE-type
@@ -175,6 +184,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
 
+#if 0
 	/* set registers (only if exception object ready) */
 
 	if (p != NULL) {
@@ -192,6 +202,60 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		_gregs[CTX_EPC]        = (intptr_t) xpc;
 #else
 		_mc->pc                = (intptr_t) xpc;
+#endif
+	}
+#endif
+
+	/* Set registers. */
+
+	switch (type) {
+	case EXCEPTION_HARDWARE_COMPILER:
+		if (p != NULL) {
+			_gregs[REG_PV]  = (uintptr_t) p;
+#if defined(__UCLIBC__)
+			_gregs[CTX_EPC] = (uintptr_t) p;
+#else
+			_mc->pc         = (uintptr_t) p;
+#endif
+			break;
+		}
+
+		/* Get and set the PV from the parent Java method. */
+
+		pv = md_codegen_get_pv_from_pc(ra);
+
+		_gregs[REG_PV] = (uintptr_t) pv;
+
+		/* Get the exception object. */
+
+		p = builtin_retrieve_exception();
+
+		assert(p != NULL);
+
+		/* fall-through */
+
+	case EXCEPTION_HARDWARE_PATCHER:
+		if (p == NULL) {
+			/* We set the PC again because the cause may have changed
+			   the XPC. */
+
+#if defined(__UCLIBC__)
+			_gregs[CTX_EPC] = (uintptr_t) xpc;
+#else
+			_mc->pc         = (uintptr_t) xpc;
+#endif
+			break;
+		}
+
+		/* fall-through */
+		
+	default:
+		_gregs[REG_ITMP1_XPTR] = (uintptr_t) p;
+		_gregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
+#if defined(__UCLIBC__)
+		_gregs[CTX_EPC]        = (uintptr_t) asm_handle_exception;
+#else
+		_mc->pc                = (uintptr_t) asm_handle_exception;
 #endif
 	}
 }
