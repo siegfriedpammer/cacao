@@ -64,6 +64,10 @@ bool has_ext_instr_set = false;             /* has instruction set extensions */
 
 void md_init(void)
 {
+#if defined(__LINUX__)
+	unsigned long int fpcw;
+#endif
+
 	/* check for extended instruction set */
 
 	has_ext_instr_set = !asm_md_init();
@@ -76,11 +80,24 @@ void md_init(void)
 
 	/* initialize floating point control */
 
-	ieee_set_fp_control(ieee_get_fp_control()
-						& ~IEEE_TRAP_ENABLE_INV
-						& ~IEEE_TRAP_ENABLE_DZE
-/*  						& ~IEEE_TRAP_ENABLE_UNF   we dont want underflow */
-						& ~IEEE_TRAP_ENABLE_OVF);
+	fpcw = ieee_get_fp_control();
+
+	fpcw = fpcw
+		& ~IEEE_TRAP_ENABLE_INV
+		& ~IEEE_TRAP_ENABLE_DZE
+		/* We dont want underflow. */
+/* 		& ~IEEE_TRAP_ENABLE_UNF */
+		& ~IEEE_TRAP_ENABLE_OVF;
+
+/* 	fpcw = fpcw */
+/* 		| IEEE_TRAP_ENABLE_INV */
+/* 		| IEEE_TRAP_ENABLE_DZE */
+/* 		| IEEE_TRAP_ENABLE_OVF */
+/* 		| IEEE_TRAP_ENABLE_UNF */
+/* 		| IEEE_TRAP_ENABLE_INE */
+/* 		| IEEE_TRAP_ENABLE_DNO; */
+
+	ieee_set_fp_control(fpcw);
 #endif
 }
 
@@ -211,40 +228,49 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 
 u1 *md_codegen_get_pv_from_pc(u1 *ra)
 {
-	u1 *pv;
-	u4  mcode;
-	s4  offset;
+	uint32_t *pc;
+	uint32_t  mcode;
+	int       opcode;
+	int32_t   disp;
+	void     *pv;
 
-	pv = ra;
+	pc = (uint32_t *) ra;
 
-	/* get first instruction word after jump */
+	/* Get first instruction word after jump. */
 
-	mcode = *((u4 *) ra);
+	mcode = pc[0];
 
-	/* check if we have 2 instructions (ldah, lda) */
+	/* Get opcode and displacement. */
 
-	if ((mcode >> 16) == 0x277a) {
-		/* get displacement of first instruction (ldah) */
+	opcode = M_MEM_GET_Opcode(mcode);
+	disp   = M_MEM_GET_Memory_disp(mcode);
 
-		offset = (s4) (mcode << 16);
-		pv += offset;
+	/* Check for short or long load (2 instructions). */
 
-		/* get displacement of second instruction (lda) */
+	switch (opcode) {
+	case 0x08: /* LDA: TODO use define */
+		assert((mcode >> 16) == 0x237a);
 
-		mcode = *((u4 *) (ra + 1 * 4));
+		pv = ((uint8_t *) pc) + disp;
+		break;
+
+	case 0x09: /* LDAH: TODO use define */
+		pv = ((uint8_t *) pc) + (disp << 16);
+
+		/* Get displacement of second instruction (LDA). */
+
+		mcode = pc[1];
 
 		assert((mcode >> 16) == 0x237b);
 
-		offset = (s2) (mcode & 0x0000ffff);
-		pv += offset;
-	}
-	else {
-		/* get displacement of first instruction (lda) */
+		disp = M_MEM_GET_Memory_disp(mcode);
 
-		assert((mcode >> 16) == 0x237a);
+		pv = ((uint8_t *) pv) + disp;
+		break;
 
-		offset = (s2) (mcode & 0x0000ffff);
-		pv += offset;
+	default:
+		vm_abort_disassemble(pc, 2, "md_codegen_get_pv_from_pc: unknown instruction %x", mcode);
+		return NULL;
 	}
 
 	return pv;
