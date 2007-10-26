@@ -3068,10 +3068,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	codeinfo    *code;
 	codegendata *cd;
 	methoddesc  *md;
-	s4           i, j;                 /* count variables                    */
-	s4           t;
-	s4           s1, s2, disp;
-	s4           funcdisp;             /* displacement of the function       */
+	int          i, j;
+	int          t;
+	int          s1, s2;
+	int          disp;
 
 	/* get required compiler data */
 
@@ -3105,13 +3105,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	M_LDA(REG_SP, REG_SP, -(cd->stackframesize * 8));
 	M_AST(REG_RA, REG_SP, cd->stackframesize * 8 - SIZEOF_VOID_P);
-
-	/* get function address (this must happen before the stackframeinfo) */
-
-	funcdisp = dseg_add_functionptr(cd, f);
-
-	if (f == NULL)
-		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, funcdisp);
 
 #if defined(ENABLE_GC_CACAO)
 	/* Save callee saved integer registers in stackframeinfo (GC may
@@ -3245,9 +3238,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		M_ALD(REG_A0, REG_PV, disp);
 	}
 
-	/* do the native function call */
+	/* Call the native function. */
 
-	M_ALD(REG_PV, REG_PV, funcdisp);
+	disp = dseg_add_functionptr(cd, f);
+	M_ALD(REG_PV, REG_PV, disp);
 	M_JSR(REG_RA, REG_PV);              /* call native method                 */
 	disp = (s4) (cd->mcodeptr - cd->mcodebase);
 	M_LDA(REG_PV, REG_RA, -disp);       /* recompute pv from ra               */
@@ -3325,10 +3319,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
 	M_ALD(REG_ITMP3, REG_PV, disp);     /* load asm exception handler address */
 	M_JMP(REG_ZERO, REG_ITMP3);         /* jump to asm exception handler      */
-	
-	/* generate patcher stubs */
-
-	emit_patcher_traps(jd);
 }
 
 
