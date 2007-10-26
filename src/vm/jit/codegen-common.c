@@ -80,6 +80,7 @@
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/code.h"
 #include "vm/jit/codegen-common.h"
 
 #if defined(ENABLE_DISASSEMBLER)
@@ -1564,8 +1565,10 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 
 	/* get information from method header */
 
-	code      = *((codeinfo **) (pv + CodeinfoPointer));
-	framesize = *((int32_t *)   (pv + FrameSize));
+	code = code_get_codeinfo_for_pv(pv);
+
+	framesize = *((int32_t *) (pv + FrameSize));
+
 	assert(code);
 
 	/* get the methodinfo */
