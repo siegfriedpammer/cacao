@@ -30,6 +30,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <stdint.h>
 
 #include "vm/types.h"
@@ -40,6 +41,7 @@
 
 #include "vm/jit/exceptiontable.h"
 #include "vm/jit/linenumbertable.h"
+#include "vm/jit/methodheader.h"
 #include "vm/jit/replace.h"
 
 #include "vmcore/method.h"
@@ -178,6 +180,30 @@ inline static void code_unflag_synchronized(codeinfo *code)
 }
 
 
+/* code_get_codeinfo_for_pv ****************************************************
+
+   Return the codeinfo for the given PV.
+
+   IN:
+       pv...............PV
+
+   RETURN VALUE:
+       the codeinfo *
+
+*******************************************************************************/
+
+inline static codeinfo *code_get_codeinfo_for_pv(void *pv)
+{
+	codeinfo *code;
+
+	assert(pv != NULL);
+
+	code = *((codeinfo **) (((uintptr_t) pv) + CodeinfoPointer));
+
+	return code;
+}
+
+
 /* function prototypes ********************************************************/
 
 bool code_init(void);
@@ -188,7 +214,6 @@ void code_codeinfo_free(codeinfo *code);
 codeinfo *code_find_codeinfo_for_pc(u1 *pc);
 codeinfo *code_find_codeinfo_for_pc_nocheck(u1 *pc);
 
-codeinfo   *code_get_codeinfo_for_pv(u1 *pv);
 methodinfo *code_get_methodinfo_for_pv(u1 *pv);
 
 #if defined(ENABLE_REPLACEMENT)

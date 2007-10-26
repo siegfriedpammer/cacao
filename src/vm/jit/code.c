@@ -41,7 +41,6 @@
 
 #include "vm/jit/code.h"
 #include "vm/jit/codegen-common.h"
-#include "vm/jit/methodheader.h"
 #include "vm/jit/patcher-common.h"
 
 #include "vmcore/options.h"
@@ -149,30 +148,6 @@ codeinfo *code_find_codeinfo_for_pc_nocheck(u1 *pc)
 		return NULL;
 
 	return code_get_codeinfo_for_pv(pv);
-}
-
-
-/* code_get_codeinfo_for_pv ****************************************************
-
-   Return the codeinfo for the given PV.
-
-   IN:
-       pv...............PV
-
-   RETURN VALUE:
-       the codeinfo *
-
-*******************************************************************************/
-
-codeinfo *code_get_codeinfo_for_pv(u1 *pv)
-{
-	codeinfo *code;
-
-	assert(pv != NULL);
-
-	code = *((codeinfo **) (pv + CodeinfoPointer));
-
-	return code;
 }
 
 
