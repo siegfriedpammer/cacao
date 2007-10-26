@@ -3465,10 +3465,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	methoddesc  *md;
 	int          i, j;                 /* count variables                    */
 	int          s1, s2;
-	int          funcdisp;
-#if defined(ENABLE_GC_CACAO)
 	int          disp;
-#endif
 
 	/* get required compiler data */
 
@@ -3514,13 +3511,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* calculate stackframe size for native function */
 
 	M_ASUB_IMM(cd->stackframesize * 8, REG_SP);
-
-	/* get function address (this must happen before the stackframeinfo) */
-
-	funcdisp = dseg_add_functionptr(cd, f);
-
-	if (f == NULL)
-		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, funcdisp);
 
 	/* Mark the whole fpu stack as free for native functions (only for saved  */
 	/* register count == 0).                                                  */
@@ -3599,11 +3589,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		M_AST_IMM(_Jv_env, REG_SP, 0 * 4);
 	}
 
-	/* call the native function */
+	/* Call the native function. */
 
+	disp = dseg_add_functionptr(cd, f);
 	emit_mov_imm_reg(cd, 0, REG_ITMP3);
 	dseg_adddata(cd);
-	M_ALD(REG_ITMP1, REG_ITMP3, funcdisp);
+	M_ALD(REG_ITMP1, REG_ITMP3, disp);
 	M_CALL(REG_ITMP1);
 
 	/* save return value */
@@ -3685,10 +3676,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	M_MOV_IMM(asm_handle_nat_exception, REG_ITMP3);
 	M_JMP(REG_ITMP3);
-
-	/* generate patcher stubs */
-
-	emit_patcher_traps(jd);
 }
 
 
