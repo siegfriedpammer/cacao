@@ -3087,10 +3087,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
 	M_DSEG_LOAD(REG_ITMP3, disp);       /* load asm exception handler address */
 	M_MOV(REG_PC, REG_ITMP3);           /* jump to asm exception handler      */
-
-	/* generate patcher stubs */
-
-	emit_patcher_traps(jd);
 }
 
 
