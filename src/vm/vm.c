@@ -1497,10 +1497,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!finalizer_init())
 		vm_abort("vm_create: finalizer_init failed");
 
-	/* initialize the codegen subsystems */
-
-	codegen_init();
-
 	/* initializes jit compiler */
 
 	jit_init();
