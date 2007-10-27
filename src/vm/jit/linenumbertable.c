@@ -39,6 +39,11 @@
 # include "vmcore/statistics.h"
 #endif
 
+#if defined(__S390__)
+#  define ADDR_MASK(type, x) ((type)((uintptr_t)(x) & 0x7FFFFFFF))
+#else
+#  define ADDR_MASK(type, x) (x)
+#endif
 
 /* linenumbertable_create ******************************************************
 
@@ -94,7 +99,7 @@ void linenumbertable_create(jitdata *jd)
 	/* Fill the linenumber table entries in reverse order, so the
 	   search can be forward. */
 
-	pv = code->entrypoint;
+	pv = ADDR_MASK(uint8_t *, code->entrypoint);
 
 	for (le = list_last_unsynced(l); le != NULL;
 		 le = list_prev_unsynced(l, le), lnte++) {
@@ -224,6 +229,8 @@ void linenumbertable_list_entry_add_inline_end(codegendata *cd, instruction *ipt
 static s4 linenumbertable_linenumber_for_pc_intern(methodinfo **pm, linenumbertable_entry_t *lnte, int32_t lntsize, void *pc)
 {
 	linenumbertable_entry_t *lntinline;   /* special entry for inlined method */
+
+	pc = ADDR_MASK(void *, pc);
 
 	for (; lntsize > 0; lntsize--, lnte++) {
 		/* Note: In case of inlining this may actually compare the pc

@@ -3750,6 +3750,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* handle exception */
 
 	M_MOV(REG_RA, REG_ITMP1_XPC);
+	M_ASUB_IMM(2, REG_ITMP1_XPC);
 
 	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
 	M_ALD_DSEG(REG_ITMP2, disp);

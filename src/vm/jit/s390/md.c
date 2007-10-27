@@ -244,6 +244,8 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 			/* The return address in is REG_RA */
 
 			ra = (u1 *)_mc->gregs[REG_RA];
+
+			xpc = ra - 2;
 		}
 
 		/* Handle the type. */
@@ -253,7 +255,8 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 		if (EXCEPTION_HARDWARE_COMPILER == type) {
 			if (NULL == p) {
 				_mc->gregs[REG_ITMP3_XPTR] = (intptr_t) builtin_retrieve_exception();
-				_mc->gregs[REG_ITMP1_XPC]  = (intptr_t) xpc;
+				_mc->gregs[REG_ITMP1_XPC]  = (intptr_t) ra - 2;
+				_mc->gregs[REG_PV]         = (intptr_t) md_codegen_get_pv_from_pc(ra);
 				_mc->psw.addr              = (intptr_t) asm_handle_exception;
 			} else {
 				_mc->gregs[REG_PV]         = (intptr_t) p;
@@ -679,7 +682,7 @@ void md_handle_exception(int32_t *regs, int64_t *fregs, int32_t *out) {
 
 			/* new xpc is call before return address */
 
-			xpc = ra;
+			xpc = ra - 2;
 
 		} else {
 			xpc = handler;
