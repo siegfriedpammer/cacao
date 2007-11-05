@@ -32,6 +32,7 @@
 #include <stdlib.h>
 
 #include "arch.h"
+#include "md.h"
 
 #if defined(ENABLE_GC_CACAO)
 # include "mm/cacao-gc/gc.h"
@@ -49,7 +50,6 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/md.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/show.h"

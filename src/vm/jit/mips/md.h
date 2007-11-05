@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/md.h - machine dependent Alpha functions
+/* src/vm/jit/mips/md.h - machine dependent MIPS functions
 
    Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -25,29 +25,20 @@
 */
 
 
-#ifndef _VM_JIT_ALPHA_MD_H
-#define _VM_JIT_ALPHA_MD_H
+#ifndef _VM_JIT_MIPS_MD_H
+#define _VM_JIT_MIPS_MD_H
 
 #include "config.h"
 
 #include <assert.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <sys/cachectl.h>
 
-#include "vm/jit/alpha/codegen.h"
+#include "vm/types.h"
 
-#include "vm/global.h"
 #include "vm/vm.h"
 
-#include "vm/jit/asmpart.h"
-#include "vm/jit/codegen-common.h"
-
-
-/* global variables ***********************************************************/
-
-extern bool has_ext_instr_set;
-
-
-/* inline functions ***********************************************************/
 
 /* md_stacktrace_get_returnaddress *********************************************
 
@@ -60,10 +51,10 @@ inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframe
 {
 	void *ra;
 
-	/* On Alpha the return address is located on the top of the
+	/* On MIPS the return address is located on the top of the
 	   stackframe. */
 
-	ra = *((void **) (((uintptr_t) sp) + stackframesize - SIZEOF_VOID_P));
+	ra = *((void **) (((uintptr_t) sp) + stackframesize - 8));
 
 	return ra;
 }
@@ -73,58 +64,60 @@ inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframe
 
    Machine code:
 
-   6b5b4000    jsr     (pv)
-   277afffe    ldah    pv,-2(ra)
-   237ba61c    lda     pv,-23012(pv)
+   03c0f809    jalr     s8
+   00000000    nop
+   27feff9c    addiu    s8,ra,-100
 
 *******************************************************************************/
 
-inline static void *md_codegen_get_pv_from_pc(void *ra)
+inline static u1 *md_codegen_get_pv_from_pc(u1 *ra)
 {
-	uint32_t *pc;
-	uint32_t  mcode;
-	int       opcode;
-	int32_t   disp;
-	void     *pv;
+	u1 *pv;
+	u4  mcode;
+	s4  offset;
 
-	pc = (uint32_t *) ra;
+	/* get the offset of the instructions */
 
-	/* Get first instruction word after jump. */
+	/* get first instruction word after jump */
 
-	mcode = pc[0];
+	mcode = *((u4 *) ra);
 
-	/* Get opcode and displacement. */
+	/* check if we have 2 instructions (lui, daddiu) */
 
-	opcode = M_MEM_GET_Opcode(mcode);
-	disp   = M_MEM_GET_Memory_disp(mcode);
+	if ((mcode >> 16) == 0x3c19) {
+		/* get displacement of first instruction (lui) */
 
-	/* Check for short or long load (2 instructions). */
+		offset = (s4) (mcode << 16);
 
-	switch (opcode) {
-	case 0x08: /* LDA: TODO use define */
-		assert((mcode >> 16) == 0x237a);
+		/* get displacement of second instruction (daddiu) */
 
-		pv = ((uint8_t *) pc) + disp;
-		break;
+		mcode = *((u4 *) (ra + 1 * 4));
 
-	case 0x09: /* LDAH: TODO use define */
-		pv = ((uint8_t *) pc) + (disp << 16);
+#if SIZEOF_VOID_P == 8
+		assert((mcode >> 16) == 0x6739);
+#else
+		assert((mcode >> 16) == 0x2739);
+#endif
 
-		/* Get displacement of second instruction (LDA). */
-
-		mcode = pc[1];
-
-		assert((mcode >> 16) == 0x237b);
-
-		disp = M_MEM_GET_Memory_disp(mcode);
-
-		pv = ((uint8_t *) pv) + disp;
-		break;
-
-	default:
-		vm_abort_disassemble(pc, 2, "md_codegen_get_pv_from_pc: unknown instruction %x", mcode);
-		return NULL;
+		offset += (s2) (mcode & 0x0000ffff);
 	}
+	else {
+		/* get offset of first instruction (daddiu) */
+
+		mcode = *((u4 *) ra);
+
+#if SIZEOF_VOID_P == 8
+		assert((mcode >> 16) == 0x67fe);
+#else
+		assert((mcode >> 16) == 0x27fe);
+#endif
+
+		offset = (s2) (mcode & 0x0000ffff);
+	}
+
+	/* calculate PV via RA + offset */
+
+	pv = ra + offset;
 
 	return pv;
 }
@@ -139,7 +132,7 @@ inline static void *md_codegen_get_pv_from_pc(void *ra)
 
 inline static void md_cacheflush(void *addr, int nbytes)
 {
-	asm_cacheflush(addr, nbytes);
+	cacheflush(addr, nbytes, BCACHE);
 }
 
 
@@ -151,7 +144,7 @@ inline static void md_cacheflush(void *addr, int nbytes)
 
 inline static void md_icacheflush(void *addr, int nbytes)
 {
-	asm_cacheflush(addr, nbytes);
+	cacheflush(addr, nbytes, ICACHE);
 }
 
 
@@ -163,10 +156,10 @@ inline static void md_icacheflush(void *addr, int nbytes)
 
 inline static void md_dcacheflush(void *addr, int nbytes)
 {
-	/* do nothing */
+	cacheflush(addr, nbytes, DCACHE);
 }
 
-#endif /* _VM_JIT_ALPHA_MD_H */
+#endif /* _VM_JIT_MIPS_MD_H */
 
 
 /*
@@ -180,4 +173,5 @@ inline static void md_dcacheflush(void *addr, int nbytes)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

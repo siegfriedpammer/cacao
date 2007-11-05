@@ -30,15 +30,8 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include "vm/types.h"
-
+#include "vm/jit/arm/md.h"
 #include "vm/jit/arm/md-abi.h"
-
-#include "vm/exceptions.h"
-#include "vm/global.h"
-
-#include "vm/jit/asmpart.h"
-#include "vm/jit/md.h"
 
 
 /* md_init *********************************************************************
@@ -50,27 +43,6 @@
 void md_init(void)
 {
 	/* do nothing here */
-}
-
-
-/* md_stacktrace_get_returnaddress *********************************************
-
-   Returns the return address of the current stackframe, specified by
-   the passed stack pointer and the stack frame size.
-
-*******************************************************************************/
-
-u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
-{
-	u1 *ra;
-
-	/* On ARM the return address is located on the top of the
-	   stackframe. */
-	/* ATTENTION: This is only true for non-leaf methods!!! */
-
-	ra = *((u1 **) (sp + framesize - SIZEOF_VOID_P));
-
-	return ra;
 }
 
 
@@ -166,83 +138,9 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 }
 
 
-/* md_codegen_get_pv_from_pc ***************************************************
-
-   TODO: document me
-
-*******************************************************************************/
-
-u1 *md_codegen_get_pv_from_pc(u1 *ra)
+void *md_asm_codegen_get_pv_from_pc(void *ra)
 {
-	u1 *pv;
-	u4  mcode1, mcode2, mcode3;
-
-	pv = ra;
-
-	/* this can either be a RECOMPUTE_IP in JIT code or a fake in asm_calljavafunction */
-	mcode1 = *((u4*) ra);
-	if ((mcode1 & 0xffffff00) == 0xe24fcf00 /*sub ip,pc,#__*/)
-		pv -= (s4) ((mcode1 & 0x000000ff) <<  2);
-	else if ((mcode1 & 0xffffff00) == 0xe24fc000 /*sub ip,pc,#__*/)
-		pv -= (s4) (mcode1 & 0x000000ff);
-	else {
-		/* if this happens, we got an unexpected instruction at (*ra) */
-		vm_abort("Unable to find method: %p (instr=%x)", ra, mcode1);
-	}
-
-	/* if we have a RECOMPUTE_IP there can be more than one instruction */
-	mcode2 = *((u4*) (ra + 4));
-	mcode3 = *((u4*) (ra + 8));
-	if ((mcode2 & 0xffffff00) == 0xe24ccb00 /*sub ip,ip,#__*/)
-		pv -= (s4) ((mcode2 & 0x000000ff) << 10);
-	if ((mcode3 & 0xffffff00) == 0xe24cc700 /*sub ip,ip,#__*/)
-		pv -= (s4) ((mcode3 & 0x000000ff) << 18);
-
-	/* we used PC-relative adressing; but now it is LR-relative */
-	pv += 8;
-
-	/* if we found our method the data segment has to be valid */
-	/* we check this by looking up the IsLeaf field, which has to be boolean */
-/* 	assert( *((s4*)pv-8) == (s4)true || *((s4*)pv-8) == (s4)false );  */
-
-	return pv;
-}
-
-
-/* md_cacheflush ***************************************************************
-
-   Calls the system's function to flush the instruction and data
-   cache.
-
-*******************************************************************************/
-
-void md_cacheflush(u1 *addr, s4 nbytes)
-{
-	asm_cacheflush(addr, nbytes);
-}
-
-
-/* md_icacheflush **************************************************************
-
-   Calls the system's function to flush the instruction cache.
-
-*******************************************************************************/
-
-void md_icacheflush(u1 *addr, s4 nbytes)
-{
-	asm_cacheflush(addr, nbytes);
-}
-
-
-/* md_dcacheflush **************************************************************
-
-   Calls the system's function to flush the data cache.
-
-*******************************************************************************/
-
-void md_dcacheflush(u1 *addr, s4 nbytes)
-{
-	/* do nothing */
+	return md_codegen_get_pv_from_pc(ra);
 }
 
 

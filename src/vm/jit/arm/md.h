@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/md.h - machine dependent Alpha functions
+/* src/vm/jit/arm/md.h - machine dependent Arm functions
 
    Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -25,29 +25,19 @@
 */
 
 
-#ifndef _VM_JIT_ALPHA_MD_H
-#define _VM_JIT_ALPHA_MD_H
+#ifndef _VM_JIT_ARM_MD_H
+#define _VM_JIT_ARM_MD_H
 
 #include "config.h"
 
 #include <assert.h>
 #include <stdint.h>
 
-#include "vm/jit/alpha/codegen.h"
-
-#include "vm/global.h"
-#include "vm/vm.h"
+#include "vm/types.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 
-
-/* global variables ***********************************************************/
-
-extern bool has_ext_instr_set;
-
-
-/* inline functions ***********************************************************/
 
 /* md_stacktrace_get_returnaddress *********************************************
 
@@ -60,8 +50,9 @@ inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframe
 {
 	void *ra;
 
-	/* On Alpha the return address is located on the top of the
+	/* On ARM the return address is located on the top of the
 	   stackframe. */
+	/* ATTENTION: This is only true for non-leaf methods!!! */
 
 	ra = *((void **) (((uintptr_t) sp) + stackframesize - SIZEOF_VOID_P));
 
@@ -71,60 +62,42 @@ inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframe
 
 /* md_codegen_get_pv_from_pc ***************************************************
 
-   Machine code:
-
-   6b5b4000    jsr     (pv)
-   277afffe    ldah    pv,-2(ra)
-   237ba61c    lda     pv,-23012(pv)
+   TODO: document me
 
 *******************************************************************************/
 
-inline static void *md_codegen_get_pv_from_pc(void *ra)
+inline static u1 *md_codegen_get_pv_from_pc(u1 *ra)
 {
-	uint32_t *pc;
-	uint32_t  mcode;
-	int       opcode;
-	int32_t   disp;
-	void     *pv;
+	u1 *pv;
+	u4  mcode1, mcode2, mcode3;
 
-	pc = (uint32_t *) ra;
+	pv = ra;
 
-	/* Get first instruction word after jump. */
-
-	mcode = pc[0];
-
-	/* Get opcode and displacement. */
-
-	opcode = M_MEM_GET_Opcode(mcode);
-	disp   = M_MEM_GET_Memory_disp(mcode);
-
-	/* Check for short or long load (2 instructions). */
-
-	switch (opcode) {
-	case 0x08: /* LDA: TODO use define */
-		assert((mcode >> 16) == 0x237a);
-
-		pv = ((uint8_t *) pc) + disp;
-		break;
-
-	case 0x09: /* LDAH: TODO use define */
-		pv = ((uint8_t *) pc) + (disp << 16);
-
-		/* Get displacement of second instruction (LDA). */
-
-		mcode = pc[1];
-
-		assert((mcode >> 16) == 0x237b);
-
-		disp = M_MEM_GET_Memory_disp(mcode);
-
-		pv = ((uint8_t *) pv) + disp;
-		break;
-
-	default:
-		vm_abort_disassemble(pc, 2, "md_codegen_get_pv_from_pc: unknown instruction %x", mcode);
-		return NULL;
+	/* this can either be a RECOMPUTE_IP in JIT code or a fake in asm_calljavafunction */
+	mcode1 = *((u4*) ra);
+	if ((mcode1 & 0xffffff00) == 0xe24fcf00 /*sub ip,pc,#__*/)
+		pv -= (s4) ((mcode1 & 0x000000ff) <<  2);
+	else if ((mcode1 & 0xffffff00) == 0xe24fc000 /*sub ip,pc,#__*/)
+		pv -= (s4) (mcode1 & 0x000000ff);
+	else {
+		/* if this happens, we got an unexpected instruction at (*ra) */
+		vm_abort("Unable to find method: %p (instr=%x)", ra, mcode1);
 	}
+
+	/* if we have a RECOMPUTE_IP there can be more than one instruction */
+	mcode2 = *((u4*) (ra + 4));
+	mcode3 = *((u4*) (ra + 8));
+	if ((mcode2 & 0xffffff00) == 0xe24ccb00 /*sub ip,ip,#__*/)
+		pv -= (s4) ((mcode2 & 0x000000ff) << 10);
+	if ((mcode3 & 0xffffff00) == 0xe24cc700 /*sub ip,ip,#__*/)
+		pv -= (s4) ((mcode3 & 0x000000ff) << 18);
+
+	/* we used PC-relative adressing; but now it is LR-relative */
+	pv += 8;
+
+	/* if we found our method the data segment has to be valid */
+	/* we check this by looking up the IsLeaf field, which has to be boolean */
+/* 	assert( *((s4*)pv-8) == (s4)true || *((s4*)pv-8) == (s4)false );  */
 
 	return pv;
 }
@@ -166,7 +139,7 @@ inline static void md_dcacheflush(void *addr, int nbytes)
 	/* do nothing */
 }
 
-#endif /* _VM_JIT_ALPHA_MD_H */
+#endif /* _VM_JIT_ARM_MD_H */
 
 
 /*
@@ -180,4 +153,5 @@ inline static void md_dcacheflush(void *addr, int nbytes)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -56,7 +56,6 @@
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/s390/codegen.h"
 
-#include <assert.h>
 
 /* prototypes *****************************************************************/
 
@@ -412,25 +411,6 @@ void md_critical_section_restart(ucontext_t *_uc)
 #endif
 
 
-/* md_stacktrace_get_returnaddress *********************************************
-
-   Returns the return address of the current stackframe, specified by
-   the passed stack pointer and the stack frame size.
-
-*******************************************************************************/
-
-u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
-{
-	u1 *ra;
-
-	/* on S390 the return address is located on the top of the stackframe */
-
-	ra = *((u1 **) (sp + framesize - 8));
-
-	return ra;
-}
-
-
 /* md_jit_method_patch_address *************************************************
 
    Gets the patch address of the currently compiled method. The offset
@@ -525,63 +505,6 @@ void *md_jit_method_patch_address(void* pv, void *ra, void *mptr)
 	}
 
 	return pa;
-}
-
-
-/* md_codegen_get_pv_from_pc ***************************************************
-
-   On this architecture just a wrapper function to
-   codegen_get_pv_from_pc.
-
-*******************************************************************************/
-
-u1 *md_codegen_get_pv_from_pc(u1 *ra)
-{
-	u1 *pv;
-
-	/* Get the start address of the function which contains this
-       address from the method table. */
-
-	pv = codegen_get_pv_from_pc(ra);
-
-	return pv;
-}
-
-
-/* md_cacheflush ***************************************************************
-
-   Calls the system's function to flush the instruction and data
-   cache.
-
-*******************************************************************************/
-
-void md_cacheflush(u1 *addr, s4 nbytes)
-{
-	/* do nothing */
-}
-
-
-/* md_icacheflush **************************************************************
-
-   Calls the system's function to flush the instruction cache.
-
-*******************************************************************************/
-
-void md_icacheflush(u1 *addr, s4 nbytes)
-{
-	/* do nothing */
-}
-
-
-/* md_dcacheflush **************************************************************
-
-   Calls the system's function to flush the data cache.
-
-*******************************************************************************/
-
-void md_dcacheflush(u1 *addr, s4 nbytes)
-{
-	/* do nothing */
 }
 
 

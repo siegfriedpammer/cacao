@@ -111,6 +111,8 @@ void asm_cacheflush(u1 *addr, s4 nbytes);
 
 u8 asm_get_cycle_count(void);
 
+void *md_asm_codegen_get_pv_from_pc(void *ra);
+
 #endif /* _ASMPART_H */
 
 

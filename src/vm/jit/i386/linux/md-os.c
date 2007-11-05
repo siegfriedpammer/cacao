@@ -35,6 +35,7 @@
 #include "vm/types.h"
 
 #include "vm/jit/i386/codegen.h"
+#include "vm/jit/i386/md.h"
 
 #include "threads/threads-common.h"
 

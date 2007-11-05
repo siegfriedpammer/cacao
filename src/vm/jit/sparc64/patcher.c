@@ -34,8 +34,9 @@
 
 #include "mm/memory.h"
 
-#include "vm/jit/sparc64/md-abi.h"
 #include "vm/jit/sparc64/codegen.h"
+#include "vm/jit/sparc64/md.h"
+#include "vm/jit/sparc64/md-abi.h"
 
 #include "native/native.h"
 #include "vm/builtin.h"
@@ -44,7 +45,6 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/patcher.h"
-#include "vm/jit/md.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/stacktrace.h"
 
@@ -55,6 +55,7 @@
 #include "vm/resolve.h"
 
 #include "vm/jit/sparc64/solaris/macro_rename.h"
+
 
 /* patcher_wrapper *************************************************************
 

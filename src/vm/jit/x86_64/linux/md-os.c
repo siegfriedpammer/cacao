@@ -37,6 +37,7 @@
 #include "vm/types.h"
 
 #include "vm/jit/x86_64/codegen.h"
+#include "vm/jit/x86_64/md.h"
 
 #if defined(ENABLE_THREADS)
 # include "threads/native/threads.h"

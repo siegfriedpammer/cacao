@@ -120,7 +120,6 @@ void stacktrace_print_exception(java_handle_t *h);
 /* machine dependent functions (code in ARCH_DIR/md.c) */
 
 #if defined(ENABLE_JIT)
-u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize);
 # if defined(__SPARC_64__)
 u1 *md_get_framepointer(u1 *sp);
 u1 *md_get_pv_from_stackframe(u1 *sp);

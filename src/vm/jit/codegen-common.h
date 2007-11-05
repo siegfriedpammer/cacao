@@ -319,10 +319,6 @@ void codegen_critical_section_end(codegendata *cd);
 # define CODEGEN_CRITICAL_SECTION_END      /* no-op */
 #endif
 
-/* machine dependent functions */
-u1 *md_codegen_get_pv_from_pc(u1 *ra);
-
-
 #if defined(ENABLE_SSA)
 void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr);
 #endif

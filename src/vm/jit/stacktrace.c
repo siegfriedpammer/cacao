@@ -34,6 +34,8 @@
 
 #include "vm/types.h"
 
+#include "md.h"
+
 #include "mm/gc-common.h"
 #include "mm/memory.h"
 

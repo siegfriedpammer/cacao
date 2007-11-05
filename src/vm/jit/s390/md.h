@@ -1,6 +1,6 @@
-/* src/vm/jit/alpha/md.h - machine dependent Alpha functions
+/* src/vm/jit/s390/md.h - machine dependent s390 Linux functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -25,29 +25,16 @@
 */
 
 
-#ifndef _VM_JIT_ALPHA_MD_H
-#define _VM_JIT_ALPHA_MD_H
+#ifndef _VM_JIT_S390_MD_H
+#define _VM_JIT_S390_MD_H
 
 #include "config.h"
 
 #include <assert.h>
 #include <stdint.h>
 
-#include "vm/jit/alpha/codegen.h"
-
-#include "vm/global.h"
-#include "vm/vm.h"
-
-#include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 
-
-/* global variables ***********************************************************/
-
-extern bool has_ext_instr_set;
-
-
-/* inline functions ***********************************************************/
 
 /* md_stacktrace_get_returnaddress *********************************************
 
@@ -60,10 +47,10 @@ inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframe
 {
 	void *ra;
 
-	/* On Alpha the return address is located on the top of the
+	/* On S390 the return address is located on the top of the
 	   stackframe. */
 
-	ra = *((void **) (((uintptr_t) sp) + stackframesize - SIZEOF_VOID_P));
+	ra = *((void **) (((uintptr_t) sp) + stackframesize - 8));
 
 	return ra;
 }
@@ -71,60 +58,19 @@ inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframe
 
 /* md_codegen_get_pv_from_pc ***************************************************
 
-   Machine code:
-
-   6b5b4000    jsr     (pv)
-   277afffe    ldah    pv,-2(ra)
-   237ba61c    lda     pv,-23012(pv)
+   On this architecture just a wrapper function to
+   codegen_get_pv_from_pc.
 
 *******************************************************************************/
 
 inline static void *md_codegen_get_pv_from_pc(void *ra)
 {
-	uint32_t *pc;
-	uint32_t  mcode;
-	int       opcode;
-	int32_t   disp;
-	void     *pv;
+	void *pv;
 
-	pc = (uint32_t *) ra;
+	/* Get the start address of the function which contains this
+       address from the method table. */
 
-	/* Get first instruction word after jump. */
-
-	mcode = pc[0];
-
-	/* Get opcode and displacement. */
-
-	opcode = M_MEM_GET_Opcode(mcode);
-	disp   = M_MEM_GET_Memory_disp(mcode);
-
-	/* Check for short or long load (2 instructions). */
-
-	switch (opcode) {
-	case 0x08: /* LDA: TODO use define */
-		assert((mcode >> 16) == 0x237a);
-
-		pv = ((uint8_t *) pc) + disp;
-		break;
-
-	case 0x09: /* LDAH: TODO use define */
-		pv = ((uint8_t *) pc) + (disp << 16);
-
-		/* Get displacement of second instruction (LDA). */
-
-		mcode = pc[1];
-
-		assert((mcode >> 16) == 0x237b);
-
-		disp = M_MEM_GET_Memory_disp(mcode);
-
-		pv = ((uint8_t *) pv) + disp;
-		break;
-
-	default:
-		vm_abort_disassemble(pc, 2, "md_codegen_get_pv_from_pc: unknown instruction %x", mcode);
-		return NULL;
-	}
+	pv = codegen_get_pv_from_pc(ra);
 
 	return pv;
 }
@@ -139,7 +85,7 @@ inline static void *md_codegen_get_pv_from_pc(void *ra)
 
 inline static void md_cacheflush(void *addr, int nbytes)
 {
-	asm_cacheflush(addr, nbytes);
+	/* do nothing */
 }
 
 
@@ -151,7 +97,7 @@ inline static void md_cacheflush(void *addr, int nbytes)
 
 inline static void md_icacheflush(void *addr, int nbytes)
 {
-	asm_cacheflush(addr, nbytes);
+	/* do nothing */
 }
 
 
@@ -166,7 +112,7 @@ inline static void md_dcacheflush(void *addr, int nbytes)
 	/* do nothing */
 }
 
-#endif /* _VM_JIT_ALPHA_MD_H */
+#endif /* _VM_JIT_S390_MD_H */
 
 
 /*
@@ -180,4 +126,5 @@ inline static void md_dcacheflush(void *addr, int nbytes)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

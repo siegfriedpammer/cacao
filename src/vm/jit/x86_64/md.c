@@ -37,7 +37,6 @@
 
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/md.h"
 
 
 /* md_init *********************************************************************
@@ -49,25 +48,6 @@
 void md_init(void)
 {
 	/* nothing to do */
-}
-
-
-/* md_stacktrace_get_returnaddress *********************************************
-
-   Returns the return address of the current stackframe, specified by
-   the passed stack pointer and the stack frame size.
-
-*******************************************************************************/
-
-u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
-{
-	u1 *ra;
-
-	/* on x86_64 the return address is above the current stack frame */
-
-	ra = *((u1 **) (sp + framesize));
-
-	return ra;
 }
 
 
@@ -157,63 +137,6 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 }
 
 
-/* md_codegen_get_pv_from_pc ***************************************************
-
-   On this architecture just a wrapper function to
-   codegen_get_pv_from_pc.
-
-*******************************************************************************/
-
-u1 *md_codegen_get_pv_from_pc(u1 *ra)
-{
-	u1 *pv;
-
-	/* Get the start address of the function which contains this
-       address from the method table. */
-
-	pv = codegen_get_pv_from_pc(ra);
-
-	return pv;
-}
-
-
-/* md_cacheflush ***************************************************************
-
-   Calls the system's function to flush the instruction and data
-   cache.
-
-*******************************************************************************/
-
-void md_cacheflush(u1 *addr, s4 nbytes)
-{
-	/* do nothing */
-}
-
-
-/* md_icacheflush **************************************************************
-
-   Calls the system's function to flush the instruction cache.
-
-*******************************************************************************/
-
-void md_icacheflush(u1 *addr, s4 nbytes)
-{
-	/* do nothing */
-}
-
-
-/* md_dcacheflush **************************************************************
-
-   Calls the system's function to flush the data cache.
-
-*******************************************************************************/
-
-void md_dcacheflush(u1 *addr, s4 nbytes)
-{
-	/* do nothing */
-}
-
-
 /* md_patch_replacement_point **************************************************
 
    Patch the given replacement point.
@@ -243,6 +166,7 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
     /* XXX if required asm_cacheflush(pc,8); */
 }
 #endif /* defined(ENABLE_REPLACEMENT) */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -29,39 +29,15 @@
 
 #include <assert.h>
 #include <stdint.h>
-#include <unistd.h>
-#include <sys/cachectl.h>
 
 #include "vm/types.h"
 
-#include "toolbox/logging.h"
+#include "vm/jit/mips/md.h"
 
 #include "vm/global.h"
 #include "vm/vm.h"
 
-#include "vm/jit/codegen-common.h"
 #include "vm/jit/jit.h"
-
-
-/* md_stacktrace_get_returnaddress *********************************************
-
-   Returns the return address of the current stackframe, specified by
-   the passed stack pointer and the stack frame size.
-
-*******************************************************************************/
-
-u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
-{
-	u1 *ra;
-
-	/* on MIPS the return address is located on the top of the stackframe */
-
-	/* XXX change this if we ever want to use 4-byte stackslots */
-	/* ra = *((u1 **) (sp + framesize - SIZEOF_VOID_P)); */
-	ra = *((u1 **) (sp + framesize - 8));
-
-	return ra;
-}
 
 
 /* md_jit_method_patch_address *************************************************
@@ -168,106 +144,6 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 }
 
 
-/* md_codegen_get_pv_from_pc ***************************************************
-
-   Machine code:
-
-   03c0f809    jalr     s8
-   00000000    nop
-   27feff9c    addiu    s8,ra,-100
-
-*******************************************************************************/
-
-u1 *md_codegen_get_pv_from_pc(u1 *ra)
-{
-	u1 *pv;
-	u4  mcode;
-	s4  offset;
-
-	/* get the offset of the instructions */
-
-	/* get first instruction word after jump */
-
-	mcode = *((u4 *) ra);
-
-	/* check if we have 2 instructions (lui, daddiu) */
-
-	if ((mcode >> 16) == 0x3c19) {
-		/* get displacement of first instruction (lui) */
-
-		offset = (s4) (mcode << 16);
-
-		/* get displacement of second instruction (daddiu) */
-
-		mcode = *((u4 *) (ra + 1 * 4));
-
-#if SIZEOF_VOID_P == 8
-		assert((mcode >> 16) == 0x6739);
-#else
-		assert((mcode >> 16) == 0x2739);
-#endif
-
-		offset += (s2) (mcode & 0x0000ffff);
-	}
-	else {
-		/* get offset of first instruction (daddiu) */
-
-		mcode = *((u4 *) ra);
-
-#if SIZEOF_VOID_P == 8
-		assert((mcode >> 16) == 0x67fe);
-#else
-		assert((mcode >> 16) == 0x27fe);
-#endif
-
-		offset = (s2) (mcode & 0x0000ffff);
-	}
-
-	/* calculate PV via RA + offset */
-
-	pv = ra + offset;
-
-	return pv;
-}
-
-
-/* md_cacheflush ***************************************************************
-
-   Calls the system's function to flush the instruction and data
-   cache.
-
-*******************************************************************************/
-
-void md_cacheflush(u1 *addr, s4 nbytes)
-{
-	cacheflush(addr, nbytes, BCACHE);
-}
-
-
-/* md_icacheflush **************************************************************
-
-   Calls the system's function to flush the instruction cache.
-
-*******************************************************************************/
-
-void md_icacheflush(u1 *addr, s4 nbytes)
-{
-	cacheflush(addr, nbytes, ICACHE);
-}
-
-
-/* md_dcacheflush **************************************************************
-
-   Calls the system's function to flush the data cache.
-
-*******************************************************************************/
-
-void md_dcacheflush(u1 *addr, s4 nbytes)
-{
-	cacheflush(addr, nbytes, DCACHE);
-}
-
-
 /* md_patch_replacement_point **************************************************
 
    Patch the given replacement point.
@@ -302,6 +178,7 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
     md_icacheflush(pc,2*4);
 }
 #endif /* defined(ENABLE_REPLACEMENT) */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

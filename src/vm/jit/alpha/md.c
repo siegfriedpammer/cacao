@@ -38,17 +38,13 @@ extern unsigned long ieee_get_fp_control();
 extern void ieee_set_fp_control(unsigned long fp_control);
 #endif
 
-#include "vm/types.h"
-
 #include "vm/jit/alpha/codegen.h"
-#include "vm/jit/alpha/md-abi.h"
+#include "vm/jit/alpha/md.h"
 
 #include "vm/exceptions.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/codegen-common.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/md.h"
 
 
 /* global variables ***********************************************************/
@@ -99,25 +95,6 @@ void md_init(void)
 
 	ieee_set_fp_control(fpcw);
 #endif
-}
-
-
-/* md_stacktrace_get_returnaddress *********************************************
-
-   Returns the return address of the current stackframe, specified by
-   the passed stack pointer and the stack frame size.
-
-*******************************************************************************/
-
-u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
-{
-	u1 *ra;
-
-	/* on Alpha the return address is located on the top of the stackframe */
-
-	ra = *((u1 **) (sp + framesize - SIZEOF_VOID_P));
-
-	return ra;
 }
 
 
@@ -213,104 +190,6 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 	}
 
 	return pa;
-}
-
-
-/* md_codegen_get_pv_from_pc ***************************************************
-
-   Machine code:
-
-   6b5b4000    jsr     (pv)
-   277afffe    ldah    pv,-2(ra)
-   237ba61c    lda     pv,-23012(pv)
-
-*******************************************************************************/
-
-u1 *md_codegen_get_pv_from_pc(u1 *ra)
-{
-	uint32_t *pc;
-	uint32_t  mcode;
-	int       opcode;
-	int32_t   disp;
-	void     *pv;
-
-	pc = (uint32_t *) ra;
-
-	/* Get first instruction word after jump. */
-
-	mcode = pc[0];
-
-	/* Get opcode and displacement. */
-
-	opcode = M_MEM_GET_Opcode(mcode);
-	disp   = M_MEM_GET_Memory_disp(mcode);
-
-	/* Check for short or long load (2 instructions). */
-
-	switch (opcode) {
-	case 0x08: /* LDA: TODO use define */
-		assert((mcode >> 16) == 0x237a);
-
-		pv = ((uint8_t *) pc) + disp;
-		break;
-
-	case 0x09: /* LDAH: TODO use define */
-		pv = ((uint8_t *) pc) + (disp << 16);
-
-		/* Get displacement of second instruction (LDA). */
-
-		mcode = pc[1];
-
-		assert((mcode >> 16) == 0x237b);
-
-		disp = M_MEM_GET_Memory_disp(mcode);
-
-		pv = ((uint8_t *) pv) + disp;
-		break;
-
-	default:
-		vm_abort_disassemble(pc, 2, "md_codegen_get_pv_from_pc: unknown instruction %x", mcode);
-		return NULL;
-	}
-
-	return pv;
-}
-
-
-/* md_cacheflush ***************************************************************
-
-   Calls the system's function to flush the instruction and data
-   cache.
-
-*******************************************************************************/
-
-void md_cacheflush(u1 *addr, s4 nbytes)
-{
-	asm_cacheflush(addr, nbytes);
-}
-
-
-/* md_icacheflush **************************************************************
-
-   Calls the system's function to flush the instruction cache.
-
-*******************************************************************************/
-
-void md_icacheflush(u1 *addr, s4 nbytes)
-{
-	asm_cacheflush(addr, nbytes);
-}
-
-
-/* md_dcacheflush **************************************************************
-
-   Calls the system's function to flush the data cache.
-
-*******************************************************************************/
-
-void md_dcacheflush(u1 *addr, s4 nbytes)
-{
-	/* do nothing */
 }
 
 

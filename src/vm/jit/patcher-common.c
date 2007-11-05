@@ -31,6 +31,7 @@
 #include <stdint.h>
 
 #include "codegen.h"                   /* for PATCHER_NOPS */
+#include "md.h"
 
 #include "mm/memory.h"
 
@@ -48,7 +49,6 @@
 
 #include "vm/jit/code.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/md.h"
 #include "vm/jit/patcher-common.h"
 
 #include "vmcore/options.h"

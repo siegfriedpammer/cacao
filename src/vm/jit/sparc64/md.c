@@ -1,6 +1,6 @@
-/* src/vm/jit/sparc64/md.c - machine dependent SPARC functions
+/* src/vm/jit/sparc64/md.c - machine dependent SPARC64 functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -47,11 +47,6 @@ void asm_store_fp_state_reg(u8 *mem);
 void asm_load_fp_state_reg(u8 *mem);
 
 
-
-/* shift away 13-bit immediate,  mask rd and rs1    */
-#define SHIFT_AND_MASK(instr) \
-	((instr >> 13) & 0x60fc1)
-
 /* NOP is defined as a SETHI instruction with rd and imm. set to zero */
 /* therefore we check if the 22-bit immediate is zero */
 #define IS_SETHI(instr) \
@@ -86,108 +81,6 @@ inline s2 decode_13bit_imm(u4 instr) {
 void md_init(void)
 {
 	/* do nothing */
-}
-
-
-/* md_stacktrace_get_returnaddress *********************************************
-
-   Returns the return address of the current stackframe, specified by
-   the passed stack pointer and the stack frame size.
-
-*******************************************************************************/
-
-u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
-{
-	u1 *ra;
-	/* flush register windows to the stack */
-	__asm__ ("flushw");
-
-	/* the return address resides in register i7, the last register in the
-	 * 16-extended-word save area
-	 */
-	ra = *((u1 **) (sp + 120 + BIAS));
-	
-	/* NOTE: on SPARC ra is the address of the call instruction */
-
-	return ra;
-}
-
-u1 *md_get_framepointer(u1 *sp)
-{
-	u1 *fp;
-	/* flush register windows to the stack */
-	__asm__ ("flushw");
-
-	fp = *((u1 **) (sp + 112 + BIAS));
-
-	return fp;
-}
-
-u1 *md_get_pv_from_stackframe(u1 *sp)
-{
-	u1 *pv;
-	/* flush register windows to the stack */
-	__asm__ ("flushw");
-
-	pv = *((u1 **) (sp + 104 + BIAS));
-
-	return pv;
-}
-
-
-/* md_codegen_get_pv_from_pc ***************************************************
-
-   This reconstructs and returns the PV of a method given a return address
-   pointer. (basically, same was as the generated code following the jump does)
-   
-   Machine code:
-
-   6b5b4000    jmpl    (pv)
-   10000000    nop
-   277afffe    ldah    pv,-2(ra)
-   237ba61c    lda     pv,-23012(pv)
-
-*******************************************************************************/
-
-u1 *md_codegen_get_pv_from_pc(u1 *ra)
-{
-	u1 *pv;
-	u8  mcode;
-	s4  offset;
-
-	pv = ra;
-
-	/* get the instruction word after jump and nop */
-	mcode = *((u4 *) (ra+8) );
-
-	/* check if we have a sethi insruction */
-	if (IS_SETHI(mcode)) {
-		s4 xor_imm;
-				
-		/* get 22-bit immediate of sethi instruction */
-		offset = (s4) (mcode & 0x3fffff);
-		offset = offset << 10;
-		
-		/* now the xor */
-		mcode = *((u4 *) (ra+12) );
-		xor_imm = decode_13bit_imm(mcode);
-		
-		offset ^= xor_imm;	 
-	}
-	else {
-		u4 mcode_masked;
-		
-		mcode_masked = SHIFT_AND_MASK(mcode);
-
-		assert(mcode_masked == 0x40001);
-
-		/* mask and extend the negative sign for the 13 bit immediate */
-		offset = decode_13bit_imm(mcode);
-	}
-	
-	pv += offset;
-
-	return pv;
 }
 
 
@@ -317,33 +210,6 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 	}
 
 	return pa;
-}
-
-
-/* md_cacheflush ***************************************************************
-
-   Calls the system's function to flush the instruction and data
-   cache.
-
-*******************************************************************************/
-
-void md_cacheflush(u1 *addr, s4 nbytes)
-{
-	/* don't know yet */	
-}
-
-
-/* md_dcacheflush **************************************************************
-
-   Calls the system's function to flush the data cache.
-
-*******************************************************************************/
-
-void md_dcacheflush(u1 *addr, s4 nbytes)
-{
-	/* XXX don't know yet */	
-	/* printf("md_dcacheflush\n"); */
-	__asm__ __volatile__ ( "membar 0x7F" : : : "memory" );
 }
 
 

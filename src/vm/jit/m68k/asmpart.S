@@ -197,7 +197,7 @@ L_asm_handle_exception_stack_loop:
 
 	/* we need the dseg, figure it out */
 	movel	%a3, %sp@-				/* push ra argument */
-	jsr	md_codegen_get_pv_from_pc	/* pv in %d0 now */
+	jsr	md_asm_codegen_get_pv_from_pc	/* pv in %d0 now */
 	movel	%d0, %d2				/* move to safe register */
 	lea	%sp@(4), %sp				/* pop args off stack */
 

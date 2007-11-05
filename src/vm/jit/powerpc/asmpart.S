@@ -262,7 +262,7 @@ L_asm_handle_exception_stack_loop:
 	stw     itmp3,LA_SIZE+(4+4)*4(sp)   /* save maybe-leaf flag (cleared)     */
 
 	mr      a0,r0                       /* pass return address                */
-	bl      md_codegen_get_pv_from_pc   /* get PV from RA                     */
+	bl      md_asm_codegen_get_pv_from_pc /* get PV from RA                   */
 	stw     v0,LA_SIZE+(4+2)*4(sp)      /* save data segment pointer          */
 
 	lwz     a0,LA_SIZE+(4+0)*4(sp)      /* pass xptr                          */
@@ -517,21 +517,21 @@ L_builtin_throw_exception$lazy_ptr:
 
 .section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
 	.align 2
-L_md_codegen_get_pv_from_pc$stub:
-	.indirect_symbol _md_codegen_get_pv_from_pc
+L_md_asm_codegen_get_pv_from_pc$stub:
+	.indirect_symbol _md_asm_codegen_get_pv_from_pc
 	mflr r0
-	bcl 20,31,L00$_md_codegen_get_pv_from_pc
-L00$_md_codegen_get_pv_from_pc:
+	bcl 20,31,L00$_md_asm_codegen_get_pv_from_pc
+L00$_md_asm_codegen_get_pv_from_pc:
 	mflr r11
-	addis r11,r11,ha16(L_md_codegen_get_pv_from_pc$lazy_ptr - L00$_md_codegen_get_pv_from_pc)
+	addis r11,r11,ha16(L_md_asm_codegen_get_pv_from_pc$lazy_ptr - L00$_md_asm_codegen_get_pv_from_pc)
 	mtlr r0
-	lwzu r12,lo16(L_md_codegen_get_pv_from_pc$lazy_ptr - L00$_md_codegen_get_pv_from_pc)(r11)
+	lwzu r12,lo16(L_md_asm_codegen_get_pv_from_pc$lazy_ptr - L00$_md_asm_codegen_get_pv_from_pc)(r11)
 	mtctr r12
 	bctr
 .data
 .lazy_symbol_pointer
-L_md_codegen_get_pv_from_pc$lazy_ptr:
-	.indirect_symbol _md_codegen_get_pv_from_pc
+L_md_asm_codegen_get_pv_from_pc$lazy_ptr:
+	.indirect_symbol _md_asm_codegen_get_pv_from_pc
 	.long dyld_stub_binding_helper
 
 

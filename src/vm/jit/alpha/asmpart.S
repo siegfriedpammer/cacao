@@ -190,7 +190,7 @@ L_asm_handle_exception_stack_loop:
 L_asm_handle_exception_load_gp:
 	ldgp    gp,0(ra)                    /* load gp                            */
 
-	jsr     ra,md_codegen_get_pv_from_pc/* get PV from RA                     */
+	jsr     ra,md_asm_codegen_get_pv_from_pc /* get PV from RA                */
 	stq     v0,2*8(sp)                  /* save PV                            */
 
 	ldq     a0,0*8(sp)                  /* pass xptr                          */

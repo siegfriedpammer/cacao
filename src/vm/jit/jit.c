@@ -28,8 +28,11 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "vm/types.h"
+
+#include "md.h"
 
 #include "mm/memory.h"
 

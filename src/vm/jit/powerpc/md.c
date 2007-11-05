@@ -34,14 +34,12 @@
 
 #include "md-abi.h"
 #include "vm/jit/powerpc/codegen.h"
+#include "vm/jit/powerpc/md.h"
 
 #include "vm/global.h"
 #include "vm/vm.h"
 
-#include "vm/jit/asmpart.h"
-#include "vm/jit/codegen-common.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/md.h"
 
 
 /* md_init *********************************************************************
@@ -53,25 +51,6 @@
 void md_init(void)
 {
 	/* nothing to do */
-}
-
-
-/* md_stacktrace_get_returnaddress *********************************************
-
-   Returns the return address of the current stackframe, specified by
-   the passed stack pointer and the stack frame size.
-
-*******************************************************************************/
-
-u1 *md_stacktrace_get_returnaddress(u1 *sp, u4 framesize)
-{
-	u1 *ra;
-
-	/* on PowerPC the return address is located in the linkage area */
-
-	ra = *((u1 **) (sp + framesize + LA_LR_OFFSET));
-
-	return ra;
 }
 
 
@@ -176,103 +155,6 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 }
 
 
-/* md_codegen_get_pv_from_pc ***************************************************
-
-   Machine code:
-
-   7d6802a6    mflr    r11
-   39abffe0    addi    r13,r11,-32
-
-   or
-
-   7d6802a6    mflr    r11
-   3dabffff    addis   r13,r11,-1
-   39ad68b0    addi    r13,r13,26800
-
-*******************************************************************************/
-
-u1 *md_codegen_get_pv_from_pc(u1 *ra)
-{
-	u1 *pv;
-	u4  mcode;
-	s4  offset;
-
-	/* get first instruction word after jump */
-
-	mcode = *((u4 *) (ra + 1 * 4));
-
-	/* check if we have 2 instructions (addis, addi) */
-
-	if ((mcode >> 16) == 0x3dab) {
-		/* get displacement of first instruction (addis) */
-
-		offset = (s4) (mcode << 16);
-
-		/* get displacement of second instruction (addi) */
-
-		mcode = *((u4 *) (ra + 2 * 4));
-
-		/* check for addi instruction */
-
-		assert((mcode >> 16) == 0x39ad);
-
-		offset += (s2) (mcode & 0x0000ffff);
-
-	} else {
-		/* check for addi instruction */
-
-		assert((mcode >> 16) == 0x39ab);
-
-		/* get offset of first instruction (addi) */
-
-		offset = (s2) (mcode & 0x0000ffff);
-	}
-
-	/* calculate PV via RA + offset */
-
-	pv = ra + offset;
-
-	return pv;
-}
-
-
-/* md_cacheflush ***************************************************************
-
-   Calls the system's function to flush the instruction and data
-   cache.
-
-*******************************************************************************/
-
-void md_cacheflush(u1 *addr, s4 nbytes)
-{
-	asm_cacheflush(addr, nbytes);
-}
-
-
-/* md_icacheflush **************************************************************
-
-   Calls the system's function to flush the instruction cache.
-
-*******************************************************************************/
-
-void md_icacheflush(u1 *addr, s4 nbytes)
-{
-	asm_cacheflush(addr, nbytes);
-}
-
-
-/* md_dcacheflush **************************************************************
-
-   Calls the system's function to flush the data cache.
-
-*******************************************************************************/
-
-void md_dcacheflush(u1 *addr, s4 nbytes)
-{
-	asm_cacheflush(addr, nbytes);
-}
-
-
 /* md_patch_replacement_point **************************************************
 
    Patch the given replacement point.
@@ -304,6 +186,7 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
     md_icacheflush(pc,4);
 }
 #endif /* defined(ENABLE_REPLACEMENT) */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

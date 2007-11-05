@@ -1,4 +1,4 @@
-/* src/vm/jit/alpha/md.h - machine dependent Alpha functions
+/* src/vm/jit/powerpc64/md.h - machine dependent PowerPC functions
 
    Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
@@ -25,29 +25,22 @@
 */
 
 
-#ifndef _VM_JIT_ALPHA_MD_H
-#define _VM_JIT_ALPHA_MD_H
+#ifndef _VM_JIT_POWERPC64_MD_H
+#define _VM_JIT_POWERPC64_MD_H
 
 #include "config.h"
 
 #include <assert.h>
 #include <stdint.h>
 
-#include "vm/jit/alpha/codegen.h"
+#include "vm/jit/powerpc64/codegen.h"
 
 #include "vm/global.h"
 #include "vm/vm.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/jit.h"
 
-
-/* global variables ***********************************************************/
-
-extern bool has_ext_instr_set;
-
-
-/* inline functions ***********************************************************/
 
 /* md_stacktrace_get_returnaddress *********************************************
 
@@ -60,10 +53,10 @@ inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframe
 {
 	void *ra;
 
-	/* On Alpha the return address is located on the top of the
-	   stackframe. */
+	/* On PowerPC64 the return address is located in the linkage
+	   area. */
 
-	ra = *((void **) (((uintptr_t) sp) + stackframesize - SIZEOF_VOID_P));
+	ra = *((void **) (((uintptr_t) sp) + stackframesize + LA_LR_OFFSET));
 
 	return ra;
 }
@@ -73,58 +66,60 @@ inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframe
 
    Machine code:
 
-   6b5b4000    jsr     (pv)
-   277afffe    ldah    pv,-2(ra)
-   237ba61c    lda     pv,-23012(pv)
+   7d6802a6    mflr    r11
+   39cbffe0    addi    r14,r11,-32
+
+   or
+
+   7d6802a6    mflr    r11
+   3dcbffff    addis   r14,r11,-1
+   39ce68b0    addi    r14,r13,26800
 
 *******************************************************************************/
 
-inline static void *md_codegen_get_pv_from_pc(void *ra)
+inline static u1 *md_codegen_get_pv_from_pc(u1 *ra)
 {
-	uint32_t *pc;
-	uint32_t  mcode;
-	int       opcode;
-	int32_t   disp;
-	void     *pv;
+	u1 *pv;
+	u4  mcode;
+	s4  offset;
 
-	pc = (uint32_t *) ra;
+	/* get first instruction word after jump */
 
-	/* Get first instruction word after jump. */
+	mcode = *((u4 *) (ra + 1 * 4));
 
-	mcode = pc[0];
+	/* check if we have 2 instructions (addis, addi) */
 
-	/* Get opcode and displacement. */
+	if ((mcode >> 16) == 0x3dcb) {
+		/* get displacement of first instruction (addis) */
 
-	opcode = M_MEM_GET_Opcode(mcode);
-	disp   = M_MEM_GET_Memory_disp(mcode);
+		offset = (s4) (mcode << 16);
 
-	/* Check for short or long load (2 instructions). */
+		/* get displacement of second instruction (addi) */
 
-	switch (opcode) {
-	case 0x08: /* LDA: TODO use define */
-		assert((mcode >> 16) == 0x237a);
+		mcode = *((u4 *) (ra + 2 * 4));
 
-		pv = ((uint8_t *) pc) + disp;
-		break;
+		/* check for addi instruction */
 
-	case 0x09: /* LDAH: TODO use define */
-		pv = ((uint8_t *) pc) + (disp << 16);
+		assert((mcode >> 16) == 0x39ce);
 
-		/* Get displacement of second instruction (LDA). */
-
-		mcode = pc[1];
-
-		assert((mcode >> 16) == 0x237b);
-
-		disp = M_MEM_GET_Memory_disp(mcode);
-
-		pv = ((uint8_t *) pv) + disp;
-		break;
-
-	default:
-		vm_abort_disassemble(pc, 2, "md_codegen_get_pv_from_pc: unknown instruction %x", mcode);
-		return NULL;
+		offset += (s2) (mcode & 0x0000ffff);
 	}
+	else if ((mcode >> 16) == 0x39cb) {
+		/* get offset of first instruction (addi) */
+
+		offset = (s2) (mcode & 0x0000ffff);
+	}
+	else {
+		vm_abort("md_codegen_get_pv_from_pc: unknown instruction %x", mcode);
+
+		/* keep compiler happy */
+
+		offset = 0;
+	}
+
+	/* calculate PV via RA + offset */
+
+	pv = ra + offset;
 
 	return pv;
 }
@@ -163,10 +158,10 @@ inline static void md_icacheflush(void *addr, int nbytes)
 
 inline static void md_dcacheflush(void *addr, int nbytes)
 {
-	/* do nothing */
+	asm_cacheflush(addr, nbytes);
 }
 
-#endif /* _VM_JIT_ALPHA_MD_H */
+#endif /* _VM_JIT_POWERPC64_MD_H */
 
 
 /*
@@ -180,4 +175,5 @@ inline static void md_dcacheflush(void *addr, int nbytes)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

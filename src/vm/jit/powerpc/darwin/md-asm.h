@@ -233,7 +233,7 @@
 
 #define builtin_throw_exception               L_builtin_throw_exception$stub
 
-#define md_codegen_get_pv_from_pc             L_md_codegen_get_pv_from_pc$stub
+#define md_asm_codegen_get_pv_from_pc         L_md_asm_codegen_get_pv_from_pc$stub
 #define exceptions_handle_exception           L_exceptions_handle_exception$stub
 
 #define exceptions_asm_new_abstractmethoderror \

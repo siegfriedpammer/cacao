@@ -54,7 +54,6 @@
 
 #include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
-#include "vm/jit/md.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"

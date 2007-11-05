@@ -241,7 +241,7 @@ L_asm_handle_exception_stack_loop:
 	std     itmp3,LA_SIZE+PA_SIZE+(4+4)*8(sp)   /* save maybe-leaf flag (cleared)     */
 
 	mr      a0,r0                       /* pass return address                */
-	bl      md_codegen_get_pv_from_pc   /* get PV from RA                     */
+	bl      md_asm_codegen_get_pv_from_pc   /* get PV from RA                 */
 	std     v0,LA_SIZE+PA_SIZE+(4+2)*8(sp)      /* save data segment pointer          */
 
 	ld      a0,LA_SIZE+PA_SIZE+(4+0)*8(sp)      /* pass xptr                          */

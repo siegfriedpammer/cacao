@@ -32,7 +32,10 @@
 
 #include "vm/types.h"
 
+#include "vm/jit/powerpc/md.h"
+
 #include "mm/memory.h"
+
 #include "native/native.h"
 
 #include "vm/builtin.h"
@@ -40,7 +43,6 @@
 #include "vm/initialize.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/md.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/stacktrace.h"

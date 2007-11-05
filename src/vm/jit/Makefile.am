@@ -131,7 +131,6 @@ noinst_HEADERS = \
 	abi.h \
 	abi-asm.h \
 	asmpart.h \
-	md.h \
 	methodheader.h
 
 noinst_LTLIBRARIES = \

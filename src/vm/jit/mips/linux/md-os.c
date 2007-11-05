@@ -36,6 +36,7 @@
 #include "vm/types.h"
 
 #include "vm/jit/mips/codegen.h"
+#include "vm/jit/mips/md.h"
 #include "vm/jit/mips/md-abi.h"
 
 #include "mm/gc-common.h"

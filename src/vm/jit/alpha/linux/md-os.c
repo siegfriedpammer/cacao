@@ -34,6 +34,7 @@
 #include "vm/types.h"
 
 #include "vm/jit/alpha/codegen.h"
+#include "vm/jit/alpha/md.h"
 #include "vm/jit/alpha/md-abi.h"
 
 #if defined(ENABLE_THREADS)

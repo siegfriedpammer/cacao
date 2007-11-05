@@ -212,7 +212,7 @@ asm_handle_nat_exception:
 	/*TODO:maybe make a macro out of it!!!*/
 	SAVE_ARGUMENT_REGISTERS  
 	mov   a0, lr
-	bl    md_codegen_get_pv_from_pc
+	bl    md_asm_codegen_get_pv_from_pc
 	mov   ip, res1
 	RESTORE_ARGUMENT_REGISTERS  
 	/* fall through */
@@ -269,7 +269,7 @@ asm_handle_exception_not_catched:
 	/*TODO:maybe make a macro out of it!!!*/
 	SAVE_ARGUMENT_REGISTERS  
 	mov   a0, lr
-	bl    md_codegen_get_pv_from_pc
+	bl    md_asm_codegen_get_pv_from_pc
 	mov   ip, res1
 	RESTORE_ARGUMENT_REGISTERS  
 

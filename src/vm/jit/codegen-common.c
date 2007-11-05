@@ -50,6 +50,7 @@
 #include "vm/types.h"
 
 #include "codegen.h"
+#include "md.h"
 #include "md-abi.h"
 
 #include "mm/memory.h"
@@ -91,7 +92,6 @@
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/linenumbertable.h"
-#include "vm/jit/md.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
@@ -1811,6 +1811,13 @@ void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr)
 }
 #endif /* defined(ENABLE_SSA) */
 
+
+/* REMOVEME When we have exception handling in C. */
+
+void *md_asm_codegen_get_pv_from_pc(void *ra)
+{
+	return md_codegen_get_pv_from_pc(ra);
+}
 
 
 /*

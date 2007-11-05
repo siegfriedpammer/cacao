@@ -62,7 +62,6 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/stacktrace.h"
-#include "vm/jit/md.h"
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"

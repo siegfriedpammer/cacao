@@ -277,7 +277,7 @@ L_asm_handle_exception_stack_loop:
 #endif
 
 	move    a0,ra                       /* pass RA                            */
-	jal     md_codegen_get_pv_from_pc   /* get PV from RA                     */
+	jal     md_asm_codegen_get_pv_from_pc /* get PV from RA                   */
 
 #if SIZEOF_VOID_P == 8
 	ast     v0,2*8(sp)                  /* save PV                            */
