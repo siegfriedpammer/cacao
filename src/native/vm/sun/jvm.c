@@ -400,7 +400,7 @@ void JVM_FillInStackTrace(JNIEnv *env, jobject receiver)
 	if (ba == NULL)
 		return;
 
-	o->backtrace = (java_lang_Object *) ba;
+	LLNI_field_set_ref(o, backtrace, ba);
 }
 
 
@@ -416,7 +416,7 @@ void JVM_PrintStackTrace(JNIEnv *env, jobject receiver, jobject printable)
 
 jint JVM_GetStackTraceDepth(JNIEnv *env, jobject throwable)
 {
-	java_lang_Throwable     *o;
+	java_lang_Throwable     *t;
 	java_handle_bytearray_t *ba;
 	stacktracebuffer        *stb;
 
@@ -427,11 +427,14 @@ jint JVM_GetStackTraceDepth(JNIEnv *env, jobject throwable)
 		return 0;
 	}
 
-	o   = (java_lang_Throwable *) throwable;
-	ba  = (java_handle_bytearray_t *) o->backtrace;
+	t = (java_lang_Throwable *) throwable;
+
+	LLNI_field_get_ref(t, backtrace, ba);
 
 	if (ba == NULL)
 		return 0;
+
+	/* FIXME critical section */
 
 	stb = (stacktracebuffer *) LLNI_array_data(ba);
 
@@ -443,7 +446,7 @@ jint JVM_GetStackTraceDepth(JNIEnv *env, jobject throwable)
 
 jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 {
-	java_lang_Throwable *t;
+	java_lang_Throwable         *t;
 	java_handle_bytearray_t     *ba;
 	stacktracebuffer            *stb;
 	stacktrace_entry            *ste;
@@ -454,8 +457,12 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 
 	TRACEJVMCALLS("JVM_GetStackTraceElement(env=%p, throwable=%p, index=%d)", env, throwable, index);
 
-	t   = (java_lang_Throwable *) throwable;
-	ba  = (java_handle_bytearray_t *) t->backtrace;
+	t = (java_lang_Throwable *) throwable;
+
+	LLNI_field_get_ref(t, backtrace, ba);
+
+	/* FIXME critical section */
+
 	stb = (stacktracebuffer *) LLNI_array_data(ba);
 
 	if ((index < 0) || (index >= stb->used)) {
@@ -500,6 +507,8 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 		_Jv_java_lang_Class_getName(LLNI_classinfo_wrap(ste->method->class));
 
 	/* fill the java.lang.StackTraceElement element */
+
+	/* FIXME critical section */
 
 	o->declaringClass = declaringclass;
 	o->methodName     = (java_lang_String *) javastring_new(ste->method->name);
