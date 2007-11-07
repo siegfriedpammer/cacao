@@ -30,9 +30,9 @@
 
 /* forward typedefs ***********************************************************/
 
-typedef struct stackframeinfo_t stackframeinfo_t;
-typedef struct stacktracebuffer stacktracebuffer;
-typedef struct stacktrace_entry stacktrace_entry;
+typedef struct stackframeinfo_t   stackframeinfo_t;
+typedef struct stacktrace_entry_t stacktrace_entry_t;
+typedef struct stacktrace_t       stacktrace_t;
 
 #include "config.h"
 
@@ -42,8 +42,11 @@ typedef struct stacktrace_entry stacktrace_entry;
 
 #include "md-abi.h"
 
+#include "vm/global.h"
+
+#include "vm/jit/code.h"
+
 #include "vmcore/class.h"
-#include "vmcore/method.h"
 
 
 /* stackframeinfo **************************************************************
@@ -74,48 +77,38 @@ struct stackframeinfo_t {
 };
 
 
-/* stacktrace_entry ***********************************************************/
+/* stacktrace_entry_t *********************************************************/
 
-struct stacktrace_entry {
-#if SIZEOF_VOID_P == 8
-	u8          linenumber;
-#else
-	u4          linenumber;
-#endif
-	methodinfo *method;
+struct stacktrace_entry_t {
+	codeinfo *code;                     /* codeinfo pointer of this method    */
+	void     *pc;                       /* PC in this method                  */
 };
 
 
-/* stacktracebuffer ***********************************************************/
+/* stacktrace_t ***************************************************************/
 
-#define STACKTRACE_CAPACITY_DEFAULT      80
-#define STACKTRACE_CAPACITY_INCREMENT    80
-
-struct stacktracebuffer {
-	s4               capacity;          /* size of the buffer                 */
-	s4               used;              /* current entries in the buffer      */
-	stacktrace_entry entries[80];       /* the actual entries                 */
+struct stacktrace_t {
+	int32_t            length;          /* length of the entries array        */
+	stacktrace_entry_t entries[1];      /* stacktrace entries                 */
 };
 
 
 /* function prototypes ********************************************************/
 
-void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra, u1 *xpc);
-void stacktrace_stackframeinfo_remove(stackframeinfo_t *sfi);
+void                       stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra, u1 *xpc);
+void                       stacktrace_stackframeinfo_remove(stackframeinfo_t *sfi);
 
-
-stacktracebuffer *stacktrace_create(stackframeinfo_t *sfi);
-
-java_handle_bytearray_t   *stacktrace_fillInStackTrace(void);
+java_handle_bytearray_t   *stacktrace_get(void);
 
 #if defined(ENABLE_JAVASE)
+classloader               *stacktrace_first_nonnull_classloader(void);
 java_handle_objectarray_t *stacktrace_getClassContext(void);
-classinfo                 *stacktrace_getCurrentClass(void);
-java_handle_objectarray_t *stacktrace_getStack(void);
+classinfo                 *stacktrace_get_current_class(void);
+java_handle_objectarray_t *stacktrace_get_stack(void);
 #endif
 
-void stacktrace_print_trace_from_buffer(stacktracebuffer *stb);
-void stacktrace_print_exception(java_handle_t *h);
+void                       stacktrace_print(stacktrace_t *st);
+void                       stacktrace_print_exception(java_handle_t *h);
 
 /* machine dependent functions (code in ARCH_DIR/md.c) */
 

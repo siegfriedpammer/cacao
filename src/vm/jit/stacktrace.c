@@ -80,11 +80,11 @@
 stackframeinfo_t *_no_threads_stackframeinfo = NULL;
 #endif
 
-CYCLES_STATS_DECLARE(stacktrace_overhead        ,100,1)
-CYCLES_STATS_DECLARE(stacktrace_fillInStackTrace,40,5000)
-CYCLES_STATS_DECLARE(stacktrace_getClassContext ,40,5000)
-CYCLES_STATS_DECLARE(stacktrace_getCurrentClass ,40,5000)
-CYCLES_STATS_DECLARE(stacktrace_getStack        ,40,10000)
+CYCLES_STATS_DECLARE(stacktrace_overhead        , 100, 1)
+CYCLES_STATS_DECLARE(stacktrace_get,              40,  5000)
+CYCLES_STATS_DECLARE(stacktrace_getClassContext , 40,  5000)
+CYCLES_STATS_DECLARE(stacktrace_getCurrentClass , 40,  5000)
+CYCLES_STATS_DECLARE(stacktrace_get_stack       , 40,  10000)
 
 
 /* stacktrace_stackframeinfo_add ***********************************************
@@ -249,103 +249,6 @@ void stacktrace_stackframeinfo_remove(stackframeinfo_t *sfi)
 }
 
 
-/* stacktrace_entry_add ********************************************************
-
-   Adds a new entry to the stacktrace buffer.
-
-*******************************************************************************/
-
-static inline stacktracebuffer *stacktrace_entry_add(stacktracebuffer *stb, methodinfo *m, u2 line)
-{
-	stacktrace_entry *ste;
-	u4                stb_size_old;
-	u4                stb_size_new;
-
-	/* check if we already reached the buffer capacity */
-
-	if (stb->used >= stb->capacity) {
-		/* calculate size of stacktracebuffer */
-
-		stb_size_old = sizeof(stacktracebuffer) +
-					   sizeof(stacktrace_entry) * stb->capacity -
-					   sizeof(stacktrace_entry) * STACKTRACE_CAPACITY_DEFAULT;
-
-		stb_size_new = stb_size_old +
-					   sizeof(stacktrace_entry) * STACKTRACE_CAPACITY_INCREMENT;
-
-		/* reallocate new memory */
-
-		stb = DMREALLOC(stb, u1, stb_size_old, stb_size_new);
-
-		/* set new buffer capacity */
-
-		stb->capacity = stb->capacity + STACKTRACE_CAPACITY_INCREMENT;
-	}
-
-	/* insert the current entry */
-
-	ste = &(stb->entries[stb->used]);
-
-	ste->method     = m;
-	ste->linenumber = line;
-
-	/* increase entries used count */
-
-	stb->used += 1;
-
-	return stb;
-}
-
-
-/* stacktrace_method_add *******************************************************
-
-   Add stacktrace entries[1] for the given method to the stacktrace
-   buffer.
-
-   IN:
-       stb....stacktracebuffer to fill
-	   sfi....current stackframeinfo
-   OUT:
-       stacktracebuffer after possible reallocation.
-
-   [1] In case of inlined methods there may be more than one stacktrace
-       entry for a codegen-level method. (see doc/inlining_stacktrace.txt)
-
-*******************************************************************************/
-
-static inline stacktracebuffer *stacktrace_method_add(stacktracebuffer *stb, stackframeinfo_t *sfi)
-{
-	codeinfo   *code;
-	void       *pv;
-	void       *xpc;
-	methodinfo *m;
-	int32_t     linenumber;
-
-	/* Get values from the stackframeinfo. */
-
-	code = sfi->code;
-	pv   = sfi->pv;
-	xpc  = sfi->xpc;
-
-	m = code->m;
-
-	/* Skip builtin methods. */
-
-	if (m->flags & ACC_METHOD_BUILTIN)
-		return stb;
-
-	/* Search the line number table. */
-
-	linenumber = linenumbertable_linenumber_for_pc(&m, code, xpc);
-
-	/* Add a new entry to the staktrace. */
-
-	stb = stacktrace_entry_add(stb, m, linenumber);
-
-	return stb;
-}
-
-
 /* stacktrace_stackframeinfo_fill **********************************************
 
    Fill the temporary stackframeinfo structure with the values given
@@ -376,6 +279,21 @@ static inline void stacktrace_stackframeinfo_fill(stackframeinfo_t *tmpsfi, stac
 	   next in the chain. */
 
 	tmpsfi->prev = sfi->prev;
+
+#if !defined(NDEBUG)
+	/* Print current method information. */
+
+	if (opt_DebugStackTrace) {
+		log_println("[stacktrace start]");
+		log_start();
+		log_print("[stacktrace: method=%p, pv=%p, sp=%p, ra=%p, xpc=%p, method=",
+				  tmpsfi->code->m, tmpsfi->pv, tmpsfi->sp, tmpsfi->ra,
+				  tmpsfi->xpc);
+		method_print(tmpsfi->code->m);
+		log_print("]");
+		log_finish();
+	}
+#endif
 }
 
 
@@ -384,6 +302,8 @@ static inline void stacktrace_stackframeinfo_fill(stackframeinfo_t *tmpsfi, stac
    Walk the stack (or the stackframeinfo-chain) to the next method and
    return the new stackframe values in the temporary stackframeinfo
    passed.
+
+   ATTENTION: This function does NOT skip builtin methods!
 
    IN:
        tmpsfi ... temporary stackframeinfo of current method
@@ -411,7 +331,7 @@ static inline void stacktrace_stackframeinfo_next(stackframeinfo_t *tmpsfi)
 	sp   = tmpsfi->sp;
 	ra   = tmpsfi->ra;
 	xpc  = tmpsfi->xpc;
-
+ 
 	/* Get the current stack frame size. */
 
 	framesize = *((uint32_t *) (((intptr_t) pv) + FrameSize));
@@ -508,6 +428,20 @@ static inline void stacktrace_stackframeinfo_next(stackframeinfo_t *tmpsfi)
 		tmpsfi->ra   = ra;
 		tmpsfi->xpc  = (void *) (((intptr_t) ra) - 1);
 	}
+
+#if !defined(NDEBUG)
+	/* Print current method information. */
+
+	if (opt_DebugStackTrace) {
+		log_start();
+		log_print("[stacktrace: method=%p, pv=%p, sp=%p, ra=%p, xpc=%p, method=",
+				  tmpsfi->code->m, tmpsfi->pv, tmpsfi->sp, tmpsfi->ra,
+				  tmpsfi->xpc);
+		method_print(tmpsfi->code->m);
+		log_print("]");
+		log_finish();
+	}
+#endif
 }
 
 
@@ -530,80 +464,151 @@ static inline bool stacktrace_stackframeinfo_end_check(stackframeinfo_t *tmpsfi)
 
 	assert(tmpsfi != NULL);
 
-	if ((tmpsfi->code == NULL) && (tmpsfi->prev == NULL))
+	if ((tmpsfi->code == NULL) && (tmpsfi->prev == NULL)) {
+#if !defined(NDEBUG)
+		if (opt_DebugStackTrace)
+			log_println("[stacktrace stop]");
+#endif
+
 		return true;
+	}
 
 	return false;
 }
 
 
-/* stacktrace_create ***********************************************************
+/* stacktrace_depth ************************************************************
 
-   Generates a stacktrace from the thread passed into a
-   stacktracebuffer.  The stacktracebuffer is allocated on the
-   dump memory.
-   
-   NOTE: The first element in the stackframe chain must always be a
-         native stackframeinfo (e.g. VMThrowable.fillInStackTrace() is
-         a native function).
+   Calculates and returns the depth of the current stacktrace.
 
-   RETURN VALUE:
-      pointer to the stacktracebuffer, or
-      NULL if there is no stacktrace available for the
-      given thread.
+   IN:
+       sfi ... stackframeinfo where to start the stacktrace
+
+   RETURN:
+       depth of the stacktrace
 
 *******************************************************************************/
 
-stacktracebuffer *stacktrace_create(stackframeinfo_t *sfi)
+static int stacktrace_depth(stackframeinfo_t *sfi)
 {
-	stacktracebuffer *stb;
 	stackframeinfo_t  tmpsfi;
-	bool              skip_fillInStackTrace;
-	bool              skip_init;
-
-	skip_fillInStackTrace = true;
-	skip_init             = true;
-
-	/* Create a stacktracebuffer in dump memory. */
-
-	stb = DNEW(stacktracebuffer);
-
-	stb->capacity = STACKTRACE_CAPACITY_DEFAULT;
-	stb->used     = 0;
+	int               depth;
+	methodinfo       *m;
 
 #if !defined(NDEBUG)
-	if (opt_DebugStackTrace) {
-		printf("\n\n---> stacktrace creation start (fillInStackTrace):\n");
-		fflush(stdout);
-	}
+	if (opt_DebugStackTrace)
+		log_println("[stacktrace_depth]");
 #endif
-
-	/* Put the data from the stackframeinfo into a temporary one. */
 
 	/* XXX This is not correct, but a workaround for threads-dump for
 	   now. */
 /* 	assert(sfi != NULL); */
 	if (sfi == NULL)
-		return NULL;
+		return 0;
 
-	/* Iterate till we're done. */
+	/* Iterate over all stackframes. */
+
+	depth = 0;
 
 	for (stacktrace_stackframeinfo_fill(&tmpsfi, sfi);
 		 stacktrace_stackframeinfo_end_check(&tmpsfi) == false;
 		 stacktrace_stackframeinfo_next(&tmpsfi)) {
-#if !defined(NDEBUG)
-		/* Print current method information. */
+		/* Get methodinfo. */
 
-		if (opt_DebugStackTrace) {
-			log_start();
-			log_print("[stacktrace: method=%p, pv=%p, sp=%p, ra=%p, xpc=%p, method=",
-					  tmpsfi.code->m, tmpsfi.pv, tmpsfi.sp, tmpsfi.ra,
-					  tmpsfi.xpc);
-			method_print(tmpsfi.code->m);
-			log_print("]");
-			log_finish();
-		}
+		m = tmpsfi.code->m;
+
+		/* Skip builtin methods. */
+
+		if (m->flags & ACC_METHOD_BUILTIN)
+			continue;
+
+		depth++;
+	}
+
+	return depth;
+}
+
+
+/* stacktrace_get **************************************************************
+
+   Builds and returns a stacktrace from the current thread for and
+   returns the stacktrace structure wrapped in a Java byte-array to
+   not confuse the GC.
+
+   RETURN:
+       stacktrace as Java byte-array
+
+*******************************************************************************/
+
+java_handle_bytearray_t *stacktrace_get(void)
+{
+	stackframeinfo_t        *sfi;
+	stackframeinfo_t         tmpsfi;
+	int                      depth;
+	java_handle_bytearray_t *ba;
+	int32_t                  ba_size;
+	stacktrace_t            *st;
+	stacktrace_entry_t      *ste;
+	methodinfo              *m;
+	bool                     skip_fillInStackTrace;
+	bool                     skip_init;
+
+	CYCLES_STATS_DECLARE_AND_START_WITH_OVERHEAD
+
+#if !defined(NDEBUG)
+	if (opt_DebugStackTrace)
+		log_println("[stacktrace_get]");
 #endif
+
+	skip_fillInStackTrace = true;
+	skip_init             = true;
+
+	/* Get the stacktrace depth of the current thread. */
+
+	sfi = STACKFRAMEINFO;
+
+	depth = stacktrace_depth(sfi);
+
+	if (depth == 0)
+		return NULL;
+
+	/* Allocate memory from the GC heap and copy the stacktrace
+	   buffer. */
+	/* ATTENTION: Use a Java byte-array for this to not confuse the
+	   GC. */
+	/* FIXME: We waste some memory here as we skip some entries
+	   later. */
+
+	ba_size = sizeof(stacktrace_t) + sizeof(stacktrace_entry_t) * depth;
+
+	ba = builtin_newarray_byte(ba_size);
+
+	if (ba == NULL)
+		goto return_NULL;
+
+	/* Get a stacktrace entry pointer. */
+	/* ATTENTION: We need a critical section here because we use the
+	   byte-array data pointer directly. */
+
+	LLNI_CRITICAL_START;
+
+	st = (stacktrace_t *) LLNI_array_data(ba);
+
+	ste = st->entries;
+
+	/* Iterate over the whole stack. */
+
+	for (stacktrace_stackframeinfo_fill(&tmpsfi, sfi);
+		 stacktrace_stackframeinfo_end_check(&tmpsfi) == false;
+		 stacktrace_stackframeinfo_next(&tmpsfi)) {
+		/* Get the methodinfo. */
+
+		m = tmpsfi.code->m;
+
+		/* Skip builtin methods. */
+
+		if (m->flags & ACC_METHOD_BUILTIN)
+			continue;
 
 		/* This logic is taken from
 		   hotspot/src/share/vm/classfile/javaClasses.cpp
@@ -617,14 +622,14 @@ stacktracebuffer *stacktrace_create(stackframeinfo_t *sfi)
 			/* For GNU Classpath we also need to skip
 			   VMThrowable.fillInStackTrace(). */
 
-			if ((tmpsfi.code->m->class == class_java_lang_VMThrowable) &&
-				(tmpsfi.code->m->name  == utf_fillInStackTrace))
+			if ((m->class == class_java_lang_VMThrowable) &&
+				(m->name  == utf_fillInStackTrace))
 				continue;
 #endif
 
 			skip_fillInStackTrace = false;
 
-			if (tmpsfi.code->m->name == utf_fillInStackTrace)
+			if (m->name == utf_fillInStackTrace)
 				continue;
 		}
 
@@ -633,7 +638,7 @@ stacktracebuffer *stacktrace_create(stackframeinfo_t *sfi)
 		   exception we are going to skipping them in stack trace. */
 
 		if (skip_init == true) {
-			if (tmpsfi.code->m->name == utf_init) {
+			if (m->name == utf_init) {
 /* 				throwable->is_a(method->method_holder())) { */
 				continue;
 			}
@@ -645,79 +650,76 @@ stacktracebuffer *stacktrace_create(stackframeinfo_t *sfi)
 			}
 		}
 
-		/* Add this method to the stacktrace. */
+		/* Store the stacktrace entry and increment the pointer. */
 
-		stb = stacktrace_method_add(stb, &tmpsfi);
+		ste->code = tmpsfi.code;
+		ste->pc   = tmpsfi.xpc;
+
+		ste++;
 	}
 
-#if !defined(NDEBUG)
-	if (opt_DebugStackTrace) {
-		printf("---> stacktrace creation finished.\n\n");
-		fflush(stdout);
-	}
-#endif
+	/* Store the number of entries in the stacktrace structure. */
 
-	/* return the stacktracebuffer */
+	st->length = ste - st->entries;
 
-	if (stb->used == 0)
-		return NULL;
-	else
-		return stb;
-}
-
-
-/* stacktrace_fillInStackTrace *************************************************
-
-   Generate a stacktrace from the current thread for
-   java.lang.VMThrowable.fillInStackTrace.
-
-*******************************************************************************/
-
-java_handle_bytearray_t *stacktrace_fillInStackTrace(void)
-{
-	stacktracebuffer        *stb;
-	java_handle_bytearray_t *ba;
-	s4                       ba_size;
-	s4                       dumpsize;
-	CYCLES_STATS_DECLARE_AND_START_WITH_OVERHEAD
-
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* create a stacktrace from the current thread */
-
-	stb = stacktrace_create(STACKFRAMEINFO);
-
-	if (stb == NULL)
-		goto return_NULL;
-
-	/* allocate memory from the GC heap and copy the stacktrace buffer */
-	/* ATTENTION: use a bytearray for this to not confuse the GC */
-
-	ba_size = sizeof(stacktracebuffer) +
-	          sizeof(stacktrace_entry) * stb->used -
-	          sizeof(stacktrace_entry) * STACKTRACE_CAPACITY_DEFAULT;
-	ba = builtin_newarray_byte(ba_size);
-
-	if (ba == NULL)
-		goto return_NULL;
-
-	MCOPY(LLNI_array_data(ba), stb, u1, ba_size);
+	LLNI_CRITICAL_END;
 
 	/* release dump memory */
 
-	dump_release(dumpsize);
+/* 	dump_release(dumpsize); */
 
 	CYCLES_STATS_END_WITH_OVERHEAD(stacktrace_fillInStackTrace,
 								   stacktrace_overhead)
 	return ba;
 
 return_NULL:
-	dump_release(dumpsize);
+/* 	dump_release(dumpsize); */
 
 	CYCLES_STATS_END_WITH_OVERHEAD(stacktrace_fillInStackTrace,
 								   stacktrace_overhead)
+
+	return NULL;
+}
+
+
+/* stacktrace_first_nonnull_classloader ****************************************
+
+   Returns the first non-null (user-defined) classloader on the stack.
+   If none is found NULL is returned.
+
+   RETURN:
+       classloader
+
+*******************************************************************************/
+
+classloader *stacktrace_first_nonnull_classloader(void)
+{
+	stackframeinfo_t *sfi;
+	stackframeinfo_t  tmpsfi;
+	methodinfo       *m;
+	classloader      *cl;
+
+#if !defined(NDEBUG)
+	if (opt_DebugStackTrace)
+		log_println("[stacktrace_first_nonnull_classloader]");
+#endif
+
+	/* Get the stackframeinfo of the current thread. */
+
+	sfi = STACKFRAMEINFO;
+
+	/* Iterate over the whole stack. */
+
+	for (stacktrace_stackframeinfo_fill(&tmpsfi, sfi);
+		 stacktrace_stackframeinfo_end_check(&tmpsfi) == false;
+		 stacktrace_stackframeinfo_next(&tmpsfi)) {
+
+		m  = tmpsfi.code->m;
+		cl = class_get_classloader(m->class);
+
+		if (cl != NULL)
+			return cl;
+	}
 
 	return NULL;
 }
@@ -735,69 +737,79 @@ return_NULL:
 
 java_handle_objectarray_t *stacktrace_getClassContext(void)
 {
-	stacktracebuffer          *stb;
-	stacktrace_entry          *ste;
-	java_handle_objectarray_t *oa;
-	s4                         oalength;
-	s4                         i;
-	s4                         dumpsize;
+	stackframeinfo_t           *sfi;
+	stackframeinfo_t            tmpsfi;
+	int                         depth;
+	java_handle_objectarray_t  *oa;
+	java_object_t             **data;
+	int                         i;
+	methodinfo                 *m;
+
 	CYCLES_STATS_DECLARE_AND_START
 
-	/* mark start of dump memory area */
+#if !defined(NDEBUG)
+	if (opt_DebugStackTrace)
+		log_println("[stacktrace_getClassContext]");
+#endif
 
-	dumpsize = dump_size();
+	sfi = STACKFRAMEINFO;
 
-	/* create a stacktrace for the current thread */
+	/* Get the depth of the current stack. */
 
-	stb = stacktrace_create(STACKFRAMEINFO);
+	depth = stacktrace_depth(sfi);
 
-	if (stb == NULL)
-		goto return_NULL;
+	/* The first stackframe corresponds to the method whose
+	   implementation calls this native function.  We remove that
+	   entry. */
 
-	/* calculate the size of the Class array */
+	depth--;
+	stacktrace_stackframeinfo_fill(&tmpsfi, sfi);
+	stacktrace_stackframeinfo_next(&tmpsfi);
 
-	for (i = 0, oalength = 0; i < stb->used; i++)
-		if (stb->entries[i].method != NULL)
-			oalength++;
+	/* Allocate the Class array. */
 
-	/* The first entry corresponds to the method whose implementation */
-	/* calls stacktrace_getClassContext. We remove that entry.        */
+	oa = builtin_anewarray(depth, class_java_lang_Class);
 
-	ste = &(stb->entries[0]);
-	ste++;
-	oalength--;
+	if (oa == NULL) {
+		CYCLES_STATS_END(stacktrace_getClassContext);
 
-	/* allocate the Class array */
-
-	oa = builtin_anewarray(oalength, class_java_lang_Class);
-	if (!oa)
-		goto return_NULL;
-
-	/* fill the Class array from the stacktracebuffer */
-
-	for(i = 0; i < oalength; i++, ste++) {
-		if (ste->method == NULL) {
-			i--;
-			continue;
-		}
-
-		LLNI_array_direct(oa, i) = (java_object_t *) ste->method->class;
+		return NULL;
 	}
 
-	/* release dump memory */
+	/* Fill the Class array from the stacktrace list. */
 
-	dump_release(dumpsize);
+	LLNI_CRITICAL_START;
+
+	data = LLNI_array_data(oa);
+
+	/* Iterate over the whole stack. */
+
+	i = 0;
+
+	for (;
+		 stacktrace_stackframeinfo_end_check(&tmpsfi) == false;
+		 stacktrace_stackframeinfo_next(&tmpsfi)) {
+		/* Get methodinfo. */
+
+		m = tmpsfi.code->m;
+
+		/* Skip builtin methods. */
+
+		if (m->flags & ACC_METHOD_BUILTIN)
+			continue;
+
+		/* Store the class in the array. */
+
+		data[i] = (java_object_t *) m->class;
+
+		i++;
+	}
+
+	LLNI_CRITICAL_END;
 
 	CYCLES_STATS_END(stacktrace_getClassContext)
 
 	return oa;
-
-return_NULL:
-	dump_release(dumpsize);
-
-	CYCLES_STATS_END(stacktrace_getClassContext)
-
-	return NULL;
 }
 
 
@@ -819,171 +831,202 @@ return_NULL:
 *******************************************************************************/
 
 #if defined(ENABLE_JAVASE)
-classinfo *stacktrace_getCurrentClass(void)
+classinfo *stacktrace_get_current_class(void)
 {
-	stacktracebuffer  *stb;
-	stacktrace_entry  *ste;
-	methodinfo        *m;
-	s4                 i;
-	s4                 dumpsize;
-	CYCLES_STATS_DECLARE_AND_START
+	stackframeinfo_t *sfi;
+	stackframeinfo_t  tmpsfi;
+	methodinfo       *m;
 
-	/* mark start of dump memory area */
+	CYCLES_STATS_DECLARE_AND_START;
 
-	dumpsize = dump_size();
+#if !defined(NDEBUG)
+	if (opt_DebugStackTrace)
+		log_println("[stacktrace_get_current_class]");
+#endif
 
-	/* create a stacktrace for the current thread */
+	/* Get the stackframeinfo of the current thread. */
 
-	stb = stacktrace_create(STACKFRAMEINFO);
+	sfi = STACKFRAMEINFO;
 
-	if (stb == NULL)
-		goto return_NULL; /* XXX exception: how to distinguish from normal NULL return? */
+	/* If the stackframeinfo is NULL then FindClass is called through
+	   the Invocation Interface and we return NULL */
 
-	/* iterate over all stacktrace entries and find the first suitable
-	   class */
+	if (sfi == NULL) {
+		CYCLES_STATS_END(stacktrace_getCurrentClass);
 
-	for (i = 0, ste = &(stb->entries[0]); i < stb->used; i++, ste++) {
-		m = ste->method;
+		return NULL;
+	}
 
-		if (m == NULL)
-			continue;
+	/* Iterate over the whole stack. */
 
-		if (m->class == class_java_security_PrivilegedAction)
-			goto return_NULL;
+	for (stacktrace_stackframeinfo_fill(&tmpsfi, sfi);
+		 stacktrace_stackframeinfo_end_check(&tmpsfi) == false;
+		 stacktrace_stackframeinfo_next(&tmpsfi)) {
+		/* Get the methodinfo. */
+
+		m = tmpsfi.code->m;
+
+		if (m->class == class_java_security_PrivilegedAction) {
+			CYCLES_STATS_END(stacktrace_getCurrentClass);
+
+			return NULL;
+		}
 
 		if (m->class != NULL) {
-			dump_release(dumpsize);
-
-			CYCLES_STATS_END(stacktrace_getCurrentClass)
+			CYCLES_STATS_END(stacktrace_getCurrentClass);
 
 			return m->class;
 		}
 	}
 
-	/* no Java method found on the stack */
+	/* No Java method found on the stack. */
 
-return_NULL:
-	dump_release(dumpsize);
-
-	CYCLES_STATS_END(stacktrace_getCurrentClass)
+	CYCLES_STATS_END(stacktrace_getCurrentClass);
 
 	return NULL;
 }
 #endif /* ENABLE_JAVASE */
 
 
-/* stacktrace_getStack *********************************************************
+/* stacktrace_get_stack ********************************************************
 
    Create a 2-dimensional array for java.security.VMAccessControler.
 
    RETURN VALUE:
       the arrary, or
-	  NULL if an exception has been thrown
+         NULL if an exception has been thrown
 
 *******************************************************************************/
 
-#if defined(ENABLE_JAVASE)
-java_handle_objectarray_t *stacktrace_getStack(void)
+#if defined(ENABLE_JAVASE) && defined(WITH_CLASSPATH_GNU)
+java_handle_objectarray_t *stacktrace_get_stack(void)
 {
-	stacktracebuffer          *stb;
-	stacktrace_entry          *ste;
+	stackframeinfo_t          *sfi;
+	stackframeinfo_t           tmpsfi;
+	int                        depth;
 	java_handle_objectarray_t *oa;
 	java_handle_objectarray_t *classes;
 	java_handle_objectarray_t *methodnames;
-	classinfo                 *c;
+	methodinfo                *m;
 	java_handle_t             *string;
-	s4                         i;
-	s4                         dumpsize;
+	int                        i;
+
 	CYCLES_STATS_DECLARE_AND_START
 
-	/* mark start of dump memory area */
+#if !defined(NDEBUG)
+	if (opt_DebugStackTrace)
+		log_println("[stacktrace_get_stack]");
+#endif
 
-	dumpsize = dump_size();
+	/* Get the stackframeinfo of the current thread. */
 
-	/* create a stacktrace for the current thread */
+	sfi = STACKFRAMEINFO;
 
-	stb = stacktrace_create(STACKFRAMEINFO);
+	/* Get the depth of the current stack. */
 
-	if (stb == NULL)
-		goto return_NULL;
+	depth = stacktrace_depth(sfi);
 
-	/* get the first stacktrace entry */
+	if (depth == 0)
+		return NULL;
 
-	ste = &(stb->entries[0]);
-
-	/* allocate all required arrays */
+	/* Allocate the required arrays. */
 
 	oa = builtin_anewarray(2, arrayclass_java_lang_Object);
 
 	if (oa == NULL)
 		goto return_NULL;
 
-	classes = builtin_anewarray(stb->used, class_java_lang_Class);
+	classes = builtin_anewarray(depth, class_java_lang_Class);
 
 	if (classes == NULL)
 		goto return_NULL;
 
-	methodnames = builtin_anewarray(stb->used, class_java_lang_String);
+	methodnames = builtin_anewarray(depth, class_java_lang_String);
 
 	if (methodnames == NULL)
 		goto return_NULL;
 
-	/* set up the 2-dimensional array */
+	/* Set up the 2-dimensional array. */
 
 	array_objectarray_element_set(oa, 0, (java_handle_t *) classes);
 	array_objectarray_element_set(oa, 1, (java_handle_t *) methodnames);
 
-	/* iterate over all stacktrace entries */
+	/* Iterate over the whole stack. */
+	/* TODO We should use a critical section here to speed things
+	   up. */
 
-	for (i = 0, ste = &(stb->entries[0]); i < stb->used; i++, ste++) {
-		c = ste->method->class;
+	i = 0;
 
-		LLNI_array_direct(classes, i) = (java_object_t *) c;
+	for (stacktrace_stackframeinfo_fill(&tmpsfi, sfi);
+		 stacktrace_stackframeinfo_end_check(&tmpsfi) == false;
+		 stacktrace_stackframeinfo_next(&tmpsfi)) {
+		/* Get the methodinfo. */
 
-		string = javastring_new(ste->method->name);
+		m = tmpsfi.code->m;
+
+		/* Skip builtin methods. */
+
+		if (m->flags & ACC_METHOD_BUILTIN)
+			continue;
+
+		/* Store the class in the array. */
+		/* NOTE: We use a LLNI-macro here, because a classinfo is not
+		   a handle. */
+
+		LLNI_array_direct(classes, i) = (java_object_t *) m->class;
+
+		/* Store the name in the array. */
+
+		string = javastring_new(m->name);
 
 		if (string == NULL)
 			goto return_NULL;
 
 		array_objectarray_element_set(methodnames, i, string);
+
+		i++;
 	}
 
-	/* return the 2-dimensional array */
-
-	dump_release(dumpsize);
-
-	CYCLES_STATS_END(stacktrace_getStack)
+	CYCLES_STATS_END(stacktrace_get_stack)
 
 	return oa;
 
 return_NULL:
-	dump_release(dumpsize);
-
-	CYCLES_STATS_END(stacktrace_getStack)
+	CYCLES_STATS_END(stacktrace_get_stack)
 
 	return NULL;
 }
-#endif /* ENABLE_JAVASE */
+#endif
 
 
-/* stacktrace_print_trace_from_buffer ******************************************
+/* stacktrace_print ************************************************************
 
-   Print the stacktrace of a given stacktracebuffer with CACAO intern
-   methods (no Java help). This method is used by
-   stacktrace_dump_trace and builtin_trace_exception.
+   Print the given stacktrace with CACAO intern methods only (no Java
+   code required).
+
+   This method is used by stacktrace_dump_trace and
+   builtin_trace_exception.
+
+   IN:
+       st ... stacktrace to print
 
 *******************************************************************************/
 
-void stacktrace_print_trace_from_buffer(stacktracebuffer *stb)
+void stacktrace_print(stacktrace_t *st)
 {
-	stacktrace_entry *ste;
-	methodinfo       *m;
-	s4                i;
+	stacktrace_entry_t *ste;
+	methodinfo         *m;
+	int32_t             linenumber;
+	int                 i;
 
-	ste = &(stb->entries[0]);
+	ste = &(st->entries[0]);
 
-	for (i = 0; i < stb->used; i++, ste++) {
-		m = ste->method;
+	for (i = 0; i < st->length; i++, ste++) {
+		m = ste->code->m;
+
+		/* Get the line number. */
+
+		linenumber = linenumbertable_linenumber_for_pc(&m, ste->code, ste->pc);
 
 		printf("\tat ");
 		utf_display_printable_ascii_classname(m->class->name);
@@ -993,11 +1036,11 @@ void stacktrace_print_trace_from_buffer(stacktracebuffer *stb)
 
 		if (m->flags & ACC_NATIVE) {
 			puts("(Native Method)");
-
-		} else {
+		}
+		else {
 			printf("(");
 			utf_display_printable_ascii(m->class->sourcefile);
-			printf(":%d)\n", (u4) ste->linenumber);
+			printf(":%d)\n", linenumber);
 		}
 	}
 
@@ -1009,55 +1052,68 @@ void stacktrace_print_trace_from_buffer(stacktracebuffer *stb)
 
 /* stacktrace_print_exception **************************************************
 
-   Print the stacktrace of a given exception. More or less a wrapper
-   to stacktrace_print_trace_from_buffer.
+   Print the stacktrace of a given exception (more or less a wrapper
+   to stacktrace_print).
+
+   IN:
+       h ... handle of exception to print
 
 *******************************************************************************/
 
 void stacktrace_print_exception(java_handle_t *h)
 {
-	java_lang_Throwable     *t;
+	java_lang_Throwable     *o;
 #if defined(WITH_CLASSPATH_GNU)
 	java_lang_VMThrowable   *vmt;
 #endif
 	java_handle_bytearray_t *ba;
-	stacktracebuffer        *stb;
+	stacktrace_t            *st;
 
-	t = (java_lang_Throwable *) h;
+	o = (java_lang_Throwable *) h;
 
-	if (t == NULL)
+	if (o == NULL)
 		return;
 
 	/* now print the stacktrace */
 
 #if defined(WITH_CLASSPATH_GNU)
 
-	LLNI_field_get_ref(t,   vmState, vmt);
+	LLNI_field_get_ref(o,   vmState, vmt);
 	LLNI_field_get_ref(vmt, vmData,  ba);
 
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
 
-	LLNI_field_get_ref(t, backtrace, ba);
+	LLNI_field_get_ref(o, backtrace, ba);
 
 #else
 # error unknown classpath configuration
 #endif
 
-	assert(ba);
-	stb = (stacktracebuffer *) LLNI_array_data(ba);
+	/* Sanity check. */
 
-	stacktrace_print_trace_from_buffer(stb);
+	assert(ba != NULL);
+
+	/* We need a critical section here as we use the byte-array data
+	   pointer directly. */
+
+	LLNI_CRITICAL_START;
+	
+	st = (stacktrace_t *) LLNI_array_data(ba);
+
+	stacktrace_print(st);
+
+	LLNI_CRITICAL_END;
 }
 
 
 #if defined(ENABLE_CYCLES_STATS)
 void stacktrace_print_cycles_stats(FILE *file)
 {
-	CYCLES_STATS_PRINT_OVERHEAD(stacktrace_overhead,file);
-	CYCLES_STATS_PRINT(stacktrace_fillInStackTrace,file);
-	CYCLES_STATS_PRINT(stacktrace_getClassContext ,file);
-	CYCLES_STATS_PRINT(stacktrace_getCurrentClass ,file);
-	CYCLES_STATS_PRINT(stacktrace_getStack        ,file);
+	CYCLES_STATS_PRINT_OVERHEAD(stacktrace_overhead, file);
+	CYCLES_STATS_PRINT(stacktrace_get,               file);
+	CYCLES_STATS_PRINT(stacktrace_getClassContext ,  file);
+	CYCLES_STATS_PRINT(stacktrace_getCurrentClass ,  file);
+	CYCLES_STATS_PRINT(stacktrace_get_stack,         file);
 }
 #endif
 

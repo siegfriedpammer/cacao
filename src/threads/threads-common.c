@@ -866,36 +866,39 @@ void threads_dump(void)
 
 /* threads_thread_print_stacktrace *********************************************
 
-   Print the current stacktrace of the current thread.
+   Print the current stacktrace of the given thread.
 
 *******************************************************************************/
 
 void threads_thread_print_stacktrace(threadobject *thread)
 {
-	stackframeinfo_t *sfi;
-	stacktracebuffer *stb;
-	s4                dumpsize;
+	stackframeinfo_t        *sfi;
+	java_handle_bytearray_t *ba;
+	stacktrace_t            *st;
 
-	/* mark start of dump memory area */
-
-	dumpsize = dump_size();
-
-	/* create a stacktrace for the passed thread */
+	/* Build a stacktrace for the passed thread. */
 
 	sfi = thread->_stackframeinfo;
 
-	stb = stacktrace_create(sfi);
+	ba = stacktrace_get();
+	
+	/* We need a critical section here as we use the byte-array data
+	   pointer directly. */
 
-	/* print stacktrace */
+	LLNI_CRITICAL_START;
+	
+	st = (stacktrace_t *) LLNI_array_data(ba);
 
-	if (stb != NULL)
-		stacktrace_print_trace_from_buffer(stb);
+	/* Print stacktrace. */
+
+	if (st != NULL)
+		stacktrace_print(st);
 	else {
 		puts("\t<<No stacktrace available>>");
 		fflush(stdout);
 	}
 
-	dump_release(dumpsize);
+	LLNI_CRITICAL_END;
 }
 
 

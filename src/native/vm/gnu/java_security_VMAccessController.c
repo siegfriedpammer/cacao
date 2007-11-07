@@ -26,25 +26,25 @@
 
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
 
 #include "native/jni.h"
 #include "native/native.h"
 
 #include "native/include/java_security_VMAccessController.h"
 
-#include "vm/builtin.h"
+#include "vm/global.h"
 
 #include "vm/jit/stacktrace.h"
 
-#include "vmcore/class.h"
-#include "vmcore/options.h"
+#include "vmcore/utf8.h"
 
 
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "getStack", "()[[Ljava/lang/Object;", (void *) (ptrint) &Java_java_security_VMAccessController_getStack },
+	{ "getStack", "()[[Ljava/lang/Object;", (void *) (uintptr_t) &Java_java_security_VMAccessController_getStack },
 };
 
 
@@ -71,7 +71,7 @@ void _Jv_java_security_VMAccessController_init(void)
  */
 JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_security_VMAccessController_getStack(JNIEnv *env, jclass clazz)
 {
-	return stacktrace_getStack();
+	return stacktrace_get_stack();
 }
 
 

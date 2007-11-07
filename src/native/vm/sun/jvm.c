@@ -395,7 +395,7 @@ void JVM_FillInStackTrace(JNIEnv *env, jobject receiver)
 
 	o = (java_lang_Throwable *) receiver;
 
-	ba = stacktrace_fillInStackTrace();
+	ba = stacktrace_get();
 
 	if (ba == NULL)
 		return;
@@ -418,7 +418,8 @@ jint JVM_GetStackTraceDepth(JNIEnv *env, jobject throwable)
 {
 	java_lang_Throwable     *t;
 	java_handle_bytearray_t *ba;
-	stacktracebuffer        *stb;
+	stacktrace_t            *st;
+	int32_t                  depth;
 
 	TRACEJVMCALLS("JVM_GetStackTraceDepth(env=%p, throwable=%p)", env, throwable);
 
@@ -434,11 +435,18 @@ jint JVM_GetStackTraceDepth(JNIEnv *env, jobject throwable)
 	if (ba == NULL)
 		return 0;
 
-	/* FIXME critical section */
+	/* We need a critical section here as the stacktrace structure is
+	   mapped onto a Java byte-array. */
 
-	stb = (stacktracebuffer *) LLNI_array_data(ba);
+	LLNI_CRITICAL_START;
 
-	return stb->used;
+	st = (stacktrace_t *) LLNI_array_data(ba);
+
+	depth = st->length;
+
+	LLNI_CRITICAL_END;
+
+	return depth;
 }
 
 
@@ -448,12 +456,15 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 {
 	java_lang_Throwable         *t;
 	java_handle_bytearray_t     *ba;
-	stacktracebuffer            *stb;
-	stacktrace_entry            *ste;
+	stacktrace_t                *st;
+	stacktrace_entry_t          *ste;
+	codeinfo                    *code;
+	methodinfo                  *m;
+	classinfo                   *c;
 	java_lang_StackTraceElement *o;
 	java_lang_String            *declaringclass;
 	java_lang_String            *filename;
-	s4                           linenumber;
+	int32_t                      linenumber;
 
 	TRACEJVMCALLS("JVM_GetStackTraceElement(env=%p, throwable=%p, index=%d)", env, throwable, index);
 
@@ -463,9 +474,9 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 
 	/* FIXME critical section */
 
-	stb = (stacktracebuffer *) LLNI_array_data(ba);
+	st = (stacktrace_t *) LLNI_array_data(ba);
 
-	if ((index < 0) || (index >= stb->used)) {
+	if ((index < 0) || (index >= st->length)) {
 		/* XXX This should be an IndexOutOfBoundsException (check this
 		   again). */
 
@@ -473,7 +484,15 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 		return NULL;
 	}
 
-	ste = &(stb->entries[index]);
+	/* Get the stacktrace entry. */
+
+	ste = &(st->entries[index]);
+
+	/* Get the codeinfo, methodinfo and classinfo. */
+
+	code = ste->code;
+	m    = code->m;
+	c    = m->class;
 
 	/* allocate a new StackTraceElement */
 
@@ -485,9 +504,9 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 
 	/* get filename */
 
-	if (!(ste->method->flags & ACC_NATIVE)) {
-		if (ste->method->class->sourcefile)
-			filename = (java_lang_String *) javastring_new(ste->method->class->sourcefile);
+	if (!(m->flags & ACC_NATIVE)) {
+		if (c->sourcefile != NULL)
+			filename = (java_lang_String *) javastring_new(c->sourcefile);
 		else
 			filename = NULL;
 	}
@@ -496,22 +515,27 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 
 	/* get line number */
 
-	if (ste->method->flags & ACC_NATIVE)
+	if (m->flags & ACC_NATIVE) {
 		linenumber = -2;
-	else
-		linenumber = (ste->linenumber == 0) ? -1 : ste->linenumber;
+	}
+	else {
+		/* FIXME The linenumbertable_linenumber_for_pc could change
+		   the methodinfo pointer when hitting an inlined method. */
+
+		linenumber = linenumbertable_linenumber_for_pc(&m, code, ste->pc);
+		linenumber = (linenumber == 0) ? -1 : linenumber;
+	}
 
 	/* get declaring class name */
 
-	declaringclass =
-		_Jv_java_lang_Class_getName(LLNI_classinfo_wrap(ste->method->class));
+	declaringclass = _Jv_java_lang_Class_getName(LLNI_classinfo_wrap(c));
 
 	/* fill the java.lang.StackTraceElement element */
 
 	/* FIXME critical section */
 
 	o->declaringClass = declaringclass;
-	o->methodName     = (java_lang_String *) javastring_new(ste->method->name);
+	o->methodName     = (java_lang_String *) javastring_new(m->name);
 	o->fileName       = filename;
 	o->lineNumber     = linenumber;
 
@@ -2410,7 +2434,13 @@ jobject JVM_AllocateNewArray(JNIEnv *env, jobject obj, jclass currClass, jint le
 
 jobject JVM_LatestUserDefinedLoader(JNIEnv *env)
 {
-	log_println("JVM_LatestUserDefinedLoader: IMPLEMENT ME!");
+	classloader *cl;
+
+	TRACEJVMCALLS("JVM_LatestUserDefinedLoader(env=%p)", env);
+
+	cl = stacktrace_first_nonnull_classloader();
+
+	return (jobject) cl;
 }
 
 

@@ -49,6 +49,8 @@
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 
+#include "vm/jit/code.h"
+#include "vm/jit/linenumbertable.h"
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/class.h"
@@ -95,7 +97,7 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 	if (o == NULL)
 		return NULL;
 
-	ba = stacktrace_fillInStackTrace();
+	ba = stacktrace_get();
 
 	if (ba == NULL)
 		return NULL;
@@ -114,49 +116,35 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *env, java_lang_VMThrowable *this, java_lang_Throwable *t)
 {
 	java_handle_bytearray_t     *ba;
-	stacktracebuffer            *stb;
-	stacktrace_entry            *ste;
-	stacktrace_entry            *tmpste;
-	s4                           size;
-	s4                           i;
+	stacktrace_t                *st;
+	stacktrace_entry_t          *ste;
 	java_handle_objectarray_t   *oa;
-	s4                           oalength;
 	java_lang_StackTraceElement *o;
+	codeinfo                    *code;
+	methodinfo                  *m;
 	java_lang_String            *filename;
 	s4                           linenumber;
 	java_lang_String            *declaringclass;
+	int                          i;
 
 	/* get the stacktrace buffer from the VMThrowable object */
 
 	LLNI_field_get_ref(this, vmData, ba);
-	stb = (stacktracebuffer *) LLNI_array_data(ba);
 
-	assert(stb != NULL);
+	st = (stacktrace_t *) LLNI_array_data(ba);
 
-	ste  = stb->entries;
-	size = stb->used;
+	assert(st != NULL);
 
-	/* Count entries with a method name. */
-
-	for (oalength = 0, i = size, tmpste = ste; i > 0; i--, tmpste++)
-		if (tmpste->method)
-			oalength++;
+	ste = st->entries;
 
 	/* Create the stacktrace element array. */
 
-	oa = builtin_anewarray(oalength, class_java_lang_StackTraceElement);
+	oa = builtin_anewarray(st->length, class_java_lang_StackTraceElement);
 
 	if (oa == NULL)
 		return NULL;
 
-	for (i = 0; size > 0; size--, ste++, i++) {
-		/* skip entries without a method name */
-
-		if (ste->method == NULL) {
-			i--;
-			continue;
-		}
-
+	for (i = 0; i < st->length; i++, ste++) {
 		/* allocate a new stacktrace element */
 
 		o = (java_lang_StackTraceElement *)
@@ -165,11 +153,16 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 		if (o == NULL)
 			return NULL;
 
-		/* get filename */
+		/* Get the codeinfo and methodinfo. */
 
-		if (!(ste->method->flags & ACC_NATIVE)) {
-			if (ste->method->class->sourcefile)
-				filename = (java_lang_String *) javastring_new(ste->method->class->sourcefile);
+		code = ste->code;
+		m    = code->m;
+
+		/* Get filename. */
+
+		if (!(m->flags & ACC_NATIVE)) {
+			if (m->class->sourcefile)
+				filename = (java_lang_String *) javastring_new(m->class->sourcefile);
 			else
 				filename = NULL;
 		}
@@ -178,23 +171,30 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 
 		/* get line number */
 
-		if (ste->method->flags & ACC_NATIVE)
+		if (m->flags & ACC_NATIVE) {
 			linenumber = -1;
-		else
-			linenumber = (ste->linenumber == 0) ? -1 : ste->linenumber;
+		}
+		else {
+			/* FIXME The linenumbertable_linenumber_for_pc could
+			   change the methodinfo pointer when hitting an inlined
+			   method. */
+
+			linenumber = linenumbertable_linenumber_for_pc(&m, code, ste->pc);
+			linenumber = (linenumber == 0) ? -1 : linenumber;
+		}
 
 		/* get declaring class name */
 
 		declaringclass =
-			_Jv_java_lang_Class_getName(LLNI_classinfo_wrap(ste->method->class));
+			_Jv_java_lang_Class_getName(LLNI_classinfo_wrap(m->class));
 
-		/* fill the java.lang.StackTraceElement element */
+		/* Fill the java.lang.StackTraceElement object. */
 
 		LLNI_field_set_ref(o, fileName      , filename);
 		LLNI_field_set_val(o, lineNumber    , linenumber);
 		LLNI_field_set_ref(o, declaringClass, declaringclass);
-		LLNI_field_set_ref(o, methodName    , (java_lang_String *) javastring_new(ste->method->name));
-		LLNI_field_set_val(o, isNative      , (ste->method->flags & ACC_NATIVE) ? 1 : 0);
+		LLNI_field_set_ref(o, methodName    , (java_lang_String *) javastring_new(m->name));
+		LLNI_field_set_val(o, isNative      , (m->flags & ACC_NATIVE) ? 1 : 0);
 
 		array_objectarray_element_set(oa, i, (java_handle_t *) o);
 	}

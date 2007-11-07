@@ -964,7 +964,7 @@ jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
 	   its associated class loader. In that case, the result of
 	   ClassLoader.getBaseClassLoader is used." */
 
-	cc = stacktrace_getCurrentClass();
+	cc = stacktrace_get_current_class();
 
 	if (cc == NULL)
 		c = load_class_from_sysloader(u);
