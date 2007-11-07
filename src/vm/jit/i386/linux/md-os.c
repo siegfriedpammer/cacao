@@ -302,6 +302,65 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 #endif
 
 
+/* md_replace_executionstate_read **********************************************
+
+   Read the given context into an executionstate for Replacement.
+
+*******************************************************************************/
+
+#if defined(ENABLE_REPLACEMENT)
+void md_replace_executionstate_read(executionstate_t *es, void *context)
+{
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	s4          i;
+
+	_uc = (ucontext_t *) context;
+	_mc = &_uc->uc_mcontext;
+
+	/* read special registers */
+	es->pc = (u1 *) _mc->gregs[REG_EIP];
+	es->sp = (u1 *) _mc->gregs[REG_ESP];
+	es->pv = NULL;                   /* pv must be looked up via AVL tree */
+
+	/* read integer registers */
+	for (i = 0; i < INT_REG_CNT; i++)
+		es->intregs[i] = _mc->gregs[REG_EAX - i];
+
+	/* read float registers */
+	for (i = 0; i < FLT_REG_CNT; i++)
+		es->fltregs[i] = 0xdeadbeefdeadbeefULL;
+}
+#endif
+
+
+/* md_replace_executionstate_write *********************************************
+
+   Write the given executionstate back to the context for Replacement.
+
+*******************************************************************************/
+
+#if defined(ENABLE_REPLACEMENT)
+void md_replace_executionstate_write(executionstate_t *es, void *context)
+{
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	s4          i;
+
+	_uc = (ucontext_t *) context;
+	_mc = &_uc->uc_mcontext;
+
+	/* write integer registers */
+	for (i = 0; i < INT_REG_CNT; i++)
+		_mc->gregs[REG_EAX - i] = es->intregs[i];
+
+	/* write special registers */
+	_mc->gregs[REG_EIP] = (ptrint) es->pc;
+	_mc->gregs[REG_ESP] = (ptrint) es->sp;
+}
+#endif
+
+
 /* md_critical_section_restart *************************************************
 
    Search the critical sections tree for a matching section and set
