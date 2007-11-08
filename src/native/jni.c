@@ -115,14 +115,14 @@
 /* debug **********************************************************************/
 
 #if !defined(NDEBUG)
-# define TRACEJNICALLS(format, ...) \
-    do { \
-        if (opt_TraceJNICalls) { \
-            log_println((format), __VA_ARGS__); \
-        } \
+# define TRACEJNICALLS(text)					\
+    do {										\
+        if (opt_TraceJNICalls) {				\
+            log_println text;					\
+        }										\
     } while (0)
 #else
-# define TRACEJNICALLS(format, ...)
+# define TRACEJNICALLS(text)
 #endif
 
 
@@ -882,7 +882,7 @@ java_handle_t *_Jv_jni_invokeNative(methodinfo *m, java_handle_t *o,
 
 jint _Jv_JNI_GetVersion(JNIEnv *env)
 {
-	TRACEJNICALLS("_Jv_JNI_GetVersion(env=%p)", env);
+	TRACEJNICALLS(("_Jv_JNI_GetVersion(env=%p)", env));
 
 	/* We support JNI 1.6. */
 
@@ -909,7 +909,7 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 	classinfo       *c;
 	java_lang_Class *co;
 
-	TRACEJNICALLS("_Jv_JNI_DefineClass(env=%p, name=%s, loader=%p, buf=%p, bufLen=%d)", env, name, loader, buf, bufLen);
+	TRACEJNICALLS(("_Jv_JNI_DefineClass(env=%p, name=%s, loader=%p, buf=%p, bufLen=%d)", env, name, loader, buf, bufLen));
 
 	u  = utf_new_char(name);
 	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
@@ -946,7 +946,7 @@ jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
 	classinfo       *c;
 	java_lang_Class *co;
 
-	TRACEJNICALLS("_Jv_JNI_FindClass(env=%p, name=%s)", env, name);
+	TRACEJNICALLS(("_Jv_JNI_FindClass(env=%p, name=%s)", env, name));
 
 	u = utf_new_char_classname((char *) name);
 
@@ -986,7 +986,7 @@ jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
 	utf       *u;
 	classinfo *c;
 
-	TRACEJNICALLS("_Jv_JNI_FindClass(env=%p, name=%s)", env, name);
+	TRACEJNICALLS(("_Jv_JNI_FindClass(env=%p, name=%s)", env, name));
 
 	u = utf_new_char_classname((char *) name);
 	c = load_class_bootstrap(u);
@@ -1023,7 +1023,7 @@ jclass _Jv_JNI_GetSuperclass(JNIEnv *env, jclass sub)
 	classinfo       *super;
 	java_lang_Class *co;
 
-	TRACEJNICALLS("_Jv_JNI_GetSuperclass(env=%p, sub=%p)", env, sub);
+	TRACEJNICALLS(("_Jv_JNI_GetSuperclass(env=%p, sub=%p)", env, sub));
 
 	c = LLNI_classinfo_unwrap(sub);
 
@@ -1124,7 +1124,7 @@ jthrowable _Jv_JNI_ExceptionOccurred(JNIEnv *env)
 {
 	java_handle_t *o;
 
-	TRACEJNICALLS("_Jv_JNI_ExceptionOccurred(env=%p)", env);
+	TRACEJNICALLS(("_Jv_JNI_ExceptionOccurred(env=%p)", env));
 
 	o = exceptions_get_exception();
 
@@ -1146,7 +1146,7 @@ void _Jv_JNI_ExceptionDescribe(JNIEnv *env)
 	classinfo     *c;
 	methodinfo    *m;
 
-	TRACEJNICALLS("_Jv_JNI_ExceptionDescribe(env=%p)", env);
+	TRACEJNICALLS(("_Jv_JNI_ExceptionDescribe(env=%p)", env));
 
 	/* Clear exception, because we are probably calling Java code
 	   again. */
@@ -1648,7 +1648,7 @@ jobject _Jv_JNI_ToReflectedMethod(JNIEnv* env, jclass cls, jmethodID methodID,
 	java_lang_reflect_Constructor *rc;
 	java_lang_reflect_Method      *rm;
 
-	TRACEJNICALLS("_Jv_JNI_ToReflectedMethod(env=%p, cls=%p, methodID=%p, isStatic=%d)", env, cls, methodID, isStatic);
+	TRACEJNICALLS(("_Jv_JNI_ToReflectedMethod(env=%p, cls=%p, methodID=%p, isStatic=%d)", env, cls, methodID, isStatic));
 
 	m = (methodinfo *) methodID;
 
@@ -2178,7 +2178,7 @@ jobject _Jv_JNI_GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID)
 {
 	java_handle_t *o;
 
-	TRACEJNICALLS("_Jv_JNI_GetObjectField(env=%p, obj=%p, fieldId=%p)", env, obj, fieldID);
+	TRACEJNICALLS(("_Jv_JNI_GetObjectField(env=%p, obj=%p, fieldId=%p)", env, obj, fieldID));
 
 	LLNI_CRITICAL_START;
 
@@ -2227,7 +2227,7 @@ JNI_SET_FIELD(Double,  jdouble,  double)
 void _Jv_JNI_SetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID,
 							jobject value)
 {
-	TRACEJNICALLS("_Jv_JNI_SetObjectField(env=%p, obj=%p, fieldId=%p, value=%p)", env, obj, fieldID, value);
+	TRACEJNICALLS(("_Jv_JNI_SetObjectField(env=%p, obj=%p, fieldId=%p, value=%p)", env, obj, fieldID, value));
 
 	LLNI_CRITICAL_START;
 
@@ -2257,7 +2257,7 @@ jmethodID _Jv_JNI_GetStaticMethodID(JNIEnv *env, jclass clazz, const char *name,
 	utf        *udesc;
 	methodinfo *m;
 
-	TRACEJNICALLS("_Jv_JNI_GetStaticMethodID(env=%p, clazz=%p, name=%s, sig=%s)", env, clazz, name, sig);
+	TRACEJNICALLS(("_Jv_JNI_GetStaticMethodID(env=%p, clazz=%p, name=%s, sig=%s)", env, clazz, name, sig));
 
 	c = LLNI_classinfo_unwrap(clazz);
 
@@ -2640,7 +2640,7 @@ jsize _Jv_JNI_GetStringLength(JNIEnv *env, jstring str)
 	java_lang_String *s;
 	jsize             len;
 
-	TRACEJNICALLS("_Jv_JNI_GetStringLength(env=%p, str=%p)", env, str);
+	TRACEJNICALLS(("_Jv_JNI_GetStringLength(env=%p, str=%p)", env, str));
 
 	s = (java_lang_String *) str;
 
@@ -2756,7 +2756,7 @@ jstring _Jv_JNI_NewStringUTF(JNIEnv *env, const char *bytes)
 {
 	java_lang_String *s;
 
-	TRACEJNICALLS("_Jv_JNI_NewStringUTF(env=%p, bytes=%s)", env, bytes);
+	TRACEJNICALLS(("_Jv_JNI_NewStringUTF(env=%p, bytes=%s)", env, bytes));
 
 	s = (java_lang_String *) javastring_safe_new_from_utf8(bytes);
 
@@ -2771,7 +2771,7 @@ jsize _Jv_JNI_GetStringUTFLength(JNIEnv *env, jstring string)
 	java_lang_String *s;
 	s4                length;
 
-	TRACEJNICALLS("_Jv_JNI_GetStringUTFLength(env=%p, string=%p)", env, string);
+	TRACEJNICALLS(("_Jv_JNI_GetStringUTFLength(env=%p, string=%p)", env, string));
 
 	s = (java_lang_String *) string;
 
@@ -3283,7 +3283,7 @@ void _Jv_JNI_GetStringUTFRegion(JNIEnv* env, jstring str, jsize start,
 	int32_t                  count;
 	int32_t                  offset;
 
-	TRACEJNICALLS("_Jv_JNI_GetStringUTFRegion(env=%p, str=%p, start=%d, len=%d, buf=%p)", env, str, start, len, buf);
+	TRACEJNICALLS(("_Jv_JNI_GetStringUTFRegion(env=%p, str=%p, start=%d, len=%d, buf=%p)", env, str, start, len, buf));
 
 	s  = (java_lang_String *) str;
 	LLNI_field_get_ref(s, value, ca);
@@ -3369,7 +3369,7 @@ void _Jv_JNI_ReleaseStringCritical(JNIEnv *env, jstring string,
 
 jweak _Jv_JNI_NewWeakGlobalRef(JNIEnv* env, jobject obj)
 {
-	TRACEJNICALLS("_Jv_JNI_NewWeakGlobalRef(env=%p, obj=%p): IMPLEMENT ME!", env, obj);
+	TRACEJNICALLS(("_Jv_JNI_NewWeakGlobalRef(env=%p, obj=%p): IMPLEMENT ME!", env, obj));
 
 	return obj;
 }
@@ -3377,7 +3377,7 @@ jweak _Jv_JNI_NewWeakGlobalRef(JNIEnv* env, jobject obj)
 
 void _Jv_JNI_DeleteWeakGlobalRef(JNIEnv* env, jweak ref)
 {
-	TRACEJNICALLS("_Jv_JNI_DeleteWeakGlobalRef(env=%p, ref=%p): IMPLEMENT ME", env, ref);
+	TRACEJNICALLS(("_Jv_JNI_DeleteWeakGlobalRef(env=%p, ref=%p): IMPLEMENT ME", env, ref));
 }
 
 
@@ -3583,7 +3583,7 @@ jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 	gnu_classpath_Pointer32 *paddress;
 # endif
 
-	TRACEJNICALLS("_Jv_JNI_NewDirectByteBuffer(env=%p, address=%p, capacity=%ld", env, address, capacity);
+	TRACEJNICALLS(("_Jv_JNI_NewDirectByteBuffer(env=%p, address=%p, capacity=%ld", env, address, capacity));
 
 	/* alocate a gnu.classpath.Pointer{32,64} object */
 
@@ -3616,7 +3616,7 @@ jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 	int64_t addr;
 	int32_t cap;
 
-	TRACEJNICALLS("_Jv_JNI_NewDirectByteBuffer(env=%p, address=%p, capacity=%ld", env, address, capacity);
+	TRACEJNICALLS(("_Jv_JNI_NewDirectByteBuffer(env=%p, address=%p, capacity=%ld", env, address, capacity));
 
 	/* Be paranoid about address sign-extension. */
 
@@ -3664,7 +3664,7 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 #  endif
 	void                          *address;
 
-	TRACEJNICALLS("_Jv_JNI_GetDirectBufferAddress(env=%p, buf=%p)", env, buf);
+	TRACEJNICALLS(("_Jv_JNI_GetDirectBufferAddress(env=%p, buf=%p)", env, buf));
 
 	if ((buf != NULL) && !builtin_instanceof(buf, class_java_nio_Buffer))
 		return NULL;
@@ -3687,7 +3687,7 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 	int64_t          address;
 	void            *p;
 
-	TRACEJNICALLS("_Jv_JNI_GetDirectBufferAddress(env=%p, buf=%p)", env, buf);
+	TRACEJNICALLS(("_Jv_JNI_GetDirectBufferAddress(env=%p, buf=%p)", env, buf));
 
 	if ((buf != NULL) && !builtin_instanceof(buf, class_sun_nio_ch_DirectBuffer))
 		return NULL;
@@ -3780,7 +3780,7 @@ jint _Jv_JNI_DestroyJavaVM(JavaVM *vm)
 {
 	int32_t status;
 
-	TRACEJNICALLS("_Jv_JNI_DestroyJavaVM(vm=%p)", vm);
+	TRACEJNICALLS(("_Jv_JNI_DestroyJavaVM(vm=%p)", vm));
 
     status = vm_destroy(vm);
 
@@ -3893,7 +3893,7 @@ jint _Jv_JNI_DetachCurrentThread(JavaVM *vm)
 
 jint _Jv_JNI_GetEnv(JavaVM *vm, void **env, jint version)
 {
-	TRACEJNICALLS("_Jv_JNI_GetEnv(vm=%p, env=%p, %d=version)", vm, env, version);
+	TRACEJNICALLS(("_Jv_JNI_GetEnv(vm=%p, env=%p, %d=version)", vm, env, version));
 
 #if defined(ENABLE_THREADS)
 	if (threads_get_current_threadobject() == NULL) {
@@ -4287,7 +4287,7 @@ jint JNI_GetDefaultJavaVMInitArgs(void *vm_args)
 
 jint JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 {
-	TRACEJNICALLS("JNI_GetCreatedJavaVMs(vmBuf=%p, jsize=%d, jsize=%p)", vmBuf, bufLen, nVMs);
+	TRACEJNICALLS(("JNI_GetCreatedJavaVMs(vmBuf=%p, jsize=%d, jsize=%p)", vmBuf, bufLen, nVMs));
 
 	if (bufLen <= 0)
 		return JNI_ERR;
@@ -4310,7 +4310,7 @@ jint JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 
 jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 {
-	TRACEJNICALLS("JNI_CreateJavaVM(p_vm=%p, p_env=%p, vm_args=%p)", p_vm, p_env, vm_args);
+	TRACEJNICALLS(("JNI_CreateJavaVM(p_vm=%p, p_env=%p, vm_args=%p)", p_vm, p_env, vm_args));
 
 	/* actually create the JVM */
 
