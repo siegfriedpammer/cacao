@@ -2589,6 +2589,10 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	code = jd->code;
 	cd   = jd->cd;
 
+	/* Sanity check. */
+
+	assert(!code_is_leafmethod(code));
+
 	/* set some variables */
 
 	md = m->parseddesc;

@@ -98,9 +98,6 @@ void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra
 {
 	stackframeinfo_t **psfi;
 	codeinfo          *code;
-#if !defined(__I386__) && !defined(__X86_64__) && !defined(__S390__) && !defined(__M68K__)
-	bool               isleafmethod;
-#endif
 #if defined(ENABLE_JIT)
 	s4                 framesize;
 #endif
@@ -153,14 +150,13 @@ void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra
 
 		ra = md_stacktrace_get_returnaddress(sp, framesize);
 # else
-		/* If the method is a non-leaf function, we need to get the return
-		   address from the stack. For leaf functions the return address
-		   is set correctly. This makes the assembler and the signal
-		   handler code simpler. */
+		/* If the method is a non-leaf function, we need to get the
+		   return address from the stack.  For leaf functions the
+		   return address is set correctly.  This makes the assembler
+		   and the signal handler code simpler.  The code is NULL is
+		   the asm_vm_call_method special case. */
 
-		isleafmethod = *((s4 *) (pv + IsLeaf));
-
-		if (!isleafmethod) {
+		if ((code == NULL) || !code_is_leafmethod(code)) {
 			framesize = *((u4 *) (pv + FrameSize));
 
 			ra = md_stacktrace_get_returnaddress(sp, framesize);

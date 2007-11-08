@@ -1187,6 +1187,10 @@ void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 
 	code = jd->code;
 
+	/* Stubs are non-leaf methods. */
+
+	code_unflag_leafmethod(code);
+
 	/* setup code generation stuff */
 
 	codegen_setup(jd);
@@ -1271,6 +1275,10 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 	/* Get required compiler data. */
 
 	code = jd->code;
+
+	/* Stubs are non-leaf methods. */
+
+	code_unflag_leafmethod(code);
 
 	/* set the flags for the current JIT run */
 
