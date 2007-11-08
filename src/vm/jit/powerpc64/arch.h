@@ -85,7 +85,6 @@
 
 
 #define SPECIALMEMUSE
-/* #define HAS_4BYTE_STACKSLOT */
 /* #define SUPPORT_COMBINE_INTEGER_REGISTERS */
 
 

@@ -104,7 +104,6 @@
 
 #define SPECIALMEMUSE
 #define JIT_COMPILER_VIA_SIGNAL
-/* #define HAS_4BYTE_STACKSLOT */
 /* #define SUPPORT_COMBINE_INTEGER_REGISTERS */
 
 #endif /* _ARCH_H */
