@@ -1,6 +1,6 @@
-/* src/vm/cfg.c - build a control-flow graph
+/* src/vm/jit/cfg.c - build a control-flow graph
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,22 +22,18 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes: Edwin Steiner
-
 */
 
 
 #include "config.h"
 
 #include <assert.h>
-
-#include "vm/types.h"
+#include <stdint.h>
 
 #include "mm/memory.h"
+
+#include "vm/global.h"
+
 #include "vm/jit/jit.h"
 #include "vm/jit/stack.h"
 
@@ -86,7 +82,7 @@ static void cfg_allocate_successors(basicblock *bptr)
 static void cfg_insert_predecessors(basicblock *bptr, basicblock *pbptr)
 {
 	basicblock **tbptr;
-	s4           i;
+	int          i;
 
 	tbptr = bptr->predecessors;
 
@@ -118,7 +114,7 @@ bool cfg_build(jitdata *jd)
 	instruction     *iptr;
 	branch_target_t *table;
 	lookup_target_t *lookup;
-	s4               i;
+	int              i;
 
 	/* process all basic blocks to find the predecessor/successor counts */
 

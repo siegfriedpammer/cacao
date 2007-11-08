@@ -1,6 +1,6 @@
-/* src/vm/cfg.h - build a control-flow graph
+/* src/vm/jit/cfg.h - build a control-flow graph
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -22,12 +22,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
 */
 
 
@@ -35,7 +29,8 @@
 #define _CFG_H
 
 #include "config.h"
-#include "vm/types.h"
+
+#include "vm/global.h"
 
 #include "vm/jit/jit.h"
 
