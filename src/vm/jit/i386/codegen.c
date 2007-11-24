@@ -89,6 +89,7 @@ bool codegen_emit(jitdata *jd)
 	codegendata        *cd;
 	registerdata       *rd;
 	s4                  len, s1, s2, s3, d, disp;
+	int                 align_off;      /* offset for alignment compensation  */
 	varinfo            *var, *var1;
 	basicblock         *bptr;
 	instruction        *iptr;
@@ -149,11 +150,14 @@ bool codegen_emit(jitdata *jd)
     /* Keep stack of non-leaf functions 16-byte aligned. */
 
 	if (!code_is_leafmethod(code)) {
-		ALIGN_ODD(cd->stackframesize);    /* XXX this is wrong, +4 is missing */
+		ALIGN_ODD(cd->stackframesize);
 	}
 
+	align_off = cd->stackframesize ? 4 : 0;
+
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
+	(void) dseg_add_unique_s4(
+		cd, cd->stackframesize * 8 + align_off);           /* FrameSize       */
 
 	code->synchronizedoffset = rd->memuse * 8;
 
@@ -181,7 +185,8 @@ bool codegen_emit(jitdata *jd)
 	/* create stack frame (if necessary) */
 
 	if (cd->stackframesize)
-		M_ASUB_IMM(cd->stackframesize * 8, REG_SP);
+		/* align_off == 4 */
+		M_ASUB_IMM(cd->stackframesize * 8 + 4, REG_SP);
 
 	/* save return address and used callee saved registers */
 
@@ -234,7 +239,8 @@ bool codegen_emit(jitdata *jd)
 			} 
 			else {
 				if (!(var->flags & INMEMORY)) {
-					M_ILD(d, REG_SP, cd->stackframesize * 8 + 4 + s1);
+					M_ILD(d, REG_SP,
+						  cd->stackframesize * 8 + 4 + align_off + s1);
 				} 
 				else {
 					if (!IS_2_WORD_TYPE(t)) {
@@ -242,15 +248,17 @@ bool codegen_emit(jitdata *jd)
 						/* no copy avoiding by now possible with SSA */
 						if (ls != NULL) {
 							emit_mov_membase_reg(   /* + 4 for return address */
-								 cd, REG_SP, cd->stackframesize * 8 + s1 + 4,
-								 REG_ITMP1);    
+								cd, REG_SP,
+								cd->stackframesize * 8 + s1 + 4 + align_off,
+								REG_ITMP1);    
 							emit_mov_reg_membase(
-								 cd, REG_ITMP1, REG_SP, var->vv.regoff);
+								cd, REG_ITMP1, REG_SP, var->vv.regoff);
 						}
 						else 
 #endif /*defined(ENABLE_SSA)*/
 							/* reuse stackslot */
-							var->vv.regoff = cd->stackframesize * 8 + 4 + s1;
+							var->vv.regoff = cd->stackframesize * 8 + 4 +
+								align_off + s1;
 
 					} 
 					else {
@@ -258,20 +266,22 @@ bool codegen_emit(jitdata *jd)
 						/* no copy avoiding by now possible with SSA */
 						if (ls != NULL) {
 							emit_mov_membase_reg(  /* + 4 for return address */
-								 cd, REG_SP, cd->stackframesize * 8 + s1 + 4,
-								 REG_ITMP1);
+								cd, REG_SP,
+								cd->stackframesize * 8 + s1 + 4 + align_off,
+								REG_ITMP1);
 							emit_mov_reg_membase(
-								 cd, REG_ITMP1, REG_SP, var->vv.regoff);
+								cd, REG_ITMP1, REG_SP, var->vv.regoff);
 							emit_mov_membase_reg(   /* + 4 for return address */
-								  cd, REG_SP, cd->stackframesize * 8 + s1 + 4 + 4,
-								  REG_ITMP1);             
+								cd, REG_SP,
+  								cd->stackframesize * 8 + s1 + 4 + 4 + align_off,
+  								REG_ITMP1);             
 							emit_mov_reg_membase(
-								 cd, REG_ITMP1, REG_SP, var->vv.regoff + 4);
+								cd, REG_ITMP1, REG_SP, var->vv.regoff + 4);
 						}
 						else
 #endif /*defined(ENABLE_SSA)*/
 							/* reuse stackslot */
-							var->vv.regoff = cd->stackframesize * 8 + 4 + s1;
+							var->vv.regoff = cd->stackframesize * 8 + 8 + s1;
 					}
 				}
 			}
@@ -291,14 +301,16 @@ bool codegen_emit(jitdata *jd)
 				if (!(var->flags & INMEMORY)) {      /* stack-arg -> register */
 					if (t == TYPE_FLT) {
 						emit_flds_membase(
-                            cd, REG_SP, cd->stackframesize * 8 + s1 + 4);
+                            cd, REG_SP,
+							cd->stackframesize * 8 + s1 + 4 + align_off);
 						assert(0);
 /* 						emit_fstp_reg(cd, var->vv.regoff + fpu_st_offset); */
 
 					} 
 					else {
 						emit_fldl_membase(
-                            cd, REG_SP, cd->stackframesize * 8 + s1 + 4);
+                            cd, REG_SP,
+							cd->stackframesize * 8 + s1 + 4 + align_off);
 						assert(0);
 /* 						emit_fstp_reg(cd, var->vv.regoff + fpu_st_offset); */
 					}
@@ -308,24 +320,29 @@ bool codegen_emit(jitdata *jd)
 					/* no copy avoiding by now possible with SSA */
 					if (ls != NULL) {
 						emit_mov_membase_reg(
-						 cd, REG_SP, cd->stackframesize * 8 + s1 + 4, REG_ITMP1);
+							cd, REG_SP,
+							cd->stackframesize * 8 + s1 + 4 + align_off,
+							REG_ITMP1);
 						emit_mov_reg_membase(
- 									 cd, REG_ITMP1, REG_SP, var->vv.regoff);
+							cd, REG_ITMP1, REG_SP, var->vv.regoff);
 						if (t == TYPE_FLT) {
 							emit_flds_membase(
-								  cd, REG_SP, cd->stackframesize * 8 + s1 + 4);
+								cd, REG_SP,
+								cd->stackframesize * 8 + s1 + 4 + align_off);
 							emit_fstps_membase(cd, REG_SP, var->vv.regoff);
 						} 
 						else {
 							emit_fldl_membase(
-								  cd, REG_SP, cd->stackframesize * 8 + s1 + 4);
+								cd, REG_SP,
+								cd->stackframesize * 8 + s1 + 4 + align_off);
 							emit_fstpl_membase(cd, REG_SP, var->vv.regoff);
 						}
 					}
 					else
 #endif /*defined(ENABLE_SSA)*/
 						/* reuse stackslot */
-						var->vv.regoff = cd->stackframesize * 8 + 4 + s1;
+						var->vv.regoff = cd->stackframesize * 8 + 4 +
+							align_off + s1;
 				}
 			}
 		}
@@ -341,7 +358,7 @@ bool codegen_emit(jitdata *jd)
 			M_MOV_IMM(&m->class->object.header, REG_ITMP1);
 		}
 		else {
-			M_ALD(REG_ITMP1, REG_SP, cd->stackframesize * 8 + 4);
+			M_ALD(REG_ITMP1, REG_SP, cd->stackframesize * 8 + 4 + align_off);
 			M_TEST(REG_ITMP1);
 			M_BNE(6);
 			M_ALD_MEM(REG_ITMP1, EXCEPTION_HARDWARE_NULLPOINTER);
@@ -2789,7 +2806,7 @@ nowperformreturn:
 			/* deallocate stack */
 
 			if (cd->stackframesize)
-				M_AADD_IMM(cd->stackframesize * 8, REG_SP);
+				M_AADD_IMM(cd->stackframesize * 8 + 4, REG_SP);
 
 			M_RET;
 			}
@@ -3487,12 +3504,12 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
     /* keep stack 16-byte aligned */
 
-	ALIGN_ODD(cd->stackframesize);        /* XXX this is wrong, +4 is missing */
+	ALIGN_ODD(cd->stackframesize);
 
 	/* create method header */
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8 + 4); /* FrameSize       */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
 	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */
@@ -3510,7 +3527,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	/* calculate stackframe size for native function */
 
-	M_ASUB_IMM(cd->stackframesize * 8, REG_SP);
+	M_ASUB_IMM(cd->stackframesize * 8 + 4, REG_SP);
 
 	/* Mark the whole fpu stack as free for native functions (only for saved  */
 	/* register count == 0).                                                  */
@@ -3556,7 +3573,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		if (!md->params[i].inmemory)
 			assert(0);
 
-		s1 = md->params[i].regoff + cd->stackframesize * 8 + 4;
+		s1 = md->params[i].regoff + cd->stackframesize * 8 + 8;
 		s2 = nmd->params[j].regoff;
 
 		/* float/double in memory can be copied like int/longs */
@@ -3659,7 +3676,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		M_ALD(abi_registers_integer_saved[i], REG_SP, disp + i * 4);
 #endif
 
-	M_AADD_IMM(cd->stackframesize * 8, REG_SP);
+	M_AADD_IMM(cd->stackframesize * 8 + 4, REG_SP);
 
 	/* check for exception */
 

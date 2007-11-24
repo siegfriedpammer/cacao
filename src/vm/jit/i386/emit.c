@@ -562,6 +562,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	methoddesc   *md;
 	int32_t       stackframesize;
 	int           i;
+	int           align_off;             /* offset for alignment compensation */
 
 	if (!JITDATA_HAS_FLAG_VERBOSECALL(jd))
 		return;
@@ -595,10 +596,11 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	/* no argument registers to save */
 
+	align_off = cd->stackframesize ? 4 : 0;
 	M_AST_IMM(m, REG_SP, 0 * 4);
 	M_AST_IMM(0, REG_SP, 1 * 4);
 	M_AST(REG_SP, REG_SP, 2 * 4);
-	M_IADD_IMM_MEMBASE(stackframesize * 8 + cd->stackframesize * 8 + 4, REG_SP, 2 * 4);
+	M_IADD_IMM_MEMBASE(stackframesize * 8 + cd->stackframesize * 8 + 4 + align_off, REG_SP, 2 * 4);
 	M_MOV_IMM(trace_java_call_enter, REG_ITMP1);
 	M_CALL(REG_ITMP1);
 
