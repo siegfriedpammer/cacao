@@ -1781,6 +1781,50 @@ classinfo *class_get_enclosingclass(classinfo *c)
 }
 
 
+/* class_get_enclosingmethod ***************************************************
+
+   Return the enclosing method for the given class.
+
+   IN:
+       c ... class to return the enclosing method for
+
+   RETURN:
+       methodinfo of the enclosing method
+
+*******************************************************************************/
+
+methodinfo *class_get_enclosingmethod(classinfo *c)
+{
+	constant_nameandtype *cn;
+	classinfo            *ec;
+	methodinfo           *m;
+
+	/* get enclosing class and method */
+
+	ec = class_get_enclosingclass(c);
+	cn = c->enclosingmethod;
+
+	/* check for enclosing class and method */
+
+	if (ec == NULL)
+		return NULL;
+
+	if (cn == NULL)
+		return NULL;
+
+	/* find method in enclosing class */
+
+	m = class_findmethod(ec, cn->name, cn->descriptor);
+
+	if (m == NULL) {
+		exceptions_throw_internalerror("Enclosing method doesn't exist");
+		return NULL;
+	}
+
+	return m;
+}
+
+
 /* class_get_interfaces ********************************************************
 
    Return an array of interfaces of the given class.

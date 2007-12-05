@@ -3143,7 +3143,32 @@ jobject JVM_InitAgentProperties(JNIEnv *env, jobject properties)
 
 jobjectArray JVM_GetEnclosingMethodInfo(JNIEnv *env, jclass ofClass)
 {
-	log_println("JVM_GetEnclosingMethodInfo: IMPLEMENT ME!");
+	classinfo                 *c;
+	methodinfo                *m;
+	java_handle_objectarray_t *oa;
+
+	TRACEJVMCALLS("JVM_GetEnclosingMethodInfo(env=%p, ofClass=%p)", env, ofClass);
+
+	c = LLNI_classinfo_unwrap(ofClass);
+
+	if ((c == NULL) || class_is_primitive(c))
+		return NULL;
+
+	m = class_get_enclosingmethod(c);
+
+	if (m == NULL)
+		return NULL;
+
+	oa = builtin_anewarray(3, class_java_lang_Object);
+
+	if (oa == NULL)
+		return NULL;
+
+	array_objectarray_element_set(oa, 0, (java_handle_t *) LLNI_classinfo_wrap(m->class));
+	array_objectarray_element_set(oa, 1, javastring_new(m->name));
+	array_objectarray_element_set(oa, 2, javastring_new(m->descriptor));
+
+	return (jobjectArray) oa;
 }
 
 

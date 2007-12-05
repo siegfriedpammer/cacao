@@ -496,6 +496,7 @@ classinfo                 *class_get_componenttype(classinfo *c);
 java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOnly);
 classinfo                 *class_get_declaringclass(classinfo *c);
 classinfo                 *class_get_enclosingclass(classinfo *c);
+methodinfo                *class_get_enclosingmethod(classinfo *c);
 java_handle_objectarray_t *class_get_interfaces(classinfo *c);
 java_handle_bytearray_t   *class_get_annotations(classinfo *c);
 int32_t                    class_get_modifiers(classinfo *c, bool ignoreInnerClassesAttrib);
