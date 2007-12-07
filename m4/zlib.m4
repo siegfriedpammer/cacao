@@ -28,7 +28,7 @@ dnl check if zlib should be used
 AC_DEFUN([AC_CHECK_ENABLE_ZLIB],[
 AC_MSG_CHECKING(whether ZIP/JAR archives should be supported)
 AC_ARG_ENABLE([zlib],
-              [AS_HELP_STRING(--disable-zlib,disable ZIP/JAR archive support (needs zlib) [[default=yes]])],
+              [AS_HELP_STRING(--disable-zlib,disable ZIP/JAR archive support (needs zlib) [[default=enabled]])],
               [case "${enableval}" in
                   no) ENABLE_ZLIB=no;;
                   *) ENABLE_ZLIB=yes;;

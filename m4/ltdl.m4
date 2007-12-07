@@ -28,7 +28,7 @@ dnl check if ltdl should be used
 AC_DEFUN([AC_CHECK_ENABLE_LTDL],[
 AC_MSG_CHECKING(whether ltdl should be used)
 AC_ARG_ENABLE([ltdl],
-              [AS_HELP_STRING(--disable-ltdl,disable ltdl support [[default=yes]])],
+              [AS_HELP_STRING(--disable-ltdl,disable ltdl support [[default=enabled]])],
               [case "${enableval}" in
                   no)
                       ENABLE_LTDL=no

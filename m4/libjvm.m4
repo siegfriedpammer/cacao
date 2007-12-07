@@ -28,7 +28,7 @@ dnl check if a libjvm.so should be built
 AC_DEFUN([AC_CHECK_ENABLE_LIBJVM],[
 AC_MSG_CHECKING(whether to build a libjvm.so)
 AC_ARG_ENABLE([libjvm],
-              [AS_HELP_STRING(--disable-libjvm,build a libjvm.so [[default=yes]])],
+              [AS_HELP_STRING(--disable-libjvm,build a libjvm.so [[default=enabled]])],
               [case "${enableval}" in
                   no)
                       ENABLE_LIBJVM=no

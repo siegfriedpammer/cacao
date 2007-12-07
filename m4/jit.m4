@@ -28,7 +28,7 @@ dnl check for JIT compiler
 AC_DEFUN([AC_CHECK_ENABLE_JIT],[
 AC_MSG_CHECKING(whether JIT compiler should be compiled)
 AC_ARG_ENABLE([jit],
-              [AS_HELP_STRING(--disable-jit,disable JIT compiler [[default=yes]])],
+              [AS_HELP_STRING(--disable-jit,disable JIT compiler [[default=enabled]])],
               [case "${enableval}" in
                    no)
                        ENABLE_JIT=no

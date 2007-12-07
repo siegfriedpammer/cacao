@@ -500,7 +500,7 @@ fi
 dnl check for verifier
 AC_MSG_CHECKING(whether classfile verification should be enabled)
 AC_ARG_ENABLE([verifier],
-              [AS_HELP_STRING(--disable-verifier,disable classfile verification [[default=yes]])],
+              [AS_HELP_STRING(--disable-verifier,disable classfile verification [[default=enabled]])],
               [case "${enableval}" in
                    no) ENABLE_VERIFIER=no;;
                    *) ENABLE_VERIFIER=yes;;
@@ -571,7 +571,7 @@ AC_CHECK_ENABLE_THREADS
 dnl check if if-conversion should be supported
 AC_MSG_CHECKING(whether if-conversion should be supported)
 AC_ARG_ENABLE([ifconv],
-              [AS_HELP_STRING(--disable-ifconv,disable if-conversion [[default=yes]])],
+              [AS_HELP_STRING(--disable-ifconv,disable if-conversion [[default=enabled]])],
               [case "${enableval}" in
                    no) ENABLE_IFCONV=no;;
                    *) ENABLE_IFCONV=yes;;
@@ -656,7 +656,7 @@ fi
 dnl check if linear scan register allocator(lsra) with SSA should be used
 AC_MSG_CHECKING(whether lsra with ssa should be supported)
 AC_ARG_ENABLE([ssa],
-              [AS_HELP_STRING(--disable-ssa,disable ssa [[default=no]])],
+              [AS_HELP_STRING(--disable-ssa,disable ssa [[default=disabled]])],
               [case "${enableval}" in
                    no) ENABLE_SSA=no;;
                    *) ENABLE_SSA=yes;;
