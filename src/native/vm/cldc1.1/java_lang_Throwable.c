@@ -28,10 +28,10 @@
 #include "config.h"
 
 #include <assert.h>
-
-#include "vm/types.h"
+#include <stdint.h>
 
 #include "native/jni.h"
+#include "native/llni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_Object.h"
@@ -44,8 +44,8 @@
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "printStackTrace",  "()V", (void *) (ptrint) &Java_java_lang_Throwable_printStackTrace  },
-	{ "fillInStackTrace", "()V", (void *) (ptrint) &Java_java_lang_Throwable_fillInStackTrace },
+	{ "printStackTrace",  "()V", (void *) (uintptr_t) &Java_java_lang_Throwable_printStackTrace  },
+	{ "fillInStackTrace", "()V", (void *) (uintptr_t) &Java_java_lang_Throwable_fillInStackTrace },
 };
 
 
@@ -77,7 +77,7 @@ JNIEXPORT void JNICALL Java_java_lang_Throwable_printStackTrace(JNIEnv *env, jav
 	o = (java_handle_t *) this;
 
 	exceptions_print_exception(o);
-	stacktrace_print_trace(o);
+	stacktrace_print_exception(o);
 }
 
 
@@ -90,12 +90,12 @@ JNIEXPORT void JNICALL Java_java_lang_Throwable_fillInStackTrace(JNIEnv *env, ja
 {
 	java_handle_bytearray_t *ba;
 
-	ba = stacktrace_fillInStackTrace();
+	ba = stacktrace_get();
 
 	if (ba == NULL)
 		return;
 
-	this->backtrace = (java_lang_Object *) ba;
+	LLNI_field_set_ref(this, backtrace, (java_lang_Object *) ba);
 }
 
 
