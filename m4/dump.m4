@@ -28,7 +28,7 @@ dnl check for dump memory usage
 AC_DEFUN([AC_CHECK_ENABLE_DUMP],[
 AC_MSG_CHECKING(whether dump memory should be disabled)
 AC_ARG_ENABLE([dump],
-              [AS_HELP_STRING(--disable-dump,disable dump memory (for debugging only!) [[default=yes]])],
+              [AS_HELP_STRING(--disable-dump,disable dump memory (for debugging only!) [[default=enabled]])],
               [case "${enableval}" in
                    no)
                        DISABLE_DUMP=yes

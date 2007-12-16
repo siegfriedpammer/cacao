@@ -28,7 +28,7 @@ dnl check for debug
 AC_DEFUN([AC_CHECK_ENABLE_DEBUG],[
 AC_MSG_CHECKING(whether debug code generation should be enabled)
 AC_ARG_ENABLE([debug],
-              [AS_HELP_STRING(--disable-debug,disable debug code generation [[default=yes]])],
+              [AS_HELP_STRING(--disable-debug,disable debug code generation [[default=enabled]])],
               [case "${enableval}" in
                    no)
                        NDEBUG=yes
