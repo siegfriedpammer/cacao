@@ -3127,9 +3127,13 @@ jobjectArray JVM_DumpThreads(JNIEnv *env, jclass threadClass, jobjectArray threa
 
 /* JVM_GetManagement */
 
-void* JVM_GetManagement(jint version)
+void *JVM_GetManagement(jint version)
 {
-	log_println("JVM_GetManagement: IMPLEMENT ME!");
+	TRACEJVMCALLS("JVM_GetManagement(version=%d)", version);
+
+	/* TODO We current don't support the management interface. */
+
+	return NULL;
 }
 
 
