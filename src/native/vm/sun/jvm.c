@@ -2838,7 +2838,9 @@ void *JVM_LoadLibrary(const char *name)
 
 void JVM_UnloadLibrary(void* handle)
 {
-	log_println("JVM_UnloadLibrary: IMPLEMENT ME!");
+	TRACEJVMCALLS("JVM_UnloadLibrary(handle=%p)", handle);
+
+	native_library_close(handle);
 }
 
 

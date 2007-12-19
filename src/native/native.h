@@ -97,6 +97,7 @@ functionptr native_method_resolve(methodinfo *m);
 
 #if defined(ENABLE_LTDL)
 lt_dlhandle native_library_open(utf *filename);
+void        native_library_close(lt_dlhandle handle);
 void        native_library_add(utf *filename, classloader *loader,
 							   lt_dlhandle handle);
 hashtable_library_name_entry *native_library_find(utf *filename,

@@ -644,6 +644,12 @@ functionptr native_method_resolve(methodinfo *m)
 
    Open a native library with the given utf8 name.
 
+   IN:
+       filename ... filename of the library to open
+
+   RETURN:
+       handle of the opened library
+
 *******************************************************************************/
 
 #if defined(ENABLE_LTDL)
@@ -662,9 +668,12 @@ lt_dlhandle native_library_open(utf *filename)
 	handle = lt_dlopen(filename->text);
 
 	if (handle == NULL) {
+		if (opt_verbosejni)
+			printf("failed ]\n");
+
 		if (opt_verbose) {
 			log_start();
-			log_print("native_library_load: lt_dlopen failed: ");
+			log_print("native_library_open: lt_dlopen failed: ");
 			log_print(lt_dlerror());
 			log_finish();
 		}
@@ -672,7 +681,46 @@ lt_dlhandle native_library_open(utf *filename)
 		return NULL;
 	}
 
+	if (opt_verbosejni)
+		printf("OK ]\n");
+
 	return handle;
+}
+#endif
+
+
+/* native_library_close ********************************************************
+
+   Close the native library of the given handle.
+
+   IN:
+       handle ... handle of the open library
+
+*******************************************************************************/
+
+#if defined(ENABLE_LTDL)
+void native_library_close(lt_dlhandle handle)
+{
+	int result;
+
+	if (opt_verbosejni) {
+		printf("[Unloading native library ");
+/* 		utf_display_printable_ascii(filename); */
+		printf(" ... ");
+	}
+
+	/* Close the library. */
+
+	result = lt_dlclose(handle);
+
+	if (result != 0) {
+		if (opt_verbose) {
+			log_start();
+			log_print("native_library_close: lt_dlclose failed: ");
+			log_print(lt_dlerror());
+			log_finish();
+		}
+	}
 }
 #endif
 
