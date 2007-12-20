@@ -96,6 +96,10 @@
 
 #include "vm/jit/optimizing/recompile.h"
 
+#if defined(ENABLE_PYTHON)
+# include "vm/jit/python.h"
+#endif
+
 #include "vmcore/classcache.h"
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"
@@ -1500,6 +1504,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	/* initializes jit compiler */
 
 	jit_init();
+
+#if defined(ENABLE_PYTHON)
+	pythonpass_init();
+#endif
 
 	/* BEFORE: loader_preinit */
 

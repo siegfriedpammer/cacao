@@ -71,6 +71,11 @@ if ENABLE_RT_TIMING
 cacao_LDFLAGS += -lrt
 endif
 
+if ENABLE_PYTHON
+cacao_LDFLAGS += \
+    @PYTHON_LSPEC@
+endif
+
 libjvm_la_SOURCES =
 
 libjvm_la_LIBADD = \

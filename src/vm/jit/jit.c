@@ -83,6 +83,10 @@
 
 #include "vm/jit/optimizing/reorder.h"
 
+#if defined(ENABLE_PYTHON)
+# include "vm/jit/python.h"
+#endif
+
 #include "vm/jit/verify/typecheck.h"
 
 #include "vmcore/class.h"
@@ -1453,6 +1457,12 @@ static u1 *jit_compile_intern(jitdata *jd)
 		if (JITDATA_HAS_FLAG_INLINE(jd)) {
 			if (!inline_inline(jd))
 				return NULL;
+		}
+#endif
+
+#if defined(ENABLE_PYTHON)
+		if (!pythonpass_run(jd, "ssa", "ssa")) {
+			/*return NULL;*/
 		}
 #endif
 
