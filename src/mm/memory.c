@@ -65,6 +65,8 @@
 # include "vmcore/statistics.h"
 #endif
 
+#include "vmcore/system.h"
+
 
 /*******************************************************************************
 
@@ -172,8 +174,9 @@ void *memory_mmap_anon(void *addr, size_t len, int prot, int flags)
 
 void memory_mprotect(void *addr, size_t len, int prot)
 {
-	if (mprotect(addr, len, prot) != 0)
-		vm_abort("memory_mprotect: mprotect failed: %s", strerror(errno));
+	if (system_mprotect(addr, len, prot) != 0)
+		vm_abort("memory_mprotect: system_mprotect failed: %s",
+				 strerror(errno));
 }
 
 

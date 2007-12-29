@@ -47,6 +47,10 @@
 # include <unistd.h>
 #endif
 
+#if defined(HAVE_SYS_MMAN_H)
+# include <sys/mman.h>
+#endif
+
 
 /* inline functions ***********************************************************/
 
@@ -101,6 +105,15 @@ inline static void *system_memset(void *s, int c, size_t n)
 	return memset(s, c, n);
 #else
 # error memset not available
+#endif
+}
+
+inline static int system_mprotect(void *addr, size_t len, int prot)
+{
+#if defined(HAVE_MPROTECT)
+	return mprotect(addr, len, prot);
+#else
+# error mprotect not available
 #endif
 }
 
