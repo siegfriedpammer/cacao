@@ -50,6 +50,8 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/loop/loop.h"
 
+#include "vm/jit/ir/bytecode.h"
+
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
@@ -495,10 +497,10 @@ fetch_opcode:
 		   mark the current bytecode instruction as basic-block
 		   starting instruction. */
 
-		/* NOTE: Some compilers put a JAVA_NOP after a blockend
+		/* NOTE: Some compilers put a BC_nop after a blockend
 		   instruction. */
 
-		if (blockend && (opcode != JAVA_NOP)) {
+		if (blockend && (opcode != BC_nop)) {
 			MARK_BASICBLOCK(&pd, bcindex);
 			blockend = false;
 		}
@@ -541,25 +543,25 @@ fetch_opcode:
 		/* translate this bytecode instruction */
 		switch (opcode) {
 
-		case JAVA_NOP:
+		case BC_nop:
 			break;
 
 		/* pushing constants onto the stack ***********************************/
 
-		case JAVA_BIPUSH:
+		case BC_bipush:
 			OP_LOADCONST_I(SUCK_BE_S1(m->jcode + bcindex + 1));
 			break;
 
-		case JAVA_SIPUSH:
+		case BC_sipush:
 			OP_LOADCONST_I(SUCK_BE_S2(m->jcode + bcindex + 1));
 			break;
 
-		case JAVA_LDC1:
+		case BC_ldc1:
 			i = SUCK_BE_U1(m->jcode + bcindex + 1);
 			goto pushconstantitem;
 
-		case JAVA_LDC2:
-		case JAVA_LDC2W:
+		case BC_ldc2:
+		case BC_ldc2w:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
 
 		pushconstantitem:
@@ -609,42 +611,43 @@ fetch_opcode:
 			}
 			break;
 
-		case JAVA_ACONST_NULL:
+		case BC_aconst_null:
 			OP_LOADCONST_NULL();
 			break;
 
-		case JAVA_ICONST_M1:
-		case JAVA_ICONST_0:
-		case JAVA_ICONST_1:
-		case JAVA_ICONST_2:
-		case JAVA_ICONST_3:
-		case JAVA_ICONST_4:
-		case JAVA_ICONST_5:
-			OP_LOADCONST_I(opcode - JAVA_ICONST_0);
+		case BC_iconst_m1:
+		case BC_iconst_0:
+		case BC_iconst_1:
+		case BC_iconst_2:
+		case BC_iconst_3:
+		case BC_iconst_4:
+		case BC_iconst_5:
+			OP_LOADCONST_I(opcode - BC_iconst_0);
 			break;
 
-		case JAVA_LCONST_0:
-		case JAVA_LCONST_1:
-			OP_LOADCONST_L(opcode - JAVA_LCONST_0);
+		case BC_lconst_0:
+		case BC_lconst_1:
+			OP_LOADCONST_L(opcode - BC_lconst_0);
 			break;
 
-		case JAVA_FCONST_0:
-		case JAVA_FCONST_1:
-		case JAVA_FCONST_2:
-			OP_LOADCONST_F(opcode - JAVA_FCONST_0);
+		case BC_fconst_0:
+		case BC_fconst_1:
+		case BC_fconst_2:
+			OP_LOADCONST_F(opcode - BC_fconst_0);
 			break;
 
-		case JAVA_DCONST_0:
-		case JAVA_DCONST_1:
-			OP_LOADCONST_D(opcode - JAVA_DCONST_0);
+		case BC_dconst_0:
+		case BC_dconst_1:
+			OP_LOADCONST_D(opcode - BC_dconst_0);
 			break;
 
 		/* stack operations ***************************************************/
 
-		/* We need space for additional ICMDs so we can translate these       */
-		/* instructions to sequences of ICMD_COPY and ICMD_MOVE instructions. */
+		/* We need space for additional instruction so we can
+		   translate these instructions to sequences of ICMD_COPY and
+		   ICMD_MOVE instructions. */
 
-		case JAVA_DUP_X1:
+		case BC_dup_x1:
 			INSTRUCTIONS_CHECK(4);
 			OP(opcode);
 			OP(ICMD_NOP);
@@ -652,7 +655,7 @@ fetch_opcode:
 			OP(ICMD_NOP);
 			break;
 
-		case JAVA_DUP_X2:
+		case BC_dup_x2:
 			INSTRUCTIONS_CHECK(6);
 			OP(opcode);
 			OP(ICMD_NOP);
@@ -662,13 +665,13 @@ fetch_opcode:
 			OP(ICMD_NOP);
 			break;
 
-		case JAVA_DUP2:
+		case BC_dup2:
 			INSTRUCTIONS_CHECK(2);
 			OP(opcode);
 			OP(ICMD_NOP);
 			break;
 
-		case JAVA_DUP2_X1:
+		case BC_dup2_x1:
 			INSTRUCTIONS_CHECK(7);
 			OP(opcode);
 			OP(ICMD_NOP);
@@ -679,7 +682,7 @@ fetch_opcode:
 			OP(ICMD_NOP);
 			break;
 
-		case JAVA_DUP2_X2:
+		case BC_dup2_x2:
 			INSTRUCTIONS_CHECK(9);
 			OP(opcode);
 			OP(ICMD_NOP);
@@ -692,7 +695,7 @@ fetch_opcode:
 			OP(ICMD_NOP);
 			break;
 
-		case JAVA_SWAP:
+		case BC_swap:
 			INSTRUCTIONS_CHECK(3);
 			OP(opcode);
 			OP(ICMD_NOP);
@@ -701,9 +704,9 @@ fetch_opcode:
 
 		/* local variable access instructions *********************************/
 
-		case JAVA_ILOAD:
-		case JAVA_FLOAD:
-		case JAVA_ALOAD:
+		case BC_iload:
+		case BC_fload:
+		case BC_aload:
 			if (iswide == false) {
 				i = SUCK_BE_U1(m->jcode + bcindex + 1);
 			}
@@ -712,11 +715,11 @@ fetch_opcode:
 				nextbc = bcindex + 3;
 				iswide = false;
 			}
-			OP_LOAD_ONEWORD(opcode, i, opcode - JAVA_ILOAD);
+			OP_LOAD_ONEWORD(opcode, i, opcode - BC_iload);
 			break;
 
-		case JAVA_LLOAD:
-		case JAVA_DLOAD:
+		case BC_lload:
+		case BC_dload:
 			if (iswide == false) {
 				i = SUCK_BE_U1(m->jcode + bcindex + 1);
 			}
@@ -725,47 +728,47 @@ fetch_opcode:
 				nextbc = bcindex + 3;
 				iswide = false;
 			}
-			OP_LOAD_TWOWORD(opcode, i, opcode - JAVA_ILOAD);
+			OP_LOAD_TWOWORD(opcode, i, opcode - BC_iload);
 			break;
 
-		case JAVA_ILOAD_0:
-		case JAVA_ILOAD_1:
-		case JAVA_ILOAD_2:
-		case JAVA_ILOAD_3:
-			OP_LOAD_ONEWORD(ICMD_ILOAD, opcode - JAVA_ILOAD_0, TYPE_INT);
+		case BC_iload_0:
+		case BC_iload_1:
+		case BC_iload_2:
+		case BC_iload_3:
+			OP_LOAD_ONEWORD(ICMD_ILOAD, opcode - BC_iload_0, TYPE_INT);
 			break;
 
-		case JAVA_LLOAD_0:
-		case JAVA_LLOAD_1:
-		case JAVA_LLOAD_2:
-		case JAVA_LLOAD_3:
-			OP_LOAD_TWOWORD(ICMD_LLOAD, opcode - JAVA_LLOAD_0, TYPE_LNG);
+		case BC_lload_0:
+		case BC_lload_1:
+		case BC_lload_2:
+		case BC_lload_3:
+			OP_LOAD_TWOWORD(ICMD_LLOAD, opcode - BC_lload_0, TYPE_LNG);
 			break;
 
-		case JAVA_FLOAD_0:
-		case JAVA_FLOAD_1:
-		case JAVA_FLOAD_2:
-		case JAVA_FLOAD_3:
-			OP_LOAD_ONEWORD(ICMD_FLOAD, opcode - JAVA_FLOAD_0, TYPE_FLT);
+		case BC_fload_0:
+		case BC_fload_1:
+		case BC_fload_2:
+		case BC_fload_3:
+			OP_LOAD_ONEWORD(ICMD_FLOAD, opcode - BC_fload_0, TYPE_FLT);
 			break;
 
-		case JAVA_DLOAD_0:
-		case JAVA_DLOAD_1:
-		case JAVA_DLOAD_2:
-		case JAVA_DLOAD_3:
-			OP_LOAD_TWOWORD(ICMD_DLOAD, opcode - JAVA_DLOAD_0, TYPE_DBL);
+		case BC_dload_0:
+		case BC_dload_1:
+		case BC_dload_2:
+		case BC_dload_3:
+			OP_LOAD_TWOWORD(ICMD_DLOAD, opcode - BC_dload_0, TYPE_DBL);
 			break;
 
-		case JAVA_ALOAD_0:
-		case JAVA_ALOAD_1:
-		case JAVA_ALOAD_2:
-		case JAVA_ALOAD_3:
-			OP_LOAD_ONEWORD(ICMD_ALOAD, opcode - JAVA_ALOAD_0, TYPE_ADR);
+		case BC_aload_0:
+		case BC_aload_1:
+		case BC_aload_2:
+		case BC_aload_3:
+			OP_LOAD_ONEWORD(ICMD_ALOAD, opcode - BC_aload_0, TYPE_ADR);
 			break;
 
-		case JAVA_ISTORE:
-		case JAVA_FSTORE:
-		case JAVA_ASTORE:
+		case BC_istore:
+		case BC_fstore:
+		case BC_astore:
 			if (iswide == false) {
 				i = SUCK_BE_U1(m->jcode + bcindex + 1);
 			}
@@ -774,11 +777,11 @@ fetch_opcode:
 				nextbc = bcindex + 3;
 				iswide = false;
 			}
-			OP_STORE_ONEWORD(opcode, i, opcode - JAVA_ISTORE);
+			OP_STORE_ONEWORD(opcode, i, opcode - BC_istore);
 			break;
 
-		case JAVA_LSTORE:
-		case JAVA_DSTORE:
+		case BC_lstore:
+		case BC_dstore:
 			if (iswide == false) {
 				i = SUCK_BE_U1(m->jcode + bcindex + 1);
 			}
@@ -787,52 +790,51 @@ fetch_opcode:
 				nextbc = bcindex + 3;
 				iswide = false;
 			}
-			OP_STORE_TWOWORD(opcode, i, opcode - JAVA_ISTORE);
+			OP_STORE_TWOWORD(opcode, i, opcode - BC_istore);
 			break;
 
-		case JAVA_ISTORE_0:
-		case JAVA_ISTORE_1:
-		case JAVA_ISTORE_2:
-		case JAVA_ISTORE_3:
-			OP_STORE_ONEWORD(ICMD_ISTORE, opcode - JAVA_ISTORE_0, TYPE_INT);
+		case BC_istore_0:
+		case BC_istore_1:
+		case BC_istore_2:
+		case BC_istore_3:
+			OP_STORE_ONEWORD(ICMD_ISTORE, opcode - BC_istore_0, TYPE_INT);
 			break;
 
-		case JAVA_LSTORE_0:
-		case JAVA_LSTORE_1:
-		case JAVA_LSTORE_2:
-		case JAVA_LSTORE_3:
-			OP_STORE_TWOWORD(ICMD_LSTORE, opcode - JAVA_LSTORE_0, TYPE_LNG);
+		case BC_lstore_0:
+		case BC_lstore_1:
+		case BC_lstore_2:
+		case BC_lstore_3:
+			OP_STORE_TWOWORD(ICMD_LSTORE, opcode - BC_lstore_0, TYPE_LNG);
 			break;
 
-		case JAVA_FSTORE_0:
-		case JAVA_FSTORE_1:
-		case JAVA_FSTORE_2:
-		case JAVA_FSTORE_3:
-			OP_STORE_ONEWORD(ICMD_FSTORE, opcode - JAVA_FSTORE_0, TYPE_FLT);
+		case BC_fstore_0:
+		case BC_fstore_1:
+		case BC_fstore_2:
+		case BC_fstore_3:
+			OP_STORE_ONEWORD(ICMD_FSTORE, opcode - BC_fstore_0, TYPE_FLT);
 			break;
 
-		case JAVA_DSTORE_0:
-		case JAVA_DSTORE_1:
-		case JAVA_DSTORE_2:
-		case JAVA_DSTORE_3:
-			OP_STORE_TWOWORD(ICMD_DSTORE, opcode - JAVA_DSTORE_0, TYPE_DBL);
+		case BC_dstore_0:
+		case BC_dstore_1:
+		case BC_dstore_2:
+		case BC_dstore_3:
+			OP_STORE_TWOWORD(ICMD_DSTORE, opcode - BC_dstore_0, TYPE_DBL);
 			break;
 
-		case JAVA_ASTORE_0:
-		case JAVA_ASTORE_1:
-		case JAVA_ASTORE_2:
-		case JAVA_ASTORE_3:
-			OP_STORE_ONEWORD(ICMD_ASTORE, opcode - JAVA_ASTORE_0, TYPE_ADR);
+		case BC_astore_0:
+		case BC_astore_1:
+		case BC_astore_2:
+		case BC_astore_3:
+			OP_STORE_ONEWORD(ICMD_ASTORE, opcode - BC_astore_0, TYPE_ADR);
 			break;
 
-		case JAVA_IINC:
+		case BC_iinc:
 			{
 				int v;
 
 				if (iswide == false) {
 					i = SUCK_BE_U1(m->jcode + bcindex + 1);
 					v = SUCK_BE_S1(m->jcode + bcindex + 2);
-
 				}
 				else {
 					i = SUCK_BE_U2(m->jcode + bcindex + 1);
@@ -848,14 +850,14 @@ fetch_opcode:
 
 		/* wider index for loading, storing and incrementing ******************/
 
-		case JAVA_WIDE:
+		case BC_wide:
 			bcindex++;
 			iswide = true;
 			goto fetch_opcode;
 
 		/* managing arrays ****************************************************/
 
-		case JAVA_NEWARRAY:
+		case BC_newarray:
 			switch (SUCK_BE_S1(m->jcode + bcindex + 1)) {
 			case 4:
 				bte = builtintable_get_internal(BUILTIN_newarray_boolean);
@@ -890,7 +892,7 @@ fetch_opcode:
 			OP_BUILTIN_CHECK_EXCEPTION(bte);
 			break;
 
-		case JAVA_ANEWARRAY:
+		case BC_anewarray:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
 			compr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
 			if (compr == NULL)
@@ -909,7 +911,7 @@ fetch_opcode:
 			s_count++;
 			break;
 
-		case JAVA_MULTIANEWARRAY:
+		case BC_multianewarray:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
  			j = SUCK_BE_U1(m->jcode + bcindex + 3);
   
@@ -929,23 +931,23 @@ fetch_opcode:
 
 		/* control flow instructions ******************************************/
 
-		case JAVA_IFEQ:
-		case JAVA_IFLT:
-		case JAVA_IFLE:
-		case JAVA_IFNE:
-		case JAVA_IFGT:
-		case JAVA_IFGE:
-		case JAVA_IFNULL:
-		case JAVA_IFNONNULL:
-		case JAVA_IF_ICMPEQ:
-		case JAVA_IF_ICMPNE:
-		case JAVA_IF_ICMPLT:
-		case JAVA_IF_ICMPGT:
-		case JAVA_IF_ICMPLE:
-		case JAVA_IF_ICMPGE:
-		case JAVA_IF_ACMPEQ:
-		case JAVA_IF_ACMPNE:
-		case JAVA_GOTO:
+		case BC_ifeq:
+		case BC_iflt:
+		case BC_ifle:
+		case BC_ifne:
+		case BC_ifgt:
+		case BC_ifge:
+		case BC_ifnull:
+		case BC_ifnonnull:
+		case BC_if_icmpeq:
+		case BC_if_icmpne:
+		case BC_if_icmplt:
+		case BC_if_icmpgt:
+		case BC_if_icmple:
+		case BC_if_icmpge:
+		case BC_if_acmpeq:
+		case BC_if_acmpne:
+		case BC_goto:
 			i = bcindex + SUCK_BE_S2(m->jcode + bcindex + 1);
 			CHECK_BYTECODE_INDEX(i);
 			MARK_BASICBLOCK(&pd, i);
@@ -953,7 +955,7 @@ fetch_opcode:
 			OP_INSINDEX(opcode, i);
 			break;
 
-		case JAVA_GOTO_W:
+		case BC_goto_w:
 			i = bcindex + SUCK_BE_S4(m->jcode + bcindex + 1);
 			CHECK_BYTECODE_INDEX(i);
 			MARK_BASICBLOCK(&pd, i);
@@ -961,22 +963,22 @@ fetch_opcode:
 			OP_INSINDEX(ICMD_GOTO, i);
 			break;
 
-		case JAVA_JSR:
+		case BC_jsr:
 			i = bcindex + SUCK_BE_S2(m->jcode + bcindex + 1);
 jsr_tail:
 			CHECK_BYTECODE_INDEX(i);
 			MARK_BASICBLOCK(&pd, i);
 			blockend = true;
-			OP_PREPARE_ZEROFLAGS(JAVA_JSR);
+			OP_PREPARE_ZEROFLAGS(BC_jsr);
 			iptr->sx.s23.s3.jsrtarget.insindex = i;
 			PINC;
 			break;
 
-		case JAVA_JSR_W:
+		case BC_jsr_w:
 			i = bcindex + SUCK_BE_S4(m->jcode + bcindex + 1);
 			goto jsr_tail;
 
-		case JAVA_RET:
+		case BC_ret:
 			if (iswide == false) {
 				i = SUCK_BE_U1(m->jcode + bcindex + 1);
 			}
@@ -990,18 +992,18 @@ jsr_tail:
 			OP_LOAD_ONEWORD(opcode, i, TYPE_ADR);
 			break;
 
-		case JAVA_IRETURN:
-		case JAVA_LRETURN:
-		case JAVA_FRETURN:
-		case JAVA_DRETURN:
-		case JAVA_ARETURN:
-		case JAVA_RETURN:
+		case BC_ireturn:
+		case BC_lreturn:
+		case BC_freturn:
+		case BC_dreturn:
+		case BC_areturn:
+		case BC_return:
 			blockend = true;
 			/* XXX ARETURN will need a flag in the typechecker */
 			OP(opcode);
 			break;
 
-		case JAVA_ATHROW:
+		case BC_athrow:
 			blockend = true;
 			/* XXX ATHROW will need a flag in the typechecker */
 			OP(opcode);
@@ -1010,7 +1012,7 @@ jsr_tail:
 
 		/* table jumps ********************************************************/
 
-		case JAVA_LOOKUPSWITCH:
+		case BC_lookupswitch:
 			{
 				s4 num, j;
 				lookup_target_t *lookup;
@@ -1078,8 +1080,7 @@ jsr_tail:
 				break;
 			}
 
-
-		case JAVA_TABLESWITCH:
+		case BC_tableswitch:
 			{
 				s4 num, j;
 				s4 deftarget;
@@ -1148,15 +1149,15 @@ jsr_tail:
 
 		/* load and store of object fields ************************************/
 
-		case JAVA_AASTORE:
+		case BC_aastore:
 			OP(opcode);
 			code_unflag_leafmethod(code);
 			break;
 
-		case JAVA_GETSTATIC:
-		case JAVA_PUTSTATIC:
-		case JAVA_GETFIELD:
-		case JAVA_PUTFIELD:
+		case BC_getstatic:
+		case BC_putstatic:
+		case BC_getfield:
+		case BC_putfield:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
 			fmi = class_getconstant(m->class, i, CONSTANT_Fieldref);
 
@@ -1196,7 +1197,7 @@ jsr_tail:
 
 		/* method invocation **************************************************/
 
-		case JAVA_INVOKESTATIC:
+		case BC_invokestatic:
 			OP_PREPARE_ZEROFLAGS(opcode);
 
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
@@ -1213,7 +1214,7 @@ jsr_tail:
 
 			goto invoke_method;
 
-		case JAVA_INVOKESPECIAL:
+		case BC_invokespecial:
 			OP_PREPARE_FLAGS(opcode, INS_FLAG_CHECK);
 
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
@@ -1221,7 +1222,7 @@ jsr_tail:
 
 			goto invoke_nonstatic_method;
 
-		case JAVA_INVOKEINTERFACE:
+		case BC_invokeinterface:
 			OP_PREPARE_ZEROFLAGS(opcode);
 
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
@@ -1229,7 +1230,7 @@ jsr_tail:
 
 			goto invoke_nonstatic_method;
 
-		case JAVA_INVOKEVIRTUAL:
+		case BC_invokevirtual:
 			OP_PREPARE_ZEROFLAGS(opcode);
 
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
@@ -1256,7 +1257,7 @@ invoke_method:
 			if (!JITDATA_HAS_FLAG_VERIFY(jd)) {
 #endif
 				result = resolve_method_lazy(m, fmi, 
-											 (opcode == JAVA_INVOKESPECIAL));
+											 (opcode == BC_invokespecial));
 
 				if (result == resolveFailed)
 					return false;
@@ -1278,8 +1279,8 @@ invoke_method:
 				}
 				else {
 					um = resolve_create_unresolved_method(m->class, m, fmi,
-							(opcode == JAVA_INVOKESTATIC),
-							(opcode == JAVA_INVOKESPECIAL));
+							(opcode == BC_invokestatic),
+							(opcode == BC_invokespecial));
 
 					if (um == NULL)
 						return false;
@@ -1297,7 +1298,7 @@ invoke_method:
 
 		/* instructions taking class arguments ********************************/
 
-		case JAVA_NEW:
+		case BC_new:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
 			cr = class_getconstant(m->class, i, CONSTANT_Class);
 
@@ -1314,7 +1315,7 @@ invoke_method:
 			s_count++;
 			break;
 
-		case JAVA_CHECKCAST:
+		case BC_checkcast:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
 			cr = class_getconstant(m->class, i, CONSTANT_Class);
 
@@ -1336,7 +1337,7 @@ invoke_method:
 			OP_S3_CLASSINFO_OR_CLASSREF(opcode, c, cr, flags);
 			break;
 
-		case JAVA_INSTANCEOF:
+		case BC_instanceof:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
 			cr = class_getconstant(m->class, i, CONSTANT_Class);
 
@@ -1362,7 +1363,7 @@ invoke_method:
 
 		/* synchronization instructions ***************************************/
 
-		case JAVA_MONITORENTER:
+		case BC_monitorenter:
 #if defined(ENABLE_THREADS)
 			if (checksync) {
 				bte = builtintable_get_internal(LOCK_monitor_enter);
@@ -1376,7 +1377,7 @@ invoke_method:
 			}
 			break;
 
-		case JAVA_MONITOREXIT:
+		case BC_monitorexit:
 #if defined(ENABLE_THREADS)
 			if (checksync) {
 				bte = builtintable_get_internal(LOCK_monitor_exit);
@@ -1392,7 +1393,7 @@ invoke_method:
 
 		/* arithmetic instructions that may become builtin functions **********/
 
-		case JAVA_IDIV:
+		case BC_idiv:
 #if !SUPPORT_DIVISION
 			bte = builtintable_get_internal(BUILTIN_idiv);
 			OP_BUILTIN_ARITHMETIC(opcode, bte);
@@ -1405,7 +1406,7 @@ invoke_method:
 #endif
 			break;
 
-		case JAVA_IREM:
+		case BC_irem:
 #if !SUPPORT_DIVISION
 			bte = builtintable_get_internal(BUILTIN_irem);
 			OP_BUILTIN_ARITHMETIC(opcode, bte);
@@ -1418,7 +1419,7 @@ invoke_method:
 #endif
 			break;
 
-		case JAVA_LDIV:
+		case BC_ldiv:
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 			bte = builtintable_get_internal(BUILTIN_ldiv);
 			OP_BUILTIN_ARITHMETIC(opcode, bte);
@@ -1431,7 +1432,7 @@ invoke_method:
 #endif
 			break;
 
-		case JAVA_LREM:
+		case BC_lrem:
 #if !(SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
 			bte = builtintable_get_internal(BUILTIN_lrem);
 			OP_BUILTIN_ARITHMETIC(opcode, bte);
@@ -1444,7 +1445,7 @@ invoke_method:
 #endif
 			break;
 
-		case JAVA_FREM:
+		case BC_frem:
 #if defined(__I386__)
 			OP(opcode);
 #else
@@ -1453,7 +1454,7 @@ invoke_method:
 #endif
 			break;
 
-		case JAVA_DREM:
+		case BC_drem:
 #if defined(__I386__)
 			OP(opcode);
 #else
@@ -1462,7 +1463,7 @@ invoke_method:
 #endif
 			break;
 
-		case JAVA_F2I:
+		case BC_f2i:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
 				bte = builtintable_get_internal(BUILTIN_f2i);
@@ -1475,7 +1476,7 @@ invoke_method:
 			}
 			break;
 
-		case JAVA_F2L:
+		case BC_f2l:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
 				bte = builtintable_get_internal(BUILTIN_f2l);
@@ -1488,7 +1489,7 @@ invoke_method:
 			}
 			break;
 
-		case JAVA_D2I:
+		case BC_d2i:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
 				bte = builtintable_get_internal(BUILTIN_d2i);
@@ -1501,7 +1502,7 @@ invoke_method:
 			}
 			break;
 
-		case JAVA_D2L:
+		case BC_d2l:
 #if defined(__ALPHA__)
 			if (!opt_noieee) {
 				bte = builtintable_get_internal(BUILTIN_d2l);
@@ -1514,15 +1515,19 @@ invoke_method:
 			}
 			break;
 
+
 		/* invalid opcodes ****************************************************/
 
 			/* check for invalid opcodes if the verifier is enabled */
 #if defined(ENABLE_VERIFIER)
-		case JAVA_BREAKPOINT:
+		case BC_breakpoint:
 			exceptions_throw_verifyerror(m, "Quick instructions shouldn't appear, yet.");
 			return false;
 
-		case 186: /* unused opcode */
+
+		/* Unused opcodes ************************************************** */
+
+		case 186:
 		case 203:
 		case 204:
 		case 205:
@@ -1585,7 +1590,7 @@ invoke_method:
 		/* opcodes that don't require translation *****************************/
 
 		default:
-			/* straight-forward translation to ICMD */
+			/* Straight-forward translation to HIR. */
 			OP(opcode);
 			break;
 
@@ -1741,23 +1746,23 @@ invoke_method:
 		/* resolve instruction indices to basic blocks */
 
 		switch (iptr->opc) {
-		case JAVA_IFEQ:
-		case JAVA_IFLT:
-		case JAVA_IFLE:
-		case JAVA_IFNE:
-		case JAVA_IFGT:
-		case JAVA_IFGE:
-		case JAVA_IFNULL:
-		case JAVA_IFNONNULL:
-		case JAVA_IF_ICMPEQ:
-		case JAVA_IF_ICMPNE:
-		case JAVA_IF_ICMPLT:
-		case JAVA_IF_ICMPGT:
-		case JAVA_IF_ICMPLE:
-		case JAVA_IF_ICMPGE:
-		case JAVA_IF_ACMPEQ:
-		case JAVA_IF_ACMPNE:
-		case JAVA_GOTO:
+		case ICMD_IFEQ:
+		case ICMD_IFLT:
+		case ICMD_IFLE:
+		case ICMD_IFNE:
+		case ICMD_IFGT:
+		case ICMD_IFGE:
+		case ICMD_IFNULL:
+		case ICMD_IFNONNULL:
+		case ICMD_IF_ICMPEQ:
+		case ICMD_IF_ICMPNE:
+		case ICMD_IF_ICMPLT:
+		case ICMD_IF_ICMPGT:
+		case ICMD_IF_ICMPLE:
+		case ICMD_IF_ICMPGE:
+		case ICMD_IF_ACMPEQ:
+		case ICMD_IF_ACMPNE:
+		case ICMD_GOTO:
 			BYTECODEINDEX_TO_BASICBLOCK(iptr->dst);
 			break;
 

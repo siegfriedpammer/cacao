@@ -56,6 +56,8 @@ typedef struct exception_entry exception_entry;
 # include "vm/jit/inline/inline.h"
 #endif
 
+#include "vm/jit/ir/bytecode.h"
+
 #if defined(ENABLE_LOOP)
 # include "vm/jit/loop/loop.h"
 #endif
@@ -633,619 +635,295 @@ extern char *opcode_names[256];
 extern int jcommandsize[256];
 extern int stackreq[256];
 
-#define JAVA_NOP               0
-#define ICMD_NOP               0
+enum {
+	ICMD_NOP               = BC_nop,
 
-#define JAVA_ACONST_NULL       1
-#define ICMD_ACONST            1        /* val.a = constant                   */
+	ICMD_ACONST            = BC_aconst_null,
 
-#define JAVA_ICONST_M1         2
-#define ICMD_CHECKNULL         2
+	ICMD_CHECKNULL         = 2,
 
-#define JAVA_ICONST_0          3
-#define ICMD_ICONST            3        /* val.i = constant                   */
+	ICMD_ICONST            = BC_iconst_0,
 
-#define JAVA_ICONST_1          4
-
-#define JAVA_ICONST_2          5
-#define ICMD_IDIVPOW2          5        /* val.i = constant                   */
-
-#define JAVA_ICONST_3          6
-#define ICMD_LDIVPOW2          6        /* val.l = constant                   */
-
-#define JAVA_ICONST_4          7
-
-#define JAVA_ICONST_5          8
-
-#define JAVA_LCONST_0          9
-#define ICMD_LCONST            9        /* val.l = constant                   */
-
-#define JAVA_LCONST_1         10
-#define ICMD_LCMPCONST        10        /* val.l = constant                   */
-
-#define JAVA_FCONST_0         11
-#define ICMD_FCONST           11        /* val.f = constant                   */
-
-#define JAVA_FCONST_1         12
-
-#define JAVA_FCONST_2         13
-
-#define JAVA_DCONST_0         14
-#define ICMD_DCONST           14        /* val.d = constant                   */
-
-#define JAVA_DCONST_1         15
-#define ICMD_COPY             15
-
-#define JAVA_BIPUSH           16
-#define ICMD_MOVE             16
-
-#define JAVA_SIPUSH           17
-
-#define JAVA_LDC1             18
-
-#define JAVA_LDC2             19
-
-#define JAVA_LDC2W            20
-
-	                                    /* order of LOAD instructions must be */
-	                                    /* equal to order of TYPE_* defines   */
-#define JAVA_ILOAD            21
-#define ICMD_ILOAD            21        /* op1 = local variable               */
-
-#define JAVA_LLOAD            22
-#define ICMD_LLOAD            22        /* op1 = local variable               */
-
-#define JAVA_FLOAD            23
-#define ICMD_FLOAD            23        /* op1 = local variable               */
-
-#define JAVA_DLOAD            24
-#define ICMD_DLOAD            24        /* op1 = local variable               */
-
-#define JAVA_ALOAD            25
-#define ICMD_ALOAD            25        /* op1 = local variable               */
-
-#define JAVA_ILOAD_0          26
-#define ICMD_IADDCONST        26        /* val.i = constant                   */
-
-#define JAVA_ILOAD_1          27
-#define ICMD_ISUBCONST        27        /* val.i = constant                   */
-
-#define JAVA_ILOAD_2          28
-#define ICMD_IMULCONST        28        /* val.i = constant                   */
-
-#define JAVA_ILOAD_3          29
-#define ICMD_IANDCONST        29        /* val.i = constant                   */
-
-#define JAVA_LLOAD_0          30
-#define ICMD_IORCONST         30        /* val.i = constant                   */
-
-#define JAVA_LLOAD_1          31
-#define ICMD_IXORCONST        31        /* val.i = constant                   */
-
-#define JAVA_LLOAD_2          32
-#define ICMD_ISHLCONST        32        /* val.i = constant                   */
-
-#define JAVA_LLOAD_3          33
-#define ICMD_ISHRCONST        33        /* val.i = constant                   */
-
-#define JAVA_FLOAD_0          34
-#define ICMD_IUSHRCONST       34        /* val.i = constant                   */
-
-#define JAVA_FLOAD_1          35
-#define ICMD_IREMPOW2         35        /* val.i = constant                   */
-
-#define JAVA_FLOAD_2          36
-#define ICMD_LADDCONST        36        /* val.l = constant                   */
-
-#define JAVA_FLOAD_3          37
-#define ICMD_LSUBCONST        37        /* val.l = constant                   */
-
-#define JAVA_DLOAD_0          38
-#define ICMD_LMULCONST        38        /* val.l = constant                   */
-
-#define JAVA_DLOAD_1          39
-#define ICMD_LANDCONST        39        /* val.l = constant                   */
-
-#define JAVA_DLOAD_2          40
-#define ICMD_LORCONST         40        /* val.l = constant                   */
-
-#define JAVA_DLOAD_3          41
-#define ICMD_LXORCONST        41        /* val.l = constant                   */
-
-#define JAVA_ALOAD_0          42
-#define ICMD_LSHLCONST        42        /* val.l = constant                   */
-
-#define JAVA_ALOAD_1          43
-#define ICMD_LSHRCONST        43        /* val.l = constant                   */
-
-#define JAVA_ALOAD_2          44
-#define ICMD_LUSHRCONST       44        /* val.l = constant                   */
-
-#define JAVA_ALOAD_3          45
-#define ICMD_LREMPOW2         45        /* val.l = constant                   */
-
-#define JAVA_IALOAD           46
-#define ICMD_IALOAD           46
-
-#define JAVA_LALOAD           47
-#define ICMD_LALOAD           47
-
-#define JAVA_FALOAD           48
-#define ICMD_FALOAD           48
-
-#define JAVA_DALOAD           49
-#define ICMD_DALOAD           49
-
-#define JAVA_AALOAD           50
-#define ICMD_AALOAD           50
-
-#define JAVA_BALOAD           51
-#define ICMD_BALOAD           51
-
-#define JAVA_CALOAD           52
-#define ICMD_CALOAD           52
-
-#define JAVA_SALOAD           53
-#define ICMD_SALOAD           53
-
-	                                    /* order of STORE instructions must be*/
-	                                    /* equal to order of TYPE_* defines   */
-#define JAVA_ISTORE           54
-#define ICMD_ISTORE           54        /* op1 = local variable               */
-
-#define JAVA_LSTORE           55
-#define ICMD_LSTORE           55        /* op1 = local variable               */
-
-#define JAVA_FSTORE           56
-#define ICMD_FSTORE           56        /* op1 = local variable               */
-
-#define JAVA_DSTORE           57
-#define ICMD_DSTORE           57        /* op1 = local variable               */
-
-#define JAVA_ASTORE           58
-#define ICMD_ASTORE           58        /* op1 = local variable               */
-
-#define JAVA_ISTORE_0         59
-#define ICMD_IF_LEQ           59        /* op1 = target JavaVM pc, val.l      */
-
-#define JAVA_ISTORE_1         60
-#define ICMD_IF_LNE           60        /* op1 = target JavaVM pc, val.l      */
-
-#define JAVA_ISTORE_2         61
-#define ICMD_IF_LLT           61        /* op1 = target JavaVM pc, val.l      */
-
-#define JAVA_ISTORE_3         62
-#define ICMD_IF_LGE           62        /* op1 = target JavaVM pc, val.l      */
-
-#define JAVA_LSTORE_0         63
-#define ICMD_IF_LGT           63        /* op1 = target JavaVM pc, val.l      */
-
-#define JAVA_LSTORE_1         64
-#define ICMD_IF_LLE           64        /* op1 = target JavaVM pc, val.l      */
-
-#define JAVA_LSTORE_2         65
-#define ICMD_IF_LCMPEQ        65        /* op1 = target JavaVM pc             */
-
-#define JAVA_LSTORE_3         66
-#define ICMD_IF_LCMPNE        66        /* op1 = target JavaVM pc             */
-
-#define JAVA_FSTORE_0         67
-#define ICMD_IF_LCMPLT        67        /* op1 = target JavaVM pc             */
-
-#define JAVA_FSTORE_1         68
-#define ICMD_IF_LCMPGE        68        /* op1 = target JavaVM pc             */
-
-#define JAVA_FSTORE_2         69
-#define ICMD_IF_LCMPGT        69        /* op1 = target JavaVM pc             */
-
-#define JAVA_FSTORE_3         70
-#define ICMD_IF_LCMPLE        70        /* op1 = target JavaVM pc             */
-
-#define JAVA_DSTORE_0         71
-
-#define JAVA_DSTORE_1         72
-
-#define JAVA_DSTORE_2         73
-
-#define JAVA_DSTORE_3         74
-
-#define JAVA_ASTORE_0         75
-
-#define JAVA_ASTORE_1         76
-
-#define JAVA_ASTORE_2         77
-
-#define JAVA_ASTORE_3         78
-
-#define JAVA_IASTORE          79
-#define ICMD_IASTORE          79
-
-#define JAVA_LASTORE          80
-#define ICMD_LASTORE          80
-
-#define JAVA_FASTORE          81
-#define ICMD_FASTORE          81
-
-#define JAVA_DASTORE          82
-#define ICMD_DASTORE          82
-
-#define JAVA_AASTORE          83
-#define ICMD_AASTORE          83
-
-#define JAVA_BASTORE          84
-#define ICMD_BASTORE          84
-
-#define JAVA_CASTORE          85
-#define ICMD_CASTORE          85
-
-#define JAVA_SASTORE          86
-#define ICMD_SASTORE          86
-
-#define JAVA_POP              87
-#define ICMD_POP              87
-
-#define JAVA_POP2             88
-#define ICMD_POP2             88
-
-#define JAVA_DUP              89
-#define ICMD_DUP              89
-
-#define JAVA_DUP_X1           90
-#define ICMD_DUP_X1           90
-
-#define JAVA_DUP_X2           91
-#define ICMD_DUP_X2           91
-
-#define JAVA_DUP2             92
-#define ICMD_DUP2             92
-
-#define JAVA_DUP2_X1          93
-#define ICMD_DUP2_X1          93
-
-#define JAVA_DUP2_X2          94
-#define ICMD_DUP2_X2          94
-
-#define JAVA_SWAP             95
-#define ICMD_SWAP             95
-
-#define JAVA_IADD             96
-#define ICMD_IADD             96
-
-#define JAVA_LADD             97
-#define ICMD_LADD             97
-
-#define JAVA_FADD             98
-#define ICMD_FADD             98
-
-#define JAVA_DADD             99
-#define ICMD_DADD             99
-
-#define JAVA_ISUB             100
-#define ICMD_ISUB             100
-
-#define JAVA_LSUB             101
-#define ICMD_LSUB             101
-
-#define JAVA_FSUB             102
-#define ICMD_FSUB             102
-
-#define JAVA_DSUB             103
-#define ICMD_DSUB             103
-
-#define JAVA_IMUL             104
-#define ICMD_IMUL             104
-
-#define JAVA_LMUL             105
-#define ICMD_LMUL             105
-
-#define JAVA_FMUL             106
-#define ICMD_FMUL             106
-
-#define JAVA_DMUL             107
-#define ICMD_DMUL             107
-
-#define JAVA_IDIV             108
-#define ICMD_IDIV             108
-
-#define JAVA_LDIV             109
-#define ICMD_LDIV             109
-
-#define JAVA_FDIV             110
-#define ICMD_FDIV             110
-
-#define JAVA_DDIV             111
-#define ICMD_DDIV             111
-
-#define JAVA_IREM             112
-#define ICMD_IREM             112
-
-#define JAVA_LREM             113
-#define ICMD_LREM             113
-
-#define JAVA_FREM             114
-#define ICMD_FREM             114
-
-#define JAVA_DREM             115
-#define ICMD_DREM             115
-
-#define JAVA_INEG             116
-#define ICMD_INEG             116
-
-#define JAVA_LNEG             117
-#define ICMD_LNEG             117
-
-#define JAVA_FNEG             118
-#define ICMD_FNEG             118
-
-#define JAVA_DNEG             119
-#define ICMD_DNEG             119
-
-#define JAVA_ISHL             120
-#define ICMD_ISHL             120
-
-#define JAVA_LSHL             121
-#define ICMD_LSHL             121
-
-#define JAVA_ISHR             122
-#define ICMD_ISHR             122
-
-#define JAVA_LSHR             123
-#define ICMD_LSHR             123
-
-#define JAVA_IUSHR            124
-#define ICMD_IUSHR            124
-
-#define JAVA_LUSHR            125
-#define ICMD_LUSHR            125
-
-#define JAVA_IAND             126
-#define ICMD_IAND             126
-
-#define JAVA_LAND             127
-#define ICMD_LAND             127
-
-#define JAVA_IOR              128
-#define ICMD_IOR              128
-
-#define JAVA_LOR              129
-#define ICMD_LOR              129
-
-#define JAVA_IXOR             130
-#define ICMD_IXOR             130
-
-#define JAVA_LXOR             131
-#define ICMD_LXOR             131
-
-#define JAVA_IINC             132
-#define ICMD_IINC             132   /* op1 = local variable, val.i = constant */
-
-#define JAVA_I2L              133
-#define ICMD_I2L              133
-
-#define JAVA_I2F              134
-#define ICMD_I2F              134
-
-#define JAVA_I2D              135
-#define ICMD_I2D              135
-
-#define JAVA_L2I              136
-#define ICMD_L2I              136
-
-#define JAVA_L2F              137
-#define ICMD_L2F              137
-
-#define JAVA_L2D              138
-#define ICMD_L2D              138
-
-#define JAVA_F2I              139
-#define ICMD_F2I              139
-
-#define JAVA_F2L              140
-#define ICMD_F2L              140
-
-#define JAVA_F2D              141
-#define ICMD_F2D              141
-
-#define JAVA_D2I              142
-#define ICMD_D2I              142
-
-#define JAVA_D2L              143
-#define ICMD_D2L              143
-
-#define JAVA_D2F              144
-#define ICMD_D2F              144
-
-#define JAVA_INT2BYTE         145
-#define ICMD_INT2BYTE         145
-
-#define JAVA_INT2CHAR         146
-#define ICMD_INT2CHAR         146
-
-#define JAVA_INT2SHORT        147
-#define ICMD_INT2SHORT        147
-
-#define JAVA_LCMP             148
-#define ICMD_LCMP             148
-
-#define JAVA_FCMPL            149
-#define ICMD_FCMPL            149
-
-#define JAVA_FCMPG            150
-#define ICMD_FCMPG            150
-
-#define JAVA_DCMPL            151
-#define ICMD_DCMPL            151
-
-#define JAVA_DCMPG            152
-#define ICMD_DCMPG            152
-
-#define JAVA_IFEQ             153
-#define ICMD_IFEQ             153       /* op1 = target JavaVM pc, val.i      */
-
-#define JAVA_IFNE             154
-#define ICMD_IFNE             154       /* op1 = target JavaVM pc, val.i      */
-
-#define JAVA_IFLT             155
-#define ICMD_IFLT             155       /* op1 = target JavaVM pc, val.i      */
-
-#define JAVA_IFGE             156
-#define ICMD_IFGE             156       /* op1 = target JavaVM pc, val.i      */
-
-#define JAVA_IFGT             157
-#define ICMD_IFGT             157       /* op1 = target JavaVM pc, val.i      */
-
-#define JAVA_IFLE             158
-#define ICMD_IFLE             158       /* op1 = target JavaVM pc, val.i      */
-
-#define JAVA_IF_ICMPEQ        159
-#define ICMD_IF_ICMPEQ        159       /* op1 = target JavaVM pc             */
-
-#define JAVA_IF_ICMPNE        160
-#define ICMD_IF_ICMPNE        160       /* op1 = target JavaVM pc             */
-
-#define JAVA_IF_ICMPLT        161
-#define ICMD_IF_ICMPLT        161       /* op1 = target JavaVM pc             */
-
-#define JAVA_IF_ICMPGE        162
-#define ICMD_IF_ICMPGE        162       /* op1 = target JavaVM pc             */
-
-#define JAVA_IF_ICMPGT        163
-#define ICMD_IF_ICMPGT        163       /* op1 = target JavaVM pc             */
-
-#define JAVA_IF_ICMPLE        164
-#define ICMD_IF_ICMPLE        164       /* op1 = target JavaVM pc             */
-
-#define JAVA_IF_ACMPEQ        165
-#define ICMD_IF_ACMPEQ        165       /* op1 = target JavaVM pc             */
-
-#define JAVA_IF_ACMPNE        166
-#define ICMD_IF_ACMPNE        166       /* op1 = target JavaVM pc             */
-
-#define JAVA_GOTO             167
-#define ICMD_GOTO             167       /* op1 = target JavaVM pc             */
-
-#define JAVA_JSR              168
-#define ICMD_JSR              168       /* op1 = target JavaVM pc             */
-
-#define JAVA_RET              169
-#define ICMD_RET              169       /* op1 = local variable               */
-
-#define JAVA_TABLESWITCH      170
-#define ICMD_TABLESWITCH      170       /* val.a = pointer to s4 table        */
-                                        /* length must be computed            */
-#define JAVA_LOOKUPSWITCH     171
-#define ICMD_LOOKUPSWITCH     171       /* val.a = pointer to s4 table        */
-                                        /* length must be computed            */
-#define JAVA_IRETURN          172
-#define ICMD_IRETURN          172
-
-#define JAVA_LRETURN          173
-#define ICMD_LRETURN          173
-
-#define JAVA_FRETURN          174
-#define ICMD_FRETURN          174
-
-#define JAVA_DRETURN          175
-#define ICMD_DRETURN          175
-
-#define JAVA_ARETURN          176
-#define ICMD_ARETURN          176
-
-#define JAVA_RETURN           177
-#define ICMD_RETURN           177
-
-#define JAVA_GETSTATIC        178
-#define ICMD_GETSTATIC        178       /* op1 = type, val.a = field address  */
-
-#define JAVA_PUTSTATIC        179
-#define ICMD_PUTSTATIC        179       /* op1 = type, val.a = field address  */
-
-#define JAVA_GETFIELD         180
-#define ICMD_GETFIELD         180       /* op1 = type, val.i = field offset   */
-
-#define JAVA_PUTFIELD         181
-#define ICMD_PUTFIELD         181       /* op1 = type, val.i = field offset   */
-
-#define JAVA_INVOKEVIRTUAL    182
-#define ICMD_INVOKEVIRTUAL    182       /* val.a = method info pointer        */
-
-#define JAVA_INVOKESPECIAL    183
-#define ICMD_INVOKESPECIAL    183       /* val.a = method info pointer        */
-
-#define JAVA_INVOKESTATIC     184
-#define ICMD_INVOKESTATIC     184       /* val.a = method info pointer        */
-
-#define JAVA_INVOKEINTERFACE  185
-#define ICMD_INVOKEINTERFACE  185       /* val.a = method info pointer        */
-
-/* UNDEF186 */
-
-#define JAVA_NEW              187
-#define ICMD_NEW              187       /* op1 = 1, val.a = class pointer     */
-
-#define JAVA_NEWARRAY         188
-#define ICMD_NEWARRAY         188       /* op1 = basic type                   */
-
-#define JAVA_ANEWARRAY        189
-#define ICMD_ANEWARRAY        189       /* op1 = 0, val.a = array pointer     */
-                                        /* op1 = 1, val.a = class pointer     */
-#define JAVA_ARRAYLENGTH      190
-#define ICMD_ARRAYLENGTH      190
-
-#define JAVA_ATHROW           191
-#define ICMD_ATHROW           191
-
-#define JAVA_CHECKCAST        192
-#define ICMD_CHECKCAST        192       /* op1 = 0, val.a = array pointer     */
-                                        /* op1 = 1, val.a = class pointer     */
-#define JAVA_INSTANCEOF       193
-#define ICMD_INSTANCEOF       193       /* op1 = 0, val.a = array pointer     */
-                                        /* op1 = 1, val.a = class pointer     */
-#define JAVA_MONITORENTER     194
-#define ICMD_MONITORENTER     194
-
-#define JAVA_MONITOREXIT      195
-#define ICMD_MONITOREXIT      195
-
-#define JAVA_WIDE             196
-
-#define JAVA_MULTIANEWARRAY   197
-#define ICMD_MULTIANEWARRAY   197       /* op1 = dimension, val.a = array     */
-                                        /* pointer                            */
-#define JAVA_IFNULL           198
-#define ICMD_IFNULL           198       /* op1 = target JavaVM pc             */
-
-#define JAVA_IFNONNULL        199
-#define ICMD_IFNONNULL        199       /* op1 = target JavaVM pc             */
-
-#define JAVA_GOTO_W           200
-
-#define JAVA_JSR_W            201
-
-#define JAVA_BREAKPOINT       202
-
-/* UNDEF203 */
-
-#define ICMD_IASTORECONST     204
-#define ICMD_LASTORECONST     205
-#define ICMD_FASTORECONST     206
-#define ICMD_DASTORECONST     207
-#define ICMD_AASTORECONST     208
-#define ICMD_BASTORECONST     209
-#define ICMD_CASTORECONST     210
-#define ICMD_SASTORECONST     211
-
-#define ICMD_PUTSTATICCONST   212
-#define ICMD_PUTFIELDCONST    213
-
-#define ICMD_IMULPOW2         214
-#define ICMD_LMULPOW2         215
-
-#define ICMD_INLINE_START     251       /* instruction before inlined method  */
-#define ICMD_INLINE_END       252       /* instruction after inlined method   */
-#define ICMD_INLINE_BODY      253       /* start of inlined body              */
-
-#define ICMD_BUILTIN          255       /* internal opcode                    */
+	/* 3 */
+	/* 4 */
+
+	ICMD_IDIVPOW2          = 5,
+	ICMD_LDIVPOW2          = 6,
+
+	/* 7 */
+	/* 8 */
+
+	ICMD_LCONST            = BC_lconst_0,
+
+	ICMD_LCMPCONST         = 10,
+
+	ICMD_FCONST            = BC_fconst_0,
+
+	/* 12 */
+	/* 13 */
+
+	ICMD_DCONST            = BC_dconst_0,
+
+	ICMD_COPY              = 15,
+	ICMD_MOVE              = 16,
+
+	/* 17 */
+	/* 18 */
+	/* 19 */
+	/* 20 */
+
+	/* Order of LOAD instructions must be equal to order of TYPE_*
+	   defines. */
+
+	ICMD_ILOAD            = BC_iload,
+	ICMD_LLOAD            = BC_lload,
+	ICMD_FLOAD            = BC_fload,
+	ICMD_DLOAD            = BC_dload,
+	ICMD_ALOAD            = BC_aload,
+
+	ICMD_IADDCONST        = 26,
+	ICMD_ISUBCONST        = 27,
+	ICMD_IMULCONST        = 28,
+	ICMD_IANDCONST        = 29,
+	ICMD_IORCONST         = 30,
+	ICMD_IXORCONST        = 31,
+
+	ICMD_ISHLCONST        = 32,
+	ICMD_ISHRCONST        = 33,
+	ICMD_IUSHRCONST       = 34,
+
+	ICMD_IREMPOW2         = 35,
+
+	ICMD_LADDCONST        = 36,
+	ICMD_LSUBCONST        = 37,
+	ICMD_LMULCONST        = 38,
+	ICMD_LANDCONST        = 39,
+	ICMD_LORCONST         = 40,
+	ICMD_LXORCONST        = 41,
+
+	ICMD_LSHLCONST        = 42,
+	ICMD_LSHRCONST        = 43,
+	ICMD_LUSHRCONST       = 44,
+
+	ICMD_LREMPOW2         = 45,
+
+	ICMD_IALOAD           = BC_iaload,
+	ICMD_LALOAD           = BC_laload,
+	ICMD_FALOAD           = BC_faload,
+	ICMD_DALOAD           = BC_daload,
+	ICMD_AALOAD           = BC_aaload,
+	ICMD_BALOAD           = BC_baload,
+	ICMD_CALOAD           = BC_caload,
+	ICMD_SALOAD           = BC_saload,
+
+	/* Order of STORE instructions must be equal to order of TYPE_*
+	   defines. */
+
+	ICMD_ISTORE           = BC_istore,
+	ICMD_LSTORE           = BC_lstore,
+	ICMD_FSTORE           = BC_fstore,
+	ICMD_DSTORE           = BC_dstore,
+	ICMD_ASTORE           = BC_astore,
+
+	ICMD_IF_LEQ           = 59,
+	ICMD_IF_LNE           = 60,
+	ICMD_IF_LLT           = 61,
+	ICMD_IF_LGE           = 62,
+	ICMD_IF_LGT           = 63,
+	ICMD_IF_LLE           = 64,
+
+	ICMD_IF_LCMPEQ        = 65,
+	ICMD_IF_LCMPNE        = 66,
+	ICMD_IF_LCMPLT        = 67,
+	ICMD_IF_LCMPGE        = 68,
+	ICMD_IF_LCMPGT        = 69,
+	ICMD_IF_LCMPLE        = 70,
+
+	/* 71 */
+	/* 72 */
+	/* 73 */
+	/* 74 */
+	/* 75 */
+	/* 76 */
+	/* 77 */
+	/* 78 */
+
+	ICMD_IASTORE          = BC_iastore,
+	ICMD_LASTORE          = BC_lastore,
+	ICMD_FASTORE          = BC_fastore,
+	ICMD_DASTORE          = BC_dastore,
+	ICMD_AASTORE          = BC_aastore,
+	ICMD_BASTORE          = BC_bastore,
+	ICMD_CASTORE          = BC_castore,
+	ICMD_SASTORE          = BC_sastore,
+
+	ICMD_POP              = BC_pop,
+	ICMD_POP2             = BC_pop2,
+	ICMD_DUP              = BC_dup,
+	ICMD_DUP_X1           = BC_dup_x1,
+	ICMD_DUP_X2           = BC_dup_x2,
+	ICMD_DUP2             = BC_dup2,
+	ICMD_DUP2_X1          = BC_dup2_x1,
+	ICMD_DUP2_X2          = BC_dup2_x2,
+	ICMD_SWAP             = BC_swap,
+
+	ICMD_IADD             = BC_iadd,
+	ICMD_LADD             = BC_ladd,
+	ICMD_FADD             = BC_fadd,
+	ICMD_DADD             = BC_dadd,
+
+	ICMD_ISUB             = BC_isub,
+	ICMD_LSUB             = BC_lsub,
+	ICMD_FSUB             = BC_fsub,
+	ICMD_DSUB             = BC_dsub,
+
+	ICMD_IMUL             = BC_imul,
+	ICMD_LMUL             = BC_lmul,
+	ICMD_FMUL             = BC_fmul,
+	ICMD_DMUL             = BC_dmul,
+
+	ICMD_IDIV             = BC_idiv,
+	ICMD_LDIV             = BC_ldiv,
+	ICMD_FDIV             = BC_fdiv,
+	ICMD_DDIV             = BC_ddiv,
+
+	ICMD_IREM             = BC_irem,
+	ICMD_LREM             = BC_lrem,
+	ICMD_FREM             = BC_frem,
+	ICMD_DREM             = BC_drem,
+
+	ICMD_INEG             = BC_ineg,
+	ICMD_LNEG             = BC_lneg,
+	ICMD_FNEG             = BC_fneg,
+	ICMD_DNEG             = BC_dneg,
+
+	ICMD_ISHL             = BC_ishl,
+	ICMD_LSHL             = BC_lshl,
+	ICMD_ISHR             = BC_ishr,
+	ICMD_LSHR             = BC_lshr,
+	ICMD_IUSHR            = BC_iushr,
+	ICMD_LUSHR            = BC_lushr,
+
+	ICMD_IAND             = BC_iand,
+	ICMD_LAND             = BC_land,
+	ICMD_IOR              = BC_ior,
+	ICMD_LOR              = BC_lor,
+	ICMD_IXOR             = BC_ixor,
+	ICMD_LXOR             = BC_lxor,
+
+	ICMD_IINC             = BC_iinc,
+
+	ICMD_I2L              = BC_i2l,
+	ICMD_I2F              = BC_i2f,
+	ICMD_I2D              = BC_i2d,
+	ICMD_L2I              = BC_l2i,
+	ICMD_L2F              = BC_l2f,
+	ICMD_L2D              = BC_l2d,
+	ICMD_F2I              = BC_f2i,
+	ICMD_F2L              = BC_f2l,
+	ICMD_F2D              = BC_f2d,
+	ICMD_D2I              = BC_d2i,
+	ICMD_D2L              = BC_d2l,
+	ICMD_D2F              = BC_d2f,
+
+	ICMD_INT2BYTE         = BC_int2byte,
+	ICMD_INT2CHAR         = BC_int2char,
+	ICMD_INT2SHORT        = BC_int2short,
+
+	ICMD_LCMP             = BC_lcmp,
+	ICMD_FCMPL            = BC_fcmpl,
+	ICMD_FCMPG            = BC_fcmpg,
+	ICMD_DCMPL            = BC_dcmpl,
+	ICMD_DCMPG            = BC_dcmpg,
+
+	ICMD_IFEQ             = BC_ifeq,
+	ICMD_IFNE             = BC_ifne,
+	ICMD_IFLT             = BC_iflt,
+	ICMD_IFGE             = BC_ifge,
+	ICMD_IFGT             = BC_ifgt,
+	ICMD_IFLE             = BC_ifle,
+
+	ICMD_IF_ICMPEQ        = BC_if_icmpeq,
+	ICMD_IF_ICMPNE        = BC_if_icmpne,
+	ICMD_IF_ICMPLT        = BC_if_icmplt,
+	ICMD_IF_ICMPGE        = BC_if_icmpge,
+	ICMD_IF_ICMPGT        = BC_if_icmpgt,
+	ICMD_IF_ICMPLE        = BC_if_icmple,
+	ICMD_IF_ACMPEQ        = BC_if_acmpeq,
+	ICMD_IF_ACMPNE        = BC_if_acmpne,
+
+	ICMD_GOTO             = BC_goto,
+	ICMD_JSR              = BC_jsr,
+	ICMD_RET              = BC_ret,
+
+	ICMD_TABLESWITCH      = BC_tableswitch,
+	ICMD_LOOKUPSWITCH     = BC_lookupswitch,
+
+	ICMD_IRETURN          = BC_ireturn,
+	ICMD_LRETURN          = BC_lreturn,
+	ICMD_FRETURN          = BC_freturn,
+	ICMD_DRETURN          = BC_dreturn,
+	ICMD_ARETURN          = BC_areturn,
+	ICMD_RETURN           = BC_return,
+
+	ICMD_GETSTATIC        = BC_getstatic,
+	ICMD_PUTSTATIC        = BC_putstatic,
+	ICMD_GETFIELD         = BC_getfield,
+	ICMD_PUTFIELD         = BC_putfield,
+
+	ICMD_INVOKEVIRTUAL    = BC_invokevirtual,
+	ICMD_INVOKESPECIAL    = BC_invokespecial,
+	ICMD_INVOKESTATIC     = BC_invokestatic,
+	ICMD_INVOKEINTERFACE  = BC_invokeinterface,
+
+	/* 186 */
+
+	ICMD_NEW              = BC_new,
+	ICMD_NEWARRAY         = BC_newarray,
+	ICMD_ANEWARRAY        = BC_anewarray,
+
+	ICMD_ARRAYLENGTH      = BC_arraylength,
+
+	ICMD_ATHROW           = BC_athrow,
+
+	ICMD_CHECKCAST        = BC_checkcast,
+	ICMD_INSTANCEOF       = BC_instanceof,
+
+	ICMD_MONITORENTER     = BC_monitorenter,
+	ICMD_MONITOREXIT      = BC_monitorexit,
+
+	/* 196 */
+
+	ICMD_MULTIANEWARRAY   = BC_multianewarray,
+
+	ICMD_IFNULL           = BC_ifnull,
+	ICMD_IFNONNULL        = BC_ifnonnull,
+
+	/* 200 */
+	/* 201 */
+	/* 202 */
+
+	ICMD_IASTORECONST     = 204,
+	ICMD_LASTORECONST     = 205,
+	ICMD_FASTORECONST     = 206,
+	ICMD_DASTORECONST     = 207,
+	ICMD_AASTORECONST     = 208,
+	ICMD_BASTORECONST     = 209,
+	ICMD_CASTORECONST     = 210,
+	ICMD_SASTORECONST     = 211,
+
+	ICMD_PUTSTATICCONST   = 212,
+	ICMD_PUTFIELDCONST    = 213,
+
+	ICMD_IMULPOW2         = 214,
+	ICMD_LMULPOW2         = 215,
+
+	ICMD_INLINE_START     = 251,        /* instruction before inlined method  */
+	ICMD_INLINE_END       = 252,        /* instruction after inlined method   */
+	ICMD_INLINE_BODY      = 253,        /* start of inlined body              */
+
+	ICMD_BUILTIN          = 255         /* internal opcode                    */
+};
 
 
 /***************************** register types *********************************/

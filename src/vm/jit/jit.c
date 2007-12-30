@@ -48,7 +48,7 @@
 
 #include "vm/jit/asmpart.h"
 
-# include "vm/jit/cfg.h"
+#include "vm/jit/cfg.h"
 
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/disass.h"
@@ -64,6 +64,7 @@
 #if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
 # include "vm/jit/allocator/lsra.h"
 #endif
+
 #if defined(ENABLE_SSA)
 # include "vm/jit/optimizing/lsra.h"
 # include "vm/jit/optimizing/ssa.h"
@@ -72,6 +73,8 @@
 #if defined(ENABLE_INLINING)
 # include "vm/jit/inline/inline.h"
 #endif
+
+#include "vm/jit/ir/bytecode.h"
 
 #include "vm/jit/loop/analyze.h"
 #include "vm/jit/loop/graph.h"
@@ -1324,7 +1327,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 	show_filters_apply(jd->m);
 #endif
 
-	/* handle native methods and create a native stub */
+	/* Handle native methods and create a native stub. */
 
 	if (m->flags & ACC_NATIVE) {
 		functionptr f;

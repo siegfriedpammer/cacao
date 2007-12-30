@@ -30,6 +30,7 @@ LIBS =
 DIST_SUBDIRS = \
 	allocator \
 	inline \
+	ir \
 	loop \
 	optimizing \
 	schedule \
@@ -49,6 +50,7 @@ DIST_SUBDIRS = \
 	x86_64
 
 SUBDIRS = \
+	ir \
 	optimizing \
 	$(ARCH_DIR)
 
@@ -177,8 +179,8 @@ libjit_la_SOURCES += \
 
 libjit_la_LIBADD = \
 	allocator/liballocator.la \
-	$(ALLOCATOR_LIB) \
 	$(INLINE_LIB) \
+	ir/libir.la \
 	$(LOOP_LIB) \
 	$(OPTIMIZING_LIB) \
 	$(PROFILE_LIB) \
