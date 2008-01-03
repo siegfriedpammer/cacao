@@ -31,7 +31,6 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <ltdl.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -2060,7 +2059,7 @@ jint JVM_Open(const char *fname, jint flags, jint mode)
 
 	TRACEJVMCALLS("JVM_Open(fname=%s, flags=%d, mode=%d)", fname, flags, mode);
 
-	result = open(fname, flags, mode);
+	result = system_open(fname, flags, mode);
 
 	if (result >= 0) {
 		return result;
@@ -2084,7 +2083,7 @@ jint JVM_Close(jint fd)
 {
 	TRACEJVMCALLS("JVM_Close(fd=%d)", fd);
 
-	return close(fd);
+	return system_close(fd);
 }
 
 
@@ -2094,7 +2093,7 @@ jint JVM_Read(jint fd, char *buf, jint nbytes)
 {
 	TRACEJVMCALLS("JVM_Read(fd=%d, buf=%p, nbytes=%d)", fd, buf, nbytes);
 
-	return read(fd, buf, nbytes);
+	return system_read(fd, buf, nbytes);
 }
 
 
@@ -2104,7 +2103,7 @@ jint JVM_Write(jint fd, char *buf, jint nbytes)
 {
 	TRACEJVMCALLS("JVM_Write(fd=%d, buf=%s, nbytes=%d)", fd, buf, nbytes);
 
-	return write(fd, buf, nbytes);
+	return system_write(fd, buf, nbytes);
 }
 
 

@@ -31,6 +31,10 @@
 /* NOTE: In this file we check for all system headers, because we wrap
    all system calls into inline functions for better portability. */
 
+#if defined(HAVE_FCNTL_H)
+# include <fcntl.h>
+#endif
+
 #if defined(HAVE_STDINT_H)
 # include <stdint.h>
 #endif
@@ -60,6 +64,15 @@ inline static void *system_calloc(size_t nmemb, size_t size)
 	return calloc(nmemb, size);
 #else
 # error calloc not available
+#endif
+}
+
+inline static int system_close(int fd)
+{
+#if defined(HAVE_CLOSE)
+	return close(fd);
+#else
+# error close not available
 #endif
 }
 
@@ -117,12 +130,39 @@ inline static int system_mprotect(void *addr, size_t len, int prot)
 #endif
 }
 
+inline static int system_open(const char *pathname, int flags, mode_t mode)
+{
+#if defined(HAVE_OPEN)
+	return open(pathname, flags, mode);
+#else
+# error open not available
+#endif
+}
+
+inline static ssize_t system_read(int fd, void *buf, size_t count)
+{
+#if defined(HAVE_READ)
+	return read(fd, buf, count);
+#else
+# error read not available
+#endif
+}
+
 inline static void *system_realloc(void *ptr, size_t size)
 {
 #if defined(HAVE_REALLOC)
 	return realloc(ptr, size);
 #else
 # error realloc not available
+#endif
+}
+
+inline static ssize_t system_write(int fd, const void *buf, size_t count)
+{
+#if defined(HAVE_WRITE)
+	return write(fd, buf, count);
+#else
+# error write not available
 #endif
 }
 

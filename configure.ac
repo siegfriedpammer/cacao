@@ -312,6 +312,7 @@ AC_CHECK_FUNCS([memset])
 AC_CHECK_FUNCS([mmap])
 AC_CHECK_FUNCS([mprotect])
 AC_CHECK_FUNCS([open])
+AC_CHECK_FUNCS([read])
 AC_CHECK_FUNCS([readlink])
 AC_CHECK_FUNCS([realloc])
 AC_CHECK_FUNCS([recv])
@@ -327,6 +328,7 @@ AC_CHECK_FUNCS([strerror])
 AC_CHECK_FUNCS([strncmp])
 AC_CHECK_FUNCS([strstr])
 AC_CHECK_FUNCS([time])
+AC_CHECK_FUNCS([write])
 
 
 dnl Checks for libraries.
