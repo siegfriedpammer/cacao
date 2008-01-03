@@ -196,18 +196,24 @@ int jio_snprintf(char *str, size_t count, const char *fmt, ...)
 int jio_fprintf(FILE* f, const char *fmt, ...)
 {
 	log_println("jio_fprintf: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
 int jio_vfprintf(FILE* f, const char *fmt, va_list args)
 {
 	log_println("jio_vfprintf: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
 int jio_printf(const char *fmt, ...)
 {
 	log_println("jio_printf: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -317,6 +323,8 @@ void JVM_GC(void)
 jlong JVM_MaxObjectInspectionAge(void)
 {
 	log_println("JVM_MaxObjectInspectionAge: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -627,6 +635,8 @@ void JVM_InitializeCompiler (JNIEnv *env, jclass compCls)
 jboolean JVM_IsSilentCompiler(JNIEnv *env, jclass compCls)
 {
 	log_println("JVM_IsSilentCompiler: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -635,6 +645,8 @@ jboolean JVM_IsSilentCompiler(JNIEnv *env, jclass compCls)
 jboolean JVM_CompileClass(JNIEnv *env, jclass compCls, jclass cls)
 {
 	log_println("JVM_CompileClass: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -643,6 +655,8 @@ jboolean JVM_CompileClass(JNIEnv *env, jclass compCls, jclass cls)
 jboolean JVM_CompileClasses(JNIEnv *env, jclass cls, jstring jname)
 {
 	log_println("JVM_CompileClasses: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -651,6 +665,8 @@ jboolean JVM_CompileClasses(JNIEnv *env, jclass cls, jstring jname)
 jobject JVM_CompilerCommand(JNIEnv *env, jclass compCls, jobject arg)
 {
 	log_println("JVM_CompilerCommand: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -788,6 +804,8 @@ jclass JVM_FindClassFromClassLoader(JNIEnv* env, const char* name, jboolean init
 jclass JVM_FindClassFromClass(JNIEnv *env, const char *name, jboolean init, jclass from)
 {
 	log_println("JVM_FindClassFromClass: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -796,6 +814,8 @@ jclass JVM_FindClassFromClass(JNIEnv *env, const char *name, jboolean init, jcla
 jclass JVM_DefineClass(JNIEnv *env, const char *name, jobject loader, const jbyte *buf, jsize len, jobject pd)
 {
 	log_println("JVM_DefineClass: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -905,6 +925,8 @@ jboolean JVM_IsInterface(JNIEnv *env, jclass cls)
 jobjectArray JVM_GetClassSigners(JNIEnv *env, jclass cls)
 {
 	log_println("JVM_GetClassSigners: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -1016,6 +1038,8 @@ jobject JVM_DoPrivileged(JNIEnv *env, jclass cls, jobject action, jobject contex
 jobject JVM_GetInheritedAccessControlContext(JNIEnv *env, jclass cls)
 {
 	log_println("JVM_GetInheritedAccessControlContext: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -1803,9 +1827,11 @@ jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 
 /* JVM_GetClassNameUTF */
 
-const char* JVM_GetClassNameUTF(JNIEnv *env, jclass cls)
+const char *JVM_GetClassNameUTF(JNIEnv *env, jclass cls)
 {
 	log_println("JVM_GetClassNameUTF: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -1822,6 +1848,8 @@ void JVM_GetClassCPTypes(JNIEnv *env, jclass cls, unsigned char *types)
 jint JVM_GetClassCPEntriesCount(JNIEnv *env, jclass cls)
 {
 	log_println("JVM_GetClassCPEntriesCount: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -1830,6 +1858,8 @@ jint JVM_GetClassCPEntriesCount(JNIEnv *env, jclass cls)
 jint JVM_GetClassFieldsCount(JNIEnv *env, jclass cls)
 {
 	log_println("JVM_GetClassFieldsCount: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -1838,6 +1868,8 @@ jint JVM_GetClassFieldsCount(JNIEnv *env, jclass cls)
 jint JVM_GetClassMethodsCount(JNIEnv *env, jclass cls)
 {
 	log_println("JVM_GetClassMethodsCount: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -1854,6 +1886,8 @@ void JVM_GetMethodIxExceptionIndexes(JNIEnv *env, jclass cls, jint method_index,
 jint JVM_GetMethodIxExceptionsCount(JNIEnv *env, jclass cls, jint method_index)
 {
 	log_println("JVM_GetMethodIxExceptionsCount: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -1870,6 +1904,8 @@ void JVM_GetMethodIxByteCode(JNIEnv *env, jclass cls, jint method_index, unsigne
 jint JVM_GetMethodIxByteCodeLength(JNIEnv *env, jclass cls, jint method_index)
 {
 	log_println("JVM_GetMethodIxByteCodeLength: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -1886,6 +1922,8 @@ void JVM_GetMethodIxExceptionTableEntry(JNIEnv *env, jclass cls, jint method_ind
 jint JVM_GetMethodIxExceptionTableLength(JNIEnv *env, jclass cls, int method_index)
 {
 	log_println("JVM_GetMethodIxExceptionTableLength: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -1894,6 +1932,8 @@ jint JVM_GetMethodIxExceptionTableLength(JNIEnv *env, jclass cls, int method_ind
 jint JVM_GetMethodIxModifiers(JNIEnv *env, jclass cls, int method_index)
 {
 	log_println("JVM_GetMethodIxModifiers: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -1902,6 +1942,8 @@ jint JVM_GetMethodIxModifiers(JNIEnv *env, jclass cls, int method_index)
 jint JVM_GetFieldIxModifiers(JNIEnv *env, jclass cls, int field_index)
 {
 	log_println("JVM_GetFieldIxModifiers: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -1910,6 +1952,8 @@ jint JVM_GetFieldIxModifiers(JNIEnv *env, jclass cls, int field_index)
 jint JVM_GetMethodIxLocalsCount(JNIEnv *env, jclass cls, int method_index)
 {
 	log_println("JVM_GetMethodIxLocalsCount: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -1918,6 +1962,8 @@ jint JVM_GetMethodIxLocalsCount(JNIEnv *env, jclass cls, int method_index)
 jint JVM_GetMethodIxArgsSize(JNIEnv *env, jclass cls, int method_index)
 {
 	log_println("JVM_GetMethodIxArgsSize: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -1926,6 +1972,8 @@ jint JVM_GetMethodIxArgsSize(JNIEnv *env, jclass cls, int method_index)
 jint JVM_GetMethodIxMaxStack(JNIEnv *env, jclass cls, int method_index)
 {
 	log_println("JVM_GetMethodIxMaxStack: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -1934,78 +1982,98 @@ jint JVM_GetMethodIxMaxStack(JNIEnv *env, jclass cls, int method_index)
 jboolean JVM_IsConstructorIx(JNIEnv *env, jclass cls, int method_index)
 {
 	log_println("JVM_IsConstructorIx: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
 /* JVM_GetMethodIxNameUTF */
 
-const char* JVM_GetMethodIxNameUTF(JNIEnv *env, jclass cls, jint method_index)
+const char *JVM_GetMethodIxNameUTF(JNIEnv *env, jclass cls, jint method_index)
 {
 	log_println("JVM_GetMethodIxNameUTF: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
 /* JVM_GetMethodIxSignatureUTF */
 
-const char* JVM_GetMethodIxSignatureUTF(JNIEnv *env, jclass cls, jint method_index)
+const char *JVM_GetMethodIxSignatureUTF(JNIEnv *env, jclass cls, jint method_index)
 {
 	log_println("JVM_GetMethodIxSignatureUTF: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
 /* JVM_GetCPFieldNameUTF */
 
-const char* JVM_GetCPFieldNameUTF(JNIEnv *env, jclass cls, jint cp_index)
+const char *JVM_GetCPFieldNameUTF(JNIEnv *env, jclass cls, jint cp_index)
 {
 	log_println("JVM_GetCPFieldNameUTF: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
 /* JVM_GetCPMethodNameUTF */
 
-const char* JVM_GetCPMethodNameUTF(JNIEnv *env, jclass cls, jint cp_index)
+const char *JVM_GetCPMethodNameUTF(JNIEnv *env, jclass cls, jint cp_index)
 {
 	log_println("JVM_GetCPMethodNameUTF: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
 /* JVM_GetCPMethodSignatureUTF */
 
-const char* JVM_GetCPMethodSignatureUTF(JNIEnv *env, jclass cls, jint cp_index)
+const char *JVM_GetCPMethodSignatureUTF(JNIEnv *env, jclass cls, jint cp_index)
 {
 	log_println("JVM_GetCPMethodSignatureUTF: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
 /* JVM_GetCPFieldSignatureUTF */
 
-const char* JVM_GetCPFieldSignatureUTF(JNIEnv *env, jclass cls, jint cp_index)
+const char *JVM_GetCPFieldSignatureUTF(JNIEnv *env, jclass cls, jint cp_index)
 {
 	log_println("JVM_GetCPFieldSignatureUTF: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
 /* JVM_GetCPClassNameUTF */
 
-const char* JVM_GetCPClassNameUTF(JNIEnv *env, jclass cls, jint cp_index)
+const char *JVM_GetCPClassNameUTF(JNIEnv *env, jclass cls, jint cp_index)
 {
 	log_println("JVM_GetCPClassNameUTF: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
 /* JVM_GetCPFieldClassNameUTF */
 
-const char* JVM_GetCPFieldClassNameUTF(JNIEnv *env, jclass cls, jint cp_index)
+const char *JVM_GetCPFieldClassNameUTF(JNIEnv *env, jclass cls, jint cp_index)
 {
 	log_println("JVM_GetCPFieldClassNameUTF: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
 /* JVM_GetCPMethodClassNameUTF */
 
-const char* JVM_GetCPMethodClassNameUTF(JNIEnv *env, jclass cls, jint cp_index)
+const char *JVM_GetCPMethodClassNameUTF(JNIEnv *env, jclass cls, jint cp_index)
 {
 	log_println("JVM_GetCPMethodClassNameUTF: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -2014,6 +2082,8 @@ const char* JVM_GetCPMethodClassNameUTF(JNIEnv *env, jclass cls, jint cp_index)
 jint JVM_GetCPFieldModifiers(JNIEnv *env, jclass cls, int cp_index, jclass called_cls)
 {
 	log_println("JVM_GetCPFieldModifiers: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -2022,6 +2092,8 @@ jint JVM_GetCPFieldModifiers(JNIEnv *env, jclass cls, int cp_index, jclass calle
 jint JVM_GetCPMethodModifiers(JNIEnv *env, jclass cls, int cp_index, jclass called_cls)
 {
 	log_println("JVM_GetCPMethodModifiers: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -2038,6 +2110,8 @@ void JVM_ReleaseUTF(const char *utf)
 jboolean JVM_IsSameClassPackage(JNIEnv *env, jclass class1, jclass class2)
 {
 	log_println("JVM_IsSameClassPackage: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -2263,6 +2337,8 @@ jobject JVM_CurrentThread(JNIEnv* env, jclass threadClass)
 jint JVM_CountStackFrames(JNIEnv* env, jobject jthread)
 {
 	log_println("JVM_CountStackFrames: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -2321,6 +2397,8 @@ void JVM_DumpAllStacks(JNIEnv* env, jclass unused)
 jclass JVM_CurrentLoadedClass(JNIEnv *env)
 {
 	log_println("JVM_CurrentLoadedClass: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -2332,6 +2410,8 @@ jobject JVM_CurrentClassLoader(JNIEnv *env)
 	   doPrivileged, return NULL */
 
 	log_println("JVM_CurrentClassLoader: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -2350,6 +2430,8 @@ jobjectArray JVM_GetClassContext(JNIEnv *env)
 jint JVM_ClassDepth(JNIEnv *env, jstring name)
 {
 	log_println("JVM_ClassDepth: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -2358,6 +2440,8 @@ jint JVM_ClassDepth(JNIEnv *env, jstring name)
 jint JVM_ClassLoaderDepth(JNIEnv *env)
 {
 	log_println("JVM_ClassLoaderDepth: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -2388,6 +2472,8 @@ jstring JVM_GetSystemPackage(JNIEnv *env, jstring name)
 jobjectArray JVM_GetSystemPackages(JNIEnv *env)
 {
 	log_println("JVM_GetSystemPackages: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -2396,6 +2482,8 @@ jobjectArray JVM_GetSystemPackages(JNIEnv *env)
 jobject JVM_AllocateNewObject(JNIEnv *env, jobject receiver, jclass currClass, jclass initClass)
 {
 	log_println("JVM_AllocateNewObject: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -2404,6 +2492,8 @@ jobject JVM_AllocateNewObject(JNIEnv *env, jobject receiver, jclass currClass, j
 jobject JVM_AllocateNewArray(JNIEnv *env, jobject obj, jclass currClass, jint length)
 {
 	log_println("JVM_AllocateNewArray: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -2426,6 +2516,8 @@ jobject JVM_LatestUserDefinedLoader(JNIEnv *env)
 jclass JVM_LoadClass0(JNIEnv *env, jobject receiver, jclass currClass, jstring currClassName)
 {
 	log_println("JVM_LoadClass0: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -2469,7 +2561,13 @@ jobject JVM_GetArrayElement(JNIEnv *env, jobject arr, jint index)
 
 jvalue JVM_GetPrimitiveArrayElement(JNIEnv *env, jobject arr, jint index, jint wCode)
 {
+	jvalue jv;
+
 	log_println("JVM_GetPrimitiveArrayElement: IMPLEMENT ME!");
+
+	jv.l = NULL;
+
+	return jv;
 }
 
 
@@ -2591,6 +2689,8 @@ jobject JVM_NewMultiArray(JNIEnv *env, jclass eltClass, jintArray dim)
 jint JVM_InitializeSocketLibrary()
 {
 	log_println("JVM_InitializeSocketLibrary: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -2629,6 +2729,8 @@ jint JVM_SocketShutdown(jint fd, jint howto)
 jint JVM_Recv(jint fd, char *buf, jint nBytes, jint flags)
 {
 	log_println("JVM_Recv: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -2637,6 +2739,8 @@ jint JVM_Recv(jint fd, char *buf, jint nBytes, jint flags)
 jint JVM_Send(jint fd, char *buf, jint nBytes, jint flags)
 {
 	log_println("JVM_Send: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -2645,6 +2749,8 @@ jint JVM_Send(jint fd, char *buf, jint nBytes, jint flags)
 jint JVM_Timeout(int fd, long timeout)
 {
 	log_println("JVM_Timeout: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -2673,6 +2779,8 @@ jint JVM_Connect(jint fd, struct sockaddr *him, jint len)
 jint JVM_Bind(jint fd, struct sockaddr *him, jint len)
 {
 	log_println("JVM_Bind: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -2691,6 +2799,8 @@ jint JVM_Accept(jint fd, struct sockaddr *him, jint *len)
 jint JVM_RecvFrom(jint fd, char *buf, int nBytes, int flags, struct sockaddr *from, int *fromlen)
 {
 	log_println("JVM_RecvFrom: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -2709,6 +2819,8 @@ jint JVM_GetSockName(jint fd, struct sockaddr *him, int *len)
 jint JVM_SendTo(jint fd, char *buf, int len, int flags, struct sockaddr *to, int tolen)
 {
 	log_println("JVM_SendTo: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -2778,25 +2890,31 @@ int JVM_GetHostName(char* name, int namelen)
 
 /* JVM_GetHostByAddr */
 
-struct hostent* JVM_GetHostByAddr(const char* name, int len, int type)
+struct hostent *JVM_GetHostByAddr(const char* name, int len, int type)
 {
 	log_println("JVM_GetHostByAddr: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
 /* JVM_GetHostByName */
 
-struct hostent* JVM_GetHostByName(char* name)
+struct hostent *JVM_GetHostByName(char* name)
 {
 	log_println("JVM_GetHostByName: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
 /* JVM_GetProtoByName */
 
-struct protoent* JVM_GetProtoByName(char* name)
+struct protoent *JVM_GetProtoByName(char* name)
 {
 	log_println("JVM_GetProtoByName: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -2843,6 +2961,8 @@ void *JVM_FindLibraryEntry(void *handle, const char *name)
 jboolean JVM_IsNaN(jdouble a)
 {
 	log_println("JVM_IsNaN: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -2935,6 +3055,8 @@ void JVM_GetPrimitiveFieldValues(JNIEnv *env, jclass cb, jobject obj, jlongArray
 jboolean JVM_AccessVMBooleanFlag(const char* name, jboolean* value, jboolean is_get)
 {
 	log_println("JVM_AccessVMBooleanFlag: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -2943,6 +3065,8 @@ jboolean JVM_AccessVMBooleanFlag(const char* name, jboolean* value, jboolean is_
 jboolean JVM_AccessVMIntFlag(const char* name, jint* value, jboolean is_get)
 {
 	log_println("JVM_AccessVMIntFlag: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -2959,6 +3083,8 @@ void JVM_VMBreakPoint(JNIEnv *env, jobject obj)
 jobjectArray JVM_GetClassFields(JNIEnv *env, jclass cls, jint which)
 {
 	log_println("JVM_GetClassFields: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -2967,6 +3093,8 @@ jobjectArray JVM_GetClassFields(JNIEnv *env, jclass cls, jint which)
 jobjectArray JVM_GetClassMethods(JNIEnv *env, jclass cls, jint which)
 {
 	log_println("JVM_GetClassMethods: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -2975,6 +3103,8 @@ jobjectArray JVM_GetClassMethods(JNIEnv *env, jclass cls, jint which)
 jobjectArray JVM_GetClassConstructors(JNIEnv *env, jclass cls, jint which)
 {
 	log_println("JVM_GetClassConstructors: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -2983,6 +3113,8 @@ jobjectArray JVM_GetClassConstructors(JNIEnv *env, jclass cls, jint which)
 jobject JVM_GetClassField(JNIEnv *env, jclass cls, jstring name, jint which)
 {
 	log_println("JVM_GetClassField: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -2991,6 +3123,8 @@ jobject JVM_GetClassField(JNIEnv *env, jclass cls, jstring name, jint which)
 jobject JVM_GetClassMethod(JNIEnv *env, jclass cls, jstring name, jobjectArray types, jint which)
 {
 	log_println("JVM_GetClassMethod: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -2999,6 +3133,8 @@ jobject JVM_GetClassMethod(JNIEnv *env, jclass cls, jstring name, jobjectArray t
 jobject JVM_GetClassConstructor(JNIEnv *env, jclass cls, jobjectArray types, jint which)
 {
 	log_println("JVM_GetClassConstructor: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -3007,6 +3143,8 @@ jobject JVM_GetClassConstructor(JNIEnv *env, jclass cls, jobjectArray types, jin
 jobject JVM_NewInstance(JNIEnv *env, jclass cls)
 {
 	log_println("JVM_NewInstance: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -3015,6 +3153,8 @@ jobject JVM_NewInstance(JNIEnv *env, jclass cls)
 jobject JVM_GetField(JNIEnv *env, jobject field, jobject obj)
 {
 	log_println("JVM_GetField: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -3022,7 +3162,13 @@ jobject JVM_GetField(JNIEnv *env, jobject field, jobject obj)
 
 jvalue JVM_GetPrimitiveField(JNIEnv *env, jobject field, jobject obj, unsigned char wCode)
 {
+	jvalue jv;
+
 	log_println("JVM_GetPrimitiveField: IMPLEMENT ME!");
+
+	jv.l = NULL;
+
+	return jv;
 }
 
 
@@ -3079,6 +3225,8 @@ jboolean JVM_SupportsCX8()
 jboolean JVM_CX8Field(JNIEnv *env, jobject obj, jfieldID fid, jlong oldVal, jlong newVal)
 {
 	log_println("JVM_CX8Field: IMPLEMENT ME!");
+
+	return 0;
 }
 
 
@@ -3087,6 +3235,8 @@ jboolean JVM_CX8Field(JNIEnv *env, jobject obj, jfieldID fid, jlong oldVal, jlon
 jobjectArray JVM_GetAllThreads(JNIEnv *env, jclass dummy)
 {
 	log_println("JVM_GetAllThreads: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -3095,6 +3245,8 @@ jobjectArray JVM_GetAllThreads(JNIEnv *env, jclass dummy)
 jobjectArray JVM_DumpThreads(JNIEnv *env, jclass threadClass, jobjectArray threads)
 {
 	log_println("JVM_DumpThreads: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
@@ -3115,6 +3267,8 @@ void *JVM_GetManagement(jint version)
 jobject JVM_InitAgentProperties(JNIEnv *env, jobject properties)
 {
 	log_println("JVM_InitAgentProperties: IMPLEMENT ME!");
+
+	return NULL;
 }
 
 
