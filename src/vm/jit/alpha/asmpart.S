@@ -1,6 +1,6 @@
 /* src/vm/jit/alpha/asmpart.S - Java-C interface functions for alpha
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007, 2008 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -139,9 +139,9 @@ L_asm_vm_call_method_stack_copy_done:
 L_asm_vm_call_method_recompute_pv:
 	lda     pv,(asm_vm_call_method - L_asm_vm_call_method_recompute_pv)(ra)
 
+L_asm_vm_call_method_recompute_return:
 	mov     s0,sp                       /* restore stack pointer              */
 
-L_asm_vm_call_method_recompute_return:
 	ldq     ra,0*8(sp)                  /* restore RA                         */
 	ldq     gp,1*8(sp)                  /* restore global pointer             */
 	ldq     s0,3*8(sp)

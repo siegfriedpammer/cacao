@@ -1,6 +1,6 @@
 /* src/vm/jit/mips/asmpart.S - Java-C interface functions for MIPS
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007, 2008 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -212,9 +212,9 @@ L_asm_vm_call_method_recompute_pv:
 
 	.set    reorder                   /* XXX we need to recompute pv          */
 
+calljava_return2:
 	move    sp,s0                     /* restore stack pointer                */
 
-calljava_return2:
 	ald     ra,0*8(sp)                /* restore return address               */
 	ald     pv,1*8(sp)                /* restore procedure vector             */
 	ald     s0,3*8(sp)
