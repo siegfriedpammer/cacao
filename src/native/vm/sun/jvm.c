@@ -400,7 +400,7 @@ void JVM_FillInStackTrace(JNIEnv *env, jobject receiver)
 	if (ba == NULL)
 		return;
 
-	LLNI_field_set_ref(o, backtrace, ba);
+	LLNI_field_set_ref(o, backtrace, (java_lang_Object *) ba);
 }
 
 
@@ -2456,8 +2456,10 @@ jstring JVM_GetSystemPackage(JNIEnv *env, jstring name)
 	TRACEJVMCALLS("JVM_GetSystemPackage(env=%p, name=%p)", env, name);
 
 /* 	s = package_find(name); */
-	u = javastring_toutf(name, false);
+	u = javastring_toutf((java_handle_t *) name, false);
+
 	result = package_find(u);
+
 	if (result != NULL)
 		s = javastring_new(result);
 	else
@@ -2659,7 +2661,7 @@ jobject JVM_NewMultiArray(JNIEnv *env, jclass eltClass, jintArray dim)
 
 	ia = (java_handle_intarray_t *) dim;
 
-	length = array_length_get(ia);
+	length = array_length_get((java_handle_t *) ia);
 
 	dims = MNEW(long, length);
 
@@ -2678,7 +2680,7 @@ jobject JVM_NewMultiArray(JNIEnv *env, jclass eltClass, jintArray dim)
 	if (ac == NULL)
 		return NULL;
 
-	a = builtin_multianewarray(length, ac, dims);
+	a = builtin_multianewarray(length, (java_handle_t *) ac, dims);
 
 	return (jobject) a;
 }
