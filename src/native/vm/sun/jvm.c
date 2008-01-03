@@ -120,8 +120,15 @@
 
 # define TRACEJVMCALLS(...)						\
     do {										\
-        if (opt_TraceJVMCalls) {				\
+        if (opt_TraceJVMCalls || opt_TraceJVMCallsVerbose) {				\
             log_println(__VA_ARGS__);			\
+        }										\
+    } while (0)
+
+# define TRACEJVMCALLSVERBOSE(x)				\
+    do {										\
+        if (opt_TraceJVMCallsVerbose) {			\
+            log_println x;						\
         }										\
     } while (0)
 
@@ -135,6 +142,7 @@
 #else
 
 # define TRACEJVMCALLS(...)
+# define TRACEJVMCALLSVERBOSE(x)
 # define PRINTJVMWARNINGS(...)
 
 #endif
@@ -230,9 +238,8 @@ jint JVM_GetInterfaceVersion()
 
 jlong JVM_CurrentTimeMillis(JNIEnv *env, jclass ignored)
 {
-#if PRINTJVM
-	log_println("JVM_CurrentTimeMillis");
-#endif
+	TRACEJVMCALLS("JVM_CurrentTimeMillis(env=%p, ignored=%p)", env, ignored);
+
 	return (jlong) builtin_currenttimemillis();
 }
 
@@ -241,9 +248,8 @@ jlong JVM_CurrentTimeMillis(JNIEnv *env, jclass ignored)
 
 jlong JVM_NanoTime(JNIEnv *env, jclass ignored)
 {
-#if PRINTJVM
-	log_println("JVM_NanoTime");
-#endif
+	TRACEJVMCALLS("JVM_NanoTime(env=%p, ignored=%p)", env, ignored);
+
 	return (jlong) builtin_nanotime();
 }
 
@@ -258,9 +264,7 @@ void JVM_ArrayCopy(JNIEnv *env, jclass ignored, jobject src, jint src_pos, jobje
 	s = (java_handle_t *) src;
 	d = (java_handle_t *) dst;
 
-#if PRINTJVM
-	log_println("JVM_ArrayCopy: src=%p, src_pos=%d, dst=%p, dst_pos=%d, length=%d", src, src_pos, dst, dst_pos, length);
-#endif
+	TRACEJVMCALLSVERBOSE(("JVM_ArrayCopy(env=%p, ignored=%p, src=%p, src_pos=%d, dst=%p, dst_pos=%d, length=%d)", env, ignored, src, src_pos, dst, dst_pos, length));
 
 	builtin_arraycopy(s, src_pos, d, dst_pos, length);
 }
@@ -294,9 +298,8 @@ void JVM_Exit(jint code)
 
 void JVM_Halt(jint code)
 {
-#if PRINTJVM
-	log_println("JVM_Halt: code=%d", code);
-#endif
+	TRACEJVMCALLS("JVM_Halt(code=%d)", code);
+
 /* 	vm_exit(code); */
 	vm_shutdown(code);
 }
@@ -616,9 +619,8 @@ void JVM_MonitorNotifyAll(JNIEnv* env, jobject handle)
 
 jobject JVM_Clone(JNIEnv* env, jobject handle)
 {
-#if PRINTJVM
-	log_println("JVM_Clone: handle=%p", handle);
-#endif
+	TRACEJVMCALLS("JVM_Clone(env=%p, handle=%p)", env, handle);
+
 	return (jobject) builtin_clone(env, (java_handle_t *) handle);
 }
 
@@ -773,7 +775,7 @@ jclass JVM_FindClassFromClassLoader(JNIEnv* env, const char* name, jboolean init
 	utf         *u;
 	classloader *cl;
 
-	TRACEJVMCALLS("JVM_FindClassFromClassLoader: name=%s, init=%d, loader=%p, throwError=%d", name, init, loader, throwError);
+	TRACEJVMCALLS("JVM_FindClassFromClassLoader(name=%s, init=%d, loader=%p, throwError=%d)", name, init, loader, throwError);
 
 	u  = utf_new_char(name);
 	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
@@ -856,9 +858,8 @@ jclass JVM_FindLoadedClass(JNIEnv *env, jobject loader, jstring name)
 
 jstring JVM_GetClassName(JNIEnv *env, jclass cls)
 {
-#if PRINTJVM
-	log_println("JVM_GetClassName: cls=%p", cls);
-#endif
+	TRACEJVMCALLS("JVM_GetClassName(env=%p, cls=%p)", env, cls);
+
 	return (jstring) _Jv_java_lang_Class_getName((java_lang_Class *) cls);
 }
 
@@ -902,9 +903,7 @@ jboolean JVM_IsInterface(JNIEnv *env, jclass cls)
 {
 	classinfo *c;
 
-#if PRINTJVM
-	log_println("JVM_IsInterface: cls=%p", cls);
-#endif
+	TRACEJVMCALLS("JVM_IsInterface(env=%p, cls=%p)", env, cls);
 
 	c = LLNI_classinfo_unwrap(cls);
 
@@ -987,9 +986,7 @@ jobject JVM_DoPrivileged(JNIEnv *env, jclass cls, jobject action, jobject contex
 	java_handle_t *result;
 	java_handle_t *e;
 
-#if PRINTJVM
-	log_println("JVM_DoPrivileged: action=%p, context=%p, wrapException=%d", action, context, wrapException);
-#endif
+	TRACEJVMCALLS("JVM_DoPrivileged(env=%p, cls=%p, action=%p, context=%p, wrapException=%d)", env, cls, action, context, wrapException);
 
 	o = (java_handle_t *) action;
 	c = o->vftbl->class;
@@ -1051,10 +1048,13 @@ jobject JVM_GetStackAccessControlContext(JNIEnv *env, jclass cls)
 
 jboolean JVM_IsArrayClass(JNIEnv *env, jclass cls)
 {
-#if PRINTJVM
-	log_println("JVM_IsArrayClass: cls=%p", cls);
-#endif
-	return class_is_array(LLNI_classinfo_unwrap(cls));
+	classinfo *c;
+
+	TRACEJVMCALLS("JVM_IsArrayClass(env=%p, cls=%p)", env, cls);
+
+	c = LLNI_classinfo_unwrap(cls);
+
+	return class_is_array(c);
 }
 
 
@@ -1064,11 +1064,9 @@ jboolean JVM_IsPrimitiveClass(JNIEnv *env, jclass cls)
 {
 	classinfo *c;
 
-	c = LLNI_classinfo_unwrap(cls);
+	TRACEJVMCALLS("JVM_IsPrimitiveClass(env=%p, cls=%p)", env, cls);
 
-#if PRINTJVM
-	log_println("JVM_IsPrimitiveClass(cls=%p)", cls);
-#endif
+	c = LLNI_classinfo_unwrap(cls);
 
 	return class_is_primitive(c);
 }
@@ -1284,9 +1282,8 @@ jbyteArray JVM_GetMethodParameterAnnotations(JNIEnv *env, jobject method)
 
 jobjectArray JVM_GetClassDeclaredFields(JNIEnv *env, jclass ofClass, jboolean publicOnly)
 {
-#if PRINTJVM
-	log_println("JVM_GetClassDeclaredFields: ofClass=%p, publicOnly=%d", ofClass, publicOnly);
-#endif
+	TRACEJVMCALLS("JVM_GetClassDeclaredFields(env=%p, ofClass=%p, publicOnly=%d)", env, ofClass, publicOnly);
+
 	return (jobjectArray) _Jv_java_lang_Class_getDeclaredFields((java_lang_Class *) ofClass, publicOnly);
 }
 
@@ -1295,9 +1292,8 @@ jobjectArray JVM_GetClassDeclaredFields(JNIEnv *env, jclass ofClass, jboolean pu
 
 jobjectArray JVM_GetClassDeclaredMethods(JNIEnv *env, jclass ofClass, jboolean publicOnly)
 {
-#if PRINTJVM
-	log_println("JVM_GetClassDeclaredMethods: ofClass=%p, publicOnly=%d", ofClass, publicOnly);
-#endif
+	TRACEJVMCALLS("JVM_GetClassDeclaredMethods(env=%p, ofClass=%p, publicOnly=%d)", env, ofClass, publicOnly);
+
 	return (jobjectArray) _Jv_java_lang_Class_getDeclaredMethods((java_lang_Class *) ofClass, publicOnly);
 }
 
@@ -1306,9 +1302,8 @@ jobjectArray JVM_GetClassDeclaredMethods(JNIEnv *env, jclass ofClass, jboolean p
 
 jobjectArray JVM_GetClassDeclaredConstructors(JNIEnv *env, jclass ofClass, jboolean publicOnly)
 {
-#if PRINTJVM
-	log_println("JVM_GetClassDeclaredConstructors: ofClass=%p, publicOnly=%d", ofClass, publicOnly);
-#endif
+	TRACEJVMCALLS("JVM_GetClassDeclaredConstructors(env=%p, ofClass=%p, publicOnly=%d)", env, ofClass, publicOnly);
+
 	return (jobjectArray) _Jv_java_lang_Class_getDeclaredConstructors((java_lang_Class *) ofClass, publicOnly);
 }
 
@@ -2063,9 +2058,7 @@ jint JVM_Open(const char *fname, jint flags, jint mode)
 {
 	int result;
 
-#if PRINTJVM
-	log_println("JVM_Open: fname=%s, flags=%d, mode=%d", fname, flags, mode);
-#endif
+	TRACEJVMCALLS("JVM_Open(fname=%s, flags=%d, mode=%d)", fname, flags, mode);
 
 	result = open(fname, flags, mode);
 
@@ -2089,9 +2082,8 @@ jint JVM_Open(const char *fname, jint flags, jint mode)
 
 jint JVM_Close(jint fd)
 {
-#if PRINTJVM
-	log_println("JVM_Close: fd=%d", fd);
-#endif
+	TRACEJVMCALLS("JVM_Close(fd=%d)", fd);
+
 	return close(fd);
 }
 
@@ -2100,9 +2092,8 @@ jint JVM_Close(jint fd)
 
 jint JVM_Read(jint fd, char *buf, jint nbytes)
 {
-#if PRINTJVM
-	log_println("JVM_Read: fd=%d, buf=%p, nbytes=%d", fd, buf, nbytes);
-#endif
+	TRACEJVMCALLS("JVM_Read(fd=%d, buf=%p, nbytes=%d)", fd, buf, nbytes);
+
 	return read(fd, buf, nbytes);
 }
 
@@ -2111,9 +2102,8 @@ jint JVM_Read(jint fd, char *buf, jint nbytes)
 
 jint JVM_Write(jint fd, char *buf, jint nbytes)
 {
-#if PRINTJVM
-	log_println("JVM_Write: fd=%d, buf=%s, nbytes=%d", fd, buf, nbytes);
-#endif
+	TRACEJVMCALLS("JVM_Write(fd=%d, buf=%s, nbytes=%d)", fd, buf, nbytes);
+
 	return write(fd, buf, nbytes);
 }
 
@@ -2124,12 +2114,15 @@ jint JVM_Available(jint fd, jlong *pbytes)
 {
 #if defined(FIONREAD)
 	int bytes;
+	int result;
 
 	TRACEJVMCALLS("JVM_Available(fd=%d, pbytes=%p)", fd, pbytes);
 
 	*pbytes = 0;
 
-	if (ioctl(fd, FIONREAD, &bytes) < 0)
+	result = ioctl(fd, FIONREAD, &bytes);
+
+	if (result < 0)
 		return 0;
 
 	*pbytes = bytes;
@@ -2175,9 +2168,8 @@ jint JVM_Sync(jint fd)
 
 void JVM_StartThread(JNIEnv* env, jobject jthread)
 {
-#if PRINTJVM
-	log_println("JVM_StartThread: jthread=%p", jthread);
-#endif
+	TRACEJVMCALLS("JVM_StartThread(env=%p, jthread=%p)", env, jthread);
+
 	_Jv_java_lang_Thread_start((java_lang_Thread *) jthread, 0);
 }
 
@@ -2241,9 +2233,8 @@ void JVM_ResumeThread(JNIEnv* env, jobject jthread)
 
 void JVM_SetThreadPriority(JNIEnv* env, jobject jthread, jint prio)
 {
-#if PRINTJVM
-	log_println("JVM_SetThreadPriority: jthread=%p, prio=%d", jthread, prio);
-#endif
+	TRACEJVMCALLS("JVM_SetThreadPriority(env=%p, jthread=%p, prio=%d)", env, jthread, prio);
+
 	_Jv_java_lang_Thread_setPriority((java_lang_Thread *) jthread, prio);
 }
 
@@ -2262,9 +2253,8 @@ void JVM_Yield(JNIEnv *env, jclass threadClass)
 
 void JVM_Sleep(JNIEnv* env, jclass threadClass, jlong millis)
 {
-#if PRINTJVM
-	log_println("JVM_Sleep: threadClass=%p, millis=%ld", threadClass, millis);
-#endif
+	TRACEJVMCALLS("JVM_Sleep(env=%p, threadClass=%p, millis=%ld)", env, threadClass, millis);
+
 	_Jv_java_lang_Thread_sleep(millis);
 }
 
@@ -2273,9 +2263,8 @@ void JVM_Sleep(JNIEnv* env, jclass threadClass, jlong millis)
 
 jobject JVM_CurrentThread(JNIEnv* env, jclass threadClass)
 {
-#if PRINTJVM
-	log_println("JVM_CurrentThread: threadClass=%p", threadClass);
-#endif
+	TRACEJVMCALLSVERBOSE(("JVM_CurrentThread(env=%p, threadClass=%p)", env, threadClass));
+
 	return (jobject) _Jv_java_lang_Thread_currentThread();
 }
 
@@ -2300,10 +2289,10 @@ void JVM_Interrupt(JNIEnv* env, jobject jthread)
 
 jboolean JVM_IsInterrupted(JNIEnv* env, jobject jthread, jboolean clear_interrupted)
 {
-#if PRINTJVM
-	log_println("JVM_IsInterrupted: jthread=%p, clear_interrupted=%d", jthread, clear_interrupted);
-#endif
+	TRACEJVMCALLS("JVM_IsInterrupted(env=%p, jthread=%p, clear_interrupted=%d)", env, jthread, clear_interrupted);
+
 	/* XXX do something with clear_interrupted */
+
 	return _Jv_java_lang_Thread_isInterrupted((java_lang_Thread *) jthread);
 }
 
@@ -2361,9 +2350,8 @@ jobject JVM_CurrentClassLoader(JNIEnv *env)
 
 jobjectArray JVM_GetClassContext(JNIEnv *env)
 {
-#if PRINTJVM
-	log_println("JVM_GetClassContext");
-#endif
+	TRACEJVMCALLS("JVM_GetClassContext(env=%p)", env);
+
 	return (jobjectArray) stacktrace_getClassContext();
 }
 
@@ -2741,12 +2729,15 @@ jint JVM_SocketAvailable(jint fd, jint *pbytes)
 {
 #if defined(FIONREAD)
 	int bytes;
+	int result;
 
 	TRACEJVMCALLS("JVM_SocketAvailable(fd=%d, pbytes=%p)", fd, pbytes);
 
 	*pbytes = 0;
 
-	if (ioctl(fd, FIONREAD, &bytes) < 0)
+	result = ioctl(fd, FIONREAD, &bytes);
+
+	if (result < 0)
 		return 0;
 
 	*pbytes = bytes;
@@ -2892,9 +2883,7 @@ JNIEXPORT void* JNICALL JVM_RawMonitorCreate(void)
 {
 	java_object_t *o;
 
-#if PRINTJVM
-	log_println("JVM_RawMonitorCreate");
-#endif
+	TRACEJVMCALLS("JVM_RawMonitorCreate()");
 
 	o = NEW(java_object_t);
 
@@ -2908,9 +2897,8 @@ JNIEXPORT void* JNICALL JVM_RawMonitorCreate(void)
 
 JNIEXPORT void JNICALL JVM_RawMonitorDestroy(void *mon)
 {
-#if PRINTJVM
-	log_println("JVM_RawMonitorDestroy: mon=%p", mon);
-#endif
+	TRACEJVMCALLSlog_println("JVM_RawMonitorDestroy(mon=%p)", mon);
+
 	FREE(mon, java_object_t);
 }
 
@@ -2919,9 +2907,8 @@ JNIEXPORT void JNICALL JVM_RawMonitorDestroy(void *mon)
 
 JNIEXPORT jint JNICALL JVM_RawMonitorEnter(void *mon)
 {
-#if PRINTJVM
-	log_println("JVM_RawMonitorEnter: mon=%p", mon);
-#endif
+	TRACEJVMCALLS("JVM_RawMonitorEnter(mon=%p)", mon);
+
 	(void) lock_monitor_enter((java_object_t *) mon);
 
 	return 0;
@@ -2932,9 +2919,8 @@ JNIEXPORT jint JNICALL JVM_RawMonitorEnter(void *mon)
 
 JNIEXPORT void JNICALL JVM_RawMonitorExit(void *mon)
 {
-#if PRINTJVM
-	log_println("JVM_RawMonitorExit: mon=%p", mon);
-#endif
+	TRACEJVMCALLS("JVM_RawMonitorExit(mon=%p)", mon);
+
 	(void) lock_monitor_exit((java_object_t *) mon);
 }
 
@@ -3071,9 +3057,8 @@ void JVM_SetPrimitiveField(JNIEnv *env, jobject field, jobject obj, jvalue v, un
 
 jobject JVM_InvokeMethod(JNIEnv *env, jobject method, jobject obj, jobjectArray args0)
 {
-#if PRINTJVM
-	log_println("JVM_InvokeMethod: method=%p, obj=%p, args0=%p", method, obj, args0);
-#endif
+	TRACEJVMCALLS("JVM_InvokeMethod(env=%p, method=%p, obj=%p, args0=%p)", env, method, obj, args0);
+
 	return (jobject) _Jv_java_lang_reflect_Method_invoke((java_lang_reflect_Method *) method, (java_lang_Object *) obj, (java_handle_objectarray_t *) args0);
 }
 
@@ -3082,9 +3067,8 @@ jobject JVM_InvokeMethod(JNIEnv *env, jobject method, jobject obj, jobjectArray 
 
 jobject JVM_NewInstanceFromConstructor(JNIEnv *env, jobject c, jobjectArray args0)
 {
-#if PRINTJVM
-	log_println("JVM_NewInstanceFromConstructor: c=%p, args0=%p", c, args0);
-#endif
+	TRACEJVMCALLS("JVM_NewInstanceFromConstructor(env=%p, c=%p, args0=%p)", env, c, args0);
+
 	return (jobject) _Jv_java_lang_reflect_Constructor_newInstance(env, (java_lang_reflect_Constructor *) c, (java_handle_objectarray_t *) args0);
 }
 
