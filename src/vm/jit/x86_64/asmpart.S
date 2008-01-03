@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/asmpart.S - Java-C interface functions for x86_64
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 1996-2005, 2006, 2007, 2008 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -149,9 +149,9 @@ L_asm_vm_call_method_stack_copy_done:
 	mov     (0*8+256)(mptr),itmp3       /* load PV                            */
 	call    *itmp3
 
+L_asm_vm_call_method_return:
 	mov     s0,sp                       /* restore SP                         */
 
-L_asm_vm_call_method_return:
 	mov     0*8(sp),%rbx                /* restore callee saved registers     */
 	mov     1*8(sp),s0
 	mov     2*8(sp),s1
