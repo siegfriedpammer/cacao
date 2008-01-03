@@ -1,6 +1,6 @@
 /* src/native/vm/sun/jvm.c - HotSpot JVM interface functions
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
+   Copyright (C) 2007, 2008 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
    E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
    J. Wenninger, Institut f. Computersprachen - TU Wien
@@ -24,8 +24,6 @@
 
 */
 
-
-#define PRINTJVM 0
 
 #include "config.h"
 
@@ -61,14 +59,6 @@
 #include "native/include/java_lang_StackTraceElement.h"
 #include "native/include/java_lang_Throwable.h"
 #include "native/include/java_security_ProtectionDomain.h"
-#include "native/include/java_lang_Integer.h"
-#include "native/include/java_lang_Long.h"
-#include "native/include/java_lang_Short.h"
-#include "native/include/java_lang_Byte.h"
-#include "native/include/java_lang_Character.h"
-#include "native/include/java_lang_Boolean.h"
-#include "native/include/java_lang_Float.h"
-#include "native/include/java_lang_Double.h"
 
 #if defined(ENABLE_ANNOTATIONS)
 #include "native/include/sun_reflect_ConstantPool.h"
@@ -2896,7 +2886,7 @@ JNIEXPORT void* JNICALL JVM_RawMonitorCreate(void)
 
 JNIEXPORT void JNICALL JVM_RawMonitorDestroy(void *mon)
 {
-	TRACEJVMCALLSlog_println("JVM_RawMonitorDestroy(mon=%p)", mon);
+	TRACEJVMCALLS("JVM_RawMonitorDestroy(mon=%p)", mon);
 
 	FREE(mon, java_object_t);
 }
