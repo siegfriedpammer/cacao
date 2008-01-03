@@ -55,8 +55,25 @@
 # include <sys/mman.h>
 #endif
 
+#if defined(HAVE_SYS_SOCKET_H)
+# include <sys/socket.h>
+#endif
+
+#if defined(HAVE_SYS_TYPES_H)
+# include <sys/types.h>
+#endif
+
 
 /* inline functions ***********************************************************/
+
+inline static int system_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+{
+#if defined(HAVE_ACCEPT)
+	return accept(sockfd, addr, addrlen);
+#else
+# error accept not available
+#endif
+}
 
 inline static void *system_calloc(size_t nmemb, size_t size)
 {
@@ -76,6 +93,15 @@ inline static int system_close(int fd)
 #endif
 }
 
+inline static int system_connect(int sockfd, const struct sockaddr *serv_addr, socklen_t addrlen)
+{
+#if defined(HAVE_CONNECT)
+	return connect(sockfd, serv_addr, addrlen);
+#else
+# error connect not available
+#endif
+}
+
 inline static void system_free(void *ptr)
 {
 #if defined(HAVE_FREE)
@@ -85,12 +111,75 @@ inline static void system_free(void *ptr)
 #endif
 }
 
+inline static int system_fsync(int fd)
+{
+#if defined(HAVE_FSYNC)
+	return fsync(fd);
+#else
+# error fsync not available
+#endif
+}
+
+inline static int system_ftruncate(int fd, off_t length)
+{
+#if defined(HAVE_FTRUNCATE)
+	return ftruncate(fd, length);
+#else
+# error ftruncate not available
+#endif
+}
+
+inline static int system_gethostname(char *name, size_t len)
+{
+#if defined(HAVE_GETHOSTNAME)
+	return gethostname(name, len);
+#else
+# error gethostname not available
+#endif
+}
+
 inline static int system_getpagesize(void)
 {
 #if defined(HAVE_GETPAGESIZE)
 	return getpagesize();
 #else
 # error getpagesize not available
+#endif
+}
+
+inline static int system_getsockname(int s, struct sockaddr *name, socklen_t *namelen)
+{
+#if defined(HAVE_GETSOCKNAME)
+	return getsockname(s, name, namelen);
+#else
+# error getsockname not available
+#endif
+}
+
+inline static int system_getsockopt(int s, int level, int optname, void *optval, socklen_t *optlen)
+{
+#if defined(HAVE_GETSOCKOPT)
+	return getsockopt(s, level, optname, optval, optlen);
+#else
+# error getsockopt not available
+#endif
+}
+
+inline static int system_listen(int sockfd, int backlog)
+{
+#if defined(HAVE_LISTEN)
+	return listen(sockfd, backlog);
+#else
+# error listen not available
+#endif
+}
+
+inline static off_t system_lseek(int fildes, off_t offset, int whence)
+{
+#if defined(HAVE_LSEEK)
+	return lseek(fildes, offset, whence);
+#else
+# error lseek not available
 #endif
 }
 
@@ -154,6 +243,33 @@ inline static void *system_realloc(void *ptr, size_t size)
 	return realloc(ptr, size);
 #else
 # error realloc not available
+#endif
+}
+
+inline static int system_setsockopt(int s, int level, int optname, const void *optval, socklen_t optlen)
+{
+#if defined(HAVE_SETSOCKOPT)
+	return setsockopt(s, level, optname, optval, optlen);
+#else
+# error setsockopt not available
+#endif
+}
+
+inline static int system_shutdown(int s, int how)
+{
+#if defined(HAVE_SHUTDOWN)
+	return shutdown(s, how);
+#else
+# error shutdown not available
+#endif
+}
+
+inline static int system_socket(int domain, int type, int protocol)
+{
+#if defined(HAVE_SOCKET)
+	return socket(domain, type, protocol);
+#else
+# error socket not available
 #endif
 }
 
