@@ -275,11 +275,11 @@ L_asm_handle_exception_no_leaf_stack:
 	cmp     $2,itmp1
 	je      int2
 
-	mov     -3*8(itmp2),s0
+	mov     -4-3*8(itmp2),s0
 int2:	
-	mov     -2*8(itmp2),s1
+	mov     -4-2*8(itmp2),s1
 int1:	
-	mov     -1*8(itmp2),s2
+	mov     -4-1*8(itmp2),s2
 
 	shl     $2,itmp1                    /* multiply by 4 bytes                */
 	sub     itmp1,itmp2
