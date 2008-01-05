@@ -62,10 +62,18 @@
 #include <Python.h>
 
 #include "vm/jit/python.h"
+#include "vm/jit/show.h"
 
 /*
  * Defs
  */
+
+struct class_state {
+	jitdata *jd;
+	void *vp;
+};
+
+typedef struct class_state class_state;
 
 union class_arg {
 	struct {
@@ -76,21 +84,31 @@ union class_arg {
 		int field;
 		PyObject *value;
 	} set;
+	struct {
+		PyObject *args;
+		PyObject **result;
+	} call;
+	struct {
+		PyObject **result;
+	} str;
 };
 
 typedef union class_arg class_arg;
 
 enum class_op {
-	SET_FIELD,
-	GET_FIELD
+	CLASS_SET_FIELD,
+	CLASS_GET_FIELD,
+	CLASS_CALL,
+	CLASS_STR
 };
 
 typedef enum class_op class_op;
 
-typedef int(*class_func)(void *, class_op, class_arg *);
-#define CLASS_FUNC(name) int name(void *vp, class_op op, class_arg *arg)
+typedef int(*class_func)(class_op, class_state *, class_arg *);
+#define CLASS_FUNC(name) int name(class_op op, class_state *state, class_arg *arg)
 
 struct iterator_state {
+	jitdata *jd;
 	void *data;
 	void *pos;
 };
@@ -134,8 +152,8 @@ typedef struct field_map_entry field_map_entry;
 
 enum field {
 	F_BASIC_BLOCKS,
-	F_CALL_RETURN_TYPE,
-	F_CALL_ARGS,
+	F_CLASS_CALL_RETURN_TYPE,
+	F_CLASS_CALL_ARGS,
 	F_CLASSREF,
 	F_DST,
 	F_DESCRIPTOR,
@@ -163,6 +181,7 @@ enum field {
 	F_S1,
 	F_S2,
 	F_S3,
+	F_SHOW,
 	F_SUCCESSORS,
 	F_TYPE,
 	F_UNRESOLVED_FIELD,
@@ -172,8 +191,8 @@ enum field {
 /* Keep it soreted alphabetically, so we can support binary search in future. */
 struct field_map_entry field_map[] = {
 	{ "basic_blocks", F_BASIC_BLOCKS },
-	{ "call_return_type", F_CALL_RETURN_TYPE },
-	{ "call_args", F_CALL_ARGS },
+	{ "call_return_type", F_CLASS_CALL_RETURN_TYPE },
+	{ "call_args", F_CLASS_CALL_ARGS },
 	{ "classref", F_CLASSREF },
 	{ "dst", F_DST },
 	{ "descriptor", F_DESCRIPTOR },
@@ -201,6 +220,7 @@ struct field_map_entry field_map[] = {
 	{ "s1", F_S1 },
 	{ "s2", F_S2 },
 	{ "s3", F_S3 },
+	{ "show", F_SHOW },
 	{ "successors", F_SUCCESSORS },
 	{ "type", F_TYPE },
 	{ "unresolved_field", F_UNRESOLVED_FIELD },
@@ -226,7 +246,7 @@ int field_find(const char *key) {
 
 struct wrapper {
 	PyObject_HEAD
-	void *data;
+	class_state state;
 	class_func func;
 };
 
@@ -243,7 +263,7 @@ PyObject *wrapper_getattr(wrapper *w, PyObject *fld) {
 
 	arg.get.result = &result;
 
-	if (w->func(w->data, GET_FIELD, &arg) == -1) {
+	if (w->func(CLASS_GET_FIELD, &w->state, &arg) == -1) {
 		return NULL;
 	}
 
@@ -259,7 +279,7 @@ int wrapper_setattr(wrapper *w, PyObject *fld, PyObject *value) {
 	}
 	arg.set.value = value;
 
-	if (w->func(w->data, SET_FIELD, &arg) == -1) {
+	if (w->func(CLASS_SET_FIELD, &w->state, &arg) == -1) {
 		return -1;
 	}
 
@@ -270,9 +290,9 @@ extern PyTypeObject wrapper_type;
 
 int wrapper_compare(wrapper *a, wrapper *b) {
 	if (PyObject_TypeCheck(b, &wrapper_type)) {
-		if (a->data < b->data) {
+		if (a->state.vp < b->state.vp) {
 			return -1;
-		} else if (a->data > b->data) {
+		} else if (a->state.vp > b->state.vp) {
 			return 1;
 		} else {
 			return 0;
@@ -284,7 +304,32 @@ int wrapper_compare(wrapper *a, wrapper *b) {
 }
 
 long wrapper_hash(wrapper *a) {
-	return (long)a->data;
+	return (long)a->state.vp;
+}
+
+PyObject *wrapper_call(wrapper *w, PyObject *args, PyObject *kw) {
+	class_arg arg;
+	PyObject *result;
+
+	arg.call.args = args;
+	arg.call.result = &result;
+
+	if (w->func(CLASS_CALL, &w->state, &arg) == -1) {
+		return NULL;
+	}
+
+	return result;
+}
+
+PyObject *wrapper_str(wrapper *w) {
+	class_arg arg;
+	PyObject *result;
+	arg.str.result = &result;
+	if (w->func(CLASS_STR, &w->state, &arg) == -1) {
+		return PyString_FromFormat("Wrapper(0x%p)", w->state.vp);
+	} else {
+		return result;
+	}
 }
 
 PyTypeObject wrapper_type = {
@@ -298,13 +343,13 @@ PyTypeObject wrapper_type = {
 	0, /* tp_getattr */
 	0, /* tp_setattr */
 	wrapper_compare, /* tp_compare */
-	0, /* tp_repr */
+	wrapper_str, /* tp_repr */
 	0, /* tp_as_number */
 	0, /* tp_as_sequence */
 	0, /* tp_as_mapping */
 	wrapper_hash, /* tp_hash */
-	0, /* tp_call */
-	0, /* tp_str */
+	wrapper_call, /* tp_call */
+	wrapper_str, /* tp_str */
 	wrapper_getattr, /* tp_getattro */
 	wrapper_setattr, /* tp_setattro */
 	0, /* tp_as_buffer */
@@ -455,14 +500,15 @@ int get_string(PyObject **o, const char *str) {
 	return 0;
 }
 
-int get_obj(PyObject **res, class_func f, void *p) {
+int get_obj(PyObject **res, class_func f, jitdata *jd, void *p) {
 	if (p == NULL) {
 		return get_none(res);
 	} else {
 		PyObject *o = PyObject_CallObject((PyObject *)&wrapper_type, NULL);
 		struct wrapper * w = (struct wrapper *)o;
 		w->func = f;
-		w->data = p;
+		w->state.jd = jd;
+		w->state.vp = p;
 		*res = o;
 		return 0;
 	}
@@ -490,10 +536,11 @@ int get_bool(PyObject **res, int cond) {
 	return cond ? get_true(res) : get_false(res);
 }
 	
-int get_iter(PyObject **res, iterator_func f, void *p) {
+int get_iter(PyObject **res, iterator_func f, jitdata *jd, void *p) {
 	PyObject *o = PyObject_CallObject((PyObject *)&iterator_type, NULL);
 	struct iterator * it = (struct iterator *)o;
 	it->func = f;
+	it->state.jd = jd;
 	it->state.data = p;
 	f(ITERATOR_INIT, &it->state, NULL);
 	*res = o;
@@ -550,10 +597,10 @@ ITERATOR_FUNC(call_args_iter_func) {
 }
 
 CLASS_FUNC(fieldinfo_func) {
-	fieldinfo *fi = (fieldinfo *)vp;
+	fieldinfo *fi = (fieldinfo *)state->vp;
 
 	switch (op) {
-		case GET_FIELD:
+		case CLASS_GET_FIELD:
 			switch (arg->get.field) {
 				case F_TYPE:
 					return get_int(arg->get.result, fi->type);
@@ -562,7 +609,7 @@ CLASS_FUNC(fieldinfo_func) {
 				case F_NAME:
 					return get_string(arg->get.result, fi->name->text);
 				case F_KLASS:
-					return get_obj(arg->get.result, classinfo_func, fi->class);
+					return get_obj(arg->get.result, classinfo_func, state->jd, fi->class);
 			}
 	}
 
@@ -570,9 +617,9 @@ CLASS_FUNC(fieldinfo_func) {
 }
 
 CLASS_FUNC(unresolved_field_func) {
-	unresolved_field *uf = (unresolved_field *)vp;
+	unresolved_field *uf = (unresolved_field *)state->vp;
 	switch (op) {
-		case GET_FIELD:
+		case CLASS_GET_FIELD:
 			switch (arg->get.field) {
 				case F_NAME:
 					return get_string(arg->get.result, uf->fieldref->name->text);
@@ -580,13 +627,13 @@ CLASS_FUNC(unresolved_field_func) {
 					if (IS_FMIREF_RESOLVED(uf->fieldref)) {
 						return get_none(arg->get.result);
 					} else {
-						return get_obj(arg->get.result, constant_classref_func, uf->fieldref->p.classref);
+						return get_obj(arg->get.result, constant_classref_func, state->jd, uf->fieldref->p.classref);
 					}
 				case F_DESCRIPTOR:
 					return get_string(arg->get.result, uf->fieldref->descriptor->text);
 				case F_FIELD:
 					if (IS_FMIREF_RESOLVED(uf->fieldref)) {
-						return get_obj(arg->get.result, fieldinfo_func, uf->fieldref->p.field);
+						return get_obj(arg->get.result, fieldinfo_func, state->jd, uf->fieldref->p.field);
 					} else {
 						return get_none(arg->get.result);
 					}
@@ -597,12 +644,21 @@ CLASS_FUNC(unresolved_field_func) {
 	return -1;
 }
 
+CLASS_FUNC(instruction_show_func) {
+	switch (op) {
+		case CLASS_CALL:
+			show_icmd(state->jd, (instruction *)state->vp, 1, SHOW_REGS);	
+			return get_none(arg->get.result);
+	}
+	return -1;
+}
+
 CLASS_FUNC(instruction_func) {
 
-	instruction *iptr = (instruction *)vp;
+	instruction *iptr = (instruction *)state->vp;
 
 	switch (op) {
-		case GET_FIELD:
+		case CLASS_GET_FIELD:
 			switch (arg->get.field) {
 				case F_OPCODE:
 					return get_int(arg->get.result, iptr->opc);
@@ -628,24 +684,24 @@ CLASS_FUNC(instruction_func) {
 					return get_int(arg->get.result, iptr->sx.s23.s3.varindex);
 				case F_DST:
 					return get_int(arg->get.result, iptr->dst.varindex);
-				case F_CALL_RETURN_TYPE:
+				case F_CLASS_CALL_RETURN_TYPE:
 					return get_int(arg->get.result, instruction_call_site(iptr)->returntype.type);
-				case F_CALL_ARGS:
-					return get_iter(arg->get.result, call_args_iter_func, iptr);	
+				case F_CLASS_CALL_ARGS:
+					return get_iter(arg->get.result, call_args_iter_func, state->jd, iptr);	
 				case F_IS_UNRESOLVED:
 					return get_bool(arg->get.result, iptr->flags.bits & INS_FLAG_UNRESOLVED);
 				case F_IS_CLASS_CONSTANT:
 					return get_bool(arg->get.result, iptr->flags.bits & INS_FLAG_CLASS);
 				case F_KLASS:
-					return get_obj(arg->get.result, classinfo_func, iptr->sx.val.c.cls);
+					return get_obj(arg->get.result, classinfo_func, state->jd, iptr->sx.val.c.cls);
 				case F_CLASSREF:
-					return get_obj(arg->get.result, constant_classref_func, iptr->sx.val.c.ref);
+					return get_obj(arg->get.result, constant_classref_func, state->jd, iptr->sx.val.c.ref);
 				case F_LOCAL_METHODINFO:
 					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 						return get_none(arg->get.result);
 					} else {	
 						return get_obj(arg->get.result, methodinfo_func, 
-							iptr->sx.s23.s3.fmiref->p.method);
+							state->jd, iptr->sx.s23.s3.fmiref->p.method);
 					}
 				case F_FIELD_TYPE:
 					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
@@ -659,18 +715,20 @@ CLASS_FUNC(instruction_func) {
 					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 						return get_none(arg->get.result);
 					} else {
-						return get_obj(arg->get.result, fieldinfo_func, iptr->sx.s23.s3.fmiref->p.field);
+						return get_obj(arg->get.result, fieldinfo_func, state->jd, iptr->sx.s23.s3.fmiref->p.field);
 					}
 					break;
 				case F_UNRESOLVED_FIELD:
 					if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-						return get_obj(arg->get.result, unresolved_field_func, iptr->sx.s23.s3.uf);
+						return get_obj(arg->get.result, unresolved_field_func, state->jd, iptr->sx.s23.s3.uf);
 					} else {
 						return get_none(arg->get.result);
 					}
 					break;
 				case F_LINE:
 					return get_int(arg->get.result, iptr->line);
+				case F_SHOW:
+					return get_obj(arg->get.result, instruction_show_func, state->jd, iptr);
 			}
 	}
 
@@ -685,7 +743,7 @@ ITERATOR_FUNC(predecessors_iter_func) {
 			state->pos = bptr->predecessors;
 			return 0;
 		case ITERATOR_GET:
-			return get_obj(arg->get.result, basicblock_func, *(basicblock **)state->pos);
+			return get_obj(arg->get.result, basicblock_func, state->jd, *(basicblock **)state->pos);
 		case ITERATOR_END:
 			return 
 				(state->pos == (bptr->predecessors + bptr->predecessorcount)) ||
@@ -706,7 +764,7 @@ ITERATOR_FUNC(successors_iter_func) {
 			state->pos = bptr->successors;
 			return 0;
 		case ITERATOR_GET:
-			return get_obj(arg->get.result, basicblock_func, *(basicblock **)state->pos);
+			return get_obj(arg->get.result, basicblock_func, state->jd, *(basicblock **)state->pos);
 		case ITERATOR_END:
 			return 
 				(state->pos == (bptr->successors + bptr->successorcount)) || 
@@ -727,7 +785,7 @@ ITERATOR_FUNC(instruction_iter_func) {
 			state->pos = bptr->iinstr;
 			return 0;
 		case ITERATOR_GET:
-			return get_obj(arg->get.result, instruction_func, state->pos);
+			return get_obj(arg->get.result, instruction_func, state->jd, state->pos);
 		case ITERATOR_FORWARD:
 			state->pos = ((instruction *)state->pos) + 1;
 			return 0;
@@ -735,7 +793,7 @@ ITERATOR_FUNC(instruction_iter_func) {
 			return state->pos == (bptr->iinstr + bptr->icount);
 		case ITERATOR_SUBSCRIPT:
 			ITERATOR_SUBSCRIPT_CHECK(bptr->icount);
-			return get_obj(arg->subscript.result, instruction_func, bptr->iinstr + arg->subscript.index);
+			return get_obj(arg->subscript.result, instruction_func, state->jd, bptr->iinstr + arg->subscript.index);
 		case ITERATOR_LENGTH:
 			arg->length = bptr->icount;
 			return 0;
@@ -743,25 +801,40 @@ ITERATOR_FUNC(instruction_iter_func) {
 	return -1;
 }
 
+CLASS_FUNC(basicblock_show_func) {
+	basicblock *bptr = (basicblock *)state->vp;
+	switch (op) {
+		case CLASS_CALL:
+			show_basicblock(state->jd, bptr, SHOW_REGS);
+			return get_none(arg->call.result);
+	}
+	return -1;
+}
+
 CLASS_FUNC(basicblock_func) {
-	basicblock *bptr = (basicblock *)vp;
+	basicblock *bptr = (basicblock *)state->vp;
 
 	switch (op) {
-		case GET_FIELD:
+		case CLASS_GET_FIELD:
 			switch (arg->get.field) {
 				case F_INSTRUCTIONS:
-					return get_iter(arg->get.result, instruction_iter_func, bptr);
+					return get_iter(arg->get.result, instruction_iter_func, state->jd, bptr);
 				case F_NR:
 					return get_int(arg->get.result, bptr->nr);
 				case F_PREDECESSORS:
-					return get_iter(arg->get.result, predecessors_iter_func, bptr);
+					return get_iter(arg->get.result, predecessors_iter_func, state->jd, bptr);
 				case F_SUCCESSORS:
-					return get_iter(arg->get.result, successors_iter_func, bptr);
+					return get_iter(arg->get.result, successors_iter_func, state->jd, bptr);
 				case F_REACHED:
 					return get_bool(arg->get.result, bptr->flags >= BBREACHED);
 				case F_EXCEPTION_HANDLER:
 					return get_bool(arg->get.result, bptr->type == BBTYPE_EXH);
+				case F_SHOW:
+					return get_obj(arg->get.result, basicblock_show_func, state->jd, bptr);
 			}
+		case CLASS_STR:
+			*arg->str.result = PyString_FromFormat("BB_%d", bptr->nr);
+			return 0;
 	}
 
 	return -1;
@@ -769,33 +842,35 @@ CLASS_FUNC(basicblock_func) {
 
 ITERATOR_FUNC(basicblocks_iter_func) {
 	jitdata *jd = (jitdata *)state->data;
+	basicblock *bb;
 
 	switch (op) {
 		case ITERATOR_INIT:
 			state->pos = jd->basicblocks;
 			return 0;	
 		case ITERATOR_GET:
-			return get_obj(arg->get.result, basicblock_func, state->pos);
+			return get_obj(arg->get.result, basicblock_func, state->jd, state->pos);
 		case ITERATOR_FORWARD:
 			state->pos = ((basicblock *)(state->pos))->next;
 			return 0;
 		case ITERATOR_END:
 			return (state->pos == NULL);
 		case ITERATOR_SUBSCRIPT:
-			if (arg->subscript.index == 0 && jd->basicblocks != NULL) {
-				return get_obj(arg->subscript.result, basicblock_func, jd->basicblocks);
-			} else {
-				return -1;
+			for (bb = jd->basicblocks; bb != NULL; bb = bb->next) {
+				if (bb->nr == arg->subscript.index) {
+					return get_obj(arg->subscript.result, basicblock_func, state->jd, bb);
+				}
 			}
+			return -1;
 	}
 
 	return -1;
 }
 
 CLASS_FUNC(classinfo_func) {
-	classinfo *c = (classinfo *)vp;
+	classinfo *c = (classinfo *)state->vp;
 	switch (op) {
-		case GET_FIELD:
+		case CLASS_GET_FIELD:
 			switch (arg->get.field) {
 				case F_NAME:
 					return get_string(arg->get.result, c->name->text);
@@ -805,9 +880,9 @@ CLASS_FUNC(classinfo_func) {
 }
 
 CLASS_FUNC(constant_classref_func) {
-	constant_classref *cr = (constant_classref *)vp;
+	constant_classref *cr = (constant_classref *)state->vp;
 	switch (op) {
-		case GET_FIELD:
+		case CLASS_GET_FIELD:
 			switch (arg->get.field) {
 				case F_NAME:
 					return get_string(arg->get.result, cr->name->text);
@@ -842,16 +917,16 @@ ITERATOR_FUNC(param_types_iter_func) {
 }
 
 CLASS_FUNC(methodinfo_func) {
-	methodinfo *m = (methodinfo *)vp;
+	methodinfo *m = (methodinfo *)state->vp;
 	switch (op) {
-		case GET_FIELD:
+		case CLASS_GET_FIELD:
 			switch (arg->get.field) {
 				case F_NAME:
 					return get_string(arg->get.result, m->name->text);
 				case F_KLASS:
-					return get_obj(arg->get.result, classinfo_func, m->class);
+					return get_obj(arg->get.result, classinfo_func, state->jd, m->class);
 				case F_PARAM_TYPES:
-					return get_iter(arg->get.result, param_types_iter_func, m);
+					return get_iter(arg->get.result, param_types_iter_func, state->jd, m);
 				case F_RETURN_TYPE:
 					return get_int(arg->get.result, m->parseddesc->returntype.type);
 			}
@@ -861,9 +936,9 @@ CLASS_FUNC(methodinfo_func) {
 
 
 CLASS_FUNC(varinfo_func) {
-	varinfo *var = (varinfo *)vp;
+	varinfo *var = (varinfo *)state->vp;
 	switch (op) {
-		case GET_FIELD:
+		case CLASS_GET_FIELD:
 			switch (arg->get.field) {
 				case F_TYPE:
 					return get_int(arg->get.result, var->type);
@@ -884,13 +959,13 @@ ITERATOR_FUNC(vars_func) {
 		case ITERATOR_END:
 			return state->pos == (jd->var + jd->varcount);
 		case ITERATOR_GET:
-			return get_obj(arg->get.result, varinfo_func, state->pos);
+			return get_obj(arg->get.result, varinfo_func, state->jd, state->pos);
 		case ITERATOR_LENGTH:
 			arg->length = jd->varcount;
 			return 0;
 		case ITERATOR_SUBSCRIPT:
 			ITERATOR_SUBSCRIPT_CHECK(jd->varcount);
-			return get_obj(arg->subscript.result, varinfo_func, jd->var + arg->subscript.index);
+			return get_obj(arg->subscript.result, varinfo_func, state->jd, jd->var + arg->subscript.index);
 	}
 	return -1;
 }
@@ -913,26 +988,26 @@ ITERATOR_FUNC(local_map_iter_func) {
 	switch (op) {
 		case ITERATOR_SUBSCRIPT:
 			/* todo ITERATOR_SUBSCRIPT_CHECK(); */
-			return get_iter(arg->subscript.result, local_map_2_iter_func, 
+			return get_iter(arg->subscript.result, local_map_2_iter_func, state->jd,
 				jd->local_map + (5 * arg->subscript.index));
 	}
 	return -1;
 }
 
 CLASS_FUNC(jd_func) {
-	jitdata *jd = (jitdata *)vp;
+	jitdata *jd = (jitdata *)state->vp;
 
 	switch (op) {
-		case GET_FIELD:
+		case CLASS_GET_FIELD:
 			switch (arg->get.field) {
 				case F_BASIC_BLOCKS:
-					return get_iter(arg->get.result, basicblocks_iter_func, jd);
+					return get_iter(arg->get.result, basicblocks_iter_func, state->jd, jd);
 				case F_METHOD:
-					return get_obj(arg->get.result, methodinfo_func, jd->m);
+					return get_obj(arg->get.result, methodinfo_func, state->jd, jd->m);
 				case F_VARS:
-					return get_iter(arg->get.result, vars_func, jd);
+					return get_iter(arg->get.result, vars_func, state->jd, jd);
 				case F_LOCAL_MAP:
-					return get_iter(arg->get.result, local_map_iter_func, jd);
+					return get_iter(arg->get.result, local_map_iter_func, state->jd, jd);
 			}
 	}
 
@@ -1013,7 +1088,7 @@ int pythonpass_run(jitdata *jd, const char *module, const char *function) {
 		if (pyfunc != NULL && PyCallable_Check(pyfunc)) {
 			pyargs = PyTuple_New(1);
 
-			if (get_obj(&pyarg, jd_func, jd) != -1) {
+			if (get_obj(&pyarg, jd_func, jd, jd) != -1) {
 			}
 
 			/* */
