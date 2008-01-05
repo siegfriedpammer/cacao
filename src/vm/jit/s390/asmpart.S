@@ -163,10 +163,10 @@ L_asm_vm_call_method_stack_copy_done:
 	la    mptr, 2*4(s1)         /* load method pointer */
 	l     pv, 0(mptr)           /* load procedure vector from method pointer */
 	basr  ra, pv                /* call method */
-	lr    sp, s1                /* restore stack pointer */
 
 L_asm_vm_call_method_return:
 
+	lr    sp, s1                /* restore stack pointer */
 	l     s0, 0*4(sp)           /* restore used callee saved registers */
 	l     s1, 1*4(sp)
 	l     %r12, 3*4(sp)
