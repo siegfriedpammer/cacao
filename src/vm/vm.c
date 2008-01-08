@@ -39,6 +39,7 @@
 
 #include "vm/jit/abi-asm.h"
 
+#include "mm/codememory.h"
 #include "mm/gc-common.h"
 #include "mm/memory.h"
 
@@ -1489,11 +1490,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!classcache_init())
 		vm_abort("vm_create: classcache_init failed");
 
-	/* initialize the memory subsystem (must be done _after_
-	   threads_preinit) */
+	/* Initialize the code memory management. */
+	/* AFTER: threads_preinit */
 
-	if (!memory_init())
-		vm_abort("vm_create: memory_init failed");
+	codememory_init();
 
 	/* initialize the finalizer stuff (must be done _after_
 	   threads_preinit) */
