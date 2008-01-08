@@ -1,9 +1,7 @@
 dnl m4/dump.m4
 dnl
-dnl Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-dnl C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-dnl E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-dnl J. Wenninger, Institut f. Computersprachen - TU Wien
+dnl Copyright (C) 2007, 2008
+dnl CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 dnl 
 dnl This file is part of CACAO.
 dnl 
@@ -34,8 +32,11 @@ AC_ARG_ENABLE([dump],
                        DISABLE_DUMP=yes
                        AC_DEFINE([DISABLE_DUMP], 1, [disable dump memory])
                        ;;
-                   *) DISABLE_DUMP=no;;
+                   *)
+                       DISABLE_DUMP=no
+                       ;;
                esac],
                [DISABLE_DUMP=no])
 AC_MSG_RESULT(${DISABLE_DUMP})
+AM_CONDITIONAL([DISABLE_DUMP], test x"${DISABLE_DUMP}" = "xno")
 ])
