@@ -32,7 +32,7 @@
 
 SUBDIRS = handbook
 
-dist_noinst_DATA = annotations.tex jsr.bib
+dist_noinst_DATA = assertions.tex annotations.tex jsr.bib
 
 EXTRA_DIST = inlining_stacktrace.txt native_threads.txt stack.txt
 
@@ -47,13 +47,21 @@ CLEANFILES = \
 	annotations.toc \
 	annotations.idx \
 	annotations.out \
-	annotations.tex~
+	annotations.tex~ \
+	assertions.aux \
+	assertions.dvi \
+	assertions.log \
+	assertions.toc
 
 annotations:
 	latex annotations
 	bibtex annotations
 	latex annotations
 	latex annotations
+
+assertions:
+	latex assertions
+	latex assertions
 
 ## Local variables:
 ## mode: Makefile
