@@ -1464,7 +1464,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 #endif
 
 #if defined(ENABLE_PYTHON)
-		if (!pythonpass_run(jd, "langauer_tarjan", "langauer_tarjan")) {
+		if (!pythonpass_run(jd, "langauer_tarjan", "main")) {
 			/*return NULL;*/
 		}
 #endif

@@ -61,8 +61,16 @@
 
 #include <Python.h>
 
+#include "vm/global.h"
 #include "vm/jit/python.h"
 #include "vm/jit/show.h"
+#if defined(ENABLE_THREADS)
+# include "threads/lock-common.h"
+#endif
+
+#if defined(ENABLE_THREADS)
+static java_object_t *python_global_lock;
+#endif
 
 /*
  * Defs
@@ -175,6 +183,8 @@ enum field {
 	F_OPCODE,
 	F_OPCODE_EX,
 	F_PARAM_TYPES,
+	F_PEI,
+	F_PEI_EX,
 	F_PREDECESSORS,
 	F_REACHED,
 	F_RETURN_TYPE,
@@ -214,6 +224,8 @@ struct field_map_entry field_map[] = {
 	{ "opcode", F_OPCODE },
 	{ "opcode_ex", F_OPCODE_EX },
 	{ "param_types", F_PARAM_TYPES },
+	{ "pei", F_PEI },
+	{ "pei_ex", F_PEI_EX },
 	{ "predecessors", F_PREDECESSORS },
 	{ "reached", F_REACHED },
 	{ "return_type", F_RETURN_TYPE },
@@ -729,6 +741,14 @@ CLASS_FUNC(instruction_func) {
 					return get_int(arg->get.result, iptr->line);
 				case F_SHOW:
 					return get_obj(arg->get.result, instruction_show_func, state->jd, iptr);
+				case F_PEI:
+					return get_bool(arg->get.result, icmd_table[iptr->opc].flags & ICMDTABLE_PEI);
+				case F_PEI_EX:
+					if (iptr->opc == ICMD_BUILTIN) {
+						return get_bool(arg->get.result, icmd_table[iptr->sx.s23.s3.bte->opcode].flags & ICMDTABLE_PEI);
+					} else {
+						return get_bool(arg->get.result, icmd_table[iptr->opc].flags & ICMDTABLE_PEI);
+					}
 			}
 	}
 
@@ -1063,6 +1083,11 @@ void pythonpass_init() {
 		constants(m);
 	}
 
+#if defined(ENABLE_THREADS)
+	python_global_lock = NEW(java_object_t);
+	LOCK_INIT_OBJECT_LOCK(python_global_lock);
+#endif
+
 }
 
 void pythonpass_cleanup() {
@@ -1078,6 +1103,8 @@ int pythonpass_run(jitdata *jd, const char *module, const char *function) {
 	PyObject *pyret = NULL;
 	PyObject *pyarg = NULL;
 	int success = 0;
+
+	LOCK_MONITOR_ENTER(python_global_lock);
 
 	pymodname = PyString_FromString(module);
 	pymod = PyImport_Import(pymodname);
@@ -1113,6 +1140,8 @@ int pythonpass_run(jitdata *jd, const char *module, const char *function) {
 	Py_XDECREF(pymod);
 	Py_XDECREF(pyargs);
 	Py_XDECREF(pyret);
+
+	LOCK_MONITOR_EXIT(python_global_lock);
 
 	return (success == 1 ? 1 : 0);
 }
