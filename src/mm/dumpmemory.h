@@ -65,7 +65,7 @@ typedef struct dump_allocation_t dump_allocation_t;
 struct dump_allocation_t {
 	dump_allocation_t *next;
 	void              *mem;
-	int32_t            useddumpsize;
+	int32_t            used;
 	int32_t            size;
 };
 #endif
@@ -74,9 +74,9 @@ struct dump_allocation_t {
 /* dumpinfo *******************************************************************/
 
 struct dumpinfo_t {
-	dumpblock_t       *currentdumpblock;        /* the current top-most block */
-	int32_t            allocateddumpsize;     /* allocated bytes in this area */
-	int32_t            useddumpsize;          /* used bytes in this dump area */
+	dumpblock_t       *block;                   /* the current top-most block */
+	int32_t            allocated;             /* allocated bytes in this area */
+	int32_t            used;                  /* used bytes in this dump area */
 #if defined(ENABLE_MEMCHECK)
 	dump_allocation_t *allocations;       /* list of allocations in this area */
 #endif
@@ -85,15 +85,15 @@ struct dumpinfo_t {
 
 /* convenience macros *********************************************************/
 
-#define DNEW(type)            ((type *) dump_alloc(sizeof(type)))
-#define DMNEW(type,num)       ((type *) dump_alloc(sizeof(type) * (num)))
-#define DMREALLOC(ptr,type,num1,num2) dump_realloc((ptr), sizeof(type) * (num1), \
+#define DNEW(type)            ((type *) dumpmemory_get(sizeof(type)))
+#define DMNEW(type,num)       ((type *) dumpmemory_get(sizeof(type) * (num)))
+#define DMREALLOC(ptr,type,num1,num2) dumpmemory_realloc((ptr), sizeof(type) * (num1), \
                                                           sizeof(type) * (num2))
 
 /* function prototypes ********************************************************/
 
-void    *dump_alloc(int32_t size);
-void    *dump_realloc(void *src, int32_t len1, int32_t len2);
+void    *dumpmemory_get(size_t size);
+void    *dumpmemory_realloc(void *src, int32_t len1, int32_t len2);
 int32_t  dump_size(void);
 void     dump_release(int32_t size);
 

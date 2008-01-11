@@ -557,7 +557,7 @@ void mem_free(void *m, int32_t size)
 	free(m);
 }
 
-void *dump_alloc(int32_t size)
+void *dumpmemory_get(size_t size)
 {
 	return malloc(size);
 }
