@@ -31,30 +31,20 @@
 */
 
 
-#ifndef _SSA_H
-#define _SSA_H
+#ifndef _SSA_RENAME_H
+#define _SSA_RENAME_H
 
 #include "vm/jit/optimizing/graph.h"
 
 #if !defined(NDEBUG)
 # include <assert.h>
-# define SSA_DEBUG_CHECK
-# define SSA_DEBUG_VERBOSE
-#endif
-
-#ifdef SSA_DEBUG_CHECK
-# define _SSA_CHECK_BOUNDS(i,l,h) assert( ((i) >= (l)) && ((i) < (h)));
-# define _SSA_ASSERT(a) assert((a));
-#else
-# define _SSA_CHECK_BOUNDS(i,l,h)
-# define _SSA_ASSERT(a)
 #endif
 
 /* function prototypes */
-void ssa_init(jitdata *);
-void ssa(jitdata */* , graphdata **/);
+void ssa_rename_init(jitdata *jd, graphdata *gd);
+void ssa_rename(jitdata *jd, graphdata *gd, dominatordata *dd);
 
-#endif /* _SSA_H */
+#endif /* _SSA_RENAME_H */
 
 /*
  * These are local overrides for various environment variables in Emacs.

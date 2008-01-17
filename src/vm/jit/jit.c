@@ -1497,6 +1497,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		/* allocate registers */
 		if ((opt_lsra) && (jd->exceptiontablelength == 0)) {
 			jd->ls = DNEW(lsradata);
+			ssa(jd);
 			lsra(jd);
 
 			STATISTICS(count_methods_allocated_by_lsra++);

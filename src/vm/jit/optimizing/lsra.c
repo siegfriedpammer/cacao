@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/lsra.inc - linear scan register allocator
 
-   Copyright (C) 2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
+   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
    C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
    Institut f. Computersprachen - TU Wien
@@ -22,9 +22,13 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
+   Contact: cacao@complang.tuwien.ac.at
+
+   Authors: Christian Ullrich
+
+   $Id: lsra.c $
+
 */
-
-
 #include "config.h"
 
 #include <stdio.h>
@@ -45,25 +49,17 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/jit.h"
 
-
 #include "vm/jit/optimizing/graph.h"
 #include "vm/jit/optimizing/lifetimes.h"
 #include "vm/jit/optimizing/ssa.h"
 
 #include "vm/jit/optimizing/lsra.h"
 
-#ifdef LSRA_TESTLT
-# include "vm/resolve.h"
-#include "vm/builtin.h"
-#endif
-
-
 #include "toolbox/logging.h"
 
 extern const char *string_java_lang_InternalError;
 /* function prototypes */
-void lsra_init(jitdata *);
-graphdata *lsra_setup(jitdata *);
+void lsra_setup(jitdata *);
 void lsra_main(jitdata *);
 #ifdef LSRA_DEBUG_VERBOSE
 void lsra_dump_stack(stackptr );
@@ -95,7 +91,6 @@ void lsra(jitdata *jd) {
 	codegendata *cd;
 	registerdata *rd;
 	lsradata *ls;
-	graphdata *gd;
 #if defined(ENABLE_STATISTICS)
 	int locals_start;
 	int i,j;
@@ -150,7 +145,7 @@ void lsra(jitdata *jd) {
 #if defined(LSRA_DEBUG_VERBOSE)
 	if (compileverbose) {
 		printf("%s %s ",m->class->name->text, m->name->text);
-		if (code_is_leafmethod(code))
+		if (code_is_leafmethod(jd->code))
 			printf("**Leafmethod**");
 		printf("\n");
 	}
@@ -164,9 +159,8 @@ void lsra(jitdata *jd) {
 	        { int dummy=1; dummy++; }
 #endif
 #endif
-
-    lsra_init(jd);
-	gd = lsra_setup(jd);
+			
+	lsra_setup(jd);
 
 #if defined(ENABLE_STATISTICS)
 	/* find conflicts between locals for statistics */
@@ -187,30 +181,17 @@ void lsra(jitdata *jd) {
 #endif
 	/* Run LSRA */
 	lsra_main(jd);
-#ifdef LSRA_TESTLT
-	test_lifetimes( jd, gd );
-#endif
+
 	fflush(stdout);
 }
 
 
-void lsra_init(jitdata *jd) 
-{
-	lsradata *ls = jd->ls;
-
-	/* Init LSRA Data Structures */
-	/* allocate lifetimes for all Basicblocks */
-
-	ls->v_index = -1;
-}
-
-graphdata *lsra_setup(jitdata *jd)
+void lsra_setup(jitdata *jd)
 {
 	methodinfo *m;
 	codegendata *cd;
 	registerdata *rd;
 	lsradata *ls;
-	graphdata *gd;
 
 #if defined(ENABLE_LOOPS)
 	/* Loop optimization "destroys" the basicblock array */
@@ -226,18 +207,6 @@ graphdata *lsra_setup(jitdata *jd)
 	rd = jd->rd;
 	ls = jd->ls;
 
-	ssa_init(jd);
-
-	/* Setup LSRA Data structures */
-
-	/* Generate the Control Flow Graph */
-	/* Add one for a Basic Block 0 to be inserted, so lateron */
-	/* with SSA Parameter initialization is handled right */
-	gd = graph_init(jd->basicblockcount + 1);
-	graph_make_cfg(jd, gd);
-	ssa(jd, gd);
-	lt_lifeness_analysis(jd, gd);
-
 #ifdef LSRA_DEBUG_VERBOSE
 	if (compileverbose) {
 		printf("Lifetimes after LifenessAnalyse: \n");
@@ -252,7 +221,6 @@ graphdata *lsra_setup(jitdata *jd)
 		printf("Basicblockcount: %4i\n",ls->basicblockcount);
 	}
 #endif
-	return gd;
 }
 
 void lsra_reg_setup(jitdata *jd,
@@ -272,7 +240,7 @@ void lsra_reg_setup(jitdata *jd,
 
 	int_reg->nregdesc = nregdescint;
 	flt_reg->nregdesc = nregdescfloat;
-	if (code_is_leafmethod(code)) { 
+	if (code_is_leafmethod(jd->code)) { 
 		/* Temp and Argumentregister can be used as saved registers */
 
 		int_reg->sav_top = INT_ARG_CNT + INT_TMP_CNT + INT_SAV_CNT;
@@ -456,9 +424,8 @@ void lsra_param_sort(struct lsradata *ls, int *lifetime, int lifetime_count) {
 	int param_count;
 	int i,j,tmp;
 
-	/* count number of parameters ( .i_start == -1) */
+	/* count number of parameters ( .i_start == 0) */
 	for (param_count=0; (param_count < lifetime_count) &&
-/* 		 (ls->lifetime[lifetime[param_count]].i_start == -1); param_count++); */
 		 (ls->lifetime[lifetime[param_count]].i_start == 0); param_count++);
 
 	if (param_count > 0) {
@@ -649,7 +616,10 @@ int lsra_getmem(struct lifetime *lt, struct freemem *fmem, int *mem_use)
 	for (p=fmem; (p->next!=NULL) && (p->next->end < fm->end); p=p->next);
 	fm->next=p->next;
 	p->next=fm;
-	return fm->off;
+	/* HACK: stackslots are 8 bytes on all architectures for now, I hope.
+	 * -- pm
+	 */
+	return fm->off * 8;
 }
 
 struct freemem *lsra_getnewmem(int *mem_use)
@@ -704,7 +674,7 @@ void _lsra_main( jitdata *jd, int *lifet, int lifetimecount,
 #ifdef LSRA_SAVEDVAR
 		lt->savedvar = SAVEDVAR;
 #endif
-		if (lt->savedvar || code_is_leafmethod(code)) {
+		if (lt->savedvar || code_is_leafmethod(jd->code)) {
 			/* use Saved Reg (in case of leafmethod all regs are saved regs) */
 			if (reg->sav_top > regsneeded) {
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
@@ -787,7 +757,7 @@ void _lsra_expire_old_intervalls(jitdata *jd, struct lifetime *lt,
 		if (active[i]->i_end > lt->i_start) break;
 
 		/* make active[i]->reg available again */
-		if (code_is_leafmethod(code)) { 
+		if (code_is_leafmethod(jd->code)) { 
 			/* leafmethod -> don't care about type -> put all again into */
 			/* reg->sav_reg */
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
@@ -835,7 +805,7 @@ void spill_at_intervall(jitdata *jd, struct lifetime *lt )
 
 	ls = jd->ls;
 
-	if (lt->savedvar || code_is_leafmethod(code)) {
+	if (lt->savedvar || code_is_leafmethod(jd->code)) {
 		_spill_at_intervall(lt, ls->active_sav, &(ls->active_sav_top));
 	} else {
 		_spill_at_intervall(lt, ls->active_tmp, &(ls->active_tmp_top));
@@ -970,7 +940,7 @@ void lsra_calc_lifetime_length(jitdata *jd)
 
 			switch (lt->type) {
 			case TYPE_LNG:
-#if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
+#if (defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)) || defined (__I386__)
 				flags = 0;
 #else
 				flags = 1;

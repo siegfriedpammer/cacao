@@ -26,6 +26,7 @@
 
    Authors: Christian Ullrich
 
+   $Id: lsra.h,v 1.17 2005/11/22 14:36:16 christian Exp $
 
 */
 
@@ -67,13 +68,6 @@
 #define min(a,b) ((a)<(b)?(a):(b))
 #define max(a,b) ((a)<(b)?(b):(a))
 
-struct _backedge {
-	int start;
-	int end;
-	int nesting;
-	struct _backedge *next;
-};
-
 struct site {
 	int b_index;
 	int iindex;
@@ -107,14 +101,6 @@ struct l_loop {
 	int nesting;
 };
 
-/*
-struct stackslot {
-	stackptr s;
-	int bb;
-	struct stackslot *next;
-};
-*/
-
 struct lsra_register {
 	int *sav_reg;
 	int *tmp_reg;
@@ -128,31 +114,7 @@ struct lsra_reg {
 	int use;
 };
 
-struct igraph_lookup {
-	int var;
-	int igraph;
-};
-
-struct igraph_interference {
-	int v1;
-	int v2;
-	struct igraph_interference *next;
-};
-
-struct igraph_vars {
-	int v;
-	struct igraph_vars *next;
-};
-
-struct igraph {
-	struct igraph_interference *inter;
-	struct igraph_vars *vars;
-};
-
-
 struct lsradata {
-	/* int *var; */           /* unused entries are set to UNUSED    */
-	                    /* maps to jd->vars array */
 	int varcount;       /* size of vars array */
 	int ssavarcount;    /* ls->vars[0..ssavarcount[ are all locals and iovars */
 	                    /* they are regarded for ssa renaming */
@@ -174,9 +136,6 @@ struct lsradata {
 	int *sorted;         /* BB sorted in reverse post order */
 	int *sorted_rev;     /* BB reverse lookup of sorted */
 
-	struct _backedge **backedge; /* backedge data structure */
-	int backedge_count;          /* number of backedges */
-
 	long *nesting;    /* Nesting level of BB*/
 
 	struct lifetime *lifetime; /* array of lifetimes */
@@ -194,8 +153,6 @@ struct lsradata {
 	int active_tmp_top, active_sav_top;
 
 	struct lsra_exceptiontable *ex;
-	int v_index;               /* next free index for stack slot lifetimes    */
-	                           /* decrements from -1 */
 
 	/* SSA fields */
 	bitvector *var_def; /* LocalVar Definition Bitvector [0..ls->bbcount]  */
@@ -249,11 +206,6 @@ struct lsradata {
 	int **stack;
 	int *stack_top;
 
-	/* structures for phi var interference graphs */
-	struct igraph_lookup **igraph_lookup; /* var to igraph index */
-	int igraph_lookup_top;   /* number of entries in above table */
-	struct igraph *igraph;   /* interference graphs */
-	int igraph_top;
 };
 
 	
