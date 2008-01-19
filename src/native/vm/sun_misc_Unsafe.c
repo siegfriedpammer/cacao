@@ -1,9 +1,7 @@
 /* src/native/vm/sun_misc_Unsafe.c - sun/misc/Unsafe
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -87,6 +85,8 @@ static JNINativeMethod methods[] = {
 	{ "putByte",                "(JB)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_putByte__JB                    },
 	{ "getShort",               "(J)S",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getShort__J                    },
 	{ "putShort",               "(JS)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_putShort__JS                   },
+	{ "getChar",                "(J)C",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getChar__J                     },
+	{ "putChar",                "(JC)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_putChar__JC                    },
 	{ "getInt",                 "(J)I",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getInt__J                      },
 	{ "putInt",                 "(JI)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_putInt__JI                     },
 	{ "getLong",                "(J)J",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getLong__J                     },
@@ -95,6 +95,7 @@ static JNINativeMethod methods[] = {
 	{ "objectFieldOffset",      "(Ljava/lang/reflect/Field;)J",                               (void *) (intptr_t) &Java_sun_misc_Unsafe_objectFieldOffset              },
 	{ "allocateMemory",         "(J)J",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_allocateMemory                 },
 	{ "setMemory",              "(Ljava/lang/Object;JJB)V",                                   (void *) (intptr_t) &Java_sun_misc_Unsafe_setMemory                      },
+	{ "copyMemory",             "(Ljava/lang/Object;JLjava/lang/Object;JJ)V",                 (void *) (intptr_t) &Java_sun_misc_Unsafe_copyMemory                     },
 	{ "freeMemory",             "(J)V",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_freeMemory                     },
 	{ "staticFieldOffset",      "(Ljava/lang/reflect/Field;)J",                               (void *) (intptr_t) &Java_sun_misc_Unsafe_staticFieldOffset              },
 	{ "staticFieldBase",        "(Ljava/lang/reflect/Field;)Ljava/lang/Object;",              (void *) (intptr_t) &Java_sun_misc_Unsafe_staticFieldBase                },
@@ -511,6 +512,39 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putShort__JS(JNIEnv *env, sun_misc_U
 
 /*
  * Class:     sun/misc/Unsafe
+ * Method:    getChar
+ * Signature: (J)C
+ */
+JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getChar__J(JNIEnv *env, sun_misc_Unsafe *this, int64_t address)
+{
+	uint16_t *p;
+	uint16_t  value;
+
+	p = (uint16_t *) (intptr_t) address;
+
+	value = *p;
+
+	return (int32_t) value;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    putChar
+ * Signature: (JC)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putChar__JC(JNIEnv *env, sun_misc_Unsafe *this, int64_t address, int32_t value)
+{
+	uint16_t *p;
+
+	p = (uint16_t *) (intptr_t) address;
+
+	*p = (uint16_t) value;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
  * Method:    getInt
  * Signature: (J)I
  */
@@ -660,6 +694,36 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, sun_misc_Unsa
 	/* XXX Not sure this is correct. */
 
 	MSET(p, value, uint8_t, length);
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    copyMemory
+ * Signature: (Ljava/lang/Object;JLjava/lang/Object;JJ)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *srcBase, int64_t srcOffset, java_lang_Object *destBase, int64_t destOffset, int64_t bytes)
+{
+	size_t  length;
+	void   *src;
+	void   *dest;
+
+	if (bytes == 0)
+		return;
+
+	length = (size_t) bytes;
+
+	if ((length != (uint64_t) bytes) || (bytes < 0)) {
+		exceptions_throw_illegalargumentexception();
+		return;
+	}
+
+	/* XXX Missing LLNI: We need to unwrap these objects. */
+
+	src  = (void *) (((uint8_t *) srcBase) + srcOffset);
+	dest = (void *) (((uint8_t *) destBase) + destOffset);
+
+	MCOPY(dest, src, uint8_t, length);
 }
 
 

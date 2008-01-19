@@ -146,6 +146,10 @@ bool opt_ifconv = false;
 #if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
 bool opt_lsra = false;
 #endif
+#if defined(ENABLE_SSA)
+bool opt_ssa_dce = false;          /* enable dead code elemination */
+bool opt_ssa_cp = false;           /* enable copy propagation      */
+#endif
 
 
 /* interpreter options ********************************************************/

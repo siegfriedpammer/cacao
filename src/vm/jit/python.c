@@ -57,12 +57,25 @@
 	* Good: instruction.is_unresolved
 	* Bad: for i in range(0, bb.icount): instr = bb.instructions[i]
 	* Good: for instr in bb.instructions
+
+   TODO:
+
+    * Everywhere we return a variable number, we should return a varinfo
+	  (varinfo wrapper has an index member anyways)
 */
 
 #include <Python.h>
 
+#include "vm/global.h"
 #include "vm/jit/python.h"
 #include "vm/jit/show.h"
+#if defined(ENABLE_THREADS)
+# include "threads/lock-common.h"
+#endif
+
+#if defined(ENABLE_THREADS)
+static java_object_t *python_global_lock;
+#endif
 
 /*
  * Defs
@@ -155,13 +168,23 @@ enum field {
 	F_CLASS_CALL_RETURN_TYPE,
 	F_CLASS_CALL_ARGS,
 	F_CLASSREF,
-	F_DST,
+	F_CONTROL_FLOW,
+	F_CONTROL_FLOW_EX,
+	F_DATA_FLOW,
+	F_DATA_FLOW_EX,
 	F_DESCRIPTOR,
+	F_DST,
 	F_EXCEPTION_HANDLER,
 	F_FIELD_TYPE,
 	F_FIELD,
+	F_INDEX,
 	F_INSTRUCTIONS,
 	F_IS_CLASS_CONSTANT,
+	F_IS_INOUT,
+	F_IS_LOCAL,
+	F_IS_PREALLOCATED,
+	F_IS_SAVED,
+	F_IS_TEMPORARY,
 	F_IS_UNRESOLVED,
 	F_LOCAL_METHODINFO,
 	F_KLASS,
@@ -175,6 +198,8 @@ enum field {
 	F_OPCODE,
 	F_OPCODE_EX,
 	F_PARAM_TYPES,
+	F_PEI,
+	F_PEI_EX,
 	F_PREDECESSORS,
 	F_REACHED,
 	F_RETURN_TYPE,
@@ -194,14 +219,24 @@ struct field_map_entry field_map[] = {
 	{ "call_return_type", F_CLASS_CALL_RETURN_TYPE },
 	{ "call_args", F_CLASS_CALL_ARGS },
 	{ "classref", F_CLASSREF },
-	{ "dst", F_DST },
+	{ "control_flow", F_CONTROL_FLOW },
+	{ "control_flow_ex", F_CONTROL_FLOW_EX },
+	{ "data_flow", F_DATA_FLOW },
+	{ "data_flow_ex", F_DATA_FLOW_EX },
 	{ "descriptor", F_DESCRIPTOR },
+	{ "dst", F_DST },
 	{ "exception_handler", F_EXCEPTION_HANDLER },
 	{ "field", F_FIELD },
 	{ "field_type", F_FIELD_TYPE },
+	{ "index", F_INDEX },
 	{ "instructions", F_INSTRUCTIONS },
-	{ "is_unresolved", F_IS_UNRESOLVED },
 	{ "is_class_constant", F_IS_CLASS_CONSTANT },
+	{ "is_inout", F_IS_INOUT },
+	{ "is_local", F_IS_LOCAL },
+	{ "is_preallocated", F_IS_PREALLOCATED },
+	{ "is_saved", F_IS_SAVED },
+	{ "is_temporary", F_IS_TEMPORARY },
+	{ "is_unresolved", F_IS_UNRESOLVED },
 	{ "klass", F_KLASS },
 	{ "line", F_LINE },
 	{ "local_map", F_LOCAL_MAP },
@@ -214,6 +249,8 @@ struct field_map_entry field_map[] = {
 	{ "opcode", F_OPCODE },
 	{ "opcode_ex", F_OPCODE_EX },
 	{ "param_types", F_PARAM_TYPES },
+	{ "pei", F_PEI },
+	{ "pei_ex", F_PEI_EX },
 	{ "predecessors", F_PREDECESSORS },
 	{ "reached", F_REACHED },
 	{ "return_type", F_RETURN_TYPE },
@@ -573,6 +610,14 @@ static inline methoddesc *instruction_call_site(instruction *iptr) {
 	}
 }
 
+static inline int instruction_opcode_ex(instruction *iptr) {
+	if (iptr->opc == ICMD_BUILTIN) {
+		return iptr->sx.s23.s3.bte->opcode;
+	} else {
+		return iptr->opc;
+	}
+}
+
 ITERATOR_FUNC(call_args_iter_func) {
 	instruction *iptr = (instruction *)state->data;
 	switch (op) {
@@ -663,19 +708,11 @@ CLASS_FUNC(instruction_func) {
 				case F_OPCODE:
 					return get_int(arg->get.result, iptr->opc);
 				case F_OPCODE_EX:
-					if (iptr->opc == ICMD_BUILTIN) {
-						return get_int(arg->get.result, iptr->sx.s23.s3.bte->opcode);
-					} else {
-						return get_int(arg->get.result, iptr->opc);
-					}
+					return get_int(arg->get.result, instruction_opcode_ex(iptr));
 				case F_NAME:
 					return get_string(arg->get.result, icmd_table[iptr->opc].name);
 				case F_NAME_EX:
-					if (iptr->opc == ICMD_BUILTIN) {
-						return get_string(arg->get.result, icmd_table[iptr->sx.s23.s3.bte->opcode].name);
-					} else {
-						return get_string(arg->get.result, icmd_table[iptr->opc].name);
-					}
+					return get_string(arg->get.result, icmd_table[instruction_opcode_ex(iptr)].name);
 				case F_S1:
 					return get_int(arg->get.result, iptr->s1.varindex);
 				case F_S2:
@@ -729,6 +766,18 @@ CLASS_FUNC(instruction_func) {
 					return get_int(arg->get.result, iptr->line);
 				case F_SHOW:
 					return get_obj(arg->get.result, instruction_show_func, state->jd, iptr);
+				case F_PEI:
+					return get_bool(arg->get.result, icmd_table[iptr->opc].flags & ICMDTABLE_PEI);
+				case F_PEI_EX:
+					return get_bool(arg->get.result, icmd_table[instruction_opcode_ex(iptr)].flags & ICMDTABLE_PEI);
+				case F_DATA_FLOW:
+					return get_int(arg->get.result, icmd_table[iptr->opc].dataflow);
+				case F_DATA_FLOW_EX:
+					return get_int(arg->get.result, icmd_table[instruction_opcode_ex(iptr)].dataflow);
+				case F_CONTROL_FLOW:
+					return get_int(arg->get.result, icmd_table[iptr->opc].controlflow);
+				case F_CONTROL_FLOW_EX:
+					return get_int(arg->get.result, icmd_table[instruction_opcode_ex(iptr)].controlflow);
 			}
 	}
 
@@ -936,13 +985,37 @@ CLASS_FUNC(methodinfo_func) {
 
 
 CLASS_FUNC(varinfo_func) {
+	jitdata *jd = state->jd;
 	varinfo *var = (varinfo *)state->vp;
+	int index = var - jd->var;
 	switch (op) {
 		case CLASS_GET_FIELD:
 			switch (arg->get.field) {
 				case F_TYPE:
 					return get_int(arg->get.result, var->type);
+				case F_IS_LOCAL:
+					return get_bool(arg->get.result, index < jd->localcount);
+				case F_IS_PREALLOCATED:
+					return get_bool(
+						arg->get.result, 
+						(index >= jd->localcount) && (var->flags & PREALLOC)
+					);
+				case F_IS_INOUT:
+					return get_bool(
+						arg->get.result, 
+						(index >= jd->localcount) && !(var->flags && PREALLOC) && (var->flags & INOUT)
+					);
+				case F_IS_TEMPORARY:
+					return get_bool(
+						arg->get.result, 
+						(index >= jd->localcount) && !(var->flags && PREALLOC) && !(var->flags & INOUT)
+					);
+				case F_IS_SAVED:
+					return get_bool(arg->get.result, var->flags & SAVEDVAR);
+				case F_INDEX:
+					return get_int(arg->get.result, index);
 			}
+
 	}
 	return -1;
 }
@@ -1042,6 +1115,47 @@ void constants(PyObject *m) {
 	c(TYPE_VOID);
 	c(UNUSED);
 
+	/* data flow */
+
+	c(DF_0_TO_0);
+	c(DF_1_TO_0);
+	c(DF_2_TO_0);
+	c(DF_3_TO_0);
+	c(DF_DST_BASE);
+	c(DF_0_TO_1);
+	c(DF_1_TO_1);
+	c(DF_2_TO_1);
+	c(DF_3_TO_1);
+	c(DF_N_TO_1);
+	c(DF_INVOKE);
+	c(DF_BUILTIN);
+	c(DF_COPY);
+	c(DF_MOVE);
+	c(DF_DUP);
+	c(DF_DUP_X1);
+	c(DF_DUP_X2);
+	c(DF_DUP2);
+	c(DF_DUP2_X1);
+	c(DF_DUP2_X2);
+	c(DF_SWAP);
+	c(DF_LOAD);
+	c(DF_STORE);
+	c(DF_IINC);
+	c(DF_POP);
+	c(DF_POP2);
+
+	/* control flow */
+
+	c(CF_NORMAL);
+	c(CF_IF);
+	c(CF_END_BASE);
+	c(CF_END);
+	c(CF_GOTO);
+	c(CF_TABLE);
+	c(CF_LOOKUP);
+	c(CF_JSR);
+	c(CF_RET);
+
 #	undef c
 }
 
@@ -1063,6 +1177,11 @@ void pythonpass_init() {
 		constants(m);
 	}
 
+#if defined(ENABLE_THREADS)
+	python_global_lock = NEW(java_object_t);
+	LOCK_INIT_OBJECT_LOCK(python_global_lock);
+#endif
+
 }
 
 void pythonpass_cleanup() {
@@ -1078,6 +1197,8 @@ int pythonpass_run(jitdata *jd, const char *module, const char *function) {
 	PyObject *pyret = NULL;
 	PyObject *pyarg = NULL;
 	int success = 0;
+
+	LOCK_MONITOR_ENTER(python_global_lock);
 
 	pymodname = PyString_FromString(module);
 	pymod = PyImport_Import(pymodname);
@@ -1113,6 +1234,8 @@ int pythonpass_run(jitdata *jd, const char *module, const char *function) {
 	Py_XDECREF(pymod);
 	Py_XDECREF(pyargs);
 	Py_XDECREF(pyret);
+
+	LOCK_MONITOR_EXIT(python_global_lock);
 
 	return (success == 1 ? 1 : 0);
 }

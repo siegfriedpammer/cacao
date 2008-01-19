@@ -55,6 +55,10 @@ SSA_SOURCES = \
 	lsra.h \
 	ssa.c \
 	ssa.h \
+	ssa_phi.c \
+	ssa_phi.h \
+	ssa_rename.c \
+	ssa_rename.h \
 	graph.c \
 	graph.h \
 	dominators.c \

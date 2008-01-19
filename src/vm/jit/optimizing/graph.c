@@ -26,6 +26,7 @@
 
    Authors: Christian Ullrich
 
+   $Id: graph.c$
 
 */
 
@@ -55,6 +56,8 @@ void graph_add_edge( graphdata *gd, int from, int to );
 /* Helper for graph_get_first_* */
 int graph_get_first_(graph_element *ge, graphiterator *i);
 void transform_CFG(jitdata *, graphdata *);
+
+void graph_phi_moves(jitdata *jd, basicblock *bptr, basicblock *dst_goto);
 
 #ifdef GRAPH_DEBUG_VERBOSE
 void graph_print(lsradata *ls, graphdata *gd);
@@ -498,10 +501,8 @@ void graph_init_basicblock(jitdata *jd, basicblock *bptr, int b_index) {
 
 /*********************************************************************+
 After the "original" CFG has been created, it has to be adopted for
-SSA. (inluding insertion of new Basic Blocks)
+SSA. (inluding insertion of new Basic Blocks - edge splitting)
 
-TODO: Do not insert blocks right now - just adopt the call graph!
-      After the phi moves are determined create only the needed Blocks 
 **********************************************************************/
 void transform_CFG(jitdata *jd, graphdata *gd) {
 	int i, j, k, n, num_new_blocks;
@@ -551,15 +552,13 @@ void transform_CFG(jitdata *jd, graphdata *gd) {
 	/* copy Basic Block References to ls->basicblocks */
 
 	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
-/* 		if (bptr->flags >= BBREACHED) { */
-			_GRAPH_ASSERT(bptr->nr < jd->basicblockcount);
-			ls->basicblocks[bptr->nr + 1] = bptr;
-			bptr->nr = bptr->nr+1;
-/* 		} */
+		_GRAPH_ASSERT(bptr->nr < jd->basicblockcount);
+		ls->basicblocks[bptr->nr + 1] = bptr;
+		bptr->nr = bptr->nr+1;
 	}
 	
 	/* Create new Basic Blocks:
-	   0, [jd->new_basicblockcount..ls->basicblockcount[ */
+	   0, [jd->basicblockcount..ls->basicblockcount[ */
 	/* num_new_blocks have to be inserted*/
 
 	tmp = DMNEW( basicblock, num_new_blocks);
@@ -569,7 +568,9 @@ void transform_CFG(jitdata *jd, graphdata *gd) {
 	ls->basicblocks[0]->next = ls->basicblocks[1];
 
 	if (ls->basicblockcount > jd->basicblockcount + 1) {
+
 		/* new Blocks have to be inserted                   */
+
 		num_succ = DMNEW(int, ls->basicblockcount);
 		successor = DMNEW(graph_element *, ls->basicblockcount);
 	
@@ -578,6 +579,7 @@ void transform_CFG(jitdata *jd, graphdata *gd) {
 
 		/* regard the + 1 for the already inserted new BB 0 */
 		/* So recreate ls->var_def                          */
+
 		var_def = DMNEW(int *, ls->basicblockcount);
 		for(i = 0; i < jd->basicblockcount + 1; i++) {
 			var_def[i] = ls->var_def[i];
@@ -609,6 +611,7 @@ void transform_CFG(jitdata *jd, graphdata *gd) {
 	}
 
 	/* Now Split the edges */
+
 	num_new_blocks = jd->basicblockcount + 1; /* first free new block index */
 	for(i = 0; i < jd->basicblockcount + 1; i++) {
 		if (graph_has_multiple_successors(gd, i)) {/* more than one successor */
@@ -623,6 +626,7 @@ void transform_CFG(jitdata *jd, graphdata *gd) {
 					/* splite the edge from BB i to j with the new BB */
 					/* num_new_blocks ( i->j --> i->nnb->j)*/
 					/* iter_succ shows the edge from i to j */
+
 					graph_split_edge(gd, i, &iter, num_new_blocks);
 
 					ls->basicblocks[num_new_blocks]->indepth =
@@ -651,19 +655,6 @@ void transform_CFG(jitdata *jd, graphdata *gd) {
 					_GRAPH_ASSERT(ls->basicblocks[num_new_blocks]->outdepth == 
 								  ls->basicblocks[j]->indepth );
 
-#if 0
-					/* !!!! There can't be inoutvar definitions in one of these */
-					/* newly inserted basicblocks !!!! */
-
-					/* Add Definition */
-					/* decrease nr temporarly, because ssa_set_interface*/
-					/* adds 1 since it is called from stack.c, where there is */
-					/* no new BB 0 inserted like now */
-
-					ls->basicblocks[num_new_blocks]->nr--;
-					ssa_set_interface(jd, ls->basicblocks[num_new_blocks]);
-					ls->basicblocks[num_new_blocks]->nr++;
-#endif
 					num_new_blocks++;
 				}
 			}
@@ -739,10 +730,14 @@ void transform_BB(jitdata *jd, graphdata *gd) {
 					ls->basicblocks[pred]->next;
 				ls->basicblocks[pred]->next =
 					ls->basicblocks[n];
+#if 1
 				/* generate no instructions */
 				ls->basicblocks[n]->icount = 1; 
 				ls->basicblocks[n]->iinstr = NEW(instruction);
 				ls->basicblocks[n]->iinstr[0].opc =	ICMD_NOP;
+#else
+				graph_phi_moves(jd, ls->basicblocks[n], NULL);
+#endif
 			} else {
 				/* Block n is in the Branch path */
 				/* link Block at the end */
@@ -752,8 +747,6 @@ void transform_BB(jitdata *jd, graphdata *gd) {
 
 				/* change the Branch Target to BB i */
 
-
-	
 				switch(iptr->opc) {
 				case ICMD_LOOKUPSWITCH:
 					{
@@ -839,7 +832,7 @@ void transform_BB(jitdata *jd, graphdata *gd) {
 					/* not handled by now -> fallback to regalloc */
 					exit(1);
 				}
-
+#if 1
 				/* Generate the ICMD_GOTO */
 				ls->basicblocks[n]->icount = 1; 
 				ls->basicblocks[n]->iinstr =
@@ -848,8 +841,78 @@ void transform_BB(jitdata *jd, graphdata *gd) {
 					ICMD_GOTO;
 				ls->basicblocks[n]->iinstr->dst.block =
 					ls->basicblocks[succ];
+#else
+				graph_phi_moves(jd, ls->basicblocks[n], ls->basicblocks[succ]);
+#endif
 			}
 		}
+	}
+}
+
+/* graph_phi_moves *************************************************************
+
+generate the instruction array for Basicblock n (== ls->basicblocks[n])
+
+IN:
+basicblock *bptr       Basicblock to change with ->iinstr == NULL
+basicblock *dst_goto   Destination Block for ICMD_GOTO at end of Block, or
+                       NULL for no ICMD_GOTO
+
+OUT:
+bptr->iinstr           points to a newly allocated instruction array containing
+                       the phi moves, the optional ICMD_GOTO at the end.
+bptr->icount           Count of instructions in bptr->iinstr
+
+*******************************************************************************/
+
+void graph_phi_moves(jitdata *jd, basicblock *bptr, basicblock *dst_goto) {
+	int lt_d,lt_s,i;
+	lsradata    *ls;
+	instruction *iptr;
+
+	ls = jd->ls;
+
+	_GRAPH_ASSERT(ls->num_phi_moves[bptr->nr] > 0);
+	bptr->icount = ls->num_phi_moves[bptr->nr];
+	if (dst_goto != NULL)
+		bptr->icount++;
+	bptr->iinstr = iptr = DMNEW(instruction, bptr->icount);
+
+	_GRAPH_ASSERT(iptr != NULL);
+
+	/* Moves from phi functions with highest indices have to be */
+	/* inserted first, since this is the order as is used for   */
+	/* conflict resolution */
+
+	for(i = ls->num_phi_moves[bptr->nr] - 1; i >= 0 ; i--) {
+		lt_d = ls->phi_moves[bptr->nr][i][0];
+		lt_s = ls->phi_moves[bptr->nr][i][1];
+
+#if defined(GRAPH_DEBUG_VERBOSE)
+		if (compileverbose)
+			printf("graph_phi_moves: BB %3i Move %3i <- %3i\n", bptr->nr,
+				   lt_d, lt_s);
+#endif
+		if (lt_s == UNUSED) {
+#if defined(SSA_DEBUG_VERBOSE)
+			if (compileverbose)
+				printf(" ... not processed \n");
+#endif
+			continue;
+		}
+
+		_GRAPH_ASSERT(d->type != -1);
+		_GRAPH_ASSERT(s->type == -1);
+
+		iptr->opc = ICMD_MOVE;
+		iptr->s1.varindex  = ls->lifetime[lt_s].v_index;
+		iptr->dst.varindex = ls->lifetime[lt_d].v_index;
+		iptr++;
+	}
+
+	if (dst_goto != NULL) {
+		iptr->opc = ICMD_GOTO;
+		iptr->dst.block = dst_goto;
 	}
 }
 

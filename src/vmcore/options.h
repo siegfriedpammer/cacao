@@ -160,7 +160,10 @@ extern bool opt_ifconv;
 #if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
 extern bool opt_lsra;
 #endif
-
+#if defined(ENABLE_SSA)
+extern bool opt_ssa_dce;          /* enable dead code elemination */
+extern bool opt_ssa_cp;           /* enable copy propagation      */
+#endif
 
 /* interpreter options ********************************************************/
 

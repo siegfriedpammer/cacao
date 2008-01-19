@@ -31,30 +31,23 @@
 */
 
 
-#ifndef _SSA_H
-#define _SSA_H
+#ifndef _SSA_PHI_H
+#define _SSA_PHI_H
 
 #include "vm/jit/optimizing/graph.h"
 
 #if !defined(NDEBUG)
 # include <assert.h>
-# define SSA_DEBUG_CHECK
-# define SSA_DEBUG_VERBOSE
-#endif
-
-#ifdef SSA_DEBUG_CHECK
-# define _SSA_CHECK_BOUNDS(i,l,h) assert( ((i) >= (l)) && ((i) < (h)));
-# define _SSA_ASSERT(a) assert((a));
-#else
-# define _SSA_CHECK_BOUNDS(i,l,h)
-# define _SSA_ASSERT(a)
 #endif
 
 /* function prototypes */
-void ssa_init(jitdata *);
-void ssa(jitdata */* , graphdata **/);
+void ssa_place_phi_functions(jitdata *jd, graphdata *gd, dominatordata *dd);
+void ssa_generate_phi_moves(jitdata *, graphdata *);
+#ifdef SSA_DEBUG_VERBOSE
+void ssa_print_phi(lsradata *ls, graphdata *gd);
+#endif
 
-#endif /* _SSA_H */
+#endif /* _SSA_PHI_H */
 
 /*
  * These are local overrides for various environment variables in Emacs.

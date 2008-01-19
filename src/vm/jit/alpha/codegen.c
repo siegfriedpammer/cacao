@@ -64,7 +64,10 @@
 #include "vm/jit/replace.h"
 #include "vm/jit/stacktrace.h"
 
-#if defined(ENABLE_LSRA)
+#if defined(ENABLE_SSA)
+# include "vm/jit/optimizing/lsra.h"
+# include "vm/jit/optimizing/ssa.h"
+#elif defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
 #endif
 

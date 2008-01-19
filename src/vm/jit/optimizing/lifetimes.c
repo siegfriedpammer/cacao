@@ -26,6 +26,7 @@
 
    Authors: Christian Ullrich
 
+   $Id: lifetimes.c $
 
 */
 
@@ -160,10 +161,7 @@ void lt_scanlifetimes(jitdata *jd, graphdata *gd, dominatordata *dd) {
 			continue;
 		i = ls->var_0[i];
 /* 		_LT_ASSERT( i < jd->cd->maxlocals); */
-#ifdef LT_DEBUG_VERBOSE
-		if (compileverbose)
-			printf("param %3i -> L %3i/%3i",p,i,t);
-#endif
+/* 			printf("param %3i -> L %3i/%3i\n",p,i,t); */
 		_LT_ASSERT(t == VAR(i)->type);
 		
 		/* Param to Local init happens before normal Code */
@@ -463,6 +461,7 @@ void lt_lifeatstatement(lsradata *ls, graphdata *gd, int b_index,
 					/* real ICMD, no phi-function, no param initialisation */
 
 					_LT_ASSERT(ls->basicblocks[b_index]->iinstr != NULL);
+
 					iptr = ls->basicblocks[b_index]->iinstr + iindex;
 					if (icmd_table[iptr->opc].flags & ICMDTABLE_CALLS)
 						lt->savedvar = SAVEDVAR;
@@ -505,7 +504,7 @@ void lt_lifeatstatement(lsradata *ls, graphdata *gd, int b_index,
 			lt_is_live(ls, lt, b_index, iindex);
 
 
-			if (iindex == -ls->varcount-1) { 
+			if (iindex == -ls->ssavarcount-1) { 
 
 #ifdef LT_DEBUG_VERBOSE
 				if ((compileverbose))
@@ -513,7 +512,7 @@ void lt_lifeatstatement(lsradata *ls, graphdata *gd, int b_index,
 						   lt->v_index, b_index, iindex);
 #endif
 				/* iindex is the first statement of b_index */
-				/* Statements -ls->max_vars-1 .. -1 are possible phi functions*/
+				/* Statements -ls->ssavarcounts-1 .. -1 are possible phi functions*/
 				/* lt->v_index is live-in at b_index */
 		
 				pred = graph_get_first_predecessor(gd, b_index, &pred_iter);
@@ -533,7 +532,7 @@ void lt_lifeatstatement(lsradata *ls, graphdata *gd, int b_index,
 
 					/* look through phi functions */
 
-					for(; prev_iindex > -ls->varcount-1; prev_iindex--)
+					for(; prev_iindex > -ls->ssavarcount-1; prev_iindex--)
 						if (ls->phi[b_index][-prev_iindex-1] != NULL)
 							break;
 
@@ -577,7 +576,10 @@ void lt_lifeoutatblock(lsradata *ls, graphdata *gd, int *M, int b_index,
 void lt_move_use_sites(struct lifetime *from, struct lifetime *to) {
 	struct site *s;
 
+#if 0
+	/* not anymore true for copy propagated lifetimes */
 	_LT_ASSERT(from->use != NULL);
+#endif
 	if (from->use == NULL)
 		return;
 	for(s = from->use; s->next != NULL; s = s->next);
@@ -750,7 +752,6 @@ void _lt_scanlifetimes(jitdata *jd, graphdata *gd, basicblock *bptr,
 				}
 			} 
 		}
-
 
 		if (bptr->iinstr != NULL) {
 			/* set iptr to last instruction of BB */

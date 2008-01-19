@@ -345,8 +345,11 @@ opt_struct opts[] = {
 #if defined(ENABLE_IFCONV)
 	{ "ifconv",            false, OPT_IFCONV },
 #endif
-#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
+#if defined(ENABLE_LSRA)
 	{ "lsra",              false, OPT_LSRA },
+#endif
+#if  defined(ENABLE_SSA)
+	{ "lsra",              true, OPT_LSRA },
 #endif
 
 #if defined(ENABLE_INTRP)
@@ -584,7 +587,9 @@ static void XXusage(void)
 	puts("    -lsra                    use linear scan register allocation");
 #endif
 #if defined(ENABLE_SSA)
-	puts("    -lsra                    use linear scan register allocation (with SSA)");
+	puts("    -lsra:...                use linear scan register allocation (with SSA)");
+	puts("       (d)ead code elimination");
+	puts("       (c)opy propagation");
 #endif
 #if defined(ENABLE_DEBUG_FILTER)
 	puts("    -XXfi <regex>            begin of dynamic scope for verbosecall filter");
@@ -1248,9 +1253,31 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 #endif
 
-#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
+#if defined(ENABLE_LSRA)
 		case OPT_LSRA:
 			opt_lsra = true;
+			break;
+#endif
+#if  defined(ENABLE_SSA)
+		case OPT_LSRA:
+			opt_lsra = true;
+			for (i = 0; i < strlen(opt_arg); i++) {		
+				switch (opt_arg[i]) {
+				case 'c':
+					opt_ssa_cp = true;
+					break;
+
+				case 'd':
+					opt_ssa_dce = true;
+					break;
+
+				case ':':
+					break;
+
+				default:
+					usage();
+				}
+			}
 			break;
 #endif
 

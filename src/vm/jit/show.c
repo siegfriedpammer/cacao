@@ -524,6 +524,15 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 
 		printf("\n");
 
+		if (irstage >= SHOW_CFG) {
+			printf("succs: %d [ ", bptr->successorcount);
+
+			for (i = 0; i < bptr->successorcount; i++)
+				printf("%d ", bptr->successors[i]->nr);
+
+			printf("]\n");
+		}
+
 		if (irstage >= SHOW_STACK) {
 			printf("IN:  ");
 			show_variable_array(jd, bptr->invars, bptr->indepth, irstage);

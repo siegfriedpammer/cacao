@@ -1462,7 +1462,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 #endif
 
 #if defined(ENABLE_PYTHON)
-		if (!pythonpass_run(jd, "langauer_tarjan", "langauer_tarjan")) {
+		if (!pythonpass_run(jd, "langauer_tarjan", "main")) {
 			/*return NULL;*/
 		}
 #endif
@@ -1495,6 +1495,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		/* allocate registers */
 		if ((opt_lsra) && (jd->exceptiontablelength == 0)) {
 			jd->ls = DNEW(lsradata);
+			ssa(jd);
 			lsra(jd);
 
 			STATISTICS(count_methods_allocated_by_lsra++);

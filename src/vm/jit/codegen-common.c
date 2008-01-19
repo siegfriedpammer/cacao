@@ -1776,7 +1776,7 @@ void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr)
 			if (compileverbose)
 				printf("...returning - phi lifetimes where joined\n");
 #endif
-			return;
+			continue;
 		}
 
 		if (s->type == -1) {
@@ -1784,7 +1784,7 @@ void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr)
 			if (compileverbose)
 				printf("...returning - phi lifetimes where joined\n");
 #endif
-			return;
+			continue;
 		}
 
 		tmp_i.opc = 0;
