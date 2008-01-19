@@ -1,9 +1,7 @@
 /* src/vm/builtin.c - functions for unsupported operations
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -107,13 +105,13 @@ CYCLES_STATS_DECLARE(builtin_overhead    , 80,1)
 static bool builtintable_init(void)
 {
 	descriptor_pool    *descpool;
-	s4                  dumpsize;
 	builtintable_entry *bte;
 	methodinfo         *m;
+	int32_t             dumpmarker;
 
 	/* mark start of dump memory area */
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	/* create a new descriptor pool */
 
@@ -136,7 +134,7 @@ static bool builtintable_init(void)
 		if (!descriptor_pool_add(descpool, bte->descriptor, NULL)) {
 			/* release dump area */
 
-			dump_release(dumpsize);
+			DRELEASE;
 
 			return false;
 		}
@@ -146,7 +144,7 @@ static bool builtintable_init(void)
 		bte->descriptor = utf_new_char(bte->cdescriptor);
 
 		if (!descriptor_pool_add(descpool, bte->descriptor, NULL)) {
-			dump_release(dumpsize);
+			DRELEASE;
 			return false;
 		}
 	}
@@ -157,7 +155,7 @@ static bool builtintable_init(void)
 		bte->descriptor = utf_new_char(bte->cdescriptor);
 
 		if (!descriptor_pool_add(descpool, bte->descriptor, NULL)) {
-			dump_release(dumpsize);
+			DRELEASE;
 			return false;
 		}
 	}
@@ -217,7 +215,7 @@ static bool builtintable_init(void)
 
 	/* release dump area */
 
-	dump_release(dumpsize);
+	DRELEASE;
 
 	return true;
 }

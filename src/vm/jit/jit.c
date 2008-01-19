@@ -1,9 +1,7 @@
 /* src/vm/jit/jit.c - calls the code generation functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -1031,7 +1029,7 @@ u1 *jit_compile(methodinfo *m)
 {
 	u1      *r;
 	jitdata *jd;
-	s4       dumpsize;
+	int32_t  dumpmarker;
 
 	STATISTICS(count_jit_calls++);
 
@@ -1082,7 +1080,7 @@ u1 *jit_compile(methodinfo *m)
 
 	/* mark start of dump memory area */
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	/* create jitdata structure */
 
@@ -1165,7 +1163,7 @@ u1 *jit_compile(methodinfo *m)
 
 	/* release dump area */
 
-	dump_release(dumpsize);
+	DRELEASE;
 
 #if defined(ENABLE_STATISTICS)
 	/* measure time */
@@ -1195,7 +1193,7 @@ u1 *jit_recompile(methodinfo *m)
 	u1      *r;
 	jitdata *jd;
 	u1       optlevel;
-	s4       dumpsize;
+	int32_t  dumpmarker;
 
 	/* check for max. optimization level */
 
@@ -1221,7 +1219,7 @@ u1 *jit_recompile(methodinfo *m)
 
 	/* mark start of dump memory area */
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	/* create jitdata structure */
 
@@ -1277,7 +1275,7 @@ u1 *jit_recompile(methodinfo *m)
 
 	/* release dump area */
 
-	dump_release(dumpsize);
+	DRELEASE;
 
 #if defined(ENABLE_STATISTICS)
 	/* measure time */

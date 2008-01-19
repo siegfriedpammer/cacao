@@ -85,6 +85,9 @@ struct dumpinfo_t {
 
 /* convenience macros *********************************************************/
 
+#define DMARKER               dumpmarker = dumpmemory_marker()
+#define DRELEASE              dumpmemory_release(dumpmarker)
+
 #define DNEW(type)            ((type *) dumpmemory_get(sizeof(type)))
 #define DMNEW(type,num)       ((type *) dumpmemory_get(sizeof(type) * (num)))
 #define DMREALLOC(ptr,type,num1,num2) dumpmemory_realloc((ptr), sizeof(type) * (num1), \
@@ -94,8 +97,8 @@ struct dumpinfo_t {
 
 void    *dumpmemory_get(size_t size);
 void    *dumpmemory_realloc(void *src, int32_t len1, int32_t len2);
-int32_t  dump_size(void);
-void     dump_release(int32_t size);
+int32_t  dumpmemory_marker(void);
+void     dumpmemory_release(int32_t size);
 
 #endif /* _DUMPMEMORY_H */
 

@@ -1,9 +1,7 @@
 /* src/vm/jit/show.c - showing the intermediate representation
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -1526,7 +1524,7 @@ void show_filters_apply(methodinfo *m) {
 	int res;
 	char *method_name;
 	s4 len;
-	s4 dumpsize;
+	int32_t dumpmarker;
 
 	/* compose full name of method */
 
@@ -1537,7 +1535,7 @@ void show_filters_apply(methodinfo *m) {
 		utf_bytes(m->descriptor) +
 		1;
 
-	dumpsize = dump_size(); /* allocate memory */
+	DMARKER;
 
 	method_name = DMNEW(char, len);
 
@@ -1566,8 +1564,7 @@ void show_filters_apply(methodinfo *m) {
 
 	/* release memory */
 
-	dump_release(dumpsize); 
-
+	DRELEASE; 
 }
 
 #define STATE_IS_INITIAL() ((FILTERVERBOSECALLCTR[0] == 0) && (FILTERVERBOSECALLCTR[1] == 0))

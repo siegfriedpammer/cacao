@@ -1,9 +1,7 @@
 /* src/mm/cacao-gc/gc.c - main garbage collector methods
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -26,7 +24,10 @@
 
 
 #include "config.h"
+
 #include <signal.h>
+#include <stdint.h>
+
 #include "vm/types.h"
 
 #include "threads/lock-common.h"
@@ -231,7 +232,7 @@ void gc_weakreference_unregister(java_object_t **ref)
 void gc_collect(s4 level)
 {
 	rootset_t    *rs;
-	s4            dumpsize;
+	int32_t       dumpmarker;
 #if !defined(NDEBUG)
 	stackframeinfo_t *sfi;
 	stacktracebuffer *stb;
@@ -244,7 +245,7 @@ void gc_collect(s4 level)
 	GC_MUTEX_LOCK;
 
 	/* remember start of dump memory area */
-	dumpsize = dump_size();
+	DMARKER;
 
 	GCSTAT_COUNT(gcstat_collections);
 
@@ -382,7 +383,7 @@ void gc_collect(s4 level)
 	RT_TIMING_TIME_DIFF(time_start  , time_end    , RT_TIMING_GC_TOTAL);
 
     /* free dump memory area */
-    dump_release(dumpsize);
+    DRELEASE;
 
 	/* leave the global gc lock */
 	GC_MUTEX_UNLOCK;

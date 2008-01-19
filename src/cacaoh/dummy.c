@@ -562,13 +562,13 @@ void *dumpmemory_get(size_t size)
 	return malloc(size);
 }
 
-void dump_release(int32_t size)
-{
-}
-
-int32_t dump_size(void)
+int32_t dumpmemory_marker(void)
 {
 	return 0;
+}
+
+void dumpmemory_release(int32_t size)
+{
 }
 
 

@@ -1,9 +1,7 @@
 /* src/vm/jit/trace.c - Functions for tracing from java code.
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -192,9 +190,9 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 	imm_union   arg;
 	char       *logtext;
 	s4          logtextlen;
-	s4          dumpsize;
 	s4          i;
 	s4          pos;
+	int32_t     dumpmarker;
 
 #if defined(ENABLE_DEBUG_FILTER)
 	if (!show_filters_test_verbosecall_enter(m))
@@ -247,7 +245,7 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 
 	/* allocate memory */
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	logtext = DMNEW(char, logtextlen);
 
@@ -302,7 +300,7 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 
 	/* release memory */
 
-	dump_release(dumpsize);
+	DRELEASE;
 
 	TRACEJAVACALLINDENT++;
 
@@ -323,10 +321,10 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 	methoddesc *md;
 	char       *logtext;
 	s4          logtextlen;
-	s4          dumpsize;
 	s4          i;
 	s4          pos;
 	imm_union   val;
+	int32_t     dumpmarker;
 
 #if defined(ENABLE_DEBUG_FILTER)
 	if (!show_filters_test_verbosecall_exit(m))
@@ -366,7 +364,7 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 
 	/* allocate memory */
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	logtext = DMNEW(char, logtextlen);
 
@@ -401,8 +399,7 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 
 	/* release memory */
 
-	dump_release(dumpsize);
-
+	DRELEASE;
 }
 
 
@@ -416,8 +413,8 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 {
 	char *logtext;
 	s4    logtextlen;
-	s4    dumpsize;
 	codeinfo *code;
+	int32_t   dumpmarker;
 
 	/* calculate message length */
 
@@ -462,7 +459,7 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 
 	/* allocate memory */
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	logtext = DMNEW(char, logtextlen);
 
@@ -533,7 +530,7 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 
 	/* release memory */
 
-	dump_release(dumpsize);
+	DRELEASE;
 }
 
 
@@ -549,7 +546,7 @@ void trace_exception_builtin(java_object_t *xptr)
 	java_lang_String    *s;
 	char                *logtext;
 	s4                   logtextlen;
-	s4                   dumpsize;
+	int32_t              dumpmarker;
 
 	t = (java_lang_Throwable *) xptr;
 
@@ -577,7 +574,7 @@ void trace_exception_builtin(java_object_t *xptr)
 
 	/* allocate memory */
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	logtext = DMNEW(char, logtextlen);
 
@@ -603,7 +600,7 @@ void trace_exception_builtin(java_object_t *xptr)
 
 	/* release memory */
 
-	dump_release(dumpsize);
+	DRELEASE;
 }
 
 

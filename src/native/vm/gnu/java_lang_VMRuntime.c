@@ -1,9 +1,7 @@
 /* src/native/vm/gnu/java_lang_VMRuntime.c
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -39,8 +37,8 @@
 # include <mach/mach.h>
 #endif
 
+#include "mm/dumpmemory.h"
 #include "mm/gc-common.h"
-#include "mm/memory.h"
 
 #include "native/jni.h"
 #include "native/native.h"
@@ -255,8 +253,8 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 	utf           *u;
 	char          *buffer;
 	int32_t        buffer_len;
-	int32_t        dumpsize;
 	java_handle_t *o;
+	int32_t        dumpmarker;
 
 	if (libname == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -279,7 +277,8 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 
 	buffer_len += strlen("0");
 
-	dumpsize = dump_size();
+	DMARKER;
+
 	buffer = DMNEW(char, buffer_len);
 
 	/* generate library name */
@@ -297,7 +296,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 
 	/* release memory */
 
-	dump_release(dumpsize);
+	DRELEASE;
 
 	return (java_lang_String *) o;
 }

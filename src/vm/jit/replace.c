@@ -1,9 +1,7 @@
 /* src/vm/jit/replace.c - on-stack replacement of methods
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -2754,12 +2752,12 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 	stackframeinfo_t    *sfi;
 	sourcestate_t       *ss;
 	sourceframe_t       *frame;
-	s4                   dumpsize;
 	codeinfo            *origcode;
 	rplpoint            *origrp;
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
 	threadobject        *thread;
 #endif
+	int32_t              dumpmarker;
 
 	origcode = es->code;
 	origrp   = rp;
@@ -2775,7 +2773,7 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 
 	/* mark start of dump memory area */
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	/* get the stackframeinfo for the current thread */
 
@@ -2858,7 +2856,7 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 
 	/* release dump area */
 
-	dump_release(dumpsize);
+	DRELEASE;
 }
 
 

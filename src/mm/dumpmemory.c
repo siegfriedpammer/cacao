@@ -203,11 +203,12 @@ void dumpmemory_alloc(dumpinfo_t *di, size_t size)
 	  NULL iff `size` was zero
 
    ERROR HANDLING:
-      XXX This function uses `memory_checked_alloc`, which *exits* if no 
-	  memory could be allocated.
+      XXX This function uses `memory_checked_alloc`, which *exits* if
+	  no memory could be allocated.
 
    THREADS:
-      dump_alloc is thread safe. Each thread has its own dump memory area.
+      dumpmemory_get is thread safe. Each thread has its own dump
+      memory area.
 
    This function is a fast allocator suitable for scratch memory that
    can be collectively freed when the current activity (eg. compiling)
@@ -215,9 +216,10 @@ void dumpmemory_alloc(dumpinfo_t *di, size_t size)
 
    You cannot selectively free dump memory. Before you start
    allocating it, you remember the current size returned by
-   `dump_size`. Later, when you no longer need the memory, call
-   `dump_release` with the remembered size and all dump memory
-   allocated since the call to `dump_size` will be freed.
+   `dumpmemory_marker`. Later, when you no longer need the memory,
+   call `dumpmemory_release` with the remembered size and all dump
+   memory allocated since the call to `dumpmemory_marker` will be
+   freed.
 
 *******************************************************************************/
 
@@ -345,14 +347,14 @@ void *dumpmemory_realloc(void *src, s4 len1, s4 len2)
 }
 
 
-/* dump_release ****************************************************************
+/* dumpmemory_release **********************************************************
 
    Release dump memory above the given size.
 
    IN:
        size........All dump memory above this mark will be freed. Usually
-	               `size` will be the return value of a `dump_size` call
-				   made earlier.
+	               `size` will be the return value of a `dumpmemory_marker`
+				   call made earlier.
 
 	ERROR HANDLING:
 	   XXX If the given size is invalid, this function *exits* with an
@@ -362,7 +364,7 @@ void *dumpmemory_realloc(void *src, s4 len1, s4 len2)
 
 *******************************************************************************/
 
-void dump_release(s4 size)
+void dumpmemory_release(s4 size)
 {
 #if defined(DISABLE_DUMP)
 
@@ -433,13 +435,17 @@ void dump_release(s4 size)
 }
 
 
-/* dump_size *******************************************************************
+/* dumpmemory_marker ***********************************************************
 
-   Return the current size of the dump memory area. See `dump_alloc`.
+   Returns a marker of the dump memory area.  This marker is actually
+   the used size of the dump memory area.
+
+   RETURN VALUE:
+       marker of the current dump memory status
 
 *******************************************************************************/
 
-s4 dump_size(void)
+int32_t dumpmemory_marker(void)
 {
 #if defined(DISABLE_DUMP)
 	/* use malloc memory for dump memory (for debugging only!) */

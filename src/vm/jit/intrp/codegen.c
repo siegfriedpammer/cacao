@@ -1,9 +1,7 @@
 /* src/vm/jit/intrp/codegen.c - code generator for Interpreter
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -1838,8 +1836,8 @@ u1 *intrp_createcompilerstub(methodinfo *m)
 	Inst        *s;
 	Inst        *d;
 	codegendata *cd;
-	s4           dumpsize;
 	s4           stackframesize;
+	int32_t      dumpmarker;
 
 	s = CNEW(Inst, COMPILERSTUB_SIZE);
 
@@ -1856,7 +1854,7 @@ u1 *intrp_createcompilerstub(methodinfo *m)
 
 	/* mark start of dump memory area */
 
-	dumpsize = dump_size();
+	DMARKER;
 	
 	cd = DNEW(codegendata);
     cd->mcodeptr = (u1 *) s;
@@ -1894,7 +1892,7 @@ u1 *intrp_createcompilerstub(methodinfo *m)
 
 	/* release dump area */
 
-	dump_release(dumpsize);
+	DRELEASE;
 	
 	return (u1 *) s;
 }
@@ -2203,12 +2201,12 @@ u1 *createcalljavafunction(methodinfo *m)
 	jitdata            *jd;
 	codegendata        *cd;
 	registerdata       *rd;
-	s4                  dumpsize;
 	methoddesc         *md;
+	int32_t             dumpmarker;
 
 	/* mark dump memory */
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	/* allocate memory */
 
@@ -2264,7 +2262,7 @@ u1 *createcalljavafunction(methodinfo *m)
 
 	/* release memory */
 
-	dump_release(dumpsize);
+	DRELEASE;
 
 	return entrypoint;
 }

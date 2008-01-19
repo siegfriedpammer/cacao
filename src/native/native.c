@@ -1,9 +1,7 @@
 /* src/native/native.c - table of native functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -171,12 +169,12 @@ static utf *native_make_overloaded_function(utf *name, utf *descriptor)
 	char *utf_ptr;
 	u2    c;
 	s4    i;
-	s4    dumpsize;
 	utf  *u;
+	int32_t dumpmarker;
 
 	/* mark memory */
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	utf_ptr = descriptor->text;
 	namelen = strlen(name->text) + strlen("__") + strlen("0");
@@ -268,7 +266,7 @@ static utf *native_make_overloaded_function(utf *name, utf *descriptor)
 
 	/* release memory */
 
-	dump_release(dumpsize);
+	DRELEASE;
 
 	return u;
 }
@@ -351,12 +349,12 @@ static utf *native_method_symbol(utf *classname, utf *methodname)
 	char *utf_endptr;
 	u2    c;
 	u4    pos;
-	s4    dumpsize;
 	utf  *u;
+	int32_t dumpmarker;
 
 	/* mark memory */
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	/* Calculate length of native function name.  We multiply the
 	   class and method name length by 6 as this is the maxium
@@ -412,7 +410,7 @@ static utf *native_method_symbol(utf *classname, utf *methodname)
 
 	/* release memory */
 
-	dump_release(dumpsize);
+	DRELEASE;
 
 	return u;
 }

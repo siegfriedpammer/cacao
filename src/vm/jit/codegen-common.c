@@ -1,9 +1,7 @@
 /* src/vm/jit/codegen-common.c - architecture independent code generator stuff
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -1067,11 +1065,11 @@ u1 *codegen_generate_stub_compiler(methodinfo *m)
 	codegendata *cd;
 	ptrint      *d;                     /* pointer to data memory             */
 	u1          *c;                     /* pointer to code memory             */
-	s4           dumpsize;
+	int32_t      dumpmarker;
 
 	/* mark dump memory */
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	/* allocate required data structures */
 
@@ -1154,7 +1152,7 @@ u1 *codegen_generate_stub_compiler(methodinfo *m)
 
 	/* release dump memory */
 
-	dump_release(dumpsize);
+	DRELEASE;
 
 	/* return native stub code */
 
@@ -1173,11 +1171,11 @@ void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 	jitdata  *jd;
 	codeinfo *code;
 	int       skipparams;
-	s4        dumpsize;
+	int32_t   dumpmarker;
 
 	/* mark dump memory */
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	/* Create JIT data structure. */
 
@@ -1242,7 +1240,7 @@ void codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte)
 
 	/* release memory */
 
-	dump_release(dumpsize);
+	DRELEASE;
 }
 
 
@@ -1259,14 +1257,14 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 {
 	jitdata     *jd;
 	codeinfo    *code;
-	s4           dumpsize;
 	methoddesc  *md;
 	methoddesc  *nmd;	
 	int          skipparams;
+	int32_t      dumpmarker;
 
 	/* mark dump memory */
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	/* Create JIT data structure. */
 
@@ -1383,7 +1381,7 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 
 	/* release memory */
 
-	dump_release(dumpsize);
+	DRELEASE;
 
 	/* return native stub code */
 
