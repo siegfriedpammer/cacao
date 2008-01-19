@@ -29,6 +29,19 @@
 #include "config.h"
 
 
+/* bytecode_t *****************************************************************/
+
+typedef struct bytecode_t bytecode_t;
+
+struct bytecode_t {
+	int   length;                       /* length of the instruction in bytes */
+	int   slots;                        /* required stack slots               */
+	char *mnemonic;
+};
+
+extern bytecode_t bytecode[256];
+
+
 /* Java bytecodes *************************************************************/
 
 enum {

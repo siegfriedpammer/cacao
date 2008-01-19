@@ -1,9 +1,7 @@
 /* src/vm/jit/optimizing/ssa.c - static single-assignment form
 
-   Copyright (C) 2005 - 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005, 2006, 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -22,13 +20,11 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Christian Ullrich
-
-   $Id: $
-
 */
+
+
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -474,7 +470,7 @@ void ssa_rename_print(instruction *iptr, char *op, int from,  int to) {
 	if (compileverbose) {
 		printf("ssa_rename_: ");
 		if (iptr != NULL)
-			printf("%s ", opcode_names[iptr->opc]);
+			printf("%s ", bytecode[iptr->opc].mnemonic);
 		else
 			printf("       ");
 

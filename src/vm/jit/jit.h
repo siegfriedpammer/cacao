@@ -631,10 +631,6 @@ extern icmdtable_entry_t icmd_table[256];
 
 /********** JavaVM operation codes (sorted) and instruction lengths ***********/
 
-extern char *opcode_names[256];
-extern int jcommandsize[256];
-extern int stackreq[256];
-
 enum {
 	ICMD_NOP               = BC_nop,
 

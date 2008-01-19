@@ -1,9 +1,7 @@
 /* src/vm/jit/optimizing/ssa.c - static single-assignment form
 
-   Copyright (C) 2005 - 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005, 2006, 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -22,13 +20,11 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Christian Ullrich
-
-   $Id: $
-
 */
+
+
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -40,6 +36,8 @@
 #include "vm/builtin.h"
 
 #include "vm/jit/jit.h" /* icmd_table */
+
+#include "vm/jit/ir/bytecode.h"
 
 #include "vm/jit/optimizing/dominators.h"
 #include "vm/jit/optimizing/graph.h"
@@ -767,7 +765,7 @@ void dead_code_elimination(jitdata *jd, graphdata *gd) {
 						if (compileverbose) {
 							printf("dce: PEI: BB%3i II%3i %s not removed \n",
 								   lt->def->b_index, lt->def->iindex,
-								   opcode_names[iptr->opc]);
+								   bytecode[iptr->opc].mnemonic);
 						}
 #endif
 
@@ -812,7 +810,7 @@ void dead_code_elimination(jitdata *jd, graphdata *gd) {
 						if (compileverbose) {
 							printf("dce: BB%3i II%3i %s removed \n",
 								   lt->def->b_index, lt->def->iindex,
-								   opcode_names[iptr->opc]);
+								   bytecode[iptr->opc].mnemonic);
 						}
 #endif
 					}
@@ -993,9 +991,9 @@ void copy_propagation(jitdata *jd, graphdata *gd) {
 				if (compileverbose)
 					printf(
 						   "-- copy propagation %3i %s: BB %3i II %3i: %3i -> %3i\n",
-						   iptr->opc, opcode_names[iptr->opc], lt->def->b_index,
-						   lt->def->iindex, iptr->s1.varindex,
-						   iptr->dst.varindex);
+						   iptr->opc, bytecode[iptr->opc].mnemonic,
+						   lt->def->b_index, lt->def->iindex,
+						   iptr->s1.varindex, iptr->dst.varindex);
 #endif
 				s_lt = ls->lifetime + iptr->s1.varindex;
 				
