@@ -138,12 +138,6 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 }
 
 
-void *md_asm_codegen_get_pv_from_pc(void *ra)
-{
-	return md_codegen_get_pv_from_pc(ra);
-}
-
-
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
