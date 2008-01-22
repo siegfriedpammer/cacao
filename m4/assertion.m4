@@ -1,7 +1,7 @@
 dnl m4/assertion.m4
 dnl
 dnl Copyright (C) 2007
-dnl CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
+dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl 
 dnl This file is part of CACAO.
 dnl 

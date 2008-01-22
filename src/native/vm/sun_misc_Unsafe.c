@@ -1,7 +1,7 @@
 /* src/native/vm/sun_misc_Unsafe.c - sun/misc/Unsafe
 
    Copyright (C) 2006, 2007, 2008
-   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 

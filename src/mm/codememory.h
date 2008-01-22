@@ -1,7 +1,7 @@
 /* src/mm/codememory.h - code memory management
 
    Copyright (C) 2007, 2008
-   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
