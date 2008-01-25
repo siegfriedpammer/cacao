@@ -1,7 +1,7 @@
 /* src/vm/jit/codegen-common.c - architecture independent code generator stuff
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
-   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -1543,7 +1543,7 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 	/* Return a wrapped classinfo for static methods. */
 
 	if (m->flags & ACC_STATIC)
-		return LLNI_classinfo_wrap(m->class);
+		return (java_handle_t *) LLNI_classinfo_wrap(m->class);
 	else
 		return NULL;
 }
