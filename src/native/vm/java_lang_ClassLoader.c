@@ -1,9 +1,7 @@
 /* src/native/vm/java_lang_ClassLoader.c - java/lang/ClassLoader
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -131,7 +129,7 @@ java_lang_Class *_Jv_java_lang_ClassLoader_defineClass(java_lang_ClassLoader *cl
 		c = class_define(utfname, loader, new_class_data_len, new_class_data, pd); 
 	else
 #endif
-		c = class_define(utfname, loader, len, (const uint8_t *) &LLNI_array_direct(data, offset), pd);
+		c = class_define(utfname, loader, len, (uint8_t *) &LLNI_array_direct(data, offset), (java_handle_t *) pd);
 
 	if (c == NULL)
 		return NULL;

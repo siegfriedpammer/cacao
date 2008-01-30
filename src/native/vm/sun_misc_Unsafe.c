@@ -907,8 +907,8 @@ JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_
 
 	/* define the class */
 
-	c = class_define(utfname, cl, len, (const uint8_t *) &(LLNI_array_direct(b, off)),
-					 protectionDomain);
+	c = class_define(utfname, cl, len, (uint8_t *) &(LLNI_array_direct(b, off)),
+					 (java_handle_t *) protectionDomain);
 
 	if (c == NULL)
 		return NULL;

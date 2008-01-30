@@ -3,7 +3,6 @@
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
-
    This file is part of CACAO.
 
    This program is free software; you can redistribute it and/or
@@ -291,7 +290,7 @@ void class_postset_header_vftbl(void)
 
 *******************************************************************************/
 
-classinfo *class_define(utf *name, classloader *cl, int32_t length, const uint8_t *data, java_handle_t *pd)
+classinfo *class_define(utf *name, classloader *cl, int32_t length, uint8_t *data, java_handle_t *pd)
 {
 	classinfo   *c;
 	classinfo   *r;

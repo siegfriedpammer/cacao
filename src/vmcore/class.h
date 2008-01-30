@@ -1,9 +1,7 @@
 /* src/vmcore/class.h - class related functions header
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -427,7 +425,7 @@ static inline classinfo *class_get_superclass(classinfo *c)
 
 classinfo *class_create_classinfo(utf *u);
 void       class_postset_header_vftbl(void);
-classinfo *class_define(utf *name, classloader *cl, int32_t length, const uint8_t *data, java_handle_t *pd);
+classinfo *class_define(utf *name, classloader *cl, int32_t length, uint8_t *data, java_handle_t *pd);
 void       class_set_packagename(classinfo *c);
 
 bool       class_load_attributes(classbuffer *cb);

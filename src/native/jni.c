@@ -61,7 +61,8 @@
 # endif
 
 /* java_lang_ClassLoader is used in java_lang_Class and vice versa, so
-   we pre-define it here to prevent a compiler warning. */
+   we pre-define it here to prevent a compiler warning for Sun
+   configurations. */
 
 struct java_lang_ClassLoader;
 
@@ -917,7 +918,7 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 	u  = utf_new_char(name);
 	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
-	c = class_define(u, cl, bufLen, (const uint8_t *) buf, NULL);
+	c = class_define(u, cl, bufLen, (uint8_t *) buf, NULL);
 
 	co = LLNI_classinfo_wrap(c);
 
