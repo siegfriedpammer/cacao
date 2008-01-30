@@ -63,7 +63,6 @@
 #endif
 
 #include "native/vm/java_lang_Class.h"
-#include "native/vm/java_lang_ClassLoader.h"
 #include "native/vm/java_lang_Runtime.h"
 #include "native/vm/java_lang_Thread.h"
 #include "native/vm/java_lang_reflect_Constructor.h"
