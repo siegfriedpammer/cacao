@@ -1,9 +1,7 @@
 /* src/native/vm/sun/jvm.c - HotSpot JVM interface functions
 
-   Copyright (C) 2007, 2008 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -838,7 +836,7 @@ jclass JVM_DefineClassWithSource(JNIEnv *env, const char *name, jobject loader, 
 
 	/* XXX do something with source */
 
-	c = class_define(u, cl, len, (const uint8_t *) buf, (java_handle_t *) pd);
+	c = class_define(u, cl, len, (uint8_t *) buf, (java_handle_t *) pd);
 
 	return (jclass) LLNI_classinfo_wrap(c);
 }
