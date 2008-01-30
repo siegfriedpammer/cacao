@@ -1,7 +1,7 @@
 /* src/vm/jit/intrp/codegen.c - code generator for Interpreter
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
-   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 

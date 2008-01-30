@@ -1,7 +1,7 @@
 /* src/vm/jit/patcher-common.c - architecture independent code patching stuff
 
    Copyright (C) 2007, 2008
-   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
