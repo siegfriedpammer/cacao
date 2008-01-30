@@ -87,7 +87,6 @@ struct java_lang_ClassLoader;
 #include "native/vm/java_lang_Class.h"
 
 #if defined(ENABLE_JAVASE)
-# include "native/vm/java_lang_ClassLoader.h"
 # include "native/vm/reflect.h"
 #endif
 

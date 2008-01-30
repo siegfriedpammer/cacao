@@ -1,9 +1,7 @@
 ## src/native/vm/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-## J. Wenninger, Institut f. Computersprachen - TU Wien
+## Copyright (C) 1996-2005, 2006, 2007, 2008
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -61,10 +59,6 @@ REFLECT_SOURCES = \
 	reflect.c \
 	reflect.h
 
-CLASSLOADER_SOURCES = \
-	java_lang_ClassLoader.c \
-	java_lang_ClassLoader.h
-
 JAVA_LANG_REFLECT_CONSTRUCTOR_SOURCES = \
 	java_lang_reflect_Constructor.c \
 	java_lang_reflect_Constructor.h
@@ -87,7 +81,6 @@ libnativevm_la_SOURCES = \
 	\
 	java_lang_Class.c \
 	java_lang_Class.h \
-	$(CLASSLOADER_SOURCES) \
 	java_lang_Runtime.c \
 	java_lang_Runtime.h \
 	java_lang_Thread.c \

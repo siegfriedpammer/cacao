@@ -1,9 +1,7 @@
-/* src/native/vm/gnu/VMClassLoader.c
+/* src/native/vm/gnu/java_lang_VMClassLoader.c
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -47,8 +45,6 @@
 #include "native/include/java_lang_Boolean.h"
 
 #include "native/include/java_lang_VMClassLoader.h"
-
-#include "native/vm/java_lang_ClassLoader.h"
 
 #include "toolbox/logging.h"
 #include "toolbox/list.h"
@@ -118,7 +114,79 @@ void _Jv_java_lang_VMClassLoader_init(void)
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *cl, java_lang_String *name, java_handle_bytearray_t *data, s4 offset, s4 len, java_security_ProtectionDomain *pd)
 {
-	return _Jv_java_lang_ClassLoader_defineClass(cl, name, data, offset, len, pd);
+	utf             *utfname;
+	classinfo       *c;
+	classloader     *loader;
+	java_lang_Class *o;
+
+#if defined(ENABLE_JVMTI)
+	jint new_class_data_len = 0;
+	unsigned char* new_class_data = NULL;
+#endif
+
+	/* check if data was passed */
+
+	if (data == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	/* check the indexes passed */
+
+	if ((offset < 0) || (len < 0) || ((offset + len) > LLNI_array_size(data))) {
+		exceptions_throw_arrayindexoutofboundsexception();
+		return NULL;
+	}
+
+	/* add classloader to classloader hashtable */
+
+	loader = loader_hashtable_classloader_add((java_handle_t *) cl);
+
+	if (name != NULL) {
+		/* convert '.' to '/' in java string */
+
+		utfname = javastring_toutf((java_handle_t *) name, true);
+	} 
+	else {
+		utfname = NULL;
+	}
+
+#if defined(ENABLE_JVMTI)
+	/* XXX again this will not work because of the indirection cell for classloaders */
+	assert(0);
+	/* fire Class File Load Hook JVMTI event */
+
+	if (jvmti)
+		jvmti_ClassFileLoadHook(utfname, len, (unsigned char *) data->data, 
+								loader, (java_handle_t *) pd, 
+								&new_class_data_len, &new_class_data);
+#endif
+
+	/* define the class */
+
+#if defined(ENABLE_JVMTI)
+	/* check if the JVMTI wants to modify the class */
+
+	if (new_class_data == NULL)
+		c = class_define(utfname, loader, new_class_data_len, new_class_data, pd); 
+	else
+#endif
+		c = class_define(utfname, loader, len, (uint8_t *) &LLNI_array_direct(data, offset), (java_handle_t *) pd);
+
+	if (c == NULL)
+		return NULL;
+
+	/* for convenience */
+
+	o = LLNI_classinfo_wrap(c);
+
+#if defined(WITH_CLASSPATH_GNU)
+	/* set ProtectionDomain */
+
+	LLNI_field_set_ref(o, pd, pd);
+#endif
+
+	return o;
 }
 
 
