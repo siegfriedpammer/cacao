@@ -31,6 +31,10 @@
 /* NOTE: In this file we check for all system headers, because we wrap
    all system calls into inline functions for better portability. */
 
+#if defined(HAVE_DIRENT_H)
+# include <dirent.h>
+#endif
+
 #if defined(HAVE_FCNTL_H)
 # include <fcntl.h>
 #endif
@@ -43,6 +47,10 @@
 
 #if defined(HAVE_STDINT_H)
 # include <stdint.h>
+#endif
+
+#if defined(HAVE_STDIO_H)
+# include <stdio.h>
 #endif
 
 #if defined(HAVE_STDLIB_H)
@@ -63,6 +71,10 @@
 
 #if defined(HAVE_SYS_SOCKET_H)
 # include <sys/socket.h>
+#endif
+
+#if defined(HAVE_SYS_STAT_H)
+# include <sys/stat.h>
 #endif
 
 #if defined(HAVE_SYS_TYPES_H)
@@ -118,6 +130,33 @@ inline static char *system_dirname(char *path)
 #endif
 }
 #endif
+
+inline static FILE *system_fopen(const char *path, const char *mode)
+{
+#if defined(HAVE_FOPEN)
+	return fopen(path, mode);
+#else
+# error fopen not available
+#endif
+}
+
+inline static int system_fclose(FILE *fp)
+{
+#if defined(HAVE_FCLOSE)
+	return fclose(fp);
+#else
+# error fclose not available
+#endif
+}
+
+inline static size_t system_fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
+#if defined(HAVE_FREAD)
+	return fread(ptr, size, nmemb, stream);
+#else
+# error fread not available
+#endif
+}
 
 inline static void system_free(void *ptr)
 {
@@ -260,6 +299,24 @@ inline static void *system_realloc(void *ptr, size_t size)
 	return realloc(ptr, size);
 #else
 # error realloc not available
+#endif
+}
+
+inline static int system_scandir(const char *dir, struct dirent ***namelist, int(*filter)(const struct dirent *), int(*compar)(const void *, const void *))
+{
+#if defined(HAVE_SCANDIR)
+	return scandir(dir, namelist, filter, compar);
+#else
+# error scandir not available
+#endif
+}
+
+inline static int system_stat(const char *path, struct stat *buf)
+{
+#if defined(HAVE_STAT)
+	return stat(path, buf);
+#else
+# error stat not available
 #endif
 }
 

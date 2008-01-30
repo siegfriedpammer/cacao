@@ -1,9 +1,7 @@
 dnl configure.ac
 dnl
-dnl Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-dnl C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-dnl E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-dnl J. Wenninger, Institut f. Computersprachen - TU Wien
+dnl Copyright (C) 1996-2005, 2006, 2007, 2008
+dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl 
 dnl This file is part of CACAO.
 dnl 
@@ -284,9 +282,11 @@ AC_CHECK_FUNCS([close])
 AC_CHECK_FUNCS([confstr])
 AC_CHECK_FUNCS([connect])
 AC_CHECK_FUNCS([dirname])
+AC_CHECK_FUNCS([fclose])
 AC_CHECK_FUNCS([fflush])
 AC_CHECK_FUNCS([fopen])
 AC_CHECK_FUNCS([fprintf])
+AC_CHECK_FUNCS([fread])
 AC_CHECK_FUNCS([free])
 AC_CHECK_FUNCS([fstat])
 AC_CHECK_FUNCS([fsync])
@@ -322,6 +322,7 @@ AC_CHECK_FUNCS([send])
 AC_CHECK_FUNCS([setsockopt])
 AC_CHECK_FUNCS([shutdown])
 AC_CHECK_FUNCS([socket])
+AC_CHECK_FUNCS([stat])
 AC_CHECK_FUNCS([strchr])
 AC_CHECK_FUNCS([strdup])
 AC_CHECK_FUNCS([strerror])

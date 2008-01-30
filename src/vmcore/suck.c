@@ -1,9 +1,7 @@
 /* src/vmcore/suck.c - functions to read LE ordered types from a buffer
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -28,8 +26,6 @@
 #include "config.h"
 
 #include <assert.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <stdlib.h>
 
 #include "vm/types.h"
@@ -51,6 +47,7 @@
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 #include "vmcore/suck.h"
+#include "vmcore/system.h"
 #include "vmcore/zip.h"
 
 
@@ -280,7 +277,7 @@ void suck_add_from_property(char *key)
 
 			/* scan the directory found for zip/jar files */
 
-			n = scandir(path, &namelist, scandir_filter, alphasort);
+			n = system_scandir(path, &namelist, scandir_filter, alphasort);
 
 			/* On error, just continue, this should be ok. */
 
@@ -556,10 +553,10 @@ classbuffer *suck_start(classinfo *c)
 			strcpy(path, lce->path);
 			strcat(path, filename);
 
-			classfile = fopen(path, "r");
+			classfile = system_fopen(path, "r");
 
 			if (classfile) {                                   /* file exists */
-				if (!stat(path, &buffer)) {            /* read classfile data */
+				if (!system_stat(path, &buffer)) {     /* read classfile data */
 					cb = NEW(classbuffer);
 					cb->class = c;
 					cb->size  = buffer.st_size;
@@ -569,7 +566,8 @@ classbuffer *suck_start(classinfo *c)
 
 					/* read class data */
 
-					len = fread(cb->data, 1, cb->size, classfile);
+					len = system_fread((void *) cb->data, 1, cb->size,
+									   classfile);
 
 					if (len != buffer.st_size) {
 						suck_stop(cb);
@@ -579,7 +577,7 @@ classbuffer *suck_start(classinfo *c)
 
 					/* close the class file */
 
-					fclose(classfile);
+					system_fclose(classfile);
 				}
 			}
 
