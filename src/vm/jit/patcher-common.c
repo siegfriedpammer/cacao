@@ -1,9 +1,7 @@
 /* src/vm/jit/patcher-common.c - architecture independent code patching stuff
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -301,7 +299,7 @@ java_handle_t *patcher_handler(u1 *pc)
 				break;
 
 		TRACE_PATCHER_INDENT; printf("patching in "); method_print(code->m); printf(" at %p\n", (void *) pr->mpc);
-		TRACE_PATCHER_INDENT; printf("\tpatcher function = %s <%p>\n", l->name, (void *) pr->patcher);
+		TRACE_PATCHER_INDENT; printf("\tpatcher function = %s <%p>\n", l->name, (void *) (intptr_t) pr->patcher);
 		TRACE_PATCHER_INDENT; printf("\tmcodes before = "); for (i=0; i<5; i++) printf("0x%08x ", *((u4 *) pr->mpc + i)); printf("\n");
 		patcher_depth++;
 		assert(patcher_depth > 0);

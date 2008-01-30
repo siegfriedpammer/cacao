@@ -1,9 +1,8 @@
 /* src/vmcore/class.c - class related functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
+
 
    This file is part of CACAO.
 
@@ -887,11 +886,11 @@ classinfo *class_array_of(classinfo *component, bool link)
     char              *namebuf;
 	utf               *u;
 	classinfo         *c;
-	s4                 dumpsize;
+	int32_t            dumpmarker;
 
 	cl = component->classloader;
 
-	dumpsize = dump_size();
+	DMARKER;
 
     /* Assemble the array class name */
     namelen = component->name->blength;
@@ -917,7 +916,7 @@ classinfo *class_array_of(classinfo *component, bool link)
 
 	c = get_array_class(u, cl, cl, link);
 
-	dump_release(dumpsize);
+	DRELEASE;
 
 	return c;
 }
@@ -934,10 +933,10 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
 {
     s4 namelen;
     char *namebuf;
-	s4 dumpsize;
 	classinfo *c;
+	int32_t    dumpmarker;
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	if (dim < 1) {
 		log_text("Invalid array dimension requested");
@@ -968,7 +967,7 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
 						element->classloader,
 						link);
 
-	dump_release(dumpsize);
+	DRELEASE;
 
 	return c;
 }
@@ -1096,13 +1095,13 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
 {
     s4 namelen;
     char *namebuf;
-	s4 dumpsize;
 	constant_classref *cr;
+	int32_t            dumpmarker;
 
 	assert(ref);
 	assert(dim >= 1 && dim <= 255);
 
-	dumpsize = dump_size();
+	DMARKER;
 
     /* Assemble the array class name */
     namelen = ref->name->blength;
@@ -1125,7 +1124,7 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
 
     cr = class_get_classref(ref->referer,utf_new(namebuf, namelen));
 
-	dump_release(dumpsize);
+	DRELEASE;
 
 	return cr;
 }

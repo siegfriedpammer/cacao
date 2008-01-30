@@ -267,10 +267,10 @@ struct typedescriptor {
     ((size) * sizeof(varinfo)) 
 
 #define DNEW_TYPEVECTOR(size)						\
-    ((varinfo*)dump_alloc(TYPEVECTOR_SIZE(size)))
+    ((varinfo *) DMNEW(uint8_t, TYPEVECTOR_SIZE(size)))
 
 #define DMNEW_TYPEVECTOR(num,size)						\
-    ((void*)dump_alloc((num) * TYPEVECTOR_SIZE(size)))
+    ((void *) DMNEW(uint8_t, (num) * TYPEVECTOR_SIZE(size)))
 
 #define MGET_TYPEVECTOR(array,index,size) \
     ((varinfo*) (((u1*)(array)) + TYPEVECTOR_SIZE(size) * (index)))
@@ -278,8 +278,8 @@ struct typedescriptor {
 /* internally used macros ***************************************************/
 
 /* internal, don't use this explicitly! */
-#define TYPEINFO_ALLOCMERGED(mergedlist,count)                  \
-    do {(mergedlist) = (typeinfo_mergedlist*)dump_alloc(        \
+#define TYPEINFO_ALLOCMERGED(mergedlist,count)					\
+    do {(mergedlist) = (typeinfo_mergedlist *) DMNEW(uint8_t,	\
             sizeof(typeinfo_mergedlist)                         \
             + ((count)-1)*sizeof(classinfo*));} while(0)
 

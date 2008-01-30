@@ -525,13 +525,13 @@ fetch_opcode:
 
 		/* compute next instruction start */
 
-		nextbc = bcindex + jcommandsize[opcode];
+		nextbc = bcindex + bytecode[opcode].length;
 
 		CHECK_END_OF_BYTECODE(nextbc);
 
 		/* add stack elements produced by this instruction */
 
-		s_count += stackreq[opcode];
+		s_count += bytecode[opcode].slots;
 
 		/* We check here for the space of 1 instruction in the
 		   instruction array.  If an opcode is converted to more than

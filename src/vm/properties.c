@@ -132,20 +132,24 @@ void properties_set(void)
 	if (readlink("/proc/self/exe", p, 4095) == -1)
 		vm_abort("properties_set: readlink failed: %s\n", strerror(errno));
 
-	/* Get the path of the current executable. */
+	/* We have a path like:
 
+	   /path/to/executable/bin/java
+
+	   or
+	   
+	   /path/to/executeable/jre/bin/java
+
+	   Now let's strip two levels. */
+
+	p = dirname(p);
 	p = dirname(p);
 
 # if defined(WITH_CLASSPATH_GNU)
 
 	/* Set java.home. */
 
-	len = strlen(p) + strlen("/..") + strlen("0");
-
-	java_home = MNEW(char, len);
-
-	strcpy(java_home, p);
-	strcat(java_home, "/..");
+	java_home = strdup(p);
 
 	/* Set the path to Java core native libraries. */
 
@@ -166,13 +170,13 @@ void properties_set(void)
 
 	len =
 		strlen(p) +
-		strlen("/../jre/lib/"JAVA_ARCH"/server/libjvm.so") +
+		strlen("/jre/lib/"JAVA_ARCH"/server/libjvm.so") +
 		strlen("0");
 
 	java_home = MNEW(char, len);
 
 	strcpy(java_home, p);
-	strcat(java_home, "/../jre/lib/"JAVA_ARCH"/server/libjvm.so");
+	strcat(java_home, "/jre/lib/"JAVA_ARCH"/server/libjvm.so");
 
 	/* Check if that libjvm.so exists. */
 
@@ -180,13 +184,12 @@ void properties_set(void)
 		/* Yes, we add /jre to java.home. */
 
 		strcpy(java_home, p);
-		strcat(java_home, "/../jre");
+		strcat(java_home, "/jre");
 	}
 	else {
 		/* No, java.home is parent directory. */
 
 		strcpy(java_home, p);
-		strcat(java_home, "/..");
 	}
 
 	/* Set the path to Java core native libraries. */

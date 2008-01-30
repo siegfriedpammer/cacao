@@ -63,15 +63,6 @@ There are two possible choices for allocating memory:
 			mem_realloc ... change size of a memory block (position may change)
 			mem_usage ..... amount of allocated memory
 
-
-	2.   explicit allocating, automatic deallocating
-	
-			dump_alloc .... allocate a memory block in the dump area
-			dump_realloc .. change size of a memory block (position may change)
-			dump_size ..... marks the current top of dump
-			dump_release .. free all memory requested after the mark
-			                
-	
 There are some useful macros:
 
 	NEW (type) ....... allocate memory for an element of type `type`
@@ -82,11 +73,6 @@ There are some useful macros:
 	
 	MREALLOC (ptr,type,num1,num2) .. enlarge the array to size num2
 	                                 
-These macros do the same except they operate on the dump area:
-	
-	DNEW,  DMNEW, DMREALLOC   (there is no DFREE)
-
-
 -------------------------------------------------------------------------------
 
 Some more macros:

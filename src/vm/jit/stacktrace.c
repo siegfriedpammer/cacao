@@ -1,9 +1,7 @@
 /* src/vm/jit/stacktrace.c - machine independent stacktrace system
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -44,9 +42,12 @@
 #include "vm/global.h"                   /* required here for native includes */
 #include "native/jni.h"
 #include "native/llni.h"
+
+#include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Throwable.h"
 
 #if defined(WITH_CLASSPATH_GNU)
+# include "native/include/gnu_classpath_Pointer.h"
 # include "native/include/java_lang_VMThrowable.h"
 #endif
 
@@ -1059,9 +1060,14 @@ void stacktrace_print(stacktrace_t *st)
 void stacktrace_print_exception(java_handle_t *h)
 {
 	java_lang_Throwable     *o;
+
 #if defined(WITH_CLASSPATH_GNU)
 	java_lang_VMThrowable   *vmt;
+	gnu_classpath_Pointer   *backtrace;
+#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
+	java_lang_Object        *backtrace;
 #endif
+
 	java_handle_bytearray_t *ba;
 	stacktrace_t            *st;
 
@@ -1075,15 +1081,17 @@ void stacktrace_print_exception(java_handle_t *h)
 #if defined(WITH_CLASSPATH_GNU)
 
 	LLNI_field_get_ref(o,   vmState, vmt);
-	LLNI_field_get_ref(vmt, vmData,  ba);
+	LLNI_field_get_ref(vmt, vmData,  backtrace);
 
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
 
-	LLNI_field_get_ref(o, backtrace, ba);
+	LLNI_field_get_ref(o, backtrace, backtrace);
 
 #else
 # error unknown classpath configuration
 #endif
+
+	ba = (java_handle_bytearray_t *) backtrace;
 
 	/* Sanity check. */
 

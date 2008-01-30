@@ -2117,6 +2117,13 @@ jboolean JVM_IsSameClassPackage(JNIEnv *env, jclass class1, jclass class2)
 
 /* JVM_Open */
 
+/* Taken from: hotspot/src/share/vm/prims/jvm.h */
+
+/*
+ * JVM I/O error codes
+ */
+#define JVM_EEXIST       -100
+
 jint JVM_Open(const char *fname, jint flags, jint mode)
 {
 	int result;
@@ -2129,11 +2136,9 @@ jint JVM_Open(const char *fname, jint flags, jint mode)
 		return result;
 	}
 	else {
-		switch(errno) {
+		switch (errno) {
 		case EEXIST:
-			/* XXX don't know what to do here */
-/* 			return JVM_EEXIST; */
-			return -1;
+			return JVM_EEXIST;
 		default:
 			return -1;
 		}

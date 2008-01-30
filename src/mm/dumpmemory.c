@@ -87,7 +87,7 @@ static void dump_check_canaries(dumpinfo_t *di, s4 bottomsize)
 
 	da = di->allocations;
 
-	while (da && da->useddumpsize >= bottomsize) {
+	while (da && da->used >= bottomsize) {
 		/* check canaries */
 
 		pm = ((uint8_t *) da->mem) - MEMORY_CANARY_SIZE;
@@ -130,7 +130,67 @@ static void dump_check_canaries(dumpinfo_t *di, s4 bottomsize)
 #endif /* defined(ENABLE_MEMCHECK) */
 
 
-/* dump_alloc ******************************************************************
+/* dumpmemory_alloc ************************************************************
+
+   ATTENTION: This function must only be called from dumpmemory_get!
+
+   Allocate a new dump memory block.
+
+   IN:
+      di ..... dumpinfo_t of the current thread
+      size ... required memory size
+
+*******************************************************************************/
+
+void dumpmemory_alloc(dumpinfo_t *di, size_t size)
+{
+	dumpblock_t *db;
+	size_t       newblocksize;
+
+	/* Allocate a new dumpblock_t structure. */
+
+	db = memory_checked_alloc(sizeof(dumpblock_t));
+
+	/* If requested size is greater than the default, make the new
+	   dump block as big as the size requested. Else use the default
+	   size. */
+
+	if (size > DUMPBLOCKSIZE) {
+		newblocksize = size;
+	}
+	else {
+		newblocksize = DUMPBLOCKSIZE;
+	}
+
+	/* allocate dumpblock memory */
+
+	db->dumpmem = memory_checked_alloc(newblocksize);
+
+	db->size  = newblocksize;
+	db->prev  = di->block;
+	di->block = db;
+
+	/* Used dump size is previously allocated dump size, because the
+	   remaining free memory of the previous dump block cannot be
+	   used. */
+
+	di->used = di->allocated;
+
+	/* Increase the allocated dump size by the size of the new dump
+	   block. */
+
+	di->allocated += newblocksize;
+
+#if defined(ENABLE_STATISTICS)
+	/* The amount of globally allocated dump memory (thread save). */
+
+	if (opt_stat)
+		globalallocateddumpsize += newblocksize;
+#endif
+}
+
+
+/* dumpmemory_get **************************************************************
 
    Allocate memory in the dump area.
 
@@ -143,23 +203,27 @@ static void dump_check_canaries(dumpinfo_t *di, s4 bottomsize)
 	  NULL iff `size` was zero
 
    ERROR HANDLING:
-      XXX This function uses `memory_checked_alloc`, which *exits* if no 
-	  memory could be allocated.
+      XXX This function uses `memory_checked_alloc`, which *exits* if
+	  no memory could be allocated.
 
    THREADS:
-      dump_alloc is thread safe. Each thread has its own dump memory area.
+      dumpmemory_get is thread safe. Each thread has its own dump
+      memory area.
 
-   dump_alloc is a fast allocator suitable for scratch memory that can be
-   collectively freed when the current activity (eg. compiling) is done.
+   This function is a fast allocator suitable for scratch memory that
+   can be collectively freed when the current activity (eg. compiling)
+   is done.
 
-   You cannot selectively free dump memory. Before you start allocating it, 
-   you remember the current size returned by `dump_size`. Later, when you no 
-   longer need the memory, call `dump_release` with the remembered size and
-   all dump memory allocated since the call to `dump_size` will be freed.
+   You cannot selectively free dump memory. Before you start
+   allocating it, you remember the current size returned by
+   `dumpmemory_marker`. Later, when you no longer need the memory,
+   call `dumpmemory_release` with the remembered size and all dump
+   memory allocated since the call to `dumpmemory_marker` will be
+   freed.
 
 *******************************************************************************/
 
-void *dump_alloc(s4 size)
+void *dumpmemory_get(size_t size)
 {
 #if defined(DISABLE_DUMP)
 
@@ -175,69 +239,30 @@ void *dump_alloc(s4 size)
 	s4          origsize = size; /* needed for the canary system */
 #endif
 
-	/* If no threads are used, the dumpinfo structure is a static structure   */
-	/* defined at the top of this file.                                       */
-
 	di = DUMPINFO;
 
 	if (size == 0)
 		return NULL;
 
 #if defined(ENABLE_MEMCHECK)
-	size += 2*MEMORY_CANARY_SIZE;
+	size += 2 * MEMORY_CANARY_SIZE;
 #endif
 
 	size = MEMORY_ALIGN(size, ALIGNSIZE);
 
-	if (di->useddumpsize + size > di->allocateddumpsize) {
-		dumpblock_t *newdumpblock;
-		s4         newdumpblocksize;
+	/* Check if we have enough memory in the current memory block. */
 
-		/* allocate a new dumplist structure */
+	if (di->used + size > di->allocated) {
+		/* If not, allocate a new one. */
 
-		newdumpblock = memory_checked_alloc(sizeof(dumpblock_t));
-
-		/* If requested size is greater than the default, make the new dump   */
-		/* block as big as the size requested. Else use the default size.     */
-
-		if (size > DUMPBLOCKSIZE) {
-			newdumpblocksize = size;
-
-		} else {
-			newdumpblocksize = DUMPBLOCKSIZE;
-		}
-
-		/* allocate dumpblock memory */
-
-		newdumpblock->dumpmem = memory_checked_alloc(newdumpblocksize);
-
-		newdumpblock->prev = di->currentdumpblock;
-		newdumpblock->size = newdumpblocksize;
-		di->currentdumpblock = newdumpblock;
-
-		/* Used dump size is previously allocated dump size, because the      */
-		/* remaining free memory of the previous dump block cannot be used.   */
-
-		di->useddumpsize = di->allocateddumpsize;
-
-		/* increase the allocated dump size by the size of the new dump block */
-
-		di->allocateddumpsize += newdumpblocksize;
-
-#if defined(ENABLE_STATISTICS)
-		/* the amount of globally allocated dump memory (thread save) */
-
-		if (opt_stat)
-			globalallocateddumpsize += newdumpblocksize;
-#endif
+		dumpmemory_alloc(di, size);
 	}
 
 	/* current dump block base address + the size of the current dump
 	   block - the size of the unused memory = new start address  */
 
-	p = ((uint8_t *) di->currentdumpblock->dumpmem) +
-		di->currentdumpblock->size -
-		(di->allocateddumpsize - di->useddumpsize);
+	p = ((uint8_t *) di->block->dumpmem) + di->block->size -
+		(di->allocated - di->used);
 
 #if defined(ENABLE_MEMCHECK)
 	{
@@ -247,10 +272,10 @@ void *dump_alloc(s4 size)
 
 		/* add the allocation to our linked list of allocations */
 
-		da->next         = di->allocations;
-		da->mem          = ((uint8_t *) p) + MEMORY_CANARY_SIZE;
-		da->size         = origsize;
-		da->useddumpsize = di->useddumpsize;
+		da->next = di->allocations;
+		da->mem  = ((uint8_t *) p) + MEMORY_CANARY_SIZE;
+		da->size = origsize;
+		da->used = di->used;
 
 		di->allocations = da;
 
@@ -276,14 +301,14 @@ void *dump_alloc(s4 size)
 	}
 #endif /* defined(ENABLE_MEMCHECK) */
 
-	/* increase used dump size by the allocated memory size */
+	/* Increase used dump size by the allocated memory size. */
 
-	di->useddumpsize += size;
+	di->used += size;
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
-		if (di->useddumpsize > maxdumpsize)
-			maxdumpsize = di->useddumpsize;
+		if (di->used > maxdumpsize)
+			maxdumpsize = di->used;
 #endif
 
 	return p;
@@ -292,25 +317,28 @@ void *dump_alloc(s4 size)
 }
 
 
-/* dump_realloc ****************************************************************
+/* dumpmemory_realloc **********************************************************
 
    Stupid realloc implementation for dump memory. Avoid, if possible.
 
 *******************************************************************************/
 
-void *dump_realloc(void *src, s4 len1, s4 len2)
+void *dumpmemory_realloc(void *src, s4 len1, s4 len2)
 {
 #if defined(DISABLE_DUMP)
 	/* use malloc memory for dump memory (for debugging only!) */
 
 	return mem_realloc(src, len1, len2);
 #else
-	void *dst = dump_alloc(len2);
+	void *dst;
+
+	dst = dumpmemory_get(len2);
 
 	(void) system_memcpy(dst, src, len1);
 
 #if defined(ENABLE_MEMCHECK)
 	/* destroy the source */
+
 	(void) system_memset(src, MEMORY_CLEAR_BYTE, len1);
 #endif
 
@@ -319,14 +347,14 @@ void *dump_realloc(void *src, s4 len1, s4 len2)
 }
 
 
-/* dump_release ****************************************************************
+/* dumpmemory_release **********************************************************
 
    Release dump memory above the given size.
 
    IN:
        size........All dump memory above this mark will be freed. Usually
-	               `size` will be the return value of a `dump_size` call
-				   made earlier.
+	               `size` will be the return value of a `dumpmemory_marker`
+				   call made earlier.
 
 	ERROR HANDLING:
 	   XXX If the given size is invalid, this function *exits* with an
@@ -336,7 +364,7 @@ void *dump_realloc(void *src, s4 len1, s4 len2)
 
 *******************************************************************************/
 
-void dump_release(s4 size)
+void dumpmemory_release(s4 size)
 {
 #if defined(DISABLE_DUMP)
 
@@ -348,13 +376,10 @@ void dump_release(s4 size)
 
 	dumpinfo_t *di;
 
-	/* If no threads are used, the dumpinfo structure is a static structure   */
-	/* defined at the top of this file.                                       */
-
 	di = DUMPINFO;
 
-	if ((size < 0) || (size > di->useddumpsize))
-		vm_abort("Illegal dump release size: %d", size);
+	if ((size < 0) || (size > di->used))
+		vm_abort("dump_release: Illegal dump release size: %d", size);
 
 #if defined(ENABLE_MEMCHECK)
 	{
@@ -367,7 +392,8 @@ void dump_release(s4 size)
 		/* iterate over all dump memory allocations about to be released */
 
 		da = di->allocations;
-		while (da && da->useddumpsize >= size) {
+
+		while ((da != NULL) && (da->used >= size)) {
 			next = da->next;
 
 			/* invalidate the freed memory */
@@ -382,15 +408,15 @@ void dump_release(s4 size)
 	}
 #endif /* defined(ENABLE_MEMCHECK) */
 
-	/* reset the used dump size to the size specified */
+	/* Reset the used dump size to the size specified. */
 
-	di->useddumpsize = size;
+	di->used = size;
 
-	while (di->currentdumpblock && di->allocateddumpsize - di->currentdumpblock->size >= di->useddumpsize) {
-		dumpblock_t *tmp = di->currentdumpblock;
+	while ((di->block != NULL) && di->allocated - di->block->size >= di->used) {
+		dumpblock_t *tmp = di->block;
 
-		di->allocateddumpsize -= tmp->size;
-		di->currentdumpblock = tmp->prev;
+		di->allocated -= tmp->size;
+		di->block      = tmp->prev;
 
 #if defined(ENABLE_STATISTICS)
 		/* the amount of globally allocated dump memory (thread save) */
@@ -399,7 +425,7 @@ void dump_release(s4 size)
 			globalallocateddumpsize -= tmp->size;
 #endif
 
-		/* release the dump memory and the dumpinfo structure */
+		/* Release the dump memory and the dumpinfo structure. */
 
 		system_free(tmp->dumpmem);
 		system_free(tmp);
@@ -409,13 +435,17 @@ void dump_release(s4 size)
 }
 
 
-/* dump_size *******************************************************************
+/* dumpmemory_marker ***********************************************************
 
-   Return the current size of the dump memory area. See `dump_alloc`.
+   Returns a marker of the dump memory area.  This marker is actually
+   the used size of the dump memory area.
+
+   RETURN VALUE:
+       marker of the current dump memory status
 
 *******************************************************************************/
 
-s4 dump_size(void)
+int32_t dumpmemory_marker(void)
 {
 #if defined(DISABLE_DUMP)
 	/* use malloc memory for dump memory (for debugging only!) */
@@ -426,15 +456,12 @@ s4 dump_size(void)
 
 	dumpinfo_t *di;
 
-	/* If no threads are used, the dumpinfo structure is a static
-	   structure defined at the top of this file. */
-
 	di = DUMPINFO;
 
 	if (di == NULL)
 		return 0;
 
-	return di->useddumpsize;
+	return di->used;
 
 #endif /* defined(DISABLE_DUMP) */
 }

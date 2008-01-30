@@ -1,9 +1,7 @@
 /* src/vm/vm.c - VM startup and shutdown functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -2414,21 +2412,21 @@ VM_CALL_METHOD(_double, double)
 type vm_call_method##name##_valist(methodinfo *m, java_handle_t *o,     \
 								   va_list ap)                          \
 {                                                                       \
-	int32_t   dumpsize;                                                 \
 	uint64_t *array;                                                    \
 	type      value;                                                    \
+	int32_t   dumpmarker;                                               \
                                                                         \
 	if (m->code == NULL)                                                \
 		if (!jit_compile(m))                                            \
 			return 0;                                                   \
                                                                         \
 	THREAD_NATIVEWORLD_EXIT;                                            \
+	DMARKER;                                                            \
                                                                         \
-	dumpsize = dump_size();                                             \
 	array = argument_vmarray_from_valist(m, o, ap);                     \
 	value = vm_call##name##_array(m, array);                            \
-	dump_release(dumpsize);                                             \
                                                                         \
+	DRELEASE;                                                           \
 	THREAD_NATIVEWORLD_ENTER;                                           \
                                                                         \
 	return value;                                                       \
@@ -2452,21 +2450,21 @@ VM_CALL_METHOD_VALIST(_double, double)
 type vm_call_method##name##_jvalue(methodinfo *m, java_handle_t *o,     \
 						           const jvalue *args)                  \
 {                                                                       \
-	int32_t   dumpsize;                                                 \
 	uint64_t *array;                                                    \
 	type      value;                                                    \
+	int32_t   dumpmarker;                                               \
                                                                         \
 	if (m->code == NULL)                                                \
 		if (!jit_compile(m))                                            \
 			return 0;                                                   \
                                                                         \
 	THREAD_NATIVEWORLD_EXIT;                                            \
+	DMARKER;                                                            \
                                                                         \
-	dumpsize = dump_size();                                             \
 	array = argument_vmarray_from_jvalue(m, o, args);                   \
 	value = vm_call##name##_array(m, array);                            \
-	dump_release(dumpsize);                                             \
                                                                         \
+	DRELEASE;                                                           \
 	THREAD_NATIVEWORLD_ENTER;                                           \
                                                                         \
 	return value;                                                       \
@@ -2489,11 +2487,11 @@ VM_CALL_METHOD_JVALUE(_double, double)
 java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 										  java_handle_objectarray_t *params)
 {
-	int32_t        dumpsize;
 	uint64_t      *array;
 	java_handle_t *xptr;
 	java_handle_t *ro;
 	imm_union      value;
+	int32_t        dumpmarker;
 
 	/* compile methods which are not yet compiled */
 
@@ -2507,7 +2505,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 
 	/* mark start of dump memory area */
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	/* Fill the argument array from a object-array. */
 
@@ -2516,7 +2514,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 	if (array == NULL) {
 		/* release dump area */
 
-		dump_release(dumpsize);
+		DRELEASE;
 
 		/* enter the nativeworld again */
 
@@ -2562,7 +2560,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 
 	/* release dump area */
 
-	dump_release(dumpsize);
+	DRELEASE;
 
 	/* enter the nativeworld again */
 

@@ -1932,8 +1932,8 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 classinfo *load_class_from_classbuffer(classbuffer *cb)
 {
 	classinfo *c;
-	int32_t    dumpsize;
 	bool       result;
+	int32_t    dumpmarker;
 
 	/* Get the classbuffer's class. */
 
@@ -1956,7 +1956,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	/* Mark start of dump memory area. */
 
-	dumpsize = dump_size();
+	DMARKER;
 
 	/* Class is currently loading. */
 
@@ -1968,7 +1968,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	/* Release dump area. */
 
-	dump_release(dumpsize);
+	DRELEASE;
 
 	/* An error occurred. */
 
