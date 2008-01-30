@@ -93,6 +93,15 @@ inline static int system_accept(int sockfd, struct sockaddr *addr, socklen_t *ad
 #endif
 }
 
+inline static int system_access(const char *pathname, int mode)
+{
+#if defined(HAVE_ACCESS)
+	return access(pathname, mode);
+#else
+# error access not available
+#endif
+}
+
 inline static void *system_calloc(size_t nmemb, size_t size)
 {
 #if defined(HAVE_CALLOC)

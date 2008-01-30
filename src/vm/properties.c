@@ -175,7 +175,7 @@ void properties_set(void)
 
 	/* Check if that libjvm.so exists. */
 
-	if (access(java_home, F_OK) == 0) {
+	if (system_access(java_home, F_OK) == 0) {
 		/* Yes, we add /jre to java.home. */
 
 		strcpy(java_home, p);
