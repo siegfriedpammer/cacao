@@ -1,9 +1,7 @@
 /* src/native/jni.c - implementation of the Java Native Interface functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -61,6 +59,11 @@
 # if defined(WITH_CLASSPATH_SUN)
 #  include "native/include/java_nio_ByteBuffer.h"       /* required by j.l.CL */
 # endif
+
+/* java_lang_ClassLoader is used in java_lang_Class and vice versa, so
+   we pre-define it here to prevent a compiler warning. */
+
+struct java_lang_ClassLoader;
 
 # include "native/include/java_lang_Class.h"
 # include "native/include/java_lang_ClassLoader.h"
