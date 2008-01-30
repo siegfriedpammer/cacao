@@ -35,6 +35,12 @@
 # include <fcntl.h>
 #endif
 
+#if defined(WITH_JRE_LAYOUT)
+# if defined(HAVE_LIBGEN_H)
+#  include <libgen.h>
+# endif
+#endif
+
 #if defined(HAVE_STDINT_H)
 # include <stdint.h>
 #endif
@@ -101,6 +107,17 @@ inline static int system_connect(int sockfd, const struct sockaddr *serv_addr, s
 # error connect not available
 #endif
 }
+
+#if defined(WITH_JRE_LAYOUT)
+inline static char *system_dirname(char *path)
+{
+#if defined(HAVE_DIRNAME)
+	return dirname(path);
+#else
+# error dirname not available
+#endif
+}
+#endif
 
 inline static void system_free(void *ptr)
 {

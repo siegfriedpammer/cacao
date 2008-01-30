@@ -1,9 +1,7 @@
 /* src/vm/properties.c - handling commandline properties
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -34,10 +32,6 @@
 #include <unistd.h>
 #include <sys/utsname.h>
 
-#if defined(WITH_JRE_LAYOUT)
-# include <libgen.h>
-#endif
-
 #include "vm/types.h"
 
 #include "mm/memory.h"
@@ -60,6 +54,7 @@
 #include "vmcore/class.h"
 #include "vmcore/method.h"
 #include "vmcore/options.h"
+#include "vmcore/system.h"
 
 
 /* internal property structure ************************************************/
@@ -142,8 +137,8 @@ void properties_set(void)
 
 	   Now let's strip two levels. */
 
-	p = dirname(p);
-	p = dirname(p);
+	p = system_dirname(p);
+	p = system_dirname(p);
 
 # if defined(WITH_CLASSPATH_GNU)
 
