@@ -878,7 +878,8 @@ bool lock_monitor_enter(java_handle_t *o)
 	if (lockword == THIN_UNLOCKED) {
 		/* success. we locked it */
 		/* The Java Memory Model requires a memory barrier here: */
-		MEMORY_BARRIER();
+		/* Because of the CAS above, this barrier is a nop on x86 / x86_64 */
+		MEMORY_BARRIER_AFTER_ATOMIC();
 		return true;
 	}
 
@@ -1035,7 +1036,7 @@ bool lock_monitor_exit(java_handle_t *o)
 
 	if (lockword == thinlock) {
 		/* memory barrier for Java Memory Model */
-		MEMORY_BARRIER();
+		STORE_ORDER_BARRIER();
 		lock_lockword_set(t, o, THIN_UNLOCKED);
 		/* memory barrier for thin locking */
 		MEMORY_BARRIER();
