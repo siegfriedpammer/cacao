@@ -37,6 +37,7 @@
 /* If we compile with -ansi on darwin, <sys/types.h> is not
  included. So let's do it here. */
 # include <sys/types.h>
+# include <sys/utsname.h>
 #endif
 
 #include "arch.h"
@@ -165,7 +166,36 @@ bool signal_init(void)
 # if defined(ENABLE_INTRP)
 	}
 # endif
-#endif /* !defined(ENABLE_INTRP) */
+
+#if defined(__DARWIN__)
+	do {
+		struct utsname name;
+		kern_return_t kr;
+
+		/* Check if we're on 10.4 (Tiger/8.x) or earlier */
+		if (uname(&name) != 0) 
+			break;
+
+		/* Make sure the string is large enough */
+		/* Check the major number (ascii comparison) */
+		/* Verify that we're not looking at '10.' by checking for a trailing period. */
+		if (name.release[0] == '\0' || name.release[0] > '8' || name.release[1] != '.')
+			break;
+
+		/* Reset CrashReporter's task signal handler */
+		kr = task_set_exception_ports(mach_task_self(),
+									  EXC_MASK_BAD_ACCESS
+#  if defined(__I386__)
+									  | EXC_MASK_BAD_INSTRUCTION
+#endif
+									  , MACH_PORT_NULL,
+									  EXCEPTION_STATE_IDENTITY,
+									  MACHINE_THREAD_STATE);
+
+		assert(kr == KERN_SUCCESS);
+	} while (false);
+#endif
+#endif /* !defined(ENABLE_JIT) */
 
 #if defined(ENABLE_THREADS)
 	/* SIGHUP handler for threads_thread_interrupt */
