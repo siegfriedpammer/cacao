@@ -208,7 +208,6 @@ typedef struct java_objectarray_t java_objectarray_t;
 
 *******************************************************************************/
 
-#define HDRFLAG_FLC           0x01
 #define HDRFLAG_MARK1         0x02
 #define HDRFLAG_MARK2         0x04
 #define HDRFLAG_UNCOLLECTABLE 0x08
@@ -221,8 +220,8 @@ struct java_object_t {                 /* header for all objects              */
 #if defined(ENABLE_THREADS)
 	uintptr_t      lockword;
 #endif
-#if defined(ENABLE_THREADS) || defined(ENABLE_GC_CACAO)
-	uintptr_t      hdrflags;           /* word containing the FLC and GC bits */
+#if defined(ENABLE_GC_CACAO)
+	uintptr_t      hdrflags;           /* word containing the GC bits */
 #endif
 };
 
