@@ -1,9 +1,7 @@
 dnl m4/annotations.m4
 dnl
-dnl Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-dnl C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-dnl E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-dnl J. Wenninger, Institut f. Computersprachen - TU Wien
+dnl Copyright (C) 2007, 2008
+dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl 
 dnl This file is part of CACAO.
 dnl 
@@ -28,16 +26,16 @@ dnl check if annotations support should be built
 AC_DEFUN([AC_CHECK_ENABLE_ANNOTATIONS],[
 AC_MSG_CHECKING(wether to build annotations support)
 AC_ARG_ENABLE([annotations],
-              [AS_HELP_STRING(--enable-annotations,build annotations support [[default=no]])],
+              [AS_HELP_STRING(--enable-annotations,build annotations support [[default=yes]])],
               [case "${enableval}" in
-                   yes)
-                       ENABLE_ANNOTATIONS=yes
-                       ;;
-                   *)
+                   no)
                        ENABLE_ANNOTATIONS=no
                        ;;
+                   *)
+                       ENABLE_ANNOTATIONS=yes
+                       ;;
                esac],
-              [ENABLE_ANNOTATIONS=no])
+              [ENABLE_ANNOTATIONS=yes])
 AC_MSG_RESULT(${ENABLE_ANNOTATIONS})
 AM_CONDITIONAL([ENABLE_ANNOTATIONS], test x"${ENABLE_ANNOTATIONS}" = "xyes")
    
