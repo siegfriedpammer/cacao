@@ -168,6 +168,9 @@ enum {
 
 	OPT_EA,
 	OPT_DA,
+	OPT_EA_NOARG,
+	OPT_DA_NOARG,
+    
 
 	OPT_ESA,
 	OPT_DSA,
@@ -304,8 +307,13 @@ opt_struct opts[] = {
 
 	{ "ea:",               true,  OPT_EA },
 	{ "da:",               true,  OPT_DA },
-	{ "ea",                false, OPT_EA },
-	{ "da",                false, OPT_DA },
+	{ "ea",                false, OPT_EA_NOARG },
+	{ "da",                false, OPT_DA_NOARG },
+
+	{ "enableassertions:",  true,  OPT_EA },
+	{ "disableassertions:", true,  OPT_DA },
+	{ "enableassertions",   false, OPT_EA_NOARG },
+	{ "disableassertions",  false, OPT_DA_NOARG },
 
 	{ "esa",                     false, OPT_ESA },
 	{ "enablesystemassertions",  false, OPT_ESA },
@@ -1302,6 +1310,18 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		case OPT_DA:
 #if defined(ENABLE_ASSERTION)
 			assertion_ea_da(opt_arg, false);
+#endif
+			break;
+
+		case OPT_EA_NOARG:
+#if defined(ENABLE_ASSERTION)
+			assertion_user_enabled = true;
+#endif
+			break;
+
+		case OPT_DA_NOARG:
+#if defined(ENABLE_ASSERTION)
+			assertion_user_enabled = false;
 #endif
 			break;
 
