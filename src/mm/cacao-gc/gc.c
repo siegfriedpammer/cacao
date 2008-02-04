@@ -234,8 +234,7 @@ void gc_collect(s4 level)
 	rootset_t    *rs;
 	int32_t       dumpmarker;
 #if !defined(NDEBUG)
-	stackframeinfo_t *sfi;
-	stacktracebuffer *stb;
+	stacktrace_t *st;
 #endif
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_suspend, time_rootset, time_mark, time_compact, time_end;
@@ -270,11 +269,10 @@ void gc_collect(s4 level)
 #if !defined(NDEBUG)
 	/* get the stacktrace of the current thread and make sure it is non-empty */
 	GC_LOG( printf("Stacktrace of current thread:\n"); );
-	sfi = STACKFRAMEINFO;
-	stb = stacktrace_create(sfi);
-	if (stb == NULL)
+	st = stacktrace_get();
+	if (st == NULL)
 		vm_abort("gc_collect: no stacktrace available for current thread!");
-	GC_LOG( stacktrace_print_trace_from_buffer(stb); );
+	GC_LOG( stacktrace_print(st); );
 #endif
 
 	/* sourcestate of the current thread, assuming we are in the native world */
