@@ -115,37 +115,10 @@ inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
 	codegendata  *cd;
 	s4            disp;
-#if 0
-	s4            s;
-	u2            opcode;
-#endif
 
 	/* get required compiler data */
 
 	cd = jd->cd;
-
-#if 0
-	/* do we have to generate a conditional move? */
-
-	if ((iptr != NULL) && (iptr->opc & ICMD_CONDITION_MASK)) {
-		/* the passed register d is actually the source register */
-
-		s = d;
-
-		/* Only pass the opcode to codegen_reg_of_var to get the real
-		   destination register. */
-
-		opcode = iptr->opc & ICMD_OPCODE_MASK;
-
-		/* get the real destination register */
-
-		d = codegen_reg_of_var(rd, opcode, dst, REG_ITMP1);
-
-		/* and emit the conditional move */
-
-		emit_cmovxx(cd, iptr, s, d);
-	}
-#endif
 
 	if (IS_INMEMORY(dst->flags)) {
 		COUNT_SPILLS;

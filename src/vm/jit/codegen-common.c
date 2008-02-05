@@ -1694,16 +1694,6 @@ void removenativestub(u1 *stub)
 
 s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum)
 {
-
-#if 0
-	/* Do we have to generate a conditional move?  Yes, then always
-	   return the temporary register.  The real register is identified
-	   during the store. */
-
-	if (opcode & ICMD_CONDITION_MASK)
-		return tempregnum;
-#endif
-
 	if (!(v->flags & INMEMORY))
 		return v->vv.regoff;
 
