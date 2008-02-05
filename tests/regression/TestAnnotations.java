@@ -1,10 +1,8 @@
 /* tests/regression/TestAnnotations.java - checks correct functionality of the
    annotation API
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,10 +20,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Mathias Panzenböck
 
 */
 
