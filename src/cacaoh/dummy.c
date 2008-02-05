@@ -39,6 +39,7 @@
 
 #include "toolbox/logging.h"
 
+#include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/primitive.h"
 #include "vm/vm.h"
@@ -296,7 +297,7 @@ void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
 	abort();
 }
 
-void exceptions_throw_incompatibleclasschangeerror(classinfo *c)
+void exceptions_throw_incompatibleclasschangeerror(classinfo *c, const char *message)
 {
 	fprintf(stderr, "java.lang.IncompatibleClassChangeError: ");
 
@@ -353,7 +354,7 @@ void exceptions_throw_noclassdeffounderror_wrong_name(classinfo *c, utf *name)
 	abort();
 }
 
-void exceptions_throw_verifyerror(methodinfo *m, const char *message)
+void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...)
 {
 	fprintf(stderr, "java.lang.VerifyError: ");
 	utf_fprint_printable_ascii(stderr, m->name);
@@ -385,21 +386,11 @@ void exceptions_throw_nosuchmethoderror(classinfo *c, utf *name, utf *desc)
 	abort();
 }
 
-void exceptions_throw_unsupportedclassversionerror(classinfo *c,
-												   const char *message, ...)
+void exceptions_throw_unsupportedclassversionerror(classinfo *c, u4 ma, u4 mi)
 {
-	va_list ap;
-
 	fprintf(stderr, "java.lang.UnsupportedClassVersionError: " );
-
 	utf_display_printable_ascii(c->name);
-	fprintf(stderr, ": ");
-
-	va_start(ap, message);
-	vfprintf(stderr, message, ap);
-	va_end(ap);
-
-	fputc('\n', stderr);
+	fprintf(stderr, " (Unsupported major.minor version %d.%d)\n", ma, mi);
 
 	abort();
 }
