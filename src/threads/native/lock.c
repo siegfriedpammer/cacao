@@ -41,6 +41,7 @@
 #include "native/llni.h"
 
 #include "threads/lock-common.h"
+#include "threads/threads-common.h"
 
 #include "threads/native/lock.h"
 #include "threads/native/threads.h"
@@ -112,15 +113,6 @@
 
 
 /******************************************************************************/
-/* MACROS FOR THE FLAT LOCK CONTENTION BIT                                    */
-/******************************************************************************/
-
-#define LOCK_SET_FLC_BIT(obj)    ((obj)->hdrflags |= HDRFLAG_FLC)
-#define LOCK_CLEAR_FLC_BIT(obj)  ((obj)->hdrflags &= ~ HDRFLAG_FLC)
-#define LOCK_TEST_FLC_BIT(obj)   ((obj)->hdrflags & HDRFLAG_FLC)
-
-
-/******************************************************************************/
 /* MACROS FOR THIN/FAT LOCKS                                                  */
 /******************************************************************************/
 
@@ -184,6 +176,7 @@
 #define MAKE_FAT_LOCK(ptr)      ((uintptr_t) (ptr) | THIN_LOCK_SHAPE_BIT)
 
 #define LOCK_WORD_WITHOUT_COUNT(lockword) ((lockword) & ~THIN_LOCK_COUNT_MASK)
+#define GET_THREAD_INDEX(lockword) ((unsigned) lockword >> THIN_LOCK_TID_SHIFT)
 
 
 /* global variables ***********************************************************/
@@ -692,7 +685,6 @@ void lock_init_object_lock(java_object_t *o)
 	assert(o);
 
 	o->lockword = THIN_UNLOCKED;
-	LOCK_CLEAR_FLC_BIT(o);
 }
 
 
@@ -807,6 +799,7 @@ static void lock_inflate(threadobject *t, java_handle_t *o, lock_record_t *lr)
 
 	if (IS_FAT_LOCK(lockword)) {
 		assert(GET_FAT_LOCK(lockword) == lr);
+		return;
 	}
 	else {
 		assert(LOCK_WORD_WITHOUT_COUNT(lockword) == t->thinlock);
@@ -819,21 +812,122 @@ static void lock_inflate(threadobject *t, java_handle_t *o, lock_record_t *lr)
 	DEBUGLOCKS(("[lock_inflate      : lr=%p, t=%p, o=%p, o->lockword=%lx, count=%d]",
 				lr, t, o, lockword, lr->count));
 
-	/* clear flat-lock-contention bit */
-
-	LLNI_CRITICAL_START_THREAD(t);
-	LOCK_CLEAR_FLC_BIT(LLNI_DIRECT(o));
-	LLNI_CRITICAL_END_THREAD(t);
-
-	/* notify waiting objects */
-
-	lock_record_notify(t, lr, false);
-
 	/* install it */
 
 	lock_lockword_set(t, o, MAKE_FAT_LOCK(lr));
 }
 
+
+static threadobject *threads_lookup_thread_id(int index)
+{
+	threadobject *t;
+
+	threads_list_lock();
+
+	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+		if (t->state == THREAD_STATE_NEW)
+			continue;
+		if (t->index == index)
+			break;
+	}
+
+	threads_list_unlock();
+	return t;
+}
+
+static void sable_flc_waiting(ptrint lockword, threadobject *t, java_handle_t *o)
+{
+	int index;
+	threadobject *t_other;
+	int old_flc;
+
+	index = GET_THREAD_INDEX(lockword);
+	t_other = threads_lookup_thread_id(index);
+	if (!t_other)
+/* 		failure, TODO: add statistics */
+		return;
+
+	pthread_mutex_lock(&t_other->flc_lock);
+	old_flc = t_other->flc_bit;
+	t_other->flc_bit = true;
+
+	DEBUGLOCKS(("thread %d set flc bit for lock-holding thread %d",
+				t->index, t_other->index));
+
+	/* Set FLC bit first, then read the lockword again */
+	MEMORY_BARRIER();
+
+	lockword = lock_lockword_get(t, o);
+
+	/* Lockword is still the way it was seen before */
+	if (IS_THIN_LOCK(lockword) && (GET_THREAD_INDEX(lockword) == index))
+	{
+		/* Add tuple (t, o) to the other thread's FLC list */
+		t->flc_object = o;
+		t->flc_next = t_other->flc_list;
+		t_other->flc_list = t;
+
+		for (;;)
+		{
+			threadobject *current;
+
+			/* Wait until another thread sees the flc bit and notifies
+			   us of unlocking. */
+			pthread_cond_wait(&t->flc_cond, &t_other->flc_lock);
+
+			/* Traverse FLC list looking if we're still there */
+			current = t_other->flc_list;
+			while (current && current != t)
+				current = current->flc_next;
+			if (!current)
+				/* not in list anymore, can stop waiting */
+				break;
+
+			/* We are still in the list -- the other thread cannot have seen
+			   the FLC bit yet */
+			assert(t_other->flc_bit);
+		}
+
+		t->flc_object = NULL;   /* for garbage collector? */
+		t->flc_next = NULL;
+	}
+	else
+		t_other->flc_bit = old_flc;
+
+	pthread_mutex_unlock(&t_other->flc_lock);
+}
+
+static void notify_flc_waiters(threadobject *t, java_handle_t *o)
+{
+	threadobject *current;
+
+	pthread_mutex_lock(&t->flc_lock);
+
+	current = t->flc_list;
+	while (current)
+	{
+		if (current->flc_object != o)
+		{
+			/* This entry is for another object that we are holding as
+				well -- inflate it */
+			lock_record_t *lr = lock_hashtable_get(t, current->flc_object);
+			lock_record_enter(t, lr);
+
+			DEBUGLOCKS(("thread %d inflating lock of %p to lr %p",
+						t->index, (void*) current->flc_object, (void*) lr));
+
+			lock_inflate(t, current->flc_object, lr);
+		}
+		/* Wake the waiting thread */
+		pthread_cond_broadcast(&current->flc_cond);
+
+		current = current->flc_next;
+	}
+
+	t->flc_list = NULL;
+	t->flc_bit = false;
+	pthread_mutex_unlock(&t->flc_lock);
+}
 
 /* lock_monitor_enter **********************************************************
 
@@ -869,6 +963,7 @@ bool lock_monitor_enter(java_handle_t *o)
 
 	thinlock = t->thinlock;
 
+retry:
 	/* most common case: try to thin-lock an unlocked object */
 
 	LLNI_CRITICAL_START_THREAD(t);
@@ -908,6 +1003,8 @@ bool lock_monitor_enter(java_handle_t *o)
 			lock_inflate(t, o, lr);
 			lr->count++;
 
+			notify_flc_waiters(t, o);
+
 			return true;
 		}
 	}
@@ -935,62 +1032,18 @@ bool lock_monitor_enter(java_handle_t *o)
 
 	/****** inflation path ******/
 
-	/* first obtain the lock record for this object */
-
-	lr = lock_hashtable_get(t, o);
-
 #if defined(ENABLE_JVMTI)
 	/* Monitor Contended Enter */
 	jvmti_MonitorContendedEntering(false, o);
 #endif
 
-	/* enter the monitor */
-
-	lock_record_enter(t, lr);
+	sable_flc_waiting(lockword, t, o);
 
 #if defined(ENABLE_JVMTI)
 	/* Monitor Contended Entered */
 	jvmti_MonitorContendedEntering(true, o);
 #endif
-
-	/* inflation loop */
-
-	while (IS_THIN_LOCK(lockword = lock_lockword_get(t, o))) {
-		/* Set the flat lock contention bit to let the owning thread
-		   know that we want to be notified of unlocking. */
-
-		LLNI_CRITICAL_START_THREAD(t);
-		LOCK_SET_FLC_BIT(LLNI_DIRECT(o));
-		LLNI_CRITICAL_END_THREAD(t);
-
-		DEBUGLOCKS(("thread %d set flc bit on %p lr %p",
-					t->index, (void*) o, (void*) lr));
-
-		/* try to lock the object */
-
-		LLNI_CRITICAL_START_THREAD(t);
-		lockword = COMPARE_AND_SWAP_OLD_VALUE(&(LLNI_DIRECT(o)->lockword), THIN_UNLOCKED, thinlock);
-		LLNI_CRITICAL_END_THREAD(t);
-
-		if (lockword == THIN_UNLOCKED) {
-			/* we can inflate the lock ourselves */
-
-			DEBUGLOCKS(("thread %d inflating lock of %p to lr %p",
-						t->index, (void*) o, (void*) lr));
-
-			lock_inflate(t, o, lr);
-		}
-		else {
-			/* Wait until another thread sees the flc bit and notifies
-			   us of unlocking. */
-
-			(void) lock_record_wait(t, lr, 0, 0);
-		}
-	}
-
-	/* we own the inflated lock now */
-
-	return true;
+	goto retry;
 }
 
 
@@ -1043,28 +1096,11 @@ bool lock_monitor_exit(java_handle_t *o)
 
 		/* check if there has been a flat lock contention on this object */
 
-		if (LOCK_TEST_FLC_BIT(LLNI_DIRECT(o))) {
-			lock_record_t *lr;
-
-			DEBUGLOCKS(("thread %d saw flc bit on %p",
-						t->index, (void*) o));
+		if (t->flc_bit) {
+			DEBUGLOCKS(("thread %d saw flc bit", t->index));
 
 			/* there has been a contention on this thin lock */
-
-			lr = lock_hashtable_get(t, o);
-
-			DEBUGLOCKS(("thread %d for %p got lr %p",
-						t->index, (void*) o, (void*) lr));
-
-			lock_record_enter(t, lr);
-
-			if (LOCK_TEST_FLC_BIT(LLNI_DIRECT(o))) {
-				/* notify a thread that it can try to inflate the lock now */
-
-				lock_record_notify(t, lr, true);
-			}
-
-			lock_record_exit(t, lr);
+			notify_flc_waiters(t, o);
 		}
 
 		return true;

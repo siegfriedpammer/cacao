@@ -708,6 +708,9 @@ void threads_impl_thread_new(threadobject *t)
 
 	/* initialize the mutex and the condition */
 
+	pthread_mutex_init(&t->flc_lock, NULL);
+	pthread_cond_init(&t->flc_cond, NULL);
+
 	pthread_mutex_init(&(t->waitmutex), NULL);
 	pthread_cond_init(&(t->waitcond), NULL);
 	pthread_mutex_init(&(t->suspendmutex), NULL);
@@ -723,6 +726,13 @@ void threads_impl_thread_new(threadobject *t)
 	t->tracejavacallindent = 0;
 	t->tracejavacallcount = 0;
 #endif
+
+	t->flc_bit = false;
+	t->flc_next = NULL;
+	t->flc_list = NULL;
+
+/* 	not really needed */
+	t->flc_object = NULL;
 }
 
 
@@ -738,6 +748,14 @@ void threads_impl_thread_new(threadobject *t)
 void threads_impl_thread_free(threadobject *t)
 {
 	/* destroy the mutex and the condition */
+
+	if (pthread_mutex_destroy(&(t->flc_lock)) != 0)
+		vm_abort("threads_impl_thread_free: pthread_mutex_destroy failed: %s",
+				 strerror(errno));
+
+	if (pthread_cond_destroy(&(t->flc_cond)) != 0)
+		vm_abort("threads_impl_thread_free: pthread_cond_destroy failed: %s",
+				 strerror(errno));
 
 	if (pthread_mutex_destroy(&(t->waitmutex)) != 0)
 		vm_abort("threads_impl_thread_free: pthread_mutex_destroy failed: %s",

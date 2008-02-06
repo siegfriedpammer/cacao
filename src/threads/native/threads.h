@@ -122,6 +122,14 @@ struct threadobject {
 	mach_port_t           mach_thread;       /* Darwin thread id              */
 #endif
 
+	/* for the sable tasuki lock extension */
+	bool                  flc_bit;
+	struct threadobject  *flc_list;     /* FLC list head for this thread      */
+	struct threadobject  *flc_next;     /* next pointer for FLC list          */
+	java_handle_t        *flc_object;
+	pthread_mutex_t       flc_lock;     /* controlling access to these fields */
+	pthread_cond_t        flc_cond;
+
 	/* these are used for the wait/notify implementation                      */
 	pthread_mutex_t       waitmutex;
 	pthread_cond_t        waitcond;
