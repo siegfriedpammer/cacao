@@ -1348,6 +1348,8 @@ static void lock_monitor_wait(threadobject *t, java_handle_t *o, s8 millis, s4 n
 		lr = lock_hashtable_get(t, o);
 		lock_record_enter(t, lr);
 		lock_inflate(t, o, lr);
+
+		notify_flc_waiters(t, o);
 	}
 
 	/* { the thread t owns the fat lock record lr on the object o } */
@@ -1465,11 +1467,8 @@ static void lock_monitor_notify(threadobject *t, java_handle_t *o, bool one)
 			return;
 		}
 
-		/* inflate this lock */
-
-		lr = lock_hashtable_get(t, o);
-		lock_record_enter(t, lr);
-		lock_inflate(t, o, lr);
+		/* no thread can wait on a thin lock, so there's nothing to do. */
+		return;
 	}
 
 	/* { the thread t owns the fat lock record lr on the object o } */
