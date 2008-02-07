@@ -908,15 +908,20 @@ static void notify_flc_waiters(threadobject *t, java_handle_t *o)
 	{
 		if (current->flc_object != o)
 		{
-			/* This entry is for another object that we are holding as
-				well -- inflate it */
-			lock_record_t *lr = lock_hashtable_get(t, current->flc_object);
-			lock_record_enter(t, lr);
+			/* The object has to be inflated so the other threads can properly
+			   block on it. */
 
-			DEBUGLOCKS(("thread %d inflating lock of %p to lr %p",
-						t->index, (void*) current->flc_object, (void*) lr));
+			/* Only if not already inflated */
+			ptrint lockword = lock_lockword_get(t, current->flc_object);
+			if (IS_THIN_LOCK(lockword)) {
+				lock_record_t *lr = lock_hashtable_get(t, current->flc_object);
+				lock_record_enter(t, lr);
 
-			lock_inflate(t, current->flc_object, lr);
+				DEBUGLOCKS(("thread %d inflating lock of %p to lr %p",
+							t->index, (void*) current->flc_object, (void*) lr));
+
+				lock_inflate(t, current->flc_object, lr);
+			}
 		}
 		/* Wake the waiting thread */
 		pthread_cond_broadcast(&current->flc_cond);
