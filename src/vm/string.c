@@ -709,6 +709,9 @@ java_object_t *literalstring_new(utf *u)
 
 *******************************************************************************/
 
+#if 0
+/* TWISTI This one is currently not used. */
+
 static void literalstring_free(java_object_t* string)
 {
 	heapstring_t     *s;
@@ -723,6 +726,7 @@ static void literalstring_free(java_object_t* string)
 	/* dispose memory of java-characterarray */
 	FREE(a, sizeof(java_chararray_t) + sizeof(u2) * (a->header.size - 1)); /* +10 ?? */
 }
+#endif
 
 
 /* javastring_intern ***********************************************************
