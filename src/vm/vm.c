@@ -2513,6 +2513,10 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 	imm_union      value;
 	int32_t        dumpmarker;
 
+	/* Prevent compiler warnings. */
+
+	ro = NULL;
+
 	/* compile methods which are not yet compiled */
 
 	if (m->code == NULL)
