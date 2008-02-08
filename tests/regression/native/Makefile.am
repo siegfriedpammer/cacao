@@ -1,9 +1,7 @@
 ## src/tests/regression/native/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-## J. Wenninger, Institut f. Computersprachen - TU Wien
+## Copyright (C) 1996-2005, 2006, 2008
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -21,10 +19,6 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
-##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
 
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)
@@ -32,12 +26,14 @@ AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(A
 JAVA      = $(top_builddir)/src/cacao/cacao
 
 if WITH_CLASSPATH_GNU
-JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/classes/:$(CLASSPATH_CLASSES)
+JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/classes:$(CLASSPATH_CLASSES)
+JAVAHFLAGS = -bootclasspath $(top_builddir)/src/lib/classes:$(CLASSPATH_CLASSES)
 else
 JAVAFLAGS = -Xbootclasspath:$(CLASSPATH_CLASSES)
+JAVAHFLAGS = -bootclasspath $(CLASSPATH_CLASSES)
 endif
 
-JAVAH     = @CACAOH@
+JAVAH     = $(CACAOH)
 
 SOURCE_FILES = \
 	checkjni.java \
@@ -69,7 +65,7 @@ check: $(TESTNAMES)
 
 $(TESTNAMES) $(NOTESTNAMES):
 	@$(JAVAC) -nowarn -d . $(srcdir)/$@.java
-	@$(JAVAH) $@
+	@$(JAVAH) $(JAVAHFLAGS) $@
 	@$(CC) -shared $(AM_CPPFLAGS) $(CFLAGS) $(srcdir)/$@.c -o lib$@.so -fPIC
 	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs:. $(SHELL) $(srcdir)/../Test.sh "$(JAVA) $(JAVAFLAGS)" $@ $(srcdir)
 
