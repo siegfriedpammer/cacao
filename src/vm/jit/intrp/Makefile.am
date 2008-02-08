@@ -1,9 +1,7 @@
 ## src/vm/jit/intrp/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-## J. Wenninger, Institut f. Computersprachen - TU Wien
+## Copyright (C) 1996-2005, 2006, 2008
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -21,14 +19,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
-##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
-##
-## Changes: Edwin Steiner
 
-## Process this file with automake to produce Makefile.in
 
 AM_CFLAGS = $(INTRP_CFLAGS)
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir) -I$(top_builddir)/src
@@ -76,7 +67,7 @@ libintrp_la_SOURCES = \
 	peephole.c
 
 $(BUILT_SOURCES): $(srcdir)/java.vmg $(srcdir)/prims2x.fs $(srcdir)/vmgenx
-	$(srcdir)/vmgenx $(srcdir)/java.vmg && touch java-peephole.i
+	$(SHELL) $(srcdir)/vmgenx $(srcdir)/java.vmg && touch java-peephole.i
 	true #GFORTHPATH=.:/nfs/nfstmp/anton/cacao/:/usr/lib/gforth/site-forth:/usr/share/gforth/site-forth:/usr/lib/gforth/0.6.2:/usr/share/gforth/0.6.2 $(srcdir)/vmgenx $(srcdir)/java.vmg && touch java-peephole.i
 
 
