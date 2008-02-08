@@ -1,6 +1,6 @@
 /* src/vm/assertion.c - assertion options
 
-   Copyright (C) 2007
+   Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -22,22 +22,22 @@
 
 */
 
+
 #include "config.h"
+
 #include <stdint.h>
 #include <errno.h>
 
-#if defined(HAVE_STRING_H)
-# include <string.h>
-#endif
-
 #include "mm/memory.h"
-
-#include "vm/global.h"
-#include "vm/vm.h"
 
 #include "toolbox/list.h"
 
 #include "vm/assertion.h"
+#include "vm/global.h"
+#include "vm/vm.h"
+
+#include "vmcore/system.h"
+
 
 /* -ea/-da options ************************************************************/
 
@@ -47,13 +47,15 @@ int32_t  assertion_package_count  = 0;
 bool     assertion_user_enabled   = false;
 bool     assertion_system_enabled = false;
 
+
 /* assertion_ea_da *************************************************************
 
    Handle -ea:/-enableassertions: and -da:/-disableassertions: options.
 
 *******************************************************************************/
 
-void assertion_ea_da(const char *name, bool enabled) {
+void assertion_ea_da(const char *name, bool enabled)
+{
 	bool              package;
 	size_t            len;
 	char             *buf;
@@ -66,13 +68,14 @@ void assertion_ea_da(const char *name, bool enabled) {
 	}
 
 	package = false;
-	len     = strlen(name);
+	len     = system_strlen(name);
 
 	if (name[len - 1] == '/') {
 		return;
 	}
 
-	buf = strdup(name);
+	buf = system_strdup(name);
+
 	if (buf == NULL) {
 		vm_abort("assertion_ea_da: strdup failed: %s", strerror(errno));
 	}
@@ -91,7 +94,8 @@ void assertion_ea_da(const char *name, bool enabled) {
 		assertion_class_count += 1;
 	}
 
-	len = strlen(buf);
+	len = system_strlen(buf);
+
 	for (i = 0; i < len; i++) {
 #if defined(WITH_CLASSPATH_SUN)
 		if (buf[i] == '.') {
@@ -112,8 +116,10 @@ void assertion_ea_da(const char *name, bool enabled) {
 	if (list_assertion_names == NULL) {
 		list_assertion_names = list_create(OFFSET(assertion_name_t, linkage));
 	}
-	list_add_last(list_assertion_names, item);
+
+	list_add_last_unsynced(list_assertion_names, item);
 }
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

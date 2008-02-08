@@ -1,6 +1,6 @@
 /* src/vmcore/system.h - system (OS) functions
 
-   Copyright (C) 2007
+   Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -320,15 +320,6 @@ inline static int system_scandir(const char *dir, struct dirent ***namelist, int
 #endif
 }
 
-inline static int system_stat(const char *path, struct stat *buf)
-{
-#if defined(HAVE_STAT)
-	return stat(path, buf);
-#else
-# error stat not available
-#endif
-}
-
 inline static int system_setsockopt(int s, int level, int optname, const void *optval, socklen_t optlen)
 {
 #if defined(HAVE_SETSOCKOPT)
@@ -353,6 +344,33 @@ inline static int system_socket(int domain, int type, int protocol)
 	return socket(domain, type, protocol);
 #else
 # error socket not available
+#endif
+}
+
+inline static int system_stat(const char *path, struct stat *buf)
+{
+#if defined(HAVE_STAT)
+	return stat(path, buf);
+#else
+# error stat not available
+#endif
+}
+
+inline static char *system_strdup(const char *s)
+{
+#if defined(HAVE_STRDUP)
+	return strdup(s);
+#else
+# error strdup not available
+#endif
+}
+
+inline static size_t system_strlen(const char *s)
+{
+#if defined(HAVE_STRLEN)
+	return strlen(s);
+#else
+# error strlen not available
 #endif
 }
 
