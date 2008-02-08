@@ -1,9 +1,7 @@
 ## src/vm/jit/m68k/Makefile.am
 ##
-## Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-## J. Wenninger, Institut f. Computersprachen - TU Wien
+## Copyright (C) 2006, 2007, 2008
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -34,15 +32,15 @@ AM_CCASFLAGS = $(AM_CPPFLAGS)
 LIBS =
 
 noinst_HEADERS = \
-	 arch.h \
-	 machine-instr.h
+	arch.h \
+	machine-instr.h
 
 noinst_LTLIBRARIES = \
 	libarch.la
 
 if ENABLE_DISASSEMBLER
 DISASS_SOURCES = \
-	  disass.c
+	disass.c
 endif
 
 libarch_la_SOURCES = \
@@ -51,8 +49,10 @@ libarch_la_SOURCES = \
 	codegen.h \
 	$(DISASS_SOURCES) \
 	emit.c \
+	patcher.c \
+	\
 	md.c \
-	patcher.c
+	md.h
 
 libarch_la_LIBADD = \
 	$(OS_DIR)/libmd.la
