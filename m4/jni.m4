@@ -1,9 +1,7 @@
 dnl m4/jni.m4
 dnl
-dnl Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-dnl C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-dnl E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-dnl J. Wenninger, Institut f. Computersprachen - TU Wien
+dnl Copyright (C) 2007, 2008
+dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl 
 dnl This file is part of CACAO.
 dnl 
@@ -28,7 +26,7 @@ dnl check if JNI should be enabled
 AC_DEFUN([AC_CHECK_ENABLE_JNI],[
 AC_MSG_CHECKING(whether JNI should be enabled)
 AC_ARG_ENABLE([jni],
-              [AS_HELP_STRING(--enable-jni,enable JNI [[default=yes]])],
+              [AS_HELP_STRING(--enable-jni,enable JNI [[default=(cldc1.1:no,javase:yes)]])],
               [case "${enableval}" in
                   yes)
                       ENABLE_JNI=yes
