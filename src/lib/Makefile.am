@@ -100,12 +100,18 @@ pkgdata_DATA = nozip
 endif
 endif
 
+if WITH_CLASSPATH_GNU
+BOOTCLASSPATH = $(top_builddir)/src/lib/classes:$(CLASSPATH_CLASSES)
+else
+BOOTCLASSPATH = $(CLASSPATH_CLASSES)
+endif
+
 if ENABLE_ZLIB
 VM_ZIP = ../vm.zip
 
 vm.zip: $(VM_JAVA_FILES)
 	$(mkdir_p) classes
-	$(JAVAC) -source 1.5 -target 1.5 -d classes $(VM_JAVA_FILES)
+	$(JAVAC) -bootclasspath $(BOOTCLASSPATH) -source 1.5 -target 1.5 -d classes $(VM_JAVA_FILES)
 	@if test "$(JAR)" = "zip" -o "$(JAR)" = "zip.exe"; then \
 	    cd classes && $(JAR) -r -D $(VM_ZIP) .; \
 	else \
@@ -114,7 +120,7 @@ vm.zip: $(VM_JAVA_FILES)
 else
 nozip: $(VM_JAVA_FILES)
 	$(mkdir_p) classes
-	$(JAVAC) -source 1.5 -target 1.5 -d classes $(VM_JAVA_FILES)
+	$(JAVAC) -bootclasspath $(BOOTCLASSPATH) -source 1.5 -target 1.5 -d classes $(VM_JAVA_FILES)
 endif
 
 clean-local:

@@ -27,13 +27,16 @@ SUBDIRS = \
 	jasmin \
 	native
 
-JAVA      = $(top_builddir)/src/cacao/cacao
+JAVA = $(top_builddir)/src/cacao/cacao
 
 if WITH_CLASSPATH_GNU
-JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/classes/:$(CLASSPATH_CLASSES)
+BOOTCLASSPATH = $(top_builddir)/src/lib/classes:$(CLASSPATH_CLASSES)
 else
-JAVAFLAGS = -Xbootclasspath:$(CLASSPATH_CLASSES)
+BOOTCLASSPATH = $(CLASSPATH_CLASSES)
 endif
+
+JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
+JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
 
 SOURCE_FILES = \
 	$(srcdir)/HelloWorld.java \
@@ -86,15 +89,14 @@ OUTPUT_JAVA_TESTS = \
 check: build $(SIMPLE_JAVA_TESTS) $(OUTPUT_JAVA_TESTS)
 
 build:
-	@$(JAVAC) -d . $(SOURCE_FILES)
+	@$(JAVACCMD) -d . $(SOURCE_FILES)
 
 $(SIMPLE_JAVA_TESTS):
 	@echo "$@: "
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(JAVA) $(JAVAFLAGS) $@
-
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(JAVACMD) $@
 
 $(OUTPUT_JAVA_TESTS):
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVA) $(JAVAFLAGS)" $@ $(srcdir)
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD)" $@ $(srcdir)
 
 
 ## Local variables:

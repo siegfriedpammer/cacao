@@ -1,9 +1,7 @@
 ## tests/regression/codepatching/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-## J. Wenninger, Institut f. Computersprachen - TU Wien
+## Copyright (C) 1996-2005, 2006, 2008
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -21,19 +19,18 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
-##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
 
 
-JAVA      = $(top_builddir)/src/cacao/cacao
+JAVA = $(top_builddir)/src/cacao/cacao
 
 if WITH_CLASSPATH_GNU
-JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/classes/:$(CLASSPATH_CLASSES)
+BOOTCLASSPATH = $(top_builddir)/src/lib/classes:$(CLASSPATH_CLASSES)
 else
-JAVAFLAGS = -Xbootclasspath:$(CLASSPATH_CLASSES)
+BOOTCLASSPATH = $(CLASSPATH_CLASSES)
 endif
+
+JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
+JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
 
 SOURCE_FILES = \
 	$(srcdir)/aastoreconstClass.java \
@@ -131,11 +128,11 @@ CLASSES = \
 CLEANFILES = \
 	*.class
 
-check: build
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(JAVA) $(JAVAFLAGS) test
-
 build:
-	@$(JAVAC) -nowarn -d . $(SOURCE_FILES)
+	@$(JAVACCMD) -d . $(SOURCE_FILES)
+
+check: build
+	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(JAVACMD) test
 
 remove:
 	$(RM) $(CLASSES)
