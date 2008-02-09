@@ -1329,7 +1329,7 @@ jobject _Jv_JNI_NewLocalRef(JNIEnv *env, jobject ref)
 
 	localref = localref_add(LLNI_DIRECT(o));
 
-	return localref;
+	return (jobject) localref;
 }
 
 
@@ -2189,7 +2189,7 @@ jobject _Jv_JNI_GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID)
 
 	LLNI_CRITICAL_END;
 
-	return _Jv_JNI_NewLocalRef(env, o);
+	return _Jv_JNI_NewLocalRef(env, (jobject) o);
 }
 
 
@@ -2533,7 +2533,7 @@ jobject _Jv_JNI_GetStaticObjectField(JNIEnv *env, jclass clazz,
 
 	h = LLNI_WRAP(f->value->a);
 
-	return _Jv_JNI_NewLocalRef(env, h);
+	return _Jv_JNI_NewLocalRef(env, (jobject) h);
 }
 
 
@@ -3657,6 +3657,8 @@ jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 {
 #if defined(ENABLE_JAVASE)
+	java_handle_t                 *h;
+
 # if defined(WITH_CLASSPATH_GNU)
 
 	java_nio_DirectByteBufferImpl *nbuf;
@@ -3669,7 +3671,11 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 	TRACEJNICALLS(("_Jv_JNI_GetDirectBufferAddress(env=%p, buf=%p)", env, buf));
 
-	if ((buf != NULL) && !builtin_instanceof(buf, class_java_nio_Buffer))
+	/* Prevent compiler warning. */
+
+	h = (java_handle_t *) buf;
+
+	if ((h != NULL) && !builtin_instanceof(h, class_java_nio_Buffer))
 		return NULL;
 
 	nbuf = (java_nio_DirectByteBufferImpl *) buf;
@@ -3692,7 +3698,11 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 	TRACEJNICALLS(("_Jv_JNI_GetDirectBufferAddress(env=%p, buf=%p)", env, buf));
 
-	if ((buf != NULL) && !builtin_instanceof(buf, class_sun_nio_ch_DirectBuffer))
+	/* Prevent compiler warning. */
+
+	h = (java_handle_t *) buf;
+
+	if ((h != NULL) && !builtin_instanceof(h, class_sun_nio_ch_DirectBuffer))
 		return NULL;
 
 	o = (java_nio_Buffer *) buf;
