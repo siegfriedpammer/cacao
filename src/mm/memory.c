@@ -201,6 +201,10 @@ static void memory_thread(void)
 {
 	int32_t seconds;
 
+	/* Prevent compiler warning. */
+
+	seconds = 1;
+
 	/* If both arguments are specified, use the value of
 	   ProfileMemoryUsage. */
 
