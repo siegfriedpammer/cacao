@@ -495,7 +495,6 @@ static void threads_cast_irixresume(void)
 	pthread_mutex_unlock(&suspend_ack_lock);
 }
 #endif
-#endif
 
 #if defined(ENABLE_GC_BOEHM) && !defined(__DARWIN__)
 static void threads_sigsuspend_handler(ucontext_t *_uc)
@@ -527,6 +526,9 @@ static void threads_sigsuspend_handler(ucontext_t *_uc)
 #endif
 }
 #endif
+
+#endif
+
 
 /* threads_stopworld ***********************************************************
 
