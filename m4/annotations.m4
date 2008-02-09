@@ -26,20 +26,34 @@ dnl check if annotations support should be built
 AC_DEFUN([AC_CHECK_ENABLE_ANNOTATIONS],[
 AC_MSG_CHECKING(wether to build annotations support)
 AC_ARG_ENABLE([annotations],
-              [AS_HELP_STRING(--enable-annotations,build annotations support [[default=yes]])],
+              [AS_HELP_STRING(--enable-annotations,build annotations support [[default=(cldc1.1:no,javase:yes]])],
               [case "${enableval}" in
+                   yes)
+                       ENABLE_ANNOTATIONS=yes
+                       ;;
                    no)
                        ENABLE_ANNOTATIONS=no
                        ;;
                    *)
-                       ENABLE_ANNOTATIONS=yes
+                       AC_CHECK_ENABLE_ANNOTATIONS_DEFAULT
                        ;;
                esac],
-              [ENABLE_ANNOTATIONS=yes])
+              [AC_CHECK_ENABLE_ANNOTATIONS_DEFAULT])
 AC_MSG_RESULT(${ENABLE_ANNOTATIONS})
 AM_CONDITIONAL([ENABLE_ANNOTATIONS], test x"${ENABLE_ANNOTATIONS}" = "xyes")
    
 if test x"${ENABLE_ANNOTATIONS}" = "xyes"; then
     AC_DEFINE([ENABLE_ANNOTATIONS], 1, [enable annotations])
+fi
+])
+
+
+dnl check for the default value for --enable-annotations
+
+AC_DEFUN([AC_CHECK_ENABLE_ANNOTATIONS_DEFAULT],[
+if test x"${ENABLE_JAVAME_CLDC1_1}" = "xyes"; then
+    ENABLE_ANNOTATIONS=no
+else
+    ENABLE_ANNOTATIONS=yes
 fi
 ])
