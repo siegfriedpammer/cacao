@@ -1,9 +1,7 @@
 /* src/vmcore/options.c - contains global options
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -28,15 +26,10 @@
 #include "config.h"
 
 #include <errno.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#if defined(HAVE_STRING_H)
-# include <string.h>
-#endif
-
-#include <limits.h>
 
 #include "mm/memory.h"
 
@@ -45,6 +38,7 @@
 #include "vm/vm.h"
 
 #include "vmcore/options.h"
+#include "vmcore/system.h"
 
 
 /* command line option ********************************************************/
@@ -336,13 +330,7 @@ s4 options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
 				opt_index++;
 
 				if (opt_index < vm_args->nOptions) {
-
-#if defined(HAVE_STRDUP)
-					opt_arg = strdup(vm_args->options[opt_index].optionString);
-#else
-# error !HAVE_STRDUP
-#endif
-
+					opt_arg = system_strdup(vm_args->options[opt_index].optionString);
 					opt_index++;
 					return opts[i].value;
 				}
@@ -356,18 +344,12 @@ s4 options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
 				 * parameter with no argument starting with same letter as param with argument
 				 * but named after that one, ouch! */
 
-				size_t l = strlen(opts[i].name);
+				size_t l = system_strlen(opts[i].name);
 
-				if (strlen(option + 1) > l) {
+				if (system_strlen(option + 1) > l) {
 					if (memcmp(option + 1, opts[i].name, l) == 0) {
 						opt_index++;
-
-#if defined(HAVE_STRDUP)
-						opt_arg = strdup(option + 1 + l);
-#else
-# error !HAVE_STRDUP
-#endif
-
+						opt_arg = system_strdup(option + 1 + l);
 						return opts[i].value;
 					}
 				}
@@ -392,18 +374,27 @@ static void options_xxusage(void)
 	int       i;
 	char     *c;
 
+	/* Prevent compiler warning. */
+
+	length = 0;
+
 	for (opt = options_XX; opt->name != NULL; opt++) {
 		printf("    -XX:");
 
 		switch (opt->type) {
 		case OPT_TYPE_BOOLEAN:
 			printf("+%s", opt->name);
-			length = strlen("    -XX:+") + strlen(opt->name);
+			length = system_strlen("    -XX:+") + system_strlen(opt->name);
 			break;
+
 		case OPT_TYPE_VALUE:
 			printf("%s=<value>", opt->name);
-			length = strlen("    -XX:") + strlen(opt->name) + strlen("=<value>");
+			length = system_strlen("    -XX:") + system_strlen(opt->name) +
+				system_strlen("=<value>");
 			break;
+
+		default:
+			vm_abort("options_xxusage: unkown option type %d", opt->type);
 		}
 
 		/* Check if the help fits into one 80-column line.
@@ -422,7 +413,7 @@ static void options_xxusage(void)
 
 		/* Check documentation length. */
 
-		length = strlen(opt->doc);
+		length = system_strlen(opt->doc);
 
 		if (length < (80 - 29)) {
 			printf("%s", opt->doc);
@@ -509,7 +500,7 @@ void options_xx(JavaVMInitArgs *vm_args)
 		end = strchr(start, '=');
 
 		if (end == NULL) {
-			length = strlen(start);
+			length = system_strlen(start);
 			value  = NULL;
 		}
 		else {
