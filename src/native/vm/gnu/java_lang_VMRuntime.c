@@ -50,8 +50,6 @@
 
 #include "native/include/java_lang_VMRuntime.h"
 
-#include "native/vm/java_lang_Runtime.h"
-
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
@@ -96,6 +94,9 @@ void _Jv_java_lang_VMRuntime_init(void)
 }
 
 
+static bool finalizeOnExit = false;
+
+
 /*
  * Class:     java/lang/VMRuntime
  * Method:    exit
@@ -103,7 +104,10 @@ void _Jv_java_lang_VMRuntime_init(void)
  */
 JNIEXPORT void JNICALL Java_java_lang_VMRuntime_exit(JNIEnv *env, jclass clazz, int32_t status)
 {
-	_Jv_java_lang_Runtime_exit(status);
+	if (finalizeOnExit)
+		gc_finalize_all();
+
+	vm_shutdown(status);
 }
 
 
@@ -114,7 +118,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_exit(JNIEnv *env, jclass clazz, 
  */
 JNIEXPORT int64_t JNICALL Java_java_lang_VMRuntime_freeMemory(JNIEnv *env, jclass clazz)
 {
-	return _Jv_java_lang_Runtime_freeMemory();
+	return gc_get_free_bytes();
 }
 
 
@@ -125,7 +129,7 @@ JNIEXPORT int64_t JNICALL Java_java_lang_VMRuntime_freeMemory(JNIEnv *env, jclas
  */
 JNIEXPORT int64_t JNICALL Java_java_lang_VMRuntime_totalMemory(JNIEnv *env, jclass clazz)
 {
-	return _Jv_java_lang_Runtime_totalMemory();
+	return gc_get_heap_size();
 }
 
 
@@ -147,7 +151,7 @@ JNIEXPORT int64_t JNICALL Java_java_lang_VMRuntime_maxMemory(JNIEnv *env, jclass
  */
 JNIEXPORT void JNICALL Java_java_lang_VMRuntime_gc(JNIEnv *env, jclass clazz)
 {
-	_Jv_java_lang_Runtime_gc();
+	gc_call();
 }
 
 
@@ -169,7 +173,9 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalization(JNIEnv *env, jcl
  */
 JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizersOnExit(JNIEnv *env, jclass clazz, int32_t value)
 {
-	_Jv_java_lang_Runtime_runFinalizersOnExit(value);
+	/* XXX threading */
+
+	finalizeOnExit = value;
 }
 
 
@@ -232,14 +238,20 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *e
 JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *libname, java_lang_ClassLoader *loader)
 {
 	classloader *cl;
+	utf         *name;
 
 	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
-#if defined(ENABLE_JNI)
-	return _Jv_java_lang_Runtime_loadLibrary(env, libname, cl);
-#else
-	return _Jv_java_lang_Runtime_loadLibrary(libname, cl);
-#endif
+	/* REMOVEME When we use Java-strings internally. */
+
+	if (libname == NULL) {
+		exceptions_throw_nullpointerexception();
+		return 0;
+	}
+
+	name = javastring_toutf((java_handle_t *) libname, false);
+
+	return native_library_load(env, name, cl);
 }
 
 

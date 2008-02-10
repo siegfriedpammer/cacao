@@ -1,9 +1,7 @@
 /* src/native/vm/cldc1.1/java_lang_Runtime.c
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -26,23 +24,28 @@
 
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
+
+#include "mm/gc-common.h"
 
 #include "native/jni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_Runtime.h"
 
-#include "native/vm/java_lang_Runtime.h"
+#include "vm/vm.h"
+
+#include "vmcore/utf8.h"
 
 
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "exitInternal", "(I)V", (void *) (ptrint) &Java_java_lang_Runtime_exitInternal },
-	{ "freeMemory",   "()J",  (void *) (ptrint) &Java_java_lang_Runtime_freeMemory   },
-	{ "totalMemory",  "()J",  (void *) (ptrint) &Java_java_lang_Runtime_totalMemory  },
-	{ "gc",           "()V",  (void *) (ptrint) &Java_java_lang_Runtime_gc           },
+	{ "exitInternal", "(I)V", (void *) (intptr_t) &Java_java_lang_Runtime_exitInternal },
+	{ "freeMemory",   "()J",  (void *) (intptr_t) &Java_java_lang_Runtime_freeMemory   },
+	{ "totalMemory",  "()J",  (void *) (intptr_t) &Java_java_lang_Runtime_totalMemory  },
+	{ "gc",           "()V",  (void *) (intptr_t) &Java_java_lang_Runtime_gc           },
 };
  
  
@@ -67,9 +70,9 @@ void _Jv_java_lang_Runtime_init(void)
  * Method:    exitInternal
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Runtime_exitInternal(JNIEnv *env, java_lang_Runtime *this, s4 status)
+JNIEXPORT void JNICALL Java_java_lang_Runtime_exitInternal(JNIEnv *env, java_lang_Runtime *this, int32_t status)
 {
-	_Jv_java_lang_Runtime_exit(status);
+	vm_shutdown(status);
 }
 
 
@@ -78,9 +81,9 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_exitInternal(JNIEnv *env, java_lan
  * Method:    freeMemory
  * Signature: ()J
  */
-JNIEXPORT s8 JNICALL Java_java_lang_Runtime_freeMemory(JNIEnv *env, java_lang_Runtime *this)
+JNIEXPORT int64_t JNICALL Java_java_lang_Runtime_freeMemory(JNIEnv *env, java_lang_Runtime *this)
 {
-	return _Jv_java_lang_Runtime_freeMemory();
+	return gc_get_free_bytes();
 }
 
 
@@ -89,9 +92,9 @@ JNIEXPORT s8 JNICALL Java_java_lang_Runtime_freeMemory(JNIEnv *env, java_lang_Ru
  * Method:    totalMemory
  * Signature: ()J
  */
-JNIEXPORT s8 JNICALL Java_java_lang_Runtime_totalMemory(JNIEnv *env, java_lang_Runtime *this)
+JNIEXPORT int64_t JNICALL Java_java_lang_Runtime_totalMemory(JNIEnv *env, java_lang_Runtime *this)
 {
-	return _Jv_java_lang_Runtime_totalMemory();
+	return gc_get_heap_size();
 }
 
 
@@ -102,7 +105,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_Runtime_totalMemory(JNIEnv *env, java_lang_R
  */
 JNIEXPORT void JNICALL Java_java_lang_Runtime_gc(JNIEnv *env, java_lang_Runtime *this)
 {
-	_Jv_java_lang_Runtime_gc();
+	gc_call();
 }
 
 

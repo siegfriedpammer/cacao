@@ -1,9 +1,7 @@
 /* src/native/vm/cldc1.1/com_sun_cldchi_jvm_JVM.c
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -34,8 +32,6 @@
 #include "native/include/java_lang_String.h"
 
 #include "native/include/com_sun_cldchi_jvm_JVM.h"
-
-#include "native/vm/java_lang_Runtime.h"
 
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
@@ -71,19 +67,23 @@ void _Jv_com_sun_cldchi_jvm_JVM_init(void)
  */
 JNIEXPORT void JNICALL Java_com_sun_cldchi_jvm_JVM_loadLibrary(JNIEnv *env, jclass clazz, java_lang_String *libName)
 {
-	s4   result;
+	int  result;
 	utf *name;
 
-#if defined(ENABLE_JNI)
-	result = _Jv_java_lang_Runtime_loadLibrary(env, libName, NULL);
-#else
-	result = _Jv_java_lang_Runtime_loadLibrary(libName, NULL);
-#endif
+	/* REMOVEME When we use Java-strings internally. */
 
-	/* check for error and throw one in case */
+	if (libName == NULL) {
+		exceptions_throw_nullpointerexception();
+		return;
+	}
+
+	name = javastring_toutf((java_handle_t *) libName, false);
+
+	result = native_library_load(env, name, NULL);
+
+	/* Check for error and throw an exception in case. */
 
 	if (result == 0) {
-		name = javastring_toutf((java_handle_t *) libName, false);
 		exceptions_throw_unsatisfiedlinkerror(name);
 	}
 }

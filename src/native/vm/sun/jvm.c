@@ -63,7 +63,6 @@
 #endif
 
 #include "native/vm/java_lang_Class.h"
-#include "native/vm/java_lang_Runtime.h"
 #include "native/vm/java_lang_Thread.h"
 #include "native/vm/java_lang_reflect_Constructor.h"
 #include "native/vm/java_lang_reflect_Method.h"
@@ -2235,7 +2234,7 @@ void JVM_StartThread(JNIEnv* env, jobject jthread)
 {
 	TRACEJVMCALLS("JVM_StartThread(env=%p, jthread=%p)", env, jthread);
 
-	_Jv_java_lang_Thread_start((java_lang_Thread *) jthread, 0);
+	threads_thread_start((java_handle_t *) jthread);
 }
 
 
@@ -2298,9 +2297,27 @@ void JVM_ResumeThread(JNIEnv* env, jobject jthread)
 
 void JVM_SetThreadPriority(JNIEnv* env, jobject jthread, jint prio)
 {
+	java_handle_t *h;
+	threadobject  *t;
+
 	TRACEJVMCALLS("JVM_SetThreadPriority(env=%p, jthread=%p, prio=%d)", env, jthread, prio);
 
-	_Jv_java_lang_Thread_setPriority((java_lang_Thread *) jthread, prio);
+	h = (java_handle_t *) jthread;
+
+	/* XXX this is just a quick hack */
+
+	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+		if (t->object == h)
+			break;
+	}
+
+	/* The threadobject is null when a thread is created in Java. The
+	   priority is set later during startup. */
+
+	if (t == NULL)
+		return;
+
+	threads_set_thread_priority(t->tid, prio);
 }
 
 
@@ -2320,7 +2337,7 @@ void JVM_Sleep(JNIEnv* env, jclass threadClass, jlong millis)
 {
 	TRACEJVMCALLS("JVM_Sleep(env=%p, threadClass=%p, millis=%ld)", env, threadClass, millis);
 
-	_Jv_java_lang_Thread_sleep(millis);
+	threads_sleep(millis, 0);
 }
 
 
@@ -2356,11 +2373,23 @@ void JVM_Interrupt(JNIEnv* env, jobject jthread)
 
 jboolean JVM_IsInterrupted(JNIEnv* env, jobject jthread, jboolean clear_interrupted)
 {
+	java_handle_t *h;
+	threadobject  *t;
+
 	TRACEJVMCALLS("JVM_IsInterrupted(env=%p, jthread=%p, clear_interrupted=%d)", env, jthread, clear_interrupted);
+
+	h = (java_handle_t *) jthread;
 
 	/* XXX do something with clear_interrupted */
 
-	return _Jv_java_lang_Thread_isInterrupted((java_lang_Thread *) jthread);
+	/* XXX this is just a quick hack */
+
+	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+		if (t->object == h)
+			break;
+	}
+
+	return threads_thread_has_been_interrupted(t);
 }
 
 

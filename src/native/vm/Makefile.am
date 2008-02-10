@@ -81,8 +81,6 @@ libnativevm_la_SOURCES = \
 	\
 	java_lang_Class.c \
 	java_lang_Class.h \
-	java_lang_Runtime.c \
-	java_lang_Runtime.h \
 	java_lang_Thread.c \
 	java_lang_Thread.h \
 	$(JAVA_LANG_REFLECT_CONSTRUCTOR_SOURCES) \

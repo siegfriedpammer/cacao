@@ -858,6 +858,86 @@ hashtable_library_name_entry *native_library_find(utf *filename,
 #endif
 
 
+/* native_library_load *********************************************************
+
+   Load a native library and initialize it, if possible.
+
+   IN:
+       name ... name of the library
+	   cl ..... classloader which loads this library
+
+   RETURN:
+       1 ... library loaded successfully
+       0 ... error
+
+*******************************************************************************/
+
+int native_library_load(JNIEnv *env, utf *name, classloader *cl)
+{
+#if defined(ENABLE_LTDL)
+	lt_dlhandle        handle;
+# if defined(ENABLE_JNI)
+	lt_ptr             onload;
+	int32_t            version;
+# endif
+
+	if (name == NULL) {
+		exceptions_throw_nullpointerexception();
+		return 0;
+	}
+
+	/* Is the library already loaded? */
+
+	if (native_library_find(name, cl) != NULL)
+		return 1;
+
+	/* Open the library. */
+
+	handle = native_library_open(name);
+
+	if (handle == NULL)
+		return 0;
+
+# if defined(ENABLE_JNI)
+	/* Resolve JNI_OnLoad function. */
+
+	onload = lt_dlsym(handle, "JNI_OnLoad");
+
+	if (onload != NULL) {
+		JNIEXPORT int32_t (JNICALL *JNI_OnLoad) (JavaVM *, void *);
+		JavaVM *vm;
+
+		JNI_OnLoad = (JNIEXPORT int32_t (JNICALL *)(JavaVM *, void *)) (ptrint) onload;
+
+		(*env)->GetJavaVM(env, &vm);
+
+		version = JNI_OnLoad(vm, NULL);
+
+		/* If the version is not 1.2 and not 1.4 the library cannot be
+		   loaded. */
+
+		if ((version != JNI_VERSION_1_2) && (version != JNI_VERSION_1_4)) {
+			lt_dlclose(handle);
+			return 0;
+		}
+	}
+# endif
+
+	/* Insert the library name into the library hash. */
+
+	native_library_add(name, cl, handle);
+
+	return 1;
+#else
+	vm_abort("native_library_load: not available");
+
+	/* Keep compiler happy. */
+
+	return 0;
+#endif
+}
+
+
 /* native_new_and_init *********************************************************
 
    Creates a new object on the heap and calls the initializer.

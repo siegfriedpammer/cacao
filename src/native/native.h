@@ -1,9 +1,7 @@
 /* src/native/native.h - table of native functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -98,10 +96,9 @@ functionptr native_method_resolve(methodinfo *m);
 #if defined(ENABLE_LTDL)
 lt_dlhandle native_library_open(utf *filename);
 void        native_library_close(lt_dlhandle handle);
-void        native_library_add(utf *filename, classloader *loader,
-							   lt_dlhandle handle);
-hashtable_library_name_entry *native_library_find(utf *filename,
-												  classloader *loader);
+void        native_library_add(utf *filename, classloader *loader, lt_dlhandle handle);
+hashtable_library_name_entry *native_library_find(utf *filename, classloader *loader);
+int         native_library_load(JNIEnv *env, utf *name, classloader *cl);
 #endif
 
 java_handle_t *native_new_and_init(classinfo *c);
