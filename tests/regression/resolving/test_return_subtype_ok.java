@@ -17,22 +17,21 @@ public class test_return_subtype_ok {
         ld2.addParentDelegation("java.lang.Object");
         ld2.addParentDelegation("java.lang.String");
 
-        // loading BarPassFoo
+        // loading & linking BarPassFoo
         ct.expect("requested", ld2, "BarPassFoo");
+        ct.expectLoadFromSystem(ld2, "java.lang.Object");
         ct.expect("defined", ld2, "<BarPassFoo>");
         ct.expect("loaded", ld2, "<BarPassFoo>");
 
         Class cls = ct.loadClass(ld2, "BarPassFoo");
 
-        // linking BarPassFoo
-        ct.expectLoadFromSystem(ld2, "java.lang.Object");
-
         // executing createDerivedFoo
-        ct.expectDelegationAndDefinition(ld2, ld1, "DerivedFoo");
+        ct.expectDelegation(ld2, ld1, "DerivedFoo");
         // ...linking (ld2, DerivedFoo)
         ct.expect("requested", ld1, "Foo");
-        ct.expect("defined", ld1, "<Foo>");
         ct.expectLoadFromSystem(ld1, "java.lang.Object");
+        ct.expect("defined", ld1, "<Foo>");
+        ct.expectDelegationDefinition(ld2, ld1, "DerivedFoo");
 
         ct.checkStringGetter(cls, "getDerivedFoo", "no exception");
         ct.expectEnd();

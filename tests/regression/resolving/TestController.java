@@ -31,6 +31,10 @@ public class TestController {
                 && ((loader2_ == ld2) || ((loader2_ != null) && (ld2 != null) && loader2_.equals(ld2)))
                 && class_.equals(cls);
         }
+
+        public String toString() {
+            return tag_ + ": " + loader1_ + " " + loader2_ + " class=" + class_;
+        }
     }
 
     public void setReportClassIDs(boolean rep) {
@@ -63,18 +67,24 @@ public class TestController {
         expect("loaded", loader, "<" + classname + ">");
     }
 
-    public void expectDelegationAndDefinition(ClassLoader loader1, ClassLoader loader2, String classname) {
+    public void expectDelegation(ClassLoader loader1, ClassLoader loader2, String classname) {
         expect("requested", loader1, classname);
         expect("delegated", loader1, loader2, classname);
         expect("requested", loader2, classname);
+    }
+
+    public void expectDelegationDefinition(ClassLoader loader1, ClassLoader loader2, String classname) {
         expect("defined", loader2, "<" + classname + ">");
         expect("loaded", loader1, "<" + classname + ">");
     }
 
+    public void expectDelegationAndDefinition(ClassLoader loader1, ClassLoader loader2, String classname) {
+        expectDelegation(loader1, loader2, classname);
+        expectDelegationDefinition(loader1, loader2, classname);
+    }
+
     public void expectDelegationAndFound(ClassLoader loader1, ClassLoader loader2, String classname) {
-        expect("requested", loader1, classname);
-        expect("delegated", loader1, loader2, classname);
-        expect("requested", loader2, classname);
+        expectDelegation(loader1, loader2, classname);
         expect("found", loader2, "<" + classname + ">");
         expect("loaded", loader1, "<" + classname + ">");
     }
@@ -90,6 +100,11 @@ public class TestController {
 
     void fail(String message, String tag, String ld1, String ld2, String cls) {
         fail(message + ": " + tag + " " + ld1 + " " + ld2 + " class=" + cls);
+    }
+
+    void fail(String message, String tag, String ld1, String ld2, String cls, Expectation exp) {
+        fail(message + ": " + tag + " " + ld1 + " " + ld2 + " class=" + cls
+             + " (expected " + exp.toString() + ")");
     }
 
     void ok(String tag, String ld1, String ld2, String cls) {
@@ -143,7 +158,7 @@ public class TestController {
                 ok(tag, ld1, ld2, cls);
             }
             else {
-                fail("unexpected", tag, ld1, ld2, cls);
+                fail("unmatched", tag, ld1, ld2, cls, exp);
             }
         }
     }

@@ -18,20 +18,19 @@ public class test_retval_loading_constraint_violated {
         ld2.addParentDelegation("java.lang.String");
 
 
-        // loading BarUseFoo
+        // loading & linking BarUseFoo
         ct.expect("requested", ld1, "BarUseFoo");
+        ct.expectLoadFromSystem(ld1, "java.lang.Object");
         ct.expect("defined", ld1, "<BarUseFoo>");
         ct.expect("loaded", ld1, "<BarUseFoo>");
 
         Class cls = ct.loadClass(ld1, "BarUseFoo");
 
-        // linking BarUseFoo
-        ct.expectLoadFromSystem(ld1, "java.lang.Object");
-
         // executing BarUseFoo.useReturnedFoo: new BarPassFoo
-        ct.expectDelegationAndDefinition(ld1, ld2, "BarPassFoo");
+        ct.expectDelegation(ld1, ld2, "BarPassFoo");
         // ...linking BarPassFoo
         ct.expectLoadFromSystem(ld2, "java.lang.Object");
+        ct.expectDelegationDefinition(ld1, ld2, "BarPassFoo");
 
         // resolving BarPassFoo.createFoo
         ct.expect("requested", ld2, "Foo");

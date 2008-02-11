@@ -6,14 +6,14 @@ public class test_simple_lazy_load {
         TestLoader ld1 = new TestLoader(ClassLoader.getSystemClassLoader(), "ld1", ct);
 
         ld1.addClassfile("BarUseFoo", "classes1/BarUseFoo.class");
+        ld1.addParentDelegation("java.lang.Object");
+
         ct.expect("requested", ld1, "BarUseFoo");
+        ct.expectLoadFromSystem(ld1, "java.lang.Object");
         ct.expect("defined", ld1, "<BarUseFoo>");
         ct.expect("loaded", ld1, "<BarUseFoo>");
-        Class cls = ct.loadClass(ld1, "BarUseFoo");
-        ct.expectEnd();
 
-        ld1.addParentDelegation("java.lang.Object");
-        ct.expectLoadFromSystem(ld1, "java.lang.Object");
+        Class cls = ct.loadClass(ld1, "BarUseFoo");
         ct.checkClassId(cls, "classes1/BarUseFoo");
         ct.expectEnd();
 
