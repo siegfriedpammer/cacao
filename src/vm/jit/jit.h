@@ -70,6 +70,7 @@ typedef struct exception_entry exception_entry;
 
 #include "vm/jit/verify/typeinfo.h"
 
+#include "vmcore/descriptor.h"
 #include "vmcore/method.h"
 #include "vmcore/references.h"
 
@@ -212,17 +213,6 @@ struct jitdata {
     ((jd)->flags & JITDATA_FLAG_VERBOSECALL)
 
 
-/* macros for accessing variables *********************************************
- 
-   Use VAROP for s1, s2, s3 and dst operands (eg. VAROP(iptr->s1)),
-   use VAR if you have the variable index (eg. VAR(iptr->sx.s23.s2.args[0])).
-
-******************************************************************************/
-
-#define VAROP(v) (jd->var + (v).varindex)
-#define VAR(i)   (jd->var + (i))
-
-
 /* exception_entry ************************************************************/
 
 struct exception_entry {
@@ -270,6 +260,38 @@ struct stackelement {
 	s4       varkind;           /* kind of variable or register               */
 	s4       varnum;            /* number of variable                         */
 };
+
+/* macros for accessing variables *********************************************
+ 
+   Use VAROP for s1, s2, s3 and dst operands (eg. VAROP(iptr->s1)),
+   use VAR if you have the variable index (eg. VAR(iptr->sx.s23.s2.args[0])).
+
+******************************************************************************/
+
+#define VAROP(v) (jd->var + (v).varindex)
+#define VAR(i)   (jd->var + (i))
+
+static inline bool var_is_local(const jitdata *jd, s4 i) {
+	return (i < jd->localcount);
+}
+
+static inline bool var_is_prealloc(const jitdata *jd, s4 i) {
+	return ((i >= jd->localcount) && (jd->var[i].flags & PREALLOC));
+}
+
+static inline bool var_is_inout(const jitdata *jd, s4 i) {
+	const varinfo *v = jd->var + i;
+	return ((i >= jd->localcount) && !(v->flags & PREALLOC) && (v->flags & INOUT));
+}
+
+static inline bool var_is_temp(const jitdata *jd, s4 i) {
+	const varinfo *v = jd->var + i;
+	return ((i >= jd->localcount) && !(v->flags & PREALLOC) && !(v->flags & INOUT));
+}
+
+static inline bool var_is_saved(const jitdata *jd, s4 i) {
+	return (jd->var[i].flags & SAVEDVAR);
+}
 
 
 /**************************** instruction structure ***************************/
@@ -427,7 +449,6 @@ struct instruction {
 			md = iptr->sx.s23.s3.fmiref->parseddesc.md; \
 	} while (0)
 
-
 /* additional info structs for special instructions ***************************/
 
 /* for ICMD_INLINE_START and ICMD_INLINE_END */
@@ -518,6 +539,19 @@ struct basicblock {
 	insinfo_inline *inlineinfo; /* inlineinfo for the start of this block     */
 
 	s4            mpc;          /* machine code pc at start of block          */
+
+	/* TODO: those fields are probably usefull for other passes as well. */
+
+#if defined(ENABLE_SSA)         
+	basicblock   *idom;         /* Immediate dominator, parent in dominator tree */
+	basicblock  **domsuccessors;/* Children in dominator tree                 */
+	s4            domsuccessorcount;
+
+	basicblock  **domfrontier;  /* Dominance frontier                         */
+	s4            domfrontiercount;
+
+	void         *vp;           /* Freely used by different passes            */
+#endif
 };
 
 /* [+]...the javalocals array: This array is indexed by the javaindex (the    */
@@ -921,6 +955,20 @@ enum {
 	ICMD_BUILTIN          = 255         /* internal opcode                    */
 };
 
+/* Additional instruction accessors */
+
+methoddesc *instruction_call_site(const instruction *iptr);
+
+static inline bool instruction_has_dst(const instruction *iptr) {
+	if (
+		(icmd_table[iptr->opc].dataflow == DF_INVOKE) ||
+		(icmd_table[iptr->opc].dataflow == DF_BUILTIN)
+	) {
+		return instruction_call_site(iptr)->returntype.type != TYPE_VOID;
+	} else {
+		return icmd_table[iptr->opc].dataflow >= DF_DST_BASE;
+	}
+}
 
 /***************************** register types *********************************/
 

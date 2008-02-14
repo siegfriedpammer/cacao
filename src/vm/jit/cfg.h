@@ -44,6 +44,8 @@
 
 bool cfg_build(jitdata *jd);
 
+void cfg_add_root(jitdata *jd);
+
 #endif /* _CFG_H */
 
 

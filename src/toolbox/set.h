@@ -1,6 +1,6 @@
-/* src/vm/jit/python.h - Python pass
+/* src/toolbox/set.h - Set implementation.
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2008
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
@@ -22,17 +22,21 @@
 
 */
 
-#ifndef _VM_JIT_PYTHON_H
-#define _VM_JIT_PYTHON_H
-#if defined(ENABLE_PYTHON)
+#ifndef _TOOLBOX_SET_H
+#define _TOOLBOX_SET_H
 
-#include "vm/jit/jit.h"
+#include "vm/global.h"
 
-void pythonpass_init();
-void pythonpass_cleanup();
-int pythonpass_run(jitdata *jd, const char *module, const char *function);
+typedef struct set set;
 
-#endif
+set *set_new(unsigned capacity);
+void set_insert(set *s, void *element);
+void set_remove(set *s, void *element);
+bool set_contains(const set *s, void *element);
+unsigned set_size(const set *s);
+bool set_empty(const set *s);
+void *set_pop(set *s);
+
 #endif
 
 /*

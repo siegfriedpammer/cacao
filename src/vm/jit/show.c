@@ -537,7 +537,10 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 			printf("IN:  ");
 			show_variable_array(jd, bptr->invars, bptr->indepth, irstage);
 			printf(" javalocals: ");
-			show_javalocals_array(jd, bptr->javalocals, bptr->method->maxlocals, irstage);
+			if (bptr->javalocals)
+				show_javalocals_array(jd, bptr->javalocals, bptr->method->maxlocals, irstage);
+			else
+				printf("null");
 			printf("\n");
 		}
 

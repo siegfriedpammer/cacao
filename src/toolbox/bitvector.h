@@ -33,6 +33,8 @@
 #ifndef _BITVECTOR_H
 #define _BITVECTOR_H
 
+#include "vm/global.h"
+
 #if !defined(NDEBUG)
 #include <assert.h>
 

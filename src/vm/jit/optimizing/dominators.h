@@ -70,6 +70,14 @@ typedef struct dominatordata dominatordata;
 dominatordata *compute_Dominators(graphdata *gd, int basicblockcount);
 void computeDF(graphdata *gd, dominatordata *dd, int basicblockcount, int n);
 
+/* ............................... */
+
+bool dominator_tree_build(jitdata *jd);
+
+bool dominance_frontier_build(jitdata *jd);
+
+void dominator_tree_validate(jitdata *jd, dominatordata *dd);
+
 #endif /* _DOMINATORS_H */
 
 /*

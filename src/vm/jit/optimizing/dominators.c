@@ -260,6 +260,391 @@ void dom_Link(dominatordata *dd, int p, int n) {
 	dd->best[n] = n;
 }
 
+/*********************************************************/
+
+typedef struct basicblock_info basicblock_info;
+
+struct basicblock_info {
+	basicblock *bb;
+	int dfnum;
+	basicblock_info *parent;
+	basicblock_info *semi;
+	basicblock_info *ancestor;
+	basicblock_info *best;
+	basicblock_info *idom;
+	basicblock_info *samedom;
+	basicblock_info **bucket;
+	unsigned bucketcount;
+};
+
+typedef struct dominator_tree_info dominator_tree_info;
+
+struct dominator_tree_info {
+	jitdata *jd;
+	basicblock_info *basicblocks;
+	basicblock_info **df_map;
+	unsigned df_counter;
+};
+
+static dominator_tree_info *dominator_tree_init(jitdata *jd) {
+	dominator_tree_info *di;
+	basicblock *itb;
+	basicblock_info *iti;
+
+	di = DNEW(dominator_tree_info);
+
+	di->jd = jd;
+
+	di->basicblocks = DMNEW(basicblock_info, jd->basicblockcount);
+	MZERO(di->basicblocks, basicblock_info, jd->basicblockcount);
+	
+	for (iti = di->basicblocks; iti != di->basicblocks + jd->basicblockcount; ++iti) {
+		iti->dfnum = -1;
+		iti->bucket = DMNEW(basicblock_info *, jd->basicblockcount);
+		iti->bucketcount = 0;
+	}
+
+	for (itb = jd->basicblocks; itb; itb = itb->next) {
+		di->basicblocks[itb->nr].bb = itb;
+	}
+
+	di->df_map = DMNEW(basicblock_info *, jd->basicblockcount);
+	MZERO(di->df_map, basicblock_info *, jd->basicblockcount);
+
+	di->df_counter = 0;
+
+	return di;
+}
+
+inline basicblock_info *dominator_tree_get_basicblock(dominator_tree_info *di, basicblock *bb) {
+	return di->basicblocks + bb->nr;
+}
+
+static void dominator_tree_depth_first_search(
+	dominator_tree_info *di, basicblock_info *parent, basicblock_info *node
+) {
+	basicblock **it;
+
+	if (node->dfnum == -1) {
+
+		node->dfnum = di->df_counter;
+		node->parent = parent;
+		di->df_map[di->df_counter] = node;
+		di->df_counter += 1;
+
+		for (it = node->bb->successors; it != node->bb->successors + node->bb->successorcount; ++it) {
+			dominator_tree_depth_first_search(
+				di, node, 
+				dominator_tree_get_basicblock(di, *it)
+			);
+		}
+	}
+}
+
+void dominator_tree_link(dominator_tree_info *di, basicblock_info *parent, basicblock_info *node) {
+	node->ancestor = parent;
+	node->best = node;
+}
+
+basicblock_info *dominator_tree_ancestor_with_lowest_semi(
+	dominator_tree_info *di, basicblock_info *node
+) {
+	basicblock_info *a, *b;
+
+	a = node->ancestor;
+
+	if (a->ancestor != NULL) {
+		b = dominator_tree_ancestor_with_lowest_semi(di, a);
+		node->ancestor = a->ancestor;
+		if (b->semi->dfnum < node->best->semi->dfnum) {
+			node->best = b;
+		}
+	}
+
+	return node->best;
+}
+
+void dominator_tree_build_intern(jitdata *jd) {
+	
+	dominator_tree_info *di;
+	basicblock_info *node;
+	basicblock_info *semicand;
+	basicblock_info *pred;
+	basicblock **itb;
+	basicblock_info **itii;
+	basicblock_info *v, *y;
+	int i;
+
+	di = dominator_tree_init(jd);
+
+	dominator_tree_depth_first_search(di, NULL, dominator_tree_get_basicblock(di, jd->basicblocks));
+
+	for (i = di->df_counter - 1; i >= 1; --i) {
+		node = di->df_map[i];
+
+		node->semi = node->parent;
+
+		for (
+			itb = node->bb->predecessors; 
+			itb != node->bb->predecessors + node->bb->predecessorcount; 
+			++itb
+		) {
+
+			pred = dominator_tree_get_basicblock(di, *itb);
+
+			if (pred->dfnum <= node->dfnum) {
+				semicand = pred;
+			} else {
+				semicand = dominator_tree_ancestor_with_lowest_semi(di, pred)->semi;
+			}
+
+			if (semicand->dfnum < node->semi->dfnum) {
+				node->semi = semicand;
+			}
+		}
+
+		node->semi->bucket[node->semi->bucketcount] = node;
+		node->semi->bucketcount += 1;
+
+		dominator_tree_link(di, node->parent, node);
+
+		for (itii = node->parent->bucket; itii != node->parent->bucket + node->parent->bucketcount; ++itii) {
+			v = *itii;
+			y = dominator_tree_ancestor_with_lowest_semi(di, v);
+			if (y->semi == v->semi) {
+				v->idom = node->parent;
+			} else {
+				v->samedom = y;
+			}
+		}
+
+		node->parent->bucketcount = 0;
+	}
+
+	for (i = 1; i < di->df_counter; ++i) {
+		node = di->df_map[i];
+		if (node->samedom) {
+			node->idom = node->samedom->idom;
+		}
+
+		node->bb->idom = node->idom->bb;
+		node->idom->bb->domsuccessorcount += 1;
+	}
+}
+
+void dominator_tree_link_children(jitdata *jd) {
+	basicblock *bb;
+	int32_t ds;
+	/* basicblock number => current number of successors */
+	unsigned *numsuccessors;
+
+	/* Allocate memory for successors */
+
+	for (bb = jd->basicblocks; bb; bb = bb->next) {
+		if (bb->domsuccessorcount > 0) {
+			bb->domsuccessors = DMNEW(basicblock *, bb->domsuccessorcount);
+		}
+	}
+
+	/* Allocate memory for per basic block counter of successors */
+
+	ds = dump_size();
+	numsuccessors = DMNEW(unsigned, jd->basicblockcount);
+	MZERO(numsuccessors, unsigned, jd->basicblockcount);
+
+	/* Link immediate dominators with successors */
+
+	for (bb = jd->basicblocks; bb; bb = bb->next) {
+		if (bb->idom) {
+			bb->idom->domsuccessors[numsuccessors[bb->idom->nr]] = bb;
+			numsuccessors[bb->idom->nr] += 1;
+		}
+	}
+
+	/* Free memory */
+
+	dump_release(ds);
+}
+
+bool dominator_tree_build(jitdata *jd) {
+	int32_t ds;
+	
+	ds = dump_size();
+	dominator_tree_build_intern(jd);
+	dump_release(ds);
+
+	dominator_tree_link_children(jd);
+
+	return true;
+}
+
+typedef struct dominance_frontier_item dominance_frontier_item;
+
+struct dominance_frontier_item {
+	basicblock *bb;
+	dominance_frontier_item *next;
+};
+
+typedef struct dominance_frontier_list dominance_frontier_list;
+
+struct dominance_frontier_list {
+	dominance_frontier_item *first;
+	unsigned count;
+};
+
+void dominance_frontier_list_add(dominance_frontier_list *list, basicblock *bb) {
+	dominance_frontier_item *item;
+	
+	for (item = list->first; item; item = item->next) {
+		if (item->bb == bb) return;
+	}
+
+	item = DNEW(dominance_frontier_item);
+	item->bb = bb;
+	item->next = list->first;
+	list->first = item;
+	list->count += 1;
+}
+
+typedef struct dominance_frontier_info dominance_frontier_info;
+
+struct dominance_frontier_info {
+	jitdata *jd;
+	dominance_frontier_list *map;
+};
+
+dominance_frontier_info *dominance_frontier_init(jitdata *jd) {
+	dominance_frontier_info *dfi = DNEW(dominance_frontier_info);
+
+	dfi->jd = jd;
+
+	dfi->map = DMNEW(dominance_frontier_list, jd->basicblockcount);
+	MZERO(dfi->map, dominance_frontier_list, jd->basicblockcount);
+
+	return dfi;
+}
+
+bool dominance_frontier_dominates(basicblock *d, basicblock *x) {
+	x = x->idom;
+
+	while (x != NULL) {
+		if (x == d) {
+			return true;
+		}
+		x = x->idom;
+	}
+
+	return false;
+}
+
+void dominance_frontier_for_block(dominance_frontier_info *dfi, basicblock *b) {
+	basicblock **it;
+	dominance_frontier_item *itdf;
+	dominance_frontier_list s = { NULL, 0 };
+
+	for (it = b->successors; it != b->successors + b->successorcount; ++it) {
+		if ((*it)->idom != b) {
+			dominance_frontier_list_add(&s, *it);
+		}
+	}
+
+	for (it = b->domsuccessors; it != b->domsuccessors + b->domsuccessorcount; ++it) {
+		dominance_frontier_for_block(dfi, *it);
+		for (itdf = dfi->map[(*it)->nr].first; itdf; itdf = itdf->next) {
+			if (! dominance_frontier_dominates(b, itdf->bb)) {
+				dominance_frontier_list_add(&s, itdf->bb);
+			}
+		}
+	}
+
+	dfi->map[b->nr] = s;
+}
+
+void dominance_frontier_store(dominance_frontier_info *dfi) {
+	basicblock *bb;
+	dominance_frontier_item *itdf;
+	basicblock **itout;
+
+	for (bb = dfi->jd->basicblocks; bb; bb = bb->next) {
+		if (bb->nr < dfi->jd->basicblockcount) {
+			if (dfi->map[bb->nr].count > 0) {
+				bb->domfrontiercount = dfi->map[bb->nr].count;
+				itout = bb->domfrontier = DMNEW(basicblock *, bb->domfrontiercount);
+				for (itdf = dfi->map[bb->nr].first; itdf; itdf = itdf->next) {
+					*itout = itdf->bb;
+					itout += 1;
+				}
+			}
+		}
+	}
+}
+
+bool dominance_frontier_build(jitdata *jd) {
+	int32_t ds = dump_size();
+
+	dominance_frontier_info *dfi = dominance_frontier_init(jd);
+	dominance_frontier_for_block(dfi, jd->basicblocks);
+	dominance_frontier_store(dfi);
+}
+
+#include "vm/jit/show.h"
+#include "vm/jit/python.h"
+
+extern void graph_add_edge( graphdata *gd, int from, int to );
+
+void dominator_tree_validate(jitdata *jd, dominatordata *_dd) {
+	int32_t ds = dump_size();
+	graphdata *gd;
+	int i, j;
+	basicblock *bptr, **it;
+	dominatordata *dd;
+	int *itnr;
+	bool found;
+
+	fprintf(stderr, "%s/%s: \n", jd->m->class->name->text, jd->m->name->text);
+	gd = graph_init(jd->basicblockcount);
+
+	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
+		for (it = bptr->successors; it != bptr->successors + bptr->successorcount; ++it) {
+			graph_add_edge(gd, bptr->nr, (*it)->nr);
+		}
+	}
+
+	dd = compute_Dominators(gd, jd->basicblockcount);
+
+	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
+		if (bptr->flags >= BBREACHED) {
+			if (bptr->idom == NULL) {
+				if (!(dd->idom[bptr->nr] == -1)) {
+					printf("-- %d %d\n", dd->idom[bptr->nr], bptr->nr);
+					assert(0);
+				}
+			} else {
+				assert(dd->idom[bptr->nr] == bptr->idom->nr);
+			}
+		}
+	}
+
+	computeDF(gd, dd, jd->basicblockcount, 0);
+
+	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
+		if (bptr->flags >= BBREACHED) {
+			assert(bptr->domfrontiercount == dd->num_DF[bptr->nr]);
+			for (itnr = dd->DF[bptr->nr]; itnr != dd->DF[bptr->nr] + dd->num_DF[bptr->nr]; ++itnr) {
+				found = false;
+				for (it = bptr->domfrontier; it != bptr->domfrontier + bptr->domfrontiercount; ++it) {
+					if ((*it)->nr == *itnr) {
+						found =true; break;
+					}
+				}
+				assert(found);
+			}
+		}
+	}
+
+	dump_release(ds);
+}
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

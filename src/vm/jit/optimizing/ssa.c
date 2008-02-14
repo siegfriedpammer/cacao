@@ -48,6 +48,8 @@
 #include "vm/jit/optimizing/ssa_rename.h"
 #include "vm/jit/optimizing/ssa_phi.h"
 
+#include "vm/jit/python.h"
+
 #if defined(SSA_DEBUG_VERBOSE)
 #include "vmcore/options.h"   /* compileverbose */
 #endif
@@ -99,6 +101,7 @@ page 441 Algorithm 19.6. Inserting phi-functions:
            W <- W join {Y}
 
 ******************************************************************************/
+void xssa(jitdata *jd);
 void ssa(jitdata *jd) {
 	struct dominatordata *dd;
 	lsradata *ls;
@@ -112,6 +115,17 @@ void ssa(jitdata *jd) {
 		exit(1);
 	}
 #endif
+
+	cfg_add_root(jd);
+	dominator_tree_build(jd);
+	/*pythonpass_run(jd, "foo", "cfg_print");*/
+	dominance_frontier_build(jd);
+	/*dominator_tree_validate(jd, dd);*/
+	/*pythonpass_run(jd, "ssa2", "main");*/
+	pythonpass_run(jd, "foo", "before");
+	xssa(jd);
+	pythonpass_run(jd, "foo", "after");
+	return;
 
 	ls = jd->ls;
 

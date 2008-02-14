@@ -1350,7 +1350,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 
 			/* assert that all copy counts are zero */
 
-#if !defined(NDEBUG)
+#if !defined(NDEBUG) && !defined(ENABLE_SSA)
 			for (i=0; i < TOTAL_REG_CNT; ++i)
 				assert(rd->regcopycount[i] == 0);
 #endif

@@ -64,7 +64,8 @@ SSA_SOURCES = \
 	dominators.c \
 	dominators.h \
 	lifetimes.c \
-	lifetimes.h
+	lifetimes.h \
+	ssa2.c
 endif
 
 noinst_LTLIBRARIES = \
