@@ -620,22 +620,12 @@ static void XXusage(void)
 static void version(bool opt_exit)
 {
 	puts("java version \""JAVA_VERSION"\"");
-	puts("CACAO version "VERSION"");
+	puts("CACAO version "VERSION"\n");
 
-	puts("Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,");
-	puts("C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,");
-	puts("E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,");
-	puts("J. Wenninger, Institut f. Computersprachen - TU Wien\n");
-
-	puts("This program is free software; you can redistribute it and/or");
-	puts("modify it under the terms of the GNU General Public License as");
-	puts("published by the Free Software Foundation; either version 2, or (at");
-	puts("your option) any later version.\n");
-
-	puts("This program is distributed in the hope that it will be useful, but");
-	puts("WITHOUT ANY WARRANTY; without even the implied warranty of");
-	puts("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU");
-	puts("General Public License for more details.");
+	puts("Copyright (C) 1996-2005, 2006, 2007, 2008");
+	puts("CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO");
+	puts("This is free software; see the source for copying conditions.  There is NO");
+	puts("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.");
 
 	/* exit normally, if requested */
 
