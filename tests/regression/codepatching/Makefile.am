@@ -21,16 +21,10 @@
 ## 02110-1301, USA.
 
 
-JAVA = $(top_builddir)/src/cacao/cacao
-
-if WITH_CLASSPATH_GNU
+JAVA          = $(top_builddir)/src/cacao/cacao
 BOOTCLASSPATH = $(top_builddir)/src/lib/classes:$(CLASSPATH_CLASSES)
-else
-BOOTCLASSPATH = $(CLASSPATH_CLASSES)
-endif
-
-JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
-JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
+JAVACMD       = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
+JAVACCMD      = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
 
 SOURCE_FILES = \
 	$(srcdir)/aastoreconstClass.java \

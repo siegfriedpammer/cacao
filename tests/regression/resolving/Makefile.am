@@ -1,9 +1,7 @@
 ## tests/regression/resolving/Makefile.am
 ##
-## Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-## J. Wenninger, Institut f. Computersprachen - TU Wien
+## Copyright (C) 2007, 2008
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -27,6 +25,11 @@ SUBDIRS = \
 	classes1 \
 	classes2 \
 	classes3
+
+JAVA          = $(top_builddir)/src/cacao/cacao
+BOOTCLASSPATH = $(top_builddir)/src/lib/classes:$(CLASSPATH_CLASSES)
+JAVACMD       = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
+JAVACCMD      = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
 
 HARNESS_SOURCE_FILES = \
 	$(srcdir)/TestController.java \
@@ -61,17 +64,8 @@ EXTRA_DIST = $(HARNESS_SOURCE_FILES) $(TEST_SOURCE_FILES)
 CLEANFILES = \
 	*.class
 
-JAVA      = $(top_builddir)/src/cacao/cacao
-
-if WITH_CLASSPATH_GNU
-JAVAFLAGS = -Xbootclasspath:$(top_builddir)/src/lib/classes/:$(CLASSPATH_CLASSES)
-else
-JAVAFLAGS = -Xbootclasspath:$(CLASSPATH_CLASSES)
-endif
-
 check: $(HARNESS_CLASS_FILES)
-	@for t in $(TEST_NAMES) ; do echo "TEST $$t" ; { $(JAVAC) -d . -classpath . $(srcdir)/$$t.java && LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(JAVA) $(JAVAFLAGS) $$t ; } || exit 1 ; done
+	@for t in $(TEST_NAMES) ; do echo "TEST $$t" ; { $(JAVACCMD) -d . -classpath . $(srcdir)/$$t.java && LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(JAVACMD) $$t ; } || exit 1 ; done
 
 $(HARNESS_CLASS_FILES): $(HARNESS_SOURCE_FILES)
-	$(JAVAC) -d . $(HARNESS_SOURCE_FILES)
-
+	$(JAVACCMD) -d . $(HARNESS_SOURCE_FILES)

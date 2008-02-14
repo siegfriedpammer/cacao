@@ -23,17 +23,12 @@
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)
 
-JAVA  = $(top_builddir)/src/cacao/cacao
-JAVAH = $(CACAOH)
-
-if WITH_CLASSPATH_GNU
+JAVA          = $(top_builddir)/src/cacao/cacao
+JAVAH         = $(CACAOH)
 BOOTCLASSPATH = $(top_builddir)/src/lib/classes:$(CLASSPATH_CLASSES)
-else
-BOOTCLASSPATH = $(CLASSPATH_CLASSES)
-endif
-
-JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
-JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
+JAVACMD       = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
+JAVACCMD      = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
+JAVAHCMD      = $(JAVAH) -bootclasspath $(BOOTCLASSPATH)
 
 SOURCE_FILES = \
 	checkjni.java \
@@ -65,7 +60,7 @@ check: $(TESTNAMES)
 
 $(TESTNAMES) $(NOTESTNAMES):
 	@$(JAVACCMD) -d . $(srcdir)/$@.java
-	@$(JAVAH) -bootclasspath $(BOOTCLASSPATH) $@
+	@$(JAVAHCMD) $@
 	@$(CC) -shared $(AM_CPPFLAGS) $(CFLAGS) $(srcdir)/$@.c -o lib$@.so -fPIC
 	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs:. $(SHELL) $(srcdir)/../Test.sh "$(JAVACMD)" $@ $(srcdir)
 
