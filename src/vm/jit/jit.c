@@ -560,6 +560,9 @@ u1 *jit_recompile(methodinfo *m)
 	return r;
 }
 
+#if defined(ENABLE_PM_HACKS)
+#include "vm/jit/jit_pm_1.inc"
+#endif
 
 /* jit_compile_intern **********************************************************
 
@@ -730,12 +733,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 		}
 #endif
 
-#if defined(ENABLE_PYTHON)
-		if (!pythonpass_run(jd, "langauer_tarjan", "main")) {
-			/*return NULL;*/
-		}
-#endif
-
 #if defined(ENABLE_PROFILING)
 		/* Basic block reordering.  I think this should be done after
 		   if-conversion, as we could lose the ability to do the
@@ -748,6 +745,9 @@ static u1 *jit_compile_intern(jitdata *jd)
 		}
 #endif
 
+#if defined(ENABLE_PM_HACKS)
+#include "vm/jit/jit_pm_2.inc"
+#endif
 		DEBUG_JIT_COMPILEVERBOSE("Allocating registers: ");
 
 #if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
@@ -764,8 +764,9 @@ static u1 *jit_compile_intern(jitdata *jd)
 		/* allocate registers */
 		if ((opt_lsra) && (jd->exceptiontablelength == 0)) {
 			jd->ls = DNEW(lsradata);
+			jd->ls = NULL;
 			ssa(jd);
-			lsra(jd);
+			/*lsra(jd);*/ regalloc(jd);
 
 			STATISTICS(count_methods_allocated_by_lsra++);
 
@@ -1177,6 +1178,15 @@ void jit_check_basicblock_numbers(jitdata *jd)
 }
 #endif /* !defined(NDEBUG) */
 
+methoddesc *instruction_call_site(const instruction *iptr) {
+	if (iptr->opc == ICMD_BUILTIN) {
+		return iptr->sx.s23.s3.bte->md;
+	} else if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+		return iptr->sx.s23.s3.um->methodref->parseddesc.md;
+	} else {
+		return iptr->sx.s23.s3.fmiref->p.method->parseddesc;
+	}
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.

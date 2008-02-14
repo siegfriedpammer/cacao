@@ -98,6 +98,25 @@ static void cfg_insert_predecessors(basicblock *bptr, basicblock *pbptr)
 	bptr->predecessorcount++;
 }
 
+static void cfg_insert_successors(basicblock *bptr, basicblock *pbptr)
+{
+	basicblock **tbptr;
+	int          i;
+
+	tbptr = bptr->successors;
+
+	/* check if the successor is already stored in the array */
+
+	for (i = 0; i < bptr->successorcount; i++, tbptr++)
+		if (*tbptr == pbptr)
+			return;
+
+	/* not found, insert it */
+
+	bptr->successors[bptr->successorcount] = pbptr;
+	bptr->successorcount++;
+}
+
 
 /* cfg_build *******************************************************************
 
@@ -134,35 +153,13 @@ bool cfg_build(jitdata *jd)
 			iptr--;
 		}
 
-		switch (iptr->opc) {
-		case ICMD_RETURN:
-		case ICMD_IRETURN:
-		case ICMD_LRETURN:
-		case ICMD_FRETURN:
-		case ICMD_DRETURN:
-		case ICMD_ARETURN:
-		case ICMD_ATHROW:
+		switch (icmd_table[iptr->opc].controlflow) {
+
+		case CF_END:
 			break;
 
-		case ICMD_IFEQ:
-		case ICMD_IFNE:
-		case ICMD_IFLT:
-		case ICMD_IFGE:
-		case ICMD_IFGT:
-		case ICMD_IFLE:
+		case CF_IF:
 
-		case ICMD_IFNULL:
-		case ICMD_IFNONNULL:
-
-		case ICMD_IF_ICMPEQ:
-		case ICMD_IF_ICMPNE:
-		case ICMD_IF_ICMPLT:
-		case ICMD_IF_ICMPGE:
-		case ICMD_IF_ICMPGT:
-		case ICMD_IF_ICMPLE:
-
-		case ICMD_IF_ACMPEQ:
-		case ICMD_IF_ACMPNE:
 			bptr->successorcount += 2;
 
 			tbptr  = iptr->dst.block;
@@ -172,22 +169,22 @@ bool cfg_build(jitdata *jd)
 			ntbptr->predecessorcount++;
 			break;
 
-		case ICMD_JSR:
+		case CF_JSR:
 			bptr->successorcount++;
 
 			tbptr = iptr->sx.s23.s3.jsrtarget.block;
 			tbptr->predecessorcount++;
 			break;
 
-		case ICMD_GOTO:
-		case ICMD_RET:
+		case CF_GOTO:
+		case CF_RET:
 			bptr->successorcount++;
 
 			tbptr = iptr->dst.block;
 			tbptr->predecessorcount++;
 			break;
 
-		case ICMD_TABLESWITCH:
+		case CF_TABLE:
 			table = iptr->dst.table;
 
 			bptr->successorcount++;
@@ -207,7 +204,7 @@ bool cfg_build(jitdata *jd)
 			}
 			break;
 					
-		case ICMD_LOOKUPSWITCH:
+		case CF_LOOKUP:
 			lookup = iptr->dst.lookup;
 
 			bptr->successorcount++;
@@ -258,74 +255,47 @@ bool cfg_build(jitdata *jd)
 			iptr--;
 		}
 
-		switch (iptr->opc) {
-		case ICMD_RETURN:
-		case ICMD_IRETURN:
-		case ICMD_LRETURN:
-		case ICMD_FRETURN:
-		case ICMD_DRETURN:
-		case ICMD_ARETURN:
-		case ICMD_ATHROW:
+		switch (icmd_table[iptr->opc].controlflow) {
+
+		case CF_END:
 			break;
 
-		case ICMD_IFEQ:
-		case ICMD_IFNE:
-		case ICMD_IFLT:
-		case ICMD_IFGE:
-		case ICMD_IFGT:
-		case ICMD_IFLE:
+		case CF_IF:
 
-		case ICMD_IFNULL:
-		case ICMD_IFNONNULL:
-
-		case ICMD_IF_ICMPEQ:
-		case ICMD_IF_ICMPNE:
-		case ICMD_IF_ICMPLT:
-		case ICMD_IF_ICMPGE:
-		case ICMD_IF_ICMPGT:
-		case ICMD_IF_ICMPLE:
-
-		case ICMD_IF_ACMPEQ:
-		case ICMD_IF_ACMPNE:
 			tbptr  = iptr->dst.block;
 			ntbptr = bptr->next;
 
 			cfg_allocate_successors(bptr);
 
-			bptr->successors[0] = tbptr;
-			bptr->successors[1] = ntbptr;
-			bptr->successorcount += 2;
+			cfg_insert_successors(bptr, tbptr);
+			cfg_insert_successors(bptr, ntbptr);
 
 			cfg_allocate_predecessors(tbptr);
 			cfg_allocate_predecessors(ntbptr);
 
-			tbptr->predecessors[tbptr->predecessorcount] = bptr;
-			tbptr->predecessorcount++;
-
-			ntbptr->predecessors[ntbptr->predecessorcount] = bptr;
-			ntbptr->predecessorcount++;
+			cfg_insert_predecessors(tbptr, bptr);
+			cfg_insert_predecessors(ntbptr, bptr);
 			break;
 
-		case ICMD_JSR:
+		case CF_JSR:
 			tbptr = iptr->sx.s23.s3.jsrtarget.block;
 			goto goto_tail;
 
-		case ICMD_GOTO:
-		case ICMD_RET:
+		case CF_GOTO:
+		case CF_RET:
+
 			tbptr = iptr->dst.block;
 goto_tail:
 			cfg_allocate_successors(bptr);
 
-			bptr->successors[0] = tbptr;
-			bptr->successorcount++;
+			cfg_insert_successors(bptr, tbptr);
 
 			cfg_allocate_predecessors(tbptr);
 
-			tbptr->predecessors[tbptr->predecessorcount] = bptr;
-			tbptr->predecessorcount++;
+			cfg_insert_predecessors(tbptr, bptr);
 			break;
 
-		case ICMD_TABLESWITCH:
+		case CF_TABLE:
 			table = iptr->dst.table;
 
 			tbptr = table->block;
@@ -333,13 +303,11 @@ goto_tail:
 
 			cfg_allocate_successors(bptr);
 
-			bptr->successors[0] = tbptr;
-			bptr->successorcount++;
+			cfg_insert_successors(bptr, tbptr);
 
 			cfg_allocate_predecessors(tbptr);
 
-			tbptr->predecessors[tbptr->predecessorcount] = bptr;
-			tbptr->predecessorcount++;
+			cfg_insert_predecessors(tbptr, bptr);
 
 			i = iptr->sx.s23.s3.tablehigh - iptr->sx.s23.s2.tablelow + 1;
 
@@ -347,28 +315,25 @@ goto_tail:
 				tbptr = table->block;
 				table++;
 
-				bptr->successors[bptr->successorcount] = tbptr;
-				bptr->successorcount++;
+				cfg_insert_successors(bptr, tbptr);
 
 				cfg_allocate_predecessors(tbptr);
 				cfg_insert_predecessors(tbptr, bptr);
 			}
 			break;
 					
-		case ICMD_LOOKUPSWITCH:
+		case CF_LOOKUP:
 			lookup = iptr->dst.lookup;
 
 			tbptr = iptr->sx.s23.s3.lookupdefault.block;
 
 			cfg_allocate_successors(bptr);
 
-			bptr->successors[0] = tbptr;
-			bptr->successorcount++;
+			cfg_insert_successors(bptr, tbptr);
 
 			cfg_allocate_predecessors(tbptr);
 
-			tbptr->predecessors[tbptr->predecessorcount] = bptr;
-			tbptr->predecessorcount++;
+			cfg_insert_predecessors(tbptr, bptr);
 
 			i = iptr->sx.s23.s2.lookupcount;
 
@@ -376,8 +341,7 @@ goto_tail:
 				tbptr = lookup->target.block;
 				lookup++;
 
-				bptr->successors[bptr->successorcount] = tbptr;
-				bptr->successorcount++;
+				cfg_insert_successors(bptr, tbptr);
 
 				cfg_allocate_predecessors(tbptr);
 				cfg_insert_predecessors(tbptr, bptr);
@@ -409,6 +373,45 @@ goto_tail:
 	return true;
 }
 
+/* cfg_add_root ****************************************************************
+
+   Adds an empty root basicblock.
+   The numbers of all other basicblocks are set off by one.
+   Needed for some analyses that require the root basicblock to have no 
+   predecessors and to perform special initializations.
+
+*******************************************************************************/
+
+void cfg_add_root(jitdata *jd) {
+	basicblock *root, *zero, *it;
+
+	zero = jd->basicblocks;
+
+	root = DNEW(basicblock);
+	MZERO(root, basicblock, 1);
+
+	root->successorcount = 1;
+	root->successors = DMNEW(basicblock *, 1);
+	root->successors[0] = zero;
+	root->next = zero;
+	root->nr = 0;
+	root->type = BBTYPE_STD;
+
+	if (zero->predecessorcount == 0) {
+		zero->predecessors = DNEW(basicblock *);
+	} else {
+		zero->predecessors = DMREALLOC(zero->predecessors, basicblock *, zero->predecessorcount, zero->predecessorcount + 1);
+	}
+	zero->predecessors[zero->predecessorcount] = root;
+	zero->predecessorcount += 1;
+
+	jd->basicblocks = root;
+	jd->basicblockcount += 1;
+
+	for (it = zero; it; it = it->next) {
+		it->nr += 1;
+	}
+}
 
 /*
  * These are local overrides for various environment variables in Emacs.
