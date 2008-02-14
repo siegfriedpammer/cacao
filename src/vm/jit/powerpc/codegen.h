@@ -1,10 +1,8 @@
 /* src/vm/jit/powerpc/codegen.h - code generation macros and definitions for
                                   32-bit PowerPC
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -175,7 +173,64 @@
     } while (0)
 
 
-/* instruction macros *********************************************************/
+/* machine instruction macros **************************************************
+
+   Argument order:
+
+   machine instruction macro:
+       Same order as for the mnemonic (d, s1, s2).
+
+   emit macro:
+       Same order as in the instruction encoding.
+
+*******************************************************************************/
+
+#define MI_and(rA,rS,rB)                M_OP3(31,  28, 0, 0, rS, rA, rB)
+#define MI_anddot(rA,rS,rB)             M_OP3(31,  28, 0, 1, rS, rA, rB)
+#define MI_andi(rA,rS,UIMM)             M_OP2_IMM(28, rS, rA, UIMM)
+
+#define MI_lwarx(rD,rA,rB)              M_OP3(31,  20, 0, 0, rD, rA, rB)
+
+#define MI_or(rA,rS,rB)                 M_OP3(31, 444, 0, 0, rS, rA, rB)
+#define MI_ordot(rA,rS,rB)              M_OP3(31, 444, 0, 1, rS, rA, rB)
+#define MI_ori(rA,rS,UIMM)              M_OP2_IMM(24, rS, rA, UIMM)
+
+#define MI_subf(rD,rA,rB)               M_OP3(31,  40, 0, 0, rD, rA, rB)
+#define MI_subfdot(rD,rA,rB)            M_OP3(31,  40, 0, 1, rD, rA, rB)
+#define MI_stwcxdot(rS,rA,rB)           M_OP3(31, 150, 0, 1, rS, rA, rB)
+#define MI_sync                         M_OP3(31, 598, 0, 0,  0,  0,  0)
+
+
+/* HIR macros ******************************************************************
+
+   Argument order:
+
+   HIR macro:
+       Default usage in CACAO (s1, s2, d).
+
+   machine instruction macro:
+       Same order as for the mnemonic (d, s1, s2).
+
+*******************************************************************************/
+
+#define M_IAND(a,b,d)                   MI_and(d, a, b)
+#define M_IAND_IMM(a,b,d)               MI_andi(d, a, b)
+
+#define M_IOR(a,b,d)                    MI_or(d, a, b)
+#define M_IOR_IMM(a,b,d)                MI_ori(d, a, b)
+#define M_IOR_TST(a,b,d)                MI_ordot(d, a, b)
+
+#define M_ISUB(a,b,d)                   MI_subf(d, b, a)
+#define M_ISUB_TST(a,b,d)               MI_subfdot(d, b, a)
+
+#define M_MOV(a,d)                      MI_or(d, a, a)
+
+#define M_NOP                           MI_ori(0, 0, 0)
+
+
+#define M_AADD(a,b,d)                   M_IADD(a, b, d)
+#define M_AADD_IMM(a,b,d)               M_IADD_IMM(a, b, d)
+
 
 #define M_IADD(a,b,c)                   M_OP3(31, 266, 0, 0, c, a, b)
 #define M_IADD_IMM(a,b,c)               M_OP2_IMM(14, c, a, b)
@@ -185,20 +240,13 @@
 #define M_ADDE(a,b,c)                   M_OP3(31, 138, 0, 0, c, a, b)
 #define M_ADDZE(a,b)                    M_OP3(31, 202, 0, 0, b, a, 0)
 #define M_ADDME(a,b)                    M_OP3(31, 234, 0, 0, b, a, 0)
-#define M_ISUB(a,b,c)                   M_OP3(31, 40, 0, 0, c, b, a)
-#define M_ISUBTST(a,b,c)                M_OP3(31, 40, 0, 1, c, b, a)
 #define M_SUBC(a,b,c)                   M_OP3(31, 8, 0, 0, c, b, a)
 #define M_SUBIC(a,b,c)                  M_OP2_IMM(8, c, b, a)
 #define M_SUBE(a,b,c)                   M_OP3(31, 136, 0, 0, c, b, a)
 #define M_SUBZE(a,b)                    M_OP3(31, 200, 0, 0, b, a, 0)
 #define M_SUBME(a,b)                    M_OP3(31, 232, 0, 0, b, a, 0)
 
-#define M_AND(a,b,c)                    M_OP3(31, 28, 0, 0, a, c, b)
-#define M_AND_IMM(a,b,c)                M_OP2_IMM(28, a, c, b)
 #define M_ANDIS(a,b,c)                  M_OP2_IMM(29, a, c, b)
-#define M_OR(a,b,c)                     M_OP3(31, 444, 0, 0, a, c, b)
-#define M_OR_TST(a,b,c)                 M_OP3(31, 444, 0, 1, a, c, b)
-#define M_OR_IMM(a,b,c)                 M_OP2_IMM(24, a, c, b)
 #define M_ORIS(a,b,c)                   M_OP2_IMM(25, a, c, b)
 #define M_XOR(a,b,c)                    M_OP3(31, 316, 0, 0, a, c, b)
 #define M_XOR_IMM(a,b,c)                M_OP2_IMM(26, a, c, b)
@@ -224,6 +272,7 @@
 #define M_SRL_IMM(a,b,c)                M_RLWINM(a,32-(b),b,31,c)
 #define M_ADDIS(a,b,c)                  M_OP2_IMM(15, c, a, b)
 #define M_STFIWX(a,b,c)                 M_OP3(31, 983, 0, 0, a, b, c)
+
 #define M_LWZX(a,b,c)                   M_OP3(31, 23, 0, 0, a, b, c)
 #define M_LHZX(a,b,c)                   M_OP3(31, 279, 0, 0, a, b, c)
 #define M_LHAX(a,b,c)                   M_OP3(31, 343, 0, 0, a, b, c)
@@ -246,7 +295,7 @@
             M_STWU_INTERN(a,b,lo); \
         } else { \
             M_ADDIS(REG_ZERO,hi,REG_ITMP3); \
-            M_OR_IMM(REG_ITMP3,lo,REG_ITMP3); \
+            M_IOR_IMM(REG_ITMP3,lo,REG_ITMP3); \
             M_STWUX(REG_SP,REG_SP,REG_ITMP3); \
         } \
     } while (0)
@@ -258,8 +307,6 @@
 #define M_TRAP                          M_OP3(31, 4, 0, 0, 31, 0, 0)
 #define M_TRAPGEU(a,b)                  M_OP3(31, 4, 0, 0, 5, a, b)
 
-#define M_NOP                           M_OR_IMM(0, 0, 0)
-#define M_MOV(a,b)                      M_OR(a, a, b)
 #define M_TST(a)                        M_OP3(31, 444, 0, 1, a, a, a)
 
 #define M_DADD(a,b,c)                   M_OP3(63, 21, 0, 0, c, a, b)
@@ -464,7 +511,6 @@
 
 #define M_LDATST(a,b,c)                 M_ADDICTST(b, c, a)
 #define M_CLR(a)                        M_IADD_IMM(0, 0, a)
-#define M_AADD_IMM(a,b,c)               M_IADD_IMM(a, b, c)
 
 #endif /* _CODEGEN_H */
 

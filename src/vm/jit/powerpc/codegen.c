@@ -1,9 +1,7 @@
 /* src/vm/jit/powerpc/codegen.c - machine code generator for 32-bit PowerPC
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -44,6 +42,7 @@
 #include "native/native.h"
 
 #include "threads/lock-common.h"
+#include "threads/threads-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -772,7 +771,7 @@ bool codegen_emit(jitdata *jd)
 			s2 = emit_load_s2(jd, iptr, REG_A2_A3_PACKED);
 
 			/* XXX TODO: only do this if arithmetic check is really done! */
-			M_OR_TST(GET_HIGH_REG(s2), GET_LOW_REG(s2), REG_ITMP3);
+			M_IOR_TST(GET_HIGH_REG(s2), GET_LOW_REG(s2), REG_ITMP3);
 			/* XXX could be optimized */
 			emit_arithmetic_check(cd, iptr, REG_ITMP3);
 
@@ -828,7 +827,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			M_AND_IMM(s2, 0x1f, REG_ITMP3);
+			M_IAND_IMM(s2, 0x1f, REG_ITMP3);
 			M_SLL(s1, REG_ITMP3, d);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -847,7 +846,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			M_AND_IMM(s2, 0x1f, REG_ITMP3);
+			M_IAND_IMM(s2, 0x1f, REG_ITMP3);
 			M_SRA(s1, REG_ITMP3, d);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -866,7 +865,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			M_AND_IMM(s2, 0x1f, REG_ITMP2);
+			M_IAND_IMM(s2, 0x1f, REG_ITMP2);
 			M_SRL(s1, REG_ITMP2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -889,7 +888,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			M_AND(s1, s2, d);
+			M_IAND(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -899,7 +898,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if ((iptr->sx.val.i >= 0) && (iptr->sx.val.i <= 65535))
-				M_AND_IMM(s1, iptr->sx.val.i, d);
+				M_IAND_IMM(s1, iptr->sx.val.i, d);
 			/*
 			else if (iptr->sx.val.i == 0xffffff) {
 				M_RLWINM(s1, 0, 8, 31, d);
@@ -907,7 +906,7 @@ bool codegen_emit(jitdata *jd)
 			*/
 			else {
 				ICONST(REG_ITMP3, iptr->sx.val.i);
-				M_AND(s1, REG_ITMP3, d);
+				M_IAND(s1, REG_ITMP3, d);
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -917,10 +916,10 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-			M_AND(s1, s2, GET_LOW_REG(d));
+			M_IAND(s1, s2, GET_LOW_REG(d));
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);/* don't use REG_ITMP2*/
-			M_AND(s1, s2, GET_HIGH_REG(d));
+			M_IAND(s1, s2, GET_HIGH_REG(d));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -931,18 +930,18 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
 			if ((s3 >= 0) && (s3 <= 65535))
-				M_AND_IMM(s1, s3, GET_LOW_REG(d));
+				M_IAND_IMM(s1, s3, GET_LOW_REG(d));
 			else {
 				ICONST(REG_ITMP3, s3);
-				M_AND(s1, REG_ITMP3, GET_LOW_REG(d));
+				M_IAND(s1, REG_ITMP3, GET_LOW_REG(d));
 			}
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 			s3 = iptr->sx.val.l >> 32;
 			if ((s3 >= 0) && (s3 <= 65535))
-				M_AND_IMM(s1, s3, GET_HIGH_REG(d));
+				M_IAND_IMM(s1, s3, GET_HIGH_REG(d));
 			else {
 				ICONST(REG_ITMP3, s3);                 /* don't use REG_ITMP2 */
-				M_AND(s1, REG_ITMP3, GET_HIGH_REG(d));
+				M_IAND(s1, REG_ITMP3, GET_HIGH_REG(d));
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -957,7 +956,7 @@ bool codegen_emit(jitdata *jd)
 			M_BGE(1 + 2*(iptr->sx.val.i >= 32768));
 			if (iptr->sx.val.i >= 32768) {
 				M_ADDIS(REG_ZERO, iptr->sx.val.i >> 16, REG_ITMP2);
-				M_OR_IMM(REG_ITMP2, iptr->sx.val.i, REG_ITMP2);
+				M_IOR_IMM(REG_ITMP2, iptr->sx.val.i, REG_ITMP2);
 				M_IADD(s1, REG_ITMP2, REG_ITMP2);
 			}
 			else {
@@ -978,7 +977,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			M_OR(s1, s2, d);
+			M_IOR(s1, s2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -988,10 +987,10 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if ((iptr->sx.val.i >= 0) && (iptr->sx.val.i <= 65535))
-				M_OR_IMM(s1, iptr->sx.val.i, d);
+				M_IOR_IMM(s1, iptr->sx.val.i, d);
 			else {
 				ICONST(REG_ITMP3, iptr->sx.val.i);
-				M_OR(s1, REG_ITMP3, d);
+				M_IOR(s1, REG_ITMP3, d);
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1001,10 +1000,10 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-			M_OR(s1, s2, GET_LOW_REG(d));
+			M_IOR(s1, s2, GET_LOW_REG(d));
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);/* don't use REG_ITMP2*/
-			M_OR(s1, s2, GET_HIGH_REG(d));
+			M_IOR(s1, s2, GET_HIGH_REG(d));
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1015,18 +1014,18 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
 			if ((s3 >= 0) && (s3 <= 65535))
-				M_OR_IMM(s1, s3, GET_LOW_REG(d));
+				M_IOR_IMM(s1, s3, GET_LOW_REG(d));
 			else {
 				ICONST(REG_ITMP3, s3);
-				M_OR(s1, REG_ITMP3, GET_LOW_REG(d));
+				M_IOR(s1, REG_ITMP3, GET_LOW_REG(d));
 			}
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 			s3 = iptr->sx.val.l >> 32;
 			if ((s3 >= 0) && (s3 <= 65535))
-				M_OR_IMM(s1, s3, GET_HIGH_REG(d));
+				M_IOR_IMM(s1, s3, GET_HIGH_REG(d));
 			else {
 				ICONST(REG_ITMP3, s3);                 /* don't use REG_ITMP2 */
-				M_OR(s1, REG_ITMP3, GET_HIGH_REG(d));
+				M_IOR(s1, REG_ITMP3, GET_HIGH_REG(d));
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1752,19 +1751,19 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s1_high(jd, iptr, REG_ITMP2);
 			if (iptr->sx.val.l == 0) {
-				M_OR_TST(s1, s2, REG_ITMP3);
+				M_IOR_TST(s1, s2, REG_ITMP3);
   			}
 			else if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 0xffff)) {
 				M_XOR_IMM(s2, 0, REG_ITMP2);
 				M_XOR_IMM(s1, iptr->sx.val.l & 0xffff, REG_ITMP1);
-				M_OR_TST(REG_ITMP1, REG_ITMP2, REG_ITMP3);
+				M_IOR_TST(REG_ITMP1, REG_ITMP2, REG_ITMP3);
   			}
 			else {
 				ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
 				M_XOR(s1, REG_ITMP3, REG_ITMP1);
 				ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
 				M_XOR(s2, REG_ITMP3, REG_ITMP2);
-				M_OR_TST(REG_ITMP1, REG_ITMP2, REG_ITMP3);
+				M_IOR_TST(REG_ITMP1, REG_ITMP2, REG_ITMP3);
 			}
 			emit_beq(cd, iptr->dst.block);
 			break;
@@ -1803,7 +1802,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s1_high(jd, iptr, REG_ITMP2);
 /*  			if (iptr->sx.val.l == 0) { */
-/*  				M_OR(s1, s2, REG_ITMP3); */
+/*  				M_IOR(s1, s2, REG_ITMP3); */
 /*  				M_CMPI(REG_ITMP3, 0); */
 
 /*    			} else  */
@@ -1830,19 +1829,19 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s1_high(jd, iptr, REG_ITMP2);
 			if (iptr->sx.val.l == 0) {
-				M_OR_TST(s1, s2, REG_ITMP3);
+				M_IOR_TST(s1, s2, REG_ITMP3);
 			}
 			else if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 0xffff)) {
 				M_XOR_IMM(s2, 0, REG_ITMP2);
 				M_XOR_IMM(s1, iptr->sx.val.l & 0xffff, REG_ITMP1);
-				M_OR_TST(REG_ITMP1, REG_ITMP2, REG_ITMP3);
+				M_IOR_TST(REG_ITMP1, REG_ITMP2, REG_ITMP3);
   			}
 			else {
 				ICONST(REG_ITMP3, iptr->sx.val.l & 0xffffffff);
 				M_XOR(s1, REG_ITMP3, REG_ITMP1);
 				ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
 				M_XOR(s2, REG_ITMP3, REG_ITMP2);
-				M_OR_TST(REG_ITMP1, REG_ITMP2, REG_ITMP3);
+				M_IOR_TST(REG_ITMP1, REG_ITMP2, REG_ITMP3);
 			}
 			emit_bne(cd, iptr->dst.block);
 			break;
@@ -1852,7 +1851,7 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s1_high(jd, iptr, REG_ITMP2);
 /*  			if (iptr->sx.val.l == 0) { */
-/*  				M_OR(s1, s2, REG_ITMP3); */
+/*  				M_IOR(s1, s2, REG_ITMP3); */
 /*  				M_CMPI(REG_ITMP3, 0); */
 
 /*    			} else  */
@@ -2446,7 +2445,7 @@ gen_method:
 										disp);
 
 					M_ILD(REG_ITMP2, REG_PV, disp);
-					M_AND_IMM(REG_ITMP2, ACC_INTERFACE, REG_ITMP2);
+					M_IAND_IMM(REG_ITMP2, ACC_INTERFACE, REG_ITMP2);
 					emit_label_beq(cd, BRANCH_LABEL_2);
 				}
 
@@ -2607,7 +2606,7 @@ gen_method:
 									iptr->sx.s23.s3.c.ref, disp);
 
 				M_ILD(REG_ITMP3, REG_PV, disp);
-				M_AND_IMM(REG_ITMP3, ACC_INTERFACE, REG_ITMP3);
+				M_IAND_IMM(REG_ITMP3, ACC_INTERFACE, REG_ITMP3);
 				emit_label_beq(cd, BRANCH_LABEL_2);
 			}
 
@@ -2791,7 +2790,11 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	s4           s1, s2;
 	int          disp;
 
-	/* get required compiler data */
+	/* Sanity check. */
+
+	assert(f != NULL);
+
+	/* Get required compiler data. */
 
 	m    = jd->m;
 	code = jd->code;
