@@ -897,6 +897,10 @@ AC_CONFIG_FILES([Makefile]
 		[tests/regression/assertion/Makefile]
 		[tests/regression/jasmin/Makefile]
 		[tests/regression/native/Makefile]
+		[tests/regression/resolving/Makefile]
+		[tests/regression/resolving/classes1/Makefile]
+		[tests/regression/resolving/classes2/Makefile]
+		[tests/regression/resolving/classes3/Makefile]
 )
 
 

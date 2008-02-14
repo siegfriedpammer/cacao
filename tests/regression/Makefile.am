@@ -25,7 +25,8 @@ SUBDIRS = \
 	assertion \
 	codepatching \
 	jasmin \
-	native
+	native \
+	resolving
 
 JAVA = $(top_builddir)/src/cacao/cacao
 
