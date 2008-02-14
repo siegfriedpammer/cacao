@@ -2041,17 +2041,18 @@ void vm_abort(const char *text, ...)
 }
 
 
-/* vm_abort_errno **************************************************************
+/* vm_abort_errnum *************************************************************
 
    Prints an error message, appends ":" plus the strerror-message of
-   errno and aborts the VM.
+   errnum and aborts the VM.
 
    IN:
-       text ... error message to print
+       errnum ... error number
+       text ..... error message to print
 
 *******************************************************************************/
 
-void vm_abort_errno(const char *text, ...)
+void vm_abort_errnum(int errnum, const char *text, ...)
 {
 	va_list ap;
 
@@ -2063,15 +2064,34 @@ void vm_abort_errno(const char *text, ...)
 	log_vprint(text, ap);
 	va_end(ap);
 
-	/* Print the strerror-message of errno. */
+	/* Print the strerror-message of errnum. */
 
-	log_print(": %s", system_strerror(errno));
+	log_print(": %s", system_strerror(errnum));
 
 	log_finish();
 
 	/* Now abort the VM. */
 
 	system_abort();
+}
+
+
+/* vm_abort_errno **************************************************************
+
+   Equal to vm_abort_errnum, but uses errno to get the error number.
+
+   IN:
+       text ... error message to print
+
+*******************************************************************************/
+
+void vm_abort_errno(const char *text, ...)
+{
+	va_list ap;
+
+	va_start(ap, text);
+	vm_abort_errnum(errno, text, ap);
+	va_end(ap);
 }
 
 
