@@ -84,6 +84,15 @@
 
 /* inline functions ***********************************************************/
 
+inline static void system_abort(void)
+{
+#if defined(HAVE_ABORT)
+	abort();
+#else
+# error abort not available
+#endif
+}
+
 inline static int system_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
 {
 #if defined(HAVE_ACCEPT)
@@ -362,6 +371,15 @@ inline static char *system_strdup(const char *s)
 	return strdup(s);
 #else
 # error strdup not available
+#endif
+}
+
+inline static char *system_strerror(int errnum)
+{
+#if defined(HAVE_STRERROR)
+	return strerror(errnum);
+#else
+# error strerror not available
 #endif
 }
 

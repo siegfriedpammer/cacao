@@ -273,6 +273,7 @@ AC_FUNC_MEMCMP
 AC_FUNC_MMAP
 
 dnl keep them alpha-sorted!
+AC_CHECK_FUNCS([abort])
 AC_CHECK_FUNCS([accept])
 AC_CHECK_FUNCS([access])
 AC_CHECK_FUNCS([atoi])
