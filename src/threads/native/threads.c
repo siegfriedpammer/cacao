@@ -747,31 +747,39 @@ void threads_impl_thread_new(threadobject *t)
 
 void threads_impl_thread_free(threadobject *t)
 {
-	/* destroy the mutex and the condition */
+	int result;
 
-	if (pthread_mutex_destroy(&(t->flc_lock)) != 0)
-		vm_abort("threads_impl_thread_free: pthread_mutex_destroy failed: %s",
-				 strerror(errno));
+	/* Destroy the mutex and the condition. */
 
-	if (pthread_cond_destroy(&(t->flc_cond)) != 0)
-		vm_abort("threads_impl_thread_free: pthread_cond_destroy failed: %s",
-				 strerror(errno));
+	result = pthread_mutex_destroy(&(t->flc_lock));
 
-	if (pthread_mutex_destroy(&(t->waitmutex)) != 0)
-		vm_abort("threads_impl_thread_free: pthread_mutex_destroy failed: %s",
-				 strerror(errno));
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_thread_free: pthread_mutex_destroy failed");
 
-	if (pthread_cond_destroy(&(t->waitcond)) != 0)
-		vm_abort("threads_impl_thread_free: pthread_cond_destroy failed: %s",
-				 strerror(errno));
+	result = pthread_cond_destroy(&(t->flc_cond));
 
-	if (pthread_mutex_destroy(&(t->suspendmutex)) != 0)
-		vm_abort("threads_impl_thread_free: pthread_mutex_destroy failed: %s",
-				 strerror(errno));
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_thread_free: pthread_cond_destroy failed");
 
-	if (pthread_cond_destroy(&(t->suspendcond)) != 0)
-		vm_abort("threads_impl_thread_free: pthread_cond_destroy failed: %s",
-				 strerror(errno));
+	result = pthread_mutex_destroy(&(t->waitmutex));
+
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_thread_free: pthread_mutex_destroy failed");
+
+	result = pthread_cond_destroy(&(t->waitcond));
+
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_thread_free: pthread_cond_destroy failed");
+
+	result = pthread_mutex_destroy(&(t->suspendmutex));
+
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_thread_free: pthread_mutex_destroy failed");
+
+	result = pthread_cond_destroy(&(t->suspendcond));
+
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_thread_free: pthread_cond_destroy failed");
 }
 
 
@@ -840,9 +848,12 @@ void threads_impl_preinit(void)
 
 void threads_list_lock(void)
 {
-	if (pthread_mutex_lock(&mutex_threads_list) != 0)
-		vm_abort("threads_list_lock: pthread_mutex_lock failed: %s",
-				 strerror(errno));
+	int result;
+
+	result = pthread_mutex_lock(&mutex_threads_list);
+
+	if (result != 0)
+		vm_abort_errnum(result, "threads_list_lock: pthread_mutex_lock failed");
 }
 
 
@@ -854,9 +865,12 @@ void threads_list_lock(void)
 
 void threads_list_unlock(void)
 {
-	if (pthread_mutex_unlock(&mutex_threads_list) != 0)
-		vm_abort("threads_list_unlock: pthread_mutex_unlock failed: %s",
-				 strerror(errno));
+	int result;
+
+	result = pthread_mutex_unlock(&mutex_threads_list);
+
+	if (result != 0)
+		vm_abort_errnum(result, "threads_list_unlock: pthread_mutex_unlock failed");
 }
 
 
@@ -869,9 +883,12 @@ void threads_list_unlock(void)
 #if defined(ENABLE_GC_CACAO)
 void threads_mutex_gc_lock(void)
 {
-	if (pthread_mutex_lock(&mutex_gc) != 0)
-		vm_abort("threads_mutex_gc_lock: pthread_mutex_lock failed: %s",
-				 strerror(errno));
+	int result;
+
+	result = pthread_mutex_lock(&mutex_gc);
+
+	if (result != 0)
+		vm_abort_errnum(result, "threads_mutex_gc_lock: pthread_mutex_lock failed");
 }
 #endif
 
@@ -885,9 +902,12 @@ void threads_mutex_gc_lock(void)
 #if defined(ENABLE_GC_CACAO)
 void threads_mutex_gc_unlock(void)
 {
-	if (pthread_mutex_unlock(&mutex_gc) != 0)
-		vm_abort("threads_mutex_gc_unlock: pthread_mutex_unlock failed: %s",
-				 strerror(errno));
+	int result;
+
+	result = pthread_mutex_unlock(&mutex_gc);
+
+	if (result != 0)
+		vm_abort_errnum(result, "threads_mutex_gc_unlock: pthread_mutex_unlock failed");
 }
 #endif
 
@@ -899,9 +919,12 @@ void threads_mutex_gc_unlock(void)
 
 void threads_mutex_join_lock(void)
 {
-	if (pthread_mutex_lock(&mutex_join) != 0)
-		vm_abort("threads_mutex_join_lock: pthread_mutex_lock failed: %s",
-				 strerror(errno));
+	int result;
+
+	result = pthread_mutex_lock(&mutex_join);
+
+	if (result != 0)
+		vm_abort_errnum(result, "threads_mutex_join_lock: pthread_mutex_lock failed");
 }
 
 
@@ -913,9 +936,12 @@ void threads_mutex_join_lock(void)
 
 void threads_mutex_join_unlock(void)
 {
-	if (pthread_mutex_unlock(&mutex_join) != 0)
-		vm_abort("threads_mutex_join_unlock: pthread_mutex_unlock failed: %s",
-				 strerror(errno));
+	int result;
+
+	result = pthread_mutex_unlock(&mutex_join);
+
+	if (result != 0)
+		vm_abort_errnum(result, "threads_mutex_join_unlock: pthread_mutex_unlock failed");
 }
 
 
@@ -1323,38 +1349,33 @@ void threads_impl_thread_start(threadobject *thread, functionptr f)
 	result = pthread_attr_init(&attr);
 
 	if (result != 0)
-		vm_abort("threads_impl_thread_start: pthread_attr_init failed: %s",
-				 strerror(result));
+		vm_abort_errnum(result, "threads_impl_thread_start: pthread_attr_init failed");
 
     result = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
     if (result != 0)
-		vm_abort("threads_impl_thread_start: pthread_attr_setdetachstate failed: %s",
-				 strerror(result));
+		vm_abort_errnum(result, "threads_impl_thread_start: pthread_attr_setdetachstate failed");
 
 	/* initialize thread stacksize */
 
 	result = pthread_attr_setstacksize(&attr, opt_stacksize);
 
 	if (result != 0)
-		vm_abort("threads_impl_thread_start: pthread_attr_setstacksize failed: %s",
-				 strerror(result));
+		vm_abort_errnum(result, "threads_impl_thread_start: pthread_attr_setstacksize failed");
 
 	/* create the thread */
 
 	result = pthread_create(&(thread->tid), &attr, threads_startup_thread, &startup);
 
 	if (result != 0)
-		vm_abort("threads_impl_thread_start: pthread_create failed: %s",
-				 strerror(result));
+		vm_abort_errnum(result, "threads_impl_thread_start: pthread_create failed");
 
 	/* destroy the thread attributes */
 
 	result = pthread_attr_destroy(&attr);
 
 	if (result != 0)
-		vm_abort("threads_impl_thread_start: pthread_attr_destroy failed: %s",
-				 strerror(result));
+		vm_abort_errnum(result, "threads_impl_thread_start: pthread_attr_destroy failed");
 
 	/* signal that pthread_create has returned, so thread->tid is valid */
 
