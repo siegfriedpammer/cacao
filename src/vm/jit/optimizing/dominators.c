@@ -448,7 +448,7 @@ void dominator_tree_link_children(jitdata *jd) {
 
 	/* Allocate memory for per basic block counter of successors */
 
-	ds = dump_size();
+	ds = dumpmemory_marker();
 	numsuccessors = DMNEW(unsigned, jd->basicblockcount);
 	MZERO(numsuccessors, unsigned, jd->basicblockcount);
 
@@ -463,15 +463,15 @@ void dominator_tree_link_children(jitdata *jd) {
 
 	/* Free memory */
 
-	dump_release(ds);
+	dumpmemory_release(ds);
 }
 
 bool dominator_tree_build(jitdata *jd) {
 	int32_t ds;
 	
-	ds = dump_size();
+	ds = dumpmemory_marker();
 	dominator_tree_build_intern(jd);
-	dump_release(ds);
+	dumpmemory_release(ds);
 
 	dominator_tree_link_children(jd);
 
@@ -580,7 +580,7 @@ void dominance_frontier_store(dominance_frontier_info *dfi) {
 }
 
 bool dominance_frontier_build(jitdata *jd) {
-	int32_t ds = dump_size();
+	int32_t ds = dumpmemory_marker();
 
 	dominance_frontier_info *dfi = dominance_frontier_init(jd);
 	dominance_frontier_for_block(dfi, jd->basicblocks);
@@ -593,7 +593,7 @@ bool dominance_frontier_build(jitdata *jd) {
 extern void graph_add_edge( graphdata *gd, int from, int to );
 
 void dominator_tree_validate(jitdata *jd, dominatordata *_dd) {
-	int32_t ds = dump_size();
+	int32_t ds = dumpmemory_marker();
 	graphdata *gd;
 	int i, j;
 	basicblock *bptr, **it;
@@ -642,7 +642,7 @@ void dominator_tree_validate(jitdata *jd, dominatordata *_dd) {
 		}
 	}
 
-	dump_release(ds);
+	dumpmemory_release(ds);
 }
 
 /*
