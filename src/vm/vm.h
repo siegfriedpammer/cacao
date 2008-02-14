@@ -1,9 +1,7 @@
 /* src/vm/vm.h - basic JVM functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -31,6 +29,7 @@
 #include "config.h"
 
 #include <stdarg.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -72,6 +71,7 @@ void vm_shutdown(s4 status);
 void vm_exit_handler(void);
 
 void vm_abort(const char *text, ...);
+void vm_abort_errno(const char *text, ...);
 void vm_abort_disassemble(void *pc, int count, const char *text, ...);
 
 /* Java method calling functions */

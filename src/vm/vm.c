@@ -103,6 +103,7 @@
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"
 #include "vmcore/suck.h"
+#include "vmcore/system.h"
 
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/cacaodbg.h"
@@ -2015,13 +2016,16 @@ void vm_exit_handler(void)
 
    Prints an error message and aborts the VM.
 
+   IN:
+       text ... error message to print
+
 *******************************************************************************/
 
 void vm_abort(const char *text, ...)
 {
 	va_list ap;
 
-	/* print the log message */
+	/* Print the log message. */
 
 	log_start();
 
@@ -2031,9 +2035,43 @@ void vm_abort(const char *text, ...)
 
 	log_finish();
 
-	/* now abort the VM */
+	/* Now abort the VM. */
 
-	abort();
+	system_abort();
+}
+
+
+/* vm_abort_errno **************************************************************
+
+   Prints an error message, appends ":" plus the strerror-message of
+   errno and aborts the VM.
+
+   IN:
+       text ... error message to print
+
+*******************************************************************************/
+
+void vm_abort_errno(const char *text, ...)
+{
+	va_list ap;
+
+	/* Print the log message. */
+
+	log_start();
+
+	va_start(ap, text);
+	log_vprint(text, ap);
+	va_end(ap);
+
+	/* Print the strerror-message of errno. */
+
+	log_print(": %s", system_strerror(errno));
+
+	log_finish();
+
+	/* Now abort the VM. */
+
+	system_abort();
 }
 
 
