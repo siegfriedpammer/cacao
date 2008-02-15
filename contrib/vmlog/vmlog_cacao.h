@@ -31,8 +31,8 @@ void vmlog_cacao_unwnd_method(methodinfo *m);
 void vmlog_cacao_unrol_method(methodinfo *m);
 void vmlog_cacao_rerol_method(methodinfo *m);
 
-void vmlog_cacao_throw(java_objectheader *xptr);
-void vmlog_cacao_catch(java_objectheader *xptr);
+void vmlog_cacao_throw(java_object_t *xptr);
+void vmlog_cacao_catch(java_object_t *xptr);
 void vmlog_cacao_signl(const char *name);
 
 #endif

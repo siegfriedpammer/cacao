@@ -26,12 +26,12 @@
 /*** global variables ************************************************/
 
 static vmlog_log *vmlog_global_log = NULL;
-static java_objectheader vmlog_global_lock;
+static java_object_t *vmlog_global_lock = NULL;
 
 /*** locking *********************************************************/
 
-#define VMLOG_LOCK(vml)    lock_monitor_enter(&vmlog_global_lock)
-#define VMLOG_UNLOCK(vml)  lock_monitor_exit(&vmlog_global_lock)
+#define VMLOG_LOCK(vml)    lock_monitor_enter(vmlog_global_lock)
+#define VMLOG_UNLOCK(vml)  lock_monitor_exit(vmlog_global_lock)
 
 /*** include the vmlog code ******************************************/
 
@@ -65,7 +65,8 @@ void vmlog_cacao_init(JavaVMInitArgs *vmargs)
 
 void vmlog_cacao_init_lock(void)
 {
-	lock_init_object_lock(&vmlog_global_lock);
+	vmlog_global_lock = NEW(java_object_t);
+	lock_init_object_lock(vmlog_global_lock);
 }
 
 static void vmlog_cacao_do_log(vmlog_log_function fun,
@@ -117,7 +118,7 @@ void vmlog_cacao_unwnd_method(methodinfo *m)
 	vmlog_cacao_do_log(vmlog_log_unwnd,m);
 }
 
-void vmlog_cacao_throw(java_objectheader *xptr)
+void vmlog_cacao_throw(java_object_t *xptr)
 {
 	classinfo *c;
 	
@@ -135,7 +136,7 @@ void vmlog_cacao_throw(java_objectheader *xptr)
 	}
 }
 
-void vmlog_cacao_catch(java_objectheader *xptr)
+void vmlog_cacao_catch(java_object_t *xptr)
 {
 	classinfo *c;
 	
