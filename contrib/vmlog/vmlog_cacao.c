@@ -27,6 +27,7 @@
 
 static vmlog_log *vmlog_global_log = NULL;
 static java_object_t *vmlog_global_lock = NULL;
+static vmlog_options *vmlog_cacao_options = NULL;
 
 /*** locking *********************************************************/
 
@@ -39,28 +40,25 @@ static java_object_t *vmlog_global_lock = NULL;
 
 /*** internal functions **********************************************/
 
-void vmlog_cacao_init(JavaVMInitArgs *vmargs)
+void vmlog_cacao_init()
 {
-	vmlog_options *opts;
-
-	opts = vmlog_opt_parse_vmargs(vmargs);
-	
-	if (!opts->prefix)
+	if (!vmlog_cacao_options->prefix)
 		return;
 
-	vmlog_global_log = vmlog_log_new(opts->prefix,1);
+	vmlog_global_log = vmlog_log_new(vmlog_cacao_options->prefix,1);
 
-	if (opts->ignoreprefix) {
+	if (vmlog_cacao_options->ignoreprefix) {
 		vmlog_log_load_ignorelist(vmlog_global_log,
-				opts->ignoreprefix);
+				vmlog_cacao_options->ignoreprefix);
 	}
 
-	if (opts->stringprefix) {
+	if (vmlog_cacao_options->stringprefix) {
 		vmlog_load_stringhash(vmlog_global_log,
-				opts->stringprefix);
+				vmlog_cacao_options->stringprefix);
 	}
 
-	vmlog_opt_free(opts);
+	vmlog_opt_free(vmlog_cacao_options);
+	vmlog_cacao_options = NULL;
 }
 
 void vmlog_cacao_init_lock(void)
@@ -161,6 +159,26 @@ void vmlog_cacao_signl(const char *name)
 
 	vmlog_log_signl(vmlog_global_log,(void*) THREADOBJECT,
 			name, strlen(name));
+}
+
+void vmlog_cacao_init_options(void)
+{
+	vmlog_cacao_options = vmlog_opt_new();
+}
+
+void vmlog_cacao_set_prefix(const char *arg)
+{
+	vmlog_opt_set_prefix(vmlog_cacao_options, arg);
+}
+
+void vmlog_cacao_set_stringprefix(const char *arg)
+{
+	vmlog_opt_set_stringprefix(vmlog_cacao_options, arg);
+}
+
+void vmlog_cacao_set_ignoreprefix(const char *arg)
+{
+	vmlog_opt_set_ignoreprefix(vmlog_cacao_options, arg);
 }
 
 /* vim: noet ts=8 sw=8

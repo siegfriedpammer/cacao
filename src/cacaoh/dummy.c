@@ -774,6 +774,21 @@ void print_dynamic_super_statistics(void)
 }
 
 
+#if defined(ENABLE_VMLOG)
+void vmlog_cacao_set_prefix(const char *arg)
+{
+}
+
+void vmlog_cacao_set_stringprefix(const char *arg)
+{
+}
+
+void vmlog_cacao_set_ignoreprefix(const char *arg)
+{
+}
+#endif
+
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

@@ -257,6 +257,10 @@ vmlog_log_entry * vmlog_ringbuf_next(vmlog_ringbuf *ring,int prefetch);
 vmlog_log_entry * vmlog_ringbuf_prev(vmlog_ringbuf *ring,int prefetch);
 
 /* option parsing */
+vmlog_options *vmlog_opt_new(void);
+void vmlog_opt_set_prefix(vmlog_options *opts, const char *arg);
+void vmlog_opt_set_stringprefix(vmlog_options *opts, const char *arg);
+void vmlog_opt_set_ignoreprefix(vmlog_options *opts, const char *arg);
 int vmlog_opt_parse_seq(const char *arg,int len,vmlog_seq_t *seq);
 int vmlog_opt_parse_range(const char *arg,vmlog_seq_t *start,vmlog_seq_t *end);
 vmlog_options *vmlog_opt_parse_cmd_line(int *pargc,char **argv);

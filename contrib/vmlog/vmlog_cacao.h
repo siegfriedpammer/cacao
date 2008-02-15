@@ -21,7 +21,13 @@
 
 #include <threads/native/threads.h>
 
-void vmlog_cacao_init(JavaVMInitArgs *vmargs);
+void vmlog_cacao_init_options(void);
+
+void vmlog_cacao_set_prefix(const char *arg);
+void vmlog_cacao_set_stringprefix(const char *arg);
+void vmlog_cacao_set_ignoreprefix(const char *arg);
+
+void vmlog_cacao_init(void);
 
 void vmlog_cacao_init_lock(void);
 
