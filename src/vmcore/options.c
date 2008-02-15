@@ -279,7 +279,9 @@ option_t options_XX[] = {
 	{ "ThreadStackSize",           OPT_ThreadStackSize,           OPT_TYPE_VALUE,   "TODO" },
 	{ "TraceCompilerCalls",        OPT_TraceCompilerCalls,        OPT_TYPE_BOOLEAN, "trace JIT compiler calls" },
 	{ "TraceExceptions",           OPT_TraceExceptions,           OPT_TYPE_BOOLEAN, "trace Exception throwing" },
+#if !defined(ENABLE_VMLOG)
 	{ "TraceJavaCalls",            OPT_TraceJavaCalls,            OPT_TYPE_BOOLEAN, "trace Java method calls" },
+#endif
 	{ "TraceJNICalls",             OPT_TraceJNICalls,             OPT_TYPE_BOOLEAN, "trace JNI method calls" },
 	{ "TraceJVMCalls",             OPT_TraceJVMCalls,             OPT_TYPE_BOOLEAN, "trace JVM method calls but omit very frequent ones" },
 	{ "TraceJVMCallsVerbose",      OPT_TraceJVMCallsVerbose,      OPT_TYPE_BOOLEAN, "trace all JVM method calls" },
