@@ -102,6 +102,7 @@ page 441 Algorithm 19.6. Inserting phi-functions:
 
 ******************************************************************************/
 void xssa(jitdata *jd);
+void yssa(jitdata *jd);
 void ssa(jitdata *jd) {
 	struct dominatordata *dd;
 	lsradata *ls;
@@ -122,8 +123,13 @@ void ssa(jitdata *jd) {
 	dominance_frontier_build(jd);
 	/*dominator_tree_validate(jd, dd);*/
 	/*pythonpass_run(jd, "ssa2", "main");*/
+	/*pythonpass_run(jd, "alt_ssa", "main");*/
 	pythonpass_run(jd, "foo", "before");
-	xssa(jd);
+	if (getenv("XSSA")) {
+		xssa(jd);
+	} else {
+		yssa(jd);
+	}
 	pythonpass_run(jd, "foo", "after");
 	return;
 

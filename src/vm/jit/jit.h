@@ -163,6 +163,8 @@ struct jitdata {
 	bool             branchtoend;          /* true if end dummy is a target   */
 };
 
+#define FOR_EACH_BASICBLOCK(jd, it) \
+	for ((it) = (jd)->basicblocks; (it) != NULL; (it) = (it)->next)
 
 #define UNUSED                     -1
 
@@ -554,6 +556,16 @@ struct basicblock {
 #endif
 };
 
+#define FOR_EACH_SUCCESSOR(bptr, it) \
+	for ((it) = (bptr)->successors; (it) != (bptr)->successors + (bptr)->successorcount; ++(it))
+
+#define FOR_EACH_PREDECESSOR(bptr, it) \
+	for ((it) = (bptr)->predecessors; (it) != (bptr)->predecessors + (bptr)->predecessorcount; ++(it))
+
+#define FOR_EACH_INSTRUCTION(bptr, it) \
+	for ((it) = (bptr)->iinstr; (it) != (bptr)->iinstr + (bptr)->icount; ++(it))
+
+
 /* [+]...the javalocals array: This array is indexed by the javaindex (the    */
 /*       local variable index ocurring in the original bytecode). An element  */
 /*       javalocals[javaindex] encodes where to find the contents of the      */
@@ -584,7 +596,10 @@ struct basicblock {
 		bptr->type   = BBTYPE_STD;                     \
 		bptr->method = (m);                            \
 	} while (0)
-			
+
+static inline bool basicblock_reached(const basicblock *bptr) {
+	return (bptr->flags >= BBREACHED);
+}
 
 /* data-flow constants for the ICMD table ************************************/
 

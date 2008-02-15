@@ -1,4 +1,0 @@
-#ifndef _VM_JIT_OPTIMIZING_SSA2
-#define _VM_JIT_OPTIMIZING_SSA2
-
-#endif

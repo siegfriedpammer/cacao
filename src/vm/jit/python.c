@@ -202,7 +202,6 @@ struct field_map_entry {
 typedef struct field_map_entry field_map_entry;
 
 enum field {
-	F_ADD_INSTRUCTIONS,
 	F_BASIC_BLOCKS,
 	F_CALL_RETURN_TYPE,
 	F_CALL_ARGS,
@@ -229,6 +228,7 @@ enum field {
 	F_INTERFACE_MAP,
 	F_IN_VARS,
 	F_IS_CLASS_CONSTANT,
+	F_IS_IN_MEMORY,
 	F_IS_INOUT,
 	F_IS_LOCAL,
 	F_IS_PREALLOCATED,
@@ -253,6 +253,7 @@ enum field {
 	F_PEI_EX,
 	F_PREDECESSORS,
 	F_REACHED,
+	F_REGISTER_OFFSET,
 	F_RETURN_TYPE,
 	F_S,
 	F_SHOW,
@@ -266,7 +267,6 @@ enum field {
 
 /* Keep it soreted alphabetically, so we can support binary search in future. */
 struct field_map_entry field_map[] = {
-	{ "add_instructions", F_ADD_INSTRUCTIONS },
 	{ "basic_blocks", F_BASIC_BLOCKS },
 	{ "call_return_type", F_CALL_RETURN_TYPE },
 	{ "call_args", F_CALL_ARGS },
@@ -294,6 +294,7 @@ struct field_map_entry field_map[] = {
 	{ "in_vars", F_IN_VARS },
 	{ "is_class_constant", F_IS_CLASS_CONSTANT },
 	{ "is_inout", F_IS_INOUT },
+	{ "is_in_memory", F_IS_IN_MEMORY },
 	{ "is_local", F_IS_LOCAL },
 	{ "is_preallocated", F_IS_PREALLOCATED },
 	{ "is_saved", F_IS_SAVED },
@@ -317,6 +318,7 @@ struct field_map_entry field_map[] = {
 	{ "pei_ex", F_PEI_EX },
 	{ "predecessors", F_PREDECESSORS },
 	{ "reached", F_REACHED },
+	{ "register_offset", F_REGISTER_OFFSET },
 	{ "return_type", F_RETURN_TYPE },
 	{ "s", F_S },
 	{ "show", F_SHOW },
@@ -707,6 +709,18 @@ PyTypeObject iterator_type = {
 int set_s4(s4 *p, PyObject *o) {
 	if (PyInt_Check(o)) {
 		*p = PyInt_AsLong(o);	
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
+int set_s4_flag(s4 *p, s4 flag, PyObject *o) {
+	if (o == Py_True) {
+		*p |= flag;
+		return 0;
+	} else if (o == Py_False) {
+		*p &= ~flag;
 		return 0;
 	} else {
 		return -1;
@@ -1185,40 +1199,6 @@ ITERATOR_FUNC(instruction_iter_func) {
 	return -1;
 }
 
-int basicblock_add_instructions(basicblock *bptr, PyObject *args) {
-	int pos = 0, count = 1, dst, src, num;
-
-	if (! PyArg_ParseTuple(args, "|ii", &pos, &count)) {
-		return -1;
-	}
-
-	if ((pos < 0) || (pos > bptr->icount)) {
-		return -1;
-	}
-
-	if (count < 1) {
-		return -1;
-	}
-
-	bptr->iinstr = DMREALLOC(bptr->iinstr, instruction, bptr->icount, bptr->icount + count);
-
-	src = pos;
-	dst = pos + count;
-	num = bptr->icount - pos;
-
-	dst += num;
-	src += num;
-
-	while (num-- > 0) {
-		bptr->iinstr[--dst] = bptr->iinstr[--src];
-	}
-
-	MZERO(bptr->iinstr + pos, instruction, count);
-	bptr->icount += count;
-	
-	return 0;
-}
-
 ITERATOR_FUNC(in_vars_iter_func) {
 	basicblock *bptr = (basicblock *)state->data;
 	switch (op) {
@@ -1292,7 +1272,6 @@ CLASS_FUNC(basicblock_func) {
 				case F_OUT_VARS:
 					return get_iter(arg->get.result, in_vars_iter_func, state->root, bptr);
 				case F_SHOW:
-				case F_ADD_INSTRUCTIONS:
 					arg->get.is_method = 1;
 					return 0;
 			}
@@ -1304,9 +1283,6 @@ CLASS_FUNC(basicblock_func) {
 				case F_SHOW:
 					show_basicblock(state->root->jd, bptr, SHOW_CFG);
 					return 0;
-				/* XXX remove */
-				case F_ADD_INSTRUCTIONS:
-					return basicblock_add_instructions(bptr, arg->method_call.args);
 			}
 	}
 
@@ -1526,6 +1502,10 @@ CLASS_FUNC(varinfo_func) {
 					return get_int(arg->get.result, index);
 				case F_UNUSED:
 					return get_bool(arg->get.result, index == UNUSED);
+				case F_REGISTER_OFFSET:
+					return get_int(arg->get.result, var->vv.regoff);
+				case F_IS_IN_MEMORY:
+					return get_bool(arg->get.result, var->flags & INMEMORY);
 			}
 		case CLASS_SET_FIELD:
 			switch (arg->set.field) {
@@ -1575,6 +1555,10 @@ CLASS_FUNC(varinfo_func) {
 						return 0;
 					}
 					break;
+				case F_REGISTER_OFFSET:
+					return set_s4(&(var->vv.regoff), arg->set.value);
+				case F_IS_IN_MEMORY:
+					return set_s4_flags(&(var->flags), INMEMORY, arg->set.value);
 			}
 		case CLASS_STR:
 			*arg->str.result = varinfo_str(jd, index, var);
@@ -1618,25 +1602,16 @@ ITERATOR_FUNC(vars_iter_func) {
 		case ITERATOR_LENGTH:
 			arg->length = jd->vartop;
 			return 0;
-		/* XXX remove grow */
 		case ITERATOR_SUBSCRIPT:
-			if (vars_grow(jd, arg->subscript.index + 1)) {
-				if (jd->vartop < (arg->subscript.index + 1)) {
-					jd->vartop = (arg->subscript.index + 1);
-				}
-				return get_obj(arg->subscript.result, varinfo_func, 
-					state->root, jd->var + arg->subscript.index);
-			}
+			ITERATOR_SUBSCRIPT_CHECK(jd->vartop);
+			return get_obj(arg->subscript.result, varinfo_func, 
+				state->root, jd->var + arg->subscript.index);
 		case ITERATOR_SETITEM:
-			if (vars_grow(jd, arg->setitem.index + 1)) {
-				if (jd->vartop < (arg->subscript.index + 1)) {
-					jd->vartop = (arg->subscript.index + 1);
-				}
-				vp = get_vp(arg->setitem.value, varinfo_func);
-				if (vp) {
-					jd->var[arg->setitem.index] = *(varinfo *)vp;
-					return 0;
-				}
+			ITERATOR_SETITEM_CHECK(jd->vartop);
+			vp = get_vp(arg->setitem.value, varinfo_func);
+			if (vp) {
+				jd->var[arg->setitem.index] = *(varinfo *)vp;
+				return 0;
 			}
 
 	}
@@ -1659,26 +1634,11 @@ ITERATOR_FUNC(map_2_iter_func) {
 	return -1;
 }
 
-static inline void map_grow(s4 **pmap, s4 *pold_size, s4 new_size) {
-
-	int i;
-	s4 *map = *pmap;
-	s4 old_size = *pold_size;
-
-	if (new_size > old_size) {
-		*pmap = DMREALLOC(map, s4, old_size * 5, new_size * 5);
-		for (i = old_size * 5; i < (new_size * 5); ++i) {
-			map[i] = UNUSED;
-		}
-		*pold_size = new_size;
-	}
-}
-
 ITERATOR_FUNC(local_map_iter_func) {
 	jitdata *jd = (jitdata *)state->data;
 	switch (op) {
 		case ITERATOR_SUBSCRIPT:
-			map_grow(&jd->local_map, &jd->maxlocals, arg->subscript.index + 1);
+			ITERATOR_SUBSCRIPT_CHECK(jd->maxlocals);
 			return get_iter(arg->subscript.result, map_2_iter_func, state->root,
 				jd->local_map + (5 * arg->subscript.index));
 	}
@@ -1689,8 +1649,7 @@ ITERATOR_FUNC(interface_map_iter_func) {
 	jitdata *jd = (jitdata *)state->data;
 	switch (op) {
 		case ITERATOR_SUBSCRIPT:
-			/* XXX remove grow */
-			map_grow(&jd->interface_map, &jd->maxinterfaces, arg->subscript.index + 1);
+			ITERATOR_SUBSCRIPT_CHECK(jd->maxinterfaces);
 			return get_iter(arg->subscript.result, map_2_iter_func, state->root,
 				jd->interface_map + (5 * arg->subscript.index));
 	}

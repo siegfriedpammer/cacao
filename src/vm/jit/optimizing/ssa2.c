@@ -1,3 +1,29 @@
+/* src/vm/optimizing/ssa2.c
+
+   Copyright (C) 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
+
+   Reimplementation of code in ssa.c. 
+   Uses the new dominator tree and the new CFG.
+*/
+
 #include "config.h"
 
 #include "mm/memory.h"
@@ -450,7 +476,7 @@ static void ssa_export(ssa_info *ssa) {
 	printf(" *** jd->localcount %d, jd->maxlocals %d\n", jd->localcount , jd->maxlocals);
 }
 
-unsigned get_predecessor_index(basicblock *from, basicblock *to) {
+static unsigned get_predecessor_index(basicblock *from, basicblock *to) {
 	basicblock **itpred;
 	unsigned j = 0;
 
@@ -467,7 +493,7 @@ unsigned get_predecessor_index(basicblock *from, basicblock *to) {
 	return j;
 }
 
-basicblock *create_block(ssa_info *ssa, basicblock *from, basicblock *to) {
+static basicblock *create_block(ssa_info *ssa, basicblock *from, basicblock *to) {
 	basicblock *mid;
 	basicblock_info *toi;
 	instruction *iptr;
@@ -509,7 +535,7 @@ basicblock *create_block(ssa_info *ssa, basicblock *from, basicblock *to) {
 	return mid;
 }
 
-void crate_fallthrough(ssa_info *ssa, basicblock *bptr) {
+static void crate_fallthrough(ssa_info *ssa, basicblock *bptr) {
 	unsigned j;
 	basicblock_info *toi;
 	instruction *iptr;
@@ -537,7 +563,7 @@ void crate_fallthrough(ssa_info *ssa, basicblock *bptr) {
 
 }
 
-void ssa_create_phi_moves(ssa_info *ssa) {
+static void ssa_create_phi_moves(ssa_info *ssa) {
 	basicblock *bptr;
 	instruction *iptr;
 
@@ -616,3 +642,16 @@ void xssa(jitdata *jd) {
 	printf("=============== [ /after ] =========================\n");
 }
 
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */
