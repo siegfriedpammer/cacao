@@ -2469,13 +2469,16 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 		}
 	}
 
-	/* for static function class as second arg */
-	if (m->flags & ACC_STATIC)
-		M_AST(REG_ATMP3, REG_SP, 1 * 4);
+	/* builtins are not invoked like natives, environemtn and clazz are only needed for natives */
+	if (m->flags & ACC_NATIVE)	{
+		/* for static function class as second arg */
+		if (m->flags & ACC_STATIC)
+			M_AST(REG_ATMP3, REG_SP, 1 * 4);
 
-	/* env ist first argument */
-	M_AMOV_IMM(_Jv_env, REG_ATMP1);
-	M_AST(REG_ATMP1, REG_SP, 0 * 4);
+		/* env ist first argument */
+		M_AMOV_IMM(_Jv_env, REG_ATMP1);
+		M_AST(REG_ATMP1, REG_SP, 0 * 4);
+	}
 
 	/* call the native function */
 	M_JSR(REG_ATMP2);
