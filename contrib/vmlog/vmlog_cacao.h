@@ -40,6 +40,7 @@ void vmlog_cacao_rerol_method(methodinfo *m);
 void vmlog_cacao_throw(java_object_t *xptr);
 void vmlog_cacao_catch(java_object_t *xptr);
 void vmlog_cacao_signl(const char *name);
+void vmlog_cacao_signl_type(int type);
 
 #endif
 

@@ -161,6 +161,19 @@ void vmlog_cacao_signl(const char *name)
 			name, strlen(name));
 }
 
+void vmlog_cacao_signl_type(int type)
+{
+	char message[20];
+
+	if (!vmlog_global_log)
+		return;
+
+	sprintf(message, "EXC %d", type);
+
+	vmlog_log_signl(vmlog_global_log,(void*) THREADOBJECT,
+			message, strlen(message));
+}
+
 void vmlog_cacao_init_options(void)
 {
 	vmlog_cacao_options = vmlog_opt_new();
