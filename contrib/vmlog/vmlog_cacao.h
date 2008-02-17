@@ -21,7 +21,13 @@
 
 #include <threads/native/threads.h>
 
-void vmlog_cacao_init(JavaVMInitArgs *vmargs);
+void vmlog_cacao_init_options(void);
+
+void vmlog_cacao_set_prefix(const char *arg);
+void vmlog_cacao_set_stringprefix(const char *arg);
+void vmlog_cacao_set_ignoreprefix(const char *arg);
+
+void vmlog_cacao_init(void);
 
 void vmlog_cacao_init_lock(void);
 
@@ -31,9 +37,10 @@ void vmlog_cacao_unwnd_method(methodinfo *m);
 void vmlog_cacao_unrol_method(methodinfo *m);
 void vmlog_cacao_rerol_method(methodinfo *m);
 
-void vmlog_cacao_throw(java_objectheader *xptr);
-void vmlog_cacao_catch(java_objectheader *xptr);
+void vmlog_cacao_throw(java_object_t *xptr);
+void vmlog_cacao_catch(java_object_t *xptr);
 void vmlog_cacao_signl(const char *name);
+void vmlog_cacao_signl_type(int type);
 
 #endif
 

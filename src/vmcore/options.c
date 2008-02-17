@@ -242,7 +242,10 @@ enum {
 	OPT_TraceJVMCalls,
 	OPT_TraceJVMCallsVerbose,
 	OPT_TraceLinkClass,
-	OPT_TraceReplacement
+	OPT_TraceReplacement,
+	OPT_Vmlog,
+	OPT_VmlogStrings,
+	OPT_VmlogIgnore
 };
 
 
@@ -276,13 +279,21 @@ option_t options_XX[] = {
 	{ "ThreadStackSize",           OPT_ThreadStackSize,           OPT_TYPE_VALUE,   "TODO" },
 	{ "TraceCompilerCalls",        OPT_TraceCompilerCalls,        OPT_TYPE_BOOLEAN, "trace JIT compiler calls" },
 	{ "TraceExceptions",           OPT_TraceExceptions,           OPT_TYPE_BOOLEAN, "trace Exception throwing" },
+#if !defined(ENABLE_VMLOG)
 	{ "TraceJavaCalls",            OPT_TraceJavaCalls,            OPT_TYPE_BOOLEAN, "trace Java method calls" },
+#endif
 	{ "TraceJNICalls",             OPT_TraceJNICalls,             OPT_TYPE_BOOLEAN, "trace JNI method calls" },
 	{ "TraceJVMCalls",             OPT_TraceJVMCalls,             OPT_TYPE_BOOLEAN, "trace JVM method calls but omit very frequent ones" },
 	{ "TraceJVMCallsVerbose",      OPT_TraceJVMCallsVerbose,      OPT_TYPE_BOOLEAN, "trace all JVM method calls" },
 	{ "TraceLinkClass",            OPT_TraceLinkClass,            OPT_TYPE_BOOLEAN, "trace class linking" },
 #if defined(ENABLE_REPLACEMENT)
 	{ "TraceReplacement",          OPT_TraceReplacement,          OPT_TYPE_VALUE,   "trace on-stack replacement with the given verbosity level (default: 1)" },
+#endif
+
+#if defined(ENABLE_VMLOG)
+	{ "Vmlog",                     OPT_Vmlog,                     OPT_TYPE_VALUE,   "prefix for vmlog trace files (enables vmlog)" },
+	{ "VmlogStrings",              OPT_VmlogStrings,              OPT_TYPE_VALUE,   "prefix of vmlog string file to load" },
+	{ "VmlogIgnore",               OPT_VmlogIgnore,               OPT_TYPE_VALUE,   "prefix of vmlog ignore file to load" },
 #endif
 
 	/* end marker */
@@ -682,6 +693,27 @@ void options_xx(JavaVMInitArgs *vm_args)
 				opt_TraceReplacement = 1;
 			else
 				opt_TraceReplacement = atoi(value);
+			break;
+#endif
+
+#if defined(ENABLE_VMLOG)
+		case OPT_Vmlog:
+			if (value == NULL)
+				vmlog_cacao_set_prefix("vmlog");
+			else
+				vmlog_cacao_set_prefix(value);
+			opt_verbosecall = 1;
+			opt_TraceJavaCalls = 1;
+			break;
+
+		case OPT_VmlogStrings:
+			if (value != NULL)
+				vmlog_cacao_set_stringprefix(value);
+			break;
+
+		case OPT_VmlogIgnore:
+			if (value != NULL)
+				vmlog_cacao_set_ignoreprefix(value);
 			break;
 #endif
 

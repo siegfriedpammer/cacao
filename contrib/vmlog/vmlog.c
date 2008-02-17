@@ -1714,6 +1714,15 @@ vmlog_log_entry * vmlog_ringbuf_prev(vmlog_ringbuf *ring,int prefetch)
 
 /*** option parsing **************************************************/
 
+vmlog_options *vmlog_opt_new(void)
+{
+	vmlog_options *opts;
+
+	VMLOG_XZNEW(opts,vmlog_options);
+
+	return opts;
+}
+
 int vmlog_opt_parse_seq(const char *arg,int len,vmlog_seq_t *seq)
 {
 	char *buf;
@@ -1768,6 +1777,21 @@ int vmlog_opt_parse_range(const char *arg,vmlog_seq_t *start,vmlog_seq_t *end)
 	return 1;
 }
 
+void vmlog_opt_set_prefix(vmlog_options *opts, const char *arg)
+{
+	opts->prefix = vmlog_strdup(arg,strlen(arg));
+}
+
+void vmlog_opt_set_stringprefix(vmlog_options *opts, const char *arg)
+{
+	opts->stringprefix = vmlog_strdup(arg,strlen(arg));
+}
+
+void vmlog_opt_set_ignoreprefix(vmlog_options *opts, const char *arg)
+{
+	opts->ignoreprefix = vmlog_strdup(arg,strlen(arg));
+}
+
 static int vmlog_opt_parse_one_option(vmlog_options *opts, const char *arg, const char *nextarg)
 {
 	int eat;
@@ -1782,19 +1806,19 @@ static int vmlog_opt_parse_one_option(vmlog_options *opts, const char *arg, cons
 	if (strcmp(arg,"-vmlog:prefix") == 0) {
 		if (!nextarg)
 			vmlog_die("expected a prefix after -vmlog:prefix");
-		opts->prefix = vmlog_strdup(nextarg,strlen(nextarg));
+		vmlog_opt_set_prefix(opts,nextarg);
 		eat++;
 	}
 	else if (strcmp(arg,"-vmlog:strings") == 0) {
 		if (!nextarg)
 			vmlog_die("expected a prefix after -vmlog:strings");
-		opts->stringprefix = vmlog_strdup(nextarg,strlen(nextarg));
+		vmlog_opt_set_stringprefix(opts,nextarg);
 		eat++;
 	}
 	else if (strcmp(arg,"-vmlog:ignore") == 0) {
 		if (!nextarg)
 			vmlog_die("expected a prefix after -vmlog:ignore");
-		opts->ignoreprefix = vmlog_strdup(nextarg,strlen(nextarg));
+		vmlog_opt_set_ignoreprefix(opts,nextarg);
 		eat++;
 	}
 	else {
@@ -1814,7 +1838,7 @@ vmlog_options *vmlog_opt_parse_cmd_line(int *pargc,char **argv)
 
 	assert(pargc);
 
-	VMLOG_XZNEW(opts,vmlog_options);
+	opts = vmlog_opt_new();
 
 	if (*pargc && argv[0])
 		opts->progname = vmlog_strdup(argv[0],strlen(argv[0]));
@@ -1851,7 +1875,7 @@ vmlog_options *vmlog_opt_parse_vmargs(JavaVMInitArgs *vmargs)
 
 	assert(vmargs);
 
-	VMLOG_XZNEW(opts,vmlog_options);
+	opts = vmlog_opt_new();
 
 	i = 0;
 	while (i < vmargs->nOptions) {
