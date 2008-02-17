@@ -266,6 +266,10 @@ void *signal_handle(int type, intptr_t val,
 	methodinfo       *m;
 	java_handle_t    *p;
 
+#if defined(ENABLE_VMLOG)
+	vmlog_cacao_signl_type(type);
+#endif
+
 	/* Prevent compiler warnings. */
 
 	o = NULL;
