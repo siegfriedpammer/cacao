@@ -72,13 +72,24 @@ static void vmlog_cacao_do_log(vmlog_log_function fun,
 {
 	char *name;
 	int namelen;
+	char *cname;
+	int cnamelen;
 
 	assert(m);
 
 	if (!vmlog_global_log)
 		return;
 
-	name = vmlog_concat4len(m->class->name->text,m->class->name->blength,
+	if (m->class) {
+		cname = m->class->name->text;
+		cnamelen = m->class->name->blength;
+	}
+	else {
+		cname = "<NULL>";
+		cnamelen = 6;
+	}
+
+	name = vmlog_concat4len(cname,cnamelen,
 				".",1,
 				m->name->text,m->name->blength,
 				m->descriptor->text,m->descriptor->blength,
