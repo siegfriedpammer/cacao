@@ -2777,7 +2777,7 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 
 	/* Get the stackframeinfo for the current thread. */
 
-	sfi = threads_get_current_stackframeinfo().
+	sfi = threads_get_current_stackframeinfo();
 
 	/* recover source state */
 
