@@ -293,7 +293,7 @@ option_t options_XX[] = {
 	{ "TraceCompilerCalls",           OPT_TraceCompilerCalls,           OPT_TYPE_BOOLEAN, "trace JIT compiler calls" },
 	{ "TraceExceptions",              OPT_TraceExceptions,              OPT_TYPE_BOOLEAN, "trace Exception throwing" },
 #if defined(ENABLE_INLINING) && !defined(NDEBUG)
-	{ "TraceInlining",                OPT_TraceInlining,                OPT_TYPE_BOOLEAN, "trace method inlining" },
+	{ "TraceInlining",                OPT_TraceInlining,                OPT_TYPE_VALUE,   "trace method inlining with the given verbosity level (default: 1)" },
 #endif
 #if !defined(ENABLE_VMLOG)
 	{ "TraceJavaCalls",               OPT_TraceJavaCalls,               OPT_TYPE_BOOLEAN, "trace Java method calls" },
@@ -711,7 +711,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 #if defined(ENABLE_INLINING) && !defined(NDEBUG)
 		case OPT_TraceInlining:
-			opt_TraceInlining = enable;
+			if (value == NULL)
+				opt_TraceInlining = 1;
+			else
+				opt_TraceInlining = atoi(value);
 			break;
 #endif
 

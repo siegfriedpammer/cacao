@@ -111,7 +111,8 @@
 
 #if !defined(NDEBUG)
 #define INLINE_VERBOSE
-#define DOLOG(code) do{ if (opt_TraceInlining) { code; } }while(0)
+#define DOLOG(code)       do{ if (opt_TraceInlining >= 2) { code; } }while(0)
+#define DOLOG_SHORT(code) do{ if (opt_TraceInlining >= 1) { code; } }while(0)
 #else
 #define DOLOG(code)
 #endif
@@ -2177,7 +2178,7 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 #if !defined(NDEBUG)
 			inline_stat_roots++;
 
-			DOLOG(
+			DOLOG_SHORT(
 			printf("==== %d.INLINE ==================================================================\n",
 				debug_counter);
 			printf("\ninline tree:\n");
