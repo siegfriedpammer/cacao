@@ -2163,7 +2163,7 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 	if (   (n_jd->instructioncount >= opt_InlineMinSize)
 		&& (n_jd->instructioncount <= opt_InlineMaxSize))
 	{
-	   if (debug_counter <= opt_InlineCount)
+	   if (debug_counter < opt_InlineCount)
 #endif /* defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG) */
 	   {
 			/* install the inlined result */
