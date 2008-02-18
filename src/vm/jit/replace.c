@@ -2775,9 +2775,9 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 
 	DMARKER;
 
-	/* get the stackframeinfo for the current thread */
+	/* Get the stackframeinfo for the current thread. */
 
-	sfi = STACKFRAMEINFO;
+	sfi = threads_get_current_stackframeinfo().
 
 	/* recover source state */
 
@@ -2944,9 +2944,11 @@ void replace_gc_from_native(threadobject *thread, u1 *pc, u1 *sp)
 	executionstate_t *es;
 	sourcestate_t    *ss;
 
-	/* get the stackframeinfo of this thread */
+	/* Get the stackframeinfo of this thread. */
+
 	assert(thread == THREADOBJECT);
-	sfi = STACKFRAMEINFO;
+
+	sfi = threads_get_current_stackframeinfo().
 
 	/* create the execution state */
 	es = DNEW(executionstate_t);
