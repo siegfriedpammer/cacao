@@ -86,7 +86,6 @@ bool codegen_emit(jitdata *jd)
 	codegendata        *cd;
 	registerdata       *rd;
 	s4                  len, s1, s2, s3, d, disp;
-	ptrint              a;
 	varinfo            *var;
 	basicblock         *bptr;
 	instruction        *iptr;
@@ -98,7 +97,8 @@ bool codegen_emit(jitdata *jd)
 	fieldinfo          *fi;
 	unresolved_field   *uf;
 	s4                  fieldtype;
-	s4                 varindex;
+	s4                  varindex;
+	int                 i;
 
 	/* get required compiler data */
 
@@ -477,16 +477,16 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_FCONST:     /* ...  ==> ..., constant                       */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			a = dseg_add_float(cd, iptr->sx.val.f);
-			M_FLD(d, REG_PV, a);
+			disp = dseg_add_float(cd, iptr->sx.val.f);
+			M_FLD(d, REG_PV, disp);
 			emit_store_dst(jd, iptr, d);
 			break;
 			
 		case ICMD_DCONST:     /* ...  ==> ..., constant                       */
 
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			a = dseg_add_double(cd, iptr->sx.val.d);
-			M_DLD(d, REG_PV, a);
+			disp = dseg_add_double(cd, iptr->sx.val.d);
+			M_DLD(d, REG_PV, disp);
 			emit_store_dst(jd, iptr, d);
 			break;
 
