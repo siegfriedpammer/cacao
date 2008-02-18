@@ -2914,51 +2914,58 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	for (i = md->paramcount - 1, j = i + skipparams; i >= 0; i--, j--) {
 		t = md->paramtypes[i].type;
 
-		if (IS_INT_LNG_TYPE(t)) {
-			if (!md->params[i].inmemory) {
-				s1 = md->params[i].regoff;
-				s2 = nmd->params[j].regoff;
+		if (!md->params[i].inmemory) {
+			s1 = md->params[i].regoff;
+			s2 = nmd->params[j].regoff;
 
-				if (!nmd->params[j].inmemory) {
-					if (IS_2_WORD_TYPE(t))
-						M_LNGMOVE(s1, s2);
-					else
-						M_INTMOVE(s1, s2);
-				}
-				else {
-					if (IS_2_WORD_TYPE(t))
-						M_LST(s1, REG_SP, s2);
-					else
-						M_IST(s1, REG_SP, s2);
-				}
-			}
-			else {
-				s1 = md->params[i].regoff + cd->stackframesize * 8;
-				s2 = nmd->params[j].regoff;
+			switch (t) {
+			case TYPE_INT:
+			case TYPE_ADR:
+				if (!nmd->params[j].inmemory)
+					M_INTMOVE(s1, s2);
+				else
+					M_IST(s1, REG_SP, s2);
+				break;
 
-				M_ILD(REG_ITMP1, REG_SP, s1);
-				if (IS_2_WORD_TYPE(t))
-					M_ILD(REG_ITMP2, REG_SP, s1 + 4);
+			case TYPE_LNG:
+				if (!nmd->params[j].inmemory)
+					M_LNGMOVE(s1, s2);
+				else
+					M_LST(s1, REG_SP, s2);
+				break;
 
-				M_IST(REG_ITMP1, REG_SP, s2);
-				if (IS_2_WORD_TYPE(t))
-					M_IST(REG_ITMP2, REG_SP, s2 + 4);
+			case TYPE_FLT:
+			case TYPE_DBL:
+				/* We only copy spilled float arguments, as the float
+				   argument registers keep unchanged. */
+				break;
 			}
 		}
 		else {
-			/* We only copy spilled float arguments, as the float
-			   argument registers keep unchanged. */
+			s1 = md->params[i].regoff + cd->stackframesize * 8;
+			s2 = nmd->params[j].regoff;
 
-			if (md->params[i].inmemory) {
-				s1 = md->params[i].regoff + cd->stackframesize * 8;
-				s2 = nmd->params[j].regoff;
+			switch (t) {
+			case TYPE_INT:
+			case TYPE_ADR:
+				M_ILD(REG_ITMP1, REG_SP, s1);
+				M_IST(REG_ITMP1, REG_SP, s2);
+				break;
 
+			case TYPE_LNG:
+				M_LLD(REG_ITMP12_PACKED, REG_SP, s1);
+				M_LST(REG_ITMP12_PACKED, REG_SP, s2);
+				break;
+
+			case TYPE_FLT:
 				M_DLD(REG_FTMP1, REG_SP, s1);
+				M_FST(REG_FTMP1, REG_SP, s2);
+				break;
 
-				if (IS_2_WORD_TYPE(t))
-					M_DST(REG_FTMP1, REG_SP, s2);
-				else
-					M_FST(REG_FTMP1, REG_SP, s2);
+			case TYPE_DBL:
+				M_DLD(REG_FTMP1, REG_SP, s1);
+				M_DST(REG_FTMP1, REG_SP, s2);
+				break;
 			}
 		}
 	}
