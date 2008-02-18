@@ -81,7 +81,7 @@ classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls, bool c
 #endif
 
 #if !defined(NDEBUG) && defined(ENABLE_INLINING)
-#define INLINELOG(code)  do { if (opt_inline_debug_log) { code } } while (0)
+#define INLINELOG(code)  do { if (opt_TraceInlining) { code } } while (0)
 #else
 #define INLINELOG(code)
 #endif

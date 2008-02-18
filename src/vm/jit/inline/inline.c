@@ -111,7 +111,7 @@
 
 #if !defined(NDEBUG)
 #define INLINE_VERBOSE
-#define DOLOG(code) do{ if (opt_inline_debug_log) { code; } }while(0)
+#define DOLOG(code) do{ if (opt_TraceInlining) { code; } }while(0)
 #else
 #define DOLOG(code)
 #endif
@@ -2160,10 +2160,10 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 #endif
 
 #if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
-	if (   (n_jd->instructioncount >= opt_inline_debug_min_size)
-		&& (n_jd->instructioncount <= opt_inline_debug_max_size))
+	if (   (n_jd->instructioncount >= opt_InlineMinSize)
+		&& (n_jd->instructioncount <= opt_InlineMaxSize))
 	{
-	   if (debug_counter <= opt_inline_debug_end_counter)
+	   if (debug_counter <= opt_InlineCount)
 #endif /* defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG) */
 	   {
 			/* install the inlined result */
