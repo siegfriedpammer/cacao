@@ -97,15 +97,15 @@ CYCLES_STATS_DECLARE(stacktrace_get_stack       , 40,  10000)
 
 void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra, u1 *xpc)
 {
-	stackframeinfo_t **psfi;
-	codeinfo          *code;
+	stackframeinfo_t *currentsfi;
+	codeinfo         *code;
 #if defined(ENABLE_JIT)
 	s4                 framesize;
 #endif
 
-	/* get current stackframe info pointer */
+	/* Get current stackframe info. */
 
-	psfi = &STACKFRAMEINFO;
+	currentsfi = threads_get_current_stackframeinfo();
 
 	/* sometimes we don't have pv handy (e.g. in asmpart.S:
        L_asm_call_jit_compiler_exception or in the interpreter). */
@@ -132,7 +132,7 @@ void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra
 	code = code_get_codeinfo_for_pv(pv);
 
 	/* XXX */
-/* 	assert(m != NULL); */
+	/* 	assert(m != NULL); */
 
 #if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
@@ -179,7 +179,7 @@ void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra
 
 	/* Fill new stackframeinfo structure. */
 
-	sfi->prev = *psfi;
+	sfi->prev = currentsfi;
 	sfi->code = code;
 	sfi->pv   = pv;
 	sfi->sp   = sp;
@@ -199,7 +199,7 @@ void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra
 
 	/* Store new stackframeinfo pointer. */
 
-	*psfi = sfi;
+	threads_set_current_stackframeinfo(sfi);
 
 	/* set the native world flag for the current thread */
 	/* ATTENTION: This flag tells the GC how to treat this thread in case of
@@ -218,16 +218,10 @@ void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra
 
 void stacktrace_stackframeinfo_remove(stackframeinfo_t *sfi)
 {
-	stackframeinfo_t **psfi;
-
-	/* clear the native world flag for the current thread */
-	/* ATTENTION: Clear this flag _before_ removing the stackframe info */
+	/* Clear the native world flag for the current thread. */
+	/* ATTENTION: Clear this flag _before_ removing the stackframe info. */
 
 	THREAD_NATIVEWORLD_EXIT;
-
-	/* get current stackframe info pointer */
-
-	psfi = &STACKFRAMEINFO;
 
 #if !defined(NDEBUG)
 	if (opt_DebugStackFrameInfo) {
@@ -240,9 +234,9 @@ void stacktrace_stackframeinfo_remove(stackframeinfo_t *sfi)
 	}
 #endif
 
-	/* restore the old pointer */
+	/* Set previous stackframe info. */
 
-	*psfi = sfi->prev;
+	threads_set_current_stackframeinfo(sfi->prev);
 }
 
 
@@ -528,18 +522,20 @@ static int stacktrace_depth(stackframeinfo_t *sfi)
 
 /* stacktrace_get **************************************************************
 
-   Builds and returns a stacktrace from the current thread for and
-   returns the stacktrace structure wrapped in a Java byte-array to
-   not confuse the GC.
+   Builds and returns a stacktrace starting from the given stackframe
+   info and returns the stacktrace structure wrapped in a Java
+   byte-array to not confuse the GC.
+
+   IN:
+       sfi ... stackframe info to start stacktrace from
 
    RETURN:
        stacktrace as Java byte-array
 
 *******************************************************************************/
 
-java_handle_bytearray_t *stacktrace_get(void)
+java_handle_bytearray_t *stacktrace_get(stackframeinfo_t *sfi)
 {
-	stackframeinfo_t        *sfi;
 	stackframeinfo_t         tmpsfi;
 	int                      depth;
 	java_handle_bytearray_t *ba;
@@ -559,10 +555,6 @@ java_handle_bytearray_t *stacktrace_get(void)
 
 	skip_fillInStackTrace = true;
 	skip_init             = true;
-
-	/* Get the stacktrace depth of the current thread. */
-
-	sfi = STACKFRAMEINFO;
 
 	depth = stacktrace_depth(sfi);
 
@@ -679,6 +671,29 @@ return_NULL:
 }
 
 
+/* stacktrace_get_current ******************************************************
+
+   Builds and returns a stacktrace from the current thread and returns
+   the stacktrace structure wrapped in a Java byte-array to not
+   confuse the GC.
+
+   RETURN:
+       stacktrace as Java byte-array
+
+*******************************************************************************/
+
+java_handle_bytearray_t *stacktrace_get_current(void)
+{
+	stackframeinfo_t        *sfi;
+	java_handle_bytearray_t *ba;
+
+	sfi = threads_get_current_stackframeinfo();
+	ba  = stacktrace_get(sfi);
+
+	return ba;
+}
+
+
 /* stacktrace_first_nonnull_classloader ****************************************
 
    Returns the first non-null (user-defined) classloader on the stack.
@@ -703,7 +718,7 @@ classloader *stacktrace_first_nonnull_classloader(void)
 
 	/* Get the stackframeinfo of the current thread. */
 
-	sfi = STACKFRAMEINFO;
+	sfi = threads_get_current_stackframeinfo();
 
 	/* Iterate over the whole stack. */
 
@@ -749,7 +764,7 @@ java_handle_objectarray_t *stacktrace_getClassContext(void)
 		log_println("[stacktrace_getClassContext]");
 #endif
 
-	sfi = STACKFRAMEINFO;
+	sfi = threads_get_current_stackframeinfo();
 
 	/* Get the depth of the current stack. */
 
@@ -843,7 +858,7 @@ classinfo *stacktrace_get_current_class(void)
 
 	/* Get the stackframeinfo of the current thread. */
 
-	sfi = STACKFRAMEINFO;
+	sfi = threads_get_current_stackframeinfo();
 
 	/* If the stackframeinfo is NULL then FindClass is called through
 	   the Invocation Interface and we return NULL */
@@ -917,7 +932,7 @@ java_handle_objectarray_t *stacktrace_get_stack(void)
 
 	/* Get the stackframeinfo of the current thread. */
 
-	sfi = STACKFRAMEINFO;
+	sfi = threads_get_current_stackframeinfo();
 
 	/* Get the depth of the current stack. */
 

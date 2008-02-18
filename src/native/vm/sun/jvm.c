@@ -391,7 +391,7 @@ void JVM_FillInStackTrace(JNIEnv *env, jobject receiver)
 
 	o = (java_lang_Throwable *) receiver;
 
-	ba = stacktrace_get();
+	ba = stacktrace_get_current();
 
 	if (ba == NULL)
 		return;
