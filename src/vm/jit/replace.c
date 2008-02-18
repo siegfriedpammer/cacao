@@ -2948,7 +2948,7 @@ void replace_gc_from_native(threadobject *thread, u1 *pc, u1 *sp)
 
 	assert(thread == THREADOBJECT);
 
-	sfi = threads_get_current_stackframeinfo().
+	sfi = threads_get_current_stackframeinfo();
 
 	/* create the execution state */
 	es = DNEW(executionstate_t);
