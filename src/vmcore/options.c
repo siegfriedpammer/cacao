@@ -169,42 +169,42 @@ const char *opt_filter_show_method = 0;
 
 /* NOTE: For better readability keep these alpha-sorted. */
 
-int      opt_DebugExceptions           = 0;
-int      opt_DebugFinalizer            = 0;
-int      opt_DebugLocalReferences      = 0;
-int      opt_DebugLocks                = 0;
-int      opt_DebugPackage              = 0;
-int      opt_DebugPatcher              = 0;
-int      opt_DebugProperties           = 0;
-int32_t  opt_DebugStackFrameInfo       = 0;
-int      opt_DebugStackTrace           = 0;
-int      opt_DebugThreads              = 0;
+int   opt_DebugExceptions           = 0;
+int   opt_DebugFinalizer            = 0;
+int   opt_DebugLocalReferences      = 0;
+int   opt_DebugLocks                = 0;
+int   opt_DebugPackage              = 0;
+int   opt_DebugPatcher              = 0;
+int   opt_DebugProperties           = 0;
+int   opt_DebugStackFrameInfo       = 0;
+int   opt_DebugStackTrace           = 0;
+int   opt_DebugThreads              = 0;
 #if defined(ENABLE_DISASSEMBLER)
-int      opt_DisassembleStubs          = 0;
+int   opt_DisassembleStubs          = 0;
 #endif
 #if defined(ENABLE_GC_CACAO)
-int32_t  opt_GCDebugRootSet            = 0;
-int32_t  opt_GCStress                  = 0;
+int   opt_GCDebugRootSet            = 0;
+int   opt_GCStress                  = 0;
 #endif
-int32_t  opt_MaxPermSize               = 0;
-int32_t  opt_PermSize                  = 0;
-int      opt_PrintConfig               = 0;
-int32_t  opt_ProfileGCMemoryUsage      = 0;
-int32_t  opt_ProfileMemoryUsage        = 0;
-FILE    *opt_ProfileMemoryUsageGNUPlot = NULL;
+int   opt_MaxPermSize               = 0;
+int   opt_PermSize                  = 0;
+int   opt_PrintConfig               = 0;
+int   opt_ProfileGCMemoryUsage      = 0;
+int   opt_ProfileMemoryUsage        = 0;
+FILE *opt_ProfileMemoryUsageGNUPlot = NULL;
 #if defined(ENABLE_REPLACEMENT)
-int      opt_TestReplacement           = 0;
+int   opt_TestReplacement           = 0;
 #endif
-int32_t  opt_ThreadStackSize           = 0;
-int      opt_TraceCompilerCalls        = 0;
-int32_t  opt_TraceExceptions           = 0;
-int32_t  opt_TraceJavaCalls            = 0;
-int32_t  opt_TraceJNICalls             = 0;
-int32_t  opt_TraceJVMCalls             = 0;
-int32_t  opt_TraceJVMCallsVerbose      = 0;
-int32_t  opt_TraceLinkClass            = 0;
+int   opt_ThreadStackSize           = 0;
+int   opt_TraceCompilerCalls        = 0;
+int   opt_TraceExceptions           = 0;
+int   opt_TraceJavaCalls            = 0;
+int   opt_TraceJNICalls             = 0;
+int   opt_TraceJVMCalls             = 0;
+int   opt_TraceJVMCallsVerbose      = 0;
+int   opt_TraceLinkClass            = 0;
 #if defined(ENABLE_REPLACEMENT)
-int32_t  opt_TraceReplacement          = 0;
+int   opt_TraceReplacement          = 0;
 #endif
 
 
