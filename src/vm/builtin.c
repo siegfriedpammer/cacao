@@ -266,6 +266,8 @@ static void builtintable_sort_automatic(void)
 
 bool builtin_init(void)
 {
+	TRACESUBSYSTEMINITIALIZATION("builtin_init");
+
 	/* initialize the builtin tables */
 
 	if (!builtintable_init())

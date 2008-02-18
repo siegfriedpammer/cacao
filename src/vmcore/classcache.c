@@ -1,9 +1,7 @@
 /* src/vmcore/classcache.c - loaded class cache and loading constraints
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -41,6 +39,7 @@
 #include "vm/exceptions.h"
 
 #include "vmcore/classcache.h"
+#include "vmcore/options.h"
 #include "vmcore/utf8.h"
 
 
@@ -253,6 +252,8 @@ static void classcache_remove_class_entry(classcache_name_entry *en,
 
 bool classcache_init(void)
 {
+	TRACESUBSYSTEMINITIALIZATION("classcache_init");
+
 	/* create the hashtable */
 
 	hashtable_create(&hashtable_classcache, CLASSCACHE_INIT_SIZE);

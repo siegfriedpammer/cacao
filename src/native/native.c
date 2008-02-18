@@ -89,6 +89,8 @@ static s4 native_tree_native_methods_comparator(const void *treenode, const void
 
 bool native_init(void)
 {
+	TRACESUBSYSTEMINITIALIZATION("native_init");
+
 #if defined(ENABLE_LTDL)
 	/* initialize libltdl */
 

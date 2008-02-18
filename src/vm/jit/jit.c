@@ -176,6 +176,8 @@ icmdtable_entry_t icmd_table[256] = {
 
 void jit_init(void)
 {
+	TRACESUBSYSTEMINITIALIZATION("jit_init");
+
 #if defined(ENABLE_JIT)
 	/* initialize stack analysis subsystem */
 

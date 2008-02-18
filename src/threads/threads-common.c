@@ -104,6 +104,8 @@ void threads_preinit(void)
 	size_t        len;
 #endif
 
+	TRACESUBSYSTEMINITIALIZATION("threads_preinit");
+
 #if defined(__LINUX__)
 	/* XXX Remove for exact-GC. */
 

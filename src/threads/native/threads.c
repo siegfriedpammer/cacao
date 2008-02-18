@@ -969,6 +969,8 @@ bool threads_init(void)
 
 	pthread_attr_t attr;
 
+	TRACESUBSYSTEMINITIALIZATION("threads_init");
+
 	/* get methods we need in this file */
 
 #if defined(WITH_CLASSPATH_GNU)

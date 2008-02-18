@@ -224,12 +224,27 @@ extern int   opt_TraceLinkClass;
 #if defined(ENABLE_REPLACEMENT)
 extern int   opt_TraceReplacement;
 #endif
+extern int   opt_TraceSubsystemInitialization;
 
 
 /* function prototypes ********************************************************/
 
 s4   options_get(opt_struct *opts, JavaVMInitArgs *vm_args);
 void options_xx(JavaVMInitArgs *vm_args);
+
+
+/* debug **********************************************************************/
+
+#if !defined(NDEBUG)
+# define TRACESUBSYSTEMINITIALIZATION(text)						\
+    do {														\
+        if (opt_TraceSubsystemInitialization) {					\
+            log_println("[Initializing subsystem: %s]", text);	\
+        }														\
+    } while (0)
+#else
+# define TRACESUBSYSTEMINITIALIZATION(text)
+#endif
 
 #endif /* _OPTIONS_H */
 

@@ -1,9 +1,7 @@
 /* src/vm/finalizer.c - finalizer linked list and thread
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -62,6 +60,8 @@ static java_object_t *lock_thread_finalizer;
 
 bool finalizer_init(void)
 {
+	TRACESUBSYSTEMINITIALIZATION("finalizer_init");
+
 #if defined(ENABLE_THREADS)
 	lock_thread_finalizer = NEW(java_object_t);
 

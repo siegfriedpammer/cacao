@@ -66,6 +66,8 @@ static int            pagesize         = 0;
 
 void codememory_init(void)
 {
+	TRACESUBSYSTEMINITIALIZATION("codememory_init");
+
 #if defined(ENABLE_THREADS)
 	/* create lock for code memory */
 

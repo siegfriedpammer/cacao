@@ -1,9 +1,7 @@
 /* src/vmcore/loader.c - class loader functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -100,7 +98,11 @@ void loader_preinit(void)
 {
 #if defined(ENABLE_THREADS)
 	list_classpath_entry *lce;
+#endif
 
+	TRACESUBSYSTEMINITIALIZATION("loader_preinit");
+
+#if defined(ENABLE_THREADS)
 	/* Initialize the monitor pointer for zip/jar file locking. */
 
 	for (lce = list_first(list_classpath_entries); lce != NULL;
@@ -139,6 +141,8 @@ void loader_preinit(void)
  
 void loader_init(void)
 {
+	TRACESUBSYSTEMINITIALIZATION("loader_init");
+
 	/* Load primitive-type wrapping classes. */
 
 	assert(vm_initializing == true);

@@ -1,9 +1,7 @@
 /* src/mm/boehm.c - interface for boehm gc
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -72,6 +70,8 @@ static void gc_ignore_warnings(char *msg, GC_word arg);
 void gc_init(u4 heapmaxsize, u4 heapstartsize)
 {
 	size_t heapcurrentsize;
+
+	TRACESUBSYSTEMINITIALIZATION("gc_init");
 
 	/* just to be sure (should be set to 1 by JAVA_FINALIZATION macro) */
 
