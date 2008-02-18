@@ -2236,50 +2236,58 @@ nowperformreturn:
 			}
 
 gen_method:
-			s3 = md->paramcount;
+			i = md->paramcount;
 
-			MCODECHECK((s3 << 1) + 64);
+			MCODECHECK((i << 1) + 64);
 
-			/* copy arguments to registers or stack location */
+			/* Copy arguments to registers or stack location. */
 
-			for (s3 = s3 - 1; s3 >= 0; s3--) {
-				var = VAR(iptr->sx.s23.s2.args[s3]);
-				d   = md->params[s3].regoff;
+			for (i = i - 1; i >= 0; i--) {
+				var = VAR(iptr->sx.s23.s2.args[i]);
+				d   = md->params[i].regoff;
 
-				/* Already Preallocated? */
+				/* Already pre-allocated? */
+
 				if (var->flags & PREALLOC)
 					continue;
 
-				if (IS_INT_LNG_TYPE(var->type)) {
-					if (!md->params[s3].inmemory) {
-						if (IS_2_WORD_TYPE(var->type)) {
-							s1 = emit_load(jd, iptr, var, d);
-							M_LNGMOVE(s1, d);
-						}
-						else {
-							s1 = emit_load(jd, iptr, var, d);
-							M_INTMOVE(s1, d);
-						}
-					}
-					else {
-						if (IS_2_WORD_TYPE(var->type)) {
-							s1 = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
-							M_LST(s1, REG_SP, d);
-						}
-						else {
-							s1 = emit_load(jd, iptr, var, REG_ITMP1);
-							M_IST(s1, REG_SP, d);
-						}
+				if (!md->params[i].inmemory) {
+					s1 = emit_load(jd, iptr, var, d);
+
+					switch (var->type) {
+					case TYPE_INT:
+					case TYPE_ADR:
+						M_INTMOVE(s1, d);
+						break;
+
+					case TYPE_LNG:
+						M_LNGMOVE(s1, d);
+						break;
+
+					case TYPE_FLT:
+					case TYPE_DBL:
+						M_FLTMOVE(s1, d);
+						break;
 					}
 				}
 				else {
-					if (!md->params[s3].inmemory) {
-						s1 = emit_load(jd, iptr, var, d);
-						M_FLTMOVE(s1, d);
-					}
-					else {
+					switch (var->type) {
+					case TYPE_INT:
+					case TYPE_ADR:
+						s1 = emit_load(jd, iptr, var, REG_ITMP1);
+						M_IST(s1, REG_SP, d);
+						break;
+
+					case TYPE_LNG:
+						s1 = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
+						M_LST(s1, REG_SP, d);
+						break;
+
+					case TYPE_FLT:
+					case TYPE_DBL:
 						s1 = emit_load(jd, iptr, var, REG_FTMP1);
 						M_DST(s1, REG_SP, d);
+						break;
 					}
 				}
 			}
