@@ -2393,26 +2393,31 @@ gen_method:
 				break;
 			}
 
-			/* store return value */
+			/* Store return value. */
 
-			d = md->returntype.type;
-
-			if (d != TYPE_VOID) {
-				if (IS_INT_LNG_TYPE(d)) {
-					if (IS_2_WORD_TYPE(d)) {
-						s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT_PACKED);
-						M_LNGMOVE(REG_RESULT_PACKED, s1);
-					}
-					else {
-						s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT);
-						M_INTMOVE(REG_RESULT, s1);
-					}
-				}
-				else {
-					s1 = codegen_reg_of_dst(jd, iptr, REG_FRESULT);
-					M_FLTMOVE(REG_FRESULT, s1);
-				}
+			switch (md->returntype.type) {
+			case TYPE_INT:
+			case TYPE_ADR:
+				s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT);
+				M_INTMOVE(REG_RESULT, s1);
 				emit_store_dst(jd, iptr, s1);
+				break;
+
+			case TYPE_LNG:
+				s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT_PACKED);
+				M_LNGMOVE(REG_RESULT_PACKED, s1);
+				emit_store_dst(jd, iptr, s1);
+				break;
+
+			case TYPE_FLT:
+			case TYPE_DBL:
+				s1 = codegen_reg_of_dst(jd, iptr, REG_FRESULT);
+				M_FLTMOVE(REG_FRESULT, s1);
+				emit_store_dst(jd, iptr, s1);
+				break;
+
+			case TYPE_VOID:
+				break;
 			}
 			break;
 
