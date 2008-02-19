@@ -67,7 +67,7 @@
 
 /* stub defines ***************************************************************/
 
-#define COMPILERSTUB_CODESIZE (6+6+2)
+#define COMPILERSTUB_CODESIZE (2+2)
 
 
 /* coldfire instruction format:
