@@ -1376,12 +1376,12 @@ void emit_alu_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp) 
 
 void emit_alul_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp) {
 	if (IS_IMM8(imm)) {
-		emit_rex(0,(basereg),0,0);
+		emit_rex(0,0,0,(basereg));
 		*(cd->mcodeptr++) = 0x83;
 		emit_membase(cd, (basereg),(disp),(opc));
 		emit_imm8((imm));
 	} else {
-		emit_rex(0,(basereg),0,0);
+		emit_rex(0,0,0,(basereg));
 		*(cd->mcodeptr++) = 0x81;
 		emit_membase(cd, (basereg),(disp),(opc));
 		emit_imm32((imm));
