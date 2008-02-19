@@ -408,6 +408,7 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 	codeinfo     *code;
 	registerdata *rd;
 	methoddesc   *md;
+	varinfo      *v;
 
 	/* get required compiler data */
 
@@ -426,27 +427,32 @@ void md_return_alloc(jitdata *jd, stackptr stackslot)
 		   has not to survive method invokations. */
 
 		if (!(stackslot->flags & SAVEDVAR)) {
-			VAR(stackslot->varnum)->flags = PREALLOC;
+			v = VAR(stackslot->varnum);
+			v->flags = PREALLOC;
 
-			if (IS_INT_LNG_TYPE(md->returntype.type)) {
-				if (!IS_2_WORD_TYPE(md->returntype.type)) {
-					if (rd->argintreguse < 1)
-						rd->argintreguse = 1;
+			switch (md->returntype.type) {
+			case TYPE_INT:
+			case TYPE_ADR:
+				if (rd->argintreguse < 1)
+					rd->argintreguse = 1;
 
-					VAR(stackslot->varnum)->vv.regoff = REG_RESULT;
-				}
-				else {
-					if (rd->argintreguse < 2)
-						rd->argintreguse = 2;
+				v->vv.regoff = REG_RESULT;
+				break;
 
-					VAR(stackslot->varnum)->vv.regoff = REG_RESULT_PACKED;
-				}
-			}
-			else { /* float/double */
+			case TYPE_LNG:
+				if (rd->argintreguse < 2)
+					rd->argintreguse = 2;
+
+				v->vv.regoff = REG_RESULT_PACKED;
+				break;
+
+			case TYPE_FLT:
+			case TYPE_DBL:
 				if (rd->argfltreguse < 1)
 					rd->argfltreguse = 1;
-
-				VAR(stackslot->varnum)->vv.regoff = REG_FRESULT;
+				
+				v->vv.regoff = REG_FRESULT;
+				break;
 			}
 		}
 	}
