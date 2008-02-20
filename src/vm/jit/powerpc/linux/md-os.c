@@ -300,6 +300,92 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 #endif
 
 
+/* md_replace_executionstate_read **********************************************
+
+   Read the given context into an executionstate for Replacement.
+
+*******************************************************************************/
+
+#if defined(ENABLE_REPLACEMENT)
+void md_replace_executionstate_read(executionstate_t *es, void *context)
+{
+	ucontext_t    *_uc;
+	mcontext_t    *_mc;
+	unsigned long *_gregs;
+	s4              i;
+
+	_uc = (ucontext_t *) context;
+
+#if defined(__UCLIBC__)
+#error Please port md_replace_executionstate_read to __UCLIBC__
+#else
+	_mc    = _uc->uc_mcontext.uc_regs;
+	_gregs = _mc->gregs;
+#endif
+
+	/* read special registers */
+	es->pc = (u1 *) _gregs[PT_NIP];
+	es->sp = (u1 *) _gregs[REG_SP];
+	es->pv = (u1 *) _gregs[REG_PV];
+	es->ra = (u1 *) _gregs[PT_LNK];
+
+	/* read integer registers */
+	for (i = 0; i < INT_REG_CNT; i++)
+		es->intregs[i] = _gregs[i];
+
+	/* read float registers */
+	/* Do not use the assignment operator '=', as the type of
+	 * the _mc->fpregs[i] can cause invalid conversions. */
+
+	assert(sizeof(_mc->fpregs.fpregs) == sizeof(es->fltregs));
+	memcpy(&es->fltregs, &_mc->fpregs.fpregs, sizeof(_mc->fpregs.fpregs));
+}
+#endif
+
+
+/* md_replace_executionstate_write *********************************************
+
+   Write the given executionstate back to the context for Replacement.
+
+*******************************************************************************/
+
+#if defined(ENABLE_REPLACEMENT)
+void md_replace_executionstate_write(executionstate_t *es, void *context)
+{
+	ucontext_t    *_uc;
+	mcontext_t    *_mc;
+	unsigned long *_gregs;
+	s4              i;
+
+	_uc = (ucontext_t *) context;
+
+#if defined(__UCLIBC__)
+#error Please port md_replace_executionstate_read to __UCLIBC__
+#else
+	_mc    = _uc->uc_mcontext.uc_regs;
+	_gregs = _mc->gregs;
+#endif
+
+	/* write integer registers */
+	for (i = 0; i < INT_REG_CNT; i++)
+		_gregs[i] = es->intregs[i];
+
+	/* write float registers */
+	/* Do not use the assignment operator '=', as the type of
+	 * the _mc->fpregs[i] can cause invalid conversions. */
+
+	assert(sizeof(_mc->fpregs.fpregs) == sizeof(es->fltregs));
+	memcpy(&_mc->fpregs.fpregs, &es->fltregs, sizeof(_mc->fpregs.fpregs));
+
+	/* write special registers */
+	_gregs[PT_NIP] = (ptrint) es->pc;
+	_gregs[REG_SP] = (ptrint) es->sp;
+	_gregs[REG_PV] = (ptrint) es->pv;
+	_gregs[PT_LNK] = (ptrint) es->ra;
+}
+#endif
+
+
 /* md_critical_section_restart *************************************************
 
    Search the critical sections tree for a matching section and set

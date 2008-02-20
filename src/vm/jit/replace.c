@@ -3250,9 +3250,10 @@ void replace_executionstate_println(executionstate_t *es)
 	}
 
 	printf("executionstate_t:\n");
-	printf("\tpc = %p",(void*)es->pc);
-	printf("  sp = %p",(void*)es->sp);
-	printf("  pv = %p\n",(void*)es->pv);
+	printf("\tpc = %p  ",(void*)es->pc);
+	printf("  sp = %p  ",(void*)es->sp);
+	printf("  pv = %p  ",(void*)es->pv);
+	printf("  ra = %p\n",(void*)es->ra);
 #if defined(ENABLE_DISASSEMBLER)
 	for (i=0; i<INT_REG_CNT; ++i) {
 		if (i%4 == 0)
@@ -3322,6 +3323,8 @@ void replace_executionstate_println(executionstate_t *es)
 	if (es->code != NULL) {
 		printf(" stackframesize=%d ", es->code->stackframesize);
 		method_print(es->code->m);
+		if (code_is_leafmethod(es->code))
+			printf(" leaf");
 	}
 	printf("\n");
 
@@ -3612,6 +3615,7 @@ static void replace_sanity_check_read_write(void *context)
 	es2.pc = es1.pc;
 	es2.sp = es1.sp;
 	es2.pv = es1.pv;
+	es2.ra = es1.ra;
 	es2.code = es1.code;
 	for (i = 0; i < INT_REG_CNT; ++i)
 		es2.intregs[i] = es1.intregs[i];
@@ -3645,6 +3649,14 @@ static void replace_sanity_check_read_write(void *context)
 #if defined(HAS_ADDRESS_REGISTER_FILE)
 	for (i = 0; i < ADR_REG_CNT; ++i)
 		assert(es3.adrregs[i] == es1.adrregs[i]);
+#endif
+
+	/* i386 and x86_64 do not have an RA register */
+
+#if defined(__I386__) || defined(__X86_64__)
+	assert(es3.ra != es1.ra);
+#else
+	assert(es3.ra == es1.ra);
 #endif
 
 	/* "code" is not set by the md_* functions */

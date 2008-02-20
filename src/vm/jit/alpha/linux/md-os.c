@@ -228,6 +228,7 @@ void md_replace_executionstate_read(executionstate_t *es, void *context)
 	es->pc = (u1 *) _mc->sc_pc;
 	es->sp = (u1 *) _mc->sc_regs[REG_SP];
 	es->pv = (u1 *) _mc->sc_regs[REG_PV];
+	es->ra = (u1 *) _mc->sc_regs[REG_RA];
 
 	/* read integer registers */
 	for (i = 0; i < INT_REG_CNT; i++)
@@ -274,6 +275,7 @@ void md_replace_executionstate_write(executionstate_t *es, void *context)
 	_mc->sc_pc           = (ptrint) es->pc;
 	_mc->sc_regs[REG_SP] = (ptrint) es->sp;
 	_mc->sc_regs[REG_PV] = (ptrint) es->pv;
+	_mc->sc_regs[REG_RA] = (ptrint) es->ra;
 }
 #endif
 
