@@ -234,8 +234,11 @@ void md_replace_executionstate_read(executionstate_t *es, void *context)
 		es->intregs[i] = _mc->sc_regs[i];
 
 	/* read float registers */
-	for (i = 0; i < FLT_REG_CNT; i++)
-		es->fltregs[i] = _mc->sc_fpregs[i];
+	/* Do not use the assignment operator '=', as the type of
+	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
+
+	assert(sizeof(_mc->sc_fpregs) == sizeof(es->fltregs));
+	memcpy(&es->fltregs, &_mc->sc_fpregs, sizeof(_mc->sc_fpregs));
 }
 #endif
 
@@ -261,8 +264,11 @@ void md_replace_executionstate_write(executionstate_t *es, void *context)
 		_mc->sc_regs[i] = es->intregs[i];
 
 	/* write float registers */
-	for (i = 0; i < FLT_REG_CNT; i++)
-		_mc->sc_fpregs[i] = es->fltregs[i];
+	/* Do not use the assignment operator '=', as the type of
+	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
+
+	assert(sizeof(_mc->sc_fpregs) == sizeof(es->fltregs));
+	memcpy(&_mc->sc_fpregs, &es->fltregs, sizeof(_mc->sc_fpregs));
 
 	/* write special registers */
 	_mc->sc_pc           = (ptrint) es->pc;
