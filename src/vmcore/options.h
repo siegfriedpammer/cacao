@@ -133,22 +133,6 @@ extern bool opt_prof;
 extern bool opt_prof_bb;
 #endif
 
-/* inlining options ***********************************************************/
-
-#if defined(ENABLE_INLINING)
-extern bool opt_inlining;
-#if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
-extern s4 opt_inline_debug_min_size;
-extern s4 opt_inline_debug_max_size;
-extern s4 opt_inline_debug_end_counter;
-extern bool opt_inline_debug_all;
-#endif /* defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG) */
-#if !defined(NDEBUG)
-extern bool opt_inline_debug_log;
-#endif /* !defined(NDEBUG) */
-#endif /* defined(ENABLE_INLINING) */
-
-
 /* optimization options *******************************************************/
 
 #if defined(ENABLE_IFCONV)
@@ -204,6 +188,15 @@ extern int   opt_DisassembleStubs;
 extern int   opt_GCDebugRootSet;
 extern int   opt_GCStress;
 #endif
+#if defined(ENABLE_INLINING)
+extern int   opt_Inline;
+#if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
+extern int   opt_InlineAll;
+extern int   opt_InlineCount;
+extern int   opt_InlineMaxSize;
+extern int   opt_InlineMinSize;
+#endif
+#endif
 extern int   opt_MaxPermSize;
 extern int   opt_PermSize;
 extern int   opt_PrintConfig;
@@ -216,6 +209,9 @@ extern int   opt_TestReplacement;
 extern int   opt_ThreadStackSize;
 extern int   opt_TraceCompilerCalls;
 extern int   opt_TraceExceptions;
+#if defined(ENABLE_INLINING) && !defined(NDEBUG)
+extern int   opt_TraceInlining;
+#endif
 extern int   opt_TraceJavaCalls;
 extern int   opt_TraceJNICalls;
 extern int   opt_TraceJVMCalls;

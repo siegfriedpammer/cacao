@@ -238,19 +238,6 @@ enum {
 	OPT_LSRA,
 #endif
 
-#if defined(ENABLE_INLINING)
-	OPT_INLINING,
-#if !defined(NDEBUG)
-	OPT_INLINE_LOG,
-#endif
-#if defined(ENABLE_INLINING_DEBUG)
-	OPT_INLINE_DEBUG_ALL,
-	OPT_INLINE_DEBUG_END,
-	OPT_INLINE_DEBUG_MIN,
-	OPT_INLINE_DEBUG_MAX,
-#endif /* defined(ENABLE_INLINING_DEBUG) */
-#endif /* defined(ENABLE_INLINING) */
-
 #if defined(ENABLE_INTRP)
 	/* interpreter options */
 
@@ -403,21 +390,6 @@ opt_struct opts[] = {
 	{ "Xprof:",            true,  OPT_PROF_OPTION },
 	{ "Xprof",             false, OPT_PROF },
 #endif
-
-	/* inlining options */
-
-#if defined(ENABLE_INLINING)
-#if defined(ENABLE_INLINING_DEBUG)
-	{ "ia",                false, OPT_INLINE_DEBUG_ALL },
-	{ "ii",                true,  OPT_INLINE_DEBUG_MIN },
-	{ "im",                true,  OPT_INLINE_DEBUG_MAX },
-	{ "ie",                true,  OPT_INLINE_DEBUG_END },
-#endif /* defined(ENABLE_INLINING_DEBUG) */
-#if !defined(NDEBUG)
-	{ "il",                false, OPT_INLINE_LOG },
-#endif
-	{ "i",                 false, OPT_INLINING },
-#endif /* defined(ENABLE_INLINING) */
 
 	/* keep these at the end of the list */
 
@@ -575,19 +547,6 @@ static void XXusage(void)
 	puts("      n(o)ps                 show NOPs in disassembler output");
 #endif
 	puts("      (d)atasegment          data segment listing");
-
-#if defined(ENABLE_INLINING)
-	puts("    -i                       activate inlining");
-#if !defined(NDEBUG)
-	puts("    -il                      log inlining");
-#endif
-#if defined(ENABLE_INLINING_DEBUG)
-	puts("    -ia                      use inlining for all methods");
-	puts("    -ii <size>               set minimum size for inlined result");
-	puts("    -im <size>               set maximum size for inlined result");
-	puts("    -ie <number>             stop inlining after the given number of roots");
-#endif /* defined(ENABLE_INLINING_DEBUG) */
-#endif /* defined(ENABLE_INLINING) */
 
 #if defined(ENABLE_IFCONV)
 	puts("    -ifconv                  use if-conversion");
@@ -1223,32 +1182,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			opt_loops = true;
 			break;
 #endif
-
-#if defined(ENABLE_INLINING)
-#if defined(ENABLE_INLINING_DEBUG)
-		case OPT_INLINE_DEBUG_ALL:
-			opt_inline_debug_all = true;
-			break;
-		case OPT_INLINE_DEBUG_END:
-			opt_inline_debug_end_counter = atoi(opt_arg);
-			break;
-		case OPT_INLINE_DEBUG_MIN:
-			opt_inline_debug_min_size = atoi(opt_arg);
-			break;
-		case OPT_INLINE_DEBUG_MAX:
-			opt_inline_debug_max_size = atoi(opt_arg);
-			break;
-#endif /* defined(ENABLE_INLINING_DEBUG) */
-#if !defined(NDEBUG)
-		case OPT_INLINE_LOG:
-			opt_inline_debug_log = true;
-			break;
-#endif /* !defined(NDEBUG) */
-
-		case OPT_INLINING:
-			opt_inlining = true;
-			break;
-#endif /* defined(ENABLE_INLINING) */
 
 #if defined(ENABLE_IFCONV)
 		case OPT_IFCONV:
