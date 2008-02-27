@@ -702,19 +702,37 @@ void threads_set_current_threadobject(threadobject *thread)
 
 void threads_impl_thread_new(threadobject *t)
 {
+	int result;
+
 	/* get the pthread id */
 
 	t->tid = pthread_self();
 
 	/* initialize the mutex and the condition */
 
-	pthread_mutex_init(&t->flc_lock, NULL);
-	pthread_cond_init(&t->flc_cond, NULL);
+	result = pthread_mutex_init(&t->flc_lock, NULL);
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_thread_new: pthread_mutex_init failed");
 
-	pthread_mutex_init(&(t->waitmutex), NULL);
-	pthread_cond_init(&(t->waitcond), NULL);
-	pthread_mutex_init(&(t->suspendmutex), NULL);
-	pthread_cond_init(&(t->suspendcond), NULL);
+	result = pthread_cond_init(&t->flc_cond, NULL);
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_thread_new: pthread_cond_init failed");
+
+	result = pthread_mutex_init(&(t->waitmutex), NULL);
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_thread_new: pthread_mutex_init failed");
+
+	result = pthread_cond_init(&(t->waitcond), NULL);
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_thread_new: pthread_cond_init failed");
+
+	result = pthread_mutex_init(&(t->suspendmutex), NULL);
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_thread_new: pthread_mutex_init failed");
+
+	result = pthread_cond_init(&(t->suspendcond), NULL);
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_thread_new: pthread_cond_init failed");
 
 #if defined(ENABLE_DEBUG_FILTER)
 	/* Initialize filter counters */
@@ -809,26 +827,41 @@ threadobject *threads_get_current_threadobject(void)
 
 void threads_impl_preinit(void)
 {
-	pthread_mutex_init(&stopworldlock, NULL);
+	int result;
+
+	result = pthread_mutex_init(&stopworldlock, NULL);
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_preinit: pthread_mutex_init failed");
 
 	/* initialize exit mutex and condition (on exit we join all
 	   threads) */
 
-	pthread_mutex_init(&mutex_join, NULL);
-	pthread_cond_init(&cond_join, NULL);
+	result = pthread_mutex_init(&mutex_join, NULL);
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_preinit: pthread_mutex_init failed");
+
+	result = pthread_cond_init(&cond_join, NULL);
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_preinit: pthread_cond_init failed");
 
 #if defined(ENABLE_GC_CACAO)
 	/* initialize the GC mutext */
 
-	pthread_mutex_init(&mutex_gc, NULL);
+	result = pthread_mutex_init(&mutex_gc, NULL);
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_preinit: pthread_mutex_init failed");
 #endif
 
 	/* initialize the threads-list mutex */
 
-	pthread_mutex_init(&mutex_threads_list, NULL);
+	result = pthread_mutex_init(&mutex_threads_list, NULL);
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_preinit: pthread_mutex_init failed");
 
 #if !defined(HAVE___THREAD)
-	pthread_key_create(&threads_current_threadobject_key, NULL);
+	result = pthread_key_create(&threads_current_threadobject_key, NULL);
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_preinit: pthread_key_create failed");
 #endif
 
  	threads_sem_init(&suspend_ack, 0, 0);
