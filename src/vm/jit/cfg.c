@@ -413,6 +413,8 @@ void cfg_add_root(jitdata *jd) {
 	}
 }
 
+#if defined(ENABLE_SSA)
+
 /* cfg_add_exceptional_edges ***************************************************
  
    Edges from basicblocks to their exception handlers and from exception 
@@ -488,6 +490,8 @@ void cfg_add_exceptional_edges(jitdata *jd) {
 		}
 	}
 }
+
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.
