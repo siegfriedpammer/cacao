@@ -246,6 +246,7 @@ ptrint lock_pre_compute_thinlock(s4 index)
 
 static lock_record_t *lock_record_new(void)
 {
+	int result;
 	lock_record_t *lr;
 
 	/* allocate the data structure on the C heap */
@@ -272,7 +273,9 @@ static lock_record_t *lock_record_new(void)
 
 	/* initialize the mutex */
 
-	pthread_mutex_init(&(lr->mutex), NULL);
+	result = pthread_mutex_init(&(lr->mutex), NULL);
+	if (result != 0)
+		vm_abort_errnum(result, "lock_record_new: pthread_mutex_init failed");
 
 	DEBUGLOCKS(("[lock_record_new   : lr=%p]", (void *) lr));
 
@@ -291,11 +294,15 @@ static lock_record_t *lock_record_new(void)
 
 static void lock_record_free(lock_record_t *lr)
 {
+	int result;
+
 	DEBUGLOCKS(("[lock_record_free  : lr=%p]", (void *) lr));
 
 	/* Destroy the mutex. */
 
-	pthread_mutex_destroy(&(lr->mutex));
+	result = pthread_mutex_destroy(&(lr->mutex));
+	if (result != 0)
+		vm_abort_errnum(result, "lock_record_free: pthread_mutex_destroy failed");
 
 #if defined(ENABLE_GC_CACAO)
 	/* unregister the lock object reference with the GC */

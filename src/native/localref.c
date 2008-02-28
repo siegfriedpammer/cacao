@@ -1,9 +1,7 @@
 /* src/native/localref.c - Management of local reference tables
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -86,6 +84,8 @@ static bool localref_check_uncleared();
 bool localref_table_init(void)
 {
 	localref_table *lrt;
+
+	TRACESUBSYSTEMINITIALIZATION("localref_table_init");
 
 	assert(LOCALREFTABLE == NULL);
 

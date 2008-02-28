@@ -115,22 +115,6 @@ bool opt_prof_bb = false;
 #endif
 
 
-/* inlining options ***********************************************************/
-
-#if defined(ENABLE_INLINING)
-bool opt_inlining = false;
-#if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
-s4 opt_inline_debug_min_size = 0;
-s4 opt_inline_debug_max_size = INT_MAX;
-s4 opt_inline_debug_end_counter = INT_MAX;
-bool opt_inline_debug_all = false;
-#endif /* defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG) */
-#if !defined(NDEBUG)
-bool opt_inline_debug_log = false;
-#endif /* !defined(NDEBUG) */
-#endif /* defined(ENABLE_INLINING) */
-
-
 /* optimization options *******************************************************/
 
 #if defined(ENABLE_IFCONV)
@@ -169,43 +153,56 @@ const char *opt_filter_show_method = 0;
 
 /* NOTE: For better readability keep these alpha-sorted. */
 
-int      opt_DebugExceptions           = 0;
-int      opt_DebugFinalizer            = 0;
-int      opt_DebugLocalReferences      = 0;
-int      opt_DebugLocks                = 0;
-int      opt_DebugPackage              = 0;
-int      opt_DebugPatcher              = 0;
-int      opt_DebugProperties           = 0;
-int32_t  opt_DebugStackFrameInfo       = 0;
-int      opt_DebugStackTrace           = 0;
-int      opt_DebugThreads              = 0;
+int   opt_DebugExceptions              = 0;
+int   opt_DebugFinalizer               = 0;
+int   opt_DebugLocalReferences         = 0;
+int   opt_DebugLocks                   = 0;
+int   opt_DebugPackage                 = 0;
+int   opt_DebugPatcher                 = 0;
+int   opt_DebugProperties              = 0;
+int   opt_DebugStackFrameInfo          = 0;
+int   opt_DebugStackTrace              = 0;
+int   opt_DebugThreads                 = 0;
 #if defined(ENABLE_DISASSEMBLER)
-int      opt_DisassembleStubs          = 0;
+int   opt_DisassembleStubs             = 0;
 #endif
 #if defined(ENABLE_GC_CACAO)
-int32_t  opt_GCDebugRootSet            = 0;
-int32_t  opt_GCStress                  = 0;
+int   opt_GCDebugRootSet               = 0;
+int   opt_GCStress                     = 0;
 #endif
-int32_t  opt_MaxPermSize               = 0;
-int32_t  opt_PermSize                  = 0;
-int      opt_PrintConfig               = 0;
-int32_t  opt_ProfileGCMemoryUsage      = 0;
-int32_t  opt_ProfileMemoryUsage        = 0;
-FILE    *opt_ProfileMemoryUsageGNUPlot = NULL;
+#if defined(ENABLE_INLINING)
+int   opt_Inline                       = 0;
+#if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
+int   opt_InlineAll                    = 0;
+int   opt_InlineCount                  = INT_MAX;
+int   opt_InlineMaxSize                = INT_MAX;
+int   opt_InlineMinSize                = 0;
+#endif
+#endif
+int   opt_MaxPermSize                  = 0;
+int   opt_PermSize                     = 0;
+int   opt_PrintConfig                  = 0;
+int   opt_ProfileGCMemoryUsage         = 0;
+int   opt_ProfileMemoryUsage           = 0;
+FILE *opt_ProfileMemoryUsageGNUPlot    = NULL;
 #if defined(ENABLE_REPLACEMENT)
-int      opt_TestReplacement           = 0;
+int   opt_TestReplacement              = 0;
 #endif
-int32_t  opt_ThreadStackSize           = 0;
-int      opt_TraceCompilerCalls        = 0;
-int32_t  opt_TraceExceptions           = 0;
-int32_t  opt_TraceJavaCalls            = 0;
-int32_t  opt_TraceJNICalls             = 0;
-int32_t  opt_TraceJVMCalls             = 0;
-int32_t  opt_TraceJVMCallsVerbose      = 0;
-int32_t  opt_TraceLinkClass            = 0;
+int   opt_ThreadStackSize              = 0;
+int   opt_TraceCompilerCalls           = 0;
+int   opt_TraceExceptions              = 0;
+#if defined(ENABLE_INLINING) && !defined(NDEBUG)
+int   opt_TraceInlining                = 0;
+#endif
+int   opt_TraceJavaCalls               = 0;
+int   opt_TraceJNICalls                = 0;
+int   opt_TraceJVMCalls                = 0;
+int   opt_TraceJVMCallsVerbose         = 0;
+int   opt_TraceLinkClass               = 0;
 #if defined(ENABLE_REPLACEMENT)
-int32_t  opt_TraceReplacement          = 0;
+int   opt_TraceReplacement             = 0;
 #endif
+int   opt_TraceSubsystemInitialization = 0;
 
 
 enum {
@@ -227,6 +224,11 @@ enum {
 	OPT_DisassembleStubs,
 	OPT_GCDebugRootSet,
 	OPT_GCStress,
+	OPT_Inline,
+	OPT_InlineAll,
+	OPT_InlineCount,
+	OPT_InlineMaxSize,
+	OPT_InlineMinSize,
 	OPT_MaxPermSize,
 	OPT_PermSize,
 	OPT_PrintConfig,
@@ -237,57 +239,83 @@ enum {
 	OPT_ThreadStackSize,
 	OPT_TraceCompilerCalls,
 	OPT_TraceExceptions,
+	OPT_TraceInlining,
 	OPT_TraceJavaCalls,
 	OPT_TraceJNICalls,
 	OPT_TraceJVMCalls,
 	OPT_TraceJVMCallsVerbose,
 	OPT_TraceLinkClass,
-	OPT_TraceReplacement
+	OPT_TraceReplacement,
+	OPT_TraceSubsystemInitialization,
+	OPT_Vmlog,
+	OPT_VmlogStrings,
+	OPT_VmlogIgnore
 };
 
 
 option_t options_XX[] = {
-	{ "DebugExceptions",           OPT_DebugExceptions,           OPT_TYPE_BOOLEAN, "debug exceptions" },
-	{ "DebugFinalizer",            OPT_DebugFinalizer,            OPT_TYPE_BOOLEAN, "debug finalizer thread" },
-	{ "DebugLocalReferences",      OPT_DebugLocalReferences,      OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
-	{ "DebugLocks",                OPT_DebugLocks,                OPT_TYPE_BOOLEAN, "print debug information for locks" },
-	{ "DebugPackage",              OPT_DebugPackage,              OPT_TYPE_BOOLEAN, "debug Java boot-packages" },
-	{ "DebugPatcher",              OPT_DebugPatcher,              OPT_TYPE_BOOLEAN, "debug JIT code patching" },
-	{ "DebugProperties",           OPT_DebugProperties,           OPT_TYPE_BOOLEAN, "print debug information for properties" },
-	{ "DebugStackFrameInfo",       OPT_DebugStackFrameInfo,       OPT_TYPE_BOOLEAN, "TODO" },
-	{ "DebugStackTrace",           OPT_DebugStackTrace,           OPT_TYPE_BOOLEAN, "debug stacktrace creation" },
-	{ "DebugThreads",              OPT_DebugThreads,              OPT_TYPE_BOOLEAN, "print debug information for threads" },
+	{ "DebugExceptions",              OPT_DebugExceptions,              OPT_TYPE_BOOLEAN, "debug exceptions" },
+	{ "DebugFinalizer",               OPT_DebugFinalizer,               OPT_TYPE_BOOLEAN, "debug finalizer thread" },
+	{ "DebugLocalReferences",         OPT_DebugLocalReferences,         OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
+	{ "DebugLocks",                   OPT_DebugLocks,                   OPT_TYPE_BOOLEAN, "print debug information for locks" },
+	{ "DebugPackage",                 OPT_DebugPackage,                 OPT_TYPE_BOOLEAN, "debug Java boot-packages" },
+	{ "DebugPatcher",                 OPT_DebugPatcher,                 OPT_TYPE_BOOLEAN, "debug JIT code patching" },
+	{ "DebugProperties",              OPT_DebugProperties,              OPT_TYPE_BOOLEAN, "print debug information for properties" },
+	{ "DebugStackFrameInfo",          OPT_DebugStackFrameInfo,          OPT_TYPE_BOOLEAN, "TODO" },
+	{ "DebugStackTrace",              OPT_DebugStackTrace,              OPT_TYPE_BOOLEAN, "debug stacktrace creation" },
+	{ "DebugThreads",                 OPT_DebugThreads,                 OPT_TYPE_BOOLEAN, "print debug information for threads" },
 #if defined(ENABLE_DISASSEMBLER)
-	{ "DisassembleStubs",          OPT_DisassembleStubs,          OPT_TYPE_BOOLEAN, "disassemble builtin and native stubs when generated" },
+	{ "DisassembleStubs",             OPT_DisassembleStubs,             OPT_TYPE_BOOLEAN, "disassemble builtin and native stubs when generated" },
 #endif
 #if defined(ENABLE_GC_CACAO)
-	{ "GCDebugRootSet",            OPT_GCDebugRootSet,            OPT_TYPE_BOOLEAN, "GC: print root-set at collection" },
-	{ "GCStress",                  OPT_GCStress,                  OPT_TYPE_BOOLEAN, "GC: forced collection at every allocation" },
+	{ "GCDebugRootSet",               OPT_GCDebugRootSet,               OPT_TYPE_BOOLEAN, "GC: print root-set at collection" },
+	{ "GCStress",                     OPT_GCStress,                     OPT_TYPE_BOOLEAN, "GC: forced collection at every allocation" },
 #endif
-	{ "MaxPermSize",               OPT_MaxPermSize,               OPT_TYPE_VALUE,   "not implemented" },
-	{ "PermSize",                  OPT_PermSize,                  OPT_TYPE_VALUE,   "not implemented" },
-	{ "PrintConfig",               OPT_PrintConfig,               OPT_TYPE_BOOLEAN, "print VM configuration" },
-	{ "ProfileGCMemoryUsage",      OPT_ProfileGCMemoryUsage,      OPT_TYPE_VALUE,   "profiles GC memory usage in the given interval, <value> is in seconds (default: 5)" },
-	{ "ProfileMemoryUsage",        OPT_ProfileMemoryUsage,        OPT_TYPE_VALUE,   "TODO" },
-	{ "ProfileMemoryUsageGNUPlot", OPT_ProfileMemoryUsageGNUPlot, OPT_TYPE_VALUE,   "TODO" },
-#if defined(ENABLE_REPLACEMENT)
-	{ "TestReplacement"          , OPT_TestReplacement,           OPT_TYPE_BOOLEAN, "activate all replacement points during code generation" },
+#if defined(ENABLE_INLINING)
+	{ "Inline",                       OPT_Inline,                       OPT_TYPE_BOOLEAN, "enable method inlining" },
+#if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
+	{ "InlineAll",                    OPT_InlineAll,                    OPT_TYPE_BOOLEAN, "use inlining in all compilations" },
+	{ "InlineCount",                  OPT_InlineCount,                  OPT_TYPE_VALUE,   "stop inlining after the given number of roots" },
+	{ "InlineMaxSize",                OPT_InlineMaxSize,                OPT_TYPE_VALUE,   "maximum size for inlined result" },
+	{ "InlineMinSize",                OPT_InlineMinSize,                OPT_TYPE_VALUE,   "minimum size for inlined result" },
 #endif
-	{ "ThreadStackSize",           OPT_ThreadStackSize,           OPT_TYPE_VALUE,   "TODO" },
-	{ "TraceCompilerCalls",        OPT_TraceCompilerCalls,        OPT_TYPE_BOOLEAN, "trace JIT compiler calls" },
-	{ "TraceExceptions",           OPT_TraceExceptions,           OPT_TYPE_BOOLEAN, "trace Exception throwing" },
-	{ "TraceJavaCalls",            OPT_TraceJavaCalls,            OPT_TYPE_BOOLEAN, "trace Java method calls" },
-	{ "TraceJNICalls",             OPT_TraceJNICalls,             OPT_TYPE_BOOLEAN, "trace JNI method calls" },
-	{ "TraceJVMCalls",             OPT_TraceJVMCalls,             OPT_TYPE_BOOLEAN, "trace JVM method calls but omit very frequent ones" },
-	{ "TraceJVMCallsVerbose",      OPT_TraceJVMCallsVerbose,      OPT_TYPE_BOOLEAN, "trace all JVM method calls" },
-	{ "TraceLinkClass",            OPT_TraceLinkClass,            OPT_TYPE_BOOLEAN, "trace class linking" },
+#endif
+	{ "MaxPermSize",                  OPT_MaxPermSize,                  OPT_TYPE_VALUE,   "not implemented" },
+	{ "PermSize",                     OPT_PermSize,                     OPT_TYPE_VALUE,   "not implemented" },
+	{ "PrintConfig",                  OPT_PrintConfig,                  OPT_TYPE_BOOLEAN, "print VM configuration" },
+	{ "ProfileGCMemoryUsage",         OPT_ProfileGCMemoryUsage,         OPT_TYPE_VALUE,   "profiles GC memory usage in the given interval, <value> is in seconds (default: 5)" },
+	{ "ProfileMemoryUsage",           OPT_ProfileMemoryUsage,           OPT_TYPE_VALUE,   "TODO" },
+	{ "ProfileMemoryUsageGNUPlot",    OPT_ProfileMemoryUsageGNUPlot,    OPT_TYPE_VALUE,   "TODO" },
 #if defined(ENABLE_REPLACEMENT)
-	{ "TraceReplacement",          OPT_TraceReplacement,          OPT_TYPE_VALUE,   "trace on-stack replacement with the given verbosity level (default: 1)" },
+	{ "TestReplacement",              OPT_TestReplacement,              OPT_TYPE_BOOLEAN, "activate all replacement points during code generation" },
+#endif
+	{ "ThreadStackSize",              OPT_ThreadStackSize,              OPT_TYPE_VALUE,   "TODO" },
+	{ "TraceCompilerCalls",           OPT_TraceCompilerCalls,           OPT_TYPE_BOOLEAN, "trace JIT compiler calls" },
+	{ "TraceExceptions",              OPT_TraceExceptions,              OPT_TYPE_BOOLEAN, "trace Exception throwing" },
+#if defined(ENABLE_INLINING) && !defined(NDEBUG)
+	{ "TraceInlining",                OPT_TraceInlining,                OPT_TYPE_VALUE,   "trace method inlining with the given verbosity level (default: 1)" },
+#endif
+#if !defined(ENABLE_VMLOG)
+	{ "TraceJavaCalls",               OPT_TraceJavaCalls,               OPT_TYPE_BOOLEAN, "trace Java method calls" },
+#endif
+	{ "TraceJNICalls",                OPT_TraceJNICalls,                OPT_TYPE_BOOLEAN, "trace JNI method calls" },
+	{ "TraceJVMCalls",                OPT_TraceJVMCalls,                OPT_TYPE_BOOLEAN, "trace JVM method calls but omit very frequent ones" },
+	{ "TraceJVMCallsVerbose",         OPT_TraceJVMCallsVerbose,         OPT_TYPE_BOOLEAN, "trace all JVM method calls" },
+	{ "TraceLinkClass",               OPT_TraceLinkClass,               OPT_TYPE_BOOLEAN, "trace class linking" },
+#if defined(ENABLE_REPLACEMENT)
+	{ "TraceReplacement",             OPT_TraceReplacement,             OPT_TYPE_VALUE,   "trace on-stack replacement with the given verbosity level (default: 1)" },
+#endif
+	{ "TraceSubsystemInitialization", OPT_TraceSubsystemInitialization, OPT_TYPE_BOOLEAN, "trace initialization of subsystems" },
+
+#if defined(ENABLE_VMLOG)
+	{ "Vmlog",                        OPT_Vmlog,                        OPT_TYPE_VALUE,   "prefix for vmlog trace files (enables vmlog)" },
+	{ "VmlogStrings",                 OPT_VmlogStrings,                 OPT_TYPE_VALUE,   "prefix of vmlog string file to load" },
+	{ "VmlogIgnore",                  OPT_VmlogIgnore,                  OPT_TYPE_VALUE,   "prefix of vmlog ignore file to load" },
 #endif
 
 	/* end marker */
 
-	{ NULL,                        -1,                            -1, NULL }
+	{ NULL,                           -1,                               -1,               NULL }
 };
 
 
@@ -591,6 +619,32 @@ void options_xx(JavaVMInitArgs *vm_args)
 			break;
 #endif
 
+#if defined(ENABLE_INLINING)
+		case OPT_Inline:
+			opt_Inline = enable;
+			break;
+#if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
+		case OPT_InlineAll:
+			opt_InlineAll = enable;
+			break;
+
+		case OPT_InlineCount:
+			if (value != NULL)
+				opt_InlineCount = atoi(value);
+			break;
+
+		case OPT_InlineMaxSize:
+			if (value != NULL)
+				opt_InlineMaxSize = atoi(value);
+			break;
+
+		case OPT_InlineMinSize:
+			if (value != NULL)
+				opt_InlineMinSize = atoi(value);
+			break;
+#endif
+#endif
+
 		case OPT_MaxPermSize:
 			/* currently ignored */
 			break;
@@ -655,6 +709,15 @@ void options_xx(JavaVMInitArgs *vm_args)
 			opt_TraceExceptions = enable;
 			break;
 
+#if defined(ENABLE_INLINING) && !defined(NDEBUG)
+		case OPT_TraceInlining:
+			if (value == NULL)
+				opt_TraceInlining = 1;
+			else
+				opt_TraceInlining = atoi(value);
+			break;
+#endif
+
 		case OPT_TraceJavaCalls:
 			opt_verbosecall = enable;
 			opt_TraceJavaCalls = enable;
@@ -682,6 +745,31 @@ void options_xx(JavaVMInitArgs *vm_args)
 				opt_TraceReplacement = 1;
 			else
 				opt_TraceReplacement = atoi(value);
+			break;
+#endif
+
+		case OPT_TraceSubsystemInitialization:
+			opt_TraceSubsystemInitialization = enable;
+			break;
+
+#if defined(ENABLE_VMLOG)
+		case OPT_Vmlog:
+			if (value == NULL)
+				vmlog_cacao_set_prefix("vmlog");
+			else
+				vmlog_cacao_set_prefix(value);
+			opt_verbosecall = 1;
+			opt_TraceJavaCalls = 1;
+			break;
+
+		case OPT_VmlogStrings:
+			if (value != NULL)
+				vmlog_cacao_set_stringprefix(value);
+			break;
+
+		case OPT_VmlogIgnore:
+			if (value != NULL)
+				vmlog_cacao_set_ignoreprefix(value);
 			break;
 #endif
 

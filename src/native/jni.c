@@ -182,6 +182,8 @@ jobject _Jv_JNI_NewLocalRef(JNIEnv *env, jobject ref);
 
 bool jni_init(void)
 {
+	TRACESUBSYSTEMINITIALIZATION("jni_init");
+
 	/* create global ref hashtable */
 
 	hashtable_global_ref = NEW(hashtable);

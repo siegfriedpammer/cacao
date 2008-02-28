@@ -1,9 +1,7 @@
 /* src/vm/signal.c - machine independent signal functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -84,6 +82,8 @@ bool signal_init(void)
 {
 #if !defined(__CYGWIN__)
 	sigset_t mask;
+
+	TRACESUBSYSTEMINITIALIZATION("signal_init");
 
 #if defined(__LINUX__) && defined(ENABLE_THREADS)
 	/* XXX Remove for exact-GC. */
@@ -265,6 +265,10 @@ void *signal_handle(int type, intptr_t val,
 	java_handle_t    *o;
 	methodinfo       *m;
 	java_handle_t    *p;
+
+#if defined(ENABLE_VMLOG)
+	vmlog_cacao_signl_type(type);
+#endif
 
 	/* Prevent compiler warnings. */
 

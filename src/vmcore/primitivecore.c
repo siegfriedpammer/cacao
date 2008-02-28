@@ -1,9 +1,7 @@
 /* src/vmcore/primitivecore.c - core functions for primitive types
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -35,6 +33,7 @@
 #include "vm/vm.h"
 
 #include "vmcore/class.h"
+#include "vmcore/options.h"
 #include "vmcore/utf8.h"
 
 
@@ -95,6 +94,8 @@ void primitive_init(void)
 	utf       *u;
 	classinfo *ac;
 	int        i;
+
+	TRACESUBSYSTEMINITIALIZATION("primitive_init");
 
 	/* Load and link primitive-type classes and array-classes. */
 
@@ -209,6 +210,8 @@ void primitive_postinit(void)
 {
 	classinfo *c;
 	int        i;
+
+	TRACESUBSYSTEMINITIALIZATION("primitive_postinit");
 
 	assert(class_java_lang_Class);
 	assert(class_java_lang_Class->vftbl);

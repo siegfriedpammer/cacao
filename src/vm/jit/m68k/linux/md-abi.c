@@ -89,8 +89,25 @@ const s4 abi_registers_float_temporary[] 	= {0,1};
 
 void md_param_alloc_native(methoddesc *md)
 {
-		/* For now use system ABI */
-	        md_param_alloc(md);
+	paramdesc 	*pd;
+	s4	stacksize;
+	s4	i;
+
+	pd = md->params;
+	stacksize = 0;
+
+	for (i=0; i<md->paramcount; i++, pd++)	{
+		pd->inmemory = true;
+		pd->regoff = stacksize * 4;
+		pd->index = stacksize;
+		stacksize += IS_2_WORD_TYPE(md->paramtypes[i].type) ? 2:1;
+	}
+
+	md->memuse = stacksize;
+	md->argintreguse = 0;
+	md->argfltreguse = 0;
+	md->argadrreguse = 0;
+
 }
 
 
@@ -122,7 +139,8 @@ void md_param_alloc(methoddesc *md)
 	for (i=0; i<md->paramcount; i++, pd++)	{
 		pd->inmemory = true;
 		pd->regoff = stacksize * 8;
-/*		stacksize += IS_2_WORD_TYPE(md->paramtypes[i].type) ? 2:1;*/
+		pd->index = stacksize;
+		stacksize ++;
 	}
 
 	md->memuse = stacksize;

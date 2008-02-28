@@ -176,6 +176,8 @@ icmdtable_entry_t icmd_table[256] = {
 
 void jit_init(void)
 {
+	TRACESUBSYSTEMINITIALIZATION("jit_init");
+
 #if defined(ENABLE_JIT)
 	/* initialize stack analysis subsystem */
 
@@ -375,7 +377,7 @@ u1 *jit_compile(methodinfo *m)
 #endif
 
 #if defined(ENABLE_INLINING) && defined(ENABLE_INLINING_DEBUG)
-	if (opt_inlining && opt_inline_debug_all)
+	if (opt_Inline && opt_InlineAll)
 		jd->flags |= JITDATA_FLAG_INLINE;
 #endif
 
@@ -389,7 +391,7 @@ u1 *jit_compile(methodinfo *m)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
 #if defined(ENABLE_REPLACEMENT) && defined(ENABLE_INLINING)
-	if (opt_inlining)
+	if (opt_Inline)
 		jd->flags |= JITDATA_FLAG_COUNTDOWN;
 #endif
 
@@ -513,7 +515,7 @@ u1 *jit_recompile(methodinfo *m)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
 #if defined(ENABLE_INLINING)
-	if (opt_inlining)
+	if (opt_Inline)
 		jd->flags |= JITDATA_FLAG_INLINE;
 #endif
 

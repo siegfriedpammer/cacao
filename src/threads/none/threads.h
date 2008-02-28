@@ -1,9 +1,7 @@
 /* src/threads/none/threads.h - fake threads header
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -42,11 +40,6 @@
 #define threadobject      void
 
 
-/* stackframeinfo *************************************************************/
-
-#define STACKFRAMEINFO      (_no_threads_stackframeinfo)
-
-
 /* native-world flags *********************************************************/
 
 #define THREAD_NATIVEWORLD_ENTER /*nop*/
@@ -67,6 +60,19 @@ extern s4 _no_threads_tracejavacallindent;
 extern u4 _no_threads_tracejavacallcount;
 #define TRACEJAVACALLCOUNT (_no_threads_tracejavacallcount)
 #endif
+
+
+/* inline functions ***********************************************************/
+
+inline static stackframeinfo_t *threads_get_current_stackframeinfo(void)
+{
+	return _no_threads_stackframeinfo;
+}
+
+inline static void threads_get_current_stackframeinfo(stackframeinfo_t *sfi)
+{
+	_no_threads_stackframeinfo = sfi;
+}
 
 #endif /* _THREADS_H */
 

@@ -1,9 +1,7 @@
 /* src/native/vm/nativevm.c - register the native functions
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -36,6 +34,7 @@
 #include "native/vm/nativevm.h"
 
 #include "vmcore/method.h"
+#include "vmcore/options.h"
 
 #if defined(WITH_CLASSPATH_SUN)
 # include "mm/memory.h"
@@ -63,6 +62,8 @@ bool nativevm_preinit(void)
 #if defined(ENABLE_JAVASE)
 
 # if defined(WITH_CLASSPATH_GNU)
+
+	TRACESUBSYSTEMINITIALIZATION("nativevm_preinit");
 
 	_Jv_gnu_classpath_VMStackWalker_init();
 	_Jv_gnu_classpath_VMSystemProperties_init();
@@ -99,6 +100,8 @@ bool nativevm_preinit(void)
 	utf         *u;
 	lt_dlhandle  handle;
 
+	TRACESUBSYSTEMINITIALIZATION("nativevm_preinit");
+
 	boot_library_path = properties_get("sun.boot.library.path");
 
 	len =
@@ -127,6 +130,8 @@ bool nativevm_preinit(void)
 # endif
 
 #elif defined(ENABLE_JAVAME_CLDC1_1)
+
+	TRACESUBSYSTEMINITIALIZATION("nativevm_preinit");
 
 	_Jv_com_sun_cldc_io_ResourceInputStream_init();
 	_Jv_com_sun_cldc_io_j2me_socket_Protocol_init();
@@ -167,11 +172,15 @@ bool nativevm_init(void)
 
 # if defined(WITH_CLASSPATH_GNU)
 
+	TRACESUBSYSTEMINITIALIZATION("nativevm_init");
+
 	/* nothing to do */
 
 # elif defined(WITH_CLASSPATH_SUN)
 
 	methodinfo *m;
+
+	TRACESUBSYSTEMINITIALIZATION("nativevm_init");
 
 	m = class_resolveclassmethod(class_java_lang_System,
 								 utf_new_char("initializeSystemClass"),
@@ -191,6 +200,8 @@ bool nativevm_init(void)
 # endif
 
 #elif defined(ENABLE_JAVAME_CLDC1_1)
+
+	TRACESUBSYSTEMINITIALIZATION("nativevm_init");
 
 	/* nothing to do */
 

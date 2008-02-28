@@ -269,7 +269,7 @@ void gc_collect(s4 level)
 #if !defined(NDEBUG)
 	/* get the stacktrace of the current thread and make sure it is non-empty */
 	GC_LOG( printf("Stacktrace of current thread:\n"); );
-	st = stacktrace_get();
+	st = stacktrace_get_current();
 	if (st == NULL)
 		vm_abort("gc_collect: no stacktrace available for current thread!");
 	GC_LOG( stacktrace_print(st); );

@@ -82,6 +82,8 @@ static list_t *list_properties = NULL;
 
 void properties_init(void)
 {
+	TRACESUBSYSTEMINITIALIZATION("properties_init");
+
 	list_properties = list_create(OFFSET(list_properties_entry_t, linkage));
 }
 

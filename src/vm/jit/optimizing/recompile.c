@@ -1,9 +1,6 @@
 /* src/vm/jit/optimizing/recompile.c - recompilation system
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
 
    This file is part of CACAO.
 
@@ -49,6 +46,7 @@
 #include "vm/jit/optimizing/recompile.h"
 
 #include "vmcore/classcache.h"
+#include "vmcore/options.h"
 
 
 /* global variables ***********************************************************/
@@ -65,6 +63,8 @@ static list_t        *list_recompile_methods;
 
 bool recompile_init(void)
 {
+	TRACESUBSYSTEMINITIALIZATION("recompile_init");
+
 	/* initialize the recompile lock object */
 
 	lock_thread_recompile = NEW(java_object_t);

@@ -149,6 +149,7 @@ struct executionstate_t {
 	u1           *sp;                   /* stack pointer within method */
 	u1           *pv;                   /* procedure value. NULL means */
 	                                    /* search the AVL tree         */
+	u1           *ra;                /* return address / link register */
 
 	ptrint        intregs[INT_REG_CNT];             /* register values */
 	double        fltregs[FLT_REG_CNT];             /* register values */

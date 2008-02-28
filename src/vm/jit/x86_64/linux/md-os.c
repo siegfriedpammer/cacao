@@ -382,7 +382,7 @@ void md_replace_executionstate_read(executionstate_t *es, void *context)
 	_mc = &_uc->uc_mcontext;
 
 	/* read special registers */
-	es->pc = (u1 *) _mc->gregs[REG_RSP];
+	es->pc = (u1 *) _mc->gregs[REG_RIP];
 	es->sp = (u1 *) _mc->gregs[REG_RSP];
 	es->pv = NULL;
 

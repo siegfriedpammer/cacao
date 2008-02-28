@@ -104,6 +104,8 @@ void threads_preinit(void)
 	size_t        len;
 #endif
 
+	TRACESUBSYSTEMINITIALIZATION("threads_preinit");
+
 #if defined(__LINUX__)
 	/* XXX Remove for exact-GC. */
 
@@ -845,15 +847,30 @@ void threads_dump(void)
 		if (t->state == THREAD_STATE_NEW)
 			continue;
 
-		/* print thread info */
+#if defined(ENABLE_GC_CACAO)
+		/* Suspend the thread. */
+		/* XXX Is the suspend reason correct? */
+
+		if (threads_suspend_thread(t, SUSPEND_REASON_JNI) == false)
+			vm_abort("threads_dump: threads_suspend_thread failed");
+#endif
+
+		/* Print thread info. */
 
 		printf("\n");
 		threads_thread_print_info(t);
 		printf("\n");
 
-		/* print trace of thread */
+		/* Print trace of thread. */
 
 		threads_thread_print_stacktrace(t);
+
+#if defined(ENABLE_GC_CACAO)
+		/* Resume the thread. */
+
+		if (threads_resume_thread(t) == false)
+			vm_abort("threads_dump: threads_resume_thread failed");
+#endif
 	}
 
 	/* unlock the threads lists */
@@ -877,26 +894,26 @@ void threads_thread_print_stacktrace(threadobject *thread)
 	/* Build a stacktrace for the passed thread. */
 
 	sfi = thread->_stackframeinfo;
-
-	ba = stacktrace_get();
+	ba  = stacktrace_get(sfi);
 	
-	/* We need a critical section here as we use the byte-array data
-	   pointer directly. */
+	if (ba != NULL) {
+		/* We need a critical section here as we use the byte-array
+		   data pointer directly. */
 
-	LLNI_CRITICAL_START;
+		LLNI_CRITICAL_START;
 	
-	st = (stacktrace_t *) LLNI_array_data(ba);
+		st = (stacktrace_t *) LLNI_array_data(ba);
 
-	/* Print stacktrace. */
+		/* Print stacktrace. */
 
-	if (st != NULL)
 		stacktrace_print(st);
+
+		LLNI_CRITICAL_END;
+	}
 	else {
 		puts("\t<<No stacktrace available>>");
 		fflush(stdout);
 	}
-
-	LLNI_CRITICAL_END;
 }
 
 

@@ -174,11 +174,6 @@ struct threadobject {
 };
 
 
-/* stackframeinfo *************************************************************/
-
-#define STACKFRAMEINFO    (THREADOBJECT->_stackframeinfo)
-
-
 /* native-world flags *********************************************************/
 
 #if defined(ENABLE_GC_CACAO)
@@ -202,6 +197,20 @@ struct threadobject {
 #	define TRACEJAVACALLINDENT (THREADOBJECT->tracejavacallindent)
 #	define TRACEJAVACALLCOUNT (THREADOBJECT->tracejavacallcount)
 #endif
+
+
+/* inline functions ***********************************************************/
+
+inline static stackframeinfo_t *threads_get_current_stackframeinfo(void)
+{
+	return THREADOBJECT->_stackframeinfo;
+}
+
+inline static void threads_set_current_stackframeinfo(stackframeinfo_t *sfi)
+{
+	THREADOBJECT->_stackframeinfo = sfi;
+}
+
 
 /* functions ******************************************************************/
 

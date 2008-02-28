@@ -1,9 +1,7 @@
 /* src/vm/exceptions.c - exception related functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -104,6 +102,8 @@ void exceptions_init(void)
 
 	(void) system_mmap_anonymous(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
 #endif
+
+	TRACESUBSYSTEMINITIALIZATION("exceptions_init");
 
 	/* check if we get into trouble with our hardware-exceptions */
 

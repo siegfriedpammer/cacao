@@ -65,6 +65,8 @@ list_t *list_classpath_entries;
 
 bool suck_init(void)
 {
+	TRACESUBSYSTEMINITIALIZATION("suck_init");
+
 	list_classpath_entries = list_create(OFFSET(list_classpath_entry, linkage));
 
 	/* everything's ok */

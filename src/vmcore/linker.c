@@ -1,9 +1,7 @@
 /* src/vmcore/linker.c - class linker functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -83,7 +81,7 @@ classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls, bool c
 #endif
 
 #if !defined(NDEBUG) && defined(ENABLE_INLINING)
-#define INLINELOG(code)  do { if (opt_inline_debug_log) { code } } while (0)
+#define INLINELOG(code)  do { if (opt_TraceInlining) { code } } while (0)
 #else
 #define INLINELOG(code)
 #endif
@@ -132,6 +130,8 @@ struct dummy_alignment_double_t {
 
 void linker_preinit(void)
 {
+	TRACESUBSYSTEMINITIALIZATION("linker_preinit");
+
 	/* Check for if alignment for long and double matches what we
 	   assume for the current architecture. */
 
@@ -196,6 +196,8 @@ void linker_preinit(void)
 
 void linker_init(void)
 {
+	TRACESUBSYSTEMINITIALIZATION("linker_init");
+
 	/* Link java.lang.Class as first class of the system, because we
        need it's vftbl for all other classes so we can use a class as
        object. */

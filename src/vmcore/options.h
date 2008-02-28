@@ -1,9 +1,7 @@
 /* src/vmcore/options.h - define global options extern
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -135,22 +133,6 @@ extern bool opt_prof;
 extern bool opt_prof_bb;
 #endif
 
-/* inlining options ***********************************************************/
-
-#if defined(ENABLE_INLINING)
-extern bool opt_inlining;
-#if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
-extern s4 opt_inline_debug_min_size;
-extern s4 opt_inline_debug_max_size;
-extern s4 opt_inline_debug_end_counter;
-extern bool opt_inline_debug_all;
-#endif /* defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG) */
-#if !defined(NDEBUG)
-extern bool opt_inline_debug_log;
-#endif /* !defined(NDEBUG) */
-#endif /* defined(ENABLE_INLINING) */
-
-
 /* optimization options *******************************************************/
 
 #if defined(ENABLE_IFCONV)
@@ -189,49 +171,76 @@ extern const char *opt_filter_show_method;
 
 /* NOTE: For better readability keep these alpha-sorted. */
 
-extern int      opt_DebugExceptions;
-extern int      opt_DebugFinalizer;
-extern int      opt_DebugLocalReferences;
-extern int      opt_DebugLocks;
-extern int      opt_DebugPatcher;
-extern int      opt_DebugPackage;
-extern int      opt_DebugProperties;
-extern int32_t  opt_DebugStackFrameInfo;
-extern int      opt_DebugStackTrace;
-extern int      opt_DebugThreads;
+extern int   opt_DebugExceptions;
+extern int   opt_DebugFinalizer;
+extern int   opt_DebugLocalReferences;
+extern int   opt_DebugLocks;
+extern int   opt_DebugPatcher;
+extern int   opt_DebugPackage;
+extern int   opt_DebugProperties;
+extern int   opt_DebugStackFrameInfo;
+extern int   opt_DebugStackTrace;
+extern int   opt_DebugThreads;
 #if defined(ENABLE_DISASSEMBLER)
-extern int      opt_DisassembleStubs;
+extern int   opt_DisassembleStubs;
 #endif
 #if defined(ENABLE_GC_CACAO)
-extern int32_t  opt_GCDebugRootSet;
-extern int32_t  opt_GCStress;
+extern int   opt_GCDebugRootSet;
+extern int   opt_GCStress;
 #endif
-extern int32_t  opt_MaxPermSize;
-extern int32_t  opt_PermSize;
-extern int      opt_PrintConfig;
-extern int32_t  opt_ProfileGCMemoryUsage;
-extern int32_t  opt_ProfileMemoryUsage;
-extern FILE    *opt_ProfileMemoryUsageGNUPlot;
+#if defined(ENABLE_INLINING)
+extern int   opt_Inline;
+#if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
+extern int   opt_InlineAll;
+extern int   opt_InlineCount;
+extern int   opt_InlineMaxSize;
+extern int   opt_InlineMinSize;
+#endif
+#endif
+extern int   opt_MaxPermSize;
+extern int   opt_PermSize;
+extern int   opt_PrintConfig;
+extern int   opt_ProfileGCMemoryUsage;
+extern int   opt_ProfileMemoryUsage;
+extern FILE *opt_ProfileMemoryUsageGNUPlot;
 #if defined(ENABLE_REPLACEMENT)
-extern int      opt_TestReplacement;
+extern int   opt_TestReplacement;
 #endif
-extern int32_t  opt_ThreadStackSize;
-extern int      opt_TraceCompilerCalls;
-extern int32_t  opt_TraceExceptions;
-extern int32_t  opt_TraceJavaCalls;
-extern int32_t  opt_TraceJNICalls;
-extern int32_t  opt_TraceJVMCalls;
-extern int32_t  opt_TraceJVMCallsVerbose;
-extern int32_t  opt_TraceLinkClass;
+extern int   opt_ThreadStackSize;
+extern int   opt_TraceCompilerCalls;
+extern int   opt_TraceExceptions;
+#if defined(ENABLE_INLINING) && !defined(NDEBUG)
+extern int   opt_TraceInlining;
+#endif
+extern int   opt_TraceJavaCalls;
+extern int   opt_TraceJNICalls;
+extern int   opt_TraceJVMCalls;
+extern int   opt_TraceJVMCallsVerbose;
+extern int   opt_TraceLinkClass;
 #if defined(ENABLE_REPLACEMENT)
-extern int32_t  opt_TraceReplacement;
+extern int   opt_TraceReplacement;
 #endif
+extern int   opt_TraceSubsystemInitialization;
 
 
 /* function prototypes ********************************************************/
 
 s4   options_get(opt_struct *opts, JavaVMInitArgs *vm_args);
 void options_xx(JavaVMInitArgs *vm_args);
+
+
+/* debug **********************************************************************/
+
+#if !defined(NDEBUG)
+# define TRACESUBSYSTEMINITIALIZATION(text)						\
+    do {														\
+        if (opt_TraceSubsystemInitialization) {					\
+            log_println("[Initializing subsystem: %s]", text);	\
+        }														\
+    } while (0)
+#else
+# define TRACESUBSYSTEMINITIALIZATION(text)
+#endif
 
 #endif /* _OPTIONS_H */
 
