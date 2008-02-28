@@ -55,6 +55,7 @@
 
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/s390/codegen.h"
+#include "vm/jit/s390/md.h"
 
 
 /* prototypes *****************************************************************/

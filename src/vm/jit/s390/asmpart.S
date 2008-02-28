@@ -343,37 +343,12 @@ L_restore_done:
 #	undef FREGS
 #	undef OUT
 
-#if 0
-
-/* asm_abstractmethoderror *****************************************************
-
-   Creates and throws an AbstractMethodError.
-
-*******************************************************************************/
-
-asm_abstractmethoderror:
-	mov     sp,a0                       /* pass java sp                       */
-	add     $1*8,a0
-	mov     0*8(sp),a1                  /* pass exception address             */
-	sub     $3,a1
-	call	exceptions_asm_new_abstractmethoderror@PLT
-	                                    /* exception pointer is return value  */
-	pop     xpc                         /* get exception address              */
-	sub     $3,xpc                      /* exception address is ra - 3        */
-	jmp     L_asm_handle_exception
-
-#endif
-
 /* Offset table for PIC calls, see CALL_PIC */
 
 L_offsets:
 	.long  _GLOBAL_OFFSET_TABLE_ - L_offsets
 L_offset_builtin_throw_exception:
 	.long  builtin_throw_exception@PLTOFF
-L_offset_jit_asm_compile:
-	.long  jit_asm_compile@PLTOFF
-L_offset_exceptions_get_and_clear_exception:
-	.long  exceptions_get_and_clear_exception@PLTOFF
 L_offset_md_handle_exception:
 	.long  md_handle_exception@PLTOFF
 
