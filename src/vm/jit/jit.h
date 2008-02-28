@@ -552,6 +552,14 @@ struct basicblock {
 	basicblock  **domfrontier;  /* Dominance frontier                         */
 	s4            domfrontiercount;
 
+	basicblock  **exhandlers;   /* Exception handlers for this block */
+	s4            exhandlercount;
+	basicblock  **expredecessors; /* Blocks this block is exception handler for */
+	s4            expredecessorcount;
+	s4            exouts;       /* Number of exceptional exits */
+
+	basicblock   *subbasicblocks;
+
 	void         *vp;           /* Freely used by different passes            */
 #endif
 };
@@ -560,11 +568,24 @@ struct basicblock {
 	for ((it) = (bptr)->successors; (it) != (bptr)->successors + (bptr)->successorcount; ++(it))
 
 #define FOR_EACH_PREDECESSOR(bptr, it) \
-	for ((it) = (bptr)->predecessors; (it) != (bptr)->predecessors + (bptr)->predecessorcount; ++(it))
+	for ( \
+		(it) = (bptr)->predecessors; \
+		(it) != (bptr)->predecessors + ((bptr)->predecessorcount < 0 ? 0 : (bptr)->predecessorcount); \
+		++(it) \
+	)
 
 #define FOR_EACH_INSTRUCTION(bptr, it) \
 	for ((it) = (bptr)->iinstr; (it) != (bptr)->iinstr + (bptr)->icount; ++(it))
 
+#if defined(ENABLE_SSA)
+
+#define FOR_EACH_EXHANDLER(bptr, it) \
+	for ((it) = (bptr)->exhandlers; (it) != (bptr)->exhandlers + (bptr)->exhandlercount; ++(it))
+
+#define FOR_EACH_EXPREDECESSOR(bptr, it) \
+	for ((it) = (bptr)->expredecessors; (it) != (bptr)->expredecessors + (bptr)->expredecessorcount; ++(it))
+
+#endif
 
 /* [+]...the javalocals array: This array is indexed by the javaindex (the    */
 /*       local variable index ocurring in the original bytecode). An element  */

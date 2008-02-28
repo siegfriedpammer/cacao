@@ -413,6 +413,82 @@ void cfg_add_root(jitdata *jd) {
 	}
 }
 
+/* cfg_add_exceptional_edges ***************************************************
+ 
+   Edges from basicblocks to their exception handlers and from exception 
+   handlers to the blocks they handle exceptions for are added. Further
+   the number of potentially throwing instructions in the basicblocks are 
+   counted.
+
+   We don't consider nor do we determine the types of exceptions thrown. Edges
+   are added from every block to every potential handler.
+
+*******************************************************************************/
+
+void cfg_add_exceptional_edges(jitdata *jd) {
+	basicblock *bptr;
+	instruction *iptr;
+	exception_entry *ee;
+
+	/* Count the number of exceptional exits for every block.
+	 * Every PEI is an exceptional out.
+	 */
+
+	FOR_EACH_BASICBLOCK(jd, bptr) {
+
+		if (bptr->flags == BBUNDEF) {
+			continue;
+		}
+
+		FOR_EACH_INSTRUCTION(bptr, iptr) {
+			if (icmd_table[iptr->opc].flags & ICMDTABLE_PEI) {	
+				bptr->exouts += 1;
+			}
+		}
+	}
+
+	/* Count the number of exception handlers for every block. */
+
+	for (ee = jd->exceptiontable; ee; ee = ee->down) {
+		for (bptr = ee->start; bptr != ee->end; bptr = bptr->next) {
+			/* Linking a block with a handler, even if there are no exceptional exits
+			   breaks stuff in other passes. */
+			if (bptr->exouts > 0) {
+				bptr->exhandlercount += 1;
+				ee->handler->expredecessorcount += 1;
+			}
+		}
+	}
+
+	/* Allocate and fill exception handler arrays. */
+
+	for (ee = jd->exceptiontable; ee; ee = ee->down) {
+		for (bptr = ee->start; bptr != ee->end; bptr = bptr->next) {
+			if (bptr->exouts > 0) {
+
+				if (bptr->exhandlers == NULL) {
+					bptr->exhandlers = DMNEW(basicblock *, bptr->exhandlercount);
+					/* Move pointer past the end of the array, 
+					 * It will be filled in the reverse order.
+					 */
+					bptr->exhandlers += bptr->exhandlercount;
+				}
+
+				bptr->exhandlers -= 1;
+				*(bptr->exhandlers) = ee->handler;
+
+				if (ee->handler->expredecessors == NULL) {
+					ee->handler->expredecessors = DMNEW(basicblock *, ee->handler->expredecessorcount);
+					ee->handler->expredecessors += ee->handler->expredecessorcount;
+				}
+
+				ee->handler->expredecessors -= 1;
+				*(ee->handler->expredecessors) = bptr;
+			}
+		}
+	}
+}
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

@@ -762,12 +762,12 @@ static u1 *jit_compile_intern(jitdata *jd)
 # endif /* defined(ENABLE_LSRA) && !defined(ENABLE_SSA) */
 #if defined(ENABLE_SSA)
 		/* allocate registers */
-		if ((opt_lsra) && (jd->exceptiontablelength == 0)) {
+		if ((opt_lsra) /*&& strcmp(jd->m->name->text, "findClass") != 0*/) {
 			jd->ls = DNEW(lsradata);
 			jd->ls = NULL;
 			ssa(jd);
 			/*lsra(jd);*/ regalloc(jd);
-
+			eliminate_subbasicblocks(jd);
 			STATISTICS(count_methods_allocated_by_lsra++);
 
 		} else

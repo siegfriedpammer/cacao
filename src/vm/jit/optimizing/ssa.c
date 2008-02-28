@@ -118,14 +118,15 @@ void ssa(jitdata *jd) {
 #endif
 
 	cfg_add_root(jd);
-	dominator_tree_build(jd);
+	cfg_add_exceptional_edges(jd);
 	/*pythonpass_run(jd, "foo", "cfg_print");*/
-	dominance_frontier_build(jd);
 	/*dominator_tree_validate(jd, dd);*/
 	/*pythonpass_run(jd, "ssa2", "main");*/
 	/*pythonpass_run(jd, "alt_ssa", "main");*/
 	pythonpass_run(jd, "foo", "before");
 	if (getenv("XSSA")) {
+		dominator_tree_build(jd);
+		dominance_frontier_build(jd);
 		xssa(jd);
 	} else {
 		yssa(jd);
