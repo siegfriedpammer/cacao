@@ -691,22 +691,18 @@ void threads_set_current_threadobject(threadobject *thread)
 }
 
 
-/* threads_impl_thread_new *****************************************************
+/* threads_impl_thread_init ****************************************************
 
-   Initialize implementation fields of a threadobject.
+   Initialize OS-level locking constructs in threadobject.
 
    IN:
       t....the threadobject
 
 *******************************************************************************/
 
-void threads_impl_thread_new(threadobject *t)
+void threads_impl_thread_init(threadobject *t)
 {
 	int result;
-
-	/* get the pthread id */
-
-	t->tid = pthread_self();
 
 	/* initialize the mutex and the condition */
 
@@ -733,6 +729,77 @@ void threads_impl_thread_new(threadobject *t)
 	result = pthread_cond_init(&(t->suspendcond), NULL);
 	if (result != 0)
 		vm_abort_errnum(result, "threads_impl_thread_new: pthread_cond_init failed");
+}
+
+/* threads_impl_thread_clear ***************************************************
+
+   Clears all fields in threadobject the way an MZERO would have
+   done. MZERO cannot be used anymore because it would mess up the
+   pthread_* bits.
+
+   IN:
+      t....the threadobject
+
+*******************************************************************************/
+
+void threads_impl_thread_clear(threadobject *t)
+{
+	t->object = NULL;
+
+	t->thinlock = 0;
+
+	t->index = 0;
+	t->flags = 0;
+	t->state = 0;
+
+	t->tid = 0;
+
+#if defined(__DARWIN__)
+	t->mach_thread = 0;
+#endif
+
+	t->interrupted = false;
+	t->signaled = false;
+	t->sleeping = false;
+
+	t->suspended = false;
+	t->suspend_reason = 0;
+
+	t->pc = NULL;
+
+	t->_exceptionptr = NULL;
+	t->_stackframeinfo = NULL;
+	t->_localref_table = NULL;
+
+#if defined(ENABLE_INTRP)
+	t->_global_sp = NULL;
+#endif
+
+#if defined(ENABLE_GC_CACAO)
+	t->gc_critical = false;
+
+	t->ss = NULL;
+	t->es = NULL;
+#endif
+
+	MZERO(&t->dumpinfo, dumpinfo_t, 1);
+}
+
+/* threads_impl_thread_reuse ***************************************************
+
+   Resets some implementation fields in threadobject. This was
+   previously done in threads_impl_thread_new.
+
+   IN:
+      t....the threadobject
+
+*******************************************************************************/
+
+void threads_impl_thread_reuse(threadobject *t)
+{
+	/* get the pthread id */
+
+	t->tid = pthread_self();
 
 #if defined(ENABLE_DEBUG_FILTER)
 	/* Initialize filter counters */
@@ -763,6 +830,8 @@ void threads_impl_thread_new(threadobject *t)
 
 *******************************************************************************/
 
+#if 0
+/* never used */
 void threads_impl_thread_free(threadobject *t)
 {
 	int result;
@@ -799,6 +868,7 @@ void threads_impl_thread_free(threadobject *t)
 	if (result != 0)
 		vm_abort_errnum(result, "threads_impl_thread_free: pthread_cond_destroy failed");
 }
+#endif
 
 
 /* threads_get_current_threadobject ********************************************

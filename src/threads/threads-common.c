@@ -71,6 +71,8 @@
 
 /* global threads list */
 static list_t *list_threads;
+/* global free threads list */
+static list_t *list_free_threads;
 
 /* global threads free-list */
 
@@ -141,6 +143,7 @@ void threads_preinit(void)
 	/* initialize the threads lists */
 
 	list_threads           = list_create(OFFSET(threadobject, linkage));
+	list_free_threads      = list_create(OFFSET(threadobject, linkage_free));
 	list_free_thread_index = list_create(OFFSET(thread_index_t, linkage));
 
 	/* Initialize the threads implementation (sets the thinlock on the
@@ -286,27 +289,43 @@ threadobject *threads_thread_new(void)
 
 	/* Allocate a thread data structure. */
 
+	/* First, try to get one from the free-list. */
+	t = list_first_unsynced(list_free_threads);
+	if (t != NULL) {
+		/* Remove from free list. */
+		list_remove_unsynced(list_free_threads, t);
+
+		/* Equivalent of MZERO on the else path */
+		threads_impl_thread_clear(t);
+	}
+	else {
 #if defined(ENABLE_GC_BOEHM)
-	t = GCNEW_UNCOLLECTABLE(threadobject, 1);
+		t = GCNEW_UNCOLLECTABLE(threadobject, 1);
 #else
-	t = NEW(threadobject);
+		t = NEW(threadobject);
 #endif
 
 #if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject += sizeof(threadobject);
+		if (opt_stat)
+			size_threadobject += sizeof(threadobject);
 #endif
 
-	/* Clear memory. */
+		/* Clear memory. */
 
-	MZERO(t, threadobject, 1);
+		MZERO(t, threadobject, 1);
 
 #if defined(ENABLE_GC_CACAO)
-	/* Register reference to java.lang.Thread with the GC. */
+		/* Register reference to java.lang.Thread with the GC. */
+		/* FIXME is it ok to do this only once? */
 
-	gc_reference_register(&(t->object), GC_REFTYPE_THREADOBJECT);
-	gc_reference_register(&(t->_exceptionptr), GC_REFTYPE_THREADOBJECT);
+		gc_reference_register(&(t->object), GC_REFTYPE_THREADOBJECT);
+		gc_reference_register(&(t->_exceptionptr), GC_REFTYPE_THREADOBJECT);
 #endif
+
+		/* Initialize the implementation-specific bits. */
+
+		threads_impl_thread_init(t);
+	}
 
 	/* Pre-compute the thinlock-word. */
 
@@ -323,7 +342,7 @@ threadobject *threads_thread_new(void)
 
 	/* Initialize the implementation-specific bits. */
 
-	threads_impl_thread_new(t);
+	threads_impl_thread_reuse(t);
 
 	/* Add the thread to the threads-list. */
 
@@ -356,10 +375,6 @@ void threads_thread_free(threadobject *t)
 
 	threads_list_lock();
 
-	/* Cleanup the implementation specific bits. */
-
-	threads_impl_thread_free(t);
-
 	/* Remove the thread from the threads-list. */
 
 	list_remove_unsynced(list_threads, t);
@@ -377,18 +392,11 @@ void threads_thread_free(threadobject *t)
 
 	list_add_last_unsynced(list_free_thread_index, ti);
 
-	/* Free the thread data structure. */
+	/* Add the thread data structure to the free list. */
 
-#if defined(ENABLE_GC_BOEHM)
-	GCFREE(t);
-#else
-	FREE(t, threadobject);
-#endif
+	threads_thread_set_object(t, NULL);
 
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject -= sizeof(threadobject);
-#endif
+	list_add_last_unsynced(list_free_threads, t);
 
 	/* Unlock the threads lists. */
 
