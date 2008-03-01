@@ -6,6 +6,12 @@ syntax: glob
 *.lo
 *.a
 *.o
+*.aux
+*.ids
+*.idx
+*.log
+*.out
+*.toc
 Makefile
 Makefile.in
 TAGS
