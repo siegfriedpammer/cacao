@@ -1,4 +1,4 @@
-New in release 0.99 (August x, 2007)
+New in release 0.99 (February x, 2008)
 
   * Initial support to use OpenJDK as Java core library.
   * Fixed memory leak in Boehm-GC.
@@ -7,6 +7,10 @@ New in release 0.99 (August x, 2007)
   * Removed genoffsets, cross-compilation is now much easier.
   * Implemented Class.isAnonymousClass(), isLocalClass() and
     isMemberClass() for GNU Classpath.
+  * Annotation support.
+  * Assertion support.
+  * Linenumber table code rewritten.
+  * Exception table code rewritten.
 
 
 New in release 0.98 (June 6, 2007)
