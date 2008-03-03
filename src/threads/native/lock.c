@@ -1268,7 +1268,7 @@ static void lock_record_remove_waiter(lock_record_t *lr, threadobject *thread)
 static bool lock_record_wait(threadobject *thread, lock_record_t *lr, s8 millis, s4 nanos)
 {
 	s4   lockcount;
-	bool wasinterrupted;
+	bool wasinterrupted = false;
 
 	DEBUGLOCKS(("[lock_record_wait  : lr=%p, t=%p, millis=%lld, nanos=%d]",
 				lr, thread, millis, nanos));
@@ -1290,7 +1290,7 @@ static bool lock_record_wait(threadobject *thread, lock_record_t *lr, s8 millis,
 
 	/* wait until notified/interrupted/timed out */
 
-	wasinterrupted = threads_wait_with_timeout_relative(thread, millis, nanos);
+	threads_wait_with_timeout_relative(thread, millis, nanos);
 
 	/* re-enter the monitor */
 
@@ -1303,6 +1303,17 @@ static bool lock_record_wait(threadobject *thread, lock_record_t *lr, s8 millis,
 	/* restore the old lock count */
 
 	lr->count = lockcount;
+
+	/* We can only be signaled OR interrupted, not both. If both flags
+	   are set, reset only signaled and leave the thread in
+	   interrupted state. Otherwise, clear both. */
+
+	if (!thread->signaled) {
+		wasinterrupted = thread->interrupted;
+		thread->interrupted = false;
+	}
+
+	thread->signaled = false;
 
 	/* return if we have been interrupted */
 
@@ -1401,10 +1412,10 @@ static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
 
 		waitingthread = w->thread;
 
-		/* If the thread was already signaled but hasn't removed
-		   itself from the list yet, just ignore it. */
+		/* We must skip threads which have already been notified or
+		   interrupted. They will remove themselves from the list. */
 
-		if (waitingthread->signaled == true)
+		if (waitingthread->signaled || waitingthread->interrupted)
 			continue;
 
 		/* Enter the wait-mutex. */
@@ -1414,7 +1425,11 @@ static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
 		DEBUGLOCKS(("[lock_record_notify: lr=%p, t=%p, waitingthread=%p, sleeping=%d, one=%d]",
 					lr, t, waitingthread, waitingthread->sleeping, one));
 
-		/* Signal the thread if it's sleeping. */
+		/* Signal the thread if it's sleeping. sleeping can be false
+		   when the waiting thread is blocked between giving up the
+		   monitor and entering the waitmutex. It will eventually
+		   observe that it's signaled and refrain from going to
+		   sleep. */
 
 		if (waitingthread->sleeping)
 			pthread_cond_signal(&(waitingthread->waitcond));

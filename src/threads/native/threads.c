@@ -2052,16 +2052,10 @@ static bool threads_current_time_is_earlier_than(const struct timespec *tv)
 	                   If both tv_sec and tv_nsec are zero, this function
 					   waits for an unlimited amount of time.
 
-   RETURN VALUE:
-      true.........if the wait has been interrupted,
-	  false........if the wait was ended by notification or timeout
-
 *******************************************************************************/
 
-static bool threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTime)
+static void threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTime)
 {
-	bool wasinterrupted;
-
 	/* acquire the waitmutex */
 
 	pthread_mutex_lock(&t->waitmutex);
@@ -2096,21 +2090,11 @@ static bool threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTi
 		}
 	}
 
-	/* check if we were interrupted */
-
-	wasinterrupted = t->interrupted;
-
-	/* reset all flags */
-
-	t->interrupted = false;
-	t->signaled    = false;
 	t->sleeping    = false;
 
 	/* release the waitmutex */
 
 	pthread_mutex_unlock(&t->waitmutex);
-
-	return wasinterrupted;
 }
 
 
@@ -2124,13 +2108,9 @@ static bool threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTi
 	  millis.......milliseconds to wait
 	  nanos........nanoseconds to wait
 
-   RETURN VALUE:
-      true.........if the wait has been interrupted,
-	  false........if the wait was ended by notification or timeout
-
 *******************************************************************************/
 
-bool threads_wait_with_timeout_relative(threadobject *thread, s8 millis,
+void threads_wait_with_timeout_relative(threadobject *thread, s8 millis,
 										s4 nanos)
 {
 	struct timespec wakeupTime;
@@ -2141,7 +2121,7 @@ bool threads_wait_with_timeout_relative(threadobject *thread, s8 millis,
 
 	/* wait */
 
-	return threads_wait_with_timeout(thread, &wakeupTime);
+	threads_wait_with_timeout(thread, &wakeupTime);
 }
 
 
@@ -2228,6 +2208,8 @@ bool threads_check_if_interrupted_and_reset(void)
 
 	thread = THREADOBJECT;
 
+	pthread_mutex_lock(&thread->waitmutex);
+
 	/* get interrupted flag */
 
 	intr = thread->interrupted;
@@ -2235,6 +2217,8 @@ bool threads_check_if_interrupted_and_reset(void)
 	/* reset interrupted flag */
 
 	thread->interrupted = false;
+
+	pthread_mutex_unlock(&thread->waitmutex);
 
 	return intr;
 }
@@ -2274,7 +2258,9 @@ void threads_sleep(s8 millis, s4 nanos)
 
 	threads_calc_absolute_time(&wakeupTime, millis, nanos);
 
-	wasinterrupted = threads_wait_with_timeout(thread, &wakeupTime);
+	threads_wait_with_timeout(thread, &wakeupTime);
+
+	wasinterrupted = threads_check_if_interrupted_and_reset();
 
 	if (wasinterrupted)
 		exceptions_throw_interruptedexception();

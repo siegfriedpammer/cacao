@@ -238,7 +238,7 @@ void threads_join_all_threads(void);
 
 void threads_sleep(s8 millis, s4 nanos);
 
-bool threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
+void threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
 
 void threads_thread_interrupt(threadobject *thread);
 bool threads_check_if_interrupted_and_reset(void);
