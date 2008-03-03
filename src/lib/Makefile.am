@@ -1,9 +1,7 @@
 ## src/lib/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-## J. Wenninger, Institut f. Computersprachen - TU Wien
+## Copyright (C) 1996-2005, 2006, 2007, 2008
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -24,12 +22,13 @@
 
 
 EXTRA_DIST = \
-	$(VM_JAVA_FILES)
+	$(VM_JAVA_FILES_GNU) \
+	$(VM_JAVA_FILES_GNU_ANNOTATIONS) \
+	$(VM_JAVA_FILES_CLDC1_1)
 
 CLEANFILES = vm.zip
 
-if WITH_CLASSPATH_GNU
-VM_JAVA_FILES = \
+VM_JAVA_FILES_GNU = \
 	$(top_srcdir)/src/lib/gnu/gnu/classpath/VMStackWalker.java \
 	$(top_srcdir)/src/lib/gnu/gnu/classpath/VMSystemProperties.java \
 	$(top_srcdir)/src/lib/gnu/gnu/java/lang/management/VMMemoryMXBeanImpl.java \
@@ -44,23 +43,7 @@ VM_JAVA_FILES = \
 	$(top_srcdir)/src/lib/gnu/java/security/VMAccessController.java \
 	$(top_srcdir)/src/lib/gnu/sun/misc/Unsafe.java
 
-VM_CLASS_FILES = \
-	classes/gnu/classpath/VMStackWalker.class \
-	classes/gnu/classpath/VMSystemProperties.class \
-	classes/gnu/java/lang/management/VMMemoryMXBeanImpl.class \
-	classes/gnu/java/lang/management/VMRuntimeMXBeanImpl.class \
-	classes/java/lang/VMClassLoader.class \
-	classes/java/lang/VMString.class \
-	classes/java/lang/VMThread.class \
-	classes/java/lang/VMThrowable.class \
-	classes/java/lang/reflect/Constructor.class \
-	classes/java/lang/reflect/Field.class \
-	classes/java/lang/reflect/Method.class \
-	classes/java/security/VMAccessController.class \
-	classes/sun/misc/Unsafe.class
-
-if ENABLE_ANNOTATIONS
-VM_JAVA_FILES += \
+VM_JAVA_FILES_GNU_ANNOTATIONS = \
 	$(top_srcdir)/src/lib/gnu/sun/reflect/ConstantPool.java \
 	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/ExceptionProxy.java \
 	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/EnumConstantNotPresentExceptionProxy.java \
@@ -69,41 +52,29 @@ VM_JAVA_FILES += \
 	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationType.java \
 	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationParser.java
 
-VM_CLASS_FILES += \
-	classes/sun/reflect/ConstantPool.class \
-	classes/sun/reflect/annotation/ExceptionProxy.class \
-	classes/sun/reflect/annotation/EnumConstantNotPresentExceptionProxy.class \
-	classes/sun/reflect/annotation/TypeNotPresentExceptionProxy.class \
-	classes/sun/reflect/annotation/AnnotationTypeMismatchExceptionProxy.class \
-	classes/sun/reflect/annotation/AnnotationType.class \
-	classes/sun/reflect/annotation/AnnotationParser.class
-endif
+VM_JAVA_FILES_CLDC1_1 = \
+	$(top_srcdir)/src/lib/cldc1.1/com/sun/cldchi/jvm/FileDescriptor.java
 
-if ENABLE_ZLIB
-pkgdata_DATA = vm.zip
-else
-pkgdata_DATA = nozip
+BOOTCLASSPATH = $(top_builddir)/src/lib/classes:$(CLASSPATH_CLASSES)
+
+if WITH_CLASSPATH_GNU
+VM_JAVA_FILES = \
+	$(VM_JAVA_FILES_GNU)
+
+if ENABLE_ANNOTATIONS
+VM_JAVA_FILES += \
+	$(VM_JAVA_FILES_GNU_ANNOTATIONS)
 endif
 endif
 
 if WITH_CLASSPATH_CLDC1_1
-VM_JAVA_FILES = \
-	$(top_srcdir)/src/lib/cldc1.1/com/sun/cldchi/jvm/FileDescriptor.java
-
-VM_CLASS_FILES = \
-	classes/com/sun/cldchi/jvm/FileDescriptor.class
+VM_JAVA_FILES = $(VM_JAVA_FILES_CLDC1_1)
+endif
 
 if ENABLE_ZLIB
 pkgdata_DATA = vm.zip
 else
 pkgdata_DATA = nozip
-endif
-endif
-
-if WITH_CLASSPATH_GNU
-BOOTCLASSPATH = $(top_builddir)/src/lib/classes:$(CLASSPATH_CLASSES)
-else
-BOOTCLASSPATH = $(CLASSPATH_CLASSES)
 endif
 
 if ENABLE_ZLIB
