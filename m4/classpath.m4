@@ -127,14 +127,20 @@ dnl where jni_md.h is installed
 AC_DEFUN([AC_CHECK_WITH_JNI_MD_H],[
 AC_MSG_CHECKING(where jni_md.h is installed)
 AC_ARG_WITH([jni_md_h],
-            [AS_HELP_STRING(--with-jni_md_h=<dir>,path to jni_md.h [[default=CLASSPATH_PREFIX/include]])],
+            [AS_HELP_STRING(--with-jni_md_h=<dir>,path to jni_md.h [[default=(sun:CLASSPATH_PREFIX/include/linux,*:CLASSPATH_PREFIX/include)]])],
             [WITH_JNI_MD_H=${withval}],
-            [WITH_JNI_MD_H=${CLASSPATH_PREFIX}/include])
+            [case "${WITH_CLASSPATH}" in
+                 sun)
+                     WITH_JNI_MD_H=${CLASSPATH_PREFIX}/include/linux
+                     ;;
+                 *)
+                     WITH_JNI_MD_H=${CLASSPATH_PREFIX}/include
+                     ;;
+            esac])
 AC_MSG_RESULT(${WITH_JNI_MD_H})
 
 dnl We use CPPFLAGS so jni.h can find jni_md.h
-CPPFLAGS_INCLUDE="${CPPFLAGS_INCLUDE} -I${WITH_JNI_MD_H}"
-CPPFLAGS="${CPPFLAGS_INCLUDE}"
+CPPFLAGS="${CPPFLAGS} -I${WITH_JNI_MD_H}"
 
 AC_CHECK_HEADER([${WITH_JNI_MD_H}/jni_md.h],
                 [AC_DEFINE_UNQUOTED([INCLUDE_JNI_MD_H], "${WITH_JNI_MD_H}/jni_md.h", [Java core library jni_md.h header])],
@@ -153,8 +159,7 @@ AC_ARG_WITH([jni_h],
 AC_MSG_RESULT(${WITH_JNI_H})
 
 dnl We use CPPFLAGS so jni.h can find jni_md.h
-CPPFLAGS_INCLUDE="${CPPFLAGS_INCLUDE} -I${WITH_JNI_H}"
-CPPFLAGS="${CPPFLAGS_INCLUDE}"
+CPPFLAGS="${CPPFLAGS} -I${WITH_JNI_H}"
 
 AC_CHECK_HEADER([${WITH_JNI_H}/jni.h],
                 [AC_DEFINE_UNQUOTED([INCLUDE_JNI_H], "${WITH_JNI_H}/jni.h", [Java core library jni.h header])],
