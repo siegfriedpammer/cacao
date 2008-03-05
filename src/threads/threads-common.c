@@ -533,6 +533,62 @@ ptrint threads_get_current_tid(void)
 }
 
 
+/* threads_get_current_object **************************************************
+
+   Return the Java object of the current thread.
+   
+   RETURN VALUE:
+       the Java object
+
+*******************************************************************************/
+
+#include "native/include/java_lang_ThreadGroup.h"
+
+java_object_t *threads_get_current_object(void)
+{
+#if defined(ENABLE_THREADS)
+	threadobject  *t;
+# if defined(ENABLE_JAVASE)
+	java_lang_ThreadGroup *group;
+# endif
+#endif
+	java_lang_Thread *o;
+
+#if defined(ENABLE_THREADS)
+	t = THREADOBJECT;
+	o = threads_thread_get_object(t);
+
+# if defined(ENABLE_JAVASE)
+	/* TODO Do we really need this code?  Or should we check, when we
+	   create the threads, that all of them have a group? */
+	/* TWISTI No, we don't need this code!  We need to allocate a
+	   ThreadGroup before we initialize the main thread. */
+
+	LLNI_field_get_ref(o, group, group);
+
+	if (group == NULL) {
+		/* ThreadGroup of currentThread is not initialized */
+
+		group = (java_lang_ThreadGroup *)
+			native_new_and_init(class_java_lang_ThreadGroup);
+
+		if (group == NULL)
+			vm_abort("unable to create ThreadGroup");
+
+		LLNI_field_set_ref(o, group, group);
+  	}
+# endif
+#else
+	/* We just return a fake java.lang.Thread object, otherwise we get
+	   NullPointerException's in GNU Classpath. */
+
+	o = builtin_new(class_java_lang_Thread);
+#endif
+
+	return o;
+}
+
+
 /* threads_thread_state_runnable ***********************************************
 
    Set the current state of the given thread to THREAD_STATE_RUNNABLE.

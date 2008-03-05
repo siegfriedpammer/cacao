@@ -63,7 +63,6 @@
 #endif
 
 #include "native/vm/java_lang_Class.h"
-#include "native/vm/java_lang_Thread.h"
 #include "native/vm/java_lang_reflect_Constructor.h"
 #include "native/vm/java_lang_reflect_Method.h"
 #include "native/vm/reflect.h"
@@ -2345,9 +2344,13 @@ void JVM_Sleep(JNIEnv* env, jclass threadClass, jlong millis)
 
 jobject JVM_CurrentThread(JNIEnv* env, jclass threadClass)
 {
+	java_object_t *o;
+
 	TRACEJVMCALLSVERBOSE(("JVM_CurrentThread(env=%p, threadClass=%p)", env, threadClass));
 
-	return (jobject) _Jv_java_lang_Thread_currentThread();
+	o = threads_get_current_object();
+
+	return (jobject) o;
 }
 
 

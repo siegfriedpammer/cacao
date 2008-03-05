@@ -124,6 +124,7 @@ void          threads_thread_start(java_handle_t *object);
 void          threads_thread_print_info(threadobject *t);
 
 ptrint        threads_get_current_tid(void);
+java_object_t *threads_get_current_object(void);
 
 void          threads_thread_state_runnable(threadobject *t);
 void          threads_thread_state_waiting(threadobject *t);
