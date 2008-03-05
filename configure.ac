@@ -195,12 +195,6 @@ CFLAGS="$ARCH_CFLAGS $OPT_CFLAGS"
 dnl set interpreter flags
 AC_SUBST(INTRP_CFLAGS)
 
-dnl define some stuff required for --fullversion
-AC_DEFINE_UNQUOTED(VERSION_CONFIGURE_ARGS, "$ac_configure_args", [configure arguments])
-AC_DEFINE_UNQUOTED(VERSION_CC, "$CC", [CC used])
-AC_DEFINE_UNQUOTED(VERSION_CFLAGS, "$OPT_CFLAGS $ARCH_CFLAGS", [CFLAGS used])
-
-
 dnl define and substitute some architecture specific variables
 AC_DEFINE_UNQUOTED([ARCH_DIR], "${ARCH_DIR}", [architecture directory])
 AC_DEFINE_UNQUOTED([JAVA_ARCH], "${JAVA_ARCH}", [Java architecture name])
@@ -768,11 +762,21 @@ AC_SUBST(CACAO_VM_ZIP)
 
 AC_CHECK_WITH_CACAOH
 AC_CHECK_WITH_CLASSPATH
+
+dnl Now we check for jre-layout so we can skip some checks that are
+dnl not required.
+AC_CHECK_WITH_JRE_LAYOUT
+
 AC_CHECK_WITH_CLASSPATH_PREFIX
 AC_CHECK_WITH_CLASSPATH_CLASSES
-AC_CHECK_WITH_CLASSPATH_LIBDIR
-AC_CHECK_WITH_CLASSPATH_INCLUDEDIR
-AC_CHECK_WITH_JRE_LAYOUT
+
+if test x"${WITH_JRE_LAYOUT}" = "xno"; then
+   AC_CHECK_WITH_CLASSPATH_LIBDIR
+fi
+
+dnl The check for jni_md.h must be before jni.h.
+AC_CHECK_WITH_JNI_MD_H
+AC_CHECK_WITH_JNI_H
 
 
 dnl check for some programs we need
@@ -815,10 +819,18 @@ AZ_PYTHON_CSPEC
 AZ_PYTHON_LSPEC
 
 
+dnl define some stuff required for --fullversion
+AC_DEFINE_UNQUOTED(VERSION_CONFIGURE_ARGS, "$ac_configure_args", [configure arguments])
+AC_DEFINE_UNQUOTED(VERSION_CC, "$CC", [CC used])
+AC_DEFINE_UNQUOTED(VERSION_CFLAGS, "$OPT_CFLAGS $ARCH_CFLAGS $CPPFLAGS_INCLUDE", [CFLAGS used])
+
+
 dnl finally pass CFLAGS to Makefiles via AM_CFLAGS
-CFLAGS=$OPT_CFLAGS
+CFLAGS="$OPT_CFLAGS"
 AM_CFLAGS=$ARCH_CFLAGS
+AM_CPPFLAGS="$CPPFLAGS_INCLUDE"
 AC_SUBST(AM_CFLAGS)
+AC_SUBST(AM_CPPFLAGS)
 
 
 AC_CONFIG_FILES([Makefile]
