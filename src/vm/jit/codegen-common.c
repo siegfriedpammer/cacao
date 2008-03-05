@@ -64,9 +64,13 @@
 
 #if defined(WITH_CLASSPATH_SUN)
 # include "native/include/java_lang_Object.h"
-# include "native/include/java_lang_String.h"
+# include "native/include/java_lang_String.h"           /* required by j.l.CL */
 # include "native/include/java_nio_ByteBuffer.h"        /* required by j.l.CL */
 # include "native/include/java_lang_ClassLoader.h"
+#endif
+
+#if defined(WITH_CLASSPATH_CLDC1_1)
+# include "native/include/java_lang_String.h"
 #endif
 
 #include "native/include/java_lang_Class.h"
