@@ -260,6 +260,10 @@ void threadlist_index_add(int index)
 		size_thread_index_t += sizeof(thread_index_t);
 #endif
 
+	/* Set the index in the structure. */
+
+	ti->index = index;
+
 	list_add_last_unsynced(list_thread_index_free, ti);
 }
 
