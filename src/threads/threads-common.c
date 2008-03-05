@@ -47,6 +47,7 @@
 
 #include "threads/critical.h"
 #include "threads/lock-common.h"
+#include "threads/threadlist.h"
 #include "threads/threads-common.h"
 
 #include "toolbox/list.h"
@@ -69,20 +70,6 @@
 
 /* global variables ***********************************************************/
 
-/* global threads list */
-static list_t *list_threads;
-/* global free threads list */
-static list_t *list_free_threads;
-
-/* global threads free-list */
-
-typedef struct thread_index_t {
-	int32_t    index;
-	listnode_t linkage;
-} thread_index_t;
-
-static list_t *list_free_thread_index;
-
 #if defined(__LINUX__)
 /* XXX Remove for exact-GC. */
 bool threads_pthreads_implementation_nptl;
@@ -92,9 +79,6 @@ bool threads_pthreads_implementation_nptl;
 /* threads_preinit *************************************************************
 
    Do some early initialization of stuff required.
-
-   ATTENTION: Do NOT use any Java heap allocation here, as gc_init()
-   is called AFTER this function!
 
 *******************************************************************************/
 
@@ -140,12 +124,6 @@ void threads_preinit(void)
 # endif
 #endif
 
-	/* initialize the threads lists */
-
-	list_threads           = list_create(OFFSET(threadobject, linkage));
-	list_free_threads      = list_create(OFFSET(threadobject, linkage_free));
-	list_free_thread_index = list_create(OFFSET(thread_index_t, linkage));
-
 	/* Initialize the threads implementation (sets the thinlock on the
 	   main thread). */
 
@@ -163,83 +141,6 @@ void threads_preinit(void)
 	/* store the internal thread data-structure in the TSD */
 
 	threads_set_current_threadobject(mainthread);
-
-	/* initialize locking subsystems */
-
-	lock_init();
-
-	/* initialize the critical section */
-
-	critical_init();
-}
-
-
-/* threads_list_first **********************************************************
-
-   Return the first entry in the threads list.
-
-   NOTE: This function does not lock the lists.
-
-*******************************************************************************/
-
-threadobject *threads_list_first(void)
-{
-	threadobject *t;
-
-	t = list_first_unsynced(list_threads);
-
-	return t;
-}
-
-
-/* threads_list_next ***********************************************************
-
-   Return the next entry in the threads list.
-
-   NOTE: This function does not lock the lists.
-
-*******************************************************************************/
-
-threadobject *threads_list_next(threadobject *t)
-{
-	threadobject *next;
-
-	next = list_next_unsynced(list_threads, t);
-
-	return next;
-}
-
-
-/* threads_list_get_non_daemons ************************************************
-
-   Return the number of non-daemon threads.
-
-   NOTE: This function does a linear-search over the threads list,
-         because it's only used for joining the threads.
-
-*******************************************************************************/
-
-s4 threads_list_get_non_daemons(void)
-{
-	threadobject *t;
-	s4            nondaemons;
-
-	/* lock the threads lists */
-
-	threads_list_lock();
-
-	nondaemons = 0;
-
-	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
-		if (!(t->flags & THREAD_FLAG_DAEMON))
-			nondaemons++;
-	}
-
-	/* unlock the threads lists */
-
-	threads_list_unlock();
-
-	return nondaemons;
 }
 
 
@@ -252,7 +153,6 @@ s4 threads_list_get_non_daemons(void)
 
 threadobject *threads_thread_new(void)
 {
-	thread_index_t *ti;
 	int32_t         index;
 	threadobject   *t;
 	
@@ -260,42 +160,21 @@ threadobject *threads_thread_new(void)
 
 	threads_list_lock();
 
-	/* Try to get a thread index from the free-list. */
-
-	ti = list_first_unsynced(list_free_thread_index);
-
-	/* Is a free thread index available? */
-
-	if (ti != NULL) {
-		/* Yes, remove it from the free list, get the index and free
-		   the entry. */
-
-		list_remove_unsynced(list_free_thread_index, ti);
-
-		index = ti->index;
-
-		FREE(ti, thread_index_t);
-
-#if defined(ENABLE_STATISTICS)
-		if (opt_stat)
-			size_thread_index_t -= sizeof(thread_index_t);
-#endif
-	}
-	else {
-		/* Get a new the thread index. */
-
-		index = list_threads->size + 1;
-	}
+	index = threadlist_get_free_index();
 
 	/* Allocate a thread data structure. */
 
 	/* First, try to get one from the free-list. */
-	t = list_first_unsynced(list_free_threads);
+
+	t = threadlist_free_first();
+
 	if (t != NULL) {
 		/* Remove from free list. */
-		list_remove_unsynced(list_free_threads, t);
+
+		threadlist_free_remove(t);
 
 		/* Equivalent of MZERO on the else path */
+
 		threads_impl_thread_clear(t);
 	}
 	else {
@@ -344,9 +223,9 @@ threadobject *threads_thread_new(void)
 
 	threads_impl_thread_reuse(t);
 
-	/* Add the thread to the threads-list. */
+	/* Add the thread to the thread list. */
 
-	list_add_last_unsynced(list_threads, t);
+	threadlist_add(t);
 
 	/* Unlock the threads-lists. */
 
@@ -369,34 +248,23 @@ threadobject *threads_thread_new(void)
 
 void threads_thread_free(threadobject *t)
 {
-	thread_index_t *ti;
-
 	/* Lock the threads lists. */
 
 	threads_list_lock();
 
-	/* Remove the thread from the threads-list. */
+	/* Remove the thread from the thread-list. */
 
-	list_remove_unsynced(list_threads, t);
+	threadlist_remove(t);
 
 	/* Add the thread index to the free list. */
 
-	ti = NEW(thread_index_t);
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_thread_index_t += sizeof(thread_index_t);
-#endif
-
-	ti->index = t->index;
-
-	list_add_last_unsynced(list_free_thread_index, ti);
+	threadlist_index_add(t->index);
 
 	/* Add the thread data structure to the free list. */
 
 	threads_thread_set_object(t, NULL);
 
-	list_add_last_unsynced(list_free_threads, t);
+	threadlist_free_add(t);
 
 	/* Unlock the threads lists. */
 
@@ -850,7 +718,7 @@ void threads_dump(void)
 
 	/* iterate over all started threads */
 
-	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
 		/* ignore threads which are in state NEW */
 		if (t->state == THREAD_STATE_NEW)
 			continue;

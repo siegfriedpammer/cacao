@@ -39,6 +39,7 @@
 #include "native/llni.h"
 
 #include "threads/lock-common.h"
+#include "threads/threadlist.h"
 #include "threads/threads-common.h"
 
 #include "threads/native/lock.h"
@@ -829,7 +830,7 @@ static threadobject *threads_lookup_thread_id(int index)
 
 	threads_list_lock();
 
-	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
 		if (t->state == THREAD_STATE_NEW)
 			continue;
 		if (t->index == index)

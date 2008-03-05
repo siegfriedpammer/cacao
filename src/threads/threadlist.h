@@ -1,6 +1,6 @@
-/* src/threads/lock-common.h - common stuff of lock implementation
+/* src/threads/threadlist.h - different thread-lists
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,48 +23,35 @@
 */
 
 
-#ifndef _LOCK_COMMON_H
-#define _LOCK_COMMON_H
+#ifndef _THREADLIST_H
+#define _THREADLIST_H
 
 #include "config.h"
-#include "vm/types.h"
 
-#include "vm/global.h"
+#include <stdint.h>
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#else
-# include "threads/none/lock.h"
-#endif
+#include "threads/threads-common.h"
 
 
-/* only define the following stuff with thread enabled ************************/
+/* function prototypes ********************************************************/
 
-#if defined(ENABLE_THREADS)
+void          threadlist_init(void);
 
-/* functions ******************************************************************/
+void          threadlist_add(threadobject *t);
+void          threadlist_remove(threadobject *t);
+threadobject *threadlist_first(void);
+threadobject *threadlist_next(threadobject *t);
 
-void lock_init(void);
+void          threadlist_free_add(threadobject *t);
+void          threadlist_free_remove(threadobject *t);
+threadobject *threadlist_free_first(void);
 
-void lock_init_object_lock(java_object_t *);
+int           threadlist_get_non_daemons(void);
 
-ptrint lock_pre_compute_thinlock(s4 index);
+void          threadlist_index_add(int index);
+int           threadlist_get_free_index(void);
 
-bool lock_monitor_enter(java_handle_t *);
-bool lock_monitor_exit(java_handle_t *);
-
-#define LOCK_monitor_enter    (functionptr) lock_monitor_enter
-#define LOCK_monitor_exit     (functionptr) lock_monitor_exit
-
-bool lock_is_held_by_current_thread(java_handle_t *o);
-
-void lock_wait_for_object(java_handle_t *o, s8 millis, s4 nanos);
-void lock_notify_object(java_handle_t *o);
-void lock_notify_all_object(java_handle_t *o);
-
-#endif /* ENABLE_THREADS */
-
-#endif /* _LOCK_COMMON_H */
+#endif /* _THREADLIST_H */
 
 
 /*

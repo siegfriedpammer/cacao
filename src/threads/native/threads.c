@@ -73,6 +73,7 @@
 #endif
 
 #include "threads/lock-common.h"
+#include "threads/threadlist.h"
 #include "threads/threads-common.h"
 
 #include "threads/native/threads.h"
@@ -396,7 +397,7 @@ static s4 threads_cast_sendsignals(s4 sig)
 
 	count = 0;
 
-	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
 		/* don't send the signal to ourself */
 
 		if (t == self)
@@ -568,7 +569,7 @@ void threads_stopworld(void)
 	count = 0;
 
 	/* suspend all running threads */
-	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
 		/* don't send the signal to ourself */
 
 		if (t == self)
@@ -634,7 +635,7 @@ void threads_startworld(void)
 	count = 0;
 
 	/* resume all thread we haltet */
-	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
 		/* don't send the signal to ourself */
 
 		if (t == self)
@@ -1107,7 +1108,7 @@ bool threads_init(void)
 	/* Get the main-thread (NOTE: The main threads is always the first
 	   thread in the list). */
 
-	mainthread = threads_list_first();
+	mainthread = threadlist_first();
 
 	/* create a java.lang.Thread for the main thread */
 
@@ -1629,7 +1630,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 #if defined(ENABLE_JAVASE)
 		/* get the main thread */
 
-		mainthread = threads_list_first();
+		mainthread = threadlist_first();
 		mainthreado = (java_lang_Thread *) threads_thread_get_object(mainthread);
 		LLNI_field_get_ref(mainthreado, group, group);
 #endif
@@ -1977,7 +1978,7 @@ void threads_join_all_threads(void)
 	   compare against 1 because the current (main thread) is also a
 	   non-daemon thread. */
 
-	while (threads_list_get_non_daemons() > 1)
+	while (threadlist_get_non_daemons() > 1)
 		pthread_cond_wait(&cond_join, &mutex_join);
 
 	/* leave join mutex */

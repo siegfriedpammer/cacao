@@ -58,6 +58,8 @@
 
 #include "native/vm/nativevm.h"
 
+#include "threads/lock-common.h"
+#include "threads/threadlist.h"
 #include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
@@ -1407,10 +1409,16 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	gc_init(opt_heapmaxsize, opt_heapstartsize);
 
 #if defined(ENABLE_THREADS)
+	/* BEFORE: threads_preinit */
+
+	threadlist_init();
+
 	/* AFTER: gc_init (directly after, as this initializes the
 	   stopworldlock lock */
 
   	threads_preinit();
+	lock_init();
+	critical_init();
 #endif
 
 	/* install architecture dependent signal handlers */

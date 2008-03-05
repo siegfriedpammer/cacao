@@ -115,10 +115,6 @@ static inline void threads_thread_set_object(threadobject *t, java_handle_t *obj
 
 void          threads_preinit(void);
 
-threadobject *threads_list_first(void);
-threadobject *threads_list_next(threadobject *t);
-s4            threads_list_get_non_daemons(void);
-
 threadobject *threads_thread_new(void);
 void          threads_thread_free(threadobject *t);
 
