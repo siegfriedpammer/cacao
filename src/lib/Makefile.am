@@ -65,16 +65,23 @@ if ENABLE_ANNOTATIONS
 VM_JAVA_FILES += \
 	$(VM_JAVA_FILES_GNU_ANNOTATIONS)
 endif
-endif
-
-if WITH_CLASSPATH_CLDC1_1
-VM_JAVA_FILES = $(VM_JAVA_FILES_CLDC1_1)
-endif
 
 if ENABLE_ZLIB
 pkgdata_DATA = vm.zip
 else
 pkgdata_DATA = nozip
+endif
+endif
+
+if WITH_CLASSPATH_CLDC1_1
+VM_JAVA_FILES = \
+	$(VM_JAVA_FILES_CLDC1_1)
+
+if ENABLE_ZLIB
+pkgdata_DATA = vm.zip
+else
+pkgdata_DATA = nozip
+endif
 endif
 
 if ENABLE_ZLIB
