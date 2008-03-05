@@ -68,6 +68,7 @@
 #include "native/vm/reflect.h"
 
 #include "threads/lock-common.h"
+#include "threads/threadlist.h"
 #include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
@@ -2257,7 +2258,7 @@ jboolean JVM_IsThreadAlive(JNIEnv* env, jobject jthread)
 
 	/* XXX this is just a quick hack */
 
-	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
 		LLNI_equals(t->object, jthread, equal);
 
 		if (equal == true)
@@ -2305,7 +2306,7 @@ void JVM_SetThreadPriority(JNIEnv* env, jobject jthread, jint prio)
 
 	/* XXX this is just a quick hack */
 
-	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
 		if (t->object == h)
 			break;
 	}
@@ -2387,7 +2388,7 @@ jboolean JVM_IsInterrupted(JNIEnv* env, jobject jthread, jboolean clear_interrup
 
 	/* XXX this is just a quick hack */
 
-	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
 		if (t->object == h)
 			break;
 	}
