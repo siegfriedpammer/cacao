@@ -1066,7 +1066,6 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObjectVolatile(JNIEnv *env, sun_m
 {
 	volatile void **p;
 
-	log_println("Java_sun_misc_Unsafe_putObjectVolatile");
 	p = (volatile void **) (((uint8_t *) o) + offset);
 
 	*p = x;
