@@ -111,6 +111,7 @@ static JNINativeMethod methods[] = {
 	{ "compareAndSwapInt",      "(Ljava/lang/Object;JII)Z",                                   (void *) (intptr_t) &Java_sun_misc_Unsafe_compareAndSwapInt              },
 	{ "compareAndSwapLong",     "(Ljava/lang/Object;JJJ)Z",                                   (void *) (intptr_t) &Java_sun_misc_Unsafe_compareAndSwapLong             },
 	{ "getObjectVolatile",      "(Ljava/lang/Object;J)Ljava/lang/Object;",                    (void *) (intptr_t) &Java_sun_misc_Unsafe_getObjectVolatile              },
+	{ "putObjectVolatile",      "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void *) (intptr_t) &Java_sun_misc_Unsafe_putObjectVolatile              },
 	{ "getIntVolatile",         "(Ljava/lang/Object;J)I",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getIntVolatile                 },
 	{ "getLongVolatile",        "(Ljava/lang/Object;J)J",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getLongVolatile                },
 	{ "unpark",                 "(Ljava/lang/Object;)V",                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_unpark                         },
@@ -1053,6 +1054,22 @@ JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_getObjectVolatile(JNIEn
 	value = *p;
 
 	return (java_lang_Object *) value;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    putObjectVolatile
+ * Signature: (Ljava/lang/Object;JLjava/lang/Object;)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObjectVolatile(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset, java_lang_Object *x)
+{
+	volatile void **p;
+
+	log_println("Java_sun_misc_Unsafe_putObjectVolatile");
+	p = (volatile void **) (((uint8_t *) o) + offset);
+
+	*p = x;
 }
 
 
