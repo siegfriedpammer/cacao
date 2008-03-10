@@ -221,6 +221,7 @@ extern int   opt_TraceLinkClass;
 extern int   opt_TraceReplacement;
 #endif
 extern int   opt_TraceSubsystemInitialization;
+extern int   opt_TraceTraps;
 
 
 /* function prototypes ********************************************************/

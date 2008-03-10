@@ -263,6 +263,11 @@ void *signal_handle(int type, intptr_t val,
 	methodinfo       *m;
 	java_handle_t    *p;
 
+#if !defined(NDEBUG)
+	if (opt_TraceTraps)
+		log_println("[signal_handle: trap %d]", type);
+#endif
+	
 #if defined(ENABLE_VMLOG)
 	vmlog_cacao_signl_type(type);
 #endif
