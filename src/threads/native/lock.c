@@ -824,11 +824,13 @@ static void lock_inflate(threadobject *t, java_handle_t *o, lock_record_t *lr)
 }
 
 
+/* TODO Move this function into threadlist.[ch]. */
+
 static threadobject *threads_lookup_thread_id(int index)
 {
 	threadobject *t;
 
-	threads_list_lock();
+	threadlist_lock();
 
 	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
 		if (t->state == THREAD_STATE_NEW)
@@ -837,7 +839,7 @@ static threadobject *threads_lookup_thread_id(int index)
 			break;
 	}
 
-	threads_list_unlock();
+	threadlist_unlock();
 	return t;
 }
 

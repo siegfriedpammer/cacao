@@ -156,9 +156,9 @@ threadobject *threads_thread_new(void)
 	int32_t         index;
 	threadobject   *t;
 	
-	/* lock the threads-lists */
+	/* Lock the thread lists */
 
-	threads_list_lock();
+	threadlist_lock();
 
 	index = threadlist_get_free_index();
 
@@ -227,9 +227,9 @@ threadobject *threads_thread_new(void)
 
 	threadlist_add(t);
 
-	/* Unlock the threads-lists. */
+	/* Unlock the thread lists. */
 
-	threads_list_unlock();
+	threadlist_unlock();
 
 	return t;
 }
@@ -248,9 +248,9 @@ threadobject *threads_thread_new(void)
 
 void threads_thread_free(threadobject *t)
 {
-	/* Lock the threads lists. */
+	/* Lock the thread lists. */
 
-	threads_list_lock();
+	threadlist_lock();
 
 	/* Remove the thread from the thread-list. */
 
@@ -266,9 +266,9 @@ void threads_thread_free(threadobject *t)
 
 	threadlist_free_add(t);
 
-	/* Unlock the threads lists. */
+	/* Unlock the thread lists. */
 
-	threads_list_unlock();
+	threadlist_unlock();
 }
 
 
@@ -604,14 +604,14 @@ void threads_thread_state_runnable(threadobject *t)
 {
 	/* Set the state inside a lock. */
 
-	threads_list_lock();
+	threadlist_lock();
 
 	if (t->state != THREAD_STATE_TERMINATED)
 		t->state = THREAD_STATE_RUNNABLE;
 
 	DEBUGTHREADS("is RUNNABLE", t);
 
-	threads_list_unlock();
+	threadlist_unlock();
 }
 
 
@@ -628,14 +628,14 @@ void threads_thread_state_waiting(threadobject *t)
 {
 	/* Set the state inside a lock. */
 
-	threads_list_lock();
+	threadlist_lock();
 
 	if (t->state != THREAD_STATE_TERMINATED)
 		t->state = THREAD_STATE_WAITING;
 
 	DEBUGTHREADS("is WAITING", t);
 
-	threads_list_unlock();
+	threadlist_unlock();
 }
 
 
@@ -653,14 +653,14 @@ void threads_thread_state_timed_waiting(threadobject *t)
 {
 	/* Set the state inside a lock. */
 
-	threads_list_lock();
+	threadlist_lock();
 
 	if (t->state != THREAD_STATE_TERMINATED)
 		t->state = THREAD_STATE_TIMED_WAITING;
 
 	DEBUGTHREADS("is TIMED_WAITING", t);
 
-	threads_list_unlock();
+	threadlist_unlock();
 }
 
 
@@ -675,13 +675,13 @@ void threads_thread_state_terminated(threadobject *t)
 {
 	/* set the state in the lock */
 
-	threads_list_lock();
+	threadlist_lock();
 
 	t->state = THREAD_STATE_TERMINATED;
 
 	DEBUGTHREADS("is TERMINATED", t);
 
-	threads_list_unlock();
+	threadlist_unlock();
 }
 
 
@@ -768,9 +768,9 @@ void threads_dump(void)
 
 	/* XXX we should stop the world here */
 
-	/* lock the threads lists */
+	/* Lock the thread lists. */
 
-	threads_list_lock();
+	threadlist_lock();
 
 	printf("Full thread dump CACAO "VERSION":\n");
 
@@ -807,9 +807,9 @@ void threads_dump(void)
 #endif
 	}
 
-	/* unlock the threads lists */
+	/* Unlock the thread lists. */
 
-	threads_list_unlock();
+	threadlist_unlock();
 }
 
 

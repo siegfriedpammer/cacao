@@ -93,7 +93,7 @@ static void profile_thread(void)
 
 		/* lock the threads lists */
 
-		threads_list_lock();
+		threadlist_lock();
 
 		/* iterate over all started threads */
 
@@ -156,7 +156,7 @@ static void profile_thread(void)
 
 		/* unlock the threads lists */
 
-		threads_list_unlock();
+		threadlist_unlock();
 	}
 }
 #endif

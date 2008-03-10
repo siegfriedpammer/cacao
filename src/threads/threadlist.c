@@ -65,6 +65,10 @@ void threadlist_init(void)
 	list_thread            = list_create(OFFSET(threadobject, linkage));
 	list_thread_free       = list_create(OFFSET(threadobject, linkage_free));
 	list_thread_index_free = list_create(OFFSET(thread_index_t, linkage));
+
+	/* Initialize the implementation specific parts. */
+
+	threadlist_impl_init();
 }
 
 
@@ -117,7 +121,7 @@ threadobject *threadlist_first(void)
 }
 
 
-/* threads_list_next ***********************************************************
+/* threadlist_next *************************************************************
 
    Return the next entry in the thread list.
 
@@ -202,9 +206,9 @@ int threadlist_get_non_daemons(void)
 	threadobject *t;
 	int           nondaemons;
 
-	/* Lock the threads lists. */
+	/* Lock the thread lists. */
 
-	threads_list_lock();
+	threadlist_lock();
 
 	nondaemons = 0;
 
@@ -213,9 +217,9 @@ int threadlist_get_non_daemons(void)
 			nondaemons++;
 	}
 
-	/* Unlock the threads lists. */
+	/* Unlock the thread lists. */
 
-	threads_list_unlock();
+	threadlist_unlock();
 
 	return nondaemons;
 }

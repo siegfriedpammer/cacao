@@ -51,6 +51,13 @@ int           threadlist_get_non_daemons(void);
 void          threadlist_index_add(int index);
 int           threadlist_get_free_index(void);
 
+/* implementation specific functions */
+
+void          threadlist_impl_init(void);
+
+void          threadlist_lock(void);
+void          threadlist_unlock(void);
+
 #endif /* _THREADLIST_H */
 
 

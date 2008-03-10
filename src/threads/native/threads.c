@@ -228,9 +228,6 @@ __thread threadobject *threads_current_threadobject;
 pthread_key_t threads_current_threadobject_key;
 #endif
 
-/* global mutex for the threads table */
-static pthread_mutex_t mutex_threads_list;
-
 /* global mutex for stop-the-world                                            */
 static pthread_mutex_t stopworldlock;
 
@@ -553,7 +550,7 @@ void threads_stopworld(void)
 
 	/* lock the threads lists */
 
-	threads_list_lock();
+	threadlist_lock();
 
 #if defined(__DARWIN__)
 	/*threads_cast_darwinstop();*/
@@ -665,7 +662,7 @@ void threads_startworld(void)
 
 	/* unlock the threads lists */
 
-	threads_list_unlock();
+	threadlist_unlock();
 
 	unlock_stopworld();
 }
@@ -923,12 +920,6 @@ void threads_impl_preinit(void)
 		vm_abort_errnum(result, "threads_impl_preinit: pthread_mutex_init failed");
 #endif
 
-	/* initialize the threads-list mutex */
-
-	result = pthread_mutex_init(&mutex_threads_list, NULL);
-	if (result != 0)
-		vm_abort_errnum(result, "threads_impl_preinit: pthread_mutex_init failed");
-
 #if !defined(HAVE___THREAD)
 	result = pthread_key_create(&threads_current_threadobject_key, NULL);
 	if (result != 0)
@@ -936,45 +927,6 @@ void threads_impl_preinit(void)
 #endif
 
  	threads_sem_init(&suspend_ack, 0, 0);
-}
-
-
-/* threads_list_lock ***********************************************************
-
-   Enter the threads table mutex.
-
-   NOTE: We need this function as we can't use an internal lock for
-         the threads lists because the thread's lock is initialized in
-         threads_table_add (when we have the thread index), but we
-         already need the lock at the entry of the function.
-
-*******************************************************************************/
-
-void threads_list_lock(void)
-{
-	int result;
-
-	result = pthread_mutex_lock(&mutex_threads_list);
-
-	if (result != 0)
-		vm_abort_errnum(result, "threads_list_lock: pthread_mutex_lock failed");
-}
-
-
-/* threads_list_unlock *********************************************************
-
-   Leave the threads list mutex.
-
-*******************************************************************************/
-
-void threads_list_unlock(void)
-{
-	int result;
-
-	result = pthread_mutex_unlock(&mutex_threads_list);
-
-	if (result != 0)
-		vm_abort_errnum(result, "threads_list_unlock: pthread_mutex_unlock failed");
 }
 
 

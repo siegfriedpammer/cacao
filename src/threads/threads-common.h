@@ -143,9 +143,6 @@ void          threads_print_stacktrace(void);
 
 void          threads_impl_preinit(void);
 
-void          threads_list_lock(void);
-void          threads_list_unlock(void);
-
 #if defined(ENABLE_GC_CACAO)
 void          threads_mutex_gc_lock(void);
 void          threads_mutex_gc_unlock(void);
