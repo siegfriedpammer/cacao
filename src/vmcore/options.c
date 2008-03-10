@@ -25,7 +25,6 @@
 
 #include "config.h"
 
-#include <errno.h>
 #include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -686,7 +685,7 @@ void options_xx(JavaVMInitArgs *vm_args)
 			file = fopen(filename, "w");
 
 			if (file == NULL)
-				vm_abort("options_xx: fopen failed: %s", strerror(errno));
+				vm_abort_errno("options_xx: fopen failed");
 
 			opt_ProfileMemoryUsageGNUPlot = file;
 			break;
