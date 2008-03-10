@@ -542,7 +542,9 @@ ptrint threads_get_current_tid(void)
 
 *******************************************************************************/
 
-#include "native/include/java_lang_ThreadGroup.h"
+# if defined(ENABLE_JAVASE)
+# include "native/include/java_lang_ThreadGroup.h"
+#endif
 
 java_object_t *threads_get_current_object(void)
 {
