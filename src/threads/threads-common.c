@@ -565,9 +565,9 @@ void threads_thread_free(threadobject *t)
 bool threads_thread_start_internal(utf *name, functionptr f)
 {
 	threadobject       *t;
-	java_lang_Thread   *object;
+	java_lang_Thread   *to;                        /* java.lang.Thread object */
 #if defined(WITH_CLASSPATH_GNU)
-	java_lang_VMThread *vmt;
+	java_lang_VMThread *vmto;                    /* java.lang.VMThread object */
 #endif
 
 	/* Enter the join-mutex, so if the main-thread is currently
@@ -587,48 +587,65 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 
 	threads_mutex_join_unlock();
 
-	/* create the java thread object */
+	/* Create the Java thread object. */
 
-	object = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+	to = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
 	/* XXX memory leak!!! */
-	if (object == NULL)
+	if (to == NULL)
 		return false;
 
 #if defined(WITH_CLASSPATH_GNU)
-	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
+
+	vmto = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
 
 	/* XXX memory leak!!! */
-	if (vmt == NULL)
+	if (vmto == NULL)
 		return false;
 
-	LLNI_field_set_ref(vmt, thread, object);
-	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) t);
+	LLNI_field_set_ref(vmto, thread, to);
+	LLNI_field_set_val(vmto, vmdata, (java_lang_Object *) t);
 
-	LLNI_field_set_ref(object, vmThread, vmt);
+	LLNI_field_set_ref(to, vmThread, vmto);
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+	/* Nothing to do. */
+
 #elif defined(WITH_CLASSPATH_CLDC1_1)
-	LLNI_field_set_val(object, vm_thread, (java_lang_Object *) t);
+
+	LLNI_field_set_val(to, vm_thread, (java_lang_Object *) t);
+
+#else
+# error unknown classpath configuration
 #endif
 
-	threads_thread_set_object(t, (java_handle_t *) object);
+	threads_thread_set_object(t, (java_handle_t *) to);
 
-	/* set java.lang.Thread fields */
+	/* Set java.lang.Thread fields. */
 
 #if defined(WITH_CLASSPATH_GNU)
-	LLNI_field_set_ref(object, name    , (java_lang_String *) javastring_new(name));
-#elif defined(WITH_CLASSPATH_CLDC1_1)
+
+	LLNI_field_set_ref(to, name,     (java_lang_String *) javastring_new(name));
+
+#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
+
 	/* FIXME: In cldc the name is a char[] */
-/* 	LLNI_field_set_ref(object, name    , (java_chararray *) javastring_new(name)); */
-	LLNI_field_set_ref(object, name    , NULL);
+/* 	LLNI_field_set_ref(to, name,     (java_chararray *) name); */
+	LLNI_field_set_ref(to, name,     NULL);
+
+#else
+# error unknow classpath configuration
 #endif
+
+	LLNI_field_set_val(to, priority, NORM_PRIORITY);
 
 #if defined(ENABLE_JAVASE)
-	LLNI_field_set_val(object, daemon  , true);
+	LLNI_field_set_val(to, daemon,   true);
+	LLNI_field_set_ref(to, group,    threadgroup_system);
 #endif
 
-	LLNI_field_set_val(object, priority, NORM_PRIORITY);
-
-	/* start the thread */
+	/* Start the thread. */
 
 	threads_impl_thread_start(t, f);
 
@@ -650,13 +667,13 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 
 void threads_thread_start(java_handle_t *object)
 {
-	java_lang_Thread   *o;
-	threadobject       *thread;
+	java_lang_Thread   *to;
+	threadobject       *t;
 #if defined(WITH_CLASSPATH_GNU)
-	java_lang_VMThread *vmt;
+	java_lang_VMThread *vmto;
 #endif
 
-	o = (java_lang_Thread *) object;
+	to = (java_lang_Thread *) object;
 
 	/* Enter the join-mutex, so if the main-thread is currently
 	   waiting to join all threads, the number of non-daemon threads
@@ -666,17 +683,17 @@ void threads_thread_start(java_handle_t *object)
 
 	/* create internal thread data-structure */
 
-	thread = threads_thread_new();
+	t = threads_thread_new();
 
 	/* this is a normal Java thread */
 
-	thread->flags |= THREAD_FLAG_JAVA;
+	t->flags |= THREAD_FLAG_JAVA;
 
 #if defined(ENABLE_JAVASE)
-	/* is this a daemon thread? */
+	/* Is this a daemon thread? */
 
-	if (LLNI_field_direct(o, daemon) == true)
-		thread->flags |= THREAD_FLAG_DAEMON;
+	if (LLNI_field_direct(to, daemon) == true)
+		t->flags |= THREAD_FLAG_DAEMON;
 #endif
 
 	/* The thread is flagged and (non-)daemon thread, we can leave the
@@ -684,25 +701,37 @@ void threads_thread_start(java_handle_t *object)
 
 	threads_mutex_join_unlock();
 
-	/* link the two objects together */
+	/* Link the two objects together. */
 
-	threads_thread_set_object(thread, object);
+	threads_thread_set_object(t, object);
 
 #if defined(WITH_CLASSPATH_GNU)
-	LLNI_field_get_ref(o, vmThread, vmt);
 
-	assert(vmt);
-	assert(LLNI_field_direct(vmt, vmdata) == NULL);
+	/* Get the java.lang.VMThread object and do some sanity checks. */
 
-	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) thread);
+	LLNI_field_get_ref(to, vmThread, vmto);
+
+	assert(vmto);
+	assert(LLNI_field_direct(vmto, vmdata) == NULL);
+
+	LLNI_field_set_val(vmto, vmdata, (java_lang_Object *) t);
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+	/* Nothing to do. */
+
 #elif defined(WITH_CLASSPATH_CLDC1_1)
-	LLNI_field_set_val(o, vm_thread, (java_lang_Object *) thread);
+
+	LLNI_field_set_val(to, vm_thread, (java_lang_Object *) t);
+
+#else
+# error unknown classpath configuration
 #endif
 
 	/* Start the thread.  Don't pass a function pointer (NULL) since
 	   we want Thread.run()V here. */
 
-	threads_impl_thread_start(thread, NULL);
+	threads_impl_thread_start(t, NULL);
 }
 
 
