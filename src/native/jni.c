@@ -3793,9 +3793,12 @@ jobjectRefType jni_GetObjectRefType(JNIEnv *env, jobject obj)
 
 jint _Jv_JNI_DestroyJavaVM(JavaVM *vm)
 {
-	int32_t status;
+	int status;
 
 	TRACEJNICALLS(("_Jv_JNI_DestroyJavaVM(vm=%p)", vm));
+
+	if (vm_created == false)
+		return JNI_ERR;
 
     status = vm_destroy(vm);
 
@@ -3847,9 +3850,16 @@ static s4 jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon)
 
 jint _Jv_JNI_AttachCurrentThread(JavaVM *vm, void **p_env, void *thr_args)
 {
-	STATISTICS(jniinvokation());
+	int result;
 
-	return jni_attach_current_thread(p_env, thr_args, false);
+	TRACEJNICALLS(("_Jv_JNI_AttachCurrentThread(vm=%p, p_env=%p, thr_args=%p)", vm, p_env, thr_args));
+
+	if (vm_created == false)
+		return JNI_ERR;
+
+	result = jni_attach_current_thread(p_env, thr_args, false);
+
+	return result;
 }
 
 
@@ -3910,6 +3920,11 @@ jint _Jv_JNI_GetEnv(JavaVM *vm, void **env, jint version)
 {
 	TRACEJNICALLS(("_Jv_JNI_GetEnv(vm=%p, env=%p, %d=version)", vm, env, version));
 
+	if (vm_created == false) {
+		*env = NULL;
+		return JNI_EDETACHED;
+	}
+
 #if defined(ENABLE_THREADS)
 	if (threads_get_current_threadobject() == NULL) {
 		*env = NULL;
@@ -3957,9 +3972,16 @@ jint _Jv_JNI_GetEnv(JavaVM *vm, void **env, jint version)
 
 jint _Jv_JNI_AttachCurrentThreadAsDaemon(JavaVM *vm, void **penv, void *args)
 {
-	STATISTICS(jniinvokation());
+	int result;
 
-	return jni_attach_current_thread(penv, args, true);
+	TRACEJNICALLS(("_Jv_JNI_AttachCurrentThreadAsDaemon(vm=%p, penv=%p, args=%p)", vm, penv, args));
+
+	if (vm_created == false)
+		return JNI_ERR;
+
+	result = jni_attach_current_thread(penv, args, true);
+
+	return result;
 }
 
 

@@ -127,7 +127,8 @@ _Jv_JNIEnv *_Jv_env;                    /* pointer to native method interface */
 s4 vms = 0;                             /* number of VMs created              */
 
 bool vm_initializing = false;
-bool vm_exiting = false;
+bool vm_created      = false;
+bool vm_exiting      = false;
 
 char      *mainstring = NULL;
 classinfo *mainclass = NULL;
@@ -1614,12 +1615,13 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	}
 #endif
 
-	/* increment the number of VMs */
+	/* Increment the number of VMs. */
 
 	vms++;
 
-	/* initialization is done */
+	/* Initialization is done, VM is created.. */
 
+	vm_created      = true;
 	vm_initializing = false;
 
 	/* Print the VM configuration after all stuff is set and the VM is
@@ -1798,6 +1800,10 @@ s4 vm_destroy(JavaVM *vm)
 #if defined(ENABLE_THREADS)
 	threads_join_all_threads();
 #endif
+
+	/* VM is gone. */
+
+	vm_created = false;
 
 	/* everything's ok */
 
