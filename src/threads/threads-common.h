@@ -79,6 +79,10 @@
 #endif
 
 
+/* global variables ***********************************************************/
+
+extern methodinfo *thread_method_init;
+
 #if defined(__LINUX__)
 /* XXX Remove for exact-GC. */
 extern bool threads_pthreads_implementation_nptl;
@@ -114,6 +118,7 @@ static inline void threads_thread_set_object(threadobject *t, java_handle_t *obj
 /* function prototypes ********************************************************/
 
 void          threads_preinit(void);
+void          threads_init(void);
 
 threadobject *threads_thread_new(void);
 void          threads_thread_free(threadobject *t);
@@ -142,6 +147,7 @@ void          threads_print_stacktrace(void);
 /* implementation specific functions */
 
 void          threads_impl_preinit(void);
+void          threads_impl_init(void);
 
 #if defined(ENABLE_GC_CACAO)
 void          threads_mutex_gc_lock(void);

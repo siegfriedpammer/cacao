@@ -217,8 +217,6 @@ static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos)
 /* GLOBAL VARIABLES                                                           */
 /******************************************************************************/
 
-static methodinfo *method_thread_init;
-
 /* the thread object of the current thread                                    */
 /* This is either a thread-local variable defined with __thread, or           */
 /* a thread-specific value stored with key threads_current_threadobject_key.  */
@@ -1001,188 +999,30 @@ void threads_mutex_join_unlock(void)
 }
 
 
-/* threads_init ****************************************************************
+/* threads_impl_init ***********************************************************
 
-   Initializes the threads required by the JVM: main, finalizer.
+   Initializes the implementation specific bits.
 
 *******************************************************************************/
 
-bool threads_init(void)
+void threads_impl_init(void)
 {
-	threadobject     *mainthread;
-	java_handle_t    *threadname;
-	java_lang_Thread *t;
-	java_handle_t    *o;
-
-#if defined(ENABLE_JAVASE)
-	java_lang_ThreadGroup *threadgroup;
-	methodinfo            *m;
-#endif
-
-#if defined(WITH_CLASSPATH_GNU)
-	java_lang_VMThread    *vmt;
-#endif
-
 	pthread_attr_t attr;
-
-	TRACESUBSYSTEMINITIALIZATION("threads_init");
-
-	/* get methods we need in this file */
-
-#if defined(WITH_CLASSPATH_GNU)
-	method_thread_init =
-		class_resolveclassmethod(class_java_lang_Thread,
-								 utf_init,
-								 utf_new_char("(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"),
-								 class_java_lang_Thread,
-								 true);
-#elif defined(WITH_CLASSPATH_SUN)
-	method_thread_init =
-		class_resolveclassmethod(class_java_lang_Thread,
-								 utf_init,
-								 utf_new_char("(Ljava/lang/String;)V"),
-								 class_java_lang_Thread,
-								 true);
-#elif defined(WITH_CLASSPATH_CLDC1_1)
-	method_thread_init =
-		class_resolveclassmethod(class_java_lang_Thread,
-								 utf_init,
-								 utf_new_char("(Ljava/lang/String;)V"),
-								 class_java_lang_Thread,
-								 true);
-#else
-# error unknown classpath configuration
-#endif
-
-	if (method_thread_init == NULL)
-		return false;
-
-	/* Get the main-thread (NOTE: The main threads is always the first
-	   thread in the list). */
-
-	mainthread = threadlist_first();
-
-	/* create a java.lang.Thread for the main thread */
-
-	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
-
-	if (t == NULL)
-		return false;
-
-	/* set the object in the internal data structure */
-
-	threads_thread_set_object(mainthread, (java_handle_t *) t);
-
-#if defined(ENABLE_INTRP)
-	/* create interpreter stack */
-
-	if (opt_intrp) {
-		MSET(intrp_main_stack, 0, u1, opt_stacksize);
-		mainthread->_global_sp = (Cell*) (intrp_main_stack + opt_stacksize);
-	}
-#endif
-
-	threadname = javastring_new(utf_new_char("main"));
-
-#if defined(ENABLE_JAVASE)
-	/* allocate and init ThreadGroup */
-
-	threadgroup = (java_lang_ThreadGroup *)
-		native_new_and_init(class_java_lang_ThreadGroup);
-
-	if (threadgroup == NULL)
-		return false;
-#endif
-
-#if defined(WITH_CLASSPATH_GNU)
-	/* create a java.lang.VMThread for the main thread */
-
-	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
-
-	if (vmt == NULL)
-		return false;
-
-	/* set the thread */
-
-	LLNI_field_set_ref(vmt, thread, t);
-	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) mainthread);
-
-	/* call java.lang.Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
-	o = (java_handle_t *) t;
-
-	(void) vm_call_method(method_thread_init, o, vmt, threadname, NORM_PRIORITY,
-						  false);
-
-#elif defined(WITH_CLASSPATH_SUN)
-
-	/* We trick java.lang.Thread.<init>, which sets the priority of
-	   the current thread to the parent's one. */
-
-	t->priority = NORM_PRIORITY;
-
-	/* Call java.lang.Thread.<init>(Ljava/lang/String;)V */
-
-	o = (java_object_t *) t;
-
-	(void) vm_call_method(method_thread_init, o, threadname);
-
-#elif defined(WITH_CLASSPATH_CLDC1_1)
-
-	/* set the thread */
-
-	t->vm_thread = (java_lang_Object *) mainthread;
-
-	/* call public Thread(String name) */
-
-	o = (java_handle_t *) t;
-
-	(void) vm_call_method(method_thread_init, o, threadname);
-#else
-# error unknown classpath configuration
-#endif
-
-	if (exceptions_get_exception())
-		return false;
-
-#if defined(ENABLE_JAVASE)
-	LLNI_field_set_ref(t, group, threadgroup);
-
-# if defined(WITH_CLASSPATH_GNU)
-	/* add main thread to java.lang.ThreadGroup */
-
-	m = class_resolveclassmethod(class_java_lang_ThreadGroup,
-								 utf_addThread,
-								 utf_java_lang_Thread__V,
-								 class_java_lang_ThreadGroup,
-								 true);
-
-	o = (java_handle_t *) threadgroup;
-
-	(void) vm_call_method(m, o, t);
-
-	if (exceptions_get_exception())
-		return false;
-# else
-#  warning Do not know what to do here
-# endif
-#endif
+	int            result;
 
 	threads_set_thread_priority(pthread_self(), NORM_PRIORITY);
 
-	/* initialize the thread attribute object */
+	/* Initialize the thread attribute object. */
 
-	if (pthread_attr_init(&attr) != 0)
-		vm_abort("threads_init: pthread_attr_init failed: %s", strerror(errno));
+	result = pthread_attr_init(&attr);
 
-	if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0)
-		vm_abort("threads_init: pthread_attr_setdetachstate failed: %s",
-				 strerror(errno));
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_init: pthread_attr_init failed");
 
-	DEBUGTHREADS("starting (main)", mainthread);
+	result = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-	/* everything's ok */
-
-	return true;
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_init: pthread_attr_setdetachstate failed");
 }
 
 
@@ -1597,10 +1437,10 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	o = (java_handle_t *) t;
 
 #if defined(WITH_CLASSPATH_GNU)
-	(void) vm_call_method(method_thread_init, o, vmt, s, NORM_PRIORITY,
+	(void) vm_call_method(thread_method_init, o, vmt, s, NORM_PRIORITY,
 						  isdaemon);
 #elif defined(WITH_CLASSPATH_CLDC1_1)
-	(void) vm_call_method(method_thread_init, o, s);
+	(void) vm_call_method(thread_method_init, o, s);
 #endif
 
 	if (exceptions_get_exception())

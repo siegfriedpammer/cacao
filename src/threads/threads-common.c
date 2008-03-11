@@ -35,13 +35,17 @@
 
 #include "native/jni.h"
 #include "native/llni.h"
+#include "native/native.h"
 
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Thread.h"
 
+#if defined(ENABLE_JAVASE)
+# include "native/include/java_lang_ThreadGroup.h"
+#endif
+
 #if defined(WITH_CLASSPATH_GNU)
-# include "native/include/java_lang_Throwable.h"
 # include "native/include/java_lang_VMThread.h"
 #endif
 
@@ -50,15 +54,15 @@
 #include "threads/threadlist.h"
 #include "threads/threads-common.h"
 
-#include "toolbox/list.h"
-
 #include "vm/builtin.h"
+#include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/class.h"
+#include "vmcore/method.h"
 #include "vmcore/options.h"
 
 #if defined(ENABLE_STATISTICS)
@@ -69,6 +73,8 @@
 
 
 /* global variables ***********************************************************/
+
+methodinfo *thread_method_init;
 
 #if defined(__LINUX__)
 /* XXX Remove for exact-GC. */
@@ -141,6 +147,180 @@ void threads_preinit(void)
 	/* store the internal thread data-structure in the TSD */
 
 	threads_set_current_threadobject(mainthread);
+}
+
+
+/* threads_init ****************************************************************
+
+   Initialize the main thread.
+
+*******************************************************************************/
+
+void threads_init(void)
+{
+	threadobject     *mainthread;
+	java_handle_t    *threadname;
+	java_lang_Thread *t;
+	java_handle_t    *o;
+
+#if defined(ENABLE_JAVASE)
+	java_lang_ThreadGroup *threadgroup;
+	methodinfo            *m;
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_VMThread    *vmt;
+#endif
+
+	TRACESUBSYSTEMINITIALIZATION("threads_init");
+
+	/* get methods we need in this file */
+
+#if defined(WITH_CLASSPATH_GNU)
+	thread_method_init =
+		class_resolveclassmethod(class_java_lang_Thread,
+								 utf_init,
+								 utf_new_char("(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"),
+								 class_java_lang_Thread,
+								 true);
+#elif defined(WITH_CLASSPATH_SUN)
+	thread_method_init =
+		class_resolveclassmethod(class_java_lang_Thread,
+								 utf_init,
+								 utf_java_lang_String__void,
+								 class_java_lang_Thread,
+								 true);
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	thread_method_init =
+		class_resolveclassmethod(class_java_lang_Thread,
+								 utf_init,
+								 utf_java_lang_String__void,
+								 class_java_lang_Thread,
+								 true);
+#else
+# error unknown classpath configuration
+#endif
+
+	if (thread_method_init == NULL)
+		vm_abort("threads_init: failed to resolve thread init method");
+
+	/* Get the main-thread (NOTE: The main thread is always the first
+	   thread in the list). */
+
+	mainthread = threadlist_first();
+
+	/* create a java.lang.Thread for the main thread */
+
+	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+
+	if (t == NULL)
+		vm_abort("threads_init: failed to allocate java.lang.Thread object");
+
+	/* set the object in the internal data structure */
+
+	threads_thread_set_object(mainthread, (java_handle_t *) t);
+
+#if defined(ENABLE_INTRP)
+	/* create interpreter stack */
+
+	if (opt_intrp) {
+		MSET(intrp_main_stack, 0, u1, opt_stacksize);
+		mainthread->_global_sp = (Cell*) (intrp_main_stack + opt_stacksize);
+	}
+#endif
+
+	threadname = javastring_new(utf_new_char("main"));
+
+#if defined(ENABLE_JAVASE)
+	/* allocate and init ThreadGroup */
+
+	threadgroup = (java_lang_ThreadGroup *)
+		native_new_and_init(class_java_lang_ThreadGroup);
+
+	if (threadgroup == NULL)
+		vm_abort("threads_init: failed to allocate java.lang.ThreadGroup object");
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+	/* Create a java.lang.VMThread for the main thread. */
+
+	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
+
+	if (vmt == NULL)
+		vm_abort("threads_init: failed to allocate java.lang.VMThread object");
+
+	/* Set the thread. */
+
+	LLNI_field_set_ref(vmt, thread, t);
+	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) mainthread);
+
+	/* Call:
+	   java.lang.Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
+
+	o = (java_handle_t *) t;
+
+	(void) vm_call_method(thread_method_init, o, vmt, threadname, NORM_PRIORITY,
+						  false);
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+	/* We trick java.lang.Thread.<init>, which sets the priority of
+	   the current thread to the parent's one. */
+
+	LLNI_field_set_val(t, priority, NORM_PRIORITY);
+
+	/* Call: java.lang.Thread.<init>(Ljava/lang/String;)V */
+
+	o = (java_object_t *) t;
+
+	(void) vm_call_method(thread_method_init, o, threadname);
+
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+
+	/* Set the thread. */
+
+	LLNI_field_set_val(t, vm_thread, (java_lang_Object *) mainthread);
+
+	/* Call public Thread(String name). */
+
+	o = (java_handle_t *) t;
+
+	(void) vm_call_method(thread_method_init, o, threadname);
+#else
+# error unknown classpath configuration
+#endif
+
+	if (exceptions_get_exception())
+		vm_abort("threads_init: exception while initializing java.lang.Thread");
+
+#if defined(ENABLE_JAVASE)
+	LLNI_field_set_ref(t, group, threadgroup);
+
+# if defined(WITH_CLASSPATH_GNU)
+	/* add main thread to java.lang.ThreadGroup */
+
+	m = class_resolveclassmethod(class_java_lang_ThreadGroup,
+								 utf_addThread,
+								 utf_java_lang_Thread__V,
+								 class_java_lang_ThreadGroup,
+								 true);
+
+	o = (java_handle_t *) threadgroup;
+
+	(void) vm_call_method(m, o, t);
+
+	if (exceptions_get_exception())
+		vm_abort("threads_init: exception while adding main thread to threadgroup");
+# else
+#  warning Do not know what to do here
+# endif
+#endif
+
+	/* Initialize the implementation specific bits. */
+
+	threads_impl_init();
+
+	DEBUGTHREADS("starting (main)", mainthread);
 }
 
 

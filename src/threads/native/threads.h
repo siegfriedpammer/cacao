@@ -221,8 +221,6 @@ void threads_sem_post(sem_t *sem);
 
 threadobject *threads_get_current_threadobject(void);
 
-bool threads_init(void);
-
 void threads_start_thread(threadobject *thread, functionptr function);
 
 void threads_set_thread_priority(pthread_t tid, int priority);

@@ -1545,8 +1545,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 #endif
 
 #if defined(ENABLE_THREADS)
-  	if (!threads_init())
-		vm_abort("vm_create: threads_init failed");
+  	threads_init();
 #endif
 
 	/* Initialize the native VM subsystem. */
