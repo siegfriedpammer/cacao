@@ -205,6 +205,7 @@ extern utf *utf_java_lang_String__void;
 extern utf *utf_java_lang_String__java_lang_Class;
 extern utf *utf_java_lang_Thread__V;
 extern utf *utf_java_lang_Thread_java_lang_Throwable__V;
+extern utf *utf_Ljava_lang_ThreadGroup_Ljava_lang_String__V;
 extern utf *utf_java_lang_Throwable__void;
 extern utf *utf_java_lang_Throwable__java_lang_Throwable;
 

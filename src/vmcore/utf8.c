@@ -209,6 +209,7 @@ utf *utf_java_lang_String__void;        /* (Ljava/lang/String;)V              */
 utf *utf_java_lang_String__java_lang_Class;
 utf *utf_java_lang_Thread__V;           /* (Ljava/lang/Thread;)V              */
 utf *utf_java_lang_Thread_java_lang_Throwable__V;
+utf *utf_Ljava_lang_ThreadGroup_Ljava_lang_String__V;
 utf *utf_java_lang_Throwable__void;     /* (Ljava/lang/Throwable;)V           */
 utf *utf_java_lang_Throwable__java_lang_Throwable;
 
@@ -470,6 +471,9 @@ void utf8_init(void)
 
 	utf_java_lang_Thread_java_lang_Throwable__V =
 		utf_new_char("(Ljava/lang/Thread;Ljava/lang/Throwable;)V");
+
+	utf_Ljava_lang_ThreadGroup_Ljava_lang_String__V =
+		utf_new_char("(Ljava/lang/ThreadGroup;Ljava/lang/String;)V");
 
 	utf_java_lang_Throwable__void  = utf_new_char("(Ljava/lang/Throwable;)V");
 
