@@ -1,9 +1,7 @@
 /* src/vmcore/utf8.h - utf8 string functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -156,6 +154,7 @@ extern utf *utf_init;
 extern utf *utf_clinit;
 extern utf *utf_clone;
 extern utf *utf_finalize;
+extern utf *utf_main;
 extern utf *utf_run;
 
 extern utf *utf_add;
@@ -217,7 +216,7 @@ extern utf *array_packagename;
 /* function prototypes ********************************************************/
 
 /* initialize the utf8 subsystem */
-bool utf8_init(void);
+void utf8_init(void);
 
 u4 utf_hashkey(const char *text, u4 length);
 u4 utf_full_hashkey(const char *text, u4 length);

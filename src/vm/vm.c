@@ -1442,8 +1442,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	/* AFTER: threads_preinit */
 
-	if (!utf8_init())
-		vm_abort("vm_create: utf8_init failed");
+	utf8_init();
 
 	/* AFTER: thread_preinit */
 
