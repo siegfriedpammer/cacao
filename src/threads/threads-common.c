@@ -76,10 +76,21 @@
 
 methodinfo *thread_method_init;
 
+#if defined(ENABLE_JAVASE)
+static java_lang_ThreadGroup *threadgroup_system;
+static java_lang_ThreadGroup *threadgroup_main;
+#endif
+
 #if defined(__LINUX__)
 /* XXX Remove for exact-GC. */
 bool threads_pthreads_implementation_nptl;
 #endif
+
+
+/* static functions ***********************************************************/
+
+static void thread_create_initial_threadgroups(void);
+static void thread_create_initial_thread(void);
 
 
 /* threads_preinit *************************************************************
@@ -158,23 +169,13 @@ void threads_preinit(void)
 
 void threads_init(void)
 {
-	threadobject     *mainthread;
-	java_handle_t    *threadname;
-	java_lang_Thread *t;
-	java_handle_t    *o;
-
-#if defined(ENABLE_JAVASE)
-	java_lang_ThreadGroup *threadgroup;
-	methodinfo            *m;
-#endif
-
-#if defined(WITH_CLASSPATH_GNU)
-	java_lang_VMThread    *vmt;
-#endif
-
 	TRACESUBSYSTEMINITIALIZATION("threads_init");
 
-	/* get methods we need in this file */
+	/* Create the system and main thread groups. */
+
+	thread_create_initial_threadgroups();
+
+	/* Cache the java.lang.Thread initialization method. */
 
 #if defined(WITH_CLASSPATH_GNU)
 	thread_method_init =
@@ -204,21 +205,123 @@ void threads_init(void)
 	if (thread_method_init == NULL)
 		vm_abort("threads_init: failed to resolve thread init method");
 
+	thread_create_initial_thread();
+}
+
+
+/* thread_create_initial_threadgroups ******************************************
+
+   Create the initial threadgroups.
+
+   GNU Classpath:
+       Create the main threadgroup only and set the system
+       threadgroup to the main threadgroup.
+
+   SUN:
+       Create the system and main threadgroup.
+
+   CLDC:
+       This function is a no-op.
+
+*******************************************************************************/
+
+static void thread_create_initial_threadgroups(void)
+{
+#if defined(ENABLE_JAVASE)
+# if defined(WITH_CLASSPATH_GNU)
+
+	/* Allocate and initialize the main thread group. */
+
+	threadgroup_main = (java_lang_ThreadGroup *)
+		native_new_and_init(class_java_lang_ThreadGroup);
+
+	if (threadgroup_main == NULL)
+		vm_abort("thread_create_initial_threadgroups: failed to allocate main threadgroup");
+
+	/* Use the same threadgroup for system as for main. */
+
+	threadgroup_system = threadgroup_main;
+
+# elif defined(WITH_CLASSPATH_SUN)
+
+	java_handle_t *name;
+	methodinfo    *m;
+	java_handle_t *o;
+
+	/* Allocate and initialize the system thread group. */
+
+	threadgroup_system = (java_lang_ThreadGroup *)
+		native_new_and_init(class_java_lang_ThreadGroup);
+
+	if (threadgroup_system == NULL)
+		vm_abort("thread_create_initial_threadgroups: failed to allocate system threadgroup");
+
+	/* Allocate and initialize the main thread group. */
+
+	threadgroup_main =
+		(java_lang_ThreadGroup *) builtin_new(class_java_lang_ThreadGroup);
+
+	if (threadgroup_main == NULL)
+		vm_abort("thread_create_initial_threadgroups: failed to allocate main threadgroup");
+
+	name = javastring_new(utf_main);
+
+	m = class_resolveclassmethod(class_java_lang_ThreadGroup,
+								 utf_init,
+								 utf_Ljava_lang_ThreadGroup_Ljava_lang_String__V,
+								 class_java_lang_ThreadGroup,
+								 true);
+
+	if (m == NULL)
+		vm_abort("thread_create_initial_threadgroups: failed to resolve threadgroup init method");
+
+	o = (java_handle_t *) threadgroup_main;
+
+	(void) vm_call_method(m, o, threadgroup_system, name);
+
+	if (exceptions_get_exception())
+		vm_abort("thread_create_initial_threadgroups: exception while initializing main threadgroup");
+
+# else
+#  error unknown classpath configuration
+# endif
+#endif
+}
+
+
+/* thread_create_initial_thread ***********************************************
+
+   Create the initial thread: main
+
+*******************************************************************************/
+
+static void thread_create_initial_thread(void)
+{
+	threadobject       *mainthread;
+	java_handle_t      *name;
+	java_lang_Thread   *to;                        /* java.lang.Thread object */
+	java_handle_t      *o;
+
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_VMThread *vmto;                    /* java.lang.VMThread object */
+	methodinfo         *m;
+#endif
+
 	/* Get the main-thread (NOTE: The main thread is always the first
 	   thread in the list). */
 
 	mainthread = threadlist_first();
 
-	/* create a java.lang.Thread for the main thread */
+	/* Create a java.lang.Thread object for the main thread. */
 
-	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+	to = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
-	if (t == NULL)
+	if (to == NULL)
 		vm_abort("threads_init: failed to allocate java.lang.Thread object");
 
 	/* set the object in the internal data structure */
 
-	threads_thread_set_object(mainthread, (java_handle_t *) t);
+	threads_thread_set_object(mainthread, (java_handle_t *) to);
 
 #if defined(ENABLE_INTRP)
 	/* create interpreter stack */
@@ -229,75 +332,37 @@ void threads_init(void)
 	}
 #endif
 
-	threadname = javastring_new(utf_new_char("main"));
-
-#if defined(ENABLE_JAVASE)
-	/* allocate and init ThreadGroup */
-
-	threadgroup = (java_lang_ThreadGroup *)
-		native_new_and_init(class_java_lang_ThreadGroup);
-
-	if (threadgroup == NULL)
-		vm_abort("threads_init: failed to allocate java.lang.ThreadGroup object");
-#endif
+	name = javastring_new(utf_main);
 
 #if defined(WITH_CLASSPATH_GNU)
 	/* Create a java.lang.VMThread for the main thread. */
 
-	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
+	vmto = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
 
-	if (vmt == NULL)
+	if (vmto == NULL)
 		vm_abort("threads_init: failed to allocate java.lang.VMThread object");
 
 	/* Set the thread. */
 
-	LLNI_field_set_ref(vmt, thread, t);
-	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) mainthread);
+	LLNI_field_set_ref(vmto, thread, to);
+	LLNI_field_set_val(vmto, vmdata, (java_lang_Object *) mainthread);
+
+	/* Set the thread group. */
+
+	LLNI_field_set_ref(to, group, threadgroup_main);
 
 	/* Call:
 	   java.lang.Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
 
-	o = (java_handle_t *) t;
+	o = (java_handle_t *) to;
 
-	(void) vm_call_method(thread_method_init, o, vmt, threadname, NORM_PRIORITY,
+	(void) vm_call_method(thread_method_init, o, vmto, name, NORM_PRIORITY,
 						  false);
 
-#elif defined(WITH_CLASSPATH_SUN)
-
-	/* We trick java.lang.Thread.<init>, which sets the priority of
-	   the current thread to the parent's one. */
-
-	LLNI_field_set_val(t, priority, NORM_PRIORITY);
-
-	/* Call: java.lang.Thread.<init>(Ljava/lang/String;)V */
-
-	o = (java_object_t *) t;
-
-	(void) vm_call_method(thread_method_init, o, threadname);
-
-#elif defined(WITH_CLASSPATH_CLDC1_1)
-
-	/* Set the thread. */
-
-	LLNI_field_set_val(t, vm_thread, (java_lang_Object *) mainthread);
-
-	/* Call public Thread(String name). */
-
-	o = (java_handle_t *) t;
-
-	(void) vm_call_method(thread_method_init, o, threadname);
-#else
-# error unknown classpath configuration
-#endif
-
 	if (exceptions_get_exception())
-		vm_abort("threads_init: exception while initializing java.lang.Thread");
+		vm_abort("threads_init: exception while initializing main thread");
 
-#if defined(ENABLE_JAVASE)
-	LLNI_field_set_ref(t, group, threadgroup);
-
-# if defined(WITH_CLASSPATH_GNU)
-	/* add main thread to java.lang.ThreadGroup */
+	/* Add main thread to main threadgroup. */
 
 	m = class_resolveclassmethod(class_java_lang_ThreadGroup,
 								 utf_addThread,
@@ -305,15 +370,49 @@ void threads_init(void)
 								 class_java_lang_ThreadGroup,
 								 true);
 
-	o = (java_handle_t *) threadgroup;
+	o = (java_handle_t *) threadgroup_main;
 
-	(void) vm_call_method(m, o, t);
+	(void) vm_call_method(m, o, to);
 
 	if (exceptions_get_exception())
-		vm_abort("threads_init: exception while adding main thread to threadgroup");
-# else
-#  warning Do not know what to do here
-# endif
+        vm_abort("threads_init: exception while adding main thread to main threadgroup");
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+	/* Set the thread group and the priority.  java.lang.Thread.<init>
+	   requires it because it sets the priority of the current thread
+	   to the parent's one (which is the current thread in this
+	   case). */
+
+	LLNI_field_set_ref(to, group, threadgroup_main);
+	LLNI_field_set_val(to, priority, NORM_PRIORITY);
+
+	/* Call: java.lang.Thread.<init>(Ljava/lang/String;)V */
+
+	o = (java_object_t *) to;
+
+	(void) vm_call_method(thread_method_init, o, name);
+
+	if (exceptions_get_exception())
+		vm_abort("threads_init: exception while initializing main thread");
+
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+
+	/* Set the thread. */
+
+	LLNI_field_set_val(to, vm_thread, (java_lang_Object *) mainthread);
+
+	/* Call public Thread(String name). */
+
+	o = (java_handle_t *) to;
+
+	(void) vm_call_method(thread_method_init, o, name);
+
+	if (exceptions_get_exception())
+		vm_abort("threads_init: exception while initializing main thread");
+
+#else
+# error unknown classpath configuration
 #endif
 
 	/* Initialize the implementation specific bits. */
@@ -722,44 +821,16 @@ ptrint threads_get_current_tid(void)
 
 *******************************************************************************/
 
-# if defined(ENABLE_JAVASE)
-# include "native/include/java_lang_ThreadGroup.h"
-#endif
-
 java_object_t *threads_get_current_object(void)
 {
 #if defined(ENABLE_THREADS)
 	threadobject  *t;
-# if defined(ENABLE_JAVASE)
-	java_lang_ThreadGroup *group;
-# endif
 #endif
-	java_lang_Thread *o;
+	java_handle_t *o;
 
 #if defined(ENABLE_THREADS)
 	t = THREADOBJECT;
 	o = threads_thread_get_object(t);
-
-# if defined(ENABLE_JAVASE)
-	/* TODO Do we really need this code?  Or should we check, when we
-	   create the threads, that all of them have a group? */
-	/* TWISTI No, we don't need this code!  We need to allocate a
-	   ThreadGroup before we initialize the main thread. */
-
-	LLNI_field_get_ref(o, group, group);
-
-	if (group == NULL) {
-		/* ThreadGroup of currentThread is not initialized */
-
-		group = (java_lang_ThreadGroup *)
-			native_new_and_init(class_java_lang_ThreadGroup);
-
-		if (group == NULL)
-			vm_abort("unable to create ThreadGroup");
-
-		LLNI_field_set_ref(o, group, group);
-  	}
-# endif
 #else
 	/* We just return a fake java.lang.Thread object, otherwise we get
 	   NullPointerException's in GNU Classpath. */
