@@ -920,6 +920,7 @@ AC_CONFIG_FILES([Makefile]
 dnl now configure subpackages with OPT_CFLAGS and ARCH_CFLAGS
 export OPT_CFLAGS
 export ARCH_CFLAGS
+ac_configure_args="$ac_configure_args --disable-shared"
 AC_CONFIG_SUBDIRS(src/mm/boehm-gc)
 
 
