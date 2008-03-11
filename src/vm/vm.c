@@ -1624,13 +1624,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	vm_initializing = false;
 
-#if !defined(NDEBUG)
 	/* Print the VM configuration after all stuff is set and the VM is
 	   initialized. */
 
 	if (opt_PrintConfig)
 		vm_printconfig();
-#endif
 
 	/* everything's ok */
 
