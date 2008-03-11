@@ -32,6 +32,9 @@
 #if defined(ENABLE_THREADS) && defined(__IRIX__)
 #define GC_IRIX_THREADS
 #endif
+#if defined(ENABLE_THREADS) && defined(__DARWIN__)
+#define GC_DARWIN_THREADS
+#endif
 
 #include "boehm-gc/include/gc.h"
 #include "mm/gc-common.h"
