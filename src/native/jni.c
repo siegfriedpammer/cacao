@@ -3664,12 +3664,15 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 # if defined(WITH_CLASSPATH_GNU)
 
 	java_nio_DirectByteBufferImpl *nbuf;
+	gnu_classpath_Pointer         *po;
 #  if SIZEOF_VOID_P == 8
 	gnu_classpath_Pointer64       *paddress;
+	int64_t                        address;
 #  else
 	gnu_classpath_Pointer32       *paddress;
+	int32_t                        address;
 #  endif
-	void                          *address;
+	void                          *p;
 
 	TRACEJNICALLS(("_Jv_JNI_GetDirectBufferAddress(env=%p, buf=%p)", env, buf));
 
@@ -3682,15 +3685,22 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 	nbuf = (java_nio_DirectByteBufferImpl *) buf;
 
-	LLNI_field_get_ref(nbuf, address, paddress);
+	LLNI_field_get_ref(nbuf, address, po);
+
+#  if SIZEOF_VOID_P == 8
+	paddress = (gnu_classpath_Pointer64 *) po;
+#  else
+	paddress = (gnu_classpath_Pointer32 *) po;
+#  endif
 
 	if (paddress == NULL)
 		return NULL;
 
 	LLNI_field_get_val(paddress, data, address);
-	/* this was the cast to avaoid warning: (void *) paddress->data */
 
-	return address;
+	p = (void *) (intptr_t) address;
+
+	return p;
 
 # elif defined(WITH_CLASSPATH_SUN)
 
