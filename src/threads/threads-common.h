@@ -115,6 +115,27 @@ static inline void threads_thread_set_object(threadobject *t, java_handle_t *obj
 }
 
 
+/* threads_get_current_object **************************************************
+
+   Return the Java object of the current thread.
+   
+   RETURN VALUE:
+       the Java object
+
+*******************************************************************************/
+
+inline static java_object_t *threads_get_current_object(void)
+{
+	threadobject  *t;
+	java_handle_t *o;
+
+	t = THREADOBJECT;
+	o = threads_thread_get_object(t);
+
+	return o;
+}
+
+
 /* function prototypes ********************************************************/
 
 void          threads_preinit(void);
@@ -129,7 +150,6 @@ void          threads_thread_start(java_handle_t *object);
 void          threads_thread_print_info(threadobject *t);
 
 ptrint        threads_get_current_tid(void);
-java_object_t *threads_get_current_object(void);
 
 void          threads_thread_state_runnable(threadobject *t);
 void          threads_thread_state_waiting(threadobject *t);

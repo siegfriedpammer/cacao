@@ -90,6 +90,13 @@ struct stacktrace_t {
 };
 
 
+/* global variables ***********************************************************/
+
+#if !defined(ENABLE_THREADS)
+extern stackframeinfo_t *_no_threads_stackframeinfo;
+#endif
+
+
 /* function prototypes ********************************************************/
 
 void                       stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra, u1 *xpc);

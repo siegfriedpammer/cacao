@@ -77,6 +77,7 @@
 
 
 /* global variables ***********************************************************/
+
 #if !defined(ENABLE_THREADS)
 stackframeinfo_t *_no_threads_stackframeinfo = NULL;
 #endif

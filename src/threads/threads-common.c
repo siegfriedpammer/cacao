@@ -841,36 +841,6 @@ ptrint threads_get_current_tid(void)
 }
 
 
-/* threads_get_current_object **************************************************
-
-   Return the Java object of the current thread.
-   
-   RETURN VALUE:
-       the Java object
-
-*******************************************************************************/
-
-java_object_t *threads_get_current_object(void)
-{
-#if defined(ENABLE_THREADS)
-	threadobject  *t;
-#endif
-	java_handle_t *o;
-
-#if defined(ENABLE_THREADS)
-	t = THREADOBJECT;
-	o = threads_thread_get_object(t);
-#else
-	/* We just return a fake java.lang.Thread object, otherwise we get
-	   NullPointerException's in GNU Classpath. */
-
-	o = builtin_new(class_java_lang_Thread);
-#endif
-
-	return o;
-}
-
-
 /* threads_thread_state_runnable ***********************************************
 
    Set the current state of the given thread to THREAD_STATE_RUNNABLE.
