@@ -95,16 +95,18 @@
 #endif
 
 #if !defined(__DARWIN__)
+# include <semaphore.h>
+#endif
 # if defined(__LINUX__)
 #  define GC_LINUX_THREADS
 # elif defined(__IRIX__)
 #  define GC_IRIX_THREADS
+# elif defined(__DARWIN__)
+#  define GC_DARWIN_THREADS
 # endif
-# include <semaphore.h>
 # if defined(ENABLE_GC_BOEHM)
 #  include "mm/boehm-gc/include/gc.h"
 # endif
-#endif
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"
