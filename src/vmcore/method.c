@@ -45,6 +45,7 @@
 #include "vm/global.h"
 #include "vm/resolve.h"
 
+#include "vm/jit/code.h"
 #include "vm/jit/methodheader.h"
 
 #include "vm/jit_interface.h"

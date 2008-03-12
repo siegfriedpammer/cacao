@@ -28,8 +28,6 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include "vm/types.h"
-
 #include "arch.h"
 
 #include "mm/memory.h"
@@ -107,9 +105,9 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 
 *******************************************************************************/
 
-codeinfo *code_find_codeinfo_for_pc(u1 *pc)
+codeinfo *code_find_codeinfo_for_pc(void *pc)
 {
-	u1 *pv;
+	void *pv;
 
 	pv = codegen_get_pv_from_pc(pc);
 	assert(pv);
@@ -132,9 +130,9 @@ codeinfo *code_find_codeinfo_for_pc(u1 *pc)
 
 *******************************************************************************/
 
-codeinfo *code_find_codeinfo_for_pc_nocheck(u1 *pc)
+codeinfo *code_find_codeinfo_for_pc_nocheck(void *pc)
 {
-	u1 *pv;
+	void *pv;
 
 	pv = codegen_get_pv_from_pc_nocheck(pc);
 
@@ -157,7 +155,7 @@ codeinfo *code_find_codeinfo_for_pc_nocheck(u1 *pc)
 
 *******************************************************************************/
 
-methodinfo *code_get_methodinfo_for_pv(u1 *pv)
+methodinfo *code_get_methodinfo_for_pv(void *pv)
 {
 	codeinfo *code;
 

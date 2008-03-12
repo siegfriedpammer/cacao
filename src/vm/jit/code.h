@@ -209,10 +209,10 @@ void code_init(void);
 codeinfo *code_codeinfo_new(methodinfo *m);
 void code_codeinfo_free(codeinfo *code);
 
-codeinfo *code_find_codeinfo_for_pc(u1 *pc);
-codeinfo *code_find_codeinfo_for_pc_nocheck(u1 *pc);
+codeinfo *code_find_codeinfo_for_pc(void *pc);
+codeinfo *code_find_codeinfo_for_pc_nocheck(void *pc);
 
-methodinfo *code_get_methodinfo_for_pv(u1 *pv);
+methodinfo *code_get_methodinfo_for_pv(void *pv);
 
 #if defined(ENABLE_REPLACEMENT)
 int code_get_sync_slot_count(codeinfo *code);

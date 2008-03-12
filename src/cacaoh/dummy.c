@@ -43,6 +43,8 @@
 #include "vm/primitive.h"
 #include "vm/vm.h"
 
+#include "vm/jit/code.h"
+
 #include "vmcore/class.h"
 #include "vmcore/classcache.h"
 #include "vmcore/loader.h"
@@ -217,7 +219,7 @@ void code_free_code_of_method(methodinfo *m)
 }
 
 
-methodinfo *code_get_methodinfo_for_pv(u1 *pv)
+methodinfo *code_get_methodinfo_for_pv(void *pv)
 {
 	return NULL;
 }
