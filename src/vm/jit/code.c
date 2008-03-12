@@ -1,9 +1,7 @@
 /* src/vm/jit/code.c - codeinfo struct for representing compiled code
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -28,6 +26,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 
 #include "vm/types.h"
 
@@ -35,9 +34,7 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "vm/vm.h"
 
 #include "vm/jit/code.h"
 #include "vm/jit/codegen-common.h"
@@ -52,15 +49,12 @@
 
 *******************************************************************************/
 
-bool code_init(void)
+void code_init(void)
 {
-	/* check for offset of code->m == 0 (see comment in code.h) */
+	/* Check if offset of codeinfo.m == 0 (see comment in code.h). */
 
-	assert(OFFSET(codeinfo, m) == 0);
-
-	/* everything's ok */
-
-	return true;
+	if (OFFSET(codeinfo, m) != 0)
+		vm_abort("code_init: offset of codeinfo.m != 0: %d != 0", OFFSET(codeinfo, m));
 }
 
 

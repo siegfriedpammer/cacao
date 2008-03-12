@@ -1,9 +1,7 @@
 /* src/vm/jit/code.h - codeinfo struct for representing compiled code
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -206,7 +204,7 @@ inline static codeinfo *code_get_codeinfo_for_pv(void *pv)
 
 /* function prototypes ********************************************************/
 
-bool code_init(void);
+void code_init(void);
 
 codeinfo *code_codeinfo_new(methodinfo *m);
 void code_codeinfo_free(codeinfo *code);

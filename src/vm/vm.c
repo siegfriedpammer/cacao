@@ -84,6 +84,7 @@
 
 #include "vm/jit/argument.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/code.h"
 
 #if defined(ENABLE_DISASSEMBLER)
 # include "vm/jit/disass.h"
@@ -1482,9 +1483,10 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!finalizer_init())
 		vm_abort("vm_create: finalizer_init failed");
 
-	/* initializes jit compiler */
+	/* Initialize JIT compiler. */
 
 	jit_init();
+	code_init();
 
 #if defined(ENABLE_PYTHON)
 	pythonpass_init();
