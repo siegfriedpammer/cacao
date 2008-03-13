@@ -72,7 +72,9 @@ localref_table *_no_threads_localref_table;
 
 /* some forward declarations **************************************************/
 
+#if !defined(NDEBUG)
 static bool localref_check_uncleared();
+#endif
 
 
 /* localref_table_init *********************************************************
