@@ -1,4 +1,4 @@
-/* src/vm/jit/executionstate.c - execution-state
+/* src/vm/jit/executionstate.c - execution-state handling
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
