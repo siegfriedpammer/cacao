@@ -1486,7 +1486,7 @@ bool threads_detach_thread(threadobject *t)
 #if defined(ENABLE_JAVASE)
 	java_lang_ThreadGroup *group;
 	java_handle_t         *e;
-	java_lang_Object      *handler;
+	void                  *handler;
 	classinfo             *c;
 	methodinfo            *m;
 #endif
@@ -1505,9 +1505,9 @@ bool threads_detach_thread(threadobject *t)
 	e = exceptions_get_and_clear_exception();
 
     if (e != NULL) {
-		/* We use a java_lang_Object here, as it's not trivial to
-		   build the java_lang_Thread_UncaughtExceptionHandler header
-		   file. */
+		/* We use the type void* for handler here, as it's not trivial
+		   to build the java_lang_Thread_UncaughtExceptionHandler
+		   header file with cacaoh. */
 
 # if defined(WITH_CLASSPATH_GNU)
 		LLNI_field_get_ref(object, exceptionHandler, handler);
