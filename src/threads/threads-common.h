@@ -124,7 +124,7 @@ static inline void threads_thread_set_object(threadobject *t, java_handle_t *obj
 
 *******************************************************************************/
 
-inline static java_object_t *threads_get_current_object(void)
+inline static java_handle_t *threads_get_current_object(void)
 {
 	threadobject  *t;
 	java_handle_t *o;
