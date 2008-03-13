@@ -1,9 +1,7 @@
 /* src/vm/jit/x86_64/linux/md-os.c - machine dependent x86_64 Linux functions
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -48,6 +46,7 @@
 #include "vm/signallocal.h"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/executionstate.h"
 #include "vm/jit/stacktrace.h"
 
 
@@ -364,14 +363,13 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 #endif
 
 
-/* md_replace_executionstate_read **********************************************
+/* md_executionstate_read ******************************************************
 
-   Read the given context into an executionstate for Replacement.
+   Read the given context into an executionstate.
 
 *******************************************************************************/
 
-#if defined(ENABLE_REPLACEMENT)
-void md_replace_executionstate_read(executionstate_t *es, void *context)
+void md_executionstate_read(executionstate_t *es, void *context)
 {
 	ucontext_t *_uc;
 	mcontext_t *_mc;
@@ -434,17 +432,15 @@ void md_replace_executionstate_read(executionstate_t *es, void *context)
 	for (i = 0; i < FLT_REG_CNT; i++)
 		es->fltregs[i] = 0xdeadbeefdeadbeefL;
 }
-#endif
 
 
-/* md_replace_executionstate_write *********************************************
+/* md_executionstate_write *****************************************************
 
-   Write the given executionstate back to the context for Replacement.
+   Write the given executionstate back to the context.
 
 *******************************************************************************/
 
-#if defined(ENABLE_REPLACEMENT)
-void md_replace_executionstate_write(executionstate_t *es, void *context)
+void md_executionstate_write(executionstate_t *es, void *context)
 {
 	ucontext_t *_uc;
 	mcontext_t *_mc;
@@ -502,7 +498,6 @@ void md_replace_executionstate_write(executionstate_t *es, void *context)
 	_mc->gregs[REG_RIP] = (ptrint) es->pc;
 	_mc->gregs[REG_RSP] = (ptrint) es->sp;
 }
-#endif
 
 
 /* md_critical_section_restart *************************************************
