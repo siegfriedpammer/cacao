@@ -153,6 +153,8 @@ libjit_la_SOURCES = \
 	emit-common.h \
 	exceptiontable.c \
 	exceptiontable.h \
+	executionstate.c \
+	executionstate.h \
 	icmdtable.inc \
 	jit.c \
 	jit.h \

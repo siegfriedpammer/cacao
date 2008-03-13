@@ -47,6 +47,7 @@
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/disass.h"
+#include "vm/jit/executionstate.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/replace.h"
@@ -113,7 +114,6 @@ typedef u8 stackslot_t;
 #if !defined(NDEBUG)
 static void java_value_print(s4 type, replace_val_t value);
 static void replace_stackframeinfo_println(stackframeinfo_t *sfi);
-static void replace_sanity_check_read_write(void *context);
 #endif
 
 #if !defined(NDEBUG)
@@ -2418,7 +2418,7 @@ sourcestate_t *replace_recover_source_state(rplpoint *rp,
 
 	while (rp || sfi) {
 
-		DOLOG( replace_executionstate_println(es); );
+		DOLOG( executionstate_println(es); );
 
 		/* if we are not at a replacement point, it is a native frame */
 
@@ -2701,7 +2701,7 @@ static void replace_build_execution_state(sourcestate_t *ss,
 
 			replace_push_activation_record(es, rp, prevframe, ss->frames);
 
-			DOLOG( replace_executionstate_println(es); );
+			DOLOG( executionstate_println(es); );
 		}
 
 		rp = ss->frames->torp;
@@ -2721,7 +2721,7 @@ static void replace_build_execution_state(sourcestate_t *ss,
 
 		replace_write_executionstate(rp, es, ss, ss->frames->down == NULL);
 
-		DOLOG( replace_executionstate_println(es); );
+		DOLOG( executionstate_println(es); );
 
 		if (rp->type == RPLPOINT_TYPE_CALL) {
 			parent = NULL;
@@ -2903,7 +2903,7 @@ bool replace_me_wrapper(u1 *pc, void *context)
 	if ((rp != NULL) && (rp->pc == pc) && (rp->flags & RPLPOINT_FLAG_ACTIVE)) {
 
 #if !defined(NDEBUG)
-		replace_sanity_check_read_write(context);
+		executionstate_sanity_check(context);
 #endif
 
 		/* set codeinfo pointer in execution state */
@@ -2912,10 +2912,10 @@ bool replace_me_wrapper(u1 *pc, void *context)
 
 		/* read execution state from current context */
 
-		md_replace_executionstate_read(&es, context);
+		md_executionstate_read(&es, context);
 
 		DOLOG( printf("REPLACEMENT READ: ");
-			   replace_executionstate_println(&es); );
+			   executionstate_println(&es); );
 
 		/* do the actual replacement */
 
@@ -2923,10 +2923,10 @@ bool replace_me_wrapper(u1 *pc, void *context)
 
 		/* write execution state to current context */
 
-		md_replace_executionstate_write(&es, context);
+		md_executionstate_write(&es, context);
 
 		DOLOG( printf("REPLACEMENT WRITE: ");
-			   replace_executionstate_println(&es); );
+			   executionstate_println(&es); );
 
 		/* new code is entered after returning */
 
@@ -3227,111 +3227,6 @@ void replace_show_replacement_points(codeinfo *code)
 #endif
 
 
-/* replace_executionstate_println **********************************************
- 
-   Print execution state
-  
-   IN:
-       es...............the execution state to print
-  
-*******************************************************************************/
-
-#if !defined(NDEBUG)
-void replace_executionstate_println(executionstate_t *es)
-{
-	int i;
-	int slots;
-	stackslot_t *sp;
-	int extraslots;
-
-	if (!es) {
-		printf("(executionstate_t *)NULL\n");
-		return;
-	}
-
-	printf("executionstate_t:\n");
-	printf("\tpc = %p  ",(void*)es->pc);
-	printf("  sp = %p  ",(void*)es->sp);
-	printf("  pv = %p  ",(void*)es->pv);
-	printf("  ra = %p\n",(void*)es->ra);
-#if defined(ENABLE_DISASSEMBLER)
-	for (i=0; i<INT_REG_CNT; ++i) {
-		if (i%4 == 0)
-			printf("\t");
-		else
-			printf(" ");
-#if SIZEOF_VOID_P == 8
-		printf("%-3s = %016llx",abi_registers_integer_name[i],(unsigned long long)es->intregs[i]);
-#else
-		printf("%-3s = %08lx",abi_registers_integer_name[i],(unsigned long)es->intregs[i]);
-#endif
-		if (i%4 == 3)
-			printf("\n");
-	}
-	for (i=0; i<FLT_REG_CNT; ++i) {
-		if (i%4 == 0)
-			printf("\t");
-		else
-			printf(" ");
-		printf("F%02d = %016llx",i,(unsigned long long)es->fltregs[i]);
-		if (i%4 == 3)
-			printf("\n");
-	}
-# if defined(HAS_ADDRESS_REGISTER_FILE)
-	for (i=0; i<ADR_REG_CNT; ++i) {
-		if (i%4 == 0)
-			printf("\t");
-		else
-			printf(" ");
-		printf("A%02d = %016llx",i,(unsigned long long)es->adrregs[i]);
-		if (i%4 == 3)
-			printf("\n");
-	}
-# endif
-#endif
-
-	sp = (stackslot_t *) es->sp;
-
-	extraslots = 2;
-
-	if (es->code) {
-		methoddesc *md = es->code->m->parseddesc;
-		slots = es->code->stackframesize;
-		extraslots = 1 + md->memuse;
-	}
-	else
-		slots = 0;
-
-
-	if (slots) {
-		printf("\tstack slots(+%d) at sp:", extraslots);
-		for (i=0; i<slots+extraslots; ++i) {
-			if (i%4 == 0)
-				printf("\n\t\t");
-			printf("M%02d%c", i, (i >= slots) ? '(' : ' ');
-#ifdef HAS_4BYTE_STACKSLOT
-			printf("%08lx",(unsigned long)*sp++);
-#else
-			printf("%016llx",(unsigned long long)*sp++);
-#endif
-			printf("%c", (i >= slots) ? ')' : ' ');
-		}
-		printf("\n");
-	}
-
-	printf("\tcode: %p", (void*)es->code);
-	if (es->code != NULL) {
-		printf(" stackframesize=%d ", es->code->stackframesize);
-		method_print(es->code->m);
-		if (code_is_leafmethod(es->code))
-			printf(" leaf");
-	}
-	printf("\n");
-
-	printf("\n");
-}
-#endif
-
 #if !defined(NDEBUG)
 static void java_value_print(s4 type, replace_val_t value)
 {
@@ -3530,7 +3425,7 @@ void replace_sourcestate_println_short(sourcestate_t *ss)
 
 		if (REPLACE_IS_NATIVE_FRAME(frame)) {
 			printf("NATIVE (pc %p size %d) ",
-					(void*)frame->nativepc, frame->nativeframesize);
+				   (void*)frame->nativepc, frame->nativeframesize);
 			replace_stackframeinfo_println(frame->sfi);
 			continue;
 		}
@@ -3567,105 +3462,6 @@ static void replace_stackframeinfo_println(stackframeinfo_t *sfi)
 		method_println(sfi->code->m);
 	else
 		printf("(nil)\n");
-}
-#endif
-
-
-/* replace_sanity_check_read_write *********************************************
-
-   Perform some sanity checks for the md_replace_executionstate_read
-   and md_replace_executionstate_write functions.
-
-*******************************************************************************/
-
-#if !defined(NDEBUG)
-static void replace_sanity_check_read_write(void *context)
-{
-    /* estimate a minimum for the context size */
-
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-#define MINIMUM_CONTEXT_SIZE  (SIZEOF_VOID_P    * ADR_REG_CNT \
-		                       + sizeof(double) * FLT_REG_CNT \
-							   + sizeof(int)    * INT_REG_CNT)
-#else
-#define MINIMUM_CONTEXT_SIZE  (SIZEOF_VOID_P    * INT_REG_CNT \
-		                       + sizeof(double) * FLT_REG_CNT)
-#endif
-
-	executionstate_t es1;
-	executionstate_t es2;
-	executionstate_t es3;
-	unsigned int i;
-	unsigned char reference[MINIMUM_CONTEXT_SIZE];
-
-	/* keep a copy of (a prefix of) the context for reference */
-
-	memcpy(&reference, context, MINIMUM_CONTEXT_SIZE);
-
-	/* different poisons */
-
-	memset(&es1, 0xc9, sizeof(executionstate_t));
-	memset(&es2, 0xb5, sizeof(executionstate_t));
-	memset(&es3, 0x6f, sizeof(executionstate_t));
-
-	md_replace_executionstate_read(&es1, context);
-
-	/* verify that item-by-item copying preserves the state */
-
-	es2.pc = es1.pc;
-	es2.sp = es1.sp;
-	es2.pv = es1.pv;
-	es2.ra = es1.ra;
-	es2.code = es1.code;
-	for (i = 0; i < INT_REG_CNT; ++i)
-		es2.intregs[i] = es1.intregs[i];
-	for (i = 0; i < FLT_REG_CNT; ++i)
-		es2.fltregs[i] = es1.fltregs[i];
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	for (i = 0; i < ADR_REG_CNT; ++i)
-		es2.adrregs[i] = es1.adrregs[i];
-#endif
-
-	/* write it back - this should not change the context */
-	/* We cannot check that completely, unfortunately, as we don't know */
-	/* the size of the (OS-dependent) context. */
-
-	md_replace_executionstate_write(&es2, context);
-
-	/* Read it again, Sam! */
-
-	md_replace_executionstate_read(&es3, context);
-
-	/* Compare. Note: Because of the NAN madness, we cannot compare
-	 * doubles using '=='. */
-
-	assert(es3.pc == es1.pc);
-	assert(es3.sp == es1.sp);
-	assert(es3.pv == es1.pv);
-	for (i = 0; i < INT_REG_CNT; ++i)
-		assert(es3.intregs[i] == es1.intregs[i]);
-	for (i = 0; i < FLT_REG_CNT; ++i)
-		assert(memcmp(es3.fltregs+i, es1.fltregs+i, sizeof(double)) == 0);
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	for (i = 0; i < ADR_REG_CNT; ++i)
-		assert(es3.adrregs[i] == es1.adrregs[i]);
-#endif
-
-	/* i386 and x86_64 do not have an RA register */
-
-#if defined(__I386__) || defined(__X86_64__)
-	assert(es3.ra != es1.ra);
-#else
-	assert(es3.ra == es1.ra);
-#endif
-
-	/* "code" is not set by the md_* functions */
-
-	assert(es3.code != es1.code);
-
-	/* assert that we have not messed up the context */
-
-	assert(memcmp(&reference, context, MINIMUM_CONTEXT_SIZE) == 0);
 }
 #endif
 
