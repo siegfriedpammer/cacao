@@ -36,7 +36,6 @@ VM_JAVA_FILES_GNU = \
 	$(top_srcdir)/src/lib/gnu/java/lang/VMClassLoader.java \
 	$(top_srcdir)/src/lib/gnu/java/lang/VMString.java \
 	$(top_srcdir)/src/lib/gnu/java/lang/VMThread.java \
-	$(top_srcdir)/src/lib/gnu/java/lang/VMThrowable.java \
 	$(top_srcdir)/src/lib/gnu/java/lang/reflect/Constructor.java \
 	$(top_srcdir)/src/lib/gnu/java/lang/reflect/Field.java \
 	$(top_srcdir)/src/lib/gnu/java/lang/reflect/Method.java \

@@ -1079,11 +1079,9 @@ void stacktrace_print_exception(java_handle_t *h)
 
 #if defined(WITH_CLASSPATH_GNU)
 	java_lang_VMThrowable   *vmt;
-	gnu_classpath_Pointer   *backtrace;
-#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
-	java_lang_Object        *backtrace;
 #endif
 
+	java_lang_Object        *backtrace;
 	java_handle_bytearray_t *ba;
 	stacktrace_t            *st;
 
@@ -1097,7 +1095,7 @@ void stacktrace_print_exception(java_handle_t *h)
 #if defined(WITH_CLASSPATH_GNU)
 
 	LLNI_field_get_ref(o,   vmState, vmt);
-	LLNI_field_get_ref(vmt, vmData,  backtrace);
+	LLNI_field_get_ref(vmt, vmdata,  backtrace);
 
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
 
