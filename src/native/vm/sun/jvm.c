@@ -117,10 +117,10 @@
         }										\
     } while (0)
 
-# define PRINTJVMWARNINGS(...)
+# define PRINTJVMWARNINGS(x)
 /*     do { \ */
 /*         if (opt_PrintJVMWarnings) { \ */
-/*             log_println(__VA_ARGS__); \ */
+/*             log_println x; \ */
 /*         } \ */
 /*     } while (0) */
 
@@ -128,7 +128,7 @@
 
 # define TRACEJVMCALLS(...)
 # define TRACEJVMCALLSVERBOSE(x)
-# define PRINTJVMWARNINGS(...)
+# define PRINTJVMWARNINGS(x)
 
 #endif
 
@@ -412,7 +412,8 @@ void JVM_PrintStackTrace(JNIEnv *env, jobject receiver, jobject printable)
 
 jint JVM_GetStackTraceDepth(JNIEnv *env, jobject throwable)
 {
-	java_lang_Throwable     *t;
+	java_lang_Throwable     *to;
+	java_lang_Object        *o;
 	java_handle_bytearray_t *ba;
 	stacktrace_t            *st;
 	int32_t                  depth;
@@ -424,9 +425,11 @@ jint JVM_GetStackTraceDepth(JNIEnv *env, jobject throwable)
 		return 0;
 	}
 
-	t = (java_lang_Throwable *) throwable;
+	to = (java_lang_Throwable *) throwable;
 
-	LLNI_field_get_ref(t, backtrace, ba);
+	LLNI_field_get_ref(to, backtrace, o);
+
+	ba = (java_handle_bytearray_t *) o;
 
 	if (ba == NULL)
 		return 0;
@@ -450,23 +453,26 @@ jint JVM_GetStackTraceDepth(JNIEnv *env, jobject throwable)
 
 jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 {
-	java_lang_Throwable         *t;
+	java_lang_Throwable         *to;
+	java_lang_Object            *o;
 	java_handle_bytearray_t     *ba;
 	stacktrace_t                *st;
 	stacktrace_entry_t          *ste;
 	codeinfo                    *code;
 	methodinfo                  *m;
 	classinfo                   *c;
-	java_lang_StackTraceElement *o;
+	java_lang_StackTraceElement *steo;
 	java_lang_String            *declaringclass;
 	java_lang_String            *filename;
 	int32_t                      linenumber;
 
 	TRACEJVMCALLS("JVM_GetStackTraceElement(env=%p, throwable=%p, index=%d)", env, throwable, index);
 
-	t = (java_lang_Throwable *) throwable;
+	to = (java_lang_Throwable *) throwable;
 
-	LLNI_field_get_ref(t, backtrace, ba);
+	LLNI_field_get_ref(to, backtrace, o);
+
+	ba = (java_handle_bytearray_t *) o;
 
 	/* FIXME critical section */
 
@@ -492,10 +498,10 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 
 	/* allocate a new StackTraceElement */
 
-	o = (java_lang_StackTraceElement *)
+	steo = (java_lang_StackTraceElement *)
 		builtin_new(class_java_lang_StackTraceElement);
 
-	if (o == NULL)
+	if (steo == NULL)
 		return NULL;
 
 	/* get filename */
@@ -530,12 +536,12 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 
 	/* FIXME critical section */
 
-	o->declaringClass = declaringclass;
-	o->methodName     = (java_lang_String *) javastring_new(m->name);
-	o->fileName       = filename;
-	o->lineNumber     = linenumber;
+	steo->declaringClass = declaringclass;
+	steo->methodName     = (java_lang_String *) javastring_new(m->name);
+	steo->fileName       = filename;
+	steo->lineNumber     = linenumber;
 
-	return (jobject) o;
+	return (jobject) steo;
 }
 
 
@@ -671,7 +677,7 @@ jobject JVM_CompilerCommand(JNIEnv *env, jclass compCls, jobject arg)
 void JVM_EnableCompiler(JNIEnv *env, jclass compCls)
 {
 	TRACEJVMCALLS("JVM_EnableCompiler(env=%p, compCls=%p)", env, compCls);
-	PRINTJVMWARNINGS("JVM_EnableCompiler not supported");
+	PRINTJVMWARNINGS(("JVM_EnableCompiler not supported"));
 }
 
 
@@ -680,7 +686,7 @@ void JVM_EnableCompiler(JNIEnv *env, jclass compCls)
 void JVM_DisableCompiler(JNIEnv *env, jclass compCls)
 {
 	TRACEJVMCALLS("JVM_DisableCompiler(env=%p, compCls=%p)", env, compCls);
-	PRINTJVMWARNINGS("JVM_DisableCompiler not supported");
+	PRINTJVMWARNINGS(("JVM_DisableCompiler not supported"));
 }
 
 
@@ -764,7 +770,7 @@ jclass JVM_FindPrimitiveClass(JNIEnv* env, const char* s)
 void JVM_ResolveClass(JNIEnv* env, jclass cls)
 {
 	TRACEJVMCALLS("JVM_ResolveClass(env=%p, cls=%p)", env, cls);
-	PRINTJVMWARNINGS("JVM_ResolveClass not implemented");
+	PRINTJVMWARNINGS(("JVM_ResolveClass not implemented"));
 }
 
 
@@ -2250,16 +2256,19 @@ void JVM_StopThread(JNIEnv* env, jobject jthread, jobject throwable)
 
 jboolean JVM_IsThreadAlive(JNIEnv* env, jobject jthread)
 {
-	threadobject *t;
-	bool          equal;
-	bool          result;
+	java_handle_t *h;
+	threadobject  *t;
+	bool           equal;
+	bool           result;
 
 	TRACEJVMCALLS("JVM_IsThreadAlive(env=%p, jthread=%p)", env, jthread);
+
+	h = (java_handle_t *) jthread;
 
 	/* XXX this is just a quick hack */
 
 	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
-		LLNI_equals(t->object, jthread, equal);
+		LLNI_equals(t->object, h, equal);
 
 		if (equal == true)
 			break;
