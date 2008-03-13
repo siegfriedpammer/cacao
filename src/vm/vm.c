@@ -91,6 +91,7 @@
 #endif
 
 #include "vm/jit/jit.h"
+#include "vm/jit/methodtree.h"
 
 #if defined(ENABLE_PROFILING)
 # include "vm/jit/optimizing/profile.h"
@@ -1483,10 +1484,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!finalizer_init())
 		vm_abort("vm_create: finalizer_init failed");
 
-	/* Initialize JIT compiler. */
+	/* Initialize the JIT compiler. */
 
 	jit_init();
 	code_init();
+	methodtree_init();
 
 #if defined(ENABLE_PYTHON)
 	pythonpass_init();

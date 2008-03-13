@@ -57,6 +57,7 @@
 
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/disass.h"
+#include "vm/jit/methodtree.h"
 #include "vm/jit/patcher-common.h"
 
 #include "vmcore/options.h"
@@ -347,7 +348,7 @@ void *signal_handle(int type, intptr_t val,
 	default:
 		/* Let's try to get a backtrace. */
 
-		codegen_get_pv_from_pc(xpc);
+		(void) methodtree_find(xpc);
 
 		/* If that does not work, print more debug info. */
 

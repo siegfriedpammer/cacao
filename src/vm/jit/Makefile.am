@@ -1,9 +1,7 @@
 ## src/vm/jit/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-## J. Wenninger, Institut f. Computersprachen - TU Wien
+## Copyright (C) 1996-2005, 2006, 2007, 2008
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -158,6 +156,8 @@ libjit_la_SOURCES = \
 	jit.h \
 	linenumbertable.c \
 	linenumbertable.h \
+	methodtree.c \
+	methodtree.h \
 	parse.c \
 	parse.h \
 	patcher-common.c \

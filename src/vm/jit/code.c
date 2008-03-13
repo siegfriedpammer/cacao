@@ -37,6 +37,7 @@
 #include "vm/jit/code.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/patcher-common.h"
+#include "vm/jit/methodtree.h"
 
 #include "vmcore/options.h"
 
@@ -97,7 +98,7 @@ codeinfo *code_codeinfo_new(methodinfo *m)
    Return the codeinfo for the compilation unit that contains the
    given PC.
 
-   IN:
+   ARGUMENTS:
        pc...............machine code position
 
    RETURN VALUE:
@@ -109,8 +110,7 @@ codeinfo *code_find_codeinfo_for_pc(void *pc)
 {
 	void *pv;
 
-	pv = codegen_get_pv_from_pc(pc);
-	assert(pv);
+	pv = methodtree_find(pc);
 
 	return code_get_codeinfo_for_pv(pv);
 }
@@ -134,7 +134,7 @@ codeinfo *code_find_codeinfo_for_pc_nocheck(void *pc)
 {
 	void *pv;
 
-	pv = codegen_get_pv_from_pc_nocheck(pc);
+	pv = methodtree_find_nocheck(pc);
 
 	if (pv == NULL)
 		return NULL;

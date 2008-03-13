@@ -40,6 +40,8 @@
 
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/methodtree.h"
+
 #include "vm/jit/optimizing/recompile.h"
 
 #include "vmcore/class.h"
@@ -112,9 +114,9 @@ static void profile_thread(void)
 
 			pc = t->pc;
 
-			/* get the PV for the current PC */
+			/* Get the PV for the current PC. */
 
-			pv = codegen_get_pv_from_pc_nocheck(pc);
+			pv = methodtree_find_nocheck(pc);
 
 			/* get methodinfo pointer from data segment */
 
