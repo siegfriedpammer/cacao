@@ -1,9 +1,7 @@
 /* src/vm/jit/intrp/asmpart.c - Java-C interface functions for Interpreter
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -44,8 +42,10 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/intrp/intrp.h"
+#include "vm/jit/methodtree.h"
 #include "vm/jit/dseg.h"
+
+#include "vm/jit/intrp/intrp.h"
 
 #include "vmcore/class.h"
 #include "vmcore/linker.h"
@@ -191,7 +191,7 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
   /* for a description of the stack see IRETURN in java.vmg */
 
   for (; fp != NULL; ) {
-	  u1 *f = codegen_get_pv_from_pc((u1 *) (ip - 1));
+	  u1 *f = methodtree_find((u1 *) (ip - 1));
 
 	  /* get methodinfo pointer from method header */
 
