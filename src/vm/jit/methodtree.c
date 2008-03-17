@@ -29,6 +29,8 @@
 
 #include "mm/memory.h"
 
+#include "threads/threads-common.h"
+
 #include "toolbox/avl.h"
 
 #include "vm/jit/asmpart.h"
@@ -194,7 +196,7 @@ void *methodtree_find(void *pc)
 		log_println("PC=0x%08x", pc);
 #endif
 		log_println("");
-		assert(0);
+
 		log_println("Dumping the current stacktrace:");
 
 #if defined(ENABLE_THREADS)
