@@ -225,16 +225,6 @@ struct linenumberref {
 };
 
 
-/* methodtree_element *********************************************************/
-
-typedef struct methodtree_element methodtree_element;
-
-struct methodtree_element {
-	u1 *startpc;
-	u1 *endpc;
-};
-
-
 /* function prototypes ********************************************************/
 
 void codegen_init(void);
@@ -259,10 +249,6 @@ void codegen_add_branch_ref(codegendata *cd, basicblock *target, s4 condition, s
 void codegen_resolve_branchrefs(codegendata *cd, basicblock *bptr);
 
 void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options);
-
-void codegen_insertmethod(u1 *startpc, u1 *endpc);
-u1 *codegen_get_pv_from_pc(u1 *pc);
-u1 *codegen_get_pv_from_pc_nocheck(u1 *pc);
 
 #if defined(ENABLE_REPLACEMENT)
 #if !defined(NDEBUG)

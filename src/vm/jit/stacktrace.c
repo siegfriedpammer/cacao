@@ -70,6 +70,7 @@
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/methodtree.h"
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
@@ -114,7 +115,7 @@ void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra
 	if (pv == NULL) {
 #if defined(ENABLE_INTRP)
 		if (opt_intrp)
-			pv = codegen_get_pv_from_pc(ra);
+			pv = methodtree_find(ra);
 		else
 #endif
 			{
@@ -351,7 +352,7 @@ static inline void stacktrace_stackframeinfo_next(stackframeinfo_t *tmpsfi)
 
 #if defined(ENABLE_INTRP)
 	if (opt_intrp)
-		pv = codegen_get_pv_from_pc(ra);
+		pv = methodtree_find(ra);
 	else
 #endif
 		{
