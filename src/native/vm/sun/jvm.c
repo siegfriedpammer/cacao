@@ -68,7 +68,6 @@
 #include "native/vm/reflect.h"
 
 #include "threads/lock-common.h"
-#include "threads/threadlist.h"
 #include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
@@ -2258,21 +2257,12 @@ jboolean JVM_IsThreadAlive(JNIEnv* env, jobject jthread)
 {
 	java_handle_t *h;
 	threadobject  *t;
-	bool           equal;
 	bool           result;
 
 	TRACEJVMCALLS(("JVM_IsThreadAlive(env=%p, jthread=%p)", env, jthread));
 
 	h = (java_handle_t *) jthread;
-
-	/* XXX this is just a quick hack */
-
-	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
-		LLNI_equals(t->object, h, equal);
-
-		if (equal == true)
-			break;
-	}
+	t = thread_get_thread(h);
 
 	/* The threadobject is null when a thread is created in Java. The
 	   priority is set later during startup. */
@@ -2312,13 +2302,7 @@ void JVM_SetThreadPriority(JNIEnv* env, jobject jthread, jint prio)
 	TRACEJVMCALLS(("JVM_SetThreadPriority(env=%p, jthread=%p, prio=%d)", env, jthread, prio));
 
 	h = (java_handle_t *) jthread;
-
-	/* XXX this is just a quick hack */
-
-	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
-		if (t->object == h)
-			break;
-	}
+	t = thread_get_thread(h);
 
 	/* The threadobject is null when a thread is created in Java. The
 	   priority is set later during startup. */
@@ -2378,7 +2362,18 @@ jint JVM_CountStackFrames(JNIEnv* env, jobject jthread)
 
 void JVM_Interrupt(JNIEnv* env, jobject jthread)
 {
-	log_println("JVM_Interrupt: IMPLEMENT ME!");
+	java_handle_t *h;
+	threadobject  *t;
+
+	TRACEJVMCALLS(("JVM_Interrupt(env=%p, jthread=%p)", env, jthread));
+
+	h = (java_handle_t *) jthread;
+	t = thread_get_thread(h);
+
+	if (t == NULL)
+		return;
+
+	threads_thread_interrupt(t);
 }
 
 
@@ -2392,15 +2387,9 @@ jboolean JVM_IsInterrupted(JNIEnv* env, jobject jthread, jboolean clear_interrup
 	TRACEJVMCALLS(("JVM_IsInterrupted(env=%p, jthread=%p, clear_interrupted=%d)", env, jthread, clear_interrupted));
 
 	h = (java_handle_t *) jthread;
+	t = thread_get_thread(h);
 
 	/* XXX do something with clear_interrupted */
-
-	/* XXX this is just a quick hack */
-
-	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
-		if (t->object == h)
-			break;
-	}
 
 	return threads_thread_has_been_interrupted(t);
 }
