@@ -29,32 +29,32 @@ EXTRA_DIST = \
 CLEANFILES = vm.zip
 
 VM_JAVA_FILES_GNU = \
-	$(top_srcdir)/src/lib/gnu/gnu/classpath/VMStackWalker.java \
-	$(top_srcdir)/src/lib/gnu/gnu/classpath/VMSystemProperties.java \
-	$(top_srcdir)/src/lib/gnu/gnu/java/lang/management/VMMemoryMXBeanImpl.java \
-	$(top_srcdir)/src/lib/gnu/gnu/java/lang/management/VMRuntimeMXBeanImpl.java \
-	$(top_srcdir)/src/lib/gnu/java/lang/VMClassLoader.java \
-	$(top_srcdir)/src/lib/gnu/java/lang/VMString.java \
-	$(top_srcdir)/src/lib/gnu/java/lang/VMThread.java \
-	$(top_srcdir)/src/lib/gnu/java/lang/reflect/Constructor.java \
-	$(top_srcdir)/src/lib/gnu/java/lang/reflect/Field.java \
-	$(top_srcdir)/src/lib/gnu/java/lang/reflect/Method.java \
-	$(top_srcdir)/src/lib/gnu/java/security/VMAccessController.java \
-	$(top_srcdir)/src/lib/gnu/sun/misc/Unsafe.java
+	$(top_srcdir)/src/classes/gnu/gnu/classpath/VMStackWalker.java \
+	$(top_srcdir)/src/classes/gnu/gnu/classpath/VMSystemProperties.java \
+	$(top_srcdir)/src/classes/gnu/gnu/java/lang/management/VMMemoryMXBeanImpl.java \
+	$(top_srcdir)/src/classes/gnu/gnu/java/lang/management/VMRuntimeMXBeanImpl.java \
+	$(top_srcdir)/src/classes/gnu/java/lang/VMClassLoader.java \
+	$(top_srcdir)/src/classes/gnu/java/lang/VMString.java \
+	$(top_srcdir)/src/classes/gnu/java/lang/VMThread.java \
+	$(top_srcdir)/src/classes/gnu/java/lang/reflect/Constructor.java \
+	$(top_srcdir)/src/classes/gnu/java/lang/reflect/Field.java \
+	$(top_srcdir)/src/classes/gnu/java/lang/reflect/Method.java \
+	$(top_srcdir)/src/classes/gnu/java/security/VMAccessController.java \
+	$(top_srcdir)/src/classes/gnu/sun/misc/Unsafe.java
 
 VM_JAVA_FILES_GNU_ANNOTATIONS = \
-	$(top_srcdir)/src/lib/gnu/sun/reflect/ConstantPool.java \
-	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/ExceptionProxy.java \
-	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/EnumConstantNotPresentExceptionProxy.java \
-	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/TypeNotPresentExceptionProxy.java \
-	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationTypeMismatchExceptionProxy.java \
-	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationType.java \
-	$(top_srcdir)/src/lib/gnu/sun/reflect/annotation/AnnotationParser.java
+	$(top_srcdir)/src/classes/gnu/sun/reflect/ConstantPool.java \
+	$(top_srcdir)/src/classes/gnu/sun/reflect/annotation/ExceptionProxy.java \
+	$(top_srcdir)/src/classes/gnu/sun/reflect/annotation/EnumConstantNotPresentExceptionProxy.java \
+	$(top_srcdir)/src/classes/gnu/sun/reflect/annotation/TypeNotPresentExceptionProxy.java \
+	$(top_srcdir)/src/classes/gnu/sun/reflect/annotation/AnnotationTypeMismatchExceptionProxy.java \
+	$(top_srcdir)/src/classes/gnu/sun/reflect/annotation/AnnotationType.java \
+	$(top_srcdir)/src/classes/gnu/sun/reflect/annotation/AnnotationParser.java
 
 VM_JAVA_FILES_CLDC1_1 = \
-	$(top_srcdir)/src/lib/cldc1.1/com/sun/cldchi/jvm/FileDescriptor.java
+	$(top_srcdir)/src/classes/cldc1.1/com/sun/cldchi/jvm/FileDescriptor.java
 
-BOOTCLASSPATH = $(top_builddir)/src/lib/classes:$(CLASSPATH_CLASSES)
+BOOTCLASSPATH = $(top_builddir)/src/classes/classes:$(CLASSPATH_CLASSES)
 
 if WITH_CLASSPATH_GNU
 VM_JAVA_FILES = \

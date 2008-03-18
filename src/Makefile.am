@@ -24,8 +24,8 @@
 DIST_SUBDIRS = \
 	cacao \
 	cacaoh \
+	classes \
 	fdlibm \
-	lib \
 	mm \
 	native \
 	scripts \
@@ -50,7 +50,7 @@ SUBDIRS = \
 	toolbox \
 	vmcore \
 	$(CACAOH_DIR) \
-	lib \
+	classes \
 	native \
 	fdlibm \
 	mm \
