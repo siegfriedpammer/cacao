@@ -155,7 +155,9 @@ void          threads_thread_state_runnable(threadobject *t);
 void          threads_thread_state_waiting(threadobject *t);
 void          threads_thread_state_timed_waiting(threadobject *t);
 void          threads_thread_state_terminated(threadobject *t);
+
 utf          *threads_thread_get_state(threadobject *t);
+threadobject *thread_get_thread(java_handle_t *h);
 
 bool          threads_thread_is_alive(threadobject *t);
 

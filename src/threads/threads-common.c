@@ -976,6 +976,64 @@ utf *threads_thread_get_state(threadobject *t)
 }
 
 
+/* thread_get_thread **********************************************************
+
+   Return the thread data structure of the given Java thread object.
+
+   ARGUMENTS:
+       h ... java.lang.{VM}Thread object
+
+   RETURN VALUE:
+       the thread object
+
+*******************************************************************************/
+
+threadobject *thread_get_thread(java_handle_t *h)
+{
+	threadobject       *t;
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_VMThread *vmto;
+	java_lang_Object   *to;
+#endif
+#if defined(WITH_CLASSPATH_SUN)
+	bool                equal;
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+
+	vmto = (java_lang_VMThread *) h;
+
+	LLNI_field_get_val(vmto, vmdata, to);
+
+	t = (threadobject *) to;
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+	/* XXX This is just a quick hack. */
+
+	threadlist_lock();
+
+	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
+		LLNI_equals(t->object, h, equal);
+
+		if (equal == true)
+			break;
+	}
+
+	threadlist_unlock();
+
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+
+	log_println("threads_get_thread: IMPLEMENT ME!");
+
+#else
+# error unknown classpath configuration
+#endif
+
+	return t;
+}
+
+
 /* threads_thread_is_alive *****************************************************
 
    Returns if the give thread is alive.
