@@ -35,8 +35,8 @@ contrib/setenvinstalled
 contrib/setenvsource
 src/cacao/cacao
 src/cacaoh/cacaoh
-src/lib/classes/
-src/lib/vm.zip
+src/classes/classes/
+src/classes/vm.zip
 src/native/include/*.h
 src/scripts/java
 tests/*.class
