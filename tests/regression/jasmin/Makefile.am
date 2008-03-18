@@ -21,10 +21,9 @@
 ## 02110-1301, USA.
 
 
-JAVA          = $(top_builddir)/src/cacao/cacao
-BOOTCLASSPATH = $(top_builddir)/src/lib/classes:$(CLASSPATH_CLASSES)
-JAVACMD       = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
-JAVACCMD      = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
+JAVA     = $(top_builddir)/src/cacao/cacao
+JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
+JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
 
 JASMIN_TESTS = \
 	$(srcdir)/test_coalesce_simple_store.j \
@@ -117,8 +116,6 @@ JASMIN_TESTS = \
 	$(srcdir)/test_verify_unspecced_ok_backward_with_new_in_local.j \
 	$(srcdir)/test_verify_unspecced_ok_backward_with_new_on_stack.j \
 	$(srcdir)/test_verify_unspecced_ok_new_in_local_within_try.j
-
-
 
 EXTRA_DIST = \
 	$(srcdir)/runtest \

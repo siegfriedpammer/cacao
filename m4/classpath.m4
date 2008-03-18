@@ -92,6 +92,17 @@ AC_ARG_WITH([classpath-classes],
 AC_MSG_RESULT(${CLASSPATH_CLASSES})
 AC_DEFINE_UNQUOTED([CLASSPATH_CLASSES], "${CLASSPATH_CLASSES}", [Java core library classes])
 AC_SUBST(CLASSPATH_CLASSES)
+
+dnl define BOOTCLASSPATH for Makefiles
+case "${WITH_CLASSPATH}" in
+    cldc1.1 | gnu)
+        BOOTCLASSPATH="\$(top_builddir)/src/lib/classes:\$(CLASSPATH_CLASSES)"
+        ;;
+    *)
+        BOOTCLASSPATH="\$(CLASSPATH_CLASSES)"
+        ;;
+esac
+AC_SUBST(BOOTCLASSPATH)
 ])
 
 
