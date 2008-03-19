@@ -754,7 +754,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, sun_misc_Unsa
 		return;
 	}
 
-	p = (void *) address;
+	p = (void *) (intptr_t) address;
 
 	/* XXX Not sure this is correct. */
 
@@ -783,8 +783,8 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory(JNIEnv *env, sun_misc_Uns
 		return;
 	}
 
-	src  = (void *) srcAddress;
-	dest = (void *) destAddress;
+	src  = (void *) (intptr_t) srcAddress;
+	dest = (void *) (intptr_t) destAddress;
 
 	system_memcpy(dest, src, length);
 }
