@@ -65,7 +65,6 @@ static inline long compare_and_swap(volatile long *p, long oldval, long newval)
 #define MEMORY_BARRIER()                  (pthread_mutex_lock(&_mb_lock), \
                                            pthread_mutex_unlock(&_mb_lock))
 #define STORE_ORDER_BARRIER()             MEMORY_BARRIER()
-#define MEMORY_BARRIER_BEFORE_ATOMIC()    /* nothing */
 #define MEMORY_BARRIER_AFTER_ATOMIC()     /* nothing */
 
 #endif /* _MACHINE_INSTR_H */

@@ -39,7 +39,6 @@ compare_and_swap (volatile long *p, long oldval, long newval)
 long compare_and_swap (long *p, long oldval, long newval);
 
 #define STORE_ORDER_BARRIER()
-#define MEMORY_BARRIER_BEFORE_ATOMIC()
 #define MEMORY_BARRIER_AFTER_ATOMIC()
 #define MEMORY_BARRIER()
 

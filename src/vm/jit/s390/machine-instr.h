@@ -52,7 +52,6 @@ compare_and_swap (volatile long *p, long oldval, long newval)
 
 /* TODO not sure if the following two can't be just empty. */
 
-#define MEMORY_BARRIER_BEFORE_ATOMIC() eieio()
 #define MEMORY_BARRIER_AFTER_ATOMIC() eieio()
 
 #endif

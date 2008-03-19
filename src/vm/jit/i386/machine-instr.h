@@ -14,7 +14,6 @@ compare_and_swap (volatile long *p, long oldval, long newval)
 }
 
 #define STORE_ORDER_BARRIER() __asm__ __volatile__ ("" : : : "memory");
-#define MEMORY_BARRIER_BEFORE_ATOMIC() /* nothing */
 #define MEMORY_BARRIER_AFTER_ATOMIC() /* nothing */
 #define MEMORY_BARRIER() __asm__ __volatile__ ( \
 		"lock; add $0, 0(%%esp)" : : : "memory" );
