@@ -1,9 +1,7 @@
 /* src/vm/jit/optimizing/profile.c - runtime profiling
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -34,6 +32,7 @@
 
 #include "mm/memory.h"
 
+#include "threads/threadlist.h"
 #include "threads/threads-common.h"
 
 #include "vm/builtin.h"
@@ -41,6 +40,8 @@
 
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/methodtree.h"
+
 #include "vm/jit/optimizing/recompile.h"
 
 #include "vmcore/class.h"
@@ -94,11 +95,11 @@ static void profile_thread(void)
 
 		/* lock the threads lists */
 
-		threads_list_lock();
+		threadlist_lock();
 
 		/* iterate over all started threads */
 
-		for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+		for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
 			/* is this a Java thread? */
 
 			if (!(t->flags & THREAD_FLAG_JAVA))
@@ -113,9 +114,9 @@ static void profile_thread(void)
 
 			pc = t->pc;
 
-			/* get the PV for the current PC */
+			/* Get the PV for the current PC. */
 
-			pv = codegen_get_pv_from_pc_nocheck(pc);
+			pv = methodtree_find_nocheck(pc);
 
 			/* get methodinfo pointer from data segment */
 
@@ -157,7 +158,7 @@ static void profile_thread(void)
 
 		/* unlock the threads lists */
 
-		threads_list_unlock();
+		threadlist_unlock();
 	}
 }
 #endif

@@ -27,8 +27,12 @@
 #define _THREADS_H
 
 #include "config.h"
+
 #include "vm/types.h"
+
 #include "vm/global.h"
+
+#include "vm/jit/stacktrace.h"
 
 
 /* define some stuff we need to no-ops ****************************************/
@@ -64,12 +68,24 @@ extern u4 _no_threads_tracejavacallcount;
 
 /* inline functions ***********************************************************/
 
+inline static java_handle_t *threads_get_current_object(void)
+{
+	java_handle_t *o;
+
+	/* We return a fake java.lang.Thread object, otherwise we get
+	   NullPointerException's in GNU Classpath. */
+
+	o = builtin_new(class_java_lang_Thread);
+
+	return o;
+}
+
 inline static stackframeinfo_t *threads_get_current_stackframeinfo(void)
 {
 	return _no_threads_stackframeinfo;
 }
 
-inline static void threads_get_current_stackframeinfo(stackframeinfo_t *sfi)
+inline static void threads_set_current_stackframeinfo(stackframeinfo_t *sfi)
 {
 	_no_threads_stackframeinfo = sfi;
 }

@@ -171,6 +171,7 @@ struct threadobject {
 #endif
 
 	listnode_t            linkage;      /* threads-list                       */
+	listnode_t            linkage_free; /* free-list                          */
 };
 
 
@@ -220,8 +221,6 @@ void threads_sem_post(sem_t *sem);
 
 threadobject *threads_get_current_threadobject(void);
 
-bool threads_init(void);
-
 void threads_start_thread(threadobject *thread, functionptr function);
 
 void threads_set_thread_priority(pthread_t tid, int priority);
@@ -237,7 +236,7 @@ void threads_join_all_threads(void);
 
 void threads_sleep(s8 millis, s4 nanos);
 
-bool threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
+void threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
 
 void threads_thread_interrupt(threadobject *thread);
 bool threads_check_if_interrupted_and_reset(void);

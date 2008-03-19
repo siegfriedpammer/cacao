@@ -1,9 +1,7 @@
 /* mm/cacao-gc/rootset.c - GC module for root set management
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -31,9 +29,14 @@
 #include "final.h"
 #include "heap.h"
 #include "mark.h"
+
 #include "mm/memory.h"
+
+#include "threads/threadlist.h"
 #include "threads/threads-common.h"
+
 #include "toolbox/logging.h"
+
 #include "vm/global.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/stacktrace.h"
@@ -328,7 +331,7 @@ rootset_t *rootset_readout()
 {
 	rootset_t    *rs_top;
 	rootset_t    *rs;
-	threadobject *thread;
+	threadobject *t;
 
 	/* find the global rootset ... */
 	rs_top = rootset_create();
@@ -338,22 +341,22 @@ rootset_t *rootset_readout()
 	/* ... and the rootsets for the threads */
 	rs = rs_top;
 #if defined(ENABLE_THREADS)
-	for (thread = threads_list_first(); thread != NULL; thread = threads_list_next(thread)) {
+	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
 
 		/* ignore threads which are in state NEW */
-		if (thread->state == THREAD_STATE_NEW)
+		if (t->state == THREAD_STATE_NEW)
 			continue;
 
 		rs->next = rootset_create();
-		rs->next = rootset_from_thread(thread, rs->next);
+		rs->next = rootset_from_thread(t, rs->next);
 
 		rs = rs->next;
 	}
 #else
-	thread = THREADOBJECT;
+	t = THREADOBJECT;
 
 	rs->next = rootset_create();
-	rs->next = rootset_from_thread(thread, rs->next);
+	rs->next = rootset_from_thread(t, rs->next);
 #endif
 
 	return rs_top;

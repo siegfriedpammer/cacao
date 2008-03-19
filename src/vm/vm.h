@@ -47,6 +47,7 @@ extern _Jv_JavaVM *_Jv_jvm;
 extern _Jv_JNIEnv *_Jv_env;
 
 extern bool vm_initializing;
+extern bool vm_created;
 extern bool vm_exiting;
 
 extern char      *mainstring;

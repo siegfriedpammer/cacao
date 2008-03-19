@@ -26,7 +26,6 @@
 #include "config.h"
 
 #include <assert.h>
-#include <errno.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -58,6 +57,7 @@
 
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/disass.h"
+#include "vm/jit/methodtree.h"
 #include "vm/jit/patcher-common.h"
 
 #include "vmcore/options.h"
@@ -95,22 +95,22 @@ bool signal_init(void)
 	   this thread. */
 
 	if (sigemptyset(&mask) != 0)
-		vm_abort("signal_init: sigemptyset failed: %s", strerror(errno));
+		vm_abort_errno("signal_init: sigemptyset failed");
 
 #if !defined(WITH_CLASSPATH_SUN)
 	/* Let OpenJDK handle SIGINT itself. */
 
 	if (sigaddset(&mask, SIGINT) != 0)
-		vm_abort("signal_init: sigaddset failed: %s", strerror(errno));
+		vm_abort_errno("signal_init: sigaddset failed");
 #endif
 
 #if !defined(__FREEBSD__)
 	if (sigaddset(&mask, SIGQUIT) != 0)
-		vm_abort("signal_init: sigaddset failed: %s", strerror(errno));
+		vm_abort_errno("signal_init: sigaddset failed");
 #endif
 
 	if (sigprocmask(SIG_BLOCK, &mask, NULL) != 0)
-		vm_abort("signal_init: sigprocmask failed: %s", strerror(errno));
+		vm_abort_errno("signal_init: sigprocmask failed");
 
 #if defined(__LINUX__) && defined(ENABLE_THREADS)
 	/* XXX Remove for exact-GC. */
@@ -238,15 +238,13 @@ void signal_register_signal(int signum, functionptr handler, int flags)
 	function = (void (*)(int, siginfo_t *, void *)) handler;
 
 	if (sigemptyset(&act.sa_mask) != 0)
-		vm_abort("signal_register_signal: sigemptyset failed: %s",
-				 strerror(errno));
+		vm_abort_errno("signal_register_signal: sigemptyset failed");
 
 	act.sa_sigaction = function;
 	act.sa_flags     = flags;
 
 	if (sigaction(signum, &act, NULL) != 0)
-		vm_abort("signal_register_signal: sigaction failed: %s",
-				 strerror(errno));
+		vm_abort_errno("signal_register_signal: sigaction failed");
 }
 
 
@@ -266,6 +264,11 @@ void *signal_handle(int type, intptr_t val,
 	methodinfo       *m;
 	java_handle_t    *p;
 
+#if !defined(NDEBUG)
+	if (opt_TraceTraps)
+		log_println("[signal_handle: trap %d]", type);
+#endif
+	
 #if defined(ENABLE_VMLOG)
 	vmlog_cacao_signl_type(type);
 #endif
@@ -345,7 +348,7 @@ void *signal_handle(int type, intptr_t val,
 	default:
 		/* Let's try to get a backtrace. */
 
-		codegen_get_pv_from_pc(xpc);
+		(void) methodtree_find(xpc);
 
 		/* If that does not work, print more debug info. */
 
@@ -400,18 +403,18 @@ static void signal_thread(void)
 	t = THREADOBJECT;
 
 	if (sigemptyset(&mask) != 0)
-		vm_abort("signal_thread: sigemptyset failed: %s", strerror(errno));
+		vm_abort_errno("signal_thread: sigemptyset failed");
 
 #if !defined(WITH_CLASSPATH_SUN)
 	/* Let OpenJDK handle SIGINT itself. */
 
 	if (sigaddset(&mask, SIGINT) != 0)
-		vm_abort("signal_thread: sigaddset failed: %s", strerror(errno));
+		vm_abort_errno("signal_thread: sigaddset failed");
 #endif
 
 #if !defined(__FREEBSD__)
 	if (sigaddset(&mask, SIGQUIT) != 0)
-		vm_abort("signal_thread: sigaddset failed: %s", strerror(errno));
+		vm_abort_errno("signal_thread: sigaddset failed");
 #endif
 
 	for (;;) {
@@ -427,7 +430,7 @@ static void signal_thread(void)
 		   revisit this code with our new exact-GC. */
 
 /* 		if (sigwait(&mask, &sig) != 0) */
-/* 			vm_abort("signal_thread: sigwait failed: %s", strerror(errno)); */
+/* 			vm_abort_errno("signal_thread: sigwait failed"); */
 		(void) sigwait(&mask, &sig);
 
 #if defined(ENABLE_THREADS)

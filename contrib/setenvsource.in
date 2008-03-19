@@ -1,5 +1,5 @@
-# sets the environment variables when GNU classpath and CACAO are not
-# installed
+# Sets the environment variables properly when GNU Classpath and CACAO
+# are not installed.
 
 export PATH=$PWD/src/cacao:$PATH
 
@@ -14,4 +14,4 @@ $PWD/src/cacao/.libs:\
 @CLASSPATH_PREFIX@/native/jni/java-util/.libs:\
 $LD_LIBRARY_PATH
 
-export BOOTCLASSPATH=$PWD/src/lib/vm.zip:@CLASSPATH_CLASSES@
+export BOOTCLASSPATH=$PWD/src/classes/vm.zip:@CLASSPATH_CLASSES@

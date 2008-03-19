@@ -58,6 +58,8 @@
 
 #include "native/vm/nativevm.h"
 
+#include "threads/lock-common.h"
+#include "threads/threadlist.h"
 #include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
@@ -82,12 +84,14 @@
 
 #include "vm/jit/argument.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/code.h"
 
 #if defined(ENABLE_DISASSEMBLER)
 # include "vm/jit/disass.h"
 #endif
 
 #include "vm/jit/jit.h"
+#include "vm/jit/methodtree.h"
 
 #if defined(ENABLE_PROFILING)
 # include "vm/jit/optimizing/profile.h"
@@ -125,7 +129,8 @@ _Jv_JNIEnv *_Jv_env;                    /* pointer to native method interface */
 s4 vms = 0;                             /* number of VMs created              */
 
 bool vm_initializing = false;
-bool vm_exiting = false;
+bool vm_created      = false;
+bool vm_exiting      = false;
 
 char      *mainstring = NULL;
 classinfo *mainclass = NULL;
@@ -1407,10 +1412,16 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	gc_init(opt_heapmaxsize, opt_heapstartsize);
 
 #if defined(ENABLE_THREADS)
+	/* BEFORE: threads_preinit */
+
+	threadlist_init();
+
 	/* AFTER: gc_init (directly after, as this initializes the
 	   stopworldlock lock */
 
   	threads_preinit();
+	lock_init();
+	critical_init();
 #endif
 
 	/* install architecture dependent signal handlers */
@@ -1434,8 +1445,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	/* AFTER: threads_preinit */
 
-	if (!utf8_init())
-		vm_abort("vm_create: utf8_init failed");
+	utf8_init();
 
 	/* AFTER: thread_preinit */
 
@@ -1474,9 +1484,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!finalizer_init())
 		vm_abort("vm_create: finalizer_init failed");
 
-	/* initializes jit compiler */
+	/* Initialize the JIT compiler. */
 
 	jit_init();
+	code_init();
+	methodtree_init();
 
 #if defined(ENABLE_PYTHON)
 	pythonpass_init();
@@ -1537,8 +1549,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 #endif
 
 #if defined(ENABLE_THREADS)
-  	if (!threads_init())
-		vm_abort("vm_create: threads_init failed");
+  	threads_init();
 #endif
 
 	/* Initialize the native VM subsystem. */
@@ -1608,21 +1619,20 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	}
 #endif
 
-	/* increment the number of VMs */
+	/* Increment the number of VMs. */
 
 	vms++;
 
-	/* initialization is done */
+	/* Initialization is done, VM is created.. */
 
+	vm_created      = true;
 	vm_initializing = false;
 
-#if !defined(NDEBUG)
 	/* Print the VM configuration after all stuff is set and the VM is
 	   initialized. */
 
 	if (opt_PrintConfig)
 		vm_printconfig();
-#endif
 
 	/* everything's ok */
 
@@ -1794,6 +1804,10 @@ s4 vm_destroy(JavaVM *vm)
 #if defined(ENABLE_THREADS)
 	threads_join_all_threads();
 #endif
+
+	/* VM is gone. */
+
+	vm_created = false;
 
 	/* everything's ok */
 

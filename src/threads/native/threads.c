@@ -73,6 +73,7 @@
 #endif
 
 #include "threads/lock-common.h"
+#include "threads/threadlist.h"
 #include "threads/threads-common.h"
 
 #include "threads/native/threads.h"
@@ -216,8 +217,6 @@ static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos)
 /* GLOBAL VARIABLES                                                           */
 /******************************************************************************/
 
-static methodinfo *method_thread_init;
-
 /* the thread object of the current thread                                    */
 /* This is either a thread-local variable defined with __thread, or           */
 /* a thread-specific value stored with key threads_current_threadobject_key.  */
@@ -226,9 +225,6 @@ __thread threadobject *threads_current_threadobject;
 #else
 pthread_key_t threads_current_threadobject_key;
 #endif
-
-/* global mutex for the threads table */
-static pthread_mutex_t mutex_threads_list;
 
 /* global mutex for stop-the-world                                            */
 static pthread_mutex_t stopworldlock;
@@ -262,7 +258,6 @@ static pthread_cond_t suspend_cond = PTHREAD_COND_INITIALIZER;
 
 /* mutexes used by the fake atomic instructions                               */
 #if defined(USE_FAKE_ATOMIC_INSTRUCTIONS)
-pthread_mutex_t _atomic_add_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t _cas_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t _mb_lock = PTHREAD_MUTEX_INITIALIZER;
 #endif
@@ -396,7 +391,7 @@ static s4 threads_cast_sendsignals(s4 sig)
 
 	count = 0;
 
-	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
 		/* don't send the signal to ourself */
 
 		if (t == self)
@@ -552,7 +547,7 @@ void threads_stopworld(void)
 
 	/* lock the threads lists */
 
-	threads_list_lock();
+	threadlist_lock();
 
 #if defined(__DARWIN__)
 	/*threads_cast_darwinstop();*/
@@ -568,7 +563,7 @@ void threads_stopworld(void)
 	count = 0;
 
 	/* suspend all running threads */
-	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
 		/* don't send the signal to ourself */
 
 		if (t == self)
@@ -634,7 +629,7 @@ void threads_startworld(void)
 	count = 0;
 
 	/* resume all thread we haltet */
-	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
 		/* don't send the signal to ourself */
 
 		if (t == self)
@@ -664,7 +659,7 @@ void threads_startworld(void)
 
 	/* unlock the threads lists */
 
-	threads_list_unlock();
+	threadlist_unlock();
 
 	unlock_stopworld();
 }
@@ -691,22 +686,18 @@ void threads_set_current_threadobject(threadobject *thread)
 }
 
 
-/* threads_impl_thread_new *****************************************************
+/* threads_impl_thread_init ****************************************************
 
-   Initialize implementation fields of a threadobject.
+   Initialize OS-level locking constructs in threadobject.
 
    IN:
       t....the threadobject
 
 *******************************************************************************/
 
-void threads_impl_thread_new(threadobject *t)
+void threads_impl_thread_init(threadobject *t)
 {
 	int result;
-
-	/* get the pthread id */
-
-	t->tid = pthread_self();
 
 	/* initialize the mutex and the condition */
 
@@ -733,6 +724,77 @@ void threads_impl_thread_new(threadobject *t)
 	result = pthread_cond_init(&(t->suspendcond), NULL);
 	if (result != 0)
 		vm_abort_errnum(result, "threads_impl_thread_new: pthread_cond_init failed");
+}
+
+/* threads_impl_thread_clear ***************************************************
+
+   Clears all fields in threadobject the way an MZERO would have
+   done. MZERO cannot be used anymore because it would mess up the
+   pthread_* bits.
+
+   IN:
+      t....the threadobject
+
+*******************************************************************************/
+
+void threads_impl_thread_clear(threadobject *t)
+{
+	t->object = NULL;
+
+	t->thinlock = 0;
+
+	t->index = 0;
+	t->flags = 0;
+	t->state = 0;
+
+	t->tid = 0;
+
+#if defined(__DARWIN__)
+	t->mach_thread = 0;
+#endif
+
+	t->interrupted = false;
+	t->signaled = false;
+	t->sleeping = false;
+
+	t->suspended = false;
+	t->suspend_reason = 0;
+
+	t->pc = NULL;
+
+	t->_exceptionptr = NULL;
+	t->_stackframeinfo = NULL;
+	t->_localref_table = NULL;
+
+#if defined(ENABLE_INTRP)
+	t->_global_sp = NULL;
+#endif
+
+#if defined(ENABLE_GC_CACAO)
+	t->gc_critical = false;
+
+	t->ss = NULL;
+	t->es = NULL;
+#endif
+
+	MZERO(&t->dumpinfo, dumpinfo_t, 1);
+}
+
+/* threads_impl_thread_reuse ***************************************************
+
+   Resets some implementation fields in threadobject. This was
+   previously done in threads_impl_thread_new.
+
+   IN:
+      t....the threadobject
+
+*******************************************************************************/
+
+void threads_impl_thread_reuse(threadobject *t)
+{
+	/* get the pthread id */
+
+	t->tid = pthread_self();
 
 #if defined(ENABLE_DEBUG_FILTER)
 	/* Initialize filter counters */
@@ -763,6 +825,8 @@ void threads_impl_thread_new(threadobject *t)
 
 *******************************************************************************/
 
+#if 0
+/* never used */
 void threads_impl_thread_free(threadobject *t)
 {
 	int result;
@@ -799,6 +863,7 @@ void threads_impl_thread_free(threadobject *t)
 	if (result != 0)
 		vm_abort_errnum(result, "threads_impl_thread_free: pthread_cond_destroy failed");
 }
+#endif
 
 
 /* threads_get_current_threadobject ********************************************
@@ -852,12 +917,6 @@ void threads_impl_preinit(void)
 		vm_abort_errnum(result, "threads_impl_preinit: pthread_mutex_init failed");
 #endif
 
-	/* initialize the threads-list mutex */
-
-	result = pthread_mutex_init(&mutex_threads_list, NULL);
-	if (result != 0)
-		vm_abort_errnum(result, "threads_impl_preinit: pthread_mutex_init failed");
-
 #if !defined(HAVE___THREAD)
 	result = pthread_key_create(&threads_current_threadobject_key, NULL);
 	if (result != 0)
@@ -865,45 +924,6 @@ void threads_impl_preinit(void)
 #endif
 
  	threads_sem_init(&suspend_ack, 0, 0);
-}
-
-
-/* threads_list_lock ***********************************************************
-
-   Enter the threads table mutex.
-
-   NOTE: We need this function as we can't use an internal lock for
-         the threads lists because the thread's lock is initialized in
-         threads_table_add (when we have the thread index), but we
-         already need the lock at the entry of the function.
-
-*******************************************************************************/
-
-void threads_list_lock(void)
-{
-	int result;
-
-	result = pthread_mutex_lock(&mutex_threads_list);
-
-	if (result != 0)
-		vm_abort_errnum(result, "threads_list_lock: pthread_mutex_lock failed");
-}
-
-
-/* threads_list_unlock *********************************************************
-
-   Leave the threads list mutex.
-
-*******************************************************************************/
-
-void threads_list_unlock(void)
-{
-	int result;
-
-	result = pthread_mutex_unlock(&mutex_threads_list);
-
-	if (result != 0)
-		vm_abort_errnum(result, "threads_list_unlock: pthread_mutex_unlock failed");
 }
 
 
@@ -978,188 +998,30 @@ void threads_mutex_join_unlock(void)
 }
 
 
-/* threads_init ****************************************************************
+/* threads_impl_init ***********************************************************
 
-   Initializes the threads required by the JVM: main, finalizer.
+   Initializes the implementation specific bits.
 
 *******************************************************************************/
 
-bool threads_init(void)
+void threads_impl_init(void)
 {
-	threadobject     *mainthread;
-	java_handle_t    *threadname;
-	java_lang_Thread *t;
-	java_handle_t    *o;
-
-#if defined(ENABLE_JAVASE)
-	java_lang_ThreadGroup *threadgroup;
-	methodinfo            *m;
-#endif
-
-#if defined(WITH_CLASSPATH_GNU)
-	java_lang_VMThread    *vmt;
-#endif
-
 	pthread_attr_t attr;
-
-	TRACESUBSYSTEMINITIALIZATION("threads_init");
-
-	/* get methods we need in this file */
-
-#if defined(WITH_CLASSPATH_GNU)
-	method_thread_init =
-		class_resolveclassmethod(class_java_lang_Thread,
-								 utf_init,
-								 utf_new_char("(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"),
-								 class_java_lang_Thread,
-								 true);
-#elif defined(WITH_CLASSPATH_SUN)
-	method_thread_init =
-		class_resolveclassmethod(class_java_lang_Thread,
-								 utf_init,
-								 utf_new_char("(Ljava/lang/String;)V"),
-								 class_java_lang_Thread,
-								 true);
-#elif defined(WITH_CLASSPATH_CLDC1_1)
-	method_thread_init =
-		class_resolveclassmethod(class_java_lang_Thread,
-								 utf_init,
-								 utf_new_char("(Ljava/lang/String;)V"),
-								 class_java_lang_Thread,
-								 true);
-#else
-# error unknown classpath configuration
-#endif
-
-	if (method_thread_init == NULL)
-		return false;
-
-	/* Get the main-thread (NOTE: The main threads is always the first
-	   thread in the list). */
-
-	mainthread = threads_list_first();
-
-	/* create a java.lang.Thread for the main thread */
-
-	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
-
-	if (t == NULL)
-		return false;
-
-	/* set the object in the internal data structure */
-
-	threads_thread_set_object(mainthread, (java_handle_t *) t);
-
-#if defined(ENABLE_INTRP)
-	/* create interpreter stack */
-
-	if (opt_intrp) {
-		MSET(intrp_main_stack, 0, u1, opt_stacksize);
-		mainthread->_global_sp = (Cell*) (intrp_main_stack + opt_stacksize);
-	}
-#endif
-
-	threadname = javastring_new(utf_new_char("main"));
-
-#if defined(ENABLE_JAVASE)
-	/* allocate and init ThreadGroup */
-
-	threadgroup = (java_lang_ThreadGroup *)
-		native_new_and_init(class_java_lang_ThreadGroup);
-
-	if (threadgroup == NULL)
-		return false;
-#endif
-
-#if defined(WITH_CLASSPATH_GNU)
-	/* create a java.lang.VMThread for the main thread */
-
-	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
-
-	if (vmt == NULL)
-		return false;
-
-	/* set the thread */
-
-	LLNI_field_set_ref(vmt, thread, t);
-	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) mainthread);
-
-	/* call java.lang.Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
-	o = (java_handle_t *) t;
-
-	(void) vm_call_method(method_thread_init, o, vmt, threadname, NORM_PRIORITY,
-						  false);
-
-#elif defined(WITH_CLASSPATH_SUN)
-
-	/* We trick java.lang.Thread.<init>, which sets the priority of
-	   the current thread to the parent's one. */
-
-	t->priority = NORM_PRIORITY;
-
-	/* Call java.lang.Thread.<init>(Ljava/lang/String;)V */
-
-	o = (java_object_t *) t;
-
-	(void) vm_call_method(method_thread_init, o, threadname);
-
-#elif defined(WITH_CLASSPATH_CLDC1_1)
-
-	/* set the thread */
-
-	t->vm_thread = (java_lang_Object *) mainthread;
-
-	/* call public Thread(String name) */
-
-	o = (java_handle_t *) t;
-
-	(void) vm_call_method(method_thread_init, o, threadname);
-#else
-# error unknown classpath configuration
-#endif
-
-	if (exceptions_get_exception())
-		return false;
-
-#if defined(ENABLE_JAVASE)
-	LLNI_field_set_ref(t, group, threadgroup);
-
-# if defined(WITH_CLASSPATH_GNU)
-	/* add main thread to java.lang.ThreadGroup */
-
-	m = class_resolveclassmethod(class_java_lang_ThreadGroup,
-								 utf_addThread,
-								 utf_java_lang_Thread__V,
-								 class_java_lang_ThreadGroup,
-								 true);
-
-	o = (java_handle_t *) threadgroup;
-
-	(void) vm_call_method(m, o, t);
-
-	if (exceptions_get_exception())
-		return false;
-# else
-#  warning Do not know what to do here
-# endif
-#endif
+	int            result;
 
 	threads_set_thread_priority(pthread_self(), NORM_PRIORITY);
 
-	/* initialize the thread attribute object */
+	/* Initialize the thread attribute object. */
 
-	if (pthread_attr_init(&attr) != 0)
-		vm_abort("threads_init: pthread_attr_init failed: %s", strerror(errno));
+	result = pthread_attr_init(&attr);
 
-	if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0)
-		vm_abort("threads_init: pthread_attr_setdetachstate failed: %s",
-				 strerror(errno));
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_init: pthread_attr_init failed");
 
-	DEBUGTHREADS("starting (main)", mainthread);
+	result = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-	/* everything's ok */
-
-	return true;
+	if (result != 0)
+		vm_abort_errnum(result, "threads_impl_init: pthread_attr_setdetachstate failed");
 }
 
 
@@ -1559,7 +1421,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 #if defined(ENABLE_JAVASE)
 		/* get the main thread */
 
-		mainthread = threads_list_first();
+		mainthread = threadlist_first();
 		mainthreado = (java_lang_Thread *) threads_thread_get_object(mainthread);
 		LLNI_field_get_ref(mainthreado, group, group);
 #endif
@@ -1574,10 +1436,10 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	o = (java_handle_t *) t;
 
 #if defined(WITH_CLASSPATH_GNU)
-	(void) vm_call_method(method_thread_init, o, vmt, s, NORM_PRIORITY,
+	(void) vm_call_method(thread_method_init, o, vmt, s, NORM_PRIORITY,
 						  isdaemon);
 #elif defined(WITH_CLASSPATH_CLDC1_1)
-	(void) vm_call_method(method_thread_init, o, s);
+	(void) vm_call_method(thread_method_init, o, s);
 #endif
 
 	if (exceptions_get_exception())
@@ -1623,7 +1485,7 @@ bool threads_detach_thread(threadobject *t)
 #if defined(ENABLE_JAVASE)
 	java_lang_ThreadGroup *group;
 	java_handle_t         *e;
-	java_lang_Object      *handler;
+	void                  *handler;
 	classinfo             *c;
 	methodinfo            *m;
 #endif
@@ -1642,9 +1504,9 @@ bool threads_detach_thread(threadobject *t)
 	e = exceptions_get_and_clear_exception();
 
     if (e != NULL) {
-		/* We use a java_lang_Object here, as it's not trivial to
-		   build the java_lang_Thread_UncaughtExceptionHandler header
-		   file. */
+		/* We use the type void* for handler here, as it's not trivial
+		   to build the java_lang_Thread_UncaughtExceptionHandler
+		   header file with cacaoh. */
 
 # if defined(WITH_CLASSPATH_GNU)
 		LLNI_field_get_ref(object, exceptionHandler, handler);
@@ -1907,7 +1769,7 @@ void threads_join_all_threads(void)
 	   compare against 1 because the current (main thread) is also a
 	   non-daemon thread. */
 
-	while (threads_list_get_non_daemons() > 1)
+	while (threadlist_get_non_daemons() > 1)
 		pthread_cond_wait(&cond_join, &mutex_join);
 
 	/* leave join mutex */
@@ -1982,16 +1844,10 @@ static bool threads_current_time_is_earlier_than(const struct timespec *tv)
 	                   If both tv_sec and tv_nsec are zero, this function
 					   waits for an unlimited amount of time.
 
-   RETURN VALUE:
-      true.........if the wait has been interrupted,
-	  false........if the wait was ended by notification or timeout
-
 *******************************************************************************/
 
-static bool threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTime)
+static void threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTime)
 {
-	bool wasinterrupted;
-
 	/* acquire the waitmutex */
 
 	pthread_mutex_lock(&t->waitmutex);
@@ -2026,21 +1882,11 @@ static bool threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTi
 		}
 	}
 
-	/* check if we were interrupted */
-
-	wasinterrupted = t->interrupted;
-
-	/* reset all flags */
-
-	t->interrupted = false;
-	t->signaled    = false;
 	t->sleeping    = false;
 
 	/* release the waitmutex */
 
 	pthread_mutex_unlock(&t->waitmutex);
-
-	return wasinterrupted;
 }
 
 
@@ -2054,13 +1900,9 @@ static bool threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTi
 	  millis.......milliseconds to wait
 	  nanos........nanoseconds to wait
 
-   RETURN VALUE:
-      true.........if the wait has been interrupted,
-	  false........if the wait was ended by notification or timeout
-
 *******************************************************************************/
 
-bool threads_wait_with_timeout_relative(threadobject *thread, s8 millis,
+void threads_wait_with_timeout_relative(threadobject *thread, s8 millis,
 										s4 nanos)
 {
 	struct timespec wakeupTime;
@@ -2071,7 +1913,7 @@ bool threads_wait_with_timeout_relative(threadobject *thread, s8 millis,
 
 	/* wait */
 
-	return threads_wait_with_timeout(thread, &wakeupTime);
+	threads_wait_with_timeout(thread, &wakeupTime);
 }
 
 
@@ -2158,6 +2000,8 @@ bool threads_check_if_interrupted_and_reset(void)
 
 	thread = THREADOBJECT;
 
+	pthread_mutex_lock(&thread->waitmutex);
+
 	/* get interrupted flag */
 
 	intr = thread->interrupted;
@@ -2165,6 +2009,8 @@ bool threads_check_if_interrupted_and_reset(void)
 	/* reset interrupted flag */
 
 	thread->interrupted = false;
+
+	pthread_mutex_unlock(&thread->waitmutex);
 
 	return intr;
 }
@@ -2204,7 +2050,9 @@ void threads_sleep(s8 millis, s4 nanos)
 
 	threads_calc_absolute_time(&wakeupTime, millis, nanos);
 
-	wasinterrupted = threads_wait_with_timeout(thread, &wakeupTime);
+	threads_wait_with_timeout(thread, &wakeupTime);
+
+	wasinterrupted = threads_check_if_interrupted_and_reset();
 
 	if (wasinterrupted)
 		exceptions_throw_interruptedexception();

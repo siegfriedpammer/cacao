@@ -1,9 +1,7 @@
 /* src/native/jni.h - JNI types and data structures
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -25,27 +23,34 @@
 */
 
 
-/* GNU Classpath jni.h *********************************************************
+/* jni.h ***********************************************************************
 
    ATTENTION: We include this file before we actually define our own
-   jni.h.  We do this because, otherwise we can get into unresolvable
+   jni.h.  We do this because otherwise we can get into unresolvable
    circular header dependencies.
 
    This is OK as GNU Classpath defines:
 
+   #define __CLASSPATH_JNI_MD_H__
    #define _CLASSPATH_JNI_H
 
-   CLASSPATH_JNI_H is in config.h defined.
+   and OpenJDK defines:
+
+   #define _JAVASOFT_JNI_MD_H_
+   #define _JAVASOFT_JNI_H_
+
+   CLASSPATH_JNI_MD_H and CLASSPATH_JNI_H are defined in config.h.
 
 *******************************************************************************/
 
 #include "config.h"
 
-/* XXX quick hack to not include GCJ's jni_md.h */
-#define __GCJ_JNI_MD_H__
+/* We include both headers with the absolute path so we can be sure
+   that the preprocessor does not take another header.  Furthermore we
+   include jni_md.h before jni.h as the latter includes the former. */
 
-#include CLASSPATH_JNI_MD_H
-#include CLASSPATH_JNI_H
+#include INCLUDE_JNI_MD_H
+#include INCLUDE_JNI_H
 
 #ifndef _JNI_H
 #define _JNI_H

@@ -35,29 +35,34 @@
 
 #include "native/jni.h"
 #include "native/llni.h"
+#include "native/native.h"
 
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Thread.h"
 
+#if defined(ENABLE_JAVASE)
+# include "native/include/java_lang_ThreadGroup.h"
+#endif
+
 #if defined(WITH_CLASSPATH_GNU)
-# include "native/include/java_lang_Throwable.h"
 # include "native/include/java_lang_VMThread.h"
 #endif
 
 #include "threads/critical.h"
 #include "threads/lock-common.h"
+#include "threads/threadlist.h"
 #include "threads/threads-common.h"
 
-#include "toolbox/list.h"
-
 #include "vm/builtin.h"
+#include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
 #include "vm/jit/stacktrace.h"
 
 #include "vmcore/class.h"
+#include "vmcore/method.h"
 #include "vmcore/options.h"
 
 #if defined(ENABLE_STATISTICS)
@@ -69,17 +74,12 @@
 
 /* global variables ***********************************************************/
 
-/* global threads list */
-static list_t *list_threads;
+methodinfo *thread_method_init;
 
-/* global threads free-list */
-
-typedef struct thread_index_t {
-	int32_t    index;
-	listnode_t linkage;
-} thread_index_t;
-
-static list_t *list_free_thread_index;
+#if defined(ENABLE_JAVASE)
+static java_lang_ThreadGroup *threadgroup_system;
+static java_lang_ThreadGroup *threadgroup_main;
+#endif
 
 #if defined(__LINUX__)
 /* XXX Remove for exact-GC. */
@@ -87,12 +87,15 @@ bool threads_pthreads_implementation_nptl;
 #endif
 
 
+/* static functions ***********************************************************/
+
+static void thread_create_initial_threadgroups(void);
+static void thread_create_initial_thread(void);
+
+
 /* threads_preinit *************************************************************
 
    Do some early initialization of stuff required.
-
-   ATTENTION: Do NOT use any Java heap allocation here, as gc_init()
-   is called AFTER this function!
 
 *******************************************************************************/
 
@@ -138,11 +141,6 @@ void threads_preinit(void)
 # endif
 #endif
 
-	/* initialize the threads lists */
-
-	list_threads           = list_create(OFFSET(threadobject, linkage));
-	list_free_thread_index = list_create(OFFSET(thread_index_t, linkage));
-
 	/* Initialize the threads implementation (sets the thinlock on the
 	   main thread). */
 
@@ -160,83 +158,268 @@ void threads_preinit(void)
 	/* store the internal thread data-structure in the TSD */
 
 	threads_set_current_threadobject(mainthread);
-
-	/* initialize locking subsystems */
-
-	lock_init();
-
-	/* initialize the critical section */
-
-	critical_init();
 }
 
 
-/* threads_list_first **********************************************************
+/* threads_init ****************************************************************
 
-   Return the first entry in the threads list.
-
-   NOTE: This function does not lock the lists.
+   Initialize the main thread.
 
 *******************************************************************************/
 
-threadobject *threads_list_first(void)
+void threads_init(void)
 {
-	threadobject *t;
+	TRACESUBSYSTEMINITIALIZATION("threads_init");
 
-	t = list_first_unsynced(list_threads);
+	/* Create the system and main thread groups. */
 
-	return t;
+	thread_create_initial_threadgroups();
+
+	/* Cache the java.lang.Thread initialization method. */
+
+#if defined(WITH_CLASSPATH_GNU)
+	thread_method_init =
+		class_resolveclassmethod(class_java_lang_Thread,
+								 utf_init,
+								 utf_new_char("(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"),
+								 class_java_lang_Thread,
+								 true);
+#elif defined(WITH_CLASSPATH_SUN)
+	thread_method_init =
+		class_resolveclassmethod(class_java_lang_Thread,
+								 utf_init,
+								 utf_java_lang_String__void,
+								 class_java_lang_Thread,
+								 true);
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	thread_method_init =
+		class_resolveclassmethod(class_java_lang_Thread,
+								 utf_init,
+								 utf_java_lang_String__void,
+								 class_java_lang_Thread,
+								 true);
+#else
+# error unknown classpath configuration
+#endif
+
+	if (thread_method_init == NULL)
+		vm_abort("threads_init: failed to resolve thread init method");
+
+	thread_create_initial_thread();
 }
 
 
-/* threads_list_next ***********************************************************
+/* thread_create_initial_threadgroups ******************************************
 
-   Return the next entry in the threads list.
+   Create the initial threadgroups.
 
-   NOTE: This function does not lock the lists.
+   GNU Classpath:
+       Create the main threadgroup only and set the system
+       threadgroup to the main threadgroup.
+
+   SUN:
+       Create the system and main threadgroup.
+
+   CLDC:
+       This function is a no-op.
 
 *******************************************************************************/
 
-threadobject *threads_list_next(threadobject *t)
+static void thread_create_initial_threadgroups(void)
 {
-	threadobject *next;
+#if defined(ENABLE_JAVASE)
+# if defined(WITH_CLASSPATH_GNU)
 
-	next = list_next_unsynced(list_threads, t);
+	/* Allocate and initialize the main thread group. */
 
-	return next;
+	threadgroup_main = (java_lang_ThreadGroup *)
+		native_new_and_init(class_java_lang_ThreadGroup);
+
+	if (threadgroup_main == NULL)
+		vm_abort("thread_create_initial_threadgroups: failed to allocate main threadgroup");
+
+	/* Use the same threadgroup for system as for main. */
+
+	threadgroup_system = threadgroup_main;
+
+# elif defined(WITH_CLASSPATH_SUN)
+
+	java_handle_t *name;
+	methodinfo    *m;
+	java_handle_t *o;
+
+	/* Allocate and initialize the system thread group. */
+
+	threadgroup_system = (java_lang_ThreadGroup *)
+		native_new_and_init(class_java_lang_ThreadGroup);
+
+	if (threadgroup_system == NULL)
+		vm_abort("thread_create_initial_threadgroups: failed to allocate system threadgroup");
+
+	/* Allocate and initialize the main thread group. */
+
+	threadgroup_main =
+		(java_lang_ThreadGroup *) builtin_new(class_java_lang_ThreadGroup);
+
+	if (threadgroup_main == NULL)
+		vm_abort("thread_create_initial_threadgroups: failed to allocate main threadgroup");
+
+	name = javastring_new(utf_main);
+
+	m = class_resolveclassmethod(class_java_lang_ThreadGroup,
+								 utf_init,
+								 utf_Ljava_lang_ThreadGroup_Ljava_lang_String__V,
+								 class_java_lang_ThreadGroup,
+								 true);
+
+	if (m == NULL)
+		vm_abort("thread_create_initial_threadgroups: failed to resolve threadgroup init method");
+
+	o = (java_handle_t *) threadgroup_main;
+
+	(void) vm_call_method(m, o, threadgroup_system, name);
+
+	if (exceptions_get_exception())
+		vm_abort("thread_create_initial_threadgroups: exception while initializing main threadgroup");
+
+# else
+#  error unknown classpath configuration
+# endif
+#endif
 }
 
 
-/* threads_list_get_non_daemons ************************************************
+/* thread_create_initial_thread ***********************************************
 
-   Return the number of non-daemon threads.
-
-   NOTE: This function does a linear-search over the threads list,
-         because it's only used for joining the threads.
+   Create the initial thread: main
 
 *******************************************************************************/
 
-s4 threads_list_get_non_daemons(void)
+static void thread_create_initial_thread(void)
 {
-	threadobject *t;
-	s4            nondaemons;
+	threadobject       *mainthread;
+	java_handle_t      *name;
+	java_lang_Thread   *to;                        /* java.lang.Thread object */
+	java_handle_t      *o;
 
-	/* lock the threads lists */
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_VMThread *vmto;                    /* java.lang.VMThread object */
+	methodinfo         *m;
+#endif
 
-	threads_list_lock();
+	/* Get the main-thread (NOTE: The main thread is always the first
+	   thread in the list). */
 
-	nondaemons = 0;
+	mainthread = threadlist_first();
 
-	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
-		if (!(t->flags & THREAD_FLAG_DAEMON))
-			nondaemons++;
+	/* Create a java.lang.Thread object for the main thread. */
+
+	to = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+
+	if (to == NULL)
+		vm_abort("threads_init: failed to allocate java.lang.Thread object");
+
+	/* set the object in the internal data structure */
+
+	threads_thread_set_object(mainthread, (java_handle_t *) to);
+
+#if defined(ENABLE_INTRP)
+	/* create interpreter stack */
+
+	if (opt_intrp) {
+		MSET(intrp_main_stack, 0, u1, opt_stacksize);
+		mainthread->_global_sp = (Cell*) (intrp_main_stack + opt_stacksize);
 	}
+#endif
 
-	/* unlock the threads lists */
+	name = javastring_new(utf_main);
 
-	threads_list_unlock();
+#if defined(WITH_CLASSPATH_GNU)
+	/* Create a java.lang.VMThread for the main thread. */
 
-	return nondaemons;
+	vmto = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
+
+	if (vmto == NULL)
+		vm_abort("threads_init: failed to allocate java.lang.VMThread object");
+
+	/* Set the thread. */
+
+	LLNI_field_set_ref(vmto, thread, to);
+	LLNI_field_set_val(vmto, vmdata, (java_lang_Object *) mainthread);
+
+	/* Set the thread group. */
+
+	LLNI_field_set_ref(to, group, threadgroup_main);
+
+	/* Call:
+	   java.lang.Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
+
+	o = (java_handle_t *) to;
+
+	(void) vm_call_method(thread_method_init, o, vmto, name, NORM_PRIORITY,
+						  false);
+
+	if (exceptions_get_exception())
+		vm_abort("threads_init: exception while initializing main thread");
+
+	/* Add main thread to main threadgroup. */
+
+	m = class_resolveclassmethod(class_java_lang_ThreadGroup,
+								 utf_addThread,
+								 utf_java_lang_Thread__V,
+								 class_java_lang_ThreadGroup,
+								 true);
+
+	o = (java_handle_t *) threadgroup_main;
+
+	(void) vm_call_method(m, o, to);
+
+	if (exceptions_get_exception())
+        vm_abort("threads_init: exception while adding main thread to main threadgroup");
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+	/* Set the thread group and the priority.  java.lang.Thread.<init>
+	   requires it because it sets the priority of the current thread
+	   to the parent's one (which is the current thread in this
+	   case). */
+
+	LLNI_field_set_ref(to, group, threadgroup_main);
+	LLNI_field_set_val(to, priority, NORM_PRIORITY);
+
+	/* Call: java.lang.Thread.<init>(Ljava/lang/String;)V */
+
+	o = (java_object_t *) to;
+
+	(void) vm_call_method(thread_method_init, o, name);
+
+	if (exceptions_get_exception())
+		vm_abort("threads_init: exception while initializing main thread");
+
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+
+	/* Set the thread. */
+
+	LLNI_field_set_val(to, vm_thread, (java_lang_Object *) mainthread);
+
+	/* Call public Thread(String name). */
+
+	o = (java_handle_t *) to;
+
+	(void) vm_call_method(thread_method_init, o, name);
+
+	if (exceptions_get_exception())
+		vm_abort("threads_init: exception while initializing main thread");
+
+#else
+# error unknown classpath configuration
+#endif
+
+	/* Initialize the implementation specific bits. */
+
+	threads_impl_init();
+
+	DEBUGTHREADS("starting (main)", mainthread);
 }
 
 
@@ -249,64 +432,58 @@ s4 threads_list_get_non_daemons(void)
 
 threadobject *threads_thread_new(void)
 {
-	thread_index_t *ti;
 	int32_t         index;
 	threadobject   *t;
 	
-	/* lock the threads-lists */
+	/* Lock the thread lists */
 
-	threads_list_lock();
+	threadlist_lock();
 
-	/* Try to get a thread index from the free-list. */
-
-	ti = list_first_unsynced(list_free_thread_index);
-
-	/* Is a free thread index available? */
-
-	if (ti != NULL) {
-		/* Yes, remove it from the free list, get the index and free
-		   the entry. */
-
-		list_remove_unsynced(list_free_thread_index, ti);
-
-		index = ti->index;
-
-		FREE(ti, thread_index_t);
-
-#if defined(ENABLE_STATISTICS)
-		if (opt_stat)
-			size_thread_index_t -= sizeof(thread_index_t);
-#endif
-	}
-	else {
-		/* Get a new the thread index. */
-
-		index = list_threads->size + 1;
-	}
+	index = threadlist_get_free_index();
 
 	/* Allocate a thread data structure. */
 
+	/* First, try to get one from the free-list. */
+
+	t = threadlist_free_first();
+
+	if (t != NULL) {
+		/* Remove from free list. */
+
+		threadlist_free_remove(t);
+
+		/* Equivalent of MZERO on the else path */
+
+		threads_impl_thread_clear(t);
+	}
+	else {
 #if defined(ENABLE_GC_BOEHM)
-	t = GCNEW_UNCOLLECTABLE(threadobject, 1);
+		t = GCNEW_UNCOLLECTABLE(threadobject, 1);
 #else
-	t = NEW(threadobject);
+		t = NEW(threadobject);
 #endif
 
 #if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject += sizeof(threadobject);
+		if (opt_stat)
+			size_threadobject += sizeof(threadobject);
 #endif
 
-	/* Clear memory. */
+		/* Clear memory. */
 
-	MZERO(t, threadobject, 1);
+		MZERO(t, threadobject, 1);
 
 #if defined(ENABLE_GC_CACAO)
-	/* Register reference to java.lang.Thread with the GC. */
+		/* Register reference to java.lang.Thread with the GC. */
+		/* FIXME is it ok to do this only once? */
 
-	gc_reference_register(&(t->object), GC_REFTYPE_THREADOBJECT);
-	gc_reference_register(&(t->_exceptionptr), GC_REFTYPE_THREADOBJECT);
+		gc_reference_register(&(t->object), GC_REFTYPE_THREADOBJECT);
+		gc_reference_register(&(t->_exceptionptr), GC_REFTYPE_THREADOBJECT);
 #endif
+
+		/* Initialize the implementation-specific bits. */
+
+		threads_impl_thread_init(t);
+	}
 
 	/* Pre-compute the thinlock-word. */
 
@@ -323,15 +500,15 @@ threadobject *threads_thread_new(void)
 
 	/* Initialize the implementation-specific bits. */
 
-	threads_impl_thread_new(t);
+	threads_impl_thread_reuse(t);
 
-	/* Add the thread to the threads-list. */
+	/* Add the thread to the thread list. */
 
-	list_add_last_unsynced(list_threads, t);
+	threadlist_add(t);
 
-	/* Unlock the threads-lists. */
+	/* Unlock the thread lists. */
 
-	threads_list_unlock();
+	threadlist_unlock();
 
 	return t;
 }
@@ -350,49 +527,27 @@ threadobject *threads_thread_new(void)
 
 void threads_thread_free(threadobject *t)
 {
-	thread_index_t *ti;
+	/* Lock the thread lists. */
 
-	/* Lock the threads lists. */
+	threadlist_lock();
 
-	threads_list_lock();
+	/* Remove the thread from the thread-list. */
 
-	/* Cleanup the implementation specific bits. */
-
-	threads_impl_thread_free(t);
-
-	/* Remove the thread from the threads-list. */
-
-	list_remove_unsynced(list_threads, t);
+	threadlist_remove(t);
 
 	/* Add the thread index to the free list. */
 
-	ti = NEW(thread_index_t);
+	threadlist_index_add(t->index);
 
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_thread_index_t += sizeof(thread_index_t);
-#endif
+	/* Add the thread data structure to the free list. */
 
-	ti->index = t->index;
+	threads_thread_set_object(t, NULL);
 
-	list_add_last_unsynced(list_free_thread_index, ti);
+	threadlist_free_add(t);
 
-	/* Free the thread data structure. */
+	/* Unlock the thread lists. */
 
-#if defined(ENABLE_GC_BOEHM)
-	GCFREE(t);
-#else
-	FREE(t, threadobject);
-#endif
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_threadobject -= sizeof(threadobject);
-#endif
-
-	/* Unlock the threads lists. */
-
-	threads_list_unlock();
+	threadlist_unlock();
 }
 
 
@@ -410,9 +565,9 @@ void threads_thread_free(threadobject *t)
 bool threads_thread_start_internal(utf *name, functionptr f)
 {
 	threadobject       *t;
-	java_lang_Thread   *object;
+	java_lang_Thread   *to;                        /* java.lang.Thread object */
 #if defined(WITH_CLASSPATH_GNU)
-	java_lang_VMThread *vmt;
+	java_lang_VMThread *vmto;                    /* java.lang.VMThread object */
 #endif
 
 	/* Enter the join-mutex, so if the main-thread is currently
@@ -432,48 +587,65 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 
 	threads_mutex_join_unlock();
 
-	/* create the java thread object */
+	/* Create the Java thread object. */
 
-	object = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+	to = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
 
 	/* XXX memory leak!!! */
-	if (object == NULL)
+	if (to == NULL)
 		return false;
 
 #if defined(WITH_CLASSPATH_GNU)
-	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
+
+	vmto = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
 
 	/* XXX memory leak!!! */
-	if (vmt == NULL)
+	if (vmto == NULL)
 		return false;
 
-	LLNI_field_set_ref(vmt, thread, object);
-	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) t);
+	LLNI_field_set_ref(vmto, thread, to);
+	LLNI_field_set_val(vmto, vmdata, (java_lang_Object *) t);
 
-	LLNI_field_set_ref(object, vmThread, vmt);
+	LLNI_field_set_ref(to, vmThread, vmto);
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+	/* Nothing to do. */
+
 #elif defined(WITH_CLASSPATH_CLDC1_1)
-	LLNI_field_set_val(object, vm_thread, (java_lang_Object *) t);
+
+	LLNI_field_set_val(to, vm_thread, (java_lang_Object *) t);
+
+#else
+# error unknown classpath configuration
 #endif
 
-	threads_thread_set_object(t, (java_handle_t *) object);
+	threads_thread_set_object(t, (java_handle_t *) to);
 
-	/* set java.lang.Thread fields */
+	/* Set java.lang.Thread fields. */
 
 #if defined(WITH_CLASSPATH_GNU)
-	LLNI_field_set_ref(object, name    , (java_lang_String *) javastring_new(name));
-#elif defined(WITH_CLASSPATH_CLDC1_1)
+
+	LLNI_field_set_ref(to, name,     (java_lang_String *) javastring_new(name));
+
+#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
+
 	/* FIXME: In cldc the name is a char[] */
-/* 	LLNI_field_set_ref(object, name    , (java_chararray *) javastring_new(name)); */
-	LLNI_field_set_ref(object, name    , NULL);
+/* 	LLNI_field_set_ref(to, name,     (java_chararray *) name); */
+	LLNI_field_set_ref(to, name,     NULL);
+
+#else
+# error unknow classpath configuration
 #endif
+
+	LLNI_field_set_val(to, priority, NORM_PRIORITY);
 
 #if defined(ENABLE_JAVASE)
-	LLNI_field_set_val(object, daemon  , true);
+	LLNI_field_set_val(to, daemon,   true);
+	LLNI_field_set_ref(to, group,    threadgroup_system);
 #endif
 
-	LLNI_field_set_val(object, priority, NORM_PRIORITY);
-
-	/* start the thread */
+	/* Start the thread. */
 
 	threads_impl_thread_start(t, f);
 
@@ -495,13 +667,13 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 
 void threads_thread_start(java_handle_t *object)
 {
-	java_lang_Thread   *o;
-	threadobject       *thread;
+	java_lang_Thread   *to;
+	threadobject       *t;
 #if defined(WITH_CLASSPATH_GNU)
-	java_lang_VMThread *vmt;
+	java_lang_VMThread *vmto;
 #endif
 
-	o = (java_lang_Thread *) object;
+	to = (java_lang_Thread *) object;
 
 	/* Enter the join-mutex, so if the main-thread is currently
 	   waiting to join all threads, the number of non-daemon threads
@@ -511,17 +683,17 @@ void threads_thread_start(java_handle_t *object)
 
 	/* create internal thread data-structure */
 
-	thread = threads_thread_new();
+	t = threads_thread_new();
 
 	/* this is a normal Java thread */
 
-	thread->flags |= THREAD_FLAG_JAVA;
+	t->flags |= THREAD_FLAG_JAVA;
 
 #if defined(ENABLE_JAVASE)
-	/* is this a daemon thread? */
+	/* Is this a daemon thread? */
 
-	if (LLNI_field_direct(o, daemon) == true)
-		thread->flags |= THREAD_FLAG_DAEMON;
+	if (LLNI_field_direct(to, daemon) == true)
+		t->flags |= THREAD_FLAG_DAEMON;
 #endif
 
 	/* The thread is flagged and (non-)daemon thread, we can leave the
@@ -529,25 +701,37 @@ void threads_thread_start(java_handle_t *object)
 
 	threads_mutex_join_unlock();
 
-	/* link the two objects together */
+	/* Link the two objects together. */
 
-	threads_thread_set_object(thread, object);
+	threads_thread_set_object(t, object);
 
 #if defined(WITH_CLASSPATH_GNU)
-	LLNI_field_get_ref(o, vmThread, vmt);
 
-	assert(vmt);
-	assert(LLNI_field_direct(vmt, vmdata) == NULL);
+	/* Get the java.lang.VMThread object and do some sanity checks. */
 
-	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) thread);
+	LLNI_field_get_ref(to, vmThread, vmto);
+
+	assert(vmto);
+	assert(LLNI_field_direct(vmto, vmdata) == NULL);
+
+	LLNI_field_set_val(vmto, vmdata, (java_lang_Object *) t);
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+	/* Nothing to do. */
+
 #elif defined(WITH_CLASSPATH_CLDC1_1)
-	LLNI_field_set_val(o, vm_thread, (java_lang_Object *) thread);
+
+	LLNI_field_set_val(to, vm_thread, (java_lang_Object *) t);
+
+#else
+# error unknown classpath configuration
 #endif
 
 	/* Start the thread.  Don't pass a function pointer (NULL) since
 	   we want Thread.run()V here. */
 
-	threads_impl_thread_start(thread, NULL);
+	threads_impl_thread_start(t, NULL);
 }
 
 
@@ -670,14 +854,14 @@ void threads_thread_state_runnable(threadobject *t)
 {
 	/* Set the state inside a lock. */
 
-	threads_list_lock();
+	threadlist_lock();
 
 	if (t->state != THREAD_STATE_TERMINATED)
 		t->state = THREAD_STATE_RUNNABLE;
 
 	DEBUGTHREADS("is RUNNABLE", t);
 
-	threads_list_unlock();
+	threadlist_unlock();
 }
 
 
@@ -694,14 +878,14 @@ void threads_thread_state_waiting(threadobject *t)
 {
 	/* Set the state inside a lock. */
 
-	threads_list_lock();
+	threadlist_lock();
 
 	if (t->state != THREAD_STATE_TERMINATED)
 		t->state = THREAD_STATE_WAITING;
 
 	DEBUGTHREADS("is WAITING", t);
 
-	threads_list_unlock();
+	threadlist_unlock();
 }
 
 
@@ -719,14 +903,14 @@ void threads_thread_state_timed_waiting(threadobject *t)
 {
 	/* Set the state inside a lock. */
 
-	threads_list_lock();
+	threadlist_lock();
 
 	if (t->state != THREAD_STATE_TERMINATED)
 		t->state = THREAD_STATE_TIMED_WAITING;
 
 	DEBUGTHREADS("is TIMED_WAITING", t);
 
-	threads_list_unlock();
+	threadlist_unlock();
 }
 
 
@@ -741,13 +925,13 @@ void threads_thread_state_terminated(threadobject *t)
 {
 	/* set the state in the lock */
 
-	threads_list_lock();
+	threadlist_lock();
 
 	t->state = THREAD_STATE_TERMINATED;
 
 	DEBUGTHREADS("is TERMINATED", t);
 
-	threads_list_unlock();
+	threadlist_unlock();
 }
 
 
@@ -789,6 +973,64 @@ utf *threads_thread_get_state(threadobject *t)
 	}
 
 	return u;
+}
+
+
+/* thread_get_thread **********************************************************
+
+   Return the thread data structure of the given Java thread object.
+
+   ARGUMENTS:
+       h ... java.lang.{VM}Thread object
+
+   RETURN VALUE:
+       the thread object
+
+*******************************************************************************/
+
+threadobject *thread_get_thread(java_handle_t *h)
+{
+	threadobject       *t;
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_VMThread *vmto;
+	java_lang_Object   *to;
+#endif
+#if defined(WITH_CLASSPATH_SUN)
+	bool                equal;
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+
+	vmto = (java_lang_VMThread *) h;
+
+	LLNI_field_get_val(vmto, vmdata, to);
+
+	t = (threadobject *) to;
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+	/* XXX This is just a quick hack. */
+
+	threadlist_lock();
+
+	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
+		LLNI_equals(t->object, h, equal);
+
+		if (equal == true)
+			break;
+	}
+
+	threadlist_unlock();
+
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+
+	log_println("threads_get_thread: IMPLEMENT ME!");
+
+#else
+# error unknown classpath configuration
+#endif
+
+	return t;
 }
 
 
@@ -834,15 +1076,15 @@ void threads_dump(void)
 
 	/* XXX we should stop the world here */
 
-	/* lock the threads lists */
+	/* Lock the thread lists. */
 
-	threads_list_lock();
+	threadlist_lock();
 
 	printf("Full thread dump CACAO "VERSION":\n");
 
 	/* iterate over all started threads */
 
-	for (t = threads_list_first(); t != NULL; t = threads_list_next(t)) {
+	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
 		/* ignore threads which are in state NEW */
 		if (t->state == THREAD_STATE_NEW)
 			continue;
@@ -873,9 +1115,9 @@ void threads_dump(void)
 #endif
 	}
 
-	/* unlock the threads lists */
+	/* Unlock the thread lists. */
 
-	threads_list_unlock();
+	threadlist_unlock();
 }
 
 

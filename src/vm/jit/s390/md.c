@@ -1,9 +1,7 @@
 /* src/vm/jit/s390/md.c - machine dependent s390 Linux functions
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -46,6 +44,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/abi.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/methodtree.h"
 #include "vm/jit/stacktrace.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
@@ -96,7 +95,8 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 
 	log_println("Program counter: 0x%08X", pc);
 
-	pv = codegen_get_pv_from_pc_nocheck(pc);
+	pv = methodtree_find_nocheck(pc);
+
 	if (pv == NULL) {
 		log_println("No java method found at location.");
 	} else {
@@ -554,7 +554,7 @@ void md_handle_exception(int32_t *regs, int64_t *fregs, int32_t *out) {
 
 		++loops;
 
-		pv = codegen_get_pv_from_pc(xpc);
+		pv = methodtree_find(xpc);
 
 		handler = exceptions_handle_exception((java_object_t *)xptr, xpc, pv, sp);
 

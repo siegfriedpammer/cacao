@@ -1,28 +1,24 @@
 dnl m4/classpath.m4
 dnl
-dnl Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-dnl C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-dnl E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-dnl J. Wenninger, Institut f. Computersprachen - TU Wien
-dnl 
+dnl Copyright (C) 2007, 2008
+dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+dnl
 dnl This file is part of CACAO.
-dnl 
+dnl
 dnl This program is free software; you can redistribute it and/or
 dnl modify it under the terms of the GNU General Public License as
 dnl published by the Free Software Foundation; either version 2, or (at
 dnl your option) any later version.
-dnl 
+dnl
 dnl This program is distributed in the hope that it will be useful, but
 dnl WITHOUT ANY WARRANTY; without even the implied warranty of
 dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 dnl General Public License for more details.
-dnl 
+dnl
 dnl You should have received a copy of the GNU General Public License
 dnl along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
-dnl 
-dnl $Id: classpath.m4 8398 2007-08-22 16:56:45Z twisti $
 
 
 dnl which Java core library should we use
@@ -96,6 +92,17 @@ AC_ARG_WITH([classpath-classes],
 AC_MSG_RESULT(${CLASSPATH_CLASSES})
 AC_DEFINE_UNQUOTED([CLASSPATH_CLASSES], "${CLASSPATH_CLASSES}", [Java core library classes])
 AC_SUBST(CLASSPATH_CLASSES)
+
+dnl define BOOTCLASSPATH for Makefiles
+case "${WITH_CLASSPATH}" in
+    cldc1.1 | gnu)
+        BOOTCLASSPATH="\$(top_builddir)/src/classes/classes:\$(CLASSPATH_CLASSES)"
+        ;;
+    *)
+        BOOTCLASSPATH="\$(CLASSPATH_CLASSES)"
+        ;;
+esac
+AC_SUBST(BOOTCLASSPATH)
 ])
 
 
@@ -126,29 +133,47 @@ AC_SUBST(CLASSPATH_LIBDIR)
 ])
 
 
-dnl where are Java core library headers installed
+dnl where jni_md.h is installed
 
-AC_DEFUN([AC_CHECK_WITH_CLASSPATH_INCLUDEDIR],[
-AC_MSG_CHECKING(where Java core library headers are installed)
-AC_ARG_WITH([classpath-includedir],
-            [AS_HELP_STRING(--with-classpath-includedir=<dir>,installation directory of Java core library headers [[default=/usr/local/classpath/include]])],
-            [CLASSPATH_INCLUDEDIR=${withval}],
-            [CLASSPATH_INCLUDEDIR=${CLASSPATH_PREFIX}/include])
-AC_MSG_RESULT(${CLASSPATH_INCLUDEDIR})
+AC_DEFUN([AC_CHECK_WITH_JNI_MD_H],[
+AC_MSG_CHECKING(where jni_md.h is installed)
+AC_ARG_WITH([jni_md_h],
+            [AS_HELP_STRING(--with-jni_md_h=<dir>,path to jni_md.h [[default=(sun:CLASSPATH_PREFIX/include/linux,*:CLASSPATH_PREFIX/include)]])],
+            [WITH_JNI_MD_H=${withval}],
+            [case "${WITH_CLASSPATH}" in
+                 sun)
+                     WITH_JNI_MD_H=${CLASSPATH_PREFIX}/include/linux
+                     ;;
+                 *)
+                     WITH_JNI_MD_H=${CLASSPATH_PREFIX}/include
+                     ;;
+            esac])
+AC_MSG_RESULT(${WITH_JNI_MD_H})
 
-if test x"${WITH_CLASSPATH}" = "xsun"; then
-    AC_CHECK_HEADER([${CLASSPATH_INCLUDEDIR}/${OS_DIR}/jni_md.h],
-                    [AC_DEFINE_UNQUOTED([CLASSPATH_JNI_MD_H], "${CLASSPATH_INCLUDEDIR}/${OS_DIR}/jni_md.h", [Java core library jni_md.h header])],
-                    [AC_MSG_ERROR(cannot find jni_md.h)])
-else
-    AC_CHECK_HEADER([${CLASSPATH_INCLUDEDIR}/jni_md.h],
-                    [AC_DEFINE_UNQUOTED([CLASSPATH_JNI_MD_H], "${CLASSPATH_INCLUDEDIR}/jni_md.h", [Java core library jni_md.h header])],
-                    [AC_MSG_ERROR(cannot find jni_md.h)])
-fi
+dnl We use CPPFLAGS so jni.h can find jni_md.h
+CPPFLAGS="${CPPFLAGS} -I${WITH_JNI_MD_H}"
 
-AC_CHECK_HEADER([${CLASSPATH_INCLUDEDIR}/jni.h],
-                [AC_DEFINE_UNQUOTED([CLASSPATH_JNI_H], "${CLASSPATH_INCLUDEDIR}/jni.h", [Java core library jni.h header])],
+AC_CHECK_HEADER([${WITH_JNI_MD_H}/jni_md.h],
+                [AC_DEFINE_UNQUOTED([INCLUDE_JNI_MD_H], "${WITH_JNI_MD_H}/jni_md.h", [Java core library jni_md.h header])],
+                [AC_MSG_ERROR(cannot find jni_md.h)])
+])
+
+
+dnl where jni.h is installed
+
+AC_DEFUN([AC_CHECK_WITH_JNI_H],[
+AC_MSG_CHECKING(where jni.h is installed)
+AC_ARG_WITH([jni_h],
+            [AS_HELP_STRING(--with-jni_h=<dir>,path to jni.h [[default=CLASSPATH_PREFIX/include]])],
+            [WITH_JNI_H=${withval}],
+            [WITH_JNI_H=${CLASSPATH_PREFIX}/include])
+AC_MSG_RESULT(${WITH_JNI_H})
+
+dnl We use CPPFLAGS so jni.h can find jni_md.h
+CPPFLAGS="${CPPFLAGS} -I${WITH_JNI_H}"
+
+AC_CHECK_HEADER([${WITH_JNI_H}/jni.h],
+                [AC_DEFINE_UNQUOTED([INCLUDE_JNI_H], "${WITH_JNI_H}/jni.h", [Java core library jni.h header])],
                 [AC_MSG_ERROR(cannot find jni.h)],
-                [#define __GCJ_JNI_MD_H__
-                 #include CLASSPATH_JNI_MD_H])
+                [#include INCLUDE_JNI_MD_H])
 ])

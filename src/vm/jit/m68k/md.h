@@ -34,6 +34,7 @@
 #include <stdint.h>
 
 #include "vm/jit/codegen-common.h"
+#include "vm/jit/methodtree.h"
 
 
 /* md_stacktrace_get_returnaddress *********************************************
@@ -48,8 +49,7 @@ void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframesize);
 
 /* md_codegen_get_pv_from_pc ***************************************************
 
-   On this architecture just a wrapper function to
-   codegen_get_pv_from_pc.
+   On this architecture just a wrapper function to methodtree_find.
 
 *******************************************************************************/
 
@@ -57,7 +57,7 @@ inline static void *md_codegen_get_pv_from_pc(void *ra)
 {
 	void *pv;
 
-	pv = codegen_get_pv_from_pc(ra);
+	pv = methodtree_find(ra);
 
 	return pv;
 }

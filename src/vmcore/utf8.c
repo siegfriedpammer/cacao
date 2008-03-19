@@ -158,6 +158,7 @@ utf *utf_init;                          /* <init>                             */
 utf *utf_clinit;                        /* <clinit>                           */
 utf *utf_clone;                         /* clone                              */
 utf *utf_finalize;                      /* finalize                           */
+utf *utf_main;
 utf *utf_run;                           /* run                                */
 
 utf *utf_add;
@@ -208,6 +209,7 @@ utf *utf_java_lang_String__void;        /* (Ljava/lang/String;)V              */
 utf *utf_java_lang_String__java_lang_Class;
 utf *utf_java_lang_Thread__V;           /* (Ljava/lang/Thread;)V              */
 utf *utf_java_lang_Thread_java_lang_Throwable__V;
+utf *utf_Ljava_lang_ThreadGroup_Ljava_lang_String__V;
 utf *utf_java_lang_Throwable__void;     /* (Ljava/lang/Throwable;)V           */
 utf *utf_java_lang_Throwable__java_lang_Throwable;
 
@@ -222,7 +224,7 @@ utf *array_packagename;
 
 *******************************************************************************/
 
-bool utf8_init(void)
+void utf8_init(void)
 {
 	TRACESUBSYSTEMINITIALIZATION("utf8_init");
 
@@ -406,6 +408,7 @@ bool utf8_init(void)
 	utf_clinit	                   = utf_new_char("<clinit>");
 	utf_clone                      = utf_new_char("clone");
 	utf_finalize	               = utf_new_char("finalize");
+	utf_main                       = utf_new_char("main");
 	utf_run                        = utf_new_char("run");
 
 	utf_add                        = utf_new_char("add");
@@ -469,6 +472,9 @@ bool utf8_init(void)
 	utf_java_lang_Thread_java_lang_Throwable__V =
 		utf_new_char("(Ljava/lang/Thread;Ljava/lang/Throwable;)V");
 
+	utf_Ljava_lang_ThreadGroup_Ljava_lang_String__V =
+		utf_new_char("(Ljava/lang/ThreadGroup;Ljava/lang/String;)V");
+
 	utf_java_lang_Throwable__void  = utf_new_char("(Ljava/lang/Throwable;)V");
 
 	utf_java_lang_Throwable__java_lang_Throwable =
@@ -477,10 +483,6 @@ bool utf8_init(void)
 	utf_null                       = utf_new_char("null");
 	utf_not_named_yet              = utf_new_char("\t<not_named_yet>");
 	array_packagename              = utf_new_char("\t<the array package>");
-
-	/* everything's ok */
-
-	return true;
 }
 
 

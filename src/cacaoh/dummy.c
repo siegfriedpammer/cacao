@@ -1,9 +1,7 @@
 /* src/cacaoh/dummy.c - dummy functions for cacaoh
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -28,6 +26,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -44,11 +43,14 @@
 #include "vm/primitive.h"
 #include "vm/vm.h"
 
+#include "vm/jit/code.h"
+
 #include "vmcore/class.h"
-#include "vmcore/method.h"
-#include "vmcore/utf8.h"
 #include "vmcore/classcache.h"
 #include "vmcore/loader.h"
+#include "vmcore/method.h"
+#include "vmcore/utf8.h"
+#include "vmcore/system.h"
 
 
 /* global variables ***********************************************************/
@@ -217,7 +219,7 @@ void code_free_code_of_method(methodinfo *m)
 }
 
 
-methodinfo *code_get_methodinfo_for_pv(u1 *pv)
+methodinfo *code_get_methodinfo_for_pv(void *pv)
 {
 	return NULL;
 }
@@ -737,15 +739,36 @@ void vm_abort(const char *text, ...)
 {
 	va_list ap;
 
-	/* print the log message */
-
 	va_start(ap, text);
 	vfprintf(stderr, text, ap);
 	va_end(ap);
 
-	/* now abort the VM */
+	system_abort();
+}
 
-	abort();
+void vm_abort_errno(const char *text, ...)
+{
+	va_list ap;
+
+	va_start(ap, text);
+	vm_abort_errnum(errno, text, ap);
+	va_end(ap);
+}
+
+void vm_abort_errnum(int errnum, const char *text, ...)
+{
+	va_list ap;
+
+	log_start();
+
+	va_start(ap, text);
+	log_vprint(text, ap);
+	va_end(ap);
+
+	log_print(": %s", system_strerror(errnum));
+	log_finish();
+
+	system_abort();
 }
 
 java_handle_t *vm_call_method(methodinfo *m, java_handle_t *o, ...)

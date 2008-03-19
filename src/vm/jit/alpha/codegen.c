@@ -1277,7 +1277,7 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_L2F:
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			disp = dseg_add_unique_double(cd, 0.0);
+			disp = dseg_add_unique_double(cd, 0.0); /* FIXME Not thread safe! */
 			M_LST(s1, REG_PV, disp);
 			M_DLD(d, REG_PV, disp);
 			M_CVTLF(d, d);
@@ -1288,7 +1288,7 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_L2D:
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			disp = dseg_add_unique_double(cd, 0.0);
+			disp = dseg_add_unique_double(cd, 0.0); /* FIXME Not thread safe! */
 			M_LST(s1, REG_PV, disp);
 			M_DLD(d, REG_PV, disp);
 			M_CVTLD(d, d);
@@ -1299,7 +1299,7 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_D2I:
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			disp = dseg_add_unique_double(cd, 0.0);
+			disp = dseg_add_unique_double(cd, 0.0); /* FIXME Not thread safe! */
 			M_CVTDL_C(s1, REG_FTMP2);
 			M_CVTLI(REG_FTMP2, REG_FTMP3);
 			M_DST(REG_FTMP3, REG_PV, disp);
@@ -1311,7 +1311,7 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_D2L:
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			disp = dseg_add_unique_double(cd, 0.0);
+			disp = dseg_add_unique_double(cd, 0.0); /* FIXME Not thread safe! */
 			M_CVTDL_C(s1, REG_FTMP2);
 			M_DST(REG_FTMP2, REG_PV, disp);
 			M_LLD(d, REG_PV, disp);

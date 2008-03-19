@@ -1,9 +1,7 @@
 /* src/vm/jit/i386/cygwin/md-asm.h - assembler defines for Cygwin i386 ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -21,12 +19,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Michael Starzinger
-
-   Changes:
 
 */
 
@@ -109,7 +101,7 @@
 #define exceptions_get_and_clear_exception    _exceptions_get_and_clear_exception
 
 #define builtin_throw_exception               _builtin_throw_exception
-#define codegen_get_pv_from_pc                _codegen_get_pv_from_pc
+#define methodtree_find                       _methodtree_find
 #define exceptions_handle_exception           _exceptions_handle_exception
 #define jit_asm_compile                       _jit_asm_compile
 

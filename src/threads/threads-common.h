@@ -79,6 +79,10 @@
 #endif
 
 
+/* global variables ***********************************************************/
+
+extern methodinfo *thread_method_init;
+
 #if defined(__LINUX__)
 /* XXX Remove for exact-GC. */
 extern bool threads_pthreads_implementation_nptl;
@@ -111,13 +115,31 @@ static inline void threads_thread_set_object(threadobject *t, java_handle_t *obj
 }
 
 
+/* threads_get_current_object **************************************************
+
+   Return the Java object of the current thread.
+   
+   RETURN VALUE:
+       the Java object
+
+*******************************************************************************/
+
+inline static java_handle_t *threads_get_current_object(void)
+{
+	threadobject  *t;
+	java_handle_t *o;
+
+	t = THREADOBJECT;
+	o = threads_thread_get_object(t);
+
+	return o;
+}
+
+
 /* function prototypes ********************************************************/
 
 void          threads_preinit(void);
-
-threadobject *threads_list_first(void);
-threadobject *threads_list_next(threadobject *t);
-s4            threads_list_get_non_daemons(void);
+void          threads_init(void);
 
 threadobject *threads_thread_new(void);
 void          threads_thread_free(threadobject *t);
@@ -133,7 +155,9 @@ void          threads_thread_state_runnable(threadobject *t);
 void          threads_thread_state_waiting(threadobject *t);
 void          threads_thread_state_timed_waiting(threadobject *t);
 void          threads_thread_state_terminated(threadobject *t);
+
 utf          *threads_thread_get_state(threadobject *t);
+threadobject *thread_get_thread(java_handle_t *h);
 
 bool          threads_thread_is_alive(threadobject *t);
 
@@ -145,9 +169,7 @@ void          threads_print_stacktrace(void);
 /* implementation specific functions */
 
 void          threads_impl_preinit(void);
-
-void          threads_list_lock(void);
-void          threads_list_unlock(void);
+void          threads_impl_init(void);
 
 #if defined(ENABLE_GC_CACAO)
 void          threads_mutex_gc_lock(void);
@@ -158,7 +180,9 @@ void          threads_mutex_join_lock(void);
 void          threads_mutex_join_unlock(void);
 
 void          threads_set_current_threadobject(threadobject *thread);
-void          threads_impl_thread_new(threadobject *t);
+void          threads_impl_thread_init(threadobject *t);
+void          threads_impl_thread_clear(threadobject *t);
+void          threads_impl_thread_reuse(threadobject *t);
 void          threads_impl_thread_free(threadobject *t);
 void          threads_impl_thread_start(threadobject *thread, functionptr f);
 

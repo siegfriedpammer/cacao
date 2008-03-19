@@ -1,9 +1,7 @@
 /* src/vm/jit/inline/inline.c - method inlining
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -677,6 +675,7 @@ static void inline_add_block_reference(inline_node *iln, basicblock **blockp)
 }
 
 
+#if 0
 static void inline_add_blocknr_reference(inline_node *iln, s4 *nrp)
 {
 	inline_target_ref *ref;
@@ -687,6 +686,7 @@ static void inline_add_blocknr_reference(inline_node *iln, s4 *nrp)
 	ref->next = iln->refs;
 	iln->refs = ref;
 }
+#endif
 
 
 static void inline_block_translation(inline_node *iln, basicblock *o_bptr, basicblock *n_bptr)

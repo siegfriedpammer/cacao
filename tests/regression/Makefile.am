@@ -28,10 +28,9 @@ SUBDIRS = \
 	native \
 	resolving
 
-JAVA          = $(top_builddir)/src/cacao/cacao
-BOOTCLASSPATH = $(top_builddir)/src/lib/classes:$(CLASSPATH_CLASSES)
-JAVACMD       = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
-JAVACCMD      = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
+JAVA     = $(top_builddir)/src/cacao/cacao
+JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
+JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
 
 SOURCE_FILES = \
 	$(srcdir)/HelloWorld.java \

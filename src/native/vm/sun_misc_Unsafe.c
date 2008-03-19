@@ -56,6 +56,7 @@
 #include "vm/initialize.h"
 #include "vm/stringlocal.h"
 
+#include "vmcore/system.h"
 #include "vmcore/utf8.h"
 
 
@@ -94,8 +95,14 @@ static JNINativeMethod methods[] = {
 	{ "getFloat",               "(J)F",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getFloat__J                    },
 	{ "objectFieldOffset",      "(Ljava/lang/reflect/Field;)J",                               (void *) (intptr_t) &Java_sun_misc_Unsafe_objectFieldOffset              },
 	{ "allocateMemory",         "(J)J",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_allocateMemory                 },
+#if 0
+	/* OpenJDK 7 */
 	{ "setMemory",              "(Ljava/lang/Object;JJB)V",                                   (void *) (intptr_t) &Java_sun_misc_Unsafe_setMemory                      },
 	{ "copyMemory",             "(Ljava/lang/Object;JLjava/lang/Object;JJ)V",                 (void *) (intptr_t) &Java_sun_misc_Unsafe_copyMemory                     },
+#else
+	{ "setMemory",              "(JJB)V",                                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_setMemory                      },
+	{ "copyMemory",             "(JJJ)V",                                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_copyMemory                     },
+#endif
 	{ "freeMemory",             "(J)V",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_freeMemory                     },
 	{ "staticFieldOffset",      "(Ljava/lang/reflect/Field;)J",                               (void *) (intptr_t) &Java_sun_misc_Unsafe_staticFieldOffset              },
 	{ "staticFieldBase",        "(Ljava/lang/reflect/Field;)Ljava/lang/Object;",              (void *) (intptr_t) &Java_sun_misc_Unsafe_staticFieldBase                },
@@ -111,6 +118,7 @@ static JNINativeMethod methods[] = {
 	{ "compareAndSwapInt",      "(Ljava/lang/Object;JII)Z",                                   (void *) (intptr_t) &Java_sun_misc_Unsafe_compareAndSwapInt              },
 	{ "compareAndSwapLong",     "(Ljava/lang/Object;JJJ)Z",                                   (void *) (intptr_t) &Java_sun_misc_Unsafe_compareAndSwapLong             },
 	{ "getObjectVolatile",      "(Ljava/lang/Object;J)Ljava/lang/Object;",                    (void *) (intptr_t) &Java_sun_misc_Unsafe_getObjectVolatile              },
+	{ "putObjectVolatile",      "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void *) (intptr_t) &Java_sun_misc_Unsafe_putObjectVolatile              },
 	{ "getIntVolatile",         "(Ljava/lang/Object;J)I",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getIntVolatile                 },
 	{ "getLongVolatile",        "(Ljava/lang/Object;J)J",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getLongVolatile                },
 	{ "unpark",                 "(Ljava/lang/Object;)V",                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_unpark                         },
@@ -670,6 +678,9 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_allocateMemory(JNIEnv *env, sun_m
 }
 
 
+#if 0
+/* OpenJDK 7 */
+
 /*
  * Class:     sun/misc/Unsafe
  * Method:    setMemory
@@ -693,7 +704,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, sun_misc_Unsa
 
 	/* XXX Not sure this is correct. */
 
-	MSET(p, value, uint8_t, length);
+	system_memset(p, value, length);
 }
 
 
@@ -723,8 +734,61 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory(JNIEnv *env, sun_misc_Uns
 	src  = (void *) (((uint8_t *) srcBase) + srcOffset);
 	dest = (void *) (((uint8_t *) destBase) + destOffset);
 
-	MCOPY(dest, src, uint8_t, length);
+	system_memcpy(dest, src, length);
 }
+#else
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    setMemory
+ * Signature: (JJB)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, sun_misc_Unsafe *this, int64_t address, int64_t bytes, int32_t value)
+{
+	size_t  length;
+	void   *p;
+
+	length = (size_t) bytes;
+
+	if ((length != (uint64_t) bytes) || (bytes < 0)) {
+		exceptions_throw_illegalargumentexception();
+		return;
+	}
+
+	p = (void *) (intptr_t) address;
+
+	/* XXX Not sure this is correct. */
+
+	system_memset(p, value, length);
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    copyMemory
+ * Signature: (JJJ)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory(JNIEnv *env, sun_misc_Unsafe *this, int64_t srcAddress, int64_t destAddress, int64_t bytes)
+{
+	size_t  length;
+	void   *src;
+	void   *dest;
+
+	if (bytes == 0)
+		return;
+
+	length = (size_t) bytes;
+
+	if ((length != (uint64_t) bytes) || (bytes < 0)) {
+		exceptions_throw_illegalargumentexception();
+		return;
+	}
+
+	src  = (void *) (intptr_t) srcAddress;
+	dest = (void *) (intptr_t) destAddress;
+
+	system_memcpy(dest, src, length);
+}
+#endif
 
 
 /*
@@ -1053,6 +1117,21 @@ JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_getObjectVolatile(JNIEn
 	value = *p;
 
 	return (java_lang_Object *) value;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    putObjectVolatile
+ * Signature: (Ljava/lang/Object;JLjava/lang/Object;)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObjectVolatile(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset, java_lang_Object *x)
+{
+	volatile void **p;
+
+	p = (volatile void **) (((uint8_t *) o) + offset);
+
+	*p = x;
 }
 
 

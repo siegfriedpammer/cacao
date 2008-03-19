@@ -70,6 +70,7 @@
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/methodtree.h"
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
@@ -77,6 +78,7 @@
 
 
 /* global variables ***********************************************************/
+
 #if !defined(ENABLE_THREADS)
 stackframeinfo_t *_no_threads_stackframeinfo = NULL;
 #endif
@@ -113,7 +115,7 @@ void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra
 	if (pv == NULL) {
 #if defined(ENABLE_INTRP)
 		if (opt_intrp)
-			pv = codegen_get_pv_from_pc(ra);
+			pv = methodtree_find(ra);
 		else
 #endif
 			{
@@ -350,7 +352,7 @@ static inline void stacktrace_stackframeinfo_next(stackframeinfo_t *tmpsfi)
 
 #if defined(ENABLE_INTRP)
 	if (opt_intrp)
-		pv = codegen_get_pv_from_pc(ra);
+		pv = methodtree_find(ra);
 	else
 #endif
 		{
@@ -1078,11 +1080,9 @@ void stacktrace_print_exception(java_handle_t *h)
 
 #if defined(WITH_CLASSPATH_GNU)
 	java_lang_VMThrowable   *vmt;
-	gnu_classpath_Pointer   *backtrace;
-#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
-	java_lang_Object        *backtrace;
 #endif
 
+	java_lang_Object        *backtrace;
 	java_handle_bytearray_t *ba;
 	stacktrace_t            *st;
 
@@ -1096,7 +1096,7 @@ void stacktrace_print_exception(java_handle_t *h)
 #if defined(WITH_CLASSPATH_GNU)
 
 	LLNI_field_get_ref(o,   vmState, vmt);
-	LLNI_field_get_ref(vmt, vmData,  backtrace);
+	LLNI_field_get_ref(vmt, vmdata,  backtrace);
 
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
 
