@@ -14,27 +14,6 @@
  *    Copyright (C) 1992, Linus Torvalds
  */
 
-#define __CS_LOOP(ptr, op_val, op_string) ({				\
-	int old_val, new_val;				\
-        __asm__ __volatile__("   l     %0,0(%3)\n"			\
-                             "0: lr    %1,%0\n"				\
-                             op_string "  %1,%4\n"			\
-                             "   cs    %0,%1,0(%3)\n"			\
-                             "   jl    0b"				\
-                             : "=&d" (old_val), "=&d" (new_val),	\
-			       "=m" (*ptr)	\
-			     : "a" (ptr), "d" (op_val),			\
-			       "m" (*ptr)	\
-			     : "cc", "memory" );			\
-	new_val;							\
-})
-
-static inline void
-atomic_add (volatile int *mem, int val)
-{
-	__CS_LOOP(mem, val, "ar");
-}
-
 static inline long
 compare_and_swap (volatile long *p, long oldval, long newval)
 {

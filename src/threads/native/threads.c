@@ -258,7 +258,6 @@ static pthread_cond_t suspend_cond = PTHREAD_COND_INITIALIZER;
 
 /* mutexes used by the fake atomic instructions                               */
 #if defined(USE_FAKE_ATOMIC_INSTRUCTIONS)
-pthread_mutex_t _atomic_add_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t _cas_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t _mb_lock = PTHREAD_MUTEX_INITIALIZER;
 #endif

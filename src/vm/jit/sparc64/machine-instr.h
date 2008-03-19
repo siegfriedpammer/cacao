@@ -3,24 +3,6 @@
 
 #include "toolbox/logging.h"
 
-/*
-static inline void
-__attribute__ ((unused))
-atomic_add (volatile int *mem, int val)
-{
-    int temp;
-
-  __asm__ __volatile__ (
-    "1:\t"
-    "ldl_l  %1,%3\n\t"
-    "addl   %1,%2,%1\n\t"
-    "stl_c  %1,%0\n\t"
-    "beq    %1,1b\n\t"
-    : "=m"(*mem), "=&r"(temp)
-    : "r"(val), "m"(*mem));
-}
-*/
-
 static inline long
 __attribute__ ((unused))
 compare_and_swap (volatile long *p, long oldval, long newval)

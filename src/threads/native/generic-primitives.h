@@ -39,20 +39,8 @@
 
 #include <pthread.h>
 
-extern pthread_mutex_t _atomic_add_lock;
 extern pthread_mutex_t _cas_lock;
 extern pthread_mutex_t _mb_lock;
-
-
-static inline void atomic_add(volatile int *mem, int val)
-{
-  pthread_mutex_lock(&_atomic_add_lock);
-
-  /* do the atomic add */
-  *mem += val;
-
-  pthread_mutex_unlock(&_atomic_add_lock);
-}
 
 
 static inline long compare_and_swap(volatile long *p, long oldval, long newval)
