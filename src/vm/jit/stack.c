@@ -1233,6 +1233,9 @@ static bool stack_reach_next_block(stackdata_t *sd)
 		assert(iptr->opc == ICMD_NOP);
 		iptr->opc = ICMD_GOTO;
 		iptr->dst.block = tbptr;
+#if defined(STACK_VERBOSE)
+		if (iptr->line == 0) printf("goto with line 0 in L%03d\n", sd->bptr->nr);
+#endif
 
 		if (tbptr->flags < BBFINISHED)
 			sd->repeat = true; /* XXX check if we really need to repeat */

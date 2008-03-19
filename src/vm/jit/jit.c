@@ -764,7 +764,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 # endif /* defined(ENABLE_LSRA) && !defined(ENABLE_SSA) */
 #if defined(ENABLE_SSA)
 		/* allocate registers */
-		if ((opt_lsra) /*&& strcmp(jd->m->name->text, "findClass") != 0*/) {
+		if ((opt_lsra) /*&& (strcmp(jd->m->name->text, "findClass") == 0 || jd->exceptiontablelength == 0)*/) {
 			jd->ls = DNEW(lsradata);
 			jd->ls = NULL;
 			ssa(jd);
