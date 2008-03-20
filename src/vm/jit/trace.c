@@ -391,8 +391,16 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 		strcat(logtext, "->");
 		val = argument_jitreturn_load(md, return_regs);
 
-		logtext =
-			trace_java_call_print_argument(logtext, &logtextlen, &md->returntype, val);
+		/* Workaround for sun.misc.Unsafe.staticFieldBase().  In the
+		   future (exact GC) we should check if the address is on the
+		   GC heap. */
+
+		if ((m->class       == NULL) ||
+			((m->class->name != utf_new_char("sun/misc/Unsafe")) &&
+			 (m->name        != utf_new_char("staticFieldBase")))) {
+			logtext =
+				trace_java_call_print_argument(logtext, &logtextlen, &md->returntype, val);
+		}
 	}
 
 	log_text(logtext);
