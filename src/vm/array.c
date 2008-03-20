@@ -321,6 +321,13 @@ ARRAY_TYPEARRAY_ELEMENT_SET(double,  double)
 
    Returns a the length of the given Java array.
 
+   ARGUMENTS:
+       a ... Java array
+
+   RETURN VALUE:
+        0 ... exception thrown
+	   >0 ... length of the Java array
+
 *******************************************************************************/
 
 int32_t array_length_get(java_handle_t *a)
@@ -342,6 +349,11 @@ int32_t array_length_get(java_handle_t *a)
 	}
 
 	size = LLNI_array_size(a);
+
+	if ((size <= 0) || (size > /* MAX_DIM */ 255)) {
+		exceptions_throw_illegalargumentexception();
+		return 0;
+	}
 
 	return size;
 }
