@@ -1,9 +1,6 @@
 /* src/vm/access.h - checking access rights
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
 
    This file is part of CACAO.
 
@@ -52,8 +49,8 @@ bool access_is_accessible_class(classinfo *referer, classinfo *cls);
 bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 								 s4 memberflags);
 
-bool access_check_field(fieldinfo *f, s4 calldepth);
-bool access_check_method(methodinfo *m, s4 calldepth);
+bool access_check_field(fieldinfo *f, int callerdepth);
+bool access_check_method(methodinfo *m, int callerdepth);
 
 #endif /* _ACCESS_H */
 

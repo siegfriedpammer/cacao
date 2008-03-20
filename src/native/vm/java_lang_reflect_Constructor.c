@@ -148,7 +148,13 @@ java_lang_Object *_Jv_java_lang_reflect_Constructor_newInstance(JNIEnv *env, jav
 #endif
 
 	if (override == false) {
-		if (!access_check_method(m, 1))
+		/* This method is always called like this:
+		       [0] java.lang.reflect.Constructor.constructNative (Native Method)
+		       [1] java.lang.reflect.Constructor.newInstance
+		       [2] <caller>
+		*/
+
+		if (!access_check_method(m, 2))
 			return NULL;
 	}
 

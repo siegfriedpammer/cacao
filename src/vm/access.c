@@ -191,14 +191,14 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
   
    IN:
        f................the field to check
-	   calldepth........number of callers to ignore
+	   callerdepth......number of callers to ignore
 	                    For example if the stacktrace looks like this:
 
-					   java.lang.reflect.Method.invokeNative (Native Method)
-				   [0] java.lang.reflect.Method.invoke (Method.java:329)
-				   [1] <caller>
+				   [0] java.lang.reflect.Method.invokeNative (Native Method)
+				   [1] java.lang.reflect.Method.invoke
+				   [2] <caller>
 
-				        you must specify 1 so the access rights of <caller> 
+				        you must specify 2 so the access rights of <caller> 
 						are checked.
   
    RETURN VALUE:
@@ -207,31 +207,26 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
    
 *******************************************************************************/
 
-bool access_check_field(fieldinfo *f, s4 calldepth)
+bool access_check_field(fieldinfo *f, int callerdepth)
 {
-	java_handle_objectarray_t *oa;
-	classinfo                 *callerclass;
-	char                      *msg;
-	s4                         msglen;
-	utf                       *u;
+	classinfo *callerclass;
+	char      *msg;
+	int        msglen;
+	utf       *u;
 
-	/* if everything is public, there is nothing to check */
+	/* If everything is public, there is nothing to check. */
 
 	if ((f->class->flags & ACC_PUBLIC) && (f->flags & ACC_PUBLIC))
 		return true;
 
-	/* get the caller's class */
+	/* Get the caller's class. */
 
-	oa = stacktrace_getClassContext();
+	callerclass = stacktrace_get_caller_class(callerdepth);
 
-	if (oa == NULL)
+	if (callerclass == NULL)
 		return false;
 
-	assert(calldepth >= 0 && calldepth < LLNI_array_size(oa));
-
-	callerclass = (classinfo *) LLNI_array_direct(oa, calldepth);
-
-	/* check access rights */
+	/* Check access rights. */
 
 	if (!access_is_accessible_member(callerclass, f->class, f->flags)) {
 		msglen =
@@ -272,14 +267,14 @@ bool access_check_field(fieldinfo *f, s4 calldepth)
   
    IN:
        m................the method to check
-	   calldepth........number of callers to ignore
+	   callerdepth......number of callers to ignore
 	                    For example if the stacktrace looks like this:
 
-					   java.lang.reflect.Method.invokeNative (Native Method)
-				   [0] java.lang.reflect.Method.invoke (Method.java:329)
-				   [1] <caller>
+				   [1] java.lang.reflect.Method.invokeNative (Native Method)
+				   [1] java.lang.reflect.Method.invoke
+				   [2] <caller>
 
-				        you must specify 1 so the access rights of <caller> 
+				        you must specify 2 so the access rights of <caller> 
 						are checked.
   
    RETURN VALUE:
@@ -288,31 +283,26 @@ bool access_check_field(fieldinfo *f, s4 calldepth)
    
 *******************************************************************************/
 
-bool access_check_method(methodinfo *m, s4 calldepth)
+bool access_check_method(methodinfo *m, int callerdepth)
 {
-	java_handle_objectarray_t *oa;
-	classinfo                 *callerclass;
-	char                      *msg;
-	s4                         msglen;
-	utf                       *u;
+	classinfo *callerclass;
+	char      *msg;
+	int        msglen;
+	utf       *u;
 
-	/* if everything is public, there is nothing to check */
+	/* If everything is public, there is nothing to check. */
 
 	if ((m->class->flags & ACC_PUBLIC) && (m->flags & ACC_PUBLIC))
 		return true;
 
-	/* get the caller's class */
+	/* Get the caller's class. */
 
-	oa = stacktrace_getClassContext();
+	callerclass = stacktrace_get_caller_class(callerdepth);
 
-	if (oa == NULL)
+	if (callerclass == NULL)
 		return false;
 
-	assert(calldepth >= 0 && calldepth < LLNI_array_size(oa));
-
-	callerclass = (classinfo *) LLNI_array_direct(oa, calldepth);
-
-	/* check access rights */
+	/* Check access rights. */
 
 	if (!access_is_accessible_member(callerclass, m->class, m->flags)) {
 		msglen =

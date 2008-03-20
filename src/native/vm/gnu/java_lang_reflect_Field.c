@@ -134,11 +134,12 @@ static bool _field_access_check(java_lang_reflect_Field *this,
 
 	LLNI_field_get_val(this, flag, flag);
 	if (flag == false) {
-		/* this function is always called like this:
-			   java.lang.reflect.Field.xxx (Native Method)
-		   [0] <caller>
+		/* This function is always called like this:
+		       [0] java.lang.reflect.Field.xxx (Native Method)
+		       [1] <caller>
 		*/
-		if (!access_check_field(f, 0))
+
+		if (!access_check_field(f, 1))
 			return false;
 	}
 

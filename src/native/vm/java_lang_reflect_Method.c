@@ -77,8 +77,23 @@ java_lang_Object *_Jv_java_lang_reflect_Method_invoke(java_lang_reflect_Method *
 #endif
 
 	if (override == false) {
+#if defined(WITH_CLASSPATH_GNU)
+		/* This method is always called like this:
+		       [0] java.lang.reflect.Method.invokeNative (Native Method)
+		       [1] java.lang.reflect.Method.invoke (Method.java:329)
+		       [2] <caller>
+		*/
+
+		if (!access_check_method(m, 2))
+			return NULL;
+#elif defined(WITH_CLASSPATH_SUN)
+		/* We only pass 1 here as stacktrace_get_caller_class, which
+		   is called from access_check_method, skips
+		   java.lang.reflect.Method.invoke(). */
+
 		if (!access_check_method(m, 1))
 			return NULL;
+#endif
 	}
 
 	/* check if method class is initialized */
