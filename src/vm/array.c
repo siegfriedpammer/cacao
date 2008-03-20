@@ -216,7 +216,7 @@ type array_##name##array_element_get(java_handle_##name##array_t *a, int32_t ind
                                                                                \
 	size = LLNI_array_size(a);                                                 \
                                                                                \
-	if ((index < 0) || (index > size)) {                                       \
+	if ((index < 0) || (index >= size)) {                                      \
 		exceptions_throw_arrayindexoutofboundsexception();                     \
 		return (type) 0;                                                       \
 	}                                                                          \
@@ -238,7 +238,7 @@ java_handle_t *array_objectarray_element_get(java_handle_objectarray_t *a, int32
 
 	size = LLNI_array_size(a);
 
-	if ((index < 0) || (index > size)) {
+	if ((index < 0) || (index >= size)) {
 		exceptions_throw_arrayindexoutofboundsexception();
 		return NULL;
 	}
@@ -278,7 +278,7 @@ void array_##name##array_element_set(java_handle_##name##array_t *a, int32_t ind
                                                                                \
 	size = LLNI_array_size(a);                                                 \
                                                                                \
-	if ((index < 0) || (index > size)) {                                       \
+	if ((index < 0) || (index >= size)) {                                      \
 		exceptions_throw_arrayindexoutofboundsexception();                     \
 		return;                                                                \
 	}                                                                          \
@@ -297,7 +297,7 @@ void array_objectarray_element_set(java_handle_objectarray_t *a, int32_t index, 
 
 	size = LLNI_array_size(a);
 
-	if ((index < 0) || (index > size)) {
+	if ((index < 0) || (index >= size)) {
 		exceptions_throw_arrayindexoutofboundsexception();
 		return;
 	}
