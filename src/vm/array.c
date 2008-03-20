@@ -49,6 +49,11 @@ java_handle_t *array_element_get(java_handle_t *a, int32_t index)
 	imm_union      value;
 	java_handle_t *o;
 
+	if (a == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
 	v = LLNI_vftbl_direct(a);
 
 	type = v->arraydesc->arraytype;
@@ -88,6 +93,12 @@ imm_union array_element_primitive_get(java_handle_t *a, int32_t index)
 	vftbl_t  *v;
 	int       type;
 	imm_union value;
+
+	if (a == NULL) {
+		exceptions_throw_nullpointerexception();
+		value.a = NULL;
+		return value;
+	}
 
 	v = LLNI_vftbl_direct(a);
 
@@ -148,6 +159,11 @@ void array_element_primitive_set(java_handle_t *a, int32_t index, imm_union valu
 {
 	vftbl_t *v;
 	int      type;
+
+	if (a == NULL) {
+		exceptions_throw_nullpointerexception();
+		return;
+	}
 
 	v = LLNI_vftbl_direct(a);
 
@@ -288,11 +304,31 @@ void array_##name##array_element_set(java_handle_##name##array_t *a, int32_t ind
 
 void array_objectarray_element_set(java_handle_objectarray_t *a, int32_t index, java_handle_t *value)
 {
-	int32_t size;
+	arraydescriptor *ad;
+	classinfo *cc;
+	int32_t    size;
 
 	if (a == NULL) {
 		exceptions_throw_nullpointerexception();
 		return;
+	}
+
+	/* TODO Write inline functions for that and use LLNI. */
+
+	LLNI_CRITICAL_START;
+
+	ad = a->header.objheader.vftbl->arraydesc;
+	cc = ad->componentvftbl->class;
+
+	LLNI_CRITICAL_END;
+
+	if (ad->arraytype == ARRAYTYPE_OBJECT) {
+		if (value != NULL) {
+			if (builtin_instanceof(value, cc) == false) {
+				exceptions_throw_illegalargumentexception();
+				return;
+			}
+		}
 	}
 
 	size = LLNI_array_size(a);
