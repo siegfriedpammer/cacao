@@ -28,6 +28,8 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#include "machine-instr.h"
+
 #include "mm/memory.h"
 
 #include "native/jni.h"
@@ -120,7 +122,12 @@ static JNINativeMethod methods[] = {
 	{ "getObjectVolatile",      "(Ljava/lang/Object;J)Ljava/lang/Object;",                    (void *) (intptr_t) &Java_sun_misc_Unsafe_getObjectVolatile              },
 	{ "putObjectVolatile",      "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void *) (intptr_t) &Java_sun_misc_Unsafe_putObjectVolatile              },
 	{ "getIntVolatile",         "(Ljava/lang/Object;J)I",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getIntVolatile                 },
+	{ "putIntVolatile",         "(Ljava/lang/Object;JI)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putIntVolatile                 },
 	{ "getLongVolatile",        "(Ljava/lang/Object;J)J",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getLongVolatile                },
+	{ "putLongVolatile",        "(Ljava/lang/Object;JJ)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putLongVolatile                },
+	{ "putOrderedObject",       "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void *) (intptr_t) &Java_sun_misc_Unsafe_putOrderedObject               },
+	{ "putOrderedInt",          "(Ljava/lang/Object;JI)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putOrderedInt                  },
+	{ "putOrderedLong",         "(Ljava/lang/Object;JJ)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putOrderedLong                 },
 	{ "unpark",                 "(Ljava/lang/Object;)V",                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_unpark                         },
 	{ "park",                   "(ZJ)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_park                           },
 };
@@ -1031,6 +1038,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_throwException(JNIEnv *env, sun_misc
  */
 JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapObject(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset, java_lang_Object *expected, java_lang_Object *x)
 {
+#if 1
 	void **p;
 	void  *value;
 
@@ -1047,6 +1055,21 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapObject(JNIEnv *env,
 	}
 
 	return false;
+#else
+	volatile void **p;
+	void           *result;
+
+	/* XXX Use LLNI */
+
+	p = (volatile void **) (((uint8_t *) o) + offset);
+
+	result = atomic_compare_and_swap_address(p, expected, x);
+
+	if (result == expected)
+		return true;
+
+	return false;
+#endif
 }
 
 
@@ -1055,24 +1078,40 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapObject(JNIEnv *env,
  * Method:    compareAndSwapInt
  * Signature: (Ljava/lang/Object;JII)Z
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapInt(JNIEnv *env, sun_misc_Unsafe* this, java_lang_Object* obj, int64_t offset, int32_t expect, int32_t update)
+JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapInt(JNIEnv *env, sun_misc_Unsafe* this, java_lang_Object* o, int64_t offset, int32_t expected, int32_t x)
 {
+#if 1
 	int32_t *p;
 	int32_t  value;
 
-	p = (int32_t *) (((uint8_t *) obj) + offset);
+	p = (int32_t *) (((uint8_t *) o) + offset);
 
 	/* XXX this should be atomic */
 
 	value = *p;
 
-	if (value == expect) {
-		*p = update;
+	if (value == expected) {
+		*p = x;
 
 		return true;
 	}
 
 	return false;
+#else
+	int32_t *p;
+	int32_t  result;
+
+	/* XXX Use LLNI */
+
+	p = (int32_t *) (((uint8_t *) o) + offset);
+
+	result = atomic_compare_and_swap_int(p, expected, x);
+
+	if (result == expected)
+		return true;
+
+	return false;
+#endif
 }
 
 
@@ -1135,6 +1174,45 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObjectVolatile(JNIEnv *env, sun_m
 }
 
 
+#define UNSAFE_GET_VOLATILE(type)							\
+	java_handle_t *_h;										\
+	java_object_t *_o;										\
+	volatile type *_p;										\
+	volatile type  _x;										\
+															\
+	_h = (java_handle_t *) o;								\
+															\
+	LLNI_CRITICAL_START;									\
+															\
+	_o = LLNI_UNWRAP(_h);									\
+	_p = (volatile type *) (((uint8_t *) _o) + offset);		\
+															\
+	_x = *_p;												\
+															\
+	LLNI_CRITICAL_END;										\
+															\
+	return _x;
+
+
+#define UNSAFE_PUT_VOLATILE(type)							\
+	java_handle_t *_h;										\
+	java_object_t *_o;										\
+	volatile type *_p;										\
+															\
+	_h = (java_handle_t *) o;								\
+															\
+	LLNI_CRITICAL_START;									\
+															\
+	_o = LLNI_UNWRAP(_h);									\
+	_p = (volatile type *) (((uint8_t *) _o) + offset);		\
+															\
+	*_p = x;												\
+															\
+	MEMORY_BARRIER();										\
+															\
+	LLNI_CRITICAL_END;
+
+
 /*
  * Class:     sun/misc/Unsafe
  * Method:    getIntVolatile
@@ -1142,14 +1220,18 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObjectVolatile(JNIEnv *env, sun_m
  */
 JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getIntVolatile(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset)
 {
-	volatile int32_t *p;
-	volatile int32_t  value;
+	UNSAFE_GET_VOLATILE(int32_t);
+}
 
-	p = (volatile int32_t *) (((uint8_t *) o) + offset);
 
-	value = *p;
-
-	return value;
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    putIntVolatile
+ * Signature: (Ljava/lang/Object;JI)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putIntVolatile(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset, int32_t x)
+{
+	UNSAFE_PUT_VOLATILE(int32_t);
 }
 
 
@@ -1160,14 +1242,70 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getIntVolatile(JNIEnv *env, sun_m
  */
 JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_getLongVolatile(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset)
 {
-	volatile int64_t *p;
-	volatile int64_t  value;
+	UNSAFE_GET_VOLATILE(int64_t);
+}
 
-	p = (volatile int64_t *) (((uint8_t *) o) + offset);
 
-	value = *p;
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    putLongVolatile
+ * Signature: (Ljava/lang/Object;JJ)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLongVolatile(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset, int64_t x)
+{
+	UNSAFE_PUT_VOLATILE(int64_t);
+}
 
-	return value;
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    putOrderedObject
+ * Signature: (Ljava/lang/Object;JLjava/lang/Object;)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedObject(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset, java_lang_Object *x)
+{
+	java_handle_t  *_h;
+	java_handle_t  *_hx;
+	java_object_t  *_o;
+	java_object_t  *_x;
+	volatile void **_p;
+
+	_h  = (java_handle_t *) o;
+	_hx = (java_handle_t *) x;
+
+	LLNI_CRITICAL_START;
+
+	_o = LLNI_UNWRAP(_h);
+	_x = LLNI_UNWRAP(_hx);
+	_p = (volatile void **) (((uint8_t *) _o) + offset);
+
+	*_p = _x;
+
+	MEMORY_BARRIER();
+
+	LLNI_CRITICAL_END;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    putOrderedInt
+ * Signature: (Ljava/lang/Object;JI)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedInt(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset, int32_t x)
+{
+	UNSAFE_PUT_VOLATILE(int32_t);
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    putOrderedLong
+ * Signature: (Ljava/lang/Object;JJ)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedLong(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset, int64_t x)
+{
+	UNSAFE_PUT_VOLATILE(int64_t);
 }
 
 
