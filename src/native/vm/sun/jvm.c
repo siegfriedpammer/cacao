@@ -2695,8 +2695,17 @@ jobject JVM_NewMultiArray(JNIEnv *env, jclass eltClass, jintArray dim)
 
 	length = array_length_get((java_handle_t *) ia);
 
-	if (length == 0)
+	/* We check here for exceptions thrown in array_length_get,
+	   otherwise these exceptions get overwritten by the following
+	   IllegalArgumentException. */
+
+	if (length < 0)
 		return NULL;
+
+	if ((length <= 0) || (length > /* MAX_DIM */ 255)) {
+		exceptions_throw_illegalargumentexception();
+		return NULL;
+	}
 
 	/* XXX This is just a quick hack to get it working. */
 

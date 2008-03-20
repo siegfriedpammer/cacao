@@ -361,8 +361,8 @@ ARRAY_TYPEARRAY_ELEMENT_SET(double,  double)
        a ... Java array
 
    RETURN VALUE:
-        0 ... exception thrown
-	   >0 ... length of the Java array
+         -1 ... exception thrown
+	   >= 0 ... length of the Java array
 
 *******************************************************************************/
 
@@ -373,7 +373,7 @@ int32_t array_length_get(java_handle_t *a)
 
 	if (a == NULL) {
 		exceptions_throw_nullpointerexception();
-		return 0;
+		return -1;
 	}
 
 	LLNI_class_get(a, c);
@@ -381,15 +381,10 @@ int32_t array_length_get(java_handle_t *a)
 	if (!class_is_array(c)) {
 /* 		exceptions_throw_illegalargumentexception("Argument is not an array"); */
 		exceptions_throw_illegalargumentexception();
-		return 0;
+		return -1;
 	}
 
 	size = LLNI_array_size(a);
-
-	if ((size <= 0) || (size > /* MAX_DIM */ 255)) {
-		exceptions_throw_illegalargumentexception();
-		return 0;
-	}
 
 	return size;
 }
