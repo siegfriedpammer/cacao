@@ -2643,10 +2643,18 @@ jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 
 	c = LLNI_classinfo_unwrap(eltClass);
 
-	/* create primitive or object array */
+	/* Create primitive or object array. */
 
 	if (class_is_primitive(c)) {
 		pc = primitive_arrayclass_get_by_name(c->name);
+
+		/* void arrays are not allowed. */
+
+		if (pc == NULL) {
+			exceptions_throw_illegalargumentexception();
+			return NULL;
+		}
+
 		a = builtin_newarray(length, pc);
 
 		return (jobject) a;
@@ -2683,11 +2691,14 @@ jobject JVM_NewMultiArray(JNIEnv *env, jclass eltClass, jintArray dim)
 
 	c = LLNI_classinfo_unwrap(eltClass);
 
-	/* XXX This is just a quick hack to get it working. */
-
 	ia = (java_handle_intarray_t *) dim;
 
 	length = array_length_get((java_handle_t *) ia);
+
+	if (length == 0)
+		return NULL;
+
+	/* XXX This is just a quick hack to get it working. */
 
 	dims = MNEW(long, length);
 
