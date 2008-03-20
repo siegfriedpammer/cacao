@@ -69,8 +69,7 @@ u4 _no_threads_tracejavacallcount= 0;
 
 *******************************************************************************/
 
-static char *trace_java_call_print_argument(char *logtext, s4 *logtextlen,
-											typedesc *paramtype, imm_union imu)
+static char *trace_java_call_print_argument(methodinfo *m, char *logtext, s4 *logtextlen, typedesc *paramtype, imm_union imu)
 {
 	java_object_t *o;
 	classinfo     *c;
@@ -109,11 +108,20 @@ static char *trace_java_call_print_argument(char *logtext, s4 *logtextlen,
 		sprintf(logtext + strlen(logtext), "0x%016lx", (ptrint) imu.l);
 #endif
 
-		/* cast to java.lang.Object */
+		/* Workaround for sun.misc.Unsafe methods.  In the future
+		   (exact GC) we should check if the address is on the GC
+		   heap. */
+
+		if ((m->class       != NULL) &&
+			(m->class->name == utf_new_char("sun/misc/Unsafe")))
+			break;
+
+		/* Cast to java.lang.Object. */
 
 		o = (java_object_t *) (ptrint) imu.l;
 
-		/* check return argument for java.lang.Class or java.lang.String */
+		/* Check return argument for java.lang.Class or
+		   java.lang.String. */
 
 		if (o != NULL) {
 			if (o->vftbl->class == class_java_lang_String) {
@@ -286,9 +294,8 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 
 	for (i = 0; i < md->paramcount; ++i) {
 		arg = argument_jitarray_load(md, i, arg_regs, stack);
-		logtext = trace_java_call_print_argument(
-			logtext, &logtextlen, &md->paramtypes[i], arg
-		);
+		logtext = trace_java_call_print_argument(m, logtext, &logtextlen,
+												 &md->paramtypes[i], arg);
 		if (i != (md->paramcount - 1)) {
 			strcat(logtext, ", ");
 		}
@@ -391,16 +398,9 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 		strcat(logtext, "->");
 		val = argument_jitreturn_load(md, return_regs);
 
-		/* Workaround for sun.misc.Unsafe.staticFieldBase().  In the
-		   future (exact GC) we should check if the address is on the
-		   GC heap. */
-
-		if ((m->class       == NULL) ||
-			((m->class->name != utf_new_char("sun/misc/Unsafe")) &&
-			 (m->name        != utf_new_char("staticFieldBase")))) {
-			logtext =
-				trace_java_call_print_argument(logtext, &logtextlen, &md->returntype, val);
-		}
+		logtext =
+			trace_java_call_print_argument(m, logtext, &logtextlen,
+										   &md->returntype, val);
 	}
 
 	log_text(logtext);
