@@ -74,6 +74,7 @@
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
+#include "vmcore/method.h"
 #include "vmcore/options.h"
 
 
@@ -694,6 +695,82 @@ java_handle_bytearray_t *stacktrace_get_current(void)
 
 	return ba;
 }
+
+
+/* stacktrace_get_caller_class *************************************************
+
+   Get the class on the stack at the given depth.  This function skips
+   various special classes or methods.
+
+   ARGUMENTS:
+       depth ... depth to get caller class of
+
+   RETURN:
+       caller class
+
+*******************************************************************************/
+
+#if defined(ENABLE_JAVASE)
+classinfo *stacktrace_get_caller_class(int depth)
+{
+	stackframeinfo_t *sfi;
+	stackframeinfo_t  tmpsfi;
+	methodinfo       *m;
+	classinfo        *c;
+	int               i;
+
+#if !defined(NDEBUG)
+	if (opt_DebugStackTrace)
+		log_println("[stacktrace_get_caller_class]");
+#endif
+
+	/* Get the stackframeinfo of the current thread. */
+
+	sfi = threads_get_current_stackframeinfo();
+
+	/* Iterate over the whole stack until we reached the requested
+	   depth. */
+
+	i = 0;
+
+	for (stacktrace_stackframeinfo_fill(&tmpsfi, sfi);
+		 stacktrace_stackframeinfo_end_check(&tmpsfi) == false;
+		 stacktrace_stackframeinfo_next(&tmpsfi)) {
+
+		m = tmpsfi.code->m;
+		c = m->class;
+
+		/* Skip builtin methods. */
+
+		if (m->flags & ACC_METHOD_BUILTIN)
+			continue;
+
+#if defined(WITH_CLASSPATH_SUN)
+		/* NOTE: See hotspot/src/share/vm/runtime/vframe.cpp
+		   (vframeStreamCommon::security_get_caller_frame). */
+
+		/* This is java.lang.reflect.Method.invoke(), skip it. */
+
+		if (m == method_java_lang_reflect_Method_invoke)
+			continue;
+
+		/* This is an auxiliary frame, skip it. */
+
+		if (class_issubclass(c, class_sun_reflect_MagicAccessorImpl))
+			continue;
+#endif
+
+		/* We reached the requested depth. */
+
+		if (i >= depth)
+			return c;
+
+		i++;
+	}
+
+	return NULL;
+}
+#endif
 
 
 /* stacktrace_first_nonnull_classloader ****************************************

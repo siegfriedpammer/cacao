@@ -731,20 +731,13 @@ char *JVM_NativePath(char *path)
 
 jclass JVM_GetCallerClass(JNIEnv* env, int depth)
 {
-	java_handle_objectarray_t *oa;
+	classinfo *c;
 
 	TRACEJVMCALLS(("JVM_GetCallerClass(env=%p, depth=%d)", env, depth));
 
-	oa = stacktrace_getClassContext();
+	c = stacktrace_get_caller_class(depth);
 
-	if (oa == NULL)
-		return NULL;
-
-	if (oa->header.size < depth)
-		return NULL;
-
-	return (jclass) oa->data[depth - 1];
-
+	return (jclass) c;
 }
 
 

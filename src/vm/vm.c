@@ -1513,6 +1513,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	/* AFTER: loader_init, linker_init */
 
 	primitive_postinit();
+	method_init();
 
 	exceptions_init();
 

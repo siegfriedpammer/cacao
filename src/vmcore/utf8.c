@@ -158,6 +158,7 @@ utf *utf_init;                          /* <init>                             */
 utf *utf_clinit;                        /* <clinit>                           */
 utf *utf_clone;                         /* clone                              */
 utf *utf_finalize;                      /* finalize                           */
+utf *utf_invoke;
 utf *utf_main;
 utf *utf_run;                           /* run                                */
 
@@ -408,6 +409,7 @@ void utf8_init(void)
 	utf_clinit	                   = utf_new_char("<clinit>");
 	utf_clone                      = utf_new_char("clone");
 	utf_finalize	               = utf_new_char("finalize");
+	utf_invoke                     = utf_new_char("invoke");
 	utf_main                       = utf_new_char("main");
 	utf_run                        = utf_new_char("run");
 

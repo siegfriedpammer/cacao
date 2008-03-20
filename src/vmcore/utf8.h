@@ -154,6 +154,7 @@ extern utf *utf_init;
 extern utf *utf_clinit;
 extern utf *utf_clone;
 extern utf *utf_finalize;
+extern utf *utf_invoke;
 extern utf *utf_main;
 extern utf *utf_run;
 

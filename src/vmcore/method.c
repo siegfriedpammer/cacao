@@ -1,9 +1,7 @@
 /* src/vmcore/method.c - method functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -44,6 +42,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/resolve.h"
+#include "vm/vm.h"
 
 #include "vm/jit/code.h"
 #include "vm/jit/methodheader.h"
@@ -56,6 +55,7 @@
 #include "vmcore/method.h"
 #include "vmcore/options.h"
 #include "vmcore/suck.h"
+#include "vmcore/utf8.h"
 
 
 #if !defined(NDEBUG) && defined(ENABLE_INLINING)
@@ -63,6 +63,36 @@
 #else
 #define INLINELOG(code)
 #endif
+
+
+/* global variables ***********************************************************/
+
+methodinfo *method_java_lang_reflect_Method_invoke;
+
+
+/* method_init *****************************************************************
+
+   Initialize method subsystem.
+
+*******************************************************************************/
+
+void method_init(void)
+{
+#if defined(ENABLE_JAVASE)
+	/* Sanity check. */
+
+	if (class_java_lang_reflect_Method == NULL)
+		vm_abort("method_init: class_java_lang_reflect_Method is NULL");
+
+	/* Cache java.lang.reflect.Method.invoke() */
+
+	method_java_lang_reflect_Method_invoke =
+		class_findmethod(class_java_lang_reflect_Method, utf_invoke, NULL);
+
+	if (method_java_lang_reflect_Method_invoke == NULL)
+		vm_abort("method_init: Could not resolve method java.lang.reflect.Method.invoke().");
+#endif
+}
 
 
 /* method_load *****************************************************************
