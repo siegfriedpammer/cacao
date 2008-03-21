@@ -41,6 +41,9 @@ src/native/include/*.h
 src/scripts/java
 tests/*.class
 tests/regression/*.class
+tests/regression/assertion/*.class
+tests/regression/assertion/packagetest/*.class
+tests/regression/bugzilla/*.class
 tests/regression/codepatching/*.class
 tests/regression/jasmin/*.class
 tests/regression/native/*.class

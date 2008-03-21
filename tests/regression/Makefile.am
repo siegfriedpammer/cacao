@@ -23,6 +23,7 @@
 
 SUBDIRS = \
 	assertion \
+	bugzilla \
 	codepatching \
 	jasmin \
 	native \
