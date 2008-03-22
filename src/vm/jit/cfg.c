@@ -141,6 +141,13 @@ bool cfg_build(jitdata *jd)
 	bptr = jd->basicblocks;
 
 	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
+
+		if (bptr->type == BBTYPE_EXH) {
+			/* predecessorcount for exception handlers is initialized to -1,
+			   so we need to fix it to 0. */
+			bptr->predecessorcount += 1;
+		}
+
 		if ((bptr->icount == 0) || (bptr->flags == BBUNDEF))
 			continue;
 
