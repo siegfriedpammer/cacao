@@ -49,14 +49,11 @@
 #include "vmcore/options.h"
 
 #if defined(ENABLE_DEBUG_FILTER)
-#	include <sys/types.h>
-#	include <regex.h>
-#	if defined(ENABLE_THREADS)
-#		include "threads/native/threads.h"
-#	else
-#		include "threads/none/threads.h"
-#	endif
+# include <sys/types.h>
+# include <regex.h>
+# include "threads/threads-common.h"
 #endif
+
 
 /* global variables ***********************************************************/
 

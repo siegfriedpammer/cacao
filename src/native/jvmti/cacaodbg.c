@@ -1,10 +1,8 @@
 /* src/native/jvmti/cacaodbg.c - contains entry points for debugging support 
                                  in cacao.
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -23,14 +21,6 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Martin Platter
-
-   Changes: Edwin Steiner
-            Samuel Vinson
-
-
 */
 
 #include "native/jvmti/jvmti.h"
@@ -43,7 +33,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/stringlocal.h"
 #include "toolbox/logging.h"
-#include "threads/native/threads.h"
+#include "threads/threads-common.h"
 
 #include <sys/types.h>
 #include <unistd.h>

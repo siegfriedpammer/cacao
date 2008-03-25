@@ -1,10 +1,8 @@
 /* src/native/jvmti/jvmti.c - implementation of the Java Virtual Machine 
                               Tool Interface functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -54,8 +52,8 @@
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "mm/memory.h"
-#include "threads/native/threads.h"
-#include "threads/native/lock.h"
+#include "threads/threads-common.h"
+#include "threads/lock-common.h"
 #include "vm/exceptions.h"
 #include "native/include/java_util_Vector.h"
 #include "native/include/java_io_PrintStream.h"
@@ -69,7 +67,6 @@
 #include "boehm-gc/include/gc.h"
 
 #if defined(ENABLE_THREADS)
-#include "threads/native/threads.h"
 #include <sched.h>
 #include <pthread.h>
 #endif 

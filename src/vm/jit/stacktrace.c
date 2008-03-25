@@ -51,11 +51,7 @@
 # include "native/include/java_lang_VMThrowable.h"
 #endif
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#else
-# include "threads/none/threads.h"
-#endif
+#include "threads/threads-common.h"
 
 #include "toolbox/logging.h"
 

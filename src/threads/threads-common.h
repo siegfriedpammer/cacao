@@ -27,17 +27,18 @@
 #define _THREADS_COMMON_H
 
 #include "config.h"
+
+#if defined(ENABLE_THREADS)
+# include "threads/posix/threads.h"
+#else
+# include "threads/none/threads.h"
+#endif
+
 #include "vm/types.h"
 
 #include "vm/global.h"
 
 #include "native/llni.h"
-
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#else
-# include "threads/none/threads.h"
-#endif
 
 #include "vmcore/utf8.h"
 
@@ -149,7 +150,7 @@ void          threads_thread_start(java_handle_t *object);
 
 void          threads_thread_print_info(threadobject *t);
 
-ptrint        threads_get_current_tid(void);
+intptr_t      threads_get_current_tid(void);
 
 void          threads_thread_state_runnable(threadobject *t);
 void          threads_thread_state_waiting(threadobject *t);

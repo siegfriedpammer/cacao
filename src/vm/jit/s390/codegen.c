@@ -35,10 +35,7 @@
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/lock-common.h"
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"

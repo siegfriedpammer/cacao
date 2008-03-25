@@ -39,9 +39,7 @@
 #include "vm/jit/x86_64/codegen.h"
 #include "vm/jit/x86_64/md.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
+#include "threads/threads-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"

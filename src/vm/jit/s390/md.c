@@ -34,10 +34,7 @@
 
 #include "vm/jit/s390/md-abi.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/threads-common.h"
-# include "threads/native/threads.h"
-#endif
+#include "threads/threads-common.h"
 
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"

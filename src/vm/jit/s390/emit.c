@@ -1,9 +1,7 @@
 /* src/vm/jit/s390/emit.c - s390 code emitter functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -30,9 +28,9 @@
 #include <stdint.h>
 
 #include "mm/memory.h"
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+
+#include "threads/lock-common.h"
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"

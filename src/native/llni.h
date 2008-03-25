@@ -1,9 +1,7 @@
 /* src/native/llni.h - low level native interfarce (LLNI)
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -30,13 +28,32 @@
 
 #include "config.h"
 
+/* forward defines ************************************************************/
+
+/* LLNI wrapping / unwrapping macros *******************************************
+
+   ATTENTION: Only use these macros inside a LLNI critical section!
+   Once the ciritical section ends, all pointers onto the GC heap
+   retrieved through these macros are void!
+
+*******************************************************************************/
+
+#if defined(ENABLE_HANDLES)
+# define LLNI_WRAP(obj)      ((obj) == NULL ? NULL : localref_add(obj))
+# define LLNI_UNWRAP(hdl)    ((hdl) == NULL ? NULL : (hdl)->heap_object)
+# define LLNI_QUICKWRAP(obj) ((obj) == NULL ? NULL : &(obj))
+# define LLNI_DIRECT(hdl)    ((hdl)->heap_object)
+#else
+# define LLNI_WRAP(obj)      (obj)
+# define LLNI_UNWRAP(hdl)    (hdl)
+# define LLNI_QUICKWRAP(obj) (obj)
+# define LLNI_DIRECT(hdl)    (hdl)
+#endif
+
+
 #include "native/localref.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#else
-# include "threads/none/threads.h"
-#endif
+#include "threads/threads-common.h"
 
 
 /* LLNI macros *****************************************************************
@@ -139,27 +156,6 @@
 #define LLNI_array_direct(arr, index) (LLNI_DIRECT(arr)->data[(index)])
 #define LLNI_array_data(arr)          (LLNI_DIRECT(arr)->data)
 #define LLNI_array_size(arr)          (LLNI_DIRECT((java_handle_objectarray_t *) (arr))->header.size)
-
-
-/* LLNI wrapping / unwrapping macros *******************************************
-
-   ATTENTION: Only use these macros inside a LLNI critical section!
-   Once the ciritical section ends, all pointers onto the GC heap
-   retrieved through these macros are void!
-
-*******************************************************************************/
-
-#if defined(ENABLE_HANDLES)
-# define LLNI_WRAP(obj)      ((obj) == NULL ? NULL : localref_add(obj))
-# define LLNI_UNWRAP(hdl)    ((hdl) == NULL ? NULL : (hdl)->heap_object)
-# define LLNI_QUICKWRAP(obj) ((obj) == NULL ? NULL : &(obj))
-# define LLNI_DIRECT(hdl)    ((hdl)->heap_object)
-#else
-# define LLNI_WRAP(obj)      (obj)
-# define LLNI_UNWRAP(hdl)    (hdl)
-# define LLNI_QUICKWRAP(obj) (obj)
-# define LLNI_DIRECT(hdl)    (hdl)
-#endif
 
 
 /* LLNI critical sections ******************************************************

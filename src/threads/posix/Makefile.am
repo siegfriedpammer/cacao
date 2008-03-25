@@ -1,4 +1,4 @@
-## src/threads/Makefile.am
+## src/threads/posix/Makefile.am
 ##
 ## Copyright (C) 1996-2005, 2006, 2007, 2008
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,34 +21,19 @@
 ## 02110-1301, USA.
 
 
-AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)/src
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)/src -I$(top_srcdir)/contrib/vmlog
 
-LIB =
-
-DIST_SUBDIRS = \
-	none \
-	posix
-
-SUBDIRS = \
-	posix
-
-THREAD_LIB = \
-	posix/libposix.la
+LIBS =
 
 noinst_LTLIBRARIES = \
-	libthreads.la
+	libposix.la
 
-libthreads_la_SOURCES = \
-	critical.c \
-	critical.h \
-	lock-common.h \
-	threadlist.c \
-	threadlist.h \
-	threads-common.c \
-	threads-common.h
-
-libthreads_la_LIBADD = \
-	$(THREAD_LIB)
+libposix_la_SOURCES = \
+	lock.c \
+	lock.h \
+	threadlist-posix.c \
+	threads.c \
+	threads.h
 
 
 ## Local variables:

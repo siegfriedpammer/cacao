@@ -826,7 +826,7 @@ void threads_thread_print_info(threadobject *t)
 
 *******************************************************************************/
 
-ptrint threads_get_current_tid(void)
+intptr_t threads_get_current_tid(void)
 {
 	threadobject *thread;
 
@@ -837,7 +837,7 @@ ptrint threads_get_current_tid(void)
 	if (thread == NULL)
 		return 0;
 
-	return (ptrint) thread->tid;
+	return (intptr_t) thread->tid;
 }
 
 
