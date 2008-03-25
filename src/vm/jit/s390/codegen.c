@@ -1,9 +1,7 @@
 /* src/vm/jit/s390/codegen.c - machine code generator for s390
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -2181,7 +2179,7 @@ bool codegen_emit(jitdata *jd)
 			}
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				((patchref_t *)list_first_unsynced(jd->code->patchers))->disp = (cd->mcodeptr - ref);
+				((patchref_t *)list_first(jd->code->patchers))->disp = (cd->mcodeptr - ref);
 			}
 
 			switch (fieldtype) {

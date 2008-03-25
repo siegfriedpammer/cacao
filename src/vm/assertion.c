@@ -117,7 +117,7 @@ void assertion_ea_da(const char *name, bool enabled)
 		list_assertion_names = list_create(OFFSET(assertion_name_t, linkage));
 	}
 
-	list_add_last_unsynced(list_assertion_names, item);
+	list_add_last(list_assertion_names, item);
 }
 
 

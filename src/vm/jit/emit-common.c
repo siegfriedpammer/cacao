@@ -1,9 +1,7 @@
 /* src/vm/jit/emit-common.c - common code emitter functions
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -269,7 +267,7 @@ void emit_patcher_traps(jitdata *jd)
 
 	/* generate patcher traps code */
 
-	for (pr = list_first_unsynced(code->patchers); pr != NULL; pr = list_next_unsynced(code->patchers, pr)) {
+	for (pr = list_first(code->patchers); pr != NULL; pr = list_next(code->patchers, pr)) {
 
 		/* Calculate the patch position where the original machine
 		   code is located and the trap should be placed. */
@@ -522,8 +520,7 @@ void emit_label_bccz(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options
 
 	/* search if the label is already in the list */
 
-	for (br = list_first_unsynced(list); br != NULL;
-		 br = list_next_unsynced(list, br)) {
+	for (br = list_first(list); br != NULL; br = list_next(list, br)) {
 		/* is this entry the correct label? */
 
 		if (br->label == label)
@@ -552,7 +549,7 @@ void emit_label_bccz(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options
 
 		/* now remove the branch reference */
 
-		list_remove_unsynced(list, br);
+		list_remove(list, br);
 	}
 	else {
 		/* current mcodeptr is the correct position,
@@ -588,8 +585,7 @@ void emit_label(codegendata *cd, s4 label)
 
 	/* search if the label is already in the list */
 
-	for (br = list_first_unsynced(list); br != NULL;
-		 br = list_next_unsynced(list, br)) {
+	for (br = list_first(list); br != NULL; br = list_next(list, br)) {
 		/* is this entry the correct label? */
 
 		if (br->label == label)
@@ -627,7 +623,7 @@ void emit_label(codegendata *cd, s4 label)
 
 		/* now remove the branch reference */
 
-		list_remove_unsynced(list, br);
+		list_remove(list, br);
 	}
 	else {
 		/* add the label to the list (use invalid values for condition

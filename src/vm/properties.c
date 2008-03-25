@@ -584,8 +584,8 @@ void properties_add(char *key, char *value)
 
 	/* search for the entry */
 
-	for (pe = list_first_unsynced(list_properties); pe != NULL;
-		 pe = list_next_unsynced(list_properties, pe)) {
+	for (pe = list_first(list_properties); pe != NULL;
+		 pe = list_next(list_properties, pe)) {
 		if (strcmp(pe->key, key) == 0) {
 			/* entry was found, replace the value */
 
@@ -615,7 +615,7 @@ void properties_add(char *key, char *value)
 	pe->key   = key;
 	pe->value = value;
 
-	list_add_last_unsynced(list_properties, pe);
+	list_add_last(list_properties, pe);
 }
 
 
@@ -629,8 +629,8 @@ char *properties_get(char *key)
 {
 	list_properties_entry_t *pe;
 
-	for (pe = list_first_unsynced(list_properties); pe != NULL;
-		 pe = list_next_unsynced(list_properties, pe)) {
+	for (pe = list_first(list_properties); pe != NULL;
+		 pe = list_next(list_properties, pe)) {
 		if (strcmp(pe->key, key) == 0)
 			return pe->value;
 	}
@@ -732,10 +732,11 @@ void properties_dump(void)
 	list_t                  *l;
 	list_properties_entry_t *pe;
 
+	/* For convenience. */
+
 	l = list_properties;
 
-	for (pe = list_first_unsynced(l); pe != NULL;
-		 pe = list_next_unsynced(l, pe)) {
+	for (pe = list_first(l); pe != NULL; pe = list_next(l, pe)) {
 		log_println("[properties_dump: key=%s, value=%s]", pe->key, pe->value);
 	}
 }

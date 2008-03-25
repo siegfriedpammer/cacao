@@ -83,7 +83,7 @@ void threadlist_init(void)
 
 void threadlist_add(threadobject *t)
 {
-	list_add_last_unsynced(list_thread, t);
+	list_add_last(list_thread, t);
 }
 
 
@@ -98,7 +98,7 @@ void threadlist_add(threadobject *t)
 
 void threadlist_remove(threadobject *t)
 {
-	list_remove_unsynced(list_thread, t);
+	list_remove(list_thread, t);
 }
 
 
@@ -115,7 +115,7 @@ threadobject *threadlist_first(void)
 {
 	threadobject *t;
 
-	t = list_first_unsynced(list_thread);
+	t = list_first(list_thread);
 
 	return t;
 }
@@ -137,7 +137,7 @@ threadobject *threadlist_next(threadobject *t)
 {
 	threadobject *next;
 
-	next = list_next_unsynced(list_thread, t);
+	next = list_next(list_thread, t);
 
 	return next;
 }
@@ -154,7 +154,7 @@ threadobject *threadlist_next(threadobject *t)
 
 void threadlist_free_add(threadobject *t)
 {
-	list_add_last_unsynced(list_thread_free, t);
+	list_add_last(list_thread_free, t);
 }
 
 
@@ -169,7 +169,7 @@ void threadlist_free_add(threadobject *t)
 
 void threadlist_free_remove(threadobject *t)
 {
-	list_remove_unsynced(list_thread_free, t);
+	list_remove(list_thread_free, t);
 }
 
 
@@ -186,7 +186,7 @@ threadobject *threadlist_free_first(void)
 {
 	threadobject *t;
 
-	t = list_first_unsynced(list_thread_free);
+	t = list_first(list_thread_free);
 
 	return t;
 }
@@ -238,7 +238,7 @@ static inline thread_index_t *threadlist_index_first(void)
 {
 	thread_index_t *ti;
 
-	ti = list_first_unsynced(list_thread_index_free);
+	ti = list_first(list_thread_index_free);
 
 	return ti;
 }
@@ -268,7 +268,7 @@ void threadlist_index_add(int index)
 
 	ti->index = index;
 
-	list_add_last_unsynced(list_thread_index_free, ti);
+	list_add_last(list_thread_index_free, ti);
 }
 
 
@@ -284,7 +284,7 @@ void threadlist_index_add(int index)
 
 static inline void threadlist_index_remove(thread_index_t *ti)
 {
-	list_remove_unsynced(list_thread_index_free, ti);
+	list_remove(list_thread_index_free, ti);
 
 	FREE(ti, thread_index_t);
 

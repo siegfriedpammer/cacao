@@ -1,9 +1,7 @@
-/* mm/cacao-gc/mark.c - GC module for marking heap objects
+/* src/mm/cacao-gc/mark.c - GC module for marking heap objects
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -191,8 +189,12 @@ void mark_post(rootset_t *rs)
 #if defined(GCCONF_FINALIZER)
 	/* objects with finalizers will also be marked here. if they have not been
 	   marked before the finalization is triggered */
-	/* REMEMBER: all threads are stopped, so we can use unsynced access here */
-	fe = list_first_unsynced(final_list);
+
+	/* REMEMBER: All threads are stopped, so we don't have to lock the
+	   list here. */
+
+	fe = list_first(final_list);
+
 	while (fe) {
 		f_type = fe->type;
 		ref    = fe->o;
@@ -240,7 +242,7 @@ void mark_post(rootset_t *rs)
 			}
 		}
 
-		fe = list_next_unsynced(final_list, fe);
+		fe = list_next(final_list, fe);
 	}
 #endif /*defined(GCCONF_FINALIZER)*/
 

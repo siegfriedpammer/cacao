@@ -1,9 +1,7 @@
 /* src/toolbox/list.h - synchronized linked list
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -29,7 +27,8 @@
 #define _LIST_H
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
 
 #include "vm/global.h"
 
@@ -111,42 +110,32 @@ struct list_t {
 #endif
 	listnode_t        *first;
 	listnode_t        *last;
-	s4                 nodeoffset;
-	s4                 size;            /* number of elements in the list     */
+	int                nodeoffset;
+	int                size;            /* number of elements in the list     */
 };
 
 
 /* function prototypes ********************************************************/
 
-list_t *list_create(s4 nodeoffset);
-list_t *list_create_dump(s4 nodeoffset);
+list_t *list_create(int nodeoffset);
+list_t *list_create_dump(int nodeoffset);
+
 void    list_free(list_t *l);
 
 void    list_lock(list_t *l);
 void    list_unlock(list_t *l);
 
 void    list_add_first(list_t *l, void *element);
-void    list_add_first_unsynced(list_t *l, void *element);
-
 void    list_add_last(list_t *l, void *element);
-void    list_add_last_unsynced(list_t *l, void *element);
-
 void    list_add_before(list_t *l, void *element, void *newelement);
 
 void    list_remove(list_t *l, void *element);
-void    list_remove_unsynced(list_t *l, void *element);
 
 void   *list_first(list_t *l);
-void   *list_first_unsynced(list_t *l);
-
 void   *list_last(list_t *l);
-void   *list_last_unsynced(list_t *l);
 
 void   *list_next(list_t *l, void *element);
-void   *list_next_unsynced(list_t *l, void *element);
-
 void   *list_prev(list_t *l, void *element);
-void   *list_prev_unsynced(list_t *l, void *element);
 
 #endif /* _LIST_H */
 

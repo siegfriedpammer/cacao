@@ -82,8 +82,8 @@ rootset_t *rootset_resize(rootset_t *rs)
    Searches global variables to compile the global root set out of references
    contained in them.
 
-   REMEMBER: All threads are stopped, so we can use unsynced access
-   in this function.
+   REMEMBER: All threads are stopped, so we don't have to lock the
+   lists in this function.
 
    SEARCHES IN:
      - thread objects (threads.c)
@@ -117,7 +117,7 @@ static rootset_t *rootset_from_globals(rootset_t *rs)
 	refcount = rs->refcount;
 
 	/* walk through all registered strong references */
-	for (re = list_first_unsynced(gc_reflist_strong); re != NULL; re = list_next_unsynced(gc_reflist_strong, re)) {
+	for (re = list_first(gc_reflist_strong); re != NULL; re = list_next(gc_reflist_strong, re)) {
 		GC_LOG2( printf("Found Registered Reference: %p at %p of type %d\n", *(re->ref), re->ref, ref->reftype); );
 
 		/* add this registered reference to the root set */
@@ -125,7 +125,7 @@ static rootset_t *rootset_from_globals(rootset_t *rs)
 	}
 
 	/* walk through all registered weak references */
-	for (re = list_first_unsynced(gc_reflist_weak); re != NULL; re = list_next_unsynced(gc_reflist_weak, re)) {
+	for (re = list_first(gc_reflist_weak); re != NULL; re = list_next(gc_reflist_weak, re)) {
 		GC_LOG2( printf("Found Registered Weak Reference: %p at %p of type %d\n", *(re->ref), re->ref, ref->reftype); );
 
 		/* add this registered reference to the root set */
@@ -133,7 +133,7 @@ static rootset_t *rootset_from_globals(rootset_t *rs)
 	}
 
 	/* walk through all finalizer entries */
-	for (fe = list_first_unsynced(final_list); fe != NULL; fe = list_next_unsynced(final_list, fe)) {
+	for (fe = list_first(final_list); fe != NULL; fe = list_next(final_list, fe)) {
 		GC_LOG2( printf("Found Finalizer Entry: %p\n", (void *) fe->o); );
 
 		/* add this object with finalizer to the root set */

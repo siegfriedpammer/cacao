@@ -1223,11 +1223,11 @@ static void lock_record_remove_waiter(lock_record_t *lr, threadobject *thread)
 
 	l = lr->waiters;
 
-	for (w = list_first_unsynced(l); w != NULL; w = list_next_unsynced(l, w)) {
+	for (w = list_first(l); w != NULL; w = list_next(l, w)) {
 		if (w->thread == thread) {
 			/* Remove the waiter entry from the list. */
 
-			list_remove_unsynced(l, w);
+			list_remove(l, w);
 
 			/* Free the waiter data structure. */
 
@@ -1410,7 +1410,7 @@ static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
 
 	l = lr->waiters;
 
-	for (w = list_first_unsynced(l); w != NULL; w = list_next_unsynced(l, w)) {
+	for (w = list_first(l); w != NULL; w = list_next(l, w)) {
 		/* signal the waiting thread */
 
 		waitingthread = w->thread;

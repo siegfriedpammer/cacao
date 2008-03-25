@@ -149,7 +149,8 @@ static patchref_t *patcher_list_find(codeinfo *code, u1 *pc)
 
 	/* walk through all patcher references for the given codeinfo */
 
-	pr = list_first_unsynced(code->patchers);
+	pr = list_first(code->patchers);
+
 	while (pr) {
 
 /*#define TRACE_PATCHER_FIND*/
@@ -160,7 +161,7 @@ static patchref_t *patcher_list_find(codeinfo *code, u1 *pc)
 		if (pr->mpc == (ptrint) pc)
 			return pr;
 
-		pr = list_next_unsynced(code->patchers, pr);
+		pr = list_next(code->patchers, pr);
 	}
 
 	return NULL;
@@ -193,7 +194,7 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
 	/* allocate patchref on heap (at least freed together with codeinfo) */
 
 	pr = NEW(patchref_t);
-	list_add_first_unsynced(code->patchers, pr);
+	list_add_first(code->patchers, pr);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)

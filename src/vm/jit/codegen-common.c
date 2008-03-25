@@ -471,13 +471,13 @@ void codegen_resolve_branchrefs(codegendata *cd, basicblock *bptr)
 
 void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options)
 {
-	list_t             *list;
+	list_t             *l;
 	branch_label_ref_t *br;
 	s4                  mpc;
 
-	/* get the label list */
+	/* Get the label list. */
 
-	list = cd->brancheslabel;
+	l = cd->brancheslabel;
 	
 	/* calculate the current mpc */
 
@@ -491,9 +491,9 @@ void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u
 	br->reg       = reg;
 	br->options   = options;
 
-	/* add the branch to the list */
+	/* Add the branch to the list. */
 
-	list_add_last_unsynced(list, br);
+	list_add_last(l, br);
 }
 
 
@@ -507,13 +507,13 @@ void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u
 #if defined(ENABLE_THREADS)
 void codegen_critical_section_new(codegendata *cd)
 {
-	list_t                 *list;
+	list_t                 *l;
 	critical_section_ref_t *csr;
 	s4                      mpc;
 
-	/* get the critical section list */
+	/* Get the critical section list. */
 
-	list = cd->listcritical;
+	l = cd->listcritical;
 	
 	/* calculate the current mpc */
 
@@ -528,9 +528,9 @@ void codegen_critical_section_new(codegendata *cd)
 	csr->end     = -1;
 	csr->restart = mpc;
 
-	/* add the branch to the list */
+	/* Add the branch to the list. */
 
-	list_add_last_unsynced(list, csr);
+	list_add_last(l, csr);
 }
 #endif
 
@@ -545,21 +545,21 @@ void codegen_critical_section_new(codegendata *cd)
 #if defined(ENABLE_THREADS)
 void codegen_critical_section_start(codegendata *cd)
 {
-	list_t                 *list;
+	list_t                 *l;
 	critical_section_ref_t *csr;
 	s4                      mpc;
 
-	/* get the critical section list */
+	/* Get the critical section list. */
 
-	list = cd->listcritical;
+	l = cd->listcritical;
 	
 	/* calculate the current mpc */
 
 	mpc = cd->mcodeptr - cd->mcodebase;
 
-	/* get the current critical section */
+	/* Get the current critical section. */
 
-	csr = list_last_unsynced(list);
+	csr = list_last(l);
 
 	/* set the start point */
 
@@ -580,21 +580,21 @@ void codegen_critical_section_start(codegendata *cd)
 #if defined(ENABLE_THREADS)
 void codegen_critical_section_end(codegendata *cd)
 {
-	list_t                 *list;
+	list_t                 *l;
 	critical_section_ref_t *csr;
 	s4                      mpc;
 
-	/* get the critical section list */
+	/* Get the critical section list. */
 
-	list = cd->listcritical;
+	l = cd->listcritical;
 	
 	/* calculate the current mpc */
 
 	mpc = cd->mcodeptr - cd->mcodebase;
 
-	/* get the current critical section */
+	/* Get the current critical section. */
 
-	csr = list_last_unsynced(list);
+	csr = list_last(l);
 
 	/* set the end point */
 
@@ -617,7 +617,7 @@ static void codegen_critical_section_finish(jitdata *jd)
 {
 	codeinfo    *code;
 	codegendata *cd;
-	list_t                  *list;
+	list_t                  *l;
 	critical_section_ref_t  *csr;
 	critical_section_node_t *csn;
 
@@ -626,14 +626,13 @@ static void codegen_critical_section_finish(jitdata *jd)
 	code = jd->code;
 	cd   = jd->cd;
 
-	/* get the critical section list */
+	/* Get the critical section list. */
 
-	list = cd->listcritical;
+	l = cd->listcritical;
 
 	/* iterate over all critical sections */
 
-	for (csr = list_first_unsynced(list); csr != NULL;
-		 csr = list_next_unsynced(list, csr)) {
+	for (csr = list_first(l); csr != NULL; csr = list_next(l, csr)) {
 		/* check if all points are set */
 
 		assert(csr->start   != -1);
@@ -838,11 +837,12 @@ void codegen_finish(jitdata *jd)
 
 	/* patcher resolving */
 
-	pr = list_first_unsynced(code->patchers);
+	pr = list_first(code->patchers);
+
 	while (pr) {
 		pr->mpc += (ptrint) epoint;
 		pr->datap = (ptrint) (pr->disp + epoint);
-		pr = list_next_unsynced(code->patchers, pr);
+		pr = list_next(code->patchers, pr);
 	}
 
 #if defined(ENABLE_REPLACEMENT)
