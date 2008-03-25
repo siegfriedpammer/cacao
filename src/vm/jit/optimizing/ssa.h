@@ -50,7 +50,7 @@
 # define _SSA_ASSERT(a)
 #endif
 
-/* function prototypes */
+/* function prototypes  */
 void ssa_init(jitdata *);
 void ssa(jitdata */* , graphdata **/);
 
