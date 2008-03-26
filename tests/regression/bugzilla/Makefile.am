@@ -21,7 +21,7 @@
 ## 02110-1301, USA.
 
 
-JAVA     = $(top_builddir)/src/cacao/cacao
+JAVA     = LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
 
@@ -32,10 +32,10 @@ CLEANFILES = \
 	*.class
 
 build:
-	$(JAVACCMD) -cp /usr/share/java/junit4.jar -d . *.java
+	$(JAVACCMD) -cp /usr/share/java/junit4.jar -d . $(srcdir)/*.java
 
 check: build
-	LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(JAVACMD) -cp /usr/share/java/junit4.jar:. org.junit.runner.JUnitCore All
+	$(JAVACMD) -cp /usr/share/java/junit4.jar:. org.junit.runner.JUnitCore All
 
 
 ## Local variables:
