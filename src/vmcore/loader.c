@@ -1690,8 +1690,10 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		/* XXX This should be done better. */
 		tc = resolve_classref_or_classinfo_eager(CLASSREF_OR_CLASSINFO(cr), false);
 
-		if (tc == NULL)
+		if (tc == NULL) {
+			resolve_handle_pending_exception(true);
 			return false;
+		}
 
 		/* Detect circularity. */
 

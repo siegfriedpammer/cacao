@@ -40,12 +40,32 @@ public class PR58 extends TestCase {
     class x extends y {}
     class y {}
 
-    public void test() {
+    public void testSuperClass() {
         // Delete the class file which is extended.
         new File("PR58$y.class").delete();
 
         try {
             Class.forName("PR58$x");
+            fail("Should throw NoClassDefFoundError");
+        }
+        catch (ClassNotFoundException error) {
+            fail("Unexpected exception: " + error);
+        }
+        catch (NoClassDefFoundError success) {
+            // Check if the cause is correct.
+            assertTrue(success.getCause() instanceof ClassNotFoundException);
+        }
+    }
+
+    interface i {}
+    class j implements i {}
+
+    public void testSuperInterface() {
+        // Delete the interface file which is implemented.
+        new File("PR58$i.class").delete();
+
+        try {
+            Class.forName("PR58$j");
             fail("Should throw NoClassDefFoundError");
         }
         catch (ClassNotFoundException error) {
