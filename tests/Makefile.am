@@ -1,9 +1,7 @@
 ## tests/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-## J. Wenninger, Institut f. Computersprachen - TU Wien
+## Copyright (C) 1996-2005, 2006, 2008
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -21,47 +19,23 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
-##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
-##
-## Changes:
 
-## Process this file with automake to produce Makefile.in
 
-SUBDIRS = regression
+JAVA     = LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(top_builddir)/src/cacao/cacao
+JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
+JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
+
+SUBDIRS = \
+	regression
 
 EXTRA_DIST = \
-	hello.java \
-	prop.java \
-	x.java \
-	x.output \
-	TestBase.java \
-	TestArrayClasses.java \
-	TestArrayClasses.output \
-	BasicToStrings.java \
-	BasicToStrings.output \
-	GCBench.java \
-	JavaPerformance.java \
-	param_test.java \
-	exception_restore_registers.java
+	*.java
 
-JAVA = $(top_builddir)/src/cacao/cacao
+CLEANFILES = \
+	*.class
 
-checkall: x.tst TestArrayClasses.tst BasicToStrings.tst param_test.tst exception_restore_registers.tst
-
-%.tst:
-	$(JAVAC) $*.java
-	sh Test.sh $(JAVA) $*
-#	$(JAVA) $* > $*.thisoutput
-#	diff --brief $*.output $*.thisoutput
-	$(RM) $*.thisoutput
-	$(RM) $*.this2output
-
-%.tstrun:
-	$(JAVAC) $*.java
-	$(JAVA) $*
+build:
+	$(JAVACCMD) -d . $(srcdir)/*.java
 
 
 ## Local variables:
