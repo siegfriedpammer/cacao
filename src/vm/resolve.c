@@ -1,9 +1,7 @@
 /* src/vm/resolve.c - resolving classes/interfaces/fields/methods
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -54,6 +52,58 @@
 /******************************************************************************/
 
 /*#define RESOLVE_VERBOSE*/
+
+/* resolve_handle_pending_exception ********************************************
+
+   Convert a pending ClassNotFoundException into a
+   NoClassDefFoundError if requested.
+
+   See: hotspot/src/share/vm/classfile/systemDictionary.cpp
+   (handle_resolution_exception)
+
+   ARGUMENTS:
+       classname .... name of the class currently resolved
+       throwError ... if true throw a NoClassDefFoundError instead of
+                      a ClassNotFoundException
+
+*******************************************************************************/
+
+void resolve_handle_pending_exception(bool throwError)
+{
+	java_handle_t *e;
+
+	/* Get the current exception. */
+
+	e = exceptions_get_exception();
+
+	if (e != NULL) {
+		if (throwError == true) {
+			/* Convert ClassNotFoundException to
+			   NoClassDefFoundError. */
+
+			if (builtin_instanceof(e, class_java_lang_ClassNotFoundException)) {
+				/* Clear exception, because we are calling Java code
+				   again. */
+
+				exceptions_clear_exception();
+
+				/* create new error */
+
+				exceptions_throw_noclassdeffounderror_cause(e);
+			}
+			else {
+				return;
+			}
+		}
+		else {
+			/* An exception conversion was not requested.  Simply
+			   return. */
+
+			return;
+		}
+	}
+}
+
 
 /******************************************************************************/
 /* CLASS RESOLUTION                                                           */
@@ -177,14 +227,8 @@ bool resolve_class_from_name(classinfo *referer,
 		if (cls == NULL) {
 			cls = load_class_from_classloader(classname, referer->classloader);
 
-			if (cls == NULL) {
-				/* If the exception is a ClassNotFoundException,
-				   convert it to a NoClassDefFoundError. */
-
-				exceptions_classnotfoundexception_to_noclassdeffounderror();
-
+			if (cls == NULL)
 				return false;
-			}
 		}
 	}
 

@@ -102,6 +102,7 @@ extern utf *utf_java_lang_InstantiationException;
 extern utf *utf_java_lang_InterruptedException;
 extern utf *utf_java_lang_NegativeArraySizeException;
 extern utf *utf_java_lang_NullPointerException;
+extern utf *utf_java_lang_RuntimeException;
 extern utf *utf_java_lang_StringIndexOutOfBoundsException;
 
 extern utf *utf_java_lang_reflect_InvocationTargetException;

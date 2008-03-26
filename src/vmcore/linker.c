@@ -279,6 +279,16 @@ void linker_init(void)
 		vm_abort("linker_init: linking failed");
 #endif
 
+	/* Important system exceptions. */
+
+	if (!link_class(class_java_lang_Exception))
+		vm_abort("linker_init: linking failed");
+
+	if (!link_class(class_java_lang_ClassNotFoundException))
+		vm_abort("linker_init: linking failed");
+
+	if (!link_class(class_java_lang_RuntimeException))
+		vm_abort("linker_init: linking failed");
 
 	/* some classes which may be used more often */
 

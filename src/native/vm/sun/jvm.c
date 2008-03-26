@@ -776,6 +776,11 @@ jclass JVM_FindClassFromClassLoader(JNIEnv* env, const char* name, jboolean init
 
 	TRACEJVMCALLS(("JVM_FindClassFromClassLoader(name=%s, init=%d, loader=%p, throwError=%d)", name, init, loader, throwError));
 
+	/* As of now, OpenJDK does not call this function with throwError
+	   is true. */
+
+	assert(throwError == false);
+
 	u  = utf_new_char(name);
 	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
@@ -985,7 +990,7 @@ void JVM_SetProtectionDomain(JNIEnv *env, jclass cls, jobject protection_domain)
 
 jobject JVM_DoPrivileged(JNIEnv *env, jclass cls, jobject action, jobject context, jboolean wrapException)
 {
-	java_handle_t *o;
+	java_handle_t *h;
 	classinfo     *c;
 	methodinfo    *m;
 	java_handle_t *result;
@@ -993,8 +998,8 @@ jobject JVM_DoPrivileged(JNIEnv *env, jclass cls, jobject action, jobject contex
 
 	TRACEJVMCALLS(("JVM_DoPrivileged(env=%p, cls=%p, action=%p, context=%p, wrapException=%d)", env, cls, action, context, wrapException));
 
-	o = (java_handle_t *) action;
-	c = o->vftbl->class;
+	h = (java_handle_t *) action;
+	LLNI_class_get(h, c);
 
 	if (action == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -1014,12 +1019,17 @@ jobject JVM_DoPrivileged(JNIEnv *env, jclass cls, jobject action, jobject contex
 	/* XXX It seems something with a privileged stack needs to be done
 	   here. */
 
-	result = vm_call_method(m, o);
+	result = vm_call_method(m, h);
 
-	e = exceptions_get_and_clear_exception();
+	e = exceptions_get_exception();
 
 	if (e != NULL) {
-		exceptions_throw_privilegedactionexception(e);
+		if ( builtin_instanceof(e, class_java_lang_Exception) &&
+			!builtin_instanceof(e, class_java_lang_RuntimeException)) {
+			exceptions_clear_exception();
+			exceptions_throw_privilegedactionexception(e);
+		}
+
 		return NULL;
 	}
 

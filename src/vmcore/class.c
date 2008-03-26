@@ -68,7 +68,7 @@
 
 /* frequently used classes ****************************************************/
 
-/* important system classes */
+/* Important system classes. */
 
 classinfo *class_java_lang_Object;
 classinfo *class_java_lang_Class;
@@ -87,6 +87,12 @@ classinfo *class_java_lang_VMSystem;
 classinfo *class_java_lang_VMThread;
 classinfo *class_java_lang_VMThrowable;
 #endif
+
+/* Important system exceptions. */
+
+classinfo *class_java_lang_Exception;
+classinfo *class_java_lang_ClassNotFoundException;
+classinfo *class_java_lang_RuntimeException;
 
 #if defined(WITH_CLASSPATH_SUN)
 classinfo *class_sun_reflect_MagicAccessorImpl;

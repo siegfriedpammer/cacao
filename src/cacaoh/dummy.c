@@ -608,6 +608,11 @@ char *properties_get(char *key)
 
 /* resolve ********************************************************************/
 
+void resolve_handle_pending_exception(bool throwError)
+{
+	vm_abort("resolve_handle_pending_exception: Not implemented.");
+}
+
 bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, classinfo **result)
 {
 	abort();

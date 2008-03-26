@@ -1,4 +1,4 @@
-/* tests/regression/bugzilla/All.java - runs all CACAO regression unit tests
+/* tests/regression/bugzilla/PR58.java
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -26,28 +26,34 @@
 import junit.framework.*;
 import junit.textui.*;
 
-public class All extends TestCase {
-    /**
-     * Runs all CACAO regression unit tests using
-     * junit.textui.TestRunner
-     */
+import java.io.*;
+
+public class PR58 extends TestCase {
     public static void main(String[] args) {
-        Test s = suite();
-        TestRunner.run(s);
+        TestRunner.run(suite());
     }
 
-    /**
-     * Collects all CACAO regression unit tests as one suite
-     */
     public static Test suite() {
-        TestSuite suite = new TestSuite("CACAO Regression Unit Tests");
+        return new TestSuite(PR58.class);
+    }
 
-        // Add your test here.
+    class x extends y {}
+    class y {}
 
-        suite.addTest(new TestSuite(PR52.class));
-        suite.addTest(new TestSuite(PR57.class));
-        suite.addTest(new TestSuite(PR58.class));
+    public void test() {
+        // Delete the class file which is extended.
+        new File("PR58$y.class").delete();
 
-        return suite;
+        try {
+            Class.forName("PR58$x");
+            fail("Should throw NoClassDefFoundError");
+        }
+        catch (ClassNotFoundException error) {
+            fail("Unexpected exception: " + error);
+        }
+        catch (NoClassDefFoundError success) {
+            // Check if the cause is correct.
+            assertTrue(success.getCause() instanceof ClassNotFoundException);
+        }
     }
 }

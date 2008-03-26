@@ -203,7 +203,7 @@ struct castinfo {
 
 /* frequently used classes ****************************************************/
 
-/* important system classes */
+/* Important system classes. */
 
 extern classinfo *class_java_lang_Object;
 extern classinfo *class_java_lang_Class;
@@ -216,6 +216,12 @@ extern classinfo *class_java_lang_Thread;
 extern classinfo *class_java_lang_ThreadGroup;
 extern classinfo *class_java_lang_Throwable;
 extern classinfo *class_java_io_Serializable;
+
+/* Important system exceptions. */
+
+extern classinfo *class_java_lang_Exception;
+extern classinfo *class_java_lang_ClassNotFoundException;
+extern classinfo *class_java_lang_RuntimeException;
 
 #if defined(WITH_CLASSPATH_GNU)
 extern classinfo *class_java_lang_VMSystem;

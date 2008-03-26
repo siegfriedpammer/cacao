@@ -106,6 +106,7 @@ utf *utf_java_lang_InstantiationException;
 utf *utf_java_lang_InterruptedException;
 utf *utf_java_lang_NegativeArraySizeException;
 utf *utf_java_lang_NullPointerException;
+utf *utf_java_lang_RuntimeException;
 utf *utf_java_lang_StringIndexOutOfBoundsException;
 
 utf *utf_java_lang_reflect_InvocationTargetException;
@@ -349,6 +350,9 @@ void utf8_init(void)
 
 	utf_java_lang_NullPointerException =
 		utf_new_char("java/lang/NullPointerException");
+
+	utf_java_lang_RuntimeException =
+		utf_new_char("java/lang/RuntimeException");
 
 	utf_java_lang_StringIndexOutOfBoundsException =
 		utf_new_char("java/lang/StringIndexOutOfBoundsException");

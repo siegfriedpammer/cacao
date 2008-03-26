@@ -1,9 +1,7 @@
 /* src/vm/resolve.h - resolving classes/interfaces/fields/methods
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -114,7 +112,10 @@ struct unresolved_method {
 #define UNRESOLVED_SUBTYPE_SET_EMTPY(stset) \
 	do { (stset).subtyperefs = NULL; } while(0)
 
+
 /* function prototypes ********************************************************/
+
+void resolve_handle_pending_exception(bool throwError);
 
 bool resolve_class_from_name(classinfo* referer,methodinfo *refmethod,
 			  			utf *classname,

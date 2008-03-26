@@ -276,6 +276,44 @@ static void exceptions_abort(utf *classname, utf *message)
 }
 
 
+/* exceptions_new_class_utf ****************************************************
+
+   Creates an exception object with the given class and initalizes it
+   with the given utf message.
+
+   IN:
+      c ......... exception class
+	  message ... the message as an utf *
+
+   RETURN VALUE:
+     an exception pointer (in any case -- either it is the newly
+     created exception, or an exception thrown while trying to create
+     it).
+
+*******************************************************************************/
+
+static java_handle_t *exceptions_new_class_utf(classinfo *c, utf *message)
+{
+	java_handle_t *s;
+	java_handle_t *o;
+
+	if (vm_initializing)
+		exceptions_abort(c->name, message);
+
+	s = javastring_new(message);
+
+	if (s == NULL)
+		return exceptions_get_exception();
+
+	o = native_new_and_init_string(c, s);
+
+	if (o == NULL)
+		return exceptions_get_exception();
+
+	return o;
+}
+
+
 /* exceptions_new_utf **********************************************************
 
    Creates an exception object with the given name and initalizes it.
@@ -304,6 +342,99 @@ static java_handle_t *exceptions_new_utf(utf *classname)
 		return exceptions_get_exception();
 
 	return o;
+}
+
+
+/* exceptions_new_utf_javastring ***********************************************
+
+   Creates an exception object with the given name and initalizes it
+   with the given java/lang/String message.
+
+   IN:
+      classname....class name in UTF-8
+	  message......the message as a java.lang.String
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
+
+*******************************************************************************/
+
+static java_handle_t *exceptions_new_utf_javastring(utf *classname,
+													java_handle_t *message)
+{
+	java_handle_t *o;
+	classinfo     *c;
+   
+	if (vm_initializing)
+		exceptions_abort(classname, NULL);
+
+	c = load_class_bootstrap(classname);
+
+	if (c == NULL)
+		return exceptions_get_exception();
+
+	o = native_new_and_init_string(c, message);
+
+	if (o == NULL)
+		return exceptions_get_exception();
+
+	return o;
+}
+
+
+/* exceptions_new_utf_utf ******************************************************
+
+   Creates an exception object with the given name and initalizes it
+   with the given utf message.
+
+   IN:
+      classname....class name in UTF-8
+	  message......the message as an utf *
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
+
+*******************************************************************************/
+
+static java_handle_t *exceptions_new_utf_utf(utf *classname, utf *message)
+{
+	classinfo     *c;
+	java_handle_t *o;
+
+	if (vm_initializing)
+		exceptions_abort(classname, message);
+
+	c = load_class_bootstrap(classname);
+
+	if (c == NULL)
+		return exceptions_get_exception();
+
+	o = exceptions_new_class_utf(c, message);
+
+	return o;
+}
+
+
+/* exceptions_throw_class_utf **************************************************
+
+   Creates an exception object with the given class, initalizes and
+   throws it with the given utf message.
+
+   IN:
+      c ......... exception class
+	  message ... the message as an utf *
+
+*******************************************************************************/
+
+static void exceptions_throw_class_utf(classinfo *c, utf *message)
+{
+	java_handle_t *o;
+
+	o = exceptions_new_class_utf(c, message);
+
+	exceptions_set_exception(o);
 }
 
 
@@ -498,87 +629,6 @@ static void exceptions_throw_utf_cause(utf *classname, java_handle_t *cause)
 	(void) vm_call_method(m, o, cause);
 
 	exceptions_set_exception(o);
-}
-
-
-/* exceptions_new_utf_javastring ***********************************************
-
-   Creates an exception object with the given name and initalizes it
-   with the given java/lang/String message.
-
-   IN:
-      classname....class name in UTF-8
-	  message......the message as a java.lang.String
-
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
-*******************************************************************************/
-
-static java_handle_t *exceptions_new_utf_javastring(utf *classname,
-													java_handle_t *message)
-{
-	java_handle_t *o;
-	classinfo     *c;
-   
-	if (vm_initializing)
-		exceptions_abort(classname, NULL);
-
-	c = load_class_bootstrap(classname);
-
-	if (c == NULL)
-		return exceptions_get_exception();
-
-	o = native_new_and_init_string(c, message);
-
-	if (o == NULL)
-		return exceptions_get_exception();
-
-	return o;
-}
-
-
-/* exceptions_new_utf_utf ******************************************************
-
-   Creates an exception object with the given name and initalizes it
-   with the given utf message.
-
-   IN:
-      classname....class name in UTF-8
-	  message......the message as an utf *
-
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
-*******************************************************************************/
-
-static java_handle_t *exceptions_new_utf_utf(utf *classname, utf *message)
-{
-	classinfo     *c;
-	java_handle_t *s;
-	java_handle_t *o;
-
-	if (vm_initializing)
-		exceptions_abort(classname, message);
-
-	c = load_class_bootstrap(classname);
-
-	if (c == NULL)
-		return exceptions_get_exception();
-
-	s = javastring_new(message);
-
-	if (s == NULL)
-		return exceptions_get_exception();
-
-	o = native_new_and_init_string(c, s);
-
-	if (o == NULL)
-		return exceptions_get_exception();
-
-	return o;
 }
 
 
@@ -794,7 +844,7 @@ void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
 
 void exceptions_throw_classnotfoundexception(utf *name)
 {	
-	exceptions_throw_utf_utf(utf_java_lang_ClassNotFoundException, name);
+	exceptions_throw_class_utf(class_java_lang_ClassNotFoundException, name);
 }
 
 
@@ -1586,60 +1636,6 @@ void exceptions_throw_privilegedactionexception(java_handle_t *exception)
 void exceptions_throw_stringindexoutofboundsexception(void)
 {
 	exceptions_throw_utf(utf_java_lang_StringIndexOutOfBoundsException);
-}
-
-
-/* exceptions_classnotfoundexception_to_noclassdeffounderror *******************
-
-   Check the exception for a ClassNotFoundException. If it is one,
-   convert it to a NoClassDefFoundError.
-
-*******************************************************************************/
-
-void exceptions_classnotfoundexception_to_noclassdeffounderror(void)
-{
-	classinfo           *c;
-	java_handle_t       *o;
-	java_handle_t       *cause;
-	java_lang_Throwable *object;
-	java_lang_String    *s;
-
-	/* Load java/lang/ClassNotFoundException for the instanceof
-	   check. */
-
-	c = load_class_bootstrap(utf_java_lang_ClassNotFoundException);
-
-	if (c == NULL)
-		return;
-
-	/* Get the cause. */
-
-	cause = exceptions_get_exception();
-
-	/* Convert ClassNotFoundException's to NoClassDefFoundError's. */
-
-	if (builtin_instanceof(cause, c)) {
-		/* clear exception, because we are calling jit code again */
-
-		exceptions_clear_exception();
-
-		/* create new error */
-
-		object = (java_lang_Throwable *) cause;
-		LLNI_field_get_ref(object, detailMessage, s);
-
-		o = exceptions_new_utf_javastring(utf_java_lang_NoClassDefFoundError,
-										  (java_handle_t *) s);
-
-		/* we had an exception while creating the error */
-
-		if (exceptions_get_exception())
-			return;
-
-		/* set new exception */
-
-		exceptions_set_exception(o);
-	}
 }
 
 

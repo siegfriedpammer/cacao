@@ -1,9 +1,7 @@
 /* src/vm/exceptions.h - exception related functions prototypes
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -130,8 +128,6 @@ java_handle_t *exceptions_new_nullpointerexception(void);
 void exceptions_throw_nullpointerexception(void);
 void exceptions_throw_privilegedactionexception(java_handle_t *cause);
 void exceptions_throw_stringindexoutofboundsexception(void);
-
-void exceptions_classnotfoundexception_to_noclassdeffounderror(void);
 
 java_handle_t *exceptions_fillinstacktrace(void);
 

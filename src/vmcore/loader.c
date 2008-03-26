@@ -197,6 +197,16 @@ void loader_init(void)
 		load_class_bootstrap(utf_new_char("java/lang/VMThrowable"));
 #endif
 
+	/* Important system exceptions. */
+
+	class_java_lang_Exception  = load_class_bootstrap(utf_java_lang_Exception);
+
+	class_java_lang_ClassNotFoundException =
+		load_class_bootstrap(utf_java_lang_ClassNotFoundException);
+
+	class_java_lang_RuntimeException =
+		load_class_bootstrap(utf_java_lang_RuntimeException);
+
 	/* Some classes which may be used often. */
 
 #if defined(ENABLE_JAVASE)
@@ -1643,8 +1653,10 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		/* XXX This should be done better. */
 		tc = resolve_classref_or_classinfo_eager(CLASSREF_OR_CLASSINFO(cr), false);
 
-		if (tc == NULL)
+		if (tc == NULL) {
+			resolve_handle_pending_exception(true);
 			return false;
+		}
 
 		/* Interfaces are not allowed as super classes. */
 
