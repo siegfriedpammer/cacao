@@ -1,4 +1,4 @@
-/* tests/regression/bugzilla/All.java - runs all CACAO regression unit tests
+/* tests/regression/bugzilla/PR57.java
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -26,27 +26,21 @@
 import junit.framework.*;
 import junit.textui.*;
 
-public class All extends TestCase {
-    /**
-     * Runs all CACAO regression unit tests using
-     * junit.textui.TestRunner
-     */
+public class PR57 extends TestCase {
     public static void main(String[] args) {
-        Test s = suite();
-        TestRunner.run(s);
+        TestRunner.run(suite());
     }
 
-    /**
-     * Collects all CACAO regression unit tests as one suite
-     */
     public static Test suite() {
-        TestSuite suite = new TestSuite("CACAO Regression Unit Tests");
+        return new TestSuite(PR57.class);
+    }
 
-        // Add your test here.
-
-        suite.addTest(new TestSuite(PR52.class));
-        suite.addTest(new TestSuite(PR57.class));
-
-        return suite;
+    public void test() {
+        try {
+            Class.forName("x");
+            fail("Should throw ClassNotFoundException");
+        }
+        catch (ClassNotFoundException success) {
+        }
     }
 }
