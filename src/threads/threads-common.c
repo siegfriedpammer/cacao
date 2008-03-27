@@ -735,6 +735,168 @@ void threads_thread_start(java_handle_t *object)
 }
 
 
+/* threads_attach_current_thread ***********************************************
+
+   Attaches the current thread to the VM.  Used in JNI.
+
+*******************************************************************************/
+
+bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
+{
+	threadobject          *thread;
+	utf                   *u;
+	java_handle_t         *s;
+	java_handle_t         *o;
+	java_lang_Thread      *t;
+
+#if defined(ENABLE_JAVASE)
+	java_lang_ThreadGroup *group;
+	threadobject          *mainthread;
+	java_lang_Thread      *mainthreado;
+	classinfo             *c;
+	methodinfo            *m;
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_VMThread    *vmt;
+#endif
+
+	/* Enter the join-mutex, so if the main-thread is currently
+	   waiting to join all threads, the number of non-daemon threads
+	   is correct. */
+
+	threads_mutex_join_lock();
+
+	/* create internal thread data-structure */
+
+	thread = threads_thread_new();
+
+	/* thread is a Java thread and running */
+
+	thread->flags = THREAD_FLAG_JAVA;
+
+	if (isdaemon)
+		thread->flags |= THREAD_FLAG_DAEMON;
+
+	/* The thread is flagged and (non-)daemon thread, we can leave the
+	   mutex. */
+
+	threads_mutex_join_unlock();
+
+	/* create a java.lang.Thread object */
+
+	t = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
+
+	/* XXX memory leak!!! */
+	if (t == NULL)
+		return false;
+
+	threads_thread_set_object(thread, (java_handle_t *) t);
+
+	/* thread is completely initialized */
+
+	threads_thread_state_runnable(thread);
+
+	DEBUGTHREADS("attaching", thread);
+
+#if defined(ENABLE_INTRP)
+	/* create interpreter stack */
+
+	if (opt_intrp) {
+		MSET(intrp_main_stack, 0, u1, opt_stacksize);
+		thread->_global_sp = (Cell *) (intrp_main_stack + opt_stacksize);
+	}
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+
+	/* create a java.lang.VMThread object */
+
+	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
+
+	/* XXX memory leak!!! */
+	if (vmt == NULL)
+		return false;
+
+	/* set the thread */
+
+	LLNI_field_set_ref(vmt, thread, t);
+	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) thread);
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+	vm_abort("threads_attach_current_thread: IMPLEMENT ME!");
+
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+
+	LLNI_field_set_val(t, vm_thread, (java_lang_Object *) thread);
+
+#else
+# error unknown classpath configuration
+#endif
+
+	if (vm_aargs != NULL) {
+		u     = utf_new_char(vm_aargs->name);
+#if defined(ENABLE_JAVASE)
+		group = (java_lang_ThreadGroup *) vm_aargs->group;
+#endif
+	}
+	else {
+		u     = utf_null;
+#if defined(ENABLE_JAVASE)
+		/* get the main thread */
+
+		mainthread = threadlist_first();
+		mainthreado = (java_lang_Thread *) threads_thread_get_object(mainthread);
+		LLNI_field_get_ref(mainthreado, group, group);
+#endif
+	}
+
+	/* the the thread name */
+
+	s = javastring_new(u);
+
+	/* for convenience */
+
+	o = (java_handle_t *) t;
+
+#if defined(WITH_CLASSPATH_GNU)
+	(void) vm_call_method(thread_method_init, o, vmt, s, NORM_PRIORITY,
+						  isdaemon);
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+	(void) vm_call_method(thread_method_init, o, s);
+#endif
+
+	if (exceptions_get_exception())
+		return false;
+
+#if defined(ENABLE_JAVASE)
+	/* store the thread group in the object */
+
+	LLNI_field_set_ref(t, group, group);
+
+	/* add thread to given thread-group */
+
+	LLNI_class_get(group, c);
+
+	m = class_resolveclassmethod(c,
+								 utf_addThread,
+								 utf_java_lang_Thread__V,
+								 class_java_lang_ThreadGroup,
+								 true);
+
+	o = (java_handle_t *) group;
+
+	(void) vm_call_method(m, o, t);
+
+	if (exceptions_get_exception())
+		return false;
+#endif
+
+	return true;
+}
+
+
 /* threads_thread_print_info ***************************************************
 
    Print information of the passed thread.

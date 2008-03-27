@@ -39,7 +39,7 @@ typedef struct threadobject threadobject;
 #include "vm/types.h"
 
 #include "mm/memory.h"
-#include "native/jni.h"
+
 #include "native/localref.h"
 
 #include "threads/posix/lock.h"
@@ -225,7 +225,6 @@ void threads_start_thread(threadobject *thread, functionptr function);
 
 void threads_set_thread_priority(pthread_t tid, int priority);
 
-bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
 bool threads_detach_thread(threadobject *thread);
 
 bool threads_suspend_thread(threadobject *thread, s4 reason);

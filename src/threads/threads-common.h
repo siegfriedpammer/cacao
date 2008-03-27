@@ -38,6 +38,7 @@
 
 #include "vm/global.h"
 
+#include "native/jni.h"
 #include "native/llni.h"
 
 #include "vmcore/utf8.h"
@@ -147,6 +148,8 @@ void          threads_thread_free(threadobject *t);
 
 bool          threads_thread_start_internal(utf *name, functionptr f);
 void          threads_thread_start(java_handle_t *object);
+
+bool          threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
 
 void          threads_thread_print_info(threadobject *t);
 
