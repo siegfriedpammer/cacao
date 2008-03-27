@@ -27,14 +27,14 @@
 
 #include <stdint.h>
 
-#if defined(WITH_CLASSPATH_SUN)
-# include <string.h>
-#endif
-
 #include "native/vm/nativevm.h"
 
+#include "vm/initialize.h"
+
+#include "vmcore/class.h"
 #include "vmcore/method.h"
 #include "vmcore/options.h"
+#include "vmcore/system.h"
 
 #if defined(WITH_CLASSPATH_SUN)
 # include "mm/memory.h"
@@ -44,7 +44,6 @@
 # include "vm/properties.h"
 # include "vm/vm.h"
 
-# include "vmcore/class.h"
 # include "vmcore/utf8.h"
 #endif
 
@@ -55,12 +54,11 @@
 
 *******************************************************************************/
 
-bool nativevm_preinit(void)
+void nativevm_preinit(void)
 {
-	/* register native methods of all classes implemented */
+	/* Register native methods of all classes implemented. */
 
 #if defined(ENABLE_JAVASE)
-
 # if defined(WITH_CLASSPATH_GNU)
 
 	TRACESUBSYSTEMINITIALIZATION("nativevm_preinit");
@@ -105,14 +103,14 @@ bool nativevm_preinit(void)
 	boot_library_path = properties_get("sun.boot.library.path");
 
 	len =
-		strlen(boot_library_path) +
-		strlen("/libjava.so") +
-		strlen("0");
+		system_strlen(boot_library_path) +
+		system_strlen("/libjava.so") +
+		system_strlen("0");
 
 	p = MNEW(char, len);
 
-	strcpy(p, boot_library_path);
-	strcat(p, "/libjava.so");
+	system_strcpy(p, boot_library_path);
+	system_strcat(p, "/libjava.so");
 
 	u = utf_new_char(p);
 
@@ -124,9 +122,7 @@ bool nativevm_preinit(void)
 	_Jv_sun_misc_Unsafe_init();
 
 # else
-
 #  error unknown classpath configuration
-
 # endif
 
 #elif defined(ENABLE_JAVAME_CLDC1_1)
@@ -149,14 +145,8 @@ bool nativevm_preinit(void)
 	_Jv_java_lang_Throwable_init();
 
 #else
-
 # error unknown Java configuration
-
 #endif
-
-	/* everything's ok */
-
-	return true;
 }
 
 
@@ -166,7 +156,7 @@ bool nativevm_preinit(void)
 
 *******************************************************************************/
 
-bool nativevm_init(void)
+void nativevm_init(void)
 {
 #if defined(ENABLE_JAVASE)
 
@@ -189,14 +179,12 @@ bool nativevm_init(void)
 								 false);
 
 	if (m == NULL)
-		return false;
+		vm_abort("nativevm_init: Error resolving java.lang.System.initializeSystemClass()");
 
 	(void) vm_call_method(m, NULL);
 
 # else
-
 #  error unknown classpath configuration
-
 # endif
 
 #elif defined(ENABLE_JAVAME_CLDC1_1)
@@ -206,14 +194,8 @@ bool nativevm_init(void)
 	/* nothing to do */
 
 #else
-
 # error unknown Java configuration
-
 #endif
-
-	/* everything's ok */
-
-	return true;
 }
 
 

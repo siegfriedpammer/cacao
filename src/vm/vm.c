@@ -1529,8 +1529,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	/* Register the native methods implemented in the VM. */
 	/* BEFORE: threads_init */
 
-	if (!nativevm_preinit())
-		vm_abort("vm_create: nativevm_preinit failed");
+	nativevm_preinit();
 
 #if defined(ENABLE_JNI)
 	/* Initialize the JNI subsystem (must be done _before_
@@ -1549,6 +1548,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		vm_abort("vm_create: localref_table_init failed");
 #endif
 
+	/* Iinitialize some important system classes. */
+	/* BEFORE: threads_init */
+
+	initialize_init();
+
 #if defined(ENABLE_THREADS)
   	threads_init();
 #endif
@@ -1556,8 +1560,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	/* Initialize the native VM subsystem. */
 	/* AFTER: threads_init (at least for SUN's classes) */
 
-	if (!nativevm_init())
-		vm_abort("vm_create: nativevm_init failed");
+	nativevm_init();
 
 #if defined(ENABLE_PROFILING)
 	/* initialize profiling */

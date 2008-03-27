@@ -1,9 +1,7 @@
 /* src/vm/initialize.c - static class initializer functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -55,6 +53,48 @@
 
 static bool initialize_class_intern(classinfo *c);
 
+
+/* initialize_init *************************************************************
+
+   Initialize important system classes.
+
+*******************************************************************************/
+
+void initialize_init(void)
+{
+	TRACESUBSYSTEMINITIALIZATION("initialize_init");
+
+#if defined(ENABLE_JAVASE)
+# if defined(WITH_CLASSPATH_GNU)
+
+	/* Nothing. */
+
+# elif defined(WITH_CLASSPATH_SUN)
+
+	if (!initialize_class(class_java_lang_String))
+		vm_abort("initialize_init: Initialization failed: java.lang.String");
+
+	if (!initialize_class(class_java_lang_System))
+		vm_abort("initialize_init: Initialization failed: java.lang.System");
+
+	if (!initialize_class(class_java_lang_ThreadGroup))
+		vm_abort("initialize_init: Initialization failed: java.lang.ThreadGroup");
+
+	if (!initialize_class(class_java_lang_Thread))
+		vm_abort("initialize_init: Initialization failed: java.lang.Thread");
+
+# else
+#  error unknown classpath configuration
+# endif
+
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+
+	/* Nothing. */
+
+#else
+# error unknown Java configuration
+#endif
+}
 
 /* initialize_class ************************************************************
 

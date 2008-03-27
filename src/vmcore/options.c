@@ -152,57 +152,64 @@ const char *opt_filter_show_method = 0;
 
 /* NOTE: For better readability keep these alpha-sorted. */
 
-int   opt_DebugExceptions              = 0;
-int   opt_DebugFinalizer               = 0;
-int   opt_DebugLocalReferences         = 0;
-int   opt_DebugLocks                   = 0;
-int   opt_DebugPackage                 = 0;
-int   opt_DebugPatcher                 = 0;
-int   opt_DebugProperties              = 0;
-int   opt_DebugStackFrameInfo          = 0;
-int   opt_DebugStackTrace              = 0;
-int   opt_DebugThreads                 = 0;
+/* Options which must always be available (production options in
+   HotSpot). */
+
+int64_t  opt_MaxDirectMemorySize          = -1;
+int      opt_MaxPermSize                  = 0;
+int      opt_PermSize                     = 0;
+int      opt_ThreadStackSize              = 0;
+
+/* Debugging options which can be turned off. */
+
+int      opt_DebugExceptions              = 0;
+int      opt_DebugFinalizer               = 0;
+int      opt_DebugLocalReferences         = 0;
+int      opt_DebugLocks                   = 0;
+int      opt_DebugPackage                 = 0;
+int      opt_DebugPatcher                 = 0;
+int      opt_DebugProperties              = 0;
+int      opt_DebugStackFrameInfo          = 0;
+int      opt_DebugStackTrace              = 0;
+int      opt_DebugThreads                 = 0;
 #if defined(ENABLE_DISASSEMBLER)
-int   opt_DisassembleStubs             = 0;
+int      opt_DisassembleStubs             = 0;
 #endif
 #if defined(ENABLE_GC_CACAO)
-int   opt_GCDebugRootSet               = 0;
-int   opt_GCStress                     = 0;
+int      opt_GCDebugRootSet               = 0;
+int      opt_GCStress                     = 0;
 #endif
 #if defined(ENABLE_INLINING)
-int   opt_Inline                       = 0;
+int      opt_Inline                       = 0;
 #if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
-int   opt_InlineAll                    = 0;
-int   opt_InlineCount                  = INT_MAX;
-int   opt_InlineMaxSize                = INT_MAX;
-int   opt_InlineMinSize                = 0;
+int      opt_InlineAll                    = 0;
+int      opt_InlineCount                  = INT_MAX;
+int      opt_InlineMaxSize                = INT_MAX;
+int      opt_InlineMinSize                = 0;
 #endif
 #endif
-int   opt_MaxPermSize                  = 0;
-int   opt_PermSize                     = 0;
-int   opt_PrintConfig                  = 0;
-int   opt_ProfileGCMemoryUsage         = 0;
-int   opt_ProfileMemoryUsage           = 0;
-FILE *opt_ProfileMemoryUsageGNUPlot    = NULL;
+int      opt_PrintConfig                  = 0;
+int      opt_ProfileGCMemoryUsage         = 0;
+int      opt_ProfileMemoryUsage           = 0;
+FILE    *opt_ProfileMemoryUsageGNUPlot    = NULL;
 #if defined(ENABLE_REPLACEMENT)
-int   opt_TestReplacement              = 0;
+int      opt_TestReplacement              = 0;
 #endif
-int   opt_ThreadStackSize              = 0;
-int   opt_TraceCompilerCalls           = 0;
-int   opt_TraceExceptions              = 0;
+int      opt_TraceCompilerCalls           = 0;
+int      opt_TraceExceptions              = 0;
 #if defined(ENABLE_INLINING) && !defined(NDEBUG)
-int   opt_TraceInlining                = 0;
+int      opt_TraceInlining                = 0;
 #endif
-int   opt_TraceJavaCalls               = 0;
-int   opt_TraceJNICalls                = 0;
-int   opt_TraceJVMCalls                = 0;
-int   opt_TraceJVMCallsVerbose         = 0;
-int   opt_TraceLinkClass               = 0;
+int      opt_TraceJavaCalls               = 0;
+int      opt_TraceJNICalls                = 0;
+int      opt_TraceJVMCalls                = 0;
+int      opt_TraceJVMCallsVerbose         = 0;
+int      opt_TraceLinkClass               = 0;
 #if defined(ENABLE_REPLACEMENT)
-int   opt_TraceReplacement             = 0;
+int      opt_TraceReplacement             = 0;
 #endif
-int   opt_TraceSubsystemInitialization = 0;
-int   opt_TraceTraps                   = 0;
+int      opt_TraceSubsystemInitialization = 0;
+int      opt_TraceTraps                   = 0;
 
 
 enum {
@@ -211,6 +218,16 @@ enum {
 };
 
 enum {
+	/* Options which must always be available (production options in
+	   HotSpot). */
+
+	OPT_MaxDirectMemorySize,
+	OPT_MaxPermSize,
+	OPT_PermSize,
+	OPT_ThreadStackSize,
+
+	/* Debugging options which can be turned off. */
+
 	OPT_DebugExceptions,
 	OPT_DebugFinalizer,
 	OPT_DebugLocalReferences,
@@ -229,14 +246,11 @@ enum {
 	OPT_InlineCount,
 	OPT_InlineMaxSize,
 	OPT_InlineMinSize,
-	OPT_MaxPermSize,
-	OPT_PermSize,
 	OPT_PrintConfig,
 	OPT_ProfileGCMemoryUsage,
 	OPT_ProfileMemoryUsage,
 	OPT_ProfileMemoryUsageGNUPlot,
 	OPT_TestReplacement,
-	OPT_ThreadStackSize,
 	OPT_TraceCompilerCalls,
 	OPT_TraceExceptions,
 	OPT_TraceInlining,
@@ -255,6 +269,16 @@ enum {
 
 
 option_t options_XX[] = {
+	/* Options which must always be available (production options in
+	   HotSpot). */
+
+	{ "MaxDirectMemorySize",          OPT_MaxDirectMemorySize,          OPT_TYPE_VALUE,   "Maximum total size of NIO direct-buffer allocations" },
+	{ "MaxPermSize",                  OPT_MaxPermSize,                  OPT_TYPE_VALUE,   "not implemented" },
+	{ "PermSize",                     OPT_PermSize,                     OPT_TYPE_VALUE,   "not implemented" },
+	{ "ThreadStackSize",              OPT_ThreadStackSize,              OPT_TYPE_VALUE,   "TODO" },
+
+	/* Debugging options which can be turned off. */
+
 	{ "DebugExceptions",              OPT_DebugExceptions,              OPT_TYPE_BOOLEAN, "debug exceptions" },
 	{ "DebugFinalizer",               OPT_DebugFinalizer,               OPT_TYPE_BOOLEAN, "debug finalizer thread" },
 	{ "DebugLocalReferences",         OPT_DebugLocalReferences,         OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
@@ -281,8 +305,6 @@ option_t options_XX[] = {
 	{ "InlineMinSize",                OPT_InlineMinSize,                OPT_TYPE_VALUE,   "minimum size for inlined result" },
 #endif
 #endif
-	{ "MaxPermSize",                  OPT_MaxPermSize,                  OPT_TYPE_VALUE,   "not implemented" },
-	{ "PermSize",                     OPT_PermSize,                     OPT_TYPE_VALUE,   "not implemented" },
 	{ "PrintConfig",                  OPT_PrintConfig,                  OPT_TYPE_BOOLEAN, "print VM configuration" },
 	{ "ProfileGCMemoryUsage",         OPT_ProfileGCMemoryUsage,         OPT_TYPE_VALUE,   "profiles GC memory usage in the given interval, <value> is in seconds (default: 5)" },
 	{ "ProfileMemoryUsage",           OPT_ProfileMemoryUsage,           OPT_TYPE_VALUE,   "TODO" },
@@ -290,7 +312,6 @@ option_t options_XX[] = {
 #if defined(ENABLE_REPLACEMENT)
 	{ "TestReplacement",              OPT_TestReplacement,              OPT_TYPE_BOOLEAN, "activate all replacement points during code generation" },
 #endif
-	{ "ThreadStackSize",              OPT_ThreadStackSize,              OPT_TYPE_VALUE,   "TODO" },
 	{ "TraceCompilerCalls",           OPT_TraceCompilerCalls,           OPT_TYPE_BOOLEAN, "trace JIT compiler calls" },
 	{ "TraceExceptions",              OPT_TraceExceptions,              OPT_TYPE_BOOLEAN, "trace Exception throwing" },
 #if defined(ENABLE_INLINING) && !defined(NDEBUG)
@@ -326,10 +347,10 @@ option_t options_XX[] = {
 
 *******************************************************************************/
 
-s4 options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
+int options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
 {
 	char *option;
-	s4    i;
+	int   i;
 
 	if (opt_index >= vm_args->nOptions)
 		return OPT_DONE;
@@ -564,6 +585,28 @@ void options_xx(JavaVMInitArgs *vm_args)
 		/* Process the option. */
 
 		switch (opt->value) {
+
+		/* Options which must always be available (production options
+		   in HotSpot). */
+
+		case OPT_MaxDirectMemorySize:
+			opt_MaxDirectMemorySize = system_atoi(value);
+			break;
+
+		case OPT_MaxPermSize:
+			/* Currently ignored. */
+			break;
+
+		case OPT_PermSize:
+			/* Currently ignored. */
+			break;
+
+		case OPT_ThreadStackSize:
+			/* currently ignored */
+			break;
+
+		/* Debugging options which can be turned off. */
+
 		case OPT_DebugExceptions:
 			opt_DebugExceptions = enable;
 			break;
@@ -631,28 +674,20 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 		case OPT_InlineCount:
 			if (value != NULL)
-				opt_InlineCount = atoi(value);
+				opt_InlineCount = system_atoi(value);
 			break;
 
 		case OPT_InlineMaxSize:
 			if (value != NULL)
-				opt_InlineMaxSize = atoi(value);
+				opt_InlineMaxSize = system_atoi(value);
 			break;
 
 		case OPT_InlineMinSize:
 			if (value != NULL)
-				opt_InlineMinSize = atoi(value);
+				opt_InlineMinSize = system_atoi(value);
 			break;
 #endif
 #endif
-
-		case OPT_MaxPermSize:
-			/* currently ignored */
-			break;
-
-		case OPT_PermSize:
-			/* currently ignored */
-			break;
 
 		case OPT_PrintConfig:
 			opt_PrintConfig = enable;
@@ -662,14 +697,14 @@ void options_xx(JavaVMInitArgs *vm_args)
 			if (value == NULL)
 				opt_ProfileGCMemoryUsage = 5;
 			else
-				opt_ProfileGCMemoryUsage = atoi(value);
+				opt_ProfileGCMemoryUsage = system_atoi(value);
 			break;
 
 		case OPT_ProfileMemoryUsage:
 			if (value == NULL)
 				opt_ProfileMemoryUsage = 5;
 			else
-				opt_ProfileMemoryUsage = atoi(value);
+				opt_ProfileMemoryUsage = system_atoi(value);
 
 # if defined(ENABLE_STATISTICS)
 			/* we also need statistics */
@@ -698,10 +733,6 @@ void options_xx(JavaVMInitArgs *vm_args)
 			break;
 #endif
 
-		case OPT_ThreadStackSize:
-			/* currently ignored */
-			break;
-
 		case OPT_TraceCompilerCalls:
 			opt_TraceCompilerCalls = enable;
 			break;
@@ -715,7 +746,7 @@ void options_xx(JavaVMInitArgs *vm_args)
 			if (value == NULL)
 				opt_TraceInlining = 1;
 			else
-				opt_TraceInlining = atoi(value);
+				opt_TraceInlining = system_atoi(value);
 			break;
 #endif
 
@@ -745,7 +776,7 @@ void options_xx(JavaVMInitArgs *vm_args)
 			if (value == NULL)
 				opt_TraceReplacement = 1;
 			else
-				opt_TraceReplacement = atoi(value);
+				opt_TraceReplacement = system_atoi(value);
 			break;
 #endif
 

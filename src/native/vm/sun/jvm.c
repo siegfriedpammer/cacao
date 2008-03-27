@@ -265,10 +265,21 @@ void JVM_ArrayCopy(JNIEnv *env, jclass ignored, jobject src, jint src_pos, jobje
 jobject JVM_InitProperties(JNIEnv *env, jobject properties)
 {
 	java_handle_t *h;
+	char           buf[256];
 
 	TRACEJVMCALLS(("JVM_InitProperties(env=%p, properties=%p)", env, properties));
 
 	h = (java_handle_t *) properties;
+
+	/* Convert the -XX:MaxDirectMemorySize= command line flag to the
+	   sun.nio.MaxDirectMemorySize property.  Do this after setting
+	   user properties to prevent people from setting the value with a
+	   -D option, as requested. */
+
+	jio_snprintf(buf, sizeof(buf), PRINTF_FORMAT_INT64_T, opt_MaxDirectMemorySize);
+	properties_add("sun.nio.MaxDirectMemorySize", buf);
+
+	/* Add all properties. */
 
 	properties_system_add_all(h);
 

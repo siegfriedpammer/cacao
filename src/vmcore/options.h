@@ -171,62 +171,69 @@ extern const char *opt_filter_show_method;
 
 /* NOTE: For better readability keep these alpha-sorted. */
 
-extern int   opt_DebugExceptions;
-extern int   opt_DebugFinalizer;
-extern int   opt_DebugLocalReferences;
-extern int   opt_DebugLocks;
-extern int   opt_DebugPatcher;
-extern int   opt_DebugPackage;
-extern int   opt_DebugProperties;
-extern int   opt_DebugStackFrameInfo;
-extern int   opt_DebugStackTrace;
-extern int   opt_DebugThreads;
+/* Options which must always be available (production options in
+   HotSpot). */
+
+extern int64_t  opt_MaxDirectMemorySize;
+extern int      opt_MaxPermSize;
+extern int      opt_PermSize;
+extern int      opt_ThreadStackSize;
+
+/* Debugging options which can be turned off. */
+
+extern int      opt_DebugExceptions;
+extern int      opt_DebugFinalizer;
+extern int      opt_DebugLocalReferences;
+extern int      opt_DebugLocks;
+extern int      opt_DebugPatcher;
+extern int      opt_DebugPackage;
+extern int      opt_DebugProperties;
+extern int      opt_DebugStackFrameInfo;
+extern int      opt_DebugStackTrace;
+extern int      opt_DebugThreads;
 #if defined(ENABLE_DISASSEMBLER)
-extern int   opt_DisassembleStubs;
+extern int      opt_DisassembleStubs;
 #endif
 #if defined(ENABLE_GC_CACAO)
-extern int   opt_GCDebugRootSet;
-extern int   opt_GCStress;
+extern int      opt_GCDebugRootSet;
+extern int      opt_GCStress;
 #endif
 #if defined(ENABLE_INLINING)
-extern int   opt_Inline;
+extern int      opt_Inline;
 #if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
-extern int   opt_InlineAll;
-extern int   opt_InlineCount;
-extern int   opt_InlineMaxSize;
-extern int   opt_InlineMinSize;
+extern int      opt_InlineAll;
+extern int      opt_InlineCount;
+extern int      opt_InlineMaxSize;
+extern int      opt_InlineMinSize;
 #endif
 #endif
-extern int   opt_MaxPermSize;
-extern int   opt_PermSize;
-extern int   opt_PrintConfig;
-extern int   opt_ProfileGCMemoryUsage;
-extern int   opt_ProfileMemoryUsage;
-extern FILE *opt_ProfileMemoryUsageGNUPlot;
+extern int      opt_PrintConfig;
+extern int      opt_ProfileGCMemoryUsage;
+extern int      opt_ProfileMemoryUsage;
+extern FILE    *opt_ProfileMemoryUsageGNUPlot;
 #if defined(ENABLE_REPLACEMENT)
-extern int   opt_TestReplacement;
+extern int      opt_TestReplacement;
 #endif
-extern int   opt_ThreadStackSize;
-extern int   opt_TraceCompilerCalls;
-extern int   opt_TraceExceptions;
+extern int      opt_TraceCompilerCalls;
+extern int      opt_TraceExceptions;
 #if defined(ENABLE_INLINING) && !defined(NDEBUG)
-extern int   opt_TraceInlining;
+extern int      opt_TraceInlining;
 #endif
-extern int   opt_TraceJavaCalls;
-extern int   opt_TraceJNICalls;
-extern int   opt_TraceJVMCalls;
-extern int   opt_TraceJVMCallsVerbose;
-extern int   opt_TraceLinkClass;
+extern int      opt_TraceJavaCalls;
+extern int      opt_TraceJNICalls;
+extern int      opt_TraceJVMCalls;
+extern int      opt_TraceJVMCallsVerbose;
+extern int      opt_TraceLinkClass;
 #if defined(ENABLE_REPLACEMENT)
-extern int   opt_TraceReplacement;
+extern int      opt_TraceReplacement;
 #endif
-extern int   opt_TraceSubsystemInitialization;
-extern int   opt_TraceTraps;
+extern int      opt_TraceSubsystemInitialization;
+extern int      opt_TraceTraps;
 
 
 /* function prototypes ********************************************************/
 
-s4   options_get(opt_struct *opts, JavaVMInitArgs *vm_args);
+int  options_get(opt_struct *opts, JavaVMInitArgs *vm_args);
 void options_xx(JavaVMInitArgs *vm_args);
 
 

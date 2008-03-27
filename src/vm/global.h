@@ -1,9 +1,7 @@
 /* src/vm/global.h - global definitions
 
-   Copyright (C) 1996-2005, 2007, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -46,7 +44,6 @@ typedef unsigned int bool;              /* boolean data type                  */
 #define true         1
 #define false        0
 
-
 #if defined(ENABLE_SSA)
 /* immediate to get an addidional target Local Var Index */
 /* for IINC in Combination with SSA */
@@ -78,6 +75,17 @@ typedef union {
 #define ALIGN_ODD(a)                    ((a) =   (a) | 1       )
 
 #define ALIGN_2(a)                      ALIGN_EVEN(a)
+
+
+/* printf format defines ******************************************************/
+
+/* Define printf formats which change size between 32- and 64-bit. */
+
+#if SIZEOF_VOID_P == 8
+# define PRINTF_FORMAT_INT64_T    "%ld"
+#else
+# define PRINTF_FORMAT_INT64_T    "%lld"
+#endif
 
 
 /* forward typedefs ***********************************************************/

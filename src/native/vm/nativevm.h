@@ -1,9 +1,7 @@
 /* src/native/vm/nativevm.h - register the native functions
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -36,11 +34,10 @@
 
 /* function prototypes ********************************************************/
 
-bool nativevm_preinit(void);
-bool nativevm_init(void);
+void nativevm_preinit(void);
+void nativevm_init(void);
 
 #if defined(ENABLE_JAVASE)
-
 # if defined(WITH_CLASSPATH_GNU)
 
 void _Jv_gnu_classpath_VMStackWalker_init();
@@ -75,9 +72,7 @@ void _Jv_sun_reflect_ConstantPool_init();
 void _Jv_sun_misc_Unsafe_init();
 
 # else
-
 #  error unknown classpath configuration
-
 # endif
 
 #elif defined(ENABLE_JAVAME_CLDC1_1)
@@ -98,9 +93,7 @@ void _Jv_java_lang_Thread_init();
 void _Jv_java_lang_Throwable_init();
 
 #else
-
 # error unknown Java configuration
-
 #endif
 
 #endif /* _NATIVEVM_H */
