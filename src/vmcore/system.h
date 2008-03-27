@@ -111,6 +111,15 @@ inline static int system_access(const char *pathname, int mode)
 #endif
 }
 
+inline static int system_atoi(const char *nptr)
+{
+#if defined(HAVE_ATOI)
+	return atoi(nptr);
+#else
+# error atoi not available
+#endif
+}
+
 inline static void *system_calloc(size_t nmemb, size_t size)
 {
 #if defined(HAVE_CALLOC)
@@ -362,6 +371,24 @@ inline static int system_stat(const char *path, struct stat *buf)
 	return stat(path, buf);
 #else
 # error stat not available
+#endif
+}
+
+inline static char *system_strcat(char *dest, const char *src)
+{
+#if defined(HAVE_STRCAT)
+	return strcat(dest, src);
+#else
+# error strcat not available
+#endif
+}
+
+inline static char *system_strcpy(char *dest, const char *src)
+{
+#if defined(HAVE_STRCPY)
+	return strcpy(dest, src);
+#else
+# error strcpy not available
 #endif
 }
 
