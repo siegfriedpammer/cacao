@@ -3192,7 +3192,7 @@ normal_ACONST:
 						i = stackdepth - 1;
 						while (copy) {
 							if ((copy->varkind == LOCALVAR) &&
-								(copy->varnum == iptr->s1.varindex))
+								(jd->reverselocalmap[copy->varnum] == javaindex))
 							{
 								assert(IS_LOCALVAR(copy));
 								SET_TEMPVAR(copy);
@@ -3269,7 +3269,7 @@ normal_ACONST:
 						i = stackdepth - 2;
 						while (copy) {
 							if ((copy->varkind == LOCALVAR) &&
-								(copy->varnum == varindex))
+								(jd->reverselocalmap[copy->varnum] == javaindex))
 							{
 								copy->varkind = TEMPVAR;
 								assert(IS_LOCALVAR(copy));
@@ -3301,7 +3301,7 @@ normal_ACONST:
 
 						copy = sd.new; /* most recent stackslot created + 1 */
 						while (--copy > curstack) {
-							if (copy->varkind == LOCALVAR && copy->varnum == varindex)
+							if (copy->varkind == LOCALVAR && jd->reverselocalmap[copy->varnum] == javaindex)
 								goto assume_conflict;
 						}
 
@@ -3324,7 +3324,7 @@ normal_ACONST:
 						/* revert the coalescing, if it has been done earlier */
 assume_conflict:
 						if ((curstack->varkind == LOCALVAR)
-							&& (curstack->varnum == varindex))
+							&& (jd->reverselocalmap[curstack->varnum] == javaindex))
 						{
 							assert(IS_LOCALVAR(curstack));
 							SET_TEMPVAR(curstack);
