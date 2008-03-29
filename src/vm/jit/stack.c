@@ -3182,10 +3182,11 @@ normal_ACONST:
 
 					case ICMD_IINC:
 						STATISTICS_STACKDEPTH_DISTRIBUTION(count_store_depth);
-						last_store_boundary[iptr->s1.varindex] = sd.new;
+						javaindex = iptr->s1.varindex;
+						last_store_boundary[javaindex] = sd.new;
 
 						iptr->s1.varindex = 
-							jd->local_map[iptr->s1.varindex * 5 + TYPE_INT];
+							jd->local_map[javaindex * 5 + TYPE_INT];
 
 						copy = curstack;
 						i = stackdepth - 1;
