@@ -148,6 +148,9 @@ struct jitdata {
 	                 /*     >= 0......index into jd->var, or                  */
 					 /*     UNUSED....this (javaindex,type) pair is not used  */
 
+	s4              *reverselocalmap; /* map from CACAO varindex to javaindex */
+	                                  /* (varindex must be < localcount)      */
+
 	s4               maxlocals;       /* max. number of javalocals            */
 
 	interface_info  *interface_map;   /* interface variables (for simplereg)  */

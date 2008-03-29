@@ -1824,7 +1824,10 @@ invoke_method:
 	{
 		s4 nlocals = 0;
 		s4 i;
+		s4 t;
+		s4 varindex;
 		s4 *mapptr;
+		s4 *reversemap;
 
 		mapptr = local_map;
 
@@ -1871,10 +1874,20 @@ invoke_method:
 		MZERO(jd->var, varinfo, jd->varcount);
 
 		/* set types of all locals in jd->var */
+		/* and fill the reverselocalmap       */
 
-		for (mapptr = local_map, i = 0; i < (m->maxlocals * 5); i++, mapptr++)
-			if (*mapptr != UNUSED)
-				VAR(*mapptr)->type = i%5;
+		reversemap = DMNEW(s4, nlocals);
+
+		for (i = 0; i < m->maxlocals; i++)
+			for (t=0; t<5; t++) {
+				varindex = local_map[5*i + t];
+				if (varindex != UNUSED) {
+					VAR(varindex)->type = t;
+					reversemap[varindex] = i;
+				}
+			}
+
+		jd->reverselocalmap = reversemap;
 	}
 
 	/* assign local variables to method variables */

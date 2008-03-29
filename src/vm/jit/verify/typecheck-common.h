@@ -248,7 +248,6 @@ typedef struct verifier_state {
 	
 	s4 numlocals;                         /* number of local variables */
 	s4 validlocals;                /* number of Java-accessible locals */
-	s4 *reverselocalmap;
 	
 	typedescriptor returntype;    /* return type of the current method */
 

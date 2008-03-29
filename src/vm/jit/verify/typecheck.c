@@ -422,7 +422,7 @@ static void typecheck_invalidate_locals(verifier_state *state, s4 index, bool tw
 	s4 *localmap = jd->local_map;
 	varinfo *vars = jd->var;
 
-	javaindex = state->reverselocalmap[index];
+	javaindex = jd->reverselocalmap[index];
 
 	/* invalidate locals of two-word type at index javaindex-1 */
 
@@ -744,18 +744,10 @@ bool typecheck(jitdata *jd)
     if (state.initmethod) 
 		state.numlocals++; /* VERIFIER_EXTRA_LOCALS */
 
-	state.reverselocalmap = DMNEW(s4, state.validlocals);
-	for (i=0; i<jd->maxlocals; ++i)
-		for (t=0; t<5; ++t) {
-			s4 varindex = jd->local_map[5*i + t];
-			if (varindex >= 0)
-				state.reverselocalmap[varindex] = i;
-		}
-
 	DOLOG(
 		LOG("reverselocalmap:");
 		for (i=0; i<state.validlocals; ++i) {
-			LOG2("    %i => javaindex %i", i, state.reverselocalmap[i]);
+			LOG2("    %i => javaindex %i", i, jd->reverselocalmap[i]);
 		});
 
     /* allocate the buffer of active exception handlers */
