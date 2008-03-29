@@ -19,8 +19,6 @@
 #ifndef _VMLOG_CACAO_H_
 #define _VMLOG_CACAO_H_
 
-#include <threads/native/threads.h>
-
 void vmlog_cacao_init_options(void);
 
 void vmlog_cacao_set_prefix(const char *arg);
