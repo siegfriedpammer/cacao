@@ -3271,7 +3271,6 @@ normal_ACONST:
 							if ((copy->varkind == LOCALVAR) &&
 								(jd->reverselocalmap[copy->varnum] == javaindex))
 							{
-								copy->varkind = TEMPVAR;
 								assert(IS_LOCALVAR(copy));
 								SET_TEMPVAR(copy);
 							}
