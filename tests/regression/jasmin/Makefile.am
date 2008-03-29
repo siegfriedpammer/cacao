@@ -40,6 +40,7 @@ JASMIN_TESTS = \
 	$(srcdir)/test_iinc.j \
 	$(srcdir)/test_load_store_conflict_by_exception.j \
 	$(srcdir)/test_load_store_conflict_by_exception_not_thrown.j \
+	$(srcdir)/test_load_store_conflict_different_types.j \
 	$(srcdir)/test_load_store_conflict.j \
 	$(srcdir)/test_load_store_conflict_via_dup.j \
 	$(srcdir)/test_load_store_conflict_via_swap.j \
