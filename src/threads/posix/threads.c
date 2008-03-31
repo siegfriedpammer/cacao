@@ -222,9 +222,9 @@ static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos)
 /* This is either a thread-local variable defined with __thread, or           */
 /* a thread-specific value stored with key threads_current_threadobject_key.  */
 #if defined(HAVE___THREAD)
-__thread threadobject *threads_current_threadobject;
+__thread threadobject *thread_current;
 #else
-pthread_key_t threads_current_threadobject_key;
+pthread_key_t thread_current_key;
 #endif
 
 /* global mutex for stop-the-world                                            */
@@ -667,26 +667,6 @@ void threads_startworld(void)
 #endif
 
 
-/* threads_set_current_threadobject ********************************************
-
-   Set the current thread object.
-   
-   IN:
-      thread.......the thread object to set
-
-*******************************************************************************/
-
-void threads_set_current_threadobject(threadobject *thread)
-{
-#if !defined(HAVE___THREAD)
-	if (pthread_setspecific(threads_current_threadobject_key, thread) != 0)
-		vm_abort("threads_set_current_threadobject: pthread_setspecific failed: %s", strerror(errno));
-#else
-	threads_current_threadobject = thread;
-#endif
-}
-
-
 /* threads_impl_thread_init ****************************************************
 
    Initialize OS-level locking constructs in threadobject.
@@ -867,21 +847,6 @@ void threads_impl_thread_free(threadobject *t)
 #endif
 
 
-/* threads_get_current_threadobject ********************************************
-
-   Return the threadobject of the current thread.
-   
-   RETURN VALUE:
-       the current threadobject *
-
-*******************************************************************************/
-
-threadobject *threads_get_current_threadobject(void)
-{
-	return THREADOBJECT;
-}
-
-
 /* threads_impl_preinit ********************************************************
 
    Do some early initialization of stuff required.
@@ -919,7 +884,7 @@ void threads_impl_preinit(void)
 #endif
 
 #if !defined(HAVE___THREAD)
-	result = pthread_key_create(&threads_current_threadobject_key, NULL);
+	result = pthread_key_create(&thread_current_key, NULL);
 	if (result != 0)
 		vm_abort_errnum(result, "threads_impl_preinit: pthread_key_create failed");
 #endif
@@ -1090,9 +1055,9 @@ static void *threads_startup_thread(void *arg)
 	thread->mach_thread = mach_thread_self();
 #endif
 
-	/* store the internal thread data-structure in the TSD */
+	/* Store the internal thread data-structure in the TSD. */
 
-	threads_set_current_threadobject(thread);
+	thread_set_current(thread);
 
 	/* get the java.lang.Thread object for this thread */
 

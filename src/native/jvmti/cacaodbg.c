@@ -92,7 +92,7 @@ jvmtiError jvmti_get_all_threads (jint * threads_count_ptr,
 
 *******************************************************************************/
 jthread jvmti_get_current_thread() {
-	return (jthread)(threads_get_current_threadobject())->o.thread;
+	return (jthread)(thread_get_current)->o.thread;
 }
 
 

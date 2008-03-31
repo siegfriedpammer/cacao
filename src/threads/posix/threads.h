@@ -45,6 +45,7 @@ typedef struct threadobject threadobject;
 #include "threads/posix/lock.h"
 
 #include "vm/global.h"
+#include "vm/vm.h"
 
 #if defined(ENABLE_GC_CACAO)
 # include "vm/jit/replace.h"
@@ -75,17 +76,17 @@ typedef struct {
 #if defined(HAVE___THREAD)
 
 #define THREADSPECIFIC    __thread
-#define THREADOBJECT      threads_current_threadobject
+#define THREADOBJECT      thread_current
 
-extern __thread threadobject *threads_current_threadobject;
+extern __thread threadobject *thread_current;
 
 #else /* defined(HAVE___THREAD) */
 
 #define THREADSPECIFIC
 #define THREADOBJECT \
-	((threadobject *) pthread_getspecific(threads_current_threadobject_key))
+	((threadobject *) pthread_getspecific(thread_current_key))
 
-extern pthread_key_t threads_current_threadobject_key;
+extern pthread_key_t thread_current_key;
 
 #endif /* defined(HAVE___THREAD) */
 
@@ -202,6 +203,53 @@ struct threadobject {
 
 /* inline functions ***********************************************************/
 
+/* thread_get_current **********************************************************
+
+   Return the threadobject of the current thread.
+   
+   RETURN:
+       the current threadobject *
+
+*******************************************************************************/
+
+inline static threadobject *thread_get_current(void)
+{
+	threadobject *t;
+
+#if defined(HAVE___THREAD)
+	t = thread_current;
+#else
+	t = (threadobject *) pthread_getspecific(thread_current_key);
+#endif
+
+	return t;
+}
+
+
+/* thread_set_current **********************************************************
+
+   Set the current thread object.
+   
+   IN:
+      t ... the thread object to set
+
+*******************************************************************************/
+
+inline static void thread_set_current(threadobject *t)
+{
+#if defined(HAVE___THREAD)
+	thread_current = t;
+#else
+	int result;
+
+	result = pthread_setspecific(thread_current_key, t);
+
+	if (result != 0)
+		vm_abort_errnum(result, "thread_set_current: pthread_setspecific failed");
+#endif
+}
+
+
 inline static stackframeinfo_t *threads_get_current_stackframeinfo(void)
 {
 	return THREADOBJECT->_stackframeinfo;
@@ -218,8 +266,6 @@ inline static void threads_set_current_stackframeinfo(stackframeinfo_t *sfi)
 void threads_sem_init(sem_t *sem, bool shared, int value);
 void threads_sem_wait(sem_t *sem);
 void threads_sem_post(sem_t *sem);
-
-threadobject *threads_get_current_threadobject(void);
 
 void threads_start_thread(threadobject *thread, functionptr function);
 

@@ -155,9 +155,9 @@ void threads_preinit(void)
 	mainthread->flags |= THREAD_FLAG_JAVA;
 	mainthread->state = THREAD_STATE_RUNNABLE;
 
-	/* store the internal thread data-structure in the TSD */
+	/* Store the internal thread data-structure in the TSD. */
 
-	threads_set_current_threadobject(mainthread);
+	thread_set_current(mainthread);
 }
 
 

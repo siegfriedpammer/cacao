@@ -3835,7 +3835,7 @@ static s4 jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon)
 	JavaVMAttachArgs *vm_aargs;
 
 #if defined(ENABLE_THREADS)
-	if (threads_get_current_threadobject() == NULL) {
+	if (thread_get_current() == NULL) {
 		vm_aargs = (JavaVMAttachArgs *) thr_args;
 
 		if (vm_aargs != NULL) {
@@ -3897,7 +3897,7 @@ jint _Jv_JNI_DetachCurrentThread(JavaVM *vm)
 
 	STATISTICS(jniinvokation());
 
-	thread = threads_get_current_threadobject();
+	thread = thread_get_current();
 
 	if (thread == NULL)
 		return JNI_ERR;
@@ -3936,7 +3936,7 @@ jint _Jv_JNI_GetEnv(JavaVM *vm, void **env, jint version)
 	}
 
 #if defined(ENABLE_THREADS)
-	if (threads_get_current_threadobject() == NULL) {
+	if (thread_get_current() == NULL) {
 		*env = NULL;
 
 		return JNI_EDETACHED;
