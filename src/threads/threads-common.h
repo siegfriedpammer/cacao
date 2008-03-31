@@ -137,6 +137,50 @@ inline static java_handle_t *threads_get_current_object(void)
 	return o;
 }
 
+/* thread_is_attached **********************************************************
+
+   Returns if the given thread is attached to the VM.
+
+   RETURN:
+       true .... the thread is attached to the VM
+       false ... the thread is not
+
+*******************************************************************************/
+
+inline static bool thread_is_attached(threadobject *t)
+{
+	java_handle_t *o;
+
+	o = threads_thread_get_object(t);
+
+	if (o != NULL)
+		return true;
+	else
+		return false;
+}
+
+
+/* thread_current_is_attached **************************************************
+
+   Returns if the current thread is attached to the VM.
+
+   RETURN:
+       true .... the thread is attached to the VM
+       false ... the thread is not
+
+*******************************************************************************/
+
+inline static bool thread_current_is_attached(void)
+{
+	threadobject  *t;
+	bool           result;
+
+	t      = THREADOBJECT;
+	result = thread_is_attached(t);
+
+	return result;
+}
+
 
 /* function prototypes ********************************************************/
 

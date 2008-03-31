@@ -88,6 +88,13 @@ typedef union {
 #endif
 
 
+/* convenience macros *********************************************************/
+
+/* Makes a string of the argument (which is not macro-expanded). */
+
+#define STR(a)  #a
+
+
 /* forward typedefs ***********************************************************/
 
 typedef struct java_object_t java_object_t; 

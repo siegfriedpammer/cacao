@@ -2158,7 +2158,7 @@ type _Jv_JNI_Get##name##Field(JNIEnv *env, jobject obj, jfieldID fieldID) \
 {                                                                         \
 	intern ret;                                                           \
                                                                           \
-	STATISTICS(jniinvokation());                                          \
+	TRACEJNICALLS(("_Jv_JNI_Get" STR(name) "Field(env=%p, obj=%p, fieldId=%p)", env, obj, fieldID)); \
                                                                           \
 	LLNI_CRITICAL_START;                                                  \
                                                                           \
@@ -2210,7 +2210,7 @@ jobject _Jv_JNI_GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID)
 void _Jv_JNI_Set##name##Field(JNIEnv *env, jobject obj, jfieldID fieldID,  \
 							  type value)                                  \
 {                                                                          \
-	STATISTICS(jniinvokation());                                           \
+	TRACEJNICALLS(("_Jv_JNI_Set" STR(name) "Field(env=%p, obj=%p, fieldId=%p, value=%p)", env, obj, fieldID, value)); \
                                                                            \
 	LLNI_CRITICAL_START;                                                   \
                                                                            \
@@ -2372,6 +2372,8 @@ jobject _Jv_JNI_CallStaticObjectMethod(JNIEnv *env, jclass clazz,
 	java_handle_t *o;
 	va_list        ap;
 
+	TRACEJNICALLS(("_Jv_JNI_CallStaticObjectMethod(env=%p, clazz=%p, methodID=%p, ...)", env, clazz, methodID));
+
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
@@ -2388,6 +2390,8 @@ jobject _Jv_JNI_CallStaticObjectMethodV(JNIEnv *env, jclass clazz,
 	methodinfo    *m;
 	java_handle_t *o;
 
+	TRACEJNICALLS(("_Jv_JNI_CallStaticObjectMethodV(env=%p, clazz=%p, methodID=%p, args=%p)", env, clazz, methodID, args));
+
 	m = (methodinfo *) methodID;
 
 	o = _Jv_jni_CallObjectMethod(NULL, NULL, m, args);
@@ -2401,6 +2405,8 @@ jobject _Jv_JNI_CallStaticObjectMethodA(JNIEnv *env, jclass clazz,
 {
 	methodinfo    *m;
 	java_handle_t *o;
+
+	TRACEJNICALLS(("_Jv_JNI_CallStaticObjectMethodA(env=%p, clazz=%p, methodID=%p, args=%p)", env, clazz, methodID, args));
 
 	m = (methodinfo *) methodID;
 
@@ -2416,6 +2422,8 @@ void _Jv_JNI_CallStaticVoidMethod(JNIEnv *env, jclass clazz,
 	methodinfo *m;
 	va_list     ap;
 
+	TRACEJNICALLS(("_Jv_JNI_CallStaticVoidMethod(env=%p, clazz=%p, methodID=%p, ...)", env, clazz, methodID));
+
 	m = (methodinfo *) methodID;
 
 	va_start(ap, methodID);
@@ -2429,6 +2437,8 @@ void _Jv_JNI_CallStaticVoidMethodV(JNIEnv *env, jclass clazz,
 {
 	methodinfo *m;
 
+	TRACEJNICALLS(("_Jv_JNI_CallStaticVoidMethodV(env=%p, clazz=%p, methodID=%p, args=%p)", env, clazz, methodID, args));
+
 	m = (methodinfo *) methodID;
 
 	_Jv_jni_CallVoidMethod(NULL, NULL, m, args);
@@ -2439,6 +2449,8 @@ void _Jv_JNI_CallStaticVoidMethodA(JNIEnv *env, jclass clazz,
 								   jmethodID methodID, const jvalue * args)
 {
 	methodinfo *m;
+
+	TRACEJNICALLS(("_Jv_JNI_CallStaticVoidMethodA(env=%p, clazz=%p, methodID=%p, args=%p)", env, clazz, methodID, args));
 
 	m = (methodinfo *) methodID;
 
@@ -2847,7 +2859,7 @@ jsize _Jv_JNI_GetArrayLength(JNIEnv *env, jarray array)
 	java_handle_t *a;
 	jsize          size;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS(("_Jv_JNI_GetArrayLength(env=%p, array=%p)", env, array));
 
 	a = (java_handle_t *) array;
 
@@ -2982,7 +2994,7 @@ type *_Jv_JNI_Get##name##ArrayElements(JNIEnv *env, type##Array array, \
 {                                                                      \
 	java_handle_##intern##array_t *a;                                  \
                                                                        \
-	STATISTICS(jniinvokation());                                       \
+	TRACEJNICALLS(("_Jv_JNI_Get" STR(name) "ArrayElements(env=%p, array=%p, isCopy=%d)", env, array, isCopy)); \
                                                                        \
 	a = (java_handle_##intern##array_t *) array;                       \
                                                                        \
@@ -3062,7 +3074,7 @@ void _Jv_JNI_Get##name##ArrayRegion(JNIEnv *env, type##Array array,     \
 {                                                                       \
 	java_handle_##intern##array_t *a;                                   \
                                                                         \
-	STATISTICS(jniinvokation());                                        \
+	TRACEJNICALLS(("_Jv_JNI_Get" STR(name) "ArrayRegion(env=%p, array=%p, start=%d, len=%d, buf=%p)", env, array, start, len, buf)); \
                                                                         \
 	a = (java_handle_##intern##array_t *) array;                        \
                                                                         \
@@ -3830,26 +3842,36 @@ jint _Jv_JNI_DestroyJavaVM(JavaVM *vm)
 
 *******************************************************************************/
 
-static s4 jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon)
+static int jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon)
 {
-	JavaVMAttachArgs *vm_aargs;
-
 #if defined(ENABLE_THREADS)
-	if (thread_get_current() == NULL) {
-		vm_aargs = (JavaVMAttachArgs *) thr_args;
+	JavaVMAttachArgs *vm_aargs;
+	bool              result;
 
-		if (vm_aargs != NULL) {
-			if ((vm_aargs->version != JNI_VERSION_1_2) &&
-				(vm_aargs->version != JNI_VERSION_1_4))
-				return JNI_EVERSION;
-		}
+    /* If the current thread has already been attached, this operation
+	   is a no-op. */
 
-		if (!threads_attach_current_thread(vm_aargs, false))
-			return JNI_ERR;
+	result = thread_current_is_attached();
 
-		if (!localref_table_init())
-			return JNI_ERR;
+	if (result == true) {
+		*p_env = _Jv_env;
+
+		return JNI_OK;
 	}
+
+	vm_aargs = (JavaVMAttachArgs *) thr_args;
+
+	if (vm_aargs != NULL) {
+		if ((vm_aargs->version != JNI_VERSION_1_2) &&
+			(vm_aargs->version != JNI_VERSION_1_4))
+			return JNI_EVERSION;
+	}
+
+	if (!threads_attach_current_thread(vm_aargs, false))
+		return JNI_ERR;
+
+	if (!localref_table_init())
+		return JNI_ERR;
 #endif
 
 	*p_env = _Jv_env;
@@ -3893,14 +3915,24 @@ jint _Jv_JNI_AttachCurrentThread(JavaVM *vm, void **p_env, void *thr_args)
 jint _Jv_JNI_DetachCurrentThread(JavaVM *vm)
 {
 #if defined(ENABLE_THREADS)
-	threadobject *thread;
+	threadobject *t;
+	bool          result;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS(("_Jv_JNI_DetachCurrentThread(vm=%p)", vm));
 
-	thread = thread_get_current();
+	t = thread_get_current();
 
-	if (thread == NULL)
-		return JNI_ERR;
+	/* Sanity check. */
+
+	assert(t != NULL);
+
+    /* If the given thread has already been detached, this operation
+	   is a no-op. */
+
+	result = thread_is_attached(t);
+
+	if (result == false)
+		return true;
 
 	/* We need to pop all frames before we can destroy the table. */
 
@@ -3909,7 +3941,7 @@ jint _Jv_JNI_DetachCurrentThread(JavaVM *vm)
 	if (!localref_table_destroy())
 		return JNI_ERR;
 
-	if (!threads_detach_thread(thread))
+	if (!threads_detach_thread(t))
 		return JNI_ERR;
 #endif
 

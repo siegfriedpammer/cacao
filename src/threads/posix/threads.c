@@ -1284,6 +1284,7 @@ void threads_set_thread_priority(pthread_t tid, int priority)
 
 bool threads_detach_thread(threadobject *t)
 {
+	bool                   result;
 	java_lang_Thread      *object;
 	java_handle_t         *o;
 #if defined(ENABLE_JAVASE)
@@ -1293,6 +1294,14 @@ bool threads_detach_thread(threadobject *t)
 	classinfo             *c;
 	methodinfo            *m;
 #endif
+
+    /* If the given thread has already been detached, this operation
+	   is a no-op. */
+
+	result = thread_is_attached(t);
+
+	if (result == false)
+		return true;
 
 	DEBUGTHREADS("detaching", t);
 
