@@ -197,6 +197,7 @@ int      opt_TestReplacement              = 0;
 #endif
 int      opt_TraceCompilerCalls           = 0;
 int      opt_TraceExceptions              = 0;
+int      opt_TraceHPI                     = 0;
 #if defined(ENABLE_INLINING) && !defined(NDEBUG)
 int      opt_TraceInlining                = 0;
 #endif
@@ -253,6 +254,7 @@ enum {
 	OPT_TestReplacement,
 	OPT_TraceCompilerCalls,
 	OPT_TraceExceptions,
+	OPT_TraceHPI,
 	OPT_TraceInlining,
 	OPT_TraceJavaCalls,
 	OPT_TraceJNICalls,
@@ -314,6 +316,7 @@ option_t options_XX[] = {
 #endif
 	{ "TraceCompilerCalls",           OPT_TraceCompilerCalls,           OPT_TYPE_BOOLEAN, "trace JIT compiler calls" },
 	{ "TraceExceptions",              OPT_TraceExceptions,              OPT_TYPE_BOOLEAN, "trace Exception throwing" },
+	{ "TraceHPI",                     OPT_TraceHPI,                     OPT_TYPE_BOOLEAN, "Trace Host Porting Interface (HPI)" },
 #if defined(ENABLE_INLINING) && !defined(NDEBUG)
 	{ "TraceInlining",                OPT_TraceInlining,                OPT_TYPE_VALUE,   "trace method inlining with the given verbosity level (default: 1)" },
 #endif
@@ -739,6 +742,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 		case OPT_TraceExceptions:
 			opt_TraceExceptions = enable;
+			break;
+
+		case OPT_TraceHPI:
+			opt_TraceHPI = enable;
 			break;
 
 #if defined(ENABLE_INLINING) && !defined(NDEBUG)

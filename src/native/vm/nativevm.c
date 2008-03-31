@@ -41,6 +41,8 @@
 
 # include "native/native.h"
 
+# include "native/vm/sun/hpi.h"
+
 # include "vm/properties.h"
 # include "vm/vm.h"
 
@@ -124,6 +126,10 @@ void nativevm_preinit(void)
 	MFREE(p, char, len);
 
 	native_library_add(u, NULL, handle);
+
+	/* Initialize the HPI. */
+
+	hpi_initialize();
 
 	_Jv_sun_misc_Unsafe_init();
 

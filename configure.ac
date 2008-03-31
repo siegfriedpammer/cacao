@@ -780,6 +780,15 @@ dnl The check for jni_md.h must be before jni.h.
 AC_CHECK_WITH_JNI_MD_H
 AC_CHECK_WITH_JNI_H
 
+dnl HPI is only required for OpenJDK
+case "${WITH_CLASSPATH}" in
+    sun)
+        AC_CHECK_WITH_HPI_MD_H
+        AC_CHECK_WITH_HPI_H
+        ;;
+    *)
+        ;;
+esac
 
 dnl check for some programs we need
 

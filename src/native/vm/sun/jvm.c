@@ -67,6 +67,8 @@
 #include "native/vm/java_lang_reflect_Method.h"
 #include "native/vm/reflect.h"
 
+#include "native/vm/sun/hpi.h"
+
 #include "threads/lock-common.h"
 #include "threads/threads-common.h"
 
@@ -704,25 +706,9 @@ void JVM_DisableCompiler(JNIEnv *env, jclass compCls)
 
 jint JVM_GetLastErrorString(char *buf, int len)
 {
-	const char *s;
-	int n;
+	TRACEJVMCALLS(("JVM_GetLastErrorString(buf=%p, len=%d", buf, len));
 
-    if (errno == 0) {
-		return 0;
-    }
-	else {
-		s = strerror(errno);
-		n = strlen(s);
-
-		if (n >= len)
-			n = len - 1;
-
-		strncpy(buf, s, n);
-
-		buf[n] = '\0';
-
-		return n;
-    }
+	return hpi_system->GetLastErrorString(buf, len);
 }
 
 
@@ -732,9 +718,7 @@ char *JVM_NativePath(char *path)
 {
 	TRACEJVMCALLS(("JVM_NativePath(path=%s)", path));
 
-	/* XXX is this correct? */
-
-	return path;
+	return hpi_file->NativePath(path);
 }
 
 
@@ -2145,7 +2129,7 @@ jint JVM_Open(const char *fname, jint flags, jint mode)
 
 	TRACEJVMCALLS(("JVM_Open(fname=%s, flags=%d, mode=%d)", fname, flags, mode));
 
-	result = system_open(fname, flags, mode);
+	result = hpi_file->Open(fname, flags, mode);
 
 	if (result >= 0) {
 		return result;
@@ -2167,7 +2151,7 @@ jint JVM_Close(jint fd)
 {
 	TRACEJVMCALLS(("JVM_Close(fd=%d)", fd));
 
-	return system_close(fd);
+	return hpi_file->Close(fd);
 }
 
 
@@ -2177,7 +2161,7 @@ jint JVM_Read(jint fd, char *buf, jint nbytes)
 {
 	TRACEJVMCALLS(("JVM_Read(fd=%d, buf=%p, nbytes=%d)", fd, buf, nbytes));
 
-	return system_read(fd, buf, nbytes);
+	return (jint) hpi_file->Read(fd, buf, nbytes);
 }
 
 
@@ -2187,7 +2171,7 @@ jint JVM_Write(jint fd, char *buf, jint nbytes)
 {
 	TRACEJVMCALLS(("JVM_Write(fd=%d, buf=%s, nbytes=%d)", fd, buf, nbytes));
 
-	return system_write(fd, buf, nbytes);
+	return (jint) hpi_file->Write(fd, buf, nbytes);
 }
 
 
@@ -2195,25 +2179,9 @@ jint JVM_Write(jint fd, char *buf, jint nbytes)
 
 jint JVM_Available(jint fd, jlong *pbytes)
 {
-#if defined(FIONREAD)
-	int bytes;
-	int result;
-
 	TRACEJVMCALLS(("JVM_Available(fd=%d, pbytes=%p)", fd, pbytes));
 
-	*pbytes = 0;
-
-	result = ioctl(fd, FIONREAD, &bytes);
-
-	if (result < 0)
-		return 0;
-
-	*pbytes = bytes;
-
-	return 1;
-#else
-# error FIONREAD not defined
-#endif
+	return hpi_file->Available(fd, pbytes);
 }
 
 
@@ -2223,7 +2191,7 @@ jlong JVM_Lseek(jint fd, jlong offset, jint whence)
 {
 	TRACEJVMCALLS(("JVM_Lseek(fd=%d, offset=%ld, whence=%d)", fd, offset, whence));
 
-	return (jlong) system_lseek(fd, (off_t) offset, whence);
+	return hpi_file->Seek(fd, (off_t) offset, whence);
 }
 
 
@@ -2233,7 +2201,7 @@ jint JVM_SetLength(jint fd, jlong length)
 {
 	TRACEJVMCALLS(("JVM_SetLength(fd=%d, length=%ld)", length));
 
-	return system_ftruncate(fd, length);
+	return hpi_file->SetLength(fd, length);
 }
 
 
@@ -2243,7 +2211,7 @@ jint JVM_Sync(jint fd)
 {
 	TRACEJVMCALLS(("JVM_Sync(fd=%d)", fd));
 
-	return system_fsync(fd);
+	return hpi_file->Sync(fd);
 }
 
 
@@ -2757,9 +2725,9 @@ jobject JVM_NewMultiArray(JNIEnv *env, jclass eltClass, jintArray dim)
 
 jint JVM_InitializeSocketLibrary()
 {
-	log_println("JVM_InitializeSocketLibrary: IMPLEMENT ME!");
+	TRACEJVMCALLS(("JVM_InitializeSocketLibrary()"));
 
-	return 0;
+	return hpi_initialize_socket_library();
 }
 
 

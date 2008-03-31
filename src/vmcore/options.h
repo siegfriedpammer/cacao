@@ -216,6 +216,7 @@ extern int      opt_TestReplacement;
 #endif
 extern int      opt_TraceCompilerCalls;
 extern int      opt_TraceExceptions;
+extern int      opt_TraceHPI;
 #if defined(ENABLE_INLINING) && !defined(NDEBUG)
 extern int      opt_TraceInlining;
 #endif
