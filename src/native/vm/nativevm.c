@@ -100,6 +100,8 @@ void nativevm_preinit(void)
 
 	TRACESUBSYSTEMINITIALIZATION("nativevm_preinit");
 
+	/* Load libjava.so */
+
 	boot_library_path = properties_get("sun.boot.library.path");
 
 	len =
@@ -114,9 +116,13 @@ void nativevm_preinit(void)
 
 	u = utf_new_char(p);
 
+	handle = native_library_open(u);
+
+	if (handle == NULL)
+		vm_abort("nativevm_init: failed to open libjava.so at: %s", p);
+
 	MFREE(p, char, len);
 
-	handle = native_library_open(u);
 	native_library_add(u, NULL, handle);
 
 	_Jv_sun_misc_Unsafe_init();
