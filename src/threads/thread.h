@@ -28,6 +28,8 @@
 
 #include "config.h"
 
+#include "vmcore/system.h"
+
 #if defined(ENABLE_THREADS)
 # include "threads/posix/thread-posix.h"
 #else
@@ -91,13 +93,19 @@ extern bool threads_pthreads_implementation_nptl;
 
 /* inline functions ***********************************************************/
 
-/* threads_thread_get_object ***************************************************
+/* thread_get_object ***********************************************************
 
-   Return the java.lang.Thread object for the given thread.
+   Return the Java for the given thread.
+
+   ARGUMENTS:
+       t ... thread
+
+   RETURN:
+       the Java object
 
 *******************************************************************************/
 
-static inline java_handle_t *threads_thread_get_object(threadobject *t)
+inline static java_handle_t *thread_get_object(threadobject *t)
 {
 	return LLNI_WRAP(t->object);
 }
@@ -105,17 +113,21 @@ static inline java_handle_t *threads_thread_get_object(threadobject *t)
 
 /* threads_thread_set_object ***************************************************
 
-   Set the java.lang.Thread object for the given thread.
+   Set the Java object for the given thread.
+
+   ARGUMENTS:
+       t ... thread
+	   o ... Java object
 
 *******************************************************************************/
 
-static inline void threads_thread_set_object(threadobject *t, java_handle_t *object)
+inline static void thread_set_object(threadobject *t, java_handle_t *o)
 {
-	t->object = LLNI_DIRECT(object);
+	t->object = LLNI_DIRECT(o);
 }
 
 
-/* threads_get_current_object **************************************************
+/* thread_get_current_object **************************************************
 
    Return the Java object of the current thread.
    
@@ -124,13 +136,13 @@ static inline void threads_thread_set_object(threadobject *t, java_handle_t *obj
 
 *******************************************************************************/
 
-inline static java_handle_t *threads_get_current_object(void)
+inline static java_handle_t *thread_get_current_object(void)
 {
 	threadobject  *t;
 	java_handle_t *o;
 
 	t = THREADOBJECT;
-	o = threads_thread_get_object(t);
+	o = thread_get_object(t);
 
 	return o;
 }
@@ -150,7 +162,7 @@ inline static bool thread_is_attached(threadobject *t)
 {
 	java_handle_t *o;
 
-	o = threads_thread_get_object(t);
+	o = thread_get_object(t);
 
 	if (o != NULL)
 		return true;
@@ -212,6 +224,7 @@ void          threads_thread_start(java_handle_t *object);
 
 bool          threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
 
+void          thread_fprint_name(threadobject *t, FILE *stream);
 void          threads_thread_print_info(threadobject *t);
 
 intptr_t      threads_get_current_tid(void);

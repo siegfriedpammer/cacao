@@ -1059,7 +1059,7 @@ static void *threads_startup_thread(void *arg)
 
 	/* get the java.lang.Thread object for this thread */
 
-	object = (java_lang_Thread *) threads_thread_get_object(thread);
+	object = (java_lang_Thread *) thread_get_object(thread);
 
 	/* set our priority */
 
@@ -1303,7 +1303,7 @@ bool threads_detach_thread(threadobject *t)
 
 	DEBUGTHREADS("detaching", t);
 
-	object = (java_lang_Thread *) threads_thread_get_object(t);
+	object = (java_lang_Thread *) thread_get_object(t);
 
 #if defined(ENABLE_JAVASE)
 	LLNI_field_get_ref(object, group, group);

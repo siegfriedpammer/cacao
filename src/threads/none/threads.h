@@ -68,7 +68,7 @@ extern u4 _no_threads_tracejavacallcount;
 
 /* inline functions ***********************************************************/
 
-inline static java_handle_t *threads_get_current_object(void)
+inline static java_handle_t *thread_get_current_object(void)
 {
 	java_handle_t *o;
 

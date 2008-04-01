@@ -2324,7 +2324,7 @@ jobject JVM_CurrentThread(JNIEnv* env, jclass threadClass)
 
 	TRACEJVMCALLSVERBOSE(("JVM_CurrentThread(env=%p, threadClass=%p)", env, threadClass));
 
-	o = threads_get_current_object();
+	o = thread_get_current_object();
 
 	return (jobject) o;
 }

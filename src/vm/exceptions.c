@@ -42,6 +42,7 @@
 #include "native/native.h"
 
 #include "native/include/java_lang_String.h"
+#include "native/include/java_lang_Thread.h"
 #include "native/include/java_lang_Throwable.h"
 
 #include "threads/lock-common.h"
@@ -2012,63 +2013,100 @@ void exceptions_print_current_exception(void)
 
 void exceptions_print_stacktrace(void)
 {
-	java_handle_t *oxptr;
-	java_handle_t *xptr;
-	classinfo     *c;
-	methodinfo    *m;
+	java_handle_t    *e;
+	java_handle_t    *ne;
+	classinfo        *c;
+	methodinfo       *m;
 
-	/* get original exception */
+#if defined(ENABLE_THREADS)
+	threadobject     *t;
+	java_lang_Thread *to;
+#endif
 
-	oxptr = exceptions_get_and_clear_exception();
+	/* Get and clear exception because we are calling Java code
+	   again. */
 
-	if (oxptr == NULL)
-		vm_abort("exceptions_print_stacktrace: no exception thrown");
+	e = exceptions_get_and_clear_exception();
 
-	/* clear exception, because we are calling jit code again */
+	if (e == NULL)
+		return;
 
-	LLNI_class_get(oxptr, c);
-
-	/* find the printStackTrace() method */
-
-	m = class_resolveclassmethod(c,
-								 utf_printStackTrace,
-								 utf_void__void,
-								 class_java_lang_Object,
-								 false);
-
-	if (m == NULL)
-		vm_abort("exceptions_print_stacktrace: printStackTrace()V not found");
-
-	/* print compatibility message */
-
-	fprintf(stderr, "Exception in thread \"main\" ");
-
-	/* print the stacktrace */
-
-	(void) vm_call_method(m, oxptr);
-
-	/* This normally means, we are EXTREMLY out of memory or
-	   have a serious problem while printStackTrace. But may
-	   be another exception, so print it. */
-
-	xptr = exceptions_get_exception();
-
-	if (xptr != NULL) {
-		fprintf(stderr, "Exception while printStackTrace(): ");
-
-		/* now print original exception */
-
-		exceptions_print_exception(xptr);
-		stacktrace_print_exception(xptr);
-
-		/* now print original exception */
-
-		fprintf(stderr, "Original exception was: ");
-		exceptions_print_exception(oxptr);
-		stacktrace_print_exception(oxptr);
+#if 0
+	/* FIXME Enable me. */
+	if (builtin_instanceof(e, class_java_lang_ThreadDeath)) {
+		/* Don't print anything if we are being killed. */
 	}
+	else
+#endif
+	{
+		/* Get the exception class. */
 
-	fflush(stderr);
+		LLNI_class_get(e, c);
+
+		/* Find the printStackTrace() method. */
+
+		m = class_resolveclassmethod(c,
+									 utf_printStackTrace,
+									 utf_void__void,
+									 class_java_lang_Object,
+									 false);
+
+		if (m == NULL)
+			vm_abort("exceptions_print_stacktrace: printStackTrace()V not found");
+
+		/* Print message. */
+
+		fprintf(stderr, "Exception ");
+
+#if defined(ENABLE_THREADS)
+		/* Print thread name.  We get the thread here explicitly as we
+		   need it afterwards. */
+
+		t  = thread_get_current();
+		to = (java_lang_Thread *) thread_get_object(t);
+
+		if (to != NULL) {
+			fprintf(stderr, "in thread \"");
+			thread_fprint_name(t, stderr);
+			fprintf(stderr, "\" ");
+		}
+#endif
+
+		/* Print the stacktrace. */
+
+		if (builtin_instanceof(e, class_java_lang_Throwable)) {
+			(void) vm_call_method(m, e);
+
+			/* If this happens we are EXTREMLY out of memory or have a
+			   serious problem while printStackTrace.  But may be
+			   another exception, so print it. */
+
+			ne = exceptions_get_exception();
+
+			if (ne != NULL) {
+				fprintf(stderr, "Exception while printStackTrace(): ");
+
+				/* Print the current exception. */
+
+				exceptions_print_exception(ne);
+				stacktrace_print_exception(ne);
+
+				/* Now print the original exception. */
+
+				fprintf(stderr, "Original exception was: ");
+				exceptions_print_exception(e);
+				stacktrace_print_exception(e);
+			}
+		}
+		else {
+			fprintf(stderr, ". Uncaught exception of type ");
+			/* FIXME This prints to stdout. */
+			class_print(c);
+			fprintf(stderr, ".");
+		}
+
+		fflush(stderr);
+	}
 }
 
 

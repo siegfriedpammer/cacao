@@ -82,11 +82,11 @@ void _Jv_java_lang_Thread_init(void)
  */
 JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_Thread_currentThread(JNIEnv *env, jclass clazz)
 {
-	java_lang_Thread *thread;
+	java_lang_Thread *to;
 
-	thread = (java_lang_Thread *) threads_get_current_object();
+	to = (java_lang_Thread *) thread_get_current_object();
 
-	return thread;
+	return to;
 }
 
 

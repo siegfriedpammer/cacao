@@ -252,7 +252,7 @@ static bool thread_create_object(threadobject *t, java_handle_t *name, java_hand
 	/* Set the Java object in the thread data-structure.  This
 	   indicates that the thread is attached to the VM. */
 
-	threads_thread_set_object(t, (java_handle_t *) to);
+	thread_set_object(t, (java_handle_t *) to);
 
 #if defined(WITH_CLASSPATH_GNU)
 
@@ -578,7 +578,7 @@ void thread_free(threadobject *t)
 
 	/* Set the reference to the Java object to NULL. */
 
-	threads_thread_set_object(t, NULL);
+	thread_set_object(t, NULL);
 
 	/* Add the thread data structure to the free list. */
 
@@ -685,7 +685,7 @@ void threads_thread_start(java_handle_t *object)
 
 	/* Link the two objects together. */
 
-	threads_thread_set_object(t, object);
+	thread_set_object(t, object);
 
 #if defined(WITH_CLASSPATH_GNU)
 
@@ -808,6 +808,49 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 }
 
 
+/* thread_fprint_name **********************************************************
+
+   Print the name of the given thread to the given stream.
+
+   ARGUMENTS:
+       t ........ thread data-structure
+       stream ... stream to print to
+
+*******************************************************************************/
+
+void thread_fprint_name(threadobject *t, FILE *stream)
+{
+	java_lang_Thread *to;
+
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_String *name;
+#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
+	java_chararray_t *name;
+#endif
+
+	to = (java_lang_Thread *) thread_get_object(t);
+
+	if (to == NULL)
+		vm_abort("");
+
+	LLNI_field_get_ref(to, name, name);
+
+#if defined(WITH_CLASSPATH_GNU)
+
+	javastring_fprint((java_handle_t *) name, stream);
+
+#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
+
+	/* FIXME: In OpenJDK and CLDC the name is a char[]. */
+	/* FIXME This prints to stdout. */
+	utf_display_printable_ascii(utf_null);
+
+#else
+# error unknown classpath configuration
+#endif
+}
+
+
 /* threads_thread_print_info ***************************************************
 
    Print information of the passed thread.
@@ -816,40 +859,25 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 void threads_thread_print_info(threadobject *t)
 {
-	java_lang_Thread *object;
-#if defined(WITH_CLASSPATH_GNU)
-	java_lang_String *namestring;
-#endif
-	utf              *name;
+	java_lang_Thread *to;
 
 	assert(t->state != THREAD_STATE_NEW);
 
-	/* the thread may be currently in initalization, don't print it */
+	/* If the thread is currently in initalization, don't print it. */
 
-	object = (java_lang_Thread *) threads_thread_get_object(t);
+	to = (java_lang_Thread *) thread_get_object(t);
 
-	if (object != NULL) {
-		/* get thread name */
-
-#if defined(WITH_CLASSPATH_GNU)
-		LLNI_field_get_ref(object, name, namestring);
-		name = javastring_toutf((java_handle_t *) namestring, false);
-#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
-		/* FIXME: In cldc the name is a char[] */
-/* 		name = object->name; */
-		name = utf_null;
-#else
-# error unknown classpath configuration
-#endif
+	if (to != NULL) {
+		/* Print thread name. */
 
 		printf("\"");
-		utf_display_printable_ascii(name);
+		thread_fprint_name(t, stdout);
 		printf("\"");
 
 		if (thread_is_daemon(t))
 			printf(" daemon");
 
-		printf(" prio=%d", LLNI_field_direct(object, priority));
+		printf(" prio=%d", LLNI_field_direct(to, priority));
 
 #if SIZEOF_VOID_P == 8
 		printf(" t=0x%016lx tid=0x%016lx (%ld)",

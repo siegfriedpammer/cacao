@@ -942,7 +942,7 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 
 *******************************************************************************/
 
-jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
+jclass jni_FindClass(JNIEnv *env, const char *name)
 {
 #if defined(ENABLE_JAVASE)
 
@@ -951,9 +951,16 @@ jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
 	classinfo       *c;
 	java_lang_Class *co;
 
-	TRACEJNICALLS(("_Jv_JNI_FindClass(env=%p, name=%s)", env, name));
+	TRACEJNICALLS(("jni_FindClass(env=%p, name=%s)", env, name));
+
+	/* FIXME If name is NULL we have a problem here. */
 
 	u = utf_new_char_classname((char *) name);
+
+	if ((u == NULL) /*|| (int)strlen(name) > symbolOopDesc::max_length() */) {
+		exceptions_throw_noclassdeffounderror(u);
+		return NULL;
+	}
 
 	/* Check stacktrace for classloader, if one found use it,
 	   otherwise use the system classloader. */
@@ -976,8 +983,10 @@ jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
 	else
 		c = load_class_from_classloader(u, cc->classloader);
 
-	if (c == NULL)
+	if (c == NULL) {
+		resolve_handle_pending_exception(true);
 		return NULL;
+	}
 
 	if (!link_class(c))
 		return NULL;
@@ -991,13 +1000,15 @@ jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
 	utf       *u;
 	classinfo *c;
 
-	TRACEJNICALLS(("_Jv_JNI_FindClass(env=%p, name=%s)", env, name));
+	TRACEJNICALLS(("jni_FindClass(env=%p, name=%s)", env, name));
 
 	u = utf_new_char_classname((char *) name);
 	c = load_class_bootstrap(u);
 
-	if (c == NULL)
+	if (c == NULL) {
+		resolve_handle_pending_exception(true);
 		return NULL;
+	}
 
 	if (!link_class(c))
 		return NULL;
@@ -1005,7 +1016,7 @@ jclass _Jv_JNI_FindClass(JNIEnv *env, const char *name)
   	return (jclass) _Jv_JNI_NewLocalRef(env, (jobject) c);
   	
 #else
-	vm_abort("_Jv_JNI_FindClass: not implemented in this configuration");
+	vm_abort("jni_FindClass: not implemented in this configuration");
 
 	/* keep compiler happy */
 
@@ -1145,37 +1156,11 @@ jthrowable _Jv_JNI_ExceptionOccurred(JNIEnv *env)
 
 *******************************************************************************/
 
-void _Jv_JNI_ExceptionDescribe(JNIEnv *env)
+void jni_ExceptionDescribe(JNIEnv *env)
 {
-	java_handle_t *o;
-	classinfo     *c;
-	methodinfo    *m;
+	TRACEJNICALLS(("jni_ExceptionDescribe(env=%p)", env));
 
-	TRACEJNICALLS(("_Jv_JNI_ExceptionDescribe(env=%p)", env));
-
-	/* Clear exception, because we are probably calling Java code
-	   again. */
-
-	o = exceptions_get_and_clear_exception();
-
-	if (o != NULL) {
-		/* get printStackTrace method from exception class */
-
-		LLNI_class_get(o, c);
-
-		m = class_resolveclassmethod(c,
-									 utf_printStackTrace,
-									 utf_void__void,
-									 NULL,
-									 true);
-
-		if (m == NULL)
-			vm_abort("_Jv_JNI_ExceptionDescribe: could not find printStackTrace");
-
-		/* Print the stacktrace. */
-
-		(void) vm_call_method(m, o);
-	}
+	exceptions_print_stacktrace();
 }
 
 
@@ -1186,9 +1171,9 @@ void _Jv_JNI_ExceptionDescribe(JNIEnv *env)
 
 *******************************************************************************/
 
-void _Jv_JNI_ExceptionClear(JNIEnv *env)
+void jni_ExceptionClear(JNIEnv *env)
 {
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS(("jni_ExceptionClear(env=%p)", env));
 
 	exceptions_clear_exception();
 }
@@ -4052,7 +4037,7 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 	_Jv_JNI_GetVersion,
 
 	_Jv_JNI_DefineClass,
-	_Jv_JNI_FindClass,
+	jni_FindClass,
 	_Jv_JNI_FromReflectedMethod,
 	_Jv_JNI_FromReflectedField,
 	_Jv_JNI_ToReflectedMethod,
@@ -4063,8 +4048,8 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 	_Jv_JNI_Throw,
 	_Jv_JNI_ThrowNew,
 	_Jv_JNI_ExceptionOccurred,
-	_Jv_JNI_ExceptionDescribe,
-	_Jv_JNI_ExceptionClear,
+	jni_ExceptionDescribe,
+	jni_ExceptionClear,
 	_Jv_JNI_FatalError,
 	_Jv_JNI_PushLocalFrame,
 	_Jv_JNI_PopLocalFrame,
