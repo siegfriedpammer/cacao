@@ -1,4 +1,4 @@
-/* src/threads/none/threads.h - fake threads header
+/* src/threads/none/thread-none.h - fake threads header
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO

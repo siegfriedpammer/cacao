@@ -33,7 +33,7 @@
 #if defined(ENABLE_THREADS)
 # include "threads/posix/thread-posix.h"
 #else
-# include "threads/none/threads.h"
+# include "threads/none/thread-none.h"
 #endif
 
 #include "vm/types.h"
