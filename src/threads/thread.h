@@ -187,8 +187,7 @@ inline static bool thread_current_is_attached(void)
 void          threads_preinit(void);
 void          threads_init(void);
 
-threadobject *threads_thread_new(void);
-void          threads_thread_free(threadobject *t);
+void          thread_free(threadobject *t);
 
 bool          threads_thread_start_internal(utf *name, functionptr f);
 void          threads_thread_start(java_handle_t *object);

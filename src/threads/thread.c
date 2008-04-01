@@ -89,8 +89,9 @@ bool threads_pthreads_implementation_nptl;
 
 /* static functions ***********************************************************/
 
-static void thread_create_initial_threadgroups(void);
-static void thread_create_initial_thread(void);
+static void          thread_create_initial_threadgroups(void);
+static void          thread_create_initial_thread(void);
+static threadobject *thread_new(void);
 
 
 /* threads_preinit *************************************************************
@@ -146,9 +147,9 @@ void threads_preinit(void)
 
 	threads_impl_preinit();
 
-	/* create internal thread data-structure for the main thread */
+	/* Create internal thread data-structure for the main thread. */
 
-	mainthread = threads_thread_new();
+	mainthread = thread_new();
 
 	/* thread is a Java thread and running */
 
@@ -438,17 +439,17 @@ static void thread_create_initial_thread(void)
 }
 
 
-/* threads_thread_new **********************************************************
+/* thread_new ******************************************************************
 
    Allocates and initializes an internal thread data-structure and
    adds it to the threads list.
 
 *******************************************************************************/
 
-threadobject *threads_thread_new(void)
+static threadobject *thread_new(void)
 {
-	int32_t         index;
-	threadobject   *t;
+	int32_t       index;
+	threadobject *t;
 	
 	/* Lock the thread lists */
 
@@ -529,18 +530,18 @@ threadobject *threads_thread_new(void)
 }
 
 
-/* threads_thread_free *********************************************************
+/* thread_free *****************************************************************
 
    Remove the thread from the threads-list and free the internal
    thread data structure.  The thread index is added to the
    thread-index free-list.
 
    IN:
-       t....thread data structure
+       t ... thread data structure
 
 *******************************************************************************/
 
-void threads_thread_free(threadobject *t)
+void thread_free(threadobject *t)
 {
 	/* Lock the thread lists. */
 
@@ -593,9 +594,9 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 
 	threads_mutex_join_lock();
 
-	/* create internal thread data-structure */
+	/* Create internal thread data-structure. */
 
-	t = threads_thread_new();
+	t = thread_new();
 
 	t->flags |= THREAD_FLAG_INTERNAL | THREAD_FLAG_DAEMON;
 
@@ -698,9 +699,9 @@ void threads_thread_start(java_handle_t *object)
 
 	threads_mutex_join_lock();
 
-	/* create internal thread data-structure */
+	/* Create internal thread data-structure. */
 
-	t = threads_thread_new();
+	t = thread_new();
 
 	/* this is a normal Java thread */
 
@@ -793,7 +794,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	/* Create internal thread data structure. */
 
-	t = threads_thread_new();
+	t = thread_new();
 
 	/* Thread is a Java thread and running. */
 

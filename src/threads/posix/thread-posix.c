@@ -1401,15 +1401,15 @@ bool threads_detach_thread(threadobject *t)
 	/* XXX Care about exceptions? */
 	(void) lock_monitor_exit(o);
 
-	/* Enter the join-mutex before calling threads_thread_free, so
+	/* Enter the join-mutex before calling thread_free, so
 	   threads_join_all_threads gets the correct number of non-daemon
 	   threads. */
 
 	threads_mutex_join_lock();
 
-	/* free the vm internal thread object */
+	/* Free the internal thread data-structure. */
 
-	threads_thread_free(t);
+	thread_free(t);
 
 	/* Signal that this thread has finished and leave the mutex. */
 
