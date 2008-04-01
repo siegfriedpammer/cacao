@@ -1661,8 +1661,11 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	utf                       *u;
 	java_handle_t             *s;
 	int                        status;
+	int                        i;
+
+#if defined(ENABLE_THREADS)
 	threadobject              *t;
-	s4                         i;
+#endif
 
 #if !defined(NDEBUG)
 	if (compileall) {
@@ -1788,6 +1791,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 		status = 1;
 	}
 
+#if defined(ENABLE_THREADS)
     /* Detach the main thread so that it appears to have ended when
 	   the application's main method exits. */
 
@@ -1795,6 +1799,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 
 	if (!threads_detach_thread(t))
 		vm_abort("vm_run: Could not detach main thread.");
+#endif
 
 	/* Destroy the JavaVM. */
 
