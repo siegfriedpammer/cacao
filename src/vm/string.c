@@ -27,6 +27,8 @@
 
 #include <assert.h>
 
+#include "vmcore/system.h"
+
 #include "vm/types.h"
 
 #include "vm/global.h"
@@ -759,13 +761,13 @@ java_handle_t *javastring_intern(java_handle_t *s)
 }
 
 
-/* javastring_print ************************************************************
+/* javastring_fprint ***********************************************************
 
-   Print the given Java string.
+   Print the given Java string to the given stream.
 
 *******************************************************************************/
 
-void javastring_print(java_handle_t *s)
+void javastring_fprint(java_handle_t *s, FILE *stream)
 {
 	java_lang_String        *so;
 	java_handle_chararray_t *value;
@@ -782,7 +784,7 @@ void javastring_print(java_handle_t *s)
 
 	for (i = offset; i < offset + count; i++) {
 		c = LLNI_array_direct(value, i);
-		putchar(c);
+		fputc(c, stream);
 	}
 }
 

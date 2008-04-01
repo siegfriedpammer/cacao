@@ -1,9 +1,7 @@
 /* src/vm/stringlocal.h - string header
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -32,6 +30,9 @@ typedef struct literalstring literalstring;
 
 
 #include "config.h"
+
+#include "vmcore/system.h"
+
 #include "vm/types.h"
 
 #include "toolbox/hashtable.h"
@@ -85,7 +86,7 @@ utf *javastring_toutf(java_handle_t *string, bool isclassname);
 java_object_t *literalstring_new(utf *u);
 
 java_handle_t *javastring_intern(java_handle_t *s);
-void           javastring_print(java_handle_t *s);
+void           javastring_fprint(java_handle_t *s, FILE *stream);
 
 #endif /* _STRINGLOCAL_H */
 
