@@ -25,6 +25,7 @@
 #ifndef _CACAODBG_H
 #define _CACAODBG_H
 
+#include "threads/mutex.h"
 #include "threads/thread.h"
 #include "native/jvmti/jvmti.h"
 #include "native/include/java_lang_String.h"
@@ -112,7 +113,7 @@ cacaodbgcommunication *dbgcom;
 
 bool jvmti;                 /* jvmti agent  */
 
-extern pthread_mutex_t dbgcomlock;
+extern mutex_t dbgcomlock;
 
 jvmtiEnv* jvmti_new_environment();
 void jvmti_set_phase(jvmtiPhase p);

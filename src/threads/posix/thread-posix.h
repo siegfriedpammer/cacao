@@ -42,6 +42,8 @@ typedef struct threadobject threadobject;
 
 #include "native/localref.h"
 
+#include "threads/mutex.h"
+
 #include "threads/posix/lock.h"
 
 #include "vm/global.h"
@@ -61,7 +63,7 @@ typedef struct threadobject threadobject;
 # include <mach/mach.h>
 
 typedef struct {
-	pthread_mutex_t mutex;
+	mutex_t mutex;
 	pthread_cond_t cond;
 	int value;
 } sem_t;
@@ -126,14 +128,14 @@ struct threadobject {
 	struct threadobject  *flc_list;     /* FLC list head for this thread      */
 	struct threadobject  *flc_next;     /* next pointer for FLC list          */
 	java_handle_t        *flc_object;
-	pthread_mutex_t       flc_lock;     /* controlling access to these fields */
+	mutex_t               flc_lock;     /* controlling access to these fields */
 	pthread_cond_t        flc_cond;
 
 	/* these are used for the wait/notify implementation                      */
-	pthread_mutex_t       waitmutex;
+	mutex_t               waitmutex;
 	pthread_cond_t        waitcond;
 
-	pthread_mutex_t       suspendmutex; /* lock before suspending this thread */
+	mutex_t               suspendmutex; /* lock before suspending this thread */
 	pthread_cond_t        suspendcond;  /* notify to resume this thread       */
 
 	bool                  interrupted;

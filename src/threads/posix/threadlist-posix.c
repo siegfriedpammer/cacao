@@ -25,7 +25,7 @@
 
 #include "config.h"
 
-#include <pthread.h>
+#include "threads/mutex.h"
 
 #include "vm/vm.h"
 
@@ -35,7 +35,7 @@
 /* global variables ***********************************************************/
 
 /* global mutex for the thread list */
-static pthread_mutex_t threadlist_mutex;
+static mutex_t threadlist_mutex;
 
 
 /* threadlist_impl_init ********************************************************
@@ -46,16 +46,11 @@ static pthread_mutex_t threadlist_mutex;
 
 void threadlist_impl_init(void)
 {
-	int result;
-
 	TRACESUBSYSTEMINITIALIZATION("threadlist_impl_init");
 
 	/* Initialize the thread list mutex. */
 
-	result = pthread_mutex_init(&threadlist_mutex, NULL);
-
-	if (result != 0)
-		vm_abort_errnum(result, "threadlist_impl_init: pthread_mutex_init failed");
+	mutex_init(&threadlist_mutex);
 }
 
 
@@ -72,12 +67,7 @@ void threadlist_impl_init(void)
 
 void threadlist_lock(void)
 {
-	int result;
-
-	result = pthread_mutex_lock(&threadlist_mutex);
-
-	if (result != 0)
-		vm_abort_errnum(result, "threads_list_lock: pthread_mutex_lock failed");
+	mutex_lock(&threadlist_mutex);
 }
 
 
@@ -89,12 +79,7 @@ void threadlist_lock(void)
 
 void threadlist_unlock(void)
 {
-	int result;
-
-	result = pthread_mutex_unlock(&threadlist_mutex);
-
-	if (result != 0)
-		vm_abort_errnum(result, "threadlist_unlock: pthread_mutex_unlock failed");
+	mutex_unlock(&threadlist_mutex);
 }
 
 

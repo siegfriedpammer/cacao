@@ -59,6 +59,7 @@
 #include "native/vm/nativevm.h"
 
 #include "threads/lock-common.h"
+#include "threads/mutex.h"
 #include "threads/threadlist.h"
 #include "threads/thread.h"
 
@@ -1922,9 +1923,9 @@ void vm_shutdown(s4 status)
 #if defined(ENABLE_JVMTI)
 	/* terminate cacaodbgserver */
 	if (dbgcom!=NULL) {
-		pthread_mutex_lock(&dbgcomlock);
+		mutex_lock(&dbgcomlock);
 		dbgcom->running=1;
-		pthread_mutex_unlock(&dbgcomlock);
+		mutex_unlock(&dbgcomlock);
 		jvmti_cacaodbgserver_quit();
 	}	
 #endif

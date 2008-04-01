@@ -33,6 +33,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/stringlocal.h"
 #include "toolbox/logging.h"
+#include "threads/mutex.h"
 #include "threads/thread.h"
 
 #include <sys/types.h>
@@ -133,7 +134,7 @@ static void breakpointtable_creator() {
 void jvmti_set_system_breakpoint(int sysbrk, bool mode) {	
 	struct brkpts *jvmtibrkpt;
 
-	pthread_mutex_lock(&dbgcomlock);
+	mutex_lock(&dbgcomlock);
 	jvmtibrkpt = &dbgcom->jvmtibrkpt;
 
 	assert (sysbrk < BEGINUSERBRK);	
@@ -144,7 +145,7 @@ void jvmti_set_system_breakpoint(int sysbrk, bool mode) {
 		/* add breakpoint*/
 		if (jvmtibrkpt->brk[sysbrk].count > 0) {
 			jvmtibrkpt->brk[sysbrk].count++;
-			pthread_mutex_unlock(&dbgcomlock);
+			mutex_unlock(&dbgcomlock);
 			return;
 		}
 		dbgcom->addbrkpt = true;
@@ -159,11 +160,11 @@ void jvmti_set_system_breakpoint(int sysbrk, bool mode) {
 		} else {
 			/* avoid negative counter values */
 			if (jvmtibrkpt->brk[sysbrk].count > 0) jvmtibrkpt->brk[sysbrk].count--;
-			pthread_mutex_unlock(&dbgcomlock);
+			mutex_unlock(&dbgcomlock);
 			return;
 		}
 	}
-	pthread_mutex_unlock(&dbgcomlock);
+	mutex_unlock(&dbgcomlock);
 	/* call cacaodbgserver */
 	__asm__ ("setsysbrkpt:");
 	TRAP; 
@@ -179,7 +180,7 @@ void jvmti_set_system_breakpoint(int sysbrk, bool mode) {
 void jvmti_add_breakpoint(void* addr, jmethodID method, jlocation location) {
 	struct brkpts *jvmtibrkpt;
 
-	pthread_mutex_lock(&dbgcomlock);
+	mutex_lock(&dbgcomlock);
 	jvmtibrkpt = &dbgcom->jvmtibrkpt;;
 
 	if (jvmtibrkpt->size == jvmtibrkpt->num)
@@ -194,7 +195,7 @@ void jvmti_add_breakpoint(void* addr, jmethodID method, jlocation location) {
 	/* todo: set breakpoint */
 /*	jvmtibrkpt.brk[jvmtibrkpt.num].orig = */
 	jvmtibrkpt->num++;
-	pthread_mutex_unlock(&dbgcomlock);
+	mutex_unlock(&dbgcomlock);
 
 	fprintf (stderr,"add brk done\n");
 }
@@ -208,7 +209,7 @@ void jvmti_add_breakpoint(void* addr, jmethodID method, jlocation location) {
 
 *******************************************************************************/
 void jvmti_cacaodbgserver_quit(){
-	pthread_mutex_lock(&dbgcomlock);
+	mutex_lock(&dbgcomlock);
 	dbgcom->running--;
 	if (dbgcom->running  == 0) {
 		__asm__ ("cacaodbgserver_quit:");
@@ -217,7 +218,7 @@ void jvmti_cacaodbgserver_quit(){
 		wait(NULL);
 		dbgcom = NULL;
 	}
-	pthread_mutex_unlock(&dbgcomlock);
+	mutex_unlock(&dbgcomlock);
 }
 
 
@@ -272,7 +273,7 @@ void jvmti_cacao_debug_init() {
 	pid_t dbgserver;	
 
 	/* start new cacaodbgserver if needed*/
-	pthread_mutex_lock(&dbgcomlock);
+	mutex_lock(&dbgcomlock);
 	if (dbgcom == NULL) {
 		dbgcom = heap_allocate(sizeof(cacaodbgcommunication),true,NULL);		
 		dbgcom->running = 1;
@@ -297,12 +298,12 @@ void jvmti_cacao_debug_init() {
 				}
 			}
 		}
-		pthread_mutex_unlock(&dbgcomlock);
+		mutex_unlock(&dbgcomlock);
 		/* let cacaodbgserver get ready */
 		sleep(1);
 	} else {
 		dbgcom->running++;
-		pthread_mutex_unlock(&dbgcomlock);
+		mutex_unlock(&dbgcomlock);
 	}
 }
 
