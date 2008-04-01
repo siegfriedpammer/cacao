@@ -25,7 +25,7 @@
 #ifndef _CACAODBG_H
 #define _CACAODBG_H
 
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 #include "native/jvmti/jvmti.h"
 #include "native/include/java_lang_String.h"
 #include <ltdl.h>

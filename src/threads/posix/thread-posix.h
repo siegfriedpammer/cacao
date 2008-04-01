@@ -1,4 +1,4 @@
-/* src/threads/posix/threads.h - native threads header
+/* src/threads/posix/thread-posix.h - POSIX thread functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO

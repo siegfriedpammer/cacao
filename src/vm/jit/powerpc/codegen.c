@@ -42,7 +42,6 @@
 #include "native/native.h"
 
 #include "threads/lock-common.h"
-#include "threads/threads-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"

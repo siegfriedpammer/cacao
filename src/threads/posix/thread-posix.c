@@ -1,4 +1,4 @@
-/* src/threads/posix/threads.c - native threads support
+/* src/threads/posix/thread-posix.c - POSIX thread functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -75,9 +75,7 @@
 
 #include "threads/lock-common.h"
 #include "threads/threadlist.h"
-#include "threads/threads-common.h"
-
-#include "threads/posix/threads.h"
+#include "threads/thread.h"
 
 #include "toolbox/logging.h"
 

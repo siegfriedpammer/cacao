@@ -44,8 +44,8 @@ libthreads_la_SOURCES = \
 	lock-common.h \
 	threadlist.c \
 	threadlist.h \
-	threads-common.c \
-	threads-common.h
+	thread.c \
+	thread.h
 
 libthreads_la_LIBADD = \
 	$(THREAD_LIB)

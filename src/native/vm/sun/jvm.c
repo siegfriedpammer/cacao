@@ -70,7 +70,7 @@
 #include "native/vm/sun/hpi.h"
 
 #include "threads/lock-common.h"
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "toolbox/logging.h"
 #include "toolbox/list.h"

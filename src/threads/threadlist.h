@@ -30,7 +30,7 @@
 
 #include <stdint.h>
 
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 
 /* function prototypes ********************************************************/

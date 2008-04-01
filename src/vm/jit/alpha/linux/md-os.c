@@ -35,7 +35,7 @@
 #include "vm/jit/alpha/md.h"
 #include "vm/jit/alpha/md-abi.h"
 
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"

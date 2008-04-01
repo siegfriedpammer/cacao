@@ -43,11 +43,7 @@
 
 #include "native/llni.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/threads-common.h"
-#else
-# include "threads/none/threads.h"
-#endif
+#include "threads/thread.h"
 
 #include "toolbox/logging.h"
 

@@ -53,7 +53,7 @@
 
 #include "native/localref.h"
 
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 
 /* LLNI macros *****************************************************************

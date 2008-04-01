@@ -45,7 +45,7 @@
 #include "native/include/java_lang_Throwable.h"
 
 #include "threads/lock-common.h"
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "toolbox/util.h"
 

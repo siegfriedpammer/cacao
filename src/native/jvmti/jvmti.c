@@ -52,7 +52,7 @@
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "mm/memory.h"
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 #include "threads/lock-common.h"
 #include "vm/exceptions.h"
 #include "native/include/java_util_Vector.h"

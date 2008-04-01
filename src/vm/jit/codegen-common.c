@@ -75,7 +75,7 @@
 
 #include "native/include/java_lang_Class.h"
 
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"

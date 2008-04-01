@@ -39,7 +39,6 @@
 #include "toolbox/logging.h"
 
 #include "threads/lock-common.h"
-#include "threads/threads-common.h"
 
 #include "vm/global.h"
 #include "vm/initialize.h"

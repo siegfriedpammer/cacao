@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <ucontext.h>
 
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "vm/signallocal.h"
 

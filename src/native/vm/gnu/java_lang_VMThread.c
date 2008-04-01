@@ -39,7 +39,7 @@
 #include "native/include/java_lang_Thread.h"
 
 #include "threads/lock-common.h"
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"

@@ -1,4 +1,4 @@
-/* src/threads/threads-common.h - machine independent thread functions
+/* src/threads/thread.h - machine independent thread functions
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -29,7 +29,7 @@
 #include "config.h"
 
 #if defined(ENABLE_THREADS)
-# include "threads/posix/threads.h"
+# include "threads/posix/thread-posix.h"
 #else
 # include "threads/none/threads.h"
 #endif

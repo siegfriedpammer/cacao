@@ -35,7 +35,7 @@
 #include "vm/jit/powerpc/codegen.h"
 #include "vm/jit/powerpc/darwin/md-abi.h"
 
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"

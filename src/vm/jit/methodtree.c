@@ -29,7 +29,7 @@
 
 #include "mm/memory.h"
 
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "toolbox/avl.h"
 

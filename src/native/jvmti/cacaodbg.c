@@ -33,7 +33,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/stringlocal.h"
 #include "toolbox/logging.h"
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include <sys/types.h>
 #include <unistd.h>

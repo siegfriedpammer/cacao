@@ -1,4 +1,4 @@
-/* src/threads/threads-common.c - machine independent thread functions
+/* src/threads/thread.c - machine independent thread functions
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -52,7 +52,7 @@
 #include "threads/critical.h"
 #include "threads/lock-common.h"
 #include "threads/threadlist.h"
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"

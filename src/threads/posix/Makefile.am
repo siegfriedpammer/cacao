@@ -32,8 +32,8 @@ libposix_la_SOURCES = \
 	lock.c \
 	lock.h \
 	threadlist-posix.c \
-	threads.c \
-	threads.h
+	thread-posix.c \
+	thread-posix.h
 
 
 ## Local variables:
