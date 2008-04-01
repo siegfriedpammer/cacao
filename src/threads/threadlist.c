@@ -213,7 +213,7 @@ int threadlist_get_non_daemons(void)
 	nondaemons = 0;
 
 	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
-		if (!(t->flags & THREAD_FLAG_DAEMON))
+		if (!thread_is_daemon(t))
 			nondaemons++;
 	}
 

@@ -83,8 +83,6 @@
 
 /* global variables ***********************************************************/
 
-extern methodinfo *thread_method_init;
-
 #if defined(__LINUX__)
 /* XXX Remove for exact-GC. */
 extern bool threads_pthreads_implementation_nptl;
@@ -137,6 +135,7 @@ inline static java_handle_t *threads_get_current_object(void)
 	return o;
 }
 
+
 /* thread_is_attached **********************************************************
 
    Returns if the given thread is attached to the VM.
@@ -154,6 +153,25 @@ inline static bool thread_is_attached(threadobject *t)
 	o = threads_thread_get_object(t);
 
 	if (o != NULL)
+		return true;
+	else
+		return false;
+}
+
+
+/* thread_is_daemon ************************************************************
+
+   Returns if the given thread is a daemon thread.
+
+   RETURN:
+       true .... the thread is a daemon thread
+       false ... the thread is not
+
+*******************************************************************************/
+
+inline static bool thread_is_daemon(threadobject *t)
+{
+	if (t->flags & THREAD_FLAG_DAEMON)
 		return true;
 	else
 		return false;

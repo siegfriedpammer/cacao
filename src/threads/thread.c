@@ -74,12 +74,9 @@
 
 /* global variables ***********************************************************/
 
-methodinfo *thread_method_init;
-
-#if defined(ENABLE_JAVASE)
-static java_lang_ThreadGroup *threadgroup_system;
-static java_lang_ThreadGroup *threadgroup_main;
-#endif
+static methodinfo    *thread_method_init;
+static java_handle_t *threadgroup_system;
+static java_handle_t *threadgroup_main;
 
 #if defined(__LINUX__)
 /* XXX Remove for exact-GC. */
@@ -218,11 +215,132 @@ void threads_init(void)
 
 /* thread_create_object ********************************************************
 
+   Create a Java thread object for the given thread data-structure,
+   initializes it and adds the thread to the threadgroup.
+
+   ARGUMENTS:
+
+       t ....... thread
+       name .... thread name
+       group ... threadgroup
+
+   RETURN:
+
 *******************************************************************************/
 
-static void thread_create_object(void)
+static bool thread_create_object(threadobject *t, java_handle_t *name, java_handle_t *group)
 {
-#warning refactor thread_create_initial_thread and threads_attach_current_thread, maybe threads_thread_start_internal
+	java_handle_t    *o;
+	java_lang_Thread *to;
+
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_VMThread    *vmto;
+	classinfo             *c;
+	methodinfo            *m;
+	bool                   isdaemon;
+#endif
+
+	/* Create a java.lang.Thread Java object. */
+
+	o = builtin_new(class_java_lang_Thread);
+
+	if (o == NULL)
+		return false;
+
+	to = (java_lang_Thread *) o;
+
+	/* Set the Java object in the thread data-structure.  This
+	   indicates that the thread is attached to the VM. */
+
+	threads_thread_set_object(t, (java_handle_t *) to);
+
+#if defined(WITH_CLASSPATH_GNU)
+
+	/* Create a java.lang.VMThread Java object. */
+
+	vmto = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
+
+	if (vmto == NULL)
+		return false;
+
+	/* Set the Java thread object in the Java VM-thread object. */
+
+	LLNI_field_set_ref(vmto, thread, to);
+
+	/* Set the thread data-structure in the Java VM-thread object. */
+
+	LLNI_field_set_val(vmto, vmdata, (java_lang_Object *) t);
+
+	/* Call:
+	   java.lang.Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
+
+	isdaemon = thread_is_daemon(t);
+
+	(void) vm_call_method(thread_method_init, o, vmto, name, NORM_PRIORITY,
+						  isdaemon);
+
+	if (exceptions_get_exception())
+		return false;
+
+	/* Set the threadgroup in the Java thread object. */
+
+	LLNI_field_set_ref(to, group, (java_lang_ThreadGroup *) group);
+
+	/* Add thread to the threadgroup. */
+
+	LLNI_class_get(group, c);
+
+	m = class_resolveclassmethod(c,
+								 utf_addThread,
+								 utf_java_lang_Thread__V,
+								 class_java_lang_ThreadGroup,
+								 true);
+
+	if (m == NULL)
+		return false;
+
+	(void) vm_call_method(m, group, to);
+
+	if (exceptions_get_exception())
+		return false;
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+	/* OpenJDK's java.lang.Thread does not have a VMThread field in
+	   the class.  Nothing to do here. */
+
+	/* Set the priority.  java.lang.Thread.<init> requires it because
+	   it sets the priority of the current thread to the parent's one
+	   (which is the current thread in this case). */
+
+	LLNI_field_set_val(to, priority, NORM_PRIORITY);
+
+	/* Call:
+	   java.lang.Thread.<init>(Ljava/lang/ThreadGroup;Ljava/lang/String;)V */
+
+	(void) vm_call_method(thread_method_init, o, group, name);
+
+	if (exceptions_get_exception())
+		return false;
+
+#elif defined(WITH_CLASSPATH_CLDC1_1)
+
+	/* Set the thread data-structure in the Java thread object. */
+
+	LLNI_field_set_val(to, vm_thread, (java_lang_Object *) t);
+
+	/* Call: public Thread(Ljava/lang/String;)V */
+
+	(void) vm_call_method(thread_method_init, o, name);
+
+	if (exceptions_get_exception())
+		return false;
+
+#else
+# error unknown classpath configuration
+#endif
+
+	return true;
 }
 
 
@@ -249,8 +367,7 @@ static void thread_create_initial_threadgroups(void)
 
 	/* Allocate and initialize the main thread group. */
 
-	threadgroup_main = (java_lang_ThreadGroup *)
-		native_new_and_init(class_java_lang_ThreadGroup);
+	threadgroup_main = native_new_and_init(class_java_lang_ThreadGroup);
 
 	if (threadgroup_main == NULL)
 		vm_abort("thread_create_initial_threadgroups: failed to allocate main threadgroup");
@@ -263,20 +380,17 @@ static void thread_create_initial_threadgroups(void)
 
 	java_handle_t *name;
 	methodinfo    *m;
-	java_handle_t *o;
 
 	/* Allocate and initialize the system thread group. */
 
-	threadgroup_system = (java_lang_ThreadGroup *)
-		native_new_and_init(class_java_lang_ThreadGroup);
+	threadgroup_system = native_new_and_init(class_java_lang_ThreadGroup);
 
 	if (threadgroup_system == NULL)
 		vm_abort("thread_create_initial_threadgroups: failed to allocate system threadgroup");
 
 	/* Allocate and initialize the main thread group. */
 
-	threadgroup_main =
-		(java_lang_ThreadGroup *) builtin_new(class_java_lang_ThreadGroup);
+	threadgroup_main = builtin_new(class_java_lang_ThreadGroup);
 
 	if (threadgroup_main == NULL)
 		vm_abort("thread_create_initial_threadgroups: failed to allocate main threadgroup");
@@ -292,9 +406,7 @@ static void thread_create_initial_threadgroups(void)
 	if (m == NULL)
 		vm_abort("thread_create_initial_threadgroups: failed to resolve threadgroup init method");
 
-	o = (java_handle_t *) threadgroup_main;
-
-	(void) vm_call_method(m, o, threadgroup_system, name);
+	(void) vm_call_method(m, threadgroup_main, threadgroup_system, name);
 
 	if (exceptions_get_exception())
 		vm_abort("thread_create_initial_threadgroups: exception while initializing main threadgroup");
@@ -314,31 +426,17 @@ static void thread_create_initial_threadgroups(void)
 
 static void thread_create_initial_thread(void)
 {
-	threadobject       *mainthread;
-	java_handle_t      *name;
-	java_lang_Thread   *to;                        /* java.lang.Thread object */
-	java_handle_t      *o;
-
-#if defined(WITH_CLASSPATH_GNU)
-	java_lang_VMThread *vmto;                    /* java.lang.VMThread object */
-	methodinfo         *m;
-#endif
+	threadobject  *t;
+	java_handle_t *name;
 
 	/* Get the main-thread (NOTE: The main thread is always the first
 	   thread in the list). */
 
-	mainthread = threadlist_first();
+	t = threadlist_first();
 
-	/* Create a java.lang.Thread object for the main thread. */
+	/* The thread name. */
 
-	to = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
-
-	if (to == NULL)
-		vm_abort("threads_init: failed to allocate java.lang.Thread object");
-
-	/* set the object in the internal data structure */
-
-	threads_thread_set_object(mainthread, (java_handle_t *) to);
+	name = javastring_new(utf_main);
 
 #if defined(ENABLE_INTRP)
 	/* create interpreter stack */
@@ -349,93 +447,16 @@ static void thread_create_initial_thread(void)
 	}
 #endif
 
-	name = javastring_new(utf_main);
+	/* Create the Java thread object. */
 
-#if defined(WITH_CLASSPATH_GNU)
-	/* Create a java.lang.VMThread for the main thread. */
-
-	vmto = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
-
-	if (vmto == NULL)
-		vm_abort("threads_init: failed to allocate java.lang.VMThread object");
-
-	/* Set the thread. */
-
-	LLNI_field_set_ref(vmto, thread, to);
-	LLNI_field_set_val(vmto, vmdata, (java_lang_Object *) mainthread);
-
-	/* Set the thread group. */
-
-	LLNI_field_set_ref(to, group, threadgroup_main);
-
-	/* Call:
-	   java.lang.Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
-
-	o = (java_handle_t *) to;
-
-	(void) vm_call_method(thread_method_init, o, vmto, name, NORM_PRIORITY,
-						  false);
-
-	if (exceptions_get_exception())
-		vm_abort("threads_init: exception while initializing main thread");
-
-	/* Add main thread to main threadgroup. */
-
-	m = class_resolveclassmethod(class_java_lang_ThreadGroup,
-								 utf_addThread,
-								 utf_java_lang_Thread__V,
-								 class_java_lang_ThreadGroup,
-								 true);
-
-	o = (java_handle_t *) threadgroup_main;
-
-	(void) vm_call_method(m, o, to);
-
-	if (exceptions_get_exception())
-        vm_abort("threads_init: exception while adding main thread to main threadgroup");
-
-#elif defined(WITH_CLASSPATH_SUN)
-
-	/* Set the priority.  java.lang.Thread.<init> requires it because
-	   it sets the priority of the current thread to the parent's one
-	   (which is the current thread in this case). */
-
-	LLNI_field_set_val(to, priority, NORM_PRIORITY);
-
-	/* Call:
-	   java.lang.Thread.<init>(Ljava/lang/ThreadGroup;Ljava/lang/String;)V */
-
-	o = (java_object_t *) to;
-
-	(void) vm_call_method(thread_method_init, o, threadgroup_main, name);
-
-	if (exceptions_get_exception())
-		vm_abort("threads_init: exception while initializing main thread");
-
-#elif defined(WITH_CLASSPATH_CLDC1_1)
-
-	/* Set the thread. */
-
-	LLNI_field_set_val(to, vm_thread, (java_lang_Object *) mainthread);
-
-	/* Call public Thread(String name). */
-
-	o = (java_handle_t *) to;
-
-	(void) vm_call_method(thread_method_init, o, name);
-
-	if (exceptions_get_exception())
-		vm_abort("threads_init: exception while initializing main thread");
-
-#else
-# error unknown classpath configuration
-#endif
+	if (!thread_create_object(t, name, threadgroup_main))
+		vm_abort("thread_create_initial_thread: failed to create Java object");
 
 	/* Initialize the implementation specific bits. */
 
 	threads_impl_init();
 
-	DEBUGTHREADS("starting (main)", mainthread);
+	DEBUGTHREADS("starting (main)", t);
 }
 
 
@@ -582,11 +603,7 @@ void thread_free(threadobject *t)
 
 bool threads_thread_start_internal(utf *name, functionptr f)
 {
-	threadobject       *t;
-	java_lang_Thread   *to;                        /* java.lang.Thread object */
-#if defined(WITH_CLASSPATH_GNU)
-	java_lang_VMThread *vmto;                    /* java.lang.VMThread object */
-#endif
+	threadobject *t;
 
 	/* Enter the join-mutex, so if the main-thread is currently
 	   waiting to join all threads, the number of non-daemon threads
@@ -607,61 +624,8 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 
 	/* Create the Java thread object. */
 
-	to = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
-
-	/* XXX memory leak!!! */
-	if (to == NULL)
+	if (!thread_create_object(t, javastring_new(name), threadgroup_system))
 		return false;
-
-#if defined(WITH_CLASSPATH_GNU)
-
-	vmto = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
-
-	/* XXX memory leak!!! */
-	if (vmto == NULL)
-		return false;
-
-	LLNI_field_set_ref(vmto, thread, to);
-	LLNI_field_set_val(vmto, vmdata, (java_lang_Object *) t);
-
-	LLNI_field_set_ref(to, vmThread, vmto);
-
-#elif defined(WITH_CLASSPATH_SUN)
-
-	/* Nothing to do. */
-
-#elif defined(WITH_CLASSPATH_CLDC1_1)
-
-	LLNI_field_set_val(to, vm_thread, (java_lang_Object *) t);
-
-#else
-# error unknown classpath configuration
-#endif
-
-	threads_thread_set_object(t, (java_handle_t *) to);
-
-	/* Set java.lang.Thread fields. */
-
-#if defined(WITH_CLASSPATH_GNU)
-
-	LLNI_field_set_ref(to, name,     (java_lang_String *) javastring_new(name));
-
-#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
-
-	/* FIXME: In cldc the name is a char[] */
-/* 	LLNI_field_set_ref(to, name,     (java_chararray *) name); */
-	LLNI_field_set_ref(to, name,     NULL);
-
-#else
-# error unknow classpath configuration
-#endif
-
-	LLNI_field_set_val(to, priority, NORM_PRIORITY);
-
-#if defined(ENABLE_JAVASE)
-	LLNI_field_set_val(to, daemon,   true);
-	LLNI_field_set_ref(to, group,    threadgroup_system);
-#endif
 
 	/* Start the thread. */
 
@@ -761,22 +725,11 @@ void threads_thread_start(java_handle_t *object)
 
 bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 {
-	bool                   result;
-	threadobject          *t;
-	utf                   *u;
-	java_handle_t         *s;
-	java_handle_t         *o;
-	java_lang_Thread      *to;
-
-#if defined(ENABLE_JAVASE)
-	java_lang_ThreadGroup *group;
-#endif
-
-#if defined(WITH_CLASSPATH_GNU)
-	java_lang_VMThread    *vmt;
-	classinfo             *c;
-	methodinfo            *m;
-#endif
+	bool           result;
+	threadobject  *t;
+	utf           *u;
+	java_handle_t *name;
+	java_handle_t *group;
 
     /* If the current thread has already been attached, this operation
 	   is a no-op. */
@@ -808,58 +761,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	threads_mutex_join_unlock();
 
-	/* create a java.lang.Thread object */
-
-	to = (java_lang_Thread *) builtin_new(class_java_lang_Thread);
-
-	/* XXX memory leak!!! */
-	if (to == NULL)
-		return false;
-
-	threads_thread_set_object(t, (java_handle_t *) to);
-
-	/* Thread is completely initialized. */
-
-	threads_thread_state_runnable(t);
-
 	DEBUGTHREADS("attaching", t);
-
-#if defined(ENABLE_INTRP)
-	/* create interpreter stack */
-
-	if (opt_intrp) {
-		MSET(intrp_main_stack, 0, u1, opt_stacksize);
-		thread->_global_sp = (Cell *) (intrp_main_stack + opt_stacksize);
-	}
-#endif
-
-#if defined(WITH_CLASSPATH_GNU)
-
-	/* create a java.lang.VMThread object */
-
-	vmt = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
-
-	/* XXX memory leak!!! */
-	if (vmt == NULL)
-		return false;
-
-	/* set the thread */
-
-	LLNI_field_set_ref(vmt, thread, to);
-	LLNI_field_set_val(vmt, vmdata, (java_lang_Object *) t);
-
-#elif defined(WITH_CLASSPATH_SUN)
-
-	/* Sun's java.lang.Thread does not have a VMThread field in the
-	   class.  Nothing to do here. */
-
-#elif defined(WITH_CLASSPATH_CLDC1_1)
-
-	LLNI_field_set_val(to, vm_thread, (java_lang_Object *) t);
-
-#else
-# error unknown classpath configuration
-#endif
 
 	/* Get the thread name. */
 
@@ -870,80 +772,37 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 		u = utf_null;
 	}
 
+	name = javastring_new(u);
+
 #if defined(ENABLE_JAVASE)
-	/* Get the threadgroup.  If no threadgroup was given, use the main
-	   threadgroup. */
+	/* Get the threadgroup. */
 
 	if (vm_aargs != NULL)
-		group = (java_lang_ThreadGroup *) vm_aargs->group;
+		group = (java_handle_t *) vm_aargs->group;
 		
+	/* If no threadgroup was given, use the main threadgroup. */
+
 	if (group == NULL)
 		group = threadgroup_main;
 #endif
 
-	/* The thread name. */
+#if defined(ENABLE_INTRP)
+	/* create interpreter stack */
 
-	s = javastring_new(u);
-
-	/* for convenience */
-
-	o = (java_handle_t *) to;
-
-#if defined(WITH_CLASSPATH_GNU)
-
-	(void) vm_call_method(thread_method_init, o, vmt, s, NORM_PRIORITY,
-						  isdaemon);
-
-	if (exceptions_get_exception())
-		return false;
-
-	/* Store the threadgroup in the Java object. */
-
-	LLNI_field_set_ref(to, group, group);
-
-	/* Add thread to given threadgroup. */
-
-	LLNI_class_get(group, c);
-
-	m = class_resolveclassmethod(c,
-								 utf_addThread,
-								 utf_java_lang_Thread__V,
-								 class_java_lang_ThreadGroup,
-								 true);
-
-	if (m == NULL)
-		return false;
-
-	o = (java_handle_t *) group;
-
-	(void) vm_call_method(m, o, to);
-
-	if (exceptions_get_exception())
-		return false;
-
-#elif defined(WITH_CLASSPATH_SUN)
-
-	/* Set the priority.  java.lang.Thread.<init> requires it because
-	   it sets the priority of the current thread to the parent's one
-	   (which is the current thread in this case). */
-
-	LLNI_field_set_val(to, priority, NORM_PRIORITY);
-
-	(void) vm_call_method(thread_method_init, o, group, s);
-
-	if (exceptions_get_exception())
-		return false;
-
-#elif defined(WITH_CLASSPATH_CLDC1_1)
-
-	(void) vm_call_method(thread_method_init, o, s);
-
-	if (exceptions_get_exception())
-		return false;
-
-#else
-# error unknown classpath configuration
+	if (opt_intrp) {
+		MSET(intrp_main_stack, 0, u1, opt_stacksize);
+		thread->_global_sp = (Cell *) (intrp_main_stack + opt_stacksize);
+	}
 #endif
+
+	/* Create the Java thread object. */
+
+	if (!thread_create_object(t, name, group))
+		return false;
+
+	/* The thread is completely initialized. */
+
+	threads_thread_state_runnable(t);
 
 	return true;
 }
@@ -987,7 +846,7 @@ void threads_thread_print_info(threadobject *t)
 		utf_display_printable_ascii(name);
 		printf("\"");
 
-		if (t->flags & THREAD_FLAG_DAEMON)
+		if (thread_is_daemon(t))
 			printf(" daemon");
 
 		printf(" prio=%d", LLNI_field_direct(object, priority));
