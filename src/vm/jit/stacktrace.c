@@ -271,18 +271,8 @@ static inline void stacktrace_stackframeinfo_fill(stackframeinfo_t *tmpsfi, stac
 	tmpsfi->prev = sfi->prev;
 
 #if !defined(NDEBUG)
-	/* Print current method information. */
-
-	if (opt_DebugStackTrace) {
-		log_println("[stacktrace start]");
-		log_start();
-		log_print("[stacktrace: method=%p, pv=%p, sp=%p, ra=%p, xpc=%p, method=",
-				  tmpsfi->code->m, tmpsfi->pv, tmpsfi->sp, tmpsfi->ra,
-				  tmpsfi->xpc);
-		method_print(tmpsfi->code->m);
-		log_print("]");
-		log_finish();
-	}
+	if (opt_DebugStackTrace)
+		log_println("[stacktrace fill]");
 #endif
 }
 
@@ -626,8 +616,8 @@ java_handle_bytearray_t *stacktrace_get(stackframeinfo_t *sfi)
 		   exception we are going to skipping them in stack trace. */
 
 		if (skip_init == true) {
-			if (m->name == utf_init) {
-/* 				throwable->is_a(method->method_holder())) { */
+			if ((m->name == utf_init) &&
+				(class_issubclass(m->class, class_java_lang_Throwable))) {
 				continue;
 			}
 			else {
