@@ -52,6 +52,7 @@
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "mm/memory.h"
+#include "threads/mutex.h"
 #include "threads/thread.h"
 #include "threads/lock-common.h"
 #include "vm/exceptions.h"
@@ -76,7 +77,7 @@
 
 typedef struct _environment environment;
 static environment *envs=NULL;
-pthread_mutex_t dbgcomlock;
+mutex_t dbgcomlock;
 
 extern const struct JNIInvokeInterface _Jv_JNIInvokeInterface;
 
@@ -734,7 +735,7 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 
 	om=MNEW(java_objectheader*,size);
 
-	pthread_mutex_lock(&lock_global_pool_lock);
+	mutex_lock(&lock_global_pool_lock);
 	lrp=lock_global_pool;
 
 	/* iterate over all lock record pools */
@@ -755,7 +756,7 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 		lrp=lrp->header.next;
 	}
 
-	pthread_mutex_unlock(&lock_global_pool_lock);
+	mutex_unlock(&lock_global_pool_lock);
 
 	*owned_monitors_ptr	= 
 		heap_allocate(sizeof(java_objectheader*) * i, true, NULL);
@@ -804,7 +805,7 @@ GetCurrentContendedMonitor (jvmtiEnv * env, jthread thread,
 
 #if defined(ENABLE_THREADS)
 
-	pthread_mutex_lock(&lock_global_pool_lock);
+	mutex_lock(&lock_global_pool_lock);
 
 	lrp=lock_global_pool;
 
@@ -825,7 +826,7 @@ GetCurrentContendedMonitor (jvmtiEnv * env, jthread thread,
 		lrp=lrp->header.next;
 	}
 
-	pthread_mutex_unlock(&lock_global_pool_lock);
+	mutex_unlock(&lock_global_pool_lock);
 
 
 #endif

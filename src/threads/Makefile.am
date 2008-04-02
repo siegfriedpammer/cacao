@@ -42,6 +42,7 @@ libthreads_la_SOURCES = \
 	critical.c \
 	critical.h \
 	lock-common.h \
+	mutex.h \
 	threadlist.c \
 	threadlist.h \
 	thread.c \

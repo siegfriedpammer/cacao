@@ -49,6 +49,7 @@
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/jvmti.h"
 # include "native/jvmti/cacaodbg.h"
+# include "threads/mutex.h"
 #endif
 
 #include "vm/vm.h"
@@ -162,7 +163,7 @@ int main(int argc, char **argv)
 	(void) vm_createjvm(&vm, (void *) &env, vm_args);
 
 #if defined(ENABLE_JVMTI)
-	pthread_mutex_init(&dbgcomlock,NULL);
+	mutex_init(&dbgcomlock);
 	if (jvmti) jvmti_set_phase(JVMTI_PHASE_START);
 #endif
 

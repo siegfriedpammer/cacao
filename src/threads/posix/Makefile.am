@@ -31,6 +31,7 @@ noinst_LTLIBRARIES = \
 libposix_la_SOURCES = \
 	lock.c \
 	lock.h \
+	mutex-posix.h \
 	threadlist-posix.c \
 	thread-posix.c \
 	thread-posix.h
