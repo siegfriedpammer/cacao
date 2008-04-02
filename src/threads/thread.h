@@ -74,7 +74,7 @@
 	do { \
 		if (opt_DebugThreads) { \
 			printf("[Thread %-16s: ", message); \
-			threads_thread_print_info(thread); \
+			thread_print_info(thread); \
 			printf("]\n"); \
 		} \
 	} while (0)
@@ -225,7 +225,7 @@ void          threads_thread_start(java_handle_t *object);
 bool          threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
 
 void          thread_fprint_name(threadobject *t, FILE *stream);
-void          threads_thread_print_info(threadobject *t);
+void          thread_print_info(threadobject *t);
 
 intptr_t      threads_get_current_tid(void);
 

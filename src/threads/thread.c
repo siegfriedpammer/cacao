@@ -851,21 +851,24 @@ void thread_fprint_name(threadobject *t, FILE *stream)
 }
 
 
-/* threads_thread_print_info ***************************************************
+/* thread_print_info ***********************************************************
 
    Print information of the passed thread.
-   
+
+   ARGUMENTS:
+       t ... thread data-structure.
+
 *******************************************************************************/
 
-void threads_thread_print_info(threadobject *t)
+void thread_print_info(threadobject *t)
 {
 	java_lang_Thread *to;
-
-	assert(t->state != THREAD_STATE_NEW);
 
 	/* If the thread is currently in initalization, don't print it. */
 
 	to = (java_lang_Thread *) thread_get_object(t);
+
+	/* Print as much as we can when we are in state NEW. */
 
 	if (to != NULL) {
 		/* Print thread name. */
@@ -873,47 +876,50 @@ void threads_thread_print_info(threadobject *t)
 		printf("\"");
 		thread_fprint_name(t, stdout);
 		printf("\"");
+	}
+	else {
+	}
 
-		if (thread_is_daemon(t))
-			printf(" daemon");
+	if (thread_is_daemon(t))
+		printf(" daemon");
 
+	if (to != NULL) {
 		printf(" prio=%d", LLNI_field_direct(to, priority));
+	}
 
 #if SIZEOF_VOID_P == 8
-		printf(" t=0x%016lx tid=0x%016lx (%ld)",
-			   (ptrint) t, (ptrint) t->tid, (ptrint) t->tid);
+	printf(" t=0x%016lx tid=0x%016lx (%ld)",
+		   (ptrint) t, (ptrint) t->tid, (ptrint) t->tid);
 #else
-		printf(" t=0x%08x tid=0x%08x (%d)",
-			   (ptrint) t, (ptrint) t->tid, (ptrint) t->tid);
+	printf(" t=0x%08x tid=0x%08x (%d)",
+		   (ptrint) t, (ptrint) t->tid, (ptrint) t->tid);
 #endif
 
-		printf(" index=%d", t->index);
+	printf(" index=%d", t->index);
 
-		/* print thread state */
+	/* Print thread state. */
 
-		switch (t->state) {
-		case THREAD_STATE_NEW:
-			printf(" new");
-			break;
-		case THREAD_STATE_RUNNABLE:
-			printf(" runnable");
-			break;
-		case THREAD_STATE_BLOCKED:
-			printf(" blocked");
-			break;
-		case THREAD_STATE_WAITING:
-			printf(" waiting");
-			break;
-		case THREAD_STATE_TIMED_WAITING:
-			printf(" waiting on condition");
-			break;
-		case THREAD_STATE_TERMINATED:
-			printf(" terminated");
-			break;
-		default:
-			vm_abort("threads_thread_print_info: unknown thread state %d",
-					 t->state);
-		}
+	switch (t->state) {
+	case THREAD_STATE_NEW:
+		printf(" new");
+		break;
+	case THREAD_STATE_RUNNABLE:
+		printf(" runnable");
+		break;
+	case THREAD_STATE_BLOCKED:
+		printf(" blocked");
+		break;
+	case THREAD_STATE_WAITING:
+		printf(" waiting");
+		break;
+	case THREAD_STATE_TIMED_WAITING:
+		printf(" waiting on condition");
+		break;
+	case THREAD_STATE_TERMINATED:
+		printf(" terminated");
+		break;
+	default:
+		vm_abort("thread_print_info: unknown thread state %d", t->state);
 	}
 }
 
@@ -1201,7 +1207,7 @@ void threads_dump(void)
 		/* Print thread info. */
 
 		printf("\n");
-		threads_thread_print_info(t);
+		thread_print_info(t);
 		printf("\n");
 
 		/* Print trace of thread. */
