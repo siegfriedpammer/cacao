@@ -298,8 +298,15 @@ static java_handle_t *exceptions_new_class_utf(classinfo *c, utf *message)
 	java_handle_t *s;
 	java_handle_t *o;
 
-	if (vm_initializing)
-		exceptions_abort(c->name, message);
+	if (vm_initializing) {
+		/* This can happen when global class variables are used which
+		   are not initialized yet. */
+
+		if (c == NULL)
+			exceptions_abort(NULL, message);
+		else
+			exceptions_abort(c->name, message);
+	}
 
 	s = javastring_new(message);
 
