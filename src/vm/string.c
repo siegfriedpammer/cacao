@@ -230,7 +230,8 @@ java_handle_t *javastring_safe_new_from_utf8(const char *text)
 	s4 nbytes;
 	s4 len;
 
-	assert(text);
+	if (text == NULL)
+		return NULL;
 
 	/* Get number of bytes. We need this to completely emulate the messy */
 	/* behaviour of the RI. :(                                           */
