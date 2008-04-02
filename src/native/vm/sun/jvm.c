@@ -111,6 +111,22 @@
         }														\
     } while (0)
 
+# define TRACEJVMCALLSENTER(x)									\
+    do {														\
+        if (opt_TraceJVMCalls || opt_TraceJVMCallsVerbose) {	\
+			log_start();										\
+            log_print x;										\
+        }														\
+    } while (0)
+
+# define TRACEJVMCALLSEXIT(x)									\
+    do {														\
+        if (opt_TraceJVMCalls || opt_TraceJVMCallsVerbose) {	\
+			log_print x;										\
+			log_finish();										\
+        }														\
+    } while (0)
+
 # define TRACEJVMCALLSVERBOSE(x)				\
     do {										\
         if (opt_TraceJVMCallsVerbose) {			\
@@ -128,6 +144,8 @@
 #else
 
 # define TRACEJVMCALLS(x)
+# define TRACEJVMCALLSENTER(x)
+# define TRACEJVMCALLSEXIT(x)
 # define TRACEJVMCALLSVERBOSE(x)
 # define PRINTJVMWARNINGS(x)
 
@@ -891,10 +909,12 @@ jobject JVM_GetClassLoader(JNIEnv *env, jclass cls)
 	classinfo   *c;
 	classloader *cl;
 
-	TRACEJVMCALLS(("JVM_GetClassLoader(env=%p, cls=%p)", env, cls));
+	TRACEJVMCALLSENTER(("JVM_GetClassLoader(env=%p, cls=%p)", env, cls));
 
 	c  = LLNI_classinfo_unwrap(cls);
 	cl = class_get_classloader(c);
+
+	TRACEJVMCALLSEXIT(("->%p", cl));
 
 	return (jobject) cl;
 }
