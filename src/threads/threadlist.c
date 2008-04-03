@@ -29,6 +29,7 @@
 
 #include "mm/memory.h"
 
+#include "threads/mutex.h"
 #include "threads/threadlist.h"
 #include "threads/thread.h"
 
@@ -38,6 +39,8 @@
 
 
 /* global variables ***********************************************************/
+
+static mutex_t threadlist_mutex;          /* global mutex for the thread list */
 
 static list_t *list_thread;                            /* global threads list */
 static list_t *list_thread_free;                  /* global free threads list */
@@ -60,15 +63,44 @@ void threadlist_init(void)
 {
 	TRACESUBSYSTEMINITIALIZATION("threadlist_init");
 
+	/* Initialize the thread list mutex. */
+
+	mutex_init(&threadlist_mutex);
+
 	/* Initialize the thread lists. */
 
 	list_thread            = list_create(OFFSET(threadobject, linkage));
 	list_thread_free       = list_create(OFFSET(threadobject, linkage_free));
 	list_thread_index_free = list_create(OFFSET(thread_index_t, linkage));
+}
 
-	/* Initialize the implementation specific parts. */
 
-	threadlist_impl_init();
+/* threadlist_lock *************************************************************
+
+   Enter the thread list mutex.
+
+   NOTE: We need this function as we can't use an internal lock for
+         the threads lists because the thread's lock is initialized in
+         threads_table_add (when we have the thread index), but we
+         already need the lock at the entry of the function.
+
+*******************************************************************************/
+
+void threadlist_lock(void)
+{
+	mutex_lock(&threadlist_mutex);
+}
+
+
+/* threadlist_unlock *********************************************************
+
+   Leave the thread list mutex.
+
+*******************************************************************************/
+
+void threadlist_unlock(void)
+{
+	mutex_unlock(&threadlist_mutex);
 }
 
 
