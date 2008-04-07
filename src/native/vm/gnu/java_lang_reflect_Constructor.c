@@ -62,7 +62,7 @@
 
 static JNINativeMethod methods[] = {
 	{ "getModifiersInternal",    "()I",                                                       (void *) (ptrint) &Java_java_lang_reflect_Constructor_getModifiersInternal    },
-	{ "getParameterTypes",       "()[Ljava/lang/Class;",                                      (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getParameterTypes   },
+	{ "getParameterTypes",       "()[Ljava/lang/Class;",                                      (void *) (ptrint) &Java_java_lang_reflect_Constructor_getParameterTypes       },
 	{ "getExceptionTypes",       "()[Ljava/lang/Class;",                                      (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getExceptionTypes   },
 	{ "constructNative",         "([Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;", (void *) (ptrint) &Java_java_lang_reflect_Constructor_constructNative    },
 	{ "getSignature",            "()Ljava/lang/String;",                                      (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getSignature        },
@@ -106,6 +106,26 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Constructor_getModifiersInterna
 	m = &(c->methods[slot]);
 
 	return m->flags;
+}
+
+
+/*
+ * Class:     java/lang/reflect/Constructor
+ * Method:    getParameterTypes
+ * Signature: ()[Ljava/lang/Class;
+ */
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_Constructor_getParameterTypes(JNIEnv *env, java_lang_reflect_Constructor *this)
+{
+	classinfo  *c;
+	methodinfo *m;
+	int32_t     slot;
+
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot,  slot);
+
+	m = &(c->methods[slot]);
+
+	return method_get_parametertypearray(m);
 }
 
 
