@@ -41,7 +41,6 @@
 /* function prototypes ********************************************************/
 
 java_lang_Object          *_Jv_java_lang_reflect_Constructor_newInstance(JNIEnv *env, java_lang_reflect_Constructor *this, java_handle_objectarray_t *args);
-java_lang_String          *_Jv_java_lang_reflect_Constructor_getSignature(JNIEnv *env, java_lang_reflect_Constructor *this);
 
 #endif /* _JV_JAVA_LANG_REFLECT_CONSTRUCTOR_H */
 

@@ -117,33 +117,6 @@ java_lang_Object *_Jv_java_lang_reflect_Constructor_newInstance(JNIEnv *env, jav
 
 
 /*
- * Class:     java/lang/reflect/Constructor
- * Method:    getSignature
- * Signature: ()Ljava/lang/String;
- */
-java_lang_String *_Jv_java_lang_reflect_Constructor_getSignature(JNIEnv *env, java_lang_reflect_Constructor *this)
-{
-	classinfo     *c;
-	methodinfo    *m;
-	java_handle_t *o;
-	int32_t        slot;
-
-	LLNI_field_get_cls(this, clazz, c);
-	LLNI_field_get_val(this, slot , slot);
-	m = &(c->methods[slot]);
-
-	if (m->signature == NULL)
-		return NULL;
-
-	o = javastring_new(m->signature);
-
-	/* in error case o is NULL */
-
-	return (java_lang_String *) o;
-}
-
-
-/*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
  * Emacs will automagically detect them.

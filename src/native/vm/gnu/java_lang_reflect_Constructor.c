@@ -55,6 +55,8 @@
 
 #include "native/vm/java_lang_reflect_Constructor.h"
 
+#include "vm/stringlocal.h"
+
 #include "vmcore/utf8.h"
 
 
@@ -65,7 +67,7 @@ static JNINativeMethod methods[] = {
 	{ "getParameterTypes",       "()[Ljava/lang/Class;",                                      (void *) (ptrint) &Java_java_lang_reflect_Constructor_getParameterTypes       },
 	{ "getExceptionTypes",       "()[Ljava/lang/Class;",                                      (void *) (ptrint) &Java_java_lang_reflect_Constructor_getExceptionTypes       },
 	{ "constructNative",         "([Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;", (void *) (ptrint) &Java_java_lang_reflect_Constructor_constructNative    },
-	{ "getSignature",            "()Ljava/lang/String;",                                      (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getSignature        },
+	{ "getSignature",            "()Ljava/lang/String;",                                      (void *) (ptrint) &Java_java_lang_reflect_Constructor_getSignature            },
 #if defined(ENABLE_ANNOTATIONS)
 	{ "declaredAnnotations",     "()Ljava/util/Map;",                                         (void *) (ptrint) &Java_java_lang_reflect_Constructor_declaredAnnotations     },
 	{ "getParameterAnnotations", "()[[Ljava/lang/annotation/Annotation;",                     (void *) (ptrint) &Java_java_lang_reflect_Constructor_getParameterAnnotations },
@@ -162,6 +164,34 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_construct
 	assert(LLNI_field_direct(this, slot)  == slot);
 
 	return _Jv_java_lang_reflect_Constructor_newInstance(env, this, args);
+}
+
+
+/*
+ * Class:     java/lang/reflect/Constructor
+ * Method:    getSignature
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Constructor_getSignature(JNIEnv *env, java_lang_reflect_Constructor *this)
+{
+	classinfo     *c;
+	methodinfo    *m;
+	java_handle_t *o;
+	int32_t        slot;
+
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot,  slot);
+
+	m = &(c->methods[slot]);
+
+	if (m->signature == NULL)
+		return NULL;
+
+	o = javastring_new(m->signature);
+
+	/* In error case o is NULL. */
+
+	return (java_lang_String *) o;
 }
 
 
