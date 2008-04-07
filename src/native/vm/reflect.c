@@ -46,6 +46,12 @@
 #include "native/include/java_lang_reflect_Field.h"
 #include "native/include/java_lang_reflect_Method.h"
 
+#if defined(WITH_CLASSPATH_GNU)
+# include "native/include/java_lang_reflect_VMConstructor.h"
+# include "native/include/java_lang_reflect_VMField.h"
+# include "native/include/java_lang_reflect_VMMethod.h"
+#endif
+
 #if defined(ENABLE_ANNOTATIONS) && defined(WITH_CLASSPATH_GNU)
 # include "vm/vm.h"
 # include "native/include/sun_reflect_ConstantPool.h"
@@ -72,40 +78,57 @@
 
 java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 {
-	classinfo                     *c;
-	java_handle_t                 *o;
-	java_lang_reflect_Constructor *rc;
-	int32_t                        slot;
+	java_handle_t                   *o;
+	java_lang_reflect_Constructor   *rc;
+	int32_t                          slot;
 
-	/* get declaring class */
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_reflect_VMConstructor *rvmc;
+#endif
 
-	c = m->class;
-
-	/* allocate a new object */
+	/* Allocate a java.lang.reflect.Constructor object. */
 
 	o = builtin_new(class_java_lang_reflect_Constructor);
 
 	if (o == NULL)
 		return NULL;
 
-	/* initialize instance fields */
+	/* Initialize instance fields. */
 
 	rc = (java_lang_reflect_Constructor *) o;
 
-	/* calculate the slot */
+	/* Calculate the slot. */
 
-	slot = m - c->methods;
+	slot = m - m->class->methods;
 
 #if defined(WITH_CLASSPATH_GNU)
 
-	LLNI_field_set_cls(rc, clazz               , c);
-	LLNI_field_set_val(rc, slot                , slot);
-	LLNI_field_set_ref(rc, annotations         , method_get_annotations(m));
-	LLNI_field_set_ref(rc, parameterAnnotations, method_get_parameterannotations(m));
+	/* Allocate a java.lang.reflect.VMConstructor object. */
+
+	o = builtin_new(class_java_lang_reflect_VMConstructor);
+
+	if (o == NULL)
+		return NULL;
+
+	rvmc = (java_lang_reflect_VMConstructor *) o;
+
+	/* Link the two Java objects. */
+
+	LLNI_field_set_ref(rc,   cons, rvmc);
+	LLNI_field_set_ref(rvmc, cons, rc);
+
+	/* Set Java object instance fields. */
+
+	LLNI_field_set_cls(rvmc, clazz,                m->class);
+	LLNI_field_set_val(rvmc, slot,                 slot);
+	LLNI_field_set_ref(rvmc, annotations,          method_get_annotations(m));
+	LLNI_field_set_ref(rvmc, parameterAnnotations, method_get_parameterannotations(m));
 
 #elif defined(WITH_CLASSPATH_SUN)
 
-	LLNI_field_set_cls(rc, clazz               , c);
+	/* Set Java object instance fields. */
+
+	LLNI_field_set_cls(rc, clazz               , m->class);
 	LLNI_field_set_ref(rc, parameterTypes      , method_get_parametertypearray(m));
 	LLNI_field_set_ref(rc, exceptionTypes      , method_get_exceptionarray(m));
 	LLNI_field_set_val(rc, modifiers           , m->flags & ACC_CLASS_REFLECT_MASK);
@@ -131,16 +154,15 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 
 java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 {
-	classinfo               *c;
-	java_handle_t           *o;
-	java_lang_reflect_Field *rf;
-	int32_t                  slot;
+	java_handle_t             *o;
+	java_lang_reflect_Field   *rf;
+	int32_t                    slot;
 
-	/* get declaring class */
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_reflect_VMField *rvmf;
+#endif
 
-	c = f->class;
-
-	/* allocate a new object */
+	/* Allocate a java.lang.reflect.Field object. */
 
 	o = builtin_new(class_java_lang_reflect_Field);
 
@@ -151,34 +173,52 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 
 	rf = (java_lang_reflect_Field *) o;
 
-	/* calculate the slot */
+	/* Calculate the slot. */
 
-	slot = f - c->fields;
+	slot = f - f->class->fields;
 
 #if defined(WITH_CLASSPATH_GNU)
 
-	LLNI_field_set_cls(rf, clazz         , c);
+	/* Allocate a java.lang.reflect.VMField object. */
+
+	o = builtin_new(class_java_lang_reflect_VMField);
+
+	if (o == NULL)
+		return NULL;
+
+	rvmf = (java_lang_reflect_VMField *) o;
+
+	/* Link the two Java objects. */
+
+	LLNI_field_set_ref(rf,   f, rvmf);
+	LLNI_field_set_ref(rvmf, f, rf);
+
+	/* Set the Java object fields. */
+
+	LLNI_field_set_cls(rvmf, clazz,       f->class);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	LLNI_field_set_ref(rf, name          , (java_lang_String *) javastring_intern(javastring_new(f->name)));
-	LLNI_field_set_val(rf, slot          , slot);
-	LLNI_field_set_ref(rf, annotations   , field_get_annotations(f));
+	LLNI_field_set_ref(rvmf, name,        (java_lang_String *) javastring_intern(javastring_new(f->name)));
+	LLNI_field_set_val(rvmf, slot,        slot);
+	LLNI_field_set_ref(rvmf, annotations, field_get_annotations(f));
 
 #elif defined(WITH_CLASSPATH_SUN)
 
-	LLNI_field_set_cls(rf, clazz         , c);
+	/* Set the Java object fields. */
+
+	LLNI_field_set_cls(rf, clazz,       f->class);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	LLNI_field_set_ref(rf, name          , (java_lang_String *) javastring_intern(javastring_new(f->name)));
-	LLNI_field_set_cls(rf, type          , (java_lang_Class *) field_get_type(f));
-	LLNI_field_set_val(rf, modifiers     , f->flags);
-	LLNI_field_set_val(rf, slot          , slot);
-	LLNI_field_set_ref(rf, signature     , f->signature ? (java_lang_String *) javastring_new(f->signature) : NULL);
-	LLNI_field_set_ref(rf, annotations   , field_get_annotations(f));
+	LLNI_field_set_ref(rf, name,        (java_lang_String *) javastring_intern(javastring_new(f->name)));
+	LLNI_field_set_cls(rf, type,        (java_lang_Class *) field_get_type(f));
+	LLNI_field_set_val(rf, modifiers,   f->flags);
+	LLNI_field_set_val(rf, slot,        slot);
+	LLNI_field_set_ref(rf, signature,   f->signature ? (java_lang_String *) javastring_new(f->signature) : NULL);
+	LLNI_field_set_ref(rf, annotations, field_get_annotations(f));
 
 #else
 # error unknown classpath configuration
@@ -197,16 +237,15 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 
 java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 {
-	classinfo                *c;
-	java_handle_t            *o;
-	java_lang_reflect_Method *rm;
-	int32_t                   slot;
+	java_handle_t              *o;
+	java_lang_reflect_Method   *rm;
+	int32_t                     slot;
 
-	/* get declaring class */
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_reflect_VMMethod *rvmm;
+#endif
 
-	c = m->class;
-
-	/* allocate a new object */
+	/* Allocate a java.lang.reflect.Method object. */
 
 	o = builtin_new(class_java_lang_reflect_Method);
 
@@ -217,40 +256,56 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 
 	rm = (java_lang_reflect_Method *) o;
 
-	/* calculate the slot */
+	/* Calculate the slot. */
 
-	slot = m - c->methods;
+	slot = m - m->class->methods;
 
 #if defined(WITH_CLASSPATH_GNU)
 
-	LLNI_field_set_cls(rm, clazz               , m->class);
+	/* Allocate a java.lang.reflect.VMMethod object. */
+
+	o = builtin_new(class_java_lang_reflect_VMMethod);
+
+	if (o == NULL)
+		return NULL;
+
+	rvmm = (java_lang_reflect_VMMethod *) o;
+
+	/* Link the two Java objects. */
+
+	LLNI_field_set_ref(rm,   m, rvmm);
+	LLNI_field_set_ref(rvmm, m, rm);
+
+	/* Set Java object instance fields. */
+
+	LLNI_field_set_cls(rvmm, clazz,                m->class);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	LLNI_field_set_ref(rm, name                , (java_lang_String *) javastring_intern(javastring_new(m->name)));
-	LLNI_field_set_val(rm, slot                , slot);
-	LLNI_field_set_ref(rm, annotations         , method_get_annotations(m));
-	LLNI_field_set_ref(rm, parameterAnnotations, method_get_parameterannotations(m));
-	LLNI_field_set_ref(rm, annotationDefault   , method_get_annotationdefault(m));
+	LLNI_field_set_ref(rvmm, name,                 (java_lang_String *) javastring_intern(javastring_new(m->name)));
+	LLNI_field_set_val(rvmm, slot,                 slot);
+	LLNI_field_set_ref(rvmm, annotations,          method_get_annotations(m));
+	LLNI_field_set_ref(rvmm, parameterAnnotations, method_get_parameterannotations(m));
+	LLNI_field_set_ref(rvmm, annotationDefault,    method_get_annotationdefault(m));
 
 #elif defined(WITH_CLASSPATH_SUN)
 
-	LLNI_field_set_cls(rm, clazz               , m->class);
+	LLNI_field_set_cls(rm, clazz,                m->class);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	LLNI_field_set_ref(rm, name                , (java_lang_String *) javastring_intern(javastring_new(m->name)));
-	LLNI_field_set_ref(rm, parameterTypes      , method_get_parametertypearray(m));
-	LLNI_field_set_cls(rm, returnType          , (java_lang_Class *) method_returntype_get(m));
-	LLNI_field_set_ref(rm, exceptionTypes      , method_get_exceptionarray(m));
-	LLNI_field_set_val(rm, modifiers           , m->flags & ACC_CLASS_REFLECT_MASK);
-	LLNI_field_set_val(rm, slot                , slot);
-	LLNI_field_set_ref(rm, signature           , m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL);
-	LLNI_field_set_ref(rm, annotations         , method_get_annotations(m));
+	LLNI_field_set_ref(rm, name,                 (java_lang_String *) javastring_intern(javastring_new(m->name)));
+	LLNI_field_set_ref(rm, parameterTypes,       method_get_parametertypearray(m));
+	LLNI_field_set_cls(rm, returnType,           (java_lang_Class *) method_returntype_get(m));
+	LLNI_field_set_ref(rm, exceptionTypes,       method_get_exceptionarray(m));
+	LLNI_field_set_val(rm, modifiers,            m->flags & ACC_CLASS_REFLECT_MASK);
+	LLNI_field_set_val(rm, slot,                 slot);
+	LLNI_field_set_ref(rm, signature,            m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL);
+	LLNI_field_set_ref(rm, annotations,          method_get_annotations(m));
 	LLNI_field_set_ref(rm, parameterAnnotations, method_get_parameterannotations(m));
-	LLNI_field_set_ref(rm, annotationDefault   , method_get_annotationdefault(m));
+	LLNI_field_set_ref(rm, annotationDefault,    method_get_annotationdefault(m));
 
 #else
 # error unknown classpath configuration

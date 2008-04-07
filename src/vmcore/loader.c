@@ -210,25 +210,22 @@ void loader_init(void)
 	/* Some classes which may be used often. */
 
 #if defined(ENABLE_JAVASE)
-	class_java_lang_StackTraceElement =
-		load_class_bootstrap(utf_java_lang_StackTraceElement);
+	class_java_lang_StackTraceElement      = load_class_bootstrap(utf_java_lang_StackTraceElement);
 
-	class_java_lang_reflect_Constructor =
-		load_class_bootstrap(utf_java_lang_reflect_Constructor);
+	class_java_lang_reflect_Constructor    = load_class_bootstrap(utf_java_lang_reflect_Constructor);
+	class_java_lang_reflect_Field          = load_class_bootstrap(utf_java_lang_reflect_Field);
+	class_java_lang_reflect_Method         = load_class_bootstrap(utf_java_lang_reflect_Method);
 
-	class_java_lang_reflect_Field =
-		load_class_bootstrap(utf_java_lang_reflect_Field);
+# if defined(WITH_CLASSPATH_GNU)
+	class_java_lang_reflect_VMConstructor  = load_class_bootstrap(utf_java_lang_reflect_VMConstructor);
+	class_java_lang_reflect_VMField        = load_class_bootstrap(utf_java_lang_reflect_VMField);
+	class_java_lang_reflect_VMMethod       = load_class_bootstrap(utf_java_lang_reflect_VMMethod);
+# endif
 
-	class_java_lang_reflect_Method =
-		load_class_bootstrap(utf_java_lang_reflect_Method);
+	class_java_security_PrivilegedAction   = load_class_bootstrap(utf_new_char("java/security/PrivilegedAction"));
 
-	class_java_security_PrivilegedAction =
-		load_class_bootstrap(utf_new_char("java/security/PrivilegedAction"));
-
-	class_java_util_HashMap = 
-		load_class_bootstrap(utf_new_char("java/util/HashMap"));
-
-	class_java_util_Vector     = load_class_bootstrap(utf_java_util_Vector);
+	class_java_util_HashMap                = load_class_bootstrap(utf_new_char("java/util/HashMap"));
+	class_java_util_Vector                 = load_class_bootstrap(utf_java_util_Vector);
 
 # if defined(WITH_CLASSPATH_SUN)
 	class_sun_reflect_MagicAccessorImpl =

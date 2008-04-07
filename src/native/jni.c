@@ -76,6 +76,10 @@ struct java_lang_ClassLoader;
 # include "native/include/java_nio_Buffer.h"
 
 # if defined(WITH_CLASSPATH_GNU)
+#  include "native/include/java_lang_reflect_VMConstructor.h"
+#  include "native/include/java_lang_reflect_VMField.h"
+#  include "native/include/java_lang_reflect_VMMethod.h"
+
 #  include "native/include/java_nio_DirectByteBufferImpl.h"
 # endif
 #endif
@@ -1464,45 +1468,74 @@ jboolean _Jv_JNI_IsInstanceOf(JNIEnv *env, jobject obj, jclass clazz)
   
 *******************************************************************************/
   
-jmethodID _Jv_JNI_FromReflectedMethod(JNIEnv *env, jobject method)
+jmethodID jni_FromReflectedMethod(JNIEnv *env, jobject method)
 {
 #if defined(ENABLE_JAVASE)
-	java_handle_t *o;
-	classinfo     *c;
-	methodinfo    *m;
-	s4             slot;
+	java_handle_t                   *o;
+	java_lang_reflect_Method        *rm;
+	java_lang_reflect_Constructor   *rc;
+	classinfo                       *c;
+	methodinfo                      *m;
+	int32_t                          slot;
 
-	STATISTICS(jniinvokation());
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_reflect_VMMethod      *rvmm;
+	java_lang_reflect_VMConstructor *rvmc;
+#endif
+
+	TRACEJNICALLS(("jni_FromReflectedMethod(env=%p, method=%p)", env, method));
 
 	o = (java_handle_t *) method;
 
 	if (o == NULL)
 		return NULL;
-	
-	if (builtin_instanceof(o, class_java_lang_reflect_Method)) {
-		java_lang_reflect_Method *rm;
 
-		rm   = (java_lang_reflect_Method *) method;
-		LLNI_field_get_cls(rm, clazz, c);
-		LLNI_field_get_val(rm, slot , slot);
-	}
-	else if (builtin_instanceof(o, class_java_lang_reflect_Constructor)) {
-		java_lang_reflect_Constructor *rc;
+	if (o->vftbl->class == class_java_lang_reflect_Constructor) {
+		rc = (java_lang_reflect_Constructor *) method;
 
-		rc   = (java_lang_reflect_Constructor *) method;
+#if defined(WITH_CLASSPATH_GNU)
+
+		LLNI_field_get_ref(rc,   cons , rvmc);
+		LLNI_field_get_cls(rvmc, clazz, c);
+		LLNI_field_get_val(rvmc, slot , slot);
+
+#elif defined(WITH_CLASSPATH_SUN)
+
 		LLNI_field_get_cls(rc, clazz, c);
 		LLNI_field_get_val(rc, slot , slot);
+
+#else
+# error unknown configuration
+#endif
 	}
-	else
-		return NULL;
+	else {
+		assert(o->vftbl->class == class_java_lang_reflect_Method);
+
+		rm = (java_lang_reflect_Method *) method;
+
+#if defined(WITH_CLASSPATH_GNU)
+
+		LLNI_field_get_ref(rm,   m ,    rvmm);
+		LLNI_field_get_cls(rvmm, clazz, c);
+		LLNI_field_get_val(rvmm, slot , slot);
+
+#elif defined(WITH_CLASSPATH_SUN)
+
+		LLNI_field_get_cls(rm, clazz, c);
+		LLNI_field_get_val(rm, slot , slot);
+
+#else
+# error unknown configuration
+#endif
+	}
 
 	m = &(c->methods[slot]);
 
 	return (jmethodID) m;
 #else
-	vm_abort("_Jv_JNI_FromReflectedMethod: not implemented in this configuration");
+	vm_abort("jni_FromReflectedMethod: Not implemented in this configuration.");
 
-	/* keep compiler happy */
+	/* Keep compiler happy. */
 
 	return NULL;
 #endif
@@ -1515,30 +1548,47 @@ jmethodID _Jv_JNI_FromReflectedMethod(JNIEnv *env, jobject method)
 
 *******************************************************************************/
  
-jfieldID _Jv_JNI_FromReflectedField(JNIEnv* env, jobject field)
+jfieldID jni_FromReflectedField(JNIEnv* env, jobject field)
 {
 #if defined(ENABLE_JAVASE)
-	java_lang_reflect_Field *rf;
-	classinfo               *c;
-	fieldinfo               *f;
-	int32_t                  slot;
+	java_lang_reflect_Field   *rf;
+	classinfo                 *c;
+	fieldinfo                 *f;
+	int32_t                    slot;
 
-	STATISTICS(jniinvokation());
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_reflect_VMField *rvmf;
+#endif
+
+	TRACEJNICALLS(("jni_FromReflectedField(env=%p, field=%p)", env, field));
 
 	rf = (java_lang_reflect_Field *) field;
 
 	if (rf == NULL)
 		return NULL;
 
+#if defined(WITH_CLASSPATH_GNU)
+
+	LLNI_field_get_ref(rf,   f,     rvmf);
+	LLNI_field_get_cls(rvmf, clazz, c);
+	LLNI_field_get_val(rvmf, slot , slot);
+
+#elif defined(WITH_CLASSPATH_SUN)
+
 	LLNI_field_get_cls(rf, clazz, c);
 	LLNI_field_get_val(rf, slot , slot);
+
+#else
+# error unknown configuration
+#endif
+
 	f = &(c->fields[slot]);
 
 	return (jfieldID) f;
 #else
-	vm_abort("_Jv_JNI_FromReflectedField: not implemented in this configuration");
+	vm_abort("jni_FromReflectedField: Not implemented in this configuration.");
 
-	/* keep compiler happy */
+	/* Keep compiler happy. */
 
 	return NULL;
 #endif
@@ -3961,8 +4011,8 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 
 	_Jv_JNI_DefineClass,
 	jni_FindClass,
-	_Jv_JNI_FromReflectedMethod,
-	_Jv_JNI_FromReflectedField,
+	jni_FromReflectedMethod,
+	jni_FromReflectedField,
 	_Jv_JNI_ToReflectedMethod,
 	_Jv_JNI_GetSuperclass,
 	_Jv_JNI_IsAssignableFrom,

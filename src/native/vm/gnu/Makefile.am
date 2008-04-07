@@ -1,9 +1,7 @@
 ## src/native/vm/gnu/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-## J. Wenninger, Institut f. Computersprachen - TU Wien
+## Copyright (C) 1996-2005, 2006, 2008
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -21,10 +19,6 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
-##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
 
 
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)/src
@@ -47,6 +41,7 @@ endif
 libnativevmcore_la_SOURCES = \
 	gnu_classpath_VMStackWalker.c \
 	gnu_classpath_VMSystemProperties.c \
+	gnu_java_lang_VMCPStringBuilder.c \
 	gnu_java_lang_management_VMClassLoadingMXBeanImpl.c \
 	gnu_java_lang_management_VMMemoryMXBeanImpl.c \
 	gnu_java_lang_management_VMRuntimeMXBeanImpl.c \
@@ -60,9 +55,9 @@ libnativevmcore_la_SOURCES = \
 	java_lang_VMThread.c \
 	java_lang_VMThrowable.c \
 	java_lang_management_VMManagementFactory.c \
-	java_lang_reflect_Constructor.c \
-	java_lang_reflect_Field.c \
-	java_lang_reflect_Method.c \
+	java_lang_reflect_VMConstructor.c \
+	java_lang_reflect_VMField.c \
+	java_lang_reflect_VMMethod.c \
 	java_lang_reflect_VMProxy.c \
 	java_security_VMAccessController.c \
 	java_util_concurrent_atomic_AtomicLong.c \

@@ -1,9 +1,7 @@
-/* src/native/vm/gnu/java_lang_reflect_Field.c
+/* src/native/vm/gnu/java_lang_reflect_VMField.c
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -46,7 +44,7 @@
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_String.h"
 
-#include "native/include/java_lang_reflect_Field.h"
+#include "native/include/java_lang_reflect_VMField.h"
 
 #if defined(ENABLE_ANNOTATIONS)
 #include "native/include/java_util_Map.h"
@@ -72,44 +70,44 @@
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "getModifiersInternal", "()I",                                     (void *) (intptr_t) &Java_java_lang_reflect_Field_getModifiersInternal },
-	{ "getType",              "()Ljava/lang/Class;",                     (void *) (intptr_t) &Java_java_lang_reflect_Field_getType              },
-	{ "get",                  "(Ljava/lang/Object;)Ljava/lang/Object;",  (void *) (intptr_t) &Java_java_lang_reflect_Field_get                  },
-	{ "getBoolean",           "(Ljava/lang/Object;)Z",                   (void *) (intptr_t) &Java_java_lang_reflect_Field_getBoolean           },
-	{ "getByte",              "(Ljava/lang/Object;)B",                   (void *) (intptr_t) &Java_java_lang_reflect_Field_getByte              },
-	{ "getChar",              "(Ljava/lang/Object;)C",                   (void *) (intptr_t) &Java_java_lang_reflect_Field_getChar              },
-	{ "getShort",             "(Ljava/lang/Object;)S",                   (void *) (intptr_t) &Java_java_lang_reflect_Field_getShort             },
-	{ "getInt",               "(Ljava/lang/Object;)I",                   (void *) (intptr_t) &Java_java_lang_reflect_Field_getInt               },
-	{ "getLong",              "(Ljava/lang/Object;)J",                   (void *) (intptr_t) &Java_java_lang_reflect_Field_getLong              },
-	{ "getFloat",             "(Ljava/lang/Object;)F",                   (void *) (intptr_t) &Java_java_lang_reflect_Field_getFloat             },
-	{ "getDouble",            "(Ljava/lang/Object;)D",                   (void *) (intptr_t) &Java_java_lang_reflect_Field_getDouble            },
-	{ "set",                  "(Ljava/lang/Object;Ljava/lang/Object;)V", (void *) (intptr_t) &Java_java_lang_reflect_Field_set                  },
-	{ "setBoolean",           "(Ljava/lang/Object;Z)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setBoolean           },
-	{ "setByte",              "(Ljava/lang/Object;B)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setByte              },
-	{ "setChar",              "(Ljava/lang/Object;C)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setChar              },
-	{ "setShort",             "(Ljava/lang/Object;S)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setShort             },
-	{ "setInt",               "(Ljava/lang/Object;I)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setInt               },
-	{ "setLong",              "(Ljava/lang/Object;J)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setLong              },
-	{ "setFloat",             "(Ljava/lang/Object;F)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setFloat             },
-	{ "setDouble",            "(Ljava/lang/Object;D)V",                  (void *) (intptr_t) &Java_java_lang_reflect_Field_setDouble            },
-	{ "getSignature",         "()Ljava/lang/String;",                    (void *) (intptr_t) &Java_java_lang_reflect_Field_getSignature         },
+	{ "getModifiersInternal", "()I",                                     (void *) (intptr_t) &Java_java_lang_reflect_VMField_getModifiersInternal },
+	{ "getType",              "()Ljava/lang/Class;",                     (void *) (intptr_t) &Java_java_lang_reflect_VMField_getType              },
+	{ "get",                  "(Ljava/lang/Object;)Ljava/lang/Object;",  (void *) (intptr_t) &Java_java_lang_reflect_VMField_get                  },
+	{ "getBoolean",           "(Ljava/lang/Object;)Z",                   (void *) (intptr_t) &Java_java_lang_reflect_VMField_getBoolean           },
+	{ "getByte",              "(Ljava/lang/Object;)B",                   (void *) (intptr_t) &Java_java_lang_reflect_VMField_getByte              },
+	{ "getChar",              "(Ljava/lang/Object;)C",                   (void *) (intptr_t) &Java_java_lang_reflect_VMField_getChar              },
+	{ "getShort",             "(Ljava/lang/Object;)S",                   (void *) (intptr_t) &Java_java_lang_reflect_VMField_getShort             },
+	{ "getInt",               "(Ljava/lang/Object;)I",                   (void *) (intptr_t) &Java_java_lang_reflect_VMField_getInt               },
+	{ "getLong",              "(Ljava/lang/Object;)J",                   (void *) (intptr_t) &Java_java_lang_reflect_VMField_getLong              },
+	{ "getFloat",             "(Ljava/lang/Object;)F",                   (void *) (intptr_t) &Java_java_lang_reflect_VMField_getFloat             },
+	{ "getDouble",            "(Ljava/lang/Object;)D",                   (void *) (intptr_t) &Java_java_lang_reflect_VMField_getDouble            },
+	{ "set",                  "(Ljava/lang/Object;Ljava/lang/Object;)V", (void *) (intptr_t) &Java_java_lang_reflect_VMField_set                  },
+	{ "setBoolean",           "(Ljava/lang/Object;Z)V",                  (void *) (intptr_t) &Java_java_lang_reflect_VMField_setBoolean           },
+	{ "setByte",              "(Ljava/lang/Object;B)V",                  (void *) (intptr_t) &Java_java_lang_reflect_VMField_setByte              },
+	{ "setChar",              "(Ljava/lang/Object;C)V",                  (void *) (intptr_t) &Java_java_lang_reflect_VMField_setChar              },
+	{ "setShort",             "(Ljava/lang/Object;S)V",                  (void *) (intptr_t) &Java_java_lang_reflect_VMField_setShort             },
+	{ "setInt",               "(Ljava/lang/Object;I)V",                  (void *) (intptr_t) &Java_java_lang_reflect_VMField_setInt               },
+	{ "setLong",              "(Ljava/lang/Object;J)V",                  (void *) (intptr_t) &Java_java_lang_reflect_VMField_setLong              },
+	{ "setFloat",             "(Ljava/lang/Object;F)V",                  (void *) (intptr_t) &Java_java_lang_reflect_VMField_setFloat             },
+	{ "setDouble",            "(Ljava/lang/Object;D)V",                  (void *) (intptr_t) &Java_java_lang_reflect_VMField_setDouble            },
+	{ "getSignature",         "()Ljava/lang/String;",                    (void *) (intptr_t) &Java_java_lang_reflect_VMField_getSignature         },
 #if defined(ENABLE_ANNOTATIONS)
-	{ "declaredAnnotations",  "()Ljava/util/Map;",                       (void *) (intptr_t) &Java_java_lang_reflect_Field_declaredAnnotations  },
+	{ "declaredAnnotations",  "()Ljava/util/Map;",                       (void *) (intptr_t) &Java_java_lang_reflect_VMField_declaredAnnotations  },
 #endif
 };
 
 
-/* _Jv_java_lang_reflect_Field_init ********************************************
+/* _Jv_java_lang_reflect_VMField_init ******************************************
 
    Register native functions.
 
 *******************************************************************************/
 
-void _Jv_java_lang_reflect_Field_init(void)
+void _Jv_java_lang_reflect_VMField_init(void)
 {
 	utf *u;
 
-	u = utf_new_char("java/lang/reflect/Field");
+	u = utf_new_char("java/lang/reflect/VMField");
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
@@ -125,21 +123,25 @@ void _Jv_java_lang_reflect_Field_init(void)
 
 *******************************************************************************/
 
-static bool _field_access_check(java_lang_reflect_Field *this,
+static bool _field_access_check(java_lang_reflect_VMField *this,
 								fieldinfo *f, classinfo *c, java_handle_t *o)
 {
-	int32_t flag;
+	java_lang_reflect_Field *rf;
+	int32_t                  flag;
 
 	/* check if we should bypass security checks (AccessibleObject) */
 
-	LLNI_field_get_val(this, flag, flag);
+	LLNI_field_get_ref(this, f, rf);
+	LLNI_field_get_val(rf, flag, flag);
+
 	if (flag == false) {
 		/* This function is always called like this:
-		       [0] java.lang.reflect.Field.xxx (Native Method)
-		       [1] <caller>
+		       [0] java.lang.reflect.VMField.xxx (Native Method)
+		       [1] java.lang.reflect.Field.xxx
+		       [2] <caller>
 		*/
 
-		if (!access_check_field(f, 1))
+		if (!access_check_field(f, 2))
 			return false;
 	}
 
@@ -155,8 +157,8 @@ static bool _field_access_check(java_lang_reflect_Field *this,
 		/* everything is ok */
 
 		return true;
-
-	} else {
+	}
+	else {
 		/* obj is required for not-static fields */
 
 		if (o == NULL) {
@@ -259,11 +261,11 @@ _FIELD_SET_TYPE(double, double,  d)
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    getModifiersInternal
  * Signature: ()I
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getModifiersInternal(JNIEnv *env, java_lang_reflect_Field *this)
+JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getModifiersInternal(JNIEnv *env, java_lang_reflect_VMField *this)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -278,11 +280,11 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getModifiersInternal(JNIE
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    getType
  * Signature: ()Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType(JNIEnv *env, java_lang_reflect_Field *this)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_VMField_getType(JNIEnv *env, java_lang_reflect_VMField *this)
 {
 	classinfo *c;
 	typedesc  *desc;
@@ -304,11 +306,11 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_Field_getType(JNIEnv *
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    get
  * Signature: (Ljava/lang/Object;)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_VMField_get(JNIEnv *env, java_lang_reflect_VMField *this, java_lang_Object *o)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -359,11 +361,11 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Field_get(JNIEnv *env
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    getBoolean
  * Signature: (Ljava/lang/Object;)Z
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getBoolean(JNIEnv *env, java_lang_reflect_VMField *this, java_lang_Object *o)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -393,11 +395,11 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getBoolean(JNIEnv *env, j
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    getByte
  * Signature: (Ljava/lang/Object;)B
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getByte(JNIEnv *env, java_lang_reflect_VMField *this, java_lang_Object *o)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -427,11 +429,11 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getByte(JNIEnv *env, java
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    getChar
  * Signature: (Ljava/lang/Object;)C
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getChar(JNIEnv *env, java_lang_reflect_VMField *this, java_lang_Object *o)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -461,11 +463,11 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getChar(JNIEnv *env, java
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    getShort
  * Signature: (Ljava/lang/Object;)S
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getShort(JNIEnv *env, java_lang_reflect_VMField *this, java_lang_Object *o)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -496,11 +498,11 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getShort(JNIEnv *env, jav
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    getInt
  * Signature: (Ljava/lang/Object;)I
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getInt(JNIEnv *env , java_lang_reflect_VMField *this, java_lang_Object *o)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -533,11 +535,11 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Field_getInt(JNIEnv *env , java
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    getLong
  * Signature: (Ljava/lang/Object;)J
  */
-JNIEXPORT int64_t JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT int64_t JNICALL Java_java_lang_reflect_VMField_getLong(JNIEnv *env, java_lang_reflect_VMField *this, java_lang_Object *o)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -572,11 +574,11 @@ JNIEXPORT int64_t JNICALL Java_java_lang_reflect_Field_getLong(JNIEnv *env, java
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    getFloat
  * Signature: (Ljava/lang/Object;)F
  */
-JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT float JNICALL Java_java_lang_reflect_VMField_getFloat(JNIEnv *env, java_lang_reflect_VMField *this, java_lang_Object *o)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -613,11 +615,11 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_Field_getFloat(JNIEnv *env, java_
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    getDouble
  * Signature: (Ljava/lang/Object;)D
  */
-JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , java_lang_reflect_Field *this, java_lang_Object *o)
+JNIEXPORT double JNICALL Java_java_lang_reflect_VMField_getDouble(JNIEnv *env , java_lang_reflect_VMField *this, java_lang_Object *o)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -656,11 +658,11 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_Field_getDouble(JNIEnv *env , ja
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    set
  * Signature: (Ljava/lang/Object;Ljava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, java_lang_Object *value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang_reflect_VMField *this, java_lang_Object *o, java_lang_Object *value)
 {
 	classinfo *sc;
 	classinfo *dc;
@@ -930,11 +932,11 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_set(JNIEnv *env, java_lang_r
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    setBoolean
  * Signature: (Ljava/lang/Object;Z)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setBoolean(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, int32_t value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setBoolean(JNIEnv *env, java_lang_reflect_VMField *this, java_lang_Object *o, int32_t value)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -966,11 +968,11 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setBoolean(JNIEnv *env, java
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    setByte
  * Signature: (Ljava/lang/Object;B)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setByte(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, int32_t value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setByte(JNIEnv *env, java_lang_reflect_VMField *this, java_lang_Object *o, int32_t value)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -1013,11 +1015,11 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setByte(JNIEnv *env, java_la
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    setChar
  * Signature: (Ljava/lang/Object;C)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setChar(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, int32_t value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setChar(JNIEnv *env, java_lang_reflect_VMField *this, java_lang_Object *o, int32_t value)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -1059,11 +1061,11 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setChar(JNIEnv *env, java_la
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    setShort
  * Signature: (Ljava/lang/Object;S)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, int32_t value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setShort(JNIEnv *env, java_lang_reflect_VMField *this, java_lang_Object *o, int32_t value)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -1105,11 +1107,11 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setShort(JNIEnv *env, java_l
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    setInt
  * Signature: (Ljava/lang/Object;I)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setInt(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, int32_t value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setInt(JNIEnv *env, java_lang_reflect_VMField *this, java_lang_Object *o, int32_t value)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -1150,11 +1152,11 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setInt(JNIEnv *env, java_lan
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    setLong
  * Signature: (Ljava/lang/Object;J)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setLong(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, int64_t value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setLong(JNIEnv *env, java_lang_reflect_VMField *this, java_lang_Object *o, int64_t value)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -1192,11 +1194,11 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setLong(JNIEnv *env, java_la
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    setFloat
  * Signature: (Ljava/lang/Object;F)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setFloat(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, float value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setFloat(JNIEnv *env, java_lang_reflect_VMField *this, java_lang_Object *o, float value)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -1231,11 +1233,11 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setFloat(JNIEnv *env, java_l
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    setDouble
  * Signature: (Ljava/lang/Object;D)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setDouble(JNIEnv *env, java_lang_reflect_Field *this, java_lang_Object *o, double value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setDouble(JNIEnv *env, java_lang_reflect_VMField *this, java_lang_Object *o, double value)
 {
 	classinfo *c;
 	fieldinfo *f;
@@ -1267,11 +1269,11 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_Field_setDouble(JNIEnv *env, java_
 
 
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    getSignature
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Field_getSignature(JNIEnv *env, java_lang_reflect_Field* this)
+JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_VMField_getSignature(JNIEnv *env, java_lang_reflect_VMField* this)
 {
 	classinfo     *c;
 	fieldinfo     *f;
@@ -1297,11 +1299,11 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_Field_getSignature(JN
 
 #if defined(ENABLE_ANNOTATIONS)
 /*
- * Class:     java/lang/reflect/Field
+ * Class:     java/lang/reflect/VMField
  * Method:    declaredAnnotations
  * Signature: ()Ljava/util/Map;
  */
-JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_Field_declaredAnnotations(JNIEnv *env, java_lang_reflect_Field *this)
+JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_VMField_declaredAnnotations(JNIEnv *env, java_lang_reflect_VMField *this)
 {
 	java_util_Map           *declaredAnnotations = NULL; /* parsed annotations                                */
 	java_handle_bytearray_t *annotations         = NULL; /* unparsed annotations                              */

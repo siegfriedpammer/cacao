@@ -39,12 +39,11 @@ exception statement from your version. */
 package java.lang.reflect;
 
 import gnu.java.lang.ClassHelper;
+import gnu.java.lang.CPStringBuilder;
 
 import gnu.java.lang.reflect.MethodSignatureParser;
 
 import java.lang.annotation.Annotation;
-import java.util.Map;
-import java.util.Arrays;
 
 /**
  * The Constructor class represents a constructor of a class. It also allows
@@ -82,42 +81,21 @@ import java.util.Arrays;
 public final class Constructor<T>
   extends AccessibleObject
   implements GenericDeclaration, Member
-{
-  private Class<T> clazz;
-  private int slot;
-
-  /**
-   * Unparsed annotations.
-   */
-  private byte[] annotations = null;
-
-  /**
-   * Unparsed parameter annotations.
-   */
-  private byte[] parameterAnnotations = null;
-  
-  /**
-   * Annotations get parsed the first time they are
-   * accessed and are then cached it this map.
-   */
-  private transient Map<Class<? extends Annotation>, Annotation> declaredAnnotations = null;
-  
+{  
   private static final int CONSTRUCTOR_MODIFIERS
     = Modifier.PRIVATE | Modifier.PROTECTED | Modifier.PUBLIC;
-  
-  /**
-   * Helper array for creating a new array from a java.util.Container.
-   */
-  private static final Annotation[] EMPTY_ANNOTATIONS_ARRAY =
-    new Annotation[0];
+
+  private MethodSignatureParser p;
+
+  VMConstructor cons;
 
   /**
-   * This class is uninstantiable except from native code.
+   * This class is uninstantiable outside this package.
    */
-  private Constructor(Class declaringClass,int slot)
+  Constructor(VMConstructor cons)
   {
-    this.clazz = declaringClass;
-    this.slot = slot;
+    this.cons = cons;
+    cons.cons = this;
   }
 
   private Constructor()
@@ -128,9 +106,10 @@ public final class Constructor<T>
    * Gets the class that declared this constructor.
    * @return the class that declared this member
    */
+  @SuppressWarnings("unchecked")
   public Class<T> getDeclaringClass()
   {
-    return clazz;
+    return (Class<T>) cons.getDeclaringClass();
   }
 
   /**
@@ -140,15 +119,8 @@ public final class Constructor<T>
    */
   public String getName()
   {
-    return getDeclaringClass().getName();
+    return cons.getDeclaringClass().getName();
   }
-
-  /**
-   * Return the raw modifiers for this constructor.  In particular
-   * this will include the synthetic and varargs bits.
-   * @return the constructor's modifiers
-   */
-  private native int getModifiersInternal();
 
   /**
    * Gets the modifiers this constructor uses.  Use the <code>Modifier</code>
@@ -160,7 +132,7 @@ public final class Constructor<T>
    */
   public int getModifiers()
   {
-    return getModifiersInternal() & CONSTRUCTOR_MODIFIERS;
+    return cons.getModifiersInternal() & CONSTRUCTOR_MODIFIERS;
   }
 
   /**
@@ -171,7 +143,7 @@ public final class Constructor<T>
    */
   public boolean isSynthetic()
   {
-    return (getModifiersInternal() & Modifier.SYNTHETIC) != 0;
+    return (cons.getModifiersInternal() & Modifier.SYNTHETIC) != 0;
   }
 
   /**
@@ -181,7 +153,7 @@ public final class Constructor<T>
    */
   public boolean isVarArgs()
   {
-    return (getModifiersInternal() & Modifier.VARARGS) != 0;
+    return (cons.getModifiersInternal() & Modifier.VARARGS) != 0;
   }
 
   /**
@@ -190,7 +162,11 @@ public final class Constructor<T>
    *
    * @return a list of the types of the constructor's parameters
    */
-  public native Class<?>[] getParameterTypes();
+  @SuppressWarnings("unchecked")
+  public Class<?>[] getParameterTypes()
+  {
+    return (Class<?>[]) cons.getParameterTypes();
+  }
 
   /**
    * Get the exception types this constructor says it throws, in no particular
@@ -199,7 +175,11 @@ public final class Constructor<T>
    *
    * @return a list of the types in the constructor's throws clause
    */
-  public native Class<?>[] getExceptionTypes();
+  @SuppressWarnings("unchecked")
+  public Class<?>[] getExceptionTypes()
+  {
+    return (Class<?>[]) cons.getExceptionTypes();
+  }
 
   /**
    * Compare two objects to see if they are semantically equivalent.
@@ -213,14 +193,7 @@ public final class Constructor<T>
    */
   public boolean equals(Object o)
   {
-    if (!(o instanceof Constructor))
-      return false;
-    Constructor that = (Constructor)o; 
-    if (this.getDeclaringClass() != that.getDeclaringClass())
-      return false;
-    if (!Arrays.equals(this.getParameterTypes(), that.getParameterTypes()))
-      return false;
-    return true;
+    return cons.equals(o);
   }
 
   /**
@@ -231,7 +204,7 @@ public final class Constructor<T>
    */
   public int hashCode()
   {
-    return getDeclaringClass().getName().hashCode();
+    return getName().hashCode();
   }
 
   /**
@@ -247,7 +220,7 @@ public final class Constructor<T>
   public String toString()
   {
     // 128 is a reasonable buffer initial size for constructor
-    StringBuilder sb = new StringBuilder(128);
+    CPStringBuilder sb = new CPStringBuilder(128);
     Modifier.toString(getModifiers(), sb).append(' ');
     sb.append(getDeclaringClass().getName()).append('(');
     Class[] c = getParameterTypes();
@@ -269,7 +242,7 @@ public final class Constructor<T>
   }
 
   static <X extends GenericDeclaration>
-  void addTypeParameters(StringBuilder sb, TypeVariable<X>[] typeArgs)
+  void addTypeParameters(CPStringBuilder sb, TypeVariable<X>[] typeArgs)
   {
     if (typeArgs.length == 0)
       return;
@@ -285,7 +258,7 @@ public final class Constructor<T>
 
   public String toGenericString()
   {
-    StringBuilder sb = new StringBuilder(128);
+    CPStringBuilder sb = new CPStringBuilder(128);
     Modifier.toString(getModifiers(), sb).append(' ');
     addTypeParameters(sb, getTypeParameters());
     sb.append(getDeclaringClass().getName()).append('(');
@@ -337,17 +310,13 @@ public final class Constructor<T>
    * @throws ExceptionInInitializerError if construction triggered class
    *         initialization, which then failed
    */
+  @SuppressWarnings("unchecked")
   public T newInstance(Object... args)
     throws InstantiationException, IllegalAccessException,
            InvocationTargetException
   {
-    return constructNative(args, clazz, slot);
+    return (T) cons.construct(args);
   }
-
-  private native T constructNative(Object[] args, Class declaringClass,
-				   int slot)
-    throws InstantiationException, IllegalAccessException,
-           InvocationTargetException;
 
   /**
    * Returns an array of <code>TypeVariable</code> objects that represents
@@ -363,18 +332,15 @@ public final class Constructor<T>
    */
   public TypeVariable<Constructor<T>>[] getTypeParameters()
   {
-    String sig = getSignature();
-    if (sig == null)
-      return new TypeVariable[0];
-    MethodSignatureParser p = new MethodSignatureParser(this, sig);
+    if (p == null)
+      {
+	String sig = cons.getSignature();
+	if (sig == null)
+	  return new TypeVariable[0];
+	p = new MethodSignatureParser(this, sig);
+      }
     return p.getTypeParameters();
   }
-
-  /**
-   * Return the String in the Signature attribute for this constructor. If there
-   * is no Signature attribute, return null.
-   */
-  private native String getSignature();
 
   /**
    * Returns an array of <code>Type</code> objects that represents
@@ -390,10 +356,13 @@ public final class Constructor<T>
    */
   public Type[] getGenericExceptionTypes()
   {
-    String sig = getSignature();
-    if (sig == null)
-      return getExceptionTypes();
-    MethodSignatureParser p = new MethodSignatureParser(this, sig);
+    if (p == null)
+      {
+	String sig = cons.getSignature();
+	if (sig == null)
+	  return getExceptionTypes();
+	p = new MethodSignatureParser(this, sig);
+      }
     return p.getGenericExceptionTypes();
   }
 
@@ -411,52 +380,70 @@ public final class Constructor<T>
    */
   public Type[] getGenericParameterTypes()
   {
-    String sig = getSignature();
-    if (sig == null)
-      return getParameterTypes();
-    MethodSignatureParser p = new MethodSignatureParser(this, sig);
+    if (p == null)
+      {
+	String sig = cons.getSignature();
+	if (sig == null)
+	  return getParameterTypes();
+	p = new MethodSignatureParser(this, sig);
+      }
     return p.getGenericParameterTypes();
   }
-    
+
   /**
-   * @throws NullPointerException {@inheritDoc}
+   * <p>
+   * Return an array of arrays representing the annotations on each
+   * of the constructor's parameters.  The outer array is aligned against
+   * the parameters of the constructors and is thus equal in length to
+   * the number of parameters (thus having a length zero if there are none).
+   * Each array element in the outer array contains an inner array which
+   * holds the annotations.  This array has a length of zero if the parameter
+   * has no annotations.
+   * </p>
+   * <p>
+   * The returned annotations are serialized.  Changing the annotations has
+   * no affect on the return value of future calls to this method.
+   * </p>
+   * 
+   * @return an array of arrays which represents the annotations used on the
+   *         parameters of this constructor.  The order of the array elements
+   *         matches the declaration order of the parameters.
    * @since 1.5
    */
-  public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
-    if (annotationClass == null)
-      throw new NullPointerException();
-
-    return (T)declaredAnnotations().get(annotationClass);
+  public Annotation[][] getParameterAnnotations()
+  {
+    return cons.getParameterAnnotations();
   }
 
   /**
-   * @since 1.5
-   */
-  public Annotation[] getDeclaredAnnotations() {
-    return declaredAnnotations().values().toArray(EMPTY_ANNOTATIONS_ARRAY);
-  }
-
-  /**
-   * Parses the annotations if they aren't parsed yet and stores them into
-   * the declaredAnnotations map and return this map.
-   */
-  private synchronized native Map<Class<? extends Annotation>, Annotation> declaredAnnotations();
-  
-  /**
-   * Returns an array of arrays that represent the annotations on the formal
-   * parameters, in declaration order, of the method represented by
-   * this <tt>Method</tt> object. (Returns an array of length zero if the
-   * underlying method is parameterless.  If the method has one or more
-   * parameters, a nested array of length zero is returned for each parameter
-   * with no annotations.) The annotation objects contained in the returned
-   * arrays are serializable.  The caller of this method is free to modify
-   * the returned arrays; it will have no effect on the arrays returned to
-   * other callers.
+   * Returns the element's annotation for the specified annotation type,
+   * or <code>null</code> if no such annotation exists.
    *
-   * @return an array of arrays that represent the annotations on the formal
-   *    parameters, in declaration order, of the method represented by this
-   *    Method object
+   * @param annotationClass the type of annotation to look for.
+   * @return this element's annotation for the specified type, or
+   *         <code>null</code> if no such annotation exists.
+   * @throws NullPointerException if the annotation class is <code>null</code>.
+   */
+  @SuppressWarnings("unchecked")
+  public <T extends Annotation> T getAnnotation(Class<T> annotationClass)
+  {
+    return (T) cons.getAnnotation(annotationClass);
+  }
+
+  /**
+   * Returns all annotations directly defined by the element.  If there are
+   * no annotations directly associated with the element, then a zero-length
+   * array will be returned.  The returned array may be modified by the client
+   * code, but this will have no effect on the annotation content of this
+   * class, and hence no effect on the return value of this method for
+   * future callers.
+   *
+   * @return the annotations directly defined by the element.
    * @since 1.5
    */
-  public native Annotation[][] getParameterAnnotations();
+  public Annotation[] getDeclaredAnnotations()
+  {
+    return cons.getDeclaredAnnotations();
+  }
+
 }

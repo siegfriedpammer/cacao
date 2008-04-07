@@ -71,7 +71,11 @@ JAVASE_HEADER_FILES += \
 	gnu_classpath_Pointer.h \
 	gnu_classpath_Pointer32.h \
 	gnu_classpath_Pointer64.h \
+	gnu_java_lang_VMCPStringBuilder.h \
 	java_lang_VMObject.h \
+	java_lang_reflect_VMConstructor.h \
+	java_lang_reflect_VMField.h \
+	java_lang_reflect_VMMethod.h \
 	java_nio_DirectByteBufferImpl.h
 
 if ENABLE_ANNOTATIONS

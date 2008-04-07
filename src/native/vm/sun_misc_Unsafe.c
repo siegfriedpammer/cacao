@@ -49,6 +49,10 @@
 #include "native/include/java_lang_Thread.h"             /* required by s.m.U */
 #include "native/include/java_lang_Throwable.h"
 
+#if defined(WITH_CLASSPATH_GNU)
+# include "native/include/java_lang_reflect_VMField.h"
+#endif
+
 #include "native/include/java_security_ProtectionDomain.h" /* required by smU */
 
 #include "native/include/sun_misc_Unsafe.h"
@@ -653,10 +657,26 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_objectFieldOffset(JNIEnv *env, su
 	fieldinfo *f;
 	int32_t    slot;
 
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_reflect_VMField *rvmf;
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+
+	LLNI_field_get_ref(field, f,     rvmf);
+	LLNI_field_get_cls(rvmf,  clazz, c);
+	LLNI_field_get_val(rvmf,  slot , slot);
+
+#elif defined(WITH_CLASSPATH_SUN)
+
 	LLNI_field_get_cls(field, clazz, c);
 	LLNI_field_get_val(field, slot , slot);
 
-	f = &c->fields[slot];
+#else
+# error unknown configuration
+#endif
+
+	f = &(c->fields[slot]);
 
 	return (int64_t) f->offset;
 }
@@ -842,8 +862,24 @@ JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_staticFieldBase(JNIEnv 
 	fieldinfo *f;
 	int32_t    slot;
 
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_reflect_VMField *rvmf;
+#endif
+
+#if defined(WITH_CLASSPATH_GNU)
+
+	LLNI_field_get_ref(rf,   f,     rvmf);
+	LLNI_field_get_cls(rvmf, clazz, c);
+	LLNI_field_get_val(rvmf, slot , slot);
+
+#elif defined(WITH_CLASSPATH_SUN)
+
 	LLNI_field_get_cls(rf, clazz, c);
 	LLNI_field_get_val(rf, slot , slot);
+
+#else
+# error unknown configuration
+#endif
 
 	f = &(c->fields[slot]);
 

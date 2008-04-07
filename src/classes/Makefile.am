@@ -31,16 +31,27 @@ CLEANFILES = vm.zip
 VM_JAVA_FILES_GNU = \
 	$(top_srcdir)/src/classes/gnu/gnu/classpath/VMStackWalker.java \
 	$(top_srcdir)/src/classes/gnu/gnu/classpath/VMSystemProperties.java \
+	$(top_srcdir)/src/classes/gnu/gnu/java/lang/VMCPStringBuilder.java \
 	$(top_srcdir)/src/classes/gnu/gnu/java/lang/management/VMMemoryMXBeanImpl.java \
 	$(top_srcdir)/src/classes/gnu/gnu/java/lang/management/VMRuntimeMXBeanImpl.java \
 	$(top_srcdir)/src/classes/gnu/java/lang/VMClassLoader.java \
 	$(top_srcdir)/src/classes/gnu/java/lang/VMString.java \
 	$(top_srcdir)/src/classes/gnu/java/lang/VMThread.java \
+	$(top_srcdir)/src/classes/gnu/java/lang/reflect/VMConstructor.java \
+	$(top_srcdir)/src/classes/gnu/java/lang/reflect/VMField.java \
+	$(top_srcdir)/src/classes/gnu/java/lang/reflect/VMMethod.java \
+	$(top_srcdir)/src/classes/gnu/java/security/VMAccessController.java \
+	$(top_srcdir)/src/classes/gnu/sun/misc/Unsafe.java
+
+# Remove these files when a new GNU Classpath release (> 0.97.1) is
+# available.
+
+VM_JAVA_FILES_GNU += \
 	$(top_srcdir)/src/classes/gnu/java/lang/reflect/Constructor.java \
 	$(top_srcdir)/src/classes/gnu/java/lang/reflect/Field.java \
 	$(top_srcdir)/src/classes/gnu/java/lang/reflect/Method.java \
-	$(top_srcdir)/src/classes/gnu/java/security/VMAccessController.java \
-	$(top_srcdir)/src/classes/gnu/sun/misc/Unsafe.java
+	$(top_srcdir)/src/classes/gnu/java/lang/reflect/Modifier.java \
+	$(top_srcdir)/src/classes/gnu/gnu/java/lang/CPStringBuilder.java
 
 VM_JAVA_FILES_GNU_ANNOTATIONS = \
 	$(top_srcdir)/src/classes/gnu/sun/reflect/ConstantPool.java \

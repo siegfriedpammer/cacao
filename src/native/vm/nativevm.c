@@ -67,6 +67,7 @@ void nativevm_preinit(void)
 
 	_Jv_gnu_classpath_VMStackWalker_init();
 	_Jv_gnu_classpath_VMSystemProperties_init();
+	_Jv_gnu_java_lang_VMCPStringBuilder_init();
 	_Jv_gnu_java_lang_management_VMClassLoadingMXBeanImpl_init();
 	_Jv_gnu_java_lang_management_VMMemoryMXBeanImpl_init();
 	_Jv_gnu_java_lang_management_VMRuntimeMXBeanImpl_init();
@@ -80,9 +81,9 @@ void nativevm_preinit(void)
 	_Jv_java_lang_VMThread_init();
 	_Jv_java_lang_VMThrowable_init();
 	_Jv_java_lang_management_VMManagementFactory_init();
-	_Jv_java_lang_reflect_Constructor_init();
-	_Jv_java_lang_reflect_Field_init();
-	_Jv_java_lang_reflect_Method_init();
+	_Jv_java_lang_reflect_VMConstructor_init();
+	_Jv_java_lang_reflect_VMField_init();
+	_Jv_java_lang_reflect_VMMethod_init();
 	_Jv_java_lang_reflect_VMProxy_init();
 	_Jv_java_security_VMAccessController_init();
 	_Jv_java_util_concurrent_atomic_AtomicLong_init();

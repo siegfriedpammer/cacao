@@ -257,6 +257,12 @@ extern classinfo *class_java_security_PrivilegedAction;
 extern classinfo *class_java_util_Vector;
 extern classinfo *class_java_util_HashMap;
 
+# if defined(WITH_CLASSPATH_GNU)
+extern classinfo *class_java_lang_reflect_VMConstructor;
+extern classinfo *class_java_lang_reflect_VMField;
+extern classinfo *class_java_lang_reflect_VMMethod;
+# endif
+
 extern classinfo *arrayclass_java_lang_Object;
 
 # if defined(ENABLE_ANNOTATIONS)

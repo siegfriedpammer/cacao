@@ -1,5 +1,5 @@
 /* java.lang.reflect.Method - reflection of Java methods
-   Copyright (C) 1998, 2001, 2002, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 1998, 2001, 2002, 2005, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -39,12 +39,11 @@ exception statement from your version. */
 package java.lang.reflect;
 
 import gnu.java.lang.ClassHelper;
+import gnu.java.lang.CPStringBuilder;
 
 import gnu.java.lang.reflect.MethodSignatureParser;
 
 import java.lang.annotation.Annotation;
-import java.util.Map;
-import java.util.Arrays;
 
 /**
  * The Method class represents a member method of a class. It also allows
@@ -82,50 +81,22 @@ import java.util.Arrays;
 public final class Method
 extends AccessibleObject implements Member, GenericDeclaration
 {
-  Class clazz;
-  String name;
-  int slot;
-  
-  /**
-   * Unparsed annotations.
-   */
-  private byte[] annotations          = null;
-
-  /**
-   * Unparsed parameter annotations.
-   */
-  private byte[] parameterAnnotations = null;
-  
-  /**
-   * Unparsed annotation default value.
-   */
-  private byte[] annotationDefault    = null;
-
-  /**
-   * Annotations get parsed the first time they are
-   * accessed and are then cached it this map.
-   */
-  private transient Map<Class<? extends Annotation>, Annotation> declaredAnnotations = null;
-
   private static final int METHOD_MODIFIERS
     = Modifier.ABSTRACT | Modifier.FINAL | Modifier.NATIVE
       | Modifier.PRIVATE | Modifier.PROTECTED | Modifier.PUBLIC
       | Modifier.STATIC | Modifier.STRICT | Modifier.SYNCHRONIZED;
 
-  /**
-   * Helper array for creating a new array from a java.util.Container.
-   */
-  private static final Annotation[] EMPTY_ANNOTATIONS_ARRAY =
-    new Annotation[0];
+  private MethodSignatureParser p;
+
+  VMMethod m;
 
   /**
-   * This class is uninstantiable.
+   * This class is uninstantiable outside this package.
    */
-  private Method(Class declaringClass, String name, int slot)
+  Method(VMMethod m)
   {
-    this.clazz = declaringClass;
-    this.name = name;
-    this.slot = slot;
+    this.m = m;
+    m.m = this;
   }
 
   /**
@@ -133,9 +104,10 @@ extends AccessibleObject implements Member, GenericDeclaration
    * is a non-inherited member.
    * @return the class that declared this member
    */
+  @SuppressWarnings("unchecked")
   public Class<?> getDeclaringClass()
   {
-    return clazz;
+    return (Class<?>) m.getDeclaringClass();
   }
 
   /**
@@ -144,14 +116,8 @@ extends AccessibleObject implements Member, GenericDeclaration
    */
   public String getName()
   {
-    return name;
+    return m.getName();
   }
-
-  /**
-   * Return the raw modifiers for this method.
-   * @return the method's modifiers
-   */
-  private native int getModifiersInternal();
 
   /**
    * Gets the modifiers this method uses.  Use the <code>Modifier</code>
@@ -164,7 +130,7 @@ extends AccessibleObject implements Member, GenericDeclaration
    */
   public int getModifiers()
   {
-    return getModifiersInternal() & METHOD_MODIFIERS;
+    return m.getModifiersInternal() & METHOD_MODIFIERS;
   }
 
   /**
@@ -175,7 +141,7 @@ extends AccessibleObject implements Member, GenericDeclaration
    */
   public boolean isBridge()
   {
-    return (getModifiersInternal() & Modifier.BRIDGE) != 0;
+    return (m.getModifiersInternal() & Modifier.BRIDGE) != 0;
   }
 
   /**
@@ -184,7 +150,7 @@ extends AccessibleObject implements Member, GenericDeclaration
    */
   public boolean isSynthetic()
   {
-    return (getModifiersInternal() & Modifier.SYNTHETIC) != 0;
+    return (m.getModifiersInternal() & Modifier.SYNTHETIC) != 0;
   }
 
   /**
@@ -194,14 +160,18 @@ extends AccessibleObject implements Member, GenericDeclaration
    */
   public boolean isVarArgs()
   {
-    return (getModifiersInternal() & Modifier.VARARGS) != 0;
+    return (m.getModifiersInternal() & Modifier.VARARGS) != 0;
   }
 
   /**
    * Gets the return type of this method.
    * @return the type of this method
    */
-  public native Class<?> getReturnType();
+  @SuppressWarnings("unchecked")
+  public Class<?> getReturnType()
+  {
+    return (Class<?>) m.getReturnType();
+  }
 
   /**
    * Get the parameter list for this method, in declaration order. If the
@@ -209,7 +179,11 @@ extends AccessibleObject implements Member, GenericDeclaration
    *
    * @return a list of the types of the method's parameters
    */
-  public native Class<?>[] getParameterTypes();
+  @SuppressWarnings("unchecked")
+  public Class<?>[] getParameterTypes()
+  {
+    return (Class<?>[]) m.getParameterTypes();
+  }
 
   /**
    * Get the exception types this method says it throws, in no particular
@@ -218,7 +192,11 @@ extends AccessibleObject implements Member, GenericDeclaration
    *
    * @return a list of the types in the method's throws clause
    */
-  public native Class<?>[] getExceptionTypes();
+  @SuppressWarnings("unchecked")
+  public Class<?>[] getExceptionTypes()
+  {
+    return (Class<?>[]) m.getExceptionTypes();
+  }
 
   /**
    * Compare two objects to see if they are semantically equivalent.
@@ -230,38 +208,7 @@ extends AccessibleObject implements Member, GenericDeclaration
    */
   public boolean equals(Object o)
   {
-      // Implementation note:
-      // The following is a correct but possibly slow implementation.
-      //
-      // This class has a private field 'slot' that could be used by
-      // the VM implementation to "link" a particular method to a Class.
-      // In that case equals could be simply implemented as:
-      //
-      // if (o instanceof Method)
-      // {
-      //    Method m = (Method)o;
-      //    return m.clazz == this.clazz
-      //           && m.slot == this.slot;
-      // }
-      // return false;
-      //
-      // If a VM uses the Method class as their native/internal representation
-      // then just using the following would be optimal:
-      //
-      // return this == o;
-      //
-    if (!(o instanceof Method))
-      return false;
-    Method that = (Method)o;
-    if (this.getDeclaringClass() != that.getDeclaringClass())
-      return false;
-    if (!this.getName().equals(that.getName()))
-      return false;
-    if (this.getReturnType() != that.getReturnType())
-      return false;
-    if (!Arrays.equals(this.getParameterTypes(), that.getParameterTypes()))
-      return false;
-    return true;
+    return m.equals(o);
   }
 
   /**
@@ -272,7 +219,7 @@ extends AccessibleObject implements Member, GenericDeclaration
    */
   public int hashCode()
   {
-    return getDeclaringClass().getName().hashCode() ^ getName().hashCode();
+    return m.getDeclaringClass().getName().hashCode() ^ m.getName().hashCode();
   }
 
   /**
@@ -287,7 +234,7 @@ extends AccessibleObject implements Member, GenericDeclaration
   public String toString()
   {
     // 128 is a reasonable buffer initial size for constructor
-    StringBuilder sb = new StringBuilder(128);
+    CPStringBuilder sb = new CPStringBuilder(128);
     Modifier.toString(getModifiers(), sb).append(' ');
     sb.append(ClassHelper.getUserName(getReturnType())).append(' ');
     sb.append(getDeclaringClass().getName()).append('.');
@@ -313,7 +260,7 @@ extends AccessibleObject implements Member, GenericDeclaration
   public String toGenericString()
   {
     // 128 is a reasonable buffer initial size for constructor
-    StringBuilder sb = new StringBuilder(128);
+    CPStringBuilder sb = new CPStringBuilder(128);
     Modifier.toString(getModifiers(), sb).append(' ');
     Constructor.addTypeParameters(sb, getTypeParameters());
     sb.append(getGenericReturnType()).append(' ');
@@ -381,16 +328,8 @@ extends AccessibleObject implements Member, GenericDeclaration
   public Object invoke(Object o, Object... args)
     throws IllegalAccessException, InvocationTargetException
   {
-    return invokeNative(o, args, clazz, slot);
+    return m.invoke(o, args);
   }
-
-  /*
-   * NATIVE HELPERS
-   */
-
-  private native Object invokeNative(Object o, Object[] args,
-                                     Class declaringClass, int slot)
-    throws IllegalAccessException, InvocationTargetException;
 
   /**
    * Returns an array of <code>TypeVariable</code> objects that represents
@@ -406,18 +345,15 @@ extends AccessibleObject implements Member, GenericDeclaration
    */
   public TypeVariable<Method>[] getTypeParameters()
   {
-    String sig = getSignature();
-    if (sig == null)
-      return new TypeVariable[0];
-    MethodSignatureParser p = new MethodSignatureParser(this, sig);
+    if (p == null)
+      {
+	String sig = m.getSignature();
+	if (sig == null)
+	  return (TypeVariable<Method>[]) new TypeVariable[0];
+	p = new MethodSignatureParser(this, sig);
+      }
     return p.getTypeParameters();
   }
-
-  /**
-   * Return the String in the Signature attribute for this method. If there
-   * is no Signature attribute, return null.
-   */
-  private native String getSignature();
 
   /**
    * Returns an array of <code>Type</code> objects that represents
@@ -433,10 +369,13 @@ extends AccessibleObject implements Member, GenericDeclaration
    */
   public Type[] getGenericExceptionTypes()
   {
-    String sig = getSignature();
-    if (sig == null)
-      return getExceptionTypes();
-    MethodSignatureParser p = new MethodSignatureParser(this, sig);
+    if (p == null)
+      {
+	String sig = m.getSignature();
+	if (sig == null)
+	  return getExceptionTypes();
+	p = new MethodSignatureParser(this, sig);
+      }
     return p.getGenericExceptionTypes();
   }
 
@@ -454,10 +393,13 @@ extends AccessibleObject implements Member, GenericDeclaration
    */
   public Type[] getGenericParameterTypes()
   {
-    String sig = getSignature();
-    if (sig == null)
-      return getParameterTypes();
-    MethodSignatureParser p = new MethodSignatureParser(this, sig);
+    if (p == null)
+      {
+	String sig = m.getSignature();
+	if (sig == null)
+	  return getParameterTypes();
+	p = new MethodSignatureParser(this, sig);
+      }
     return p.getGenericParameterTypes();
   }
 
@@ -472,10 +414,13 @@ extends AccessibleObject implements Member, GenericDeclaration
    */
   public Type getGenericReturnType()
   {
-    String sig = getSignature();
-    if (sig == null)
-      return getReturnType();
-    MethodSignatureParser p = new MethodSignatureParser(this, sig);
+    if (p == null)
+      {
+	String sig = m.getSignature();
+	if (sig == null)
+	  return getReturnType();
+	p = new MethodSignatureParser(this, sig);
+      }
     return p.getGenericReturnType();
   }
 
@@ -490,47 +435,65 @@ extends AccessibleObject implements Member, GenericDeclaration
    *
    * @since 1.5
    */
-  public native Object getDefaultValue();
-  
-  /**
-   * @throws NullPointerException {@inheritDoc}
-   * @since 1.5
-   */
-  public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
-    if (annotationClass == null)
-      throw new NullPointerException();
-
-    return (T)declaredAnnotations().get(annotationClass);
+  public Object getDefaultValue()
+  {
+    return m.getDefaultValue();
   }
 
   /**
+   * <p>
+   * Return an array of arrays representing the annotations on each
+   * of the method's parameters.  The outer array is aligned against
+   * the parameters of the method and is thus equal in length to
+   * the number of parameters (thus having a length zero if there are none).
+   * Each array element in the outer array contains an inner array which
+   * holds the annotations.  This array has a length of zero if the parameter
+   * has no annotations.
+   * </p>
+   * <p>
+   * The returned annotations are serialized.  Changing the annotations has
+   * no affect on the return value of future calls to this method.
+   * </p>
+   * 
+   * @return an array of arrays which represents the annotations used on the
+   *         parameters of this method.  The order of the array elements
+   *         matches the declaration order of the parameters.
    * @since 1.5
    */
-  public Annotation[] getDeclaredAnnotations() {
-    return declaredAnnotations().values().toArray(EMPTY_ANNOTATIONS_ARRAY);
+  public Annotation[][] getParameterAnnotations()
+  {
+    return m.getParameterAnnotations();
   }
 
   /**
-   * Parses the annotations if they aren't parsed yet and stores them into
-   * the declaredAnnotations map and return this map.
-   */
-  private synchronized native Map<Class<? extends Annotation>, Annotation> declaredAnnotations();
-  
-  /**
-   * Returns an array of arrays that represent the annotations on the formal
-   * parameters, in declaration order, of the method represented by
-   * this <tt>Method</tt> object. (Returns an array of length zero if the
-   * underlying method is parameterless.  If the method has one or more
-   * parameters, a nested array of length zero is returned for each parameter
-   * with no annotations.) The annotation objects contained in the returned
-   * arrays are serializable.  The caller of this method is free to modify
-   * the returned arrays; it will have no effect on the arrays returned to
-   * other callers.
+   * Returns the element's annotation for the specified annotation type,
+   * or <code>null</code> if no such annotation exists.
    *
-   * @return an array of arrays that represent the annotations on the formal
-   *    parameters, in declaration order, of the method represented by this
-   *    Method object
+   * @param annotationClass the type of annotation to look for.
+   * @return this element's annotation for the specified type, or
+   *         <code>null</code> if no such annotation exists.
+   * @throws NullPointerException if the annotation class is <code>null</code>.
+   */
+  @SuppressWarnings("unchecked")
+  public <T extends Annotation> T getAnnotation(Class<T> annotationClass)
+  {
+    return (T) m.getAnnotation(annotationClass);
+  }
+
+  /**
+   * Returns all annotations directly defined by the element.  If there are
+   * no annotations directly associated with the element, then a zero-length
+   * array will be returned.  The returned array may be modified by the client
+   * code, but this will have no effect on the annotation content of this
+   * class, and hence no effect on the return value of this method for
+   * future callers.
+   *
+   * @return the annotations directly defined by the element.
    * @since 1.5
    */
-  public native Annotation[][] getParameterAnnotations();
+  public Annotation[] getDeclaredAnnotations()
+  {
+    return m.getDeclaredAnnotations();
+  }
+
 }

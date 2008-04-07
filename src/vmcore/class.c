@@ -121,6 +121,12 @@ classinfo *class_java_security_PrivilegedAction;
 classinfo *class_java_util_Vector;
 classinfo *class_java_util_HashMap;
 
+# if defined(WITH_CLASSPATH_GNU)
+classinfo *class_java_lang_reflect_VMConstructor;
+classinfo *class_java_lang_reflect_VMField;
+classinfo *class_java_lang_reflect_VMMethod;
+# endif
+
 classinfo *arrayclass_java_lang_Object;
 
 # if defined(ENABLE_ANNOTATIONS)

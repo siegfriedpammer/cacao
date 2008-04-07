@@ -131,6 +131,13 @@ utf *utf_java_lang_StackTraceElement;
 utf *utf_java_lang_reflect_Constructor;
 utf *utf_java_lang_reflect_Field;
 utf *utf_java_lang_reflect_Method;
+
+# if defined(WITH_CLASSPATH_GNU)
+utf *utf_java_lang_reflect_VMConstructor;
+utf *utf_java_lang_reflect_VMField;
+utf *utf_java_lang_reflect_VMMethod;
+# endif
+
 utf *utf_java_util_Vector;
 #endif
 
@@ -385,6 +392,13 @@ void utf8_init(void)
 
 	utf_java_lang_reflect_Field    = utf_new_char("java/lang/reflect/Field");
 	utf_java_lang_reflect_Method   = utf_new_char("java/lang/reflect/Method");
+
+# if defined(WITH_CLASSPATH_GNU)
+	utf_java_lang_reflect_VMConstructor = utf_new_char("java/lang/reflect/VMConstructor");
+	utf_java_lang_reflect_VMField       = utf_new_char("java/lang/reflect/VMField");
+	utf_java_lang_reflect_VMMethod      = utf_new_char("java/lang/reflect/VMMethod");
+# endif
+
 	utf_java_util_Vector           = utf_new_char("java/util/Vector");
 #endif
 
@@ -400,13 +414,13 @@ void utf8_init(void)
 	utf_Signature                  = utf_new_char("Signature");
 	utf_StackMapTable              = utf_new_char("StackMapTable");
 
-#if defined(ENABLE_ANNOTATIONS)
+# if defined(ENABLE_ANNOTATIONS)
 	utf_RuntimeVisibleAnnotations            = utf_new_char("RuntimeVisibleAnnotations");
 	utf_RuntimeInvisibleAnnotations          = utf_new_char("RuntimeInvisibleAnnotations");
 	utf_RuntimeVisibleParameterAnnotations   = utf_new_char("RuntimeVisibleParameterAnnotations");
 	utf_RuntimeInvisibleParameterAnnotations = utf_new_char("RuntimeInvisibleParameterAnnotations");
 	utf_AnnotationDefault                    = utf_new_char("AnnotationDefault");
-#endif
+# endif
 #endif
 
 	utf_init	                   = utf_new_char("<init>");

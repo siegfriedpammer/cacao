@@ -127,6 +127,13 @@ extern utf *utf_java_lang_StackTraceElement;
 extern utf *utf_java_lang_reflect_Constructor;
 extern utf *utf_java_lang_reflect_Field;
 extern utf *utf_java_lang_reflect_Method;
+
+# if defined(WITH_CLASSPATH_GNU)
+extern utf *utf_java_lang_reflect_VMConstructor;
+extern utf *utf_java_lang_reflect_VMField;
+extern utf *utf_java_lang_reflect_VMMethod;
+# endif
+
 extern utf *utf_java_util_Vector;
 #endif
 

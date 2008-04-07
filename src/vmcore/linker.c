@@ -305,6 +305,17 @@ void linker_init(void)
 	if (!link_class(class_java_lang_reflect_Method))
 		vm_abort("linker_init: linking failed");
 
+# if defined(WITH_CLASSPATH_GNU)
+	if (!link_class(class_java_lang_reflect_VMConstructor))
+		vm_abort("linker_init: linking failed");
+
+	if (!link_class(class_java_lang_reflect_VMField))
+		vm_abort("linker_init: linking failed");
+
+	if (!link_class(class_java_lang_reflect_VMMethod))
+		vm_abort("linker_init: linking failed");
+# endif
+
 	if (!link_class(class_java_security_PrivilegedAction))
 		vm_abort("linker_init: linking failed");
 
