@@ -63,25 +63,6 @@
 
 /*
  * Class:     java/lang/reflect/Constructor
- * Method:    getExceptionTypes
- * Signature: ()[Ljava/lang/Class;
- */
-java_handle_objectarray_t *_Jv_java_lang_reflect_Constructor_getExceptionTypes(JNIEnv *env, java_lang_reflect_Constructor *this)
-{
-	classinfo  *c;
-	methodinfo *m;
-	int32_t     slot;
-
-	LLNI_field_get_cls(this, clazz, c);
-	LLNI_field_get_val(this, slot , slot);
-	m = &(c->methods[slot]);
-
-	return method_get_exceptionarray(m);
-}
-
-
-/*
- * Class:     java/lang/reflect/Constructor
  * Method:    newInstance
  * Signature: ([Ljava/lang/Object;)Ljava/lang/Object;
  */
