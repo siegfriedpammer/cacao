@@ -1,9 +1,7 @@
 /* src/native/vm/gnu/java_lang_reflect_Method.c
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -51,7 +49,7 @@
 
 #include "native/include/java_lang_reflect_Method.h"
 
-#include "native/vm/java_lang_reflect_Method.h"
+#include "native/vm/reflect.h"
 
 #include "vm/access.h"
 #include "vm/global.h"
@@ -181,14 +179,23 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_Method_getEx
  * Method:    invokeNative
  * Signature: (Ljava/lang/Object;[Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(JNIEnv *env, java_lang_reflect_Method *this, java_lang_Object *o, java_handle_objectarray_t *args, java_lang_Class *clazz, s4 slot)
+JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Method_invokeNative(JNIEnv *env, java_lang_reflect_Method *this, java_lang_Object *o, java_handle_objectarray_t *args, java_lang_Class *clazz, int32_t slotx)
 {
-	/* just to be sure */
+	classinfo     *c;
+	int32_t        slot;
+	int32_t        override;
+	methodinfo    *m;
+	java_handle_t *ro;
 
-	assert(LLNI_field_direct(this, clazz) == LLNI_DIRECT(clazz));
-	assert(LLNI_field_direct(this, slot)  == slot);
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot,  slot);
+	LLNI_field_get_val(this, flag,  override);
 
-	return _Jv_java_lang_reflect_Method_invoke(this, o, args);
+	m = &(c->methods[slot]);
+
+	ro = reflect_method_invoke(m, (java_handle_t *) o, args, override);
+
+	return (java_lang_Object *) ro;
 }
 
 

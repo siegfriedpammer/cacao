@@ -1,9 +1,7 @@
 /* src/native/vm/gnu/java_lang_reflect_Constructor.c
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -49,11 +47,9 @@
 #if defined(ENABLE_ANNOTATIONS)
 # include "native/include/java_util_Map.h"
 # include "native/include/sun_reflect_ConstantPool.h"
-
-# include "native/vm/reflect.h"
 #endif
 
-#include "native/vm/java_lang_reflect_Constructor.h"
+#include "native/vm/reflect.h"
 
 #include "vm/stringlocal.h"
 
@@ -156,14 +152,23 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_Constructor_
  * Method:    constructNative
  * Signature: ([Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative(JNIEnv *env, java_lang_reflect_Constructor *this, java_handle_objectarray_t *args, java_lang_Class *declaringClass, s4 slot)
+JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_Constructor_constructNative(JNIEnv *env, java_lang_reflect_Constructor *this, java_handle_objectarray_t *args, java_lang_Class *declaringClass, int32_t xslot)
 {
-	/* just to be sure */
+	classinfo     *c;
+	int32_t        slot;
+	int32_t        override;
+	methodinfo    *m;
+	java_handle_t *o;
 
-	assert(LLNI_field_direct(this, clazz) == LLNI_DIRECT(declaringClass));
-	assert(LLNI_field_direct(this, slot)  == slot);
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot,  slot);
+	LLNI_field_get_val(this, flag,  override);
 
-	return _Jv_java_lang_reflect_Constructor_newInstance(env, this, args);
+	m = &(c->methods[slot]);
+
+	o = reflect_constructor_newinstance(m, args, override);
+
+	return (java_lang_Object *) o;
 }
 
 

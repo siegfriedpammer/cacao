@@ -1,9 +1,7 @@
 /* src/native/vm/reflect.h - helper functions for java/lang/reflect
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -32,7 +30,7 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-/* keep this order of the native includes */
+/* Keep this order of the native includes. */
 
 #include "native/include/java_lang_String.h"
 
@@ -61,6 +59,8 @@
 java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m);
 java_lang_reflect_Field       *reflect_field_new(fieldinfo *f);
 java_lang_reflect_Method      *reflect_method_new(methodinfo *m);
+java_handle_t                 *reflect_constructor_newinstance(methodinfo *m, java_handle_objectarray_t *args, bool override);
+java_handle_t                 *reflect_method_invoke(methodinfo *m, java_handle_t *o, java_handle_objectarray_t *args, bool override);
 
 #if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
 struct java_util_Map* reflect_get_declaredannotatios(

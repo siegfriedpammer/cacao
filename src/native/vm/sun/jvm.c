@@ -63,8 +63,6 @@
 #endif
 
 #include "native/vm/java_lang_Class.h"
-#include "native/vm/java_lang_reflect_Constructor.h"
-#include "native/vm/java_lang_reflect_Method.h"
 #include "native/vm/reflect.h"
 
 #include "native/vm/sun/hpi.h"
@@ -3241,19 +3239,53 @@ void JVM_SetPrimitiveField(JNIEnv *env, jobject field, jobject obj, jvalue v, un
 
 jobject JVM_InvokeMethod(JNIEnv *env, jobject method, jobject obj, jobjectArray args0)
 {
+	java_lang_reflect_Method *rm;
+	classinfo     *c;
+	int32_t        slot;
+	int32_t        override;
+	methodinfo    *m;
+	java_handle_t *ro;
+
 	TRACEJVMCALLS(("JVM_InvokeMethod(env=%p, method=%p, obj=%p, args0=%p)", env, method, obj, args0));
 
-	return (jobject) _Jv_java_lang_reflect_Method_invoke((java_lang_reflect_Method *) method, (java_lang_Object *) obj, (java_handle_objectarray_t *) args0);
+	rm = (java_lang_reflect_Method *) method;
+
+	LLNI_field_get_cls(rm, clazz,    c);
+	LLNI_field_get_val(rm, slot,     slot);
+	LLNI_field_get_val(rm, override, override);
+
+	m = &(c->methods[slot]);
+
+	ro = reflect_method_invoke(m, (java_handle_t *) obj, (java_handle_objectarray_t *) args0, override);
+
+	return (jobject) ro;
 }
 
 
 /* JVM_NewInstanceFromConstructor */
 
-jobject JVM_NewInstanceFromConstructor(JNIEnv *env, jobject c, jobjectArray args0)
+jobject JVM_NewInstanceFromConstructor(JNIEnv *env, jobject con, jobjectArray args0)
 {
-	TRACEJVMCALLS(("JVM_NewInstanceFromConstructor(env=%p, c=%p, args0=%p)", env, c, args0));
+	java_lang_reflect_Constructor *rc;
+	classinfo                     *c;
+	int32_t                        slot;
+	int32_t                        override;
+	methodinfo                    *m;
+	java_handle_t                 *o;
 
-	return (jobject) _Jv_java_lang_reflect_Constructor_newInstance(env, (java_lang_reflect_Constructor *) c, (java_handle_objectarray_t *) args0);
+	TRACEJVMCALLS(("JVM_NewInstanceFromConstructor(env=%p, c=%p, args0=%p)", env, con, args0));
+
+	rc = (java_lang_reflect_Constructor *) con;
+
+	LLNI_field_get_cls(rc, clazz,    c);
+	LLNI_field_get_val(rc, slot,     slot);
+	LLNI_field_get_val(rc, override, override);
+
+	m = &(c->methods[slot]);
+
+	o = reflect_constructor_newinstance(m, (java_handle_objectarray_t *) args0, override);
+
+	return (jobject) o;
 }
 
 

@@ -59,14 +59,6 @@ REFLECT_SOURCES = \
 	reflect.c \
 	reflect.h
 
-JAVA_LANG_REFLECT_CONSTRUCTOR_SOURCES = \
-	java_lang_reflect_Constructor.c \
-	java_lang_reflect_Constructor.h
-
-JAVA_LANG_REFLECT_METHOD_SOURCES = \
-	java_lang_reflect_Method.c \
-	java_lang_reflect_Method.h
-
 SUN_MISC_UNSAFE_SOURCES = \
 	sun_misc_Unsafe.c
 endif
@@ -81,8 +73,6 @@ libnativevm_la_SOURCES = \
 	\
 	java_lang_Class.c \
 	java_lang_Class.h \
-	$(JAVA_LANG_REFLECT_CONSTRUCTOR_SOURCES) \
-	$(JAVA_LANG_REFLECT_METHOD_SOURCES) \
 	$(SUN_MISC_UNSAFE_SOURCES)
 
 libnativevm_la_LIBADD = \

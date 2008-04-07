@@ -1,9 +1,7 @@
 /* src/native/vm/reflect.c - helper functions for java/lang/reflect
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -55,8 +53,11 @@
 
 #include "native/vm/reflect.h"
 
+#include "vm/access.h"
 #include "vm/builtin.h"
+#include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/initialize.h"
 #include "vm/stringlocal.h"
 
 #include "vmcore/method.h"
@@ -256,6 +257,181 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 #endif
 
 	return rm;
+}
+
+
+/* reflect_invoke **************************************************************
+
+   Invoke a method on the given object with the given arguments.
+
+   For instance methods OBJ must be != NULL and the method is looked up
+   in the vftbl of the object.
+
+   For static methods, OBJ is ignored.
+
+*******************************************************************************/
+
+static java_handle_t *reflect_invoke(methodinfo *m, java_handle_t *o, java_handle_objectarray_t *params)
+{
+	methodinfo    *resm;
+	java_handle_t *ro;
+	int            argcount;
+	int            paramcount;
+
+	/* Sanity check. */
+
+	assert(m != NULL);
+
+	argcount = m->parseddesc->paramcount;
+	paramcount = argcount;
+
+	/* If method is non-static, remove the `this' pointer. */
+
+	if (!(m->flags & ACC_STATIC))
+		paramcount--;
+
+	/* For instance methods the object has to be an instance of the
+	   class the method belongs to. For static methods the obj
+	   parameter is ignored. */
+
+	if (!(m->flags & ACC_STATIC) && o && (!builtin_instanceof(o, m->class))) {
+		exceptions_throw_illegalargumentexception();
+		return NULL;
+	}
+
+	/* check if we got the right number of arguments */
+
+	if (((params == NULL) && (paramcount != 0)) ||
+		(params && (LLNI_array_size(params) != paramcount))) 
+	{
+		exceptions_throw_illegalargumentexception();
+		return NULL;
+	}
+
+	/* for instance methods we need an object */
+
+	if (!(m->flags & ACC_STATIC) && (o == NULL)) {
+		/* XXX not sure if that is the correct exception */
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	/* for static methods, zero object to make subsequent code simpler */
+	if (m->flags & ACC_STATIC)
+		o = NULL;
+
+	if (o != NULL) {
+		/* for instance methods we must do a vftbl lookup */
+		resm = method_vftbl_lookup(LLNI_vftbl_direct(o), m);
+	}
+	else {
+		/* for static methods, just for convenience */
+		resm = m;
+	}
+
+	ro = vm_call_method_objectarray(resm, o, params);
+
+	return ro;
+}
+
+
+/* reflect_constructor_newinstance ********************************************
+
+   Creates an Java object instance of the given constructor.
+
+   ARGUMENTS:
+      m .......... methodinfo of the constructor
+      args ....... constructor arguments
+      override ... override security checks
+
+   RETURN:
+      constructed Java object
+
+*******************************************************************************/
+
+java_handle_t *reflect_constructor_newinstance(methodinfo *m, java_handle_objectarray_t *args, bool override)
+{
+	java_handle_t *o;
+
+	/* Should we bypass security the checks (AccessibleObject)? */
+
+	if (override == false) {
+		/* This method is always called like this:
+		       [0] java.lang.reflect.Constructor.constructNative (Native Method)
+		       [1] java.lang.reflect.Constructor.newInstance
+		       [2] <caller>
+		*/
+
+		if (!access_check_method(m, 2))
+			return NULL;
+	}
+
+	/* Create a Java object. */
+
+	o = builtin_new(m->class);
+
+	if (o == NULL)
+		return NULL;
+        
+	/* Call initializer. */
+
+	(void) reflect_invoke(m, o, args);
+
+	return o;
+}
+
+
+/* reflect_method_invoke *******************************************************
+
+   Invokes the given method.
+
+   ARGUMENTS:
+      m .......... methodinfo
+      args ....... method arguments
+      override ... override security checks
+
+   RETURN:
+      return value of the method
+
+*******************************************************************************/
+
+java_handle_t *reflect_method_invoke(methodinfo *m, java_handle_t *o, java_handle_objectarray_t *args, bool override)
+{
+	java_handle_t *ro;
+
+	/* Should we bypass security the checks (AccessibleObject)? */
+
+	if (override == false) {
+#if defined(WITH_CLASSPATH_GNU)
+		/* This method is always called like this:
+		       [0] java.lang.reflect.Method.invokeNative (Native Method)
+		       [1] java.lang.reflect.Method.invoke (Method.java:329)
+		       [2] <caller>
+		*/
+
+		if (!access_check_method(m, 2))
+			return NULL;
+#elif defined(WITH_CLASSPATH_SUN)
+		/* We only pass 1 here as stacktrace_get_caller_class, which
+		   is called from access_check_method, skips
+		   java.lang.reflect.Method.invoke(). */
+
+		if (!access_check_method(m, 1))
+			return NULL;
+#endif
+	}
+
+	/* Check if method class is initialized. */
+
+	if (!(m->class->state & CLASS_INITIALIZED))
+		if (!initialize_class(m->class))
+			return NULL;
+
+	/* Call the Java method. */
+
+	ro = reflect_invoke(m, o, args);
+
+	return ro;
 }
 
 
