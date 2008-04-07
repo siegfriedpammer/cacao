@@ -63,25 +63,6 @@
 
 /*
  * Class:     java/lang/reflect/Constructor
- * Method:    getModifiers
- * Signature: ()I
- */
-s4 _Jv_java_lang_reflect_Constructor_getModifiers(JNIEnv *env, java_lang_reflect_Constructor *this)
-{
-	classinfo  *c;
-	methodinfo *m;
-	int32_t     slot;
-
-	LLNI_field_get_cls(this, clazz, c);
-	LLNI_field_get_val(this, slot , slot);
-	m = &(c->methods[slot]);
-
-	return m->flags;
-}
-
-
-/*
- * Class:     java/lang/reflect/Constructor
  * Method:    getParameterTypes
  * Signature: ()[Ljava/lang/Class;
  */

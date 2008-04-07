@@ -40,7 +40,6 @@
 
 /* function prototypes ********************************************************/
 
-s4                         _Jv_java_lang_reflect_Constructor_getModifiers(JNIEnv *env, java_lang_reflect_Constructor *this);
 java_handle_objectarray_t *_Jv_java_lang_reflect_Constructor_getParameterTypes(JNIEnv *env, java_lang_reflect_Constructor *this);
 java_handle_objectarray_t *_Jv_java_lang_reflect_Constructor_getExceptionTypes(JNIEnv *env, java_lang_reflect_Constructor *this);
 java_lang_Object          *_Jv_java_lang_reflect_Constructor_newInstance(JNIEnv *env, java_lang_reflect_Constructor *this, java_handle_objectarray_t *args);

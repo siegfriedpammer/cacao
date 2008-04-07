@@ -61,7 +61,7 @@
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "getModifiersInternal",    "()I",                                                       (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getModifiers        },
+	{ "getModifiersInternal",    "()I",                                                       (void *) (ptrint) &Java_java_lang_reflect_Constructor_getModifiersInternal    },
 	{ "getParameterTypes",       "()[Ljava/lang/Class;",                                      (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getParameterTypes   },
 	{ "getExceptionTypes",       "()[Ljava/lang/Class;",                                      (void *) (ptrint) &_Jv_java_lang_reflect_Constructor_getExceptionTypes   },
 	{ "constructNative",         "([Ljava/lang/Object;Ljava/lang/Class;I)Ljava/lang/Object;", (void *) (ptrint) &Java_java_lang_reflect_Constructor_constructNative    },
@@ -86,6 +86,26 @@ void _Jv_java_lang_reflect_Constructor_init(void)
 	u = utf_new_char("java/lang/reflect/Constructor");
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+
+
+/*
+ * Class:     java/lang/reflect/Constructor
+ * Method:    getModifiersInternal
+ * Signature: ()I
+ */
+JNIEXPORT int32_t JNICALL Java_java_lang_reflect_Constructor_getModifiersInternal(JNIEnv *env, java_lang_reflect_Constructor *this)
+{
+	classinfo  *c;
+	methodinfo *m;
+	int32_t     slot;
+
+	LLNI_field_get_cls(this, clazz, c);
+	LLNI_field_get_val(this, slot,  slot);
+
+	m = &(c->methods[slot]);
+
+	return m->flags;
 }
 
 
