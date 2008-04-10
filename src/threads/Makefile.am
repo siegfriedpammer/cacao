@@ -29,15 +29,25 @@ DIST_SUBDIRS = \
 	none \
 	posix
 
+if ENABLE_THREADS
 SUBDIRS = \
 	posix
 
 THREAD_LIB = \
-	posix/libposix.la
+	posix/libthreadsposix.la
+else
+SUBDIRS = \
+	none
+
+THREAD_LIB = \
+	none/libthreadsnone.la
+endif
+
 
 noinst_LTLIBRARIES = \
 	libthreads.la
 
+if ENABLE_THREADS
 libthreads_la_SOURCES = \
 	critical.c \
 	critical.h \
@@ -47,6 +57,9 @@ libthreads_la_SOURCES = \
 	threadlist.h \
 	thread.c \
 	thread.h
+else
+libthreads_la_SOURCES =
+endif
 
 libthreads_la_LIBADD = \
 	$(THREAD_LIB)

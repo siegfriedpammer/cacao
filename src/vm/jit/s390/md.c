@@ -122,11 +122,8 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 		log_println("\tf%d\t0x%016llX\t(double)%e\t(float)%f", i, freg.l, freg.fr.d, freg.fr.f);
 	}
 
-#if defined(ENABLE_THREADS)
 	log_println("Dumping the current stacktrace:");
-	threads_print_stacktrace();
-#endif
-
+	stacktrace_print_current();
 }
 
 /* md_signal_handler_sigsegv ***************************************************

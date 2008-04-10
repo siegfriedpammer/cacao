@@ -28,9 +28,11 @@
 
 #include "config.h"
 
+#include <stdint.h>
+
 #include "vm/types.h"
 
-#include "vm/global.h"
+#include "vm/builtin.h"
 
 #include "vm/jit/stacktrace.h"
 
@@ -64,6 +66,11 @@ extern s4 _no_threads_tracejavacallindent;
 extern u4 _no_threads_tracejavacallcount;
 #define TRACEJAVACALLCOUNT (_no_threads_tracejavacallcount)
 #endif
+
+
+/* global variables ***********************************************************/
+
+extern stackframeinfo_t *_no_threads_stackframeinfo;
 
 
 /* inline functions ***********************************************************/

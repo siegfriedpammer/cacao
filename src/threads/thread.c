@@ -1212,7 +1212,7 @@ void threads_dump(void)
 
 		/* Print trace of thread. */
 
-		threads_thread_print_stacktrace(t);
+		stacktrace_print_of_thread(t);
 
 #if defined(ENABLE_GC_CACAO)
 		/* Resume the thread. */
@@ -1225,60 +1225,6 @@ void threads_dump(void)
 	/* Unlock the thread lists. */
 
 	threadlist_unlock();
-}
-
-
-/* threads_thread_print_stacktrace *********************************************
-
-   Print the current stacktrace of the given thread.
-
-*******************************************************************************/
-
-void threads_thread_print_stacktrace(threadobject *thread)
-{
-	stackframeinfo_t        *sfi;
-	java_handle_bytearray_t *ba;
-	stacktrace_t            *st;
-
-	/* Build a stacktrace for the passed thread. */
-
-	sfi = thread->_stackframeinfo;
-	ba  = stacktrace_get(sfi);
-	
-	if (ba != NULL) {
-		/* We need a critical section here as we use the byte-array
-		   data pointer directly. */
-
-		LLNI_CRITICAL_START;
-	
-		st = (stacktrace_t *) LLNI_array_data(ba);
-
-		/* Print stacktrace. */
-
-		stacktrace_print(st);
-
-		LLNI_CRITICAL_END;
-	}
-	else {
-		puts("\t<<No stacktrace available>>");
-		fflush(stdout);
-	}
-}
-
-
-/* threads_print_stacktrace ****************************************************
-
-   Print the current stacktrace of the current thread.
-
-*******************************************************************************/
-
-void threads_print_stacktrace(void)
-{
-	threadobject *thread;
-
-	thread = THREADOBJECT;
-
-	threads_thread_print_stacktrace(thread);
 }
 
 

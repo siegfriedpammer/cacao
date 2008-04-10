@@ -1,9 +1,7 @@
 ## src/threads/none/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-## J. Wenninger, Institut f. Computersprachen - TU Wien
+## Copyright (C) 1996-2005, 2006, 2008
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -21,18 +19,19 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
-##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
-##
-## Changes:
 
-## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = \
+AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR) -I$(top_builddir)/src -I$(top_srcdir)/contrib/vmlog
+
+LIBS =
+
+noinst_LTLIBRARIES = \
+	libthreadsnone.la
+
+libthreadsnone_la_SOURCES = \
 	lock.h \
-	threads.h
+	thread-none.c \
+	thread-none.h
 
 
 ## Local variables:

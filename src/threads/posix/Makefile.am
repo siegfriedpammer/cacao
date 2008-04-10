@@ -26,9 +26,9 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 LIBS =
 
 noinst_LTLIBRARIES = \
-	libposix.la
+	libthreadsposix.la
 
-libposix_la_SOURCES = \
+libthreadsposix_la_SOURCES = \
 	lock.c \
 	lock.h \
 	mutex-posix.h \

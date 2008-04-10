@@ -199,10 +199,7 @@ void *methodtree_find(void *pc)
 
 		log_println("Dumping the current stacktrace:");
 
-#if defined(ENABLE_THREADS)
-		/* XXX michi: This should be available even without threads! */
-		threads_print_stacktrace();
-#endif
+		stacktrace_print_current();
 
 		vm_abort("Exiting...");
 	}

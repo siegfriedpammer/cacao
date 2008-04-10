@@ -76,10 +76,6 @@
 
 /* global variables ***********************************************************/
 
-#if !defined(ENABLE_THREADS)
-stackframeinfo_t *_no_threads_stackframeinfo = NULL;
-#endif
-
 CYCLES_STATS_DECLARE(stacktrace_overhead        , 100, 1)
 CYCLES_STATS_DECLARE(stacktrace_get,              40,  5000)
 CYCLES_STATS_DECLARE(stacktrace_getClassContext , 40,  5000)
@@ -1076,6 +1072,51 @@ return_NULL:
 #endif
 
 
+/* stacktrace_print_entry ****************************************************
+
+   Print line for a stacktrace entry.
+
+   ARGUMENTS:
+       m ............ methodinfo of the entry
+       linenumber ... linenumber of the entry
+
+*******************************************************************************/
+
+static void stacktrace_print_entry(methodinfo *m, int32_t linenumber)
+{
+	/* Sanity check. */
+
+	assert(m != NULL);
+
+	printf("\tat ");
+
+	if (m->flags & ACC_METHOD_BUILTIN)
+		printf("NULL");
+	else
+		utf_display_printable_ascii_classname(m->class->name);
+
+	printf(".");
+	utf_display_printable_ascii(m->name);
+	utf_display_printable_ascii(m->descriptor);
+
+	if (m->flags & ACC_NATIVE) {
+		puts("(Native Method)");
+	}
+	else {
+		if (m->flags & ACC_METHOD_BUILTIN) {
+			printf("(builtin)");
+		}
+		else {
+			printf("(");
+			utf_display_printable_ascii(m->class->sourcefile);
+			printf(":%d)\n", linenumber);
+		}
+	}
+
+	fflush(stdout);
+}
+
+
 /* stacktrace_print ************************************************************
 
    Print the given stacktrace with CACAO intern methods only (no Java
@@ -1105,26 +1146,97 @@ void stacktrace_print(stacktrace_t *st)
 
 		linenumber = linenumbertable_linenumber_for_pc(&m, ste->code, ste->pc);
 
-		printf("\tat ");
-		utf_display_printable_ascii_classname(m->class->name);
-		printf(".");
-		utf_display_printable_ascii(m->name);
-		utf_display_printable_ascii(m->descriptor);
+		stacktrace_print_entry(m, linenumber);
+	}
+}
 
-		if (m->flags & ACC_NATIVE) {
-			puts("(Native Method)");
-		}
-		else {
-			printf("(");
-			utf_display_printable_ascii(m->class->sourcefile);
-			printf(":%d)\n", linenumber);
-		}
+
+/* stacktrace_print_current ****************************************************
+
+   Print the current stacktrace of the current thread.
+
+   NOTE: This function prints all frames of the stacktrace and does
+   not skip frames like stacktrace_get.
+
+*******************************************************************************/
+
+void stacktrace_print_current(void)
+{
+	stackframeinfo_t *sfi;
+	stackframeinfo_t  tmpsfi;
+	codeinfo         *code;
+	methodinfo       *m;
+	int32_t           linenumber;
+
+	sfi = threads_get_current_stackframeinfo();
+
+	if (sfi == NULL) {
+		puts("\t<<No stacktrace available>>");
+		fflush(stdout);
+		return;
 	}
 
-	/* just to be sure */
+	for (stacktrace_stackframeinfo_fill(&tmpsfi, sfi);
+		 stacktrace_stackframeinfo_end_check(&tmpsfi) == false;
+		 stacktrace_stackframeinfo_next(&tmpsfi)) {
+		/* Get the methodinfo. */
 
-	fflush(stdout);
+		code = tmpsfi.code;
+		m    = code->m;
+
+		/* Get the line number. */
+
+		linenumber = linenumbertable_linenumber_for_pc(&m, code, tmpsfi.xpc);
+
+		stacktrace_print_entry(m, linenumber);
+	}
 }
+
+
+/* stacktrace_print_of_thread **************************************************
+
+   Print the current stacktrace of the given thread.
+
+   ARGUMENTS:
+       t ... thread
+
+*******************************************************************************/
+
+#if defined(ENABLE_THREADS)
+void stacktrace_print_of_thread(threadobject *t)
+{
+	stackframeinfo_t *sfi;
+	stackframeinfo_t  tmpsfi;
+	codeinfo         *code;
+	methodinfo       *m;
+	int32_t           linenumber;
+
+	/* Build a stacktrace for the passed thread. */
+
+	sfi = t->_stackframeinfo;
+	
+	if (sfi == NULL) {
+		puts("\t<<No stacktrace available>>");
+		fflush(stdout);
+		return;
+	}
+
+	for (stacktrace_stackframeinfo_fill(&tmpsfi, sfi);
+		 stacktrace_stackframeinfo_end_check(&tmpsfi) == false;
+		 stacktrace_stackframeinfo_next(&tmpsfi)) {
+		/* Get the methodinfo. */
+
+		code = tmpsfi.code;
+		m    = code->m;
+
+		/* Get the line number. */
+
+		linenumber = linenumbertable_linenumber_for_pc(&m, code, tmpsfi.xpc);
+
+		stacktrace_print_entry(m, linenumber);
+	}
+}
+#endif
 
 
 /* stacktrace_print_exception **************************************************

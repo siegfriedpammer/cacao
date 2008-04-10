@@ -39,6 +39,8 @@ typedef struct stacktrace_t       stacktrace_t;
 
 #include "md-abi.h"
 
+#include "threads/thread.h"
+
 #include "vm/global.h"
 
 #include "vm/jit/code.h"
@@ -90,13 +92,6 @@ struct stacktrace_t {
 };
 
 
-/* global variables ***********************************************************/
-
-#if !defined(ENABLE_THREADS)
-extern stackframeinfo_t *_no_threads_stackframeinfo;
-#endif
-
-
 /* function prototypes ********************************************************/
 
 void                       stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra, u1 *xpc);
@@ -114,6 +109,12 @@ java_handle_objectarray_t *stacktrace_get_stack(void);
 #endif
 
 void                       stacktrace_print(stacktrace_t *st);
+void                       stacktrace_print_current(void);
+
+#if defined(ENABLE_THREADS)
+void                       stacktrace_print_of_thread(threadobject *t);
+#endif
+
 void                       stacktrace_print_exception(java_handle_t *h);
 
 /* machine dependent functions (code in ARCH_DIR/md.c) */

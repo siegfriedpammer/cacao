@@ -244,8 +244,6 @@ threadobject *thread_get_thread(java_handle_t *h);
 bool          threads_thread_is_alive(threadobject *t);
 
 void          threads_dump(void);
-void          threads_thread_print_stacktrace(threadobject *thread);
-void          threads_print_stacktrace(void);
 
 
 /* implementation specific functions */

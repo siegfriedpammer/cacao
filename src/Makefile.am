@@ -34,11 +34,6 @@ DIST_SUBDIRS = \
 	vm \
 	vmcore
 
-if ENABLE_THREADS
-THREADS_DIR = \
-	threads
-endif
-
 if ENABLE_CACAOH
 CACAOH_DIR = \
 	cacaoh 
@@ -54,7 +49,7 @@ SUBDIRS = \
 	native \
 	fdlibm \
 	mm \
-	$(THREADS_DIR) \
+	threads \
 	vm \
 	cacao \
 	scripts
