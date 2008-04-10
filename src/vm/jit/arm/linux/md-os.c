@@ -25,7 +25,6 @@
 
 #include "config.h"
 
-#include <assert.h>
 #include <stdint.h>
 
 #include "vm/types.h"
@@ -55,6 +54,7 @@ typedef struct ucontext {
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
@@ -160,7 +160,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 #if defined(ENABLE_DISASSEMBLER)
 		DISASSINSTR(xpc);
 #endif
-		assert(0);
+		vm_abort("Aborting...");
 	}
 
 	type = (mcode >> 8) & 0x0fff;
