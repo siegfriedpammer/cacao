@@ -205,7 +205,11 @@ inline static bool thread_current_is_attached(void)
 	threadobject  *t;
 	bool           result;
 
-	t      = THREADOBJECT;
+	t = thread_get_current();
+
+	if (t == NULL)
+		return false;
+
 	result = thread_is_attached(t);
 
 	return result;
