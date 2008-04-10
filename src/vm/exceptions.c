@@ -2107,8 +2107,12 @@ void exceptions_print_stacktrace(void)
 		}
 		else {
 			fprintf(stderr, ". Uncaught exception of type ");
+#if !defined(NDEBUG)
 			/* FIXME This prints to stdout. */
 			class_print(c);
+#else
+			fprintf(stderr, "UNKNOWN");
+#endif
 			fprintf(stderr, ".");
 		}
 
