@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _THREADS_COMMON_H
-#define _THREADS_COMMON_H
+#ifndef _THREAD_H
+#define _THREAD_H
 
 #include "config.h"
 
@@ -269,7 +269,7 @@ void          threads_yield(void);
 
 #endif /* ENABLE_THREADS */
 
-#endif /* _THREADS_COMMON_H */
+#endif /* _THREAD_H */
 
 
 /*

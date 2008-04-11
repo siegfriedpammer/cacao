@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _THREADS_H
-#define _THREADS_H
+#ifndef _THREAD_NONE_H
+#define _THREAD_NONE_H
 
 #include "config.h"
 
@@ -97,7 +97,7 @@ inline static void threads_set_current_stackframeinfo(stackframeinfo_t *sfi)
 	_no_threads_stackframeinfo = sfi;
 }
 
-#endif /* _THREADS_H */
+#endif /* _THREAD_NONE_H */
 
 
 /*

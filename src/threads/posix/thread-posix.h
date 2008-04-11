@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _THREADS_H
-#define _THREADS_H
+#ifndef _THREAD_POSIX_H
+#define _THREAD_POSIX_H
 
 /* forward typedefs ***********************************************************/
 
@@ -294,7 +294,7 @@ void threads_stopworld(void);
 void threads_startworld(void);
 #endif
 
-#endif /* _THREADS_H */
+#endif /* _THREAD_POSIX_H */
 
 
 /*
