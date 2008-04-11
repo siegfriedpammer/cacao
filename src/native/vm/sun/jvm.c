@@ -2391,7 +2391,7 @@ jboolean JVM_IsInterrupted(JNIEnv* env, jobject jthread, jboolean clear_interrup
 
 	/* XXX do something with clear_interrupted */
 
-	return threads_thread_has_been_interrupted(t);
+	return thread_is_interrupted(t);
 }
 
 

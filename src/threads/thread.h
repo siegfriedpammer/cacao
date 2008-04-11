@@ -152,6 +152,9 @@ inline static java_handle_t *thread_get_current_object(void)
 
    Returns if the given thread is attached to the VM.
 
+   ARGUMENTS:
+       t ... the thread to check
+
    RETURN:
        true .... the thread is attached to the VM
        false ... the thread is not
@@ -171,9 +174,30 @@ inline static bool thread_is_attached(threadobject *t)
 }
 
 
+/* thread_is_interrupted *******************************************************
+
+   Check if the given thread has been interrupted.
+
+   ARGUMENTS:
+       t ... the thread to check
+
+   RETURN VALUE:
+      true, if the given thread had been interrupted
+
+*******************************************************************************/
+
+inline static bool thread_is_interrupted(threadobject *t)
+{
+	return t->interrupted;
+}
+
+
 /* thread_is_daemon ************************************************************
 
    Returns if the given thread is a daemon thread.
+
+   ARGUMENTS:
+       t ... the thread to check
 
    RETURN:
        true .... the thread is a daemon thread

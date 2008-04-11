@@ -287,7 +287,6 @@ void threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
 
 void threads_thread_interrupt(threadobject *thread);
 bool threads_check_if_interrupted_and_reset(void);
-bool threads_thread_has_been_interrupted(threadobject *thread);
 
 #if !defined(DISABLE_GC)
 void threads_stopworld(void);

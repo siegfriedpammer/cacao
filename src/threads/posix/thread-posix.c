@@ -1775,24 +1775,6 @@ bool threads_check_if_interrupted_and_reset(void)
 }
 
 
-/* threads_thread_has_been_interrupted *****************************************
-
-   Check if the given thread has been interrupted
-
-   IN:
-      t............the thread to check
-
-   RETURN VALUE:
-      true, if the given thread had been interrupted
-
-*******************************************************************************/
-
-bool threads_thread_has_been_interrupted(threadobject *thread)
-{
-	return thread->interrupted;
-}
-
-
 /* threads_sleep ***************************************************************
 
    Sleep the current thread for the specified amount of time.

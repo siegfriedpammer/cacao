@@ -149,7 +149,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, jav
 	h = (java_handle_t *) this;
 	t = thread_get_thread(h);
 
-	return threads_thread_has_been_interrupted(t);
+	return thread_is_interrupted(t);
 #else
 	return 0;
 #endif
