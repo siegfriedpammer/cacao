@@ -44,6 +44,7 @@
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_String.h"
 
+#include "native/include/java_lang_reflect_Field.h"
 #include "native/include/java_lang_reflect_VMField.h"
 
 #if defined(ENABLE_ANNOTATIONS)
