@@ -1750,19 +1750,21 @@ void threads_thread_interrupt(threadobject *thread)
 
 void threads_sleep(s8 millis, s4 nanos)
 {
-	threadobject    *thread;
+	threadobject    *t;
 	struct timespec  wakeupTime;
-	bool             wasinterrupted;
+	bool             interrupted;
 
-	thread = THREADOBJECT;
+	t = THREADOBJECT;
 
 	threads_calc_absolute_time(&wakeupTime, millis, nanos);
 
-	threads_wait_with_timeout(thread, &wakeupTime);
+	threads_wait_with_timeout(t, &wakeupTime);
 
-	wasinterrupted = threads_check_if_interrupted_and_reset();
+	interrupted = thread_is_interrupted(t);
 
-	if (wasinterrupted)
+	thread_set_interrupted(t, false);
+
+	if (interrupted)
 		exceptions_throw_interruptedexception();
 }
 
