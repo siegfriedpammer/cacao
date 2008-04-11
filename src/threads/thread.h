@@ -192,6 +192,27 @@ inline static bool thread_is_interrupted(threadobject *t)
 }
 
 
+/* thread_set_interrupted ******************************************************
+
+   Set the interrupted flag to the given value.
+
+   ARGUMENTS:
+       interrupted ... value to set
+
+*******************************************************************************/
+
+inline static void thread_set_interrupted(threadobject *t, bool interrupted)
+{
+	mutex_lock(&t->waitmutex);
+
+	/* Set interrupted flag. */
+
+	t->interrupted = interrupted;
+
+	mutex_unlock(&t->waitmutex);
+}
+
+
 /* thread_is_daemon ************************************************************
 
    Returns if the given thread is a daemon thread.

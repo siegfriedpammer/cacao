@@ -1742,39 +1742,6 @@ void threads_thread_interrupt(threadobject *thread)
 }
 
 
-/* threads_check_if_interrupted_and_reset **************************************
-
-   Check if the current thread has been interrupted and reset the
-   interruption flag.
-
-   RETURN VALUE:
-      true, if the current thread had been interrupted
-
-*******************************************************************************/
-
-bool threads_check_if_interrupted_and_reset(void)
-{
-	threadobject *thread;
-	bool intr;
-
-	thread = THREADOBJECT;
-
-	mutex_lock(&thread->waitmutex);
-
-	/* get interrupted flag */
-
-	intr = thread->interrupted;
-
-	/* reset interrupted flag */
-
-	thread->interrupted = false;
-
-	mutex_unlock(&thread->waitmutex);
-
-	return intr;
-}
-
-
 /* threads_sleep ***************************************************************
 
    Sleep the current thread for the specified amount of time.

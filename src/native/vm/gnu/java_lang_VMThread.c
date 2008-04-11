@@ -250,7 +250,17 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_yield(JNIEnv *env, jclass clazz)
 JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_interrupted(JNIEnv *env, jclass clazz)
 {
 #if defined(ENABLE_THREADS)
-	return threads_check_if_interrupted_and_reset();
+	threadobject *t;
+	int32_t       interrupted;
+
+	t = thread_get_current();
+
+	interrupted = thread_is_interrupted(t);
+
+	if (interrupted)
+		thread_set_interrupted(t, false);
+
+	return interrupted;
 #else
 	return 0;
 #endif
