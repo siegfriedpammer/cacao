@@ -138,18 +138,21 @@ void hpi_initialize(void)
 		log_println("hpi_init: HPI loaded successfully");
 
 	/* Resolve the interfaces. */
+	/* NOTE: The intptr_t-case is only to prevent the a compiler
+	   warning with -O2: warning: dereferencing type-punned pointer
+	   will break strict-aliasing rules */
 
-	result = (*hpi_get_interface)((void **) &hpi_file, "File", 1);
+	result = (*hpi_get_interface)((void **) (intptr_t) &hpi_file, "File", 1);
 
 	if (result != 0)
 		vm_abort("hpi_init: Can't find HPI_FileInterface");
 
-	result = (*hpi_get_interface)((void **) &hpi_library, "Library", 1);
+	result = (*hpi_get_interface)((void **) (intptr_t) &hpi_library, "Library", 1);
 
 	if (result != 0)
 		vm_abort("hpi_init: Can't find HPI_LibraryInterface");
 
-	result = (*hpi_get_interface)((void **) &hpi_system, "System", 1);
+	result = (*hpi_get_interface)((void **) (intptr_t) &hpi_system, "System", 1);
 
 	if (result != 0)
 		vm_abort("hpi_init: Can't find HPI_SystemInterface");
@@ -168,7 +171,7 @@ int hpi_initialize_socket_library(void)
 
 	/* Resolve the socket library interface. */
 
-	result = (*hpi_get_interface)((void **) &hpi_socket, "Socket", 1);
+	result = (*hpi_get_interface)((void **) (intptr_t) &hpi_socket, "Socket", 1);
 
 	if (result != 0) {
 		if (opt_TraceHPI)
