@@ -1104,7 +1104,7 @@ static void stacktrace_print_entry(methodinfo *m, int32_t linenumber)
 	}
 	else {
 		if (m->flags & ACC_METHOD_BUILTIN) {
-			printf("(builtin)");
+			puts("(builtin)");
 		}
 		else {
 			printf("(");
