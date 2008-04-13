@@ -1,9 +1,7 @@
 /* src/vm/access.c - checking access rights
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -207,6 +205,7 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
    
 *******************************************************************************/
 
+#if defined(ENABLE_JAVASE)
 bool access_check_field(fieldinfo *f, int callerdepth)
 {
 	classinfo *callerclass;
@@ -258,6 +257,7 @@ bool access_check_field(fieldinfo *f, int callerdepth)
 
 	return true;
 }
+#endif
 
 
 /* access_check_method *********************************************************
@@ -283,6 +283,7 @@ bool access_check_field(fieldinfo *f, int callerdepth)
    
 *******************************************************************************/
 
+#if defined(ENABLE_JAVASE)
 bool access_check_method(methodinfo *m, int callerdepth)
 {
 	classinfo *callerclass;
@@ -336,6 +337,7 @@ bool access_check_method(methodinfo *m, int callerdepth)
 
 	return true;
 }
+#endif
 
 
 /*
