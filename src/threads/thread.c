@@ -906,7 +906,7 @@ void thread_print_info(threadobject *t)
 
 	/* Print thread state. */
 
-	state = thread_get_state(t);
+	state = cacaothread_get_state(t);
 
 	switch (state) {
 	case THREAD_STATE_NEW:
@@ -1122,7 +1122,7 @@ bool threads_thread_is_alive(threadobject *t)
 {
 	int state;
 
-	state = thread_get_state(t);
+	state = cacaothread_get_state(t);
 
 	switch (state) {
 	case THREAD_STATE_NEW:

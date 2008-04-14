@@ -308,7 +308,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMThread_getState(JNIEnv *env
 	h = (java_handle_t *) this;
 	t = thread_get_thread(h);
 
-	state = thread_get_state(t);
+	state = cacaothread_get_state(t);
 	
 	switch (state) {
 	case THREAD_STATE_NEW:
