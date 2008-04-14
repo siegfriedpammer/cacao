@@ -1769,6 +1769,11 @@ void threads_sleep(int64_t millis, int32_t nanos)
 	t = thread_get_current();
 
 	if (thread_is_interrupted(t) && !exceptions_get_exception()) {
+		/* Clear interrupted flag (Mauve test:
+		   gnu/testlet/java/lang/Thread/interrupt). */
+
+		thread_set_interrupted(t, false);
+
 /* 		exceptions_throw_interruptedexception("sleep interrupted"); */
 		exceptions_throw_interruptedexception();
 		return;
@@ -1780,9 +1785,9 @@ void threads_sleep(int64_t millis, int32_t nanos)
 
 	interrupted = thread_is_interrupted(t);
 
-	thread_set_interrupted(t, false);
-
 	if (interrupted) {
+		thread_set_interrupted(t, false);
+
 		/* An other exception could have been thrown
 		   (e.g. ThreadDeathException). */
 
