@@ -148,7 +148,7 @@ inline static java_handle_t *thread_get_current_object(void)
 }
 
 
-/* thread_get_state ************************************************************
+/* cacaothread_get_state *******************************************************
 
    Returns the current state of the given thread.
 
@@ -160,7 +160,7 @@ inline static java_handle_t *thread_get_current_object(void)
 
 *******************************************************************************/
 
-inline static int thread_get_state(threadobject *t)
+inline static int cacaothread_get_state(threadobject *t)
 {
 	return t->state;
 }
