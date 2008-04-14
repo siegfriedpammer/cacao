@@ -2933,7 +2933,7 @@ type _Jv_JNI_New##name##Array(JNIEnv *env, jsize len)    \
 JNI_NEW_ARRAY(Boolean, jbooleanArray, boolean)
 JNI_NEW_ARRAY(Byte,    jbyteArray,    byte)
 JNI_NEW_ARRAY(Char,    jcharArray,    char)
-JNI_NEW_ARRAY(Short,   jshortArray,   byte)
+JNI_NEW_ARRAY(Short,   jshortArray,   short)
 JNI_NEW_ARRAY(Int,     jintArray,     int)
 JNI_NEW_ARRAY(Long,    jlongArray,    long)
 JNI_NEW_ARRAY(Float,   jfloatArray,   float)
