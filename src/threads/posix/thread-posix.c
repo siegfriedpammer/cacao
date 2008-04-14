@@ -128,7 +128,7 @@ static int sem_init(sem_t *sem, int pshared, int value)
 
 	sem->value = value;
     
-	mutex_init(&sem->mutex, NULL)
+	mutex_init(&sem->mutex);
 
 	if (pthread_cond_init(&sem->cond, NULL) < 0)
 		return -1;
@@ -138,7 +138,7 @@ static int sem_init(sem_t *sem, int pshared, int value)
 
 static int sem_post(sem_t *sem)
 {
-	mutex_lock(&sem->mutex)
+	mutex_lock(&sem->mutex);
 
 	sem->value++;
 
@@ -147,14 +147,14 @@ static int sem_post(sem_t *sem)
 		return -1;
 	}
 
-	mutex_unlock(&sem->mutex)
+	mutex_unlock(&sem->mutex);
 
 	return 0;
 }
 
 static int sem_wait(sem_t *sem)
 {
-	mutex_lock(&sem->mutex)
+	mutex_lock(&sem->mutex);
 
 	while (sem->value == 0) {
 		pthread_cond_wait(&sem->cond, &sem->mutex);
@@ -162,7 +162,7 @@ static int sem_wait(sem_t *sem)
 
 	sem->value--;
 
-	mutex_unlock(&sem->mutex)
+	mutex_unlock(&sem->mutex);
 
 	return 0;
 }
@@ -172,7 +172,7 @@ static int sem_destroy(sem_t *sem)
 	if (pthread_cond_destroy(&sem->cond) < 0)
 		return -1;
 
-	mutex_destroy(&sem->mutex)
+	mutex_destroy(&sem->mutex);
 
 	return 0;
 }
@@ -1004,7 +1004,7 @@ static void *threads_startup_thread(void *arg)
 	threads_sem_wait(startup->psem_first);
 
 #if defined(__DARWIN__)
-	thread->mach_thread = mach_thread_self();
+	t->mach_thread = mach_thread_self();
 #endif
 
 	/* Now that we are in the new thread, we can store the internal
