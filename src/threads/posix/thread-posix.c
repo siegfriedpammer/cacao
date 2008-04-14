@@ -1336,6 +1336,11 @@ bool threads_detach_thread(threadobject *t)
 
 		if (exceptions_get_exception())
 			return false;
+
+		/* Reset the threadgroup in the Java thread object (Mauve
+		   test: gnu/testlet/java/lang/Thread/getThreadGroup). */
+
+		LLNI_field_set_ref(object, group, NULL);
 	}
 #endif
 
