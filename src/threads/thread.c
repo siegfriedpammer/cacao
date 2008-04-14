@@ -869,6 +869,7 @@ void thread_fprint_name(threadobject *t, FILE *stream)
 void thread_print_info(threadobject *t)
 {
 	java_lang_Thread *to;
+	int               state;
 
 	/* If the thread is currently in initalization, don't print it. */
 
@@ -905,7 +906,9 @@ void thread_print_info(threadobject *t)
 
 	/* Print thread state. */
 
-	switch (t->state) {
+	state = thread_get_state(t);
+
+	switch (state) {
 	case THREAD_STATE_NEW:
 		printf(" new");
 		break;
@@ -925,7 +928,7 @@ void thread_print_info(threadobject *t)
 		printf(" terminated");
 		break;
 	default:
-		vm_abort("thread_print_info: unknown thread state %d", t->state);
+		vm_abort("thread_print_info: unknown thread state %d", state);
 	}
 }
 
@@ -1048,47 +1051,6 @@ void threads_thread_state_terminated(threadobject *t)
 }
 
 
-/* threads_thread_get_state ****************************************************
-
-   Returns the current state of the given thread.
-
-*******************************************************************************/
-
-utf *threads_thread_get_state(threadobject *t)
-{
-	utf *u;
-
-	switch (t->state) {
-	case THREAD_STATE_NEW:
-		u = utf_new_char("NEW");
-		break;
-	case THREAD_STATE_RUNNABLE:
-		u = utf_new_char("RUNNABLE");
-		break;
-	case THREAD_STATE_BLOCKED:
-		u = utf_new_char("BLOCKED");
-		break;
-	case THREAD_STATE_WAITING:
-		u = utf_new_char("WAITING");
-		break;
-	case THREAD_STATE_TIMED_WAITING:
-		u = utf_new_char("TIMED_WAITING");
-		break;
-	case THREAD_STATE_TERMINATED:
-		u = utf_new_char("TERMINATED");
-		break;
-	default:
-		vm_abort("threads_get_state: unknown thread state %d", t->state);
-
-		/* keep compiler happy */
-
-		u = NULL;
-	}
-
-	return u;
-}
-
-
 /* thread_get_thread **********************************************************
 
    Return the thread data structure of the given Java thread object.
@@ -1155,7 +1117,11 @@ threadobject *thread_get_thread(java_handle_t *h)
 
 bool threads_thread_is_alive(threadobject *t)
 {
-	switch (t->state) {
+	int state;
+
+	state = thread_get_state(t);
+
+	switch (state) {
 	case THREAD_STATE_NEW:
 	case THREAD_STATE_TERMINATED:
 		return false;
@@ -1167,7 +1133,7 @@ bool threads_thread_is_alive(threadobject *t)
 		return true;
 
 	default:
-		vm_abort("threads_thread_is_alive: unknown thread state %d", t->state);
+		vm_abort("threads_thread_is_alive: unknown thread state %d", state);
 	}
 
 	/* keep compiler happy */

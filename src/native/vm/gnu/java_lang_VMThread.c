@@ -301,13 +301,42 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMThread_getState(JNIEnv *env
 #if defined(ENABLE_THREADS)
 	java_handle_t *h;
 	threadobject  *t;
+	int            state;
 	utf           *u;
 	java_handle_t *o;
 
 	h = (java_handle_t *) this;
 	t = thread_get_thread(h);
 
-	u = threads_thread_get_state(t);
+	state = thread_get_state(t);
+	
+	switch (state) {
+	case THREAD_STATE_NEW:
+		u = utf_new_char("NEW");
+		break;
+	case THREAD_STATE_RUNNABLE:
+		u = utf_new_char("RUNNABLE");
+		break;
+	case THREAD_STATE_BLOCKED:
+		u = utf_new_char("BLOCKED");
+		break;
+	case THREAD_STATE_WAITING:
+		u = utf_new_char("WAITING");
+		break;
+	case THREAD_STATE_TIMED_WAITING:
+		u = utf_new_char("TIMED_WAITING");
+		break;
+	case THREAD_STATE_TERMINATED:
+		u = utf_new_char("TERMINATED");
+		break;
+	default:
+		vm_abort("Java_java_lang_VMThread_getState: unknown thread state %d", state);
+
+		/* Keep compiler happy. */
+
+		u = NULL;
+	}
+
 	o = javastring_new(u);
 
 	return (java_lang_String *) o;

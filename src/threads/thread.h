@@ -148,6 +148,24 @@ inline static java_handle_t *thread_get_current_object(void)
 }
 
 
+/* thread_get_state ************************************************************
+
+   Returns the current state of the given thread.
+
+   ARGUMENTS:
+       t ... the thread to check
+
+   RETURN:
+       thread state
+
+*******************************************************************************/
+
+inline static int thread_get_state(threadobject *t)
+{
+	return t->state;
+}
+
+
 /* thread_is_attached **********************************************************
 
    Returns if the given thread is attached to the VM.
@@ -283,7 +301,6 @@ void          threads_thread_state_waiting(threadobject *t);
 void          threads_thread_state_timed_waiting(threadobject *t);
 void          threads_thread_state_terminated(threadobject *t);
 
-utf          *threads_thread_get_state(threadobject *t);
 threadobject *thread_get_thread(java_handle_t *h);
 
 bool          threads_thread_is_alive(threadobject *t);
