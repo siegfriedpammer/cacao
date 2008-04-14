@@ -2383,15 +2383,19 @@ jboolean JVM_IsInterrupted(JNIEnv* env, jobject jthread, jboolean clear_interrup
 {
 	java_handle_t *h;
 	threadobject  *t;
+	jboolean       interrupted;
 
 	TRACEJVMCALLS(("JVM_IsInterrupted(env=%p, jthread=%p, clear_interrupted=%d)", env, jthread, clear_interrupted));
 
 	h = (java_handle_t *) jthread;
 	t = thread_get_thread(h);
 
-	/* XXX do something with clear_interrupted */
+	interrupted = thread_is_interrupted(t);
 
-	return thread_is_interrupted(t);
+	if (interrupted && clear_interrupted)
+		thread_set_interrupted(t, false);
+
+	return interrupted;
 }
 
 
