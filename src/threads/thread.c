@@ -756,6 +756,10 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	if (isdaemon)
 		t->flags |= THREAD_FLAG_DAEMON;
 
+	/* Store the internal thread data-structure in the TSD. */
+
+	thread_set_current(t);
+
 	/* The thread is flagged and (non-)daemon thread, we can leave the
 	   mutex. */
 
