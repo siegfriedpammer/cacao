@@ -783,7 +783,9 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	if (vm_aargs != NULL)
 		group = (java_handle_t *) vm_aargs->group;
-		
+	else
+		group = NULL;
+
 	/* If no threadgroup was given, use the main threadgroup. */
 
 	if (group == NULL)
