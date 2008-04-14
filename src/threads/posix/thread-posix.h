@@ -281,7 +281,7 @@ bool threads_resume_thread(threadobject *thread);
 
 void threads_join_all_threads(void);
 
-void threads_sleep(s8 millis, s4 nanos);
+void threads_sleep(int64_t millis, int32_t nanos);
 
 void threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
 

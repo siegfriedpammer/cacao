@@ -1754,13 +1754,25 @@ void threads_thread_interrupt(threadobject *thread)
 
 *******************************************************************************/
 
-void threads_sleep(s8 millis, s4 nanos)
+void threads_sleep(int64_t millis, int32_t nanos)
 {
 	threadobject    *t;
 	struct timespec  wakeupTime;
 	bool             interrupted;
 
-	t = THREADOBJECT;
+	if (millis < 0) {
+/* 		exceptions_throw_illegalargumentexception("timeout value is negative"); */
+		exceptions_throw_illegalargumentexception();
+		return;
+	}
+
+	t = thread_get_current();
+
+	if (thread_is_interrupted(t) && !exceptions_get_exception()) {
+/* 		exceptions_throw_interruptedexception("sleep interrupted"); */
+		exceptions_throw_interruptedexception();
+		return;
+	}
 
 	threads_calc_absolute_time(&wakeupTime, millis, nanos);
 
@@ -1770,8 +1782,13 @@ void threads_sleep(s8 millis, s4 nanos)
 
 	thread_set_interrupted(t, false);
 
-	if (interrupted)
-		exceptions_throw_interruptedexception();
+	if (interrupted) {
+		/* An other exception could have been thrown
+		   (e.g. ThreadDeathException). */
+
+		if (!exceptions_get_exception())
+			exceptions_throw_interruptedexception();
+	}
 }
 
 
