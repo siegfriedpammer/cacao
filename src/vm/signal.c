@@ -417,7 +417,7 @@ static void signal_thread(void)
 		/* just wait for a signal */
 
 #if defined(ENABLE_THREADS)
-		threads_thread_state_waiting(t);
+		thread_set_state_waiting(t);
 #endif
 
 		/* XXX We don't check for an error here, although the man-page
@@ -430,7 +430,7 @@ static void signal_thread(void)
 		(void) sigwait(&mask, &sig);
 
 #if defined(ENABLE_THREADS)
-		threads_thread_state_runnable(t);
+		thread_set_state_runnable(t);
 #endif
 
 		/* Handle the signal. */

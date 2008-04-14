@@ -296,10 +296,10 @@ void          thread_print_info(threadobject *t);
 
 intptr_t      threads_get_current_tid(void);
 
-void          threads_thread_state_runnable(threadobject *t);
-void          threads_thread_state_waiting(threadobject *t);
-void          threads_thread_state_timed_waiting(threadobject *t);
-void          threads_thread_state_terminated(threadobject *t);
+void          thread_set_state_runnable(threadobject *t);
+void          thread_set_state_waiting(threadobject *t);
+void          thread_set_state_timed_waiting(threadobject *t);
+void          thread_set_state_terminated(threadobject *t);
 
 threadobject *thread_get_thread(java_handle_t *h);
 

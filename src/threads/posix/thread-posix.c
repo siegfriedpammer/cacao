@@ -1020,9 +1020,9 @@ static void *threads_startup_thread(void *arg)
 
 	threads_set_thread_priority(t->tid, LLNI_field_direct(object, priority));
 
-	/* thread is completely initialized */
+	/* Thread is completely initialized. */
 
-	threads_thread_state_runnable(t);
+	thread_set_state_runnable(t);
 
 	/* tell threads_startup_thread that we registered ourselves */
 	/* CAUTION: *startup becomes invalid with this!             */
@@ -1346,7 +1346,7 @@ bool threads_detach_thread(threadobject *t)
 
 	/* Thread has terminated. */
 
-	threads_thread_state_terminated(t);
+	thread_set_state_terminated(t);
 
 	/* Notify all threads waiting on this thread.  These are joining
 	   this thread. */
@@ -1522,9 +1522,9 @@ void threads_join_all_threads(void)
 
 	t = THREADOBJECT;
 
-	/* this thread is waiting for all non-daemon threads to exit */
+	/* This thread is waiting for all non-daemon threads to exit. */
 
-	threads_thread_state_waiting(t);
+	thread_set_state_waiting(t);
 
 	/* enter join mutex */
 
@@ -1628,22 +1628,22 @@ static void threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTi
 		while (!t->interrupted && !t->signaled
 			   && threads_current_time_is_earlier_than(wakeupTime))
 		{
-			threads_thread_state_timed_waiting(t);
+			thread_set_state_timed_waiting(t);
 
 			pthread_cond_timedwait(&t->waitcond, &t->waitmutex,
 								   wakeupTime);
 
-			threads_thread_state_runnable(t);
+			thread_set_state_runnable(t);
 		}
 	}
 	else {
 		/* no timeout */
 		while (!t->interrupted && !t->signaled) {
-			threads_thread_state_waiting(t);
+			thread_set_state_waiting(t);
 
 			pthread_cond_wait(&t->waitcond, &t->waitmutex);
 
-			threads_thread_state_runnable(t);
+			thread_set_state_runnable(t);
 		}
 	}
 

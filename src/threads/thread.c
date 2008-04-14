@@ -808,7 +808,7 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	/* The thread is completely initialized. */
 
-	threads_thread_state_runnable(t);
+	thread_set_state_runnable(t);
 
 	return true;
 }
@@ -957,7 +957,7 @@ intptr_t threads_get_current_tid(void)
 }
 
 
-/* threads_thread_state_runnable ***********************************************
+/* thread_set_state_runnable ***************************************************
 
    Set the current state of the given thread to THREAD_STATE_RUNNABLE.
 
@@ -966,7 +966,7 @@ intptr_t threads_get_current_tid(void)
 
 *******************************************************************************/
 
-void threads_thread_state_runnable(threadobject *t)
+void thread_set_state_runnable(threadobject *t)
 {
 	/* Set the state inside a lock. */
 
@@ -981,7 +981,7 @@ void threads_thread_state_runnable(threadobject *t)
 }
 
 
-/* threads_thread_state_waiting ************************************************
+/* thread_set_state_waiting ****************************************************
 
    Set the current state of the given thread to THREAD_STATE_WAITING.
 
@@ -990,7 +990,7 @@ void threads_thread_state_runnable(threadobject *t)
 
 *******************************************************************************/
 
-void threads_thread_state_waiting(threadobject *t)
+void thread_set_state_waiting(threadobject *t)
 {
 	/* Set the state inside a lock. */
 
@@ -1005,7 +1005,7 @@ void threads_thread_state_waiting(threadobject *t)
 }
 
 
-/* threads_thread_state_timed_waiting ******************************************
+/* thread_set_state_timed_waiting **********************************************
 
    Set the current state of the given thread to
    THREAD_STATE_TIMED_WAITING.
@@ -1015,7 +1015,7 @@ void threads_thread_state_waiting(threadobject *t)
 
 *******************************************************************************/
 
-void threads_thread_state_timed_waiting(threadobject *t)
+void thread_set_state_timed_waiting(threadobject *t)
 {
 	/* Set the state inside a lock. */
 
@@ -1030,16 +1030,16 @@ void threads_thread_state_timed_waiting(threadobject *t)
 }
 
 
-/* threads_thread_state_terminated *********************************************
+/* thread_set_state_terminated *************************************************
 
    Set the current state of the given thread to
    THREAD_STATE_TERMINATED.
 
 *******************************************************************************/
 
-void threads_thread_state_terminated(threadobject *t)
+void thread_set_state_terminated(threadobject *t)
 {
-	/* set the state in the lock */
+	/* Set the state inside a lock. */
 
 	threadlist_lock();
 
