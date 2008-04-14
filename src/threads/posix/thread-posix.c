@@ -965,7 +965,7 @@ void threads_impl_init(void)
 static void *threads_startup_thread(void *arg)
 {
 	startupinfo        *startup;
-	threadobject       *thread;
+	threadobject       *t;
 	java_lang_Thread   *object;
 #if defined(WITH_CLASSPATH_GNU)
 	java_lang_VMThread *vmt;
@@ -993,7 +993,7 @@ static void *threads_startup_thread(void *arg)
 
 	startup = arg;
 
-	thread   = startup->thread;
+	t        = startup->thread;
 	function = startup->function;
 	psem     = startup->psem;
 
@@ -1007,21 +1007,22 @@ static void *threads_startup_thread(void *arg)
 	thread->mach_thread = mach_thread_self();
 #endif
 
-	/* Store the internal thread data-structure in the TSD. */
+	/* Now that we are in the new thread, we can store the internal
+	   thread data-structure in the TSD. */
 
-	thread_set_current(thread);
+	thread_set_current(t);
 
 	/* get the java.lang.Thread object for this thread */
 
-	object = (java_lang_Thread *) thread_get_object(thread);
+	object = (java_lang_Thread *) thread_get_object(t);
 
 	/* set our priority */
 
-	threads_set_thread_priority(thread->tid, LLNI_field_direct(object, priority));
+	threads_set_thread_priority(t->tid, LLNI_field_direct(object, priority));
 
 	/* thread is completely initialized */
 
-	threads_thread_state_runnable(thread);
+	threads_thread_state_runnable(t);
 
 	/* tell threads_startup_thread that we registered ourselves */
 	/* CAUTION: *startup becomes invalid with this!             */
@@ -1043,7 +1044,7 @@ static void *threads_startup_thread(void *arg)
 		jvmti_ThreadStartEnd(JVMTI_EVENT_THREAD_START);
 #endif
 
-	DEBUGTHREADS("starting", thread);
+	DEBUGTHREADS("starting", t);
 
 	/* find and run the Thread.run()V method if no other function was passed */
 
@@ -1079,15 +1080,15 @@ static void *threads_startup_thread(void *arg)
 		/* we need to start the run method of java.lang.VMThread */
 
 		LLNI_field_get_ref(object, vmThread, vmt);
-		o   = (java_handle_t *) vmt;
+		o = (java_handle_t *) vmt;
 
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
-		o   = (java_handle_t *) object;
+		o = (java_handle_t *) object;
 #else
 # error unknown classpath configuration
 #endif
 
-		/* run the thread */
+		/* Run the thread. */
 
 		(void) vm_call_method(m, o);
 	}
@@ -1107,7 +1108,7 @@ static void *threads_startup_thread(void *arg)
 		(function)();
 	}
 
-	DEBUGTHREADS("stopping", thread);
+	DEBUGTHREADS("stopping", t);
 
 #if defined(ENABLE_JVMTI)
 	/* fire thread end event */
@@ -1118,7 +1119,7 @@ static void *threads_startup_thread(void *arg)
 
 	/* We ignore the return value. */
 
-	(void) threads_detach_thread(thread);
+	(void) threads_detach_thread(t);
 
 	/* set ThreadMXBean variables */
 
