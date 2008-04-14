@@ -1004,7 +1004,7 @@ static void *threads_startup_thread(void *arg)
 	threads_sem_wait(startup->psem_first);
 
 #if defined(__DARWIN__)
-	thread->mach_thread = mach_thread_self();
+	t->mach_thread = mach_thread_self();
 #endif
 
 	/* Now that we are in the new thread, we can store the internal
