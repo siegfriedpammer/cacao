@@ -281,7 +281,7 @@ bool patcher_invokeinterface(patchref_t *pr)
 	/* get method offset */
 
 	off =
-		(s4) (sizeof(methodptr) * (m - m->class->methods));
+		(s4) (sizeof(methodptr) * (m - m->clazz->methods));
 
 	ASSERT_VALID_DISP(off);
 
