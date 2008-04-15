@@ -1538,7 +1538,7 @@ void show_filters_apply(methodinfo *m) {
 	/* compose full name of method */
 
 	len = 
-		utf_bytes(m->class->name) +
+		utf_bytes(m->clazz->name) +
 		1 +
 		utf_bytes(m->name) +
 		utf_bytes(m->descriptor) +
@@ -1548,7 +1548,7 @@ void show_filters_apply(methodinfo *m) {
 
 	method_name = DMNEW(char, len);
 
-	utf_cat_classname(method_name, m->class->name);
+	utf_cat_classname(method_name, m->clazz->name);
 	strcat(method_name, ".");
 	utf_cat(method_name, m->name);
 	utf_cat(method_name, m->descriptor);

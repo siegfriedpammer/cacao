@@ -522,7 +522,7 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 
 	code = ste->code;
 	m    = code->m;
-	c    = m->class;
+	c    = m->clazz;
 
 	/* allocate a new StackTraceElement */
 
@@ -3382,7 +3382,7 @@ jobjectArray JVM_GetEnclosingMethodInfo(JNIEnv *env, jclass ofClass)
 	if (oa == NULL)
 		return NULL;
 
-	array_objectarray_element_set(oa, 0, (java_handle_t *) LLNI_classinfo_wrap(m->class));
+	array_objectarray_element_set(oa, 0, (java_handle_t *) LLNI_classinfo_wrap(m->clazz));
 	array_objectarray_element_set(oa, 1, javastring_new(m->name));
 	array_objectarray_element_set(oa, 2, javastring_new(m->descriptor));
 

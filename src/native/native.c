@@ -475,7 +475,7 @@ static functionptr native_method_find(methodinfo *m)
 
 	/* fill the temporary structure used for searching the tree */
 
-	tmpnmn.classname  = m->class->name;
+	tmpnmn.classname  = m->clazz->name;
 	tmpnmn.name       = m->name;
 	tmpnmn.descriptor = m->descriptor;
 
@@ -523,7 +523,7 @@ functionptr native_method_resolve(methodinfo *m)
 
 	if (opt_verbosejni) {
 		printf("[Dynamic-linking native method ");
-		utf_display_printable_ascii_classname(m->class->name);
+		utf_display_printable_ascii_classname(m->clazz->name);
 		printf(".");
 		utf_display_printable_ascii(m->name);
 		printf(" ... ");
@@ -531,7 +531,7 @@ functionptr native_method_resolve(methodinfo *m)
 
 	/* generate method symbol string */
 
-	name = native_method_symbol(m->class->name, m->name);
+	name = native_method_symbol(m->clazz->name, m->name);
 
 	/* generate overloaded function (having the types in it's name)           */
 
@@ -545,7 +545,7 @@ functionptr native_method_resolve(methodinfo *m)
 #if defined(ENABLE_LTDL)
 	/* Get the classloader. */
 
-	cl = class_get_classloader(m->class);
+	cl = class_get_classloader(m->clazz);
 
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 

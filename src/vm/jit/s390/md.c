@@ -100,7 +100,7 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 		m = (*(codeinfo **)(pv + CodeinfoPointer))->m;
 		log_println(
 			"Java method: class %s, method %s, descriptor %s.",
-			m->class->name->text, m->name->text, m->descriptor->text
+			m->clazz->name->text, m->name->text, m->descriptor->text
 		);
 	}
 

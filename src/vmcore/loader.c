@@ -1730,7 +1730,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		methodinfo *m = &c->methods[i];
 		m->parseddesc =
 			descriptor_pool_parse_method_descriptor(descpool, m->descriptor,
-													m->flags, class_get_self_classref(m->class));
+													m->flags, class_get_self_classref(m->clazz));
 		if (!m->parseddesc)
 			return false;
 
@@ -2175,7 +2175,7 @@ classinfo *load_newly_created_array(classinfo *c, classloader *loader)
 	clone->name       = utf_clone;
 	clone->descriptor = utf_void__java_lang_Object;
 	clone->parseddesc = clonedesc;
-	clone->class      = c;
+	clone->clazz      = c;
 
 	/* parse the descriptor to get the register allocation */
 

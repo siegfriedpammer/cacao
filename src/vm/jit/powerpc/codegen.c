@@ -305,7 +305,7 @@ bool codegen_emit(jitdata *jd)
 		/* get or test the lock object */
 
 		if (m->flags & ACC_STATIC) {
-			disp = dseg_add_address(cd, &m->class->object.header);
+			disp = dseg_add_address(cd, &m->clazz->object.header);
 			M_ALD(REG_A0, REG_PV, disp);
 		}
 		else {
@@ -2371,9 +2371,9 @@ gen_method:
 				}
 				else {
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
-						sizeof(methodptr*) * lm->class->index;
+						sizeof(methodptr*) * lm->clazz->index;
 
-					s2 = sizeof(methodptr) * (lm - lm->class->methods);
+					s2 = sizeof(methodptr) * (lm - lm->clazz->methods);
 				}
 
 				/* implicit null-pointer check */

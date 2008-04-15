@@ -45,7 +45,7 @@
 #if 1
 static inline bool test_do_verbose(jitdata *jd) { 
 	return strcmp(jd->m->name->text, "close") == 0 &&
-		strcmp(jd->m->class->name->text, "antlr/PreservingFileWriter") == 0;
+		strcmp(jd->m->clazz->name->text, "antlr/PreservingFileWriter") == 0;
 }
 static bool do_verbose = 0;
 #define WHEN do_verbose

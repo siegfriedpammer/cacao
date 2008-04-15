@@ -282,7 +282,7 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 		  /* get synchronization object */
 
 		  if (m->flags & ACC_STATIC) {
-			  syncobj = (java_objectheader *) m->class;
+			  syncobj = (java_objectheader *) m->clazz;
 		  }
 		  else {
 			  syncobj = (java_objectheader *) access_local_cell(-framesize + SIZEOF_VOID_P);

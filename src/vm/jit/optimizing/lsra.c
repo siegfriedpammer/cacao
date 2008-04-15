@@ -1,9 +1,7 @@
 /* src/vm/jit/optimizing/lsra.inc - linear scan register allocator
 
-   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,13 +20,9 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Christian Ullrich
-
-   $Id: lsra.c $
-
 */
+
+
 #include "config.h"
 
 #include <stdio.h>
@@ -144,13 +138,13 @@ void lsra(jitdata *jd) {
 #if defined(LSRA_DEBUG_CHECK) || defined(LSRA_DEBUG_VERBOSE)
 #if defined(LSRA_DEBUG_VERBOSE)
 	if (compileverbose) {
-		printf("%s %s ",m->class->name->text, m->name->text);
+		printf("%s %s ",m->clazz->name->text, m->name->text);
 		if (code_is_leafmethod(jd->code))
 			printf("**Leafmethod**");
 		printf("\n");
 	}
 #endif
-	if (strcmp(m->class->name->text,"java/lang/String")==0)
+	if (strcmp(m->clazz->name->text,"java/lang/String")==0)
 		if (strcmp(m->name->text,"toLowerCase")==0)
 #if defined(LSRA_DEBUG_VERBOSE)
 			if (compileverbose)

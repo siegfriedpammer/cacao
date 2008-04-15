@@ -1,9 +1,7 @@
 /* src/vm/jit/verify/typecheck-fields.inc - type checking for field ICMDs
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -21,12 +19,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Edwin Steiner
-
-   Changes: 
 
 */
 
@@ -87,7 +79,7 @@
 
 	if (result != resolveSucceeded) {
 		if (!uf) {
-			uf = resolve_create_unresolved_field(state->m->class, 
+			uf = resolve_create_unresolved_field(state->m->clazz, 
 					state->m, state->iptr);
 			if (!uf)
 				EXCEPTION;
@@ -99,7 +91,7 @@
 		/* record the subtype constraints for this field access */
 
 		if (!resolve_constrain_unresolved_field(
-					uf, state->m->class, state->m,
+					uf, state->m->clazz, state->m,
 					instanceti, valueti))
 			EXCEPTION; /* XXX maybe wrap exception? */
 

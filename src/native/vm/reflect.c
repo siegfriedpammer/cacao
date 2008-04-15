@@ -99,7 +99,7 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 
 	/* Calculate the slot. */
 
-	slot = m - m->class->methods;
+	slot = m - m->clazz->methods;
 
 #if defined(WITH_CLASSPATH_GNU)
 
@@ -119,7 +119,7 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 
 	/* Set Java object instance fields. */
 
-	LLNI_field_set_cls(rvmc, clazz,                m->class);
+	LLNI_field_set_cls(rvmc, clazz,                m->clazz);
 	LLNI_field_set_val(rvmc, slot,                 slot);
 	LLNI_field_set_ref(rvmc, annotations,          method_get_annotations(m));
 	LLNI_field_set_ref(rvmc, parameterAnnotations, method_get_parameterannotations(m));
@@ -128,7 +128,7 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 
 	/* Set Java object instance fields. */
 
-	LLNI_field_set_cls(rc, clazz               , m->class);
+	LLNI_field_set_cls(rc, clazz               , m->clazz);
 	LLNI_field_set_ref(rc, parameterTypes      , method_get_parametertypearray(m));
 	LLNI_field_set_ref(rc, exceptionTypes      , method_get_exceptionarray(m));
 	LLNI_field_set_val(rc, modifiers           , m->flags & ACC_CLASS_REFLECT_MASK);
@@ -258,7 +258,7 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 
 	/* Calculate the slot. */
 
-	slot = m - m->class->methods;
+	slot = m - m->clazz->methods;
 
 #if defined(WITH_CLASSPATH_GNU)
 
@@ -278,7 +278,7 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 
 	/* Set Java object instance fields. */
 
-	LLNI_field_set_cls(rvmm, clazz,                m->class);
+	LLNI_field_set_cls(rvmm, clazz,                m->clazz);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */
@@ -291,7 +291,7 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 
 #elif defined(WITH_CLASSPATH_SUN)
 
-	LLNI_field_set_cls(rm, clazz,                m->class);
+	LLNI_field_set_cls(rm, clazz,                m->clazz);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */
@@ -349,7 +349,7 @@ static java_handle_t *reflect_invoke(methodinfo *m, java_handle_t *o, java_handl
 	   class the method belongs to. For static methods the obj
 	   parameter is ignored. */
 
-	if (!(m->flags & ACC_STATIC) && o && (!builtin_instanceof(o, m->class))) {
+	if (!(m->flags & ACC_STATIC) && o && (!builtin_instanceof(o, m->clazz))) {
 		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
@@ -423,7 +423,7 @@ java_handle_t *reflect_constructor_newinstance(methodinfo *m, java_handle_object
 
 	/* Create a Java object. */
 
-	o = builtin_new(m->class);
+	o = builtin_new(m->clazz);
 
 	if (o == NULL)
 		return NULL;
@@ -478,8 +478,8 @@ java_handle_t *reflect_method_invoke(methodinfo *m, java_handle_t *o, java_handl
 
 	/* Check if method class is initialized. */
 
-	if (!(m->class->state & CLASS_INITIALIZED))
-		if (!initialize_class(m->class))
+	if (!(m->clazz->state & CLASS_INITIALIZED))
+		if (!initialize_class(m->clazz))
 			return NULL;
 
 	/* Call the Java method. */

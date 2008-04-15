@@ -1,9 +1,7 @@
 /* src/vm/jit/x86_64/patcher.c - x86_64 code patching functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -470,12 +468,12 @@ bool patcher_invokeinterface(patchref_t *pr)
 
 	*((int32_t *) (ra + 3 + 3)) =
 		(int32_t) (OFFSET(vftbl_t, interfacetable[0]) -
-				   sizeof(methodptr) * m->class->index);
+				   sizeof(methodptr) * m->clazz->index);
 
 	/* patch method offset */
 
 	*((int32_t *) (ra + 3 + 7 + 3)) =
-		(int32_t) (sizeof(methodptr) * (m - m->class->methods));
+		(int32_t) (sizeof(methodptr) * (m - m->clazz->methods));
 
 	return true;
 }

@@ -596,7 +596,7 @@ java_handle_bytearray_t *stacktrace_get(stackframeinfo_t *sfi)
 			/* For GNU Classpath we also need to skip
 			   VMThrowable.fillInStackTrace(). */
 
-			if ((m->class == class_java_lang_VMThrowable) &&
+			if ((m->clazz == class_java_lang_VMThrowable) &&
 				(m->name  == utf_fillInStackTrace))
 				continue;
 #endif
@@ -613,7 +613,7 @@ java_handle_bytearray_t *stacktrace_get(stackframeinfo_t *sfi)
 
 		if (skip_init == true) {
 			if ((m->name == utf_init) &&
-				(class_issubclass(m->class, class_java_lang_Throwable))) {
+				(class_issubclass(m->clazz, class_java_lang_Throwable))) {
 				continue;
 			}
 			else {
@@ -720,7 +720,7 @@ classinfo *stacktrace_get_caller_class(int depth)
 		 stacktrace_stackframeinfo_next(&tmpsfi)) {
 
 		m = tmpsfi.code->m;
-		c = m->class;
+		c = m->clazz;
 
 		/* Skip builtin methods. */
 
@@ -788,7 +788,7 @@ classloader *stacktrace_first_nonnull_classloader(void)
 		 stacktrace_stackframeinfo_next(&tmpsfi)) {
 
 		m  = tmpsfi.code->m;
-		cl = class_get_classloader(m->class);
+		cl = class_get_classloader(m->clazz);
 
 		if (cl != NULL)
 			return cl;
@@ -873,7 +873,7 @@ java_handle_objectarray_t *stacktrace_getClassContext(void)
 
 		/* Store the class in the array. */
 
-		data[i] = (java_object_t *) m->class;
+		data[i] = (java_object_t *) m->clazz;
 
 		i++;
 	}
@@ -939,16 +939,16 @@ classinfo *stacktrace_get_current_class(void)
 
 		m = tmpsfi.code->m;
 
-		if (m->class == class_java_security_PrivilegedAction) {
+		if (m->clazz == class_java_security_PrivilegedAction) {
 			CYCLES_STATS_END(stacktrace_getCurrentClass);
 
 			return NULL;
 		}
 
-		if (m->class != NULL) {
+		if (m->clazz != NULL) {
 			CYCLES_STATS_END(stacktrace_getCurrentClass);
 
-			return m->class;
+			return m->clazz;
 		}
 	}
 
@@ -1046,7 +1046,7 @@ java_handle_objectarray_t *stacktrace_get_stack(void)
 		/* NOTE: We use a LLNI-macro here, because a classinfo is not
 		   a handle. */
 
-		LLNI_array_direct(classes, i) = (java_object_t *) m->class;
+		LLNI_array_direct(classes, i) = (java_object_t *) m->clazz;
 
 		/* Store the name in the array. */
 
@@ -1093,7 +1093,7 @@ static void stacktrace_print_entry(methodinfo *m, int32_t linenumber)
 	if (m->flags & ACC_METHOD_BUILTIN)
 		printf("NULL");
 	else
-		utf_display_printable_ascii_classname(m->class->name);
+		utf_display_printable_ascii_classname(m->clazz->name);
 
 	printf(".");
 	utf_display_printable_ascii(m->name);
@@ -1108,7 +1108,7 @@ static void stacktrace_print_entry(methodinfo *m, int32_t linenumber)
 		}
 		else {
 			printf("(");
-			utf_display_printable_ascii(m->class->sourcefile);
+			utf_display_printable_ascii(m->clazz->sourcefile);
 			printf(":%d)\n", linenumber);
 		}
 	}

@@ -1,9 +1,7 @@
 /* src/vm/jit/i386/patcher.c - i386 code patching functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -516,12 +514,12 @@ bool patcher_invokeinterface(patchref_t *pr)
 	/* patch interfacetable index */
 
 	*((s4 *) (ra + 2 + 2)) = (s4) (OFFSET(vftbl_t, interfacetable[0]) -
-								   sizeof(methodptr) * m->class->index);
+								   sizeof(methodptr) * m->clazz->index);
 
 	/* patch method offset */
 
 	*((s4 *) (ra + 2 + 6 + 2)) =
-		(s4) (sizeof(methodptr) * (m - m->class->methods));
+		(s4) (sizeof(methodptr) * (m - m->clazz->methods));
 
 	return true;
 }

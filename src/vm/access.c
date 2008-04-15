@@ -293,7 +293,7 @@ bool access_check_method(methodinfo *m, int callerdepth)
 
 	/* If everything is public, there is nothing to check. */
 
-	if ((m->class->flags & ACC_PUBLIC) && (m->flags & ACC_PUBLIC))
+	if ((m->clazz->flags & ACC_PUBLIC) && (m->flags & ACC_PUBLIC))
 		return true;
 
 	/* Get the caller's class. */
@@ -305,9 +305,9 @@ bool access_check_method(methodinfo *m, int callerdepth)
 
 	/* Check access rights. */
 
-	if (!access_is_accessible_member(callerclass, m->class, m->flags)) {
+	if (!access_is_accessible_member(callerclass, m->clazz, m->flags)) {
 		msglen =
-			utf_bytes(m->class->name) +
+			utf_bytes(m->clazz->name) +
 			strlen(".") +
 			utf_bytes(m->name) +
 			utf_bytes(m->descriptor) +
@@ -317,7 +317,7 @@ bool access_check_method(methodinfo *m, int callerdepth)
 
 		msg = MNEW(char, msglen);
 
-		utf_copy_classname(msg, m->class->name);
+		utf_copy_classname(msg, m->clazz->name);
 		strcat(msg, ".");
 		utf_cat_classname(msg, m->name);
 		utf_cat_classname(msg, m->descriptor);

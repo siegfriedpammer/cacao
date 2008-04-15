@@ -476,7 +476,7 @@ case ICMD_ATHROW:
 				METHOD,
 				/* XXX make this more efficient, use class_java_lang_Throwable
 				 * directly */
-				class_get_classref(METHOD->class,utf_java_lang_Throwable),
+				class_get_classref(METHOD->clazz,utf_java_lang_Throwable),
 				&OP1->typeinfo);
 		IPTR->flags.bits |= INS_FLAG_UNRESOLVED;
 	}
@@ -534,7 +534,7 @@ case ICMD_RETURN:
 return_tail:
 	TYPECHECK_COUNT(stat_ins_primitive_return);
 
-	if (STATE->initmethod && METHOD->class != class_java_lang_Object) {
+	if (STATE->initmethod && METHOD->clazz != class_java_lang_Object) {
 		/* Check if the 'this' instance has been initialized. */
 		LOG("Checking <init> marker");
 #if defined(TYPECHECK_VARIABLESBASED)

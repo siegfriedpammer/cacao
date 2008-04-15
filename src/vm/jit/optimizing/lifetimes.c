@@ -1,9 +1,7 @@
 /* src/vm/jit/lsra.inc - lifetime anaylsis
 
-   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,13 +20,8 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Christian Ullrich
-
-   $Id: lifetimes.c $
-
 */
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -408,7 +401,7 @@ void lt_lifeness_analysis(jitdata *jd, graphdata *gd) {
 			atime++;
 			diff += 1000000;
 		}
-		printf("%8li %s.%s.%s\n",diff, m->class->name->text, m->name->text,
+		printf("%8li %s.%s.%s\n",diff, m->clazz->name->text, m->name->text,
 			   m->descriptor->text);
 	}
 #endif

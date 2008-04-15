@@ -1,9 +1,7 @@
 /* src/vm/jit/m68k/codegen.c
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -254,7 +252,7 @@ bool codegen_emit(jitdata *jd)
 	/* call lock_monitor_enter function */
 	if (checksync && code_is_synchronized(code))	{
 		if (m->flags & ACC_STATIC)	{
-			M_AMOV_IMM((&m->class->object.header), REG_ATMP1);
+			M_AMOV_IMM((&m->clazz->object.header), REG_ATMP1);
 		} else	{
 			/* for non-static case the first arg is the object */
 			M_ALD(REG_ATMP1, REG_SP, cd->stackframesize + 4);
@@ -1734,8 +1732,8 @@ bool codegen_emit(jitdata *jd)
 						s1 = 0;
 						s2 = 0;
 					} else {
-						s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * lm->class->index;
-						s2 = sizeof(methodptr) * (lm - lm->class->methods);
+						s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * lm->clazz->index;
+						s2 = sizeof(methodptr) * (lm - lm->clazz->methods);
 					}
 					/* load object pointer (==argument 0) */
 					M_ALD(REG_ATMP1, REG_SP, 0);

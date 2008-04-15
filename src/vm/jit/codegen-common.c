@@ -1229,8 +1229,8 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 void codegen_disassemble_stub(methodinfo *m, u1 *start, u1 *end)
 {
 	printf("Stub code: ");
-	if (m->class != NULL)
-		utf_fprint_printable_ascii_classname(stdout, m->class->name);
+	if (m->clazz != NULL)
+		utf_fprint_printable_ascii_classname(stdout, m->clazz->name);
 	else
 		printf("NULL");
 	printf(".");
@@ -1373,7 +1373,7 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 	/* Return a wrapped classinfo for static methods. */
 
 	if (m->flags & ACC_STATIC)
-		return (java_handle_t *) LLNI_classinfo_wrap(m->class);
+		return (java_handle_t *) LLNI_classinfo_wrap(m->clazz);
 	else
 		return NULL;
 }

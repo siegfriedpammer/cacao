@@ -1,9 +1,7 @@
 /* src/vm/jit/verify/typecheck-stackbased.c - stack-based verifier
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -784,7 +782,7 @@ bool typecheck_stackbased(jitdata *jd)
 		if (state.initmethod)
 			TYPEINFO_INIT_NEWOBJECT(dst->typeinfo, NULL);
 		else
-			typeinfo_init_classinfo(&(dst->typeinfo), state.m->class);
+			typeinfo_init_classinfo(&(dst->typeinfo), state.m->clazz);
 
 		skip = 1;
     }

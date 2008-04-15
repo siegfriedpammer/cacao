@@ -309,7 +309,7 @@ static bool inline_jit_compile_intern(jitdata *jd)
 
 	/* call parse pass */
 
-	DOLOG( log_message_class("Parsing ", m->class) );
+	DOLOG( log_message_class("Parsing ", m->clazz) );
 	if (!parse(jd)) {
 		return false;
 	}
@@ -1077,7 +1077,7 @@ static void inline_generate_sync_builtin(inline_node *iln,
 		syncvar = inline_new_temp_variable(iln->ctx->resultjd, TYPE_ADR);
 
 		n_ins = inline_instruction(iln, ICMD_ACONST, o_iptr);
-		n_ins->sx.val.c.cls = callee->m->class;
+		n_ins->sx.val.c.cls = callee->m->clazz;
 		n_ins->dst.varindex = syncvar;
 		n_ins->flags.bits |= INS_FLAG_CLASS;
 	}
@@ -1956,7 +1956,7 @@ static void inline_write_exception_handlers(inline_node *master, inline_node *il
 		n_ins = master->inlined_iinstr_cursor++;
 		if (iln->m->flags & ACC_STATIC) {
 			n_ins->opc = ICMD_ACONST;
-			n_ins->sx.val.c.cls = iln->m->class;
+			n_ins->sx.val.c.cls = iln->m->clazz;
 			n_ins->flags.bits = INS_FLAG_CLASS;
 		}
 		else {

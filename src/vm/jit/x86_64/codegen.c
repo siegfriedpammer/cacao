@@ -264,7 +264,7 @@ bool codegen_emit(jitdata *jd)
 		/* decide which monitor enter function to call */
 
 		if (m->flags & ACC_STATIC) {
-			M_MOV_IMM(&m->class->object.header, REG_A0);
+			M_MOV_IMM(&m->clazz->object.header, REG_A0);
 		}
 		else {
 			M_TEST(REG_A0);
@@ -2432,9 +2432,9 @@ gen_method:
 				}
 				else {
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
-						sizeof(methodptr) * lm->class->index;
+						sizeof(methodptr) * lm->clazz->index;
 
-					s2 = sizeof(methodptr) * (lm - lm->class->methods);
+					s2 = sizeof(methodptr) * (lm - lm->clazz->methods);
 				}
 
 				/* implicit null-pointer check */

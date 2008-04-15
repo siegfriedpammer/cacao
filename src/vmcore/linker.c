@@ -489,8 +489,8 @@ static bool linker_overwrite_method(methodinfo *mg,
 	classinfo *cg;
 	classinfo *cs;
 
-	cg = mg->class;
-	cs = ms->class;
+	cg = mg->clazz;
+	cs = ms->clazz;
 
 	/* overriding a final method is illegal */
 
@@ -787,7 +787,7 @@ static classinfo *link_class_intern(classinfo *c)
 					MCOPY(am, im, methodinfo, 1);
 
 					am->vftblindex  = (vftbllength++);
-					am->class       = c;
+					am->clazz       = c;
 					am->flags      |= ACC_MIRANDA;
 
 				noabstractmethod2:

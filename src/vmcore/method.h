@@ -73,7 +73,7 @@ struct methodinfo {                 /* method structure                       */
 
 	methoddesc   *parseddesc;       /* parsed descriptor                      */
 			     
-	classinfo    *class;            /* class, the method belongs to           */
+	classinfo    *clazz;            /* class, the method belongs to           */
 	s4            vftblindex;       /* index of method in virtual function    */
 	                                /* table (if it is a virtual method)      */
 	s4            maxstack;         /* maximum stack depth of method          */

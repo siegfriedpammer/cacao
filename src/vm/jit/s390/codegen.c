@@ -366,7 +366,7 @@ bool codegen_emit(jitdata *jd)
 		/* decide which monitor enter function to call */
 
 		if (m->flags & ACC_STATIC) {
-			disp = dseg_add_address(cd, &m->class->object.header);
+			disp = dseg_add_address(cd, &m->clazz->object.header);
 			M_ALD_DSEG(REG_A0, disp);
 		}
 		else {
@@ -2896,9 +2896,9 @@ gen_method:
 				}
 				else {
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
-						sizeof(methodptr*) * lm->class->index;
+						sizeof(methodptr*) * lm->clazz->index;
 
-					s2 = sizeof(methodptr) * (lm - lm->class->methods);
+					s2 = sizeof(methodptr) * (lm - lm->clazz->methods);
 				}
 
 				/* Implicit null-pointer check */

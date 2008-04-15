@@ -112,8 +112,8 @@ static char *trace_java_call_print_argument(methodinfo *m, char *logtext, s4 *lo
 		   (exact GC) we should check if the address is on the GC
 		   heap. */
 
-		if ((m->class       != NULL) &&
-			(m->class->name == utf_new_char("sun/misc/Unsafe")))
+		if ((m->clazz       != NULL) &&
+			(m->clazz->name == utf_new_char("sun/misc/Unsafe")))
 			break;
 
 		/* Cast to java.lang.Object. */
@@ -221,7 +221,7 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 		strlen("-2147483647-") +        /* INT_MAX should be sufficient       */
 		TRACEJAVACALLINDENT +
 		strlen("called: ") +
-		((m->class == NULL) ? strlen("NULL") : utf_bytes(m->class->name)) +
+		((m->clazz == NULL) ? strlen("NULL") : utf_bytes(m->clazz->name)) +
 		strlen(".") +
 		utf_bytes(m->name) +
 		utf_bytes(m->descriptor);
@@ -269,8 +269,8 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 
 	strcpy(logtext + pos, "called: ");
 
-	if (m->class != NULL)
-		utf_cat_classname(logtext, m->class->name);
+	if (m->clazz != NULL)
+		utf_cat_classname(logtext, m->clazz->name);
 	else
 		strcat(logtext, "NULL");
 	strcat(logtext, ".");
@@ -359,7 +359,7 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 		strlen("-2147483647-") +        /* INT_MAX should be sufficient       */
 		TRACEJAVACALLINDENT +
 		strlen("finished: ") +
-		((m->class == NULL) ? strlen("NULL") : utf_bytes(m->class->name)) +
+		((m->clazz == NULL) ? strlen("NULL") : utf_bytes(m->clazz->name)) +
 		strlen(".") +
 		utf_bytes(m->name) +
 		utf_bytes(m->descriptor) +
@@ -386,8 +386,8 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 		logtext[pos++] = '\t';
 
 	strcpy(logtext + pos, "finished: ");
-	if (m->class != NULL)
-		utf_cat_classname(logtext, m->class->name);
+	if (m->clazz != NULL)
+		utf_cat_classname(logtext, m->clazz->name);
 	else
 		strcat(logtext, "NULL");
 	strcat(logtext, ".");
@@ -438,7 +438,7 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 
 	if (m) {
 		logtextlen +=
-			utf_bytes(m->class->name) +
+			utf_bytes(m->clazz->name) +
 			strlen(".") +
 			utf_bytes(m->name) +
 			utf_bytes(m->descriptor) +
@@ -451,10 +451,10 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 		logtextlen += strlen(")(0x12345678) at position 0x12345678 (");
 #endif
 
-		if (m->class->sourcefile == NULL)
+		if (m->clazz->sourcefile == NULL)
 			logtextlen += strlen("<NO CLASSFILE INFORMATION>");
 		else
-			logtextlen += utf_bytes(m->class->sourcefile);
+			logtextlen += utf_bytes(m->clazz->sourcefile);
 
 		logtextlen += strlen(":65536)");
 
@@ -482,7 +482,7 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 	strcat(logtext, " thrown in ");
 
 	if (m) {
-		utf_cat_classname(logtext, m->class->name);
+		utf_cat_classname(logtext, m->clazz->name);
 		strcat(logtext, ".");
 		utf_cat(logtext, m->name);
 		utf_cat(logtext, m->descriptor);
@@ -523,10 +523,10 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 					(ptrint) code->entrypoint, (ptrint) pos);
 #endif
 
-			if (m->class->sourcefile == NULL)
+			if (m->clazz->sourcefile == NULL)
 				strcat(logtext, "<NO CLASSFILE INFORMATION>");
 			else
-				utf_cat(logtext, m->class->sourcefile);
+				utf_cat(logtext, m->clazz->sourcefile);
 
 			sprintf(logtext + strlen(logtext), ":%d)", 0);
 		}

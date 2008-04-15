@@ -1402,7 +1402,7 @@ CLASS_FUNC(methodinfo_func) {
 				case F_NAME:
 					return get_string(arg->get.result, m->name->text);
 				case F_KLASS:
-					return get_obj(arg->get.result, classinfo_func, state->root, m->class);
+					return get_obj(arg->get.result, classinfo_func, state->root, m->clazz);
 				case F_PARAM_TYPES:
 					return get_iter(arg->get.result, param_types_iter_func, state->root, m);
 				case F_PARAMS:

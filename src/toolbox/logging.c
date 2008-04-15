@@ -255,13 +255,13 @@ void log_message_method(const char *msg, methodinfo *m)
 	char *buf;
 	s4    len;
 
-	len = strlen(msg) + utf_bytes(m->class->name) + strlen(".") +
+	len = strlen(msg) + utf_bytes(m->clazz->name) + strlen(".") +
 		utf_bytes(m->name) + utf_bytes(m->descriptor) + strlen("0");
 
 	buf = MNEW(char, len);
 
 	strcpy(buf, msg);
-	utf_cat_classname(buf, m->class->name);
+	utf_cat_classname(buf, m->clazz->name);
 	strcat(buf, ".");
 	utf_cat(buf, m->name);
 	utf_cat(buf, m->descriptor);

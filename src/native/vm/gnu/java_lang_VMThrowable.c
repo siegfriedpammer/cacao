@@ -165,8 +165,8 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 		/* Get filename. */
 
 		if (!(m->flags & ACC_NATIVE)) {
-			if (m->class->sourcefile)
-				filename = (java_lang_String *) javastring_new(m->class->sourcefile);
+			if (m->clazz->sourcefile)
+				filename = (java_lang_String *) javastring_new(m->clazz->sourcefile);
 			else
 				filename = NULL;
 		}
@@ -190,7 +190,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 		/* get declaring class name */
 
 		declaringclass =
-			_Jv_java_lang_Class_getName(LLNI_classinfo_wrap(m->class));
+			_Jv_java_lang_Class_getName(LLNI_classinfo_wrap(m->clazz));
 
 		/* Fill the java.lang.StackTraceElement object. */
 

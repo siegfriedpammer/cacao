@@ -1265,7 +1265,7 @@ void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...)
 
 	if (m != NULL)
 		msglen =
-			strlen("(class: ") + utf_bytes(m->class->name) +
+			strlen("(class: ") + utf_bytes(m->clazz->name) +
 			strlen(", method: ") + utf_bytes(m->name) +
 			strlen(" signature: ") + utf_bytes(m->descriptor) +
 			strlen(") ") + strlen("0");
@@ -1282,7 +1282,7 @@ void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...)
 
 	if (m != NULL) {
 		strcpy(msg, "(class: ");
-		utf_cat_classname(msg, m->class->name);
+		utf_cat_classname(msg, m->clazz->name);
 		strcat(msg, ", method: ");
 		utf_cat(msg, m->name);
 		strcat(msg, " signature: ");
@@ -1332,7 +1332,7 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type)
 	msglen = 0;
 
 	if (m != NULL)
-		msglen = strlen("(class: ") + utf_bytes(m->class->name) +
+		msglen = strlen("(class: ") + utf_bytes(m->clazz->name) +
 			strlen(", method: ") + utf_bytes(m->name) +
 			strlen(" signature: ") + utf_bytes(m->descriptor) +
 			strlen(") Expecting to find longest-------typename on stack") 
@@ -1346,7 +1346,7 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type)
 
 	if (m != NULL) {
 		strcpy(msg, "(class: ");
-		utf_cat_classname(msg, m->class->name);
+		utf_cat_classname(msg, m->clazz->name);
 		strcat(msg, ", method: ");
 		utf_cat(msg, m->name);
 		strcat(msg, " signature: ");
@@ -1837,7 +1837,7 @@ void *exceptions_handle_exception(java_object_t *xptro, void *xpc, void *pv, voi
 				if (!(c->state & CLASS_LOADED))
 					/* use the methods' classloader */
 					if (!load_class_from_classloader(c->name,
-													 m->class->classloader))
+													 m->clazz->classloader))
 						goto exceptions_handle_exception_return;
 
 				/* XXX I think, if it is not linked, we can be sure

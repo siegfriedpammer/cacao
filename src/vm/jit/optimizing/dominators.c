@@ -1,9 +1,7 @@
 /* src/vm/jit/optimizing/dominators.c - dominators and dominance frontier
 
-   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,12 +20,9 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Christian Ullrich
-
-
 */
+
+
 #include "mm/memory.h"
 
 #include "toolbox/bitvector.h"
@@ -601,7 +596,7 @@ void dominator_tree_validate(jitdata *jd, dominatordata *_dd) {
 	int *itnr;
 	bool found;
 
-	fprintf(stderr, "%s/%s: \n", jd->m->class->name->text, jd->m->name->text);
+	fprintf(stderr, "%s/%s: \n", jd->m->clazz->name->text, jd->m->name->text);
 	gd = graph_init(jd->basicblockcount);
 
 	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
