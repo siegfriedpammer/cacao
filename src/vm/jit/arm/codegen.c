@@ -1383,9 +1383,9 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz)) {
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
-					                    fi->class, 0);
+					                    fi->clazz, 0);
 				}
 			}
 
@@ -1436,9 +1436,9 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz)) {
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
-					                    fi->class, 0);
+					                    fi->clazz, 0);
 				}
 			}
 

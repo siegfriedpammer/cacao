@@ -869,7 +869,7 @@ CLASS_FUNC(fieldinfo_func) {
 				case F_NAME:
 					return get_string(arg->get.result, fi->name->text);
 				case F_KLASS:
-					return get_obj(arg->get.result, classinfo_func, state->root, fi->class);
+					return get_obj(arg->get.result, classinfo_func, state->root, fi->clazz);
 			}
 	}
 

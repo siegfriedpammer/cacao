@@ -66,7 +66,7 @@
 		fi  = fieldref->p.field;
 
 		result = resolve_field_verifier_checks(
-				state->m, fieldref, fi->class, fi,
+				state->m, fieldref, fi->clazz, fi,
 				instanceti, valueti,
 				(instance == NULL),
 				(value != NULL));
@@ -97,7 +97,7 @@
 
 		TYPECHECK_COUNTIF(INSTRUCTION_IS_UNRESOLVED(state->iptr),stat_ins_field_unresolved);
 		TYPECHECK_COUNTIF(INSTRUCTION_IS_RESOLVED(state->iptr) && 
-				!state->iptr->sx.s23.s3.fmiref->p.field->class->initialized,
+				!state->iptr->sx.s23.s3.fmiref->p.field->clazz->initialized,
 				stat_ins_field_uninitialized);
 	}
 #endif /* !defined(TYPECHECK_TYPEINFERER) */

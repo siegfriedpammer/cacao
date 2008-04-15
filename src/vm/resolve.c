@@ -1125,7 +1125,7 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 	referer = refmethod->clazz;
 	assert(referer);
 
-	declarer = fi->class;
+	declarer = fi->clazz;
 	assert(declarer);
 	assert(referer->state & CLASS_LINKED);
 
@@ -1400,7 +1400,7 @@ bool resolve_field(unresolved_field *ref,
 	/* check if the field itself is already resolved */
 	if (IS_FMIREF_RESOLVED(ref->fieldref)) {
 		fi = ref->fieldref->p.field;
-		container = fi->class;
+		container = fi->clazz;
 		goto resolved_the_field;
 	}
 
@@ -1463,7 +1463,7 @@ resolved_the_field:
 		if (checkresult != resolveSucceeded)
 			return (bool) checkresult;
 
-		declarer = fi->class;
+		declarer = fi->clazz;
 		assert(declarer);
 		assert(declarer->state & CLASS_LOADED);
 		assert(declarer->state & CLASS_LINKED);

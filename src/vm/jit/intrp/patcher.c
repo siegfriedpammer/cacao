@@ -65,8 +65,8 @@ bool intrp_patcher_get_putstatic(u1 *sp)
 
 	/* check if the field's class is initialized */
 
-	if (!(fi->class->state & CLASS_INITIALIZED))
-		if (!initialize_class(fi->class))
+	if (!(fi->clazz->state & CLASS_INITIALIZED))
+		if (!initialize_class(fi->clazz))
 			return false;
 
 	/* patch the field's address */
@@ -98,8 +98,8 @@ bool intrp_patcher_get_putstatic_clinit(u1 *sp)
 
 	/* check if the field's class is initialized */
 
-	if (!(fi->class->state & CLASS_INITIALIZED))
-		if (!initialize_class(fi->class))
+	if (!(fi->clazz->state & CLASS_INITIALIZED))
+		if (!initialize_class(fi->clazz))
 			return false;
 
 	/* patch the field's address */

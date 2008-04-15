@@ -140,7 +140,7 @@ struct constant_FMIref{     /* Fieldref, Methodref and InterfaceMethodref     */
 
 /* macro for accessing the class name of a method reference                   */
 #define FIELDREF_CLASSNAME(fmiref) \
-	(IS_FMIREF_RESOLVED(fmiref) ? (fmiref)->p.field->class->name \
+	(IS_FMIREF_RESOLVED(fmiref) ? (fmiref)->p.field->clazz->name \
 	 							: (fmiref)->p.classref->name)
 
 /* initialize a constant_classref with referer `ref` and name `classname`     */

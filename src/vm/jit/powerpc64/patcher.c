@@ -102,8 +102,8 @@ bool patcher_get_putstatic(patchref_t *pr)
 
 	/* check if the field's class is initialized */
 
-	if (!(fi->class->state & CLASS_INITIALIZED))
-		if (!initialize_class(fi->class))
+	if (!(fi->clazz->state & CLASS_INITIALIZED))
+		if (!initialize_class(fi->clazz))
 			return false;
 
 	/* patch back original code */

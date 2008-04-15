@@ -74,7 +74,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 
 	c = cb->class;
 
-	f->class = c;
+	f->clazz = c;
 
 	/* Get access flags. */
 
@@ -361,7 +361,7 @@ classinfo *field_get_type(fieldinfo *f)
 		/* load the class of the field-type with the field's
 		   classloader */
 
-		c = load_class_from_classloader(u, f->class->classloader);
+		c = load_class_from_classloader(u, f->clazz->classloader);
 	}
 	else {
 		c = primitive_class_get_by_type(td->decltype);
@@ -410,7 +410,7 @@ java_handle_bytearray_t *field_get_annotations(fieldinfo *f)
 	java_handle_t           *field_annotations;  /* array of unparsed  */
 	               /* annotations of all fields of the declaring class */
 
-	c           = f->class;
+	c           = f->clazz;
 	slot        = f - c->fields;
 	annotations = NULL;
 
@@ -475,7 +475,7 @@ void field_print(fieldinfo *f)
 		return;
 	}
 
-	utf_display_printable_ascii_classname(f->class->name);
+	utf_display_printable_ascii_classname(f->clazz->name);
 	printf(".");
 	utf_display_printable_ascii(f->name);
 	printf(" ");

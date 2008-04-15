@@ -1975,9 +1975,9 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
-										  fi->class, disp);
+										  fi->clazz, disp);
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -2025,9 +2025,9 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
-										  fi->class, disp);
+										  fi->clazz, disp);
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -2074,9 +2074,9 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
-										  fi->class, disp);
+										  fi->clazz, disp);
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);

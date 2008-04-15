@@ -164,7 +164,7 @@ void printarg_af      (functionptr        af      )
 void printarg_afi     (fieldinfo *        afi      )
 {
 	if (afi) {
-		utf_fprint_printable_ascii_classname(vm_out, afi->class->name);
+		utf_fprint_printable_ascii_classname(vm_out, afi->clazz->name);
 		fprintf(vm_out, ".");
 		utf_fprint_printable_ascii(vm_out, afi->name);
 		utf_fprint_printable_ascii(vm_out, afi->descriptor);

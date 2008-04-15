@@ -215,7 +215,7 @@ bool access_check_field(fieldinfo *f, int callerdepth)
 
 	/* If everything is public, there is nothing to check. */
 
-	if ((f->class->flags & ACC_PUBLIC) && (f->flags & ACC_PUBLIC))
+	if ((f->clazz->flags & ACC_PUBLIC) && (f->flags & ACC_PUBLIC))
 		return true;
 
 	/* Get the caller's class. */
@@ -227,9 +227,9 @@ bool access_check_field(fieldinfo *f, int callerdepth)
 
 	/* Check access rights. */
 
-	if (!access_is_accessible_member(callerclass, f->class, f->flags)) {
+	if (!access_is_accessible_member(callerclass, f->clazz, f->flags)) {
 		msglen =
-			utf_bytes(f->class->name) +
+			utf_bytes(f->clazz->name) +
 			strlen(".") +
 			utf_bytes(f->name) +
 			strlen(" not accessible from ") +
@@ -238,7 +238,7 @@ bool access_check_field(fieldinfo *f, int callerdepth)
 
 		msg = MNEW(char, msglen);
 
-		utf_copy_classname(msg, f->class->name);
+		utf_copy_classname(msg, f->clazz->name);
 		strcat(msg, ".");
 		utf_cat_classname(msg, f->name);
 		strcat(msg, " not accessible from ");

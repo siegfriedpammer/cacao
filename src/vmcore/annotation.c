@@ -554,7 +554,7 @@ bool annotation_load_field_attribute_runtimevisibleannotations(
 	assert(f != NULL);
 
 	LLNI_classinfo_field_get(
-		f->class, field_annotations, field_annotations);
+		f->clazz, field_annotations, field_annotations);
 
 	if (!annotation_load_attribute_body(
 			cb, &annotations,
@@ -563,7 +563,7 @@ bool annotation_load_field_attribute_runtimevisibleannotations(
 	}
 
 	if (annotations != NULL) {
-		slot = f - f->class->fields;
+		slot = f - f->clazz->fields;
 		field_annotations = annotation_bytearrays_insert(
 				field_annotations, slot, annotations);
 
@@ -572,7 +572,7 @@ bool annotation_load_field_attribute_runtimevisibleannotations(
 		}
 
 		LLNI_classinfo_field_set(
-			f->class, field_annotations, field_annotations);
+			f->clazz, field_annotations, field_annotations);
 	}
 
 	return true;

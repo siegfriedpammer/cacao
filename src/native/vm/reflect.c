@@ -175,7 +175,7 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 
 	/* Calculate the slot. */
 
-	slot = f - f->class->fields;
+	slot = f - f->clazz->fields;
 
 #if defined(WITH_CLASSPATH_GNU)
 
@@ -195,7 +195,7 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 
 	/* Set the Java object fields. */
 
-	LLNI_field_set_cls(rvmf, clazz,       f->class);
+	LLNI_field_set_cls(rvmf, clazz,       f->clazz);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */
@@ -208,7 +208,7 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 
 	/* Set the Java object fields. */
 
-	LLNI_field_set_cls(rf, clazz,       f->class);
+	LLNI_field_set_cls(rf, clazz,       f->clazz);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */

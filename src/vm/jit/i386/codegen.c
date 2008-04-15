@@ -2193,8 +2193,8 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = (intptr_t) fi->value;
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class, 0);
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz, 0);
   			}
 
 			M_MOV_IMM(disp, REG_ITMP1);
@@ -2234,8 +2234,8 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = (intptr_t) fi->value;
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class, 0);
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz, 0);
   			}
 
 			M_MOV_IMM(disp, REG_ITMP1);
@@ -2276,8 +2276,8 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = (intptr_t) fi->value;
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class, 0);
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz, 0);
   			}
 
 			M_MOV_IMM(disp, REG_ITMP1);

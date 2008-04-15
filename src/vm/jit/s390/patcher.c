@@ -88,8 +88,8 @@ bool patcher_get_putstatic(patchref_t *pr)
 
 	/* check if the field's class is initialized */
 
-	if (!(fi->class->state & CLASS_INITIALIZED))
-		if (!initialize_class(fi->class))
+	if (!(fi->clazz->state & CLASS_INITIALIZED))
+		if (!initialize_class(fi->clazz))
 			return false;
 
 	PATCH_BACK_ORIGINAL_MCODE;
@@ -281,7 +281,7 @@ bool patcher_invokeinterface(patchref_t *pr)
 	/* get method offset */
 
 	off =
-		(s4) (sizeof(methodptr) * (m - m->clazz->methods));
+		(s4) (sizeof(methodptr) * (m - m->class->methods));
 
 	ASSERT_VALID_DISP(off);
 
