@@ -72,7 +72,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 
 	/* Get class. */
 
-	c = cb->class;
+	c = cb->clazz;
 
 	f->clazz = c;
 

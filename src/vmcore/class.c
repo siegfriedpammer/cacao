@@ -334,7 +334,7 @@ classinfo *class_define(utf *name, classloader *cl, int32_t length, uint8_t *dat
 
 	cb = NEW(classbuffer);
 
-	cb->class = c;
+	cb->clazz = c;
 	cb->size  = length;
 	cb->data  = data;
 	cb->pos   = cb->data;
@@ -412,7 +412,7 @@ static bool class_load_attribute_sourcefile(classbuffer *cb)
 
 	/* get classinfo */
 
-	c = cb->class;
+	c = cb->clazz;
 
 	/* check buffer size */
 
@@ -474,7 +474,7 @@ static bool class_load_attribute_enclosingmethod(classbuffer *cb)
 
 	/* get classinfo */
 
-	c = cb->class;
+	c = cb->clazz;
 
 	/* check buffer size */
 
@@ -547,7 +547,7 @@ bool class_load_attributes(classbuffer *cb)
 	uint16_t               flags;
 	int                    i, j;
 
-	c = cb->class;
+	c = cb->clazz;
 
 	/* get attributes count */
 

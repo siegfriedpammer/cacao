@@ -427,7 +427,7 @@ bool annotation_load_class_attribute_runtimevisibleannotations(
 		return false;
 	}
 
-	LLNI_classinfo_field_set(cb->class, annotations, (java_handle_t*)annotations);
+	LLNI_classinfo_field_set(cb->clazz, annotations, (java_handle_t*)annotations);
 
 	return true;
 }

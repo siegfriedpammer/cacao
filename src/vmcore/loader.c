@@ -545,7 +545,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 	u1 *cptags;
 	voidptr *cpinfos;
 
-	c = cb->class;
+	c = cb->clazz;
 
 	/* number of entries in the constant_pool table plus one */
 	if (!suck_check_classbuffer_size(cb, 2))
@@ -937,7 +937,7 @@ bool loader_load_attribute_signature(classbuffer *cb, utf **signature)
 
 	/* get classinfo */
 
-	c = cb->class;
+	c = cb->clazz;
 
 	/* check remaining bytecode */
 
@@ -1402,7 +1402,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* Get the classbuffer's class. */
 
-	c = cb->class;
+	c = cb->clazz;
 
 	if (!suck_check_classbuffer_size(cb, 4 + 2 + 2))
 		return false;
@@ -1952,7 +1952,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	/* Get the classbuffer's class. */
 
-	c = cb->class;
+	c = cb->clazz;
 
 	/* Check if the class is already loaded. */
 

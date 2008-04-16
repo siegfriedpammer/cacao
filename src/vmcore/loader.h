@@ -98,7 +98,7 @@ typedef struct {            /* NameAndType (Field or Method)                  */
 /* classbuffer ****************************************************************/
 
 struct classbuffer {
-	classinfo *class;                   /* pointer to classinfo structure     */
+	classinfo *clazz;                   /* pointer to classinfo structure     */
 	uint8_t   *data;                    /* pointer to byte code               */
 	int32_t    size;                    /* size of the byte code              */
 	uint8_t   *pos;                     /* current read position              */

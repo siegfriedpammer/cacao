@@ -143,7 +143,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 
 	/* get classinfo */
 
-	c = cb->class;
+	c = cb->clazz;
 
 	LOCK_INIT_OBJECT_LOCK(&(m->header));
 
