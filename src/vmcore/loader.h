@@ -131,9 +131,9 @@ struct hashtable_classloader_entry {
 *******************************************************************************/
 
 #if defined(ENABLE_HANDLES)
-typedef hashtable_classloader_entry classloader;
+typedef hashtable_classloader_entry classloader_t;
 #else
-typedef java_object_t classloader;
+typedef java_object_t               classloader_t;
 #endif
 
 
@@ -143,8 +143,8 @@ void loader_preinit(void);
 void loader_init(void);
 
 /* classloader management functions */
-classloader *loader_hashtable_classloader_add(java_handle_t *cl);
-classloader *loader_hashtable_classloader_find(java_handle_t *cl);
+classloader_t *loader_hashtable_classloader_add(java_handle_t *cl);
+classloader_t *loader_hashtable_classloader_find(java_handle_t *cl);
 
 void loader_load_all_classes(void);
 
@@ -159,12 +159,12 @@ void loader_close(void);
 
 /* class loading functions */
 classinfo *load_class_from_sysloader(utf *name);
-classinfo *load_class_from_classloader(utf *name, classloader *cl);
+classinfo *load_class_from_classloader(utf *name, classloader_t *cl);
 classinfo *load_class_bootstrap(utf *name);
 
 /* (don't use the following directly) */
 classinfo *load_class_from_classbuffer(classbuffer *cb);
-classinfo *load_newly_created_array(classinfo *c, classloader *loader);
+classinfo *load_newly_created_array(classinfo *c, classloader_t *loader);
 
 #endif /* _LOADER_H */
 

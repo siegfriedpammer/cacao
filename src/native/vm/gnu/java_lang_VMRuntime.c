@@ -237,8 +237,8 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *e
  */
 JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *libname, java_lang_ClassLoader *loader)
 {
-	classloader *cl;
-	utf         *name;
+	classloader_t *cl;
+	utf           *name;
 
 	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 

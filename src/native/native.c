@@ -508,7 +508,7 @@ functionptr native_method_resolve(methodinfo *m)
 	utf                            *newname;
 	functionptr                     f;
 #if defined(ENABLE_LTDL)
-	classloader                    *cl;
+	classloader_t                  *cl;
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne;
 	u4                              key;    /* hashkey                        */
@@ -732,7 +732,7 @@ void native_library_close(lt_dlhandle handle)
 *******************************************************************************/
 
 #if defined(ENABLE_LTDL)
-void native_library_add(utf *filename, classloader *loader, lt_dlhandle handle)
+void native_library_add(utf *filename, classloader_t *loader, lt_dlhandle handle)
 {
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne; /* library name                       */
@@ -815,7 +815,7 @@ void native_library_add(utf *filename, classloader *loader, lt_dlhandle handle)
 
 #if defined(ENABLE_LTDL)
 hashtable_library_name_entry *native_library_find(utf *filename,
-												  classloader *loader)
+												  classloader_t *loader)
 {
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne; /* library name                       */
@@ -874,7 +874,7 @@ hashtable_library_name_entry *native_library_find(utf *filename,
 
 *******************************************************************************/
 
-int native_library_load(JNIEnv *env, utf *name, classloader *cl)
+int native_library_load(JNIEnv *env, utf *name, classloader_t *cl)
 {
 #if defined(ENABLE_LTDL)
 	lt_dlhandle        handle;

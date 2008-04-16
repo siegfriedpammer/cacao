@@ -765,12 +765,12 @@ classinfo *stacktrace_get_caller_class(int depth)
 
 *******************************************************************************/
 
-classloader *stacktrace_first_nonnull_classloader(void)
+classloader_t *stacktrace_first_nonnull_classloader(void)
 {
 	stackframeinfo_t *sfi;
 	stackframeinfo_t  tmpsfi;
 	methodinfo       *m;
-	classloader      *cl;
+	classloader_t    *cl;
 
 #if !defined(NDEBUG)
 	if (opt_DebugStackTrace)

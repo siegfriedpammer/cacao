@@ -781,9 +781,9 @@ void JVM_ResolveClass(JNIEnv* env, jclass cls)
 
 jclass JVM_FindClassFromClassLoader(JNIEnv* env, const char* name, jboolean init, jobject loader, jboolean throwError)
 {
-	classinfo   *c;
-	utf         *u;
-	classloader *cl;
+	classinfo     *c;
+	utf           *u;
+	classloader_t *cl;
 
 	TRACEJVMCALLS(("JVM_FindClassFromClassLoader(name=%s, init=%d, loader=%p, throwError=%d)", name, init, loader, throwError));
 
@@ -833,9 +833,9 @@ jclass JVM_DefineClass(JNIEnv *env, const char *name, jobject loader, const jbyt
 
 jclass JVM_DefineClassWithSource(JNIEnv *env, const char *name, jobject loader, const jbyte *buf, jsize len, jobject pd, const char *source)
 {
-	classinfo   *c;
-	utf         *u;
-	classloader *cl;
+	classinfo     *c;
+	utf           *u;
+	classloader_t *cl;
 
 	TRACEJVMCALLS(("JVM_DefineClassWithSource(env=%p, name=%s, loader=%p, buf=%p, len=%d, pd=%p, source=%s)", env, name, loader, buf, len, pd, source));
 
@@ -858,9 +858,9 @@ jclass JVM_DefineClassWithSource(JNIEnv *env, const char *name, jobject loader, 
 
 jclass JVM_FindLoadedClass(JNIEnv *env, jobject loader, jstring name)
 {
-	classloader *cl;
-	utf         *u;
-	classinfo   *c;
+	classloader_t *cl;
+	utf           *u;
+	classinfo     *c;
 
 	TRACEJVMCALLS(("JVM_FindLoadedClass(env=%p, loader=%p, name=%p)", env, loader, name));
 
@@ -904,8 +904,8 @@ jobjectArray JVM_GetClassInterfaces(JNIEnv *env, jclass cls)
 
 jobject JVM_GetClassLoader(JNIEnv *env, jclass cls)
 {
-	classinfo   *c;
-	classloader *cl;
+	classinfo     *c;
+	classloader_t *cl;
 
 	TRACEJVMCALLSENTER(("JVM_GetClassLoader(env=%p, cls=%p)", env, cls));
 
@@ -2540,7 +2540,7 @@ jobject JVM_AllocateNewArray(JNIEnv *env, jobject obj, jclass currClass, jint le
 
 jobject JVM_LatestUserDefinedLoader(JNIEnv *env)
 {
-	classloader *cl;
+	classloader_t *cl;
 
 	TRACEJVMCALLS(("JVM_LatestUserDefinedLoader(env=%p)", env));
 

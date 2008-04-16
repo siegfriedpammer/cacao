@@ -104,8 +104,8 @@ JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingCl
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClassLoader(JNIEnv *env, jclass clazz)
 {
-	classinfo   *c;
-	classloader *cl;
+	classinfo     *c;
+	classloader_t *cl;
 
 	c  = stacktrace_get_caller_class(2);
 	cl = class_get_classloader(c);
@@ -121,7 +121,7 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCal
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_firstNonNullClassLoader(JNIEnv *env, jclass clazz)
 {
-	classloader *cl;
+	classloader_t *cl;
 
 	cl = stacktrace_first_nonnull_classloader();
 

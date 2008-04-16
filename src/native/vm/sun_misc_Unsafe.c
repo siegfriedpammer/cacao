@@ -982,7 +982,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_pageSize(JNIEnv *env, sun_misc_Un
  */
 JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_String_2_3BIILjava_lang_ClassLoader_2Ljava_security_ProtectionDomain_2(JNIEnv *env, sun_misc_Unsafe *this, java_lang_String *name, java_handle_bytearray_t *b, int32_t off, int32_t len, java_lang_ClassLoader *loader, java_security_ProtectionDomain *protectionDomain)
 {
-	classloader     *cl;
+	classloader_t   *cl;
 	utf             *utfname;
 	classinfo       *c;
 	java_lang_Class *o;

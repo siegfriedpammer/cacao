@@ -837,7 +837,7 @@ jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
 {
 #if defined(ENABLE_JAVASE)
 	utf             *u;
-	classloader     *cl;
+	classloader_t   *cl;
 	classinfo       *c;
 	java_lang_Class *co;
 

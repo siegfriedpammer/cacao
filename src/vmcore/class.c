@@ -302,7 +302,7 @@ void class_postset_header_vftbl(void)
 
 *******************************************************************************/
 
-classinfo *class_define(utf *name, classloader *cl, int32_t length, uint8_t *data, java_handle_t *pd)
+classinfo *class_define(utf *name, classloader_t *cl, int32_t length, uint8_t *data, java_handle_t *pd)
 {
 	classinfo   *c;
 	classinfo   *r;
@@ -851,8 +851,8 @@ void class_free(classinfo *c)
 
 *******************************************************************************/
 
-static classinfo *get_array_class(utf *name,classloader *initloader,
-											classloader *defloader,bool link)
+static classinfo *get_array_class(utf *name,classloader_t *initloader,
+											classloader_t *defloader,bool link)
 {
 	classinfo *c;
 	
@@ -892,7 +892,7 @@ static classinfo *get_array_class(utf *name,classloader *initloader,
 
 classinfo *class_array_of(classinfo *component, bool link)
 {
-	classloader       *cl;
+	classloader_t     *cl;
     s4                 namelen;
     char              *namebuf;
 	utf               *u;

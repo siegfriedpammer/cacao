@@ -116,7 +116,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 {
 	utf             *utfname;
 	classinfo       *c;
-	classloader     *loader;
+	classloader_t   *loader;
 	java_lang_Class *o;
 
 #if defined(ENABLE_JVMTI)
@@ -591,9 +591,9 @@ JNIEXPORT java_util_Map* JNICALL Java_java_lang_VMClassLoader_classAssertionStat
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_findLoadedClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *loader, java_lang_String *name)
 {
-	classloader *cl;
-	classinfo   *c;
-	utf         *u;
+	classloader_t *cl;
+	classinfo     *c;
+	utf           *u;
 
 	/* XXX is it correct to add the classloader to the hashtable here? */
 

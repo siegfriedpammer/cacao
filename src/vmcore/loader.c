@@ -258,7 +258,7 @@ void loader_init(void)
 
 *******************************************************************************/
 
-classloader *loader_hashtable_classloader_add(java_handle_t *cl)
+classloader_t *loader_hashtable_classloader_add(java_handle_t *cl)
 {
 	hashtable_classloader_entry *cle;
 	u4   key;
@@ -341,7 +341,7 @@ classloader *loader_hashtable_classloader_add(java_handle_t *cl)
 
 *******************************************************************************/
 
-classloader *loader_hashtable_classloader_find(java_handle_t *cl)
+classloader_t *loader_hashtable_classloader_find(java_handle_t *cl)
 {
 	hashtable_classloader_entry *cle;
 	u4   key;
@@ -987,7 +987,7 @@ classinfo *load_class_from_sysloader(utf *name)
 {
 	methodinfo    *m;
 	java_handle_t *clo;
-	classloader   *cl;
+	classloader_t *cl;
 	classinfo     *c;
 
 	assert(class_java_lang_Object);
@@ -1030,7 +1030,7 @@ classinfo *load_class_from_sysloader(utf *name)
 
 *******************************************************************************/
 
-classinfo *load_class_from_classloader(utf *name, classloader *cl)
+classinfo *load_class_from_classloader(utf *name, classloader_t *cl)
 {
 	java_handle_t *o;
 	classinfo     *c;
@@ -2033,7 +2033,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 *******************************************************************************/
 
-classinfo *load_newly_created_array(classinfo *c, classloader *loader)
+classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 {
 	classinfo         *comp = NULL;
 	methodinfo        *clone;

@@ -157,7 +157,7 @@ struct classinfo {                /* class structure                          */
 
 #endif
 #endif
-	classloader *classloader;       /* NULL for bootstrap classloader         */
+	classloader_t *classloader;       /* NULL for bootstrap classloader         */
 
 #if defined(ENABLE_JAVASE)
 # if defined(WITH_CLASSPATH_SUN)
@@ -401,9 +401,9 @@ static inline bool class_is_memberclass(classinfo *c)
 
 *******************************************************************************/
 
-static inline classloader *class_get_classloader(classinfo *c)
+static inline classloader_t *class_get_classloader(classinfo *c)
 {
-	classloader *cl;
+	classloader_t *cl;
 
 	cl = c->classloader;
 
@@ -437,7 +437,7 @@ static inline classinfo *class_get_superclass(classinfo *c)
 
 classinfo *class_create_classinfo(utf *u);
 void       class_postset_header_vftbl(void);
-classinfo *class_define(utf *name, classloader *cl, int32_t length, uint8_t *data, java_handle_t *pd);
+classinfo *class_define(utf *name, classloader_t *cl, int32_t length, uint8_t *data, java_handle_t *pd);
 void       class_set_packagename(classinfo *c);
 
 bool       class_load_attributes(classbuffer *cb);
@@ -500,7 +500,7 @@ bool                       class_is_interface(classinfo *c);
 bool                       class_is_localclass(classinfo *c);
 bool                       class_is_memberclass(classinfo *c);
 
-classloader               *class_get_classloader(classinfo *c);
+classloader_t             *class_get_classloader(classinfo *c);
 classinfo                 *class_get_superclass(classinfo *c);
 classinfo                 *class_get_componenttype(classinfo *c);
 java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOnly);

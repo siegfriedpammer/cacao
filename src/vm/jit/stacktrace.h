@@ -1,6 +1,7 @@
 /* src/vm/jit/stacktrace.h - header file for stacktrace generation
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -102,7 +103,7 @@ java_handle_bytearray_t   *stacktrace_get_current(void);
 
 #if defined(ENABLE_JAVASE)
 classinfo                 *stacktrace_get_caller_class(int depth);
-classloader               *stacktrace_first_nonnull_classloader(void);
+classloader_t             *stacktrace_first_nonnull_classloader(void);
 java_handle_objectarray_t *stacktrace_getClassContext(void);
 classinfo                 *stacktrace_get_current_class(void);
 java_handle_objectarray_t *stacktrace_get_stack(void);

@@ -1,9 +1,7 @@
 /* src/native/vm/gnu/java_lang_VMClass.c
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -313,8 +311,8 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredC
  */
 JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	classinfo   *c;
-	classloader *cl;
+	classinfo     *c;
+	classloader_t *cl;
 
 	c  = LLNI_classinfo_unwrap(klass);
 	cl = class_get_classloader(c);

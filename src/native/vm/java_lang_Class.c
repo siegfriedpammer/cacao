@@ -1,9 +1,7 @@
 /* src/native/vm/java_lang_Class.c - java/lang/Class
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -133,7 +131,7 @@ java_lang_Class *_Jv_java_lang_Class_forName(java_lang_String *name)
 #endif
 {
 #if defined(ENABLE_JAVASE)
-	classloader *cl;
+	classloader_t *cl;
 #endif
 	utf         *ufile;
 	utf         *uname;
