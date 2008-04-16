@@ -1,9 +1,7 @@
 /* src/vm/jit/verify/typeinfo.h - type system used by the type checker
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -29,9 +27,9 @@
 
 /* resolve typedef cycles *****************************************************/
 
-typedef struct typeinfo typeinfo;
-typedef struct typeinfo_mergedlist typeinfo_mergedlist;
-typedef struct typedescriptor typedescriptor;
+typedef struct typeinfo            typeinfo_t;
+typedef struct typeinfo_mergedlist typeinfo_mergedlist_t;
+typedef struct typedescriptor      typedescriptor_t;
 
 #include "config.h"
 #include "vm/types.h"
@@ -234,7 +232,7 @@ typedef enum {
 struct typeinfo {
 	classref_or_classinfo  typeclass;
 	classref_or_classinfo  elementclass; /* valid if dimension>0 */ /* various uses! */
-	typeinfo_mergedlist   *merged;
+	typeinfo_mergedlist_t *merged;
 	u1                     dimension;
 	u1                     elementtype;  /* valid if dimension>0           */
 };
@@ -249,7 +247,7 @@ struct typeinfo_mergedlist {
 /* storing types in the signature of a method                            */
 
 struct typedescriptor {
-	typeinfo        typeinfo; /* valid if type == TYPE_ADR               */
+	typeinfo_t      typeinfo; /* valid if type == TYPE_ADR               */
 	u1              type;     /* basic type (TYPE_INT, ...)              */
 };
 
@@ -279,8 +277,8 @@ struct typedescriptor {
 
 /* internal, don't use this explicitly! */
 #define TYPEINFO_ALLOCMERGED(mergedlist,count)					\
-    do {(mergedlist) = (typeinfo_mergedlist *) DMNEW(uint8_t,	\
-            sizeof(typeinfo_mergedlist)                         \
+    do {(mergedlist) = (typeinfo_mergedlist_t *) DMNEW(uint8_t,	\
+            sizeof(typeinfo_mergedlist_t)                       \
             + ((count)-1)*sizeof(classinfo*));} while(0)
 
 /* internal, don't use this explicitly! */
@@ -440,8 +438,8 @@ bool typevector_checkreference(varinfo *set,int index);
 bool typevector_checkretaddr(varinfo *set,int index);
 
 /* element write access */
-void typevector_store(varinfo *set,int index,int type,typeinfo *info);
-void typevector_store_retaddr(varinfo *set,int index,typeinfo *info);
+void typevector_store(varinfo *set,int index,int type,typeinfo_t *info);
+void typevector_store_retaddr(varinfo *set,int index,typeinfo_t *info);
 bool typevector_init_object(varinfo *set,void *ins,classref_or_classinfo initclass,int size);
 
 /* vector functions */
@@ -451,12 +449,12 @@ typecheck_result typevector_merge(methodinfo *m,varinfo *dst,varinfo *y,int size
 
 /* inquiry functions (read-only) ********************************************/
 
-bool typeinfo_is_array(typeinfo *info);
-bool typeinfo_is_primitive_array(typeinfo *info,int arraytype);
-bool typeinfo_is_array_of_refs(typeinfo *info);
+bool typeinfo_is_array(typeinfo_t *info);
+bool typeinfo_is_primitive_array(typeinfo_t *info,int arraytype);
+bool typeinfo_is_array_of_refs(typeinfo_t *info);
 
-typecheck_result typeinfo_is_assignable(typeinfo *value,typeinfo *dest);
-typecheck_result typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest);
+typecheck_result typeinfo_is_assignable(typeinfo_t *value,typeinfo_t *dest);
+typecheck_result typeinfo_is_assignable_to_class(typeinfo_t *value,classref_or_classinfo dest);
 
 /* initialization functions *************************************************/
 
@@ -468,38 +466,38 @@ typecheck_result typeinfo_is_assignable_to_class(typeinfo *value,classref_or_cla
  *     >= 0.............ok,
  *     -1...............an exception has been thrown.
  */
-void typeinfo_init_classinfo(typeinfo *info,classinfo *c);
-bool typeinfo_init_class(typeinfo *info,classref_or_classinfo c);
-bool typeinfo_init_component(typeinfo *srcarray,typeinfo *dst);
+void typeinfo_init_classinfo(typeinfo_t *info,classinfo *c);
+bool typeinfo_init_class(typeinfo_t *info,classref_or_classinfo c);
+bool typeinfo_init_component(typeinfo_t *srcarray,typeinfo_t *dst);
 
-bool typeinfo_init_from_typedesc(typedesc *desc,u1 *type,typeinfo *info);
+bool typeinfo_init_from_typedesc(typedesc *desc,u1 *type,typeinfo_t *info);
 bool typeinfos_init_from_methoddesc(methoddesc *desc,u1 *typebuf,
-                                   typeinfo *infobuf,
+                                   typeinfo_t *infobuf,
                                    int buflen,bool twoword,
-                                   u1 *returntype,typeinfo *returntypeinfo);
-bool  typedescriptor_init_from_typedesc(typedescriptor *td,
+                                   u1 *returntype,typeinfo_t *returntypeinfo);
+bool  typedescriptor_init_from_typedesc(typedescriptor_t *td,
 									    typedesc *desc);
 bool  typeinfo_init_varinfo_from_typedesc(varinfo *var,
 									    typedesc *desc);
-int  typedescriptors_init_from_methoddesc(typedescriptor *td,
+int  typedescriptors_init_from_methoddesc(typedescriptor_t *td,
 										  methoddesc *desc,
 										  int buflen,bool twoword,int startindex,
-										  typedescriptor *returntype);
+										  typedescriptor_t *returntype);
 bool typeinfo_init_varinfos_from_methoddesc(varinfo *vars,
 										  methoddesc *desc,
 										  int buflen, int startindex,
 										  s4 *map,
-										  typedescriptor *returntype);
+										  typedescriptor_t *returntype);
 
-void typeinfo_clone(typeinfo *src,typeinfo *dest);
+void typeinfo_clone(typeinfo_t *src,typeinfo_t *dest);
 
 /* freeing memory ***********************************************************/
 
-void typeinfo_free(typeinfo *info);
+void typeinfo_free(typeinfo_t *info);
 
 /* functions for merging types **********************************************/
 
-typecheck_result typeinfo_merge(methodinfo *m,typeinfo *dest,typeinfo* y);
+typecheck_result typeinfo_merge(methodinfo *m,typeinfo_t *dest,typeinfo_t* y);
 
 /* debugging helpers ********************************************************/
 
@@ -509,10 +507,10 @@ typecheck_result typeinfo_merge(methodinfo *m,typeinfo *dest,typeinfo* y);
 
 void typeinfo_test();
 void typeinfo_print_class(FILE *file,classref_or_classinfo c);
-void typeinfo_print(FILE *file,typeinfo *info,int indent);
-void typeinfo_print_short(FILE *file,typeinfo *info);
-void typeinfo_print_type(FILE *file,int type,typeinfo *info);
-void typedescriptor_print(FILE *file,typedescriptor *td);
+void typeinfo_print(FILE *file,typeinfo_t *info,int indent);
+void typeinfo_print_short(FILE *file,typeinfo_t *info);
+void typeinfo_print_type(FILE *file,int type,typeinfo_t *info);
+void typedescriptor_print(FILE *file,typedescriptor_t *td);
 void typevector_print(FILE *file,varinfo *vec,int size);
 
 #endif /* TYPEINFO_DEBUG */

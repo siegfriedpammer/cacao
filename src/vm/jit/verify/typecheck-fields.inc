@@ -26,8 +26,8 @@
 {
 	unresolved_field *uf;
 	constant_FMIref *fieldref;
-	typeinfo *instanceti;
-	typeinfo *valueti;
+	typeinfo_t *instanceti;
+	typeinfo_t *valueti;
 #if !defined(TYPECHECK_TYPEINFERER)
 	resolve_result_t result;
 #endif
@@ -106,7 +106,7 @@
 
 	if (value == NULL) {
 #if defined(TYPECHECK_STACKBASED)
-		typedescriptor *dv;
+		typedescriptor_t *dv;
 
 		if (IS_2_WORD_TYPE(fieldref->parseddesc.fd->type)) {
 			CHECK_STACK_SPACE(2);

@@ -566,7 +566,7 @@ static resolve_result_t resolve_subtype_check(methodinfo *refmethod,
 											  resolve_err_t error)
 {
 	classinfo        *subclass;
-	typeinfo          subti;
+	typeinfo_t          subti;
 	typecheck_result  r;
 	char             *msg;
 	s4                msglen;
@@ -700,7 +700,7 @@ check_again:
 
 #if defined(ENABLE_VERIFIER)
 static resolve_result_t resolve_lazy_subtype_checks(methodinfo *refmethod,
-													typeinfo *subtinfo,
+													typeinfo_t *subtinfo,
 													classref_or_classinfo supertype,
 													resolve_err_t error)
 {
@@ -1102,8 +1102,8 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 											   constant_FMIref *fieldref,
 											   classinfo *container,
 											   fieldinfo *fi,
-											   typeinfo *instanceti,
-											   typeinfo *valueti,
+											   typeinfo_t *instanceti,
+											   typeinfo_t *valueti,
 											   bool isstatic,
 											   bool isput)
 {
@@ -1179,8 +1179,8 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 	/* instance type                                                          */
 
 	if (instanceti) {
-		typeinfo *insttip;
-		typeinfo tinfo;
+		typeinfo_t *insttip;
+		typeinfo_t tinfo;
 
 		/* The instanceslot must contain a reference to a non-array type */
 
@@ -1728,11 +1728,11 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 #if defined(ENABLE_VERIFIER)
 resolve_result_t resolve_method_instance_type_checks(methodinfo *refmethod,
 													 methodinfo *mi,
-													 typeinfo *instanceti,
+													 typeinfo_t *instanceti,
 													 bool invokespecial)
 {
-	typeinfo         tinfo;
-	typeinfo        *tip;
+	typeinfo_t         tinfo;
+	typeinfo_t        *tip;
 	resolve_result_t result;
 
 	if (invokespecial && TYPEINFO_IS_NEWOBJECT(*instanceti))
@@ -1864,9 +1864,9 @@ resolve_result_t resolve_method_param_type_checks_stackbased(
 		methodinfo *refmethod, 
 		methodinfo *mi,
 		bool invokestatic, 
-		typedescriptor *stack)
+		typedescriptor_t *stack)
 {
-	typedescriptor  *param;
+	typedescriptor_t  *param;
 	resolve_result_t result;
 	methoddesc      *md;
 	typedesc        *paramtypes;
@@ -2309,7 +2309,7 @@ methodinfo * resolve_method_eager(unresolved_method *ref)
 static bool unresolved_subtype_set_from_typeinfo(classinfo *referer,
 												 methodinfo *refmethod,
 												 unresolved_subtype_set *stset,
-												 typeinfo *tinfo,
+												 typeinfo_t *tinfo,
 												 utf *declaredclassname)
 {
 	int count;
@@ -2413,7 +2413,7 @@ empty_set:
 #ifdef ENABLE_VERIFIER
 unresolved_class * create_unresolved_class(methodinfo *refmethod,
 										   constant_classref *classref,
-										   typeinfo *valuetype)
+										   typeinfo_t *valuetype)
 {
 	unresolved_class *ref;
 
@@ -2546,12 +2546,12 @@ unresolved_field * resolve_create_unresolved_field(classinfo *referer,
 bool resolve_constrain_unresolved_field(unresolved_field *ref,
 										classinfo *referer, 
 										methodinfo *refmethod,
-									    typeinfo *instanceti,
-									    typeinfo *valueti)
+									    typeinfo_t *instanceti,
+									    typeinfo_t *valueti)
 {
 	constant_FMIref *fieldref;
 	int type;
-	typeinfo tinfo;
+	typeinfo_t tinfo;
 	typedesc *fd;
 
 	assert(ref);
@@ -2577,7 +2577,7 @@ bool resolve_constrain_unresolved_field(unresolved_field *ref,
 
 	/* record subtype constraints for the instance type, if any */
 	if (instanceti) {
-		typeinfo *insttip;
+		typeinfo_t *insttip;
 
 		/* The instanceslot must contain a reference to a non-array type */
 		if (!TYPEINFO_IS_REFERENCE(*instanceti)) {
@@ -2715,13 +2715,13 @@ unresolved_method * resolve_create_unresolved_method(classinfo *referer,
 #if defined(ENABLE_VERIFIER)
 bool resolve_constrain_unresolved_method_instance(unresolved_method *ref,
 												  methodinfo *refmethod,
-												  typeinfo *instanceti,
+												  typeinfo_t *instanceti,
 												  bool invokespecial)
 {
 	constant_FMIref   *methodref;
 	constant_classref *instanceref;
-	typeinfo           tinfo;
-	typeinfo          *tip;
+	typeinfo_t           tinfo;
+	typeinfo_t          *tip;
 
 	assert(ref);
 	methodref = ref->methodref;
@@ -2857,10 +2857,10 @@ bool resolve_constrain_unresolved_method_params(jitdata *jd,
 bool resolve_constrain_unresolved_method_params_stackbased(
 		unresolved_method *ref,
 		methodinfo *refmethod,
-		typedescriptor *stack)
+		typedescriptor_t *stack)
 {
 	constant_FMIref *methodref;
-	typedescriptor *param;
+	typedescriptor_t *param;
 	methoddesc *md;
 	int i,j;
 	int type;

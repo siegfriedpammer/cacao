@@ -42,7 +42,7 @@
 	s4 argindex;                            /* argument variable index */
 	varinfo *av;                                  /* argument variable */
 #else
-	typedescriptor *av;                         /* argument stack slot */
+	typedescriptor_t *av;                       /* argument stack slot */
 #endif
 	int i;                                                  /* counter */
 	resolve_result_t result;

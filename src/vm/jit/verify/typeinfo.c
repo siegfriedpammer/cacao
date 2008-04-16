@@ -191,7 +191,7 @@ typevector_checkretaddr(varinfo *vec,int index)
 *******************************************************************************/
 
 void
-typevector_store(varinfo *vec,int index,int type,typeinfo *info)
+typevector_store(varinfo *vec,int index,int type,typeinfo_t *info)
 {
 	TYPEINFO_ASSERT(vec);
 
@@ -212,7 +212,7 @@ typevector_store(varinfo *vec,int index,int type,typeinfo *info)
 *******************************************************************************/
 
 void
-typevector_store_retaddr(varinfo *vec,int index,typeinfo *info)
+typevector_store_retaddr(varinfo *vec,int index,typeinfo_t *info)
 {
 	TYPEINFO_ASSERT(vec);
 	TYPEINFO_ASSERT(TYPEINFO_IS_PRIMITIVE(*info));
@@ -345,7 +345,7 @@ typevector_merge(methodinfo *m,varinfo *dst,varinfo *y,int size)
 *******************************************************************************/
 
 bool
-typeinfo_is_array(typeinfo *info)
+typeinfo_is_array(typeinfo_t *info)
 {
 	TYPEINFO_ASSERT(info);
     return TYPEINFO_IS_ARRAY(*info);
@@ -364,7 +364,7 @@ typeinfo_is_array(typeinfo *info)
 *******************************************************************************/
 
 bool
-typeinfo_is_primitive_array(typeinfo *info,int arraytype)
+typeinfo_is_primitive_array(typeinfo_t *info,int arraytype)
 {
 	TYPEINFO_ASSERT(info);
     return TYPEINFO_IS_PRIMITIVE_ARRAY(*info,arraytype);
@@ -383,7 +383,7 @@ typeinfo_is_primitive_array(typeinfo *info,int arraytype)
 *******************************************************************************/
 
 bool
-typeinfo_is_array_of_refs(typeinfo *info)
+typeinfo_is_array_of_refs(typeinfo_t *info)
 {
 	TYPEINFO_ASSERT(info);
     return TYPEINFO_IS_ARRAY_OF_REFS(*info);
@@ -488,7 +488,7 @@ classinfo_implements_interface(classinfo *cls,classinfo *interf)
 *******************************************************************************/
 
 static typecheck_result
-mergedlist_implements_interface(typeinfo_mergedlist *merged,
+mergedlist_implements_interface(typeinfo_mergedlist_t *merged,
                                 classinfo *interf)
 {
     int i;
@@ -538,7 +538,7 @@ mergedlist_implements_interface(typeinfo_mergedlist *merged,
 *******************************************************************************/
 
 static typecheck_result
-merged_implements_interface(classinfo *typeclass,typeinfo_mergedlist *merged,
+merged_implements_interface(classinfo *typeclass,typeinfo_mergedlist_t *merged,
                             classinfo *interf)
 {
 	typecheck_result r;
@@ -585,7 +585,7 @@ merged_implements_interface(classinfo *typeclass,typeinfo_mergedlist *merged,
 *******************************************************************************/
 
 static typecheck_result
-merged_is_subclass(classinfo *typeclass,typeinfo_mergedlist *merged,
+merged_is_subclass(classinfo *typeclass,typeinfo_mergedlist_t *merged,
 		classinfo *cls)
 {
     int i;
@@ -650,7 +650,7 @@ merged_is_subclass(classinfo *typeclass,typeinfo_mergedlist *merged,
 *******************************************************************************/
 
 typecheck_result
-typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
+typeinfo_is_assignable_to_class(typeinfo_t *value,classref_or_classinfo dest)
 {
 	classref_or_classinfo c;
     classinfo *cls;
@@ -836,7 +836,7 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 *******************************************************************************/
 
 typecheck_result
-typeinfo_is_assignable(typeinfo *value,typeinfo *dest)
+typeinfo_is_assignable(typeinfo_t *value,typeinfo_t *dest)
 {
 	TYPEINFO_ASSERT(value);
 	TYPEINFO_ASSERT(dest);
@@ -867,7 +867,7 @@ typeinfo_is_assignable(typeinfo *value,typeinfo *dest)
 *******************************************************************************/
 
 void
-typeinfo_init_classinfo(typeinfo *info, classinfo *c)
+typeinfo_init_classinfo(typeinfo_t *info, classinfo *c)
 {
 	if ((info->typeclass.cls = c)->vftbl->arraydesc) {
 		if (c->vftbl->arraydesc->elementvftbl)
@@ -902,7 +902,7 @@ typeinfo_init_classinfo(typeinfo *info, classinfo *c)
 *******************************************************************************/
 
 bool
-typeinfo_init_class(typeinfo *info,classref_or_classinfo c)
+typeinfo_init_class(typeinfo_t *info,classref_or_classinfo c)
 {
 	char *utf_ptr;
 	int len;
@@ -973,7 +973,7 @@ typeinfo_init_class(typeinfo *info,classref_or_classinfo c)
 *******************************************************************************/
 
 bool
-typeinfo_init_from_typedesc(typedesc *desc,u1 *type,typeinfo *info)
+typeinfo_init_from_typedesc(typedesc *desc,u1 *type,typeinfo_t *info)
 {
 	TYPEINFO_ASSERT(desc);
 
@@ -1031,9 +1031,9 @@ typeinfo_init_from_typedesc(typedesc *desc,u1 *type,typeinfo *info)
 *******************************************************************************/
 
 bool
-typeinfos_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo *infobuf,
+typeinfos_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo_t *infobuf,
                               int buflen,bool twoword,
-                              u1 *returntype,typeinfo *returntypeinfo)
+                              u1 *returntype,typeinfo_t *returntypeinfo)
 {
 	int i;
     int args = 0;
@@ -1097,7 +1097,7 @@ typeinfos_init_from_methoddesc(methoddesc *desc,u1 *typebuf,typeinfo *infobuf,
 *******************************************************************************/
 
 bool
-typedescriptor_init_from_typedesc(typedescriptor *td,
+typedescriptor_init_from_typedesc(typedescriptor_t *td,
 								  typedesc *desc)
 {
 	TYPEINFO_ASSERT(td);
@@ -1186,7 +1186,7 @@ typeinfo_init_varinfos_from_methoddesc(varinfo *vars,
 									 methoddesc *desc,
 									 int buflen, int startindex,
 									 s4 *map,
-									 typedescriptor *returntype)
+									 typedescriptor_t *returntype)
 {
 	s4 i;
     s4 varindex;
@@ -1262,10 +1262,10 @@ typeinfo_init_varinfos_from_methoddesc(varinfo *vars,
 *******************************************************************************/
 
 int
-typedescriptors_init_from_methoddesc(typedescriptor *td,
+typedescriptors_init_from_methoddesc(typedescriptor_t *td,
 									 methoddesc *desc,
 									 int buflen,bool twoword,int startindex,
-									 typedescriptor *returntype)
+									 typedescriptor_t *returntype)
 {
 	int i;
     int args = 0;
@@ -1319,9 +1319,9 @@ typedescriptors_init_from_methoddesc(typedescriptor *td,
 *******************************************************************************/
 
 bool
-typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
+typeinfo_init_component(typeinfo_t *srcarray,typeinfo_t *dst)
 {
-	typeinfo_mergedlist *merged;
+	typeinfo_mergedlist_t *merged;
 
 	TYPEINFO_ASSERT(srcarray);
 	TYPEINFO_ASSERT(dst);
@@ -1392,7 +1392,7 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 *******************************************************************************/
 
 void
-typeinfo_clone(typeinfo *src,typeinfo *dest)
+typeinfo_clone(typeinfo_t *src,typeinfo_t *dest)
 {
     int count;
     classref_or_classinfo *srclist,*destlist;
@@ -1429,7 +1429,7 @@ typeinfo_clone(typeinfo *src,typeinfo *dest)
 *******************************************************************************/
 
 void
-typeinfo_free(typeinfo *info)
+typeinfo_free(typeinfo_t *info)
 {
     TYPEINFO_FREEMERGED_IF_ANY(info->merged);
     info->merged = NULL;
@@ -1443,7 +1443,7 @@ typeinfo_free(typeinfo *info)
 
 static
 void
-typeinfo_merge_error(methodinfo *m,char *str,typeinfo *x,typeinfo *y) {
+typeinfo_merge_error(methodinfo *m,char *str,typeinfo_t *x,typeinfo_t *y) {
 #ifdef TYPEINFO_VERBOSE
     fprintf(stderr,"Error in typeinfo_merge: %s\n",str);
     fprintf(stderr,"Typeinfo x:\n");
@@ -1460,7 +1460,7 @@ typeinfo_merge_error(methodinfo *m,char *str,typeinfo *x,typeinfo *y) {
 /* Returns: true if dest was changed (currently always true). */
 static
 bool
-typeinfo_merge_two(typeinfo *dest,classref_or_classinfo clsx,classref_or_classinfo clsy)
+typeinfo_merge_two(typeinfo_t *dest,classref_or_classinfo clsx,classref_or_classinfo clsy)
 {
 	TYPEINFO_ASSERT(dest);
     TYPEINFO_FREEMERGED_IF_ANY(dest->merged);
@@ -1484,10 +1484,10 @@ typeinfo_merge_two(typeinfo *dest,classref_or_classinfo clsx,classref_or_classin
 /* Returns: true if dest was changed. */
 static
 bool
-typeinfo_merge_add(typeinfo *dest,typeinfo_mergedlist *m,classref_or_classinfo cls)
+typeinfo_merge_add(typeinfo_t *dest,typeinfo_mergedlist_t *m,classref_or_classinfo cls)
 {
     int count;
-    typeinfo_mergedlist *newmerged;
+    typeinfo_mergedlist_t *newmerged;
     classref_or_classinfo *mlist,*newlist;
 
     count = m->count;
@@ -1541,12 +1541,12 @@ typeinfo_merge_add(typeinfo *dest,typeinfo_mergedlist *m,classref_or_classinfo c
 /* Returns: true if dest was changed. */
 static
 bool
-typeinfo_merge_mergedlists(typeinfo *dest,typeinfo_mergedlist *x,
-                           typeinfo_mergedlist *y)
+typeinfo_merge_mergedlists(typeinfo_t *dest,typeinfo_mergedlist_t *x,
+                           typeinfo_mergedlist_t *y)
 {
     int count = 0;
     int countx,county;
-    typeinfo_mergedlist *temp,*result;
+    typeinfo_mergedlist_t *temp,*result;
     classref_or_classinfo *clsx,*clsy,*newlist;
 
     /* count the elements that will be in the resulting list */
@@ -1665,15 +1665,15 @@ typeinfo_merge_mergedlists(typeinfo *dest,typeinfo_mergedlist *x,
 *******************************************************************************/
 
 static typecheck_result
-typeinfo_merge_nonarrays(typeinfo *dest,
+typeinfo_merge_nonarrays(typeinfo_t *dest,
                          classref_or_classinfo *result,
                          classref_or_classinfo x,classref_or_classinfo y,
-                         typeinfo_mergedlist *mergedx,
-                         typeinfo_mergedlist *mergedy)
+                         typeinfo_mergedlist_t *mergedx,
+                         typeinfo_mergedlist_t *mergedy)
 {
 	classref_or_classinfo t;
     classinfo *tcls,*common;
-    typeinfo_mergedlist *tmerged;
+    typeinfo_mergedlist_t *tmerged;
     bool changed;
 	typecheck_result r;
 	utf *xname;
@@ -1722,7 +1722,7 @@ typeinfo_merge_nonarrays(typeinfo *dest,
 
 #ifdef TYPEINFO_VERBOSE
 	{
-		typeinfo dbgx,dbgy;
+		typeinfo_t dbgx,dbgy;
 		fprintf(stderr,"merge_nonarrays:\n");
 		fprintf(stderr,"    ");if(IS_CLASSREF(x))fprintf(stderr,"<ref>");utf_fprint_printable_ascii(stderr,xname);fprintf(stderr,"\n");
 		fprintf(stderr,"    ");if(IS_CLASSREF(y))fprintf(stderr,"<ref>");utf_fprint_printable_ascii(stderr,yname);fprintf(stderr,"\n");
@@ -1911,10 +1911,10 @@ merge_with_simple_x:
 *******************************************************************************/
 
 typecheck_result
-typeinfo_merge(methodinfo *m,typeinfo *dest,typeinfo* y)
+typeinfo_merge(methodinfo *m,typeinfo_t *dest,typeinfo_t* y)
 {
-    typeinfo *x;
-    typeinfo *tmp;
+    typeinfo_t *x;
+    typeinfo_t *tmp;
     classref_or_classinfo common;
     classref_or_classinfo elementclass;
     int dimension;
@@ -2152,11 +2152,11 @@ typeinfo_test_compare(classref_or_classinfo *a,classref_or_classinfo *b)
 }
 
 static void
-typeinfo_test_parse(typeinfo *info,char *str)
+typeinfo_test_parse(typeinfo_t *info,char *str)
 {
     int num;
     int i;
-    typeinfo *infobuf;
+    typeinfo_t *infobuf;
     u1 *typebuf;
     int returntype;
     utf *desc = utf_new_char(str);
@@ -2164,7 +2164,7 @@ typeinfo_test_parse(typeinfo *info,char *str)
     num = typeinfo_count_method_args(desc,false);
     if (num) {
         typebuf = DMNEW(u1,num);
-        infobuf = DMNEW(typeinfo,num);
+        infobuf = DMNEW(typeinfo_t,num);
         
         typeinfo_init_from_method_args(desc,typebuf,infobuf,num,false,
                                        &returntype,info);
@@ -2193,7 +2193,7 @@ typeinfo_test_parse(typeinfo *info,char *str)
 #define TYPEINFO_TEST_BUFLEN  4000
 
 static bool
-typeinfo_equal(typeinfo *x,typeinfo *y)
+typeinfo_equal(typeinfo_t *x,typeinfo_t *y)
 {
     int i;
     
@@ -2220,9 +2220,9 @@ typeinfo_equal(typeinfo *x,typeinfo *y)
 }
 
 static void
-typeinfo_testmerge(typeinfo *a,typeinfo *b,typeinfo *result,int *failed)
+typeinfo_testmerge(typeinfo_t *a,typeinfo_t *b,typeinfo_t *result,int *failed)
 {
-    typeinfo dest;
+    typeinfo_t dest;
     bool changed,changed_should_be;
 	typecheck_result r;
 
@@ -2266,7 +2266,7 @@ typeinfo_testmerge(typeinfo *a,typeinfo *b,typeinfo *result,int *failed)
 
 #if 0
 static void
-typeinfo_inc_dimension(typeinfo *info)
+typeinfo_inc_dimension(typeinfo_t *info)
 {
     if (info->dimension++ == 0) {
         info->elementtype = ARRAYTYPE_OBJECT;
@@ -2285,7 +2285,7 @@ typeinfo_testrun(char *filename)
     char bufa[TYPEINFO_TEST_BUFLEN];
     char bufb[TYPEINFO_TEST_BUFLEN];
     char bufc[TYPEINFO_TEST_BUFLEN];
-    typeinfo a,b,c;
+    typeinfo_t a,b,c;
     int maxdim;
     int failed = 0;
     FILE *file = fopen(filename,"rt");
@@ -2354,7 +2354,7 @@ typeinfo_test()
 
 #if 0
 void
-typeinfo_init_from_fielddescriptor(typeinfo *info,char *desc)
+typeinfo_init_from_fielddescriptor(typeinfo_t *info,char *desc)
 {
     typeinfo_init_from_descriptor(info,desc,desc+strlen(desc));
 }
@@ -2382,7 +2382,7 @@ typeinfo_print_class(FILE *file,classref_or_classinfo c)
 }
 
 void
-typeinfo_print(FILE *file,typeinfo *info,int indent)
+typeinfo_print(FILE *file,typeinfo_t *info,int indent)
 {
     int i;
     char ind[TYPEINFO_MAXINDENT + 1];
@@ -2460,7 +2460,7 @@ typeinfo_print(FILE *file,typeinfo *info,int indent)
 }
 
 void
-typeinfo_print_short(FILE *file,typeinfo *info)
+typeinfo_print_short(FILE *file,typeinfo_t *info)
 {
     int i;
     instruction *ins;
@@ -2512,7 +2512,7 @@ typeinfo_print_short(FILE *file,typeinfo *info)
 }
 
 void
-typeinfo_print_type(FILE *file,int type,typeinfo *info)
+typeinfo_print_type(FILE *file,int type,typeinfo_t *info)
 {
     switch (type) {
       case TYPE_VOID: fprintf(file,"V"); break;
@@ -2531,7 +2531,7 @@ typeinfo_print_type(FILE *file,int type,typeinfo *info)
 }
 
 void
-typedescriptor_print(FILE *file,typedescriptor *td)
+typedescriptor_print(FILE *file,typedescriptor_t *td)
 {
 	typeinfo_print_type(file,td->type,&(td->typeinfo));
 }

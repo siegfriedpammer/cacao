@@ -45,7 +45,7 @@
 /* this #if runs over the whole file: */
 #if defined(ENABLE_VERIFIER)
 
-typedef typedescriptor verifier_slot_t;
+typedef typedescriptor_t verifier_slot_t;
 
 #if defined(TYPECHECK_VERBOSE)
 static void typecheck_stackbased_show_state(verifier_state *state,
@@ -150,15 +150,15 @@ static void typecheck_stackbased_show_state(verifier_state *state,
 
 /* XXX should reuse typevector code */
 static typecheck_result typecheck_stackbased_merge_locals(methodinfo *m,
-														  typedescriptor *dst,
-														  typedescriptor *y,
+														  typedescriptor_t *dst,
+														  typedescriptor_t *y,
 														  int size)
 {
 	bool changed = false;
 	typecheck_result r;
 
-	typedescriptor *a = dst;
-	typedescriptor *b = y;
+	typedescriptor_t *a = dst;
+	typedescriptor_t *b = y;
 	while (size--) {
 		if (a->type != TYPE_VOID && a->type != b->type) {
 			a->type = TYPE_VOID;
@@ -199,14 +199,14 @@ static typecheck_result typecheck_stackbased_merge_locals(methodinfo *m,
 
 static typecheck_result typecheck_stackbased_merge(verifier_state *state,
 												   basicblock *destblock,
-												   typedescriptor *stack,
+												   typedescriptor_t *stack,
 												   s4 stackdepth)
 {
 	s4 i;
 	s4 destidx;
-	typedescriptor *stackfloor;
-	typedescriptor *sp;
-	typedescriptor *dp;
+	typedescriptor_t *stackfloor;
+	typedescriptor_t *sp;
+	typedescriptor_t *dp;
 	typecheck_result r;
 	bool changed = false;
 
@@ -266,7 +266,7 @@ static typecheck_result typecheck_stackbased_merge(verifier_state *state,
 
 static bool typecheck_stackbased_reach(verifier_state *state,
 									   basicblock *destblock,
-									   typedescriptor *stack,
+									   typedescriptor_t *stack,
 									   s4 stackdepth)
 {
 	bool changed = false;
@@ -285,12 +285,12 @@ static bool typecheck_stackbased_reach(verifier_state *state,
 
 		MCOPY(state->startstack + (destblock->nr * state->m->maxstack),
 			  stack - (stackdepth - 1),
-			  typedescriptor,
+			  typedescriptor_t,
 			  stackdepth);
 
 		MCOPY(state->startlocals + (destblock->nr * state->numlocals),
 			  state->locals,
-			  typedescriptor,
+			  typedescriptor_t,
 			  state->numlocals);
 
 		changed = true;
@@ -339,11 +339,11 @@ static bool typecheck_stackbased_reach(verifier_state *state,
 
 *******************************************************************************/
 
-static typedescriptor *typecheck_stackbased_verify_fieldaccess(
+static typedescriptor_t *typecheck_stackbased_verify_fieldaccess(
 		verifier_state *state,
-		typedescriptor *instance,
-		typedescriptor *value,
-		typedescriptor *stack)
+		typedescriptor_t *instance,
+		typedescriptor_t *value,
+		typedescriptor_t *stack)
 {
 	jitdata *jd;
 
@@ -366,12 +366,12 @@ throw_stack_overflow:
 }
 
 static bool typecheck_stackbased_verify_invocation(verifier_state *state,
-												   typedescriptor *stack,
-												   typedescriptor *stackfloor)
+												   typedescriptor_t *stack,
+												   typedescriptor_t *stackfloor)
 {
 	s4 paramslots;
 	methoddesc *md;
-	typedescriptor *dv;
+	typedescriptor_t *dv;
 
 	/* check stack depth */
 
@@ -399,11 +399,11 @@ static bool typecheck_stackbased_verify_invocation(verifier_state *state,
 }
 
 static bool typecheck_stackbased_verify_builtin(verifier_state *state,
-												typedescriptor *stack,
-												typedescriptor *stackfloor)
+												typedescriptor_t *stack,
+												typedescriptor_t *stackfloor)
 {
 	s4 paramslots;
-	typedescriptor *dv;
+	typedescriptor_t *dv;
 
 	/* check stack depth */
 
@@ -438,16 +438,16 @@ throw_stack_type_error:
 }
 
 static bool typecheck_stackbased_multianewarray(verifier_state *state,
-												typedescriptor *stack,
-												typedescriptor *stackfloor)
+												typedescriptor_t *stack,
+												typedescriptor_t *stackfloor)
 {
 	/* XXX recombine with verify_multianewarray */
 
 	classinfo *arrayclass;
 	arraydescriptor *desc;
 	s4 i;
-	typedescriptor *sp;
-	typedescriptor *dst;
+	typedescriptor_t *sp;
+	typedescriptor_t *dst;
 
 	/* destination slot */
 
@@ -530,9 +530,9 @@ static void typecheck_stackbased_add_jsr_caller(typecheck_jsr_t *jsr,
 	jsr->callers = jc;
 }
 
-static typedescriptor *typecheck_stackbased_jsr(verifier_state *state,
-												typedescriptor *stack,
-												typedescriptor *stackfloor)
+static typedescriptor_t *typecheck_stackbased_jsr(verifier_state *state,
+												typedescriptor_t *stack,
+												typedescriptor_t *stackfloor)
 {
 	typecheck_jsr_t *jsr;
 	basicblock *tbptr;
@@ -557,7 +557,7 @@ static typedescriptor *typecheck_stackbased_jsr(verifier_state *state,
 
 		/* copy the stack of the RET edge */
 
-		MCOPY(stackfloor, jsr->retstack, typedescriptor, jsr->retdepth);
+		MCOPY(stackfloor, jsr->retstack, typedescriptor_t, jsr->retdepth);
 		stack = stackfloor + (jsr->retdepth - 1);
 
 		/* copy variables that were used in the subroutine from the RET edge */
@@ -584,8 +584,8 @@ static typedescriptor *typecheck_stackbased_jsr(verifier_state *state,
 			jsr->start = tbptr;
 			jsr->usedlocals = DMNEW(char, state->numlocals);
 			MZERO(jsr->usedlocals, char, state->numlocals);
-			jsr->retlocals = DMNEW(typedescriptor, state->numlocals);
-			jsr->retstack = DMNEW(typedescriptor, state->m->maxstack);
+			jsr->retlocals = DMNEW(typedescriptor_t, state->numlocals);
+			jsr->retstack = DMNEW(typedescriptor_t, state->m->maxstack);
 			jsr->retdepth = 0;
 		}
 		else {
@@ -618,8 +618,8 @@ static typedescriptor *typecheck_stackbased_jsr(verifier_state *state,
 }
 
 static bool typecheck_stackbased_ret(verifier_state *state,
-									 typedescriptor *stack,
-									 typedescriptor *stackfloor)
+									 typedescriptor_t *stack,
+									 typedescriptor_t *stackfloor)
 {
 	basicblock *tbptr;
 	typecheck_jsr_caller_t *jsrcaller;
@@ -656,14 +656,14 @@ static bool typecheck_stackbased_ret(verifier_state *state,
 
 	jsr->retblock = state->bptr;
 	jsr->retdepth = (stack - stackfloor) + 1;
-	MCOPY(jsr->retstack, stackfloor, typedescriptor, jsr->retdepth);
-	MCOPY(jsr->retlocals, state->locals, typedescriptor, state->numlocals);
+	MCOPY(jsr->retstack, stackfloor, typedescriptor_t, jsr->retdepth);
+	MCOPY(jsr->retlocals, state->locals, typedescriptor_t, state->numlocals);
 
 	/* invalidate the returnAddress used by this RET */
 	/* XXX should we also invalidate the returnAddresses of JSRs that are skipped by this RET? */
 
 	for (i=0; i<state->numlocals; ++i) {
-		typedescriptor *lc = &(jsr->retlocals[i]);
+		typedescriptor_t *lc = &(jsr->retlocals[i]);
 		if (TYPE_IS_RETURNADDRESS(lc->type, lc->typeinfo))
 			if (TYPEINFO_RETURNADDRESS(lc->typeinfo) == tbptr) {
 				LOG1("invalidating returnAddress in local %d", i);
@@ -700,7 +700,7 @@ bool typecheck_stackbased(jitdata *jd)
 	verifier_state state;
 	basicblock *tbptr;
 	exception_entry *ex;
-	typedescriptor exstack;
+	typedescriptor_t exstack;
 	s4 skip = 0;
 
 	DOLOG( show_method(jd, SHOW_PARSE); );
@@ -979,11 +979,11 @@ throw_stack_category_error:
 
 #if defined(TYPECHECK_VERBOSE)
 static void typecheck_stackbased_show_state(verifier_state *state,
-											typedescriptor *stack,
-											typedescriptor *stackfloor,
+											typedescriptor_t *stack,
+											typedescriptor_t *stackfloor,
 											bool showins)
 {
-	typedescriptor *sp;
+	typedescriptor_t *sp;
 	s4 i;
 
 	LOGSTR1("stackdepth %d stack [", (stack - stackfloor) + 1);
