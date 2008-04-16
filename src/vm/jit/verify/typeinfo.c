@@ -1,9 +1,7 @@
 /* src/vm/jit/verify/typeinfo.c - type system used by the type checker
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -745,7 +743,7 @@ typeinfo_is_assignable_to_class(typeinfo *value,classref_or_classinfo dest)
 		arraydescriptor *arraydesc = dest.cls->vftbl->arraydesc;
 		int dimension = arraydesc->dimension;
 		classinfo *elementclass = (arraydesc->elementvftbl)
-			? arraydesc->elementvftbl->class : NULL;
+			? arraydesc->elementvftbl->clazz : NULL;
 			
         /* We are assigning to an array type. */
         if (!TYPEINFO_IS_ARRAY(*value))
@@ -873,7 +871,7 @@ typeinfo_init_classinfo(typeinfo *info, classinfo *c)
 {
 	if ((info->typeclass.cls = c)->vftbl->arraydesc) {
 		if (c->vftbl->arraydesc->elementvftbl)
-			info->elementclass.cls = c->vftbl->arraydesc->elementvftbl->class;
+			info->elementclass.cls = c->vftbl->arraydesc->elementvftbl->clazz;
 		else
 			info->elementclass.any = NULL;
 		info->dimension = c->vftbl->arraydesc->dimension;
@@ -1369,7 +1367,7 @@ typeinfo_init_component(typeinfo *srcarray,typeinfo *dst)
 
 		comp = srcarray->typeclass.cls->vftbl->arraydesc->componentvftbl;
 		if (comp)
-			typeinfo_init_classinfo(dst,comp->class);
+			typeinfo_init_classinfo(dst,comp->clazz);
 		else
 			TYPEINFO_INIT_PRIMITIVE(*dst);
 	}

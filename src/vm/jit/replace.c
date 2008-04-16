@@ -1850,9 +1850,9 @@ void replace_patch_future_calls(u1 *ra,
 		obj = calleeframe->instance.a;
 		vftbl = obj->vftbl;
 
-		assert(vftbl->class->vftbl == vftbl);
+		assert(vftbl->clazz->vftbl == vftbl);
 
-		DOLOG_SHORT( printf("\tclass: "); class_println(vftbl->class); );
+		DOLOG_SHORT( printf("\tclass: "); class_println(vftbl->clazz); );
 
 		replace_patch_class(vftbl, calleem, oldentrypoint, entrypoint);
 	}
@@ -3348,9 +3348,9 @@ static void java_value_print(s4 type, replace_val_t value)
 	if (type == TYPE_ADR && value.a != NULL) {
 		obj = value.a;
 		putchar(' ');
-		utf_display_printable_ascii_classname(obj->vftbl->class->name);
+		utf_display_printable_ascii_classname(obj->vftbl->clazz->name);
 
-		if (obj->vftbl->class == class_java_lang_String) {
+		if (obj->vftbl->clazz == class_java_lang_String) {
 			printf(" \"");
 			u = javastring_toutf(obj, false);
 			utf_display_printable_ascii(u);

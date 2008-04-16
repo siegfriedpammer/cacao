@@ -1617,7 +1617,7 @@ classinfo *class_get_componenttype(classinfo *c)
 		return NULL;
 	
 	if (ad->arraytype == ARRAYTYPE_OBJECT)
-		component = ad->componentvftbl->class;
+		component = ad->componentvftbl->clazz;
 	else
 		component = primitive_class_get_by_type(ad->arraytype);
 		

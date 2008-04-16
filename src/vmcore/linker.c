@@ -828,7 +828,7 @@ static classinfo *link_class_intern(classinfo *c)
 					 (interfacetablelength - 1) * (interfacetablelength > 1));
 
 	c->vftbl                = v;
-	v->class                = c;
+	v->clazz                = c;
 	v->vftbllength          = vftbllength;
 	v->interfacetablelength = interfacetablelength;
 	v->arraydesc            = arraydesc;

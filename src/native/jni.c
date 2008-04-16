@@ -1490,7 +1490,7 @@ jmethodID jni_FromReflectedMethod(JNIEnv *env, jobject method)
 	if (o == NULL)
 		return NULL;
 
-	if (o->vftbl->class == class_java_lang_reflect_Constructor) {
+	if (o->vftbl->clazz == class_java_lang_reflect_Constructor) {
 		rc = (java_lang_reflect_Constructor *) method;
 
 #if defined(WITH_CLASSPATH_GNU)
@@ -1509,7 +1509,7 @@ jmethodID jni_FromReflectedMethod(JNIEnv *env, jobject method)
 #endif
 	}
 	else {
-		assert(o->vftbl->class == class_java_lang_reflect_Method);
+		assert(o->vftbl->clazz == class_java_lang_reflect_Method);
 
 		rm = (java_lang_reflect_Method *) method;
 

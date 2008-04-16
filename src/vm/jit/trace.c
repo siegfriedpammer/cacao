@@ -124,7 +124,7 @@ static char *trace_java_call_print_argument(methodinfo *m, char *logtext, s4 *lo
 		   java.lang.String. */
 
 		if (o != NULL) {
-			if (o->vftbl->class == class_java_lang_String) {
+			if (o->vftbl->clazz == class_java_lang_String) {
 				/* get java.lang.String object and the length of the
 				   string */
 
@@ -144,7 +144,7 @@ static char *trace_java_call_print_argument(methodinfo *m, char *logtext, s4 *lo
 				strcat(logtext, "\")");
 			}
 			else {
-				if (o->vftbl->class == class_java_lang_Class) {
+				if (o->vftbl->clazz == class_java_lang_Class) {
 					/* if the object returned is a java.lang.Class
 					   cast it to classinfo structure and get the name
 					   of the class */
@@ -157,7 +157,7 @@ static char *trace_java_call_print_argument(methodinfo *m, char *logtext, s4 *lo
 					/* if the object returned is not a java.lang.String or
 					   a java.lang.Class just print the name of the class */
 
-					u = o->vftbl->class->name;
+					u = o->vftbl->clazz->name;
 				}
 
 				len = strlen(" (Class = \"") + utf_bytes(u) + strlen("\")");
@@ -428,7 +428,7 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 
 	if (xptr) {
 		logtextlen =
-			strlen("Exception ") + utf_bytes(xptr->vftbl->class->name);
+			strlen("Exception ") + utf_bytes(xptr->vftbl->clazz->name);
 	} 
 	else {
 		logtextlen = strlen("Some Throwable");
@@ -473,7 +473,7 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 
 	if (xptr) {
 		strcpy(logtext, "Exception ");
-		utf_cat_classname(logtext, xptr->vftbl->class->name);
+		utf_cat_classname(logtext, xptr->vftbl->clazz->name);
 
 	} else {
 		strcpy(logtext, "Some Throwable");
@@ -568,7 +568,7 @@ void trace_exception_builtin(java_object_t *xptr)
 
 	if (t) {
 		logtextlen +=
-			utf_bytes(xptr->vftbl->class->name);
+			utf_bytes(xptr->vftbl->clazz->name);
 		if (s) {
 			logtextlen += strlen(": ") +
 				u2_utflength(LLNI_field_direct(s, value)->data 
@@ -589,7 +589,7 @@ void trace_exception_builtin(java_object_t *xptr)
 	strcpy(logtext, "Builtin exception thrown: ");
 
 	if (t) {
-		utf_cat_classname(logtext, xptr->vftbl->class->name);
+		utf_cat_classname(logtext, xptr->vftbl->clazz->name);
 
 		if (s) {
 			char *buf;

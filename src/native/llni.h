@@ -93,7 +93,7 @@
 	(variable) = (classinfo *) LLNI_field_direct(obj, field)
 
 #define LLNI_class_get(obj, variable) \
-	(variable) = LLNI_field_direct((java_handle_t *) obj, vftbl->class)
+	(variable) = LLNI_field_direct((java_handle_t *) obj, vftbl->clazz)
 
 
 /* LLNI_equals ****************************************************************

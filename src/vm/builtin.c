@@ -487,8 +487,8 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,
 			(target->elementvftbl->baseval == 1))
 			return 1;
 
-		return class_isanysubclass(desc->elementvftbl->class,
-								   target->elementvftbl->class);
+		return class_isanysubclass(desc->elementvftbl->clazz,
+								   target->elementvftbl->clazz);
 	}
 
 	if (desc->dimension < target->dimension)
@@ -497,7 +497,7 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,
 	/* {desc has higher dimension than target} */
 
 	return class_isanysubclass(pseudo_class_Arraystub,
-							   target->elementvftbl->class);
+							   target->elementvftbl->clazz);
 }
 
 
@@ -1163,7 +1163,7 @@ static java_handle_t *builtin_multianewarray_intern(int n,
 
 	/* get the class of the components to create */
 
-	componentclass = arrayclass->vftbl->arraydesc->componentvftbl->class;
+	componentclass = arrayclass->vftbl->arraydesc->componentvftbl->clazz;
 
 	/* The verifier guarantees that the dimension count is in the range. */
 

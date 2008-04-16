@@ -176,7 +176,7 @@ void exceptions_set_exception(java_handle_t *e)
 	if (opt_DebugExceptions) {
 		printf("[exceptions_set_exception  : t=%p, o=%p, class=",
 			   (void *) t, (void *) o);
-		class_print(o->vftbl->class);
+		class_print(o->vftbl->clazz);
 		printf("]\n");
 	}
 #endif
