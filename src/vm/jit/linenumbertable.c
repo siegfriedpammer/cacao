@@ -99,9 +99,13 @@ void linenumbertable_create(jitdata *jd)
 	/* Fill the linenumber table entries in reverse order, so the
 	   search can be forward. */
 
+	/* FIXME I only made this change to prevent a problem when moving
+	   to C++. This should be changed back when this file has
+	   converted to C++. */
+
 	pv = ADDR_MASK(uint8_t *, code->entrypoint);
 
-	for (le = list_last(l); le != NULL; le = list_prev(l, le), lnte++) {
+	for (le = list_first(l); le != NULL; le = list_next(l, le), lnte++) {
 		/* If the entry contains an mcode pointer (normal case),
 		   resolve it (see doc/inlining_stacktrace.txt for
 		   details). */
@@ -142,7 +146,7 @@ void linenumbertable_list_entry_add(codegendata *cd, int32_t linenumber)
 	le->linenumber = linenumber;
 	le->mpc        = cd->mcodeptr - cd->mcodebase;
 
-	list_add_last(cd->linenumbers, le);
+	list_add_first(cd->linenumbers, le);
 }
 
 
@@ -168,7 +172,7 @@ void linenumbertable_list_entry_add_inline_start(codegendata *cd, instruction *i
 	le->linenumber = (-2); /* marks start of inlined method */
 	le->mpc        = (mpc = cd->mcodeptr - cd->mcodebase);
 
-	list_add_last(cd->linenumbers, le);
+	list_add_first(cd->linenumbers, le);
 
 	insinfo = iptr->sx.s23.s3.inlineinfo;
 
@@ -205,7 +209,7 @@ void linenumbertable_list_entry_add_inline_end(codegendata *cd, instruction *ipt
 	le->linenumber = (-3) - iptr->line;
 	le->mpc        = (uintptr_t) insinfo->method;
 
-	list_add_last(cd->linenumbers, le);
+	list_add_first(cd->linenumbers, le);
 
 	le = DNEW(linenumbertable_list_entry_t);
 
@@ -213,7 +217,7 @@ void linenumbertable_list_entry_add_inline_end(codegendata *cd, instruction *ipt
 	le->linenumber = (-1);
 	le->mpc        = insinfo->startmpc;
 
-	list_add_last(cd->linenumbers, le);
+	list_add_first(cd->linenumbers, le);
 }
 
 
