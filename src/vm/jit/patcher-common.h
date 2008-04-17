@@ -71,6 +71,8 @@ void patcher_list_free(codeinfo *code);
 void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
                            s4 disp);
 
+void patcher_resolve(jitdata* jd);
+
 java_handle_t *patcher_handler(u1 *pc);
 
 

@@ -232,6 +232,27 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
 }
 
 
+/**
+ * Resolve all patchers in the current JIT run.
+ *
+ * @param jd JIT data-structure
+ */
+void patcher_resolve(jitdata* jd)
+{
+	codeinfo*   code;
+	patchref_t* pr;
+
+	/* Get required compiler data. */
+
+	code = jd->code;
+
+	for (pr = list_first(code->patchers); pr != NULL; pr = list_next(code->patchers, pr)) {
+		pr->mpc   += (intptr_t) code->entrypoint;
+		pr->datap  = (intptr_t) (pr->disp + code->entrypoint);
+	}
+}
+
+
 /* patcher_handler *************************************************************
 
    Handles the request to patch JIT code at the given patching

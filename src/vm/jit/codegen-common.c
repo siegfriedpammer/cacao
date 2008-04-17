@@ -731,7 +731,6 @@ void codegen_finish(jitdata *jd)
 #endif
 	s4           alignedmcodelen;
 	jumpref     *jr;
-	patchref_t  *pr;
 	u1          *epoint;
 	s4           alignedlen;
 
@@ -837,13 +836,7 @@ void codegen_finish(jitdata *jd)
 
 	/* patcher resolving */
 
-	pr = list_first(code->patchers);
-
-	while (pr) {
-		pr->mpc += (ptrint) epoint;
-		pr->datap = (ptrint) (pr->disp + epoint);
-		pr = list_next(code->patchers, pr);
-	}
+	patcher_resolve(jd);
 
 #if defined(ENABLE_REPLACEMENT)
 	/* replacement point resolving */
