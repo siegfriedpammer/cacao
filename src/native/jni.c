@@ -3281,21 +3281,37 @@ void _Jv_JNI_GetStringUTFRegion(JNIEnv* env, jstring str, jsize start,
 
    Obtain a direct pointer to array elements.
 
+   ATTENTION: Critical section keeps open when this function returns!
+   See ReleasePrimitiveArrayCritical.
+
 *******************************************************************************/
 
-void *_Jv_JNI_GetPrimitiveArrayCritical(JNIEnv *env, jarray array,
-										jboolean *isCopy)
+void* jni_GetPrimitiveArrayCritical(JNIEnv *env, jarray array, jboolean *isCopy)
 {
-	java_handle_bytearray_t *ba;
-	jbyte                   *bp;
+	java_handle_t*   h;
+	java_array_t*    a;
+	arraydescriptor* ad;
+	void*            data;
 
-	ba = (java_handle_bytearray_t *) array;
+	TRACEJNICALLS(("jni_GetPrimitiveArrayCritical(env=%p, array=%p, isCopy=%d)", env, array, isCopy));
 
-	/* do the same as Kaffe does */
+	if (isCopy != NULL) {
+		*isCopy = JNI_FALSE;
+	}
 
-	bp = _Jv_JNI_GetByteArrayElements(env, (jbyteArray) ba, isCopy);
+	LLNI_CRITICAL_START;
 
-	return (void *) bp;
+	h  = (java_handle_t*) array;
+	a  = (java_array_t*) LLNI_UNWRAP(h);
+	ad = a->objheader.vftbl->arraydesc;
+
+	/* Sanity check. */
+
+	assert(ad != NULL);
+
+	data = (void*) (((intptr_t) a) + ad->dataoffset);
+
+	return data;
 }
 
 
@@ -3303,17 +3319,16 @@ void *_Jv_JNI_GetPrimitiveArrayCritical(JNIEnv *env, jarray array,
 
    No specific documentation.
 
+   ATTENTION: This function closes the critical section opened in
+   GetPrimitiveArrayCritical!
+
 *******************************************************************************/
 
-void _Jv_JNI_ReleasePrimitiveArrayCritical(JNIEnv *env, jarray array,
-										   void *carray, jint mode)
+void jni_ReleasePrimitiveArrayCritical(JNIEnv *env, jarray array, void *carray, jint mode)
 {
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS(("jni_ReleasePrimitiveArrayCritical(env=%p, array=%p, carray=%p, mode=%d)", env, array, carray, mode));
 
-	/* do the same as Kaffe does */
-
-	_Jv_JNI_ReleaseByteArrayElements(env, (jbyteArray) array, (jbyte *) carray,
-									 mode);
+	LLNI_CRITICAL_END;
 }
 
 
@@ -4254,8 +4269,8 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 	_Jv_JNI_GetStringRegion,
 	_Jv_JNI_GetStringUTFRegion,
 
-	_Jv_JNI_GetPrimitiveArrayCritical,
-	_Jv_JNI_ReleasePrimitiveArrayCritical,
+	jni_GetPrimitiveArrayCritical,
+	jni_ReleasePrimitiveArrayCritical,
 
 	_Jv_JNI_GetStringCritical,
 	_Jv_JNI_ReleaseStringCritical,
