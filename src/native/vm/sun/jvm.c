@@ -2997,11 +2997,11 @@ void JVM_UnloadLibrary(void* handle)
 
 void *JVM_FindLibraryEntry(void *handle, const char *name)
 {
-	void* symbol;
+	lt_ptr symbol;
 
 	TRACEJVMCALLS(("JVM_FindLibraryEntry(handle=%p, name=%s)", handle, name));
 
-	symbol = hpi_library->FindLibraryEntry(handle, name);
+	symbol = lt_dlsym(handle, name);
 
 	return symbol;
 }
