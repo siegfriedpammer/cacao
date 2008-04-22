@@ -359,7 +359,7 @@ void md_executionstate_write(executionstate_t *es, void *context)
 	_uc = (ucontext_t *) context;
 
 #if defined(__UCLIBC__)
-#error Please port md_replace_executionstate_read to __UCLIBC__
+#error Please port md_executionstate_write to __UCLIBC__
 #else
 	_mc    = _uc->uc_mcontext.uc_regs;
 	_gregs = _mc->gregs;
