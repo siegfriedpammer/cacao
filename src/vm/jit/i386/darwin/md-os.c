@@ -42,7 +42,9 @@
 #include "vm/global.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
+
 #include "vm/jit/asmpart.h"
+#include "vm/jit/executionstate.h"
 #include "vm/jit/stacktrace.h"
 
 #include "vm/jit/i386/codegen.h"
@@ -280,22 +282,21 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	}
 }
 
-/* md_replace_executionstate_read **********************************************
+/* md_executionstate_read ******************************************************
 
-   Read the given context into an executionstate for Replacement.
+   Read the given context into an executionstate.
 
 *******************************************************************************/
 
-#if defined(ENABLE_REPLACEMENT)
-void md_replace_executionstate_read(executionstate_t *es, void *context)
+void md_executionstate_read(executionstate_t *es, void *context)
 {
-	ucontext_t *_uc;
-	mcontext_t *_mc; 
+	ucontext_t          *_uc;
+	mcontext_t           _mc; 
 	i386_thread_state_t *_ss;
-	s4          i; 
+	int                  i;
 
 	_uc = (ucontext_t *) context;
-	_mc = &_uc->uc_mcontext;
+	_mc = _uc->uc_mcontext;
 	_ss = &_mc->ss;
 
 	/* read special registers */
@@ -317,25 +318,23 @@ void md_replace_executionstate_read(executionstate_t *es, void *context)
 	for (i = 0; i < FLT_REG_CNT; i++)
 		es->fltregs[i] = 0xdeadbeefdeadbeefULL;
 }
-#endif
 
 
-/* md_replace_executionstate_write *********************************************
+/* md_executionstate_write *****************************************************
 
-   Write the given executionstate back to the context for Replacement.
+   Write the given executionstate back to the context.
 
 *******************************************************************************/
 
-#if defined(ENABLE_REPLACEMENT)
-void md_replace_executionstate_write(executionstate_t *es, void *context)
+void md_executionstate_write(executionstate_t *es, void *context)
 {
-	ucontext_t *_uc;
-	mcontext_t *_mc;
-	i386_thread_state_t *_ss;
-	s4          i;
+	ucontext_t*          _uc;
+	mcontext_t           _mc;
+	i386_thread_state_t* _ss;
+	int                  i;
 
 	_uc = (ucontext_t *) context;
-	_mc = &_uc->uc_mcontext;
+	_mc = _uc->uc_mcontext;
 	_ss = &_mc->ss;
 
 	/* write integer registers */
@@ -352,7 +351,6 @@ void md_replace_executionstate_write(executionstate_t *es, void *context)
 	_ss->eip = (ptrint) es->pc;
 	_ss->esp = (ptrint) es->sp;
 }
-#endif
 
 
 /* md_critical_section_restart *************************************************

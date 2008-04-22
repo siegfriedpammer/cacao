@@ -41,13 +41,17 @@
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
+
 #include "vm/jit/asmpart.h"
+#include "vm/jit/executionstate.h"
 
 #if defined(ENABLE_PROFILING)
 # include "vm/jit/optimizing/profile.h"
 #endif
 
 #include "vm/jit/stacktrace.h"
+
+#include "vmcore/system.h"
 
 
 /* md_signal_handler_sigsegv ***************************************************
@@ -296,14 +300,13 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 #endif
 
 
-/* md_replace_executionstate_read **********************************************
+/* md_executionstate_read ******************************************************
 
-   Read the given context into an executionstate for Replacement.
+   Read the given context into an executionstate.
 
 *******************************************************************************/
 
-#if defined(ENABLE_REPLACEMENT)
-void md_replace_executionstate_read(executionstate_t *es, void *context)
+void md_executionstate_read(executionstate_t *es, void *context)
 {
 	ucontext_t    *_uc;
 	mcontext_t    *_mc;
@@ -313,7 +316,7 @@ void md_replace_executionstate_read(executionstate_t *es, void *context)
 	_uc = (ucontext_t *) context;
 
 #if defined(__UCLIBC__)
-#error Please port md_replace_executionstate_read to __UCLIBC__
+#error Please port md_executionstate_read to __UCLIBC__
 #else
 	_mc    = _uc->uc_mcontext.uc_regs;
 	_gregs = _mc->gregs;
@@ -334,19 +337,17 @@ void md_replace_executionstate_read(executionstate_t *es, void *context)
 	 * the _mc->fpregs[i] can cause invalid conversions. */
 
 	assert(sizeof(_mc->fpregs.fpregs) == sizeof(es->fltregs));
-	memcpy(&es->fltregs, &_mc->fpregs.fpregs, sizeof(_mc->fpregs.fpregs));
+	system_memcpy(&es->fltregs, &_mc->fpregs.fpregs, sizeof(_mc->fpregs.fpregs));
 }
-#endif
 
 
-/* md_replace_executionstate_write *********************************************
+/* md_executionstate_write *****************************************************
 
-   Write the given executionstate back to the context for Replacement.
+   Write the given executionstate back to the context.
 
 *******************************************************************************/
 
-#if defined(ENABLE_REPLACEMENT)
-void md_replace_executionstate_write(executionstate_t *es, void *context)
+void md_executionstate_write(executionstate_t *es, void *context)
 {
 	ucontext_t    *_uc;
 	mcontext_t    *_mc;
@@ -356,7 +357,7 @@ void md_replace_executionstate_write(executionstate_t *es, void *context)
 	_uc = (ucontext_t *) context;
 
 #if defined(__UCLIBC__)
-#error Please port md_replace_executionstate_read to __UCLIBC__
+#error Please port md_executionstate_write to __UCLIBC__
 #else
 	_mc    = _uc->uc_mcontext.uc_regs;
 	_gregs = _mc->gregs;
@@ -371,7 +372,7 @@ void md_replace_executionstate_write(executionstate_t *es, void *context)
 	 * the _mc->fpregs[i] can cause invalid conversions. */
 
 	assert(sizeof(_mc->fpregs.fpregs) == sizeof(es->fltregs));
-	memcpy(&_mc->fpregs.fpregs, &es->fltregs, sizeof(_mc->fpregs.fpregs));
+	system_memcpy(&_mc->fpregs.fpregs, &es->fltregs, sizeof(_mc->fpregs.fpregs));
 
 	/* write special registers */
 	_gregs[PT_NIP] = (ptrint) es->pc;
@@ -379,7 +380,6 @@ void md_replace_executionstate_write(executionstate_t *es, void *context)
 	_gregs[REG_PV] = (ptrint) es->pv;
 	_gregs[PT_LNK] = (ptrint) es->ra;
 }
-#endif
 
 
 /* md_critical_section_restart *************************************************

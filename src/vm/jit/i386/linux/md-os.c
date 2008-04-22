@@ -43,6 +43,7 @@
 #include "vm/stringlocal.h"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/executionstate.h"
 #include "vm/jit/stacktrace.h"
 
 
@@ -300,14 +301,13 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 #endif
 
 
-/* md_replace_executionstate_read **********************************************
+/* md_executionstate_read ******************************************************
 
    Read the given context into an executionstate for Replacement.
 
 *******************************************************************************/
 
-#if defined(ENABLE_REPLACEMENT)
-void md_replace_executionstate_read(executionstate_t *es, void *context)
+void md_executionstate_read(executionstate_t *es, void *context)
 {
 	ucontext_t *_uc;
 	mcontext_t *_mc;
@@ -329,17 +329,15 @@ void md_replace_executionstate_read(executionstate_t *es, void *context)
 	for (i = 0; i < FLT_REG_CNT; i++)
 		es->fltregs[i] = 0xdeadbeefdeadbeefULL;
 }
-#endif
 
 
-/* md_replace_executionstate_write *********************************************
+/* md_executionstate_write *****************************************************
 
    Write the given executionstate back to the context for Replacement.
 
 *******************************************************************************/
 
-#if defined(ENABLE_REPLACEMENT)
-void md_replace_executionstate_write(executionstate_t *es, void *context)
+void md_executionstate_write(executionstate_t *es, void *context)
 {
 	ucontext_t *_uc;
 	mcontext_t *_mc;
@@ -356,7 +354,6 @@ void md_replace_executionstate_write(executionstate_t *es, void *context)
 	_mc->gregs[REG_EIP] = (ptrint) es->pc;
 	_mc->gregs[REG_ESP] = (ptrint) es->sp;
 }
-#endif
 
 
 /* md_critical_section_restart *************************************************
