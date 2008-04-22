@@ -86,6 +86,8 @@ struct codeinfo {
 	list_t       *patchers;
 
 	/* replacement */				    
+	s4            stackframesize;       /* size of the stackframe in slots    */
+
 #if defined(ENABLE_REPLACEMENT)
 	rplpoint     *rplpoints;            /* replacement points                 */
 	rplalloc     *regalloc;             /* register allocation info           */
@@ -93,7 +95,6 @@ struct codeinfo {
 	s4            globalcount;          /* number of global allocations       */
 	s4            regalloccount;        /* number of total allocations        */
 	s4            memuse;               /* number of arg + local slots        */
-	s4            stackframesize;       /* size of the stackframe in slots    */
 	u1            savedintcount;        /* number of callee saved int regs    */
 	u1            savedfltcount;        /* number of callee saved flt regs    */
 # if defined(HAS_ADDRESS_REGISTER_FILE)
