@@ -679,8 +679,6 @@ bool typecheck(jitdata *jd)
 	codegendata    *cd;
 	varinfo        *savedlocals;
 	verifier_state  state;             /* current state of the verifier */
-	s4              i;
-	s4              t;
 
 	/* collect statistics */
 
@@ -743,6 +741,8 @@ bool typecheck(jitdata *jd)
 		state.numlocals++; /* VERIFIER_EXTRA_LOCALS */
 
 	DOLOG(
+		s4 i;
+		s4 t;
 		LOG("reverselocalmap:");
 		for (i=0; i<state.validlocals; ++i) {
 			LOG2("    %i => javaindex %i", i, jd->reverselocalmap[i]);
