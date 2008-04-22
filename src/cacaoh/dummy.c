@@ -47,6 +47,7 @@
 
 #include "vmcore/class.h"
 #include "vmcore/classcache.h"
+#include "vmcore/field.h"
 #include "vmcore/loader.h"
 #include "vmcore/method.h"
 #include "vmcore/utf8.h"
@@ -173,6 +174,12 @@ int32_t builtin_isanysubclass(classinfo *sub, classinfo *super)
 {
 	abort();
 
+	return 0;
+}
+
+int32_t builtin_instanceof(java_handle_t *o, classinfo *class)
+{
+	vm_abort("builtin_instanceof: Not implemented.");
 	return 0;
 }
 
@@ -602,6 +609,27 @@ void properties_add(char *key, char *value)
 
 char *properties_get(char *key)
 {
+	return NULL;
+}
+
+
+/* reflect ********************************************************************/
+
+java_handle_t *reflect_constructor_new(fieldinfo *f)
+{
+	vm_abort("reflect_constructor_new: Not implemented.");
+	return NULL;
+}
+
+java_handle_t *reflect_field_new(fieldinfo *f)
+{
+	vm_abort("reflect_field_new: Not implemented.");
+	return NULL;
+}
+
+java_handle_t *reflect_method_new(methodinfo *m)
+{
+	vm_abort("reflect_method_new: Not implemented.");
 	return NULL;
 }
 

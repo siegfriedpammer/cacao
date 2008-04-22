@@ -64,6 +64,17 @@
 #include "vmcore/utf8.h"
 
 
+#if defined(ENABLE_JAVASE)
+/* We need to define some reflection functions here since we cannot
+   include native/vm/reflect.h as it includes generated header
+   files. */
+
+java_object_t *reflect_constructor_new(methodinfo *m);
+java_object_t *reflect_field_new(fieldinfo *f);
+java_object_t *reflect_method_new(methodinfo *m);
+#endif
+
+
 /* global variables ***********************************************************/
 
 /* frequently used classes ****************************************************/
@@ -1592,6 +1603,59 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
 }
 
 
+/* class_is_assignable_from ****************************************************
+
+   Return whether an instance of the "from" class parameter would be
+   an instance of this class "to" as well.
+
+   ARGUMENTS:
+       to ..... class
+	   from ... class
+
+   RETURN:
+       true .... is assignable
+	   false ... is not assignable
+
+*******************************************************************************/
+
+bool class_is_assignable_from(classinfo *to, classinfo *from)
+{
+	if (!(to->state & CLASS_LINKED))
+		if (!link_class(to))
+			return false;
+
+	if (!(from->state & CLASS_LINKED))
+		if (!link_class(from))
+			return false;
+
+	return class_isanysubclass(from, to);
+}
+
+
+/* class_is_instance ***********************************************************
+
+   Return if the given Java object is an instance of the given class.
+
+   ARGUMENTS:
+       c ... class
+	   h ... Java object
+
+   RETURN:
+       true .... is instance
+	   false ... is not instance
+
+*******************************************************************************/
+
+bool class_is_instance(classinfo *c, java_handle_t *h)
+{
+	if (!(c->state & CLASS_LINKED))
+		if (!link_class(c))
+			return false;
+
+	return builtin_instanceof(h, c);
+}
+
+
 /* class_get_componenttype *****************************************************
 
    Return the component class of the given class.  If the given class
@@ -1713,6 +1777,210 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 }
 
 
+/**
+ * Return an array of declared constructors of the given class.
+ *
+ * @param c          class to get the constructors of
+ * @param publicOnly show only public fields
+ *
+ * @return array of java.lang.reflect.Constructor
+ */
+#if defined(ENABLE_JAVASE)
+java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool publicOnly)
+{
+	methodinfo*                m;
+	java_handle_objectarray_t* oa;
+	java_handle_t*             rc;
+	int                        count;
+	int                        index;
+	int                        i;
+
+	/* Determine number of constructors. */
+
+	count = 0;
+
+	for (i = 0; i < c->methodscount; i++) {
+		m = &(c->methods[i]);
+
+		if (((m->flags & ACC_PUBLIC) || (publicOnly == 0)) &&
+			(m->name == utf_init))
+			count++;
+	}
+
+	/* Create array of constructors. */
+
+	oa = builtin_anewarray(count, class_java_lang_reflect_Constructor);
+
+	if (oa == NULL)
+		return NULL;
+
+	/* Get the constructors and store them in the array. */
+
+	for (i = 0, index = 0; i < c->methodscount; i++) {
+		m = &(c->methods[i]);
+
+		if (((m->flags & ACC_PUBLIC) || (publicOnly == 0)) &&
+			(m->name == utf_init)) {
+			/* Create Constructor object.  This is actualy a
+			   java_lang_reflect_Constructor pointer, but we use a
+			   java_handle_t here, because we don't have the header
+			   available when building vmcore. */
+
+			rc = reflect_constructor_new(m);
+
+			/* Store object into array. */
+
+			array_objectarray_element_set(oa, index, rc);
+			index++;
+		}
+	}
+
+	return oa;
+}
+#endif
+
+
+/* class_get_declaredfields ****************************************************
+
+   Return an array of declared fields of the given class.
+
+   ARGUMENTS:
+       c ............ class to get the fields of
+	   publicOnly ... show only public fields
+
+   RETURN:
+       array of java.lang.reflect.Field
+
+*******************************************************************************/
+
+#if defined(ENABLE_JAVASE)
+java_handle_objectarray_t *class_get_declaredfields(classinfo *c, bool publicOnly)
+{
+	java_handle_objectarray_t *oa;
+	fieldinfo                 *f;
+	java_handle_t             *h;
+	int                        count;
+	int                        index;
+	int                        i;
+
+	/* Determine number of fields. */
+
+	count = 0;
+
+	for (i = 0; i < c->fieldscount; i++)
+		if ((c->fields[i].flags & ACC_PUBLIC) || (publicOnly == 0))
+			count++;
+
+	/* Create array of fields. */
+
+	oa = builtin_anewarray(count, class_java_lang_reflect_Field);
+
+	if (oa == NULL)
+		return NULL;
+
+	/* Get the fields and store them in the array. */
+
+	for (i = 0, index = 0; i < c->fieldscount; i++) {
+		f = &(c->fields[i]);
+
+		if ((f->flags & ACC_PUBLIC) || (publicOnly == 0)) {
+			/* Create Field object.  This is actualy a
+			   java_lang_reflect_Field pointer, but we use a
+			   java_handle_t here, because we don't have the header
+			   available when building vmcore. */
+
+			h = reflect_field_new(f);
+
+			/* Store object into array. */
+
+			array_objectarray_element_set(oa, index, h);
+			index++;
+		}
+	}
+
+	return oa;
+}
+#endif
+
+
+/* class_get_declaredmethods ***************************************************
+
+   Return an array of declared methods of the given class.
+
+   ARGUMENTS:
+       c ............ class to get the methods of
+	   publicOnly ... show only public methods
+
+   RETURN:
+       array of java.lang.reflect.Method
+
+*******************************************************************************/
+
+#if defined(ENABLE_JAVASE)
+java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOnly)
+{
+	java_handle_objectarray_t *oa;         /* result: array of Method-objects */
+	methodinfo                *m;     /* the current method to be represented */
+	java_handle_t             *h;
+	int                        count;
+	int                        index;
+	int                        i;
+
+	/* JOWENN: array classes do not declare methods according to mauve
+	   test.  It should be considered, if we should return to my old
+	   clone method overriding instead of declaring it as a member
+	   function. */
+
+	if (class_is_array(c))
+		return builtin_anewarray(0, class_java_lang_reflect_Method);
+
+	/* Determine number of methods. */
+
+	count = 0;
+
+	for (i = 0; i < c->methodscount; i++) {
+		m = &(c->methods[i]);
+
+		if (((m->flags & ACC_PUBLIC) || (publicOnly == false)) &&
+			((m->name != utf_init) && (m->name != utf_clinit)) &&
+			!(m->flags & ACC_MIRANDA))
+			count++;
+	}
+
+	/* Create array of methods. */
+
+	oa = builtin_anewarray(count, class_java_lang_reflect_Method);
+
+	if (oa == NULL)
+		return NULL;
+
+	/* Get the methods and store them in the array. */
+
+	for (i = 0, index = 0; i < c->methodscount; i++) {
+		m = &(c->methods[i]);
+
+		if (((m->flags & ACC_PUBLIC) || (publicOnly == false)) && 
+			((m->name != utf_init) && (m->name != utf_clinit)) &&
+			!(m->flags & ACC_MIRANDA)) {
+			/* Create method object.  This is actualy a
+			   java_lang_reflect_Method pointer, but we use a
+			   java_handle_t here, because we don't have the header
+			   available when building vmcore. */
+
+			h = reflect_method_new(m);
+
+			/* Store object into array. */
+
+			array_objectarray_element_set(oa, index, h);
+			index++;
+		}
+	}
+
+	return oa;
+}
+#endif
+
+
 /* class_get_declaringclass ****************************************************
 
    If the class or interface given is a member of another class,
@@ -1791,6 +2059,40 @@ classinfo *class_get_enclosingclass(classinfo *c)
 }
 
 
+/**
+ * Return the enclosing constructor as java.lang.reflect.Constructor
+ * object for the given class.
+ *
+ * @param c class to return the enclosing constructor for
+ *
+ * @return java.lang.reflect.Constructor object of the enclosing
+ * constructor
+ */
+#if defined(ENABLE_JAVASE)
+java_handle_t* class_get_enclosingconstructor(classinfo *c)
+{
+	methodinfo*    m;
+	java_handle_t* rc;
+
+	m = class_get_enclosingmethod_raw(c);
+
+	if (m == NULL)
+		return NULL;
+
+	/* Check for <init>. */
+
+	if (m->name != utf_init)
+		return NULL;
+
+	/* Create Constructor object. */
+
+	rc = reflect_constructor_new(m);
+
+	return rc;
+}
+#endif
+
+
 /* class_get_enclosingmethod ***************************************************
 
    Return the enclosing method for the given class.
@@ -1803,7 +2105,7 @@ classinfo *class_get_enclosingclass(classinfo *c)
 
 *******************************************************************************/
 
-methodinfo *class_get_enclosingmethod(classinfo *c)
+methodinfo *class_get_enclosingmethod_raw(classinfo *c)
 {
 	constant_nameandtype *cn;
 	classinfo            *ec;
@@ -1833,6 +2135,39 @@ methodinfo *class_get_enclosingmethod(classinfo *c)
 
 	return m;
 }
+
+
+/**
+ * Return the enclosing method as java.lang.reflect.Method object for
+ * the given class.
+ *
+ * @param c class to return the enclosing method for
+ *
+ * @return java.lang.reflect.Method object of the enclosing method
+ */
+#if defined(ENABLE_JAVASE)
+java_handle_t* class_get_enclosingmethod(classinfo *c)
+{
+	methodinfo*    m;
+	java_handle_t* rm;
+
+	m = class_get_enclosingmethod_raw(c);
+
+	if (m == NULL)
+		return NULL;
+
+	/* check for <init> */
+
+	if (m->name == utf_init)
+		return NULL;
+
+	/* create java.lang.reflect.Method object */
+
+	rm = reflect_method_new(m);
+
+	return rm;
+}
+#endif
 
 
 /* class_get_interfaces ********************************************************

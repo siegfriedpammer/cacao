@@ -35,12 +35,11 @@
 
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Class.h"
+#include "native/include/java_lang_String.h"
 #include "native/include/java_lang_StackTraceElement.h"
 #include "native/include/java_lang_Throwable.h"
 
 #include "native/include/java_lang_VMThrowable.h"
-
-#include "native/vm/java_lang_Class.h"
 
 #include "vm/array.h"
 #include "vm/builtin.h"
@@ -126,7 +125,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 	methodinfo                  *m;
 	java_lang_String            *filename;
 	s4                           linenumber;
-	java_lang_String            *declaringclass;
+	java_handle_t               *declaringclass;
 	int                          i;
 
 	/* Get the stacktrace from the VMThrowable object. */
@@ -189,14 +188,13 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 
 		/* get declaring class name */
 
-		declaringclass =
-			_Jv_java_lang_Class_getName(LLNI_classinfo_wrap(m->clazz));
+		declaringclass = class_get_classname(m->clazz);
 
 		/* Fill the java.lang.StackTraceElement object. */
 
 		LLNI_field_set_ref(steo, fileName      , filename);
 		LLNI_field_set_val(steo, lineNumber    , linenumber);
-		LLNI_field_set_ref(steo, declaringClass, declaringclass);
+		LLNI_field_set_ref(steo, declaringClass, (java_lang_String*) declaringclass);
 		LLNI_field_set_ref(steo, methodName    , (java_lang_String *) javastring_new(m->name));
 		LLNI_field_set_val(steo, isNative      , (m->flags & ACC_NATIVE) ? 1 : 0);
 

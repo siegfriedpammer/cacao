@@ -56,6 +56,7 @@
 #include "native/include/java_lang_Throwable.h"
 
 #if defined(ENABLE_JAVASE)
+
 # if defined(WITH_CLASSPATH_SUN)
 #  include "native/include/java_nio_ByteBuffer.h"       /* required by j.l.CL */
 # endif
@@ -82,13 +83,13 @@ struct java_lang_ClassLoader;
 
 #  include "native/include/java_nio_DirectByteBufferImpl.h"
 # endif
+#elif defined(ENABLE_JAVAME_CLDC1_1)
+# include "native/include/java_lang_Class.h"
 #endif
 
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/cacaodbg.h"
 #endif
-
-#include "native/vm/java_lang_Class.h"
 
 #if defined(ENABLE_JAVASE)
 # include "native/vm/reflect.h"
@@ -989,15 +990,15 @@ jclass _Jv_JNI_GetSuperclass(JNIEnv *env, jclass sub)
 
 jboolean _Jv_JNI_IsAssignableFrom(JNIEnv *env, jclass sub, jclass sup)
 {
-	java_lang_Class *csup;
-	java_lang_Class *csub;
+	classinfo *to;
+	classinfo *from;
 
-	csup = (java_lang_Class *) sup;
-	csub = (java_lang_Class *) sub;
+	TRACEJNICALLS(("_Jv_JNI_IsAssignableFrom(env=%p, sub=%p, sup=%p)", env, sub, sup));
 
-	STATISTICS(jniinvokation());
+	to   = (classinfo *) sup;
+	from = (classinfo *) sub;
 
-	return _Jv_java_lang_Class_isAssignableFrom(csup, csub);
+	return class_is_assignable_from(to, from);
 }
 
 
@@ -1447,15 +1448,16 @@ jclass _Jv_JNI_GetObjectClass(JNIEnv *env, jobject obj)
 
 jboolean _Jv_JNI_IsInstanceOf(JNIEnv *env, jobject obj, jclass clazz)
 {
-	java_lang_Class  *c;
-	java_lang_Object *o;
+	classinfo     *c;
+	java_handle_t *h;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS(("_Jv_JNI_IsInstanceOf(env=%p, obj=%p, clazz=%p)", env, obj, clazz));
 
-	c = (java_lang_Class *) clazz;
-	o = (java_lang_Object *) obj;
+	/* XXX Is this correct? */
+	c = LLNI_classinfo_unwrap(clazz);
+	h = (java_handle_t *) obj;
 
-	return _Jv_java_lang_Class_isInstance(c, o);
+	return class_is_instance(c, h);
 }
 
 

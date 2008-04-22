@@ -62,7 +62,6 @@
 #include "native/include/sun_reflect_ConstantPool.h"
 #endif
 
-#include "native/vm/java_lang_Class.h"
 #include "native/vm/reflect.h"
 
 #include "native/vm/sun/hpi.h"
@@ -490,7 +489,7 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 	methodinfo                  *m;
 	classinfo                   *c;
 	java_lang_StackTraceElement *steo;
-	java_lang_String            *declaringclass;
+	java_handle_t*               declaringclass;
 	java_lang_String            *filename;
 	int32_t                      linenumber;
 
@@ -558,14 +557,14 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 
 	/* get declaring class name */
 
-	declaringclass = _Jv_java_lang_Class_getName(LLNI_classinfo_wrap(c));
+	declaringclass = class_get_classname(c);
 
 	/* fill the java.lang.StackTraceElement element */
 
 	/* FIXME critical section */
 
-	steo->declaringClass = declaringclass;
-	steo->methodName     = (java_lang_String *) javastring_new(m->name);
+	steo->declaringClass = (java_lang_String*) declaringclass;
+	steo->methodName     = (java_lang_String*) javastring_new(m->name);
 	steo->fileName       = filename;
 	steo->lineNumber     = linenumber;
 
@@ -877,9 +876,13 @@ jclass JVM_FindLoadedClass(JNIEnv *env, jobject loader, jstring name)
 
 jstring JVM_GetClassName(JNIEnv *env, jclass cls)
 {
+	classinfo* c;
+
 	TRACEJVMCALLS(("JVM_GetClassName(env=%p, cls=%p)", env, cls));
 
-	return (jstring) _Jv_java_lang_Class_getName((java_lang_Class *) cls);
+	c = LLNI_classinfo_unwrap(cls);
+
+	return (jstring) class_get_classname(c);
 }
 
 
@@ -1312,9 +1315,16 @@ jbyteArray JVM_GetMethodParameterAnnotations(JNIEnv *env, jobject method)
 
 jobjectArray JVM_GetClassDeclaredFields(JNIEnv *env, jclass ofClass, jboolean publicOnly)
 {
+	classinfo                 *c;
+	java_handle_objectarray_t *oa;
+
 	TRACEJVMCALLS(("JVM_GetClassDeclaredFields(env=%p, ofClass=%p, publicOnly=%d)", env, ofClass, publicOnly));
 
-	return (jobjectArray) _Jv_java_lang_Class_getDeclaredFields((java_lang_Class *) ofClass, publicOnly);
+	c = LLNI_classinfo_unwrap(ofClass);
+
+	oa = class_get_declaredfields(c, publicOnly);
+
+	return (jobjectArray) oa;
 }
 
 
@@ -1322,9 +1332,16 @@ jobjectArray JVM_GetClassDeclaredFields(JNIEnv *env, jclass ofClass, jboolean pu
 
 jobjectArray JVM_GetClassDeclaredMethods(JNIEnv *env, jclass ofClass, jboolean publicOnly)
 {
+	classinfo                 *c;
+	java_handle_objectarray_t *oa;
+
 	TRACEJVMCALLS(("JVM_GetClassDeclaredMethods(env=%p, ofClass=%p, publicOnly=%d)", env, ofClass, publicOnly));
 
-	return (jobjectArray) _Jv_java_lang_Class_getDeclaredMethods((java_lang_Class *) ofClass, publicOnly);
+	c = LLNI_classinfo_unwrap(ofClass);
+
+	oa = class_get_declaredmethods(c, publicOnly);
+
+	return (jobjectArray) oa;
 }
 
 
@@ -1332,9 +1349,16 @@ jobjectArray JVM_GetClassDeclaredMethods(JNIEnv *env, jclass ofClass, jboolean p
 
 jobjectArray JVM_GetClassDeclaredConstructors(JNIEnv *env, jclass ofClass, jboolean publicOnly)
 {
+	classinfo                 *c;
+	java_handle_objectarray_t *oa;
+
 	TRACEJVMCALLS(("JVM_GetClassDeclaredConstructors(env=%p, ofClass=%p, publicOnly=%d)", env, ofClass, publicOnly));
 
-	return (jobjectArray) _Jv_java_lang_Class_getDeclaredConstructors((java_lang_Class *) ofClass, publicOnly);
+	c = LLNI_classinfo_unwrap(ofClass);
+
+	oa = class_get_declaredconstructors(c, publicOnly);
+
+	return (jobjectArray) oa;
 }
 
 
@@ -2973,13 +2997,18 @@ struct protoent *JVM_GetProtoByName(char* name)
 
 void *JVM_LoadLibrary(const char *name)
 {
-	utf *u;
+	utf*  u;
+	void* handle;
 
-	TRACEJVMCALLS(("JVM_LoadLibrary(name=%s)", name));
+	TRACEJVMCALLSENTER(("JVM_LoadLibrary(name=%s)", name));
 
 	u = utf_new_char(name);
 
-	return native_library_open(u);
+	handle = native_library_open(u);
+
+	TRACEJVMCALLSEXIT(("->%p", handle));
+
+	return handle;
 }
 
 
@@ -2999,9 +3028,11 @@ void *JVM_FindLibraryEntry(void *handle, const char *name)
 {
 	lt_ptr symbol;
 
-	TRACEJVMCALLS(("JVM_FindLibraryEntry(handle=%p, name=%s)", handle, name));
+	TRACEJVMCALLSENTER(("JVM_FindLibraryEntry(handle=%p, name=%s)", handle, name));
 
 	symbol = lt_dlsym(handle, name);
+
+	TRACEJVMCALLSEXIT(("->%p", symbol));
 
 	return symbol;
 }

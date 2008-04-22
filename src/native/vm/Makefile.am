@@ -70,9 +70,6 @@ libnativevm_la_SOURCES = \
 	nativevm.c \
 	nativevm.h \
 	$(REFLECT_SOURCES) \
-	\
-	java_lang_Class.c \
-	java_lang_Class.h \
 	$(SUN_MISC_UNSAFE_SOURCES)
 
 libnativevm_la_LIBADD = \

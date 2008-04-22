@@ -23,6 +23,9 @@
 */
 
 
+#ifndef _REFLECT_H
+#define _REFLECT_H
+
 #include "config.h"
 
 #include <stdint.h>
@@ -74,6 +77,9 @@ java_handle_objectarray_t* reflect_get_parameterannotations(
 	java_lang_Class *declaringClass,
 	classinfo       *referer);
 #endif
+
+#endif /* _REFLECT_H */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

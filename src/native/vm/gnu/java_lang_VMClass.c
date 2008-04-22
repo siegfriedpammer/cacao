@@ -36,18 +36,26 @@
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_lang_Object.h"
+#include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 #include "native/include/java_lang_reflect_Constructor.h"
 #include "native/include/java_lang_reflect_Method.h"
 
 #include "native/include/java_lang_VMClass.h"
 
-#include "native/vm/java_lang_Class.h"
-
 #include "vm/exceptions.h"
+#include "vm/initialize.h"
 #include "vm/stringlocal.h"
 
 #include "vmcore/class.h"
+
+#if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
+#include "native/include/sun_reflect_ConstantPool.h"
+
+#include "vm/vm.h"
+
+#include "vmcore/annotation.h"
+#endif
 
 
 /* native methods implemented by this file ************************************/
@@ -107,7 +115,13 @@ void _Jv_java_lang_VMClass_init(void)
  */
 JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz, java_lang_Class *klass, java_lang_Object *o)
 {
-	return _Jv_java_lang_Class_isInstance(klass, o);
+	classinfo     *c;
+	java_handle_t *h;
+
+	c = LLNI_classinfo_unwrap(klass);
+	h = (java_handle_t *) o;
+
+	return class_is_instance(c, h);
 }
 
 
@@ -116,9 +130,20 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isInstance(JNIEnv *env, jclass clazz
  * Method:    isAssignableFrom
  * Signature: (Ljava/lang/Class;Ljava/lang/Class;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass clazz, java_lang_Class *klass, java_lang_Class *c)
+JNIEXPORT int32_t JNICALL Java_java_lang_VMClass_isAssignableFrom(JNIEnv *env, jclass clazz, java_lang_Class *klass, java_lang_Class *c)
 {
-	return _Jv_java_lang_Class_isAssignableFrom(klass, c);
+	classinfo *to;
+	classinfo *from;
+
+	to   = LLNI_classinfo_unwrap(klass);
+	from = LLNI_classinfo_unwrap(c);
+
+	if (from == NULL) {
+		exceptions_throw_nullpointerexception();
+		return 0;
+	}
+
+	return class_is_assignable_from(to, from);
 }
 
 
@@ -159,7 +184,11 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMClass_isPrimitive(JNIEnv *env, jclass
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMClass_getName(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	return _Jv_java_lang_Class_getName(klass);
+	classinfo* c;
+
+	c = LLNI_classinfo_unwrap(klass);
+
+	return (java_lang_String*) class_get_classname(c);
 }
 
 
@@ -258,7 +287,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getDeclaringClass(JNIE
  * Method:    getDeclaredClasses
  * Signature: (Ljava/lang/Class;Z)[Ljava/lang/Class;
  */
-JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredClasses(JNIEnv *env, jclass clazz, java_lang_Class *klass, int32_t publicOnly)
 {
 	classinfo                 *c;
 	java_handle_objectarray_t *oa;
@@ -276,9 +305,16 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredC
  * Method:    getDeclaredFields
  * Signature: (Ljava/lang/Class;Z)[Ljava/lang/reflect/Field;
  */
-JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredFields(JNIEnv *env, jclass clazz, java_lang_Class *klass, int32_t publicOnly)
 {
-	return _Jv_java_lang_Class_getDeclaredFields(klass, publicOnly);
+	classinfo                 *c;
+	java_handle_objectarray_t *oa;
+
+	c = LLNI_classinfo_unwrap(klass);
+
+	oa = class_get_declaredfields(c, publicOnly);
+
+	return oa;
 }
 
 
@@ -289,7 +325,14 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredF
  */
 JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredMethods(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
 {
-	return _Jv_java_lang_Class_getDeclaredMethods(klass, publicOnly);
+	classinfo                 *c;
+	java_handle_objectarray_t *oa;
+
+	c = LLNI_classinfo_unwrap(klass);
+
+	oa = class_get_declaredmethods(c, publicOnly);
+
+	return oa;
 }
 
 
@@ -300,7 +343,14 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredM
  */
 JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredConstructors(JNIEnv *env, jclass clazz, java_lang_Class *klass, s4 publicOnly)
 {
-	return _Jv_java_lang_Class_getDeclaredConstructors(klass, publicOnly);
+	classinfo                 *c;
+	java_handle_objectarray_t *oa;
+
+	c = LLNI_classinfo_unwrap(klass);
+
+	oa = class_get_declaredconstructors(c, publicOnly);
+
+	return oa;
 }
 
 
@@ -328,7 +378,55 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_java_lang_VMClass_getClassLoader(J
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_forName(JNIEnv *env, jclass clazz, java_lang_String *name, s4 initialize, java_lang_ClassLoader *loader)
 {
-	return _Jv_java_lang_Class_forName(name, initialize, loader);
+	classloader_t *cl;
+	utf           *ufile;
+	utf           *uname;
+	classinfo     *c;
+	u2            *pos;
+	s4             i;
+
+	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
+
+	/* illegal argument */
+
+	if (name == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	/* create utf string in which '.' is replaced by '/' */
+
+	ufile = javastring_toutf((java_handle_t *) name, true);
+	uname = javastring_toutf((java_handle_t *) name, false);
+
+	/* name must not contain '/' (mauve test) */
+
+	for (i = 0, pos = LLNI_field_direct(name, value)->data + LLNI_field_direct(name, offset); i < LLNI_field_direct(name, count); i++, pos++) {
+		if (*pos == '/') {
+			exceptions_throw_classnotfoundexception(uname);
+			return NULL;
+		}
+	}
+
+	/* try to load, ... */
+
+	c = load_class_from_classloader(ufile, cl);
+
+	if (c == NULL)
+	    return NULL;
+
+	/* link, ... */
+
+	if (!link_class(c))
+		return NULL;
+	
+	/* ...and initialize it, if required */
+
+	if (initialize)
+		if (!initialize_class(c))
+			return NULL;
+
+	return LLNI_classinfo_wrap(c);
 }
 
 
@@ -370,7 +468,64 @@ JNIEXPORT void JNICALL Java_java_lang_VMClass_throwException(JNIEnv *env, jclass
  */
 JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMClass_getDeclaredAnnotations(JNIEnv *env, jclass clazz, java_lang_Class* klass)
 {
-	return _Jv_java_lang_Class_getDeclaredAnnotations(klass);
+	classinfo                *c               = NULL; /* classinfo for the java.lang.Class object 'klass'       */
+	static methodinfo        *m_parseAnnotationsIntoArray   = NULL; /* parser method (cached, therefore static) */
+	utf                      *utf_parseAnnotationsIntoArray = NULL; /* parser method name     */
+	utf                      *utf_desc        = NULL;               /* parser method descriptor (signature)     */
+	java_handle_bytearray_t  *annotations     = NULL;               /* unparsed annotations   */
+	sun_reflect_ConstantPool *constantPool    = NULL;               /* constant pool of klass */
+	java_lang_Object         *constantPoolOop = (java_lang_Object*)klass; /* constantPoolOop field of */
+	                                                                      /* sun.reflect.ConstantPool */
+
+	if (klass == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+	
+	c = LLNI_classinfo_unwrap(klass);
+
+	/* get annotations: */
+	annotations = class_get_annotations(c);
+
+	constantPool = 
+		(sun_reflect_ConstantPool*)native_new_and_init(
+			class_sun_reflect_ConstantPool);
+	
+	if (constantPool == NULL) {
+		/* out of memory */
+		return NULL;
+	}
+
+	LLNI_field_set_ref(constantPool, constantPoolOop, constantPoolOop);
+
+	/* only resolve the parser method the first time */
+	if (m_parseAnnotationsIntoArray == NULL) {
+		utf_parseAnnotationsIntoArray = utf_new_char("parseAnnotationsIntoArray");
+		utf_desc = utf_new_char(
+			"([BLsun/reflect/ConstantPool;Ljava/lang/Class;)"
+			"[Ljava/lang/annotation/Annotation;");
+
+		if (utf_parseAnnotationsIntoArray == NULL || utf_desc == NULL) {
+			/* out of memory */
+			return NULL;
+		}
+
+		m_parseAnnotationsIntoArray = class_resolveclassmethod(
+			class_sun_reflect_annotation_AnnotationParser,
+			utf_parseAnnotationsIntoArray,
+			utf_desc,
+			class_java_lang_Class,
+			true);
+
+		if (m_parseAnnotationsIntoArray == NULL) {
+			/* method not found */
+			return NULL;
+		}
+	}
+
+	return (java_handle_objectarray_t*)vm_call_method(
+		m_parseAnnotationsIntoArray, NULL,
+		annotations, constantPool, klass);
 }
 #endif
 
@@ -400,7 +555,13 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClass_getEnclosingClass(JNIE
  */
 JNIEXPORT java_lang_reflect_Constructor* JNICALL Java_java_lang_VMClass_getEnclosingConstructor(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	return _Jv_java_lang_Class_getEnclosingConstructor(klass);
+	classinfo*     c;
+	java_handle_t* h;
+
+	c = LLNI_classinfo_unwrap(klass);
+	h = class_get_enclosingconstructor(c);
+
+	return (java_lang_reflect_Constructor*) h;
 }
 
 
@@ -411,7 +572,13 @@ JNIEXPORT java_lang_reflect_Constructor* JNICALL Java_java_lang_VMClass_getEnclo
  */
 JNIEXPORT java_lang_reflect_Method* JNICALL Java_java_lang_VMClass_getEnclosingMethod(JNIEnv *env, jclass clazz, java_lang_Class *klass)
 {
-	return _Jv_java_lang_Class_getEnclosingMethod(klass);
+	classinfo*     c;
+	java_handle_t* h;
+
+	c = LLNI_classinfo_unwrap(klass);
+	h = class_get_enclosingmethod(c);
+
+	return (java_lang_reflect_Method*) h;
 }
 
 
