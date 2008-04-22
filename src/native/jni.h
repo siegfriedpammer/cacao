@@ -113,9 +113,6 @@ struct hashtable_global_ref_entry {
 bool jni_init(void);
 bool jni_version_check(int version);
 
-java_handle_t *_Jv_jni_invokeNative(methodinfo *m, java_handle_t *o,
-									java_handle_objectarray_t *params);
-
 #endif /* _JNI_H */
 
 
