@@ -1,9 +1,7 @@
-/* src/vm/jit/x86_64/md-abi.c - functions for x86_64 Linux ABI
+/* src/vm/jit/s390/md-abi.c - s390 Linux ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,24 +20,23 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
 */
+
 
 #include "config.h"
 
 #include "vm/global.h"
-#include "vm/jit/jit.h"
-#include "vm/jit/s390/md-abi.h"
 #include "vm/types.h"
+
+#include "vm/jit/jit.h"
+#include "vm/jit/stack.h"
+
+#include "vm/jit/s390/md-abi.h"
 
 #include "vmcore/descriptor.h"
 
 #include <assert.h>
+
 
 /* register descripton array **************************************************/
 
@@ -267,7 +264,7 @@ void md_param_alloc_native(methoddesc *md)
 
 *******************************************************************************/
 
-void md_return_alloc(jitdata *jd, stackptr stackslot)
+void md_return_alloc(jitdata *jd, stackelement_t* stackslot)
 {
 	methodinfo   *m;
 	codeinfo     *code;

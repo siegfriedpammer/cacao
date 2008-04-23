@@ -1897,7 +1897,7 @@ invoke_method:
 
 	/* allocate stack table */
 
-	jd->stack = DMNEW(stackelement, jd->stackcount);
+	jd->stack = DMNEW(stackelement_t, jd->stackcount);
 
 	/* everything's ok */
 

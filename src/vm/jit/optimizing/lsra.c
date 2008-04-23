@@ -56,7 +56,7 @@ extern const char *string_java_lang_InternalError;
 void lsra_setup(jitdata *);
 void lsra_main(jitdata *);
 #ifdef LSRA_DEBUG_VERBOSE
-void lsra_dump_stack(stackptr );
+void lsra_dump_stack(stackelement_t*);
 void print_lifetimes(jitdata *, int *, int);
 void print_all_lifetimes(jitdata *);
 #endif
@@ -92,7 +92,7 @@ void lsra(jitdata *jd) {
 #if defined(LSRA_DEBUG_CHECK)
 #if 0
 	int b_index;
-	stackptr in,out;
+	stackelement_t* in,out;
 	int      ind, outd;
 #endif
 #endif

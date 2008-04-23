@@ -1,9 +1,7 @@
 /* src/vm/jit/allocator/liveness.c - liveness analysis for lsra
 
-   Copyright (C) 2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -21,11 +19,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Ullrich
-
 
 */
 
@@ -55,13 +48,13 @@
 
 /* function prototypes */
 void liveness_scan_registers_canditates(jitdata *jd, int b_index, int iindex, 
-										stackptr src, lv_sets *sets);
-void liveness_set_stack(lsradata *ls, int block, int g_iindex, stackptr s,
+										stackelement_t* src, lv_sets *sets);
+void liveness_set_stack(lsradata *ls, int block, int g_iindex, stackelement_t* s,
 						lv_sets *sets, int op);
 void liveness_set_local(lsradata *ls, int block, int g_iindex, s4 v_index,
 						int type, lv_sets *sets, int op);
 
-void liveness_add_ss(struct lifetime *lt, stackptr s) {
+void liveness_add_ss(struct lifetime *lt, stackelement_t* s) {
 	struct stackslot *ss;
 	/* Stackslot noch nicht eingetragen? */
 
@@ -188,7 +181,7 @@ void liveness_join_lifetimes(jitdata *jd, int b_index) {
 
 void liveness_setup(jitdata *jd) {
 	int i, icount, b_index;
-	stackptr src;
+	stackelement_t* src;
 	methodinfo *m;
 	lsradata *ls;
 
@@ -274,7 +267,7 @@ void liveness_setup(jitdata *jd) {
 void liveness_init(jitdata *jd) {
 	int i, b_index, len;
 	int lifetimes;
-	stackptr src, dst;
+	stackelement_t* src, dst;
 	instruction *iptr;
 	methodinfo *m;
 	lsradata *ls;
@@ -330,7 +323,7 @@ void liveness_init(jitdata *jd) {
 void liveness_scan_basicblock(jitdata *jd, int b_index,
 							  lv_sets *sets, int lifetimes) {
 	int iindex;
-	stackptr    src;
+	stackelement_t*    src;
 	instruction *iptr;
 	int i;
 	methodinfo *m;
@@ -424,7 +417,7 @@ void liveness(jitdata *jd) {
 	int       i, p, t;
 	methoddesc *md;
 #ifdef LV_DEBUG_CHECK
-	stackptr s;
+	stackelement_t* s;
 #endif
 	methodinfo *m;
 	registerdata *rd;
@@ -547,7 +540,7 @@ void liveness(jitdata *jd) {
 		   
 }
 
-struct lifetime *liveness_get_ss_lifetime(lsradata *ls, stackptr s) {
+struct lifetime *liveness_get_ss_lifetime(lsradata *ls, stackelement_t* s) {
 	struct lifetime *n;
 	
 	if (s->varnum >= 0) { /* new stackslot lifetime */
@@ -575,7 +568,7 @@ struct lifetime *liveness_get_ss_lifetime(lsradata *ls, stackptr s) {
 	return n;
 }
 
-void liveness_set_stack(lsradata *ls, int block, int g_iindex, stackptr s,
+void liveness_set_stack(lsradata *ls, int block, int g_iindex, stackelement_t* s,
 						lv_sets *sets,
 						int op) {
 	struct lifetime *n;
@@ -634,14 +627,14 @@ void liveness_set_local(lsradata *ls, int block, int g_iindex, s4 v_index,
 }
 
 void liveness_scan_registers_canditates(jitdata *jd, int b_index, int iindex,
-										stackptr src, lv_sets *sets)
+										stackelement_t* src, lv_sets *sets)
 {
 /* 	methodinfo         *lm; */
 	builtintable_entry *bte;
 	methoddesc         *md;
 	int i, g_iindex;
 	instruction *iptr;
-	stackptr    dst;
+	stackelement_t*    dst;
 	methodinfo *m;
 	lsradata   *ls;
 

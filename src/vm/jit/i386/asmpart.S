@@ -120,7 +120,7 @@ asm_vm_call_method_long:
 asm_vm_call_method_float:
 asm_vm_call_method_double:
 	push    bp
-	mov     sp,bp                       /* save stackptr                      */
+	mov     sp,bp                       /* save stack pointer                 */
 	sub     $(4*4),sp                   /* create stackframe                  */
 	and     $0xfffffff0,sp              /* align stack to 16-byte             */
 

@@ -1,9 +1,7 @@
 /* src/vm/jit/allocator/lsra.c - linear scan register allocator
 
-   Copyright (C) 2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -79,7 +77,7 @@ struct freemem *lsra_getnewmem(int *);
 void lsra_setflags(int *, int);
 
 #ifdef LSRA_DEBUG_VERBOSE 
-void lsra_dump_stack(stackptr );
+void lsra_dump_stack(stackelement_t* );
 void print_lifetimes(jitdata *, int *, int);
 #endif
 
@@ -87,9 +85,9 @@ void print_lifetimes(jitdata *, int *, int);
 void lsra_scan_registers_canditates(jitdata *, int);
 void lsra_join_lifetimes(jitdata *, int);
 
-void _lsra_new_stack( lsradata *, stackptr , int , int, int);
-void _lsra_from_stack(lsradata *, stackptr , int , int, int);
-void lsra_add_ss(struct lifetime *, stackptr );
+void _lsra_new_stack( lsradata *, stackelement_t* , int , int, int);
+void _lsra_from_stack(lsradata *, stackelement_t* , int , int, int);
+void lsra_add_ss(struct lifetime *, stackelement_t* );
 void lsra_usage_local(lsradata *, s4 , int , int , int , int );
 #endif
 
@@ -105,7 +103,7 @@ bool lsra(jitdata *jd)
 #if defined(LSRA_DEBUG_CHECK)
 	methodinfo   *m;
 	int      b_index;
-	stackptr in,out;
+	stackelement_t* in,out;
 	int      ind, outd;
 #endif
 
@@ -1979,7 +1977,7 @@ void lsra_join_lifetimes(jitdata *jd,int b_index) {
 	}
 }
 
-struct stackslot *lsra_make_ss(stackptr s, int bb_index)
+struct stackslot *lsra_make_ss(stackelement_t* s, int bb_index)
 {
 	struct stackslot *ss;
 
@@ -1989,7 +1987,7 @@ struct stackslot *lsra_make_ss(stackptr s, int bb_index)
 	return ss;
 }
 
-void lsra_add_ss(struct lifetime *lt, stackptr s) {
+void lsra_add_ss(struct lifetime *lt, stackelement_t* s) {
 	struct stackslot *ss;
 
 	/* Stackslot not in list? */
@@ -2006,7 +2004,7 @@ void lsra_add_ss(struct lifetime *lt, stackptr s) {
 	}
 }
 
-struct lifetime *get_ss_lifetime(lsradata *ls, stackptr s) {
+struct lifetime *get_ss_lifetime(lsradata *ls, stackelement_t* s) {
 	struct lifetime *n;
 	
 	if (s->varnum >= 0) { /* new stackslot lifetime */
@@ -2078,7 +2076,7 @@ struct lifetime *get_ss_lifetime(lsradata *ls, stackptr s) {
 
 #define lsra_new_stack(ls, s, block, instr) \
 	if ((s)->varkind != ARGVAR) _lsra_new_stack(ls, s, block, instr, LSRA_STORE)
-void _lsra_new_stack(lsradata *ls, stackptr s, int block, int instr, int store)
+void _lsra_new_stack(lsradata *ls, stackelement_t* s, int block, int instr, int store)
 {
 	struct lifetime *n;
 
@@ -2102,7 +2100,7 @@ void _lsra_new_stack(lsradata *ls, stackptr s, int block, int instr, int store)
 	if ((s)->varkind != ARGVAR) _lsra_from_stack(ls, s, block, instr, LSRA_LOAD)
 #define lsra_pop_from_stack(ls, s, block, instr) \
 	if ((s)->varkind != ARGVAR) _lsra_from_stack(ls, s, block, instr, LSRA_POP)
-void _lsra_from_stack(lsradata *ls, stackptr s, int block, int instr, int store)
+void _lsra_from_stack(lsradata *ls, stackelement_t* s, int block, int instr, int store)
 {
 	struct lifetime *n;
 
@@ -2166,7 +2164,7 @@ void lsra_usage_local(lsradata *ls, s4 v_index, int type, int block, int instr,
 }	
 
 #ifdef LSRA_DEBUG_VERBOSE
-void lsra_dump_stack(stackptr s)
+void lsra_dump_stack(stackelement_t* s)
 {
 	while (s!=NULL) {
 		printf("%p(R%3i N%3i K%3i T%3i F%3i) ",(void *)s,s->regoff, s->varnum, 
@@ -2186,8 +2184,8 @@ void lsra_scan_registers_canditates(jitdata *jd, int b_index)
 	int i;
 	int opcode;
 	int iindex;
-	stackptr    src;
-	stackptr    dst;
+	stackelement_t*    src;
+	stackelement_t*    dst;
 	instruction *iptr;
 	bool join_ret; /* for lsra_join* Macros */
 	methodinfo *m;

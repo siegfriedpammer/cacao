@@ -1,9 +1,7 @@
 /* src/vm/jit/allocator/lsra.h - linear scan register allocator header
 
-   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -21,12 +19,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Ullrich
-
-   Changes: Edwin Steiner
 
 */
 
@@ -129,7 +121,7 @@ struct b_loop {
 
 
 struct stackslot {
-	stackptr s;
+	stackelement_t* s;
 	int bb;
 	struct stackslot *next;
 };

@@ -1,9 +1,7 @@
-/* src/vm/jit/powerpc/netbsd/md-abi.c - functions for PowerPC NetBSD ABI
+/* src/vm/jit/powerpc/netbsd/md-abi.c - PowerPC NetBSD ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,12 +20,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes: Christian Ullrich
-
 */
 
 
@@ -38,7 +30,9 @@
 
 #include "vm/descriptor.h"
 #include "vm/global.h"
+
 #include "vm/jit/abi.h"
+#include "vm/jit/stack.h"
 
 
 #define _ALIGN(a)    do { if ((a) & 1) (a)++; } while (0)
@@ -207,7 +201,7 @@ void md_param_alloc(methoddesc *md)
 
 *******************************************************************************/
 
-void md_return_alloc(jitdata *jd, stackptr stackslot)
+void md_return_alloc(jitdata *jd, stackelement_t* stackslot)
 {
 	methodinfo   *m;
 	registerdata *rd;

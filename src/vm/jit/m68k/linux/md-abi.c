@@ -1,9 +1,7 @@
 /* src/vm/jit/m68k/linux/md-abi.c - linux specific abi functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -156,7 +154,7 @@ void md_param_alloc(methoddesc *md)
    %d0 for all word types %d0-%d1 for 2 word types. %f0-%f1 for floats/doubles
 *******************************************************************************/
 
-void md_return_alloc(jitdata *jd, stackptr stackslot)
+void md_return_alloc(jitdata *jd, stackelement_t *stackslot)
 { 
 
 /* The Problem: %a0, %a1, %d0 and %d1 are scratch registers by platform abi

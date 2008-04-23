@@ -1,9 +1,7 @@
 /* src/vm/jit/jit.h - code generation header
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -31,8 +29,6 @@
 /* forward typedefs ***********************************************************/
 
 typedef struct jitdata jitdata;
-typedef struct stackelement stackelement;
-typedef stackelement *stackptr;
 typedef struct basicblock basicblock;
 typedef struct instruction instruction;
 typedef struct insinfo_inline insinfo_inline;
@@ -50,6 +46,7 @@ typedef struct exception_entry exception_entry;
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
+#include "vm/jit/stack.h"
 #include "vm/jit/stacktrace.h"
 
 #if defined(ENABLE_INLINING)
@@ -70,7 +67,6 @@ typedef struct exception_entry exception_entry;
 
 #include "vm/jit/verify/typeinfo.h"
 
-#include "vmcore/descriptor.h"
 #include "vmcore/method.h"
 #include "vmcore/references.h"
 
@@ -131,7 +127,7 @@ struct jitdata {
 
 	instruction     *instructions;    /* ICMDs, valid between parse and stack */
 	basicblock      *basicblocks;     /* start of basic block list            */
-	stackelement    *stack;           /* XXX should become stack.c internal   */
+	stackelement_t  *stack;           /* XXX should become stack.c internal   */
 	s4               instructioncount;/* XXX remove this?                     */
 	s4               basicblockcount; /* number of basic blocks               */
 	s4               stackcount;      /* number of stackelements to allocate  */
@@ -230,41 +226,6 @@ struct exception_entry {
 	exception_entry      *down;      /* next exception_entry                  */
 };
 
-
-/* stack element structure ****************************************************/
-
-/* flags */
-
-#define SAVEDVAR      1         /* variable has to survive method invocations */
-#define INMEMORY      2         /* variable stored in memory                  */
-#define SAVREG        4         /* allocated to a saved register              */
-#define ARGREG        8         /* allocated to an arg register               */
-#define PASSTHROUGH  32         /* stackslot was passed-through by an ICMD    */
-#define PREALLOC     64         /* preallocated var like for ARGVARS. Used    */
-                                /* with the new var system */
-#define INOUT    128            /* variable is an invar or/and an outvar      */
-
-#define IS_SAVEDVAR(x)    ((x) & SAVEDVAR)
-#define IS_INMEMORY(x)    ((x) & INMEMORY)
-
-
-/* variable kinds */
-
-#define UNDEFVAR   0            /* stack slot will become temp during regalloc*/
-#define TEMPVAR    1            /* stack slot is temp register                */
-#define STACKVAR   2            /* stack slot is numbered stack slot          */
-#define LOCALVAR   3            /* stack slot is local variable               */
-#define ARGVAR     4            /* stack slot is argument variable            */
-
-
-struct stackelement {
-	stackptr prev;              /* pointer to next element towards bottom     */
-	instruction *creator;       /* instruction that created this element      */
-	s4       type;              /* slot type of stack element                 */
-	s4       flags;             /* flags (SAVED, INMEMORY)                    */
-	s4       varkind;           /* kind of variable or register               */
-	s4       varnum;            /* number of variable                         */
-};
 
 /* macros for accessing variables *********************************************
  
@@ -1002,7 +963,7 @@ static inline bool instruction_has_dst(const instruction *iptr) {
 	if (
 		(icmd_table[iptr->opc].dataflow == DF_INVOKE) ||
 		(icmd_table[iptr->opc].dataflow == DF_BUILTIN)
-	) {
+		) {
 		return instruction_call_site(iptr)->returntype.type != TYPE_VOID;
 	} else {
 		return icmd_table[iptr->opc].dataflow >= DF_DST_BASE;
