@@ -19,7 +19,7 @@ done
 
 if test ${CACAO_HAVE_LIBTOOLIZE} = false; then
     echo "No proper libtoolize was found."
-    echo "You must have libtool 1.5 installed."
+    echo "You must have libtool 1.5 or later installed."
     exit 1
 fi
 
