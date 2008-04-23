@@ -173,7 +173,7 @@ void executionstate_println(executionstate_t *es)
 # if SIZEOF_VOID_P == 8
 		printf("%-3s = %016lx", abi_registers_integer_name[i], es->intregs[i]);
 # else
-		printf("%-3s = %08x", abi_registers_integer_name[i], es->intregs[i]);
+		printf("%-3s = %08x", abi_registers_integer_name[i], (unsigned) es->intregs[i]);
 # endif
 		if (i%4 == 3)
 			printf("\n");

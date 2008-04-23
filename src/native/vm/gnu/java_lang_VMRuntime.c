@@ -33,7 +33,9 @@
 #include <sys/utsname.h>
 
 #if defined(__DARWIN__)
-# define OS_INLINE    /* required for <libkern/ppc/OSByteOrder.h> */
+# if defined(__POWERPC__)
+#  define OS_INLINE    /* required for <libkern/ppc/OSByteOrder.h> */
+# endif
 # include <mach/mach.h>
 #endif
 
