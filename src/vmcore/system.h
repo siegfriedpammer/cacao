@@ -329,7 +329,11 @@ inline static void *system_realloc(void *ptr, size_t size)
 #endif
 }
 
+#if defined(__LINUX__)
 inline static int system_scandir(const char *dir, struct dirent ***namelist, int(*filter)(const struct dirent *), int(*compar)(const void *, const void *))
+#else
+inline static int system_scandir(const char *dir, struct dirent ***namelist, int(*filter)(struct dirent *), int(*compar)(const void *, const void *))
+#endif
 {
 #if defined(HAVE_SCANDIR)
 	return scandir(dir, namelist, filter, compar);
