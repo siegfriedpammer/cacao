@@ -1,9 +1,7 @@
 /* src/native/vm/gnu/java_lang_VMSystem.c - java/lang/VMSystem
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -27,9 +25,8 @@
 
 #include "config.h"
 
+#include <stdint.h>
 #include <string.h>
-
-#include "vm/types.h"
 
 #include "mm/gc-common.h"
 
@@ -49,8 +46,8 @@
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "arraycopy",        "(Ljava/lang/Object;ILjava/lang/Object;II)V", (void *) (ptrint) &Java_java_lang_VMSystem_arraycopy },
-	{ "identityHashCode", "(Ljava/lang/Object;)I",                      (void *) (ptrint) &Java_java_lang_VMSystem_identityHashCode },
+	{ "arraycopy",        "(Ljava/lang/Object;ILjava/lang/Object;II)V", (void *) (uintptr_t) &Java_java_lang_VMSystem_arraycopy },
+	{ "identityHashCode", "(Ljava/lang/Object;)I",                      (void *) (uintptr_t) &Java_java_lang_VMSystem_identityHashCode },
 };
 
 
@@ -75,7 +72,7 @@ void _Jv_java_lang_VMSystem_init(void)
  * Method:    arraycopy
  * Signature: (Ljava/lang/Object;ILjava/lang/Object;II)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass clazz, java_lang_Object *src, s4 srcStart, java_lang_Object *dest, s4 destStart, s4 len)
+JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass clazz, java_lang_Object *src, int32_t srcStart, java_lang_Object *dest, int32_t destStart, int32_t len)
 {
 	builtin_arraycopy((java_handle_t *) src, srcStart,
 					  (java_handle_t *) dest, destStart, len);
@@ -87,9 +84,9 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
  * Method:    identityHashCode
  * Signature: (Ljava/lang/Object;)I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, java_lang_Object *o)
+JNIEXPORT int32_t JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, java_lang_Object *o)
 {
-	s4 hashcode;
+	int32_t hashcode;
 
 	LLNI_CRITICAL_START;
 

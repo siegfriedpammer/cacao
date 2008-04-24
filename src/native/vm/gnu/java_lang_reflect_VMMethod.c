@@ -25,13 +25,11 @@
 
 #include "config.h"
 
-#include <assert.h>
+#include <stdint.h>
 
 #if defined(ENABLE_ANNOTATIONS)
 #include "vm/vm.h"
 #endif
-
-#include "vm/types.h"
 
 #include "native/jni.h"
 #include "native/llni.h"
@@ -65,16 +63,16 @@
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "getModifiersInternal",    "()I",                                                       (void *) (intptr_t) &Java_java_lang_reflect_VMMethod_getModifiersInternal    },
-	{ "getReturnType",           "()Ljava/lang/Class;",                                       (void *) (intptr_t) &Java_java_lang_reflect_VMMethod_getReturnType           },
-	{ "getParameterTypes",       "()[Ljava/lang/Class;",                                      (void *) (intptr_t) &Java_java_lang_reflect_VMMethod_getParameterTypes       },
-	{ "getExceptionTypes",       "()[Ljava/lang/Class;",                                      (void *) (intptr_t) &Java_java_lang_reflect_VMMethod_getExceptionTypes       },
-	{ "invoke",                  "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", (void *) (intptr_t) &Java_java_lang_reflect_VMMethod_invoke                  },
-	{ "getSignature",            "()Ljava/lang/String;",                                      (void *) (intptr_t) &Java_java_lang_reflect_VMMethod_getSignature            },
+	{ "getModifiersInternal",    "()I",                                                       (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_getModifiersInternal    },
+	{ "getReturnType",           "()Ljava/lang/Class;",                                       (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_getReturnType           },
+	{ "getParameterTypes",       "()[Ljava/lang/Class;",                                      (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_getParameterTypes       },
+	{ "getExceptionTypes",       "()[Ljava/lang/Class;",                                      (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_getExceptionTypes       },
+	{ "invoke",                  "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_invoke                  },
+	{ "getSignature",            "()Ljava/lang/String;",                                      (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_getSignature            },
 #if defined(ENABLE_ANNOTATIONS)
-	{ "getDefaultValue",         "()Ljava/lang/Object;",                                      (void *) (intptr_t) &Java_java_lang_reflect_VMMethod_getDefaultValue         },
-	{ "declaredAnnotations",     "()Ljava/util/Map;",                                         (void *) (intptr_t) &Java_java_lang_reflect_VMMethod_declaredAnnotations     },
-	{ "getParameterAnnotations", "()[[Ljava/lang/annotation/Annotation;",                     (void *) (intptr_t) &Java_java_lang_reflect_VMMethod_getParameterAnnotations },
+	{ "getDefaultValue",         "()Ljava/lang/Object;",                                      (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_getDefaultValue         },
+	{ "declaredAnnotations",     "()Ljava/util/Map;",                                         (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_declaredAnnotations     },
+	{ "getParameterAnnotations", "()[[Ljava/lang/annotation/Annotation;",                     (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_getParameterAnnotations },
 #endif
 };
 
@@ -100,7 +98,7 @@ void _Jv_java_lang_reflect_VMMethod_init(void)
  * Method:    getModifiersInternal
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_reflect_VMMethod_getModifiersInternal(JNIEnv *env, java_lang_reflect_VMMethod *this)
+JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMMethod_getModifiersInternal(JNIEnv *env, java_lang_reflect_VMMethod *this)
 {
 	classinfo  *c;
 	methodinfo *m;

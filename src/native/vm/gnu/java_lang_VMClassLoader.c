@@ -26,9 +26,8 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <sys/stat.h>
-
-#include "vm/types.h"
 
 #include "mm/memory.h"
 
@@ -78,16 +77,16 @@
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "defineClass",                "(Ljava/lang/ClassLoader;Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;", (void *) (ptrint) &Java_java_lang_VMClassLoader_defineClass                },
-	{ "getPrimitiveClass",          "(C)Ljava/lang/Class;",                                                                             (void *) (ptrint) &Java_java_lang_VMClassLoader_getPrimitiveClass          },
-	{ "resolveClass",               "(Ljava/lang/Class;)V",                                                                             (void *) (ptrint) &Java_java_lang_VMClassLoader_resolveClass               },
-	{ "loadClass",                  "(Ljava/lang/String;Z)Ljava/lang/Class;",                                                           (void *) (ptrint) &Java_java_lang_VMClassLoader_loadClass                  },
-	{ "nativeGetResources",         "(Ljava/lang/String;)Ljava/util/Vector;",                                                           (void *) (ptrint) &Java_java_lang_VMClassLoader_nativeGetResources         },
-	{ "defaultAssertionStatus",     "()Z",                                                                                              (void *) (ptrint) &Java_java_lang_VMClassLoader_defaultAssertionStatus     },
-	{ "defaultUserAssertionStatus", "()Z",                                                                                              (void *) (ptrint) &Java_java_lang_VMClassLoader_defaultUserAssertionStatus },
-	{ "packageAssertionStatus0",    "(Ljava/lang/Boolean;Ljava/lang/Boolean;)Ljava/util/Map;",                                          (void *) (ptrint) &Java_java_lang_VMClassLoader_packageAssertionStatus0    },
-	{ "classAssertionStatus0",      "(Ljava/lang/Boolean;Ljava/lang/Boolean;)Ljava/util/Map;",                                          (void *) (ptrint) &Java_java_lang_VMClassLoader_classAssertionStatus0      },
-	{ "findLoadedClass",            "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/lang/Class;",                                     (void *) (ptrint) &Java_java_lang_VMClassLoader_findLoadedClass            },
+	{ "defineClass",                "(Ljava/lang/ClassLoader;Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;", (void *) (uintptr_t) &Java_java_lang_VMClassLoader_defineClass                },
+	{ "getPrimitiveClass",          "(C)Ljava/lang/Class;",                                                                             (void *) (uintptr_t) &Java_java_lang_VMClassLoader_getPrimitiveClass          },
+	{ "resolveClass",               "(Ljava/lang/Class;)V",                                                                             (void *) (uintptr_t) &Java_java_lang_VMClassLoader_resolveClass               },
+	{ "loadClass",                  "(Ljava/lang/String;Z)Ljava/lang/Class;",                                                           (void *) (uintptr_t) &Java_java_lang_VMClassLoader_loadClass                  },
+	{ "nativeGetResources",         "(Ljava/lang/String;)Ljava/util/Vector;",                                                           (void *) (uintptr_t) &Java_java_lang_VMClassLoader_nativeGetResources         },
+	{ "defaultAssertionStatus",     "()Z",                                                                                              (void *) (uintptr_t) &Java_java_lang_VMClassLoader_defaultAssertionStatus     },
+	{ "defaultUserAssertionStatus", "()Z",                                                                                              (void *) (uintptr_t) &Java_java_lang_VMClassLoader_defaultUserAssertionStatus },
+	{ "packageAssertionStatus0",    "(Ljava/lang/Boolean;Ljava/lang/Boolean;)Ljava/util/Map;",                                          (void *) (uintptr_t) &Java_java_lang_VMClassLoader_packageAssertionStatus0    },
+	{ "classAssertionStatus0",      "(Ljava/lang/Boolean;Ljava/lang/Boolean;)Ljava/util/Map;",                                          (void *) (uintptr_t) &Java_java_lang_VMClassLoader_classAssertionStatus0      },
+	{ "findLoadedClass",            "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/lang/Class;",                                     (void *) (uintptr_t) &Java_java_lang_VMClassLoader_findLoadedClass            },
 };
 
 
@@ -112,7 +111,7 @@ void _Jv_java_lang_VMClassLoader_init(void)
  * Method:    defineClass
  * Signature: (Ljava/lang/ClassLoader;Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *cl, java_lang_String *name, java_handle_bytearray_t *data, s4 offset, s4 len, java_security_ProtectionDomain *pd)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *cl, java_lang_String *name, java_handle_bytearray_t *data, int32_t offset, int32_t len, java_security_ProtectionDomain *pd)
 {
 	utf             *utfname;
 	classinfo       *c;
@@ -195,7 +194,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
  * Method:    getPrimitiveClass
  * Signature: (C)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClass(JNIEnv *env, jclass clazz, s4 type)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClass(JNIEnv *env, jclass clazz, int32_t type)
 {
 	classinfo *c;
 
@@ -240,7 +239,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jc
  * Method:    loadClass
  * Signature: (Ljava/lang/String;Z)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv *env, jclass clazz, java_lang_String *name, s4 resolve)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv *env, jclass clazz, java_lang_String *name, int32_t resolve)
 {
 	classinfo *c;
 	utf       *u;
@@ -286,10 +285,10 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 	char                 *buffer;    /* char buffer              */
 	char                 *namestart; /* start of name to use     */
 	char                 *tmppath;   /* temporary buffer         */
-	s4                    namelen;   /* length of name to use    */
-	s4                    searchlen; /* length of name to search */
-	s4                    bufsize;   /* size of buffer allocated */
-	s4                    pathlen;   /* name of path to assemble */
+	int32_t               namelen;   /* length of name to use    */
+	int32_t               searchlen; /* length of name to search */
+	int32_t               bufsize;   /* size of buffer allocated */
+	int32_t               pathlen;   /* name of path to assemble */
 	struct stat           buf;       /* buffer for stat          */
 	jboolean              ret;       /* return value of "add"    */
 
@@ -420,7 +419,7 @@ return_NULL:
  * Method:    defaultAssertionStatus
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClassLoader_defaultAssertionStatus(JNIEnv *env, jclass clazz)
+JNIEXPORT int32_t JNICALL Java_java_lang_VMClassLoader_defaultAssertionStatus(JNIEnv *env, jclass clazz)
 {
 #if defined(ENABLE_ASSERTION)
 	return assertion_system_enabled;
@@ -434,7 +433,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_VMClassLoader_defaultAssertionStatus(JNIEnv 
  * Method:    userAssertionStatus
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_VMClassLoader_defaultUserAssertionStatus(JNIEnv *env, jclass clazz)
+JNIEXPORT int32_t JNICALL Java_java_lang_VMClassLoader_defaultUserAssertionStatus(JNIEnv *env, jclass clazz)
 {
 #if defined(ENABLE_ASSERTION)
 	return assertion_user_enabled;

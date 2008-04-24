@@ -1,34 +1,32 @@
-/* src/native/vm/VMVirtualMachine.c - jdwp->jvmti interface
+/* src/native/vm/gnu/gnu_classpath_jdwp_VMVirtualMachine.c - jdwp->jvmti interface
 
-Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
-This file is part of CACAO.
+   This file is part of CACAO.
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2, or (at
-your option) any later version.
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
 
-This program is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-General Public License for more details.
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.
-
-Contact: cacao@cacaojvm.org
-
-Authors: Martin Platter
-
-Changes: Samuel Vinson
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
 
 */
+
+
+#include "config.h"
+
+#include <stdint.h>
+#include <string.h>
 
 #include "toolbox/logging.h"
 #include "native/jni.h"
@@ -41,7 +39,6 @@ Changes: Samuel Vinson
 #include "native/include/gnu_classpath_jdwp_VMVirtualMachine.h"
 #include "native/jvmti/jvmti.h"
 #include "native/jvmti/VMjdwp.h"
-#include <string.h>
 
 
 /*
@@ -76,7 +73,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_resumeThread(JNI
  * Method:    getSuspendCount
  * Signature: (Ljava/lang/Thread;)I
  */
-JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getSuspendCount(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1) {
+JNIEXPORT int32_t JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getSuspendCount(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1) {
     log_text ("VMVirtualMachine_getSuspendCount: not supported");
 	return 1;
 }
@@ -86,7 +83,7 @@ JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getSuspendCount(JN
  * Method:    getAllLoadedClassesCount
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getAllLoadedClassesCount(JNIEnv *env, jclass clazz) {
+JNIEXPORT int32_t JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getAllLoadedClassesCount(JNIEnv *env, jclass clazz) {
     jint count;
     jclass* classes;
 	jvmtiError err;
@@ -157,7 +154,7 @@ JNIEXPORT struct java_util_Iterator* JNICALL Java_gnu_classpath_jdwp_VMVirtualMa
  * Method:    getClassStatus
  * Signature: (Ljava/lang/Class;)I
  */
-JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getClassStatus(JNIEnv *env, jclass clazz, struct java_lang_Class* par1) {
+JNIEXPORT int32_t JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getClassStatus(JNIEnv *env, jclass clazz, struct java_lang_Class* par1) {
 	jint status;
 	jvmtiError err;
 
@@ -237,7 +234,7 @@ JNIEXPORT struct gnu_classpath_jdwp_VMMethod* JNICALL Java_gnu_classpath_jdwp_VM
  * Method:    getFrames
  * Signature: (Ljava/lang/Thread;II)Ljava/util/ArrayList;
  */
-JNIEXPORT struct java_util_ArrayList* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getFrames(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1, s4 par2, s4 par3) {
+JNIEXPORT struct java_util_ArrayList* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getFrames(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1, int32_t par2, int32_t par3) {
     log_text ("VMVirtualMachine_getFrames - IMPLEMENT ME!!!");
 /*	jclass ec = (*env)->FindClass(env,"gnu/classpath/jdwp/JdwpInternalErrorException");
 	if (JVMTI_ERROR_NONE != (*jvmtienv)->GetClassStatus(jvmtienv, par1, &status))
@@ -262,7 +259,7 @@ JNIEXPORT struct gnu_classpath_jdwp_VMFrame* JNICALL Java_gnu_classpath_jdwp_VMV
  * Method:    getFrameCount
  * Signature: (Ljava/lang/Thread;)I
  */
-JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getFrameCount(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1) {
+JNIEXPORT int32_t JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getFrameCount(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1) {
 	jint count;
 	jvmtiError err;
 	err = (*jvmtienv)->GetFrameCount(jvmtienv, (jthread)par1, &count);
@@ -276,7 +273,7 @@ JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getFrameCount(JNIE
  * Method:    getThreadStatus
  * Signature: (Ljava/lang/Thread;)I
  */
-JNIEXPORT s4 JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getThreadStatus(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1) {
+JNIEXPORT int32_t JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_getThreadStatus(JNIEnv *env, jclass clazz, struct java_lang_Thread* par1) {
 	jint status;
 	jvmtiError err; 
 	if (JVMTI_ERROR_NONE != (err = (*jvmtienv)->GetThreadState(jvmtienv, (jthread)par1, &status))) {
@@ -316,7 +313,7 @@ JNIEXPORT struct java_util_ArrayList* JNICALL Java_gnu_classpath_jdwp_VMVirtualM
  * Method:    executeMethod
  * Signature: (Ljava/lang/Object;Ljava/lang/Thread;Ljava/lang/Class;Ljava/lang/reflect/Method;[Ljava/lang/Object;Z)Lgnu/classpath/jdwp/util/MethodResult;
  */
-JNIEXPORT struct gnu_classpath_jdwp_util_MethodResult* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_executeMethod(JNIEnv *env, jclass clazz, struct java_lang_Object* par1, struct java_lang_Thread* par2, struct java_lang_Class* par3, struct java_lang_reflect_Method* par4, java_objectarray* par5, s4 par6) {
+JNIEXPORT struct gnu_classpath_jdwp_util_MethodResult* JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_executeMethod(JNIEnv *env, jclass clazz, struct java_lang_Object* par1, struct java_lang_Thread* par2, struct java_lang_Class* par3, struct java_lang_reflect_Method* par4, java_objectarray* par5, int32_t par6) {
     log_text ("VMVirtualMachine_executeMethod");
 	return 0;
 }
@@ -421,7 +418,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_unregisterEvent(
  * Method:    clearEvents
  * Signature: (B)V
  */
-JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_clearEvents(JNIEnv *env, jclass clazz, s4 par1) {
+JNIEXPORT void JNICALL Java_gnu_classpath_jdwp_VMVirtualMachine_clearEvents(JNIEnv *env, jclass clazz, int32_t par1) {
 	/* jvmti events are not saved - there is nothing to clear */
 }
 
