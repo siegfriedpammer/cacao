@@ -39,8 +39,6 @@
 
 #include "threads/lock-common.h"
 
-#include "vm/exceptions.h"
-
 #include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
@@ -50,6 +48,7 @@
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/trace.h"
+#include "vm/jit/trap.h"
 
 #include "vmcore/options.h"
 
@@ -311,7 +310,7 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TEST(reg);
 		M_BNE(8);
-		M_ALD_MEM(reg, EXCEPTION_HARDWARE_ARITHMETIC);
+		M_ALD_MEM(reg, TRAP_ArithmeticException);
 	}
 }
 
@@ -328,7 +327,7 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
         M_ILD(REG_ITMP3, s1, OFFSET(java_array_t, size));
         M_ICMP(REG_ITMP3, s2);
 		M_BULT(8);
-		M_ALD_MEM(s2, EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS);
+		M_ALD_MEM(s2, TRAP_ArrayIndexOutOfBoundsException);
 	}
 }
 
@@ -344,7 +343,7 @@ void emit_arraystore_check(codegendata *cd, instruction *iptr)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TEST(REG_RESULT);
 		M_BNE(8);
-		M_ALD_MEM(REG_RESULT, EXCEPTION_HARDWARE_ARRAYSTORE);
+		M_ALD_MEM(REG_RESULT, TRAP_ArrayStoreException);
 	}
 }
 
@@ -371,7 +370,7 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 		default:
 			vm_abort("emit_classcast_check: unknown condition %d", condition);
 		}
-		M_ALD_MEM(s1, EXCEPTION_HARDWARE_CLASSCAST);
+		M_ALD_MEM(s1, TRAP_ClassCastException);
 	}
 }
 
@@ -387,7 +386,7 @@ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TEST(reg);
 		M_BNE(8);
-		M_ALD_MEM(reg, EXCEPTION_HARDWARE_NULLPOINTER);
+		M_ALD_MEM(reg, TRAP_NullPointerException);
 	}
 }
 
@@ -403,7 +402,7 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TEST(REG_RESULT);
 		M_BNE(8);
-		M_ALD_MEM(REG_RESULT, EXCEPTION_HARDWARE_EXCEPTION);
+		M_ALD_MEM(REG_RESULT, TRAP_CHECK_EXCEPTION);
 	}
 }
 
@@ -416,7 +415,7 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 
 void emit_trap_compiler(codegendata *cd)
 {
-	M_ALD_MEM(REG_METHODPTR, EXCEPTION_HARDWARE_COMPILER);
+	M_ALD_MEM(REG_METHODPTR, TRAP_COMPILER);
 }
 
 

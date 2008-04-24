@@ -108,6 +108,10 @@ REPLACE_SOURCES += \
 STACK_SOURCES = \
 	stack.c \
 	stack.h
+
+TRAP_SOURCES = \
+	trap.c \
+	trap.h
 endif
 
 if ENABLE_REPLACEMENT
@@ -173,7 +177,8 @@ libjit_la_SOURCES = \
 	stacktrace.c \
 	stacktrace.h \
 	trace.c \
-	trace.h
+	trace.h \
+	$(TRAP_SOURCES)
 
 libjit_la_SOURCES += \
 	cfg.c \

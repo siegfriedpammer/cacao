@@ -82,37 +82,6 @@ java_object_t *_no_threads_exceptionptr = NULL;
 #endif
 
 
-/* exceptions_init *************************************************************
-
-   Initialize the exceptions subsystem.
-
-*******************************************************************************/
-
-void exceptions_init(void)
-{
-#if !(defined(__ARM__) && defined(__LINUX__))
-	/* On arm-linux the first memory page can't be mmap'ed, as it
-	   contains the exception vectors. */
-
-	int pagesize;
-
-	/* mmap a memory page at address 0x0, so our hardware-exceptions
-	   work. */
-
-	pagesize = system_getpagesize();
-
-	(void) system_mmap_anonymous(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
-#endif
-
-	TRACESUBSYSTEMINITIALIZATION("exceptions_init");
-
-	/* check if we get into trouble with our hardware-exceptions */
-
-	if (OFFSET(java_bytearray_t, data) <= EXCEPTION_HARDWARE_LARGEST)
-		vm_abort("signal_init: array-data offset is less or equal the maximum hardware-exception displacement: %d <= %d", OFFSET(java_bytearray_t, data), EXCEPTION_HARDWARE_LARGEST);
-}
-
-
 /* exceptions_get_exception ****************************************************
 
    Returns the current exception pointer of the current thread.
