@@ -117,7 +117,7 @@ static void gc_ignore_warnings(char *msg, GC_word arg)
 }
 
 
-void *heap_alloc_uncollectable(u4 size)
+void *heap_alloc_uncollectable(size_t size)
 {
 	void *p;
 

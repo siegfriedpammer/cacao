@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "mm/gc-common.h"
 #include "mm/memory.h"
 
 #include "native/llni.h"
@@ -461,7 +462,7 @@ int64_t gc_get_max_heap_size(void)
 
 /* heap ***********************************************************************/
 
-void *heap_alloc_uncollectable(uint32_t bytelength)
+void *heap_alloc_uncollectable(size_t bytelength)
 {
 	return calloc(bytelength, 1);
 }

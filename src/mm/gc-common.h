@@ -1,9 +1,7 @@
 /* src/mm/gc-common.h - gc independant interface for heap managment
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -56,7 +54,7 @@ enum {
 
 void  gc_init(u4 heapmaxsize, u4 heapstartsize);
 
-void *heap_alloc_uncollectable(u4 size);
+void *heap_alloc_uncollectable(size_t size);
 void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect);
 void  heap_free(void *p);
 
