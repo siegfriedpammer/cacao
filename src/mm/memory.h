@@ -90,7 +90,7 @@ Some more macros:
 
 #define MEMORY_ALIGN(pos,size) ((((pos) + (size) - 1) / (size)) * (size))
 #define PADDING(pos,size)     (MEMORY_ALIGN((pos),(size)) - (pos))
-#define OFFSET(s,el)          ((s4) ((ptrint) &(((s*) 0)->el)))
+#define OFFSET(s,el)          ((int32_t) ((ptrint) &(((s*) 0)->el)))
 
 
 #define NEW(type)             ((type *) mem_alloc(sizeof(type)))
@@ -133,12 +133,12 @@ void  memory_mprotect(void *addr, size_t len, int prot);
 
 void *memory_checked_alloc(size_t size);
 
-void *memory_cnew(s4 size);
-void  memory_cfree(void *p, s4 size);
+void *memory_cnew(int32_t size);
+void  memory_cfree(void *p, int32_t size);
 
-void *mem_alloc(s4 size);
-void  mem_free(void *m, s4 size);
-void *mem_realloc(void *src, s4 len1, s4 len2);
+void *mem_alloc(int32_t size);
+void  mem_free(void *m, int32_t size);
+void *mem_realloc(void *src, int32_t len1, int32_t len2);
 
 #if defined(ENABLE_THREADS)
 bool  memory_start_thread(void);

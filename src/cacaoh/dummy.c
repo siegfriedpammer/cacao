@@ -165,19 +165,17 @@ void intrp_asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out
 
 java_handle_t *builtin_clone(void *env, java_handle_t *o)
 {
-	abort();
-
+	vm_abort("builtin_clone: Not implemented.");
 	return NULL;
 }
 
-int32_t builtin_isanysubclass(classinfo *sub, classinfo *super)
+bool builtin_isanysubclass(classinfo *sub, classinfo *super)
 {
-	abort();
-
+	vm_abort("builtin_isanysubclass: Not implemented.");
 	return 0;
 }
 
-int32_t builtin_instanceof(java_handle_t *o, classinfo *class)
+bool builtin_instanceof(java_handle_t *o, classinfo *class)
 {
 	vm_abort("builtin_instanceof: Not implemented.");
 	return 0;
@@ -185,8 +183,7 @@ int32_t builtin_instanceof(java_handle_t *o, classinfo *class)
 
 java_handle_t *builtin_new(classinfo *c)
 {
-	abort();
-
+	vm_abort("builtin_new: Not implemented.");
 	return NULL;
 }
 
