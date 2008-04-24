@@ -1,9 +1,7 @@
 /* src/native/vm/gnu/gnu_java_lang_management_VMMemoryMXBeanImpl.c
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -26,7 +24,8 @@
 
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
 
 #include "mm/gc-common.h"
 
@@ -49,11 +48,11 @@
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "getHeapMemoryUsage",                "()Ljava/lang/management/MemoryUsage;", (void *) (ptrint) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getHeapMemoryUsage                },
-	{ "getNonHeapMemoryUsage",             "()Ljava/lang/management/MemoryUsage;", (void *) (ptrint) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getNonHeapMemoryUsage             },
-	{ "getObjectPendingFinalizationCount", "()I",                                  (void *) (ptrint) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getObjectPendingFinalizationCount },
-	{ "isVerbose",                         "()Z",                                  (void *) (ptrint) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose                         },
-	{ "setVerbose",                        "(Z)V",                                 (void *) (ptrint) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbose                        },
+	{ "getHeapMemoryUsage",                "()Ljava/lang/management/MemoryUsage;", (void *) (uintptr_t) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getHeapMemoryUsage                },
+	{ "getNonHeapMemoryUsage",             "()Ljava/lang/management/MemoryUsage;", (void *) (uintptr_t) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getNonHeapMemoryUsage             },
+	{ "getObjectPendingFinalizationCount", "()I",                                  (void *) (uintptr_t) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getObjectPendingFinalizationCount },
+	{ "isVerbose",                         "()Z",                                  (void *) (uintptr_t) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose                         },
+	{ "setVerbose",                        "(Z)V",                                 (void *) (uintptr_t) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbose                        },
 };
 
 
@@ -84,10 +83,10 @@ JNIEXPORT java_lang_management_MemoryUsage* JNICALL Java_gnu_java_lang_managemen
 	java_handle_t                    *o;
 	java_lang_management_MemoryUsage *mu;
 	methodinfo                       *m;
-	s8                                init;
-	s8                                used;
-	s8                                commited;
-	s8                                maximum;
+	int64_t                           init;
+	int64_t                           used;
+	int64_t                           commited;
+	int64_t                           maximum;
 
 	/* get the class */
 	/* XXX optimize me! sometime... */
@@ -150,7 +149,7 @@ JNIEXPORT java_lang_management_MemoryUsage* JNICALL Java_gnu_java_lang_managemen
  * Method:    getObjectPendingFinalizationCount
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getObjectPendingFinalizationCount(JNIEnv *env, jclass clazz)
+JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getObjectPendingFinalizationCount(JNIEnv *env, jclass clazz)
 {
 	log_println("Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getObjectPendingFinalizationCount: IMPLEMENT ME!");
 
@@ -163,7 +162,7 @@ JNIEXPORT s4 JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getObjectP
  * Method:    isVerbose
  * Signature: ()Z
  */
-JNIEXPORT s4 JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose(JNIEnv *env, jclass clazz)
+JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose(JNIEnv *env, jclass clazz)
 {
 	return _Jv_jvm->Java_gnu_java_lang_management_VMMemoryMXBeanImpl_verbose;
 }
@@ -174,7 +173,7 @@ JNIEXPORT s4 JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose(
  * Method:    setVerbose
  * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbose(JNIEnv *env, jclass clazz, s4 verbose)
+JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbose(JNIEnv *env, jclass clazz, int32_t verbose)
 {
 	_Jv_jvm->Java_gnu_java_lang_management_VMMemoryMXBeanImpl_verbose = verbose;
 }
