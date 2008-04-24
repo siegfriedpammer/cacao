@@ -2957,9 +2957,15 @@ jint JVM_SetSockOpt(jint fd, int level, int optname, const char *optval, int opt
 
 int JVM_GetHostName(char *name, int namelen)
 {
-	TRACEJVMCALLS(("JVM_GetHostName(name=%s, namelen=%d)", name, namelen));
+	int result;
 
-	return system_gethostname(name, namelen);
+	TRACEJVMCALLSENTER(("JVM_GetHostName(name=%s, namelen=%d)", name, namelen));
+
+	result = system_gethostname(name, namelen);
+
+	TRACEJVMCALLSEXIT(("->%d (name=%s)", result, name));
+
+	return result;
 }
 
 
