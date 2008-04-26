@@ -3409,7 +3409,7 @@ jobjectArray JVM_GetEnclosingMethodInfo(JNIEnv *env, jclass ofClass)
 	if ((c == NULL) || class_is_primitive(c))
 		return NULL;
 
-	m = class_get_enclosingmethod(c);
+	m = class_get_enclosingmethod_raw(c);
 
 	if (m == NULL)
 		return NULL;
