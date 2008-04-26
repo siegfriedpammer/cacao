@@ -244,6 +244,8 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_VMMethod_getDe
 	java_lang_Class          *constantPoolOop = NULL;            /* methods declaring class                           */
 	classinfo                *referer         = NULL;            /* class, which calles the annotation parser         */
 	                                                             /* (for the parameter 'referer' of vm_call_method()) */
+	java_lang_reflect_Method* rm;
+	java_handle_t*            h;
 
 	if (this == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -289,11 +291,12 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_VMMethod_getDe
 		}
 	}
 
+	LLNI_field_get_ref(this, m,                 rm);
 	LLNI_field_get_ref(this, annotationDefault, annotationDefault);
 
-	return (java_lang_Object*)vm_call_method(
-		m_parseAnnotationDefault, NULL,
-		this, annotationDefault, constantPool);
+	h = vm_call_method(m_parseAnnotationDefault, NULL, rm, annotationDefault, constantPool);
+
+	return (java_lang_Object*) h;
 }
 
 
