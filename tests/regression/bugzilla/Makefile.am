@@ -32,10 +32,10 @@ CLEANFILES = \
 	*.class
 
 build:
-	$(JAVACCMD) -cp /usr/share/java/junit4.jar -d . $(srcdir)/*.java
+	$(JAVACCMD) -classpath /usr/share/java/junit4.jar -d . $(srcdir)/*.java
 
 check: build
-	$(JAVACMD) -cp /usr/share/java/junit4.jar:. org.junit.runner.JUnitCore All
+	$(JAVACMD) -classpath /usr/share/java/junit4.jar:. org.junit.runner.JUnitCore All
 
 
 ## Local variables:
