@@ -26,6 +26,7 @@ SUBDIRS = \
 	bugzilla \
 	codepatching \
 	jasmin \
+	junit \
 	native \
 	resolving
 
@@ -39,7 +40,6 @@ SOURCE_FILES = \
 	$(srcdir)/fptest.java \
 	$(srcdir)/fp.java \
 	$(srcdir)/extest.java \
-	$(srcdir)/clinitexception.java \
 	$(srcdir)/LoadDisplacementOverflow.java \
 	$(srcdir)/FieldDisplacementOverflow.java \
 	$(srcdir)/StackDisplacementOverflow.java \
@@ -54,7 +54,6 @@ EXTRA_DIST = \
 	fptest.output \
 	fp.output\
 	extest.2output \
-	clinitexception.2output \
 	LoadDisplacementOverflow.output \
 	FieldDisplacementOverflow.output \
 	StackDisplacementOverflow.output \
@@ -74,7 +73,6 @@ OUTPUT_JAVA_TESTS = \
 	fp \
 	extest \
 	\
-	clinitexception \
 	LoadDisplacementOverflow \
 	FieldDisplacementOverflow \
 	StackDisplacementOverflow \
@@ -84,7 +82,7 @@ OUTPUT_JAVA_TESTS = \
 check: build $(SIMPLE_JAVA_TESTS) $(OUTPUT_JAVA_TESTS)
 
 build:
-	@$(JAVACCMD) -d . $(SOURCE_FILES)
+	$(JAVACCMD) -d . $(SOURCE_FILES)
 
 $(SIMPLE_JAVA_TESTS):
 	@echo "$@: "
