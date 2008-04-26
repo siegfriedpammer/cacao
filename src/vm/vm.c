@@ -2240,7 +2240,8 @@ static char *vm_get_mainclass_from_jar(char *mainstring)
 	o = vm_call_method(m, o, s);
 
 	if (o == NULL) {
-		exceptions_print_stacktrace();
+		fprintf(stderr, "Failed to load Main-Class manifest attribute from\n");
+		fprintf(stderr, "%s\n", mainstring);
 		return NULL;
 	}
 
