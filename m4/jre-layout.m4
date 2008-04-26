@@ -1,9 +1,7 @@
 dnl m4/jre-layout.m4
 dnl
-dnl Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-dnl C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-dnl E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-dnl J. Wenninger, Institut f. Computersprachen - TU Wien
+dnl Copyright (C) 2007, 2008
+dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl 
 dnl This file is part of CACAO.
 dnl 
@@ -29,7 +27,7 @@ AC_DEFUN([AC_CHECK_WITH_JRE_LAYOUT],[
 AC_MSG_CHECKING(if we compile for a JRE-style directory layout)
 AC_ARG_WITH([jre-layout],
             [AS_HELP_STRING(--with-jre-layout,compile for JRE-style directory layout [[default=no]])],
-            [case "${enableval}" in
+            [case "${withval}" in
                 yes)
                     WITH_JRE_LAYOUT=yes
                     AC_DEFINE([WITH_JRE_LAYOUT], 1, [with JRE layout])
