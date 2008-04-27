@@ -24,7 +24,6 @@
 SUBDIRS = \
 	assertion \
 	bugzilla \
-	codepatching \
 	jasmin \
 	junit \
 	native \

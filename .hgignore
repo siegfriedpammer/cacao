@@ -44,7 +44,6 @@ tests/regression/*.class
 tests/regression/assertion/*.class
 tests/regression/assertion/packagetest/*.class
 tests/regression/bugzilla/*.class
-tests/regression/codepatching/*.class
 tests/regression/jasmin/*.class
 tests/regression/junit/*.class
 tests/regression/native/*.class

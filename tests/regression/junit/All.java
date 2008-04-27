@@ -44,6 +44,7 @@ public class All extends TestCase {
 
         // Add your test here.
 
+        suite.addTest(new TestSuite(TestPatcher.class));
         suite.addTest(new TestSuite(TestExceptionInStaticClassInitializer.class));
 
         return suite;
