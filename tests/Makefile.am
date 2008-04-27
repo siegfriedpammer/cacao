@@ -29,7 +29,7 @@ SUBDIRS = \
 	regression
 
 EXTRA_DIST = \
-	*.java
+	$(srcdir)/*.java
 
 CLEANFILES = \
 	*.class
