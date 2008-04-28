@@ -1,9 +1,7 @@
 /* src/vm/jit/alpha/md.c - machine dependent Alpha functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -27,7 +25,6 @@
 
 #include "config.h"
 
-#include <assert.h>
 #include <stdint.h>
 #include <ucontext.h>
 
@@ -41,10 +38,9 @@ extern void ieee_set_fp_control(unsigned long fp_control);
 #include "vm/jit/alpha/codegen.h"
 #include "vm/jit/alpha/md.h"
 
-#include "vm/exceptions.h"
-
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/trap.h"
 
 
 /* global variables ***********************************************************/
@@ -213,7 +209,7 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 		*(u4*)(savedmcode) = *(u4*)(pc);
 
 		/* build the machine code for the patch */
-		mcode = (0xa41f0000 | (EXCEPTION_HARDWARE_PATCHER));
+		mcode = (0xa41f0000 | (TRAP_PATCHER));
 
 		/* write the new machine code */
 		*(u4*)(pc) = mcode;
