@@ -259,7 +259,7 @@ bool codegen_emit(jitdata *jd)
 			M_BNEZ(REG_OUT0, 3);
 			disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
 			M_ALD(REG_ITMP3, REG_PV, disp);                   /* branch delay */
-			M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_NULLPOINTER);
+			M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_NullPointerException);
 		}
 
 		M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);

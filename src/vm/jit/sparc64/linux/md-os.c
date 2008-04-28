@@ -1,9 +1,7 @@
 /* src/vm/jit/sparc64/linux/md-os.c - machine dependent SPARC Linux functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -38,8 +36,10 @@
 
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 
 typedef struct sigcontext sigcontext;
@@ -121,7 +121,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *info , void *_p)
 
 	/* flush register windows? */
 	
-	val   = md_get_reg_from_context(ctx, d);
+	val  = md_get_reg_from_context(ctx, d);
 
 	/* check for special-load */
 
@@ -138,16 +138,16 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *info , void *_p)
 		type = (int) addr;
 	}
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* set registers */
 
-	ctx->sigc_regs.u_regs[REG_ITMP2_XPTR] = (intptr_t) p;
-	ctx->sigc_regs.u_regs[REG_ITMP3_XPC]  = (intptr_t) xpc;
-	ctx->sigc_regs.tpc                    = (intptr_t) asm_handle_exception;
-	ctx->sigc_regs.tnpc                   = (intptr_t) asm_handle_exception + 4;
+	ctx->sigc_regs.u_regs[REG_ITMP2_XPTR] = (uintptr_t) p;
+	ctx->sigc_regs.u_regs[REG_ITMP3_XPC]  = (uintptr_t) xpc;
+	ctx->sigc_regs.tpc                    = (uintptr_t) asm_handle_exception;
+	ctx->sigc_regs.tnpc                   = (uintptr_t) asm_handle_exception + 4;
 }
 
 
