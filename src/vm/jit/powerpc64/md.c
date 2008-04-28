@@ -41,6 +41,7 @@
 #include "vm/global.h"
 
 #include "vm/jit/jit.h"
+#include "vm/jit/trap.h"
 
 
 /* md_init *********************************************************************
@@ -177,7 +178,7 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 		*(u4*)(savedmcode) = *(u4*)(pc);
 
 		/* build the machine code for the patch */
-		mcode = (0x80000000 | (EXCEPTION_HARDWARE_PATCHER));
+		mcode = (0x80000000 | TRAP_PATCHER);
 
 		/* write the new machine code */
 		*(u4*)(pc) = (u4) mcode;
