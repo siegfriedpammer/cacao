@@ -328,7 +328,7 @@ java_handle_t *patcher_handler(u1 *pc)
 		printf("\tmachine code before = ");
 
 # if defined(ENABLE_DISASSEMBLER)
-		disassinstr(pr->mpc);
+		disassinstr((void *) pr->mpc);
 # else
 		printf("disassembler disabled\n");
 # endif
@@ -355,7 +355,7 @@ java_handle_t *patcher_handler(u1 *pc)
 		printf("\tmachine code after  = ");
 
 # if defined(ENABLE_DISASSEMBLER)
-		disassinstr(pr->mpc);
+		disassinstr((void *) pr->mpc);
 # else
 		printf("disassembler disabled\n");
 # endif
