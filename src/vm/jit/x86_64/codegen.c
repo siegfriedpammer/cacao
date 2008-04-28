@@ -67,6 +67,7 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
@@ -269,7 +270,7 @@ bool codegen_emit(jitdata *jd)
 		else {
 			M_TEST(REG_A0);
 			M_BNE(8);
-			M_ALD_MEM(REG_A0, EXCEPTION_HARDWARE_NULLPOINTER);
+			M_ALD_MEM(REG_A0, TRAP_NullPointerException);
 		}
 
 		M_AST(REG_A0, REG_SP, s1 * 8);

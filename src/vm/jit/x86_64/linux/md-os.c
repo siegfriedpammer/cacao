@@ -40,11 +40,11 @@
 #include "threads/thread.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
 #include "vm/signallocal.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
+#include "vm/jit/trap.h"
 #include "vm/jit/stacktrace.h"
 
 
@@ -152,7 +152,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		val = _mc->gregs[d];
 
-		if (type == EXCEPTION_HARDWARE_COMPILER) {
+		if (type == TRAP_COMPILER) {
 			/* The PV from the compiler stub is equal to the XPC. */
 
 			pv = xpc;
@@ -175,17 +175,17 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	else {
 		/* this was a normal NPE */
 
-		type = EXCEPTION_HARDWARE_NULLPOINTER;
+		type = TRAP_NullPointerException;
 		val  = 0;
 	}
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* Set registers. */
 
-	if (type == EXCEPTION_HARDWARE_COMPILER) {
+	if (type == TRAP_COMPILER) {
 		if (p == NULL) {
 			o = builtin_retrieve_exception();
 
@@ -237,14 +237,14 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	xpc = (u1 *) _mc->gregs[REG_RIP];
 	ra  = xpc;                          /* return address is equal to xpc     */
 
-	/* this is an ArithmeticException */
+	/* This is an ArithmeticException. */
 
-	type = EXCEPTION_HARDWARE_ARITHMETIC;
+	type = TRAP_ArithmeticException;
 	val  = 0;
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* set registers */
 
@@ -285,12 +285,12 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 
 	/* This is a patcher. */
 
-	type = EXCEPTION_HARDWARE_PATCHER;
+	type = TRAP_PATCHER;
 	val  = 0;
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* set registers */
 

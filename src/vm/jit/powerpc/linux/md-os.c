@@ -50,6 +50,7 @@
 #endif
 
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 #include "vmcore/system.h"
 
@@ -110,7 +111,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		type = disp;
 
-		if (type == EXCEPTION_HARDWARE_COMPILER) {
+		if (type == TRAP_COMPILER) {
 			/* The XPC is the RA minus 4, because the RA points to the
 			   instruction after the call. */
 
@@ -122,20 +123,17 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		   define is 0. */
 
 		addr = _gregs[s1];
-		type = EXCEPTION_HARDWARE_NULLPOINTER;
-
-		if (addr != 0)
-			vm_abort("md_signal_handler_sigsegv: faulting address is not NULL: addr=%p", addr);
+		type = addr;
 	}
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* Set registers. */
 
 	switch (type) {
-	case EXCEPTION_HARDWARE_COMPILER:
+	case TRAP_COMPILER:
 		if (p != NULL) {
 			_gregs[REG_PV] = (uintptr_t) p;
 			_gregs[PT_NIP] = (uintptr_t) p;
@@ -156,7 +154,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		/* fall-through */
 
-	case EXCEPTION_HARDWARE_PATCHER:
+	case TRAP_PATCHER:
 		if (p == NULL)
 			break;
 
@@ -212,20 +210,20 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 
 	s1 = M_OP3_GET_A(mcode);
 
-	/* for now we only handle ArrayIndexOutOfBoundsException */
+	/* For now we only handle ArrayIndexOutOfBoundsException. */
 
-	type = EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS;
+	type = TRAP_ArrayIndexOutOfBoundsException;
 	val  = _gregs[s1];
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
-	/* set registers */
+	/* Set registers. */
 
-	_gregs[REG_ITMP1_XPTR] = (intptr_t) p;
-	_gregs[REG_ITMP2_XPC]  = (intptr_t) xpc;
-	_gregs[PT_NIP]         = (intptr_t) asm_handle_exception;
+	_gregs[REG_ITMP1_XPTR] = (uintptr_t) p;
+	_gregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
+	_gregs[PT_NIP]         = (uintptr_t) asm_handle_exception;
 }
 
 

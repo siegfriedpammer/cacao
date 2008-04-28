@@ -29,6 +29,11 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "vm/jit/s390/arch.h"
+#include "vm/jit/s390/codegen.h"
+#include "vm/jit/s390/emit.h"
+#include "vm/jit/s390/md-abi.h"
+
 #include "native/jni.h"
 #include "native/localref.h"
 #include "native/native.h"
@@ -40,9 +45,14 @@
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/types.h"
+#include "vm/stringlocal.h"
+#include "vm/vm.h"
+
 #include "vm/jit/abi.h"
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
@@ -58,14 +68,9 @@
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
-#include "vm/jit/s390/arch.h"
-#include "vm/jit/s390/codegen.h"
-#include "vm/jit/s390/emit.h"
-#include "vm/jit/s390/md-abi.h"
 #include "vm/jit/stacktrace.h"
-#include "vm/types.h"
-#include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/jit/trap.h"
+
 
 /* DO__LOG generates a call to do__log. No registers are destroyed,
  * so you may use it anywhere. regs is an array containing all general
@@ -372,7 +377,7 @@ bool codegen_emit(jitdata *jd)
 		else {
 			M_TEST(REG_A0);
 			M_BNE(SZ_BRC + SZ_ILL);
-			M_ILL(EXCEPTION_HARDWARE_NULLPOINTER);
+			M_ILL(TRAP_NullPointerException);
 		}
 
 		disp = dseg_add_functionptr(cd, LOCK_monitor_enter);

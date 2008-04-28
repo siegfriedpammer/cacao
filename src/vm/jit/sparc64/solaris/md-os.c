@@ -1,9 +1,7 @@
 /* src/vm/jit/sparc64/solaris/md-os.c - machine dependent SPARC Solaris functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -42,8 +40,10 @@
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 
 ptrint md_get_reg_from_context(mcontext_t *_mc, u4 rindex)
@@ -134,20 +134,20 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		/* This is a normal NPE: addr must be NULL and the NPE-type
 		   define is 0. */
 
-		addr  = md_get_reg_from_context(_mc, s1);
+		addr = md_get_reg_from_context(_mc, s1);
 		type = (int) addr;
 	}
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
-	/* set registers */
+	/* Set registers. */
 
-	_mc->gregs[REG_G2]  = (intptr_t) p;                     /* REG_ITMP2_XPTR */
-	_mc->gregs[REG_G3]  = (intptr_t) xpc;                    /* REG_ITMP3_XPC */
-	_mc->gregs[REG_PC]  = (intptr_t) asm_handle_exception;
-	_mc->gregs[REG_nPC] = (intptr_t) asm_handle_exception + 4;	
+	_mc->gregs[REG_G2]  = (uintptr_t) p;                    /* REG_ITMP2_XPTR */
+	_mc->gregs[REG_G3]  = (uintptr_t) xpc;                   /* REG_ITMP3_XPC */
+	_mc->gregs[REG_PC]  = (uintptr_t) asm_handle_exception;
+	_mc->gregs[REG_nPC] = (uintptr_t) asm_handle_exception + 4;	
 }
 
 

@@ -38,12 +38,12 @@
 #include "threads/thread.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
 #include "vm/signallocal.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 #include "vmcore/system.h"
 
@@ -97,7 +97,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		type = disp;
 
-		if (type == EXCEPTION_HARDWARE_COMPILER) {
+		if (type == TRAP_COMPILER) {
 			/* The XPC is the RA minus 1, because the RA points to the
 			   instruction after the call. */
 
@@ -112,14 +112,14 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		type = (int) addr;
 	}
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* Set registers. */
 
 	switch (type) {
-	case EXCEPTION_HARDWARE_COMPILER:
+	case TRAP_COMPILER:
 		if (p != NULL) {
 			_mc->sc_regs[REG_PV] = (uintptr_t) p;
 			_mc->sc_pc           = (uintptr_t) p;
@@ -140,7 +140,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		/* fall-through */
 
-	case EXCEPTION_HARDWARE_PATCHER:
+	case TRAP_PATCHER:
 		if (p == NULL)
 			break;
 

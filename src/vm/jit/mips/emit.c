@@ -1,9 +1,7 @@
 /* src/vm/jit/mips/emit.c - MIPS code emitter functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -50,6 +48,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
+#include "vm/jit/trap.h"
 
 #include "vmcore/options.h"
 
@@ -496,7 +495,7 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_BNEZ(reg, 2);
 		M_NOP;
-		M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_ARITHMETIC);
+		M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_ArithmeticException);
 	}
 }
 
@@ -514,7 +513,7 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 		M_CMPULT(s2, REG_ITMP3, REG_ITMP3);
 		M_BNEZ(REG_ITMP3, 2);
 		M_NOP;
-		M_ALD_INTERN(s2, REG_ZERO, EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS);
+		M_ALD_INTERN(s2, REG_ZERO, TRAP_ArrayIndexOutOfBoundsException);
 	}
 }
 
@@ -530,7 +529,7 @@ void emit_arraystore_check(codegendata *cd, instruction *iptr)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_BNEZ(REG_RESULT, 2);
 		M_NOP;
-		M_ALD_INTERN(REG_RESULT, REG_ZERO, EXCEPTION_HARDWARE_ARRAYSTORE);
+		M_ALD_INTERN(REG_RESULT, REG_ZERO, TRAP_ArrayStoreException);
 	}
 }
 
@@ -562,7 +561,7 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 		}
 
 		M_NOP;
-		M_ALD_INTERN(s1, REG_ZERO, EXCEPTION_HARDWARE_CLASSCAST);
+		M_ALD_INTERN(s1, REG_ZERO, TRAP_ClassCastException);
 	}
 }
 
@@ -578,7 +577,7 @@ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_BNEZ(reg, 2);
 		M_NOP;
-		M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_NULLPOINTER);
+		M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_NullPointerException);
 	}
 }
 
@@ -594,7 +593,7 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_BNEZ(REG_RESULT, 2);
 		M_NOP;
-		M_ALD_INTERN(REG_RESULT, REG_ZERO, EXCEPTION_HARDWARE_EXCEPTION);
+		M_ALD_INTERN(REG_RESULT, REG_ZERO, TRAP_CHECK_EXCEPTION);
 	}
 }
 
@@ -607,7 +606,7 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 
 void emit_trap_compiler(codegendata *cd)
 {
-	M_ALD_INTERN(REG_METHODPTR, REG_ZERO, EXCEPTION_HARDWARE_COMPILER);
+	M_ALD_INTERN(REG_METHODPTR, REG_ZERO, TRAP_COMPILER);
 }
 
 
@@ -624,9 +623,9 @@ uint32_t emit_trap(codegendata *cd)
 	/* Get machine code which is patched back in later. The
 	   trap is 1 instruction word long. */
 
-	mcode = *((u4 *) cd->mcodeptr);
+	mcode = *((uint32_t *) cd->mcodeptr);
 
-	M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_PATCHER);
+	M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_PATCHER);
 
 	return mcode;
 }

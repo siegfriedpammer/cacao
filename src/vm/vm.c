@@ -104,6 +104,8 @@
 # include "vm/jit/python.h"
 #endif
 
+#include "vm/jit/trap.h"
+
 #include "vmcore/classcache.h"
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"
@@ -1516,7 +1518,9 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	primitive_postinit();
 	method_init();
 
-	exceptions_init();
+#if defined(ENABLE_JIT)
+	trap_init();
+#endif
 
 	if (!builtin_init())
 		vm_abort("vm_create: builtin_init failed");

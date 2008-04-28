@@ -45,6 +45,7 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 
 /* md_init *********************************************************************
@@ -166,7 +167,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		type = disp;
 		val  = _gregs[d];
 
-		if (type == EXCEPTION_HARDWARE_COMPILER) {
+		if (type == TRAP_COMPILER) {
 			/* The XPC is the RA minus 4, because the RA points to the
 			   instruction after the call. */
 
@@ -178,18 +179,18 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		   define is 0. */
 
 		addr = _gregs[s1];
-		type = (s4) addr;
+		type = (int) addr;
 		val  = 0;
 	}
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* Set registers. */
 
 	switch (type) {
-	case EXCEPTION_HARDWARE_COMPILER:
+	case TRAP_COMPILER:
 		if (p != NULL) {
 			_gregs[REG_PV]  = (uintptr_t) p;
 #if defined(__UCLIBC__)
@@ -214,7 +215,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		/* fall-through */
 
-	case EXCEPTION_HARDWARE_PATCHER:
+	case TRAP_PATCHER:
 		if (p == NULL) {
 			/* We set the PC again because the cause may have changed
 			   the XPC. */

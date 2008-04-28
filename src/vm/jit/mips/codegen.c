@@ -56,6 +56,7 @@
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
+#include "vm/jit/trap.h"
 
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
@@ -296,7 +297,7 @@ bool codegen_emit(jitdata *jd)
 			M_BNEZ(REG_A0, 2);
 			disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
 			M_ALD(REG_ITMP3, REG_PV, disp);                   /* branch delay */
-			M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_NULLPOINTER);
+			M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_NullPointerException);
 		}
 
 		M_JSR(REG_RA, REG_ITMP3);
