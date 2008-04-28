@@ -39,7 +39,7 @@
 # include <fcntl.h>
 #endif
 
-#if defined(WITH_JRE_LAYOUT)
+#if defined(ENABLE_JRE_LAYOUT)
 # if defined(HAVE_LIBGEN_H)
 #  include <libgen.h>
 # endif
@@ -147,7 +147,7 @@ inline static int system_connect(int sockfd, const struct sockaddr *serv_addr, s
 #endif
 }
 
-#if defined(WITH_JRE_LAYOUT)
+#if defined(ENABLE_JRE_LAYOUT)
 inline static char *system_dirname(char *path)
 {
 #if defined(HAVE_DIRNAME)

@@ -23,19 +23,19 @@ dnl 02110-1301, USA.
 
 dnl if we compile for a JRE-style directory layout
 
-AC_DEFUN([AC_CHECK_WITH_JRE_LAYOUT],[
+AC_DEFUN([AC_CHECK_ENABLE_JRE_LAYOUT],[
 AC_MSG_CHECKING(if we compile for a JRE-style directory layout)
-AC_ARG_WITH([jre-layout],
-            [AS_HELP_STRING(--with-jre-layout,compile for JRE-style directory layout [[default=no]])],
-            [case "${withval}" in
-                yes)
-                    WITH_JRE_LAYOUT=yes
-                    AC_DEFINE([WITH_JRE_LAYOUT], 1, [with JRE layout])
-                    ;;
-                *)
-                    WITH_JRE_LAYOUT=no
-                    ;;
-             esac],
-            [WITH_JRE_LAYOUT=no])
-AC_MSG_RESULT(${WITH_JRE_LAYOUT})
+AC_ARG_ENABLE([jre-layout],
+              [AS_HELP_STRING(--enable-jre-layout,compile for JRE-style directory layout [[default=disabled]])],
+              [case "${enableval}" in
+                  yes)
+                      ENABLE_JRE_LAYOUT=yes
+                      AC_DEFINE([ENABLE_JRE_LAYOUT], 1, [enable JRE layout])
+                      ;;
+                  *)
+                      ENABLE_JRE_LAYOUT=no
+                      ;;
+               esac],
+              [ENABLE_JRE_LAYOUT=no])
+AC_MSG_RESULT(${ENABLE_JRE_LAYOUT})
 ])

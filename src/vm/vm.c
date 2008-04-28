@@ -635,7 +635,7 @@ static void vm_printconfig(void)
 	printf("  initial heap size              : %d\n", HEAP_STARTSIZE);
 	printf("  stack size                     : %d\n", STACK_SIZE);
 
-#if defined(WITH_JRE_LAYOUT)
+#if defined(ENABLE_JRE_LAYOUT)
 	/* When we're building with JRE-layout, the default paths are the
 	   same as the runtime paths. */
 #else

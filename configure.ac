@@ -768,12 +768,12 @@ AC_CHECK_WITH_CLASSPATH
 
 dnl Now we check for jre-layout so we can skip some checks that are
 dnl not required.
-AC_CHECK_WITH_JRE_LAYOUT
+AC_CHECK_ENABLE_JRE_LAYOUT
 
 AC_CHECK_WITH_CLASSPATH_PREFIX
 AC_CHECK_WITH_CLASSPATH_CLASSES
 
-if test x"${WITH_JRE_LAYOUT}" = "xno"; then
+if test x"${ENABLE_JRE_LAYOUT}" = "xno"; then
    AC_CHECK_WITH_CLASSPATH_LIBDIR
 fi
 

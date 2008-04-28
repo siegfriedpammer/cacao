@@ -1,9 +1,7 @@
 /* src/native/vm/gnu/gnu_classpath_VMSystemProperties.c
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -100,7 +98,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *env, jclass clazz, java_util_Properties *properties)
 {
 	java_handle_t *p;
-#if defined(WITH_JRE_LAYOUT)
+#if defined(ENABLE_JRE_LAYOUT)
 	char *java_home;
 	char *path;
 	s4    len;
@@ -115,7 +113,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *en
 
 	/* post-set some properties */
 
-#if defined(WITH_JRE_LAYOUT)
+#if defined(ENABLE_JRE_LAYOUT)
 	/* XXX when we do it that way, we can't set these properties on
 	   commandline */
 
