@@ -57,6 +57,7 @@ typedef struct ucontext {
 #include "vm/vm.h"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/executionstate.h"
 #include "vm/jit/stacktrace.h"
 #include "vm/jit/trap.h"
 
@@ -230,6 +231,82 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 	thread->pc = pc;
 }
 #endif
+
+
+/**
+ * Read the given context into an executionstate.
+ *
+ * @param es      execution state
+ * @param context machine context
+ */
+void md_executionstate_read(executionstate_t *es, void *context)
+{
+	vm_abort("md_executionstate_read: IMPLEMENT ME!");
+
+#if 0
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	int         i;
+
+	_uc = (ucontext_t *) context;
+	_mc = &_uc->uc_mcontext;
+
+	/* read special registers */
+	es->pc = (u1 *) _mc->sc_pc;
+	es->sp = (u1 *) _mc->sc_regs[REG_SP];
+	es->pv = (u1 *) _mc->sc_regs[REG_PV];
+	es->ra = (u1 *) _mc->sc_regs[REG_RA];
+
+	/* read integer registers */
+	for (i = 0; i < INT_REG_CNT; i++)
+		es->intregs[i] = _mc->sc_regs[i];
+
+	/* read float registers */
+	/* Do not use the assignment operator '=', as the type of
+	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
+
+	assert(sizeof(_mc->sc_fpregs) == sizeof(es->fltregs));
+	system_memcpy(&es->fltregs, &_mc->sc_fpregs, sizeof(_mc->sc_fpregs));
+#endif
+}
+
+
+/**
+ * Write the given executionstate back to the context.
+ *
+ * @param es      execution state
+ * @param context machine context
+ */
+void md_executionstate_write(executionstate_t *es, void *context)
+{
+	vm_abort("md_executionstate_write: IMPLEMENT ME!");
+
+#if 0
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	int         i;
+
+	_uc = (ucontext_t *) context;
+	_mc = &_uc->uc_mcontext;
+
+	/* write integer registers */
+	for (i = 0; i < INT_REG_CNT; i++)
+		_mc->sc_regs[i] = es->intregs[i];
+
+	/* write float registers */
+	/* Do not use the assignment operator '=', as the type of
+	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
+
+	assert(sizeof(_mc->sc_fpregs) == sizeof(es->fltregs));
+	system_memcpy(&_mc->sc_fpregs, &es->fltregs, sizeof(_mc->sc_fpregs));
+
+	/* write special registers */
+	_mc->sc_pc           = (ptrint) es->pc;
+	_mc->sc_regs[REG_SP] = (ptrint) es->sp;
+	_mc->sc_regs[REG_PV] = (ptrint) es->pv;
+	_mc->sc_regs[REG_RA] = (ptrint) es->ra;
+#endif
+}
 
 
 /* md_critical_section_restart *************************************************
