@@ -58,6 +58,7 @@ typedef struct ucontext {
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 
 /* md_signal_handler_sigsegv ***************************************************
@@ -98,24 +99,21 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	mcode = *((s4 *) xpc);
 
-	/* this is a NullPointerException */
+	/* This is a NullPointerException. */
 
 	addr = *((s4 *) _sc + OFFSET(scontext_t, arm_r0)/4 + ((mcode >> 16) & 0x0f));
-	type = EXCEPTION_HARDWARE_NULLPOINTER;
+	type = addr;
 	val  = 0;
 
-	if (addr != 0)
-		vm_abort("md_signal_handler_sigsegv: faulting address is not NULL: addr=%p", addr);
+	/* Handle the trap. */
 
-	/* Handle the type. */
-
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* set registers */
 
-	_sc->arm_r10 = (intptr_t) p;
-	_sc->arm_fp  = (intptr_t) xpc;
-	_sc->arm_pc  = (intptr_t) asm_handle_exception;
+	_sc->arm_r10 = (uintptr_t) p;
+	_sc->arm_fp  = (uintptr_t) xpc;
+	_sc->arm_pc  = (uintptr_t) asm_handle_exception;
 }
 
 
@@ -166,17 +164,17 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	type = (mcode >> 8) & 0x0fff;
 	val  = *((s4 *) _sc + OFFSET(scontext_t, arm_r0)/4 + (mcode & 0x0f));
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* set registers if we have an exception, continue execution
 	   otherwise (this is needed for patchers to work) */
 
 	if (p != NULL) {
-		_sc->arm_r10 = (intptr_t) p;
-		_sc->arm_fp  = (intptr_t) xpc;
-		_sc->arm_pc  = (intptr_t) asm_handle_exception;
+		_sc->arm_r10 = (uintptr_t) p;
+		_sc->arm_fp  = (uintptr_t) xpc;
+		_sc->arm_pc  = (uintptr_t) asm_handle_exception;
 	}
 }
 
