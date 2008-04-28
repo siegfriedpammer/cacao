@@ -1,9 +1,7 @@
 /* src/vm/jit/mips/linux/md-os.c - machine dependent MIPS Linux functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -121,7 +119,8 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	sp  = (u1 *) (ptrint) _gregs[REG_SP];
 	ra  = (u1 *) (ptrint) _gregs[REG_RA];        /* this is correct for leafs */
 
-#if !defined(__UCLIBC__) && ((__GLIBC__ == 2) && (__GLIBC_MINOR__ < 5))
+#if !defined(__UCLIBC__)
+# if ((__GLIBC__ == 2) && (__GLIBC_MINOR__ < 5))
 	/* NOTE: We only need this for pre glibc-2.5. */
 
 	xpc = (u1 *) (ptrint) _mc->pc;
@@ -144,6 +143,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		xpc = xpc - 4;
 		break;
 	}
+# else
+	xpc = (u1 *) (ptrint) _mc->pc;
+# endif
 #else
 	xpc = (u1 *) (ptrint) _gregs[CTX_EPC];
 #endif
