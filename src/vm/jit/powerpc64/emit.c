@@ -1,9 +1,7 @@
 /* src/vm/jit/powerpc64/emit.c - PowerPC64 code emitter functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -46,6 +44,7 @@
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/trace.h"
+#include "vm/jit/trap.h"
 
 #include "vmcore/options.h"
 
@@ -505,19 +504,11 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1, s4 s2)
 {
 	if (checkbounds) {
-#define SOFTEX 0
-#if SOFTEX
-		M_ILD(REG_ITMP3, s1, OFFSET(java_array_t, size));
-		M_CMPU(s2, REG_ITMP3);
-		codegen_add_arrayindexoutofboundsexception_ref(cd, s2);
-		BRANCH_NOPS;
-#else
 		M_ILD(REG_ITMP3, s1, OFFSET(java_array_t, size));
 		M_CMPU(s2, REG_ITMP3);
 		M_BLT(1);
 		/* ALD is 4 byte aligned, ILD 2, onyl LWZ is byte aligned */
-		M_LWZ(s2, REG_ZERO, EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS);
-#endif
+		M_LWZ(s2, REG_ZERO, TRAP_ArrayIndexOutOfBoundsException);
 	}
 }
 
@@ -534,7 +525,7 @@ void emit_arraystore_check(codegendata *cd, instruction *iptr)
 		M_TST(REG_RESULT);
 		M_BNE(1);
 		/* ALD is 4 byte aligned, ILD 2, onyl LWZ is byte aligned */
-		M_LWZ(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_ARRAYSTORE);
+		M_LWZ(REG_ZERO, REG_ZERO, TRAP_ArrayStoreException);
 	}
 }
 
@@ -548,35 +539,13 @@ void emit_arraystore_check(codegendata *cd, instruction *iptr)
 void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr))	{
-	#if SOFTEX
-		M_TST(reg);
-		codegen_add_arithmeticexception_ref(cd);
-		BRANCH_NOPS;
-	#else
 		M_TST(reg);
 		M_BNE(1);
 		/* ALD is 4 byte aligned, ILD 2, onyl LWZ is byte aligned */
-		M_LWZ(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_ARITHMETIC);
-	#endif
+		M_LWZ(REG_ZERO, REG_ZERO, TRAP_ArithmeticException);
 	}
 }
 
-#if 0
-/* emit_arraystore_check *******************************************************
-
-   Emit an ArrayStoreException check.
-
-*******************************************************************************/
-
-void emit_arraystore_check(codegendata *cd, instruction *iptr, s4 reg)
-{
-	if (INSTRUCTION_MUST_CHECK(iptr))	{
-		M_TST(REG_RESULT);
-		codegen_add_arraystoreexception_ref(cd);
-		BRANCH_NOPS;
-	}
-}
-#endif
 
 /* emit_classcast_check ********************************************************
 
@@ -587,27 +556,22 @@ void emit_arraystore_check(codegendata *cd, instruction *iptr, s4 reg)
 void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 reg, s4 s1)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr))	{
-	#if SOFTEX
-		codegen_add_classcastexception_ref(cd, condition, s1);
-		BRANCH_NOPS;
-		M_NOP;
-	#else
 		switch(condition)	{
-			case BRANCH_LE:
-				M_BGT(1);
-				break;
-			case BRANCH_EQ:
-				M_BNE(1);
-				break;
-			case BRANCH_GT:
-				M_BLE(1);
-				break;
-			default:
-				vm_abort("emit_classcast_check: unknown condition %d", condition);
+		case BRANCH_LE:
+			M_BGT(1);
+			break;
+		case BRANCH_EQ:
+			M_BNE(1);
+			break;
+		case BRANCH_GT:
+			M_BLE(1);
+			break;
+		default:
+			vm_abort("emit_classcast_check: unknown condition %d", condition);
 		}
+
 		/* ALD is 4 byte aligned, ILD 2, onyl LWZ is byte aligned */
-		M_LWZ(s1, REG_ZERO, EXCEPTION_HARDWARE_CLASSCAST);
-	#endif
+		M_LWZ(s1, REG_ZERO, TRAP_ClassCastException);
 	}
 }
 
@@ -624,7 +588,7 @@ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 		M_TST(reg);
 		M_BNE(1);
 		/* ALD is 4 byte aligned, ILD 2, onyl LWZ is byte aligned */
-		M_LWZ(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_NULLPOINTER);
+		M_LWZ(REG_ZERO, REG_ZERO, TRAP_NullPointerException);
 	}
 }
 
@@ -637,16 +601,10 @@ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 void emit_exception_check(codegendata *cd, instruction *iptr)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr))	{
-	#if SOFTEX
-		M_CMPI(REG_RESULT, 0);
-		codegen_add_fillinstacktrace_ref(cd);
-		BRANCH_NOPS;
-	#else
 		M_TST(REG_RESULT);
 		M_BNE(1);
 		/* ALD is 4 byte aligned, ILD 2, onyl LWZ is byte aligned */
-		M_LWZ(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_EXCEPTION);
-	#endif
+		M_LWZ(REG_ZERO, REG_ZERO, TRAP_CHECK_EXCEPTION);
 	}
 }
 
@@ -659,7 +617,7 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 
 void emit_trap_compiler(codegendata *cd)
 {
-	M_LWZ(REG_METHODPTR, REG_ZERO, EXCEPTION_HARDWARE_COMPILER);
+	M_LWZ(REG_METHODPTR, REG_ZERO, TRAP_COMPILER);
 }
 
 
@@ -679,7 +637,7 @@ uint32_t emit_trap(codegendata *cd)
 	mcode = *((uint32_t *) cd->mcodeptr);
 
 	/* ALD is 4 byte aligned, ILD 2, only LWZ is byte aligned */
-	M_LWZ(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_PATCHER);
+	M_LWZ(REG_ZERO, REG_ZERO, TRAP_PATCHER);
 
 	return mcode;
 }
