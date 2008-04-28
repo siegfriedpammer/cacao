@@ -1341,7 +1341,7 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 #endif
 
 #if !defined(NDEBUG)
-# if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__) || defined(__S390__)
+# if defined(__ALPHA__) || defined(__M68K__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 	/* BEFORE: filling the local reference table */
 
@@ -1419,7 +1419,10 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 #elif defined(__I386__)
 	datasp   = sp + framesize;
 	ret_regs = (uint64_t *) (sp + 2 * SIZEOF_VOID_P);
-#elif defined(__M68K__) || defined(__X86_64__)
+#elif defined(__M68K__)
+	datasp   = sp + framesize;
+	ret_regs = (uint64_t *) (sp + 2 * 8);
+#elif defined(__X86_64__)
 	datasp   = sp + framesize;
 	ret_regs = (uint64_t *) sp;
 #elif defined(__POWERPC__)
@@ -1463,7 +1466,7 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 #endif
 
 #if !defined(NDEBUG)
-# if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__) || defined(__S390__)
+# if defined(__ALPHA__) || defined(__M68K__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 	/* AFTER: unwrapping the return value */
 
