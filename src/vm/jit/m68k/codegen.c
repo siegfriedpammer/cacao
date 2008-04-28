@@ -29,7 +29,6 @@
 #include <stdint.h>
 
 #include "md-abi.h"
-#include "md-os.h"
 
 #include "vm/types.h"
 #include "vm/jit/m68k/codegen.h"
@@ -60,6 +59,7 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
@@ -258,7 +258,7 @@ bool codegen_emit(jitdata *jd)
 			M_ALD(REG_ATMP1, REG_SP, cd->stackframesize + 4);
 			M_ATST(REG_ATMP1);
 			M_BNE(2);
-			M_TRAP(M68K_EXCEPTION_HARDWARE_NULLPOINTER);
+			M_TRAP(TRAP_NullPointerException);
 		}
 
 		M_AST(REG_ATMP1, REG_SP, rd->memuse * 8);
