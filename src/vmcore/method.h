@@ -159,6 +159,14 @@ struct lineinfo {
 extern methodinfo *method_java_lang_reflect_Method_invoke;
 
 
+/* inline functions ***********************************************************/
+
+inline static bool method_is_builtin(methodinfo* m)
+{
+	return m->flags & ACC_METHOD_BUILTIN;
+}
+
+
 /* function prototypes ********************************************************/
 
 void method_init(void);
