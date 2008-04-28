@@ -33,6 +33,8 @@ ltmain.sh
 missing
 contrib/setenvinstalled
 contrib/setenvsource
+doc/doxygen/html
+doc/doxygen/latex
 src/cacao/cacao
 src/cacaoh/cacaoh
 src/classes/classes/

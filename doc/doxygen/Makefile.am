@@ -1,6 +1,6 @@
-## doc/Makefile.am
+## doc/doxygen/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2008
+## Copyright (C) 2008
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -21,46 +21,15 @@
 ## 02110-1301, USA.
 
 
-SUBDIRS = \
-	doxygen \
-	handbook
-
 dist_noinst_DATA = \
-	assertions.tex \
-	annotations.tex \
-	jsr.bib
+	Doxyfile
 
-EXTRA_DIST = \
-	inlining_stacktrace.txt \
-	native_threads.txt \
-	stack.txt
+doxygen:
+	doxygen
 
-CLEANFILES = \
-	annotations.aux \
-	annotations.bbl \
-	annotations.blg \
-	annotations.dvi \
-	annotations.lof \
-	annotations.log \
-	annotations.lot \
-	annotations.toc \
-	annotations.idx \
-	annotations.out \
-	annotations.tex~ \
-	assertions.aux \
-	assertions.dvi \
-	assertions.log \
-	assertions.toc
+clean-local:
+	-rm -rf html latex
 
-annotations:
-	latex annotations
-	bibtex annotations
-	latex annotations
-	latex annotations
-
-assertions:
-	latex assertions
-	latex assertions
 
 ## Local variables:
 ## mode: Makefile
