@@ -43,6 +43,7 @@
 #include "vm/jit/methodheader.h"
 #include "vm/jit/methodtree.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 #include "vmcore/options.h" /* XXX debug */
@@ -182,20 +183,20 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	pv = (u1 *)_mc->gregs[REG_PV] - N_PV_OFFSET;
 	sp = (u1 *)_mc->gregs[REG_SP];
 	ra = xpc;
-	type = EXCEPTION_HARDWARE_NULLPOINTER;
+	type = TRAP_NullPointerException;
 	val = 0;
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	if (p != NULL) {
-		_mc->gregs[REG_ITMP3_XPTR] = (intptr_t) p;
-		_mc->gregs[REG_ITMP1_XPC]  = (intptr_t) xpc;
-		_mc->psw.addr              = (intptr_t) asm_handle_exception;
+		_mc->gregs[REG_ITMP3_XPTR] = (uintptr_t) p;
+		_mc->gregs[REG_ITMP1_XPC]  = (uintptr_t) xpc;
+		_mc->psw.addr              = (uintptr_t) asm_handle_exception;
 	}
 	else {
-		_mc->psw.addr              = (intptr_t) xpc;
+		_mc->psw.addr              = (uintptr_t) xpc;
 	}
 }
 
@@ -230,7 +231,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 		sp = (u1 *)_mc->gregs[REG_SP];
 		val = (ptrint)_mc->gregs[reg];
 
-		if (EXCEPTION_HARDWARE_COMPILER == type) {
+		if (TRAP_COMPILER == type) {
 			/* The PV from the compiler stub is equal to the XPC. */
 
 			pv = xpc;
@@ -242,28 +243,28 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 			xpc = ra - 2;
 		}
 
-		/* Handle the type. */
+		/* Handle the trap. */
 
-		p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+		p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
-		if (EXCEPTION_HARDWARE_COMPILER == type) {
+		if (TRAP_COMPILER == type) {
 			if (NULL == p) {
-				_mc->gregs[REG_ITMP3_XPTR] = (intptr_t) builtin_retrieve_exception();
-				_mc->gregs[REG_ITMP1_XPC]  = (intptr_t) ra - 2;
-				_mc->gregs[REG_PV]         = (intptr_t) md_codegen_get_pv_from_pc(ra);
-				_mc->psw.addr              = (intptr_t) asm_handle_exception;
+				_mc->gregs[REG_ITMP3_XPTR] = (uintptr_t) builtin_retrieve_exception();
+				_mc->gregs[REG_ITMP1_XPC]  = (uintptr_t) ra - 2;
+				_mc->gregs[REG_PV]         = (uintptr_t) md_codegen_get_pv_from_pc(ra);
+				_mc->psw.addr              = (uintptr_t) asm_handle_exception;
 			} else {
-				_mc->gregs[REG_PV]         = (intptr_t) p;
-				_mc->psw.addr              = (intptr_t) p;
+				_mc->gregs[REG_PV]         = (uintptr_t) p;
+				_mc->psw.addr              = (uintptr_t) p;
 			}
 		} else {
 			if (p != NULL) {
-				_mc->gregs[REG_ITMP3_XPTR] = (intptr_t) p;
-				_mc->gregs[REG_ITMP1_XPC]  = (intptr_t) xpc;
-				_mc->psw.addr              = (intptr_t) asm_handle_exception;
+				_mc->gregs[REG_ITMP3_XPTR] = (uintptr_t) p;
+				_mc->gregs[REG_ITMP1_XPC]  = (uintptr_t) xpc;
+				_mc->psw.addr              = (uintptr_t) asm_handle_exception;
 			}
 			else {
-				_mc->psw.addr              = (intptr_t) xpc;
+				_mc->psw.addr              = (uintptr_t) xpc;
 			}
 		}
 	} else {
@@ -332,16 +333,16 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 			sp = (u1 *)_mc->gregs[REG_SP];
 			ra = xpc;
 
-			type = EXCEPTION_HARDWARE_ARITHMETIC;
+			type = TRAP_ArithmeticException;
 			val = 0;
 
-			/* Handle the type. */
+			/* Handle the trap. */
 
-			p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+			p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
-			_mc->gregs[REG_ITMP3_XPTR] = (intptr_t) p;
-			_mc->gregs[REG_ITMP1_XPC]  = (intptr_t) xpc;
-			_mc->psw.addr              = (intptr_t) asm_handle_exception;
+			_mc->gregs[REG_ITMP3_XPTR] = (uintptr_t) p;
+			_mc->gregs[REG_ITMP1_XPC]  = (uintptr_t) xpc;
+			_mc->psw.addr              = (uintptr_t) asm_handle_exception;
 
 			return;
 		}
