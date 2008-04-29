@@ -31,10 +31,9 @@ SUBDIRS = \
 
 JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
-JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
+JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -nowarn -bootclasspath $(BOOTCLASSPATH)
 
 SOURCE_FILES = \
-	$(srcdir)/HelloWorld.java \
 	$(srcdir)/jctest.java \
 	$(srcdir)/fptest.java \
 	$(srcdir)/fp.java \
@@ -63,9 +62,6 @@ CLEANFILES = \
 	*.class \
 	*.thisoutput
 
-SIMPLE_JAVA_TESTS = \
-	HelloWorld
-
 OUTPUT_JAVA_TESTS = \
 	jctest \
 	fptest \
@@ -78,14 +74,12 @@ OUTPUT_JAVA_TESTS = \
 	MinimalClassReflection \
 	TestAnnotations
 
-check: build $(SIMPLE_JAVA_TESTS) $(OUTPUT_JAVA_TESTS)
+check: build run
 
 build:
 	$(JAVACCMD) -d . $(SOURCE_FILES)
 
-$(SIMPLE_JAVA_TESTS):
-	@echo "$@: "
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(JAVACMD) $@
+run: $(OUTPUT_JAVA_TESTS)
 
 $(OUTPUT_JAVA_TESTS):
 	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD)" $@ $(srcdir)
