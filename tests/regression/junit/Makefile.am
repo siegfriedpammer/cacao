@@ -23,7 +23,7 @@
 
 JAVA     = LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
-JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
+JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -nowarn -bootclasspath $(BOOTCLASSPATH)
 
 EXTRA_DIST = \
 	$(srcdir)/*.java
@@ -31,10 +31,12 @@ EXTRA_DIST = \
 CLEANFILES = \
 	*.class
 
+check: build run
+
 build:
 	$(JAVACCMD) -classpath /usr/share/java/junit4.jar -d . $(srcdir)/*.java
 
-check: build
+run:
 	$(JAVACMD) -classpath /usr/share/java/junit4.jar:. org.junit.runner.JUnitCore All
 
 
