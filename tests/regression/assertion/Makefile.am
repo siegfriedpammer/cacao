@@ -23,7 +23,7 @@
 
 JAVA     = $(top_builddir)/src/cacao/cacao
 JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
-JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
+JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH) -source 1.5 -target 1.5
 
 SOURCE_FILES = \
 	$(srcdir)/testassertions.java \
@@ -67,10 +67,12 @@ ASSERTION_TESTS = \
 	ESA_TEST1 \
 	ESA_TEST2
 
-check: build $(ASSERTION_TESTS)
+check: build run
 
 build:
-	@$(JAVACCMD) -d . $(SOURCE_FILES)
+	$(JAVACCMD) -d . $(SOURCE_FILES)
+
+run: $(ASSERTION_TESTS)
 
 EA_TEST1:
 	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD) -ea" testassertions eatest1 enabled $(srcdir)
