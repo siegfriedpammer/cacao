@@ -1,3 +1,6 @@
+// This should run forever. If it stops, that's a good indication for a bug in
+// the VM.
+//
 // This test grew a bit more elaborate than anticipated...
 // It verifies that the JVM handles properly the case of a thread being
 // interrupted and notified at the same time.
