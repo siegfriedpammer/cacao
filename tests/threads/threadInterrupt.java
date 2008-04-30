@@ -1,3 +1,10 @@
+// This test has been added because of a bug in CACAO that allowed threads
+// blocked inside monitorenter to be interrupted. In the presence of the bug,
+// the program would not exit.
+//
+// The bug has been fixed as part of the sable lock implementation.
+// hg revision 2988182011bb ff (Wed Feb 06 18:46:34 2008 +0100)
+
 public class threadInterrupt {
 	public static class firstthread implements Runnable {
 		private threadInterrupt s;

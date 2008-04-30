@@ -1214,6 +1214,7 @@ static void linker_compute_class_values(classinfo *c)
 {
 	classinfo *subs;
 
+	/*printf("computing class %s\n", c->name->text);*/
 	c->vftbl->baseval = ++classvalue;
 
 	subs = c->sub;
