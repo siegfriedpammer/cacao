@@ -93,9 +93,6 @@
 #define asm_builtin_d2i                       _asm_builtin_d2i
 #define asm_builtin_d2l                       _asm_builtin_d2l
 
-#define asm_criticalsections                  _asm_criticalsections
-#define asm_getclassvalues_atomic             _asm_getclassvalues_atomic
-
 
 /* external defines ***********************************************************/
 
