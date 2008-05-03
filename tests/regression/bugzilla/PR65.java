@@ -1,4 +1,4 @@
-/* tests/regression/bugzilla/All.java - runs all CACAO regression unit tests
+/* tests/regression/bugzilla/PR65.java
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -26,29 +26,21 @@
 import junit.framework.*;
 import junit.textui.*;
 
-public class All extends TestCase {
-    /**
-     * Runs all CACAO regression unit tests using
-     * junit.textui.TestRunner
-     */
+public class PR65 extends TestCase {
     public static void main(String[] args) {
-        Test s = suite();
-        TestRunner.run(s);
+        TestRunner.run(suite());
     }
 
-    /**
-     * Collects all CACAO regression unit tests as one suite
-     */
     public static Test suite() {
-        TestSuite suite = new TestSuite("CACAO Regression Unit Tests");
+        return new TestSuite(PR65.class);
+    }
 
-        // Add your test here.
-
-        suite.addTest(new TestSuite(PR52.class));
-        suite.addTest(new TestSuite(PR57.class));
-        suite.addTest(new TestSuite(PR58.class));
-        suite.addTest(new TestSuite(PR65.class));
-
-        return suite;
+    public void test() {
+        try {
+            Object o = new int[2][1];
+            Number[][] na = (Number[][]) o;
+            fail("Should throw ClassCastException");
+        } catch (ClassCastException success) {
+        }
     }
 }
