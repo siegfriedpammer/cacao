@@ -81,6 +81,7 @@ stackframeinfo_t *_no_threads_stackframeinfo = NULL;
 #endif
 
 CYCLES_STATS_DECLARE(stacktrace_overhead        , 100, 1)
+CYCLES_STATS_DECLARE(stacktrace_fillInStackTrace, 40,  5000)
 CYCLES_STATS_DECLARE(stacktrace_get,              40,  5000)
 CYCLES_STATS_DECLARE(stacktrace_getClassContext , 40,  5000)
 CYCLES_STATS_DECLARE(stacktrace_getCurrentClass , 40,  5000)
