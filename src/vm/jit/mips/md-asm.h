@@ -1,9 +1,7 @@
 /* src/vm/jit/mips/md-asm.h - assembler defines for MIPS ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -21,12 +19,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
 
 */
 
@@ -233,15 +225,6 @@
 
 #if SIZEOF_VOID_P == 8
 
-#define SAVE_RETURN_REGISTERS(off) \
-	sd      v0,(0+(off))*8(sp)	; \
-	sdc1    fv0,(1+(off))*8(sp)	;
-
-#define RESTORE_RETURN_REGISTERS(off) \
-	ld      v0,(0+(off))*8(sp)	; \
-	ldc1    fv0,(1+(off))*8(sp)	;
-
-
 #define SAVE_ARGUMENT_REGISTERS(off) \
 	sd      a0,(0+(off))*8(sp)	; \
 	sd      a1,(1+(off))*8(sp)	; \
@@ -252,14 +235,14 @@
 	sd      a6,(6+(off))*8(sp)	; \
 	sd      a7,(7+(off))*8(sp)	; \
 	\
-	sdc1    fa0,(8+(off))*8(sp)	; \
-	sdc1    fa1,(9+(off))*8(sp)	; \
-	sdc1    fa2,(10+(off))*8(sp); \
-	sdc1    fa3,(11+(off))*8(sp); \
-	sdc1    fa4,(12+(off))*8(sp); \
-	sdc1    fa5,(13+(off))*8(sp); \
-	sdc1    fa6,(14+(off))*8(sp); \
-	sdc1    fa7,(15+(off))*8(sp); 
+	s.d     fa0,(8+(off))*8(sp)	; \
+	s.d     fa1,(9+(off))*8(sp)	; \
+	s.d     fa2,(10+(off))*8(sp); \
+	s.d     fa3,(11+(off))*8(sp); \
+	s.d     fa4,(12+(off))*8(sp); \
+	s.d     fa5,(13+(off))*8(sp); \
+	s.d     fa6,(14+(off))*8(sp); \
+	s.d     fa7,(15+(off))*8(sp); 
 
 #define RESTORE_ARGUMENT_REGISTERS(off) \
 	ld      a0,(0+(off))*8(sp)	; \
@@ -271,14 +254,14 @@
 	ld      a6,(6+(off))*8(sp)	; \
 	ld      a7,(7+(off))*8(sp)	; \
 	\
-	ldc1    fa0,(8+(off))*8(sp); \
-	ldc1    fa1,(9+(off))*8(sp); \
-	ldc1    fa2,(10+(off))*8(sp); \
-	ldc1    fa3,(11+(off))*8(sp); \
-	ldc1    fa4,(12+(off))*8(sp); \
-	ldc1    fa5,(13+(off))*8(sp); \
-	ldc1    fa6,(14+(off))*8(sp); \
-	ldc1    fa7,(15+(off))*8(sp); 
+	l.d     fa0,(8+(off))*8(sp); \
+	l.d     fa1,(9+(off))*8(sp); \
+	l.d     fa2,(10+(off))*8(sp); \
+	l.d     fa3,(11+(off))*8(sp); \
+	l.d     fa4,(12+(off))*8(sp); \
+	l.d     fa5,(13+(off))*8(sp); \
+	l.d     fa6,(14+(off))*8(sp); \
+	l.d     fa7,(15+(off))*8(sp); 
 
 
 #define SAVE_TEMPORARY_REGISTERS(off) \
@@ -288,22 +271,22 @@
 	sd      t3,(3+(off))*8(sp)	; \
 	sd      t4,(4+(off))*8(sp)	; \
 	\
-	sdc1    ft3,(5+(off))*8(sp)	; \
-	sdc1    ft4,(6+(off))*8(sp)	; \
-	sdc1    ft5,(7+(off))*8(sp)	; \
-	sdc1    ft6,(8+(off))*8(sp)	; \
-	sdc1    ft7,(9+(off))*8(sp)	; \
-	sdc1    ft8,(10+(off))*8(sp)	; \
-	sdc1    ft9,(11+(off))*8(sp)	; \
-	sdc1    ft10,(12+(off))*8(sp)	; \
-	sdc1    ft11,(13+(off))*8(sp)	; \
-	sdc1    ft12,(14+(off))*8(sp)	; \
-	sdc1    ft13,(15+(off))*8(sp)	; \
-	sdc1    ft14,(16+(off))*8(sp)	; \
-	sdc1    ft15,(17+(off))*8(sp)	; \
-	sdc1    ft16,(18+(off))*8(sp)	; \
-	sdc1    ft17,(19+(off))*8(sp)	; \
-	sdc1    ft18,(20+(off))*8(sp)	;
+	s.d     ft3,(5+(off))*8(sp)	; \
+	s.d     ft4,(6+(off))*8(sp)	; \
+	s.d     ft5,(7+(off))*8(sp)	; \
+	s.d     ft6,(8+(off))*8(sp)	; \
+	s.d     ft7,(9+(off))*8(sp)	; \
+	s.d     ft8,(10+(off))*8(sp)	; \
+	s.d     ft9,(11+(off))*8(sp)	; \
+	s.d     ft10,(12+(off))*8(sp)	; \
+	s.d     ft11,(13+(off))*8(sp)	; \
+	s.d     ft12,(14+(off))*8(sp)	; \
+	s.d     ft13,(15+(off))*8(sp)	; \
+	s.d     ft14,(16+(off))*8(sp)	; \
+	s.d     ft15,(17+(off))*8(sp)	; \
+	s.d     ft16,(18+(off))*8(sp)	; \
+	s.d     ft17,(19+(off))*8(sp)	; \
+	s.d     ft18,(20+(off))*8(sp)	;
 
 #define RESTORE_TEMPORARY_REGISTERS(off) \
 	ld      t0,(0+(off))*8(sp)	; \
@@ -312,51 +295,40 @@
 	ld      t3,(3+(off))*8(sp)	; \
 	ld      t4,(4+(off))*8(sp)	; \
 	\
-	ldc1    ft3,(5+(off))*8(sp)	; \
-	ldc1    ft4,(6+(off))*8(sp)	; \
-	ldc1    ft5,(7+(off))*8(sp)	; \
-	ldc1    ft6,(8+(off))*8(sp)	; \
-	ldc1    ft7,(9+(off))*8(sp)	; \
-	ldc1    ft8,(10+(off))*8(sp)	; \
-	ldc1    ft9,(11+(off))*8(sp)	; \
-	ldc1    ft10,(12+(off))*8(sp)	; \
-	ldc1    ft11,(13+(off))*8(sp)	; \
-	ldc1    ft12,(14+(off))*8(sp)	; \
-	ldc1    ft13,(15+(off))*8(sp)	; \
-	ldc1    ft14,(16+(off))*8(sp)	; \
-	ldc1    ft15,(17+(off))*8(sp)	; \
-	ldc1    ft16,(18+(off))*8(sp)	; \
-	ldc1    ft17,(19+(off))*8(sp)	; \
-	ldc1    ft18,(20+(off))*8(sp)	;
+	l.d     ft3,(5+(off))*8(sp)	; \
+	l.d     ft4,(6+(off))*8(sp)	; \
+	l.d     ft5,(7+(off))*8(sp)	; \
+	l.d     ft6,(8+(off))*8(sp)	; \
+	l.d     ft7,(9+(off))*8(sp)	; \
+	l.d     ft8,(10+(off))*8(sp)	; \
+	l.d     ft9,(11+(off))*8(sp)	; \
+	l.d     ft10,(12+(off))*8(sp)	; \
+	l.d     ft11,(13+(off))*8(sp)	; \
+	l.d     ft12,(14+(off))*8(sp)	; \
+	l.d     ft13,(15+(off))*8(sp)	; \
+	l.d     ft14,(16+(off))*8(sp)	; \
+	l.d     ft15,(17+(off))*8(sp)	; \
+	l.d     ft16,(18+(off))*8(sp)	; \
+	l.d     ft17,(19+(off))*8(sp)	; \
+	l.d     ft18,(20+(off))*8(sp)	;
 
 #else /* SIZEOF_VOID_P == 8 */
-
-#define SAVE_RETURN_REGISTERS(off) \
-	sw      v0,(0+(off))*4(sp)	; \
-	sw      v1,(1+(off))*4(sp)	; \
-	sdc1    fv0,(2+(off))*4(sp)	;
-
-#define RESTORE_RETURN_REGISTERS(off) \
-	lw      v0,(0+(off))*4(sp)	; \
-	lw      v1,(1+(off))*4(sp)	; \
-	ldc1    fv0,(2+(off))*4(sp)	;
-
 
 #define SAVE_ARGUMENT_REGISTERS(off) \
 	sw      a0,(0+(off))*4(sp)	; \
 	sw      a1,(1+(off))*4(sp)	; \
 	sw      a2,(2+(off))*4(sp)	; \
 	sw      a3,(3+(off))*4(sp)	; \
-    sdc1    fa0,(4+(off))*4(sp) ; \
-    sdc1    fa1,(6+(off))*4(sp) ;
+	s.d     fa0,(4+(off))*4(sp) ; \
+	s.d     fa1,(6+(off))*4(sp) ;
 
 #define RESTORE_ARGUMENT_REGISTERS(off) \
 	lw      a0,(0+(off))*4(sp)	; \
 	lw      a1,(1+(off))*4(sp)	; \
 	lw      a2,(2+(off))*4(sp)	; \
 	lw      a3,(3+(off))*4(sp)	; \
-    ldc1    fa0,(4+(off))*4(sp) ; \
-    ldc1    fa1,(6+(off))*4(sp) ;
+	l.d     fa0,(4+(off))*4(sp) ; \
+	l.d     fa1,(6+(off))*4(sp) ;
 
 
 #define SAVE_TEMPORARY_REGISTERS(off) \
@@ -368,10 +340,10 @@
 	sw      t5,(5+(off))*4(sp)	; \
 	sw      t6,(6+(off))*4(sp)	; \
 	sw      t7,(7+(off))*4(sp)	; \
-    sdc1    ft0,(8+(off))*4(sp) ; \
-    sdc1    ft1,(10+(off))*4(sp) ; \
-    sdc1    ft2,(12+(off))*4(sp) ; \
-    sdc1    ft3,(14+(off))*4(sp) ;
+	s.d     ft0,(8+(off))*4(sp) ; \
+	s.d     ft1,(10+(off))*4(sp) ; \
+	s.d     ft2,(12+(off))*4(sp) ; \
+	s.d     ft3,(14+(off))*4(sp) ;
 
 #define RESTORE_TEMPORARY_REGISTERS(off) \
 	lw      t0,(0+(off))*4(sp)	; \
@@ -382,10 +354,10 @@
 	lw      t5,(5+(off))*4(sp)	; \
 	lw      t6,(6+(off))*4(sp)	; \
 	lw      t7,(7+(off))*4(sp)	; \
-    ldc1    ft0,(8+(off))*4(sp) ; \
-    ldc1    ft1,(10+(off))*4(sp) ; \
-    ldc1    ft2,(12+(off))*4(sp) ; \
-    ldc1    ft3,(14+(off))*4(sp) ;
+	l.d     ft0,(8+(off))*4(sp) ; \
+	l.d     ft1,(10+(off))*4(sp) ; \
+	l.d     ft2,(12+(off))*4(sp) ; \
+	l.d     ft3,(14+(off))*4(sp) ;
 
 #endif /* SIZEOF_VOID_P == 8 */
 
