@@ -44,6 +44,7 @@
 #include "vm/signallocal.h"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/executionstate.h"
 #include "vm/jit/stacktrace.h"
 #include "vm/jit/trap.h"
 
@@ -250,6 +251,106 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 {
+}
+
+
+/**
+ * Read the given context into an executionstate.
+ *
+ * @param es      execution state
+ * @param context machine context
+ */
+void md_executionstate_read(executionstate_t* es, void* context)
+{
+	ucontext_t* _uc;
+	mcontext_t* _mc;
+	greg_t*     _gregs;
+	int         i;
+
+	vm_abort("md_executionstate_read: PLEASE REVISE ME!");
+
+	_uc = (ucontext_t*) context;
+	_mc = &_uc->uc_mcontext;
+
+#if defined(__UCLIBC__)
+	_gregs = _mc->gpregs;
+#else	
+	_gregs = _mc->gregs;
+#endif
+
+	/* Read special registers. */
+
+	/* In glibc's ucontext.h the registers are defined as long long,
+	   even for MIPS32, so we cast them.  This is not the case for
+	   uClibc. */
+
+#if defined(__UCLIBC__)
+	es->pc = _gregs[CTX_EPC];
+#else
+	es->pc = (void*) (uintptr_t) _mc->pc;
+#endif
+
+	es->sp = (void*) (uintptr_t) _gregs[REG_SP];
+	es->pv = (void*) (uintptr_t) _gregs[REG_PV];
+	es->ra = (void*) (uintptr_t) _gregs[REG_RA];
+
+	/* Read integer registers. */
+
+	for (i = 0; i < INT_REG_CNT; i++)
+		es->intregs[i] = _gregs[i];
+
+	/* Read float registers. */
+
+	/* Do not use the assignment operator '=', as the type of the
+	   _mc->fpregs[i] can cause invalid conversions. */
+
+	assert(sizeof(_mc->fpregs.fp_r) == sizeof(es->fltregs));
+	system_memcpy(&es->fltregs, &_mc->fpregs.fp_r, sizeof(_mc->fpregs.fp_r));
+}
+
+
+/**
+ * Write the given executionstate back to the context.
+ *
+ * @param es      execution state
+ * @param context machine context
+ */
+void md_executionstate_write(executionstate_t* es, void* context)
+{
+	ucontext_t* _uc;
+	mcontext_t* _mc;
+	greg_t*     _gregs;
+	int         i;
+
+	vm_abort("md_executionstate_write: PLEASE REVISE ME!");
+
+	_uc = (ucontext_t *) context;
+	_mc = &_uc->uc_mcontext;
+
+	/* Write integer registers. */
+
+	for (i = 0; i < INT_REG_CNT; i++)
+		_gregs[i] = es->intregs[i];
+
+	/* Write float registers. */
+
+	/* Do not use the assignment operator '=', as the type of the
+	   _mc->fpregs[i] can cause invalid conversions. */
+
+	assert(sizeof(_mc->fpregs.fp_r) == sizeof(es->fltregs));
+	system_memcpy(&_mc->fpregs.fp_r, &es->fltregs, sizeof(_mc->fpregs.fp_r));
+
+	/* Write special registers. */
+
+#if defined(__UCLIBC__)
+	_gregs[CTX_EPC] = es->pc;
+#else
+	_mc->pc         = (uintptr_t) es->pc;
+#endif
+
+	_gregs[REG_SP]  = (uintptr_t) es->sp;
+	_gregs[REG_PV]  = (uintptr_t) es->pv;
+	_gregs[REG_RA]  = (uintptr_t) es->ra;
 }
 
 
