@@ -37,7 +37,7 @@ CLEANFILES = \
 check: build run
 
 build:
-	$(JAVACMD) -cp /usr/share/java/jasmin-sable.jar jasmin.Main $(srcdir)/*.j
+	$(JAVACMD) -cp /usr/share/java/cup.jar:/usr/share/java/jasmin-sable.jar jasmin.Main $(srcdir)/*.j
 
 run:
 	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs JAVA="$(top_builddir)/src/cacao/cacao -Xbootclasspath:$(BOOTCLASSPATH)" $(srcdir)/runtest $(srcdir)/*.j
