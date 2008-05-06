@@ -39,6 +39,7 @@ public class PR65 extends TestCase {
         try {
             Object o = new int[2][1];
             Number[][] na = (Number[][]) o;
+            na[0][0] = null;
             fail("Should throw ClassCastException");
         } catch (ClassCastException success) {
         }
