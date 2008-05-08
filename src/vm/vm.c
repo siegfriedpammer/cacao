@@ -104,6 +104,8 @@
 # include "vm/jit/python.h"
 #endif
 
+#include "vm/jit/trap.h"
+
 #include "vmcore/classcache.h"
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"
@@ -633,7 +635,7 @@ static void vm_printconfig(void)
 	printf("  initial heap size              : %d\n", HEAP_STARTSIZE);
 	printf("  stack size                     : %d\n", STACK_SIZE);
 
-#if defined(WITH_JRE_LAYOUT)
+#if defined(ENABLE_JRE_LAYOUT)
 	/* When we're building with JRE-layout, the default paths are the
 	   same as the runtime paths. */
 #else
@@ -1516,7 +1518,9 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	primitive_postinit();
 	method_init();
 
-	exceptions_init();
+#if defined(ENABLE_JIT)
+	trap_init();
+#endif
 
 	if (!builtin_init())
 		vm_abort("vm_create: builtin_init failed");

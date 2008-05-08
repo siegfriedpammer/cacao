@@ -1408,10 +1408,10 @@ static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
 
 		waitingthread = w->thread;
 
-		/* We must skip threads which have already been notified or
-		   interrupted. They will remove themselves from the list. */
+		/* We must skip threads which have already been notified. They will
+		   remove themselves from the list. */
 
-		if (waitingthread->signaled || waitingthread->interrupted)
+		if (waitingthread->signaled)
 			continue;
 
 		/* Enter the wait-mutex. */

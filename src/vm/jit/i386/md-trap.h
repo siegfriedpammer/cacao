@@ -1,9 +1,7 @@
-/* src/vm/jit/m68k/linux/md-os.h - linux specific functions
+/* src/vm/jit/x86_64/md-trap.h - i386 hardware traps
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -24,10 +22,46 @@
 
 */
 
+
+#ifndef _MD_TRAP_H
+#define _MD_TRAP_H
+
 #include "config.h"
 
-/* XXX trap #0 is reserved and will not be delivered to signal handler */
-#define M68K_EXCEPTION_HARDWARE_NULLPOINTER 14
+
+/**
+ * Trap number defines.
+ *
+ * On this architecture (i386) the trap numbers are used as load
+ * displacements and thus must not be 4- or 8-byte aligned.
+ *
+ * NOTE: In trap_init() we have a check whether the offset of
+ * java_arrayheader.data[0] is greater than the largest displacement
+ * defined below.  Otherwise normal array loads/stores could trigger
+ * an exception.
+ */
+
+#define TRAP_INSTRUCTION_IS_LOAD    1
+
+enum {
+	TRAP_NullPointerException           = 0,
+	TRAP_ArithmeticException            = 1,
+	TRAP_ArrayIndexOutOfBoundsException = 2,
+	TRAP_ArrayStoreException            = 3,
+
+	/* Don't use 4 (could be a normal load offset). */
+
+	TRAP_ClassCastException             = 5,
+	TRAP_CHECK_EXCEPTION                = 6,
+	TRAP_PATCHER                        = 7,
+
+	/* Don't use 8 (could be a normal load offset). */
+
+	TRAP_COMPILER                       = 9,
+	TRAP_END
+};
+
+#endif /* _MD_TRAP_H */
 
 
 /*

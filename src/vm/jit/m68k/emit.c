@@ -29,19 +29,19 @@
 
 #include <assert.h>
 
-#include "emit.h"
-#include "vm/jit/emit-common.h"
-#include "vm/exceptions.h"
-#include "vm/jit/asmpart.h"
-#include "vm/builtin.h"
-#include "vm/jit/trace.h"
+#include "vm/jit/m68k/codegen.h"
+#include "vm/jit/m68k/emit.h"
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "vm/builtin.h"
+#include "vm/exceptions.h"
 
-#include "codegen.h"
-#include "md-os.h"
+#include "vm/jit/asmpart.h"
+#include "vm/jit/emit-common.h"
+#include "vm/jit/trace.h"
+#include "vm/jit/trap.h"
+
 
 /* emit_mov_imm_reg **************************************************************************
  *
@@ -149,7 +149,7 @@ void emit_copy(jitdata *jd, instruction *iptr)
 
 *******************************************************************************/
 
-inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
+void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
 	codegendata  *cd;
 
@@ -587,7 +587,7 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 			vm_abort("emit_classcast_check: unknown condition %d", condition);
 		}
 		M_TRAP_SETREGISTER(s1);
-		M_TRAP(EXCEPTION_HARDWARE_CLASSCAST);
+		M_TRAP(TRAP_ClassCastException);
 	}
 }
 
@@ -603,7 +603,7 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 		M_ICMP(s2, REG_ITMP3);
 		M_BHI(4);
 		M_TRAP_SETREGISTER(s2);
-		M_TRAP(EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS);
+		M_TRAP(TRAP_ArrayIndexOutOfBoundsException);
 	}
 }
 
@@ -619,8 +619,7 @@ void emit_arraystore_check(codegendata *cd, instruction *iptr)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ITST(REG_RESULT);
 		M_BNE(2);
-		/*M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_ARRAYSTORE);*/
-		M_TRAP(EXCEPTION_HARDWARE_ARRAYSTORE);
+		M_TRAP(TRAP_ArrayStoreException);
 	}
 }
 
@@ -630,6 +629,7 @@ void emit_arraystore_check(codegendata *cd, instruction *iptr)
    Emit a NullPointerException check.
 
 *******************************************************************************/
+
 void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
@@ -637,7 +637,7 @@ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 		 * invocation at the beginning of codegen.c */
 		M_ATST(reg);
 		M_BNE(2);
-		M_TRAP(M68K_EXCEPTION_HARDWARE_NULLPOINTER);
+		M_TRAP(TRAP_NullPointerException);
 	}
 }
 
@@ -652,7 +652,7 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ITST(reg);
 		M_BNE(2);
-		M_TRAP(EXCEPTION_HARDWARE_ARITHMETIC);
+		M_TRAP(TRAP_ArithmeticException);
 	}
 }
 
@@ -666,8 +666,7 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ITST(REG_RESULT);
 		M_BNE(2);
-		/*M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_EXCEPTION);*/
-		M_TRAP(EXCEPTION_HARDWARE_EXCEPTION);
+		M_TRAP(TRAP_CHECK_EXCEPTION);
 	}
 }
 
@@ -680,7 +679,7 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 void emit_trap_compiler(codegendata *cd)
 {
 	M_TRAP_SETREGISTER(REG_METHODPTR);
-	M_TRAP(EXCEPTION_HARDWARE_COMPILER);
+	M_TRAP(TRAP_COMPILER);
 }
 
 
@@ -699,7 +698,7 @@ uint32_t emit_trap(codegendata *cd)
 
 	mcode = *((uint32_t *) cd->mcodeptr);
 
-	M_TRAP(EXCEPTION_HARDWARE_PATCHER);
+	M_TRAP(TRAP_PATCHER);
 
 	return mcode;
 }

@@ -1,9 +1,7 @@
-/* src/vm/jit/m68k/linux/md-os.c - linux specific functions
+/* src/vm/jit/m68k/linux/md-os.c - m68k linux specific functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -24,15 +22,18 @@
 
 */
 
+
 #include "config.h"
 
-#include "md-os.h"
-#include "md-abi.h"
+#include "vm/jit/m68k/md.h"
+#include "vm/jit/m68k/linux/md-abi.h"
 
-#include "vm/vm.h"
 #include "vm/exceptions.h"
-#include "vm/jit/asmpart.h"
 #include "vm/signallocal.h"
+#include "vm/vm.h"
+
+#include "vm/jit/asmpart.h"
+#include "vm/jit/trap.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -73,6 +74,7 @@ typedef struct actual_ucontext {
  * Invoked when a Nullpointerexception occured, or when the vm 
  * crashes, hard to tell the difference. 
  **********************************************************************/
+
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 { 	
 	uint32_t	xpc, sp;
@@ -82,7 +84,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	void        *p;
 	actual_mcontext_t 	*_mc;
 	actual_ucontext_t	*_uc;
-
+	int type;
 
 	_uc = (actual_ucontext_t*)_p;
 	_mc = &_uc->uc_mcontext;
@@ -120,23 +122,17 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* val is now register number, adreg == true if it is an address regsiter */
 	regval = _mc->gregs[adrreg ? GREGS_ADRREG_OFF + val : val];
-	/*
-	if (regval != 0)	{
-		vm_abort("md_signal_handler_sigsegv: faulting address is not NULL: addr=%p", regval);
-	}*/
-
-
-	/*fprintf(stderr, "SEGV: sp=%x, xpc=%x, regval=%x\n", sp, xpc, regval);
-	*/
+	type   = regval;
 
 	/* Handle the type. */
 
-	p = signal_handle(EXCEPTION_HARDWARE_NULLPOINTER, regval, NULL, (void*)sp, (void*)xpc, (void*)xpc, _p);
+	p = trap_handle(type, regval, NULL, (void*)sp, (void*)xpc, (void*)xpc, _p);
 
 	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (intptr_t) p;
 	_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (intptr_t) xpc;
 	_mc->gregs[R_PC]                             = (intptr_t) asm_handle_exception;
 }
+
 
 /* md_signal_handler_sigill *******************************************
  *
@@ -146,6 +142,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
  * been created directly before the trap instruction (2 bytes long).
  * the last 3 bit of this tst instruction contain the register number.
  **********************************************************************/
+
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
 	uint32_t	xpc, sp, ra, pv;
@@ -180,26 +177,27 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	/* Figure out in which register the object causing the exception resides for appropiate exceptions
 	 */
 	switch (type)	{
-		case EXCEPTION_HARDWARE_ARITHMETIC:
-		case EXCEPTION_HARDWARE_EXCEPTION:
+		case TRAP_NullPointerException:
+		case TRAP_ArithmeticException:
+		case TRAP_CHECK_EXCEPTION:
 			/* nothing */
 			break;
-		case EXCEPTION_HARDWARE_CLASSCAST: 
+
+		case TRAP_ClassCastException: 
 			regval = *(uint16_t*)(xpc-4);
 			assert( (regval&0xfff0) == 0x4a00 );
 			/* was in a address register */
 			regval = _mc->gregs[ GREGS_ADRREG_OFF + (regval & 0x7) ];
 			break;
-		case EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS:
+
+		case TRAP_ArrayIndexOutOfBoundsException:
 			regval = *(uint16_t*)(xpc-4);
 			assert( (regval&0xfff0) == 0x4a00 );
 			/* was a data register */
 			regval = _mc->gregs[regval & 0x7];
 			break;
-		case M68K_EXCEPTION_HARDWARE_NULLPOINTER:
-			type = EXCEPTION_HARDWARE_NULLPOINTER;
-			break;
-		case EXCEPTION_HARDWARE_COMPILER:
+
+		case TRAP_COMPILER:
 			regval = *(uint16_t*)(xpc-4);
 			assert( (regval&0xfff0) == 0x4a00 );
 			/* was in a address register */
@@ -210,53 +208,51 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 			sp = sp + SIZEOF_VOID_P;
 			xpc = ra - 2;
 			break;
-		case EXCEPTION_HARDWARE_PATCHER:
+
+		case TRAP_PATCHER:
 			xpc -= 2;
 			ra = xpc;
 			break;
-
-		default: assert(0);
 	}
 
-	/*fprintf(stderr, "NEW HWE: sp=%x, xpc=%x, tpye=%x, regval=%x\n", sp, xpc, type, regval);
-	*/
+	/* Handle the trap. */
 
-	/* Handle the type. */
-	p = signal_handle(type, regval, pv, (void*)sp, (void*)ra, (void*)xpc, _p);
-
+	p = trap_handle(type, regval, pv, (void*)sp, (void*)ra, (void*)xpc, _p);
 
 	switch (type)	{
-		case EXCEPTION_HARDWARE_COMPILER:
-			if (p == NULL)	{
-				/* exception when compiling the method */
-				java_object_t *o = exceptions_get_and_clear_exceptions();
+	case TRAP_COMPILER:
+		if (p == NULL) {
+			/* exception when compiling the method */
+			java_object_t *o = builtin_retrieve_exception();
 
-				_mc->gregs[R_SP] = sp;	/* remove RA from stack */
+			_mc->gregs[R_SP] = sp;	/* remove RA from stack */
 
-				_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (intptr_t) o;
-				_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (intptr_t) xpc;
-				_mc->gregs[R_PC]                             = (intptr_t) asm_handle_exception;
+			_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (uintptr_t) o;
+			_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (uintptr_t) xpc;
+			_mc->gregs[R_PC]                             = (uintptr_t) asm_handle_exception;
+		}
+		else {
+			/* compilation ok, execute */
+			_mc->gregs[R_PC] = p;
+		}
+		break;
 
-			} else	{
-				/* compilation ok, execute */
-				_mc->gregs[R_PC] = p;
-			}
-			break;
+	case TRAP_PATCHER:
+		if (p == NULL) { 
+			/* No exception while patching, continue. */
+			_mc->gregs[R_PC] = xpc;	
+			return;	
+		}
+		/* fall-through in case of exception */
 
-		case EXCEPTION_HARDWARE_PATCHER:
-			if (p == NULL) { 
-				/* no expcetion while patching, continue */
-				_mc->gregs[R_PC] = xpc;	
-				return;	
-			}
-			/* fall-through in case of exception */
-		default:
-			/* a normal exception with normal expcetion handling */
-			_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (intptr_t) p;
-			_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (intptr_t) xpc;
-			_mc->gregs[R_PC]                             = (intptr_t) asm_handle_exception;
+	default:
+		/* a normal exception with normal expcetion handling */
+		_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP1]     = (uintptr_t) p;
+		_mc->gregs[GREGS_ADRREG_OFF + REG_ATMP2_XPC] = (uintptr_t) xpc;
+		_mc->gregs[R_PC]                             = (uintptr_t) asm_handle_exception;
 	}
 }
+
 
 /* md_signal_handler_sigusr1 ***************************************************
 

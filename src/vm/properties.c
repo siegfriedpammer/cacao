@@ -121,7 +121,7 @@ void properties_set(void)
 # endif
 #endif
 
-#if defined(WITH_JRE_LAYOUT)
+#if defined(ENABLE_JRE_LAYOUT)
 	/* SUN also uses a buffer of 4096-bytes (strace is your friend). */
 
 	p = MNEW(char, 4096);
@@ -237,7 +237,7 @@ void properties_set(void)
 		strcpy(boot_class_path, p);
 	}
 	else {
-#if defined(WITH_JRE_LAYOUT)
+#if defined(ENABLE_JRE_LAYOUT)
 # if defined(WITH_CLASSPATH_GNU)
 
 		len =

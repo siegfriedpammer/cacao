@@ -21,11 +21,19 @@
 ## 02110-1301, USA.
 
 
-SUBDIRS = handbook
+SUBDIRS = \
+	doxygen \
+	handbook
 
-dist_noinst_DATA = assertions.tex annotations.tex jsr.bib
+dist_noinst_DATA = \
+	assertions.tex \
+	annotations.tex \
+	jsr.bib
 
-EXTRA_DIST = inlining_stacktrace.txt native_threads.txt stack.txt
+EXTRA_DIST = \
+	inlining_stacktrace.txt \
+	native_threads.txt \
+	stack.txt
 
 CLEANFILES = \
 	annotations.aux \

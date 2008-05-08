@@ -61,6 +61,7 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 #if defined(ENABLE_SSA)
 # include "vm/jit/optimizing/lsra.h"
@@ -359,7 +360,7 @@ bool codegen_emit(jitdata *jd)
 			M_ALD(REG_ITMP1, REG_SP, cd->stackframesize * 8 + 4 + align_off);
 			M_TEST(REG_ITMP1);
 			M_BNE(6);
-			M_ALD_MEM(REG_ITMP1, EXCEPTION_HARDWARE_NULLPOINTER);
+			M_ALD_MEM(REG_ITMP1, TRAP_NullPointerException);
 		}
 
 		M_AST(REG_ITMP1, REG_SP, s1 * 8);

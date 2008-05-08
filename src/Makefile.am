@@ -34,17 +34,12 @@ DIST_SUBDIRS = \
 	vm \
 	vmcore
 
-if ENABLE_CACAOH
-CACAOH_DIR = \
-	cacaoh 
-endif
-
 # DON'T CHANGE THIS ORDER!!!
 
 SUBDIRS = \
 	toolbox \
 	vmcore \
-	$(CACAOH_DIR) \
+	cacaoh \
 	classes \
 	native \
 	fdlibm \

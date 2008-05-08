@@ -479,6 +479,8 @@ static bool builtin_descriptorscompatible(arraydescriptor *desc, arraydescriptor
 	/* {both arrays are arrays of references} */
 
 	if (desc->dimension == target->dimension) {
+		if (!desc->elementvftbl)
+			return 0;
 		/* an array which contains elements of interface types is
            allowed to be casted to Object (JOWENN)*/
 

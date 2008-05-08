@@ -38,13 +38,13 @@
 #include "threads/thread.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 
 /* md_signal_handler_sigsegv ***************************************************
@@ -104,7 +104,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		val = _mc->gregs[REG_EAX - d];
 
-		if (type == EXCEPTION_HARDWARE_COMPILER) {
+		if (type == TRAP_COMPILER) {
 			/* The PV from the compiler stub is equal to the XPC. */
 
 			pv = xpc;
@@ -127,17 +127,17 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	else {
 		/* this was a normal NPE */
 
-		type = EXCEPTION_HARDWARE_NULLPOINTER;
+		type = TRAP_NullPointerException;
 		val  = 0;
 	}
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* Set registers. */
 
-	if (type == EXCEPTION_HARDWARE_COMPILER) {
+	if (type == TRAP_COMPILER) {
 		if (p == NULL) {
 			o = builtin_retrieve_exception();
 
@@ -152,9 +152,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		}
 	}
 	else {
-		_mc->gregs[REG_EAX] = (intptr_t) p;
-		_mc->gregs[REG_ECX] = (intptr_t) xpc;                /* REG_ITMP2_XPC */
-		_mc->gregs[REG_EIP] = (intptr_t) asm_handle_exception;
+		_mc->gregs[REG_EAX] = (uintptr_t) p;
+		_mc->gregs[REG_ECX] = (uintptr_t) xpc;               /* REG_ITMP2_XPC */
+		_mc->gregs[REG_EIP] = (uintptr_t) asm_handle_exception;
 	}
 }
 
@@ -186,20 +186,20 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	xpc = (u1 *) _mc->gregs[REG_EIP];
 	ra  = xpc;                          /* return address is equal to xpc     */
 
-	/* this is an ArithmeticException */
+	/* This is an ArithmeticException. */
 
-	type = EXCEPTION_HARDWARE_ARITHMETIC;
+	type = TRAP_ArithmeticException;
 	val  = 0;
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
-	/* set registers */
+	/* Set registers. */
 
-	_mc->gregs[REG_EAX] = (intptr_t) p;
-	_mc->gregs[REG_ECX] = (intptr_t) xpc;                    /* REG_ITMP2_XPC */
-	_mc->gregs[REG_EIP] = (intptr_t) asm_handle_exception;
+	_mc->gregs[REG_EAX] = (uintptr_t) p;
+	_mc->gregs[REG_ECX] = (uintptr_t) xpc;                   /* REG_ITMP2_XPC */
+	_mc->gregs[REG_EIP] = (uintptr_t) asm_handle_exception;
 }
 
 
@@ -229,21 +229,19 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	xpc = (u1 *) _mc->gregs[REG_EIP];
 	ra  = xpc;                            /* return address is equal to xpc   */
 
-	/* this is an ArithmeticException */
-
-	type = EXCEPTION_HARDWARE_PATCHER;
+	type = TRAP_PATCHER;
 	val  = 0;
 
-	/* generate appropriate exception */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
-	/* set registers (only if exception object ready) */
+	/* Set registers. */
 
 	if (p != NULL) {
-		_mc->gregs[REG_EAX] = (ptrint) p;
-		_mc->gregs[REG_ECX] = (ptrint) xpc;                      /* REG_ITMP2_XPC */
-		_mc->gregs[REG_EIP] = (ptrint) asm_handle_exception;
+		_mc->gregs[REG_EAX] = (uintptr_t) p;
+		_mc->gregs[REG_ECX] = (uintptr_t) xpc;               /* REG_ITMP2_XPC */
+		_mc->gregs[REG_EIP] = (uintptr_t) asm_handle_exception;
 	}
 }
 

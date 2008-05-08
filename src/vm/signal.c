@@ -39,22 +39,11 @@
 
 #include "arch.h"
 
-#include "mm/memory.h"
-
-#include "native/llni.h"
-
 #include "threads/thread.h"
-
-#include "toolbox/logging.h"
 
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/vm.h"
-
-#include "vm/jit/codegen-common.h"
-#include "vm/jit/disass.h"
-#include "vm/jit/methodtree.h"
-#include "vm/jit/patcher-common.h"
 
 #include "vmcore/options.h"
 
@@ -241,144 +230,6 @@ void signal_register_signal(int signum, functionptr handler, int flags)
 
 	if (sigaction(signum, &act, NULL) != 0)
 		vm_abort_errno("signal_register_signal: sigaction failed");
-}
-
-
-/* signal_handle ***************************************************************
-
-   Handles the signal caught by a signal handler and calls the correct
-   function.
-
-*******************************************************************************/
-
-void *signal_handle(int type, intptr_t val,
-					void *pv, void *sp, void *ra, void *xpc, void *context)
-{
-	stackframeinfo_t  sfi;
-	int32_t           index;
-	java_handle_t    *o;
-	methodinfo       *m;
-	java_handle_t    *p;
-
-#if !defined(NDEBUG)
-	if (opt_TraceTraps)
-		log_println("[signal_handle: trap %d]", type);
-#endif
-	
-#if defined(ENABLE_VMLOG)
-	vmlog_cacao_signl_type(type);
-#endif
-
-	/* Prevent compiler warnings. */
-
-	o = NULL;
-	m = NULL;
-
-	/* wrap the value into a handle if it is a reference */
-	/* BEFORE: creating stackframeinfo */
-
-	switch (type) {
-	case EXCEPTION_HARDWARE_CLASSCAST:
-		o = LLNI_WRAP((java_object_t *) val);
-		break;
-
-	case EXCEPTION_HARDWARE_COMPILER:
-		/* In this case the passed PV points to the compiler stub.  We
-		   get the methodinfo pointer here and set PV to NULL so
-		   stacktrace_stackframeinfo_add determines the PV for the
-		   parent Java method. */
-
-		m  = code_get_methodinfo_for_pv(pv);
-		pv = NULL;
-		break;
-
-	default:
-		/* do nothing */
-		break;
-	}
-
-	/* Fill and add a stackframeinfo. */
-
-	stacktrace_stackframeinfo_add(&sfi, pv, sp, ra, xpc);
-
-	switch (type) {
-	case EXCEPTION_HARDWARE_NULLPOINTER:
-		p = exceptions_new_nullpointerexception();
-		break;
-
-	case EXCEPTION_HARDWARE_ARITHMETIC:
-		p = exceptions_new_arithmeticexception();
-		break;
-
-	case EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS:
-		index = (s4) val;
-		p = exceptions_new_arrayindexoutofboundsexception(index);
-		break;
-
-	case EXCEPTION_HARDWARE_ARRAYSTORE:
-		p = exceptions_new_arraystoreexception();
-		break;
-
-	case EXCEPTION_HARDWARE_CLASSCAST:
-		p = exceptions_new_classcastexception(o);
-		break;
-
-	case EXCEPTION_HARDWARE_EXCEPTION:
-		p = exceptions_fillinstacktrace();
-		break;
-
-	case EXCEPTION_HARDWARE_PATCHER:
-#if defined(ENABLE_REPLACEMENT)
-		if (replace_me_wrapper(xpc, context)) {
-			p = NULL;
-			break;
-		}
-#endif
-		p = patcher_handler(xpc);
-		break;
-
-	case EXCEPTION_HARDWARE_COMPILER:
-		p = jit_compile_handle(m, sfi.pv, ra, (void *) val);
-		break;
-
-	default:
-		/* Let's try to get a backtrace. */
-
-		(void) methodtree_find(xpc);
-
-		/* If that does not work, print more debug info. */
-
-		log_println("signal_handle: unknown hardware exception type %d", type);
-
-#if SIZEOF_VOID_P == 8
-		log_println("PC=0x%016lx", xpc);
-#else
-		log_println("PC=0x%08x", xpc);
-#endif
-
-#if defined(ENABLE_DISASSEMBLER)
-		log_println("machine instruction at PC:");
-		disassinstr(xpc);
-#endif
-
-		vm_abort("Exiting...");
-
-		/* keep compiler happy */
-
-		p = NULL;
-	}
-
-	/* Remove stackframeinfo. */
-
-	stacktrace_stackframeinfo_remove(&sfi);
-
-	/* unwrap and return the exception object */
-	/* AFTER: removing stackframeinfo */
-
-	if (type == EXCEPTION_HARDWARE_COMPILER)
-		return p;
-	else
-		return LLNI_UNWRAP(p);
 }
 
 

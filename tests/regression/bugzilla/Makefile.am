@@ -26,15 +26,17 @@ JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
 
 EXTRA_DIST = \
-	*.java
+	$(srcdir)/*.java
 
 CLEANFILES = \
 	*.class
 
+check: build run
+
 build:
 	$(JAVACCMD) -classpath /usr/share/java/junit4.jar -d . $(srcdir)/*.java
 
-check: build
+run:
 	$(JAVACMD) -classpath /usr/share/java/junit4.jar:. org.junit.runner.JUnitCore All
 
 

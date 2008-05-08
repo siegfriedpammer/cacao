@@ -47,6 +47,7 @@ public class All extends TestCase {
         suite.addTest(new TestSuite(PR52.class));
         suite.addTest(new TestSuite(PR57.class));
         suite.addTest(new TestSuite(PR58.class));
+        suite.addTest(new TestSuite(PR65.class));
 
         return suite;
     }

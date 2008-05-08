@@ -23,7 +23,7 @@ dnl 02110-1301, USA.
 dnl Process this file with autoconf to produce a configure script.
 
 
-AC_INIT(cacao, 0.98+svn, cacao@cacaojvm.org)
+AC_INIT(cacao, 0.99rc5, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
@@ -768,12 +768,12 @@ AC_CHECK_WITH_CLASSPATH
 
 dnl Now we check for jre-layout so we can skip some checks that are
 dnl not required.
-AC_CHECK_WITH_JRE_LAYOUT
+AC_CHECK_ENABLE_JRE_LAYOUT
 
 AC_CHECK_WITH_CLASSPATH_PREFIX
 AC_CHECK_WITH_CLASSPATH_CLASSES
 
-if test x"${WITH_JRE_LAYOUT}" = "xno"; then
+if test x"${ENABLE_JRE_LAYOUT}" = "xno"; then
    AC_CHECK_WITH_CLASSPATH_LIBDIR
 fi
 
@@ -852,6 +852,7 @@ AC_CONFIG_FILES([Makefile]
 		[contrib/vmlog/Makefile]
 		[contrib/vmlog/t/Makefile]
 		[doc/Makefile]
+		[doc/doxygen/Makefile]
 		[doc/handbook/Makefile]
 		[man/Makefile]
 		[src/Makefile]
@@ -919,7 +920,6 @@ AC_CONFIG_FILES([Makefile]
 		[tests/Makefile]
 		[tests/regression/Makefile]
 		[tests/regression/bugzilla/Makefile]
-		[tests/regression/codepatching/Makefile]
 		[tests/regression/assertion/Makefile]
 		[tests/regression/jasmin/Makefile]
 		[tests/regression/junit/Makefile]

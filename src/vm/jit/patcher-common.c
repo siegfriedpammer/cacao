@@ -46,6 +46,7 @@
 #include "vm/vm.h"                     /* for vm_abort */
 
 #include "vm/jit/code.h"
+#include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/patcher-common.h"
 
@@ -322,7 +323,16 @@ java_handle_t *patcher_handler(u1 *pc)
 
 		TRACE_PATCHER_INDENT; printf("patching in "); method_print(code->m); printf(" at %p\n", (void *) pr->mpc);
 		TRACE_PATCHER_INDENT; printf("\tpatcher function = %s <%p>\n", l->name, (void *) (intptr_t) pr->patcher);
-		TRACE_PATCHER_INDENT; printf("\tmcodes before = "); for (i=0; i<5; i++) printf("0x%08x ", *((u4 *) pr->mpc + i)); printf("\n");
+
+		TRACE_PATCHER_INDENT;
+		printf("\tmachine code before = ");
+
+# if defined(ENABLE_DISASSEMBLER)
+		disassinstr((void *) pr->mpc);
+# else
+		printf("disassembler disabled\n");
+# endif
+
 		patcher_depth++;
 		assert(patcher_depth > 0);
 	}
@@ -340,7 +350,16 @@ java_handle_t *patcher_handler(u1 *pc)
 	if (opt_DebugPatcher) {
 		assert(patcher_depth > 0);
 		patcher_depth--;
-		TRACE_PATCHER_INDENT; printf("\tmcodes after  = "); for (i=0; i<5; i++) printf("0x%08x ", *((u4 *) pr->mpc + i)); printf("\n");
+
+		TRACE_PATCHER_INDENT;
+		printf("\tmachine code after  = ");
+
+# if defined(ENABLE_DISASSEMBLER)
+		disassinstr((void *) pr->mpc);
+# else
+		printf("disassembler disabled\n");
+# endif
+
 		if (result == false) {
 			TRACE_PATCHER_INDENT; printf("\tPATCHER EXCEPTION!\n");
 		}

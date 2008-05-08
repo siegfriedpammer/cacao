@@ -202,6 +202,13 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 	s4          pos;
 	int32_t     dumpmarker;
 
+	/* We don't trace builtin functions here because the argument
+	   passing happens via the native ABI and does not fit these
+	   functions. */
+
+	if (method_is_builtin(m))
+		return;
+
 #if defined(ENABLE_DEBUG_FILTER)
 	if (!show_filters_test_verbosecall_enter(m))
 		return;
@@ -288,7 +295,6 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 	if (m->flags & ACC_NATIVE)         strcat(logtext, " NATIVE");
 	if (m->flags & ACC_INTERFACE)      strcat(logtext, " INTERFACE");
 	if (m->flags & ACC_ABSTRACT)       strcat(logtext, " ABSTRACT");
-	if (m->flags & ACC_METHOD_BUILTIN) strcat(logtext, " METHOD_BUILTIN");
 
 	strcat(logtext, "(");
 
@@ -332,6 +338,13 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 	s4          pos;
 	imm_union   val;
 	int32_t     dumpmarker;
+
+	/* We don't trace builtin functions here because the argument
+	   passing happens via the native ABI and does not fit these
+	   functions. */
+
+	if (method_is_builtin(m))
+		return;
 
 #if defined(ENABLE_DEBUG_FILTER)
 	if (!show_filters_test_verbosecall_exit(m))

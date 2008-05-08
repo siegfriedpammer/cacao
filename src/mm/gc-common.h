@@ -27,7 +27,6 @@
 #define _GC_COMMON_H
 
 #include "config.h"
-#include "vm/types.h"
 
 #include <stdint.h>
 
@@ -52,31 +51,31 @@ enum {
 
 /* function prototypes ********************************************************/
 
-void  gc_init(u4 heapmaxsize, u4 heapstartsize);
+void    gc_init(size_t heapmaxsize, size_t heapstartsize);
 
-void *heap_alloc_uncollectable(size_t size);
-void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect);
-void  heap_free(void *p);
+void*   heap_alloc_uncollectable(size_t size);
+void*   heap_alloc(size_t size, int references, methodinfo *finalizer, bool collect);
+void    heap_free(void *p);
 
 #if defined(ENABLE_GC_CACAO)
-void  heap_init_objectheader(java_object_t *o, u4 size);
-s4    heap_get_hashcode(java_object_t *o);
+void    heap_init_objectheader(java_object_t *o, uint32_t size);
+int32_t heap_get_hashcode(java_object_t *o);
 
-void  gc_reference_register(java_object_t **ref, int32_t reftype);
-void  gc_reference_unregister(java_object_t **ref);
+void    gc_reference_register(java_object_t **ref, int32_t reftype);
+void    gc_reference_unregister(java_object_t **ref);
 
-void  gc_weakreference_register(java_object_t **ref, int32_t reftype);
-void  gc_weakreference_unregister(java_object_t **ref);
+void    gc_weakreference_register(java_object_t **ref, int32_t reftype);
+void    gc_weakreference_unregister(java_object_t **ref);
 #endif
 
-void  gc_call(void);
-s8    gc_get_heap_size(void);
-s8    gc_get_free_bytes(void);
-s8    gc_get_total_bytes(void);
-s8    gc_get_max_heap_size(void);
-void  gc_invoke_finalizers(void);
-void  gc_finalize_all(void);
-void *gc_out_of_memory(size_t bytes_requested);
+void    gc_call(void);
+int64_t gc_get_heap_size(void);
+int64_t gc_get_free_bytes(void);
+int64_t gc_get_total_bytes(void);
+int64_t gc_get_max_heap_size(void);
+void    gc_invoke_finalizers(void);
+void    gc_finalize_all(void);
+void*   gc_out_of_memory(size_t bytes_requested);
 
 
 /* inlined functions **********************************************************/
@@ -89,7 +88,6 @@ static inline int32_t heap_hashcode(java_object_t *obj)
 	return (int32_t)(intptr_t) obj;
 #endif
 }
-
 
 #endif /* _GC_COMMON_H */
 

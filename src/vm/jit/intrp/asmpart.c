@@ -314,24 +314,6 @@ void intrp_asm_abstractmethoderror(void)
 }
 
 
-void intrp_asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out)
-{
-	s4 sbv, sdv, sv;
-
-	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
-
-	sbv = super->baseval;
-	sdv = super->diffval;
-	sv  = sub->baseval;
-
-	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
-
-	out->super_baseval = sbv;
-	out->super_diffval = sdv;
-	out->sub_baseval   = sv;
-}
-
-
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

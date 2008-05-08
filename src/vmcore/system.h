@@ -39,7 +39,7 @@
 # include <fcntl.h>
 #endif
 
-#if defined(WITH_JRE_LAYOUT)
+#if defined(ENABLE_JRE_LAYOUT)
 # if defined(HAVE_LIBGEN_H)
 #  include <libgen.h>
 # endif
@@ -147,7 +147,7 @@ inline static int system_connect(int sockfd, const struct sockaddr *serv_addr, s
 #endif
 }
 
-#if defined(WITH_JRE_LAYOUT)
+#if defined(ENABLE_JRE_LAYOUT)
 inline static char *system_dirname(char *path)
 {
 #if defined(HAVE_DIRNAME)
@@ -331,6 +331,8 @@ inline static void *system_realloc(void *ptr, size_t size)
 
 #if defined(__LINUX__)
 inline static int system_scandir(const char *dir, struct dirent ***namelist, int(*filter)(const struct dirent *), int(*compar)(const void *, const void *))
+#elif defined(__IRIX__)
+inline static int system_scandir(const char *dir, struct dirent ***namelist, int(*filter)(dirent_t *), int(*compar)(dirent_t **, dirent_t **))
 #else
 inline static int system_scandir(const char *dir, struct dirent ***namelist, int(*filter)(struct dirent *), int(*compar)(const void *, const void *))
 #endif
