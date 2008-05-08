@@ -38,8 +38,10 @@
 
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/abi.h"
+#include "vm/jit/executionstate.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/methodtree.h"
 #include "vm/jit/stacktrace.h"
@@ -384,6 +386,30 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 	t->pc = pc;
 }
 #endif
+
+
+/**
+ * Read the given context into an executionstate.
+ *
+ * @param es      execution state
+ * @param context machine context
+ */
+void md_executionstate_read(executionstate_t* es, void* context)
+{
+	vm_abort("md_executionstate_read: IMPLEMENT ME!");
+}
+
+
+/**
+ * Write the given executionstate back to the context.
+ *
+ * @param es      execution state
+ * @param context machine context
+ */
+void md_executionstate_write(executionstate_t* es, void* context)
+{
+	vm_abort("md_executionstate_write: IMPLEMENT ME!");
+}
 
 
 #if defined(ENABLE_THREADS)
