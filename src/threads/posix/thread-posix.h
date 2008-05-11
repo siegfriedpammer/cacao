@@ -275,9 +275,11 @@ void threads_set_thread_priority(pthread_t tid, int priority);
 
 bool threads_detach_thread(threadobject *thread);
 
+#if defined(ENABLE_GC_CACAO)
 bool threads_suspend_thread(threadobject *thread, s4 reason);
 void threads_suspend_ack(u1* pc, u1* sp);
 bool threads_resume_thread(threadobject *thread);
+#endif
 
 void threads_join_all_threads(void);
 
@@ -286,11 +288,6 @@ void threads_sleep(int64_t millis, int32_t nanos);
 void threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
 
 void threads_thread_interrupt(threadobject *thread);
-
-#if !defined(DISABLE_GC)
-void threads_stopworld(void);
-void threads_startworld(void);
-#endif
 
 #endif /* _THREAD_POSIX_H */
 

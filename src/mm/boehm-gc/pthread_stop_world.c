@@ -121,22 +121,18 @@ void GC_suspend_handler_inner(ptr_t sig_arg, void *context);
 #if defined(IA64) || defined(HP_PA) || defined(M68K)
 void GC_suspend_handler(int sig, siginfo_t *info, void *context)
 {
-   int old_errno = errno;
-   GC_with_callee_saves_pushed(GC_suspend_handler_inner, (ptr_t)(word)sig);
-   errno = old_errno;
+  int old_errno = errno;
+  GC_with_callee_saves_pushed(GC_suspend_handler_inner, (ptr_t)(word)sig);
+  errno = old_errno;
 }
 #else
 /* We believe that in all other cases the full context is already	*/
 /* in the signal handler frame.						*/
 void GC_suspend_handler(int sig, siginfo_t *info, void *context)
 {
-   int old_errno = errno;
-
-/*    if (cacao_suspendhandler(uctx)) */
-/*      return; */
-
-   GC_suspend_handler_inner((ptr_t)(word)sig, context);
-   errno = old_errno;
+  int old_errno = errno;
+  GC_suspend_handler_inner((ptr_t)(word)sig, context);
+  errno = old_errno;
 }
 #endif
 
@@ -378,8 +374,6 @@ void GC_stop_world()
 #   if DEBUG_THREADS
       GC_printf("Stopping the world from 0x%x\n", (unsigned)pthread_self());
 #   endif
-
-    lock_stopworld(1);
        
     /* Make sure all free list construction has stopped before we start. */
     /* No new construction can start, since free list construction is	*/
@@ -495,9 +489,6 @@ void GC_start_world()
 		ABORT("sem_wait() for restart handler failed");
 	    }
 #    endif
-
-	unlock_stopworld();
-
 #    if DEBUG_THREADS
       GC_printf("World started\n");
 #    endif
