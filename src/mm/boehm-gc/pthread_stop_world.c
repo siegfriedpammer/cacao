@@ -149,9 +149,6 @@ void GC_suspend_handler(int sig, siginfo_t *info, void *uctx)
 {
    int old_errno = errno;
 
-/*    if (cacao_suspendhandler(uctx)) */
-/*      return; */
-
    GC_suspend_handler_inner((ptr_t)(word)sig);
    errno = old_errno;
 }
@@ -394,8 +391,6 @@ void GC_stop_world()
     GC_printf1("Stopping the world from 0x%lx\n", pthread_self());
     #endif
 
-    lock_stopworld(1);
-       
     /* Make sure all free list construction has stopped before we start. */
     /* No new construction can start, since free list construction is	*/
     /* required to acquire and release the GC lock before it starts,	*/
@@ -504,8 +499,6 @@ void GC_start_world()
 		ABORT("sem_wait() for restart handler failed");
 	    }
 #endif
-
-	unlock_stopworld();
 
     #if DEBUG_THREADS
       GC_printf0("World started\n");
