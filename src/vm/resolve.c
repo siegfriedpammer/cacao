@@ -1,9 +1,7 @@
 /* src/vm/resolve.c - resolving classes/interfaces/fields/methods
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -54,6 +52,58 @@
 /******************************************************************************/
 
 /*#define RESOLVE_VERBOSE*/
+
+/* resolve_handle_pending_exception ********************************************
+
+   Convert a pending ClassNotFoundException into a
+   NoClassDefFoundError if requested.
+
+   See: hotspot/src/share/vm/classfile/systemDictionary.cpp
+   (handle_resolution_exception)
+
+   ARGUMENTS:
+       classname .... name of the class currently resolved
+       throwError ... if true throw a NoClassDefFoundError instead of
+                      a ClassNotFoundException
+
+*******************************************************************************/
+
+void resolve_handle_pending_exception(bool throwError)
+{
+	java_handle_t *e;
+
+	/* Get the current exception. */
+
+	e = exceptions_get_exception();
+
+	if (e != NULL) {
+		if (throwError == true) {
+			/* Convert ClassNotFoundException to
+			   NoClassDefFoundError. */
+
+			if (builtin_instanceof(e, class_java_lang_ClassNotFoundException)) {
+				/* Clear exception, because we are calling Java code
+				   again. */
+
+				exceptions_clear_exception();
+
+				/* create new error */
+
+				exceptions_throw_noclassdeffounderror_cause(e);
+			}
+			else {
+				return;
+			}
+		}
+		else {
+			/* An exception conversion was not requested.  Simply
+			   return. */
+
+			return;
+		}
+	}
+}
+
 
 /******************************************************************************/
 /* CLASS RESOLUTION                                                           */
@@ -177,14 +227,8 @@ bool resolve_class_from_name(classinfo *referer,
 		if (cls == NULL) {
 			cls = load_class_from_classloader(classname, referer->classloader);
 
-			if (cls == NULL) {
-				/* If the exception is a ClassNotFoundException,
-				   convert it to a NoClassDefFoundError. */
-
-				exceptions_classnotfoundexception_to_noclassdeffounderror();
-
+			if (cls == NULL)
 				return false;
-			}
 		}
 	}
 
@@ -281,7 +325,7 @@ bool resolve_classref(methodinfo *refmethod,
  
    Resolve a symbolic class reference if necessary
 
-   NOTE: If given, refmethod->class is used as the referring class.
+   NOTE: If given, refmethod->clazz is used as the referring class.
          Otherwise, cls.ref->referer is used.
 
    IN:
@@ -340,10 +384,10 @@ bool resolve_classref_or_classinfo(methodinfo *refmethod,
 		/* being the same, so the referer usually is cls.ref->referer.    */
 		/* There is one important case where it is not: When we do a      */
 		/* deferred assignability check to a formal argument of a method, */
-		/* we must use refmethod->class (the caller's class) to resolve   */
+		/* we must use refmethod->clazz (the caller's class) to resolve   */
 		/* the type of the formal argument.                               */
 
-		referer = (refmethod) ? refmethod->class : cls.ref->referer;
+		referer = (refmethod) ? refmethod->clazz : cls.ref->referer;
 
 		if (!resolve_class_from_name(referer, refmethod, cls.ref->name,
 									 mode, checkaccess, link, &c))
@@ -522,7 +566,7 @@ static resolve_result_t resolve_subtype_check(methodinfo *refmethod,
 											  resolve_err_t error)
 {
 	classinfo        *subclass;
-	typeinfo          subti;
+	typeinfo_t          subti;
 	typecheck_result  r;
 	char             *msg;
 	s4                msglen;
@@ -656,7 +700,7 @@ check_again:
 
 #if defined(ENABLE_VERIFIER)
 static resolve_result_t resolve_lazy_subtype_checks(methodinfo *refmethod,
-													typeinfo *subtinfo,
+													typeinfo_t *subtinfo,
 													classref_or_classinfo supertype,
 													resolve_err_t error)
 {
@@ -694,7 +738,7 @@ static resolve_result_t resolve_lazy_subtype_checks(methodinfo *refmethod,
 
 	if (supertype.cls == class_java_lang_Object
 		|| (CLASSREF_OR_CLASSINFO_NAME(supertype) == utf_java_lang_Object
-			&& refmethod->class->classloader == NULL))
+			&& refmethod->clazz->classloader == NULL))
 	{
 		return resolveSucceeded;
 	}
@@ -1058,8 +1102,8 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 											   constant_FMIref *fieldref,
 											   classinfo *container,
 											   fieldinfo *fi,
-											   typeinfo *instanceti,
-											   typeinfo *valueti,
+											   typeinfo_t *instanceti,
+											   typeinfo_t *valueti,
 											   bool isstatic,
 											   bool isput)
 {
@@ -1078,10 +1122,10 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 
 	/* get the classinfos and the field type */
 
-	referer = refmethod->class;
+	referer = refmethod->clazz;
 	assert(referer);
 
-	declarer = fi->class;
+	declarer = fi->clazz;
 	assert(declarer);
 	assert(referer->state & CLASS_LINKED);
 
@@ -1135,8 +1179,8 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 	/* instance type                                                          */
 
 	if (instanceti) {
-		typeinfo *insttip;
-		typeinfo tinfo;
+		typeinfo_t *insttip;
+		typeinfo_t tinfo;
 
 		/* The instanceslot must contain a reference to a non-array type */
 
@@ -1163,7 +1207,7 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 				return resolveFailed;
 			}
 
-			/* XXX check that class of field == refmethod->class */
+			/* XXX check that class of field == refmethod->clazz */
 			initclass = referer; /* XXX classrefs */
 			assert(initclass->state & CLASS_LINKED);
 
@@ -1257,7 +1301,7 @@ resolve_result_t resolve_field_lazy(methodinfo *refmethod,
 
 	/* the class containing the reference */
 
-	referer = refmethod->class;
+	referer = refmethod->clazz;
 	assert(referer);
 
 	/* check if the field itself is already resolved */
@@ -1350,13 +1394,13 @@ bool resolve_field(unresolved_field *ref,
 
 	/* the class containing the reference */
 
-	referer = ref->referermethod->class;
+	referer = ref->referermethod->clazz;
 	assert(referer);
 
 	/* check if the field itself is already resolved */
 	if (IS_FMIREF_RESOLVED(ref->fieldref)) {
 		fi = ref->fieldref->p.field;
-		container = fi->class;
+		container = fi->clazz;
 		goto resolved_the_field;
 	}
 
@@ -1419,7 +1463,7 @@ resolved_the_field:
 		if (checkresult != resolveSucceeded)
 			return (bool) checkresult;
 
-		declarer = fi->class;
+		declarer = fi->clazz;
 		assert(declarer);
 		assert(declarer->state & CLASS_LOADED);
 		assert(declarer->state & CLASS_LINKED);
@@ -1524,10 +1568,10 @@ methodinfo * resolve_method_invokespecial_lookup(methodinfo *refmethod,
 
 	/* get referer and declarer classes */
 
-	referer = refmethod->class;
+	referer = refmethod->clazz;
 	assert(referer);
 
-	declarer = mi->class;
+	declarer = mi->clazz;
 	assert(declarer);
 	assert(referer->state & CLASS_LINKED);
 
@@ -1607,10 +1651,10 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 
 	/* get the classinfos and the method descriptor */
 
-	referer = refmethod->class;
+	referer = refmethod->clazz;
 	assert(referer);
 
-	declarer = mi->class;
+	declarer = mi->clazz;
 	assert(declarer);
 
 	/* check static */
@@ -1684,18 +1728,18 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 #if defined(ENABLE_VERIFIER)
 resolve_result_t resolve_method_instance_type_checks(methodinfo *refmethod,
 													 methodinfo *mi,
-													 typeinfo *instanceti,
+													 typeinfo_t *instanceti,
 													 bool invokespecial)
 {
-	typeinfo         tinfo;
-	typeinfo        *tip;
+	typeinfo_t         tinfo;
+	typeinfo_t        *tip;
 	resolve_result_t result;
 
 	if (invokespecial && TYPEINFO_IS_NEWOBJECT(*instanceti))
 	{   /* XXX clean up */
 		instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(*instanceti);
 		classref_or_classinfo initclass = (ins) ? ins[-1].sx.val.c
-									 : CLASSREF_OR_CLASSINFO(refmethod->class);
+									 : CLASSREF_OR_CLASSINFO(refmethod->clazz);
 		tip = &tinfo;
 		if (!typeinfo_init_class(tip, initclass))
 			return false;
@@ -1706,20 +1750,20 @@ resolve_result_t resolve_method_instance_type_checks(methodinfo *refmethod,
 
 	result = resolve_lazy_subtype_checks(refmethod,
 										 tip,
-										 CLASSREF_OR_CLASSINFO(mi->class),
+										 CLASSREF_OR_CLASSINFO(mi->clazz),
 										 resolveLinkageError);
 	if (result != resolveSucceeded)
 		return result;
 
 	/* check protected access */
 
-	/* XXX use other `declarer` than mi->class? */
+	/* XXX use other `declarer` than mi->clazz? */
 	if (((mi->flags & ACC_PROTECTED) != 0)
-			&& !SAME_PACKAGE(mi->class, refmethod->class))
+			&& !SAME_PACKAGE(mi->clazz, refmethod->clazz))
 	{
 		result = resolve_lazy_subtype_checks(refmethod,
 				tip,
-				CLASSREF_OR_CLASSINFO(refmethod->class),
+				CLASSREF_OR_CLASSINFO(refmethod->clazz),
 				resolveIllegalAccessError);
 		if (result != resolveSucceeded)
 			return result;
@@ -1820,9 +1864,9 @@ resolve_result_t resolve_method_param_type_checks_stackbased(
 		methodinfo *refmethod, 
 		methodinfo *mi,
 		bool invokestatic, 
-		typedescriptor *stack)
+		typedescriptor_t *stack)
 {
-	typedescriptor  *param;
+	typedescriptor_t  *param;
 	resolve_result_t result;
 	methoddesc      *md;
 	typedesc        *paramtypes;
@@ -1901,7 +1945,7 @@ bool resolve_method_loading_constraints(classinfo *referer,
 				/* the method definition. Since container is the same as, */
 				/* or a subclass of declarer, we also constrain declarer  */
 				/* by transitivity of loading constraints.                */
-				name = mi->class->name;
+				name = mi->clazz->name;
 			}
 			else {
 				name = paramtypes[i].classref->name;
@@ -1910,7 +1954,7 @@ bool resolve_method_loading_constraints(classinfo *referer,
 			/* The caller (referer) and the callee (container) must agree */
 			/* on the types of the parameters.                            */
 			if (!classcache_add_constraint(referer->classloader,
-										   mi->class->classloader, name))
+										   mi->clazz->classloader, name))
 				return false; /* exception */
 		}
 	}
@@ -1921,7 +1965,7 @@ bool resolve_method_loading_constraints(classinfo *referer,
 		/* The caller (referer) and the callee (container) must agree */
 		/* on the return type.                                        */
 		if (!classcache_add_constraint(referer->classloader,
-					mi->class->classloader,
+					mi->clazz->classloader,
 					md->returntype.classref->name))
 			return false; /* exception */
 	}
@@ -1969,7 +2013,7 @@ resolve_result_t resolve_method_lazy(methodinfo *refmethod,
 
 	/* the class containing the reference */
 
-	referer = refmethod->class;
+	referer = refmethod->clazz;
 	assert(referer);
 
 	/* check if the method itself is already resolved */
@@ -2083,14 +2127,14 @@ bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **re
 
 	/* the class containing the reference */
 
-	referer = ref->referermethod->class;
+	referer = ref->referermethod->clazz;
 	assert(referer);
 
 	/* check if the method itself is already resolved */
 
 	if (IS_FMIREF_RESOLVED(ref->methodref)) {
 		mi = ref->methodref->p.method;
-		container = mi->class;
+		container = mi->clazz;
 		goto resolved_the_method;
 	}
 
@@ -2174,7 +2218,7 @@ resolved_the_method:
 		if (!resolve_method_loading_constraints(referer, mi))
 			return false;
 
-		declarer = mi->class;
+		declarer = mi->clazz;
 		assert(declarer);
 		assert(referer->state & CLASS_LINKED);
 
@@ -2265,7 +2309,7 @@ methodinfo * resolve_method_eager(unresolved_method *ref)
 static bool unresolved_subtype_set_from_typeinfo(classinfo *referer,
 												 methodinfo *refmethod,
 												 unresolved_subtype_set *stset,
-												 typeinfo *tinfo,
+												 typeinfo_t *tinfo,
 												 utf *declaredclassname)
 {
 	int count;
@@ -2369,7 +2413,7 @@ empty_set:
 #ifdef ENABLE_VERIFIER
 unresolved_class * create_unresolved_class(methodinfo *refmethod,
 										   constant_classref *classref,
-										   typeinfo *valuetype)
+										   typeinfo_t *valuetype)
 {
 	unresolved_class *ref;
 
@@ -2502,12 +2546,12 @@ unresolved_field * resolve_create_unresolved_field(classinfo *referer,
 bool resolve_constrain_unresolved_field(unresolved_field *ref,
 										classinfo *referer, 
 										methodinfo *refmethod,
-									    typeinfo *instanceti,
-									    typeinfo *valueti)
+									    typeinfo_t *instanceti,
+									    typeinfo_t *valueti)
 {
 	constant_FMIref *fieldref;
 	int type;
-	typeinfo tinfo;
+	typeinfo_t tinfo;
 	typedesc *fd;
 
 	assert(ref);
@@ -2533,7 +2577,7 @@ bool resolve_constrain_unresolved_field(unresolved_field *ref,
 
 	/* record subtype constraints for the instance type, if any */
 	if (instanceti) {
-		typeinfo *insttip;
+		typeinfo_t *insttip;
 
 		/* The instanceslot must contain a reference to a non-array type */
 		if (!TYPEINFO_IS_REFERENCE(*instanceti)) {
@@ -2562,8 +2606,8 @@ bool resolve_constrain_unresolved_field(unresolved_field *ref,
 						"accessing field of uninitialized object");
 				return false;
 			}
-			/* XXX check that class of field == refmethod->class */
-			initclass = refmethod->class; /* XXX classrefs */
+			/* XXX check that class of field == refmethod->clazz */
+			initclass = refmethod->clazz; /* XXX classrefs */
 			assert(initclass->state & CLASS_LOADED);
 			assert(initclass->state & CLASS_LINKED);
 
@@ -2671,13 +2715,13 @@ unresolved_method * resolve_create_unresolved_method(classinfo *referer,
 #if defined(ENABLE_VERIFIER)
 bool resolve_constrain_unresolved_method_instance(unresolved_method *ref,
 												  methodinfo *refmethod,
-												  typeinfo *instanceti,
+												  typeinfo_t *instanceti,
 												  bool invokespecial)
 {
 	constant_FMIref   *methodref;
 	constant_classref *instanceref;
-	typeinfo           tinfo;
-	typeinfo          *tip;
+	typeinfo_t           tinfo;
+	typeinfo_t          *tip;
 
 	assert(ref);
 	methodref = ref->methodref;
@@ -2685,7 +2729,7 @@ bool resolve_constrain_unresolved_method_instance(unresolved_method *ref,
 
 	/* XXX clean this up */
 	instanceref = IS_FMIREF_RESOLVED(methodref)
-		? class_get_self_classref(methodref->p.method->class)
+		? class_get_self_classref(methodref->p.method->clazz)
 		: methodref->p.classref;
 
 #ifdef RESOLVE_VERBOSE
@@ -2700,7 +2744,7 @@ bool resolve_constrain_unresolved_method_instance(unresolved_method *ref,
 	{   /* XXX clean up */
 		instruction *ins = (instruction *) TYPEINFO_NEWOBJECT_INSTRUCTION(*instanceti);
 		classref_or_classinfo initclass = (ins) ? ins[-1].sx.val.c
-									 : CLASSREF_OR_CLASSINFO(refmethod->class);
+									 : CLASSREF_OR_CLASSINFO(refmethod->clazz);
 		tip = &tinfo;
 		if (!typeinfo_init_class(tip, initclass))
 			return false;
@@ -2709,7 +2753,7 @@ bool resolve_constrain_unresolved_method_instance(unresolved_method *ref,
 		tip = instanceti;
 	}
 
-	if (!unresolved_subtype_set_from_typeinfo(refmethod->class, refmethod,
+	if (!unresolved_subtype_set_from_typeinfo(refmethod->clazz, refmethod,
 				&(ref->instancetypes),tip,instanceref->name))
 		return false;
 
@@ -2778,7 +2822,7 @@ bool resolve_constrain_unresolved_method_params(jitdata *jd,
 					UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[j]);
 			}
 			assert(ref->paramconstraints);
-			if (!unresolved_subtype_set_from_typeinfo(refmethod->class, refmethod,
+			if (!unresolved_subtype_set_from_typeinfo(refmethod->clazz, refmethod,
 						ref->paramconstraints + i,&(param->typeinfo),
 						md->paramtypes[i+instancecount].classref->name))
 				return false;
@@ -2813,10 +2857,10 @@ bool resolve_constrain_unresolved_method_params(jitdata *jd,
 bool resolve_constrain_unresolved_method_params_stackbased(
 		unresolved_method *ref,
 		methodinfo *refmethod,
-		typedescriptor *stack)
+		typedescriptor_t *stack)
 {
 	constant_FMIref *methodref;
-	typedescriptor *param;
+	typedescriptor_t *param;
 	methoddesc *md;
 	int i,j;
 	int type;
@@ -2853,7 +2897,7 @@ bool resolve_constrain_unresolved_method_params_stackbased(
 					UNRESOLVED_SUBTYPE_SET_EMTPY(ref->paramconstraints[j]);
 			}
 			assert(ref->paramconstraints);
-			if (!unresolved_subtype_set_from_typeinfo(refmethod->class, refmethod,
+			if (!unresolved_subtype_set_from_typeinfo(refmethod->clazz, refmethod,
 						ref->paramconstraints + i - instancecount,&(param->typeinfo),
 						md->paramtypes[i].classref->name))
 				return false;
@@ -3036,7 +3080,7 @@ void unresolved_field_debug_dump(unresolved_field *ref,FILE *file)
 	fprintf(file,"unresolved_field(%p):\n",(void *)ref);
 	if (ref) {
 		fprintf(file,"    referer   : ");
-		utf_fprint_printable_ascii(file,ref->referermethod->class->name); fputc('\n',file);
+		utf_fprint_printable_ascii(file,ref->referermethod->clazz->name); fputc('\n',file);
 		fprintf(file,"    refmethod : ");
 		utf_fprint_printable_ascii(file,ref->referermethod->name); fputc('\n',file);
 		fprintf(file,"    refmethodd: ");
@@ -3074,7 +3118,7 @@ void unresolved_method_debug_dump(unresolved_method *ref,FILE *file)
 	fprintf(file,"unresolved_method(%p):\n",(void *)ref);
 	if (ref) {
 		fprintf(file,"    referer   : ");
-		utf_fprint_printable_ascii(file,ref->referermethod->class->name); fputc('\n',file);
+		utf_fprint_printable_ascii(file,ref->referermethod->clazz->name); fputc('\n',file);
 		fprintf(file,"    refmethod : ");
 		utf_fprint_printable_ascii(file,ref->referermethod->name); fputc('\n',file);
 		fprintf(file,"    refmethodd: ");

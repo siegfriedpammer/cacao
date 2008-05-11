@@ -46,6 +46,7 @@
 #include "vm/vm.h"                     /* for vm_abort */
 
 #include "vm/jit/code.h"
+#include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/patcher-common.h"
 
@@ -149,7 +150,8 @@ static patchref_t *patcher_list_find(codeinfo *code, u1 *pc)
 
 	/* walk through all patcher references for the given codeinfo */
 
-	pr = list_first_unsynced(code->patchers);
+	pr = list_first(code->patchers);
+
 	while (pr) {
 
 /*#define TRACE_PATCHER_FIND*/
@@ -160,7 +162,7 @@ static patchref_t *patcher_list_find(codeinfo *code, u1 *pc)
 		if (pr->mpc == (ptrint) pc)
 			return pr;
 
-		pr = list_next_unsynced(code->patchers, pr);
+		pr = list_next(code->patchers, pr);
 	}
 
 	return NULL;
@@ -193,7 +195,7 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
 	/* allocate patchref on heap (at least freed together with codeinfo) */
 
 	pr = NEW(patchref_t);
-	list_add_first_unsynced(code->patchers, pr);
+	list_add_first(code->patchers, pr);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
@@ -228,6 +230,27 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
 
 	cd->lastmcodeptr = cd->mcodeptr + PATCHER_CALL_SIZE;
 #endif
+}
+
+
+/**
+ * Resolve all patchers in the current JIT run.
+ *
+ * @param jd JIT data-structure
+ */
+void patcher_resolve(jitdata* jd)
+{
+	codeinfo*   code;
+	patchref_t* pr;
+
+	/* Get required compiler data. */
+
+	code = jd->code;
+
+	for (pr = list_first(code->patchers); pr != NULL; pr = list_next(code->patchers, pr)) {
+		pr->mpc   += (intptr_t) code->entrypoint;
+		pr->datap  = (intptr_t) (pr->disp + code->entrypoint);
+	}
 }
 
 
@@ -300,7 +323,16 @@ java_handle_t *patcher_handler(u1 *pc)
 
 		TRACE_PATCHER_INDENT; printf("patching in "); method_print(code->m); printf(" at %p\n", (void *) pr->mpc);
 		TRACE_PATCHER_INDENT; printf("\tpatcher function = %s <%p>\n", l->name, (void *) (intptr_t) pr->patcher);
-		TRACE_PATCHER_INDENT; printf("\tmcodes before = "); for (i=0; i<5; i++) printf("0x%08x ", *((u4 *) pr->mpc + i)); printf("\n");
+
+		TRACE_PATCHER_INDENT;
+		printf("\tmachine code before = ");
+
+# if defined(ENABLE_DISASSEMBLER)
+		disassinstr((void *) pr->mpc);
+# else
+		printf("disassembler disabled\n");
+# endif
+
 		patcher_depth++;
 		assert(patcher_depth > 0);
 	}
@@ -318,7 +350,16 @@ java_handle_t *patcher_handler(u1 *pc)
 	if (opt_DebugPatcher) {
 		assert(patcher_depth > 0);
 		patcher_depth--;
-		TRACE_PATCHER_INDENT; printf("\tmcodes after  = "); for (i=0; i<5; i++) printf("0x%08x ", *((u4 *) pr->mpc + i)); printf("\n");
+
+		TRACE_PATCHER_INDENT;
+		printf("\tmachine code after  = ");
+
+# if defined(ENABLE_DISASSEMBLER)
+		disassinstr((void *) pr->mpc);
+# else
+		printf("disassembler disabled\n");
+# endif
+
 		if (result == false) {
 			TRACE_PATCHER_INDENT; printf("\tPATCHER EXCEPTION!\n");
 		}

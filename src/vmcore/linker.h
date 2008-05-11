@@ -102,7 +102,7 @@ typedef struct primitivetypeinfo primitivetypeinfo;
 
 struct _vftbl {
 	methodptr   *interfacetable[1];    /* interface table (access via macro)  */
-	classinfo   *class;                /* class, the vtbl belongs to          */
+	classinfo   *clazz;                /* class, the vtbl belongs to          */
 	arraydescriptor *arraydesc;        /* for array classes, otherwise NULL   */
 	s4           vftbllength;          /* virtual function table length       */
 	s4           interfacetablelength; /* interface table length              */

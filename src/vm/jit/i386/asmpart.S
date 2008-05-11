@@ -1,9 +1,7 @@
 /* src/vm/jit/i386/asmpart.S - Java-C interface functions for i386
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -122,7 +120,7 @@ asm_vm_call_method_long:
 asm_vm_call_method_float:
 asm_vm_call_method_double:
 	push    bp
-	mov     sp,bp                       /* save stackptr                      */
+	mov     sp,bp                       /* save stack pointer                 */
 	sub     $(4*4),sp                   /* create stackframe                  */
 	and     $0xfffffff0,sp              /* align stack to 16-byte             */
 
@@ -217,7 +215,7 @@ L_asm_handle_exception_stack_loop:
 	mov     t0,8*4(sp)                  /* save maybe-leaf flag               */
 
 	mov     xpc,0*4(sp)                 /* pass exception pc                  */
-	call    codegen_get_pv_from_pc
+	call    methodtree_find
 	mov     v0,6*4(sp)                  /* save data segment pointer          */
 
 	mov     4*4(sp),itmp3               /* pass exception pointer             */

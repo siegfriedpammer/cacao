@@ -1,9 +1,7 @@
 /* src/vm/jit/mips/patcher.c - SPARC code patching functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -193,8 +191,8 @@ bool patcher_get_putstatic(u1 *sp)
 
 	/* check if the field's class is initialized */
 
-	if (!(fi->class->state & CLASS_INITIALIZED))
-		if (!initialize_class(fi->class))
+	if (!(fi->clazz->state & CLASS_INITIALIZED))
+		if (!initialize_class(fi->clazz))
 			return false;
 
 	/* patch the field value's address */
@@ -512,28 +510,28 @@ bool patcher_invokeinterface(u1 *sp)
 
 		*((s4 *) (ra + 1 * 4)) |= 
 			(s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-				sizeof(methodptr*) * m->class->index) & 0x00001fff);
+				sizeof(methodptr*) * m->clazz->index) & 0x00001fff);
 
 		/* patch method offset */
 
 		*((s4 *) (ra + 2 * 4)) |=
-			(s4) ((sizeof(methodptr) * (m - m->class->methods)) & 0x00001fff);
+			(s4) ((sizeof(methodptr) * (m - m->clazz->methods)) & 0x00001fff);
 
 		/* synchronize instruction cache */
 
 		md_icacheflush(ra + 1 * 4, 2 * 4);
 	}
-else {
+	else {
 		/* patch interfacetable index */
 
 		*((s4 *) (sp + 3 * 8 + 4)) |=
 			(s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-				sizeof(methodptr*) * m->class->index) & 0x00001fff);
+				sizeof(methodptr*) * m->clazz->index) & 0x00001fff);
 
 		/* patch method offset */
 
 		*((s4 *) (ra + 2 * 4)) |=
-			(s4) ((sizeof(methodptr) * (m - m->class->methods)) & 0x00001fff);
+			(s4) ((sizeof(methodptr) * (m - m->clazz->methods)) & 0x00001fff);
 
 		/* synchronize instruction cache */
 

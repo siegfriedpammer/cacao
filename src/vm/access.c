@@ -1,9 +1,7 @@
 /* src/vm/access.c - checking access rights
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -191,14 +189,14 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
   
    IN:
        f................the field to check
-	   calldepth........number of callers to ignore
+	   callerdepth......number of callers to ignore
 	                    For example if the stacktrace looks like this:
 
-					   java.lang.reflect.Method.invokeNative (Native Method)
-				   [0] java.lang.reflect.Method.invoke (Method.java:329)
-				   [1] <caller>
+				   [0] java.lang.reflect.Method.invokeNative (Native Method)
+				   [1] java.lang.reflect.Method.invoke
+				   [2] <caller>
 
-				        you must specify 1 so the access rights of <caller> 
+				        you must specify 2 so the access rights of <caller> 
 						are checked.
   
    RETURN VALUE:
@@ -207,35 +205,31 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
    
 *******************************************************************************/
 
-bool access_check_field(fieldinfo *f, s4 calldepth)
+#if defined(ENABLE_JAVASE)
+bool access_check_field(fieldinfo *f, int callerdepth)
 {
-	java_handle_objectarray_t *oa;
-	classinfo                 *callerclass;
-	char                      *msg;
-	s4                         msglen;
-	utf                       *u;
+	classinfo *callerclass;
+	char      *msg;
+	int        msglen;
+	utf       *u;
 
-	/* if everything is public, there is nothing to check */
+	/* If everything is public, there is nothing to check. */
 
-	if ((f->class->flags & ACC_PUBLIC) && (f->flags & ACC_PUBLIC))
+	if ((f->clazz->flags & ACC_PUBLIC) && (f->flags & ACC_PUBLIC))
 		return true;
 
-	/* get the caller's class */
+	/* Get the caller's class. */
 
-	oa = stacktrace_getClassContext();
+	callerclass = stacktrace_get_caller_class(callerdepth);
 
-	if (oa == NULL)
+	if (callerclass == NULL)
 		return false;
 
-	assert(calldepth >= 0 && calldepth < LLNI_array_size(oa));
+	/* Check access rights. */
 
-	callerclass = (classinfo *) LLNI_array_direct(oa, calldepth);
-
-	/* check access rights */
-
-	if (!access_is_accessible_member(callerclass, f->class, f->flags)) {
+	if (!access_is_accessible_member(callerclass, f->clazz, f->flags)) {
 		msglen =
-			utf_bytes(f->class->name) +
+			utf_bytes(f->clazz->name) +
 			strlen(".") +
 			utf_bytes(f->name) +
 			strlen(" not accessible from ") +
@@ -244,7 +238,7 @@ bool access_check_field(fieldinfo *f, s4 calldepth)
 
 		msg = MNEW(char, msglen);
 
-		utf_copy_classname(msg, f->class->name);
+		utf_copy_classname(msg, f->clazz->name);
 		strcat(msg, ".");
 		utf_cat_classname(msg, f->name);
 		strcat(msg, " not accessible from ");
@@ -263,6 +257,7 @@ bool access_check_field(fieldinfo *f, s4 calldepth)
 
 	return true;
 }
+#endif
 
 
 /* access_check_method *********************************************************
@@ -272,14 +267,14 @@ bool access_check_field(fieldinfo *f, s4 calldepth)
   
    IN:
        m................the method to check
-	   calldepth........number of callers to ignore
+	   callerdepth......number of callers to ignore
 	                    For example if the stacktrace looks like this:
 
-					   java.lang.reflect.Method.invokeNative (Native Method)
-				   [0] java.lang.reflect.Method.invoke (Method.java:329)
-				   [1] <caller>
+				   [1] java.lang.reflect.Method.invokeNative (Native Method)
+				   [1] java.lang.reflect.Method.invoke
+				   [2] <caller>
 
-				        you must specify 1 so the access rights of <caller> 
+				        you must specify 2 so the access rights of <caller> 
 						are checked.
   
    RETURN VALUE:
@@ -288,35 +283,31 @@ bool access_check_field(fieldinfo *f, s4 calldepth)
    
 *******************************************************************************/
 
-bool access_check_method(methodinfo *m, s4 calldepth)
+#if defined(ENABLE_JAVASE)
+bool access_check_method(methodinfo *m, int callerdepth)
 {
-	java_handle_objectarray_t *oa;
-	classinfo                 *callerclass;
-	char                      *msg;
-	s4                         msglen;
-	utf                       *u;
+	classinfo *callerclass;
+	char      *msg;
+	int        msglen;
+	utf       *u;
 
-	/* if everything is public, there is nothing to check */
+	/* If everything is public, there is nothing to check. */
 
-	if ((m->class->flags & ACC_PUBLIC) && (m->flags & ACC_PUBLIC))
+	if ((m->clazz->flags & ACC_PUBLIC) && (m->flags & ACC_PUBLIC))
 		return true;
 
-	/* get the caller's class */
+	/* Get the caller's class. */
 
-	oa = stacktrace_getClassContext();
+	callerclass = stacktrace_get_caller_class(callerdepth);
 
-	if (oa == NULL)
+	if (callerclass == NULL)
 		return false;
 
-	assert(calldepth >= 0 && calldepth < LLNI_array_size(oa));
+	/* Check access rights. */
 
-	callerclass = (classinfo *) LLNI_array_direct(oa, calldepth);
-
-	/* check access rights */
-
-	if (!access_is_accessible_member(callerclass, m->class, m->flags)) {
+	if (!access_is_accessible_member(callerclass, m->clazz, m->flags)) {
 		msglen =
-			utf_bytes(m->class->name) +
+			utf_bytes(m->clazz->name) +
 			strlen(".") +
 			utf_bytes(m->name) +
 			utf_bytes(m->descriptor) +
@@ -326,7 +317,7 @@ bool access_check_method(methodinfo *m, s4 calldepth)
 
 		msg = MNEW(char, msglen);
 
-		utf_copy_classname(msg, m->class->name);
+		utf_copy_classname(msg, m->clazz->name);
 		strcat(msg, ".");
 		utf_cat_classname(msg, m->name);
 		utf_cat_classname(msg, m->descriptor);
@@ -346,6 +337,7 @@ bool access_check_method(methodinfo *m, s4 calldepth)
 
 	return true;
 }
+#endif
 
 
 /*

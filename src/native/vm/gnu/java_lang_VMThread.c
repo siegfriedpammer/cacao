@@ -39,7 +39,7 @@
 #include "native/include/java_lang_Thread.h"
 
 #include "threads/lock-common.h"
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
@@ -124,14 +124,11 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMTh
 JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, java_lang_VMThread *this)
 {
 #if defined(ENABLE_THREADS)
-	java_lang_Thread *object;
-	threadobject     *t;
+	java_handle_t *h;
+	threadobject  *t;
 
-	/* XXX TWISTI: I think this and object->vmThread are equal. */
-
-	LLNI_field_get_ref(this, thread, object);
-
-	t = (threadobject *) LLNI_field_direct(object, vmThread)->vmdata;
+	h = (java_handle_t *) this;
+	t = thread_get_thread(h);
 
 	threads_thread_interrupt(t);
 #endif
@@ -146,14 +143,13 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, java_lang_
 JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, java_lang_VMThread *this)
 {
 #if defined(ENABLE_THREADS)
-	java_lang_Thread *thread;
-	threadobject     *t;
+	java_handle_t *h;
+	threadobject  *t;
 
-	LLNI_field_get_ref(this, thread, thread);
+	h = (java_handle_t *) this;
+	t = thread_get_thread(h);
 
-	t = (threadobject *) LLNI_field_direct(thread, vmThread)->vmdata;
-
-	return threads_thread_has_been_interrupted(t);
+	return thread_is_interrupted(t);
 #else
 	return 0;
 #endif
@@ -168,10 +164,6 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, jav
 JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, java_lang_VMThread *this)
 {
 #if defined(ENABLE_THREADS)
-	java_lang_Thread *thread;
-
-	LLNI_field_get_ref(this, thread, thread);
-
 	/* TODO Should we implement this or is it obsolete? */
 #endif
 }
@@ -185,10 +177,6 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, java_lang_VM
 JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, java_lang_VMThread *this)
 {
 #if defined(ENABLE_THREADS)
-	java_lang_Thread *thread;
-
-	LLNI_field_get_ref(this, thread, thread);
-
 	/* TODO Should we implement this or is it obsolete? */
 #endif
 }
@@ -202,12 +190,11 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, java_lang_VMT
 JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, java_lang_VMThread *this, int32_t priority)
 {
 #if defined(ENABLE_THREADS)
-	java_lang_Thread *thread;
-	threadobject     *t;
+	java_handle_t *h;
+	threadobject  *t;
 
-	LLNI_field_get_ref(this, thread, thread);
-
-	t = (threadobject *) LLNI_field_direct(thread, vmThread)->vmdata;
+	h = (java_handle_t *) this;
+	t = thread_get_thread(h);
 
 	threads_set_thread_priority(t->tid, priority);
 #endif
@@ -222,10 +209,6 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, ja
 JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeStop(JNIEnv *env, java_lang_VMThread *this, java_lang_Throwable *t)
 {
 #if defined(ENABLE_THREADS)
-	java_lang_Thread *thread;
-
-	LLNI_field_get_ref(this, thread, thread);
-
 	/* TODO Should we implement this or is it obsolete? */
 #endif
 }
@@ -238,11 +221,11 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeStop(JNIEnv *env, java_lang
  */
 JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_VMThread_currentThread(JNIEnv *env, jclass clazz)
 {
-	java_lang_Thread *thread;
+	java_lang_Thread *to;
 
-	thread = (java_lang_Thread *) threads_get_current_object();
+	to = (java_lang_Thread *) thread_get_current_object();
 
-	return thread;
+	return to;
 }
 
 
@@ -267,7 +250,17 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_yield(JNIEnv *env, jclass clazz)
 JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_interrupted(JNIEnv *env, jclass clazz)
 {
 #if defined(ENABLE_THREADS)
-	return threads_check_if_interrupted_and_reset();
+	threadobject *t;
+	int32_t       interrupted;
+
+	t = thread_get_current();
+
+	interrupted = thread_is_interrupted(t);
+
+	if (interrupted)
+		thread_set_interrupted(t, false);
+
+	return interrupted;
 #else
 	return 0;
 #endif
@@ -306,16 +299,44 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass 
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMThread_getState(JNIEnv *env, java_lang_VMThread *this)
 {
 #if defined(ENABLE_THREADS)
-	java_lang_Thread *thread;
-	threadobject     *t;
-	utf              *u;
-	java_handle_t    *o;
+	java_handle_t *h;
+	threadobject  *t;
+	int            state;
+	utf           *u;
+	java_handle_t *o;
 
-	LLNI_field_get_ref(this, thread, thread);
+	h = (java_handle_t *) this;
+	t = thread_get_thread(h);
 
-	t = (threadobject *) LLNI_field_direct(thread, vmThread)->vmdata;
+	state = cacaothread_get_state(t);
+	
+	switch (state) {
+	case THREAD_STATE_NEW:
+		u = utf_new_char("NEW");
+		break;
+	case THREAD_STATE_RUNNABLE:
+		u = utf_new_char("RUNNABLE");
+		break;
+	case THREAD_STATE_BLOCKED:
+		u = utf_new_char("BLOCKED");
+		break;
+	case THREAD_STATE_WAITING:
+		u = utf_new_char("WAITING");
+		break;
+	case THREAD_STATE_TIMED_WAITING:
+		u = utf_new_char("TIMED_WAITING");
+		break;
+	case THREAD_STATE_TERMINATED:
+		u = utf_new_char("TERMINATED");
+		break;
+	default:
+		vm_abort("Java_java_lang_VMThread_getState: unknown thread state %d", state);
 
-	u = threads_thread_get_state(t);
+		/* Keep compiler happy. */
+
+		u = NULL;
+	}
+
 	o = javastring_new(u);
 
 	return (java_lang_String *) o;

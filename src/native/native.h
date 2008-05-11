@@ -68,7 +68,7 @@ typedef struct hashtable_library_loader_entry hashtable_library_loader_entry;
 typedef struct hashtable_library_name_entry   hashtable_library_name_entry;
 
 struct hashtable_library_loader_entry {
-	classloader                    *loader;  /* class loader                  */
+	classloader_t                  *loader;  /* class loader                  */
 	hashtable_library_name_entry   *namelink;/* libs loaded by this loader    */
 	hashtable_library_loader_entry *hashlink;/* link for external chaining    */
 };
@@ -96,9 +96,9 @@ functionptr native_method_resolve(methodinfo *m);
 #if defined(ENABLE_LTDL)
 lt_dlhandle native_library_open(utf *filename);
 void        native_library_close(lt_dlhandle handle);
-void        native_library_add(utf *filename, classloader *loader, lt_dlhandle handle);
-hashtable_library_name_entry *native_library_find(utf *filename, classloader *loader);
-int         native_library_load(JNIEnv *env, utf *name, classloader *cl);
+void        native_library_add(utf *filename, classloader_t *loader, lt_dlhandle handle);
+hashtable_library_name_entry *native_library_find(utf *filename, classloader_t *loader);
+int         native_library_load(JNIEnv *env, utf *name, classloader_t *cl);
 #endif
 
 java_handle_t *native_new_and_init(classinfo *c);

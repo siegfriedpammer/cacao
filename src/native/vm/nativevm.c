@@ -27,24 +27,25 @@
 
 #include <stdint.h>
 
-#if defined(WITH_CLASSPATH_SUN)
-# include <string.h>
-#endif
-
 #include "native/vm/nativevm.h"
 
+#include "vm/initialize.h"
+
+#include "vmcore/class.h"
 #include "vmcore/method.h"
 #include "vmcore/options.h"
+#include "vmcore/system.h"
 
 #if defined(WITH_CLASSPATH_SUN)
 # include "mm/memory.h"
 
 # include "native/native.h"
 
+# include "native/vm/sun/hpi.h"
+
 # include "vm/properties.h"
 # include "vm/vm.h"
 
-# include "vmcore/class.h"
 # include "vmcore/utf8.h"
 #endif
 
@@ -55,18 +56,18 @@
 
 *******************************************************************************/
 
-bool nativevm_preinit(void)
+void nativevm_preinit(void)
 {
-	/* register native methods of all classes implemented */
+	/* Register native methods of all classes implemented. */
 
 #if defined(ENABLE_JAVASE)
-
 # if defined(WITH_CLASSPATH_GNU)
 
 	TRACESUBSYSTEMINITIALIZATION("nativevm_preinit");
 
 	_Jv_gnu_classpath_VMStackWalker_init();
 	_Jv_gnu_classpath_VMSystemProperties_init();
+	_Jv_gnu_java_lang_VMCPStringBuilder_init();
 	_Jv_gnu_java_lang_management_VMClassLoadingMXBeanImpl_init();
 	_Jv_gnu_java_lang_management_VMMemoryMXBeanImpl_init();
 	_Jv_gnu_java_lang_management_VMRuntimeMXBeanImpl_init();
@@ -80,9 +81,9 @@ bool nativevm_preinit(void)
 	_Jv_java_lang_VMThread_init();
 	_Jv_java_lang_VMThrowable_init();
 	_Jv_java_lang_management_VMManagementFactory_init();
-	_Jv_java_lang_reflect_Constructor_init();
-	_Jv_java_lang_reflect_Field_init();
-	_Jv_java_lang_reflect_Method_init();
+	_Jv_java_lang_reflect_VMConstructor_init();
+	_Jv_java_lang_reflect_VMField_init();
+	_Jv_java_lang_reflect_VMMethod_init();
 	_Jv_java_lang_reflect_VMProxy_init();
 	_Jv_java_security_VMAccessController_init();
 	_Jv_java_util_concurrent_atomic_AtomicLong_init();
@@ -102,31 +103,39 @@ bool nativevm_preinit(void)
 
 	TRACESUBSYSTEMINITIALIZATION("nativevm_preinit");
 
+	/* Load libjava.so */
+
 	boot_library_path = properties_get("sun.boot.library.path");
 
 	len =
-		strlen(boot_library_path) +
-		strlen("/libjava.so") +
-		strlen("0");
+		system_strlen(boot_library_path) +
+		system_strlen("/libjava.so") +
+		system_strlen("0");
 
 	p = MNEW(char, len);
 
-	strcpy(p, boot_library_path);
-	strcat(p, "/libjava.so");
+	system_strcpy(p, boot_library_path);
+	system_strcat(p, "/libjava.so");
 
 	u = utf_new_char(p);
 
+	handle = native_library_open(u);
+
+	if (handle == NULL)
+		vm_abort("nativevm_init: failed to open libjava.so at: %s", p);
+
 	MFREE(p, char, len);
 
-	handle = native_library_open(u);
 	native_library_add(u, NULL, handle);
+
+	/* Initialize the HPI. */
+
+	hpi_initialize();
 
 	_Jv_sun_misc_Unsafe_init();
 
 # else
-
 #  error unknown classpath configuration
-
 # endif
 
 #elif defined(ENABLE_JAVAME_CLDC1_1)
@@ -149,14 +158,8 @@ bool nativevm_preinit(void)
 	_Jv_java_lang_Throwable_init();
 
 #else
-
 # error unknown Java configuration
-
 #endif
-
-	/* everything's ok */
-
-	return true;
 }
 
 
@@ -166,7 +169,7 @@ bool nativevm_preinit(void)
 
 *******************************************************************************/
 
-bool nativevm_init(void)
+void nativevm_init(void)
 {
 #if defined(ENABLE_JAVASE)
 
@@ -189,14 +192,12 @@ bool nativevm_init(void)
 								 false);
 
 	if (m == NULL)
-		return false;
+		vm_abort("nativevm_init: Error resolving java.lang.System.initializeSystemClass()");
 
 	(void) vm_call_method(m, NULL);
 
 # else
-
 #  error unknown classpath configuration
-
 # endif
 
 #elif defined(ENABLE_JAVAME_CLDC1_1)
@@ -206,14 +207,8 @@ bool nativevm_init(void)
 	/* nothing to do */
 
 #else
-
 # error unknown Java configuration
-
 #endif
-
-	/* everything's ok */
-
-	return true;
 }
 
 

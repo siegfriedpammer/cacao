@@ -1,9 +1,7 @@
 /* src/vm/jit/arm/emit.c - Arm code emitter functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -50,6 +48,7 @@
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/trace.h"
+#include "vm/jit/trap.h"
 
 #include "toolbox/logging.h" /* XXX for debugging only */
 
@@ -475,7 +474,7 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		CHECK_INT_REG(reg);
 		M_TEQ_IMM(reg, 0);
-		M_TRAPEQ(0, EXCEPTION_HARDWARE_ARITHMETIC);
+		M_TRAPEQ(0, TRAP_ArithmeticException);
 	}
 }
 
@@ -490,14 +489,14 @@ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TST(reg, reg);
-		M_TRAPEQ(0, EXCEPTION_HARDWARE_NULLPOINTER);
+		M_TRAPEQ(0, TRAP_NullPointerException);
 	}
 }
 
 void emit_nullpointer_check_force(codegendata *cd, instruction *iptr, s4 reg)
 {
 	M_TST(reg, reg);
-	M_TRAPEQ(0, EXCEPTION_HARDWARE_NULLPOINTER);
+	M_TRAPEQ(0, TRAP_NullPointerException);
 }
 
 
@@ -512,7 +511,7 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_ILD_INTERN(REG_ITMP3, s1, OFFSET(java_array_t, size));
 		M_CMP(s2, REG_ITMP3);
-		M_TRAPHS(s2, EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS);
+		M_TRAPHS(s2, TRAP_ArrayIndexOutOfBoundsException);
 	}
 }
 
@@ -527,7 +526,7 @@ void emit_arraystore_check(codegendata *cd, instruction *iptr)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TST(REG_RESULT, REG_RESULT);
-		M_TRAPEQ(0, EXCEPTION_HARDWARE_ARRAYSTORE);
+		M_TRAPEQ(0, TRAP_ArrayStoreException);
 	}
 }
 
@@ -543,15 +542,15 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		switch (condition) {
 		case BRANCH_EQ:
-			M_TRAPEQ(s1, EXCEPTION_HARDWARE_CLASSCAST);
+			M_TRAPEQ(s1, TRAP_ClassCastException);
 			break;
 
 		case BRANCH_LE:
-			M_TRAPLE(s1, EXCEPTION_HARDWARE_CLASSCAST);
+			M_TRAPLE(s1, TRAP_ClassCastException);
 			break;
 
 		case BRANCH_UGT:
-			M_TRAPHI(s1, EXCEPTION_HARDWARE_CLASSCAST);
+			M_TRAPHI(s1, TRAP_ClassCastException);
 			break;
 
 		default:
@@ -570,7 +569,7 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 {
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TST(REG_RESULT, REG_RESULT);
-		M_TRAPEQ(0, EXCEPTION_HARDWARE_EXCEPTION);
+		M_TRAPEQ(0, TRAP_CHECK_EXCEPTION);
 	}
 }
 
@@ -588,9 +587,9 @@ uint32_t emit_trap(codegendata *cd)
 	/* Get machine code which is patched back in later. The
 	   trap is 1 instruction word long. */
 
-	mcode = *((u4 *) cd->mcodeptr);
+	mcode = *((uint32_t *) cd->mcodeptr);
 
-	M_TRAP(0, EXCEPTION_HARDWARE_PATCHER);
+	M_TRAP(0, TRAP_PATCHER);
 
 	return mcode;
 }

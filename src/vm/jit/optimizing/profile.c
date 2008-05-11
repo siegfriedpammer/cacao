@@ -33,13 +33,15 @@
 #include "mm/memory.h"
 
 #include "threads/threadlist.h"
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "vm/builtin.h"
 #include "vm/stringlocal.h"
 
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/methodtree.h"
+
 #include "vm/jit/optimizing/recompile.h"
 
 #include "vmcore/class.h"
@@ -93,7 +95,7 @@ static void profile_thread(void)
 
 		/* lock the threads lists */
 
-		threads_list_lock();
+		threadlist_lock();
 
 		/* iterate over all started threads */
 
@@ -112,9 +114,9 @@ static void profile_thread(void)
 
 			pc = t->pc;
 
-			/* get the PV for the current PC */
+			/* Get the PV for the current PC. */
 
-			pv = codegen_get_pv_from_pc_nocheck(pc);
+			pv = methodtree_find_nocheck(pc);
 
 			/* get methodinfo pointer from data segment */
 
@@ -156,7 +158,7 @@ static void profile_thread(void)
 
 		/* unlock the threads lists */
 
-		threads_list_unlock();
+		threadlist_unlock();
 	}
 }
 #endif

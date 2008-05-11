@@ -1,9 +1,7 @@
 /* src/vm/jit/alpha/codegen.c - machine code generator for Alpha
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -63,6 +61,7 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 #if defined(ENABLE_SSA)
 # include "vm/jit/optimizing/lsra.h"
@@ -249,12 +248,12 @@ bool codegen_emit(jitdata *jd)
 		/* decide which monitor enter function to call */
 
 		if (m->flags & ACC_STATIC) {
-			disp = dseg_add_address(cd, &m->class->object.header);
+			disp = dseg_add_address(cd, &m->clazz->object.header);
 			M_ALD(REG_A0, REG_PV, disp);
 		}
 		else {
 			M_BNEZ(REG_A0, 1);
-			M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_NULLPOINTER);
+			M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_NullPointerException);
 		}
 
 		M_AST(REG_A0, REG_SP, s1 * 8);
@@ -1277,7 +1276,7 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_L2F:
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			disp = dseg_add_unique_double(cd, 0.0);
+			disp = dseg_add_unique_double(cd, 0.0); /* FIXME Not thread safe! */
 			M_LST(s1, REG_PV, disp);
 			M_DLD(d, REG_PV, disp);
 			M_CVTLF(d, d);
@@ -1288,7 +1287,7 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_L2D:
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			disp = dseg_add_unique_double(cd, 0.0);
+			disp = dseg_add_unique_double(cd, 0.0); /* FIXME Not thread safe! */
 			M_LST(s1, REG_PV, disp);
 			M_DLD(d, REG_PV, disp);
 			M_CVTLD(d, d);
@@ -1299,7 +1298,7 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_D2I:
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			disp = dseg_add_unique_double(cd, 0.0);
+			disp = dseg_add_unique_double(cd, 0.0); /* FIXME Not thread safe! */
 			M_CVTDL_C(s1, REG_FTMP2);
 			M_CVTLI(REG_FTMP2, REG_FTMP3);
 			M_DST(REG_FTMP3, REG_PV, disp);
@@ -1311,7 +1310,7 @@ bool codegen_emit(jitdata *jd)
 		case ICMD_D2L:
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			disp = dseg_add_unique_double(cd, 0.0);
+			disp = dseg_add_unique_double(cd, 0.0); /* FIXME Not thread safe! */
 			M_CVTDL_C(s1, REG_FTMP2);
 			M_DST(REG_FTMP2, REG_PV, disp);
 			M_LLD(d, REG_PV, disp);
@@ -1786,8 +1785,8 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class,
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz,
 										  0);
   			}
 
@@ -1831,8 +1830,8 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class,
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz,
 										  0);
   			}
 
@@ -1877,8 +1876,8 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class,
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz,
 										  0);
   			}
 			
@@ -2656,9 +2655,9 @@ gen_method:
 				}
 				else {
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
-						sizeof(methodptr*) * lm->class->index;
+						sizeof(methodptr*) * lm->clazz->index;
 
-					s2 = sizeof(methodptr) * (lm - lm->class->methods);
+					s2 = sizeof(methodptr) * (lm - lm->clazz->methods);
 				}
 					
 				/* implicit null-pointer check */

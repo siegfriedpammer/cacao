@@ -279,6 +279,16 @@ void linker_init(void)
 		vm_abort("linker_init: linking failed");
 #endif
 
+	/* Important system exceptions. */
+
+	if (!link_class(class_java_lang_Exception))
+		vm_abort("linker_init: linking failed");
+
+	if (!link_class(class_java_lang_ClassNotFoundException))
+		vm_abort("linker_init: linking failed");
+
+	if (!link_class(class_java_lang_RuntimeException))
+		vm_abort("linker_init: linking failed");
 
 	/* some classes which may be used more often */
 
@@ -294,6 +304,17 @@ void linker_init(void)
 
 	if (!link_class(class_java_lang_reflect_Method))
 		vm_abort("linker_init: linking failed");
+
+# if defined(WITH_CLASSPATH_GNU)
+	if (!link_class(class_java_lang_reflect_VMConstructor))
+		vm_abort("linker_init: linking failed");
+
+	if (!link_class(class_java_lang_reflect_VMField))
+		vm_abort("linker_init: linking failed");
+
+	if (!link_class(class_java_lang_reflect_VMMethod))
+		vm_abort("linker_init: linking failed");
+# endif
 
 	if (!link_class(class_java_security_PrivilegedAction))
 		vm_abort("linker_init: linking failed");
@@ -468,8 +489,8 @@ static bool linker_overwrite_method(methodinfo *mg,
 	classinfo *cg;
 	classinfo *cs;
 
-	cg = mg->class;
-	cs = ms->class;
+	cg = mg->clazz;
+	cs = ms->clazz;
 
 	/* overriding a final method is illegal */
 
@@ -766,7 +787,7 @@ static classinfo *link_class_intern(classinfo *c)
 					MCOPY(am, im, methodinfo, 1);
 
 					am->vftblindex  = (vftbllength++);
-					am->class       = c;
+					am->clazz       = c;
 					am->flags      |= ACC_MIRANDA;
 
 				noabstractmethod2:
@@ -807,7 +828,7 @@ static classinfo *link_class_intern(classinfo *c)
 					 (interfacetablelength - 1) * (interfacetablelength > 1));
 
 	c->vftbl                = v;
-	v->class                = c;
+	v->clazz                = c;
 	v->vftbllength          = vftbllength;
 	v->interfacetablelength = interfacetablelength;
 	v->arraydesc            = arraydesc;

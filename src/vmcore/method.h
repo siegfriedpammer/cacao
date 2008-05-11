@@ -1,9 +1,7 @@
 /* src/vmcore/method.h - method functions header
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -75,7 +73,7 @@ struct methodinfo {                 /* method structure                       */
 
 	methoddesc   *parseddesc;       /* parsed descriptor                      */
 			     
-	classinfo    *class;            /* class, the method belongs to           */
+	classinfo    *clazz;            /* class, the method belongs to           */
 	s4            vftblindex;       /* index of method in virtual function    */
 	                                /* table (if it is a virtual method)      */
 	s4            maxstack;         /* maximum stack depth of method          */
@@ -156,7 +154,22 @@ struct lineinfo {
 };
 
 
+/* global variables ***********************************************************/
+
+extern methodinfo *method_java_lang_reflect_Method_invoke;
+
+
+/* inline functions ***********************************************************/
+
+inline static bool method_is_builtin(methodinfo* m)
+{
+	return m->flags & ACC_METHOD_BUILTIN;
+}
+
+
 /* function prototypes ********************************************************/
+
+void method_init(void);
 
 bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool);
 void method_free(methodinfo *m);

@@ -36,41 +36,37 @@
 /******************************************************************************/
 
 #if defined(__ARMEL__)
-#define SPLIT_OPEN(type, reg, tmpreg) \
+
+# define SPLIT_OPEN(type, reg, tmpreg) \
 	if (IS_2_WORD_TYPE(type) && GET_HIGH_REG(reg)==REG_SPLIT) { \
 		/*dolog("SPLIT_OPEN({R%d;SPL} > {R%d;R%d})", GET_LOW_REG(reg), GET_LOW_REG(reg), tmpreg);*/ \
 		/*assert(GET_LOW_REG(reg) == 3);*/ \
 		(reg) = PACK_REGS(GET_LOW_REG(reg), tmpreg); \
 	}
-#define SPLIT_LOAD(type, reg, offset) \
-	if (IS_2_WORD_TYPE(type) && GET_LOW_REG(reg)==3) { \
-		/*dolog("SPLIT_LOAD({R%d;R%d} from [%x])", GET_LOW_REG(reg), GET_HIGH_REG(reg), offset);*/ \
-		M_LDR(GET_HIGH_REG(reg), REG_SP, 4 * (offset)); \
-	}
-#define SPLIT_STORE_AND_CLOSE(type, reg, offset) \
+
+# define SPLIT_STORE_AND_CLOSE(type, reg, offset) \
 	if (IS_2_WORD_TYPE(type) && GET_LOW_REG(reg)==3) { \
 		/*dolog("SPLIT_STORE({R%d;R%d} to [%x])", GET_LOW_REG(reg), GET_HIGH_REG(reg), offset);*/ \
 		M_STR(GET_HIGH_REG(reg), REG_SP, 4 * (offset)); \
 		(reg) = PACK_REGS(GET_LOW_REG(reg), REG_SPLIT); \
 	}
+
 #else /* defined(__ARMEB__) */
-#define SPLIT_OPEN(type, reg, tmpreg) \
+
+# define SPLIT_OPEN(type, reg, tmpreg) \
 	if (IS_2_WORD_TYPE(type) && GET_LOW_REG(reg)==REG_SPLIT) { \
 		/*dolog("SPLIT_OPEN({SPL;R%d} > {R%d;R%d})", GET_HIGH_REG(reg), tmpreg, GET_HIGH_REG(reg));*/ \
 		/*assert(GET_HIGH_REG(reg) == 3);*/ \
 		(reg) = PACK_REGS(tmpreg, GET_HIGH_REG(reg)); \
 	}
-#define SPLIT_LOAD(type, reg, offset) \
-	if (IS_2_WORD_TYPE(type) && GET_HIGH_REG(reg)==3) { \
-		/*dolog("SPLIT_LOAD({R%d;R%d} from [%x])", GET_LOW_REG(reg), GET_HIGH_REG(reg), offset);*/ \
-		M_LDR(GET_LOW_REG(reg), REG_SP, 4 * (offset)); \
-	}
-#define SPLIT_STORE_AND_CLOSE(type, reg, offset) \
+
+# define SPLIT_STORE_AND_CLOSE(type, reg, offset) \
 	if (IS_2_WORD_TYPE(type) && GET_HIGH_REG(reg)==3) { \
 		/*dolog("SPLIT_STORE({R%d;R%d} to [%x])", GET_LOW_REG(reg), GET_HIGH_REG(reg), offset);*/ \
 		M_STR(GET_LOW_REG(reg), REG_SP, 4 * (offset)); \
 		(reg) = PACK_REGS(REG_SPLIT, GET_HIGH_REG(reg)); \
 	}
+
 #endif
 
 

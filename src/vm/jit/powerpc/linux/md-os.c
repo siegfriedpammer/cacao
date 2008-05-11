@@ -1,9 +1,7 @@
 /* src/vm/jit/powerpc/linux/md-os.c - machine dependent PowerPC Linux functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -37,21 +35,24 @@
 #include "vm/jit/powerpc/md.h"
 #include "vm/jit/powerpc/linux/md-abi.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
+#include "threads/thread.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
+
 #include "vm/jit/asmpart.h"
+#include "vm/jit/executionstate.h"
 
 #if defined(ENABLE_PROFILING)
 # include "vm/jit/optimizing/profile.h"
 #endif
 
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
+
+#include "vmcore/system.h"
 
 
 /* md_signal_handler_sigsegv ***************************************************
@@ -110,7 +111,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		type = disp;
 
-		if (type == EXCEPTION_HARDWARE_COMPILER) {
+		if (type == TRAP_COMPILER) {
 			/* The XPC is the RA minus 4, because the RA points to the
 			   instruction after the call. */
 
@@ -122,20 +123,17 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		   define is 0. */
 
 		addr = _gregs[s1];
-		type = EXCEPTION_HARDWARE_NULLPOINTER;
-
-		if (addr != 0)
-			vm_abort("md_signal_handler_sigsegv: faulting address is not NULL: addr=%p", addr);
+		type = addr;
 	}
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* Set registers. */
 
 	switch (type) {
-	case EXCEPTION_HARDWARE_COMPILER:
+	case TRAP_COMPILER:
 		if (p != NULL) {
 			_gregs[REG_PV] = (uintptr_t) p;
 			_gregs[PT_NIP] = (uintptr_t) p;
@@ -156,7 +154,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		/* fall-through */
 
-	case EXCEPTION_HARDWARE_PATCHER:
+	case TRAP_PATCHER:
 		if (p == NULL)
 			break;
 
@@ -212,20 +210,20 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 
 	s1 = M_OP3_GET_A(mcode);
 
-	/* for now we only handle ArrayIndexOutOfBoundsException */
+	/* For now we only handle ArrayIndexOutOfBoundsException. */
 
-	type = EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS;
+	type = TRAP_ArrayIndexOutOfBoundsException;
 	val  = _gregs[s1];
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
-	/* set registers */
+	/* Set registers. */
 
-	_gregs[REG_ITMP1_XPTR] = (intptr_t) p;
-	_gregs[REG_ITMP2_XPC]  = (intptr_t) xpc;
-	_gregs[PT_NIP]         = (intptr_t) asm_handle_exception;
+	_gregs[REG_ITMP1_XPTR] = (uintptr_t) p;
+	_gregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
+	_gregs[PT_NIP]         = (uintptr_t) asm_handle_exception;
 }
 
 
@@ -300,14 +298,13 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 #endif
 
 
-/* md_replace_executionstate_read **********************************************
+/* md_executionstate_read ******************************************************
 
-   Read the given context into an executionstate for Replacement.
+   Read the given context into an executionstate.
 
 *******************************************************************************/
 
-#if defined(ENABLE_REPLACEMENT)
-void md_replace_executionstate_read(executionstate_t *es, void *context)
+void md_executionstate_read(executionstate_t *es, void *context)
 {
 	ucontext_t    *_uc;
 	mcontext_t    *_mc;
@@ -317,7 +314,7 @@ void md_replace_executionstate_read(executionstate_t *es, void *context)
 	_uc = (ucontext_t *) context;
 
 #if defined(__UCLIBC__)
-#error Please port md_replace_executionstate_read to __UCLIBC__
+#error Please port md_executionstate_read to __UCLIBC__
 #else
 	_mc    = _uc->uc_mcontext.uc_regs;
 	_gregs = _mc->gregs;
@@ -338,19 +335,17 @@ void md_replace_executionstate_read(executionstate_t *es, void *context)
 	 * the _mc->fpregs[i] can cause invalid conversions. */
 
 	assert(sizeof(_mc->fpregs.fpregs) == sizeof(es->fltregs));
-	memcpy(&es->fltregs, &_mc->fpregs.fpregs, sizeof(_mc->fpregs.fpregs));
+	system_memcpy(&es->fltregs, &_mc->fpregs.fpregs, sizeof(_mc->fpregs.fpregs));
 }
-#endif
 
 
-/* md_replace_executionstate_write *********************************************
+/* md_executionstate_write *****************************************************
 
-   Write the given executionstate back to the context for Replacement.
+   Write the given executionstate back to the context.
 
 *******************************************************************************/
 
-#if defined(ENABLE_REPLACEMENT)
-void md_replace_executionstate_write(executionstate_t *es, void *context)
+void md_executionstate_write(executionstate_t *es, void *context)
 {
 	ucontext_t    *_uc;
 	mcontext_t    *_mc;
@@ -360,7 +355,7 @@ void md_replace_executionstate_write(executionstate_t *es, void *context)
 	_uc = (ucontext_t *) context;
 
 #if defined(__UCLIBC__)
-#error Please port md_replace_executionstate_read to __UCLIBC__
+#error Please port md_executionstate_write to __UCLIBC__
 #else
 	_mc    = _uc->uc_mcontext.uc_regs;
 	_gregs = _mc->gregs;
@@ -375,7 +370,7 @@ void md_replace_executionstate_write(executionstate_t *es, void *context)
 	 * the _mc->fpregs[i] can cause invalid conversions. */
 
 	assert(sizeof(_mc->fpregs.fpregs) == sizeof(es->fltregs));
-	memcpy(&_mc->fpregs.fpregs, &es->fltregs, sizeof(_mc->fpregs.fpregs));
+	system_memcpy(&_mc->fpregs.fpregs, &es->fltregs, sizeof(_mc->fpregs.fpregs));
 
 	/* write special registers */
 	_gregs[PT_NIP] = (ptrint) es->pc;
@@ -383,7 +378,6 @@ void md_replace_executionstate_write(executionstate_t *es, void *context)
 	_gregs[REG_PV] = (ptrint) es->pv;
 	_gregs[PT_LNK] = (ptrint) es->ra;
 }
-#endif
 
 
 /* md_critical_section_restart *************************************************

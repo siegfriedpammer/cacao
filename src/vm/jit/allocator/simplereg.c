@@ -1,9 +1,7 @@
 /* src/vm/jit/allocator/simplereg.c - register allocator
 
-   Copyright (C) 1996-2005, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -1801,8 +1799,8 @@ void simplereg_make_statistics(jitdata *jd)
 	int i;
 	s4 len;
 #if 0
-	stackptr    src, src_old;
-	stackptr    dst;
+	stackelement_t*    src, src_old;
+	stackelement_t*    dst;
 	instruction *iptr;
 #endif
 	basicblock  *bptr;

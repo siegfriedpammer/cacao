@@ -1,9 +1,7 @@
 /* src/vm/jit/alpha/linux/md-os.c - machine dependent Alpha Linux functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -37,16 +35,17 @@
 #include "vm/jit/alpha/md.h"
 #include "vm/jit/alpha/md-abi.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
+#include "threads/thread.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
 #include "vm/signallocal.h"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/executionstate.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
+
+#include "vmcore/system.h"
 
 
 /* md_signal_handler_sigsegv ***************************************************
@@ -98,7 +97,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		type = disp;
 
-		if (type == EXCEPTION_HARDWARE_COMPILER) {
+		if (type == TRAP_COMPILER) {
 			/* The XPC is the RA minus 1, because the RA points to the
 			   instruction after the call. */
 
@@ -113,14 +112,14 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		type = (int) addr;
 	}
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* Set registers. */
 
 	switch (type) {
-	case EXCEPTION_HARDWARE_COMPILER:
+	case TRAP_COMPILER:
 		if (p != NULL) {
 			_mc->sc_regs[REG_PV] = (uintptr_t) p;
 			_mc->sc_pc           = (uintptr_t) p;
@@ -141,7 +140,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		/* fall-through */
 
-	case EXCEPTION_HARDWARE_PATCHER:
+	case TRAP_PATCHER:
 		if (p == NULL)
 			break;
 
@@ -208,18 +207,17 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 #endif
 
 
-/* md_replace_executionstate_read **********************************************
+/* md_executionstate_read ******************************************************
 
-   Read the given context into an executionstate for Replacement.
+   Read the given context into an executionstate.
 
 *******************************************************************************/
 
-#if defined(ENABLE_REPLACEMENT)
-void md_replace_executionstate_read(executionstate_t *es, void *context)
+void md_executionstate_read(executionstate_t *es, void *context)
 {
 	ucontext_t *_uc;
 	mcontext_t *_mc;
-	s4          i;
+	int         i;
 
 	_uc = (ucontext_t *) context;
 	_mc = &_uc->uc_mcontext;
@@ -239,23 +237,21 @@ void md_replace_executionstate_read(executionstate_t *es, void *context)
 	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
 
 	assert(sizeof(_mc->sc_fpregs) == sizeof(es->fltregs));
-	memcpy(&es->fltregs, &_mc->sc_fpregs, sizeof(_mc->sc_fpregs));
+	system_memcpy(&es->fltregs, &_mc->sc_fpregs, sizeof(_mc->sc_fpregs));
 }
-#endif
 
 
-/* md_replace_executionstate_write *********************************************
+/* md_executionstate_write *****************************************************
 
-   Write the given executionstate back to the context for Replacement.
+   Write the given executionstate back to the context.
 
 *******************************************************************************/
 
-#if defined(ENABLE_REPLACEMENT)
-void md_replace_executionstate_write(executionstate_t *es, void *context)
+void md_executionstate_write(executionstate_t *es, void *context)
 {
 	ucontext_t *_uc;
 	mcontext_t *_mc;
-	s4          i;
+	int         i;
 
 	_uc = (ucontext_t *) context;
 	_mc = &_uc->uc_mcontext;
@@ -269,7 +265,7 @@ void md_replace_executionstate_write(executionstate_t *es, void *context)
 	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
 
 	assert(sizeof(_mc->sc_fpregs) == sizeof(es->fltregs));
-	memcpy(&_mc->sc_fpregs, &es->fltregs, sizeof(_mc->sc_fpregs));
+	system_memcpy(&_mc->sc_fpregs, &es->fltregs, sizeof(_mc->sc_fpregs));
 
 	/* write special registers */
 	_mc->sc_pc           = (ptrint) es->pc;
@@ -277,7 +273,6 @@ void md_replace_executionstate_write(executionstate_t *es, void *context)
 	_mc->sc_regs[REG_PV] = (ptrint) es->pv;
 	_mc->sc_regs[REG_RA] = (ptrint) es->ra;
 }
-#endif
 
 
 /* md_critical_section_restart *************************************************

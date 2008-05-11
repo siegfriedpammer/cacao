@@ -1,9 +1,7 @@
-/* src/vm/jit/powerpc/darwin/md-abi.c - functions for PowerPC Darwin ABI
+/* src/vm/jit/powerpc/darwin/md-abi.c - PowerPC Darwin ABI
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -34,6 +32,7 @@
 #include "vm/global.h"
 
 #include "vm/jit/abi.h"
+#include "vm/jit/stack.h"
 
 #include "vmcore/descriptor.h"
 
@@ -394,7 +393,7 @@ void md_param_alloc_native(methoddesc *md)
 
 *******************************************************************************/
 
-void md_return_alloc(jitdata *jd, stackptr stackslot)
+void md_return_alloc(jitdata *jd, stackelement_t* stackslot)
 {
 	methodinfo   *m;
 	codeinfo     *code;

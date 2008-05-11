@@ -49,6 +49,11 @@ java_handle_t *array_element_get(java_handle_t *a, int32_t index)
 	imm_union      value;
 	java_handle_t *o;
 
+	if (a == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
 	v = LLNI_vftbl_direct(a);
 
 	type = v->arraydesc->arraytype;
@@ -88,6 +93,12 @@ imm_union array_element_primitive_get(java_handle_t *a, int32_t index)
 	vftbl_t  *v;
 	int       type;
 	imm_union value;
+
+	if (a == NULL) {
+		exceptions_throw_nullpointerexception();
+		value.a = NULL;
+		return value;
+	}
 
 	v = LLNI_vftbl_direct(a);
 
@@ -148,6 +159,11 @@ void array_element_primitive_set(java_handle_t *a, int32_t index, imm_union valu
 {
 	vftbl_t *v;
 	int      type;
+
+	if (a == NULL) {
+		exceptions_throw_nullpointerexception();
+		return;
+	}
 
 	v = LLNI_vftbl_direct(a);
 
@@ -216,7 +232,7 @@ type array_##name##array_element_get(java_handle_##name##array_t *a, int32_t ind
                                                                                \
 	size = LLNI_array_size(a);                                                 \
                                                                                \
-	if ((index < 0) || (index > size)) {                                       \
+	if ((index < 0) || (index >= size)) {                                      \
 		exceptions_throw_arrayindexoutofboundsexception();                     \
 		return (type) 0;                                                       \
 	}                                                                          \
@@ -238,7 +254,7 @@ java_handle_t *array_objectarray_element_get(java_handle_objectarray_t *a, int32
 
 	size = LLNI_array_size(a);
 
-	if ((index < 0) || (index > size)) {
+	if ((index < 0) || (index >= size)) {
 		exceptions_throw_arrayindexoutofboundsexception();
 		return NULL;
 	}
@@ -278,7 +294,7 @@ void array_##name##array_element_set(java_handle_##name##array_t *a, int32_t ind
                                                                                \
 	size = LLNI_array_size(a);                                                 \
                                                                                \
-	if ((index < 0) || (index > size)) {                                       \
+	if ((index < 0) || (index >= size)) {                                      \
 		exceptions_throw_arrayindexoutofboundsexception();                     \
 		return;                                                                \
 	}                                                                          \
@@ -295,9 +311,20 @@ void array_objectarray_element_set(java_handle_objectarray_t *a, int32_t index, 
 		return;
 	}
 
+	/* Sanity check. */
+
+	assert(a->header.objheader.vftbl->arraydesc->arraytype == ARRAYTYPE_OBJECT);
+
+	if (value != NULL) {
+		if (builtin_canstore(a, value) == false) {
+			exceptions_throw_illegalargumentexception();
+			return;
+		}
+	}
+
 	size = LLNI_array_size(a);
 
-	if ((index < 0) || (index > size)) {
+	if ((index < 0) || (index >= size)) {
 		exceptions_throw_arrayindexoutofboundsexception();
 		return;
 	}
@@ -321,6 +348,13 @@ ARRAY_TYPEARRAY_ELEMENT_SET(double,  double)
 
    Returns a the length of the given Java array.
 
+   ARGUMENTS:
+       a ... Java array
+
+   RETURN VALUE:
+         -1 ... exception thrown
+	   >= 0 ... length of the Java array
+
 *******************************************************************************/
 
 int32_t array_length_get(java_handle_t *a)
@@ -330,7 +364,7 @@ int32_t array_length_get(java_handle_t *a)
 
 	if (a == NULL) {
 		exceptions_throw_nullpointerexception();
-		return 0;
+		return -1;
 	}
 
 	LLNI_class_get(a, c);
@@ -338,7 +372,7 @@ int32_t array_length_get(java_handle_t *a)
 	if (!class_is_array(c)) {
 /* 		exceptions_throw_illegalargumentexception("Argument is not an array"); */
 		exceptions_throw_illegalargumentexception();
-		return 0;
+		return -1;
 	}
 
 	size = LLNI_array_size(a);

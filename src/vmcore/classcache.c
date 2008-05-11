@@ -286,7 +286,7 @@ bool classcache_init(void)
 *******************************************************************************/
 
 static classcache_loader_entry * classcache_new_loader_entry(
-									classloader * loader,
+									classloader_t * loader,
 									classcache_loader_entry * next)
 {
 	classcache_loader_entry *lden;
@@ -572,7 +572,7 @@ static classcache_name_entry *classcache_new_name(utf *name)
    
 *******************************************************************************/
 
-classinfo *classcache_lookup(classloader *initloader, utf *classname)
+classinfo *classcache_lookup(classloader_t *initloader, utf *classname)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
@@ -624,7 +624,7 @@ classinfo *classcache_lookup(classloader *initloader, utf *classname)
    
 *******************************************************************************/
 
-classinfo *classcache_lookup_defined(classloader *defloader, utf *classname)
+classinfo *classcache_lookup_defined(classloader_t *defloader, utf *classname)
 {
 	classcache_name_entry *en;
 	classcache_class_entry *clsen;
@@ -670,7 +670,7 @@ classinfo *classcache_lookup_defined(classloader *defloader, utf *classname)
    
 *******************************************************************************/
 
-classinfo *classcache_lookup_defined_or_initiated(classloader *loader, 
+classinfo *classcache_lookup_defined_or_initiated(classloader_t *loader, 
 												  utf *classname)
 {
 	classcache_name_entry *en;
@@ -738,7 +738,7 @@ classinfo *classcache_lookup_defined_or_initiated(classloader *loader,
    
 *******************************************************************************/
 
-classinfo *classcache_store(classloader *initloader, classinfo *cls,
+classinfo *classcache_store(classloader_t *initloader, classinfo *cls,
 							bool mayfree)
 {
 	classcache_name_entry *en;
@@ -1004,7 +1004,7 @@ return_success:
 
 static classcache_class_entry * classcache_find_loader(
 									classcache_name_entry * entry,
-									classloader * loader)
+									classloader_t * loader)
 {
 	classcache_class_entry *clsen;
 	classcache_loader_entry *lden;
@@ -1163,8 +1163,8 @@ void classcache_free(void)
 *******************************************************************************/
 
 #if defined(ENABLE_VERIFIER)
-bool classcache_add_constraint(classloader * a,
-							   classloader * b,
+bool classcache_add_constraint(classloader_t * a,
+							   classloader_t * b,
 							   utf * classname)
 {
 	classcache_name_entry *en;
@@ -1281,8 +1281,8 @@ bool classcache_add_constraint(classloader * a,
 *******************************************************************************/
 
 #if defined(ENABLE_VERIFIER)
-bool classcache_add_constraints_for_params(classloader * a,
-										   classloader * b,
+bool classcache_add_constraints_for_params(classloader_t * a,
+										   classloader_t * b,
 										   methodinfo *m)
 {
 	methoddesc *md;

@@ -1,9 +1,7 @@
 /* src/cacaoh/headers.c - functions for header generation
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -285,7 +283,7 @@ void printmethod(methodinfo *m)
 
 	/* create remarks */
 	fprintf(file, "\n/*\n * Class:     ");
-	utf_fprint_printable_ascii(file, m->class->name);
+	utf_fprint_printable_ascii(file, m->clazz->name);
 	fprintf(file, "\n * Method:    ");
 	utf_fprint_printable_ascii(file, m->name);
 	fprintf(file, "\n * Signature: ");
@@ -296,7 +294,7 @@ void printmethod(methodinfo *m)
 	fprintf(file, "JNIEXPORT ");
 	printtype(utf_ptr, "", "_handle");
 	fprintf(file, " JNICALL Java_");
-	printID(m->class->name);
+	printID(m->clazz->name);
 
 	chain_addlast(ident_chain, m->name);
 
@@ -314,7 +312,7 @@ void printmethod(methodinfo *m)
 			
 	if (!(m->flags & ACC_STATIC)) {
 		fprintf(file, ", struct ");
-		printID(m->class->name);
+		printID(m->clazz->name);
 		fprintf(file, "* this");
 
 	} else {

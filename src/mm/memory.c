@@ -47,7 +47,7 @@
 #include "native/native.h"
 
 #include "threads/lock-common.h"
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "toolbox/logging.h"
 
@@ -102,7 +102,7 @@ void *memory_checked_alloc(size_t size)
 }
 
 
-void *mem_alloc(s4 size)
+void *mem_alloc(int32_t size)
 {
 	void *m;
 
@@ -130,7 +130,7 @@ void *mem_alloc(s4 size)
 }
 
 
-void *mem_realloc(void *src, s4 len1, s4 len2)
+void *mem_realloc(void *src, int32_t len1, int32_t len2)
 {
 	void *dst;
 
@@ -166,7 +166,7 @@ void *mem_realloc(void *src, s4 len1, s4 len2)
 }
 
 
-void mem_free(void *m, s4 size)
+void mem_free(void *m, int32_t size)
 {
 	if (!m) {
 		if (size == 0)

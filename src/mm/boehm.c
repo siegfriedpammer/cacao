@@ -24,7 +24,8 @@
 
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
 
 #if defined(ENABLE_THREADS) && defined(__LINUX__)
 #define GC_LINUX_THREADS
@@ -70,7 +71,7 @@ static void gc_ignore_warnings(char *msg, GC_word arg);
 
 *******************************************************************************/
 
-void gc_init(u4 heapmaxsize, u4 heapstartsize)
+void gc_init(size_t heapmaxsize, size_t heapstartsize)
 {
 	size_t heapcurrentsize;
 
@@ -117,7 +118,7 @@ static void gc_ignore_warnings(char *msg, GC_word arg)
 }
 
 
-void *heap_alloc_uncollectable(u4 size)
+void *heap_alloc_uncollectable(size_t size)
 {
 	void *p;
 
@@ -125,7 +126,7 @@ void *heap_alloc_uncollectable(u4 size)
 
 	/* clear allocated memory region */
 
-	MSET(p, 0, u1, size);
+	MSET(p, 0, uint8_t, size);
 
 	return p;
 }
@@ -137,7 +138,7 @@ void *heap_alloc_uncollectable(u4 size)
 
 *******************************************************************************/
 
-void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
+void *heap_alloc(size_t size, int references, methodinfo *finalizer, bool collect)
 {
 	void *p;
 #if defined(ENABLE_RT_TIMING)
@@ -162,7 +163,7 @@ void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
 
 	/* clear allocated memory region */
 
-	MSET(p, 0, u1, size);
+	MSET(p, 0, uint8_t, size);
 
 	RT_TIMING_GET_TIME(time_end);
 	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_GC_ALLOC);
@@ -186,13 +187,13 @@ void gc_call(void)
 }
 
 
-s8 gc_get_heap_size(void)
+int64_t gc_get_heap_size(void)
 {
 	return GC_get_heap_size();
 }
 
 
-s8 gc_get_free_bytes(void)
+int64_t gc_get_free_bytes(void)
 {
 	return GC_get_free_bytes();
 }
@@ -204,13 +205,13 @@ s8 gc_get_free_bytes(void)
 
 *******************************************************************************/
 
-s8 gc_get_total_bytes(void)
+int64_t gc_get_total_bytes(void)
 {
 	return GC_get_total_bytes();
 }
 
 
-s8 gc_get_max_heap_size(void)
+int64_t gc_get_max_heap_size(void)
 {
 	return GC_get_max_heap_size();
 }

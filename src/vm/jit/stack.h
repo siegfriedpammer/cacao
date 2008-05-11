@@ -1,9 +1,7 @@
-/* vm/jit/stack.h - stack analysis header
+/* src/vm/jit/stack.h - stack analysis header
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,27 +20,64 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes: Christian Ullrich
-   			Edwin Steiner
-
 */
 
 
 #ifndef _STACK_H
 #define _STACK_H
 
+/* forward typedefs ***********************************************************/
+
+typedef struct stackelement_t stackelement_t;
+
+
 #include "config.h"
+
+#include <stdint.h>
 
 #include "vm/types.h"
 
 #include "vm/exceptions.h"
 #include "vm/global.h"
+
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
+
+
+/* stack element structure ****************************************************/
+
+/* flags */
+
+#define SAVEDVAR      1         /* variable has to survive method invocations */
+#define INMEMORY      2         /* variable stored in memory                  */
+#define SAVREG        4         /* allocated to a saved register              */
+#define ARGREG        8         /* allocated to an arg register               */
+#define PASSTHROUGH  32         /* stackslot was passed-through by an ICMD    */
+#define PREALLOC     64         /* preallocated var like for ARGVARS. Used    */
+                                /* with the new var system */
+#define INOUT    128            /* variable is an invar or/and an outvar      */
+
+#define IS_SAVEDVAR(x)    ((x) & SAVEDVAR)
+#define IS_INMEMORY(x)    ((x) & INMEMORY)
+
+
+/* variable kinds */
+
+#define UNDEFVAR   0            /* stack slot will become temp during regalloc*/
+#define TEMPVAR    1            /* stack slot is temp register                */
+#define STACKVAR   2            /* stack slot is numbered stack slot          */
+#define LOCALVAR   3            /* stack slot is local variable               */
+#define ARGVAR     4            /* stack slot is argument variable            */
+
+
+struct stackelement_t {
+	stackelement_t *prev;       /* pointer to next element towards bottom     */
+	instruction    *creator;    /* instruction that created this element      */
+	s4              type;       /* slot type of stack element                 */
+	s4              flags;      /* flags (SAVED, INMEMORY)                    */
+	s4              varkind;    /* kind of variable or register               */
+	s4              varnum;     /* number of variable                         */
+};
 
 
 /* macros used internally by analyse_stack ************************************/

@@ -31,7 +31,7 @@
 #include "vm/types.h"
 
 #include "threads/lock-common.h"
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "compact.h"
 #include "copy.h"
@@ -139,7 +139,7 @@ static void gc_reference_register_intern(list_t *list, java_object_t **ref, int3
 
 #if !defined(NDEBUG)
 	/* check if this reference is already registered */
-	for (re = list_first_unsynced(list); re != NULL; re = list_next_unsynced(list, re)) {
+	for (re = list_first(list); re != NULL; re = list_next(list, re)) {
 		if (re->ref == ref)
 			vm_abort("gc_reference_register_intern: reference already registered");
 	}
@@ -154,7 +154,7 @@ static void gc_reference_register_intern(list_t *list, java_object_t **ref, int3
 #endif
 
 	/* add the entry to the given list */
-	list_add_last_unsynced(list, re);
+	list_add_last(list, re);
 
 	/* the global GC lock also guards the reference lists */
 	GC_MUTEX_UNLOCK;
@@ -187,10 +187,10 @@ static void gc_reference_unregister_intern(list_t *list, java_object_t **ref)
 	GC_LOG2( printf("Un-Registering Reference at %p\n", (void *) ref); );
 
 	/* search for the appropriate reference entry */
-	for (re = list_first_unsynced(list); re != NULL; re = list_next_unsynced(list, re)) {
+	for (re = list_first(list); re != NULL; re = list_next(list, re)) {
 		if (re->ref == ref) {
 			/* remove the entry from the given list */
-			list_remove_unsynced(list, re);
+			list_remove(list, re);
 
 			/* free the reference entry */
 			FREE(re, list_gcref_entry_t);

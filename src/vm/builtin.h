@@ -1,9 +1,7 @@
 /* src/vm/builtin.h - prototypes of builtin functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -122,20 +120,20 @@ bool builtintable_replace_function(void *iptr);
  * ICMD_BUILTIN3.)
  */
 
-s4 builtin_instanceof(java_handle_t *obj, classinfo *class);
+bool builtin_instanceof(java_handle_t *obj, classinfo *class);
 /* NOT AN OP */
-s4 builtin_checkcast(java_handle_t *obj, classinfo *class);
+bool builtin_checkcast(java_handle_t *obj, classinfo *class);
 /* NOT AN OP */
-s4 builtin_arrayinstanceof(java_handle_t *h, classinfo *targetclass);
+bool builtin_arrayinstanceof(java_handle_t *h, classinfo *targetclass);
 /* NOT AN OP */
-s4 builtin_fast_arrayinstanceof(java_object_t *o, classinfo *targetclass);
+bool builtin_fast_arrayinstanceof(java_object_t *o, classinfo *targetclass);
 #define BUILTIN_arrayinstanceof (functionptr) builtin_fast_arrayinstanceof
-s4 builtin_fast_arraycheckcast(java_object_t *o, classinfo *targetclass);
+bool builtin_fast_arraycheckcast(java_object_t *o, classinfo *targetclass);
 #define BUILTIN_arraycheckcast (functionptr) builtin_fast_arraycheckcast
 
-s4 builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o);
+bool builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o);
 /* NOT AN OP */
-s4 builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o);
+bool builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o);
 #define BUILTIN_FAST_canstore (functionptr) builtin_fast_canstore
 
 void *builtin_throw_exception(java_object_t *exception);
@@ -150,29 +148,29 @@ java_handle_t *builtin_java_new(java_handle_t *c);
 java_object_t *builtin_fast_new(classinfo *c);
 #define BUILTIN_FAST_new (functionptr) builtin_fast_new
 
-java_handle_t *builtin_newarray(s4 size, classinfo *arrayclass);
+java_handle_t *builtin_newarray(int32_t size, classinfo *arrayclass);
 /* NOT AN OP */
-java_handle_t *builtin_java_newarray(s4 size, java_handle_t *arrayclass);
+java_handle_t *builtin_java_newarray(int32_t size, java_handle_t *arrayclass);
 #define BUILTIN_newarray (functionptr) builtin_java_newarray
 
-java_handle_objectarray_t *builtin_anewarray(s4 size, classinfo *componentclass);
+java_handle_objectarray_t *builtin_anewarray(int32_t size, classinfo *componentclass);
 /* NOT AN OP */
 
-java_handle_booleanarray_t *builtin_newarray_boolean(s4 size);
+java_handle_booleanarray_t *builtin_newarray_boolean(int32_t size);
 #define BUILTIN_newarray_boolean (functionptr) builtin_newarray_boolean
-java_handle_chararray_t *builtin_newarray_char(s4 size);
+java_handle_chararray_t *builtin_newarray_char(int32_t size);
 #define BUILTIN_newarray_char (functionptr) builtin_newarray_char
-java_handle_floatarray_t *builtin_newarray_float(s4 size);
+java_handle_floatarray_t *builtin_newarray_float(int32_t size);
 #define BUILTIN_newarray_float (functionptr) builtin_newarray_float
-java_handle_doublearray_t *builtin_newarray_double(s4 size);
+java_handle_doublearray_t *builtin_newarray_double(int32_t size);
 #define BUILTIN_newarray_double (functionptr) builtin_newarray_double
-java_handle_bytearray_t *builtin_newarray_byte(s4 size);
+java_handle_bytearray_t *builtin_newarray_byte(int32_t size);
 #define BUILTIN_newarray_byte (functionptr) builtin_newarray_byte
-java_handle_shortarray_t *builtin_newarray_short(s4 size);
+java_handle_shortarray_t *builtin_newarray_short(int32_t size);
 #define BUILTIN_newarray_short (functionptr) builtin_newarray_short
-java_handle_intarray_t *builtin_newarray_int(s4 size);
+java_handle_intarray_t *builtin_newarray_int(int32_t size);
 #define BUILTIN_newarray_int (functionptr) builtin_newarray_int
-java_handle_longarray_t *builtin_newarray_long(s4 size);
+java_handle_longarray_t *builtin_newarray_long(int32_t size);
 #define BUILTIN_newarray_long (functionptr) builtin_newarray_long
 
 java_handle_objectarray_t *builtin_multianewarray(int n,

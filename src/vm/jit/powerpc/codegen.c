@@ -42,7 +42,6 @@
 #include "native/native.h"
 
 #include "threads/lock-common.h"
-#include "threads/threads-common.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -64,6 +63,7 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
@@ -306,13 +306,13 @@ bool codegen_emit(jitdata *jd)
 		/* get or test the lock object */
 
 		if (m->flags & ACC_STATIC) {
-			disp = dseg_add_address(cd, &m->class->object.header);
+			disp = dseg_add_address(cd, &m->clazz->object.header);
 			M_ALD(REG_A0, REG_PV, disp);
 		}
 		else {
 			M_TST(REG_A0);
 			M_BNE(1);
-			M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_NULLPOINTER);
+			M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_NullPointerException);
 		}
 
 		M_AST(REG_A0, REG_SP, s1 * 8);
@@ -1499,9 +1499,9 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
-										fi->class, disp);
+										fi->clazz, disp);
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -1545,9 +1545,9 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
-										fi->class, disp);
+										fi->clazz, disp);
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -2372,9 +2372,9 @@ gen_method:
 				}
 				else {
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
-						sizeof(methodptr*) * lm->class->index;
+						sizeof(methodptr*) * lm->clazz->index;
 
-					s2 = sizeof(methodptr) * (lm - lm->class->methods);
+					s2 = sizeof(methodptr) * (lm - lm->clazz->methods);
 				}
 
 				/* implicit null-pointer check */

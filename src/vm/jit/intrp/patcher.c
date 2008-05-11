@@ -1,9 +1,7 @@
 /* src/vm/jit/intrp/patcher.c - Interpreter code patching functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -67,8 +65,8 @@ bool intrp_patcher_get_putstatic(u1 *sp)
 
 	/* check if the field's class is initialized */
 
-	if (!(fi->class->state & CLASS_INITIALIZED))
-		if (!initialize_class(fi->class))
+	if (!(fi->clazz->state & CLASS_INITIALIZED))
+		if (!initialize_class(fi->clazz))
 			return false;
 
 	/* patch the field's address */
@@ -100,8 +98,8 @@ bool intrp_patcher_get_putstatic_clinit(u1 *sp)
 
 	/* check if the field's class is initialized */
 
-	if (!(fi->class->state & CLASS_INITIALIZED))
-		if (!initialize_class(fi->class))
+	if (!(fi->clazz->state & CLASS_INITIALIZED))
+		if (!initialize_class(fi->clazz))
 			return false;
 
 	/* patch the field's address */
@@ -305,12 +303,12 @@ bool intrp_patcher_invokeinterface(u1 *sp)
 	/* patch interfacetable index */
 
 	ip[1] = (OFFSET(vftbl_t, interfacetable[0]) -
-			 sizeof(methodptr*) * m->class->index);
+			 sizeof(methodptr*) * m->clazz->index);
 
 	/* patch methodinfo and method offset */
 
 	ip[4] = (ptrint) m;
-	ip[2] = (sizeof(methodptr) * (m - m->class->methods));
+	ip[2] = (sizeof(methodptr) * (m - m->clazz->methods));
 
 	return true;
 }

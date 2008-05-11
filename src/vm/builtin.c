@@ -54,7 +54,7 @@
 #include "native/llni.h"
 
 #include "threads/lock-common.h"
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
@@ -416,7 +416,7 @@ bool builtintable_replace_function(void *iptr_)
 
 *******************************************************************************/
 
-s4 builtin_instanceof(java_handle_t *o, classinfo *class)
+bool builtin_instanceof(java_handle_t *o, classinfo *class)
 {
 	classinfo *c;
 
@@ -439,7 +439,7 @@ s4 builtin_instanceof(java_handle_t *o, classinfo *class)
 
 *******************************************************************************/
 
-s4 builtin_checkcast(java_handle_t *o, classinfo *class)
+bool builtin_checkcast(java_handle_t *o, classinfo *class)
 {
 	classinfo *c;
 
@@ -465,8 +465,7 @@ s4 builtin_checkcast(java_handle_t *o, classinfo *class)
 			
 *******************************************************************************/
 
-static s4 builtin_descriptorscompatible(arraydescriptor *desc,
-										arraydescriptor *target)
+static bool builtin_descriptorscompatible(arraydescriptor *desc, arraydescriptor *target)
 {
 	if (desc == target)
 		return 1;
@@ -480,6 +479,8 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,
 	/* {both arrays are arrays of references} */
 
 	if (desc->dimension == target->dimension) {
+		if (!desc->elementvftbl)
+			return 0;
 		/* an array which contains elements of interface types is
            allowed to be casted to Object (JOWENN)*/
 
@@ -487,8 +488,8 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,
 			(target->elementvftbl->baseval == 1))
 			return 1;
 
-		return class_isanysubclass(desc->elementvftbl->class,
-								   target->elementvftbl->class);
+		return class_isanysubclass(desc->elementvftbl->clazz,
+								   target->elementvftbl->clazz);
 	}
 
 	if (desc->dimension < target->dimension)
@@ -497,7 +498,7 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,
 	/* {desc has higher dimension than target} */
 
 	return class_isanysubclass(pseudo_class_Arraystub,
-							   target->elementvftbl->class);
+							   target->elementvftbl->clazz);
 }
 
 
@@ -516,7 +517,7 @@ static s4 builtin_descriptorscompatible(arraydescriptor *desc,
 
 *******************************************************************************/
 
-s4 builtin_fast_arraycheckcast(java_object_t *o, classinfo *targetclass)
+bool builtin_fast_arraycheckcast(java_object_t *o, classinfo *targetclass)
 {
 	arraydescriptor *desc;
 
@@ -538,7 +539,7 @@ s4 builtin_fast_arraycheckcast(java_object_t *o, classinfo *targetclass)
 
 *******************************************************************************/
 
-s4 builtin_fast_arrayinstanceof(java_object_t *o, classinfo *targetclass)
+bool builtin_fast_arrayinstanceof(java_object_t *o, classinfo *targetclass)
 {
 	if (o == NULL)
 		return 0;
@@ -553,9 +554,9 @@ s4 builtin_fast_arrayinstanceof(java_object_t *o, classinfo *targetclass)
 
 *******************************************************************************/
 
-s4 builtin_arrayinstanceof(java_handle_t *h, classinfo *targetclass)
+bool builtin_arrayinstanceof(java_handle_t *h, classinfo *targetclass)
 {
-	s4 result;
+	bool result;
 
 	LLNI_CRITICAL_START;
 
@@ -635,9 +636,9 @@ java_object_t *builtin_retrieve_exception(void)
 
 *******************************************************************************/
 
-s4 builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o)
+bool builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o)
 {
-	int result;
+	bool result;
 
 	LLNI_CRITICAL_START;
 
@@ -666,7 +667,7 @@ s4 builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o)
 
 *******************************************************************************/
 
-s4 builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
+bool builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 {
 	arraydescriptor *desc;
 	arraydescriptor *valuedesc;
@@ -674,7 +675,7 @@ s4 builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 	vftbl_t         *valuevftbl;
 	int32_t          baseval;
 	uint32_t         diffval;
-	int              result;
+	bool             result;
 
 	if (o == NULL)
 		return 1;
@@ -736,14 +737,14 @@ s4 builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 
 
 /* This is an optimized version where a is guaranteed to be one-dimensional */
-s4 builtin_fast_canstore_onedim(java_objectarray_t *a, java_object_t *o)
+bool builtin_fast_canstore_onedim(java_objectarray_t *a, java_object_t *o)
 {
 	arraydescriptor *desc;
 	vftbl_t         *elementvftbl;
 	vftbl_t         *valuevftbl;
 	int32_t          baseval;
 	uint32_t         diffval;
-	int              result;
+	bool             result;
 	
 	if (o == NULL)
 		return 1;
@@ -787,12 +788,12 @@ s4 builtin_fast_canstore_onedim(java_objectarray_t *a, java_object_t *o)
 
 /* This is an optimized version where a is guaranteed to be a
  * one-dimensional array of a class type */
-s4 builtin_fast_canstore_onedim_class(java_objectarray_t *a, java_object_t *o)
+bool builtin_fast_canstore_onedim_class(java_objectarray_t *a, java_object_t *o)
 {
 	vftbl_t  *elementvftbl;
 	vftbl_t  *valuevftbl;
 	uint32_t  diffval;
-	int       result;
+	bool      result;
 	
 	if (o == NULL)
 		return 1;
@@ -992,7 +993,7 @@ java_object_t *builtin_fast_new(classinfo *c)
 
 *******************************************************************************/
 
-java_handle_t *builtin_newarray(s4 size, classinfo *arrayclass)
+java_handle_t *builtin_newarray(int32_t size, classinfo *arrayclass)
 {
 	arraydescriptor *desc;
 	s4               dataoffset;
@@ -1055,7 +1056,7 @@ java_handle_t *builtin_newarray(s4 size, classinfo *arrayclass)
 
 *******************************************************************************/
 
-java_handle_t *builtin_java_newarray(s4 size, java_handle_t *arrayclazz)
+java_handle_t *builtin_java_newarray(int32_t size, java_handle_t *arrayclazz)
 {
 	return builtin_newarray(size, LLNI_classinfo_unwrap(arrayclazz));
 }
@@ -1073,7 +1074,7 @@ java_handle_t *builtin_java_newarray(s4 size, java_handle_t *arrayclazz)
 
 *******************************************************************************/
 
-java_handle_objectarray_t *builtin_anewarray(s4 size, classinfo *componentclass)
+java_handle_objectarray_t *builtin_anewarray(int32_t size, classinfo *componentclass)
 {
 	classinfo *arrayclass;
 	
@@ -1108,7 +1109,7 @@ java_handle_objectarray_t *builtin_anewarray(s4 size, classinfo *componentclass)
 *******************************************************************************/
 
 #define BUILTIN_NEWARRAY_TYPE(type, arraytype)                             \
-java_handle_##type##array_t *builtin_newarray_##type(s4 size)              \
+java_handle_##type##array_t *builtin_newarray_##type(int32_t size)              \
 {                                                                          \
 	return (java_handle_##type##array_t *)                                 \
 		builtin_newarray(size, primitivetype_table[arraytype].arrayclass); \
@@ -1163,7 +1164,7 @@ static java_handle_t *builtin_multianewarray_intern(int n,
 
 	/* get the class of the components to create */
 
-	componentclass = arrayclass->vftbl->arraydesc->componentvftbl->class;
+	componentclass = arrayclass->vftbl->arraydesc->componentvftbl->clazz;
 
 	/* The verifier guarantees that the dimension count is in the range. */
 

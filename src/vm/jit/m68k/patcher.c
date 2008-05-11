@@ -1,9 +1,7 @@
 /* src/vm/jit/m68k/patcher.c - m68k patcher functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -244,8 +242,8 @@ bool patcher_get_putstatic(patchref_t *pr)
 		return false;
 
 	/* check if the field's class is initialized */
-	if (!(fi->class->state & CLASS_INITIALIZED))
-		if (!initialize_class(fi->class))
+	if (!(fi->clazz->state & CLASS_INITIALIZED))
+		if (!initialize_class(fi->clazz))
 			return false;
 
 	/* patch back original code */
@@ -610,13 +608,13 @@ bool patcher_invokeinterface(patchref_t *pr)
 	assert( *((uint32_t*)ra) == 0x246f0000 );
 
 	/* patch interfacetable index (first #0) */
-	disp = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * m->class->index;
+	disp = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * m->clazz->index;
 	/* XXX this disp is negative, check! 
 	 * assert( (disp & 0x0000ffff) == disp);*/
 	*((uint16_t *) (ra + 5 * 2)) = disp;
 
 	/* patch method offset (second #0) */
-	disp = sizeof(methodptr) * (m - m->class->methods);
+	disp = sizeof(methodptr) * (m - m->clazz->methods);
 	assert( (disp & 0x0000ffff) == disp);
 	*((uint16_t *) (ra + 7 * 2)) = disp;
 

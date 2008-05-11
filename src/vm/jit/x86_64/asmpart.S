@@ -203,7 +203,7 @@ L_asm_handle_exception_stack_loop:
 	mov     t0,4*8(sp)                  /* save maybe-leaf flag               */
 
 	mov     xpc,a0                      /* exception pc                       */
-	call    codegen_get_pv_from_pc@PLT
+	call    methodtree_find@PLT
 	mov     v0,2*8(sp)                  /* save data segment pointer          */
         
 	mov     0*8(sp),a0                  /* pass exception pointer             */

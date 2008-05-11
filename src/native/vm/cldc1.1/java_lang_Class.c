@@ -1,9 +1,7 @@
 /* src/native/vm/cldc1.1/java_lang_Class.c
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -37,7 +35,8 @@
 
 #include "native/include/java_lang_Class.h"
 
-#include "native/vm/java_lang_Class.h"
+#include "vm/exceptions.h"
+#include "vm/initialize.h"
 
 
 /* native methods implemented by this file ************************************/
@@ -75,7 +74,51 @@ void _Jv_java_lang_Class_init(void)
  */
 JNIEXPORT java_lang_Class* JNICALL Java_java_lang_Class_forName(JNIEnv *env, jclass clazz, java_lang_String *name)
 {
-	return _Jv_java_lang_Class_forName(name);
+	utf       *ufile;
+	utf       *uname;
+	classinfo *c;
+	u2        *pos;
+	s4         i;
+
+	/* illegal argument */
+
+	if (name == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	/* create utf string in which '.' is replaced by '/' */
+
+	ufile = javastring_toutf((java_handle_t *) name, true);
+	uname = javastring_toutf((java_handle_t *) name, false);
+
+	/* name must not contain '/' (mauve test) */
+
+	for (i = 0, pos = LLNI_field_direct(name, value)->data + LLNI_field_direct(name, offset); i < LLNI_field_direct(name, count); i++, pos++) {
+		if (*pos == '/') {
+			exceptions_throw_classnotfoundexception(uname);
+			return NULL;
+		}
+	}
+
+	/* try to load, ... */
+
+	c = load_class_bootstrap(ufile);
+
+	if (c == NULL)
+	    return NULL;
+
+	/* link, ... */
+
+	if (!link_class(c))
+		return NULL;
+	
+	/* ...and initialize it. */
+
+	if (!initialize_class(c))
+		return NULL;
+
+	return LLNI_classinfo_wrap(c);
 }
 
 
@@ -102,9 +145,15 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_Class_newInstance(JNIEnv *env
  * Method:    isInstance
  * Signature: (Ljava/lang/Object;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Class_isInstance(JNIEnv *env, java_lang_Class *this, java_lang_Object *obj)
+JNIEXPORT int32_t JNICALL Java_java_lang_Class_isInstance(JNIEnv *env, java_lang_Class *this, java_lang_Object *obj)
 {
-	return _Jv_java_lang_Class_isInstance(this, obj);
+	classinfo     *c;
+	java_handle_t *h;
+
+	c = LLNI_classinfo_unwrap(this);
+	h = (java_handle_t *) obj;
+
+	return class_is_instance(c, h);
 }
 
 
@@ -113,9 +162,20 @@ JNIEXPORT s4 JNICALL Java_java_lang_Class_isInstance(JNIEnv *env, java_lang_Clas
  * Method:    isAssignableFrom
  * Signature: (Ljava/lang/Class;)Z
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Class_isAssignableFrom(JNIEnv *env, java_lang_Class *this, java_lang_Class *cls)
+JNIEXPORT int32_t JNICALL Java_java_lang_Class_isAssignableFrom(JNIEnv *env, java_lang_Class *this, java_lang_Class *cls)
 {
-	return _Jv_java_lang_Class_isAssignableFrom(this, cls);
+	classinfo *to;
+	classinfo *from;
+
+	to   = LLNI_classinfo_unwrap(this);
+	from = LLNI_classinfo_unwrap(cls);
+
+	if (from == NULL) {
+		exceptions_throw_nullpointerexception();
+		return 0;
+	}
+
+	return class_is_assignable_from(to, from);
 }
 
 
@@ -156,7 +216,11 @@ JNIEXPORT int32_t JNICALL Java_java_lang_Class_isArray(JNIEnv *env, java_lang_Cl
  */
 JNIEXPORT java_lang_String* JNICALL Java_java_lang_Class_getName(JNIEnv *env, java_lang_Class *this)
 {
-	return _Jv_java_lang_Class_getName(this);
+	classinfo *c;
+
+	c = LLNI_classinfo_unwrap(this);
+
+	return (java_lang_String*) class_get_classname(c);
 }
 
 

@@ -59,8 +59,9 @@
 #include "native/vm/nativevm.h"
 
 #include "threads/lock-common.h"
+#include "threads/mutex.h"
 #include "threads/threadlist.h"
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "toolbox/logging.h"
 
@@ -84,12 +85,14 @@
 
 #include "vm/jit/argument.h"
 #include "vm/jit/asmpart.h"
+#include "vm/jit/code.h"
 
 #if defined(ENABLE_DISASSEMBLER)
 # include "vm/jit/disass.h"
 #endif
 
 #include "vm/jit/jit.h"
+#include "vm/jit/methodtree.h"
 
 #if defined(ENABLE_PROFILING)
 # include "vm/jit/optimizing/profile.h"
@@ -100,6 +103,8 @@
 #if defined(ENABLE_PYTHON)
 # include "vm/jit/python.h"
 #endif
+
+#include "vm/jit/trap.h"
 
 #include "vmcore/classcache.h"
 #include "vmcore/options.h"
@@ -127,7 +132,8 @@ _Jv_JNIEnv *_Jv_env;                    /* pointer to native method interface */
 s4 vms = 0;                             /* number of VMs created              */
 
 bool vm_initializing = false;
-bool vm_exiting = false;
+bool vm_created      = false;
+bool vm_exiting      = false;
 
 char      *mainstring = NULL;
 classinfo *mainclass = NULL;
@@ -629,7 +635,7 @@ static void vm_printconfig(void)
 	printf("  initial heap size              : %d\n", HEAP_STARTSIZE);
 	printf("  stack size                     : %d\n", STACK_SIZE);
 
-#if defined(WITH_JRE_LAYOUT)
+#if defined(ENABLE_JRE_LAYOUT)
 	/* When we're building with JRE-layout, the default paths are the
 	   same as the runtime paths. */
 #else
@@ -1442,8 +1448,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	/* AFTER: threads_preinit */
 
-	if (!utf8_init())
-		vm_abort("vm_create: utf8_init failed");
+	utf8_init();
 
 	/* AFTER: thread_preinit */
 
@@ -1482,9 +1487,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	if (!finalizer_init())
 		vm_abort("vm_create: finalizer_init failed");
 
-	/* initializes jit compiler */
+	/* Initialize the JIT compiler. */
 
 	jit_init();
+	code_init();
+	methodtree_init();
 
 #if defined(ENABLE_PYTHON)
 	pythonpass_init();
@@ -1509,8 +1516,11 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	/* AFTER: loader_init, linker_init */
 
 	primitive_postinit();
+	method_init();
 
-	exceptions_init();
+#if defined(ENABLE_JIT)
+	trap_init();
+#endif
 
 	if (!builtin_init())
 		vm_abort("vm_create: builtin_init failed");
@@ -1524,8 +1534,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	/* Register the native methods implemented in the VM. */
 	/* BEFORE: threads_init */
 
-	if (!nativevm_preinit())
-		vm_abort("vm_create: nativevm_preinit failed");
+	nativevm_preinit();
 
 #if defined(ENABLE_JNI)
 	/* Initialize the JNI subsystem (must be done _before_
@@ -1544,16 +1553,19 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		vm_abort("vm_create: localref_table_init failed");
 #endif
 
+	/* Iinitialize some important system classes. */
+	/* BEFORE: threads_init */
+
+	initialize_init();
+
 #if defined(ENABLE_THREADS)
-  	if (!threads_init())
-		vm_abort("vm_create: threads_init failed");
+  	threads_init();
 #endif
 
 	/* Initialize the native VM subsystem. */
 	/* AFTER: threads_init (at least for SUN's classes) */
 
-	if (!nativevm_init())
-		vm_abort("vm_create: nativevm_init failed");
+	nativevm_init();
 
 #if defined(ENABLE_PROFILING)
 	/* initialize profiling */
@@ -1616,21 +1628,20 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	}
 #endif
 
-	/* increment the number of VMs */
+	/* Increment the number of VMs. */
 
 	vms++;
 
-	/* initialization is done */
+	/* Initialization is done, VM is created.. */
 
+	vm_created      = true;
 	vm_initializing = false;
 
-#if !defined(NDEBUG)
 	/* Print the VM configuration after all stuff is set and the VM is
 	   initialized. */
 
 	if (opt_PrintConfig)
 		vm_printconfig();
-#endif
 
 	/* everything's ok */
 
@@ -1654,8 +1665,12 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	s4                         oalength;
 	utf                       *u;
 	java_handle_t             *s;
-	s4                         status;
-	s4                         i;
+	int                        status;
+	int                        i;
+
+#if defined(ENABLE_THREADS)
+	threadobject              *t;
+#endif
 
 #if !defined(NDEBUG)
 	if (compileall) {
@@ -1781,11 +1796,21 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 		status = 1;
 	}
 
-	/* unload the JavaVM */
+#if defined(ENABLE_THREADS)
+    /* Detach the main thread so that it appears to have ended when
+	   the application's main method exits. */
+
+	t = thread_get_current();
+
+	if (!threads_detach_thread(t))
+		vm_abort("vm_run: Could not detach main thread.");
+#endif
+
+	/* Destroy the JavaVM. */
 
 	(void) vm_destroy(vm);
 
-	/* and exit */
+	/* And exit. */
 
 	vm_exit(status);
 }
@@ -1797,13 +1822,30 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 
 *******************************************************************************/
 
-s4 vm_destroy(JavaVM *vm)
+int vm_destroy(JavaVM *vm)
 {
 #if defined(ENABLE_THREADS)
+	/* Create a a trivial new Java waiter thread called
+	   "DestroyJavaVM". */
+
+	JavaVMAttachArgs args;
+
+	args.name  = "DestroyJavaVM";
+	args.group = NULL;
+
+	if (!threads_attach_current_thread(&args, false))
+		return 1;
+
+	/* Wait until we are the last non-daemon thread. */
+
 	threads_join_all_threads();
 #endif
 
-	/* everything's ok */
+	/* VM is gone. */
+
+	vm_created = false;
+
+	/* Everything is ok. */
 
 	return 0;
 }
@@ -1885,9 +1927,9 @@ void vm_shutdown(s4 status)
 #if defined(ENABLE_JVMTI)
 	/* terminate cacaodbgserver */
 	if (dbgcom!=NULL) {
-		pthread_mutex_lock(&dbgcomlock);
+		mutex_lock(&dbgcomlock);
 		dbgcom->running=1;
-		pthread_mutex_unlock(&dbgcomlock);
+		mutex_unlock(&dbgcomlock);
 		jvmti_cacaodbgserver_quit();
 	}	
 #endif
@@ -2202,7 +2244,8 @@ static char *vm_get_mainclass_from_jar(char *mainstring)
 	o = vm_call_method(m, o, s);
 
 	if (o == NULL) {
-		exceptions_print_stacktrace();
+		fprintf(stderr, "Failed to load Main-Class manifest attribute from\n");
+		fprintf(stderr, "%s\n", mainstring);
 		return NULL;
 	}
 

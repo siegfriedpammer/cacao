@@ -461,7 +461,7 @@ void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_BNEZ(reg, 3);
 		M_NOP;
-		M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_ARITHMETIC);
+		M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_ArithmeticException);
 	}
 }
 
@@ -479,7 +479,7 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 		M_CMP(s2, REG_ITMP3);
 		M_XBULT(3);
 		M_NOP;
-		M_ALD_INTERN(s2, REG_ZERO, EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS);
+		M_ALD_INTERN(s2, REG_ZERO, TRAP_ArrayIndexOutOfBoundsException);
 	}
 }
 
@@ -495,7 +495,7 @@ void emit_arraystore_check(codegendata *cd, instruction *iptr)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_BNEZ(REG_RESULT_CALLER, 3);
 		M_NOP;
-		M_ALD_INTERN(REG_RESULT_CALLER, REG_ZERO, EXCEPTION_HARDWARE_ARRAYSTORE);
+		M_ALD_INTERN(REG_RESULT_CALLER, REG_ZERO, TRAP_ArrayStoreException);
 	}
 }
 
@@ -529,7 +529,7 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 		}
 
 		M_NOP;
-		M_ALD_INTERN(s1, REG_ZERO, EXCEPTION_HARDWARE_CLASSCAST);
+		M_ALD_INTERN(s1, REG_ZERO, TRAP_ClassCastException);
 	}
 }
 
@@ -545,7 +545,7 @@ void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_BNEZ(reg, 3);
 		M_NOP;
-		M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_NULLPOINTER);
+		M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_NullPointerException);
 	}
 }
 
@@ -561,7 +561,7 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_BNEZ(REG_RESULT_CALLER, 3);
 		M_NOP;
-		M_ALD_INTERN(REG_RESULT_CALLER, REG_ZERO, EXCEPTION_HARDWARE_EXCEPTION);
+		M_ALD_INTERN(REG_RESULT_CALLER, REG_ZERO, TRAP_CHECK_EXCEPTION);
 	}
 }
 
@@ -579,9 +579,9 @@ uint32_t emit_trap(codegendata *cd)
 	/* Get machine code which is patched back in later. The
 	   trap is 1 instruction word long. */
 
-	mcode = *((u4 *) cd->mcodeptr);
+	mcode = *((uint32_t *) cd->mcodeptr);
 
-	M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_PATCHER);
+	M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_PATCHER);
 
 	return mcode;
 }

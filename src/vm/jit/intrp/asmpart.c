@@ -1,9 +1,7 @@
 /* src/vm/jit/intrp/asmpart.c - Java-C interface functions for Interpreter
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -33,19 +31,17 @@
 
 #include "arch.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#else
-# include "threads/none/threads.h"
-#endif
+#include "threads/thread.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/intrp/intrp.h"
+#include "vm/jit/methodtree.h"
 #include "vm/jit/dseg.h"
+
+#include "vm/jit/intrp/intrp.h"
 
 #include "vmcore/class.h"
 #include "vmcore/linker.h"
@@ -191,7 +187,7 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
   /* for a description of the stack see IRETURN in java.vmg */
 
   for (; fp != NULL; ) {
-	  u1 *f = codegen_get_pv_from_pc((u1 *) (ip - 1));
+	  u1 *f = methodtree_find((u1 *) (ip - 1));
 
 	  /* get methodinfo pointer from method header */
 
@@ -286,7 +282,7 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 		  /* get synchronization object */
 
 		  if (m->flags & ACC_STATIC) {
-			  syncobj = (java_objectheader *) m->class;
+			  syncobj = (java_objectheader *) m->clazz;
 		  }
 		  else {
 			  syncobj = (java_objectheader *) access_local_cell(-framesize + SIZEOF_VOID_P);
@@ -315,24 +311,6 @@ Inst *intrp_asm_handle_exception(Inst *ip, java_objectheader *o, Cell *fp, Cell 
 void intrp_asm_abstractmethoderror(void)
 {
 	vm_abort("intrp_asm_abstractmethoderror: IMPLEMENT ME!");
-}
-
-
-void intrp_asm_getclassvalues_atomic(vftbl_t *super, vftbl_t *sub, castinfo *out)
-{
-	s4 sbv, sdv, sv;
-
-	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
-
-	sbv = super->baseval;
-	sdv = super->diffval;
-	sv  = sub->baseval;
-
-	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
-
-	out->super_baseval = sbv;
-	out->super_diffval = sdv;
-	out->sub_baseval   = sv;
 }
 
 

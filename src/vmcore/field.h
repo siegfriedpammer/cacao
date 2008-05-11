@@ -1,9 +1,7 @@
 /* src/vmcore/field.h - field functions header
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -53,7 +51,7 @@ struct fieldinfo {	      /* field of a class                                 */
 	/*          value as CLASSREF_PSEUDO_VFTBL! This is used to check whether */
 	/*          a constant_FMIref has been resolved.                          */
 
-	classinfo *class;     /* needed by typechecker. Could be optimized        */
+	classinfo *clazz;     /* needed by typechecker. Could be optimized        */
 	                      /* away by using constant_FMIref instead of         */
 	                      /* fieldinfo throughout the compiler.               */
 

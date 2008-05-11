@@ -9,7 +9,7 @@ for CACAO_LIBTOOLIZE in libtoolize libtoolize15 glibtoolize; do
         CACAO_LIBTOOLIZE_VERSION=`${CACAO_LIBTOOLIZE} --version | sed 's/^.*[^0-9.]\([0-9]\{1,\}\.[0-9.]\{1,\}\).*/\1/'`
 #        echo ${CACAO_LIBTOOLIZE_VERSION}
         case ${CACAO_LIBTOOLIZE_VERSION} in
-            1.5* )
+            1.5* | 2.* )
                 CACAO_HAVE_LIBTOOLIZE=true
                 break;
                 ;;
@@ -19,7 +19,7 @@ done
 
 if test ${CACAO_HAVE_LIBTOOLIZE} = false; then
     echo "No proper libtoolize was found."
-    echo "You must have libtool 1.5 installed."
+    echo "You must have libtool 1.5 or later installed."
     exit 1
 fi
 

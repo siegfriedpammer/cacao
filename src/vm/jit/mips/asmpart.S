@@ -1,9 +1,7 @@
 /* src/vm/jit/mips/asmpart.S - Java-C interface functions for MIPS
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -116,12 +114,12 @@ L_asm_vm_call_method_compute_pv:
 	ast     a0,4*8(sp)                /* save method PV                       */
 
 #if SIZEOF_VOID_P == 8
-	sdc1    fss0,5*8(sp)              /* save non JavaABI saved flt registers */
-	sdc1    fss1,6*8(sp)
-	sdc1    fss2,7*8(sp)
-	sdc1    fss3,8*8(sp)
-	sdc1    fss4,9*8(sp)
-	sdc1    fss5,10*8(sp)
+	s.d     fss0,5*8(sp)              /* save non JavaABI saved flt registers */
+	s.d     fss1,6*8(sp)
+	s.d     fss2,7*8(sp)
+	s.d     fss3,8*8(sp)
+	s.d     fss4,9*8(sp)
+	s.d     fss5,10*8(sp)
 #endif
 
 	move    t0,a1                     /* address of data structure            */
@@ -139,14 +137,14 @@ L_asm_vm_call_method_compute_pv:
 	ld      a6,6*8(t0)
 	ld      a7,7*8(t0)
 
-	ldc1    fa0,8*8(t0)
-	ldc1    fa1,9*8(t0)
-	ldc1    fa2,10*8(t0)
-	ldc1    fa3,11*8(t0)
-	ldc1    fa4,12*8(t0)
-	ldc1    fa5,13*8(t0)
-	ldc1    fa6,14*8(t0)
-	ldc1    fa7,15*8(t0)
+	l.d     fa0,8*8(t0)
+	l.d     fa1,9*8(t0)
+	l.d     fa2,10*8(t0)
+	l.d     fa3,11*8(t0)
+	l.d     fa4,12*8(t0)
+	l.d     fa5,13*8(t0)
+	l.d     fa6,14*8(t0)
+	l.d     fa7,15*8(t0)
 
 #else /* SIZEOF_VOID_P == 8 */
 
@@ -163,8 +161,8 @@ L_asm_vm_call_method_compute_pv:
 # endif
 
 # if !defined(ENABLE_SOFT_FLOAT)
-	ldc1    fa0,4*8(t0)
-	ldc1    fa1,5*8(t0)
+	l.d     fa0,4*8(t0)
+	l.d     fa1,5*8(t0)
 # endif
 
 #endif /* SIZEOF_VOID_P == 8 */
@@ -220,12 +218,12 @@ calljava_return2:
 	ald     s0,3*8(sp)
 
 #if SIZEOF_VOID_P == 8
-	ldc1    fss0,5*8(sp)              /* restore non JavaABI saved flt regs   */
-	ldc1    fss1,6*8(sp)
-	ldc1    fss2,7*8(sp)
-	ldc1    fss3,8*8(sp)
-	ldc1    fss4,9*8(sp)
-	ldc1    fss5,10*8(sp)
+	l.d     fss0,5*8(sp)              /* restore non JavaABI saved flt regs   */
+	l.d     fss1,6*8(sp)
+	l.d     fss2,7*8(sp)
+	l.d     fss3,8*8(sp)
+	l.d     fss4,9*8(sp)
+	l.d     fss5,10*8(sp)
 #endif
 
 	aaddiu  sp,sp,12*8                /* free stack space                     */
@@ -421,18 +419,18 @@ ex_int2:
 	jr      t3                          /* jump to save position              */
 
 #if SIZEOF_VOID_P == 8
-	ldc1    fs0,-4*8(t1)
-	ldc1    fs1,-3*8(t1)
-	ldc1    fs2,-2*8(t1)
-	ldc1    fs3,-1*8(t1)
+	l.d     fs0,-4*8(t1)
+	l.d     fs1,-3*8(t1)
+	l.d     fs2,-2*8(t1)
+	l.d     fs3,-1*8(t1)
 #else /* SIZEOF_VOID_P == 8 */
 # if !defined(ENABLE_SOFT_FLOAT)
-	ldc1    fs0,-4*8(t1)
-	ldc1    fs1,-3*8(t1)
-	ldc1    fs2,-2*8(t1)
-	ldc1    fs3,-1*8(t1)
-	ldc1    fs4,-1*8(t1)
-	ldc1    fs5,-1*8(t1)
+	l.d     fs0,-4*8(t1)
+	l.d     fs1,-3*8(t1)
+	l.d     fs2,-2*8(t1)
+	l.d     fs3,-1*8(t1)
+	l.d     fs4,-1*8(t1)
+	l.d     fs5,-1*8(t1)
 # endif /* !defined(ENABLE_SOFT_FLOAT) */
 #endif /* SIZEOF_VOID_P == 8 */
 
@@ -472,13 +470,31 @@ asm_abstractmethoderror:
 
 compare_and_swap:
 1:
+#if defined(__GNUC__)
+	.set mips2
+#endif
 	all     v0,0(a0)
+#if defined(__GNUC__)
+	.set mips0
+#endif
 	bne     v0,a1,2f
 	move    t0,a2
+#if defined(__GNUC__)
+	.set mips2
+#endif
 	asc     t0,0(a0)
+#if defined(__GNUC__)
+	.set mips0
+#endif
 	beqz    t0,1b
 2:
+#if defined(__GNUC__)
+	.set mips2
+#endif
 	sync
+#if defined(__GNUC__)
+	.set mips0
+#endif
 	j       ra
 
 	.end    compare_and_swap

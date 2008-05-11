@@ -1,9 +1,7 @@
 /* src/vm/jit/loop/analyze.c - bound check removal functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,18 +20,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christopher Kruegel
-
-   Changes: Christian Thalinger
-
-   Contains the functions which perform the bound check removals. With
-   the loops identified, these functions scan the code for array
-   accesses that take place in loops and try to guarantee that their
-   bounds are never violated. The function to call is
-   optimize_loops().
-
 */
 
 
@@ -48,7 +34,10 @@
 
 #include "mm/memory.h"
 #include "toolbox/logging.h"
+
 #include "vm/jit/jit.h"
+#include "vm/jit/stack.h"
+
 #include "vm/jit/loop/analyze.h"
 #include "vm/jit/loop/graph.h"
 #include "vm/jit/loop/loop.h"
@@ -1520,8 +1509,8 @@ int insert_static(methodinfo *m, codegendata *cd, loopdata *ld, int arrayRef, st
 
 /*	copy a stack and return the start pointer of the newly created one
 */
-stackptr copy_stack_from(stackptr source) { 
-	stackptr current, top;
+stackelement_t* copy_stack_from(stackelement_t* source) { 
+	stackelement_t* current, top;
 
 	if (source == NULL)
 		return NULL;
@@ -1561,7 +1550,7 @@ stackptr copy_stack_from(stackptr source) {
 
    inst: pointer to the new instruction
    tos: stackpointer before this operation is executed
-   newstack: temporary stackptr
+   newstack: temporary stackelement_t*
    stackdepth: counts the current stackdepth
    original start: blockpointer to the head of the new, optimized loop 
 */
@@ -2588,7 +2577,7 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 
 	/* tos and newstack are needed by the macros, that insert instructions into */
 	/* the new loop head                                                        */
-	stackptr newstack, tos;
+	stackelement_t* newstack, tos;
 	exceptiontable *ex;
 
 	/* prevent some compiler warnings */

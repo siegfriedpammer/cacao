@@ -1,9 +1,7 @@
-/* mm/cacao-gc/rootset.h - GC header for root set management
+/* src/mm/cacao-gc/rootset.h - GC header for root set management
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -33,11 +31,7 @@ typedef struct rootset_t rootset_t;
 #include "config.h"
 #include "vm/types.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#else
-# include "threads/none/threads.h"
-#endif
+#include "threads/thread.h"
 
 #include "vm/jit/replace.h"
 #include "vmcore/method.h"

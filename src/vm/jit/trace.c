@@ -37,7 +37,7 @@
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "toolbox/logging.h"
 
@@ -69,8 +69,7 @@ u4 _no_threads_tracejavacallcount= 0;
 
 *******************************************************************************/
 
-static char *trace_java_call_print_argument(char *logtext, s4 *logtextlen,
-											typedesc *paramtype, imm_union imu)
+static char *trace_java_call_print_argument(methodinfo *m, char *logtext, s4 *logtextlen, typedesc *paramtype, imm_union imu)
 {
 	java_object_t *o;
 	classinfo     *c;
@@ -109,14 +108,23 @@ static char *trace_java_call_print_argument(char *logtext, s4 *logtextlen,
 		sprintf(logtext + strlen(logtext), "0x%016lx", (ptrint) imu.l);
 #endif
 
-		/* cast to java.lang.Object */
+		/* Workaround for sun.misc.Unsafe methods.  In the future
+		   (exact GC) we should check if the address is on the GC
+		   heap. */
+
+		if ((m->clazz       != NULL) &&
+			(m->clazz->name == utf_new_char("sun/misc/Unsafe")))
+			break;
+
+		/* Cast to java.lang.Object. */
 
 		o = (java_object_t *) (ptrint) imu.l;
 
-		/* check return argument for java.lang.Class or java.lang.String */
+		/* Check return argument for java.lang.Class or
+		   java.lang.String. */
 
 		if (o != NULL) {
-			if (o->vftbl->class == class_java_lang_String) {
+			if (o->vftbl->clazz == class_java_lang_String) {
 				/* get java.lang.String object and the length of the
 				   string */
 
@@ -136,7 +144,7 @@ static char *trace_java_call_print_argument(char *logtext, s4 *logtextlen,
 				strcat(logtext, "\")");
 			}
 			else {
-				if (o->vftbl->class == class_java_lang_Class) {
+				if (o->vftbl->clazz == class_java_lang_Class) {
 					/* if the object returned is a java.lang.Class
 					   cast it to classinfo structure and get the name
 					   of the class */
@@ -149,7 +157,7 @@ static char *trace_java_call_print_argument(char *logtext, s4 *logtextlen,
 					/* if the object returned is not a java.lang.String or
 					   a java.lang.Class just print the name of the class */
 
-					u = o->vftbl->class->name;
+					u = o->vftbl->clazz->name;
 				}
 
 				len = strlen(" (Class = \"") + utf_bytes(u) + strlen("\")");
@@ -194,6 +202,13 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 	s4          pos;
 	int32_t     dumpmarker;
 
+	/* We don't trace builtin functions here because the argument
+	   passing happens via the native ABI and does not fit these
+	   functions. */
+
+	if (method_is_builtin(m))
+		return;
+
 #if defined(ENABLE_DEBUG_FILTER)
 	if (!show_filters_test_verbosecall_enter(m))
 		return;
@@ -213,7 +228,7 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 		strlen("-2147483647-") +        /* INT_MAX should be sufficient       */
 		TRACEJAVACALLINDENT +
 		strlen("called: ") +
-		((m->class == NULL) ? strlen("NULL") : utf_bytes(m->class->name)) +
+		((m->clazz == NULL) ? strlen("NULL") : utf_bytes(m->clazz->name)) +
 		strlen(".") +
 		utf_bytes(m->name) +
 		utf_bytes(m->descriptor);
@@ -261,8 +276,8 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 
 	strcpy(logtext + pos, "called: ");
 
-	if (m->class != NULL)
-		utf_cat_classname(logtext, m->class->name);
+	if (m->clazz != NULL)
+		utf_cat_classname(logtext, m->clazz->name);
 	else
 		strcat(logtext, "NULL");
 	strcat(logtext, ".");
@@ -280,15 +295,13 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 	if (m->flags & ACC_NATIVE)         strcat(logtext, " NATIVE");
 	if (m->flags & ACC_INTERFACE)      strcat(logtext, " INTERFACE");
 	if (m->flags & ACC_ABSTRACT)       strcat(logtext, " ABSTRACT");
-	if (m->flags & ACC_METHOD_BUILTIN) strcat(logtext, " METHOD_BUILTIN");
 
 	strcat(logtext, "(");
 
 	for (i = 0; i < md->paramcount; ++i) {
 		arg = argument_jitarray_load(md, i, arg_regs, stack);
-		logtext = trace_java_call_print_argument(
-			logtext, &logtextlen, &md->paramtypes[i], arg
-		);
+		logtext = trace_java_call_print_argument(m, logtext, &logtextlen,
+												 &md->paramtypes[i], arg);
 		if (i != (md->paramcount - 1)) {
 			strcat(logtext, ", ");
 		}
@@ -326,6 +339,13 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 	imm_union   val;
 	int32_t     dumpmarker;
 
+	/* We don't trace builtin functions here because the argument
+	   passing happens via the native ABI and does not fit these
+	   functions. */
+
+	if (method_is_builtin(m))
+		return;
+
 #if defined(ENABLE_DEBUG_FILTER)
 	if (!show_filters_test_verbosecall_exit(m))
 		return;
@@ -352,7 +372,7 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 		strlen("-2147483647-") +        /* INT_MAX should be sufficient       */
 		TRACEJAVACALLINDENT +
 		strlen("finished: ") +
-		((m->class == NULL) ? strlen("NULL") : utf_bytes(m->class->name)) +
+		((m->clazz == NULL) ? strlen("NULL") : utf_bytes(m->clazz->name)) +
 		strlen(".") +
 		utf_bytes(m->name) +
 		utf_bytes(m->descriptor) +
@@ -379,8 +399,8 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 		logtext[pos++] = '\t';
 
 	strcpy(logtext + pos, "finished: ");
-	if (m->class != NULL)
-		utf_cat_classname(logtext, m->class->name);
+	if (m->clazz != NULL)
+		utf_cat_classname(logtext, m->clazz->name);
 	else
 		strcat(logtext, "NULL");
 	strcat(logtext, ".");
@@ -392,7 +412,8 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 		val = argument_jitreturn_load(md, return_regs);
 
 		logtext =
-			trace_java_call_print_argument(logtext, &logtextlen, &md->returntype, val);
+			trace_java_call_print_argument(m, logtext, &logtextlen,
+										   &md->returntype, val);
 	}
 
 	log_text(logtext);
@@ -420,7 +441,7 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 
 	if (xptr) {
 		logtextlen =
-			strlen("Exception ") + utf_bytes(xptr->vftbl->class->name);
+			strlen("Exception ") + utf_bytes(xptr->vftbl->clazz->name);
 	} 
 	else {
 		logtextlen = strlen("Some Throwable");
@@ -430,7 +451,7 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 
 	if (m) {
 		logtextlen +=
-			utf_bytes(m->class->name) +
+			utf_bytes(m->clazz->name) +
 			strlen(".") +
 			utf_bytes(m->name) +
 			utf_bytes(m->descriptor) +
@@ -443,10 +464,10 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 		logtextlen += strlen(")(0x12345678) at position 0x12345678 (");
 #endif
 
-		if (m->class->sourcefile == NULL)
+		if (m->clazz->sourcefile == NULL)
 			logtextlen += strlen("<NO CLASSFILE INFORMATION>");
 		else
-			logtextlen += utf_bytes(m->class->sourcefile);
+			logtextlen += utf_bytes(m->clazz->sourcefile);
 
 		logtextlen += strlen(":65536)");
 
@@ -465,7 +486,7 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 
 	if (xptr) {
 		strcpy(logtext, "Exception ");
-		utf_cat_classname(logtext, xptr->vftbl->class->name);
+		utf_cat_classname(logtext, xptr->vftbl->clazz->name);
 
 	} else {
 		strcpy(logtext, "Some Throwable");
@@ -474,7 +495,7 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 	strcat(logtext, " thrown in ");
 
 	if (m) {
-		utf_cat_classname(logtext, m->class->name);
+		utf_cat_classname(logtext, m->clazz->name);
 		strcat(logtext, ".");
 		utf_cat(logtext, m->name);
 		utf_cat(logtext, m->descriptor);
@@ -515,10 +536,10 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 					(ptrint) code->entrypoint, (ptrint) pos);
 #endif
 
-			if (m->class->sourcefile == NULL)
+			if (m->clazz->sourcefile == NULL)
 				strcat(logtext, "<NO CLASSFILE INFORMATION>");
 			else
-				utf_cat(logtext, m->class->sourcefile);
+				utf_cat(logtext, m->clazz->sourcefile);
 
 			sprintf(logtext + strlen(logtext), ":%d)", 0);
 		}
@@ -560,7 +581,7 @@ void trace_exception_builtin(java_object_t *xptr)
 
 	if (t) {
 		logtextlen +=
-			utf_bytes(xptr->vftbl->class->name);
+			utf_bytes(xptr->vftbl->clazz->name);
 		if (s) {
 			logtextlen += strlen(": ") +
 				u2_utflength(LLNI_field_direct(s, value)->data 
@@ -581,7 +602,7 @@ void trace_exception_builtin(java_object_t *xptr)
 	strcpy(logtext, "Builtin exception thrown: ");
 
 	if (t) {
-		utf_cat_classname(logtext, xptr->vftbl->class->name);
+		utf_cat_classname(logtext, xptr->vftbl->clazz->name);
 
 		if (s) {
 			char *buf;

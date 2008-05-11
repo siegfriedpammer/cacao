@@ -15,7 +15,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 355 "src/vm/jit/verify/icmds.c"
+#            	line 347 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (IPTR->flags.bits & INS_FLAG_CLASS) {
   GENERATED  		/* a java.lang.Class reference */
   GENERATED  		TYPEINFO_INIT_JAVA_LANG_CLASS(DST->typeinfo,IPTR->sx.val.c);
@@ -154,7 +154,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 90 "src/vm/jit/verify/icmds.c"
+#            	line 82 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPECHECK_COUNT(stat_ins_stack);
   GENERATED  	COPYTYPE(IPTR->s1, IPTR->dst);
   GENERATED  	DST->type = OP1->type;
@@ -177,7 +177,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 89 "src/vm/jit/verify/icmds.c"
+#            	line 81 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPECHECK_COUNT(stat_ins_stack);
   GENERATED  	COPYTYPE(IPTR->s1, IPTR->dst);
   GENERATED  	DST->type = OP1->type;
@@ -224,7 +224,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 99 "src/vm/jit/verify/icmds.c"
+#            	line 91 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPECHECK_COUNT(stat_ins_aload);
   GENERATED  
   GENERATED  
@@ -294,7 +294,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 121 "src/vm/jit/verify/icmds.c"
+#            	line 113 "src/vm/jit/verify/icmds.c"
   GENERATED  
 #            if !defined(TYPECHECK_TYPEINFERER)
   GENERATED  	if (!TYPEINFO_MAYBE_ARRAY_OF_REFS(OP1->typeinfo))
@@ -349,7 +349,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 114 "src/vm/jit/verify/icmds.c"
+#            	line 106 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPEINFO_COPY(OP1->typeinfo, DST->typeinfo);
   GENERATED  
 #            	line 356 "src/vm/jit/verify/typecheck-typeinferer-gen.inc"
@@ -395,7 +395,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 414 "src/vm/jit/verify/icmds.c"
+#            	line 406 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_branch);
   GENERATED  
@@ -455,7 +455,7 @@
   GENERATED  	superblockend = true;
   GENERATED  
   GENERATED  
-#            	line 396 "src/vm/jit/verify/icmds.c"
+#            	line 388 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_branch);
   GENERATED  
@@ -474,7 +474,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 587 "src/vm/jit/verify/icmds.c"
+#            	line 553 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPEINFO_INIT_RETURNADDRESS(DST->typeinfo, BPTR->next);
   GENERATED  	REACH(IPTR->sx.s23.s3.jsrtarget);
   GENERATED  
@@ -492,7 +492,7 @@
   GENERATED  	superblockend = true;
   GENERATED  
   GENERATED  
-#            	line 604 "src/vm/jit/verify/icmds.c"
+#            	line 570 "src/vm/jit/verify/icmds.c"
   GENERATED  
 #            if !defined(TYPECHECK_TYPEINFERER)
   GENERATED  	/* check returnAddress variable */
@@ -514,7 +514,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 463 "src/vm/jit/verify/icmds.c"
+#            	line 429 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_switch);
   GENERATED  
@@ -544,7 +544,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 479 "src/vm/jit/verify/icmds.c"
+#            	line 445 "src/vm/jit/verify/icmds.c"
   GENERATED  	/* {RESULTNOW} */
   GENERATED  	TYPECHECK_COUNT(stat_ins_switch);
   GENERATED  
@@ -592,7 +592,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 230 "src/vm/jit/verify/icmds.c"
+#            	line 222 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!handle_fieldaccess(state, NULL, NULL))
   GENERATED  		return false;
   GENERATED  	maythrow = true;
@@ -614,7 +614,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 224 "src/vm/jit/verify/icmds.c"
+#            	line 216 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!handle_fieldaccess(state, VAROP(iptr->s1), NULL))
   GENERATED  		return false;
   GENERATED  	maythrow = true;
@@ -639,7 +639,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 626 "src/vm/jit/verify/icmds.c"
+#            	line 592 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPECHECK_COUNT(stat_ins_invoke);
   GENERATED  	if (!handle_invocation(state))
   GENERATED  		EXCEPTION;
@@ -662,7 +662,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 373 "src/vm/jit/verify/icmds.c"
+#            	line 365 "src/vm/jit/verify/icmds.c"
   GENERATED  
 #            if !defined(TYPECHECK_TYPEINFERER)
   GENERATED  	/* returnAddress is not allowed */
@@ -695,7 +695,7 @@
 #            	define DST  VAROP(iptr->dst)
   GENERATED  
   GENERATED  
-#            	line 669 "src/vm/jit/verify/icmds.c"
+#            	line 635 "src/vm/jit/verify/icmds.c"
   GENERATED  	if (!handle_multianewarray(STATE))
   GENERATED  		EXCEPTION;
   GENERATED  
@@ -717,7 +717,7 @@
 #            	define OP1  VAROP(iptr->s1)
   GENERATED  
   GENERATED  
-#            	line 684 "src/vm/jit/verify/icmds.c"
+#            	line 650 "src/vm/jit/verify/icmds.c"
   GENERATED  	TYPECHECK_COUNT(stat_ins_builtin);
   GENERATED  	if (!handle_builtin(state))
   GENERATED  		EXCEPTION;

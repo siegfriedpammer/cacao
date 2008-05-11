@@ -1,9 +1,7 @@
 /* src/vm/jit/verify/typecheck-common.h - internal header for the type checker
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -21,12 +19,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Edwin Steiner
-
-   Changes:
 
 */
 
@@ -223,8 +215,8 @@ struct typecheck_jsr_t {
 	bool         active;           /* true if this sub is currently active */
 	char        *blockflags;   /* saved block flags when JSR was traversed */
 	char        *usedlocals;       /* != 0 for each local used in this sub */
-	typedescriptor *retlocals;                   /* locals on the RET edge */
-	typedescriptor *retstack;                     /* stack on the RET edge */
+	typedescriptor_t *retlocals;                 /* locals on the RET edge */
+	typedescriptor_t *retstack;                   /* stack on the RET edge */
 	s4              retdepth;               /* stack depth on the RET edge */
 };
 
@@ -248,9 +240,8 @@ typedef struct verifier_state {
 	
 	s4 numlocals;                         /* number of local variables */
 	s4 validlocals;                /* number of Java-accessible locals */
-	s4 *reverselocalmap;
 	
-	typedescriptor returntype;    /* return type of the current method */
+	typedescriptor_t returntype;  /* return type of the current method */
 
 	s4 *savedindices;
 	s4 *savedinvars;                            /* saved invar pointer */
@@ -268,11 +259,11 @@ typedef struct verifier_state {
 
 	/* the following fields are used by the stackbased verifier only:  */
 
-	typedescriptor *locals;                 /* current local variables */
-	typedescriptor *startlocals;  /* locals at the start of each block */
-	typedescriptor *startstack;    /* stack at the start of each block */
-	s4             *indepth;                  /* stack depth at --''-- */
-	typedescriptor *stackceiling;      /* upper edge of verifier stack */
+	typedescriptor_t *locals;               /* current local variables */
+	typedescriptor_t *startlocals;/* locals at the start of each block */
+	typedescriptor_t *startstack;  /* stack at the start of each block */
+	s4               *indepth;                /* stack depth at --''-- */
+	typedescriptor_t *stackceiling;    /* upper edge of verifier stack */
 
 	typecheck_jsr_t *topjsr;        /* most recently called subroutine */
 	typecheck_jsr_t **jsrinfos;      /* subroutine info for each block */

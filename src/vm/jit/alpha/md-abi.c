@@ -1,9 +1,7 @@
 /* src/vm/jit/alpha/md-abi.c - functions for Alpha ABI
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -246,7 +244,7 @@ void md_param_alloc_native(methoddesc *md)
    NOTE: Do not pass a LOCALVAR in stackslot->varnum.
 *******************************************************************************/
 
-void md_return_alloc(jitdata *jd, stackptr stackslot)
+void md_return_alloc(jitdata *jd, stackelement_t *stackslot)
 {
 	methodinfo *m;
 	methoddesc *md;

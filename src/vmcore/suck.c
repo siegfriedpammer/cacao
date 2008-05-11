@@ -353,7 +353,7 @@ bool suck_check_classbuffer_size(classbuffer *cb, s4 len)
 {
 #ifdef ENABLE_VERIFIER
 	if (len < 0 || ((cb->data + cb->size) - cb->pos) < len) {
-		exceptions_throw_classformaterror((cb)->class, "Truncated class file");
+		exceptions_throw_classformaterror(cb->clazz, "Truncated class file");
 		return false;
 	}
 #endif /* ENABLE_VERIFIER */
@@ -560,7 +560,7 @@ classbuffer *suck_start(classinfo *c)
 			if (classfile) {                                   /* file exists */
 				if (!system_stat(path, &buffer)) {     /* read classfile data */
 					cb = NEW(classbuffer);
-					cb->class = c;
+					cb->clazz = c;
 					cb->size  = buffer.st_size;
 					cb->data  = MNEW(u1, cb->size);
 					cb->pos   = cb->data;

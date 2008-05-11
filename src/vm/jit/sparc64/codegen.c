@@ -1,9 +1,7 @@
 /* src/vm/jit/sparc64/codegen.c - machine code generator for Sparc
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -250,7 +248,7 @@ bool codegen_emit(jitdata *jd)
 		/* get correct lock object */
 
 		if (m->flags & ACC_STATIC) {
-			disp = dseg_add_address(cd, &m->class->object.header);
+			disp = dseg_add_address(cd, &m->clazz->object.header);
 			M_ALD(REG_OUT0, REG_PV, disp);
 			disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
 			M_ALD(REG_ITMP3, REG_PV, disp);
@@ -261,7 +259,7 @@ bool codegen_emit(jitdata *jd)
 			M_BNEZ(REG_OUT0, 3);
 			disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
 			M_ALD(REG_ITMP3, REG_PV, disp);                   /* branch delay */
-			M_ALD_INTERN(REG_ZERO, REG_ZERO, EXCEPTION_HARDWARE_NULLPOINTER);
+			M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_NullPointerException);
 		}
 
 		M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
@@ -1623,8 +1621,8 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+					codegen_add_patch_ref(cd, PATCHER_clinit, fi->clazz, disp);
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -1668,8 +1666,8 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+					codegen_add_patch_ref(cd, PATCHER_clinit, fi->clazz, disp);
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -1714,8 +1712,8 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					codegen_add_patch_ref(cd, PATCHER_clinit, fi->class, disp);
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+					codegen_add_patch_ref(cd, PATCHER_clinit, fi->clazz, disp);
   			}
 
 			M_ALD(REG_ITMP1, REG_PV, disp);
@@ -2601,9 +2599,9 @@ gen_method:
 				} 
 				else {
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
-						sizeof(methodptr*) * lm->class->index;
+						sizeof(methodptr*) * lm->clazz->index;
 
-					s2 = sizeof(methodptr) * (lm - lm->class->methods);
+					s2 = sizeof(methodptr) * (lm - lm->clazz->methods);
 				}
 
 				/* implicit null-pointer check */

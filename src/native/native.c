@@ -475,7 +475,7 @@ static functionptr native_method_find(methodinfo *m)
 
 	/* fill the temporary structure used for searching the tree */
 
-	tmpnmn.classname  = m->class->name;
+	tmpnmn.classname  = m->clazz->name;
 	tmpnmn.name       = m->name;
 	tmpnmn.descriptor = m->descriptor;
 
@@ -508,7 +508,7 @@ functionptr native_method_resolve(methodinfo *m)
 	utf                            *newname;
 	functionptr                     f;
 #if defined(ENABLE_LTDL)
-	classloader                    *cl;
+	classloader_t                  *cl;
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne;
 	u4                              key;    /* hashkey                        */
@@ -523,7 +523,7 @@ functionptr native_method_resolve(methodinfo *m)
 
 	if (opt_verbosejni) {
 		printf("[Dynamic-linking native method ");
-		utf_display_printable_ascii_classname(m->class->name);
+		utf_display_printable_ascii_classname(m->clazz->name);
 		printf(".");
 		utf_display_printable_ascii(m->name);
 		printf(" ... ");
@@ -531,7 +531,7 @@ functionptr native_method_resolve(methodinfo *m)
 
 	/* generate method symbol string */
 
-	name = native_method_symbol(m->class->name, m->name);
+	name = native_method_symbol(m->clazz->name, m->name);
 
 	/* generate overloaded function (having the types in it's name)           */
 
@@ -545,7 +545,7 @@ functionptr native_method_resolve(methodinfo *m)
 #if defined(ENABLE_LTDL)
 	/* Get the classloader. */
 
-	cl = class_get_classloader(m->class);
+	cl = class_get_classloader(m->clazz);
 
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
@@ -732,7 +732,7 @@ void native_library_close(lt_dlhandle handle)
 *******************************************************************************/
 
 #if defined(ENABLE_LTDL)
-void native_library_add(utf *filename, classloader *loader, lt_dlhandle handle)
+void native_library_add(utf *filename, classloader_t *loader, lt_dlhandle handle)
 {
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne; /* library name                       */
@@ -815,7 +815,7 @@ void native_library_add(utf *filename, classloader *loader, lt_dlhandle handle)
 
 #if defined(ENABLE_LTDL)
 hashtable_library_name_entry *native_library_find(utf *filename,
-												  classloader *loader)
+												  classloader_t *loader)
 {
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne; /* library name                       */
@@ -874,7 +874,7 @@ hashtable_library_name_entry *native_library_find(utf *filename,
 
 *******************************************************************************/
 
-int native_library_load(JNIEnv *env, utf *name, classloader *cl)
+int native_library_load(JNIEnv *env, utf *name, classloader_t *cl)
 {
 #if defined(ENABLE_LTDL)
 	lt_dlhandle        handle;

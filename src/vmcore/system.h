@@ -39,7 +39,7 @@
 # include <fcntl.h>
 #endif
 
-#if defined(WITH_JRE_LAYOUT)
+#if defined(ENABLE_JRE_LAYOUT)
 # if defined(HAVE_LIBGEN_H)
 #  include <libgen.h>
 # endif
@@ -111,6 +111,15 @@ inline static int system_access(const char *pathname, int mode)
 #endif
 }
 
+inline static int system_atoi(const char *nptr)
+{
+#if defined(HAVE_ATOI)
+	return atoi(nptr);
+#else
+# error atoi not available
+#endif
+}
+
 inline static void *system_calloc(size_t nmemb, size_t size)
 {
 #if defined(HAVE_CALLOC)
@@ -138,7 +147,7 @@ inline static int system_connect(int sockfd, const struct sockaddr *serv_addr, s
 #endif
 }
 
-#if defined(WITH_JRE_LAYOUT)
+#if defined(ENABLE_JRE_LAYOUT)
 inline static char *system_dirname(char *path)
 {
 #if defined(HAVE_DIRNAME)
@@ -320,7 +329,13 @@ inline static void *system_realloc(void *ptr, size_t size)
 #endif
 }
 
+#if defined(__LINUX__)
 inline static int system_scandir(const char *dir, struct dirent ***namelist, int(*filter)(const struct dirent *), int(*compar)(const void *, const void *))
+#elif defined(__IRIX__)
+inline static int system_scandir(const char *dir, struct dirent ***namelist, int(*filter)(dirent_t *), int(*compar)(dirent_t **, dirent_t **))
+#else
+inline static int system_scandir(const char *dir, struct dirent ***namelist, int(*filter)(struct dirent *), int(*compar)(const void *, const void *))
+#endif
 {
 #if defined(HAVE_SCANDIR)
 	return scandir(dir, namelist, filter, compar);
@@ -362,6 +377,24 @@ inline static int system_stat(const char *path, struct stat *buf)
 	return stat(path, buf);
 #else
 # error stat not available
+#endif
+}
+
+inline static char *system_strcat(char *dest, const char *src)
+{
+#if defined(HAVE_STRCAT)
+	return strcat(dest, src);
+#else
+# error strcat not available
+#endif
+}
+
+inline static char *system_strcpy(char *dest, const char *src)
+{
+#if defined(HAVE_STRCPY)
+	return strcpy(dest, src);
+#else
+# error strcpy not available
 #endif
 }
 

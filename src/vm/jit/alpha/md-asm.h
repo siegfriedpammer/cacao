@@ -1,9 +1,7 @@
 /* src/vm/jit/alpha/md-asm.h - assembler defines for Alpha ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -21,12 +19,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
 
 */
 
@@ -127,14 +119,6 @@
 
 
 /* save and restore macros ****************************************************/
-
-#define SAVE_RETURN_REGISTERS(off) \
-	stq     v0,(0+(off))*8(sp)    ; \
-	stt     fv0,(1+(off))*8(sp)   ;
-
-#define RESTORE_RETURN_REGISTERS(off) \
-	ldq     v0,(0+(off))*8(sp)    ; \
-	ldt     fv0,(1+(off))*8(sp)   ;
 
 #define SAVE_ARGUMENT_REGISTERS(off) \
 	stq     a0,(0+(off))*8(sp)    ; \

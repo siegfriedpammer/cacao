@@ -1,9 +1,7 @@
 /* src/vm/jit/verify/typecheck.c - typechecking (part of bytecode verification)
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -422,7 +420,7 @@ static void typecheck_invalidate_locals(verifier_state *state, s4 index, bool tw
 	s4 *localmap = jd->local_map;
 	varinfo *vars = jd->var;
 
-	javaindex = state->reverselocalmap[index];
+	javaindex = jd->reverselocalmap[index];
 
 	/* invalidate locals of two-word type at index javaindex-1 */
 
@@ -681,8 +679,6 @@ bool typecheck(jitdata *jd)
 	codegendata    *cd;
 	varinfo        *savedlocals;
 	verifier_state  state;             /* current state of the verifier */
-	s4              i;
-	s4              t;
 
 	/* collect statistics */
 
@@ -744,18 +740,12 @@ bool typecheck(jitdata *jd)
     if (state.initmethod) 
 		state.numlocals++; /* VERIFIER_EXTRA_LOCALS */
 
-	state.reverselocalmap = DMNEW(s4, state.validlocals);
-	for (i=0; i<jd->maxlocals; ++i)
-		for (t=0; t<5; ++t) {
-			s4 varindex = jd->local_map[5*i + t];
-			if (varindex >= 0)
-				state.reverselocalmap[varindex] = i;
-		}
-
 	DOLOG(
+		s4 i;
+		s4 t;
 		LOG("reverselocalmap:");
 		for (i=0; i<state.validlocals; ++i) {
-			LOG2("    %i => javaindex %i", i, state.reverselocalmap[i]);
+			LOG2("    %i => javaindex %i", i, jd->reverselocalmap[i]);
 		});
 
     /* allocate the buffer of active exception handlers */

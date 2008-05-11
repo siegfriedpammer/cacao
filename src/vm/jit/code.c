@@ -1,9 +1,7 @@
 /* src/vm/jit/code.c - codeinfo struct for representing compiled code
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -28,20 +26,18 @@
 #include "config.h"
 
 #include <assert.h>
-
-#include "vm/types.h"
+#include <stdint.h>
 
 #include "arch.h"
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+#include "vm/vm.h"
 
 #include "vm/jit/code.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/patcher-common.h"
+#include "vm/jit/methodtree.h"
 
 #include "vmcore/options.h"
 
@@ -52,15 +48,12 @@
 
 *******************************************************************************/
 
-bool code_init(void)
+void code_init(void)
 {
-	/* check for offset of code->m == 0 (see comment in code.h) */
+	/* Check if offset of codeinfo.m == 0 (see comment in code.h). */
 
-	assert(OFFSET(codeinfo, m) == 0);
-
-	/* everything's ok */
-
-	return true;
+	if (OFFSET(codeinfo, m) != 0)
+		vm_abort("code_init: offset of codeinfo.m != 0: %d != 0", OFFSET(codeinfo, m));
 }
 
 
@@ -105,7 +98,7 @@ codeinfo *code_codeinfo_new(methodinfo *m)
    Return the codeinfo for the compilation unit that contains the
    given PC.
 
-   IN:
+   ARGUMENTS:
        pc...............machine code position
 
    RETURN VALUE:
@@ -113,12 +106,11 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 
 *******************************************************************************/
 
-codeinfo *code_find_codeinfo_for_pc(u1 *pc)
+codeinfo *code_find_codeinfo_for_pc(void *pc)
 {
-	u1 *pv;
+	void *pv;
 
-	pv = codegen_get_pv_from_pc(pc);
-	assert(pv);
+	pv = methodtree_find(pc);
 
 	return code_get_codeinfo_for_pv(pv);
 }
@@ -138,11 +130,11 @@ codeinfo *code_find_codeinfo_for_pc(u1 *pc)
 
 *******************************************************************************/
 
-codeinfo *code_find_codeinfo_for_pc_nocheck(u1 *pc)
+codeinfo *code_find_codeinfo_for_pc_nocheck(void *pc)
 {
-	u1 *pv;
+	void *pv;
 
-	pv = codegen_get_pv_from_pc_nocheck(pc);
+	pv = methodtree_find_nocheck(pc);
 
 	if (pv == NULL)
 		return NULL;
@@ -163,7 +155,7 @@ codeinfo *code_find_codeinfo_for_pc_nocheck(u1 *pc)
 
 *******************************************************************************/
 
-methodinfo *code_get_methodinfo_for_pv(u1 *pv)
+methodinfo *code_get_methodinfo_for_pv(void *pv)
 {
 	codeinfo *code;
 

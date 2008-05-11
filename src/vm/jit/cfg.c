@@ -134,12 +134,20 @@ bool cfg_build(jitdata *jd)
 	branch_target_t *table;
 	lookup_target_t *lookup;
 	int              i;
+	bool             has_fallthrough;
 
 	/* process all basic blocks to find the predecessor/successor counts */
 
 	bptr = jd->basicblocks;
 
 	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
+
+		if (bptr->type == BBTYPE_EXH) {
+			/* predecessorcount for exception handlers is initialized to -1,
+			   so we need to fix it to 0. */
+			bptr->predecessorcount += 1;
+		}
+
 		if ((bptr->icount == 0) || (bptr->flags == BBUNDEF))
 			continue;
 
@@ -153,6 +161,43 @@ bool cfg_build(jitdata *jd)
 			iptr--;
 		}
 
+		if (iptr->opc == ICMD_GOTO) {
+
+			/*
+			 This is needed for the following special case caused by
+			 stack_reach_next_block:
+			 I.e. there might be instructions causing control flow before
+			 a GOTO:
+
+			 ....
+			 129: 192:  IFEQ            Ti102 0 (0x00000000) --> L052
+			 131: 193:  NOP
+			   0:   0:  GOTO            --> L060
+			*/
+
+			bptr->successorcount++;
+
+			tbptr = iptr->dst.block;
+			tbptr->predecessorcount++;
+
+			if (iptr == bptr->iinstr) {
+				continue;
+			}
+			
+			iptr--;
+
+			while (iptr->opc == ICMD_NOP) {
+				if (iptr == bptr->iinstr) {
+					break;
+				}
+				iptr--;
+			}
+
+			has_fallthrough = false;
+		} else {
+			has_fallthrough = true;
+		}
+
 		switch (icmd_table[iptr->opc].controlflow) {
 
 		case CF_END:
@@ -163,10 +208,12 @@ bool cfg_build(jitdata *jd)
 			bptr->successorcount += 2;
 
 			tbptr  = iptr->dst.block;
-			ntbptr = bptr->next;
-
 			tbptr->predecessorcount++;
-			ntbptr->predecessorcount++;
+
+			if (has_fallthrough) {
+				ntbptr = bptr->next;
+				ntbptr->predecessorcount++;
+			}
 			break;
 
 		case CF_JSR:
@@ -224,14 +271,16 @@ bool cfg_build(jitdata *jd)
 			break;
 
 		default:
-			bptr->successorcount++;
+			if (has_fallthrough) {
+				bptr->successorcount++;
 
-			tbptr = bptr->next;
+				tbptr = bptr->next;
 
-			/* An exception handler has no predecessors. */
+				/* An exception handler has no predecessors. */
 
-			if (tbptr->type != BBTYPE_EXH)
-				tbptr->predecessorcount++;
+				if (tbptr->type != BBTYPE_EXH)
+					tbptr->predecessorcount++;
+			}
 			break;
 		}
 	}
@@ -255,6 +304,36 @@ bool cfg_build(jitdata *jd)
 			iptr--;
 		}
 
+		if (iptr->opc == ICMD_GOTO) {
+			tbptr = iptr->dst.block;
+
+			cfg_allocate_successors(bptr);
+
+			cfg_insert_successors(bptr, tbptr);
+
+			cfg_allocate_predecessors(tbptr);
+
+			cfg_insert_predecessors(tbptr, bptr);
+
+			if (iptr == bptr->iinstr) {
+				continue;
+			}
+			
+			iptr--;
+
+			while (iptr->opc == ICMD_NOP) {
+				if (iptr == bptr->iinstr) {
+					break;
+				}
+				iptr--;
+			}
+
+			has_fallthrough = false;
+
+		} else {
+			has_fallthrough = true;
+		}
+
 		switch (icmd_table[iptr->opc].controlflow) {
 
 		case CF_END:
@@ -268,13 +347,19 @@ bool cfg_build(jitdata *jd)
 			cfg_allocate_successors(bptr);
 
 			cfg_insert_successors(bptr, tbptr);
-			cfg_insert_successors(bptr, ntbptr);
+			if (has_fallthrough) {
+				cfg_insert_successors(bptr, ntbptr);
+			}
 
 			cfg_allocate_predecessors(tbptr);
-			cfg_allocate_predecessors(ntbptr);
+			if (has_fallthrough) {
+				cfg_allocate_predecessors(ntbptr);
+			}
 
 			cfg_insert_predecessors(tbptr, bptr);
-			cfg_insert_predecessors(ntbptr, bptr);
+			if (has_fallthrough) {
+				cfg_insert_predecessors(ntbptr, bptr);
+			}
 			break;
 
 		case CF_JSR:
@@ -349,20 +434,22 @@ goto_tail:
 			break;
 
 		default:
-			tbptr = bptr->next;
+			if (has_fallthrough) {
+				tbptr = bptr->next;
 
-			cfg_allocate_successors(bptr);
+				cfg_allocate_successors(bptr);
 
-			bptr->successors[0] = tbptr;
-			bptr->successorcount++;
+				bptr->successors[0] = tbptr;
+				bptr->successorcount++;
 
-			/* An exception handler has no predecessors. */
+				/* An exception handler has no predecessors. */
 
-			if (tbptr->type != BBTYPE_EXH) {
-				cfg_allocate_predecessors(tbptr);
+				if (tbptr->type != BBTYPE_EXH) {
+					cfg_allocate_predecessors(tbptr);
 
-				tbptr->predecessors[tbptr->predecessorcount] = bptr;
-				tbptr->predecessorcount++;
+					tbptr->predecessors[tbptr->predecessorcount] = bptr;
+					tbptr->predecessorcount++;
+				}
 			}
 			break;
 		}

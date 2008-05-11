@@ -1,9 +1,7 @@
 /* src/vm/jit/intrp/disass.c - disassembler wrapper for interpreter
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -21,15 +19,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Reinhard Grafl
-
-   Changes: Christian Thalinger
-            Anton Ertl
-			Edwin Steiner
 
 */
 
@@ -175,7 +164,7 @@ void printarg_af      (functionptr        af      )
 void printarg_afi     (fieldinfo *        afi      )
 {
 	if (afi) {
-		utf_fprint_printable_ascii_classname(vm_out, afi->class->name);
+		utf_fprint_printable_ascii_classname(vm_out, afi->clazz->name);
 		fprintf(vm_out, ".");
 		utf_fprint_printable_ascii(vm_out, afi->name);
 		utf_fprint_printable_ascii(vm_out, afi->descriptor);
@@ -186,7 +175,7 @@ void printarg_afi     (fieldinfo *        afi      )
 void printarg_am      (methodinfo *       am      )
 {
 	if (am) {
-		utf_fprint_printable_ascii_classname(vm_out, am->class->name);
+		utf_fprint_printable_ascii_classname(vm_out, am->clazz->name);
 		fprintf(vm_out, ".");
 		utf_fprint_printable_ascii(vm_out, am->name);
 		utf_fprint_printable_ascii(vm_out, am->descriptor);

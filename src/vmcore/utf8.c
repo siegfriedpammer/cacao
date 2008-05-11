@@ -106,6 +106,7 @@ utf *utf_java_lang_InstantiationException;
 utf *utf_java_lang_InterruptedException;
 utf *utf_java_lang_NegativeArraySizeException;
 utf *utf_java_lang_NullPointerException;
+utf *utf_java_lang_RuntimeException;
 utf *utf_java_lang_StringIndexOutOfBoundsException;
 
 utf *utf_java_lang_reflect_InvocationTargetException;
@@ -130,6 +131,13 @@ utf *utf_java_lang_StackTraceElement;
 utf *utf_java_lang_reflect_Constructor;
 utf *utf_java_lang_reflect_Field;
 utf *utf_java_lang_reflect_Method;
+
+# if defined(WITH_CLASSPATH_GNU)
+utf *utf_java_lang_reflect_VMConstructor;
+utf *utf_java_lang_reflect_VMField;
+utf *utf_java_lang_reflect_VMMethod;
+# endif
+
 utf *utf_java_util_Vector;
 #endif
 
@@ -158,6 +166,8 @@ utf *utf_init;                          /* <init>                             */
 utf *utf_clinit;                        /* <clinit>                           */
 utf *utf_clone;                         /* clone                              */
 utf *utf_finalize;                      /* finalize                           */
+utf *utf_invoke;
+utf *utf_main;
 utf *utf_run;                           /* run                                */
 
 utf *utf_add;
@@ -208,6 +218,7 @@ utf *utf_java_lang_String__void;        /* (Ljava/lang/String;)V              */
 utf *utf_java_lang_String__java_lang_Class;
 utf *utf_java_lang_Thread__V;           /* (Ljava/lang/Thread;)V              */
 utf *utf_java_lang_Thread_java_lang_Throwable__V;
+utf *utf_Ljava_lang_ThreadGroup_Ljava_lang_String__V;
 utf *utf_java_lang_Throwable__void;     /* (Ljava/lang/Throwable;)V           */
 utf *utf_java_lang_Throwable__java_lang_Throwable;
 
@@ -222,7 +233,7 @@ utf *array_packagename;
 
 *******************************************************************************/
 
-bool utf8_init(void)
+void utf8_init(void)
 {
 	TRACESUBSYSTEMINITIALIZATION("utf8_init");
 
@@ -347,6 +358,9 @@ bool utf8_init(void)
 	utf_java_lang_NullPointerException =
 		utf_new_char("java/lang/NullPointerException");
 
+	utf_java_lang_RuntimeException =
+		utf_new_char("java/lang/RuntimeException");
+
 	utf_java_lang_StringIndexOutOfBoundsException =
 		utf_new_char("java/lang/StringIndexOutOfBoundsException");
 
@@ -378,6 +392,13 @@ bool utf8_init(void)
 
 	utf_java_lang_reflect_Field    = utf_new_char("java/lang/reflect/Field");
 	utf_java_lang_reflect_Method   = utf_new_char("java/lang/reflect/Method");
+
+# if defined(WITH_CLASSPATH_GNU)
+	utf_java_lang_reflect_VMConstructor = utf_new_char("java/lang/reflect/VMConstructor");
+	utf_java_lang_reflect_VMField       = utf_new_char("java/lang/reflect/VMField");
+	utf_java_lang_reflect_VMMethod      = utf_new_char("java/lang/reflect/VMMethod");
+# endif
+
 	utf_java_util_Vector           = utf_new_char("java/util/Vector");
 #endif
 
@@ -393,19 +414,21 @@ bool utf8_init(void)
 	utf_Signature                  = utf_new_char("Signature");
 	utf_StackMapTable              = utf_new_char("StackMapTable");
 
-#if defined(ENABLE_ANNOTATIONS)
+# if defined(ENABLE_ANNOTATIONS)
 	utf_RuntimeVisibleAnnotations            = utf_new_char("RuntimeVisibleAnnotations");
 	utf_RuntimeInvisibleAnnotations          = utf_new_char("RuntimeInvisibleAnnotations");
 	utf_RuntimeVisibleParameterAnnotations   = utf_new_char("RuntimeVisibleParameterAnnotations");
 	utf_RuntimeInvisibleParameterAnnotations = utf_new_char("RuntimeInvisibleParameterAnnotations");
 	utf_AnnotationDefault                    = utf_new_char("AnnotationDefault");
-#endif
+# endif
 #endif
 
 	utf_init	                   = utf_new_char("<init>");
 	utf_clinit	                   = utf_new_char("<clinit>");
 	utf_clone                      = utf_new_char("clone");
 	utf_finalize	               = utf_new_char("finalize");
+	utf_invoke                     = utf_new_char("invoke");
+	utf_main                       = utf_new_char("main");
 	utf_run                        = utf_new_char("run");
 
 	utf_add                        = utf_new_char("add");
@@ -469,6 +492,9 @@ bool utf8_init(void)
 	utf_java_lang_Thread_java_lang_Throwable__V =
 		utf_new_char("(Ljava/lang/Thread;Ljava/lang/Throwable;)V");
 
+	utf_Ljava_lang_ThreadGroup_Ljava_lang_String__V =
+		utf_new_char("(Ljava/lang/ThreadGroup;Ljava/lang/String;)V");
+
 	utf_java_lang_Throwable__void  = utf_new_char("(Ljava/lang/Throwable;)V");
 
 	utf_java_lang_Throwable__java_lang_Throwable =
@@ -477,10 +503,6 @@ bool utf8_init(void)
 	utf_null                       = utf_new_char("null");
 	utf_not_named_yet              = utf_new_char("\t<not_named_yet>");
 	array_packagename              = utf_new_char("\t<the array package>");
-
-	/* everything's ok */
-
-	return true;
 }
 
 

@@ -51,11 +51,7 @@
 # include "native/include/java_lang_VMThrowable.h"
 #endif
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#else
-# include "threads/none/threads.h"
-#endif
+#include "threads/thread.h"
 
 #include "toolbox/logging.h"
 
@@ -70,18 +66,18 @@
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/methodtree.h"
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
+#include "vmcore/method.h"
 #include "vmcore/options.h"
 
 
 /* global variables ***********************************************************/
-#if !defined(ENABLE_THREADS)
-stackframeinfo_t *_no_threads_stackframeinfo = NULL;
-#endif
 
 CYCLES_STATS_DECLARE(stacktrace_overhead        , 100, 1)
+CYCLES_STATS_DECLARE(stacktrace_fillInStackTrace, 40,  5000)
 CYCLES_STATS_DECLARE(stacktrace_get,              40,  5000)
 CYCLES_STATS_DECLARE(stacktrace_getClassContext , 40,  5000)
 CYCLES_STATS_DECLARE(stacktrace_getCurrentClass , 40,  5000)
@@ -113,7 +109,7 @@ void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra
 	if (pv == NULL) {
 #if defined(ENABLE_INTRP)
 		if (opt_intrp)
-			pv = codegen_get_pv_from_pc(ra);
+			pv = methodtree_find(ra);
 		else
 #endif
 			{
@@ -272,18 +268,8 @@ static inline void stacktrace_stackframeinfo_fill(stackframeinfo_t *tmpsfi, stac
 	tmpsfi->prev = sfi->prev;
 
 #if !defined(NDEBUG)
-	/* Print current method information. */
-
-	if (opt_DebugStackTrace) {
-		log_println("[stacktrace start]");
-		log_start();
-		log_print("[stacktrace: method=%p, pv=%p, sp=%p, ra=%p, xpc=%p, method=",
-				  tmpsfi->code->m, tmpsfi->pv, tmpsfi->sp, tmpsfi->ra,
-				  tmpsfi->xpc);
-		method_print(tmpsfi->code->m);
-		log_print("]");
-		log_finish();
-	}
+	if (opt_DebugStackTrace)
+		log_println("[stacktrace fill]");
 #endif
 }
 
@@ -350,7 +336,7 @@ static inline void stacktrace_stackframeinfo_next(stackframeinfo_t *tmpsfi)
 
 #if defined(ENABLE_INTRP)
 	if (opt_intrp)
-		pv = codegen_get_pv_from_pc(ra);
+		pv = methodtree_find(ra);
 	else
 #endif
 		{
@@ -611,7 +597,7 @@ java_handle_bytearray_t *stacktrace_get(stackframeinfo_t *sfi)
 			/* For GNU Classpath we also need to skip
 			   VMThrowable.fillInStackTrace(). */
 
-			if ((m->class == class_java_lang_VMThrowable) &&
+			if ((m->clazz == class_java_lang_VMThrowable) &&
 				(m->name  == utf_fillInStackTrace))
 				continue;
 #endif
@@ -627,8 +613,8 @@ java_handle_bytearray_t *stacktrace_get(stackframeinfo_t *sfi)
 		   exception we are going to skipping them in stack trace. */
 
 		if (skip_init == true) {
-			if (m->name == utf_init) {
-/* 				throwable->is_a(method->method_holder())) { */
+			if ((m->name == utf_init) &&
+				(class_issubclass(m->clazz, class_java_lang_Throwable))) {
 				continue;
 			}
 			else {
@@ -694,6 +680,82 @@ java_handle_bytearray_t *stacktrace_get_current(void)
 }
 
 
+/* stacktrace_get_caller_class *************************************************
+
+   Get the class on the stack at the given depth.  This function skips
+   various special classes or methods.
+
+   ARGUMENTS:
+       depth ... depth to get caller class of
+
+   RETURN:
+       caller class
+
+*******************************************************************************/
+
+#if defined(ENABLE_JAVASE)
+classinfo *stacktrace_get_caller_class(int depth)
+{
+	stackframeinfo_t *sfi;
+	stackframeinfo_t  tmpsfi;
+	methodinfo       *m;
+	classinfo        *c;
+	int               i;
+
+#if !defined(NDEBUG)
+	if (opt_DebugStackTrace)
+		log_println("[stacktrace_get_caller_class]");
+#endif
+
+	/* Get the stackframeinfo of the current thread. */
+
+	sfi = threads_get_current_stackframeinfo();
+
+	/* Iterate over the whole stack until we reached the requested
+	   depth. */
+
+	i = 0;
+
+	for (stacktrace_stackframeinfo_fill(&tmpsfi, sfi);
+		 stacktrace_stackframeinfo_end_check(&tmpsfi) == false;
+		 stacktrace_stackframeinfo_next(&tmpsfi)) {
+
+		m = tmpsfi.code->m;
+		c = m->clazz;
+
+		/* Skip builtin methods. */
+
+		if (m->flags & ACC_METHOD_BUILTIN)
+			continue;
+
+#if defined(WITH_CLASSPATH_SUN)
+		/* NOTE: See hotspot/src/share/vm/runtime/vframe.cpp
+		   (vframeStreamCommon::security_get_caller_frame). */
+
+		/* This is java.lang.reflect.Method.invoke(), skip it. */
+
+		if (m == method_java_lang_reflect_Method_invoke)
+			continue;
+
+		/* This is an auxiliary frame, skip it. */
+
+		if (class_issubclass(c, class_sun_reflect_MagicAccessorImpl))
+			continue;
+#endif
+
+		/* We reached the requested depth. */
+
+		if (i >= depth)
+			return c;
+
+		i++;
+	}
+
+	return NULL;
+}
+#endif
+
+
 /* stacktrace_first_nonnull_classloader ****************************************
 
    Returns the first non-null (user-defined) classloader on the stack.
@@ -704,12 +766,12 @@ java_handle_bytearray_t *stacktrace_get_current(void)
 
 *******************************************************************************/
 
-classloader *stacktrace_first_nonnull_classloader(void)
+classloader_t *stacktrace_first_nonnull_classloader(void)
 {
 	stackframeinfo_t *sfi;
 	stackframeinfo_t  tmpsfi;
 	methodinfo       *m;
-	classloader      *cl;
+	classloader_t    *cl;
 
 #if !defined(NDEBUG)
 	if (opt_DebugStackTrace)
@@ -727,7 +789,7 @@ classloader *stacktrace_first_nonnull_classloader(void)
 		 stacktrace_stackframeinfo_next(&tmpsfi)) {
 
 		m  = tmpsfi.code->m;
-		cl = class_get_classloader(m->class);
+		cl = class_get_classloader(m->clazz);
 
 		if (cl != NULL)
 			return cl;
@@ -812,7 +874,7 @@ java_handle_objectarray_t *stacktrace_getClassContext(void)
 
 		/* Store the class in the array. */
 
-		data[i] = (java_object_t *) m->class;
+		data[i] = (java_object_t *) m->clazz;
 
 		i++;
 	}
@@ -878,16 +940,16 @@ classinfo *stacktrace_get_current_class(void)
 
 		m = tmpsfi.code->m;
 
-		if (m->class == class_java_security_PrivilegedAction) {
+		if (m->clazz == class_java_security_PrivilegedAction) {
 			CYCLES_STATS_END(stacktrace_getCurrentClass);
 
 			return NULL;
 		}
 
-		if (m->class != NULL) {
+		if (m->clazz != NULL) {
 			CYCLES_STATS_END(stacktrace_getCurrentClass);
 
-			return m->class;
+			return m->clazz;
 		}
 	}
 
@@ -985,7 +1047,7 @@ java_handle_objectarray_t *stacktrace_get_stack(void)
 		/* NOTE: We use a LLNI-macro here, because a classinfo is not
 		   a handle. */
 
-		LLNI_array_direct(classes, i) = (java_object_t *) m->class;
+		LLNI_array_direct(classes, i) = (java_object_t *) m->clazz;
 
 		/* Store the name in the array. */
 
@@ -1009,6 +1071,51 @@ return_NULL:
 	return NULL;
 }
 #endif
+
+
+/* stacktrace_print_entry ****************************************************
+
+   Print line for a stacktrace entry.
+
+   ARGUMENTS:
+       m ............ methodinfo of the entry
+       linenumber ... linenumber of the entry
+
+*******************************************************************************/
+
+static void stacktrace_print_entry(methodinfo *m, int32_t linenumber)
+{
+	/* Sanity check. */
+
+	assert(m != NULL);
+
+	printf("\tat ");
+
+	if (m->flags & ACC_METHOD_BUILTIN)
+		printf("NULL");
+	else
+		utf_display_printable_ascii_classname(m->clazz->name);
+
+	printf(".");
+	utf_display_printable_ascii(m->name);
+	utf_display_printable_ascii(m->descriptor);
+
+	if (m->flags & ACC_NATIVE) {
+		puts("(Native Method)");
+	}
+	else {
+		if (m->flags & ACC_METHOD_BUILTIN) {
+			puts("(builtin)");
+		}
+		else {
+			printf("(");
+			utf_display_printable_ascii(m->clazz->sourcefile);
+			printf(":%d)\n", linenumber);
+		}
+	}
+
+	fflush(stdout);
+}
 
 
 /* stacktrace_print ************************************************************
@@ -1040,26 +1147,97 @@ void stacktrace_print(stacktrace_t *st)
 
 		linenumber = linenumbertable_linenumber_for_pc(&m, ste->code, ste->pc);
 
-		printf("\tat ");
-		utf_display_printable_ascii_classname(m->class->name);
-		printf(".");
-		utf_display_printable_ascii(m->name);
-		utf_display_printable_ascii(m->descriptor);
+		stacktrace_print_entry(m, linenumber);
+	}
+}
 
-		if (m->flags & ACC_NATIVE) {
-			puts("(Native Method)");
-		}
-		else {
-			printf("(");
-			utf_display_printable_ascii(m->class->sourcefile);
-			printf(":%d)\n", linenumber);
-		}
+
+/* stacktrace_print_current ****************************************************
+
+   Print the current stacktrace of the current thread.
+
+   NOTE: This function prints all frames of the stacktrace and does
+   not skip frames like stacktrace_get.
+
+*******************************************************************************/
+
+void stacktrace_print_current(void)
+{
+	stackframeinfo_t *sfi;
+	stackframeinfo_t  tmpsfi;
+	codeinfo         *code;
+	methodinfo       *m;
+	int32_t           linenumber;
+
+	sfi = threads_get_current_stackframeinfo();
+
+	if (sfi == NULL) {
+		puts("\t<<No stacktrace available>>");
+		fflush(stdout);
+		return;
 	}
 
-	/* just to be sure */
+	for (stacktrace_stackframeinfo_fill(&tmpsfi, sfi);
+		 stacktrace_stackframeinfo_end_check(&tmpsfi) == false;
+		 stacktrace_stackframeinfo_next(&tmpsfi)) {
+		/* Get the methodinfo. */
 
-	fflush(stdout);
+		code = tmpsfi.code;
+		m    = code->m;
+
+		/* Get the line number. */
+
+		linenumber = linenumbertable_linenumber_for_pc(&m, code, tmpsfi.xpc);
+
+		stacktrace_print_entry(m, linenumber);
+	}
 }
+
+
+/* stacktrace_print_of_thread **************************************************
+
+   Print the current stacktrace of the given thread.
+
+   ARGUMENTS:
+       t ... thread
+
+*******************************************************************************/
+
+#if defined(ENABLE_THREADS)
+void stacktrace_print_of_thread(threadobject *t)
+{
+	stackframeinfo_t *sfi;
+	stackframeinfo_t  tmpsfi;
+	codeinfo         *code;
+	methodinfo       *m;
+	int32_t           linenumber;
+
+	/* Build a stacktrace for the passed thread. */
+
+	sfi = t->_stackframeinfo;
+	
+	if (sfi == NULL) {
+		puts("\t<<No stacktrace available>>");
+		fflush(stdout);
+		return;
+	}
+
+	for (stacktrace_stackframeinfo_fill(&tmpsfi, sfi);
+		 stacktrace_stackframeinfo_end_check(&tmpsfi) == false;
+		 stacktrace_stackframeinfo_next(&tmpsfi)) {
+		/* Get the methodinfo. */
+
+		code = tmpsfi.code;
+		m    = code->m;
+
+		/* Get the line number. */
+
+		linenumber = linenumbertable_linenumber_for_pc(&m, code, tmpsfi.xpc);
+
+		stacktrace_print_entry(m, linenumber);
+	}
+}
+#endif
 
 
 /* stacktrace_print_exception **************************************************
@@ -1078,11 +1256,9 @@ void stacktrace_print_exception(java_handle_t *h)
 
 #if defined(WITH_CLASSPATH_GNU)
 	java_lang_VMThrowable   *vmt;
-	gnu_classpath_Pointer   *backtrace;
-#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
-	java_lang_Object        *backtrace;
 #endif
 
+	java_lang_Object        *backtrace;
 	java_handle_bytearray_t *ba;
 	stacktrace_t            *st;
 
@@ -1096,7 +1272,7 @@ void stacktrace_print_exception(java_handle_t *h)
 #if defined(WITH_CLASSPATH_GNU)
 
 	LLNI_field_get_ref(o,   vmState, vmt);
-	LLNI_field_get_ref(vmt, vmData,  backtrace);
+	LLNI_field_get_ref(vmt, vmdata,  backtrace);
 
 #elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
 

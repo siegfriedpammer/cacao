@@ -1,9 +1,7 @@
 /* src/vm/exceptions.h - exception related functions prototypes
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -28,53 +26,16 @@
 #ifndef _EXCEPTIONS_H
 #define _EXCEPTIONS_H
 
-/* forward typedefs ***********************************************************/
-
 #include "config.h"
 #include "vm/types.h"
 
 #include "vm/global.h"
 
-#include "vm/jit/stacktrace.h"
-
 #include "vmcore/references.h"
 #include "vmcore/method.h"
 
 
-/* hardware-exception defines **************************************************
-
-   These defines define an internal number for the various hardware
-   exceptions.
-
-   ATTENTION: These values are also used as load-displacements on some
-   architectures. Thus, these values must NOT be aligned to 4 or
-   8-byte boundaries, since normal loads could have such offsets with
-   a base of NULL which should result in a NullPointerException.
-
-   NOTE: In exceptions_init() we have a check whether the offset of
-   java_arrayheader.data[0] is greater than the largest displacement
-   defined below.  Otherwise normal array loads/stores could trigger
-   an exception.
-
-*******************************************************************************/
-
-#define EXCEPTION_HARDWARE_NULLPOINTER              0
-#define EXCEPTION_HARDWARE_ARITHMETIC               1
-#define EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS    2
-#define EXCEPTION_HARDWARE_ARRAYSTORE               3
-
-#define EXCEPTION_HARDWARE_CLASSCAST                5
-#define EXCEPTION_HARDWARE_EXCEPTION                6
-#define EXCEPTION_HARDWARE_PATCHER                  7
-
-#define EXCEPTION_HARDWARE_COMPILER                 9
-
-#define EXCEPTION_HARDWARE_LARGEST                  9
-
-
 /* function prototypes ********************************************************/
-
-void           exceptions_init(void);
 
 java_handle_t *exceptions_get_exception(void);
 void           exceptions_set_exception(java_handle_t *o);
@@ -130,8 +91,6 @@ java_handle_t *exceptions_new_nullpointerexception(void);
 void exceptions_throw_nullpointerexception(void);
 void exceptions_throw_privilegedactionexception(java_handle_t *cause);
 void exceptions_throw_stringindexoutofboundsexception(void);
-
-void exceptions_classnotfoundexception_to_noclassdeffounderror(void);
 
 java_handle_t *exceptions_fillinstacktrace(void);
 

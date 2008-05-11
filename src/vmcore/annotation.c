@@ -1,9 +1,7 @@
 /* src/vmcore/annotation.c - class annotations
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -267,7 +265,7 @@ bool annotation_load_method_attribute_annotationdefault(
 	assert(m != NULL);
 
 	LLNI_classinfo_field_get(
-		m->class, method_annotationdefaults, annotationdefaults);
+		m->clazz, method_annotationdefaults, annotationdefaults);
 
 	if (!annotation_load_attribute_body(
 			cb, &annotationdefault,
@@ -276,7 +274,7 @@ bool annotation_load_method_attribute_annotationdefault(
 	}
 
 	if (annotationdefault != NULL) {
-		slot = m - m->class->methods;
+		slot = m - m->clazz->methods;
 		annotationdefaults = annotation_bytearrays_insert(
 				annotationdefaults, slot, annotationdefault);
 
@@ -285,7 +283,7 @@ bool annotation_load_method_attribute_annotationdefault(
 		}
 
 		LLNI_classinfo_field_set(
-			m->class, method_annotationdefaults, annotationdefaults);
+			m->clazz, method_annotationdefaults, annotationdefaults);
 	}
 
 	return true;
@@ -331,7 +329,7 @@ bool annotation_load_method_attribute_runtimevisibleparameterannotations(
 	assert(m != NULL);
 
 	LLNI_classinfo_field_get(
-		m->class, method_parameterannotations, parameterannotations);
+		m->clazz, method_parameterannotations, parameterannotations);
 
 	if (!annotation_load_attribute_body(
 			cb, &annotations,
@@ -340,7 +338,7 @@ bool annotation_load_method_attribute_runtimevisibleparameterannotations(
 	}
 
 	if (annotations != NULL) {
-		slot = m - m->class->methods;
+		slot = m - m->clazz->methods;
 		parameterannotations = annotation_bytearrays_insert(
 				parameterannotations, slot, annotations);
 
@@ -349,7 +347,7 @@ bool annotation_load_method_attribute_runtimevisibleparameterannotations(
 		}
 
 		LLNI_classinfo_field_set(
-			m->class, method_parameterannotations, parameterannotations);
+			m->clazz, method_parameterannotations, parameterannotations);
 	}
 
 	return true;
@@ -429,8 +427,7 @@ bool annotation_load_class_attribute_runtimevisibleannotations(
 		return false;
 	}
 
-	LLNI_classinfo_field_set(
-		cb->class, annotations, (java_handle_t*)annotations);
+	LLNI_classinfo_field_set(cb->clazz, annotations, (java_handle_t*)annotations);
 
 	return true;
 }
@@ -483,7 +480,7 @@ bool annotation_load_method_attribute_runtimevisibleannotations(
 	assert(m != NULL);
 
 	LLNI_classinfo_field_get(
-		m->class, method_annotations, method_annotations);
+		m->clazz, method_annotations, method_annotations);
 
 	if (!annotation_load_attribute_body(
 			cb, &annotations,
@@ -492,7 +489,7 @@ bool annotation_load_method_attribute_runtimevisibleannotations(
 	}
 
 	if (annotations != NULL) {
-		slot = m - m->class->methods;
+		slot = m - m->clazz->methods;
 		method_annotations = annotation_bytearrays_insert(
 				method_annotations, slot, annotations);
 
@@ -501,7 +498,7 @@ bool annotation_load_method_attribute_runtimevisibleannotations(
 		}
 		
 		LLNI_classinfo_field_set(
-			m->class, method_annotations, method_annotations);
+			m->clazz, method_annotations, method_annotations);
 	}
 
 	return true;
@@ -557,7 +554,7 @@ bool annotation_load_field_attribute_runtimevisibleannotations(
 	assert(f != NULL);
 
 	LLNI_classinfo_field_get(
-		f->class, field_annotations, field_annotations);
+		f->clazz, field_annotations, field_annotations);
 
 	if (!annotation_load_attribute_body(
 			cb, &annotations,
@@ -566,7 +563,7 @@ bool annotation_load_field_attribute_runtimevisibleannotations(
 	}
 
 	if (annotations != NULL) {
-		slot = f - f->class->fields;
+		slot = f - f->clazz->fields;
 		field_annotations = annotation_bytearrays_insert(
 				field_annotations, slot, annotations);
 
@@ -575,7 +572,7 @@ bool annotation_load_field_attribute_runtimevisibleannotations(
 		}
 
 		LLNI_classinfo_field_set(
-			f->class, field_annotations, field_annotations);
+			f->clazz, field_annotations, field_annotations);
 	}
 
 	return true;

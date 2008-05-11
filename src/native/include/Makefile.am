@@ -1,9 +1,7 @@
 ## src/native/include/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-## J. Wenninger, Institut f. Computersprachen - TU Wien
+## Copyright (C) 1996-2005, 2006, 2007, 2008
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -22,6 +20,9 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
 
+
+JAVAH    = $(CACAOH)
+JAVAHCMD = $(JAVAH) -bootclasspath $(BOOTCLASSPATH)
 
 COMMON_HEADER_FILES = \
 	java_lang_Class.h \
@@ -70,7 +71,11 @@ JAVASE_HEADER_FILES += \
 	gnu_classpath_Pointer.h \
 	gnu_classpath_Pointer32.h \
 	gnu_classpath_Pointer64.h \
+	gnu_java_lang_VMCPStringBuilder.h \
 	java_lang_VMObject.h \
+	java_lang_reflect_VMConstructor.h \
+	java_lang_reflect_VMField.h \
+	java_lang_reflect_VMMethod.h \
 	java_nio_DirectByteBufferImpl.h
 
 if ENABLE_ANNOTATIONS
@@ -146,25 +151,19 @@ DO_HEADER_FILES += \
 endif
 
 if WITH_CLASSPATH_GNU
-CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_CLASSES)
-VM_ZIP = $(top_builddir)/src/lib/vm.zip
-endif
-
-if WITH_CLASSPATH_SUN
-CLASSPATH = $(CLASSPATH_CLASSES)
+VM_ZIP = $(top_builddir)/src/classes/vm.zip
 endif
 
 if WITH_CLASSPATH_CLDC1_1
-CLASSPATH = $(top_builddir)/src/lib/classes/:$(CLASSPATH_CLASSES)
-VM_ZIP = $(top_builddir)/src/lib/vm.zip
+VM_ZIP = $(top_builddir)/src/classes/vm.zip
 endif
 
 noinst_DATA = $(DO_HEADER_FILES)
 
 $(DO_HEADER_FILES): $(CACAOH) $(VM_ZIP) $(CLASSPATH_CLASSES)
 	@class=`echo $@ | sed -e 's/\.h$$//' -e 's/_/\./g'`; \
-	echo "$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class"; \
-	$(CACAOH) -bootclasspath $(CLASSPATH) -d . $$class
+	echo "$(JAVAHCMD) -d . $$class"; \
+	$(JAVAHCMD) -d . $$class
 
 
 ## Local variables:

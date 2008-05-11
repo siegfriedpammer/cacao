@@ -23,23 +23,21 @@
 
 SUBDIRS = \
 	assertion \
-	codepatching \
+	bugzilla \
 	jasmin \
+	junit \
 	native \
 	resolving
 
-JAVA          = $(top_builddir)/src/cacao/cacao
-BOOTCLASSPATH = $(top_builddir)/src/lib/classes:$(CLASSPATH_CLASSES)
-JAVACMD       = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
-JAVACCMD      = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
+JAVA     = $(top_builddir)/src/cacao/cacao
+JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
+JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -nowarn -bootclasspath $(BOOTCLASSPATH)
 
 SOURCE_FILES = \
-	$(srcdir)/HelloWorld.java \
 	$(srcdir)/jctest.java \
 	$(srcdir)/fptest.java \
 	$(srcdir)/fp.java \
 	$(srcdir)/extest.java \
-	$(srcdir)/clinitexception.java \
 	$(srcdir)/LoadDisplacementOverflow.java \
 	$(srcdir)/FieldDisplacementOverflow.java \
 	$(srcdir)/StackDisplacementOverflow.java \
@@ -54,7 +52,6 @@ EXTRA_DIST = \
 	fptest.output \
 	fp.output\
 	extest.2output \
-	clinitexception.2output \
 	LoadDisplacementOverflow.output \
 	FieldDisplacementOverflow.output \
 	StackDisplacementOverflow.output \
@@ -65,30 +62,24 @@ CLEANFILES = \
 	*.class \
 	*.thisoutput
 
-SIMPLE_JAVA_TESTS = \
-	HelloWorld
-
 OUTPUT_JAVA_TESTS = \
 	jctest \
 	fptest \
 	fp \
 	extest \
 	\
-	clinitexception \
 	LoadDisplacementOverflow \
 	FieldDisplacementOverflow \
 	StackDisplacementOverflow \
 	MinimalClassReflection \
 	TestAnnotations
 
-check: build $(SIMPLE_JAVA_TESTS) $(OUTPUT_JAVA_TESTS)
+check: build run
 
 build:
-	@$(JAVACCMD) -d . $(SOURCE_FILES)
+	$(JAVACCMD) -d . $(SOURCE_FILES)
 
-$(SIMPLE_JAVA_TESTS):
-	@echo "$@: "
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(JAVACMD) $@
+run: $(OUTPUT_JAVA_TESTS)
 
 $(OUTPUT_JAVA_TESTS):
 	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(SHELL) $(srcdir)/Test.sh "$(JAVACMD)" $@ $(srcdir)

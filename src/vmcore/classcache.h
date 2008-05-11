@@ -1,9 +1,7 @@
 /* src/vmcore/classcache.h - loaded class cache and loading constraints
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -113,7 +111,7 @@ struct classcache_class_entry
 
 struct classcache_loader_entry
 {
-	classloader              *loader;     /* class loader object              */
+	classloader_t            *loader;     /* class loader object              */
 	classcache_loader_entry  *next;       /* next loader entry in the list    */
 };
 
@@ -129,17 +127,17 @@ typedef void (*classcache_foreach_functionptr_t)(classinfo *, void *);
 bool classcache_init(void);
 void classcache_free(void);
 
-classinfo * classcache_lookup(classloader *initloader,utf *classname);
-classinfo * classcache_lookup_defined(classloader *defloader,utf *classname);
-classinfo * classcache_lookup_defined_or_initiated(classloader *loader,utf *classname);
+classinfo * classcache_lookup(classloader_t *initloader,utf *classname);
+classinfo * classcache_lookup_defined(classloader_t *defloader,utf *classname);
+classinfo * classcache_lookup_defined_or_initiated(classloader_t *loader,utf *classname);
 
 bool classcache_store_unique(classinfo *cls);
-classinfo * classcache_store(classloader *initloader,classinfo *cls,bool mayfree);
+classinfo * classcache_store(classloader_t *initloader,classinfo *cls,bool mayfree);
 classinfo * classcache_store_defined(classinfo *cls);
 
 #if defined(ENABLE_VERIFIER)
-bool classcache_add_constraint(classloader *a,classloader *b,utf *classname);
-bool classcache_add_constraints_for_params(classloader *a,classloader *b,
+bool classcache_add_constraint(classloader_t *a,classloader_t *b,utf *classname);
+bool classcache_add_constraints_for_params(classloader_t *a,classloader_t *b,
 										   methodinfo *m);
 #endif
 

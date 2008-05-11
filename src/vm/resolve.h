@@ -1,9 +1,7 @@
 /* src/vm/resolve.h - resolving classes/interfaces/fields/methods
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -114,7 +112,10 @@ struct unresolved_method {
 #define UNRESOLVED_SUBTYPE_SET_EMTPY(stset) \
 	do { (stset).subtyperefs = NULL; } while(0)
 
+
 /* function prototypes ********************************************************/
+
+void resolve_handle_pending_exception(bool throwError);
 
 bool resolve_class_from_name(classinfo* referer,methodinfo *refmethod,
 			  			utf *classname,
@@ -167,7 +168,7 @@ methodinfo * resolve_method_eager(unresolved_method *ref);
 #ifdef ENABLE_VERIFIER
 unresolved_class * create_unresolved_class(methodinfo *refmethod,
 						constant_classref *classref,
-						typeinfo *valuetype);
+						typeinfo_t *valuetype);
 #endif
 
 unresolved_field *resolve_create_unresolved_field(classinfo *referer,
@@ -196,16 +197,16 @@ resolve_result_t resolve_field_verifier_checks(methodinfo *refmethod,
 											   constant_FMIref *fieldref,
 											   classinfo *container,
 											   fieldinfo *fi,
-											   typeinfo *instanceti,
-											   typeinfo *valueti,
+											   typeinfo_t *instanceti,
+											   typeinfo_t *valueti,
 											   bool isstatic,
 											   bool isput);
 
 bool resolve_constrain_unresolved_field(unresolved_field *ref,
 										classinfo *referer, 
 										methodinfo *refmethod,
-									    typeinfo *instanceti,
-									    typeinfo *valueti);
+									    typeinfo_t *instanceti,
+									    typeinfo_t *valueti);
 
 resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 												constant_FMIref *methodref,
@@ -214,7 +215,7 @@ resolve_result_t resolve_method_verifier_checks(methodinfo *refmethod,
 
 resolve_result_t resolve_method_instance_type_checks(methodinfo *refmethod,
 													 methodinfo *mi,
-													 typeinfo *instanceti,
+													 typeinfo_t *instanceti,
 													 bool invokespecial);
 
 resolve_result_t resolve_method_param_type_checks(jitdata *jd, 
@@ -227,14 +228,14 @@ resolve_result_t resolve_method_param_type_checks_stackbased(
 		methodinfo *refmethod, 
 		methodinfo *mi,
 		bool invokestatic, 
-		typedescriptor *stack);
+		typedescriptor_t *stack);
 
 bool resolve_method_loading_constraints(classinfo *referer,
 										methodinfo *mi);
 
 bool resolve_constrain_unresolved_method_instance(unresolved_method *ref,
 												  methodinfo *refmethod,
-												  typeinfo *instanceti,
+												  typeinfo_t *instanceti,
 												  bool invokespecial);
 
 bool resolve_constrain_unresolved_method_params(jitdata *jd,
@@ -245,7 +246,7 @@ bool resolve_constrain_unresolved_method_params(jitdata *jd,
 bool resolve_constrain_unresolved_method_params_stackbased(
 		unresolved_method *ref,
 		methodinfo *refmethod,
-		typedescriptor *stack);
+		typedescriptor_t *stack);
 
 #endif /* defined(ENABLE_VERIFIER) */
 

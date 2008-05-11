@@ -29,10 +29,11 @@
 
    TODO
 
-   * Adapt for exception handling
+   * Adapt for exception handling [done]
    * Eliminiation of redundand PHI functions
    * Create PHI functions lazyly, when they are used for the first time
      (I suspect that currently PHIs are created that are never used).
+   * REWRITE. The code was never designed for producion.
 */
 
 #include "vm/jit/jit.h"
@@ -42,9 +43,15 @@
 #include "toolbox/list.h"
 
 #if 1
-#define printf(...) do { if (getenv("VERB")) printf(__VA_ARGS__); } while (0)
-#define show_method(...) do { if (getenv("VERB")) show_method(__VA_ARGS__); } while (0)
-#define show_basicblock(...) do { if (getenv("VERB")) show_basicblock(__VA_ARGS__); } while (0)
+static inline bool test_do_verbose(jitdata *jd) { 
+	return strcmp(jd->m->name->text, "close") == 0 &&
+		strcmp(jd->m->clazz->name->text, "antlr/PreservingFileWriter") == 0;
+}
+static bool do_verbose = 0;
+#define WHEN do_verbose
+#define printf(...) do { if (WHEN) printf(__VA_ARGS__); } while (0)
+#define show_method(...) do { if (WHEN) show_method(__VA_ARGS__); } while (0)
+#define show_basicblock(...) do { if (WHEN) show_basicblock(__VA_ARGS__); } while (0)
 #endif
 
 /*
@@ -772,7 +779,7 @@ static void ssa_create_phi_moves(ssa_info *ssa) {
 					iptr->sx.s23.s3.jsrtarget.block = create_block(ssa, bptr, iptr->sx.s23.s3.jsrtarget.block);
 					break;
 			}
-			if ((iptr->opc == ICMD_GOTO) || (iptr->opc == ICMD_JSR) || (iptr->opc == ICMD_RET) || icmd_table[iptr->opc].controlflow == CF_END)
+			if ((iptr->opc == ICMD_GOTO) || (iptr->opc == ICMD_JSR) || (iptr->opc == ICMD_RET) || icmd_table[iptr->opc].controlflow == CF_END || (iptr->opc == ICMD_TABLESWITCH) || (iptr->opc == ICMD_LOOKUPSWITCH))
 				gt = true;
 			else if (iptr->opc != ICMD_NOP)
 				gt = false;
@@ -802,6 +809,7 @@ static basicblock *split_basicblock_at(ssa_info *ssa, basicblock *bptr, instruct
 	if (! bptr->subbasicblocks) {
 		bptr->subbasicblocks = DNEW(basicblock);
 		ass(bptr->subbasicblocks, bptr);
+		bptr->subbasicblocks->subbasicblocks = NULL;
 		bptr->subbasicblocks->next = NULL;
 	}
 
@@ -837,6 +845,11 @@ static basicblock *split_basicblock_at(ssa_info *ssa, basicblock *bptr, instruct
 		printf("xx split\n");
 	}
 
+	/* To not break references to block bptr, we will replace 
+	   the block by the first fragment later. */
+
+	if (tosplit == bptr->subbasicblocks) tosplit = bptr;
+
 	return tosplit;
 }
 
@@ -852,7 +865,8 @@ static exception_entry *create_exception_handler(ssa_info *ssa, basicblock *from
 	/* assigned in caller */
 
 	ee->start = from;
-	ee->end = from->next;
+	/* XXX evil hack: if from is first fragment of BB, then from->next is not the next fragment */
+	ee->end = from->subbasicblocks ? from->subbasicblocks->next : from->next;
 	ee->handler = exh;
 	ee->catchtype = catchtype;
 	ee->next = NULL;
@@ -896,7 +910,9 @@ static void ssa_create_ex_phi_moves(ssa_info *ssa) {
 					pei = 0;
 					FOR_EACH_INSTRUCTION(ittry, iptr) {
 						if (icmd_table[iptr->opc].flags & ICMDTABLE_PEI) {
+							/* try is basicblock fragment till (including) the pei */
 							try = split_basicblock_at(ssa, ittry, iptr);
+							/* ee is handler for try */
 							ee = create_exception_handler(ssa, try, pei, bptr, catchtype);
 							ee->handler->invars[0] = ssa->jd->vartop + exhandler_count;
 							exhandler_count += 1;
@@ -912,6 +928,9 @@ static void ssa_create_ex_phi_moves(ssa_info *ssa) {
 						}
 					}
 				}
+				/* XXX 
+				   <------------------->
+				   <---><--><--->missing */
 				if (firstee) {
 					lastee->next = ite->next;
 					lastee->down = ite->down;
@@ -939,6 +958,8 @@ void yssa(jitdata *jd) {
 	ssa_info *ssa;
 
 	if (jd->localcount == 0) return;
+
+	if (test_do_verbose(jd)) do_verbose = 1;
 
 	printf("=============== [ before %s ] =========================\n", jd->m->name->text);
 	show_method(jd, 3);
@@ -980,6 +1001,8 @@ void yssa(jitdata *jd) {
 	printf("=============== [ after ] =========================\n");
 	show_method(jd, 3);
 	printf("=============== [ /after ] =========================\n");
+
+	do_verbose = 0;
 }
 
 void eliminate_subbasicblocks(jitdata *jd) {
@@ -990,15 +1013,22 @@ void eliminate_subbasicblocks(jitdata *jd) {
 			next = bptr->next;
 			*bptr = *(bptr->subbasicblocks);
 			bptr->subbasicblocks = NULL;
+
+			/* *prev = bptr->subbasicblocks;
+			bptr = bptr->subbasicblocks; */
+
 			while (bptr->next) {
 				bptr = bptr->next;
 			}
 			bptr->next = next;
 		}
 	}
+
+	if (test_do_verbose(jd)) do_verbose = 1;
 	printf("=============== [ elim ] =========================\n");
 	show_method(jd, 3);
 	printf("=============== [ /elim ] =========================\n");
+	do_verbose = 0;
 }
 
 /*

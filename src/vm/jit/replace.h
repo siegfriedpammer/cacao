@@ -52,7 +52,6 @@
 
 typedef struct rplalloc rplalloc;
 typedef struct rplpoint rplpoint;
-typedef struct executionstate_t executionstate_t;
 typedef struct sourcestate_t sourcestate_t;
 typedef struct sourceframe_t sourceframe_t;
 typedef union  replace_val_t replace_val_t;
@@ -141,26 +140,7 @@ union replace_val_t {
 };
 
 
-/* An `executionsstate` represents the state of a thread as it reached */
-/* an replacement point or is about to enter one.                      */
-
-struct executionstate_t {
-	u1           *pc;                               /* program counter */
-	u1           *sp;                   /* stack pointer within method */
-	u1           *pv;                   /* procedure value. NULL means */
-	                                    /* search the AVL tree         */
 	u1           *ra;                /* return address / link register */
-
-	ptrint        intregs[INT_REG_CNT];             /* register values */
-	double        fltregs[FLT_REG_CNT];             /* register values */
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	ptrint        adrregs[ADR_REG_CNT];             /* register values */
-#endif
-
-	codeinfo     *code;            /* codeinfo corresponding to the pv */
-};
-
-
 struct sourceframe_t {
 	sourceframe_t *down;           /* source frame down the call chain */
 
@@ -273,7 +253,6 @@ bool replace_me_wrapper(u1 *pc, void *context);
 #if !defined(NDEBUG)
 void replace_show_replacement_points(codeinfo *code);
 void replace_replacement_point_println(rplpoint *rp, int depth);
-void replace_executionstate_println(executionstate_t *es);
 void replace_sourcestate_println(sourcestate_t *ss);
 void replace_sourcestate_println_short(sourcestate_t *ss);
 void replace_source_frame_println(sourceframe_t *frame);
@@ -284,11 +263,6 @@ void replace_source_frame_println(sourceframe_t *frame);
 #if defined(ENABLE_JIT)
 void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert);
 #endif
-
-/* machine and OS dependent functions (code in ARCH_DIR/OS_DIR/md-os.c) */
-
-void md_replace_executionstate_read(executionstate_t *es, void *context);
-void md_replace_executionstate_write(executionstate_t *es, void *context);
 
 #endif /* defined(ENABLE_REPLACEMENT) */
 

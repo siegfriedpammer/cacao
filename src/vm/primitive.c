@@ -247,6 +247,11 @@ imm_union primitive_unbox(java_handle_t *o)
 	int        type;
 	imm_union  value;
 
+	if (o == NULL) {
+		value.a = NULL;
+		return value;
+	}
+
 	LLNI_class_get(o, c);
 
 	type = primitive_type_get_by_wrapperclass(c);

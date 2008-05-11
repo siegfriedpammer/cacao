@@ -33,14 +33,13 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-#include "native/include/gnu_classpath_Pointer.h"
+#include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Class.h"
+#include "native/include/java_lang_String.h"
 #include "native/include/java_lang_StackTraceElement.h"
 #include "native/include/java_lang_Throwable.h"
 
 #include "native/include/java_lang_VMThrowable.h"
-
-#include "native/vm/java_lang_Class.h"
 
 #include "vm/array.h"
 #include "vm/builtin.h"
@@ -86,13 +85,14 @@ void _Jv_java_lang_VMThrowable_init(void)
  */
 JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackTrace(JNIEnv *env, jclass clazz, java_lang_Throwable *t)
 {
-	java_lang_VMThrowable   *o;
+	java_lang_VMThrowable   *vmto;
 	java_handle_bytearray_t *ba;
+	java_lang_Object        *o;
 
-	o = (java_lang_VMThrowable *)
+	vmto = (java_lang_VMThrowable *)
 		native_new_and_init(class_java_lang_VMThrowable);
 
-	if (o == NULL)
+	if (vmto == NULL)
 		return NULL;
 
 	ba = stacktrace_get_current();
@@ -100,9 +100,11 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
 	if (ba == NULL)
 		return NULL;
 
-	LLNI_field_set_ref(o, vmData, (gnu_classpath_Pointer *) ba);
+	o = (java_lang_Object *) ba;
 
-	return o;
+	LLNI_field_set_ref(vmto, vmdata, o);
+
+	return vmto;
 }
 
 
@@ -113,21 +115,24 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
  */
 JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *env, java_lang_VMThrowable *this, java_lang_Throwable *t)
 {
+	java_lang_Object            *o;
 	java_handle_bytearray_t     *ba;
 	stacktrace_t                *st;
 	stacktrace_entry_t          *ste;
 	java_handle_objectarray_t   *oa;
-	java_lang_StackTraceElement *o;
+	java_lang_StackTraceElement *steo;
 	codeinfo                    *code;
 	methodinfo                  *m;
 	java_lang_String            *filename;
 	s4                           linenumber;
-	java_lang_String            *declaringclass;
+	java_handle_t               *declaringclass;
 	int                          i;
 
-	/* get the stacktrace buffer from the VMThrowable object */
+	/* Get the stacktrace from the VMThrowable object. */
 
-	LLNI_field_get_ref(this, vmData, ba);
+	LLNI_field_get_ref(this, vmdata, o);
+
+	ba = (java_handle_bytearray_t *) o;
 
 	st = (stacktrace_t *) LLNI_array_data(ba);
 
@@ -145,10 +150,10 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 	for (i = 0; i < st->length; i++, ste++) {
 		/* allocate a new stacktrace element */
 
-		o = (java_lang_StackTraceElement *)
+		steo = (java_lang_StackTraceElement *)
 			builtin_new(class_java_lang_StackTraceElement);
 
-		if (o == NULL)
+		if (steo == NULL)
 			return NULL;
 
 		/* Get the codeinfo and methodinfo. */
@@ -159,8 +164,8 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 		/* Get filename. */
 
 		if (!(m->flags & ACC_NATIVE)) {
-			if (m->class->sourcefile)
-				filename = (java_lang_String *) javastring_new(m->class->sourcefile);
+			if (m->clazz->sourcefile)
+				filename = (java_lang_String *) javastring_new(m->clazz->sourcefile);
 			else
 				filename = NULL;
 		}
@@ -183,18 +188,17 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 
 		/* get declaring class name */
 
-		declaringclass =
-			_Jv_java_lang_Class_getName(LLNI_classinfo_wrap(m->class));
+		declaringclass = class_get_classname(m->clazz);
 
 		/* Fill the java.lang.StackTraceElement object. */
 
-		LLNI_field_set_ref(o, fileName      , filename);
-		LLNI_field_set_val(o, lineNumber    , linenumber);
-		LLNI_field_set_ref(o, declaringClass, declaringclass);
-		LLNI_field_set_ref(o, methodName    , (java_lang_String *) javastring_new(m->name));
-		LLNI_field_set_val(o, isNative      , (m->flags & ACC_NATIVE) ? 1 : 0);
+		LLNI_field_set_ref(steo, fileName      , filename);
+		LLNI_field_set_val(steo, lineNumber    , linenumber);
+		LLNI_field_set_ref(steo, declaringClass, (java_lang_String*) declaringclass);
+		LLNI_field_set_ref(steo, methodName    , (java_lang_String *) javastring_new(m->name));
+		LLNI_field_set_val(steo, isNative      , (m->flags & ACC_NATIVE) ? 1 : 0);
 
-		array_objectarray_element_set(oa, i, (java_handle_t *) o);
+		array_objectarray_element_set(oa, i, (java_handle_t *) steo);
 	}
 
 	return oa;

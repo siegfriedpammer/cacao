@@ -261,11 +261,7 @@ int main(int argc, char **argv)
 		log_println("Java - header-generator started"); 
 	}
 
-	/* initialize the utf8 hashtable stuff: lock, often used utf8 strings
-	   (must be done _after_ threads_preinit) */
-
-	if (!utf8_init())
-		vm_abort("utf8_init failed\n");
+	utf8_init();
 
 	/* initialize the classcache hashtable stuff: lock, hashtable
 	   (must be done _after_ threads_preinit) */

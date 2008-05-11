@@ -43,6 +43,7 @@ typedef struct castinfo       castinfo;
 #include "toolbox/list.h"
 
 #include "vm/global.h"
+#include "vm/stringlocal.h"
 
 #if defined(ENABLE_JAVASE)
 # include "vmcore/annotation.h"
@@ -157,7 +158,7 @@ struct classinfo {                /* class structure                          */
 
 #endif
 #endif
-	classloader *classloader;       /* NULL for bootstrap classloader         */
+	classloader_t *classloader;       /* NULL for bootstrap classloader         */
 
 #if defined(ENABLE_JAVASE)
 # if defined(WITH_CLASSPATH_SUN)
@@ -203,7 +204,7 @@ struct castinfo {
 
 /* frequently used classes ****************************************************/
 
-/* important system classes */
+/* Important system classes. */
 
 extern classinfo *class_java_lang_Object;
 extern classinfo *class_java_lang_Class;
@@ -216,6 +217,12 @@ extern classinfo *class_java_lang_Thread;
 extern classinfo *class_java_lang_ThreadGroup;
 extern classinfo *class_java_lang_Throwable;
 extern classinfo *class_java_io_Serializable;
+
+/* Important system exceptions. */
+
+extern classinfo *class_java_lang_Exception;
+extern classinfo *class_java_lang_ClassNotFoundException;
+extern classinfo *class_java_lang_RuntimeException;
 
 #if defined(WITH_CLASSPATH_GNU)
 extern classinfo *class_java_lang_VMSystem;
@@ -250,6 +257,12 @@ extern classinfo *class_java_lang_reflect_Method;
 extern classinfo *class_java_security_PrivilegedAction;
 extern classinfo *class_java_util_Vector;
 extern classinfo *class_java_util_HashMap;
+
+# if defined(WITH_CLASSPATH_GNU)
+extern classinfo *class_java_lang_reflect_VMConstructor;
+extern classinfo *class_java_lang_reflect_VMField;
+extern classinfo *class_java_lang_reflect_VMMethod;
+# endif
 
 extern classinfo *arrayclass_java_lang_Object;
 
@@ -291,6 +304,25 @@ extern classinfo *pseudo_class_New;
 
 
 /* inline functions ***********************************************************/
+
+/**
+ * Returns the classname of the class, where slashes ('/') are
+ * replaced by dots ('.').
+ *
+ * @param c class to get name of
+ * @return classname
+ */
+inline static java_handle_t* class_get_classname(classinfo* c)
+{
+	java_handle_t *s;
+
+	/* Create a java string. */
+
+	s = javastring_new_slash_to_dot(c->name);
+
+	return s;
+}
+
 
 /* class_is_primitive **********************************************************
 
@@ -389,9 +421,9 @@ static inline bool class_is_memberclass(classinfo *c)
 
 *******************************************************************************/
 
-static inline classloader *class_get_classloader(classinfo *c)
+static inline classloader_t *class_get_classloader(classinfo *c)
 {
-	classloader *cl;
+	classloader_t *cl;
 
 	cl = c->classloader;
 
@@ -425,7 +457,7 @@ static inline classinfo *class_get_superclass(classinfo *c)
 
 classinfo *class_create_classinfo(utf *u);
 void       class_postset_header_vftbl(void);
-classinfo *class_define(utf *name, classloader *cl, int32_t length, uint8_t *data, java_handle_t *pd);
+classinfo *class_define(utf *name, classloader_t *cl, int32_t length, uint8_t *data, java_handle_t *pd);
 void       class_set_packagename(classinfo *c);
 
 bool       class_load_attributes(classbuffer *cb);
@@ -478,26 +510,27 @@ methodinfo *class_resolvemethod(classinfo *c, utf *name, utf *dest);
 methodinfo *class_resolveclassmethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
 methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *dest, classinfo *referer, bool throwexception);
 
-bool class_issubclass(classinfo *sub, classinfo *super);
-bool class_isanysubclass(classinfo *sub, classinfo *super);
+bool                       class_issubclass(classinfo *sub, classinfo *super);
+bool                       class_isanysubclass(classinfo *sub, classinfo *super);
+bool                       class_is_assignable_from(classinfo *to, classinfo *from);
+bool                       class_is_instance(classinfo *c, java_handle_t *h);
 
-bool                       class_is_primitive(classinfo *c);
-bool                       class_is_anonymousclass(classinfo *c);
-bool                       class_is_array(classinfo *c);
-bool                       class_is_interface(classinfo *c);
-bool                       class_is_localclass(classinfo *c);
-bool                       class_is_memberclass(classinfo *c);
-
-classloader               *class_get_classloader(classinfo *c);
+classloader_t             *class_get_classloader(classinfo *c);
 classinfo                 *class_get_superclass(classinfo *c);
 classinfo                 *class_get_componenttype(classinfo *c);
 java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOnly);
+java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool publicOnly);
+java_handle_objectarray_t *class_get_declaredfields(classinfo *c, bool publicOnly);
+java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOnly);
 classinfo                 *class_get_declaringclass(classinfo *c);
 classinfo                 *class_get_enclosingclass(classinfo *c);
-methodinfo                *class_get_enclosingmethod(classinfo *c);
+java_handle_t*             class_get_enclosingconstructor(classinfo *c);
+methodinfo*                class_get_enclosingmethod_raw(classinfo *c);
+java_handle_t*             class_get_enclosingmethod(classinfo *c);
 java_handle_objectarray_t *class_get_interfaces(classinfo *c);
 java_handle_bytearray_t   *class_get_annotations(classinfo *c);
 int32_t                    class_get_modifiers(classinfo *c, bool ignoreInnerClassesAttrib);
+java_handle_t             *class_get_name(classinfo *c);
 
 #if defined(ENABLE_JAVASE)
 utf                       *class_get_signature(classinfo *c);

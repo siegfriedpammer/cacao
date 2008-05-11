@@ -1,9 +1,7 @@
 /* src/cacao/cacao.c - contains main() of cacao
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -33,7 +31,7 @@
 # include <ltdl.h>
 #endif
 
-#if defined(WITH_JRE_LAYOUT)
+#if defined(ENABLE_JRE_LAYOUT)
 # include <errno.h>
 # include <libgen.h>
 # include <unistd.h>
@@ -49,6 +47,7 @@
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/jvmti.h"
 # include "native/jvmti/cacaodbg.h"
+# include "threads/mutex.h"
 #endif
 
 #include "vm/vm.h"
@@ -93,7 +92,7 @@ int main(int argc, char **argv)
 	/* load and initialize a Java VM, return a JNI interface pointer in env */
 
 #if defined(ENABLE_LIBJVM)
-# if defined(WITH_JRE_LAYOUT)
+# if defined(ENABLE_JRE_LAYOUT)
 	/* SUN also uses a buffer of 4096-bytes (strace is your friend). */
 
 	path = malloc(sizeof(char) * 4096);
@@ -162,7 +161,7 @@ int main(int argc, char **argv)
 	(void) vm_createjvm(&vm, (void *) &env, vm_args);
 
 #if defined(ENABLE_JVMTI)
-	pthread_mutex_init(&dbgcomlock,NULL);
+	mutex_init(&dbgcomlock);
 	if (jvmti) jvmti_set_phase(JVMTI_PHASE_START);
 #endif
 

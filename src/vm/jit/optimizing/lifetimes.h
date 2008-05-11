@@ -1,9 +1,7 @@
-/* src/vm/jit/lsra/graph.h - lifetimes header
+/* src/vm/jit/optimizing/lifetimes.h - lifetimes header
 
-   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -21,11 +19,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
-
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Christian Ullrich
-
 
 */
 
@@ -56,7 +49,7 @@
 
 typedef struct site *lt_iterator;
 void lt_scanlifetimes(jitdata *, graphdata *, dominatordata *);
-void lt_add_ss(struct lifetime *, stackptr );
+void lt_add_ss(struct lifetime *, stackelement_t *);
 void lt_remove_use_site(struct lifetime *lt, int block, int iindex);
 void lt_move_use_sites(struct lifetime *from, struct lifetime *to);
 void lt_lifeness_analysis(jitdata *, graphdata *);

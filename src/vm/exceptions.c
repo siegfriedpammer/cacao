@@ -42,10 +42,11 @@
 #include "native/native.h"
 
 #include "native/include/java_lang_String.h"
+#include "native/include/java_lang_Thread.h"
 #include "native/include/java_lang_Throwable.h"
 
 #include "threads/lock-common.h"
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "toolbox/util.h"
 
@@ -79,37 +80,6 @@
 #if !defined(ENABLE_THREADS)
 java_object_t *_no_threads_exceptionptr = NULL;
 #endif
-
-
-/* exceptions_init *************************************************************
-
-   Initialize the exceptions subsystem.
-
-*******************************************************************************/
-
-void exceptions_init(void)
-{
-#if !(defined(__ARM__) && defined(__LINUX__))
-	/* On arm-linux the first memory page can't be mmap'ed, as it
-	   contains the exception vectors. */
-
-	int pagesize;
-
-	/* mmap a memory page at address 0x0, so our hardware-exceptions
-	   work. */
-
-	pagesize = system_getpagesize();
-
-	(void) system_mmap_anonymous(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
-#endif
-
-	TRACESUBSYSTEMINITIALIZATION("exceptions_init");
-
-	/* check if we get into trouble with our hardware-exceptions */
-
-	if (OFFSET(java_bytearray_t, data) <= EXCEPTION_HARDWARE_LARGEST)
-		vm_abort("signal_init: array-data offset is less or equal the maximum hardware-exception displacement: %d <= %d", OFFSET(java_bytearray_t, data), EXCEPTION_HARDWARE_LARGEST);
-}
 
 
 /* exceptions_get_exception ****************************************************
@@ -175,7 +145,7 @@ void exceptions_set_exception(java_handle_t *e)
 	if (opt_DebugExceptions) {
 		printf("[exceptions_set_exception  : t=%p, o=%p, class=",
 			   (void *) t, (void *) o);
-		class_print(o->vftbl->class);
+		class_print(o->vftbl->clazz);
 		printf("]\n");
 	}
 #endif
@@ -276,6 +246,51 @@ static void exceptions_abort(utf *classname, utf *message)
 }
 
 
+/* exceptions_new_class_utf ****************************************************
+
+   Creates an exception object with the given class and initalizes it
+   with the given utf message.
+
+   IN:
+      c ......... exception class
+	  message ... the message as an utf *
+
+   RETURN VALUE:
+     an exception pointer (in any case -- either it is the newly
+     created exception, or an exception thrown while trying to create
+     it).
+
+*******************************************************************************/
+
+static java_handle_t *exceptions_new_class_utf(classinfo *c, utf *message)
+{
+	java_handle_t *s;
+	java_handle_t *o;
+
+	if (vm_initializing) {
+		/* This can happen when global class variables are used which
+		   are not initialized yet. */
+
+		if (c == NULL)
+			exceptions_abort(NULL, message);
+		else
+			exceptions_abort(c->name, message);
+	}
+
+	s = javastring_new(message);
+
+	if (s == NULL)
+		return exceptions_get_exception();
+
+	o = native_new_and_init_string(c, s);
+
+	if (o == NULL)
+		return exceptions_get_exception();
+
+	return o;
+}
+
+
 /* exceptions_new_utf **********************************************************
 
    Creates an exception object with the given name and initalizes it.
@@ -304,6 +319,99 @@ static java_handle_t *exceptions_new_utf(utf *classname)
 		return exceptions_get_exception();
 
 	return o;
+}
+
+
+/* exceptions_new_utf_javastring ***********************************************
+
+   Creates an exception object with the given name and initalizes it
+   with the given java/lang/String message.
+
+   IN:
+      classname....class name in UTF-8
+	  message......the message as a java.lang.String
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
+
+*******************************************************************************/
+
+static java_handle_t *exceptions_new_utf_javastring(utf *classname,
+													java_handle_t *message)
+{
+	java_handle_t *o;
+	classinfo     *c;
+   
+	if (vm_initializing)
+		exceptions_abort(classname, NULL);
+
+	c = load_class_bootstrap(classname);
+
+	if (c == NULL)
+		return exceptions_get_exception();
+
+	o = native_new_and_init_string(c, message);
+
+	if (o == NULL)
+		return exceptions_get_exception();
+
+	return o;
+}
+
+
+/* exceptions_new_utf_utf ******************************************************
+
+   Creates an exception object with the given name and initalizes it
+   with the given utf message.
+
+   IN:
+      classname....class name in UTF-8
+	  message......the message as an utf *
+
+   RETURN VALUE:
+      an exception pointer (in any case -- either it is the newly created
+	  exception, or an exception thrown while trying to create it).
+
+*******************************************************************************/
+
+static java_handle_t *exceptions_new_utf_utf(utf *classname, utf *message)
+{
+	classinfo     *c;
+	java_handle_t *o;
+
+	if (vm_initializing)
+		exceptions_abort(classname, message);
+
+	c = load_class_bootstrap(classname);
+
+	if (c == NULL)
+		return exceptions_get_exception();
+
+	o = exceptions_new_class_utf(c, message);
+
+	return o;
+}
+
+
+/* exceptions_throw_class_utf **************************************************
+
+   Creates an exception object with the given class, initalizes and
+   throws it with the given utf message.
+
+   IN:
+      c ......... exception class
+	  message ... the message as an utf *
+
+*******************************************************************************/
+
+static void exceptions_throw_class_utf(classinfo *c, utf *message)
+{
+	java_handle_t *o;
+
+	o = exceptions_new_class_utf(c, message);
+
+	exceptions_set_exception(o);
 }
 
 
@@ -498,87 +606,6 @@ static void exceptions_throw_utf_cause(utf *classname, java_handle_t *cause)
 	(void) vm_call_method(m, o, cause);
 
 	exceptions_set_exception(o);
-}
-
-
-/* exceptions_new_utf_javastring ***********************************************
-
-   Creates an exception object with the given name and initalizes it
-   with the given java/lang/String message.
-
-   IN:
-      classname....class name in UTF-8
-	  message......the message as a java.lang.String
-
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
-*******************************************************************************/
-
-static java_handle_t *exceptions_new_utf_javastring(utf *classname,
-													java_handle_t *message)
-{
-	java_handle_t *o;
-	classinfo     *c;
-   
-	if (vm_initializing)
-		exceptions_abort(classname, NULL);
-
-	c = load_class_bootstrap(classname);
-
-	if (c == NULL)
-		return exceptions_get_exception();
-
-	o = native_new_and_init_string(c, message);
-
-	if (o == NULL)
-		return exceptions_get_exception();
-
-	return o;
-}
-
-
-/* exceptions_new_utf_utf ******************************************************
-
-   Creates an exception object with the given name and initalizes it
-   with the given utf message.
-
-   IN:
-      classname....class name in UTF-8
-	  message......the message as an utf *
-
-   RETURN VALUE:
-      an exception pointer (in any case -- either it is the newly created
-	  exception, or an exception thrown while trying to create it).
-
-*******************************************************************************/
-
-static java_handle_t *exceptions_new_utf_utf(utf *classname, utf *message)
-{
-	classinfo     *c;
-	java_handle_t *s;
-	java_handle_t *o;
-
-	if (vm_initializing)
-		exceptions_abort(classname, message);
-
-	c = load_class_bootstrap(classname);
-
-	if (c == NULL)
-		return exceptions_get_exception();
-
-	s = javastring_new(message);
-
-	if (s == NULL)
-		return exceptions_get_exception();
-
-	o = native_new_and_init_string(c, s);
-
-	if (o == NULL)
-		return exceptions_get_exception();
-
-	return o;
 }
 
 
@@ -794,7 +821,7 @@ void exceptions_throw_classformaterror(classinfo *c, const char *message, ...)
 
 void exceptions_throw_classnotfoundexception(utf *name)
 {	
-	exceptions_throw_utf_utf(utf_java_lang_ClassNotFoundException, name);
+	exceptions_throw_class_utf(class_java_lang_ClassNotFoundException, name);
 }
 
 
@@ -1207,7 +1234,7 @@ void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...)
 
 	if (m != NULL)
 		msglen =
-			strlen("(class: ") + utf_bytes(m->class->name) +
+			strlen("(class: ") + utf_bytes(m->clazz->name) +
 			strlen(", method: ") + utf_bytes(m->name) +
 			strlen(" signature: ") + utf_bytes(m->descriptor) +
 			strlen(") ") + strlen("0");
@@ -1224,7 +1251,7 @@ void exceptions_throw_verifyerror(methodinfo *m, const char *message, ...)
 
 	if (m != NULL) {
 		strcpy(msg, "(class: ");
-		utf_cat_classname(msg, m->class->name);
+		utf_cat_classname(msg, m->clazz->name);
 		strcat(msg, ", method: ");
 		utf_cat(msg, m->name);
 		strcat(msg, " signature: ");
@@ -1274,7 +1301,7 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type)
 	msglen = 0;
 
 	if (m != NULL)
-		msglen = strlen("(class: ") + utf_bytes(m->class->name) +
+		msglen = strlen("(class: ") + utf_bytes(m->clazz->name) +
 			strlen(", method: ") + utf_bytes(m->name) +
 			strlen(" signature: ") + utf_bytes(m->descriptor) +
 			strlen(") Expecting to find longest-------typename on stack") 
@@ -1288,7 +1315,7 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type)
 
 	if (m != NULL) {
 		strcpy(msg, "(class: ");
-		utf_cat_classname(msg, m->class->name);
+		utf_cat_classname(msg, m->clazz->name);
 		strcat(msg, ", method: ");
 		utf_cat(msg, m->name);
 		strcat(msg, " signature: ");
@@ -1589,60 +1616,6 @@ void exceptions_throw_stringindexoutofboundsexception(void)
 }
 
 
-/* exceptions_classnotfoundexception_to_noclassdeffounderror *******************
-
-   Check the exception for a ClassNotFoundException. If it is one,
-   convert it to a NoClassDefFoundError.
-
-*******************************************************************************/
-
-void exceptions_classnotfoundexception_to_noclassdeffounderror(void)
-{
-	classinfo           *c;
-	java_handle_t       *o;
-	java_handle_t       *cause;
-	java_lang_Throwable *object;
-	java_lang_String    *s;
-
-	/* Load java/lang/ClassNotFoundException for the instanceof
-	   check. */
-
-	c = load_class_bootstrap(utf_java_lang_ClassNotFoundException);
-
-	if (c == NULL)
-		return;
-
-	/* Get the cause. */
-
-	cause = exceptions_get_exception();
-
-	/* Convert ClassNotFoundException's to NoClassDefFoundError's. */
-
-	if (builtin_instanceof(cause, c)) {
-		/* clear exception, because we are calling jit code again */
-
-		exceptions_clear_exception();
-
-		/* create new error */
-
-		object = (java_lang_Throwable *) cause;
-		LLNI_field_get_ref(object, detailMessage, s);
-
-		o = exceptions_new_utf_javastring(utf_java_lang_NoClassDefFoundError,
-										  (java_handle_t *) s);
-
-		/* we had an exception while creating the error */
-
-		if (exceptions_get_exception())
-			return;
-
-		/* set new exception */
-
-		exceptions_set_exception(o);
-	}
-}
-
-
 /* exceptions_fillinstacktrace *************************************************
 
    Calls the fillInStackTrace-method of the currently thrown
@@ -1833,7 +1806,7 @@ void *exceptions_handle_exception(java_object_t *xptro, void *xpc, void *pv, voi
 				if (!(c->state & CLASS_LOADED))
 					/* use the methods' classloader */
 					if (!load_class_from_classloader(c->name,
-													 m->class->classloader))
+													 m->clazz->classloader))
 						goto exceptions_handle_exception_return;
 
 				/* XXX I think, if it is not linked, we can be sure
@@ -2016,63 +1989,104 @@ void exceptions_print_current_exception(void)
 
 void exceptions_print_stacktrace(void)
 {
-	java_handle_t *oxptr;
-	java_handle_t *xptr;
-	classinfo     *c;
-	methodinfo    *m;
+	java_handle_t    *e;
+	java_handle_t    *ne;
+	classinfo        *c;
+	methodinfo       *m;
 
-	/* get original exception */
+#if defined(ENABLE_THREADS)
+	threadobject     *t;
+	java_lang_Thread *to;
+#endif
 
-	oxptr = exceptions_get_and_clear_exception();
+	/* Get and clear exception because we are calling Java code
+	   again. */
 
-	if (oxptr == NULL)
-		vm_abort("exceptions_print_stacktrace: no exception thrown");
+	e = exceptions_get_and_clear_exception();
 
-	/* clear exception, because we are calling jit code again */
+	if (e == NULL)
+		return;
 
-	LLNI_class_get(oxptr, c);
-
-	/* find the printStackTrace() method */
-
-	m = class_resolveclassmethod(c,
-								 utf_printStackTrace,
-								 utf_void__void,
-								 class_java_lang_Object,
-								 false);
-
-	if (m == NULL)
-		vm_abort("exceptions_print_stacktrace: printStackTrace()V not found");
-
-	/* print compatibility message */
-
-	fprintf(stderr, "Exception in thread \"main\" ");
-
-	/* print the stacktrace */
-
-	(void) vm_call_method(m, oxptr);
-
-	/* This normally means, we are EXTREMLY out of memory or
-	   have a serious problem while printStackTrace. But may
-	   be another exception, so print it. */
-
-	xptr = exceptions_get_exception();
-
-	if (xptr != NULL) {
-		fprintf(stderr, "Exception while printStackTrace(): ");
-
-		/* now print original exception */
-
-		exceptions_print_exception(xptr);
-		stacktrace_print_exception(xptr);
-
-		/* now print original exception */
-
-		fprintf(stderr, "Original exception was: ");
-		exceptions_print_exception(oxptr);
-		stacktrace_print_exception(oxptr);
+#if 0
+	/* FIXME Enable me. */
+	if (builtin_instanceof(e, class_java_lang_ThreadDeath)) {
+		/* Don't print anything if we are being killed. */
 	}
+	else
+#endif
+	{
+		/* Get the exception class. */
 
-	fflush(stderr);
+		LLNI_class_get(e, c);
+
+		/* Find the printStackTrace() method. */
+
+		m = class_resolveclassmethod(c,
+									 utf_printStackTrace,
+									 utf_void__void,
+									 class_java_lang_Object,
+									 false);
+
+		if (m == NULL)
+			vm_abort("exceptions_print_stacktrace: printStackTrace()V not found");
+
+		/* Print message. */
+
+		fprintf(stderr, "Exception ");
+
+#if defined(ENABLE_THREADS)
+		/* Print thread name.  We get the thread here explicitly as we
+		   need it afterwards. */
+
+		t  = thread_get_current();
+		to = (java_lang_Thread *) thread_get_object(t);
+
+		if (to != NULL) {
+			fprintf(stderr, "in thread \"");
+			thread_fprint_name(t, stderr);
+			fprintf(stderr, "\" ");
+		}
+#endif
+
+		/* Print the stacktrace. */
+
+		if (builtin_instanceof(e, class_java_lang_Throwable)) {
+			(void) vm_call_method(m, e);
+
+			/* If this happens we are EXTREMLY out of memory or have a
+			   serious problem while printStackTrace.  But may be
+			   another exception, so print it. */
+
+			ne = exceptions_get_exception();
+
+			if (ne != NULL) {
+				fprintf(stderr, "Exception while printStackTrace(): ");
+
+				/* Print the current exception. */
+
+				exceptions_print_exception(ne);
+				stacktrace_print_exception(ne);
+
+				/* Now print the original exception. */
+
+				fprintf(stderr, "Original exception was: ");
+				exceptions_print_exception(e);
+				stacktrace_print_exception(e);
+			}
+		}
+		else {
+			fprintf(stderr, ". Uncaught exception of type ");
+#if !defined(NDEBUG)
+			/* FIXME This prints to stdout. */
+			class_print(c);
+#else
+			fprintf(stderr, "UNKNOWN");
+#endif
+			fprintf(stderr, ".");
+		}
+
+		fflush(stderr);
+	}
 }
 
 

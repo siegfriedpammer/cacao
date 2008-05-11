@@ -1,9 +1,7 @@
 /* src/vm/jit/i386/darwin/md-os.c - machine dependent i386 Darwin functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -37,15 +35,17 @@
 #include "vm/jit/i386/codegen.h"
 #include "vm/jit/i386/md.h"
 
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
+
 #include "vm/jit/asmpart.h"
+#include "vm/jit/executionstate.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 #include "vm/jit/i386/codegen.h"
 
@@ -110,7 +110,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
             ((d == 5) ? _ss->ebp :
             ((d == 6) ? _ss->esi : _ss->edi))))));
 
-		if (type == EXCEPTION_HARDWARE_COMPILER) {
+		if (type == TRAP_COMPILER) {
 			/* The PV from the compiler stub is equal to the XPC. */
 
 			pv = xpc;
@@ -133,16 +133,16 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
     else {
         /* this was a normal NPE */
 
-        type = EXCEPTION_HARDWARE_NULLPOINTER;
+        type = TRAP_NullPointerException;
     }
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* Set registers. */
 
-	if (type == EXCEPTION_HARDWARE_COMPILER) {
+	if (type == TRAP_COMPILER) {
 		if (p == NULL) { 
 			o = builtin_retrieve_exception();
 
@@ -157,9 +157,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		}
 	}
 	else {
-		_ss->eax = (intptr_t) p;
-		_ss->ecx = (intptr_t) xpc;
-		_ss->eip = (intptr_t) asm_handle_exception;
+		_ss->eax = (uintptr_t) p;
+		_ss->ecx = (uintptr_t) xpc;            /* REG_ITMP2_XPC */
+		_ss->eip = (uintptr_t) asm_handle_exception;
 	}
 }
 
@@ -194,18 +194,20 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	xpc = (u1 *) _ss->eip;
 	ra  = xpc;                          /* return address is equal to xpc     */
 
-    /* this is an ArithmeticException */
+    /* This is an ArithmeticException */
 
-    type = EXCEPTION_HARDWARE_ARITHMETIC;
+    type = TRAP_ArithmeticException;
     val  = 0;
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
-    _ss->eax = (intptr_t) p;
-	_ss->ecx = (intptr_t) xpc;
-	_ss->eip = (intptr_t) asm_handle_exception;
+	/* Set registers. */
+
+    _ss->eax = (uintptr_t) p;
+	_ss->ecx = (uintptr_t) xpc;            /* REG_ITMP2_XPC */
+	_ss->eip = (uintptr_t) asm_handle_exception;
 }
 
 
@@ -264,40 +266,37 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	xpc = (u1 *) _ss->eip;
 	ra  = xpc;                          /* return address is equal to xpc     */
 
-	/* this is an ArithmeticException */
-
-	type = EXCEPTION_HARDWARE_PATCHER;
+	type = TRAP_PATCHER;
 	val  = 0;
 
-	/* generate appropriate exception */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
-	/* set registers (only if exception object ready) */
+	/* Set registers. */
 
 	if (p != NULL) {
-		_ss->eax = (intptr_t) p;
-		_ss->ecx = (intptr_t) xpc;
-		_ss->eip = (intptr_t) asm_handle_exception;
+		_ss->eax = (uintptr_t) p;
+		_ss->ecx = (uintptr_t) xpc;            /* REG_ITMP2_XPC */
+		_ss->eip = (uintptr_t) asm_handle_exception;
 	}
 }
 
-/* md_replace_executionstate_read **********************************************
+/* md_executionstate_read ******************************************************
 
-   Read the given context into an executionstate for Replacement.
+   Read the given context into an executionstate.
 
 *******************************************************************************/
 
-#if defined(ENABLE_REPLACEMENT)
-void md_replace_executionstate_read(executionstate_t *es, void *context)
+void md_executionstate_read(executionstate_t *es, void *context)
 {
-	ucontext_t *_uc;
-	mcontext_t *_mc; 
+	ucontext_t          *_uc;
+	mcontext_t           _mc; 
 	i386_thread_state_t *_ss;
-	s4          i; 
+	int                  i;
 
 	_uc = (ucontext_t *) context;
-	_mc = &_uc->uc_mcontext;
+	_mc = _uc->uc_mcontext;
 	_ss = &_mc->ss;
 
 	/* read special registers */
@@ -319,25 +318,23 @@ void md_replace_executionstate_read(executionstate_t *es, void *context)
 	for (i = 0; i < FLT_REG_CNT; i++)
 		es->fltregs[i] = 0xdeadbeefdeadbeefULL;
 }
-#endif
 
 
-/* md_replace_executionstate_write *********************************************
+/* md_executionstate_write *****************************************************
 
-   Write the given executionstate back to the context for Replacement.
+   Write the given executionstate back to the context.
 
 *******************************************************************************/
 
-#if defined(ENABLE_REPLACEMENT)
-void md_replace_executionstate_write(executionstate_t *es, void *context)
+void md_executionstate_write(executionstate_t *es, void *context)
 {
-	ucontext_t *_uc;
-	mcontext_t *_mc;
-	i386_thread_state_t *_ss;
-	s4          i;
+	ucontext_t*          _uc;
+	mcontext_t           _mc;
+	i386_thread_state_t* _ss;
+	int                  i;
 
 	_uc = (ucontext_t *) context;
-	_mc = &_uc->uc_mcontext;
+	_mc = _uc->uc_mcontext;
 	_ss = &_mc->ss;
 
 	/* write integer registers */
@@ -354,7 +351,6 @@ void md_replace_executionstate_write(executionstate_t *es, void *context)
 	_ss->eip = (ptrint) es->pc;
 	_ss->esp = (ptrint) es->sp;
 }
-#endif
 
 
 /* md_critical_section_restart *************************************************

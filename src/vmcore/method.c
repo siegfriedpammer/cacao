@@ -1,9 +1,7 @@
 /* src/vmcore/method.c - method functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -44,7 +42,9 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/resolve.h"
+#include "vm/vm.h"
 
+#include "vm/jit/code.h"
 #include "vm/jit/methodheader.h"
 
 #include "vm/jit_interface.h"
@@ -55,6 +55,7 @@
 #include "vmcore/method.h"
 #include "vmcore/options.h"
 #include "vmcore/suck.h"
+#include "vmcore/utf8.h"
 
 
 #if !defined(NDEBUG) && defined(ENABLE_INLINING)
@@ -62,6 +63,36 @@
 #else
 #define INLINELOG(code)
 #endif
+
+
+/* global variables ***********************************************************/
+
+methodinfo *method_java_lang_reflect_Method_invoke;
+
+
+/* method_init *****************************************************************
+
+   Initialize method subsystem.
+
+*******************************************************************************/
+
+void method_init(void)
+{
+#if defined(ENABLE_JAVASE)
+	/* Sanity check. */
+
+	if (class_java_lang_reflect_Method == NULL)
+		vm_abort("method_init: class_java_lang_reflect_Method is NULL");
+
+	/* Cache java.lang.reflect.Method.invoke() */
+
+	method_java_lang_reflect_Method_invoke =
+		class_findmethod(class_java_lang_reflect_Method, utf_invoke, NULL);
+
+	if (method_java_lang_reflect_Method_invoke == NULL)
+		vm_abort("method_init: Could not resolve method java.lang.reflect.Method.invoke().");
+#endif
+}
 
 
 /* method_load *****************************************************************
@@ -112,7 +143,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 
 	/* get classinfo */
 
-	c = cb->class;
+	c = cb->clazz;
 
 	LOCK_INIT_OBJECT_LOCK(&(m->header));
 
@@ -123,7 +154,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 
 	/* all fields of m have been zeroed in load_class_from_classbuffer */
 
-	m->class = c;
+	m->clazz = c;
 	
 	if (!suck_check_classbuffer_size(cb, 2 + 2 + 2))
 		return false;
@@ -595,9 +626,9 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m)
 	/* Get the method from the virtual function table.  Is this an
 	   interface method? */
 
-	if (m->class->flags & ACC_INTERFACE) {
-		pmptr = vftbl->interfacetable[-(m->class->index)];
-		mptr  = pmptr[(m - m->class->methods)];
+	if (m->clazz->flags & ACC_INTERFACE) {
+		pmptr = vftbl->interfacetable[-(m->clazz->index)];
+		mptr  = pmptr[(m - m->clazz->methods)];
 	}
 	else {
 		mptr = vftbl->table[m->vftblindex];
@@ -831,7 +862,7 @@ java_handle_bytearray_t *method_get_annotations(methodinfo *m)
 	java_handle_t *method_annotations; /* all methods' unparsed annotations */
 	                                   /* of the declaring class            */
 
-	c           = m->class;
+	c           = m->clazz;
 	slot        = m - c->methods;
 	annotations = NULL;
 
@@ -879,7 +910,7 @@ java_handle_bytearray_t *method_get_parameterannotations(methodinfo *m)
 	                                            /* parameter annotations of */
 	                                            /* the declaring class      */
 
-	c                    = m->class;
+	c                    = m->clazz;
 	slot                 = m - c->methods;
 	parameterAnnotations = NULL;
 
@@ -928,7 +959,7 @@ java_handle_bytearray_t *method_get_annotationdefault(methodinfo *m)
 	                                          /* annotation default values of */
 	                                          /* the declaring class          */
 
-	c                 = m->class;
+	c                 = m->clazz;
 	slot              = m - c->methods;
 	annotationDefault = NULL;
 
@@ -1085,8 +1116,8 @@ void method_print(methodinfo *m)
 		return;
 	}
 
-	if (m->class != NULL)
-		utf_display_printable_ascii_classname(m->class->name);
+	if (m->clazz != NULL)
+		utf_display_printable_ascii_classname(m->clazz->name);
 	else
 		printf("NULL");
 	printf(".");

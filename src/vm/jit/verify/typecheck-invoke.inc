@@ -1,9 +1,7 @@
 /* src/vm/jit/verify/typecheck-invoke.inc - type checking for invocations
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -21,11 +19,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Edwin Steiner
-
 
 */
 
@@ -49,7 +42,7 @@
 	s4 argindex;                            /* argument variable index */
 	varinfo *av;                                  /* argument variable */
 #else
-	typedescriptor *av;                         /* argument stack slot */
+	typedescriptor_t *av;                       /* argument stack slot */
 #endif
 	int i;                                                  /* counter */
 	resolve_result_t result;
@@ -81,7 +74,7 @@
 
 	if (IS_FMIREF_RESOLVED(mref)) {
 		mi = mref->p.method;
-		mclassname = mi->class->name;
+		mclassname = mi->clazz->name;
 	}
 	else {
 		mi = NULL;
@@ -143,7 +136,7 @@
 				if (ins)
 					initclass = ins[-1].sx.val.c;
 				else
-					initclass.cls = state->m->class;
+					initclass.cls = state->m->clazz;
 				LOGSTR("\t\tclass: "); LOGNAME(initclass); LOGNL;
 			}
 		}
@@ -226,7 +219,7 @@
 			/* the current class is linked, so must be its superclass. thus we can be */
 			/* sure that resolving will be trivial.                                   */
 			if (mi) {
-				cls = mi->class;
+				cls = mi->clazz;
 			}
 			else {
 				if (!resolve_classref(state->m,mref->p.classref,resolveLazy,false,true,&cls))
@@ -235,7 +228,7 @@
 
 			/* if lazy resolving did not succeed, it's not one of the allowed classes */
 			/* otherwise we check it directly                                         */
-			if (cls == NULL || (cls != state->m->class && cls != state->m->class->super)) {
+			if (cls == NULL || (cls != state->m->clazz && cls != state->m->clazz->super)) {
 				TYPECHECK_VERIFYERROR_bool("<init> calling <init> of the wrong class");
 			}
 
@@ -295,8 +288,8 @@
 	/* impose loading constraints */
 
 	if (result == resolveSucceeded) {
-		/* XXX state->m->class may have to be wrong when inlining */
-		if (!resolve_method_loading_constraints(state->m->class, mi))
+		/* XXX state->m->clazz may have to be wrong when inlining */
+		if (!resolve_method_loading_constraints(state->m->clazz, mi))
 			return false;
 	}
 
@@ -317,7 +310,7 @@
 		/* resolution must be deferred */
 
 		if (!um) {
-			um = resolve_create_unresolved_method(state->m->class, state->m,
+			um = resolve_create_unresolved_method(state->m->clazz, state->m,
 					mref, 
 					invokestatic,
 					invokespecial);

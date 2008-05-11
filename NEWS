@@ -11,6 +11,8 @@ New in release 0.99 (March x, 2008)
   * Assertion support.
   * Linenumber table code rewritten.
   * Exception table code rewritten.
+  * Replaced --with-classpath-includedir with --with-jni_h and
+    --with-jni_md_h to better support OpenJDK/IcedTea build.s
 
 
 New in release 0.98 (June 6, 2007)

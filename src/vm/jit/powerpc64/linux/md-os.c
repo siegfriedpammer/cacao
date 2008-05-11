@@ -1,9 +1,7 @@
 /* src/vm/jit/powerpc64/linux/md-os.c - machine dependent PowerPC64 Linux functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -37,9 +35,7 @@
 #include "vm/jit/powerpc64/md.h"
 #include "vm/jit/powerpc64/linux/md-abi.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
+#include "threads/thread.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -52,6 +48,7 @@
 #endif
 
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 
 /* md_signal_handler_sigsegv ***************************************************
@@ -98,10 +95,10 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	val  = _mc->gp_regs[d];
 
 	if (s1 == REG_ZERO) {
-		/* we use the exception type as load displacement */
+		/* We use the exception type as load displacement. */
 		type = disp;
 
-		if (type == EXCEPTION_HARDWARE_COMPILER) {
+		if (type == TRAP_COMPILER) {
 			/* The XPC is the RA minus 1, because the RA points to the
 			   instruction after the call. */
 
@@ -109,19 +106,19 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		}
 	}
 	else {
-		/* normal NPE */
+		/* Normal NPE. */
 		addr = _mc->gp_regs[s1];
 		type = (int) addr;
 	}
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* Set registers. */
 
 	switch (type) {
-	case EXCEPTION_HARDWARE_COMPILER:
+	case TRAP_COMPILER:
 		if (p != NULL) {
 			_mc->gp_regs[REG_PV] = (uintptr_t) p;
 			_mc->gp_regs[PT_NIP] = (uintptr_t) p;
@@ -142,7 +139,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		/* fall-through */
 
-	case EXCEPTION_HARDWARE_PATCHER:
+	case TRAP_PATCHER:
 		if (p == NULL)
 			break;
 

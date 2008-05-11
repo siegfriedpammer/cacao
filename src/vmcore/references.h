@@ -1,9 +1,7 @@
 /* src/vmcore/references.h - references to classes/fields/methods
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -51,13 +49,13 @@ typedef union classref_or_classinfo {
 } classref_or_classinfo;
 
 
-/* parseddesc *****************************************************************/
+/* parseddesc_t ***************************************************************/
 
 typedef union parseddesc {
 	struct typedesc   *fd;        /* parsed field descriptor                  */
 	struct methoddesc *md;        /* parsed method descriptor                 */
 	void              *any;       /* used for simple test against NULL        */
-} parseddesc;
+} parseddesc_t;
 
 
 #include "config.h"
@@ -93,16 +91,16 @@ typedef union parseddesc {
 
 /* constant_FMIref ************************************************************/
 
-struct constant_FMIref{     /* Fieldref, Methodref and InterfaceMethodref     */
+struct constant_FMIref{      /* Fieldref, Methodref and InterfaceMethodref    */
 	union {
 		s4                 index;     /* used only within the loader          */
 		constant_classref *classref;  /* class having this field/meth./intfm. */
 		fieldinfo         *field;     /* resolved field                       */
 		methodinfo        *method;    /* resolved method                      */
 	} p;
-	utf       *name;        /* field/method/interfacemethod name              */
-	utf       *descriptor;  /* field/method/intfmeth. type descriptor string  */
-	parseddesc parseddesc;  /* parsed descriptor                              */
+	utf         *name;       /* field/method/interfacemethod name             */
+	utf         *descriptor; /* field/method/intfmeth. type descriptor string */
+	parseddesc_t parseddesc; /* parsed descriptor                             */
 };
 
 
@@ -135,12 +133,12 @@ struct constant_FMIref{     /* Fieldref, Methodref and InterfaceMethodref     */
 
 /* macro for accessing the class name of a method reference                   */
 #define METHODREF_CLASSNAME(fmiref) \
-	(IS_FMIREF_RESOLVED(fmiref) ? (fmiref)->p.method->class->name \
+	(IS_FMIREF_RESOLVED(fmiref) ? (fmiref)->p.method->clazz->name \
 	 							: (fmiref)->p.classref->name)
 
 /* macro for accessing the class name of a method reference                   */
 #define FIELDREF_CLASSNAME(fmiref) \
-	(IS_FMIREF_RESOLVED(fmiref) ? (fmiref)->p.field->class->name \
+	(IS_FMIREF_RESOLVED(fmiref) ? (fmiref)->p.field->clazz->name \
 	 							: (fmiref)->p.classref->name)
 
 /* initialize a constant_classref with referer `ref` and name `classname`     */

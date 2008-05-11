@@ -1,9 +1,7 @@
 /* src/vm/jit/s390/codegen.c - machine code generator for s390
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -31,23 +29,30 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "vm/jit/s390/arch.h"
+#include "vm/jit/s390/codegen.h"
+#include "vm/jit/s390/emit.h"
+#include "vm/jit/s390/md-abi.h"
+
 #include "native/jni.h"
 #include "native/localref.h"
 #include "native/native.h"
 
 #include "mm/memory.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/lock-common.h"
-# include "threads/native/lock.h"
-#endif
+#include "threads/lock-common.h"
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/types.h"
+#include "vm/stringlocal.h"
+#include "vm/vm.h"
+
 #include "vm/jit/abi.h"
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
@@ -63,14 +68,9 @@
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
-#include "vm/jit/s390/arch.h"
-#include "vm/jit/s390/codegen.h"
-#include "vm/jit/s390/emit.h"
-#include "vm/jit/s390/md-abi.h"
 #include "vm/jit/stacktrace.h"
-#include "vm/types.h"
-#include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/jit/trap.h"
+
 
 /* DO__LOG generates a call to do__log. No registers are destroyed,
  * so you may use it anywhere. regs is an array containing all general
@@ -371,13 +371,13 @@ bool codegen_emit(jitdata *jd)
 		/* decide which monitor enter function to call */
 
 		if (m->flags & ACC_STATIC) {
-			disp = dseg_add_address(cd, &m->class->object.header);
+			disp = dseg_add_address(cd, &m->clazz->object.header);
 			M_ALD_DSEG(REG_A0, disp);
 		}
 		else {
 			M_TEST(REG_A0);
 			M_BNE(SZ_BRC + SZ_ILL);
-			M_ILL(EXCEPTION_HARDWARE_NULLPOINTER);
+			M_ILL(TRAP_NullPointerException);
 		}
 
 		disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
@@ -1796,13 +1796,13 @@ bool codegen_emit(jitdata *jd)
 
 			N_L(
 				GET_LOW_REG(d) /* maybe itmp3 */, 
-				OFFSET(java_intarray_t, data[0]) + 4, 
+				OFFSET(java_longarray_t, data[0]) + 4, 
 				REG_ITMP2, s1 /* maybe itmp1 */
 			);
 
 			N_L(
 				GET_HIGH_REG(d) /* maybe itmp1 */, 
-				OFFSET(java_intarray_t, data[0]), 
+				OFFSET(java_longarray_t, data[0]), 
 				REG_ITMP2, s1 /* maybe itmp1 */
 			);
 
@@ -1838,7 +1838,7 @@ bool codegen_emit(jitdata *jd)
 			M_INTMOVE(s2, REG_ITMP2);
 			M_SLL_IMM(3, REG_ITMP2); /* scale index by 8 */
 	
-			N_LD(d, OFFSET(java_floatarray_t, data[0]), REG_ITMP2, s1);
+			N_LD(d, OFFSET(java_doublearray_t, data[0]), REG_ITMP2, s1);
 
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1921,9 +1921,9 @@ bool codegen_emit(jitdata *jd)
 			M_SLL_IMM(3, REG_ITMP2);
 
 			s3 = emit_load_s3_high(jd, iptr, REG_ITMP3);
-			N_ST(s3, OFFSET(java_intarray_t, data[0]), REG_ITMP2, s1);
+			N_ST(s3, OFFSET(java_longarray_t, data[0]), REG_ITMP2, s1);
 			s3 = emit_load_s3_low(jd, iptr, REG_ITMP3);
-			N_ST(s3, OFFSET(java_intarray_t, data[0]) + 4, REG_ITMP2, s1);
+			N_ST(s3, OFFSET(java_longarray_t, data[0]) + 4, REG_ITMP2, s1);
 			break;
 
 		case ICMD_FASTORE:    /* ..., arrayref, index, value  ==> ...         */
@@ -2004,10 +2004,10 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz)) {
 					PROFILE_CYCLE_STOP;
 
-					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class, 0);
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz, 0);
 
 					PROFILE_CYCLE_START;
 				}
@@ -2056,9 +2056,9 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz)) {
 					PROFILE_CYCLE_STOP;
-					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class, disp);
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz, disp);
 					PROFILE_CYCLE_START;
 				}
   			}
@@ -2181,7 +2181,7 @@ bool codegen_emit(jitdata *jd)
 			}
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				((patchref_t *)list_first_unsynced(jd->code->patchers))->disp = (cd->mcodeptr - ref);
+				((patchref_t *)list_first(jd->code->patchers))->disp = (cd->mcodeptr - ref);
 			}
 
 			switch (fieldtype) {
@@ -2901,9 +2901,9 @@ gen_method:
 				}
 				else {
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
-						sizeof(methodptr*) * lm->class->index;
+						sizeof(methodptr*) * lm->clazz->index;
 
-					s2 = sizeof(methodptr) * (lm - lm->class->methods);
+					s2 = sizeof(methodptr) * (lm - lm->clazz->methods);
 				}
 
 				/* Implicit null-pointer check */

@@ -1,9 +1,7 @@
 /* src/vm/jit/arm/asmpart.S - Java-C interface functions for ARM
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -302,7 +300,9 @@ asm_abstractmethoderror:
 *                                                                              *
 *******************************************************************************/
 
-.equ sys_cacheflush,__ARM_NR_cacheflush /* syscall number for cache flushing  */
+L___ARM_NR_cacheflush:
+	.align 2
+	.word __ARM_NR_cacheflush
 
 asm_cacheflush:
 	add   a1, a0, a1
@@ -313,20 +313,17 @@ asm_cacheflush:
 	   see "http://wiki.debian.org/ArmEabiPort" for additional details. */
 
 	stmfd sp!, {r7}
-	mov   r7, #0x0f0000
-	add   r7, r7, #0x000002
-#endif
-
-#if 0
+	ldr   r7, L___ARM_NR_cacheflush
+	swi   0x0
+	ldmfd sp!, {r7}
+#else
+# if 0
 	/* TWISTI: required on iyonix, maybe a linux-2.4 bug */
 	mov   a0, #0x0
 	mov   a1, #0xff000000
-#endif
+# endif
 
-	swi   sys_cacheflush
-
-#if defined(__ARM_EABI__)
-	ldmfd sp!, {r7}
+	swi   __ARM_NR_cacheflush
 #endif
 
 	mov   pc, lr

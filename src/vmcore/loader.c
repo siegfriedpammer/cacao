@@ -197,28 +197,35 @@ void loader_init(void)
 		load_class_bootstrap(utf_new_char("java/lang/VMThrowable"));
 #endif
 
+	/* Important system exceptions. */
+
+	class_java_lang_Exception  = load_class_bootstrap(utf_java_lang_Exception);
+
+	class_java_lang_ClassNotFoundException =
+		load_class_bootstrap(utf_java_lang_ClassNotFoundException);
+
+	class_java_lang_RuntimeException =
+		load_class_bootstrap(utf_java_lang_RuntimeException);
+
 	/* Some classes which may be used often. */
 
 #if defined(ENABLE_JAVASE)
-	class_java_lang_StackTraceElement =
-		load_class_bootstrap(utf_java_lang_StackTraceElement);
+	class_java_lang_StackTraceElement      = load_class_bootstrap(utf_java_lang_StackTraceElement);
 
-	class_java_lang_reflect_Constructor =
-		load_class_bootstrap(utf_java_lang_reflect_Constructor);
+	class_java_lang_reflect_Constructor    = load_class_bootstrap(utf_java_lang_reflect_Constructor);
+	class_java_lang_reflect_Field          = load_class_bootstrap(utf_java_lang_reflect_Field);
+	class_java_lang_reflect_Method         = load_class_bootstrap(utf_java_lang_reflect_Method);
 
-	class_java_lang_reflect_Field =
-		load_class_bootstrap(utf_java_lang_reflect_Field);
+# if defined(WITH_CLASSPATH_GNU)
+	class_java_lang_reflect_VMConstructor  = load_class_bootstrap(utf_java_lang_reflect_VMConstructor);
+	class_java_lang_reflect_VMField        = load_class_bootstrap(utf_java_lang_reflect_VMField);
+	class_java_lang_reflect_VMMethod       = load_class_bootstrap(utf_java_lang_reflect_VMMethod);
+# endif
 
-	class_java_lang_reflect_Method =
-		load_class_bootstrap(utf_java_lang_reflect_Method);
+	class_java_security_PrivilegedAction   = load_class_bootstrap(utf_new_char("java/security/PrivilegedAction"));
 
-	class_java_security_PrivilegedAction =
-		load_class_bootstrap(utf_new_char("java/security/PrivilegedAction"));
-
-	class_java_util_HashMap = 
-		load_class_bootstrap(utf_new_char("java/util/HashMap"));
-
-	class_java_util_Vector     = load_class_bootstrap(utf_java_util_Vector);
+	class_java_util_HashMap                = load_class_bootstrap(utf_new_char("java/util/HashMap"));
+	class_java_util_Vector                 = load_class_bootstrap(utf_java_util_Vector);
 
 # if defined(WITH_CLASSPATH_SUN)
 	class_sun_reflect_MagicAccessorImpl =
@@ -251,7 +258,7 @@ void loader_init(void)
 
 *******************************************************************************/
 
-classloader *loader_hashtable_classloader_add(java_handle_t *cl)
+classloader_t *loader_hashtable_classloader_add(java_handle_t *cl)
 {
 	hashtable_classloader_entry *cle;
 	u4   key;
@@ -334,7 +341,7 @@ classloader *loader_hashtable_classloader_add(java_handle_t *cl)
 
 *******************************************************************************/
 
-classloader *loader_hashtable_classloader_find(java_handle_t *cl)
+classloader_t *loader_hashtable_classloader_find(java_handle_t *cl)
 {
 	hashtable_classloader_entry *cle;
 	u4   key;
@@ -538,7 +545,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 	u1 *cptags;
 	voidptr *cpinfos;
 
-	c = cb->class;
+	c = cb->clazz;
 
 	/* number of entries in the constant_pool table plus one */
 	if (!suck_check_classbuffer_size(cb, 2))
@@ -930,7 +937,7 @@ bool loader_load_attribute_signature(classbuffer *cb, utf **signature)
 
 	/* get classinfo */
 
-	c = cb->class;
+	c = cb->clazz;
 
 	/* check remaining bytecode */
 
@@ -980,7 +987,7 @@ classinfo *load_class_from_sysloader(utf *name)
 {
 	methodinfo    *m;
 	java_handle_t *clo;
-	classloader   *cl;
+	classloader_t *cl;
 	classinfo     *c;
 
 	assert(class_java_lang_Object);
@@ -1023,7 +1030,7 @@ classinfo *load_class_from_sysloader(utf *name)
 
 *******************************************************************************/
 
-classinfo *load_class_from_classloader(utf *name, classloader *cl)
+classinfo *load_class_from_classloader(utf *name, classloader_t *cl)
 {
 	java_handle_t *o;
 	classinfo     *c;
@@ -1395,7 +1402,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* Get the classbuffer's class. */
 
-	c = cb->class;
+	c = cb->clazz;
 
 	if (!suck_check_classbuffer_size(cb, 4 + 2 + 2))
 		return false;
@@ -1643,8 +1650,10 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		/* XXX This should be done better. */
 		tc = resolve_classref_or_classinfo_eager(CLASSREF_OR_CLASSINFO(cr), false);
 
-		if (tc == NULL)
+		if (tc == NULL) {
+			resolve_handle_pending_exception(true);
 			return false;
+		}
 
 		/* Interfaces are not allowed as super classes. */
 
@@ -1678,8 +1687,10 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		/* XXX This should be done better. */
 		tc = resolve_classref_or_classinfo_eager(CLASSREF_OR_CLASSINFO(cr), false);
 
-		if (tc == NULL)
+		if (tc == NULL) {
+			resolve_handle_pending_exception(true);
 			return false;
+		}
 
 		/* Detect circularity. */
 
@@ -1719,7 +1730,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		methodinfo *m = &c->methods[i];
 		m->parseddesc =
 			descriptor_pool_parse_method_descriptor(descpool, m->descriptor,
-													m->flags, class_get_self_classref(m->class));
+													m->flags, class_get_self_classref(m->clazz));
 		if (!m->parseddesc)
 			return false;
 
@@ -1941,7 +1952,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	/* Get the classbuffer's class. */
 
-	c = cb->class;
+	c = cb->clazz;
 
 	/* Check if the class is already loaded. */
 
@@ -2022,7 +2033,7 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 *******************************************************************************/
 
-classinfo *load_newly_created_array(classinfo *c, classloader *loader)
+classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 {
 	classinfo         *comp = NULL;
 	methodinfo        *clone;
@@ -2164,7 +2175,7 @@ classinfo *load_newly_created_array(classinfo *c, classloader *loader)
 	clone->name       = utf_clone;
 	clone->descriptor = utf_void__java_lang_Object;
 	clone->parseddesc = clonedesc;
-	clone->class      = c;
+	clone->clazz      = c;
 
 	/* parse the descriptor to get the register allocation */
 

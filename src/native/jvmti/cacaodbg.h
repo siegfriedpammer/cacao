@@ -1,9 +1,7 @@
 /* src/native/jvmti/cacaodbg.h - contains cacao specifics for debugging support
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,18 +20,13 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Martin Platter
-
-   Changes:
-
 */
 
 #ifndef _CACAODBG_H
 #define _CACAODBG_H
 
-#include "threads/native/threads.h"
+#include "threads/mutex.h"
+#include "threads/thread.h"
 #include "native/jvmti/jvmti.h"
 #include "native/include/java_lang_String.h"
 #include <ltdl.h>
@@ -120,7 +113,7 @@ cacaodbgcommunication *dbgcom;
 
 bool jvmti;                 /* jvmti agent  */
 
-extern pthread_mutex_t dbgcomlock;
+extern mutex_t dbgcomlock;
 
 jvmtiEnv* jvmti_new_environment();
 void jvmti_set_phase(jvmtiPhase p);

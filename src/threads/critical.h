@@ -50,9 +50,6 @@ typedef struct critical_section_node_t critical_section_node_t;
 
    A node representing a restartable critical section.
 
-   CAUTION: This order must not be changed, it is used in
-            asm_criticalsections!
-
 *******************************************************************************/
 
 struct critical_section_node_t {

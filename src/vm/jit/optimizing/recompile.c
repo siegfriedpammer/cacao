@@ -1,6 +1,7 @@
 /* src/vm/jit/optimizing/recompile.c - recompilation system
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -32,7 +33,7 @@
 #include "mm/memory.h"
 
 #include "threads/lock-common.h"
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "toolbox/list.h"
 

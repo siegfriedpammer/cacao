@@ -56,6 +56,7 @@ libarch_la_SOURCES = \
 	\
 	md-abi.c \
 	md-abi.h \
+	md-trap.h \
 	md.c \
 	md.h
 

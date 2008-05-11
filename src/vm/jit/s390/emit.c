@@ -1,9 +1,7 @@
 /* src/vm/jit/s390/emit.c - s390 code emitter functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -29,13 +27,19 @@
 #include <assert.h>
 #include <stdint.h>
 
+#include "vm/jit/s390/codegen.h"
+#include "vm/jit/s390/emit.h"
+#include "vm/jit/s390/md-abi.h"
+
 #include "mm/memory.h"
-#if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
-#endif
+
+#include "threads/lock-common.h"
+
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/types.h"
+
 #include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
@@ -45,11 +49,10 @@
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/trace.h"
-#include "vm/jit/s390/codegen.h"
-#include "vm/jit/s390/emit.h"
-#include "vm/jit/s390/md-abi.h"
-#include "vm/types.h"
+#include "vm/jit/trap.h"
+
 #include "vmcore/options.h"
+
 
 /* emit_load *******************************************************************
 
@@ -229,7 +232,7 @@ uint32_t emit_trap(codegendata *cd)
 
 	mcode = *((u2 *) cd->mcodeptr);
 
-	M_ILL(EXCEPTION_HARDWARE_PATCHER);
+	M_ILL(TRAP_PATCHER);
 
 	return mcode;
 }
@@ -685,11 +688,12 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt) {
 	}
 }
 
-void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg) {
+void emit_arithmetic_check(codegendata *cd, instruction *iptr, s4 reg)
+{
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TEST(reg);
 		M_BNE(SZ_BRC + SZ_ILL);
-		M_ILL(EXCEPTION_HARDWARE_ARITHMETIC);
+		M_ILL(TRAP_ArithmeticException);
 	}
 }
 
@@ -707,7 +711,7 @@ void emit_arrayindexoutofbounds_check(codegendata *cd, instruction *iptr, s4 s1,
 		 */
 		N_CL(s2, OFFSET(java_array_t, size), RN, s1);
         M_BLT(SZ_BRC + SZ_ILL);
-		M_ILL2(s2, EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS);
+		M_ILL2(s2, TRAP_ArrayIndexOutOfBoundsException);
 	}
 }
 
@@ -723,7 +727,7 @@ void emit_arraystore_check(codegendata *cd, instruction *iptr)
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TEST(REG_RESULT);
 		M_BNE(SZ_BRC + SZ_ILL);
-		M_ILL(EXCEPTION_HARDWARE_ARRAYSTORE);
+		M_ILL(TRAP_ArrayStoreException);
 	}
 }
 
@@ -746,23 +750,25 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 			default:
 				vm_abort("emit_classcast_check: unknown condition %d", condition);
 		}
-		M_ILL2(s1, EXCEPTION_HARDWARE_CLASSCAST);
+		M_ILL2(s1, TRAP_ClassCastException);
 	}
 }
 
-void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg) {
+void emit_nullpointer_check(codegendata *cd, instruction *iptr, s4 reg)
+{
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TEST(reg);
 		M_BNE(SZ_BRC + SZ_ILL);
-		M_ILL(EXCEPTION_HARDWARE_NULLPOINTER);
+		M_ILL(TRAP_NullPointerException);
 	}
 }
 
-void emit_exception_check(codegendata *cd, instruction *iptr) {
+void emit_exception_check(codegendata *cd, instruction *iptr)
+{
 	if (INSTRUCTION_MUST_CHECK(iptr)) {
 		M_TEST(REG_RESULT);
 		M_BNE(SZ_BRC + SZ_ILL);
-		M_ILL(EXCEPTION_HARDWARE_EXCEPTION);
+		M_ILL(TRAP_CHECK_EXCEPTION);
 	}
 }
 
@@ -808,7 +814,7 @@ void emit_restore_pv(codegendata *cd) {
 
 void emit_trap_compiler(codegendata *cd)
 {
-	M_ILL2(REG_METHODPTR, EXCEPTION_HARDWARE_COMPILER);
+	M_ILL2(REG_METHODPTR, TRAP_COMPILER);
 }
 
 /*

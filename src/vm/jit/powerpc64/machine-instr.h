@@ -20,7 +20,6 @@ static inline long compare_and_swap(long *p, long oldval, long newval)
 }
 
 #define STORE_ORDER_BARRIER() __asm__ __volatile__ ("" : : : "memory");
-#define MEMORY_BARRIER_BEFORE_ATOMIC() __asm__ __volatile__ ("sync" : : : "memory");
 #define MEMORY_BARRIER_AFTER_ATOMIC() __asm__ __volatile__ ("isync" : : : "memory");
 #define MEMORY_BARRIER() __asm__ __volatile__ ( "sync" : : : "memory" );
 

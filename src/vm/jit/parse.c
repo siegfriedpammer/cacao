@@ -1,9 +1,7 @@
 /* src/vm/jit/parse.c - parser for JavaVM to intermediate code translation
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -567,31 +565,31 @@ fetch_opcode:
 		pushconstantitem:
 
 #if defined(ENABLE_VERIFIER)
-			if (i >= m->class->cpcount) {
+			if (i >= m->clazz->cpcount) {
 				exceptions_throw_verifyerror(m,
 					"Attempt to access constant outside range");
 				return false;
 			}
 #endif
 
-			switch (m->class->cptags[i]) {
+			switch (m->clazz->cptags[i]) {
 			case CONSTANT_Integer:
-				OP_LOADCONST_I(((constant_integer *) (m->class->cpinfos[i]))->value);
+				OP_LOADCONST_I(((constant_integer *) (m->clazz->cpinfos[i]))->value);
 				break;
 			case CONSTANT_Long:
-				OP_LOADCONST_L(((constant_long *) (m->class->cpinfos[i]))->value);
+				OP_LOADCONST_L(((constant_long *) (m->clazz->cpinfos[i]))->value);
 				break;
 			case CONSTANT_Float:
-				OP_LOADCONST_F(((constant_float *) (m->class->cpinfos[i]))->value);
+				OP_LOADCONST_F(((constant_float *) (m->clazz->cpinfos[i]))->value);
 				break;
 			case CONSTANT_Double:
-				OP_LOADCONST_D(((constant_double *) (m->class->cpinfos[i]))->value);
+				OP_LOADCONST_D(((constant_double *) (m->clazz->cpinfos[i]))->value);
 				break;
 			case CONSTANT_String:
-				OP_LOADCONST_STRING(literalstring_new((utf *) (m->class->cpinfos[i])));
+				OP_LOADCONST_STRING(literalstring_new((utf *) (m->clazz->cpinfos[i])));
 				break;
 			case CONSTANT_Class:
-				cr = (constant_classref *) (m->class->cpinfos[i]);
+				cr = (constant_classref *) (m->clazz->cpinfos[i]);
 
 				if (!resolve_classref(m, cr, resolveLazy, true, true, &c))
 					return false;
@@ -894,7 +892,7 @@ fetch_opcode:
 
 		case BC_anewarray:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			compr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
+			compr = (constant_classref *) class_getconstant(m->clazz, i, CONSTANT_Class);
 			if (compr == NULL)
 				return false;
 
@@ -915,7 +913,7 @@ fetch_opcode:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
  			j = SUCK_BE_U1(m->jcode + bcindex + 3);
   
- 			cr = (constant_classref *) class_getconstant(m->class, i, CONSTANT_Class);
+ 			cr = (constant_classref *) class_getconstant(m->clazz, i, CONSTANT_Class);
  			if (cr == NULL)
  				return false;
   
@@ -1159,7 +1157,7 @@ jsr_tail:
 		case BC_getfield:
 		case BC_putfield:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			fmi = class_getconstant(m->class, i, CONSTANT_Fieldref);
+			fmi = class_getconstant(m->clazz, i, CONSTANT_Fieldref);
 
 			if (fmi == NULL)
 				return false;
@@ -1178,7 +1176,7 @@ jsr_tail:
 					return false;
 
 				if (result != resolveSucceeded) {
-					uf = resolve_create_unresolved_field(m->class, m, iptr);
+					uf = resolve_create_unresolved_field(m->clazz, m, iptr);
 
 					if (uf == NULL)
 						return false;
@@ -1201,7 +1199,7 @@ jsr_tail:
 			OP_PREPARE_ZEROFLAGS(opcode);
 
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			fmi = class_getconstant(m->class, i, CONSTANT_Methodref);
+			fmi = class_getconstant(m->clazz, i, CONSTANT_Methodref);
 
 			if (fmi == NULL)
 				return false;
@@ -1218,7 +1216,7 @@ jsr_tail:
 			OP_PREPARE_FLAGS(opcode, INS_FLAG_CHECK);
 
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			fmi = class_getconstant(m->class, i, CONSTANT_Methodref);
+			fmi = class_getconstant(m->clazz, i, CONSTANT_Methodref);
 
 			goto invoke_nonstatic_method;
 
@@ -1226,7 +1224,7 @@ jsr_tail:
 			OP_PREPARE_ZEROFLAGS(opcode);
 
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			fmi = class_getconstant(m->class, i, CONSTANT_InterfaceMethodref);
+			fmi = class_getconstant(m->clazz, i, CONSTANT_InterfaceMethodref);
 
 			goto invoke_nonstatic_method;
 
@@ -1234,7 +1232,7 @@ jsr_tail:
 			OP_PREPARE_ZEROFLAGS(opcode);
 
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			fmi = class_getconstant(m->class, i, CONSTANT_Methodref);
+			fmi = class_getconstant(m->clazz, i, CONSTANT_Methodref);
 
 invoke_nonstatic_method:
 			if (fmi == NULL)
@@ -1278,7 +1276,7 @@ invoke_method:
 					}
 				}
 				else {
-					um = resolve_create_unresolved_method(m->class, m, fmi,
+					um = resolve_create_unresolved_method(m->clazz, m, fmi,
 							(opcode == BC_invokestatic),
 							(opcode == BC_invokespecial));
 
@@ -1300,7 +1298,7 @@ invoke_method:
 
 		case BC_new:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			cr = class_getconstant(m->class, i, CONSTANT_Class);
+			cr = class_getconstant(m->clazz, i, CONSTANT_Class);
 
 			if (cr == NULL)
 				return false;
@@ -1317,7 +1315,7 @@ invoke_method:
 
 		case BC_checkcast:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			cr = class_getconstant(m->class, i, CONSTANT_Class);
+			cr = class_getconstant(m->clazz, i, CONSTANT_Class);
 
 			if (cr == NULL)
 				return false;
@@ -1339,7 +1337,7 @@ invoke_method:
 
 		case BC_instanceof:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			cr = class_getconstant(m->class, i, CONSTANT_Class);
+			cr = class_getconstant(m->clazz, i, CONSTANT_Class);
 
 			if (cr == NULL)
 				return false;
@@ -1824,7 +1822,10 @@ invoke_method:
 	{
 		s4 nlocals = 0;
 		s4 i;
+		s4 t;
+		s4 varindex;
 		s4 *mapptr;
+		s4 *reversemap;
 
 		mapptr = local_map;
 
@@ -1871,10 +1872,20 @@ invoke_method:
 		MZERO(jd->var, varinfo, jd->varcount);
 
 		/* set types of all locals in jd->var */
+		/* and fill the reverselocalmap       */
 
-		for (mapptr = local_map, i = 0; i < (m->maxlocals * 5); i++, mapptr++)
-			if (*mapptr != UNUSED)
-				VAR(*mapptr)->type = i%5;
+		reversemap = DMNEW(s4, nlocals);
+
+		for (i = 0; i < m->maxlocals; i++)
+			for (t=0; t<5; t++) {
+				varindex = local_map[5*i + t];
+				if (varindex != UNUSED) {
+					VAR(varindex)->type = t;
+					reversemap[varindex] = i;
+				}
+			}
+
+		jd->reverselocalmap = reversemap;
 	}
 
 	/* assign local variables to method variables */
@@ -1886,7 +1897,7 @@ invoke_method:
 
 	/* allocate stack table */
 
-	jd->stack = DMNEW(stackelement, jd->stackcount);
+	jd->stack = DMNEW(stackelement_t, jd->stackcount);
 
 	/* everything's ok */
 

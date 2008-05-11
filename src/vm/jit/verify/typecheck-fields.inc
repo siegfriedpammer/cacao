@@ -1,9 +1,7 @@
 /* src/vm/jit/verify/typecheck-fields.inc - type checking for field ICMDs
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,20 +20,14 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Edwin Steiner
-
-   Changes: 
-
 */
 
 
 {
 	unresolved_field *uf;
 	constant_FMIref *fieldref;
-	typeinfo *instanceti;
-	typeinfo *valueti;
+	typeinfo_t *instanceti;
+	typeinfo_t *valueti;
 #if !defined(TYPECHECK_TYPEINFERER)
 	resolve_result_t result;
 #endif
@@ -74,7 +66,7 @@
 		fi  = fieldref->p.field;
 
 		result = resolve_field_verifier_checks(
-				state->m, fieldref, fi->class, fi,
+				state->m, fieldref, fi->clazz, fi,
 				instanceti, valueti,
 				(instance == NULL),
 				(value != NULL));
@@ -87,7 +79,7 @@
 
 	if (result != resolveSucceeded) {
 		if (!uf) {
-			uf = resolve_create_unresolved_field(state->m->class, 
+			uf = resolve_create_unresolved_field(state->m->clazz, 
 					state->m, state->iptr);
 			if (!uf)
 				EXCEPTION;
@@ -99,13 +91,13 @@
 		/* record the subtype constraints for this field access */
 
 		if (!resolve_constrain_unresolved_field(
-					uf, state->m->class, state->m,
+					uf, state->m->clazz, state->m,
 					instanceti, valueti))
 			EXCEPTION; /* XXX maybe wrap exception? */
 
 		TYPECHECK_COUNTIF(INSTRUCTION_IS_UNRESOLVED(state->iptr),stat_ins_field_unresolved);
 		TYPECHECK_COUNTIF(INSTRUCTION_IS_RESOLVED(state->iptr) && 
-				!state->iptr->sx.s23.s3.fmiref->p.field->class->initialized,
+				!state->iptr->sx.s23.s3.fmiref->p.field->clazz->initialized,
 				stat_ins_field_uninitialized);
 	}
 #endif /* !defined(TYPECHECK_TYPEINFERER) */
@@ -114,7 +106,7 @@
 
 	if (value == NULL) {
 #if defined(TYPECHECK_STACKBASED)
-		typedescriptor *dv;
+		typedescriptor_t *dv;
 
 		if (IS_2_WORD_TYPE(fieldref->parseddesc.fd->type)) {
 			CHECK_STACK_SPACE(2);

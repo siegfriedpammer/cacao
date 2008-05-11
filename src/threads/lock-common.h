@@ -32,7 +32,7 @@
 #include "vm/global.h"
 
 #if defined(ENABLE_THREADS)
-# include "threads/native/lock.h"
+# include "threads/posix/lock.h"
 #else
 # include "threads/none/lock.h"
 #endif

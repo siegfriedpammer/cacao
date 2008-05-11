@@ -1,9 +1,7 @@
 /* src/vm/jit/arm/codegen.c - machine code generator for Arm
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -280,7 +278,7 @@ bool codegen_emit(jitdata *jd)
 		/* get the correct lock object */
 
 		if (m->flags & ACC_STATIC) {
-			disp = dseg_add_address(cd, &m->class->object.header);
+			disp = dseg_add_address(cd, &m->clazz->object.header);
 			M_DSEG_LOAD(REG_A0, disp);
 		}
 		else {
@@ -1385,9 +1383,9 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz)) {
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
-					                    fi->class, 0);
+					                    fi->clazz, 0);
 				}
 			}
 
@@ -1438,9 +1436,9 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class)) {
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz)) {
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
-					                    fi->class, 0);
+					                    fi->clazz, 0);
 				}
 			}
 
@@ -2313,8 +2311,8 @@ bool codegen_emit(jitdata *jd)
 				}
 				else {
 					s1 = OFFSET(vftbl_t, interfacetable[0]) -
-						sizeof(methodptr*) * lm->class->index;
-					s2 = sizeof(methodptr) * (lm - lm->class->methods);
+						sizeof(methodptr*) * lm->clazz->index;
+					s2 = sizeof(methodptr) * (lm - lm->clazz->methods);
 				}
 
 				/* implicit null-pointer check */
@@ -2345,7 +2343,7 @@ bool codegen_emit(jitdata *jd)
 			   our ENABLE_SOFTFLOAT define */
 			if (iptr->opc == ICMD_BUILTIN && d != TYPE_VOID && IS_FLT_DBL_TYPE(d)) {
 #if 0 && !defined(NDEBUG)
-				dolog("BUILTIN that returns float or double (%s.%s)", m->class->name->text, m->name->text);
+				dolog("BUILTIN that returns float or double (%s.%s)", m->clazz->name->text, m->name->text);
 #endif
 				/* we cannot use this macro, since it is not defined
 				   in ENABLE_SOFTFLOAT M_CAST_FLT_TO_INT_TYPED(d,
@@ -3024,7 +3022,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* this depends on gcc; it is independent from our ENABLE_SOFTFLOAT define */
 	if (md->returntype.type != TYPE_VOID && IS_FLT_DBL_TYPE(md->returntype.type)) {
 #if 0 && !defined(NDEBUG)
-		dolog("NATIVESTUB that returns float or double (%s.%s)", m->class->name->text, m->name->text);
+		dolog("NATIVESTUB that returns float or double (%s.%s)", m->clazz->name->text, m->name->text);
 #endif
 		/* we cannot use this macro, since it is not defined in ENABLE_SOFTFLOAT */
 		/* M_CAST_FLT_TO_INT_TYPED(md->returntype.type, REG_FRESULT, REG_RESULT_TYPED(md->returntype.type)); */

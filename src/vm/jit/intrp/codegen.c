@@ -350,7 +350,7 @@ bool intrp_codegen(jitdata *jd)
 #if defined(ENABLE_THREADS)
 	if (checksync && code_is_synchronized(code)) {
 		if (m->flags & ACC_STATIC) {
-			gen_ACONST(cd, (java_objectheader *) m->class);
+			gen_ACONST(cd, (java_objectheader *) m->clazz);
 		}
 		else {
 			gen_ALOAD(cd, 0);
@@ -1104,7 +1104,7 @@ dont_opt_IF_LCMPxx:
 			case TYPE_INT:
 				if (fi == NULL)
 					gen_PATCHER_GETSTATIC_INT(cd, 0, uf);
-				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
 					gen_PATCHER_GETSTATIC_CLINIT_INT(cd, 0, fi);
 				else
 					gen_GETSTATIC_INT(cd, (u1 *) &(fi->value.i), fi);
@@ -1112,7 +1112,7 @@ dont_opt_IF_LCMPxx:
 			case TYPE_FLT:
 				if (fi == NULL)
 					gen_PATCHER_GETSTATIC_FLOAT(cd, 0, uf);
-				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
 					gen_PATCHER_GETSTATIC_CLINIT_FLOAT(cd, 0, fi);
 				else
 					gen_GETSTATIC_FLOAT(cd, (u1 *) &(fi->value.i), fi);
@@ -1121,7 +1121,7 @@ dont_opt_IF_LCMPxx:
 			case TYPE_DBL:
 				if (fi == NULL)
 					gen_PATCHER_GETSTATIC_LONG(cd, 0, uf);
-				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
 					gen_PATCHER_GETSTATIC_CLINIT_LONG(cd, 0, fi);
 				else
 					gen_GETSTATIC_LONG(cd, (u1 *) &(fi->value.l), fi);
@@ -1129,7 +1129,7 @@ dont_opt_IF_LCMPxx:
 			case TYPE_ADR:
 				if (fi == NULL)
 					gen_PATCHER_GETSTATIC_CELL(cd, 0, uf);
-				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
 					gen_PATCHER_GETSTATIC_CLINIT_CELL(cd, 0, fi);
 				else
 					gen_GETSTATIC_CELL(cd, (u1 *) &(fi->value.a), fi);
@@ -1155,7 +1155,7 @@ dont_opt_IF_LCMPxx:
 			case TYPE_INT:
 				if (fi == NULL)
 					gen_PATCHER_PUTSTATIC_INT(cd, 0, uf);
-				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
 					gen_PATCHER_PUTSTATIC_CLINIT_INT(cd, 0, fi);
 				else
 					gen_PUTSTATIC_INT(cd, (u1 *) &(fi->value.i), fi);
@@ -1163,7 +1163,7 @@ dont_opt_IF_LCMPxx:
 			case TYPE_FLT:
 				if (fi == NULL)
 					gen_PATCHER_PUTSTATIC_FLOAT(cd, 0, uf);
-				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
 					gen_PATCHER_PUTSTATIC_CLINIT_FLOAT(cd, 0, fi);
 				else
 					gen_PUTSTATIC_FLOAT(cd, (u1 *) &(fi->value.i), fi);
@@ -1172,7 +1172,7 @@ dont_opt_IF_LCMPxx:
 			case TYPE_DBL:
 				if (fi == NULL)
 					gen_PATCHER_PUTSTATIC_LONG(cd, 0, uf);
-				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
 					gen_PATCHER_PUTSTATIC_CLINIT_LONG(cd, 0, fi);
 				else
 					gen_PUTSTATIC_LONG(cd, (u1 *) &(fi->value.l), fi);
@@ -1180,7 +1180,7 @@ dont_opt_IF_LCMPxx:
 			case TYPE_ADR:
 				if (fi == NULL)
 					gen_PATCHER_PUTSTATIC_CELL(cd, 0, uf);
-				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
+				else if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
 					gen_PATCHER_PUTSTATIC_CLINIT_CELL(cd, 0, fi);
 				else
 					gen_PUTSTATIC_CELL(cd, (u1 *) &(fi->value.a), fi);
@@ -1515,7 +1515,7 @@ dont_opt_IF_LCMPxx:
 #if defined(ENABLE_THREADS)
 			if (checksync && code_is_synchronized(code)) {
 				if (m->flags & ACC_STATIC) {
-					gen_ACONST(cd, (java_objectheader *) m->class);
+					gen_ACONST(cd, (java_objectheader *) m->clazz);
 				} else {
 					gen_ALOAD(cd, index2offset(m->maxlocals));
 				}
@@ -1534,7 +1534,7 @@ dont_opt_IF_LCMPxx:
 #if defined(ENABLE_THREADS)
 			if (checksync && code_is_synchronized(code)) {
 				if (m->flags & ACC_STATIC) {
-					gen_ACONST(cd, (java_objectheader *) m->class);
+					gen_ACONST(cd, (java_objectheader *) m->clazz);
 				} else {
 					gen_ALOAD(cd, index2offset(m->maxlocals));
 				}
@@ -1552,7 +1552,7 @@ dont_opt_IF_LCMPxx:
 #if defined(ENABLE_THREADS)
 			if (checksync && code_is_synchronized(code)) {
 				if (m->flags & ACC_STATIC) {
-					gen_ACONST(cd, (java_objectheader *) m->class);
+					gen_ACONST(cd, (java_objectheader *) m->clazz);
 				} else {
 					gen_ALOAD(cd, index2offset(m->maxlocals));
 				}
@@ -1717,9 +1717,9 @@ dont_opt_IF_LCMPxx:
 				md = lm->parseddesc;
 
 				s1 = OFFSET(vftbl_t, interfacetable[0]) -
-					sizeof(methodptr*) * lm->class->index;
+					sizeof(methodptr*) * lm->clazz->index;
 
-				s2 = sizeof(methodptr) * (lm - lm->class->methods);
+				s2 = sizeof(methodptr) * (lm - lm->clazz->methods);
 
 				gen_INVOKEINTERFACE(cd, s1, s2, md->paramslots, lm);
 			}
@@ -2088,7 +2088,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 	av_ptr(alist, _Jv_JNIEnv *, _Jv_env);
 
 	if (m->flags & ACC_STATIC)
-		av_ptr(alist, classinfo *, m->class);
+		av_ptr(alist, classinfo *, m->clazz);
 
 	for (i = 0, p = sp + md->paramslots; i < md->paramcount; i++) {
 		switch (md->paramtypes[i].type) {
@@ -2156,7 +2156,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 	/* for static methods, pass class pointer */
 
 	if (m->flags & ACC_STATIC)
-		*pvalues++ = &m->class;
+		*pvalues++ = &m->clazz;
 
 	/* pass parameter to native function */
 

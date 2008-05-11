@@ -1,3 +1,4 @@
+#if 0
 static void debug_dump_inline_context(inline_node *iln)
 {
 	assert(iln->indent);
@@ -5,6 +6,7 @@ static void debug_dump_inline_context(inline_node *iln)
 	printf("%sinline_context @%p: \n",
 			iln->indent, (void*)iln->ctx);
 }
+#endif
 
 
 static void dump_inline_tree(inline_node *iln, s4 blocknr)

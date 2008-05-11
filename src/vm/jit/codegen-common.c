@@ -75,7 +75,7 @@
 
 #include "native/include/java_lang_Class.h"
 
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -95,6 +95,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/methodtree.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
 #if defined(ENABLE_SSA)
@@ -119,11 +120,6 @@
 
 #include "show.h"
 
-/* in this tree we store all method addresses *********************************/
-
-static avl_tree_t *methodtree = NULL;
-static s4 methodtree_comparator(const void *treenode, const void *node);
-
 
 /* codegen_init ****************************************************************
 
@@ -133,28 +129,6 @@ static s4 methodtree_comparator(const void *treenode, const void *node);
 
 void codegen_init(void)
 {
-	/* this tree is global, not method specific */
-
-	if (!methodtree) {
-#if defined(ENABLE_JIT)
-		methodtree_element *mte;
-#endif
-
-		methodtree = avl_create(&methodtree_comparator);
-
-#if defined(ENABLE_JIT)
-		/* insert asm_vm_call_method */
-
-		mte = NEW(methodtree_element);
-
-		mte->startpc = (u1 *) (ptrint) asm_vm_call_method;
-		mte->endpc   = (u1 *) (ptrint) asm_vm_call_method_end;
-
-		avl_insert(methodtree, mte);
-#endif /* defined(ENABLE_JIT) */
-
-	}
-
 }
 
 
@@ -497,13 +471,13 @@ void codegen_resolve_branchrefs(codegendata *cd, basicblock *bptr)
 
 void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options)
 {
-	list_t             *list;
+	list_t             *l;
 	branch_label_ref_t *br;
 	s4                  mpc;
 
-	/* get the label list */
+	/* Get the label list. */
 
-	list = cd->brancheslabel;
+	l = cd->brancheslabel;
 	
 	/* calculate the current mpc */
 
@@ -517,9 +491,9 @@ void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u
 	br->reg       = reg;
 	br->options   = options;
 
-	/* add the branch to the list */
+	/* Add the branch to the list. */
 
-	list_add_last_unsynced(list, br);
+	list_add_last(l, br);
 }
 
 
@@ -533,13 +507,13 @@ void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u
 #if defined(ENABLE_THREADS)
 void codegen_critical_section_new(codegendata *cd)
 {
-	list_t                 *list;
+	list_t                 *l;
 	critical_section_ref_t *csr;
 	s4                      mpc;
 
-	/* get the critical section list */
+	/* Get the critical section list. */
 
-	list = cd->listcritical;
+	l = cd->listcritical;
 	
 	/* calculate the current mpc */
 
@@ -554,9 +528,9 @@ void codegen_critical_section_new(codegendata *cd)
 	csr->end     = -1;
 	csr->restart = mpc;
 
-	/* add the branch to the list */
+	/* Add the branch to the list. */
 
-	list_add_last_unsynced(list, csr);
+	list_add_last(l, csr);
 }
 #endif
 
@@ -571,21 +545,21 @@ void codegen_critical_section_new(codegendata *cd)
 #if defined(ENABLE_THREADS)
 void codegen_critical_section_start(codegendata *cd)
 {
-	list_t                 *list;
+	list_t                 *l;
 	critical_section_ref_t *csr;
 	s4                      mpc;
 
-	/* get the critical section list */
+	/* Get the critical section list. */
 
-	list = cd->listcritical;
+	l = cd->listcritical;
 	
 	/* calculate the current mpc */
 
 	mpc = cd->mcodeptr - cd->mcodebase;
 
-	/* get the current critical section */
+	/* Get the current critical section. */
 
-	csr = list_last_unsynced(list);
+	csr = list_last(l);
 
 	/* set the start point */
 
@@ -606,21 +580,21 @@ void codegen_critical_section_start(codegendata *cd)
 #if defined(ENABLE_THREADS)
 void codegen_critical_section_end(codegendata *cd)
 {
-	list_t                 *list;
+	list_t                 *l;
 	critical_section_ref_t *csr;
 	s4                      mpc;
 
-	/* get the critical section list */
+	/* Get the critical section list. */
 
-	list = cd->listcritical;
+	l = cd->listcritical;
 	
 	/* calculate the current mpc */
 
 	mpc = cd->mcodeptr - cd->mcodebase;
 
-	/* get the current critical section */
+	/* Get the current critical section. */
 
-	csr = list_last_unsynced(list);
+	csr = list_last(l);
 
 	/* set the end point */
 
@@ -643,7 +617,7 @@ static void codegen_critical_section_finish(jitdata *jd)
 {
 	codeinfo    *code;
 	codegendata *cd;
-	list_t                  *list;
+	list_t                  *l;
 	critical_section_ref_t  *csr;
 	critical_section_node_t *csn;
 
@@ -652,14 +626,13 @@ static void codegen_critical_section_finish(jitdata *jd)
 	code = jd->code;
 	cd   = jd->cd;
 
-	/* get the critical section list */
+	/* Get the critical section list. */
 
-	list = cd->listcritical;
+	l = cd->listcritical;
 
 	/* iterate over all critical sections */
 
-	for (csr = list_first_unsynced(list); csr != NULL;
-		 csr = list_next_unsynced(list, csr)) {
+	for (csr = list_first(l); csr != NULL; csr = list_next(l, csr)) {
 		/* check if all points are set */
 
 		assert(csr->start   != -1);
@@ -680,154 +653,6 @@ static void codegen_critical_section_finish(jitdata *jd)
 	}
 }
 #endif
-
-
-/* methodtree_comparator *******************************************************
-
-   Comparator function used for the AVL tree of methods.
-
-   ARGUMENTS:
-      treenode....the node from the tree
-      node........the node to compare to the tree-node
-
-*******************************************************************************/
-
-static s4 methodtree_comparator(const void *treenode, const void *node)
-{
-	methodtree_element *mte;
-	methodtree_element *mtepc;
-
-	mte   = (methodtree_element *) treenode;
-	mtepc = (methodtree_element *) node;
-
-	/* compare both startpc and endpc of pc, even if they have the same value,
-	   otherwise the avl_probe sometimes thinks the element is already in the
-	   tree */
-
-#ifdef __S390__
-	/* On S390 addresses are 31 bit. Compare only 31 bits of value.
-	 */
-#	define ADDR_MASK(a) ((a) & 0x7FFFFFFF)
-#else
-#	define ADDR_MASK(a) (a)
-#endif
-
-	if (ADDR_MASK((long) mte->startpc) <= ADDR_MASK((long) mtepc->startpc) &&
-		ADDR_MASK((long) mtepc->startpc) <= ADDR_MASK((long) mte->endpc) &&
-		ADDR_MASK((long) mte->startpc) <= ADDR_MASK((long) mtepc->endpc) &&
-		ADDR_MASK((long) mtepc->endpc) <= ADDR_MASK((long) mte->endpc)) {
-		return 0;
-
-	} else if (ADDR_MASK((long) mtepc->startpc) < ADDR_MASK((long) mte->startpc)) {
-		return -1;
-
-	} else {
-		return 1;
-	}
-
-#	undef ADDR_MASK
-}
-
-
-/* codegen_insertmethod ********************************************************
-
-   Insert the machine code range of a method into the AVL tree of methods.
-
-*******************************************************************************/
-
-void codegen_insertmethod(u1 *startpc, u1 *endpc)
-{
-	methodtree_element *mte;
-
-	/* allocate new method entry */
-
-	mte = NEW(methodtree_element);
-
-	mte->startpc = startpc;
-	mte->endpc   = endpc;
-
-	/* this function does not return an error, but asserts for
-	   duplicate entries */
-
-	avl_insert(methodtree, mte);
-}
-
-
-/* codegen_get_pv_from_pc ******************************************************
-
-   Find the PV for the given PC by searching in the AVL tree of
-   methods.
-
-*******************************************************************************/
-
-u1 *codegen_get_pv_from_pc(u1 *pc)
-{
-	methodtree_element  mtepc;
-	methodtree_element *mte;
-
-	/* allocation of the search structure on the stack is much faster */
-
-	mtepc.startpc = pc;
-	mtepc.endpc   = pc;
-
-	mte = avl_find(methodtree, &mtepc);
-
-	if (mte == NULL) {
-		/* No method was found.  Let's dump a stacktrace. */
-
-#if defined(ENABLE_VMLOG)
-		vmlog_cacao_signl("SIGSEGV");
-#endif
-
-		log_println("We received a SIGSEGV and tried to handle it, but we were");
-		log_println("unable to find a Java method at:");
-		log_println("");
-#if SIZEOF_VOID_P == 8
-		log_println("PC=0x%016lx", pc);
-#else
-		log_println("PC=0x%08x", pc);
-#endif
-		log_println("");
-		assert(0);
-		log_println("Dumping the current stacktrace:");
-
-#if defined(ENABLE_THREADS)
-		/* XXX michi: This should be available even without threads! */
-		threads_print_stacktrace();
-#endif
-
-		vm_abort("Exiting...");
-	}
-
-	return mte->startpc;
-}
-
-
-/* codegen_get_pv_from_pc_nocheck **********************************************
-
-   Find the PV for the given PC by searching in the AVL tree of
-   methods.  This method does not check the return value and is used
-   by the profiler.
-
-*******************************************************************************/
-
-u1 *codegen_get_pv_from_pc_nocheck(u1 *pc)
-{
-	methodtree_element  mtepc;
-	methodtree_element *mte;
-
-	/* allocation of the search structure on the stack is much faster */
-
-	mtepc.startpc = pc;
-	mtepc.endpc   = pc;
-
-	mte = avl_find(methodtree, &mtepc);
-
-	if (mte == NULL)
-		return NULL;
-	else
-		return mte->startpc;
-}
 
 
 /* codegen_set_replacement_point_notrap ****************************************
@@ -906,7 +731,6 @@ void codegen_finish(jitdata *jd)
 #endif
 	s4           alignedmcodelen;
 	jumpref     *jr;
-	patchref_t  *pr;
 	u1          *epoint;
 	s4           alignedlen;
 
@@ -1012,12 +836,7 @@ void codegen_finish(jitdata *jd)
 
 	/* patcher resolving */
 
-	pr = list_first_unsynced(code->patchers);
-	while (pr) {
-		pr->mpc += (ptrint) epoint;
-		pr->datap = (ptrint) (pr->disp + epoint);
-		pr = list_next_unsynced(code->patchers, pr);
-	}
+	patcher_resolve(jd);
 
 #if defined(ENABLE_REPLACEMENT)
 	/* replacement point resolving */
@@ -1032,9 +851,9 @@ void codegen_finish(jitdata *jd)
 	}
 #endif /* defined(ENABLE_REPLACEMENT) */
 
-	/* add method into methodtree to find the entrypoint */
+	/* Insert method into methodtree to find the entrypoint. */
 
-	codegen_insertmethod(code->entrypoint, code->entrypoint + mcodelen);
+	methodtree_insert(code->entrypoint, code->entrypoint + mcodelen);
 
 #if defined(__I386__) || defined(__X86_64__) || defined(__XDSPCORE__) || defined(__M68K__) || defined(ENABLE_INTRP)
 	/* resolve data segment references */
@@ -1403,8 +1222,8 @@ codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f)
 void codegen_disassemble_stub(methodinfo *m, u1 *start, u1 *end)
 {
 	printf("Stub code: ");
-	if (m->class != NULL)
-		utf_fprint_printable_ascii_classname(stdout, m->class->name);
+	if (m->clazz != NULL)
+		utf_fprint_printable_ascii_classname(stdout, m->clazz->name);
 	else
 		printf("NULL");
 	printf(".");
@@ -1522,7 +1341,7 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 #endif
 
 #if !defined(NDEBUG)
-# if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__) || defined(__S390__)
+# if defined(__ALPHA__) || defined(__I386__) || defined(__M68K__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 	/* BEFORE: filling the local reference table */
 
@@ -1547,7 +1366,7 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 	/* Return a wrapped classinfo for static methods. */
 
 	if (m->flags & ACC_STATIC)
-		return (java_handle_t *) LLNI_classinfo_wrap(m->class);
+		return (java_handle_t *) LLNI_classinfo_wrap(m->clazz);
 	else
 		return NULL;
 }
@@ -1600,7 +1419,10 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 #elif defined(__I386__)
 	datasp   = sp + framesize;
 	ret_regs = (uint64_t *) (sp + 2 * SIZEOF_VOID_P);
-#elif defined(__M68K__) || defined(__X86_64__)
+#elif defined(__M68K__)
+	datasp   = sp + framesize;
+	ret_regs = (uint64_t *) (sp + 2 * 8);
+#elif defined(__X86_64__)
 	datasp   = sp + framesize;
 	ret_regs = (uint64_t *) sp;
 #elif defined(__POWERPC__)
@@ -1644,7 +1466,7 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 #endif
 
 #if !defined(NDEBUG)
-# if defined(__ALPHA__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__) || defined(__S390__)
+# if defined(__ALPHA__) || defined(__I386__) || defined(__M68K__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 	/* AFTER: unwrapping the return value */
 

@@ -1,9 +1,7 @@
 /* src/vm/jit/stack.c - stack analysis
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -118,7 +116,7 @@ typedef struct stackdata_t stackdata_t;
 
 struct stackdata_t {
     basicblock *bptr;             /* the current basic block being analysed   */
-    stackptr new;                 /* next free stackelement                   */
+    stackelement_t *new;          /* next free stackelement                   */
     s4 vartop;                    /* next free variable index                 */
     s4 localcount;                /* number of locals (at the start of var)   */
     s4 varcount;                  /* maximum number of variables expected     */
@@ -132,7 +130,7 @@ struct stackdata_t {
 	bool repeat;                  /* if true, iterate the analysis again      */
 	exception_entry **handlers;   /* exception handlers for the current block */
 	exception_entry *extableend;  /* points to the last exception entry       */
-	stackelement exstack;         /* instack for exception handlers           */
+	stackelement_t exstack;         /* instack for exception handlers           */
 };
 
 
@@ -509,7 +507,7 @@ struct stackdata_t {
 /* forward declarations *******************************************************/
 
 static void stack_create_invars(stackdata_t *sd, basicblock *b, 
-								stackptr curstack, int stackdepth);
+								stackelement_t * curstack, int stackdepth);
 static void stack_create_invars_from_outvars(stackdata_t *sd, basicblock *b);
 
 #if defined(STACK_VERBOSE)
@@ -519,7 +517,7 @@ static void stack_verbose_show_block(stackdata_t *sd, basicblock *bptr);
 static void stack_verbose_block_enter(stackdata_t *sd, bool reanalyse);
 static void stack_verbose_block_exit(stackdata_t *sd, bool superblockend);
 static void stack_verbose_show_state(stackdata_t *sd, instruction *iptr, 
-									 stackptr curstack);
+									 stackelement_t * curstack);
 #endif
 
 
@@ -744,9 +742,9 @@ static void stack_merge_locals(stackdata_t *sd, basicblock *b)
 *******************************************************************************/
 
 static void stack_create_invars(stackdata_t *sd, basicblock *b, 
-								stackptr curstack, int stackdepth)
+								stackelement_t * curstack, int stackdepth)
 {
-	stackptr sp;
+	stackelement_t * sp;
 	int i;
 	int index;
 	varinfo *dv;
@@ -831,10 +829,10 @@ static void stack_create_invars_from_outvars(stackdata_t *sd, basicblock *b)
 *******************************************************************************/
 
 static basicblock * stack_check_invars(stackdata_t *sd, basicblock *b,
-							  		   stackptr curstack, int stackdepth)
+							  		   stackelement_t * curstack, int stackdepth)
 {
 	int i;
-	stackptr sp;
+	stackelement_t * sp;
 	basicblock *orig;
 	bool separable;
 	varinfo *sv;
@@ -1068,9 +1066,9 @@ static basicblock * stack_check_invars_from_outvars(stackdata_t *sd, basicblock 
 
 *******************************************************************************/
 
-static stackptr stack_create_instack(stackdata_t *sd)
+static stackelement_t * stack_create_instack(stackdata_t *sd)
 {
-    stackptr sp;
+    stackelement_t * sp;
 	int depth;
 	int index;
 
@@ -1114,7 +1112,7 @@ static stackptr stack_create_instack(stackdata_t *sd)
 
 *******************************************************************************/
 
-static basicblock *stack_mark_reached(stackdata_t *sd, basicblock *b, stackptr curstack, int stackdepth) 
+static basicblock *stack_mark_reached(stackdata_t *sd, basicblock *b, stackelement_t * curstack, int stackdepth) 
 {
 	assert(b != NULL);
 
@@ -1233,6 +1231,9 @@ static bool stack_reach_next_block(stackdata_t *sd)
 		assert(iptr->opc == ICMD_NOP);
 		iptr->opc = ICMD_GOTO;
 		iptr->dst.block = tbptr;
+#if defined(STACK_VERBOSE)
+		if (iptr->line == 0) printf("goto with line 0 in L%03d\n", sd->bptr->nr);
+#endif
 
 		if (tbptr->flags < BBFINISHED)
 			sd->repeat = true; /* XXX check if we really need to repeat */
@@ -1880,7 +1881,7 @@ bool stack_reanalyse_block(stackdata_t *sd)
 
 *******************************************************************************/
 
-static void stack_change_to_tempvar(stackdata_t *sd, stackptr sp, 
+static void stack_change_to_tempvar(stackdata_t *sd, stackelement_t * sp, 
 									instruction *ilimit)
 {
 	s4 newindex;
@@ -2014,8 +2015,8 @@ bool stack_analyse(jitdata *jd)
 	registerdata *rd;
 	stackdata_t   sd;
 	int           stackdepth;
-	stackptr      curstack;       /* current stack top                        */
-	stackptr      copy;
+	stackelement_t *curstack;       /* current stack top                        */
+	stackelement_t *copy;
 	int           opcode;         /* opcode of current instruction            */
 	int           i, varindex;
 	int           javaindex;
@@ -2028,10 +2029,10 @@ bool stack_analyse(jitdata *jd)
 	basicblock   *original;
 	exception_entry *ex;
 
-	stackptr     *last_store_boundary;
-	stackptr      coalescing_boundary;
+	stackelement_t **last_store_boundary;
+	stackelement_t *coalescing_boundary;
 
-	stackptr      src1, src2, src3, src4, dst1, dst2;
+	stackelement_t *src1, *src2, *src3, *src4, *dst1, *dst2;
 
 	branch_target_t *table;
 	lookup_target_t *lookup;
@@ -2105,7 +2106,7 @@ bool stack_analyse(jitdata *jd)
 	for (i = 0; i < m->maxstack * 5; i++)
 		jd->interface_map[i].flags = UNUSED;
 
-	last_store_boundary = DMNEW(stackptr, m->maxlocals);
+	last_store_boundary = DMNEW(stackelement_t *, m->maxlocals);
 
 	/* initialize flags and invars (none) of first block */
 
@@ -3179,16 +3180,17 @@ normal_ACONST:
 
 					case ICMD_IINC:
 						STATISTICS_STACKDEPTH_DISTRIBUTION(count_store_depth);
-						last_store_boundary[iptr->s1.varindex] = sd.new;
+						javaindex = iptr->s1.varindex;
+						last_store_boundary[javaindex] = sd.new;
 
 						iptr->s1.varindex = 
-							jd->local_map[iptr->s1.varindex * 5 + TYPE_INT];
+							jd->local_map[javaindex * 5 + TYPE_INT];
 
 						copy = curstack;
 						i = stackdepth - 1;
 						while (copy) {
 							if ((copy->varkind == LOCALVAR) &&
-								(copy->varnum == iptr->s1.varindex))
+								(jd->reverselocalmap[copy->varnum] == javaindex))
 							{
 								assert(IS_LOCALVAR(copy));
 								SET_TEMPVAR(copy);
@@ -3265,9 +3267,8 @@ normal_ACONST:
 						i = stackdepth - 2;
 						while (copy) {
 							if ((copy->varkind == LOCALVAR) &&
-								(copy->varnum == varindex))
+								(jd->reverselocalmap[copy->varnum] == javaindex))
 							{
-								copy->varkind = TEMPVAR;
 								assert(IS_LOCALVAR(copy));
 								SET_TEMPVAR(copy);
 							}
@@ -3297,7 +3298,7 @@ normal_ACONST:
 
 						copy = sd.new; /* most recent stackslot created + 1 */
 						while (--copy > curstack) {
-							if (copy->varkind == LOCALVAR && copy->varnum == varindex)
+							if (copy->varkind == LOCALVAR && jd->reverselocalmap[copy->varnum] == javaindex)
 								goto assume_conflict;
 						}
 
@@ -3320,7 +3321,7 @@ normal_ACONST:
 						/* revert the coalescing, if it has been done earlier */
 assume_conflict:
 						if ((curstack->varkind == LOCALVAR)
-							&& (curstack->varnum == varindex))
+							&& (jd->reverselocalmap[curstack->varnum] == javaindex))
 						{
 							assert(IS_LOCALVAR(curstack));
 							SET_TEMPVAR(curstack);
@@ -4747,13 +4748,13 @@ static void stack_verbose_block_exit(stackdata_t *sd, bool superblockend)
 	printf("\n");
 }
 
-static void stack_verbose_show_state(stackdata_t *sd, instruction *iptr, stackptr curstack)
+static void stack_verbose_show_state(stackdata_t *sd, instruction *iptr, stackelement_t *curstack)
 {
-	stackptr sp;
+	stackelement_t *sp;
 	s4       i;
 	s4       depth;
 	varinfo *v;
-	stackptr *stack;
+	stackelement_t **stack;
 
 	printf("    javalocals ");
 	show_javalocals_array(sd->jd, sd->javalocals, sd->maxlocals, SHOW_STACK);
@@ -4763,7 +4764,7 @@ static void stack_verbose_show_state(stackdata_t *sd, instruction *iptr, stackpt
 		i++;
 	depth = i;
 
-	stack = MNEW(stackptr, depth);
+	stack = MNEW(stackelement_t *, depth);
 	for(sp = curstack; sp; sp = sp->prev)
 		stack[--i] = sp;
 

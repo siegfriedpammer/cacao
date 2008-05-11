@@ -26,7 +26,6 @@
 #include "config.h"
 
 #include <assert.h>
-#include <errno.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -40,25 +39,11 @@
 
 #include "arch.h"
 
-#include "mm/memory.h"
-
-#include "native/llni.h"
-
-#if defined(ENABLE_THREADS)
-# include "threads/threads-common.h"
-#else
-# include "threads/none/threads.h"
-#endif
-
-#include "toolbox/logging.h"
+#include "threads/thread.h"
 
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/vm.h"
-
-#include "vm/jit/codegen-common.h"
-#include "vm/jit/disass.h"
-#include "vm/jit/patcher-common.h"
 
 #include "vmcore/options.h"
 
@@ -95,22 +80,22 @@ bool signal_init(void)
 	   this thread. */
 
 	if (sigemptyset(&mask) != 0)
-		vm_abort("signal_init: sigemptyset failed: %s", strerror(errno));
+		vm_abort_errno("signal_init: sigemptyset failed");
 
 #if !defined(WITH_CLASSPATH_SUN)
 	/* Let OpenJDK handle SIGINT itself. */
 
 	if (sigaddset(&mask, SIGINT) != 0)
-		vm_abort("signal_init: sigaddset failed: %s", strerror(errno));
+		vm_abort_errno("signal_init: sigaddset failed");
 #endif
 
 #if !defined(__FREEBSD__)
 	if (sigaddset(&mask, SIGQUIT) != 0)
-		vm_abort("signal_init: sigaddset failed: %s", strerror(errno));
+		vm_abort_errno("signal_init: sigaddset failed");
 #endif
 
 	if (sigprocmask(SIG_BLOCK, &mask, NULL) != 0)
-		vm_abort("signal_init: sigprocmask failed: %s", strerror(errno));
+		vm_abort_errno("signal_init: sigprocmask failed");
 
 #if defined(__LINUX__) && defined(ENABLE_THREADS)
 	/* XXX Remove for exact-GC. */
@@ -238,148 +223,13 @@ void signal_register_signal(int signum, functionptr handler, int flags)
 	function = (void (*)(int, siginfo_t *, void *)) handler;
 
 	if (sigemptyset(&act.sa_mask) != 0)
-		vm_abort("signal_register_signal: sigemptyset failed: %s",
-				 strerror(errno));
+		vm_abort_errno("signal_register_signal: sigemptyset failed");
 
 	act.sa_sigaction = function;
 	act.sa_flags     = flags;
 
 	if (sigaction(signum, &act, NULL) != 0)
-		vm_abort("signal_register_signal: sigaction failed: %s",
-				 strerror(errno));
-}
-
-
-/* signal_handle ***************************************************************
-
-   Handles the signal caught by a signal handler and calls the correct
-   function.
-
-*******************************************************************************/
-
-void *signal_handle(int type, intptr_t val,
-					void *pv, void *sp, void *ra, void *xpc, void *context)
-{
-	stackframeinfo_t  sfi;
-	int32_t           index;
-	java_handle_t    *o;
-	methodinfo       *m;
-	java_handle_t    *p;
-
-#if defined(ENABLE_VMLOG)
-	vmlog_cacao_signl_type(type);
-#endif
-
-	/* Prevent compiler warnings. */
-
-	o = NULL;
-	m = NULL;
-
-	/* wrap the value into a handle if it is a reference */
-	/* BEFORE: creating stackframeinfo */
-
-	switch (type) {
-	case EXCEPTION_HARDWARE_CLASSCAST:
-		o = LLNI_WRAP((java_object_t *) val);
-		break;
-
-	case EXCEPTION_HARDWARE_COMPILER:
-		/* In this case the passed PV points to the compiler stub.  We
-		   get the methodinfo pointer here and set PV to NULL so
-		   stacktrace_stackframeinfo_add determines the PV for the
-		   parent Java method. */
-
-		m  = code_get_methodinfo_for_pv(pv);
-		pv = NULL;
-		break;
-
-	default:
-		/* do nothing */
-		break;
-	}
-
-	/* Fill and add a stackframeinfo. */
-
-	stacktrace_stackframeinfo_add(&sfi, pv, sp, ra, xpc);
-
-	switch (type) {
-	case EXCEPTION_HARDWARE_NULLPOINTER:
-		p = exceptions_new_nullpointerexception();
-		break;
-
-	case EXCEPTION_HARDWARE_ARITHMETIC:
-		p = exceptions_new_arithmeticexception();
-		break;
-
-	case EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS:
-		index = (s4) val;
-		p = exceptions_new_arrayindexoutofboundsexception(index);
-		break;
-
-	case EXCEPTION_HARDWARE_ARRAYSTORE:
-		p = exceptions_new_arraystoreexception();
-		break;
-
-	case EXCEPTION_HARDWARE_CLASSCAST:
-		p = exceptions_new_classcastexception(o);
-		break;
-
-	case EXCEPTION_HARDWARE_EXCEPTION:
-		p = exceptions_fillinstacktrace();
-		break;
-
-	case EXCEPTION_HARDWARE_PATCHER:
-#if defined(ENABLE_REPLACEMENT)
-		if (replace_me_wrapper(xpc, context)) {
-			p = NULL;
-			break;
-		}
-#endif
-		p = patcher_handler(xpc);
-		break;
-
-	case EXCEPTION_HARDWARE_COMPILER:
-		p = jit_compile_handle(m, sfi.pv, ra, (void *) val);
-		break;
-
-	default:
-		/* Let's try to get a backtrace. */
-
-		codegen_get_pv_from_pc(xpc);
-
-		/* If that does not work, print more debug info. */
-
-		log_println("signal_handle: unknown hardware exception type %d", type);
-
-#if SIZEOF_VOID_P == 8
-		log_println("PC=0x%016lx", xpc);
-#else
-		log_println("PC=0x%08x", xpc);
-#endif
-
-#if defined(ENABLE_DISASSEMBLER)
-		log_println("machine instruction at PC:");
-		disassinstr(xpc);
-#endif
-
-		vm_abort("Exiting...");
-
-		/* keep compiler happy */
-
-		p = NULL;
-	}
-
-	/* Remove stackframeinfo. */
-
-	stacktrace_stackframeinfo_remove(&sfi);
-
-	/* unwrap and return the exception object */
-	/* AFTER: removing stackframeinfo */
-
-	if (type == EXCEPTION_HARDWARE_COMPILER)
-		return p;
-	else
-		return LLNI_UNWRAP(p);
+		vm_abort_errno("signal_register_signal: sigaction failed");
 }
 
 
@@ -400,25 +250,25 @@ static void signal_thread(void)
 	t = THREADOBJECT;
 
 	if (sigemptyset(&mask) != 0)
-		vm_abort("signal_thread: sigemptyset failed: %s", strerror(errno));
+		vm_abort_errno("signal_thread: sigemptyset failed");
 
 #if !defined(WITH_CLASSPATH_SUN)
 	/* Let OpenJDK handle SIGINT itself. */
 
 	if (sigaddset(&mask, SIGINT) != 0)
-		vm_abort("signal_thread: sigaddset failed: %s", strerror(errno));
+		vm_abort_errno("signal_thread: sigaddset failed");
 #endif
 
 #if !defined(__FREEBSD__)
 	if (sigaddset(&mask, SIGQUIT) != 0)
-		vm_abort("signal_thread: sigaddset failed: %s", strerror(errno));
+		vm_abort_errno("signal_thread: sigaddset failed");
 #endif
 
 	for (;;) {
 		/* just wait for a signal */
 
 #if defined(ENABLE_THREADS)
-		threads_thread_state_waiting(t);
+		thread_set_state_waiting(t);
 #endif
 
 		/* XXX We don't check for an error here, although the man-page
@@ -427,11 +277,11 @@ static void signal_thread(void)
 		   revisit this code with our new exact-GC. */
 
 /* 		if (sigwait(&mask, &sig) != 0) */
-/* 			vm_abort("signal_thread: sigwait failed: %s", strerror(errno)); */
+/* 			vm_abort_errno("signal_thread: sigwait failed"); */
 		(void) sigwait(&mask, &sig);
 
 #if defined(ENABLE_THREADS)
-		threads_thread_state_runnable(t);
+		thread_set_state_runnable(t);
 #endif
 
 		/* Handle the signal. */

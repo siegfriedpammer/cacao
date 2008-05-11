@@ -76,14 +76,14 @@ dnl where are Java core library classes installed
 AC_DEFUN([AC_CHECK_WITH_CLASSPATH_CLASSES],[
 AC_MSG_CHECKING(where Java core library classes are installed)
 AC_ARG_WITH([classpath-classes],
-            [AS_HELP_STRING(--with-classpath-classes=<path>,path to Java core library classes (includes the name of the file and may be flat) [[default=CLASSPATH_PREFIX/{share/classpath/glibj.zip,classes}]])],
+            [AS_HELP_STRING(--with-classpath-classes=<path>,path to Java core library classes (includes the name of the file and may be flat) [[default=(gnu:${CLASSPATH_PREFIX}/share/classpath/glibj.zip,sun:${CLASSPATH_PREFIX}/control/build/${OS_DIR}-${JAVA_ARCH}/classes,*:${CLASSPATH_PREFIX})]])],
             [CLASSPATH_CLASSES=${withval}],
             [case "${WITH_CLASSPATH}" in
                  gnu)
                      CLASSPATH_CLASSES=${CLASSPATH_PREFIX}/share/classpath/glibj.zip
                      ;;
                  sun)
-                     CLASSPATH_CLASSES=${CLASSPATH_PREFIX}/classes
+                     CLASSPATH_CLASSES=${CLASSPATH_PREFIX}/control/build/${OS_DIR}-${JAVA_ARCH}/classes
                      ;;
                  *)
                      CLASSPATH_CLASSES=${CLASSPATH_PREFIX}
@@ -92,6 +92,17 @@ AC_ARG_WITH([classpath-classes],
 AC_MSG_RESULT(${CLASSPATH_CLASSES})
 AC_DEFINE_UNQUOTED([CLASSPATH_CLASSES], "${CLASSPATH_CLASSES}", [Java core library classes])
 AC_SUBST(CLASSPATH_CLASSES)
+
+dnl define BOOTCLASSPATH for Makefiles
+case "${WITH_CLASSPATH}" in
+    cldc1.1 | gnu)
+        BOOTCLASSPATH="\$(top_builddir)/src/classes/classes:\$(CLASSPATH_CLASSES)"
+        ;;
+    *)
+        BOOTCLASSPATH="\$(CLASSPATH_CLASSES)"
+        ;;
+esac
+AC_SUBST(BOOTCLASSPATH)
 ])
 
 
@@ -100,14 +111,14 @@ dnl where are Java core library native libraries installed
 AC_DEFUN([AC_CHECK_WITH_CLASSPATH_LIBDIR],[
 AC_MSG_CHECKING(where Java core library native libraries are installed)
 AC_ARG_WITH([classpath-libdir],
-            [AS_HELP_STRING(--with-classpath-libdir=<dir>,installation directory of Java core library native libraries [[default=CLASSPATH_PREFIX/{lib,lib/${JAVA_ARCH}]])],
+            [AS_HELP_STRING(--with-classpath-libdir=<dir>,installation directory of Java core library native libraries [[default=(gnu:${CLASSPATH_PREFIX}/lib,sun:${CLASSPATH_PREFIX}/control/build/${OS_DIR}-${JAVA_ARCH}/lib/${JAVA_ARCH},*:${CLASSPATH_PREFIX})]])],
             [CLASSPATH_LIBDIR=${withval}],
             [case "${WITH_CLASSPATH}" in
                  gnu)
                      CLASSPATH_LIBDIR=${CLASSPATH_PREFIX}/lib
                      ;;
                  sun)
-                     CLASSPATH_LIBDIR=${CLASSPATH_PREFIX}/lib/${JAVA_ARCH}
+                     CLASSPATH_LIBDIR=${CLASSPATH_PREFIX}/control/build/${OS_DIR}-${JAVA_ARCH}/lib/${JAVA_ARCH}
                      ;;
                  *)
                      CLASSPATH_LIBDIR=${CLASSPATH_PREFIX}
@@ -127,11 +138,11 @@ dnl where jni_md.h is installed
 AC_DEFUN([AC_CHECK_WITH_JNI_MD_H],[
 AC_MSG_CHECKING(where jni_md.h is installed)
 AC_ARG_WITH([jni_md_h],
-            [AS_HELP_STRING(--with-jni_md_h=<dir>,path to jni_md.h [[default=(sun:CLASSPATH_PREFIX/include/linux,*:CLASSPATH_PREFIX/include)]])],
+            [AS_HELP_STRING(--with-jni_md_h=<dir>,path to jni_md.h [[default=(sun:${CLASSPATH_PREFIX}/jdk/src/solaris/javavm/export,*:${CLASSPATH_PREFIX}/include)]])],
             [WITH_JNI_MD_H=${withval}],
             [case "${WITH_CLASSPATH}" in
                  sun)
-                     WITH_JNI_MD_H=${CLASSPATH_PREFIX}/include/linux
+                     WITH_JNI_MD_H=${CLASSPATH_PREFIX}/jdk/src/solaris/javavm/export
                      ;;
                  *)
                      WITH_JNI_MD_H=${CLASSPATH_PREFIX}/include
@@ -153,9 +164,16 @@ dnl where jni.h is installed
 AC_DEFUN([AC_CHECK_WITH_JNI_H],[
 AC_MSG_CHECKING(where jni.h is installed)
 AC_ARG_WITH([jni_h],
-            [AS_HELP_STRING(--with-jni_h=<dir>,path to jni.h [[default=CLASSPATH_PREFIX/include]])],
+            [AS_HELP_STRING(--with-jni_h=<dir>,path to jni.h [[default=(sun:${CLASSPATH_PREFIX}/jdk/src/share/javavm/export,*:${CLASSPATH_PREFIX}/include)]])],
             [WITH_JNI_H=${withval}],
-            [WITH_JNI_H=${CLASSPATH_PREFIX}/include])
+            [case "${WITH_CLASSPATH}" in
+                 sun)
+                     WITH_JNI_H=${CLASSPATH_PREFIX}/jdk/src/share/javavm/export
+                     ;;
+                 *)
+                     WITH_JNI_H=${CLASSPATH_PREFIX}/include
+                     ;;
+            esac])
 AC_MSG_RESULT(${WITH_JNI_H})
 
 dnl We use CPPFLAGS so jni.h can find jni_md.h

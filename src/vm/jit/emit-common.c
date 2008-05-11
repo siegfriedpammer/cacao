@@ -1,9 +1,7 @@
 /* src/vm/jit/emit-common.c - common code emitter functions
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -269,7 +267,7 @@ void emit_patcher_traps(jitdata *jd)
 
 	/* generate patcher traps code */
 
-	for (pr = list_first_unsynced(code->patchers); pr != NULL; pr = list_next_unsynced(code->patchers, pr)) {
+	for (pr = list_first(code->patchers); pr != NULL; pr = list_next(code->patchers, pr)) {
 
 		/* Calculate the patch position where the original machine
 		   code is located and the trap should be placed. */
@@ -522,39 +520,14 @@ void emit_label_bccz(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options
 
 	/* search if the label is already in the list */
 
-	for (br = list_first_unsynced(list); br != NULL;
-		 br = list_next_unsynced(list, br)) {
+	for (br = list_first(list); br != NULL; br = list_next(list, br)) {
 		/* is this entry the correct label? */
 
 		if (br->label == label)
 			break;
 	}
 
-	/* a branch reference was found */
-
-	if (br != NULL) {
-		/* calculate the mpc of the branch instruction */
-
-		mpc  = cd->mcodeptr - cd->mcodebase;
-		disp = br->mpc - mpc;
-
-#if defined(ENABLE_STATISTICS)
-		count_emit_branch++;
-		if ((int8_t)disp == disp)  count_emit_branch_8bit++; 
-		else if ((int16_t)disp == disp) count_emit_branch_16bit++;
-		else if ((int32_t)disp == disp) count_emit_branch_32bit++;
-# if SIZEOF_VOID_P == 8
-		else if ((int64_t)disp == disp) count_emit_branch_64bit++;
-# endif
-#endif
-
-		emit_branch(cd, disp, condition, reg, options);
-
-		/* now remove the branch reference */
-
-		list_remove_unsynced(list, br);
-	}
-	else {
+	if (br == NULL) {
 		/* current mcodeptr is the correct position,
 		   afterwards emit the NOPs */
 
@@ -563,7 +536,31 @@ void emit_label_bccz(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options
 		/* generate NOPs as placeholder for branch code */
 
 		BRANCH_NOPS;
+		return;
 	}
+
+	/* Branch reference was found. */
+
+	/* calculate the mpc of the branch instruction */
+
+	mpc  = cd->mcodeptr - cd->mcodebase;
+	disp = br->mpc - mpc;
+
+#if defined(ENABLE_STATISTICS)
+	count_emit_branch++;
+	if ((int8_t)disp == disp)  count_emit_branch_8bit++; 
+	else if ((int16_t)disp == disp) count_emit_branch_16bit++;
+	else if ((int32_t)disp == disp) count_emit_branch_32bit++;
+# if SIZEOF_VOID_P == 8
+	else if ((int64_t)disp == disp) count_emit_branch_64bit++;
+# endif
+#endif
+
+	emit_branch(cd, disp, condition, reg, options);
+
+	/* now remove the branch reference */
+
+	list_remove(list, br);
 }
 
 
@@ -588,53 +585,52 @@ void emit_label(codegendata *cd, s4 label)
 
 	/* search if the label is already in the list */
 
-	for (br = list_first_unsynced(list); br != NULL;
-		 br = list_next_unsynced(list, br)) {
+	for (br = list_first(list); br != NULL; br = list_next(list, br)) {
 		/* is this entry the correct label? */
 
 		if (br->label == label)
 			break;
 	}
 
-	/* a branch reference was found */
+	if (br == NULL) {
+		/* No branch reference found, add the label to the list (use
+		   invalid values for condition and register). */
 
-	if (br != NULL) {
-		/* calculate the mpc of the branch instruction */
+		codegen_branch_label_add(cd, label, -1, -1, BRANCH_OPT_NONE );
+		return;
+	}
 
-		mpc  = cd->mcodeptr - cd->mcodebase;
-		disp = mpc - br->mpc;
+	/* Branch reference was found. */
 
-		/* temporary set the mcodeptr */
+	/* calculate the mpc of the branch instruction */
 
-		mcodeptr     = cd->mcodeptr;
-		cd->mcodeptr = cd->mcodebase + br->mpc;
+	mpc  = cd->mcodeptr - cd->mcodebase;
+	disp = mpc - br->mpc;
+
+	/* temporary set the mcodeptr */
+
+	mcodeptr     = cd->mcodeptr;
+	cd->mcodeptr = cd->mcodebase + br->mpc;
 
 #if defined(ENABLE_STATISTICS)
-		count_emit_branch++;
-		if ((int8_t)disp == disp)  count_emit_branch_8bit++; 
-		else if ((int16_t)disp == disp) count_emit_branch_16bit++;
-		else if ((int32_t)disp == disp) count_emit_branch_32bit++;
+	count_emit_branch++;
+	if ((int8_t)disp == disp)  count_emit_branch_8bit++; 
+	else if ((int16_t)disp == disp) count_emit_branch_16bit++;
+	else if ((int32_t)disp == disp) count_emit_branch_32bit++;
 # if SIZEOF_VOID_P == 8
-		else if ((int64_t)disp == disp) count_emit_branch_64bit++;
+	else if ((int64_t)disp == disp) count_emit_branch_64bit++;
 # endif
 #endif
 
-		emit_branch(cd, disp, br->condition, br->reg, br->options);
+	emit_branch(cd, disp, br->condition, br->reg, br->options);
 
-		/* restore mcodeptr */
+	/* restore mcodeptr */
 
-		cd->mcodeptr = mcodeptr;
+	cd->mcodeptr = mcodeptr;
 
-		/* now remove the branch reference */
+	/* now remove the branch reference */
 
-		list_remove_unsynced(list, br);
-	}
-	else {
-		/* add the label to the list (use invalid values for condition
-		   and register) */
-
-		codegen_branch_label_add(cd, label, -1, -1, BRANCH_OPT_NONE );
-	}
+	list_remove(list, br);
 }
 
 

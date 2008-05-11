@@ -1,9 +1,7 @@
-/* src/vm/jit/arm/linux/md-os.c - machine dependent arm linux functions
+/* src/vm/jit/arm/linux/md-os.c - machine dependent ARM Linux functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -27,7 +25,6 @@
 
 #include "config.h"
 
-#include <assert.h>
 #include <stdint.h>
 
 #include "vm/types.h"
@@ -52,16 +49,17 @@ typedef struct ucontext {
 
 #define scontext_t struct sigcontext
 
-#if defined(ENABLE_THREADS)
-# include "threads/native/threads.h"
-#endif
+#include "threads/thread.h"
 
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
+#include "vm/vm.h"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/executionstate.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 
 /* md_signal_handler_sigsegv ***************************************************
@@ -102,24 +100,21 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	mcode = *((s4 *) xpc);
 
-	/* this is a NullPointerException */
+	/* This is a NullPointerException. */
 
 	addr = *((s4 *) _sc + OFFSET(scontext_t, arm_r0)/4 + ((mcode >> 16) & 0x0f));
-	type = EXCEPTION_HARDWARE_NULLPOINTER;
+	type = addr;
 	val  = 0;
 
-	if (addr != 0)
-		vm_abort("md_signal_handler_sigsegv: faulting address is not NULL: addr=%p", addr);
+	/* Handle the trap. */
 
-	/* Handle the type. */
-
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* set registers */
 
-	_sc->arm_r10 = (intptr_t) p;
-	_sc->arm_fp  = (intptr_t) xpc;
-	_sc->arm_pc  = (intptr_t) asm_handle_exception;
+	_sc->arm_r10 = (uintptr_t) p;
+	_sc->arm_fp  = (uintptr_t) xpc;
+	_sc->arm_pc  = (uintptr_t) asm_handle_exception;
 }
 
 
@@ -164,23 +159,23 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 #if defined(ENABLE_DISASSEMBLER)
 		DISASSINSTR(xpc);
 #endif
-		assert(0);
+		vm_abort("Aborting...");
 	}
 
 	type = (mcode >> 8) & 0x0fff;
 	val  = *((s4 *) _sc + OFFSET(scontext_t, arm_r0)/4 + (mcode & 0x0f));
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	/* set registers if we have an exception, continue execution
 	   otherwise (this is needed for patchers to work) */
 
 	if (p != NULL) {
-		_sc->arm_r10 = (intptr_t) p;
-		_sc->arm_fp  = (intptr_t) xpc;
-		_sc->arm_pc  = (intptr_t) asm_handle_exception;
+		_sc->arm_r10 = (uintptr_t) p;
+		_sc->arm_fp  = (uintptr_t) xpc;
+		_sc->arm_pc  = (uintptr_t) asm_handle_exception;
 	}
 }
 
@@ -236,6 +231,82 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 	thread->pc = pc;
 }
 #endif
+
+
+/**
+ * Read the given context into an executionstate.
+ *
+ * @param es      execution state
+ * @param context machine context
+ */
+void md_executionstate_read(executionstate_t *es, void *context)
+{
+	vm_abort("md_executionstate_read: IMPLEMENT ME!");
+
+#if 0
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	int         i;
+
+	_uc = (ucontext_t *) context;
+	_mc = &_uc->uc_mcontext;
+
+	/* read special registers */
+	es->pc = (u1 *) _mc->sc_pc;
+	es->sp = (u1 *) _mc->sc_regs[REG_SP];
+	es->pv = (u1 *) _mc->sc_regs[REG_PV];
+	es->ra = (u1 *) _mc->sc_regs[REG_RA];
+
+	/* read integer registers */
+	for (i = 0; i < INT_REG_CNT; i++)
+		es->intregs[i] = _mc->sc_regs[i];
+
+	/* read float registers */
+	/* Do not use the assignment operator '=', as the type of
+	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
+
+	assert(sizeof(_mc->sc_fpregs) == sizeof(es->fltregs));
+	system_memcpy(&es->fltregs, &_mc->sc_fpregs, sizeof(_mc->sc_fpregs));
+#endif
+}
+
+
+/**
+ * Write the given executionstate back to the context.
+ *
+ * @param es      execution state
+ * @param context machine context
+ */
+void md_executionstate_write(executionstate_t *es, void *context)
+{
+	vm_abort("md_executionstate_write: IMPLEMENT ME!");
+
+#if 0
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	int         i;
+
+	_uc = (ucontext_t *) context;
+	_mc = &_uc->uc_mcontext;
+
+	/* write integer registers */
+	for (i = 0; i < INT_REG_CNT; i++)
+		_mc->sc_regs[i] = es->intregs[i];
+
+	/* write float registers */
+	/* Do not use the assignment operator '=', as the type of
+	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
+
+	assert(sizeof(_mc->sc_fpregs) == sizeof(es->fltregs));
+	system_memcpy(&_mc->sc_fpregs, &es->fltregs, sizeof(_mc->sc_fpregs));
+
+	/* write special registers */
+	_mc->sc_pc           = (ptrint) es->pc;
+	_mc->sc_regs[REG_SP] = (ptrint) es->sp;
+	_mc->sc_regs[REG_PV] = (ptrint) es->pv;
+	_mc->sc_regs[REG_RA] = (ptrint) es->ra;
+#endif
+}
 
 
 /* md_critical_section_restart *************************************************

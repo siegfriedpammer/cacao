@@ -1,9 +1,7 @@
 /* src/toolbox/logging.c - contains logging functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -34,9 +32,12 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
-#include "threads/threads-common.h"
+
+#include "threads/thread.h"
+
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
+
 #include "vm/global.h"
 
 #if defined(ENABLE_STATISTICS)
@@ -254,13 +255,13 @@ void log_message_method(const char *msg, methodinfo *m)
 	char *buf;
 	s4    len;
 
-	len = strlen(msg) + utf_bytes(m->class->name) + strlen(".") +
+	len = strlen(msg) + utf_bytes(m->clazz->name) + strlen(".") +
 		utf_bytes(m->name) + utf_bytes(m->descriptor) + strlen("0");
 
 	buf = MNEW(char, len);
 
 	strcpy(buf, msg);
-	utf_cat_classname(buf, m->class->name);
+	utf_cat_classname(buf, m->clazz->name);
 	strcat(buf, ".");
 	utf_cat(buf, m->name);
 	utf_cat(buf, m->descriptor);

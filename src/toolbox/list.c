@@ -1,9 +1,7 @@
 /* src/toolbox/list.c - double linked list
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -28,9 +26,8 @@
 #include "config.h"
 
 #include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
-
-#include "vm/types.h"
 
 #include "mm/memory.h"
 
@@ -45,7 +42,7 @@
 
 *******************************************************************************/
 
-list_t *list_create(s4 nodeoffset)
+list_t *list_create(int nodeoffset)
 {
 	list_t *l;
 
@@ -84,7 +81,7 @@ void list_free(list_t *l)
 
 *******************************************************************************/
 
-list_t *list_create_dump(s4 nodeoffset)
+list_t *list_create_dump(int nodeoffset)
 {
 	list_t *l;
 
@@ -131,27 +128,9 @@ void list_unlock(list_t *l)
 
 void list_add_first(list_t *l, void *element)
 {
-	LOCK_MONITOR_ENTER(l);
-
-	list_add_first_unsynced(l, element);
-
-	LOCK_MONITOR_EXIT(l);
-}
-
-
-/* list_add_first_unsynced *****************************************************
-
-   Adds the element as first element, but WITHOUT LOCKING!
-
-   ATTENTION: Use this function with care!!!
-
-*******************************************************************************/
-
-void list_add_first_unsynced(list_t *l, void *element)
-{
 	listnode_t *ln;
 
-	ln = (listnode_t *) (((u1 *) element) + l->nodeoffset);
+	ln = (listnode_t *) (((uint8_t *) element) + l->nodeoffset);
 
 	if (l->first) {
 		ln->prev       = NULL;
@@ -166,7 +145,7 @@ void list_add_first_unsynced(list_t *l, void *element)
 		l->first = ln;
 	}
 
-	/* increase number of elements */
+	/* Increase number of elements. */
 
 	l->size++;
 }
@@ -180,27 +159,9 @@ void list_add_first_unsynced(list_t *l, void *element)
 
 void list_add_last(list_t *l, void *element)
 {
-	LOCK_MONITOR_ENTER(l);
-
-	list_add_last_unsynced(l, element);
-
-	LOCK_MONITOR_EXIT(l);
-}
-
-
-/* list_add_last_unsynced ******************************************************
-
-   Adds the element as last element but does NO locking!
-
-   ATTENTION: Use this function with care!!!
-
-*******************************************************************************/
-
-void list_add_last_unsynced(list_t *l, void *element)
-{
 	listnode_t *ln;
 
-	ln = (listnode_t *) (((u1 *) element) + l->nodeoffset);
+	ln = (listnode_t *) (((uint8_t *) element) + l->nodeoffset);
 
 	if (l->last) {
 		ln->prev      = l->last;
@@ -215,7 +176,7 @@ void list_add_last_unsynced(list_t *l, void *element)
 		l->first = ln;
 	}
 
-	/* increase number of elements */
+	/* Increase number of elements. */
 
 	l->size++;
 }
@@ -234,12 +195,10 @@ void list_add_before(list_t *l, void *element, void *newelement)
 	listnode_t *ln;
 	listnode_t *newln;
 
-	ln    = (listnode_t *) (((u1 *) element) + l->nodeoffset);
-	newln = (listnode_t *) (((u1 *) newelement) + l->nodeoffset);
+	ln    = (listnode_t *) (((uint8_t *) element) + l->nodeoffset);
+	newln = (listnode_t *) (((uint8_t *) newelement) + l->nodeoffset);
 
-	LOCK_MONITOR_ENTER(l);
-
-	/* set the new links */
+	/* Set the new links. */
 
 	newln->prev = ln->prev;
 	newln->next = ln;
@@ -257,11 +216,9 @@ void list_add_before(list_t *l, void *element, void *newelement)
 	if (l->last == ln)
 		l->last = newln;
 
-	/* increase number of elements */
+	/* Increase number of elements. */
 
 	l->size++;
-
-	LOCK_MONITOR_EXIT(l);
 }
 
 
@@ -273,27 +230,9 @@ void list_add_before(list_t *l, void *element, void *newelement)
 
 void list_remove(list_t *l, void *element)
 {
-	LOCK_MONITOR_ENTER(l);
-
-	list_remove_unsynced(l, element);
-
-	LOCK_MONITOR_EXIT(l);
-}
-
-
-/* list_remove_unsynced ********************************************************
-
-   Removes the element but does NO locking!
-
-   ATTENTION: Use this function with care!!!
-
-*******************************************************************************/
-
-void list_remove_unsynced(list_t *l, void *element)
-{
 	listnode_t *ln;
 
-	ln = (listnode_t *) (((u1 *) element) + l->nodeoffset);
+	ln = (listnode_t *) (((uint8_t *) element) + l->nodeoffset);
 	
 	if (ln->next)
 		ln->next->prev = ln->prev;
@@ -308,7 +247,7 @@ void list_remove_unsynced(list_t *l, void *element)
 	ln->next = NULL;
 	ln->prev = NULL;
 
-	/* decrease number of elements */
+	/* Decrease number of elements. */
 
 	l->size--;
 }
@@ -324,32 +263,10 @@ void *list_first(list_t *l)
 {
 	void *el;
 
-	LOCK_MONITOR_ENTER(l);
-
-	el = list_first_unsynced(l);
-
-	LOCK_MONITOR_EXIT(l);
-
-	return el;
-}
-
-
-/* list_first_unsynced *********************************************************
-
-   Returns the first element of the list, but does NO locking!
-
-   ATTENTION: Use this function with care!!!
-
-*******************************************************************************/
-
-void *list_first_unsynced(list_t *l)
-{
-	void *el;
-
 	if (l->first == NULL)
 		el = NULL;
 	else
-		el = ((u1 *) l->first) - l->nodeoffset;
+		el = ((uint8_t *) l->first) - l->nodeoffset;
 
 	return el;
 }
@@ -365,32 +282,10 @@ void *list_last(list_t *l)
 {
 	void *el;
 
-	LOCK_MONITOR_ENTER(l);
-
-	el = list_last_unsynced(l);
-
-	LOCK_MONITOR_EXIT(l);
-
-	return el;
-}
-
-
-/* list_last_unsynced **********************************************************
-
-   Returns the last element of the list, but does NO locking!
-
-   ATTENTION: Use this function with care!!!
-
-*******************************************************************************/
-
-void *list_last_unsynced(list_t *l)
-{
-	void *el;
-
 	if (l->last == NULL)
 		el = NULL;
 	else
-		el = ((u1 *) l->last) - l->nodeoffset;
+		el = ((uint8_t *) l->last) - l->nodeoffset;
 
 	return el;
 }
@@ -404,38 +299,15 @@ void *list_last_unsynced(list_t *l)
 
 void *list_next(list_t *l, void *element)
 {
-	void *el;
-
-	LOCK_MONITOR_ENTER(l);
-
-	el = list_next_unsynced(l, element);
-
-	LOCK_MONITOR_EXIT(l);
-
-	return el;
-}
-
-
-/* list_next_unsynced **********************************************************
-
-   Returns the next element of element from the list, but does NO
-   locking!
-
-   ATTENTION: Use this function with care!!!
-
-*******************************************************************************/
-
-void *list_next_unsynced(list_t *l, void *element)
-{
 	listnode_t *ln;
-	void     *el;
+	void       *el;
 
-	ln = (listnode_t *) (((u1 *) element) + l->nodeoffset);
+	ln = (listnode_t *) (((uint8_t *) element) + l->nodeoffset);
 
 	if (ln->next == NULL)
 		el = NULL;
 	else
-		el = ((u1 *) ln->next) - l->nodeoffset;
+		el = ((uint8_t *) ln->next) - l->nodeoffset;
 
 	return el;
 }
@@ -449,38 +321,15 @@ void *list_next_unsynced(list_t *l, void *element)
 
 void *list_prev(list_t *l, void *element)
 {
-	void *el;
-
-	LOCK_MONITOR_ENTER(l);
-
-	el = list_prev_unsynced(l, element);
-
-	LOCK_MONITOR_EXIT(l);
-
-	return el;
-}
-
-
-/* list_prev_unsynced **********************************************************
-
-   Returns the previous element of element from the list, but does NO
-   locking!
-
-   ATTENTION: Use this function with care!!!
-
-*******************************************************************************/
-
-void *list_prev_unsynced(list_t *l, void *element)
-{
 	listnode_t *ln;
-	void     *el;
+	void       *el;
 
-	ln = (listnode_t *) (((u1 *) element) + l->nodeoffset);
+	ln = (listnode_t *) (((uint8_t *) element) + l->nodeoffset);
 
 	if (ln->prev == NULL)
 		el = NULL;
 	else
-		el = ((u1 *) ln->prev) - l->nodeoffset;
+		el = ((uint8_t *) ln->prev) - l->nodeoffset;
 
 	return el;
 }

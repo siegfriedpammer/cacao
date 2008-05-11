@@ -1,10 +1,8 @@
 /* src/native/jvmti/jvmti.c - implementation of the Java Virtual Machine 
                               Tool Interface functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -54,8 +52,9 @@
 #include "vm/options.h"
 #include "vm/stringlocal.h"
 #include "mm/memory.h"
-#include "threads/native/threads.h"
-#include "threads/native/lock.h"
+#include "threads/mutex.h"
+#include "threads/thread.h"
+#include "threads/lock-common.h"
 #include "vm/exceptions.h"
 #include "native/include/java_util_Vector.h"
 #include "native/include/java_io_PrintStream.h"
@@ -69,7 +68,6 @@
 #include "boehm-gc/include/gc.h"
 
 #if defined(ENABLE_THREADS)
-#include "threads/native/threads.h"
 #include <sched.h>
 #include <pthread.h>
 #endif 
@@ -79,7 +77,7 @@
 
 typedef struct _environment environment;
 static environment *envs=NULL;
-pthread_mutex_t dbgcomlock;
+mutex_t dbgcomlock;
 
 extern const struct JNIInvokeInterface _Jv_JNIInvokeInterface;
 
@@ -737,7 +735,7 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 
 	om=MNEW(java_objectheader*,size);
 
-	pthread_mutex_lock(&lock_global_pool_lock);
+	mutex_lock(&lock_global_pool_lock);
 	lrp=lock_global_pool;
 
 	/* iterate over all lock record pools */
@@ -758,7 +756,7 @@ GetOwnedMonitorInfo (jvmtiEnv * env, jthread thread,
 		lrp=lrp->header.next;
 	}
 
-	pthread_mutex_unlock(&lock_global_pool_lock);
+	mutex_unlock(&lock_global_pool_lock);
 
 	*owned_monitors_ptr	= 
 		heap_allocate(sizeof(java_objectheader*) * i, true, NULL);
@@ -807,7 +805,7 @@ GetCurrentContendedMonitor (jvmtiEnv * env, jthread thread,
 
 #if defined(ENABLE_THREADS)
 
-	pthread_mutex_lock(&lock_global_pool_lock);
+	mutex_lock(&lock_global_pool_lock);
 
 	lrp=lock_global_pool;
 
@@ -828,7 +826,7 @@ GetCurrentContendedMonitor (jvmtiEnv * env, jthread thread,
 		lrp=lrp->header.next;
 	}
 
-	pthread_mutex_unlock(&lock_global_pool_lock);
+	mutex_unlock(&lock_global_pool_lock);
 
 
 #endif

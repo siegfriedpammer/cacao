@@ -29,8 +29,9 @@
 
 #include "mm/memory.h"
 
+#include "threads/mutex.h"
 #include "threads/threadlist.h"
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "toolbox/list.h"
 
@@ -38,6 +39,8 @@
 
 
 /* global variables ***********************************************************/
+
+static mutex_t threadlist_mutex;          /* global mutex for the thread list */
 
 static list_t *list_thread;                            /* global threads list */
 static list_t *list_thread_free;                  /* global free threads list */
@@ -60,11 +63,44 @@ void threadlist_init(void)
 {
 	TRACESUBSYSTEMINITIALIZATION("threadlist_init");
 
+	/* Initialize the thread list mutex. */
+
+	mutex_init(&threadlist_mutex);
+
 	/* Initialize the thread lists. */
 
 	list_thread            = list_create(OFFSET(threadobject, linkage));
 	list_thread_free       = list_create(OFFSET(threadobject, linkage_free));
 	list_thread_index_free = list_create(OFFSET(thread_index_t, linkage));
+}
+
+
+/* threadlist_lock *************************************************************
+
+   Enter the thread list mutex.
+
+   NOTE: We need this function as we can't use an internal lock for
+         the threads lists because the thread's lock is initialized in
+         threads_table_add (when we have the thread index), but we
+         already need the lock at the entry of the function.
+
+*******************************************************************************/
+
+void threadlist_lock(void)
+{
+	mutex_lock(&threadlist_mutex);
+}
+
+
+/* threadlist_unlock *********************************************************
+
+   Leave the thread list mutex.
+
+*******************************************************************************/
+
+void threadlist_unlock(void)
+{
+	mutex_unlock(&threadlist_mutex);
 }
 
 
@@ -79,7 +115,7 @@ void threadlist_init(void)
 
 void threadlist_add(threadobject *t)
 {
-	list_add_last_unsynced(list_thread, t);
+	list_add_last(list_thread, t);
 }
 
 
@@ -94,7 +130,7 @@ void threadlist_add(threadobject *t)
 
 void threadlist_remove(threadobject *t)
 {
-	list_remove_unsynced(list_thread, t);
+	list_remove(list_thread, t);
 }
 
 
@@ -111,13 +147,13 @@ threadobject *threadlist_first(void)
 {
 	threadobject *t;
 
-	t = list_first_unsynced(list_thread);
+	t = list_first(list_thread);
 
 	return t;
 }
 
 
-/* threads_list_next ***********************************************************
+/* threadlist_next *************************************************************
 
    Return the next entry in the thread list.
 
@@ -133,7 +169,7 @@ threadobject *threadlist_next(threadobject *t)
 {
 	threadobject *next;
 
-	next = list_next_unsynced(list_thread, t);
+	next = list_next(list_thread, t);
 
 	return next;
 }
@@ -150,7 +186,7 @@ threadobject *threadlist_next(threadobject *t)
 
 void threadlist_free_add(threadobject *t)
 {
-	list_add_last_unsynced(list_thread_free, t);
+	list_add_last(list_thread_free, t);
 }
 
 
@@ -165,7 +201,7 @@ void threadlist_free_add(threadobject *t)
 
 void threadlist_free_remove(threadobject *t)
 {
-	list_remove_unsynced(list_thread_free, t);
+	list_remove(list_thread_free, t);
 }
 
 
@@ -182,7 +218,7 @@ threadobject *threadlist_free_first(void)
 {
 	threadobject *t;
 
-	t = list_first_unsynced(list_thread_free);
+	t = list_first(list_thread_free);
 
 	return t;
 }
@@ -202,20 +238,20 @@ int threadlist_get_non_daemons(void)
 	threadobject *t;
 	int           nondaemons;
 
-	/* Lock the threads lists. */
+	/* Lock the thread lists. */
 
-	threads_list_lock();
+	threadlist_lock();
 
 	nondaemons = 0;
 
 	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
-		if (!(t->flags & THREAD_FLAG_DAEMON))
+		if (!thread_is_daemon(t))
 			nondaemons++;
 	}
 
-	/* Unlock the threads lists. */
+	/* Unlock the thread lists. */
 
-	threads_list_unlock();
+	threadlist_unlock();
 
 	return nondaemons;
 }
@@ -234,7 +270,7 @@ static inline thread_index_t *threadlist_index_first(void)
 {
 	thread_index_t *ti;
 
-	ti = list_first_unsynced(list_thread_index_free);
+	ti = list_first(list_thread_index_free);
 
 	return ti;
 }
@@ -264,7 +300,7 @@ void threadlist_index_add(int index)
 
 	ti->index = index;
 
-	list_add_last_unsynced(list_thread_index_free, ti);
+	list_add_last(list_thread_index_free, ti);
 }
 
 
@@ -280,7 +316,7 @@ void threadlist_index_add(int index)
 
 static inline void threadlist_index_remove(thread_index_t *ti)
 {
-	list_remove_unsynced(list_thread_index_free, ti);
+	list_remove(list_thread_index_free, ti);
 
 	FREE(ti, thread_index_t);
 

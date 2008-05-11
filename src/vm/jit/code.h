@@ -1,9 +1,7 @@
 /* src/vm/jit/code.h - codeinfo struct for representing compiled code
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -88,6 +86,8 @@ struct codeinfo {
 	list_t       *patchers;
 
 	/* replacement */				    
+	s4            stackframesize;       /* size of the stackframe in slots    */
+
 #if defined(ENABLE_REPLACEMENT)
 	rplpoint     *rplpoints;            /* replacement points                 */
 	rplalloc     *regalloc;             /* register allocation info           */
@@ -95,7 +95,6 @@ struct codeinfo {
 	s4            globalcount;          /* number of global allocations       */
 	s4            regalloccount;        /* number of total allocations        */
 	s4            memuse;               /* number of arg + local slots        */
-	s4            stackframesize;       /* size of the stackframe in slots    */
 	u1            savedintcount;        /* number of callee saved int regs    */
 	u1            savedfltcount;        /* number of callee saved flt regs    */
 # if defined(HAS_ADDRESS_REGISTER_FILE)
@@ -206,15 +205,15 @@ inline static codeinfo *code_get_codeinfo_for_pv(void *pv)
 
 /* function prototypes ********************************************************/
 
-bool code_init(void);
+void code_init(void);
 
 codeinfo *code_codeinfo_new(methodinfo *m);
 void code_codeinfo_free(codeinfo *code);
 
-codeinfo *code_find_codeinfo_for_pc(u1 *pc);
-codeinfo *code_find_codeinfo_for_pc_nocheck(u1 *pc);
+codeinfo *code_find_codeinfo_for_pc(void *pc);
+codeinfo *code_find_codeinfo_for_pc_nocheck(void *pc);
 
-methodinfo *code_get_methodinfo_for_pv(u1 *pv);
+methodinfo *code_get_methodinfo_for_pv(void *pv);
 
 #if defined(ENABLE_REPLACEMENT)
 int code_get_sync_slot_count(codeinfo *code);

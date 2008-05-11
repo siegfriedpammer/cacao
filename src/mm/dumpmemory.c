@@ -30,7 +30,7 @@
 #include "mm/dumpmemory.h"
 #include "mm/memory.h"
 
-#include "threads/threads-common.h"
+#include "threads/thread.h"
 
 #include "vmcore/options.h"
 

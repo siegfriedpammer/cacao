@@ -23,11 +23,6 @@
 
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 
-if ENABLE_THREADS
-THREAD_LIB = \
-	$(top_builddir)/src/threads/libthreads.la
-endif
-
 if ENABLE_STATICVM
 cacao_LDFLAGS = \
 	-all-static
@@ -77,11 +72,11 @@ libjvm_la_LIBADD = \
 	$(top_builddir)/src/fdlibm/libfdlibm.la \
 	$(top_builddir)/src/mm/libmm.la \
 	$(top_builddir)/src/native/libnative.la \
+	$(top_builddir)/src/threads/libthreads.la \
 	$(top_builddir)/src/toolbox/libtoolbox.la \
 	$(top_builddir)/src/vm/libvm.la \
 	$(top_builddir)/src/vmcore/libvmcore.la \
-	$(GC_LIB) \
-	$(THREAD_LIB)
+	$(GC_LIB)
 
 bin_PROGRAMS = \
 	cacao

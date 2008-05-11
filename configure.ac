@@ -23,7 +23,7 @@ dnl 02110-1301, USA.
 dnl Process this file with autoconf to produce a configure script.
 
 
-AC_INIT(cacao, 0.98+svn, cacao@cacaojvm.org)
+AC_INIT(cacao, 0.99rc5, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
@@ -223,6 +223,8 @@ AC_CHECK_HEADERS([errno.h])
 AC_CHECK_HEADERS([fcntl.h])
 AC_CHECK_HEADERS([libgen.h])
 AC_CHECK_HEADERS([netdb.h])
+AC_CHECK_HEADERS([stdint.h])
+AC_CHECK_HEADERS([stdio.h])
 AC_CHECK_HEADERS([stdlib.h])
 AC_CHECK_HEADERS([string.h])
 AC_CHECK_HEADERS([time.h])
@@ -238,7 +240,6 @@ AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_HEADERS([sys/types.h])
 
 dnl this is for fdlibm
-AC_CHECK_HEADERS([stdint.h])
 AC_CHECK_HEADERS([inttypes.h])
 AC_CHECK_HEADERS([sys/config.h])
 AC_CHECK_HEADERS([sys/types.h])
@@ -318,7 +319,9 @@ AC_CHECK_FUNCS([setsockopt])
 AC_CHECK_FUNCS([shutdown])
 AC_CHECK_FUNCS([socket])
 AC_CHECK_FUNCS([stat])
+AC_CHECK_FUNCS([strcat])
 AC_CHECK_FUNCS([strchr])
+AC_CHECK_FUNCS([strcpy])
 AC_CHECK_FUNCS([strdup])
 AC_CHECK_FUNCS([strerror])
 AC_CHECK_FUNCS([strlen])
@@ -765,12 +768,12 @@ AC_CHECK_WITH_CLASSPATH
 
 dnl Now we check for jre-layout so we can skip some checks that are
 dnl not required.
-AC_CHECK_WITH_JRE_LAYOUT
+AC_CHECK_ENABLE_JRE_LAYOUT
 
 AC_CHECK_WITH_CLASSPATH_PREFIX
 AC_CHECK_WITH_CLASSPATH_CLASSES
 
-if test x"${WITH_JRE_LAYOUT}" = "xno"; then
+if test x"${ENABLE_JRE_LAYOUT}" = "xno"; then
    AC_CHECK_WITH_CLASSPATH_LIBDIR
 fi
 
@@ -778,6 +781,15 @@ dnl The check for jni_md.h must be before jni.h.
 AC_CHECK_WITH_JNI_MD_H
 AC_CHECK_WITH_JNI_H
 
+dnl HPI is only required for OpenJDK
+case "${WITH_CLASSPATH}" in
+    sun)
+        AC_CHECK_WITH_HPI_MD_H
+        AC_CHECK_WITH_HPI_H
+        ;;
+    *)
+        ;;
+esac
 
 dnl check for some programs we need
 
@@ -840,13 +852,14 @@ AC_CONFIG_FILES([Makefile]
 		[contrib/vmlog/Makefile]
 		[contrib/vmlog/t/Makefile]
 		[doc/Makefile]
+		[doc/doxygen/Makefile]
 		[doc/handbook/Makefile]
 		[man/Makefile]
 		[src/Makefile]
 		[src/cacao/Makefile]
 		[src/cacaoh/Makefile]
+		[src/classes/Makefile]
 		[src/fdlibm/Makefile]
-		[src/lib/Makefile]
 		[src/mm/Makefile]
 		[src/mm/cacao-gc/Makefile]
 		[src/native/Makefile]
@@ -859,8 +872,8 @@ AC_CONFIG_FILES([Makefile]
 		[src/scripts/Makefile]
 		[src/scripts/java]
 		[src/threads/Makefile]
-		[src/threads/native/Makefile]
 		[src/threads/none/Makefile]
+		[src/threads/posix/Makefile]
 		[src/toolbox/Makefile]
 		[src/vm/Makefile]
 		[src/vm/jit/Makefile]
@@ -906,9 +919,10 @@ AC_CONFIG_FILES([Makefile]
 		[src/vmcore/Makefile]
 		[tests/Makefile]
 		[tests/regression/Makefile]
-		[tests/regression/codepatching/Makefile]
+		[tests/regression/bugzilla/Makefile]
 		[tests/regression/assertion/Makefile]
 		[tests/regression/jasmin/Makefile]
+		[tests/regression/junit/Makefile]
 		[tests/regression/native/Makefile]
 		[tests/regression/resolving/Makefile]
 		[tests/regression/resolving/classes1/Makefile]

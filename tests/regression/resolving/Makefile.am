@@ -26,10 +26,9 @@ SUBDIRS = \
 	classes2 \
 	classes3
 
-JAVA          = $(top_builddir)/src/cacao/cacao
-BOOTCLASSPATH = $(top_builddir)/src/lib/classes:$(CLASSPATH_CLASSES)
-JAVACMD       = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
-JAVACCMD      = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
+JAVA     = $(top_builddir)/src/cacao/cacao
+JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
+JAVACCMD = $(JAVAC) -bootclasspath $(BOOTCLASSPATH)
 
 HARNESS_SOURCE_FILES = \
 	$(srcdir)/TestController.java \

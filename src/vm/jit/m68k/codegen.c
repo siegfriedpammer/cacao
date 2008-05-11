@@ -1,9 +1,7 @@
 /* src/vm/jit/m68k/codegen.c
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -31,7 +29,6 @@
 #include <stdint.h>
 
 #include "md-abi.h"
-#include "md-os.h"
 
 #include "vm/types.h"
 #include "vm/jit/m68k/codegen.h"
@@ -62,6 +59,7 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
@@ -254,13 +252,13 @@ bool codegen_emit(jitdata *jd)
 	/* call lock_monitor_enter function */
 	if (checksync && code_is_synchronized(code))	{
 		if (m->flags & ACC_STATIC)	{
-			M_AMOV_IMM((&m->class->object.header), REG_ATMP1);
+			M_AMOV_IMM((&m->clazz->object.header), REG_ATMP1);
 		} else	{
 			/* for non-static case the first arg is the object */
 			M_ALD(REG_ATMP1, REG_SP, cd->stackframesize + 4);
 			M_ATST(REG_ATMP1);
 			M_BNE(2);
-			M_TRAP(M68K_EXCEPTION_HARDWARE_NULLPOINTER);
+			M_TRAP(TRAP_NullPointerException);
 		}
 
 		M_AST(REG_ATMP1, REG_SP, rd->memuse * 8);
@@ -1119,8 +1117,8 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = (intptr_t) fi->value;
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))	{
-					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class,
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))	{
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz,
 										0);
 				}
 			}
@@ -1173,8 +1171,8 @@ bool codegen_emit(jitdata *jd)
 				fieldtype = fi->type;
 				disp      = (intptr_t) fi->value;
 
-				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->class))
-					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->class,
+				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
+					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz,
 										0);
   			}
 		
@@ -1734,8 +1732,8 @@ bool codegen_emit(jitdata *jd)
 						s1 = 0;
 						s2 = 0;
 					} else {
-						s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * lm->class->index;
-						s2 = sizeof(methodptr) * (lm - lm->class->methods);
+						s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * lm->clazz->index;
+						s2 = sizeof(methodptr) * (lm - lm->clazz->methods);
 					}
 					/* load object pointer (==argument 0) */
 					M_ALD(REG_ATMP1, REG_SP, 0);
@@ -2412,26 +2410,8 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	(void) dseg_add_unique_s4(cd, 0);                              /* IntSave         */
 	(void) dseg_add_unique_s4(cd, 0);                              /* FltSave         */
 
-	/* print call trace */
-#if 0
-#if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
-		emit_verbosecall_enter(jd);
-	}
-#endif
-#endif
-
 	/* generate code */
 	M_AADD_IMM(-(cd->stackframesize*8), REG_SP);
-
-	/* get function address (this must happen before the stackframeinfo) */
-	if (f == NULL)	{
-		patcher_add_patch_ref(jd, PATCHER_resolve_native_function, m, 0);
-	}
-
-	M_AMOV_IMM(f, REG_ATMP2); /* do not move this line, the patcher is needed */
-
-	M_AST(REG_ATMP2, REG_SP, 4 * 4);
 
 	/* put arguments for codegen_start_native_call onto stack */
 	/* void codegen_start_native_call(u1 *datasp, u1 *pv, u1 *sp, u1 *ra) */
@@ -2449,9 +2429,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* remember class argument */
 	if (m->flags & ACC_STATIC)
 		M_INT2ADRMOVE(REG_RESULT, REG_ATMP3);
-
-	/* load function pointer */
-	M_ALD(REG_ATMP2, REG_SP, 4 * 4);
 
 	/* copy arguments into stackframe */
 	for (i = md->paramcount -1, j = i + skipparams; i >= 0; --i, --j)	{
@@ -2483,6 +2460,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	}
 
 	/* call the native function */
+	M_AMOV_IMM(f, REG_ATMP2);
 	M_JSR(REG_ATMP2);
 
 	/* save return value */
@@ -2503,14 +2481,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 		default: assert(0);
 	}
-#if 0	
-	/* print call trace */
-#if ! defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
-		emit_verbosecall_exit(jd);
-	}
-#endif
-#endif
+
 	/* remove native stackframe info */
 	/* therefore we call: java_objectheader *codegen_finish_native_call(u1 *datasp) */
 
@@ -2568,9 +2539,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	/* should never be reached from within jit code*/
 	M_JSR_IMM(0);
-
-	/* generate patcher stub call code */
-	emit_patcher_traps(jd);
 }
 
 

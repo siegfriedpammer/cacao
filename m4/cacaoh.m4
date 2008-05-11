@@ -1,9 +1,7 @@
 dnl m4/cacaoh.m4
 dnl
-dnl Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-dnl C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-dnl E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-dnl J. Wenninger, Institut f. Computersprachen - TU Wien
+dnl Copyright (C) 2007, 2008
+dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl 
 dnl This file is part of CACAO.
 dnl 
@@ -29,13 +27,8 @@ AC_DEFUN([AC_CHECK_WITH_CACAOH],[
 AC_MSG_CHECKING(which cacaoh to use (for crosscompilation))
 AC_ARG_WITH([cacaoh],
             [AS_HELP_STRING(--with-cacaoh,which cacaoh to use [[default=$(top_builddir)/src/cacaoh/cacaoh]])],
-            [CACAOH="${withval}"
-             ENABLE_CACAOH=no
-            ],
-            [CACAOH=["\$(top_builddir)/src/cacaoh/cacaoh"
-             ENABLE_CACAOH=yes
-            ]])
+            [CACAOH="${withval}"],
+            [CACAOH=["\$(top_builddir)/src/cacaoh/cacaoh"]])
 AC_MSG_RESULT(${CACAOH})
 AC_SUBST(CACAOH)
-AM_CONDITIONAL([ENABLE_CACAOH], test x"${ENABLE_CACAOH}" = "xyes")
 ])

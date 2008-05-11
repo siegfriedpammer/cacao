@@ -1,9 +1,7 @@
 /* src/native/vm/reflect.c - helper functions for java/lang/reflect
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -48,6 +46,12 @@
 #include "native/include/java_lang_reflect_Field.h"
 #include "native/include/java_lang_reflect_Method.h"
 
+#if defined(WITH_CLASSPATH_GNU)
+# include "native/include/java_lang_reflect_VMConstructor.h"
+# include "native/include/java_lang_reflect_VMField.h"
+# include "native/include/java_lang_reflect_VMMethod.h"
+#endif
+
 #if defined(ENABLE_ANNOTATIONS) && defined(WITH_CLASSPATH_GNU)
 # include "vm/vm.h"
 # include "native/include/sun_reflect_ConstantPool.h"
@@ -55,8 +59,11 @@
 
 #include "native/vm/reflect.h"
 
+#include "vm/access.h"
 #include "vm/builtin.h"
+#include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/initialize.h"
 #include "vm/stringlocal.h"
 
 #include "vmcore/method.h"
@@ -71,40 +78,57 @@
 
 java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 {
-	classinfo                     *c;
-	java_handle_t                 *o;
-	java_lang_reflect_Constructor *rc;
-	int32_t                        slot;
+	java_handle_t                   *o;
+	java_lang_reflect_Constructor   *rc;
+	int32_t                          slot;
 
-	/* get declaring class */
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_reflect_VMConstructor *rvmc;
+#endif
 
-	c = m->class;
-
-	/* allocate a new object */
+	/* Allocate a java.lang.reflect.Constructor object. */
 
 	o = builtin_new(class_java_lang_reflect_Constructor);
 
 	if (o == NULL)
 		return NULL;
 
-	/* initialize instance fields */
+	/* Initialize instance fields. */
 
 	rc = (java_lang_reflect_Constructor *) o;
 
-	/* calculate the slot */
+	/* Calculate the slot. */
 
-	slot = m - c->methods;
+	slot = m - m->clazz->methods;
 
 #if defined(WITH_CLASSPATH_GNU)
 
-	LLNI_field_set_cls(rc, clazz               , c);
-	LLNI_field_set_val(rc, slot                , slot);
-	LLNI_field_set_ref(rc, annotations         , method_get_annotations(m));
-	LLNI_field_set_ref(rc, parameterAnnotations, method_get_parameterannotations(m));
+	/* Allocate a java.lang.reflect.VMConstructor object. */
+
+	o = builtin_new(class_java_lang_reflect_VMConstructor);
+
+	if (o == NULL)
+		return NULL;
+
+	rvmc = (java_lang_reflect_VMConstructor *) o;
+
+	/* Link the two Java objects. */
+
+	LLNI_field_set_ref(rc,   cons, rvmc);
+	LLNI_field_set_ref(rvmc, cons, rc);
+
+	/* Set Java object instance fields. */
+
+	LLNI_field_set_cls(rvmc, clazz,                m->clazz);
+	LLNI_field_set_val(rvmc, slot,                 slot);
+	LLNI_field_set_ref(rvmc, annotations,          method_get_annotations(m));
+	LLNI_field_set_ref(rvmc, parameterAnnotations, method_get_parameterannotations(m));
 
 #elif defined(WITH_CLASSPATH_SUN)
 
-	LLNI_field_set_cls(rc, clazz               , c);
+	/* Set Java object instance fields. */
+
+	LLNI_field_set_cls(rc, clazz               , m->clazz);
 	LLNI_field_set_ref(rc, parameterTypes      , method_get_parametertypearray(m));
 	LLNI_field_set_ref(rc, exceptionTypes      , method_get_exceptionarray(m));
 	LLNI_field_set_val(rc, modifiers           , m->flags & ACC_CLASS_REFLECT_MASK);
@@ -130,16 +154,15 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 
 java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 {
-	classinfo               *c;
-	java_handle_t           *o;
-	java_lang_reflect_Field *rf;
-	int32_t                  slot;
+	java_handle_t             *o;
+	java_lang_reflect_Field   *rf;
+	int32_t                    slot;
 
-	/* get declaring class */
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_reflect_VMField *rvmf;
+#endif
 
-	c = f->class;
-
-	/* allocate a new object */
+	/* Allocate a java.lang.reflect.Field object. */
 
 	o = builtin_new(class_java_lang_reflect_Field);
 
@@ -150,34 +173,52 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 
 	rf = (java_lang_reflect_Field *) o;
 
-	/* calculate the slot */
+	/* Calculate the slot. */
 
-	slot = f - c->fields;
+	slot = f - f->clazz->fields;
 
 #if defined(WITH_CLASSPATH_GNU)
 
-	LLNI_field_set_cls(rf, clazz         , c);
+	/* Allocate a java.lang.reflect.VMField object. */
+
+	o = builtin_new(class_java_lang_reflect_VMField);
+
+	if (o == NULL)
+		return NULL;
+
+	rvmf = (java_lang_reflect_VMField *) o;
+
+	/* Link the two Java objects. */
+
+	LLNI_field_set_ref(rf,   f, rvmf);
+	LLNI_field_set_ref(rvmf, f, rf);
+
+	/* Set the Java object fields. */
+
+	LLNI_field_set_cls(rvmf, clazz,       f->clazz);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	LLNI_field_set_ref(rf, name          , javastring_intern(javastring_new(f->name)));
-	LLNI_field_set_val(rf, slot          , slot);
-	LLNI_field_set_ref(rf, annotations   , field_get_annotations(f));
+	LLNI_field_set_ref(rvmf, name,        (java_lang_String *) javastring_intern(javastring_new(f->name)));
+	LLNI_field_set_val(rvmf, slot,        slot);
+	LLNI_field_set_ref(rvmf, annotations, field_get_annotations(f));
 
 #elif defined(WITH_CLASSPATH_SUN)
 
-	LLNI_field_set_cls(rf, clazz         , c);
+	/* Set the Java object fields. */
+
+	LLNI_field_set_cls(rf, clazz,       f->clazz);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	LLNI_field_set_ref(rf, name          , javastring_intern(javastring_new(f->name)));
-	LLNI_field_set_cls(rf, type          , (java_lang_Class *) field_get_type(f));
-	LLNI_field_set_val(rf, modifiers     , f->flags);
-	LLNI_field_set_val(rf, slot          , slot);
-	LLNI_field_set_ref(rf, signature     , f->signature ? (java_lang_String *) javastring_new(f->signature) : NULL);
-	LLNI_field_set_ref(rf, annotations   , field_get_annotations(f));
+	LLNI_field_set_ref(rf, name,        (java_lang_String *) javastring_intern(javastring_new(f->name)));
+	LLNI_field_set_cls(rf, type,        (java_lang_Class *) field_get_type(f));
+	LLNI_field_set_val(rf, modifiers,   f->flags);
+	LLNI_field_set_val(rf, slot,        slot);
+	LLNI_field_set_ref(rf, signature,   f->signature ? (java_lang_String *) javastring_new(f->signature) : NULL);
+	LLNI_field_set_ref(rf, annotations, field_get_annotations(f));
 
 #else
 # error unknown classpath configuration
@@ -196,16 +237,15 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 
 java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 {
-	classinfo                *c;
-	java_handle_t            *o;
-	java_lang_reflect_Method *rm;
-	int32_t                   slot;
+	java_handle_t              *o;
+	java_lang_reflect_Method   *rm;
+	int32_t                     slot;
 
-	/* get declaring class */
+#if defined(WITH_CLASSPATH_GNU)
+	java_lang_reflect_VMMethod *rvmm;
+#endif
 
-	c = m->class;
-
-	/* allocate a new object */
+	/* Allocate a java.lang.reflect.Method object. */
 
 	o = builtin_new(class_java_lang_reflect_Method);
 
@@ -216,46 +256,237 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 
 	rm = (java_lang_reflect_Method *) o;
 
-	/* calculate the slot */
+	/* Calculate the slot. */
 
-	slot = m - c->methods;
+	slot = m - m->clazz->methods;
 
 #if defined(WITH_CLASSPATH_GNU)
 
-	LLNI_field_set_cls(rm, clazz               , m->class);
+	/* Allocate a java.lang.reflect.VMMethod object. */
+
+	o = builtin_new(class_java_lang_reflect_VMMethod);
+
+	if (o == NULL)
+		return NULL;
+
+	rvmm = (java_lang_reflect_VMMethod *) o;
+
+	/* Link the two Java objects. */
+
+	LLNI_field_set_ref(rm,   m, rvmm);
+	LLNI_field_set_ref(rvmm, m, rm);
+
+	/* Set Java object instance fields. */
+
+	LLNI_field_set_cls(rvmm, clazz,                m->clazz);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	LLNI_field_set_ref(rm, name                , javastring_intern(javastring_new(m->name)));
-	LLNI_field_set_val(rm, slot                , slot);
-	LLNI_field_set_ref(rm, annotations         , method_get_annotations(m));
-	LLNI_field_set_ref(rm, parameterAnnotations, method_get_parameterannotations(m));
-	LLNI_field_set_ref(rm, annotationDefault   , method_get_annotationdefault(m));
+	LLNI_field_set_ref(rvmm, name,                 (java_lang_String *) javastring_intern(javastring_new(m->name)));
+	LLNI_field_set_val(rvmm, slot,                 slot);
+	LLNI_field_set_ref(rvmm, annotations,          method_get_annotations(m));
+	LLNI_field_set_ref(rvmm, parameterAnnotations, method_get_parameterannotations(m));
+	LLNI_field_set_ref(rvmm, annotationDefault,    method_get_annotationdefault(m));
 
 #elif defined(WITH_CLASSPATH_SUN)
 
-	LLNI_field_set_cls(rm, clazz               , m->class);
+	LLNI_field_set_cls(rm, clazz,                m->clazz);
 
 	/* The name needs to be interned */
 	/* XXX implement me better! */
 
-	LLNI_field_set_ref(rm, name                , javastring_intern(javastring_new(m->name)));
-	LLNI_field_set_ref(rm, parameterTypes      , method_get_parametertypearray(m));
-	LLNI_field_set_cls(rm, returnType          , (java_lang_Class *) method_returntype_get(m));
-	LLNI_field_set_ref(rm, exceptionTypes      , method_get_exceptionarray(m));
-	LLNI_field_set_val(rm, modifiers           , m->flags & ACC_CLASS_REFLECT_MASK);
-	LLNI_field_set_val(rm, slot                , slot);
-	LLNI_field_set_ref(rm, signature           , m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL);
-	LLNI_field_set_ref(rm, annotations         , method_get_annotations(m));
+	LLNI_field_set_ref(rm, name,                 (java_lang_String *) javastring_intern(javastring_new(m->name)));
+	LLNI_field_set_ref(rm, parameterTypes,       method_get_parametertypearray(m));
+	LLNI_field_set_cls(rm, returnType,           (java_lang_Class *) method_returntype_get(m));
+	LLNI_field_set_ref(rm, exceptionTypes,       method_get_exceptionarray(m));
+	LLNI_field_set_val(rm, modifiers,            m->flags & ACC_CLASS_REFLECT_MASK);
+	LLNI_field_set_val(rm, slot,                 slot);
+	LLNI_field_set_ref(rm, signature,            m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL);
+	LLNI_field_set_ref(rm, annotations,          method_get_annotations(m));
 	LLNI_field_set_ref(rm, parameterAnnotations, method_get_parameterannotations(m));
-	LLNI_field_set_ref(rm, annotationDefault   , method_get_annotationdefault(m));
+	LLNI_field_set_ref(rm, annotationDefault,    method_get_annotationdefault(m));
 
 #else
 # error unknown classpath configuration
 #endif
 
 	return rm;
+}
+
+
+/* reflect_invoke **************************************************************
+
+   Invoke a method on the given object with the given arguments.
+
+   For instance methods OBJ must be != NULL and the method is looked up
+   in the vftbl of the object.
+
+   For static methods, OBJ is ignored.
+
+*******************************************************************************/
+
+static java_handle_t *reflect_invoke(methodinfo *m, java_handle_t *o, java_handle_objectarray_t *params)
+{
+	methodinfo    *resm;
+	java_handle_t *ro;
+	int            argcount;
+	int            paramcount;
+
+	/* Sanity check. */
+
+	assert(m != NULL);
+
+	argcount = m->parseddesc->paramcount;
+	paramcount = argcount;
+
+	/* If method is non-static, remove the `this' pointer. */
+
+	if (!(m->flags & ACC_STATIC))
+		paramcount--;
+
+	/* For instance methods the object has to be an instance of the
+	   class the method belongs to. For static methods the obj
+	   parameter is ignored. */
+
+	if (!(m->flags & ACC_STATIC) && o && (!builtin_instanceof(o, m->clazz))) {
+		exceptions_throw_illegalargumentexception();
+		return NULL;
+	}
+
+	/* check if we got the right number of arguments */
+
+	if (((params == NULL) && (paramcount != 0)) ||
+		(params && (LLNI_array_size(params) != paramcount))) 
+	{
+		exceptions_throw_illegalargumentexception();
+		return NULL;
+	}
+
+	/* for instance methods we need an object */
+
+	if (!(m->flags & ACC_STATIC) && (o == NULL)) {
+		/* XXX not sure if that is the correct exception */
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	/* for static methods, zero object to make subsequent code simpler */
+	if (m->flags & ACC_STATIC)
+		o = NULL;
+
+	if (o != NULL) {
+		/* for instance methods we must do a vftbl lookup */
+		resm = method_vftbl_lookup(LLNI_vftbl_direct(o), m);
+	}
+	else {
+		/* for static methods, just for convenience */
+		resm = m;
+	}
+
+	ro = vm_call_method_objectarray(resm, o, params);
+
+	return ro;
+}
+
+
+/* reflect_constructor_newinstance ********************************************
+
+   Creates an Java object instance of the given constructor.
+
+   ARGUMENTS:
+      m .......... methodinfo of the constructor
+      args ....... constructor arguments
+      override ... override security checks
+
+   RETURN:
+      constructed Java object
+
+*******************************************************************************/
+
+java_handle_t *reflect_constructor_newinstance(methodinfo *m, java_handle_objectarray_t *args, bool override)
+{
+	java_handle_t *o;
+
+	/* Should we bypass security the checks (AccessibleObject)? */
+
+	if (override == false) {
+		/* This method is always called like this:
+		       [0] java.lang.reflect.Constructor.constructNative (Native Method)
+		       [1] java.lang.reflect.Constructor.newInstance
+		       [2] <caller>
+		*/
+
+		if (!access_check_method(m, 2))
+			return NULL;
+	}
+
+	/* Create a Java object. */
+
+	o = builtin_new(m->clazz);
+
+	if (o == NULL)
+		return NULL;
+        
+	/* Call initializer. */
+
+	(void) reflect_invoke(m, o, args);
+
+	return o;
+}
+
+
+/* reflect_method_invoke *******************************************************
+
+   Invokes the given method.
+
+   ARGUMENTS:
+      m .......... methodinfo
+      args ....... method arguments
+      override ... override security checks
+
+   RETURN:
+      return value of the method
+
+*******************************************************************************/
+
+java_handle_t *reflect_method_invoke(methodinfo *m, java_handle_t *o, java_handle_objectarray_t *args, bool override)
+{
+	java_handle_t *ro;
+
+	/* Should we bypass security the checks (AccessibleObject)? */
+
+	if (override == false) {
+#if defined(WITH_CLASSPATH_GNU)
+		/* This method is always called like this:
+		       [0] java.lang.reflect.Method.invokeNative (Native Method)
+		       [1] java.lang.reflect.Method.invoke (Method.java:329)
+		       [2] <caller>
+		*/
+
+		if (!access_check_method(m, 2))
+			return NULL;
+#elif defined(WITH_CLASSPATH_SUN)
+		/* We only pass 1 here as stacktrace_get_caller_class, which
+		   is called from access_check_method, skips
+		   java.lang.reflect.Method.invoke(). */
+
+		if (!access_check_method(m, 1))
+			return NULL;
+#endif
+	}
+
+	/* Check if method class is initialized. */
+
+	if (!(m->clazz->state & CLASS_INITIALIZED))
+		if (!initialize_class(m->clazz))
+			return NULL;
+
+	/* Call the Java method. */
+
+	ro = reflect_invoke(m, o, args);
+
+	return ro;
 }
 
 

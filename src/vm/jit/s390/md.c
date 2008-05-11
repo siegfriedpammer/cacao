@@ -1,9 +1,7 @@
 /* src/vm/jit/s390/md.c - machine dependent s390 Linux functions
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -36,17 +34,18 @@
 
 #include "vm/jit/s390/md-abi.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/threads-common.h"
-# include "threads/native/threads.h"
-#endif
+#include "threads/thread.h"
 
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
+
 #include "vm/jit/asmpart.h"
 #include "vm/jit/abi.h"
+#include "vm/jit/executionstate.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/methodtree.h"
 #include "vm/jit/stacktrace.h"
+#include "vm/jit/trap.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 #include "vmcore/options.h" /* XXX debug */
@@ -96,14 +95,15 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 
 	log_println("Program counter: 0x%08X", pc);
 
-	pv = codegen_get_pv_from_pc_nocheck(pc);
+	pv = methodtree_find_nocheck(pc);
+
 	if (pv == NULL) {
 		log_println("No java method found at location.");
 	} else {
 		m = (*(codeinfo **)(pv + CodeinfoPointer))->m;
 		log_println(
 			"Java method: class %s, method %s, descriptor %s.",
-			m->class->name->text, m->name->text, m->descriptor->text
+			m->clazz->name->text, m->name->text, m->descriptor->text
 		);
 	}
 
@@ -125,11 +125,8 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 		log_println("\tf%d\t0x%016llX\t(double)%e\t(float)%f", i, freg.l, freg.fr.d, freg.fr.f);
 	}
 
-#if defined(ENABLE_THREADS)
 	log_println("Dumping the current stacktrace:");
-	threads_print_stacktrace();
-#endif
-
+	stacktrace_print_current();
 }
 
 /* md_signal_handler_sigsegv ***************************************************
@@ -188,20 +185,20 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	pv = (u1 *)_mc->gregs[REG_PV] - N_PV_OFFSET;
 	sp = (u1 *)_mc->gregs[REG_SP];
 	ra = xpc;
-	type = EXCEPTION_HARDWARE_NULLPOINTER;
+	type = TRAP_NullPointerException;
 	val = 0;
 
-	/* Handle the type. */
+	/* Handle the trap. */
 
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
 	if (p != NULL) {
-		_mc->gregs[REG_ITMP3_XPTR] = (intptr_t) p;
-		_mc->gregs[REG_ITMP1_XPC]  = (intptr_t) xpc;
-		_mc->psw.addr              = (intptr_t) asm_handle_exception;
+		_mc->gregs[REG_ITMP3_XPTR] = (uintptr_t) p;
+		_mc->gregs[REG_ITMP1_XPC]  = (uintptr_t) xpc;
+		_mc->psw.addr              = (uintptr_t) asm_handle_exception;
 	}
 	else {
-		_mc->psw.addr              = (intptr_t) xpc;
+		_mc->psw.addr              = (uintptr_t) xpc;
 	}
 }
 
@@ -236,7 +233,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 		sp = (u1 *)_mc->gregs[REG_SP];
 		val = (ptrint)_mc->gregs[reg];
 
-		if (EXCEPTION_HARDWARE_COMPILER == type) {
+		if (TRAP_COMPILER == type) {
 			/* The PV from the compiler stub is equal to the XPC. */
 
 			pv = xpc;
@@ -248,28 +245,28 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 			xpc = ra - 2;
 		}
 
-		/* Handle the type. */
+		/* Handle the trap. */
 
-		p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+		p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
-		if (EXCEPTION_HARDWARE_COMPILER == type) {
+		if (TRAP_COMPILER == type) {
 			if (NULL == p) {
-				_mc->gregs[REG_ITMP3_XPTR] = (intptr_t) builtin_retrieve_exception();
-				_mc->gregs[REG_ITMP1_XPC]  = (intptr_t) ra - 2;
-				_mc->gregs[REG_PV]         = (intptr_t) md_codegen_get_pv_from_pc(ra);
-				_mc->psw.addr              = (intptr_t) asm_handle_exception;
+				_mc->gregs[REG_ITMP3_XPTR] = (uintptr_t) builtin_retrieve_exception();
+				_mc->gregs[REG_ITMP1_XPC]  = (uintptr_t) ra - 2;
+				_mc->gregs[REG_PV]         = (uintptr_t) md_codegen_get_pv_from_pc(ra);
+				_mc->psw.addr              = (uintptr_t) asm_handle_exception;
 			} else {
-				_mc->gregs[REG_PV]         = (intptr_t) p;
-				_mc->psw.addr              = (intptr_t) p;
+				_mc->gregs[REG_PV]         = (uintptr_t) p;
+				_mc->psw.addr              = (uintptr_t) p;
 			}
 		} else {
 			if (p != NULL) {
-				_mc->gregs[REG_ITMP3_XPTR] = (intptr_t) p;
-				_mc->gregs[REG_ITMP1_XPC]  = (intptr_t) xpc;
-				_mc->psw.addr              = (intptr_t) asm_handle_exception;
+				_mc->gregs[REG_ITMP3_XPTR] = (uintptr_t) p;
+				_mc->gregs[REG_ITMP1_XPC]  = (uintptr_t) xpc;
+				_mc->psw.addr              = (uintptr_t) asm_handle_exception;
 			}
 			else {
-				_mc->psw.addr              = (intptr_t) xpc;
+				_mc->psw.addr              = (uintptr_t) xpc;
 			}
 		}
 	} else {
@@ -338,16 +335,16 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 			sp = (u1 *)_mc->gregs[REG_SP];
 			ra = xpc;
 
-			type = EXCEPTION_HARDWARE_ARITHMETIC;
+			type = TRAP_ArithmeticException;
 			val = 0;
 
-			/* Handle the type. */
+			/* Handle the trap. */
 
-			p = signal_handle(type, val, pv, sp, ra, xpc, _p);
+			p = trap_handle(type, val, pv, sp, ra, xpc, _p);
 
-			_mc->gregs[REG_ITMP3_XPTR] = (intptr_t) p;
-			_mc->gregs[REG_ITMP1_XPC]  = (intptr_t) xpc;
-			_mc->psw.addr              = (intptr_t) asm_handle_exception;
+			_mc->gregs[REG_ITMP3_XPTR] = (uintptr_t) p;
+			_mc->gregs[REG_ITMP1_XPC]  = (uintptr_t) xpc;
+			_mc->psw.addr              = (uintptr_t) asm_handle_exception;
 
 			return;
 		}
@@ -389,6 +386,30 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 	t->pc = pc;
 }
 #endif
+
+
+/**
+ * Read the given context into an executionstate.
+ *
+ * @param es      execution state
+ * @param context machine context
+ */
+void md_executionstate_read(executionstate_t* es, void* context)
+{
+	vm_abort("md_executionstate_read: IMPLEMENT ME!");
+}
+
+
+/**
+ * Write the given executionstate back to the context.
+ *
+ * @param es      execution state
+ * @param context machine context
+ */
+void md_executionstate_write(executionstate_t* es, void* context)
+{
+	vm_abort("md_executionstate_write: IMPLEMENT ME!");
+}
 
 
 #if defined(ENABLE_THREADS)
@@ -554,7 +575,7 @@ void md_handle_exception(int32_t *regs, int64_t *fregs, int32_t *out) {
 
 		++loops;
 
-		pv = codegen_get_pv_from_pc(xpc);
+		pv = methodtree_find(xpc);
 
 		handler = exceptions_handle_exception((java_object_t *)xptr, xpc, pv, sp);
 

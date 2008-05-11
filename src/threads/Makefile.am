@@ -26,26 +26,40 @@ AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top
 LIB =
 
 DIST_SUBDIRS = \
-	native \
-	none
+	none \
+	posix
 
+if ENABLE_THREADS
 SUBDIRS = \
-	native
+	posix
 
 THREAD_LIB = \
-	native/libthreadsposix.la
+	posix/libthreadsposix.la
+else
+SUBDIRS = \
+	none
+
+THREAD_LIB = \
+	none/libthreadsnone.la
+endif
+
 
 noinst_LTLIBRARIES = \
 	libthreads.la
 
+if ENABLE_THREADS
 libthreads_la_SOURCES = \
 	critical.c \
 	critical.h \
 	lock-common.h \
+	mutex.h \
 	threadlist.c \
 	threadlist.h \
-	threads-common.c \
-	threads-common.h
+	thread.c \
+	thread.h
+else
+libthreads_la_SOURCES =
+endif
 
 libthreads_la_LIBADD = \
 	$(THREAD_LIB)

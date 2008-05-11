@@ -1,9 +1,7 @@
 /* src/vm/jit_interface.h - prototypes of jit functions used in vm/ code
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -35,8 +33,6 @@
 /* These functions are used from vm/ but defined in vm/jit/ */
 
 void code_free_code_of_method(methodinfo *m);
-
-methodinfo *code_get_methodinfo_for_pv(u1 *pv);
 
 u1       *codegen_generate_stub_compiler(methodinfo *m);
 codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f);

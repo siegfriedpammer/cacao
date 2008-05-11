@@ -1,9 +1,7 @@
 /* src/vm/jit/s390/md.h - machine dependent s390 Linux functions
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -34,6 +32,7 @@
 #include <stdint.h>
 
 #include "vm/jit/codegen-common.h"
+#include "vm/jit/methodtree.h"
 
 
 /* md_stacktrace_get_returnaddress *********************************************
@@ -58,8 +57,7 @@ inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframe
 
 /* md_codegen_get_pv_from_pc ***************************************************
 
-   On this architecture just a wrapper function to
-   codegen_get_pv_from_pc.
+   On this architecture just a wrapper function to methodtree_find.
 
 *******************************************************************************/
 
@@ -70,7 +68,7 @@ inline static void *md_codegen_get_pv_from_pc(void *ra)
 	/* Get the start address of the function which contains this
        address from the method table. */
 
-	pv = codegen_get_pv_from_pc(ra);
+	pv = methodtree_find(ra);
 
 	return pv;
 }
