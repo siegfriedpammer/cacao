@@ -77,14 +77,12 @@ typedef struct {
 
 #if defined(HAVE___THREAD)
 
-#define THREADSPECIFIC    __thread
 #define THREADOBJECT      thread_current
 
 extern __thread threadobject *thread_current;
 
 #else /* defined(HAVE___THREAD) */
 
-#define THREADSPECIFIC
 #define THREADOBJECT \
 	((threadobject *) pthread_getspecific(thread_current_key))
 
