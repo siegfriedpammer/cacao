@@ -135,8 +135,7 @@ bool vm_initializing = false;
 bool vm_created      = false;
 bool vm_exiting      = false;
 
-char      *mainstring = NULL;
-classinfo *mainclass = NULL;
+static classinfo *mainclass = NULL;
 
 #if defined(ENABLE_INTRP)
 u1 *intrp_main_stack = NULL;
@@ -671,7 +670,7 @@ static void vm_printconfig(void)
 static char *vm_get_mainclass_from_jar(char *mainstring);
 #if !defined(NDEBUG)
 static void  vm_compile_all(void);
-static void  vm_compile_method(void);
+static void  vm_compile_method(char* mainname);
 #endif
 
 
@@ -1363,37 +1362,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		}
 	}
 
-	/* get the main class *****************************************************/
-
-	if (opt_index < vm_args->nOptions) {
-		mainstring = vm_args->options[opt_index++].optionString;
-
-		/* Put the jar file into the classpath (if any). */
-
-		if (opt_jar == true) {
-			/* free old classpath */
-
-/* 			MFREE(_Jv_classpath, char, strlen(_Jv_classpath)); */
-
-			/* put jarfile into classpath */
-
-			p = MNEW(char, strlen(mainstring) + strlen("0"));
-
-			strcpy(p, mainstring);
-
-#if defined(ENABLE_JAVASE)
-			properties_add("java.class.path", p);
-#endif
-		}
-		else {
-			/* replace .'s with /'s in classname */
-
-			for (i = strlen(mainstring) - 1; i >= 0; i--)
-				if (mainstring[i] == '.')
-					mainstring[i] = '/';
-		}
-	}
-
 #if defined(ENABLE_JVMTI)
 	if (jvmti) {
 		jvmti_set_phase(JVMTI_PHASE_ONLOAD);
@@ -1657,6 +1625,9 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 {
+	char*                      option;
+	char*                      mainname;
+	char*                      p;
 	utf                       *mainutf;
 	classinfo                 *mainclass;
 	java_handle_t             *e;
@@ -1677,17 +1648,66 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 		vm_compile_all();
 		return;
 	}
+#endif
 
+	/* Get the main class plus it's arguments. */
+
+	mainname = NULL;
+
+	if (opt_index < vm_args->nOptions) {
+		/* Get main-class argument. */
+
+		mainname = vm_args->options[opt_index].optionString;
+
+		/* If the main class argument is a jar file, put it into the
+		   classpath. */
+
+		if (opt_jar == true) {
+			p = MNEW(char, strlen(mainname) + strlen("0"));
+
+			strcpy(p, mainname);
+
+#if defined(ENABLE_JAVASE)
+			properties_add("java.class.path", p);
+#endif
+		}
+		else {
+			/* Replace dots with slashes in the class name. */
+
+			for (i = 0; i < strlen(mainname); i++)
+				if (mainname[i] == '.')
+					mainname[i] = '/';
+		}
+
+		/* Build argument array.  Move index to first argument. */
+
+		opt_index++;
+
+		oalength = vm_args->nOptions - opt_index;
+
+		oa = builtin_anewarray(oalength, class_java_lang_String);
+
+		for (i = 0; i < oalength; i++) {
+			option = vm_args->options[opt_index + i].optionString;
+
+			u = utf_new_char(option);
+			s = javastring_new(u);
+
+			array_objectarray_element_set(oa, i, s);
+		}
+	}
+
+	/* Do we have a main-class argument? */
+
+	if (mainname == NULL)
+		usage();
+
+#if !defined(NDEBUG)
 	if (opt_method != NULL) {
-		vm_compile_method();
+		vm_compile_method(mainname);
 		return;
 	}
-#endif /* !defined(NDEBUG) */
-
-	/* should we run the main-method? */
-
-	if (mainstring == NULL)
-		usage();
+#endif
 
 	/* set return value to OK */
 
@@ -1696,15 +1716,15 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	if (opt_jar == true) {
 		/* open jar file with java.util.jar.JarFile */
 
-		mainstring = vm_get_mainclass_from_jar(mainstring);
+		mainname = vm_get_mainclass_from_jar(mainname);
 
-		if (mainstring == NULL)
+		if (mainname == NULL)
 			vm_exit(1);
 	}
 
 	/* load the main class */
 
-	mainutf = utf_new_char(mainstring);
+	mainutf = utf_new_char(mainname);
 
 #if defined(ENABLE_JAVAME_CLDC1_1)
 	mainclass = load_class_bootstrap(mainutf);
@@ -1752,24 +1772,10 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 		vm_exit(1);
 	}
 
-	/* build argument array */
-
-	oalength = vm_args->nOptions - opt_index;
-
-	oa = builtin_anewarray(oalength, class_java_lang_String);
-
-	for (i = 0; i < oalength; i++) {
-		u = utf_new_char(vm_args->options[opt_index + i].optionString);
-		s = javastring_new(u);
-
-		array_objectarray_element_set(oa, i, s);
-	}
-
 #ifdef TYPEINFO_DEBUG_TEST
 	/* test the typeinfo system */
 	typeinfo_test();
 #endif
-	/*class_showmethods(currentThread->group->header.vftbl->class);	*/
 
 #if defined(ENABLE_JVMTI)
 	jvmti_set_phase(JVMTI_PHASE_LIVE);
@@ -2137,7 +2143,7 @@ void vm_abort_disassemble(void *pc, int count, const char *text, ...)
 
 *******************************************************************************/
 
-static char *vm_get_mainclass_from_jar(char *mainstring)
+static char *vm_get_mainclass_from_jar(char *mainname)
 {
 	classinfo     *c;
 	java_handle_t *o;
@@ -2171,7 +2177,7 @@ static char *vm_get_mainclass_from_jar(char *mainstring)
 		return NULL;
 	}
 
-	s = javastring_new_from_ascii(mainstring);
+	s = javastring_new_from_ascii(mainname);
 
 	(void) vm_call_method(m, o, s);
 
@@ -2196,7 +2202,7 @@ static char *vm_get_mainclass_from_jar(char *mainstring)
 	o = vm_call_method(m, o);
 
 	if (o == NULL) {
-		fprintf(stderr, "Could not get manifest from %s (invalid or corrupt jarfile?)\n", mainstring);
+		fprintf(stderr, "Could not get manifest from %s (invalid or corrupt jarfile?)\n", mainname);
 		return NULL;
 	}
 
@@ -2219,7 +2225,7 @@ static char *vm_get_mainclass_from_jar(char *mainstring)
 	o = vm_call_method(m, o);
 
 	if (o == NULL) {
-		fprintf(stderr, "Could not get main attributes from %s (invalid or corrupt jarfile?)\n", mainstring);
+		fprintf(stderr, "Could not get main attributes from %s (invalid or corrupt jarfile?)\n", mainname);
 		return NULL;
 	}
 
@@ -2245,7 +2251,7 @@ static char *vm_get_mainclass_from_jar(char *mainstring)
 
 	if (o == NULL) {
 		fprintf(stderr, "Failed to load Main-Class manifest attribute from\n");
-		fprintf(stderr, "%s\n", mainstring);
+		fprintf(stderr, "%s\n", mainname);
 		return NULL;
 	}
 
@@ -2338,13 +2344,13 @@ static void vm_compile_all(void)
 *******************************************************************************/
 
 #if !defined(NDEBUG)
-static void vm_compile_method(void)
+static void vm_compile_method(char* mainname)
 {
 	methodinfo *m;
 
 	/* create, load and link the main class */
 
-	mainclass = load_class_bootstrap(utf_new_char(mainstring));
+	mainclass = load_class_bootstrap(utf_new_char(mainname));
 
 	if (mainclass == NULL)
 		exceptions_print_stacktrace();
