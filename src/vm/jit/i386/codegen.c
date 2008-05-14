@@ -443,11 +443,13 @@ bool codegen_emit(jitdata *jd)
 				var = VAR(bptr->invars[len]);
 				if (bptr->type != BBTYPE_STD) {
 					if (!IS_2_WORD_TYPE(var->type)) {
+#if !defined(ENABLE_SSA)
 						if (bptr->type == BBTYPE_EXH) {
 							d = codegen_reg_of_var(0, var, REG_ITMP1);
 							M_INTMOVE(REG_ITMP1, d);
 							emit_store(jd, NULL, var, d);
 						}
+#endif
 					} 
 					else {
 						log_text("copy interface registers(EXH, SBR): longs \
@@ -3418,6 +3420,13 @@ gen_method:
 			emit_store_dst(jd, iptr, s1);
 			break;
 
+#if defined(ENABLE_SSA)
+		case ICMD_GETEXCEPTION:
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+			M_INTMOVE(REG_ITMP1, d);
+			emit_store_dst(jd, iptr, d);
+			break;
+#endif
 		default:
 			exceptions_throw_internalerror("Unknown ICMD %d during code generation",
 										   iptr->opc);

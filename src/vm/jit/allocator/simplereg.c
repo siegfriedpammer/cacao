@@ -1444,6 +1444,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 				case ICMD_FCONST:
 				case ICMD_DCONST:
 				case ICMD_ACONST:
+				case ICMD_GETEXCEPTION:
 
 					/* pop 0 push 1 load */
 					

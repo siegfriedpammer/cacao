@@ -684,12 +684,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 		DEBUG_JIT_COMPILEVERBOSE("Analysing done: ");
 
-		/* Build the CFG.  This has to be done after stack_analyse, as
-		   there happens the JSR elimination. */
-
-		if (!cfg_build(jd))
-			return NULL;
-
 #ifdef ENABLE_VERIFIER
 		if (JITDATA_HAS_FLAG_VERIFY(jd)) {
 			DEBUG_JIT_COMPILEVERBOSE("Typechecking: ");
@@ -705,6 +699,16 @@ static u1 *jit_compile_intern(jitdata *jd)
 		}
 #endif
 		RT_TIMING_GET_TIME(time_typecheck);
+
+#if defined(ENABLE_SSA)
+		fix_exception_handlers(jd);
+#endif
+
+		/* Build the CFG.  This has to be done after stack_analyse, as
+		   there happens the JSR elimination. */
+
+		if (!cfg_build(jd))
+			return NULL;
 
 #if defined(ENABLE_LOOP)
 		if (opt_loops) {
@@ -763,7 +767,12 @@ static u1 *jit_compile_intern(jitdata *jd)
 # endif /* defined(ENABLE_LSRA) && !defined(ENABLE_SSA) */
 #if defined(ENABLE_SSA)
 		/* allocate registers */
-		if ((opt_lsra) /*&& (strcmp(jd->m->name->text, "findClass") == 0 || jd->exceptiontablelength == 0)*/) {
+		if (
+			(opt_lsra) 
+			/*&& strncmp(jd->m->name->text, "banana", 6) == 0*/
+			/*&& jd->exceptiontablelength == 0*/
+		) {
+			/* printf("=== %s ===\n", jd->m->name->text); */
 			jd->ls = DNEW(lsradata);
 			jd->ls = NULL;
 			ssa(jd);

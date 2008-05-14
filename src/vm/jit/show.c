@@ -1422,6 +1422,9 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 		SHOW_S1(iptr);
 		SHOW_DST(iptr);
 		break;
+	case ICMD_GETEXCEPTION:
+		SHOW_DST(iptr);
+		break;
 	}
 	fflush(stdout);
 }
