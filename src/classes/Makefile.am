@@ -65,8 +65,6 @@ VM_JAVA_FILES_GNU_CLASSPATH_ANNOTATIONS = \
 VM_JAVA_FILES_CLDC1_1 = \
 	$(top_srcdir)/src/classes/cldc1.1/com/sun/cldchi/jvm/FileDescriptor.java
 
-BOOTCLASSPATH = $(top_builddir)/src/classes/classes:$(CLASSPATH_CLASSES)
-
 if WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH
 VM_JAVA_FILES = \
 	$(VM_JAVA_FILES_GNU_CLASSPATH)
