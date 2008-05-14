@@ -44,7 +44,6 @@
 #include "mm/dumpmemory.h"
 #include "toolbox/list.h"
 
-<<<<<<< /data3/hg/src/vm/jit/optimizing/ssa3.c.orig.39076766
 #include <limits.h>
 #include <stdio.h>
 
@@ -797,7 +796,6 @@ static inline basicblock_info_t *basicblock_info(basicblock *bb) {
 
 static unsigned basicblock_get_predecessor_count(basicblock *bb) {
 	unsigned ret;
-	basicblock_info_t *bbi = bb_info(bb);
 	basicblock **itpred;
 
 	ret = bb->predecessorcount;
@@ -1570,7 +1568,7 @@ static void ssa_enter_create_phi_graph(ssa_info *ssa) {
 	char path[PATH_MAX], *ppath;
 	FILE *f;
 
-	snprintf(path, PATH_MAX, "|tmp|graphs|%s.%s.dot", ssa->jd->m->class->name->text, ssa->jd->m->name->text);
+	snprintf(path, PATH_MAX, "|tmp|graphs|%s.%s.dot", ssa->jd->m->clazz->name->text, ssa->jd->m->name->text);
 	for (ppath = path; *ppath; ++ppath) {
 		if (*ppath == '|') *ppath = '/';
 		else if (*ppath == '/') *ppath = '.';

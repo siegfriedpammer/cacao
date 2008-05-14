@@ -603,15 +603,21 @@ void cfg_add_exceptional_edges(jitdata *jd) {
 		     +---------------------------------------------------------------+
 		*/
 
+		/*
 		fprintf(stderr, "Found unreachable exh, adjusting %s %s", 
-			jd->m->class->name->text, jd->m->name->text);
+			jd->m->klazz->name->text, jd->m->name->text);
 		fprintf(stderr, "<before>\n");
 		show_method(jd, 3);
 		fprintf(stderr, "</before>\n");
+		*/
+
 		cfg_eliminate_edges_to_unreachable(jd);
+
+		/*
 		fprintf(stderr, "<after>\n");
 		show_method(jd, 3);
 		fprintf(stderr, "</after>\n");
+		*/
 	}
 }
 
