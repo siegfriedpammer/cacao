@@ -1,4 +1,4 @@
-dnl m4/classpath.m4
+dnl m4/java-runtime-library.m4
 dnl
 dnl Copyright (C) 2007, 2008
 dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
