@@ -46,7 +46,7 @@
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Throwable.h"
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 # include "native/include/gnu_classpath_Pointer.h"
 # include "native/include/java_lang_VMThrowable.h"
 #endif
@@ -593,7 +593,7 @@ java_handle_bytearray_t *stacktrace_get(stackframeinfo_t *sfi)
 			/* Check "fillInStackTrace" only once, so we negate the
 			   flag after the first time check. */
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 			/* For GNU Classpath we also need to skip
 			   VMThrowable.fillInStackTrace(). */
 
@@ -728,7 +728,7 @@ classinfo *stacktrace_get_caller_class(int depth)
 		if (m->flags & ACC_METHOD_BUILTIN)
 			continue;
 
-#if defined(WITH_CLASSPATH_SUN)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 		/* NOTE: See hotspot/src/share/vm/runtime/vframe.cpp
 		   (vframeStreamCommon::security_get_caller_frame). */
 
@@ -972,7 +972,7 @@ classinfo *stacktrace_get_current_class(void)
 
 *******************************************************************************/
 
-#if defined(ENABLE_JAVASE) && defined(WITH_CLASSPATH_GNU)
+#if defined(ENABLE_JAVASE) && defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 java_handle_objectarray_t *stacktrace_get_stack(void)
 {
 	stackframeinfo_t          *sfi;
@@ -1254,7 +1254,7 @@ void stacktrace_print_exception(java_handle_t *h)
 {
 	java_lang_Throwable     *o;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	java_lang_VMThrowable   *vmt;
 #endif
 
@@ -1269,12 +1269,12 @@ void stacktrace_print_exception(java_handle_t *h)
 
 	/* now print the stacktrace */
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	LLNI_field_get_ref(o,   vmState, vmt);
 	LLNI_field_get_ref(vmt, vmdata,  backtrace);
 
-#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
 	LLNI_field_get_ref(o, backtrace, backtrace);
 

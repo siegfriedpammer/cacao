@@ -93,7 +93,7 @@ classinfo *class_java_lang_ThreadGroup;
 classinfo *class_java_lang_Throwable;
 classinfo *class_java_io_Serializable;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 classinfo *class_java_lang_VMSystem;
 classinfo *class_java_lang_VMThread;
 classinfo *class_java_lang_VMThrowable;
@@ -105,7 +105,7 @@ classinfo *class_java_lang_Exception;
 classinfo *class_java_lang_ClassNotFoundException;
 classinfo *class_java_lang_RuntimeException;
 
-#if defined(WITH_CLASSPATH_SUN)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 classinfo *class_sun_reflect_MagicAccessorImpl;
 #endif
 
@@ -132,7 +132,7 @@ classinfo *class_java_security_PrivilegedAction;
 classinfo *class_java_util_Vector;
 classinfo *class_java_util_HashMap;
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 classinfo *class_java_lang_reflect_VMConstructor;
 classinfo *class_java_lang_reflect_VMField;
 classinfo *class_java_lang_reflect_VMMethod;
@@ -142,7 +142,7 @@ classinfo *arrayclass_java_lang_Object;
 
 # if defined(ENABLE_ANNOTATIONS)
 classinfo *class_sun_reflect_ConstantPool;
-#  if defined(WITH_CLASSPATH_GNU)
+#  if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 classinfo *class_sun_reflect_annotation_AnnotationParser;
 #  endif
 # endif
@@ -380,7 +380,7 @@ classinfo *class_define(utf *name, classloader_t *cl, int32_t length, uint8_t *d
 	}
 
 #if defined(ENABLE_JAVASE)
-# if defined(WITH_CLASSPATH_SUN)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	/* Store the protection domain. */
 
 	c->protectiondomain = pd;

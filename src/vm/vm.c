@@ -49,7 +49,7 @@
 #include "native/include/java_lang_Object.h"             /* required by j.l.C */
 #include "native/include/java_lang_String.h"             /* required by j.l.C */
 
-#if defined(WITH_CLASSPATH_SUN)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 # include "native/include/java_nio_ByteBuffer.h"        /* required by j.l.CL */
 # include "native/include/java_lang_ClassLoader.h"       /* required by j.l.C */
 #endif
@@ -638,12 +638,12 @@ static void vm_printconfig(void)
 	/* When we're building with JRE-layout, the default paths are the
 	   same as the runtime paths. */
 #else
-# if defined(WITH_CLASSPATH_GNU)
-	puts("  gnu.classpath.boot.library.path: "CLASSPATH_LIBDIR);
-	puts("  java.boot.class.path           : "CACAO_VM_ZIP":"CLASSPATH_CLASSES"");
-# elif defined(WITH_CLASSPATH_SUN)
-	puts("  sun.boot.library.path          : "CLASSPATH_LIBDIR);
-	puts("  java.boot.class.path           : "CLASSPATH_CLASSES);
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
+	puts("  gnu.classpath.boot.library.path: "JAVA_RUNTIME_LIBRARY_LIBDIR);
+	puts("  java.boot.class.path           : "CACAO_VM_ZIP":"JAVA_RUNTIME_LIBRARY_CLASSES"");
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	puts("  sun.boot.library.path          : "JAVA_RUNTIME_LIBRARY_LIBDIR);
+	puts("  java.boot.class.path           : "JAVA_RUNTIME_LIBRARY_CLASSES);
 # endif
 #endif
 
@@ -654,9 +654,9 @@ static void vm_printconfig(void)
 	printf("  initial heap size              : %d\n", opt_heapstartsize);
 	printf("  stack size                     : %d\n", opt_stacksize);
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	printf("  gnu.classpath.boot.library.path: %s\n", properties_get("gnu.classpath.boot.library.path"));
-#elif defined(WITH_CLASSPATH_SUN)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	printf("  sun.boot.library.path          : %s\n", properties_get("sun.boot.library.path"));
 #endif
 

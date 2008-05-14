@@ -764,17 +764,17 @@ AC_SUBST(CACAO_VM_ZIP)
 
 
 AC_CHECK_WITH_CACAOH
-AC_CHECK_WITH_CLASSPATH
+AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY
 
 dnl Now we check for jre-layout so we can skip some checks that are
 dnl not required.
 AC_CHECK_ENABLE_JRE_LAYOUT
 
-AC_CHECK_WITH_CLASSPATH_PREFIX
-AC_CHECK_WITH_CLASSPATH_CLASSES
+AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY_PREFIX
+AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY_CLASSES
 
 if test x"${ENABLE_JRE_LAYOUT}" = "xno"; then
-   AC_CHECK_WITH_CLASSPATH_LIBDIR
+   AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY_LIBDIR
 fi
 
 dnl The check for jni_md.h must be before jni.h.
@@ -782,8 +782,8 @@ AC_CHECK_WITH_JNI_MD_H
 AC_CHECK_WITH_JNI_H
 
 dnl HPI is only required for OpenJDK
-case "${WITH_CLASSPATH}" in
-    sun)
+case "${WITH_JAVA_RUNTIME_LIBRARY}" in
+    openjdk)
         AC_CHECK_WITH_HPI_MD_H
         AC_CHECK_WITH_HPI_H
         ;;
@@ -793,15 +793,15 @@ esac
 
 dnl check for some programs we need
 
-case "${WITH_CLASSPATH}" in
-    cldc1.1 | gnu)
+case "${WITH_JAVA_RUNTIME_LIBRARY}" in
+    cldc1.1 | gnuclasspath)
         AC_PROG_JAVAC
         AC_PROG_JAR
         ;;
-    sun)
+    openjdk)
         ;;
     *)
-        AC_MSG_ERROR(unknown classpath configuration ${WITH_CLASSPATH})
+        AC_MSG_ERROR(unknown classpath configuration ${WITH_JAVA_RUNTIME_LIBRARY})
         ;;
 esac
 

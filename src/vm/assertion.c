@@ -83,7 +83,7 @@ void assertion_ea_da(const char *name, bool enabled)
 	if ((len > 2) && (strcmp(name + (len - 3), "...") == 0)) {
 		package = true;
 		assertion_package_count += 1;
-#if defined(WITH_CLASSPATH_SUN)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 		buf[len - 2] = '\0';
 		buf[len - 3] = '/';
 #else
@@ -97,7 +97,7 @@ void assertion_ea_da(const char *name, bool enabled)
 	len = system_strlen(buf);
 
 	for (i = 0; i < len; i++) {
-#if defined(WITH_CLASSPATH_SUN)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 		if (buf[i] == '.') {
 			buf[i] = '/';
 		}

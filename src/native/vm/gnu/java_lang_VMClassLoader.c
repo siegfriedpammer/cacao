@@ -179,11 +179,9 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 
 	o = LLNI_classinfo_wrap(c);
 
-#if defined(WITH_CLASSPATH_GNU)
 	/* set ProtectionDomain */
 
 	LLNI_field_set_ref(o, pd, pd);
-#endif
 
 	return o;
 }

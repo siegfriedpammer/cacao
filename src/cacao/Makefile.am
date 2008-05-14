@@ -37,7 +37,7 @@ lib_LTLIBRARIES = \
 libjvm_la_LDFLAGS = \
 	-version-info 1:0:0
 
-if WITH_CLASSPATH_SUN
+if WITH_JAVA_RUNTIME_LIBRARY_OPENJDK
 libjvm_la_LDFLAGS += \
 	-Xlinker --version-script=$(top_srcdir)/contrib/mapfile-vers-product
 endif

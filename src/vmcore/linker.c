@@ -268,7 +268,7 @@ void linker_init(void)
 	if (!link_class(class_java_lang_Throwable))
 		vm_abort("linker_init: linking failed");
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	if (!link_class(class_java_lang_VMSystem))
 		vm_abort("linker_init: linking failed");
 
@@ -305,7 +305,7 @@ void linker_init(void)
 	if (!link_class(class_java_lang_reflect_Method))
 		vm_abort("linker_init: linking failed");
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	if (!link_class(class_java_lang_reflect_VMConstructor))
 		vm_abort("linker_init: linking failed");
 
@@ -325,7 +325,7 @@ void linker_init(void)
 	if (!link_class(class_java_util_HashMap))
 		vm_abort("linker_init: linking failed");
 
-# if defined(WITH_CLASSPATH_SUN)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	if (!link_class(class_sun_reflect_MagicAccessorImpl))
 		vm_abort("linker_init: linking failed");
 # endif

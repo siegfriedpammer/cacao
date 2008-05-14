@@ -65,11 +65,11 @@ void initialize_init(void)
 	TRACESUBSYSTEMINITIALIZATION("initialize_init");
 
 #if defined(ENABLE_JAVASE)
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	/* Nothing. */
 
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	if (!initialize_class(class_java_lang_String))
 		vm_abort("initialize_init: Initialization failed: java.lang.String");

@@ -3,4 +3,4 @@
 
 export PATH=$PWD/src/cacao:$PATH
 export LD_LIBRARY_PATH=$PWD/src/cacao/.libs
-export BOOTCLASSPATH=$PWD/src/classes/vm.zip:@CLASSPATH_CLASSES@
+export BOOTCLASSPATH=$PWD/src/classes/vm.zip:@JAVA_LIBRARY_CLASSES@

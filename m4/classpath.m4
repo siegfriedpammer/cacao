@@ -21,115 +21,115 @@ dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 dnl 02110-1301, USA.
 
 
-dnl which Java core library should we use
+dnl which Java runtime library should we use
 
-AC_DEFUN([AC_CHECK_WITH_CLASSPATH],[
-AC_MSG_CHECKING(which Java core library to use)
-AC_ARG_WITH([classpath],
-            [AS_HELP_STRING(--with-classpath=<type>,specifies which type of classpath to use as Java core library (cldc1.1,gnu,sun) [[default=gnu]])],
+AC_DEFUN([AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY],[
+AC_MSG_CHECKING(which Java runtime library to use)
+AC_ARG_WITH([java-runtime-library],
+            [AS_HELP_STRING(--with-java-runtime-library=<type>,specifies which type of classpath to use as Java runtime library (cldc1.1,gnuclasspath,openjdk) [[default=gnuclasspath]])],
             [case "${withval}" in
                 cldc1.1)
-                    WITH_CLASSPATH=cldc1.1
-                    AC_DEFINE([WITH_CLASSPATH_CLDC1_1], 1, [use Sun's CLDC1.1 classes])
-                    AC_SUBST(WITH_CLASSPATH_CLDC1_1)
+                    WITH_JAVA_RUNTIME_LIBRARY=cldc1.1
+                    AC_DEFINE([WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1], 1, [use Sun's CLDC1.1 classes])
+                    AC_SUBST(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
                     ;;
-                gnu)
-                    WITH_CLASSPATH=gnu
-                    AC_DEFINE([WITH_CLASSPATH_GNU], 1, [use GNU Classpath])
-                    AC_SUBST(WITH_CLASSPATH_GNU)
+                gnuclasspath)
+                    WITH_JAVA_RUNTIME_LIBRARY=gnuclasspath
+                    AC_DEFINE([WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH], 1, [use GNU Classpath])
+                    AC_SUBST(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
                     ;;
-                sun)
-                    WITH_CLASSPATH=sun
-                    AC_DEFINE([WITH_CLASSPATH_SUN], 1, [use Sun's Java SE classes])
-                    AC_SUBST(WITH_CLASSPATH_SUN)
+                openjdk)
+                    WITH_JAVA_RUNTIME_LIBRARY=openjdk
+                    AC_DEFINE([WITH_JAVA_RUNTIME_LIBRARY_OPENJDK], 1, [use OpenJDK's Java SE classes])
+                    AC_SUBST(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
                     ;;
                 *)
                     AC_MSG_ERROR(unknown classpath ${withval})
                     ;;
              esac],
-            [WITH_CLASSPATH=gnu
-             AC_DEFINE([WITH_CLASSPATH_GNU], 1, [use GNU Classpath])
-             AC_SUBST(WITH_CLASSPATH_GNU)])
-AC_MSG_RESULT(${WITH_CLASSPATH})
-AM_CONDITIONAL([WITH_CLASSPATH_CLDC1_1], test x"${WITH_CLASSPATH}" = "xcldc1.1")
-AM_CONDITIONAL([WITH_CLASSPATH_GNU], test x"${WITH_CLASSPATH}" = "xgnu")
-AM_CONDITIONAL([WITH_CLASSPATH_SUN], test x"${WITH_CLASSPATH}" = "xsun")
+            [WITH_JAVA_RUNTIME_LIBRARY=gnuclasspath
+             AC_DEFINE([WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH], 1, [use GNU Classpath])
+             AC_SUBST(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)])
+AC_MSG_RESULT(${WITH_JAVA_RUNTIME_LIBRARY})
+AM_CONDITIONAL([WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1], test x"${WITH_JAVA_RUNTIME_LIBRARY}" = "xcldc1.1")
+AM_CONDITIONAL([WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH], test x"${WITH_JAVA_RUNTIME_LIBRARY}" = "xgnuclasspath")
+AM_CONDITIONAL([WITH_JAVA_RUNTIME_LIBRARY_OPENJDK], test x"${WITH_JAVA_RUNTIME_LIBRARY}" = "xopenjdk")
 ])
 
 
-dnl where is Java core library installed
+dnl where is Java runtime library installed
 
-AC_DEFUN([AC_CHECK_WITH_CLASSPATH_PREFIX],[
-AC_MSG_CHECKING(where Java core library is installed)
-AC_ARG_WITH([classpath-prefix],
-            [AS_HELP_STRING(--with-classpath-prefix=<dir>,installation directory of Java core library [[default=/usr/local/classpath]])],
-            [CLASSPATH_PREFIX=${withval}],
-            [CLASSPATH_PREFIX=/usr/local/classpath])
-AC_MSG_RESULT(${CLASSPATH_PREFIX})
-AC_DEFINE_UNQUOTED([CLASSPATH_PREFIX], "${CLASSPATH_PREFIX}", [Java core library installation directory])
-AC_SUBST(CLASSPATH_PREFIX)
+AC_DEFUN([AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY_PREFIX],[
+AC_MSG_CHECKING(where Java runtime library is installed)
+AC_ARG_WITH([java-runtime-library-prefix],
+            [AS_HELP_STRING(--with-java-runtime-library-prefix=<dir>,installation directory of Java runtime library [[default=/usr/local/classpath]])],
+            [JAVA_RUNTIME_LIBRARY_PREFIX=${withval}],
+            [JAVA_RUNTIME_LIBRARY_PREFIX=/usr/local/classpath])
+AC_MSG_RESULT(${JAVA_RUNTIME_LIBRARY_PREFIX})
+AC_DEFINE_UNQUOTED([JAVA_RUNTIME_LIBRARY_PREFIX], "${JAVA_RUNTIME_LIBRARY_PREFIX}", [Java runtime library installation directory])
+AC_SUBST(JAVA_RUNTIME_LIBRARY_PREFIX)
 ])
 
 
-dnl where are Java core library classes installed
+dnl where are Java runtime library classes installed
 
-AC_DEFUN([AC_CHECK_WITH_CLASSPATH_CLASSES],[
-AC_MSG_CHECKING(where Java core library classes are installed)
-AC_ARG_WITH([classpath-classes],
-            [AS_HELP_STRING(--with-classpath-classes=<path>,path to Java core library classes (includes the name of the file and may be flat) [[default=(gnu:${CLASSPATH_PREFIX}/share/classpath/glibj.zip,sun:${CLASSPATH_PREFIX}/control/build/${OS_DIR}-${JAVA_ARCH}/classes,*:${CLASSPATH_PREFIX})]])],
-            [CLASSPATH_CLASSES=${withval}],
-            [case "${WITH_CLASSPATH}" in
-                 gnu)
-                     CLASSPATH_CLASSES=${CLASSPATH_PREFIX}/share/classpath/glibj.zip
+AC_DEFUN([AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY_CLASSES],[
+AC_MSG_CHECKING(where Java runtime library classes are installed)
+AC_ARG_WITH([java-runtime-library-classes],
+            [AS_HELP_STRING(--with-java-runtime-library-classes=<path>,path to Java runtime library classes (includes the name of the file and may be flat) [[default=(gnuclasspath:${JAVA_RUNTIME_LIBRARY_PREFIX}/share/classpath/glibj.zip,openjdk:${JAVA_RUNTIME_LIBRARY_PREFIX}/control/build/${OS_DIR}-${JAVA_ARCH}/classes,*:${JAVA_RUNTIME_LIBRARY_PREFIX})]])],
+            [JAVA_RUNTIME_LIBRARY_CLASSES=${withval}],
+            [case "${WITH_JAVA_RUNTIME_LIBRARY}" in
+                 gnuclasspath)
+                     JAVA_RUNTIME_LIBRARY_CLASSES=${JAVA_RUNTIME_LIBRARY_PREFIX}/share/classpath/glibj.zip
                      ;;
-                 sun)
-                     CLASSPATH_CLASSES=${CLASSPATH_PREFIX}/control/build/${OS_DIR}-${JAVA_ARCH}/classes
+                 openjdk)
+                     JAVA_RUNTIME_LIBRARY_CLASSES=${JAVA_RUNTIME_LIBRARY_PREFIX}/control/build/${OS_DIR}-${JAVA_ARCH}/classes
                      ;;
                  *)
-                     CLASSPATH_CLASSES=${CLASSPATH_PREFIX}
+                     JAVA_RUNTIME_LIBRARY_CLASSES=${JAVA_RUNTIME_LIBRARY_PREFIX}
                      ;;
              esac])
-AC_MSG_RESULT(${CLASSPATH_CLASSES})
-AC_DEFINE_UNQUOTED([CLASSPATH_CLASSES], "${CLASSPATH_CLASSES}", [Java core library classes])
-AC_SUBST(CLASSPATH_CLASSES)
+AC_MSG_RESULT(${JAVA_RUNTIME_LIBRARY_CLASSES})
+AC_DEFINE_UNQUOTED([JAVA_RUNTIME_LIBRARY_CLASSES], "${JAVA_RUNTIME_LIBRARY_CLASSES}", [Java runtime library classes])
+AC_SUBST(JAVA_RUNTIME_LIBRARY_CLASSES)
 
 dnl define BOOTCLASSPATH for Makefiles
-case "${WITH_CLASSPATH}" in
-    cldc1.1 | gnu)
-        BOOTCLASSPATH="\$(top_builddir)/src/classes/classes:\$(CLASSPATH_CLASSES)"
+case "${WITH_JAVA_RUNTIME_LIBRARY}" in
+    cldc1.1 | gnuclasspath)
+        BOOTCLASSPATH="\$(top_builddir)/src/classes/classes:\$(JAVA_RUNTIME_LIBRARY_CLASSES)"
         ;;
     *)
-        BOOTCLASSPATH="\$(CLASSPATH_CLASSES)"
+        BOOTCLASSPATH="\$(JAVA_RUNTIME_LIBRARY_CLASSES)"
         ;;
 esac
 AC_SUBST(BOOTCLASSPATH)
 ])
 
 
-dnl where are Java core library native libraries installed
+dnl where are Java runtime library native libraries installed
 
-AC_DEFUN([AC_CHECK_WITH_CLASSPATH_LIBDIR],[
-AC_MSG_CHECKING(where Java core library native libraries are installed)
-AC_ARG_WITH([classpath-libdir],
-            [AS_HELP_STRING(--with-classpath-libdir=<dir>,installation directory of Java core library native libraries [[default=(gnu:${CLASSPATH_PREFIX}/lib,sun:${CLASSPATH_PREFIX}/control/build/${OS_DIR}-${JAVA_ARCH}/lib/${JAVA_ARCH},*:${CLASSPATH_PREFIX})]])],
-            [CLASSPATH_LIBDIR=${withval}],
-            [case "${WITH_CLASSPATH}" in
-                 gnu)
-                     CLASSPATH_LIBDIR=${CLASSPATH_PREFIX}/lib
+AC_DEFUN([AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY_LIBDIR],[
+AC_MSG_CHECKING(where Java runtime library native libraries are installed)
+AC_ARG_WITH([java-runtime-library-libdir],
+            [AS_HELP_STRING(--with-java-runtime-library-libdir=<dir>,installation directory of Java runtime library native libraries [[default=(gnuclasspath:${JAVA_RUNTIME_LIBRARY_PREFIX}/lib,openjdk:${JAVA_RUNTIME_LIBRARY_PREFIX}/control/build/${OS_DIR}-${JAVA_ARCH}/lib/${JAVA_ARCH},*:${JAVA_RUNTIME_LIBRARY_PREFIX})]])],
+            [JAVA_RUNTIME_LIBRARY_LIBDIR=${withval}],
+            [case "${WITH_JAVA_RUNTIME_LIBRARY}" in
+                 gnuclasspath)
+                     JAVA_RUNTIME_LIBRARY_LIBDIR=${JAVA_RUNTIME_LIBRARY_PREFIX}/lib
                      ;;
-                 sun)
-                     CLASSPATH_LIBDIR=${CLASSPATH_PREFIX}/control/build/${OS_DIR}-${JAVA_ARCH}/lib/${JAVA_ARCH}
+                 openjdk)
+                     JAVA_RUNTIME_LIBRARY_LIBDIR=${JAVA_RUNTIME_LIBRARY_PREFIX}/control/build/${OS_DIR}-${JAVA_ARCH}/lib/${JAVA_ARCH}
                      ;;
                  *)
-                     CLASSPATH_LIBDIR=${CLASSPATH_PREFIX}
+                     JAVA_RUNTIME_LIBRARY_LIBDIR=${JAVA_RUNTIME_LIBRARY_PREFIX}
                      ;;
              esac])
-AC_MSG_RESULT(${CLASSPATH_LIBDIR})
+AC_MSG_RESULT(${JAVA_RUNTIME_LIBRARY_LIBDIR})
 
-dnl expand CLASSPATH_LIBDIR to something that is usable in C code
-AS_AC_EXPAND([CLASSPATH_LIBDIR], ${CLASSPATH_LIBDIR})
-AC_DEFINE_UNQUOTED([CLASSPATH_LIBDIR], "${CLASSPATH_LIBDIR}", [Java core library native libraries installation directory])
-AC_SUBST(CLASSPATH_LIBDIR)
+dnl expand JAVA_RUNTIME_LIBRARY_LIBDIR to something that is usable in C code
+AS_AC_EXPAND([JAVA_RUNTIME_LIBRARY_LIBDIR], ${JAVA_RUNTIME_LIBRARY_LIBDIR})
+AC_DEFINE_UNQUOTED([JAVA_RUNTIME_LIBRARY_LIBDIR], "${JAVA_RUNTIME_LIBRARY_LIBDIR}", [Java runtime library native libraries installation directory])
+AC_SUBST(JAVA_RUNTIME_LIBRARY_LIBDIR)
 ])
 
 
@@ -138,14 +138,14 @@ dnl where jni_md.h is installed
 AC_DEFUN([AC_CHECK_WITH_JNI_MD_H],[
 AC_MSG_CHECKING(where jni_md.h is installed)
 AC_ARG_WITH([jni_md_h],
-            [AS_HELP_STRING(--with-jni_md_h=<dir>,path to jni_md.h [[default=(sun:${CLASSPATH_PREFIX}/jdk/src/solaris/javavm/export,*:${CLASSPATH_PREFIX}/include)]])],
+            [AS_HELP_STRING(--with-jni_md_h=<dir>,path to jni_md.h [[default=(openjdk:${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/solaris/javavm/export,*:${JAVA_RUNTIME_LIBRARY_PREFIX}/include)]])],
             [WITH_JNI_MD_H=${withval}],
-            [case "${WITH_CLASSPATH}" in
-                 sun)
-                     WITH_JNI_MD_H=${CLASSPATH_PREFIX}/jdk/src/solaris/javavm/export
+            [case "${WITH_JAVA_RUNTIME_LIBRARY}" in
+                 openjdk)
+                     WITH_JNI_MD_H=${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/solaris/javavm/export
                      ;;
                  *)
-                     WITH_JNI_MD_H=${CLASSPATH_PREFIX}/include
+                     WITH_JNI_MD_H=${JAVA_RUNTIME_LIBRARY_PREFIX}/include
                      ;;
             esac])
 AC_MSG_RESULT(${WITH_JNI_MD_H})
@@ -154,7 +154,7 @@ dnl We use CPPFLAGS so jni.h can find jni_md.h
 CPPFLAGS="${CPPFLAGS} -I${WITH_JNI_MD_H}"
 
 AC_CHECK_HEADER([${WITH_JNI_MD_H}/jni_md.h],
-                [AC_DEFINE_UNQUOTED([INCLUDE_JNI_MD_H], "${WITH_JNI_MD_H}/jni_md.h", [Java core library jni_md.h header])],
+                [AC_DEFINE_UNQUOTED([INCLUDE_JNI_MD_H], "${WITH_JNI_MD_H}/jni_md.h", [Java runtime library jni_md.h header])],
                 [AC_MSG_ERROR(cannot find jni_md.h)])
 ])
 
@@ -164,14 +164,14 @@ dnl where jni.h is installed
 AC_DEFUN([AC_CHECK_WITH_JNI_H],[
 AC_MSG_CHECKING(where jni.h is installed)
 AC_ARG_WITH([jni_h],
-            [AS_HELP_STRING(--with-jni_h=<dir>,path to jni.h [[default=(sun:${CLASSPATH_PREFIX}/jdk/src/share/javavm/export,*:${CLASSPATH_PREFIX}/include)]])],
+            [AS_HELP_STRING(--with-jni_h=<dir>,path to jni.h [[default=(openjdk:${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/share/javavm/export,*:${JAVA_RUNTIME_LIBRARY_PREFIX}/include)]])],
             [WITH_JNI_H=${withval}],
-            [case "${WITH_CLASSPATH}" in
-                 sun)
-                     WITH_JNI_H=${CLASSPATH_PREFIX}/jdk/src/share/javavm/export
+            [case "${WITH_JAVA_RUNTIME_LIBRARY}" in
+                 openjdk)
+                     WITH_JNI_H=${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/share/javavm/export
                      ;;
                  *)
-                     WITH_JNI_H=${CLASSPATH_PREFIX}/include
+                     WITH_JNI_H=${JAVA_RUNTIME_LIBRARY_PREFIX}/include
                      ;;
             esac])
 AC_MSG_RESULT(${WITH_JNI_H})
@@ -180,7 +180,7 @@ dnl We use CPPFLAGS so jni.h can find jni_md.h
 CPPFLAGS="${CPPFLAGS} -I${WITH_JNI_H}"
 
 AC_CHECK_HEADER([${WITH_JNI_H}/jni.h],
-                [AC_DEFINE_UNQUOTED([INCLUDE_JNI_H], "${WITH_JNI_H}/jni.h", [Java core library jni.h header])],
+                [AC_DEFINE_UNQUOTED([INCLUDE_JNI_H], "${WITH_JNI_H}/jni.h", [Java runtime library jni.h header])],
                 [AC_MSG_ERROR(cannot find jni.h)],
                 [#include INCLUDE_JNI_MD_H])
 ])

@@ -47,7 +47,7 @@
 
 #include "vmcore/class.h"
 
-#if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
+#if defined(ENABLE_ANNOTATIONS)
 #include "native/include/sun_reflect_ConstantPool.h"
 
 #include "vm/vm.h"
@@ -77,7 +77,7 @@ static JNINativeMethod methods[] = {
 	{ "forName",                 "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", (void *) (uintptr_t) &Java_java_lang_VMClass_forName                 },
 	{ "isArray",                 "(Ljava/lang/Class;)Z",                                          (void *) (uintptr_t) &Java_java_lang_VMClass_isArray                 },
 	{ "throwException",          "(Ljava/lang/Throwable;)V",                                      (void *) (uintptr_t) &Java_java_lang_VMClass_throwException          },
-#if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
+#if defined(ENABLE_ANNOTATIONS)
 	{ "getDeclaredAnnotations",  "(Ljava/lang/Class;)[Ljava/lang/annotation/Annotation;",         (void *) (uintptr_t) &Java_java_lang_VMClass_getDeclaredAnnotations  },
 #endif
 	{ "getEnclosingClass",       "(Ljava/lang/Class;)Ljava/lang/Class;",                          (void *) (uintptr_t) &Java_java_lang_VMClass_getEnclosingClass       },
@@ -458,7 +458,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMClass_throwException(JNIEnv *env, jclass
 }
 
 
-#if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
+#if defined(ENABLE_ANNOTATIONS)
 /*
  * Class:     java/lang/VMClass
  * Method:    getDeclaredAnnotations

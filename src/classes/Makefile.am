@@ -22,13 +22,13 @@
 
 
 EXTRA_DIST = \
-	$(VM_JAVA_FILES_GNU) \
-	$(VM_JAVA_FILES_GNU_ANNOTATIONS) \
+	$(VM_JAVA_FILES_GNU_CLASSPATH) \
+	$(VM_JAVA_FILES_GNU_CLASSPATH_ANNOTATIONS) \
 	$(VM_JAVA_FILES_CLDC1_1)
 
 CLEANFILES = vm.zip
 
-VM_JAVA_FILES_GNU = \
+VM_JAVA_FILES_GNU_CLASSPATH = \
 	$(top_srcdir)/src/classes/gnu/gnu/classpath/VMStackWalker.java \
 	$(top_srcdir)/src/classes/gnu/gnu/classpath/VMSystemProperties.java \
 	$(top_srcdir)/src/classes/gnu/gnu/java/lang/VMCPStringBuilder.java \
@@ -46,14 +46,14 @@ VM_JAVA_FILES_GNU = \
 # Remove these files when a new GNU Classpath release (> 0.97.1) is
 # available.
 
-VM_JAVA_FILES_GNU += \
+VM_JAVA_FILES_GNU_CLASSPATH += \
 	$(top_srcdir)/src/classes/gnu/java/lang/reflect/Constructor.java \
 	$(top_srcdir)/src/classes/gnu/java/lang/reflect/Field.java \
 	$(top_srcdir)/src/classes/gnu/java/lang/reflect/Method.java \
 	$(top_srcdir)/src/classes/gnu/java/lang/reflect/Modifier.java \
 	$(top_srcdir)/src/classes/gnu/gnu/java/lang/CPStringBuilder.java
 
-VM_JAVA_FILES_GNU_ANNOTATIONS = \
+VM_JAVA_FILES_GNU_CLASSPATH_ANNOTATIONS = \
 	$(top_srcdir)/src/classes/gnu/sun/reflect/ConstantPool.java \
 	$(top_srcdir)/src/classes/gnu/sun/reflect/annotation/ExceptionProxy.java \
 	$(top_srcdir)/src/classes/gnu/sun/reflect/annotation/EnumConstantNotPresentExceptionProxy.java \
@@ -67,13 +67,13 @@ VM_JAVA_FILES_CLDC1_1 = \
 
 BOOTCLASSPATH = $(top_builddir)/src/classes/classes:$(CLASSPATH_CLASSES)
 
-if WITH_CLASSPATH_GNU
+if WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH
 VM_JAVA_FILES = \
-	$(VM_JAVA_FILES_GNU)
+	$(VM_JAVA_FILES_GNU_CLASSPATH)
 
 if ENABLE_ANNOTATIONS
 VM_JAVA_FILES += \
-	$(VM_JAVA_FILES_GNU_ANNOTATIONS)
+	$(VM_JAVA_FILES_GNU_CLASSPATH_ANNOTATIONS)
 endif
 
 if ENABLE_ZLIB
@@ -83,7 +83,7 @@ pkgdata_DATA = nozip
 endif
 endif
 
-if WITH_CLASSPATH_CLDC1_1
+if WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1
 VM_JAVA_FILES = \
 	$(VM_JAVA_FILES_CLDC1_1)
 
