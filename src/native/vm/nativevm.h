@@ -38,7 +38,7 @@ void nativevm_preinit(void);
 void nativevm_init(void);
 
 #if defined(ENABLE_JAVASE)
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 void _Jv_gnu_classpath_VMStackWalker_init();
 void _Jv_gnu_classpath_VMSystemProperties_init();
@@ -68,7 +68,7 @@ void _Jv_sun_misc_Unsafe_init();
 void _Jv_sun_reflect_ConstantPool_init();
 #endif
 
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 void _Jv_sun_misc_Unsafe_init();
 

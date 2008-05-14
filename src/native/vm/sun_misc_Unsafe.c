@@ -39,7 +39,7 @@
 #include "native/include/java_lang_Object.h"                  /* before c.l.C */
 #include "native/include/java_lang_String.h"            /* required by j.l.CL */
 
-#if defined(WITH_CLASSPATH_SUN)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 # include "native/include/java_nio_ByteBuffer.h"        /* required by j.l.CL */
 #endif
 
@@ -49,7 +49,7 @@
 #include "native/include/java_lang_Thread.h"             /* required by s.m.U */
 #include "native/include/java_lang_Throwable.h"
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 # include "native/include/java_lang_reflect_VMField.h"
 #endif
 
@@ -657,17 +657,17 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_objectFieldOffset(JNIEnv *env, su
 	fieldinfo *f;
 	int32_t    slot;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	java_lang_reflect_VMField *rvmf;
 #endif
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	LLNI_field_get_ref(field, f,     rvmf);
 	LLNI_field_get_cls(rvmf,  clazz, c);
 	LLNI_field_get_val(rvmf,  slot , slot);
 
-#elif defined(WITH_CLASSPATH_SUN)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	LLNI_field_get_cls(field, clazz, c);
 	LLNI_field_get_val(field, slot , slot);
@@ -862,17 +862,17 @@ JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_staticFieldBase(JNIEnv 
 	fieldinfo *f;
 	int32_t    slot;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	java_lang_reflect_VMField *rvmf;
 #endif
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	LLNI_field_get_ref(rf,   f,     rvmf);
 	LLNI_field_get_cls(rvmf, clazz, c);
 	LLNI_field_get_val(rvmf, slot , slot);
 
-#elif defined(WITH_CLASSPATH_SUN)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	LLNI_field_get_cls(rf, clazz, c);
 	LLNI_field_get_val(rf, slot , slot);
@@ -1024,7 +1024,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_
 
 	o = LLNI_classinfo_wrap(c);
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	/* set ProtectionDomain */
 
 	LLNI_field_set_ref(o, pd, protectionDomain);

@@ -69,7 +69,7 @@
 # include "native/include/java_lang_ThreadGroup.h"
 #endif
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 # include "native/include/java_lang_VMThread.h"
 #endif
 
@@ -960,7 +960,7 @@ static void *threads_startup_thread(void *arg)
 	startupinfo        *startup;
 	threadobject       *t;
 	java_lang_Thread   *object;
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	java_lang_VMThread *vmt;
 #endif
 	sem_t              *psem;
@@ -1042,13 +1042,13 @@ static void *threads_startup_thread(void *arg)
 	/* find and run the Thread.run()V method if no other function was passed */
 
 	if (function == NULL) {
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 		/* We need to start the run method of
 		   java.lang.VMThread. Since this is a final class, we can use
 		   the class object directly. */
 
 		c = class_java_lang_VMThread;
-#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 		LLNI_class_get(object, c);
 #else
 # error unknown classpath configuration
@@ -1069,13 +1069,13 @@ static void *threads_startup_thread(void *arg)
 			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount =
 				_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 		/* we need to start the run method of java.lang.VMThread */
 
 		LLNI_field_get_ref(object, vmThread, vmt);
 		o = (java_handle_t *) vmt;
 
-#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 		o = (java_handle_t *) object;
 #else
 # error unknown classpath configuration
@@ -1267,9 +1267,9 @@ bool threads_detach_thread(threadobject *t)
 		   to build the java_lang_Thread_UncaughtExceptionHandler
 		   header file with cacaoh. */
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 		LLNI_field_get_ref(object, exceptionHandler, handler);
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 		LLNI_field_get_ref(object, uncaughtExceptionHandler, handler);
 # endif
 
@@ -1304,13 +1304,13 @@ bool threads_detach_thread(threadobject *t)
 	if (group != NULL) {
 		LLNI_class_get(group, c);
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 		m = class_resolveclassmethod(c,
 									 utf_removeThread,
 									 utf_java_lang_Thread__V,
 									 class_java_lang_ThreadGroup,
 									 true);
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 		m = class_resolveclassmethod(c,
 									 utf_remove,
 									 utf_java_lang_Thread__V,

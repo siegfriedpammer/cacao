@@ -640,7 +640,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 	RT_TIMING_GET_TIME(time_checks);
 
-#if defined(WITH_CLASSPATH_SUN)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	/* Code for Sun's OpenJDK (see
 	   hotspot/src/share/vm/classfile/verifier.cpp
 	   (Verifier::is_eligible_for_verification)): Don't verify

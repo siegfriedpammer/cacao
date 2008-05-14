@@ -79,7 +79,7 @@ bool access_is_accessible_class(classinfo *referer, classinfo *cls)
 	if (SAME_PACKAGE(referer, cls))
 		return true;
 
-#if defined(WITH_CLASSPATH_SUN)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	/* Code for Sun's OpenJDK (see
 	   hotspot/src/share/vm/runtime/reflection.cpp
 	   (Reflection::verify_class_access)): Allow all accesses from
@@ -134,7 +134,7 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 	if (memberflags & ACC_PUBLIC)
 		return true;
 
-#if defined(WITH_CLASSPATH_SUN)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	/* Code for Sun's OpenJDK (see
 	   hotspot/src/share/vm/runtime/reflection.cpp
 	   (Reflection::verify_class_access)): Allow all accesses from

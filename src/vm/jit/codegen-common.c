@@ -62,14 +62,14 @@
 #include "native/localref.h"
 #include "native/native.h"
 
-#if defined(WITH_CLASSPATH_SUN)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 # include "native/include/java_lang_Object.h"
 # include "native/include/java_lang_String.h"           /* required by j.l.CL */
 # include "native/include/java_nio_ByteBuffer.h"        /* required by j.l.CL */
 # include "native/include/java_lang_ClassLoader.h"
 #endif
 
-#if defined(WITH_CLASSPATH_CLDC1_1)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 # include "native/include/java_lang_String.h"
 #endif
 

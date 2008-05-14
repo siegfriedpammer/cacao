@@ -128,7 +128,7 @@ extern utf *utf_java_lang_reflect_Constructor;
 extern utf *utf_java_lang_reflect_Field;
 extern utf *utf_java_lang_reflect_Method;
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 extern utf *utf_java_lang_reflect_VMConstructor;
 extern utf *utf_java_lang_reflect_VMField;
 extern utf *utf_java_lang_reflect_VMMethod;

@@ -1,4 +1,4 @@
-/* src/native/vm/sun/hpi.h - HotSpot HPI interface functions
+/* src/native/vm/openjdk/hpi.h - HotSpot HPI interface functions
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO

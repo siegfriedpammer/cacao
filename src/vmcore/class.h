@@ -83,11 +83,11 @@ typedef struct castinfo       castinfo;
 
 typedef struct {
 	java_object_t      header;
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	intptr_t           padding[4];
-#elif defined(WITH_CLASSPATH_SUN)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	intptr_t           padding[19];
-#elif defined(WITH_CLASSPATH_CLDC1_1)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 	intptr_t           padding[3];
 #else
 # error unknown classpath configuration
@@ -161,7 +161,7 @@ struct classinfo {                /* class structure                          */
 	classloader_t *classloader;       /* NULL for bootstrap classloader         */
 
 #if defined(ENABLE_JAVASE)
-# if defined(WITH_CLASSPATH_SUN)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	java_object_t      *protectiondomain;
 	java_objectarray_t *signers;
 # endif
@@ -224,13 +224,13 @@ extern classinfo *class_java_lang_Exception;
 extern classinfo *class_java_lang_ClassNotFoundException;
 extern classinfo *class_java_lang_RuntimeException;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 extern classinfo *class_java_lang_VMSystem;
 extern classinfo *class_java_lang_VMThread;
 extern classinfo *class_java_lang_VMThrowable;
 #endif
 
-#if defined(WITH_CLASSPATH_SUN)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 extern classinfo *class_sun_reflect_MagicAccessorImpl;
 #endif
 
@@ -258,7 +258,7 @@ extern classinfo *class_java_security_PrivilegedAction;
 extern classinfo *class_java_util_Vector;
 extern classinfo *class_java_util_HashMap;
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 extern classinfo *class_java_lang_reflect_VMConstructor;
 extern classinfo *class_java_lang_reflect_VMField;
 extern classinfo *class_java_lang_reflect_VMMethod;
@@ -268,7 +268,7 @@ extern classinfo *arrayclass_java_lang_Object;
 
 # if defined(ENABLE_ANNOTATIONS)
 extern classinfo *class_sun_reflect_ConstantPool;
-#  if defined(WITH_CLASSPATH_GNU)
+#  if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 extern classinfo *class_sun_reflect_annotation_AnnotationParser;
 #  endif
 # endif

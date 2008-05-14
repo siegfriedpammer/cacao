@@ -36,12 +36,12 @@
 #include "vmcore/options.h"
 #include "vmcore/system.h"
 
-#if defined(WITH_CLASSPATH_SUN)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 # include "mm/memory.h"
 
 # include "native/native.h"
 
-# include "native/vm/sun/hpi.h"
+# include "native/vm/openjdk/hpi.h"
 
 # include "vm/properties.h"
 # include "vm/vm.h"
@@ -61,7 +61,7 @@ void nativevm_preinit(void)
 	/* Register native methods of all classes implemented. */
 
 #if defined(ENABLE_JAVASE)
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	TRACESUBSYSTEMINITIALIZATION("nativevm_preinit");
 
@@ -93,7 +93,7 @@ void nativevm_preinit(void)
 	_Jv_sun_reflect_ConstantPool_init();
 #endif
 
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	char        *boot_library_path;
 	int          len;
@@ -173,13 +173,13 @@ void nativevm_init(void)
 {
 #if defined(ENABLE_JAVASE)
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	TRACESUBSYSTEMINITIALIZATION("nativevm_init");
 
 	/* nothing to do */
 
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	methodinfo *m;
 
