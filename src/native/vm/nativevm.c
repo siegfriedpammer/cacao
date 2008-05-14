@@ -41,7 +41,7 @@
 
 # include "native/native.h"
 
-# include "native/vm/sun/hpi.h"
+# include "native/vm/openjdk/hpi.h"
 
 # include "vm/properties.h"
 # include "vm/vm.h"

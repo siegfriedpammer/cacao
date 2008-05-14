@@ -1,4 +1,4 @@
-/* src/native/vm/gnu/java_lang_VMClass.c
+/* src/native/vm/gnuclasspath/java_lang_VMClass.c
 
    Copyright (C) 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO

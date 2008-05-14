@@ -27,8 +27,8 @@ LIBS =
 
 DIST_SUBDIRS = \
 	cldc1.1 \
-	gnu \
-	sun
+	gnuclasspath \
+	openjdk
 
 if WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1
 SUBDIRS = \
@@ -40,18 +40,18 @@ endif
 
 if WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH
 SUBDIRS = \
-	gnu
+	gnuclasspath
 
 NATIVEVM_LIB = \
-	gnu/libnativevmcore.la
+	gnuclasspath/libnativevmcore.la
 endif
 
 if WITH_JAVA_RUNTIME_LIBRARY_OPENJDK
 SUBDIRS = \
-	sun
+	openjdk
 
 NATIVEVM_LIB = \
-	sun/libnativevmcore.la
+	openjdk/libnativevmcore.la
 endif
 
 if ENABLE_JAVASE
