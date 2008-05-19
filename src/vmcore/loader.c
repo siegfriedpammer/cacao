@@ -186,7 +186,7 @@ void loader_init(void)
 
 	class_java_lang_Throwable  = load_class_bootstrap(utf_java_lang_Throwable);
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	class_java_lang_VMSystem   =
 		load_class_bootstrap(utf_new_char("java/lang/VMSystem"));
 
@@ -216,7 +216,7 @@ void loader_init(void)
 	class_java_lang_reflect_Field          = load_class_bootstrap(utf_java_lang_reflect_Field);
 	class_java_lang_reflect_Method         = load_class_bootstrap(utf_java_lang_reflect_Method);
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	class_java_lang_reflect_VMConstructor  = load_class_bootstrap(utf_java_lang_reflect_VMConstructor);
 	class_java_lang_reflect_VMField        = load_class_bootstrap(utf_java_lang_reflect_VMField);
 	class_java_lang_reflect_VMMethod       = load_class_bootstrap(utf_java_lang_reflect_VMMethod);
@@ -227,7 +227,7 @@ void loader_init(void)
 	class_java_util_HashMap                = load_class_bootstrap(utf_new_char("java/util/HashMap"));
 	class_java_util_Vector                 = load_class_bootstrap(utf_java_util_Vector);
 
-# if defined(WITH_CLASSPATH_SUN)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	class_sun_reflect_MagicAccessorImpl =
 		load_class_bootstrap(utf_new_char("sun/reflect/MagicAccessorImpl"));
 # endif
@@ -240,7 +240,7 @@ void loader_init(void)
 	class_sun_reflect_ConstantPool =
 		load_class_bootstrap(utf_new_char("sun/reflect/ConstantPool"));
 
-#  if defined(WITH_CLASSPATH_GNU)
+#  if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	/* needed by GNU Classpaths annotation support */
 	class_sun_reflect_annotation_AnnotationParser =
 		load_class_bootstrap(utf_new_char("sun/reflect/annotation/AnnotationParser"));
@@ -1130,7 +1130,7 @@ classinfo *load_class_from_classloader(utf *name, classloader_t *cl)
 
 		LLNI_class_get(cl, c);
 
-#if defined(WITH_CLASSPATH_SUN)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 		/* OpenJDK uses this internal function because it's
 		   synchronized. */
 

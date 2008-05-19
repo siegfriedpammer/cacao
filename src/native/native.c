@@ -514,7 +514,7 @@ functionptr native_method_resolve(methodinfo *m)
 	u4                              key;    /* hashkey                        */
 	u4                              slot;   /* slot in hashtable              */
 #endif
-#if defined(WITH_CLASSPATH_SUN)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	methodinfo                     *method_findNative;
 	java_handle_t                  *s;
 #endif
@@ -572,7 +572,7 @@ functionptr native_method_resolve(methodinfo *m)
 		le = le->hashlink;
 	}
 
-# if defined(WITH_CLASSPATH_SUN)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	if (f == NULL) {
 		/* We can resolve the function directly from
 		   java.lang.ClassLoader as it's a static function. */

@@ -39,9 +39,7 @@
 
 /* define some stuff we need to no-ops ****************************************/
 
-#define THREADSPECIFIC
 #define THREADOBJECT      NULL
-#define THREADINFO        NULL
 
 #define threadobject      void
 

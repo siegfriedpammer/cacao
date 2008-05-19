@@ -63,7 +63,7 @@ JAVASE_HEADER_FILES = \
 	java_util_concurrent_atomic_AtomicLong.h \
 	sun_misc_Unsafe.h
 
-if WITH_CLASSPATH_GNU
+if WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH
 JAVASE_HEADER_FILES += \
 	java_lang_VMThread.h \
 	java_lang_VMThrowable.h \
@@ -84,7 +84,7 @@ JAVASE_HEADER_FILES += \
 endif
 endif
 
-if WITH_CLASSPATH_SUN
+if WITH_JAVA_RUNTIME_LIBRARY_OPENJDK
 JAVASE_HEADER_FILES += \
 	java_lang_AssertionStatusDirectives.h \
 	java_nio_ByteBuffer.h \
@@ -108,7 +108,7 @@ JVMTI_HEADER_FILES = \
 	gnu_classpath_jdwp_event_EventRequest.h \
 	gnu_classpath_jdwp_util_VariableTable.h
 
-if WITH_CLASSPATH_GNU
+if WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH
 ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	gnu_classpath_VMStackWalker.h \
 	gnu_classpath_VMSystemProperties.h \
@@ -150,11 +150,11 @@ DO_HEADER_FILES += \
 	$(GEN_JVMTI_HEADER_FILES)
 endif
 
-if WITH_CLASSPATH_GNU
+if WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH
 VM_ZIP = $(top_builddir)/src/classes/vm.zip
 endif
 
-if WITH_CLASSPATH_CLDC1_1
+if WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1
 VM_ZIP = $(top_builddir)/src/classes/vm.zip
 endif
 

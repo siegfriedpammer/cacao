@@ -40,7 +40,7 @@
 #include "native/native.h"
 
 #if defined(ENABLE_JAVASE)
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 #  include "native/include/gnu_classpath_Pointer.h"
 
 #  if SIZEOF_VOID_P == 8
@@ -57,7 +57,7 @@
 
 #if defined(ENABLE_JAVASE)
 
-# if defined(WITH_CLASSPATH_SUN)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 #  include "native/include/java_nio_ByteBuffer.h"       /* required by j.l.CL */
 # endif
 
@@ -76,7 +76,7 @@ struct java_lang_ClassLoader;
 
 # include "native/include/java_nio_Buffer.h"
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 #  include "native/include/java_lang_reflect_VMConstructor.h"
 #  include "native/include/java_lang_reflect_VMField.h"
 #  include "native/include/java_lang_reflect_VMMethod.h"
@@ -150,7 +150,7 @@ static hashtable *hashtable_global_ref; /* hashtable for globalrefs           */
 #if defined(ENABLE_JAVASE)
 static classinfo *class_java_nio_Buffer;
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 static classinfo *class_java_nio_DirectByteBufferImpl;
 static classinfo *class_java_nio_DirectByteBufferImpl_ReadWrite;
@@ -163,7 +163,7 @@ static classinfo *class_gnu_classpath_Pointer32;
 
 static methodinfo *dbbirw_init;
 
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 static classinfo *class_sun_nio_ch_DirectBuffer;
 static classinfo *class_java_nio_DirectByteBuffer;
@@ -204,7 +204,7 @@ bool jni_init(void)
 		!link_class(class_java_nio_Buffer))
 		return false;
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	if (!(class_java_nio_DirectByteBufferImpl =
 		  load_class_bootstrap(utf_new_char("java/nio/DirectByteBufferImpl"))) ||
@@ -234,7 +234,7 @@ bool jni_init(void)
 		return false;
 #  endif
 
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	if (!(class_sun_nio_ch_DirectBuffer =
 		  load_class_bootstrap(utf_new_char("sun/nio/ch/DirectBuffer"))))
@@ -1480,7 +1480,7 @@ jmethodID jni_FromReflectedMethod(JNIEnv *env, jobject method)
 	methodinfo                      *m;
 	int32_t                          slot;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	java_lang_reflect_VMMethod      *rvmm;
 	java_lang_reflect_VMConstructor *rvmc;
 #endif
@@ -1495,13 +1495,13 @@ jmethodID jni_FromReflectedMethod(JNIEnv *env, jobject method)
 	if (o->vftbl->clazz == class_java_lang_reflect_Constructor) {
 		rc = (java_lang_reflect_Constructor *) method;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 		LLNI_field_get_ref(rc,   cons , rvmc);
 		LLNI_field_get_cls(rvmc, clazz, c);
 		LLNI_field_get_val(rvmc, slot , slot);
 
-#elif defined(WITH_CLASSPATH_SUN)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 		LLNI_field_get_cls(rc, clazz, c);
 		LLNI_field_get_val(rc, slot , slot);
@@ -1515,13 +1515,13 @@ jmethodID jni_FromReflectedMethod(JNIEnv *env, jobject method)
 
 		rm = (java_lang_reflect_Method *) method;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 		LLNI_field_get_ref(rm,   m ,    rvmm);
 		LLNI_field_get_cls(rvmm, clazz, c);
 		LLNI_field_get_val(rvmm, slot , slot);
 
-#elif defined(WITH_CLASSPATH_SUN)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 		LLNI_field_get_cls(rm, clazz, c);
 		LLNI_field_get_val(rm, slot , slot);
@@ -1558,7 +1558,7 @@ jfieldID jni_FromReflectedField(JNIEnv* env, jobject field)
 	fieldinfo                 *f;
 	int32_t                    slot;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	java_lang_reflect_VMField *rvmf;
 #endif
 
@@ -1569,13 +1569,13 @@ jfieldID jni_FromReflectedField(JNIEnv* env, jobject field)
 	if (rf == NULL)
 		return NULL;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	LLNI_field_get_ref(rf,   f,     rvmf);
 	LLNI_field_get_cls(rvmf, clazz, c);
 	LLNI_field_get_val(rvmf, slot , slot);
 
-#elif defined(WITH_CLASSPATH_SUN)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	LLNI_field_get_cls(rf, clazz, c);
 	LLNI_field_get_val(rf, slot , slot);
@@ -3566,7 +3566,7 @@ jboolean _Jv_JNI_ExceptionCheck(JNIEnv *env)
 jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 {
 #if defined(ENABLE_JAVASE)
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	java_handle_t           *nbuf;
 
 # if SIZEOF_VOID_P == 8
@@ -3602,7 +3602,7 @@ jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 
 	return _Jv_JNI_NewLocalRef(env, nbuf);
 
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	jobject o;
 	int64_t addr;
@@ -3648,7 +3648,7 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 #if defined(ENABLE_JAVASE)
 	java_handle_t                 *h;
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	java_nio_DirectByteBufferImpl *nbuf;
 	gnu_classpath_Pointer         *po;
@@ -3689,7 +3689,7 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 	return p;
 
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	java_nio_Buffer *o;
 	int64_t          address;
@@ -3737,7 +3737,7 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 jlong _Jv_JNI_GetDirectBufferCapacity(JNIEnv* env, jobject buf)
 {
-#if defined(ENABLE_JAVASE) && defined(WITH_CLASSPATH_GNU)
+#if defined(ENABLE_JAVASE) && defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	java_handle_t   *o;
 	java_nio_Buffer *nbuf;
 	jlong            capacity;

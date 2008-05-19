@@ -247,7 +247,13 @@ static inline bool var_is_prealloc(const jitdata *jd, s4 i) {
 
 static inline bool var_is_inout(const jitdata *jd, s4 i) {
 	const varinfo *v = jd->var + i;
-	return ((i >= jd->localcount) && !(v->flags & PREALLOC) && (v->flags & INOUT));
+	return (
+		(i >= jd->localcount) && (
+			(!(v->flags & PREALLOC) && (v->flags & INOUT)) ||
+			/* special case of TYPE_RET, used with JSR */
+			((v->flags & PREALLOC) && (v->flags & INOUT) && (v->type == TYPE_RET))
+		)
+	);
 }
 
 static inline bool var_is_temp(const jitdata *jd, s4 i) {
@@ -294,6 +300,7 @@ typedef union {
     s4                         tablelow;         /* for TABLESWITCH           */
     u4                         lookupcount;      /* for LOOKUPSWITCH          */
 	s4                         retaddrnr;        /* for ASTORE                */
+	instruction              **iargs;            /* for PHI                   */
 } s2_operand_t;
 
 /*** s3 operand ***/
@@ -521,8 +528,6 @@ struct basicblock {
 	basicblock  **expredecessors; /* Blocks this block is exception handler for */
 	s4            expredecessorcount;
 	s4            exouts;       /* Number of exceptional exits */
-
-	basicblock   *subbasicblocks;
 
 	void         *vp;           /* Freely used by different passes            */
 #endif
@@ -947,6 +952,9 @@ enum {
 
 	ICMD_IMULPOW2         = 214,
 	ICMD_LMULPOW2         = 215,
+
+	ICMD_GETEXCEPTION     = 249,
+	ICMD_PHI              = 250,
 
 	ICMD_INLINE_START     = 251,        /* instruction before inlined method  */
 	ICMD_INLINE_END       = 252,        /* instruction after inlined method   */

@@ -1,4 +1,4 @@
-/* src/native/vm/sun/jvm.c - HotSpot JVM interface functions
+/* src/native/vm/openjdk/jvm.c - HotSpot JVM interface functions
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -64,7 +64,7 @@
 
 #include "native/vm/reflect.h"
 
-#include "native/vm/sun/hpi.h"
+#include "native/vm/openjdk/hpi.h"
 
 #include "threads/lock-common.h"
 #include "threads/thread.h"

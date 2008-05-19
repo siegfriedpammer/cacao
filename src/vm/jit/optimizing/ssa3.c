@@ -30,10 +30,12 @@
    TODO
 
    * Adapt for exception handling [done]
-   * Eliminiation of redundand PHI functions
+   * Eliminiation of redundand PHI functions. [in progress]
+   * Handle also inout variables. [done]
    * Create PHI functions lazyly, when they are used for the first time
      (I suspect that currently PHIs are created that are never used).
-   * REWRITE. The code was never designed for producion.
+   * REWRITE. The code was never designed for producion. [done]
+   * Unify access to phi args.
 */
 
 #include "vm/jit/jit.h"
@@ -42,248 +44,275 @@
 #include "mm/dumpmemory.h"
 #include "toolbox/list.h"
 
-#if 1
-static inline bool test_do_verbose(jitdata *jd) { 
-	return strcmp(jd->m->name->text, "close") == 0 &&
-		strcmp(jd->m->clazz->name->text, "antlr/PreservingFileWriter") == 0;
-}
-static bool do_verbose = 0;
-#define WHEN do_verbose
-#define printf(...) do { if (WHEN) printf(__VA_ARGS__); } while (0)
-#define show_method(...) do { if (WHEN) show_method(__VA_ARGS__); } while (0)
-#define show_basicblock(...) do { if (WHEN) show_basicblock(__VA_ARGS__); } while (0)
-#endif
+#include <limits.h>
+#include <stdio.h>
+
+#define ELIMINATE_NOP_LOAD_STORE
+#define FIXME(x) x
+#define SSA_VERIFY
+/* #define SSA_VERBOSE */
 
 /*
-TODO
-move set and get uses into jit.h
+__attribute__((always_inline))
 */
 
-#define ICMD_PHI 666
+/*** phi ********************************************************************/
 
-#define eqi(a, b) (((a) && (b) || (!(a) && !(b)))
+typedef enum {
+	PHI_FLAG_USED,
+	PHI_FLAG_REDUNDANT_ALL,
+	PHI_FLAG_REDUNDANT_ONE
+} phi_flags_t;
 
-#define nn(x) ((x) < 0 ? 0 : (x))
+static inline void phi_set_flag(instruction *iptr, phi_flags_t flag) {
+	iptr->flags.bits |= (1 << flag);	
+}
 
-#define ass(dst, src) *(dst) = *(src)
+static inline void phi_clear_flag(instruction *iptr, phi_flags_t flag) {
+	iptr->flags.bits &= ~(1 << flag);	
+}
 
-static inline const char *instruction_name(const instruction *iptr) {
-	if (iptr == NULL) {
-		return "null";
-	} else if (iptr->opc == ICMD_PHI) {
-		return "phi";
-	} else {
-		return icmd_table[iptr->opc].name;
+static inline bool phi_has_flag(const instruction *iptr, phi_flags_t flag) {
+	return (iptr->flags.bits & (1 << flag)) != 0;
+}
+
+static inline instruction *phi_get_subst(instruction *iptr) {
+	return iptr->sx.s23.s2.iargs[-1];
+}
+
+static inline bool phi_has_subst(const instruction *iptr) {
+	return (iptr->sx.s23.s2.iargs[-1] != NULL);
+}
+
+
+static inline void phi_init(instruction *iptr, unsigned argcount, s4 index) {
+	unsigned i;
+
+	iptr->opc = ICMD_PHI;
+	iptr->flags.bits = 0;
+	iptr->dst.varindex = 0;
+	iptr->s1.argcount = argcount;
+	iptr->sx.s23.s2.iargs = DMNEW(instruction *, argcount + 1);
+	iptr->sx.s23.s2.iargs += 1;
+	iptr->sx.s23.s3.javaindex = index;
+
+	/* subst field - If non-null, the phi function shall be replaced by the 
+	   value produced by the subst instruction. */
+	iptr->sx.s23.s2.iargs[-1] = NULL;
+
+#if !defined(NDEBUG)
+	for (i = 0; i < argcount; ++i) {
+		iptr->sx.s23.s2.iargs[i] = (instruction *)0x7fffffff;
+	}
+#endif
+}
+
+#define phi_assert_opc(iptr) assert(iptr->opc == ICMD_PHI)
+
+#define phi_assert_arg(iptr, arg) assert(arg < iptr->s1.argcount)
+
+static inline s4 phi_arg_count(const instruction *iptr) {
+	phi_assert_opc(iptr);
+	return iptr->s1.argcount;
+}
+
+static inline instruction *phi_get_arg(const instruction *iptr, unsigned arg) {
+	phi_assert_opc(iptr);
+	phi_assert_arg(iptr, arg);
+	return iptr->sx.s23.s2.iargs[arg];
+}
+
+static inline s4 phi_get_arg_var(const instruction *iptr, unsigned arg) {
+	phi_assert_opc(iptr);
+	phi_assert_arg(iptr, arg);
+	return iptr->sx.s23.s2.iargs[arg]->dst.varindex;
+}
+
+static inline void phi_set_all_args(instruction *iptr, instruction *value) {
+	unsigned i;
+	phi_assert_opc(iptr);
+	for (i = 0; i < iptr->s1.argcount; ++i) {
+		iptr->sx.s23.s2.iargs[i] = value;
 	}
 }
 
-static inline s4 instruction_line(const instruction *iptr) {
-	if (iptr == NULL) {
-		return -1;
-	} else {
-		return iptr->line;
+static inline s4 phi_get_index(const instruction *iptr) {
+	phi_assert_opc(iptr);
+	return iptr->sx.s23.s3.javaindex;
+}
+
+static inline s4 phi_get_dst(const instruction *iptr) {
+	phi_assert_opc(iptr);
+	return iptr->dst.varindex;
+}
+
+static inline void phi_set_dst(instruction *iptr, s4 dst) {
+	phi_assert_opc(iptr);
+	iptr->dst.varindex = dst;
+}
+
+static inline bool phi_get_used(const instruction *iptr) {
+	phi_assert_opc(iptr);
+	return phi_has_flag(iptr, PHI_FLAG_USED);
+}
+
+static void phi_set_used(instruction *iptr) {
+	phi_assert_opc(iptr);
+	if (! phi_has_flag(iptr, PHI_FLAG_USED)) {
+		phi_set_flag(iptr, PHI_FLAG_USED);
+		/* TODO recurse into arguments */
 	}
 }
 
-typedef struct phi_function {
-	s4 dst;
-	s4 *args;
-	s4 local;
-	instruction instr;
-} phi_function;
-
-typedef struct basicblock_info {
-	bool visited;
-	bool active;
-	bool traversed;
-	unsigned backward_branches;
-
-	instruction **state_array;
-
-	unsigned phi_count;
-	unsigned phi_max;
-	phi_function *phi_functions;
-	unsigned complete_predecessors;
-	bool cow;
-} basicblock_info;
-
-typedef struct ssa_info {
-	jitdata *jd;
-
-	varinfo locals[3000]; /* XXX hardcoded max */
-	unsigned max_locals;
-	unsigned locals_count;
-
-	s4 s_buf[3];
-} ssa_info;
-
-static unsigned get_predecessor_count(basicblock *bb) {
-	unsigned ret;
-	basicblock **itpred;
-
-	ret = nn(bb->predecessorcount);
-
-	FOR_EACH_EXPREDECESSOR(bb, itpred) {
-		ret += (*itpred)->exouts;
+static instruction *phi_resolve_use(instruction *use) {
+	if (use != NULL) {
+		while (use->opc == ICMD_PHI) {
+			if (phi_has_subst(use)) {
+				use = phi_get_subst(use);
+			} else {
+				break;
+			}
+		}
 	}
-
-	return ret;
+	return use;
 }
 
-static unsigned get_predecessor_index(basicblock *from, basicblock *to) {
-	basicblock **itpred;
-	unsigned j = 0;
-
-	for (itpred = to->predecessors; itpred != to->predecessors + nn(to->predecessorcount); ++itpred) {
-		if (*itpred == from) break;
-		j++;
-	}
-	
-	if (j == nn(to->predecessorcount)) {
-		assert(j != nn(to->predecessorcount));
-	}
-
-	return j;
+static inline void phi_set_arg(instruction *iptr, unsigned arg, instruction *value) {
+	phi_assert_opc(iptr);
+	phi_assert_arg(iptr, arg);
+	assert(value != NULL);
+	iptr->sx.s23.s2.iargs[arg] = value;
 }
 
-static void phi_set_argument(basicblock *bb, instruction *phi, unsigned j, instruction *value) {
-	phi_function *pf = (phi_function *)(
-		(char *)phi - OFFSET(phi_function, instr)
+static inline bool phi_is_redundant(const instruction *iptr) {
+	return (
+		phi_has_flag(iptr, PHI_FLAG_REDUNDANT_ONE) || 
+		phi_has_flag(iptr, PHI_FLAG_REDUNDANT_ALL)
 	);
-	assert(j < phi->s1.argcount);
-	if (value == NULL) {
-		pf->args[j] = pf->local;
+}
+
+static inline void phi_create_copy(instruction *iptr, unsigned arg, instruction *copy) {
+	phi_assert_opc(iptr);
+	phi_assert_arg(iptr, arg);
+	copy->dst.varindex = phi_get_dst(iptr);
+	copy->s1.varindex = phi_resolve_use(phi_get_arg(iptr, arg))->dst.varindex;
+	if (copy->dst.varindex == copy->s1.varindex || phi_is_redundant(iptr)) {
+		copy->opc = ICMD_NOP;
 	} else {
-		pf->args[j] = value->dst.varindex;
+		copy->opc = ICMD_COPY;
 	}
-	/*phi->sx.s23.s2.args[j] = value->dst.varindex;*/
-	printf(" *** in bb%d setting phi arg %d for local %d to %s@%d (%d)\n", bb->nr, j, pf->local, instruction_name(value), instruction_line(value), value ? value->dst.varindex : -1);
 }
 
-static inline basicblock_info *bb_info(basicblock *bb) {
-	return (basicblock_info *)(bb->vp);
-}
-
-static void mark_loops(basicblock *bb) {
-	basicblock_info *bbi = bb_info(bb);
-	basicblock **itsucc;
-
-	if (! bbi->visited) {
-		bbi->visited = true;
-		bbi->active = true;
-		FOR_EACH_SUCCESSOR(bb, itsucc) {
-			mark_loops(*itsucc);
+#if !defined(NDEBUG)
+static void phi_print(const instruction *iptr) {
+	unsigned i;
+	instruction *use;
+	printf("%d = phi(", iptr->dst.varindex);
+	for (i = 0; i < iptr->s1.argcount; ++i) {
+		use = phi_resolve_use(iptr->sx.s23.s2.iargs[i]);
+		if (use) {
+			printf("%d, ", use->dst.varindex);
+		} else {
+			printf("null, ");
 		}
-		FOR_EACH_EXHANDLER(bb, itsucc) {
-			mark_loops(*itsucc);
+	}
+	printf(")\n");
+}
+#endif
+
+#define FOR_EACH_PHI_USE_CAST(iptr, it, cast) \
+	for ( \
+		(it) = cast (iptr)->sx.s23.s2.iargs; \
+		(it) != cast (iptr)->sx.s23.s2.iargs + (iptr)->s1.argcount; \
+		++(it) \
+	)
+
+#define FOR_EACH_PHI_USE(iptr, it) \
+	FOR_EACH_PHI_USE_CAST(iptr, it, )
+
+#define FOR_EACH_PHI_USE_CONST(iptr, it) \
+	FOR_EACH_PHI_USE_CAST(iptr, it, (const instruction *))
+
+static void phi_calculate_redundancy(instruction *iptr) {
+
+	s4 dst = iptr->dst.varindex;
+	s4 use;
+	instruction *iuse;
+	instruction **ituse;
+	unsigned num_different = 0;
+	instruction *different;
+
+	if (phi_is_redundant(iptr)) return; /* XXX */
+
+	/* x = phi(x, y, x, x) ... PHI_FLAG_REDUNDANT_ONE
+	   x = phi(x, x, x, x) ... PHI_FLAG_REDUNDANT_ALL */
+
+	FOR_EACH_PHI_USE(iptr, ituse) {
+		iuse = phi_resolve_use(*ituse);
+		assert(iuse);
+
+		use = iuse->dst.varindex;
+
+		if (use != dst) {
+			different = *ituse;
+			num_different += 1;
+			if (num_different >= 2) {
+				phi_clear_flag(iptr, PHI_FLAG_REDUNDANT_ONE);
+				phi_clear_flag(iptr, PHI_FLAG_REDUNDANT_ALL);
+			}
 		}
-		bbi->active = false;
-	} else if (bbi->active) {
-		bbi->backward_branches += 1;
+	}
+
+	if (num_different == 1) {
+		/* Set the subst field of the instruction.
+		   I.e. the instruction will be replaced by the value produced by y. */
+		iptr->sx.s23.s2.iargs[-1] = different;
+
+		phi_set_flag(iptr, PHI_FLAG_REDUNDANT_ONE);
+		phi_clear_flag(iptr, PHI_FLAG_REDUNDANT_ALL);
+	} else if (num_different == 0) {
+		assert(0);
+		/*iptr->sx.s23.s2.iargs[-1] = iptr->sx.s23.s2.iargs[0];*/
+
+		phi_clear_flag(iptr, PHI_FLAG_REDUNDANT_ONE);
+		phi_clear_flag(iptr, PHI_FLAG_REDUNDANT_ALL);
+		/*assert(0);*/
 	}
 }
 
-static instruction *create_phi(ssa_info *ssa, basicblock *bb, s4 local) {
-	basicblock_info *bbi = bb_info(bb);
-	phi_function *phi;
-	s4 *itarg;
-	unsigned arg_count = get_predecessor_count(bb);
 
-	printf(" *** BB%d phi #%d for local %d\n", bb->nr, bbi->phi_count, local);
+/*** goto *******************************************************************/
 
-	phi = bbi->phi_functions + bbi->phi_count;
-	assert(bbi->phi_count < bbi->phi_max);
-	bbi->phi_count += 1;
-
-
-	phi->local = local;
-	phi->args = DMNEW(s4, arg_count);
-	for (itarg = phi->args; itarg != phi->args + arg_count; ++itarg) {
-		/* Invalidate */
-		*itarg = 0x7fffffff;
-	}
-
-	assert(ssa->locals_count < ssa->max_locals);
-	ssa->locals[ssa->locals_count] = ssa->jd->var[local];
-	phi->dst = ssa->locals_count;
-	ssa->locals_count += 1;
-
-	phi->instr.opc = ICMD_PHI;
-	phi->instr.dst.varindex = phi->dst;
-	phi->instr.s1.argcount = arg_count;
-	phi->instr.sx.s23.s2.args = NULL;
-
-	return &(phi->instr);
+static inline void goto_init(instruction *iptr, basicblock *dst) {
+	iptr->opc = ICMD_GOTO;
+	iptr->dst.block = dst;
 }
 
-static bool is_my_phi(basicblock *bb, instruction *iptr) {
-	basicblock_info *bbi = bb_info(bb);
-	if (iptr == NULL) {
-		return false;
-	}
-	if (iptr->opc != ICMD_PHI) {
-		return false;
-	}
-	if (	
-		((char *)bbi->phi_functions <= (char *)iptr) &&
-		((char *)iptr < (char *)(bbi->phi_functions + bbi->phi_count))
-	) {
-		return true;
-	} else {
-		return false;
-	}
-}
+/*** instruction ***********************************************************/
 
-static void rename_def(ssa_info *ssa, basicblock *bptr, instruction *iptr) {
-	basicblock_info *bbi = bb_info(bptr);
-	assert(bbi->state_array);
-
-	bbi->state_array[iptr->dst.varindex] = iptr;
-
-	assert(ssa->locals_count < ssa->max_locals);
-
-	ssa->locals[ssa->locals_count] = ssa->jd->var[iptr->dst.varindex];
-	iptr->dst.varindex = ssa->locals_count;
-	printf(" *** BB%d %s def %d => %d\n", bptr->nr, instruction_name(iptr), iptr->dst.varindex, ssa->locals_count);
-
-	ssa->locals_count += 1;
-}
-
-static void rename_use(ssa_info *ssa, basicblock *bptr, instruction *iptr, s4 *use) {
-	basicblock_info *bbi = bb_info(bptr);
-	assert(bbi->state_array);
-
-	if (bbi->state_array[*use] != NULL) {
-		printf(" *** BB%d %s use %d => %d (%s) \n", bptr->nr, instruction_name(iptr), *use, bbi->state_array[*use]->dst.varindex, instruction_name(bbi->state_array[*use]) );
-		*use = bbi->state_array[*use]->dst.varindex;
-	} else {
-		printf(" *** BB%d %s use keep\n", bptr->nr, instruction_name(iptr));
-	}
-}
-
-static void get_uses(ssa_info *ssa, instruction *iptr, s4 **puses, unsigned *puses_count) {
+static void instruction_get_uses(const instruction *iptr, s4 *buf, s4 **puses, unsigned *puses_count) {
 	unsigned uses_count = 0;
 
 	switch (icmd_table[iptr->opc].dataflow) {
 		case DF_3_TO_0:
 		case DF_3_TO_1:
-			ssa->s_buf[2] = iptr->sx.s23.s3.varindex;
+			buf[2] = iptr->sx.s23.s3.varindex;
 			uses_count += 1;
 
 		case DF_2_TO_0:
 		case DF_2_TO_1:
-			ssa->s_buf[1] = iptr->sx.s23.s2.varindex;
+			buf[1] = iptr->sx.s23.s2.varindex;
 			uses_count += 1;
 
 		case DF_1_TO_0:
 		case DF_1_TO_1:
 		case DF_COPY:
 		case DF_MOVE:
-			ssa->s_buf[0] = iptr->s1.varindex;
+			buf[0] = iptr->s1.varindex;
 			uses_count += 1;
 
 			*puses_count = uses_count;
-			*puses = ssa->s_buf;
+			*puses = buf;
 			break;
 	
 		case DF_N_TO_1:
@@ -301,139 +330,502 @@ static void get_uses(ssa_info *ssa, instruction *iptr, s4 **puses, unsigned *pus
 	}
 }
 
-static void set_uses(ssa_info *ssa, instruction *iptr, s4 *uses, unsigned uses_count) {
-	if (uses == ssa->s_buf) {
+static inline void instruction_set_uses(instruction *iptr, s4 *buf, s4 *uses, unsigned uses_count) {
+	if (uses == buf) {
 		switch (uses_count) {
 			case 3:
-				iptr->sx.s23.s3.varindex = ssa->s_buf[2];
+				iptr->sx.s23.s3.varindex = buf[2];
 			case 2:
-				iptr->sx.s23.s2.varindex = ssa->s_buf[1];
+				iptr->sx.s23.s2.varindex = buf[1];
 			case 1:
-				iptr->s1.varindex = ssa->s_buf[0];
+				iptr->s1.varindex = buf[0];
 		}
 	}
 }
 
-typedef void (*traverse_fun)(ssa_info *ssa, basicblock *bb);
+/*** vars *******************************************************************/
 
-static void traverse(ssa_info *ssa, basicblock *bb, traverse_fun fun) {
-	basicblock_info *bbi = bb_info(bb);
-	basicblock **itsucc, **itpred;
-	basicblock_info *succi;
-	unsigned complete_preds;
-	unsigned j;
+#define VARS_CATEGORY_SHIFT 29
+#define VARS_INDEX_MASK 0x1FFFFFFF
 
-	/*if (bbi->traversed) {
-		return;
-	}*/
+#define VARS_CATEGORY_LOCAL 0
+#define VARS_CATEGORY_STACK 1
+#define VARS_CATEGORY_OTHERS 2
 
-	/* Process block */
+#define VAR_TYPE_SUBSTITUED 666
 
-	fun(ssa, bb);
+typedef struct {
+	varinfo items[9000]; /* XXX hardcoded max */
+	unsigned max;
+	unsigned count;
+	unsigned category;
+} vars_t;
 
-	/*bbi->traversed = true;*/
-
-	/* Recurse */
-
-	FOR_EACH_SUCCESSOR(bb, itsucc) {
-		merge(ssa, bbi->state_array, *itsucc, get_predecessor_index(bb, *itsucc));
-		succi = bb_info(*itsucc);
-		succi->complete_predecessors += 1;
-		if (succi->complete_predecessors == (/*nn((*itsucc)->predecessorcount)*/ get_predecessor_count(*itsucc) - succi->backward_branches)) {
-			printf(" *** Traverse bb%d => bb%d\n", bb->nr, (*itsucc)->nr);
-			traverse(ssa, *itsucc, fun);
-		}
-	}
-
-	FOR_EACH_EXHANDLER(bb, itsucc) {
-		succi = bb_info(*itsucc);
-		succi->complete_predecessors += bb->exouts; /* XXX this might be 0 */
-		if (succi->complete_predecessors == (/*nn((*itsucc)->predecessorcount)*/ get_predecessor_count(*itsucc) - succi->backward_branches)) {
-			printf(" *** Traverse bb%d => bb%d\n", bb->nr, (*itsucc)->nr);
-			traverse(ssa, *itsucc, fun);
-		}
-	}
-
+static inline unsigned vars_add_item(vars_t *vs, const varinfo *item) {
+	unsigned i = vs->count;
+	assert(i < vs->max);
+	vs->count += 1;
+	vs->items[i] = *item;
+	return (vs->category << VARS_CATEGORY_SHIFT) | i;
 }
 
-void merge(ssa_info *ssa, instruction **state_array, basicblock *succ, unsigned j) {
-	basicblock_info *succi = bb_info(succ);
-	instruction *phi;
+static inline unsigned vars_add(vars_t *vs) {
+	unsigned i = vs->count;
+	assert(i < vs->max);
+	vs->count += 1;
+	return (vs->category << VARS_CATEGORY_SHIFT) | i;
+}
+
+static inline varinfo *vars_back(vars_t *vs) {
+	assert(vs->count > 0);
+	return vs->items + (vs->count - 1);
+}
+
+static inline void vars_init(vars_t *vs, unsigned category) {
+	vs->max = sizeof(vs->items) / sizeof(vs->items[0]);
+	vs->count = 0;
+	assert((category & 0x3) == category);
+	vs->category = category;
+}
+
+static inline unsigned vars_get_category(unsigned varindex) {
+	return (varindex >> VARS_CATEGORY_SHIFT);
+}
+
+static inline unsigned vars_get_index(unsigned varindex) {
+	return (varindex & VARS_INDEX_MASK);
+}
+
+static void vars_subst(vars_t *vs, unsigned varindex, unsigned replacementindex) {
+	varindex = vars_get_index(varindex);
+	replacementindex = vars_get_index(replacementindex);
+
+	vs->items[varindex].type = VAR_TYPE_SUBSTITUED;
+	vs->items[varindex].vv.regoff = replacementindex;
+}
+
+static unsigned vars_resolve_subst(const vars_t *vs, unsigned varindex) {
+#if !defined(NDEBUG)
+	unsigned loop_ctr = 0;
+#endif
+	varindex = vars_get_index(varindex);
+
+	if (vs->items[varindex].type == VAR_TYPE_SUBSTITUED) /*fprintf(stderr, "*")*/;
+
+	while (vs->items[varindex].type == VAR_TYPE_SUBSTITUED) {
+		assert(loop_ctr++ != vs->count);
+		varindex = vs->items[varindex].vv.regoff;
+	}
+
+	return (vs->category << VARS_CATEGORY_SHIFT) | varindex ;
+}
+
+static void vars_copy_to_final(vars_t *vs, varinfo *dst) {
+	const varinfo *it;
+	unsigned subst;
+
+	for (it = vs->items; it != vs->items + vs->count; ++it, ++dst) {
+
+		/* Copy variable. */
+
+		*dst = *it;
+
+		/* Eliminate VAR_TYPE_SUBSTITUED as it leads to problems. */
+
+		if (dst->type == VAR_TYPE_SUBSTITUED) {
+			subst = vars_get_index(vars_resolve_subst(vs, it - vs->items));
+			dst->type = vs->items[subst].type;
+		}
+	}
+}
+
+
+/*** phis *******************************************************************/
+
+typedef struct {
+	instruction *items;
+	unsigned max;
+	unsigned count;
+} phis_t;
+
+static inline void phis_init(phis_t *ps, unsigned max) {
+	ps->max = max;
+	ps->count = 0;
+	ps->items = DMNEW(instruction, max);
+}
+
+static inline instruction *phis_add(phis_t *ps) {
+	unsigned i = ps->count;
+	assert(i < ps->max);
+	ps->count += 1;
+	return ps->items + i;
+}
+
+static inline instruction *phis_get(const phis_t *ps, unsigned i) {
+	assert(i < ps->count);
+	return ps->items + i;
+}
+
+static inline bool phis_contains(const phis_t *ps, const instruction *phi) {
+	return (ps->items <= phi) && (phi < (ps->items + ps->max));
+}
+
+#define FOR_EACH_PHI_FUNCTION_(ps, it) \
+	for ((it) = (ps)->items; (it) != (ps)->items + (ps)->count; ++(it)) \
+
+#define FOR_EACH_PHI_FUNCTION(ps, it) \
+		FOR_EACH_PHI_FUNCTION_(ps, it) if (!phi_is_redundant((it)))
+
+#if !defined(NDEBUG)
+FIXME() inline void phis_print(const phis_t *ps) {
+	const instruction *iptr;
+	FOR_EACH_PHI_FUNCTION(ps, iptr) {
+		phi_print(iptr);
+	}
+}
+#endif
+
+/*** state_array ************************************************************/
+
+typedef struct {
+	instruction **items;
+	unsigned count;
+} state_array_t;
+
+static inline void state_array_init(state_array_t *sa, unsigned count) {
+	sa->items = NULL;
+	sa->count = count;
+}
+
+static inline bool state_array_has_items(const state_array_t *sa) {
+	return (sa->items != NULL);
+}
+
+static inline s4 state_array_get_var(const state_array_t *sa, unsigned index) {
+	assert(index < sa->count);
+	assert(sa->items[index]);
+	return sa->items[index]->dst.varindex;
+}
+
+static inline instruction *state_array_get(const state_array_t *sa, unsigned index) {
+	assert(index < sa->count);
+	return sa->items[index];
+}
+
+static inline void state_array_set(const state_array_t *sa, unsigned index, instruction *value) {
+	assert(index < sa->count);
+	sa->items[index] = value;
+}
+
+static inline void state_array_copy(state_array_t *sa, state_array_t *other) {
+	assert(sa->count == other->count);
+	MCOPY(sa->items, other->items, instruction *, sa->count);
+}
+
+#define state_array_assert_items(sa) assert(state_array_has_items(sa) || (sa->count == 0))
+#define state_array_assert_no_items(sa) assert(! state_array_has_items(sa))
+
+static inline void state_array_allocate_items(state_array_t *sa) {
+	sa->items = DMNEW(instruction *, sa->count);
+	MZERO(sa->items, instruction *, sa->count);
+}
+
+/*** basicblock_chain *******************************************************/
+
+typedef struct {
+	basicblock *first;
+	basicblock *last;
+} basicblock_chain_t;
+
+static void basicblock_chain_init(basicblock_chain_t *bbc) {
+	bbc->first = NULL;
+	bbc->last = NULL;
+}
+
+#define basicblock_chain_clear basicblock_chain_init
+
+static void basicblock_chain_add(basicblock_chain_t *bbc, basicblock *bb) {
+	if (bbc->first == NULL) {
+		assert(bbc->last == NULL);
+		assert(bb->next == NULL);
+		bbc->first = bb;
+		bbc->last = bb;
+	} else {
+		assert(bbc->last->next == NULL);
+		bbc->last->next = bb;
+		bbc->last = bb;
+	}
+}
+
+static inline basicblock *basicblock_chain_front(basicblock_chain_t *bbc) {
+	assert(bbc->first);
+	return bbc->first;
+}
+
+static inline basicblock *basicblock_chain_back(basicblock_chain_t *bbc) {
+	assert(bbc->last);
+	return bbc->last;
+}
+
+static inline bool basicblock_chain_empty(const basicblock_chain_t *bbc) {
+	return bbc->first == NULL;
+}
+
+/*** exception_entry_chain ***************************************************/
+
+typedef struct {
+	exception_entry *first;
+	exception_entry *last;
+} exception_entry_chain_t;
+
+static void exception_entry_chain_init(exception_entry_chain_t *eec) {
+	eec->first = NULL;
+	eec->last = NULL;
+}
+
+#define exception_entry_chain_clear exception_entry_chain_init
+
+static void exception_entry_chain_add(exception_entry_chain_t *eec, exception_entry *ee) {
+	if (eec->first == NULL) {
+		eec->first = ee;
+		eec->last = ee;
+	} else {
+		eec->last->next = ee;
+		eec->last->down = ee;
+		eec->last = ee;
+	}
+}
+
+static inline bool exception_entry_chain_empty(const exception_entry_chain_t *eec) {
+	return eec->first == NULL;
+}
+
+static inline exception_entry *exception_entry_chain_back(exception_entry_chain_t *eec) {
+	assert(eec->last);
+	return eec->last;
+}
+
+static inline exception_entry *exception_entry_chain_front(exception_entry_chain_t *eec) {
+	assert(eec->first);
+	return eec->first;
+}
+
+/*** traversal **************************************************************/
+
+typedef struct {
+	unsigned (*var_num_to_index)(void *vp, s4 var);
+	varinfo *(*index_to_initial_var)(void *vp, unsigned index);
+	varinfo *(*var_num_to_varinfo)(void *vp, s4 var);
+	unsigned (*variables_count)(void *vp);
+} traversal_ops_t;
+
+typedef struct {
+	phis_t *phis;
+	state_array_t *state_array;
+	void *ops_vp;
+	traversal_ops_t *ops;
+} traversal_t;
+
+/*** basicblock_info ********************************************************/
+
+typedef struct basicblock_info {
+	bool visited;
+	bool active;
+	bool traversed;
+	unsigned backward_branches;
+
+	traversal_t *locals;
+	traversal_t *stack;
+
+	basicblock_chain_t *subbasicblocks;
+
+	unsigned complete_predecessors;
+
+#if defined(SSA_VERIFY)
+	unsigned num_phi_elimination;
+#endif
+
+} basicblock_info_t;
+
+/*** traversal **************************************************************/
+
+void traversal_init(traversal_t *t, unsigned count, void *ops_vp, traversal_ops_t *ops) {
+	t->phis = DNEW(phis_t);
+	phis_init(t->phis, count);
+
+	t->state_array = DNEW(state_array_t);
+	state_array_init(t->state_array, count);
+
+	t->ops_vp = ops_vp;
+	t->ops = ops;
+}
+
+instruction *traversal_create_phi(traversal_t *t, vars_t *v, unsigned argcount, s4 index) {
+	instruction *phi = phis_add(t->phis);
+	s4 dst;
+
+	phi_init(phi, argcount, index);
+	dst = vars_add_item(v, t->ops->index_to_initial_var(t->ops_vp, index));
+	phi_set_dst(phi, dst);
+
+	state_array_set(t->state_array, index, phi);
+
+	return phi;
+}
+
+static void traversal_rename_def(traversal_t *t, vars_t *vars, instruction *iptr) {
+	const varinfo *v;
+	unsigned index;
+
+	state_array_assert_items(t->state_array);
+
+	v = t->ops->var_num_to_varinfo(t->ops_vp, iptr->dst.varindex);
+	index = t->ops->var_num_to_index(t->ops_vp, iptr->dst.varindex);
+
+	iptr->dst.varindex = vars_add_item(vars, v);
+	state_array_set(t->state_array, index, iptr);
+}
+
+static void traversal_rename_use(traversal_t *t, s4 *puse) {
+	unsigned index;
+
+	state_array_assert_items(t->state_array);
+
+	index = t->ops->var_num_to_index(t->ops_vp, *puse);
+
+	assert(state_array_get(t->state_array, index));
+	*puse = state_array_get_var(t->state_array, index);
+}
+
+static inline unsigned traversal_variables_count(traversal_t *t) {
+	return t->ops->variables_count(t->ops_vp);
+}
+
+unsigned local_var_num_to_index(void *vp, s4 var) {
+	return (unsigned)var;
+}
+
+varinfo *local_index_to_initial_var(void *vp, unsigned index) {
+	jitdata *jd = (jitdata *)vp;
+	return jd->var + index;
+}
+
+varinfo *local_var_num_to_varinfo(void *vp, s4 var) {
+	jitdata *jd = (jitdata *)vp;
+	return jd->var + var;
+}
+
+unsigned local_variables_count(void *vp) {
+	jitdata *jd = (jitdata *)vp;
+	return jd->localcount;
+}
+
+traversal_ops_t traversal_local_ops = {
+	local_var_num_to_index,
+	local_index_to_initial_var,
+	local_var_num_to_varinfo,
+	local_variables_count
+};
+
+unsigned inout_var_num_to_index(void *vp, s4 var) {
+	basicblock *bb = (basicblock *)vp;
 	unsigned i;
-	unsigned a;
 
-#define mprintf(fmt, ...) printf(" *** merge bb? => bb%d > " fmt, succ->nr, __VA_ARGS__)
-
-	mprintf("(%d, %p)\n", j, succi->state_array);
-
-	if (succi->state_array == NULL) {
-
-		succi->state_array = DMNEW(instruction *, ssa->jd->localcount);
-
-		mprintf("creating state_array %p\n", succi->state_array );
-
-
-		if (succi->backward_branches > 0) {
-			mprintf("bb%d is loop header, creating phis\n", succ->nr);
-			for (i = 0; i < ssa->jd->localcount; ++i) {
-				succi->state_array[i] = create_phi(ssa, succ, i);
-			}
-		} else {
-			/*
-			printf(" *** merge bb%d cow state array\n", succ->nr);
-			succi->state_array = bbi->state_array;
-			succi->cow = true;
-			*/
-			MCOPY(succi->state_array, state_array, instruction *, ssa->jd->localcount);
-			return;
+	for (i = 0; i < bb->indepth; ++i) {
+		if (bb->invars[i] == var) {
+			return i;
 		}
 	}
 
-	for (i = 0; i < ssa->jd->localcount; ++i) {
-		mprintf("local %d bb: %s@%d, succ: %s@%d\n", i, instruction_name(state_array[i]), instruction_line(state_array[i]), instruction_name(succi->state_array[i]), instruction_line(succi->state_array[i]));
-
-		if (succi->traversed) {
-			/* Back edge, all phis already created */
-			/* Only fill in phi arguments */
-			/* We have created phis for *ALL* locals, so there is random access */
-			phi_set_argument(succ, &(succi->phi_functions[i].instr), j, state_array[i]);
-		} else if (state_array[i] != succi->state_array[i]) {
-			mprintf("merge bb%d need phi for local %d\n", succ->nr, i);
-			/* Create new state array if needed */
-
-			/*if (succi->cow) {
-				printf(" *** merge bb%d cloning cow state array\n", succ->nr);
-				state_array = DMNEW(instruction *, ssa->jd->localcount);
-				MCOPY(state_array, succi->state_array, instruction *, ssa->jd->localcount);
-				succi->state_array = state_array;
-				succi->cow = false;
-			}*/
-
-			if (is_my_phi(succ, succi->state_array[i])) {
-				/* State array is already phi function, just need to fill in argument */
-				phi_set_argument(succ, succi->state_array[i], j, state_array[i]);
-			} else {
-				/* Create phi and initialize all arguments with current state array value
-				 * (We might have already merged this value from within several blocks).
-				 */
-				phi = create_phi(ssa, succ, i);
-				for (a = 0; a < get_predecessor_count(succ); ++a) {
-					phi_set_argument(succ, phi, a, succi->state_array[i]);
-				}
-				phi_set_argument(succ, phi, j, state_array[i]);
-				succi->state_array[i] = phi;
-			}
+	for (i = 0; i < bb->outdepth; ++i) {
+		if (bb->outvars[i] == var) {
+			return i;
 		}
 	}
-#undef mprintf
+
+	assert(0);
 }
 
-static unsigned get_ex_predecessor_index(basicblock *from, unsigned pei, basicblock *to) {
-	unsigned i, j;
-	basicblock **itpred;
-	instruction *iti;
+varinfo *inout_index_to_initial_var(void *vp, unsigned index) {
+	basicblock *bb = (basicblock *)vp;
+	jitdata *jd = (jitdata *)(((basicblock_info_t *)bb->vp)->locals->ops_vp); /* evil hack */
+	assert(index < bb->indepth);
+	return jd->var + bb->invars[index];
+}
 
-	j = nn(to->predecessorcount);
+varinfo *inout_var_num_to_varinfo(void *vp, s4 var) {
+	basicblock *bb = (basicblock *)vp;
+	jitdata *jd = (jitdata *)(((basicblock_info_t *)bb->vp)->locals->ops_vp); /* evil hack */
+	return jd->var + var;
+}
+
+unsigned inout_variables_count(void *vp) {
+	basicblock *bb = (basicblock *)vp;
+	return bb->indepth;
+}
+
+traversal_ops_t traversal_inout_ops = {
+	inout_var_num_to_index,
+	inout_index_to_initial_var,
+	inout_var_num_to_varinfo,
+	inout_variables_count
+};
+
+/*** basicblock_info ********************************************************/
+
+void basicblock_info_init(basicblock_info_t *bbi, basicblock *bb, jitdata *jd) {
+	MZERO(bbi, basicblock_info_t, 1);
+
+	bbi->locals = DNEW(traversal_t);
+	traversal_init(bbi->locals, jd->localcount, jd, &traversal_local_ops);
+
+	bbi->stack = DNEW(traversal_t);
+	traversal_init(bbi->stack, jd->maxinterfaces, bb, &traversal_inout_ops);
+
+	bbi->subbasicblocks = DNEW(basicblock_chain_t);
+	basicblock_chain_init(bbi->subbasicblocks);
+}
+
+/*** basicblock *************************************************************/
+
+static inline basicblock_info_t *basicblock_info(basicblock *bb) {
+	return (basicblock_info_t *)(bb->vp);
+}
+
+#define bb_info basicblock_info
+
+static unsigned basicblock_get_predecessor_count(basicblock *bb) {
+	unsigned ret;
+	basicblock **itpred;
+
+	ret = bb->predecessorcount;
+
+	FOR_EACH_EXPREDECESSOR(bb, itpred) {
+		ret += (*itpred)->exouts;
+	}
+
+	return ret;
+}
+
+static unsigned basicblock_get_predecessor_index(basicblock *from, basicblock *to) {
+	basicblock **itpred;
+	unsigned j = 0;
+
+	FOR_EACH_PREDECESSOR(to, itpred) {	
+		if (*itpred == from) break;
+		j++;
+	}
+	
+	assert(j != to->predecessorcount);
+
+	return j;
+}
+
+static unsigned basicblock_get_ex_predecessor_index(basicblock *from, unsigned pei, basicblock *to) {
+	unsigned j;
+	basicblock **itpred;
+
+	j = to->predecessorcount;
 
 	FOR_EACH_EXPREDECESSOR(to, itpred) {
 		if ((*itpred)->nr == from->nr) {
@@ -447,313 +839,912 @@ static unsigned get_ex_predecessor_index(basicblock *from, unsigned pei, basicbl
 	assert(0);
 }
 
-static void handle_pei(ssa_info *ssa, basicblock *bb, unsigned pei) {
-	basicblock_info *bbi = bb_info(bb);
+/*** ssa_info ***************************************************************/
+
+typedef struct ssa_info {
+	jitdata *jd;
+
+	vars_t *locals;
+	vars_t *stack;
+	vars_t *others;
+
+	s4 s_buf[3];
+
+	basicblock_chain_t *new_blocks;
+
+} ssa_info, ssa_info_t;
+
+void ssa_info_init(ssa_info_t *ssa, jitdata *jd) {
+	ssa->jd = jd;
+
+	ssa->locals = DNEW(vars_t);
+	vars_init(ssa->locals, VARS_CATEGORY_LOCAL);
+
+	/* Initialize first version of locals, that is always available. */
+	MCOPY(ssa->locals->items, jd->var, varinfo, jd->localcount);
+	ssa->locals->count = jd->localcount;
+
+	ssa->stack = DNEW(vars_t);
+	vars_init(ssa->stack, VARS_CATEGORY_STACK);
+
+	ssa->others = DNEW(vars_t);
+	vars_init(ssa->others, VARS_CATEGORY_OTHERS);
+
+	ssa->new_blocks = DNEW(basicblock_chain_t);
+	basicblock_chain_init(ssa->new_blocks);
+}
+
+/*** others_mapping *********************************************************/
+
+static inline void others_mapping_set(ssa_info *ssa, s4 var, s4 new_var) {
+	ssa->jd->var[var].vv.regoff = new_var;
+}
+
+static inline s4 others_mapping_get(const ssa_info *ssa, s4 var) {
+	return ssa->jd->var[var].vv.regoff;
+}
+
+/*** code *******************************************************************/
+
+void fix_exception_handlers(jitdata *jd) {
+	basicblock *bptr;
+	basicblock *exh = NULL;
+	instruction *iptr;
+	exception_entry *ee;
+	size_t add_vars;
+	size_t avail_vars;
+	s4 v;
+	basicblock_chain_t chain;
+	basicblock *last = NULL;
+	basicblock *marker = NULL;
+
+	if (jd->exceptiontablelength == 0) {
+		return;
+	}
+
+	basicblock_chain_init(&chain);
+
+	/* We need to allocate new iovars */
+
+	avail_vars = (jd->varcount - jd->vartop);
+	add_vars = jd->exceptiontablelength;
+
+	if (add_vars > avail_vars) {
+		add_vars -= avail_vars;
+		jd->var = DMREALLOC(jd->var, varinfo, jd->varcount, jd->varcount + add_vars);
+		jd->varcount += add_vars;
+	}
+
+	/* For each exception handler block, create one block with a prologue block */
+
+	FOR_EACH_BASICBLOCK(jd, bptr) {
+		if (bptr->type == BBTYPE_EXH) {
+
+			bptr->type = BBTYPE_STD;
+			bptr->predecessorcount = 0; /* legacy */
+
+			/* Create basicblock with 2 instructions */
+		
+			exh = DNEW(basicblock);
+			MZERO(exh, basicblock, 1);
+
+			iptr = DMNEW(instruction, 2);
+			MZERO(iptr, instruction, 2);
+
+			/* Create new outvar */
+
+			assert(jd->vartop < jd->varcount);
+			v = jd->vartop;
+			jd->vartop += 1;
+			jd->var[v].type = TYPE_ADR;
+			jd->var[v].flags = INOUT;
+
+			exh->nr = jd->basicblockcount;
+			jd->basicblockcount += 1;
+			exh->mpc = -1;
+			exh->type = BBTYPE_EXH;
+			exh->icount = 2;
+			exh->iinstr = iptr;
+			exh->outdepth = 1;
+			exh->outvars = DNEW(s4);
+			exh->outvars[0] = v;
+			exh->predecessorcount = -1; /* legacy */
+			exh->flags = BBFINISHED;
+
+			basicblock_chain_add(&chain, exh);
+
+			/* Get exception */
+
+			iptr->opc = ICMD_GETEXCEPTION;
+			iptr->dst.varindex = v;
+			iptr += 1;
+
+			/* Goto real exception handler */
+
+			goto_init(iptr, bptr);
+
+			bptr->vp = exh;
+		} else {	
+			bptr->vp = NULL;
+		}
+
+		if (bptr->next == NULL) {
+			marker = bptr;
+		} else {
+			last = bptr;
+		}
+	}
+
+	/* Put the chain of exception handlers between just before the last
+	   basic block (end marker). */
+
+	if (! basicblock_chain_empty(&chain)) {
+		marker->nr = jd->basicblockcount;
+		basicblock_chain_back(&chain)->next = marker;
+		last->next = basicblock_chain_front(&chain);
+
+		assert(last->nr + 1 == basicblock_chain_front(&chain)->nr);
+		assert(marker->nr == jd->basicblockcount);
+	}
+
+	/* Replace all exception handlers in exception table with their respective
+	   prologue blocks. */
+
+	for (ee = jd->exceptiontable; ee; ee = ee->down) {
+		assert(ee->handler->vp);
+		ee->handler = ee->handler->vp;
+	}
+
+}
+
+/*** ssa_enter ***************************************************************/
+
+static void ssa_enter_mark_loops_intern(basicblock *bb, unsigned num_branches) {
+	basicblock_info_t *bbi = bb_info(bb);
+	basicblock **itsucc;
+
+	if (! bbi->visited) {
+		bbi->visited = true;
+		bbi->active = true;
+		FOR_EACH_SUCCESSOR(bb, itsucc) {
+			/* There is a single branch from bb into the successor. */
+			ssa_enter_mark_loops_intern(*itsucc, 1);
+		}
+		FOR_EACH_EXHANDLER(bb, itsucc) {
+			/* For exception handler type successors,
+			   we count a branch into the exception handler from every PEI. */
+			ssa_enter_mark_loops_intern(*itsucc, bb->exouts);
+		}
+		bbi->active = false;
+	} else if (bbi->active) {
+		bbi->backward_branches += num_branches;
+	}
+}
+
+static inline void ssa_enter_mark_loops(basicblock *bb) {
+	ssa_enter_mark_loops_intern(bb, 1);
+}
+
+static void ssa_enter_merge(
+	traversal_t *src, 
+	traversal_t *dst, 
+	basicblock *bdst, 
+	unsigned predecessor_index, 
+	vars_t *vdst
+) {
+
+	basicblock_info_t *dsti = bb_info(bdst);
+	unsigned predecessor_count = basicblock_get_predecessor_count(bdst);
+	instruction *phi;
+	instruction *old;
+	s4 i;
+
+	/* We are merging for the first time into this block. */
+
+	if (! state_array_has_items(dst->state_array)) {
+
+		state_array_allocate_items(dst->state_array);
+
+		if (dsti->backward_branches > 0) {
+			/* Loop header, create phi functions for all variables. */
+			for (i = 0; i < traversal_variables_count(dst); ++i) {
+				phi = traversal_create_phi(dst, vdst, predecessor_count, i);
+				/* No need to init, they will only be filled in later. */
+			}
+		} else {
+			state_array_copy(dst->state_array, src->state_array);
+			return;
+		}
+	}
+
+	/* We are merging another block. */
+
+	/* Process every variable. */
+
+	for (i = 0; i < traversal_variables_count(dst); ++i) {
+		if (dsti->traversed) {
+
+			/* Back edge, all phi functions are already created.
+			   We only need to set their arguments. */
+
+			phi_set_arg(
+				phis_get(dst->phis, i), 
+				predecessor_index, 
+				state_array_get(src->state_array, i)
+			);
+
+		} else if (state_array_get(dst->state_array, i) != state_array_get(src->state_array, i)) {
+
+			/* A different definition of this var reaches the block.
+			   We need to create a phi function. */
+
+			if (phis_contains(dst->phis, state_array_get(dst->state_array, i))) {
+				/* There is already a phi function created for this var.
+				   No need to create one. */
+			} else {
+				/* Create a new phi function. 
+				   Set all arguments to old value in state array. */
+				old = state_array_get(dst->state_array, i);
+				phi = traversal_create_phi(dst, vdst, predecessor_count, i);
+				phi_set_all_args(phi, old);
+			}
+
+			/* Set argument of phi function. */
+
+			phi_set_arg(
+				state_array_get(dst->state_array, i), 
+				predecessor_index,
+				state_array_get(src->state_array, i)
+			);
+		}
+	}
+}
+
+static void ssa_enter_process_block(ssa_info *ssa, basicblock *bb);
+static bool ssa_enter_eliminate_redundant_phis(traversal_t *t, vars_t *vs, basicblock_info_t *bbi);
+
+#if defined(SSA_VERIFY)
+static void ssa_enter_verify_no_redundant_phis(ssa_info_t *ssa) {
+	basicblock *bptr;
+	basicblock_info_t *bbi;
+	instruction *itph;
+	FOR_EACH_BASICBLOCK(ssa->jd, bptr) {
+		if (basicblock_reached(bptr)) {
+			bbi = bb_info(bptr);
+			FOR_EACH_PHI_FUNCTION(bbi->locals->phis, itph) {
+				if (! phi_is_redundant(itph)) {
+					phi_calculate_redundancy(itph);
+					assert(! phi_is_redundant(itph));
+				}
+			}
+			FOR_EACH_PHI_FUNCTION(bbi->stack->phis, itph) {
+				if (! phi_is_redundant(itph)) {
+					phi_calculate_redundancy(itph);
+					assert(! phi_is_redundant(itph));
+				}
+			}
+		}
+	}
+}
+#endif
+
+static void ssa_enter_traverse(ssa_info_t *ssa, basicblock *bb) {
+	basicblock **itsucc;
+	basicblock_info_t *succi;
+	basicblock_info_t *bbi = bb_info(bb);
+	unsigned predecessor_count;
+
+	/* Process block */
+
+	ssa_enter_process_block(ssa, bb);
+
+	/* Recurse */
+
+	FOR_EACH_SUCCESSOR(bb, itsucc) {
+
+		succi = bb_info(*itsucc);
+
+		ssa_enter_merge(
+			bbi->locals,
+			succi->locals,
+			*itsucc,
+			basicblock_get_predecessor_index(bb, *itsucc),
+			ssa->locals
+		);
+
+		ssa_enter_merge(
+			bbi->stack,
+			succi->stack,
+			*itsucc,
+			basicblock_get_predecessor_index(bb, *itsucc),
+			ssa->stack
+		);
+
+		succi->complete_predecessors += 1;
+
+		predecessor_count = basicblock_get_predecessor_count(*itsucc);
+
+		if (
+			succi->complete_predecessors == 
+			(predecessor_count - succi->backward_branches)
+		) {
+			ssa_enter_traverse(ssa, *itsucc);
+		}
+		
+		if (
+			(succi->complete_predecessors == predecessor_count) &&
+			(succi->backward_branches > 0)
+		) {
+#if defined(SSA_VERIFY)
+			assert(succi->num_phi_elimination < 2);
+			succi->num_phi_elimination += 1;
+#endif
+			ssa_enter_eliminate_redundant_phis(succi->locals, ssa->locals, succi);
+			ssa_enter_eliminate_redundant_phis(succi->stack, ssa->stack, succi);
+		}
+	}
+
+	FOR_EACH_EXHANDLER(bb, itsucc) {
+
+		succi = bb_info(*itsucc);
+
+		succi->complete_predecessors += bb->exouts; /* XXX this might be 0 */
+
+		predecessor_count = basicblock_get_predecessor_count(*itsucc);
+
+		if (
+			succi->complete_predecessors == 
+			(predecessor_count - succi->backward_branches)
+		) {
+			ssa_enter_traverse(ssa, *itsucc);
+		}
+
+		if (
+			(succi->complete_predecessors == predecessor_count) &&
+			(succi->backward_branches > 0)
+		) {
+#if defined(SSA_VERIFY)
+			assert(succi->num_phi_elimination < 2);
+			succi->num_phi_elimination += 1;
+#endif
+			ssa_enter_eliminate_redundant_phis(succi->locals, ssa->locals, succi);
+			ssa_enter_eliminate_redundant_phis(succi->stack, ssa->stack, succi);
+		}
+
+	}
+
+}
+
+static void ssa_enter_process_pei(ssa_info *ssa, basicblock *bb, unsigned pei) {
+	basicblock_info_t *bbi = bb_info(bb);
+	basicblock_info_t *succi;
 	basicblock **itsucc;
 
 	FOR_EACH_EXHANDLER(bb, itsucc) {
-		merge(ssa, bbi->state_array, *itsucc, get_ex_predecessor_index(bb, pei, *itsucc));
+		succi = bb_info(*itsucc);
+
+		ssa_enter_merge(
+			bbi->locals,
+			succi->locals,
+			*itsucc,
+			basicblock_get_ex_predecessor_index(bb, pei, *itsucc),
+			ssa->locals
+		);
 	}
 }
 
-static void traverse_fun_impl(ssa_info *ssa, basicblock *bb) {
-	basicblock_info *bbi = bb_info(bb), *predi;
-	basicblock **itpred, *pred;
-	unsigned i;
-	bool need_phi;
-	instruction *iptr;
-	unsigned uses_count;
-	s4 *uses, *ituse;
-	unsigned pei = 0;
+static FIXME(bool) ssa_enter_eliminate_redundant_phis(traversal_t *t, vars_t *vs, basicblock_info_t *FIXME(bbi)) {
 
-	assert(! bbi->traversed);
-	bbi->traversed = true;
+	instruction *itph;
+	bool ret = false;
 
-	/*
-	if (bbi->state_array) {
-		return;
-	}
-	*/
+	FOR_EACH_PHI_FUNCTION(t->phis, itph) {
 
-	/* bb 0 */
+		phi_calculate_redundancy(itph);
 
-	if (bb->predecessorcount == 0) {
-		assert(! bbi->state_array);
-		bbi->state_array = DMNEW(instruction *, ssa->jd->localcount);
-		MZERO(bbi->state_array, instruction *, ssa->jd->localcount);
-		goto process_instructions;
-	}
+		/* If the phi function is redundant,
+		   make the variable it defines point to the value defined by the substituing
+		   instruction. */
 
-
-	/*
-	if ((bb->predecessorcount == 1) && (bb->predecessors[0]->successorcount == 1)) {
-		bbi->state_array = bb_info(bb->predecessors[0])->state_array;
-		assert(bbi->state_array);
-		goto process_instructions;
-	}
-	*/
-
-	/*
-	bbi->state_array = DMNEW(instruction *, ssa->jd->localcount);
-	MZERO(bbi->state_array, instruction *, ssa->jd->localcount);
-	*/
-
-	/*
-	if (bbi->backward_branches > 0) {
-		for (i = 0; i < ssa->jd->localcount; ++i) {
-			bbi->state_array[i] = create_phi(ssa, bb, i);
-		}
-	} else {
-		for (i = 0; i < ssa->jd->localcount; ++i) {
-			need_phi = false;
-			assert(bb_info(bb->predecessors[0])->state_array);
-
-			FOR_EACH_PREDECESSOR(bb, itpred) {
-				assert(bb_info(*itpred)->state_array);
-				if (bb_info(bb->predecessors[0])->state_array[i] != bb_info(*itpred)->state_array[i]) {
-					need_phi = true;
-					break;
-				}
-			}
-
-			if (need_phi) {
-				bbi->state_array[i] = create_phi(ssa, bb, i);
-			} else {
-				bbi->state_array[i] = bb_info(bb->predecessors[0])->state_array[i];
-			}
-
+		if (phi_is_redundant(itph)) {
+			vars_subst(vs, itph->dst.varindex, phi_get_subst(itph)->dst.varindex);
+			assert(bbi->backward_branches > 0);
+			ret = true;
 		}
 	}
-	*/
-
-process_instructions:
-
-	assert(bbi->state_array);
-
-	FOR_EACH_INSTRUCTION(bb, iptr) {
-
-		if (icmd_table[iptr->opc].flags & ICMDTABLE_PEI) {
-			handle_pei(ssa, bb, pei++);
-		}
-
-		get_uses(ssa, iptr, &uses, &uses_count);
-
-		for (ituse = uses; ituse != uses + uses_count; ++ituse) {
-			if (var_is_local(ssa->jd, *ituse)) {
-				rename_use(ssa, bb, iptr, ituse);
-			} else {
-				*ituse += 0xFFFF;
-			}
-		}
-
-		set_uses(ssa, iptr, uses, uses_count);
-
-		if (instruction_has_dst(iptr)) {
-			if (var_is_local(ssa->jd, iptr->dst.varindex)) {
-				rename_def(ssa, bb, iptr);
-			} else {
-				iptr->dst.varindex += 0xFFFF;
-			}
-		}
-	}
-}
-
-static void ssa_rename_others(ssa_info *ssa) {
-
-	basicblock *bb;
-	instruction *iptr;
-	s4 *itinout, *uses, *ituse;
-	unsigned uses_count;
-	unsigned off = ssa->locals_count - ssa->jd->localcount;
-
-	FOR_EACH_BASICBLOCK(ssa->jd, bb) {
-
-		if (! basicblock_reached(bb)) continue;
-
-		for (itinout = bb->invars; itinout != bb->invars + bb->indepth; ++itinout) {
-			*itinout += off;
-		}
-
-		for (itinout = bb->outvars; itinout != bb->outvars + bb->outdepth; ++itinout) {
-			*itinout += off;
-		}
-
-		FOR_EACH_INSTRUCTION(bb, iptr) {
-			if (instruction_has_dst(iptr)) {
-				if (iptr->dst.varindex >= 0xFFFF) {
-					iptr->dst.varindex += off;
-					iptr->dst.varindex -= 0xFFFF;
-				}
-			}
-			get_uses(ssa, iptr, &uses, &uses_count);
-			for (ituse = uses; ituse != uses + uses_count; ++ituse) {
-				if (*ituse >= 0xFFFF) {
-					*ituse += off;
-					*ituse -= 0xFFFF;
-				}
-			}
-			set_uses(ssa, iptr, uses, uses_count);
-		}
-	}
-}
-
-static void fill_in_phi_args(ssa_info *ssa) {
-	basicblock *bb;
-	basicblock_info *bbi;
-	phi_function *itphi;
-	unsigned j;
-	basicblock **itpred;
-	basicblock_info *predi;
-
-	FOR_EACH_BASICBLOCK(ssa->jd, bb) {
-		if (!(bb->flags >= BBREACHED)) continue;
-		bbi = bb_info(bb);
-		j = 0;
-		FOR_EACH_PREDECESSOR(bb, itpred) {
-			predi = bb_info(*itpred);
-			for (itphi = bbi->phi_functions; itphi != bbi->phi_functions + bbi->phi_count; ++itphi) {
-				if (predi->state_array[itphi->local]) {
-					itphi->args[j] = predi->state_array[itphi->local]->dst.varindex;
-				} else {
-					itphi->args[j] = itphi->local;
-				}
-			}
-			++j;
-		}
-	}
-}
-
-static void ssa_export(ssa_info *ssa) {
-	unsigned i, j;
-	jitdata *jd = ssa->jd;
-	varinfo *vars, *it;
-	s4 vartop, varindex;
-
-	vartop = ssa->locals_count + jd->vartop - jd->localcount;
-	vars = DMNEW(varinfo, vartop);
-
-	MCOPY(vars, ssa->locals, varinfo, ssa->locals_count);
-	MCOPY(vars + ssa->locals_count, jd->var + jd->localcount, varinfo, jd->vartop - jd->localcount);
-
-	jd->var = vars;
-	jd->vartop = jd->varcount = vartop;
-
-	jd->local_map = DMREALLOC(jd->local_map, s4, 5 * jd->maxlocals, 5 * (jd->maxlocals + ssa->locals_count - jd->localcount));
-
-	for (i = 0; i < ssa->locals_count - jd->localcount; ++i) {
-		for (j = 0; j < 5; ++j) {
-			varindex = jd->localcount + i;
-			if (jd->var[varindex].type != j) {
-				varindex = UNUSED;
-			}
-			jd->local_map[((jd->maxlocals + i) * 5) + j] = varindex;
-		}
-	}
-
-	jd->maxlocals += (ssa->locals_count - jd->localcount);
-	jd->localcount = ssa->locals_count;
-}
-
-static basicblock *create_block_intern(ssa_info *ssa, basicblock *from, basicblock *to, unsigned j) {
-	basicblock *mid;
-	basicblock_info *toi;
-	instruction *iptr;
-	phi_function *itph;
-	
-	mid = DNEW(basicblock);
-	MZERO(mid, basicblock, 1);
-
-	toi = bb_info(to);
-	assert(toi);
-
-	mid->nr = ssa->jd->basicblockcount;
-	ssa->jd->basicblockcount += 1;
-	mid->mpc = -1;
-	mid->type = 666;
-	mid->icount = toi->phi_count + 1;
-	iptr = mid->iinstr = DMNEW(instruction, mid->icount);
-	MZERO(mid->iinstr, instruction, mid->icount);
-
-	for (itph = toi->phi_functions; itph != toi->phi_functions + toi->phi_count; ++itph) {
-		iptr->opc = ICMD_COPY;
-		iptr->dst.varindex = itph->dst;
-		iptr->s1.varindex =  itph->args[j];
-		assert(j < itph->instr.s1.argcount);
-		assert(itph->dst < ssa->locals_count);
-		assert(itph->args[j] < ssa->locals_count);
-		iptr++;
-	}
-
-	iptr->opc = ICMD_GOTO;
-	iptr->dst.block = to;
-
-	return mid;
-}
-
-static basicblock *create_block(ssa_info *ssa, basicblock *from, basicblock *to) {
-	basicblock *ret;
-	ret = create_block_intern(ssa, from, to, get_predecessor_index(from, to));
-
-	while (from->next) {
-		from = from->next;
-	}
-
-	from->next = ret;
 
 	return ret;
 }
 
-static void crate_fallthrough(ssa_info *ssa, basicblock *bptr) {
-	unsigned j;
-	basicblock_info *toi;
-	instruction *iptr;
-	phi_function *itph;
+#if 0
+static void ssa_enter_post_eliminate_redundand_phi(
+	ssa_info_t *ssa,
+	instruction *phi,
+	state_array *sa,
+	basicblock *bptr
+) {
+	phi_calculate_redundancy(phi);
+	phi_set_flag(PHI_FLAG_REDUNDANCY_CHECKED);
+	
+	/* if redundancy changed and phi function escapes block */
 
-	if (bptr->next == NULL) return;
+	/* for each successor */
+}
 
-	j = get_predecessor_index(bptr, bptr->next);
+static void ssa_enter_post_eliminate_redundant_phis(ssa_info_t *ssa) {
+	basicblock *bptr;
+	basicblock_info_t *bbi;
+	instruction *itph;
 
-	toi = bb_info(bptr->next);
-	assert(toi);
+	FOR_EACH_BASICBLOCK(ssa->jd, bptr) {
+		bbi = bb_info(bptr);
 
-	bptr->iinstr = DMREALLOC(bptr->iinstr, instruction, bptr->icount, bptr->icount + toi->phi_count);
-	iptr = bptr->iinstr + bptr->icount;
-	bptr->icount += toi->phi_count;
+		if (bbi->backward_branches > 0) {
+			/* Redundant phi functions have the left hand side as operand.
+			   This can happen by definition only in loop headers. */
 
-	for (itph = toi->phi_functions; itph != toi->phi_functions + toi->phi_count; ++itph) {
-		iptr->opc = ICMD_COPY;
-		iptr->dst.varindex = itph->dst;
-		iptr->s1.varindex =  itph->args[j];
-		assert(itph->dst < ssa->locals_count);
-		assert(itph->args[j] < ssa->locals_count);
-		iptr++;
+			FOR_EACH_PHI_FUNCTION(bbi->locals, itph) {
+				if (! phi_has_flag(PHI_FLAG_REDUNDANCY_CHECKED)) {
+					/* Calculate redundancy? */
+					/* Changed? */
+					/* If yes recurse? */
+				}
+			}
+
+			FOR_EACH_PHI_FUNCTION(bbi->stack, itph) {
+			}
+		}
 	}
+}
+#endif
+
+static void ssa_enter_init_locals(state_array_t *sa) {
+	unsigned i;
+	instruction *iptr;
+
+	for (i = 0; i < sa->count; ++i) {
+		iptr = DNEW(instruction);
+		iptr->opc = ICMD_NOP;
+		iptr->dst.varindex = i;
+		state_array_set(sa, i, iptr);
+	}
+}
+
+static void ssa_enter_process_block(ssa_info *ssa, basicblock *bb) {
+	basicblock_info_t *bbi = bb_info(bb);
+	instruction *iptr;
+	unsigned pei = 0;
+	s4 *ituse;
+	s4 *uses;
+	unsigned uses_count;
+	s4 old;
+
+	/* Every basic block can be traversed only once. */
+
+	assert(! bbi->traversed);
+	bbi->traversed = true;
+
+	/* The root basicblock needs special treatment. */
+
+	if (bb->predecessorcount == 0 && bb->type != BBTYPE_EXH) {
+		state_array_assert_no_items(bbi->locals->state_array);
+		state_array_allocate_items(bbi->locals->state_array);
+		ssa_enter_init_locals(bbi->locals->state_array);
+
+		state_array_assert_no_items(bbi->stack->state_array);
+		state_array_allocate_items(bbi->stack->state_array);
+	}
+
+	/* Exception handlers have a clean stack. */
+
+	if (bb->type == BBTYPE_EXH) {
+		state_array_assert_no_items(bbi->stack->state_array);
+		state_array_allocate_items(bbi->stack->state_array);
+	}
+
+	/* Some in/out vars get marked as INOUT in simplereg,
+	   and are not marked at this point. 
+	   Mark them manually. */
+
+	for (ituse = bb->invars; ituse != bb->invars + bb->indepth; ++ituse) {
+		ssa->jd->var[*ituse].flags |= INOUT;
+		ssa->jd->var[*ituse].flags &= ~PREALLOC;
+	}
+
+	for (ituse = bb->outvars; ituse != bb->outvars + bb->outdepth; ++ituse) {
+		ssa->jd->var[*ituse].flags |= INOUT;
+		ssa->jd->var[*ituse].flags &= ~PREALLOC;
+	}
+
+	/* Process instructions */
+
+	state_array_assert_items(bbi->locals->state_array);
+	
+	FOR_EACH_INSTRUCTION(bb, iptr) {
+
+#if defined(ELIMINATE_NOP_LOAD_STORE)
+
+		/* Kill NOP instructions of the form:
+		   LOAD foo => foo
+		   STORE foo => foo
+		   As they create a lot of unnecessary definitions.
+		   For performance, definitely eliminate them. However, keeping them is a
+		   good stress test.
+		*/
+
+		if (
+			(icmd_table[iptr->opc].dataflow == DF_LOAD) ||
+			(icmd_table[iptr->opc].dataflow == DF_STORE)
+		) {
+			if (iptr->dst.varindex == iptr->s1.varindex) {
+				iptr->opc = ICMD_NOP;
+				continue;
+			}
+		}
+#endif
+
+		if (icmd_table[iptr->opc].flags & ICMDTABLE_PEI) {
+			ssa_enter_process_pei(ssa, bb, pei++);
+		}
+
+		instruction_get_uses(iptr, ssa->s_buf, &uses, &uses_count);
+
+		for (ituse = uses; ituse != uses + uses_count; ++ituse) {
+			if (var_is_local(ssa->jd, *ituse)) {
+				traversal_rename_use(
+					bbi->locals, 
+					ituse
+				);
+			} else if (var_is_inout(ssa->jd, *ituse)) {
+				traversal_rename_use(
+					bbi->stack,
+					ituse
+				);
+			} else {
+				*ituse = others_mapping_get(ssa, *ituse);
+			}
+		}
+
+		instruction_set_uses(iptr, ssa->s_buf, uses, uses_count);
+
+		if (instruction_has_dst(iptr)) {
+			if (var_is_local(ssa->jd, iptr->dst.varindex)) {
+				traversal_rename_def(
+					bbi->locals, 
+					ssa->locals, 
+					iptr
+				);
+			} else if (var_is_inout(ssa->jd, iptr->dst.varindex)) {
+				traversal_rename_def(
+					bbi->stack,
+					ssa->stack,
+					iptr
+				);
+			} else {
+				old = iptr->dst.varindex;
+				iptr->dst.varindex = vars_add_item(
+					ssa->others,
+					ssa->jd->var + iptr->dst.varindex
+				);
+				others_mapping_set(ssa, old, iptr->dst.varindex);
+			}
+		}
+	}
+}
+
+/*
+
+ [locals.........................][interaces][others]
+ [original locals][version > 1   ]
+ <--------------- new locals --------------->
+*/
+
+static void ssa_enter_export_variables(ssa_info *ssa) {
+	s4 vartop;
+	varinfo *vars;
+	s4 *it;
+	unsigned i, j;
+	jitdata *jd = ssa->jd;
+
+	vartop = ssa->locals->count + ssa->stack->count + ssa->others->count;
+	vars = DMNEW(varinfo, vartop);
+
+	vars_copy_to_final(ssa->locals, vars);
+	vars_copy_to_final(ssa->stack, vars + ssa->locals->count);
+	vars_copy_to_final(ssa->others, vars + ssa->locals->count + ssa->stack->count);
+
+	jd->var = vars;
+	jd->vartop = jd->varcount = vartop;
+
+	/* Grow local map to accomodate all new locals and iovars.
+	   But keep the local map for version 1 of locals, that contains the holes. */
+	
+	jd->local_map = DMREALLOC(
+		jd->local_map, 
+		s4, 
+		5 * jd->maxlocals, 
+		5 * (jd->maxlocals + ssa->locals->count + ssa->stack->count - jd->localcount)
+	);
+
+	it = jd->local_map + (jd->maxlocals * 5); /* start adding entries here */
+
+	/* Add version > 1 of all locals */
+
+	for (i = jd->localcount; i < ssa->locals->count; ++i) {
+		for (j = 0; j < 5; ++j) {
+			if (jd->var[i].type != j) {
+				*it = UNUSED;
+			} else {
+				*it = i;
+			}
+			it += 1;
+		}
+	}
+	
+	/* Add all io vars. */
+
+	for (i = ssa->locals->count; i < ssa->locals->count + ssa->stack->count; ++i) {
+		for (j = 0; j < 5; ++j) {
+			if (jd->var[i].type != j) {
+				*it = UNUSED;
+			} else {
+				*it = i;
+			}
+			it += 1;
+		}
+	}
+
+	/* Add locals. */
+
+	jd->maxlocals += (ssa->locals->count + ssa->stack->count - jd->localcount);
+	jd->localcount = ssa->locals->count + ssa->stack->count;
+
+	/* Eliminate interfaces. */
+
+	jd->maxinterfaces = 0;
 
 }
 
-static void ssa_create_phi_moves(ssa_info *ssa) {
+/* TODO rename */
+static inline void ssa_enter_eliminate_category(ssa_info_t *ssa, s4 *pvar) {
+	switch (vars_get_category(*pvar)) {
+		case VARS_CATEGORY_LOCAL:
+			*pvar = vars_get_index(vars_resolve_subst(ssa->locals, *pvar));
+			break;
+		case VARS_CATEGORY_STACK:
+			*pvar = vars_get_index(vars_resolve_subst(ssa->stack, *pvar)) + ssa->locals->count;
+			break;
+		case VARS_CATEGORY_OTHERS:
+			*pvar = vars_get_index(*pvar) + ssa->locals->count + ssa->stack->count;
+			break;
+	}
+}
+
+/* TODO rename */
+void ssa_enter_eliminate_categories(ssa_info_t *ssa) {
+	basicblock *bb;
+	instruction *iptr;
+	s4 *ituse, *uses;
+	unsigned uses_count;
+	basicblock_info_t *bbi;
+	instruction *itph;
+
+	FOR_EACH_BASICBLOCK(ssa->jd, bb) {
+
+		bbi = bb_info(bb);
+
+		bb->indepth = 0;
+		bb->outdepth = 0;
+
+		if (bbi != NULL) {
+			FOR_EACH_PHI_FUNCTION(bbi->locals->phis, itph) {
+				ssa_enter_eliminate_category(ssa, &(itph->dst.varindex));
+			}
+
+			FOR_EACH_PHI_FUNCTION(bbi->stack->phis, itph) {
+				ssa_enter_eliminate_category(ssa, &(itph->dst.varindex));
+			}
+		}
+
+		FOR_EACH_INSTRUCTION(bb, iptr) {
+			if (instruction_has_dst(iptr)) {
+				ssa_enter_eliminate_category(ssa, &(iptr->dst.varindex));
+			}
+			instruction_get_uses(iptr, ssa->s_buf, &uses, &uses_count);
+			for (ituse = uses; ituse != uses + uses_count; ++ituse) {
+				ssa_enter_eliminate_category(ssa, ituse);
+			}
+			instruction_set_uses(iptr, ssa->s_buf, uses, uses_count);
+		}
+	}
+}
+
+static void ssa_enter_create_phi_graph(ssa_info *ssa) {
+	basicblock *bptr;
+	basicblock_info_t *bbi;
+	instruction *itph;
+	instruction **ituse;
+	unsigned i;
+	char path[PATH_MAX], *ppath;
+	FILE *f;
+
+	snprintf(path, PATH_MAX, "|tmp|graphs|%s.%s.dot", ssa->jd->m->clazz->name->text, ssa->jd->m->name->text);
+	for (ppath = path; *ppath; ++ppath) {
+		if (*ppath == '|') *ppath = '/';
+		else if (*ppath == '/') *ppath = '.';
+	}
+
+	f = fopen(path, "w");
+
+	if (f == NULL) return;
+
+	fprintf(f, "digraph G {\n");
+
+	FOR_EACH_BASICBLOCK(ssa->jd, bptr) {
+		bbi = bb_info(bptr);
+		if (bbi != NULL) {
+			FOR_EACH_PHI_FUNCTION(bbi->locals->phis, itph) {
+				i = 0;
+				FOR_EACH_PHI_USE(itph, ituse) {
+					if ((*ituse)->opc == ICMD_PHI) {
+						fprintf(f, "%d -> %d;\n", (*ituse)->dst.varindex, itph->dst.varindex);
+					}
+					i += 1;
+				}
+			}
+		}
+	}
+
+	fprintf(f, "};\n");
+
+	fclose(f);
+}
+
+static basicblock *ssa_leave_create_transition_block_intern(
+	ssa_info *ssa,
+	basicblock *from,
+	basicblock *to,
+	unsigned predecessor_index,
+	unsigned reserved_insns
+) {
+	basicblock *bb;
+	instruction *iptr;
+	instruction *itph;
+	basicblock_info_t *toi;
+
+	toi = bb_info(to);
+
+	/* Create basicblock and instruction array. */
+
+	bb = DNEW(basicblock);
+	MZERO(bb, basicblock, 1);
+
+	bb->nr = ssa->jd->basicblockcount;
+	ssa->jd->basicblockcount += 1;
+	bb->mpc = -1;
+	bb->type = BBTYPE_STD;
+	bb->icount = 
+		reserved_insns + 
+		toi->locals->phis->count + 
+		toi->stack->phis->count + 
+		1;
+	bb->iinstr = DMNEW(instruction, bb->icount);
+	MZERO(bb->iinstr, instruction, bb->icount);
+
+	/* Populate instruction array. */
+
+	iptr = bb->iinstr + reserved_insns;
+	
+	/* Add phi moves. */
+
+	FOR_EACH_PHI_FUNCTION(toi->locals->phis, itph) {
+		phi_create_copy(itph, predecessor_index, iptr++);
+	}
+
+	FOR_EACH_PHI_FUNCTION(toi->stack->phis, itph) {
+		phi_create_copy(itph, predecessor_index, iptr++);
+	}
+
+	/* Add goto to real block. */
+
+	goto_init(iptr, to);
+
+	/* Add basicblock to chain of newly created basicblocks. */
+
+	basicblock_chain_add(ssa->new_blocks, bb);
+
+	return bb;
+}
+
+static inline basicblock *ssa_leave_create_transition_block(
+	ssa_info *ssa,
+	basicblock *from,
+	basicblock *to
+) {
+	return ssa_leave_create_transition_block_intern(
+		ssa, 
+		from, 
+		to,
+		basicblock_get_predecessor_index(from, to),
+		0
+	);
+}
+
+static void ssa_leave_create_fallthrough(ssa_info *ssa, basicblock *bptr) {
+	unsigned predecessor_index;
+	basicblock_info_t *toi;
+	instruction *iptr;
+	instruction *itph;
+	unsigned icount;
+
+	if (bptr->next == NULL) {
+		/* No fallthrough. */
+		return;
+	}
+
+	predecessor_index = basicblock_get_predecessor_index(bptr, bptr->next);
+	toi = bb_info(bptr->next);
+
+	assert(toi);
+
+	/* Resize instruction array to accomodate all phi moves. */
+
+	icount = bptr->icount + toi->locals->phis->count + toi->stack->phis->count;
+
+	bptr->iinstr = DMREALLOC(
+		bptr->iinstr, 
+		instruction, 
+		bptr->icount, 
+		icount
+	);
+
+	iptr = bptr->iinstr + bptr->icount;
+	bptr->icount = icount;
+
+	/* Create phi moves. */
+
+	FOR_EACH_PHI_FUNCTION(toi->locals->phis, itph) {
+		phi_create_copy(itph, predecessor_index, iptr++);
+	}
+
+	FOR_EACH_PHI_FUNCTION(toi->stack->phis, itph) {
+		phi_create_copy(itph, predecessor_index, iptr++);
+	}
+}
+
+static void ssa_leave_create_phi_moves(ssa_info *ssa) {
 	basicblock *bptr;
 	instruction *iptr;
+	basicblock *last = NULL;
 
 	s4 i, l;
 	branch_target_t *table;
 	lookup_target_t *lookup;
-	bool gt;
+	bool has_fallthrough;
 
-	for (bptr = ssa->jd->basicblocks; bptr; bptr = bptr->next) {
-		if (bptr->type == 666) {
-			bptr->type = BBTYPE_STD;
+	FOR_EACH_BASICBLOCK(ssa->jd, bptr) {
+
+		if (bptr->next == NULL) {
+			last = bptr;
+		}
+
+		if (bptr->vp == NULL) {
 			continue;
 		}
-		if (! bptr->vp) continue;
-		if (! (bptr->flags >= BBREACHED)) continue;
-		gt = false;
+
+		if (! basicblock_reached(bptr)) {
+			continue;
+		}
+
+		has_fallthrough = true;
+
 		for (iptr = bptr->iinstr; iptr != bptr->iinstr + bptr->icount; ++iptr) {
 			switch (icmd_table[iptr->opc].controlflow) {
 				case CF_IF:
 				case CF_RET:
 				case CF_GOTO:
-					iptr->dst.block = create_block(ssa, bptr, iptr->dst.block);	
+					iptr->dst.block = 
+						ssa_leave_create_transition_block(ssa, bptr, iptr->dst.block);	
 					break;
 				case CF_TABLE:
 					table = iptr->dst.table;
@@ -762,7 +1753,8 @@ static void ssa_create_phi_moves(ssa_info *ssa) {
 					i = i - l + 1;
 					i += 1; /* default */
 					while (--i >= 0) {
-						table->block = create_block(ssa, bptr, table->block);
+						table->block = 
+							ssa_leave_create_transition_block(ssa, bptr, table->block);
 						++table;
 					}
 					break;
@@ -770,53 +1762,85 @@ static void ssa_create_phi_moves(ssa_info *ssa) {
 					lookup = iptr->dst.lookup;
 					i = iptr->sx.s23.s2.lookupcount;
 					while (--i >= 0) {
-						lookup->target.block = create_block(ssa, bptr, lookup->target.block);
+						lookup->target.block = 
+							ssa_leave_create_transition_block(ssa, bptr, lookup->target.block);
 						lookup++;
 					}
-					iptr->sx.s23.s3.lookupdefault.block = create_block(ssa, bptr, iptr->sx.s23.s3.lookupdefault.block);
+					iptr->sx.s23.s3.lookupdefault.block = 
+						ssa_leave_create_transition_block(ssa, bptr, iptr->sx.s23.s3.lookupdefault.block);
 					break;
 				case CF_JSR:
-					iptr->sx.s23.s3.jsrtarget.block = create_block(ssa, bptr, iptr->sx.s23.s3.jsrtarget.block);
+					iptr->sx.s23.s3.jsrtarget.block = 
+						ssa_leave_create_transition_block(ssa, bptr, iptr->sx.s23.s3.jsrtarget.block);
 					break;
 			}
-			if ((iptr->opc == ICMD_GOTO) || (iptr->opc == ICMD_JSR) || (iptr->opc == ICMD_RET) || icmd_table[iptr->opc].controlflow == CF_END || (iptr->opc == ICMD_TABLESWITCH) || (iptr->opc == ICMD_LOOKUPSWITCH))
-				gt = true;
-			else if (iptr->opc != ICMD_NOP)
-				gt = false;
+
+			if (
+				(iptr->opc == ICMD_GOTO) || 
+				(iptr->opc == ICMD_JSR) || 
+				(iptr->opc == ICMD_RET) || 
+				icmd_table[iptr->opc].controlflow == CF_END || 
+				(iptr->opc == ICMD_TABLESWITCH) || 
+				(iptr->opc == ICMD_LOOKUPSWITCH)
+			) {
+				has_fallthrough = false;
+			} else if (iptr->opc != ICMD_NOP) {
+				has_fallthrough = true;
+			}
+
 		}
-		if (! bptr->next) continue;
-		if (! (bptr->next->flags >= BBREACHED)) continue;
-		if (bptr->next->type == 666) continue;
-		if (!gt) crate_fallthrough(ssa, bptr);
+
+		if (bptr->next == NULL) {
+			continue;
+		}
+
+		if (! basicblock_reached(bptr->next)) {
+			continue;
+		}
+
+		if (has_fallthrough) {
+			ssa_leave_create_fallthrough(ssa, bptr);
+		}
 	}
+
+	/* Add chain of new basic blocks */
+
+	if (last != NULL && ! basicblock_chain_empty(ssa->new_blocks)) {
+		last->next = basicblock_chain_front(ssa->new_blocks);
+	}
+
 }
 
-static basicblock *split_basicblock_at(ssa_info *ssa, basicblock *bptr, instruction *iptr) {
+static basicblock *ssa_leave_split_basicblock_at(ssa_info *ssa, basicblock *bptr, instruction *iptr) {
 
+	basicblock_info_t *bbi = bb_info(bptr);
+	unsigned iidx = iptr - bptr->iinstr;
 	basicblock *newblock;
 	basicblock *tosplit;
-	basicblock **pnext;
-	unsigned icount;
-	basicblock *it;
+	unsigned ileft;
 	unsigned pos;
 
-	unsigned origidx = iptr - bptr->iinstr;
+	assert(iidx < bptr->icount);
+	assert(bbi);
 
-	printf(" *** split basicblock bb%d at %s/%d/%d\n", bptr->nr, instruction_name(iptr), instruction_line(iptr), origidx);
-	assert(origidx < bptr->icount);
+	/* If there are no subbasicblocks yet, we initialize the first one to be a 
+	   copy of the original basicblock. */
 
-
-	if (! bptr->subbasicblocks) {
-		bptr->subbasicblocks = DNEW(basicblock);
-		ass(bptr->subbasicblocks, bptr);
-		bptr->subbasicblocks->subbasicblocks = NULL;
-		bptr->subbasicblocks->next = NULL;
+	if (basicblock_chain_empty(bbi->subbasicblocks)) {
+		newblock = DNEW(basicblock);
+		*newblock = *bptr;
+		newblock->next = NULL;
+		newblock->vp = NULL;
+		basicblock_chain_add(bbi->subbasicblocks, newblock);
 	}
 
-	tosplit = bptr->subbasicblocks;
+	/* Find the subbasicblock that will be split: 
+	   the one that cointains iptr. */
+
+	tosplit = basicblock_chain_front(bbi->subbasicblocks);
 	pos = 0;
 
-	while (tosplit->next && (origidx >= (pos + tosplit->icount))) {
+	while (tosplit->next && (iidx >= (pos + tosplit->icount))) {
 		assert(bptr->nr == tosplit->nr);
 		pos += tosplit->icount;
 		tosplit = tosplit->next;
@@ -824,211 +1848,247 @@ static basicblock *split_basicblock_at(ssa_info *ssa, basicblock *bptr, instruct
 
 	assert(bptr->nr == tosplit->nr);
 	
-	icount = iptr - tosplit->iinstr + 1;
-	assert(icount <= tosplit->icount);
+	/* Calculate number of instructions left in block to split. */
 
-	if (icount < tosplit->icount) {
+	ileft = iptr - tosplit->iinstr + 1;
+	assert(ileft <= tosplit->icount);
+
+	/* If there are any instructions left in the block to split, split */
+
+	if (ileft < tosplit->icount) {
 		newblock = DNEW(basicblock);
-		ass(newblock, tosplit);
+		*newblock = *tosplit;
 	
 		tosplit->next = newblock;
-		tosplit->icount = icount;
+		tosplit->icount = ileft;
 
-		newblock->icount -= icount;
-		newblock->iinstr += icount;
-		newblock->next = NULL;
+		newblock->icount -= ileft;
+		newblock->iinstr += ileft;
 
 		assert(tosplit->nr == bptr->nr);
 		assert(newblock->nr == bptr->nr);
 		assert(newblock->next == NULL);
-	} else {
-		printf("xx split\n");
+
+		if (newblock->next == NULL) {
+			bbi->subbasicblocks->last = newblock;
+		}
 	}
 
-	/* To not break references to block bptr, we will replace 
-	   the block by the first fragment later. */
+	/* We won't break pointers/references to bptr.
+	   So return bptr instread of the first fragment.
+	   Later, we will put the first fragment into the memory used by bptr.
+	*/
 
-	if (tosplit == bptr->subbasicblocks) tosplit = bptr;
+	if (tosplit == basicblock_chain_front(bbi->subbasicblocks)) {
+		tosplit = bptr;
+	}
 
 	return tosplit;
 }
 
-static exception_entry *create_exception_handler(ssa_info *ssa, basicblock *from, unsigned pei, basicblock *to, classref_or_classinfo catchtype) {
-	basicblock *it;
-	exception_entry *ee = DNEW(exception_entry);
-	basicblock *exh = create_block_intern(ssa, from, to, get_ex_predecessor_index(from, pei, to));
-	exh->type = BBTYPE_EXH;
-	to->type = BBTYPE_STD;
+static basicblock *ssa_leave_create_transition_exception_handler(
+	ssa_info *ssa,
+	basicblock *from,
+	unsigned pei,
+	basicblock *to
+) {
+	basicblock *exh;
 
-	exh->indepth = exh->outdepth = 1;
-	exh->invars = exh->outvars = DNEW(s4);
-	/* assigned in caller */
+	/* From is a try block, to is an exception handler prologue. */
+
+	/* Remove old prologue. */
+
+	to->flags = BBDELETED;
+
+	/* Create new exception handler. */
+
+	exh = ssa_leave_create_transition_block_intern(
+		ssa,
+		from,
+		to,
+		basicblock_get_ex_predecessor_index(from, pei, to),
+		1
+	);
+	exh->type = BBTYPE_EXH;
+
+	/* Copy goto to real exception handler at the end of the exception handler 
+	   prologue. */
+
+	assert(to->iinstr[to->icount - 1].opc == ICMD_GOTO);
+	assert(exh->iinstr[exh->icount - 1].opc == ICMD_GOTO);
+	exh->iinstr[exh->icount - 1] = to->iinstr[to->icount - 1];
+
+	/* Copy getexception from the old prologue. */
+
+	assert(to->iinstr[0].opc == ICMD_GETEXCEPTION);
+	exh->iinstr[0] = to->iinstr[0];
+
+	return exh;
+}
+
+static exception_entry *ssa_leave_create_transition_exception_entry(
+	ssa_info_t *ssa,
+	basicblock *from,
+	basicblock *handler,
+	classref_or_classinfo catchtype
+) {
+
+	exception_entry *ee = DNEW(exception_entry);
+	basicblock_info_t *fromi = bb_info(from);
 
 	ee->start = from;
-	/* XXX evil hack: if from is first fragment of BB, then from->next is not the next fragment */
-	ee->end = from->subbasicblocks ? from->subbasicblocks->next : from->next;
-	ee->handler = exh;
+
+	/* If the try block has subbasicblocks, the next block is the next fragment,
+	   not the successor block. */
+
+	if (fromi != NULL) {
+		ee->end = basicblock_chain_front(fromi->subbasicblocks)->next;
+	} else {
+		ee->end = from->next;
+	}
+	ee->handler = handler;
 	ee->catchtype = catchtype;
 	ee->next = NULL;
 	ee->down = NULL;
 
-	for (it = ssa->jd->basicblocks; it->next; it = it->next);
-
-	it->next = exh;
-
 	return ee;
 }
 
-static void ssa_create_ex_phi_moves(ssa_info *ssa) {
+static void ssa_leave_create_exceptional_phi_moves(ssa_info *ssa) {
 	basicblock *bptr;
 	instruction *iptr;
-	basicblock_info *bbi;
 	exception_entry *ite;
-	exception_entry *firstee, *lastee, *ee;
-	basicblock *ittry, *try;
+	exception_entry_chain_t chain;
 	classref_or_classinfo catchtype;
+	basicblock *ittry;
 	unsigned pei;
-	unsigned exhandler_count = 0;
-	varinfo *v;
+	basicblock *try;
+	basicblock *exh;
+	exception_entry *ee;
+	basicblock *last = NULL;
 
-	FOR_EACH_BASICBLOCK(ssa->jd, bptr) {
-		if (! bptr->vp) continue;
-		if (! (bptr->flags >= BBREACHED)) continue;
-		if (bptr->expredecessorcount == 0) continue;
-		bbi = bb_info(bptr);
-		if (bbi->phi_count == 0) continue;
+	if (! basicblock_chain_empty(ssa->new_blocks)) {
+		last = basicblock_chain_back(ssa->new_blocks);
+	}
 
-		for (ite = ssa->jd->exceptiontable; ite; ite = ite->down) {
-			/* Traverse all exhandlers */
-			if (bptr == ite->handler) {
-				printf(" *** mess with handler bb%d\n", bptr->nr);
-				catchtype = ite->catchtype;
-				firstee = lastee = NULL;
-				/* If bptr is handler, remove exhandler */
-				/* Traverse all guarded blocks */
-				for (ittry = ite->start; ittry != ite->end; ittry = ittry->next) {
-					pei = 0;
-					FOR_EACH_INSTRUCTION(ittry, iptr) {
-						if (icmd_table[iptr->opc].flags & ICMDTABLE_PEI) {
-							/* try is basicblock fragment till (including) the pei */
-							try = split_basicblock_at(ssa, ittry, iptr);
-							/* ee is handler for try */
-							ee = create_exception_handler(ssa, try, pei, bptr, catchtype);
-							ee->handler->invars[0] = ssa->jd->vartop + exhandler_count;
-							exhandler_count += 1;
-							ssa->jd->exceptiontablelength += 1;
-							if (firstee == NULL) {
-								firstee = lastee = ee;
-							} else {
-								lastee->next = ee;
-								lastee->down = ee;
-								lastee = ee;
-							}
-							pei += 1;
-						}
+	basicblock_chain_clear(ssa->new_blocks);
+
+	for (ite = ssa->jd->exceptiontable; ite; ite = ite->down) {
+		bptr = ite->handler;
+		catchtype = ite->catchtype;
+		exception_entry_chain_init(&chain);
+		for (ittry = ite->start; ittry != ite->end; ittry = ittry->next) {
+			if (basicblock_reached(ittry)) {
+				/* Dead code does not have a basicblock_info_t associated. */
+				pei = 0;
+				FOR_EACH_INSTRUCTION(ittry, iptr) {
+					if (icmd_table[iptr->opc].flags & ICMDTABLE_PEI) {
+						/* try is basicblock fragment till (including) the pei */
+						try = ssa_leave_split_basicblock_at(ssa, ittry, iptr);
+						/* ee is handler for try */
+						exh = ssa_leave_create_transition_exception_handler(
+							ssa, try, pei, bptr
+						);
+						ee = ssa_leave_create_transition_exception_entry(
+							ssa, try, exh, catchtype
+						);
+						exception_entry_chain_add(&chain, ee);
+						pei += 1;
+						ssa->jd->exceptiontablelength += 1;
 					}
-				}
-				/* XXX 
-				   <------------------->
-				   <---><--><--->missing */
-				if (firstee) {
-					lastee->next = ite->next;
-					lastee->down = ite->down;
-					*ite = *firstee;
-					ite = lastee;
 				}
 			}
 		}
+		if (! exception_entry_chain_empty(&chain)) {
+			exception_entry_chain_back(&chain)->down = ite->down;
+			exception_entry_chain_back(&chain)->next = ite->next;
+			/* Replace original exception entry by first new one. */
+			*ite = *exception_entry_chain_front(&chain);
+			/* Set current iteration position to last newly created one. */
+			ite = exception_entry_chain_back(&chain);
+		}
 	}
-	
-	/* Allocate interface vars */
 
-	ssa->jd->var = DMREALLOC(ssa->jd->var, varinfo, ssa->jd->vartop, ssa->jd->vartop + exhandler_count);
-	for (v = ssa->jd->var + ssa->jd->vartop; v != ssa->jd->var + ssa->jd->vartop + exhandler_count; ++v) {
-		v->type = TYPE_ADR;
-		v->flags = INOUT;
+	if (last == NULL) {
+		for (last = ssa->jd->basicblocks; last->next != NULL; last = last->next);
 	}
-	ssa->jd->vartop += exhandler_count;
-	ssa->jd->varcount += exhandler_count;
+
+	if (last != NULL && ! basicblock_chain_empty(ssa->new_blocks)) {
+		last->next = basicblock_chain_front(ssa->new_blocks);
+	}
 }
 
 void yssa(jitdata *jd) {
 	basicblock *it;
-	basicblock_info *iti;
+	basicblock_info_t *iti;
 	ssa_info *ssa;
 
-	if (jd->localcount == 0) return;
-
-	if (test_do_verbose(jd)) do_verbose = 1;
-
+#ifdef SSA_VERBOSE
 	printf("=============== [ before %s ] =========================\n", jd->m->name->text);
 	show_method(jd, 3);
 	printf("=============== [ /before ] =========================\n");
+#endif
 
 	ssa = DNEW(ssa_info);
-	ssa->jd = jd;
-	ssa->max_locals = sizeof(ssa->locals) / sizeof(ssa->locals[0]);
-	MCOPY(ssa->locals, jd->var, varinfo, jd->localcount);
-	ssa->locals_count = jd->localcount;
+
+	ssa_info_init(ssa, jd);
 
 	FOR_EACH_BASICBLOCK(jd, it) {
 		if (basicblock_reached(it)) {
-			iti = DNEW(basicblock_info);
-			MZERO(iti, basicblock_info, 1);
-			if (jd->localcount > 0) {
-				iti->phi_functions = DMNEW(phi_function, jd->localcount);
-				iti->phi_max = jd->localcount;
-			}
+			iti = DNEW(basicblock_info_t);
+			basicblock_info_init(iti, it, jd);
 			it->vp = iti;
 		} else {
 			it->vp = NULL;
 		}
 	}
 
-	mark_loops(jd->basicblocks);
+	ssa_enter_mark_loops(jd->basicblocks);
 
-	traverse(ssa, jd->basicblocks, traverse_fun_impl);
+	ssa_enter_traverse(ssa, jd->basicblocks);
 
-	ssa_rename_others(ssa);
+	ssa_enter_eliminate_categories(ssa);
 
-	/*fill_in_phi_args(ssa);*/
+	ssa_enter_export_variables(ssa);
 
-	ssa_export(ssa);
+	ssa_enter_verify_no_redundant_phis(ssa);
 
-	ssa_create_phi_moves(ssa);
-	ssa_create_ex_phi_moves(ssa);
+	/*ssa_enter_create_phi_graph(ssa);*/
 
+	ssa_leave_create_phi_moves(ssa);
+
+	ssa_leave_create_exceptional_phi_moves(ssa);
+
+#ifdef SSA_VERBOSE
 	printf("=============== [ after ] =========================\n");
 	show_method(jd, 3);
 	printf("=============== [ /after ] =========================\n");
+#endif
 
-	do_verbose = 0;
 }
 
 void eliminate_subbasicblocks(jitdata *jd) {
 	basicblock *bptr, *next;
+	basicblock_info_t *bbi;
 
 	FOR_EACH_BASICBLOCK(jd, bptr) {
-		if (bptr->subbasicblocks) {
-			next = bptr->next;
-			*bptr = *(bptr->subbasicblocks);
-			bptr->subbasicblocks = NULL;
-
-			/* *prev = bptr->subbasicblocks;
-			bptr = bptr->subbasicblocks; */
-
-			while (bptr->next) {
-				bptr = bptr->next;
+		bbi = bb_info(bptr);
+		if (bbi != NULL) {
+			if (! basicblock_chain_empty(bbi->subbasicblocks)) {
+				next = bptr->next;
+				/* Copy first subblock, to keep pointers intact. */
+				*bptr = *basicblock_chain_front(bbi->subbasicblocks);
+				bptr = basicblock_chain_back(bbi->subbasicblocks);
+				bptr->next = next;
 			}
-			bptr->next = next;
 		}
 	}
 
-	if (test_do_verbose(jd)) do_verbose = 1;
+#ifdef SSA_VERBOSE
 	printf("=============== [ elim ] =========================\n");
 	show_method(jd, 3);
 	printf("=============== [ /elim ] =========================\n");
-	do_verbose = 0;
+#endif
 }
 
 /*

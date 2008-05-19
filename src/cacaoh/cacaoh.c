@@ -1,9 +1,7 @@
 /* src/cacaoh/cacaoh.c - main for header generation (cacaoh)
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -169,19 +167,19 @@ int main(int argc, char **argv)
 	}
 	else {
 		cplen =
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 			strlen(CACAO_VM_ZIP) +
 			strlen(":") +
 #endif
-			strlen(CLASSPATH_CLASSES) +
+			strlen(JAVA_RUNTIME_LIBRARY_CLASSES) +
 			strlen("0");
 
 		bootclasspath = MNEW(char, cplen);
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 		strcat(bootclasspath, CACAO_VM_ZIP);
 		strcat(bootclasspath, ":");
 #endif
-		strcat(bootclasspath, CLASSPATH_CLASSES);
+		strcat(bootclasspath, JAVA_RUNTIME_LIBRARY_CLASSES);
 	}
 
 

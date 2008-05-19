@@ -132,7 +132,7 @@ utf *utf_java_lang_reflect_Constructor;
 utf *utf_java_lang_reflect_Field;
 utf *utf_java_lang_reflect_Method;
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 utf *utf_java_lang_reflect_VMConstructor;
 utf *utf_java_lang_reflect_VMField;
 utf *utf_java_lang_reflect_VMMethod;
@@ -393,7 +393,7 @@ void utf8_init(void)
 	utf_java_lang_reflect_Field    = utf_new_char("java/lang/reflect/Field");
 	utf_java_lang_reflect_Method   = utf_new_char("java/lang/reflect/Method");
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	utf_java_lang_reflect_VMConstructor = utf_new_char("java/lang/reflect/VMConstructor");
 	utf_java_lang_reflect_VMField       = utf_new_char("java/lang/reflect/VMField");
 	utf_java_lang_reflect_VMMethod      = utf_new_char("java/lang/reflect/VMMethod");

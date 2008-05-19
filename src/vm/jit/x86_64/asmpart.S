@@ -61,6 +61,8 @@
 	.globl asm_compare_and_swap
 	.globl asm_memory_barrier
 
+	.globl asm_get_cycle_count
+
 
 /********************* function asm_calljavafunction ***************************
 *                                                                              *
@@ -413,6 +415,20 @@ asm_compare_and_swap:
 
 asm_memory_barrier:
 	mfence
+	ret
+
+
+/* asm_get_cycle_count *********************************************************
+
+   Get the current time-stamp counter from the CPU.
+
+*******************************************************************************/
+
+asm_get_cycle_count:
+	rdtsc
+	shl $0x20, %rdx
+	mov %eax, %eax
+	or %rdx, %rax
 	ret
 
 

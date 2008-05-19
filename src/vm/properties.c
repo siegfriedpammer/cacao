@@ -108,7 +108,7 @@ void properties_set(void)
 	char           *extdirs;
 	char           *endorseddirs;
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	char           *cwd;
 	char           *env_user;
 	char           *env_home;
@@ -142,7 +142,7 @@ void properties_set(void)
 	p = system_dirname(p);
 	p = system_dirname(p);
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	/* Set java.home. */
 
@@ -157,7 +157,7 @@ void properties_set(void)
 	strcpy(boot_library_path, java_home);
 	strcat(boot_library_path, "/lib/classpath");
 
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	/* Find correct java.home.  We check if there is a JRE
 	   co-located. */
@@ -209,15 +209,15 @@ void properties_set(void)
 #else
 	java_home         = CACAO_PREFIX;
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
-	boot_library_path = CLASSPATH_LIBDIR"/classpath";
+	boot_library_path = JAVA_RUNTIME_LIBRARY_LIBDIR"/classpath";
 
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
-	boot_library_path = CLASSPATH_LIBDIR;
+	boot_library_path = JAVA_RUNTIME_LIBRARY_LIBDIR;
 
-# elif defined(WITH_CLASSPATH_CLDC1_1)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
 	/* No boot_library_path required. */
 
@@ -238,7 +238,7 @@ void properties_set(void)
 	}
 	else {
 #if defined(ENABLE_JRE_LAYOUT)
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 		len =
 			strlen(java_home) + strlen("/share/cacao/vm.zip:") +
@@ -253,7 +253,7 @@ void properties_set(void)
 		strcat(boot_class_path, java_home);
 		strcat(boot_class_path, "/share/classpath/glibj.zip");
 
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 		/* This is the bootclasspath taken from HotSpot (see
 		   hotspot/src/share/vm/runtime/os.cpp
@@ -290,55 +290,55 @@ void properties_set(void)
 #  error unknown classpath configuration
 # endif
 #else
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 		len =
 			strlen(CACAO_VM_ZIP) +
 			strlen(":") +
-			strlen(CLASSPATH_CLASSES) +
+			strlen(JAVA_RUNTIME_LIBRARY_CLASSES) +
 			strlen("0");
 
 		boot_class_path = MNEW(char, len);
 
 		strcpy(boot_class_path, CACAO_VM_ZIP);
 		strcat(boot_class_path, ":");
-		strcat(boot_class_path, CLASSPATH_CLASSES);
+		strcat(boot_class_path, JAVA_RUNTIME_LIBRARY_CLASSES);
 
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 		/* This is the bootclasspath taken from HotSpot (see
 		   hotspot/src/share/vm/runtime/os.cpp
 		   (os::set_boot_path)). */
 
 		len =
-			strlen(CLASSPATH_PREFIX"/lib/resources.jar:") +
-			strlen(CLASSPATH_PREFIX"/lib/rt.jar:") +
-			strlen(CLASSPATH_PREFIX"/lib/sunrsasign.jar:") +
-			strlen(CLASSPATH_PREFIX"/lib/jsse.jar:") +
-			strlen(CLASSPATH_PREFIX"/lib/jce.jar:") +
-			strlen(CLASSPATH_PREFIX"/lib/charsets.jar:") +
-			strlen(CLASSPATH_PREFIX"/classes") +
+			strlen(JAVA_RUNTIME_LIBRARY_PREFIX"/lib/resources.jar:") +
+			strlen(JAVA_RUNTIME_LIBRARY_PREFIX"/lib/rt.jar:") +
+			strlen(JAVA_RUNTIME_LIBRARY_PREFIX"/lib/sunrsasign.jar:") +
+			strlen(JAVA_RUNTIME_LIBRARY_PREFIX"/lib/jsse.jar:") +
+			strlen(JAVA_RUNTIME_LIBRARY_PREFIX"/lib/jce.jar:") +
+			strlen(JAVA_RUNTIME_LIBRARY_PREFIX"/lib/charsets.jar:") +
+			strlen(JAVA_RUNTIME_LIBRARY_PREFIX"/classes") +
 			strlen("0");
 
 		boot_class_path = MNEW(char, len);
 
-		strcpy(boot_class_path, CLASSPATH_PREFIX"/lib/resources.jar:");
-		strcat(boot_class_path, CLASSPATH_PREFIX"/lib/rt.jar:");
-		strcat(boot_class_path, CLASSPATH_PREFIX"/lib/sunrsasign.jar:");
-		strcat(boot_class_path, CLASSPATH_PREFIX"/lib/jsse.jar:");
-		strcat(boot_class_path, CLASSPATH_PREFIX"/lib/jce.jar:");
-		strcat(boot_class_path, CLASSPATH_PREFIX"/lib/charsets.jar:");
-		strcat(boot_class_path, CLASSPATH_PREFIX"/classes");
+		strcpy(boot_class_path, JAVA_RUNTIME_LIBRARY_PREFIX"/lib/resources.jar:");
+		strcat(boot_class_path, JAVA_RUNTIME_LIBRARY_PREFIX"/lib/rt.jar:");
+		strcat(boot_class_path, JAVA_RUNTIME_LIBRARY_PREFIX"/lib/sunrsasign.jar:");
+		strcat(boot_class_path, JAVA_RUNTIME_LIBRARY_PREFIX"/lib/jsse.jar:");
+		strcat(boot_class_path, JAVA_RUNTIME_LIBRARY_PREFIX"/lib/jce.jar:");
+		strcat(boot_class_path, JAVA_RUNTIME_LIBRARY_PREFIX"/lib/charsets.jar:");
+		strcat(boot_class_path, JAVA_RUNTIME_LIBRARY_PREFIX"/classes");
 
-# elif defined(WITH_CLASSPATH_CLDC1_1)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
 		len =
-			strlen(CLASSPATH_CLASSES) +
+			strlen(JAVA_RUNTIME_LIBRARY_CLASSES) +
 			strlen("0");
 
 		boot_class_path = MNEW(char, len);
 
-		strcpy(boot_class_path, CLASSPATH_CLASSES);
+		strcpy(boot_class_path, JAVA_RUNTIME_LIBRARY_CLASSES);
 
 # else
 #  error unknown classpath configuration
@@ -389,7 +389,7 @@ void properties_set(void)
 		properties_add("java.vm.info", "JIT mode");
 	}
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	/* Get properties from system. */
 
@@ -519,7 +519,7 @@ void properties_set(void)
 		properties_add("user.country", "US");
 	}
 
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	/* Actually this property is set by OpenJDK, but we need it in
 	   nativevm_preinit(). */

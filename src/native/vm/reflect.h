@@ -38,7 +38,7 @@
 #include "native/include/java_lang_String.h"
 
 #if defined(ENABLE_JAVASE)
-# if defined(WITH_CLASSPATH_SUN)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 #  include "native/include/java_nio_ByteBuffer.h"       /* required by j.l.CL */
 # endif
 # include "native/include/java_lang_ClassLoader.h"
@@ -65,7 +65,7 @@ java_lang_reflect_Method      *reflect_method_new(methodinfo *m);
 java_handle_t                 *reflect_constructor_newinstance(methodinfo *m, java_handle_objectarray_t *args, bool override);
 java_handle_t                 *reflect_method_invoke(methodinfo *m, java_handle_t *o, java_handle_objectarray_t *args, bool override);
 
-#if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH) && defined(ENABLE_ANNOTATIONS)
 struct java_util_Map* reflect_get_declaredannotatios(
 	java_handle_bytearray_t *annotations,
 	java_lang_Class         *declaringClass,

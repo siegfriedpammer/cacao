@@ -502,6 +502,8 @@ void cfg_add_root(jitdata *jd) {
 
 #if defined(ENABLE_SSA)
 
+static void cfg_eliminate_edges_to_unreachable(jitdata *jd);
+
 /* cfg_add_exceptional_edges ***************************************************
  
    Edges from basicblocks to their exception handlers and from exception 
@@ -518,12 +520,16 @@ void cfg_add_exceptional_edges(jitdata *jd) {
 	basicblock *bptr;
 	instruction *iptr;
 	exception_entry *ee;
+	bool unreachable_exh = false;
 
 	/* Count the number of exceptional exits for every block.
 	 * Every PEI is an exceptional out.
 	 */
 
 	FOR_EACH_BASICBLOCK(jd, bptr) {
+
+		/* Prepare for reachability calculation. */
+		bptr->vp = NULL;
 
 		if (bptr->flags == BBUNDEF) {
 			continue;
@@ -552,6 +558,14 @@ void cfg_add_exceptional_edges(jitdata *jd) {
 	/* Allocate and fill exception handler arrays. */
 
 	for (ee = jd->exceptiontable; ee; ee = ee->down) {
+
+		if (ee->handler->expredecessorcount == 0) {
+			/* An exception handler that is unreachable.
+			   This is inconsistent with the semantics of the CFG,
+			   we need to recalculate reachability. */
+			unreachable_exh = true;
+		}
+
 		for (bptr = ee->start; bptr != ee->end; bptr = bptr->next) {
 			if (bptr->exouts > 0) {
 
@@ -576,7 +590,108 @@ void cfg_add_exceptional_edges(jitdata *jd) {
 			}
 		}
 	}
+
+	if (unreachable_exh) {
+
+		/* This is rare in ``normal'' compiler generated code.
+		  
+		   The dead block [EXH] is a predecessor of [BB1],
+		   but the edge [EXH] -> [BB1] will never be traversed.
+
+		   [BB1] --[next]--> [BB2, no peis] ==[exhandler]==> [EXH] --[next]--+
+             ^                                                               |
+		     +---------------------------------------------------------------+
+		*/
+
+		/*
+		fprintf(stderr, "Found unreachable exh, adjusting %s %s", 
+			jd->m->klazz->name->text, jd->m->name->text);
+		fprintf(stderr, "<before>\n");
+		show_method(jd, 3);
+		fprintf(stderr, "</before>\n");
+		*/
+
+		cfg_eliminate_edges_to_unreachable(jd);
+
+		/*
+		fprintf(stderr, "<after>\n");
+		show_method(jd, 3);
+		fprintf(stderr, "</after>\n");
+		*/
+	}
 }
+
+static void cfg_calculate_reachability(basicblock *bptr) {
+	basicblock **itsucc;
+
+	/* Block not marked. */
+	assert(bptr->vp == NULL);
+
+	bptr->vp = bptr; /* Mark block */
+
+	FOR_EACH_SUCCESSOR(bptr, itsucc) {
+		if ((*itsucc)->vp == NULL) {
+			cfg_calculate_reachability(*itsucc);
+		}
+	}
+
+	if (bptr->exouts > 0) {
+		FOR_EACH_EXHANDLER(bptr, itsucc) {
+			if ((*itsucc)->vp == NULL) {
+				cfg_calculate_reachability(*itsucc);
+			}
+		}
+	}
+}
+
+static void cfg_remove_predecessors(basicblock *bptr, basicblock *pbptr) {
+	s4 i;
+
+	for (i = 0; i < bptr->predecessorcount; ++i) {
+		/* Search item. */
+		if (bptr->predecessors[i] == pbptr) {
+			if (i != (bptr->predecessorcount - 1)) {
+				/* If not last element, replace element with last element. */
+				bptr->predecessors[i] = bptr->predecessors[bptr->predecessorcount - 1];
+			}
+
+			/* Decrease element count. */
+			bptr->predecessorcount -= 1;
+
+			return;
+		}
+	}
+}
+
+static void cfg_eliminate_edges_to_unreachable(jitdata *jd) {
+	basicblock *it;
+	basicblock **itsucc;
+
+	cfg_calculate_reachability(jd->basicblocks);
+
+	FOR_EACH_BASICBLOCK(jd, it) {
+		if (it->vp == NULL) {
+
+			/* Mark as unreachable. */
+
+			it->flags = BBUNDEF;
+
+			/* As this block got unreachable, it is no more a predecessor
+			   of its successors. */
+
+			FOR_EACH_SUCCESSOR(it, itsucc) {
+				cfg_remove_predecessors(*itsucc, it);
+			}
+
+			/* Eliminiate all CFG edges of this block. */
+
+			it->predecessorcount = 0;
+			it->successorcount = 0;
+			it->expredecessorcount = 0;
+		}
+	}
+}
+
 
 #endif
 

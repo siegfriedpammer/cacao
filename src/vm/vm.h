@@ -50,9 +50,6 @@ extern bool vm_initializing;
 extern bool vm_created;
 extern bool vm_exiting;
 
-extern char      *mainstring;
-extern classinfo *mainclass;
-
 #if defined(ENABLE_INTRP)
 extern u1 *intrp_main_stack;
 #endif

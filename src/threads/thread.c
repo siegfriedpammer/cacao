@@ -45,7 +45,7 @@
 # include "native/include/java_lang_ThreadGroup.h"
 #endif
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 # include "native/include/java_lang_VMThread.h"
 #endif
 
@@ -175,7 +175,7 @@ void threads_init(void)
 
 	/* Cache the java.lang.Thread initialization method. */
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	thread_method_init =
 		class_resolveclassmethod(class_java_lang_Thread,
@@ -184,7 +184,7 @@ void threads_init(void)
 								 class_java_lang_Thread,
 								 true);
 
-#elif defined(WITH_CLASSPATH_SUN)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	thread_method_init =
 		class_resolveclassmethod(class_java_lang_Thread,
@@ -193,7 +193,7 @@ void threads_init(void)
 								 class_java_lang_Thread,
 								 true);
 
-#elif defined(WITH_CLASSPATH_CLDC1_1)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
 	thread_method_init =
 		class_resolveclassmethod(class_java_lang_Thread,
@@ -233,7 +233,7 @@ static bool thread_create_object(threadobject *t, java_handle_t *name, java_hand
 	java_handle_t    *o;
 	java_lang_Thread *to;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	java_lang_VMThread    *vmto;
 	classinfo             *c;
 	methodinfo            *m;
@@ -254,7 +254,7 @@ static bool thread_create_object(threadobject *t, java_handle_t *name, java_hand
 
 	thread_set_object(t, (java_handle_t *) to);
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	/* Create a java.lang.VMThread Java object. */
 
@@ -304,7 +304,7 @@ static bool thread_create_object(threadobject *t, java_handle_t *name, java_hand
 	if (exceptions_get_exception())
 		return false;
 
-#elif defined(WITH_CLASSPATH_SUN)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	/* OpenJDK's java.lang.Thread does not have a VMThread field in
 	   the class.  Nothing to do here. */
@@ -323,7 +323,7 @@ static bool thread_create_object(threadobject *t, java_handle_t *name, java_hand
 	if (exceptions_get_exception())
 		return false;
 
-#elif defined(WITH_CLASSPATH_CLDC1_1)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
 	/* Set the thread data-structure in the Java thread object. */
 
@@ -363,7 +363,7 @@ static bool thread_create_object(threadobject *t, java_handle_t *name, java_hand
 static void thread_create_initial_threadgroups(void)
 {
 #if defined(ENABLE_JAVASE)
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	/* Allocate and initialize the main thread group. */
 
@@ -376,7 +376,7 @@ static void thread_create_initial_threadgroups(void)
 
 	threadgroup_system = threadgroup_main;
 
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	java_handle_t *name;
 	methodinfo    *m;
@@ -651,7 +651,7 @@ void threads_thread_start(java_handle_t *object)
 {
 	java_lang_Thread   *to;
 	threadobject       *t;
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	java_lang_VMThread *vmto;
 #endif
 
@@ -687,7 +687,7 @@ void threads_thread_start(java_handle_t *object)
 
 	thread_set_object(t, object);
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	/* Get the java.lang.VMThread object and do some sanity checks. */
 
@@ -698,11 +698,11 @@ void threads_thread_start(java_handle_t *object)
 
 	LLNI_field_set_val(vmto, vmdata, (java_lang_Object *) t);
 
-#elif defined(WITH_CLASSPATH_SUN)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	/* Nothing to do. */
 
-#elif defined(WITH_CLASSPATH_CLDC1_1)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
 	LLNI_field_set_val(to, vm_thread, (java_lang_Object *) t);
 
@@ -828,9 +828,9 @@ void thread_fprint_name(threadobject *t, FILE *stream)
 {
 	java_lang_Thread *to;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	java_lang_String *name;
-#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 	java_chararray_t *name;
 #endif
 
@@ -841,11 +841,11 @@ void thread_fprint_name(threadobject *t, FILE *stream)
 
 	LLNI_field_get_ref(to, name, name);
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	javastring_fprint((java_handle_t *) name, stream);
 
-#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
 	/* FIXME: In OpenJDK and CLDC the name is a char[]. */
 	/* FIXME This prints to stdout. */
@@ -1069,15 +1069,15 @@ void thread_set_state_terminated(threadobject *t)
 threadobject *thread_get_thread(java_handle_t *h)
 {
 	threadobject       *t;
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	java_lang_VMThread *vmto;
 	java_lang_Object   *to;
 #endif
-#if defined(WITH_CLASSPATH_SUN)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	bool                equal;
 #endif
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	vmto = (java_lang_VMThread *) h;
 
@@ -1085,7 +1085,7 @@ threadobject *thread_get_thread(java_handle_t *h)
 
 	t = (threadobject *) to;
 
-#elif defined(WITH_CLASSPATH_SUN)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	/* XXX This is just a quick hack. */
 
@@ -1100,7 +1100,7 @@ threadobject *thread_get_thread(java_handle_t *h)
 
 	threadlist_unlock();
 
-#elif defined(WITH_CLASSPATH_CLDC1_1)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
 	log_println("threads_get_thread: IMPLEMENT ME!");
 

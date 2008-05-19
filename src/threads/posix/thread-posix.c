@@ -69,7 +69,7 @@
 # include "native/include/java_lang_ThreadGroup.h"
 #endif
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 # include "native/include/java_lang_VMThread.h"
 #endif
 
@@ -232,14 +232,11 @@ static mutex_t mutex_gc;
 static mutex_t mutex_join;
 static pthread_cond_t  cond_join;
 
-/* XXX We disable that whole bunch of code until we have the exact-GC
-   running. */
-
-#if 1
-
 /* this is one of the STOPWORLD_FROM_ constants, telling why the world is     */
 /* being stopped                                                              */
 static volatile int stopworldwhere;
+
+#if defined(ENABLE_GC_CACAO)
 
 /* semaphore used for acknowleding thread suspension                          */
 static sem_t suspend_ack;
@@ -248,7 +245,7 @@ static mutex_t suspend_ack_lock = MUTEX_INITIALIZER;
 static pthread_cond_t suspend_cond = PTHREAD_COND_INITIALIZER;
 #endif
 
-#endif /* 0 */
+#endif /* ENABLE_GC_CACAO */
 
 /* mutexes used by the fake atomic instructions                               */
 #if defined(USE_FAKE_ATOMIC_INSTRUCTIONS)
@@ -367,7 +364,8 @@ void unlock_stopworld(void)
 }
 
 /* XXX We disable that whole bunch of code until we have the exact-GC
-   running. */
+   running. Some of it may only be needed by the old Boehm-based
+   suspension handling. */
 
 #if 0
 
@@ -516,8 +514,6 @@ static void threads_sigsuspend_handler(ucontext_t *_uc)
 }
 #endif
 
-#endif
-
 
 /* threads_stopworld ***********************************************************
 
@@ -527,7 +523,6 @@ static void threads_sigsuspend_handler(ucontext_t *_uc)
 
 *******************************************************************************/
 
-#if !defined(DISABLE_GC)
 void threads_stopworld(void)
 {
 #if !defined(__DARWIN__) && !defined(__CYGWIN__)
@@ -588,7 +583,6 @@ void threads_stopworld(void)
 	   non-signaled NEW threads can't change their state and execute
 	   code. */
 }
-#endif /* !defined(DISABLE_GC) */
 
 
 /* threads_startworld **********************************************************
@@ -597,7 +591,6 @@ void threads_stopworld(void)
 
 *******************************************************************************/
 
-#if !defined(DISABLE_GC)
 void threads_startworld(void)
 {
 #if !defined(__DARWIN__) && !defined(__CYGWIN__)
@@ -657,6 +650,7 @@ void threads_startworld(void)
 
 	unlock_stopworld();
 }
+
 #endif
 
 
@@ -850,9 +844,10 @@ void threads_impl_preinit(void)
 		vm_abort_errnum(result, "threads_impl_preinit: pthread_cond_init failed");
 
 #if defined(ENABLE_GC_CACAO)
-	/* initialize the GC mutext */
+	/* initialize the GC mutex & suspend semaphore */
 
 	mutex_init(&mutex_gc);
+ 	threads_sem_init(&suspend_ack, 0, 0);
 #endif
 
 #if !defined(HAVE___THREAD)
@@ -860,8 +855,6 @@ void threads_impl_preinit(void)
 	if (result != 0)
 		vm_abort_errnum(result, "threads_impl_preinit: pthread_key_create failed");
 #endif
-
- 	threads_sem_init(&suspend_ack, 0, 0);
 }
 
 
@@ -967,7 +960,7 @@ static void *threads_startup_thread(void *arg)
 	startupinfo        *startup;
 	threadobject       *t;
 	java_lang_Thread   *object;
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	java_lang_VMThread *vmt;
 #endif
 	sem_t              *psem;
@@ -1049,13 +1042,13 @@ static void *threads_startup_thread(void *arg)
 	/* find and run the Thread.run()V method if no other function was passed */
 
 	if (function == NULL) {
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 		/* We need to start the run method of
 		   java.lang.VMThread. Since this is a final class, we can use
 		   the class object directly. */
 
 		c = class_java_lang_VMThread;
-#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 		LLNI_class_get(object, c);
 #else
 # error unknown classpath configuration
@@ -1076,13 +1069,13 @@ static void *threads_startup_thread(void *arg)
 			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount =
 				_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 		/* we need to start the run method of java.lang.VMThread */
 
 		LLNI_field_get_ref(object, vmThread, vmt);
 		o = (java_handle_t *) vmt;
 
-#elif defined(WITH_CLASSPATH_SUN) || defined(WITH_CLASSPATH_CLDC1_1)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 		o = (java_handle_t *) object;
 #else
 # error unknown classpath configuration
@@ -1274,9 +1267,9 @@ bool threads_detach_thread(threadobject *t)
 		   to build the java_lang_Thread_UncaughtExceptionHandler
 		   header file with cacaoh. */
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 		LLNI_field_get_ref(object, exceptionHandler, handler);
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 		LLNI_field_get_ref(object, uncaughtExceptionHandler, handler);
 # endif
 
@@ -1311,13 +1304,13 @@ bool threads_detach_thread(threadobject *t)
 	if (group != NULL) {
 		LLNI_class_get(group, c);
 
-# if defined(WITH_CLASSPATH_GNU)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 		m = class_resolveclassmethod(c,
 									 utf_removeThread,
 									 utf_java_lang_Thread__V,
 									 class_java_lang_ThreadGroup,
 									 true);
-# elif defined(WITH_CLASSPATH_SUN)
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 		m = class_resolveclassmethod(c,
 									 utf_remove,
 									 utf_java_lang_Thread__V,
@@ -1380,6 +1373,8 @@ bool threads_detach_thread(threadobject *t)
 }
 
 
+#if defined(ENABLE_GC_CACAO)
+
 /* threads_suspend_thread ******************************************************
 
    Suspend the passed thread. Execution stops until the thread
@@ -1436,7 +1431,6 @@ void threads_suspend_ack(u1* pc, u1* sp)
 
 	/* TODO: remember dump memory size */
 
-#if defined(ENABLE_GC_CACAO)
 	/* inform the GC about the suspension */
 	if (thread->suspend_reason == SUSPEND_REASON_STOPWORLD && gc_pending) {
 
@@ -1449,7 +1443,6 @@ void threads_suspend_ack(u1* pc, u1* sp)
 
 		}
 	}
-#endif
 
 	/* mark this thread as suspended and remember the PC */
 	thread->pc        = pc;
@@ -1507,6 +1500,7 @@ bool threads_resume_thread(threadobject *thread)
 	return true;
 }
 
+#endif
 
 /* threads_join_all_threads ****************************************************
 

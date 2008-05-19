@@ -123,15 +123,16 @@ void ssa(jitdata *jd) {
 	/*dominator_tree_validate(jd, dd);*/
 	/*pythonpass_run(jd, "ssa2", "main");*/
 	/*pythonpass_run(jd, "alt_ssa", "main");*/
-	pythonpass_run(jd, "foo", "before");
-	if (getenv("XSSA")) {
+	/*pythonpass_run(jd, "foo", "before");*/
+	
+	/*if (getenv("XSSA")) {
 		dominator_tree_build(jd);
 		dominance_frontier_build(jd);
 		xssa(jd);
-	} else {
+	} else */{
 		yssa(jd);
 	}
-	pythonpass_run(jd, "foo", "after");
+	/*pythonpass_run(jd, "foo", "after");*/
 	return;
 
 	ls = jd->ls;

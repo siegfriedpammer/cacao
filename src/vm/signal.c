@@ -82,7 +82,7 @@ bool signal_init(void)
 	if (sigemptyset(&mask) != 0)
 		vm_abort_errno("signal_init: sigemptyset failed");
 
-#if !defined(WITH_CLASSPATH_SUN)
+#if !defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	/* Let OpenJDK handle SIGINT itself. */
 
 	if (sigaddset(&mask, SIGINT) != 0)
@@ -252,7 +252,7 @@ static void signal_thread(void)
 	if (sigemptyset(&mask) != 0)
 		vm_abort_errno("signal_thread: sigemptyset failed");
 
-#if !defined(WITH_CLASSPATH_SUN)
+#if !defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	/* Let OpenJDK handle SIGINT itself. */
 
 	if (sigaddset(&mask, SIGINT) != 0)

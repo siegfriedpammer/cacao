@@ -35,7 +35,7 @@
 
 #include "native/include/java_lang_String.h"
 
-#if defined(WITH_CLASSPATH_SUN)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 # include "native/include/java_nio_ByteBuffer.h"        /* required by j.l.CL */
 #endif
 #include "native/include/java_lang_ClassLoader.h"
@@ -46,13 +46,13 @@
 #include "native/include/java_lang_reflect_Field.h"
 #include "native/include/java_lang_reflect_Method.h"
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 # include "native/include/java_lang_reflect_VMConstructor.h"
 # include "native/include/java_lang_reflect_VMField.h"
 # include "native/include/java_lang_reflect_VMMethod.h"
 #endif
 
-#if defined(ENABLE_ANNOTATIONS) && defined(WITH_CLASSPATH_GNU)
+#if defined(ENABLE_ANNOTATIONS) && defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 # include "vm/vm.h"
 # include "native/include/sun_reflect_ConstantPool.h"
 #endif
@@ -82,7 +82,7 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 	java_lang_reflect_Constructor   *rc;
 	int32_t                          slot;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	java_lang_reflect_VMConstructor *rvmc;
 #endif
 
@@ -101,7 +101,7 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 
 	slot = m - m->clazz->methods;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	/* Allocate a java.lang.reflect.VMConstructor object. */
 
@@ -124,7 +124,7 @@ java_lang_reflect_Constructor *reflect_constructor_new(methodinfo *m)
 	LLNI_field_set_ref(rvmc, annotations,          method_get_annotations(m));
 	LLNI_field_set_ref(rvmc, parameterAnnotations, method_get_parameterannotations(m));
 
-#elif defined(WITH_CLASSPATH_SUN)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	/* Set Java object instance fields. */
 
@@ -158,7 +158,7 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 	java_lang_reflect_Field   *rf;
 	int32_t                    slot;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	java_lang_reflect_VMField *rvmf;
 #endif
 
@@ -177,7 +177,7 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 
 	slot = f - f->clazz->fields;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	/* Allocate a java.lang.reflect.VMField object. */
 
@@ -204,7 +204,7 @@ java_lang_reflect_Field *reflect_field_new(fieldinfo *f)
 	LLNI_field_set_val(rvmf, slot,        slot);
 	LLNI_field_set_ref(rvmf, annotations, field_get_annotations(f));
 
-#elif defined(WITH_CLASSPATH_SUN)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	/* Set the Java object fields. */
 
@@ -241,7 +241,7 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 	java_lang_reflect_Method   *rm;
 	int32_t                     slot;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	java_lang_reflect_VMMethod *rvmm;
 #endif
 
@@ -260,7 +260,7 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 
 	slot = m - m->clazz->methods;
 
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	/* Allocate a java.lang.reflect.VMMethod object. */
 
@@ -289,7 +289,7 @@ java_lang_reflect_Method *reflect_method_new(methodinfo *m)
 	LLNI_field_set_ref(rvmm, parameterAnnotations, method_get_parameterannotations(m));
 	LLNI_field_set_ref(rvmm, annotationDefault,    method_get_annotationdefault(m));
 
-#elif defined(WITH_CLASSPATH_SUN)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	LLNI_field_set_cls(rm, clazz,                m->clazz);
 
@@ -457,7 +457,7 @@ java_handle_t *reflect_method_invoke(methodinfo *m, java_handle_t *o, java_handl
 	/* Should we bypass security the checks (AccessibleObject)? */
 
 	if (override == false) {
-#if defined(WITH_CLASSPATH_GNU)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 		/* This method is always called like this:
 		       [0] java.lang.reflect.Method.invokeNative (Native Method)
 		       [1] java.lang.reflect.Method.invoke (Method.java:329)
@@ -466,13 +466,15 @@ java_handle_t *reflect_method_invoke(methodinfo *m, java_handle_t *o, java_handl
 
 		if (!access_check_method(m, 2))
 			return NULL;
-#elif defined(WITH_CLASSPATH_SUN)
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 		/* We only pass 1 here as stacktrace_get_caller_class, which
 		   is called from access_check_method, skips
 		   java.lang.reflect.Method.invoke(). */
 
 		if (!access_check_method(m, 1))
 			return NULL;
+#else
+# error unknown classpath configuration
 #endif
 	}
 
@@ -490,7 +492,7 @@ java_handle_t *reflect_method_invoke(methodinfo *m, java_handle_t *o, java_handl
 }
 
 
-#if defined(WITH_CLASSPATH_GNU) && defined(ENABLE_ANNOTATIONS)
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH) && defined(ENABLE_ANNOTATIONS)
 /* reflect_get_declaredannotatios *********************************************
 
    Calls the annotation parser with the unparsed annotations and returnes

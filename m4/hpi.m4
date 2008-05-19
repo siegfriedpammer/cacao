@@ -26,11 +26,11 @@ dnl where hpi_md.h is installed
 AC_DEFUN([AC_CHECK_WITH_HPI_MD_H],[
 AC_MSG_CHECKING(where hpi_md.h is installed)
 AC_ARG_WITH([hpi_md_h],
-            [AS_HELP_STRING(--with-hpi_md_h=<dir>,path to hpi_md.h (only with --with-classpath=sun) [[default=${CLASSPATH_PREFIX}/jdk/src/solaris/hpi/export]])],
+            [AS_HELP_STRING(--with-hpi_md_h=<dir>,path to hpi_md.h (only with --with-java-runtime-library=openjdk) [[default=${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/solaris/hpi/export]])],
             [WITH_HPI_MD_H=${withval}],
-            [case "${WITH_CLASSPATH}" in
-                 sun)
-                     WITH_HPI_MD_H=${CLASSPATH_PREFIX}/jdk/src/solaris/hpi/export
+            [case "${WITH_JAVA_RUNTIME_LIBRARY}" in
+                 openjdk)
+                     WITH_HPI_MD_H=${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/solaris/hpi/export
                      ;;
                  *)
                      ;;
@@ -51,9 +51,9 @@ dnl where hpi.h is installed
 AC_DEFUN([AC_CHECK_WITH_HPI_H],[
 AC_MSG_CHECKING(where hpi.h is installed)
 AC_ARG_WITH([hpi_h],
-            [AS_HELP_STRING(--with-hpi_h=<dir>,path to hpi.h (only with --with-classpath=sun) [[default=${CLASSPATH_PREFIX}/jdk/src/share/hpi/export]])],
+            [AS_HELP_STRING(--with-hpi_h=<dir>,path to hpi.h (only with --with-java-runtime-library=openjdk) [[default=${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/share/hpi/export]])],
             [WITH_HPI_H=${withval}],
-            [WITH_HPI_H=${CLASSPATH_PREFIX}/jdk/src/share/hpi/export])
+            [WITH_HPI_H=${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/share/hpi/export])
 AC_MSG_RESULT(${WITH_HPI_H})
 
 dnl We use CPPFLAGS so hpi.h can find hpi_md.h
