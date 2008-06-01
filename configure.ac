@@ -666,9 +666,11 @@ AC_ARG_ENABLE([ssa],
               [ENABLE_SSA=no])
 AC_MSG_RESULT(${ENABLE_SSA})
 AM_CONDITIONAL([ENABLE_SSA], test x"${ENABLE_SSA}" = "xyes")
+AM_CONDITIONAL([ENABLE_ESCAPE], test x"${ENABLE_SSA}" = "xyes")
 
 if test x"${ENABLE_SSA}" = "xyes"; then
     AC_DEFINE([ENABLE_SSA], 1, [enable lsra with ssa])
+    AC_DEFINE([ENABLE_ESCAPE], 1, [enable escape analysis with ssa])
     ENABLE_LSRA="no"
 fi
 
@@ -694,7 +696,6 @@ AM_CONDITIONAL([ENABLE_LSRA], test x"${ENABLE_LSRA}" = "xyes")
 if test x"${ENABLE_LSRA}" = "xyes"; then
     AC_DEFINE([ENABLE_LSRA], 1, [enable lsra])
 fi
-
 
 dnl check if profiling should be supported
 AC_MSG_CHECKING(whether profiling should be supported)

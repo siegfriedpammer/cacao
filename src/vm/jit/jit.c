@@ -701,7 +701,9 @@ static u1 *jit_compile_intern(jitdata *jd)
 		RT_TIMING_GET_TIME(time_typecheck);
 
 #if defined(ENABLE_SSA)
-		fix_exception_handlers(jd);
+		if (opt_lsra) {
+			fix_exception_handlers(jd);
+		}
 #endif
 
 		/* Build the CFG.  This has to be done after stack_analyse, as

@@ -435,6 +435,7 @@ static void vars_copy_to_final(vars_t *vs, varinfo *dst) {
 		if (dst->type == VAR_TYPE_SUBSTITUED) {
 			subst = vars_get_index(vars_resolve_subst(vs, it - vs->items));
 			dst->type = vs->items[subst].type;
+
 		}
 	}
 }
@@ -484,6 +485,15 @@ FIXME() inline void phis_print(const phis_t *ps) {
 	}
 }
 #endif
+
+static inline void phis_copy_to(const phis_t *ps, instruction *dst) {
+	MCOPY(
+		dst,
+		ps->items,
+		instruction,
+		ps->count
+	);
+}
 
 /*** state_array ************************************************************/
 
@@ -950,6 +960,7 @@ void fix_exception_handlers(jitdata *jd) {
 			exh->outvars[0] = v;
 			exh->predecessorcount = -1; /* legacy */
 			exh->flags = BBFINISHED;
+			exh->method = jd->m;
 
 			basicblock_chain_add(&chain, exh);
 
@@ -1505,6 +1516,31 @@ static void ssa_enter_export_variables(ssa_info *ssa) {
 
 }
 
+static void ssa_enter_export_phis(ssa_info_t *ssa) {
+	basicblock *bptr;
+	basicblock_info_t *bbi;
+	instruction *dst;
+
+	FOR_EACH_BASICBLOCK(ssa->jd, bptr) {
+		bbi = bb_info(bptr);
+		if (bbi != NULL) {
+			bptr->phicount = 
+				bbi->locals->phis->count + 
+				bbi->stack->phis->count;
+
+			bptr->phis = DMNEW(instruction, bptr->phicount);
+
+			dst = bptr->phis;
+
+			phis_copy_to(bbi->locals->phis, dst);
+
+			dst += bbi->locals->phis->count;
+
+			phis_copy_to(bbi->stack->phis, dst);
+		}
+	}
+}
+
 /* TODO rename */
 static inline void ssa_enter_eliminate_category(ssa_info_t *ssa, s4 *pvar) {
 	switch (vars_get_category(*pvar)) {
@@ -1622,6 +1658,7 @@ static basicblock *ssa_leave_create_transition_block_intern(
 	bb->nr = ssa->jd->basicblockcount;
 	ssa->jd->basicblockcount += 1;
 	bb->mpc = -1;
+	bb->method = ssa->jd->m;
 	bb->type = BBTYPE_STD;
 	bb->icount = 
 		reserved_insns + 
@@ -2051,9 +2088,13 @@ void yssa(jitdata *jd) {
 
 	ssa_enter_export_variables(ssa);
 
+	ssa_enter_export_phis(ssa);
+
 	ssa_enter_verify_no_redundant_phis(ssa);
 
 	/*ssa_enter_create_phi_graph(ssa);*/
+
+	escape_analysis_perform(ssa->jd);
 
 	ssa_leave_create_phi_moves(ssa);
 

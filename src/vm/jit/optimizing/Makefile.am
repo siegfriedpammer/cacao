@@ -66,7 +66,14 @@ SSA_SOURCES = \
 	lifetimes.c \
 	lifetimes.h \
 	ssa2.c \
-	ssa3.c
+	ssa3.c 
+endif
+
+if ENABLE_ESCAPE
+ESCAPE_SOURCES = \
+	bytecode_escape.c \
+	escape.h \
+	escape.c
 endif
 
 noinst_LTLIBRARIES = \
@@ -77,7 +84,8 @@ liboptimizing_la_SOURCES = \
 	$(PROFILE_SOURCES) \
 	$(RECOMPILE_SOURCES) \
 	$(REORDER_SOURCES) \
-	$(SSA_SOURCES)
+	$(SSA_SOURCES) \
+	$(ESCAPE_SOURCES)
 
 
 ## Local variables:

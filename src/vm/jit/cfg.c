@@ -483,6 +483,7 @@ void cfg_add_root(jitdata *jd) {
 	root->next = zero;
 	root->nr = 0;
 	root->type = BBTYPE_STD;
+	root->method = jd->m;
 
 	if (zero->predecessorcount == 0) {
 		zero->predecessors = DNEW(basicblock *);

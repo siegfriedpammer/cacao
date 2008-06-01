@@ -529,6 +529,9 @@ struct basicblock {
 	s4            expredecessorcount;
 	s4            exouts;       /* Number of exceptional exits */
 
+	instruction  *phis;         /* Phi functions */
+	s4            phicount;     /* Number of phi functions */
+
 	void         *vp;           /* Freely used by different passes            */
 #endif
 };

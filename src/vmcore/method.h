@@ -107,8 +107,11 @@ struct methodinfo {                 /* method structure                       */
 #if defined(ENABLE_DEBUG_FILTER)
 	u1            filtermatches;    /* flags indicating which filters the method matches */
 #endif
-};
 
+#if defined(ENABLE_ESCAPE)
+	u1           *paramescape;
+#endif
+};
 
 /* method_assumption ***********************************************************
 
