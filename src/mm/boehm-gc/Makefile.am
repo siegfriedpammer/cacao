@@ -34,7 +34,7 @@ SUBDIRS =
 
 # Initialize variables so that we can declare files locally.
 EXTRA_DIST = 
-lib_LTLIBRARIES =
+noinst_LTLIBRARIES =
 include_HEADERS =
 pkginclude_HEADERS =
 dist_noinst_HEADERS =
@@ -47,7 +47,7 @@ dist_pkgconfig_DATA = bdw-gc.pc
 # C Library
 # ---------
 
-lib_LTLIBRARIES += libgc.la
+noinst_LTLIBRARIES += libgc.la
 libgc_la_SOURCES = \
 	allchblk.c alloc.c blacklst.c checksums.c dbg_mlc.c \
 	dyn_load.c finalize.c gc_dlopen.c gcj_mlc.c headers.c \
@@ -95,7 +95,7 @@ EXTRA_libgc_la_SOURCES = alpha_mach_dep.S \
 # -------------
 
 if CPLUSPLUS
-lib_LTLIBRARIES += libgccpp.la
+noinst_LTLIBRARIES += libgccpp.la
 pkginclude_HEADERS += include/gc_cpp.h include/gc_allocator.h
 libgccpp_la_SOURCES = gc_cpp.cc
 libgccpp_la_LIBADD = $(top_builddir)/libgc.la
