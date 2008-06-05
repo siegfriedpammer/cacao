@@ -174,9 +174,6 @@ case "$THREADS" in
         # if test "${enable_parallel_mark}" = yes; then
         #   AC_DEFINE(PARALLEL_MARK)
         # fi
-	if test "${enable_parallel_mark}" = yes; then
-	  AC_DEFINE([PARALLEL_MARK], 1, [parallel mark])
-	fi
 	darwin_threads=true
 	;;
      *-*-osf*)
@@ -559,7 +556,7 @@ if test "${enable_redirect_malloc}" = yes; then
     else
 	AC_DEFINE([REDIRECT_MALLOC], GC_malloc, [redirect malloc])
     fi
-    AC_DEFINE(GC_USE_DLOPEN_WRAP)
+    AC_DEFINE([GC_USE_DLOPEN_WRAP], 1, [gc use dlopen wrap])
 fi
 
 AC_ARG_ENABLE(large-config,
@@ -632,12 +629,12 @@ AC_ARG_ENABLE(munmap,
     esac]
    )
 if test "${enable_munmap}" != ""; then
-    AC_DEFINE(USE_MMAP)
-    AC_DEFINE(USE_MUNMAP)
+    AC_DEFINE([USE_MMAP], 1, [use mmap])
+    AC_DEFINE([USE_MUNMAP], 1, [ use munmap])
     if test "${MUNMAP_THRESHOLD}" = "yes"; then
       MUNMAP_THRESHOLD=6
     fi
-    AC_DEFINE_UNQUOTED(MUNMAP_THRESHOLD, ${MUNMAP_THRESHOLD})
+    AC_DEFINE_UNQUOTED([MUNMAP_THRESHOLD], ${MUNMAP_THRESHOLD}, [munmap threshold])
 fi
 
 AM_CONDITIONAL(USE_LIBDIR, test -z "$with_cross_host")
