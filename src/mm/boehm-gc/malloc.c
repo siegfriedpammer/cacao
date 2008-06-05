@@ -320,7 +320,7 @@ void * malloc(size_t lb)
     return((void *)REDIRECT_MALLOC(lb));
   }
 
-#ifdef GC_LINUX_THREADS
+#if defined(GC_LINUX_THREADS) /* && !defined(USE_PROC_FOR_LIBRARIES) */
   static ptr_t GC_libpthread_start = 0;
   static ptr_t GC_libpthread_end = 0;
   static ptr_t GC_libld_start = 0;
@@ -331,17 +331,15 @@ void * malloc(size_t lb)
   void GC_init_lib_bounds(void)
   {
     if (GC_libpthread_start != 0) return;
-    if (!GC_text_mapping("/lib/tls/libpthread-",
-			 &GC_libpthread_start, &GC_libpthread_end)
-	&& !GC_text_mapping("/lib/libpthread-",
-			    &GC_libpthread_start, &GC_libpthread_end)) {
+    if (!GC_text_mapping("libpthread-",
+			 &GC_libpthread_start, &GC_libpthread_end)) {
 	WARN("Failed to find libpthread.so text mapping: Expect crash\n", 0);
         /* This might still work with some versions of libpthread,	*/
     	/* so we don't abort.  Perhaps we should.			*/
         /* Generate message only once:					*/
           GC_libpthread_start = (ptr_t)1;
     }
-    if (!GC_text_mapping("/lib/ld-", &GC_libld_start, &GC_libld_end)) {
+    if (!GC_text_mapping("ld-", &GC_libld_start, &GC_libld_end)) {
 	WARN("Failed to find ld.so text mapping: Expect crash\n", 0);
     }
   }
@@ -349,7 +347,7 @@ void * malloc(size_t lb)
 
 void * calloc(size_t n, size_t lb)
 {
-#   if defined(GC_LINUX_THREADS) && !defined(USE_PROC_FOR_LIBRARIES)
+#   if defined(GC_LINUX_THREADS) /* && !defined(USE_PROC_FOR_LIBRARIES) */
 	/* libpthread allocated some memory that is only pointed to by	*/
 	/* mmapped thread stacks.  Make sure it's not collectable.	*/
 	{
@@ -407,11 +405,13 @@ void GC_free(void * p)
 
     if (p == 0) return;
     	/* Required by ANSI.  It's not my fault ...	*/
+#   ifdef LOG_ALLOCS
+      GC_err_printf("GC_free(%p): %d\n", p, GC_gc_no);
+#   endif
     h = HBLKPTR(p);
     hhdr = HDR(h);
     sz = hhdr -> hb_sz;
     ngranules = BYTES_TO_GRANULES(sz);
-    GC_ASSERT(GC_base(p) == p);
 #   if defined(REDIRECT_MALLOC) && \
 	(defined(GC_SOLARIS_THREADS) || defined(GC_LINUX_THREADS) \
 	 || defined(MSWIN32))
@@ -421,6 +421,7 @@ void GC_free(void * p)
 	/* Don't try to deallocate that memory.				*/
 	if (0 == hhdr) return;
 #   endif
+    GC_ASSERT(GC_base(p) == p);
     knd = hhdr -> hb_obj_kind;
     ok = &GC_obj_kinds[knd];
     if (EXPECT((ngranules <= MAXOBJGRANULES), 1)) {
@@ -438,9 +439,13 @@ void GC_free(void * p)
 	*flh = (ptr_t)p;
 	UNLOCK();
     } else {
+        size_t nblocks = OBJ_SZ_TO_BLOCKS(sz);
         LOCK();
         GC_bytes_freed += sz;
 	if (IS_UNCOLLECTABLE(knd)) GC_non_gc_bytes -= sz;
+	if (nblocks > 1) {
+	  GC_large_allocd_bytes -= nblocks * HBLKSIZE;
+	}  
         GC_freehblk(h);
         UNLOCK();
     }
@@ -477,8 +482,12 @@ void GC_free_inner(void * p)
 	obj_link(p) = *flh;
 	*flh = (ptr_t)p;
     } else {
+        size_t nblocks = OBJ_SZ_TO_BLOCKS(sz);
         GC_bytes_freed += sz;
 	if (IS_UNCOLLECTABLE(knd)) GC_non_gc_bytes -= sz;
+	if (nblocks > 1) {
+	  GC_large_allocd_bytes -= nblocks * HBLKSIZE;
+	}
         GC_freehblk(h);
     }
 }
@@ -498,7 +507,8 @@ void GC_free_inner(void * p)
 	  ptr_t caller = (ptr_t)__builtin_return_address(0);
 	  /* This test does not need to ensure memory visibility, since */
 	  /* the bounds will be set when/if we create another thread.	*/
-	  if (caller >= GC_libpthread_start && caller > GC_libpthread_end) {
+	  if (caller >= GC_libpthread_start && caller < GC_libpthread_end
+	      || (caller >= GC_libld_start && caller < GC_libld_end)) {
 	    GC_free(p);
 	    return;
 	  }

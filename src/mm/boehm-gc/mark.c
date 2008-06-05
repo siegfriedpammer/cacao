@@ -753,8 +753,8 @@ mse * GC_mark_from(mse *mark_stack_top, mse *mark_stack, mse *mark_stack_limit)
 		continue;
 	    }
             descr = *(word *)(type_descr
-			      - (descr - (GC_DS_PER_OBJECT
-					  - GC_INDIR_PER_OBJ_BIAS)));
+			      - (descr + (GC_INDIR_PER_OBJ_BIAS
+					  - GC_DS_PER_OBJECT)));
 	  }
 	  if (0 == descr) {
 	      /* Can happen either because we generated a 0 descriptor	*/
@@ -1799,7 +1799,8 @@ GC_bool GC_block_was_dirty(struct hblk *h, hdr *hhdr)
 }
 #endif /* SMALL_CONFIG */
 
-/* Similar to GC_push_next_marked, but return address of next block	*/
+/* Similar to GC_push_marked, but skip over unallocated blocks	*/
+/* and return address of next plausible block.			*/
 struct hblk * GC_push_next_marked(struct hblk *h)
 {
     hdr * hhdr = HDR(h);

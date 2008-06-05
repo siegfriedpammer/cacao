@@ -1,3 +1,47 @@
+2008-02-11 Hans Boehm <Hans.Boehm@hp.com>
+	   (Really Ian Wienand & Debian maintainers)
+	* src/atomic_ops/sysdeps/gcc/x86.h
+	(AO_compare_double_and_swap_double_full): Correctly account for
+	ebx usage with PIC.
+
+2008-01-09 Hans Boehm <Hans.Boehm@hp.com>
+	* src/atomic_ops/sysdeps/standard_ao_double_t.h: Let
+	double_ptr_storage default to long long; define everywhere.
+
+2008-01-08 Hans Boehm <Hans.Boehm@hp.com> (Really mostly Joerg Wagner)
+	* src/atomic_ops/sysdeps/msftc/x86.h: Conditionally add
+	compare_double_and_swap_double.
+
+2008-01-06 Hans Boehm <Hans.Boehm@hp.com> (Really mostly Joerg Wagner)
+	* src/atomic_ops/generalize.h: Add test_and_set generalizations,
+	Add AO_double_compare_and_swap generalizations.
+	* src/atomic_ops/sysdeps/armcc/arm_v6.h: New file.
+	* src/atomic_ops/sysdeps/gcc/arm.h: Handle V6 and V7.
+	* src/atomic_ops/sysdeps/gcc/x86.h,
+	src/atomic_ops/sysdeps/{gcc,msftc}/x86_64.h: Conditionally add
+	compare_double_and_swap_double, commented out for msftc.
+	* src/atomic_ops/sysdeps/standard_ao_double_t.h:  Add
+	double_ptr_storage field.
+
+2008-01-03 Hans Boehm <Hans.Boehm@hp.com>
+	(Merge from separate atomic_ops tree)
+	* src/atomic_ops/sysdeps/gcc/x86.h: Define correct macro for
+	double-width cas, and fix its implementation.
+	* doc/README.txt: Clarify use of _full.  Add more warnings about
+	data dependencies.
+
+2008-01-02 Hans Boehm <Hans.Boehm@hp.com>
+	* src/atomic_ops/sysdeps/gcc/powerpc.h (AO_load_acquire): Add
+	%X1 modifier to support indexed addressing.
+
+2007-07-23 Hans Boehm <Hans.Boehm@hp.com> (really Jim Marshall)
+	* src/atomic_ops/sysdeps/msftc/x86.h (_InterlockedExchangeAdd): Define
+	for VC++6.
+
+2007-07-05  Andreas Tobler  <a.tobler@schweiz.org>
+	* src/atomic_ops.h: Check for __powerpc64__ and __ppc64__ to include
+	powerpc.h.
+
 2007-06-26 Hans Boehm <Hans.Boehm@hp.com> (really Luca Barbato)
         * src/atomic_ops/sysdeps/gcc/powerpc.h (AO_load_acquire): Add
 	64-bit version.

@@ -17,12 +17,12 @@ dnl Process this file with autoconf to produce configure.
 # Initialization
 # ==============
 
-AC_INIT(gc,7.0,Hans.Boehm@hp.com) 
+AC_INIT(gc,7.1,Hans.Boehm@hp.com) 
     ## version must conform to [0-9]+[.][0-9]+(alpha[0-9]+)?
 AC_CONFIG_SRCDIR(gcj_mlc.c)
 AC_CANONICAL_TARGET 
 AC_PREREQ(2.53)
-AC_REVISION($Revision: 1.25 $)
+AC_REVISION($Revision: 1.35 $)
 GC_SET_VERSION
 AM_INIT_AUTOMAKE([foreign dist-bzip2 subdir-objects nostdinc])
 AM_MAINTAINER_MODE
@@ -170,6 +170,10 @@ case "$THREADS" in
 	AC_DEFINE([GC_DARWIN_THREADS], 1, [gc darwin threads])
 	AC_DEFINE([THREAD_LOCAL_ALLOC], 1, [thread local alloc])
 	AC_MSG_WARN("Explict GC_INIT() calls may be required.");
+        # Parallel-mark is currently unreliable on Darwin; ignore request
+        # if test "${enable_parallel_mark}" = yes; then
+        #   AC_DEFINE(PARALLEL_MARK)
+        # fi
 	if test "${enable_parallel_mark}" = yes; then
 	  AC_DEFINE([PARALLEL_MARK], 1, [parallel mark])
 	fi
@@ -309,6 +313,15 @@ case "$host" in
     ;;
 esac
 
+case "$host" in
+  *-*-hpux*)
+    avoid_cpp_lib=yes;;
+  *)
+    avoid_cpp_lib=no;
+    ;;
+esac
+AM_CONDITIONAL(AVOID_CPP_LIB,test $avoid_cpp_lib = yes)
+
 # extra LD Flags which are required for targets
 case "${host}" in
   *-*-darwin*)
@@ -360,12 +373,12 @@ AC_ENABLE_SHARED
 case "$host" in
  alpha-*-openbsd*)
      enable_shared=no
-     AC_MSG_RESULT(no)
      ;;
  *)
-     AC_MSG_RESULT(yes)
      ;;
 esac
+
+AC_MSG_RESULT($enable_shared)
 
 # Configuration of machine-dependent code
 #
@@ -546,6 +559,7 @@ if test "${enable_redirect_malloc}" = yes; then
     else
 	AC_DEFINE([REDIRECT_MALLOC], GC_malloc, [redirect malloc])
     fi
+    AC_DEFINE(GC_USE_DLOPEN_WRAP)
 fi
 
 AC_ARG_ENABLE(large-config,
@@ -607,6 +621,25 @@ if test "${enable_gc_assertions}" = yes; then
     AC_DEFINE([GC_ASSERTIONS], 1, [gc assertions])
 fi
 
+AC_ARG_ENABLE(munmap,
+    [AC_HELP_STRING([--enable-munmap=N],
+	[return page to the os if empty for N collections])],
+  MUNMAP_THRESHOLD=$enableval;
+   [case "$MMAP" in
+      no)
+        AC_MSG_ERROR([--enable-munmap requires --enable-mmap])
+        ;;
+    esac]
+   )
+if test "${enable_munmap}" != ""; then
+    AC_DEFINE(USE_MMAP)
+    AC_DEFINE(USE_MUNMAP)
+    if test "${MUNMAP_THRESHOLD}" = "yes"; then
+      MUNMAP_THRESHOLD=6
+    fi
+    AC_DEFINE_UNQUOTED(MUNMAP_THRESHOLD, ${MUNMAP_THRESHOLD})
+fi
+
 AM_CONDITIONAL(USE_LIBDIR, test -z "$with_cross_host")
 
 
@@ -638,22 +671,22 @@ AC_CHECK_HEADER(atomic_ops.h,
     AC_MSG_NOTICE([Using internal version of libatomic_ops])
 
     dnl Automake does not accept shell variables in AC_CONFIG_SUBDIRS
-    test -e ${srcdir}/libatomic_ops \
-	|| ln -s ${ao_dir} ${srcdir}/libatomic_ops
+    test -e libatomic_ops \
+	|| ln -s ${ao_dir} libatomic_ops
     AC_CONFIG_SUBDIRS(libatomic_ops)
 
     dnl Also copy the source files to be linked in.
-    test -e ${srcdir}/atomic_ops.c \
-    	|| ln -s ${srcdir}/libatomic_ops/src/atomic_ops.c \
-		 ${srcdir}/atomic_ops.c
+    test -e atomic_ops.c \
+    	|| ln -s libatomic_ops/src/atomic_ops.c \
+		 atomic_ops.c
 
-    test -e ${srcdir}/atomic_ops_sysdeps.S \
-    	|| ln -s ${srcdir}/libatomic_ops/src/atomic_ops_sysdeps.S \
-		 ${srcdir}/atomic_ops_sysdeps.S
+    test -e atomic_ops_sysdeps.S \
+    	|| ln -s libatomic_ops/src/atomic_ops_sysdeps.S \
+		 atomic_ops_sysdeps.S
 
     dnl This gets the source include files, which is often close enough.
     dnl It also makes atomic_ops_sysdeps.S assemble.
-    GC_CFLAGS="${GC_CFLAGS} -I \$(top_srcdir)/libatomic_ops/src"
+    GC_CFLAGS="${GC_CFLAGS} -I libatomic_ops/src"
     maybe_libatomic_ops="libatomic_ops"
   ])
 

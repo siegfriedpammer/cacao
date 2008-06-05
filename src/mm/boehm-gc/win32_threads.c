@@ -148,6 +148,7 @@ void GC_init_parallel(void);
 #     endif
       GC_ASSERT(!parallel_initialized);
       GC_win32_dll_threads = TRUE;
+      GC_init_parallel();
   }
 #else
   GC_API void GC_use_DllMain(void)
@@ -488,12 +489,12 @@ static GC_thread GC_lookup_thread(DWORD thread_id)
 /* thread being deleted.					*/
 void GC_delete_gc_thread(GC_vthread gc_id)
 {
+  CloseHandle(gc_id->handle);
   if (GC_win32_dll_threads) {
     /* This is intended to be lock-free.				*/
     /* It is either called synchronously from the thread being deleted,	*/
     /* or by the joining thread.					*/
     /* In this branch asynchronosu changes to *gc_id are possible.	*/
-    CloseHandle(gc_id->handle);
     gc_id -> stack_base = 0;
     gc_id -> id = 0;
 #   ifdef CYGWIN32
@@ -551,6 +552,7 @@ void GC_delete_thread(DWORD id)
         prev = p;
         p = p -> next;
     }
+    CloseHandle(p->handle);
     if (prev == 0) {
         GC_threads[hv] = p -> next;
     } else {
@@ -560,7 +562,7 @@ void GC_delete_thread(DWORD id)
   }
 }
 
-int GC_register_my_thread(struct GC_stack_base *sb) {
+GC_API int GC_register_my_thread(struct GC_stack_base *sb) {
   DWORD t = GetCurrentThreadId();
 
   if (0 == GC_lookup_thread(t)) {
@@ -574,7 +576,7 @@ int GC_register_my_thread(struct GC_stack_base *sb) {
   }
 }
 
-int GC_unregister_my_thread(void)
+GC_API int GC_unregister_my_thread(void)
 {
     DWORD t = GetCurrentThreadId();
 
@@ -705,8 +707,8 @@ void GC_suspend(GC_thread t)
 #     ifndef GC_PTHREADS
         /* this breaks pthread_join on Cygwin, which is guaranteed to  */
         /* only see user pthreads 	 			       */
-        AO_store(&(t -> in_use), FALSE);
-        CloseHandle(t -> handle);
+	GC_ASSERT(GC_win32_dll_threads);
+	GC_delete_gc_thread(t);
 #     endif
       return;
     }
@@ -1079,7 +1081,7 @@ uintptr_t GC_beginthreadex(
     unsigned ( __stdcall *start_address )( void * ),
     void *arglist, unsigned initflag, unsigned *thrdaddr)
 {
-    uintptr_t thread_h = -1L;
+    uintptr_t thread_h;
 
     thread_args *args;
 
@@ -1098,7 +1100,7 @@ uintptr_t GC_beginthreadex(
 	/* Handed off to and deallocated by child thread.	*/
       if (0 == args) {
 	SetLastError(ERROR_NOT_ENOUGH_MEMORY);
-        return (uintptr_t)(-1);
+        return (uintptr_t)(-1L);
       }
 
       /* set up thread arguments */
@@ -1498,10 +1500,10 @@ void GC_init_parallel(void)
     if (!GC_is_initialized) GC_init();
     if (GC_win32_dll_threads) {
       GC_need_to_lock = TRUE;
-  	/* Cannot intercept thread creation.  Hence we don't know if other	*/
-	/* threads exist.  However, client is not allowed to create other	*/
-	/* threads before collector initialization.  Thus it's OK not to	*/
-	/* lock before this.							*/
+	/* Cannot intercept thread creation.  Hence we don't know if	*/
+	/* other threads exist.  However, client is not allowed to 	*/
+	/* create other threads before collector initialization.	*/
+	/* Thus it's OK not to lock before this.			*/
     }
     /* Initialize thread local free lists if used.	*/
 #   if defined(THREAD_LOCAL_ALLOC)

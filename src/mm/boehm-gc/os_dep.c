@@ -375,7 +375,9 @@ GC_bool GC_enclosing_mapping(ptr_t addr, ptr_t *startp, ptr_t *endp)
   return FALSE;
 }
 
-/* Find the text(code) mapping for the library whose name starts with nm. */
+#if defined(REDIRECT_MALLOC)
+/* Find the text(code) mapping for the library whose name, after 	*/
+/* stripping the directory part, starts with nm. 			*/
 GC_bool GC_text_mapping(char *nm, ptr_t *startp, ptr_t *endp)
 {
   size_t nm_len = strlen(nm);
@@ -392,15 +394,22 @@ GC_bool GC_text_mapping(char *nm, ptr_t *startp, ptr_t *endp)
 		    	         &prot, &maj_dev, &map_path);
 
     if (buf_ptr == NULL) return FALSE;
-    if (prot[0] == 'r' && prot[1] == '-' && prot[2] == 'x' &&
-	strncmp(nm, map_path, nm_len) == 0) {
+    if (prot[0] == 'r' && prot[1] == '-' && prot[2] == 'x') {
+	char *p = map_path;
+	/* Set p to point just past last slash, if any. */
+	  while (*p != '\0' && *p != '\n' && *p != ' ' && *p != '\t') ++p;
+	  while (*p != '/' && p >= map_path) --p;
+	  ++p;
+	if (strncmp(nm, p, nm_len) == 0) {
     	  *startp = my_start;
 	  *endp = my_end;
 	  return TRUE;
+	}
     }
   }
   return FALSE;
 }
+#endif /* REDIRECT_MALLOC */
 
 #ifdef IA64
 static ptr_t backing_store_base_from_proc(void)
@@ -745,7 +754,7 @@ word GC_get_writable_length(ptr_t p, ptr_t *base)
     return(buf.RegionSize);
 }
 
-int GC_get_stack_base(struct GC_stack_base *sb)
+GC_API int GC_get_stack_base(struct GC_stack_base *sb)
 {
     int dummy;
     ptr_t sp = (ptr_t)(&dummy);
@@ -1530,12 +1539,6 @@ void GC_register_data_segments(void)
      unsigned i;
      
 #    ifndef REDIRECT_MALLOC
-       static word last_gc_no = (word)(-1);
-     
-       if (last_gc_no != GC_gc_no) {
-	 GC_add_current_malloc_heap();
-	 last_gc_no = GC_gc_no;
-       }
        if (GC_root_size > GC_max_root_size) GC_max_root_size = GC_root_size;
        if (GC_is_malloc_heap_base(p)) return TRUE;
 #    endif
@@ -1952,7 +1955,7 @@ ptr_t GC_win32_get_mem(word bytes)
     	/* If I read the documentation correctly, this can	*/
     	/* only happen if HBLKSIZE > 64k or not a power of 2.	*/
     if (GC_n_heap_bases >= MAX_HEAP_SECTS) ABORT("Too many heap sections");
-    GC_heap_bases[GC_n_heap_bases++] = result;
+    if (0 != result) GC_heap_bases[GC_n_heap_bases++] = result;
     return(result);			  
 }
 

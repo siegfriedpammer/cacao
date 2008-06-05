@@ -53,19 +53,24 @@ struct hblk * GC_hblkfreelist[N_HBLK_FLS+1] = { 0 };
   word GC_free_bytes[N_HBLK_FLS+1] = { 0 };
 	/* Number of free bytes on each list.	*/
 
-  /* Is bytes + the number of free bytes on lists n .. N_HBLK_FLS 	*/
-  /* > GC_max_large_allocd_bytes?					*/
+  /* Return the largest n such that 					*/
+  /* Is GC_large_allocd_bytes + the number of free bytes on lists	*/
+  /* n .. N_HBLK_FLS > GC_max_large_allocd_bytes.			*/
+  /* If there is no such n, return 0.					*/
 # ifdef __GNUC__
   __inline__
 # endif
-  static GC_bool GC_enough_large_bytes_left(word bytes, int n)
+  static int GC_enough_large_bytes_left(void)
   {
-    int i;
-    for (i = N_HBLK_FLS; i >= n; --i) {
-	bytes += GC_free_bytes[i];
-	if (bytes > GC_max_large_allocd_bytes) return TRUE;
+    int n;
+    word bytes = GC_large_allocd_bytes;
+
+    GC_ASSERT(GC_max_large_allocd_bytes <= GC_heapsize);
+    for (n = N_HBLK_FLS; n >= 0; --n) {
+	bytes += GC_free_bytes[n];
+	if (bytes >= GC_max_large_allocd_bytes) return n;
     }
-    return FALSE;
+    return 0;
   }
 
 # define INCR_FREE_BYTES(n, b) GC_free_bytes[n] += (b);
@@ -360,13 +365,16 @@ void GC_add_to_fl(struct hblk *h, hdr *hhdr)
     int index = GC_hblk_fl_from_blocks(divHBLKSZ(hhdr -> hb_sz));
     struct hblk *second = GC_hblkfreelist[index];
     hdr * second_hdr;
-#   ifdef GC_ASSERTIONS
+#   if defined(GC_ASSERTIONS) && !defined(USE_MUNMAP)
       struct hblk *next = (struct hblk *)((word)h + hhdr -> hb_sz);
       hdr * nexthdr = HDR(next);
       struct hblk *prev = GC_free_block_ending_at(h);
       hdr * prevhdr = HDR(prev);
-      GC_ASSERT(nexthdr == 0 || !HBLK_IS_FREE(nexthdr) || !IS_MAPPED(nexthdr));
-      GC_ASSERT(prev == 0 || !HBLK_IS_FREE(prevhdr) || !IS_MAPPED(prevhdr));
+      GC_ASSERT(nexthdr == 0 || !HBLK_IS_FREE(nexthdr)
+                || (signed_word)GC_heapsize < 0);
+		/* In the last case, blocks may be too large to merge. */
+      GC_ASSERT(prev == 0 || !HBLK_IS_FREE(prevhdr)
+      		|| (signed_word)GC_heapsize < 0);
 #   endif
     GC_ASSERT(((hhdr -> hb_sz) & (HBLKSIZE-1)) == 0);
     GC_hblkfreelist[index] = h;
@@ -392,13 +400,15 @@ void GC_unmap_old(void)
     word sz;
     unsigned short last_rec, threshold;
     int i;
-#   define UNMAP_THRESHOLD 6
+#   ifndef MUNMAP_THRESHOLD
+#     define MUNMAP_THRESHOLD 6
+#   endif
     
     for (i = 0; i <= N_HBLK_FLS; ++i) {
       for (h = GC_hblkfreelist[i]; 0 != h; h = hhdr -> hb_next) {
         hhdr = HDR(h);
 	if (!IS_MAPPED(hhdr)) continue;
-	threshold = (unsigned short)(GC_gc_no - UNMAP_THRESHOLD);
+	threshold = (unsigned short)(GC_gc_no - MUNMAP_THRESHOLD);
 	last_rec = hhdr -> hb_last_reclaimed;
 	if ((last_rec > GC_gc_no || last_rec < threshold)
 	    && threshold < GC_gc_no /* not recently wrapped */) {
@@ -428,8 +438,9 @@ void GC_merge_unmapped(void)
 	next = (struct hblk *)((word)h + size);
 	GET_HDR(next, nexthdr);
 	/* Coalesce with successor, if possible */
-	  if (0 != nexthdr && HBLK_IS_FREE(nexthdr)) {
-	    nextsize = nexthdr -> hb_sz;
+	  if (0 != nexthdr && HBLK_IS_FREE(nexthdr)
+	      && (signed_word) (size + (nextsize = nexthdr->hb_sz)) > 0
+	         /* no pot. overflow */) {
 	    if (IS_MAPPED(hhdr)) {
 	      GC_ASSERT(!IS_MAPPED(nexthdr));
 	      /* make both consistent, so that we can merge */
@@ -554,7 +565,8 @@ void GC_split_block(struct hblk *h, hdr *hhdr, struct hblk *n,
 }
 	
 struct hblk *
-GC_allochblk_nth(size_t sz/* bytes */, int kind, unsigned flags, int n);
+GC_allochblk_nth(size_t sz/* bytes */, int kind, unsigned flags, int n,
+		 GC_bool may_split);
 
 /*
  * Allocate (and return pointer to) a heap block
@@ -571,15 +583,52 @@ GC_allochblk(size_t sz, int kind, unsigned flags/* IGNORE_OFF_PAGE or 0 */)
     word blocks;
     int start_list;
     int i;
+    struct hblk *result;
+    int split_limit; /* Highest index of free list whose blocks we	*/
+    		     /* split.						*/
 
     GC_ASSERT((sz & (GRANULE_BYTES - 1)) == 0);
     blocks = OBJ_SZ_TO_BLOCKS(sz);
+    if ((signed_word)(blocks * HBLKSIZE) < 0) {
+      return 0;
+    }
     start_list = GC_hblk_fl_from_blocks(blocks);
-    for (i = start_list; i <= N_HBLK_FLS; ++i) {
-	struct hblk * result = GC_allochblk_nth(sz, kind, flags, i);
-	if (0 != result) {
-	    return result;
+    /* Try for an exact match first. */
+    result = GC_allochblk_nth(sz, kind, flags, start_list, FALSE);
+    if (0 != result) return result;
+    if (GC_use_entire_heap || GC_dont_gc
+	|| USED_HEAP_SIZE < GC_requested_heapsize
+        || TRUE_INCREMENTAL || !GC_should_collect()) {
+	/* Should use more of the heap, even if it requires splitting. */
+	split_limit = N_HBLK_FLS;
+    } else {
+#     ifdef USE_MUNMAP
+	/* avoid splitting, since that might require remapping */
+	split_limit = 0;
+#     else
+	if (GC_finalizer_bytes_freed > (GC_heapsize >> 4))  {
+	  /* If we are deallocating lots of memory from		*/
+	  /* finalizers, fail and collect sooner rather		*/
+	  /* than later.					*/
+	  split_limit = 0;
+	} else {
+	  /* If we have enough large blocks left to cover any	*/
+	  /* previous request for large blocks, we go ahead	*/
+	  /* and split.  Assuming a steady state, that should	*/
+	  /* be safe.  It means that we can use the full 	*/
+	  /* heap if we allocate only small objects.		*/
+          split_limit = GC_enough_large_bytes_left();
 	}
+#     endif
+    }
+    if (start_list < UNIQUE_THRESHOLD) {
+      /* No reason to try start_list again, since all blocks are exact	*/
+      /* matches.							*/
+      ++start_list;
+    }
+    for (i = start_list; i <= split_limit; ++i) {
+	struct hblk * result = GC_allochblk_nth(sz, kind, flags, i, TRUE);
+	if (0 != result) return result;
     }
     return 0;
 }
@@ -587,9 +636,10 @@ GC_allochblk(size_t sz, int kind, unsigned flags/* IGNORE_OFF_PAGE or 0 */)
  * The same, but with search restricted to nth free list.
  * Flags is IGNORE_OFF_PAGE or zero.
  * Unlike the above, sz is in bytes.
+ * The may_split flag indicates whether it's OK to split larger blocks.
  */
 struct hblk *
-GC_allochblk_nth(size_t sz, int kind, unsigned flags, int n)
+GC_allochblk_nth(size_t sz, int kind, unsigned flags, int n, GC_bool may_split)
 {
     struct hblk *hbp;
     hdr * hhdr;		/* Header corr. to hbp */
@@ -608,44 +658,21 @@ GC_allochblk_nth(size_t sz, int kind, unsigned flags, int n)
 	    GET_HDR(hbp, hhdr);
 	    size_avail = hhdr->hb_sz;
 	    if (size_avail < size_needed) continue;
-	    if (size_avail != size_needed
-		&& !GC_use_entire_heap
-		&& !GC_dont_gc
-		&& USED_HEAP_SIZE >= GC_requested_heapsize
-		&& !TRUE_INCREMENTAL && GC_should_collect()) {
-#		ifdef USE_MUNMAP
-		    continue;
-#		else
-		    /* If we have enough large blocks left to cover any	*/
-		    /* previous request for large blocks, we go ahead	*/
-		    /* and split.  Assuming a steady state, that should	*/
-		    /* be safe.  It means that we can use the full 	*/
-		    /* heap if we allocate only small objects.		*/
-		    if (!GC_enough_large_bytes_left(GC_large_allocd_bytes, n)) {
-		      continue;
-		    } 
-		    /* If we are deallocating lots of memory from	*/
-		    /* finalizers, fail and collect sooner rather	*/
-		    /* than later.					*/
-		    if (GC_finalizer_bytes_freed > (GC_heapsize >> 4))  {
-		      continue;
-		    }
-#		endif /* !USE_MUNMAP */
-	    }
-	    /* If the next heap block is obviously better, go on.	*/
-	    /* This prevents us from disassembling a single large block */
-	    /* to get tiny blocks.					*/
-	    {
+	    if (size_avail != size_needed) {
 	      signed_word next_size;
-	      
+
+	      if (!may_split) continue;
+	      /* If the next heap block is obviously better, go on.	*/
+	      /* This prevents us from disassembling a single large block */
+	      /* to get tiny blocks.					*/
 	      thishbp = hhdr -> hb_next;
 	      if (thishbp != 0) {
-		GET_HDR(thishbp, thishdr);
+	  	GET_HDR(thishbp, thishdr);
 	        next_size = (signed_word)(thishdr -> hb_sz);
 	        if (next_size < size_avail
-	          && next_size >= size_needed
-	          && !GC_is_black_listed(thishbp, (word)size_needed)) {
-	          continue;
+	            && next_size >= size_needed
+	            && !GC_is_black_listed(thishbp, (word)size_needed)) {
+	            continue;
 	        }
 	      }
 	    }
@@ -718,6 +745,7 @@ GC_allochblk_nth(size_t sz, int kind, unsigned flags, int n)
 		      struct hblk * prev = hhdr -> hb_prev;
 	              
 		      GC_large_free_bytes -= total_size;
+		      GC_bytes_dropped += total_size;
 		      GC_remove_from_fl(hhdr, n);
 	              for (h = hbp; h < limit; h++) {
 	                if (h == hbp || 0 != (hhdr = GC_install_header(h))) {
@@ -733,7 +761,7 @@ GC_allochblk_nth(size_t sz, int kind, unsigned flags, int n)
 	            /* Restore hbp to point at free block */
 		      hbp = prev;
 		      if (0 == hbp) {
-			return GC_allochblk_nth(sz, kind, flags, n);
+			return GC_allochblk_nth(sz, kind, flags, n, may_split);
 		      }
 	   	      hhdr = HDR(hbp);
 	          }
@@ -745,6 +773,7 @@ GC_allochblk_nth(size_t sz, int kind, unsigned flags, int n)
 		  if (!IS_MAPPED(hhdr)) {
 		    GC_remap((ptr_t)hbp, hhdr -> hb_sz);
 		    hhdr -> hb_flags &= ~WAS_UNMAPPED;
+		    /* Note: This may leave adjacent, mapped free blocks. */
 		  }
 #	        endif
 		/* hbp may be on the wrong freelist; the parameter n	*/
@@ -805,6 +834,11 @@ signed_word size;
     GET_HDR(hbp, hhdr);
     size = hhdr->hb_sz;
     size = HBLKSIZE * OBJ_SZ_TO_BLOCKS(size);
+    if (size <= 0)
+      ABORT("Deallocating excessively large block.  Too large an allocation?");
+      /* Probably possible if we try to allocate more than half the address */
+      /* space at once.  If we dont catch it here, strange things happen    */
+      /* later.								    */
     GC_remove_counts(hbp, (word)size);
     hhdr->hb_sz = size;
 #   ifdef USE_MUNMAP
@@ -823,7 +857,9 @@ signed_word size;
     GET_HDR(next, nexthdr);
     prev = GC_free_block_ending_at(hbp);
     /* Coalesce with successor, if possible */
-      if(0 != nexthdr && HBLK_IS_FREE(nexthdr) && IS_MAPPED(nexthdr)) {
+      if(0 != nexthdr && HBLK_IS_FREE(nexthdr) && IS_MAPPED(nexthdr)
+         && (signed_word)(hhdr -> hb_sz + nexthdr -> hb_sz) > 0
+	 /* no overflow */) {
 	GC_remove_from_fl(nexthdr, FL_UNKNOWN);
 	hhdr -> hb_sz += nexthdr -> hb_sz; 
 	GC_remove_header(next);
@@ -831,7 +867,8 @@ signed_word size;
     /* Coalesce with predecessor, if possible. */
       if (0 != prev) {
 	prevhdr = HDR(prev);
-	if (IS_MAPPED(prevhdr)) {
+	if (IS_MAPPED(prevhdr)
+	    && (signed_word)(hhdr -> hb_sz + prevhdr -> hb_sz) > 0) {
 	  GC_remove_from_fl(prevhdr, FL_UNKNOWN);
 	  prevhdr -> hb_sz += hhdr -> hb_sz;
 #	  ifdef USE_MUNMAP

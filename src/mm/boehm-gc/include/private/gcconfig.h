@@ -203,7 +203,7 @@
 #   endif
 #   define mach_type_known
 # endif
-# if defined(__ia64) && defined(_HPUX_SOURCE)
+# if defined(__ia64) && (defined(_HPUX_SOURCE) || defined(__HP_aCC))
 #   define IA64
 #   ifndef HPUX
 #     define HPUX
@@ -558,7 +558,9 @@
  * If STACKBOTTOM is defined, then it's value will be used directly as the
  * stack base.  If LINUX_STACKBOTTOM is defined, then it will be determined
  * with a method appropriate for most Linux systems.  Currently we look
- * first for __libc_stack_end, and if that fails read it from /proc.
+ * first for __libc_stack_end (currently only id USE_LIBC_PRIVATES is
+ * defined), and if that fails read it from /proc.  (If USE_LIBC_PRIVATES
+ * is not defined and NO_PROC_STAT is defined, we revert to HEURISTIC2.)
  * If either of the last two macros are defined, then STACKBOTTOM is computed
  * during collector startup using one of the following two heuristics:
  * HEURISTIC1:  Take an address inside GC_init's frame, and round it up to
@@ -1322,7 +1324,12 @@
 #     define DATAEND (_end)
       extern int __data_start[];
 #     define DATASTART ((ptr_t)(__data_start))
-#     define ALIGNMENT 4
+#     ifdef _MIPS_SZPTR
+#	define CPP_WORDSZ _MIPS_SZPTR
+#	define ALIGNMENT (_MIPS_SZPTR/8)
+#     else
+#	define ALIGNMENT 4
+#     endif
 #     if __GLIBC__ == 2 && __GLIBC_MINOR__ >= 2 || __GLIBC__ > 2
 #        define LINUX_STACKBOTTOM
 #     else
@@ -1977,6 +1984,16 @@
 #   endif
 # endif
 
+#if defined(LINUX_STACKBOTTOM) && defined(NO_PROC_STAT) \
+    && !defined(USE_LIBC_PRIVATES)
+    /* This combination will fail, since we have no way to get	*/
+    /* the stack base.	Use HEURISTIC2 instead.			*/
+#   undef LINUX_STACKBOTTOM
+#   define HEURISTIC2
+    /* This may still fail on some architectures like IA64.	*/
+    /* We tried ...						*/
+#endif
+
 #if defined(LINUX) && defined(USE_MMAP)
     /* The kernel may do a somewhat better job merging mappings etc.	*/
     /* with anonymous mappings.						*/
@@ -1995,13 +2012,18 @@
     /* large.  Sometimes we're lucky and the process just dies ...	*/
     /* There seems to be a similar issue with some other memory 	*/
     /* allocated by the dynamic loader.					*/
-    /* This can be avoided by either:					*/
+    /* This should be avoidable by either:				*/
     /* - Defining USE_PROC_FOR_LIBRARIES here.				*/
     /*   That performs very poorly, precisely because we end up 	*/
     /*   scanning cached stacks.					*/
-    /* - Have calloc look at its callers.  That is currently what we do.*/
+    /* - Have calloc look at its callers.  				*/
     /*   In spite of the fact that it is gross and disgusting.		*/
-/* #   define USE_PROC_FOR_LIBRARIES */
+    /* In fact neither seems to suffice, probably in part because 	*/
+    /* even with USE_PROC_FOR_LIBRARIES, we don't scan parts of stack	*/
+    /* segments that appear to be out of bounds.  Thus we actually	*/
+    /* do both, which seems to yield the best results.			*/
+
+#   define USE_PROC_FOR_LIBRARIES
 #endif
 
 # ifndef STACK_GROWS_UP
@@ -2151,6 +2173,9 @@
 	--> inconsistent configuration
 # endif
 # if defined(GC_NETBSD_THREADS) && !defined(NETBSD)
+	--> inconsistent configuration
+# endif
+# if defined(GC_FREEBSD_THREADS) && !defined(FREEBSD)
 	--> inconsistent configuration
 # endif
 # if defined(GC_SOLARIS_THREADS) && !defined(SOLARIS)

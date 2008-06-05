@@ -375,12 +375,14 @@ extern GC_warn_proc GC_current_warn_proc;
 #		  define GC_MACH_THREAD_STATE_COUNT PPC_THREAD_STATE_COUNT
 #		  define GC_MACH_HEADER mach_header
 #		  define GC_MACH_SECTION section
+#                 define GC_GETSECTBYNAME getsectbynamefromheader
 #	        else
 #                 define GC_THREAD_STATE_T ppc_thread_state64_t
 #		  define GC_MACH_THREAD_STATE PPC_THREAD_STATE64
 #		  define GC_MACH_THREAD_STATE_COUNT PPC_THREAD_STATE64_COUNT
 #		  define GC_MACH_HEADER mach_header_64
 #		  define GC_MACH_SECTION section_64
+#                 define GC_GETSECTBYNAME getsectbynamefromheader_64
 #		endif
 #	elif defined(I386) || defined(X86_64)
 #               if CPP_WORDSZ == 32
@@ -389,12 +391,14 @@ extern GC_warn_proc GC_current_warn_proc;
 #		  define GC_MACH_THREAD_STATE_COUNT x86_THREAD_STATE32_COUNT
 #		  define GC_MACH_HEADER mach_header
 #		  define GC_MACH_SECTION section
+#                 define GC_GETSECTBYNAME getsectbynamefromheader
 #               else
 #		  define GC_THREAD_STATE_T x86_thread_state64_t
 #		  define GC_MACH_THREAD_STATE x86_THREAD_STATE64
 #		  define GC_MACH_THREAD_STATE_COUNT x86_THREAD_STATE64_COUNT
 #		  define GC_MACH_HEADER mach_header_64
 #		  define GC_MACH_SECTION section_64
+#                 define GC_GETSECTBYNAME getsectbynamefromheader_64
 #               endif
 #	else
 #		error define GC_THREAD_STATE_T
@@ -486,17 +490,22 @@ extern GC_warn_proc GC_current_warn_proc;
 /*                   */
 /*********************/
 
-/*  heap block size, bytes. Should be power of 2 */
+/*  Heap block size, bytes. Should be power of 2.		*/
+/* Incremental GC with MPROTECT_VDB currently requires the	*/
+/* page size to be a multiple of HBLKSIZE.  Since most modern	*/
+/* architectures support variable page sizes down to 4K, and	*/
+/* X86 is generally 4K, we now default to 4K, except for	*/
+/*   Alpha: Seems to be used with 8K pages.			*/
+/*   SMALL_CONFIG: Want less block-level fragmentation.		*/
 
 #ifndef HBLKSIZE
 # ifdef SMALL_CONFIG
 #   define CPP_LOG_HBLKSIZE 10
 # else
-#   if (CPP_WORDSZ == 32) || (defined(HPUX) && defined(HP_PA))
-      /* HPUX/PA seems to use 4K pages with the 64 bit ABI */
-#     define CPP_LOG_HBLKSIZE 12
-#   else
+#   if defined(ALPHA)
 #     define CPP_LOG_HBLKSIZE 13
+#   else
+#     define CPP_LOG_HBLKSIZE 12
 #   endif
 # endif
 #else
@@ -523,6 +532,7 @@ extern GC_warn_proc GC_current_warn_proc;
 # endif
 # undef HBLKSIZE
 #endif
+
 # define CPP_HBLKSIZE (1 << CPP_LOG_HBLKSIZE)
 # define LOG_HBLKSIZE   ((size_t)CPP_LOG_HBLKSIZE)
 # define HBLKSIZE ((size_t)CPP_HBLKSIZE)
@@ -585,19 +595,26 @@ extern GC_warn_proc GC_current_warn_proc;
  */
  
 # ifdef LARGE_CONFIG
-#   define LOG_PHT_ENTRIES  20  /* Collisions likely at 1M blocks,	*/
+#   if CPP_WORDSZ == 32
+#    define LOG_PHT_ENTRIES  20 /* Collisions likely at 1M blocks,	*/
 				/* which is >= 4GB.  Each table takes	*/
 				/* 128KB, some of which may never be	*/
 				/* touched.				*/
+#   else
+#    define LOG_PHT_ENTRIES  21 /* Collisions likely at 2M blocks,	*/
+				/* which is >= 8GB.  Each table takes	*/
+				/* 256KB, some of which may never be	*/
+				/* touched.				*/
+#   endif
 # else
 #   ifdef SMALL_CONFIG
-#     define LOG_PHT_ENTRIES  14 /* Collisions are likely if heap grows	*/
-				 /* to more than 16K hblks = 64MB.	*/
-				 /* Each hash table occupies 2K bytes.   */
+#     define LOG_PHT_ENTRIES  15 /* Collisions are likely if heap grows	*/
+				 /* to more than 32K hblks = 128MB.	*/
+				 /* Each hash table occupies 4K bytes.  */
 #   else /* default "medium" configuration */
-#     define LOG_PHT_ENTRIES  16 /* Collisions are likely if heap grows	*/
-				 /* to more than 64K hblks >= 256MB.	*/
-				 /* Each hash table occupies 8K bytes.  */
+#     define LOG_PHT_ENTRIES  18 /* Collisions are likely if heap grows	*/
+				 /* to more than 256K hblks >= 1GB.	*/
+				 /* Each hash table occupies 32K bytes. */
 				 /* Even for somewhat smaller heaps, 	*/
 				 /* say half that, collisions may be an	*/
 				 /* issue because we blacklist 		*/
@@ -694,6 +711,9 @@ struct hblkhdr {
 				/* changed.				*/
     size_t hb_sz;  /* If in use, size in bytes, of objects in the block. */
 		   /* if free, the size in bytes of the whole block      */
+		   /* We assume that this is convertible to signed_word	 */
+		   /* without generating a negative result.  We avoid	 */
+		   /* generating free blocks larger than that.		 */
     word hb_descr;   		/* object descriptor for marking.  See	*/
     				/* mark.h.				*/
 #   ifdef MARK_BIT_PER_OBJ
@@ -776,11 +796,13 @@ struct hblk {
 /* MAX_ROOT_SETS is the maximum number of ranges that can be 	*/
 /* registered as static roots. 					*/
 # ifdef LARGE_CONFIG
-#   define MAX_ROOT_SETS 4096
+#   define MAX_ROOT_SETS 8192
 # else
-    /* GCJ LOCAL: MAX_ROOT_SETS increased to permit more shared */
-    /* libraries to be loaded.                                  */ 
-#   define MAX_ROOT_SETS 1024
+#   ifdef SMALL_CONFIG
+#     define MAX_ROOT_SETS 512
+#   else
+#     define MAX_ROOT_SETS 2048
+#   endif
 # endif
 
 # define MAX_EXCLUSIONS (MAX_ROOT_SETS/4)
@@ -858,6 +880,11 @@ struct _GC_arrays {
     word _bytes_allocd;
   	/* Number of words allocated during this collection cycle */
 # endif
+  word _bytes_dropped;
+  	/* Number of black-listed bytes dropped during GC cycle	*/
+	/* as a result of repeated scanning during allocation	*/
+	/* attempts.  These are treated largely as allocated,	*/
+	/* even though they are not useful to the client.	*/
   word _bytes_finalized;
   	/* Approximate number of bytes in objects (and headers)	*/
   	/* That became ready for finalization in the last 	*/
@@ -972,7 +999,14 @@ struct _GC_arrays {
 # endif
   struct HeapSect {
       ptr_t hs_start; size_t hs_bytes;
-  } _heap_sects[MAX_HEAP_SECTS];
+  } _heap_sects[MAX_HEAP_SECTS];	/* Heap segments potentially 	*/
+  					/* client objects.		*/
+# if defined(USE_PROC_FOR_LIBRARIES)
+     struct HeapSect _our_memory[MAX_HEAP_SECTS];
+     					/* All GET_MEM allocated	*/
+					/* memory.  Includes block 	*/
+					/* headers and the like.	*/
+# endif
 # if defined(MSWIN32) || defined(MSWINCE)
     ptr_t _heap_bases[MAX_HEAP_SECTS];
     		/* Start address of memory regions obtained from kernel. */
@@ -1028,6 +1062,7 @@ GC_API GC_FAR struct _GC_arrays GC_arrays;
 # define GC_large_free_bytes GC_arrays._large_free_bytes
 # define GC_large_allocd_bytes GC_arrays._large_allocd_bytes
 # define GC_max_large_allocd_bytes GC_arrays._max_large_allocd_bytes
+# define GC_bytes_dropped GC_arrays._bytes_dropped
 # define GC_bytes_finalized GC_arrays._bytes_finalized
 # define GC_non_gc_bytes_at_gc GC_arrays._non_gc_bytes_at_gc
 # define GC_bytes_freed GC_arrays._bytes_freed
@@ -1040,6 +1075,9 @@ GC_API GC_FAR struct _GC_arrays GC_arrays;
 # define GC_requested_heapsize GC_arrays._requested_heapsize
 # define GC_bytes_allocd_before_gc GC_arrays._bytes_allocd_before_gc
 # define GC_heap_sects GC_arrays._heap_sects
+# ifdef USE_PROC_FOR_LIBRARIES
+#   define GC_our_memory GC_arrays._our_memory
+# endif
 # define GC_last_stack GC_arrays._last_stack
 #ifdef ENABLE_TRACE
 #define GC_trace_addr GC_arrays._trace_addr
@@ -1138,6 +1176,11 @@ GC_API word GC_fo_entries;
 
 extern word GC_n_heap_sects;	/* Number of separately added heap	*/
 				/* sections.				*/
+
+#ifdef USE_PROC_FOR_LIBRARIES
+  extern word GC_n_memory;	/* Number of GET_MEM allocated memory	*/
+				/* sections.				*/
+#endif
 
 extern word GC_page_size;
 
@@ -1360,6 +1403,9 @@ extern void GC_push_gc_structures(void);
 #	ifdef THREADS
 	  extern void GC_push_thread_structures (void);
 #	endif
+	extern void (*GC_push_typed_structures) (void);
+			/* A pointer such that we can avoid linking in	*/
+			/* the typed allocation support if unused.	*/
 extern void (*GC_start_call_back) (void);
   			/* Called at start of full collections.		*/
   			/* Not called if 0.  Called with allocation 	*/
@@ -1713,6 +1759,14 @@ GC_API void GC_debug_invoke_finalizer(void * obj, void * data);
   			
 void GC_add_to_heap(struct hblk *p, size_t bytes);
   			/* Add a HBLKSIZE aligned chunk to the heap.	*/
+
+#ifdef USE_PROC_FOR_LIBRARIES
+  void GC_add_to_our_memory(ptr_t p, size_t bytes);
+  			/* Add a chunk to GC_our_memory.	*/
+			/* If p == 0, do nothing.		*/
+#else
+# define GC_add_to_our_memory(p, bytes)
+#endif
   
 void GC_print_obj(ptr_t p);
   			/* P points to somewhere inside an object with	*/

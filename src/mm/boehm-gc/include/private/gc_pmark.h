@@ -60,10 +60,9 @@ extern unsigned GC_n_mark_procs;
 #define GC_MARK_STACK_DISCARDS (INITIAL_MARK_STACK_SIZE/8)
 
 typedef struct GC_ms_entry {
-    ptr_t mse_start;   /* First word of object */
+    ptr_t mse_start;   /* First word of object, word aligned  */
     GC_word mse_descr;	/* Descriptor; low order two bits are tags,	*/
-    			/* identifying the upper 30 bits as one of the	*/
-    			/* following:					*/
+    			/* as described in gc_mark.h.  			*/
 } mse;
 
 extern size_t GC_mark_stack_size;
@@ -244,10 +243,10 @@ exit_label: ; \
 /* push the contents of the object on the mark stack.  Current points	*/
 /* to the bginning of the object.  We rely on the fact that the 	*/
 /* preceding header calculation will succeed for a pointer past the 	*/
-/* forst page of an object, only if it is in fact a valid pointer	*/
+/* first page of an object, only if it is in fact a valid pointer	*/
 /* to the object.  Thus we can omit the otherwise necessary tests	*/
-/* here.  Note in particular tha the "displ" value is the displacement	*/
-/* from the beggining of the heap block, which may itself be in the	*/
+/* here.  Note in particular that the "displ" value is the displacement	*/
+/* from the beginning of the heap block, which may itself be in the	*/
 /* interior of a large object.						*/
 #ifdef MARK_BIT_PER_GRANULE
 # define PUSH_CONTENTS_HDR(current, mark_stack_top, mark_stack_limit, \

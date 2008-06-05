@@ -45,6 +45,10 @@
 
 # if defined(MSWIN32) || defined(MSWINCE)
 #   include <windows.h>
+#   ifdef GC_DLL
+#     define GC_print_stats 0   /* Not exported from DLL */
+				/* Redefine to 1 to generate output. */
+#   endif
 # endif
 
 # ifdef PCR
@@ -65,6 +69,13 @@
 # include <stdarg.h>
 #endif
 
+/* Call GC_INIT only on platforms on which we think we really need it,	*/
+/* so that we can test automatic initialization on the rest.		*/
+#if defined(CYGWIN32) || defined (AIX) || defined(DARWIN)
+#  define GC_COND_INIT() GC_INIT()
+#else
+#  define GC_COND_INIT()
+#endif
 
 /* Allocation Statistics */
 int stubborn_count = 0;
@@ -1018,17 +1029,23 @@ static void uniq(void *p, ...) {
 void run_one_test()
 {
     char *x;
+    char **z;
 #   ifdef LINT
     	char *y = 0;
 #   else
     	char *y = (char *)(size_t)fail_proc1;
 #   endif
+    CLOCK_TYPE start_time;
+    CLOCK_TYPE reverse_time;
+    CLOCK_TYPE typed_time;
+    CLOCK_TYPE tree_time;
+    unsigned long time_diff;
     DCL_LOCK_STATE;
     
 #   ifdef FIND_LEAK
-	(void)GC_printf(
+	GC_printf(
 		"This test program is not designed for leak detection mode\n");
-	(void)GC_printf("Expect lots of problems.\n");
+	GC_printf("Expect lots of problems.\n");
 #   endif
     GC_FREE(0);
 #   ifndef DBG_HDRS_ALL
@@ -1036,56 +1053,62 @@ void run_one_test()
       if ((GC_size(GC_malloc(7)) != 8 &&
 	   GC_size(GC_malloc(7)) != MIN_WORDS * sizeof(GC_word))
 	|| GC_size(GC_malloc(15)) != 16) {
-	    (void)GC_printf("GC_size produced unexpected results\n");
+	    GC_printf("GC_size produced unexpected results\n");
 	    FAIL;
       }
       collectable_count += 1;
       if (GC_size(GC_malloc(0)) != MIN_WORDS * sizeof(GC_word)) {
-    	(void)GC_printf("GC_malloc(0) failed: GC_size returns %ld\n",
+    	GC_printf("GC_malloc(0) failed: GC_size returns %ld\n",
 			(unsigned long)GC_size(GC_malloc(0)));
-	    FAIL;
+	FAIL;
       }
       collectable_count += 1;
       if (GC_size(GC_malloc_uncollectable(0)) != MIN_WORDS * sizeof(GC_word)) {
-    	(void)GC_printf("GC_malloc_uncollectable(0) failed\n");
-	    FAIL;
+	GC_printf("GC_malloc_uncollectable(0) failed\n");
+	FAIL;
       }
       GC_is_valid_displacement_print_proc = fail_proc1;
       GC_is_visible_print_proc = fail_proc1;
       collectable_count += 1;
       x = GC_malloc(16);
       if (GC_base(x + 13) != x) {
-    	(void)GC_printf("GC_base(heap ptr) produced incorrect result\n");
+    	GC_printf("GC_base(heap ptr) produced incorrect result\n");
 	FAIL;
       }
 #     ifndef PCR
         if (GC_base(y) != 0) {
-    	  (void)GC_printf("GC_base(fn_ptr) produced incorrect result\n");
+    	  GC_printf("GC_base(fn_ptr) produced incorrect result\n");
 	  FAIL;
         }
 #     endif
       if (GC_same_obj(x+5, x) != x + 5) {
-    	(void)GC_printf("GC_same_obj produced incorrect result\n");
+    	GC_printf("GC_same_obj produced incorrect result\n");
 	FAIL;
       }
       if (GC_is_visible(y) != y || GC_is_visible(x) != x) {
-    	(void)GC_printf("GC_is_visible produced incorrect result\n");
+    	GC_printf("GC_is_visible produced incorrect result\n");
 	FAIL;
       }
+      z = GC_malloc(8);
+      GC_PTR_STORE(z, x);
+      if (*z != x) {
+        GC_printf("GC_PTR_STORE failed: %p != %p\n", *z, x);
+        FAIL;
+      }
       if (!TEST_FAIL_COUNT(1)) {
-#	if!(defined(RS6000) || defined(POWERPC) || defined(IA64)) || defined(M68K)
-	  /* ON RS6000s function pointers point to a descriptor in the	*/
+#	if!(defined(POWERPC) || defined(IA64)) || defined(M68K)
+	  /* On POWERPCs function pointers point to a descriptor in the	*/
 	  /* data segment, so there should have been no failures.	*/
 	  /* The same applies to IA64.  Something similar seems to	*/
 	  /* be going on with NetBSD/M68K.				*/
-    	  (void)GC_printf("GC_is_visible produced wrong failure indication\n");
+    	  GC_printf("GC_is_visible produced wrong failure indication\n");
     	  FAIL;
 #	endif
       }
       if (GC_is_valid_displacement(y) != y
         || GC_is_valid_displacement(x) != x
         || GC_is_valid_displacement(x + 3) != x + 3) {
-    	(void)GC_printf(
+    	GC_printf(
     		"GC_is_valid_displacement produced incorrect result\n");
 	FAIL;
       }
@@ -1109,15 +1132,25 @@ void run_one_test()
         if (GC_all_interior_pointers && !TEST_FAIL_COUNT(1)
 	    || !GC_all_interior_pointers && !TEST_FAIL_COUNT(2)) {
 #      endif
-    	  (void)GC_printf("GC_is_valid_displacement produced wrong failure indication\n");
+    	  GC_printf("GC_is_valid_displacement produced wrong failure indication\n");
     	  FAIL;
         }
 #     endif
 #   endif /* DBG_HDRS_ALL */
     /* Test floating point alignment */
-   collectable_count += 2;
+        collectable_count += 2;
 	*(double *)GC_MALLOC(sizeof(double)) = 1.0;
 	*(double *)GC_MALLOC(sizeof(double)) = 1.0;
+    /* Test size 0 allocation a bit more */
+    	{
+	   size_t i;
+	   for (i = 0; i < 10000; ++i) {
+	     GC_MALLOC(0);
+	     GC_FREE(GC_MALLOC(0));
+	     GC_MALLOC_ATOMIC(0);
+	     GC_FREE(GC_MALLOC_ATOMIC(0));
+	   }
+	 }
 #   ifdef GC_GCJ_SUPPORT
       GC_REGISTER_DISPLACEMENT(sizeof(struct fake_vtable *));
       GC_init_gcj_malloc(0, (void *)fake_gcj_mark_proc);
@@ -1143,17 +1176,30 @@ void run_one_test()
         GC_free(GC_malloc(0));
         GC_free(GC_malloc_atomic(0));
     /* Repeated list reversal test. */
+        GET_TIME(start_time);
 	reverse_test();
-#   ifdef PRINTSTATS
-	GC_printf("-------------Finished reverse_test\n");
-#   endif
+	if (GC_print_stats) {
+          GET_TIME(reverse_time);
+          time_diff = MS_TIME_DIFF(reverse_time, start_time);
+	  GC_log_printf("-------------Finished reverse_test at time %u (%p)\n",
+	  		(unsigned) time_diff, &start_time);
+	}
 #   ifndef DBG_HDRS_ALL
       typed_test();
-#     ifdef PRINTSTATS
-	GC_printf("-------------Finished typed_test\n");
-#     endif
+      if (GC_print_stats) {
+        GET_TIME(typed_time);
+        time_diff = MS_TIME_DIFF(typed_time, start_time);
+	GC_log_printf("-------------Finished typed_test at time %u (%p)\n",
+	  	      (unsigned) time_diff, &start_time);
+      }
 #   endif /* DBG_HDRS_ALL */
     tree_test();
+    if (GC_print_stats) {
+      GET_TIME(tree_time);
+      time_diff = MS_TIME_DIFF(tree_time, start_time);
+      GC_log_printf("-------------Finished tree_test at time %u (%p)\n",
+	  	      (unsigned) time_diff, &start_time);
+    }
     LOCK();
     n_tests++;
     UNLOCK();
@@ -1162,11 +1208,13 @@ void run_one_test()
 	GC_gcollect();
 	tiny_reverse_test(0);
 	GC_gcollect();
-	GC_printf("Finished a child process\n");
+        if (GC_print_stats)
+	  GC_log_printf("Finished a child process\n");
 	exit(0);
       }
 #   endif
-    /* GC_printf("Finished %x\n", pthread_self()); */
+    if (GC_print_stats)
+      GC_log_printf("Finished %p\n", &start_time);
 }
 
 void check_heap_stats()
@@ -1320,26 +1368,26 @@ void SetMinimumStack(long minSize)
 	/* Cheat and let stdio initialize toolbox for us.	*/
 	printf("Testing GC Macintosh port.\n");
 #   endif
-    GC_INIT();	/* Only needed on a few platforms.	*/
-    (void) GC_set_warn_proc(warn_proc);
+    GC_COND_INIT();
+    GC_set_warn_proc(warn_proc);
 #   if (defined(MPROTECT_VDB) || defined(PROC_VDB) || defined(GWW_VDB)) \
           && !defined(MAKE_BACK_GRAPH) && !defined(NO_INCREMENTAL)
       GC_enable_incremental();
-      (void) GC_printf("Switched to incremental mode\n");
+      GC_printf("Switched to incremental mode\n");
 #     if defined(MPROTECT_VDB)
-	(void)GC_printf("Emulating dirty bits with mprotect/signals\n");
+	GC_printf("Emulating dirty bits with mprotect/signals\n");
 #     else
 #       ifdef PROC_VDB
-	(void)GC_printf("Reading dirty bits from /proc\n");
+	  GC_printf("Reading dirty bits from /proc\n");
 #       else
-    (void)GC_printf("Using DEFAULT_VDB dirty bit implementation\n");
+	  GC_printf("Using DEFAULT_VDB dirty bit implementation\n");
 #       endif
 #      endif
 #   endif
     run_one_test();
     check_heap_stats();
 #   ifndef MSWINCE
-    (void)fflush(stdout);
+      fflush(stdout);
 #   endif
 #   ifdef LINT
 	/* Entry points we should be testing, but aren't.		   */
@@ -1467,7 +1515,7 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE prev, LPSTR cmd, int n)
     GC_use_DllMain();  /* Test with implicit thread registration if possible. */
     GC_printf("Using DllMain to track threads\n");
 # endif
-  GC_INIT();
+  GC_COND_INIT();
 # ifndef NO_INCREMENTAL
     GC_enable_incremental();
 # endif
@@ -1577,7 +1625,7 @@ int main()
 	pthread_win32_process_attach_np ();
 	pthread_win32_thread_attach_np ();
 #   endif
-    GC_INIT();
+    GC_COND_INIT();
 
     pthread_attr_init(&attr);
 #   if defined(GC_IRIX_THREADS) || defined(GC_FREEBSD_THREADS) \

@@ -71,12 +71,12 @@ if WIN32_THREADS
 libgc_la_SOURCES += win32_threads.c
 endif
 
-if USE_INTERNAL_LIBATOMIC_OPS
-nodist_libgc_la_SOURCES = atomic_ops.c
-endif
-
-if NEED_ATOMIC_OPS_ASM
-nodist_libgc_la_SOURCES = atomic_ops_sysdeps.S
+if USE_INTERNAL_LIBATOMIC_OPS 	 
+nodist_libgc_la_SOURCES = ./atomic_ops.c 	 
+endif 	 
+  	 
+if NEED_ATOMIC_OPS_ASM 	 
+nodist_libgc_la_SOURCES = ./atomic_ops_sysdeps.S 	 
 endif
 
 # Include THREADDLLIBS here to ensure that the correct versions of
@@ -98,7 +98,7 @@ if CPLUSPLUS
 noinst_LTLIBRARIES += libgccpp.la
 pkginclude_HEADERS += include/gc_cpp.h include/gc_allocator.h
 libgccpp_la_SOURCES = gc_cpp.cc
-libgccpp_la_LIBADD = $(top_builddir)/libgc.la
+libgccpp_la_LIBADD = ./libgc.la
 libgccpp_la_LDFLAGS = -version-info 1:3:0 -no-undefined
 endif
 
@@ -155,7 +155,6 @@ dist_noinst_SCRIPTS = callprocs configure.host
 # headers which are not installed
 # (see include/include.am for more)
 #
-dist_noinst_HEADERS += version.h
 
 # documentation which is not installed
 #
@@ -167,7 +166,8 @@ EXTRA_DIST += BCC_MAKEFILE NT_MAKEFILE NT_THREADS_MAKEFILE \
     OS2_MAKEFILE PCR-Makefile digimars.mak EMX_MAKEFILE	\
     Makefile.direct Makefile.dj	Makefile.DLLs SMakefile.amiga \
     WCC_MAKEFILE configure_atomic_ops.sh \
-    NT_STATIC_THREADS_MAKEFILE NT_X64_STATIC_THREADS_MAKEFILE
+    NT_STATIC_THREADS_MAKEFILE NT_X64_STATIC_THREADS_MAKEFILE \
+    NT_X64_THREADS_MAKEFILE
 
 # files used by makefiles other than Makefile.am
 #

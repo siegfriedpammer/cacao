@@ -31,6 +31,13 @@
 
 # define _GC_H
 
+# include "gc_version.h"
+	/* Define version numbers here to allow test on build machine	*/
+	/* for cross-builds.  Note that this defines the header		*/
+	/* version number, which may or may not match that of the	*/
+	/* dynamic library.  The GC_version variable can be used	*/
+	/* to obtain the latter.					*/
+
 # include "gc_config_macros.h"
 
 # ifdef __cplusplus
@@ -230,11 +237,8 @@ GC_API unsigned long GC_time_limit;
 
 /* Public procedures */
 
-/* Initialize the collector.  This is only required when using thread-local
- * allocation, since unlike the regular allocation routines, GC_local_malloc
- * is not self-initializing.  If you use GC_local_malloc you should arrange
- * to call this somehow (e.g. from a constructor) before doing any allocation.
- * For win32 threads, it needs to be called explicitly.
+/* Initialize the collector.  Portable clients should call GC_INIT() from
+ * the main program instead.
  */
 GC_API void GC_init(void);
 
@@ -469,7 +473,7 @@ GC_API void * GC_malloc_atomic_ignore_off_page(size_t lb);
 #if defined(__linux__) || defined(__GLIBC__)
 # include <features.h>
 # if (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 1 || __GLIBC__ > 2) \
-     && !defined(__ia64__)
+     && !defined(__ia64__) && !defined(__UCLIBC__)
 #   ifndef GC_HAVE_BUILTIN_BACKTRACE
 /* #     define GC_HAVE_BUILTIN_BACKTRACE */
 #   endif
@@ -739,8 +743,9 @@ GC_API int GC_register_disappearing_link(void * * link );
 	/* be allowed here, instead of just clearing a pointer. */
 	/* But this causes problems if that action alters, or 	*/
 	/* examines connectivity.				*/
-	/* Returns 1 if link was already registered, 0		*/
-	/* otherwise.						*/
+	/* Returns 1 if link was already registered, 0 if	*/
+	/* registration succeeded, 2 if it failed for lack of	*/
+	/* memory, and GC_oom_fn did not handle the problem.	*/
 	/* Only exists for backward compatibility.  See below:	*/
 	
 GC_API int GC_general_register_disappearing_link (void * * link, void * obj);
@@ -860,7 +865,7 @@ typedef void * (*GC_stack_base_func)(struct GC_stack_base *sb, void *arg);
 /* somewhere in the GC_call_with_stack_base frame.  This often can	*/
 /* be used to provide a sufficiently accurate stack base.  And we 	*/
 /* implement it everywhere.						*/
-void * GC_call_with_stack_base(GC_stack_base_func fn, void *arg);
+GC_API void * GC_call_with_stack_base(GC_stack_base_func fn, void *arg);
 
 /* Register the current thread, with the indicated stack base, as	*/
 /* a new thread whose stack(s) should be traced by the GC.  If a 	*/
@@ -873,7 +878,7 @@ void * GC_call_with_stack_base(GC_stack_base_func fn, void *arg);
 #define GC_DUPLICATE 1	/* Was already registered.	*/
 #define GC_NO_THREADS 2	/* No thread support in GC.  	*/
 #define GC_UNIMPLEMENTED 3	/* Not yet implemented on this platform. */
-int GC_register_my_thread(struct GC_stack_base *);
+GC_API int GC_register_my_thread(struct GC_stack_base *);
 
 /* Unregister the current thread.  The thread may no longer allocate	*/
 /* garbage collected memory or manipulate pointers to the		*/
@@ -882,7 +887,7 @@ int GC_register_my_thread(struct GC_stack_base *);
 /* pointer to the garbage-collected heap to another thread, it must	*/
 /* do this before calling GC_unregister_my_thread, most probably	*/
 /* by saving it in a global data structure.				*/
-int GC_unregister_my_thread(void);
+GC_API int GC_unregister_my_thread(void);
 
 /* Attempt to fill in the GC_stack_base structure with the stack base	*/
 /* for this thread.  This appears to be required to implement anything	*/
@@ -890,7 +895,7 @@ int GC_unregister_my_thread(void);
 /* threads are not automatically registered with the collector.		*/
 /* It is also unfortunately hard to implement well on many platforms.	*/
 /* Returns GC_SUCCESS or GC_UNIMPLEMENTED.				*/
-int GC_get_stack_base(struct GC_stack_base *);
+GC_API int GC_get_stack_base(struct GC_stack_base *);
 
 /* The following routines are primarily intended for use with a 	*/
 /* preprocessor which inserts calls to check C pointer arithmetic.	*/
@@ -969,7 +974,7 @@ void GC_dump(void);
 #   define GC_PTR_STORE(p, q) \
 	(*(void **)GC_is_visible(p) = GC_is_valid_displacement(q))
 #else /* !GC_DEBUG */
-#   define GC_PTR_STORE(p, q) *((p) = (q))
+#   define GC_PTR_STORE(p, q) (*(p) = (q))
 #endif
 
 /* Functions called to report pointer checking errors */
@@ -983,8 +988,8 @@ GC_API void (*GC_is_visible_print_proc) (void * p);
 /* For pthread support, we generally need to intercept a number of 	*/
 /* thread library calls.  We do that here by macro defining them.	*/
 
-#if !defined(GC_USE_LD_WRAP) && \
-    (defined(GC_PTHREADS) || defined(GC_SOLARIS_THREADS))
+#if !defined(GC_USE_LD_WRAP) && !defined(GC_NO_THREAD_REDIRECTS) \
+    && defined(GC_PTHREADS)
 # include "gc_pthread_redirects.h"
 #endif
 
@@ -999,7 +1004,6 @@ GC_API void (*GC_is_visible_print_proc) (void * p);
 void * GC_malloc_many(size_t lb);
 #define GC_NEXT(p) (*(void * *)(p)) 	/* Retrieve the next element	*/
 					/* in returned list.		*/
-extern void GC_thr_init(void);	/* Needed for Solaris/X86 ??	*/
 
 #endif /* THREADS */
 
@@ -1021,6 +1025,7 @@ GC_register_has_static_roots_callback
     }  /* Including windows.h in an extern "C" context no longer works. */
 #endif
 
+#ifndef GC_NO_THREAD_DECLS
 # include <windows.h>
 
 #ifdef __cplusplus
@@ -1046,6 +1051,9 @@ GC_register_has_static_roots_callback
       DWORD dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress,
       LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId );
 
+#  if defined(_MSC_VER) && _MSC_VER >= 1200 && !defined(_UINTPTR_T_DEFINED)
+     typedef unsigned long uintptr_t;
+#  endif
 
    GC_API uintptr_t GC_beginthreadex(
      void *security, unsigned stack_size,
@@ -1070,17 +1078,23 @@ GC_register_has_static_roots_callback
 #    define WinMain GC_WinMain
 #  endif
 # endif /* defined(_WIN32_WCE) */
+#endif /* !GC_NO_THREAD_DECLS */
 
   /*
    * Use implicit thread registration via DllMain.
+   * Must be called before GC_INIT and other GC routines.
+   * Should be avoided if GC_beginthreadex and friends can be called
+   * instead.
    */
 GC_API void GC_use_DllMain(void);
 
-# define CreateThread GC_CreateThread
-# define ExitThread GC_ExitThread
-# define _beginthreadex GC_beginthreadex
-# define _endthreadex GC_endthreadex
-# define _beginthread { > "Please use _beginthreadex instead of _beginthread" < }
+# ifndef GC_NO_THREAD_REDIRECTS
+#   define CreateThread GC_CreateThread
+#   define ExitThread GC_ExitThread
+#   define _beginthreadex GC_beginthreadex
+#   define _endthreadex GC_endthreadex
+#   define _beginthread { > "Please use _beginthreadex instead of _beginthread" < }
+# endif /* !GC_NO_THREAD_REDIRECTS */
 
 #endif /* defined(GC_WIN32_THREADS)  && !cygwin */
 
@@ -1090,7 +1104,8 @@ GC_API void GC_use_DllMain(void);
   * no-op and the collector self-initializes.  But a number of platforms
   * make that too hard.
   * A GC_INIT call is required if the collector is built with THREAD_LOCAL_ALLOC
-  * defined and the initial allocation call is not to GC_malloc().
+  * defined and the initial allocation call is not to GC_malloc() or
+  * GC_malloc_atomic().
   */
 #if defined(__CYGWIN32__) || defined (_AIX)
     /*
@@ -1106,13 +1121,9 @@ GC_API void GC_use_DllMain(void);
 #     define GC_MIN(x,y) ((x) < (y) ? (x) : (y))
 #     define GC_DATASTART ((void *) GC_MIN(_data_start__, _bss_start__))
 #     define GC_DATAEND	 ((void *) GC_MAX(_data_end__, _bss_end__))
-#     if defined(GC_DLL)
-#       define GC_INIT() { GC_add_roots(GC_DATASTART, GC_DATAEND); \
+#     define GC_INIT() { GC_add_roots(GC_DATASTART, GC_DATAEND); \
 			   GC_gcollect(); /* For blacklisting. */}
-#     else
-	/* Main program init not required  */
-#       define GC_INIT() { GC_init(); }
-#     endif
+	/* Required at least if GC is in dll.  And doesn't hurt. */
 #   endif
 #   if defined(_AIX)
       extern int _data[], _end[];
@@ -1137,8 +1148,8 @@ GC_API void GC_use_DllMain(void);
 # include "gc_amiga_redirects.h"
 #endif
 
-#if defined(GC_REDIRECT_TO_LOCAL) && !defined(GC_LOCAL_ALLOC_H)
-#  include  "gc_local_alloc.h"
+#if defined(GC_REDIRECT_TO_LOCAL)
+  /* Now redundant; that's the default with THREAD_LOCAL_ALLOC */
 #endif
 
 #ifdef __cplusplus

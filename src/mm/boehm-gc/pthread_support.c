@@ -155,7 +155,7 @@ unsigned long GC_lock_holder = NO_THREAD;
 #if defined(GC_USE_DL_WRAP) || defined(GC_USE_DLOPEN_WRAP)
 /* Define GC_ functions as aliases for the plain ones, which will	*/
 /* be intercepted.  This allows files which include gc.h, and hence	*/
-/* generate referemces to the GC_ symbols, to see the right symbols.	*/
+/* generate references to the GC_ symbols, to see the right symbols.	*/
       int GC_pthread_create(pthread_t * t, const pthread_attr_t * a,
 		         void * (* fn)(void *), void * arg) {
 	  return pthread_create(t, a, fn, arg);
@@ -730,7 +730,7 @@ void GC_thr_init(void)
 #   endif /* HANDLE_FORK */
 #   if defined(INCLUDE_LINUX_THREAD_DESCR)
       /* Explicitly register the region including the address 		*/
-      /* of a thread local variable.  This should included thread	*/
+      /* of a thread local variable.  This should include thread	*/
       /* locals for the main thread, except for those allocated		*/
       /* in response to dlopen calls.					*/  
 	{
@@ -765,7 +765,7 @@ void GC_thr_init(void)
 	  GC_nprocs = pthread_num_processors_np();
 #       endif
 #	if defined(GC_OSF1_THREADS) || defined(GC_AIX_THREADS) \
-	   || defined(GC_SOLARIS_THREADS)
+	   || defined(GC_SOLARIS_THREADS) || defined(GC_GNU_THREADS)
 	  GC_nprocs = sysconf(_SC_NPROCESSORS_ONLN);
 	  if (GC_nprocs <= 0) GC_nprocs = 1;
 #	endif
@@ -785,9 +785,6 @@ void GC_thr_init(void)
 #	if defined(GC_LINUX_THREADS) || defined(GC_DGUX386_THREADS)
           GC_nprocs = GC_get_nprocs();
 #	endif
-#       if defined(GC_GNU_THREADS)
-	  if (GC_nprocs <= 0) GC_nprocs = 1;
-#       endif
       }
       if (GC_nprocs <= 0) {
 	WARN("GC_get_nprocs() returned %ld\n", GC_nprocs);
