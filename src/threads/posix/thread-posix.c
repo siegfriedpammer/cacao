@@ -105,6 +105,8 @@
 #  define GC_DARWIN_THREADS
 # endif
 # if defined(ENABLE_GC_BOEHM)
+/* We need to include Boehm's gc.h here because it overrides
+   pthread_create and friends. */
 #  include "mm/boehm-gc/include/gc.h"
 # endif
 
