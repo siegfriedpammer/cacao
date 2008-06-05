@@ -44,6 +44,12 @@ src/cacao/cacao
 src/cacaoh/cacaoh
 src/classes/classes/
 src/classes/vm.zip
+src/mm/boehm-gc/.dirstamp
+src/mm/boehm-gc/atomic_ops.c
+src/mm/boehm-gc/atomic_ops_sysdeps.S
+src/mm/boehm-gc/bdw-gc.pc
+src/mm/boehm-gc/libatomic_ops
+src/mm/boehm-gc/cord/.dirstamp
 src/native/include/*.h
 src/scripts/java
 tests/*.class
