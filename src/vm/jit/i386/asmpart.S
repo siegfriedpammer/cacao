@@ -64,6 +64,10 @@
 
 	.globl asm_get_cycle_count
 
+#if defined(ENABLE_ESCAPE_CHECK)
+	.globl asm_escape_check
+#endif
+
 
 /* asm_md_init *****************************************************************
 
@@ -423,13 +427,35 @@ asm_get_cycle_count:
 	rdtsc
 	ret
 
+#if defined(ENABLE_ESCAPE_CHECK)
+asm_escape_check:
+	sub     $24,%esp
+
+	mov     t0, 4(%esp)
+	mov     itmp1, 8(%esp)
+	mov     itmp2, 12(%esp)
+	mov     itmp3, 16(%esp)
+
+	mov     28(%esp), itmp1
+	mov     itmp1, (%esp)
+
+	call    escape_analysis_escape_check
+
+	mov     4(%esp), t0
+	mov     8(%esp), itmp1
+	mov     12(%esp), itmp2
+	mov     16(%esp), itmp3
+
+	add     $24,sp
+	ret
+#endif
+
 
 /* disable exec-stacks ********************************************************/
 
 #if defined(__linux__) && defined(__ELF__)
 	.section .note.GNU-stack,"",%progbits
 #endif
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

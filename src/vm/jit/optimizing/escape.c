@@ -980,3 +980,5 @@ void escape_analysis_perform(jitdata *jd) {
 	jd->m->flags &= ~ACC_METHOD_EA;
 }
 
+void escape_analysis_escape_check(void *vp) {
+}

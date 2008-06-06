@@ -1844,6 +1844,14 @@ void emit_fincstp(codegendata *cd)
 	*(cd->mcodeptr++) = 0xf7;
 }
 
+#if defined(ENABLE_ESCAPE_CHECK)
+void emit_escape_check(codegendata *cd, s4 reg) {
+	M_PUSH(reg);
+	M_MOV_IMM(asm_escape_check, REG_ITMP3);
+	M_CALL(REG_ITMP3);
+	M_IADD_IMM(4, REG_SP);
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

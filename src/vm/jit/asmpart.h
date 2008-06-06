@@ -113,6 +113,10 @@ u8 asm_get_cycle_count(void);
 
 void *md_asm_codegen_get_pv_from_pc(void *ra);
 
+#if defined(ENABLE_ESCAPE_CHECK)
+void asm_escape_check(java_object_t *obj);
+#endif
+
 #endif /* _ASMPART_H */
 
 

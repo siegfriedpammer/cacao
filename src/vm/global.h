@@ -239,6 +239,11 @@ struct java_object_t {                 /* header for all objects              */
 #if defined(ENABLE_GC_CACAO)
 	uintptr_t      hdrflags;           /* word containing the GC bits         */
 #endif
+#if defined(ENABLE_ESCAPE_CHECK)
+	void *method;
+	void *thread;
+	uintptr_t escape;
+#endif
 };
 
 
