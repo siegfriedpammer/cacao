@@ -9,3 +9,5 @@ fi
 ${CACAO_AUTOHEADER}
 ${CACAO_AUTOMAKE} --add-missing
 ${CACAO_AUTOCONF}
+
+(cd libatomic_ops-1.2; ./autogen.sh)
