@@ -2304,7 +2304,7 @@ bool codegen_emit(jitdata *jd)
 			emit_nullpointer_check(cd, iptr, s1);
 
 #if defined(ENABLE_ESCAPE_CHECK)
-			emit_escape_check(cd, s1);
+			/*emit_escape_check(cd, s1);*/
 #endif
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
@@ -2967,7 +2967,7 @@ gen_method:
 
 #if defined(ENABLE_ESCAPE_CHECK)
 				if (bte->opcode == ICMD_NEW || bte->opcode == ICMD_NEWARRAY) {
-					emit_esape_annotate_object(cd, m);
+					/*emit_escape_annotate_object(cd, m);*/
 				}
 #endif
 				break;

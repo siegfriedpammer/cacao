@@ -296,7 +296,7 @@ void emit_fincstp(codegendata *cd);
 
 #if defined(ENABLE_ESCAPE_CHECK)
 void emit_escape_check(codegendata *cd, s4 reg);
-void emit_esape_annotate_object(codegendata *cd, methodinfo *m);
+void emit_escape_annotate_object(codegendata *cd, methodinfo *m);
 #endif
 
 #endif /* _EMITFUNCS_H */
