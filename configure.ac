@@ -23,7 +23,7 @@ dnl 02110-1301, USA.
 dnl Process this file with autoconf to produce a configure script.
 
 
-AC_INIT(cacao, 0.99rc5, cacao@cacaojvm.org)
+AC_INIT(cacao, 0.99rc6, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
