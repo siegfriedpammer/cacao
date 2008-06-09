@@ -148,6 +148,12 @@ void threads_preinit(void)
 
 	mainthread = thread_new();
 
+	/* The main thread should always have index 1. */
+
+	if (mainthread->index != 1)
+		vm_abort("threads_preinit: main thread index not 1: %d != 1",
+				 mainthread->index);
+
 	/* thread is a Java thread and running */
 
 	mainthread->flags |= THREAD_FLAG_JAVA;
