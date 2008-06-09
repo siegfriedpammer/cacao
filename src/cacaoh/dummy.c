@@ -160,6 +160,12 @@ java_handle_t *builtin_clone(void *env, java_handle_t *o)
 	return NULL;
 }
 
+bool fast_subtype_check(struct _vftbl *s, struct _vftbl *t)
+{
+	vm_abort("fast_subtype_check: Not implemented.");
+	return 0;
+}
+
 bool builtin_isanysubclass(classinfo *sub, classinfo *super)
 {
 	vm_abort("builtin_isanysubclass: Not implemented.");

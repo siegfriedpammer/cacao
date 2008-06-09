@@ -667,6 +667,19 @@ bool builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o)
 
 *******************************************************************************/
 
+bool fast_subtype_check(struct _vftbl *s, struct _vftbl *t)
+{
+	int i;
+	if (s->subtype_display[t->subtype_depth] == t)
+		return true;
+	if (t->subtype_offset != OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]))
+		return false;
+	for (i=0; i<s->subtype_overflow_length; i++)
+		if (s->subtype_overflow[i] == t)
+			return true;
+	return false;
+}
+
 bool builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 {
 	arraydescriptor *desc;
@@ -699,8 +712,6 @@ bool builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 		if (valuevftbl == componentvftbl)
 			return 1;
 
-		LOCK_MONITOR_ENTER(linker_classrenumber_lock);
-
 		baseval = componentvftbl->baseval;
 
 		if (baseval <= 0) {
@@ -710,11 +721,8 @@ bool builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 					  (valuevftbl->interfacetable[baseval] != NULL));
 		}
 		else {
-			diffval = valuevftbl->baseval - componentvftbl->baseval;
-			result  = diffval <= (uint32_t) componentvftbl->diffval;
+			result = fast_subtype_check(valuevftbl, componentvftbl);
 		}
-
-		LOCK_MONITOR_EXIT(linker_classrenumber_lock);
 	}
 	else if (valuedesc == NULL) {
 		/* {oa has dimension > 1} */
@@ -766,8 +774,6 @@ bool builtin_fast_canstore_onedim(java_objectarray_t *a, java_object_t *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
-
 	baseval = elementvftbl->baseval;
 
 	if (baseval <= 0) {
@@ -776,11 +782,8 @@ bool builtin_fast_canstore_onedim(java_objectarray_t *a, java_object_t *o)
 				  (valuevftbl->interfacetable[baseval] != NULL));
 	}
 	else {
-		diffval = valuevftbl->baseval - elementvftbl->baseval;
-		result  = diffval <= (uint32_t) elementvftbl->diffval;
+		result = fast_subtype_check(valuevftbl, elementvftbl);
 	}
-
-	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
 
 	return result;
 }
@@ -815,12 +818,7 @@ bool builtin_fast_canstore_onedim_class(java_objectarray_t *a, java_object_t *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
-
-	diffval = valuevftbl->baseval - elementvftbl->baseval;
-	result  = diffval <= (uint32_t) elementvftbl->diffval;
-
-	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
+	result = fast_subtype_check(valuevftbl, elementvftbl);
 
 	return result;
 }

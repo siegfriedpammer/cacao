@@ -92,8 +92,6 @@ classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls, bool c
 static s4 interfaceindex;       /* sequential numbering of interfaces         */
 static s4 classvalue;
 
-java_object_t *linker_classrenumber_lock;
-
 
 /* private functions **********************************************************/
 
@@ -164,14 +162,6 @@ void linker_preinit(void)
 	/* Reset interface index. */
 
 	interfaceindex = 0;
-
-#if defined(ENABLE_THREADS)
-	/* create the global lock object */
-
-	linker_classrenumber_lock = NEW(java_object_t);
-
-	LOCK_INIT_OBJECT_LOCK(linker_classrenumber_lock);
-#endif
 
 	/* Link the most basic classes. */
 
@@ -556,6 +546,70 @@ static bool linker_overwrite_method(methodinfo *mg,
    methods and interface methods.
 	
 *******************************************************************************/
+
+static int build_display_inner(classinfo *topc, classinfo *c, int i)
+{
+	int depth;
+	if (!c)
+		return 0;
+	do {
+		if (c->vftbl->arraydesc)
+		{
+			arraydescriptor *a = c->vftbl->arraydesc;
+			if (a->elementvftbl && a->elementvftbl->clazz->super)
+			{
+				classinfo *cls = a->elementvftbl->clazz->super;
+				int n;
+				for (n=0; n<a->dimension; n++)
+					cls = class_array_of(cls, true);
+				depth = build_display_inner(topc, cls, i+1);
+				break;
+			}
+			if (a->componentvftbl && a->elementvftbl)
+			{
+				depth = build_display_inner(topc, a->componentvftbl->clazz, i+1);
+				break;
+			}
+		}
+		depth = build_display_inner(topc, c->super, i+1);
+	} while (false);
+	if (depth >= DISPLAY_SIZE)
+	{
+		if (depth == DISPLAY_SIZE)
+		{
+			topc->vftbl->subtype_overflow_length = i+1;
+			topc->vftbl->subtype_overflow = malloc(sizeof(void*) * (i+1));
+#if defined(ENABLE_STATISTICS)
+			if (opt_stat)
+				count_vftbl_len += sizeof(void*) * (i+1);
+#endif
+		}
+		topc->vftbl->subtype_overflow[depth - DISPLAY_SIZE] = c->vftbl;
+		return depth + 1;
+	}
+	topc->vftbl->subtype_display[depth] = c->vftbl;
+	return depth + 1;
+}
+
+static void build_display(classinfo *c)
+{
+	int depth;
+	int i;
+
+	depth = build_display_inner(c, c, 0) - 1;
+	c->vftbl->subtype_depth = depth;
+	if (depth >= DISPLAY_SIZE)
+	{
+		c->vftbl->subtype_offset = OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]);
+	}
+	else
+	{
+		c->vftbl->subtype_offset = OFFSET(vftbl_t, subtype_display[0]) + sizeof(void*) * depth;
+		for (i=depth+1; i<=DISPLAY_SIZE; i++)
+			c->vftbl->subtype_display[i] = NULL;
+		c->vftbl->subtype_overflow_length = 0;
+	}
+}
 
 static classinfo *link_class_intern(classinfo *c)
 {
@@ -973,7 +1027,10 @@ static classinfo *link_class_intern(classinfo *c)
 
 	linker_compute_subclasses(c);
 
+	/* FIXME: this is completely useless now */
 	RT_TIMING_GET_TIME(time_subclasses);
+
+	build_display(c);
 
 	/* revert the linking state and class is linked */
 
@@ -1174,8 +1231,6 @@ static arraydescriptor *link_array(classinfo *c)
 
 static void linker_compute_subclasses(classinfo *c)
 {
-	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
-
 #if 0 && defined(ENABLE_THREADS) && !defined(DISABLE_GC)
 	threads_stopworld();
 #endif
@@ -1183,6 +1238,7 @@ static void linker_compute_subclasses(classinfo *c)
 	if (!(c->flags & ACC_INTERFACE)) {
 		c->nextsub = NULL;
 		c->sub     = NULL;
+		c->vftbl->baseval = 1; /* so it does not look like an interface */
 	}
 
 	if (!(c->flags & ACC_INTERFACE) && (c->super != NULL)) {
@@ -1191,12 +1247,6 @@ static void linker_compute_subclasses(classinfo *c)
 	}
 
 	classvalue = 0;
-
-	/* compute class values */
-
-	linker_compute_class_values(class_java_lang_Object);
-
-	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
 
 #if 0 && defined(ENABLE_THREADS) && !defined(DISABLE_GC)
 	threads_startworld();

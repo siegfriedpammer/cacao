@@ -251,7 +251,10 @@ void emit_testb_imm_reg(codegendata *cd, s8 imm, s8 reg);
 void emit_lea_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg);
 void emit_leal_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg);
 
+void emit_incl_reg(codegendata *cd, s8 reg);
+void emit_incq_reg(codegendata *cd, s8 reg);
 void emit_incl_membase(codegendata *cd, s8 basereg, s8 disp);
+void emit_incq_membase(codegendata *cd, s8 basereg, s8 disp);
 
 void emit_cltd(codegendata *cd);
 void emit_cqto(codegendata *cd);
