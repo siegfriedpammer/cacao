@@ -1179,6 +1179,16 @@ void emit_movslq_reg_reg(codegendata *cd, s8 reg, s8 dreg)
 }
 
 
+void emit_movzbq_reg_reg(codegendata *cd, s8 reg, s8 dreg)
+{
+	emit_rex(1,(dreg),0,(reg));
+	*(cd->mcodeptr++) = 0x0f;
+	*(cd->mcodeptr++) = 0xb6;
+	/* XXX: why do reg and dreg have to be exchanged */
+	emit_reg((dreg),(reg));
+}
+
+
 void emit_movzwq_reg_reg(codegendata *cd, s8 reg, s8 dreg)
 {
 	emit_rex(1,(dreg),0,(reg));
