@@ -77,11 +77,11 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	_uc = (ucontext_t *) _p;
 	_mc = _uc->uc_mcontext;
-	_ss = &_mc->ss;
+	_ss = &_mc->__ss;
 
 	pv  = NULL;                 /* is resolved during stackframeinfo creation */
-	sp  = (u1 *) _ss->esp;
-	xpc = (u1 *) _ss->eip;
+	sp  = (u1 *) _ss->__esp;
+	xpc = (u1 *) _ss->__eip;
 	ra  = xpc;                              /* return address is equal to XPC */
 
 	/* get exception-throwing instruction */
@@ -102,13 +102,13 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		type = disp;
 
-		val = (d == 0) ? _ss->eax :
-			((d == 1) ? _ss->ecx :
-			((d == 2) ? _ss->edx :
-			((d == 3) ? _ss->ebx :
-			((d == 4) ? _ss->esp :
-			((d == 5) ? _ss->ebp :
-			((d == 6) ? _ss->esi : _ss->edi))))));
+		val = (d == 0) ? _ss->__eax :
+			((d == 1) ? _ss->__ecx :
+			((d == 2) ? _ss->__edx :
+			((d == 3) ? _ss->__ebx :
+			((d == 4) ? _ss->__esp :
+			((d == 5) ? _ss->__ebp :
+			((d == 6) ? _ss->__esi : _ss->__edi))))));
 
 		if (type == TRAP_COMPILER) {
 			/* The PV from the compiler stub is equal to the XPC. */
@@ -146,20 +146,20 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		if (p == NULL) { 
 			o = builtin_retrieve_exception();
 
-			_ss->esp = (uintptr_t) sp;    /* Remove RA from stack. */
+			_ss->__esp = (uintptr_t) sp;  /* Remove RA from stack. */
 
-			_ss->eax = (uintptr_t) o;
-			_ss->ecx = (uintptr_t) xpc;            /* REG_ITMP2_XPC */
-			_ss->eip = (uintptr_t) asm_handle_exception;
+			_ss->__eax = (uintptr_t) o;
+			_ss->__ecx = (uintptr_t) xpc;           /* REG_ITMP2_XPC */
+			_ss->__eip = (uintptr_t) asm_handle_exception;
 		}
 		else {
-			_ss->eip = (uintptr_t) p;
+			_ss->__eip = (uintptr_t) p;
 		}
 	}
 	else {
-		_ss->eax = (uintptr_t) p;
-		_ss->ecx = (uintptr_t) xpc;            /* REG_ITMP2_XPC */
-		_ss->eip = (uintptr_t) asm_handle_exception;
+		_ss->__eax = (uintptr_t) p;
+		_ss->__ecx = (uintptr_t) xpc;            /* REG_ITMP2_XPC */
+		_ss->__eip = (uintptr_t) asm_handle_exception;
 	}
 }
 
@@ -187,11 +187,11 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 	_uc = (ucontext_t *) _p;
 	_mc = _uc->uc_mcontext;
-	_ss = &_mc->ss;
+	_ss = &_mc->__ss;
 
 	pv  = NULL;                 /* is resolved during stackframeinfo creation */
-	sp  = (u1 *) _ss->esp;
-	xpc = (u1 *) _ss->eip;
+	sp  = (u1 *) _ss->__esp;
+	xpc = (u1 *) _ss->__eip;
 	ra  = xpc;                          /* return address is equal to xpc     */
 
 	/* This is an ArithmeticException */
@@ -205,9 +205,9 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Set registers. */
 
-	_ss->eax = (uintptr_t) p;
-	_ss->ecx = (uintptr_t) xpc;            /* REG_ITMP2_XPC */
-	_ss->eip = (uintptr_t) asm_handle_exception;
+	_ss->__eax = (uintptr_t) p;
+	_ss->__ecx = (uintptr_t) xpc;            /* REG_ITMP2_XPC */
+	_ss->__eip = (uintptr_t) asm_handle_exception;
 }
 
 
@@ -229,9 +229,9 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 
 	_uc = (ucontext_t *) _p;
 	_mc = _uc->uc_mcontext;
-	_ss = &_mc->ss;
+	_ss = &_mc->__ss;
 
-	pc = (u1 *) _ss->eip;
+	pc = (u1 *) _ss->__eip;
 
 	t->pc = pc;
 }
@@ -259,11 +259,11 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 
 	_uc = (ucontext_t *) _p;
 	_mc = _uc->uc_mcontext;
-	_ss = &_mc->ss;
+	_ss = &_mc->__ss;
 
 	pv  = NULL;                 /* is resolved during stackframeinfo creation */
-	sp  = (u1 *) _ss->esp;
-	xpc = (u1 *) _ss->eip;
+	sp  = (u1 *) _ss->__esp;
+	xpc = (u1 *) _ss->__eip;
 	ra  = xpc;                          /* return address is equal to xpc     */
 
 	type = TRAP_PATCHER;
@@ -276,9 +276,9 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	/* Set registers. */
 
 	if (p != NULL) {
-		_ss->eax = (uintptr_t) p;
-		_ss->ecx = (uintptr_t) xpc;            /* REG_ITMP2_XPC */
-		_ss->eip = (uintptr_t) asm_handle_exception;
+		_ss->__eax = (uintptr_t) p;
+		_ss->__ecx = (uintptr_t) xpc;            /* REG_ITMP2_XPC */
+		_ss->__eip = (uintptr_t) asm_handle_exception;
 	}
 }
 
@@ -297,22 +297,22 @@ void md_executionstate_read(executionstate_t *es, void *context)
 
 	_uc = (ucontext_t *) context;
 	_mc = _uc->uc_mcontext;
-	_ss = &_mc->ss;
+	_ss = &_mc->__ss;
 
 	/* read special registers */
-	es->pc = (u1 *) _ss->eip;
-	es->sp = (u1 *) _ss->esp;
+	es->pc = (u1 *) _ss->__eip;
+	es->sp = (u1 *) _ss->__esp;
 	es->pv = NULL;                   /* pv must be looked up via AVL tree */
 
 	/* read integer registers */
 	for (i = 0; i < INT_REG_CNT; i++)
-		es->intregs[i] = (i == 0) ? _ss->eax :
-			((i == 1) ? _ss->ecx :
-			((i == 2) ? _ss->edx :
-			((i == 3) ? _ss->ebx :
-			((i == 4) ? _ss->esp :
-			((i == 5) ? _ss->ebp :
-			((i == 6) ? _ss->esi : _ss->edi))))));
+		es->intregs[i] = (i == 0) ? _ss->__eax :
+			((i == 1) ? _ss->__ecx :
+			((i == 2) ? _ss->__edx :
+			((i == 3) ? _ss->__ebx :
+			((i == 4) ? _ss->__esp :
+			((i == 5) ? _ss->__ebp :
+			((i == 6) ? _ss->__esi : _ss->__edi))))));
 
 	/* read float registers */
 	for (i = 0; i < FLT_REG_CNT; i++)
@@ -335,21 +335,21 @@ void md_executionstate_write(executionstate_t *es, void *context)
 
 	_uc = (ucontext_t *) context;
 	_mc = _uc->uc_mcontext;
-	_ss = &_mc->ss;
+	_ss = &_mc->__ss;
 
 	/* write integer registers */
 	for (i = 0; i < INT_REG_CNT; i++)
-		*((i == 0) ? &_ss->eax :
-		  ((i == 1) ? &_ss->ecx :
-		  ((i == 2) ? &_ss->edx :
-		  ((i == 3) ? &_ss->ebx :
-		  ((i == 4) ? &_ss->esp :
-		  ((i == 5) ? &_ss->ebp :
-		  ((i == 6) ? &_ss->esi : &_ss->edi))))))) = es->intregs[i];
+		*((i == 0) ? &_ss->__eax :
+		 ((i == 1) ? &_ss->__ecx :
+		 ((i == 2) ? &_ss->__edx :
+		 ((i == 3) ? &_ss->__ebx :
+		 ((i == 4) ? &_ss->__esp :
+		 ((i == 5) ? &_ss->__ebp :
+		 ((i == 6) ? &_ss->__esi : &_ss->__edi))))))) = es->intregs[i];
 
 	/* write special registers */
-	_ss->eip = (ptrint) es->pc;
-	_ss->esp = (ptrint) es->sp;
+	_ss->__eip = (ptrint) es->pc;
+	_ss->__esp = (ptrint) es->sp;
 }
 
 
@@ -369,14 +369,14 @@ void thread_restartcriticalsection(ucontext_t *_uc)
 	void                *rpc;
 
 	_mc = _uc->uc_mcontext;
-	_ss = &_mc->ss;
+	_ss = &_mc->__ss;
 
-	pc = (u1 *) _ss->eip;
+	pc = (u1 *) _ss->__eip;
 
 	rpc = critical_find_restart_point(pc);
 
 	if (rpc != NULL)
-		_ss->eip = (ptrint) rpc;
+		_ss->__eip = (ptrint) rpc;
 }
 #endif
 
