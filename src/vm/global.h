@@ -28,6 +28,7 @@
 
 #include "config.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "vm/types.h"
@@ -38,11 +39,6 @@
 typedef void *voidptr;                  /* generic pointer                    */
 typedef void (*functionptr) (void);     /* generic function pointer           */
 typedef u1* methodptr;
-
-typedef unsigned int bool;              /* boolean data type                  */
-
-#define true         1
-#define false        0
 
 #if defined(ENABLE_SSA)
 /* immediate to get an addidional target Local Var Index */

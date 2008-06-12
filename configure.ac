@@ -129,19 +129,19 @@ case "$host_os" in
 *cygwin* )
     OS_DIR="cygwin"
     INTRP_CFLAGS="$ARCH_CFLAGS -D__WINDOWS__ -D__CYGWIN__ -Wall -Wno-long-long"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__WINDOWS__ -D__CYGWIN__ -ansi -pedantic -Wall -Wno-long-long"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__WINDOWS__ -D__CYGWIN__ -std=c99 -pedantic -Wall -Wno-long-long"
     ;;
 
 *darwin* )
     OS_DIR="darwin"
     INTRP_CFLAGS="$ARCH_CFLAGS -D__DARWIN__ -Wall -Wno-long-long"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__DARWIN__ -ansi -pedantic -Wall -Wno-long-long"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__DARWIN__ -std=c99 -pedantic -Wall -Wno-long-long"
     ;;
 
 *freebsd* )
     OS_DIR="freebsd"
     INTRP_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -ansi -pedantic -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -std=c99 -pedantic -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
     ;;
 
 *irix* )
@@ -152,35 +152,36 @@ case "$host_os" in
 
 *kfreebsd*-gnu)
     OS_DIR="freebsd"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    INTRP_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -std=c99 -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
     ;;
 
 dnl must be before *linux*
 *uclinux | *elf )
     OS_DIR="uclinux"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    INTRP_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -std=c99 -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
     ;;
 
 *linux* | *Linux* )
     OS_DIR="linux"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    INTRP_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -std=c99 -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
     ;;
 
 *netbsd* )
     OS_DIR="netbsd"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__NETBSD__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__NETBSD__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    INTRP_CFLAGS="$ARCH_CFLAGS -D__NETBSD__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__NETBSD__ -std=c99 -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
     ;;
 
 *solaris* )
     OS_DIR="solaris"
-	dnl on solaris the architecture defines 'sparc','sun','unix' are not set when cpp is called with -ansi
-	dnl therefore we add them here
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__SOLARIS__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_BSD_SOURCE -Dsparc -Dsun -Dunix"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__SOLARIS__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_BSD_SOURCE -Dsparc -Dsun -Dunix"
+    dnl On solaris the architecture defines 'sparc', 'sun', 'unix' are
+    dnl not set when cpp is called with -std=c99, therefore we add them
+    dnl here.
+    INTRP_CFLAGS="$ARCH_CFLAGS -D__SOLARIS__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_BSD_SOURCE -Dsparc -Dsun -Dunix"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__SOLARIS__ -std=c99 -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_BSD_SOURCE -Dsparc -Dsun -Dunix"
     ;;
 
 * )
@@ -216,6 +217,10 @@ AM_PROG_MKDIR_P
 dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
+
+dnl Crucial header files.
+AC_CHECK_HEADERS([stdbool.h],, [AC_MSG_ERROR(cannot find stdbool.h)])
+AC_CHECK_HEADERS([stdint.h],, [AC_MSG_ERROR(cannot find stdint.h)])
 
 dnl keep them alpha-sorted!
 AC_CHECK_HEADERS([assert.h])
