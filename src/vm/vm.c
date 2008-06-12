@@ -1639,10 +1639,6 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	int                        status;
 	int                        i;
 
-#if defined(ENABLE_THREADS)
-	threadobject              *t;
-#endif
-
 #if !defined(NDEBUG)
 	if (compileall) {
 		vm_compile_all();
@@ -1806,9 +1802,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
     /* Detach the main thread so that it appears to have ended when
 	   the application's main method exits. */
 
-	t = thread_get_current();
-
-	if (!threads_detach_thread(t))
+	if (!thread_detach_current_thread())
 		vm_abort("vm_run: Could not detach main thread.");
 #endif
 
@@ -1839,7 +1833,7 @@ int vm_destroy(JavaVM *vm)
 	args.name  = "DestroyJavaVM";
 	args.group = NULL;
 
-	if (!threads_attach_current_thread(&args, false))
+	if (!thread_attach_current_thread(&args, false))
 		return 1;
 
 	/* Wait until we are the last non-daemon thread. */

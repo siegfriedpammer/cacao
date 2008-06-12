@@ -97,18 +97,20 @@
 #if !defined(__DARWIN__)
 # include <semaphore.h>
 #endif
-# if defined(__LINUX__)
-#  define GC_LINUX_THREADS
-# elif defined(__IRIX__)
-#  define GC_IRIX_THREADS
-# elif defined(__DARWIN__)
-#  define GC_DARWIN_THREADS
-# endif
-# if defined(ENABLE_GC_BOEHM)
+
+#if defined(__LINUX__)
+# define GC_LINUX_THREADS
+#elif defined(__IRIX__)
+# define GC_IRIX_THREADS
+#elif defined(__DARWIN__)
+# define GC_DARWIN_THREADS
+#endif
+
+#if defined(ENABLE_GC_BOEHM)
 /* We need to include Boehm's gc.h here because it overrides
    pthread_create and friends. */
-#  include "mm/boehm-gc/include/gc.h"
-# endif
+# include "mm/boehm-gc/include/gc.h"
+#endif
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"
@@ -973,9 +975,16 @@ static void *threads_startup_thread(void *arg)
 	java_handle_t      *o;
 	functionptr         function;
 
+#if defined(ENABLE_GC_BOEHM)
+	struct GC_stack_base sb;
+	int result;
+#endif
+
 #if defined(ENABLE_INTRP)
 	u1 *intrp_thread_stack;
+#endif
 
+#if defined(ENABLE_INTRP)
 	/* create interpreter stack */
 
 	if (opt_intrp) {
@@ -1008,6 +1017,18 @@ static void *threads_startup_thread(void *arg)
 	   thread data-structure in the TSD. */
 
 	thread_set_current(t);
+
+#if defined(ENABLE_GC_BOEHM)
+	/* Register the thread with Boehm-GC.  This must happen before the
+	   thread allocates any memory from the GC heap.*/
+
+	result = GC_get_stack_base(&sb);
+
+	if (result != 0)
+		vm_abort("threads_startup_thread: GC_get_stack_base failed");
+
+	GC_register_my_thread(&sb);
+#endif
 
 	/* get the java.lang.Thread object for this thread */
 
@@ -1116,7 +1137,7 @@ static void *threads_startup_thread(void *arg)
 
 	/* We ignore the return value. */
 
-	(void) threads_detach_thread(t);
+	(void) thread_detach_current_thread();
 
 	/* set ThreadMXBean variables */
 
@@ -1226,14 +1247,14 @@ void threads_set_thread_priority(pthread_t tid, int priority)
 }
 
 
-/* threads_detach_thread *******************************************************
-
-   Detaches the passed thread from the VM.  Used in JNI.
-
-*******************************************************************************/
-
-bool threads_detach_thread(threadobject *t)
+/**
+ * Detaches the current thread from the VM.
+ *
+ * @return true on success, false otherwise
+ */
+bool thread_detach_current_thread(void)
 {
+	threadobject          *t;
 	bool                   result;
 	java_lang_Thread      *object;
 	java_handle_t         *o;
@@ -1244,6 +1265,12 @@ bool threads_detach_thread(threadobject *t)
 	classinfo             *c;
 	methodinfo            *m;
 #endif
+
+	t = thread_get_current();
+
+	/* Sanity check. */
+
+	assert(t != NULL);
 
     /* If the given thread has already been detached, this operation
 	   is a no-op. */

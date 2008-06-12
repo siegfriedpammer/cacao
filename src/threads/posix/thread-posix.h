@@ -271,8 +271,6 @@ void threads_start_thread(threadobject *thread, functionptr function);
 
 void threads_set_thread_priority(pthread_t tid, int priority);
 
-bool threads_detach_thread(threadobject *thread);
-
 #if defined(ENABLE_GC_CACAO)
 bool threads_suspend_thread(threadobject *thread, s4 reason);
 void threads_suspend_ack(u1* pc, u1* sp);

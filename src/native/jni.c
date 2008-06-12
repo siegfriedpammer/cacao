@@ -3842,7 +3842,7 @@ static int jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon
 			return JNI_EVERSION;
 	}
 
-	if (!threads_attach_current_thread(vm_aargs, false))
+	if (!thread_attach_current_external_thread(vm_aargs, false))
 		return JNI_ERR;
 
 	if (!localref_table_init())
@@ -3855,11 +3855,11 @@ static int jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon
 }
 
 
-jint _Jv_JNI_AttachCurrentThread(JavaVM *vm, void **p_env, void *thr_args)
+jint jni_AttachCurrentThread(JavaVM *vm, void **p_env, void *thr_args)
 {
 	int result;
 
-	TRACEJNICALLS(("_Jv_JNI_AttachCurrentThread(vm=%p, p_env=%p, thr_args=%p)", vm, p_env, thr_args));
+	TRACEJNICALLS(("jni_AttachCurrentThread(vm=%p, p_env=%p, thr_args=%p)", vm, p_env, thr_args));
 
 	if (vm_created == false)
 		return JNI_ERR;
@@ -3887,24 +3887,17 @@ jint _Jv_JNI_AttachCurrentThread(JavaVM *vm, void **p_env, void *thr_args)
 
 *******************************************************************************/
 
-jint _Jv_JNI_DetachCurrentThread(JavaVM *vm)
+jint jni_DetachCurrentThread(JavaVM *vm)
 {
 #if defined(ENABLE_THREADS)
-	threadobject *t;
-	bool          result;
+	bool result;
 
-	TRACEJNICALLS(("_Jv_JNI_DetachCurrentThread(vm=%p)", vm));
+	TRACEJNICALLS(("jni_DetachCurrentThread(vm=%p)", vm));
 
-	t = thread_get_current();
-
-	/* Sanity check. */
-
-	assert(t != NULL);
-
-    /* If the given thread has already been detached, this operation
+    /* If the current thread has already been detached, this operation
 	   is a no-op. */
 
-	result = thread_is_attached(t);
+	result = thread_current_is_attached();
 
 	if (result == false)
 		return true;
@@ -3916,7 +3909,7 @@ jint _Jv_JNI_DetachCurrentThread(JavaVM *vm)
 	if (!localref_table_destroy())
 		return JNI_ERR;
 
-	if (!threads_detach_thread(t))
+	if (!thread_detach_current_external_thread())
 		return JNI_ERR;
 #endif
 
@@ -3987,11 +3980,11 @@ jint jni_GetEnv(JavaVM *vm, void **env, jint version)
 
 *******************************************************************************/
 
-jint _Jv_JNI_AttachCurrentThreadAsDaemon(JavaVM *vm, void **penv, void *args)
+jint jni_AttachCurrentThreadAsDaemon(JavaVM *vm, void **penv, void *args)
 {
 	int result;
 
-	TRACEJNICALLS(("_Jv_JNI_AttachCurrentThreadAsDaemon(vm=%p, penv=%p, args=%p)", vm, penv, args));
+	TRACEJNICALLS(("jni_AttachCurrentThreadAsDaemon(vm=%p, penv=%p, args=%p)", vm, penv, args));
 
 	if (vm_created == false)
 		return JNI_ERR;
@@ -4010,10 +4003,10 @@ const struct JNIInvokeInterface_ _Jv_JNIInvokeInterface = {
 	NULL,
 
 	_Jv_JNI_DestroyJavaVM,
-	_Jv_JNI_AttachCurrentThread,
-	_Jv_JNI_DetachCurrentThread,
+	jni_AttachCurrentThread,
+	jni_DetachCurrentThread,
 	jni_GetEnv,
-	_Jv_JNI_AttachCurrentThreadAsDaemon
+	jni_AttachCurrentThreadAsDaemon
 };
 
 

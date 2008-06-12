@@ -289,7 +289,11 @@ void          thread_free(threadobject *t);
 bool          threads_thread_start_internal(utf *name, functionptr f);
 void          threads_thread_start(java_handle_t *object);
 
-bool          threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
+bool          thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
+bool          thread_attach_current_external_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
+bool          thread_detach_current_thread(void);
+
+bool          thread_detach_current_external_thread(void);
 
 void          thread_fprint_name(threadobject *t, FILE *stream);
 void          thread_print_info(threadobject *t);
