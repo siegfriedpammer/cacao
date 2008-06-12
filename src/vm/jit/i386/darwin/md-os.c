@@ -65,50 +65,50 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	u1                  *sp;
 	u1                  *ra;
 	u1                  *xpc;
-    u1                   opc;
-    u1                   mod;
-    u1                   rm;
-    int                  d;
-    int32_t              disp;
+	u1                   opc;
+	u1                   mod;
+	u1                   rm;
+	int                  d;
+	int32_t              disp;
 	intptr_t             val;
-    int                  type;
-    void                *p;
+	int                  type;
+	void                *p;
 	java_object_t       *o;
 
 	_uc = (ucontext_t *) _p;
 	_mc = _uc->uc_mcontext;
 	_ss = &_mc->ss;
 
-    pv  = NULL;                 /* is resolved during stackframeinfo creation */
+	pv  = NULL;                 /* is resolved during stackframeinfo creation */
 	sp  = (u1 *) _ss->esp;
 	xpc = (u1 *) _ss->eip;
-    ra  = xpc;                              /* return address is equal to XPC */
+	ra  = xpc;                              /* return address is equal to XPC */
 
-    /* get exception-throwing instruction */
+	/* get exception-throwing instruction */
 
-    opc = M_ALD_MEM_GET_OPC(xpc);
-    mod = M_ALD_MEM_GET_MOD(xpc);
-    rm  = M_ALD_MEM_GET_RM(xpc);
+	opc = M_ALD_MEM_GET_OPC(xpc);
+	mod = M_ALD_MEM_GET_MOD(xpc);
+	rm  = M_ALD_MEM_GET_RM(xpc);
 
-    /* for values see emit_mov_mem_reg and emit_mem */
+	/* for values see emit_mov_mem_reg and emit_mem */
 
-    if ((opc == 0x8b) && (mod == 0) && (rm == 5)) {
-        /* this was a hardware-exception */
+	if ((opc == 0x8b) && (mod == 0) && (rm == 5)) {
+		/* this was a hardware-exception */
 
-        d    = M_ALD_MEM_GET_REG(xpc);
-        disp = M_ALD_MEM_GET_DISP(xpc);
+		d    = M_ALD_MEM_GET_REG(xpc);
+		disp = M_ALD_MEM_GET_DISP(xpc);
 
-        /* we use the exception type as load displacement */
+		/* we use the exception type as load displacement */
 
-        type = disp;
+		type = disp;
 
-        val = (d == 0) ? _ss->eax :
-            ((d == 1) ? _ss->ecx :
-            ((d == 2) ? _ss->edx :
-            ((d == 3) ? _ss->ebx :
-            ((d == 4) ? _ss->esp :
-            ((d == 5) ? _ss->ebp :
-            ((d == 6) ? _ss->esi : _ss->edi))))));
+		val = (d == 0) ? _ss->eax :
+			((d == 1) ? _ss->ecx :
+			((d == 2) ? _ss->edx :
+			((d == 3) ? _ss->ebx :
+			((d == 4) ? _ss->esp :
+			((d == 5) ? _ss->ebp :
+			((d == 6) ? _ss->esi : _ss->edi))))));
 
 		if (type == TRAP_COMPILER) {
 			/* The PV from the compiler stub is equal to the XPC. */
@@ -129,12 +129,12 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 			xpc = ra - 2;
 		} 
-    }
-    else {
-        /* this was a normal NPE */
+	}
+	else {
+		/* this was a normal NPE */
 
-        type = TRAP_NullPointerException;
-    }
+		type = TRAP_NullPointerException;
+	}
 
 	/* Handle the trap. */
 
@@ -175,29 +175,29 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t          *_uc;
 	mcontext_t           _mc;
-    u1                  *pv;
+	u1                  *pv;
 	i386_thread_state_t *_ss;
 	u1                  *sp;
 	u1                  *ra;
 	u1                  *xpc;
-    int                  type;
-    intptr_t             val;
-    void                *p;
+	int                  type;
+	intptr_t             val;
+	void                *p;
 
 
 	_uc = (ucontext_t *) _p;
 	_mc = _uc->uc_mcontext;
 	_ss = &_mc->ss;
 
-    pv  = NULL;                 /* is resolved during stackframeinfo creation */
+	pv  = NULL;                 /* is resolved during stackframeinfo creation */
 	sp  = (u1 *) _ss->esp;
 	xpc = (u1 *) _ss->eip;
 	ra  = xpc;                          /* return address is equal to xpc     */
 
-    /* This is an ArithmeticException */
+	/* This is an ArithmeticException */
 
-    type = TRAP_ArithmeticException;
-    val  = 0;
+	type = TRAP_ArithmeticException;
+	val  = 0;
 
 	/* Handle the trap. */
 
@@ -205,7 +205,7 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Set registers. */
 
-    _ss->eax = (uintptr_t) p;
+	_ss->eax = (uintptr_t) p;
 	_ss->ecx = (uintptr_t) xpc;            /* REG_ITMP2_XPC */
 	_ss->eip = (uintptr_t) asm_handle_exception;
 }
