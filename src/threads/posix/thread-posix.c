@@ -976,8 +976,10 @@ static void *threads_startup_thread(void *arg)
 	functionptr         function;
 
 #if defined(ENABLE_GC_BOEHM)
+# if !defined(__DARWIN__)
 	struct GC_stack_base sb;
 	int result;
+# endif
 #endif
 
 #if defined(ENABLE_INTRP)
@@ -1019,15 +1021,19 @@ static void *threads_startup_thread(void *arg)
 	thread_set_current(t);
 
 #if defined(ENABLE_GC_BOEHM)
+# if defined(__DARWIN__)
+	// This is currently not implemented in Boehm-GC.  Just fail silently.
+# else
 	/* Register the thread with Boehm-GC.  This must happen before the
 	   thread allocates any memory from the GC heap.*/
 
 	result = GC_get_stack_base(&sb);
 
 	if (result != 0)
-		vm_abort("threads_startup_thread: GC_get_stack_base failed");
+		vm_abort("threads_startup_thread: GC_get_stack_base failed: result=%d", result);
 
 	GC_register_my_thread(&sb);
+# endif
 #endif
 
 	/* get the java.lang.Thread object for this thread */
