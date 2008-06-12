@@ -1639,6 +1639,9 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	int                        status;
 	int                        i;
 
+	// Prevent compiler warnings.
+	oa = NULL;
+
 #if !defined(NDEBUG)
 	if (compileall) {
 		vm_compile_all();
