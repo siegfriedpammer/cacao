@@ -151,11 +151,15 @@ DO_HEADER_FILES += \
 endif
 
 if WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH
+if ENABLE_ZLIB
 VM_ZIP = $(top_builddir)/src/classes/vm.zip
+endif
 endif
 
 if WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1
+if ENABLE_ZLIB
 VM_ZIP = $(top_builddir)/src/classes/vm.zip
+endif
 endif
 
 noinst_DATA = $(DO_HEADER_FILES)
