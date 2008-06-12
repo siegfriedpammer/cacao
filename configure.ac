@@ -23,11 +23,11 @@ dnl 02110-1301, USA.
 dnl Process this file with autoconf to produce a configure script.
 
 
-AC_INIT(cacao, 0.99rc6, cacao@cacaojvm.org)
+AC_INIT(cacao, 0.99rc7, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
-AM_INIT_AUTOMAKE([1.9.0 dist-bzip2])
+AM_INIT_AUTOMAKE([1.9.0 dist-bzip2 tar-ustar])
 AM_MAINTAINER_MODE
 
 AM_CONFIG_HEADER([config.h])
@@ -37,7 +37,7 @@ AC_PREFIX_DEFAULT(/usr/local/cacao)
 
 dnl set optimization and debugging for all architectures and systems
 if test x"$CFLAGS" = "x"; then
-    OPT_CFLAGS="-O0 -g3"
+    OPT_CFLAGS="-O0 -g"
 else
     OPT_CFLAGS=$CFLAGS
 fi
