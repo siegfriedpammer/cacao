@@ -35,6 +35,10 @@
 # include <dirent.h>
 #endif
 
+#if defined(HAVE_DLFCN_H)
+# include <dlfcn.h>
+#endif
+
 #if defined(HAVE_FCNTL_H)
 # include <fcntl.h>
 #endif
@@ -157,6 +161,42 @@ inline static char *system_dirname(char *path)
 #endif
 }
 #endif
+
+inline static int system_dlclose(void* handle)
+{
+#if defined(HAVE_DLCLOSE)
+	return dlclose(handle);
+#else
+# error dlclose not available
+#endif
+}
+
+inline static char* system_dlerror(void)
+{
+#if defined(HAVE_DLERROR)
+	return dlerror();
+#else
+# error dlerror not available
+#endif
+}
+
+inline static void* system_dlopen(const char* filename, int flag)
+{
+#if defined(HAVE_DLOPEN)
+	return dlopen(filename, flag);
+#else
+# error dlopen not available
+#endif
+}
+
+inline static void* system_dlsym(void* handle, const char* symbol)
+{
+#if defined(HAVE_DLSYM)
+	return dlsym(handle, symbol);
+#else
+# error dlsym not available
+#endif
+}
 
 inline static FILE *system_fopen(const char *path, const char *mode)
 {

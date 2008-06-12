@@ -1,4 +1,4 @@
-/* src/native/native.c - table of native functions
+/* src/native/native.c - native library support
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -28,10 +28,6 @@
 #include <assert.h>
 #include <ctype.h>
 
-#if defined(ENABLE_LTDL) && defined(HAVE_LTDL_H)
-# include <ltdl.h>
-#endif
-
 #include <stdint.h>
 
 #include "vm/types.h"
@@ -52,6 +48,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/resolve.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -60,7 +57,7 @@
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
-#include "vm/resolve.h"
+#include "vmcore/system.h"
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"
@@ -71,7 +68,7 @@
 
 static avl_tree_t *tree_native_methods;
 
-#if defined(ENABLE_LTDL)
+#if defined(ENABLE_DL)
 static hashtable *hashtable_library;
 #endif
 
@@ -91,12 +88,7 @@ bool native_init(void)
 {
 	TRACESUBSYSTEMINITIALIZATION("native_init");
 
-#if defined(ENABLE_LTDL)
-	/* initialize libltdl */
-
-	if (lt_dlinit())
-		vm_abort("native_init: lt_dlinit failed: %s\n", lt_dlerror());
-
+#if defined(ENABLE_DL)
 	/* initialize library hashtable, 10 entries should be enough */
 
 	hashtable_library = NEW(hashtable);
@@ -507,7 +499,7 @@ functionptr native_method_resolve(methodinfo *m)
 	utf                            *name;
 	utf                            *newname;
 	functionptr                     f;
-#if defined(ENABLE_LTDL)
+#if defined(ENABLE_DL)
 	classloader_t                  *cl;
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne;
@@ -542,7 +534,7 @@ functionptr native_method_resolve(methodinfo *m)
 
 	f = NULL;
 
-#if defined(ENABLE_LTDL)
+#if defined(ENABLE_DL)
 	/* Get the classloader. */
 
 	cl = class_get_classloader(m->clazz);
@@ -561,10 +553,10 @@ functionptr native_method_resolve(methodinfo *m)
 		ne = le->namelink;
 			
 		while ((ne != NULL) && (f == NULL)) {
-			f = (functionptr) (ptrint) lt_dlsym(ne->handle, name->text);
+			f = (functionptr) (ptrint) system_dlsym(ne->handle, name->text);
 
 			if (f == NULL)
-				f = (functionptr) (ptrint) lt_dlsym(ne->handle, newname->text);
+				f = (functionptr) (ptrint) system_dlsym(ne->handle, newname->text);
 
 			ne = ne->hashlink;
 		}
@@ -652,10 +644,10 @@ functionptr native_method_resolve(methodinfo *m)
 
 *******************************************************************************/
 
-#if defined(ENABLE_LTDL)
-lt_dlhandle native_library_open(utf *filename)
+#if defined(ENABLE_DL)
+void* native_library_open(utf *filename)
 {
-	lt_dlhandle handle;
+	void* handle;
 
 	if (opt_verbosejni) {
 		printf("[Loading native library ");
@@ -665,7 +657,7 @@ lt_dlhandle native_library_open(utf *filename)
 
 	/* try to open the library */
 
-	handle = lt_dlopen(filename->text);
+	handle = system_dlopen(filename->text, RTLD_LAZY);
 
 	if (handle == NULL) {
 		if (opt_verbosejni)
@@ -673,8 +665,8 @@ lt_dlhandle native_library_open(utf *filename)
 
 		if (opt_verbose) {
 			log_start();
-			log_print("native_library_open: lt_dlopen failed: ");
-			log_print(lt_dlerror());
+			log_print("native_library_open: system_dlopen failed: ");
+			log_print(dlerror());
 			log_finish();
 		}
 
@@ -698,8 +690,8 @@ lt_dlhandle native_library_open(utf *filename)
 
 *******************************************************************************/
 
-#if defined(ENABLE_LTDL)
-void native_library_close(lt_dlhandle handle)
+#if defined(ENABLE_DL)
+void native_library_close(void* handle)
 {
 	int result;
 
@@ -711,13 +703,13 @@ void native_library_close(lt_dlhandle handle)
 
 	/* Close the library. */
 
-	result = lt_dlclose(handle);
+	result = system_dlclose(handle);
 
 	if (result != 0) {
 		if (opt_verbose) {
 			log_start();
-			log_print("native_library_close: lt_dlclose failed: ");
-			log_print(lt_dlerror());
+			log_print("native_library_close: system_dlclose failed: ");
+			log_print(dlerror());
 			log_finish();
 		}
 	}
@@ -731,8 +723,8 @@ void native_library_close(lt_dlhandle handle)
 
 *******************************************************************************/
 
-#if defined(ENABLE_LTDL)
-void native_library_add(utf *filename, classloader_t *loader, lt_dlhandle handle)
+#if defined(ENABLE_DL)
+void native_library_add(utf *filename, classloader_t *loader, void* handle)
 {
 	hashtable_library_loader_entry *le;
 	hashtable_library_name_entry   *ne; /* library name                       */
@@ -813,7 +805,7 @@ void native_library_add(utf *filename, classloader_t *loader, lt_dlhandle handle
 
 *******************************************************************************/
 
-#if defined(ENABLE_LTDL)
+#if defined(ENABLE_DL)
 hashtable_library_name_entry *native_library_find(utf *filename,
 												  classloader_t *loader)
 {
@@ -876,11 +868,11 @@ hashtable_library_name_entry *native_library_find(utf *filename,
 
 int native_library_load(JNIEnv *env, utf *name, classloader_t *cl)
 {
-#if defined(ENABLE_LTDL)
-	lt_dlhandle        handle;
+#if defined(ENABLE_DL)
+	void*   handle;
 # if defined(ENABLE_JNI)
-	lt_ptr             onload;
-	int32_t            version;
+	void*   onload;
+	int32_t version;
 # endif
 
 	if (name == NULL) {
@@ -903,7 +895,7 @@ int native_library_load(JNIEnv *env, utf *name, classloader_t *cl)
 # if defined(ENABLE_JNI)
 	/* Resolve JNI_OnLoad function. */
 
-	onload = lt_dlsym(handle, "JNI_OnLoad");
+	onload = system_dlsym(handle, "JNI_OnLoad");
 
 	if (onload != NULL) {
 		JNIEXPORT int32_t (JNICALL *JNI_OnLoad) (JavaVM *, void *);
@@ -919,7 +911,7 @@ int native_library_load(JNIEnv *env, utf *name, classloader_t *cl)
 		   loaded. */
 
 		if ((version != JNI_VERSION_1_2) && (version != JNI_VERSION_1_4)) {
-			lt_dlclose(handle);
+			system_dlclose(handle);
 			return 0;
 		}
 	}

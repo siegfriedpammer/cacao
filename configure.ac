@@ -259,7 +259,6 @@ AC_STRUCT_TM
 
 dnl Checks for libraries (NOTE: Should be done before function checks,
 dnl as some functions may be in libraries we check for).
-AC_CHECK_LIB(dl, dlopen,,)
 
 dnl Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
@@ -359,8 +358,7 @@ AC_DEFINE_UNQUOTED([CACAO_LIBDIR], "${CACAO_LIBDIR}", [library installation pref
 AC_SUBST(CACAO_LIBDIR)
 
 
-AC_CHECK_ENABLE_LTDL
-
+AC_CHECK_ENABLE_DL
 AC_CHECK_ENABLE_JAVA
 
 AC_CHECK_ENABLE_JIT

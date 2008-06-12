@@ -1,4 +1,4 @@
-/* src/native/native.h - table of native functions
+/* src/native/native.h - native library support
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -28,10 +28,6 @@
 
 #include "config.h"
 
-#if defined(ENABLE_LTDL) && defined(HAVE_LTDL_H)
-# include <ltdl.h>
-#endif
-
 #include <stdint.h>
 
 #include "native/jni.h"
@@ -41,12 +37,22 @@
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
 #include "vmcore/method.h"
+#include "vmcore/system.h"
 #include "vmcore/utf8.h"
 
 
 /* defines ********************************************************************/
 
 #define NATIVE_METHODS_COUNT    sizeof(methods) / sizeof(JNINativeMethod)
+
+
+#define NATIVE_LIBRARY_PREFIX     "lib"
+
+#if defined(__DARWIN__)
+# define NATIVE_LIBRARY_SUFFIX    ".dylib"
+#else
+# define NATIVE_LIBRARY_SUFFIX    ".so"
+#endif
 
 
 /* native_methods_node_t ******************************************************/
@@ -63,7 +69,7 @@ struct native_methods_node_t {
 
 /* hashtable_library_loader_entry *********************************************/
 
-#if defined(ENABLE_LTDL)
+#if defined(ENABLE_DL)
 typedef struct hashtable_library_loader_entry hashtable_library_loader_entry;
 typedef struct hashtable_library_name_entry   hashtable_library_name_entry;
 
@@ -77,10 +83,10 @@ struct hashtable_library_loader_entry {
 
 /* hashtable_library_name_entry ***********************************************/
 
-#if defined(ENABLE_LTDL)
+#if defined(ENABLE_DL)
 struct hashtable_library_name_entry {
 	utf                          *name;      /* library name                  */
-	lt_dlhandle                   handle;    /* libtool library handle        */
+	void*                         handle;    /* libtool library handle        */
 	hashtable_library_name_entry *hashlink;  /* link for external chaining    */
 };
 #endif
@@ -93,10 +99,10 @@ bool native_init(void);
 void        native_method_register(utf *classname, const JNINativeMethod *methods, int32_t count);
 functionptr native_method_resolve(methodinfo *m);
 
-#if defined(ENABLE_LTDL)
-lt_dlhandle native_library_open(utf *filename);
-void        native_library_close(lt_dlhandle handle);
-void        native_library_add(utf *filename, classloader_t *loader, lt_dlhandle handle);
+#if defined(ENABLE_DL)
+void*       native_library_open(utf *filename);
+void        native_library_close(void* handle);
+void        native_library_add(utf *filename, classloader_t *loader, void *handle);
 hashtable_library_name_entry *native_library_find(utf *filename, classloader_t *loader);
 int         native_library_load(JNIEnv *env, utf *name, classloader_t *cl);
 #endif

@@ -27,10 +27,6 @@
 
 #include <assert.h>
 
-#if defined(ENABLE_LIBJVM)
-# include <ltdl.h>
-#endif
-
 #if defined(ENABLE_JRE_LAYOUT)
 # include <errno.h>
 # include <libgen.h>
@@ -43,6 +39,7 @@
 #include "vm/types.h"
 
 #include "native/jni.h"
+#include "native/native.h"
 
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/jvmti.h"
@@ -50,7 +47,14 @@
 # include "threads/mutex.h"
 #endif
 
+#include "vmcore/system.h"
+
 #include "vm/vm.h"
+
+
+/* Defines. *******************************************************************/
+
+#define LIBJVM_NAME    NATIVE_LIBRARY_PREFIX"jvm"NATIVE_LIBRARY_SUFFIX
 
 
 /* forward declarations *******************************************************/
@@ -67,15 +71,19 @@ static JavaVMInitArgs *cacao_options_prepare(int argc, char **argv);
 int main(int argc, char **argv)
 {
 #if defined(ENABLE_LIBJVM)
-	char           *path;
+	char*       path;
+
+# if defined(ENABLE_JRE_LAYOUT)
+	int         len;
+# endif
 #endif
 
 #if defined(ENABLE_LIBJVM)	
 	/* Variables for JNI_CreateJavaVM dlopen call. */
-	lt_dlhandle     libjvm_handle;
-	lt_ptr          libjvm_vm_createjvm;
-	lt_ptr          libjvm_vm_run;
-	const char     *lterror;
+	void*       libjvm_handle;
+	void*       libjvm_vm_createjvm;
+	void*       libjvm_vm_run;
+	const char* lterror;
 
 	bool (*vm_createjvm)(JavaVM **, void **, void *);
 	void (*vm_run)(JavaVM *, JavaVMInitArgs *);
@@ -105,40 +113,41 @@ int main(int argc, char **argv)
 	/* get the path of the current executable */
 
 	path = dirname(path);
+	len  = strlen(path) + strlen("/../lib/"LIBJVM_NAME) + strlen("0");
 
-	if ((strlen(path) + strlen("/../lib/libjvm") + strlen("0")) > 4096) {
+	if (len > 4096) {
 		fprintf(stderr, "main: libjvm name to long for buffer\n");
 		abort();
 	}
 
 	/* concatinate the library name */
 
-	strcat(path, "/../lib/libjvm");
+	strcat(path, "/../lib/"LIBJVM_NAME);
 # else
-	path = CACAO_LIBDIR"/libjvm";
+	path = CACAO_LIBDIR"/"LIBJVM_NAME;
 # endif
-
-	if (lt_dlinit()) {
-		fprintf(stderr, "main: lt_dlinit failed: %s\n", lt_dlerror());
-		abort();
-	}
 
 	/* First try to open where dlopen searches, e.g. LD_LIBRARY_PATH.
 	   If not found, try the absolute path. */
 
-	if (!(libjvm_handle = lt_dlopenext("libjvm"))) {
+	libjvm_handle = system_dlopen(LIBJVM_NAME, RTLD_LAZY);
+
+	if (libjvm_handle == NULL) {
 		/* save the error message */
 
-		lterror = strdup(lt_dlerror());
+		lterror = strdup(system_dlerror());
 
-		if (!(libjvm_handle = lt_dlopenext(path))) {
+		libjvm_handle = system_dlopen(path, RTLD_LAZY);
+
+		if (libjvm_handle == NULL) {
 			/* print the first error message too */
 
-			fprintf(stderr, "main: lt_dlopenext failed: %s\n", lterror);
+			fprintf(stderr, "main: system_dlopen failed: %s\n", lterror);
 
 			/* and now the current one */
 
-			fprintf(stderr, "main: lt_dlopenext failed: %s\n", lt_dlerror());
+			fprintf(stderr, "main: system_dlopen failed: %s\n",
+					system_dlerror());
 			abort();
 		}
 
@@ -147,8 +156,10 @@ int main(int argc, char **argv)
 		free((void *) lterror);
 	}
 
-	if (!(libjvm_vm_createjvm = lt_dlsym(libjvm_handle, "vm_createjvm"))) {
-		fprintf(stderr, "main: lt_dlsym failed: %s\n", lt_dlerror());
+	libjvm_vm_createjvm = system_dlsym(libjvm_handle, "vm_createjvm");
+
+	if (libjvm_vm_createjvm == NULL) {
+		fprintf(stderr, "main: lt_dlsym failed: %s\n", system_dlerror());
 		abort();
 	}
 
@@ -166,8 +177,10 @@ int main(int argc, char **argv)
 #endif
 
 #if defined(ENABLE_LIBJVM)
-	if (!(libjvm_vm_run = lt_dlsym(libjvm_handle, "vm_run"))) {
-		fprintf(stderr, "lt_dlsym failed: %s\n", lt_dlerror());
+	libjvm_vm_run = system_dlsym(libjvm_handle, "vm_run");
+
+	if (libjvm_vm_run == NULL) {
+		fprintf(stderr, "main: system_dlsym failed: %s\n", system_dlerror());
 		abort();
 	}
 
