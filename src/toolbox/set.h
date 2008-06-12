@@ -22,10 +22,14 @@
 
 */
 
+
 #ifndef _TOOLBOX_SET_H
 #define _TOOLBOX_SET_H
 
+#include "config.h"
+
 #include "vm/global.h"
+
 
 typedef struct set set;
 

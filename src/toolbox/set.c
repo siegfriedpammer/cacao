@@ -29,11 +29,17 @@
    elements (pointers).
 */
 
-#include "toolbox/set.h"
+
+#include "config.h"
 
 #include <assert.h>
 
+#include "toolbox/set.h"
+
 #include "mm/memory.h"
+
+#include "vm/global.h"
+
 
 /* struct set ******************************************************************
 
