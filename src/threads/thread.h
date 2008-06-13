@@ -206,7 +206,17 @@ inline static bool thread_is_attached(threadobject *t)
 
 inline static bool thread_is_interrupted(threadobject *t)
 {
-	return t->interrupted;
+	bool interrupted;
+
+	/* We need the mutex because classpath will call this function when
+	   a blocking system call is interrupted. The mutex ensures that it will
+	   see the correct value for the interrupted flag. */
+
+	mutex_lock(&t->waitmutex);
+	interrupted = t->interrupted;
+	mutex_unlock(&t->waitmutex);
+
+	return interrupted;
 }
 
 
