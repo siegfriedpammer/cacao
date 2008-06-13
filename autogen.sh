@@ -28,7 +28,7 @@ fi
 
 CACAO_HAVE_ACLOCAL=false
 
-for CACAO_ACLOCAL in aclocal aclocal-1.9 aclocal19; do
+for CACAO_ACLOCAL in aclocal aclocal-1.10 aclocal-1.9 aclocal19; do
     if ${CACAO_ACLOCAL} --version > /dev/null 2>&1; then
         CACAO_ACLOCAL_VERSION=`${CACAO_ACLOCAL} --version | sed 's/^[^0-9]*\([0-9.][0-9.]*\).*/\1/'`
 #        echo ${CACAO_ACLOCAL_VERSION}
@@ -76,7 +76,7 @@ fi
 
 CACAO_HAVE_AUTOMAKE=false
 
-for CACAO_AUTOMAKE in automake automake-1.9 automake19; do
+for CACAO_AUTOMAKE in automake automake-1.10 automake-1.9 automake19; do
     if ${CACAO_AUTOMAKE} --version > /dev/null 2>&1; then
         CACAO_AUTOMAKE_VERSION=`${CACAO_AUTOMAKE} --version | sed 's/^[^0-9]*\([0-9.][0-9.]*\).*/\1/'`
 #        echo ${CACAO_AUTOMAKE_VERSION}
