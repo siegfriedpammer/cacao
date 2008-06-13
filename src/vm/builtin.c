@@ -2123,12 +2123,21 @@ void builtin_arraycopy(java_handle_t *src, s4 srcStart,
 		return;
 	}
 
-	/* we try to throw exception with the same message as SUN does */
-
-	if ((len < 0) || (srcStart < 0) || (destStart < 0) ||
-		(srcStart  + len < 0) || (srcStart  + len > LLNI_array_size(src)) ||
-		(destStart + len < 0) || (destStart + len > LLNI_array_size(dest))) {
+	// Check if offsets and length are positive.
+	if ((srcStart < 0) || (destStart < 0) || (len < 0)) {
 		exceptions_throw_arrayindexoutofboundsexception();
+		return;
+	}
+
+	// Check if ranges are valid.
+	if ((((uint32_t) srcStart  + (uint32_t) len) > (uint32_t) LLNI_array_size(src)) ||
+		(((uint32_t) destStart + (uint32_t) len) > (uint32_t) LLNI_array_size(dest))) {
+		exceptions_throw_arrayindexoutofboundsexception();
+		return;
+	}
+
+	// Special case.
+	if (len == 0) {
 		return;
 	}
 

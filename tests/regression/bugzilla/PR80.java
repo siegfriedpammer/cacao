@@ -1,4 +1,4 @@
-/* tests/regression/bugzilla/All.java - runs all CACAO regression unit tests
+/* tests/regression/bugzilla/PR80.java
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -26,30 +26,23 @@
 import junit.framework.*;
 import junit.textui.*;
 
-public class All extends TestCase {
-    /**
-     * Runs all CACAO regression unit tests using
-     * junit.textui.TestRunner
-     */
+public class PR80 extends TestCase {
     public static void main(String[] args) {
-        Test s = suite();
-        TestRunner.run(s);
+        TestRunner.run(suite());
     }
 
-    /**
-     * Collects all CACAO regression unit tests as one suite
-     */
     public static Test suite() {
-        TestSuite suite = new TestSuite("CACAO Regression Unit Tests");
+        return new TestSuite(PR80.class);
+    }
 
-        // Add your test here.
-
-        suite.addTest(new TestSuite(PR52.class));
-        suite.addTest(new TestSuite(PR57.class));
-        suite.addTest(new TestSuite(PR58.class));
-        suite.addTest(new TestSuite(PR65.class));
-        suite.addTest(new TestSuite(PR80.class));
-
-        return suite;
+    public void test() {
+        try {
+            // Taken from Mauve gnu.testlet.java.lang.System.arraycopy
+            int[] a = new int[5];
+            int[] b = new int[5];
+            System.arraycopy(a, 4, b, 4, Integer.MAX_VALUE);
+            fail("Should throw ArrayIndexOutOfBoundsException");
+        } catch (ArrayIndexOutOfBoundsException success) {
+        }
     }
 }
