@@ -721,7 +721,6 @@ void threads_impl_thread_clear(threadobject *t)
 
 	t->interrupted = false;
 	t->signaled = false;
-	t->sleeping = false;
 
 	t->suspended = false;
 	t->suspend_reason = 0;
@@ -1615,10 +1614,6 @@ static void threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTi
 
 	mutex_lock(&t->waitmutex);
 
-	/* mark us as sleeping */
-
-	t->sleeping = true;
-
 	/* wait on waitcond */
 
 	if (wakeupTime->tv_sec || wakeupTime->tv_nsec) {
@@ -1644,8 +1639,6 @@ static void threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTi
 			thread_set_state_runnable(t);
 		}
 	}
-
-	t->sleeping    = false;
 
 	/* release the waitmutex */
 
@@ -1737,8 +1730,7 @@ void threads_thread_interrupt(threadobject *thread)
 
 	pthread_kill(thread->tid, SIGHUP);
 
-	if (thread->sleeping)
-		pthread_cond_signal(&thread->waitcond);
+	pthread_cond_signal(&thread->waitcond);
 
 	thread->interrupted = true;
 

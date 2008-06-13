@@ -138,7 +138,6 @@ struct threadobject {
 
 	bool                  interrupted;
 	bool                  signaled;
-	bool                  sleeping;
 
 	bool                  suspended;    /* is this thread suspended?          */
 	s4                    suspend_reason; /* reason for suspending            */
