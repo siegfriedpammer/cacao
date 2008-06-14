@@ -22,10 +22,10 @@
 
 
 SUBDIRS = \
+	base \
 	assertion \
 	bugzilla \
 	jasmin \
-	junit \
 	native \
 	resolving
 
