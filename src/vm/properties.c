@@ -372,7 +372,7 @@ void properties_set(void)
 	properties_add("java.vm.specification.vendor", "Sun Microsystems Inc.");
 	properties_add("java.vm.specification.name", "Java Virtual Machine Specification");
 	properties_add("java.vm.version", VERSION);
-	properties_add("java.vm.vendor", "CACAO Team");
+	properties_add("java.vm.vendor", "CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO");
 	properties_add("java.vm.name", "CACAO");
 
 # if defined(ENABLE_INTRP)
