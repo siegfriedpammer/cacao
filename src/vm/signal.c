@@ -304,7 +304,7 @@ void signal_thread_handler(int sig)
 	case SIGINT:
 		/* exit the vm properly */
 
-		vm_exit(0);
+		vm_exit(1);
 		break;
 
 	case SIGQUIT:

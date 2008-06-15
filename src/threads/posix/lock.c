@@ -1418,17 +1418,10 @@ static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
 
 		mutex_lock(&(waitingthread->waitmutex));
 
-		DEBUGLOCKS(("[lock_record_notify: lr=%p, t=%p, waitingthread=%p, sleeping=%d, one=%d]",
-					lr, t, waitingthread, waitingthread->sleeping, one));
+		DEBUGLOCKS(("[lock_record_notify: lr=%p, t=%p, waitingthread=%p, one=%d]",
+					lr, t, waitingthread, one));
 
-		/* Signal the thread if it's sleeping. sleeping can be false
-		   when the waiting thread is blocked between giving up the
-		   monitor and entering the waitmutex. It will eventually
-		   observe that it's signaled and refrain from going to
-		   sleep. */
-
-		if (waitingthread->sleeping)
-			pthread_cond_signal(&(waitingthread->waitcond));
+		pthread_cond_signal(&(waitingthread->waitcond));
 
 		/* Mark the thread as signaled. */
 
