@@ -75,7 +75,7 @@
 #define __IEEE_BIG_ENDIAN
 #endif
 
-#ifdef __i386__
+#if defined(__i386__) || defined(__i386)
 #define __IEEE_LITTLE_ENDIAN
 #endif
 
