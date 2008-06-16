@@ -27,7 +27,6 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <ltdl.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -3032,11 +3031,11 @@ void JVM_UnloadLibrary(void* handle)
 
 void *JVM_FindLibraryEntry(void *handle, const char *name)
 {
-	lt_ptr symbol;
+	void* symbol;
 
 	TRACEJVMCALLSENTER(("JVM_FindLibraryEntry(handle=%p, name=%s)", handle, name));
 
-	symbol = lt_dlsym(handle, name);
+	symbol = hpi_library->FindLibraryEntry(handle, name);
 
 	TRACEJVMCALLSEXIT(("->%p", symbol));
 
