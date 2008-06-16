@@ -200,6 +200,7 @@ dnl define and substitute some architecture specific variables
 AC_DEFINE_UNQUOTED([ARCH_DIR], "${ARCH_DIR}", [architecture directory])
 AC_DEFINE_UNQUOTED([JAVA_ARCH], "${JAVA_ARCH}", [Java architecture name])
 AC_SUBST(ARCH_DIR)
+AC_SUBST(JAVA_ARCH)
 AC_SUBST(OS_DIR)
 AC_SUBST(USE_SCHEDULER)
 

@@ -91,6 +91,20 @@ cacao_DEPENDENCIES = \
 	$(cacao_LDADD)
 
 
+if WITH_JAVA_RUNTIME_LIBRARY_OPENJDK
+install-data-local:
+	$(mkdir_p) $(prefix)/jre/lib/$(JAVA_ARCH)/server
+	$(LN_S) -f $(libdir)/libjvm.so $(prefix)/jre/lib/$(JAVA_ARCH)/server
+	$(ECHO) $(ECHO_N) > $(prefix)/jre/lib/$(JAVA_ARCH)/server/Xusage.txt
+	$(ECHO) $(ECHO_N) > $(prefix)/jre/lib/$(JAVA_ARCH)/server/libjsig.so
+
+uninstall-local:
+	rm -f $(prefix)/jre/lib/$(JAVA_ARCH)/server/libjvm.so
+	rm -f $(prefix)/jre/lib/$(JAVA_ARCH)/server/Xusage.txt
+	rm -f $(prefix)/jre/lib/$(JAVA_ARCH)/server/libjsig.so
+endif
+
+
 ## Local variables:
 ## mode: Makefile
 ## indent-tabs-mode: t
