@@ -33,7 +33,6 @@ PR52.class,
 PR57.class,
 PR58.class,
 PR65.class,
-PR70.class,
 PR80.class,
 })
 
