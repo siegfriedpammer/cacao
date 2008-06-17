@@ -1,3 +1,9 @@
+New in release 0.99.1 (June 17, 2008)
+
+  * Fixed compilation of OpenJDK code (libltdl related).
+  * Imported new gnu/java/lang/CPStringBuilder.java to fix OOMEs.
+  * Fixed abort with OpenJDK's java binary when exiting.
+
 New in release 0.99 (June 14, 2008)
 
   * Initial support to use OpenJDK as Java core library.
