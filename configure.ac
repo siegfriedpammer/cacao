@@ -812,6 +812,7 @@ case "${WITH_JAVA_RUNTIME_LIBRARY}" in
         ;;
 esac
 
+AC_CHECK_WITH_JUNIT_JAR
 
 AC_CHECK_HEADERS(
 	[regex.h], 
