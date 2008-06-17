@@ -138,6 +138,13 @@ case "$host_os" in
     ARCH_CFLAGS="$ARCH_CFLAGS -D__DARWIN__ -std=c99 -pedantic -Wall -Wno-long-long"
     ;;
 
+dnl Must be BEFORE *freebsd*.
+*kfreebsd*-gnu)
+    OS_DIR="freebsd"
+    INTRP_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    ARCH_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -std=c99 -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    ;;
+
 *freebsd* )
     OS_DIR="freebsd"
     INTRP_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
@@ -150,13 +157,7 @@ case "$host_os" in
     ARCH_CFLAGS="$ARCH_CFLAGS -D__IRIX__"
     ;;
 
-*kfreebsd*-gnu)
-    OS_DIR="freebsd"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -std=c99 -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    ;;
-
-dnl must be before *linux*
+dnl Must be BEFORE *linux*.
 *uclinux | *elf )
     OS_DIR="uclinux"
     INTRP_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
