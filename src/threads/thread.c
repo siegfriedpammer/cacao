@@ -894,7 +894,10 @@ bool thread_detach_current_external_thread(void)
 	/* Unregister the thread with Boehm-GC.  This must happen after
 	   the thread allocates any memory from the GC heap. */
 
-	GC_unregister_my_thread();
+	/* Don't detach the main thread.  This is a workaround for
+	   OpenJDK's java binary. */
+	if (thread_get_current()->index != 1)
+		GC_unregister_my_thread();
 #endif
 
 	return true;
