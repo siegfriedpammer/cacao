@@ -35,14 +35,16 @@ SUBDIRS =
 # Initialize variables so that we can declare files locally.
 EXTRA_DIST = 
 noinst_LTLIBRARIES =
-include_HEADERS =
-pkginclude_HEADERS =
+# Don't install include/gc
+#include_HEADERS =
+#pkginclude_HEADERS =
 dist_noinst_HEADERS =
 check_PROGRAMS =
 TESTS =
 
-pkgconfigdir = $(libdir)/pkgconfig
-dist_pkgconfig_DATA = bdw-gc.pc
+# Don't install pkg-config data.
+#pkgconfigdir = $(libdir)/pkgconfig
+#dist_pkgconfig_DATA = bdw-gc.pc
 
 # C Library
 # ---------
@@ -96,7 +98,7 @@ EXTRA_libgc_la_SOURCES = alpha_mach_dep.S \
 
 if CPLUSPLUS
 noinst_LTLIBRARIES += libgccpp.la
-pkginclude_HEADERS += include/gc_cpp.h include/gc_allocator.h
+#pkginclude_HEADERS += include/gc_cpp.h include/gc_allocator.h
 libgccpp_la_SOURCES = gc_cpp.cc
 libgccpp_la_LIBADD = ./libgc.la
 libgccpp_la_LDFLAGS = -version-info 1:3:0 -no-undefined
