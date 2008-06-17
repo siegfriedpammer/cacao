@@ -70,7 +70,7 @@ The upstream for fdlibm is libgcj (http://gcc.gnu.org/java/), they sync
 again with the 'real' upstream (http://www.netlib.org/fdlibm/readme).
 
 
-* src/lib/gnu/*
+* src/classes/gnuclasspath/*
 
 GNU Classpath is licensed under the terms of the GNU General Public 
 License  with the following clarification and special exception:
@@ -169,36 +169,6 @@ are permitted in any medium without royalty provided the copyright
 notice and this notice are preserved.
 
 
-* contrib/svn2cl.xsl
-
-   Copyright (C) 2004, 2005, 2006 Arthur de Jong.
-
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions
-   are met:
-   1. Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-   2. Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in
-      the documentation and/or other materials provided with the
-      distribution.
-   3. The name of the author may not be used to endorse or promote
-      products derived from this software without specific prior
-      written permission.
-
-   THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
-   IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-   ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
-   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-   DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
-   GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-   IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-   OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-   IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-
 * contrib/vmlog
 
 Copyright (C) 2006 Edwin Steiner <edwin.steiner@gmx.net>
@@ -212,14 +182,14 @@ See contrib/vmlog/COPYING for the full text of the license.
 
 
 * contrib/mapfile-vers-product,
-  src/lib/gnu/sun/misc/Unsafe.java,
-  src/lib/gnu/sun/reflect/ConstantPool.java,
-  src/lib/gnu/sun/reflect/annotation/AnnotationParser.java,
-  src/lib/gnu/sun/reflect/annotation/AnnotationType.java,
-  src/lib/gnu/sun/reflect/annotation/AnnotationTypeMismatchExceptionProxy.java,
-  src/lib/gnu/sun/reflect/annotation/EnumConstantNotPresentExceptionProxy.java,
-  src/lib/gnu/sun/reflect/annotation/ExceptionProxy.java,
-  src/lib/gnu/sun/reflect/annotation/TypeNotPresentExceptionProxy.java
+  src/classes/gnuclasspath/sun/misc/Unsafe.java,
+  src/classes/gnuclasspath/sun/reflect/ConstantPool.java,
+  src/classes/gnuclasspath/sun/reflect/annotation/AnnotationParser.java,
+  src/classes/gnuclasspath/sun/reflect/annotation/AnnotationType.java,
+  src/classes/gnuclasspath/sun/reflect/annotation/AnnotationTypeMismatchExceptionProxy.java,
+  src/classes/gnuclasspath/sun/reflect/annotation/EnumConstantNotPresentExceptionProxy.java,
+  src/classes/gnuclasspath/sun/reflect/annotation/ExceptionProxy.java,
+  src/classes/gnuclasspath/sun/reflect/annotation/TypeNotPresentExceptionProxy.java
 
 Copyright 2000-2006 Sun Microsystems, Inc.  All Rights Reserved.
 DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
