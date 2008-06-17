@@ -30,9 +30,7 @@ EXTRA_DIST = \
 	java.vmg \
 	gray.fs \
 	prims2x.fs \
-	vmgenx \
-	\
-	$(BUILT_SOURCES)
+	vmgenx
 
 noinst_HEADERS = \
 	engine.c
