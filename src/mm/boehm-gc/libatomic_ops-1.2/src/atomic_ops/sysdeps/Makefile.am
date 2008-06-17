@@ -1,5 +1,6 @@
 #General sysdep utility headers, followed by the arch-specific ones
-nobase_sysdep_HEADERS= generic_pthread.h \
+#nobase_sysdep_HEADERS= generic_pthread.h \
+noinst_HEADERS= generic_pthread.h \
 	  atomic_load_store.h \
 	  aligned_atomic_load_store.h \
 	  acquire_release_volatile.h \

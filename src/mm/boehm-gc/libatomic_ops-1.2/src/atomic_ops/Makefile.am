@@ -3,7 +3,8 @@ SUBDIRS=sysdeps
 EXTRA_DIST=generalize-small.template
 
 #Private Headers
-private_HEADERS=generalize.h generalize-small.h
+#private_HEADERS=generalize.h generalize-small.h
+noinst_HEADERS=generalize.h generalize-small.h
 privatedir=${includedir}/atomic_ops/
 
 generalize-small.h: generalize-small.template

@@ -16,6 +16,11 @@
 
 ## Process this file with automake to produce Makefile.in.
 
+DISTCLEANFILES = \
+	atomic_ops.c \
+	atomic_ops_sysdeps.S \
+	libatomic_ops
+
 ## FIXME: `make distcheck' in this directory will not currently work.
 ##     This is most likely to the explicit flags passed to submakes.
 
@@ -76,7 +81,7 @@ endif
 if USE_INTERNAL_LIBATOMIC_OPS 	 
 nodist_libgc_la_SOURCES = ./atomic_ops.c 	 
 endif 	 
-  	 
+
 if NEED_ATOMIC_OPS_ASM 	 
 nodist_libgc_la_SOURCES = ./atomic_ops_sysdeps.S 	 
 endif
