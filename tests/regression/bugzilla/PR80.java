@@ -23,26 +23,14 @@
 */
 
 
-import junit.framework.*;
-import junit.textui.*;
+import org.junit.Test;
 
-public class PR80 extends TestCase {
-    public static void main(String[] args) {
-        TestRunner.run(suite());
-    }
-
-    public static Test suite() {
-        return new TestSuite(PR80.class);
-    }
-
-    public void test() {
-        try {
-            // Taken from Mauve gnu.testlet.java.lang.System.arraycopy
-            int[] a = new int[5];
-            int[] b = new int[5];
-            System.arraycopy(a, 4, b, 4, Integer.MAX_VALUE);
-            fail("Should throw ArrayIndexOutOfBoundsException");
-        } catch (ArrayIndexOutOfBoundsException success) {
-        }
+public class PR80 {
+    @Test ( expected = ArrayIndexOutOfBoundsException.class )
+    public void test() throws ArrayIndexOutOfBoundsException {
+        // Taken from Mauve gnu.testlet.java.lang.System.arraycopy
+        int[] a = new int[5];
+        int[] b = new int[5];
+        System.arraycopy(a, 4, b, 4, Integer.MAX_VALUE);
     }
 }

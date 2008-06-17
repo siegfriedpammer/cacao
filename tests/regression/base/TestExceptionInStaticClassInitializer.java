@@ -23,18 +23,11 @@
 */
 
 
-import junit.framework.*;
-import junit.textui.*;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-public class TestExceptionInStaticClassInitializer extends TestCase {
-    public static void main(String[] args) {
-        TestRunner.run(suite());
-    }
-
-    public static Test suite() {
-        return new TestSuite(TestExceptionInStaticClassInitializer.class);
-    }
-
+public class TestExceptionInStaticClassInitializer {
+    @Test
     public void test() {
         try {
             TestExceptionInStaticClassInitializer_x.i = 1;
@@ -52,7 +45,7 @@ public class TestExceptionInStaticClassInitializer extends TestCase {
     }
 
     // This linenumber must be the one from...
-    final static int LINE = 64;
+    final static int LINE = 57;
 }
 
 class TestExceptionInStaticClassInitializer_x {

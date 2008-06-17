@@ -23,30 +23,15 @@
 */
 
 
-import junit.framework.*;
-import junit.textui.*;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
-public class All extends TestCase {
-    /**
-     * Runs all CACAO regression unit tests using
-     * junit.textui.TestRunner
-     */
-    public static void main(String[] args) {
-        Test s = suite();
-        TestRunner.run(s);
-    }
+@RunWith(Suite.class)
 
-    /**
-     * Collects all CACAO regression unit tests as one suite.
-     */
-    public static Test suite() {
-        TestSuite suite = new TestSuite("CACAO Regression Unit Tests");
+@Suite.SuiteClasses({
+TestExceptionInStaticClassInitializer.class,
+TestPatcher.class
+})
 
-        // Add your test here.
-
-        suite.addTest(new TestSuite(TestPatcher.class));
-        suite.addTest(new TestSuite(TestExceptionInStaticClassInitializer.class));
-
-        return suite;
-    }
+public class All {
 }

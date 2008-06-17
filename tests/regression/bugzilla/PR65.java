@@ -23,25 +23,13 @@
 */
 
 
-import junit.framework.*;
-import junit.textui.*;
+import org.junit.Test;
 
-public class PR65 extends TestCase {
-    public static void main(String[] args) {
-        TestRunner.run(suite());
-    }
-
-    public static Test suite() {
-        return new TestSuite(PR65.class);
-    }
-
-    public void test() {
-        try {
-            Object o = new int[2][1];
-            Number[][] na = (Number[][]) o;
-            na[0][0] = null;
-            fail("Should throw ClassCastException");
-        } catch (ClassCastException success) {
-        }
+public class PR65 {
+    @Test ( expected = ClassCastException.class )
+    public void test() throws ClassCastException {
+        Object o = new int[2][1];
+        Number[][] na = (Number[][]) o;
+        na[0][0] = null;
     }
 }

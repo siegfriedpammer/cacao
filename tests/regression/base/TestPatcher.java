@@ -23,20 +23,12 @@
 */
 
 
-import junit.framework.*;
-import junit.textui.*;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.*;
 
-public class TestPatcher extends TestCase {
-    public static void main(String[] args) {
-        TestRunner.run(suite());
-    }
-
-    public static Test suite() {
-        return new TestSuite(TestPatcher.class);
-    }
-
+public class TestPatcher {
     static boolean doit = true;
 
     final static int    i = 123;
@@ -45,6 +37,7 @@ public class TestPatcher extends TestCase {
     final static double d = 789.012;
     final static Object o = new Object();
 
+    @Test
     public void testNormal() {
         invokestatic();
         invokespecial();

@@ -23,23 +23,16 @@
 */
 
 
-import junit.framework.*;
-import junit.textui.*;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.*;
 
-public class PR58 extends TestCase {
-    public static void main(String[] args) {
-        TestRunner.run(suite());
-    }
-
-    public static Test suite() {
-        return new TestSuite(PR58.class);
-    }
-
+public class PR58 {
     class x extends y {}
     class y {}
 
+    @Test
     public void testSuperClass() {
         // Delete the class file which is extended.
         new File("PR58$y.class").delete();
@@ -60,6 +53,7 @@ public class PR58 extends TestCase {
     interface i {}
     class j implements i {}
 
+    @Test
     public void testSuperInterface() {
         // Delete the interface file which is implemented.
         new File("PR58$i.class").delete();
