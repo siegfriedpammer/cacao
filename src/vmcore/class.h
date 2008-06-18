@@ -463,7 +463,7 @@ void       class_set_packagename(classinfo *c);
 bool       class_load_attributes(classbuffer *cb);
 
 /* retrieve constantpool element */
-voidptr class_getconstant(classinfo *class, u4 pos, u4 ctype);
+voidptr class_getconstant(classinfo *c, u4 pos, u4 ctype);
 voidptr innerclass_getconstant(classinfo *c, u4 pos, u4 ctype);
 
 /* frees all resources used by the class */
