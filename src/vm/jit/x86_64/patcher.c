@@ -328,12 +328,10 @@ bool patcher_putfieldconst(patchref_t *pr)
 		byte = *(ra + 2);
 
 		if (byte == 0x84) {
-			*((uint32_t *) (ra + 4))      = fi->offset;
-			*((uint32_t *) (ra + 12 + 4)) = fi->offset + 4;
+			*((uint32_t *) (ra + 14))      = fi->offset;
 		}
 		else {
-			*((uint32_t *) (ra + 3))      = fi->offset;
-			*((uint32_t *) (ra + 11 + 3)) = fi->offset + 4;
+			*((uint32_t *) (ra + 13))      = fi->offset;
 		}
 	}
 	else {

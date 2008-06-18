@@ -1889,8 +1889,8 @@ bool codegen_emit(jitdata *jd)
 				if (IS_IMM32(iptr->sx.s23.s2.constval))
 					M_LST_IMM32(iptr->sx.s23.s2.constval, REG_ITMP1, 0);
 				else {
-					M_IST_IMM(iptr->sx.s23.s2.constval, REG_ITMP1, 0);
-					M_IST_IMM(iptr->sx.s23.s2.constval >> 32, REG_ITMP1, 4);
+					M_MOV_IMM(iptr->sx.s23.s2.constval, REG_ITMP2);
+					M_LST(REG_ITMP2, REG_ITMP1, 0);
 				}
 				break;
 			}
@@ -2012,9 +2012,12 @@ bool codegen_emit(jitdata *jd)
 			case TYPE_LNG:
 			case TYPE_ADR:
 			case TYPE_DBL:
-				/* XXX why no check for IS_IMM32? */
-				M_IST32_IMM(iptr->sx.s23.s2.constval, s1, disp);
-				M_IST32_IMM(iptr->sx.s23.s2.constval >> 32, s1, disp + 4);
+				/* XXX why no check for IS_IMM32? -- probably because of the patcher */
+				M_MOV_IMM(iptr->sx.s23.s2.constval, REG_ITMP2);
+				if (disp)  /* resolved, disp can never be 0 */
+					M_LST(REG_ITMP2, s1, disp);
+				else       /* unresolved */
+					M_LST32(REG_ITMP2, s1, disp);
 				break;
 			}
 			break;
