@@ -1752,6 +1752,12 @@ static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos)
 
 void threads_thread_interrupt(threadobject *thread)
 {
+#if defined(__LINUX__) && defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	/* See openjdk/jdk/src/solaris/native/java/net/linux_close.c, "sigWakeup" */
+	int sig = (__SIGRTMAX - 2);
+#else
+	int sig = SIGHUP;
+#endif
 	/* Signal the thread a "waitcond" and tell it that it has been
 	   interrupted. */
 
@@ -1761,7 +1767,7 @@ void threads_thread_interrupt(threadobject *thread)
 
 	/* Interrupt blocking system call using a signal. */
 
-	pthread_kill(thread->tid, SIGHUP);
+	pthread_kill(thread->tid, sig);
 
 	pthread_cond_signal(&thread->waitcond);
 
