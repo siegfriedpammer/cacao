@@ -416,16 +416,16 @@ bool builtintable_replace_function(void *iptr_)
 
 *******************************************************************************/
 
-bool builtin_instanceof(java_handle_t *o, classinfo *class)
+bool builtin_instanceof(java_handle_t *o, classinfo *c)
 {
-	classinfo *c;
+	classinfo *oc;
 
 	if (o == NULL)
 		return 0;
 
-	LLNI_class_get(o, c);
+	LLNI_class_get(o, oc);
 
-	return class_isanysubclass(c, class);
+	return class_isanysubclass(oc, c);
 }
 
 
@@ -439,16 +439,16 @@ bool builtin_instanceof(java_handle_t *o, classinfo *class)
 
 *******************************************************************************/
 
-bool builtin_checkcast(java_handle_t *o, classinfo *class)
+bool builtin_checkcast(java_handle_t *o, classinfo *c)
 {
-	classinfo *c;
+	classinfo *oc;
 
 	if (o == NULL)
 		return 1;
 
-	LLNI_class_get(o, c);
+	LLNI_class_get(o, oc);
 
-	if (class_isanysubclass(c, class))
+	if (class_isanysubclass(oc, c))
 		return 1;
 
 	return 0;

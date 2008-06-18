@@ -120,9 +120,9 @@ bool builtintable_replace_function(void *iptr);
  * ICMD_BUILTIN3.)
  */
 
-bool builtin_instanceof(java_handle_t *obj, classinfo *class);
+bool builtin_instanceof(java_handle_t *obj, classinfo *c);
 /* NOT AN OP */
-bool builtin_checkcast(java_handle_t *obj, classinfo *class);
+bool builtin_checkcast(java_handle_t *obj, classinfo *c);
 /* NOT AN OP */
 bool builtin_arrayinstanceof(java_handle_t *h, classinfo *targetclass);
 /* NOT AN OP */
