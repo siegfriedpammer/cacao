@@ -28,7 +28,11 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#if 0
 #include "machine-instr.h"
+#else
+#include "atomic.hpp"
+#endif
 
 #include "mm/memory.h"
 
@@ -1074,7 +1078,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_throwException(JNIEnv *env, sun_misc
  */
 JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapObject(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset, java_lang_Object *expected, java_lang_Object *x)
 {
-#if 1
+#if 0
 	void **p;
 	void  *value;
 
@@ -1099,7 +1103,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapObject(JNIEnv *env,
 
 	p = (volatile void **) (((uint8_t *) o) + offset);
 
-	result = atomic_compare_and_swap_address(p, expected, x);
+	result = Atomic_cas_ptr(p, expected, x);
 
 	if (result == expected)
 		return true;
@@ -1116,7 +1120,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapObject(JNIEnv *env,
  */
 JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapInt(JNIEnv *env, sun_misc_Unsafe* this, java_lang_Object* o, int64_t offset, int32_t expected, int32_t x)
 {
-#if 1
+#if 0
 	int32_t *p;
 	int32_t  value;
 
@@ -1134,14 +1138,14 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapInt(JNIEnv *env, su
 
 	return false;
 #else
-	int32_t *p;
-	int32_t  result;
+	uint32_t *p;
+	uint32_t  result;
 
 	/* XXX Use LLNI */
 
-	p = (int32_t *) (((uint8_t *) o) + offset);
+	p = (uint32_t *) (((uint8_t *) o) + offset);
 
-	result = atomic_compare_and_swap_int(p, expected, x);
+	result = Atomic_cas_32(p, expected, x);
 
 	if (result == expected)
 		return true;
@@ -1158,6 +1162,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapInt(JNIEnv *env, su
  */
 JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapLong(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset, int64_t expected, int64_t x)
 {
+#if 0
 	int64_t *p;
 	int64_t  value;
 
@@ -1174,6 +1179,21 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapLong(JNIEnv *env, s
 	}
 
 	return false;
+#else
+	uint64_t *p;
+	uint64_t  result;
+
+	/* XXX Use LLNI */
+
+	p = (uint64_t *) (((uint8_t *) o) + offset);
+
+	result = Atomic_cas_64(p, expected, x);
+
+	if (result == expected)
+		return true;
+
+	return false;
+#endif
 }
 
 
@@ -1244,7 +1264,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObjectVolatile(JNIEnv *env, sun_m
 															\
 	*_p = x;												\
 															\
-	MEMORY_BARRIER();										\
+	Atomic_mb();											\
 															\
 	LLNI_CRITICAL_END;
 
@@ -1317,7 +1337,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedObject(JNIEnv *env, sun_mi
 
 	*_p = _x;
 
-	MEMORY_BARRIER();
+	Atomic_mb();
 
 	LLNI_CRITICAL_END;
 }

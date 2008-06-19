@@ -43,9 +43,7 @@
 
 #include "arch.h"
 
-#if !defined(USE_FAKE_ATOMIC_INSTRUCTIONS)
-# include "machine-instr.h"
-#else
+#if defined(USE_FAKE_ATOMIC_INSTRUCTIONS)
 # include "threads/posix/generic-primitives.h"
 #endif
 

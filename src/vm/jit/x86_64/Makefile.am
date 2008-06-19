@@ -34,7 +34,7 @@ SUBDIRS = $(OS_DIR)
 
 noinst_HEADERS = \
 	arch.h \
-	machine-instr.h \
+	atomic.hpp \
 	\
 	md-asm.h
 
