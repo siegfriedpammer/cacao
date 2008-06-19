@@ -3420,7 +3420,7 @@ jobject _Jv_JNI_NewGlobalRef(JNIEnv* env, jobject obj)
 	/* global ref not found, create a new one */
 
 	if (gre == NULL) {
-		gre = NEW(hashtable_global_ref_entry);
+		gre = GCNEW_UNCOLLECTABLE(hashtable_global_ref_entry, 1);
 
 #if defined(ENABLE_GC_CACAO)
 		/* register global ref with the GC */
@@ -3512,7 +3512,7 @@ void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 				gc_reference_unregister(&(gre->o));
 #endif
 
-				FREE(gre, hashtable_global_ref_entry);
+				GCFREE(gre);
 			}
 
 			LLNI_CRITICAL_END;
