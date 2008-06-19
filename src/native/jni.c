@@ -123,14 +123,36 @@ struct java_lang_ClassLoader;
 /* debug **********************************************************************/
 
 #if !defined(NDEBUG)
-# define TRACEJNICALLS(text)					\
+
+# define TRACEJNICALLS(x)						\
     do {										\
         if (opt_TraceJNICalls) {				\
-            log_println text;					\
+            log_println x;						\
         }										\
     } while (0)
+
+# define TRACEJNICALLSENTER(x)									\
+    do {														\
+        if (opt_TraceJNICalls) {								\
+			log_start();										\
+            log_print x;										\
+        }														\
+    } while (0)
+
+# define TRACEJNICALLSEXIT(x)									\
+    do {														\
+        if (opt_TraceJNICalls) {								\
+			log_print x;										\
+			log_finish();										\
+        }														\
+    } while (0)
+
 #else
-# define TRACEJNICALLS(text)
+
+# define TRACEJNICALLS(x)
+# define TRACEJNICALLSENTER(x)
+# define TRACEJNICALLSEXIT(x)
+
 #endif
 
 
@@ -1310,14 +1332,14 @@ jobject _Jv_JNI_AllocObject(JNIEnv *env, jclass clazz)
 
 *******************************************************************************/
 
-jobject _Jv_JNI_NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
+jobject jni_NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 {
 	java_handle_t *o;
 	classinfo     *c;
 	methodinfo    *m;
 	va_list        ap;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLSENTER(("jni_NewObject(env=%p, clazz=%p, methodID=%p, ...)", env, clazz, methodID));
 
 	c = LLNI_classinfo_unwrap(clazz);
 	m = (methodinfo *) methodID;
@@ -1334,6 +1356,8 @@ jobject _Jv_JNI_NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
 	va_start(ap, methodID);
 	_Jv_jni_CallVoidMethod(o, LLNI_vftbl_direct(o), m, ap);
 	va_end(ap);
+
+	TRACEJNICALLSEXIT(("->%p", o));
 
 	return jni_NewLocalRef(env, (jobject) o);
 }
@@ -3380,14 +3404,14 @@ void _Jv_JNI_DeleteWeakGlobalRef(JNIEnv* env, jweak ref)
 
 *******************************************************************************/
     
-jobject _Jv_JNI_NewGlobalRef(JNIEnv* env, jobject obj)
+jobject jni_NewGlobalRef(JNIEnv* env, jobject obj)
 {
 	hashtable_global_ref_entry *gre;
 	u4   key;                           /* hashkey                            */
 	u4   slot;                          /* slot in hashtable                  */
 	java_handle_t *o;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS(("jni_NewGlobalRef(env=%p, obj=%p)", env, obj));
 
 	o = (java_handle_t *) obj;
 
@@ -3462,7 +3486,7 @@ jobject _Jv_JNI_NewGlobalRef(JNIEnv* env, jobject obj)
 
 *******************************************************************************/
 
-void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
+void jni_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 {
 	hashtable_global_ref_entry *gre;
 	hashtable_global_ref_entry *prevgre;
@@ -3470,7 +3494,7 @@ void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 	u4   slot;                          /* slot in hashtable                  */
 	java_handle_t              *o;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS(("jni_DeleteGlobalRef(env=%p, globalRef=%p)", env, globalRef));
 
 	o = (java_handle_t *) globalRef;
 
@@ -3526,7 +3550,7 @@ void _Jv_JNI_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 		gre     = gre->hashlink;            /* next element in external chain */
 	}
 
-	log_println("JNI-DeleteGlobalRef: global reference not found");
+	log_println("jni_DeleteGlobalRef: Global reference not found.");
 
 	LLNI_CRITICAL_END;
 
@@ -3563,7 +3587,7 @@ jboolean _Jv_JNI_ExceptionCheck(JNIEnv *env)
 
 *******************************************************************************/
 
-jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
+jobject jni_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 {
 #if defined(ENABLE_JAVASE)
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
@@ -3575,7 +3599,7 @@ jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 	gnu_classpath_Pointer32 *paddress;
 # endif
 
-	TRACEJNICALLS(("_Jv_JNI_NewDirectByteBuffer(env=%p, address=%p, capacity=%ld", env, address, capacity));
+	TRACEJNICALLSENTER(("jni_NewDirectByteBuffer(env=%p, address=%p, capacity=%ld)", env, address, capacity));
 
 	/* alocate a gnu.classpath.Pointer{32,64} object */
 
@@ -3600,6 +3624,8 @@ jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 
 	/* add local reference and return the value */
 
+	TRACEJNICALLSEXIT(("->%p", nbuf));
+
 	return jni_NewLocalRef(env, nbuf);
 
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
@@ -3608,7 +3634,7 @@ jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 	int64_t addr;
 	int32_t cap;
 
-	TRACEJNICALLS(("_Jv_JNI_NewDirectByteBuffer(env=%p, address=%p, capacity=%ld", env, address, capacity));
+	TRACEJNICALLSENTER(("jni_NewDirectByteBuffer(env=%p, address=%p, capacity=%ld)", env, address, capacity));
 
 	/* Be paranoid about address sign-extension. */
 
@@ -3620,6 +3646,8 @@ jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 
 	/* Add local reference and return the value. */
 
+	TRACEJNICALLSEXIT(("->%p", o));
+
 	return jni_NewLocalRef(env, o);
 
 # else
@@ -3627,7 +3655,7 @@ jobject _Jv_JNI_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 # endif
 
 #else
-	vm_abort("_Jv_JNI_NewDirectByteBuffer: not implemented in this configuration");
+	vm_abort("jni_NewDirectByteBuffer: Not implemented in this configuration.");
 
 	/* keep compiler happy */
 
@@ -4037,15 +4065,15 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 	jni_PushLocalFrame,
 	jni_PopLocalFrame,
 
-	_Jv_JNI_NewGlobalRef,
-	_Jv_JNI_DeleteGlobalRef,
+	jni_NewGlobalRef,
+	jni_DeleteGlobalRef,
 	jni_DeleteLocalRef,
 	_Jv_JNI_IsSameObject,
 	jni_NewLocalRef,
 	jni_EnsureLocalCapacity,
 
 	_Jv_JNI_AllocObject,
-	_Jv_JNI_NewObject,
+	jni_NewObject,
 	_Jv_JNI_NewObjectV,
 	_Jv_JNI_NewObjectA,
 
@@ -4277,7 +4305,7 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 
 	/* New JNI 1.4 functions. */
 
-	_Jv_JNI_NewDirectByteBuffer,
+	jni_NewDirectByteBuffer,
 	_Jv_JNI_GetDirectBufferAddress,
 	_Jv_JNI_GetDirectBufferCapacity,
 
