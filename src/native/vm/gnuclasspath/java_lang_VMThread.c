@@ -89,11 +89,7 @@ void _Jv_java_lang_VMThread_init(void)
  */
 JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, java_lang_VMThread *this)
 {
-	java_lang_Thread *thread;
-
-	LLNI_field_get_ref(this, thread, thread);
-
-    log_println("Java_java_lang_VMThread_countStackFrames: IMPLEMENT ME!");
+	log_println("Java_java_lang_VMThread_countStackFrames: Deprecated.  Not implemented.");
 
     return 0;
 }
@@ -164,7 +160,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, jav
 JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, java_lang_VMThread *this)
 {
 #if defined(ENABLE_THREADS)
-	/* TODO Should we implement this or is it obsolete? */
+	log_println("Java_java_lang_VMThread_suspend: Deprecated.  Not implemented.");
 #endif
 }
 
@@ -177,7 +173,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, java_lang_VM
 JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, java_lang_VMThread *this)
 {
 #if defined(ENABLE_THREADS)
-	/* TODO Should we implement this or is it obsolete? */
+	log_println("Java_java_lang_VMThread_resume: Deprecated.  Not implemented.");
 #endif
 }
 
@@ -209,7 +205,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, ja
 JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeStop(JNIEnv *env, java_lang_VMThread *this, java_lang_Throwable *t)
 {
 #if defined(ENABLE_THREADS)
-	/* TODO Should we implement this or is it obsolete? */
+	log_println("Java_java_lang_VMThread_nativeStop: Deprecated.  Not implemented.");
 #endif
 }
 

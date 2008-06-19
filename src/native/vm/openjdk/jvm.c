@@ -2270,7 +2270,7 @@ void JVM_StartThread(JNIEnv* env, jobject jthread)
 
 void JVM_StopThread(JNIEnv* env, jobject jthread, jobject throwable)
 {
-	log_println("JVM_StopThread: IMPLEMENT ME!");
+	log_println("JVM_StopThread: Deprecated.  Not implemented.");
 }
 
 
@@ -2303,7 +2303,7 @@ jboolean JVM_IsThreadAlive(JNIEnv* env, jobject jthread)
 
 void JVM_SuspendThread(JNIEnv* env, jobject jthread)
 {
-	log_println("JVM_SuspendThread: IMPLEMENT ME!");
+	log_println("JVM_SuspendThread: Deprecated.  Not implemented.");
 }
 
 
@@ -2311,7 +2311,7 @@ void JVM_SuspendThread(JNIEnv* env, jobject jthread)
 
 void JVM_ResumeThread(JNIEnv* env, jobject jthread)
 {
-	log_println("JVM_ResumeThread: IMPLEMENT ME!");
+	log_println("JVM_ResumeThread: Deprecated.  Not implemented.");
 }
 
 
@@ -2375,7 +2375,7 @@ jobject JVM_CurrentThread(JNIEnv* env, jclass threadClass)
 
 jint JVM_CountStackFrames(JNIEnv* env, jobject jthread)
 {
-	log_println("JVM_CountStackFrames: IMPLEMENT ME!");
+	log_println("JVM_CountStackFrames: Deprecated.  Not implemented.");
 
 	return 0;
 }
