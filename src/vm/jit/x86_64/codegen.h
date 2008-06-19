@@ -293,6 +293,7 @@
 #define M_BUGE(disp)            emit_jcc(cd, CC_AE, (disp))
 #define M_BUGT(disp)            emit_jcc(cd, CC_A, (disp))
 
+#define M_SETE(a)               emit_setcc_reg(cd, CC_E, (a))
 #define M_SETNE(a)              emit_setcc_reg(cd, CC_NE, (a))
 #define M_SETULE(a)             emit_setcc_reg(cd, CC_BE, (a))
 

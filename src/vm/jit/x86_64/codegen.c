@@ -2780,13 +2780,17 @@ gen_method:
 				/* cmp (ITMP1, ITMP3, 1), ITMP2 */
 
 				emit_label_bne(cd, BRANCH_LABEL_6);
-				M_LINC(d);
-				emit_label_br(cd, BRANCH_LABEL_7); /* ende */
+				if (d == REG_ITMP2) {
+					M_SETE(d);
+					M_BSEXT(d, d);
+				} else
+					M_LINC(d);
+				emit_label_br(cd, BRANCH_LABEL_7); /* ende true */
 
 				emit_label(cd, BRANCH_LABEL_6);
 
 				M_LCMP_IMM(OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]), REG_ITMP3);
-				emit_label_bne(cd, BRANCH_LABEL_6); /* ende */
+				emit_label_bne(cd, BRANCH_LABEL_6); /* ende false */
 
 				/* use the red zone */
 				M_AST(REG_ITMP2, REG_SP, -16);
@@ -2796,7 +2800,7 @@ gen_method:
 
 				M_ALD(REG_ITMP2, REG_SP, -24);
 				M_ICMP_MEMBASE(REG_ITMP1, OFFSET(vftbl_t, subtype_overflow_length), REG_ITMP2);
-				emit_label_bge(cd, BRANCH_LABEL_8); /* ende pop */
+				emit_label_bge(cd, BRANCH_LABEL_8); /* ende false */
 
 				*(cd->mcodeptr++) = 0x4f;
 				*(cd->mcodeptr++) = 0x8b;
@@ -2806,17 +2810,24 @@ gen_method:
 
 				M_LCMP_MEMBASE(REG_SP, -16, REG_ITMP2);
 				emit_label_bne(cd, BRANCH_LABEL_9);
-				M_LINC(d);
-				emit_label_br(cd, BRANCH_LABEL_10); /* ende pop */
+				if (d == REG_ITMP2) {
+					M_SETE(d);
+					M_BSEXT(d, d);
+				} else
+					M_LINC(d);
+				emit_label_br(cd, BRANCH_LABEL_10); /* ende true */
 				emit_label(cd, BRANCH_LABEL_9);
 
 				M_LINC_MEMBASE(REG_SP, -24);
 				M_JMP_IMM2(looptarget - (cd->mcodeptr - cd->mcodebase) - 2); /* 1 byte displacement */
 
 				emit_label(cd, BRANCH_LABEL_8);
-				emit_label(cd, BRANCH_LABEL_10);
-
 				emit_label(cd, BRANCH_LABEL_6);
+
+				if (d == REG_ITMP2)
+					M_CLR(d);
+
+				emit_label(cd, BRANCH_LABEL_10);
 				emit_label(cd, BRANCH_LABEL_7);
 				}
 				else {
@@ -2827,9 +2838,9 @@ gen_method:
 					*(cd->mcodeptr++) = super->vftbl->subtype_offset;
 					/* cmp off(ITMP1), ITMP2 */
 
-					emit_label_bne(cd, BRANCH_LABEL_6);
-					M_LINC(d);
-					emit_label(cd, BRANCH_LABEL_6);
+					M_SETE(d);
+					if (d == REG_ITMP2)
+						M_BSEXT(d, d);
 				}
 
 				if (super != NULL)
