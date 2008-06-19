@@ -26,9 +26,9 @@ dnl Check location of JUnit jar file.
 AC_DEFUN([AC_CHECK_WITH_JUNIT_JAR],[
 AC_MSG_CHECKING(location of JUnit jar)
 AC_ARG_WITH([junit-jar],
-            [AS_HELP_STRING(--with-junit-jar=<path>,location of JUnit jar file [[default=/usr/share/java/junit.jar]])],
+            [AS_HELP_STRING(--with-junit-jar=<path>,location of JUnit jar file [[default=/usr/share/java/junit4.jar]])],
             [JUNIT_JAR="${withval}"],
-            [JUNIT_JAR="/usr/share/java/junit.jar"])
+            [JUNIT_JAR="/usr/share/java/junit4.jar"])
 AC_MSG_RESULT(${JUNIT_JAR})
 AC_SUBST(JUNIT_JAR)
 ])
