@@ -103,9 +103,6 @@ void intrp_asm_abstractmethoderror(void);
 /* wrapper for code patching functions */
 void asm_patcher_wrapper(void);
 
-long asm_compare_and_swap(volatile long *p, long oldval, long newval);
-void asm_memory_barrier(void);
-
 /* cache flush function */
 void asm_cacheflush(u1 *addr, s4 nbytes);
 
