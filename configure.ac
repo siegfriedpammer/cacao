@@ -382,24 +382,7 @@ AC_CHECK_ENABLE_RT_TIMING
 AC_CHECK_ENABLE_CYCLE_STATS
 AC_CHECK_ENABLE_JVMTI
 AC_CHECK_ENABLE_THREADS
-
-
-dnl check if if-conversion should be supported
-AC_MSG_CHECKING(whether if-conversion should be supported)
-AC_ARG_ENABLE([ifconv],
-              [AS_HELP_STRING(--disable-ifconv,disable if-conversion [[default=enabled]])],
-              [case "${enableval}" in
-                   no) ENABLE_IFCONV=no;;
-                   *) ENABLE_IFCONV=yes;;
-               esac],
-              [ENABLE_IFCONV=yes])
-AC_MSG_RESULT(${ENABLE_IFCONV})
-AM_CONDITIONAL([ENABLE_IFCONV], test x"${ENABLE_IFCONV}" = "xyes")
-   
-if test x"${ENABLE_IFCONV}" = "xyes"; then
-    AC_DEFINE([ENABLE_IFCONV], 1, [enable if-conversion])
-fi
-
+AC_CHECK_ENABLE_IFCONV
 AC_CHECK_ENABLE_INLINING
 AC_CHECK_ENABLE_INLINING_DEBUG
 AC_CHECK_ENABLE_REPLACEMENT
