@@ -373,23 +373,7 @@ AC_CHECK_ENABLE_GC
 AC_CHECK_ENABLE_DEBUG
 AC_CHECK_ENABLE_DUMP
 AC_CHECK_ENABLE_MEMCHECK
-
-dnl check for handles (indirection cells) support
-AC_MSG_CHECKING(whether handles (indirection cells) should be enabled)
-AC_ARG_ENABLE([handles],
-              [AS_HELP_STRING(--enable-handles,enable handles (indirection cells) [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_HANDLES=yes;;
-                   *) ENABLE_HANDLES=no;;
-               esac],
-              [ENABLE_HANDLES=no])
-AC_MSG_RESULT(${ENABLE_HANDLES})
-AM_CONDITIONAL([ENABLE_HANDLES], test x"${ENABLE_HANDLES}" = "xyes")
-
-if test x"${ENABLE_HANDLES}" = "xyes"; then
-    AC_DEFINE([ENABLE_HANDLES], 1, [enable handles (indirection cells)])
-fi
-
+AC_CHECK_ENABLE_HANDLES
 
 dnl check for vmlog support
 AC_MSG_CHECKING(whether vmlog tracing should be enabled)
