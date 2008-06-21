@@ -432,40 +432,8 @@ if test x"${ENABLE_IFCONV}" = "xyes"; then
     AC_DEFINE([ENABLE_IFCONV], 1, [enable if-conversion])
 fi
 
-
-dnl check for inlining
-AC_MSG_CHECKING(whether method inlining should be supported)
-AC_ARG_ENABLE([inlining],
-              [AS_HELP_STRING(--enable-inlining,enable method inlining [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_INLINING=yes;;
-                   *) ENABLE_INLINING=no;;
-               esac],
-              [ENABLE_INLINING=no])
-AC_MSG_RESULT(${ENABLE_INLINING})
-AM_CONDITIONAL([ENABLE_INLINING], test x"${ENABLE_INLINING}" = "xyes")
-
-if test x"${ENABLE_INLINING}" = "xyes"; then
-    AC_DEFINE([ENABLE_INLINING], 1, [use method inlining])
-fi
-
-
-dnl check for inlining debug options
-AC_MSG_CHECKING(whether method inlining debug options should be enabled)
-AC_ARG_ENABLE([inlining-debug],
-              [AS_HELP_STRING(--enable-inlining-debug,enable method inlining debug options [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_INLINING_DEBUG=yes;;
-                   *) ENABLE_INLINING_DEBUG=no;;
-               esac],
-              [ENABLE_INLINING_DEBUG=no])
-AC_MSG_RESULT(${ENABLE_INLINING_DEBUG})
-AM_CONDITIONAL([ENABLE_INLINING_DEBUG], test x"${ENABLE_INLINING_DEBUG}" = "xyes")
-
-if test x"${ENABLE_INLINING_DEBUG}" = "xyes"; then
-    AC_DEFINE([ENABLE_INLINING_DEBUG], 1, [enable method inlining debug options])
-fi
-
+AC_CHECK_ENABLE_INLINING
+AC_CHECK_ENABLE_INLINING_DEBUG
 
 dnl check for replacement
 AC_MSG_CHECKING(whether on-stack replacement should be supported)
