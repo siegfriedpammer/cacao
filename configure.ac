@@ -377,23 +377,7 @@ AC_CHECK_ENABLE_HANDLES
 AC_CHECK_ENABLE_VMLOG
 AC_CHECK_ENABLE_DISASSEMBLER
 AC_CHECK_ENABLE_STATISTICS
-
-dnl check for verifier
-AC_MSG_CHECKING(whether classfile verification should be enabled)
-AC_ARG_ENABLE([verifier],
-              [AS_HELP_STRING(--disable-verifier,disable classfile verification [[default=enabled]])],
-              [case "${enableval}" in
-                   no) ENABLE_VERIFIER=no;;
-                   *) ENABLE_VERIFIER=yes;;
-               esac],
-              [ENABLE_VERIFIER=yes])
-AC_MSG_RESULT(${ENABLE_VERIFIER})
-AM_CONDITIONAL([ENABLE_VERIFIER], test x"${ENABLE_VERIFIER}" = "xyes")
-
-if test x"${ENABLE_VERIFIER}" = "xyes"; then
-    AC_DEFINE([ENABLE_VERIFIER], 1, [enable classfile verification])
-fi
-
+AC_CHECK_ENABLE_VERIFIER
 
 dnl check for compiler timing
 AC_MSG_CHECKING(whether real-time timing should be enabled)
