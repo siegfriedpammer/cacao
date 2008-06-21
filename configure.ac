@@ -434,23 +434,7 @@ fi
 
 AC_CHECK_ENABLE_INLINING
 AC_CHECK_ENABLE_INLINING_DEBUG
-
-dnl check for replacement
-AC_MSG_CHECKING(whether on-stack replacement should be supported)
-AC_ARG_ENABLE([replacement],
-              [AS_HELP_STRING(--enable-replacement,enable on-stack replacement [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_REPLACEMENT=yes;;
-                   *) ENABLE_REPLACEMENT=no;;
-               esac],
-              [ENABLE_REPLACEMENT=no])
-AC_MSG_RESULT(${ENABLE_REPLACEMENT})
-AM_CONDITIONAL([ENABLE_REPLACEMENT], test x"${ENABLE_REPLACEMENT}" = "xyes")
-
-if test x"${ENABLE_REPLACEMENT}" = "xyes"; then
-    AC_DEFINE([ENABLE_REPLACEMENT], 1, [use on-stack replacement])
-fi
-
+AC_CHECK_ENABLE_REPLACEMENT
 
 dnl check for loop optimization
 AC_MSG_CHECKING(whether loop optimization should be supported)
