@@ -378,23 +378,7 @@ AC_CHECK_ENABLE_VMLOG
 AC_CHECK_ENABLE_DISASSEMBLER
 AC_CHECK_ENABLE_STATISTICS
 AC_CHECK_ENABLE_VERIFIER
-
-dnl check for compiler timing
-AC_MSG_CHECKING(whether real-time timing should be enabled)
-AC_ARG_ENABLE([rt-timing],
-              [AS_HELP_STRING(--enable-rt-timing,enable real-time timing [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_RT_TIMING=yes;;
-                   *) ENABLE_RT_TIMING=no;;
-               esac],
-              [ENABLE_RT_TIMING=no])
-AC_MSG_RESULT(${ENABLE_RT_TIMING})
-AM_CONDITIONAL([ENABLE_RT_TIMING], test x"${ENABLE_RT_TIMING}" = "xyes")
-
-if test x"${ENABLE_RT_TIMING}" = "xyes"; then
-    AC_DEFINE([ENABLE_RT_TIMING], 1, [enable real-time timing])
-fi
-
+AC_CHECK_ENABLE_RT_TIMING
 
 dnl check for cycle count statistics
 AC_MSG_CHECKING(whether cycle count statistics should be enabled)
