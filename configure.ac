@@ -412,24 +412,7 @@ if test x"${ENABLE_CYCLES_STATS}" = "xyes"; then
     AC_DEFINE([ENABLE_CYCLES_STATS], 1, [enable cycle count statistics])
 fi
 
-
-dnl check for JVMTI
-AC_MSG_CHECKING(whether to compile JVMTI support)
-AC_ARG_ENABLE([jvmti],
-              [AS_HELP_STRING(--enable-jvmti,enable JVMTI [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_JVMTI=yes;;
-                   *) ENABLE_JVMTI=no;;
-               esac],
-              [ENABLE_JVMTI=no])
-AC_MSG_RESULT(${ENABLE_JVMTI})
-AM_CONDITIONAL([ENABLE_JVMTI], test x"${ENABLE_JVMTI}" = "xyes")
-
-if test x"${ENABLE_JVMTI}" = "xyes"; then
-    AC_DEFINE([ENABLE_JVMTI], 1, [use JVMTI])
-fi
-
-
+AC_CHECK_ENABLE_JVMTI
 AC_CHECK_ENABLE_THREADS
 
 
