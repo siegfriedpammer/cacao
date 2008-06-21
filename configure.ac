@@ -375,58 +375,7 @@ AC_CHECK_ENABLE_DUMP
 AC_CHECK_ENABLE_MEMCHECK
 AC_CHECK_ENABLE_HANDLES
 AC_CHECK_ENABLE_VMLOG
-
-dnl check for disassembler support
-AC_MSG_CHECKING(whether disassembler should be enabled)
-AC_ARG_ENABLE([disassembler],
-              [AS_HELP_STRING(--enable-disassembler,enable disassembler [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_DISASSEMBLER=yes;;
-                   *) ENABLE_DISASSEMBLER=no;;
-               esac],
-              [ENABLE_DISASSEMBLER=no])
-AC_MSG_RESULT(${ENABLE_DISASSEMBLER})
-AM_CONDITIONAL([ENABLE_DISASSEMBLER], test x"${ENABLE_DISASSEMBLER}" = "xyes")
-
-if test x"${ENABLE_DISASSEMBLER}" = "xyes"; then
-    AC_DEFINE([ENABLE_DISASSEMBLER], 1, [enable disassembler])
-
-    dnl check for binutils headers and libraries on some architectures for the
-    dnl disassembler
-    case "${ARCH_DIR}" in
-        arm | i386 | powerpc | x86_64 | sparc64 | powerpc64 | s390 | m68k)
-            AC_CHECK_HEADER([ansidecl.h],, [AC_MSG_ERROR(cannot find ansidecl.h)])
-            AC_CHECK_HEADER([symcat.h],, [AC_MSG_ERROR(cannot find symcat.h)])
-            AC_CHECK_HEADER([bfd.h],, [AC_MSG_ERROR(cannot find bfd.h)])
-            AC_CHECK_HEADER([dis-asm.h],, [AC_MSG_ERROR(cannot find dis-asm.h)])
-
-            case "${OS_DIR}" in
-                cygwin | darwin | netbsd | solaris)
-                     AC_CHECK_LIB(intl, dcgettext,, [AC_MSG_ERROR(cannot find libintl (from binutils))])
-                     ;;
-            esac
-
-            case "${OS_DIR}" in
-                solaris)
-					 AC_CHECK_LIB(rt, sem_init,, [AC_MSG_ERROR(cannot find librt)])
-                     ;;
-            esac
-
-
-            AC_CHECK_LIB(iberty, xstrerror,, [AC_MSG_ERROR(cannot find libiberty (from binutils))])
-            AC_CHECK_LIB(bfd, bfd_get_arch,, [AC_MSG_ERROR(cannot find libbfd (from binutils))])
-            AC_CHECK_LIB(opcodes, disassembler,, [AC_MSG_ERROR(cannot find libopcodes (from binutils))])
-            AC_DEFINE([WITH_BINUTILS_DISASSEMBLER], 1, [use binutils disassembler])
-            AM_CONDITIONAL([WITH_BINUTILS_DISASSEMBLER], [true])
-            ;;
-        * )
-            AM_CONDITIONAL([WITH_BINUTILS_DISASSEMBLER], [false])
-            ;;
-    esac
-else
-    AM_CONDITIONAL([WITH_BINUTILS_DISASSEMBLER], [false])
-fi
-
+AC_CHECK_ENABLE_DISASSEMBLER
 
 dnl check for statistics
 AC_MSG_CHECKING(whether statistics generation should be enabled)
