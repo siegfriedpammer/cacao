@@ -374,23 +374,7 @@ AC_CHECK_ENABLE_DEBUG
 AC_CHECK_ENABLE_DUMP
 AC_CHECK_ENABLE_MEMCHECK
 AC_CHECK_ENABLE_HANDLES
-
-dnl check for vmlog support
-AC_MSG_CHECKING(whether vmlog tracing should be enabled)
-AC_ARG_ENABLE([vmlog],
-              [AS_HELP_STRING(--enable-vmlog,enable vmlog tracing [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_VMLOG=yes;;
-                   *) ENABLE_VMLOG=no;;
-               esac],
-              [ENABLE_VMLOG=no])
-AC_MSG_RESULT(${ENABLE_VMLOG})
-AM_CONDITIONAL([ENABLE_VMLOG], test x"${ENABLE_VMLOG}" = "xyes")
-
-if test x"${ENABLE_VMLOG}" = "xyes"; then
-    AC_DEFINE([ENABLE_VMLOG], 1, [enable vmlog tracing code])
-fi
-
+AC_CHECK_ENABLE_VMLOG
 
 dnl check for disassembler support
 AC_MSG_CHECKING(whether disassembler should be enabled)
