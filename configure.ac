@@ -379,23 +379,7 @@ AC_CHECK_ENABLE_DISASSEMBLER
 AC_CHECK_ENABLE_STATISTICS
 AC_CHECK_ENABLE_VERIFIER
 AC_CHECK_ENABLE_RT_TIMING
-
-dnl check for cycle count statistics
-AC_MSG_CHECKING(whether cycle count statistics should be enabled)
-AC_ARG_ENABLE([cycles-stats],
-              [AS_HELP_STRING(--enable-cycles-stats,enable cycle count statistics [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_CYCLES_STATS=yes;;
-                   *) ENABLE_CYCLES_STATS=no;;
-               esac],
-              [ENABLE_CYCLES_STATS=no])
-AC_MSG_RESULT(${ENABLE_CYCLES_STATS})
-AM_CONDITIONAL([ENABLE_CYCLES_STATS], test x"${ENABLE_CYCLES_STATS}" = "xyes")
-
-if test x"${ENABLE_CYCLES_STATS}" = "xyes"; then
-    AC_DEFINE([ENABLE_CYCLES_STATS], 1, [enable cycle count statistics])
-fi
-
+AC_CHECK_ENABLE_CYCLE_STATS
 AC_CHECK_ENABLE_JVMTI
 AC_CHECK_ENABLE_THREADS
 
