@@ -26,8 +26,11 @@
 #ifndef _MEMORY_H
 #define _MEMORY_H
 
-
 #include "config.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <string.h>
 
@@ -142,6 +145,10 @@ void *mem_realloc(void *src, int32_t len1, int32_t len2);
 
 #if defined(ENABLE_THREADS)
 bool  memory_start_thread(void);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* _MEMORY_H */

@@ -1,9 +1,7 @@
-/* src/vm/package.c - Java boot-package functions
+/* src/vm/package.hpp - Java boot-package functions
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -25,10 +23,14 @@
 */
 
 
-#ifndef _VM_PACKAGE_H
-#define _VM_PACKAGE_H
+#ifndef _VM_PACKAGE_HPP
+#define _VM_PACKAGE_HPP
 
 #include "config.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdint.h>
 
@@ -36,17 +38,38 @@
 
 #include "vm/global.h"
 
+#ifdef __cplusplus
+}
+#endif
 
-/* function prototypes ********************************************************/
 
-void           package_init(void);
+#ifdef __cplusplus
 
-/* void           package_add(java_handle_t *packagename); */
-void           package_add(utf *packagename);
-/* java_handle_t *package_find(java_handle_t *packagename); */
-utf           *package_find(utf *packagename);
+/**
+ *
+ */
+class Package {
+public:
+	static void initialize();
+	/* static void add(java_handle_t *packagename); */
+	static void add(utf *packagename);
+	/* static java_handle_t* find(java_handle_t *packagename); */
+	static utf* find(utf *packagename);
+};
 
-#endif /* _VM_PACKAGE_H */
+#else
+
+/* Legacy C interface *********************************************************/
+
+typedef struct Package Package;
+
+void Package_initialize();
+void Package_add(utf* packagename);
+utf* Package_find(utf* packagename);
+
+#endif
+
+#endif /* _VM_PACKAGE_HPP */
 
 
 /*
@@ -55,7 +78,7 @@ utf           *package_find(utf *packagename);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

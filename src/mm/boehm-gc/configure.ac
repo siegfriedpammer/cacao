@@ -35,11 +35,6 @@ AC_SUBST(GC_VERSION)
 AM_PROG_CC_C_O
 AC_PROG_CXX
 
-dnl temporary set the CFLAGS for configure tests (e.g. inline keyword)
-dnl we set it properly later in this file
-CFLAGS="$ARCH_CFLAGS $OPT_CFLAGS"
-AC_C_INLINE
-
 AM_PROG_AS
 ## FIXME: really needed? (AC_LIBTOOL already provides this)
 AC_CHECK_TOOL(AR, ar)
@@ -499,15 +494,6 @@ case "$host" in
     ;;
  *) AC_MSG_RESULT(no) ;;
 esac
-
-dnl We need to override the top-level CFLAGS.  This is how we do it.
-dnl MY_CFLAGS="$CFLAGS"
-dnl AC_SUBST(MY_CFLAGS)
-
-dnl pass CFLAGS to Makefiles via AM_CFLAGS
-CFLAGS=$OPT_CFLAGS
-AM_CFLAGS=$ARCH_CFLAGS
-AC_SUBST(AM_CFLAGS)
 
 dnl Include defines that have become de facto standard.
 dnl ALL_INTERIOR_POINTERS can be overridden in startup code.

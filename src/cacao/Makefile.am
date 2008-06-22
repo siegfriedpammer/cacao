@@ -68,6 +68,11 @@ endif
 
 libjvm_la_SOURCES =
 
+# Dummy C++ source to cause C++ linking.
+# http://www.gnu.org/software/automake/manual/automake.html#Libtool-Convenience-Libraries
+nodist_EXTRA_libjvm_la_SOURCES = \
+	dummy.cxx
+
 libjvm_la_LIBADD = \
 	$(top_builddir)/src/fdlibm/libfdlibm.la \
 	$(top_builddir)/src/mm/libmm.la \

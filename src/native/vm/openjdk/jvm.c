@@ -81,7 +81,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
-#include "vm/package.h"
+#include "vm/package.hpp"
 #include "vm/primitive.h"
 #include "vm/properties.h"
 #include "vm/resolve.h"
@@ -2515,10 +2515,10 @@ jstring JVM_GetSystemPackage(JNIEnv *env, jstring name)
 
 	TRACEJVMCALLS(("JVM_GetSystemPackage(env=%p, name=%p)", env, name));
 
-/* 	s = package_find(name); */
+/* 	s = Package_find(name); */
 	u = javastring_toutf((java_handle_t *) name, false);
 
-	result = package_find(u);
+	result = Package_find(u);
 
 	if (result != NULL)
 		s = javastring_new(result);

@@ -35,87 +35,93 @@ AM_CONFIG_HEADER([config.h])
 AC_PREFIX_DEFAULT(/usr/local/cacao)
 
 
-dnl set optimization and debugging for all architectures and systems
+dnl Set optimization and debugging for all architectures and systems.
 if test x"$CFLAGS" = "x"; then
     OPT_CFLAGS="-O0 -g"
 else
     OPT_CFLAGS=$CFLAGS
 fi
 
+if test x"$CXXFLAGS" = "x"; then
+    OPT_CXXFLAGS="-O0 -g"
+else
+    OPT_CXXFLAGS=$CXXFLAGS
+fi
+
 dnl system type
 case "$host_cpu" in
 alpha | alphaev56 | alphapca56 )
     ARCH_DIR="alpha"
-    ARCH_CFLAGS="-mieee -D__ALPHA__"
+    ARCH_FLAGS="-mieee -D__ALPHA__"
     JAVA_ARCH="alpha"
     ;;
 
 arm | armv4 | armv4tl | armv5b | armv5l )
     ARCH_DIR="arm"
-    ARCH_CFLAGS="-D__ARM__"
+    ARCH_FLAGS="-D__ARM__"
     JAVA_ARCH="arm"
     ;;
 
 hppa2.0 )
     ARCH_DIR="parisc"
-    ARCH_CFLAGS="-D__PARISC__"
+    ARCH_FLAGS="-D__PARISC__"
     JAVA_ARCH="hppa"
     ;;
 
 i386 | i486 | i586 | i686 )
     ARCH_DIR="i386"
-    ARCH_CFLAGS="-D__I386__"
+    ARCH_FLAGS="-D__I386__"
     JAVA_ARCH="i386"
     ;;
 
 m68k )
     ARCH_DIR="m68k"
-    ARCH_CFLAGS="-D__M68K__"
+    ARCH_FLAGS="-D__M68K__"
     JAVA_ARCH="m68k"
     ;;
 
 mips | mipsel )
     ARCH_DIR="mips"
-    ARCH_CFLAGS="-D__MIPS__"
+    ARCH_FLAGS="-D__MIPS__"
     dnl Is this correct for mipsel?
     JAVA_ARCH="mips"
     ;;
 
 powerpc )
     ARCH_DIR="powerpc"
-    ARCH_CFLAGS="-D__POWERPC__"
+    ARCH_FLAGS="-D__POWERPC__"
     JAVA_ARCH="ppc"
     ;;
 
 powerpc64 )
     ARCH_DIR="powerpc64"
-    ARCH_CFLAGS="-D__POWERPC64__"
+    ARCH_FLAGS="-D__POWERPC64__"
     JAVA_ARCH="ppc64"
     ;;
 
 s390 )
     ARCH_DIR="s390"
-    ARCH_CFLAGS="-D__S390__"
+    ARCH_FLAGS="-D__S390__"
     JAVA_ARCH="s390"
     ;;
 
 sparc | sparc64 )
     ARCH_DIR="sparc64"
-    ARCH_CFLAGS="-mcpu=v9 -m64 -D__SPARC_64__"
+    ARCH_FLAGS="-mcpu=v9 -m64 -D__SPARC_64__"
     dnl Is this correct for 64-bits?
     JAVA_ARCH="sparc"
     ;;
 
 x86_64 )
     ARCH_DIR="x86_64"
-    ARCH_CFLAGS="-D__X86_64__"
+    ARCH_FLAGS="-m64 -D__X86_64__"
     JAVA_ARCH="amd64"
     ;;
 
 xdspcore )
     ARCH_DIR="xdspcore"
     ENABLE_STATICVM="yes"
-    ARCH_CFLAGS="-D__XDSPCORE__"
+    ARCH_FLAGS="-D__XDSPCORE__"
     USE_SCHEDULER="1"
     ;;
 
@@ -128,52 +134,68 @@ dnl host type
 case "$host_os" in
 *cygwin* )
     OS_DIR="cygwin"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__WINDOWS__ -D__CYGWIN__ -Wall -Wno-long-long"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__WINDOWS__ -D__CYGWIN__ -std=c99 -pedantic -Wall -Wno-long-long"
+    OS_FLAGS="-D__WINDOWS__ -D__CYGWIN__"
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *darwin* )
     OS_DIR="darwin"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__DARWIN__ -Wall -Wno-long-long"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__DARWIN__ -std=c99 -pedantic -Wall -Wno-long-long"
+    OS_FLAGS="-D__DARWIN__"
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 dnl Must be BEFORE *freebsd*.
 *kfreebsd*-gnu)
     OS_DIR="freebsd"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -std=c99 -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    OS_FLAGS="-D__FREEBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *freebsd* )
     OS_DIR="freebsd"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -std=c99 -pedantic -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
+    OS_FLAGS="-D__FREEBSD__ -D_XOPEN_SOURCE_EXTENDED"
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *irix* )
     OS_DIR="irix"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__IRIX__"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__IRIX__"
+    OS_FLAGS="-D__IRIX__"
+    CC_FLAGS=""
+    CXX_FLAGS=""
+    INTRP_CFLAGS="$ARCH_FLAGS $OS_FLAGS"
     ;;
 
 dnl Must be BEFORE *linux*.
 *uclinux | *elf )
     OS_DIR="uclinux"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -std=c99 -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    OS_FLAGS="-D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *linux* | *Linux* )
     OS_DIR="linux"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -std=c99 -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    OS_FLAGS="-D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *netbsd* )
     OS_DIR="netbsd"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__NETBSD__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__NETBSD__ -std=c99 -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    OS_FLAGS="-D__NETBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *solaris* )
@@ -181,8 +203,10 @@ dnl Must be BEFORE *linux*.
     dnl On solaris the architecture defines 'sparc', 'sun', 'unix' are
     dnl not set when cpp is called with -std=c99, therefore we add them
     dnl here.
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__SOLARIS__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D__EXTENSIONS__ -D_BSD_SOURCE -Dsparc -Dsun -Dunix"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__SOLARIS__ -std=c99 -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D__EXTENSIONS__ -D_BSD_SOURCE -Dsparc -Dsun -Dunix"
+    OS_FLAGS="-D__SOLARIS__ -D_POSIX_C_SOURCE=200112L -D__EXTENSIONS__ -D_BSD_SOURCE"
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long -D_XOPEN_SOURCE=600"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 * )
@@ -192,7 +216,8 @@ esac
 
 dnl temporary set the CFLAGS for configure tests (e.g. inline keyword)
 dnl we set it properly at the end of this file
-CFLAGS="$ARCH_CFLAGS $OPT_CFLAGS"
+CFLAGS="$OPT_CFLAGS $ARCH_FLAGS $OS_FLAGS $CC_FLAGS"
+CXXFLAGS="$OPT_CXXFLAGS $ARCH_FLAGS $OS_FLAGS $CXX_FLAGS"
 
 dnl set interpreter flags
 AC_SUBST(INTRP_CFLAGS)
@@ -208,6 +233,7 @@ AC_SUBST(USE_SCHEDULER)
 
 dnl Checks for programs.
 AC_PROG_CC
+AC_PROG_CXX
 AM_PROG_AS
 AC_PROG_LD
 AC_PROG_LD_GNU
@@ -588,14 +614,21 @@ AZ_PYTHON_LSPEC
 dnl define some stuff required for --fullversion
 AC_DEFINE_UNQUOTED(VERSION_CONFIGURE_ARGS, "$ac_configure_args", [configure arguments])
 AC_DEFINE_UNQUOTED(VERSION_CC, "$CC", [CC used])
-AC_DEFINE_UNQUOTED(VERSION_CFLAGS, "$OPT_CFLAGS $ARCH_CFLAGS $CPPFLAGS", [CFLAGS used])
+AC_DEFINE_UNQUOTED(VERSION_CXX, "$CXX", [CXX used])
+AC_DEFINE_UNQUOTED(VERSION_CFLAGS, "$OPT_CFLAGS $ARCH_CFLAGS $CC_FLAGS $CPPFLAGS", [CFLAGS used])
+AC_DEFINE_UNQUOTED(VERSION_CXXFLAGS, "$OPT_CXXFLAGS $ARCH_CXXFLAGS $CXX_FLAGS $CPPFLAGS", [CXXFLAGS used])
 
 
-dnl finally pass CFLAGS to Makefiles via AM_CFLAGS
+dnl Finally pass flags to Makefiles.
 CFLAGS="$OPT_CFLAGS"
-AM_CFLAGS=$ARCH_CFLAGS
+CXXFLAGS="$OPT_CXXFLAGS"
+
+AM_CFLAGS="$CC_FLAGS $ARCH_FLAGS $OS_FLAGS"
+AM_CXXFLAGS="$CXX_FLAGS $ARCH_FLAGS $OS_FLAGS"
 AM_CPPFLAGS="$CPPFLAGS"
+
 AC_SUBST(AM_CFLAGS)
+AC_SUBST(AM_CXXFLAGS)
 AC_SUBST(AM_CPPFLAGS)
 
 
@@ -685,11 +718,8 @@ AC_CONFIG_FILES([Makefile]
 )
 
 
-dnl now configure subpackages with OPT_CFLAGS and ARCH_CFLAGS
-export OPT_CFLAGS
-export ARCH_CFLAGS
 dnl We only build the shared library objects but we use it as
-dnl noinst_LTLIBRARIES
+dnl noinst_LTLIBRARIES.
 ac_configure_args="$ac_configure_args --disable-static"
 AC_CONFIG_SUBDIRS(src/mm/boehm-gc)
 

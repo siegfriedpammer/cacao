@@ -76,7 +76,7 @@
 #include "vm/finalizer.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
-#include "vm/package.h"
+#include "vm/package.hpp"
 #include "vm/primitive.h"
 #include "vm/properties.h"
 #include "vm/signallocal.h"
@@ -1467,7 +1467,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	/* BEFORE: loader_preinit */
 
-	package_init();
+	Package_initialize();
 
 	/* AFTER: utf8_init, classcache_init */
 

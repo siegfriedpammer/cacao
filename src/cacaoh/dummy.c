@@ -463,7 +463,17 @@ s4 heap_get_hashcode(java_object_t *o)
 }
 
 
+/* instruction ****************************************************************/
+
+methoddesc *instruction_call_site(const instruction *iptr)
+{
+	return NULL;
+}
+
+
 /* jit ************************************************************************/
+
+icmdtable_entry_t icmd_table[256] = {};
 
 void jit_invalidate_code(methodinfo *m)
 {
@@ -562,8 +572,8 @@ void dumpmemory_release(int32_t size)
 
 /* package ********************************************************************/
 
-/* void package_add(java_handle_t *packagename) */
-void package_add(utf *packagename)
+/* void Package_add(java_handle_t *packagename) */
+void Package_add(utf *packagename)
 {
 	/* Do nothing. */
 }
@@ -735,6 +745,13 @@ java_handle_objectarray_t *stacktrace_getClassContext()
 
 
 /* threads ********************************************************************/
+
+#if defined(HAVE___THREAD)
+__thread threadobject *thread_current;
+#else
+#include <pthread.h>
+pthread_key_t thread_current_key;
+#endif
 
 intptr_t threads_get_current_tid(void)
 {

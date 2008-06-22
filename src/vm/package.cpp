@@ -1,4 +1,4 @@
-/* src/vm/package.c - Java boot-package functions
+/* src/vm/package.cpp - Java boot-package functions
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -35,7 +35,7 @@
 
 #include "native/include/java_lang_String.h"
 
-#include "vm/package.h"
+#include "vm/package.hpp"
 #include "vm/stringlocal.h"
 
 #include "vmcore/options.h"
@@ -58,13 +58,10 @@ struct list_package_entry_t {
 static list_t *list_package = NULL;
 
 
-/* package_init ****************************************************************
-
-   Initialize the package list.
-
-*******************************************************************************/
-
-void package_init(void)
+/**
+ * Initialize the package list.
+ */
+void Package::initialize(void)
 {
 	TRACESUBSYSTEMINITIALIZATION("package_init");
 
@@ -74,17 +71,13 @@ void package_init(void)
 }
 
 
-/* package_add *****************************************************************
-
-   Add a package to the boot-package list.
-
-   IN:
-       packagename....package name as Java string
-
-*******************************************************************************/
-
+/**
+ * Add a package to the boot-package list.
+ *
+ * @param packagename Package name as Java string.
+ */
 /* void package_add(java_handle_t *packagename) */
-void package_add(utf *packagename)
+void Package::add(utf *packagename)
 {
 /*  	java_string_t        *s; */
 	list_package_entry_t *lpe;
@@ -95,7 +88,7 @@ void package_add(utf *packagename)
 
 	/* Check if the package is already stored. */
 
-	if (package_find(packagename) != NULL)
+	if (Package::find(packagename) != NULL)
 		return;
 
 	/* Add the package. */
@@ -118,20 +111,15 @@ void package_add(utf *packagename)
 }
 
 
-/* package_find ****************************************************************
-
-   Find a package in the list.
-
-   IN:
-       packagename....package name as Java string
-
-   OUT:
-       package name as Java string
-
-*******************************************************************************/
-
+/**
+ * Find a package in the list.
+ *
+ * @param packagename Package name as Java string.
+ *
+ * @return Package name as Java string.
+ */
 /* java_handle_t *package_find(java_handle_t *packagename) */
-utf *package_find(utf *packagename)
+utf* Package::find(utf *packagename)
 {
 /* 	java_string_t        *s; */
 	list_t               *l;
@@ -145,7 +133,7 @@ utf *package_find(utf *packagename)
 
 	l = list_package;
 
-	for (lpe = list_first(l); lpe != NULL; lpe = list_next(l, lpe)) {
+	for (lpe = (list_package_entry_t*) list_first(l); lpe != NULL; lpe = (list_package_entry_t*) list_next(l, lpe)) {
 /* 		if (lpe->packagename == s) */
 		if (lpe->packagename == packagename)
 			return lpe->packagename;
@@ -155,13 +143,24 @@ utf *package_find(utf *packagename)
 }
 
 
+/* Legacy C interface *********************************************************/
+
+extern "C" {
+
+void Package_initialize(void) { Package::initialize(); }
+void Package_add(utf* packagename) { Package::add(packagename); }
+utf* Package_find(utf *packagename) { return Package::find(packagename); }
+
+}
+
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

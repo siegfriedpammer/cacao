@@ -28,6 +28,10 @@
 
 #include "config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 
 #include "vm/global.h"
@@ -136,6 +140,10 @@ void   *list_last(list_t *l);
 
 void   *list_next(list_t *l, void *element);
 void   *list_prev(list_t *l, void *element);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _LIST_H */
 

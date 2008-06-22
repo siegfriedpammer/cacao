@@ -43,7 +43,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/package.h"
+#include "vm/package.hpp"
 #include "vm/primitive.h"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
@@ -1323,7 +1323,7 @@ classinfo *load_class_bootstrap(utf *name)
 		else {
 			/* Add the package name to the boot packages. */
 
-			package_add(c->packagename);
+			Package_add(c->packagename);
 		}
 
 		r = res;
