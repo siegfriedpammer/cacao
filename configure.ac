@@ -673,6 +673,7 @@ if test x"${ENABLE_SSA}" = "xyes"; then
     AC_DEFINE([ENABLE_SSA], 1, [enable lsra with ssa])
     AC_DEFINE([ENABLE_ESCAPE], 1, [enable escape analysis with ssa])
     AC_DEFINE([ENABLE_ESCAPE_CHECK], 1, [enable generating code to validate escape analysis results])
+    AC_DEFINE([ENABLE_TLH], 1, [enable thread local heap])
     ENABLE_LSRA="no"
 fi
 

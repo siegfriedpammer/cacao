@@ -171,6 +171,12 @@ struct threadobject {
 	u4                    tracejavacallcount;
 #endif
 
+#if defined(ENABLE_TLH)
+	uint8_t              *tlhstart;
+	uint8_t              *tlhtop;
+	uint8_t              *tlhbase;
+#endif
+
 	listnode_t            linkage;      /* threads-list                       */
 	listnode_t            linkage_free; /* free-list                          */
 };

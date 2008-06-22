@@ -31,14 +31,29 @@ typedef enum {
 	ESCAPE_UNKNOWN,
 	ESCAPE_NONE,
 	ESCAPE_METHOD,
-	ESCAPE_GLOBAL_THROUGH_METHOD,
+	ESCAPE_METHOD_RETURN,
 	ESCAPE_GLOBAL
 } escape_state_t;
+
+static inline escape_state_t escape_state_from_u1(u1 x) {
+	return (escape_state_t)(x & ~0x80);
+}
+
+static inline u1 escape_state_to_u1(escape_state_t x) {
+	return (u1)x;
+}
 
 void escape_analysis_perform(jitdata *jd);
 
 void escape_analysis_escape_check(void *vp);
 
 void bc_escape_analysis_perform(methodinfo *m);
+
+typedef struct {
+	unsigned monomorphic:1;
+	unsigned speculative:1;
+} monomorphic_t;
+
+bool method_profile_is_monomorphic(methodinfo *m);
 
 #endif

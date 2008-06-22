@@ -686,6 +686,10 @@ void threads_impl_thread_init(threadobject *t)
 	result = pthread_cond_init(&(t->suspendcond), NULL);
 	if (result != 0)
 		vm_abort_errnum(result, "threads_impl_thread_new: pthread_cond_init failed");
+
+#if defined(ENABLE_TLH)
+	tlh_init(t);
+#endif
 }
 
 /* threads_impl_thread_clear ***************************************************
@@ -775,6 +779,10 @@ void threads_impl_thread_reuse(threadobject *t)
 
 /* 	not really needed */
 	t->flc_object = NULL;
+
+#if defined(ENABLE_TLH)
+	tlh_reset(t);
+#endif
 }
 
 

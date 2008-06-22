@@ -118,15 +118,10 @@ typedef struct {
 	op_stack_slot_t *ptr;
 	op_stack_slot_t *bottom;
 	unsigned max;
+	bool *perror_flag;
 } op_stack_t;
 
-#define stack_assert_position(stack, pos) \
-	do { \
-		assert((stack)->elements <= (pos)); \
-		assert((pos) < (stack)->end); \
-	} while (0)
-
-static void op_stack_init(op_stack_t *stack, unsigned max) {
+static void op_stack_init(op_stack_t *stack, unsigned max, bool *perror_flag) {
 	op_stack_slot_t *it;
 
 	stack->elements = DMNEW(op_stack_slot_t, max * 2);
@@ -140,6 +135,27 @@ static void op_stack_init(op_stack_t *stack, unsigned max) {
 
 	stack->ptr = stack->start;
 	stack->bottom = stack->start;
+
+	stack->perror_flag = perror_flag;
+}
+
+static void op_stack_set_error(op_stack_t *stack) {
+	*(stack->perror_flag) = true;
+#if BC_ESCAPE_VERBOSE
+	printf("%s: error.\n", __FUNCTION__);
+#endif
+}
+
+static bool op_stack_test_position(op_stack_t *stack, op_stack_slot_t *pos) {
+	if (!(stack->elements <= pos)) {
+		op_stack_set_error(stack);
+		return false;
+	} else if (!(pos < stack->end)) {
+		op_stack_set_error(stack);
+		return false;
+	} else {
+		return true;
+	}
 }
 
 static void op_stack_reset(op_stack_t *stack) {
@@ -160,7 +176,9 @@ static void op_stack_reset(op_stack_t *stack) {
 static op_stack_slot_t op_stack_pop(op_stack_t *stack) {
 	op_stack_slot_t ret;
 	stack->ptr -= 1;
-	stack_assert_position(stack, stack->ptr);
+	if (! op_stack_test_position(stack, stack->ptr)) {
+		return OP_STACK_SLOT_UNKNOWN;
+	}
 	ret = *(stack->ptr);
 	if (stack->ptr < stack->bottom) {
 		stack->bottom = stack->ptr;
@@ -169,19 +187,24 @@ static op_stack_slot_t op_stack_pop(op_stack_t *stack) {
 }
 
 static void op_stack_push(op_stack_t *stack, op_stack_slot_t element) {
-	stack_assert_position(stack, stack->ptr);
-	*(stack->ptr) = element;
-	stack->ptr += 1;
+	if (op_stack_test_position(stack, stack->ptr)) {
+		*(stack->ptr) = element;
+		stack->ptr += 1;
+	}
 }
 
 static op_stack_slot_t op_stack_get(const op_stack_t *stack, int offset) {
-	stack_assert_position(stack, stack->ptr - offset);
-	return *(stack->ptr - offset);
+	if (op_stack_test_position(stack, stack->ptr - offset)) {
+		return *(stack->ptr - offset);
+	} else {
+		return OP_STACK_SLOT_UNKNOWN;
+	}
 }
 
 static void op_stack_set(op_stack_t *stack, int offset, op_stack_slot_t value) {
-	stack_assert_position(stack, stack->ptr - offset);
-	*(stack->ptr - offset) = value;
+	if (op_stack_test_position(stack, stack->ptr - offset)) {
+		*(stack->ptr - offset) = value;
+	}
 }
 
 static inline void op_stack_push_unknown(op_stack_t *stack) {
@@ -301,13 +324,22 @@ typedef struct {
 	u1 *pos;
 	u1 *instruction_start;
 	s4 offset;
+	bool *perror_flag;
 } jcode_t;
 
-static void jcode_init(jcode_t *jc, u1 *start, s4 length, s4 offset) {
+static void jcode_init(jcode_t *jc, u1 *start, s4 length, s4 offset, bool *perror_flag) {
 	jc->start = start;
 	jc->end = jc->start + length;
 	jc->pos = jc->start;
 	jc->offset = offset;
+	jc->perror_flag = perror_flag;
+}
+
+static void jcode_set_error(jcode_t *jc) {
+	*(jc->perror_flag) = true;
+#if BC_ESCAPE_VERBOSE
+	printf("%s: error.\n", __FUNCTION__);
+#endif
 }
 
 static void jcode_move_to_index(jcode_t *jc, s4 index) {
@@ -347,38 +379,56 @@ static s4 jcode_get_index(const jcode_t *jc) {
 	return jc->offset + (jc->pos - jc->start);
 }
 
-#define jcode_assert_has_bytes(jc, n) \
-	assert((jc->pos + n) <= jc->end)
+bool jcode_test_has_bytes(jcode_t *jc, s4 n) {
+	if ((jc->pos + n) <= jc->end) {
+		return true;
+	} else {
+		jcode_set_error(jc);
+		return false;
+	}
+}
 
 static u1 jcode_get_u1(jcode_t *jc) {
 	u1 ret;
-	jcode_assert_has_bytes(jc, 1);
-	ret = jc->pos[0];
-	jc->pos += 1;
+	if (jcode_test_has_bytes(jc, 1)) {
+		ret = jc->pos[0];
+		jc->pos += 1;
+	} else {
+		ret = 0;
+	}
 	return ret;
 }
 
 static s2 jcode_get_s2(jcode_t *jc) {
 	s2 ret;
-	jcode_assert_has_bytes(jc, 2);
-	ret = (jc->pos[0] << 8) | (jc->pos[1]);
-	jc->pos += 2;
+	if (jcode_test_has_bytes(jc, 2)) {
+		ret = (jc->pos[0] << 8) | (jc->pos[1]);
+		jc->pos += 2;
+	} else {
+		ret = 0;
+	}
 	return ret;
 }
 
 static u2 jcode_get_u2(jcode_t *jc) {
 	u2 ret;
-	jcode_assert_has_bytes(jc, 2);
-	ret = (jc->pos[0] << 8) | (jc->pos[1]);
-	jc->pos += 2;
+	if (jcode_test_has_bytes(jc, 2)) {
+		ret = (jc->pos[0] << 8) | (jc->pos[1]);
+		jc->pos += 2;
+	} else {
+		ret = 0;
+	}
 	return ret;
 }
 
 static s4 jcode_get_s4(jcode_t *jc) {
 	s4 ret;
-	jcode_assert_has_bytes(jc, 4);
-	ret = (jc->pos[0] << 24) | (jc->pos[1] << 16) | (jc->pos[2] << 8) | (jc->pos[3]);
-	jc->pos += 4;
+	if (jcode_test_has_bytes(jc, 4)) {
+		ret = (jc->pos[0] << 24) | (jc->pos[1] << 16) | (jc->pos[2] << 8) | (jc->pos[3]);
+		jc->pos += 4;
+	} else {
+		ret = 0;
+	}
 	return ret;
 }
 
@@ -394,7 +444,9 @@ static s4 jcode_get_branch_target_wide(jcode_t *jc) {
 
 static s4 jcode_get_fall_through_target(jcode_t *jc) {
 	int length = bytecode[*jc->instruction_start].length;
-	assert(length > 0);
+	if (length <= 0) {
+		jcode_set_error(jc);
+	}
 	return jc->offset + (jc->instruction_start - jc->start) + length;
 }
 
@@ -420,6 +472,8 @@ typedef struct {
 	bool verbose;
 #endif
 	int depth;
+
+	bool fatal_error;
 } bc_escape_analysis_t;
 
 static void bc_escape_analysis_perform_intern(methodinfo *m, int depth);
@@ -430,13 +484,13 @@ static void bc_escape_analysis_init(bc_escape_analysis_t *be, methodinfo *m, boo
 	int a;
 	u1 *ite;
 	u1 t;
-	int ret_adr;
 	unsigned n;
+	int ret_val_is_adr;
 
 	be->method = m;
 
 	be->stack = DNEW(op_stack_t);
-	op_stack_init(be->stack, m->maxstack);
+	op_stack_init(be->stack, m->maxstack, &(be->fatal_error));
 
 	be->basicblocks = DNEW(basicblock_work_list_t);
 	basicblock_work_list_init(be->basicblocks);
@@ -464,27 +518,28 @@ static void bc_escape_analysis_init(bc_escape_analysis_t *be, methodinfo *m, boo
 
 	assert(l == be->local_to_adr_param_size);
 
-	/* Determine whether return type is address */
-
-	ret_adr = m->parseddesc->returntype.type == TYPE_ADR ? 1 : 0;
+	ret_val_is_adr = m->parseddesc->returntype.type == TYPE_ADR ? 1 : 0;
 
 	/* Allocate param_escape on heap. */
 
 	be->param_escape_size = a;
-	n = a + ret_adr;
+	n = a + ret_val_is_adr;
 
 	if (n == 0) {
 		/* Use some non-NULL value. */
 		be->param_escape = (u1 *)1;
 	} else {
 		be->param_escape = MNEW(u1, n);
+		be->param_escape += ret_val_is_adr;
 	}
 
 	for (ite = be->param_escape; ite != be->param_escape + n; ++ite) {
-		*ite = (u1)ESCAPE_NONE;
+		*ite = escape_state_to_u1(ESCAPE_NONE);
 	}
 
-	be->param_escape += ret_adr;
+	if (ret_val_is_adr) {
+		be->param_escape[-1] = escape_state_to_u1(ESCAPE_NONE);
+	}
 
 	be->adr_param_dirty = DNEW(bit_vector_t);
 	bit_vector_init(be->adr_param_dirty, a);
@@ -499,6 +554,8 @@ static void bc_escape_analysis_init(bc_escape_analysis_t *be, methodinfo *m, boo
 #endif
 
 	be->depth = depth;
+
+	be->fatal_error = false;
 }
 
 static void bc_escape_analysis_branch_target(bc_escape_analysis_t *be, s4 branch_target) {
@@ -524,8 +581,8 @@ static void bc_escape_analysis_adjust_state(
 				   parameters. */
 
 				if (
-					old < ESCAPE_GLOBAL_THROUGH_METHOD && 
-					escape_state >= ESCAPE_GLOBAL_THROUGH_METHOD
+					old < ESCAPE_GLOBAL && 
+					escape_state >= ESCAPE_GLOBAL
 				) {
 					be->non_escaping_adr_params -= 1;
 				}
@@ -550,16 +607,17 @@ static void bc_escape_analysis_dirty_2(bc_escape_analysis_t *be, s4 local) {
 	bc_escape_analysis_dirty(be, local + 1);
 }
 
-static void bc_escape_analyisis_returned(bc_escape_analysis_t *be, op_stack_slot_t value) {
+static void bc_escape_analysis_returned(bc_escape_analysis_t *be, op_stack_slot_t value) {
 	if (op_stack_slot_is_param(value)) {
 		/* A parameter is returned, mark it as being returned. */
 		bit_vector_set(be->adr_param_returned, value.index);
-	} else if (op_stack_slot_is_unknown(value)) {
-		/* An untracked value is returned.
-		   Conservatively asume a globally escaping value is returned. */
+		/* The escape state of the return value will be adjusted later. */
+	} else {
+		/* Adjust escape state of return value. */
 		if (be->method->parseddesc->returntype.type == TYPE_ADR) {
-			be->param_escape[-1] = (u1)ESCAPE_GLOBAL;
+			be->param_escape[-1] = escape_state_to_u1(ESCAPE_GLOBAL);
 		}
+		bc_escape_analysis_adjust_state(be, value, ESCAPE_GLOBAL);
 	}
 }
 
@@ -589,6 +647,25 @@ value_category_t bc_escape_analysis_value_category(bc_escape_analysis_t *be, s4 
 	}
 }
 
+static void bc_escape_analysis_push_return_value(
+	bc_escape_analysis_t *be,
+	methoddesc *md
+) {
+	switch (md->returntype.type) {
+		case TYPE_LNG:
+		case TYPE_DBL:
+			op_stack_push_unknown(be->stack);
+			op_stack_push_unknown(be->stack);
+			break;
+		case TYPE_VOID:
+			/* Do nothing */
+			break;
+		default:
+			op_stack_push_unknown(be->stack);
+			break;
+	}
+}
+
 static void bc_escape_analysis_adjust_invoke_parameters(
 	bc_escape_analysis_t *be,
 	methodinfo *mi
@@ -597,6 +674,8 @@ static void bc_escape_analysis_adjust_invoke_parameters(
 	methoddesc *md = mi->parseddesc;
 	u1 *paramescape = mi->paramescape;
 	s4 stack_depth = md->paramslots;
+	unsigned num_params_returned = 0;
+	op_stack_slot_t param_returned;
 
 	/* Process parameters. 
 	 * The first parameter is at the highest depth on the stack.
@@ -605,10 +684,14 @@ static void bc_escape_analysis_adjust_invoke_parameters(
 	for (i = 0; i < md->paramcount; ++i) {
 		switch (md->paramtypes[i].type) {
 			case TYPE_ADR:
+				if (*paramescape & 0x80) {
+					num_params_returned += 1;
+					param_returned = op_stack_get(be->stack, stack_depth);
+				}
 				bc_escape_analysis_adjust_state(
 					be,
 					op_stack_get(be->stack, stack_depth),
-					(escape_state_t)*(paramescape++)
+					escape_state_from_u1(*paramescape++)
 				);
 				stack_depth -= 1;
 				break;
@@ -627,7 +710,20 @@ static void bc_escape_analysis_adjust_invoke_parameters(
 	for (i = 0; i < md->paramslots; ++i) {
 		op_stack_pop(be->stack);
 	}
+	
+	/* Push return value. */
 
+	if (md->returntype.type == TYPE_ADR) {
+		if ((num_params_returned == 1) && (mi->paramescape[-1] < ESCAPE_GLOBAL)) {
+			/* Only a single argument can be returned by the method,
+			   and the retun value does not escape otherwise. */
+			op_stack_push(be->stack, param_returned);
+		} else {
+			op_stack_push_unknown(be->stack);
+		}
+	} else {
+		bc_escape_analysis_push_return_value(be, md);
+	}
 }
 
 static void bc_escape_analysis_escape_invoke_parameters(
@@ -638,6 +734,8 @@ static void bc_escape_analysis_escape_invoke_parameters(
 	for (i = 0; i < md->paramslots; ++i) {
 		bc_escape_analysis_adjust_state(be, op_stack_pop(be->stack), ESCAPE_GLOBAL);
 	}
+
+	bc_escape_analysis_push_return_value(be, md);
 }
 
 static void bc_escape_analysis_parse_invoke(bc_escape_analysis_t *be, jcode_t *jc) {
@@ -713,7 +811,7 @@ static void bc_escape_analysis_parse_invoke(bc_escape_analysis_t *be, jcode_t *j
 	   or recurse into callee. 
 	   Otherwise we must assume, that all parameters escape. */
 
-	if (mi != NULL) {
+	if (mi != NULL && method_profile_is_monomorphic(mi)) {
 
 		if (mi->paramescape == NULL) {
 			bc_escape_analysis_perform_intern(mi, be->depth + 1);
@@ -729,20 +827,6 @@ static void bc_escape_analysis_parse_invoke(bc_escape_analysis_t *be, jcode_t *j
 
 	} else {
 		bc_escape_analysis_escape_invoke_parameters(be, md);
-	}
-
-	switch (md->returntype.type) {
-		case TYPE_LNG:
-		case TYPE_DBL:
-			op_stack_push_unknown(be->stack);
-			op_stack_push_unknown(be->stack);
-			break;
-		case TYPE_VOID:
-			/* Do nothing */
-			break;
-		default:
-			op_stack_push_unknown(be->stack);
-			break;
 	}
 }
 
@@ -825,7 +909,7 @@ static void bc_escape_analysis_process_basicblock(bc_escape_analysis_t *be, jcod
 	/* TODO end if all parameters escape */
 	/* TODO move code into process_instruction or the like */
 
-	while ((! jcode_end(jc)) && (! bb_end)) {
+	while ((! jcode_end(jc)) && (! bb_end) && (! be->fatal_error)) {
 
 		jcode_record_instruction_start(jc);
 
@@ -1390,7 +1474,7 @@ static void bc_escape_analysis_process_basicblock(bc_escape_analysis_t *be, jcod
 
 			case BC_areturn:
 				/* FIXME */
-				bc_escape_analyisis_returned(be, op_stack_pop(be->stack));
+				bc_escape_analysis_returned(be, op_stack_pop(be->stack));
 				bb_end = true;
 				break;
 
@@ -1593,7 +1677,7 @@ static void bc_escape_analysis_process_basicblock(bc_escape_analysis_t *be, jcod
 	}
 #endif
 
-	while (! op_stack_is_empty(be->stack)) {
+	while ((! op_stack_is_empty(be->stack)) && (! be->fatal_error)) {
 #if BC_ESCAPE_VERBOSE
 		if (be->verbose) {
 			dprintf(be->depth, "Stack element: ");
@@ -1609,10 +1693,19 @@ static void bc_escape_analysis_process_basicblock(bc_escape_analysis_t *be, jcod
 		}
 #endif
 	}
+
+	if (be->fatal_error) {
+#if BC_ESCAPE_VERBOSE
+		if (be->verbose) {
+			printf("Fatal error while processing basic block. Aborting.\n");
+		}
+#endif
+		assert(0);
+	}
 }
 
 static void	bc_escape_analysis_adjust_return_value(bc_escape_analysis_t *be) {
-	escape_state_t e, pe;
+	escape_state_t re, pe;
 	int i;
 
 	/* Only calculate, if return value is of type address. */
@@ -1621,22 +1714,20 @@ static void	bc_escape_analysis_adjust_return_value(bc_escape_analysis_t *be) {
 		return ;
 	}
 
-	/* Get current escape state of return value. */
-
-	e = (escape_state_t)be->param_escape[-1];
-
 	/* If a parameter can be returned, adjust to its escape state. */
 
 	for (i = 0; i < be->param_escape_size; ++i) {
 		if (bit_vector_get(be->adr_param_returned, i)) {
-			pe = (escape_state_t)be->param_escape[i];
-			if (pe > e) {
-				e = pe;
+			be->param_escape[i] |= 0x80;
+
+			pe = escape_state_from_u1(be->param_escape[i]);
+			re = escape_state_from_u1(be->param_escape[-1]);
+			
+			if (pe > re) {
+				be->param_escape[-1] = escape_state_to_u1(pe);
 			}
 		}
 	}
-
-	be->param_escape[-1] = (u1)e;
 }
 
 static void bc_escape_analysis_analyze(bc_escape_analysis_t *be) {
@@ -1664,7 +1755,8 @@ static void bc_escape_analysis_analyze(bc_escape_analysis_t *be) {
 		&jc,
 		be->method->jcode,
 		be->method->jcodelength,
-		0
+		0,
+		&(be->fatal_error)
 	);
 
 	/* Process basicblock by basicblock. */
