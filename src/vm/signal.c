@@ -39,6 +39,10 @@
 
 #include "arch.h"
 
+#if defined(ENABLE_GC_BOEHM)
+# include "mm/memory.h"
+#endif
+
 #include "threads/thread.h"
 
 #include "vm/exceptions.h"
