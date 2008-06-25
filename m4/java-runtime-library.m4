@@ -92,6 +92,8 @@ AC_ARG_WITH([java-runtime-library-classes],
 AC_MSG_RESULT(${JAVA_RUNTIME_LIBRARY_CLASSES})
 AC_DEFINE_UNQUOTED([JAVA_RUNTIME_LIBRARY_CLASSES], "${JAVA_RUNTIME_LIBRARY_CLASSES}", [Java runtime library classes])
 AC_SUBST(JAVA_RUNTIME_LIBRARY_CLASSES)
+])
+
 
 dnl where are Java core library classes located at compilation time
 
@@ -100,11 +102,10 @@ AC_MSG_CHECKING(where Java core library classes are located at compile time)
 AC_ARG_WITH([build-java-runtime-library-classes],
             [AS_HELP_STRING(--with-build-java-runtime-library-classes=<path>,path to Java core library classes (includes the name of the file and may be flat) [[default=${JAVA_RUNTIME_LIBRARY_CLASSES}]])],
             [BUILD_JAVA_RUNTIME_LIBRARY_CLASSES=${withval}],
-            [BUILD_JAVA_RUNTIME_LIBRARY_CLASSES=${JAVA_RUNTIME_LIBRARY_CLASSES})
+            [BUILD_JAVA_RUNTIME_LIBRARY_CLASSES=${JAVA_RUNTIME_LIBRARY_CLASSES}])
 AC_MSG_RESULT(${BUILD_JAVA_RUNTIME_LIBRARY_CLASSES})
 AC_DEFINE_UNQUOTED([BUILD_JAVA_RUNTIME_LIBRARY_CLASSES], "${BUILD_JAVA_RUNTIME_LIBRARY_CLASSES}", [Java core library classes at compile time])
 AC_SUBST(BUILD_JAVA_RUNTIME_LIBRARY_CLASSES)
-])
 
 dnl define BOOTCLASSPATH for Makefiles
 case "${WITH_JAVA_RUNTIME_LIBRARY}" in
@@ -117,6 +118,7 @@ case "${WITH_JAVA_RUNTIME_LIBRARY}" in
 esac
 AC_SUBST(BOOTCLASSPATH)
 ])
+
 
 dnl where are Java runtime library native libraries installed
 
