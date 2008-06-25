@@ -3003,9 +3003,6 @@ gen_method:
 					supervftbl = super->vftbl;
 				}
 
-				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-					CODEGEN_CRITICAL_SECTION_NEW;
-
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 				/* if class is not resolved, check which code to call */
@@ -3083,8 +3080,6 @@ gen_method:
 					}
 
 #if 1
-					CODEGEN_CRITICAL_SECTION_START;
-
 					/* REG_ITMP3 := baseval(s1) */
 					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
@@ -3100,8 +3095,6 @@ gen_method:
 					M_ALD_DSEG(REG_ITMP2, disp);
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
 
-					CODEGEN_CRITICAL_SECTION_END;
-
 					M_CMPU(REG_ITMP3, REG_ITMP2); /* Unsigned compare */
 
 					/* M_CMPULE(REG_ITMP2, REG_ITMP3, REG_ITMP3); itmp3 = (itmp2 <= itmp3) */
@@ -3111,16 +3104,12 @@ gen_method:
 					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ALD_DSEG(REG_ITMP3, disp);
 
-					CODEGEN_CRITICAL_SECTION_START;
-
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, baseval));
 					M_ISUB(REG_ITMP3, REG_ITMP2);
 					M_ALD_DSEG(REG_ITMP3, disp);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
 
-					CODEGEN_CRITICAL_SECTION_END;
-					
 					M_CMPU(REG_ITMP2, REG_ITMP3); /* Unsigned compare */
 					/* M_CMPULE(REG_ITMP2, REG_ITMP3, REG_ITMP3); itmp3 = (itmp2 <= itmp3) */
 					/* M_BEQZ(REG_ITMP3, 0); branch if (! itmp) -> branch if > */
@@ -3223,9 +3212,6 @@ gen_method:
 #			define LABEL_EXIT_INTERFACE_DONE BRANCH_LABEL_5
 #			define LABEL_EXIT_CLASS_NULL BRANCH_LABEL_6
 
-			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-				CODEGEN_CRITICAL_SECTION_NEW;
-
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (s1 == d) {
@@ -3327,13 +3313,9 @@ gen_method:
 				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ALD_DSEG(REG_ITMP2, disp);
 
-				CODEGEN_CRITICAL_SECTION_START;
-
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-
-				CODEGEN_CRITICAL_SECTION_END;
 
 				M_ISUB(REG_ITMP3, REG_ITMP1); /* itmp1 :=  itmp1 (sub.baseval) - itmp3 (super.baseval) */
 

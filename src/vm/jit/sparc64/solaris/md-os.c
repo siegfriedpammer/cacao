@@ -151,22 +151,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 }
 
 
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-void thread_restartcriticalsection(ucontext_t *_uc)
-{
-	mcontext_t *_mc;
-	void       *critical;
-
-	_mc = &_uc->uc_mcontext;
-
-	critical = thread_checkcritical((void *) _mc->sc_pc);
-
-	if (critical)
-		_mc->sc_pc = (ptrint) critical;
-}
-#endif
-
-
 /* md_icacheflush **************************************************************
 
    Calls the system's function to flush the instruction cache.

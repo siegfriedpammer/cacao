@@ -372,9 +372,6 @@ int GC_suspend_all()
     return n_live_threads;
 }
 
-void lock_stopworld(int);
-void unlock_stopworld();
-
 void GC_stop_world()
 {
     int i;
@@ -560,17 +557,5 @@ void GC_stop_init() {
           GC_log_printf("Will retry suspend signal if necessary.\n");
       }
 }
-
-/* Added for cacao */
-int GC_signum1()
-{
-    return SIG_SUSPEND;
-}
-
-int GC_signum2()
-{
-    return SIG_THR_RESTART;
-}
-/* cacao END */
 
 #endif

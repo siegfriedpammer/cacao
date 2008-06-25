@@ -49,8 +49,6 @@ noinst_LTLIBRARIES = \
 
 if ENABLE_THREADS
 libthreads_la_SOURCES = \
-	critical.c \
-	critical.h \
 	lock-common.h \
 	mutex.h \
 	threadlist.c \

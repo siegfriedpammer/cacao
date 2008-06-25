@@ -353,34 +353,6 @@ void md_executionstate_write(executionstate_t *es, void *context)
 }
 
 
-/* md_critical_section_restart *************************************************
-
-   Search the critical sections tree for a matching section and set
-   the PC to the restart point, if necessary.
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-void thread_restartcriticalsection(ucontext_t *_uc)
-{
-	mcontext_t           _mc;
-	i386_thread_state_t *_ss;
-	u1                  *pc;
-	void                *rpc;
-
-	_mc = _uc->uc_mcontext;
-	_ss = &_mc->__ss;
-
-	pc = (u1 *) _ss->__eip;
-
-	rpc = critical_find_restart_point(pc);
-
-	if (rpc != NULL)
-		_ss->__eip = (ptrint) rpc;
-}
-#endif
-
-
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

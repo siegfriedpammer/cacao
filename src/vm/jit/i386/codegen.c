@@ -3104,9 +3104,6 @@ gen_method:
 					supervftbl = super->vftbl;
 				}
 			
-				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-					CODEGEN_CRITICAL_SECTION_NEW;
-
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 				/* if class is not resolved, check which code to call */
@@ -3179,8 +3176,6 @@ gen_method:
 
 					M_MOV_IMM(supervftbl, REG_ITMP3);
 
-					CODEGEN_CRITICAL_SECTION_START;
-
 					M_ILD32(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 
 					/* 				if (s1 != REG_ITMP1) { */
@@ -3196,8 +3191,6 @@ gen_method:
 					M_ISUB(REG_ITMP3, REG_ITMP2);
 					M_MOV_IMM(supervftbl, REG_ITMP3);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
-
-					CODEGEN_CRITICAL_SECTION_END;
 
 					/* 				} */
 
@@ -3259,9 +3252,6 @@ gen_method:
 				supervftbl = super->vftbl;
 			}
 			
-			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-				CODEGEN_CRITICAL_SECTION_NEW;
-
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 
@@ -3345,13 +3335,9 @@ gen_method:
 
 				M_MOV_IMM(supervftbl, REG_ITMP2);
 
-				CODEGEN_CRITICAL_SECTION_START;
-
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, diffval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
-
-				CODEGEN_CRITICAL_SECTION_END;
 
 				M_ISUB(REG_ITMP2, REG_ITMP1);
 				M_CLR(d);                                 /* may be REG_ITMP2 */

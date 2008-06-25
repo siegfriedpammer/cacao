@@ -1,9 +1,7 @@
 /* src/vm/jit/mips/uclinux/md-os.c - machine dependent MIPS uClinux functions
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -69,21 +67,6 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 {
 	vm_abort("md_signal_handler_sigusr2: IMPLEMENT ME!");
 }
-
-
-/* md_critical_section_restart *************************************************
-
-   Search the critical sections tree for a matching section and set
-   the PC to the restart point, if necessary.
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-void md_critical_section_restart(ucontext_t *_uc)
-{
-	vm_abort("md_critical_section_restart: IMPLEMENT ME!");
-}
-#endif
 
 
 /*

@@ -1,9 +1,7 @@
 /* src/vm/jit/x86_64/codegen.c - machine code generator for x86_64
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -2499,9 +2497,6 @@ gen_method:
 					superindex = super->index;
 				}
 
-				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-					CODEGEN_CRITICAL_SECTION_NEW;
-
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 				/* if class is not resolved, check which code to call */
@@ -2574,8 +2569,6 @@ gen_method:
 					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ALD(REG_ITMP3, RIP, disp);
 
-					CODEGEN_CRITICAL_SECTION_START;
-
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 
 					/*  					if (s1 != REG_ITMP1) { */
@@ -2597,8 +2590,6 @@ gen_method:
 					M_ALD(REG_ITMP3, RIP, disp);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
 					/*  					} */
-
-					CODEGEN_CRITICAL_SECTION_END;
 
 					M_ICMP(REG_ITMP3, REG_ITMP2);
 					emit_classcast_check(cd, iptr, BRANCH_UGT, REG_ITMP3, s1);
@@ -2662,9 +2653,6 @@ gen_method:
 				super      = iptr->sx.s23.s3.c.cls;
 				superindex = super->index;
 			}
-
-			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-				CODEGEN_CRITICAL_SECTION_NEW;
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -2747,13 +2735,9 @@ gen_method:
 				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ALD(REG_ITMP2, RIP, disp);
 
-				CODEGEN_CRITICAL_SECTION_START;
-
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, diffval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
-
-				CODEGEN_CRITICAL_SECTION_END;
 
 				M_ISUB(REG_ITMP2, REG_ITMP1);
 				M_CLR(d); /* may be REG_ITMP2 */

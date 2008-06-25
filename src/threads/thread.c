@@ -55,7 +55,6 @@
 # include "native/include/java_lang_VMThread.h"
 #endif
 
-#include "threads/critical.h"
 #include "threads/lock-common.h"
 #include "threads/threadlist.h"
 #include "threads/thread.h"

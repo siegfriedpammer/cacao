@@ -1392,7 +1392,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
   	threads_preinit();
 	lock_init();
-	critical_init();
 #endif
 
 	/* install architecture dependent signal handlers */

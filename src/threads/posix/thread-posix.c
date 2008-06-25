@@ -185,13 +185,6 @@ static int sem_destroy(sem_t *sem)
 #endif /* defined(__DARWIN__) */
 
 
-/* internally used constants **************************************************/
-
-/* CAUTION: Do not change these values. Boehm GC code depends on them.        */
-#define STOPWORLD_FROM_GC               1
-#define STOPWORLD_FROM_CLASS_NUMBERING  2
-
-
 /* startupinfo *****************************************************************
 
    Struct used to pass info from threads_start_thread to 
@@ -238,20 +231,10 @@ static mutex_t mutex_gc;
 static mutex_t mutex_join;
 static pthread_cond_t  cond_join;
 
-/* this is one of the STOPWORLD_FROM_ constants, telling why the world is     */
-/* being stopped                                                              */
-static volatile int stopworldwhere;
-
 #if defined(ENABLE_GC_CACAO)
-
 /* semaphore used for acknowleding thread suspension                          */
 static sem_t suspend_ack;
-#if defined(__IRIX__)
-static mutex_t suspend_ack_lock = MUTEX_INITIALIZER;
-static pthread_cond_t suspend_cond = PTHREAD_COND_INITIALIZER;
 #endif
-
-#endif /* ENABLE_GC_CACAO */
 
 /* mutexes used by the fake atomic instructions                               */
 #if defined(USE_FAKE_ATOMIC_INSTRUCTIONS)
@@ -340,187 +323,6 @@ void threads_sem_post(sem_t *sem)
 }
 
 
-/* lock_stopworld **************************************************************
-
-   Enter the stopworld lock, specifying why the world shall be stopped.
-
-   IN:
-      where........ STOPWORLD_FROM_GC              (1) from within GC
-                    STOPWORLD_FROM_CLASS_NUMBERING (2) class numbering
-
-******************************************************************************/
-
-void lock_stopworld(int where)
-{
-	mutex_lock(&stopworldlock);
-/* 	stopworldwhere = where; */
-}
-
-
-/* unlock_stopworld ************************************************************
-
-   Release the stopworld lock.
-
-******************************************************************************/
-
-void unlock_stopworld(void)
-{
-/* 	stopworldwhere = 0; */
-	mutex_unlock(&stopworldlock);
-}
-
-/* XXX We disable that whole bunch of code until we have the exact-GC
-   running. Some of it may only be needed by the old Boehm-based
-   suspension handling. */
-
-#if 0
-
-#if !defined(__DARWIN__)
-/* Caller must hold threadlistlock */
-static s4 threads_cast_sendsignals(s4 sig)
-{
-	threadobject *t;
-	threadobject *self;
-	s4            count;
-
-	self = THREADOBJECT;
-
-	/* iterate over all started threads */
-
-	count = 0;
-
-	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
-		/* don't send the signal to ourself */
-
-		if (t == self)
-			continue;
-
-		/* don't send the signal to NEW threads (because they are not
-		   completely initialized) */
-
-		if (t->state == THREAD_STATE_NEW)
-			continue;
-
-		/* send the signal */
-
-		pthread_kill(t->tid, sig);
-
-		/* increase threads count */
-
-		count++;
-	}
-
-	return count;
-}
-
-#else
-
-static void threads_cast_darwinstop(void)
-{
-	threadobject *tobj = mainthreadobj;
-	threadobject *self = THREADOBJECT;
-
-	do {
-		if (tobj != self)
-		{
-			thread_state_flavor_t flavor = MACHINE_THREAD_STATE;
-			mach_msg_type_number_t thread_state_count = MACHINE_THREAD_STATE_COUNT;
-#if defined(__I386__)
-			i386_thread_state_t thread_state;
-#else
-			ppc_thread_state_t thread_state;
-#endif
-			mach_port_t thread = tobj->mach_thread;
-			kern_return_t r;
-
-			r = thread_suspend(thread);
-
-			if (r != KERN_SUCCESS)
-				vm_abort("thread_suspend failed");
-
-			r = thread_get_state(thread, flavor, (natural_t *) &thread_state,
-								 &thread_state_count);
-
-			if (r != KERN_SUCCESS)
-				vm_abort("thread_get_state failed");
-
-			md_critical_section_restart((ucontext_t *) &thread_state);
-
-			r = thread_set_state(thread, flavor, (natural_t *) &thread_state,
-								 thread_state_count);
-
-			if (r != KERN_SUCCESS)
-				vm_abort("thread_set_state failed");
-		}
-
-		tobj = tobj->next;
-	} while (tobj != mainthreadobj);
-}
-
-static void threads_cast_darwinresume(void)
-{
-	threadobject *tobj = mainthreadobj;
-	threadobject *self = THREADOBJECT;
-
-	do {
-		if (tobj != self)
-		{
-			mach_port_t thread = tobj->mach_thread;
-			kern_return_t r;
-
-			r = thread_resume(thread);
-
-			if (r != KERN_SUCCESS)
-				vm_abort("thread_resume failed");
-		}
-
-		tobj = tobj->next;
-	} while (tobj != mainthreadobj);
-}
-
-#endif
-
-#if defined(__IRIX__)
-static void threads_cast_irixresume(void)
-{
-	mutex_lock(&suspend_ack_lock);
-	pthread_cond_broadcast(&suspend_cond);
-	mutex_unlock(&suspend_ack_lock);
-}
-#endif
-
-#if defined(ENABLE_GC_BOEHM) && !defined(__DARWIN__)
-static void threads_sigsuspend_handler(ucontext_t *_uc)
-{
-	int sig;
-	sigset_t sigs;
-
-	/* XXX TWISTI: this is just a quick hack */
-#if defined(ENABLE_JIT)
-	md_critical_section_restart(_uc);
-#endif
-
-	/* Do as Boehm does. On IRIX a condition variable is used for wake-up
-	   (not POSIX async-safe). */
-#if defined(__IRIX__)
-	mutex_lock(&suspend_ack_lock);
-	threads_sem_post(&suspend_ack);
-	pthread_cond_wait(&suspend_cond, &suspend_ack_lock);
-	mutex_unlock(&suspend_ack_lock);
-#elif defined(__CYGWIN__)
-	/* TODO */
-	assert(0);
-#else
-
-	sig = GC_signum2();
-	sigfillset(&sigs);
-	sigdelset(&sigs, sig);
-	sigsuspend(&sigs);
-#endif
-}
-#endif
-
-
 /* threads_stopworld ***********************************************************
 
    Stops the world from turning. All threads except the calling one
@@ -529,6 +331,7 @@ static void threads_sigsuspend_handler(ucontext_t *_uc)
 
 *******************************************************************************/
 
+#if defined(ENABLE_GC_CACAO)
 void threads_stopworld(void)
 {
 #if !defined(__DARWIN__) && !defined(__CYGWIN__)
@@ -538,7 +341,7 @@ void threads_stopworld(void)
 	s4 count, i;
 #endif
 
-	lock_stopworld(STOPWORLD_FROM_CLASS_NUMBERING);
+	mutex_lock(&stopworldlock);
 
 	/* lock the threads lists */
 
@@ -589,6 +392,7 @@ void threads_stopworld(void)
 	   non-signaled NEW threads can't change their state and execute
 	   code. */
 }
+#endif
 
 
 /* threads_startworld **********************************************************
@@ -597,6 +401,7 @@ void threads_stopworld(void)
 
 *******************************************************************************/
 
+#if defined(ENABLE_GC_CACAO)
 void threads_startworld(void)
 {
 #if !defined(__DARWIN__) && !defined(__CYGWIN__)
@@ -654,9 +459,8 @@ void threads_startworld(void)
 
 	threadlist_unlock();
 
-	unlock_stopworld();
+	mutex_unlock(&stopworldlock);
 }
-
 #endif
 
 
@@ -1409,8 +1213,6 @@ bool thread_detach_current_thread(void)
 }
 
 
-#if defined(ENABLE_GC_CACAO)
-
 /* threads_suspend_thread ******************************************************
 
    Suspend the passed thread. Execution stops until the thread
@@ -1457,6 +1259,7 @@ bool threads_suspend_thread(threadobject *thread, s4 reason)
 
 *******************************************************************************/
 
+#if defined(ENABLE_GC_CACAO)
 void threads_suspend_ack(u1* pc, u1* sp)
 {
 	threadobject *thread;
@@ -1506,6 +1309,7 @@ void threads_suspend_ack(u1* pc, u1* sp)
 	/* release the suspendmutex */
 	mutex_unlock(&(thread->suspendmutex));
 }
+#endif
 
 
 /* threads_resume_thread *******************************************************
@@ -1514,6 +1318,7 @@ void threads_suspend_ack(u1* pc, u1* sp)
 
 *******************************************************************************/
 
+#if defined(ENABLE_GC_CACAO)
 bool threads_resume_thread(threadobject *thread)
 {
 	/* acquire the suspendmutex */
@@ -1535,8 +1340,8 @@ bool threads_resume_thread(threadobject *thread)
 
 	return true;
 }
-
 #endif
+
 
 /* threads_join_all_threads ****************************************************
 
