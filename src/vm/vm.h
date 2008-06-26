@@ -40,6 +40,9 @@
 #include "vmcore/class.h"
 #include "vmcore/method.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* export global variables ****************************************************/
 
@@ -99,7 +102,12 @@ double  vm_call_method_double_jvalue(methodinfo *m, java_handle_t *o, const jval
 
 java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o, java_handle_objectarray_t *params);
 
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* _VM_H */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
