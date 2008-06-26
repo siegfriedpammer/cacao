@@ -27,6 +27,11 @@
 #define _LOCK_COMMON_H
 
 #include "config.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "vm/types.h"
 
 #include "vm/global.h"
@@ -63,6 +68,10 @@ void lock_notify_object(java_handle_t *o);
 void lock_notify_all_object(java_handle_t *o);
 
 #endif /* ENABLE_THREADS */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _LOCK_COMMON_H */
 

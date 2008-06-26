@@ -28,6 +28,10 @@
 
 #include "config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "vmcore/system.h"
 
 #if defined(ENABLE_THREADS)
@@ -344,6 +348,10 @@ void          threads_impl_thread_start(threadobject *thread, functionptr f);
 void          threads_yield(void);
 
 #endif /* ENABLE_THREADS */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _THREAD_H */
 

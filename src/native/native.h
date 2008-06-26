@@ -30,6 +30,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "native/jni.h"
 
 #include "vm/global.h"
@@ -109,6 +113,10 @@ int         native_library_load(JNIEnv *env, utf *name, classloader_t *cl);
 
 java_handle_t *native_new_and_init(classinfo *c);
 java_handle_t *native_new_and_init_string(classinfo *c, java_handle_t *s);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _NATIVE_H */
 

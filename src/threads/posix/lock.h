@@ -28,6 +28,10 @@
 
 #include "config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <pthread.h>
 
 #include "vm/types.h"
@@ -100,6 +104,10 @@ struct lock_hashtable_t {
 
 #define LOCK_WAIT_FOREVER(o)     lock_wait_for_object((java_handle_t *) LLNI_QUICKWRAP(o), 0, 0)
 #define LOCK_NOTIFY(o)           lock_notify_object((java_handle_t *) LLNI_QUICKWRAP(o))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _LOCK_H */
 

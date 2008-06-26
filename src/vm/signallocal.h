@@ -1,9 +1,7 @@
 /* src/vm/signallocal.h - machine independent signal functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -29,6 +27,10 @@
 #define _CACAO_SIGNAL_H
 
 #include "config.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <signal.h>
 
@@ -64,6 +66,10 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p);
 void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p);
 
 void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _CACAO_SIGNAL_H */
 

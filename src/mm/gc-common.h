@@ -30,6 +30,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "vm/global.h"
 
 #include "vmcore/method.h"
@@ -88,6 +92,10 @@ static inline int32_t heap_hashcode(java_object_t *obj)
 	return (int32_t)(intptr_t) obj;
 #endif
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _GC_COMMON_H */
 

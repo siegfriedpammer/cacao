@@ -30,6 +30,10 @@
 
 #include "config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 
 #include "vm/global.h"
@@ -50,6 +54,10 @@ void  properties_system_add_all(java_handle_t *p);
 #endif
 
 void  properties_dump(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _PROPERTIES_H */
 

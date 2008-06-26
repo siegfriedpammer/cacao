@@ -1,9 +1,7 @@
-/* src/vm/jit/profile.h - runtime profiling
+/* src/vm/jit/optimizing/profile.h - runtime profiling
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,12 +20,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
 */
 
 
@@ -35,6 +27,11 @@
 #define _PROFILE_H
 
 #include "config.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "vm/types.h"
 
 #include "vm/global.h"
@@ -47,6 +44,10 @@ bool profile_start_thread(void);
 
 #if !defined(NDEBUG)
 void profile_printstats(void);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* _PROFILE_H */

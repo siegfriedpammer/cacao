@@ -30,6 +30,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "threads/thread.h"
 
 
@@ -57,6 +61,10 @@ void          threadlist_impl_init(void);
 
 void          threadlist_lock(void);
 void          threadlist_unlock(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _THREADLIST_H */
 

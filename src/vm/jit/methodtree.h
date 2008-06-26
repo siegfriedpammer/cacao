@@ -30,6 +30,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "toolbox/avl.h"
 
 
@@ -39,6 +43,10 @@ void  methodtree_init(void);
 void  methodtree_insert(void *startpc, void *endpc);
 void *methodtree_find(void *pc);
 void *methodtree_find_nocheck(void *pc);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _METHODTREE_H */
 
