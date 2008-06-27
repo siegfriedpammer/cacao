@@ -49,8 +49,10 @@ noinst_LTLIBRARIES = \
 
 if ENABLE_THREADS
 libthreads_la_SOURCES = \
+	condition.hpp \
 	lock-common.h \
-	mutex.h \
+	removeme.cpp \
+	mutex.hpp \
 	threadlist.c \
 	threadlist.h \
 	thread.c \

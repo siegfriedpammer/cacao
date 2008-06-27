@@ -1,4 +1,4 @@
-/* src/threads/mutex.h - machine independent mutual exclusion functions
+/* src/threads/removeme.cpp
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,18 +22,28 @@
 
 */
 
-
-#ifndef _MUTEX_H
-#define _MUTEX_H
+// XXX Remove me as soon as all using files have been converted to C++!
 
 #include "config.h"
 
-#if defined(ENABLE_THREADS)
-# include "threads/posix/mutex-posix.h"
-#endif
+#include "threads/condition.hpp"
+#include "threads/mutex.hpp"
 
+extern "C" {
 
-#endif /* _MUTEX_H */
+Mutex* Mutex_new() { return new Mutex(); }
+void Mutex_delete(Mutex* mutex) { delete mutex; }
+void Mutex_lock(Mutex* mutex) { mutex->lock(); }
+void Mutex_unlock(Mutex* mutex) { mutex->unlock(); }
+
+Condition* Condition_new() { return new Condition(); }
+void Condition_delete(Condition* cond) { delete cond; }
+void Condition_broadcast(Condition* cond) { cond->broadcast(); }
+void Condition_signal(Condition* cond) { cond->signal(); }
+void Condition_timedwait(Condition* cond, Mutex* mutex, const struct timespec* abstime) { cond->timedwait(mutex, abstime); }
+void Condition_wait(Condition* cond, Mutex* mutex) { cond->wait(mutex); }
+
+}
 
 
 /*
@@ -42,7 +52,7 @@
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

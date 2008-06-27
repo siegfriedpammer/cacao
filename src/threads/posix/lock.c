@@ -39,7 +39,7 @@
 #include "native/llni.h"
 
 #include "threads/lock-common.h"
-#include "threads/mutex.h"
+#include "threads/mutex.hpp"
 #include "threads/threadlist.h"
 #include "threads/thread.h"
 
@@ -273,7 +273,7 @@ static lock_record_t *lock_record_new(void)
 
 	/* initialize the mutex */
 
-	mutex_init(&(lr->mutex));
+	lr->mutex = Mutex_new();
 
 	DEBUGLOCKS(("[lock_record_new   : lr=%p]", (void *) lr));
 
@@ -296,7 +296,7 @@ static void lock_record_free(lock_record_t *lr)
 
 	/* Destroy the mutex. */
 
-	mutex_destroy(&(lr->mutex));
+	Mutex_delete(lr->mutex);
 
 #if defined(ENABLE_GC_CACAO)
 	/* unregister the lock object reference with the GC */
@@ -331,7 +331,7 @@ static void lock_record_free(lock_record_t *lr)
 
 static void lock_hashtable_init(void)
 {
-	mutex_init(&(lock_hashtable.mutex));
+	lock_hashtable.mutex = Mutex_new();
 
 	lock_hashtable.size    = LOCK_INITIAL_HASHTABLE_SIZE;
 	lock_hashtable.entries = 0;
@@ -434,7 +434,7 @@ void lock_hashtable_cleanup(void)
 
 	/* lock the hashtable */
 
-	mutex_lock(&(lock_hashtable.mutex));
+	Mutex_lock(lock_hashtable.mutex);
 
 	/* search the hashtable for cleared references */
 
@@ -470,7 +470,7 @@ void lock_hashtable_cleanup(void)
 
 	/* unlock the hashtable */
 
-	mutex_unlock(&(lock_hashtable.mutex));
+	Mutex_unlock(lock_hashtable.mutex);
 }
 #endif
 
@@ -506,7 +506,7 @@ static lock_record_t *lock_hashtable_get(threadobject *t, java_handle_t *o)
 
 	/* lock the hashtable */
 
-	mutex_lock(&(lock_hashtable.mutex));
+	Mutex_lock(lock_hashtable.mutex);
 
 	/* lookup the lock record in the hashtable */
 
@@ -550,7 +550,7 @@ static lock_record_t *lock_hashtable_get(threadobject *t, java_handle_t *o)
 
 	/* unlock the hashtable */
 
-	mutex_unlock(&(lock_hashtable.mutex));
+	Mutex_unlock(lock_hashtable.mutex);
 
 	/* return the new lock record */
 
@@ -578,7 +578,7 @@ static void lock_hashtable_remove(threadobject *t, java_handle_t *o)
 
 	/* lock the hashtable */
 
-	mutex_lock(&(lock_hashtable.mutex));
+	Mutex_lock(lock_hashtable.mutex);
 
 	/* get lock record */
 
@@ -617,7 +617,7 @@ static void lock_hashtable_remove(threadobject *t, java_handle_t *o)
 
 	/* unlock the hashtable */
 
-	mutex_unlock(&(lock_hashtable.mutex));
+	Mutex_unlock(lock_hashtable.mutex);
 
 	/* free the lock record */
 
@@ -745,7 +745,7 @@ static inline void lock_lockword_set(threadobject *t, java_handle_t *o, uintptr_
 
 static inline void lock_record_enter(threadobject *t, lock_record_t *lr)
 {
-	mutex_lock(&(lr->mutex));
+	Mutex_lock(lr->mutex);
 	lr->owner = t;
 }
 
@@ -767,7 +767,7 @@ static inline void lock_record_enter(threadobject *t, lock_record_t *lr)
 static inline void lock_record_exit(threadobject *t, lock_record_t *lr)
 {
 	lr->owner = NULL;
-	mutex_unlock(&(lr->mutex));
+	Mutex_unlock(lr->mutex);
 }
 
 
@@ -848,7 +848,7 @@ static void sable_flc_waiting(ptrint lockword, threadobject *t, java_handle_t *o
 /* 		failure, TODO: add statistics */
 		return;
 
-	mutex_lock(&t_other->flc_lock);
+	Mutex_lock(t_other->flc_lock);
 	old_flc = t_other->flc_bit;
 	t_other->flc_bit = true;
 
@@ -874,7 +874,7 @@ static void sable_flc_waiting(ptrint lockword, threadobject *t, java_handle_t *o
 
 			/* Wait until another thread sees the flc bit and notifies
 			   us of unlocking. */
-			pthread_cond_wait(&t->flc_cond, &t_other->flc_lock);
+			Condition_wait(t->flc_cond, t_other->flc_lock);
 
 			/* Traverse FLC list looking if we're still there */
 			current = t_other->flc_list;
@@ -895,14 +895,14 @@ static void sable_flc_waiting(ptrint lockword, threadobject *t, java_handle_t *o
 	else
 		t_other->flc_bit = old_flc;
 
-	mutex_unlock(&t_other->flc_lock);
+	Mutex_unlock(t_other->flc_lock);
 }
 
 static void notify_flc_waiters(threadobject *t, java_handle_t *o)
 {
 	threadobject *current;
 
-	mutex_lock(&t->flc_lock);
+	Mutex_lock(t->flc_lock);
 
 	current = t->flc_list;
 	while (current)
@@ -925,14 +925,14 @@ static void notify_flc_waiters(threadobject *t, java_handle_t *o)
 			}
 		}
 		/* Wake the waiting thread */
-		pthread_cond_broadcast(&current->flc_cond);
+		Condition_broadcast(current->flc_cond);
 
 		current = current->flc_next;
 	}
 
 	t->flc_list = NULL;
 	t->flc_bit = false;
-	mutex_unlock(&t->flc_lock);
+	Mutex_unlock(t->flc_lock);
 }
 
 /* lock_monitor_enter **********************************************************
@@ -1148,7 +1148,7 @@ bool lock_monitor_exit(java_handle_t *o)
 		/* unlock this lock record */
 
 		lr->owner = NULL;
-		mutex_unlock(&(lr->mutex));
+		Mutex_unlock(lr->mutex);
 
 		return true;
 	}
@@ -1416,12 +1416,12 @@ static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
 
 		/* Enter the wait-mutex. */
 
-		mutex_lock(&(waitingthread->waitmutex));
+		Mutex_lock(waitingthread->waitmutex);
 
 		DEBUGLOCKS(("[lock_record_notify: lr=%p, t=%p, waitingthread=%p, one=%d]",
 					lr, t, waitingthread, one));
 
-		pthread_cond_signal(&(waitingthread->waitcond));
+		Condition_signal(waitingthread->waitcond);
 
 		/* Mark the thread as signaled. */
 
@@ -1429,7 +1429,7 @@ static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
 
 		/* Leave the wait-mutex. */
 
-		mutex_unlock(&(waitingthread->waitmutex));
+		Mutex_unlock(waitingthread->waitmutex);
 
 		/* if we should only wake one, we are done */
 

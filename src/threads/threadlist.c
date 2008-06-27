@@ -29,7 +29,7 @@
 
 #include "mm/memory.h"
 
-#include "threads/mutex.h"
+#include "threads/mutex.hpp"
 #include "threads/threadlist.h"
 #include "threads/thread.h"
 
@@ -40,7 +40,7 @@
 
 /* global variables ***********************************************************/
 
-static mutex_t threadlist_mutex;          /* global mutex for the thread list */
+static Mutex* threadlist_mutex;           /* global mutex for the thread list */
 
 static list_t *list_thread;                            /* global threads list */
 static list_t *list_thread_free;                  /* global free threads list */
@@ -65,7 +65,7 @@ void threadlist_init(void)
 
 	/* Initialize the thread list mutex. */
 
-	mutex_init(&threadlist_mutex);
+	threadlist_mutex = Mutex_new();
 
 	/* Initialize the thread lists. */
 
@@ -88,7 +88,7 @@ void threadlist_init(void)
 
 void threadlist_lock(void)
 {
-	mutex_lock(&threadlist_mutex);
+	Mutex_lock(threadlist_mutex);
 }
 
 
@@ -100,7 +100,7 @@ void threadlist_lock(void)
 
 void threadlist_unlock(void)
 {
-	mutex_unlock(&threadlist_mutex);
+	Mutex_unlock(threadlist_mutex);
 }
 
 

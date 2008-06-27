@@ -38,7 +38,7 @@ extern "C" {
 
 #include "native/llni.h"
 
-#include "threads/mutex.h"
+#include "threads/mutex.hpp"
 
 #include "toolbox/list.h"
 
@@ -75,7 +75,7 @@ struct lock_record_t {
 	java_object_t       *object;             /* object for which this lock is */
 	struct threadobject *owner;              /* current owner of this monitor */
 	s4                   count;              /* recursive lock count          */
-	mutex_t              mutex;              /* mutex for synchronizing       */
+	Mutex*               mutex;              /* mutex for synchronizing       */
 	list_t              *waiters;            /* list of threads waiting       */
 	lock_record_t       *hashlink;           /* next record in hash chain     */
 };
@@ -88,7 +88,7 @@ struct lock_record_t {
 *******************************************************************************/
 
 struct lock_hashtable_t {
-	mutex_t              mutex;       /* mutex for synch. access to the table */
+    Mutex*               mutex;       /* mutex for synch. access to the table */
 	u4                   size;        /* number of slots                      */
 	u4                   entries;     /* current number of entries            */
 	lock_record_t      **ptr;         /* the table of slots, uses ext. chain. */
