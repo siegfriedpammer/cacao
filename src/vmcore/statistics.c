@@ -109,6 +109,8 @@ int32_t size_linenumbertable  = 0;
 
 s4 size_patchref         = 0;
 
+s4 size_cachedref	     = 0;
+
 u8 count_calls_java_to_native = 0;
 u8 count_calls_native_to_java = 0;
 
@@ -695,12 +697,14 @@ void statistics_print_memory_usage(void)
 	log_println("linenumber tables (%5d): %10d", count_linenumbertable, size_linenumbertable);
 	log_println("exception tables:          %10d", count_extable_len);
 	log_println("patcher references:        %10d", size_patchref);
+	log_println("cached references:         %10d", size_cachedref);
 	log_println("                            ----------");
 
 	sum =
 		size_linenumbertable +
 		count_extable_len +
-		size_patchref;
+		size_patchref +
+		size_cachedref;
 
 	log_println("                           %10d", sum);
 

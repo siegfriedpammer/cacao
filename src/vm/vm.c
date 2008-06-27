@@ -86,6 +86,7 @@
 #include "vm/jit/argument.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/code.h"
+#include "vm/jit/jitcache.h"
 
 #if defined(ENABLE_DISASSEMBLER)
 # include "vm/jit/disass.h"
@@ -1935,6 +1936,10 @@ void vm_shutdown(s4 status)
 		mutex_unlock(&dbgcomlock);
 		jvmti_cacaodbgserver_quit();
 	}	
+#endif
+
+#if defined (ENABLE_JITCACHE)
+	jitcache_quit();
 #endif
 
 	exit(status);

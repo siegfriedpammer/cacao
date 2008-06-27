@@ -225,6 +225,15 @@ inline static size_t system_fread(void *ptr, size_t size, size_t nmemb, FILE *st
 #endif
 }
 
+inline static int system_fseek(FILE *stream, off_t offset, int whence)
+{
+#if defined(HAVE_FSEEK)
+	return fseek(stream, offset, whence);
+#else
+# error fseek not available
+#endif
+}
+
 inline static void system_free(void *ptr)
 {
 #if defined(HAVE_FREE)

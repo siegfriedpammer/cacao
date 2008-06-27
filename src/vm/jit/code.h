@@ -85,6 +85,10 @@ struct codeinfo {
 	/* patcher list */
 	list_t       *patchers;
 
+#if defined (ENABLE_JITCACHE)
+	list_t		 *cachedrefs;
+#endif
+
 	/* replacement */				    
 	s4            stackframesize;       /* size of the stackframe in slots    */
 

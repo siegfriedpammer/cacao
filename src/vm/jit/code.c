@@ -36,8 +36,9 @@
 
 #include "vm/jit/code.h"
 #include "vm/jit/codegen-common.h"
-#include "vm/jit/patcher-common.h"
+#include "vm/jit/jitcache.h"
 #include "vm/jit/methodtree.h"
+#include "vm/jit/patcher-common.h"
 
 #include "vmcore/options.h"
 
@@ -67,6 +68,7 @@ void code_init(void)
    The following fields are set in codeinfo:
        m
        patchers
+	   cachedrefs
 
    RETURN VALUE:
        a new, initialized codeinfo, or
@@ -84,7 +86,11 @@ codeinfo *code_codeinfo_new(methodinfo *m)
 
 	patcher_list_create(code);
 
-#if defined(ENABLE_STATISTICS)
+#if defined (ENABLE_JITCACHE)
+	jitcache_list_create(code);
+#endif
+
+#if defined (ENABLE_STATISTICS)
 	if (opt_stat)
 		size_codeinfo += sizeof(codeinfo);
 #endif
@@ -240,6 +246,10 @@ void code_codeinfo_free(codeinfo *code)
 		CFREE((void *) (ptrint) code->mcode, code->mcodelength);
 
 	patcher_list_free(code);
+
+#if defined(ENABLE_JITCACHE)
+	jitcache_list_free(code);
+#endif
 
 #if defined(ENABLE_REPLACEMENT)
 	replace_free_replacement_points(code);

@@ -49,6 +49,7 @@
 #include "vm/resolve.h"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/jitcache.h"
 
 #include "vmcore/class.h"
 #include "vmcore/classcache.h"
@@ -265,6 +266,9 @@ classinfo *class_create_classinfo(utf *classname)
 
 	if (classname != utf_not_named_yet)
 		class_set_packagename(c);
+#if defined (ENABLE_JITCACHE)
+    c->cache_file_fd = 0;
+#endif
 
 	LOCK_INIT_OBJECT_LOCK(&c->object.header);
 
@@ -808,6 +812,11 @@ void class_free(classinfo *c)
 {
 	s4 i;
 	vftbl_t *v;
+
+#if defined(ENABLE_JITCACHE)
+/* TODO: Find a way around the linker problem */
+/*    jitcache_freeclass(c);*/
+#endif
 
 	class_freecpool(c);
 

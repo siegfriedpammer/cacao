@@ -56,7 +56,6 @@ typedef struct castinfo       castinfo;
 #include "vmcore/references.h"
 #include "vmcore/utf8.h"
 
-
 /* class state defines ********************************************************/
 
 #define CLASS_LOADING         0x0001
@@ -165,6 +164,9 @@ struct classinfo {                /* class structure                          */
 	java_object_t      *protectiondomain;
 	java_objectarray_t *signers;
 # endif
+#endif
+#if defined(ENABLE_JITCACHE)
+	int         cache_file_fd;
 #endif
 };
 

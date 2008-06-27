@@ -2241,7 +2241,7 @@ resolved_the_method:
 
 		/* check subtype constraints for TYPE_ADR parameters */
 
-		assert(mi->parseddesc->paramcount == ref->methodref->parseddesc.md->paramcount);
+		assert(mi == ref->methodref->p.method || mi->parseddesc->paramcount == ref->methodref->parseddesc.md->paramcount);
 		paramtypes = mi->parseddesc->paramtypes;
 
 		for (i = 0; i < mi->parseddesc->paramcount-instancecount; i++) {

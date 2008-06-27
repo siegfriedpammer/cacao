@@ -57,6 +57,10 @@
 #include "vm/jit/show.h"
 #include "vm/jit/stack.h"
 
+#if defined(ENABLE_JITCACHE)
+# include "vm/jit/jitcache.h"
+#endif
+
 #include "vm/jit/allocator/simplereg.h"
 #if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
 # include "vm/jit/allocator/lsra.h"
@@ -341,6 +345,17 @@ u1 *jit_compile(methodinfo *m)
 
 	STATISTICS(count_methods++);
 
+#if defined (ENABLE_JITCACHE)
+
+	if (jitcache_load (m))
+	{
+		LOCK_MONITOR_EXIT(m);
+
+		return m->code->entrypoint;
+	}
+
+#endif
+
 #if defined(ENABLE_STATISTICS)
 	/* measure time */
 
@@ -430,6 +445,10 @@ u1 *jit_compile(methodinfo *m)
 	else {
 		DEBUG_JIT_COMPILEVERBOSE("Running: ");
 	}
+
+#if defined (ENABLE_JITCACHE)
+	jitcache_store(m);
+#endif
 
 	/* release dump area */
 

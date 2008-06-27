@@ -211,6 +211,10 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
 	pr->mcode   = 0;
 	pr->done    = false;
 
+#if defined(ENABLE_JITCACHE)
+	pr->attached_ref = NULL;
+#endif
+
 	/* Generate NOPs for opt_shownops. */
 
 	if (opt_shownops)
@@ -366,6 +370,15 @@ java_handle_t *patcher_handler(u1 *pc)
 	}
 #endif
 
+#if defined(ENABLE_JITCACHE)
+	/* Put cached reference into the code and remove it from the patcher */
+	if (pr->attached_ref)
+	{
+		jitcache_handle_cached_ref(pr->attached_ref, code);
+		pr->attached_ref = NULL;
+	}
+#endif
+
 	/* check for return value and exit accordingly */
 
 	if (result == false) {
@@ -481,6 +494,28 @@ bool patcher_resolve_native_function(patchref_t *pr)
 	return true;
 }
 
+/** Placeholder functions to calm down linker */
+#if defined(__I386__)
+bool patcher_resolve_classref_to_classinfo(patchref_t *pr)
+{
+	return true;
+}
+
+bool patcher_resolve_classref_to_vftbl(patchref_t *pr)
+{
+	return true;
+}
+
+bool patcher_resolve_classref_to_index(patchref_t *pr)
+{
+	return true;
+}
+
+bool patcher_resolve_classref_to_flags(patchref_t *pr)
+{
+	return true;
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

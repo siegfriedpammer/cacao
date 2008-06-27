@@ -53,6 +53,7 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/jitcache.h"
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/parse.h"
@@ -141,7 +142,13 @@ bool codegen_emit(jitdata *jd)
 	/* SECTION: Method Header */
 	/* create method header */
 
+#if defined(ENABLE_JITCACHE)
+	disp = dseg_add_unique_address(cd, code);			   /* CodeinfoPointer */
+	jitcache_add_cached_ref(code, CRT_CODEINFO, 0, disp);
+#else
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+#endif
+
 	(void) dseg_add_unique_s4(cd, cd->stackframesize);     /* FrameSize       */
 
 	code->synchronizedoffset = rd->memuse * 8;
@@ -279,6 +286,7 @@ bool codegen_emit(jitdata *jd)
 
 		if (m->flags & ACC_STATIC) {
 			disp = dseg_add_address(cd, &m->clazz->object.header);
+			JITCACHE_ADD_CACHED_REF(code, CRT_OBJECT_HEADER, m->clazz, disp);
 			M_DSEG_LOAD(REG_A0, disp);
 		}
 		else {
@@ -287,6 +295,8 @@ bool codegen_emit(jitdata *jd)
 
 		M_STR(REG_A0, REG_SP, s1);
 		disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
+		JITCACHE_ADD_CACHED_REF(code,
+			CRT_BUILTIN_FP, builtintable_get_internal(LOCK_monitor_enter), disp);
 		M_DSEG_BRANCH(disp);
 		s1 = (s4) (cd->mcodeptr - cd->mcodebase);
 		M_RECOMPUTE_PV(s1);
@@ -410,7 +420,33 @@ bool codegen_emit(jitdata *jd)
 				M_DSEG_LOAD(d, disp);
 			}
 			else {
+#if defined(ENABLE_JITCACHE)
+				/* Dealing with ICONST and the JIT cache is tricky because
+				 * ICONST generates different code depending on the value of the
+				 * number. We therefore go the slightly less optimal way and
+				 * generate an entry in the data segment.
+				 * For the null constant however we use the plain integer load.
+				*/
+				if (iptr->sx.val.anyptr)
+				{
+					disp = dseg_add_unique_address(cd, iptr->sx.val.anyptr);
+
+					jitcache_add_cached_ref(code, 
+						(iptr->flags.bits & INS_FLAG_CLASS) ? CRT_CLASSINFO
+															: CRT_STRING,
+						(iptr->flags.bits & INS_FLAG_CLASS) ? iptr->sx.val.c.cls
+															: iptr->sx.val.stringconst,
+						disp);
+
+					M_DSEG_LOAD(d, disp);
+				}
+				else {
+					ICONST(d, (u4) 0);
+				}
+
+#else
 				ICONST(d, (u4) iptr->sx.val.anyptr);
+#endif
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -679,6 +715,7 @@ bool codegen_emit(jitdata *jd)
 			/* call builtin function */
 			bte = iptr->sx.s23.s3.bte;
 			disp = dseg_add_functionptr(cd, bte->fp);
+			JITCACHE_ADD_CACHED_REF(code, CRT_BUILTIN_FP, bte, disp);
 			M_DSEG_BRANCH(disp);
 
 			/* recompute pv */
@@ -708,6 +745,7 @@ bool codegen_emit(jitdata *jd)
 			/* call builtin function */
 			bte = iptr->sx.s23.s3.bte;
 			disp = dseg_add_functionptr(cd, bte->fp);
+			JITCACHE_ADD_CACHED_REF(code, CRT_BUILTIN_FP, bte, disp);
 			M_DSEG_BRANCH(disp);
 
 			/* recompute pv */
@@ -1352,6 +1390,10 @@ bool codegen_emit(jitdata *jd)
 
 			/* call builtin function */
 			disp = dseg_add_functionptr(cd, BUILTIN_FAST_canstore);
+			JITCACHE_ADD_CACHED_REF(
+				code, CRT_BUILTIN_FP,
+				builtintable_get_internal(BUILTIN_FAST_canstore), disp);
+
 			M_DSEG_BRANCH(disp);
 
 			/* recompute pv */
@@ -1382,7 +1424,7 @@ bool codegen_emit(jitdata *jd)
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
-
+				JITCACHE_ADD_CACHED_REF(code, CRT_FIELDINFO_VALUE, fi, disp);
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz)) {
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
 					                    fi->clazz, 0);
@@ -1435,7 +1477,7 @@ bool codegen_emit(jitdata *jd)
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = dseg_add_address(cd, fi->value);
-
+				JITCACHE_ADD_CACHED_REF(code, CRT_FIELDINFO_VALUE, fi, disp);
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz)) {
 					patcher_add_patch_ref(jd, PATCHER_initialize_class,
 					                    fi->clazz, 0);
@@ -1628,6 +1670,7 @@ bool codegen_emit(jitdata *jd)
 									iptr->sx.s23.s2.uc, 0);
 			}
 			disp = dseg_add_functionptr(cd, asm_handle_exception);
+			JITCACHE_ADD_CACHED_REF(code, CRT_ASM_HANDLE_EXCEPTION, NULL, disp);
 			M_DSEG_LOAD(REG_ITMP3, disp);
 			M_MOV(REG_ITMP2_XPC, REG_PC);
 			M_MOV(REG_PC, REG_ITMP3);
@@ -2116,6 +2159,10 @@ bool codegen_emit(jitdata *jd)
 
 				M_LDR(REG_A0, REG_SP, s1);
 				disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
+				JITCACHE_ADD_CACHED_REF(code,
+					CRT_BUILTIN_FP, builtintable_get_internal(LOCK_monitor_exit),
+					disp);
+
 				M_DSEG_BRANCH(disp);
 
 				/* we no longer need PV here, no more loading */
@@ -2245,6 +2292,8 @@ bool codegen_emit(jitdata *jd)
 					disp = dseg_add_functionptr(cd, bte->stub);
 				}
 
+				JITCACHE_ADD_CACHED_REF(code, CRT_BUILTIN, bte, disp);
+
 				M_DSEG_LOAD(REG_PV, disp); /* pointer to built-in-function */
 
 				/* generate the actual call */
@@ -2267,7 +2316,10 @@ bool codegen_emit(jitdata *jd)
 										um, disp);
 				}
 				else
+				{
 					disp = dseg_add_address(cd, lm->stubroutine);
+					JITCACHE_ADD_CACHED_REF(code, CRT_METHODINFO_STUBROUTINE, lm, disp);
+				}
 
 				M_DSEG_LOAD(REG_PV, disp);            /* Pointer to method */
 
@@ -2281,6 +2333,7 @@ bool codegen_emit(jitdata *jd)
 
 			case ICMD_INVOKEVIRTUAL:
 				if (lm == NULL) {
+
 					patcher_add_patch_ref(jd, PATCHER_invokevirtual, um, 0);
 
 					s1 = 0;
@@ -2288,12 +2341,12 @@ bool codegen_emit(jitdata *jd)
 				else
 					s1 = OFFSET(vftbl_t, table[0]) +
 						sizeof(methodptr) * lm->vftblindex;
+				
 
 				/* implicit null-pointer check */
 				M_LDR_INTERN(REG_METHODPTR, REG_A0,
 							 OFFSET(java_object_t, vftbl));
 				M_LDR_INTERN(REG_PV, REG_METHODPTR, s1);
-
 				/* generate the actual call */
 
 				M_MOV(REG_LR, REG_PC);
@@ -2319,7 +2372,9 @@ bool codegen_emit(jitdata *jd)
 				M_LDR_INTERN(REG_METHODPTR, REG_A0,
 							 OFFSET(java_object_t, vftbl));
 				M_LDR_INTERN(REG_METHODPTR, REG_METHODPTR, s1);
+
 				M_LDR_INTERN(REG_PV, REG_METHODPTR, s2);
+				JITCACHE_ADD_CACHED_REF_MD_JD(jd, CRT_METHODINFO_METHODOFFSET, 1, lm);
 
 				/* generate the actual call */
 
@@ -2435,6 +2490,9 @@ bool codegen_emit(jitdata *jd)
 					                    iptr->sx.s23.s3.c.ref, disp);
 				}
 				else {
+/*
+					JITCACHE_ADD_CACHED_REF_JD(jd, CRT_CLASSINFO_INDEX, super, disp);
+*/
 					M_TST(s1, s1);
 					emit_label_beq(cd, BRANCH_LABEL_3);
 				}
@@ -2500,7 +2558,7 @@ bool codegen_emit(jitdata *jd)
 				}
 				else {
 					disp = dseg_add_address(cd, super->vftbl);
-
+					JITCACHE_ADD_CACHED_REF(code, CRT_CLASSINFO_VFTBL, super, disp);
 					M_TST(s1, s1);
 					emit_label_beq(cd, BRANCH_LABEL_5);
 				}
@@ -2546,10 +2604,14 @@ bool codegen_emit(jitdata *jd)
 										disp);
 				}
 				else
+				{
 					disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
+					JITCACHE_ADD_CACHED_REF(code, CRT_CLASSINFO, iptr->sx.s23.s3.c.cls, disp);
+				}
 
 				M_DSEG_LOAD(REG_A1, disp);
 				disp = dseg_add_functionptr(cd, BUILTIN_arraycheckcast);
+				JITCACHE_ADD_CACHED_REF(code, CRT_BUILTIN, builtintable_get_internal(BUILTIN_arraycheckcast), disp);
 				M_DSEG_BRANCH(disp);
 
 				/* recompute pv */
@@ -2628,6 +2690,9 @@ bool codegen_emit(jitdata *jd)
 					                    iptr->sx.s23.s3.c.ref, disp);
 				}
 				else {
+/* TODO: Not needed?
+					JITCACHE_ADD_CACHED_REF(code, CRT_CLASSINFO_INDEX, super, disp);
+*/
 					M_EOR(d, d, d);
 					M_TST(s1, s1);
 					emit_label_beq(cd, BRANCH_LABEL_3);
@@ -2698,6 +2763,7 @@ bool codegen_emit(jitdata *jd)
 				}
 				else {
 					disp = dseg_add_address(cd, super->vftbl);
+					JITCACHE_ADD_CACHED_REF(code, CRT_CLASSINFO_VFTBL, super, disp);
 
 					M_EOR(d, d, d);
 					M_TST(s1, s1);
@@ -2768,7 +2834,10 @@ bool codegen_emit(jitdata *jd)
 									iptr->sx.s23.s3.c.ref, disp);
 			}
 			else
+			{
 				disp = dseg_add_address(cd, iptr->sx.s23.s3.c.cls);
+				JITCACHE_ADD_CACHED_REF(code, CRT_CLASSINFO, iptr->sx.s23.s3.c.cls, disp);
+			}
 
 			/* a1 = arraydescriptor */
 
@@ -2781,6 +2850,11 @@ bool codegen_emit(jitdata *jd)
 			/* call builtin_multianewarray here */
 
 			disp = dseg_add_functionptr(cd, BUILTIN_multianewarray);
+			/*
+			* For some unknown reason this causes an illegal instruction.
+			* JITCACHE_ADD_CACHED_REF(code, CRT_BUILTIN, builtintable_get_internal(BUILTIN_multianewarray), disp);
+			*/
+
 			M_DSEG_BRANCH(disp);
 
 			/* recompute pv */

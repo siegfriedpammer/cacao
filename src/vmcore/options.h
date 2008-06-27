@@ -183,6 +183,9 @@ extern int      opt_ThreadStackSize;
 
 extern int      opt_DebugExceptions;
 extern int      opt_DebugFinalizer;
+#if defined(ENABLE_JITCACHE)
+extern int   opt_DebugJitCache;
+#endif
 extern int      opt_DebugLocalReferences;
 extern int      opt_DebugLocks;
 extern int      opt_DebugPatcher;

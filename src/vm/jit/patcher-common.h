@@ -39,6 +39,9 @@
 
 #include "vm/jit/jit.h"
 
+#if defined (ENABLE_JITCACHE)
+struct cached_ref_t;
+#endif
 
 /* patchref_t ******************************************************************
 
@@ -55,6 +58,11 @@ typedef struct patchref_t {
 	voidptr      ref;           /* reference passed                           */
 	u8           mcode;         /* machine code to be patched back in         */
 	bool         done;          /* XXX preliminary: patch already applied?    */
+#if defined (ENABLE_JITCACHE)
+	struct cachedref_t *attached_ref;
+								/* cached reference which must be resolved    *
+								 * patcher has been run.                      */
+#endif
 	listnode_t   linkage;
 } patchref_t;
 
@@ -181,6 +189,7 @@ bool patcher_instanceof_class(patchref_t *pr);
 
 #endif /* defined(__I386__) */
 
+void patch_md(s4 md_patch, ptrint dest, voidptr ref);
 
 #endif /* _PATCHER_COMMON_H */
 
