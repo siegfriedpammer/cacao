@@ -56,7 +56,6 @@
 #include "threads/thread.h"
 #include "threads/lock-common.h"
 #include "vm/exceptions.h"
-#include "native/include/java_util_Vector.h"
 #include "native/include/java_io_PrintStream.h"
 #include "native/include/java_io_InputStream.h"
 #include "native/include/java_lang_Cloneable.h"
