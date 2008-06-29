@@ -779,7 +779,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 			jd->ls = NULL;
 			ssa(jd);
 			/*lsra(jd);*/ regalloc(jd);
-			eliminate_subbasicblocks(jd);
+			/*eliminate_subbasicblocks(jd);*/
 			STATISTICS(count_methods_allocated_by_lsra++);
 
 		} else

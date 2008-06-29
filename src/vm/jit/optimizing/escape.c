@@ -1105,6 +1105,10 @@ monomorphic_t monomorphic_get(methodinfo *caller, methodinfo *callee) {
 	monomorphic_t res = { 0, 0 };
 }
 
+bool method_profile_is_monomorphic(methodinfo *m) {
+return 0;
+}
+
 #if 0
 
 /*** HACK to store method monomorphy information upon shutdown ****************/

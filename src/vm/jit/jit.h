@@ -549,6 +549,9 @@ struct basicblock {
 #define FOR_EACH_INSTRUCTION(bptr, it) \
 	for ((it) = (bptr)->iinstr; (it) != (bptr)->iinstr + (bptr)->icount; ++(it))
 
+#define FOR_EACH_INSTRUCTION_REV(bptr, it) \
+	for ((it) = (bptr)->iinstr + (bptr)->icount - 1; (it) != (bptr)->iinstr - 1; --(it))
+
 #if defined(ENABLE_SSA)
 
 #define FOR_EACH_EXHANDLER(bptr, it) \

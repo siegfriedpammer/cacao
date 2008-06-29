@@ -47,10 +47,10 @@
 #include <limits.h>
 #include <stdio.h>
 
-#define ELIMINATE_NOP_LOAD_STORE
+/*#define ELIMINATE_NOP_LOAD_STORE*/
 #define FIXME(x) x
 #define SSA_VERIFY
-/* #define SSA_VERBOSE */
+#define SSA_VERBOSE 
 
 /*
 __attribute__((always_inline))
@@ -354,8 +354,15 @@ static inline void instruction_set_uses(instruction *iptr, s4 *buf, s4 *uses, un
 
 #define VAR_TYPE_SUBSTITUED 666
 
+#define OLD_INDEX_UNUSED -2
+
 typedef struct {
-	varinfo items[9000]; /* XXX hardcoded max */
+	varinfo v;
+	s4 old_index;
+} vars_item_t;
+
+typedef struct {
+	vars_item_t items[9000]; /* XXX hardcoded max */
 	unsigned max;
 	unsigned count;
 	unsigned category;
@@ -365,7 +372,8 @@ static inline unsigned vars_add_item(vars_t *vs, const varinfo *item) {
 	unsigned i = vs->count;
 	assert(i < vs->max);
 	vs->count += 1;
-	vs->items[i] = *item;
+	vs->items[i].v = *item;
+	vs->items[i].old_index = OLD_INDEX_UNUSED;
 	return (vs->category << VARS_CATEGORY_SHIFT) | i;
 }
 
@@ -378,7 +386,7 @@ static inline unsigned vars_add(vars_t *vs) {
 
 static inline varinfo *vars_back(vars_t *vs) {
 	assert(vs->count > 0);
-	return vs->items + (vs->count - 1);
+	return &(vs->items[vs->count - 1].v);
 }
 
 static inline void vars_init(vars_t *vs, unsigned category) {
@@ -400,8 +408,8 @@ static void vars_subst(vars_t *vs, unsigned varindex, unsigned replacementindex)
 	varindex = vars_get_index(varindex);
 	replacementindex = vars_get_index(replacementindex);
 
-	vs->items[varindex].type = VAR_TYPE_SUBSTITUED;
-	vs->items[varindex].vv.regoff = replacementindex;
+	vs->items[varindex].v.type = VAR_TYPE_SUBSTITUED;
+	vs->items[varindex].v.vv.ii[1] = replacementindex;
 }
 
 static unsigned vars_resolve_subst(const vars_t *vs, unsigned varindex) {
@@ -410,36 +418,80 @@ static unsigned vars_resolve_subst(const vars_t *vs, unsigned varindex) {
 #endif
 	varindex = vars_get_index(varindex);
 
-	if (vs->items[varindex].type == VAR_TYPE_SUBSTITUED) /*fprintf(stderr, "*")*/;
+	if (vs->items[varindex].v.type == VAR_TYPE_SUBSTITUED) /*fprintf(stderr, "*")*/;
 
-	while (vs->items[varindex].type == VAR_TYPE_SUBSTITUED) {
+	while (vs->items[varindex].v.type == VAR_TYPE_SUBSTITUED) {
 		assert(loop_ctr++ != vs->count);
-		varindex = vs->items[varindex].vv.regoff;
+		varindex = vs->items[varindex].v.vv.ii[1];
 	}
 
 	return (vs->category << VARS_CATEGORY_SHIFT) | varindex ;
 }
 
 static void vars_copy_to_final(vars_t *vs, varinfo *dst) {
-	const varinfo *it;
+	const vars_item_t *it;
 	unsigned subst;
 
 	for (it = vs->items; it != vs->items + vs->count; ++it, ++dst) {
 
 		/* Copy variable. */
 
-		*dst = *it;
+		*dst = it->v;
 
 		/* Eliminate VAR_TYPE_SUBSTITUED as it leads to problems. */
 
 		if (dst->type == VAR_TYPE_SUBSTITUED) {
 			subst = vars_get_index(vars_resolve_subst(vs, it - vs->items));
-			dst->type = vs->items[subst].type;
+			dst->type = vs->items[subst].v.type;
 
 		}
 	}
 }
 
+static void vars_import(vars_t *vs, varinfo *v, unsigned count, s4 old_index) {
+	vars_item_t *it;
+
+	assert((vs->count + count) <= vs->max);
+
+	it = vs->items + vs->count;
+	vs->count += count;
+
+	while (count-- > 0) {
+		it->v = *v;
+		it->old_index = old_index;
+		it += 1;
+		v += 1;
+		old_index += 1;
+	}
+}
+
+static inline void vars_record_old_index(vars_t *vs, unsigned varindex, s4 old_index) {
+	vars_item_t *item;
+	varindex = vars_get_index(varindex);
+
+	assert(varindex < vs->count);
+
+	item = vs->items + varindex;
+
+	assert(
+		item->old_index == OLD_INDEX_UNUSED || 
+		item->old_index == old_index
+	);
+
+	item->old_index = old_index;
+}
+
+static inline s4 vars_get_old_index(vars_t *vs, unsigned varindex) {
+	s4 old;
+
+	varindex = vars_get_index(varindex);
+
+	assert(varindex < vs->count);
+	old = vs->items[varindex].old_index;
+	assert(old != OLD_INDEX_UNUSED);
+
+	return old;
+}
 
 /*** phis *******************************************************************/
 
@@ -680,31 +732,41 @@ instruction *traversal_create_phi(traversal_t *t, vars_t *v, unsigned argcount, 
 
 	state_array_set(t->state_array, index, phi);
 
+	vars_record_old_index(v, phi->dst.varindex, index);
+
 	return phi;
 }
 
 static void traversal_rename_def(traversal_t *t, vars_t *vars, instruction *iptr) {
 	const varinfo *v;
 	unsigned index;
+	s4 old;
 
 	state_array_assert_items(t->state_array);
 
 	v = t->ops->var_num_to_varinfo(t->ops_vp, iptr->dst.varindex);
 	index = t->ops->var_num_to_index(t->ops_vp, iptr->dst.varindex);
 
+	old = iptr->dst.varindex;
 	iptr->dst.varindex = vars_add_item(vars, v);
 	state_array_set(t->state_array, index, iptr);
+
+	vars_record_old_index(vars, iptr->dst.varindex, index);
 }
 
-static void traversal_rename_use(traversal_t *t, s4 *puse) {
+static void traversal_rename_use(traversal_t *t, vars_t *vars, s4 *puse) {
 	unsigned index;
+	s4 old;
 
 	state_array_assert_items(t->state_array);
 
 	index = t->ops->var_num_to_index(t->ops_vp, *puse);
 
 	assert(state_array_get(t->state_array, index));
+	old = *puse;
 	*puse = state_array_get_var(t->state_array, index);
+
+	vars_record_old_index(vars, *puse, index);
 }
 
 static inline unsigned traversal_variables_count(traversal_t *t) {
@@ -862,6 +924,18 @@ typedef struct ssa_info {
 
 	basicblock_chain_t *new_blocks;
 
+	struct {
+		s4 maxlocals;
+		s4 maxinterfaces;
+		s4 *local_map;
+		varinfo *var;
+		s4 vartop;
+		s4 varcount;
+		s4 localcount;
+	} original;
+
+	unsigned keep_in_out:1;
+
 } ssa_info, ssa_info_t;
 
 void ssa_info_init(ssa_info_t *ssa, jitdata *jd) {
@@ -871,8 +945,7 @@ void ssa_info_init(ssa_info_t *ssa, jitdata *jd) {
 	vars_init(ssa->locals, VARS_CATEGORY_LOCAL);
 
 	/* Initialize first version of locals, that is always available. */
-	MCOPY(ssa->locals->items, jd->var, varinfo, jd->localcount);
-	ssa->locals->count = jd->localcount;
+	vars_import(ssa->locals, jd->var, jd->localcount, 0);
 
 	ssa->stack = DNEW(vars_t);
 	vars_init(ssa->stack, VARS_CATEGORY_STACK);
@@ -882,16 +955,26 @@ void ssa_info_init(ssa_info_t *ssa, jitdata *jd) {
 
 	ssa->new_blocks = DNEW(basicblock_chain_t);
 	basicblock_chain_init(ssa->new_blocks);
+
+	ssa->original.maxlocals = jd->maxlocals;
+	ssa->original.maxinterfaces = jd->maxinterfaces;
+	ssa->original.local_map = jd->local_map;
+	ssa->original.var = jd->var;
+	ssa->original.vartop = jd->vartop;
+	ssa->original.varcount = jd->varcount;
+	ssa->original.localcount = jd->localcount;
+
+	ssa->keep_in_out = false;
 }
 
 /*** others_mapping *********************************************************/
 
 static inline void others_mapping_set(ssa_info *ssa, s4 var, s4 new_var) {
-	ssa->jd->var[var].vv.regoff = new_var;
+	ssa->jd->var[var].vv.ii[1] = new_var;
 }
 
 static inline s4 others_mapping_get(const ssa_info *ssa, s4 var) {
-	return ssa->jd->var[var].vv.regoff;
+	return ssa->jd->var[var].vv.ii[1];
 }
 
 /*** code *******************************************************************/
@@ -1006,6 +1089,52 @@ void fix_exception_handlers(jitdata *jd) {
 		ee->handler = ee->handler->vp;
 	}
 
+}
+
+void unfix_exception_handlers(jitdata *jd) {
+	basicblock *bptr, *exh;
+	unsigned i;
+	exception_entry *ee;
+#if !defined(NDEBUG)
+	bool found = false;
+#endif
+
+	FOR_EACH_BASICBLOCK(jd, bptr) {
+		if (bptr->type == BBTYPE_EXH) {
+			assert(bptr->iinstr[1].opc == ICMD_GOTO);
+			exh = bptr->iinstr[1].dst.block;
+
+			bptr->type = BBDELETED;
+			bptr->icount = 0;
+			bptr->indepth = 0;
+			bptr->outdepth = 0;
+			exh->type = BBTYPE_EXH;
+			bptr->vp = exh;
+		
+			/* bptr is no more a predecessor of exh */
+
+			for (i = 0; i < exh->predecessorcount; ++i) {
+				if (exh->predecessors[i] == bptr) {
+					exh->predecessors[i] = exh->predecessors[exh->predecessorcount - 1];
+					exh->predecessorcount -= 1;
+#if !defined(NDEBUG)
+					found = true;
+#endif
+					break;
+				}
+			}
+
+			assert(found);
+
+		} else {
+			bptr->vp = NULL;
+		}
+	}
+
+	for (ee = jd->exceptiontable; ee; ee = ee->down) {
+		assert(ee->handler->vp);
+		ee->handler = ee->handler->vp;
+	}
 }
 
 /*** ssa_enter ***************************************************************/
@@ -1358,11 +1487,17 @@ static void ssa_enter_process_block(ssa_info *ssa, basicblock *bb) {
 	   Mark them manually. */
 
 	for (ituse = bb->invars; ituse != bb->invars + bb->indepth; ++ituse) {
+		if (ssa->keep_in_out && ssa->jd->var[*ituse].type == TYPE_RET) {
+			continue;
+		}
 		ssa->jd->var[*ituse].flags |= INOUT;
 		ssa->jd->var[*ituse].flags &= ~PREALLOC;
 	}
 
 	for (ituse = bb->outvars; ituse != bb->outvars + bb->outdepth; ++ituse) {
+		if (ssa->keep_in_out && ssa->jd->var[*ituse].type == TYPE_RET) {
+			continue;
+		}
 		ssa->jd->var[*ituse].flags |= INOUT;
 		ssa->jd->var[*ituse].flags &= ~PREALLOC;
 	}
@@ -1404,11 +1539,13 @@ static void ssa_enter_process_block(ssa_info *ssa, basicblock *bb) {
 			if (var_is_local(ssa->jd, *ituse)) {
 				traversal_rename_use(
 					bbi->locals, 
+					ssa->locals,
 					ituse
 				);
 			} else if (var_is_inout(ssa->jd, *ituse)) {
 				traversal_rename_use(
 					bbi->stack,
+					ssa->stack,
 					ituse
 				);
 			} else {
@@ -1437,6 +1574,7 @@ static void ssa_enter_process_block(ssa_info *ssa, basicblock *bb) {
 					ssa->others,
 					ssa->jd->var + iptr->dst.varindex
 				);
+				vars_record_old_index(ssa->others, iptr->dst.varindex, old);
 				others_mapping_set(ssa, old, iptr->dst.varindex);
 			}
 		}
@@ -1456,6 +1594,7 @@ static void ssa_enter_export_variables(ssa_info *ssa) {
 	s4 *it;
 	unsigned i, j;
 	jitdata *jd = ssa->jd;
+	s4 *local_map;
 
 	vartop = ssa->locals->count + ssa->stack->count + ssa->others->count;
 	vars = DMNEW(varinfo, vartop);
@@ -1470,12 +1609,14 @@ static void ssa_enter_export_variables(ssa_info *ssa) {
 	/* Grow local map to accomodate all new locals and iovars.
 	   But keep the local map for version 1 of locals, that contains the holes. */
 	
-	jd->local_map = DMREALLOC(
-		jd->local_map, 
-		s4, 
-		5 * jd->maxlocals, 
+	local_map = DMNEW(
+		s4,
 		5 * (jd->maxlocals + ssa->locals->count + ssa->stack->count - jd->localcount)
 	);
+
+	MCOPY(local_map, jd->local_map, s4, 5 * jd->maxlocals);
+
+	jd->local_map = local_map;
 
 	it = jd->local_map + (jd->maxlocals * 5); /* start adding entries here */
 
@@ -1569,8 +1710,10 @@ void ssa_enter_eliminate_categories(ssa_info_t *ssa) {
 
 		bbi = bb_info(bb);
 
-		bb->indepth = 0;
-		bb->outdepth = 0;
+		if (! ssa->keep_in_out) {
+			bb->indepth = 0;
+			bb->outdepth = 0;
+		}
 
 		if (bbi != NULL) {
 			FOR_EACH_PHI_FUNCTION(bbi->locals->phis, itph) {
@@ -2055,20 +2198,108 @@ static void ssa_leave_create_exceptional_phi_moves(ssa_info *ssa) {
 	}
 }
 
+void ssa_simple_leave_restore(ssa_info_t *ssa, basicblock *bptr, s4 *pvar) {
+	s4 var = *pvar;
+	s4 index;
+	basicblock_info_t *bbi;
+
+	if (var < ssa->locals->count) {
+		*pvar = vars_get_old_index(ssa->locals, var);
+	} else if (var < ssa->locals->count + ssa->stack->count) {
+
+		index = vars_get_old_index(
+			ssa->stack,
+			var - ssa->locals->count
+		);
+
+		bbi = bb_info(bptr);
+
+		/* We have to determine whether to take an invar or an outvar for
+		   the stack depth ``index''.
+		   The state array contains the last definition of the stack element
+		   at the given depth.
+		*/
+
+		if (state_array_get_var(bbi->stack->state_array, index) == var) {
+			/* The last definition of a stack depth inside the basicblock.
+			   This is the outvar at the given depth.
+			   If there is no outvar at the given depth, it must be an invar.
+			*/
+			if (index < bptr->outdepth) {
+				*pvar = bptr->outvars[index];
+			} else if (index < bptr->indepth) {
+				*pvar = bptr->invars[index];
+			} else {
+				assert(0);
+			}
+		} else {
+			/* A different than the last definition of a stack depth.
+			   This must be an invar.
+			*/
+			assert(index < bptr->indepth);
+			*pvar = bptr->invars[index];
+		}
+	} else {
+		*pvar = vars_get_old_index(
+			ssa->others,
+			var - ssa->locals->count - ssa->stack->count
+		);
+	}
+}
+
+void ssa_simple_leave(ssa_info_t *ssa) {
+	basicblock *bptr;
+	instruction *iptr;
+	s4 *ituse, *uses;
+	unsigned uses_count;
+
+	FOR_EACH_BASICBLOCK(ssa->jd, bptr) {
+		if (bptr->type == BBTYPE_EXH) {
+			/* (Aritifical) exception handler blocks will be eliminated. */
+			continue;
+		}
+		/* In reverse order. We need to rename the definition after any use! */
+		FOR_EACH_INSTRUCTION_REV(bptr, iptr) {
+			if (instruction_has_dst(iptr)) {
+				ssa_simple_leave_restore(ssa, bptr, &(iptr->dst.varindex));
+			}
+			instruction_get_uses(iptr, ssa->s_buf, &uses, &uses_count);
+			for (ituse = uses; ituse != uses + uses_count; ++ituse) {
+				ssa_simple_leave_restore(ssa, bptr, ituse);
+			}
+			instruction_set_uses(iptr, ssa->s_buf, uses, uses_count);
+		}
+	}
+
+	unfix_exception_handlers(ssa->jd);
+
+	ssa->jd->maxlocals = ssa->original.maxlocals;
+	ssa->jd->maxinterfaces = ssa->original.maxinterfaces;
+	ssa->jd->local_map =ssa->original.local_map;
+	ssa->jd->var = ssa->original.var;
+	ssa->jd->vartop = ssa->original.vartop;
+	ssa->jd->varcount = ssa->original.varcount;
+	ssa->jd->localcount = ssa->original.localcount;
+}
+
 void yssa(jitdata *jd) {
 	basicblock *it;
 	basicblock_info_t *iti;
 	ssa_info *ssa;
 
 #ifdef SSA_VERBOSE
-	printf("=============== [ before %s ] =========================\n", jd->m->name->text);
-	show_method(jd, 3);
-	printf("=============== [ /before ] =========================\n");
+	bool verb = true;
+	if (verb) {
+		printf("=============== [ before %s ] =========================\n", jd->m->name->text);
+		show_method(jd, 3);
+		printf("=============== [ /before ] =========================\n");
+	}
 #endif
 
 	ssa = DNEW(ssa_info);
 
 	ssa_info_init(ssa, jd);
+	ssa->keep_in_out = true;
 
 	FOR_EACH_BASICBLOCK(jd, it) {
 		if (basicblock_reached(it)) {
@@ -2094,16 +2325,30 @@ void yssa(jitdata *jd) {
 
 	/*ssa_enter_create_phi_graph(ssa);*/
 
-	escape_analysis_perform(ssa->jd);
+	/*escape_analysis_perform(ssa->jd);*/
 
+	/*
 	ssa_leave_create_phi_moves(ssa);
 
 	ssa_leave_create_exceptional_phi_moves(ssa);
+	*/
+	
+#ifdef SSA_VERBOSE
+	if (verb) {
+		printf("=============== [ mid ] =========================\n");
+		show_method(jd, 3);
+		printf("=============== [ /mid ] =========================\n");
+	}
+#endif
+
+	ssa_simple_leave(ssa);
 
 #ifdef SSA_VERBOSE
-	printf("=============== [ after ] =========================\n");
-	show_method(jd, 3);
-	printf("=============== [ /after ] =========================\n");
+	if (verb) {
+		printf("=============== [ after ] =========================\n");
+		show_method(jd, 3);
+		printf("=============== [ /after ] =========================\n");
+	}
 #endif
 
 }
