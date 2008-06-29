@@ -50,7 +50,6 @@ JAVASE_HEADER_FILES = \
 	java_lang_ThreadGroup.h \
 	java_util_Properties.h \
 	\
-	java_io_File.h \
 	java_lang_Process.h \
 	java_lang_StackTraceElement.h \
 	java_lang_reflect_Constructor.h \

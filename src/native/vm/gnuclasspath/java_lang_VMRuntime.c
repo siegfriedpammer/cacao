@@ -45,7 +45,6 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/java_io_File.h"
 #include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Process.h"
