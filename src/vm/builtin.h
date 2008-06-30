@@ -26,6 +26,10 @@
 #ifndef _BUILTIN_H
 #define _BUILTIN_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* forward typedefs ***********************************************************/
 
 typedef struct builtintable_entry builtintable_entry;
@@ -314,6 +318,10 @@ s8 builtin_currenttimemillis(void);
 
 #if defined(ENABLE_CYCLES_STATS)
 void builtin_print_cycles_stats(FILE *file);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* _BUILTIN_H */

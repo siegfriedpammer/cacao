@@ -26,8 +26,11 @@
 #ifndef _OPTIONS_H
 #define _OPTIONS_H
 
-
 #include "config.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdint.h>
 
@@ -249,6 +252,10 @@ void options_xx(JavaVMInitArgs *vm_args);
     } while (0)
 #else
 # define TRACESUBSYSTEMINITIALIZATION(text)
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* _OPTIONS_H */

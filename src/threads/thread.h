@@ -28,7 +28,13 @@
 
 #include "config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "vmcore/system.h"
+
+#include "threads/mutex.hpp"
 
 #if defined(ENABLE_THREADS)
 # include "threads/posix/thread-posix.h"
@@ -212,9 +218,9 @@ inline static bool thread_is_interrupted(threadobject *t)
 	   a blocking system call is interrupted. The mutex ensures that it will
 	   see the correct value for the interrupted flag. */
 
-	mutex_lock(&t->waitmutex);
+	Mutex_lock(t->waitmutex);
 	interrupted = t->interrupted;
-	mutex_unlock(&t->waitmutex);
+	Mutex_unlock(t->waitmutex);
 
 	return interrupted;
 }
@@ -231,13 +237,13 @@ inline static bool thread_is_interrupted(threadobject *t)
 
 inline static void thread_set_interrupted(threadobject *t, bool interrupted)
 {
-	mutex_lock(&t->waitmutex);
+	Mutex_lock(t->waitmutex);
 
 	/* Set interrupted flag. */
 
 	t->interrupted = interrupted;
 
-	mutex_unlock(&t->waitmutex);
+	Mutex_unlock(t->waitmutex);
 }
 
 
@@ -344,6 +350,10 @@ void          threads_impl_thread_start(threadobject *thread, functionptr f);
 void          threads_yield(void);
 
 #endif /* ENABLE_THREADS */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _THREAD_H */
 

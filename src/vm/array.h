@@ -30,6 +30,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "vm/global.h"
 #include "vm/primitive.h"
 
@@ -80,6 +84,10 @@ void           array_doublearray_element_set(java_handle_doublearray_t *a, int32
 void           array_objectarray_element_set(java_handle_objectarray_t *a, int32_t index, java_handle_t *value);
 
 int32_t        array_length_get(java_handle_t *a);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _VM_ARRAY_H */
 

@@ -1,9 +1,7 @@
 /* src/vm/primitive.c - primitive types
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -31,6 +29,10 @@
 #include "config.h"
 
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "vm/global.h"
 
@@ -120,6 +122,10 @@ int32_t        primitive_unbox_int(java_handle_t *o);
 int64_t        primitive_unbox_long(java_handle_t *o);
 float          primitive_unbox_float(java_handle_t *o);
 double         primitive_unbox_double(java_handle_t *o);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _PRIMITIVE_H */
 

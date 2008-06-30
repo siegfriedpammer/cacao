@@ -1,6 +1,6 @@
-/* src/vm/finalizer.h - finalizer linked list and thread header
+/* src/threads/condition.hpp - condition variable
 
-   Copyright (C) 1996-2005, 2006, 2008
+   Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,32 +23,18 @@
 */
 
 
-#ifndef _FINALIZER_H
-#define _FINALIZER_H
+#ifndef _CONDITION_HPP
+#define _CONDITION_HPP
 
 #include "config.h"
 
-#ifdef __cplusplus
-extern "C" {
+#include "threads/mutex.hpp"
+
+#if defined(ENABLE_THREADS)
+# include "threads/posix/condition-posix.hpp"
 #endif
 
-#include "vm/types.h"
-
-#include "vm/global.h"
-
-
-/* function prototypes ********************************************************/
-
-bool finalizer_init(void);
-bool finalizer_start_thread(void);
-void finalizer_notify(void);
-void finalizer_run(void *o, void *p);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* _FINALIZER_H */
+#endif /* _CONDITION_HPP */
 
 
 /*
@@ -57,9 +43,10 @@ void finalizer_run(void *o, void *p);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

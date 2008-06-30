@@ -28,6 +28,10 @@
 
 #include "config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "vm/global.h"
 
 #include "vmcore/class.h"
@@ -37,6 +41,10 @@
 
 void initialize_init(void);
 bool initialize_class(classinfo *c);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _INITIALIZE_H */
 

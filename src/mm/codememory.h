@@ -29,6 +29,11 @@
 #include "config.h"
 
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <sys/types.h>
 
 
@@ -44,6 +49,10 @@ void  codememory_init(void);
 
 void *codememory_get(size_t size);
 void  codememory_release(void *p, size_t size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _CODEMEMORY_H */
 
