@@ -47,7 +47,7 @@ public class AnnotationParser {
      * Parses the annotations described by the passed byte array,
      * but returns Annotation[] so I don't have to do this in C.
      *
-     * @author Mathias Panzenböck
+     * @author Mathias Panzenboeck
      * 
      * @param rawAnnotations are the unparsed annotations
      * @param constPool is the constant pool of the declaring class
@@ -67,7 +67,7 @@ public class AnnotationParser {
     /**
      * Parses parameter annotations.
      * 
-     * @author Mathias Panzenböck
+     * @author Mathias Panzenboeck
      * 
      * @param parameterAnnotations are the unparsed parameter annotations
      * @param constPool is the constant pool of the declaring class
@@ -99,7 +99,7 @@ public class AnnotationParser {
      * This method is basically copied from OpenJDKs
      * java.lang.reflect.Method.getAnnotationDefault()
      * 
-     * @author Mathias Panzenböck
+     * @author Mathias Panzenboeck
      *
      * @param method represents the method for which the annotation default value has to be parsed
      * @param annotationDefault is the unparsed annotation default value
