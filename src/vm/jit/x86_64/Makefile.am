@@ -34,9 +34,9 @@ SUBDIRS = $(OS_DIR)
 
 noinst_HEADERS = \
 	arch.h \
-	atomic.hpp \
 	\
-	md-asm.h
+	md-asm.h \
+	md-atomic.hpp
 
 noinst_LTLIBRARIES = libarch.la
 

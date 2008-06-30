@@ -1,4 +1,4 @@
-/* src/vm/jit/i386/atomic.hpp - i386 atomic instructions
+/* src/vm/jit/x86_64/atomic.hpp - x86_64 atomic instructions
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,12 +23,14 @@
 */
 
 
-#ifndef _ATOMIC_HPP
-#define _ATOMIC_HPP
+#ifndef _MD_ATOMIC_HPP
+#define _MD_ATOMIC_HPP
 
 #include "config.h"
 
 #include <stdint.h>
+
+#include "threads/atomic.hpp"
 
 
 /**
@@ -40,7 +42,7 @@
  *
  * @return value of the memory location before the store
  */
-inline static uint32_t Atomic_cas_32(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
+inline static uint32_t Atomic_compare_and_swap_32(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
 {
 	int32_t result;
 
@@ -61,7 +63,7 @@ inline static uint32_t Atomic_cas_32(volatile uint32_t *p, uint32_t oldval, uint
  *
  * @return value of the memory location before the store
  */
-inline static uint64_t Atomic_cas_64(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
+inline static uint64_t Atomic_compare_and_swap_64(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
 {
 	int64_t result;
 
@@ -82,16 +84,16 @@ inline static uint64_t Atomic_cas_64(volatile uint64_t *p, uint64_t oldval, uint
  *
  * @return value of the memory location before the store
  */
-inline static void* Atomic_cas_ptr(volatile void** p, void* oldval, void* newval)
+inline static void* Atomic_compare_and_swap_ptr(volatile void** p, void* oldval, void* newval)
 {
-	return (void*) Atomic_cas_64((volatile uint64_t*) p, (uint64_t) oldval, (uint64_t) newval);
+	return (void*) Atomic_compare_and_swap_64((volatile uint64_t*) p, (uint64_t) oldval, (uint64_t) newval);
 }
 
 
 /**
  * A memory barrier.
  */
-inline static void Atomic_mb(void)
+inline static void Atomic_memory_barrier(void)
 {
 	__asm__ __volatile__ ("mfence" : : : "memory");
 }
@@ -100,7 +102,7 @@ inline static void Atomic_mb(void)
 #define STORE_ORDER_BARRIER() __asm__ __volatile__ ("" : : : "memory");
 #define MEMORY_BARRIER_AFTER_ATOMIC() /* nothing */
 
-#endif /* _ATOMIC_HPP */
+#endif // _MD_ATOMIC_HPP
 
 
 /*
