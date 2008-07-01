@@ -50,7 +50,7 @@
 /*#define ELIMINATE_NOP_LOAD_STORE*/
 #define FIXME(x) x
 #define SSA_VERIFY
-#define SSA_VERBOSE 
+/*#define SSA_VERBOSE */
 
 /*
 __attribute__((always_inline))

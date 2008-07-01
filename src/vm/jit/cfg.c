@@ -501,6 +501,21 @@ void cfg_add_root(jitdata *jd) {
 	}
 }
 
+void cfg_remove_root(jitdata *jd) {
+	basicblock *root, *zero, *it;
+
+	root = jd->basicblocks;
+	zero = root->next;
+
+	zero->predecessorcount -= 1;
+
+	jd->basicblocks = zero;
+
+	for (it = zero; it; it = it->next) {
+		it->nr -= 1;
+	}
+}
+
 #if defined(ENABLE_SSA)
 
 static void cfg_eliminate_edges_to_unreachable(jitdata *jd);

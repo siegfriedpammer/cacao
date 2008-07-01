@@ -133,6 +133,7 @@ void ssa(jitdata *jd) {
 		yssa(jd);
 	}
 	/*pythonpass_run(jd, "foo", "after");*/
+	cfg_remove_root(jd);
 	return;
 
 	ls = jd->ls;
