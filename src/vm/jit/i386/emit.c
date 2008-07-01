@@ -517,6 +517,20 @@ void emit_trap_compiler(codegendata *cd)
 	M_ALD_MEM(REG_METHODPTR, TRAP_COMPILER);
 }
 
+/* emit_trap_countdown *********************************************************
+
+   Emit a countdown trap.
+
+   counter....absolute address of the counter variable
+
+*******************************************************************************/
+
+void emit_trap_countdown(codegendata *cd, s4 *counter)
+{
+	M_ISUB_IMM_MEMABS(1, (s4) counter);
+	M_BNS(6);
+	M_ALD_MEM(REG_METHODPTR, TRAP_COUNTDOWN);
+}
 
 /* emit_trap *******************************************************************
 

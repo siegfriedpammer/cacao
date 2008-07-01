@@ -407,9 +407,7 @@ bool codegen_emit(jitdata *jd)
 		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
 			if (cd->replacementpoint[-1].flags & RPLPOINT_FLAG_COUNTDOWN) {
 				MCODECHECK(32);
-				disp = (s4) &(m->hitcountdown);
-				M_ISUB_IMM_MEMABS(1, disp);
-				M_BS(0);
+				emit_trap_countdown(cd, &(m->hitcountdown));
 			}
 		}
 #endif

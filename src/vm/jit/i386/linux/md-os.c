@@ -151,6 +151,11 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 			_mc->gregs[REG_EIP] = (uintptr_t) p;
 		}
 	}
+#if defined(ENABLE_REPLACEMENT)
+	else if (type == TRAP_COUNTDOWN) {
+		/* context has been written by md_replace_executionstate_write */
+	}
+#endif
 	else {
 		_mc->gregs[REG_EAX] = (uintptr_t) p;
 		_mc->gregs[REG_ECX] = (uintptr_t) xpc;               /* REG_ITMP2_XPC */
