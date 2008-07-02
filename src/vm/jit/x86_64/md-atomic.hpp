@@ -44,7 +44,7 @@
  */
 inline static uint32_t Atomic_compare_and_swap_32(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
 {
-	int32_t result;
+	uint32_t result;
 
 	__asm__ __volatile__ ("lock; cmpxchgl %2, %1"
 						  : "=a" (result), "=m" (*p)
@@ -65,7 +65,7 @@ inline static uint32_t Atomic_compare_and_swap_32(volatile uint32_t *p, uint32_t
  */
 inline static uint64_t Atomic_compare_and_swap_64(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
 {
-	int64_t result;
+	uint64_t result;
 
 	__asm__ __volatile__ ("lock; cmpxchgq %2, %1"
 						  : "=a" (result), "=m" (*p)
