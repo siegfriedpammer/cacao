@@ -54,9 +54,6 @@
 
 	.globl asm_abstractmethoderror
 
-	.globl asm_compare_and_swap
-	.globl asm_memory_barrier
-
 	.globl asm_md_init
 	.globl asm_cacheflush
 
@@ -337,52 +334,6 @@ asm_abstractmethoderror:
 	br      L_asm_handle_nat_exception
 
 	.end    asm_abstractmethoderror
-
-
-/* asm_compare_and_swap ********************************************************
-
-   Does an atomic compare and swap.  Required for the lock
-   implementation.
-
-   Atomically do the following: Check if the location still contains
-   `oldval`. If so, replace it by `newval` and return `oldval`.
-
-   RETURN VALUE:
-       the old value at *p
-
-   long compare_and_swap(volatile long *p, long oldval, long newval);
-
-*******************************************************************************/
-
-	.ent    asm_compare_and_swap
-
-asm_compare_and_swap:
-1:
-	ldq_l   v0,0(a0)
-	cmpeq   v0,a1,t0
-	beq     t0,2f
-	mov     a2,t0
-	stq_c   t0,0(a0)
-	beq     t0,1b
-2:
-	jmp     zero,(ra)
-
-	.end    asm_compare_and_swap
-
-
-/* asm_memory_barrier **********************************************************
-
-   A memory barrier for the Java Memory Model.
-
-*******************************************************************************/
-
-	.ent    asm_memory_barrier
-
-asm_memory_barrier:
-	mb
-	jmp     zero,(ra)
-
-	.end    asm_memory_barrier
 
 
 /* asm_md_init *****************************************************************
