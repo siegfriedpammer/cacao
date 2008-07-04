@@ -1228,6 +1228,12 @@ static void replace_read_executionstate(rplpoint *rp,
 		replace_read_value(es, &instra, &(frame->instance));
 #endif
 	}
+#if defined(__I386__)
+	else if (!(rp->method->flags & ACC_STATIC)) {
+		/* On i386 we always pass the first argument on stack. */
+		frame->instance.a = *(java_object_t **)(basesp + 1);
+	} 
+#endif
 #endif /* defined(REPLACE_PATCH_DYNAMIC_CALL) */
 
 	/* read stack slots */
@@ -1995,8 +2001,11 @@ void replace_patch_future_calls(u1 *ra,
 
 		/* we can only patch such calls if we are at the entry point */
 
+#if !defined(__I386__)
+		/* On i386 we always know the instance argument. */
 		if (!atentry)
 			return;
+#endif
 
 		assert((calleem->flags & ACC_STATIC) == 0);
 
@@ -2024,6 +2033,11 @@ void replace_patch_future_calls(u1 *ra,
 	else {
 		/* the call was statically bound */
 
+#if defined(__I386__)
+		/* It happens that there is a patcher trap. (pm) */
+		if (*(u2 *)(patchpos - 1) == 0x0b0f) {
+		} else
+#endif
 		replace_patch_method_pointer((methodptr *) patchpos, entrypoint, "static   ");
 	}
 }
@@ -2212,7 +2226,7 @@ no_match:
 
 *******************************************************************************/
 
-rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc)
+rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc, unsigned desired_flags)
 {
 	rplpoint *found;
 	rplpoint *rp;
@@ -2226,13 +2240,19 @@ rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc)
 	rp = code->rplpoints;
 	for (i=0; i<code->rplpointcount; ++i, ++rp) {
 		DOLOG( replace_replacement_point_println(rp, 2); );
-		if (rp->pc <= pc && rp->pc + rp->callsize >= pc)
-			found = rp;
+		if (rp->pc <= pc && rp->pc + rp->callsize >= pc) {
+			if (desired_flags) {
+				if (rp->flags & desired_flags) {
+					found = rp;
+				}
+			} else {
+				found = rp;
+			}
+		}
 	}
 
 	return found;
 }
-
 
 /* replace_pop_native_frame ****************************************************
 
@@ -2560,7 +2580,7 @@ sourcestate_t *replace_recover_source_state(rplpoint *rp,
 			/* find the replacement point at the call site */
 
 after_machine_frame:
-			rp = replace_find_replacement_point_for_pc(es->code, es->pc);
+			rp = replace_find_replacement_point_for_pc(es->code, es->pc, 0);
 
 			if (rp == NULL)
 				vm_abort("could not find replacement point while unrolling call");
@@ -2964,7 +2984,7 @@ bool replace_me_wrapper(u1 *pc, void *context)
 
 	/* search for a replacement point at the given PC */
 
-	rp = replace_find_replacement_point_for_pc(code, pc);
+	rp = replace_find_replacement_point_for_pc(code, pc, (RPLPOINT_FLAG_ACTIVE | RPLPOINT_FLAG_COUNTDOWN));
 
 	/* check if the replacement point belongs to given PC and is active */
 

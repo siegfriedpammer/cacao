@@ -133,15 +133,6 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 		pv = NULL;
 		break;
 
-#if defined(ENABLE_REPLACEMENT)
-	case TRAP_COUNTDOWN:
-#if defined(__I386__)
-		replace_me_wrapper((char*)xpc - 13, context);
-#endif
-		p = NULL;
-		break;
-#endif
-
 	default:
 		/* do nothing */
 		break;
@@ -190,6 +181,15 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 	case TRAP_COMPILER:
 		p = jit_compile_handle(m, sfi.pv, ra, (void *) val);
 		break;
+
+#if defined(ENABLE_REPLACEMENT)
+	case TRAP_COUNTDOWN:
+#if defined(__I386__)
+		replace_me_wrapper((char*)xpc - 13, context);
+#endif
+		p = NULL;
+		break;
+#endif
 
 	default:
 		/* Let's try to get a backtrace. */

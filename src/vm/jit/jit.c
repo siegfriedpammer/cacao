@@ -390,8 +390,9 @@ u1 *jit_compile(methodinfo *m)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
 #if defined(ENABLE_REPLACEMENT) && defined(ENABLE_INLINING)
-	if (opt_Inline)
+	if (opt_Inline && (jd->m->hitcountdown > 0) && (jd->code->optlevel == 0)) {
 		jd->flags |= JITDATA_FLAG_COUNTDOWN;
+	}
 #endif
 
 #if defined(ENABLE_JIT)
@@ -733,7 +734,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 		/* inlining */
 
-#if defined(ENABLE_INLINING)
+#if defined(ENABLE_INLINING) && !defined(ENABLE_ESCAPE)
 		if (JITDATA_HAS_FLAG_INLINE(jd)) {
 			if (!inline_inline(jd))
 				return NULL;
@@ -774,7 +775,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 			/*&& strncmp(jd->m->name->text, "banana", 6) == 0*/
 			/*&& jd->exceptiontablelength == 0*/
 		) {
-			/* printf("=== %s ===\n", jd->m->name->text); */
+			/*printf("=== %s ===\n", jd->m->name->text);*/
 			jd->ls = DNEW(lsradata);
 			jd->ls = NULL;
 			ssa(jd);
