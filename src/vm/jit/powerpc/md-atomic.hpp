@@ -1,4 +1,4 @@
-/* src/vm/jit/powerpc/atomic.hpp - PowerPC atomic instructions
+/* src/vm/jit/powerpc/md-atomic.hpp - PowerPC atomic instructions
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,12 +23,14 @@
 */
 
 
-#ifndef _ATOMIC_HPP
-#define _ATOMIC_HPP
+#ifndef _MD_ATOMIC_HPP
+#define _MD_ATOMIC_HPP
 
 #include "config.h"
 
 #include <stdint.h>
+
+#include "threads/atomic.hpp"
 
 
 /**
@@ -40,7 +42,7 @@
  *
  * @return value of the memory location before the store
  */
-inline static uint32_t Atomic_cas_32(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
+inline static uint32_t Atomic_compare_and_swap_32(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
 {
 	uint32_t temp;
 	uint32_t result;
@@ -71,13 +73,10 @@ inline static uint32_t Atomic_cas_32(volatile uint32_t *p, uint32_t oldval, uint
  *
  * @return value of the memory location before the store
  */
-inline static uint64_t Atomic_cas_64(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
+inline static uint64_t Atomic_compare_and_swap_64(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
 {
-	uint64_t result;
-
-	log_println("Atomic_cas_64: Not implemented.");
-
-	return result;
+#warning Use generic implementation.
+	return 0;
 }
 
 
@@ -90,16 +89,16 @@ inline static uint64_t Atomic_cas_64(volatile uint64_t *p, uint64_t oldval, uint
  *
  * @return value of the memory location before the store
  */
-inline static void* Atomic_cas_ptr(volatile void** p, void* oldval, void* newval)
+inline static void* Atomic_compare_and_swap_ptr(volatile void** p, void* oldval, void* newval)
 {
-	return (void*) Atomic_cas_32((volatile uint32_t*) p, (uint32_t) oldval, (uint32_t) newval);
+	return (void*) Atomic_compare_and_swap_32((volatile uint32_t*) p, (uint32_t) oldval, (uint32_t) newval);
 }
 
 
 /**
  * A memory barrier.
  */
-inline static void Atomic_mb(void)
+inline static void Atomic_memory_barrier(void)
 {
 	__asm__ __volatile__ ("sync" : : : "memory");
 }
@@ -108,7 +107,7 @@ inline static void Atomic_mb(void)
 #define STORE_ORDER_BARRIER() __asm__ __volatile__ ("" : : : "memory");
 #define MEMORY_BARRIER_AFTER_ATOMIC() __asm__ __volatile__ ("isync" : : : "memory");
 
-#endif /* _ATOMIC_HPP */
+#endif // _MD_ATOMIC_HPP
 
 
 /*

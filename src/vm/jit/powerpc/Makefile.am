@@ -35,7 +35,7 @@ LIBS =
 
 noinst_HEADERS = \
 	arch.h \
-	atomic.hpp
+	md-atomic.hpp
 
 noinst_LTLIBRARIES = \
 	libarch.la
