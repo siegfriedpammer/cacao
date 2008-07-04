@@ -66,7 +66,7 @@ inline static uint32_t Atomic_compare_and_swap_32(volatile uint32_t *p, uint32_t
 inline static uint64_t Atomic_compare_and_swap_64(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
 {
 #warning Should we use cmpxchg8b or a generic version?
-	return 0;
+	return Atomic_generic_compare_and_swap_64(p, oldval, newval);
 }
 
 

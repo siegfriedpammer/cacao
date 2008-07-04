@@ -47,18 +47,18 @@ inline static uint32_t Atomic_compare_and_swap_32(volatile uint32_t *p, uint32_t
 	uint32_t temp;
 	uint32_t result;
 
-	__asm__ __volatile__ ("\n\
-1:  lwarx  %0,0,%4 \n							\
-    subf.  %1,%0,%2 \n							\
-    bne-   2f \n								\
-    or     %1,%3,%3 \n							\
-    stwcx. %1,0,%4 \n							\
-    bne-   1b \n								\
-2: \n											\
-"
-						  : "=&r"(result), "=&r"(temp)
-						  : "r"(oldval), "r"(newval), "r"(p)
-						  : "cr0", "memory");
+	__asm__ __volatile__ (
+		"1:                   \n"
+		"    lwarx  %0,0,%4   \n"
+		"    subf.  %1,%0,%2  \n"
+		"    bne-   2f        \n"
+		"    or     %1,%3,%3  \n"
+		"    stwcx. %1,0,%4   \n"
+		"    bne-   1b        \n"
+		"2:                   \n"
+		: "=&r" (result), "=&r" (temp)
+		: "r" (oldval), "r" (newval), "r" (p)
+		: "cr0", "memory");
 
 	return result;
 }
@@ -75,8 +75,7 @@ inline static uint32_t Atomic_compare_and_swap_32(volatile uint32_t *p, uint32_t
  */
 inline static uint64_t Atomic_compare_and_swap_64(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
 {
-#warning Use generic implementation.
-	return 0;
+	return Atomic_generic_compare_and_swap_64(p, oldval, newval);
 }
 
 

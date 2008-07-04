@@ -98,8 +98,7 @@ inline static uint64_t Atomic_compare_and_swap_64(volatile uint64_t *p, uint64_t
 
 	return result;
 #else
-# warning Use generic version.
-	return 0;
+	return Atomic_generic_compare_and_swap_64(p, oldval, newval);
 #endif
 }
 
