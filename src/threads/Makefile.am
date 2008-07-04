@@ -49,6 +49,7 @@ noinst_LTLIBRARIES = \
 
 if ENABLE_THREADS
 libthreads_la_SOURCES = \
+	atomic.c \
 	atomic.hpp \
 	critical.c \
 	critical.h \

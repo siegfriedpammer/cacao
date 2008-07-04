@@ -30,6 +30,11 @@
 
 #include <stdint.h>
 
+uint32_t Atomic_generic_compare_and_swap_32(volatile uint32_t *p, uint32_t oldval, uint32_t newval);
+uint64_t Atomic_generic_compare_and_swap_64(volatile uint64_t *p, uint64_t oldval, uint64_t newval);
+void*    Atomic_generic_compare_and_swap_ptr(volatile void** p, void* oldval, void* newval);
+void     Atomic_generic_memory_barrier(void);
+
 // Include machine dependent implementation.
 #include "md-atomic.hpp"
 
