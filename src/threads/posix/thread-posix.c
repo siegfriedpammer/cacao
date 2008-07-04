@@ -43,10 +43,6 @@
 
 #include "arch.h"
 
-#if defined(USE_FAKE_ATOMIC_INSTRUCTIONS)
-# include "threads/posix/generic-primitives.h"
-#endif
-
 #include "mm/gc-common.h"
 #include "mm/memory.h"
 
@@ -250,12 +246,6 @@ static pthread_cond_t suspend_cond = PTHREAD_COND_INITIALIZER;
 #endif
 
 #endif /* ENABLE_GC_CACAO */
-
-/* mutexes used by the fake atomic instructions                               */
-#if defined(USE_FAKE_ATOMIC_INSTRUCTIONS)
-mutex_t _cas_lock = MUTEX_INITIALIZER;
-mutex_t _mb_lock = MUTEX_INITIALIZER;
-#endif
 
 
 /* threads_sem_init ************************************************************

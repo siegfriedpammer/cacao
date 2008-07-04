@@ -53,11 +53,7 @@
 
 
 #if defined(ENABLE_THREADS)
-# ifndef USE_FAKE_ATOMIC_INSTRUCTIONS
-#  include "machine-instr.h"
-# else
-#  include "threads/posix/generic-primitives.h"
-# endif
+# include "threads/atomic.hpp"
 #endif
 
 #if !defined(STORE_ORDER_BARRIER) && !defined(ENABLE_THREADS)
