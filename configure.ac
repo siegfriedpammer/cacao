@@ -668,6 +668,7 @@ AC_MSG_RESULT(${ENABLE_SSA})
 AM_CONDITIONAL([ENABLE_SSA], test x"${ENABLE_SSA}" = "xyes")
 AM_CONDITIONAL([ENABLE_ESCAPE], test x"${ENABLE_SSA}" = "xyes")
 AM_CONDITIONAL([ENABLE_ESCAPE_CHECK], test x"${ENABLE_SSA}" = "xyes")
+AM_CONDITIONAL([ENABLE_TLH], test x"${ENABLE_SSA}" = "xyes")
 
 if test x"${ENABLE_SSA}" = "xyes"; then
     AC_DEFINE([ENABLE_SSA], 1, [enable lsra with ssa])

@@ -69,6 +69,11 @@ libmm_la_SOURCES = \
 libmm_la_LIBADD = \
 	$(GC_LIB)
 
+if ENABLE_TLH
+libmm_la_SOURCES += \
+	tlh.h \
+	tlh.c
+endif
 
 ## Local variables:
 ## mode: Makefile

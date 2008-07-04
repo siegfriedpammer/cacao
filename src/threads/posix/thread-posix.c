@@ -688,7 +688,7 @@ void threads_impl_thread_init(threadobject *t)
 		vm_abort_errnum(result, "threads_impl_thread_new: pthread_cond_init failed");
 
 #if defined(ENABLE_TLH)
-	tlh_init(t);
+	tlh_init(&(t->tlh));
 #endif
 }
 
@@ -781,7 +781,8 @@ void threads_impl_thread_reuse(threadobject *t)
 	t->flc_object = NULL;
 
 #if defined(ENABLE_TLH)
-	tlh_reset(t);
+	tlh_destroy(&(t->tlh));
+	tlh_init(&(t->tlh));
 #endif
 }
 

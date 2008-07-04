@@ -40,6 +40,10 @@ typedef struct threadobject threadobject;
 
 #include "mm/memory.h"
 
+#if defined(ENABLE_TLH)
+#include "mm/tlh.h"
+#endif
+
 #include "native/localref.h"
 
 #include "threads/mutex.h"
@@ -71,6 +75,7 @@ typedef struct {
 #else
 # include <semaphore.h>
 #endif
+
 
 
 /* current threadobject *******************************************************/
@@ -172,9 +177,7 @@ struct threadobject {
 #endif
 
 #if defined(ENABLE_TLH)
-	uint8_t              *tlhstart;
-	uint8_t              *tlhtop;
-	uint8_t              *tlhbase;
+	tlh_t                 tlh;
 #endif
 
 	listnode_t            linkage;      /* threads-list                       */

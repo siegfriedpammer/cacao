@@ -1,4 +1,4 @@
-/* srcontainsc/vm/optimizing/escape.c
+/* src/vm/optimizing/escape.c
 
    Copyright (C) 2008
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
@@ -690,7 +690,7 @@ static void escape_analysis_process_instruction(escape_analysis_t *e, instructio
 			break;
 
 		case ICMD_ARRAYLENGTH:
-			/* TODO */
+			escape_analysis_ensure_state(e, instruction_s1(iptr), ESCAPE_METHOD);
 			break;
 
 		case ICMD_AALOAD:
@@ -1109,118 +1109,3 @@ bool method_profile_is_monomorphic(methodinfo *m) {
 return 0;
 }
 
-#if 0
-
-/*** HACK to store method monomorphy information upon shutdown ****************/
-
-#include <sqlite3.h>
-
-bool method_profile_is_monomorphic(methodinfo *m) {
-	static sqlite3 *db = NULL;
-	static sqlite3_stmt *stmt = NULL;
-	int ret;
-
-	if (db == NULL) {
-		assert(sqlite3_open("/home/peter/cacao-dev/profile.sqlite", &db) == SQLITE_OK);
-		assert(sqlite3_prepare(db, "SELECT count(*) FROM monomorphic where class=? and method=? and descriptor=?", -1, &stmt, 0) == SQLITE_OK);
-	}
-
-	assert(sqlite3_bind_text(stmt, 1, m->clazz->name->text, -1, SQLITE_STATIC) == SQLITE_OK);
-	assert(sqlite3_bind_text(stmt, 2, m->name->text, -1, SQLITE_STATIC) == SQLITE_OK);
-	assert(sqlite3_bind_text(stmt, 3, m->descriptor->text, -1, SQLITE_STATIC) == SQLITE_OK);
-				
-	assert(sqlite3_step(stmt) == SQLITE_ROW);
-	ret = sqlite3_column_int(stmt, 0);
-	assert(sqlite3_reset(stmt) == SQLITE_OK);
-
-	return ret;
-}
-void func(classinfo *c, void *arg) {
-	methodinfo *it;
-	sqlite3_stmt *stmt = (sqlite3_stmt *)arg;
-	s4 flags;
-	for (it = c->methods; it != c->methods + c->methodscount; ++it) {
-		flags = it->flags;
-		if (flags & (ACC_STATIC | ACC_FINAL | ACC_PRIVATE)) {
-			continue;
-		}
-		if ((flags & (ACC_METHOD_MONOMORPHIC | ACC_METHOD_IMPLEMENTED | ACC_ABSTRACT)) ==
-			(ACC_METHOD_MONOMORPHIC | ACC_METHOD_IMPLEMENTED)) {
-				assert(sqlite3_bind_text(stmt, 1, c->name->text, -1, SQLITE_STATIC) == SQLITE_OK);
-				assert(sqlite3_bind_text(stmt, 2, it->name->text, -1, SQLITE_STATIC) == SQLITE_OK);
-				assert(sqlite3_bind_text(stmt, 3, it->descriptor->text, -1, SQLITE_STATIC) == SQLITE_OK);
-				
-				assert(sqlite3_step(stmt) == SQLITE_DONE);
-				assert(sqlite3_reset(stmt) == SQLITE_OK);
-		}
-	}
-}
-
-
-void method_profile_store() {
-	sqlite3 *db = NULL;
-	sqlite3_stmt *stmt;
-	assert(sqlite3_open("/home/peter/cacao-dev/profile.sqlite", &db) == SQLITE_OK);
-	assert(sqlite3_exec(db, "DELETE FROM monomorphic", NULL, NULL, NULL) == SQLITE_OK);
-	assert(sqlite3_prepare(db, "INSERT INTO monomorphic (class, method, descriptor) VALUES (?,?,?)", -1, &stmt, 0) == SQLITE_OK);
-	classcache_foreach_loaded_class(func, stmt);
-	assert(sqlite3_finalize(stmt) == SQLITE_OK);
-	assert(sqlite3_close(db) == SQLITE_OK);
-}
-
-void iterate_classes() {
-	return;
-	method_profile_store();
-
-}
-
-#endif
-
-#if defined(ENABLE_TLH)
-/*** TLH (Thread local heap) hack  ********************************************/
-
-#include <sys/mman.h>
-#include "threads/thread.h"
-
-#define TLH_MAX_SIZE (20 * 1024 * 1024)
-
-void tlh_init(threadobject *t) {
-	uint8_t *heap = (uint8_t *)mmap(
-		NULL, 
-		TLH_MAX_SIZE, 
-		PROT_READ|PROT_WRITE, 
-		MAP_ANONYMOUS|MAP_PRIVATE, 
-		-1, 
-		0
-	);
-	uint8_t *red = (uint8_t *)mmap(
-		heap + TLH_MAX_SIZE - getpagesize(), 
-		getpagesize(), 
-		PROT_NONE, 
-		MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED, 
-		-1, 
-		0
-	);
-	assert(heap);
-	assert(red);
-	t->tlhstart = heap;
-	t->tlhtop = heap;
-	t->tlhbase = heap;
-}
-
-void tlh_reset(threadobject *t) {
-	t->tlhtop = t->tlhstart;
-	t->tlhbase = t->tlhstart;
-}
-
-void tlh_destroy(threadobject *t) {
-	int res = munmap(t->tlhstart, TLH_MAX_SIZE - getpagesize());
-	int res2 = munmap(t->tlhstart + TLH_MAX_SIZE - getpagesize(), getpagesize());
-	assert(res);
-	assert(res2);
-}
-
-bool tlh_sigsegv_handler(void *addr) {
-}
-
-#endif
