@@ -1,9 +1,7 @@
-/* src/vm/jit/m68k/machine-instr.h  
+/* src/threads/atomic.hpp - atomic instructions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -25,26 +23,22 @@
 */
 
 
-#ifndef _MACHINE_INSTR_H
-#define _MACHINE_INSTR_H
+#ifndef _ATOMIC_HPP
+#define _ATOMIC_HPP
 
-static inline long compare_and_swap(long *p, long oldval, long newval)
-{
-	/* XXX, coldifre has no atomic compare and swap instrcution */
-	#warning "compare_and_swap is not atmically"
-	if (*p == oldval)	{
-		*p = newval;
-		return oldval;
-	} 
-	return *p;
-}
+#include "config.h"
 
+#include <stdint.h>
 
-#define STORE_ORDER_BARRIER() __asm__ __volatile__ ("" : : : "memory");
-#define MEMORY_BARRIER_AFTER_ATOMIC() __asm__ __volatile__ ("" : : : "memory");
-#define MEMORY_BARRIER() __asm__ __volatile__ ( "" : : : "memory" );
+uint32_t Atomic_generic_compare_and_swap_32(volatile uint32_t *p, uint32_t oldval, uint32_t newval);
+uint64_t Atomic_generic_compare_and_swap_64(volatile uint64_t *p, uint64_t oldval, uint64_t newval);
+void*    Atomic_generic_compare_and_swap_ptr(volatile void** p, void* oldval, void* newval);
+void     Atomic_generic_memory_barrier(void);
 
-#endif
+// Include machine dependent implementation.
+#include "md-atomic.hpp"
+
+#endif /* _ATOMIC_HPP */
 
 
 /*
@@ -53,7 +47,7 @@ static inline long compare_and_swap(long *p, long oldval, long newval)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -72,7 +72,7 @@
 #if defined(USE_FAKE_ATOMIC_INSTRUCTIONS)
 #include "threads/posix/generic-primitives.h"
 #else
-#include "machine-instr.h"
+#include "threads/atomic.hpp"
 #endif
 
 #if defined(ENABLE_JVMTI)
@@ -856,7 +856,7 @@ static void sable_flc_waiting(ptrint lockword, threadobject *t, java_handle_t *o
 				t->index, t_other->index));
 
 	/* Set FLC bit first, then read the lockword again */
-	MEMORY_BARRIER();
+	Atomic_memory_barrier();
 
 	lockword = lock_lockword_get(t, o);
 
@@ -973,7 +973,7 @@ retry:
 	/* most common case: try to thin-lock an unlocked object */
 
 	LLNI_CRITICAL_START_THREAD(t);
-	lockword = COMPARE_AND_SWAP_OLD_VALUE(&(LLNI_DIRECT(o)->lockword), THIN_UNLOCKED, thinlock);
+	lockword = Atomic_compare_and_swap_ptr(&(LLNI_DIRECT(o)->lockword), THIN_UNLOCKED, thinlock);
 	LLNI_CRITICAL_END_THREAD(t);
 
 	if (lockword == THIN_UNLOCKED) {
@@ -1097,8 +1097,8 @@ bool lock_monitor_exit(java_handle_t *o)
 		/* memory barrier for Java Memory Model */
 		STORE_ORDER_BARRIER();
 		lock_lockword_set(t, o, THIN_UNLOCKED);
-		/* memory barrier for thin locking */
-		MEMORY_BARRIER();
+		/* Memory barrier for thin locking. */
+		Atomic_memory_barrier();
 
 		/* check if there has been a flat lock contention on this object */
 
