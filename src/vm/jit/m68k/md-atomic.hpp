@@ -42,9 +42,9 @@
  *
  * @return value of the memory location before the store
  */
-inline static uint32_t Atomic_compare_and_swap_32(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
+inline uint32_t Atomic::compare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
 {
-	return Atomic_generic_compare_and_swap_32(p, oldval, newval);
+	return generic_compare_and_swap(p, oldval, newval);
 }
 
 
@@ -57,9 +57,9 @@ inline static uint32_t Atomic_compare_and_swap_32(volatile uint32_t *p, uint32_t
  *
  * @return value of the memory location before the store
  */
-inline static uint64_t Atomic_compare_and_swap_64(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
+inline uint64_t Atomic::compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
 {
-	return Atomic_generic_compare_and_swap_64(p, oldval, newval);
+	return generic_compare_and_swap(p, oldval, newval);
 }
 
 
@@ -72,23 +72,37 @@ inline static uint64_t Atomic_compare_and_swap_64(volatile uint64_t *p, uint64_t
  *
  * @return value of the memory location before the store
  */
-inline static void* Atomic_compare_and_swap_ptr(volatile void** p, void* oldval, void* newval)
+inline void* Atomic::compare_and_swap(volatile void** p, void* oldval, void* newval)
 {
-	return Atomic_generic_compare_and_swap_ptr(p, oldval, newval);
+	return generic_compare_and_swap(p, oldval, newval);
 }
 
 
 /**
  * A memory barrier.
  */
-inline static void Atomic_memory_barrier(void)
+inline void Atomic::memory_barrier(void)
 {
-	Atomic_generic_memory_barrier();
+	generic_memory_barrier();
 }
 
 
-#define STORE_ORDER_BARRIER() __asm__ __volatile__ ("" : : : "memory");
-#define MEMORY_BARRIER_AFTER_ATOMIC() __asm__ __volatile__ ("" : : : "memory");
+/**
+ * A write memory barrier.
+ */
+inline void Atomic::write_memory_barrier(void)
+{
+	__asm__ __volatile__ ("" : : : "memory");
+}
+
+
+/**
+ * An instruction barrier.
+ */
+inline void Atomic::instruction_barrier(void)
+{
+	__asm__ __volatile__ ("" : : : "memory");
+}
 
 #endif // _MD_ATOMIC_HPP
 

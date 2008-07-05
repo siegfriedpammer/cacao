@@ -977,7 +977,7 @@ retry:
 		/* success. we locked it */
 		/* The Java Memory Model requires a memory barrier here: */
 		/* Because of the CAS above, this barrier is a nop on x86 / x86_64 */
-		MEMORY_BARRIER_AFTER_ATOMIC();
+		Atomic_instruction_barrier();
 		return true;
 	}
 
@@ -1092,7 +1092,7 @@ bool lock_monitor_exit(java_handle_t *o)
 
 	if (lockword == thinlock) {
 		/* memory barrier for Java Memory Model */
-		STORE_ORDER_BARRIER();
+		Atomic_write_memory_barrier();
 		lock_lockword_set(t, o, THIN_UNLOCKED);
 		/* Memory barrier for thin locking. */
 		Atomic_memory_barrier();

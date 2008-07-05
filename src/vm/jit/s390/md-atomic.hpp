@@ -42,7 +42,7 @@
  *
  * @return value of the memory location before the store
  */
-inline static uint32_t Atomic_compare_and_swap_32(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
+inline uint32_t Atomic::compare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
 {
 	__asm__ __volatile__ (
 		"cs %0,%3,0(%2)\n"
@@ -63,9 +63,9 @@ inline static uint32_t Atomic_compare_and_swap_32(volatile uint32_t *p, uint32_t
  *
  * @return value of the memory location before the store
  */
-inline static uint64_t Atomic_compare_and_swap_64(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
+inline uint64_t Atomic::compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
 {
-	return Atomic_generic_compare_and_swap_64(p, oldval, newval);
+	return generic_compare_and_swap(p, oldval, newval);
 }
 
 
@@ -78,23 +78,36 @@ inline static uint64_t Atomic_compare_and_swap_64(volatile uint64_t *p, uint64_t
  *
  * @return value of the memory location before the store
  */
-inline static void* Atomic_compare_and_swap_ptr(volatile void** p, void* oldval, void* newval)
+inline void* Atomic::compare_and_swap(volatile void** p, void* oldval, void* newval)
 {
-	return (void*) Atomic_compare_and_swap_32((volatile uint32_t*) p, (uint32_t) oldval, (uint32_t) newval);
+	return (void*) compare_and_swap((volatile uint32_t*) p, (uint32_t) oldval, (uint32_t) newval);
 }
 
 
 /**
  * A memory barrier.
  */
-inline static void Atomic_memory_barrier(void)
+inline void Atomic::memory_barrier(void)
 {
 	__asm__ __volatile__ ("bcr 15,0" : : : "memory" );
 }
 
 
-#define STORE_ORDER_BARRIER() Atomic_memory_barrier();
-#define MEMORY_BARRIER_AFTER_ATOMIC() Atomic_memory_barrier();
+/**
+ * A write memory barrier.
+ */
+inline void Atomic::write_memory_barrier(void)
+{
+	memory_barrier();
+}
+
+/**
+ * An instruction barrier.
+ */
+inline void Atomic::instruction_barrier(void)
+{
+	memory_barrier();
+}
 
 #endif // _MD_ATOMIC_HPP
 

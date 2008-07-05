@@ -49,7 +49,7 @@ noinst_LTLIBRARIES = \
 
 if ENABLE_THREADS
 libthreads_la_SOURCES = \
-	atomic.c \
+	atomic.cpp \
 	atomic.hpp \
 	condition.hpp \
 	lock-common.h \
