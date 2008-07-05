@@ -28,11 +28,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#if 0
-#include "machine-instr.h"
-#else
 #include "threads/atomic.hpp"
-#endif
 
 #include "mm/memory.h"
 
@@ -1078,24 +1074,6 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_throwException(JNIEnv *env, sun_misc
  */
 JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapObject(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset, java_lang_Object *expected, java_lang_Object *x)
 {
-#if 0
-	void **p;
-	void  *value;
-
-	p = (void **) (((uint8_t *) o) + offset);
-
-	/* XXX this should be atomic */
-
-	value = *p;
-
-	if (value == expected) {
-		*p = x;
-
-		return true;
-	}
-
-	return false;
-#else
 	volatile void **p;
 	void           *result;
 
@@ -1109,7 +1087,6 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapObject(JNIEnv *env,
 		return true;
 
 	return false;
-#endif
 }
 
 
@@ -1120,24 +1097,6 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapObject(JNIEnv *env,
  */
 JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapInt(JNIEnv *env, sun_misc_Unsafe* this, java_lang_Object* o, int64_t offset, int32_t expected, int32_t x)
 {
-#if 0
-	int32_t *p;
-	int32_t  value;
-
-	p = (int32_t *) (((uint8_t *) o) + offset);
-
-	/* XXX this should be atomic */
-
-	value = *p;
-
-	if (value == expected) {
-		*p = x;
-
-		return true;
-	}
-
-	return false;
-#else
 	uint32_t *p;
 	uint32_t  result;
 
@@ -1151,7 +1110,6 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapInt(JNIEnv *env, su
 		return true;
 
 	return false;
-#endif
 }
 
 
@@ -1162,24 +1120,6 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapInt(JNIEnv *env, su
  */
 JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapLong(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset, int64_t expected, int64_t x)
 {
-#if 0
-	int64_t *p;
-	int64_t  value;
-
-	p = (int64_t *) (((uint8_t *) o) + offset);
-
-	/* XXX this should be atomic */
-
-	value = *p;
-
-	if (value == expected) {
-		*p = x;
-
-		return true;
-	}
-
-	return false;
-#else
 	uint64_t *p;
 	uint64_t  result;
 
@@ -1193,7 +1133,6 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapLong(JNIEnv *env, s
 		return true;
 
 	return false;
-#endif
 }
 
 
