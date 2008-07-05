@@ -107,9 +107,6 @@
 
 #define LOCK_INITIAL_HASHTABLE_SIZE  1613  /* a prime in the middle between 1024 and 2048 */
 
-#define COMPARE_AND_SWAP_OLD_VALUE(address, oldvalue, newvalue) \
-	((ptrint) compare_and_swap((long *)(address), (long)(oldvalue), (long)(newvalue)))
-
 
 /******************************************************************************/
 /* MACROS FOR THIN/FAT LOCKS                                                  */
