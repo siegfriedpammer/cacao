@@ -89,7 +89,7 @@ inline static void* Atomic_compare_and_swap_ptr(volatile void** p, void* oldval,
  */
 inline static void Atomic_memory_barrier(void)
 {
-	__asm__ __volatile__ ("bcr 15,0" : : : "memory" ) 
+	__asm__ __volatile__ ("bcr 15,0" : : : "memory" );
 }
 
 
