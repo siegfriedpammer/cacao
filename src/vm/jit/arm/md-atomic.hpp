@@ -76,7 +76,7 @@ inline uint32_t Atomic::compare_and_swap(volatile uint32_t *p, uint32_t oldval, 
  *
  * @return value of the memory location before the store
  */
-inline uint64_t Atomic::compare_and_swap_64(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
+inline uint64_t Atomic::compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
 {
 	return generic_compare_and_swap(p, oldval, newval);
 }
