@@ -143,7 +143,7 @@ inline void Atomic::write_memory_barrier(void)
 /**
  * An instruction barrier.
  */
-inline void Atomic::memory_barrier(void)
+inline void Atomic::instruction_barrier(void)
 {
 	__asm__ __volatile__ ("" : : : "memory");
 }
