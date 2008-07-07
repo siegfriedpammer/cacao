@@ -423,11 +423,11 @@ ex_int2:
 	l.d     fs3,-1*8(t1)
 #else /* SIZEOF_VOID_P == 8 */
 # if !defined(ENABLE_SOFT_FLOAT)
-	l.d     fs0,-4*8(t1)
-	l.d     fs1,-3*8(t1)
-	l.d     fs2,-2*8(t1)
-	l.d     fs3,-1*8(t1)
-	l.d     fs4,-1*8(t1)
+	l.d     fs0,-6*8(t1)
+	l.d     fs1,-5*8(t1)
+	l.d     fs2,-4*8(t1)
+	l.d     fs3,-3*8(t1)
+	l.d     fs4,-2*8(t1)
 	l.d     fs5,-1*8(t1)
 # endif /* !defined(ENABLE_SOFT_FLOAT) */
 #endif /* SIZEOF_VOID_P == 8 */
