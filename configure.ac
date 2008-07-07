@@ -283,6 +283,12 @@ AC_STRUCT_TM
 dnl Checks for libraries (NOTE: Should be done before function checks,
 dnl as some functions may be in libraries we check for).
 
+case "${OS_DIR}" in
+    solaris )
+         AC_CHECK_LIB([socket], [gethostname],, [AC_MSG_ERROR(cannot find libsocket)])
+         ;;
+esac
+
 dnl Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
 AC_TYPE_SIGNAL
