@@ -110,10 +110,10 @@ AC_SUBST(BUILD_JAVA_RUNTIME_LIBRARY_CLASSES)
 dnl define BOOTCLASSPATH for Makefiles
 case "${WITH_JAVA_RUNTIME_LIBRARY}" in
     cldc1.1 | gnuclasspath)
-        BOOTCLASSPATH="\$(top_builddir)/src/classes/classes:\$(BUILD_JAVA_RUNTIME_LIBRARY_CLASSES)"
+        BOOTCLASSPATH="\$(top_builddir)/src/classes/classes:${BUILD_JAVA_RUNTIME_LIBRARY_CLASSES}"
         ;;
     *)
-        BOOTCLASSPATH="\$(BUILD_JAVA_RUNTIME_LIBRARY_CLASSES)"
+        BOOTCLASSPATH="${BUILD_JAVA_RUNTIME_LIBRARY_CLASSES}"
         ;;
 esac
 AC_SUBST(BOOTCLASSPATH)
