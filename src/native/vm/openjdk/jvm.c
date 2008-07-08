@@ -82,7 +82,7 @@
 #include "vm/global.h"
 #include "vm/initialize.h"
 #include "vm/package.hpp"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 #include "vm/properties.h"
 #include "vm/resolve.h"
 #include "vm/signallocal.h"
@@ -760,7 +760,7 @@ jclass JVM_FindPrimitiveClass(JNIEnv* env, const char* s)
 	TRACEJVMCALLS(("JVM_FindPrimitiveClass(env=%p, s=%s)", env, s));
 
 	u = utf_new_char(s);
-	c = primitive_class_get_by_name(u);
+	c = Primitive_get_class_by_name(u);
 
 	return (jclass) LLNI_classinfo_wrap(c);
 }
@@ -2680,7 +2680,7 @@ jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 	/* Create primitive or object array. */
 
 	if (class_is_primitive(c)) {
-		pc = primitive_arrayclass_get_by_name(c->name);
+		pc = Primitive_get_arrayclass_by_name(c->name);
 
 		/* void arrays are not allowed. */
 
@@ -2753,7 +2753,7 @@ jobject JVM_NewMultiArray(JNIEnv *env, jclass eltClass, jintArray dim)
 	/* Create an array-class if necessary. */
 
 	if (class_is_primitive(c))
-		ac = primitive_arrayclass_get_by_name(c->name);
+		ac = Primitive_get_arrayclass_by_name(c->name);
 	else
 		ac = class_array_of(c, true);
 
