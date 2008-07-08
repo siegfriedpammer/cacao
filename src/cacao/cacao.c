@@ -129,14 +129,14 @@ int main(int argc, char **argv)
 	/* First try to open where dlopen searches, e.g. LD_LIBRARY_PATH.
 	   If not found, try the absolute path. */
 
-	libjvm_handle = system_dlopen(LIBJVM_NAME, RTLD_LAZY);
+	libjvm_handle = system_dlopen(LIBJVM_NAME, RTLD_NOW);
 
 	if (libjvm_handle == NULL) {
 		/* save the error message */
 
 		lterror = strdup(system_dlerror());
 
-		libjvm_handle = system_dlopen(path, RTLD_LAZY);
+		libjvm_handle = system_dlopen(path, RTLD_NOW);
 
 		if (libjvm_handle == NULL) {
 			/* print the first error message too */
