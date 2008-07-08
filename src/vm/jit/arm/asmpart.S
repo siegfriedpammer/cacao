@@ -78,8 +78,8 @@
 asm_vm_call_method:
 asm_vm_call_method_int:
 asm_vm_call_method_long:
-/* asm_vm_call_method_float:
-asm_vm_call_method_double: */
+asm_vm_call_method_float:
+asm_vm_call_method_double:
 	SAVE_SCRATCH_REGISTERS            /* save our personal scratch regs   */
 	stmfd sp!, {v1}                   /* V1 is used to remember SP        */
 	str   a0, [sp, #-4]!              /* store methods entrypoint         */
@@ -133,13 +133,6 @@ asm_vm_call_method_exception_handler:
 	add   sp, sp, #4                  /* free fake address                */
 	ldmfd sp!, {v1}
 	RESTORE_SCRATCH_REGS_AND_RETURN   /* return to caller, restore regs   */
-
-asm_vm_call_method_float:
-	mov a0,#0x51
-	b asm_debug
-asm_vm_call_method_double:
-	mov a0,#0x52
-	b asm_debug
 
 asm_vm_call_method_end:
 
