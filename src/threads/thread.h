@@ -218,9 +218,15 @@ inline static bool thread_is_interrupted(threadobject *t)
 	   a blocking system call is interrupted. The mutex ensures that it will
 	   see the correct value for the interrupted flag. */
 
+#ifdef __cplusplus
+	t->waitmutex->lock();
+	interrupted = t->interrupted;
+	t->waitmutex->unlock();
+#else
 	Mutex_lock(t->waitmutex);
 	interrupted = t->interrupted;
 	Mutex_unlock(t->waitmutex);
+#endif
 
 	return interrupted;
 }
@@ -237,13 +243,15 @@ inline static bool thread_is_interrupted(threadobject *t)
 
 inline static void thread_set_interrupted(threadobject *t, bool interrupted)
 {
-	Mutex_lock(t->waitmutex);
-
-	/* Set interrupted flag. */
-
+#ifdef __cplusplus
+	t->waitmutex->lock();
 	t->interrupted = interrupted;
-
+	t->waitmutex->unlock();
+#else
+	Mutex_lock(t->waitmutex);
+	t->interrupted = interrupted;
 	Mutex_unlock(t->waitmutex);
+#endif
 }
 
 
