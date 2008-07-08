@@ -129,6 +129,7 @@ static JNINativeMethod methods[] = {
 	{ "putIntVolatile",         "(Ljava/lang/Object;JI)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putIntVolatile                 },
 	{ "getLongVolatile",        "(Ljava/lang/Object;J)J",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getLongVolatile                },
 	{ "putLongVolatile",        "(Ljava/lang/Object;JJ)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putLongVolatile                },
+	{ "getDoubleVolatile",      "(Ljava/lang/Object;J)D",                                     (void *) (intptr_t) &Java_sun_misc_Unsafe_getDoubleVolatile              },
 	{ "putOrderedObject",       "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void *) (intptr_t) &Java_sun_misc_Unsafe_putOrderedObject               },
 	{ "putOrderedInt",          "(Ljava/lang/Object;JI)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putOrderedInt                  },
 	{ "putOrderedLong",         "(Ljava/lang/Object;JJ)V",                                    (void *) (intptr_t) &Java_sun_misc_Unsafe_putOrderedLong                 },
@@ -1249,6 +1250,17 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_getLongVolatile(JNIEnv *env, sun_
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLongVolatile(JNIEnv *env, sun_misc_Unsafe *this, java_lang_Object *o, int64_t offset, int64_t x)
 {
 	UNSAFE_PUT_VOLATILE(int64_t);
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    getDoubleVolatile
+ * Signature: (Ljava/lang/Object;J)D
+ */
+JNIEXPORT double JNICALL Java_sun_misc_Unsafe_getDoubleVolatile(JNIEnv *env, sun_misc_Unsafe* _this, java_lang_Object* o, int64_t offset)
+{
+	UNSAFE_GET_VOLATILE(double);
 }
 
 
