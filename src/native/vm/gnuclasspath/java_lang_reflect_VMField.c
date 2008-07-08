@@ -1,4 +1,4 @@
-/* src/native/vm/gnu/java_lang_reflect_VMField.c
+/* src/native/vm/gnuclasspath/java_lang_reflect_VMField.c
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -58,7 +58,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
 
@@ -355,7 +355,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_VMField_get(JNIEnv *e
 
 	/* Now box the primitive types. */
 
-	object = primitive_box(f->parseddesc->decltype, value);
+	object = Primitive_box(f->parseddesc->decltype, value);
 
 	return (java_lang_Object *) object;
 }

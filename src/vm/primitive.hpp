@@ -1,4 +1,4 @@
-/* src/vm/primitive.c - primitive types
+/* src/vm/primitive.hpp - primitive types
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,16 +23,12 @@
 */
 
 
-#ifndef _PRIMITIVE_H
-#define _PRIMITIVE_H
+#ifndef _PRIMITIVE_HPP
+#define _PRIMITIVE_HPP
 
 #include "config.h"
 
 #include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include "vm/global.h"
 
@@ -40,6 +36,43 @@ extern "C" {
 #include "vmcore/linker.h"
 #include "vmcore/utf8.h"
 
+
+#ifdef __cplusplus
+
+class Primitive {
+public:
+	static classinfo*     get_class_by_name(utf *name);
+	static classinfo*     get_class_by_type(int type);
+	static classinfo*     get_class_by_char(char ch);
+	static classinfo*     get_arrayclass_by_name(utf* name);
+	static classinfo*     get_arrayclass_by_type(int type);
+
+	static int            get_type_by_wrapperclass(classinfo *c);
+
+	static java_handle_t* box(int type, imm_union value);
+
+	static java_handle_t* box(uint8_t value);
+	static java_handle_t* box(int8_t value);
+	static java_handle_t* box(uint16_t value);
+	static java_handle_t* box(int16_t value);
+	static java_handle_t* box(int32_t value);
+	static java_handle_t* box(int64_t value);
+	static java_handle_t* box(float value);
+	static java_handle_t* box(double value);
+
+	static imm_union      unbox(java_handle_t *o);
+
+	static uint8_t        unbox_boolean(java_handle_t* o);
+	static int8_t         unbox_byte(java_handle_t* o);
+	static uint16_t       unbox_char(java_handle_t* o);
+	static int16_t        unbox_short(java_handle_t* o);
+	static int32_t        unbox_int(java_handle_t* o);
+	static int64_t        unbox_long(java_handle_t* o);
+	static float          unbox_float(java_handle_t* o);
+	static double         unbox_double(java_handle_t* o);
+};
+
+#endif
 
 /* primitive data types *******************************************************/
 
@@ -86,48 +119,27 @@ struct primitivetypeinfo {
 
 extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 
-
-/* function prototypes ********************************************************/
+#ifndef __cplusplus
+// Legacy C interface.
 
 /* this function is in src/vmcore/primitivecore.c */
 void       primitive_init(void);
 void       primitive_postinit(void);
 
-classinfo *primitive_class_get_by_name(utf *name);
-classinfo *primitive_class_get_by_type(int type);
-classinfo *primitive_class_get_by_char(char ch);
+classinfo *Primitive_get_class_by_name(utf *name);
+classinfo *Primitive_get_class_by_type(int type);
+classinfo *Primitive_get_class_by_char(char ch);
 
-classinfo *primitive_arrayclass_get_by_name(utf *name);
-classinfo *primitive_arrayclass_get_by_type(int type);
+classinfo *Primitive_get_arrayclass_by_name(utf *name);
+classinfo *Primitive_get_arrayclass_by_type(int type);
 
-int        primitive_type_get_by_wrapperclass(classinfo *c);
+int        Primitive_get_type_by_wrapperclass(classinfo *c);
 
-java_handle_t *primitive_box(int type, imm_union value);
-imm_union      primitive_unbox(java_handle_t *o);
-
-java_handle_t *primitive_box_boolean(int32_t value);
-java_handle_t *primitive_box_byte(int32_t value);
-java_handle_t *primitive_box_char(int32_t value);
-java_handle_t *primitive_box_short(int32_t value);
-java_handle_t *primitive_box_int(int32_t value);
-java_handle_t *primitive_box_long(int64_t value);
-java_handle_t *primitive_box_float(float value);
-java_handle_t *primitive_box_double(double value);
-
-int32_t        primitive_unbox_boolean(java_handle_t *o);
-int32_t        primitive_unbox_byte(java_handle_t *o);
-int32_t        primitive_unbox_char(java_handle_t *o);
-int32_t        primitive_unbox_short(java_handle_t *o);
-int32_t        primitive_unbox_int(java_handle_t *o);
-int64_t        primitive_unbox_long(java_handle_t *o);
-float          primitive_unbox_float(java_handle_t *o);
-double         primitive_unbox_double(java_handle_t *o);
-
-#ifdef __cplusplus
-}
+java_handle_t *Primitive_box(int type, imm_union value);
+imm_union      Primitive_unbox(java_handle_t *h);
 #endif
 
-#endif /* _PRIMITIVE_H */
+#endif // _PRIMITIVE_HPP
 
 
 /*
@@ -136,7 +148,7 @@ double         primitive_unbox_double(java_handle_t *o);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

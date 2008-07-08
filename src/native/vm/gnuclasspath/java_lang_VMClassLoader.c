@@ -54,7 +54,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/initialize.h"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -195,7 +195,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
 {
 	classinfo *c;
 
-	c = primitive_class_get_by_char(type);
+	c = Primitive_get_class_by_char(type);
 
 	if (c == NULL) {
 		exceptions_throw_classnotfoundexception(utf_null);

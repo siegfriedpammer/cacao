@@ -29,7 +29,7 @@
 #include <stdint.h>
 
 #include "vm/global.h"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 #include "vm/vm.h"
 
 #include "vmcore/class.h"

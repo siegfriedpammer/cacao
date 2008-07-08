@@ -35,7 +35,7 @@ extern "C" {
 #endif
 
 #include "vm/global.h"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 
 
 /* array types ****************************************************************/

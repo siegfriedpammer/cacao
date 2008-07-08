@@ -35,7 +35,7 @@
 
 #include "vm/exceptions.h"
 #include "vm/jit_interface.h"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 #include "vm/vm.h"
 
 #include "vmcore/descriptor.h"

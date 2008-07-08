@@ -41,7 +41,7 @@
 #include "vm/access.h"
 #include "vm/array.h"
 #include "vm/exceptions.h"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 

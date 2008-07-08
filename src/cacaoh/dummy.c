@@ -41,7 +41,7 @@
 
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 #include "vm/vm.h"
 
 #include "vm/jit/code.h"
@@ -581,18 +581,18 @@ void Package_add(utf *packagename)
 
 /* primitive ******************************************************************/
 
-classinfo *primitive_arrayclass_get_by_type(int type)
+classinfo *Primitive_get_arrayclass_by_type(int type)
 {
 	return NULL;
 }
 
-classinfo *primitive_class_get_by_type(int type)
+classinfo *Primitive_get_class_by_type(int type)
 {
 	abort();
 	return NULL;
 }
 
-classinfo *primitive_class_get_by_char(char ch)
+classinfo *Primitive_get_class_by_char(char ch)
 {
 	abort();
 	return NULL;

@@ -65,8 +65,8 @@ libvm_la_SOURCES = \
 	jit_interface.h \
 	package.cpp \
 	package.hpp \
-	primitive.c \
-	primitive.h \
+	primitive.cpp \
+	primitive.hpp \
 	properties.c \
 	properties.h \
 	resolve.c \

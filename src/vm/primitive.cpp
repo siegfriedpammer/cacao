@@ -1,4 +1,4 @@
-/* src/vm/primitive.c - primitive types
+/* src/vm/primitive.cpp - primitive types
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -42,20 +42,21 @@
 
 #include "vm/builtin.h"
 #include "vm/global.h"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 #include "vm/vm.h"
 
 #include "vmcore/class.h"
 #include "vmcore/utf8.h"
 
 
-/* primitive_class_get_by_name *************************************************
-
-   Returns the primitive class of the given class name.
-
-*******************************************************************************/
-
-classinfo *primitive_class_get_by_name(utf *name)
+/**
+ * Returns the primitive class of the given class name.
+ *
+ * @param name Name of the class.
+ *
+ * @return Class structure.
+ */
+classinfo* Primitive::get_class_by_name(utf *name)
 {
 	int i;
 
@@ -71,25 +72,27 @@ classinfo *primitive_class_get_by_name(utf *name)
 }
 
 
-/* primitive_class_get_by_type *************************************************
-
-   Returns the primitive class of the given type.
-
-*******************************************************************************/
-
-classinfo *primitive_class_get_by_type(int type)
+/**
+ * Returns the primitive class of the given type.
+ *
+ * @param type Integer type of the class.
+ *
+ * @return Class structure.
+ */
+classinfo* Primitive::get_class_by_type(int type)
 {
 	return primitivetype_table[type].class_primitive;
 }
 
 
-/* primitive_class_get_by_char *************************************************
-
-   Returns the primitive class of the given type.
-
-*******************************************************************************/
-
-classinfo *primitive_class_get_by_char(char ch)
+/**
+ * Returns the primitive class of the given type.
+ *
+ * @param ch 
+ *
+ * @return Class structure.
+ */
+classinfo* Primitive::get_class_by_char(char ch)
 {
 	int index;
 
@@ -129,14 +132,15 @@ classinfo *primitive_class_get_by_char(char ch)
 }
 
 
-/* primitive_arrayclass_get_by_name ********************************************
-
-   Returns the primitive array-class of the given primitive class
-   name.
-
-*******************************************************************************/
-
-classinfo *primitive_arrayclass_get_by_name(utf *name)
+/**
+ * Returns the primitive array-class of the given primitive class
+ * name.
+ *
+ * @param name Name of the class.
+ *
+ * @return Class structure.
+ */
+classinfo* Primitive::get_arrayclass_by_name(utf *name)
 {
 	int i;
 
@@ -152,25 +156,27 @@ classinfo *primitive_arrayclass_get_by_name(utf *name)
 }
 
 
-/* primitive_arrayclass_get_by_type ********************************************
-
-   Returns the primitive array-class of the given type.
-
-*******************************************************************************/
-
-classinfo *primitive_arrayclass_get_by_type(int type)
+/**
+ * Returns the primitive array-class of the given type.
+ *
+ * @param type Integer type of the class.
+ *
+ * @return Class structure.
+ */
+classinfo* Primitive::get_arrayclass_by_type(int type)
 {
 	return primitivetype_table[type].arrayclass;
 }
 
 
-/* primitive_type_get_by_wrapperclass ******************************************
-
-   Returns the primitive type of the given wrapper-class.
-
-*******************************************************************************/
-
-int primitive_type_get_by_wrapperclass(classinfo *c)
+/**
+ * Returns the primitive type of the given wrapper-class.
+ *
+ * @param c Class structure.
+ *
+ * @return Integer type of the class.
+ */
+int Primitive::get_type_by_wrapperclass(classinfo *c)
 {
 	int i;
 
@@ -186,44 +192,46 @@ int primitive_type_get_by_wrapperclass(classinfo *c)
 }
 
 
-/* primitive_box ***************************************************************
-
-   Box a primitive of the given type.  If the type is an object,
-   simply return it.
-
-*******************************************************************************/
-
-java_handle_t *primitive_box(int type, imm_union value)
+/**
+ * Box a primitive of the given type.  If the type is an object,
+ * simply return it.
+ *
+ * @param type  Type of the passed value.
+ * @param value Value to box.
+ *
+ * @return Handle of the boxing Java object.
+ */
+java_handle_t* Primitive::box(int type, imm_union value)
 {
-	java_handle_t *o;
+	java_handle_t* o;
 
 	switch (type) {
 	case PRIMITIVETYPE_BOOLEAN:
-		o = primitive_box_boolean(value.i);
+		o = box((uint8_t) value.i);
 		break;
 	case PRIMITIVETYPE_BYTE:
-		o = primitive_box_byte(value.i);
+		o = box((int8_t) value.i);
 		break;
 	case PRIMITIVETYPE_CHAR:
-		o = primitive_box_char(value.i);
+		o = box((uint16_t) value.i);
 		break;
 	case PRIMITIVETYPE_SHORT:
-		o = primitive_box_short(value.i);
+		o = box((int16_t) value.i);
 		break;
 	case PRIMITIVETYPE_INT:
-		o = primitive_box_int(value.i);
+		o = box(value.i);
 		break;
 	case PRIMITIVETYPE_LONG:
-		o = primitive_box_long(value.l);
+		o = box(value.l);
 		break;
 	case PRIMITIVETYPE_FLOAT:
-		o = primitive_box_float(value.f);
+		o = box(value.f);
 		break;
 	case PRIMITIVETYPE_DOUBLE:
-		o = primitive_box_double(value.d);
+		o = box(value.d);
 		break;
 	case PRIMITIVETYPE_VOID:
-		o = value.a;
+		o = (java_handle_t*) value.a;
 		break;
 	default:
 		o = NULL;
@@ -234,60 +242,61 @@ java_handle_t *primitive_box(int type, imm_union value)
 }
 
 
-/* primitive_unbox *************************************************************
-
-   Unbox a primitive of the given type.  If the type is an object,
-   simply return it.
-
-*******************************************************************************/
-
-imm_union primitive_unbox(java_handle_t *o)
+/**
+ * Unbox a primitive of the given type.  If the type is an object,
+ * simply return it.
+ *
+ * @param h Handle of the Java object.
+ *
+ * @return Unboxed value as union.
+ */
+imm_union Primitive::unbox(java_handle_t *h)
 {
 	classinfo *c;
 	int        type;
 	imm_union  value;
 
-	if (o == NULL) {
+	if (h == NULL) {
 		value.a = NULL;
 		return value;
 	}
 
-	LLNI_class_get(o, c);
+	LLNI_class_get(h, c);
 
-	type = primitive_type_get_by_wrapperclass(c);
+	type = get_type_by_wrapperclass(c);
 
 	switch (type) {
 	case PRIMITIVETYPE_BOOLEAN:
-		value.i = primitive_unbox_boolean(o);
+		value.i = unbox_boolean(h);
 		break;
 	case PRIMITIVETYPE_BYTE:
-		value.i = primitive_unbox_byte(o);
+		value.i = unbox_byte(h);
 		break;
 	case PRIMITIVETYPE_CHAR:
-		value.i = primitive_unbox_char(o);
+		value.i = unbox_char(h);
 		break;
 	case PRIMITIVETYPE_SHORT:
-		value.i = primitive_unbox_short(o);
+		value.i = unbox_short(h);
 		break;
 	case PRIMITIVETYPE_INT:
-		value.i = primitive_unbox_int(o);
+		value.i = unbox_int(h);
 		break;
 	case PRIMITIVETYPE_LONG:
-		value.l = primitive_unbox_long(o);
+		value.l = unbox_long(h);
 		break;
 	case PRIMITIVETYPE_FLOAT:
-		value.f = primitive_unbox_float(o);
+		value.f = unbox_float(h);
 		break;
 	case PRIMITIVETYPE_DOUBLE:
-		value.d = primitive_unbox_double(o);
+		value.d = unbox_double(h);
 		break;
 	case -1:
 		/* If type is -1 the object is not a primitive box but a
 		   normal object. */
-		value.a = o;
+		value.a = h;
 		break;
 	default:
-		vm_abort("primitive_unbox: invalid primitive type %d", type);
+		vm_abort("Primitive::unbox: invalid primitive type %d", type);
 	}
 
 	return value;
@@ -300,8 +309,8 @@ imm_union primitive_unbox(java_handle_t *o)
 
 *******************************************************************************/
 
-#define PRIMITIVE_BOX_TYPE(name, object, type)      \
-java_handle_t *primitive_box_##name(type value)     \
+#define PRIMITIVE_BOX_TYPE(name, object, type)	\
+java_handle_t* Primitive::box(type value)	\
 {                                                   \
 	java_handle_t      *o;                          \
 	java_lang_##object *jo;                         \
@@ -313,15 +322,15 @@ java_handle_t *primitive_box_##name(type value)     \
                                                     \
 	jo = (java_lang_##object *) o;                  \
                                                     \
-	LLNI_field_set_val(jo, value, value);           \
+	LLNI_field_set_val(jo, value, value);			\
                                                     \
 	return o;                                       \
 }
 
-PRIMITIVE_BOX_TYPE(boolean, Boolean,   int32_t)
-PRIMITIVE_BOX_TYPE(byte,    Byte,      int32_t)
-PRIMITIVE_BOX_TYPE(char,    Character, int32_t)
-PRIMITIVE_BOX_TYPE(short,   Short,     int32_t)
+PRIMITIVE_BOX_TYPE(boolean, Boolean,   uint8_t)
+PRIMITIVE_BOX_TYPE(byte,    Byte,      int8_t)
+PRIMITIVE_BOX_TYPE(char,    Character, uint16_t)
+PRIMITIVE_BOX_TYPE(short,   Short,     int16_t)
 PRIMITIVE_BOX_TYPE(int,     Integer,   int32_t)
 PRIMITIVE_BOX_TYPE(long,    Long,      int64_t)
 PRIMITIVE_BOX_TYPE(float,   Float,     float)
@@ -334,27 +343,42 @@ PRIMITIVE_BOX_TYPE(double,  Double,    double)
 
 *******************************************************************************/
 
-#define PRIMITIVE_UNBOX_TYPE(name, object, type)  \
-type primitive_unbox_##name(java_handle_t *o)     \
+#define PRIMITIVE_UNBOX_TYPE(name, object, type)	\
+type Primitive::unbox_##name(java_handle_t *h)	\
 {                                                 \
 	java_lang_##object *jo;                       \
 	type                value;                    \
                                                   \
-	jo = (java_lang_##object *) o;                \
+	jo = (java_lang_##object *) h;                \
                                                   \
 	LLNI_field_get_val(jo, value, value);         \
                                                   \
 	return value;                                 \
 }
 
-PRIMITIVE_UNBOX_TYPE(boolean, Boolean,   int32_t)
-PRIMITIVE_UNBOX_TYPE(byte,    Byte,      int32_t)
-PRIMITIVE_UNBOX_TYPE(char,    Character, int32_t)
-PRIMITIVE_UNBOX_TYPE(short,   Short,     int32_t)
+PRIMITIVE_UNBOX_TYPE(boolean, Boolean,   uint8_t)
+PRIMITIVE_UNBOX_TYPE(byte,    Byte,      int8_t)
+PRIMITIVE_UNBOX_TYPE(char,    Character, uint16_t)
+PRIMITIVE_UNBOX_TYPE(short,   Short,     int16_t)
 PRIMITIVE_UNBOX_TYPE(int,     Integer,   int32_t)
 PRIMITIVE_UNBOX_TYPE(long,    Long,      int64_t)
 PRIMITIVE_UNBOX_TYPE(float,   Float,     float)
 PRIMITIVE_UNBOX_TYPE(double,  Double,    double)
+
+
+// Legacy C interface.
+
+extern "C" {
+
+	classinfo* Primitive_get_class_by_name(utf *name) { return Primitive::get_class_by_name(name); }
+classinfo* Primitive_get_class_by_type(int type) { return Primitive::get_class_by_type(type); }
+classinfo* Primitive_get_class_by_char(char ch) { return Primitive::get_class_by_char(ch); }
+classinfo* Primitive_get_arrayclass_by_name(utf *name) { return Primitive::get_arrayclass_by_name(name); }
+classinfo* Primitive_get_arrayclass_by_type(int type) { return Primitive::get_arrayclass_by_type(type); }
+int Primitive_get_type_by_wrapperclass(classinfo *c) { return Primitive::get_type_by_wrapperclass(c); }
+java_handle_t* Primitive_box(int type, imm_union value) { return Primitive::box(type, value); }
+imm_union Primitive_unbox(java_handle_t *h) { return Primitive::unbox(h); }
+}
 
 
 /*
@@ -363,7 +387,7 @@ PRIMITIVE_UNBOX_TYPE(double,  Double,    double)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -76,7 +76,7 @@
 #include "vm/global.h"
 #include "vm/initialize.h"
 #include "vm/package.hpp"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 #include "vm/properties.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
@@ -2631,7 +2631,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 	/* box the return value if necesarry */
 
 	if (m->parseddesc->returntype.decltype != TYPE_ADR)
-		ro = primitive_box(m->parseddesc->returntype.decltype, value);
+		ro = Primitive_box(m->parseddesc->returntype.decltype, value);
 
 	/* check for an exception */
 
