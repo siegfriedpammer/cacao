@@ -722,7 +722,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 		/* inlining */
 
-#if defined(ENABLE_INLINING) && !defined(ENABLE_ESCAPE) || 1
+#if defined(ENABLE_INLINING) && (!defined(ENABLE_ESCAPE) || 1)
 		if (JITDATA_HAS_FLAG_INLINE(jd)) {
 			if (!inline_inline(jd))
 				return NULL;
