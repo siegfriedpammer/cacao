@@ -904,6 +904,90 @@ java_handle_t *builtin_new(classinfo *c)
 	return o;
 }
 
+#if defined(ENABLE_ESCAPE_REASON)
+java_handle_t *builtin_escape_reason_new(classinfo *c) {
+	print_escape_reasons();
+	return builtin_java_new(c);
+}
+#endif
+
+#if defined(ENABLE_TLH)
+java_handle_t *builtin_tlh_new(classinfo *c)
+{
+	java_handle_t *o;
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_end;
+#endif
+#if defined(ENABLE_CYCLES_STATS)
+	u8 cycles_start, cycles_end;
+#endif
+
+	RT_TIMING_GET_TIME(time_start);
+	CYCLES_STATS_GET(cycles_start);
+
+	/* is the class loaded */
+
+	assert(c->state & CLASS_LOADED);
+
+	/* check if we can instantiate this class */
+
+	if (c->flags & ACC_ABSTRACT) {
+		exceptions_throw_instantiationerror(c);
+		return NULL;
+	}
+
+	/* is the class linked */
+
+	if (!(c->state & CLASS_LINKED))
+		if (!link_class(c))
+			return NULL;
+
+	if (!(c->state & CLASS_INITIALIZED)) {
+#if !defined(NDEBUG)
+		if (initverbose)
+			log_message_class("Initialize class (from builtin_new): ", c);
+#endif
+
+		if (!initialize_class(c))
+			return NULL;
+	}
+
+	/*
+	o = tlh_alloc(&(THREADOBJECT->tlh), c->instancesize);
+	*/
+	o = NULL;
+
+	if (o == NULL) {
+		o = heap_alloc(c->instancesize, c->flags & ACC_CLASS_HAS_POINTERS,
+					   c->finalizer, true);
+	}
+
+	if (!o)
+		return NULL;
+
+#if !defined(ENABLE_GC_CACAO) && defined(ENABLE_HANDLES)
+	/* XXX this is only a dirty hack to make Boehm work with handles */
+
+	o = LLNI_WRAP((java_object_t *) o);
+#endif
+
+	LLNI_vftbl_direct(o) = c->vftbl;
+
+#if defined(ENABLE_THREADS)
+	lock_init_object_lock(LLNI_DIRECT(o));
+#endif
+
+	CYCLES_STATS_GET(cycles_end);
+	RT_TIMING_GET_TIME(time_end);
+
+/*
+	CYCLES_STATS_COUNT(builtin_new,cycles_end - cycles_start);
+	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_NEW_OBJECT);
+*/
+
+	return o;
+#endif
+}
 
 /* builtin_java_new ************************************************************
 

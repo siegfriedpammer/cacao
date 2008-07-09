@@ -1811,6 +1811,17 @@ void threads_yield(void)
 	sched_yield();
 }
 
+#if defined(ENABLE_TLH)
+
+void threads_tlh_add_frame() {
+	tlh_add_frame(&(THREADOBJECT->tlh));
+}
+
+void threads_tlh_remove_frame() {
+	tlh_remove_frame(&(THREADOBJECT->tlh));
+}
+
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

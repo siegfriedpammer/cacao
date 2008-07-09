@@ -701,18 +701,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 #endif
 		RT_TIMING_GET_TIME(time_typecheck);
 
-#if defined(ENABLE_SSA)
-		if (opt_lsra) {
-			fix_exception_handlers(jd);
-		}
-#endif
-
-		/* Build the CFG.  This has to be done after stack_analyse, as
-		   there happens the JSR elimination. */
-
-		if (!cfg_build(jd))
-			return NULL;
-
 #if defined(ENABLE_LOOP)
 		if (opt_loops) {
 			depthFirst(jd);
@@ -734,12 +722,24 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 		/* inlining */
 
-#if defined(ENABLE_INLINING) && !defined(ENABLE_ESCAPE)
+#if defined(ENABLE_INLINING) && !defined(ENABLE_ESCAPE) || 1
 		if (JITDATA_HAS_FLAG_INLINE(jd)) {
 			if (!inline_inline(jd))
 				return NULL;
 		}
 #endif
+
+#if defined(ENABLE_SSA)
+		if (opt_lsra) {
+			fix_exception_handlers(jd);
+		}
+#endif
+
+		/* Build the CFG.  This has to be done after stack_analyse, as
+		   there happens the JSR elimination. */
+
+		if (!cfg_build(jd))
+			return NULL;
 
 #if defined(ENABLE_PROFILING)
 		/* Basic block reordering.  I think this should be done after
@@ -771,8 +771,9 @@ static u1 *jit_compile_intern(jitdata *jd)
 #if defined(ENABLE_SSA)
 		/* allocate registers */
 		if (
-			(opt_lsra) 
-			/*&& strncmp(jd->m->name->text, "banana", 6) == 0*/
+			(opt_lsra &&
+			jd->code->optlevel > 0) 
+			/* strncmp(jd->m->name->text, "hottie", 6) == 0*/
 			/*&& jd->exceptiontablelength == 0*/
 		) {
 			/*printf("=== %s ===\n", jd->m->name->text);*/

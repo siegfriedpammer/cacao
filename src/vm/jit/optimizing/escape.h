@@ -49,11 +49,6 @@ void escape_analysis_escape_check(void *vp);
 
 void bc_escape_analysis_perform(methodinfo *m);
 
-typedef struct {
-	unsigned monomorphic:1;
-	unsigned speculative:1;
-} monomorphic_t;
-
-bool method_profile_is_monomorphic(methodinfo *m);
+bool escape_is_monomorphic(methodinfo *caller, methodinfo *callee);
 
 #endif

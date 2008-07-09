@@ -549,6 +549,18 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 		}
 #endif /* defined(ENABLE_INLINING) */
 
+#if defined(ENABLE_SSA)
+	
+		iptr = bptr->phis;
+
+		for (i = 0; i < bptr->phicount; i++, iptr++) {
+			printf("%4d:%4d:  ", iptr->line, iptr->flags.bits >> INS_FLAG_ID_SHIFT);
+
+			show_icmd(jd, iptr, deadcode, irstage);
+			printf("\n");
+		}
+#endif
+
 		iptr = bptr->iinstr;
 
 		for (i = 0; i < bptr->icount; i++, iptr++) {
@@ -1425,6 +1437,19 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 	case ICMD_GETEXCEPTION:
 		SHOW_DST(iptr);
 		break;
+#if defined(ENABLE_SSA)	
+	case ICMD_PHI:
+		printf("[ ");
+		for (i = 0; i < iptr->s1.argcount; ++i) {
+			SHOW_VARIABLE(iptr->sx.s23.s2.iargs[i]->dst.varindex);
+		}
+		printf("] ");
+		SHOW_DST(iptr);
+		if (iptr->flags.bits & (1 << 0)) printf("used ");
+		if (iptr->flags.bits & (1 << 1)) printf("redundantAll ");
+		if (iptr->flags.bits & (1 << 2)) printf("redundantOne ");
+		break;
+#endif
 	}
 	fflush(stdout);
 }

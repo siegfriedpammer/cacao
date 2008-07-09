@@ -180,6 +180,10 @@ struct threadobject {
 	tlh_t                 tlh;
 #endif
 
+#if defined(ENABLE_ESCAPE_REASON)
+	void *escape_reasons;
+#endif
+
 	listnode_t            linkage;      /* threads-list                       */
 	listnode_t            linkage_free; /* free-list                          */
 };
@@ -295,6 +299,11 @@ void threads_sleep(int64_t millis, int32_t nanos);
 void threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
 
 void threads_thread_interrupt(threadobject *thread);
+
+#if defined(ENABLE_TLH)
+void threads_tlh_add_frame();
+void threads_tlh_remove_frame();
+#endif
 
 #endif /* _THREAD_POSIX_H */
 

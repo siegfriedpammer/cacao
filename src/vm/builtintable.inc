@@ -194,6 +194,39 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL
 	},
+
+#if defined(ENABLE_TLH)
+	{
+		ICMD_NEW,
+		BUILTINTABLE_FLAG_STUB,
+		BUILTIN_tlh_new,
+		NULL,
+		NULL,
+		"tlh_new",
+		"(Ljava/lang/Class;)Ljava/lang/Object;",
+		NULL,
+		NULL,
+		NULL,
+		NULL
+	},
+#endif
+
+#if defined(ENABLE_ESCAPE_REASON)
+	{
+		ICMD_NEW,
+		BUILTINTABLE_FLAG_STUB,
+		BUILTIN_escape_reason_new,
+		NULL,
+		NULL,
+		"escape_reason_new",
+		"(Ljava/lang/Class;)Ljava/lang/Object;",
+		NULL,
+		NULL,
+		NULL,
+		NULL
+	},
+#endif
+
 	{
 		ICMD_NEW,
 		0,

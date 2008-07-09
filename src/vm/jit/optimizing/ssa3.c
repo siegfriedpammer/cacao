@@ -345,8 +345,8 @@ static inline void instruction_set_uses(instruction *iptr, s4 *buf, s4 *uses, un
 
 /*** vars *******************************************************************/
 
-#define VARS_CATEGORY_SHIFT 29
-#define VARS_INDEX_MASK 0x1FFFFFFF
+#define VARS_CATEGORY_SHIFT 28
+#define VARS_INDEX_MASK 0x0FFFFFFF
 
 #define VARS_CATEGORY_LOCAL 0
 #define VARS_CATEGORY_STACK 1
@@ -538,13 +538,15 @@ FIXME() inline void phis_print(const phis_t *ps) {
 }
 #endif
 
-static inline void phis_copy_to(const phis_t *ps, instruction *dst) {
-	MCOPY(
-		dst,
-		ps->items,
-		instruction,
-		ps->count
-	);
+static inline unsigned phis_copy_to(const phis_t *ps, instruction *dst) {
+	instruction *it;
+	instruction *out = dst;
+
+	FOR_EACH_PHI_FUNCTION(ps, it) {
+		*(out++) = *it;
+	}
+
+	return (out - dst);
 }
 
 /*** state_array ************************************************************/
@@ -990,6 +992,8 @@ void fix_exception_handlers(jitdata *jd) {
 	basicblock_chain_t chain;
 	basicblock *last = NULL;
 	basicblock *marker = NULL;
+	s4 vartop;
+	unsigned i;
 
 	if (jd->exceptiontablelength == 0) {
 		return;
@@ -997,21 +1001,37 @@ void fix_exception_handlers(jitdata *jd) {
 
 	basicblock_chain_init(&chain);
 
-	/* We need to allocate new iovars */
+	/* Remember, where we started adding IO variables. */
 
-	avail_vars = (jd->varcount - jd->vartop);
-	add_vars = jd->exceptiontablelength;
-
-	if (add_vars > avail_vars) {
-		add_vars -= avail_vars;
-		jd->var = DMREALLOC(jd->var, varinfo, jd->varcount, jd->varcount + add_vars);
-		jd->varcount += add_vars;
-	}
+	vartop = jd->vartop;
 
 	/* For each exception handler block, create one block with a prologue block */
 
 	FOR_EACH_BASICBLOCK(jd, bptr) {
 		if (bptr->type == BBTYPE_EXH) {
+
+			/*
+             
+            +---- EXH (exh)-------+
+            |  in0 in1 in2 exc    |
+			|  .....              |
+            +---------------------+
+
+            === TRANSFORMED TO ===>
+
+            +---- PROL (exh) -------+
+            |  in0 in1 in2          |
+            |  GETEXECEPTION => OU3 |
+            |  GOTO REAL_EXH        |
+            |  in0 in1 in2 OU3      |
+            +-----------------------+
+
+            +---- REAL_EXH (std) -+
+            |  in0 in1 in2 exc    |
+			|  ......             |
+            +---------------------+
+
+			*/
 
 			bptr->type = BBTYPE_STD;
 			bptr->predecessorcount = 0; /* legacy */
@@ -1023,7 +1043,24 @@ void fix_exception_handlers(jitdata *jd) {
 
 			iptr = DMNEW(instruction, 2);
 			MZERO(iptr, instruction, 2);
+			
+			/* Create outvars */
 
+			exh->outdepth = bptr->indepth;
+
+			if (exh->outdepth > 0) {
+				exh->outvars = DMNEW(s4, exh->outdepth);
+				for (i = 0; i < exh->outdepth; ++i) {
+					exh->outvars[i] = vartop++;
+				}
+			}
+
+			/* Create invars */
+
+			exh->indepth = exh->outdepth - 1;
+			exh->invars = exh->outvars;
+
+#if 0
 			/* Create new outvar */
 
 			assert(jd->vartop < jd->varcount);
@@ -1031,6 +1068,7 @@ void fix_exception_handlers(jitdata *jd) {
 			jd->vartop += 1;
 			jd->var[v].type = TYPE_ADR;
 			jd->var[v].flags = INOUT;
+#endif
 
 			exh->nr = jd->basicblockcount;
 			jd->basicblockcount += 1;
@@ -1038,9 +1076,11 @@ void fix_exception_handlers(jitdata *jd) {
 			exh->type = BBTYPE_EXH;
 			exh->icount = 2;
 			exh->iinstr = iptr;
+/*
 			exh->outdepth = 1;
 			exh->outvars = DNEW(s4);
 			exh->outvars[0] = v;
+*/
 			exh->predecessorcount = -1; /* legacy */
 			exh->flags = BBFINISHED;
 			exh->method = jd->m;
@@ -1050,7 +1090,7 @@ void fix_exception_handlers(jitdata *jd) {
 			/* Get exception */
 
 			iptr->opc = ICMD_GETEXCEPTION;
-			iptr->dst.varindex = v;
+			iptr->dst.varindex = exh->outvars[exh->outdepth - 1];
 			iptr += 1;
 
 			/* Goto real exception handler */
@@ -1069,6 +1109,19 @@ void fix_exception_handlers(jitdata *jd) {
 		}
 	}
 
+	/* We need to allocate the new iovars in the var array */
+
+	avail_vars = (jd->varcount - jd->vartop);
+	add_vars = (vartop - jd->vartop);
+
+	if (add_vars > avail_vars) {
+		add_vars -= avail_vars;
+		jd->var = DMREALLOC(jd->var, varinfo, jd->varcount, jd->varcount + add_vars);
+		jd->varcount += add_vars;
+	}
+
+	jd->vartop = vartop;
+
 	/* Put the chain of exception handlers between just before the last
 	   basic block (end marker). */
 
@@ -1086,7 +1139,20 @@ void fix_exception_handlers(jitdata *jd) {
 
 	for (ee = jd->exceptiontable; ee; ee = ee->down) {
 		assert(ee->handler->vp);
-		ee->handler = ee->handler->vp;
+
+		bptr = ee->handler;
+		exh = (basicblock *)ee->handler->vp;
+
+		ee->handler = exh;
+
+		/* Set up IO variables in newly craeted exception handlers. */
+
+		for (i = 0; i < exh->outdepth; ++i) {
+			v = exh->outvars[i];
+
+			jd->var[v].flags = INOUT;
+			jd->var[v].type = jd->var[ bptr->invars[i] ].type;
+		}
 	}
 
 }
@@ -1248,6 +1314,10 @@ static void ssa_enter_verify_no_redundant_phis(ssa_info_t *ssa) {
 	basicblock *bptr;
 	basicblock_info_t *bbi;
 	instruction *itph;
+
+	/* XXX */
+	return;
+
 	FOR_EACH_BASICBLOCK(ssa->jd, bptr) {
 		if (basicblock_reached(bptr)) {
 			bbi = bb_info(bptr);
@@ -1370,6 +1440,14 @@ static void ssa_enter_process_pei(ssa_info *ssa, basicblock *bb, unsigned pei) {
 			basicblock_get_ex_predecessor_index(bb, pei, *itsucc),
 			ssa->locals
 		);
+
+		ssa_enter_merge(
+			bbi->stack,
+			succi->stack,
+			*itsucc,
+			basicblock_get_ex_predecessor_index(bb, pei, *itsucc),
+			ssa->stack
+		);
 	}
 }
 
@@ -1377,6 +1455,9 @@ static FIXME(bool) ssa_enter_eliminate_redundant_phis(traversal_t *t, vars_t *vs
 
 	instruction *itph;
 	bool ret = false;
+
+	/* XXX */
+	return;
 
 	FOR_EACH_PHI_FUNCTION(t->phis, itph) {
 
@@ -1475,12 +1556,16 @@ static void ssa_enter_process_block(ssa_info *ssa, basicblock *bb) {
 		state_array_allocate_items(bbi->stack->state_array);
 	}
 
+#if 0
 	/* Exception handlers have a clean stack. */
+
+	/* Not true with inlining. */
 
 	if (bb->type == BBTYPE_EXH) {
 		state_array_assert_no_items(bbi->stack->state_array);
 		state_array_allocate_items(bbi->stack->state_array);
 	}
+#endif
 
 	/* Some in/out vars get marked as INOUT in simplereg,
 	   and are not marked at this point. 
@@ -1665,19 +1750,15 @@ static void ssa_enter_export_phis(ssa_info_t *ssa) {
 	FOR_EACH_BASICBLOCK(ssa->jd, bptr) {
 		bbi = bb_info(bptr);
 		if (bbi != NULL) {
-			bptr->phicount = 
-				bbi->locals->phis->count + 
-				bbi->stack->phis->count;
-
-			bptr->phis = DMNEW(instruction, bptr->phicount);
+			bptr->phis = DMNEW(instruction, bbi->locals->phis->count + bbi->stack->phis->count);
 
 			dst = bptr->phis;
 
-			phis_copy_to(bbi->locals->phis, dst);
+			dst += phis_copy_to(bbi->locals->phis, dst);
 
-			dst += bbi->locals->phis->count;
+			dst += phis_copy_to(bbi->stack->phis, dst);
 
-			phis_copy_to(bbi->stack->phis, dst);
+			bptr->phicount = dst - bptr->phis;
 		}
 	}
 }
@@ -2269,6 +2350,7 @@ void ssa_simple_leave(ssa_info_t *ssa) {
 			}
 			instruction_set_uses(iptr, ssa->s_buf, uses, uses_count);
 		}
+		bptr->phicount = 0;
 	}
 
 	unfix_exception_handlers(ssa->jd);
@@ -2282,10 +2364,16 @@ void ssa_simple_leave(ssa_info_t *ssa) {
 	ssa->jd->localcount = ssa->original.localcount;
 }
 
+#include "vmcore/rt-timing.h"
+
 void yssa(jitdata *jd) {
 	basicblock *it;
 	basicblock_info_t *iti;
 	ssa_info *ssa;
+
+	struct timespec bs, es, be, ee;
+
+	RT_TIMING_GET_TIME(bs);
 
 #ifdef SSA_VERBOSE
 	bool verb = true;
@@ -2325,7 +2413,9 @@ void yssa(jitdata *jd) {
 
 	/*ssa_enter_create_phi_graph(ssa);*/
 
-	/*escape_analysis_perform(ssa->jd);*/
+	RT_TIMING_GET_TIME(be);
+	escape_analysis_perform(ssa->jd);
+	RT_TIMING_GET_TIME(ee);
 
 	/*
 	ssa_leave_create_phi_moves(ssa);
@@ -2351,6 +2441,10 @@ void yssa(jitdata *jd) {
 	}
 #endif
 
+	RT_TIMING_GET_TIME(es);
+
+	RT_TIMING_TIME_DIFF(bs, es, RT_TIMING_1);
+	RT_TIMING_TIME_DIFF(be, ee, RT_TIMING_2);
 }
 
 void eliminate_subbasicblocks(jitdata *jd) {

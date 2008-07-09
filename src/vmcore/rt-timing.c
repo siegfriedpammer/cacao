@@ -116,8 +116,19 @@ static struct rt_timing_stat rt_timing_stat_defs[] = {
 	{ RT_TIMING_GC_COMPACT      ,RT_TIMING_GC_TOTAL       , "gc: compaction phase" },
 	{ RT_TIMING_GC_ROOTSET2     ,RT_TIMING_GC_TOTAL       , "gc: rootset writeback" },
 	{ RT_TIMING_GC_TOTAL        ,-1                       , "total garbage collection time" },
+#endif
+	{ -1                        ,-1                       , "" },
+
+#if defined(ENABLE_REPLACEMENT)
+	{ RT_TIMING_REPLACE         ,-1                       , "replacement" },
 	{ -1                        ,-1                       , "" },
 #endif
+
+	{ RT_TIMING_1               ,-1                       , "temporary timer 1" },
+	{ RT_TIMING_2               ,-1                       , "temporary timer 2" },
+	{ RT_TIMING_3               ,-1                       , "temporary timer 3" },
+	{ RT_TIMING_4               ,-1                       , "temporary timer 4" },
+	{ -1                        ,-1                       , "" },
 
     { 0                         ,-1                       , NULL }
 };

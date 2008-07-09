@@ -2222,7 +2222,7 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
-
+			
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
@@ -2888,6 +2888,21 @@ nowperformreturn:
 
 			bte = iptr->sx.s23.s3.bte;
 			md = bte->md;
+
+#if defined(ENABLE_ESCAPE_REASON)
+			if (bte->fp == BUILTIN_escape_reason_new) {
+				void set_escape_reasons(void *);
+				M_ASUB_IMM(8, REG_SP);
+				M_MOV_IMM(iptr->escape_reasons, REG_ITMP1);
+				M_AST(EDX, REG_SP, 4);
+				M_AST(REG_ITMP1, REG_SP, 0);
+				M_MOV_IMM(set_escape_reasons, REG_ITMP1);
+				M_CALL(REG_ITMP1);
+				M_ALD(EDX, REG_SP, 4);
+				M_AADD_IMM(8, REG_SP);
+			}
+#endif
+
 			goto gen_method;
 
 		case ICMD_INVOKESTATIC: /* ..., [arg1, [arg2 ...]] ==> ...            */

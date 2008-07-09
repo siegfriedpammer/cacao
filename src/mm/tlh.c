@@ -23,7 +23,9 @@
 
 #include "config.h"
 
+#include "mm/memory.h"
 #include "mm/tlh.h"
+
 #include "vm/global.h"
 
 #include <assert.h>
@@ -104,6 +106,7 @@ void *tlh_alloc(tlh_t *tlh, size_t size) {
 	if (tlh_avail(tlh, size)) {
 		ret = tlh->top;
 		tlh->top += size;
+		MZERO(ret, char, size);
 	} else {
 		ret = NULL;
 	}

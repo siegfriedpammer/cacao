@@ -109,7 +109,14 @@
 #define RT_TIMING_GC_ROOTSET2      53
 #define RT_TIMING_GC_TOTAL         54
 
-#define RT_TIMING_N                55
+#define RT_TIMING_REPLACE          55
+
+#define RT_TIMING_1                56
+#define RT_TIMING_2                57
+#define RT_TIMING_3                58
+#define RT_TIMING_4                59
+
+#define RT_TIMING_N                60
 
 void rt_timing_gettime(struct timespec *ts);
 

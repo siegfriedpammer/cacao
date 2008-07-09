@@ -21,6 +21,9 @@
    02110-1301, USA.
 */
 
+#ifndef _MM_TLH_H
+#define _MM_TLH_H
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -41,6 +44,8 @@ void tlh_add_frame(tlh_t *tlh);
 void tlh_remove_frame(tlh_t *tlh);
 
 void *tlh_alloc(tlh_t *tlh, size_t size);
+
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

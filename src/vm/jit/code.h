@@ -50,6 +50,7 @@
 #define CODE_FLAG_INVALID         0x0001
 #define CODE_FLAG_LEAFMETHOD      0x0002
 #define CODE_FLAG_SYNCHRONIZED    0x0004
+#define CODE_FLAG_TLH             0x0008
 
 
 /* codeinfo *******************************************************************

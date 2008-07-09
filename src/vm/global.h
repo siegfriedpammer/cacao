@@ -211,6 +211,10 @@ typedef struct java_objectarray_t java_objectarray_t;
 #define ACC_METHOD_IMPLEMENTED 0x00020000     /* there is an implementation   */
 #define ACC_METHOD_MONOMORPHIC 0x00040000     /* currently monomorphic method */
 #define ACC_METHOD_EA          0x00080000     /* method being escape analyzed */
+#define ACC_METHOD_MONOMORPHY_USED \
+                               0x00100000
+#define ACC_METHOD_PARENT_MONOMORPHY_USED \
+                               0x00200000
 
 
 /* data structures of the runtime system **************************************/

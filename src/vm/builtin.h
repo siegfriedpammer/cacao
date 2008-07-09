@@ -145,6 +145,17 @@ java_handle_t *builtin_new(classinfo *c);
 /* NOT AN OP */
 java_handle_t *builtin_java_new(java_handle_t *c);
 #define BUILTIN_new (functionptr) builtin_java_new
+
+#if defined(ENABLE_TLH)
+#define BUILTIN_tlh_new (functionptr) builtin_tlh_new
+java_handle_t *builtin_tlh_new(classinfo *c);
+#endif
+
+#if defined(ENABLE_ESCAPE_REASON)
+#define BUILTIN_escape_reason_new (functionptr)builtin_escape_reason_new
+java_handle_t *builtin_escape_reason_new(classinfo *c);
+#endif
+
 java_object_t *builtin_fast_new(classinfo *c);
 #define BUILTIN_FAST_new (functionptr) builtin_fast_new
 

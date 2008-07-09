@@ -383,6 +383,9 @@ struct instruction {
 #if SIZEOF_VOID_P == 4
     flags_operand_t         flags;  /* 4 bytes      */
 #endif
+#if defined(ENABLE_ESCAPE_REASON)
+	void *escape_reasons;
+#endif
 };
 
 

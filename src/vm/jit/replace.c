@@ -56,7 +56,9 @@
 
 #include "vmcore/options.h"
 #include "vmcore/classcache.h"
-
+#if defined(ENABLE_RT_TIMING)
+#include "vmcore/rt-timing.h"
+#endif
 
 #define REPLACE_PATCH_DYNAMIC_CALL
 /*#define REPLACE_PATCH_ALL*/
@@ -1465,6 +1467,12 @@ static void replace_write_executionstate(rplpoint *rp,
 
 		if (!topframe && ra->index == RPLALLOC_PARAM) {
 			/* skip it */
+			/*
+			ra->index = RPLALLOC_PARAM;
+			replace_val_t v;
+			v.l = 0;
+			replace_write_value(es,ra,&v);
+			*/
 		}
 		else {
 			assert(i < frame->javastackdepth);
@@ -1669,9 +1677,18 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 	/* in debug mode, invalidate stack frame first */
 
 	/* XXX may not invalidate linkage area used by native code! */
+
 #if !defined(NDEBUG) && 0
-	for (i=0; i<(basesp - sp); ++i) {
+	for (i=0; i< (basesp - sp) && i < 1; ++i) {
 		sp[i] = 0xdeaddeadU;
+	}
+#endif
+
+#if defined(__I386__)
+	/* Stackslot 0 may contain the object instance for vftbl patching.
+	   Destroy it, so there's no undefined value used. */
+	if ((basesp - sp) > 0) {
+		sp[0] = 0;
 	}
 #endif
 
@@ -2851,6 +2868,10 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 	origcode = es->code;
 	origrp   = rp;
 
+	printf("Replacing in %s/%s\n", rp->method->clazz->name->text, rp->method->name->text);
+
+	/*if (strcmp(rp->method->clazz->name->text, "antlr/AlternativeElement") == 0 && strcmp(rp->method->name->text, "getAutoGenType") ==0) opt_TraceReplacement = 2; else opt_TraceReplacement = 0;*/
+
 	DOLOG_SHORT( printf("REPLACING(%d %p): (id %d %p) ",
 				 stat_replacements, (void*)THREADOBJECT,
 				 rp->id, (void*)rp);
@@ -2976,6 +2997,9 @@ bool replace_me_wrapper(u1 *pc, void *context)
 	codeinfo         *code;
 	rplpoint         *rp;
 	executionstate_t  es;
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_end;
+#endif
 
 	/* search the codeinfo for the given PC */
 
@@ -3010,7 +3034,16 @@ bool replace_me_wrapper(u1 *pc, void *context)
 
 		/* do the actual replacement */
 
+#if defined(ENABLE_RT_TIMING)
+		RT_TIMING_GET_TIME(time_start);
+#endif
+
 		replace_me(rp, &es);
+
+#if defined(ENABLE_RT_TIMING)
+		RT_TIMING_GET_TIME(time_end);
+		RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_REPLACE);
+#endif
 
 		/* write execution state to current context */
 

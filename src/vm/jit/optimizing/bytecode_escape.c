@@ -811,7 +811,7 @@ static void bc_escape_analysis_parse_invoke(bc_escape_analysis_t *be, jcode_t *j
 	   or recurse into callee. 
 	   Otherwise we must assume, that all parameters escape. */
 
-	if (mi != NULL && method_profile_is_monomorphic(mi)) {
+	if (mi != NULL && escape_is_monomorphic(be->method, mi)) {
 
 		if (mi->paramescape == NULL) {
 			bc_escape_analysis_perform_intern(mi, be->depth + 1);
@@ -1794,6 +1794,10 @@ static void bc_escape_analysis_perform_intern(methodinfo *m, int depth) {
 	}
 #endif
 
+	if (depth >= 3) {
+		return;
+	}
+
 	if (m->paramescape != NULL) {
 #if BC_ESCAPE_VERBOSE
 		if (verbose) {	
@@ -1821,7 +1825,14 @@ static void bc_escape_analysis_perform_intern(methodinfo *m, int depth) {
 		return;
 	}
 
-	/* TODO threshold */
+	if (m->jcodelength > 250) {
+#if BC_ESCAPE_VERBOSE
+		if (verbose) {
+			dprintf(depth, "Bytecode too long: %d.\n", m->jcodelength);
+		}
+#endif
+		return;
+	}
 
 	be = DNEW(bc_escape_analysis_t);
 	bc_escape_analysis_init(be, m, verbose, depth);

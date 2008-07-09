@@ -1037,7 +1037,6 @@ void method_add_assumption_monomorphic(methodinfo *m, methodinfo *caller)
 	m->assumptions = as;
 }
 
-
 /* method_break_assumption_monomorphic *****************************************
 
    Break the assumption that this method is monomorphic. All callers that
@@ -1064,9 +1063,20 @@ void method_break_assumption_monomorphic(methodinfo *m, method_worklist **wl)
 		);
 
 		method_add_to_worklist(as->context, wl);
+
+#if defined(ENABLE_TLH) && 0
+		/* XXX hack */
+		method_assumption *as2;
+		as2 = m->assumptions;
+		m->assumptions = NULL;
+		method_break_assumption_monomorphic(as->context, wl);
+		/*
+		assert(m->assumptions == NULL);
+		m->assumptions = as2;*/
+#endif
+
 	}
 }
-
 
 /* method_printflags ***********************************************************
 

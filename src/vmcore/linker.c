@@ -523,6 +523,15 @@ static bool linker_overwrite_method(methodinfo *mg,
 
 	if ((ms->flags & ACC_METHOD_IMPLEMENTED) && ms->name != utf_init) {
 		do {
+
+#if defined(ENABLE_TLH)
+			if (mg->flags & ACC_METHOD_MONOMORPHY_USED) {
+				printf("%s/%s is evil! the siner is %s/%s\n", mg->clazz->name->text, mg->name->text,
+					ms->clazz->name->text, ms->name->text);
+				ms->flags |= ACC_METHOD_PARENT_MONOMORPHY_USED;					
+			}
+#endif
+
 			if (mg->flags & ACC_METHOD_IMPLEMENTED) {
 				/* this adds another implementation */
 
