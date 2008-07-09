@@ -1,4 +1,4 @@
-## src/native/vm/gnu/Makefile.am
+## src/native/vm/gnuclasspath/Makefile.am
 ##
 ## Copyright (C) 1996-2005, 2006, 2008
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -56,7 +56,7 @@ libnativevmcore_la_SOURCES = \
 	java_lang_VMThrowable.c \
 	java_lang_management_VMManagementFactory.c \
 	java_lang_reflect_VMConstructor.c \
-	java_lang_reflect_VMField.c \
+	java_lang_reflect_VMField.cpp \
 	java_lang_reflect_VMMethod.c \
 	java_lang_reflect_VMProxy.c \
 	java_security_VMAccessController.c \
