@@ -35,7 +35,7 @@ endif
 
 if ENABLE_ANNOTATIONS
 SUN_REFLECT_SOURCES = \
-	sun_reflect_ConstantPool.c
+	sun_reflect_ConstantPool.cpp
 endif
 
 libnativevmcore_la_SOURCES = \

@@ -1,9 +1,7 @@
-/* src/native/vm/gnu/sun_reflect_ConstantPool.c
+/* src/native/vm/gnuclasspath/sun_reflect_ConstantPool.cpp
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, M. S. Panzenböck Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -50,7 +48,11 @@
 
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_Class.h"
+
+// FIXME
+extern "C" {
 #include "native/include/sun_reflect_ConstantPool.h"
+}
 
 #include "native/vm/reflect.h"
 
@@ -68,20 +70,20 @@
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "getSize0",             "(Ljava/lang/Object;I)I",                          (void *) (intptr_t) &Java_sun_reflect_ConstantPool_getSize0             },
-	{ "getClassAt0",          "(Ljava/lang/Object;I)Ljava/lang/Class;",          (void *) (intptr_t) &Java_sun_reflect_ConstantPool_getClassAt0          },
-	{ "getClassAtIfLoaded0",  "(Ljava/lang/Object;I)Ljava/lang/Class;",          (void *) (intptr_t) &Java_sun_reflect_ConstantPool_getClassAtIfLoaded0  },
-	{ "getMethodAt0",         "(Ljava/lang/Object;I)Ljava/lang/reflect/Member;", (void *) (intptr_t) &Java_sun_reflect_ConstantPool_getMethodAt0         },
-	{ "getMethodAtIfLoaded0", "(Ljava/lang/Object;I)Ljava/lang/reflect/Member;", (void *) (intptr_t) &Java_sun_reflect_ConstantPool_getMethodAtIfLoaded0 },
-	{ "getFieldAt0",          "(Ljava/lang/Object;I)Ljava/lang/reflect/Field;",  (void *) (intptr_t) &Java_sun_reflect_ConstantPool_getFieldAt0          },
-	{ "getFieldAtIfLoaded0",  "(Ljava/lang/Object;I)Ljava/lang/reflect/Field;",  (void *) (intptr_t) &Java_sun_reflect_ConstantPool_getFieldAtIfLoaded0  },
-	{ "getMemberRefInfoAt0",  "(Ljava/lang/Object;I)[Ljava/lang/String;",        (void *) (intptr_t) &Java_sun_reflect_ConstantPool_getMemberRefInfoAt0  },
-	{ "getIntAt0",            "(Ljava/lang/Object;I)I",                          (void *) (intptr_t) &Java_sun_reflect_ConstantPool_getIntAt0            },
-	{ "getLongAt0",           "(Ljava/lang/Object;I)J",                          (void *) (intptr_t) &Java_sun_reflect_ConstantPool_getLongAt0           },
-	{ "getFloatAt0",          "(Ljava/lang/Object;I)F",                          (void *) (intptr_t) &Java_sun_reflect_ConstantPool_getFloatAt0          },
-	{ "getDoubleAt0",         "(Ljava/lang/Object;I)D",                          (void *) (intptr_t) &Java_sun_reflect_ConstantPool_getDoubleAt0         },
-	{ "getStringAt0",         "(Ljava/lang/Object;I)Ljava/lang/String;",         (void *) (intptr_t) &Java_sun_reflect_ConstantPool_getStringAt0         },
-	{ "getUTF8At0",           "(Ljava/lang/Object;I)Ljava/lang/String;",         (void *) (intptr_t) &Java_sun_reflect_ConstantPool_getUTF8At0           },	
+	{ (char*) "getSize0",             (char*) "(Ljava/lang/Object;I)I",                          (void*) (uintptr_t) &Java_sun_reflect_ConstantPool_getSize0             },
+	{ (char*) "getClassAt0",          (char*) "(Ljava/lang/Object;I)Ljava/lang/Class;",          (void*) (uintptr_t) &Java_sun_reflect_ConstantPool_getClassAt0          },
+	{ (char*) "getClassAtIfLoaded0",  (char*) "(Ljava/lang/Object;I)Ljava/lang/Class;",          (void*) (uintptr_t) &Java_sun_reflect_ConstantPool_getClassAtIfLoaded0  },
+	{ (char*) "getMethodAt0",         (char*) "(Ljava/lang/Object;I)Ljava/lang/reflect/Member;", (void*) (uintptr_t) &Java_sun_reflect_ConstantPool_getMethodAt0         },
+	{ (char*) "getMethodAtIfLoaded0", (char*) "(Ljava/lang/Object;I)Ljava/lang/reflect/Member;", (void*) (uintptr_t) &Java_sun_reflect_ConstantPool_getMethodAtIfLoaded0 },
+	{ (char*) "getFieldAt0",          (char*) "(Ljava/lang/Object;I)Ljava/lang/reflect/Field;",  (void*) (uintptr_t) &Java_sun_reflect_ConstantPool_getFieldAt0          },
+	{ (char*) "getFieldAtIfLoaded0",  (char*) "(Ljava/lang/Object;I)Ljava/lang/reflect/Field;",  (void*) (uintptr_t) &Java_sun_reflect_ConstantPool_getFieldAtIfLoaded0  },
+	{ (char*) "getMemberRefInfoAt0",  (char*) "(Ljava/lang/Object;I)[Ljava/lang/String;",        (void*) (uintptr_t) &Java_sun_reflect_ConstantPool_getMemberRefInfoAt0  },
+	{ (char*) "getIntAt0",            (char*) "(Ljava/lang/Object;I)I",                          (void*) (uintptr_t) &Java_sun_reflect_ConstantPool_getIntAt0            },
+	{ (char*) "getLongAt0",           (char*) "(Ljava/lang/Object;I)J",                          (void*) (uintptr_t) &Java_sun_reflect_ConstantPool_getLongAt0           },
+	{ (char*) "getFloatAt0",          (char*) "(Ljava/lang/Object;I)F",                          (void*) (uintptr_t) &Java_sun_reflect_ConstantPool_getFloatAt0          },
+	{ (char*) "getDoubleAt0",         (char*) "(Ljava/lang/Object;I)D",                          (void*) (uintptr_t) &Java_sun_reflect_ConstantPool_getDoubleAt0         },
+	{ (char*) "getStringAt0",         (char*) "(Ljava/lang/Object;I)Ljava/lang/String;",         (void*) (uintptr_t) &Java_sun_reflect_ConstantPool_getStringAt0         },
+	{ (char*) "getUTF8At0",           (char*) "(Ljava/lang/Object;I)Ljava/lang/String;",         (void*) (uintptr_t) &Java_sun_reflect_ConstantPool_getUTF8At0           },	
 };
 
 
@@ -91,17 +93,23 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
+// FIXME
+extern "C" {
 void _Jv_sun_reflect_ConstantPool_init(void)
 {
 	native_method_register(utf_new_char("sun/reflect/ConstantPool"), methods, NATIVE_METHODS_COUNT);
 }
+}
+
+
+extern "C" {
 
 /*
  * Class:     sun/reflect/ConstantPool
  * Method:    getSize0
  * Signature: (Ljava/lang/Object;)I
  */
-JNIEXPORT int32_t JNICALL Java_sun_reflect_ConstantPool_getSize0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool)
+JNIEXPORT int32_t JNICALL Java_sun_reflect_ConstantPool_getSize0(JNIEnv *env, struct sun_reflect_ConstantPool* _this, struct java_lang_Object* jcpool)
 {
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 	return cls->cpcount;
@@ -113,7 +121,7 @@ JNIEXPORT int32_t JNICALL Java_sun_reflect_ConstantPool_getSize0(JNIEnv *env, st
  * Method:    getClassAt0
  * Signature: (Ljava/lang/Object;I)Ljava/lang/Class;
  */
-JNIEXPORT struct java_lang_Class* JNICALL Java_sun_reflect_ConstantPool_getClassAt0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool, int32_t index)
+JNIEXPORT struct java_lang_Class* JNICALL Java_sun_reflect_ConstantPool_getClassAt0(JNIEnv *env, struct sun_reflect_ConstantPool* _this, struct java_lang_Object* jcpool, int32_t index)
 {
 	constant_classref *ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
@@ -135,7 +143,7 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_sun_reflect_ConstantPool_getClass
  * Method:    getClassAtIfLoaded0
  * Signature: (Ljava/lang/Object;I)Ljava/lang/Class;
  */
-JNIEXPORT struct java_lang_Class* JNICALL Java_sun_reflect_ConstantPool_getClassAtIfLoaded0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool, int32_t index)
+JNIEXPORT struct java_lang_Class* JNICALL Java_sun_reflect_ConstantPool_getClassAtIfLoaded0(JNIEnv *env, struct sun_reflect_ConstantPool* _this, struct java_lang_Object* jcpool, int32_t index)
 {
 	constant_classref *ref;
 	classinfo *c = NULL;
@@ -166,7 +174,7 @@ JNIEXPORT struct java_lang_Class* JNICALL Java_sun_reflect_ConstantPool_getClass
  * Method:    getMethodAt0
  * Signature: (Ljava/lang/Object;I)Ljava/lang/reflect/Member;
  */
-JNIEXPORT struct java_lang_reflect_Member* JNICALL Java_sun_reflect_ConstantPool_getMethodAt0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool, int32_t index)
+JNIEXPORT struct java_lang_reflect_Member* JNICALL Java_sun_reflect_ConstantPool_getMethodAt0(JNIEnv *env, struct sun_reflect_ConstantPool* _this, struct java_lang_Object* jcpool, int32_t index)
 {
 	constant_FMIref *ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
@@ -180,7 +188,7 @@ JNIEXPORT struct java_lang_reflect_Member* JNICALL Java_sun_reflect_ConstantPool
 	}
 
 	/* XXX: is that right? or do I have to use resolve_method_*? */
-	return (jobject)reflect_method_new(ref->p.method);
+	return (struct java_lang_reflect_Member*) reflect_method_new(ref->p.method);
 }
 
 
@@ -189,7 +197,7 @@ JNIEXPORT struct java_lang_reflect_Member* JNICALL Java_sun_reflect_ConstantPool
  * Method:    getMethodAtIfLoaded0
  * Signature: (Ljava/lang/Object;I)Ljava/lang/reflect/Member;
  */
-JNIEXPORT struct java_lang_reflect_Member* JNICALL Java_sun_reflect_ConstantPool_getMethodAtIfLoaded0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool, int32_t index)
+JNIEXPORT struct java_lang_reflect_Member* JNICALL Java_sun_reflect_ConstantPool_getMethodAtIfLoaded0(JNIEnv *env, struct sun_reflect_ConstantPool* _this, struct java_lang_Object* jcpool, int32_t index)
 {
 	constant_FMIref *ref;
 	classinfo *c = NULL;
@@ -211,7 +219,7 @@ JNIEXPORT struct java_lang_reflect_Member* JNICALL Java_sun_reflect_ConstantPool
 		return NULL;
 	}
 
-	return (jobject)reflect_method_new(ref->p.method);
+	return (struct java_lang_reflect_Member*) reflect_method_new(ref->p.method);
 }
 
 
@@ -220,7 +228,7 @@ JNIEXPORT struct java_lang_reflect_Member* JNICALL Java_sun_reflect_ConstantPool
  * Method:    getFieldAt0
  * Signature: (Ljava/lang/Object;I)Ljava/lang/reflect/Field;
  */
-JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_sun_reflect_ConstantPool_getFieldAt0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool, int32_t index)
+JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_sun_reflect_ConstantPool_getFieldAt0(JNIEnv *env, struct sun_reflect_ConstantPool* _this, struct java_lang_Object* jcpool, int32_t index)
 {
 	constant_FMIref *ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
@@ -233,7 +241,7 @@ JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_sun_reflect_ConstantPool_
 		return NULL;
 	}
 
-	return (jobject)reflect_field_new(ref->p.field);
+	return (struct java_lang_reflect_Field*) reflect_field_new(ref->p.field);
 }
 
 
@@ -242,7 +250,7 @@ JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_sun_reflect_ConstantPool_
  * Method:    getFieldAtIfLoaded0
  * Signature: (Ljava/lang/Object;I)Ljava/lang/reflect/Field;
  */
-JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_sun_reflect_ConstantPool_getFieldAtIfLoaded0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool, int32_t index)
+JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_sun_reflect_ConstantPool_getFieldAtIfLoaded0(JNIEnv *env, struct sun_reflect_ConstantPool* _this, struct java_lang_Object* jcpool, int32_t index)
 {
 	constant_FMIref *ref;
 	classinfo *c;
@@ -264,7 +272,7 @@ JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_sun_reflect_ConstantPool_
 		return NULL;
 	}
 
-	return (jobject)reflect_field_new(ref->p.field);
+	return (struct java_lang_reflect_Field*) reflect_field_new(ref->p.field);
 }
 
 
@@ -273,7 +281,7 @@ JNIEXPORT struct java_lang_reflect_Field* JNICALL Java_sun_reflect_ConstantPool_
  * Method:    getMemberRefInfoAt0
  * Signature: (Ljava/lang/Object;I)[Ljava/lang/String;
  */
-JNIEXPORT java_handle_objectarray_t* JNICALL Java_sun_reflect_ConstantPool_getMemberRefInfoAt0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool, int32_t index)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_sun_reflect_ConstantPool_getMemberRefInfoAt0(JNIEnv *env, struct sun_reflect_ConstantPool* _this, struct java_lang_Object* jcpool, int32_t index)
 {
 	log_println("Java_sun_reflect_ConstantPool_getMemberRefInfoAt0(env=%p, jcpool=%p, index=%d): IMPLEMENT ME!", env, jcpool, index);
 	return NULL;
@@ -285,7 +293,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_sun_reflect_ConstantPool_getMe
  * Method:    getIntAt0
  * Signature: (Ljava/lang/Object;I)I
  */
-JNIEXPORT int32_t JNICALL Java_sun_reflect_ConstantPool_getIntAt0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool, int32_t index)
+JNIEXPORT int32_t JNICALL Java_sun_reflect_ConstantPool_getIntAt0(JNIEnv *env, struct sun_reflect_ConstantPool* _this, struct java_lang_Object* jcpool, int32_t index)
 {
 	constant_integer *ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
@@ -307,7 +315,7 @@ JNIEXPORT int32_t JNICALL Java_sun_reflect_ConstantPool_getIntAt0(JNIEnv *env, s
  * Method:    getLongAt0
  * Signature: (Ljava/lang/Object;I)J
  */
-JNIEXPORT int64_t JNICALL Java_sun_reflect_ConstantPool_getLongAt0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool, int32_t index)
+JNIEXPORT int64_t JNICALL Java_sun_reflect_ConstantPool_getLongAt0(JNIEnv *env, struct sun_reflect_ConstantPool* _this, struct java_lang_Object* jcpool, int32_t index)
 {
 	constant_long *ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
@@ -329,7 +337,7 @@ JNIEXPORT int64_t JNICALL Java_sun_reflect_ConstantPool_getLongAt0(JNIEnv *env, 
  * Method:    getFloatAt0
  * Signature: (Ljava/lang/Object;I)F
  */
-JNIEXPORT float JNICALL Java_sun_reflect_ConstantPool_getFloatAt0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool, int32_t index)
+JNIEXPORT float JNICALL Java_sun_reflect_ConstantPool_getFloatAt0(JNIEnv *env, struct sun_reflect_ConstantPool* _this, struct java_lang_Object* jcpool, int32_t index)
 {
 	constant_float *ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
@@ -351,7 +359,7 @@ JNIEXPORT float JNICALL Java_sun_reflect_ConstantPool_getFloatAt0(JNIEnv *env, s
  * Method:    getDoubleAt0
  * Signature: (Ljava/lang/Object;I)D
  */
-JNIEXPORT double JNICALL Java_sun_reflect_ConstantPool_getDoubleAt0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool, int32_t index)
+JNIEXPORT double JNICALL Java_sun_reflect_ConstantPool_getDoubleAt0(JNIEnv *env, struct sun_reflect_ConstantPool* _this, struct java_lang_Object* jcpool, int32_t index)
 {
 	constant_double *ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
@@ -373,7 +381,7 @@ JNIEXPORT double JNICALL Java_sun_reflect_ConstantPool_getDoubleAt0(JNIEnv *env,
  * Method:    getStringAt0
  * Signature: (Ljava/lang/Object;I)Ljava/lang/String;
  */
-JNIEXPORT struct java_lang_String* JNICALL Java_sun_reflect_ConstantPool_getStringAt0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool, int32_t index)
+JNIEXPORT struct java_lang_String* JNICALL Java_sun_reflect_ConstantPool_getStringAt0(JNIEnv *env, struct sun_reflect_ConstantPool* _this, struct java_lang_Object* jcpool, int32_t index)
 {
 	utf *ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
@@ -395,7 +403,7 @@ JNIEXPORT struct java_lang_String* JNICALL Java_sun_reflect_ConstantPool_getStri
  * Method:    getUTF8At0
  * Signature: (Ljava/lang/Object;I)Ljava/lang/String;
  */
-JNIEXPORT struct java_lang_String* JNICALL Java_sun_reflect_ConstantPool_getUTF8At0(JNIEnv *env, struct sun_reflect_ConstantPool* this, struct java_lang_Object* jcpool, int32_t index)
+JNIEXPORT struct java_lang_String* JNICALL Java_sun_reflect_ConstantPool_getUTF8At0(JNIEnv *env, struct sun_reflect_ConstantPool* _this, struct java_lang_Object* jcpool, int32_t index)
 {
 	utf *ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
@@ -410,6 +418,8 @@ JNIEXPORT struct java_lang_String* JNICALL Java_sun_reflect_ConstantPool_getUTF8
 	/* XXX: I hope literalstring_new is the right Function. */
 	return (java_lang_String*)literalstring_new(ref);
 }
+
+} // extern "C"
 
 
 /*
