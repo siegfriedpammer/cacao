@@ -1,9 +1,7 @@
 /* src/vm/jit/optimizing/recompile.h - recompilation system
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -29,6 +27,11 @@
 #define _RECOMPILE_H
 
 #include "config.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "vm/types.h"
 
 #include "vm/global.h"
@@ -51,7 +54,11 @@ bool recompile_start_thread(void);
 
 void recompile_queue_method(methodinfo *m);
 
-#endif /* _PROFILE_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _RECOMPILE_H */
 
 
 /*

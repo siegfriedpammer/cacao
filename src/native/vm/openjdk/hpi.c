@@ -78,13 +78,14 @@ HPI_SystemInterface  *hpi_system        = NULL;
 
 void hpi_initialize(void)
 {
-	char        *boot_library_path;
-	int          len;
-	char        *p;
-	utf         *u;
-	lt_dlhandle  handle;
-	lt_ptr       dll_initialize;
-	int          result;
+	char* boot_library_path;
+	int   len;
+	char* p;
+	utf*  u;
+	void* handle;
+	void* dll_initialize;
+	int   result;
+
     jint (JNICALL * DLL_Initialize)(GetInterfaceFunc *, void *);
 
 	TRACESUBSYSTEMINITIALIZATION("hpi_init");
@@ -118,12 +119,13 @@ void hpi_initialize(void)
 
 	/* Resolve the DLL_Initialize function from the library. */
 
-	dll_initialize = lt_dlsym(handle, "DLL_Initialize");
+	dll_initialize = system_dlsym(handle, "DLL_Initialize");
 
     DLL_Initialize = (jint (JNICALL *)(GetInterfaceFunc *, void *)) (intptr_t) dll_initialize;
 
     if (opt_TraceHPI && DLL_Initialize == NULL)
-		log_println("hpi_init: HPI dlsym of DLL_Initialize failed: %s", lt_dlerror());
+		log_println("hpi_init: HPI dlsym of DLL_Initialize failed: %s",
+					system_dlerror());
 
     if (DLL_Initialize == NULL ||
         (*DLL_Initialize)(&hpi_get_interface, &callbacks) < 0) {

@@ -45,7 +45,6 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/java_io_File.h"
 #include "native/include/java_lang_ClassLoader.h"
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Process.h"
@@ -279,17 +278,11 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 
 	/* calculate length of library name */
 
-	buffer_len = strlen("lib");
-
-	buffer_len += utf_bytes(u);
-
-#if defined(__DARWIN__)
-	buffer_len += strlen(".dylib");
-#else
-	buffer_len += strlen(".so");
-#endif
-
-	buffer_len += strlen("0");
+	buffer_len =
+		strlen(NATIVE_LIBRARY_PREFIX) +
+		utf_bytes(u) +
+		strlen(NATIVE_LIBRARY_SUFFIX) +
+		strlen("0");
 
 	DMARKER;
 
@@ -297,14 +290,9 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 
 	/* generate library name */
 
-	strcpy(buffer, "lib");
+	strcpy(buffer, NATIVE_LIBRARY_PREFIX);
 	utf_cat(buffer, u);
-
-#if defined(__DARWIN__)
-	strcat(buffer, ".dylib");
-#else
-	strcat(buffer, ".so");
-#endif
+	strcat(buffer, NATIVE_LIBRARY_SUFFIX);
 
 	o = javastring_new_from_utf_string(buffer);
 

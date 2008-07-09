@@ -39,6 +39,10 @@
 
 #include "arch.h"
 
+#if defined(ENABLE_GC_BOEHM)
+# include "mm/memory.h"
+#endif
+
 #include "threads/thread.h"
 
 #include "vm/exceptions.h"
@@ -304,7 +308,7 @@ void signal_thread_handler(int sig)
 	case SIGINT:
 		/* exit the vm properly */
 
-		vm_exit(0);
+		vm_exit(1);
 		break;
 
 	case SIGQUIT:

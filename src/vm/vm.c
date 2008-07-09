@@ -59,7 +59,6 @@
 #include "native/vm/nativevm.h"
 
 #include "threads/lock-common.h"
-#include "threads/mutex.h"
 #include "threads/threadlist.h"
 #include "threads/thread.h"
 
@@ -76,8 +75,8 @@
 #include "vm/finalizer.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
-#include "vm/package.h"
-#include "vm/primitive.h"
+#include "vm/package.hpp"
+#include "vm/primitive.hpp"
 #include "vm/properties.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
@@ -1392,7 +1391,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
   	threads_preinit();
 	lock_init();
-	critical_init();
 #endif
 
 	/* install architecture dependent signal handlers */
@@ -1467,7 +1465,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	/* BEFORE: loader_preinit */
 
-	package_init();
+	Package_initialize();
 
 	/* AFTER: utf8_init, classcache_init */
 
@@ -1639,9 +1637,8 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	int                        status;
 	int                        i;
 
-#if defined(ENABLE_THREADS)
-	threadobject              *t;
-#endif
+	// Prevent compiler warnings.
+	oa = NULL;
 
 #if !defined(NDEBUG)
 	if (compileall) {
@@ -1806,9 +1803,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
     /* Detach the main thread so that it appears to have ended when
 	   the application's main method exits. */
 
-	t = thread_get_current();
-
-	if (!threads_detach_thread(t))
+	if (!thread_detach_current_thread())
 		vm_abort("vm_run: Could not detach main thread.");
 #endif
 
@@ -1839,7 +1834,7 @@ int vm_destroy(JavaVM *vm)
 	args.name  = "DestroyJavaVM";
 	args.group = NULL;
 
-	if (!threads_attach_current_thread(&args, false))
+	if (!thread_attach_current_thread(&args, false))
 		return 1;
 
 	/* Wait until we are the last non-daemon thread. */
@@ -1931,11 +1926,12 @@ void vm_shutdown(s4 status)
 	}
 
 #if defined(ENABLE_JVMTI)
+# error This should be a JVMTI function.
 	/* terminate cacaodbgserver */
 	if (dbgcom!=NULL) {
-		mutex_lock(&dbgcomlock);
+		Mutex_lock(&dbgcomlock);
 		dbgcom->running=1;
-		mutex_unlock(&dbgcomlock);
+		Mutex_unlock(&dbgcomlock);
 		jvmti_cacaodbgserver_quit();
 	}	
 #endif
@@ -2635,7 +2631,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 	/* box the return value if necesarry */
 
 	if (m->parseddesc->returntype.decltype != TYPE_ADR)
-		ro = primitive_box(m->parseddesc->returntype.decltype, value);
+		ro = Primitive_box(m->parseddesc->returntype.decltype, value);
 
 	/* check for an exception */
 

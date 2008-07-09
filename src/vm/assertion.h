@@ -27,10 +27,16 @@
 #define _ASSERTION_H
 
 #include "config.h"
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "vm/global.h"
 #include "toolbox/list.h"
 
-#include <stdint.h>
 
 typedef struct assertion_name_t assertion_name_t;
 
@@ -52,6 +58,10 @@ extern bool     assertion_system_enabled;
 /* function prototypes ********************************************************/
 
 void assertion_ea_da(const char *name, bool enabled);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _ASSERTION_H */
 

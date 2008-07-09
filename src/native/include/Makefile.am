@@ -41,8 +41,7 @@ COMMON_HEADER_FILES = \
 	java_lang_Float.h \
 	java_lang_Integer.h \
 	java_lang_Long.h \
-	java_lang_Short.h \
-	java_util_Vector.h
+	java_lang_Short.h
 
 JAVASE_HEADER_FILES = \
 	java_lang_ClassLoader.h \
@@ -50,7 +49,6 @@ JAVASE_HEADER_FILES = \
 	java_lang_ThreadGroup.h \
 	java_util_Properties.h \
 	\
-	java_io_File.h \
 	java_lang_Process.h \
 	java_lang_StackTraceElement.h \
 	java_lang_reflect_Constructor.h \
@@ -151,11 +149,15 @@ DO_HEADER_FILES += \
 endif
 
 if WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH
+if ENABLE_ZLIB
 VM_ZIP = $(top_builddir)/src/classes/vm.zip
+endif
 endif
 
 if WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1
+if ENABLE_ZLIB
 VM_ZIP = $(top_builddir)/src/classes/vm.zip
+endif
 endif
 
 noinst_DATA = $(DO_HEADER_FILES)

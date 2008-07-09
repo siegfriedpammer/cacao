@@ -33,7 +33,7 @@
 #include "vm/types.h"
 #include "vm/array.h"
 #include "vm/builtin.h"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 
 #include "mm/memory.h"
 
@@ -80,7 +80,7 @@ static java_handle_objectarray_t *annotation_bytearrays_resize(
 	}
 	
 	newbas = builtin_anewarray(size,
-		primitive_arrayclass_get_by_type(PRIMITIVETYPE_BYTE));
+		Primitive_get_arrayclass_by_type(PRIMITIVETYPE_BYTE));
 	
 	/* is there a old byte array array? */
 	if (newbas != NULL && bytearrays != NULL) {

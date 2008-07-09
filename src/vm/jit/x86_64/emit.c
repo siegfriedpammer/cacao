@@ -110,7 +110,7 @@ s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
     
 *******************************************************************************/
 
-inline void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
+void emit_store(jitdata *jd, instruction *iptr, varinfo *dst, s4 d)
 {
 	codegendata  *cd;
 	s4            disp;
@@ -1174,6 +1174,16 @@ void emit_movslq_reg_reg(codegendata *cd, s8 reg, s8 dreg)
 {
 	emit_rex(1,(dreg),0,(reg));
 	*(cd->mcodeptr++) = 0x63;
+	/* XXX: why do reg and dreg have to be exchanged */
+	emit_reg((dreg),(reg));
+}
+
+
+void emit_movzbq_reg_reg(codegendata *cd, s8 reg, s8 dreg)
+{
+	emit_rex(1,(dreg),0,(reg));
+	*(cd->mcodeptr++) = 0x0f;
+	*(cd->mcodeptr++) = 0xb6;
 	/* XXX: why do reg and dreg have to be exchanged */
 	emit_reg((dreg),(reg));
 }

@@ -39,7 +39,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -364,7 +364,7 @@ classinfo *field_get_type(fieldinfo *f)
 		c = load_class_from_classloader(u, f->clazz->classloader);
 	}
 	else {
-		c = primitive_class_get_by_type(td->decltype);
+		c = Primitive_get_class_by_type(td->decltype);
 	}
 
 	return c;

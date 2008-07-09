@@ -228,7 +228,7 @@ JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_VMConstructor_dec
 		LLNI_field_get_ref(this, clazz, declaringClass);
 		LLNI_class_get(this, referer);
 
-		declaredAnnotations = reflect_get_declaredannotatios(annotations, declaringClass, referer);
+		declaredAnnotations = reflect_get_declaredannotations(annotations, (classinfo*) declaringClass, referer);
 
 		LLNI_field_set_ref(this, declaredAnnotations, declaredAnnotations);
 	}
@@ -257,7 +257,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_VMConstructo
 	LLNI_field_get_ref(this, clazz, declaringClass);
 	LLNI_class_get(this, referer);
 
-	return reflect_get_parameterannotations((java_handle_t*)parameterAnnotations, slot, declaringClass, referer);
+	return reflect_get_parameterannotations((java_handle_t*)parameterAnnotations, slot, (classinfo*) declaringClass, referer);
 }
 #endif
 

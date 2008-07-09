@@ -43,8 +43,8 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/package.h"
-#include "vm/primitive.h"
+#include "vm/package.hpp"
+#include "vm/primitive.hpp"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
@@ -1323,7 +1323,7 @@ classinfo *load_class_bootstrap(utf *name)
 		else {
 			/* Add the package name to the boot packages. */
 
-			package_add(c->packagename);
+			Package_add(c->packagename);
 		}
 
 		r = res;
@@ -2100,7 +2100,7 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 		/* check for cases like `[II' and whether the character is a
 		   valid primitive type */
 
-		if ((namelen > 2) || (primitive_class_get_by_char(text[1]) == NULL)) {
+		if ((namelen > 2) || (Primitive_get_class_by_char(text[1]) == NULL)) {
 			exceptions_throw_classnotfoundexception(c->name);
 			return NULL;
 		}

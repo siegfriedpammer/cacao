@@ -1,9 +1,7 @@
 /* src/vm/jit/codegen-common.h - architecture independent code generator stuff
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -33,7 +31,6 @@
 typedef struct codegendata            codegendata;
 typedef struct branchref              branchref;
 typedef struct branch_label_ref_t     branch_label_ref_t;
-typedef struct critical_section_ref_t critical_section_ref_t;
 typedef struct jumpref                jumpref;
 typedef struct dataref                dataref;
 typedef struct exceptionref           exceptionref;
@@ -133,7 +130,6 @@ struct codegendata {
 #endif
 
 	list_t         *brancheslabel;
-	list_t         *listcritical;   /* list of critical sections              */
 	list_t         *linenumbers;    /* list of line numbers                   */
 
 	methodinfo     *method;
@@ -176,16 +172,6 @@ struct branch_label_ref_t {
 	s4         condition;       /* conditional branch condition               */
 	s4         reg;             /* register number to check                   */
 	u4         options;         /* branch options                             */
-	listnode_t linkage;
-};
-
-
-/* critical_section_ref_t *****************************************************/
-
-struct critical_section_ref_t {
-	s4         start;           /* relative offset to method entry-point      */
-	s4         end;
-	s4         restart;
 	listnode_t linkage;
 };
 
@@ -290,20 +276,6 @@ java_object_t *codegen_finish_native_call(u1 *currentsp, u1 *pv);
 
 s4 codegen_reg_of_var(u2 opcode, varinfo *v, s4 tempregnum);
 s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum);
-
-#if defined(ENABLE_THREADS)
-void codegen_critical_section_new(codegendata *cd);
-void codegen_critical_section_start(codegendata *cd);
-void codegen_critical_section_end(codegendata *cd);
-
-# define CODEGEN_CRITICAL_SECTION_NEW      codegen_critical_section_new(cd)
-# define CODEGEN_CRITICAL_SECTION_START    codegen_critical_section_start(cd)
-# define CODEGEN_CRITICAL_SECTION_END      codegen_critical_section_end(cd)
-#else
-# define CODEGEN_CRITICAL_SECTION_NEW      /* no-op */
-# define CODEGEN_CRITICAL_SECTION_START    /* no-op */
-# define CODEGEN_CRITICAL_SECTION_END      /* no-op */
-#endif
 
 #if defined(ENABLE_SSA)
 void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr);

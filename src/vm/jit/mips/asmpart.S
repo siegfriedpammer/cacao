@@ -51,8 +51,6 @@
 
 	.globl asm_abstractmethoderror
 
-	.globl compare_and_swap
-
 
 /* asm_vm_call_method **********************************************************
 *                                                                              *
@@ -423,16 +421,16 @@ ex_int2:
 	l.d     fs1,-3*8(t1)
 	l.d     fs2,-2*8(t1)
 	l.d     fs3,-1*8(t1)
-#else /* SIZEOF_VOID_P == 8 */
+#else
 # if !defined(ENABLE_SOFT_FLOAT)
-	l.d     fs0,-4*8(t1)
-	l.d     fs1,-3*8(t1)
-	l.d     fs2,-2*8(t1)
-	l.d     fs3,-1*8(t1)
-	l.d     fs4,-1*8(t1)
+	l.d     fs0,-6*8(t1)
+	l.d     fs1,-5*8(t1)
+	l.d     fs2,-4*8(t1)
+	l.d     fs3,-3*8(t1)
+	l.d     fs4,-2*8(t1)
 	l.d     fs5,-1*8(t1)
-# endif /* !defined(ENABLE_SOFT_FLOAT) */
-#endif /* SIZEOF_VOID_P == 8 */
+# endif
+#endif
 
 ex_flt2:
 	lw      t1,FrameSize(pv)            /* get frame size                     */
@@ -464,40 +462,6 @@ asm_abstractmethoderror:
 	b       asm_handle_nat_exception
 
 	.end    asm_abstractmethoderror
-
-
-	.ent    compare_and_swap
-
-compare_and_swap:
-1:
-#if defined(__GNUC__)
-	.set mips2
-#endif
-	all     v0,0(a0)
-#if defined(__GNUC__)
-	.set mips0
-#endif
-	bne     v0,a1,2f
-	move    t0,a2
-#if defined(__GNUC__)
-	.set mips2
-#endif
-	asc     t0,0(a0)
-#if defined(__GNUC__)
-	.set mips0
-#endif
-	beqz    t0,1b
-2:
-#if defined(__GNUC__)
-	.set mips2
-#endif
-	sync
-#if defined(__GNUC__)
-	.set mips0
-#endif
-	j       ra
-
-	.end    compare_and_swap
 
 
 /* disable exec-stacks ********************************************************/

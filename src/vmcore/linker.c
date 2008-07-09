@@ -41,7 +41,7 @@
 #include "vm/access.h"
 #include "vm/array.h"
 #include "vm/exceptions.h"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -1185,10 +1185,6 @@ static void linker_compute_subclasses(classinfo *c)
 {
 	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
 
-#if 0 && defined(ENABLE_THREADS) && !defined(DISABLE_GC)
-	threads_stopworld();
-#endif
-
 	if (!(c->flags & ACC_INTERFACE)) {
 		c->nextsub = NULL;
 		c->sub     = NULL;
@@ -1206,10 +1202,6 @@ static void linker_compute_subclasses(classinfo *c)
 	linker_compute_class_values(class_java_lang_Object);
 
 	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
-
-#if 0 && defined(ENABLE_THREADS) && !defined(DISABLE_GC)
-	threads_startworld();
-#endif
 }
 
 

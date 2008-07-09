@@ -1683,7 +1683,7 @@ classinfo *class_get_componenttype(classinfo *c)
 	if (ad->arraytype == ARRAYTYPE_OBJECT)
 		component = ad->componentvftbl->clazz;
 	else
-		component = primitive_class_get_by_type(ad->arraytype);
+		component = Primitive_get_class_by_type(ad->arraytype);
 		
 	return component;
 }

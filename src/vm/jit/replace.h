@@ -140,7 +140,6 @@ union replace_val_t {
 };
 
 
-	u1           *ra;                /* return address / link register */
 struct sourceframe_t {
 	sourceframe_t *down;           /* source frame down the call chain */
 

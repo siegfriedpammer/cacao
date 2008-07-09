@@ -95,11 +95,11 @@ void nativevm_preinit(void)
 
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
-	char        *boot_library_path;
-	int          len;
-	char        *p;
-	utf         *u;
-	lt_dlhandle  handle;
+	char* boot_library_path;
+	int   len;
+	char* p;
+	utf*  u;
+	void* handle;
 
 	TRACESUBSYSTEMINITIALIZATION("nativevm_preinit");
 

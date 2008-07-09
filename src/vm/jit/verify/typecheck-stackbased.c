@@ -34,7 +34,7 @@
 
 #include "vm/array.h"
 #include "vm/global.h"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 
 #include "vm/jit/parse.h"
 #include "vm/jit/show.h"

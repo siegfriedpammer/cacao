@@ -26,6 +26,10 @@
 #ifndef _BUILTIN_H
 #define _BUILTIN_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* forward typedefs ***********************************************************/
 
 typedef struct builtintable_entry builtintable_entry;
@@ -120,9 +124,9 @@ bool builtintable_replace_function(void *iptr);
  * ICMD_BUILTIN3.)
  */
 
-bool builtin_instanceof(java_handle_t *obj, classinfo *class);
+bool builtin_instanceof(java_handle_t *obj, classinfo *c);
 /* NOT AN OP */
-bool builtin_checkcast(java_handle_t *obj, classinfo *class);
+bool builtin_checkcast(java_handle_t *obj, classinfo *c);
 /* NOT AN OP */
 bool builtin_arrayinstanceof(java_handle_t *h, classinfo *targetclass);
 /* NOT AN OP */
@@ -325,6 +329,10 @@ s8 builtin_currenttimemillis(void);
 
 #if defined(ENABLE_CYCLES_STATS)
 void builtin_print_cycles_stats(FILE *file);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* _BUILTIN_H */

@@ -30,6 +30,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "vm/global.h"
 
 #include "vmcore/class.h"
@@ -54,6 +58,10 @@ bool access_is_accessible_member(classinfo *referer, classinfo *declarer,
 #if defined(ENABLE_JAVASE)
 bool access_check_field(fieldinfo *f, int callerdepth);
 bool access_check_method(methodinfo *m, int callerdepth);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* _ACCESS_H */

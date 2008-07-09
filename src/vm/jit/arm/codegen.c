@@ -2402,9 +2402,6 @@ bool codegen_emit(jitdata *jd)
 				superindex = super->index;
 			}
 
-				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-					CODEGEN_CRITICAL_SECTION_NEW;
-
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 			/* if class is not resolved, check which code to call */
@@ -2508,15 +2505,11 @@ bool codegen_emit(jitdata *jd)
 				M_LDR_INTERN(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 				M_DSEG_LOAD(REG_ITMP3, disp);
 
-				CODEGEN_CRITICAL_SECTION_START;
-
 				M_LDR_INTERN(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_LDR_INTERN(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, baseval));
 				M_SUB(REG_ITMP2, REG_ITMP2, REG_ITMP3);
 				M_DSEG_LOAD(REG_ITMP3, disp);
 				M_LDR_INTERN(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
-
-				CODEGEN_CRITICAL_SECTION_END;
 
 				M_CMP(REG_ITMP2, REG_ITMP3);
 				emit_classcast_check(cd, iptr, BRANCH_UGT, 0, s1);
@@ -2581,9 +2574,6 @@ bool codegen_emit(jitdata *jd)
 				super      = iptr->sx.s23.s3.c.cls;
 				superindex = super->index;
 			}
-
-			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-				CODEGEN_CRITICAL_SECTION_NEW;
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -2707,13 +2697,9 @@ bool codegen_emit(jitdata *jd)
 				M_LDR_INTERN(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_DSEG_LOAD(REG_ITMP2, disp);
 
-				CODEGEN_CRITICAL_SECTION_START;
-
 				M_LDR_INTERN(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_LDR_INTERN(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_LDR_INTERN(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-
-				CODEGEN_CRITICAL_SECTION_END;
 
 				M_SUB(REG_ITMP1, REG_ITMP1, REG_ITMP3);
 				M_CMP(REG_ITMP1, REG_ITMP2);

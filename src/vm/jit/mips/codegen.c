@@ -3236,9 +3236,6 @@ gen_method:
 					superindex = super->index;
 				}
 			
-				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-					CODEGEN_CRITICAL_SECTION_NEW;
-
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 				/* if class is not resolved, check which code to call */
@@ -3309,8 +3306,6 @@ gen_method:
 					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ALD(REG_ITMP3, REG_PV, disp);
 
-					CODEGEN_CRITICAL_SECTION_START;
-
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					/* 				if (s1 != REG_ITMP1) { */
 					/* 					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, baseval)); */
@@ -3324,8 +3319,6 @@ gen_method:
 					M_ISUB(REG_ITMP2, REG_ITMP3, REG_ITMP2); 
 					M_ALD(REG_ITMP3, REG_PV, disp);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
-
-					CODEGEN_CRITICAL_SECTION_END;
 
 					/* 				} */
 					M_CMPULT(REG_ITMP3, REG_ITMP2, REG_ITMP3);
@@ -3391,9 +3384,6 @@ gen_method:
 				superindex = super->index;
 			}
 			
-			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-				CODEGEN_CRITICAL_SECTION_NEW;
-
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 
@@ -3471,13 +3461,9 @@ gen_method:
 				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ALD(REG_ITMP2, REG_PV, disp);
 
-				CODEGEN_CRITICAL_SECTION_START;
-
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-
-				CODEGEN_CRITICAL_SECTION_END;
 
 				M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1); 
 				M_CMPULT(REG_ITMP2, REG_ITMP1, d);

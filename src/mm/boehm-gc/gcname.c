@@ -1,7 +1,7 @@
 #include "config.h"
 
 #include <stdio.h>
-#include "version.h"
+#include <gc.h>
 
 int main()
 {

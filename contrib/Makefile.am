@@ -23,6 +23,9 @@
 
 SUBDIRS = vmlog
 
+EXTRA_DIST = \
+	mapfile-vers-product
+
 noinst_DATA = \
 	setenvinstalled.in \
 	setenvsource.in

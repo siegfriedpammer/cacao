@@ -1,0 +1,157 @@
+/* src/vm/primitive.hpp - primitive types
+
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+
+   This file is part of CACAO.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
+
+*/
+
+
+#ifndef _PRIMITIVE_HPP
+#define _PRIMITIVE_HPP
+
+#include "config.h"
+
+#include <stdint.h>
+
+#include "vm/global.h"
+
+#include "vmcore/class.h"
+#include "vmcore/linker.h"
+#include "vmcore/utf8.h"
+
+
+#ifdef __cplusplus
+
+class Primitive {
+public:
+	static classinfo*     get_class_by_name(utf *name);
+	static classinfo*     get_class_by_type(int type);
+	static classinfo*     get_class_by_char(char ch);
+	static classinfo*     get_arrayclass_by_name(utf* name);
+	static classinfo*     get_arrayclass_by_type(int type);
+
+	static int            get_type_by_wrapperclass(classinfo *c);
+
+	static java_handle_t* box(int type, imm_union value);
+
+	static java_handle_t* box(uint8_t value);
+	static java_handle_t* box(int8_t value);
+	static java_handle_t* box(uint16_t value);
+	static java_handle_t* box(int16_t value);
+	static java_handle_t* box(int32_t value);
+	static java_handle_t* box(int64_t value);
+	static java_handle_t* box(float value);
+	static java_handle_t* box(double value);
+
+	static imm_union      unbox(java_handle_t *o);
+
+	static uint8_t        unbox_boolean(java_handle_t* o);
+	static int8_t         unbox_byte(java_handle_t* o);
+	static uint16_t       unbox_char(java_handle_t* o);
+	static int16_t        unbox_short(java_handle_t* o);
+	static int32_t        unbox_int(java_handle_t* o);
+	static int64_t        unbox_long(java_handle_t* o);
+	static float          unbox_float(java_handle_t* o);
+	static double         unbox_double(java_handle_t* o);
+};
+
+#endif
+
+/* primitive data types *******************************************************/
+
+/* These values are used in parsed descriptors and in some other
+   places were the different types handled internally as TYPE_INT have
+   to be distinguished. */
+
+#define PRIMITIVETYPE_COUNT  11  /* number of primitive types (+ dummies)     */
+
+/* CAUTION: Don't change the numerical values! These constants are
+   used as indices into the primitive type table. */
+
+#define PRIMITIVETYPE_INT     TYPE_INT
+#define PRIMITIVETYPE_LONG    TYPE_LNG
+#define PRIMITIVETYPE_FLOAT   TYPE_FLT
+#define PRIMITIVETYPE_DOUBLE  TYPE_DBL
+#define PRIMITIVETYPE_DUMMY1  TYPE_ADR     /* not used! */
+#define PRIMITIVETYPE_BYTE    5
+#define PRIMITIVETYPE_CHAR    6
+#define PRIMITIVETYPE_SHORT   7
+#define PRIMITIVETYPE_BOOLEAN 8
+#define PRIMITIVETYPE_DUMMY2  9            /* not used! */
+#define PRIMITIVETYPE_VOID    TYPE_VOID
+
+
+/* primitivetypeinfo **********************************************************/
+
+struct primitivetypeinfo {
+	char      *cname;                    /* char name of primitive class      */
+	utf       *name;                     /* name of primitive class           */
+	classinfo *class_wrap;               /* class for wrapping primitive type */
+	classinfo *class_primitive;          /* primitive class                   */
+	char      *wrapname;                 /* name of class for wrapping        */
+	char       typesig;                  /* one character type signature      */
+	char      *arrayname;                /* name of primitive array class     */
+	classinfo *arrayclass;               /* primitive array class             */
+};
+
+
+/* global variables ***********************************************************/
+
+/* This array can be indexed by the PRIMITIVETYPE_ and ARRAYTYPE_
+   constants (except ARRAYTYPE_OBJECT). */
+
+extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
+
+#ifndef __cplusplus
+// Legacy C interface.
+
+/* this function is in src/vmcore/primitivecore.c */
+void       primitive_init(void);
+void       primitive_postinit(void);
+
+classinfo *Primitive_get_class_by_name(utf *name);
+classinfo *Primitive_get_class_by_type(int type);
+classinfo *Primitive_get_class_by_char(char ch);
+
+classinfo *Primitive_get_arrayclass_by_name(utf *name);
+classinfo *Primitive_get_arrayclass_by_type(int type);
+
+int        Primitive_get_type_by_wrapperclass(classinfo *c);
+
+java_handle_t *Primitive_box(int type, imm_union value);
+imm_union      Primitive_unbox(java_handle_t *h);
+#endif
+
+#endif // _PRIMITIVE_HPP
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c++
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */

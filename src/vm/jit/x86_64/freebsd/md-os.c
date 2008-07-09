@@ -129,25 +129,6 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 #endif
 
 
-#if defined(ENABLE_THREADS)
-void thread_restartcriticalsection(ucontext_t *_uc)
-{
-	mcontext_t *_mc;
-	u1         *pc;
-	void       *critical;
-
-	_mc = &_uc->uc_mcontext;
-
-	pc = (u1 *) _mc->mc_rip;
-
-	critical = critical_find_restart_point(pc);
-
-	if (critical != NULL)
-		_mc->mc_rip = (ptrint) critical;
-}
-#endif
-
-
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

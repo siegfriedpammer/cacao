@@ -33,6 +33,12 @@
 
 #include "mm/memory.h"
 
+#if defined(ENABLE_GC_BOEHM)
+/* We need to include Boehm's gc.h here for GC_register_my_thread and
+   friends. */
+# include "mm/boehm-gc/include/gc.h"
+#endif
+
 #include "native/jni.h"
 #include "native/llni.h"
 #include "native/native.h"
@@ -49,7 +55,6 @@
 # include "native/include/java_lang_VMThread.h"
 #endif
 
-#include "threads/critical.h"
 #include "threads/lock-common.h"
 #include "threads/threadlist.h"
 #include "threads/thread.h"
@@ -147,6 +152,12 @@ void threads_preinit(void)
 	/* Create internal thread data-structure for the main thread. */
 
 	mainthread = thread_new();
+
+	/* The main thread should always have index 1. */
+
+	if (mainthread->index != 1)
+		vm_abort("threads_preinit: main thread index not 1: %d != 1",
+				 mainthread->index);
 
 	/* thread is a Java thread and running */
 
@@ -717,13 +728,16 @@ void threads_thread_start(java_handle_t *object)
 }
 
 
-/* threads_attach_current_thread ***********************************************
-
-   Attaches the current thread to the VM.  Used in JNI.
-
-*******************************************************************************/
-
-bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
+/**
+ * Attaches the current thread to the VM.
+ *
+ * @param vm_aargs Attach arguments.
+ * @param isdaemon true if the attached thread should be a daemon
+ *                 thread.
+ *
+ * @return true on success, false otherwise.
+ */
+bool thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 {
 	bool           result;
 	threadobject  *t;
@@ -809,6 +823,81 @@ bool threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	/* The thread is completely initialized. */
 
 	thread_set_state_runnable(t);
+
+	return true;
+}
+
+
+/**
+ * Attaches the current external thread to the VM.  This function is
+ * called by JNI's AttachCurrentThread.
+ *
+ * @param vm_aargs Attach arguments.
+ * @param isdaemon true if the attached thread should be a daemon
+ *                 thread.
+ *
+ * @return true on success, false otherwise.
+ */
+bool thread_attach_current_external_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
+{
+	int result;
+
+#if defined(ENABLE_GC_BOEHM)
+	struct GC_stack_base sb;
+#endif
+
+#if defined(ENABLE_GC_BOEHM)
+	/* Register the thread with Boehm-GC.  This must happen before the
+	   thread allocates any memory from the GC heap.*/
+
+	result = GC_get_stack_base(&sb);
+
+	if (result != GC_SUCCESS)
+		vm_abort("threads_attach_current_thread: GC_get_stack_base failed");
+
+	GC_register_my_thread(&sb);
+#endif
+
+	result = thread_attach_current_thread(vm_aargs, isdaemon);
+
+	if (result == false) {
+#if defined(ENABLE_GC_BOEHM)
+		/* Unregister the thread. */
+
+		GC_unregister_my_thread();
+#endif
+
+		return false;
+	}
+
+	return true;
+}
+
+
+/**
+ * Detaches the current external thread from the VM.  This function is
+ * called by JNI's DetachCurrentThread.
+ *
+ * @return true on success, false otherwise.
+ */
+bool thread_detach_current_external_thread(void)
+{
+	int result;
+
+	result = thread_detach_current_thread();
+
+	if (result == false)
+		return false;
+
+#if defined(ENABLE_GC_BOEHM)
+	/* Unregister the thread with Boehm-GC.  This must happen after
+	   the thread allocates any memory from the GC heap. */
+
+	/* Don't detach the main thread.  This is a workaround for
+	   OpenJDK's java binary. */
+	if (thread_get_current()->index != 1)
+		GC_unregister_my_thread();
+#endif
 
 	return true;
 }

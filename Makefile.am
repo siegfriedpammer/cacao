@@ -25,7 +25,12 @@ ACLOCAL_AMFLAGS = -I m4
 
 MAINTAINERCLEANFILES = Makefile.in configure
 
-SUBDIRS = contrib doc man src tests
+SUBDIRS = \
+	contrib \
+	doc \
+	man \
+	src \
+	tests
 
 EXTRA_DIST = \
 	ChangeLog-1998 \
@@ -36,6 +41,8 @@ EXTRA_DIST = \
 	ChangeLog-2003 \
 	ChangeLog-2004 \
 	ChangeLog-2005 \
+	ChangeLog-2006 \
+	ChangeLog-2007 \
 	THIRDPARTY
 
 

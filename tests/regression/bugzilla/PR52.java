@@ -23,20 +23,12 @@
 */
 
 
-import junit.framework.*;
-import junit.textui.*;
+import org.junit.Test;
 
 import java.security.*;
 
-public class PR52 extends TestCase {
-    public static void main(String[] args) {
-        TestRunner.run(suite());
-    }
-
-    public static Test suite() {
-        return new TestSuite(PR52.class);
-    }
-
+public class PR52 {
+    @Test
     public void test() {
         // This one only triggers with GNU Classpath.
         AccessController.getContext();

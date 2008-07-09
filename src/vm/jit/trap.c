@@ -31,6 +31,8 @@
 
 #include "md-trap.h"
 
+#include "mm/memory.h"
+
 #include "native/llni.h"
 
 #include "toolbox/logging.h"

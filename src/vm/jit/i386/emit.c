@@ -927,6 +927,15 @@ void emit_movb_imm_membase(codegendata *cd, s4 imm, s4 basereg, s4 disp)
 }
 
 
+void emit_movsbl_reg_reg(codegendata *cd, s4 a, s4 b)
+{
+	assert(a < 4);                     /* Can only operate on al, bl, cl, dl. */
+	*(cd->mcodeptr++) = 0x0f;
+	*(cd->mcodeptr++) = 0xbe;
+	emit_reg((b),(a));
+}
+
+
 void emit_movsbl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
 {
 	COUNT(count_mov_mem_reg);
@@ -950,6 +959,15 @@ void emit_movswl_memindex_reg(codegendata *cd, s4 disp, s4 basereg, s4 indexreg,
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0xbf;
 	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
+}
+
+
+void emit_movzbl_reg_reg(codegendata *cd, s4 a, s4 b)
+{
+	assert(a < 4);                     /* Can only operate on al, bl, cl, dl. */
+	*(cd->mcodeptr++) = 0x0f;
+	*(cd->mcodeptr++) = 0xb6;
+	emit_reg((b),(a));
 }
 
 

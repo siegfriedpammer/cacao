@@ -34,7 +34,7 @@
 
 #include "vm/array.h"
 #include "vm/exceptions.h"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 #include "vm/resolve.h"
 
 #include "vm/jit/jit.h"

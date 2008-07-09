@@ -1,9 +1,7 @@
 /* src/vm/jit/argument.h - argument passing from and to JIT methods
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -32,6 +30,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "vm/global.h"
 
 
@@ -53,6 +55,10 @@ uint64_t *argument_vmarray_from_jvalue(methodinfo *m, java_handle_t *o,
 									   const jvalue *args);
 uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 											java_handle_objectarray_t *params);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _VM_JIT_ARGUMENT_H */
 

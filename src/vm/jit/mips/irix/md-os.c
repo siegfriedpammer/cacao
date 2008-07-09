@@ -1,9 +1,7 @@
 /* src/vm/jit/mips/irix/md-os.c - machine dependent MIPS IRIX functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -143,34 +141,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		_mc->gregs[CTX_EPC]        = (intptr_t) asm_handle_exception;
 	}
 }
-
-
-/* md_critical_section_restart *************************************************
-
-   Search the critical sections tree for a matching section and set
-   the PC to the restart point, if necessary.
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-void md_critical_section_restart(ucontext_t *_uc)
-{
-	mcontext_t *_mc;
-	u1         *pc;
-	u1         *npc;
-
-	_mc = &_uc->uc_mcontext;
-
-	pc = (u1 *) _mc->gregs[CTX_EPC];
-
-	npc = critical_find_restart_point(pc);
-
-	if (npc != NULL) {
-		log_println("md_critical_section_restart: pc=%p, npc=%p", pc, npc);
-		_mc->gregs[CTX_EPC] = (ptrint) npc;
-	}
-}
-#endif
 
 
 /*

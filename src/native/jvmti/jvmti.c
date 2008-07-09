@@ -56,7 +56,6 @@
 #include "threads/thread.h"
 #include "threads/lock-common.h"
 #include "vm/exceptions.h"
-#include "native/include/java_util_Vector.h"
 #include "native/include/java_io_PrintStream.h"
 #include "native/include/java_io_InputStream.h"
 #include "native/include/java_lang_Cloneable.h"
@@ -1158,7 +1157,7 @@ GetThreadState (jvmtiEnv * env, jthread thread, jint * thread_state_ptr)
 		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_WAITING_WITH_TIMEOUT;
 		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_IN_OBJECT_WAIT;
 		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_PARKED;
-		if (t->sleeping) *thread_state_ptr |= JVMTI_THREAD_STATE_SLEEPING;
+		if (false) *thread_state_ptr |= JVMTI_THREAD_STATE_SLEEPING;
 	}
 #else
 	return JVMTI_ERROR_INTERNAL;

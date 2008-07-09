@@ -325,15 +325,13 @@ bool patcher_putfieldconst(patchref_t *pr)
 	if (IS_2_WORD_TYPE(fi->type) || IS_ADR_TYPE(fi->type)) {
 		/* handle special case when the base register is %r12 */
 
-		byte = *(ra + 2);
+		byte = *(ra + 12);
 
-		if (byte == 0x84) {
-			*((uint32_t *) (ra + 4))      = fi->offset;
-			*((uint32_t *) (ra + 12 + 4)) = fi->offset + 4;
+		if (byte == 0x94) {
+			*((uint32_t *) (ra + 14))      = fi->offset;
 		}
 		else {
-			*((uint32_t *) (ra + 3))      = fi->offset;
-			*((uint32_t *) (ra + 11 + 3)) = fi->offset + 4;
+			*((uint32_t *) (ra + 13))      = fi->offset;
 		}
 	}
 	else {

@@ -27,6 +27,11 @@
 #define _CLASSCACHE_H
 
 #include "config.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "vm/types.h"
 
 #include <stdio.h>  /* for FILE */
@@ -155,6 +160,10 @@ void classcache_get_loaded_classes(s4 *class_count_ptr,
 void classcache_debug_dump(FILE *file,utf *only);
 #endif
 	
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* _CLASSCACHE_H */
 
 /*

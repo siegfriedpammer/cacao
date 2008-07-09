@@ -187,7 +187,6 @@ void codegen_setup(jitdata *jd)
 #endif
 
 	cd->brancheslabel  = list_create_dump(OFFSET(branch_label_ref_t, linkage));
-	cd->listcritical   = list_create_dump(OFFSET(critical_section_ref_t, linkage));
 	cd->linenumbers    = list_create_dump(OFFSET(linenumbertable_list_entry_t, linkage));
 }
 
@@ -229,7 +228,6 @@ static void codegen_reset(jitdata *jd)
 #endif
 
 	cd->brancheslabel   = list_create_dump(OFFSET(branch_label_ref_t, linkage));
-	cd->listcritical    = list_create_dump(OFFSET(critical_section_ref_t, linkage));
 	cd->linenumbers     = list_create_dump(OFFSET(linenumbertable_list_entry_t, linkage));
 	
 	/* We need to clear the mpc and the branch references from all
@@ -497,164 +495,6 @@ void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u
 }
 
 
-/* codegen_critical_section_new ************************************************
-
-   Allocates a new critical-section reference and adds it to the
-   critical-section list.
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-void codegen_critical_section_new(codegendata *cd)
-{
-	list_t                 *l;
-	critical_section_ref_t *csr;
-	s4                      mpc;
-
-	/* Get the critical section list. */
-
-	l = cd->listcritical;
-	
-	/* calculate the current mpc */
-
-	mpc = cd->mcodeptr - cd->mcodebase;
-
-	csr = DNEW(critical_section_ref_t);
-
-	/* We only can set restart right now, as start and end are set by
-	   the following, corresponding functions. */
-
-	csr->start   = -1;
-	csr->end     = -1;
-	csr->restart = mpc;
-
-	/* Add the branch to the list. */
-
-	list_add_last(l, csr);
-}
-#endif
-
-
-/* codegen_critical_section_start **********************************************
-
-   Set the start-point of the current critical section (which is the
-   last element of the list).
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-void codegen_critical_section_start(codegendata *cd)
-{
-	list_t                 *l;
-	critical_section_ref_t *csr;
-	s4                      mpc;
-
-	/* Get the critical section list. */
-
-	l = cd->listcritical;
-	
-	/* calculate the current mpc */
-
-	mpc = cd->mcodeptr - cd->mcodebase;
-
-	/* Get the current critical section. */
-
-	csr = list_last(l);
-
-	/* set the start point */
-
-	assert(csr->start == -1);
-
-	csr->start = mpc;
-}
-#endif
-
-
-/* codegen_critical_section_end ************************************************
-
-   Set the end-point of the current critical section (which is the
-   last element of the list).
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-void codegen_critical_section_end(codegendata *cd)
-{
-	list_t                 *l;
-	critical_section_ref_t *csr;
-	s4                      mpc;
-
-	/* Get the critical section list. */
-
-	l = cd->listcritical;
-	
-	/* calculate the current mpc */
-
-	mpc = cd->mcodeptr - cd->mcodebase;
-
-	/* Get the current critical section. */
-
-	csr = list_last(l);
-
-	/* set the end point */
-
-	assert(csr->end == -1);
-
-	csr->end = mpc;
-}
-#endif
-
-
-/* codegen_critical_section_finish *********************************************
-
-   Finish the critical sections, create the critical section nodes for
-   the AVL tree and insert them into the tree.
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-static void codegen_critical_section_finish(jitdata *jd)
-{
-	codeinfo    *code;
-	codegendata *cd;
-	list_t                  *l;
-	critical_section_ref_t  *csr;
-	critical_section_node_t *csn;
-
-	/* get required compiler data */
-
-	code = jd->code;
-	cd   = jd->cd;
-
-	/* Get the critical section list. */
-
-	l = cd->listcritical;
-
-	/* iterate over all critical sections */
-
-	for (csr = list_first(l); csr != NULL; csr = list_next(l, csr)) {
-		/* check if all points are set */
-
-		assert(csr->start   != -1);
-		assert(csr->end     != -1);
-		assert(csr->restart != -1);
-
-		/* allocate tree node */
-
-		csn = NEW(critical_section_node_t);
-
-		csn->start   = code->entrypoint + csr->start;
-		csn->end     = code->entrypoint + csr->end;
-		csn->restart = code->entrypoint + csr->restart;
-
-		/* insert into the tree */
-
-		critical_section_register(csn);
-	}
-}
-#endif
-
-
 /* codegen_set_replacement_point_notrap ****************************************
 
    Record the position of a non-trappable replacement point.
@@ -859,12 +699,6 @@ void codegen_finish(jitdata *jd)
 	/* resolve data segment references */
 
 	dseg_resolve_datareferences(jd);
-#endif
-
-#if defined(ENABLE_THREADS)
-	/* create cirtical sections */
-
-	codegen_critical_section_finish(jd);
 #endif
 
 	/* flush the instruction and data caches */

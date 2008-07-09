@@ -412,27 +412,6 @@ void md_executionstate_write(executionstate_t* es, void* context)
 }
 
 
-#if defined(ENABLE_THREADS)
-void md_critical_section_restart(ucontext_t *_uc)
-{
-	mcontext_t *_mc;
-	u1         *pc;
-	void       *npc;
-
-	_mc = &_uc->uc_mcontext;
-
-	pc = (u1 *)_mc->psw.addr;
-
-	npc = critical_find_restart_point(pc);
-
-	if (npc != NULL) {
-		log_println("%s: pc=%p, npc=%p", __FUNCTION__, pc, npc);
-		_mc->psw.addr = (ptrint) npc;
-	}
-}
-#endif
-
-
 /* md_jit_method_patch_address *************************************************
 
    Gets the patch address of the currently compiled method. The offset

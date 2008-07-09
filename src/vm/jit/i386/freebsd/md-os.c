@@ -1,9 +1,7 @@
 /* src/vm/jit/i386/freebsd/md-os.c - machine dependent i386 FreeBSD functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -21,12 +19,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
 
 */
 
@@ -101,19 +93,6 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	_mc->mc_ecx = (ptrint) xpc;                              /* REG_ITMP2_XPC */
 	_mc->mc_eip = (ptrint) asm_handle_exception;
 }
-
-
-#if defined(ENABLE_THREADS)
-void thread_restartcriticalsection(ucontext_t *uc)
-{
-	void *critical;
-
-	critical = critical_find_restart_point((void *) uc->uc_mcontext.mc_eip);
-
-	if (critical)
-		uc->uc_mcontext.mc_eip = (ptrint) critical;
-}
-#endif
 
 
 /*

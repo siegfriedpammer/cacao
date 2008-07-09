@@ -68,6 +68,11 @@ endif
 
 libjvm_la_SOURCES =
 
+# Dummy C++ source to cause C++ linking.
+# http://www.gnu.org/software/automake/manual/automake.html#Libtool-Convenience-Libraries
+nodist_EXTRA_libjvm_la_SOURCES = \
+	dummy.cxx
+
 libjvm_la_LIBADD = \
 	$(top_builddir)/src/fdlibm/libfdlibm.la \
 	$(top_builddir)/src/mm/libmm.la \
@@ -89,6 +94,20 @@ cacao_LDADD = \
 
 cacao_DEPENDENCIES = \
 	$(cacao_LDADD)
+
+
+if WITH_JAVA_RUNTIME_LIBRARY_OPENJDK
+install-data-local:
+	$(mkdir_p) $(prefix)/jre/lib/$(JAVA_ARCH)/server
+	$(LN_S) -f $(libdir)/libjvm.so $(prefix)/jre/lib/$(JAVA_ARCH)/server
+	$(ECHO) $(ECHO_N) > $(prefix)/jre/lib/$(JAVA_ARCH)/server/Xusage.txt
+	$(ECHO) $(ECHO_N) > $(prefix)/jre/lib/$(JAVA_ARCH)/server/libjsig.so
+
+uninstall-local:
+	rm -f $(prefix)/jre/lib/$(JAVA_ARCH)/server/libjvm.so
+	rm -f $(prefix)/jre/lib/$(JAVA_ARCH)/server/Xusage.txt
+	rm -f $(prefix)/jre/lib/$(JAVA_ARCH)/server/libjsig.so
+endif
 
 
 ## Local variables:

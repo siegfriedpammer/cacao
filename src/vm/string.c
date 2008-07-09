@@ -45,7 +45,7 @@
 #include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -141,7 +141,7 @@ void stringtable_update(void)
 				if (!a->header.objheader.vftbl) 
 					/* vftbl of character-array is NULL */ 
 					a->header.objheader.vftbl =
-						primitive_arrayclass_get_by_type(ARRAYTYPE_CHAR)->vftbl;
+						Primitive_get_arrayclass_by_type(ARRAYTYPE_CHAR)->vftbl;
 
 				/* follow link in external hash chain */
 				s = s->hashlink;
@@ -589,7 +589,7 @@ static java_object_t *literalstring_u2(java_chararray_t *a, u4 length,
     /* location in hashtable found, complete arrayheader */
 
     ca->header.objheader.vftbl =
-		primitive_arrayclass_get_by_type(ARRAYTYPE_CHAR)->vftbl;
+		Primitive_get_arrayclass_by_type(ARRAYTYPE_CHAR)->vftbl;
     ca->header.size            = length;
 
 	assert(class_java_lang_String);

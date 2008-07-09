@@ -23,11 +23,11 @@ dnl 02110-1301, USA.
 dnl Process this file with autoconf to produce a configure script.
 
 
-AC_INIT(cacao, 0.99rc5, cacao@cacaojvm.org)
+AC_INIT(cacao, 1.1.0pre, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
-AM_INIT_AUTOMAKE([1.9.0 dist-bzip2])
+AM_INIT_AUTOMAKE([1.9.0 dist-bzip2 tar-ustar])
 AM_MAINTAINER_MODE
 
 AM_CONFIG_HEADER([config.h])
@@ -35,87 +35,93 @@ AM_CONFIG_HEADER([config.h])
 AC_PREFIX_DEFAULT(/usr/local/cacao)
 
 
-dnl set optimization and debugging for all architectures and systems
+dnl Set optimization and debugging for all architectures and systems.
 if test x"$CFLAGS" = "x"; then
-    OPT_CFLAGS="-O0 -g3"
+    OPT_CFLAGS="-O0 -g"
 else
     OPT_CFLAGS=$CFLAGS
+fi
+
+if test x"$CXXFLAGS" = "x"; then
+    OPT_CXXFLAGS="-O0 -g"
+else
+    OPT_CXXFLAGS=$CXXFLAGS
 fi
 
 dnl system type
 case "$host_cpu" in
 alpha | alphaev56 | alphapca56 )
     ARCH_DIR="alpha"
-    ARCH_CFLAGS="-mieee -D__ALPHA__"
+    ARCH_FLAGS="-mieee -D__ALPHA__"
     JAVA_ARCH="alpha"
     ;;
 
 arm | armv4 | armv4tl | armv5b | armv5l )
     ARCH_DIR="arm"
-    ARCH_CFLAGS="-D__ARM__"
+    ARCH_FLAGS="-D__ARM__"
     JAVA_ARCH="arm"
     ;;
 
 hppa2.0 )
     ARCH_DIR="parisc"
-    ARCH_CFLAGS="-D__PARISC__"
+    ARCH_FLAGS="-D__PARISC__"
     JAVA_ARCH="hppa"
     ;;
 
 i386 | i486 | i586 | i686 )
     ARCH_DIR="i386"
-    ARCH_CFLAGS="-D__I386__"
+    ARCH_FLAGS="-D__I386__"
     JAVA_ARCH="i386"
     ;;
 
 m68k )
     ARCH_DIR="m68k"
-    ARCH_CFLAGS="-D__M68K__"
+    ARCH_FLAGS="-D__M68K__"
     JAVA_ARCH="m68k"
     ;;
 
 mips | mipsel )
     ARCH_DIR="mips"
-    ARCH_CFLAGS="-D__MIPS__"
+    ARCH_FLAGS="-D__MIPS__"
     dnl Is this correct for mipsel?
     JAVA_ARCH="mips"
     ;;
 
 powerpc )
     ARCH_DIR="powerpc"
-    ARCH_CFLAGS="-D__POWERPC__"
+    ARCH_FLAGS="-D__POWERPC__"
     JAVA_ARCH="ppc"
     ;;
 
 powerpc64 )
     ARCH_DIR="powerpc64"
-    ARCH_CFLAGS="-D__POWERPC64__"
+    ARCH_FLAGS="-D__POWERPC64__"
     JAVA_ARCH="ppc64"
     ;;
 
 s390 )
     ARCH_DIR="s390"
-    ARCH_CFLAGS="-D__S390__"
+    ARCH_FLAGS="-D__S390__"
     JAVA_ARCH="s390"
     ;;
 
 sparc | sparc64 )
     ARCH_DIR="sparc64"
-    ARCH_CFLAGS="-mcpu=v9 -m64 -D__SPARC_64__"
+    ARCH_FLAGS="-mcpu=v9 -m64 -D__SPARC_64__"
     dnl Is this correct for 64-bits?
     JAVA_ARCH="sparc"
     ;;
 
 x86_64 )
     ARCH_DIR="x86_64"
-    ARCH_CFLAGS="-D__X86_64__"
+    ARCH_FLAGS="-m64 -D__X86_64__"
     JAVA_ARCH="amd64"
     ;;
 
 xdspcore )
     ARCH_DIR="xdspcore"
     ENABLE_STATICVM="yes"
-    ARCH_CFLAGS="-D__XDSPCORE__"
+    ARCH_FLAGS="-D__XDSPCORE__"
     USE_SCHEDULER="1"
     ;;
 
@@ -128,59 +134,79 @@ dnl host type
 case "$host_os" in
 *cygwin* )
     OS_DIR="cygwin"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__WINDOWS__ -D__CYGWIN__ -Wall -Wno-long-long"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__WINDOWS__ -D__CYGWIN__ -ansi -pedantic -Wall -Wno-long-long"
+    OS_FLAGS="-D__WINDOWS__ -D__CYGWIN__"
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *darwin* )
     OS_DIR="darwin"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__DARWIN__ -Wall -Wno-long-long"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__DARWIN__ -ansi -pedantic -Wall -Wno-long-long"
+    OS_FLAGS="-D__DARWIN__"
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
+    ;;
+
+dnl Must be BEFORE *freebsd*.
+*kfreebsd*-gnu)
+    OS_DIR="freebsd"
+    OS_FLAGS="-D__FREEBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *freebsd* )
     OS_DIR="freebsd"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -ansi -pedantic -Wall -Wno-long-long -D_XOPEN_SOURCE_EXTENDED"
+    OS_FLAGS="-D__FREEBSD__ -D_XOPEN_SOURCE_EXTENDED"
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *irix* )
     OS_DIR="irix"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__IRIX__"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__IRIX__"
+    OS_FLAGS="-D__IRIX__"
+    CC_FLAGS=""
+    CXX_FLAGS=""
+    INTRP_CFLAGS="$ARCH_FLAGS $OS_FLAGS"
     ;;
 
-*kfreebsd*-gnu)
-    OS_DIR="freebsd"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__FREEBSD__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    ;;
-
-dnl must be before *linux*
+dnl Must be BEFORE *linux*.
 *uclinux | *elf )
     OS_DIR="uclinux"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    OS_FLAGS="-D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *linux* | *Linux* )
     OS_DIR="linux"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__LINUX__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    OS_FLAGS="-D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *netbsd* )
     OS_DIR="netbsd"
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__NETBSD__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__NETBSD__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    OS_FLAGS="-D__NETBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *solaris* )
     OS_DIR="solaris"
-	dnl on solaris the architecture defines 'sparc','sun','unix' are not set when cpp is called with -ansi
-	dnl therefore we add them here
-    INTRP_CFLAGS="$ARCH_CFLAGS -D__SOLARIS__ -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_BSD_SOURCE -Dsparc -Dsun -Dunix"
-    ARCH_CFLAGS="$ARCH_CFLAGS -D__SOLARIS__ -ansi -pedantic -Wall -Wno-long-long -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500 -D__EXTENSIONS__ -D_BSD_SOURCE -Dsparc -Dsun -Dunix"
+    dnl On solaris the architecture defines 'sparc', 'sun', 'unix' are
+    dnl not set when cpp is called with -std=c99, therefore we add them
+    dnl here.
+    OS_FLAGS="-D__SOLARIS__ -D_POSIX_C_SOURCE=200112L -D__EXTENSIONS__ -D_BSD_SOURCE"
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long -D_XOPEN_SOURCE=600"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 * )
@@ -190,7 +216,8 @@ esac
 
 dnl temporary set the CFLAGS for configure tests (e.g. inline keyword)
 dnl we set it properly at the end of this file
-CFLAGS="$ARCH_CFLAGS $OPT_CFLAGS"
+CFLAGS="$OPT_CFLAGS $ARCH_FLAGS $OS_FLAGS $CC_FLAGS"
+CXXFLAGS="$OPT_CXXFLAGS $ARCH_FLAGS $OS_FLAGS $CXX_FLAGS"
 
 dnl set interpreter flags
 AC_SUBST(INTRP_CFLAGS)
@@ -199,16 +226,17 @@ dnl define and substitute some architecture specific variables
 AC_DEFINE_UNQUOTED([ARCH_DIR], "${ARCH_DIR}", [architecture directory])
 AC_DEFINE_UNQUOTED([JAVA_ARCH], "${JAVA_ARCH}", [Java architecture name])
 AC_SUBST(ARCH_DIR)
+AC_SUBST(JAVA_ARCH)
 AC_SUBST(OS_DIR)
 AC_SUBST(USE_SCHEDULER)
 
 
 dnl Checks for programs.
 AC_PROG_CC
+AC_PROG_CXX
 AM_PROG_AS
 AC_PROG_LD
 AC_PROG_LD_GNU
-AC_PROG_RANLIB
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AM_PROG_MKDIR_P
@@ -216,6 +244,10 @@ AM_PROG_MKDIR_P
 dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
+
+dnl Crucial header files.
+AC_CHECK_HEADERS([stdbool.h],, [AC_MSG_ERROR(cannot find stdbool.h)])
+AC_CHECK_HEADERS([stdint.h],, [AC_MSG_ERROR(cannot find stdint.h)])
 
 dnl keep them alpha-sorted!
 AC_CHECK_HEADERS([assert.h])
@@ -239,15 +271,6 @@ AC_CHECK_HEADERS([sys/stat.h])
 AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_HEADERS([sys/types.h])
 
-dnl this is for fdlibm
-AC_CHECK_HEADERS([inttypes.h])
-AC_CHECK_HEADERS([sys/config.h])
-AC_CHECK_HEADERS([sys/types.h])
-AC_EGREP_HEADER(uint32_t, stdint.h, AC_DEFINE(HAVE_INT32_DEFINED, 1, [Define to 1 if you have uint32_t]))
-AC_EGREP_HEADER(uint32_t, inttypes.h, AC_DEFINE(HAVE_INT32_DEFINED, 1, [Define to 1 if you have uint32_t]))
-AC_EGREP_HEADER(u_int32_t, sys/types.h, AC_DEFINE(HAVE_BSD_INT32_DEFINED, 1, [Define to 1 if you have BSD u_int32_t]))
-AC_EGREP_HEADER(u_int32_t, sys/config.h, AC_DEFINE(HAVE_BSD_INT32_DEFINED, 1, [Define to 1 if you have BSD u_int32_t]))
-
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_C_INLINE
@@ -259,7 +282,12 @@ AC_STRUCT_TM
 
 dnl Checks for libraries (NOTE: Should be done before function checks,
 dnl as some functions may be in libraries we check for).
-AC_CHECK_LIB(dl, dlopen,,)
+
+case "${OS_DIR}" in
+    solaris )
+         AC_CHECK_LIB([socket], [gethostname],, [AC_MSG_ERROR(cannot find libsocket)])
+         ;;
+esac
 
 dnl Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
@@ -359,8 +387,7 @@ AC_DEFINE_UNQUOTED([CACAO_LIBDIR], "${CACAO_LIBDIR}", [library installation pref
 AC_SUBST(CACAO_LIBDIR)
 
 
-AC_CHECK_ENABLE_LTDL
-
+AC_CHECK_ENABLE_DL
 AC_CHECK_ENABLE_JAVA
 
 AC_CHECK_ENABLE_JIT
@@ -377,266 +404,20 @@ AC_CHECK_SOFT_DOUBLE_CMP
 AC_CHECK_ENABLE_GC
 AC_CHECK_ENABLE_DEBUG
 AC_CHECK_ENABLE_DUMP
-
-
-dnl check for memcheck support
-AC_MSG_CHECKING(whether debugging memory checks should be enabled)
-AC_ARG_ENABLE([memcheck],
-              [AS_HELP_STRING(--enable-memcheck,enable debugging memory checks [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_MEMCHECK=yes;;
-                   *) ENABLE_MEMCHECK=no;;
-               esac],
-              [ENABLE_MEMCHECK=no])
-AC_MSG_RESULT(${ENABLE_MEMCHECK})
-AM_CONDITIONAL([ENABLE_MEMCHECK], test x"${ENABLE_MEMCHECK}" = "xyes")
-
-if test x"${ENABLE_MEMCHECK}" = "xyes"; then
-    AC_DEFINE([ENABLE_MEMCHECK], 1, [perform debugging memory checks])
-fi
-
-
-dnl check for handles (indirection cells) support
-AC_MSG_CHECKING(whether handles (indirection cells) should be enabled)
-AC_ARG_ENABLE([handles],
-              [AS_HELP_STRING(--enable-handles,enable handles (indirection cells) [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_HANDLES=yes;;
-                   *) ENABLE_HANDLES=no;;
-               esac],
-              [ENABLE_HANDLES=no])
-AC_MSG_RESULT(${ENABLE_HANDLES})
-AM_CONDITIONAL([ENABLE_HANDLES], test x"${ENABLE_HANDLES}" = "xyes")
-
-if test x"${ENABLE_HANDLES}" = "xyes"; then
-    AC_DEFINE([ENABLE_HANDLES], 1, [enable handles (indirection cells)])
-fi
-
-
-dnl check for vmlog support
-AC_MSG_CHECKING(whether vmlog tracing should be enabled)
-AC_ARG_ENABLE([vmlog],
-              [AS_HELP_STRING(--enable-vmlog,enable vmlog tracing [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_VMLOG=yes;;
-                   *) ENABLE_VMLOG=no;;
-               esac],
-              [ENABLE_VMLOG=no])
-AC_MSG_RESULT(${ENABLE_VMLOG})
-AM_CONDITIONAL([ENABLE_VMLOG], test x"${ENABLE_VMLOG}" = "xyes")
-
-if test x"${ENABLE_VMLOG}" = "xyes"; then
-    AC_DEFINE([ENABLE_VMLOG], 1, [enable vmlog tracing code])
-fi
-
-
-dnl check for disassembler support
-AC_MSG_CHECKING(whether disassembler should be enabled)
-AC_ARG_ENABLE([disassembler],
-              [AS_HELP_STRING(--enable-disassembler,enable disassembler [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_DISASSEMBLER=yes;;
-                   *) ENABLE_DISASSEMBLER=no;;
-               esac],
-              [ENABLE_DISASSEMBLER=no])
-AC_MSG_RESULT(${ENABLE_DISASSEMBLER})
-AM_CONDITIONAL([ENABLE_DISASSEMBLER], test x"${ENABLE_DISASSEMBLER}" = "xyes")
-
-if test x"${ENABLE_DISASSEMBLER}" = "xyes"; then
-    AC_DEFINE([ENABLE_DISASSEMBLER], 1, [enable disassembler])
-
-    dnl check for binutils headers and libraries on some architectures for the
-    dnl disassembler
-    case "${ARCH_DIR}" in
-        arm | i386 | powerpc | x86_64 | sparc64 | powerpc64 | s390 | m68k)
-            AC_CHECK_HEADER([ansidecl.h],, [AC_MSG_ERROR(cannot find ansidecl.h)])
-            AC_CHECK_HEADER([symcat.h],, [AC_MSG_ERROR(cannot find symcat.h)])
-            AC_CHECK_HEADER([bfd.h],, [AC_MSG_ERROR(cannot find bfd.h)])
-            AC_CHECK_HEADER([dis-asm.h],, [AC_MSG_ERROR(cannot find dis-asm.h)])
-
-            case "${OS_DIR}" in
-                cygwin | darwin | netbsd | solaris)
-                     AC_CHECK_LIB(intl, dcgettext,, [AC_MSG_ERROR(cannot find libintl (from binutils))])
-                     ;;
-            esac
-
-            case "${OS_DIR}" in
-                solaris)
-					 AC_CHECK_LIB(rt, sem_init,, [AC_MSG_ERROR(cannot find librt)])
-                     ;;
-            esac
-
-
-            AC_CHECK_LIB(iberty, xstrerror,, [AC_MSG_ERROR(cannot find libiberty (from binutils))])
-            AC_CHECK_LIB(bfd, bfd_get_arch,, [AC_MSG_ERROR(cannot find libbfd (from binutils))])
-            AC_CHECK_LIB(opcodes, disassembler,, [AC_MSG_ERROR(cannot find libopcodes (from binutils))])
-            AC_DEFINE([WITH_BINUTILS_DISASSEMBLER], 1, [use binutils disassembler])
-            AM_CONDITIONAL([WITH_BINUTILS_DISASSEMBLER], [true])
-            ;;
-        * )
-            AM_CONDITIONAL([WITH_BINUTILS_DISASSEMBLER], [false])
-            ;;
-    esac
-else
-    AM_CONDITIONAL([WITH_BINUTILS_DISASSEMBLER], [false])
-fi
-
-
-dnl check for statistics
-AC_MSG_CHECKING(whether statistics generation should be enabled)
-AC_ARG_ENABLE([statistics],
-              [AS_HELP_STRING(--enable-statistics,enable statistics generation [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_STATISTICS=yes;;
-                   *) ENABLE_STATISTICS=no;;
-               esac],
-              [ENABLE_STATISTICS=no])
-AC_MSG_RESULT(${ENABLE_STATISTICS})
-AM_CONDITIONAL([ENABLE_STATISTICS], test x"${ENABLE_STATISTICS}" = "xyes")
-
-if test x"${ENABLE_STATISTICS}" = "xyes"; then
-    AC_DEFINE([ENABLE_STATISTICS], 1, [enable statistics])
-fi
-
-
-dnl check for verifier
-AC_MSG_CHECKING(whether classfile verification should be enabled)
-AC_ARG_ENABLE([verifier],
-              [AS_HELP_STRING(--disable-verifier,disable classfile verification [[default=enabled]])],
-              [case "${enableval}" in
-                   no) ENABLE_VERIFIER=no;;
-                   *) ENABLE_VERIFIER=yes;;
-               esac],
-              [ENABLE_VERIFIER=yes])
-AC_MSG_RESULT(${ENABLE_VERIFIER})
-AM_CONDITIONAL([ENABLE_VERIFIER], test x"${ENABLE_VERIFIER}" = "xyes")
-
-if test x"${ENABLE_VERIFIER}" = "xyes"; then
-    AC_DEFINE([ENABLE_VERIFIER], 1, [enable classfile verification])
-fi
-
-
-dnl check for compiler timing
-AC_MSG_CHECKING(whether real-time timing should be enabled)
-AC_ARG_ENABLE([rt-timing],
-              [AS_HELP_STRING(--enable-rt-timing,enable real-time timing [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_RT_TIMING=yes;;
-                   *) ENABLE_RT_TIMING=no;;
-               esac],
-              [ENABLE_RT_TIMING=no])
-AC_MSG_RESULT(${ENABLE_RT_TIMING})
-AM_CONDITIONAL([ENABLE_RT_TIMING], test x"${ENABLE_RT_TIMING}" = "xyes")
-
-if test x"${ENABLE_RT_TIMING}" = "xyes"; then
-    AC_DEFINE([ENABLE_RT_TIMING], 1, [enable real-time timing])
-fi
-
-
-dnl check for cycle count statistics
-AC_MSG_CHECKING(whether cycle count statistics should be enabled)
-AC_ARG_ENABLE([cycles-stats],
-              [AS_HELP_STRING(--enable-cycles-stats,enable cycle count statistics [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_CYCLES_STATS=yes;;
-                   *) ENABLE_CYCLES_STATS=no;;
-               esac],
-              [ENABLE_CYCLES_STATS=no])
-AC_MSG_RESULT(${ENABLE_CYCLES_STATS})
-AM_CONDITIONAL([ENABLE_CYCLES_STATS], test x"${ENABLE_CYCLES_STATS}" = "xyes")
-
-if test x"${ENABLE_CYCLES_STATS}" = "xyes"; then
-    AC_DEFINE([ENABLE_CYCLES_STATS], 1, [enable cycle count statistics])
-fi
-
-
-dnl check for JVMTI
-AC_MSG_CHECKING(whether to compile JVMTI support)
-AC_ARG_ENABLE([jvmti],
-              [AS_HELP_STRING(--enable-jvmti,enable JVMTI [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_JVMTI=yes;;
-                   *) ENABLE_JVMTI=no;;
-               esac],
-              [ENABLE_JVMTI=no])
-AC_MSG_RESULT(${ENABLE_JVMTI})
-AM_CONDITIONAL([ENABLE_JVMTI], test x"${ENABLE_JVMTI}" = "xyes")
-
-if test x"${ENABLE_JVMTI}" = "xyes"; then
-    AC_DEFINE([ENABLE_JVMTI], 1, [use JVMTI])
-fi
-
-
+AC_CHECK_ENABLE_MEMCHECK
+AC_CHECK_ENABLE_HANDLES
+AC_CHECK_ENABLE_VMLOG
+AC_CHECK_ENABLE_DISASSEMBLER
+AC_CHECK_ENABLE_STATISTICS
+AC_CHECK_ENABLE_VERIFIER
+AC_CHECK_ENABLE_RT_TIMING
+AC_CHECK_ENABLE_CYCLE_STATS
+AC_CHECK_ENABLE_JVMTI
 AC_CHECK_ENABLE_THREADS
-
-
-dnl check if if-conversion should be supported
-AC_MSG_CHECKING(whether if-conversion should be supported)
-AC_ARG_ENABLE([ifconv],
-              [AS_HELP_STRING(--disable-ifconv,disable if-conversion [[default=enabled]])],
-              [case "${enableval}" in
-                   no) ENABLE_IFCONV=no;;
-                   *) ENABLE_IFCONV=yes;;
-               esac],
-              [ENABLE_IFCONV=yes])
-AC_MSG_RESULT(${ENABLE_IFCONV})
-AM_CONDITIONAL([ENABLE_IFCONV], test x"${ENABLE_IFCONV}" = "xyes")
-   
-if test x"${ENABLE_IFCONV}" = "xyes"; then
-    AC_DEFINE([ENABLE_IFCONV], 1, [enable if-conversion])
-fi
-
-
-dnl check for inlining
-AC_MSG_CHECKING(whether method inlining should be supported)
-AC_ARG_ENABLE([inlining],
-              [AS_HELP_STRING(--enable-inlining,enable method inlining [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_INLINING=yes;;
-                   *) ENABLE_INLINING=no;;
-               esac],
-              [ENABLE_INLINING=no])
-AC_MSG_RESULT(${ENABLE_INLINING})
-AM_CONDITIONAL([ENABLE_INLINING], test x"${ENABLE_INLINING}" = "xyes")
-
-if test x"${ENABLE_INLINING}" = "xyes"; then
-    AC_DEFINE([ENABLE_INLINING], 1, [use method inlining])
-fi
-
-
-dnl check for inlining debug options
-AC_MSG_CHECKING(whether method inlining debug options should be enabled)
-AC_ARG_ENABLE([inlining-debug],
-              [AS_HELP_STRING(--enable-inlining-debug,enable method inlining debug options [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_INLINING_DEBUG=yes;;
-                   *) ENABLE_INLINING_DEBUG=no;;
-               esac],
-              [ENABLE_INLINING_DEBUG=no])
-AC_MSG_RESULT(${ENABLE_INLINING_DEBUG})
-AM_CONDITIONAL([ENABLE_INLINING_DEBUG], test x"${ENABLE_INLINING_DEBUG}" = "xyes")
-
-if test x"${ENABLE_INLINING_DEBUG}" = "xyes"; then
-    AC_DEFINE([ENABLE_INLINING_DEBUG], 1, [enable method inlining debug options])
-fi
-
-
-dnl check for replacement
-AC_MSG_CHECKING(whether on-stack replacement should be supported)
-AC_ARG_ENABLE([replacement],
-              [AS_HELP_STRING(--enable-replacement,enable on-stack replacement [[default=no]])],
-              [case "${enableval}" in
-                   yes) ENABLE_REPLACEMENT=yes;;
-                   *) ENABLE_REPLACEMENT=no;;
-               esac],
-              [ENABLE_REPLACEMENT=no])
-AC_MSG_RESULT(${ENABLE_REPLACEMENT})
-AM_CONDITIONAL([ENABLE_REPLACEMENT], test x"${ENABLE_REPLACEMENT}" = "xyes")
-
-if test x"${ENABLE_REPLACEMENT}" = "xyes"; then
-    AC_DEFINE([ENABLE_REPLACEMENT], 1, [use on-stack replacement])
-fi
-
+AC_CHECK_ENABLE_IFCONV
+AC_CHECK_ENABLE_INLINING
+AC_CHECK_ENABLE_INLINING_DEBUG
+AC_CHECK_ENABLE_REPLACEMENT
 
 dnl check for loop optimization
 AC_MSG_CHECKING(whether loop optimization should be supported)
@@ -777,6 +558,7 @@ AC_CHECK_ENABLE_JRE_LAYOUT
 
 AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY_PREFIX
 AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY_CLASSES
+AC_CHECK_WITH_BUILD_JAVA_RUNTIME_LIBRARY_CLASSES
 
 if test x"${ENABLE_JRE_LAYOUT}" = "xno"; then
    AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY_LIBDIR
@@ -810,6 +592,8 @@ case "${WITH_JAVA_RUNTIME_LIBRARY}" in
         ;;
 esac
 
+AC_CHECK_WITH_JASMIN_JAR
+AC_CHECK_WITH_JUNIT_JAR
 
 AC_CHECK_HEADERS(
 	[regex.h], 
@@ -839,14 +623,21 @@ AZ_PYTHON_LSPEC
 dnl define some stuff required for --fullversion
 AC_DEFINE_UNQUOTED(VERSION_CONFIGURE_ARGS, "$ac_configure_args", [configure arguments])
 AC_DEFINE_UNQUOTED(VERSION_CC, "$CC", [CC used])
-AC_DEFINE_UNQUOTED(VERSION_CFLAGS, "$OPT_CFLAGS $ARCH_CFLAGS $CPPFLAGS", [CFLAGS used])
+AC_DEFINE_UNQUOTED(VERSION_CXX, "$CXX", [CXX used])
+AC_DEFINE_UNQUOTED(VERSION_CFLAGS, "$OPT_CFLAGS $ARCH_CFLAGS $CC_FLAGS $CPPFLAGS", [CFLAGS used])
+AC_DEFINE_UNQUOTED(VERSION_CXXFLAGS, "$OPT_CXXFLAGS $ARCH_CXXFLAGS $CXX_FLAGS $CPPFLAGS", [CXXFLAGS used])
 
 
-dnl finally pass CFLAGS to Makefiles via AM_CFLAGS
+dnl Finally pass flags to Makefiles.
 CFLAGS="$OPT_CFLAGS"
-AM_CFLAGS=$ARCH_CFLAGS
+CXXFLAGS="$OPT_CXXFLAGS"
+
+AM_CFLAGS="$CC_FLAGS $ARCH_FLAGS $OS_FLAGS"
+AM_CXXFLAGS="$CXX_FLAGS $ARCH_FLAGS $OS_FLAGS"
 AM_CPPFLAGS="$CPPFLAGS"
+
 AC_SUBST(AM_CFLAGS)
+AC_SUBST(AM_CXXFLAGS)
 AC_SUBST(AM_CPPFLAGS)
 
 
@@ -924,10 +715,10 @@ AC_CONFIG_FILES([Makefile]
 		[src/vmcore/Makefile]
 		[tests/Makefile]
 		[tests/regression/Makefile]
-		[tests/regression/bugzilla/Makefile]
 		[tests/regression/assertion/Makefile]
+		[tests/regression/base/Makefile]
+		[tests/regression/bugzilla/Makefile]
 		[tests/regression/jasmin/Makefile]
-		[tests/regression/junit/Makefile]
 		[tests/regression/native/Makefile]
 		[tests/regression/resolving/Makefile]
 		[tests/regression/resolving/classes1/Makefile]
@@ -936,9 +727,9 @@ AC_CONFIG_FILES([Makefile]
 )
 
 
-dnl now configure subpackages with OPT_CFLAGS and ARCH_CFLAGS
-export OPT_CFLAGS
-export ARCH_CFLAGS
+dnl We only build the shared library objects but we use it as
+dnl noinst_LTLIBRARIES.
+ac_configure_args="$ac_configure_args --disable-static"
 AC_CONFIG_SUBDIRS(src/mm/boehm-gc)
 
 

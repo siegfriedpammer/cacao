@@ -38,7 +38,6 @@
 #include "native/include/java_lang_String.h"
 #include "native/include/java_security_ProtectionDomain.h"  /* required by... */
 #include "native/include/java_lang_ClassLoader.h"
-#include "native/include/java_util_Vector.h"
 #include "native/include/java_util_HashMap.h"
 #include "native/include/java_util_Map.h"
 #include "native/include/java_lang_Boolean.h"
@@ -55,7 +54,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/initialize.h"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -196,7 +195,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
 {
 	classinfo *c;
 
-	c = primitive_class_get_by_char(type);
+	c = Primitive_get_class_by_char(type);
 
 	if (c == NULL) {
 		exceptions_throw_classnotfoundexception(utf_null);
@@ -273,7 +272,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
  * Method:    nativeGetResources
  * Signature: (Ljava/lang/String;)Ljava/util/Vector;
  */
-JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv *env, jclass clazz, java_lang_String *name)
+JNIEXPORT struct java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv *env, jclass clazz, java_lang_String *name)
 {
 	java_handle_t        *o;         /* vector being created     */
 	methodinfo           *m;         /* "add" method of vector   */
@@ -403,7 +402,7 @@ JNIEXPORT java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResour
 
 	MFREE(buffer, char, bufsize);
 
-	return (java_util_Vector *) o;
+	return (struct java_util_Vector *) o;
 
 return_NULL:
 	MFREE(buffer, char, bufsize);

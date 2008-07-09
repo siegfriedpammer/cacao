@@ -27,7 +27,6 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <ltdl.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -82,8 +81,8 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
-#include "vm/package.h"
-#include "vm/primitive.h"
+#include "vm/package.hpp"
+#include "vm/primitive.hpp"
 #include "vm/properties.h"
 #include "vm/resolve.h"
 #include "vm/signallocal.h"
@@ -761,7 +760,7 @@ jclass JVM_FindPrimitiveClass(JNIEnv* env, const char* s)
 	TRACEJVMCALLS(("JVM_FindPrimitiveClass(env=%p, s=%s)", env, s));
 
 	u = utf_new_char(s);
-	c = primitive_class_get_by_name(u);
+	c = Primitive_get_class_by_name(u);
 
 	return (jclass) LLNI_classinfo_wrap(c);
 }
@@ -2271,7 +2270,7 @@ void JVM_StartThread(JNIEnv* env, jobject jthread)
 
 void JVM_StopThread(JNIEnv* env, jobject jthread, jobject throwable)
 {
-	log_println("JVM_StopThread: IMPLEMENT ME!");
+	log_println("JVM_StopThread: Deprecated.  Not implemented.");
 }
 
 
@@ -2304,7 +2303,7 @@ jboolean JVM_IsThreadAlive(JNIEnv* env, jobject jthread)
 
 void JVM_SuspendThread(JNIEnv* env, jobject jthread)
 {
-	log_println("JVM_SuspendThread: IMPLEMENT ME!");
+	log_println("JVM_SuspendThread: Deprecated.  Not implemented.");
 }
 
 
@@ -2312,7 +2311,7 @@ void JVM_SuspendThread(JNIEnv* env, jobject jthread)
 
 void JVM_ResumeThread(JNIEnv* env, jobject jthread)
 {
-	log_println("JVM_ResumeThread: IMPLEMENT ME!");
+	log_println("JVM_ResumeThread: Deprecated.  Not implemented.");
 }
 
 
@@ -2376,7 +2375,7 @@ jobject JVM_CurrentThread(JNIEnv* env, jclass threadClass)
 
 jint JVM_CountStackFrames(JNIEnv* env, jobject jthread)
 {
-	log_println("JVM_CountStackFrames: IMPLEMENT ME!");
+	log_println("JVM_CountStackFrames: Deprecated.  Not implemented.");
 
 	return 0;
 }
@@ -2516,10 +2515,10 @@ jstring JVM_GetSystemPackage(JNIEnv *env, jstring name)
 
 	TRACEJVMCALLS(("JVM_GetSystemPackage(env=%p, name=%p)", env, name));
 
-/* 	s = package_find(name); */
+/* 	s = Package_find(name); */
 	u = javastring_toutf((java_handle_t *) name, false);
 
-	result = package_find(u);
+	result = Package_find(u);
 
 	if (result != NULL)
 		s = javastring_new(result);
@@ -2681,7 +2680,7 @@ jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 	/* Create primitive or object array. */
 
 	if (class_is_primitive(c)) {
-		pc = primitive_arrayclass_get_by_name(c->name);
+		pc = Primitive_get_arrayclass_by_name(c->name);
 
 		/* void arrays are not allowed. */
 
@@ -2754,7 +2753,7 @@ jobject JVM_NewMultiArray(JNIEnv *env, jclass eltClass, jintArray dim)
 	/* Create an array-class if necessary. */
 
 	if (class_is_primitive(c))
-		ac = primitive_arrayclass_get_by_name(c->name);
+		ac = Primitive_get_arrayclass_by_name(c->name);
 	else
 		ac = class_array_of(c, true);
 
@@ -3032,11 +3031,11 @@ void JVM_UnloadLibrary(void* handle)
 
 void *JVM_FindLibraryEntry(void *handle, const char *name)
 {
-	lt_ptr symbol;
+	void* symbol;
 
 	TRACEJVMCALLSENTER(("JVM_FindLibraryEntry(handle=%p, name=%s)", handle, name));
 
-	symbol = lt_dlsym(handle, name);
+	symbol = hpi_library->FindLibraryEntry(handle, name);
 
 	TRACEJVMCALLSEXIT(("->%p", symbol));
 

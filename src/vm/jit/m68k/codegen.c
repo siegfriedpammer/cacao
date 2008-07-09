@@ -1994,9 +1994,6 @@ nowperformreturn:
 				superindex = super->index;
 			}
 			
-			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-				CODEGEN_CRITICAL_SECTION_NEW;
-
 			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 
@@ -2060,13 +2057,9 @@ nowperformreturn:
 
 				M_ALD(REG_ATMP1, s1, OFFSET(java_object_t, vftbl));
 
-				CODEGEN_CRITICAL_SECTION_START;
-
 				M_ILD(REG_ITMP1, REG_ATMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ATMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ATMP2, OFFSET(vftbl_t, diffval));
-
-				CODEGEN_CRITICAL_SECTION_END;
 
 				M_ISUB(REG_ITMP3, REG_ITMP1);
 				M_ICMP(REG_ITMP2, REG_ITMP1);
@@ -2118,9 +2111,6 @@ nowperformreturn:
 					super      = iptr->sx.s23.s3.c.cls;
 					superindex = super->index;
 				}
-
-				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-					CODEGEN_CRITICAL_SECTION_NEW;
 
 				s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 				assert(VAROP(iptr->s1)->type == TYPE_ADR);
@@ -2181,13 +2171,9 @@ nowperformreturn:
 
 					M_ALD(REG_ATMP2, s1, OFFSET(java_object_t, vftbl));
 
-					CODEGEN_CRITICAL_SECTION_START;
-
 					M_ILD(REG_ITMP3, REG_ATMP2, OFFSET(vftbl_t, baseval));	/* REG_ITMP3 == sub->vftbl->baseval */
 					M_ILD(REG_ITMP1, REG_ATMP3, OFFSET(vftbl_t, baseval));
 					M_ILD(REG_ITMP2, REG_ATMP3, OFFSET(vftbl_t, diffval));
-
-					CODEGEN_CRITICAL_SECTION_END;
 
 					M_ISUB(REG_ITMP1, REG_ITMP3);
 					M_ICMP(REG_ITMP2, REG_ITMP3);	/* XXX was CMPU */

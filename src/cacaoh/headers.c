@@ -313,7 +313,7 @@ void printmethod(methodinfo *m)
 	if (!(m->flags & ACC_STATIC)) {
 		fprintf(file, ", struct ");
 		printID(m->clazz->name);
-		fprintf(file, "* this");
+		fprintf(file, "* _this");
 
 	} else {
 		fprintf(file, ", jclass clazz");

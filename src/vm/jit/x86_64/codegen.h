@@ -256,6 +256,7 @@
 #define M_SSEXT(a,b)            emit_movswq_reg_reg(cd, (a), (b))
 #define M_ISEXT(a,b)            emit_movslq_reg_reg(cd, (a), (b))
 
+#define M_BZEXT(a,b)            emit_movzbq_reg_reg(cd, (a), (b))
 #define M_CZEXT(a,b)            emit_movzwq_reg_reg(cd, (a), (b))
 
 #define M_ISLL_IMM(a,b)         emit_shiftl_imm_reg(cd, SHIFT_SHL, (a), (b))

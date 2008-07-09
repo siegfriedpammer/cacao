@@ -34,7 +34,7 @@
 #include "vm/access.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/primitive.h"
+#include "vm/primitive.hpp"
 #include "vm/resolve.h"
 
 #include "vm/jit/jit.h"
@@ -500,7 +500,7 @@ bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, class
 	else {
 		/* a primitive type */
 
-		cls = primitive_class_get_by_type(d->decltype);
+		cls = Primitive_get_class_by_type(d->decltype);
 
 		assert(cls->state & CLASS_LOADED);
 

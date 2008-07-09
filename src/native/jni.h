@@ -65,14 +65,26 @@
 
 /* _Jv_JNIEnv *****************************************************************/
 
+#ifndef __cplusplus
+
+// FIXME The __cplusplus define is just a quick workaround and needs
+// to be fixed properly.
+
 typedef struct _Jv_JNIEnv _Jv_JNIEnv;
 
 struct _Jv_JNIEnv {
 	const struct JNINativeInterface_ *env;    /* This MUST be the first entry */
 };
 
+#endif
+
 
 /* _Jv_JavaVM *****************************************************************/
+
+#ifndef __cplusplus
+
+// FIXME The __cplusplus define is just a quick workaround and needs
+// to be fixed properly.
 
 typedef struct _Jv_JavaVM _Jv_JavaVM;
 
@@ -89,6 +101,8 @@ struct _Jv_JavaVM {
 	s4 java_lang_management_ThreadMXBean_ThreadCount;
 	s8 java_lang_management_ThreadMXBean_TotalStartedThreadCount;
 };
+
+#endif
 
 
 /* CACAO related stuff ********************************************************/

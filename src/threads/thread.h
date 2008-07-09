@@ -28,7 +28,13 @@
 
 #include "config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "vmcore/system.h"
+
+#include "threads/mutex.hpp"
 
 #if defined(ENABLE_THREADS)
 # include "threads/posix/thread-posix.h"
@@ -206,7 +212,23 @@ inline static bool thread_is_attached(threadobject *t)
 
 inline static bool thread_is_interrupted(threadobject *t)
 {
-	return t->interrupted;
+	bool interrupted;
+
+	/* We need the mutex because classpath will call this function when
+	   a blocking system call is interrupted. The mutex ensures that it will
+	   see the correct value for the interrupted flag. */
+
+#ifdef __cplusplus
+	t->waitmutex->lock();
+	interrupted = t->interrupted;
+	t->waitmutex->unlock();
+#else
+	Mutex_lock(t->waitmutex);
+	interrupted = t->interrupted;
+	Mutex_unlock(t->waitmutex);
+#endif
+
+	return interrupted;
 }
 
 
@@ -221,13 +243,15 @@ inline static bool thread_is_interrupted(threadobject *t)
 
 inline static void thread_set_interrupted(threadobject *t, bool interrupted)
 {
-	mutex_lock(&t->waitmutex);
-
-	/* Set interrupted flag. */
-
+#ifdef __cplusplus
+	t->waitmutex->lock();
 	t->interrupted = interrupted;
-
-	mutex_unlock(&t->waitmutex);
+	t->waitmutex->unlock();
+#else
+	Mutex_lock(t->waitmutex);
+	t->interrupted = interrupted;
+	Mutex_unlock(t->waitmutex);
+#endif
 }
 
 
@@ -289,7 +313,11 @@ void          thread_free(threadobject *t);
 bool          threads_thread_start_internal(utf *name, functionptr f);
 void          threads_thread_start(java_handle_t *object);
 
-bool          threads_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
+bool          thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
+bool          thread_attach_current_external_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon);
+bool          thread_detach_current_thread(void);
+
+bool          thread_detach_current_external_thread(void);
 
 void          thread_fprint_name(threadobject *t, FILE *stream);
 void          thread_print_info(threadobject *t);
@@ -330,6 +358,10 @@ void          threads_impl_thread_start(threadobject *thread, functionptr f);
 void          threads_yield(void);
 
 #endif /* ENABLE_THREADS */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _THREAD_H */
 

@@ -23,24 +23,11 @@
 */
 
 
-import junit.framework.*;
-import junit.textui.*;
+import org.junit.Test;
 
-public class PR57 extends TestCase {
-    public static void main(String[] args) {
-        TestRunner.run(suite());
-    }
-
-    public static Test suite() {
-        return new TestSuite(PR57.class);
-    }
-
-    public void test() {
-        try {
-            Class.forName("x");
-            fail("Should throw ClassNotFoundException");
-        }
-        catch (ClassNotFoundException success) {
-        }
+public class PR57 {
+    @Test ( expected = ClassNotFoundException.class )
+    public void test() throws ClassNotFoundException {
+        Class.forName("x");
     }
 }
