@@ -30,6 +30,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "native/jni.h"
 #include "native/native.h"
 
@@ -76,6 +80,10 @@ java_handle_objectarray_t* reflect_get_parameterannotations(
 	int32_t          slot,
 	java_lang_Class *declaringClass,
 	classinfo       *referer);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* _REFLECT_H */
