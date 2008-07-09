@@ -132,7 +132,7 @@ void _Jv_java_lang_reflect_VMField_init(void)
 *******************************************************************************/
 
 static bool _field_access_check(java_lang_reflect_VMField *_this,
-								fieldinfo *f, classinfo *c, java_handle_t *o)
+								fieldinfo *f, java_handle_t *o)
 {
 	java_lang_reflect_Field *rf;
 	int32_t                  flag;
@@ -158,8 +158,8 @@ static bool _field_access_check(java_lang_reflect_VMField *_this,
 	if (f->flags & ACC_STATIC) {
 		/* initialize class if required */
 
-		if (!(c->state & CLASS_INITIALIZED))
-			if (!initialize_class(c))
+		if (!(f->clazz->state & CLASS_INITIALIZED))
+			if (!initialize_class(f->clazz))
 				return false;
 
 		/* everything is ok */
@@ -174,7 +174,7 @@ static bool _field_access_check(java_lang_reflect_VMField *_this,
 			return false;
 		}
 	
-		if (builtin_instanceof(o, c))
+		if (builtin_instanceof(o, f->clazz))
 			return true;
 	}
 
@@ -334,7 +334,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_VMField_get(JNIEnv *e
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return NULL;
 
 	switch (f->parseddesc->decltype) {
@@ -389,7 +389,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getBoolean(JNIEnv *env,
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return 0;
 
 	/* check the field type and return the value */
@@ -423,7 +423,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getByte(JNIEnv *env, ja
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return 0;
 
 	/* check the field type and return the value */
@@ -457,7 +457,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getChar(JNIEnv *env, ja
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return 0;
 
 	/* check the field type and return the value */
@@ -491,7 +491,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getShort(JNIEnv *env, j
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return 0;
 
 	/* check the field type and return the value */
@@ -526,7 +526,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getInt(JNIEnv *env , ja
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return 0;
 
 	/* check the field type and return the value */
@@ -563,7 +563,7 @@ JNIEXPORT int64_t JNICALL Java_java_lang_reflect_VMField_getLong(JNIEnv *env, ja
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return 0;
 
 	/* check the field type and return the value */
@@ -602,7 +602,7 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_VMField_getFloat(JNIEnv *env, jav
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return 0;
 
 	/* check the field type and return the value */
@@ -643,7 +643,7 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_VMField_getDouble(JNIEnv *env , 
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return 0;
 
 	/* check the field type and return the value */
@@ -688,7 +688,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, df, dc, (java_handle_t *) o))
+	if (!_field_access_check(_this, df, (java_handle_t *) o))
 		return;
 
 	/* get the source classinfo from the object */
@@ -960,7 +960,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setBoolean(JNIEnv *env, ja
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return;
 
 	/* check the field type and set the value */
@@ -996,7 +996,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setByte(JNIEnv *env, java_
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return;
 
 	/* check the field type and set the value */
@@ -1043,7 +1043,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setChar(JNIEnv *env, java_
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return;
 
 	/* check the field type and set the value */
@@ -1089,7 +1089,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setShort(JNIEnv *env, java
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return;
 
 	/* check the field type and set the value */
@@ -1135,7 +1135,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setInt(JNIEnv *env, java_l
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return;
 
 	/* check the field type and set the value */
@@ -1180,7 +1180,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setLong(JNIEnv *env, java_
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return;
 
 	/* check the field type and set the value */
@@ -1222,7 +1222,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setFloat(JNIEnv *env, java
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return;
 
 	/* check the field type and set the value */
@@ -1261,7 +1261,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setDouble(JNIEnv *env, jav
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, c, (java_handle_t *) o))
+	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return;
 
 	/* check the field type and set the value */
