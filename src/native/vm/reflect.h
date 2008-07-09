@@ -70,15 +70,15 @@ java_handle_t                 *reflect_constructor_newinstance(methodinfo *m, ja
 java_handle_t                 *reflect_method_invoke(methodinfo *m, java_handle_t *o, java_handle_objectarray_t *args, bool override);
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH) && defined(ENABLE_ANNOTATIONS)
-struct java_util_Map* reflect_get_declaredannotatios(
+struct java_util_Map* reflect_get_declaredannotations(
 	java_handle_bytearray_t *annotations,
-	java_lang_Class         *declaringClass,
+	classinfo               *declaringClass,
 	classinfo               *referer);
 
 java_handle_objectarray_t* reflect_get_parameterannotations(
 	java_handle_t   *parameterAnnotations,
 	int32_t          slot,
-	java_lang_Class *declaringClass,
+	classinfo       *declaringClass,
 	classinfo       *referer);
 #endif
 

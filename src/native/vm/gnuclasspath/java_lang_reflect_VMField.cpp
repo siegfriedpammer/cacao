@@ -1329,7 +1329,7 @@ JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_VMField_declaredA
 		LLNI_field_get_ref(_this, clazz, declaringClass);
 		LLNI_class_get(_this, referer);
 
-		declaredAnnotations = reflect_get_declaredannotatios(annotations, declaringClass, referer);
+		declaredAnnotations = reflect_get_declaredannotations(annotations, (classinfo*) declaringClass, referer);
 
 		LLNI_field_set_ref(_this, declaredAnnotations, declaredAnnotations);
 	}
