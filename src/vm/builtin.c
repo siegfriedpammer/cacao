@@ -915,12 +915,12 @@ java_handle_t *builtin_escape_reason_new(classinfo *c) {
 java_handle_t *builtin_tlh_new(classinfo *c)
 {
 	java_handle_t *o;
-#if defined(ENABLE_RT_TIMING)
+# if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_end;
-#endif
-#if defined(ENABLE_CYCLES_STATS)
+# endif
+# if defined(ENABLE_CYCLES_STATS)
 	u8 cycles_start, cycles_end;
-#endif
+# endif
 
 	RT_TIMING_GET_TIME(time_start);
 	CYCLES_STATS_GET(cycles_start);
@@ -943,10 +943,10 @@ java_handle_t *builtin_tlh_new(classinfo *c)
 			return NULL;
 
 	if (!(c->state & CLASS_INITIALIZED)) {
-#if !defined(NDEBUG)
+# if !defined(NDEBUG)
 		if (initverbose)
 			log_message_class("Initialize class (from builtin_new): ", c);
-#endif
+# endif
 
 		if (!initialize_class(c))
 			return NULL;
@@ -965,17 +965,17 @@ java_handle_t *builtin_tlh_new(classinfo *c)
 	if (!o)
 		return NULL;
 
-#if !defined(ENABLE_GC_CACAO) && defined(ENABLE_HANDLES)
+# if !defined(ENABLE_GC_CACAO) && defined(ENABLE_HANDLES)
 	/* XXX this is only a dirty hack to make Boehm work with handles */
 
 	o = LLNI_WRAP((java_object_t *) o);
-#endif
+# endif
 
 	LLNI_vftbl_direct(o) = c->vftbl;
 
-#if defined(ENABLE_THREADS)
+# if defined(ENABLE_THREADS)
 	lock_init_object_lock(LLNI_DIRECT(o));
-#endif
+# endif
 
 	CYCLES_STATS_GET(cycles_end);
 	RT_TIMING_GET_TIME(time_end);
@@ -986,8 +986,9 @@ java_handle_t *builtin_tlh_new(classinfo *c)
 */
 
 	return o;
-#endif
 }
+#endif
+
 
 /* builtin_java_new ************************************************************
 
