@@ -58,6 +58,7 @@ enum {
 	/* Don't use 8 (could be a normal load offset). */
 
 	TRAP_COMPILER                       = 9,
+	TRAP_COUNTDOWN                      = 10,
 	TRAP_END
 };
 
