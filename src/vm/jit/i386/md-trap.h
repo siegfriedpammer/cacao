@@ -1,4 +1,4 @@
-/* src/vm/jit/x86_64/md-trap.h - i386 hardware traps
+/* src/vm/jit/i386/md-trap.h - i386 hardware traps
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
