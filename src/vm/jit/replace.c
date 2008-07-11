@@ -2869,7 +2869,7 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 	origrp   = rp;
 
 #if defined(ENABLE_TLH)
-	printf("Replacing in %s/%s\n", rp->method->clazz->name->text, rp->method->name->text);
+	/*printf("Replacing in %s/%s\n", rp->method->clazz->name->text, rp->method->name->text);*/
 #endif
 
 	/*if (strcmp(rp->method->clazz->name->text, "antlr/AlternativeElement") == 0 && strcmp(rp->method->name->text, "getAutoGenType") ==0) opt_TraceReplacement = 2; else opt_TraceReplacement = 0;*/
