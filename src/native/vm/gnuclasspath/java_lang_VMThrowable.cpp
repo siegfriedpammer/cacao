@@ -1,4 +1,4 @@
-/* src/native/vm/gnu/java_lang_VMThrowable.c
+/* src/native/vm/gnuclasspath/java_lang_VMThrowable.cpp
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,6 +25,7 @@
 
 #include "config.h"
 
+#include <stdint.h>
 #include <assert.h>
 
 #include "vm/types.h"
@@ -39,7 +40,10 @@
 #include "native/include/java_lang_StackTraceElement.h"
 #include "native/include/java_lang_Throwable.h"
 
+// FIXME
+extern "C" {
 #include "native/include/java_lang_VMThrowable.h"
+}
 
 #include "vm/array.h"
 #include "vm/builtin.h"
@@ -57,8 +61,8 @@
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "fillInStackTrace", "(Ljava/lang/Throwable;)Ljava/lang/VMThrowable;",        (void *) (ptrint) &Java_java_lang_VMThrowable_fillInStackTrace },
-	{ "getStackTrace",    "(Ljava/lang/Throwable;)[Ljava/lang/StackTraceElement;", (void *) (ptrint) &Java_java_lang_VMThrowable_getStackTrace    },
+	{ (char*) "fillInStackTrace", (char*) "(Ljava/lang/Throwable;)Ljava/lang/VMThrowable;",        (void*) (uintptr_t) &Java_java_lang_VMThrowable_fillInStackTrace },
+	{ (char*) "getStackTrace",    (char*) "(Ljava/lang/Throwable;)[Ljava/lang/StackTraceElement;", (void*) (uintptr_t) &Java_java_lang_VMThrowable_getStackTrace    },
 };
 
 
@@ -68,6 +72,7 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
+extern "C" {
 void _Jv_java_lang_VMThrowable_init(void)
 {
 	utf *u;
@@ -76,7 +81,11 @@ void _Jv_java_lang_VMThrowable_init(void)
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
+}
 
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/VMThrowable
@@ -113,7 +122,7 @@ JNIEXPORT java_lang_VMThrowable* JNICALL Java_java_lang_VMThrowable_fillInStackT
  * Method:    getStackTrace
  * Signature: (Ljava/lang/Throwable;)[Ljava/lang/StackTraceElement;
  */
-JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *env, java_lang_VMThrowable *this, java_lang_Throwable *t)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *env, java_lang_VMThrowable *_this, java_lang_Throwable *t)
 {
 	java_lang_Object            *o;
 	java_handle_bytearray_t     *ba;
@@ -130,7 +139,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 
 	/* Get the stacktrace from the VMThrowable object. */
 
-	LLNI_field_get_ref(this, vmdata, o);
+	LLNI_field_get_ref(_this, vmdata, o);
 
 	ba = (java_handle_bytearray_t *) o;
 
@@ -204,6 +213,8 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
 	return oa;
 }
 
+} // extern "C"
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -211,7 +222,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_VMThrowable_getStack
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -53,7 +53,7 @@ libnativevmcore_la_SOURCES = \
 	java_lang_VMString.c \
 	java_lang_VMSystem.c \
 	java_lang_VMThread.c \
-	java_lang_VMThrowable.c \
+	java_lang_VMThrowable.cpp \
 	java_lang_management_VMManagementFactory.c \
 	java_lang_reflect_VMConstructor.cpp \
 	java_lang_reflect_VMField.cpp \
