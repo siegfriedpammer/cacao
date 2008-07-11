@@ -77,8 +77,7 @@ struct java_util_Map* reflect_get_declaredannotations(
 
 java_handle_objectarray_t* reflect_get_parameterannotations(
 	java_handle_t   *parameterAnnotations,
-	int32_t          slot,
-	classinfo       *declaringClass,
+	methodinfo      *m,
 	classinfo       *referer);
 #endif
 

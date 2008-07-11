@@ -256,16 +256,19 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_VMConstructo
 {
 	java_handle_bytearray_t *parameterAnnotations = NULL; /* unparsed parameter annotations                    */
 	int32_t                  slot                 = -1;   /* slot of the method                                */
-	java_lang_Class         *declaringClass       = NULL; /* the constant pool of this class is used           */
+	classinfo               *c;
+	methodinfo              *m;
 	classinfo               *referer              = NULL; /* class, which calles the annotation parser         */
 	                                                      /* (for the parameter 'referer' of vm_call_method()) */
 
 	LLNI_field_get_ref(_this, parameterAnnotations, parameterAnnotations);
 	LLNI_field_get_val(_this, slot, slot);
-	LLNI_field_get_ref(_this, clazz, declaringClass);
+	LLNI_field_get_cls(_this, clazz, c);
+	m = &(c->methods[slot]);
+
 	LLNI_class_get(_this, referer);
 
-	return reflect_get_parameterannotations((java_handle_t*)parameterAnnotations, slot, (classinfo*) declaringClass, referer);
+	return reflect_get_parameterannotations((java_handle_t*)parameterAnnotations, m, referer);
 }
 #endif
 

@@ -590,8 +590,7 @@ struct java_util_Map* reflect_get_declaredannotations(
 
 java_handle_objectarray_t* reflect_get_parameterannotations(
 	java_handle_t     *parameterAnnotations,
-	int32_t            slot,
-	classinfo         *declaringClass,
+	methodinfo        *m,
 	classinfo         *referer)
 {
 	/* This method in java would be basically the following.
@@ -616,19 +615,10 @@ java_handle_objectarray_t* reflect_get_parameterannotations(
 	                     /* parser method descriptor (signature)              */
 	sun_reflect_ConstantPool *constantPool    = NULL;
 	                     /* constant pool of the declaring class              */
-	java_lang_Object         *constantPoolOop = (java_lang_Object*)declaringClass;
-	                     /* constantPoolOop field of the constant pool object */
-	classinfo                *c               = NULL;
-	                     /* classinfo of the decaring class                   */
-	methodinfo               *m               = NULL;
-	                     /* method info of the annotated method               */
 	int32_t                   numParameters   = -1;
 	                     /* parameter count of the annotated method           */
 
 	/* get parameter count */
-
-	c = LLNI_classinfo_unwrap(declaringClass);
-	m = &(c->methods[slot]);
 
 	numParameters = method_get_parametercount(m);
 
@@ -648,7 +638,8 @@ java_handle_objectarray_t* reflect_get_parameterannotations(
 		return NULL;
 	}
 
-	LLNI_field_set_ref(constantPool, constantPoolOop, constantPoolOop);
+	// XXX I'm not sure what the correct LLNI macro would be.
+	LLNI_field_set_cls(constantPool, constantPoolOop, (java_lang_Object*) m->clazz);
 
 	/* only resolve the parser method the first time */
 	if (m_parseParameterAnnotations == NULL) {
@@ -680,7 +671,7 @@ java_handle_objectarray_t* reflect_get_parameterannotations(
 
 	return (java_handle_objectarray_t*)vm_call_method(
 		m_parseParameterAnnotations, NULL, parameterAnnotations,
-		constantPool, declaringClass, numParameters);
+		constantPool, m->clazz, numParameters);
 }
 #endif
 
