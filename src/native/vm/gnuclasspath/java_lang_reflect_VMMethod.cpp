@@ -45,7 +45,11 @@
 #endif
 
 #include "native/include/java_lang_reflect_Method.h"
+
+// FIXME
+extern "C" {
 #include "native/include/java_lang_reflect_VMMethod.h"
+}
 
 #include "native/vm/reflect.h"
 
@@ -63,16 +67,16 @@
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "getModifiersInternal",    "()I",                                                       (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_getModifiersInternal    },
-	{ "getReturnType",           "()Ljava/lang/Class;",                                       (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_getReturnType           },
-	{ "getParameterTypes",       "()[Ljava/lang/Class;",                                      (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_getParameterTypes       },
-	{ "getExceptionTypes",       "()[Ljava/lang/Class;",                                      (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_getExceptionTypes       },
-	{ "invoke",                  "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_invoke                  },
-	{ "getSignature",            "()Ljava/lang/String;",                                      (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_getSignature            },
+	{ (char*) "getModifiersInternal",    (char*) "()I",                                                       (void*) (uintptr_t) &Java_java_lang_reflect_VMMethod_getModifiersInternal    },
+	{ (char*) "getReturnType",           (char*) "()Ljava/lang/Class;",                                       (void*) (uintptr_t) &Java_java_lang_reflect_VMMethod_getReturnType           },
+	{ (char*) "getParameterTypes",       (char*) "()[Ljava/lang/Class;",                                      (void*) (uintptr_t) &Java_java_lang_reflect_VMMethod_getParameterTypes       },
+	{ (char*) "getExceptionTypes",       (char*) "()[Ljava/lang/Class;",                                      (void*) (uintptr_t) &Java_java_lang_reflect_VMMethod_getExceptionTypes       },
+	{ (char*) "invoke",                  (char*) "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", (void*) (uintptr_t) &Java_java_lang_reflect_VMMethod_invoke                  },
+	{ (char*) "getSignature",            (char*) "()Ljava/lang/String;",                                      (void*) (uintptr_t) &Java_java_lang_reflect_VMMethod_getSignature            },
 #if defined(ENABLE_ANNOTATIONS)
-	{ "getDefaultValue",         "()Ljava/lang/Object;",                                      (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_getDefaultValue         },
-	{ "declaredAnnotations",     "()Ljava/util/Map;",                                         (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_declaredAnnotations     },
-	{ "getParameterAnnotations", "()[[Ljava/lang/annotation/Annotation;",                     (void *) (uintptr_t) &Java_java_lang_reflect_VMMethod_getParameterAnnotations },
+	{ (char*) "getDefaultValue",         (char*) "()Ljava/lang/Object;",                                      (void*) (uintptr_t) &Java_java_lang_reflect_VMMethod_getDefaultValue         },
+	{ (char*) "declaredAnnotations",     (char*) "()Ljava/util/Map;",                                         (void*) (uintptr_t) &Java_java_lang_reflect_VMMethod_declaredAnnotations     },
+	{ (char*) "getParameterAnnotations", (char*) "()[[Ljava/lang/annotation/Annotation;",                     (void*) (uintptr_t) &Java_java_lang_reflect_VMMethod_getParameterAnnotations },
 #endif
 };
 
@@ -83,6 +87,8 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
+// FIXME
+extern "C" {
 void _Jv_java_lang_reflect_VMMethod_init(void)
 {
 	utf *u;
@@ -90,6 +96,7 @@ void _Jv_java_lang_reflect_VMMethod_init(void)
 	u = utf_new_char("java/lang/reflect/VMMethod");
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 }
 
 
@@ -101,14 +108,14 @@ extern "C" {
  * Method:    getModifiersInternal
  * Signature: ()I
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMMethod_getModifiersInternal(JNIEnv *env, java_lang_reflect_VMMethod *this)
+JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMMethod_getModifiersInternal(JNIEnv *env, java_lang_reflect_VMMethod *_this)
 {
 	classinfo  *c;
 	methodinfo *m;
 	int32_t     slot;
 
-	LLNI_field_get_cls(this, clazz, c);
-	LLNI_field_get_val(this, slot , slot);
+	LLNI_field_get_cls(_this, clazz, c);
+	LLNI_field_get_val(_this, slot , slot);
 	m = &(c->methods[slot]);
 
 	return m->flags;
@@ -120,15 +127,15 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMMethod_getModifiersInternal(J
  * Method:    getReturnType
  * Signature: ()Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_VMMethod_getReturnType(JNIEnv *env, java_lang_reflect_VMMethod *this)
+JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_VMMethod_getReturnType(JNIEnv *env, java_lang_reflect_VMMethod *_this)
 {
 	classinfo  *c;
 	methodinfo *m;
 	classinfo  *result;
 	int32_t     slot;
 
-	LLNI_field_get_cls(this, clazz, c);
-	LLNI_field_get_val(this, slot , slot);
+	LLNI_field_get_cls(_this, clazz, c);
+	LLNI_field_get_val(_this, slot , slot);
 	m = &(c->methods[slot]);
 
 	result = method_returntype_get(m);
@@ -142,14 +149,14 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_VMMethod_getReturnType
  * Method:    getParameterTypes
  * Signature: ()[Ljava/lang/Class;
  */
-JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_VMMethod_getParameterTypes(JNIEnv *env, java_lang_reflect_VMMethod *this)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_VMMethod_getParameterTypes(JNIEnv *env, java_lang_reflect_VMMethod *_this)
 {
 	classinfo  *c;
 	methodinfo *m;
 	int32_t     slot;
 
-	LLNI_field_get_cls(this, clazz, c);
-	LLNI_field_get_val(this, slot , slot);
+	LLNI_field_get_cls(_this, clazz, c);
+	LLNI_field_get_val(_this, slot , slot);
 	m = &(c->methods[slot]);
 
 	return method_get_parametertypearray(m);
@@ -161,14 +168,14 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_VMMethod_get
  * Method:    getExceptionTypes
  * Signature: ()[Ljava/lang/Class;
  */
-JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_VMMethod_getExceptionTypes(JNIEnv *env, java_lang_reflect_VMMethod *this)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_VMMethod_getExceptionTypes(JNIEnv *env, java_lang_reflect_VMMethod *_this)
 {
 	classinfo  *c;
 	methodinfo *m;
 	int32_t     slot;
 
-	LLNI_field_get_cls(this, clazz, c);
-	LLNI_field_get_val(this, slot , slot);
+	LLNI_field_get_cls(_this, clazz, c);
+	LLNI_field_get_val(_this, slot , slot);
 	m = &(c->methods[slot]);
 
 	return method_get_exceptionarray(m);
@@ -180,7 +187,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_VMMethod_get
  * Method:    invoke
  * Signature: (Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_VMMethod_invoke(JNIEnv *env, java_lang_reflect_VMMethod *this, java_lang_Object *o, java_handle_objectarray_t *args)
+JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_VMMethod_invoke(JNIEnv *env, java_lang_reflect_VMMethod *_this, java_lang_Object *o, java_handle_objectarray_t *args)
 {
 	classinfo                *c;
 	int32_t                   slot;
@@ -189,10 +196,10 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_VMMethod_invoke(JNIEn
 	methodinfo               *m;
 	java_handle_t            *ro;
 
-	LLNI_field_get_cls(this, clazz, c);
-	LLNI_field_get_val(this, slot,  slot);
+	LLNI_field_get_cls(_this, clazz, c);
+	LLNI_field_get_val(_this, slot,  slot);
 
-	LLNI_field_get_ref(this, m,     rm);
+	LLNI_field_get_ref(_this, m,     rm);
 	LLNI_field_get_val(rm,   flag,  override);
 
 	m = &(c->methods[slot]);
@@ -208,15 +215,15 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_VMMethod_invoke(JNIEn
  * Method:    getSignature
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_VMMethod_getSignature(JNIEnv *env, java_lang_reflect_VMMethod* this)
+JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_VMMethod_getSignature(JNIEnv *env, java_lang_reflect_VMMethod* _this)
 {
 	classinfo     *c;
 	methodinfo    *m;
 	java_handle_t *o;
 	int32_t        slot;
 
-	LLNI_field_get_cls(this, clazz, c);
-	LLNI_field_get_val(this, slot , slot);
+	LLNI_field_get_cls(_this, clazz, c);
+	LLNI_field_get_val(_this, slot , slot);
 	m = &(c->methods[slot]);
 
 	if (m->signature == NULL)
@@ -237,7 +244,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_VMMethod_getSignature
  *
  * Parses the annotation default value and returnes it (boxed, if it's a primitive).
  */
-JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_VMMethod_getDefaultValue(JNIEnv *env, struct java_lang_reflect_VMMethod* this)
+JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_VMMethod_getDefaultValue(JNIEnv *env, struct java_lang_reflect_VMMethod* _this)
 {
 	java_handle_bytearray_t  *annotationDefault          = NULL; /* unparsed annotation default value                 */
 	static methodinfo        *m_parseAnnotationDefault   = NULL; /* parser method (will be chached, therefore static) */
@@ -250,7 +257,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_VMMethod_getDe
 	java_lang_reflect_Method* rm;
 	java_handle_t*            h;
 
-	if (this == NULL) {
+	if (_this == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
@@ -264,7 +271,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_VMMethod_getDe
 		return NULL;
 	}
 
-	LLNI_field_get_ref(this, clazz, constantPoolOop);
+	LLNI_field_get_ref(_this, clazz, constantPoolOop);
 	LLNI_field_set_ref(constantPool, constantPoolOop, (java_lang_Object*)constantPoolOop);
 
 	/* only resolve the parser method the first time */
@@ -279,7 +286,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_VMMethod_getDe
 			return NULL;
 		}
 
-		LLNI_class_get(this, referer);
+		LLNI_class_get(_this, referer);
 
 		m_parseAnnotationDefault = class_resolveclassmethod(
 			class_sun_reflect_annotation_AnnotationParser,
@@ -294,8 +301,8 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_VMMethod_getDe
 		}
 	}
 
-	LLNI_field_get_ref(this, m,                 rm);
-	LLNI_field_get_ref(this, annotationDefault, annotationDefault);
+	LLNI_field_get_ref(_this, m,                 rm);
+	LLNI_field_get_ref(_this, annotationDefault, annotationDefault);
 
 	h = vm_call_method(m_parseAnnotationDefault, NULL, rm, annotationDefault, constantPool);
 
@@ -311,25 +318,25 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_java_lang_reflect_VMMethod_getDe
  * Parses the annotations (if they aren't parsed yet) and stores them into
  * the declaredAnnotations map and return this map.
  */
-JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_VMMethod_declaredAnnotations(JNIEnv *env, java_lang_reflect_VMMethod *this)
+JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_VMMethod_declaredAnnotations(JNIEnv *env, java_lang_reflect_VMMethod *_this)
 {
 	java_util_Map           *declaredAnnotations = NULL; /* parsed annotations                                */
 	java_handle_bytearray_t *annotations         = NULL; /* unparsed annotations                              */
-	java_lang_Class         *declaringClass      = NULL; /* the constant pool of this class is used           */
+	java_lang_Class         *declaringClass      = NULL; /* the constant pool of _this class is used           */
 	classinfo               *referer             = NULL; /* class, which calles the annotation parser         */
 	                                                     /* (for the parameter 'referer' of vm_call_method()) */
 
-	LLNI_field_get_ref(this, declaredAnnotations, declaredAnnotations);
+	LLNI_field_get_ref(_this, declaredAnnotations, declaredAnnotations);
 
 	/* are the annotations parsed yet? */
 	if (declaredAnnotations == NULL) {
-		LLNI_field_get_ref(this, annotations, annotations);
-		LLNI_field_get_ref(this, clazz, declaringClass);
-		LLNI_class_get(this, referer);
+		LLNI_field_get_ref(_this, annotations, annotations);
+		LLNI_field_get_ref(_this, clazz, declaringClass);
+		LLNI_class_get(_this, referer);
 
 		declaredAnnotations = reflect_get_declaredannotations(annotations, (classinfo*) declaringClass, referer);
 
-		LLNI_field_set_ref(this, declaredAnnotations, declaredAnnotations);
+		LLNI_field_set_ref(_this, declaredAnnotations, declaredAnnotations);
 	}
 
 	return declaredAnnotations;
@@ -343,7 +350,7 @@ JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_VMMethod_declared
  *
  * Parses the parameter annotations and returns them in an 2 dimensional array.
  */
-JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_VMMethod_getParameterAnnotations(JNIEnv *env, java_lang_reflect_VMMethod *this)
+JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_VMMethod_getParameterAnnotations(JNIEnv *env, java_lang_reflect_VMMethod *_this)
 {
 	java_handle_bytearray_t *parameterAnnotations = NULL; /* unparsed parameter annotations                    */
 	int32_t                  slot                 = -1;   /* slot of the method                                */
@@ -351,14 +358,16 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_VMMethod_get
 	classinfo               *referer              = NULL; /* class, which calles the annotation parser         */
 	                                                      /* (for the parameter 'referer' of vm_call_method()) */
 
-	LLNI_field_get_ref(this, parameterAnnotations, parameterAnnotations);
-	LLNI_field_get_val(this, slot, slot);
-	LLNI_field_get_ref(this, clazz, declaringClass);
-	LLNI_class_get(this, referer);
+	LLNI_field_get_ref(_this, parameterAnnotations, parameterAnnotations);
+	LLNI_field_get_val(_this, slot, slot);
+	LLNI_field_get_ref(_this, clazz, declaringClass);
+	LLNI_class_get(_this, referer);
 
 	return reflect_get_parameterannotations((java_handle_t*)parameterAnnotations, slot, (classinfo*) declaringClass, referer);
 }
 #endif
+
+} // extern "C"
 
 
 /*
@@ -367,7 +376,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_VMMethod_get
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
