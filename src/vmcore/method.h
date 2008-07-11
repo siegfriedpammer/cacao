@@ -26,6 +26,10 @@
 #ifndef _METHOD_H
 #define _METHOD_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* forward typedefs ***********************************************************/
 
 typedef struct methodinfo          methodinfo; 
@@ -202,6 +206,10 @@ void method_print(methodinfo *m);
 void method_println(methodinfo *m);
 void method_methodref_print(constant_FMIref *mr);
 void method_methodref_println(constant_FMIref *mr);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* _METHOD_H */
