@@ -1,4 +1,4 @@
-/* src/native/vm/gnu/java_lang_reflect_VMMethod.c
+/* src/native/vm/gnuclasspath/java_lang_reflect_VMMethod.cpp
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -77,7 +77,7 @@ static JNINativeMethod methods[] = {
 };
 
 
-/* _Jv_java_lang_reflect_VMMethod_init *******************************************
+/* _Jv_java_lang_reflect_VMMethod_init *****************************************
 
    Register native functions.
 
@@ -92,6 +92,9 @@ void _Jv_java_lang_reflect_VMMethod_init(void)
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
 
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/reflect/VMMethod

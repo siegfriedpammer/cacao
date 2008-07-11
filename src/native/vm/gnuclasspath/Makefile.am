@@ -57,7 +57,7 @@ libnativevmcore_la_SOURCES = \
 	java_lang_management_VMManagementFactory.c \
 	java_lang_reflect_VMConstructor.cpp \
 	java_lang_reflect_VMField.cpp \
-	java_lang_reflect_VMMethod.c \
+	java_lang_reflect_VMMethod.cpp \
 	java_lang_reflect_VMProxy.c \
 	java_security_VMAccessController.c \
 	java_util_concurrent_atomic_AtomicLong.c \
