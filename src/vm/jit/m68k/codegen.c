@@ -2441,7 +2441,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 			M_AST(REG_ATMP3, REG_SP, 1 * 4);
 
 		/* env ist first argument */
-		M_AMOV_IMM(_Jv_env, REG_ATMP1);
+		M_AMOV_IMM(VM_get_jnienv(), REG_ATMP1);
 		M_AST(REG_ATMP1, REG_SP, 0 * 4);
 	}
 
