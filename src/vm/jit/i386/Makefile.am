@@ -25,7 +25,8 @@ DIST_SUBDIRS = \
 	cygwin \
 	darwin \
 	freebsd \
-	linux
+	linux \
+	solaris
 
 SUBDIRS = $(OS_DIR)
 

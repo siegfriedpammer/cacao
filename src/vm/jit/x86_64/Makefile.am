@@ -28,7 +28,8 @@ LIBS =
 
 DIST_SUBDIRS = \
 	freebsd \
-	linux
+	linux \
+	solaris
 
 SUBDIRS = $(OS_DIR)
 
