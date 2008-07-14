@@ -33,7 +33,7 @@
 
 #include "cacaoh/headers.h"
 
-#include "mm/gc-common.h"
+#include "mm/gc.hpp"
 #include "mm/memory.h"
 
 #include "toolbox/hashtable.h"

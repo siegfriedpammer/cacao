@@ -35,7 +35,7 @@
 #include "vm/jit/mips/codegen.h"
 #include "vm/jit/mips/md-abi.h"
 
-#include "mm/gc-common.h"
+#include "mm/gc.hpp"
 
 #include "vm/global.h"
 #include "vm/signallocal.h"

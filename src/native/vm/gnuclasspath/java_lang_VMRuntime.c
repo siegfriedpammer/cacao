@@ -40,7 +40,7 @@
 #endif
 
 #include "mm/dumpmemory.h"
-#include "mm/gc-common.h"
+#include "mm/gc.hpp"
 
 #include "native/jni.h"
 #include "native/native.h"

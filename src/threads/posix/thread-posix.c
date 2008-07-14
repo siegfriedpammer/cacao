@@ -43,7 +43,7 @@
 
 #include "arch.h"
 
-#include "mm/gc-common.h"
+#include "mm/gc.hpp"
 #include "mm/memory.h"
 
 #if defined(ENABLE_GC_CACAO)

@@ -1,4 +1,4 @@
-/* src/mm/gc-common.h - gc independant interface for heap managment
+/* src/mm/gc.hpp - gc independant interface for heap managment
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _GC_COMMON_H
-#define _GC_COMMON_H
+#ifndef _GC_HPP
+#define _GC_HPP
 
 #include "config.h"
 
@@ -97,7 +97,7 @@ static inline int32_t heap_hashcode(java_object_t *obj)
 }
 #endif
 
-#endif /* _GC_COMMON_H */
+#endif /* _GC_HPP */
 
 
 /*

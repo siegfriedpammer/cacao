@@ -47,7 +47,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/class.h"
 #include "vm/classcache.h"
-#include "mm/gc-common.h"
+#include "mm/gc.hpp"
 #include "toolbox/logging.h"
 #include "vm/options.h"
 #include "vm/stringlocal.h"

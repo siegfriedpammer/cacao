@@ -34,7 +34,7 @@
 
 #include "md.h"
 
-#include "mm/gc-common.h"
+#include "mm/gc.hpp"
 #include "mm/memory.h"
 
 #include "vm/jit/stacktrace.h"

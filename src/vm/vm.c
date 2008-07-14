@@ -38,7 +38,7 @@
 #include "vm/jit/abi-asm.h"
 
 #include "mm/codememory.h"
-#include "mm/gc-common.h"
+#include "mm/gc.hpp"
 #include "mm/memory.h"
 
 #include "native/jni.h"

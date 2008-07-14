@@ -62,7 +62,7 @@ libmm_la_SOURCES = \
 	dumpmemory.c \
 	dumpmemory.h \
 	$(GC_FILE) \
-	gc-common.h \
+	gc.hpp \
 	memory.c \
 	memory.h
 

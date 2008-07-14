@@ -31,7 +31,7 @@
 
 #include "vm/types.h"
 
-#include "mm/gc-common.h"
+#include "mm/gc.hpp"
 #include "mm/memory.h"
 
 #include "native/jni.h"
