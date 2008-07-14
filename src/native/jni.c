@@ -108,7 +108,7 @@ struct java_lang_ClassLoader;
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/argument.h"
 #include "vm/jit/asmpart.h"
@@ -3229,7 +3229,7 @@ jint _Jv_JNI_GetJavaVM(JNIEnv *env, JavaVM **vm)
 {
 	STATISTICS(jniinvokation());
 
-    *vm = (JavaVM *) _Jv_jvm;
+    *vm = VM_get_javavm();
 
 	return 0;
 }
@@ -3822,7 +3822,7 @@ jint _Jv_JNI_DestroyJavaVM(JavaVM *vm)
 
 	TRACEJNICALLS(("_Jv_JNI_DestroyJavaVM(vm=%p)", vm));
 
-	if (vm_created == false)
+	if (VM_is_created() == false)
 		return JNI_ERR;
 
     status = vm_destroy(vm);
@@ -3857,7 +3857,7 @@ static int jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon
 	result = thread_current_is_attached();
 
 	if (result == true) {
-		*p_env = _Jv_env;
+		*p_env = VM_get_jnienv();
 
 		return JNI_OK;
 	}
@@ -3877,7 +3877,7 @@ static int jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon
 		return JNI_ERR;
 #endif
 
-	*p_env = _Jv_env;
+	*p_env = VM_get_jnienv();
 
 	return JNI_OK;
 }
@@ -3889,7 +3889,7 @@ jint jni_AttachCurrentThread(JavaVM *vm, void **p_env, void *thr_args)
 
 	TRACEJNICALLS(("jni_AttachCurrentThread(vm=%p, p_env=%p, thr_args=%p)", vm, p_env, thr_args));
 
-	if (vm_created == false)
+	if (VM_is_created() == false)
 		return JNI_ERR;
 
 	result = jni_attach_current_thread(p_env, thr_args, false);
@@ -3958,7 +3958,7 @@ jint jni_GetEnv(JavaVM *vm, void **env, jint version)
 {
 	TRACEJNICALLS(("jni_GetEnv(vm=%p, env=%p, version=%d)", vm, env, version));
 
-	if (vm_created == false) {
+	if (VM_is_created() == false) {
 		*env = NULL;
 		return JNI_EDETACHED;
 	}
@@ -3974,7 +3974,7 @@ jint jni_GetEnv(JavaVM *vm, void **env, jint version)
 	/* Check the JNI version. */
 
 	if (jni_version_check(version) == true) {
-		*env = _Jv_env;
+		*env = VM_get_jnienv();
 		return JNI_OK;
 	}
 
@@ -4014,7 +4014,7 @@ jint jni_AttachCurrentThreadAsDaemon(JavaVM *vm, void **penv, void *args)
 
 	TRACEJNICALLS(("jni_AttachCurrentThreadAsDaemon(vm=%p, penv=%p, args=%p)", vm, penv, args));
 
-	if (vm_created == false)
+	if (VM_is_created() == false)
 		return JNI_ERR;
 
 	result = jni_attach_current_thread(penv, args, true);
@@ -4369,7 +4369,7 @@ jint JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 
 	/* We currently only support 1 VM running. */
 
-	vmBuf[0] = (JavaVM *) _Jv_jvm;
+	vmBuf[0] = VM_get_javavm();
 	*nVMs    = 1;
 
     return JNI_OK;
@@ -4389,7 +4389,7 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 
 	/* actually create the JVM */
 
-	if (!vm_createjvm(p_vm, p_env, vm_args))
+	if (!VM_create(p_vm, p_env, vm_args))
 		return JNI_ERR;
 
 	return JNI_OK;

@@ -37,7 +37,7 @@
 #include "vm/global.h"
 #include "vm/builtin.h"
 #include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/jit.h"

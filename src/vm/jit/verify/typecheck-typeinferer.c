@@ -41,7 +41,7 @@
 #include "vm/exceptions.h"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/jit.h"
 #include "vm/jit/show.h"

@@ -54,7 +54,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
@@ -267,7 +267,7 @@ static java_handle_t *exceptions_new_class_utf(classinfo *c, utf *message)
 	java_handle_t *s;
 	java_handle_t *o;
 
-	if (vm_initializing) {
+	if (VM_is_initializing()) {
 		/* This can happen when global class variables are used which
 		   are not initialized yet. */
 
@@ -305,7 +305,7 @@ static java_handle_t *exceptions_new_utf(utf *classname)
 	classinfo     *c;
 	java_handle_t *o;
 
-	if (vm_initializing)
+	if (VM_is_initializing())
 		exceptions_abort(classname, NULL);
 
 	c = load_class_bootstrap(classname);
@@ -343,7 +343,7 @@ static java_handle_t *exceptions_new_utf_javastring(utf *classname,
 	java_handle_t *o;
 	classinfo     *c;
    
-	if (vm_initializing)
+	if (VM_is_initializing())
 		exceptions_abort(classname, NULL);
 
 	c = load_class_bootstrap(classname);
@@ -380,7 +380,7 @@ static java_handle_t *exceptions_new_utf_utf(utf *classname, utf *message)
 	classinfo     *c;
 	java_handle_t *o;
 
-	if (vm_initializing)
+	if (VM_is_initializing())
 		exceptions_abort(classname, message);
 
 	c = load_class_bootstrap(classname);
@@ -457,7 +457,7 @@ static void exceptions_throw_utf_throwable(utf *classname,
 	methodinfo          *m;
 	java_lang_Throwable *object;
 
-	if (vm_initializing)
+	if (VM_is_initializing())
 		exceptions_abort(classname, NULL);
 
 	object = (java_lang_Throwable *) cause;
@@ -509,7 +509,7 @@ static void exceptions_throw_utf_exception(utf *classname,
 	java_handle_t *o;
 	methodinfo    *m;
 
-	if (vm_initializing)
+	if (VM_is_initializing())
 		exceptions_abort(classname, NULL);
 
 	c = load_class_bootstrap(classname);
@@ -560,7 +560,7 @@ static void exceptions_throw_utf_cause(utf *classname, java_handle_t *cause)
 	java_lang_String    *s;
 	java_lang_Throwable *object;
 
-	if (vm_initializing)
+	if (VM_is_initializing())
 		exceptions_abort(classname, NULL);
 
 	object = (java_lang_Throwable *) cause;

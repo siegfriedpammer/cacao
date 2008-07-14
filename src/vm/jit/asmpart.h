@@ -30,10 +30,14 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "vm/types.h"
 
 #include "vm/global.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/linker.h"
 
@@ -106,6 +110,10 @@ void *md_asm_codegen_get_pv_from_pc(void *ra);
 
 #if defined(ENABLE_ESCAPE_CHECK)
 void asm_escape_check(java_object_t *obj);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* _ASMPART_H */

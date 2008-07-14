@@ -28,7 +28,7 @@
 #include <stdint.h>
 
 #if defined(ENABLE_ANNOTATIONS)
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 #endif
 
 #include "native/jni.h"

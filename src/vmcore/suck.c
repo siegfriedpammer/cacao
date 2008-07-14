@@ -42,7 +42,7 @@
 
 #include "vm/exceptions.h"
 #include "vm/properties.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"

@@ -1,9 +1,7 @@
-/* src/native/vm/gnu/gnu_java_lang_management_VMThreadMXBeanImpl.c
+/* src/native/vm/gnuclasspath/gnu_java_lang_management_VMThreadMXBeanImpl.c
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -41,7 +39,7 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/classcache.h"
 #include "vmcore/utf8.h"
@@ -124,7 +122,9 @@ JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCu
  */
 JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getPeakThreadCount(JNIEnv *env, jclass clazz)
 {
-	return _Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount;
+/* 	return _Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount; */
+#warning Move to C++
+	log_println("Java_gnu_java_lang_management_ThreadMXBean_getPeakThreadCount: MOVE TO C++!");
 }
 
 
@@ -174,7 +174,9 @@ JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTh
  */
 JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTotalStartedThreadCount(JNIEnv *env, jclass clazz)
 {
-	return _Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount;
+/* 	return _Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount; */
+#warning Move to C++
+	log_println("Java_gnu_java_lang_management_ThreadMXBean_getTotalStartedThreadCount: MOVE TO C++!");
 }
 
 
@@ -185,8 +187,10 @@ JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTo
  */
 JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_resetPeakThreadCount(JNIEnv *env, jclass clazz)
 {
-	_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount =
-		_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount;
+/* 	_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount = */
+/* 		_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount; */
+#warning Move to C++
+	log_println("Java_gnu_java_lang_management_VMThreadMXBeanImpl_resetPeakThreadCount: MOVE TO C++!");
 }
 
 

@@ -37,7 +37,7 @@
 
 #include "vm/types.h"
 
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 
 /* md_stacktrace_get_returnaddress *********************************************

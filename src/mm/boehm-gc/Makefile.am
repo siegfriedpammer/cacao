@@ -16,6 +16,8 @@
 
 ## Process this file with automake to produce Makefile.in.
 
+ACLOCAL_AMFLAGS = -I m4
+
 DISTCLEANFILES = \
 	atomic_ops.c \
 	atomic_ops_sysdeps.S \

@@ -32,7 +32,7 @@
 
 #include "vm/types.h"
 
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 
 /*

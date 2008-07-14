@@ -47,7 +47,7 @@
 
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/options.h"
 

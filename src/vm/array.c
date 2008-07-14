@@ -33,7 +33,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/primitive.hpp"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 
 /* array_element_get ***********************************************************

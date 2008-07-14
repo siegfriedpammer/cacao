@@ -1,9 +1,7 @@
-/* src/native/vm/gnu/gnu_java_lang_management_VMRuntimeMXBeanImpl.c
+/* src/native/vm/gnuclasspath/gnu_java_lang_management_VMRuntimeMXBeanImpl.c
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -36,7 +34,7 @@
 
 #include "vm/builtin.h"
 #include "vm/global.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/class.h"
 #include "vmcore/utf8.h"
@@ -86,7 +84,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_gnu_java_lang_management_VMRun
  */
 JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime(JNIEnv *env, jclass clazz)
 {
-	return _Jv_jvm->starttime;
+	return VM_get_starttime();
 }
 
 /*

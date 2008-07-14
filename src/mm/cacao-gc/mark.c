@@ -33,7 +33,7 @@
 #include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "vm/global.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 #include "vmcore/linker.h"
 
 

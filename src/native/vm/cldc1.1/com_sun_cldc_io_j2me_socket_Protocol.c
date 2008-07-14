@@ -44,7 +44,7 @@
 #include "native/include/com_sun_cldc_io_j2me_socket_Protocol.h"
 
 #include "vm/global.h"
-#include "vm/vm.h" /* REMOVE ME: temporarily */
+#include "vm/vm.hpp" /* REMOVE ME: temporarily */
 
 
 /* native methods implemented by this file ************************************/

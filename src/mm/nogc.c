@@ -46,7 +46,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"

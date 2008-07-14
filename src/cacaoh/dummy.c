@@ -42,7 +42,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/primitive.hpp"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/code.h"
 
@@ -848,6 +848,11 @@ void vmlog_cacao_set_ignoreprefix(const char *arg)
 {
 }
 #endif
+
+
+/* Legacy C interface *********************************************************/
+
+bool VM_is_initializing() { return true; }
 
 
 /*

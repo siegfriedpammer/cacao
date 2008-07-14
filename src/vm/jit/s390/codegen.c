@@ -51,7 +51,7 @@
 #include "vm/global.h"
 #include "vm/types.h"
 #include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/abi.h"
 #if defined(ENABLE_LSRA)

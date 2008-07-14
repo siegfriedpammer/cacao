@@ -36,7 +36,7 @@
 #include "vm/jit/powerpc64/codegen.h"
 
 #include "vm/global.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"

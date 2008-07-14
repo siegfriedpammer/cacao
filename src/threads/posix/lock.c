@@ -51,7 +51,7 @@
 #include "vm/exceptions.h"
 #include "vm/finalizer.h"
 #include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/options.h"
 

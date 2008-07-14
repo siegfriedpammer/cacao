@@ -52,7 +52,7 @@ typedef struct threadobject threadobject;
 #include "threads/posix/lock.h"
 
 #include "vm/global.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #if defined(ENABLE_GC_CACAO)
 # include "vm/jit/executionstate.h"

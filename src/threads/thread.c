@@ -62,7 +62,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/stacktrace.h"
 

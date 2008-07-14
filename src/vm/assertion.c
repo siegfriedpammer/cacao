@@ -34,7 +34,7 @@
 
 #include "vm/assertion.h"
 #include "vm/global.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/system.h"
 

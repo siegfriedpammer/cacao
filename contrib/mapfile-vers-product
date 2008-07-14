@@ -31,7 +31,7 @@
 SUNWprivate_1.1 {
         global:
                 # CACAO
-                vm_createjvm;
+                VM_create;
                 vm_run;
 
                 # JNI

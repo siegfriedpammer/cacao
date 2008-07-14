@@ -48,7 +48,7 @@
 #include "vm/global.h"
 #include "vm/primitive.hpp"
 #include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
@@ -3621,7 +3621,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 		/* put env into first argument */
 
-		M_AST_IMM(_Jv_env, REG_SP, 0 * 4);
+		M_AST_IMM(VM_get_jnienv(), REG_SP, 0 * 4);
 	}
 
 	/* Call the native function. */

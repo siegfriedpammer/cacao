@@ -53,7 +53,7 @@
 #endif
 
 #if defined(ENABLE_ANNOTATIONS) && defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-# include "vm/vm.h"
+# include "vm/vm.hpp"
 # include "native/include/sun_reflect_ConstantPool.h"
 #endif
 

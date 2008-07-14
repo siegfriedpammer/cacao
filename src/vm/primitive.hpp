@@ -119,13 +119,12 @@ struct primitivetypeinfo {
 
 extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 
-#ifndef __cplusplus
-// Legacy C interface.
-
 /* this function is in src/vmcore/primitivecore.c */
 void       primitive_init(void);
 void       primitive_postinit(void);
 
+#ifndef __cplusplus
+// Legacy C interface.
 classinfo *Primitive_get_class_by_name(utf *name);
 classinfo *Primitive_get_class_by_type(int type);
 classinfo *Primitive_get_class_by_char(char ch);

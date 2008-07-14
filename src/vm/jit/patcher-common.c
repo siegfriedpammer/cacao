@@ -43,7 +43,7 @@
 #include "vm/exceptions.h"
 #include "vm/initialize.h"
 #include "vm/resolve.h"
-#include "vm/vm.h"                     /* for vm_abort */
+#include "vm/vm.hpp"                     /* for vm_abort */
 
 #include "vm/jit/code.h"
 #include "vm/jit/disass.h"

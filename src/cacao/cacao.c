@@ -48,7 +48,7 @@
 
 #include "vmcore/system.h"
 
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 
 /* Defines. *******************************************************************/
@@ -80,11 +80,11 @@ int main(int argc, char **argv)
 #if defined(ENABLE_LIBJVM)	
 	/* Variables for JNI_CreateJavaVM dlopen call. */
 	void*       libjvm_handle;
-	void*       libjvm_vm_createjvm;
+	void*       libjvm_VM_create;
 	void*       libjvm_vm_run;
 	const char* lterror;
 
-	bool (*vm_createjvm)(JavaVM **, void **, void *);
+	bool (*VM_create)(JavaVM **, void **, void *);
 	void (*vm_run)(JavaVM *, JavaVMInitArgs *);
 #endif
 
@@ -155,20 +155,20 @@ int main(int argc, char **argv)
 		free((void *) lterror);
 	}
 
-	libjvm_vm_createjvm = system_dlsym(libjvm_handle, "vm_createjvm");
+	libjvm_VM_create = system_dlsym(libjvm_handle, "VM_create");
 
-	if (libjvm_vm_createjvm == NULL) {
+	if (libjvm_VM_create == NULL) {
 		fprintf(stderr, "main: lt_dlsym failed: %s\n", system_dlerror());
 		abort();
 	}
 
-	vm_createjvm =
-		(bool (*)(JavaVM **, void **, void *)) (ptrint) libjvm_vm_createjvm;
+	VM_create =
+		(bool (*)(JavaVM **, void **, void *)) (ptrint) libjvm_VM_create;
 #endif
 
 	/* create the Java VM */
 
-	(void) vm_createjvm(&vm, (void *) &env, vm_args);
+	(void) VM_create(&vm, (void *) &env, vm_args);
 
 #if defined(ENABLE_JVMTI)
 # error This should be a JVMTI function.

@@ -43,7 +43,7 @@
 #include "vm/exceptions.h"
 #include "vm/primitive.hpp"
 #include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit_interface.h"
 

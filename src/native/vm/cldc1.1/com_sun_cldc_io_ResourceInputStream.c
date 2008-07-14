@@ -45,7 +45,7 @@
 
 #include "vm/types.h"
 #include "vm/builtin.h"
-#include "vm/vm.h" /* REMOVE ME: temporarily */
+#include "vm/vm.hpp" /* REMOVE ME: temporarily */
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"
 

@@ -37,7 +37,7 @@
 #include "native/native.h"
 
 #include "vm/properties.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/options.h"
 #include "vmcore/system.h"

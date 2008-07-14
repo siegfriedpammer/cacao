@@ -38,7 +38,7 @@
 #include "vm/global.h"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/abi-asm.h"
 

@@ -57,7 +57,7 @@
 /* this should work on BSD */
 /* #include <sys/sysctl.h> */
 
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 
 /* system_mmap_anonymous *******************************************************

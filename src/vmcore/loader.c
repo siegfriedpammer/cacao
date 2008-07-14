@@ -47,7 +47,7 @@
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit_interface.h"
 
@@ -119,7 +119,7 @@ void loader_preinit(void)
 
 	/* Load the most basic classes. */
 
-	assert(vm_initializing == true);
+	assert(VM_is_initializing() == true);
 
 	class_java_lang_Object     = load_class_bootstrap(utf_java_lang_Object);
 
@@ -145,7 +145,7 @@ void loader_init(void)
 
 	/* Load primitive-type wrapping classes. */
 
-	assert(vm_initializing == true);
+	assert(VM_is_initializing() == true);
 
 #if defined(ENABLE_JAVASE)
 	class_java_lang_Void       = load_class_bootstrap(utf_java_lang_Void);

@@ -28,11 +28,6 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#if defined(ENABLE_ANNOTATIONS)
-#include "vm/vm.h"
-#include "vm/exceptions.h"
-#endif
-
 #include "native/jni.h"
 #include "native/llni.h"
 #include "native/native.h"

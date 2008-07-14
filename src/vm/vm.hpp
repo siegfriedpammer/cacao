@@ -1,4 +1,4 @@
-/* src/vm/vm.h - basic JVM functions
+/* src/vm/vm.hpp - basic JVM functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _VM_H
-#define _VM_H
+#ifndef _VM_HPP
+#define _VM_HPP
 
 #include "config.h"
 
@@ -41,17 +41,69 @@
 #include "vmcore/method.h"
 
 #ifdef __cplusplus
+
+/**
+ * Represent an instance of a VM.
+ */
+class VM {
+private:
+	// JNI variables.
+	JavaVM* _javavm;
+	JNIEnv* _jnienv;
+
+	// VM variables.
+	bool    _initializing;
+	bool    _created;
+	bool    _exiting;
+	int64_t _starttime;
+
+public:
+	// Constructor, Destructor.
+	VM(JavaVMInitArgs*);
+	~VM();
+
+	// Static methods.
+	static bool create(JavaVM** p_vm, void** p_env, void* vm_args);
+
+	// Getters for private members.
+	JavaVM* get_javavm()      { return _javavm; }
+	JNIEnv* get_jnienv()      { return _jnienv; }
+	bool    is_initializing() { return _initializing; }
+	bool    is_created()      { return _created; }
+	bool    is_exiting()      { return _exiting; }
+	int64_t get_starttime()   { return _starttime; }
+};
+
+
+/**
+ * This is _the_ instance of the VM.
+ */
+extern VM* vm;
+
+#else
+
+JavaVM* VM_get_javavm();
+JNIEnv* VM_get_jnienv();
+bool    VM_is_initializing();
+bool    VM_is_created();
+int64_t VM_get_starttime();
+
+#endif
+
+/* These C methods are the exported interface. ********************************/
+
+#ifdef __cplusplus
 extern "C" {
 #endif
 
+bool VM_create(JavaVM** p_vm, void** p_env, void* vm_args);
+
+#ifdef __cplusplus
+}
+#endif
+
+
 /* export global variables ****************************************************/
-
-extern _Jv_JavaVM *_Jv_jvm;
-extern _Jv_JNIEnv *_Jv_env;
-
-extern bool vm_initializing;
-extern bool vm_created;
-extern bool vm_exiting;
 
 #if defined(ENABLE_INTRP)
 extern u1 *intrp_main_stack;
@@ -60,9 +112,12 @@ extern u1 *intrp_main_stack;
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void usage(void);
 
-bool vm_createjvm(JavaVM **p_vm, void **p_env, void *vm_args);
 bool vm_create(JavaVMInitArgs *vm_args);
 void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args);
 s4   vm_destroy(JavaVM *vm);
@@ -106,7 +161,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o, java_
 }
 #endif
 
-#endif /* _VM_H */
+#endif // _VM_HPP
 
 
 /*
@@ -115,7 +170,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o, java_
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

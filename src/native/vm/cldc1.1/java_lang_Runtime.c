@@ -34,7 +34,7 @@
 
 #include "native/include/java_lang_Runtime.h"
 
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/utf8.h"
 

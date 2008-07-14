@@ -50,7 +50,7 @@
 #if defined(ENABLE_ANNOTATIONS)
 #include "native/include/sun_reflect_ConstantPool.h"
 
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/annotation.h"
 #endif

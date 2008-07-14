@@ -1,4 +1,4 @@
-/* src/native/vm/gnu/gnu_java_lang_management_VMMemoryMXBeanImpl.c
+/* src/native/vm/gnuclasspath/gnu_java_lang_management_VMMemoryMXBeanImpl.c
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -38,7 +38,7 @@
 
 #include "vm/builtin.h"
 #include "vm/global.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"               /* XXX only for load_class_bootstrap */
@@ -164,7 +164,9 @@ JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getOb
  */
 JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose(JNIEnv *env, jclass clazz)
 {
-	return _Jv_jvm->Java_gnu_java_lang_management_VMMemoryMXBeanImpl_verbose;
+/* 	return _Jv_jvm->Java_gnu_java_lang_management_VMMemoryMXBeanImpl_verbose; */
+#warning Move to C++
+	log_println("Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose: MOVE TO C++!");
 }
 
 
@@ -175,7 +177,9 @@ JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVer
  */
 JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbose(JNIEnv *env, jclass clazz, int32_t verbose)
 {
-	_Jv_jvm->Java_gnu_java_lang_management_VMMemoryMXBeanImpl_verbose = verbose;
+/* 	_Jv_jvm->Java_gnu_java_lang_management_VMMemoryMXBeanImpl_verbose = verbose; */
+#warning Move to C++
+	log_println("Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbose: MOVE TO C++!");
 }
 
 

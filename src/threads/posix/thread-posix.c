@@ -79,7 +79,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
 
@@ -880,13 +880,14 @@ static void *threads_startup_thread(void *arg)
 
 		/* set ThreadMXBean variables */
 
-		_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount++;
-		_Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount++;
+/* 		_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount++; */
+/* 		_Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount++; */
 
-		if (_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount >
-			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount)
-			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount =
-				_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount;
+/* 		if (_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount > */
+/* 			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount) */
+/* 			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount = */
+/* 				_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount; */
+#warning Move to C++
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 		/* we need to start the run method of java.lang.VMThread */
@@ -907,13 +908,14 @@ static void *threads_startup_thread(void *arg)
 	else {
 		/* set ThreadMXBean variables */
 
-		_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount++;
-		_Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount++;
+/* 		_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount++; */
+/* 		_Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount++; */
 
-		if (_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount >
-			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount)
-			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount =
-				_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount;
+/* 		if (_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount > */
+/* 			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount) */
+/* 			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount = */
+/* 				_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount; */
+#warning Move to C++
 
 		/* call passed function, e.g. finalizer_thread */
 
@@ -935,7 +937,8 @@ static void *threads_startup_thread(void *arg)
 
 	/* set ThreadMXBean variables */
 
-	_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount--;
+/* 	_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount--; */
+#warning Move to C++
 
 	return NULL;
 }

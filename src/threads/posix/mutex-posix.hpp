@@ -30,7 +30,7 @@
 
 #include <pthread.h>
 
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #ifdef __cplusplus
 

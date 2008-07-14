@@ -41,7 +41,7 @@
 
 #include "vm/exceptions.h"
 #include "vm/properties.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 
 /* native methods implemented by this file ************************************/

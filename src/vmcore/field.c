@@ -41,7 +41,7 @@
 #include "vm/global.h"
 #include "vm/primitive.hpp"
 #include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/annotation.h"
 #include "vmcore/class.h"

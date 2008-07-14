@@ -42,7 +42,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/classcache.h"
 #include "vmcore/loader.h"

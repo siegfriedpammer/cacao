@@ -44,7 +44,7 @@
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"

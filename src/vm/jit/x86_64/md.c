@@ -1,9 +1,7 @@
 /* src/vm/jit/x86_64/md.c - machine dependent x86_64 functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -33,7 +31,7 @@
 
 #include "vm/jit/x86_64/md-abi.h"
 
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/jit.h"

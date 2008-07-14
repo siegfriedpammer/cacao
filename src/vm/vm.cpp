@@ -1,4 +1,4 @@
-/* src/vm/vm.c - VM startup and shutdown functions
+/* src/vm/vm.cpp - VM startup and shutdown functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,9 +25,12 @@
 
 #include "config.h"
 
+#include <stdint.h>
+
+#include <exception>
+
 #include <assert.h>
 #include <errno.h>
-#include <stdint.h>
 #include <stdlib.h>
 
 #include "vm/types.h"
@@ -80,7 +83,7 @@
 #include "vm/properties.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/argument.h"
 #include "vm/jit/asmpart.h"
@@ -120,19 +123,15 @@
 #endif
 
 
-/* Invocation API variables ***************************************************/
-
-_Jv_JavaVM *_Jv_jvm;                    /* denotes a Java VM                  */
-_Jv_JNIEnv *_Jv_env;                    /* pointer to native method interface */
+/**
+ * This is _the_ instance of the VM.
+ */
+VM* vm;
 
 
 /* global variables ***********************************************************/
 
 s4 vms = 0;                             /* number of VMs created              */
-
-bool vm_initializing = false;
-bool vm_created      = false;
-bool vm_exiting      = false;
 
 static classinfo *mainclass = NULL;
 
@@ -673,83 +672,94 @@ static void  vm_compile_method(char* mainname);
 #endif
 
 
-/* vm_createjvm ****************************************************************
-
-   Implementation for JNI_CreateJavaVM.
-
-*******************************************************************************/
-
-bool vm_createjvm(JavaVM **p_vm, void **p_env, void *vm_args)
+/**
+ * Implementation for JNI_CreateJavaVM.  This function creates a VM
+ * object.
+ *
+ * @param p_vm
+ * @param p_env
+ * @param vm_args
+ *
+ * @return true on success, false otherwise.
+ */
+bool VM::create(JavaVM** p_vm, void** p_env, void* vm_args)
 {
-	JavaVMInitArgs *_vm_args;
-	_Jv_JNIEnv     *env;
-	_Jv_JavaVM     *vm;
+	JavaVMInitArgs* _vm_args;
 
-	/* get the arguments for the new JVM */
-
+	// Get the arguments for the new JVM.
 	_vm_args = (JavaVMInitArgs *) vm_args;
 
-	/* get the VM and Env tables (must be set before vm_create) */
+	// Instantiate a new VM.
+	try {
+		vm = new VM(_vm_args);
+	}
+	catch (std::exception e) {
+		// FIXME How can we delete the resources allocated?
+// 		/* release allocated memory */
+// 		FREE(env, _Jv_JNIEnv);
+// 		FREE(vm, _Jv_JavaVM);
 
-	env = NEW(_Jv_JNIEnv);
+		vm = NULL;
 
-#if defined(ENABLE_JNI)
-	env->env = &_Jv_JNINativeInterface;
-#endif
+		return false;
+	}
 
-	/* XXX Set the global variable.  Maybe we should do that differently. */
+	// Return the values.
 
-	_Jv_env = env;
-
-	/* create and fill a JavaVM structure */
-
-	vm = NEW(_Jv_JavaVM);
-
-#if defined(ENABLE_JNI)
-	vm->functions = &_Jv_JNIInvokeInterface;
-#endif
-
-	/* XXX Set the global variable.  Maybe we should do that differently. */
-	/* XXX JVMTI Agents needs a JavaVM  */
-
-	_Jv_jvm = vm;
-
-	/* actually create the JVM */
-
-	if (!vm_create(_vm_args))
-		goto error;
-
-	/* now return the values */
-
-	*p_vm  = (JavaVM *) vm;
-	*p_env = (void *) env;
+	*p_vm  = vm->get_javavm();
+	*p_env = vm->get_jnienv();
 
 	return true;
-
- error:
-	/* release allocated memory */
-
-	FREE(env, _Jv_JNIEnv);
-	FREE(vm, _Jv_JavaVM);
-
-	return false;
 }
 
 
-/* vm_create *******************************************************************
+/**
+ * C wrapper for VM::create.
+ */
+extern "C" {
+	bool VM_create(JavaVM** p_vm, void** p_env, void* vm_args)
+	{
+		return VM::create(p_vm, p_env, vm_args);
+	}
+}
 
-   Creates a JVM.  Called by vm_createjvm.
 
-*******************************************************************************/
-
-bool vm_create(JavaVMInitArgs *vm_args)
+/**
+ * VM constructor.
+ */
+VM::VM(JavaVMInitArgs* vm_args)
 {
+	// Very first thing to do: we are initializing.
+	_initializing = true;
+
+	// Make ourself globally visible.
+	// XXX Is this a good idea?
+	vm = this;
+
+	/* create and fill a JavaVM structure */
+
+	_javavm = new JavaVM();
+
+#if defined(ENABLE_JNI)
+	_javavm->functions = &_Jv_JNIInvokeInterface;
+#endif
+
+	/* get the VM and Env tables (must be set before vm_create) */
+	/* XXX JVMTI Agents needs a JavaVM  */
+
+	_jnienv = new JNIEnv();
+
+#if defined(ENABLE_JNI)
+	_jnienv->functions = &_Jv_JNINativeInterface;
+#endif
+
+	/* actually create the JVM */
+
 	int   len;
 	char *p;
 	char *boot_class_path;
 	char *class_path;
 	int   opt;
-	int   i, j;
 	bool  opt_version;
 	bool  opt_exit;
 
@@ -764,13 +774,13 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	/* Check the JNI version requested. */
 
 	if (!jni_version_check(vm_args->version))
-		return false;
+		throw std::exception();
 #endif
 
 	/* We only support 1 JVM instance. */
 
 	if (vms > 0)
-		return false;
+		throw std::exception();
 
 	/* Install the exit handler. */
 
@@ -814,7 +824,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	/* set the VM starttime */
 
-	_Jv_jvm->starttime = builtin_currenttimemillis();
+	_starttime = builtin_currenttimemillis();
 
 #if defined(ENABLE_JVMTI)
 	/* initialize JVMTI related  **********************************************/
@@ -872,7 +882,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 
 		case OPT_D:
-			for (i = 0; i < strlen(opt_arg); i++) {
+			for (unsigned int i = 0; i < strlen(opt_arg); i++) {
 				if (opt_arg[i] == '=') {
 					opt_arg[i] = '\0';
 					properties_add(opt_arg, opt_arg + i + 1);
@@ -910,7 +920,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 			len = strlen(boot_class_path);
 
-			p = MREALLOC(boot_class_path,
+			// XXX (char*) quick hack
+			p = (char*) MREALLOC(boot_class_path,
 						 char,
 						 len + strlen("0"),
 						 len + strlen(":") +
@@ -1008,6 +1019,8 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		case OPT_SS:
 			{
 				char c;
+				int j;
+
 				c = opt_arg[strlen(opt_arg) - 1];
 
 				if ((c == 'k') || (c == 'K')) {
@@ -1105,7 +1118,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 			break;
 			
 		case OPT_CHECK:
-			for (i = 0; i < strlen(opt_arg); i++) {
+			for (unsigned int i = 0; i < strlen(opt_arg); i++) {
 				switch (opt_arg[i]) {
 				case 'b':
 					checkbounds = false;
@@ -1143,7 +1156,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 #endif
 
 		case OPT_SHOW:       /* Display options */
-			for (i = 0; i < strlen(opt_arg); i++) {		
+			for (unsigned int i = 0; i < strlen(opt_arg); i++) {		
 				switch (opt_arg[i]) {
 				case 'c':
 					showconstantpool = true;
@@ -1275,7 +1288,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 		case OPT_PROF_OPTION:
 			/* use <= to get the last \0 too */
 
-			for (i = 0, j = 0; i <= strlen(opt_arg); i++) {
+			for (unsigned int i = 0, j = 0; i <= strlen(opt_arg); i++) {
 				if (opt_arg[i] == ',')
 					opt_arg[i] = '\0';
 
@@ -1373,10 +1386,6 @@ bool vm_create(JavaVMInitArgs *vm_args)
 	}
 #endif
 
-	/* initialize this JVM ****************************************************/
-
-	vm_initializing = true;
-
 	/* initialize the garbage collector */
 
 	gc_init(opt_heapmaxsize, opt_heapstartsize);
@@ -1386,8 +1395,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	threadlist_init();
 
-	/* AFTER: gc_init (directly after, as this initializes the
-	   stopworldlock lock */
+	/* AFTER: gc_init */
 
   	threads_preinit();
 	lock_init();
@@ -1465,7 +1473,7 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	/* BEFORE: loader_preinit */
 
-	Package_initialize();
+	Package::initialize();
 
 	/* AFTER: utf8_init, classcache_init */
 
@@ -1598,20 +1606,15 @@ bool vm_create(JavaVMInitArgs *vm_args)
 
 	vms++;
 
-	/* Initialization is done, VM is created.. */
-
-	vm_created      = true;
-	vm_initializing = false;
-
+	// Initialization is done, VM is created.
+	_created      = true;
+	_initializing = false;
+	
 	/* Print the VM configuration after all stuff is set and the VM is
 	   initialized. */
 
 	if (opt_PrintConfig)
 		vm_printconfig();
-
-	/* everything's ok */
-
-	return true;
 }
 
 
@@ -1635,7 +1638,6 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	utf                       *u;
 	java_handle_t             *s;
 	int                        status;
-	int                        i;
 
 	// Prevent compiler warnings.
 	oa = NULL;
@@ -1671,7 +1673,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 		else {
 			/* Replace dots with slashes in the class name. */
 
-			for (i = 0; i < strlen(mainname); i++)
+			for (unsigned int i = 0; i < strlen(mainname); i++)
 				if (mainname[i] == '.')
 					mainname[i] = '/';
 		}
@@ -1684,7 +1686,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 
 		oa = builtin_anewarray(oalength, class_java_lang_String);
 
-		for (i = 0; i < oalength; i++) {
+		for (int i = 0; i < oalength; i++) {
 			option = vm_args->options[opt_index + i].optionString;
 
 			u = utf_new_char(option);
@@ -1780,13 +1782,14 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 
 	/* set ThreadMXBean variables */
 
-	_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount++;
-	_Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount++;
+// 	_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount++;
+// 	_Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount++;
 
-	if (_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount >
-		_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount)
-		_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount =
-			_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount;
+// 	if (_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount >
+// 		_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount)
+// 		_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount =
+// 			_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount;
+#warning Move to C++
 
 	/* start the main thread */
 
@@ -1844,7 +1847,8 @@ int vm_destroy(JavaVM *vm)
 
 	/* VM is gone. */
 
-	vm_created = false;
+// 	_created = false;
+#warning Move to C++
 
 	/* Everything is ok. */
 
@@ -1864,7 +1868,8 @@ void vm_exit(s4 status)
 
 	/* signal that we are exiting */
 
-	vm_exiting = true;
+// 	_exiting = true;
+#warning Move to C++
 
 	assert(class_java_lang_System);
 	assert(class_java_lang_System->state & CLASS_LOADED);
@@ -1926,12 +1931,11 @@ void vm_shutdown(s4 status)
 	}
 
 #if defined(ENABLE_JVMTI)
-# error This should be a JVMTI function.
 	/* terminate cacaodbgserver */
 	if (dbgcom!=NULL) {
-		Mutex_lock(&dbgcomlock);
+		mutex_lock(&dbgcomlock);
 		dbgcom->running=1;
-		Mutex_unlock(&dbgcomlock);
+		mutex_unlock(&dbgcomlock);
 		jvmti_cacaodbgserver_quit();
 	}	
 #endif
@@ -2631,7 +2635,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 	/* box the return value if necesarry */
 
 	if (m->parseddesc->returntype.decltype != TYPE_ADR)
-		ro = Primitive_box(m->parseddesc->returntype.decltype, value);
+		ro = Primitive::box(m->parseddesc->returntype.decltype, value);
 
 	/* check for an exception */
 
@@ -2649,13 +2653,26 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 }
 
 
+/* Legacy C interface *********************************************************/
+
+extern "C" {
+
+JavaVM* VM_get_javavm()      { return vm->get_javavm(); }
+JNIEnv* VM_get_jnienv()      { return vm->get_jnienv(); }
+bool    VM_is_initializing() { return vm->is_initializing(); }
+bool    VM_is_created()      { return vm->is_created(); }
+int64_t VM_get_starttime()   { return vm->get_starttime(); }
+
+}
+
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

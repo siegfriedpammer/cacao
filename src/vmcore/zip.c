@@ -39,7 +39,7 @@
 #include "mm/memory.h"
 
 #include "vm/global.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/suck.h"
 #include "vmcore/utf8.h"

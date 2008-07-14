@@ -30,7 +30,7 @@
 
 #include "vm/global.h"
 #include "vm/primitive.hpp"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/class.h"
 #include "vmcore/options.h"

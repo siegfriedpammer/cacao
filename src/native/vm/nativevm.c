@@ -44,7 +44,7 @@
 # include "native/vm/openjdk/hpi.h"
 
 # include "vm/properties.h"
-# include "vm/vm.h"
+# include "vm/vm.hpp"
 
 # include "vmcore/utf8.h"
 #endif

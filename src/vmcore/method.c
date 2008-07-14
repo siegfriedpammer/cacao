@@ -42,7 +42,7 @@
 #include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/resolve.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/code.h"
 #include "vm/jit/methodheader.h"

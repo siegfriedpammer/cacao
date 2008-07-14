@@ -75,8 +75,8 @@ libvm_la_SOURCES = \
 	signallocal.h \
 	string.c \
 	stringlocal.h \
-	vm.c \
-	vm.h
+	vm.cpp \
+	vm.hpp
 
 libvm_la_LIBADD = \
 	jit/libjit.la

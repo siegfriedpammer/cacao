@@ -1,9 +1,7 @@
-/* src/native/vm/gnu/gnu_java_lang_management_VMClassLoadingMXBeanImpl.c
+/* src/native/vm/gnuclasspath/gnu_java_lang_management_VMClassLoadingMXBeanImpl.c
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -38,7 +36,7 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vmcore/classcache.h"
 #include "vmcore/utf8.h"
@@ -105,7 +103,9 @@ JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl
  */
 JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVerbose(JNIEnv *env, jclass clazz)
 {
-	return _Jv_jvm->Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_verbose;
+/* 	return _Jv_jvm->Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_verbose; */
+#warning Move to C++
+	log_println("Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVerbose: MOVE TO C++!");
 }
 
 
@@ -116,7 +116,9 @@ JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl
  */
 JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_setVerbose(JNIEnv *env, jclass clazz, int32_t verbose)
 {
-	_Jv_jvm->Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_verbose = verbose;
+/* 	_Jv_jvm->Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_verbose = verbose; */
+#warning Move to C++
+	log_println("Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_setVerbose: MOVE TO C++!");
 }
 
 
