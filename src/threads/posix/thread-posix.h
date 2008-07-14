@@ -55,6 +55,7 @@ typedef struct threadobject threadobject;
 #include "vm/vm.h"
 
 #if defined(ENABLE_GC_CACAO)
+# include "vm/jit/executionstate.h"
 # include "vm/jit/replace.h"
 #endif
 
