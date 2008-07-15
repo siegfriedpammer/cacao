@@ -1,4 +1,4 @@
-/* src/mm/boehm.c - interface for boehm gc
+/* src/mm/gc-boehm.cpp - interface for boehm gc
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
