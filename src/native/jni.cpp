@@ -2656,27 +2656,33 @@ jsize _Jv_JNI_GetStringLength(JNIEnv *env, jstring str)
 }
 
 
-/********************  convertes javastring to u2-array ****************************/
-	
-u2 *javastring_tou2(jstring so) 
-{
+/* GetStringChars **************************************************************
+
+   Returns a pointer to the array of Unicode characters of the
+   string. This pointer is valid until ReleaseStringChars() is called.
+
+*******************************************************************************/
+
+const jchar* jni_GetStringChars(JNIEnv *env, jstring str, jboolean *isCopy)
+{	
 	java_lang_String        *s;
 	java_handle_chararray_t *a;
 	u2                      *stringbuffer;
-	int32_t                  i;
 	int32_t                  count;
 	int32_t                  offset;
+	int32_t                  i;
 
-	STATISTICS(jniinvokation());
-	
-	s = (java_lang_String *) so;
+	TRACEJNICALLS(("jni_GetStringChars(env=%p, str=%p, isCopy=%p)", env, str, isCopy));
 
-	if (!s)
-		return NULL;
+	if (str == NULL)
+		// FIXME This is really ugly.
+		return emptyStringJ;
+
+	s = (java_lang_String *) str;
 
 	LLNI_field_get_ref(s, value, a);
 
-	if (!a)
+	if (a == NULL)
 		return NULL;
 
 	LLNI_field_get_val(s, count, count);
@@ -2695,36 +2701,10 @@ u2 *javastring_tou2(jstring so)
 
 	stringbuffer[i] = '\0';
 
-	return stringbuffer;
-}
-
-
-/* GetStringChars **************************************************************
-
-   Returns a pointer to the array of Unicode characters of the
-   string. This pointer is valid until ReleaseStringChars() is called.
-
-*******************************************************************************/
-
-const jchar *_Jv_JNI_GetStringChars(JNIEnv *env, jstring str, jboolean *isCopy)
-{	
-	jchar *jc;
-
-	STATISTICS(jniinvokation());
-
-	jc = javastring_tou2(str);
-
-	if (jc)	{
-		if (isCopy)
-			*isCopy = JNI_TRUE;
-
-		return jc;
-	}
-
 	if (isCopy)
 		*isCopy = JNI_TRUE;
 
-	return emptyStringJ;
+	return (jchar*) stringbuffer;
 }
 
 
@@ -3375,7 +3355,7 @@ const jchar *_Jv_JNI_GetStringCritical(JNIEnv *env, jstring string,
 {
 	STATISTICS(jniinvokation());
 
-	return _Jv_JNI_GetStringChars(env, string, isCopy);
+	return jni_GetStringChars(env, string, isCopy);
 }
 
 
@@ -4225,7 +4205,7 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 
 	_Jv_JNI_NewString,
 	_Jv_JNI_GetStringLength,
-	_Jv_JNI_GetStringChars,
+	jni_GetStringChars,
 	_Jv_JNI_ReleaseStringChars,
 
 	_Jv_JNI_NewStringUTF,
