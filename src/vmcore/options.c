@@ -422,10 +422,10 @@ int options_get(opt_struct *opts, JavaVMInitArgs *vm_args)
 
 static void options_xxusage(void)
 {
-	option_t *opt;
-	int       length;
-	int       i;
-	char     *c;
+	option_t   *opt;
+	int         length;
+	int         i;
+	const char *c;
 
 	/* Prevent compiler warning. */
 

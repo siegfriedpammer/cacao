@@ -169,7 +169,7 @@ extern list_t *list_classpath_entries;
 bool suck_init(void);
 
 void suck_add(char *classpath);
-void suck_add_from_property(char *key);
+void suck_add_from_property(const char *key);
 
 bool suck_check_classbuffer_size(classbuffer *cb, s4 len);
 

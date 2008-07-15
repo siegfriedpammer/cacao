@@ -62,8 +62,8 @@
 typedef struct list_properties_entry_t list_properties_entry_t;
 
 struct list_properties_entry_t {
-	char       *key;
-	char       *value;
+	const char* key;
+	const char* value;
 	listnode_t  linkage;
 };
 
@@ -578,7 +578,7 @@ void properties_set(void)
 
 *******************************************************************************/
 
-void properties_add(char *key, char *value)
+void properties_add(const char *key, const char *value)
 {
 	list_properties_entry_t *pe;
 
@@ -625,7 +625,7 @@ void properties_add(char *key, char *value)
 
 *******************************************************************************/
 
-char *properties_get(char *key)
+const char *properties_get(const char *key)
 {
 	list_properties_entry_t *pe;
 
@@ -645,7 +645,7 @@ char *properties_get(char *key)
 
 *******************************************************************************/
 
-void properties_system_add(java_handle_t *p, char *key, char *value)
+void properties_system_add(java_handle_t *p, const char *key, const char *value)
 {
 	classinfo     *c;
 	methodinfo    *m;

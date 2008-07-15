@@ -53,19 +53,19 @@ extern "C" {
 typedef struct opt_struct opt_struct;
 
 struct opt_struct {
-	char *name;
-	bool  arg;
-	int   value;
+	const char *name;
+	bool        arg;
+	int         value;
 };
 
 
 typedef struct option_t option_t;
 
 struct option_t {
-	char *name;
-	int   value;
-	int   type;
-	char *doc;
+	const char *name;
+	int         value;
+	int         type;
+	const char *doc;
 };
 
 

@@ -230,11 +230,11 @@ void suck_add(char *classpath)
 
 *******************************************************************************/
 
-void suck_add_from_property(char *key)
+void suck_add_from_property(const char *key)
 {
-	char           *value;
-	char           *start;
-	char           *end;
+	const char     *value;
+	const char     *start;
+	const char     *end;
 	char           *path;
 	s4              pathlen;
 	struct dirent **namelist;
@@ -293,7 +293,8 @@ void suck_add_from_property(char *key)
 
 					/* Allocate memory for bootclasspath. */
 
-					boot_class_path = properties_get("sun.boot.class.path");
+					// FIXME Make boot_class_path const char*.
+					boot_class_path = (char*) properties_get("sun.boot.class.path");
 
 					p = MNEW(char,
 							 pathlen + strlen("/") + namlen +
