@@ -1221,7 +1221,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 #if  defined(ENABLE_SSA)
 		case OPT_LSRA:
 			opt_lsra = true;
-			for (i = 0; i < strlen(opt_arg); i++) {		
+			for (unsigned int i = 0; i < strlen(opt_arg); i++) {		
 				switch (opt_arg[i]) {
 				case 'c':
 					opt_ssa_cp = true;
