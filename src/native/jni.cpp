@@ -1,4 +1,4 @@
-/* src/native/jni.c - implementation of the Java Native Interface functions
+/* src/native/jni.cpp - implementation of the Java Native Interface functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -198,7 +198,9 @@ static methodinfo *dbb_init;
 
 /* some forward declarations **************************************************/
 
+extern "C" {
 jobject jni_NewLocalRef(JNIEnv *env, jobject ref);
+}
 
 
 /* jni_init ********************************************************************
@@ -828,6 +830,9 @@ static void _Jv_jni_CallVoidMethodA(java_handle_t *o, vftbl_t *vftbl,
 }
 
 
+// JNI functions are exported as C functions.
+extern "C" {
+
 /* GetVersion ******************************************************************
 
    Returns the major version number in the higher 16 bits and the
@@ -1094,7 +1099,7 @@ jthrowable _Jv_JNI_ExceptionOccurred(JNIEnv *env)
 
 	o = exceptions_get_exception();
 
-	return jni_NewLocalRef(env, (jthrowable) o);
+	return (jthrowable) jni_NewLocalRef(env, (jthrowable) o);
 }
 
 
@@ -2529,7 +2534,7 @@ jobject _Jv_JNI_GetStaticObjectField(JNIEnv *env, jclass clazz,
 		if (!initialize_class(c))
 			return NULL;
 
-	h = LLNI_WRAP(f->value->a);
+	h = (java_handle_t*) LLNI_WRAP(f->value->a);
 
 	return jni_NewLocalRef(env, (jobject) h);
 }
@@ -2604,7 +2609,7 @@ jstring _Jv_JNI_NewString(JNIEnv *env, const jchar *buf, jsize len)
 {
 	java_lang_String        *s;
 	java_handle_chararray_t *a;
-	u4                       i;
+	int32_t                  i;
 
 	STATISTICS(jniinvokation());
 	
@@ -2658,7 +2663,7 @@ u2 *javastring_tou2(jstring so)
 	java_lang_String        *s;
 	java_handle_chararray_t *a;
 	u2                      *stringbuffer;
-	u4                       i;
+	int32_t                  i;
 	int32_t                  count;
 	int32_t                  offset;
 
@@ -3225,11 +3230,11 @@ jint _Jv_JNI_MonitorExit(JNIEnv *env, jobject obj)
 
 *******************************************************************************/
 
-jint _Jv_JNI_GetJavaVM(JNIEnv *env, JavaVM **vm)
+jint _Jv_JNI_GetJavaVM(JNIEnv *env, JavaVM **javavm)
 {
 	STATISTICS(jniinvokation());
 
-    *vm = VM_get_javavm();
+    *javavm = vm->get_javavm();
 
 	return 0;
 }
@@ -3387,7 +3392,7 @@ jweak _Jv_JNI_NewWeakGlobalRef(JNIEnv* env, jobject obj)
 {
 	TRACEJNICALLS(("_Jv_JNI_NewWeakGlobalRef(env=%p, obj=%p): IMPLEMENT ME!", env, obj));
 
-	return obj;
+	return (jweak) obj;
 }
 
 
@@ -3423,7 +3428,7 @@ jobject jni_NewGlobalRef(JNIEnv* env, jobject obj)
 
 	key  = heap_hashcode(LLNI_DIRECT(o)) >> 4; /* align to 16-byte boundaries */
 	slot = key & (hashtable_global_ref->size - 1);
-	gre  = hashtable_global_ref->ptr[slot];
+	gre  = (hashtable_global_ref_entry*) hashtable_global_ref->ptr[slot];
 	
 	/* search external hash chain for the entry */
 
@@ -3461,7 +3466,7 @@ jobject jni_NewGlobalRef(JNIEnv* env, jobject obj)
 
 		/* insert entry into hashtable */
 
-		gre->hashlink = hashtable_global_ref->ptr[slot];
+		gre->hashlink = (hashtable_global_ref_entry*) hashtable_global_ref->ptr[slot];
 
 		hashtable_global_ref->ptr[slot] = gre;
 
@@ -3506,7 +3511,7 @@ void jni_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 
 	key  = heap_hashcode(LLNI_DIRECT(o)) >> 4; /* align to 16-byte boundaries */
 	slot = key & (hashtable_global_ref->size - 1);
-	gre  = hashtable_global_ref->ptr[slot];
+	gre  = (hashtable_global_ref_entry*) hashtable_global_ref->ptr[slot];
 
 	/* initialize prevgre */
 
@@ -3618,15 +3623,15 @@ jobject jni_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 
 	/* create a java.nio.DirectByteBufferImpl$ReadWrite object */
 
-	nbuf = (*env)->NewObject(env, class_java_nio_DirectByteBufferImpl_ReadWrite,
-							 (jmethodID) dbbirw_init, NULL, paddress,
-							 (jint) capacity, (jint) capacity, (jint) 0);
+	nbuf = (java_handle_t*) jni_NewObject(env, (jclass) class_java_nio_DirectByteBufferImpl_ReadWrite,
+										  (jmethodID) dbbirw_init, NULL, paddress,
+										  (jint) capacity, (jint) capacity, (jint) 0);
 
 	/* add local reference and return the value */
 
 	TRACEJNICALLSEXIT(("->%p", nbuf));
 
-	return jni_NewLocalRef(env, nbuf);
+	return jni_NewLocalRef(env, (jobject) nbuf);
 
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
@@ -3641,8 +3646,8 @@ jobject jni_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 	addr = (int64_t) ((uintptr_t) address);
 	cap  = (int32_t) capacity;
 
-	o = (*env)->NewObject(env, (jclass) class_java_nio_DirectByteBuffer,
-						  (jmethodID) dbb_init, addr, cap);
+	o = jni_NewObject(env, (jclass) class_java_nio_DirectByteBuffer,
+					  (jmethodID) dbb_init, addr, cap);
 
 	/* Add local reference and return the value. */
 
@@ -3804,7 +3809,7 @@ jobjectRefType jni_GetObjectRefType(JNIEnv *env, jobject obj)
 {
 	log_println("jni_GetObjectRefType: IMPLEMENT ME!");
 
-	return -1;
+	return (jobjectRefType) NULL;
 }
 
 
@@ -3816,16 +3821,16 @@ jobjectRefType jni_GetObjectRefType(JNIEnv *env, jobject obj)
 
 *******************************************************************************/
 
-jint _Jv_JNI_DestroyJavaVM(JavaVM *vm)
+jint _Jv_JNI_DestroyJavaVM(JavaVM *javavm)
 {
 	int status;
 
-	TRACEJNICALLS(("_Jv_JNI_DestroyJavaVM(vm=%p)", vm));
+	TRACEJNICALLS(("_Jv_JNI_DestroyJavaVM(javavm=%p)", javavm));
 
-	if (VM_is_created() == false)
+	if (vm->is_created() == false)
 		return JNI_ERR;
 
-    status = vm_destroy(vm);
+    status = vm_destroy(javavm);
 
 	return status;
 }
@@ -3857,8 +3862,7 @@ static int jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon
 	result = thread_current_is_attached();
 
 	if (result == true) {
-		*p_env = VM_get_jnienv();
-
+		*p_env = vm->get_jnienv();
 		return JNI_OK;
 	}
 
@@ -3877,19 +3881,19 @@ static int jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon
 		return JNI_ERR;
 #endif
 
-	*p_env = VM_get_jnienv();
+	*p_env = vm->get_jnienv();
 
 	return JNI_OK;
 }
 
 
-jint jni_AttachCurrentThread(JavaVM *vm, void **p_env, void *thr_args)
+jint jni_AttachCurrentThread(JavaVM *javavm, void **p_env, void *thr_args)
 {
 	int result;
 
-	TRACEJNICALLS(("jni_AttachCurrentThread(vm=%p, p_env=%p, thr_args=%p)", vm, p_env, thr_args));
+	TRACEJNICALLS(("jni_AttachCurrentThread(javavm=%p, p_env=%p, thr_args=%p)", javavm, p_env, thr_args));
 
-	if (VM_is_created() == false)
+	if (vm->is_created() == false)
 		return JNI_ERR;
 
 	result = jni_attach_current_thread(p_env, thr_args, false);
@@ -3954,11 +3958,11 @@ jint jni_DetachCurrentThread(JavaVM *vm)
 
 *******************************************************************************/
 
-jint jni_GetEnv(JavaVM *vm, void **env, jint version)
+jint jni_GetEnv(JavaVM *javavm, void **env, jint version)
 {
-	TRACEJNICALLS(("jni_GetEnv(vm=%p, env=%p, version=%d)", vm, env, version));
+	TRACEJNICALLS(("jni_GetEnv(javavm=%p, env=%p, version=%d)", javavm, env, version));
 
-	if (VM_is_created() == false) {
+	if (vm->is_created() == false) {
 		*env = NULL;
 		return JNI_EDETACHED;
 	}
@@ -3974,7 +3978,7 @@ jint jni_GetEnv(JavaVM *vm, void **env, jint version)
 	/* Check the JNI version. */
 
 	if (jni_version_check(version) == true) {
-		*env = VM_get_jnienv();
+		*env = vm->get_jnienv();
 		return JNI_OK;
 	}
 
@@ -4008,13 +4012,13 @@ jint jni_GetEnv(JavaVM *vm, void **env, jint version)
 
 *******************************************************************************/
 
-jint jni_AttachCurrentThreadAsDaemon(JavaVM *vm, void **penv, void *args)
+jint jni_AttachCurrentThreadAsDaemon(JavaVM *javavm, void **penv, void *args)
 {
 	int result;
 
-	TRACEJNICALLS(("jni_AttachCurrentThreadAsDaemon(vm=%p, penv=%p, args=%p)", vm, penv, args));
+	TRACEJNICALLS(("jni_AttachCurrentThreadAsDaemon(javavm=%p, penv=%p, args=%p)", javavm, penv, args));
 
-	if (VM_is_created() == false)
+	if (vm->is_created() == false)
 		return JNI_ERR;
 
 	result = jni_attach_current_thread(penv, args, true);
@@ -4367,9 +4371,9 @@ jint JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 	if (bufLen <= 0)
 		return JNI_ERR;
 
-	/* We currently only support 1 VM running. */
+	// We currently only support 1 VM running.
 
-	vmBuf[0] = VM_get_javavm();
+	vmBuf[0] = vm->get_javavm();
 	*nVMs    = 1;
 
     return JNI_OK;
@@ -4394,6 +4398,8 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
 
 	return JNI_OK;
 }
+
+} // extern "C"
 
 
 /*
