@@ -26,6 +26,10 @@
 #ifndef _EXCEPTIONS_H
 #define _EXCEPTIONS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "config.h"
 #include "vm/types.h"
 
@@ -97,6 +101,10 @@ java_handle_t *exceptions_fillinstacktrace(void);
 void exceptions_print_exception(java_handle_t *xptr);
 void exceptions_print_current_exception(void);
 void exceptions_print_stacktrace(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _EXCEPTIONS_H */
 
