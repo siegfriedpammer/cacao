@@ -31,7 +31,7 @@ DIST_SUBDIRS = \
 
 if DISABLE_GC
 GC_FILE = \
-	nogc.c
+	gc-none.cpp
 endif
 
 if ENABLE_GC_BOEHM
@@ -39,7 +39,7 @@ SUBDIRS = \
 	boehm-gc
 
 GC_FILE = \
-	boehm.c
+	gc-boehm.cpp
 
 GC_LIB = \
 	$(top_builddir)/src/mm/boehm-gc/libgc.la

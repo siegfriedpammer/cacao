@@ -1,4 +1,4 @@
-/* src/mm/nogc.c - allocates memory through malloc (no GC)
+/* src/mm/gc-none.cpp - allocates memory through malloc (no GC)
 
    Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
    C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
