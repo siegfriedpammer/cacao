@@ -868,7 +868,8 @@ VM::VM(JavaVMInitArgs* vm_args)
 			/* Forget old classpath and set the argument as new
 			   classpath. */
 
-			class_path = properties_get("java.class.path");
+			// FIXME Make class_path const char*.
+			class_path = (char*) properties_get("java.class.path");
 
 			p = MNEW(char, strlen(opt_arg) + strlen("0"));
 
@@ -901,7 +902,8 @@ VM::VM(JavaVMInitArgs* vm_args)
 			/* Forget default bootclasspath and set the argument as
 			   new boot classpath. */
 
-			boot_class_path = properties_get("sun.boot.class.path");
+			// FIXME Make boot_class_path const char*.
+			boot_class_path = (char*) properties_get("sun.boot.class.path");
 
 			p = MNEW(char, strlen(opt_arg) + strlen("0"));
 
@@ -916,7 +918,8 @@ VM::VM(JavaVMInitArgs* vm_args)
 		case OPT_BOOTCLASSPATH_A:
 			/* Append to bootclasspath. */
 
-			boot_class_path = properties_get("sun.boot.class.path");
+			// FIXME Make boot_class_path const char*.
+			boot_class_path = (char*) properties_get("sun.boot.class.path");
 
 			len = strlen(boot_class_path);
 
@@ -937,7 +940,8 @@ VM::VM(JavaVMInitArgs* vm_args)
 		case OPT_BOOTCLASSPATH_P:
 			/* Prepend to bootclasspath. */
 
-			boot_class_path = properties_get("sun.boot.class.path");
+			// FIXME Make boot_class_path const char*.
+			boot_class_path = (char*) properties_get("sun.boot.class.path");
 
 			len = strlen(boot_class_path);
 
@@ -957,7 +961,8 @@ VM::VM(JavaVMInitArgs* vm_args)
 			/* Use as Java core library, but prepend VM interface
 			   classes. */
 
-			boot_class_path = properties_get("sun.boot.class.path");
+			// FIXME Make boot_class_path const char*.
+			boot_class_path = (char*) properties_get("sun.boot.class.path");
 
 			len =
 				strlen(CACAO_VM_ZIP) +
@@ -1441,7 +1446,8 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 	/* AFTER: utf8_init */
 
-	boot_class_path = properties_get("sun.boot.class.path");
+	// FIXME Make boot_class_path const char*.
+	boot_class_path = (char*) properties_get("sun.boot.class.path");
 	suck_add(boot_class_path);
 
 	/* initialize the classcache hashtable stuff: lock, hashtable
@@ -1834,7 +1840,7 @@ int vm_destroy(JavaVM *vm)
 
 	JavaVMAttachArgs args;
 
-	args.name  = "DestroyJavaVM";
+	args.name  = (char*) "DestroyJavaVM";
 	args.group = NULL;
 
 	if (!thread_attach_current_thread(&args, false))
@@ -2130,7 +2136,8 @@ void vm_abort_disassemble(void *pc, int count, const char *text, ...)
 	/* Disassemble the given number of instructions. */
 
 	for (i = 0; i < count; i++)
-		pc = disassinstr(pc);
+		// FIXME disassinstr should use void*.
+		pc = disassinstr((u1*) pc);
 #endif
 
 	vm_abort("Aborting...");
