@@ -99,6 +99,7 @@ static JNINativeMethod methods[] = {
 	{ "getLong",                "(J)J",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getLong__J                     },
 	{ "putLong",                "(JJ)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_putLong__JJ                    },
 	{ "getFloat",               "(J)F",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_getFloat__J                    },
+	{ "putFloat",               "(JF)V",                                                      (void *) (intptr_t) &Java_sun_misc_Unsafe_putFloat__JF                   },
 	{ "objectFieldOffset",      "(Ljava/lang/reflect/Field;)J",                               (void *) (intptr_t) &Java_sun_misc_Unsafe_objectFieldOffset              },
 	{ "allocateMemory",         "(J)J",                                                       (void *) (intptr_t) &Java_sun_misc_Unsafe_allocateMemory                 },
 #if 0
@@ -644,6 +645,21 @@ JNIEXPORT float JNICALL Java_sun_misc_Unsafe_getFloat__J(JNIEnv *env, sun_misc_U
 	value = *p;
 
 	return value;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    putFloat
+ * Signature: (JF)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putFloat__JF(JNIEnv *env, struct sun_misc_Unsafe* _this, int64_t address, float value)
+{
+	float* p;
+
+	p = (float*) (intptr_t) address;
+
+	*p = value;
 }
 
 
