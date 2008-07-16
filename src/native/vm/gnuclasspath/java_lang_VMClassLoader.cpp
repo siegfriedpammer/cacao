@@ -1,4 +1,4 @@
-/* src/native/vm/gnu/java_lang_VMClassLoader.c
+/* src/native/vm/gnuclasspath/java_lang_VMClassLoader.cpp
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -42,7 +42,10 @@
 #include "native/include/java_util_Map.h"
 #include "native/include/java_lang_Boolean.h"
 
+// FIXME
+extern "C" {
 #include "native/include/java_lang_VMClassLoader.h"
+}
 
 #include "toolbox/logging.h"
 #include "toolbox/list.h"
@@ -73,37 +76,9 @@
 #include "native/jvmti/cacaodbg.h"
 #endif
 
-/* native methods implemented by this file ************************************/
 
-static JNINativeMethod methods[] = {
-	{ "defineClass",                "(Ljava/lang/ClassLoader;Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;", (void *) (uintptr_t) &Java_java_lang_VMClassLoader_defineClass                },
-	{ "getPrimitiveClass",          "(C)Ljava/lang/Class;",                                                                             (void *) (uintptr_t) &Java_java_lang_VMClassLoader_getPrimitiveClass          },
-	{ "resolveClass",               "(Ljava/lang/Class;)V",                                                                             (void *) (uintptr_t) &Java_java_lang_VMClassLoader_resolveClass               },
-	{ "loadClass",                  "(Ljava/lang/String;Z)Ljava/lang/Class;",                                                           (void *) (uintptr_t) &Java_java_lang_VMClassLoader_loadClass                  },
-	{ "nativeGetResources",         "(Ljava/lang/String;)Ljava/util/Vector;",                                                           (void *) (uintptr_t) &Java_java_lang_VMClassLoader_nativeGetResources         },
-	{ "defaultAssertionStatus",     "()Z",                                                                                              (void *) (uintptr_t) &Java_java_lang_VMClassLoader_defaultAssertionStatus     },
-	{ "defaultUserAssertionStatus", "()Z",                                                                                              (void *) (uintptr_t) &Java_java_lang_VMClassLoader_defaultUserAssertionStatus },
-	{ "packageAssertionStatus0",    "(Ljava/lang/Boolean;Ljava/lang/Boolean;)Ljava/util/Map;",                                          (void *) (uintptr_t) &Java_java_lang_VMClassLoader_packageAssertionStatus0    },
-	{ "classAssertionStatus0",      "(Ljava/lang/Boolean;Ljava/lang/Boolean;)Ljava/util/Map;",                                          (void *) (uintptr_t) &Java_java_lang_VMClassLoader_classAssertionStatus0      },
-	{ "findLoadedClass",            "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/lang/Class;",                                     (void *) (uintptr_t) &Java_java_lang_VMClassLoader_findLoadedClass            },
-};
-
-
-/* _Jv_java_lang_VMClassLoader_init ********************************************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_java_lang_VMClassLoader_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("java/lang/VMClassLoader");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/VMClassLoader
@@ -195,7 +170,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
 {
 	classinfo *c;
 
-	c = Primitive_get_class_by_char(type);
+	c = Primitive::get_class_by_char(type);
 
 	if (c == NULL) {
 		exceptions_throw_classnotfoundexception(utf_null);
@@ -348,8 +323,8 @@ JNIEXPORT struct java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGe
 
 	/* iterate over all classpath entries */
 
-	for (lce = list_first(list_classpath_entries); lce != NULL;
-		 lce = list_next(list_classpath_entries, lce)) {
+	for (lce = (list_classpath_entry*) list_first(list_classpath_entries); lce != NULL;
+		 lce = (list_classpath_entry*) list_next(list_classpath_entries, lce)) {
 		/* clear path pointer */
   		path = NULL;
 
@@ -611,6 +586,43 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_findLoadedClass(
 	return LLNI_classinfo_wrap(c);
 }
 
+} // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ (char*) "defineClass",                (char*) "(Ljava/lang/ClassLoader;Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;", (void*) (uintptr_t) &Java_java_lang_VMClassLoader_defineClass                },
+	{ (char*) "getPrimitiveClass",          (char*) "(C)Ljava/lang/Class;",                                                                             (void*) (uintptr_t) &Java_java_lang_VMClassLoader_getPrimitiveClass          },
+	{ (char*) "resolveClass",               (char*) "(Ljava/lang/Class;)V",                                                                             (void*) (uintptr_t) &Java_java_lang_VMClassLoader_resolveClass               },
+	{ (char*) "loadClass",                  (char*) "(Ljava/lang/String;Z)Ljava/lang/Class;",                                                           (void*) (uintptr_t) &Java_java_lang_VMClassLoader_loadClass                  },
+	{ (char*) "nativeGetResources",         (char*) "(Ljava/lang/String;)Ljava/util/Vector;",                                                           (void*) (uintptr_t) &Java_java_lang_VMClassLoader_nativeGetResources         },
+	{ (char*) "defaultAssertionStatus",     (char*) "()Z",                                                                                              (void*) (uintptr_t) &Java_java_lang_VMClassLoader_defaultAssertionStatus     },
+	{ (char*) "defaultUserAssertionStatus", (char*) "()Z",                                                                                              (void*) (uintptr_t) &Java_java_lang_VMClassLoader_defaultUserAssertionStatus },
+	{ (char*) "packageAssertionStatus0",    (char*) "(Ljava/lang/Boolean;Ljava/lang/Boolean;)Ljava/util/Map;",                                          (void*) (uintptr_t) &Java_java_lang_VMClassLoader_packageAssertionStatus0    },
+	{ (char*) "classAssertionStatus0",      (char*) "(Ljava/lang/Boolean;Ljava/lang/Boolean;)Ljava/util/Map;",                                          (void*) (uintptr_t) &Java_java_lang_VMClassLoader_classAssertionStatus0      },
+	{ (char*) "findLoadedClass",            (char*) "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/lang/Class;",                                     (void*) (uintptr_t) &Java_java_lang_VMClassLoader_findLoadedClass            },
+};
+
+
+/* _Jv_java_lang_VMClassLoader_init ********************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+// FIXME
+extern "C" {
+void _Jv_java_lang_VMClassLoader_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/VMClassLoader");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -618,7 +630,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_findLoadedClass(
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
