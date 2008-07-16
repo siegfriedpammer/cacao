@@ -266,6 +266,7 @@ _FIELD_SET_TYPE(float,  float,   f)
 _FIELD_SET_TYPE(double, double,  d)
 
 
+// Native functions are exported as C functions.
 extern "C" {
 
 /*
