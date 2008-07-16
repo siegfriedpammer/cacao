@@ -1,4 +1,4 @@
-/* src/native/vm/gnuclasspath/java_lang_VMClass.c
+/* src/native/vm/gnuclasspath/java_lang_VMClass.cpp
 
    Copyright (C) 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -39,7 +39,10 @@
 #include "native/include/java_lang_reflect_Constructor.h"
 #include "native/include/java_lang_reflect_Method.h"
 
+//FIXME
+extern "C" {
 #include "native/include/java_lang_VMClass.h"
+}
 
 #include "vm/exceptions.h"
 #include "vm/initialize.h"
@@ -59,34 +62,34 @@
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "isInstance",              "(Ljava/lang/Class;Ljava/lang/Object;)Z",                        (void *) (uintptr_t) &Java_java_lang_VMClass_isInstance              },
-	{ "isAssignableFrom",        "(Ljava/lang/Class;Ljava/lang/Class;)Z",                         (void *) (uintptr_t) &Java_java_lang_VMClass_isAssignableFrom        },
-	{ "isInterface",             "(Ljava/lang/Class;)Z",                                          (void *) (uintptr_t) &Java_java_lang_VMClass_isInterface             },
-	{ "isPrimitive",             "(Ljava/lang/Class;)Z",                                          (void *) (uintptr_t) &Java_java_lang_VMClass_isPrimitive             },
-	{ "getName",                 "(Ljava/lang/Class;)Ljava/lang/String;",                         (void *) (uintptr_t) &Java_java_lang_VMClass_getName                 },
-	{ "getSuperclass",           "(Ljava/lang/Class;)Ljava/lang/Class;",                          (void *) (uintptr_t) &Java_java_lang_VMClass_getSuperclass           },
-	{ "getInterfaces",           "(Ljava/lang/Class;)[Ljava/lang/Class;",                         (void *) (uintptr_t) &Java_java_lang_VMClass_getInterfaces           },
-	{ "getComponentType",        "(Ljava/lang/Class;)Ljava/lang/Class;",                          (void *) (uintptr_t) &Java_java_lang_VMClass_getComponentType        },
-	{ "getModifiers",            "(Ljava/lang/Class;Z)I",                                         (void *) (uintptr_t) &Java_java_lang_VMClass_getModifiers            },
-	{ "getDeclaringClass",       "(Ljava/lang/Class;)Ljava/lang/Class;",                          (void *) (uintptr_t) &Java_java_lang_VMClass_getDeclaringClass       },
-	{ "getDeclaredClasses",      "(Ljava/lang/Class;Z)[Ljava/lang/Class;",                        (void *) (uintptr_t) &Java_java_lang_VMClass_getDeclaredClasses      },
-	{ "getDeclaredFields",       "(Ljava/lang/Class;Z)[Ljava/lang/reflect/Field;",                (void *) (uintptr_t) &Java_java_lang_VMClass_getDeclaredFields       },
-	{ "getDeclaredMethods",      "(Ljava/lang/Class;Z)[Ljava/lang/reflect/Method;",               (void *) (uintptr_t) &Java_java_lang_VMClass_getDeclaredMethods      },
-	{ "getDeclaredConstructors", "(Ljava/lang/Class;Z)[Ljava/lang/reflect/Constructor;",          (void *) (uintptr_t) &Java_java_lang_VMClass_getDeclaredConstructors },
-	{ "getClassLoader",          "(Ljava/lang/Class;)Ljava/lang/ClassLoader;",                    (void *) (uintptr_t) &Java_java_lang_VMClass_getClassLoader          },
-	{ "forName",                 "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", (void *) (uintptr_t) &Java_java_lang_VMClass_forName                 },
-	{ "isArray",                 "(Ljava/lang/Class;)Z",                                          (void *) (uintptr_t) &Java_java_lang_VMClass_isArray                 },
-	{ "throwException",          "(Ljava/lang/Throwable;)V",                                      (void *) (uintptr_t) &Java_java_lang_VMClass_throwException          },
+	{ (char*) "isInstance",              (char*) "(Ljava/lang/Class;Ljava/lang/Object;)Z",                        (void*) (uintptr_t) &Java_java_lang_VMClass_isInstance              },
+	{ (char*) "isAssignableFrom",        (char*) "(Ljava/lang/Class;Ljava/lang/Class;)Z",                         (void*) (uintptr_t) &Java_java_lang_VMClass_isAssignableFrom        },
+	{ (char*) "isInterface",             (char*) "(Ljava/lang/Class;)Z",                                          (void*) (uintptr_t) &Java_java_lang_VMClass_isInterface             },
+	{ (char*) "isPrimitive",             (char*) "(Ljava/lang/Class;)Z",                                          (void*) (uintptr_t) &Java_java_lang_VMClass_isPrimitive             },
+	{ (char*) "getName",                 (char*) "(Ljava/lang/Class;)Ljava/lang/String;",                         (void*) (uintptr_t) &Java_java_lang_VMClass_getName                 },
+	{ (char*) "getSuperclass",           (char*) "(Ljava/lang/Class;)Ljava/lang/Class;",                          (void*) (uintptr_t) &Java_java_lang_VMClass_getSuperclass           },
+	{ (char*) "getInterfaces",           (char*) "(Ljava/lang/Class;)[Ljava/lang/Class;",                         (void*) (uintptr_t) &Java_java_lang_VMClass_getInterfaces           },
+	{ (char*) "getComponentType",        (char*) "(Ljava/lang/Class;)Ljava/lang/Class;",                          (void*) (uintptr_t) &Java_java_lang_VMClass_getComponentType        },
+	{ (char*) "getModifiers",            (char*) "(Ljava/lang/Class;Z)I",                                         (void*) (uintptr_t) &Java_java_lang_VMClass_getModifiers            },
+	{ (char*) "getDeclaringClass",       (char*) "(Ljava/lang/Class;)Ljava/lang/Class;",                          (void*) (uintptr_t) &Java_java_lang_VMClass_getDeclaringClass       },
+	{ (char*) "getDeclaredClasses",      (char*) "(Ljava/lang/Class;Z)[Ljava/lang/Class;",                        (void*) (uintptr_t) &Java_java_lang_VMClass_getDeclaredClasses      },
+	{ (char*) "getDeclaredFields",       (char*) "(Ljava/lang/Class;Z)[Ljava/lang/reflect/Field;",                (void*) (uintptr_t) &Java_java_lang_VMClass_getDeclaredFields       },
+	{ (char*) "getDeclaredMethods",      (char*) "(Ljava/lang/Class;Z)[Ljava/lang/reflect/Method;",               (void*) (uintptr_t) &Java_java_lang_VMClass_getDeclaredMethods      },
+	{ (char*) "getDeclaredConstructors", (char*) "(Ljava/lang/Class;Z)[Ljava/lang/reflect/Constructor;",          (void*) (uintptr_t) &Java_java_lang_VMClass_getDeclaredConstructors },
+	{ (char*) "getClassLoader",          (char*) "(Ljava/lang/Class;)Ljava/lang/ClassLoader;",                    (void*) (uintptr_t) &Java_java_lang_VMClass_getClassLoader          },
+	{ (char*) "forName",                 (char*) "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", (void*) (uintptr_t) &Java_java_lang_VMClass_forName                 },
+	{ (char*) "isArray",                 (char*) "(Ljava/lang/Class;)Z",                                          (void*) (uintptr_t) &Java_java_lang_VMClass_isArray                 },
+	{ (char*) "throwException",          (char*) "(Ljava/lang/Throwable;)V",                                      (void*) (uintptr_t) &Java_java_lang_VMClass_throwException          },
 #if defined(ENABLE_ANNOTATIONS)
-	{ "getDeclaredAnnotations",  "(Ljava/lang/Class;)[Ljava/lang/annotation/Annotation;",         (void *) (uintptr_t) &Java_java_lang_VMClass_getDeclaredAnnotations  },
+	{ (char*) "getDeclaredAnnotations",  (char*) "(Ljava/lang/Class;)[Ljava/lang/annotation/Annotation;",         (void*) (uintptr_t) &Java_java_lang_VMClass_getDeclaredAnnotations  },
 #endif
-	{ "getEnclosingClass",       "(Ljava/lang/Class;)Ljava/lang/Class;",                          (void *) (uintptr_t) &Java_java_lang_VMClass_getEnclosingClass       },
-	{ "getEnclosingConstructor", "(Ljava/lang/Class;)Ljava/lang/reflect/Constructor;",            (void *) (uintptr_t) &Java_java_lang_VMClass_getEnclosingConstructor },
-	{ "getEnclosingMethod",      "(Ljava/lang/Class;)Ljava/lang/reflect/Method;",                 (void *) (uintptr_t) &Java_java_lang_VMClass_getEnclosingMethod      },
-	{ "getClassSignature",       "(Ljava/lang/Class;)Ljava/lang/String;",                         (void *) (uintptr_t) &Java_java_lang_VMClass_getClassSignature       },
-	{ "isAnonymousClass",        "(Ljava/lang/Class;)Z",                                          (void *) (uintptr_t) &Java_java_lang_VMClass_isAnonymousClass        },
-	{ "isLocalClass",            "(Ljava/lang/Class;)Z",                                          (void *) (uintptr_t) &Java_java_lang_VMClass_isLocalClass            },
-	{ "isMemberClass",           "(Ljava/lang/Class;)Z",                                          (void *) (uintptr_t) &Java_java_lang_VMClass_isMemberClass           },
+	{ (char*) "getEnclosingClass",       (char*) "(Ljava/lang/Class;)Ljava/lang/Class;",                          (void*) (uintptr_t) &Java_java_lang_VMClass_getEnclosingClass       },
+	{ (char*) "getEnclosingConstructor", (char*) "(Ljava/lang/Class;)Ljava/lang/reflect/Constructor;",            (void*) (uintptr_t) &Java_java_lang_VMClass_getEnclosingConstructor },
+	{ (char*) "getEnclosingMethod",      (char*) "(Ljava/lang/Class;)Ljava/lang/reflect/Method;",                 (void*) (uintptr_t) &Java_java_lang_VMClass_getEnclosingMethod      },
+	{ (char*) "getClassSignature",       (char*) "(Ljava/lang/Class;)Ljava/lang/String;",                         (void*) (uintptr_t) &Java_java_lang_VMClass_getClassSignature       },
+	{ (char*) "isAnonymousClass",        (char*) "(Ljava/lang/Class;)Z",                                          (void*) (uintptr_t) &Java_java_lang_VMClass_isAnonymousClass        },
+	{ (char*) "isLocalClass",            (char*) "(Ljava/lang/Class;)Z",                                          (void*) (uintptr_t) &Java_java_lang_VMClass_isLocalClass            },
+	{ (char*) "isMemberClass",           (char*) "(Ljava/lang/Class;)Z",                                          (void*) (uintptr_t) &Java_java_lang_VMClass_isMemberClass           },
 };
 
 
@@ -96,6 +99,8 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
+// FIXME
+extern "C" {
 void _Jv_java_lang_VMClass_init(void)
 {
 	utf *u;
@@ -104,7 +109,11 @@ void _Jv_java_lang_VMClass_init(void)
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
+}
 
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/VMClass
@@ -638,6 +647,8 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMClass_isMemberClass(JNIEnv *env, jcla
 	return class_is_memberclass(LLNI_classinfo_unwrap(klass));
 }
 
+} // extern "C"
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -645,7 +656,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMClass_isMemberClass(JNIEnv *env, jcla
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
