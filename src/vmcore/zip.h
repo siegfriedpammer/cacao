@@ -1,9 +1,7 @@
 /* src/vmcore/zip.c - ZIP file handling for bootstrap classloader
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -27,6 +25,10 @@
 
 #ifndef _ZIP_H
 #define _ZIP_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "config.h"
 #include "vm/types.h"
@@ -96,7 +98,12 @@ hashtable *zip_open(char *path);
 hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, utf *u);
 classbuffer *zip_get(list_classpath_entry *lce, classinfo *c);
 
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* _ZIP_H */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
