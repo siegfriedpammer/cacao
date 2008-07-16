@@ -40,7 +40,7 @@
 #include "native/native.h"
 #include "native/jvmti/cacaodbg.h"
 #include "native/jvmti/jvmti.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 #include "vm/global.h"
 #include "vm/loader.h"
 #include "vm/builtin.h"

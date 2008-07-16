@@ -36,7 +36,6 @@
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/stacktrace.h"
 
 
 /* md_signal_handler_sigsegv ***************************************************

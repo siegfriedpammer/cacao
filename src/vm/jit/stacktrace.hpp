@@ -1,4 +1,4 @@
-/* src/vm/jit/stacktrace.h - header file for stacktrace generation
+/* src/vm/jit/stacktrace.hpp - header file for stacktrace generation
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,13 @@
 */
 
 
-#ifndef _STACKTRACE_H
-#define _STACKTRACE_H
+#ifndef _STACKTRACE_HPP
+#define _STACKTRACE_HPP
+
+// FIXME Use C-linkage for now.
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* forward typedefs ***********************************************************/
 
@@ -59,10 +64,10 @@ typedef struct stacktrace_t       stacktrace_t;
 struct stackframeinfo_t {
 	stackframeinfo_t *prev;             /* pointer to prev stackframeinfo     */
 	codeinfo         *code;             /* codeinfo of current method         */
-	u1               *pv;               /* PV of current function             */
-	u1               *sp;               /* SP of parent Java function         */
-	u1               *ra;               /* RA to parent Java function         */
-	u1               *xpc;              /* XPC (for inline stubs)             */
+	void             *pv;               /* PV of current function             */
+	void             *sp;               /* SP of parent Java function         */
+	void             *ra;               /* RA to parent Java function         */
+	void             *xpc;              /* XPC (for inline stubs)             */
 #if defined(ENABLE_GC_CACAO)
 	/* 
 	 * The exact GC needs to be able to recover saved registers, so the
@@ -95,7 +100,7 @@ struct stacktrace_t {
 
 /* function prototypes ********************************************************/
 
-void                       stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra, u1 *xpc);
+void                       stacktrace_stackframeinfo_add(stackframeinfo_t* sfi, void* pv, void* sp, void* ra, void* xpc);
 void                       stacktrace_stackframeinfo_remove(stackframeinfo_t *sfi);
 
 java_handle_bytearray_t   *stacktrace_get(stackframeinfo_t *sfi);
@@ -135,7 +140,11 @@ u1 *intrp_md_stacktrace_get_returnaddress(u1 *sp, u4 framesize);
 void stacktrace_print_cycles_stats(FILE *file);
 #endif
 
-#endif /* _STACKTRACE_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif // _STACKTRACE_HPP
 
 
 /*
@@ -144,7 +153,7 @@ void stacktrace_print_cycles_stats(FILE *file);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

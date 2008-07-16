@@ -44,7 +44,7 @@
 #include "vm/jit/executionstate.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/methodtree.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)

@@ -36,7 +36,7 @@
 #include "native/include/java_lang_Throwable.h"
 
 #include "vm/exceptions.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 
 /* native methods implemented by this file ************************************/

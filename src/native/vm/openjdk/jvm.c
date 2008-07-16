@@ -89,7 +89,7 @@
 #include "vm/stringlocal.h"
 #include "vm/vm.hpp"
 
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 #include "vmcore/classcache.h"
 #include "vmcore/options.h"

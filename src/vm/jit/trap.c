@@ -46,7 +46,7 @@
 #include "vm/jit/methodtree.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 #include "vmcore/options.h"
 #include "vmcore/system.h"

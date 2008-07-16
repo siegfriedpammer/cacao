@@ -47,7 +47,7 @@ typedef struct exception_entry exception_entry;
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/stack.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 #if defined(ENABLE_INLINING)
 # include "vm/jit/inline/inline.h"

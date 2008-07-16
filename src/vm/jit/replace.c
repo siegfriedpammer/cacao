@@ -2304,7 +2304,7 @@ static void replace_pop_native_frame(executionstate_t *es,
 	/* remember pc and size of native frame */
 
 	frame->nativepc = es->pc;
-	frame->nativeframesize = (es->sp != 0) ? (sfi->sp - es->sp) : 0;
+	frame->nativeframesize = (es->sp != 0) ? (((uintptr_t) sfi->sp) - ((uintptr_t) es->sp)) : 0;
 	assert(frame->nativeframesize >= 0);
 
 	/* remember values of saved registers */
@@ -2376,12 +2376,12 @@ static void replace_pop_native_frame(executionstate_t *es,
 
 	/* XXX michi: use this instead:
 	es->sp = sfi->sp + code->stackframesize; */
-	es->sp   = sfi->sp + (*(s4 *) (sfi->pv + FrameSize));
+	es->sp   = (void*) (((uintptr_t) sfi->sp) + (*(s4 *) (((uintptr_t) sfi->pv) + FrameSize)));
 #if defined(REPLACE_RA_BETWEEN_FRAMES)
 	es->sp  += SIZE_OF_STACKSLOT; /* skip return address */
 #endif
 	es->pv   = md_codegen_get_pv_from_pc(sfi->ra);
-	es->pc   = ((sfi->xpc) ? sfi->xpc : sfi->ra) - 1;
+	es->pc   = (void*) (((uintptr_t) ((sfi->xpc) ? sfi->xpc : sfi->ra)) - 1);
 	es->code = code_get_codeinfo_for_pv(es->pv);
 }
 
@@ -2425,7 +2425,7 @@ static void replace_push_native_frame(executionstate_t *es, sourcestate_t *ss)
 
 	/* skip sp for the native stub */
 
-	es->sp -= (*(s4 *) (frame->sfi->pv + FrameSize));
+	es->sp -= (*(s4 *) (((uintptr_t) frame->sfi->pv) + FrameSize));
 #if defined(REPLACE_RA_BETWEEN_FRAMES)
 	es->sp -= SIZE_OF_STACKSLOT; /* skip return address */
 #endif

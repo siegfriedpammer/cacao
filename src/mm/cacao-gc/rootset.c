@@ -39,7 +39,7 @@
 
 #include "vm/global.h"
 #include "vm/jit/replace.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 
 rootset_t *rootset_create(void)

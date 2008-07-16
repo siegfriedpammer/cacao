@@ -44,7 +44,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 #include "vmcore/class.h"
 #include "vmcore/field.h"

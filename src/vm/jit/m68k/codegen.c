@@ -58,7 +58,7 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.h"
 
 #include "vmcore/loader.h"

@@ -29,7 +29,7 @@
 
 #include "threads/thread.h"
 
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 
 /* global variables ***********************************************************/

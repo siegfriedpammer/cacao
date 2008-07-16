@@ -174,8 +174,8 @@ libjit_la_SOURCES = \
 	show.c \
 	show.h \
 	$(STACK_SOURCES) \
-	stacktrace.c \
-	stacktrace.h \
+	stacktrace.cpp \
+	stacktrace.hpp \
 	trace.c \
 	trace.h \
 	$(TRAP_SOURCES)

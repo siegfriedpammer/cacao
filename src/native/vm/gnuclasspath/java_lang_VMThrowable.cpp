@@ -52,7 +52,7 @@ extern "C" {
 
 #include "vm/jit/code.h"
 #include "vm/jit/linenumbertable.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 #include "vmcore/class.h"
 #include "vmcore/loader.h"

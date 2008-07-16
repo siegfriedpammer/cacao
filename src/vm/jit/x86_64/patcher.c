@@ -40,7 +40,6 @@
 #include "vm/initialize.h"
 
 #include "vm/jit/patcher-common.h"
-#include "vm/jit/stacktrace.h"
 
 #include "vmcore/class.h"
 #include "vmcore/field.h"

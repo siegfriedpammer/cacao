@@ -102,7 +102,7 @@
 # include "vm/jit/optimizing/lsra.h"
 # include "vm/jit/optimizing/ssa.h"
 #endif
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trace.h"
 
 #if defined(ENABLE_INTRP)

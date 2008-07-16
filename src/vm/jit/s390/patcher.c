@@ -36,7 +36,6 @@
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/s390/codegen.h"
 #include "vm/jit/s390/md-abi.h"
-#include "vm/jit/stacktrace.h"
 #include "vm/resolve.h"
 #include "vm/types.h"
 #include "vmcore/class.h"

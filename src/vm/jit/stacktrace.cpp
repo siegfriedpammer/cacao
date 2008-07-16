@@ -1,4 +1,4 @@
-/* src/vm/jit/stacktrace.c - machine independent stacktrace system
+/* src/vm/jit/stacktrace.cpp - machine independent stacktrace system
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -37,7 +37,7 @@
 #include "mm/gc.hpp"
 #include "mm/memory.h"
 
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 #include "vm/global.h"                   /* required here for native includes */
 #include "native/jni.h"
@@ -74,6 +74,9 @@
 #include "vmcore/options.h"
 
 
+// FIXME Use C-linkage for now.
+extern "C" {
+
 /* global variables ***********************************************************/
 
 CYCLES_STATS_DECLARE(stacktrace_overhead        , 100, 1)
@@ -91,7 +94,7 @@ CYCLES_STATS_DECLARE(stacktrace_get_stack       , 40,  10000)
 
 *******************************************************************************/
 
-void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra, u1 *xpc)
+void stacktrace_stackframeinfo_add(stackframeinfo_t* sfi, void* pv, void* sp, void* ra, void* xpc)
 {
 	stackframeinfo_t *currentsfi;
 	codeinfo         *code;
@@ -143,7 +146,7 @@ void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra
 		/* On S390 we use REG_RA as REG_ITMP3, so we have always to get
 		   the RA from stack. */
 
-		framesize = *((u4 *) (pv + FrameSize));
+		framesize = *((u4 *) (((uintptr_t) pv) + FrameSize));
 
 		ra = md_stacktrace_get_returnaddress(sp, framesize);
 # else
@@ -154,7 +157,7 @@ void stacktrace_stackframeinfo_add(stackframeinfo_t *sfi, u1 *pv, u1 *sp, u1 *ra
 		   the asm_vm_call_method special case. */
 
 		if ((code == NULL) || !code_is_leafmethod(code)) {
-			framesize = *((u4 *) (pv + FrameSize));
+			framesize = *((u4 *) (((uintptr_t) pv) + FrameSize));
 
 			ra = md_stacktrace_get_returnaddress(sp, framesize);
 		}
@@ -1312,6 +1315,8 @@ void stacktrace_print_cycles_stats(FILE *file)
 }
 #endif
 
+} // extern "C"
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -1319,7 +1324,7 @@ void stacktrace_print_cycles_stats(FILE *file)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

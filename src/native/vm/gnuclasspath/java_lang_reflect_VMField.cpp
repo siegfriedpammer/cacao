@@ -66,8 +66,6 @@ extern "C" {
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
 
-#include "vm/jit/stacktrace.h"
-
 #include "vmcore/loader.h"
 #include "vmcore/utf8.h"
 

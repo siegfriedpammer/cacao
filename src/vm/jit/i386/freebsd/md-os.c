@@ -32,7 +32,7 @@
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 
 /* md_signal_handler_sigsegv ***************************************************

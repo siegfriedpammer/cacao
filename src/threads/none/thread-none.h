@@ -34,7 +34,7 @@
 
 #include "vm/builtin.h"
 
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 
 /* define some stuff we need to no-ops ****************************************/

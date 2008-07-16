@@ -59,7 +59,7 @@ typedef struct threadobject threadobject;
 # include "vm/jit/replace.h"
 #endif
 
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 #if defined(ENABLE_INTRP)
 #include "vm/jit/intrp/intrp.h"

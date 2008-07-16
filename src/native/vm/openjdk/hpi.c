@@ -78,7 +78,7 @@ HPI_SystemInterface  *hpi_system        = NULL;
 
 void hpi_initialize(void)
 {
-	char* boot_library_path;
+	const char* boot_library_path;
 	int   len;
 	char* p;
 	utf*  u;

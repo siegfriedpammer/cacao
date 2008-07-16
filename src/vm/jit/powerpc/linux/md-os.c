@@ -49,7 +49,6 @@
 # include "vm/jit/optimizing/profile.h"
 #endif
 
-#include "vm/jit/stacktrace.h"
 #include "vm/jit/trap.h"
 
 #include "vmcore/system.h"

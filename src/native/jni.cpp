@@ -113,7 +113,7 @@ struct java_lang_ClassLoader;
 #include "vm/jit/argument.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
@@ -3674,7 +3674,7 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 #  endif
 	void                          *p;
 
-	TRACEJNICALLS(("_Jv_JNI_GetDirectBufferAddress(env=%p, buf=%p)", env, buf));
+	TRACEJNICALLSENTER(("_Jv_JNI_GetDirectBufferAddress(env=%p, buf=%p)", env, buf));
 
 	/* Prevent compiler warning. */
 
@@ -3693,12 +3693,16 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 	paddress = (gnu_classpath_Pointer32 *) po;
 #  endif
 
-	if (paddress == NULL)
+	if (paddress == NULL) {
+		TRACEJNICALLSEXIT(("->%p", NULL));
 		return NULL;
+	}
 
 	LLNI_field_get_val(paddress, data, address);
 
 	p = (void *) (intptr_t) address;
+
+	TRACEJNICALLSEXIT(("->%p", p));
 
 	return p;
 
