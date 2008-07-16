@@ -41,7 +41,7 @@ endif
 libnativevmcore_la_SOURCES = \
 	gnu_classpath_VMStackWalker.c \
 	gnu_classpath_VMSystemProperties.c \
-	gnu_java_lang_VMCPStringBuilder.c \
+	gnu_java_lang_VMCPStringBuilder.cpp \
 	gnu_java_lang_management_VMClassLoadingMXBeanImpl.c \
 	gnu_java_lang_management_VMMemoryMXBeanImpl.c \
 	gnu_java_lang_management_VMRuntimeMXBeanImpl.c \

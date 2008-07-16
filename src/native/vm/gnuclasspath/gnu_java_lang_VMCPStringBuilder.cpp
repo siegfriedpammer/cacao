@@ -1,6 +1,6 @@
-/* src/native/vm/gnu/java_lang_reflect_VMConstructor.c
+/* src/native/vm/gnuclasspath/gnu_java_lang_VMCPStringBuilder.cpp
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -33,33 +33,13 @@
 
 #include "native/include/java_lang_String.h"
 
+// FIXME
+extern "C" {
 #include "native/include/gnu_java_lang_VMCPStringBuilder.h"
+}
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
-
-
-/* native methods implemented by this file ************************************/
-
-static JNINativeMethod methods[] = {
-	{ "toString", "([CII)Ljava/lang/String;", (void *) (intptr_t) &Java_gnu_java_lang_VMCPStringBuilder_toString },
-};
-
-
-/* _Jv_gnu_java_lang_VMCPStringBuilder *****************************************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_gnu_java_lang_VMCPStringBuilder_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("gnu/java/lang/VMCPStringBuilder");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
 
 
 /*
@@ -115,13 +95,39 @@ JNIEXPORT java_lang_String* JNICALL Java_gnu_java_lang_VMCPStringBuilder_toStrin
 }
 
 
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ (char*) "toString", (char*) "([CII)Ljava/lang/String;", (void*) (uintptr_t) &Java_gnu_java_lang_VMCPStringBuilder_toString },
+};
+
+
+/* _Jv_gnu_java_lang_VMCPStringBuilder *****************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+// FIXME
+extern "C" {
+void _Jv_gnu_java_lang_VMCPStringBuilder_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("gnu/java/lang/VMCPStringBuilder");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+}
+
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
