@@ -1,4 +1,4 @@
-/* src/cacaoh/dummy.c - dummy functions for cacaoh
+/* src/cacaoh/dummy.cpp - dummy functions for cacaoh
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -54,6 +54,9 @@
 #include "vmcore/utf8.h"
 #include "vmcore/system.h"
 
+
+// Below this line are C exports.
+extern "C" {
 
 /* global variables ***********************************************************/
 
@@ -166,7 +169,7 @@ bool builtin_isanysubclass(classinfo *sub, classinfo *super)
 	return 0;
 }
 
-bool builtin_instanceof(java_handle_t *o, classinfo *class)
+bool builtin_instanceof(java_handle_t *o, classinfo *c)
 {
 	vm_abort("builtin_instanceof: Not implemented.");
 	return 0;
@@ -854,6 +857,8 @@ void vmlog_cacao_set_ignoreprefix(const char *arg)
 
 bool VM_is_initializing() { return true; }
 
+} // extern "C"
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -861,7 +866,7 @@ bool VM_is_initializing() { return true; }
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -31,7 +31,7 @@ noinst_LTLIBRARIES = \
 	libcacaoh.la
 
 libcacaoh_la_SOURCES = \
-	dummy.c \
+	dummy.cpp \
 	headers.c \
 	headers.h
 
@@ -44,6 +44,11 @@ noinst_PROGRAMS = \
 
 cacaoh_SOURCES = \
 	cacaoh.c
+
+# Dummy C++ source to cause C++ linking.
+# http://www.gnu.org/software/automake/manual/automake.html#Libtool-Convenience-Libraries
+nodist_EXTRA_cacaoh_SOURCES = \
+	foo.cxx
 
 cacaoh_LDADD = \
 	libcacaoh.la
