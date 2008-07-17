@@ -102,7 +102,7 @@ void intrp_asm_abstractmethoderror(void);
 void asm_patcher_wrapper(void);
 
 /* cache flush function */
-void asm_cacheflush(u1 *addr, s4 nbytes);
+void asm_cacheflush(void* addr, int nbytes);
 
 u8 asm_get_cycle_count(void);
 
