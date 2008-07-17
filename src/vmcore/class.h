@@ -31,7 +31,6 @@
 typedef struct classinfo      classinfo; 
 typedef struct innerclassinfo innerclassinfo;
 typedef struct extra_classref extra_classref;
-typedef struct castinfo       castinfo;
 
 
 #include "config.h"
@@ -188,15 +187,6 @@ struct innerclassinfo {
 struct extra_classref {
 	extra_classref    *next;
 	constant_classref  classref;
-};
-
-
-/* castinfo *******************************************************************/
-
-struct castinfo {
-	s4 super_baseval;
-	s4 super_diffval;
-	s4 sub_baseval;
 };
 
 
