@@ -26,6 +26,10 @@
 #ifndef _LLNI_H
 #define _LLNI_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "config.h"
 
 /* forward defines ************************************************************/
@@ -186,6 +190,9 @@ void llni_critical_end();
 void llni_critical_start_thread(threadobject *t);
 void llni_critical_end_thread(threadobject *t);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _LLNI_H */
 
