@@ -60,7 +60,7 @@ REFLECT_SOURCES = \
 	reflect.h
 
 SUN_MISC_UNSAFE_SOURCES = \
-	sun_misc_Unsafe.c
+	sun_misc_Unsafe.cpp
 endif
 
 noinst_LTLIBRARIES = \
