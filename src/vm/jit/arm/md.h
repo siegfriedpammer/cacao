@@ -66,31 +66,33 @@ inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframe
 
 *******************************************************************************/
 
-inline static u1 *md_codegen_get_pv_from_pc(u1 *ra)
+inline static void* md_codegen_get_pv_from_pc(void* ra)
 {
-	u1 *pv;
-	u4  mcode1, mcode2, mcode3;
+	uint32_t* pc;
+	uintptr_t pv;
+	uint32_t mcode1, mcode2, mcode3;
 
-	pv = ra;
+	pc = (uint32_t*) ra;
+	pv = (uintptr_t) ra;
 
 	/* this can either be a RECOMPUTE_IP in JIT code or a fake in asm_calljavafunction */
-	mcode1 = *((u4*) ra);
+	mcode1 = pc[0];
 	if ((mcode1 & 0xffffff00) == 0xe24fcf00 /*sub ip,pc,#__*/)
-		pv -= (s4) ((mcode1 & 0x000000ff) <<  2);
+		pv -= (uintptr_t) ((mcode1 & 0x000000ff) << 2);
 	else if ((mcode1 & 0xffffff00) == 0xe24fc000 /*sub ip,pc,#__*/)
-		pv -= (s4) (mcode1 & 0x000000ff);
+		pv -= (uintptr_t) (mcode1 & 0x000000ff);
 	else {
 		/* if this happens, we got an unexpected instruction at (*ra) */
 		vm_abort("Unable to find method: %p (instr=%x)", ra, mcode1);
 	}
 
 	/* if we have a RECOMPUTE_IP there can be more than one instruction */
-	mcode2 = *((u4*) (ra + 4));
-	mcode3 = *((u4*) (ra + 8));
+	mcode2 = pc[1];
+	mcode3 = pc[2];
 	if ((mcode2 & 0xffffff00) == 0xe24ccb00 /*sub ip,ip,#__*/)
-		pv -= (s4) ((mcode2 & 0x000000ff) << 10);
+		pv -= (uintptr_t) ((mcode2 & 0x000000ff) << 10);
 	if ((mcode3 & 0xffffff00) == 0xe24cc700 /*sub ip,ip,#__*/)
-		pv -= (s4) ((mcode3 & 0x000000ff) << 18);
+		pv -= (uintptr_t) ((mcode3 & 0x000000ff) << 18);
 
 	/* we used PC-relative adressing; but now it is LR-relative */
 	pv += 8;
@@ -99,7 +101,7 @@ inline static u1 *md_codegen_get_pv_from_pc(u1 *ra)
 	/* we check this by looking up the IsLeaf field, which has to be boolean */
 /* 	assert( *((s4*)pv-8) == (s4)true || *((s4*)pv-8) == (s4)false );  */
 
-	return pv;
+	return (void*) pv;
 }
 
 
