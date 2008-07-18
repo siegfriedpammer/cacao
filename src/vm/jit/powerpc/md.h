@@ -75,46 +75,46 @@ inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframe
 
 *******************************************************************************/
 
-inline static u1 *md_codegen_get_pv_from_pc(u1 *ra)
+inline static void* md_codegen_get_pv_from_pc(void* ra)
 {
-	u1 *pv;
-	u4  mcode;
-	s4  offset;
+	int32_t offset;
+
+	uint32_t* pc = (uint32_t*) ra;
 
 	/* get first instruction word after jump */
 
-	mcode = *((u4 *) (ra + 1 * 4));
+	uint32_t mcode = pc[1];
 
 	/* check if we have 2 instructions (addis, addi) */
 
 	if ((mcode >> 16) == 0x3dab) {
 		/* get displacement of first instruction (addis) */
 
-		offset = (s4) (mcode << 16);
+		offset = (int32_t) (mcode << 16);
 
 		/* get displacement of second instruction (addi) */
 
-		mcode = *((u4 *) (ra + 2 * 4));
+		mcode = pc[2];
 
 		/* check for addi instruction */
 
 		assert((mcode >> 16) == 0x39ad);
 
-		offset += (s2) (mcode & 0x0000ffff);
-
-	} else {
+		offset += (int16_t) (mcode & 0x0000ffff);
+	}
+	else {
 		/* check for addi instruction */
 
 		assert((mcode >> 16) == 0x39ab);
 
 		/* get offset of first instruction (addi) */
 
-		offset = (s2) (mcode & 0x0000ffff);
+		offset = (int16_t) (mcode & 0x0000ffff);
 	}
 
 	/* calculate PV via RA + offset */
 
-	pv = ra + offset;
+	void* pv = (void*) (((uintptr_t) ra) + offset);
 
 	return pv;
 }
