@@ -1420,22 +1420,19 @@ static fieldinfo *class_resolvefield_int(classinfo *c, utf *name, utf *desc)
 	
 	Resolves a reference from REFERER to a field with NAME and DESC in class C.
 
-    If the field cannot be resolved the return value is NULL. If EXCEPT is
-    true *exceptionptr is set, too.
+    If the field cannot be resolved, an exception is thrown and the
+    return value is NULL.
 
 *******************************************************************************/
 
-fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc,
-							  classinfo *referer, bool throwexception)
+fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc, classinfo *referer)
 {
 	fieldinfo *fi;
 
 	fi = class_resolvefield_int(c, name, desc);
 
 	if (!fi) {
-		if (throwexception)
-			exceptions_throw_nosuchfielderror(c, name);
-
+		exceptions_throw_nosuchfielderror(c, name);
 		return NULL;
 	}
 

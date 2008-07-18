@@ -1330,7 +1330,7 @@ resolve_result_t resolve_field_lazy(methodinfo *refmethod,
 
 	fi = class_resolvefield(container,
 							fieldref->name, fieldref->descriptor,
-							referer, true);
+							referer);
 	if (!fi) {
 		/* The field does not exist. But since we were called lazily, */
 		/* this error must not be reported now. (It will be reported   */
@@ -1428,7 +1428,7 @@ bool resolve_field(unresolved_field *ref,
 
 	fi = class_resolvefield(container,
 							ref->fieldref->name,ref->fieldref->descriptor,
-							referer,true);
+							referer);
 	if (!fi) {
 		if (mode == resolveLazy) {
 			/* The field does not exist. But since we were called lazily, */
