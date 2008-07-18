@@ -390,7 +390,6 @@ fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc);
 
 /* search 'classinfo'-structure for a field with the specified name */
 fieldinfo *class_findfield_by_name(classinfo *c, utf *name);
-s4 class_findfield_index_by_name(classinfo *c, utf *name);
 
 /* search class for a field */
 fieldinfo *class_resolvefield(classinfo *c, utf *name, utf *desc, classinfo *referer);

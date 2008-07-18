@@ -1336,41 +1336,18 @@ fieldinfo *class_findfield(classinfo *c, utf *name, utf *desc)
 
 *******************************************************************************/
  
-fieldinfo *class_findfield_by_name(classinfo *c, utf *name)
+fieldinfo *class_findfield_by_name(classinfo* c, utf* name)
 {
-	s4 i;
+	for (int32_t i = 0; i < c->fieldscount; i++) {
+		fieldinfo* f = &(c->fields[i]);
 
-	/* get field index */
-
-	i = class_findfield_index_by_name(c, name);
-
-	/* field was not found, return */
-
-	if (i == -1)
-		return NULL;
-
-	/* return field address */
-
-	return &(c->fields[i]);
-}
-
-
-s4 class_findfield_index_by_name(classinfo *c, utf *name)
-{
-	s4 i;
-
-	for (i = 0; i < c->fieldscount; i++) {
-		/* compare field names */
-
-		if ((c->fields[i].name == name))
-			return i;
+		if (f->name == name)
+			return f;
 	}
 
-	/* field was not found, raise exception */	
-
+	// Field not found.
 	exceptions_throw_nosuchfielderror(c, name);
-
-	return -1;
+	return NULL;
 }
 
 
