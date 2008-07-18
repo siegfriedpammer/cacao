@@ -544,7 +544,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 	u4 cpcount;
 	u1 *cptags;
-	voidptr *cpinfos;
+	void** cpinfos;
 
 	c = cb->clazz;
 
@@ -556,7 +556,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 	/* allocate memory */
 	cptags  = c->cptags  = MNEW(u1, cpcount);
-	cpinfos = c->cpinfos = MNEW(voidptr, cpcount);
+	cpinfos = c->cpinfos = MNEW(void*, cpcount);
 
 	if (cpcount < 1) {
 		exceptions_throw_classformaterror(c, "Illegal constant pool size");
@@ -565,7 +565,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 	
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
-		count_const_pool_len += (sizeof(u1) + sizeof(voidptr)) * cpcount;
+		count_const_pool_len += (sizeof(u1) + sizeof(void*)) * cpcount;
 #endif
 	
 	/* initialize constantpool */

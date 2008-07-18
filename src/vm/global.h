@@ -36,7 +36,6 @@
 
 /* additional data types ******************************************************/
 
-typedef void *voidptr;                  /* generic pointer                    */
 typedef void (*functionptr) (void);     /* generic function pointer           */
 typedef u1* methodptr;
 

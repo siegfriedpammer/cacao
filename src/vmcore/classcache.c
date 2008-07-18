@@ -1139,7 +1139,7 @@ void classcache_free(void)
 		}
 	}
 
-	MFREE(hashtable_classcache.ptr, voidptr, hashtable_classcache.size);
+	MFREE(hashtable_classcache.ptr, void*, hashtable_classcache.size);
 	hashtable_classcache.size = 0;
 	hashtable_classcache.entries = 0;
 	hashtable_classcache.ptr = NULL;

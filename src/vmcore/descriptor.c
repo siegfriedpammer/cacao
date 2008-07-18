@@ -432,14 +432,14 @@ descriptor_pool_new(classinfo *referer)
 	hashsize = CLASSREFHASH_INIT_SIZE;
 	pool->classrefhash.size = hashsize;
 	pool->classrefhash.entries = 0;
-	pool->classrefhash.ptr = DMNEW(voidptr,hashsize);
+	pool->classrefhash.ptr = DMNEW(void*, hashsize);
 	for (slot=0; slot<hashsize; ++slot)
 		pool->classrefhash.ptr[slot] = NULL;
 
 	hashsize = DESCRIPTORHASH_INIT_SIZE;
 	pool->descriptorhash.size = hashsize;
 	pool->descriptorhash.entries = 0;
-	pool->descriptorhash.ptr = DMNEW(voidptr,hashsize);
+	pool->descriptorhash.ptr = DMNEW(void*, hashsize);
 	for (slot=0; slot<hashsize; ++slot)
 		pool->descriptorhash.ptr[slot] = NULL;
 
@@ -1370,10 +1370,10 @@ descriptor_pool_debug_dump(descriptor_pool *pool,FILE *file)
 			}
 		}
 		else {
-			while (size >= sizeof(voidptr)) {
-				fprintf(file,"    %p\n",*((voidptr*)pos));
-				pos += sizeof(voidptr);
-				size -= sizeof(voidptr);
+			while (size >= sizeof(void*)) {
+				fprintf(file,"    %p\n",*((void**)pos));
+				pos += sizeof(void*);
+				size -= sizeof(void*);
 			}
 		}
 	}

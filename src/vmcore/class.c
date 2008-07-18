@@ -624,7 +624,7 @@ static void class_freecpool(classinfo *c)
 {
 	u4 idx;
 	u4 tag;
-	voidptr info;
+	void* info;
 	
 	if (c->cptags && c->cpinfos) {
 		for (idx = 0; idx < c->cpcount; idx++) {
@@ -662,7 +662,7 @@ static void class_freecpool(classinfo *c)
 		MFREE(c->cptags, u1, c->cpcount);
 
 	if (c->cpinfos)
-		MFREE(c->cpinfos, voidptr, c->cpcount);
+		MFREE(c->cpinfos, void*, c->cpcount);
 }
 
 
@@ -674,7 +674,7 @@ static void class_freecpool(classinfo *c)
 
 *******************************************************************************/
 
-voidptr class_getconstant(classinfo *c, u4 pos, u4 ctype)
+void* class_getconstant(classinfo *c, u4 pos, u4 ctype)
 {
 	/* check index and type of constantpool entry */
 	/* (pos == 0 is caught by type comparison) */
@@ -694,7 +694,7 @@ voidptr class_getconstant(classinfo *c, u4 pos, u4 ctype)
 	
 *******************************************************************************/
 
-voidptr innerclass_getconstant(classinfo *c, u4 pos, u4 ctype)
+void* innerclass_getconstant(classinfo *c, u4 pos, u4 ctype)
 {
 	/* invalid position in constantpool */
 
@@ -2371,7 +2371,7 @@ void class_classref_or_classinfo_println(classref_or_classinfo c)
 void class_showconstantpool (classinfo *c) 
 {
 	u4 i;
-	voidptr e;
+	void* e;
 
 	printf ("---- dump of constant pool ----\n");
 

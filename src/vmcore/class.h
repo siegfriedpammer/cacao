@@ -105,7 +105,7 @@ struct classinfo {                /* class structure                          */
 
 	s4          cpcount;          /* number of entries in constant pool       */
 	u1         *cptags;           /* constant pool tags                       */
-	voidptr    *cpinfos;          /* pointer to constant pool info structures */
+	void*      *cpinfos;          /* pointer to constant pool info structures */
 
 	s4          classrefcount;    /* number of symbolic class references      */
 	constant_classref *classrefs; /* table of symbolic class references       */
@@ -354,8 +354,8 @@ void       class_set_packagename(classinfo *c);
 bool       class_load_attributes(classbuffer *cb);
 
 /* retrieve constantpool element */
-voidptr class_getconstant(classinfo *c, u4 pos, u4 ctype);
-voidptr innerclass_getconstant(classinfo *c, u4 pos, u4 ctype);
+void* class_getconstant(classinfo *c, u4 pos, u4 ctype);
+void* innerclass_getconstant(classinfo *c, u4 pos, u4 ctype);
 
 /* frees all resources used by the class */
 void class_free(classinfo *);

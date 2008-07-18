@@ -175,8 +175,7 @@ static patchref_t *patcher_list_find(codeinfo *code, u1 *pc)
 
 *******************************************************************************/
 
-void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
-                           s4 disp)
+void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
 {
 	codegendata *cd;
 	codeinfo    *code;

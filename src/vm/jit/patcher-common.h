@@ -1,9 +1,7 @@
 /* src/vm/jit/patcher-common.h - architecture independent code patching stuff
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -52,7 +50,7 @@ typedef struct patchref_t {
 	ptrint       datap;         /* absolute position in data segment          */
 	s4           disp;          /* displacement of ref in the data segment    */
 	functionptr  patcher;       /* patcher function to call                   */
-	voidptr      ref;           /* reference passed                           */
+	void*        ref;           /* reference passed                           */
 	u8           mcode;         /* machine code to be patched back in         */
 	bool         done;          /* XXX preliminary: patch already applied?    */
 	listnode_t   linkage;
@@ -68,8 +66,7 @@ void patcher_list_create(codeinfo *code);
 void patcher_list_reset(codeinfo *code);
 void patcher_list_free(codeinfo *code);
 
-void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
-                           s4 disp);
+void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp);
 
 void patcher_resolve(jitdata* jd);
 
