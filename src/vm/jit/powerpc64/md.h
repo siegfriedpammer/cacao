@@ -1,9 +1,7 @@
 /* src/vm/jit/powerpc64/md.h - machine dependent PowerPC functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -77,37 +75,37 @@ inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframe
 
 *******************************************************************************/
 
-inline static u1 *md_codegen_get_pv_from_pc(u1 *ra)
+inline static void* md_codegen_get_pv_from_pc(void* ra)
 {
-	u1 *pv;
-	u4  mcode;
-	s4  offset;
+	int32_t offset;
+
+	uint32_t* pc = (uint32_t*) ra;
 
 	/* get first instruction word after jump */
 
-	mcode = *((u4 *) (ra + 1 * 4));
+	uint32_t mcode = pc[1];
 
 	/* check if we have 2 instructions (addis, addi) */
 
 	if ((mcode >> 16) == 0x3dcb) {
 		/* get displacement of first instruction (addis) */
 
-		offset = (s4) (mcode << 16);
+		offset = (int32_t) (mcode << 16);
 
 		/* get displacement of second instruction (addi) */
 
-		mcode = *((u4 *) (ra + 2 * 4));
+		mcode = pc[2];
 
 		/* check for addi instruction */
 
 		assert((mcode >> 16) == 0x39ce);
 
-		offset += (s2) (mcode & 0x0000ffff);
+		offset += (int16_t) (mcode & 0x0000ffff);
 	}
 	else if ((mcode >> 16) == 0x39cb) {
 		/* get offset of first instruction (addi) */
 
-		offset = (s2) (mcode & 0x0000ffff);
+		offset = (int16_t) (mcode & 0x0000ffff);
 	}
 	else {
 		vm_abort("md_codegen_get_pv_from_pc: unknown instruction %x", mcode);
@@ -119,7 +117,7 @@ inline static u1 *md_codegen_get_pv_from_pc(u1 *ra)
 
 	/* calculate PV via RA + offset */
 
-	pv = ra + offset;
+	void* pv = (void*) (((uintptr_t) ra) + offset);
 
 	return pv;
 }
