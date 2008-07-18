@@ -1,6 +1,6 @@
 /* src/vm/jit/linenumbertable.h - linenumber table
 
-   Copyright (C) 2007
+   Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -25,6 +25,10 @@
 
 #ifndef _LINENUMBERTABLE_H
 #define _LINENUMBERTABLE_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* forward typedefs ***********************************************************/
 
@@ -93,6 +97,10 @@ void    linenumbertable_list_entry_add_inline_start(codegendata *cd, instruction
 void    linenumbertable_list_entry_add_inline_end(codegendata *cd, instruction *iptr);
 
 int32_t linenumbertable_linenumber_for_pc(methodinfo **pm, codeinfo *code, void *pc);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _LINENUMBERTABLE_H */
 

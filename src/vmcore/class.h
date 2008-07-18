@@ -26,6 +26,10 @@
 #ifndef _CLASS_H
 #define _CLASS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* forward typedefs ***********************************************************/
 
 typedef struct classinfo      classinfo; 
@@ -541,6 +545,10 @@ void class_classref_or_classinfo_println(classref_or_classinfo c);
 /* debug purposes */
 void class_showmethods(classinfo *c);
 void class_showconstantpool(classinfo *c);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _CLASS_H */
 

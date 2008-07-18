@@ -26,6 +26,10 @@
 #ifndef _STRINGLOCAL_H
 #define _STRINGLOCAL_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct literalstring literalstring;
 
 
@@ -87,6 +91,10 @@ java_object_t *literalstring_new(utf *u);
 
 java_handle_t *javastring_intern(java_handle_t *s);
 void           javastring_fprint(java_handle_t *s, FILE *stream);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _STRINGLOCAL_H */
 
