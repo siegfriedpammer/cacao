@@ -159,6 +159,7 @@ error reporting.
 #include "vm/jit/parse.h"
 #include "vm/jit/show.h"
 
+#include "vmcore/globals.hpp"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 

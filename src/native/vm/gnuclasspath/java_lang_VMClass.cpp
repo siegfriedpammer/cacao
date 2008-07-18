@@ -49,6 +49,7 @@ extern "C" {
 #include "vm/stringlocal.h"
 
 #include "vmcore/class.h"
+#include "vmcore/globals.hpp"
 
 #if defined(ENABLE_ANNOTATIONS)
 #include "native/include/sun_reflect_ConstantPool.h"

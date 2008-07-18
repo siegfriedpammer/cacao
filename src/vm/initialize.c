@@ -41,6 +41,7 @@
 #include "vm/jit/asmpart.h"
 
 #include "vmcore/class.h"
+#include "vmcore/globals.hpp"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 

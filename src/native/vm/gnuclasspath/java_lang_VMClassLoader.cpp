@@ -65,6 +65,7 @@ extern "C" {
 
 #include "vmcore/class.h"
 #include "vmcore/classcache.h"
+#include "vmcore/globals.hpp"
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"

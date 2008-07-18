@@ -115,6 +115,7 @@ struct java_lang_ClassLoader;
 #include "vm/jit/jit.h"
 #include "vm/jit/stacktrace.hpp"
 
+#include "vmcore/globals.hpp"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"

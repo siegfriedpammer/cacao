@@ -83,6 +83,7 @@
 
 #include "vm/jit/asmpart.h"
 
+#include "vmcore/globals.hpp"
 #include "vmcore/options.h"
 
 #if defined(ENABLE_STATISTICS)

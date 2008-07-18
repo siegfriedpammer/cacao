@@ -52,6 +52,7 @@
 
 #include "vmcore/class.h"
 #include "vmcore/classcache.h"
+#include "vmcore/globals.hpp"
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
@@ -73,86 +74,6 @@ java_object_t *reflect_constructor_new(methodinfo *m);
 java_object_t *reflect_field_new(fieldinfo *f);
 java_object_t *reflect_method_new(methodinfo *m);
 #endif
-
-
-/* global variables ***********************************************************/
-
-/* frequently used classes ****************************************************/
-
-/* Important system classes. */
-
-classinfo *class_java_lang_Object;
-classinfo *class_java_lang_Class;
-classinfo *class_java_lang_ClassLoader;
-classinfo *class_java_lang_Cloneable;
-classinfo *class_java_lang_SecurityManager;
-classinfo *class_java_lang_String;
-classinfo *class_java_lang_System;
-classinfo *class_java_lang_Thread;
-classinfo *class_java_lang_ThreadGroup;
-classinfo *class_java_lang_Throwable;
-classinfo *class_java_io_Serializable;
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-classinfo *class_java_lang_VMSystem;
-classinfo *class_java_lang_VMThread;
-classinfo *class_java_lang_VMThrowable;
-#endif
-
-/* Important system exceptions. */
-
-classinfo *class_java_lang_Exception;
-classinfo *class_java_lang_ClassNotFoundException;
-classinfo *class_java_lang_RuntimeException;
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-classinfo *class_sun_reflect_MagicAccessorImpl;
-#endif
-
-#if defined(ENABLE_JAVASE)
-classinfo *class_java_lang_Void;
-#endif
-classinfo *class_java_lang_Boolean;
-classinfo *class_java_lang_Byte;
-classinfo *class_java_lang_Character;
-classinfo *class_java_lang_Short;
-classinfo *class_java_lang_Integer;
-classinfo *class_java_lang_Long;
-classinfo *class_java_lang_Float;
-classinfo *class_java_lang_Double;
-
-/* some classes which may be used more often */
-
-#if defined(ENABLE_JAVASE)
-classinfo *class_java_lang_StackTraceElement;
-classinfo *class_java_lang_reflect_Constructor;
-classinfo *class_java_lang_reflect_Field;
-classinfo *class_java_lang_reflect_Method;
-classinfo *class_java_security_PrivilegedAction;
-classinfo *class_java_util_Vector;
-classinfo *class_java_util_HashMap;
-
-# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-classinfo *class_java_lang_reflect_VMConstructor;
-classinfo *class_java_lang_reflect_VMField;
-classinfo *class_java_lang_reflect_VMMethod;
-# endif
-
-classinfo *arrayclass_java_lang_Object;
-
-# if defined(ENABLE_ANNOTATIONS)
-classinfo *class_sun_reflect_ConstantPool;
-#  if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-classinfo *class_sun_reflect_annotation_AnnotationParser;
-#  endif
-# endif
-#endif
-
-/* pseudo classes for the typechecker */
-
-classinfo *pseudo_class_Arraystub;
-classinfo *pseudo_class_Null;
-classinfo *pseudo_class_New;
 
 
 /* class_set_packagename *******************************************************

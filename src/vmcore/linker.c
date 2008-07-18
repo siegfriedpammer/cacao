@@ -49,6 +49,7 @@
 
 #include "vmcore/class.h"
 #include "vmcore/classcache.h"
+#include "vmcore/globals.hpp"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 #include "vmcore/rt-timing.h"

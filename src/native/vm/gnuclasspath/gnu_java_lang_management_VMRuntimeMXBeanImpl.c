@@ -36,7 +36,7 @@
 #include "vm/global.h"
 #include "vm/vm.hpp"
 
-#include "vmcore/class.h"
+#include "vmcore/globals.hpp"
 #include "vmcore/utf8.h"
 
 

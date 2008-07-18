@@ -92,6 +92,7 @@
 #include "vm/jit/stacktrace.hpp"
 
 #include "vmcore/classcache.h"
+#include "vmcore/globals.hpp"
 #include "vmcore/options.h"
 #include "vmcore/system.h"
 

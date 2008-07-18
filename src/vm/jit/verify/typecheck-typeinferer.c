@@ -49,6 +49,7 @@
 
 #include "vm/jit/verify/typecheck-typeinferer.h"
 
+#include "vmcore/globals.hpp"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 

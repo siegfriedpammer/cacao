@@ -42,6 +42,7 @@
 
 #include "vmcore/class.h"
 #include "vmcore/field.h"
+#include "vmcore/globals.hpp"
 #include "vmcore/method.h"
 
 

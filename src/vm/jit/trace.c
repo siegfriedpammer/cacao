@@ -48,6 +48,7 @@
 #include "vm/jit/trace.h"
 #include "vm/jit/show.h"
 
+#include "vmcore/globals.hpp"
 #include "vmcore/options.h"
 #include "vmcore/utf8.h"
 

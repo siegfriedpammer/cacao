@@ -109,6 +109,7 @@
 #include "vm/jit/trap.h"
 
 #include "vmcore/classcache.h"
+#include "vmcore/globals.hpp"
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"
 #include "vmcore/suck.h"

@@ -65,6 +65,7 @@
 #include "vm/jit/trace.h"
 
 #include "vmcore/class.h"
+#include "vmcore/globals.hpp"
 #include "vmcore/loader.h"
 #include "vmcore/method.h"
 #include "vmcore/options.h"

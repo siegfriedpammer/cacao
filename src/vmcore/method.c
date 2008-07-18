@@ -50,6 +50,7 @@
 #include "vm/jit_interface.h"
 
 #include "vmcore/class.h"
+#include "vmcore/globals.hpp"
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/method.h"

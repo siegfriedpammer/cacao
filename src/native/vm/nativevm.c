@@ -46,6 +46,7 @@
 # include "vm/properties.h"
 # include "vm/vm.hpp"
 
+# include "vmcore/globals.hpp"
 # include "vmcore/utf8.h"
 #endif
 

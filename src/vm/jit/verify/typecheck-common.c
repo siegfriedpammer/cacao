@@ -31,6 +31,9 @@
 
 #include <vm/exceptions.h>
 #include <vm/jit/show.h>
+
+#include "vmcore/globals.hpp"
+
 #include <typecheck-common.h>
 
 /****************************************************************************/

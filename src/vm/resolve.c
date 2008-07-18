@@ -42,6 +42,7 @@
 
 #include "vmcore/classcache.h"
 #include "vmcore/descriptor.h"
+#include "vmcore/globals.hpp"
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"

@@ -67,6 +67,7 @@
 #include "vm/jit/stacktrace.hpp"
 
 #include "vmcore/class.h"
+#include "vmcore/globals.hpp"
 #include "vmcore/method.h"
 #include "vmcore/options.h"
 

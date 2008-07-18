@@ -41,6 +41,8 @@ extern "C" {
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 
+#include "vmcore/globals.hpp"
+
 
 /*
  * Class:     gnu/java/lang/VMCPStringBuilder

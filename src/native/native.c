@@ -55,6 +55,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 
+#include "vmcore/globals.hpp"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 #include "vmcore/system.h"

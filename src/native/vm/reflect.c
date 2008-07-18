@@ -66,6 +66,7 @@
 #include "vm/initialize.h"
 #include "vm/stringlocal.h"
 
+#include "vmcore/globals.hpp"
 #include "vmcore/method.h"
 
 

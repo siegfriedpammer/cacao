@@ -49,6 +49,7 @@
 #include "vm/stringlocal.h"
 #include "vm/vm.hpp"
 
+#include "vmcore/globals.hpp"
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"
 #include "vmcore/utf8.h"

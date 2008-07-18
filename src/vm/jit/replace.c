@@ -54,10 +54,12 @@
 #include "vm/jit/show.h"
 #include "vm/jit/stack.h"
 
-#include "vmcore/options.h"
 #include "vmcore/classcache.h"
+#include "vmcore/globals.hpp"
+#include "vmcore/options.h"
+
 #if defined(ENABLE_RT_TIMING)
-#include "vmcore/rt-timing.h"
+# include "vmcore/rt-timing.h"
 #endif
 
 #define REPLACE_PATCH_DYNAMIC_CALL

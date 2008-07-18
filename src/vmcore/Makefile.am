@@ -70,6 +70,8 @@ libvmcore_la_SOURCES = \
 	descriptor.h \
 	field.c \
 	field.h \
+	globals.cpp \
+	globals.hpp \
 	linker.c \
 	linker.h \
 	loader.c \
