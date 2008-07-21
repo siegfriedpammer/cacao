@@ -90,8 +90,8 @@ struct dumpinfo_t {
 
 #define DNEW(type)            ((type *) dumpmemory_get(sizeof(type)))
 #define DMNEW(type,num)       ((type *) dumpmemory_get(sizeof(type) * (num)))
-#define DMREALLOC(ptr,type,num1,num2) dumpmemory_realloc((ptr), sizeof(type) * (num1), \
-                                                          sizeof(type) * (num2))
+#define DMREALLOC(ptr,type,num1,num2) ((type*) dumpmemory_realloc((ptr), sizeof(type) * (num1), \
+																  sizeof(type) * (num2)))
 
 /* function prototypes ********************************************************/
 
