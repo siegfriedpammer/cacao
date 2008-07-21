@@ -62,7 +62,7 @@
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/show.h"
 #include "vm/jit/stacktrace.hpp"
-#include "vm/jit/trace.h"
+#include "vm/jit/trace.hpp"
 
 #include "vmcore/class.h"
 #include "vmcore/globals.hpp"

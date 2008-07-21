@@ -1,9 +1,7 @@
-/* src/vm/jit/trace.h - Functions for tracing from java code.
+/* src/vm/jit/trace.hpp - Functions for tracing from java code.
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -24,8 +22,14 @@
 
 */
 
-#ifndef _VM_JIT_TRACE_H
-#define _VM_JIT_TRACE_H
+
+#ifndef _VM_JIT_TRACE_HPP
+#define _VM_JIT_TRACE_HPP
+
+// FIXME For now we export everything as C functions.
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "config.h"
 
@@ -43,7 +47,12 @@ void trace_exception_builtin(java_object_t *xptr);
 
 #endif /* !defined(NDEBUG) */
 
-#endif /* _VM_JIT_TRACE_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif // _VM_JIT_TRACE_HPP
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -51,7 +60,7 @@ void trace_exception_builtin(java_object_t *xptr);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

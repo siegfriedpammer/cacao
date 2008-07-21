@@ -1,4 +1,4 @@
-/* src/vm/jit/trace.c - Functions for tracing from java code.
+/* src/vm/jit/trace.cpp - Functions for tracing from java code.
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,6 +21,10 @@
    02110-1301, USA.
 
 */
+
+
+// FIXME For now we export everything as C functions.
+extern "C" {
 
 #include "config.h"
 
@@ -45,7 +49,7 @@
 #include "vm/stringlocal.h"
 #include "vm/jit/argument.h"
 #include "vm/jit/codegen-common.h"
-#include "vm/jit/trace.h"
+#include "vm/jit/trace.hpp"
 #include "vm/jit/show.h"
 
 #include "vmcore/globals.hpp"
@@ -625,8 +629,9 @@ void trace_exception_builtin(java_object_t *xptr)
 	DRELEASE;
 }
 
-
 #endif /* !defined(NDEBUG) */
+
+} // extern "C"
 
 
 /*
@@ -635,7 +640,7 @@ void trace_exception_builtin(java_object_t *xptr)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -47,7 +47,7 @@
 #include "vm/jit/jit.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
-#include "vm/jit/trace.h"
+#include "vm/jit/trace.hpp"
 #include "vm/jit/trap.h"
 
 #include "toolbox/logging.h" /* XXX for debugging only */

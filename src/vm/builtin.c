@@ -69,7 +69,7 @@
 #include "vm/stringlocal.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/trace.h"
+#include "vm/jit/trace.hpp"
 
 #include "vmcore/class.h"
 #include "vmcore/globals.hpp"

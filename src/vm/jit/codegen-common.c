@@ -103,7 +103,7 @@
 # include "vm/jit/optimizing/ssa.h"
 #endif
 #include "vm/jit/stacktrace.hpp"
-#include "vm/jit/trace.h"
+#include "vm/jit/trace.hpp"
 
 #if defined(ENABLE_INTRP)
 #include "vm/jit/intrp/intrp.h"
