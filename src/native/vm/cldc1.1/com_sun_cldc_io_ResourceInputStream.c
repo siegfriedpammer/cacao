@@ -46,7 +46,7 @@
 #include "vm/builtin.h"
 #include "vm/vm.hpp" /* REMOVE ME: temporarily */
 #include "vm/exceptions.hpp"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vmcore/zip.h"
 

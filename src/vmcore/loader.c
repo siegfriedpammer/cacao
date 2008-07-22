@@ -46,7 +46,7 @@
 #include "vm/package.hpp"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit_interface.h"

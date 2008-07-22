@@ -59,7 +59,7 @@ extern "C" {
 #include "vm/exceptions.hpp"
 #include "vm/initialize.h"
 #include "vm/resolve.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vmcore/globals.hpp"
 #include "vmcore/method.h"

@@ -46,7 +46,7 @@ extern "C" {
 #include "toolbox/logging.h"
 
 #include "vm/global.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 #include "vm/jit/argument.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/trace.hpp"

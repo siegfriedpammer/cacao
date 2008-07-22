@@ -42,7 +42,7 @@
 #include "vm/array.h"
 #include "vm/exceptions.hpp"
 #include "vm/primitive.hpp"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit_interface.h"

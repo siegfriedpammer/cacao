@@ -36,7 +36,7 @@
 #include "threads/thread.hpp"
 
 #include "vm/builtin.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vm/jit/jit.h"
 #include "vm/jit/methodheader.h"

@@ -64,7 +64,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/initialize.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vmcore/globals.hpp"
 #include "vmcore/method.h"

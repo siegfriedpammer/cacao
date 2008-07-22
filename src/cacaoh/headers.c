@@ -47,7 +47,7 @@
 
 #include "vm/builtin.h"
 #include "vm/global.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vmcore/class.h"
 #include "vmcore/method.h"

@@ -32,8 +32,6 @@
 
 #include "vm/jit/sparc64/md-abi.h"
 
-#include "vm/stringlocal.h"
-
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/jit.h"

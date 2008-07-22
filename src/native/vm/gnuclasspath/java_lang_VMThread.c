@@ -42,7 +42,7 @@
 #include "threads/thread.hpp"
 
 #include "vm/exceptions.hpp"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vmcore/utf8.h"
 

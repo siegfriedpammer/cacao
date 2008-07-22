@@ -42,7 +42,6 @@
 
 #include "vm/builtin.h"
 #include "vm/global.h"
-#include "vm/stringlocal.h"
 #include "vm/vm.hpp"
 
 #include "vmcore/loader.h"

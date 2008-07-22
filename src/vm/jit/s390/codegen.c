@@ -50,7 +50,6 @@
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/types.h"
-#include "vm/stringlocal.h"
 #include "vm/vm.hpp"
 
 #include "vm/jit/abi.h"

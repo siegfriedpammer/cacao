@@ -41,7 +41,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"

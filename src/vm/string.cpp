@@ -1,4 +1,4 @@
-/* src/vm/string.c - java.lang.String related functions
+/* src/vm/string.cpp - java.lang.String related functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -46,7 +46,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/primitive.hpp"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include "vmcore/globals.hpp"
@@ -119,10 +119,10 @@ void stringtable_update(void)
 	heapstring_t     *js;
 	java_chararray_t *a;
 	literalstring    *s;       /* hashtable entry */
-	int i;
 
-	for (i = 0; i < hashtable_string.size; i++) {
-		s = hashtable_string.ptr[i];
+	for (unsigned int i = 0; i < hashtable_string.size; i++) {
+		s = (literalstring*) hashtable_string.ptr[i];
+
 		if (s) {
 			while (s) {
 				js = (heapstring_t *) s->string;
@@ -141,8 +141,7 @@ void stringtable_update(void)
 
 				if (!a->header.objheader.vftbl) 
 					/* vftbl of character-array is NULL */ 
-					a->header.objheader.vftbl =
-						Primitive_get_arrayclass_by_type(ARRAYTYPE_CHAR)->vftbl;
+					a->header.objheader.vftbl = Primitive::get_arrayclass_by_type(ARRAYTYPE_CHAR)->vftbl;
 
 				/* follow link in external hash chain */
 				s = s->hashlink;
@@ -304,11 +303,10 @@ java_handle_t *javastring_new_from_utf_string(const char *utfstr)
 java_handle_t *javastring_new(utf *u)
 {
 	char *utf_ptr;                  /* current utf character in utf string    */
-	u4 utflength;                   /* length of utf-string if uncompressed   */
+	int32_t utflength;                   /* length of utf-string if uncompressed   */
 	java_handle_t           *o;
 	java_handle_chararray_t *a;
 	java_lang_String        *s;
-	s4 i;
 
 	if (u == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -328,7 +326,7 @@ java_handle_t *javastring_new(utf *u)
 
 	/* decompress utf-string */
 
-	for (i = 0; i < utflength; i++)
+	for (int32_t i = 0; i < utflength; i++)
 		LLNI_array_direct(a, i) = utf_nextu2(&utf_ptr);
 	
 	/* set fields of the javastring-object */
@@ -355,11 +353,10 @@ java_handle_t *javastring_new(utf *u)
 java_handle_t *javastring_new_slash_to_dot(utf *u)
 {
 	char *utf_ptr;                  /* current utf character in utf string    */
-	u4 utflength;                   /* length of utf-string if uncompressed   */
+	int32_t utflength;                   /* length of utf-string if uncompressed   */
 	java_handle_t           *o;
 	java_handle_chararray_t *a;
 	java_lang_String        *s;
-	s4 i;
 	u2 ch;
 
 	if (u == NULL) {
@@ -379,7 +376,7 @@ java_handle_t *javastring_new_slash_to_dot(utf *u)
 
 	/* decompress utf-string */
 
-	for (i = 0; i < utflength; i++) {
+	for (int32_t i = 0; i < utflength; i++) {
 		ch = utf_nextu2(&utf_ptr);
 		if (ch == '/')
 			ch = '.';
@@ -472,12 +469,12 @@ char *javastring_tochar(java_handle_t *so)
 	s4 i;
 	
 	if (!s)
-		return "";
+		return (char*) "";
 
 	LLNI_field_get_ref(s, value, a);
 
 	if (!a)
-		return "";
+		return (char*) "";
 
 	LLNI_field_get_val(s, count, count);
 	LLNI_field_get_val(s, offset, offset);
@@ -532,7 +529,7 @@ utf *javastring_toutf(java_handle_t *string, bool isclassname)
 
 *******************************************************************************/
 
-static java_object_t *literalstring_u2(java_chararray_t *a, u4 length,
+static java_object_t *literalstring_u2(java_chararray_t *a, int32_t length,
 									   u4 offset, bool copymode)
 {
     literalstring    *s;                /* hashtable element                  */
@@ -548,7 +545,7 @@ static java_object_t *literalstring_u2(java_chararray_t *a, u4 length,
 
     key  = unicode_hashkey(a->data + offset, length);
     slot = key & (hashtable_string.size - 1);
-    s    = hashtable_string.ptr[slot];
+    s    = (literalstring*) hashtable_string.ptr[slot];
 
     while (s) {
 		js = (heapstring_t *) s->string;
@@ -578,7 +575,7 @@ static java_object_t *literalstring_u2(java_chararray_t *a, u4 length,
     if (copymode) {
 		/* create copy of u2-array for new javastring */
 		u4 arraysize = sizeof(java_chararray_t) + sizeof(u2) * (length - 1) + 10;
-		ca = mem_alloc(arraysize);
+		ca = (java_chararray_t*) mem_alloc(arraysize);
 /*    		memcpy(ca, a, arraysize); */
   		memcpy(&(ca->header), &(a->header), sizeof(java_array_t));
   		memcpy(&(ca->data), &(a->data) + offset, sizeof(u2) * (length - 1) + 10);
@@ -589,8 +586,7 @@ static java_object_t *literalstring_u2(java_chararray_t *a, u4 length,
 
     /* location in hashtable found, complete arrayheader */
 
-    ca->header.objheader.vftbl =
-		Primitive_get_arrayclass_by_type(ARRAYTYPE_CHAR)->vftbl;
+    ca->header.objheader.vftbl = Primitive::get_arrayclass_by_type(ARRAYTYPE_CHAR)->vftbl;
     ca->header.size            = length;
 
 	assert(class_java_lang_String);
@@ -623,7 +619,7 @@ static java_object_t *literalstring_u2(java_chararray_t *a, u4 length,
 		size_string += sizeof(literalstring);
 #endif
 
-	s->hashlink = hashtable_string.ptr[slot];
+	s->hashlink = (literalstring*) hashtable_string.ptr[slot];
 	s->string   = (java_object_t *) js;
 	hashtable_string.ptr[slot] = s;
 
@@ -651,14 +647,14 @@ static java_object_t *literalstring_u2(java_chararray_t *a, u4 length,
 		/* transfer elements to new hashtable */
 
 		for (i = 0; i < hashtable_string.size; i++) {
-			s = hashtable_string.ptr[i];
+			s = (literalstring*) hashtable_string.ptr[i];
 
 			while (s) {
 				nexts = s->hashlink;
 				tmpjs = (heapstring_t *) s->string;
 				slot  = unicode_hashkey(tmpjs->value->data, tmpjs->count) & (newhash.size - 1);
 	  
-				s->hashlink = newhash.ptr[slot];
+				s->hashlink = (literalstring*) newhash.ptr[slot];
 				newhash.ptr[slot] = s;
 	
 				/* follow link in external hash chain */
@@ -697,7 +693,7 @@ java_object_t *literalstring_new(utf *u)
 	utflength = utf_get_number_of_u2s(u);
 
     /* allocate memory */ 
-    a = mem_alloc(sizeof(java_chararray_t) + sizeof(u2) * (utflength - 1) + 10);
+    a = (java_chararray_t*) mem_alloc(sizeof(java_chararray_t) + sizeof(u2) * (utflength - 1) + 10);
 
     /* convert utf-string to u2-array */
     for (i = 0; i < utflength; i++)
@@ -797,7 +793,7 @@ void javastring_fprint(java_handle_t *s, FILE *stream)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

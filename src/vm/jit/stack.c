@@ -42,7 +42,7 @@
 #include "vm/global.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 #include "vm/types.h"
 
 #include "vm/jit/abi.h"

@@ -36,7 +36,7 @@
 #include "native/include/java_lang_String.h"
 
 #include "vm/package.hpp"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vmcore/options.h"
 #include "vmcore/utf8.h"

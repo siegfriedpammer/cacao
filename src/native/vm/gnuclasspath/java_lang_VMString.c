@@ -1,9 +1,7 @@
-/* src/native/vm/gnu/java_lang_VMString.c - java/lang/VMString
+/* src/native/vm/gnuclasspath/java_lang_VMString.c - java/lang/VMString
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -35,7 +33,7 @@
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_VMString.h"
 
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 
 /* native methods implemented by this file ************************************/

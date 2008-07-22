@@ -63,7 +63,7 @@ extern "C" {
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/initialize.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vmcore/system.h"
 #include "vmcore/utf8.h"

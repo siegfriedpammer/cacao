@@ -1,4 +1,4 @@
-/* src/native/vm/gnu/java_lang_VMRuntime.c
+/* src/native/vm/gnuclasspath/java_lang_VMRuntime.c
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -53,7 +53,7 @@
 
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include "vmcore/system.h"

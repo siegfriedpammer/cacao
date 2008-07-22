@@ -61,7 +61,7 @@ extern "C" {
 #include "vm/vm.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/resolve.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vmcore/class.h"
 #include "vmcore/utf8.h"

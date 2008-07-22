@@ -50,7 +50,7 @@
 #include "vm/global.h"
 #include "vm/exceptions.hpp"
 #include "vm/finalizer.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include "vmcore/options.h"

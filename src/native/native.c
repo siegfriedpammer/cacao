@@ -49,7 +49,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/resolve.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"

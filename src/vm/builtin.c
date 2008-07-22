@@ -66,7 +66,7 @@
 #include "vm/global.h"
 #include "vm/initialize.h"
 #include "vm/primitive.hpp"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/trace.hpp"

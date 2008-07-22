@@ -42,7 +42,7 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"

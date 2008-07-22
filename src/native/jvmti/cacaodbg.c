@@ -31,7 +31,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/builtin.h"
 #include "vm/jit/asmpart.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 #include "toolbox/logging.h"
 #include "threads/mutex.h"
 #include "threads/thread.hpp"

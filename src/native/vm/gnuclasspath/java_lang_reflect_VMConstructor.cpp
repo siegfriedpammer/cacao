@@ -49,7 +49,7 @@ extern "C" {
 
 #include "native/vm/reflect.h"
 
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vmcore/utf8.h"
 

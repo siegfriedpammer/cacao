@@ -35,7 +35,6 @@
 
 #include "mm/memory.h"
 
-#include "vm/stringlocal.h" /* XXX for gen_resolvebranch */
 #include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"

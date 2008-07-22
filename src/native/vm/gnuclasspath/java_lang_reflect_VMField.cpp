@@ -64,7 +64,7 @@ extern "C" {
 #include "vm/initialize.h"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vmcore/loader.h"
 #include "vmcore/utf8.h"

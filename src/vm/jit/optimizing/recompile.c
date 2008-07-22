@@ -39,7 +39,7 @@
 
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vm/jit/code.h"
 #include "vm/jit/jit.h"

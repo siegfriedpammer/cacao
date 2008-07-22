@@ -73,8 +73,8 @@ libvm_la_SOURCES = \
 	resolve.h \
 	signal.c \
 	signallocal.h \
-	string.c \
-	stringlocal.h \
+	string.cpp \
+	string.hpp \
 	vm.cpp \
 	vm.hpp
 

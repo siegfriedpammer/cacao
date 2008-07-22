@@ -46,7 +46,7 @@ extern "C" {
 
 #include "vm/exceptions.hpp"
 #include "vm/initialize.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vmcore/class.h"
 #include "vmcore/globals.hpp"

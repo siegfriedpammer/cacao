@@ -107,7 +107,7 @@ struct java_lang_ClassLoader;
 #include "vm/initialize.h"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/argument.h"

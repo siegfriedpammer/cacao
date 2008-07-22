@@ -46,7 +46,7 @@ typedef struct extra_classref extra_classref;
 #include "toolbox/list.h"
 
 #include "vm/global.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #if defined(ENABLE_JAVASE)
 # include "vmcore/annotation.h"

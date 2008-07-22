@@ -52,7 +52,7 @@
 #include "toolbox/logging.h"
 
 #include "vm/global.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include "vmcore/options.h"

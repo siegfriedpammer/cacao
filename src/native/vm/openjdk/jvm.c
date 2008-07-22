@@ -86,7 +86,7 @@
 #include "vm/properties.h"
 #include "vm/resolve.h"
 #include "vm/signallocal.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/stacktrace.hpp"

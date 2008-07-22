@@ -34,7 +34,7 @@
 #include "native/include/com_sun_cldchi_jvm_JVM.h"
 
 #include "vm/exceptions.hpp"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 
 /* native methods implemented by this file ************************************/

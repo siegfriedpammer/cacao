@@ -38,7 +38,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/resolve.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/reg.h"

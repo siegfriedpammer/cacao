@@ -50,7 +50,7 @@
 #include "mm/gc.hpp"
 #include "toolbox/logging.h"
 #include "vm/options.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 #include "mm/memory.h"
 #include "threads/mutex.h"
 #include "threads/thread.hpp"
