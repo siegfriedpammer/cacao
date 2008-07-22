@@ -1325,7 +1325,7 @@ static JNINativeMethod methods[] = {
 	{ (char*) "arrayIndexScale",        (char*) "(Ljava/lang/Class;)I",                                       (void*) (uintptr_t) &Java_sun_misc_Unsafe_arrayIndexScale                  },
 	{ (char*) "addressSize",            (char*) "()I",                                                        (void*) (uintptr_t) &Java_sun_misc_Unsafe_addressSize                      },
 	{ (char*) "pageSize",               (char*) "()I",                                                        (void*) (uintptr_t) &Java_sun_misc_Unsafe_pageSize                         },
-	{ (char*) "defineClass",            (char*) "(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtetionDomain;)Ljava/lang/Class;", (void *) (intptr_t) &Java_sun_misc_Unsafe_defineClass__Ljava_lang_String_2_3BIILjava_lang_ClassLoader_2Ljava_security_ProtectionDomain_2 },
+	{ (char*) "defineClass",            (char*) "(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;", (void *) (intptr_t) &Java_sun_misc_Unsafe_defineClass__Ljava_lang_String_2_3BIILjava_lang_ClassLoader_2Ljava_security_ProtectionDomain_2 },
 	{ (char*) "allocateInstance",       (char*) "(Ljava/lang/Class;)Ljava/lang/Object;",                      (void*) (uintptr_t) &Java_sun_misc_Unsafe_allocateInstance                 },
 	{ (char*) "throwException",         (char*) "(Ljava/lang/Throwable;)V",                                   (void*) (uintptr_t) &Java_sun_misc_Unsafe_throwException                   },
 	{ (char*) "compareAndSwapObject",   (char*) "(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z", (void*) (uintptr_t) &Java_sun_misc_Unsafe_compareAndSwapObject             },
