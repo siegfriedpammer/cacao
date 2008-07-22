@@ -40,7 +40,7 @@
 #include "toolbox/list.h"
 #include "toolbox/logging.h"           /* XXX remove me! */
 
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/initialize.h"
 #include "vm/resolve.h"
 #include "vm/vm.hpp"                     /* for vm_abort */

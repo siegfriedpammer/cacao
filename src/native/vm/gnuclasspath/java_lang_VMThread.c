@@ -41,7 +41,7 @@
 #include "threads/lock-common.h"
 #include "threads/thread.hpp"
 
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/stringlocal.h"
 
 #include "vmcore/utf8.h"

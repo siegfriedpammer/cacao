@@ -102,7 +102,7 @@ struct java_lang_ClassLoader;
 
 #include "vm/array.h"
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/initialize.h"
 #include "vm/primitive.hpp"

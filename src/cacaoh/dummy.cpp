@@ -39,7 +39,7 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/primitive.hpp"
 #include "vm/vm.hpp"

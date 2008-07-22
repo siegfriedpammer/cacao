@@ -1,9 +1,7 @@
-/* src/native/vm/gnu/java_lang_VMObject.c - java/lang/VMObject
+/* src/native/vm/gnuclasspath/java_lang_VMObject.c - java/lang/VMObject
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -42,7 +40,7 @@
 #include "threads/lock-common.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 
 #include "vmcore/utf8.h"
 

@@ -56,8 +56,8 @@ libvm_la_SOURCES = \
 	builtin.h \
 	builtintable.inc \
 	$(CYCLES_STATS_SOURCES) \
-	exceptions.c \
-	exceptions.h \
+	exceptions.cpp \
+	exceptions.hpp \
 	finalizer.c \
 	finalizer.h \
 	initialize.c \

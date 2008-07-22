@@ -42,7 +42,6 @@
 #include "threads/thread.hpp"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
 
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher.h"

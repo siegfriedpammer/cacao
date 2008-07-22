@@ -36,7 +36,7 @@
 
 #include "threads/thread.hpp"
 
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/signallocal.h"
 
 #include "vm/jit/asmpart.h"

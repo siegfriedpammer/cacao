@@ -51,7 +51,7 @@
 #include "toolbox/util.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.hpp"
@@ -75,6 +75,9 @@
 #include <vmlog_cacao.h>
 #endif
 
+
+// FIXME
+extern "C" {
 
 /* for raising exceptions from native methods *********************************/
 
@@ -268,7 +271,7 @@ static java_handle_t *exceptions_new_class_utf(classinfo *c, utf *message)
 	java_handle_t *s;
 	java_handle_t *o;
 
-	if (VM_is_initializing()) {
+	if (vm->is_initializing()) {
 		/* This can happen when global class variables are used which
 		   are not initialized yet. */
 
@@ -306,7 +309,7 @@ static java_handle_t *exceptions_new_utf(utf *classname)
 	classinfo     *c;
 	java_handle_t *o;
 
-	if (VM_is_initializing())
+	if (vm->is_initializing())
 		exceptions_abort(classname, NULL);
 
 	c = load_class_bootstrap(classname);
@@ -344,7 +347,7 @@ static java_handle_t *exceptions_new_utf_javastring(utf *classname,
 	java_handle_t *o;
 	classinfo     *c;
    
-	if (VM_is_initializing())
+	if (vm->is_initializing())
 		exceptions_abort(classname, NULL);
 
 	c = load_class_bootstrap(classname);
@@ -381,7 +384,7 @@ static java_handle_t *exceptions_new_utf_utf(utf *classname, utf *message)
 	classinfo     *c;
 	java_handle_t *o;
 
-	if (VM_is_initializing())
+	if (vm->is_initializing())
 		exceptions_abort(classname, message);
 
 	c = load_class_bootstrap(classname);
@@ -458,7 +461,7 @@ static void exceptions_throw_utf_throwable(utf *classname,
 	methodinfo          *m;
 	java_lang_Throwable *object;
 
-	if (VM_is_initializing())
+	if (vm->is_initializing())
 		exceptions_abort(classname, NULL);
 
 	object = (java_lang_Throwable *) cause;
@@ -510,7 +513,7 @@ static void exceptions_throw_utf_exception(utf *classname,
 	java_handle_t *o;
 	methodinfo    *m;
 
-	if (VM_is_initializing())
+	if (vm->is_initializing())
 		exceptions_abort(classname, NULL);
 
 	c = load_class_bootstrap(classname);
@@ -561,7 +564,7 @@ static void exceptions_throw_utf_cause(utf *classname, java_handle_t *cause)
 	java_lang_String    *s;
 	java_lang_Throwable *object;
 
-	if (VM_is_initializing())
+	if (vm->is_initializing())
 		exceptions_abort(classname, NULL);
 
 	object = (java_lang_Throwable *) cause;
@@ -1294,7 +1297,6 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type)
 {
 	char *msg;
 	s4    msglen;
-	char *typename;
 	utf  *u;
 
 	/* calculate exception message length */
@@ -1329,17 +1331,19 @@ void exceptions_throw_verifyerror_for_stack(methodinfo *m, int type)
 
 	strcat(msg, "Expecting to find ");
 
+	const char *name;
+
 	switch (type) {
-		case TYPE_INT: typename = "integer"; break;
-		case TYPE_LNG: typename = "long"; break;
-		case TYPE_FLT: typename = "float"; break;
-		case TYPE_DBL: typename = "double"; break;
-		case TYPE_ADR: typename = "object/array"; break;
-		case TYPE_RET: typename = "returnAddress"; break;
-		default:       typename = "<INVALID>"; assert(0); break;
+	case TYPE_INT: name = "integer";       break;
+	case TYPE_LNG: name = "long";          break;
+	case TYPE_FLT: name = "float";         break;
+	case TYPE_DBL: name = "double";        break;
+	case TYPE_ADR: name = "object/array";  break;
+	case TYPE_RET: name = "returnAddress"; break;
+	default:       name = "<INVALID>"; assert(0); break;
 	}
 
-	strcat(msg, typename);
+	strcat(msg, name);
 	strcat(msg, " on stack");
 
 	u = utf_new_char(msg);
@@ -2090,6 +2094,8 @@ void exceptions_print_stacktrace(void)
 	}
 }
 
+} // extern "C"
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -2097,7 +2103,7 @@ void exceptions_print_stacktrace(void)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

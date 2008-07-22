@@ -1,9 +1,7 @@
 /* src/native/vm/cldc1.1/com_sun_cldc_io_ResourceInputStream.c
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -24,13 +22,14 @@
 
 */
 
+
+#include "config.h"
+
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <zlib.h>
-
-#include "config.h"
 
 #include "mm/memory.h"
 
@@ -46,7 +45,7 @@
 #include "vm/types.h"
 #include "vm/builtin.h"
 #include "vm/vm.hpp" /* REMOVE ME: temporarily */
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/stringlocal.h"
 
 #include "vmcore/zip.h"

@@ -40,7 +40,6 @@
 #include "mm/gc.hpp"
 #include "mm/memory.h"
 
-#include "vm/exceptions.h"
 #include "vm/signallocal.h"
 
 #include "vm/jit/asmpart.h"

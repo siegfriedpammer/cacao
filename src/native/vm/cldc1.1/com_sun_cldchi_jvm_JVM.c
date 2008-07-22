@@ -33,7 +33,7 @@
 
 #include "native/include/com_sun_cldchi_jvm_JVM.h"
 
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/stringlocal.h"
 
 

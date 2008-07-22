@@ -36,7 +36,7 @@
 #include "toolbox/hashtable.h"
 #include "toolbox/logging.h"
 
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 
 #include "vmcore/classcache.h"
 #include "vmcore/options.h"

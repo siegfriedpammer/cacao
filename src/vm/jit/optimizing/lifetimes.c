@@ -1,4 +1,4 @@
-/* src/vm/jit/lsra.inc - lifetime anaylsis
+/* src/vm/jit/optimizing/lifetimes.c - lifetime anaylsis
 
    Copyright (C) 2005, 2006, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,6 +23,8 @@
 */
 
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -33,7 +35,7 @@
 
 #include "vm/builtin.h"
 #include "vm/resolve.h"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/stringlocal.h"
 
 #include "vm/jit/jit.h"

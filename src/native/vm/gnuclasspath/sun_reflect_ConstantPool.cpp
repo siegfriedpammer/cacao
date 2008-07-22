@@ -59,7 +59,7 @@ extern "C" {
 #include "toolbox/logging.h"
 
 #include "vm/vm.hpp"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/resolve.h"
 #include "vm/stringlocal.h"
 

@@ -36,7 +36,6 @@
 
 #include "threads/lock-common.h"
 
-#include "vm/exceptions.h"
 #include "vm/vm.hpp"
 
 #include "vm/jit/abi.h"

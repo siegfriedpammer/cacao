@@ -1,4 +1,4 @@
-/* src/native/vm/gnu/gnu_classpath_VMSystemProperties.c
+/* src/native/vm/gnuclasspath/gnu_classpath_VMSystemProperties.c
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -39,7 +39,7 @@
 
 #include "native/include/gnu_classpath_VMSystemProperties.h"
 
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/properties.h"
 #include "vm/vm.hpp"
 

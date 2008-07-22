@@ -1,4 +1,4 @@
-/* src/vm/exceptions.h - exception related functions prototypes
+/* src/vm/exceptions.hpp - exception related functions prototypes
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _EXCEPTIONS_H
-#define _EXCEPTIONS_H
+#ifndef _EXCEPTIONS_HPP
+#define _EXCEPTIONS_HPP
 
 #ifdef __cplusplus
 extern "C" {
@@ -106,7 +106,7 @@ void exceptions_print_stacktrace(void);
 }
 #endif
 
-#endif /* _EXCEPTIONS_H */
+#endif // _EXCEPTIONS_HPP
 
 
 /*
@@ -115,7 +115,7 @@ void exceptions_print_stacktrace(void);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

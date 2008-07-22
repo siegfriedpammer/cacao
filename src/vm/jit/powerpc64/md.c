@@ -37,7 +37,6 @@
 #include "vm/jit/powerpc64/codegen.h"
 #include "vm/jit/powerpc64/md.h"
 
-#include "vm/exceptions.h"
 #include "vm/global.h"
 
 #include "vm/jit/jit.h"

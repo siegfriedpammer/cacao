@@ -1,9 +1,7 @@
 /* src/vm/jit/sparc64/emit.c - SPARC code emitter functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -37,7 +35,6 @@
 
 #include "mm/memory.h"
 
-#include "vm/exceptions.h"
 #include "vm/stringlocal.h" /* XXX for gen_resolvebranch */
 #include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"

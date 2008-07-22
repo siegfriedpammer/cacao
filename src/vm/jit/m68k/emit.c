@@ -33,7 +33,6 @@
 #include "mm/memory.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/emit-common.h"

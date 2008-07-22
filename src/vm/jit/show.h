@@ -1,9 +1,7 @@
 /* src/vm/jit/show.h - showing the intermediate representation
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,20 +20,15 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-
-   Changes: Edwin Steiner
-            Christian Thalinger
-            Christian Ullrich
-
-
 */
 
 
 #ifndef _SHOW_H
 #define _SHOW_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "config.h"
 #include "vm/types.h"
@@ -82,8 +75,12 @@ int show_filters_test_verbosecall_enter(methodinfo *m);
 int show_filters_test_verbosecall_exit(methodinfo *m);
 #endif
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _SHOW_H */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

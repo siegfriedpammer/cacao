@@ -38,8 +38,6 @@
 
 #include "threads/lock-common.h"
 
-#include "vm/exceptions.h"
-
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"

@@ -35,7 +35,6 @@
 #include "native/native.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
 #include "vm/initialize.h"
 #include "vm/resolve.h"
 

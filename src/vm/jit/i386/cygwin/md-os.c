@@ -32,7 +32,6 @@
 
 #include "vm/types.h"
 
-#include "vm/exceptions.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"

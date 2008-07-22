@@ -37,7 +37,6 @@
 #include "threads/lock-common.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
 #include "vm/stringlocal.h" /* XXX for gen_resolvebranch */
 
 #include "vm/jit/abi.h"

@@ -37,7 +37,7 @@
 
 #include "vm/array.h"
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/primitive.hpp"
 #include "vm/stringlocal.h"

@@ -74,7 +74,7 @@
 #endif
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/finalizer.h"
 #include "vm/global.h"
 #include "vm/initialize.h"

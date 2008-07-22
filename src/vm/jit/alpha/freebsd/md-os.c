@@ -34,7 +34,6 @@
 
 #include "vm/jit/alpha/md-abi.h"
 
-#include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/signallocal.h"
 #include "vm/stringlocal.h"

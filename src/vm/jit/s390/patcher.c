@@ -31,7 +31,6 @@
 #include "mm/memory.h"
 #include "native/native.h"
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
 #include "vm/initialize.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/s390/codegen.h"

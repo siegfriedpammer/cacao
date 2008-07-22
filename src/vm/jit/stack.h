@@ -37,7 +37,6 @@ typedef struct stackelement_t stackelement_t;
 
 #include "vm/types.h"
 
-#include "vm/exceptions.h"
 #include "vm/global.h"
 
 #include "vm/jit/jit.h"

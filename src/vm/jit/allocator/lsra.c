@@ -38,7 +38,7 @@
 #include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/resolve.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
