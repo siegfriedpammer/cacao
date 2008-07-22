@@ -96,7 +96,7 @@ void nativevm_preinit(void)
 
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
-	char* boot_library_path;
+	const char* boot_library_path;
 	int   len;
 	char* p;
 	utf*  u;
