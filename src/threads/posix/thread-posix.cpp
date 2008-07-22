@@ -1,4 +1,4 @@
-/* src/threads/posix/thread-posix.c - POSIX thread functions
+/* src/threads/posix/thread-posix.cpp - POSIX thread functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -112,6 +112,10 @@
 #include "native/jvmti/cacaodbg.h"
 #endif
 
+
+// FIXME For now we export everything as C functions.
+extern "C" {
+
 #if defined(__DARWIN__)
 /* Darwin has no working semaphore implementation.  This one is taken
    from Boehm-GC. */
@@ -130,7 +134,7 @@ static int sem_init(sem_t *sem, int pshared, int value)
 
 	sem->value = value;
     
-	sem->mutex = Mutex_new();
+	sem->mutex = new Mutex();
 
 	if (pthread_cond_init(&sem->cond, NULL) < 0)
 		return -1;
@@ -140,23 +144,23 @@ static int sem_init(sem_t *sem, int pshared, int value)
 
 static int sem_post(sem_t *sem)
 {
-	Mutex_lock(sem->mutex);
+	sem->mutex->lock();
 
 	sem->value++;
 
 	if (pthread_cond_signal(&sem->cond) < 0) {
-		Mutex_unlock(sem->mutex);
+		sem->mutex->unlock();
 		return -1;
 	}
 
-	Mutex_unlock(sem->mutex);
+	sem->mutex->unlock();
 
 	return 0;
 }
 
 static int sem_wait(sem_t *sem)
 {
-	Mutex_lock(sem->mutex);
+	sem->mutex->lock();
 
 	while (sem->value == 0) {
 #error We cannot call pthread_cond_wait on a Mutex-class pointer.
@@ -165,7 +169,7 @@ static int sem_wait(sem_t *sem)
 
 	sem->value--;
 
-	Mutex_unlock(sem->mutex);
+	sem->mutex->unlock();
 
 	return 0;
 }
@@ -175,7 +179,7 @@ static int sem_destroy(sem_t *sem)
 	if (pthread_cond_destroy(&sem->cond) < 0)
 		return -1;
 
-	Mutex_destroy(sem->mutex);
+	delete sem->mutex;
 
 	return 0;
 }
@@ -332,7 +336,7 @@ void threads_stopworld(void)
 	s4 count, i;
 #endif
 
-	Mutex_lock(stopworldlock);
+	stopworldlock->lock();
 
 	/* lock the threads lists */
 
@@ -450,7 +454,7 @@ void threads_startworld(void)
 
 	threadlist_unlock();
 
-	Mutex_unlock(stopworldlock);
+	stopworldlock->unlock();
 }
 #endif
 
@@ -468,14 +472,14 @@ void threads_impl_thread_init(threadobject *t)
 {
 	/* initialize the mutex and the condition */
 
-	t->flc_lock = Mutex_new();
-	t->flc_cond = Condition_new();
+	t->flc_lock = new Mutex();
+	t->flc_cond = new Condition();
 
-	t->waitmutex = Mutex_new();
-	t->waitcond = Condition_new();
+	t->waitmutex = new Mutex();
+	t->waitcond = new Condition();
 
-	t->suspendmutex = Mutex_new();
-	t->suspendcond = Condition_new();
+	t->suspendmutex = new Mutex();
+	t->suspendcond = new Condition();
 
 #if defined(ENABLE_TLH)
 	tlh_init(&(t->tlh));
@@ -593,21 +597,21 @@ void threads_impl_thread_free(threadobject *t)
 
 	/* Destroy the mutex and the condition. */
 
-	Mutex_delete(t->flc_lock);
+	delete t->flc_lock;
 
 	result = pthread_cond_destroy(&(t->flc_cond));
 
 	if (result != 0)
 		vm_abort_errnum(result, "threads_impl_thread_free: pthread_cond_destroy failed");
 
-	Mutex_delete(t->waitmutex);
+	delete t->waitmutex;
 
 	result = pthread_cond_destroy(&(t->waitcond));
 
 	if (result != 0)
 		vm_abort_errnum(result, "threads_impl_thread_free: pthread_cond_destroy failed");
 
-	Mutex_delete(t->suspendmutex);
+	delete t->suspendmutex;
 
 	result = pthread_cond_destroy(&(t->suspendcond));
 
@@ -630,18 +634,18 @@ void threads_impl_preinit(void)
 {
 	int result;
 
-	stopworldlock = Mutex_new();
+	stopworldlock = new Mutex();
 
 	/* initialize exit mutex and condition (on exit we join all
 	   threads) */
 
-	mutex_join = Mutex_new();
-	cond_join = Condition_new();
+	mutex_join = new Mutex();
+	cond_join = new Condition();
 
 #if defined(ENABLE_GC_CACAO)
 	/* initialize the GC mutex & suspend semaphore */
 
-	mutex_gc = Mutex_new();
+	mutex_gc = new Mutex();
  	threads_sem_init(&suspend_ack, 0, 0);
 #endif
 
@@ -662,7 +666,7 @@ void threads_impl_preinit(void)
 #if defined(ENABLE_GC_CACAO)
 void threads_mutex_gc_lock(void)
 {
-	Mutex_lock(mutex_gc);
+	mutex_gc->lock();
 }
 #endif
 
@@ -676,7 +680,7 @@ void threads_mutex_gc_lock(void)
 #if defined(ENABLE_GC_CACAO)
 void threads_mutex_gc_unlock(void)
 {
-	Mutex_unlock(mutex_gc);
+	mutex_gc->unlock();
 }
 #endif
 
@@ -688,7 +692,7 @@ void threads_mutex_gc_unlock(void)
 
 void threads_mutex_join_lock(void)
 {
-	Mutex_lock(mutex_join);
+	mutex_join->lock();
 }
 
 
@@ -700,7 +704,7 @@ void threads_mutex_join_lock(void)
 
 void threads_mutex_join_unlock(void)
 {
-	Mutex_unlock(mutex_join);
+	mutex_join->unlock();
 }
 
 
@@ -788,7 +792,7 @@ static void *threads_startup_thread(void *arg)
 
 	/* get passed startupinfo structure and the values in there */
 
-	startup = arg;
+	startup = (startupinfo*) arg;
 
 	t        = startup->thread;
 	function = startup->function;
@@ -1195,7 +1199,7 @@ bool thread_detach_current_thread(void)
 
 	/* Signal that this thread has finished and leave the mutex. */
 
-	Condition_signal(cond_join);
+	cond_join->signal();
 	threads_mutex_join_unlock();
 
 	return true;
@@ -1215,10 +1219,10 @@ bool thread_detach_current_thread(void)
 bool threads_suspend_thread(threadobject *thread, s4 reason)
 {
 	/* acquire the suspendmutex */
-	Mutex_lock(thread->suspendmutex);
+	thread->suspendmutex->lock();
 
 	if (thread->suspended) {
-		Mutex_unlock(thread->suspendmutex);
+		thread->suspendmutex->unlock();
 		return false;
 	}
 
@@ -1284,7 +1288,7 @@ void threads_suspend_ack(u1* pc, u1* sp)
 	DEBUGTHREADS("suspending", thread);
 
 	/* release the suspension mutex and wait till we are resumed */
-	Condition_wait(thread->suspendcond, thread->suspendmutex);
+	thread->suspendcond->wait(thread->suspendmutex);
 
 	DEBUGTHREADS("resuming", thread);
 
@@ -1296,7 +1300,7 @@ void threads_suspend_ack(u1* pc, u1* sp)
 	/* TODO: free dump memory */
 
 	/* release the suspendmutex */
-	Mutex_unlock(thread->suspendmutex);
+	thread->suspendmutex->unlock();
 }
 #endif
 
@@ -1311,10 +1315,10 @@ void threads_suspend_ack(u1* pc, u1* sp)
 bool threads_resume_thread(threadobject *thread)
 {
 	/* acquire the suspendmutex */
-	Mutex_lock(thread->suspendmutex);
+	thread->suspendmutex->lock();
 
 	if (!thread->suspended) {
-		Mutex_unlock(thread->suspendmutex);
+		thread->suspendmutex->unlock();
 		return false;
 	}
 
@@ -1322,10 +1326,10 @@ bool threads_resume_thread(threadobject *thread)
 
 	/* tell everyone that the thread should resume */
 	assert(thread != THREADOBJECT);
-	Condition_broadcast(thread->suspendcond);
+	thread->suspendcond->broadcast();
 
 	/* release the suspendmutex */
-	Mutex_unlock(thread->suspendmutex);
+	thread->suspendmutex->unlock();
 
 	return true;
 }
@@ -1359,7 +1363,7 @@ void threads_join_all_threads(void)
 	   non-daemon thread. */
 
 	while (threadlist_get_non_daemons() > 1)
-		Condition_wait(cond_join, mutex_join);
+		cond_join->wait(mutex_join);
 
 	/* leave join mutex */
 
@@ -1437,9 +1441,8 @@ static bool threads_current_time_is_earlier_than(const struct timespec *tv)
 
 static void threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTime)
 {
-	/* acquire the waitmutex */
-
-	Mutex_lock(t->waitmutex);
+	// Acquire the waitmutex.
+	t->waitmutex->lock();
 
 	/* wait on waitcond */
 
@@ -1450,7 +1453,7 @@ static void threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTi
 		{
 			thread_set_state_timed_waiting(t);
 
-			Condition_timedwait(t->waitcond, t->waitmutex, wakeupTime);
+			t->waitcond->timedwait(t->waitmutex, wakeupTime);
 
 			thread_set_state_runnable(t);
 		}
@@ -1460,15 +1463,14 @@ static void threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTi
 		while (!t->interrupted && !t->signaled) {
 			thread_set_state_waiting(t);
 
-			Condition_wait(t->waitcond, t->waitmutex);
+			t->waitcond->wait(t->waitmutex);
 
 			thread_set_state_runnable(t);
 		}
 	}
 
-	/* release the waitmutex */
-
-	Mutex_unlock(t->waitmutex);
+	// Release the waitmutex.
+	t->waitmutex->unlock();
 }
 
 
@@ -1543,7 +1545,7 @@ static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos)
 
 *******************************************************************************/
 
-void threads_thread_interrupt(threadobject *thread)
+void threads_thread_interrupt(threadobject *t)
 {
 #if defined(__LINUX__) && defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	/* See openjdk/jdk/src/solaris/native/java/net/linux_close.c, "sigWakeup" */
@@ -1554,19 +1556,19 @@ void threads_thread_interrupt(threadobject *thread)
 	/* Signal the thread a "waitcond" and tell it that it has been
 	   interrupted. */
 
-	Mutex_lock(thread->waitmutex);
+	t->waitmutex->lock();
 
-	DEBUGTHREADS("interrupted", thread);
+	DEBUGTHREADS("interrupted", t);
 
 	/* Interrupt blocking system call using a signal. */
 
-	pthread_kill(thread->tid, sig);
+	pthread_kill(t->tid, sig);
 
-	Condition_signal(thread->waitcond);
+	t->waitcond->signal();
 
-	thread->interrupted = true;
+	t->interrupted = true;
 
-	Mutex_unlock(thread->waitmutex);
+	t->waitmutex->unlock();
 }
 
 
@@ -1642,13 +1644,16 @@ void threads_tlh_remove_frame() {
 
 #endif
 
+} // extern "C"
+
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

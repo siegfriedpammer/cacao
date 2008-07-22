@@ -33,8 +33,8 @@ libthreadsposix_la_SOURCES = \
 	lock.c \
 	lock.h \
 	mutex-posix.hpp \
-	thread-posix.c \
-	thread-posix.h
+	thread-posix.cpp \
+	thread-posix.hpp
 
 
 ## Local variables:

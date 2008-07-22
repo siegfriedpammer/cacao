@@ -1,4 +1,4 @@
-/* src/threads/posix/thread-posix.h - POSIX thread functions
+/* src/threads/posix/thread-posix.hpp - POSIX thread functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _THREAD_POSIX_H
-#define _THREAD_POSIX_H
+#ifndef _THREAD_POSIX_HPP
+#define _THREAD_POSIX_HPP
 
 /* forward typedefs ***********************************************************/
 
@@ -79,6 +79,10 @@ typedef struct {
 #endif
 
 
+// FIXME
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* current threadobject *******************************************************/
 
@@ -304,7 +308,11 @@ void threads_tlh_add_frame();
 void threads_tlh_remove_frame();
 #endif
 
-#endif /* _THREAD_POSIX_H */
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif // _THREAD_POSIX_HPP
 
 
 /*
@@ -313,7 +321,7 @@ void threads_tlh_remove_frame();
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -37,7 +37,7 @@ extern "C" {
 #include "threads/mutex.hpp"
 
 #if defined(ENABLE_THREADS)
-# include "threads/posix/thread-posix.h"
+# include "threads/posix/thread-posix.hpp"
 #else
 # include "threads/none/thread-none.h"
 #endif
