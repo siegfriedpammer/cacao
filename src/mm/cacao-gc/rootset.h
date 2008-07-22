@@ -31,7 +31,7 @@ typedef struct rootset_t rootset_t;
 #include "config.h"
 #include "vm/types.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/jit/replace.h"
 #include "vmcore/method.h"

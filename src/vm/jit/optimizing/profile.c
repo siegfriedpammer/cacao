@@ -33,7 +33,7 @@
 #include "mm/memory.h"
 
 #include "threads/threadlist.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/builtin.h"
 #include "vm/stringlocal.h"

@@ -35,7 +35,7 @@
 #include "vm/jit/i386/codegen.h"
 #include "vm/jit/i386/md.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/builtin.h"
 #include "vm/global.h"

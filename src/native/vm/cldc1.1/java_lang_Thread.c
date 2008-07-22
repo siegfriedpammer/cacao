@@ -34,7 +34,7 @@
 
 #include "native/include/java_lang_Thread.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 

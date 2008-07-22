@@ -30,7 +30,7 @@
 #include <sys/mman.h> /* REMOVEME */
 
 #include "threads/lock-common.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "mm/codememory.h"
 #include "mm/memory.h"

@@ -31,7 +31,7 @@
 
 #include "threads/mutex.hpp"
 #include "threads/threadlist.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/list.h"
 

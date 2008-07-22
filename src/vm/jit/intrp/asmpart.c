@@ -31,7 +31,7 @@
 
 #include "arch.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"

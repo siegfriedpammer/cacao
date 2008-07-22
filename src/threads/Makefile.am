@@ -57,8 +57,8 @@ libthreads_la_SOURCES = \
 	mutex.hpp \
 	threadlist.c \
 	threadlist.h \
-	thread.c \
-	thread.h
+	thread.cpp \
+	thread.hpp
 else
 libthreads_la_SOURCES =
 endif

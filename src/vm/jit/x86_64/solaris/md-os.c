@@ -35,7 +35,7 @@
 #include "vm/jit/x86_64/codegen.h"
 #include "vm/jit/x86_64/md.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/builtin.h"
 #include "vm/signallocal.h"

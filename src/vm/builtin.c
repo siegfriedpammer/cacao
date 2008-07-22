@@ -54,7 +54,7 @@
 #include "native/llni.h"
 
 #include "threads/lock-common.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 #include "toolbox/util.h"

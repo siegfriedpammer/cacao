@@ -31,7 +31,7 @@
 #include "vm/types.h"
 
 #include "threads/lock-common.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "compact.h"
 #include "copy.h"

@@ -1,4 +1,4 @@
-/* src/threads/thread.h - machine independent thread functions
+/* src/threads/thread.hpp - machine independent thread functions
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _THREAD_H
-#define _THREAD_H
+#ifndef _THREAD_HPP
+#define _THREAD_HPP
 
 #include "config.h"
 
@@ -363,7 +363,7 @@ void          threads_yield(void);
 }
 #endif
 
-#endif /* _THREAD_H */
+#endif // _THREAD_HPP
 
 
 /*
@@ -372,7 +372,7 @@ void          threads_yield(void);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

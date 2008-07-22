@@ -49,7 +49,7 @@ typedef struct ucontext {
 
 #define scontext_t struct sigcontext
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"

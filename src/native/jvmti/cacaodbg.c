@@ -34,7 +34,7 @@
 #include "vm/stringlocal.h"
 #include "toolbox/logging.h"
 #include "threads/mutex.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include <sys/types.h>
 #include <unistd.h>

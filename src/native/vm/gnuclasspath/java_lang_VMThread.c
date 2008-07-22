@@ -1,4 +1,4 @@
-/* src/native/vm/gnu/java_lang_VMThread.c
+/* src/native/vm/gnuclasspath/java_lang_VMThread.c
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -39,7 +39,7 @@
 #include "native/include/java_lang_Thread.h"
 
 #include "threads/lock-common.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/exceptions.h"
 #include "vm/stringlocal.h"

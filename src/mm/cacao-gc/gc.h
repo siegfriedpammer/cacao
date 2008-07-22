@@ -35,7 +35,7 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/list.h"
 #include "vm/jit/replace.h"

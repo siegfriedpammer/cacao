@@ -57,7 +57,7 @@ extern "C" {
 
 #include "native/localref.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 
 /* LLNI macros *****************************************************************

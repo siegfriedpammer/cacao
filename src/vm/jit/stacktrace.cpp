@@ -51,7 +51,7 @@
 # include "native/include/java_lang_VMThrowable.h"
 #endif
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 

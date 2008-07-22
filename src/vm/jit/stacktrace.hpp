@@ -45,7 +45,7 @@ typedef struct stacktrace_t       stacktrace_t;
 
 #include "md-abi.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/global.h"
 

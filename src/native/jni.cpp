@@ -96,7 +96,7 @@ struct java_lang_ClassLoader;
 #endif
 
 #include "threads/lock-common.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 

@@ -34,7 +34,7 @@
 
 #include "vm/jit/s390/md-abi.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/exceptions.h"
 #include "vm/signallocal.h"

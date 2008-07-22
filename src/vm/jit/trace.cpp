@@ -41,7 +41,7 @@ extern "C" {
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Throwable.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 

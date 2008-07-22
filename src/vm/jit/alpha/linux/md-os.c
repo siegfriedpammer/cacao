@@ -35,7 +35,7 @@
 #include "vm/jit/alpha/md.h"
 #include "vm/jit/alpha/md-abi.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/builtin.h"
 #include "vm/signallocal.h"

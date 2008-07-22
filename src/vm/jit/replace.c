@@ -38,7 +38,7 @@
 
 #include "mm/memory.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 

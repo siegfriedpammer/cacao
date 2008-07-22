@@ -51,7 +51,7 @@
 #if defined(ENABLE_DEBUG_FILTER)
 # include <sys/types.h>
 # include <regex.h>
-# include "threads/thread.h"
+# include "threads/thread.hpp"
 #endif
 
 

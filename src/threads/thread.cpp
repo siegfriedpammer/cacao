@@ -1,4 +1,4 @@
-/* src/threads/thread.c - machine independent thread functions
+/* src/threads/thread.cpp - machine independent thread functions
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -57,7 +57,7 @@
 
 #include "threads/lock-common.h"
 #include "threads/threadlist.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
@@ -77,6 +77,9 @@
 
 #include "vmcore/utf8.h"
 
+
+// FIXME
+extern "C" {
 
 /* global variables ***********************************************************/
 
@@ -1292,6 +1295,8 @@ void threads_dump(void)
 	threadlist_unlock();
 }
 
+} // extern "C"
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -1299,7 +1304,7 @@ void threads_dump(void)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -66,7 +66,7 @@
 #include "native/vm/openjdk/hpi.h"
 
 #include "threads/lock-common.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 #include "toolbox/list.h"

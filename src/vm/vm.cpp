@@ -63,7 +63,7 @@
 
 #include "threads/lock-common.h"
 #include "threads/threadlist.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 

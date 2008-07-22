@@ -34,7 +34,7 @@
 extern "C" {
 #endif
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 
 /* function prototypes ********************************************************/

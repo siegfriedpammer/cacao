@@ -27,7 +27,7 @@
 
 #include <assert.h>
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 
 /* LLNI critical sections ******************************************************

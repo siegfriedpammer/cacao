@@ -53,7 +53,7 @@
 #include "vm/stringlocal.h"
 #include "mm/memory.h"
 #include "threads/mutex.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 #include "threads/lock-common.h"
 #include "vm/exceptions.h"
 #include "native/include/java_io_PrintStream.h"
