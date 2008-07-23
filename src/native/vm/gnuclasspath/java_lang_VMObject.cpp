@@ -1,4 +1,4 @@
-/* src/native/vm/gnuclasspath/java_lang_VMObject.c - java/lang/VMObject
+/* src/native/vm/gnuclasspath/java_lang_VMObject.cpp - java/lang/VMObject
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -35,7 +35,10 @@
 #include "native/include/java_lang_Cloneable.h"        /* required by j.l.VMO */
 #include "native/include/java_lang_Object.h"           /* required by j.l.VMO */
 
+//FIXME
+extern "C" {
 #include "native/include/java_lang_VMObject.h"
+}
 
 #include "threads/lock-common.h"
 
@@ -45,32 +48,8 @@
 #include "vmcore/utf8.h"
 
 
-/* native methods implemented by this file ************************************/
-
-static JNINativeMethod methods[] = {
-	{ "getClass",  "(Ljava/lang/Object;)Ljava/lang/Class;",     (void *) (intptr_t) &Java_java_lang_VMObject_getClass  },
-	{ "clone",     "(Ljava/lang/Cloneable;)Ljava/lang/Object;", (void *) (intptr_t) &Java_java_lang_VMObject_clone     },
-	{ "notify",    "(Ljava/lang/Object;)V",                     (void *) (intptr_t) &Java_java_lang_VMObject_notify    },
-	{ "notifyAll", "(Ljava/lang/Object;)V",                     (void *) (intptr_t) &Java_java_lang_VMObject_notifyAll },
-	{ "wait",      "(Ljava/lang/Object;JI)V",                   (void *) (intptr_t) &Java_java_lang_VMObject_wait      },
-};
-
-
-/* _Jv_java_lang_VMObject_init *************************************************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_java_lang_VMObject_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("java/lang/VMObject");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/VMObject
@@ -97,12 +76,12 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMObject_getClass(JNIEnv *env,
  * Method:    clone
  * Signature: (Ljava/lang/Cloneable;)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, jclass clazz, java_lang_Cloneable *this)
+JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, jclass clazz, java_lang_Cloneable *_this)
 {
 	java_handle_t *o;
 	java_handle_t *co;
 
-	o = (java_handle_t *) this;
+	o = (java_handle_t *) _this;
 
 	co = builtin_clone(NULL, o);
 
@@ -115,10 +94,10 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
  * Method:    notify
  * Signature: (Ljava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz, java_lang_Object *this)
+JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz, java_lang_Object *_this)
 {
 #if defined(ENABLE_THREADS)
-	lock_notify_object((java_handle_t *) this);
+	lock_notify_object((java_handle_t *) _this);
 #endif
 }
 
@@ -128,10 +107,10 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz,
  * Method:    notifyAll
  * Signature: (Ljava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass clazz, java_lang_Object *this)
+JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass clazz, java_lang_Object *_this)
 {
 #if defined(ENABLE_THREADS)
-	lock_notify_all_object((java_handle_t *) this);
+	lock_notify_all_object((java_handle_t *) _this);
 #endif
 }
 
@@ -157,6 +136,38 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, j
 	/* XXX: How do you know if wait timed out ?*/
 	if (jvmti) jvmti_MonitorWaiting(false, o, 0);
 #endif
+}
+
+} // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ (char*) "getClass",  (char*) "(Ljava/lang/Object;)Ljava/lang/Class;",     (void*) (uintptr_t) &Java_java_lang_VMObject_getClass  },
+	{ (char*) "clone",     (char*) "(Ljava/lang/Cloneable;)Ljava/lang/Object;", (void*) (uintptr_t) &Java_java_lang_VMObject_clone     },
+	{ (char*) "notify",    (char*) "(Ljava/lang/Object;)V",                     (void*) (uintptr_t) &Java_java_lang_VMObject_notify    },
+	{ (char*) "notifyAll", (char*) "(Ljava/lang/Object;)V",                     (void*) (uintptr_t) &Java_java_lang_VMObject_notifyAll },
+	{ (char*) "wait",      (char*) "(Ljava/lang/Object;JI)V",                   (void*) (uintptr_t) &Java_java_lang_VMObject_wait      },
+};
+
+
+/* _Jv_java_lang_VMObject_init *************************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+// FIXME
+extern "C" {
+void _Jv_java_lang_VMObject_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/VMObject");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 }
 
 
