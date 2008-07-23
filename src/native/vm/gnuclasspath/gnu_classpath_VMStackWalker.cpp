@@ -1,4 +1,4 @@
-/* src/native/vm/gnu/gnu_classpath_VMStackWalker.c
+/* src/native/vm/gnuclasspath/gnu_classpath_VMStackWalker.cpp
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,13 +25,18 @@
 
 #include "config.h"
 
+#include <stdint.h>
+
 #include "native/jni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_Class.h"
 #include "native/include/java_lang_ClassLoader.h"
 
+// FIXME
+extern "C" {
 #include "native/include/gnu_classpath_VMStackWalker.h"
+}
 
 #include "vm/global.h"
 
@@ -41,31 +46,8 @@
 #include "vmcore/utf8.h"
 
 
-/* native methods implemented by this file ************************************/
-
-static JNINativeMethod methods[] = {
-	{ "getClassContext",         "()[Ljava/lang/Class;",      (void *) (ptrint) &Java_gnu_classpath_VMStackWalker_getClassContext         },
-	{ "getCallingClass",         "()Ljava/lang/Class;",       (void *) (ptrint) &Java_gnu_classpath_VMStackWalker_getCallingClass         },
-	{ "getCallingClassLoader",   "()Ljava/lang/ClassLoader;", (void *) (ptrint) &Java_gnu_classpath_VMStackWalker_getCallingClassLoader   },
-	{ "firstNonNullClassLoader", "()Ljava/lang/ClassLoader;", (void *) (ptrint) &Java_gnu_classpath_VMStackWalker_firstNonNullClassLoader },
-};
-
-
-/* _Jv_gnu_classpath_VMStackWalker_init ****************************************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_gnu_classpath_VMStackWalker_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("gnu/classpath/VMStackWalker");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     gnu/classpath/VMStackWalker
@@ -126,6 +108,37 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_firstN
 	cl = stacktrace_first_nonnull_classloader();
 
 	return (java_lang_ClassLoader *) cl;
+}
+
+} // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ (char*) "getClassContext",         (char*) "()[Ljava/lang/Class;",      (void*) (uintptr_t) &Java_gnu_classpath_VMStackWalker_getClassContext         },
+	{ (char*) "getCallingClass",         (char*) "()Ljava/lang/Class;",       (void*) (uintptr_t) &Java_gnu_classpath_VMStackWalker_getCallingClass         },
+	{ (char*) "getCallingClassLoader",   (char*) "()Ljava/lang/ClassLoader;", (void*) (uintptr_t) &Java_gnu_classpath_VMStackWalker_getCallingClassLoader   },
+	{ (char*) "firstNonNullClassLoader", (char*) "()Ljava/lang/ClassLoader;", (void*) (uintptr_t) &Java_gnu_classpath_VMStackWalker_firstNonNullClassLoader },
+};
+
+
+/* _Jv_gnu_classpath_VMStackWalker_init ****************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+// FIXME
+extern "C" {
+void _Jv_gnu_classpath_VMStackWalker_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("gnu/classpath/VMStackWalker");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 }
 
 

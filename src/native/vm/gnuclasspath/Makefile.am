@@ -39,7 +39,7 @@ SUN_REFLECT_SOURCES = \
 endif
 
 libnativevmcore_la_SOURCES = \
-	gnu_classpath_VMStackWalker.c \
+	gnu_classpath_VMStackWalker.cpp \
 	gnu_classpath_VMSystemProperties.c \
 	gnu_java_lang_VMCPStringBuilder.cpp \
 	gnu_java_lang_management_VMClassLoadingMXBeanImpl.c \
