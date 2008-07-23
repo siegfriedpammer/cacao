@@ -1,4 +1,4 @@
-/* src/native/vm/gnuclasspath/gnu_classpath_VMSystemProperties.c
+/* src/native/vm/gnuclasspath/gnu_classpath_VMSystemProperties.cpp
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -37,36 +37,18 @@
 
 #include "native/include/java_util_Properties.h"
 
+/// FIXME
+extern "C" {
 #include "native/include/gnu_classpath_VMSystemProperties.h"
+}
 
 #include "vm/exceptions.hpp"
 #include "vm/properties.h"
 #include "vm/vm.hpp"
 
 
-/* native methods implemented by this file ************************************/
-
-static JNINativeMethod methods[] = {
-	{ "preInit",  "(Ljava/util/Properties;)V", (void *) (ptrint) &Java_gnu_classpath_VMSystemProperties_preInit  },
-	{ "postInit", "(Ljava/util/Properties;)V", (void *) (ptrint) &Java_gnu_classpath_VMSystemProperties_postInit },
-};
-
-
-/* _Jv_gnu_classpat_VMSystemProperties_init ************************************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_gnu_classpath_VMSystemProperties_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("gnu/classpath/VMSystemProperties");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     gnu/classpath/VMSystemProperties
@@ -137,6 +119,35 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *en
 
 	MFREE(path, char, len);
 #endif
+}
+
+} // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ (char*) "preInit",  (char*) "(Ljava/util/Properties;)V", (void*) (uintptr_t) &Java_gnu_classpath_VMSystemProperties_preInit  },
+	{ (char*) "postInit", (char*) "(Ljava/util/Properties;)V", (void*) (uintptr_t) &Java_gnu_classpath_VMSystemProperties_postInit },
+};
+
+
+/* _Jv_gnu_classpat_VMSystemProperties_init ************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+// FIXME
+extern "C" {
+void _Jv_gnu_classpath_VMSystemProperties_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("gnu/classpath/VMSystemProperties");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 }
 
 
