@@ -26,6 +26,10 @@
 #ifndef _DUMPMEMORY_H
 #define _DUMPMEMORY_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* forward typedefs ***********************************************************/
 
 typedef struct dumpblock_t dumpblock_t;
@@ -99,6 +103,10 @@ void    *dumpmemory_get(size_t size);
 void    *dumpmemory_realloc(void *src, int32_t len1, int32_t len2);
 int32_t  dumpmemory_marker(void);
 void     dumpmemory_release(int32_t size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _DUMPMEMORY_H */
 
