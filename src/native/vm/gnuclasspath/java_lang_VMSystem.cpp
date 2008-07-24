@@ -1,4 +1,4 @@
-/* src/native/vm/gnu/java_lang_VMSystem.c - java/lang/VMSystem
+/* src/native/vm/gnuclasspath/java_lang_VMSystem.cpp - java/lang/VMSystem
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -38,34 +38,16 @@
 #include "native/include/java_io_InputStream.h"        /* required by j.l.VMS */
 #include "native/include/java_io_PrintStream.h"        /* required by j.l.VMS */
 
+// FIXME
+extern "C" {
 #include "native/include/java_lang_VMSystem.h"
+}
 
 #include "vm/builtin.h"
 
 
-/* native methods implemented by this file ************************************/
-
-static JNINativeMethod methods[] = {
-	{ "arraycopy",        "(Ljava/lang/Object;ILjava/lang/Object;II)V", (void *) (uintptr_t) &Java_java_lang_VMSystem_arraycopy },
-	{ "identityHashCode", "(Ljava/lang/Object;)I",                      (void *) (uintptr_t) &Java_java_lang_VMSystem_identityHashCode },
-};
-
-
-/* _Jv_java_lang_VMSystem_init *************************************************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_java_lang_VMSystem_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("java/lang/VMSystem");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/VMSystem
@@ -97,6 +79,35 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, 
 	return hashcode;
 }
 
+} // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ (char*) "arraycopy",        (char*) "(Ljava/lang/Object;ILjava/lang/Object;II)V", (void*) (uintptr_t) &Java_java_lang_VMSystem_arraycopy },
+	{ (char*) "identityHashCode", (char*) "(Ljava/lang/Object;)I",                      (void*) (uintptr_t) &Java_java_lang_VMSystem_identityHashCode },
+};
+
+
+/* _Jv_java_lang_VMSystem_init *************************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+// FIXME
+extern "C" {
+void _Jv_java_lang_VMSystem_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/VMSystem");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -104,7 +115,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, 
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
