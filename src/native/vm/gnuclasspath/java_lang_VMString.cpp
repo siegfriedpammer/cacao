@@ -1,4 +1,4 @@
-/* src/native/vm/gnuclasspath/java_lang_VMString.c - java/lang/VMString
+/* src/native/vm/gnuclasspath/java_lang_VMString.cpp - java/lang/VMString
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,39 +25,24 @@
 
 #include "config.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "native/jni.h"
 #include "native/native.h"
 
 #include "native/include/java_lang_String.h"
+
+// FIXME
+extern "C" {
 #include "native/include/java_lang_VMString.h"
+}
 
 #include "vm/string.hpp"
 
 
-/* native methods implemented by this file ************************************/
-
-static JNINativeMethod methods[] = {
-	{ "intern", "(Ljava/lang/String;)Ljava/lang/String;", (void *) (ptrint) &Java_java_lang_VMString_intern },
-};
-
-
-/* _Jv_java_lang_VMString_init *************************************************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_java_lang_VMString_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("java/lang/VMString");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/VMString
@@ -72,6 +57,34 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMString_intern(JNIEnv *env, 
 	return (java_lang_String *) javastring_intern((java_handle_t *) str);
 }
 
+} // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ (char*) "intern", (char*) "(Ljava/lang/String;)Ljava/lang/String;", (void*) (uintptr_t) &Java_java_lang_VMString_intern },
+};
+
+
+/* _Jv_java_lang_VMString_init *************************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+// FIXME
+extern "C" {
+void _Jv_java_lang_VMString_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/VMString");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -79,7 +92,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMString_intern(JNIEnv *env, 
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
