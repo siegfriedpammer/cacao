@@ -1,4 +1,4 @@
-/* src/native/vm/gnuclasspath/java_lang_VMRuntime.c
+/* src/native/vm/gnuclasspath/java_lang_VMRuntime.cpp
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -49,7 +49,10 @@
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Process.h"
 
+// FIXME
+extern "C" {
 #include "native/include/java_lang_VMRuntime.h"
+}
 
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
@@ -60,43 +63,11 @@
 #include "vmcore/utf8.h"
 
 
-/* native methods implemented by this file ************************************/
-
-static JNINativeMethod methods[] = {
-	{ "exit",                   "(I)V",                                         (void *) (intptr_t) &Java_java_lang_VMRuntime_exit                   },
-	{ "freeMemory",             "()J",                                          (void *) (intptr_t) &Java_java_lang_VMRuntime_freeMemory             },
-	{ "totalMemory",            "()J",                                          (void *) (intptr_t) &Java_java_lang_VMRuntime_totalMemory            },
-	{ "maxMemory",              "()J",                                          (void *) (intptr_t) &Java_java_lang_VMRuntime_maxMemory              },
-	{ "gc",                     "()V",                                          (void *) (intptr_t) &Java_java_lang_VMRuntime_gc                     },
-	{ "runFinalization",        "()V",                                          (void *) (intptr_t) &Java_java_lang_VMRuntime_runFinalization        },
-	{ "runFinalizersOnExit",    "(Z)V",                                         (void *) (intptr_t) &Java_java_lang_VMRuntime_runFinalizersOnExit    },
-	{ "runFinalizationForExit", "()V",                                          (void *) (intptr_t) &Java_java_lang_VMRuntime_runFinalizationForExit },
-	{ "traceInstructions",      "(Z)V",                                         (void *) (intptr_t) &Java_java_lang_VMRuntime_traceInstructions      },
-	{ "traceMethodCalls",       "(Z)V",                                         (void *) (intptr_t) &Java_java_lang_VMRuntime_traceMethodCalls       },
-	{ "availableProcessors",    "()I",                                          (void *) (intptr_t) &Java_java_lang_VMRuntime_availableProcessors    },
-	{ "nativeLoad",             "(Ljava/lang/String;Ljava/lang/ClassLoader;)I", (void *) (intptr_t) &Java_java_lang_VMRuntime_nativeLoad             },
-	{ "mapLibraryName",         "(Ljava/lang/String;)Ljava/lang/String;",       (void *) (intptr_t) &Java_java_lang_VMRuntime_mapLibraryName         },
-};
-
-
-/* _Jv_java_lang_VMRuntime_init ************************************************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_java_lang_VMRuntime_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("java/lang/VMRuntime");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-
-
 static bool finalizeOnExit = false;
 
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/VMRuntime
@@ -303,6 +274,46 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 	return (java_lang_String *) o;
 }
 
+} // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ (char*) "exit",                   (char*) "(I)V",                                         (void*) (uintptr_t) &Java_java_lang_VMRuntime_exit                   },
+	{ (char*) "freeMemory",             (char*) "()J",                                          (void*) (uintptr_t) &Java_java_lang_VMRuntime_freeMemory             },
+	{ (char*) "totalMemory",            (char*) "()J",                                          (void*) (uintptr_t) &Java_java_lang_VMRuntime_totalMemory            },
+	{ (char*) "maxMemory",              (char*) "()J",                                          (void*) (uintptr_t) &Java_java_lang_VMRuntime_maxMemory              },
+	{ (char*) "gc",                     (char*) "()V",                                          (void*) (uintptr_t) &Java_java_lang_VMRuntime_gc                     },
+	{ (char*) "runFinalization",        (char*) "()V",                                          (void*) (uintptr_t) &Java_java_lang_VMRuntime_runFinalization        },
+	{ (char*) "runFinalizersOnExit",    (char*) "(Z)V",                                         (void*) (uintptr_t) &Java_java_lang_VMRuntime_runFinalizersOnExit    },
+	{ (char*) "runFinalizationForExit", (char*) "()V",                                          (void*) (uintptr_t) &Java_java_lang_VMRuntime_runFinalizationForExit },
+	{ (char*) "traceInstructions",      (char*) "(Z)V",                                         (void*) (uintptr_t) &Java_java_lang_VMRuntime_traceInstructions      },
+	{ (char*) "traceMethodCalls",       (char*) "(Z)V",                                         (void*) (uintptr_t) &Java_java_lang_VMRuntime_traceMethodCalls       },
+	{ (char*) "availableProcessors",    (char*) "()I",                                          (void*) (uintptr_t) &Java_java_lang_VMRuntime_availableProcessors    },
+	{ (char*) "nativeLoad",             (char*) "(Ljava/lang/String;Ljava/lang/ClassLoader;)I", (void*) (uintptr_t) &Java_java_lang_VMRuntime_nativeLoad             },
+	{ (char*) "mapLibraryName",         (char*) "(Ljava/lang/String;)Ljava/lang/String;",       (void*) (uintptr_t) &Java_java_lang_VMRuntime_mapLibraryName         },
+};
+
+
+/* _Jv_java_lang_VMRuntime_init ************************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+// FIXME
+extern "C" {
+void _Jv_java_lang_VMRuntime_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/VMRuntime");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -310,7 +321,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
