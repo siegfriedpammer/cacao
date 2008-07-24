@@ -1,4 +1,4 @@
-/* src/native/vm/gnuclasspath/java_security_VMAccessController.c
+/* src/native/vm/gnuclasspath/java_security_VMAccessController.cpp
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -30,7 +30,10 @@
 #include "native/jni.h"
 #include "native/native.h"
 
+// FIXME
+extern "C" {
 #include "native/include/java_security_VMAccessController.h"
+}
 
 #include "vm/global.h"
 
@@ -39,28 +42,8 @@
 #include "vmcore/utf8.h"
 
 
-/* native methods implemented by this file ************************************/
-
-static JNINativeMethod methods[] = {
-	{ "getStack", "()[[Ljava/lang/Object;", (void *) (uintptr_t) &Java_java_security_VMAccessController_getStack },
-};
-
-
-/* _Jv_java_security_VMAccessController_init ***********************************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_java_security_VMAccessController_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("java/security/VMAccessController");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/security/VMAccessController
@@ -72,6 +55,34 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_security_VMAccessControll
 	return stacktrace_get_stack();
 }
 
+} // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ (char*) "getStack", (char*) "()[[Ljava/lang/Object;", (void*) (uintptr_t) &Java_java_security_VMAccessController_getStack },
+};
+
+
+/* _Jv_java_security_VMAccessController_init ***********************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+// FIXME
+extern "C" {
+void _Jv_java_security_VMAccessController_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/security/VMAccessController");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -79,7 +90,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_security_VMAccessControll
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
