@@ -428,7 +428,7 @@ JNIEXPORT struct java_lang_String* JNICALL Java_sun_reflect_ConstantPool_getUTF8
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

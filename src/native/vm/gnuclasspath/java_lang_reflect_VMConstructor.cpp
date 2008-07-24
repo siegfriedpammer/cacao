@@ -276,7 +276,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_reflect_VMConstructo
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
