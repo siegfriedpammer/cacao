@@ -35,7 +35,7 @@ lib_LTLIBRARIES = \
 	libjvm.la
 
 libjvm_la_LDFLAGS = \
-	-version-info 1:0:0
+	-avoid-version
 
 if WITH_JAVA_RUNTIME_LIBRARY_OPENJDK
 libjvm_la_LDFLAGS += \
