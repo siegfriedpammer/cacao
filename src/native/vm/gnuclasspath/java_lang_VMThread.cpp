@@ -1,4 +1,4 @@
-/* src/native/vm/gnuclasspath/java_lang_VMThread.c
+/* src/native/vm/gnuclasspath/java_lang_VMThread.cpp
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -34,7 +34,12 @@
 #include "native/include/java_lang_ThreadGroup.h"
 #include "native/include/java_lang_Object.h"            /* java_lang_Thread.h */
 #include "native/include/java_lang_Throwable.h"         /* java_lang_Thread.h */
+
+// FIXME
+extern "C" {
 #include "native/include/java_lang_VMThread.h"
+}
+
 #include "native/include/java_lang_String.h"
 #include "native/include/java_lang_Thread.h"
 
@@ -47,47 +52,15 @@
 #include "vmcore/utf8.h"
 
 
-/* native methods implemented by this file ************************************/
-
-static JNINativeMethod methods[] = {
-	{ "countStackFrames",  "()I",                      (void *) (intptr_t) &Java_java_lang_VMThread_countStackFrames  },
-	{ "start",             "(J)V",                     (void *) (intptr_t) &Java_java_lang_VMThread_start             },
-	{ "interrupt",         "()V",                      (void *) (intptr_t) &Java_java_lang_VMThread_interrupt         },
-	{ "isInterrupted",     "()Z",                      (void *) (intptr_t) &Java_java_lang_VMThread_isInterrupted     },
-	{ "suspend",           "()V",                      (void *) (intptr_t) &Java_java_lang_VMThread_suspend           },
-	{ "resume",            "()V",                      (void *) (intptr_t) &Java_java_lang_VMThread_resume            },
-	{ "nativeSetPriority", "(I)V",                     (void *) (intptr_t) &Java_java_lang_VMThread_nativeSetPriority },
-	{ "nativeStop",        "(Ljava/lang/Throwable;)V", (void *) (intptr_t) &Java_java_lang_VMThread_nativeStop        },
-	{ "currentThread",     "()Ljava/lang/Thread;",     (void *) (intptr_t) &Java_java_lang_VMThread_currentThread     },
-	{ "yield",             "()V",                      (void *) (intptr_t) &Java_java_lang_VMThread_yield             },
-	{ "interrupted",       "()Z",                      (void *) (intptr_t) &Java_java_lang_VMThread_interrupted       },
-	{ "holdsLock",         "(Ljava/lang/Object;)Z",    (void *) (intptr_t) &Java_java_lang_VMThread_holdsLock         },
-	{ "getState",          "()Ljava/lang/String;",     (void *) (intptr_t) &Java_java_lang_VMThread_getState          },
-};
-
-
-/* _Jv_java_lang_VMThread_init *************************************************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_java_lang_VMThread_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("java/lang/VMThread");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/VMThread
  * Method:    countStackFrames
  * Signature: ()I
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, java_lang_VMThread *this)
+JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, java_lang_VMThread *_this)
 {
 	log_println("Java_java_lang_VMThread_countStackFrames: Deprecated.  Not implemented.");
 
@@ -100,11 +73,11 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, 
  * Method:    start
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMThread *this, int64_t stacksize)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMThread *_this, int64_t stacksize)
 {
 	java_lang_Thread *thread;
 
-	LLNI_field_get_ref(this, thread, thread);
+	LLNI_field_get_ref(_this, thread, thread);
 
 #if defined(ENABLE_THREADS)
 	threads_thread_start((java_handle_t *) thread);
@@ -117,13 +90,13 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMTh
  * Method:    interrupt
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, java_lang_VMThread *this)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, java_lang_VMThread *_this)
 {
 #if defined(ENABLE_THREADS)
 	java_handle_t *h;
 	threadobject  *t;
 
-	h = (java_handle_t *) this;
+	h = (java_handle_t *) _this;
 	t = thread_get_thread(h);
 
 	threads_thread_interrupt(t);
@@ -136,13 +109,13 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, java_lang_
  * Method:    isInterrupted
  * Signature: ()Z
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, java_lang_VMThread *this)
+JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, java_lang_VMThread *_this)
 {
 #if defined(ENABLE_THREADS)
 	java_handle_t *h;
 	threadobject  *t;
 
-	h = (java_handle_t *) this;
+	h = (java_handle_t *) _this;
 	t = thread_get_thread(h);
 
 	return thread_is_interrupted(t);
@@ -157,7 +130,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, jav
  * Method:    suspend
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, java_lang_VMThread *this)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, java_lang_VMThread *_this)
 {
 #if defined(ENABLE_THREADS)
 	log_println("Java_java_lang_VMThread_suspend: Deprecated.  Not implemented.");
@@ -170,7 +143,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, java_lang_VM
  * Method:    resume
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, java_lang_VMThread *this)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, java_lang_VMThread *_this)
 {
 #if defined(ENABLE_THREADS)
 	log_println("Java_java_lang_VMThread_resume: Deprecated.  Not implemented.");
@@ -183,13 +156,13 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, java_lang_VMT
  * Method:    nativeSetPriority
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, java_lang_VMThread *this, int32_t priority)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, java_lang_VMThread *_this, int32_t priority)
 {
 #if defined(ENABLE_THREADS)
 	java_handle_t *h;
 	threadobject  *t;
 
-	h = (java_handle_t *) this;
+	h = (java_handle_t *) _this;
 	t = thread_get_thread(h);
 
 	threads_set_thread_priority(t->tid, priority);
@@ -202,7 +175,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, ja
  * Method:    nativeStop
  * Signature: (Ljava/lang/Throwable;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeStop(JNIEnv *env, java_lang_VMThread *this, java_lang_Throwable *t)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeStop(JNIEnv *env, java_lang_VMThread *_this, java_lang_Throwable *t)
 {
 #if defined(ENABLE_THREADS)
 	log_println("Java_java_lang_VMThread_nativeStop: Deprecated.  Not implemented.");
@@ -292,7 +265,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass 
  * Method:    getState
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMThread_getState(JNIEnv *env, java_lang_VMThread *this)
+JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMThread_getState(JNIEnv *env, java_lang_VMThread *_this)
 {
 #if defined(ENABLE_THREADS)
 	java_handle_t *h;
@@ -301,7 +274,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMThread_getState(JNIEnv *env
 	utf           *u;
 	java_handle_t *o;
 
-	h = (java_handle_t *) this;
+	h = (java_handle_t *) _this;
 	t = thread_get_thread(h);
 
 	state = cacaothread_get_state(t);
@@ -341,6 +314,46 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMThread_getState(JNIEnv *env
 #endif
 }
 
+} // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ (char*) "countStackFrames",  (char*) "()I",                      (void*) (uintptr_t) &Java_java_lang_VMThread_countStackFrames  },
+	{ (char*) "start",             (char*) "(J)V",                     (void*) (uintptr_t) &Java_java_lang_VMThread_start             },
+	{ (char*) "interrupt",         (char*) "()V",                      (void*) (uintptr_t) &Java_java_lang_VMThread_interrupt         },
+	{ (char*) "isInterrupted",     (char*) "()Z",                      (void*) (uintptr_t) &Java_java_lang_VMThread_isInterrupted     },
+	{ (char*) "suspend",           (char*) "()V",                      (void*) (uintptr_t) &Java_java_lang_VMThread_suspend           },
+	{ (char*) "resume",            (char*) "()V",                      (void*) (uintptr_t) &Java_java_lang_VMThread_resume            },
+	{ (char*) "nativeSetPriority", (char*) "(I)V",                     (void*) (uintptr_t) &Java_java_lang_VMThread_nativeSetPriority },
+	{ (char*) "nativeStop",        (char*) "(Ljava/lang/Throwable;)V", (void*) (uintptr_t) &Java_java_lang_VMThread_nativeStop        },
+	{ (char*) "currentThread",     (char*) "()Ljava/lang/Thread;",     (void*) (uintptr_t) &Java_java_lang_VMThread_currentThread     },
+	{ (char*) "yield",             (char*) "()V",                      (void*) (uintptr_t) &Java_java_lang_VMThread_yield             },
+	{ (char*) "interrupted",       (char*) "()Z",                      (void*) (uintptr_t) &Java_java_lang_VMThread_interrupted       },
+	{ (char*) "holdsLock",         (char*) "(Ljava/lang/Object;)Z",    (void*) (uintptr_t) &Java_java_lang_VMThread_holdsLock         },
+	{ (char*) "getState",          (char*) "()Ljava/lang/String;",     (void*) (uintptr_t) &Java_java_lang_VMThread_getState          },
+};
+
+
+/* _Jv_java_lang_VMThread_init *************************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+// FIXME
+extern "C" {
+void _Jv_java_lang_VMThread_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/VMThread");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -348,7 +361,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMThread_getState(JNIEnv *env
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
