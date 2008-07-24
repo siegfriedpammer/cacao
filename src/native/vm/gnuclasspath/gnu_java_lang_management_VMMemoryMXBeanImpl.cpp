@@ -1,4 +1,4 @@
-/* src/native/vm/gnuclasspath/gnu_java_lang_management_VMMemoryMXBeanImpl.c
+/* src/native/vm/gnuclasspath/gnu_java_lang_management_VMMemoryMXBeanImpl.cpp
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -34,7 +34,10 @@
 
 #include "native/include/java_lang_management_MemoryUsage.h"
 
+// FIXME
+extern "C" {
 #include "native/include/gnu_java_lang_management_VMMemoryMXBeanImpl.h"
+}
 
 #include "vm/builtin.h"
 #include "vm/global.h"
@@ -45,32 +48,8 @@
 #include "vmcore/options.h"
 
 
-/* native methods implemented by this file ************************************/
-
-static JNINativeMethod methods[] = {
-	{ "getHeapMemoryUsage",                "()Ljava/lang/management/MemoryUsage;", (void *) (uintptr_t) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getHeapMemoryUsage                },
-	{ "getNonHeapMemoryUsage",             "()Ljava/lang/management/MemoryUsage;", (void *) (uintptr_t) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getNonHeapMemoryUsage             },
-	{ "getObjectPendingFinalizationCount", "()I",                                  (void *) (uintptr_t) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getObjectPendingFinalizationCount },
-	{ "isVerbose",                         "()Z",                                  (void *) (uintptr_t) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose                         },
-	{ "setVerbose",                        "(Z)V",                                 (void *) (uintptr_t) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbose                        },
-};
-
-
-/* _Jv_gnu_java_lang_management_VMMemoryMXBeanImpl_init ************************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_gnu_java_lang_management_VMMemoryMXBeanImpl_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("gnu/java/lang/management/VMMemoryMXBeanImpl");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     gnu/java/lang/management/VMMemoryMXBeanImpl
@@ -167,6 +146,7 @@ JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVer
 /* 	return _Jv_jvm->Java_gnu_java_lang_management_VMMemoryMXBeanImpl_verbose; */
 #warning Move to C++
 	log_println("Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose: MOVE TO C++!");
+	return 0;
 }
 
 
@@ -182,6 +162,38 @@ JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbo
 	log_println("Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbose: MOVE TO C++!");
 }
 
+} // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ (char*) "getHeapMemoryUsage",                (char*) "()Ljava/lang/management/MemoryUsage;", (void*) (uintptr_t) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getHeapMemoryUsage                },
+	{ (char*) "getNonHeapMemoryUsage",             (char*) "()Ljava/lang/management/MemoryUsage;", (void*) (uintptr_t) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getNonHeapMemoryUsage             },
+	{ (char*) "getObjectPendingFinalizationCount", (char*) "()I",                                  (void*) (uintptr_t) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getObjectPendingFinalizationCount },
+	{ (char*) "isVerbose",                         (char*) "()Z",                                  (void*) (uintptr_t) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose                         },
+	{ (char*) "setVerbose",                        (char*) "(Z)V",                                 (void*) (uintptr_t) &Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbose                        },
+};
+
+
+/* _Jv_gnu_java_lang_management_VMMemoryMXBeanImpl_init ************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+// FIXME
+extern "C" {
+void _Jv_gnu_java_lang_management_VMMemoryMXBeanImpl_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("gnu/java/lang/management/VMMemoryMXBeanImpl");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -189,7 +201,7 @@ JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbo
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
