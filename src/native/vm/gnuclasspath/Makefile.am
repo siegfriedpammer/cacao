@@ -44,7 +44,7 @@ libnativevmcore_la_SOURCES = \
 	gnu_java_lang_VMCPStringBuilder.cpp \
 	gnu_java_lang_management_VMClassLoadingMXBeanImpl.cpp \
 	gnu_java_lang_management_VMMemoryMXBeanImpl.cpp \
-	gnu_java_lang_management_VMRuntimeMXBeanImpl.c \
+	gnu_java_lang_management_VMRuntimeMXBeanImpl.cpp \
 	gnu_java_lang_management_VMThreadMXBeanImpl.c \
 	java_lang_VMClass.cpp \
 	java_lang_VMClassLoader.cpp \

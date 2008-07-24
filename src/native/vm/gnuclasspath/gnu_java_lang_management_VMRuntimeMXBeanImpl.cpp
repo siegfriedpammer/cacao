@@ -1,4 +1,4 @@
-/* src/native/vm/gnuclasspath/gnu_java_lang_management_VMRuntimeMXBeanImpl.c
+/* src/native/vm/gnuclasspath/gnu_java_lang_management_VMRuntimeMXBeanImpl.cpp
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -30,7 +30,10 @@
 #include "native/jni.h"
 #include "native/native.h"
 
+// FIXME
+extern "C" {
 #include "native/include/gnu_java_lang_management_VMRuntimeMXBeanImpl.h"
+}
 
 #include "vm/builtin.h"
 #include "vm/global.h"
@@ -40,29 +43,8 @@
 #include "vmcore/utf8.h"
 
 
-/* native methods implemented by this file ************************************/
-
-static JNINativeMethod methods[] = {
-	{ "getInputArguments", "()[Ljava/lang/String;", (void *) (intptr_t) &Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getInputArguments },
-	{ "getStartTime",      "()J",                   (void *) (intptr_t) &Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime      },
-};
-
-
-/* _Jv_gnu_java_lang_management_VMRuntimeMXBeanImpl_init ***********************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_gnu_java_lang_management_VMRuntimeMXBeanImpl_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("gnu/java/lang/management/VMRuntimeMXBeanImpl");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     gnu/java/lang/management/VMRuntimeMXBeanImpl
@@ -84,8 +66,38 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_gnu_java_lang_management_VMRun
  */
 JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime(JNIEnv *env, jclass clazz)
 {
-	return VM_get_starttime();
+	return vm->get_starttime();
 }
+
+} // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ (char*) "getInputArguments", (char*) "()[Ljava/lang/String;", (void*) (uintptr_t) &Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getInputArguments },
+	{ (char*) "getStartTime",      (char*) "()J",                   (void*) (uintptr_t) &Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime      },
+};
+
+
+/* _Jv_gnu_java_lang_management_VMRuntimeMXBeanImpl_init ***********************
+
+   Register native functions.
+
+*******************************************************************************/
+
+// FIXME
+extern "C" {
+void _Jv_gnu_java_lang_management_VMRuntimeMXBeanImpl_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("gnu/java/lang/management/VMRuntimeMXBeanImpl");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -93,7 +105,7 @@ JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getS
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
