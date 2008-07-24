@@ -1,4 +1,4 @@
-/* src/native/vm/gnuclasspath/gnu_java_lang_management_VMClassLoadingMXBeanImpl.c
+/* src/native/vm/gnuclasspath/gnu_java_lang_management_VMClassLoadingMXBeanImpl.cpp
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -32,7 +32,10 @@
 #include "native/jni.h"
 #include "native/native.h"
 
+// FIXME
+extern "C" {
 #include "native/include/gnu_java_lang_management_VMClassLoadingMXBeanImpl.h"
+}
 
 #include "toolbox/logging.h"
 
@@ -42,31 +45,8 @@
 #include "vmcore/utf8.h"
 
 
-/* native methods implemented by this file ************************************/
-
-static JNINativeMethod methods[] = {
-	{ "getLoadedClassCount",   "()I",  (void *) (intptr_t) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getLoadedClassCount   },
-	{ "getUnloadedClassCount", "()J",  (void *) (intptr_t) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getUnloadedClassCount },
-	{ "isVerbose",             "()Z",  (void *) (intptr_t) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVerbose             },
-	{ "setVerbose",            "(Z)V", (void *) (intptr_t) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_setVerbose            },
-};
-
-
-/* _Jv_gnu_java_lang_management_VMClassLoadingMXBeanImpl_init ******************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_gnu_java_lang_management_VMClassLoadingMXBeanImpl_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("gnu/java/lang/management/VMClassLoadingMXBeanImpl");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     gnu/java/lang/management/VMClassLoadingMXBeanImpl
@@ -121,6 +101,37 @@ JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_se
 	log_println("Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_setVerbose: MOVE TO C++!");
 }
 
+} // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ (char*) "getLoadedClassCount",   (char*) "()I",  (void*) (uintptr_t) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getLoadedClassCount   },
+	{ (char*) "getUnloadedClassCount", (char*) "()J",  (void*) (uintptr_t) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getUnloadedClassCount },
+	{ (char*) "isVerbose",             (char*) "()Z",  (void*) (uintptr_t) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVerbose             },
+	{ (char*) "setVerbose",            (char*) "(Z)V", (void*) (uintptr_t) &Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_setVerbose            },
+};
+
+
+/* _Jv_gnu_java_lang_management_VMClassLoadingMXBeanImpl_init ******************
+
+   Register native functions.
+
+*******************************************************************************/
+
+// FIXME
+extern "C" {
+void _Jv_gnu_java_lang_management_VMClassLoadingMXBeanImpl_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("gnu/java/lang/management/VMClassLoadingMXBeanImpl");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -128,7 +139,7 @@ JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_se
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
