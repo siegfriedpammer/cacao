@@ -1,4 +1,4 @@
-/* src/native/vm/gnuclasspath/gnu_java_lang_management_VMThreadMXBeanImpl.c
+/* src/native/vm/gnuclasspath/gnu_java_lang_management_VMThreadMXBeanImpl.cpp
 
    Copyright (C) 1996-2005, 2006, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -35,7 +35,10 @@
 #include "native/include/java_lang_Throwable.h"
 #include "native/include/java_lang_management_ThreadInfo.h"
 
+// FIXME
+extern "C" {
 #include "native/include/gnu_java_lang_management_VMThreadMXBeanImpl.h"
+}
 
 #include "toolbox/logging.h"
 
@@ -45,36 +48,8 @@
 #include "vmcore/utf8.h"
 
 
-/* native methods implemented by this file ************************************/
-
-static JNINativeMethod methods[] = {
-	{ "findMonitorDeadlockedThreads", "()[J",                                  (void *) (intptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_findMonitorDeadlockedThreads },
-	{ "getCurrentThreadCpuTime",      "()J",                                   (void *) (intptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCurrentThreadCpuTime      },
-	{ "getCurrentThreadUserTime",     "()J",                                   (void *) (intptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCurrentThreadUserTime     },
-	{ "getPeakThreadCount",           "()I",                                   (void *) (intptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getPeakThreadCount           },
-	{ "getThreadCpuTime",             "(J)J",                                  (void *) (intptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadCpuTime             },
-	{ "getThreadInfoForId",           "(JI)Ljava/lang/management/ThreadInfo;", (void *) (intptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadInfoForId           },
-	{ "getThreadUserTime",            "(J)J",                                  (void *) (intptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadUserTime            },
-	{ "getTotalStartedThreadCount",   "()J",                                   (void *) (intptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTotalStartedThreadCount   },
-	{ "resetPeakThreadCount",         "()V",                                   (void *) (intptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_resetPeakThreadCount         },
-};
-
-
-/* _Jv_gnu_java_lang_management_VMThreadMXBeanImpl_init ************************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_gnu_java_lang_management_VMThreadMXBeanImpl_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("gnu/java/lang/management/VMThreadMXBeanImpl");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     gnu/java/lang/management/VMThreadMXBeanImpl
@@ -125,6 +100,7 @@ JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getPe
 /* 	return _Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount; */
 #warning Move to C++
 	log_println("Java_gnu_java_lang_management_ThreadMXBean_getPeakThreadCount: MOVE TO C++!");
+	return 0;
 }
 
 
@@ -177,6 +153,7 @@ JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTo
 /* 	return _Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount; */
 #warning Move to C++
 	log_println("Java_gnu_java_lang_management_ThreadMXBean_getTotalStartedThreadCount: MOVE TO C++!");
+	return 0;
 }
 
 
@@ -193,6 +170,42 @@ JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_resetPea
 	log_println("Java_gnu_java_lang_management_VMThreadMXBeanImpl_resetPeakThreadCount: MOVE TO C++!");
 }
 
+} // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ (char*) "findMonitorDeadlockedThreads", (char*) "()[J",                                  (void*) (uintptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_findMonitorDeadlockedThreads },
+	{ (char*) "getCurrentThreadCpuTime",      (char*) "()J",                                   (void*) (uintptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCurrentThreadCpuTime      },
+	{ (char*) "getCurrentThreadUserTime",     (char*) "()J",                                   (void*) (uintptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCurrentThreadUserTime     },
+	{ (char*) "getPeakThreadCount",           (char*) "()I",                                   (void*) (uintptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getPeakThreadCount           },
+	{ (char*) "getThreadCpuTime",             (char*) "(J)J",                                  (void*) (uintptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadCpuTime             },
+	{ (char*) "getThreadInfoForId",           (char*) "(JI)Ljava/lang/management/ThreadInfo;", (void*) (uintptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadInfoForId           },
+	{ (char*) "getThreadUserTime",            (char*) "(J)J",                                  (void*) (uintptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadUserTime            },
+	{ (char*) "getTotalStartedThreadCount",   (char*) "()J",                                   (void*) (uintptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTotalStartedThreadCount   },
+	{ (char*) "resetPeakThreadCount",         (char*) "()V",                                   (void*) (uintptr_t) &Java_gnu_java_lang_management_VMThreadMXBeanImpl_resetPeakThreadCount         },
+};
+
+
+/* _Jv_gnu_java_lang_management_VMThreadMXBeanImpl_init ************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+// FIXME
+extern "C" {
+void _Jv_gnu_java_lang_management_VMThreadMXBeanImpl_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("gnu/java/lang/management/VMThreadMXBeanImpl");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -200,7 +213,7 @@ JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_resetPea
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
