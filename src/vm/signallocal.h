@@ -37,6 +37,11 @@ extern "C" {
 #include "vm/global.h"
 
 
+// Signal defines.
+
+#define Signal_THREAD_INTERRUPT    SIGHUP
+
+
 /* function prototypes ********************************************************/
 
 bool  signal_init(void);

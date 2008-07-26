@@ -32,7 +32,6 @@
 #include <assert.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <signal.h>
 #include <sys/time.h>
 #include <time.h>
 #include <errno.h>
@@ -78,6 +77,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/signallocal.h"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
@@ -1547,12 +1547,6 @@ static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos)
 
 void threads_thread_interrupt(threadobject *t)
 {
-#if defined(__LINUX__) && defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	/* See openjdk/jdk/src/solaris/native/java/net/linux_close.c, "sigWakeup" */
-	int sig = (__SIGRTMAX - 2);
-#else
-	int sig = SIGHUP;
-#endif
 	/* Signal the thread a "waitcond" and tell it that it has been
 	   interrupted. */
 
@@ -1562,7 +1556,7 @@ void threads_thread_interrupt(threadobject *t)
 
 	/* Interrupt blocking system call using a signal. */
 
-	pthread_kill(t->tid, sig);
+	pthread_kill(t->tid, Signal_THREAD_INTERRUPT);
 
 	t->waitcond->signal();
 
