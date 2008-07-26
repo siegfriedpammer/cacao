@@ -58,7 +58,7 @@ static int mmapsize = 0;
 static void *mmaptop = NULL;
 
 
-void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
+void* heap_alloc(size_t size, int references, methodinfo *finalizer, bool collect)
 {
 	void *m;
 
@@ -76,20 +76,20 @@ void *heap_alloc(u4 size, u4 references, methodinfo *finalizer, bool collect)
 }
 
 
-void *heap_alloc_uncollectable(u4 size)
+void* heap_alloc_uncollectable(size_t size)
 {
 	return heap_alloc(size, false, NULL, false);
 }
 
 
-void heap_free(void *p)
+void heap_free(void* p)
 {
 	/* nop */
 }
 
 
 
-void gc_init(u4 heapmaxsize, u4 heapstartsize)
+void gc_init(size_t heapmaxsize, size_t heapstartsize)
 {
 	heapmaxsize = MEMORY_ALIGN(heapmaxsize, ALIGNSIZE);
 
