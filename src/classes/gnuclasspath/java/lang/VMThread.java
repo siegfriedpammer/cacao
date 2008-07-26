@@ -376,41 +376,42 @@ final class VMThread
      * @throws InterruptedException if the Thread is (or was) interrupted;
      *         it's <i>interrupted status</i> will be cleared
      */
-    static void sleep(long ms, int ns) throws InterruptedException
-    {
-      // Note: JDK treats a zero length sleep is like Thread.yield(),
-      // without checking the interrupted status of the thread.
-      // It's unclear if this is a bug in the implementation or the spec.
-      // See http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6213203
-      if (ms == 0 && ns == 0)
-	{
-	  if (Thread.interrupted())
-	    throw new InterruptedException();
-	  return;
-	}
+//     static void sleep(long ms, int ns) throws InterruptedException
+//     {
+//       // Note: JDK treats a zero length sleep is like Thread.yield(),
+//       // without checking the interrupted status of the thread.
+//       // It's unclear if this is a bug in the implementation or the spec.
+//       // See http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6213203
+//       if (ms == 0 && ns == 0)
+// 	{
+// 	  if (Thread.interrupted())
+// 	    throw new InterruptedException();
+// 	  return;
+// 	}
 
-      // Compute end time, but don't overflow
-      long now = System.currentTimeMillis();
-      long end = now + ms;
-      if (end < now)
-	  end = Long.MAX_VALUE;
+//       // Compute end time, but don't overflow
+//       long now = System.currentTimeMillis();
+//       long end = now + ms;
+//       if (end < now)
+// 	  end = Long.MAX_VALUE;
 
-      // A VM is allowed to return from wait() without notify() having been
-      // called, so we loop to handle possible spurious wakeups.
-      VMThread vt = Thread.currentThread().vmThread;
-      synchronized (vt)
-	{
-	  while (true)
-	    {
-	      vt.wait(ms, ns);
-	      now = System.currentTimeMillis();
-	      if (now >= end)
-		break;
-	      ms = end - now;
-	      ns = 0;
-	    }
-	}
-    }
+//       // A VM is allowed to return from wait() without notify() having been
+//       // called, so we loop to handle possible spurious wakeups.
+//       VMThread vt = Thread.currentThread().vmThread;
+//       synchronized (vt)
+// 	{
+// 	  while (true)
+// 	    {
+// 	      vt.wait(ms, ns);
+// 	      now = System.currentTimeMillis();
+// 	      if (now >= end)
+// 		break;
+// 	      ms = end - now;
+// 	      ns = 0;
+// 	    }
+// 	}
+//     }
+    static native void sleep(long ms, int ns) throws InterruptedException;
 
     /**
      * Determine whether the current Thread has been interrupted, and clear
