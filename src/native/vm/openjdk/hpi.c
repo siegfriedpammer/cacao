@@ -36,6 +36,8 @@
 #include "native/jni.h"
 #include "native/native.h"
 
+#include "native/vm/openjdk/hpi.h"
+
 #include "vm/properties.h"
 #include "vm/vm.hpp"
 

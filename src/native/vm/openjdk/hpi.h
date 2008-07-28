@@ -26,6 +26,10 @@
 #ifndef _HPI_H
 #define _HPI_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "config.h"
 
 /* HPI headers *****************************************************************
@@ -55,6 +59,10 @@ extern HPI_SystemInterface  *hpi_system;
 
 void hpi_initialize(void);
 int  hpi_initialize_socket_library(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _HPI_H */
 
