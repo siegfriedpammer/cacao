@@ -81,7 +81,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *en
 {
 	java_handle_t *p;
 #if defined(ENABLE_JRE_LAYOUT)
-	char *java_home;
+	const char *java_home;
 	char *path;
 	s4    len;
 #endif
