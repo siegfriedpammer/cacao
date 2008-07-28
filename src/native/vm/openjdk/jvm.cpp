@@ -1,4 +1,4 @@
-/* src/native/vm/openjdk/jvm.c - HotSpot JVM interface functions
+/* src/native/vm/openjdk/jvm.cpp - HotSpot VM interface functions
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -182,6 +182,9 @@ typedef struct {
     jint catchType;
 } JVM_ExceptionTableEntryType;
 
+
+// Interface functions are exported as C functions.
+extern "C" {
 
 int jio_vsnprintf(char *str, size_t count, const char *fmt, va_list args)
 {
@@ -761,7 +764,7 @@ jclass JVM_FindPrimitiveClass(JNIEnv* env, const char* s)
 	TRACEJVMCALLS(("JVM_FindPrimitiveClass(env=%p, s=%s)", env, s));
 
 	u = utf_new_char(s);
-	c = Primitive_get_class_by_name(u);
+	c = Primitive::get_class_by_name(u);
 
 	return (jclass) LLNI_classinfo_wrap(c);
 }
@@ -2516,10 +2519,10 @@ jstring JVM_GetSystemPackage(JNIEnv *env, jstring name)
 
 	TRACEJVMCALLS(("JVM_GetSystemPackage(env=%p, name=%p)", env, name));
 
-/* 	s = Package_find(name); */
+/* 	s = Package::find(name); */
 	u = javastring_toutf((java_handle_t *) name, false);
 
-	result = Package_find(u);
+	result = Package::find(u);
 
 	if (result != NULL)
 		s = javastring_new(result);
@@ -2681,7 +2684,7 @@ jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 	/* Create primitive or object array. */
 
 	if (class_is_primitive(c)) {
-		pc = Primitive_get_arrayclass_by_name(c->name);
+		pc = Primitive::get_arrayclass_by_name(c->name);
 
 		/* void arrays are not allowed. */
 
@@ -2754,7 +2757,7 @@ jobject JVM_NewMultiArray(JNIEnv *env, jclass eltClass, jintArray dim)
 	/* Create an array-class if necessary. */
 
 	if (class_is_primitive(c))
-		ac = Primitive_get_arrayclass_by_name(c->name);
+		ac = Primitive::get_arrayclass_by_name(c->name);
 	else
 		ac = class_array_of(c, true);
 
@@ -3723,6 +3726,8 @@ jint JVM_FindSignal(const char *name)
 	return -1;
 }
 
+} // extern "C"
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -3730,7 +3735,7 @@ jint JVM_FindSignal(const char *name)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
