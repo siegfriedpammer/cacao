@@ -1,9 +1,7 @@
-/* src/vm/jit/arm/md.c - machine dependent Arm functions
+/* src/vm/jit/arm/md.c - machine dependent ARM functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -136,6 +134,17 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 
 	return pa;
 }
+
+
+/**
+ * Patch the given replacement point.
+ */
+#if defined(ENABLE_REPLACEMENT)
+void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
+{
+	vm_abort("md_patch_replacement_point: IMPLEMENT ME!");
+}
+#endif
 
 
 /*
