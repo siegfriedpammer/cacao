@@ -60,7 +60,7 @@ libnativevmcore_la_SOURCES = \
 	java_lang_reflect_VMMethod.cpp \
 	java_lang_reflect_VMProxy.c \
 	java_security_VMAccessController.cpp \
-	java_util_concurrent_atomic_AtomicLong.c \
+	java_util_concurrent_atomic_AtomicLong.cpp \
 	$(SUN_REFLECT_SOURCES)
 
 if ENABLE_JVMTI

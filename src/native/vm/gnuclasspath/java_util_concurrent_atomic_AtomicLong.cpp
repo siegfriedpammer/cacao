@@ -1,9 +1,7 @@
-/* src/native/vm/gnu/java_util_concurrent_atomic_AtomicLong.c
+/* src/native/vm/gnu/java_util_concurrent_atomic_AtomicLong.cpp
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -32,33 +30,16 @@
 #include "native/jni.h"
 #include "native/native.h"
 
+// FIXME
+extern "C" {
 #include "native/include/java_util_concurrent_atomic_AtomicLong.h"
+}
 
 #include "vmcore/utf8.h"
 
 
-/* native methods implemented by this file ************************************/
-
-static JNINativeMethod methods[] = {
-	{ "VMSupportsCS8", "()Z", (void *) (intptr_t) &Java_java_util_concurrent_atomic_AtomicLong_VMSupportsCS8 },
-};
-
-
-/* _Jv_java_util_concurrent_atomic_AtomicLong_init *****************************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_java_util_concurrent_atomic_AtomicLong_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("java/util/concurrent/atomic/AtomicLong");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/util/concurrent/atomic/AtomicLong
@@ -72,6 +53,34 @@ JNIEXPORT int32_t JNICALL Java_java_util_concurrent_atomic_AtomicLong_VMSupports
 	return 0;
 }
 
+} // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ (char*) "VMSupportsCS8", (char*) "()Z", (void*) (uintptr_t) &Java_java_util_concurrent_atomic_AtomicLong_VMSupportsCS8 },
+};
+
+
+/* _Jv_java_util_concurrent_atomic_AtomicLong_init *****************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+// FIXME
+extern "C" {
+void _Jv_java_util_concurrent_atomic_AtomicLong_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/util/concurrent/atomic/AtomicLong");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -79,7 +88,7 @@ JNIEXPORT int32_t JNICALL Java_java_util_concurrent_atomic_AtomicLong_VMSupports
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
