@@ -171,6 +171,7 @@ utf *utf_main;
 utf *utf_run;                           /* run                                */
 
 utf *utf_add;
+utf *utf_dispatch;
 utf *utf_remove;
 utf *utf_addThread;
 utf *utf_removeThread;
@@ -432,6 +433,7 @@ void utf8_init(void)
 	utf_run                        = utf_new_char("run");
 
 	utf_add                        = utf_new_char("add");
+	utf_dispatch                   = utf_new_char("dispatch");
 	utf_remove                     = utf_new_char("remove");
 	utf_addThread                  = utf_new_char("addThread");
 	utf_removeThread               = utf_new_char("removeThread");

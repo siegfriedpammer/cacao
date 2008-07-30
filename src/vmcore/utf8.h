@@ -167,6 +167,7 @@ extern utf *utf_main;
 extern utf *utf_run;
 
 extern utf *utf_add;
+extern utf *utf_dispatch;
 extern utf *utf_remove;
 extern utf *utf_addThread;
 extern utf *utf_removeThread;

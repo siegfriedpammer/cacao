@@ -67,6 +67,7 @@ extern classinfo *class_java_lang_VMThrowable;
 #endif
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+extern classinfo *class_sun_misc_Signal;
 extern classinfo *class_sun_reflect_MagicAccessorImpl;
 #endif
 

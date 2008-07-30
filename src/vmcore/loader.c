@@ -229,8 +229,8 @@ void loader_init(void)
 	class_java_util_Vector                 = load_class_bootstrap(utf_java_util_Vector);
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	class_sun_reflect_MagicAccessorImpl =
-		load_class_bootstrap(utf_new_char("sun/reflect/MagicAccessorImpl"));
+	class_sun_misc_Signal                  = load_class_bootstrap(utf_new_char("sun/misc/Signal"));
+	class_sun_reflect_MagicAccessorImpl    = load_class_bootstrap(utf_new_char("sun/reflect/MagicAccessorImpl"));
 # endif
 
 	arrayclass_java_lang_Object =

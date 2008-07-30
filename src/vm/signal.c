@@ -49,6 +49,7 @@
 #include "vm/signallocal.h"
 #include "vm/vm.hpp"
 
+#include "vmcore/method.h"
 #include "vmcore/options.h"
 
 #if defined(ENABLE_STATISTICS)
@@ -322,6 +323,20 @@ void signal_thread_handler(int sig)
 			statistics_print_memory_usage();
 #endif
 		break;
+
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	default: {
+		// For OpenJDK we dispatch all unknown signals to Java.
+		methodinfo* m = class_resolvemethod(class_sun_misc_Signal, utf_dispatch, utf_int__void);
+		(void) vm_call_method(m, NULL, sig);
+
+		if (exceptions_get_exception()) {
+			exceptions_print_stacktrace();
+			vm_abort("signal_thread_handler: Java signal handler throw an exception. Exiting...");
+		}
+		break;
+	}
+#endif
 	}
 }
 

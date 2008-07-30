@@ -3686,7 +3686,7 @@ void *JVM_RegisterSignal(jint sig, void *handler)
 		break;
 	}
 
-	signal_register_signal(sig, newHandler, 0);
+	signal_register_signal(sig, newHandler, SA_RESTART | SA_SIGINFO);
 
 	/* XXX Should return old handler. */
 

@@ -59,6 +59,7 @@ classinfo *class_java_lang_ClassNotFoundException;
 classinfo *class_java_lang_RuntimeException;
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+classinfo *class_sun_misc_Signal;
 classinfo *class_sun_reflect_MagicAccessorImpl;
 #endif
 
