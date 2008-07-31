@@ -49,6 +49,7 @@
 #include "vm/signallocal.h"
 #include "vm/vm.hpp"
 
+#include "vmcore/globals.hpp"
 #include "vmcore/method.h"
 #include "vmcore/options.h"
 
