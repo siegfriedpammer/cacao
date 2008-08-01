@@ -70,7 +70,7 @@ static JavaVMInitArgs* prepare_options(int argc, char** argv);
 int main(int argc, char **argv)
 {
 #if defined(ENABLE_LIBJVM)
-	const char* path;
+	char* path;
 
 # if defined(ENABLE_JRE_LAYOUT)
 	int         len;
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 # if defined(ENABLE_JRE_LAYOUT)
 	/* SUN also uses a buffer of 4096-bytes (strace is your friend). */
 
-	path = malloc(sizeof(char) * 4096);
+	path = (char*) os::malloc(sizeof(char) * 4096);
 
 	if (readlink("/proc/self/exe", path, 4095) == -1) {
 		fprintf(stderr, "main: readlink failed: %s\n", strerror(errno));
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 
 	strcat(path, "/../lib/"LIBJVM_NAME);
 # else
-	path = CACAO_LIBDIR"/"LIBJVM_NAME;
+	path = (char*) CACAO_LIBDIR"/"LIBJVM_NAME;
 # endif
 
 	/* First try to open where dlopen searches, e.g. LD_LIBRARY_PATH.

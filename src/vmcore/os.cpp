@@ -162,6 +162,7 @@ extern "C" {
 	void*  os_mmap_anonymous(void *addr, size_t len, int prot, int flags) { return os::mmap_anonymous(addr, len, prot, flags); }
 
 	void   os_abort(void) { os::abort(); }
+	int    os_access(const char* pathname, int mode) { return os::access(pathname, mode); }
 	int    os_atoi(const char* nptr) { return os::atoi(nptr); }
 	void*  os_calloc(size_t nmemb, size_t size) { return os::calloc(nmemb, size); }
 #if defined(ENABLE_JRE_LAYOUT)

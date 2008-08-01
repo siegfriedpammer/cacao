@@ -115,6 +115,7 @@ public:
 	static inline int    getsockname(int s, struct sockaddr* name, socklen_t* namelen);
 	static inline int    getsockopt(int s, int level, int optname, void* optval, socklen_t* optlen);
 	static inline int    listen(int sockfd, int backlog);
+	static inline void*  malloc(size_t size);
 	static inline void*  memcpy(void* dest, const void* src, size_t n);
 	static inline void*  memset(void* s, int c, size_t n);
 	static inline int    mprotect(void* addr, size_t len, int prot);
@@ -352,10 +353,10 @@ inline static off_t system_lseek(int fildes, off_t offset, int whence)
 #endif
 }
 
-inline static void *system_malloc(size_t size)
+inline void* os::malloc(size_t size)
 {
 #if defined(HAVE_MALLOC)
-	return malloc(size);
+	return ::malloc(size);
 #else
 # error malloc not available
 #endif
@@ -527,6 +528,7 @@ inline static ssize_t system_write(int fd, const void *buf, size_t count)
 void*  os_mmap_anonymous(void *addr, size_t len, int prot, int flags);
 
 void   os_abort(void);
+int    os_access(const char* pathname, int mode);
 int    os_atoi(const char* nptr);
 void*  os_calloc(size_t nmemb, size_t size);
 char*  os_dirname(char* path);
