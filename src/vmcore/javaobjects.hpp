@@ -30,6 +30,8 @@
 
 #include <stdint.h>
 
+#include "mm/memory.h"
+
 #include "native/llni.h"
 
 #include "vm/global.h"
@@ -232,7 +234,7 @@ class java_lang_Boolean : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_value = sizeof(java_object_t);
+	static const off_t offset_value = MEMORY_ALIGN(sizeof(java_object_t), sizeof(int32_t));
 
 public:
 	java_lang_Boolean(java_handle_t* h) : java_lang_Object(h) {}
@@ -264,7 +266,7 @@ class java_lang_Byte : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_value = sizeof(java_object_t);
+	static const off_t offset_value = MEMORY_ALIGN(sizeof(java_object_t), sizeof(int32_t));
 
 public:
 	java_lang_Byte(java_handle_t* h) : java_lang_Object(h) {}
@@ -296,7 +298,7 @@ class java_lang_Character : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_value = sizeof(java_object_t);
+	static const off_t offset_value = MEMORY_ALIGN(sizeof(java_object_t), sizeof(int32_t));
 
 public:
 	java_lang_Character(java_handle_t* h) : java_lang_Object(h) {}
@@ -328,7 +330,7 @@ class java_lang_Short : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_value = sizeof(java_object_t);
+	static const off_t offset_value = MEMORY_ALIGN(sizeof(java_object_t), sizeof(int32_t));
 
 public:
 	java_lang_Short(java_handle_t* h) : java_lang_Object(h) {}
@@ -360,7 +362,7 @@ class java_lang_Integer : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_value = sizeof(java_object_t);
+	static const off_t offset_value = MEMORY_ALIGN(sizeof(java_object_t), sizeof(int32_t));
 
 public:
 	java_lang_Integer(java_handle_t* h) : java_lang_Object(h) {}
@@ -392,7 +394,7 @@ class java_lang_Long : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_value = sizeof(java_object_t);
+	static const off_t offset_value = MEMORY_ALIGN(sizeof(java_object_t), sizeof(int64_t));
 
 public:
 	java_lang_Long(java_handle_t* h) : java_lang_Object(h) {}
@@ -424,7 +426,7 @@ class java_lang_Float : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_value = sizeof(java_object_t);
+	static const off_t offset_value = MEMORY_ALIGN(sizeof(java_object_t), sizeof(float));
 
 public:
 	java_lang_Float(java_handle_t* h) : java_lang_Object(h) {}
@@ -456,7 +458,7 @@ class java_lang_Double : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_value = sizeof(java_object_t);
+	static const off_t offset_value = MEMORY_ALIGN(sizeof(java_object_t), sizeof(double));
 
 public:
 	java_lang_Double(java_handle_t* h) : java_lang_Object(h) {}
@@ -493,10 +495,10 @@ class java_lang_Class : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_signers     = sizeof(java_object_t);
-	static const off_t offset_pd          = offset_signers + SIZEOF_VOID_P;
-	static const off_t offset_vmdata      = offset_pd      + SIZEOF_VOID_P;
-	static const off_t offset_constructor = offset_vmdata  + SIZEOF_VOID_P;
+	static const off_t offset_signers     = MEMORY_ALIGN(sizeof(java_object_t),          SIZEOF_VOID_P);
+	static const off_t offset_pd          = MEMORY_ALIGN(offset_signers + SIZEOF_VOID_P, SIZEOF_VOID_P);
+	static const off_t offset_vmdata      = MEMORY_ALIGN(offset_pd      + SIZEOF_VOID_P, SIZEOF_VOID_P);
+	static const off_t offset_constructor = MEMORY_ALIGN(offset_vmdata  + SIZEOF_VOID_P, SIZEOF_VOID_P);
 
 public:
 	java_lang_Class(java_handle_t* h) : java_lang_Object(h) {}
@@ -533,11 +535,11 @@ class java_lang_StackTraceElement : public java_lang_Object, private FieldAccess
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_fileName       = sizeof(java_object_t);
-	static const off_t offset_lineNumber     = offset_fileName       + SIZEOF_VOID_P;
-	static const off_t offset_declaringClass = offset_lineNumber     + sizeof(int32_t) + 4;
-	static const off_t offset_methodName     = offset_declaringClass + SIZEOF_VOID_P;
-	static const off_t offset_isNative       = offset_methodName     + SIZEOF_VOID_P;
+	static const off_t offset_fileName       = MEMORY_ALIGN(sizeof(java_object_t),                   SIZEOF_VOID_P);
+	static const off_t offset_lineNumber     = MEMORY_ALIGN(offset_fileName       + SIZEOF_VOID_P,   sizeof(int32_t));
+	static const off_t offset_declaringClass = MEMORY_ALIGN(offset_lineNumber     + sizeof(int32_t), SIZEOF_VOID_P);
+	static const off_t offset_methodName     = MEMORY_ALIGN(offset_declaringClass + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_isNative       = MEMORY_ALIGN(offset_methodName     + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 
 public:
 	java_lang_StackTraceElement(java_handle_t* h) : java_lang_Object(h) {}
@@ -571,10 +573,10 @@ class java_lang_String : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_value          = sizeof(java_object_t);
-	static const off_t offset_count          = offset_value          + SIZEOF_VOID_P;
-	static const off_t offset_cachedHashCode = offset_count          + sizeof(int32_t);
-	static const off_t offset_offset         = offset_cachedHashCode + sizeof(int32_t);
+	static const off_t offset_value          = MEMORY_ALIGN(sizeof(java_object_t),                   SIZEOF_VOID_P);
+	static const off_t offset_count          = MEMORY_ALIGN(offset_value          + SIZEOF_VOID_P,   sizeof(int32_t));
+	static const off_t offset_cachedHashCode = MEMORY_ALIGN(offset_count          + sizeof(int32_t), sizeof(int32_t));
+	static const off_t offset_offset         = MEMORY_ALIGN(offset_cachedHashCode + sizeof(int32_t), sizeof(int32_t));
 
 public:
 	java_lang_String(java_handle_t* h) : java_lang_Object(h) {}
@@ -660,20 +662,20 @@ class java_lang_Thread : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_vmThread                              = sizeof(java_object_t);
-	static const off_t offset_group                                 = offset_vmThread                              + SIZEOF_VOID_P;
-	static const off_t offset_runnable                              = offset_group                                 + SIZEOF_VOID_P;
-	static const off_t offset_name                                  = offset_runnable                              + SIZEOF_VOID_P;
-	static const off_t offset_daemon                                = offset_name                                  + SIZEOF_VOID_P;
-	static const off_t offset_priority                              = offset_daemon                                + sizeof(int32_t); // FIXME
-	static const off_t offset_stacksize                             = offset_priority                              + sizeof(int32_t); // FIXME
-	static const off_t offset_stillborn                             = offset_stacksize                             + sizeof(int64_t); // FIXME
-	static const off_t offset_contextClassLoader                    = offset_stillborn                             + SIZEOF_VOID_P;
-	static const off_t offset_contextClassLoaderIsSystemClassLoader = offset_contextClassLoader                    + SIZEOF_VOID_P;
-	static const off_t offset_threadId                              = offset_contextClassLoaderIsSystemClassLoader + sizeof(int32_t); // FIXME
-	static const off_t offset_parkBlocker                           = offset_threadId                              + sizeof(int64_t); // FIXME
-	static const off_t offset_locals                                = offset_parkBlocker                           + SIZEOF_VOID_P;
-	static const off_t offset_exceptionHandler                      = offset_locals                                + SIZEOF_VOID_P;
+	static const off_t offset_vmThread                              = MEMORY_ALIGN(sizeof(java_object_t),                                          SIZEOF_VOID_P);
+	static const off_t offset_group                                 = MEMORY_ALIGN(offset_vmThread                              + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_runnable                              = MEMORY_ALIGN(offset_group                                 + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_name                                  = MEMORY_ALIGN(offset_runnable                              + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_daemon                                = MEMORY_ALIGN(offset_name                                  + SIZEOF_VOID_P,   sizeof(int32_t));
+	static const off_t offset_priority                              = MEMORY_ALIGN(offset_daemon                                + sizeof(int32_t), sizeof(int32_t));
+	static const off_t offset_stacksize                             = MEMORY_ALIGN(offset_priority                              + sizeof(int32_t), sizeof(int64_t));
+	static const off_t offset_stillborn                             = MEMORY_ALIGN(offset_stacksize                             + sizeof(int64_t), SIZEOF_VOID_P);
+	static const off_t offset_contextClassLoader                    = MEMORY_ALIGN(offset_stillborn                             + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_contextClassLoaderIsSystemClassLoader = MEMORY_ALIGN(offset_contextClassLoader                    + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_threadId                              = MEMORY_ALIGN(offset_contextClassLoaderIsSystemClassLoader + sizeof(int32_t), sizeof(int64_t));
+	static const off_t offset_parkBlocker                           = MEMORY_ALIGN(offset_threadId                              + sizeof(int64_t), SIZEOF_VOID_P);
+	static const off_t offset_locals                                = MEMORY_ALIGN(offset_parkBlocker                           + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_exceptionHandler                      = MEMORY_ALIGN(offset_locals                                + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 
 public:
 	java_lang_Thread(java_handle_t* h) : java_lang_Object(h) {}
@@ -749,9 +751,9 @@ class java_lang_VMThread : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_thread  = sizeof(java_object_t);
-	static const off_t offset_running = offset_thread  + SIZEOF_VOID_P;
-	static const off_t offset_vmdata  = offset_running + sizeof(int32_t); // FIXME
+	static const off_t offset_thread  = MEMORY_ALIGN(sizeof(java_object_t),            SIZEOF_VOID_P);
+	static const off_t offset_running = MEMORY_ALIGN(offset_thread  + SIZEOF_VOID_P,   sizeof(int32_t));
+	static const off_t offset_vmdata  = MEMORY_ALIGN(offset_running + sizeof(int32_t), SIZEOF_VOID_P);
 
 public:
 	java_lang_VMThread(java_handle_t* h) : java_lang_Object(h) {}
@@ -817,10 +819,10 @@ class java_lang_Throwable : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_detailMessage = sizeof(java_object_t);
-	static const off_t offset_cause         = offset_detailMessage + SIZEOF_VOID_P;
-	static const off_t offset_stackTrace    = offset_cause         + SIZEOF_VOID_P;
-	static const off_t offset_vmState       = offset_stackTrace    + SIZEOF_VOID_P;
+	static const off_t offset_detailMessage = MEMORY_ALIGN(sizeof(java_object_t),                SIZEOF_VOID_P);
+	static const off_t offset_cause         = MEMORY_ALIGN(offset_detailMessage + SIZEOF_VOID_P, SIZEOF_VOID_P);
+	static const off_t offset_stackTrace    = MEMORY_ALIGN(offset_cause         + SIZEOF_VOID_P, SIZEOF_VOID_P);
+	static const off_t offset_vmState       = MEMORY_ALIGN(offset_stackTrace    + SIZEOF_VOID_P, SIZEOF_VOID_P);
 
 public:
 	java_lang_Throwable(java_handle_t* h) : java_lang_Object(h) {}
@@ -860,7 +862,7 @@ class java_lang_VMThrowable : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_vmdata = sizeof(java_object_t);
+	static const off_t offset_vmdata = MEMORY_ALIGN(sizeof(java_object_t), SIZEOF_VOID_P);
 
 public:
 	java_lang_VMThrowable(java_handle_t* h) : java_lang_Object(h) {}
@@ -900,9 +902,9 @@ class java_lang_reflect_Constructor : public java_lang_Object, private FieldAcce
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_flag = sizeof(java_object_t);
-	static const off_t offset_p    = offset_flag + sizeof(int32_t) + 4;
-	static const off_t offset_cons = offset_p    + SIZEOF_VOID_P;
+	static const off_t offset_flag = MEMORY_ALIGN(sizeof(java_object_t),         sizeof(int32_t));
+	static const off_t offset_p    = MEMORY_ALIGN(offset_flag + sizeof(int32_t), SIZEOF_VOID_P);
+	static const off_t offset_cons = MEMORY_ALIGN(offset_p    + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 
 public:
 	java_lang_reflect_Constructor(java_handle_t* h) : java_lang_Object(h) {}
@@ -957,12 +959,12 @@ class java_lang_reflect_VMConstructor : public java_lang_Object, private FieldAc
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_clazz                = sizeof(java_object_t);
-	static const off_t offset_slot                 = offset_clazz                + SIZEOF_VOID_P;
-	static const off_t offset_annotations          = offset_slot                 + sizeof(int32_t) + 4;
-	static const off_t offset_parameterAnnotations = offset_annotations          + SIZEOF_VOID_P;
-	static const off_t offset_declaredAnnotations  = offset_parameterAnnotations + SIZEOF_VOID_P;
-	static const off_t offset_cons                 = offset_declaredAnnotations  + SIZEOF_VOID_P;
+	static const off_t offset_clazz                = MEMORY_ALIGN(sizeof(java_object_t),                         SIZEOF_VOID_P);
+	static const off_t offset_slot                 = MEMORY_ALIGN(offset_clazz                + SIZEOF_VOID_P,   sizeof(int32_t));
+	static const off_t offset_annotations          = MEMORY_ALIGN(offset_slot                 + sizeof(int32_t), SIZEOF_VOID_P);
+	static const off_t offset_parameterAnnotations = MEMORY_ALIGN(offset_annotations          + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_declaredAnnotations  = MEMORY_ALIGN(offset_parameterAnnotations + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_cons                 = MEMORY_ALIGN(offset_declaredAnnotations  + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 
 public:
 	java_lang_reflect_VMConstructor(java_handle_t* h) : java_lang_Object(h) {}
@@ -1089,10 +1091,9 @@ class java_lang_reflect_Field : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_flag = sizeof(java_object_t);
-	// Currently we align 64-bit data types to 8-bytes.
-	static const off_t offset_p    = offset_flag + sizeof(int32_t) + 4;
-	static const off_t offset_f    = offset_p    + SIZEOF_VOID_P;
+	static const off_t offset_flag = MEMORY_ALIGN(sizeof(java_object_t),         sizeof(int32_t));
+	static const off_t offset_p    = MEMORY_ALIGN(offset_flag + sizeof(int32_t), SIZEOF_VOID_P);
+	static const off_t offset_f    = MEMORY_ALIGN(offset_p    + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 
 public:
 	java_lang_reflect_Field(java_handle_t* h) : java_lang_Object(h) {}
@@ -1146,12 +1147,12 @@ class java_lang_reflect_VMField : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_clazz               = sizeof(java_object_t);
-	static const off_t offset_name                = offset_clazz               + SIZEOF_VOID_P;
-	static const off_t offset_slot                = offset_name                + SIZEOF_VOID_P;
-	static const off_t offset_annotations         = offset_slot                + sizeof(int32_t) + 4;
-	static const off_t offset_declaredAnnotations = offset_annotations         + SIZEOF_VOID_P;
-	static const off_t offset_f                   = offset_declaredAnnotations + SIZEOF_VOID_P;
+	static const off_t offset_clazz               = MEMORY_ALIGN(sizeof(java_object_t),                        SIZEOF_VOID_P);
+	static const off_t offset_name                = MEMORY_ALIGN(offset_clazz               + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_slot                = MEMORY_ALIGN(offset_name                + SIZEOF_VOID_P,   sizeof(int32_t));
+	static const off_t offset_annotations         = MEMORY_ALIGN(offset_slot                + sizeof(int32_t), SIZEOF_VOID_P);
+	static const off_t offset_declaredAnnotations = MEMORY_ALIGN(offset_annotations         + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_f                   = MEMORY_ALIGN(offset_declaredAnnotations + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 
 public:
 	java_lang_reflect_VMField(java_handle_t* h) : java_lang_Object(h) {}
@@ -1272,10 +1273,9 @@ class java_lang_reflect_Method : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_flag = sizeof(java_object_t);
-	// Currently we align 64-bit data types to 8-bytes.
-	static const off_t offset_p    = offset_flag + sizeof(int32_t) + 4;
-	static const off_t offset_m    = offset_p    + SIZEOF_VOID_P;
+	static const off_t offset_flag = MEMORY_ALIGN(sizeof(java_object_t),         sizeof(int32_t));
+	static const off_t offset_p    = MEMORY_ALIGN(offset_flag + sizeof(int32_t), SIZEOF_VOID_P);
+	static const off_t offset_m    = MEMORY_ALIGN(offset_p    + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 
 public:
 	java_lang_reflect_Method(java_handle_t* h) : java_lang_Object(h) {}
@@ -1331,14 +1331,14 @@ class java_lang_reflect_VMMethod : public java_lang_Object, private FieldAccess 
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_clazz                = sizeof(java_object_t);
-	static const off_t offset_name                 = offset_clazz                + SIZEOF_VOID_P;
-	static const off_t offset_slot                 = offset_name                 + SIZEOF_VOID_P;
-	static const off_t offset_annotations          = offset_slot                 + sizeof(int32_t) + 4;
-	static const off_t offset_parameterAnnotations = offset_annotations          + SIZEOF_VOID_P;
-	static const off_t offset_annotationDefault    = offset_parameterAnnotations + SIZEOF_VOID_P;
-	static const off_t offset_declaredAnnotations  = offset_annotationDefault    + SIZEOF_VOID_P;
-	static const off_t offset_m                    = offset_declaredAnnotations  + SIZEOF_VOID_P;
+	static const off_t offset_clazz                = MEMORY_ALIGN(sizeof(java_object_t),                         SIZEOF_VOID_P);
+	static const off_t offset_name                 = MEMORY_ALIGN(offset_clazz                + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_slot                 = MEMORY_ALIGN(offset_name                 + SIZEOF_VOID_P,   sizeof(int32_t));
+	static const off_t offset_annotations          = MEMORY_ALIGN(offset_slot                 + sizeof(int32_t), SIZEOF_VOID_P);
+	static const off_t offset_parameterAnnotations = MEMORY_ALIGN(offset_annotations          + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_annotationDefault    = MEMORY_ALIGN(offset_parameterAnnotations + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_declaredAnnotations  = MEMORY_ALIGN(offset_annotationDefault    + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_m                    = MEMORY_ALIGN(offset_declaredAnnotations  + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 
 public:
 	java_lang_reflect_VMMethod(java_handle_t* h) : java_lang_Object(h) {}
@@ -1489,11 +1489,11 @@ class java_nio_Buffer : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_cap     = sizeof(java_object_t);
-	static const off_t offset_limit   = offset_cap   + sizeof(int32_t);
-	static const off_t offset_pos     = offset_limit + sizeof(int32_t);
-	static const off_t offset_mark    = offset_pos   + sizeof(int32_t);
-	static const off_t offset_address = offset_mark  + sizeof(int32_t);
+	static const off_t offset_cap     = MEMORY_ALIGN(sizeof(java_object_t),          sizeof(int32_t));
+	static const off_t offset_limit   = MEMORY_ALIGN(offset_cap   + sizeof(int32_t), sizeof(int32_t));
+	static const off_t offset_pos     = MEMORY_ALIGN(offset_limit + sizeof(int32_t), sizeof(int32_t));
+	static const off_t offset_mark    = MEMORY_ALIGN(offset_pos   + sizeof(int32_t), sizeof(int32_t));
+	static const off_t offset_address = MEMORY_ALIGN(offset_mark  + sizeof(int32_t), SIZEOF_VOID_P);
 
 public:
 	java_nio_Buffer(java_handle_t* h) : java_lang_Object(h) {}
@@ -1528,15 +1528,15 @@ class java_nio_DirectByteBufferImpl : public java_lang_Object, private FieldAcce
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_cap            = sizeof(java_object_t);
-	static const off_t offset_limit          = offset_cap            + sizeof(int32_t);
-	static const off_t offset_pos            = offset_limit          + sizeof(int32_t);
-	static const off_t offset_mark           = offset_pos            + sizeof(int32_t);
-	static const off_t offset_address        = offset_mark           + sizeof(int32_t);
-	static const off_t offset_endian         = offset_address        + SIZEOF_VOID_P;
-	static const off_t offset_backing_buffer = offset_endian         + SIZEOF_VOID_P;
-	static const off_t offset_array_offset   = offset_backing_buffer + SIZEOF_VOID_P;
-	static const off_t offset_owner          = offset_array_offset   + sizeof(int32_t);
+	static const off_t offset_cap            = MEMORY_ALIGN(sizeof(java_object_t),                   sizeof(int32_t));
+	static const off_t offset_limit          = MEMORY_ALIGN(offset_cap            + sizeof(int32_t), sizeof(int32_t));
+	static const off_t offset_pos            = MEMORY_ALIGN(offset_limit          + sizeof(int32_t), sizeof(int32_t));
+	static const off_t offset_mark           = MEMORY_ALIGN(offset_pos            + sizeof(int32_t), sizeof(int32_t));
+	static const off_t offset_address        = MEMORY_ALIGN(offset_mark           + sizeof(int32_t), SIZEOF_VOID_P);
+	static const off_t offset_endian         = MEMORY_ALIGN(offset_address        + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_backing_buffer = MEMORY_ALIGN(offset_endian         + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_array_offset   = MEMORY_ALIGN(offset_backing_buffer + SIZEOF_VOID_P,   sizeof(int32_t));
+	static const off_t offset_owner          = MEMORY_ALIGN(offset_array_offset   + sizeof(int32_t), SIZEOF_VOID_P);
 
 public:
 	java_nio_DirectByteBufferImpl(java_handle_t* h) : java_lang_Object(h) {}
@@ -1573,7 +1573,7 @@ class gnu_classpath_Pointer : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_data = sizeof(java_object_t);
+	static const off_t offset_data = MEMORY_ALIGN(sizeof(java_object_t), SIZEOF_VOID_P);
 
 public:
 	gnu_classpath_Pointer(java_handle_t* h) : java_lang_Object(h) {}
@@ -1615,7 +1615,7 @@ class sun_reflect_ConstantPool : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_constantPoolOop = sizeof(java_object_t);
+	static const off_t offset_constantPoolOop = MEMORY_ALIGN(sizeof(java_object_t), SIZEOF_VOID_P);
 
 public:
 	sun_reflect_ConstantPool(java_handle_t* h) : java_lang_Object(h) {}
