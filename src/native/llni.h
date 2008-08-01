@@ -147,7 +147,7 @@ extern "C" {
 *******************************************************************************/
 
 #define LLNI_classinfo_wrap(classinfo) \
-	((java_lang_Class *) LLNI_WRAP(classinfo))
+	((java_handle_t*) LLNI_WRAP(classinfo))
 
 #define LLNI_classinfo_unwrap(clazz) \
 	((classinfo *) LLNI_UNWRAP((java_handle_t *) (clazz)))

@@ -24,72 +24,8 @@
 JAVAH    = $(CACAOH)
 JAVAHCMD = $(JAVAH) -bootclasspath $(BOOTCLASSPATH)
 
-COMMON_HEADER_FILES = \
-	java_lang_Class.h \
-	java_lang_Object.h \
-	java_lang_String.h \
-	java_lang_Thread.h \
-	java_lang_Throwable.h \
-	\
-	java_io_InputStream.h \
-	java_io_PrintStream.h \
-	\
-	java_lang_Boolean.h \
-	java_lang_Byte.h \
-	java_lang_Character.h \
-	java_lang_Double.h \
-	java_lang_Float.h \
-	java_lang_Integer.h \
-	java_lang_Long.h \
-	java_lang_Short.h
-
-JAVASE_HEADER_FILES = \
-	java_lang_ClassLoader.h \
-	java_lang_Cloneable.h \
-	java_lang_ThreadGroup.h \
-	java_util_Properties.h \
-	\
-	java_lang_Process.h \
-	java_lang_StackTraceElement.h \
-	java_lang_reflect_Constructor.h \
-	java_lang_reflect_Field.h \
-	java_lang_reflect_Method.h \
-	java_nio_Buffer.h \
-	java_security_ProtectionDomain.h \
-	java_util_HashMap.h \
-	java_util_Map.h \
-	java_util_concurrent_atomic_AtomicLong.h \
-	sun_misc_Unsafe.h
-
-if WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH
-JAVASE_HEADER_FILES += \
-	java_lang_VMThread.h \
-	java_lang_VMThrowable.h \
-	\
-	gnu_classpath_Pointer.h \
-	gnu_classpath_Pointer32.h \
-	gnu_classpath_Pointer64.h \
-	gnu_java_lang_VMCPStringBuilder.h \
-	java_lang_VMObject.h \
-	java_lang_reflect_VMConstructor.h \
-	java_lang_reflect_VMField.h \
-	java_lang_reflect_VMMethod.h \
-	java_nio_DirectByteBufferImpl.h
-
-if ENABLE_ANNOTATIONS
-JAVASE_HEADER_FILES += \
-	sun_reflect_ConstantPool.h
-endif
-endif
-
-if WITH_JAVA_RUNTIME_LIBRARY_OPENJDK
-JAVASE_HEADER_FILES += \
-	java_lang_AssertionStatusDirectives.h \
-	java_nio_ByteBuffer.h \
-	sun_reflect_ConstantPool.h
-endif
-
-JAVAME_CLDC1_1_HEADER_FILES = \
+if WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1
+IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	com_sun_cldc_io_ResourceInputStream.h \
 	com_sun_cldc_io_j2me_socket_Protocol.h \
 	com_sun_cldchi_io_ConsoleOutputStream.h \
@@ -98,55 +34,59 @@ JAVAME_CLDC1_1_HEADER_FILES = \
 	java_lang_Math.h \
 	java_lang_Runtime.h \
 	java_lang_System.h
-
-JVMTI_HEADER_FILES = \
-	gnu_classpath_jdwp_VMFrame.h \
-	gnu_classpath_jdwp_VMMethod.h \
-	gnu_classpath_jdwp_VMVirtualMachine.h \
-	gnu_classpath_jdwp_event_EventRequest.h \
-	gnu_classpath_jdwp_util_VariableTable.h
+endif
 
 if WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH
-ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
+IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	gnu_classpath_VMStackWalker.h \
 	gnu_classpath_VMSystemProperties.h \
+	gnu_java_lang_VMCPStringBuilder.h \
 	gnu_java_lang_management_VMClassLoadingMXBeanImpl.h \
 	gnu_java_lang_management_VMMemoryMXBeanImpl.h \
 	gnu_java_lang_management_VMRuntimeMXBeanImpl.h \
 	gnu_java_lang_management_VMThreadMXBeanImpl.h \
 	java_lang_VMClass.h \
 	java_lang_VMClassLoader.h \
+	java_lang_VMObject.h \
 	java_lang_VMRuntime.h \
 	java_lang_VMString.h \
 	java_lang_VMSystem.h \
-	java_lang_management_MemoryUsage.h \
-	java_lang_management_ThreadInfo.h \
+	java_lang_VMThread.h \
+	java_lang_VMThrowable.h \
 	java_lang_management_VMManagementFactory.h \
+	java_lang_reflect_VMConstructor.h \
+	java_lang_reflect_VMField.h \
+	java_lang_reflect_VMMethod.h \
 	java_lang_reflect_VMProxy.h \
-	java_security_VMAccessController.h
+	java_security_VMAccessController.h \
+	java_util_concurrent_atomic_AtomicLong.h \
+	sun_misc_Unsafe.h
+
+if ENABLE_ANNOTATIONS
+IMPLEMENTED_VM_CLASSES_HEADER_FILES += \
+	sun_reflect_ConstantPool.h
+endif
+endif
+
+if WITH_JAVA_RUNTIME_LIBRARY_OPENJDK
+IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
+	sun_misc_Unsafe.h
+endif
+
+if ENABLE_JVMTI
+JVMTI_HEADER_FILES = \
+	gnu_classpath_jdwp_VMFrame.h \
+	gnu_classpath_jdwp_VMMethod.h \
+	gnu_classpath_jdwp_VMVirtualMachine.h \
+	gnu_classpath_jdwp_event_EventRequest.h \
+	gnu_classpath_jdwp_util_VariableTable.h
 endif
 
 CLEANFILES = \
 	*.h
 
 DO_HEADER_FILES = \
-	$(COMMON_HEADER_FILES)
-
-if ENABLE_JAVASE
-DO_HEADER_FILES += \
-	$(JAVASE_HEADER_FILES) \
-	$(ADDITIONAL_IMPLEMENTED_VM_CLASSES_HEADER_FILES)
-endif
-
-if ENABLE_JAVAME_CLDC1_1
-DO_HEADER_FILES += \
-	$(JAVAME_CLDC1_1_HEADER_FILES)
-endif
-
-if ENABLE_JVMTI
-DO_HEADER_FILES += \
-	$(GEN_JVMTI_HEADER_FILES)
-endif
+	$(IMPLEMENTED_VM_CLASSES_HEADER_FILES)
 
 if WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH
 if ENABLE_ZLIB

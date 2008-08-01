@@ -30,10 +30,9 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-// FIXME
-extern "C" {
-#include "native/include/gnu_java_lang_management_VMRuntimeMXBeanImpl.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/gnu_java_lang_management_VMRuntimeMXBeanImpl.h"
+#endif
 
 #include "vm/builtin.h"
 #include "vm/global.h"

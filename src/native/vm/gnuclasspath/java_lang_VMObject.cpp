@@ -31,14 +31,9 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_Class.h"            /* required by j.l.VMO */
-#include "native/include/java_lang_Cloneable.h"        /* required by j.l.VMO */
-#include "native/include/java_lang_Object.h"           /* required by j.l.VMO */
-
-//FIXME
-extern "C" {
-#include "native/include/java_lang_VMObject.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/java_lang_VMObject.h"
+#endif
 
 #include "threads/lock-common.h"
 
@@ -56,7 +51,7 @@ extern "C" {
  * Method:    getClass
  * Signature: (Ljava/lang/Object;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMObject_getClass(JNIEnv *env, jclass clazz, java_lang_Object *obj)
+JNIEXPORT jclass JNICALL Java_java_lang_VMObject_getClass(JNIEnv *env, jclass clazz, jobject obj)
 {
 	classinfo *c;
 
@@ -67,7 +62,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMObject_getClass(JNIEnv *env,
 
 	LLNI_class_get(obj, c);
 
-	return LLNI_classinfo_wrap(c);
+	return (jclass) LLNI_classinfo_wrap(c);
 }
 
 
@@ -76,7 +71,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMObject_getClass(JNIEnv *env,
  * Method:    clone
  * Signature: (Ljava/lang/Cloneable;)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, jclass clazz, java_lang_Cloneable *_this)
+JNIEXPORT jobject JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, jclass clazz, jobject _this)
 {
 	java_handle_t *o;
 	java_handle_t *co;
@@ -85,7 +80,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
 
 	co = builtin_clone(NULL, o);
 
-	return (java_lang_Object *) co;
+	return (jobject) co;
 }
 
 
@@ -94,7 +89,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, j
  * Method:    notify
  * Signature: (Ljava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz, java_lang_Object *_this)
+JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz, jobject _this)
 {
 #if defined(ENABLE_THREADS)
 	lock_notify_object((java_handle_t *) _this);
@@ -107,7 +102,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz,
  * Method:    notifyAll
  * Signature: (Ljava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass clazz, java_lang_Object *_this)
+JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass clazz, jobject _this)
 {
 #if defined(ENABLE_THREADS)
 	lock_notify_all_object((java_handle_t *) _this);
@@ -120,7 +115,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass cla
  * Method:    wait
  * Signature: (Ljava/lang/Object;JI)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, java_lang_Object *o, int64_t ms, int32_t ns)
+JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, jobject o, jlong ms, jint ns)
 {
 #if defined(ENABLE_JVMTI)
 	/* Monitor Wait */

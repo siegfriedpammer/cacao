@@ -1,4 +1,4 @@
-/* src/vm/exceptions.c - exception related functions
+/* src/vm/exceptions.cpp - exception related functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -41,10 +41,6 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_String.h"
-#include "native/include/java_lang_Thread.h"
-#include "native/include/java_lang_Throwable.h"
-
 #include "threads/lock-common.h"
 #include "threads/thread.hpp"
 
@@ -66,6 +62,7 @@
 
 #include "vmcore/class.h"
 #include "vmcore/globals.hpp"
+#include "vmcore/javaobjects.hpp"
 #include "vmcore/loader.h"
 #include "vmcore/method.h"
 #include "vmcore/options.h"
@@ -457,14 +454,12 @@ static void exceptions_throw_utf_throwable(utf *classname,
 										   java_handle_t *cause)
 {
 	classinfo           *c;
-	java_handle_t       *o;
 	methodinfo          *m;
-	java_lang_Throwable *object;
 
 	if (vm->is_initializing())
 		exceptions_abort(classname, NULL);
 
-	object = (java_lang_Throwable *) cause;
+	java_lang_Throwable jlt(cause);
 
 	c = load_class_bootstrap(classname);
 
@@ -473,9 +468,9 @@ static void exceptions_throw_utf_throwable(utf *classname,
 
 	/* create object */
 
-	o = builtin_new(c);
-	
-	if (o == NULL)
+	java_handle_t* h = builtin_new(c);
+
+	if (h == NULL)
 		return;
 
 	/* call initializer */
@@ -489,9 +484,9 @@ static void exceptions_throw_utf_throwable(utf *classname,
 	if (m == NULL)
 		return;
 
-	(void) vm_call_method(m, o, cause);
+	(void) vm_call_method(m, h, jlt.get_handle());
 
-	exceptions_set_exception(o);
+	exceptions_set_exception(h);
 }
 
 
@@ -558,43 +553,35 @@ static void exceptions_throw_utf_exception(utf *classname,
 
 static void exceptions_throw_utf_cause(utf *classname, java_handle_t *cause)
 {
-	classinfo           *c;
-	java_handle_t       *o;
-	methodinfo          *m;
-	java_lang_String    *s;
-	java_lang_Throwable *object;
-
 	if (vm->is_initializing())
 		exceptions_abort(classname, NULL);
 
-	object = (java_lang_Throwable *) cause;
+	java_lang_Throwable jltcause(cause);
 
-	c = load_class_bootstrap(classname);
+	classinfo* c = load_class_bootstrap(classname);
 
 	if (c == NULL)
 		return;
 
 	/* create object */
 
-	o = builtin_new(c);
+	java_handle_t* h = builtin_new(c);
 	
-	if (o == NULL)
+	if (h == NULL)
 		return;
 
 	/* call initializer */
 
-	m = class_resolveclassmethod(c,
-								 utf_init,
-								 utf_java_lang_String__void,
-								 NULL,
-								 true);
+	methodinfo* m = class_resolveclassmethod(c,
+											 utf_init,
+											 utf_java_lang_String__void,
+											 NULL,
+											 true);
 	                      	                      
 	if (m == NULL)
 		return;
 
-	LLNI_field_get_ref(object, detailMessage, s);
-
-	(void) vm_call_method(m, o, s);
+	(void) vm_call_method(m, h, jltcause.get_detailMessage());
 
 	/* call initCause */
 
@@ -607,9 +594,9 @@ static void exceptions_throw_utf_cause(utf *classname, java_handle_t *cause)
 	if (m == NULL)
 		return;
 
-	(void) vm_call_method(m, o, cause);
+	(void) vm_call_method(m, h, jltcause.get_handle());
 
-	exceptions_set_exception(o);
+	exceptions_set_exception(h);
 }
 
 
@@ -1906,34 +1893,26 @@ exceptions_handle_exception_return:
 
 void exceptions_print_exception(java_handle_t *xptr)
 {
-	java_lang_Throwable   *t;
-#if defined(ENABLE_JAVASE)
-	java_lang_Throwable   *cause;
-#endif
-	java_lang_String      *s;
-	classinfo             *c;
-	utf                   *u;
+	java_lang_Throwable jlt(xptr);
 
-	t = (java_lang_Throwable *) xptr;
-
-	if (t == NULL) {
+	if (jlt.is_null()) {
 		puts("NULL\n");
 		return;
 	}
 
 #if defined(ENABLE_JAVASE)
-	LLNI_field_get_ref(t, cause, cause);
+	java_lang_Throwable jltcause(jlt.get_cause());
 #endif
 
 	/* print the root exception */
 
-	LLNI_class_get(t, c);
+	classinfo* c = jlt.get_Class();
 	utf_display_printable_ascii_classname(c->name);
 
-	LLNI_field_get_ref(t, detailMessage, s);
+	java_lang_String jls(jlt.get_detailMessage());
 
-	if (s != NULL) {
-		u = javastring_toutf((java_handle_t *) s, false);
+	if (!jls.is_null()) {
+		utf* u = javastring_toutf(jls.get_handle(), false);
 
 		printf(": ");
 		utf_display_printable_ascii(u);
@@ -1944,16 +1923,17 @@ void exceptions_print_exception(java_handle_t *xptr)
 #if defined(ENABLE_JAVASE)
 	/* print the cause if available */
 
-	if ((cause != NULL) && (cause != t)) {
+	// FIXME cause != t compare with operator override.
+	if ((!jltcause.is_null()) && (jltcause.get_handle() != jlt.get_handle())) {
 		printf("Caused by: ");
-		
-		LLNI_class_get(cause, c);
+
+		c = jltcause.get_Class();
 		utf_display_printable_ascii_classname(c->name);
 
-		LLNI_field_get_ref(cause, detailMessage, s);
+		java_lang_String jlscause(jlt.get_detailMessage());
 
-		if (s != NULL) {
-			u = javastring_toutf((java_handle_t *) s, false);
+		if (jlscause.get_handle() != NULL) {
+			utf* u = javastring_toutf(jlscause.get_handle(), false);
 
 			printf(": ");
 			utf_display_printable_ascii(u);

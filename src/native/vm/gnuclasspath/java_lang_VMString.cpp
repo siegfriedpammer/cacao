@@ -31,12 +31,9 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_String.h"
-
-// FIXME
-extern "C" {
-#include "native/include/java_lang_VMString.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/java_lang_VMString.h"
+#endif
 
 #include "vm/string.hpp"
 
@@ -49,12 +46,12 @@ extern "C" {
  * Method:    intern
  * Signature: (Ljava/lang/String;)Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMString_intern(JNIEnv *env, jclass clazz, java_lang_String *str)
+JNIEXPORT jstring JNICALL Java_java_lang_VMString_intern(JNIEnv *env, jclass clazz, jstring str)
 {
 	if (str == NULL)
 		return NULL;
 
-	return (java_lang_String *) javastring_intern((java_handle_t *) str);
+	return (jstring) javastring_intern((java_handle_t *) str);
 }
 
 } // extern "C"

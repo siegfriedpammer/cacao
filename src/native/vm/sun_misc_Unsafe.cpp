@@ -36,35 +36,16 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_Object.h"                  /* before c.l.C */
-#include "native/include/java_lang_String.h"            /* required by j.l.CL */
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-# include "native/include/java_nio_ByteBuffer.h"        /* required by j.l.CL */
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/include/sun_misc_Unsafe.h"
 #endif
-
-#include "native/include/java_lang_ClassLoader.h"        /* required by j.l.C */
-#include "native/include/java_lang_Class.h"
-#include "native/include/java_lang_reflect_Field.h"
-#include "native/include/java_lang_Thread.h"             /* required by s.m.U */
-#include "native/include/java_lang_Throwable.h"
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-# include "native/include/java_lang_reflect_VMField.h"
-#endif
-
-#include "native/include/java_security_ProtectionDomain.h" /* required by smU */
-
-// FIXME
-extern "C" {
-#include "native/include/sun_misc_Unsafe.h"
-}
 
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/initialize.h"
 #include "vm/string.hpp"
 
+#include "vmcore/javaobjects.hpp"
 #include "vmcore/os.hpp"
 #include "vmcore/utf8.h"
 
@@ -90,7 +71,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_registerNatives(JNIEnv *env, jclass 
  * Method:    getInt
  * Signature: (Ljava/lang/Object;J)I
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getInt__Ljava_lang_Object_2J(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset)
+JNIEXPORT jint JNICALL Java_sun_misc_Unsafe_getInt__Ljava_lang_Object_2J(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
 	int32_t *p;
 	int32_t  value;
@@ -108,7 +89,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getInt__Ljava_lang_Object_2J(JNIE
  * Method:    putInt
  * Signature: (Ljava/lang/Object;JI)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putInt__Ljava_lang_Object_2JI(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, int32_t x)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putInt__Ljava_lang_Object_2JI(JNIEnv *env, jobject _this, jobject o, jlong offset, jint x)
 {
 	int32_t *p;
 
@@ -123,7 +104,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putInt__Ljava_lang_Object_2JI(JNIEnv
  * Method:    getObject
  * Signature: (Ljava/lang/Object;J)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_getObject(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset)
+JNIEXPORT jobject JNICALL Java_sun_misc_Unsafe_getObject(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
 	void **p;
 	void  *value;
@@ -132,7 +113,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_getObject(JNIEnv *env, 
 
 	value = *p;
 
-	return (java_lang_Object*) value;
+	return (jobject) value;
 }
 
 
@@ -141,7 +122,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_getObject(JNIEnv *env, 
  * Method:    putObject
  * Signature: (Ljava/lang/Object;JLjava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObject(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, java_lang_Object *x)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObject(JNIEnv *env, jobject _this, jobject o, jlong offset, jobject x)
 {
 	void **p;
 
@@ -156,7 +137,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObject(JNIEnv *env, sun_misc_Unsa
  * Method:    getBoolean
  * Signature: (Ljava/lang/Object;J)Z
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getBoolean(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset)
+JNIEXPORT jboolean JNICALL Java_sun_misc_Unsafe_getBoolean(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
 	int32_t *p;
 	int32_t  value;
@@ -174,7 +155,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getBoolean(JNIEnv *env, sun_misc_
  * Method:    putBoolean
  * Signature: (Ljava/lang/Object;JZ)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putBoolean(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, int32_t x)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putBoolean(JNIEnv *env, jobject _this, jobject o, jlong offset, jboolean x)
 {
 	int32_t *p;
 
@@ -189,7 +170,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putBoolean(JNIEnv *env, sun_misc_Uns
  * Method:    getByte
  * Signature: (Ljava/lang/Object;J)B
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getByte__Ljava_lang_Object_2J(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset)
+JNIEXPORT jbyte JNICALL Java_sun_misc_Unsafe_getByte__Ljava_lang_Object_2J(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
 	int32_t *p;
 	int32_t  value;
@@ -207,7 +188,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getByte__Ljava_lang_Object_2J(JNI
  * Method:    putByte
  * Signature: (Ljava/lang/Object;JB)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putByte__Ljava_lang_Object_2JB(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, int32_t x)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putByte__Ljava_lang_Object_2JB(JNIEnv *env, jobject _this, jobject o, jlong offset, jbyte x)
 {
 	int32_t *p;
 
@@ -222,7 +203,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putByte__Ljava_lang_Object_2JB(JNIEn
  * Method:    getShort
  * Signature: (Ljava/lang/Object;J)S
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getShort__Ljava_lang_Object_2J(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset)
+JNIEXPORT jshort JNICALL Java_sun_misc_Unsafe_getShort__Ljava_lang_Object_2J(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
 	int32_t *p;
 	int32_t  value;
@@ -240,7 +221,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getShort__Ljava_lang_Object_2J(JN
  * Method:    putShort
  * Signature: (Ljava/lang/Object;JS)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putShort__Ljava_lang_Object_2JS(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, int32_t x)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putShort__Ljava_lang_Object_2JS(JNIEnv *env, jobject _this, jobject o, jlong offset, jshort x)
 {
 	int32_t *p;
 
@@ -255,7 +236,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putShort__Ljava_lang_Object_2JS(JNIE
  * Method:    getChar
  * Signature: (Ljava/lang/Object;J)C
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getChar__Ljava_lang_Object_2J(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset)
+JNIEXPORT jchar JNICALL Java_sun_misc_Unsafe_getChar__Ljava_lang_Object_2J(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
 	int32_t *p;
 	int32_t  value;
@@ -273,7 +254,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getChar__Ljava_lang_Object_2J(JNI
  * Method:    putChar
  * Signature: (Ljava/lang/Object;JC)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putChar__Ljava_lang_Object_2JC(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, int32_t x)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putChar__Ljava_lang_Object_2JC(JNIEnv *env, jobject _this, jobject o, jlong offset, jchar x)
 {
 	int32_t *p;
 
@@ -288,7 +269,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putChar__Ljava_lang_Object_2JC(JNIEn
  * Method:    getLong
  * Signature: (Ljava/lang/Object;J)J
  */
-JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_getLong__Ljava_lang_Object_2J(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset)
+JNIEXPORT jlong JNICALL Java_sun_misc_Unsafe_getLong__Ljava_lang_Object_2J(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
 	int64_t *p;
 	int64_t  value;
@@ -306,7 +287,7 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_getLong__Ljava_lang_Object_2J(JNI
  * Method:    putLong
  * Signature: (Ljava/lang/Object;JJ)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLong__Ljava_lang_Object_2JJ(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, int64_t x)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLong__Ljava_lang_Object_2JJ(JNIEnv *env, jobject _this, jobject o, jlong offset, jlong x)
 {
 	int64_t *p;
 
@@ -321,7 +302,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLong__Ljava_lang_Object_2JJ(JNIEn
  * Method:    getFloat
  * Signature: (Ljava/lang/Object;J)F
  */
-JNIEXPORT float JNICALL Java_sun_misc_Unsafe_getFloat__Ljava_lang_Object_2J(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset)
+JNIEXPORT jfloat JNICALL Java_sun_misc_Unsafe_getFloat__Ljava_lang_Object_2J(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
 	float *p;
 	float  value;
@@ -339,7 +320,7 @@ JNIEXPORT float JNICALL Java_sun_misc_Unsafe_getFloat__Ljava_lang_Object_2J(JNIE
  * Method:    putFloat
  * Signature: (Ljava/lang/Object;JF)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putFloat__Ljava_lang_Object_2JF(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, float x)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putFloat__Ljava_lang_Object_2JF(JNIEnv *env, jobject _this, jobject o, jlong offset, jfloat x)
 {
 	float *p;
 
@@ -354,7 +335,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putFloat__Ljava_lang_Object_2JF(JNIE
  * Method:    getDouble
  * Signature: (Ljava/lang/Object;J)D
  */
-JNIEXPORT double JNICALL Java_sun_misc_Unsafe_getDouble__Ljava_lang_Object_2J(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset)
+JNIEXPORT jdouble JNICALL Java_sun_misc_Unsafe_getDouble__Ljava_lang_Object_2J(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
 	double *p;
 	double  value;
@@ -372,7 +353,7 @@ JNIEXPORT double JNICALL Java_sun_misc_Unsafe_getDouble__Ljava_lang_Object_2J(JN
  * Method:    putDouble
  * Signature: (Ljava/lang/Object;JD)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putDouble__Ljava_lang_Object_2JD(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, double x)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putDouble__Ljava_lang_Object_2JD(JNIEnv *env, jobject _this, jobject o, jlong offset, jdouble x)
 {
 	double *p;
 
@@ -387,7 +368,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putDouble__Ljava_lang_Object_2JD(JNI
  * Method:    getByte
  * Signature: (J)B
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getByte__J(JNIEnv *env, sun_misc_Unsafe *_this, int64_t address)
+JNIEXPORT jbyte JNICALL Java_sun_misc_Unsafe_getByte__J(JNIEnv *env, jobject _this, jlong address)
 {
 	int8_t *p;
 	int8_t  value;
@@ -405,7 +386,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getByte__J(JNIEnv *env, sun_misc_
  * Method:    putByte
  * Signature: (JB)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putByte__JB(JNIEnv *env, sun_misc_Unsafe *_this, int64_t address, int32_t value)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putByte__JB(JNIEnv *env, jobject _this, jlong address, jbyte value)
 {
 	int8_t *p;
 
@@ -420,7 +401,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putByte__JB(JNIEnv *env, sun_misc_Un
  * Method:    getShort
  * Signature: (J)S
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getShort__J(JNIEnv *env, sun_misc_Unsafe *_this, int64_t address)
+JNIEXPORT jshort JNICALL Java_sun_misc_Unsafe_getShort__J(JNIEnv *env, jobject _this, jlong address)
 {
 	int16_t *p;
 	int16_t  value;
@@ -438,7 +419,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getShort__J(JNIEnv *env, sun_misc
  * Method:    putShort
  * Signature: (JS)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putShort__JS(JNIEnv *env, sun_misc_Unsafe *_this, int64_t address, int32_t value)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putShort__JS(JNIEnv *env, jobject _this, jlong address, jshort value)
 {
 	int16_t *p;
 
@@ -453,7 +434,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putShort__JS(JNIEnv *env, sun_misc_U
  * Method:    getChar
  * Signature: (J)C
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getChar__J(JNIEnv *env, sun_misc_Unsafe *_this, int64_t address)
+JNIEXPORT jchar JNICALL Java_sun_misc_Unsafe_getChar__J(JNIEnv *env, jobject _this, jlong address)
 {
 	uint16_t *p;
 	uint16_t  value;
@@ -471,7 +452,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getChar__J(JNIEnv *env, sun_misc_
  * Method:    putChar
  * Signature: (JC)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putChar__JC(JNIEnv *env, sun_misc_Unsafe *_this, int64_t address, int32_t value)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putChar__JC(JNIEnv *env, jobject _this, jlong address, jchar value)
 {
 	uint16_t *p;
 
@@ -486,7 +467,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putChar__JC(JNIEnv *env, sun_misc_Un
  * Method:    getInt
  * Signature: (J)I
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getInt__J(JNIEnv *env, sun_misc_Unsafe *_this, int64_t address)
+JNIEXPORT jint JNICALL Java_sun_misc_Unsafe_getInt__J(JNIEnv *env, jobject _this, jlong address)
 {
 	int32_t *p;
 	int32_t  value;
@@ -504,7 +485,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getInt__J(JNIEnv *env, sun_misc_U
  * Method:    putInt
  * Signature: (JI)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putInt__JI(JNIEnv *env, struct sun_misc_Unsafe* _this, int64_t address, int32_t value)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putInt__JI(JNIEnv *env, jobject _this, jlong address, jint value)
 {
 	int32_t *p;
 
@@ -519,7 +500,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putInt__JI(JNIEnv *env, struct sun_m
  * Method:    getLong
  * Signature: (J)J
  */
-JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_getLong__J(JNIEnv *env, sun_misc_Unsafe *_this, int64_t address)
+JNIEXPORT jlong JNICALL Java_sun_misc_Unsafe_getLong__J(JNIEnv *env, jobject _this, jlong address)
 {
 	int64_t *p;
 	int64_t  value;
@@ -537,7 +518,7 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_getLong__J(JNIEnv *env, sun_misc_
  * Method:    putLong
  * Signature: (JJ)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLong__JJ(JNIEnv *env, sun_misc_Unsafe *_this, int64_t address, int64_t value)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLong__JJ(JNIEnv *env, jobject _this, jlong address, jlong value)
 {
 	int64_t *p;
 
@@ -552,7 +533,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLong__JJ(JNIEnv *env, sun_misc_Un
  * Method:    getFloat
  * Signature: (J)F
  */
-JNIEXPORT float JNICALL Java_sun_misc_Unsafe_getFloat__J(JNIEnv *env, sun_misc_Unsafe *_this, int64_t address)
+JNIEXPORT jfloat JNICALL Java_sun_misc_Unsafe_getFloat__J(JNIEnv *env, jobject _this, jlong address)
 {
 	float *p;
 	float  value;
@@ -570,7 +551,7 @@ JNIEXPORT float JNICALL Java_sun_misc_Unsafe_getFloat__J(JNIEnv *env, sun_misc_U
  * Method:    putFloat
  * Signature: (JF)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putFloat__JF(JNIEnv *env, struct sun_misc_Unsafe* __this, int64_t address, float value)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putFloat__JF(JNIEnv *env, jobject _this, jlong address, jfloat value)
 {
 	float* p;
 
@@ -585,34 +566,24 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putFloat__JF(JNIEnv *env, struct sun
  * Method:    objectFieldOffset
  * Signature: (Ljava/lang/reflect/Field;)J
  */
-JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_objectFieldOffset(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_reflect_Field *field)
+JNIEXPORT jlong JNICALL Java_sun_misc_Unsafe_objectFieldOffset(JNIEnv *env, jobject _this, jobject field)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	java_lang_reflect_VMField *rvmf;
-#endif
-
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
-	LLNI_field_get_ref(field, f,     rvmf);
-	LLNI_field_get_cls(rvmf,  clazz, c);
-	LLNI_field_get_val(rvmf,  slot , slot);
+	java_lang_reflect_Field rf(field);
+	java_lang_reflect_VMField rvmf(rf.get_f());
+	fieldinfo* f = rvmf.get_field();
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
-	LLNI_field_get_cls(field, clazz, c);
-	LLNI_field_get_val(field, slot , slot);
+	LLNI_field_get_cls((java_lang_reflect_Field *) field, clazz, c);
+	LLNI_field_get_val((java_lang_reflect_Field *) field, slot , slot);
 
 #else
 # error unknown configuration
 #endif
 
-	f = &(c->fields[slot]);
-
-	return (int64_t) f->offset;
+	return (jlong) f->offset;
 }
 
 
@@ -621,7 +592,7 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_objectFieldOffset(JNIEnv *env, su
  * Method:    allocateMemory
  * Signature: (J)J
  */
-JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_allocateMemory(JNIEnv *env, sun_misc_Unsafe *_this, int64_t bytes)
+JNIEXPORT jlong JNICALL Java_sun_misc_Unsafe_allocateMemory(JNIEnv *env, jobject _this, jlong bytes)
 {
 	size_t  length;
 	void   *p;
@@ -647,7 +618,7 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_allocateMemory(JNIEnv *env, sun_m
  * Method:    setMemory
  * Signature: (Ljava/lang/Object;JJB)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, int64_t bytes, int32_t value)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, jobject _this, jobject o, jlong offset, jlong bytes, jbyte value)
 {
 	size_t  length;
 	void   *p;
@@ -674,7 +645,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, sun_misc_Unsa
  * Method:    copyMemory
  * Signature: (Ljava/lang/Object;JLjava/lang/Object;JJ)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *srcBase, int64_t srcOffset, java_lang_Object *destBase, int64_t destOffset, int64_t bytes)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory(JNIEnv *env, jobject _this, jobject srcBase, jlong srcOffset, jobject destBase, jlong destOffset, jlong bytes)
 {
 	size_t  length;
 	void   *src;
@@ -703,7 +674,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory(JNIEnv *env, sun_misc_Uns
  * Method:    setMemory
  * Signature: (JJB)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, sun_misc_Unsafe *_this, int64_t address, int64_t bytes, int32_t value)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, jobject _this, jlong address, jlong bytes, jbyte value)
 {
 	size_t  length;
 	void   *p;
@@ -728,7 +699,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, sun_misc_Unsa
  * Method:    copyMemory
  * Signature: (JJJ)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory(JNIEnv *env, sun_misc_Unsafe *_this, int64_t srcAddress, int64_t destAddress, int64_t bytes)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory(JNIEnv *env, jobject _this, jlong srcAddress, jlong destAddress, jlong bytes)
 {
 	size_t  length;
 	void   *src;
@@ -757,7 +728,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory(JNIEnv *env, sun_misc_Uns
  * Method:    freeMemory
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_freeMemory(JNIEnv *env, sun_misc_Unsafe *_this, int64_t address)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_freeMemory(JNIEnv *env, jobject _this, jlong address)
 {
 	void *p;
 
@@ -777,7 +748,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_freeMemory(JNIEnv *env, sun_misc_Uns
  * Method:    staticFieldOffset
  * Signature: (Ljava/lang/reflect/Field;)J
  */
-JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_staticFieldOffset(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_reflect_Field *f)
+JNIEXPORT jlong JNICALL Java_sun_misc_Unsafe_staticFieldOffset(JNIEnv *env, jobject _this, jobject f)
 {
 	/* The offset of static fields is 0. */
 
@@ -790,34 +761,24 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_staticFieldOffset(JNIEnv *env, su
  * Method:    staticFieldBase
  * Signature: (Ljava/lang/reflect/Field;)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_staticFieldBase(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_reflect_Field *rf)
+JNIEXPORT jobject JNICALL Java_sun_misc_Unsafe_staticFieldBase(JNIEnv *env, jobject _this, jobject field)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	java_lang_reflect_VMField *rvmf;
-#endif
-
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
-	LLNI_field_get_ref(rf,   f,     rvmf);
-	LLNI_field_get_cls(rvmf, clazz, c);
-	LLNI_field_get_val(rvmf, slot , slot);
+	java_lang_reflect_Field rf(field);
+	java_lang_reflect_VMField rvmf(rf.get_f());
+	fieldinfo* f = rvmf.get_field();
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
-	LLNI_field_get_cls(rf, clazz, c);
-	LLNI_field_get_val(rf, slot , slot);
+	LLNI_field_get_cls((java_lang_reflect_Field *) rf, clazz, c);
+	LLNI_field_get_val((java_lang_reflect_Field *) rf, slot , slot);
 
 #else
 # error unknown configuration
 #endif
 
-	f = &(c->fields[slot]);
-
-	return (java_lang_Object *) (f->value);
+	return (jobject) (f->value);
 }
 
 
@@ -826,7 +787,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_staticFieldBase(JNIEnv 
  * Method:    ensureClassInitialized
  * Signature: (Ljava/lang/Class;)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_ensureClassInitialized(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Class *clazz)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_ensureClassInitialized(JNIEnv *env, jobject _this, jclass clazz)
 {
 	classinfo *c;
 
@@ -842,7 +803,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_ensureClassInitialized(JNIEnv *env, 
  * Method:    arrayBaseOffset
  * Signature: (Ljava/lang/Class;)I
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_arrayBaseOffset(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Class *arrayClass)
+JNIEXPORT jint JNICALL Java_sun_misc_Unsafe_arrayBaseOffset(JNIEnv *env, jobject _this, jclass arrayClass)
 {
 	classinfo       *c;
 	arraydescriptor *ad;
@@ -865,7 +826,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_arrayBaseOffset(JNIEnv *env, sun_
  * Method:    arrayIndexScale
  * Signature: (Ljava/lang/Class;)I
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_arrayIndexScale(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Class *arrayClass)
+JNIEXPORT jint JNICALL Java_sun_misc_Unsafe_arrayIndexScale(JNIEnv *env, jobject _this, jclass arrayClass)
 {
 	classinfo       *c;
 	arraydescriptor *ad;
@@ -888,7 +849,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_arrayIndexScale(JNIEnv *env, sun_
  * Method:    addressSize
  * Signature: ()I
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_addressSize(JNIEnv *env, sun_misc_Unsafe *_this)
+JNIEXPORT jint JNICALL Java_sun_misc_Unsafe_addressSize(JNIEnv *env, jobject _this)
 {
 	return SIZEOF_VOID_P;
 }
@@ -899,7 +860,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_addressSize(JNIEnv *env, sun_misc
  * Method:    pageSize
  * Signature: ()I
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_pageSize(JNIEnv *env, sun_misc_Unsafe *_this)
+JNIEXPORT jint JNICALL Java_sun_misc_Unsafe_pageSize(JNIEnv *env, jobject _this)
 {
 	int sz;
 
@@ -914,12 +875,11 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_pageSize(JNIEnv *env, sun_misc_Un
  * Method:    defineClass
  * Signature: (Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_String_2_3BIILjava_lang_ClassLoader_2Ljava_security_ProtectionDomain_2(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_String *name, java_handle_bytearray_t *b, int32_t off, int32_t len, java_lang_ClassLoader *loader, java_security_ProtectionDomain *protectionDomain)
+JNIEXPORT jclass JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_String_2_3BIILjava_lang_ClassLoader_2Ljava_security_ProtectionDomain_2(JNIEnv *env, jobject _this, jstring name, jbyteArray b, jint off, jint len, jobject loader, jobject protectionDomain)
 {
 	classloader_t   *cl;
 	utf             *utfname;
 	classinfo       *c;
-	java_lang_Class *o;
 
 	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
@@ -948,23 +908,21 @@ JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_
 
 	/* define the class */
 
-	c = class_define(utfname, cl, len, (uint8_t *) &(LLNI_array_direct(b, off)),
+	c = class_define(utfname, cl, len, (uint8_t *) &(LLNI_array_direct((java_handle_bytearray_t*) b, off)),
 					 (java_handle_t *) protectionDomain);
 
 	if (c == NULL)
 		return NULL;
 
-	/* for convenience */
-
-	o = LLNI_classinfo_wrap(c);
+	java_handle_t* h = LLNI_classinfo_wrap(c);
+	java_lang_Class jlc(h);
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	/* set ProtectionDomain */
-
-	LLNI_field_set_ref(o, pd, protectionDomain);
+	// Set ProtectionDomain.
+	jlc.set_pd(protectionDomain);
 #endif
 
-	return o;
+	return (jclass) jlc.get_handle();
 }
 
 
@@ -973,7 +931,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_
  * Method:    allocateInstance
  * Signature: (Ljava/lang/Class;)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_allocateInstance(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Class *cls)
+JNIEXPORT jobject JNICALL Java_sun_misc_Unsafe_allocateInstance(JNIEnv *env, jobject _this, jclass cls)
 {
 	classinfo     *c;
 	java_handle_t *o;
@@ -982,7 +940,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_allocateInstance(JNIEnv
 
 	o = builtin_new(c);
 
-	return (java_lang_Object *) o;
+	return (jobject ) o;
 }
 
 
@@ -991,7 +949,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_allocateInstance(JNIEnv
  * Method:    throwException
  * Signature: (Ljava/lang/Throwable;)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_throwException(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Throwable *ee)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_throwException(JNIEnv *env, jobject _this, jobject ee)
 {
 	java_handle_t *o;
 
@@ -1006,7 +964,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_throwException(JNIEnv *env, sun_misc
  * Method:    compareAndSwapObject
  * Signature: (Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapObject(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, java_lang_Object *expected, java_lang_Object *x)
+JNIEXPORT jboolean JNICALL Java_sun_misc_Unsafe_compareAndSwapObject(JNIEnv *env, jobject _this, jobject o, jlong offset, jobject expected, jobject x)
 {
 	volatile void **p;
 	void           *result;
@@ -1029,7 +987,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapObject(JNIEnv *env,
  * Method:    compareAndSwapInt
  * Signature: (Ljava/lang/Object;JII)Z
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapInt(JNIEnv *env, sun_misc_Unsafe* _this, java_lang_Object* o, int64_t offset, int32_t expected, int32_t x)
+JNIEXPORT jboolean JNICALL Java_sun_misc_Unsafe_compareAndSwapInt(JNIEnv *env, jobject _this, jobject o, jlong offset, jint expected, jint x)
 {
 	uint32_t *p;
 	uint32_t  result;
@@ -1052,7 +1010,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapInt(JNIEnv *env, su
  * Method:    compareAndSwapLong
  * Signature: (Ljava/lang/Object;JJJ)Z
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapLong(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, int64_t expected, int64_t x)
+JNIEXPORT jboolean JNICALL Java_sun_misc_Unsafe_compareAndSwapLong(JNIEnv *env, jobject _this, jobject o, jlong offset, jlong expected, jlong x)
 {
 	uint64_t *p;
 	uint64_t  result;
@@ -1075,7 +1033,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_compareAndSwapLong(JNIEnv *env, s
  * Method:    getObjectVolatile
  * Signature: (Ljava/lang/Object;J)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_getObjectVolatile(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset)
+JNIEXPORT jobject JNICALL Java_sun_misc_Unsafe_getObjectVolatile(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
 	volatile void **p;
 	volatile void  *value;
@@ -1084,7 +1042,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_getObjectVolatile(JNIEn
 
 	value = *p;
 
-	return (java_lang_Object *) value;
+	return (jobject ) value;
 }
 
 
@@ -1093,7 +1051,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_sun_misc_Unsafe_getObjectVolatile(JNIEn
  * Method:    putObjectVolatile
  * Signature: (Ljava/lang/Object;JLjava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObjectVolatile(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, java_lang_Object *x)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObjectVolatile(JNIEnv *env, jobject _this, jobject o, jlong offset, jobject x)
 {
 	volatile void **p;
 
@@ -1147,7 +1105,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObjectVolatile(JNIEnv *env, sun_m
  * Method:    getIntVolatile
  * Signature: (Ljava/lang/Object;J)I
  */
-JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getIntVolatile(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset)
+JNIEXPORT jint JNICALL Java_sun_misc_Unsafe_getIntVolatile(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
 	UNSAFE_GET_VOLATILE(int32_t);
 }
@@ -1158,7 +1116,7 @@ JNIEXPORT int32_t JNICALL Java_sun_misc_Unsafe_getIntVolatile(JNIEnv *env, sun_m
  * Method:    putIntVolatile
  * Signature: (Ljava/lang/Object;JI)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putIntVolatile(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, int32_t x)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putIntVolatile(JNIEnv *env, jobject _this, jobject o, jlong offset, jint x)
 {
 	UNSAFE_PUT_VOLATILE(int32_t);
 }
@@ -1169,7 +1127,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putIntVolatile(JNIEnv *env, sun_misc
  * Method:    getLongVolatile
  * Signature: (Ljava/lang/Object;J)J
  */
-JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_getLongVolatile(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset)
+JNIEXPORT jlong JNICALL Java_sun_misc_Unsafe_getLongVolatile(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
 	UNSAFE_GET_VOLATILE(int64_t);
 }
@@ -1180,7 +1138,7 @@ JNIEXPORT int64_t JNICALL Java_sun_misc_Unsafe_getLongVolatile(JNIEnv *env, sun_
  * Method:    putLongVolatile
  * Signature: (Ljava/lang/Object;JJ)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLongVolatile(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, int64_t x)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLongVolatile(JNIEnv *env, jobject _this, jobject o, jlong offset, jlong x)
 {
 	UNSAFE_PUT_VOLATILE(int64_t);
 }
@@ -1191,7 +1149,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLongVolatile(JNIEnv *env, sun_mis
  * Method:    getDoubleVolatile
  * Signature: (Ljava/lang/Object;J)D
  */
-JNIEXPORT double JNICALL Java_sun_misc_Unsafe_getDoubleVolatile(JNIEnv *env, sun_misc_Unsafe* __this, java_lang_Object* o, int64_t offset)
+JNIEXPORT jdouble JNICALL Java_sun_misc_Unsafe_getDoubleVolatile(JNIEnv *env, jobject __this, jobject o, jlong offset)
 {
 	UNSAFE_GET_VOLATILE(double);
 }
@@ -1202,7 +1160,7 @@ JNIEXPORT double JNICALL Java_sun_misc_Unsafe_getDoubleVolatile(JNIEnv *env, sun
  * Method:    putOrderedObject
  * Signature: (Ljava/lang/Object;JLjava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedObject(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, java_lang_Object *x)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedObject(JNIEnv *env, jobject _this, jobject o, jlong offset, jobject x)
 {
 	java_handle_t  *_h;
 	java_handle_t  *_hx;
@@ -1232,7 +1190,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedObject(JNIEnv *env, sun_mi
  * Method:    putOrderedInt
  * Signature: (Ljava/lang/Object;JI)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedInt(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, int32_t x)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedInt(JNIEnv *env, jobject _this, jobject o, jlong offset, jint x)
 {
 	UNSAFE_PUT_VOLATILE(int32_t);
 }
@@ -1243,7 +1201,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedInt(JNIEnv *env, sun_misc_
  * Method:    putOrderedLong
  * Signature: (Ljava/lang/Object;JJ)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedLong(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *o, int64_t offset, int64_t x)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedLong(JNIEnv *env, jobject _this, jobject o, jlong offset, jlong x)
 {
 	UNSAFE_PUT_VOLATILE(int64_t);
 }
@@ -1254,7 +1212,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedLong(JNIEnv *env, sun_misc
  * Method:    unpark
  * Signature: (Ljava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_unpark(JNIEnv *env, sun_misc_Unsafe *_this, java_lang_Object *thread)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_unpark(JNIEnv *env, jobject _this, jobject thread)
 {
 	/* XXX IMPLEMENT ME */
 }
@@ -1265,7 +1223,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_unpark(JNIEnv *env, sun_misc_Unsafe 
  * Method:    park
  * Signature: (ZJ)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_park(JNIEnv *env, sun_misc_Unsafe *_this, int32_t isAbsolute, int64_t time)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_park(JNIEnv *env, jobject _this, jboolean isAbsolute, jlong time)
 {
 	/* XXX IMPLEMENT ME */
 }

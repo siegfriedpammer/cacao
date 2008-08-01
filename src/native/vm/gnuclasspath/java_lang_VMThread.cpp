@@ -31,17 +31,9 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_ThreadGroup.h"
-#include "native/include/java_lang_Object.h"            /* java_lang_Thread.h */
-#include "native/include/java_lang_Throwable.h"         /* java_lang_Thread.h */
-
-// FIXME
-extern "C" {
-#include "native/include/java_lang_VMThread.h"
-}
-
-#include "native/include/java_lang_String.h"
-#include "native/include/java_lang_Thread.h"
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/java_lang_VMThread.h"
+#endif
 
 #include "threads/lock-common.h"
 #include "threads/thread.hpp"
@@ -49,6 +41,7 @@ extern "C" {
 #include "vm/exceptions.hpp"
 #include "vm/string.hpp"
 
+#include "vmcore/javaobjects.hpp"
 #include "vmcore/utf8.h"
 
 
@@ -60,7 +53,7 @@ extern "C" {
  * Method:    countStackFrames
  * Signature: ()I
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, java_lang_VMThread *_this)
+JNIEXPORT jint JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, jobject _this)
 {
 	log_println("Java_java_lang_VMThread_countStackFrames: Deprecated.  Not implemented.");
 
@@ -73,14 +66,12 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, 
  * Method:    start
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMThread *_this, int64_t stacksize)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, jobject _this, jlong stacksize)
 {
-	java_lang_Thread *thread;
-
-	LLNI_field_get_ref(_this, thread, thread);
-
 #if defined(ENABLE_THREADS)
-	threads_thread_start((java_handle_t *) thread);
+	java_lang_VMThread jlvmt(_this);
+
+	threads_thread_start(jlvmt.get_thread());
 #endif
 }
 
@@ -90,7 +81,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_start(JNIEnv *env, java_lang_VMTh
  * Method:    interrupt
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, java_lang_VMThread *_this)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, jobject _this)
 {
 #if defined(ENABLE_THREADS)
 	java_handle_t *h;
@@ -109,7 +100,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, java_lang_
  * Method:    isInterrupted
  * Signature: ()Z
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, java_lang_VMThread *_this)
+JNIEXPORT jboolean JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, jobject _this)
 {
 #if defined(ENABLE_THREADS)
 	java_handle_t *h;
@@ -130,7 +121,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, jav
  * Method:    suspend
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, java_lang_VMThread *_this)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, jobject _this)
 {
 #if defined(ENABLE_THREADS)
 	log_println("Java_java_lang_VMThread_suspend: Deprecated.  Not implemented.");
@@ -143,7 +134,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_suspend(JNIEnv *env, java_lang_VM
  * Method:    resume
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, java_lang_VMThread *_this)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, jobject _this)
 {
 #if defined(ENABLE_THREADS)
 	log_println("Java_java_lang_VMThread_resume: Deprecated.  Not implemented.");
@@ -156,7 +147,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_resume(JNIEnv *env, java_lang_VMT
  * Method:    nativeSetPriority
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, java_lang_VMThread *_this, int32_t priority)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, jobject _this, jint priority)
 {
 #if defined(ENABLE_THREADS)
 	java_handle_t *h;
@@ -175,7 +166,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, ja
  * Method:    nativeStop
  * Signature: (Ljava/lang/Throwable;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeStop(JNIEnv *env, java_lang_VMThread *_this, java_lang_Throwable *t)
+JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeStop(JNIEnv *env, jobject _this, jobject t)
 {
 #if defined(ENABLE_THREADS)
 	log_println("Java_java_lang_VMThread_nativeStop: Deprecated.  Not implemented.");
@@ -188,13 +179,13 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeStop(JNIEnv *env, java_lang
  * Method:    currentThread
  * Signature: ()Ljava/lang/Thread;
  */
-JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_VMThread_currentThread(JNIEnv *env, jclass clazz)
+JNIEXPORT jobject JNICALL Java_java_lang_VMThread_currentThread(JNIEnv *env, jclass clazz)
 {
-	java_lang_Thread *to;
+	java_handle_t* h;
 
-	to = (java_lang_Thread *) thread_get_current_object();
+	h = thread_get_current_object();
 
-	return to;
+	return (jobject) h;
 }
 
 
@@ -229,7 +220,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_sleep(JNIEnv *env, jclass clazz, 
  * Method:    interrupted
  * Signature: ()Z
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_interrupted(JNIEnv *env, jclass clazz)
+JNIEXPORT jboolean JNICALL Java_java_lang_VMThread_interrupted(JNIEnv *env, jclass clazz)
 {
 #if defined(ENABLE_THREADS)
 	threadobject *t;
@@ -254,7 +245,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_interrupted(JNIEnv *env, jclas
  * Method:    holdsLock
  * Signature: (Ljava/lang/Object;)Z
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass clazz, java_lang_Object* o)
+JNIEXPORT jboolean JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass clazz, jobject o)
 {
 #if defined(ENABLE_THREADS)
 	java_handle_t *h;
@@ -278,7 +269,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMThread_holdsLock(JNIEnv *env, jclass 
  * Method:    getState
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMThread_getState(JNIEnv *env, java_lang_VMThread *_this)
+JNIEXPORT jstring JNICALL Java_java_lang_VMThread_getState(JNIEnv *env, jobject _this)
 {
 #if defined(ENABLE_THREADS)
 	java_handle_t *h;
@@ -321,7 +312,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMThread_getState(JNIEnv *env
 
 	o = javastring_new(u);
 
-	return (java_lang_String *) o;
+	return (jstring) o;
 #else
 	return NULL;
 #endif

@@ -34,18 +34,9 @@
 #include "native/jni.h"
 #include "native/llni.h"
 #include "native/native.h"
-#include "native/include/java_lang_Class.h"
-#include "native/include/java_lang_String.h"
-#include "native/include/java_security_ProtectionDomain.h"  /* required by... */
-#include "native/include/java_lang_ClassLoader.h"
-#include "native/include/java_util_HashMap.h"
-#include "native/include/java_util_Map.h"
-#include "native/include/java_lang_Boolean.h"
 
 // FIXME
-extern "C" {
-#include "native/include/java_lang_VMClassLoader.h"
-}
+//#include "native/include/java_lang_VMClassLoader.h"
 
 #include "toolbox/logging.h"
 #include "toolbox/list.h"
@@ -66,6 +57,7 @@ extern "C" {
 #include "vmcore/class.h"
 #include "vmcore/classcache.h"
 #include "vmcore/globals.hpp"
+#include "vmcore/javaobjects.hpp"
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
@@ -86,12 +78,13 @@ extern "C" {
  * Method:    defineClass
  * Signature: (Ljava/lang/ClassLoader;Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *cl, java_lang_String *name, java_handle_bytearray_t *data, int32_t offset, int32_t len, java_security_ProtectionDomain *pd)
+JNIEXPORT jclass JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, jobject cl, jstring name, jbyteArray data, jint offset, jint len, jobject pd)
 {
 	utf             *utfname;
 	classinfo       *c;
 	classloader_t   *loader;
-	java_lang_Class *o;
+	java_handle_bytearray_t* ba;
+	uint8_t*                 stream;
 
 #if defined(ENABLE_JVMTI)
 	jint new_class_data_len = 0;
@@ -145,20 +138,23 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
 		c = class_define(utfname, loader, new_class_data_len, new_class_data, pd); 
 	else
 #endif
-		c = class_define(utfname, loader, len, (uint8_t *) &LLNI_array_direct(data, offset), (java_handle_t *) pd);
+	{
+		ba = (java_handle_bytearray_t*) data;
+		stream = (uint8_t *) &LLNI_array_direct(ba, offset);
+		c = class_define(utfname, loader, len, stream, (java_handle_t *) pd);
+	}
 
 	if (c == NULL)
 		return NULL;
 
-	/* for convenience */
+	// REMOVEME
+	java_handle_t* h = LLNI_classinfo_wrap(c);
 
-	o = LLNI_classinfo_wrap(c);
+	// Set ProtectionDomain.
+	java_lang_Class jlc(h);
+	jlc.set_pd(pd);
 
-	/* set ProtectionDomain */
-
-	LLNI_field_set_ref(o, pd, pd);
-
-	return o;
+	return (jclass) jlc.get_handle();
 }
 
 
@@ -167,7 +163,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_defineClass(JNIE
  * Method:    getPrimitiveClass
  * Signature: (C)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClass(JNIEnv *env, jclass clazz, int32_t type)
+JNIEXPORT jclass JNICALL Java_java_lang_VMClassLoader_getPrimitiveClass(JNIEnv *env, jclass clazz, jchar type)
 {
 	classinfo *c;
 
@@ -178,7 +174,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
 		return NULL;
 	}
 
-	return LLNI_classinfo_wrap(c);
+	return (jclass) LLNI_classinfo_wrap(c);
 }
 
 
@@ -187,7 +183,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_getPrimitiveClas
  * Method:    resolveClass
  * Signature: (Ljava/lang/Class;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jclass clazz, java_lang_Class *c)
+JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jclass clazz, jclass c)
 {
 	classinfo *ci;
 
@@ -212,7 +208,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMClassLoader_resolveClass(JNIEnv *env, jc
  * Method:    loadClass
  * Signature: (Ljava/lang/String;Z)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv *env, jclass clazz, java_lang_String *name, int32_t resolve)
+JNIEXPORT jclass JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv *env, jclass clazz, jstring name, jboolean resolve)
 {
 	classinfo *c;
 	utf       *u;
@@ -239,7 +235,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
 		if (!link_class(c))
 			return NULL;
 
-	return LLNI_classinfo_wrap(c);
+	return (jclass) LLNI_classinfo_wrap(c);
 }
 
 
@@ -248,7 +244,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_loadClass(JNIEnv
  * Method:    nativeGetResources
  * Signature: (Ljava/lang/String;)Ljava/util/Vector;
  */
-JNIEXPORT struct java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv *env, jclass clazz, java_lang_String *name)
+JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv *env, jclass clazz, jstring name)
 {
 	java_handle_t        *o;         /* vector being created     */
 	methodinfo           *m;         /* "add" method of vector   */
@@ -378,7 +374,7 @@ JNIEXPORT struct java_util_Vector* JNICALL Java_java_lang_VMClassLoader_nativeGe
 
 	MFREE(buffer, char, bufsize);
 
-	return (struct java_util_Vector *) o;
+	return (jobject) o;
 
 return_NULL:
 	MFREE(buffer, char, bufsize);
@@ -392,7 +388,7 @@ return_NULL:
  * Method:    defaultAssertionStatus
  * Signature: ()Z
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_VMClassLoader_defaultAssertionStatus(JNIEnv *env, jclass clazz)
+JNIEXPORT jboolean JNICALL Java_java_lang_VMClassLoader_defaultAssertionStatus(JNIEnv *env, jclass clazz)
 {
 #if defined(ENABLE_ASSERTION)
 	return assertion_system_enabled;
@@ -406,7 +402,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMClassLoader_defaultAssertionStatus(JN
  * Method:    userAssertionStatus
  * Signature: ()Z
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_VMClassLoader_defaultUserAssertionStatus(JNIEnv *env, jclass clazz)
+JNIEXPORT jboolean JNICALL Java_java_lang_VMClassLoader_defaultUserAssertionStatus(JNIEnv *env, jclass clazz)
 {
 #if defined(ENABLE_ASSERTION)
 	return assertion_user_enabled;
@@ -418,9 +414,9 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMClassLoader_defaultUserAssertionStatu
 /*
  * Class:     java/lang/VMClassLoader
  * Method:    packageAssertionStatus
- * Signature: ()Ljava_util_Map;
+ * Signature: (Ljava/lang/Boolean;Ljava/lang/Boolean;)Ljava/util/Map;
  */
-JNIEXPORT java_util_Map* JNICALL Java_java_lang_VMClassLoader_packageAssertionStatus0(JNIEnv *env, jclass clazz, java_lang_Boolean *jtrue, java_lang_Boolean *jfalse)
+JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_packageAssertionStatus0(JNIEnv *env, jclass clazz, jobject jtrue, jobject jfalse)
 {
 	java_handle_t     *hm;
 #if defined(ENABLE_ASSERTION)
@@ -440,7 +436,7 @@ JNIEXPORT java_util_Map* JNICALL Java_java_lang_VMClassLoader_packageAssertionSt
 	/* if nothing todo, return now */
 
 	if (assertion_package_count == 0) {
-		return (java_util_Map *) hm;
+		return (jobject) hm;
 	}
 
 	/* get HashMap.put method */
@@ -485,15 +481,15 @@ JNIEXPORT java_util_Map* JNICALL Java_java_lang_VMClassLoader_packageAssertionSt
 	}
 #endif
 
-	return (java_util_Map *) hm;
+	return (jobject) hm;
 }
 
 /*
  * Class:     java/lang/VMClassLoader
  * Method:    classAssertionStatus
- * Signature: ()Ljava_util_Map;
+ * Signature: (Ljava/lang/Boolean;Ljava/lang/Boolean;)Ljava/util/Map;
  */
-JNIEXPORT java_util_Map* JNICALL Java_java_lang_VMClassLoader_classAssertionStatus0(JNIEnv *env, jclass clazz, java_lang_Boolean *jtrue, java_lang_Boolean *jfalse)
+JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_classAssertionStatus0(JNIEnv *env, jclass clazz, jobject jtrue, jobject jfalse)
 {
 	java_handle_t     *hm;
 #if defined(ENABLE_ASSERTION)
@@ -513,7 +509,7 @@ JNIEXPORT java_util_Map* JNICALL Java_java_lang_VMClassLoader_classAssertionStat
 	/* if nothing todo, return now */
 
 	if (assertion_class_count == 0) {
-		return (java_util_Map *) hm;
+		return (jobject) hm;
 	}
 
 	/* get HashMap.put method */
@@ -552,7 +548,7 @@ JNIEXPORT java_util_Map* JNICALL Java_java_lang_VMClassLoader_classAssertionStat
 	}
 #endif
 
-	return (java_util_Map *) hm;
+	return (jobject) hm;
 }
 
 
@@ -561,7 +557,7 @@ JNIEXPORT java_util_Map* JNICALL Java_java_lang_VMClassLoader_classAssertionStat
  * Method:    findLoadedClass
  * Signature: (Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_findLoadedClass(JNIEnv *env, jclass clazz, java_lang_ClassLoader *loader, java_lang_String *name)
+JNIEXPORT jclass JNICALL Java_java_lang_VMClassLoader_findLoadedClass(JNIEnv *env, jclass clazz, jobject loader, jstring name)
 {
 	classloader_t *cl;
 	classinfo     *c;
@@ -584,7 +580,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_VMClassLoader_findLoadedClass(
 	if (c == NULL)
 		c = classcache_lookup(cl, u);
 
-	return LLNI_classinfo_wrap(c);
+	return (jclass) LLNI_classinfo_wrap(c);
 }
 
 } // extern "C"

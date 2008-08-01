@@ -549,7 +549,6 @@ AC_DEFINE_UNQUOTED([CACAO_VM_ZIP], "${CACAO_VM_ZIP}", [CACAO's vm.zip])
 AC_SUBST(CACAO_VM_ZIP)
 
 
-AC_CHECK_WITH_CACAOH
 AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY
 
 dnl Now we check for jre-layout so we can skip some checks that are
@@ -653,7 +652,6 @@ AC_CONFIG_FILES([Makefile]
 		[man/Makefile]
 		[src/Makefile]
 		[src/cacao/Makefile]
-		[src/cacaoh/Makefile]
 		[src/classes/Makefile]
 		[src/fdlibm/Makefile]
 		[src/mm/Makefile]

@@ -25,7 +25,7 @@ dist_noinst_DATA = \
 	Doxyfile
 
 doxygen:
-	doxygen
+	doxygen $(srcdir)/Doxyfile
 
 clean-local:
 	-rm -rf html latex

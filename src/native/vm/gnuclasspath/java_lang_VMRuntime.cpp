@@ -45,14 +45,9 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_ClassLoader.h"
-#include "native/include/java_lang_String.h"
-#include "native/include/java_lang_Process.h"
-
-// FIXME
-extern "C" {
-#include "native/include/java_lang_VMRuntime.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/java_lang_VMRuntime.h"
+#endif
 
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
@@ -74,7 +69,7 @@ extern "C" {
  * Method:    exit
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMRuntime_exit(JNIEnv *env, jclass clazz, int32_t status)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_exit(JNIEnv *env, jclass clazz, jint status)
 {
 	if (finalizeOnExit)
 		gc_finalize_all();
@@ -88,7 +83,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_exit(JNIEnv *env, jclass clazz, 
  * Method:    freeMemory
  * Signature: ()J
  */
-JNIEXPORT int64_t JNICALL Java_java_lang_VMRuntime_freeMemory(JNIEnv *env, jclass clazz)
+JNIEXPORT jlong JNICALL Java_java_lang_VMRuntime_freeMemory(JNIEnv *env, jclass clazz)
 {
 	return gc_get_free_bytes();
 }
@@ -99,7 +94,7 @@ JNIEXPORT int64_t JNICALL Java_java_lang_VMRuntime_freeMemory(JNIEnv *env, jclas
  * Method:    totalMemory
  * Signature: ()J
  */
-JNIEXPORT int64_t JNICALL Java_java_lang_VMRuntime_totalMemory(JNIEnv *env, jclass clazz)
+JNIEXPORT jlong JNICALL Java_java_lang_VMRuntime_totalMemory(JNIEnv *env, jclass clazz)
 {
 	return gc_get_heap_size();
 }
@@ -110,7 +105,7 @@ JNIEXPORT int64_t JNICALL Java_java_lang_VMRuntime_totalMemory(JNIEnv *env, jcla
  * Method:    maxMemory
  * Signature: ()J
  */
-JNIEXPORT int64_t JNICALL Java_java_lang_VMRuntime_maxMemory(JNIEnv *env, jclass clazz)
+JNIEXPORT jlong JNICALL Java_java_lang_VMRuntime_maxMemory(JNIEnv *env, jclass clazz)
 {
 	return gc_get_max_heap_size();
 }
@@ -143,7 +138,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalization(JNIEnv *env, jcl
  * Method:    runFinalizersOnExit
  * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizersOnExit(JNIEnv *env, jclass clazz, int32_t value)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizersOnExit(JNIEnv *env, jclass clazz, jboolean value)
 {
 	/* XXX threading */
 
@@ -174,7 +169,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_runFinalizationForExit(JNIEnv *e
  * Method:    traceInstructions
  * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceInstructions(JNIEnv *env, jclass clazz, int32_t par1)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceInstructions(JNIEnv *env, jclass clazz, jboolean par1)
 {
 	/* not supported */
 }
@@ -185,7 +180,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceInstructions(JNIEnv *env, j
  * Method:    traceMethodCalls
  * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceMethodCalls(JNIEnv *env, jclass clazz, int32_t par1)
+JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceMethodCalls(JNIEnv *env, jclass clazz, jboolean par1)
 {
 	/* not supported */
 }
@@ -196,7 +191,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceMethodCalls(JNIEnv *env, jc
  * Method:    availableProcessors
  * Signature: ()I
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, jclass clazz)
+JNIEXPORT jint JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, jclass clazz)
 {
 	return os::processors_online();
 }
@@ -207,7 +202,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *e
  * Method:    nativeLoad
  * Signature: (Ljava/lang/String;Ljava/lang/ClassLoader;)I
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, java_lang_String *libname, java_lang_ClassLoader *loader)
+JNIEXPORT jint JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, jstring libname, jobject loader)
 {
 	classloader_t *cl;
 	utf           *name;
@@ -232,7 +227,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclas
  * Method:    mapLibraryName
  * Signature: (Ljava/lang/String;)Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIEnv *env, jclass clazz, java_lang_String *libname)
+JNIEXPORT jstring JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIEnv *env, jclass clazz, jstring libname)
 {
 	utf           *u;
 	char          *buffer;
@@ -271,7 +266,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIE
 
 	DRELEASE;
 
-	return (java_lang_String *) o;
+	return (jstring) o;
 }
 
 } // extern "C"

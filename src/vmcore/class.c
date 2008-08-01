@@ -53,6 +53,7 @@
 #include "vmcore/class.h"
 #include "vmcore/classcache.h"
 #include "vmcore/globals.hpp"
+#include "vmcore/javaobjects.hpp"
 #include "vmcore/linker.h"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
@@ -63,17 +64,6 @@
 
 #include "vmcore/suck.h"
 #include "vmcore/utf8.h"
-
-
-#if defined(ENABLE_JAVASE)
-/* We need to define some reflection functions here since we cannot
-   include native/vm/reflect.h as it includes generated header
-   files. */
-
-java_object_t *reflect_constructor_new(methodinfo *m);
-java_object_t *reflect_field_new(fieldinfo *f);
-java_object_t *reflect_method_new(methodinfo *m);
-#endif
 
 
 /* class_set_packagename *******************************************************
@@ -1716,12 +1706,9 @@ java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool pub
 
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == 0)) &&
 			(m->name == utf_init)) {
-			/* Create Constructor object.  This is actualy a
-			   java_lang_reflect_Constructor pointer, but we use a
-			   java_handle_t here, because we don't have the header
-			   available when building vmcore. */
+			// Create a java.lang.reflect.Constructor object.
 
-			rc = reflect_constructor_new(m);
+			rc = java_lang_reflect_Constructor_create(m);
 
 			/* Store object into array. */
 
@@ -1779,12 +1766,9 @@ java_handle_objectarray_t *class_get_declaredfields(classinfo *c, bool publicOnl
 		f = &(c->fields[i]);
 
 		if ((f->flags & ACC_PUBLIC) || (publicOnly == 0)) {
-			/* Create Field object.  This is actualy a
-			   java_lang_reflect_Field pointer, but we use a
-			   java_handle_t here, because we don't have the header
-			   available when building vmcore. */
+			// Create a java.lang.reflect.Field object.
 
-			h = reflect_field_new(f);
+			h = java_lang_reflect_Field_create(f);
 
 			/* Store object into array. */
 
@@ -1857,12 +1841,9 @@ java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOn
 		if (((m->flags & ACC_PUBLIC) || (publicOnly == false)) && 
 			((m->name != utf_init) && (m->name != utf_clinit)) &&
 			!(m->flags & ACC_MIRANDA)) {
-			/* Create method object.  This is actualy a
-			   java_lang_reflect_Method pointer, but we use a
-			   java_handle_t here, because we don't have the header
-			   available when building vmcore. */
+			// Create java.lang.reflect.Method object.
 
-			h = reflect_method_new(m);
+			h = java_lang_reflect_Method_create(m);
 
 			/* Store object into array. */
 
@@ -1979,9 +1960,9 @@ java_handle_t* class_get_enclosingconstructor(classinfo *c)
 	if (m->name != utf_init)
 		return NULL;
 
-	/* Create Constructor object. */
+	// Create a java.lang.reflect.Constructor object.
 
-	rc = reflect_constructor_new(m);
+	rc = java_lang_reflect_Constructor_create(m);
 
 	return rc;
 }
@@ -2056,9 +2037,9 @@ java_handle_t* class_get_enclosingmethod(classinfo *c)
 	if (m->name == utf_init)
 		return NULL;
 
-	/* create java.lang.reflect.Method object */
+	// Create a java.lang.reflect.Method object.
 
-	rm = reflect_method_new(m);
+	rm = java_lang_reflect_Method_create(m);
 
 	return rm;
 }

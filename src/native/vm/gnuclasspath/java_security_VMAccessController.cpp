@@ -30,10 +30,9 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-// FIXME
-extern "C" {
-#include "native/include/java_security_VMAccessController.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/java_security_VMAccessController.h"
+#endif
 
 #include "vm/global.h"
 
@@ -50,9 +49,9 @@ extern "C" {
  * Method:    getStack
  * Signature: ()[[Ljava/lang/Object;
  */
-JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_security_VMAccessController_getStack(JNIEnv *env, jclass clazz)
+JNIEXPORT jobjectArray JNICALL Java_java_security_VMAccessController_getStack(JNIEnv *env, jclass clazz)
 {
-	return stacktrace_get_stack();
+	return (jobjectArray) stacktrace_get_stack();
 }
 
 } // extern "C"

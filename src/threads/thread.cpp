@@ -43,18 +43,6 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_Object.h"
-#include "native/include/java_lang_String.h"
-#include "native/include/java_lang_Thread.h"
-
-#if defined(ENABLE_JAVASE)
-# include "native/include/java_lang_ThreadGroup.h"
-#endif
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-# include "native/include/java_lang_VMThread.h"
-#endif
-
 #include "threads/lock-common.h"
 #include "threads/threadlist.h"
 #include "threads/thread.hpp"
@@ -68,6 +56,7 @@
 
 #include "vmcore/class.h"
 #include "vmcore/globals.hpp"
+#include "vmcore/javaobjects.hpp"
 #include "vmcore/method.h"
 #include "vmcore/options.h"
 
@@ -245,76 +234,58 @@ void threads_init(void)
 
 static bool thread_create_object(threadobject *t, java_handle_t *name, java_handle_t *group)
 {
-	java_handle_t    *o;
-	java_lang_Thread *to;
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	java_lang_VMThread    *vmto;
-	classinfo             *c;
-	methodinfo            *m;
-	bool                   isdaemon;
-#endif
-
 	/* Create a java.lang.Thread Java object. */
 
-	o = builtin_new(class_java_lang_Thread);
+	java_handle_t* h = builtin_new(class_java_lang_Thread);
 
-	if (o == NULL)
+	if (h == NULL)
 		return false;
 
-	to = (java_lang_Thread *) o;
+	java_lang_Thread jlt(h);
 
-	/* Set the Java object in the thread data-structure.  This
-	   indicates that the thread is attached to the VM. */
-
-	thread_set_object(t, (java_handle_t *) to);
+	// Set the Java object in the thread data-structure.  This
+	// indicates that the thread is attached to the VM.
+	thread_set_object(t, jlt.get_handle());
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
-	/* Create a java.lang.VMThread Java object. */
+	h = builtin_new(class_java_lang_VMThread);
 
-	vmto = (java_lang_VMThread *) builtin_new(class_java_lang_VMThread);
-
-	if (vmto == NULL)
+	if (h == NULL)
 		return false;
 
-	/* Set the Java thread object in the Java VM-thread object. */
-
-	LLNI_field_set_ref(vmto, thread, to);
-
-	/* Set the thread data-structure in the Java VM-thread object. */
-
-	LLNI_field_set_val(vmto, vmdata, (java_lang_Object *) t);
+	// Create and initialize a java.lang.VMThread object.
+	java_lang_VMThread jlvmt(h, jlt.get_handle(), t);
 
 	/* Call:
 	   java.lang.Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
 
-	isdaemon = thread_is_daemon(t);
+	bool isdaemon = thread_is_daemon(t);
 
-	(void) vm_call_method(thread_method_init, o, vmto, name, NORM_PRIORITY,
-						  isdaemon);
+	(void) vm_call_method(thread_method_init, jlt.get_handle(), jlvmt.get_handle(),
+						  name, NORM_PRIORITY, isdaemon);
 
 	if (exceptions_get_exception())
 		return false;
 
-	/* Set the threadgroup in the Java thread object. */
-
-	LLNI_field_set_ref(to, group, (java_lang_ThreadGroup *) group);
+	// Set the ThreadGroup in the Java thread object.
+	jlt.set_group(group);
 
 	/* Add thread to the threadgroup. */
 
+	classinfo* c;
 	LLNI_class_get(group, c);
 
-	m = class_resolveclassmethod(c,
-								 utf_addThread,
-								 utf_java_lang_Thread__V,
-								 class_java_lang_ThreadGroup,
-								 true);
+	methodinfo* m = class_resolveclassmethod(c,
+											 utf_addThread,
+											 utf_java_lang_Thread__V,
+											 class_java_lang_ThreadGroup,
+											 true);
 
 	if (m == NULL)
 		return false;
 
-	(void) vm_call_method(m, group, to);
+	(void) vm_call_method(m, group, jlt.get_handle());
 
 	if (exceptions_get_exception())
 		return false;
@@ -664,13 +635,7 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 
 void threads_thread_start(java_handle_t *object)
 {
-	java_lang_Thread   *to;
-	threadobject       *t;
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	java_lang_VMThread *vmto;
-#endif
-
-	to = (java_lang_Thread *) object;
+	java_lang_Thread jlt(object);
 
 	/* Enter the join-mutex, so if the main-thread is currently
 	   waiting to join all threads, the number of non-daemon threads
@@ -680,7 +645,7 @@ void threads_thread_start(java_handle_t *object)
 
 	/* Create internal thread data-structure. */
 
-	t = thread_new();
+	threadobject* t = thread_new();
 
 	/* this is a normal Java thread */
 
@@ -689,7 +654,7 @@ void threads_thread_start(java_handle_t *object)
 #if defined(ENABLE_JAVASE)
 	/* Is this a daemon thread? */
 
-	if (LLNI_field_direct(to, daemon) == true)
+	if (jlt.get_daemon() == true)
 		t->flags |= THREAD_FLAG_DAEMON;
 #endif
 
@@ -705,13 +670,12 @@ void threads_thread_start(java_handle_t *object)
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	/* Get the java.lang.VMThread object and do some sanity checks. */
+	java_lang_VMThread jlvmt(jlt.get_vmThread());
 
-	LLNI_field_get_ref(to, vmThread, vmto);
+	assert(jlvmt.get_handle() != NULL);
+	assert(jlvmt.get_vmdata() == NULL);
 
-	assert(vmto);
-	assert(LLNI_field_direct(vmto, vmdata) == NULL);
-
-	LLNI_field_set_val(vmto, vmdata, (java_lang_Object *) t);
+	jlvmt.set_vmdata(t);
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
@@ -919,28 +883,21 @@ bool thread_detach_current_external_thread(void)
 
 void thread_fprint_name(threadobject *t, FILE *stream)
 {
-	java_lang_Thread *to;
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	java_lang_String *name;
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
-	java_chararray_t *name;
-#endif
-
-	to = (java_lang_Thread *) thread_get_object(t);
-
-	if (to == NULL)
+	if (thread_get_object(t) == NULL)
 		vm_abort("");
 
-	LLNI_field_get_ref(to, name, name);
+	java_lang_Thread jlt(thread_get_object(t));
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
-	javastring_fprint((java_handle_t *) name, stream);
+	java_handle_t* name = jlt.get_name();
+	javastring_fprint(name, stream);
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
 	/* FIXME: In OpenJDK and CLDC the name is a char[]. */
+	java_chararray_t *name;
+
 	/* FIXME This prints to stdout. */
 	utf_display_printable_ascii(utf_null);
 
@@ -961,16 +918,11 @@ void thread_fprint_name(threadobject *t, FILE *stream)
 
 void thread_print_info(threadobject *t)
 {
-	java_lang_Thread *to;
-	int               state;
-
-	/* If the thread is currently in initalization, don't print it. */
-
-	to = (java_lang_Thread *) thread_get_object(t);
+	java_lang_Thread jlt(thread_get_object(t));
 
 	/* Print as much as we can when we are in state NEW. */
 
-	if (to != NULL) {
+	if (jlt.get_handle() != NULL) {
 		/* Print thread name. */
 
 		printf("\"");
@@ -983,8 +935,8 @@ void thread_print_info(threadobject *t)
 	if (thread_is_daemon(t))
 		printf(" daemon");
 
-	if (to != NULL) {
-		printf(" prio=%d", LLNI_field_direct(to, priority));
+	if (jlt.get_handle() != NULL) {
+		printf(" prio=%d", jlt.get_priority());
 	}
 
 #if SIZEOF_VOID_P == 8
@@ -999,7 +951,7 @@ void thread_print_info(threadobject *t)
 
 	/* Print thread state. */
 
-	state = cacaothread_get_state(t);
+	int state = cacaothread_get_state(t);
 
 	switch (state) {
 	case THREAD_STATE_NEW:
@@ -1161,26 +1113,16 @@ void thread_set_state_terminated(threadobject *t)
 
 threadobject *thread_get_thread(java_handle_t *h)
 {
-	threadobject       *t;
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	java_lang_VMThread *vmto;
-	java_lang_Object   *to;
-#endif
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	bool                equal;
-#endif
-
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
-	vmto = (java_lang_VMThread *) h;
-
-	LLNI_field_get_val(vmto, vmdata, to);
-
-	t = (threadobject *) to;
+	java_lang_VMThread jlvmt(h);
+	threadobject* t = jlvmt.get_vmdata();
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	/* XXX This is just a quick hack. */
+	threadobject* t;
+	bool          equal;
 
 	threadlist_lock();
 

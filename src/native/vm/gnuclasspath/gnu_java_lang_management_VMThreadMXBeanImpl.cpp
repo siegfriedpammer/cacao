@@ -32,13 +32,9 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_Throwable.h"
-#include "native/include/java_lang_management_ThreadInfo.h"
-
-// FIXME
-extern "C" {
-#include "native/include/gnu_java_lang_management_VMThreadMXBeanImpl.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/gnu_java_lang_management_VMThreadMXBeanImpl.h"
+#endif
 
 #include "toolbox/logging.h"
 
@@ -56,7 +52,7 @@ extern "C" {
  * Method:    findMonitorDeadlockedThreads
  * Signature: ()[J
  */
-JNIEXPORT java_handle_longarray_t* JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_findMonitorDeadlockedThreads(JNIEnv *env, jclass clazz)
+JNIEXPORT jlongArray JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_findMonitorDeadlockedThreads(JNIEnv *env, jclass clazz)
 {
 	log_println("Java_gnu_java_lang_management_VMThreadMXBeanImpl_findMonitorDeadlockedThreads: IMPLEMENT ME!");
 
@@ -69,7 +65,7 @@ JNIEXPORT java_handle_longarray_t* JNICALL Java_gnu_java_lang_management_VMThrea
  * Method:    getCurrentThreadCpuTime
  * Signature: ()J
  */
-JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCurrentThreadCpuTime(JNIEnv *env, jclass clazz)
+JNIEXPORT jlong JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCurrentThreadCpuTime(JNIEnv *env, jclass clazz)
 {
 	log_println("Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCurrentThreadCpuTime: IMPLEMENT ME!");
 
@@ -82,7 +78,7 @@ JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCu
  * Method:    getCurrentThreadUserTime
  * Signature: ()J
  */
-JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCurrentThreadUserTime(JNIEnv *env, jclass clazz)
+JNIEXPORT jlong JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCurrentThreadUserTime(JNIEnv *env, jclass clazz)
 {
 	log_println("Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCurrentThreadUserTime: IMPLEMENT ME!");
 
@@ -95,7 +91,7 @@ JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCu
  * Method:    getPeakThreadCount
  * Signature: ()I
  */
-JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getPeakThreadCount(JNIEnv *env, jclass clazz)
+JNIEXPORT jint JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getPeakThreadCount(JNIEnv *env, jclass clazz)
 {
 /* 	return _Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount; */
 #warning Move to C++
@@ -109,7 +105,7 @@ JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getPe
  * Method:    getThreadCpuTime
  * Signature: (J)J
  */
-JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadCpuTime(JNIEnv *env, jclass clazz, int64_t id)
+JNIEXPORT jlong JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadCpuTime(JNIEnv *env, jclass clazz, jlong id)
 {
 	log_println("Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadCpuTime: IMPLEMENT ME!");
 
@@ -122,7 +118,7 @@ JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTh
  * Method:    getThreadInfoForId
  * Signature: (JI)Ljava/lang/management/ThreadInfo;
  */
-JNIEXPORT java_lang_management_ThreadInfo* JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadInfoForId(JNIEnv *env, jclass clazz, int64_t id, int32_t maxDepth)
+JNIEXPORT jobject JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadInfoForId(JNIEnv *env, jclass clazz, jlong id, jint maxDepth)
 {
 	log_println("Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadInfoForId: IMPLEMENT ME!");
 
@@ -135,7 +131,7 @@ JNIEXPORT java_lang_management_ThreadInfo* JNICALL Java_gnu_java_lang_management
  * Method:    getThreadUserTime
  * Signature: (J)J
  */
-JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadUserTime(JNIEnv *env, jclass clazz, int64_t par1)
+JNIEXPORT jlong JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadUserTime(JNIEnv *env, jclass clazz, jlong par1)
 {
 	log_println("Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThreadUserTime: IMPLEMENT ME!");
 
@@ -148,7 +144,7 @@ JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTh
  * Method:    getTotalStartedThreadCount
  * Signature: ()J
  */
-JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTotalStartedThreadCount(JNIEnv *env, jclass clazz)
+JNIEXPORT jlong JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTotalStartedThreadCount(JNIEnv *env, jclass clazz)
 {
 /* 	return _Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount; */
 #warning Move to C++

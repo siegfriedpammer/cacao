@@ -23,7 +23,6 @@
 
 DIST_SUBDIRS = \
 	cacao \
-	cacaoh \
 	classes \
 	fdlibm \
 	mm \
@@ -37,15 +36,14 @@ DIST_SUBDIRS = \
 # DON'T CHANGE THIS ORDER!!!
 
 SUBDIRS = \
-	toolbox \
-	vmcore \
-	cacaoh \
 	classes \
-	native \
 	fdlibm \
+	toolbox \
 	mm \
-	threads \
+	vmcore \
 	vm \
+	threads \
+	native \
 	cacao \
 	scripts
 
