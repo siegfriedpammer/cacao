@@ -41,7 +41,7 @@ extern "C" {
 #include "vmcore/class.h"
 #include "vmcore/loader.h"
 #include "vmcore/method.h"
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 #include "vmcore/utf8.h"
 
 

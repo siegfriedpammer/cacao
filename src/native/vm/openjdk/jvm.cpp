@@ -94,7 +94,7 @@
 #include "vmcore/classcache.h"
 #include "vmcore/globals.hpp"
 #include "vmcore/options.h"
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 
 
 /* debugging macros ***********************************************************/
@@ -406,7 +406,7 @@ jint JVM_ActiveProcessorCount(void)
 {
 	TRACEJVMCALLS(("JVM_ActiveProcessorCount()"));
 
-	return system_processors_online();
+	return os::processors_online();
 }
 
 
@@ -2786,7 +2786,7 @@ jint JVM_Socket(jint domain, jint type, jint protocol)
 {
 	TRACEJVMCALLS(("JVM_Socket(domain=%d, type=%d, protocol=%d)", domain, type, protocol));
 
-	return system_socket(domain, type, protocol);
+	return os::socket(domain, type, protocol);
 }
 
 
@@ -2796,7 +2796,7 @@ jint JVM_SocketClose(jint fd)
 {
 	TRACEJVMCALLS(("JVM_SocketClose(fd=%d)", fd));
 
-	return system_close(fd);
+	return os::close(fd);
 }
 
 
@@ -2806,7 +2806,7 @@ jint JVM_SocketShutdown(jint fd, jint howto)
 {
 	TRACEJVMCALLS(("JVM_SocketShutdown(fd=%d, howto=%d)", fd, howto));
 
-	return system_shutdown(fd, howto);
+	return os::shutdown(fd, howto);
 }
 
 
@@ -2846,7 +2846,7 @@ jint JVM_Listen(jint fd, jint count)
 {
 	TRACEJVMCALLS(("JVM_Listen(fd=%d, count=%d)", fd, count));
 
-	return system_listen(fd, count);
+	return os::listen(fd, count);
 }
 
 
@@ -2856,7 +2856,7 @@ jint JVM_Connect(jint fd, struct sockaddr *him, jint len)
 {
 	TRACEJVMCALLS(("JVM_Connect(fd=%d, him=%p, len=%d)", fd, him, len));
 
-	return system_connect(fd, him, len);
+	return os::connect(fd, him, len);
 }
 
 
@@ -2876,7 +2876,7 @@ jint JVM_Accept(jint fd, struct sockaddr *him, jint *len)
 {
 	TRACEJVMCALLS(("JVM_Accept(fd=%d, him=%p, len=%p)", fd, him, len));
 
-	return system_accept(fd, him, (socklen_t *) len);
+	return os::accept(fd, him, (socklen_t *) len);
 }
 
 
@@ -2896,7 +2896,7 @@ jint JVM_GetSockName(jint fd, struct sockaddr *him, int *len)
 {
 	TRACEJVMCALLS(("JVM_GetSockName(fd=%d, him=%p, len=%p)", fd, him, len));
 
-	return system_getsockname(fd, him, (socklen_t *) len);
+	return os::getsockname(fd, him, (socklen_t *) len);
 }
 
 
@@ -2942,7 +2942,7 @@ jint JVM_GetSockOpt(jint fd, int level, int optname, char *optval, int *optlen)
 {
 	TRACEJVMCALLS(("JVM_GetSockOpt(fd=%d, level=%d, optname=%d, optval=%s, optlen=%p)", fd, level, optname, optval, optlen));
 
-	return system_getsockopt(fd, level, optname, optval, (socklen_t *) optlen);
+	return os::getsockopt(fd, level, optname, optval, (socklen_t *) optlen);
 }
 
 
@@ -2952,7 +2952,7 @@ jint JVM_SetSockOpt(jint fd, int level, int optname, const char *optval, int opt
 {
 	TRACEJVMCALLS(("JVM_SetSockOpt(fd=%d, level=%d, optname=%d, optval=%s, optlen=%d)", fd, level, optname, optval, optlen));
 
-	return system_setsockopt(fd, level, optname, optval, optlen);
+	return os::setsockopt(fd, level, optname, optval, optlen);
 }
 
 
@@ -2964,7 +2964,7 @@ int JVM_GetHostName(char *name, int namelen)
 
 	TRACEJVMCALLSENTER(("JVM_GetHostName(name=%s, namelen=%d)", name, namelen));
 
-	result = system_gethostname(name, namelen);
+	result = os::gethostname(name, namelen);
 
 	TRACEJVMCALLSEXIT(("->%d (name=%s)", result, name));
 

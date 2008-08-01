@@ -113,7 +113,7 @@
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"
 #include "vmcore/suck.h"
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/cacaodbg.h"
@@ -2037,7 +2037,7 @@ void vm_abort(const char *text, ...)
 
 	/* Now abort the VM. */
 
-	system_abort();
+	os::abort();
 }
 
 
@@ -2066,13 +2066,13 @@ void vm_abort_errnum(int errnum, const char *text, ...)
 
 	/* Print the strerror-message of errnum. */
 
-	log_print(": %s", system_strerror(errnum));
+	log_print(": %s", os::strerror(errnum));
 
 	log_finish();
 
 	/* Now abort the VM. */
 
-	system_abort();
+	os::abort();
 }
 
 

@@ -80,6 +80,8 @@ libvmcore_la_SOURCES = \
 	method.h \
 	options.c \
 	options.h \
+	os.cpp \
+	os.hpp \
 	primitivecore.c \
 	references.h \
 	$(RT_TIMING_SOURCES) \
@@ -87,8 +89,6 @@ libvmcore_la_SOURCES = \
 	$(STATISTICS_SOURCES) \
 	suck.c \
 	suck.h \
-	system.c \
-	system.h \
 	utf8.c \
 	utf8.h \
 	$(ZLIB_SOURCES)

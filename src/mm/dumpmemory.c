@@ -38,7 +38,7 @@
 # include "vmcore/statistics.h"
 #endif
 
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 
 #include "vm/vm.hpp"
 
@@ -297,7 +297,7 @@ void *dumpmemory_get(size_t size)
 
 		/* clear the memory */
 
-		(void) system_memset(p, MEMORY_CLEAR_BYTE, da->size);
+		(void) os_memset(p, MEMORY_CLEAR_BYTE, da->size);
 	}
 #endif /* defined(ENABLE_MEMCHECK) */
 
@@ -334,12 +334,12 @@ void *dumpmemory_realloc(void *src, s4 len1, s4 len2)
 
 	dst = dumpmemory_get(len2);
 
-	(void) system_memcpy(dst, src, len1);
+	(void) os_memcpy(dst, src, len1);
 
 #if defined(ENABLE_MEMCHECK)
 	/* destroy the source */
 
-	(void) system_memset(src, MEMORY_CLEAR_BYTE, len1);
+	(void) os_memset(src, MEMORY_CLEAR_BYTE, len1);
 #endif
 
 	return dst;
@@ -398,7 +398,7 @@ void dumpmemory_release(s4 size)
 
 			/* invalidate the freed memory */
 
-			(void) system_memset(da->mem, MEMORY_CLEAR_BYTE, da->size);
+			(void) os_memset(da->mem, MEMORY_CLEAR_BYTE, da->size);
 
 			FREE(da, dump_allocation_t);
 
@@ -427,8 +427,8 @@ void dumpmemory_release(s4 size)
 
 		/* Release the dump memory and the dumpinfo structure. */
 
-		system_free(tmp->dumpmem);
-		system_free(tmp);
+		os_free(tmp->dumpmem);
+		os_free(tmp);
 	}
 
 #endif /* defined(DISABLE_DUMP) */

@@ -49,7 +49,7 @@
 #include "vm/jit/stacktrace.hpp"
 
 #include "vmcore/options.h"
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 
 
 /**
@@ -68,9 +68,9 @@ void trap_init(void)
 	/* mmap a memory page at address 0x0, so our hardware-exceptions
 	   work. */
 
-	pagesize = system_getpagesize();
+	pagesize = os_getpagesize();
 
-	(void) system_mmap_anonymous(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
+	(void) os_mmap_anonymous(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
 #endif
 
 	TRACESUBSYSTEMINITIALIZATION("trap_init");

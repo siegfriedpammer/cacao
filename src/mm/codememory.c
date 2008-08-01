@@ -41,7 +41,7 @@
 # include "vmcore/statistics.h"
 #endif
 
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 
 #include "vm/global.h"
 
@@ -78,7 +78,7 @@ void codememory_init(void)
 
 	/* Get the pagesize of this architecture. */
 
-	pagesize = system_getpagesize();
+	pagesize = os_getpagesize();
 }
 
 
@@ -124,9 +124,9 @@ void *codememory_get(size_t size)
 
 		/* allocate the memory */
 
-		p = system_mmap_anonymous(NULL, code_memory_size,
-								  PROT_READ | PROT_WRITE | PROT_EXEC,
-								  MAP_PRIVATE);
+		p = os_mmap_anonymous(NULL, code_memory_size,
+							  PROT_READ | PROT_WRITE | PROT_EXEC,
+							  MAP_PRIVATE);
 
 		/* set global code memory pointer */
 

@@ -1,4 +1,4 @@
-/* src/vmcore/system.c - system (OS) functions
+/* src/vmcore/os.cpp - system (OS) functions
 
    Copyright (C) 2007
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -60,16 +60,15 @@
 #include "vm/vm.hpp"
 
 
-/* system_mmap_anonymous *******************************************************
-
-   Maps anonymous memory, even on systems not defining
-   MAP_ANON(YMOUS).
-
-*******************************************************************************/
-
-void *system_mmap_anonymous(void *addr, size_t len, int prot, int flags)
+/**
+ * Maps anonymous memory, even on systems not defining
+ * MAP_ANON(YMOUS).
+ *
+ * @param ...
+ */
+void* os::mmap_anonymous(void *addr, size_t len, int prot, int flags)
 {
-	void *p;
+	void* p;
 
 #if defined(MAP_ANON) || defined(MAP_ANONYMOUS)
 	p = mmap(addr, len, prot,
@@ -85,7 +84,7 @@ void *system_mmap_anonymous(void *addr, size_t len, int prot, int flags)
 	fd = open("/dev/zero", O_RDONLY, 0);
 
 	if (fd == -1)
-		vm_abort("system_mmap_anonymous: open failed: %s", strerror(errno));
+		vm_abort("os::mmap_anonymous: open failed: %s", os::strerror(errno));
 
 	p = mmap(addr, len, prot, flags, fd, 0);
 #endif
@@ -95,22 +94,18 @@ void *system_mmap_anonymous(void *addr, size_t len, int prot, int flags)
 #else
 	if (p == (void *) -1)
 #endif
-		vm_abort("system_mmap_anonymous: mmap failed: %s", strerror(errno));
+		vm_abort("os::mmap_anonymous: mmap failed: %s", os::strerror(errno));
 
 	return p;
 }
 
 
-/* system_processors_online ****************************************************
-
-   Returns the number of online processors in the system.
-
-   RETURN:
-       online processor count
-
-*******************************************************************************/
-
-int system_processors_online(void)
+/**
+ * Returns the number of online processors in the system.
+ *
+ * @return Number of online processors.
+ */
+int os::processors_online(void)
 {
 #if defined(_SC_NPROC_ONLN)
 
@@ -161,13 +156,46 @@ int system_processors_online(void)
 }
 
 
+// Legacy C interface.
+
+extern "C" {
+	void*  os_mmap_anonymous(void *addr, size_t len, int prot, int flags) { return os::mmap_anonymous(addr, len, prot, flags); }
+
+	void   os_abort(void) { os::abort(); }
+	int    os_atoi(const char* nptr) { return os::atoi(nptr); }
+	void*  os_calloc(size_t nmemb, size_t size) { return os::calloc(nmemb, size); }
+#if defined(ENABLE_JRE_LAYOUT)
+	char*  os_dirname(char* path) { return os::dirname(path); }
+#endif
+	int    os_dlclose(void* handle) { return os::dlclose(handle); }
+	char*  os_dlerror(void) { return os::dlerror(); }
+	void*  os_dlopen(const char* filename, int flag) { return os::dlopen(filename, flag); }
+	void*  os_dlsym(void* handle, const char* symbol) { return os::dlsym(handle, symbol); }
+	int    os_fclose(FILE* fp) { return os::fclose(fp); }
+	FILE*  os_fopen(const char* path, const char* mode) { return os::fopen(path, mode); }
+	size_t os_fread(void* ptr, size_t size, size_t nmemb, FILE* stream) { return os::fread(ptr, size, nmemb, stream); }
+	void   os_free(void* ptr) { os::free(ptr); }
+	int    os_getpagesize(void) { return os::getpagesize(); }
+	void*  os_memcpy(void* dest, const void* src, size_t n) { return os::memcpy(dest, src, n); }
+	void*  os_memset(void* s, int c, size_t n) { return os::memset(s, c, n); }
+	int    os_mprotect(void* addr, size_t len, int prot) { return os::mprotect(addr, len, prot); }
+	int    os_scandir(const char* dir, struct dirent*** namelist, int(*filter)(const struct dirent*), int(*compar)(const void*, const void*)) { return os::scandir(dir, namelist, filter, compar); }
+	int    os_stat(const char* path, struct stat* buf) { return os::stat(path, buf); }
+	char*  os_strcat(char* dest, const char* src) { return os::strcat(dest, src); }
+	char*  os_strcpy(char* dest, const char* src) { return os::strcpy(dest, src); }
+	char*  os_strdup(const char* s) { return os::strdup(s); }
+	int    os_strlen(const char* s) { return os::strlen(s); }
+
+}
+
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

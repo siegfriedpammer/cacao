@@ -44,7 +44,7 @@
 #include "vm/jit/executionstate.h"
 #include "vm/jit/trap.h"
 
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 
 
 /* md_signal_handler_sigsegv ***************************************************
@@ -236,7 +236,7 @@ void md_executionstate_read(executionstate_t *es, void *context)
 	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
 
 	assert(sizeof(_mc->sc_fpregs) == sizeof(es->fltregs));
-	system_memcpy(&es->fltregs, &_mc->sc_fpregs, sizeof(_mc->sc_fpregs));
+	os_memcpy(&es->fltregs, &_mc->sc_fpregs, sizeof(_mc->sc_fpregs));
 }
 
 
@@ -264,7 +264,7 @@ void md_executionstate_write(executionstate_t *es, void *context)
 	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
 
 	assert(sizeof(_mc->sc_fpregs) == sizeof(es->fltregs));
-	system_memcpy(&_mc->sc_fpregs, &es->fltregs, sizeof(_mc->sc_fpregs));
+	os_memcpy(&_mc->sc_fpregs, &es->fltregs, sizeof(_mc->sc_fpregs));
 
 	/* write special registers */
 	_mc->sc_pc           = (ptrint) es->pc;

@@ -59,7 +59,7 @@ extern "C" {
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 #include "vmcore/utf8.h"
 
 
@@ -198,7 +198,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMRuntime_traceMethodCalls(JNIEnv *env, jc
  */
 JNIEXPORT int32_t JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env, jclass clazz)
 {
-	return system_processors_online();
+	return os::processors_online();
 }
 
 

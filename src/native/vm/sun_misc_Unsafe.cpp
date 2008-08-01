@@ -65,7 +65,7 @@ extern "C" {
 #include "vm/initialize.h"
 #include "vm/string.hpp"
 
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 #include "vmcore/utf8.h"
 
 
@@ -665,7 +665,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, sun_misc_Unsa
 
 	/* XXX Not sure this is correct. */
 
-	system_memset(p, value, length);
+	os::memset(p, value, length);
 }
 
 
@@ -695,7 +695,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory(JNIEnv *env, sun_misc_Uns
 	src  = (void *) (((uint8_t *) srcBase) + srcOffset);
 	dest = (void *) (((uint8_t *) destBase) + destOffset);
 
-	system_memcpy(dest, src, length);
+	os::memcpy(dest, src, length);
 }
 #else
 /*
@@ -719,7 +719,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, sun_misc_Unsa
 
 	/* XXX Not sure this is correct. */
 
-	system_memset(p, value, length);
+	os::memset(p, value, length);
 }
 
 
@@ -747,7 +747,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory(JNIEnv *env, sun_misc_Uns
 	src  = (void *) (intptr_t) srcAddress;
 	dest = (void *) (intptr_t) destAddress;
 
-	system_memcpy(dest, src, length);
+	os::memcpy(dest, src, length);
 }
 #endif
 

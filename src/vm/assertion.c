@@ -36,7 +36,7 @@
 #include "vm/global.h"
 #include "vm/vm.hpp"
 
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 
 
 /* -ea/-da options ************************************************************/
@@ -68,13 +68,13 @@ void assertion_ea_da(const char *name, bool enabled)
 	}
 
 	package = false;
-	len     = system_strlen(name);
+	len     = os_strlen(name);
 
 	if (name[len - 1] == '/') {
 		return;
 	}
 
-	buf = system_strdup(name);
+	buf = os_strdup(name);
 
 	if (buf == NULL) {
 		vm_abort("assertion_ea_da: strdup failed: %s", strerror(errno));
@@ -94,7 +94,7 @@ void assertion_ea_da(const char *name, bool enabled)
 		assertion_class_count += 1;
 	}
 
-	len = system_strlen(buf);
+	len = os_strlen(buf);
 
 	for (i = 0; i < len; i++) {
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)

@@ -34,7 +34,7 @@
 #include "vm/jit/executionstate.h"
 
 #include "vmcore/descriptor.h"
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 
 
 /* executionstate_sanity_check *************************************************
@@ -66,13 +66,13 @@ void executionstate_sanity_check(void *context)
 
 	/* keep a copy of (a prefix of) the context for reference */
 
-	system_memcpy(&reference, context, MINIMUM_CONTEXT_SIZE);
+	os_memcpy(&reference, context, MINIMUM_CONTEXT_SIZE);
 
 	/* different poisons */
 
-	system_memset(&es1, 0xc9, sizeof(executionstate_t));
-	system_memset(&es2, 0xb5, sizeof(executionstate_t));
-	system_memset(&es3, 0x6f, sizeof(executionstate_t));
+	os_memset(&es1, 0xc9, sizeof(executionstate_t));
+	os_memset(&es2, 0xb5, sizeof(executionstate_t));
+	os_memset(&es3, 0x6f, sizeof(executionstate_t));
 
 	md_executionstate_read(&es1, context);
 

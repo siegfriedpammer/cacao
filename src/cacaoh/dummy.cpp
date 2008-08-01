@@ -52,7 +52,7 @@
 #include "vmcore/loader.h"
 #include "vmcore/method.h"
 #include "vmcore/utf8.h"
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 
 
 // Below this line are C exports.
@@ -784,7 +784,7 @@ void vm_abort(const char *text, ...)
 	vfprintf(stderr, text, ap);
 	va_end(ap);
 
-	system_abort();
+	os::abort();
 }
 
 void vm_abort_errno(const char *text, ...)
@@ -806,10 +806,10 @@ void vm_abort_errnum(int errnum, const char *text, ...)
 	log_vprint(text, ap);
 	va_end(ap);
 
-	log_print(": %s", system_strerror(errnum));
+	log_print(": %s", os::strerror(errnum));
 	log_finish();
 
-	system_abort();
+	os::abort();
 }
 
 java_handle_t *vm_call_method(methodinfo *m, java_handle_t *o, ...)

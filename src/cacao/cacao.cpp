@@ -46,7 +46,7 @@
 # include "native/jvmti/cacaodbg.h"
 #endif
 
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 
 #include "vm/vm.hpp"
 
@@ -105,18 +105,18 @@ int main(int argc, char **argv)
 	path = malloc(sizeof(char) * 4096);
 
 	if (readlink("/proc/self/exe", path, 4095) == -1) {
-		fprintf(stderr, "main: readlink failed: %s\n", system_strerror(errno));
-		system_abort();
+		fprintf(stderr, "main: readlink failed: %s\n", strerror(errno));
+		os::abort();
 	}
 
 	/* get the path of the current executable */
 
-	path = dirname(path);
-	len  = system_strlen(path) + system_strlen("/../lib/"LIBJVM_NAME) + system_strlen("0");
+	path = os::dirname(path);
+	len  = os::strlen(path) + os::strlen("/../lib/"LIBJVM_NAME) + os::strlen("0");
 
 	if (len > 4096) {
 		fprintf(stderr, "main: libjvm name to long for buffer\n");
-		system_abort();
+		os::abort();
 	}
 
 	/* concatinate the library name */
@@ -129,25 +129,24 @@ int main(int argc, char **argv)
 	/* First try to open where dlopen searches, e.g. LD_LIBRARY_PATH.
 	   If not found, try the absolute path. */
 
-	libjvm_handle = system_dlopen(LIBJVM_NAME, RTLD_NOW);
+	libjvm_handle = os::dlopen(LIBJVM_NAME, RTLD_NOW);
 
 	if (libjvm_handle == NULL) {
 		/* save the error message */
 
-		lterror = strdup(system_dlerror());
+		lterror = strdup(os::dlerror());
 
-		libjvm_handle = system_dlopen(path, RTLD_NOW);
+		libjvm_handle = os::dlopen(path, RTLD_NOW);
 
 		if (libjvm_handle == NULL) {
 			/* print the first error message too */
 
-			fprintf(stderr, "main: system_dlopen failed: %s\n", lterror);
+			fprintf(stderr, "main: os::dlopen failed: %s\n", lterror);
 
 			/* and now the current one */
 
-			fprintf(stderr, "main: system_dlopen failed: %s\n",
-					system_dlerror());
-			system_abort();
+			fprintf(stderr, "main: os::dlopen failed: %s\n", os::dlerror());
+			os::abort();
 		}
 
 		/* free the error string */
@@ -155,11 +154,11 @@ int main(int argc, char **argv)
 		free((void *) lterror);
 	}
 
-	libjvm_VM_create = system_dlsym(libjvm_handle, "VM_create");
+	libjvm_VM_create = os::dlsym(libjvm_handle, "VM_create");
 
 	if (libjvm_VM_create == NULL) {
-		fprintf(stderr, "main: lt_dlsym failed: %s\n", system_dlerror());
-		system_abort();
+		fprintf(stderr, "main: lt_dlsym failed: %s\n", os::dlerror());
+		os::abort();
 	}
 
 	VM_create =
@@ -177,11 +176,11 @@ int main(int argc, char **argv)
 #endif
 
 #if defined(ENABLE_LIBJVM)
-	libjvm_vm_run = system_dlsym(libjvm_handle, "vm_run");
+	libjvm_vm_run = os::dlsym(libjvm_handle, "vm_run");
 
 	if (libjvm_vm_run == NULL) {
-		fprintf(stderr, "main: system_dlsym failed: %s\n", system_dlerror());
-		system_abort();
+		fprintf(stderr, "main: os::dlsym failed: %s\n", os::dlerror());
+		os::abort();
 	}
 
 	vm_run = (void (*)(JavaVM *, JavaVMInitArgs *)) (ptrint) libjvm_vm_run;

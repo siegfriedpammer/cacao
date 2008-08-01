@@ -34,7 +34,7 @@
 #include "vmcore/class.h"
 #include "vmcore/method.h"
 #include "vmcore/options.h"
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 # include "mm/memory.h"
@@ -109,14 +109,14 @@ void nativevm_preinit(void)
 	boot_library_path = properties_get("sun.boot.library.path");
 
 	len =
-		system_strlen(boot_library_path) +
-		system_strlen("/libjava.so") +
-		system_strlen("0");
+		os_strlen(boot_library_path) +
+		os_strlen("/libjava.so") +
+		os_strlen("0");
 
 	p = MNEW(char, len);
 
-	system_strcpy(p, boot_library_path);
-	system_strcat(p, "/libjava.so");
+	os_strcpy(p, boot_library_path);
+	os_strcat(p, "/libjava.so");
 
 	u = utf_new_char(p);
 

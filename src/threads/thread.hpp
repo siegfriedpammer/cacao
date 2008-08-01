@@ -32,7 +32,7 @@
 extern "C" {
 #endif
 
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 
 #include "threads/mutex.hpp"
 

@@ -47,7 +47,7 @@
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 #include "vmcore/suck.h"
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 #include "vmcore/zip.h"
 
 
@@ -279,7 +279,7 @@ void suck_add_from_property(const char *key)
 
 			/* scan the directory found for zip/jar files */
 
-			n = system_scandir(path, &namelist, scandir_filter, alphasort);
+			n = os_scandir(path, &namelist, scandir_filter, alphasort);
 
 			/* On error, just continue, this should be ok. */
 
@@ -556,10 +556,10 @@ classbuffer *suck_start(classinfo *c)
 			strcpy(path, lce->path);
 			strcat(path, filename);
 
-			classfile = system_fopen(path, "r");
+			classfile = os_fopen(path, "r");
 
 			if (classfile) {                                   /* file exists */
-				if (!system_stat(path, &buffer)) {     /* read classfile data */
+				if (!os_stat(path, &buffer)) {     /* read classfile data */
 					cb = NEW(classbuffer);
 					cb->clazz = c;
 					cb->size  = buffer.st_size;
@@ -569,7 +569,7 @@ classbuffer *suck_start(classinfo *c)
 
 					/* read class data */
 
-					len = system_fread((void *) cb->data, 1, cb->size,
+					len = os_fread((void *) cb->data, 1, cb->size,
 									   classfile);
 
 					if (len != buffer.st_size) {
@@ -580,7 +580,7 @@ classbuffer *suck_start(classinfo *c)
 
 					/* close the class file */
 
-					system_fclose(classfile);
+					os_fclose(classfile);
 				}
 			}
 

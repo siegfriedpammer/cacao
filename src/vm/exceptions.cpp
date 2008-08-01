@@ -69,7 +69,7 @@
 #include "vmcore/loader.h"
 #include "vmcore/method.h"
 #include "vmcore/options.h"
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 
 #if defined(ENABLE_VMLOG)
 #include <vmlog_cacao.h>

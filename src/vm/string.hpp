@@ -1,4 +1,4 @@
-/* src/vm/stringlocal.h - string header
+/* src/vm/string.hpp - string header
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -35,7 +35,7 @@ typedef struct literalstring literalstring;
 
 #include "config.h"
 
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 
 #include "vm/types.h"
 

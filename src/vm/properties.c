@@ -54,7 +54,7 @@
 #include "vmcore/class.h"
 #include "vmcore/method.h"
 #include "vmcore/options.h"
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 
 
 /* internal property structure ************************************************/
@@ -139,8 +139,8 @@ void properties_set(void)
 
 	   Now let's strip two levels. */
 
-	p = system_dirname(p);
-	p = system_dirname(p);
+	p = os_dirname(p);
+	p = os_dirname(p);
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
@@ -177,7 +177,7 @@ void properties_set(void)
 
 	/* Check if that libjvm.so exists. */
 
-	if (system_access(java_home, F_OK) == 0) {
+	if (os_access(java_home, F_OK) == 0) {
 		/* Yes, we add /jre to java.home. */
 
 		strcpy(java_home, p);

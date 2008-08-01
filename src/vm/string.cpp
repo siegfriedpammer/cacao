@@ -27,7 +27,7 @@
 
 #include <assert.h>
 
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 
 #include "vm/types.h"
 

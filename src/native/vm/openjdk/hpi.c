@@ -42,7 +42,7 @@
 #include "vm/vm.hpp"
 
 #include "vmcore/options.h"
-#include "vmcore/system.h"
+#include "vmcore/os.hpp"
 #include "vmcore/utf8.h"
 
 
@@ -97,14 +97,14 @@ void hpi_initialize(void)
 	boot_library_path = properties_get("sun.boot.library.path");
 
 	len =
-		system_strlen(boot_library_path) +
-		system_strlen("/native_threads/libhpi.so") +
-		system_strlen("0");
+		os_strlen(boot_library_path) +
+		os_strlen("/native_threads/libhpi.so") +
+		os_strlen("0");
 
 	p = MNEW(char, len);
 
-	system_strcpy(p, boot_library_path);
-	system_strcat(p, "/native_threads/libhpi.so");
+	os_strcpy(p, boot_library_path);
+	os_strcat(p, "/native_threads/libhpi.so");
 
 	u = utf_new_char(p);
 
@@ -121,13 +121,12 @@ void hpi_initialize(void)
 
 	/* Resolve the DLL_Initialize function from the library. */
 
-	dll_initialize = system_dlsym(handle, "DLL_Initialize");
+	dll_initialize = os_dlsym(handle, "DLL_Initialize");
 
     DLL_Initialize = (jint (JNICALL *)(GetInterfaceFunc *, void *)) (intptr_t) dll_initialize;
 
     if (opt_TraceHPI && DLL_Initialize == NULL)
-		log_println("hpi_init: HPI dlsym of DLL_Initialize failed: %s",
-					system_dlerror());
+		log_println("hpi_init: HPI dlsym of DLL_Initialize failed: %s", os_dlerror());
 
     if (DLL_Initialize == NULL ||
         (*DLL_Initialize)(&hpi_get_interface, &callbacks) < 0) {
