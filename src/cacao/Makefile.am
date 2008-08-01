@@ -87,7 +87,7 @@ bin_PROGRAMS = \
 	cacao
 
 cacao_SOURCES = \
-	cacao.c
+	cacao.cpp
 
 cacao_LDADD = \
 	$(CACAO_LIBS)

@@ -1,4 +1,4 @@
-/* src/cacao/cacao.c - contains main() of cacao
+/* src/cacao/cacao.cpp - contains main() of cacao
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -58,7 +58,7 @@
 
 /* forward declarations *******************************************************/
 
-static JavaVMInitArgs *cacao_options_prepare(int argc, char **argv);
+static JavaVMInitArgs* prepare_options(int argc, char** argv);
 
 
 /* main ************************************************************************
@@ -70,7 +70,7 @@ static JavaVMInitArgs *cacao_options_prepare(int argc, char **argv);
 int main(int argc, char **argv)
 {
 #if defined(ENABLE_LIBJVM)
-	char*       path;
+	const char* path;
 
 # if defined(ENABLE_JRE_LAYOUT)
 	int         len;
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 
 	/* prepare the options */
 
-	vm_args = cacao_options_prepare(argc, argv);
+	vm_args = prepare_options(argc, argv);
 	
 	/* load and initialize a Java VM, return a JNI interface pointer in env */
 
@@ -105,18 +105,18 @@ int main(int argc, char **argv)
 	path = malloc(sizeof(char) * 4096);
 
 	if (readlink("/proc/self/exe", path, 4095) == -1) {
-		fprintf(stderr, "main: readlink failed: %s\n", strerror(errno));
-		abort();
+		fprintf(stderr, "main: readlink failed: %s\n", system_strerror(errno));
+		system_abort();
 	}
 
 	/* get the path of the current executable */
 
 	path = dirname(path);
-	len  = strlen(path) + strlen("/../lib/"LIBJVM_NAME) + strlen("0");
+	len  = system_strlen(path) + system_strlen("/../lib/"LIBJVM_NAME) + system_strlen("0");
 
 	if (len > 4096) {
 		fprintf(stderr, "main: libjvm name to long for buffer\n");
-		abort();
+		system_abort();
 	}
 
 	/* concatinate the library name */
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
 
 			fprintf(stderr, "main: system_dlopen failed: %s\n",
 					system_dlerror());
-			abort();
+			system_abort();
 		}
 
 		/* free the error string */
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
 
 	if (libjvm_VM_create == NULL) {
 		fprintf(stderr, "main: lt_dlsym failed: %s\n", system_dlerror());
-		abort();
+		system_abort();
 	}
 
 	VM_create =
@@ -168,7 +168,7 @@ int main(int argc, char **argv)
 
 	/* create the Java VM */
 
-	(void) VM_create(&vm, (void *) &env, vm_args);
+	(void) VM_create(&vm, (void**) &env, vm_args);
 
 #if defined(ENABLE_JVMTI)
 # error This should be a JVMTI function.
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
 
 	if (libjvm_vm_run == NULL) {
 		fprintf(stderr, "main: system_dlsym failed: %s\n", system_dlerror());
-		abort();
+		system_abort();
 	}
 
 	vm_run = (void (*)(JavaVM *, JavaVMInitArgs *)) (ptrint) libjvm_vm_run;
@@ -197,25 +197,21 @@ int main(int argc, char **argv)
 }
 
 
-/* cacao_options_prepare *******************************************************
-
-   Prepare the JavaVMInitArgs.
-
-*******************************************************************************/
-
-static JavaVMInitArgs *cacao_options_prepare(int argc, char **argv)
+/**
+ * Prepare the JavaVMInitArgs structure.
+ */
+static JavaVMInitArgs* prepare_options(int argc, char** argv)
 {
-	JavaVMInitArgs *vm_args;
-	s4              i;
+	JavaVMInitArgs* vm_args;
 
-	vm_args = malloc(sizeof(JavaVMInitArgs));
+	vm_args = (JavaVMInitArgs*) malloc(sizeof(JavaVMInitArgs));
 
 	vm_args->version            = JNI_VERSION_1_2;
 	vm_args->nOptions           = argc - 1;
-	vm_args->options            = malloc(sizeof(JavaVMOption) * argc);
+	vm_args->options            = (JavaVMOption*) malloc(sizeof(JavaVMOption) * argc);
 	vm_args->ignoreUnrecognized = JNI_FALSE;
 
-	for (i = 1; i < argc; i++)
+	for (int i = 1; i < argc; i++)
 		vm_args->options[i - 1].optionString = argv[i];
 
 	return vm_args;
@@ -228,7 +224,7 @@ static JavaVMInitArgs *cacao_options_prepare(int argc, char **argv)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

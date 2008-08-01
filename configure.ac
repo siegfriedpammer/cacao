@@ -24,7 +24,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 
 AC_INIT(cacao, 1.1.0pre, cacao@cacaojvm.org)
-AC_CONFIG_SRCDIR(src/cacao/cacao.c)
+AC_CONFIG_SRCDIR(src/cacao/cacao.cpp)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
 AM_INIT_AUTOMAKE([1.9.0 dist-bzip2 tar-ustar])
