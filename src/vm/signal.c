@@ -252,6 +252,7 @@ static void signal_thread(void)
 	threadobject *t;
 	sigset_t      mask;
 	int           sig;
+	int result;
 
 	t = THREADOBJECT;
 
@@ -277,14 +278,14 @@ static void signal_thread(void)
 		thread_set_state_waiting(t);
 #endif
 
-		/* XXX We don't check for an error here, although the man-page
-		   states sigwait does not return an error (which is wrong!),
-		   but it seems to make problems with Boehm-GC.  We should
-		   revisit this code with our new exact-GC. */
+		// sigwait can return EINTR (unlike what the Linux man-page
+		// says).
+		do {
+			result = sigwait(&mask, &sig);
+		} while (result == EINTR);
 
-/* 		if (sigwait(&mask, &sig) != 0) */
-/* 			vm_abort_errno("signal_thread: sigwait failed"); */
-		(void) sigwait(&mask, &sig);
+		if (result != 0)
+			vm_abort_errnum(result, "signal_thread: sigwait failed");
 
 #if defined(ENABLE_THREADS)
 		thread_set_state_runnable(t);
@@ -332,8 +333,9 @@ void signal_thread_handler(int sig)
 		(void) vm_call_method(m, NULL, sig);
 
 		if (exceptions_get_exception()) {
+			log_println("signal_thread_handler: Java signal handler throw an exception while dispatching signal %d:", sig);
 			exceptions_print_stacktrace();
-			vm_abort("signal_thread_handler: Java signal handler throw an exception. Exiting...");
+			vm_abort("signal_thread_handler: Aborting...");
 		}
 		break;
 	}
