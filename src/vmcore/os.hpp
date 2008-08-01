@@ -39,6 +39,10 @@
 # include <dlfcn.h>
 #endif
 
+#if defined(HAVE_ERRNO_H)
+# include <errno.h>
+#endif
+
 #if defined(HAVE_FCNTL_H)
 # include <fcntl.h>
 #endif
