@@ -1,9 +1,7 @@
-/* src/native/vm/cldc1.1/com_sun_cldc_io_j2me_socket_Protocol.c
+/* src/native/vm/cldc1.1/com_sun_cldc_io_j2me_socket_Protocol.cpp
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -27,6 +25,7 @@
 
 #include "config.h"
 
+#include <stdint.h>
 #include <errno.h>
 #include <netdb.h>
 #include <unistd.h>
@@ -41,7 +40,10 @@
 #include "native/llni.h"
 #include "native/native.h"
 
+// FIXME
+extern "C" {
 #include "native/include/com_sun_cldc_io_j2me_socket_Protocol.h"
+}
 
 #include "vm/global.h"
 #include "vm/vm.hpp" /* REMOVE ME: temporarily */
@@ -50,13 +52,13 @@
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "open0",      "([BII)I",  (void *) (ptrint) &Java_com_sun_cldc_io_j2me_socket_Protocol_open0      },
-	{ "readBuf",    "(I[BII)I", (void *) (ptrint) &Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf    },
-	{ "readByte",   "(I)I",     (void *) (ptrint) &Java_com_sun_cldc_io_j2me_socket_Protocol_readByte   },
-	{ "writeBuf",   "(I[BII)I", (void *) (ptrint) &Java_com_sun_cldc_io_j2me_socket_Protocol_writeBuf   },
-	{ "writeByte",  "(II)I",    (void *) (ptrint) &Java_com_sun_cldc_io_j2me_socket_Protocol_writeByte  },
-	{ "available0", "(I)I",     (void *) (ptrint) &Java_com_sun_cldc_io_j2me_socket_Protocol_available0 },
-	{ "close0",     "(I)V",     (void *) (ptrint) &Java_com_sun_cldc_io_j2me_socket_Protocol_close0     },
+	{ (char*) "open0",      (char*) "([BII)I",  (void*) (uintptr_t) &Java_com_sun_cldc_io_j2me_socket_Protocol_open0      },
+	{ (char*) "readBuf",    (char*) "(I[BII)I", (void*) (uintptr_t) &Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf    },
+	{ (char*) "readByte",   (char*) "(I)I",     (void*) (uintptr_t) &Java_com_sun_cldc_io_j2me_socket_Protocol_readByte   },
+	{ (char*) "writeBuf",   (char*) "(I[BII)I", (void*) (uintptr_t) &Java_com_sun_cldc_io_j2me_socket_Protocol_writeBuf   },
+	{ (char*) "writeByte",  (char*) "(II)I",    (void*) (uintptr_t) &Java_com_sun_cldc_io_j2me_socket_Protocol_writeByte  },
+	{ (char*) "available0", (char*) "(I)I",     (void*) (uintptr_t) &Java_com_sun_cldc_io_j2me_socket_Protocol_available0 },
+	{ (char*) "close0",     (char*) "(I)V",     (void*) (uintptr_t) &Java_com_sun_cldc_io_j2me_socket_Protocol_close0     },
 };
 
  
@@ -66,6 +68,8 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
  
+// FIXME
+extern "C" {
 void _Jv_com_sun_cldc_io_j2me_socket_Protocol_init(void)
 {
 	utf *u;
@@ -74,7 +78,11 @@ void _Jv_com_sun_cldc_io_j2me_socket_Protocol_init(void)
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
+}
 
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     com/sun/cldc/io/j2me/socket/Protocol
@@ -149,7 +157,7 @@ JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf(JNIEnv *e
 		return -1;
 	}
 	else if (result < 0) {
-		vm_abort("Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf: recv failed: %s", strerror(errno));
+		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf: recv failed");
 	}
 
 	return result;
@@ -178,7 +186,7 @@ JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_readByte(JNIEnv *
 	else if (result < 0) {
 		/* should throw an IOException */
 
-		vm_abort("Java_com_sun_cldc_io_j2me_socket_Protocol_readByte: recv failed: %s", strerror(errno));
+		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_readByte: recv failed");
 	}
 
 	return byte;
@@ -206,7 +214,7 @@ JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_writeBuf(JNIEnv *
 	if (result < 0)
 		/* should throw an IOException */
 
-		vm_abort("Java_com_sun_cldc_io_j2me_socket_Protocol_writeBuf: send failed: %s", strerror(errno));
+		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_writeBuf: send failed");
 
 	return result;
 
@@ -230,7 +238,7 @@ JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_writeByte(JNIEnv 
 	result = send(handle, &byte, 1, 0);
 
 	if (result < 0)
-		vm_abort("Java_com_sun_cldc_io_j2me_socket_Protocol_writeByte: send failed: %s", strerror(errno));
+		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_writeByte: send failed");
 
 	return result;
 }
@@ -263,8 +271,10 @@ JNIEXPORT void JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_close0(JNIEnv *
 	result = close(handle);
 
 	if (result < 0)
-		vm_abort("Java_com_sun_cldc_io_j2me_socket_Protocol_close0: close failed: %s", strerror(errno));
+		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_close0: close failed");
 }
+
+} // extern "C"
 
 
 /*
@@ -273,7 +283,7 @@ JNIEXPORT void JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_close0(JNIEnv *
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

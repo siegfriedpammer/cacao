@@ -1,6 +1,6 @@
-/* src/native/vm/cldc1.1/com_sun_cldchi_jvm_JVM.c
+/* src/native/vm/cldc1.1/com_sun_cldchi_io_ConsoleOutputStream.cpp
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -24,69 +24,61 @@
 
 
 #include "config.h"
+
+#include <stdint.h>
+#include <stdio.h>
+
 #include "vm/types.h"
 
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_String.h"
-
-#include "native/include/com_sun_cldchi_jvm_JVM.h"
-
-#include "vm/exceptions.hpp"
-#include "vm/string.hpp"
+// FIXME
+extern "C" { 
+#include "native/include/com_sun_cldchi_io_ConsoleOutputStream.h"
+}
 
 
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "loadLibrary", "(Ljava/lang/String;)V", (void *) (ptrint) &Java_com_sun_cldchi_jvm_JVM_loadLibrary },
+	{ (char*) "write", (char*) "(I)V", (void*) (uintptr_t) &Java_com_sun_cldchi_io_ConsoleOutputStream_write },
 };
 
-
-/* _Jv_com_sun_cldchi_jvm_JVM_init *********************************************
+ 
+/* _Jv_com_sun_cldchi_io_ConsoleOutputStream_init ******************************
  
    Register native functions.
  
 *******************************************************************************/
  
-void _Jv_com_sun_cldchi_jvm_JVM_init(void)
+// FIXME
+extern "C" { 
+void _Jv_com_sun_cldchi_io_ConsoleOutputStream_init(void)
 {
 	utf *u;
  
-	u = utf_new_char("com/sun/cldchi/jvm/JVM");
+	u = utf_new_char("com/sun/cldchi/io/ConsoleOutputStream");
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
+}
 
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
- * Class:     com/sun/cldchi/jvm/JVM
- * Method:    loadLibrary
- * Signature: (Ljava/lang/String;)V
+ * Class:     com/sun/cldchi/io/ConsoleOutputStream
+ * Method:    write
+ * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_com_sun_cldchi_jvm_JVM_loadLibrary(JNIEnv *env, jclass clazz, java_lang_String *libName)
+JNIEXPORT void JNICALL Java_com_sun_cldchi_io_ConsoleOutputStream_write(JNIEnv *env, com_sun_cldchi_io_ConsoleOutputStream *_this, int32_t c)
 {
-	int  result;
-	utf *name;
-
-	/* REMOVEME When we use Java-strings internally. */
-
-	if (libName == NULL) {
-		exceptions_throw_nullpointerexception();
-		return;
-	}
-
-	name = javastring_toutf((java_handle_t *) libName, false);
-
-	result = native_library_load(env, name, NULL);
-
-	/* Check for error and throw an exception in case. */
-
-	if (result == 0) {
-		exceptions_throw_unsatisfiedlinkerror(name);
-	}
+	(void) fputc(c, stdout);
 }
+
+} // extern "C"
 
 
 /*
@@ -95,7 +87,7 @@ JNIEXPORT void JNICALL Java_com_sun_cldchi_jvm_JVM_loadLibrary(JNIEnv *env, jcla
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

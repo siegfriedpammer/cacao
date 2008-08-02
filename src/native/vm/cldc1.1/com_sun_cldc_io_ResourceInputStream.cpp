@@ -1,4 +1,4 @@
-/* src/native/vm/cldc1.1/com_sun_cldc_io_ResourceInputStream.c
+/* src/native/vm/cldc1.1/com_sun_cldc_io_ResourceInputStream.cpp
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -39,8 +39,12 @@
 
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_String.h"
-#include "native/include/com_sun_cldc_io_ResourceInputStream.h"
 #include "native/include/com_sun_cldchi_jvm_FileDescriptor.h"
+
+// FIXME
+extern "C" {
+#include "native/include/com_sun_cldc_io_ResourceInputStream.h"
+}
 
 #include "vm/types.h"
 #include "vm/builtin.h"
@@ -52,22 +56,26 @@
 
 #include "threads/lock-common.h"
 
+
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "open", "(Ljava/lang/String;)Ljava/lang/Object;", (void *) (ptrint) &Java_com_sun_cldc_io_ResourceInputStream_open },
-	{ "bytesRemain", "(Ljava/lang/Object;)I", (void *) (ptrint) &Java_com_sun_cldc_io_ResourceInputStream_bytesRemain },
-	{ "readByte", "(Ljava/lang/Object;)I", (void *) (ptrint) &Java_com_sun_cldc_io_ResourceInputStream_readByte },
-	{ "readBytes", "(Ljava/lang/Object;[BII)I", (void *) (ptrint) &Java_com_sun_cldc_io_ResourceInputStream_readBytes },
-	{ "clone", "(Ljava/lang/Object;)Ljava/lang/Object;", (void *) (ptrint) &Java_com_sun_cldc_io_ResourceInputStream_clone },
+	{ (char*) "open",        (char*) "(Ljava/lang/String;)Ljava/lang/Object;", (void*) (uintptr_t) &Java_com_sun_cldc_io_ResourceInputStream_open        },
+	{ (char*) "bytesRemain", (char*) "(Ljava/lang/Object;)I",                  (void*) (uintptr_t) &Java_com_sun_cldc_io_ResourceInputStream_bytesRemain },
+	{ (char*) "readByte",    (char*) "(Ljava/lang/Object;)I",                  (void*) (uintptr_t) &Java_com_sun_cldc_io_ResourceInputStream_readByte    },
+	{ (char*) "readBytes",   (char*) "(Ljava/lang/Object;[BII)I",              (void*) (uintptr_t) &Java_com_sun_cldc_io_ResourceInputStream_readBytes   },
+	{ (char*) "clone",       (char*) "(Ljava/lang/Object;)Ljava/lang/Object;", (void*) (uintptr_t) &Java_com_sun_cldc_io_ResourceInputStream_clone       },
 };
  
+
 /* _Jv_com_sun_cldc_io_ResourceInputStream_init ********************************
  
    Register native functions.
  
 *******************************************************************************/
  
+// FIXME
+extern "C" {
 void _Jv_com_sun_cldc_io_ResourceInputStream_init(void)
 {
 	utf *u;
@@ -75,6 +83,7 @@ void _Jv_com_sun_cldc_io_ResourceInputStream_init(void)
 	u = utf_new_char("com/sun/cldc/io/ResourceInputStream");
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 }
 
 static struct com_sun_cldchi_jvm_FileDescriptor* zip_read_resource(list_classpath_entry *lce, utf *name)
@@ -183,7 +192,7 @@ static struct com_sun_cldchi_jvm_FileDescriptor* file_read_resource(char *path)
 		}
 		
 		/* Map file into the memory */
-		filep = mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
+		filep = (u1*) mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
 		
 		/* Create a file descriptor object */
 		ci = load_class_bootstrap(utf_new_char("com/sun/cldchi/jvm/FileDescriptor"));
@@ -200,6 +209,9 @@ static struct com_sun_cldchi_jvm_FileDescriptor* file_read_resource(char *path)
 	
 }
 
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     com/sun/cldc/io/ResourceInputStream
@@ -226,8 +238,8 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_com_sun_cldc_io_ResourceInputStr
 	
 	/* walk through all classpath entries */
 
-	for (lce = list_first(list_classpath_entries); lce != NULL;
-		 lce = list_next(list_classpath_entries, lce)) {
+	for (lce = (list_classpath_entry*) list_first(list_classpath_entries); lce != NULL;
+		 lce = (list_classpath_entry*) list_next(list_classpath_entries, lce)) {
 		 	
 #if defined(ENABLE_ZLIB)
 		if (lce->type == CLASSPATH_ARCHIVE) {
@@ -395,6 +407,8 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_com_sun_cldc_io_ResourceInputStr
 
 }
 
+} // extern "C"
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -402,7 +416,7 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_com_sun_cldc_io_ResourceInputStr
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

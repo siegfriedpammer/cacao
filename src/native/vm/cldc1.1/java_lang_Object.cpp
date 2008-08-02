@@ -25,9 +25,8 @@
 
 #include "config.h"
 
+#include <stdint.h>
 #include <stdlib.h>
-
-#include "vm/types.h"
 
 #include "native/jni.h"
 #include "native/llni.h"
@@ -36,7 +35,10 @@
 #include "native/include/java_lang_String.h"             /* required by j.l.C */
 #include "native/include/java_lang_Class.h"
 
+// FIXME
+extern "C" {
 #include "native/include/java_lang_Object.h"
+}
 
 #include "threads/lock-common.h"
 
@@ -46,11 +48,11 @@
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "getClass",  "()Ljava/lang/Class;",                   (void *) (ptrint) &Java_java_lang_Object_getClass  },
-	{ "hashCode",  "()I",                                   (void *) (ptrint) &Java_java_lang_Object_hashCode  },
-	{ "notify",    "()V",                                   (void *) (ptrint) &Java_java_lang_Object_notify    },
-	{ "notifyAll", "()V",                                   (void *) (ptrint) &Java_java_lang_Object_notifyAll },
-	{ "wait",      "(J)V",                                  (void *) (ptrint) &Java_java_lang_Object_wait      },
+	{ (char*) "getClass",  (char*) "()Ljava/lang/Class;", (void*) (uintptr_t) &Java_java_lang_Object_getClass  },
+	{ (char*) "hashCode",  (char*) "()I",                 (void*) (uintptr_t) &Java_java_lang_Object_hashCode  },
+	{ (char*) "notify",    (char*) "()V",                 (void*) (uintptr_t) &Java_java_lang_Object_notify    },
+	{ (char*) "notifyAll", (char*) "()V",                 (void*) (uintptr_t) &Java_java_lang_Object_notifyAll },
+	{ (char*) "wait",      (char*) "(J)V",                (void*) (uintptr_t) &Java_java_lang_Object_wait      },
 };
  
  
@@ -60,6 +62,8 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
  
+// FIXME
+extern "C" {
 void _Jv_java_lang_Object_init(void)
 {
 	utf *u;
@@ -68,7 +72,11 @@ void _Jv_java_lang_Object_init(void)
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
+}
 
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/Object
@@ -95,12 +103,12 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_Object_getClass(JNIEnv *env, j
  * Method:    hashCode
  * Signature: ()I
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_Object_hashCode(JNIEnv *env, java_lang_Object *this)
+JNIEXPORT int32_t JNICALL Java_java_lang_Object_hashCode(JNIEnv *env, java_lang_Object *_this)
 {
 #if defined(ENABLE_GC_CACAO)
 	assert(0);
 #else
-	return (int32_t) ((intptr_t) this);
+	return (int32_t) ((intptr_t) _this);
 #endif
 }
 
@@ -110,10 +118,10 @@ JNIEXPORT int32_t JNICALL Java_java_lang_Object_hashCode(JNIEnv *env, java_lang_
  * Method:    notify
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Object_notify(JNIEnv *env, java_lang_Object *this)
+JNIEXPORT void JNICALL Java_java_lang_Object_notify(JNIEnv *env, java_lang_Object *_this)
 {
 #if defined(ENABLE_THREADS)
-	lock_notify_object((java_handle_t *) this);
+	lock_notify_object((java_handle_t *) _this);
 #endif
 }
 
@@ -123,10 +131,10 @@ JNIEXPORT void JNICALL Java_java_lang_Object_notify(JNIEnv *env, java_lang_Objec
  * Method:    notifyAll
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Object_notifyAll(JNIEnv *env, java_lang_Object *this)
+JNIEXPORT void JNICALL Java_java_lang_Object_notifyAll(JNIEnv *env, java_lang_Object *_this)
 {
 #if defined(ENABLE_THREADS)
-	lock_notify_all_object((java_handle_t *) this);
+	lock_notify_all_object((java_handle_t *) _this);
 #endif
 }
 
@@ -136,23 +144,25 @@ JNIEXPORT void JNICALL Java_java_lang_Object_notifyAll(JNIEnv *env, java_lang_Ob
  * Method:    wait
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Object_wait(JNIEnv *env, java_lang_Object *this, s8 timeout)
+JNIEXPORT void JNICALL Java_java_lang_Object_wait(JNIEnv *env, java_lang_Object *_this, s8 timeout)
 {
 #if defined(ENABLE_JVMTI)
 	/* Monitor Wait */
-	if (jvmti) jvmti_MonitorWaiting(true, this, timeout);
+	if (jvmti) jvmti_MonitorWaiting(true, _this, timeout);
 #endif
 
 #if defined(ENABLE_THREADS)
-	lock_wait_for_object((java_handle_t *) this, timeout, 0);
+	lock_wait_for_object((java_handle_t *) _this, timeout, 0);
 #endif
 
 #if defined(ENABLE_JVMTI)
 	/* Monitor Waited */
 	/* XXX: How do you know if wait timed out ?*/
-	if (jvmti) jvmti_MonitorWaiting(false, this, 0);
+	if (jvmti) jvmti_MonitorWaiting(false, _this, 0);
 #endif
 }
+
+} // extern "C"
 
 
 /*
@@ -161,7 +171,7 @@ JNIEXPORT void JNICALL Java_java_lang_Object_wait(JNIEnv *env, java_lang_Object 
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

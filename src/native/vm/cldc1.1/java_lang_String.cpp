@@ -1,4 +1,4 @@
-/* src/native/vm/cldc1.1/java_lang_String.c
+/* src/native/vm/cldc1.1/java_lang_String.cpp
 
    Copyright (C) 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,10 +25,9 @@
 
 #include "config.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "vm/types.h"
 
 #include "native/jni.h"
 #include "native/llni.h"
@@ -36,7 +35,10 @@
 
 #include "native/include/java_lang_Object.h"
 
+// FIXME
+extern "C" {
 #include "native/include/java_lang_String.h"
+}
 
 #include "vm/string.hpp"
 
@@ -44,15 +46,15 @@
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "hashCode",    "()I",                    (void *) (ptrint) &Java_java_lang_String_hashCode        },
-	{ "indexOf",     "(I)I",                   (void *) (ptrint) &Java_java_lang_String_indexOf__I      },
-	{ "indexOf",     "(II)I",                  (void *) (ptrint) &Java_java_lang_String_indexOf__II     },
-	{ "lastIndexOf", "(I)I",                   (void *) (ptrint) &Java_java_lang_String_lastIndexOf__I  },
-	{ "lastIndexOf", "(II)I",                  (void *) (ptrint) &Java_java_lang_String_lastIndexOf__II },
+	{ (char*) "hashCode",    (char*) "()I",                    (void*) (uintptr_t) &Java_java_lang_String_hashCode        },
+	{ (char*) "indexOf",     (char*) "(I)I",                   (void*) (uintptr_t) &Java_java_lang_String_indexOf__I      },
+	{ (char*) "indexOf",     (char*) "(II)I",                  (void*) (uintptr_t) &Java_java_lang_String_indexOf__II     },
+	{ (char*) "lastIndexOf", (char*) "(I)I",                   (void*) (uintptr_t) &Java_java_lang_String_lastIndexOf__I  },
+	{ (char*) "lastIndexOf", (char*) "(II)I",                  (void*) (uintptr_t) &Java_java_lang_String_lastIndexOf__II },
 #if 0
-	{ "equals",      "(Ljava/lang/Object;)Z;", (void *) (ptrint) &Java_java_lang_String_equals          },
+	{ (char*) "equals",      (char*) "(Ljava/lang/Object;)Z;", (void*) (uintptr_t) &Java_java_lang_String_equals          },
 #endif
-	{ "intern",      "()Ljava/lang/String;",   (void *) (ptrint) &Java_java_lang_String_intern          },
+	{ (char*) "intern",      (char*) "()Ljava/lang/String;",   (void*) (uintptr_t) &Java_java_lang_String_intern          },
 };
 
 
@@ -62,6 +64,8 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
  
+// FIXME
+extern "C" {
 void _Jv_java_lang_String_init(void)
 {
 	utf *u;
@@ -70,14 +74,18 @@ void _Jv_java_lang_String_init(void)
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
+}
 
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/String
  * Method:    hashCode
  * Signature: ()I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_String_hashCode(JNIEnv *env, java_lang_String *this)
+JNIEXPORT s4 JNICALL Java_java_lang_String_hashCode(JNIEnv *env, java_lang_String *_this)
 {
 	java_handle_chararray_t *value;
 	int32_t              	offset;
@@ -87,9 +95,9 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_hashCode(JNIEnv *env, java_lang_Strin
 
 	/* get values from Java object */
 	
-	LLNI_field_get_val(this, offset, offset);
-	LLNI_field_get_val(this, count, count);
-	LLNI_field_get_ref(this, value, value);
+	LLNI_field_get_val(_this, offset, offset);
+	LLNI_field_get_val(_this, count, count);
+	LLNI_field_get_ref(_this, value, value);
 
 	hash = 0;
 
@@ -106,7 +114,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_hashCode(JNIEnv *env, java_lang_Strin
  * Method:    indexOf
  * Signature: (I)I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__I(JNIEnv *env, java_lang_String *this, s4 ch)
+JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__I(JNIEnv *env, java_lang_String *_this, s4 ch)
 {
 	java_handle_chararray_t *value;
 	int32_t              	offset;
@@ -115,9 +123,9 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__I(JNIEnv *env, java_lang_Str
 
 	/* get values from Java object */
 
-	LLNI_field_get_val(this, offset, offset);
-	LLNI_field_get_val(this, count, count);
-	LLNI_field_get_ref(this, value, value);
+	LLNI_field_get_val(_this, offset, offset);
+	LLNI_field_get_val(_this, count, count);
+	LLNI_field_get_ref(_this, value, value);
 
 	for (i = 0; i < count; i++) {
 		if (LLNI_array_direct(value, offset + i) == ch) {
@@ -134,7 +142,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__I(JNIEnv *env, java_lang_Str
  * Method:    indexOf
  * Signature: (II)I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__II(JNIEnv *env, java_lang_String *this, s4 ch, s4 fromIndex)
+JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__II(JNIEnv *env, java_lang_String *_this, s4 ch, s4 fromIndex)
 {
 	java_handle_chararray_t *value;
 	int32_t              	offset;
@@ -143,9 +151,9 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__II(JNIEnv *env, java_lang_St
 
 	/* get values from Java object */
 
-	LLNI_field_get_val(this, offset, offset);
-	LLNI_field_get_val(this, count, count);
-	LLNI_field_get_ref(this, value, value);
+	LLNI_field_get_val(_this, offset, offset);
+	LLNI_field_get_val(_this, count, count);
+	LLNI_field_get_ref(_this, value, value);
 
 	if (fromIndex < 0) {
 		fromIndex = 0;
@@ -170,13 +178,13 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_indexOf__II(JNIEnv *env, java_lang_St
  * Method:    lastIndexOf
  * Signature: (I)I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_String_lastIndexOf__I(JNIEnv *env, java_lang_String *this, s4 ch)
+JNIEXPORT s4 JNICALL Java_java_lang_String_lastIndexOf__I(JNIEnv *env, java_lang_String *_this, s4 ch)
 {
 	int32_t	count;
 	
-	LLNI_field_get_val(this, count, count);
+	LLNI_field_get_val(_this, count, count);
 	
-	return Java_java_lang_String_lastIndexOf__II(env, this, ch, count - 1);
+	return Java_java_lang_String_lastIndexOf__II(env, _this, ch, count - 1);
 }
 
 
@@ -185,7 +193,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_lastIndexOf__I(JNIEnv *env, java_lang
  * Method:    lastIndexOf
  * Signature: (II)I
  */
-JNIEXPORT s4 JNICALL Java_java_lang_String_lastIndexOf__II(JNIEnv *env, java_lang_String *this, s4 ch, s4 fromIndex)
+JNIEXPORT s4 JNICALL Java_java_lang_String_lastIndexOf__II(JNIEnv *env, java_lang_String *_this, s4 ch, s4 fromIndex)
 {
 	java_handle_chararray_t *value;
 	int32_t              	offset;
@@ -195,9 +203,9 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_lastIndexOf__II(JNIEnv *env, java_lan
 
 	/* get values from Java object */
 
-	LLNI_field_get_val(this, offset, offset);
-	LLNI_field_get_val(this, count, count);
-	LLNI_field_get_ref(this, value, value);
+	LLNI_field_get_val(_this, offset, offset);
+	LLNI_field_get_val(_this, count, count);
+	LLNI_field_get_ref(_this, value, value);
 
 	start = ((fromIndex >= count) ? count - 1 : fromIndex);
 
@@ -217,7 +225,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_lastIndexOf__II(JNIEnv *env, java_lan
  * Method:    equals
  * Signature: (Ljava/lang/Object;)Z;
  */
-JNIEXPORT s4 JNICALL Java_java_lang_String_equals(JNIEnv *env, java_lang_String* this, java_lang_Object *o)
+JNIEXPORT s4 JNICALL Java_java_lang_String_equals(JNIEnv *env, java_lang_String* _this, java_lang_Object *o)
 {
 	java_lang_String* 		s;
 	java_handle_chararray_t *value;
@@ -228,22 +236,22 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_equals(JNIEnv *env, java_lang_String*
 	int32_t              	dcount;
 	classinfo     			*c;
 	
-	LLNI_field_get_val(this, offset, offset);
-	LLNI_field_get_val(this, count, count);
-	LLNI_field_get_ref(this, value, value);
+	LLNI_field_get_val(_this, offset, offset);
+	LLNI_field_get_val(_this, count, count);
+	LLNI_field_get_ref(_this, value, value);
 	LLNI_class_get(o, c);
 
 	/* TODO: is this the correct implementation for short-circuiting on object identity? */
-	if ((java_lang_Object*)this == o)
+	if ((java_lang_Object*)_this == o)
 		return 1;
 	
 	if (c != class_java_lang_String) 
 		return 0;
 
 	s = (java_lang_String *) o;
-	LLNI_field_get_val(this, offset, doffset);
-	LLNI_field_get_val(this, count, dcount);
-	LLNI_field_get_ref(this, value, dvalue);
+	LLNI_field_get_val(_this, offset, doffset);
+	LLNI_field_get_val(_this, count, dcount);
+	LLNI_field_get_ref(_this, value, dvalue);
 
 	if (count != dcount)
 		return 0;
@@ -261,13 +269,15 @@ JNIEXPORT s4 JNICALL Java_java_lang_String_equals(JNIEnv *env, java_lang_String*
  * Method:    intern
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_String_intern(JNIEnv *env, java_lang_String *this)
+JNIEXPORT java_lang_String* JNICALL Java_java_lang_String_intern(JNIEnv *env, java_lang_String *_this)
 {
-	if (this == NULL)
+	if (_this == NULL)
 		return NULL;
 
-	return (java_lang_String *) javastring_intern((java_handle_t *) this);
+	return (java_lang_String *) javastring_intern((java_handle_t *) _this);
 }
+
+} // extern "C"
 
 
 /*
@@ -276,7 +286,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_String_intern(JNIEnv *env, ja
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

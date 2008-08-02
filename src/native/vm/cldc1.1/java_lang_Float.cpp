@@ -1,4 +1,4 @@
-/* src/native/vm/cldc1.1/java_lang_Runtime.c
+/* src/native/vm/cldc1.1/java_lang_Float.cpp
 
    Copyright (C) 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -27,86 +27,68 @@
 
 #include <stdint.h>
 
-#include "mm/gc.hpp"
-
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_Runtime.h"
+// FIXME
+extern "C" {
+#include "native/include/java_lang_Float.h"
+}
 
-#include "vm/vm.hpp"
-
-#include "vmcore/utf8.h"
+#include "vm/builtin.h"
 
 
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "exitInternal", "(I)V", (void *) (intptr_t) &Java_java_lang_Runtime_exitInternal },
-	{ "freeMemory",   "()J",  (void *) (intptr_t) &Java_java_lang_Runtime_freeMemory   },
-	{ "totalMemory",  "()J",  (void *) (intptr_t) &Java_java_lang_Runtime_totalMemory  },
-	{ "gc",           "()V",  (void *) (intptr_t) &Java_java_lang_Runtime_gc           },
+	{ (char*) "floatToIntBits", (char*) "(F)I", (void*) (uintptr_t) &Java_java_lang_Float_floatToIntBits },
 };
  
  
-/* _Jv_java_lang_Runtime_init **************************************************
+/* _Jv_java_lang_Float_init ****************************************************
  
    Register native functions.
  
 *******************************************************************************/
- 
-void _Jv_java_lang_Runtime_init(void)
+
+// FIXME
+extern "C" { 
+void _Jv_java_lang_Float_init(void)
 {
 	utf *u;
  
-	u = utf_new_char("java/lang/Runtime");
+	u = utf_new_char("java/lang/Float");
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
-
-
-/*
- * Class:     java/lang/Runtime
- * Method:    exitInternal
- * Signature: (I)V
- */
-JNIEXPORT void JNICALL Java_java_lang_Runtime_exitInternal(JNIEnv *env, java_lang_Runtime *this, int32_t status)
-{
-	vm_shutdown(status);
 }
 
 
-/*
- * Class:     java/lang/Runtime
- * Method:    freeMemory
- * Signature: ()J
- */
-JNIEXPORT int64_t JNICALL Java_java_lang_Runtime_freeMemory(JNIEnv *env, java_lang_Runtime *this)
-{
-	return gc_get_free_bytes();
-}
-
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
- * Class:     java/lang/Runtime
- * Method:    totalMemory
- * Signature: ()J
+ * Class:     java/lang/Float
+ * Method:    floatToIntBits
+ * Signature: (F)I
  */
-JNIEXPORT int64_t JNICALL Java_java_lang_Runtime_totalMemory(JNIEnv *env, java_lang_Runtime *this)
+JNIEXPORT int32_t JNICALL Java_java_lang_Float_floatToIntBits(JNIEnv *env, jclass clazz, float value)
 {
-	return gc_get_heap_size();
+	imm_union val;
+	int e, f;
+
+	val.f = value;
+
+	e = val.i & 0x7f800000;
+	f = val.i & 0x007fffff;
+
+	if (e == FLT_POSINF && f != 0)
+		return FLT_NAN;
+
+	return val.i;
 }
 
-
-/*
- * Class:     java/lang/Runtime
- * Method:    gc
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_java_lang_Runtime_gc(JNIEnv *env, java_lang_Runtime *this)
-{
-	gc_call();
-}
+} // extern "C"
 
 
 /*
@@ -115,10 +97,9 @@ JNIEXPORT void JNICALL Java_java_lang_Runtime_gc(JNIEnv *env, java_lang_Runtime 
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
- * vim:noexpandtab:sw=4:ts=4:
  */

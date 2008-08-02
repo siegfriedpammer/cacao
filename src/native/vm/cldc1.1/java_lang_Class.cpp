@@ -1,4 +1,4 @@
-/* src/native/vm/cldc1.1/java_lang_Class.c
+/* src/native/vm/cldc1.1/java_lang_Class.cpp
 
    Copyright (C) 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -24,7 +24,8 @@
 
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
 
 #include "native/jni.h"
 #include "native/llni.h"
@@ -33,7 +34,10 @@
 #include "native/include/java_lang_String.h"             /* required by j.l.C */
 #include "native/include/java_lang_Object.h"
 
+// FIXME
+extern "C" { 
 #include "native/include/java_lang_Class.h"
+}
 
 #include "vm/exceptions.hpp"
 #include "vm/initialize.h"
@@ -42,13 +46,13 @@
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "forName",          "(Ljava/lang/String;)Ljava/lang/Class;",(void *) (ptrint) &Java_java_lang_Class_forName          },
-	{ "newInstance",      "()Ljava/lang/Object;",                 (void *) (ptrint) &Java_java_lang_Class_newInstance      },
-	{ "isInstance",       "(Ljava/lang/Object;)Z",                (void *) (ptrint) &Java_java_lang_Class_isInstance       },
-	{ "isAssignableFrom", "(Ljava/lang/Class;)Z",                 (void *) (ptrint) &Java_java_lang_Class_isAssignableFrom },
-	{ "isInterface",      "()Z",                                  (void *) (ptrint) &Java_java_lang_Class_isInterface      },
-	{ "isArray",          "()Z",                                  (void *) (ptrint) &Java_java_lang_Class_isArray          },
-	{ "getName",          "()Ljava/lang/String;",                 (void *) (ptrint) &Java_java_lang_Class_getName          },
+	{ (char*) "forName",          (char*) "(Ljava/lang/String;)Ljava/lang/Class;",(void*) (uintptr_t) &Java_java_lang_Class_forName          },
+	{ (char*) "newInstance",      (char*) "()Ljava/lang/Object;",                 (void*) (uintptr_t) &Java_java_lang_Class_newInstance      },
+	{ (char*) "isInstance",       (char*) "(Ljava/lang/Object;)Z",                (void*) (uintptr_t) &Java_java_lang_Class_isInstance       },
+	{ (char*) "isAssignableFrom", (char*) "(Ljava/lang/Class;)Z",                 (void*) (uintptr_t) &Java_java_lang_Class_isAssignableFrom },
+	{ (char*) "isInterface",      (char*) "()Z",                                  (void*) (uintptr_t) &Java_java_lang_Class_isInterface      },
+	{ (char*) "isArray",          (char*) "()Z",                                  (void*) (uintptr_t) &Java_java_lang_Class_isArray          },
+	{ (char*) "getName",          (char*) "()Ljava/lang/String;",                 (void*) (uintptr_t) &Java_java_lang_Class_getName          },
 };
 
 /* _Jv_java_lang_Class_init ****************************************************
@@ -56,7 +60,9 @@ static JNINativeMethod methods[] = {
    Register native functions.
  
 *******************************************************************************/
- 
+
+// FIXME
+extern "C" { 
 void _Jv_java_lang_Class_init(void)
 {
 	utf *u;
@@ -65,7 +71,11 @@ void _Jv_java_lang_Class_init(void)
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
+}
 
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/Class
@@ -127,12 +137,12 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_Class_forName(JNIEnv *env, jcl
  * Method:    newInstance
  * Signature: ()Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_java_lang_Class_newInstance(JNIEnv *env, java_lang_Class* this)
+JNIEXPORT java_lang_Object* JNICALL Java_java_lang_Class_newInstance(JNIEnv *env, java_lang_Class* _this)
 {
 	classinfo     *c;
 	java_handle_t *o;
 
-	c = LLNI_classinfo_unwrap(this);
+	c = LLNI_classinfo_unwrap(_this);
 
 	o = native_new_and_init(c);
 
@@ -145,12 +155,12 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_Class_newInstance(JNIEnv *env
  * Method:    isInstance
  * Signature: (Ljava/lang/Object;)Z
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_Class_isInstance(JNIEnv *env, java_lang_Class *this, java_lang_Object *obj)
+JNIEXPORT int32_t JNICALL Java_java_lang_Class_isInstance(JNIEnv *env, java_lang_Class *_this, java_lang_Object *obj)
 {
 	classinfo     *c;
 	java_handle_t *h;
 
-	c = LLNI_classinfo_unwrap(this);
+	c = LLNI_classinfo_unwrap(_this);
 	h = (java_handle_t *) obj;
 
 	return class_is_instance(c, h);
@@ -162,12 +172,12 @@ JNIEXPORT int32_t JNICALL Java_java_lang_Class_isInstance(JNIEnv *env, java_lang
  * Method:    isAssignableFrom
  * Signature: (Ljava/lang/Class;)Z
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_Class_isAssignableFrom(JNIEnv *env, java_lang_Class *this, java_lang_Class *cls)
+JNIEXPORT int32_t JNICALL Java_java_lang_Class_isAssignableFrom(JNIEnv *env, java_lang_Class *_this, java_lang_Class *cls)
 {
 	classinfo *to;
 	classinfo *from;
 
-	to   = LLNI_classinfo_unwrap(this);
+	to   = LLNI_classinfo_unwrap(_this);
 	from = LLNI_classinfo_unwrap(cls);
 
 	if (from == NULL) {
@@ -184,11 +194,11 @@ JNIEXPORT int32_t JNICALL Java_java_lang_Class_isAssignableFrom(JNIEnv *env, jav
  * Method:    isInterface
  * Signature: ()Z
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_Class_isInterface(JNIEnv *env, java_lang_Class *this)
+JNIEXPORT int32_t JNICALL Java_java_lang_Class_isInterface(JNIEnv *env, java_lang_Class *_this)
 {
 	classinfo *c;
 
-	c = LLNI_classinfo_unwrap(this);
+	c = LLNI_classinfo_unwrap(_this);
 
 	return class_is_interface(c);
 }
@@ -199,11 +209,11 @@ JNIEXPORT int32_t JNICALL Java_java_lang_Class_isInterface(JNIEnv *env, java_lan
  * Method:    isArray
  * Signature: ()Z
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_Class_isArray(JNIEnv *env, java_lang_Class *this)
+JNIEXPORT int32_t JNICALL Java_java_lang_Class_isArray(JNIEnv *env, java_lang_Class *_this)
 {
 	classinfo *c;
 
-	c = LLNI_classinfo_unwrap(this);
+	c = LLNI_classinfo_unwrap(_this);
 
 	return class_is_array(c);
 }
@@ -214,14 +224,16 @@ JNIEXPORT int32_t JNICALL Java_java_lang_Class_isArray(JNIEnv *env, java_lang_Cl
  * Method:    getName
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_Class_getName(JNIEnv *env, java_lang_Class *this)
+JNIEXPORT java_lang_String* JNICALL Java_java_lang_Class_getName(JNIEnv *env, java_lang_Class *_this)
 {
 	classinfo *c;
 
-	c = LLNI_classinfo_unwrap(this);
+	c = LLNI_classinfo_unwrap(_this);
 
 	return (java_lang_String*) class_get_classname(c);
 }
+
+} // extern "C"
 
 
 /*
@@ -230,7 +242,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_Class_getName(JNIEnv *env, ja
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -1,9 +1,7 @@
 /* src/native/vm/cldc1.1/java_lang_Math.c
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -26,25 +24,29 @@
 
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
 
 #include "fdlibm/fdlibm.h"
 
 #include "native/jni.h"
 #include "native/native.h"
 
+// FIXME
+extern "C" {
 #include "native/include/java_lang_Math.h"
+}
 
 
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "ceil",  "(D)D", (void *) (ptrint) &Java_java_lang_Math_ceil  },
-	{ "cos",   "(D)D", (void *) (ptrint) &Java_java_lang_Math_cos   },
-	{ "floor", "(D)D", (void *) (ptrint) &Java_java_lang_Math_floor },
-	{ "sin",   "(D)D", (void *) (ptrint) &Java_java_lang_Math_sin   },
-	{ "sqrt",  "(D)D", (void *) (ptrint) &Java_java_lang_Math_sqrt  },
-	{ "tan",   "(D)D", (void *) (ptrint) &Java_java_lang_Math_tan   },
+	{ (char*) "ceil",  (char*) "(D)D", (void*) (uintptr_t) &Java_java_lang_Math_ceil  },
+	{ (char*) "cos",   (char*) "(D)D", (void*) (uintptr_t) &Java_java_lang_Math_cos   },
+	{ (char*) "floor", (char*) "(D)D", (void*) (uintptr_t) &Java_java_lang_Math_floor },
+	{ (char*) "sin",   (char*) "(D)D", (void*) (uintptr_t) &Java_java_lang_Math_sin   },
+	{ (char*) "sqrt",  (char*) "(D)D", (void*) (uintptr_t) &Java_java_lang_Math_sqrt  },
+	{ (char*) "tan",   (char*) "(D)D", (void*) (uintptr_t) &Java_java_lang_Math_tan   },
 };
  
  
@@ -53,7 +55,9 @@ static JNINativeMethod methods[] = {
    Register native functions.
  
 *******************************************************************************/
- 
+
+// FIXME
+extern "C" { 
 void _Jv_java_lang_Math_init(void)
 {
 	utf *u;
@@ -62,7 +66,11 @@ void _Jv_java_lang_Math_init(void)
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
+}
 
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/Math
@@ -129,6 +137,8 @@ JNIEXPORT double JNICALL Java_java_lang_Math_tan(JNIEnv *env, jclass clazz, doub
 	return tan(a);
 }
 
+} // extern "C"
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -136,7 +146,7 @@ JNIEXPORT double JNICALL Java_java_lang_Math_tan(JNIEnv *env, jclass clazz, doub
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

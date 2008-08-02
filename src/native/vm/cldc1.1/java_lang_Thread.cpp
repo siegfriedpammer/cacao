@@ -1,4 +1,4 @@
-/* src/native/vm/cldc1.1/java_lang_Thread.c
+/* src/native/vm/cldc1.1/java_lang_Thread.cpp
 
    Copyright (C) 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -27,12 +27,13 @@
 
 #include <stdint.h>
 
-#include "vm/types.h"
-
 #include "native/jni.h"
 #include "native/native.h"
 
+// FIXME
+extern "C" {
 #include "native/include/java_lang_Thread.h"
+}
 
 #include "threads/thread.hpp"
 
@@ -44,18 +45,18 @@
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "currentThread", "()Ljava/lang/Thread;", (void *) (ptrint) &Java_java_lang_Thread_currentThread },
-	{ "setPriority0",  "(II)V",                (void *) (ptrint) &Java_java_lang_Thread_setPriority0  },
-	{ "sleep",         "(J)V",                 (void *) (ptrint) &Java_java_lang_Thread_sleep         },
-	{ "start0",        "()V",                  (void *) (ptrint) &Java_java_lang_Thread_start0        },
-	{ "isAlive",       "()Z",                  (void *) (ptrint) &Java_java_lang_Thread_isAlive       },
+	{ (char*) "currentThread", (char*) "()Ljava/lang/Thread;", (void*) (uintptr_t) &Java_java_lang_Thread_currentThread },
+	{ (char*) "setPriority0",  (char*) "(II)V",                (void*) (uintptr_t) &Java_java_lang_Thread_setPriority0  },
+	{ (char*) "sleep",         (char*) "(J)V",                 (void*) (uintptr_t) &Java_java_lang_Thread_sleep         },
+	{ (char*) "start0",        (char*) "()V",                  (void*) (uintptr_t) &Java_java_lang_Thread_start0        },
+	{ (char*) "isAlive",       (char*) "()Z",                  (void*) (uintptr_t) &Java_java_lang_Thread_isAlive       },
 #if 0
-	{ "activeCount",   "()I",                  (void *) (ptrint) &Java_java_lang_Thread_activeCount   },
-	{ "setPriority0",  "(II)V",                (void *) (ptrint) &Java_java_lang_Thread_setPriority0  },
-	{ "interrupt0",    "()V",                  (void *) (ptrint) &Java_java_lang_Thread_interrupt0    },
-	{ "internalExit",  "()V",                  (void *) (ptrint) &Java_java_lang_Thread_internalExit  },
+	{ (char*) "activeCount",   (char*) "()I",                  (void*) (uintptr_t) &Java_java_lang_Thread_activeCount   },
+	{ (char*) "setPriority0",  (char*) "(II)V",                (void*) (uintptr_t) &Java_java_lang_Thread_setPriority0  },
+	{ (char*) "interrupt0",    (char*) "()V",                  (void*) (uintptr_t) &Java_java_lang_Thread_interrupt0    },
+	{ (char*) "internalExit",  (char*) "()V",                  (void*) (uintptr_t) &Java_java_lang_Thread_internalExit  },
 #endif
-	{ "yield",         "()V",                  (void *) (ptrint) &Java_java_lang_Thread_yield         },
+	{ (char*) "yield",         (char*) "()V",                  (void*) (uintptr_t) &Java_java_lang_Thread_yield         },
 };
 
 
@@ -65,6 +66,8 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
  
+// FIXME
+extern "C" {
 void _Jv_java_lang_Thread_init(void)
 {
 	utf *u;
@@ -73,7 +76,11 @@ void _Jv_java_lang_Thread_init(void)
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
+}
 
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/Thread
@@ -95,12 +102,12 @@ JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_Thread_currentThread(JNIEnv *
  * Method:    setPriority0
  * Signature: (II)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_setPriority0(JNIEnv *env, java_lang_Thread *this, s4 oldPriority, s4 newPriority)
+JNIEXPORT void JNICALL Java_java_lang_Thread_setPriority0(JNIEnv *env, java_lang_Thread *_this, s4 oldPriority, s4 newPriority)
 {
 #if defined(ENABLE_THREADS)
 	threadobject *t;
 
-	t = (threadobject *) this->vm_thread;
+	t = (threadobject *) _this->vm_thread;
 
 	/* The threadobject is null when a thread is created in Java. The
 	   priority is set later during startup. */
@@ -131,10 +138,10 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_sleep(JNIEnv *env, jclass clazz, s8
  * Method:    start0
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_start0(JNIEnv *env, java_lang_Thread *this)
+JNIEXPORT void JNICALL Java_java_lang_Thread_start0(JNIEnv *env, java_lang_Thread *_this)
 {
 #if defined(ENABLE_THREADS)
-	threads_thread_start((java_handle_t *) this);
+	threads_thread_start((java_handle_t *) _this);
 #endif
 }
 
@@ -144,13 +151,13 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_start0(JNIEnv *env, java_lang_Threa
  * Method:    isAlive
  * Signature: ()Z
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, java_lang_Thread *this)
+JNIEXPORT int32_t JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, java_lang_Thread *_this)
 {
 #if defined(ENABLE_THREADS)
 	threadobject *t;
 	bool          result;
 
-	t = (threadobject *) this->vm_thread;
+	t = (threadobject *) _this->vm_thread;
 
 	if (t == NULL)
 		return 0;
@@ -182,7 +189,7 @@ JNIEXPORT s4 JNICALL Java_java_lang_Thread_activeCount(JNIEnv *env, jclass clazz
  * Method:    setPriority0
  * Signature: (II)V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_setPriority0(JNIEnv *env, struct java_lang_Thread* this, s4 par1, s4 par2)
+JNIEXPORT void JNICALL Java_java_lang_Thread_setPriority0(JNIEnv *env, struct java_lang_Thread* _this, s4 par1, s4 par2)
 {
 }
 
@@ -192,7 +199,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_setPriority0(JNIEnv *env, struct ja
  * Method:    interrupt0
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_interrupt0(JNIEnv *env, struct java_lang_Thread* this)
+JNIEXPORT void JNICALL Java_java_lang_Thread_interrupt0(JNIEnv *env, struct java_lang_Thread* _this)
 {
 }
 
@@ -202,7 +209,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_interrupt0(JNIEnv *env, struct java
  * Method:    internalExit
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Thread_internalExit(JNIEnv *env, struct java_lang_Thread* this)
+JNIEXPORT void JNICALL Java_java_lang_Thread_internalExit(JNIEnv *env, struct java_lang_Thread* _this)
 {
 }
 #endif
@@ -220,6 +227,8 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_yield(JNIEnv *env, jclass clazz)
 #endif
 }
 
+} // extern "C"
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -227,7 +236,7 @@ JNIEXPORT void JNICALL Java_java_lang_Thread_yield(JNIEnv *env, jclass clazz)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
