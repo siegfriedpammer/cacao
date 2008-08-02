@@ -1,9 +1,7 @@
-/* src/native/vm/cldc1.1/java_lang_Float.c
+/* src/native/vm/cldc1.1/com_sun_cldchi_jvm_JVM.cpp
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -26,58 +24,81 @@
 
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
 
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_Float.h"
+#include "native/include/java_lang_String.h"
 
-#include "vm/builtin.h"
+// FIXME
+extern "C" { 
+#include "native/include/com_sun_cldchi_jvm_JVM.h"
+}
+
+#include "vm/exceptions.hpp"
+#include "vm/string.hpp"
 
 
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "floatToIntBits", "(F)I",	(void *) (ptrint) &Java_java_lang_Float_floatToIntBits },
+	{ (char*) "loadLibrary", (char*) "(Ljava/lang/String;)V", (void*) (uintptr_t) &Java_com_sun_cldchi_jvm_JVM_loadLibrary },
 };
- 
- 
-/* _Jv_java_lang_Float_init ****************************************************
+
+
+/* _Jv_com_sun_cldchi_jvm_JVM_init *********************************************
  
    Register native functions.
  
 *******************************************************************************/
  
-void _Jv_java_lang_Float_init(void)
+// FIXME
+extern "C" { 
+void _Jv_com_sun_cldchi_jvm_JVM_init(void)
 {
 	utf *u;
  
-	u = utf_new_char("java/lang/Float");
+	u = utf_new_char("com/sun/cldchi/jvm/JVM");
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
+}
+
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
- * Class:     java/lang/Float
- * Method:    floatToIntBits
- * Signature: (F)I
+ * Class:     com/sun/cldchi/jvm/JVM
+ * Method:    loadLibrary
+ * Signature: (Ljava/lang/String;)V
  */
-JNIEXPORT s4 JNICALL Java_java_lang_Float_floatToIntBits(JNIEnv *env, jclass clazz, float value)
+JNIEXPORT void JNICALL Java_com_sun_cldchi_jvm_JVM_loadLibrary(JNIEnv *env, jclass clazz, java_lang_String *libName)
 {
-	imm_union val;
-	int e, f;
+	int  result;
+	utf *name;
 
-	val.f = value;
+	/* REMOVEME When we use Java-strings internally. */
 
-	e = val.i & 0x7f800000;
-	f = val.i & 0x007fffff;
+	if (libName == NULL) {
+		exceptions_throw_nullpointerexception();
+		return;
+	}
 
-	if (e == FLT_POSINF && f != 0)
-		return FLT_NAN;
+	name = javastring_toutf((java_handle_t *) libName, false);
 
-	return val.i;
+	result = native_library_load(env, name, NULL);
+
+	/* Check for error and throw an exception in case. */
+
+	if (result == 0) {
+		exceptions_throw_unsatisfiedlinkerror(name);
+	}
 }
+
+} // extern "C"
 
 
 /*
@@ -86,9 +107,10 @@ JNIEXPORT s4 JNICALL Java_java_lang_Float_floatToIntBits(JNIEnv *env, jclass cla
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

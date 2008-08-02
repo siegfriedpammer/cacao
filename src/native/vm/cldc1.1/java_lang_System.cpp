@@ -1,4 +1,4 @@
-/* src/native/vm/cldc1.1/java_lang_System.c
+/* src/native/vm/cldc1.1/java_lang_System.cpp
 
    Copyright (C) 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,9 +25,8 @@
 
 #include "config.h"
 
+#include <stdint.h>
 #include <stdlib.h>
-
-#include "vm/types.h"
 
 #include "mm/memory.h"
 
@@ -37,7 +36,10 @@
 #include "native/include/java_lang_Object.h"
 #include "native/include/java_lang_String.h"
 
+// FIXME
+extern "C" {
 #include "native/include/java_lang_System.h"
+}
 
 #include "vm/builtin.h"
 #include "vm/properties.h"
@@ -47,8 +49,8 @@
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "arraycopy",    "(Ljava/lang/Object;ILjava/lang/Object;II)V", (void *) (ptrint) &Java_java_lang_System_arraycopy    },
-	{ "getProperty0", "(Ljava/lang/String;)Ljava/lang/String;",     (void *) (ptrint) &Java_java_lang_System_getProperty0 },
+	{ (char*) "arraycopy",    (char*) "(Ljava/lang/Object;ILjava/lang/Object;II)V", (void*) (uintptr_t) &Java_java_lang_System_arraycopy    },
+	{ (char*) "getProperty0", (char*) "(Ljava/lang/String;)Ljava/lang/String;",     (void*) (uintptr_t) &Java_java_lang_System_getProperty0 },
 };
 
 
@@ -58,6 +60,8 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
  
+// FIXME
+extern "C" {
 void _Jv_java_lang_System_init(void)
 {
 	utf *u;
@@ -66,7 +70,11 @@ void _Jv_java_lang_System_init(void)
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
+}
 
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/System
@@ -90,7 +98,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_System_getProperty0(JNIEnv *e
 {
 	java_handle_t *so;
 	char*          key;
-	char*          value;
+	const char*    value;
 	java_handle_t *result;
 
 	so = (java_handle_t *) s;
@@ -115,6 +123,8 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_System_getProperty0(JNIEnv *e
 	return (java_lang_String *) result;
 }
 
+} // extern "C"
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -122,7 +132,7 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_System_getProperty0(JNIEnv *e
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -1,4 +1,4 @@
-/* src/native/vm/cldc1.1/java_lang_Throwable.c - java/lang/Throwable
+/* src/native/vm/cldc1.1/java_lang_Throwable.cpp
 
    Copyright (C) 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -33,7 +33,11 @@
 #include "native/native.h"
 
 #include "native/include/java_lang_Object.h"
+
+// FIXME
+extern "C" {
 #include "native/include/java_lang_Throwable.h"
+}
 
 #include "vm/exceptions.hpp"
 #include "vm/jit/stacktrace.hpp"
@@ -42,8 +46,8 @@
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "printStackTrace",  "()V", (void *) (uintptr_t) &Java_java_lang_Throwable_printStackTrace  },
-	{ "fillInStackTrace", "()V", (void *) (uintptr_t) &Java_java_lang_Throwable_fillInStackTrace },
+	{ (char*) "printStackTrace",  (char*) "()V", (void*) (uintptr_t) &Java_java_lang_Throwable_printStackTrace  },
+	{ (char*) "fillInStackTrace", (char*) "()V", (void*) (uintptr_t) &Java_java_lang_Throwable_fillInStackTrace },
 };
 
 
@@ -53,6 +57,8 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
  
+// FIXME
+extern "C" {
 void _Jv_java_lang_Throwable_init(void)
 {
 	utf *u;
@@ -61,18 +67,22 @@ void _Jv_java_lang_Throwable_init(void)
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
+}
 
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/Throwable
  * Method:    printStackTrace
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Throwable_printStackTrace(JNIEnv *env, java_lang_Throwable *this)
+JNIEXPORT void JNICALL Java_java_lang_Throwable_printStackTrace(JNIEnv *env, java_lang_Throwable *_this)
 {
 	java_handle_t *o;
 
-	o = (java_handle_t *) this;
+	o = (java_handle_t *) _this;
 
 	exceptions_print_exception(o);
 	stacktrace_print_exception(o);
@@ -84,7 +94,7 @@ JNIEXPORT void JNICALL Java_java_lang_Throwable_printStackTrace(JNIEnv *env, jav
  * Method:    fillInStackTrace
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_java_lang_Throwable_fillInStackTrace(JNIEnv *env, java_lang_Throwable *this)
+JNIEXPORT void JNICALL Java_java_lang_Throwable_fillInStackTrace(JNIEnv *env, java_lang_Throwable *_this)
 {
 	java_handle_bytearray_t *ba;
 
@@ -93,8 +103,10 @@ JNIEXPORT void JNICALL Java_java_lang_Throwable_fillInStackTrace(JNIEnv *env, ja
 	if (ba == NULL)
 		return;
 
-	LLNI_field_set_ref(this, backtrace, (java_lang_Object *) ba);
+	LLNI_field_set_ref(_this, backtrace, (java_lang_Object *) ba);
 }
+
+} // extern "C"
 
 
 /*
@@ -103,7 +115,7 @@ JNIEXPORT void JNICALL Java_java_lang_Throwable_fillInStackTrace(JNIEnv *env, ja
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

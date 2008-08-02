@@ -1,9 +1,7 @@
 /* src/native/vm/cldc1.1/java_lang_Double.c
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -26,12 +24,16 @@
 
 
 #include "config.h"
-#include "vm/types.h"
+
+#include <stdint.h>
 
 #include "native/jni.h"
 #include "native/native.h"
 
+// FIXME
+extern "C" {
 #include "native/include/java_lang_Double.h"
+}
 
 #include "vm/builtin.h"
 
@@ -39,8 +41,8 @@
 /* native methods implemented by this file ************************************/
  
 static JNINativeMethod methods[] = {
-	{ "doubleToLongBits", "(D)J", (void *) (ptrint) &Java_java_lang_Double_doubleToLongBits },
-	{ "longBitsToDouble", "(J)D", (void *) (ptrint) &Java_java_lang_Double_longBitsToDouble },
+	{ (char*) "doubleToLongBits", (char*) "(D)J", (void*) (uintptr_t) &Java_java_lang_Double_doubleToLongBits },
+	{ (char*) "longBitsToDouble", (char*) "(J)D", (void*) (uintptr_t) &Java_java_lang_Double_longBitsToDouble },
 };
  
  
@@ -49,7 +51,9 @@ static JNINativeMethod methods[] = {
    Register native functions.
  
 *******************************************************************************/
- 
+
+// FIXME
+extern "C" { 
 void _Jv_java_lang_Double_init(void)
 {
 	utf *u;
@@ -58,14 +62,18 @@ void _Jv_java_lang_Double_init(void)
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
+}
 
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/Double
  * Method:    doubleToLongBits
  * Signature: (D)J
  */
-JNIEXPORT s8 JNICALL Java_java_lang_Double_doubleToLongBits(JNIEnv *env, jclass clazz, double doubleValue)
+JNIEXPORT int64_t JNICALL Java_java_lang_Double_doubleToLongBits(JNIEnv *env, jclass clazz, double doubleValue)
 {
 	jvalue val;
 	s8  e, f;
@@ -96,7 +104,7 @@ JNIEXPORT s8 JNICALL Java_java_lang_Double_doubleToLongBits(JNIEnv *env, jclass 
  * Method:    longBitsToDouble
  * Signature: (J)D
  */
-JNIEXPORT double JNICALL Java_java_lang_Double_longBitsToDouble(JNIEnv *env, jclass clazz, s8 longValue)
+JNIEXPORT double JNICALL Java_java_lang_Double_longBitsToDouble(JNIEnv *env, jclass clazz, int64_t longValue)
 {
 	jvalue val;
 	val.j = longValue;
@@ -108,6 +116,8 @@ JNIEXPORT double JNICALL Java_java_lang_Double_longBitsToDouble(JNIEnv *env, jcl
 	return val.d;
 }
 
+} // extern "C"
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -115,7 +125,7 @@ JNIEXPORT double JNICALL Java_java_lang_Double_longBitsToDouble(JNIEnv *env, jcl
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
