@@ -37,13 +37,13 @@ AC_PREFIX_DEFAULT(/usr/local/cacao)
 
 dnl Set optimization and debugging for all architectures and systems.
 if test x"$CFLAGS" = "x"; then
-    OPT_CFLAGS="-O0 -g"
+    OPT_CFLAGS="-g -O0"
 else
     OPT_CFLAGS=$CFLAGS
 fi
 
 if test x"$CXXFLAGS" = "x"; then
-    OPT_CXXFLAGS="-O0 -g"
+    OPT_CXXFLAGS="-g -O0"
 else
     OPT_CXXFLAGS=$CXXFLAGS
 fi
@@ -70,7 +70,7 @@ hppa2.0 )
 
 i386 | i486 | i586 | i686 )
     ARCH_DIR="i386"
-    ARCH_FLAGS="-D__I386__"
+    ARCH_FLAGS="-m32 -D__I386__"
     JAVA_ARCH="i386"
     ;;
 
@@ -89,13 +89,13 @@ mips | mipsel )
 
 powerpc )
     ARCH_DIR="powerpc"
-    ARCH_FLAGS="-D__POWERPC__"
+    ARCH_FLAGS="-m32 -D__POWERPC__"
     JAVA_ARCH="ppc"
     ;;
 
 powerpc64 )
     ARCH_DIR="powerpc64"
-    ARCH_FLAGS="-D__POWERPC64__"
+    ARCH_FLAGS="-m64 -D__POWERPC64__"
     JAVA_ARCH="ppc64"
     ;;
 
