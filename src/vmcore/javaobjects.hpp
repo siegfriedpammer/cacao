@@ -1,7 +1,6 @@
 /* src/vmcore/javaobjects.hpp - functions to create and access Java objects
 
-   Copyright (C) 2008
-   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -1647,55 +1646,434 @@ inline void sun_reflect_ConstantPool::set_constantPoolOop(jclass value)
  *
  * Object layout:
  *
- * 0. object header
- * 1. boolean                                     flag;
- * 2. gnu.java.lang.reflect.MethodSignatureParser p;
- * 3. java.lang.reflect.VMConstructor             cons;
+ * 0.  object header
+ * 1.  boolean                                               override;
+ * 2.  java.lang.Class                                       clazz;
+ * 3.  int                                                   slot;
+ * 4.  java.lang.Class[]                                     parameterTypes;
+ * 5.  java.lang.Class[]                                     exceptionTypes;
+ * 6.  int                                                   modifiers;
+ * 7.  java.lang.String                                      signature;
+ * 8.  sun.reflect.generics.repository.ConstructorRepository genericInfo;
+ * 9.  byte[]                                                annotations;
+ * 10. byte[]                                                parameterAnnotations;
+ * 11. java.lang.Class                                       securityCheckCache;
+ * 12. sun.reflect.ConstructorAccessor                       constructorAccessor;
+ * 13. java.lang.reflect.Constructor                         root;
+ * 14. java.util.Map                                         declaredAnnotations;
  */
-class java_lang_reflect_Constructor : public java_lang_Object, private FieldAccess {
+class java_lang_reflect_VMConstructor : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
 	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_flag = sizeof(java_object_t);
-	static const off_t offset_p    = offset_flag + sizeof(int32_t) + 4;
-	static const off_t offset_cons = offset_p    + SIZEOF_VOID_P;
+	static const off_t offset_clazz                = MEMORY_ALIGN(sizeof(java_object_t),                         SIZEOF_VOID_P);
+	static const off_t offset_slot                 = MEMORY_ALIGN(offset_clazz                + SIZEOF_VOID_P,   sizeof(int32_t));
+	static const off_t offset_annotations          = MEMORY_ALIGN(offset_slot                 + sizeof(int32_t), SIZEOF_VOID_P);
+	static const off_t offset_parameterAnnotations = MEMORY_ALIGN(offset_annotations          + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_declaredAnnotations  = MEMORY_ALIGN(offset_parameterAnnotations + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_cons                 = MEMORY_ALIGN(offset_declaredAnnotations  + SIZEOF_VOID_P,   SIZEOF_VOID_P);
 
 public:
-	java_lang_reflect_Constructor(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_reflect_Constructor(jobject h);
-
-	static java_handle_t* create(methodinfo* m);
-	static java_handle_t* new_instance(methodinfo* m, java_handle_objectarray_t* args, bool override);
+	java_lang_reflect_VMConstructor(java_handle_t* h) : java_lang_Object(h) {}
+	java_lang_reflect_VMConstructor(jobject h);
+	java_lang_reflect_VMConstructor(java_handle_t* h, methodinfo* m);
 
 	// Getters.
-	inline int32_t        get_flag() const;
-	inline java_handle_t* get_cons() const;
+	inline classinfo*               get_clazz               () const;
+	inline int32_t                  get_slot                () const;
+	inline java_handle_bytearray_t* get_annotations         () const;
+	inline java_handle_bytearray_t* get_parameterAnnotations() const;
+	inline java_handle_t*           get_declaredAnnotations () const;
+	inline java_handle_t*           get_cons                () const;
 
 	// Setters.
-	inline void set_cons(java_handle_t* value);
+	inline void set_clazz               (classinfo* value);
+	inline void set_slot                (int32_t value);
+	inline void set_annotations         (java_handle_bytearray_t* value);
+	inline void set_parameterAnnotations(java_handle_bytearray_t* value);
+	inline void set_declaredAnnotations (java_handle_t* value);
+	inline void set_cons                (java_handle_t* value);
+
+	// Convenience functions.
+	inline methodinfo* get_method();
 };
 
-inline java_lang_reflect_Constructor::java_lang_reflect_Constructor(jobject h) : java_lang_Object(h)
+inline java_lang_reflect_VMConstructor::java_lang_reflect_VMConstructor(jobject h) : java_lang_Object(h)
 {
-	java_lang_reflect_Constructor((java_handle_t*) h);
+	java_lang_reflect_VMConstructor((java_handle_t*) h);
 }
 
-inline int32_t java_lang_reflect_Constructor::get_flag() const
+inline java_lang_reflect_VMConstructor::java_lang_reflect_VMConstructor(java_handle_t* h, methodinfo* m) : java_lang_Object(h)
 {
-	return get<int32_t>(_handle, offset_flag);
+	int                      slot                 = m - m->clazz->methods;
+	java_handle_bytearray_t* annotations          = method_get_annotations(m);
+	java_handle_bytearray_t* parameterAnnotations = method_get_parameterannotations(m);
+
+	set_clazz(m->clazz);
+	set_slot(slot);
+	set_annotations(annotations);
+	set_parameterAnnotations(parameterAnnotations);
 }
 
-inline java_handle_t* java_lang_reflect_Constructor::get_cons() const
+inline classinfo* java_lang_reflect_VMConstructor::get_clazz() const
+{
+	return get<classinfo*>(_handle, offset_clazz);
+}
+
+inline int32_t java_lang_reflect_VMConstructor::get_slot() const
+{
+	return get<int32_t>(_handle, offset_slot);
+}
+
+inline java_handle_bytearray_t* java_lang_reflect_VMConstructor::get_annotations() const
+{
+	return get<java_handle_bytearray_t*>(_handle, offset_annotations);
+}
+
+inline java_handle_bytearray_t* java_lang_reflect_VMConstructor::get_parameterAnnotations() const
+{
+	return get<java_handle_bytearray_t*>(_handle, offset_parameterAnnotations);
+}
+
+inline java_handle_t* java_lang_reflect_VMConstructor::get_declaredAnnotations() const
+{
+	return get<java_handle_t*>(_handle, offset_declaredAnnotations);
+}
+
+inline java_handle_t* java_lang_reflect_VMConstructor::get_cons() const
 {
 	return get<java_handle_t*>(_handle, offset_cons);
 }
 
-inline void java_lang_reflect_Constructor::set_cons(java_handle_t* value)
+inline void java_lang_reflect_VMConstructor::set_clazz(classinfo* value)
+{
+	set(_handle, offset_clazz, value);
+}
+
+inline void java_lang_reflect_VMConstructor::set_slot(int32_t value)
+{
+	set(_handle, offset_slot, value);
+}
+
+inline void java_lang_reflect_VMConstructor::set_annotations(java_handle_bytearray_t* value)
+{
+	set(_handle, offset_annotations, value);
+}
+
+inline void java_lang_reflect_VMConstructor::set_parameterAnnotations(java_handle_bytearray_t* value)
+{
+	set(_handle, offset_parameterAnnotations, value);
+}
+
+inline void java_lang_reflect_VMConstructor::set_declaredAnnotations(java_handle_t* value)
+{
+	set(_handle, offset_declaredAnnotations, value);
+}
+
+inline void java_lang_reflect_VMConstructor::set_cons(java_handle_t* value)
 {
 	set(_handle, offset_cons, value);
 }
 
+inline methodinfo* java_lang_reflect_VMConstructor::get_method()
+{
+	classinfo*  c    = get_clazz();
+	int32_t     slot = get_slot();
+	methodinfo* m    = &(c->methods[slot]);
+	return m;
+}
+
 #endif // WITH_JAVA_RUNTIME_LIBRARY_OPENJDK
+
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
+
+/**
+ * CLDC 1.1 com/sun/cldchi/jvm/FileDescriptor
+ *
+ * Object layout:
+ *
+ * 0. object header
+ * 1. long   pointer;
+ * 2. int    position;
+ * 3. int    length;
+ */
+class com_sun_cldchi_jvm_FileDescriptor : public java_lang_Object, private FieldAccess {
+private:
+	// Static offsets of the object's instance fields.
+	// TODO These offsets need to be checked on VM startup.
+	static const off_t offset_pointer  = MEMORY_ALIGN(sizeof(java_object_t),             sizeof(int64_t));
+	static const off_t offset_position = MEMORY_ALIGN(offset_pointer  + sizeof(int64_t), sizeof(int32_t));
+	static const off_t offset_length   = MEMORY_ALIGN(offset_position + sizeof(int32_t), sizeof(int32_t));
+
+public:
+	com_sun_cldchi_jvm_FileDescriptor(java_handle_t* h) : java_lang_Object(h) {}
+	com_sun_cldchi_jvm_FileDescriptor(jobject h);
+	com_sun_cldchi_jvm_FileDescriptor(java_handle_t* h, int64_t pointer, int32_t position, int32_t length);
+	com_sun_cldchi_jvm_FileDescriptor(java_handle_t* h, com_sun_cldchi_jvm_FileDescriptor& fd);
+
+	// Getters.
+	inline int64_t get_pointer () const;
+	inline int32_t get_position() const;
+	inline int32_t get_length  () const;
+
+	// Setters.
+	inline void set_pointer (int64_t value);
+	inline void set_position(int32_t value);
+	inline void set_length  (int32_t value);
+};
+
+
+inline com_sun_cldchi_jvm_FileDescriptor::com_sun_cldchi_jvm_FileDescriptor(jobject h) : java_lang_Object(h)
+{
+	com_sun_cldchi_jvm_FileDescriptor((java_handle_t*) h);
+}
+
+inline com_sun_cldchi_jvm_FileDescriptor::com_sun_cldchi_jvm_FileDescriptor(java_handle_t* h, int64_t pointer, int32_t position, int32_t length) : java_lang_Object(h)
+{
+	set_pointer(pointer);
+	set_position(position);
+	set_length(length);
+}
+
+inline com_sun_cldchi_jvm_FileDescriptor::com_sun_cldchi_jvm_FileDescriptor(java_handle_t* h, com_sun_cldchi_jvm_FileDescriptor& fd) : java_lang_Object(h)
+{
+	com_sun_cldchi_jvm_FileDescriptor(h, fd.get_pointer(), fd.get_position(), fd.get_length());
+}
+
+
+inline int64_t com_sun_cldchi_jvm_FileDescriptor::get_pointer() const
+{
+	return get<int64_t>(_handle, offset_pointer);
+}
+
+inline int32_t com_sun_cldchi_jvm_FileDescriptor::get_position() const
+{
+	return get<int32_t>(_handle, offset_position);
+}
+
+inline int32_t com_sun_cldchi_jvm_FileDescriptor::get_length() const
+{
+	return get<int32_t>(_handle, offset_length);
+}
+
+
+inline void com_sun_cldchi_jvm_FileDescriptor::set_pointer(int64_t value)
+{
+	set(_handle, offset_pointer, value);
+}
+
+inline void com_sun_cldchi_jvm_FileDescriptor::set_position(int32_t value)
+{
+	set(_handle, offset_position, value);
+}
+
+inline void com_sun_cldchi_jvm_FileDescriptor::set_length(int32_t value)
+{
+	set(_handle, offset_length, value);
+}
+
+
+/**
+ * CLDC 1.1 java/lang/String
+ *
+ * Object layout:
+ *
+ * 0. object header
+ * 1. char[] value;
+ * 2. int    offset;
+ * 3. int    count;
+ */
+class java_lang_String : public java_lang_Object, private FieldAccess {
+private:
+	// Static offsets of the object's instance fields.
+	// TODO These offsets need to be checked on VM startup.
+	static const off_t offset_value  = MEMORY_ALIGN(sizeof(java_object_t),           SIZEOF_VOID_P);
+	static const off_t offset_offset = MEMORY_ALIGN(offset_value  + SIZEOF_VOID_P,   sizeof(int32_t));
+	static const off_t offset_count  = MEMORY_ALIGN(offset_offset + sizeof(int32_t), sizeof(int32_t));
+
+public:
+	java_lang_String(java_handle_t* h) : java_lang_Object(h) {}
+	java_lang_String(jstring h);
+	java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset = 0);
+
+	// Getters.
+	inline java_handle_chararray_t* get_value () const;
+	inline int32_t                  get_offset() const;
+	inline int32_t                  get_count () const;
+
+	// Setters.
+	inline void set_value (java_handle_chararray_t* value);
+	inline void set_offset(int32_t value);
+	inline void set_count (int32_t value);
+};
+
+inline java_lang_String::java_lang_String(jstring h) : java_lang_Object(h)
+{
+	java_lang_String((java_handle_t*) h);
+}
+
+inline java_lang_String::java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset) : java_lang_Object(h)
+{
+	set_value(value);
+	set_offset(offset);
+	set_count(count);
+}
+
+inline java_handle_chararray_t* java_lang_String::get_value() const
+{
+	return get<java_handle_chararray_t*>(_handle, offset_value);
+}
+
+inline int32_t java_lang_String::get_offset() const
+{
+	return get<int32_t>(_handle, offset_offset);
+}
+
+inline int32_t java_lang_String::get_count() const
+{
+	return get<int32_t>(_handle, offset_count);
+}
+
+inline void java_lang_String::set_value(java_handle_chararray_t* value)
+{
+	set(_handle, offset_value, value);
+}
+
+inline void java_lang_String::set_offset(int32_t value)
+{
+	set(_handle, offset_offset, value);
+}
+
+inline void java_lang_String::set_count(int32_t value)
+{
+	set(_handle, offset_count, value);
+}
+
+
+/**
+ * CLDC 1.1 java/lang/Thread
+ *
+ * Object layout:
+ *
+ * 0. object header
+ * 1. int                priority;
+ * 2. java.lang.Runnable runnable;
+ * 3. java.lang.Object   vm_thread;
+ * 4. int                is_terminated;
+ * 5. int                is_stillborn;
+ * 6. char[]             name;
+ */
+class java_lang_Thread : public java_lang_Object, private FieldAccess {
+private:
+	// Static offsets of the object's instance fields.
+	// TODO These offsets need to be checked on VM startup.
+	static const off_t offset_priority      = MEMORY_ALIGN(sizeof(java_object_t),              sizeof(int32_t));
+	static const off_t offset_runnable      = MEMORY_ALIGN(offset_priority      + sizeof(int32_t), SIZEOF_VOID_P);
+	static const off_t offset_vm_thread     = MEMORY_ALIGN(offset_runnable      + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static const off_t offset_is_terminated = MEMORY_ALIGN(offset_vm_thread     + SIZEOF_VOID_P,   sizeof(int32_t));
+	static const off_t offset_is_stillborn  = MEMORY_ALIGN(offset_is_terminated + sizeof(int32_t), sizeof(int32_t));
+	static const off_t offset_name          = MEMORY_ALIGN(offset_is_stillborn  + sizeof(int32_t), SIZEOF_VOID_P);
+
+public:
+	java_lang_Thread(java_handle_t* h) : java_lang_Object(h) {}
+	java_lang_Thread(jobject h);
+// 	java_lang_Thread(threadobject* t);
+
+	// Getters.
+	inline int32_t                  get_priority () const;
+	inline threadobject*            get_vm_thread() const;
+	inline java_handle_chararray_t* get_name     () const;
+
+	// Setters.
+	inline void set_vm_thread(threadobject* value);
+};
+
+
+inline java_lang_Thread::java_lang_Thread(jobject h) : java_lang_Object(h)
+{
+	java_lang_Thread((java_handle_t*) h);
+}
+
+// inline java_lang_Thread::java_lang_Thread(threadobject* t) : java_lang_Object(h)
+// {
+// 	java_lang_Thread(thread_get_object(t));
+// }
+
+
+inline int32_t java_lang_Thread::get_priority() const
+{
+	return get<int32_t>(_handle, offset_priority);
+}
+
+inline threadobject* java_lang_Thread::get_vm_thread() const
+{
+	return get<threadobject*>(_handle, offset_vm_thread);
+}
+
+inline java_handle_chararray_t* java_lang_Thread::get_name() const
+{
+	return get<java_handle_chararray_t*>(_handle, offset_name);
+}
+
+
+inline void java_lang_Thread::set_vm_thread(threadobject* value)
+{
+	set(_handle, offset_vm_thread, value);
+}
+
+
+/**
+ * CLDC 1.1 java/lang/Throwable
+ *
+ * Object layout:
+ *
+ * 0. object header
+ * 1. java.lang.String detailMessage;
+ * 2. java.lang.Object backtrace;
+ */
+class java_lang_Throwable : public java_lang_Object, private FieldAccess {
+private:
+	// Static offsets of the object's instance fields.
+	// TODO These offsets need to be checked on VM startup.
+	static const off_t offset_detailMessage = MEMORY_ALIGN(sizeof(java_object_t),                SIZEOF_VOID_P);
+	static const off_t offset_backtrace     = MEMORY_ALIGN(offset_detailMessage + SIZEOF_VOID_P, SIZEOF_VOID_P);
+
+public:
+	java_lang_Throwable(java_handle_t* h) : java_lang_Object(h) {}
+	java_lang_Throwable(jobject h);
+
+	// Getters.
+	inline java_handle_t*           get_detailMessage() const;
+	inline java_handle_bytearray_t* get_backtrace    () const;
+
+	// Setters.
+	inline void set_backtrace(java_handle_bytearray_t* value);
+};
+
+
+inline java_lang_Throwable::java_lang_Throwable(jobject h) : java_lang_Object(h)
+{
+	java_lang_Throwable((java_handle_t*) h);
+}
+
+
+inline java_handle_t* java_lang_Throwable::get_detailMessage() const
+{
+	return get<java_handle_t*>(_handle, offset_detailMessage);
+}
+
+inline java_handle_bytearray_t* java_lang_Throwable::get_backtrace() const
+{
+	return get<java_handle_bytearray_t*>(_handle, offset_backtrace);
+}
+
+
+inline void java_lang_Throwable::set_backtrace(java_handle_bytearray_t* value)
+{
+	set(_handle, offset_backtrace, value);
+}
+
+#endif // WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1
 
 #else
 

@@ -32,15 +32,51 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_Object.h"
-
-// FIXME
-extern "C" {
-#include "native/include/java_lang_Throwable.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/include/java_lang_Throwable.h"
+#endif
 
 #include "vm/exceptions.hpp"
+
 #include "vm/jit/stacktrace.hpp"
+
+#include "vmcore/javaobjects.hpp"
+
+
+// Native functions are exported as C functions.
+extern "C" {
+
+/*
+ * Class:     java/lang/Throwable
+ * Method:    printStackTrace
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_java_lang_Throwable_printStackTrace(JNIEnv *env, jobject _this)
+{
+	java_lang_Throwable jlt(_this);
+
+	exceptions_print_exception(jlt.get_handle());
+	stacktrace_print_exception(jlt.get_handle());
+}
+
+
+/*
+ * Class:     java/lang/Throwable
+ * Method:    fillInStackTrace
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_java_lang_Throwable_fillInStackTrace(JNIEnv *env, jobject _this)
+{
+	java_handle_bytearray_t* ba = stacktrace_get_current();
+
+	if (ba == NULL)
+		return;
+
+	java_lang_Throwable jlt(_this);
+	jlt.set_backtrace(ba);
+}
+
+} // extern "C"
 
 
 /* native methods implemented by this file ************************************/
@@ -68,45 +104,6 @@ void _Jv_java_lang_Throwable_init(void)
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
 }
-
-
-// Native functions are exported as C functions.
-extern "C" {
-
-/*
- * Class:     java/lang/Throwable
- * Method:    printStackTrace
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_java_lang_Throwable_printStackTrace(JNIEnv *env, java_lang_Throwable *_this)
-{
-	java_handle_t *o;
-
-	o = (java_handle_t *) _this;
-
-	exceptions_print_exception(o);
-	stacktrace_print_exception(o);
-}
-
-
-/*
- * Class:     java/lang/Throwable
- * Method:    fillInStackTrace
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_java_lang_Throwable_fillInStackTrace(JNIEnv *env, java_lang_Throwable *_this)
-{
-	java_handle_bytearray_t *ba;
-
-	ba = stacktrace_get_current();
-
-	if (ba == NULL)
-		return;
-
-	LLNI_field_set_ref(_this, backtrace, (java_lang_Object *) ba);
-}
-
-} // extern "C"
 
 
 /*

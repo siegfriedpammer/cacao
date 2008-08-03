@@ -1263,7 +1263,7 @@ void stacktrace_print_exception(java_handle_t *h)
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
-	LLNI_field_get_ref(o, backtrace, backtrace);
+	java_handle_bytearray_t* backtrace = t.get_backtrace();
 
 #else
 # error unknown classpath configuration

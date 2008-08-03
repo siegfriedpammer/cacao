@@ -1,7 +1,6 @@
 /* src/vmcore/javaobjects.cpp - functions to create and access Java objects
 
-   Copyright (C) 2008
-   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -37,6 +36,8 @@
 #include "vmcore/globals.hpp"
 #include "vmcore/javaobjects.hpp"
 
+
+#if defined(ENABLE_JAVASE)
 
 /**
  * Allocates a new java.lang.reflect.Constructor object and
@@ -274,6 +275,8 @@ java_handle_t* java_lang_reflect_Constructor_create(methodinfo* m) { return java
 java_handle_t* java_lang_reflect_Field_create(fieldinfo* f) { return java_lang_reflect_Field::create(f); }
 java_handle_t* java_lang_reflect_Method_create(methodinfo* m) { return java_lang_reflect_Method::create(m); }
 }
+
+#endif // ENABLE_JAVASE
 
 
 /*

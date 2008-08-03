@@ -30,16 +30,150 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-// FIXME
-extern "C" {
-#include "native/include/java_lang_Thread.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/include/java_lang_Thread.h"
+#endif
 
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 
 #include "vm/builtin.h"
+
+#include "vmcore/javaobjects.hpp"
+
+
+// Native functions are exported as C functions.
+extern "C" {
+
+/*
+ * Class:     java/lang/Thread
+ * Method:    currentThread
+ * Signature: ()Ljava/lang/Thread;
+ */
+JNIEXPORT jobject JNICALL Java_java_lang_Thread_currentThread(JNIEnv *env, jclass clazz)
+{
+	return (jobject) thread_get_current_object();
+}
+
+
+/*
+ * Class:     java/lang/Thread
+ * Method:    setPriority0
+ * Signature: (II)V
+ */
+JNIEXPORT void JNICALL Java_java_lang_Thread_setPriority0(JNIEnv *env, jobject _this, jint oldPriority, jint newPriority)
+{
+#if defined(ENABLE_THREADS)
+	java_lang_Thread jlt(_this);
+	threadobject* t = jlt.get_vm_thread();
+
+	// The threadobject is null when a thread is created in Java. The
+	// priority is set later during startup.
+	if (t == NULL)
+		return;
+
+	threads_set_thread_priority(t->tid, newPriority);
+#endif
+}
+
+
+/*
+ * Class:     java/lang/Thread
+ * Method:    sleep
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_java_lang_Thread_sleep(JNIEnv *env, jclass clazz, jlong millis)
+{
+#if defined(ENABLE_THREADS)
+	threads_sleep(millis, 0);
+#endif
+}
+
+
+/*
+ * Class:     java/lang/Thread
+ * Method:    start0
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_java_lang_Thread_start0(JNIEnv *env, jobject _this)
+{
+#if defined(ENABLE_THREADS)
+	java_lang_Thread jlt(_this);
+	threads_thread_start(jlt.get_handle());
+#endif
+}
+
+
+/*
+ * Class:     java/lang/Thread
+ * Method:    isAlive
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, jobject _this)
+{
+#if defined(ENABLE_THREADS)
+	java_lang_Thread jlt(_this);
+	threadobject* t = jlt.get_vm_thread();
+
+	if (t == NULL)
+		return 0;
+
+	bool result = threads_thread_is_alive(t);
+
+	return result;
+#else
+	// If threads are disabled, the only thread running is alive.
+	return 1;
+#endif
+}
+
+
+#if 0
+/*
+ * Class:     java/lang/Thread
+ * Method:    activeCount
+ * Signature: ()I
+ */
+JNIEXPORT s4 JNICALL Java_java_lang_Thread_activeCount(JNIEnv *env, jclass clazz)
+{
+}
+
+
+/*
+ * Class:     java/lang/Thread
+ * Method:    interrupt0
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_java_lang_Thread_interrupt0(JNIEnv *env, jobject _this)
+{
+}
+
+
+/*
+ * Class:     java/lang/Thread
+ * Method:    internalExit
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_java_lang_Thread_internalExit(JNIEnv *env, jobject _this)
+{
+}
+#endif
+
+
+/*
+ * Class:     java/lang/Thread
+ * Method:    yield
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_java_lang_Thread_yield(JNIEnv *env, jclass clazz)
+{
+#if defined(ENABLE_THREADS)
+	threads_yield();
+#endif
+}
+
+} // extern "C"
 
 
 /* native methods implemented by this file ************************************/
@@ -77,157 +211,6 @@ void _Jv_java_lang_Thread_init(void)
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
 }
-
-
-// Native functions are exported as C functions.
-extern "C" {
-
-/*
- * Class:     java/lang/Thread
- * Method:    currentThread
- * Signature: ()Ljava/lang/Thread;
- */
-JNIEXPORT java_lang_Thread* JNICALL Java_java_lang_Thread_currentThread(JNIEnv *env, jclass clazz)
-{
-	java_lang_Thread *to;
-
-	to = (java_lang_Thread *) thread_get_current_object();
-
-	return to;
-}
-
-
-/*
- * Class:     java/lang/Thread
- * Method:    setPriority0
- * Signature: (II)V
- */
-JNIEXPORT void JNICALL Java_java_lang_Thread_setPriority0(JNIEnv *env, java_lang_Thread *_this, s4 oldPriority, s4 newPriority)
-{
-#if defined(ENABLE_THREADS)
-	threadobject *t;
-
-	t = (threadobject *) _this->vm_thread;
-
-	/* The threadobject is null when a thread is created in Java. The
-	   priority is set later during startup. */
-
-	if (t == NULL)
-		return;
-
-	threads_set_thread_priority(t->tid, newPriority);
-#endif
-}
-
-
-/*
- * Class:     java/lang/Thread
- * Method:    sleep
- * Signature: (J)V
- */
-JNIEXPORT void JNICALL Java_java_lang_Thread_sleep(JNIEnv *env, jclass clazz, s8 millis)
-{
-#if defined(ENABLE_THREADS)
-	threads_sleep(millis, 0);
-#endif
-}
-
-
-/*
- * Class:     java/lang/Thread
- * Method:    start0
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_java_lang_Thread_start0(JNIEnv *env, java_lang_Thread *_this)
-{
-#if defined(ENABLE_THREADS)
-	threads_thread_start((java_handle_t *) _this);
-#endif
-}
-
-
-/*
- * Class:     java/lang/Thread
- * Method:    isAlive
- * Signature: ()Z
- */
-JNIEXPORT int32_t JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, java_lang_Thread *_this)
-{
-#if defined(ENABLE_THREADS)
-	threadobject *t;
-	bool          result;
-
-	t = (threadobject *) _this->vm_thread;
-
-	if (t == NULL)
-		return 0;
-
-	result = threads_thread_is_alive(t);
-
-	return result;
-#else
-	/* If threads are disabled, the only thread running is alive. */
-
-	return 1;
-#endif
-}
-
-
-#if 0
-/*
- * Class:     java/lang/Thread
- * Method:    activeCount
- * Signature: ()I
- */
-JNIEXPORT s4 JNICALL Java_java_lang_Thread_activeCount(JNIEnv *env, jclass clazz)
-{
-}
-
-
-/*
- * Class:     java/lang/Thread
- * Method:    setPriority0
- * Signature: (II)V
- */
-JNIEXPORT void JNICALL Java_java_lang_Thread_setPriority0(JNIEnv *env, struct java_lang_Thread* _this, s4 par1, s4 par2)
-{
-}
-
-
-/*
- * Class:     java/lang/Thread
- * Method:    interrupt0
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_java_lang_Thread_interrupt0(JNIEnv *env, struct java_lang_Thread* _this)
-{
-}
-
-
-/*
- * Class:     java/lang/Thread
- * Method:    internalExit
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_java_lang_Thread_internalExit(JNIEnv *env, struct java_lang_Thread* _this)
-{
-}
-#endif
-
-
-/*
- * Class:     java/lang/Thread
- * Method:    yield
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_java_lang_Thread_yield(JNIEnv *env, jclass clazz)
-{
-#if defined(ENABLE_THREADS)
-	threads_yield();
-#endif
-}
-
-} // extern "C"
 
 
 /*

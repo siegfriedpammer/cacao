@@ -1,4 +1,4 @@
-/* src/native/vm/cldc1.1/java_lang_Math.c
+/* src/native/vm/cldc1.1/java_lang_Math.cpp
 
    Copyright (C) 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -32,10 +32,80 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-// FIXME
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/include/java_lang_Math.h"
+#endif
+
+
+// Native functions are exported as C functions.
 extern "C" {
-#include "native/include/java_lang_Math.h"
+
+/*
+ * Class:     java/lang/Math
+ * Method:    ceil
+ * Signature: (D)D
+ */
+JNIEXPORT jdouble JNICALL Java_java_lang_Math_ceil(JNIEnv *env, jclass clazz, jdouble a)
+{
+	return ceil(a);
 }
+
+
+/*
+ * Class:     java/lang/Math
+ * Method:    cos
+ * Signature: (D)D
+ */
+JNIEXPORT jdouble JNICALL Java_java_lang_Math_cos(JNIEnv *env, jclass clazz, jdouble a)
+{
+	return cos(a);
+}
+
+
+/*
+ * Class:     java/lang/Math
+ * Method:    floor
+ * Signature: (D)D
+ */
+JNIEXPORT jdouble JNICALL Java_java_lang_Math_floor(JNIEnv *env, jclass clazz, jdouble a)
+{
+	return floor(a);
+}
+
+
+/*
+ * Class:     java/lang/Math
+ * Method:    sin
+ * Signature: (D)D
+ */
+JNIEXPORT jdouble JNICALL Java_java_lang_Math_sin(JNIEnv *env, jclass clazz, jdouble a)
+{
+	return sin(a);
+}
+
+
+/*
+ * Class:     java/lang/Math
+ * Method:    sqrt
+ * Signature: (D)D
+ */
+JNIEXPORT jdouble JNICALL Java_java_lang_Math_sqrt(JNIEnv *env, jclass clazz, jdouble a)
+{
+	return sqrt(a);
+}
+
+
+/*
+ * Class:     java/lang/Math
+ * Method:    tan
+ * Signature: (D)D
+ */
+JNIEXPORT jdouble JNICALL Java_java_lang_Math_tan(JNIEnv *env, jclass clazz, jdouble a)
+{
+	return tan(a);
+}
+
+} // extern "C"
 
 
 /* native methods implemented by this file ************************************/
@@ -67,77 +137,6 @@ void _Jv_java_lang_Math_init(void)
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
 }
-
-
-// Native functions are exported as C functions.
-extern "C" {
-
-/*
- * Class:     java/lang/Math
- * Method:    ceil
- * Signature: (D)D
- */
-JNIEXPORT double JNICALL Java_java_lang_Math_ceil(JNIEnv *env, jclass clazz, double a)
-{
-	return ceil(a);
-}
-
-
-/*
- * Class:     java/lang/Math
- * Method:    cos
- * Signature: (D)D
- */
-JNIEXPORT double JNICALL Java_java_lang_Math_cos(JNIEnv *env, jclass clazz, double a)
-{
-	return cos(a);
-}
-
-
-/*
- * Class:     java/lang/Math
- * Method:    floor
- * Signature: (D)D
- */
-JNIEXPORT double JNICALL Java_java_lang_Math_floor(JNIEnv *env, jclass clazz, double a)
-{
-	return floor(a);
-}
-
-
-/*
- * Class:     java/lang/Math
- * Method:    sin
- * Signature: (D)D
- */
-JNIEXPORT double JNICALL Java_java_lang_Math_sin(JNIEnv *env, jclass clazz, double a)
-{
-	return sin(a);
-}
-
-
-/*
- * Class:     java/lang/Math
- * Method:    sqrt
- * Signature: (D)D
- */
-JNIEXPORT double JNICALL Java_java_lang_Math_sqrt(JNIEnv *env, jclass clazz, double a)
-{
-	return sqrt(a);
-}
-
-
-/*
- * Class:     java/lang/Math
- * Method:    tan
- * Signature: (D)D
- */
-JNIEXPORT double JNICALL Java_java_lang_Math_tan(JNIEnv *env, jclass clazz, double a)
-{
-	return tan(a);
-}
-
-} // extern "C"
 
 
 /*

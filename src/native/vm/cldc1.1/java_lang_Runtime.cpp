@@ -32,14 +32,62 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-// FIXME
-extern "C" {
-#include "native/include/java_lang_Runtime.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/include/java_lang_Runtime.h"
+#endif
 
 #include "vm/vm.hpp"
 
 #include "vmcore/utf8.h"
+
+
+// Native functions are exported as C functions.
+extern "C" {
+
+/*
+ * Class:     java/lang/Runtime
+ * Method:    exitInternal
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_java_lang_Runtime_exitInternal(JNIEnv *env, jobject _this, jint status)
+{
+	vm_shutdown(status);
+}
+
+
+/*
+ * Class:     java/lang/Runtime
+ * Method:    freeMemory
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_java_lang_Runtime_freeMemory(JNIEnv *env, jobject _this)
+{
+	return gc_get_free_bytes();
+}
+
+
+/*
+ * Class:     java/lang/Runtime
+ * Method:    totalMemory
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_java_lang_Runtime_totalMemory(JNIEnv *env, jobject _this)
+{
+	return gc_get_heap_size();
+}
+
+
+/*
+ * Class:     java/lang/Runtime
+ * Method:    gc
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_java_lang_Runtime_gc(JNIEnv *env, jobject _this)
+{
+	gc_call();
+}
+
+} // extern "C"
 
 
 /* native methods implemented by this file ************************************/
@@ -69,55 +117,6 @@ void _Jv_java_lang_Runtime_init(void)
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
 }
-
-
-// Native functions are exported as C functions.
-extern "C" {
-
-/*
- * Class:     java/lang/Runtime
- * Method:    exitInternal
- * Signature: (I)V
- */
-JNIEXPORT void JNICALL Java_java_lang_Runtime_exitInternal(JNIEnv *env, java_lang_Runtime *_this, int32_t status)
-{
-	vm_shutdown(status);
-}
-
-
-/*
- * Class:     java/lang/Runtime
- * Method:    freeMemory
- * Signature: ()J
- */
-JNIEXPORT int64_t JNICALL Java_java_lang_Runtime_freeMemory(JNIEnv *env, java_lang_Runtime *_this)
-{
-	return gc_get_free_bytes();
-}
-
-
-/*
- * Class:     java/lang/Runtime
- * Method:    totalMemory
- * Signature: ()J
- */
-JNIEXPORT int64_t JNICALL Java_java_lang_Runtime_totalMemory(JNIEnv *env, java_lang_Runtime *_this)
-{
-	return gc_get_heap_size();
-}
-
-
-/*
- * Class:     java/lang/Runtime
- * Method:    gc
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_java_lang_Runtime_gc(JNIEnv *env, java_lang_Runtime *_this)
-{
-	gc_call();
-}
-
-} // extern "C"
 
 
 /*

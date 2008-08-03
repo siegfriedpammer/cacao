@@ -311,13 +311,11 @@ static bool thread_create_object(threadobject *t, java_handle_t *name, java_hand
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
-	/* Set the thread data-structure in the Java thread object. */
+	// Set the thread data-structure in the Java thread object.
+	jlt.set_vm_thread(t);
 
-	LLNI_field_set_val(to, vm_thread, (java_lang_Object *) t);
-
-	/* Call: public Thread(Ljava/lang/String;)V */
-
-	(void) vm_call_method(thread_method_init, o, name);
+	// Call: public Thread(Ljava/lang/String;)V
+	(void) vm_call_method(thread_method_init, jlt.get_handle(), name);
 
 	if (exceptions_get_exception())
 		return false;
@@ -679,11 +677,11 @@ void threads_thread_start(java_handle_t *object)
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
-	/* Nothing to do. */
+	// Nothing to do.
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
-	LLNI_field_set_val(to, vm_thread, (java_lang_Object *) t);
+	jlt.set_vm_thread(t);
 
 #else
 # error unknown classpath configuration
@@ -1138,6 +1136,7 @@ threadobject *thread_get_thread(java_handle_t *h)
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
 	log_println("threads_get_thread: IMPLEMENT ME!");
+	threadobject* t = NULL;
 
 #else
 # error unknown classpath configuration

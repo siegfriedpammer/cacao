@@ -21,8 +21,8 @@
 ## 02110-1301, USA.
 
 
-JAVAH    = $(CACAOH)
-JAVAHCMD = $(JAVAH) -bootclasspath $(BOOTCLASSPATH)
+JAVAH    = javah
+JAVAHCMD = $(JAVAH) -jni -bootclasspath $(BOOTCLASSPATH)
 
 if WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1
 IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
@@ -31,6 +31,7 @@ IMPLEMENTED_VM_CLASSES_HEADER_FILES = \
 	com_sun_cldchi_io_ConsoleOutputStream.h \
 	com_sun_cldchi_jvm_FileDescriptor.h \
 	com_sun_cldchi_jvm_JVM.h \
+	java_lang_Class.h \
 	java_lang_Math.h \
 	java_lang_Runtime.h \
 	java_lang_System.h
