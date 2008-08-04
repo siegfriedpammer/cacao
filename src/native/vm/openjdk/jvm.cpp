@@ -49,19 +49,7 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_AssertionStatusDirectives.h"
-#include "native/include/java_lang_String.h"            /* required by j.l.CL */
-#include "native/include/java_nio_ByteBuffer.h"         /* required by j.l.CL */
-#include "native/include/java_lang_ClassLoader.h"        /* required by j.l.C */
-#include "native/include/java_lang_StackTraceElement.h"
-#include "native/include/java_lang_Throwable.h"
-#include "native/include/java_security_ProtectionDomain.h"
-
-#if defined(ENABLE_ANNOTATIONS)
-#include "native/include/sun_reflect_ConstantPool.h"
-#endif
-
-#include "native/vm/reflect.h"
+#include "native/vm/reflection.hpp"
 
 #include "native/vm/openjdk/hpi.h"
 
@@ -93,6 +81,7 @@
 
 #include "vmcore/classcache.h"
 #include "vmcore/globals.hpp"
+#include "vmcore/javaobjects.hpp"
 #include "vmcore/options.h"
 #include "vmcore/os.hpp"
 
@@ -414,19 +403,14 @@ jint JVM_ActiveProcessorCount(void)
 
 void JVM_FillInStackTrace(JNIEnv *env, jobject receiver)
 {
-	java_lang_Throwable     *o;
-	java_handle_bytearray_t *ba;
-
 	TRACEJVMCALLS(("JVM_FillInStackTrace(env=%p, receiver=%p)", env, receiver));
 
-	o = (java_lang_Throwable *) receiver;
-
-	ba = stacktrace_get_current();
+	java_handle_bytearray_t* ba = stacktrace_get_current();
 
 	if (ba == NULL)
 		return;
 
-	LLNI_field_set_ref(o, backtrace, (java_lang_Object *) ba);
+	java_lang_Throwable jlt(receiver, ba);
 }
 
 
@@ -442,36 +426,28 @@ void JVM_PrintStackTrace(JNIEnv *env, jobject receiver, jobject printable)
 
 jint JVM_GetStackTraceDepth(JNIEnv *env, jobject throwable)
 {
-	java_lang_Throwable     *to;
-	java_lang_Object        *o;
-	java_handle_bytearray_t *ba;
-	stacktrace_t            *st;
-	int32_t                  depth;
-
 	TRACEJVMCALLS(("JVM_GetStackTraceDepth(env=%p, throwable=%p)", env, throwable));
 
-	if (throwable == NULL) {
+	java_lang_Throwable jlt(throwable);
+
+	if (jlt.is_null()) {
 		exceptions_throw_nullpointerexception();
 		return 0;
 	}
 
-	to = (java_lang_Throwable *) throwable;
-
-	LLNI_field_get_ref(to, backtrace, o);
-
-	ba = (java_handle_bytearray_t *) o;
+	java_handle_bytearray_t* ba = jlt.get_backtrace();
 
 	if (ba == NULL)
 		return 0;
 
-	/* We need a critical section here as the stacktrace structure is
-	   mapped onto a Java byte-array. */
+	// We need a critical section here as the stacktrace structure is
+	// mapped onto a Java byte-array.
 
 	LLNI_CRITICAL_START;
 
-	st = (stacktrace_t *) LLNI_array_data(ba);
+	stacktrace_t* st = (stacktrace_t *) LLNI_array_data(ba);
 
-	depth = st->length;
+	int32_t depth = st->length;
 
 	LLNI_CRITICAL_END;
 
@@ -483,69 +459,46 @@ jint JVM_GetStackTraceDepth(JNIEnv *env, jobject throwable)
 
 jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 {
-	java_lang_Throwable         *to;
-	java_lang_Object            *o;
-	java_handle_bytearray_t     *ba;
-	stacktrace_t                *st;
-	stacktrace_entry_t          *ste;
-	codeinfo                    *code;
-	methodinfo                  *m;
-	classinfo                   *c;
-	java_lang_StackTraceElement *steo;
-	java_handle_t*               declaringclass;
-	java_lang_String            *filename;
-	int32_t                      linenumber;
-
 	TRACEJVMCALLS(("JVM_GetStackTraceElement(env=%p, throwable=%p, index=%d)", env, throwable, index));
 
-	to = (java_lang_Throwable *) throwable;
+	java_lang_Throwable jlt(throwable);
+	java_handle_bytearray_t* ba = jlt.get_backtrace();
 
-	LLNI_field_get_ref(to, backtrace, o);
+	// We need a critical section here as the stacktrace structure is
+	// mapped onto a Java byte-array.
+	LLNI_CRITICAL_START;
 
-	ba = (java_handle_bytearray_t *) o;
-
-	/* FIXME critical section */
-
-	st = (stacktrace_t *) LLNI_array_data(ba);
+	stacktrace_t* st = (stacktrace_t *) LLNI_array_data(ba);
 
 	if ((index < 0) || (index >= st->length)) {
 		/* XXX This should be an IndexOutOfBoundsException (check this
 		   again). */
-
 		exceptions_throw_arrayindexoutofboundsexception();
 		return NULL;
 	}
 
-	/* Get the stacktrace entry. */
+	// Get the stacktrace entry.
+	stacktrace_entry_t* ste = &(st->entries[index]);
 
-	ste = &(st->entries[index]);
+	// Get the codeinfo, methodinfo and classinfo.
+	codeinfo*   code = ste->code;
+	methodinfo* m    = code->m;
+	classinfo*  c    = m->clazz;
 
-	/* Get the codeinfo, methodinfo and classinfo. */
-
-	code = ste->code;
-	m    = code->m;
-	c    = m->clazz;
-
-	/* allocate a new StackTraceElement */
-
-	steo = (java_lang_StackTraceElement *)
-		builtin_new(class_java_lang_StackTraceElement);
-
-	if (steo == NULL)
-		return NULL;
-
-	/* get filename */
+	// Get filename.
+	java_handle_t* filename;
 
 	if (!(m->flags & ACC_NATIVE)) {
 		if (c->sourcefile != NULL)
-			filename = (java_lang_String *) javastring_new(c->sourcefile);
+			filename = javastring_new(c->sourcefile);
 		else
 			filename = NULL;
 	}
 	else
 		filename = NULL;
 
-	/* get line number */
+	// Get line number.
+	int32_t linenumber;
 
 	if (m->flags & ACC_NATIVE) {
 		linenumber = -2;
@@ -558,20 +511,18 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 		linenumber = (linenumber == 0) ? -1 : linenumber;
 	}
 
-	/* get declaring class name */
+	LLNI_CRITICAL_END;
 
-	declaringclass = class_get_classname(c);
+	// Get declaring class name.
+	java_handle_t* declaringclass = class_get_classname(c);
 
-	/* fill the java.lang.StackTraceElement element */
+	// Allocate a new StackTraceElement object.
+	java_lang_StackTraceElement jlste(declaringclass, javastring_new(m->name), filename, linenumber);
 
-	/* FIXME critical section */
+	if (jlste.is_null())
+		return NULL;
 
-	steo->declaringClass = (java_lang_String*) declaringclass;
-	steo->methodName     = (java_lang_String*) javastring_new(m->name);
-	steo->fileName       = filename;
-	steo->lineNumber     = linenumber;
-
-	return (jobject) steo;
+	return (jobject) jlste.get_handle();
 }
 
 
@@ -1207,22 +1158,19 @@ jstring JVM_GetClassSignature(JNIEnv *env, jclass cls)
 
 jbyteArray JVM_GetClassAnnotations(JNIEnv *env, jclass cls)
 {
-	classinfo               *c           = NULL; /* classinfo for 'cls'  */
-	java_handle_bytearray_t *annotations = NULL; /* unparsed annotations */
-
-	TRACEJVMCALLS(("JVM_GetClassAnnotations: cls=%p", cls));
+	TRACEJVMCALLS(("JVM_GetClassAnnotations(env=%p, cls=%p)", env, cls));
 
 	if (cls == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 	
-	c = LLNI_classinfo_unwrap(cls);
+	classinfo* c = LLNI_classinfo_unwrap(cls);
 
 	/* get annotations: */
-	annotations = class_get_annotations(c);
+	java_handle_bytearray_t* annotations = class_get_annotations(c);
 
-	return (jbyteArray)annotations;
+	return (jbyteArray) annotations;
 }
 
 
@@ -1230,21 +1178,16 @@ jbyteArray JVM_GetClassAnnotations(JNIEnv *env, jclass cls)
 
 jbyteArray JVM_GetFieldAnnotations(JNIEnv *env, jobject field)
 {
-	java_lang_reflect_Field *rf = NULL; /* java.lang.reflect.Field for 'field' */
-	java_handle_bytearray_t *ba = NULL; /* unparsed annotations */
+	TRACEJVMCALLS(("JVM_GetFieldAnnotations(env=%p, field=%p)", env, field));
 
-	TRACEJVMCALLS(("JVM_GetFieldAnnotations: field=%p", field));
+	java_lang_reflect_Field jlrf(field);
 
-	if (field == NULL) {
+	if (jlrf.is_null()) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
-	rf = (java_lang_reflect_Field*)field;
-
-	LLNI_field_get_ref(rf, annotations, ba);
-
-	return (jbyteArray)ba;
+	return (jbyteArray) jlrf.get_annotations();
 }
 
 
@@ -1252,21 +1195,16 @@ jbyteArray JVM_GetFieldAnnotations(JNIEnv *env, jobject field)
 
 jbyteArray JVM_GetMethodAnnotations(JNIEnv *env, jobject method)
 {
-	java_lang_reflect_Method *rm = NULL; /* java.lang.reflect.Method for 'method' */
-	java_handle_bytearray_t  *ba = NULL; /* unparsed annotations */
+	TRACEJVMCALLS(("JVM_GetMethodAnnotations(env=%p, method=%p)", env, method));
 
-	TRACEJVMCALLS(("JVM_GetMethodAnnotations: method=%p", method));
+	java_lang_reflect_Method jlrm(method);
 
-	if (method == NULL) {
+	if (jlrm.is_null()) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
-	rm = (java_lang_reflect_Method*)method;
-
-	LLNI_field_get_ref(rm, annotations, ba);
-
-	return (jbyteArray)ba;
+	return (jbyteArray) jlrm.get_annotations();
 }
 
 
@@ -1274,21 +1212,16 @@ jbyteArray JVM_GetMethodAnnotations(JNIEnv *env, jobject method)
 
 jbyteArray JVM_GetMethodDefaultAnnotationValue(JNIEnv *env, jobject method)
 {
-	java_lang_reflect_Method *rm = NULL; /* java.lang.reflect.Method for 'method' */
-	java_handle_bytearray_t  *ba = NULL; /* unparsed annotation default value */
+	TRACEJVMCALLS(("JVM_GetMethodDefaultAnnotationValue(env=%p, method=%p)", env, method));
 
-	TRACEJVMCALLS(("JVM_GetMethodDefaultAnnotationValue: method=%p", method));
+	java_lang_reflect_Method jlrm(method);
 
-	if (method == NULL) {
+	if (jlrm.is_null()) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
-	rm = (java_lang_reflect_Method*)method;
-
-	LLNI_field_get_ref(rm, annotationDefault, ba);
-
-	return (jbyteArray)ba;
+	return (jbyteArray) jlrm.get_annotationDefault();
 }
 
 
@@ -1296,21 +1229,16 @@ jbyteArray JVM_GetMethodDefaultAnnotationValue(JNIEnv *env, jobject method)
 
 jbyteArray JVM_GetMethodParameterAnnotations(JNIEnv *env, jobject method)
 {
-	java_lang_reflect_Method *rm = NULL; /* java.lang.reflect.Method for 'method' */
-	java_handle_bytearray_t  *ba = NULL; /* unparsed parameter annotations */
+	TRACEJVMCALLS(("JVM_GetMethodParameterAnnotations(env=%p, method=%p)", env, method));
 
-	TRACEJVMCALLS(("JVM_GetMethodParameterAnnotations: method=%p", method));
+	java_lang_reflect_Method jlrm(method);
 
-	if (method == NULL) {
+	if (jlrm.is_null() == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
-	rm = (java_lang_reflect_Method*)method;
-
-	LLNI_field_get_ref(rm, parameterAnnotations, ba);
-
-	return (jbyteArray)ba;
+	return (jbyteArray) jlrm.get_parameterAnnotations();
 }
 
 
@@ -1386,25 +1314,16 @@ jint JVM_GetClassAccessFlags(JNIEnv *env, jclass cls)
 jobject JVM_GetClassConstantPool(JNIEnv *env, jclass cls)
 {
 #if defined(ENABLE_ANNOTATIONS)
-	sun_reflect_ConstantPool *constantPool    = NULL;
-	              /* constant pool object for the class refered by 'cls' */
-	java_lang_Object         *constantPoolOop = (java_lang_Object*)cls;
-	              /* constantPoolOop field of the constant pool object   */
-
 	TRACEJVMCALLS(("JVM_GetClassConstantPool(env=%p, cls=%p)", env, cls));
 
-	constantPool = 
-		(sun_reflect_ConstantPool*)native_new_and_init(
-			class_sun_reflect_ConstantPool);
+	java_handle_t* h = native_new_and_init(class_sun_reflect_ConstantPool);
+	sun_reflect_ConstantPool cp(h, cls);
 	
-	if (constantPool == NULL) {
-		/* out of memory */
+	if (cp.is_null()) {
 		return NULL;
 	}
 	
-	LLNI_field_set_ref(constantPool, constantPoolOop, constantPoolOop);
-
-	return (jobject)constantPool;
+	return (jobject) cp.get_handle();
 #else
 	log_println("JVM_GetClassConstantPool(env=%p, cls=%p): not implemented in this configuration!", env, cls);
 	return NULL;

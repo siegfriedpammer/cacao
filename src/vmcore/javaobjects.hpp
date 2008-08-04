@@ -179,6 +179,7 @@ protected:
 	java_handle_t* _handle;
 
 protected:
+	java_lang_Object() : _handle(NULL) {}
 	java_lang_Object(java_handle_t* h) : _handle(h) {}
 	java_lang_Object(jobject h) : _handle((java_handle_t*) h) {}
 
@@ -1618,11 +1619,19 @@ private:
 
 public:
 	sun_reflect_ConstantPool(java_handle_t* h) : java_lang_Object(h) {}
+	sun_reflect_ConstantPool(java_handle_t* h, jclass constantPoolOop);
 
 	// Setters.
 	inline void set_constantPoolOop(classinfo* value);
 	inline void set_constantPoolOop(jclass value);
 };
+
+
+inline sun_reflect_ConstantPool::sun_reflect_ConstantPool(java_handle_t* h, jclass constantPoolOop) : java_lang_Object(h)
+{
+	set_constantPoolOop(constantPoolOop);
+}
+
 
 inline void sun_reflect_ConstantPool::set_constantPoolOop(classinfo* value)
 {
@@ -1640,6 +1649,114 @@ inline void sun_reflect_ConstantPool::set_constantPoolOop(jclass value)
 
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+
+/**
+ * OpenJDK java/lang/StackTraceElement
+ *
+ * Object layout:
+ *
+ * 0. object header
+ * 1. java.lang.String declaringClass;
+ * 2. java.lang.String methodName;
+ * 3. java.lang.String fileName;
+ * 4. int              lineNumber;
+ */
+class java_lang_StackTraceElement : public java_lang_Object, private FieldAccess {
+private:
+	// Static offsets of the object's instance fields.
+	// TODO These offsets need to be checked on VM startup.
+	static const off_t offset_declaringClass = MEMORY_ALIGN(sizeof(java_object_t),                 SIZEOF_VOID_P);
+	static const off_t offset_methodName     = MEMORY_ALIGN(offset_declaringClass + SIZEOF_VOID_P, SIZEOF_VOID_P);
+	static const off_t offset_fileName       = MEMORY_ALIGN(offset_methodName     + SIZEOF_VOID_P, SIZEOF_VOID_P);
+	static const off_t offset_lineNumber     = MEMORY_ALIGN(offset_fileName       + SIZEOF_VOID_P, sizeof(int32_t));
+
+public:
+	java_lang_StackTraceElement(java_handle_t* h) : java_lang_Object(h) {}
+	java_lang_StackTraceElement(java_handle_t* declaringClass, java_handle_t* methodName, java_handle_t* fileName, int32_t lineNumber);
+};
+
+inline java_lang_StackTraceElement::java_lang_StackTraceElement(java_handle_t* declaringClass, java_handle_t* methodName, java_handle_t* fileName, int32_t lineNumber)
+{
+	_handle = builtin_new(class_java_lang_StackTraceElement);
+
+	if (is_null())
+		return;
+
+	set(_handle, offset_declaringClass, declaringClass);
+	set(_handle, offset_methodName,     methodName);
+	set(_handle, offset_fileName,       fileName);
+	set(_handle, offset_lineNumber,     lineNumber);
+}
+
+
+/**
+ * OpenJDK java/lang/Throwable
+ *
+ * Object layout:
+ *
+ * 0. object header
+ * 1. java.lang.Object              backtrace;
+ * 2. java.lang.String              detailMessage;
+ * 3. java.lang.Throwable           cause;
+ * 4. java.lang.StackTraceElement[] stackTrace;
+ */
+class java_lang_Throwable : public java_lang_Object, private FieldAccess {
+private:
+	// Static offsets of the object's instance fields.
+	// TODO These offsets need to be checked on VM startup.
+	static const off_t offset_backtrace     = MEMORY_ALIGN(sizeof(java_object_t),                SIZEOF_VOID_P);
+	static const off_t offset_detailMessage = MEMORY_ALIGN(offset_backtrace     + SIZEOF_VOID_P, SIZEOF_VOID_P);
+	static const off_t offset_cause         = MEMORY_ALIGN(offset_detailMessage + SIZEOF_VOID_P, SIZEOF_VOID_P);
+	static const off_t offset_stackTrace    = MEMORY_ALIGN(offset_cause         + SIZEOF_VOID_P, SIZEOF_VOID_P);
+
+public:
+	java_lang_Throwable(java_handle_t* h) : java_lang_Object(h) {}
+	java_lang_Throwable(jobject h);
+	java_lang_Throwable(jobject h, java_handle_bytearray_t* backtrace);
+
+	// Getters.
+	inline java_handle_bytearray_t* get_backtrace    () const;
+	inline java_handle_t*           get_detailMessage() const;
+	inline java_handle_t*           get_cause        () const;
+
+	// Setters.
+	inline void set_backtrace(java_handle_bytearray_t* value);
+};
+
+
+inline java_lang_Throwable::java_lang_Throwable(jobject h) : java_lang_Object(h)
+{
+	java_lang_Throwable((java_handle_t*) h);
+}
+
+inline java_lang_Throwable::java_lang_Throwable(jobject h, java_handle_bytearray_t* backtrace) : java_lang_Object(h)
+{
+	java_lang_Throwable((java_handle_t*) h);
+	set_backtrace(backtrace);
+}
+
+
+inline java_handle_bytearray_t* java_lang_Throwable::get_backtrace() const
+{
+	return get<java_handle_bytearray_t*>(_handle, offset_backtrace);
+}
+
+inline java_handle_t* java_lang_Throwable::get_detailMessage() const
+{
+	return get<java_handle_t*>(_handle, offset_detailMessage);
+}
+
+inline java_handle_t* java_lang_Throwable::get_cause() const
+{
+	return get<java_handle_t*>(_handle, offset_cause);
+}
+
+
+inline void java_lang_Throwable::set_backtrace(java_handle_bytearray_t* value)
+{
+	set(_handle, offset_backtrace, value);
+}
+
 
 /**
  * OpenJDK java/lang/reflect/Constructor
