@@ -501,7 +501,7 @@ bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, class
 	else {
 		/* a primitive type */
 
-		cls = Primitive_get_class_by_type(d->decltype);
+		cls = Primitive_get_class_by_type(d->primitivetype);
 
 		assert(cls->state & CLASS_LOADED);
 

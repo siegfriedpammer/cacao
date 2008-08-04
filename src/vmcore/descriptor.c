@@ -339,7 +339,7 @@ descriptor_to_typedesc(descriptor_pool *pool, char *utf_ptr, char *end_pos,
 	if (name) {
 		/* a reference type */
 		td->type = TYPE_ADR;
-		td->decltype = TYPE_ADR;
+		td->primitivetype = TYPE_ADR;
 		td->arraydim = 0;
 		for (utf_ptr = name->text; *utf_ptr == '['; ++utf_ptr)
 			td->arraydim++;
@@ -349,39 +349,39 @@ descriptor_to_typedesc(descriptor_pool *pool, char *utf_ptr, char *end_pos,
 		/* a primitive type */
 		switch (*utf_ptr) {
 		case 'B': 
-			td->decltype = PRIMITIVETYPE_BYTE;
+			td->primitivetype = PRIMITIVETYPE_BYTE;
 			td->type = TYPE_INT;
 			break;
 		case 'C':
-			td->decltype = PRIMITIVETYPE_CHAR;
+			td->primitivetype = PRIMITIVETYPE_CHAR;
 			td->type = TYPE_INT;
 			break;
 		case 'S':  
-			td->decltype = PRIMITIVETYPE_SHORT;
+			td->primitivetype = PRIMITIVETYPE_SHORT;
 			td->type = TYPE_INT;
 			break;
 		case 'Z':
-			td->decltype = PRIMITIVETYPE_BOOLEAN;
+			td->primitivetype = PRIMITIVETYPE_BOOLEAN;
 			td->type = TYPE_INT;
 			break;
 		case 'I':
-			td->decltype = PRIMITIVETYPE_INT;
+			td->primitivetype = PRIMITIVETYPE_INT;
 			td->type = TYPE_INT;
 			break;
 		case 'D':
-			td->decltype = PRIMITIVETYPE_DOUBLE;
+			td->primitivetype = PRIMITIVETYPE_DOUBLE;
 			td->type = TYPE_DBL;
 			break;
 		case 'F':
-			td->decltype = PRIMITIVETYPE_FLOAT;
+			td->primitivetype = PRIMITIVETYPE_FLOAT;
 			td->type = TYPE_FLT;
 			break;
 		case 'J':
-			td->decltype = PRIMITIVETYPE_LONG;
+			td->primitivetype = PRIMITIVETYPE_LONG;
 			td->type = TYPE_LNG;
 			break;
 		case 'V':
-			td->decltype = PRIMITIVETYPE_VOID;
+			td->primitivetype = PRIMITIVETYPE_VOID;
 			td->type = TYPE_VOID;
 			break;
 		default:
@@ -928,7 +928,7 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 
 	if ((mflags != ACC_UNDEF) && !(mflags & ACC_STATIC)) {
 		td->type = TYPE_ADR;
-		td->decltype = TYPE_ADR;
+		td->primitivetype = TYPE_ADR;
 		td->arraydim = 0;
 		td->classref = thisclass;
 
@@ -1070,7 +1070,7 @@ bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 		/* fill in first argument `this' */
 
 		td->type = TYPE_ADR;
-		td->decltype = TYPE_ADR;
+		td->primitivetype = TYPE_ADR;
 		td->arraydim = 0;
 		td->classref = thisclass;
 
@@ -1211,7 +1211,7 @@ descriptor_debug_print_typedesc(FILE *file,typedesc *d)
 			fprintf(file,"<class=NULL>");
 	}
 	else {
-		switch (d->decltype) {
+		switch (d->primitivetype) {
 			case PRIMITIVETYPE_INT    : ch='I'; break;
 			case PRIMITIVETYPE_CHAR   : ch='C'; break;
 			case PRIMITIVETYPE_BYTE   : ch='B'; break;

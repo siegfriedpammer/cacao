@@ -1,9 +1,7 @@
 /* src/vmcore/descriptor.h - checking and parsing of field / method descriptors
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -100,17 +98,17 @@ struct descriptor_pool {
 /* data structures for parsed field/method descriptors ************************/
 
 struct typedesc {
-	constant_classref *classref;   /* class reference for TYPE_ADR types      */
-	u1                 type;       /* TYPE_??? constant [1]                   */
-	u1                 decltype;   /* (PRIMITIVE)TYPE_??? constant [2]        */
-	u1                 arraydim;   /* array dimension (0 if no array)         */
+	constant_classref *classref;      /* class reference for TYPE_ADR types   */
+	u1                 type;          /* TYPE_??? constant [1]                */
+	u1                 primitivetype; /* (PRIMITIVE)TYPE_??? constant [2]     */
+	u1                 arraydim;      /* array dimension (0 if no array)      */
 };
 
 /* [1]...the type field contains the basic type used within the VM. So ints,  */
 /*       shorts, chars, bytes, booleans all have TYPE_INT.                    */
-/* [2]...the decltype field contains the declared type.                       */
+/* [2]...the primitivetype field contains the declared type.                  */
 /*       So short is PRIMITIVETYPE_SHORT, char is PRIMITIVETYPE_CHAR.         */
-/*       For non-primitive types decltype is TYPE_ADR.                        */
+/*       For non-primitive types primitivetype is TYPE_ADR.                   */
 
 struct paramdesc {
 #if defined(__MIPS__)

@@ -364,7 +364,7 @@ classinfo *field_get_type(fieldinfo *f)
 		c = load_class_from_classloader(u, f->clazz->classloader);
 	}
 	else {
-		c = Primitive_get_class_by_type(td->decltype);
+		c = Primitive_get_class_by_type(td->primitivetype);
 	}
 
 	return c;

@@ -3042,7 +3042,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	case TYPE_INT:
 	case TYPE_LNG:
 	case TYPE_ADR:
-		switch (md->returntype.decltype) {
+		switch (md->returntype.primitivetype) {
 		case PRIMITIVETYPE_BOOLEAN:
 			M_BZEXT(REG_RESULT, REG_RESULT);
 			break;
