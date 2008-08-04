@@ -498,7 +498,7 @@ uint64_t *argument_vmarray_from_jvalue(methodinfo *m, java_handle_t *o,
 	} 
 
 	for (j = 0; i < md->paramcount; i++, j++, pd++, td++) {
-		switch (td->decltype) {
+		switch (td->primitivetype) {
 		case TYPE_INT:
 			argument_vmarray_store_int(array, pd, args[j].i);
 			break;
@@ -599,7 +599,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 			LLNI_class_get(param, c);
 			type = Primitive_get_type_by_wrapperclass(c);
 
-			switch (td->decltype) {
+			switch (td->primitivetype) {
 			case PRIMITIVETYPE_BOOLEAN:
 				switch (type) {
 				case PRIMITIVETYPE_BOOLEAN:
@@ -655,7 +655,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 
 			default:
 				vm_abort("argument_vmarray_from_objectarray: invalid type %d",
-						 td->decltype);
+						 td->primitivetype);
 			}
 
 			value = Primitive_unbox(param);
@@ -669,7 +669,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 			LLNI_class_get(param, c);
 			type = Primitive_get_type_by_wrapperclass(c);
 
-			assert(td->decltype == PRIMITIVETYPE_LONG);
+			assert(td->primitivetype == PRIMITIVETYPE_LONG);
 
 			switch (type) {
 			case PRIMITIVETYPE_BYTE:
@@ -693,7 +693,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 			LLNI_class_get(param, c);
 			type = Primitive_get_type_by_wrapperclass(c);
 
-			assert(td->decltype == PRIMITIVETYPE_FLOAT);
+			assert(td->primitivetype == PRIMITIVETYPE_FLOAT);
 
 			switch (type) {
 			case PRIMITIVETYPE_FLOAT:
@@ -714,7 +714,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 			LLNI_class_get(param, c);
 			type = Primitive_get_type_by_wrapperclass(c);
 
-			assert(td->decltype == PRIMITIVETYPE_DOUBLE);
+			assert(td->primitivetype == PRIMITIVETYPE_DOUBLE);
 
 			switch (type) {
 			case PRIMITIVETYPE_FLOAT:

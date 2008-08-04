@@ -336,7 +336,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_VMField_get(JNIEnv *e
 	if (!_field_access_check(_this, f, (java_handle_t *) o))
 		return NULL;
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_BOOLEAN:
 	case PRIMITIVETYPE_BYTE:
 	case PRIMITIVETYPE_CHAR:
@@ -363,7 +363,7 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_VMField_get(JNIEnv *e
 
 	/* Now box the primitive types. */
 
-	object = Primitive::box(f->parseddesc->decltype, value);
+	object = Primitive::box(f->parseddesc->primitivetype, value);
 
 	return (java_lang_Object *) object;
 }
@@ -393,7 +393,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getBoolean(JNIEnv *env,
 
 	/* check the field type and return the value */
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_BOOLEAN:
 		return (int32_t) _field_get_int(f, o);
 	default:
@@ -427,7 +427,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getByte(JNIEnv *env, ja
 
 	/* check the field type and return the value */
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_BYTE:
 		return (int32_t) _field_get_int(f, o);
 	default:
@@ -461,7 +461,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getChar(JNIEnv *env, ja
 
 	/* check the field type and return the value */
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_CHAR:
 		return (int32_t) _field_get_int(f, o);
 	default:
@@ -495,7 +495,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getShort(JNIEnv *env, j
 
 	/* check the field type and return the value */
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_BYTE:
 	case PRIMITIVETYPE_SHORT:
 		return (int32_t) _field_get_int(f, o);
@@ -530,7 +530,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getInt(JNIEnv *env , ja
 
 	/* check the field type and return the value */
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_BYTE:
 	case PRIMITIVETYPE_CHAR:
 	case PRIMITIVETYPE_SHORT:
@@ -567,7 +567,7 @@ JNIEXPORT int64_t JNICALL Java_java_lang_reflect_VMField_getLong(JNIEnv *env, ja
 
 	/* check the field type and return the value */
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_BYTE:
 	case PRIMITIVETYPE_CHAR:
 	case PRIMITIVETYPE_SHORT:
@@ -606,7 +606,7 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_VMField_getFloat(JNIEnv *env, jav
 
 	/* check the field type and return the value */
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_BYTE:
 	case PRIMITIVETYPE_CHAR:
 	case PRIMITIVETYPE_SHORT:
@@ -647,7 +647,7 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_VMField_getDouble(JNIEnv *env , 
 
 	/* check the field type and return the value */
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_BYTE:
 	case PRIMITIVETYPE_CHAR:
 	case PRIMITIVETYPE_SHORT:
@@ -701,7 +701,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 	   types the value has to be retrieved from the wrapping
 	   object */
 
-	switch (df->parseddesc->decltype) {
+	switch (df->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_BOOLEAN: {
 		int32_t val;
 
@@ -710,7 +710,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 		if ((sc == NULL) || !(sf = class_findfield(sc, utf_value, utf_Z)))
 			break;
 
-		switch (sf->parseddesc->decltype) {
+		switch (sf->parseddesc->primitivetype) {
 		case PRIMITIVETYPE_BOOLEAN:
 			LLNI_field_get_val((java_lang_Boolean *) value, value, val);
 			break;
@@ -729,7 +729,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 		if ((sc == NULL) || !(sf = class_findfield(sc, utf_value, utf_B)))
 			break;
 
-		switch (sf->parseddesc->decltype) {
+		switch (sf->parseddesc->primitivetype) {
 		case PRIMITIVETYPE_BYTE:
 			LLNI_field_get_val((java_lang_Byte *) value, value, val);
 			break;
@@ -748,7 +748,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 		if ((sc == NULL) || !(sf = class_findfield(sc, utf_value, utf_C)))
 			break;
 				   
-		switch (sf->parseddesc->decltype) {
+		switch (sf->parseddesc->primitivetype) {
 		case PRIMITIVETYPE_CHAR:
 			LLNI_field_get_val((java_lang_Character *) value, value, val);
 			break;
@@ -769,7 +769,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf_value)))
 			break;
 				   
-		switch (sf->parseddesc->decltype) {
+		switch (sf->parseddesc->primitivetype) {
 		case PRIMITIVETYPE_BYTE:
 			LLNI_field_get_val((java_lang_Byte *) value, value, val);
 			break;
@@ -793,7 +793,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf_value)))
 			break;
 
-		switch (sf->parseddesc->decltype) {
+		switch (sf->parseddesc->primitivetype) {
 		case PRIMITIVETYPE_BYTE:
 			LLNI_field_get_val((java_lang_Byte *) value, value, val);
 			break;
@@ -823,7 +823,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf_value)))
 			break;
 
-		switch (sf->parseddesc->decltype) {
+		switch (sf->parseddesc->primitivetype) {
 		case PRIMITIVETYPE_BYTE:
 			LLNI_field_get_val((java_lang_Byte *) value, value, val);
 			break;
@@ -856,7 +856,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf_value)))
 			break;
 
-		switch (sf->parseddesc->decltype) {
+		switch (sf->parseddesc->primitivetype) {
 		case PRIMITIVETYPE_BYTE:
 			LLNI_field_get_val((java_lang_Byte *) value, value, val);
 			break;
@@ -892,7 +892,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 		if ((sc == NULL) || !(sf = class_findfield_by_name(sc, utf_value)))
 			break;
 
-		switch (sf->parseddesc->decltype) {
+		switch (sf->parseddesc->primitivetype) {
 		case PRIMITIVETYPE_BYTE:
 			LLNI_field_get_val((java_lang_Byte *) value, value, val);
 			break;
@@ -964,7 +964,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setBoolean(JNIEnv *env, ja
 
 	/* check the field type and set the value */
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_BOOLEAN:
 		_field_set_int(f, o, value);
 		break;
@@ -1000,7 +1000,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setByte(JNIEnv *env, java_
 
 	/* check the field type and set the value */
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_BYTE:
 	case PRIMITIVETYPE_SHORT:
 	case PRIMITIVETYPE_INT:
@@ -1047,7 +1047,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setChar(JNIEnv *env, java_
 
 	/* check the field type and set the value */
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_CHAR:
 	case PRIMITIVETYPE_INT:
 		_field_set_int(f, o, value);
@@ -1093,7 +1093,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setShort(JNIEnv *env, java
 
 	/* check the field type and set the value */
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_SHORT:
 	case PRIMITIVETYPE_INT:
 		_field_set_int(f, o, value);
@@ -1139,7 +1139,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setInt(JNIEnv *env, java_l
 
 	/* check the field type and set the value */
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_INT:
 		_field_set_int(f, o, value);
 		break;
@@ -1184,7 +1184,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setLong(JNIEnv *env, java_
 
 	/* check the field type and set the value */
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_LONG:
 		_field_set_long(f, o, value);
 		break;
@@ -1226,7 +1226,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setFloat(JNIEnv *env, java
 
 	/* check the field type and set the value */
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_FLOAT:
 		_field_set_float(f, o, value);
 		break;
@@ -1265,7 +1265,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setDouble(JNIEnv *env, jav
 
 	/* check the field type and set the value */
 
-	switch (f->parseddesc->decltype) {
+	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_DOUBLE:
 		_field_set_double(f, o, value);
 		break;

@@ -2599,7 +2599,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 		return NULL;
 	}
 
-	switch (m->parseddesc->returntype.decltype) {
+	switch (m->parseddesc->returntype.primitivetype) {
 	case PRIMITIVETYPE_VOID:
 		value.a = vm_call_array(m, array);
 		break;
@@ -2629,7 +2629,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 		break;
 
 	default:
-		vm_abort("vm_call_method_objectarray: invalid return type %d", m->parseddesc->returntype.decltype);
+		vm_abort("vm_call_method_objectarray: invalid return type %d", m->parseddesc->returntype.primitivetype);
 	}
 
 	/* release dump area */
@@ -2642,8 +2642,8 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 
 	/* box the return value if necesarry */
 
-	if (m->parseddesc->returntype.decltype != TYPE_ADR)
-		ro = Primitive::box(m->parseddesc->returntype.decltype, value);
+	if (m->parseddesc->returntype.primitivetype != TYPE_ADR)
+		ro = Primitive::box(m->parseddesc->returntype.primitivetype, value);
 
 	/* check for an exception */
 
