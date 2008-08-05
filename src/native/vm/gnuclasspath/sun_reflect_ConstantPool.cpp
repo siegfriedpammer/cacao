@@ -149,7 +149,9 @@ JNIEXPORT jobject JNICALL Java_sun_reflect_ConstantPool_getMethodAt0(JNIEnv *env
 	}
 
 	/* XXX: is that right? or do I have to use resolve_method_*? */
-	return (jobject) java_lang_reflect_Method::create(ref->p.method);
+	java_lang_reflect_Method jlrm(ref->p.method);
+
+	return (jobject) jlrm.get_handle();
 }
 
 
@@ -180,7 +182,9 @@ JNIEXPORT jobject JNICALL Java_sun_reflect_ConstantPool_getMethodAtIfLoaded0(JNI
 		return NULL;
 	}
 
-	return (jobject) java_lang_reflect_Method::create(ref->p.method);
+	java_lang_reflect_Method jlrm(ref->p.method);
+
+	return (jobject) jlrm.get_handle();
 }
 
 
@@ -194,15 +198,17 @@ JNIEXPORT jobject JNICALL Java_sun_reflect_ConstantPool_getFieldAt0(JNIEnv *env,
 	constant_FMIref *ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
-	ref = (constant_FMIref*)class_getconstant(
-		cls, index, CONSTANT_Fieldref);
+	ref = (constant_FMIref*) class_getconstant(cls, index, CONSTANT_Fieldref);
 
 	if (ref == NULL) {
 		exceptions_throw_illegalargumentexception();
 		return NULL;
 	}
 
-	return (jobject) java_lang_reflect_Field::create(ref->p.field);
+	// Create a new java.lang.reflect.Field Java object.
+	java_lang_reflect_Field jlrf(ref->p.field);
+
+	return (jobject) jlrf.get_handle();
 }
 
 
@@ -217,8 +223,7 @@ JNIEXPORT jobject JNICALL Java_sun_reflect_ConstantPool_getFieldAtIfLoaded0(JNIE
 	classinfo *c;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
-	ref = (constant_FMIref*)class_getconstant(
-		cls, index, CONSTANT_Fieldref);
+	ref = (constant_FMIref*) class_getconstant(cls, index, CONSTANT_Fieldref);
 
 	if (ref == NULL) {
 		exceptions_throw_illegalargumentexception();
@@ -233,7 +238,10 @@ JNIEXPORT jobject JNICALL Java_sun_reflect_ConstantPool_getFieldAtIfLoaded0(JNIE
 		return NULL;
 	}
 
-	return (jobject) java_lang_reflect_Field::create(ref->p.field);
+	// Create a new java.lang.reflect.Field Java object.
+	java_lang_reflect_Field jlrf(ref->p.field);
+
+	return (jobject) jlrf.get_handle();
 }
 
 
@@ -259,8 +267,7 @@ JNIEXPORT jint JNICALL Java_sun_reflect_ConstantPool_getIntAt0(JNIEnv *env, jobj
 	constant_integer *ref;
 	classinfo *cls = LLNI_classinfo_unwrap(jcpool);
 
-	ref = (constant_integer*)class_getconstant(
-		cls, index, CONSTANT_Integer);
+	ref = (constant_integer*) class_getconstant(cls, index, CONSTANT_Integer);
 
 	if (ref == NULL) {
 		exceptions_throw_illegalargumentexception();

@@ -121,62 +121,6 @@ java_handle_t* Reflection::invoke(methodinfo *m, java_handle_t *o, java_handle_o
 }
 
 
-/* reflect_method_invoke *******************************************************
-
-   Invokes the given method.
-
-   ARGUMENTS:
-      m .......... methodinfo
-      args ....... method arguments
-      override ... override security checks
-
-   RETURN:
-      return value of the method
-
-*******************************************************************************/
-
-java_handle_t* Reflection::method_invoke(methodinfo *m, java_handle_t *o, java_handle_objectarray_t *args, bool override)
-{
-	java_handle_t *ro;
-
-	/* Should we bypass security the checks (AccessibleObject)? */
-
-	if (override == false) {
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-		/* This method is always called like this:
-		       [0] java.lang.reflect.Method.invokeNative (Native Method)
-		       [1] java.lang.reflect.Method.invoke (Method.java:329)
-		       [2] <caller>
-		*/
-
-		if (!access_check_method(m, 2))
-			return NULL;
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-		/* We only pass 1 here as stacktrace_get_caller_class, which
-		   is called from access_check_method, skips
-		   java.lang.reflect.Method.invoke(). */
-
-		if (!access_check_method(m, 1))
-			return NULL;
-#else
-# error unknown classpath configuration
-#endif
-	}
-
-	/* Check if method class is initialized. */
-
-	if (!(m->clazz->state & CLASS_INITIALIZED))
-		if (!initialize_class(m->clazz))
-			return NULL;
-
-	/* Call the Java method. */
-
-	ro = invoke(m, o, args);
-
-	return ro;
-}
-
-
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH) && defined(ENABLE_ANNOTATIONS)
 /* reflect_get_declaredannotations *********************************************
 

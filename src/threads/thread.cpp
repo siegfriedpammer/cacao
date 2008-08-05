@@ -292,19 +292,14 @@ static bool thread_create_object(threadobject *t, java_handle_t *name, java_hand
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
-	/* OpenJDK's java.lang.Thread does not have a VMThread field in
-	   the class.  Nothing to do here. */
-
 	/* Set the priority.  java.lang.Thread.<init> requires it because
 	   it sets the priority of the current thread to the parent's one
 	   (which is the current thread in this case). */
+	jlt.set_priority(NORM_PRIORITY);
 
-	LLNI_field_set_val(to, priority, NORM_PRIORITY);
+	// Call: java.lang.Thread.<init>(Ljava/lang/ThreadGroup;Ljava/lang/String;)V
 
-	/* Call:
-	   java.lang.Thread.<init>(Ljava/lang/ThreadGroup;Ljava/lang/String;)V */
-
-	(void) vm_call_method(thread_method_init, o, group, name);
+	(void) vm_call_method(thread_method_init, jlt.get_handle(), group, name);
 
 	if (exceptions_get_exception())
 		return false;

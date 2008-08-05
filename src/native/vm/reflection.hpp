@@ -40,7 +40,6 @@
 class Reflection {
 public:
 	static java_handle_t* invoke(methodinfo *m, java_handle_t *o, java_handle_objectarray_t *params);
-	static java_handle_t* method_invoke(methodinfo *m, java_handle_t *o, java_handle_objectarray_t *args, bool override);
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH) && defined(ENABLE_ANNOTATIONS)
 	static java_handle_t* get_declaredannotations(java_handle_bytearray_t *annotations, classinfo* declaringClass, classinfo *referer);

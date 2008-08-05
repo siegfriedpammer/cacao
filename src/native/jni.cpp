@@ -1462,46 +1462,21 @@ jmethodID jni_FromReflectedMethod(JNIEnv *env, jobject method)
 	// FIXME We can't access the object here directly.
 	if (o->vftbl->clazz == class_java_lang_reflect_Constructor) {
 		java_lang_reflect_Constructor rc(method);
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-		java_lang_reflect_VMConstructor rvmc(rc.get_cons());
-		m = rvmc.get_method();
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-
-		LLNI_field_get_cls(rc, clazz, c);
-		LLNI_field_get_val(rc, slot , slot);
-
-#else
-# error unknown configuration
-#endif
+		m = rc.get_method();
 	}
 	else {
 		// FIXME We can't access the object here directly.
 		assert(o->vftbl->clazz == class_java_lang_reflect_Method);
 
 		java_lang_reflect_Method rm(method);
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-
-		java_lang_reflect_VMMethod rvmm(rm.get_m());
-		m = rvmm.get_method();
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-
-		LLNI_field_get_cls(rm, clazz, c);
-		LLNI_field_get_val(rm, slot , slot);
-
-#else
-# error unknown configuration
-#endif
+		m = rm.get_method();
 	}
 
 	return (jmethodID) m;
 #else
 	vm_abort("jni_FromReflectedMethod: Not implemented in this configuration.");
 
-	/* Keep compiler happy. */
-
+	// Keep compiler happy.
 	return NULL;
 #endif
 }
@@ -1517,36 +1492,20 @@ jfieldID jni_FromReflectedField(JNIEnv* env, jobject field)
 {
 #if defined(ENABLE_JAVASE)
 
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-#endif
-
 	TRACEJNICALLS(("jni_FromReflectedField(env=%p, field=%p)", env, field));
-
-	if (field == NULL)
-		return NULL;
 
 	java_lang_reflect_Field rf(field);
 
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
+	if (rf.is_null())
+		return NULL;
 
-	java_lang_reflect_VMField rvmf(rf.get_f());
-	fieldinfo* f = rvmf.get_field();
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-
-	LLNI_field_get_cls(rf, clazz, c);
-	LLNI_field_get_val(rf, slot , slot);
-
-#else
-# error unknown configuration
-#endif
+	fieldinfo* f = rf.get_field();
 
 	return (jfieldID) f;
 #else
 	vm_abort("jni_FromReflectedField: Not implemented in this configuration.");
 
-	/* Keep compiler happy. */
-
+	// Keep compiler happy.
 	return NULL;
 #endif
 }
@@ -1574,10 +1533,10 @@ jobject jni_ToReflectedMethod(JNIEnv* env, jclass cls, jmethodID methodID, jbool
 	java_handle_t* h;
 
 	if (m->name == utf_init) {
-		h = java_lang_reflect_Constructor::create(m);
+		h = java_lang_reflect_Constructor(m).get_handle();
 	}
 	else {
-		h = java_lang_reflect_Method::create(m);
+		h = java_lang_reflect_Method(m).get_handle();
 	}
 
 	return (jobject) h;
@@ -3576,26 +3535,16 @@ void* jni_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
-	java_nio_Buffer *o;
-	int64_t          address;
-	void            *p;
+	TRACEJNICALLS(("jni_GetDirectBufferAddress(env=%p, buf=%p)", env, buf));
 
-	TRACEJNICALLS(("_Jv_JNI_GetDirectBufferAddress(env=%p, buf=%p)", env, buf));
+	java_nio_Buffer jnb(buf);
 
-	/* Prevent compiler warning. */
-
-	h = (java_handle_t *) buf;
-
-	if ((h != NULL) && !builtin_instanceof(h, class_sun_nio_ch_DirectBuffer))
+	if (jnb.is_non_null() && !builtin_instanceof(jnb.get_handle(), class_sun_nio_ch_DirectBuffer))
 		return NULL;
 
-	o = (java_nio_Buffer *) buf;
+	void* address = jnb.get_address();
 
-	LLNI_field_get_val(o, address, address);
-
-	p = (void *) (intptr_t) address;
-
-	return p;
+	return address;
 
 # else
 #  error unknown classpath configuration
@@ -3603,10 +3552,9 @@ void* jni_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 #else
 
-	vm_abort("_Jv_JNI_GetDirectBufferAddress: not implemented in this configuration");
+	vm_abort("jni_GetDirectBufferAddress: Not implemented in this configuration.");
 
-	/* keep compiler happy */
-
+	// Keep compiler happy.
 	return NULL;
 
 #endif

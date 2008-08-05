@@ -1233,7 +1233,7 @@ jbyteArray JVM_GetMethodParameterAnnotations(JNIEnv *env, jobject method)
 
 	java_lang_reflect_Method jlrm(method);
 
-	if (jlrm.is_null() == NULL) {
+	if (jlrm.is_null()) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
@@ -1263,14 +1263,11 @@ jobjectArray JVM_GetClassDeclaredFields(JNIEnv *env, jclass ofClass, jboolean pu
 
 jobjectArray JVM_GetClassDeclaredMethods(JNIEnv *env, jclass ofClass, jboolean publicOnly)
 {
-	classinfo                 *c;
-	java_handle_objectarray_t *oa;
-
 	TRACEJVMCALLS(("JVM_GetClassDeclaredMethods(env=%p, ofClass=%p, publicOnly=%d)", env, ofClass, publicOnly));
 
-	c = LLNI_classinfo_unwrap(ofClass);
+	classinfo* c = LLNI_classinfo_unwrap(ofClass);
 
-	oa = class_get_declaredmethods(c, publicOnly);
+	java_handle_objectarray_t* oa = class_get_declaredmethods(c, publicOnly);
 
 	return (jobjectArray) oa;
 }
@@ -1418,8 +1415,11 @@ jobject JVM_ConstantPoolGetMethodAt(JNIEnv *env, jobject unused, jobject jcpool,
 		return NULL;
 	}
 
+	// Create a new java.lang.reflect.Method Java object.
 	/* XXX: is that right? or do I have to use resolve_method_*? */
-	return (jobject)reflect_method_new(ref->p.method);
+	java_lang_reflect_Method jlrm(ref->p.method);
+
+	return (jobject) jlrm.get_handle();
 }
 
 
@@ -1449,7 +1449,10 @@ jobject JVM_ConstantPoolGetMethodAtIfLoaded(JNIEnv *env, jobject unused, jobject
 		return NULL;
 	}
 
-	return (jobject)reflect_method_new(ref->p.method);
+	// Create a new java.lang.reflect.Method Java object.
+	java_lang_reflect_Method jlrm(ref->p.method);
+
+	return (jobject) jlrm.get_handle();
 }
 
 
@@ -1470,7 +1473,10 @@ jobject JVM_ConstantPoolGetFieldAt(JNIEnv *env, jobject unused, jobject jcpool, 
 		return NULL;
 	}
 
-	return (jobject)reflect_field_new(ref->p.field);
+	// Create a new java.lang.reflect.Field Java object.
+	java_lang_reflect_Field jlrf(ref->p.field);
+
+	return (jobject) jlrf.get_handle();
 }
 
 
@@ -1500,7 +1506,10 @@ jobject JVM_ConstantPoolGetFieldAtIfLoaded(JNIEnv *env, jobject unused, jobject 
 		return NULL;
 	}
 
-	return (jobject)reflect_field_new(ref->p.field);
+	// Create a new java.lang.reflect.Field Java object.
+	java_lang_reflect_Field jlrf(ref->p.field);
+
+	return (jobject) jlrf.get_handle();
 }
 
 
@@ -1691,8 +1700,6 @@ jboolean JVM_DesiredAssertionStatus(JNIEnv *env, jclass unused, jclass cls)
 
 jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 {
-	classinfo                             *c;
-	java_lang_AssertionStatusDirectives   *o;
 	java_handle_objectarray_t             *classes;
 	java_handle_objectarray_t             *packages;
 	java_booleanarray_t                   *classEnabled;
@@ -1704,16 +1711,6 @@ jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 #endif
 
 	TRACEJVMCALLS(("JVM_AssertionStatusDirectives(env=%p, unused=%p)", env, unused));
-
-	c = load_class_bootstrap(utf_new_char("java/lang/AssertionStatusDirectives"));
-
-	if (c == NULL)
-		return NULL;
-
-	o = (java_lang_AssertionStatusDirectives *) builtin_new(c);
-
-	if (o == NULL)
-		return NULL;
 
 #if defined(ENABLE_ASSERTION)
 	classes = builtin_anewarray(assertion_class_count, class_java_lang_Object);
@@ -1779,12 +1776,9 @@ jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 
 	/* set instance fields */
 
-	o->classes  = classes;
-	o->packages = packages;
-	o->classEnabled = classEnabled;
-	o->packageEnabled = packageEnabled;
+	java_lang_AssertionStatusDirectives jlasd(classes, classEnabled, packages, packageEnabled);
 
-	return (jobject) o;
+	return (jobject) jlasd.get_handle();
 }
 
 
@@ -3202,26 +3196,13 @@ void JVM_SetPrimitiveField(JNIEnv *env, jobject field, jobject obj, jvalue v, un
 
 jobject JVM_InvokeMethod(JNIEnv *env, jobject method, jobject obj, jobjectArray args0)
 {
-	java_lang_reflect_Method *rm;
-	classinfo     *c;
-	int32_t        slot;
-	int32_t        override;
-	methodinfo    *m;
-	java_handle_t *ro;
-
 	TRACEJVMCALLS(("JVM_InvokeMethod(env=%p, method=%p, obj=%p, args0=%p)", env, method, obj, args0));
 
-	rm = (java_lang_reflect_Method *) method;
+	java_lang_reflect_Method jlrm(method);
+	
+	java_handle_t* result = jlrm.invoke((java_handle_t*) obj, (java_handle_objectarray_t*) args0);
 
-	LLNI_field_get_cls(rm, clazz,    c);
-	LLNI_field_get_val(rm, slot,     slot);
-	LLNI_field_get_val(rm, override, override);
-
-	m = &(c->methods[slot]);
-
-	ro = reflect_method_invoke(m, (java_handle_t *) obj, (java_handle_objectarray_t *) args0, override);
-
-	return (jobject) ro;
+	return (jobject) result;
 }
 
 
@@ -3229,24 +3210,10 @@ jobject JVM_InvokeMethod(JNIEnv *env, jobject method, jobject obj, jobjectArray 
 
 jobject JVM_NewInstanceFromConstructor(JNIEnv *env, jobject con, jobjectArray args0)
 {
-	java_lang_reflect_Constructor *rc;
-	classinfo                     *c;
-	int32_t                        slot;
-	int32_t                        override;
-	methodinfo                    *m;
-	java_handle_t                 *o;
-
 	TRACEJVMCALLS(("JVM_NewInstanceFromConstructor(env=%p, c=%p, args0=%p)", env, con, args0));
 
-	rc = (java_lang_reflect_Constructor *) con;
-
-	LLNI_field_get_cls(rc, clazz,    c);
-	LLNI_field_get_val(rc, slot,     slot);
-	LLNI_field_get_val(rc, override, override);
-
-	m = &(c->methods[slot]);
-
-	o = reflect_constructor_newinstance(m, (java_handle_objectarray_t *) args0, override);
+	java_lang_reflect_Constructor jlrc(con);
+	java_handle_t* o = jlrc.new_instance((java_handle_objectarray_t*) args0);
 
 	return (jobject) o;
 }

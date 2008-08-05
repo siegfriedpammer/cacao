@@ -98,12 +98,10 @@ JNIEXPORT jobjectArray JNICALL Java_java_lang_reflect_VMConstructor_getException
  */
 JNIEXPORT jobject JNICALL Java_java_lang_reflect_VMConstructor_construct(JNIEnv *env, jobject _this, jobjectArray args)
 {
-	java_lang_reflect_VMConstructor rvmc(_this);
-	java_lang_reflect_Constructor rc(rvmc.get_cons());
-	methodinfo* m = rvmc.get_method();
-	int32_t override = rc.get_flag();
+	java_lang_reflect_VMConstructor jlrvmc(_this);
+	java_lang_reflect_Constructor jlrc(jlrvmc.get_cons());
 
-	java_handle_t* o = java_lang_reflect_Constructor::new_instance(m, (java_handle_objectarray_t*) args, override);
+	java_handle_t* o = jlrc.new_instance((java_handle_objectarray_t*) args);
 
 	return (jobject) o;
 }

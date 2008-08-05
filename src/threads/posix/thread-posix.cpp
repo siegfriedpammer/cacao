@@ -1078,7 +1078,7 @@ bool thread_detach_current_thread(void)
 
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
-		LLNI_field_get_ref(object, uncaughtExceptionHandler, handler);
+		java_handle_t* handler = jlt.get_uncaughtExceptionHandler();
 
 # endif
 

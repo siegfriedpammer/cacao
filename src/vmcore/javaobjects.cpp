@@ -32,6 +32,7 @@
 #include "vm/access.h"
 #include "vm/builtin.h"
 #include "vm/global.h"
+#include "vm/initialize.h"
 
 #include "vmcore/globals.hpp"
 #include "vmcore/javaobjects.hpp"
@@ -40,79 +41,19 @@
 #if defined(ENABLE_JAVASE)
 
 /**
- * Allocates a new java.lang.reflect.Constructor object and
- * initializes the fields with the method passed.
- */
-java_handle_t* java_lang_reflect_Constructor::create(methodinfo *m)
-{
-	java_handle_t* h;
-
-	/* Allocate a java.lang.reflect.Constructor object. */
-
-	h = builtin_new(class_java_lang_reflect_Constructor);
-
-	if (h == NULL)
-		return NULL;
-
-	java_lang_reflect_Constructor rc(h);
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-
-	/* Allocate a java.lang.reflect.VMConstructor object. */
-
-	h = builtin_new(class_java_lang_reflect_VMConstructor);
-
-	if (h == NULL)
-		return NULL;
-
-	java_lang_reflect_VMConstructor rvmc(h, m);
-
-	// Link the two Java objects.
-
-	rc.set_cons(rvmc.get_handle());
-	rvmc.set_cons(rc.get_handle());
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-
-	/* Calculate the slot. */
-
-	int slot = m - m->clazz->methods;
-
-	/* Set Java object instance fields. */
-
-	LLNI_field_set_cls(rc, clazz               , m->clazz);
-	LLNI_field_set_ref(rc, parameterTypes      , method_get_parametertypearray(m));
-	LLNI_field_set_ref(rc, exceptionTypes      , method_get_exceptionarray(m));
-	LLNI_field_set_val(rc, modifiers           , m->flags & ACC_CLASS_REFLECT_MASK);
-	LLNI_field_set_val(rc, slot                , slot);
-	LLNI_field_set_ref(rc, signature           , m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL);
-	LLNI_field_set_ref(rc, annotations         , method_get_annotations(m));
-	LLNI_field_set_ref(rc, parameterAnnotations, method_get_parameterannotations(m));
-
-#else
-# error unknown classpath configuration
-#endif
-
-	return rc.get_handle();
-}
-
-
-/**
  * Constructs a Java object with the given
  * java.lang.reflect.Constructor.
  *
- * @param m        Method structure of the constructor.
  * @param args     Constructor arguments.
- * @param override Override security checks.
  *
  * @return Handle to Java object.
  */
-java_handle_t* java_lang_reflect_Constructor::new_instance(methodinfo* m, java_handle_objectarray_t* args, bool override)
+java_handle_t* java_lang_reflect_Constructor::new_instance(java_handle_objectarray_t* args)
 {
-	java_handle_t* h;
+	methodinfo* m = get_method();
 
 	// Should we bypass security the checks (AccessibleObject)?
-	if (override == false) {
+	if (get_override() == false) {
 		/* This method is always called like this:
 		       [0] java.lang.reflect.Constructor.constructNative (Native Method)
 		       [1] java.lang.reflect.Constructor.newInstance
@@ -124,7 +65,7 @@ java_handle_t* java_lang_reflect_Constructor::new_instance(methodinfo* m, java_h
 	}
 
 	// Create a Java object.
-	h = builtin_new(m->clazz);
+	java_handle_t* h = builtin_new(m->clazz);
 
 	if (h == NULL)
 		return NULL;
@@ -137,143 +78,57 @@ java_handle_t* java_lang_reflect_Constructor::new_instance(methodinfo* m, java_h
 
 
 /**
- * Creates a java.lang.reflect.Field object on the GC heap and
- * intializes it with the given field.
+ * Invokes the given method.
  *
- * @param f Field structure.
+ * @param args Method arguments.
  *
- * @return Handle to Java object.
+ * @return return value of the method
  */
-java_handle_t* java_lang_reflect_Field::create(fieldinfo* f)
+java_handle_t* java_lang_reflect_Method::invoke(java_handle_t* o, java_handle_objectarray_t* args)
 {
-	java_handle_t* h;
+	methodinfo* m = get_method();
 
-	/* Allocate a java.lang.reflect.Field object. */
-
-	h = builtin_new(class_java_lang_reflect_Field);
-
-	if (h == NULL)
-		return NULL;
-
-	java_lang_reflect_Field rf(h);
-
+	// Should we bypass security the checks (AccessibleObject)?
+	if (get_override() == false) {
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
+		/* This method is always called like this:
+		       [0] java.lang.reflect.Method.invokeNative (Native Method)
+		       [1] java.lang.reflect.Method.invoke (Method.java:329)
+		       [2] <caller>
+		*/
 
-	// Allocate a java.lang.reflect.VMField object.
-
-	h = builtin_new(class_java_lang_reflect_VMField);
-
-	if (h == NULL)
-		return NULL;
-
-	java_lang_reflect_VMField rvmf(h, f);
-
-	// Link the two Java objects.
-
-	rf.set_f(rvmf.get_handle());
-	rvmf.set_f(rf.get_handle());
-
+		if (!access_check_method(m, 2))
+			return NULL;
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+		/* We only pass 1 here as stacktrace_get_caller_class, which
+		   is called from access_check_method, skips
+		   java.lang.reflect.Method.invoke(). */
 
-	/* Calculate the slot. */
-
-	int slot = f - f->clazz->fields;
-
-	/* Set the Java object fields. */
-
-	LLNI_field_set_cls(rf, clazz,       f->clazz);
-
-	/* The name needs to be interned */
-	/* XXX implement me better! */
-
-	LLNI_field_set_ref(rf, name,        (java_lang_String *) javastring_intern(javastring_new(f->name)));
-	LLNI_field_set_cls(rf, type,        (java_lang_Class *) field_get_type(f));
-	LLNI_field_set_val(rf, modifiers,   f->flags);
-	LLNI_field_set_val(rf, slot,        slot);
-	LLNI_field_set_ref(rf, signature,   f->signature ? (java_lang_String *) javastring_new(f->signature) : NULL);
-	LLNI_field_set_ref(rf, annotations, field_get_annotations(f));
-
+		if (!access_check_method(m, 1))
+			return NULL;
 #else
 # error unknown classpath configuration
 #endif
+	}
 
-	return rf.get_handle();
-}
+	// Check if method class is initialized.
+	if (!(m->clazz->state & CLASS_INITIALIZED))
+		if (!initialize_class(m->clazz))
+			return NULL;
 
+	// Call the Java method.
+	java_handle_t* result = Reflection::invoke(m, o, args);
 
-/*
- * Allocates a new java.lang.reflect.Method object and initializes the
- * fields with the method passed.
- *
- * @param m Method structure.
- *
- * @return Handle to Java object.
- */
-java_handle_t* java_lang_reflect_Method::create(methodinfo *m)
-{
-	java_handle_t* h;
-
-	/* Allocate a java.lang.reflect.Method object. */
-
-	h = builtin_new(class_java_lang_reflect_Method);
-
-	if (h == NULL)
-		return NULL;
-
-	java_lang_reflect_Method rm(h);
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-
-	/* Allocate a java.lang.reflect.VMMethod object. */
-
-	h = builtin_new(class_java_lang_reflect_VMMethod);
-
-	if (h == NULL)
-		return NULL;
-
-	java_lang_reflect_VMMethod rvmm(h, m);
-
-	// Link the two Java objects.
-
-	rm.set_m(rvmm.get_handle());
-	rvmm.set_m(rm.get_handle());
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-
-	/* Calculate the slot. */
-
-	int slot = m - m->clazz->methods;
-
-	LLNI_field_set_cls(rm, clazz,                m->clazz);
-
-	/* The name needs to be interned */
-	/* XXX implement me better! */
-
-	LLNI_field_set_ref(rm, name,                 (java_lang_String *) javastring_intern(javastring_new(m->name)));
-	LLNI_field_set_ref(rm, parameterTypes,       method_get_parametertypearray(m));
-	LLNI_field_set_cls(rm, returnType,           (java_lang_Class *) method_returntype_get(m));
-	LLNI_field_set_ref(rm, exceptionTypes,       method_get_exceptionarray(m));
-	LLNI_field_set_val(rm, modifiers,            m->flags & ACC_CLASS_REFLECT_MASK);
-	LLNI_field_set_val(rm, slot,                 slot);
-	LLNI_field_set_ref(rm, signature,            m->signature ? (java_lang_String *) javastring_new(m->signature) : NULL);
-	LLNI_field_set_ref(rm, annotations,          method_get_annotations(m));
-	LLNI_field_set_ref(rm, parameterAnnotations, method_get_parameterannotations(m));
-	LLNI_field_set_ref(rm, annotationDefault,    method_get_annotationdefault(m));
-
-#else
-# error unknown classpath configuration
-#endif
-
-	return rm.get_handle();
+	return result;
 }
 
 
 // Legacy C interface.
 
 extern "C" {
-java_handle_t* java_lang_reflect_Constructor_create(methodinfo* m) { return java_lang_reflect_Constructor::create(m); }
-java_handle_t* java_lang_reflect_Field_create(fieldinfo* f) { return java_lang_reflect_Field::create(f); }
-java_handle_t* java_lang_reflect_Method_create(methodinfo* m) { return java_lang_reflect_Method::create(m); }
+	java_handle_t* java_lang_reflect_Constructor_create(methodinfo* m) { return java_lang_reflect_Constructor(m).get_handle(); }
+	java_handle_t* java_lang_reflect_Field_create(fieldinfo* f) { return java_lang_reflect_Field(f).get_handle(); }
+	java_handle_t* java_lang_reflect_Method_create(methodinfo* m) { return java_lang_reflect_Method(m).get_handle(); }
 }
 
 #endif // ENABLE_JAVASE

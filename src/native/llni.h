@@ -60,42 +60,6 @@ extern "C" {
 #include "threads/thread.hpp"
 
 
-/* LLNI macros *****************************************************************
-
-   The following macros should be used whenever a Java Object is
-   accessed in native code without the use of an JNI function.
-
-   LLNI_field_set_val, LLNI_field_get_val:
-     Deal with primitive values like integer and float values. Do
-     not use these macros to access pointers or references!
-
-   LLNI_field_set_ref, LLNI_field_get_ref:
-     Deal with references to other objects.
-
-   LLNI_field_set_cls, LLNI_field_get_cls:
-     Deal with references to Java Classes which are internally
-     represented by classinfo or java_lang_Class.
-
-*******************************************************************************/
-
-#define LLNI_field_set_val(obj, field, value) \
-	LLNI_field_direct(obj, field) = (value)
-
-#define LLNI_field_set_ref(obj, field, reference) \
-	LLNI_field_direct(obj, field) = LLNI_UNWRAP(reference)
-
-#define LLNI_field_set_cls(obj, field, value) \
-	LLNI_field_direct(obj, field) = (java_lang_Class *) (value)
-
-#define LLNI_field_get_val(obj, field, variable) \
-	(variable) = LLNI_field_direct(obj, field)
-
-#define LLNI_field_get_ref(obj, field, variable) \
-	(variable) = LLNI_WRAP(LLNI_field_direct(obj, field))
-
-#define LLNI_field_get_cls(obj, field, variable) \
-	(variable) = (classinfo *) LLNI_field_direct(obj, field)
-
 #define LLNI_class_get(obj, variable) \
 	(variable) = LLNI_field_direct((java_handle_t *) obj, vftbl->clazz)
 

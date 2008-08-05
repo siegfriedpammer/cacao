@@ -576,8 +576,8 @@ JNIEXPORT jlong JNICALL Java_sun_misc_Unsafe_objectFieldOffset(JNIEnv *env, jobj
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
-	LLNI_field_get_cls((java_lang_reflect_Field *) field, clazz, c);
-	LLNI_field_get_val((java_lang_reflect_Field *) field, slot , slot);
+	java_lang_reflect_Field rf(field);
+	fieldinfo* f = rf.get_field();
 
 #else
 # error unknown configuration
@@ -771,8 +771,8 @@ JNIEXPORT jobject JNICALL Java_sun_misc_Unsafe_staticFieldBase(JNIEnv *env, jobj
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
-	LLNI_field_get_cls((java_lang_reflect_Field *) rf, clazz, c);
-	LLNI_field_get_val((java_lang_reflect_Field *) rf, slot , slot);
+	java_lang_reflect_Field rf(field);
+	fieldinfo* f = rf.get_field();
 
 #else
 # error unknown configuration
@@ -915,14 +915,14 @@ JNIEXPORT jclass JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_String_2_3
 		return NULL;
 
 	java_handle_t* h = LLNI_classinfo_wrap(c);
-	java_lang_Class jlc(h);
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	// Set ProtectionDomain.
+	java_lang_Class jlc(h);
 	jlc.set_pd(protectionDomain);
 #endif
 
-	return (jclass) jlc.get_handle();
+	return (jclass) h;
 }
 
 
