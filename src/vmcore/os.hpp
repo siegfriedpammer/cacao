@@ -420,8 +420,8 @@ inline static void *system_realloc(void *ptr, size_t size)
 #endif
 }
 
-#if defined(__LINUX__)
 inline int os::scandir(const char *dir, struct dirent ***namelist, int(*filter)(const struct dirent *), int(*compar)(const void *, const void *))
+/*
 #elif defined(__SOLARIS__)
 inline int os::scandir(const char *dir, struct dirent ***namelist, int(*filter)(const struct dirent *), int(*compar)(const struct dirent **, const struct dirent **))
 #elif defined(__IRIX__)
@@ -429,9 +429,14 @@ inline int os::scandir(const char *dir, struct dirent ***namelist, int(*filter)(
 #else
 inline int os::scandir(const char *dir, struct dirent ***namelist, int(*filter)(struct dirent *), int(*compar)(const void *, const void *))
 #endif
+*/
 {
 #if defined(HAVE_SCANDIR)
+# if defined(__LINUX__)
 	return ::scandir(dir, namelist, filter, compar);
+# else
+	return ::scandir(dir, namelist, (int (*)(struct dirent*)) filter, compar);
+# endif
 #else
 # error scandir not available
 #endif

@@ -81,11 +81,7 @@ bool suck_init(void)
 
 *******************************************************************************/
 
-#if defined(__LINUX__)
 static int scandir_filter(const struct dirent *a)
-#else
-static int scandir_filter(struct dirent *a)
-#endif
 {
 	s4 namlen;
 
