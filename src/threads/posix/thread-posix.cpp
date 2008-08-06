@@ -121,10 +121,10 @@ extern "C" {
    from Boehm-GC. */
 
 /*
-   This is a very simple semaphore implementation for darwin. It
+   This is a very simple semaphore implementation for Darwin. It
    is implemented in terms of pthreads calls so it isn't async signal
    safe. This isn't a problem because signals aren't used to
-   suspend threads on darwin.
+   suspend threads on Darwin.
 */
    
 static int sem_init(sem_t *sem, int pshared, int value)
@@ -132,12 +132,9 @@ static int sem_init(sem_t *sem, int pshared, int value)
 	if (pshared)
 		assert(0);
 
-	sem->value = value;
-    
 	sem->mutex = new Mutex();
-
-	if (pthread_cond_init(&sem->cond, NULL) < 0)
-		return -1;
+	sem->cond  = new Condition();
+	sem->value = value;
 
 	return 0;
 }
@@ -145,14 +142,8 @@ static int sem_init(sem_t *sem, int pshared, int value)
 static int sem_post(sem_t *sem)
 {
 	sem->mutex->lock();
-
 	sem->value++;
-
-	if (pthread_cond_signal(&sem->cond) < 0) {
-		sem->mutex->unlock();
-		return -1;
-	}
-
+	sem->cond->signal();
 	sem->mutex->unlock();
 
 	return 0;
@@ -163,12 +154,10 @@ static int sem_wait(sem_t *sem)
 	sem->mutex->lock();
 
 	while (sem->value == 0) {
-#error We cannot call pthread_cond_wait on a Mutex-class pointer.
-		pthread_cond_wait(&sem->cond, &sem->mutex);
+		sem->cond->wait(sem->mutex);
 	}
 
 	sem->value--;
-
 	sem->mutex->unlock();
 
 	return 0;
@@ -176,9 +165,7 @@ static int sem_wait(sem_t *sem)
 
 static int sem_destroy(sem_t *sem)
 {
-	if (pthread_cond_destroy(&sem->cond) < 0)
-		return -1;
-
+	delete sem->cond;
 	delete sem->mutex;
 
 	return 0;

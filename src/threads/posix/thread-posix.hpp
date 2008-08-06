@@ -69,8 +69,8 @@ typedef struct threadobject threadobject;
 # include <mach/mach.h>
 
 typedef struct {
-	mutex_t mutex;
-	pthread_cond_t cond;
+	Mutex* mutex;
+	Condition* cond;
 	int value;
 } sem_t;
 
