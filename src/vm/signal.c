@@ -191,7 +191,7 @@ bool signal_init(void)
 #if defined(ENABLE_THREADS)
 	/* SIGHUP handler for threads_thread_interrupt */
 
-	signal_register_signal(Signal_THREAD_INTERRUPT, (functionptr) signal_handler_sighup, 0);
+	signal_register_signal(Signal_INTERRUPT_SYSTEM_CALL, (functionptr) signal_handler_sighup, 0);
 #endif
 
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
@@ -339,6 +339,9 @@ void signal_thread_handler(int sig)
 		}
 		break;
 	}
+#else
+	default:
+		vm_abort("signal_thread_handler: Unknown signal %d", sig);
 #endif
 	}
 }

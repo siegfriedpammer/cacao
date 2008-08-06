@@ -1543,7 +1543,7 @@ void threads_thread_interrupt(threadobject *t)
 
 	/* Interrupt blocking system call using a signal. */
 
-	pthread_kill(t->tid, Signal_THREAD_INTERRUPT);
+	pthread_kill(t->tid, Signal_INTERRUPT_SYSTEM_CALL);
 
 	t->waitcond->signal();
 

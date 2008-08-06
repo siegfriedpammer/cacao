@@ -39,7 +39,13 @@ extern "C" {
 
 // Signal defines.
 
-#define Signal_THREAD_INTERRUPT    SIGHUP
+#if defined(__LINUX__)
+// See openjdk/jdk/src/solaris/native/java/net/linux_close.c (sigWakeup)
+// See openjdk/jdk/src/solaris/native/sun/nio/ch/NativeThread.c (INTERRUPT_SIGNAL)
+# define Signal_INTERRUPT_SYSTEM_CALL    (__SIGRTMAX - 2)
+#else
+# define Signal_INTERRUPT_SYSTEM_CALL    SIGHUP
+#endif
 
 
 /* function prototypes ********************************************************/
