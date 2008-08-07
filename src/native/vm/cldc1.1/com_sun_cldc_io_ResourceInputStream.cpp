@@ -165,7 +165,7 @@ static struct com_sun_cldchi_jvm_FileDescriptor* zip_read_resource(list_classpat
 	/* Create a file descriptor object */
 	ci = load_class_bootstrap(utf_new_char("com/sun/cldchi/jvm/FileDescriptor"));
 	fileDescriptor = (com_sun_cldchi_jvm_FileDescriptor *) native_new_and_init(ci);
-	LLNI_field_set_val(fileDescriptor, pointer, (int)outdata);
+	LLNI_field_set_val(fileDescriptor, pointer, (int64_t)outdata);
 	LLNI_field_set_val(fileDescriptor, length, htzfe->uncompressedsize);
 	LLNI_field_set_val(fileDescriptor, position, 0);
 	return fileDescriptor;
@@ -197,7 +197,7 @@ static struct com_sun_cldchi_jvm_FileDescriptor* file_read_resource(char *path)
 		/* Create a file descriptor object */
 		ci = load_class_bootstrap(utf_new_char("com/sun/cldchi/jvm/FileDescriptor"));
 		fileDescriptor = (com_sun_cldchi_jvm_FileDescriptor *) native_new_and_init(ci);
-		LLNI_field_set_val(fileDescriptor, pointer, (int)filep);
+		LLNI_field_set_val(fileDescriptor, pointer, (int64_t)filep);
 		LLNI_field_set_val(fileDescriptor, length, len);
 		LLNI_field_set_val(fileDescriptor, position, 0);
 		
