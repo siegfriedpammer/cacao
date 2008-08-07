@@ -1342,6 +1342,9 @@ public:
 
 	// Setters.
 	inline void set_f(java_handle_t* value);
+
+	// Convenience functions.
+	inline fieldinfo* get_field() const;
 };
 
 
@@ -1382,6 +1385,13 @@ inline java_handle_t* java_lang_reflect_Field::get_f() const
 inline void java_lang_reflect_Field::set_f(java_handle_t* value)
 {
 	set(_handle, offset_f, value);
+}
+
+
+inline fieldinfo* java_lang_reflect_Field::get_field() const
+{
+	java_lang_reflect_VMField jlrvmf(get_f());
+	return jlrvmf.get_field();
 }
 
 
@@ -1574,12 +1584,18 @@ public:
 	java_lang_reflect_Method(jobject h);
 	java_lang_reflect_Method(methodinfo* m);
 
+	java_handle_t* invoke(java_handle_t* o, java_handle_objectarray_t* args);
+
 	// Getters.
 	inline int32_t        get_flag() const;
 	inline java_handle_t* get_m() const;
 
 	// Setters.
 	inline void set_m(java_handle_t* value);
+
+	// Convenience functions.
+	inline methodinfo* get_method  () const;
+	inline int32_t     get_override() const;
 };
 
 
@@ -1620,6 +1636,18 @@ inline java_handle_t* java_lang_reflect_Method::get_m() const
 inline void java_lang_reflect_Method::set_m(java_handle_t* value)
 {
 	set(_handle, offset_m, value);
+}
+
+
+inline methodinfo* java_lang_reflect_Method::get_method() const
+{
+	java_lang_reflect_VMMethod jlrvmm(get_m());
+	return jlrvmm.get_method();
+}
+
+inline int32_t java_lang_reflect_Method::get_override() const
+{
+	return get_flag();
 }
 
 

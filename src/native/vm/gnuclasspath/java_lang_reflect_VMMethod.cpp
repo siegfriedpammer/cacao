@@ -120,13 +120,10 @@ JNIEXPORT jobjectArray JNICALL Java_java_lang_reflect_VMMethod_getExceptionTypes
  */
 JNIEXPORT jobject JNICALL Java_java_lang_reflect_VMMethod_invoke(JNIEnv *env, jobject _this, jobject o, jobjectArray args)
 {
-	java_lang_reflect_VMMethod rvmm(_this);
-	java_lang_reflect_Method rm(rvmm.get_m());
+	java_lang_reflect_VMMethod jlrvmm(_this);
+	java_lang_reflect_Method jlrm(jlrvmm.get_m());
 
-	methodinfo* m = rvmm.get_method();
-	int32_t override = rm.get_flag();
-
-	java_handle_t* result = Reflection::method_invoke(m, (java_handle_t*) o, (java_handle_objectarray_t*) args, override);
+	java_handle_t* result = jlrm.invoke((java_handle_t*) o, (java_handle_objectarray_t*) args);
 
 	return (jobject) result;
 }
