@@ -43,14 +43,6 @@
 #include "native/jni.h"
 #include "native/llni.h"
 
-#include "native/include/java_lang_Object.h"
-#include "native/include/java_lang_Throwable.h"
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-# include "native/include/gnu_classpath_Pointer.h"
-# include "native/include/java_lang_VMThrowable.h"
-#endif
-
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
@@ -70,6 +62,7 @@
 
 #include "vmcore/class.h"
 #include "vmcore/globals.hpp"
+#include "vmcore/javaobjects.hpp"
 #include "vmcore/loader.h"
 #include "vmcore/method.h"
 #include "vmcore/options.h"
@@ -1256,48 +1249,36 @@ void stacktrace_print_of_thread(threadobject *t)
 
 void stacktrace_print_exception(java_handle_t *h)
 {
-	java_lang_Throwable     *o;
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	java_lang_VMThrowable   *vmt;
-#endif
-
-	java_lang_Object        *backtrace;
-	java_handle_bytearray_t *ba;
-	stacktrace_t            *st;
-
-	o = (java_lang_Throwable *) h;
-
-	if (o == NULL)
+	if (h == NULL)
 		return;
+
+	java_lang_Throwable t(h);
 
 	/* now print the stacktrace */
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
-	LLNI_field_get_ref(o,   vmState, vmt);
-	LLNI_field_get_ref(vmt, vmdata,  backtrace);
+	java_lang_VMThrowable vmt(t.get_vmState());
+	java_handle_bytearray_t* backtrace = vmt.get_vmdata();
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
-	LLNI_field_get_ref(o, backtrace, backtrace);
+	java_handle_bytearray_t* backtrace = t.get_backtrace();
 
 #else
 # error unknown classpath configuration
 #endif
 
-	ba = (java_handle_bytearray_t *) backtrace;
+	// Sanity check.
 
-	/* Sanity check. */
-
-	assert(ba != NULL);
+	assert(backtrace != NULL);
 
 	/* We need a critical section here as we use the byte-array data
 	   pointer directly. */
 
 	LLNI_CRITICAL_START;
 	
-	st = (stacktrace_t *) LLNI_array_data(ba);
+	stacktrace_t* st = (stacktrace_t*) LLNI_array_data(backtrace);
 
 	stacktrace_print(st);
 

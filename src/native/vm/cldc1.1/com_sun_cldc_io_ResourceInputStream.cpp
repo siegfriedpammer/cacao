@@ -37,14 +37,11 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_Object.h"
-#include "native/include/java_lang_String.h"
-#include "native/include/com_sun_cldchi_jvm_FileDescriptor.h"
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/include/com_sun_cldc_io_ResourceInputStream.h"
+#endif
 
-// FIXME
-extern "C" {
-#include "native/include/com_sun_cldc_io_ResourceInputStream.h"
-}
+#include "threads/lock-common.h"
 
 #include "vm/types.h"
 #include "vm/builtin.h"
@@ -52,41 +49,11 @@ extern "C" {
 #include "vm/exceptions.hpp"
 #include "vm/string.hpp"
 
+#include "vmcore/javaobjects.hpp"
 #include "vmcore/zip.h"
 
-#include "threads/lock-common.h"
 
-
-/* native methods implemented by this file ************************************/
- 
-static JNINativeMethod methods[] = {
-	{ (char*) "open",        (char*) "(Ljava/lang/String;)Ljava/lang/Object;", (void*) (uintptr_t) &Java_com_sun_cldc_io_ResourceInputStream_open        },
-	{ (char*) "bytesRemain", (char*) "(Ljava/lang/Object;)I",                  (void*) (uintptr_t) &Java_com_sun_cldc_io_ResourceInputStream_bytesRemain },
-	{ (char*) "readByte",    (char*) "(Ljava/lang/Object;)I",                  (void*) (uintptr_t) &Java_com_sun_cldc_io_ResourceInputStream_readByte    },
-	{ (char*) "readBytes",   (char*) "(Ljava/lang/Object;[BII)I",              (void*) (uintptr_t) &Java_com_sun_cldc_io_ResourceInputStream_readBytes   },
-	{ (char*) "clone",       (char*) "(Ljava/lang/Object;)Ljava/lang/Object;", (void*) (uintptr_t) &Java_com_sun_cldc_io_ResourceInputStream_clone       },
-};
- 
-
-/* _Jv_com_sun_cldc_io_ResourceInputStream_init ********************************
- 
-   Register native functions.
- 
-*******************************************************************************/
- 
-// FIXME
-extern "C" {
-void _Jv_com_sun_cldc_io_ResourceInputStream_init(void)
-{
-	utf *u;
- 
-	u = utf_new_char("com/sun/cldc/io/ResourceInputStream");
- 
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-}
-
-static struct com_sun_cldchi_jvm_FileDescriptor* zip_read_resource(list_classpath_entry *lce, utf *name)
+static java_handle_t* zip_read_resource(list_classpath_entry *lce, utf *name)
 {
 	hashtable_zipfile_entry *htzfe;
 	lfh                      lfh;
@@ -96,7 +63,6 @@ static struct com_sun_cldchi_jvm_FileDescriptor* zip_read_resource(list_classpat
 	int                      err;
 	
 	classinfo *ci;
-	com_sun_cldchi_jvm_FileDescriptor *fileDescriptor = NULL;
 
 	/* try to find the class in the current archive */
 
@@ -162,22 +128,24 @@ static struct com_sun_cldchi_jvm_FileDescriptor* zip_read_resource(list_classpat
 				 htzfe->compressionmethod);
 	}
 		
-	/* Create a file descriptor object */
+	// Create a file descriptor object.
 	ci = load_class_bootstrap(utf_new_char("com/sun/cldchi/jvm/FileDescriptor"));
-	fileDescriptor = (com_sun_cldchi_jvm_FileDescriptor *) native_new_and_init(ci);
-	LLNI_field_set_val(fileDescriptor, pointer, (int64_t)outdata);
-	LLNI_field_set_val(fileDescriptor, length, htzfe->uncompressedsize);
-	LLNI_field_set_val(fileDescriptor, position, 0);
-	return fileDescriptor;
-	
+	java_handle_t* h = native_new_and_init(ci);
+
+	if (h == NULL)
+		return NULL;
+
+	com_sun_cldchi_jvm_FileDescriptor fd(h, (int64_t) outdata, 0, htzfe->uncompressedsize);
+
+	return fd.get_handle();
 }
 
-static struct com_sun_cldchi_jvm_FileDescriptor* file_read_resource(char *path) 
+
+static java_handle_t* file_read_resource(char *path) 
 {
 	int len;
 	struct stat statBuffer;
 	u1 *filep;
-	com_sun_cldchi_jvm_FileDescriptor *fileDescriptor = NULL; 
 	classinfo *ci;
 	int fd;
 	
@@ -196,17 +164,18 @@ static struct com_sun_cldchi_jvm_FileDescriptor* file_read_resource(char *path)
 		
 		/* Create a file descriptor object */
 		ci = load_class_bootstrap(utf_new_char("com/sun/cldchi/jvm/FileDescriptor"));
-		fileDescriptor = (com_sun_cldchi_jvm_FileDescriptor *) native_new_and_init(ci);
-		LLNI_field_set_val(fileDescriptor, pointer, (int64_t)filep);
-		LLNI_field_set_val(fileDescriptor, length, len);
-		LLNI_field_set_val(fileDescriptor, position, 0);
-		
-		return fileDescriptor;	
-		
-	} else {
+		java_handle_t* h = native_new_and_init(ci);
+
+		if (h == NULL)
+			return NULL;
+
+		com_sun_cldchi_jvm_FileDescriptor fd(h, (int64_t) filep, 0, len); 
+
+		return fd.get_handle();	
+	}
+	else {
 		return NULL;
 	}
-	
 }
 
 
@@ -218,15 +187,14 @@ extern "C" {
  * Method:    open
  * Signature: (Ljava/lang/String;)Ljava/lang/Object;
  */
-JNIEXPORT struct java_lang_Object* JNICALL Java_com_sun_cldc_io_ResourceInputStream_open(JNIEnv *env, jclass clazz, java_lang_String *name)
+JNIEXPORT jobject JNICALL Java_com_sun_cldc_io_ResourceInputStream_open(JNIEnv *env, jclass clazz, jstring name)
 {
-	
 	list_classpath_entry *lce;
 	char *filename;
 	s4 filenamelen;
 	char *path;
 	utf *uname;
-	com_sun_cldchi_jvm_FileDescriptor* descriptor;
+	java_handle_t* descriptor;
 	
 	/* get the classname as char string (do it here for the warning at
        the end of the function) */
@@ -271,143 +239,155 @@ JNIEXPORT struct java_lang_Object* JNICALL Java_com_sun_cldc_io_ResourceInputStr
 			if (descriptor != NULL) { /* file exists */
 				break;
 			}
-			
 #if defined(ENABLE_ZLIB)
 		}
 #endif	
-			
 	}
 
 	MFREE(filename, char, filenamelen);
 
-	return (java_lang_Object*) descriptor;
-	
+	return (jobject) descriptor;
 }
 
 
 /*
- * Class:     com_sun_cldc_io_ResourceInputStream
+ * Class:     com/sun/cldc/io/ResourceInputStream
  * Method:    bytesRemain
  * Signature: (Ljava/lang/Object;)I
  */
-JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_ResourceInputStream_bytesRemain(JNIEnv *env, jclass clazz, struct java_lang_Object* jobj) {
-	
-	com_sun_cldchi_jvm_FileDescriptor *fileDescriptor;
-	int32_t length;
-	int32_t position;
+JNIEXPORT jint JNICALL Java_com_sun_cldc_io_ResourceInputStream_bytesRemain(JNIEnv *env, jclass clazz, jobject jobj)
+{
+	com_sun_cldchi_jvm_FileDescriptor fd(jobj);
+	int32_t length   = fd.get_position();
+	int32_t position = fd.get_length();
 
-	fileDescriptor = (com_sun_cldchi_jvm_FileDescriptor *) jobj;
-	LLNI_field_get_val(fileDescriptor, position, position);
-	LLNI_field_get_val(fileDescriptor, length, length);
-	
 	return length - position;
-
 }
 
+
 /*
- * Class:     com_sun_cldc_io_ResourceInputStream
+ * Class:     com/sun/cldc/io/ResourceInputStream
  * Method:    readByte
  * Signature: (Ljava/lang/Object;)I
  */
-JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_ResourceInputStream_readByte(JNIEnv *env, jclass clazz, struct java_lang_Object* jobj) {
-	
-	com_sun_cldchi_jvm_FileDescriptor *fileDescriptor;
-	u1 byte;
-	int32_t length;
-	int32_t position;
-	int64_t filep;
-	
-	fileDescriptor = (com_sun_cldchi_jvm_FileDescriptor *) jobj;
-	LLNI_field_get_val(fileDescriptor, position, position);
-	LLNI_field_get_val(fileDescriptor, length, length);
-	LLNI_field_get_val(fileDescriptor, pointer, filep);
-	
+JNIEXPORT jint JNICALL Java_com_sun_cldc_io_ResourceInputStream_readByte(JNIEnv *env, jclass clazz, jobject jobj)
+{
+	com_sun_cldchi_jvm_FileDescriptor fd(jobj);
+
+	int64_t filep    = fd.get_pointer();
+	int32_t position = fd.get_position();
+	int32_t length   = fd.get_length();
+
+	uint8_t byte;
+
 	if (position < length) {
-		byte = ((u1*)(int)filep)[position];
+		byte = ((uint8_t*) filep)[position];
 		position++;
-	} else {
+	}
+	else {
 		return -1; /* EOF */
 	}
 
-	/* Update access position */
-	LLNI_field_set_val(fileDescriptor, position, position);
+	// Update access position.
+	fd.set_position(position);
 	
 	return (byte & 0xFF);
-
 }
 
+
 /*
- * Class:     com_sun_cldc_io_ResourceInputStream
+ * Class:     com/sun/cldc/io/ResourceInputStream
  * Method:    readBytes
  * Signature: (Ljava/lang/Object;[BII)I
  */
-JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_ResourceInputStream_readBytes(JNIEnv *env, jclass clazz, struct java_lang_Object* jobj, java_handle_bytearray_t* byteArray, s4 off, s4 len) {
-	
-	com_sun_cldchi_jvm_FileDescriptor *fileDescriptor;
-	s4 readBytes = -1;
-	int32_t fileLength;
-	int32_t position;
-	s4 available;
-	int64_t filep;
-	void *buf;
-
+JNIEXPORT jint JNICALL Java_com_sun_cldc_io_ResourceInputStream_readBytes(JNIEnv *env, jclass clazz, jobject jobj, jbyteArray byteArray, jint off, jint len)
+{
 	/* get pointer to the buffer */
-	buf = &(LLNI_array_direct(byteArray, off));
+	// XXX Not GC safe.
+	void* buf = &(LLNI_array_direct((java_handle_bytearray_t*) byteArray, off));
 	
-	fileDescriptor = (com_sun_cldchi_jvm_FileDescriptor *) jobj;
-	LLNI_field_get_val(fileDescriptor, position, position);
-	LLNI_field_get_val(fileDescriptor, length, fileLength);
-	LLNI_field_get_val(fileDescriptor, pointer, filep);
-	
+	com_sun_cldchi_jvm_FileDescriptor fd(jobj);
+
+	int64_t filep      = fd.get_pointer();
+	int32_t position   = fd.get_position();
+	int32_t fileLength = fd.get_length();
+
+	int32_t readBytes = -1;
+
 	if (position < fileLength) {
-		available = fileLength - position;
+		int32_t available = fileLength - position;
+
 		if (available < len) {
 			readBytes = available;
 		} else {
 			readBytes = len;
 		}
-		memcpy(buf, ((u1*)(int)filep) + position, readBytes * sizeof(u1));
+
+		os::memcpy(buf, ((uint8_t*) filep) + position, readBytes * sizeof(uint8_t));
 		position += readBytes;
-	} else {
+	}
+	else {
 		return -1; /* EOF */
 	}
 
-	/* Update access position */
-	LLNI_field_set_val(fileDescriptor, position, position);
+	// Update access position.
+	fd.set_position(position);
 	
 	return readBytes;
 }
 
+
 /*
- * Class:     com_sun_cldc_io_ResourceInputStream
+ * Class:     com/sun/cldc/io/ResourceInputStream
  * Method:    clone
  * Signature: (Ljava/lang/Object;)Ljava/lang/Object;
  */
-JNIEXPORT struct java_lang_Object* JNICALL Java_com_sun_cldc_io_ResourceInputStream_clone(JNIEnv *env, jclass clazz, struct java_lang_Object* jobj) {
-	
-	classinfo *ci;
-	com_sun_cldchi_jvm_FileDescriptor *srcFileDescriptor;
-	com_sun_cldchi_jvm_FileDescriptor *dstFileDescriptor;
-	int32_t srcLength;
-	int32_t srcPosition;
-	int64_t srcFilePointer;
-	
-	srcFileDescriptor = (com_sun_cldchi_jvm_FileDescriptor *) jobj;
-	LLNI_field_get_val(srcFileDescriptor, position, srcPosition);
-	LLNI_field_get_val(srcFileDescriptor, length, srcLength);
-	LLNI_field_get_val(srcFileDescriptor, pointer, srcFilePointer);
-	
-	ci = load_class_bootstrap(utf_new_char("com/sun/cldchi/jvm/FileDescriptor"));
-	dstFileDescriptor = (com_sun_cldchi_jvm_FileDescriptor *) native_new_and_init(ci);
-	LLNI_field_set_val(dstFileDescriptor, position, srcPosition);
-	LLNI_field_set_val(dstFileDescriptor, length, srcLength);
-	LLNI_field_set_val(dstFileDescriptor, pointer, srcFilePointer);
-	
-	return (java_lang_Object*) dstFileDescriptor;
+JNIEXPORT jobject JNICALL Java_com_sun_cldc_io_ResourceInputStream_clone(JNIEnv *env, jclass clazz, jobject jobj)
+{
+	com_sun_cldchi_jvm_FileDescriptor fd(jobj);
 
+	classinfo* c = load_class_bootstrap(utf_new_char("com/sun/cldchi/jvm/FileDescriptor"));
+	java_handle_t* h = native_new_and_init(c);
+
+	if (h == NULL)
+		return NULL;
+
+	com_sun_cldchi_jvm_FileDescriptor clonefd(h, fd);
+	
+	return (jobject) clonefd.get_handle();
 }
 
 } // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+ 
+static JNINativeMethod methods[] = {
+	{ (char*) "open",        (char*) "(Ljava/lang/String;)Ljava/lang/Object;", (void*) (uintptr_t) &Java_com_sun_cldc_io_ResourceInputStream_open        },
+	{ (char*) "bytesRemain", (char*) "(Ljava/lang/Object;)I",                  (void*) (uintptr_t) &Java_com_sun_cldc_io_ResourceInputStream_bytesRemain },
+	{ (char*) "readByte",    (char*) "(Ljava/lang/Object;)I",                  (void*) (uintptr_t) &Java_com_sun_cldc_io_ResourceInputStream_readByte    },
+	{ (char*) "readBytes",   (char*) "(Ljava/lang/Object;[BII)I",              (void*) (uintptr_t) &Java_com_sun_cldc_io_ResourceInputStream_readBytes   },
+	{ (char*) "clone",       (char*) "(Ljava/lang/Object;)Ljava/lang/Object;", (void*) (uintptr_t) &Java_com_sun_cldc_io_ResourceInputStream_clone       },
+};
+ 
+
+/* _Jv_com_sun_cldc_io_ResourceInputStream_init ********************************
+ 
+   Register native functions.
+ 
+*******************************************************************************/
+ 
+// FIXME
+extern "C" {
+void _Jv_com_sun_cldc_io_ResourceInputStream_init(void)
+{
+	utf *u;
+ 
+	u = utf_new_char("com/sun/cldc/io/ResourceInputStream");
+ 
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+}
 
 
 /*

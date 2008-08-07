@@ -30,12 +30,38 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-// FIXME
-extern "C" {
-#include "native/include/java_lang_Float.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/include/java_lang_Float.h"
+#endif
 
 #include "vm/builtin.h"
+
+
+// Native functions are exported as C functions.
+extern "C" {
+
+/*
+ * Class:     java/lang/Float
+ * Method:    floatToIntBits
+ * Signature: (F)I
+ */
+JNIEXPORT jint JNICALL Java_java_lang_Float_floatToIntBits(JNIEnv *env, jclass clazz, jfloat value)
+{
+	imm_union val;
+	int e, f;
+
+	val.f = value;
+
+	e = val.i & 0x7f800000;
+	f = val.i & 0x007fffff;
+
+	if (e == FLT_POSINF && f != 0)
+		return FLT_NAN;
+
+	return val.i;
+}
+
+} // extern "C"
 
 
 /* native methods implemented by this file ************************************/
@@ -62,33 +88,6 @@ void _Jv_java_lang_Float_init(void)
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
 }
-
-
-// Native functions are exported as C functions.
-extern "C" {
-
-/*
- * Class:     java/lang/Float
- * Method:    floatToIntBits
- * Signature: (F)I
- */
-JNIEXPORT int32_t JNICALL Java_java_lang_Float_floatToIntBits(JNIEnv *env, jclass clazz, float value)
-{
-	imm_union val;
-	int e, f;
-
-	val.f = value;
-
-	e = val.i & 0x7f800000;
-	f = val.i & 0x007fffff;
-
-	if (e == FLT_POSINF && f != 0)
-		return FLT_NAN;
-
-	return val.i;
-}
-
-} // extern "C"
 
 
 /*

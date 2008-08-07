@@ -26,11 +26,6 @@
 #ifndef _VM_JIT_TRACE_HPP
 #define _VM_JIT_TRACE_HPP
 
-// FIXME For now we export everything as C functions.
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "config.h"
 
 #include <stdint.h>
@@ -39,17 +34,23 @@ extern "C" {
 
 #if !defined(NDEBUG)
 
+// FIXME For now we export everything as C functions.
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack);
 void trace_java_call_exit(methodinfo *m, uint64_t *return_regs);
 
 void trace_exception(java_object_t *xptr, methodinfo *m, void *pos);
 void trace_exception_builtin(java_object_t *xptr);
 
-#endif /* !defined(NDEBUG) */
-
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* !defined(NDEBUG) */
 
 #endif // _VM_JIT_TRACE_HPP
 

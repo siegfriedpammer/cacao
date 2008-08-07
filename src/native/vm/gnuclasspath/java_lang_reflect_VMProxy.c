@@ -1,9 +1,7 @@
-/* src/native/vm/gnu/java_lang_reflect_VMProxy.c - java/lang/reflect/VMProxy
+/* src/native/vm/gnuclasspath/java_lang_reflect_VMProxy.c - java/lang/reflect/VMProxy
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -32,10 +30,8 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_Class.h"
-#include "native/include/java_lang_ClassLoader.h"
-
-#include "native/include/java_lang_reflect_VMProxy.h"
+// FIXME
+//#include "native/include/java_lang_reflect_VMProxy.h"
 
 
 /* native methods implemented by this file ************************************/

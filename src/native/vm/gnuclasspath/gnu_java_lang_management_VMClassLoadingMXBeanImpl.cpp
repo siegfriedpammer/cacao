@@ -32,10 +32,9 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-// FIXME
-extern "C" {
-#include "native/include/gnu_java_lang_management_VMClassLoadingMXBeanImpl.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/gnu_java_lang_management_VMClassLoadingMXBeanImpl.h"
+#endif
 
 #include "toolbox/logging.h"
 
@@ -53,7 +52,7 @@ extern "C" {
  * Method:    getLoadedClassCount
  * Signature: ()I
  */
-JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getLoadedClassCount(JNIEnv *env, jclass clazz)
+JNIEXPORT jint JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getLoadedClassCount(JNIEnv *env, jclass clazz)
 {
 	int32_t count;
 
@@ -68,7 +67,7 @@ JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl
  * Method:    getUnloadedClassCount
  * Signature: ()J
  */
-JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getUnloadedClassCount(JNIEnv *env, jclass clazz)
+JNIEXPORT jlong JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getUnloadedClassCount(JNIEnv *env, jclass clazz)
 {
 	log_println("Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getUnloadedClassCount: IMPLEMENT ME!");
 
@@ -81,7 +80,7 @@ JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl
  * Method:    isVerbose
  * Signature: ()Z
  */
-JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVerbose(JNIEnv *env, jclass clazz)
+JNIEXPORT jboolean JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVerbose(JNIEnv *env, jclass clazz)
 {
 /* 	return _Jv_jvm->Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_verbose; */
 #warning Move to C++
@@ -94,7 +93,7 @@ JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl
  * Method:    setVerbose
  * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_setVerbose(JNIEnv *env, jclass clazz, int32_t verbose)
+JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_setVerbose(JNIEnv *env, jclass clazz, jboolean verbose)
 {
 /* 	_Jv_jvm->Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_verbose = verbose; */
 #warning Move to C++

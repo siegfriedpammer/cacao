@@ -40,13 +40,183 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-// FIXME
-extern "C" {
-#include "native/include/com_sun_cldc_io_j2me_socket_Protocol.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/include/com_sun_cldc_io_j2me_socket_Protocol.h"
+#endif
 
 #include "vm/global.h"
 #include "vm/vm.hpp" /* REMOVE ME: temporarily */
+
+
+// Native functions are exported as C functions.
+extern "C" {
+
+/*
+ * Class:     com/sun/cldc/io/j2me/socket/Protocol
+ * Method:    open0
+ * Signature: ([BII)I
+ */
+JNIEXPORT jint JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_open0(JNIEnv *env, jclass clazz, jbyteArray hostname, jint port, jint mode)
+{
+	struct hostent *phostent;
+    struct sockaddr_in serv_addr;
+
+	// The hostname byte-array is a NULL terminated C-string.
+	// XXX Not GC safe.
+	char* name = (char*) &(LLNI_array_data((java_handle_bytearray_t*) hostname));
+
+	/* get the host */
+
+	phostent = gethostbyname(name);
+
+	if (phostent == NULL)
+		return -1;
+
+	/* fill the sockaddr structure */
+
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port   = htons(port);
+
+	MCOPY(&serv_addr.sin_addr, phostent->h_addr, u1, phostent->h_length);
+
+	/* create the socket */
+
+	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
+	if (sockfd < 0)
+		return -1;
+
+	/* connect the socket */
+
+	int result = connect(sockfd, (struct sockaddr*) &serv_addr, sizeof(serv_addr));
+
+	if (result < 0)
+		return -1;
+
+	return sockfd;
+}
+
+
+/*
+ * Class:     com/sun/cldc/io/j2me/socket/Protocol
+ * Method:    readBuf
+ * Signature: (I[BII)I
+ */
+JNIEXPORT jint JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf(JNIEnv *env, jclass clazz, jint handle, jbyteArray b, jint off, jint len)
+{
+	// Get pointer to the buffer.
+	// XXX Not GC safe.
+	void* buf = &(LLNI_array_direct((java_handle_bytearray_t*) b, off));
+
+	// Receive from the socket.
+	ssize_t result = recv(handle, buf, len, 0);
+
+	if (result == 0) {
+		// The peer has performed an orderly shutdown.
+		return -1;
+	}
+	else if (result < 0) {
+		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf: recv failed");
+	}
+
+	return result;
+}
+
+
+/*
+ * Class:     com/sun/cldc/io/j2me/socket/Protocol
+ * Method:    readByte
+ * Signature: (I)I
+ */
+JNIEXPORT jint JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_readByte(JNIEnv *env, jclass clazz, jint handle)
+{
+	char byte;
+	
+	// Receive from the socket.
+	ssize_t result = recv(handle, &byte, 1, 0);
+
+	if (result == 0) {
+		// The peer has performed an orderly shutdown.
+		return -1;
+	}
+	else if (result < 0) {
+		// TODO Should throw an IOException.
+		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_readByte: recv failed");
+	}
+
+	return byte;
+}
+
+
+/*
+ * Class:     com/sun/cldc/io/j2me/socket/Protocol
+ * Method:    writeBuf
+ * Signature: (I[BII)I
+ */
+JNIEXPORT jint JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_writeBuf(JNIEnv *env, jclass clazz, jint handle, jbyteArray b, jint off, jint len)
+{
+	// Get pointer to the buffer.
+	// XXX Not GC safe.
+	void* buf = &(LLNI_array_direct((java_handle_bytearray_t*) b, off));
+	
+	// Send the given byte to the socket.
+	ssize_t result = send(handle, buf, len, 0);
+
+	if (result < 0) {
+		// TODO Should throw an IOException.
+		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_writeBuf: send failed");
+	}
+
+	return result;
+}
+
+
+/*
+ * Class:     com/sun/cldc/io/j2me/socket/Protocol
+ * Method:    writeByte
+ * Signature: (II)I
+ */
+JNIEXPORT jint JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_writeByte(JNIEnv *env, jclass clazz, jint handle, jint b)
+{
+	char byte = (char) b;
+
+	// Send the given byte to the socket.
+	ssize_t result = send(handle, &byte, 1, 0);
+
+	if (result < 0)
+		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_writeByte: send failed");
+
+	return result;
+}
+
+
+/*
+ * Class:     com/sun/cldc/io/j2me/socket/Protocol
+ * Method:    available0
+ * Signature: (I)I
+ */
+JNIEXPORT jint JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_available0(JNIEnv *env, jclass clazz, jint handle)
+{
+	// NOTE: Sun doesn't have an implementation too.
+	return 0;
+}
+
+
+/*
+ * Class:     com/sun/cldc/io/j2me/socket/Protocol
+ * Method:    close0
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_close0(JNIEnv *env, jclass clazz, jint handle)
+{
+	// Close the file descriptor.
+	int result = close(handle);
+
+	if (result < 0)
+		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_close0: close failed");
+}
+
+} // extern "C"
 
 
 /* native methods implemented by this file ************************************/
@@ -79,202 +249,6 @@ void _Jv_com_sun_cldc_io_j2me_socket_Protocol_init(void)
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
 }
-
-
-// Native functions are exported as C functions.
-extern "C" {
-
-/*
- * Class:     com/sun/cldc/io/j2me/socket/Protocol
- * Method:    open0
- * Signature: ([BII)I
- */
-JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_open0(JNIEnv *env, jclass clazz, java_handle_bytearray_t *hostname, s4 port, s4 mode)
-{
-	struct hostent *phostent;
-    struct sockaddr_in serv_addr;
-	char           *name;
-	s4              sockfd;
-	s4              result;
-
-	/* The hostname byte-array is a NULL terminated C-string. */
-
-	name = (char *) &(LLNI_array_data(hostname));
-
-	/* get the host */
-
-	phostent = gethostbyname(name);
-
-	if (phostent == NULL)
-		return -1;
-
-	/* fill the sockaddr structure */
-
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port   = htons(port);
-
-	MCOPY(&serv_addr.sin_addr, phostent->h_addr, u1, phostent->h_length);
-
-	/* create the socket */
-
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
-	if (sockfd < 0)
-		return -1;
-
-	/* connect the socket */
-
-	result = connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
-
-	if (result < 0)
-		return -1;
-
-	return sockfd;
-}
-
-
-/*
- * Class:     com/sun/cldc/io/j2me/socket/Protocol
- * Method:    readBuf
- * Signature: (I[BII)I
- */
-JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf(JNIEnv *env, jclass clazz, s4 handle, java_handle_bytearray_t *b, s4 off, s4 len)
-{
-	void    *buf;
-	ssize_t  result;
-
-	/* get pointer to the buffer */
-
-	buf = &(LLNI_array_direct(b, off));
-
-	/* receive from the socket */
-
-	result = recv(handle, buf, len, 0);
-
-	if (result == 0) {
-		/* the peer has performed an orderly shutdown */
-
-		return -1;
-	}
-	else if (result < 0) {
-		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf: recv failed");
-	}
-
-	return result;
-}
-
-
-/*
- * Class:     com/sun/cldc/io/j2me/socket/Protocol
- * Method:    readByte
- * Signature: (I)I
- */
-JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_readByte(JNIEnv *env, jclass clazz, s4 handle) {
-	
-	char    byte;
-	ssize_t result;
-	
-	/* receive from the socket */
-
-	result = recv(handle, &byte, 1, 0);
-
-	if (result == 0) {
-		/* the peer has performed an orderly shutdown */
-
-		return -1;
-	}
-	else if (result < 0) {
-		/* should throw an IOException */
-
-		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_readByte: recv failed");
-	}
-
-	return byte;
-}
-
-
-/*
- * Class:     com/sun/cldc/io/j2me/socket/Protocol
- * Method:    writeBuf
- * Signature: (I[BII)I
- */
-JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_writeBuf(JNIEnv *env, jclass clazz, s4 handle, java_handle_bytearray_t * b, s4 off, s4 len) {
-
-	void    *buf;
-	ssize_t  result;
-
-	/* get pointer to the buffer */
-
-	buf = &(LLNI_array_direct(b, off));
-	
-	/* send the given byte to the socket */
-
-	result = send(handle, buf, len, 0);
-
-	if (result < 0)
-		/* should throw an IOException */
-
-		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_writeBuf: send failed");
-
-	return result;
-
-}
-
-
-/*
- * Class:     com/sun/cldc/io/j2me/socket/Protocol
- * Method:    writeByte
- * Signature: (II)I
- */
-JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_writeByte(JNIEnv *env, jclass clazz, s4 handle, s4 b)
-{
-	char    byte;
-	ssize_t result;
-
-	byte = (char) b;
-
-	/* send the given byte to the socket */
-
-	result = send(handle, &byte, 1, 0);
-
-	if (result < 0)
-		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_writeByte: send failed");
-
-	return result;
-}
-
-
-/*
- * Class:     com/sun/cldc/io/j2me/socket/Protocol
- * Method:    available0
- * Signature: (I)I
- */
-JNIEXPORT s4 JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_available0(JNIEnv *env, jclass clazz, s4 handle)
-{
-	/* NOTE: Sun doesn't have an implementation too */
-
-	return 0;
-}
-
-
-/*
- * Class:     com/sun/cldc/io/j2me/socket/Protocol
- * Method:    close0
- * Signature: (I)V
- */
-JNIEXPORT void JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_close0(JNIEnv *env, jclass clazz, s4 handle)
-{
-	int result;
-
-	/* close the file descriptor */
-
-	result = close(handle);
-
-	if (result < 0)
-		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_close0: close failed");
-}
-
-} // extern "C"
 
 
 /*

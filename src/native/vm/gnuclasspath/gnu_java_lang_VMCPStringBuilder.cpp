@@ -31,17 +31,14 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_String.h"
-
 // FIXME
-extern "C" {
-#include "native/include/gnu_java_lang_VMCPStringBuilder.h"
-}
+//#include "native/include/gnu_java_lang_VMCPStringBuilder.h"
 
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 
 #include "vmcore/globals.hpp"
+#include "vmcore/javaobjects.hpp"
 
 
 /*
@@ -49,12 +46,8 @@ extern "C" {
  * Method:    toString
  * Signature: ([CII)Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_gnu_java_lang_VMCPStringBuilder_toString(JNIEnv *env, jclass clazz, java_handle_chararray_t *value, int32_t startIndex, int32_t count)
+JNIEXPORT jstring JNICALL Java_gnu_java_lang_VMCPStringBuilder_toString(JNIEnv *env, jclass clazz, jcharArray value, jint startIndex, jint count)
 {
-	int32_t          length;
-	java_handle_t    *o;
-	java_lang_String *s;
-
 	/* This is a native version of
 	   java.lang.String.<init>([CIIZ)Ljava/lang/String; */
 
@@ -72,8 +65,10 @@ JNIEXPORT java_lang_String* JNICALL Java_gnu_java_lang_VMCPStringBuilder_toStrin
 
     /* equivalent to: offset + count < 0 || offset + count > data.length */
 
+	java_handle_chararray_t* ca = (java_handle_chararray_t*) value;
+
 	LLNI_CRITICAL_START;
-	length = LLNI_array_size(value);
+	int32_t length = LLNI_array_size(ca);
 	LLNI_CRITICAL_END;
 
     if (length - startIndex < count) {
@@ -82,18 +77,14 @@ JNIEXPORT java_lang_String* JNICALL Java_gnu_java_lang_VMCPStringBuilder_toStrin
 		return NULL;
 	}
 
-	o = builtin_new(class_java_lang_String);
+	java_handle_t* h = builtin_new(class_java_lang_String);
 
-	if (o == NULL)
+	if (h == NULL)
 		return NULL;
 
-	s = (java_lang_String *) o;
+	java_lang_String s(h, ca, (int32_t) count, (int32_t) startIndex);
 
-	LLNI_field_set_ref(s, value,  value);
-	LLNI_field_set_val(s, count,  count);
-	LLNI_field_set_val(s, offset, startIndex);
-
-	return s;
+	return (jstring) s.get_handle();
 }
 
 

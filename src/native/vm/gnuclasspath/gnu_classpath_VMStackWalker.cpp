@@ -30,13 +30,9 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_Class.h"
-#include "native/include/java_lang_ClassLoader.h"
-
-// FIXME
-extern "C" {
-#include "native/include/gnu_classpath_VMStackWalker.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/gnu_classpath_VMStackWalker.h"
+#endif
 
 #include "vm/global.h"
 
@@ -54,13 +50,13 @@ extern "C" {
  * Method:    getClassContext
  * Signature: ()[Ljava/lang/Class;
  */
-JNIEXPORT java_handle_objectarray_t* JNICALL Java_gnu_classpath_VMStackWalker_getClassContext(JNIEnv *env, jclass clazz)
+JNIEXPORT jobjectArray JNICALL Java_gnu_classpath_VMStackWalker_getClassContext(JNIEnv *env, jclass clazz)
 {
 	java_handle_objectarray_t *oa;
 
 	oa = stacktrace_getClassContext();
 
-	return oa;
+	return (jobjectArray) oa;
 }
 
 
@@ -69,13 +65,13 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_gnu_classpath_VMStackWalker_ge
  * Method:    getCallingClass
  * Signature: ()Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClass(JNIEnv *env, jclass clazz)
+JNIEXPORT jclass JNICALL Java_gnu_classpath_VMStackWalker_getCallingClass(JNIEnv *env, jclass clazz)
 {
 	classinfo *c;
 
 	c = stacktrace_get_caller_class(2);
 
-	return (java_lang_Class *) c;
+	return (jclass) c;
 }
 
 
@@ -84,7 +80,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_gnu_classpath_VMStackWalker_getCallingCl
  * Method:    getCallingClassLoader
  * Signature: ()Ljava/lang/ClassLoader;
  */
-JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCallingClassLoader(JNIEnv *env, jclass clazz)
+JNIEXPORT jobject JNICALL Java_gnu_classpath_VMStackWalker_getCallingClassLoader(JNIEnv *env, jclass clazz)
 {
 	classinfo     *c;
 	classloader_t *cl;
@@ -92,7 +88,7 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCal
 	c  = stacktrace_get_caller_class(2);
 	cl = class_get_classloader(c);
 
-	return (java_lang_ClassLoader *) cl;
+	return (jobject) cl;
 }
 
 
@@ -101,13 +97,13 @@ JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_getCal
  * Method:    firstNonNullClassLoader
  * Signature: ()Ljava/lang/ClassLoader;
  */
-JNIEXPORT java_lang_ClassLoader* JNICALL Java_gnu_classpath_VMStackWalker_firstNonNullClassLoader(JNIEnv *env, jclass clazz)
+JNIEXPORT jobject JNICALL Java_gnu_classpath_VMStackWalker_firstNonNullClassLoader(JNIEnv *env, jclass clazz)
 {
 	classloader_t *cl;
 
 	cl = stacktrace_first_nonnull_classloader();
 
-	return (java_lang_ClassLoader *) cl;
+	return (jobject) cl;
 }
 
 } // extern "C"

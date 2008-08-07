@@ -35,12 +35,9 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/java_util_Properties.h"
-
-/// FIXME
-extern "C" {
-#include "native/include/gnu_classpath_VMSystemProperties.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/include/gnu_classpath_VMSystemProperties.h"
+#endif
 
 #include "vm/exceptions.hpp"
 #include "vm/properties.h"
@@ -55,7 +52,7 @@ extern "C" {
  * Method:    preInit
  * Signature: (Ljava/util/Properties;)V
  */
-JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env, jclass clazz, java_util_Properties *properties)
+JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env, jclass clazz, jobject properties)
 {
 	java_handle_t *p;
 
@@ -77,7 +74,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
  * Method:    postInit
  * Signature: (Ljava/util/Properties;)V
  */
-JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *env, jclass clazz, java_util_Properties *properties)
+JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *env, jclass clazz, jobject properties)
 {
 	java_handle_t *p;
 #if defined(ENABLE_JRE_LAYOUT)

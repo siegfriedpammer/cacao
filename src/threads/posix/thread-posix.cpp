@@ -53,19 +53,6 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_Object.h"
-#include "native/include/java_lang_String.h"
-#include "native/include/java_lang_Throwable.h"
-#include "native/include/java_lang_Thread.h"
-
-#if defined(ENABLE_JAVASE)
-# include "native/include/java_lang_ThreadGroup.h"
-#endif
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-# include "native/include/java_lang_VMThread.h"
-#endif
-
 #include "threads/condition.hpp"
 #include "threads/lock-common.h"
 #include "threads/mutex.hpp"
@@ -84,6 +71,7 @@
 #include "vm/jit/asmpart.h"
 
 #include "vmcore/globals.hpp"
+#include "vmcore/javaobjects.hpp"
 #include "vmcore/options.h"
 
 #if defined(ENABLE_STATISTICS)
@@ -743,17 +731,12 @@ void threads_impl_init(void)
 
 static void *threads_startup_thread(void *arg)
 {
-	startupinfo        *startup;
-	threadobject       *t;
-	java_lang_Thread   *object;
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	java_lang_VMThread *vmt;
-#endif
-	sem_t              *psem;
-	classinfo          *c;
-	methodinfo         *m;
-	java_handle_t      *o;
-	functionptr         function;
+	startupinfo  *startup;
+	threadobject *t;
+	sem_t        *psem;
+	classinfo    *c;
+	methodinfo   *m;
+	functionptr   function;
 
 #if defined(ENABLE_GC_BOEHM)
 # if !defined(__DARWIN__)
@@ -816,13 +799,13 @@ static void *threads_startup_thread(void *arg)
 # endif
 #endif
 
-	/* get the java.lang.Thread object for this thread */
-
-	object = (java_lang_Thread *) thread_get_object(t);
+	// Get the java.lang.Thread object for this thread.
+	java_handle_t* object = thread_get_object(t);
+	java_lang_Thread jlt(object);
 
 	/* set our priority */
 
-	threads_set_thread_priority(t->tid, LLNI_field_direct(object, priority));
+	threads_set_thread_priority(t->tid, jlt.get_priority());
 
 	/* Thread is completely initialized. */
 
@@ -882,20 +865,22 @@ static void *threads_startup_thread(void *arg)
 #warning Move to C++
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-		/* we need to start the run method of java.lang.VMThread */
 
-		LLNI_field_get_ref(object, vmThread, vmt);
-		o = (java_handle_t *) vmt;
+		// We need to start the run method of java.lang.VMThread.
+		java_lang_VMThread jlvmt(jlt.get_vmThread());
+		java_handle_t* h = jlvmt.get_handle();
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
-		o = (java_handle_t *) object;
+
+		java_handle_t* h = jlt.get_handle();
+
 #else
 # error unknown classpath configuration
 #endif
 
 		/* Run the thread. */
 
-		(void) vm_call_method(m, o);
+		(void) vm_call_method(m, h);
 	}
 	else {
 		/* set ThreadMXBean variables */
@@ -1043,19 +1028,7 @@ void threads_set_thread_priority(pthread_t tid, int priority)
  */
 bool thread_detach_current_thread(void)
 {
-	threadobject          *t;
-	bool                   result;
-	java_lang_Thread      *object;
-	java_handle_t         *o;
-#if defined(ENABLE_JAVASE)
-	java_lang_ThreadGroup *group;
-	java_handle_t         *e;
-	void                  *handler;
-	classinfo             *c;
-	methodinfo            *m;
-#endif
-
-	t = thread_get_current();
+	threadobject* t = thread_get_current();
 
 	/* Sanity check. */
 
@@ -1064,23 +1037,22 @@ bool thread_detach_current_thread(void)
     /* If the given thread has already been detached, this operation
 	   is a no-op. */
 
-	result = thread_is_attached(t);
-
-	if (result == false)
+	if (thread_is_attached(t) == false)
 		return true;
 
 	DEBUGTHREADS("detaching", t);
 
-	object = (java_lang_Thread *) thread_get_object(t);
+	java_handle_t* object = thread_get_object(t);
+	java_lang_Thread jlt(object);
 
 #if defined(ENABLE_JAVASE)
-	LLNI_field_get_ref(object, group, group);
+	java_handle_t* group = jlt.get_group();
 
     /* If there's an uncaught exception, call uncaughtException on the
        thread's exception handler, or the thread's group if this is
        unset. */
 
-	e = exceptions_get_and_clear_exception();
+	java_handle_t* e = exceptions_get_and_clear_exception();
 
     if (e != NULL) {
 		/* We use the type void* for handler here, as it's not trivial
@@ -1088,30 +1060,37 @@ bool thread_detach_current_thread(void)
 		   header file with cacaoh. */
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-		LLNI_field_get_ref(object, exceptionHandler, handler);
+
+		java_handle_t* handler = jlt.get_exceptionHandler();
+
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-		LLNI_field_get_ref(object, uncaughtExceptionHandler, handler);
+
+		java_handle_t* handler = jlt.get_uncaughtExceptionHandler();
+
 # endif
+
+		classinfo*     c;
+		java_handle_t* h;
 
 		if (handler != NULL) {
 			LLNI_class_get(handler, c);
-			o = (java_handle_t *) handler;
+			h = (java_handle_t *) handler;
 		}
 		else {
 			LLNI_class_get(group, c);
-			o = (java_handle_t *) group;
+			h = (java_handle_t *) group;
 		}
 
-		m = class_resolveclassmethod(c,
-									 utf_uncaughtException,
-									 utf_java_lang_Thread_java_lang_Throwable__V,
-									 NULL,
-									 true);
+		methodinfo* m = class_resolveclassmethod(c,
+												 utf_uncaughtException,
+												 utf_java_lang_Thread_java_lang_Throwable__V,
+												 NULL,
+												 true);
 
 		if (m == NULL)
 			return false;
 
-		(void) vm_call_method(m, o, object, e);
+		(void) vm_call_method(m, h, object, e);
 
 		if (exceptions_get_exception())
 			return false;
@@ -1122,20 +1101,21 @@ bool thread_detach_current_thread(void)
 	/* Remove thread from the thread group. */
 
 	if (group != NULL) {
+		classinfo* c;
 		LLNI_class_get(group, c);
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-		m = class_resolveclassmethod(c,
-									 utf_removeThread,
-									 utf_java_lang_Thread__V,
-									 class_java_lang_ThreadGroup,
-									 true);
+		methodinfo* m = class_resolveclassmethod(c,
+												 utf_removeThread,
+												 utf_java_lang_Thread__V,
+												 class_java_lang_ThreadGroup,
+												 true);
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-		m = class_resolveclassmethod(c,
-									 utf_remove,
-									 utf_java_lang_Thread__V,
-									 class_java_lang_ThreadGroup,
-									 true);
+		methodinfo* m = class_resolveclassmethod(c,
+												 utf_remove,
+												 utf_java_lang_Thread__V,
+												 class_java_lang_ThreadGroup,
+												 true);
 # else
 #  error unknown classpath configuration
 # endif
@@ -1143,17 +1123,14 @@ bool thread_detach_current_thread(void)
 		if (m == NULL)
 			return false;
 
-		o = (java_handle_t *) group;
-
-		(void) vm_call_method(m, o, object);
+		(void) vm_call_method(m, group, object);
 
 		if (exceptions_get_exception())
 			return false;
 
-		/* Reset the threadgroup in the Java thread object (Mauve
-		   test: gnu/testlet/java/lang/Thread/getThreadGroup). */
-
-		LLNI_field_set_ref(object, group, NULL);
+		// Clear the ThreadGroup in the Java thread object (Mauve
+		// test: gnu/testlet/java/lang/Thread/getThreadGroup).
+		jlt.set_group(NULL);
 	}
 #endif
 
@@ -1164,15 +1141,13 @@ bool thread_detach_current_thread(void)
 	/* Notify all threads waiting on this thread.  These are joining
 	   this thread. */
 
-	o = (java_handle_t *) object;
-
 	/* XXX Care about exceptions? */
-	(void) lock_monitor_enter(o);
+	(void) lock_monitor_enter(jlt.get_handle());
 	
-	lock_notify_all_object(o);
+	lock_notify_all_object(jlt.get_handle());
 
 	/* XXX Care about exceptions? */
-	(void) lock_monitor_exit(o);
+	(void) lock_monitor_exit(jlt.get_handle());
 
 	/* Enter the join-mutex before calling thread_free, so
 	   threads_join_all_threads gets the correct number of non-daemon

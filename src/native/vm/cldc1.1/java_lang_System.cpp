@@ -33,17 +33,66 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_Object.h"
-#include "native/include/java_lang_String.h"
-
-// FIXME
-extern "C" {
-#include "native/include/java_lang_System.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/include/java_lang_System.h"
+#endif
 
 #include "vm/builtin.h"
 #include "vm/properties.h"
 #include "vm/string.hpp"
+
+
+// Native functions are exported as C functions.
+extern "C" {
+
+/*
+ * Class:     java/lang/System
+ * Method:    arraycopy
+ * Signature: (Ljava/lang/Object;ILjava/lang/Object;II)V
+ */
+JNIEXPORT void JNICALL Java_java_lang_System_arraycopy(JNIEnv *env, jclass clazz, jobject src, jint srcStart, jobject dest, jint destStart, jint len)
+{
+	builtin_arraycopy((java_handle_t *) src, srcStart,
+					  (java_handle_t *) dest, destStart, len);
+}
+
+
+/*
+ * Class:     java/lang/System
+ * Method:    getProperty0
+ * Signature: (Ljava/lang/String;)Ljava/lang/String;
+ */
+
+JNIEXPORT jstring JNICALL Java_java_lang_System_getProperty0(JNIEnv *env, jclass clazz, jstring s)
+{
+	java_handle_t *so;
+	char*          key;
+	const char*    value;
+	java_handle_t *result;
+
+	so = (java_handle_t *) s;
+
+	/* build an ASCII string out of the java/lang/String passed */
+
+	key = javastring_tochar(so);
+
+	/* get the property from the internal table */
+
+	value = properties_get(key);
+
+	/* release the memory allocated in javastring_tochar */
+
+	MFREE(key, char, 0);
+
+	if (value == NULL)
+		return NULL;
+
+	result = javastring_new_from_ascii(value);
+
+	return (jstring) result;
+}
+
+} // extern "C"
 
 
 /* native methods implemented by this file ************************************/
@@ -71,59 +120,6 @@ void _Jv_java_lang_System_init(void)
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
 }
-
-
-// Native functions are exported as C functions.
-extern "C" {
-
-/*
- * Class:     java/lang/System
- * Method:    arraycopy
- * Signature: (Ljava/lang/Object;ILjava/lang/Object;II)V
- */
-JNIEXPORT void JNICALL Java_java_lang_System_arraycopy(JNIEnv *env, jclass clazz, java_lang_Object *src, s4 srcStart, java_lang_Object *dest, s4 destStart, s4 len)
-{
-	builtin_arraycopy((java_handle_t *) src, srcStart,
-					  (java_handle_t *) dest, destStart, len);
-}
-
-
-/*
- * Class:     java/lang/System
- * Method:    getProperty0
- * Signature: (Ljava/lang/String;)Ljava/lang/String;
- */
-
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_System_getProperty0(JNIEnv *env, jclass clazz, java_lang_String *s)
-{
-	java_handle_t *so;
-	char*          key;
-	const char*    value;
-	java_handle_t *result;
-
-	so = (java_handle_t *) s;
-
-	/* build an ASCII string out of the java/lang/String passed */
-
-	key = javastring_tochar(so);
-
-	/* get the property from the internal table */
-
-	value = properties_get(key);
-
-	/* release the memory allocated in javastring_tochar */
-
-	MFREE(key, char, 0);
-
-	if (value == NULL)
-		return NULL;
-
-	result = javastring_new_from_ascii(value);
-
-	return (java_lang_String *) result;
-}
-
-} // extern "C"
 
 
 /*

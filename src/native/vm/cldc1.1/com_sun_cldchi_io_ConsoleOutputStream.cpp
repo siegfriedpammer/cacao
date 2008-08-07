@@ -33,10 +33,25 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-// FIXME
-extern "C" { 
-#include "native/include/com_sun_cldchi_io_ConsoleOutputStream.h"
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/include/com_sun_cldchi_io_ConsoleOutputStream.h"
+#endif
+
+
+// Native functions are exported as C functions.
+extern "C" {
+
+/*
+ * Class:     com/sun/cldchi/io/ConsoleOutputStream
+ * Method:    write
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_com_sun_cldchi_io_ConsoleOutputStream_write(JNIEnv *env, jobject _this, jint c)
+{
+	(void) fputc(c, stdout);
 }
+
+} // extern "C"
 
 
 /* native methods implemented by this file ************************************/
@@ -63,22 +78,6 @@ void _Jv_com_sun_cldchi_io_ConsoleOutputStream_init(void)
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
 }
-
-
-// Native functions are exported as C functions.
-extern "C" {
-
-/*
- * Class:     com/sun/cldchi/io/ConsoleOutputStream
- * Method:    write
- * Signature: (I)V
- */
-JNIEXPORT void JNICALL Java_com_sun_cldchi_io_ConsoleOutputStream_write(JNIEnv *env, com_sun_cldchi_io_ConsoleOutputStream *_this, int32_t c)
-{
-	(void) fputc(c, stdout);
-}
-
-} // extern "C"
 
 
 /*

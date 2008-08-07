@@ -30,39 +30,11 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-// FIXME
-extern "C" {
-#include "native/include/java_lang_Double.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/include/java_lang_Double.h"
+#endif
 
 #include "vm/builtin.h"
-
-
-/* native methods implemented by this file ************************************/
- 
-static JNINativeMethod methods[] = {
-	{ (char*) "doubleToLongBits", (char*) "(D)J", (void*) (uintptr_t) &Java_java_lang_Double_doubleToLongBits },
-	{ (char*) "longBitsToDouble", (char*) "(J)D", (void*) (uintptr_t) &Java_java_lang_Double_longBitsToDouble },
-};
- 
- 
-/* _Jv_java_lang_Double_init ***************************************************
- 
-   Register native functions.
- 
-*******************************************************************************/
-
-// FIXME
-extern "C" { 
-void _Jv_java_lang_Double_init(void)
-{
-	utf *u;
- 
-	u = utf_new_char("java/lang/Double");
- 
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-}
 
 
 // Native functions are exported as C functions.
@@ -73,7 +45,7 @@ extern "C" {
  * Method:    doubleToLongBits
  * Signature: (D)J
  */
-JNIEXPORT int64_t JNICALL Java_java_lang_Double_doubleToLongBits(JNIEnv *env, jclass clazz, double doubleValue)
+JNIEXPORT jlong JNICALL Java_java_lang_Double_doubleToLongBits(JNIEnv *env, jclass clazz, jdouble doubleValue)
 {
 	jvalue val;
 	s8  e, f;
@@ -104,7 +76,7 @@ JNIEXPORT int64_t JNICALL Java_java_lang_Double_doubleToLongBits(JNIEnv *env, jc
  * Method:    longBitsToDouble
  * Signature: (J)D
  */
-JNIEXPORT double JNICALL Java_java_lang_Double_longBitsToDouble(JNIEnv *env, jclass clazz, int64_t longValue)
+JNIEXPORT jdouble JNICALL Java_java_lang_Double_longBitsToDouble(JNIEnv *env, jclass clazz, jlong longValue)
 {
 	jvalue val;
 	val.j = longValue;
@@ -117,6 +89,33 @@ JNIEXPORT double JNICALL Java_java_lang_Double_longBitsToDouble(JNIEnv *env, jcl
 }
 
 } // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+ 
+static JNINativeMethod methods[] = {
+	{ (char*) "doubleToLongBits", (char*) "(D)J", (void*) (uintptr_t) &Java_java_lang_Double_doubleToLongBits },
+	{ (char*) "longBitsToDouble", (char*) "(J)D", (void*) (uintptr_t) &Java_java_lang_Double_longBitsToDouble },
+};
+ 
+ 
+/* _Jv_java_lang_Double_init ***************************************************
+ 
+   Register native functions.
+ 
+*******************************************************************************/
+
+// FIXME
+extern "C" { 
+void _Jv_java_lang_Double_init(void)
+{
+	utf *u;
+ 
+	u = utf_new_char("java/lang/Double");
+ 
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+}
 
 
 /*

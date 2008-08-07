@@ -34,14 +34,9 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_Object.h"
-#include "native/include/java_io_InputStream.h"        /* required by j.l.VMS */
-#include "native/include/java_io_PrintStream.h"        /* required by j.l.VMS */
-
-// FIXME
-extern "C" {
-#include "native/include/java_lang_VMSystem.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vminclude/java_lang_VMSystem.h"
+#endif
 
 #include "vm/builtin.h"
 
@@ -54,7 +49,7 @@ extern "C" {
  * Method:    arraycopy
  * Signature: (Ljava/lang/Object;ILjava/lang/Object;II)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass clazz, java_lang_Object *src, int32_t srcStart, java_lang_Object *dest, int32_t destStart, int32_t len)
+JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass clazz, jobject src, jint srcStart, jobject dest, jint destStart, jint len)
 {
 	builtin_arraycopy((java_handle_t *) src, srcStart,
 					  (java_handle_t *) dest, destStart, len);
@@ -66,10 +61,11 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
  * Method:    identityHashCode
  * Signature: (Ljava/lang/Object;)I
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, java_lang_Object *o)
+JNIEXPORT jint JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, jobject o)
 {
 	int32_t hashcode;
 
+	// XXX This critical section should be inside the heap function.
 	LLNI_CRITICAL_START;
 
 	hashcode = heap_hashcode(LLNI_UNWRAP((java_handle_t *) o));

@@ -39,60 +39,8 @@
 #include "native/localref.h"
 #include "native/native.h"
 
-#if defined(ENABLE_JAVASE)
-# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-#  include "native/include/gnu_classpath_Pointer.h"
-
-#  if SIZEOF_VOID_P == 8
-#   include "native/include/gnu_classpath_Pointer64.h"
-#  else
-#   include "native/include/gnu_classpath_Pointer32.h"
-#  endif
-# endif
-#endif
-
-#include "native/include/java_lang_Object.h"
-#include "native/include/java_lang_String.h"
-#include "native/include/java_lang_Throwable.h"
-
-#if defined(ENABLE_JAVASE)
-
-# if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-#  include "native/include/java_nio_ByteBuffer.h"       /* required by j.l.CL */
-# endif
-
-/* java_lang_ClassLoader is used in java_lang_Class and vice versa, so
-   we pre-define it here to prevent a compiler warning for Sun
-   configurations. */
-
-struct java_lang_ClassLoader;
-
-# include "native/include/java_lang_Class.h"
-# include "native/include/java_lang_ClassLoader.h"
-
-# include "native/include/java_lang_reflect_Constructor.h"
-# include "native/include/java_lang_reflect_Field.h"
-# include "native/include/java_lang_reflect_Method.h"
-
-# include "native/include/java_nio_Buffer.h"
-
-# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-#  include "native/include/java_lang_reflect_VMConstructor.h"
-#  include "native/include/java_lang_reflect_VMField.h"
-#  include "native/include/java_lang_reflect_VMMethod.h"
-
-#  include "native/include/java_nio_DirectByteBufferImpl.h"
-# endif
-#elif defined(ENABLE_JAVAME_CLDC1_1)
-# include "native/include/java_lang_Class.h"
-#endif
-
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/cacaodbg.h"
-#endif
-
-#if defined(ENABLE_JAVASE)
-# include "native/vm/reflect.h"
 #endif
 
 #include "threads/lock-common.h"
@@ -116,6 +64,7 @@ struct java_lang_ClassLoader;
 #include "vm/jit/stacktrace.hpp"
 
 #include "vmcore/globals.hpp"
+#include "vmcore/javaobjects.hpp"
 #include "vmcore/loader.h"
 #include "vmcore/options.h"
 #include "vmcore/statistics.h"
@@ -861,29 +810,28 @@ jint _Jv_JNI_GetVersion(JNIEnv *env)
 
 *******************************************************************************/
 
-jclass _Jv_JNI_DefineClass(JNIEnv *env, const char *name, jobject loader,
-						   const jbyte *buf, jsize bufLen)
+jclass jni_DefineClass(JNIEnv *env, const char *name, jobject loader, const jbyte *buf, jsize bufLen)
 {
 #if defined(ENABLE_JAVASE)
-	utf             *u;
-	classloader_t   *cl;
-	classinfo       *c;
-	java_lang_Class *co;
+	utf           *u;
+	classloader_t *cl;
+	classinfo     *c;
+	java_handle_t* h;
 
-	TRACEJNICALLS(("_Jv_JNI_DefineClass(env=%p, name=%s, loader=%p, buf=%p, bufLen=%d)", env, name, loader, buf, bufLen));
+	TRACEJNICALLS(("jni_DefineClass(env=%p, name=%s, loader=%p, buf=%p, bufLen=%d)", env, name, loader, buf, bufLen));
 
 	u  = utf_new_char(name);
 	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 	c = class_define(u, cl, bufLen, (uint8_t *) buf, NULL);
 
-	co = LLNI_classinfo_wrap(c);
+	h = LLNI_classinfo_wrap(c);
 
-	return (jclass) jni_NewLocalRef(env, (jobject) co);
+	return (jclass) jni_NewLocalRef(env, (jobject) h);
 #else
-	vm_abort("_Jv_JNI_DefineClass: not implemented in this configuration");
+	vm_abort("jni_DefineClass: Not implemented in this configuration");
 
-	/* keep compiler happy */
+	// Keep compiler happy.
 
 	return 0;
 #endif
@@ -902,10 +850,10 @@ jclass jni_FindClass(JNIEnv *env, const char *name)
 {
 #if defined(ENABLE_JAVASE)
 
-	utf             *u;
-	classinfo       *cc;
-	classinfo       *c;
-	java_lang_Class *co;
+	utf*       u;    
+	classinfo* cc;
+	classinfo* c;
+	java_handle_t* h;
 
 	TRACEJNICALLS(("jni_FindClass(env=%p, name=%s)", env, name));
 
@@ -947,9 +895,9 @@ jclass jni_FindClass(JNIEnv *env, const char *name)
 	if (!link_class(c))
 		return NULL;
 
-	co = LLNI_classinfo_wrap(c);
+	h = LLNI_classinfo_wrap(c);
 
-  	return (jclass) jni_NewLocalRef(env, (jobject) co);
+  	return (jclass) jni_NewLocalRef(env, (jobject) h);
 
 #elif defined(ENABLE_JAVAME_CLDC1_1)
 
@@ -989,13 +937,12 @@ jclass jni_FindClass(JNIEnv *env, const char *name)
 
 *******************************************************************************/
  
-jclass _Jv_JNI_GetSuperclass(JNIEnv *env, jclass sub)
+jclass jni_GetSuperclass(JNIEnv *env, jclass sub)
 {
-	classinfo       *c;
-	classinfo       *super;
-	java_lang_Class *co;
+	classinfo* c;
+	classinfo* super;
 
-	TRACEJNICALLS(("_Jv_JNI_GetSuperclass(env=%p, sub=%p)", env, sub));
+	TRACEJNICALLS(("jni_GetSuperclass(env=%p, sub=%p)", env, sub));
 
 	c = LLNI_classinfo_unwrap(sub);
 
@@ -1004,9 +951,9 @@ jclass _Jv_JNI_GetSuperclass(JNIEnv *env, jclass sub)
 
 	super = class_get_superclass(c);
 
-	co = LLNI_classinfo_wrap(super);
+	java_handle_t* h = LLNI_classinfo_wrap(super);
 
-	return (jclass) jni_NewLocalRef(env, (jobject) co);
+	return (jclass) jni_NewLocalRef(env, (jobject) h);
 }
   
  
@@ -1449,13 +1396,12 @@ jobject _Jv_JNI_NewObjectA(JNIEnv* env, jclass clazz, jmethodID methodID,
 
 *******************************************************************************/
 
-jclass _Jv_JNI_GetObjectClass(JNIEnv *env, jobject obj)
+jclass jni_GetObjectClass(JNIEnv *env, jobject obj)
 {
-	java_handle_t   *o;
-	classinfo       *c;
-	java_lang_Class *co;
+	java_handle_t* o;
+	classinfo*     c;
 
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS(("jni_GetObjectClass(env=%p, obj=%p)", env, obj));
 
 	o = (java_handle_t *) obj;
 
@@ -1464,9 +1410,9 @@ jclass _Jv_JNI_GetObjectClass(JNIEnv *env, jobject obj)
 
 	LLNI_class_get(o, c);
 
-	co = LLNI_classinfo_wrap(c);
+	java_handle_t* h = LLNI_classinfo_wrap(c);
 
-	return (jclass) jni_NewLocalRef(env, (jobject) co);
+	return (jclass) jni_NewLocalRef(env, (jobject) h);
 }
 
 
@@ -1503,17 +1449,8 @@ jboolean _Jv_JNI_IsInstanceOf(JNIEnv *env, jobject obj, jclass clazz)
 jmethodID jni_FromReflectedMethod(JNIEnv *env, jobject method)
 {
 #if defined(ENABLE_JAVASE)
-	java_handle_t                   *o;
-	java_lang_reflect_Method        *rm;
-	java_lang_reflect_Constructor   *rc;
-	classinfo                       *c;
-	methodinfo                      *m;
-	int32_t                          slot;
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	java_lang_reflect_VMMethod      *rvmm;
-	java_lang_reflect_VMConstructor *rvmc;
-#endif
+	java_handle_t* o;
+	methodinfo*    m;
 
 	TRACEJNICALLS(("jni_FromReflectedMethod(env=%p, method=%p)", env, method));
 
@@ -1522,53 +1459,24 @@ jmethodID jni_FromReflectedMethod(JNIEnv *env, jobject method)
 	if (o == NULL)
 		return NULL;
 
+	// FIXME We can't access the object here directly.
 	if (o->vftbl->clazz == class_java_lang_reflect_Constructor) {
-		rc = (java_lang_reflect_Constructor *) method;
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-
-		LLNI_field_get_ref(rc,   cons , rvmc);
-		LLNI_field_get_cls(rvmc, clazz, c);
-		LLNI_field_get_val(rvmc, slot , slot);
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-
-		LLNI_field_get_cls(rc, clazz, c);
-		LLNI_field_get_val(rc, slot , slot);
-
-#else
-# error unknown configuration
-#endif
+		java_lang_reflect_Constructor rc(method);
+		m = rc.get_method();
 	}
 	else {
+		// FIXME We can't access the object here directly.
 		assert(o->vftbl->clazz == class_java_lang_reflect_Method);
 
-		rm = (java_lang_reflect_Method *) method;
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-
-		LLNI_field_get_ref(rm,   m ,    rvmm);
-		LLNI_field_get_cls(rvmm, clazz, c);
-		LLNI_field_get_val(rvmm, slot , slot);
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-
-		LLNI_field_get_cls(rm, clazz, c);
-		LLNI_field_get_val(rm, slot , slot);
-
-#else
-# error unknown configuration
-#endif
+		java_lang_reflect_Method rm(method);
+		m = rm.get_method();
 	}
-
-	m = &(c->methods[slot]);
 
 	return (jmethodID) m;
 #else
 	vm_abort("jni_FromReflectedMethod: Not implemented in this configuration.");
 
-	/* Keep compiler happy. */
-
+	// Keep compiler happy.
 	return NULL;
 #endif
 }
@@ -1583,45 +1491,21 @@ jmethodID jni_FromReflectedMethod(JNIEnv *env, jobject method)
 jfieldID jni_FromReflectedField(JNIEnv* env, jobject field)
 {
 #if defined(ENABLE_JAVASE)
-	java_lang_reflect_Field   *rf;
-	classinfo                 *c;
-	fieldinfo                 *f;
-	int32_t                    slot;
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	java_lang_reflect_VMField *rvmf;
-#endif
 
 	TRACEJNICALLS(("jni_FromReflectedField(env=%p, field=%p)", env, field));
 
-	rf = (java_lang_reflect_Field *) field;
+	java_lang_reflect_Field rf(field);
 
-	if (rf == NULL)
+	if (rf.is_null())
 		return NULL;
 
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-
-	LLNI_field_get_ref(rf,   f,     rvmf);
-	LLNI_field_get_cls(rvmf, clazz, c);
-	LLNI_field_get_val(rvmf, slot , slot);
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-
-	LLNI_field_get_cls(rf, clazz, c);
-	LLNI_field_get_val(rf, slot , slot);
-
-#else
-# error unknown configuration
-#endif
-
-	f = &(c->fields[slot]);
+	fieldinfo* f = rf.get_field();
 
 	return (jfieldID) f;
 #else
 	vm_abort("jni_FromReflectedField: Not implemented in this configuration.");
 
-	/* Keep compiler happy. */
-
+	// Keep compiler happy.
 	return NULL;
 #endif
 }
@@ -1635,34 +1519,29 @@ jfieldID jni_FromReflectedField(JNIEnv* env, jobject field)
 
 *******************************************************************************/
 
-jobject _Jv_JNI_ToReflectedMethod(JNIEnv* env, jclass cls, jmethodID methodID,
-								  jboolean isStatic)
+jobject jni_ToReflectedMethod(JNIEnv* env, jclass cls, jmethodID methodID, jboolean isStatic)
 {
 #if defined(ENABLE_JAVASE)
-	methodinfo                    *m;
-	java_lang_reflect_Constructor *rc;
-	java_lang_reflect_Method      *rm;
+	TRACEJNICALLS(("jni_ToReflectedMethod(env=%p, cls=%p, methodID=%p, isStatic=%d)", env, cls, methodID, isStatic));
 
-	TRACEJNICALLS(("_Jv_JNI_ToReflectedMethod(env=%p, cls=%p, methodID=%p, isStatic=%d)", env, cls, methodID, isStatic));
-
-	m = (methodinfo *) methodID;
+	methodinfo* m = (methodinfo *) methodID;
 
 	/* HotSpot does the same assert. */
 
 	assert(((m->flags & ACC_STATIC) != 0) == (isStatic != 0));
 
-	if (m->name == utf_init) {
-		rc = reflect_constructor_new(m);
+	java_handle_t* h;
 
-		return (jobject) rc;
+	if (m->name == utf_init) {
+		h = java_lang_reflect_Constructor(m).get_handle();
 	}
 	else {
-		rm = reflect_method_new(m);
-
-		return (jobject) rm;
+		h = java_lang_reflect_Method(m).get_handle();
 	}
+
+	return (jobject) h;
 #else
-	vm_abort("_Jv_JNI_ToReflectedMethod: not implemented in this configuration");
+	vm_abort("jni_ToReflectedMethod: Not implemented in this configuration.");
 
 	/* keep compiler happy */
 
@@ -2606,30 +2485,27 @@ void _Jv_JNI_SetStaticObjectField(JNIEnv *env, jclass clazz, jfieldID fieldID,
 
 *******************************************************************************/
 
-jstring _Jv_JNI_NewString(JNIEnv *env, const jchar *buf, jsize len)
+jstring jni_NewString(JNIEnv *env, const jchar *buf, jsize len)
 {
-	java_lang_String        *s;
-	java_handle_chararray_t *a;
-	int32_t                  i;
-
-	STATISTICS(jniinvokation());
+	TRACEJNICALLS(("jni_NewString(env=%p, buf=%p, len=%d)", env, buf, len));
 	
-	s = (java_lang_String *) builtin_new(class_java_lang_String);
-	a = builtin_newarray_char(len);
+	java_handle_chararray_t* a = builtin_newarray_char(len);
 
-	/* javastring or characterarray could not be created */
-	if ((a == NULL) || (s == NULL))
+	if (a == NULL)
 		return NULL;
 
 	/* copy text */
-	for (i = 0; i < len; i++)
+	for (jsize i = 0; i < len; i++)
 		LLNI_array_direct(a, i) = buf[i];
 
-	LLNI_field_set_ref(s, value , a);
-	LLNI_field_set_val(s, offset, 0);
-	LLNI_field_set_val(s, count , len);
+	java_handle_t* h = builtin_new(class_java_lang_String);
 
-	return (jstring) jni_NewLocalRef(env, (jobject) s);
+	if (h == NULL)
+		return NULL;
+
+	java_lang_String s(h, a, len, 0);
+
+	return (jstring) jni_NewLocalRef(env, (jobject) s.get_handle());
 }
 
 
@@ -2642,18 +2518,16 @@ static jchar emptyStringJ[]={0,0};
 
 *******************************************************************************/
 
-jsize _Jv_JNI_GetStringLength(JNIEnv *env, jstring str)
+jsize jni_GetStringLength(JNIEnv *env, jstring str)
 {
-	java_lang_String *s;
-	jsize             len;
+	TRACEJNICALLSENTER(("jni_GetStringLength(env=%p, str=%p)", env, str));
 
-	TRACEJNICALLS(("_Jv_JNI_GetStringLength(env=%p, str=%p)", env, str));
+	java_lang_String s(str);
+	jsize count = s.get_count();
 
-	s = (java_lang_String *) str;
+	TRACEJNICALLSEXIT(("->%d)", count));
 
-	LLNI_field_get_val(s, count, len);
-
-	return len;
+	return count;
 }
 
 
@@ -2666,12 +2540,8 @@ jsize _Jv_JNI_GetStringLength(JNIEnv *env, jstring str)
 
 const jchar* jni_GetStringChars(JNIEnv *env, jstring str, jboolean *isCopy)
 {	
-	java_lang_String        *s;
-	java_handle_chararray_t *a;
-	u2                      *stringbuffer;
-	int32_t                  count;
-	int32_t                  offset;
-	int32_t                  i;
+	u2      *stringbuffer;
+	int32_t  i;
 
 	TRACEJNICALLS(("jni_GetStringChars(env=%p, str=%p, isCopy=%p)", env, str, isCopy));
 
@@ -2679,15 +2549,14 @@ const jchar* jni_GetStringChars(JNIEnv *env, jstring str, jboolean *isCopy)
 		// FIXME This is really ugly.
 		return emptyStringJ;
 
-	s = (java_lang_String *) str;
+	java_lang_String s(str);
 
-	LLNI_field_get_ref(s, value, a);
-
-	if (a == NULL)
+	java_handle_chararray_t* ca     = s.get_value();
+	int32_t                  count  = s.get_count();
+	int32_t                  offset = s.get_offset();
+	
+	if (ca == NULL)
 		return NULL;
-
-	LLNI_field_get_val(s, count, count);
-	LLNI_field_get_val(s, offset, offset);
 
 	/* allocate memory */
 
@@ -2696,7 +2565,7 @@ const jchar* jni_GetStringChars(JNIEnv *env, jstring str, jboolean *isCopy)
 	/* copy text */
 
 	for (i = 0; i < count; i++)
-		stringbuffer[i] = LLNI_array_direct(a, offset + i);
+		stringbuffer[i] = LLNI_array_direct(ca, offset + i);
 	
 	/* terminate string */
 
@@ -2719,16 +2588,16 @@ const jchar* jni_GetStringChars(JNIEnv *env, jstring str, jboolean *isCopy)
 
 void _Jv_JNI_ReleaseStringChars(JNIEnv *env, jstring str, const jchar *chars)
 {
-	java_lang_String *s;
+	TRACEJNICALLS(("jni_ReleaseStringChars(env=%p, str=%p, chars=%p)", env, str, chars));
 
-	STATISTICS(jniinvokation());
-
+	// FIXME
 	if (chars == emptyStringJ)
 		return;
 
-	s = (java_lang_String *) str;
+	java_lang_String s(str);
+	int32_t count = s.get_count();
 
-	MFREE(((jchar *) chars), jchar, LLNI_field_direct(s, count) + 1);
+	MFREE(((jchar*) chars), jchar, count + 1);
 }
 
 
@@ -2739,30 +2608,28 @@ void _Jv_JNI_ReleaseStringChars(JNIEnv *env, jstring str, const jchar *chars)
 
 *******************************************************************************/
 
-jstring _Jv_JNI_NewStringUTF(JNIEnv *env, const char *bytes)
+jstring jni_NewStringUTF(JNIEnv *env, const char *bytes)
 {
-	java_lang_String *s;
+	TRACEJNICALLS(("jni_NewStringUTF(env=%p, bytes=%s)", env, bytes));
 
-	TRACEJNICALLS(("_Jv_JNI_NewStringUTF(env=%p, bytes=%s)", env, bytes));
+	java_handle_t *h = javastring_safe_new_from_utf8(bytes);
 
-	s = (java_lang_String *) javastring_safe_new_from_utf8(bytes);
-
-    return (jstring) jni_NewLocalRef(env, (jobject) s);
+    return (jstring) jni_NewLocalRef(env, (jobject) h);
 }
 
 
 /****************** returns the utf8 length in bytes of a string *******************/
 
-jsize _Jv_JNI_GetStringUTFLength(JNIEnv *env, jstring string)
+jsize jni_GetStringUTFLength(JNIEnv *env, jstring string)
 {   
-	java_lang_String *s;
-	s4                length;
+	TRACEJNICALLS(("jni_GetStringUTFLength(env=%p, string=%p)", env, string));
 
-	TRACEJNICALLS(("_Jv_JNI_GetStringUTFLength(env=%p, string=%p)", env, string));
+	java_lang_String s(string);
+	java_handle_chararray_t* ca     = s.get_value();
+	int32_t                  count  = s.get_count();
 
-	s = (java_lang_String *) string;
-
-	length = u2_utflength(LLNI_field_direct(s, value)->data, LLNI_field_direct(s, count));
+	// FIXME GC critical section!
+	int32_t length = u2_utflength(ca->data, count);
 
 	return length;
 }
@@ -3230,19 +3097,13 @@ jint _Jv_JNI_GetJavaVM(JNIEnv *env, JavaVM **javavm)
 
 *******************************************************************************/
 
-void _Jv_JNI_GetStringRegion(JNIEnv* env, jstring str, jsize start, jsize len,
-							 jchar *buf)
+void jni_GetStringRegion(JNIEnv* env, jstring str, jsize start, jsize len, jchar *buf)
 {
-	java_lang_String        *s;
-	java_handle_chararray_t *ca;
+	java_lang_String s(str);
+	java_handle_chararray_t* ca    = s.get_value();
+	int32_t                  count = s.get_count();
 
-	STATISTICS(jniinvokation());
-
-	s  = (java_lang_String *) str;
-	LLNI_field_get_ref(s, value, ca);
-
-	if ((start < 0) || (len < 0) || (start > LLNI_field_direct(s, count)) ||
-		(start + len > LLNI_field_direct(s, count))) {
+	if ((start < 0) || (len < 0) || (start > count) || (start + len > count)) {
 		exceptions_throw_stringindexoutofboundsexception();
 		return;
 	}
@@ -3261,26 +3122,21 @@ void _Jv_JNI_GetStringRegion(JNIEnv* env, jstring str, jsize start, jsize len,
 
 *******************************************************************************/
 
-void _Jv_JNI_GetStringUTFRegion(JNIEnv* env, jstring str, jsize start,
-								jsize len, char *buf)
+void jni_GetStringUTFRegion(JNIEnv* env, jstring str, jsize start, jsize len, char *buf)
 {
-	java_lang_String        *s;
-	java_handle_chararray_t *ca;
-	s4                       i;
-	int32_t                  count;
-	int32_t                  offset;
+	TRACEJNICALLS(("jni_GetStringUTFRegion(env=%p, str=%p, start=%d, len=%d, buf=%p)", env, str, start, len, buf));
 
-	TRACEJNICALLS(("_Jv_JNI_GetStringUTFRegion(env=%p, str=%p, start=%d, len=%d, buf=%p)", env, str, start, len, buf));
-
-	s  = (java_lang_String *) str;
-	LLNI_field_get_ref(s, value, ca);
-	LLNI_field_get_val(s, count, count);
-	LLNI_field_get_val(s, offset, offset);
+	java_lang_String s(str);
+	java_handle_chararray_t* ca     = s.get_value();
+	int32_t                  count  = s.get_count();
+	int32_t                  offset = s.get_offset();
 
 	if ((start < 0) || (len < 0) || (start > count) || (start + len > count)) {
 		exceptions_throw_stringindexoutofboundsexception();
 		return;
 	}
+
+	int32_t i;
 
 	for (i = 0; i < len; i++)
 		buf[i] = LLNI_array_direct(ca, offset + start + i);
@@ -3577,38 +3433,29 @@ jobject jni_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 {
 #if defined(ENABLE_JAVASE)
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	java_handle_t           *nbuf;
-
-# if SIZEOF_VOID_P == 8
-	gnu_classpath_Pointer64 *paddress;
-# else
-	gnu_classpath_Pointer32 *paddress;
-# endif
-
 	TRACEJNICALLSENTER(("jni_NewDirectByteBuffer(env=%p, address=%p, capacity=%ld)", env, address, capacity));
 
-	/* alocate a gnu.classpath.Pointer{32,64} object */
+	// Allocate a gnu.classpath.Pointer{32,64} object.
 
 # if SIZEOF_VOID_P == 8
-	if (!(paddress = (gnu_classpath_Pointer64 *)
-		  builtin_new(class_gnu_classpath_Pointer64)))
+	java_handle_t* h = builtin_new(class_gnu_classpath_Pointer64);
 # else
-	if (!(paddress = (gnu_classpath_Pointer32 *)
-		  builtin_new(class_gnu_classpath_Pointer32)))
+	java_handle_t* h = builtin_new(class_gnu_classpath_Pointer32);
 # endif
+
+	if (h == NULL)
 		return NULL;
 
-	/* fill gnu.classpath.Pointer{32,64} with address */
+	gnu_classpath_Pointer p(h, address);
 
-	LLNI_field_set_val(paddress, data, (ptrint) address);
+	// Create a java.nio.DirectByteBufferImpl$ReadWrite object.
 
-	/* create a java.nio.DirectByteBufferImpl$ReadWrite object */
+	java_handle_t* nbuf =
+		(java_handle_t*) jni_NewObject(env, (jclass) class_java_nio_DirectByteBufferImpl_ReadWrite,
+									   (jmethodID) dbbirw_init, NULL, p.get_handle(),
+									   (jint) capacity, (jint) capacity, (jint) 0);
 
-	nbuf = (java_handle_t*) jni_NewObject(env, (jclass) class_java_nio_DirectByteBufferImpl_ReadWrite,
-										  (jmethodID) dbbirw_init, NULL, paddress,
-										  (jint) capacity, (jint) capacity, (jint) 0);
-
-	/* add local reference and return the value */
+	// Add a local reference and return the value.
 
 	TRACEJNICALLSEXIT(("->%p", nbuf));
 
@@ -3657,78 +3504,47 @@ jobject jni_NewDirectByteBuffer(JNIEnv *env, void *address, jlong capacity)
 
 *******************************************************************************/
 
-void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
+void* jni_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 {
 #if defined(ENABLE_JAVASE)
-	java_handle_t                 *h;
-
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
-	java_nio_DirectByteBufferImpl *nbuf;
-	gnu_classpath_Pointer         *po;
-#  if SIZEOF_VOID_P == 8
-	gnu_classpath_Pointer64       *paddress;
-	int64_t                        address;
-#  else
-	gnu_classpath_Pointer32       *paddress;
-	int32_t                        address;
-#  endif
-	void                          *p;
-
-	TRACEJNICALLSENTER(("_Jv_JNI_GetDirectBufferAddress(env=%p, buf=%p)", env, buf));
+	TRACEJNICALLSENTER(("jni_GetDirectBufferAddress(env=%p, buf=%p)", env, buf));
 
 	/* Prevent compiler warning. */
 
-	h = (java_handle_t *) buf;
+	java_handle_t* h = (java_handle_t *) buf;
 
 	if ((h != NULL) && !builtin_instanceof(h, class_java_nio_Buffer))
 		return NULL;
 
-	nbuf = (java_nio_DirectByteBufferImpl *) buf;
+	java_nio_DirectByteBufferImpl dbb(buf);
+	java_handle_t* address = dbb.get_address();
 
-	LLNI_field_get_ref(nbuf, address, po);
-
-#  if SIZEOF_VOID_P == 8
-	paddress = (gnu_classpath_Pointer64 *) po;
-#  else
-	paddress = (gnu_classpath_Pointer32 *) po;
-#  endif
-
-	if (paddress == NULL) {
+	if (address == NULL) {
 		TRACEJNICALLSEXIT(("->%p", NULL));
 		return NULL;
 	}
 
-	LLNI_field_get_val(paddress, data, address);
+	gnu_classpath_Pointer p(address);
+	void* data = p.get_data();
 
-	p = (void *) (intptr_t) address;
+	TRACEJNICALLSEXIT(("->%p", data));
 
-	TRACEJNICALLSEXIT(("->%p", p));
-
-	return p;
+	return data;
 
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
-	java_nio_Buffer *o;
-	int64_t          address;
-	void            *p;
+	TRACEJNICALLS(("jni_GetDirectBufferAddress(env=%p, buf=%p)", env, buf));
 
-	TRACEJNICALLS(("_Jv_JNI_GetDirectBufferAddress(env=%p, buf=%p)", env, buf));
+	java_nio_Buffer jnb(buf);
 
-	/* Prevent compiler warning. */
-
-	h = (java_handle_t *) buf;
-
-	if ((h != NULL) && !builtin_instanceof(h, class_sun_nio_ch_DirectBuffer))
+	if (jnb.is_non_null() && !builtin_instanceof(jnb.get_handle(), class_sun_nio_ch_DirectBuffer))
 		return NULL;
 
-	o = (java_nio_Buffer *) buf;
+	void* address = jnb.get_address();
 
-	LLNI_field_get_val(o, address, address);
-
-	p = (void *) (intptr_t) address;
-
-	return p;
+	return address;
 
 # else
 #  error unknown classpath configuration
@@ -3736,10 +3552,9 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 #else
 
-	vm_abort("_Jv_JNI_GetDirectBufferAddress: not implemented in this configuration");
+	vm_abort("jni_GetDirectBufferAddress: Not implemented in this configuration.");
 
-	/* keep compiler happy */
-
+	// Keep compiler happy.
 	return NULL;
 
 #endif
@@ -3753,29 +3568,24 @@ void *_Jv_JNI_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 *******************************************************************************/
 
-jlong _Jv_JNI_GetDirectBufferCapacity(JNIEnv* env, jobject buf)
+jlong jni_GetDirectBufferCapacity(JNIEnv* env, jobject buf)
 {
 #if defined(ENABLE_JAVASE) && defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	java_handle_t   *o;
-	java_nio_Buffer *nbuf;
-	jlong            capacity;
+	TRACEJNICALLS(("jni_GetDirectBufferCapacity(env=%p, buf=%p)", env, buf));
 
-	STATISTICS(jniinvokation());
+	java_handle_t* h = (java_handle_t *) buf;
 
-	o = (java_handle_t *) buf;
-
-	if (!builtin_instanceof(o, class_java_nio_DirectByteBufferImpl))
+	if (!builtin_instanceof(h, class_java_nio_DirectByteBufferImpl))
 		return -1;
 
-	nbuf = (java_nio_Buffer *) o;
-
-	LLNI_field_get_val(nbuf, cap, capacity);
+	java_nio_Buffer b(h);
+	jlong capacity = b.get_cap();
 
 	return capacity;
 #else
-	vm_abort("_Jv_JNI_GetDirectBufferCapacity: not implemented in this configuration");
+	vm_abort("jni_GetDirectBufferCapacity: not implemented in this configuration");
 
-	/* keep compiler happy */
+	// Keep compiler happy.
 
 	return 0;
 #endif
@@ -4036,12 +3846,12 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 	NULL,    
 	_Jv_JNI_GetVersion,
 
-	_Jv_JNI_DefineClass,
+	jni_DefineClass,
 	jni_FindClass,
 	jni_FromReflectedMethod,
 	jni_FromReflectedField,
-	_Jv_JNI_ToReflectedMethod,
-	_Jv_JNI_GetSuperclass,
+	jni_ToReflectedMethod,
+	jni_GetSuperclass,
 	_Jv_JNI_IsAssignableFrom,
 	_Jv_JNI_ToReflectedField,
 
@@ -4066,7 +3876,7 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 	_Jv_JNI_NewObjectV,
 	_Jv_JNI_NewObjectA,
 
-	_Jv_JNI_GetObjectClass,
+	jni_GetObjectClass,
 	_Jv_JNI_IsInstanceOf,
 
 	_Jv_JNI_GetMethodID,
@@ -4208,13 +4018,13 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 	_Jv_JNI_SetStaticFloatField,
 	_Jv_JNI_SetStaticDoubleField,
 
-	_Jv_JNI_NewString,
-	_Jv_JNI_GetStringLength,
+	jni_NewString,
+	jni_GetStringLength,
 	jni_GetStringChars,
 	_Jv_JNI_ReleaseStringChars,
 
-	_Jv_JNI_NewStringUTF,
-	_Jv_JNI_GetStringUTFLength,
+	jni_NewStringUTF,
+	jni_GetStringUTFLength,
 	_Jv_JNI_GetStringUTFChars,
 	_Jv_JNI_ReleaseStringUTFChars,
 
@@ -4278,8 +4088,8 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 
 	/* New JNI 1.2 functions. */
 
-	_Jv_JNI_GetStringRegion,
-	_Jv_JNI_GetStringUTFRegion,
+	jni_GetStringRegion,
+	jni_GetStringUTFRegion,
 
 	jni_GetPrimitiveArrayCritical,
 	jni_ReleasePrimitiveArrayCritical,
@@ -4295,8 +4105,8 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 	/* New JNI 1.4 functions. */
 
 	jni_NewDirectByteBuffer,
-	_Jv_JNI_GetDirectBufferAddress,
-	_Jv_JNI_GetDirectBufferCapacity,
+	jni_GetDirectBufferAddress,
+	jni_GetDirectBufferCapacity,
 
 	/* New JNI 1.6 functions. */
 
@@ -4393,7 +4203,7 @@ jint JNI_CreateJavaVM(JavaVM **p_vm, void **p_env, void *vm_args)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -25,6 +25,7 @@
 
 #include "config.h"
 
+#include <stdint.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,19 +33,15 @@
 #include <unistd.h>
 #include <sys/utsname.h>
 
-#include "vm/types.h"
-
 #include "mm/memory.h"
 
 #include "native/jni.h"
 #include "native/llni.h"
 
-#include "vm/global.h"                      /* required by java_lang_String.h */
-#include "native/include/java_lang_String.h"
-
 #include "toolbox/list.h"
 #include "toolbox/util.h"
 
+#include "vm/global.h"
 #include "vm/properties.h"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"

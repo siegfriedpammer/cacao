@@ -32,29 +32,12 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_Boolean.h"
-#include "native/include/java_lang_Byte.h"
-#include "native/include/java_lang_Character.h"
-#include "native/include/java_lang_Short.h"
-#include "native/include/java_lang_Integer.h"
-#include "native/include/java_lang_Long.h"
-#include "native/include/java_lang_Float.h"
-#include "native/include/java_lang_Double.h"
-#include "native/include/java_lang_Object.h"
-#include "native/include/java_lang_Class.h"
-#include "native/include/java_lang_String.h"
-
-#include "native/include/java_lang_reflect_Field.h"
-
 // FIXME
-extern "C" {
-#include "native/include/java_lang_reflect_VMField.h"
-}
+//#include "native/include/java_lang_reflect_VMField.h"
 
 #if defined(ENABLE_ANNOTATIONS)
-#include "native/include/java_util_Map.h"
-#include "native/include/sun_reflect_ConstantPool.h"
-#include "native/vm/reflect.h"
+// REMOVEME
+# include "native/vm/reflection.hpp"
 #endif
 
 #include "vm/access.h"
@@ -66,57 +49,9 @@ extern "C" {
 #include "vm/resolve.h"
 #include "vm/string.hpp"
 
+#include "vmcore/javaobjects.hpp"
 #include "vmcore/loader.h"
 #include "vmcore/utf8.h"
-
-
-/* native methods implemented by this file ************************************/
-
-static const JNINativeMethod methods[] = {
-	{ (char*) "getModifiersInternal", (char*) "()I",                                     (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getModifiersInternal },
-	{ (char*) "getType",              (char*) "()Ljava/lang/Class;",                     (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getType              },
-	{ (char*) "get",                  (char*) "(Ljava/lang/Object;)Ljava/lang/Object;",  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_get                  },
-	{ (char*) "getBoolean",           (char*) "(Ljava/lang/Object;)Z",                   (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getBoolean           },
-	{ (char*) "getByte",              (char*) "(Ljava/lang/Object;)B",                   (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getByte              },
-	{ (char*) "getChar",              (char*) "(Ljava/lang/Object;)C",                   (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getChar              },
-	{ (char*) "getShort",             (char*) "(Ljava/lang/Object;)S",                   (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getShort             },
-	{ (char*) "getInt",               (char*) "(Ljava/lang/Object;)I",                   (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getInt               },
-	{ (char*) "getLong",              (char*) "(Ljava/lang/Object;)J",                   (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getLong              },
-	{ (char*) "getFloat",             (char*) "(Ljava/lang/Object;)F",                   (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getFloat             },
-	{ (char*) "getDouble",            (char*) "(Ljava/lang/Object;)D",                   (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getDouble            },
-	{ (char*) "set",                  (char*) "(Ljava/lang/Object;Ljava/lang/Object;)V", (void*) (uintptr_t) &Java_java_lang_reflect_VMField_set                  },
-	{ (char*) "setBoolean",           (char*) "(Ljava/lang/Object;Z)V",                  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_setBoolean           },
-	{ (char*) "setByte",              (char*) "(Ljava/lang/Object;B)V",                  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_setByte              },
-	{ (char*) "setChar",              (char*) "(Ljava/lang/Object;C)V",                  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_setChar              },
-	{ (char*) "setShort",             (char*) "(Ljava/lang/Object;S)V",                  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_setShort             },
-	{ (char*) "setInt",               (char*) "(Ljava/lang/Object;I)V",                  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_setInt               },
-	{ (char*) "setLong",              (char*) "(Ljava/lang/Object;J)V",                  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_setLong              },
-	{ (char*) "setFloat",             (char*) "(Ljava/lang/Object;F)V",                  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_setFloat             },
-	{ (char*) "setDouble",            (char*) "(Ljava/lang/Object;D)V",                  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_setDouble            },
-	{ (char*) "getSignature",         (char*) "()Ljava/lang/String;",                    (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getSignature         },
-#if defined(ENABLE_ANNOTATIONS)
-	{ (char*) "declaredAnnotations",  (char*) "()Ljava/util/Map;",                       (void*) (uintptr_t) &Java_java_lang_reflect_VMField_declaredAnnotations  },
-#endif
-};
-
-
-/* _Jv_java_lang_reflect_VMField_init ******************************************
-
-   Register native functions.
-
-*******************************************************************************/
-
-// FIXME
-extern "C" {
-void _Jv_java_lang_reflect_VMField_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("java/lang/reflect/VMField");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-}
 
 
 /* _field_access_check *********************************************************
@@ -129,18 +64,14 @@ void _Jv_java_lang_reflect_VMField_init(void)
 
 *******************************************************************************/
 
-static bool _field_access_check(java_lang_reflect_VMField *_this,
-								fieldinfo *f, java_handle_t *o)
+static bool _field_access_check(const java_lang_reflect_VMField& rvmf, fieldinfo *f, java_handle_t *o)
 {
-	java_lang_reflect_Field *rf;
-	int32_t                  flag;
+	// Check if we should bypass security checks (AccessibleObject).
 
-	/* check if we should bypass security checks (AccessibleObject) */
+	java_lang_reflect_Field rf(rvmf.get_f());
+	int32_t override = rf.get_flag();
 
-	LLNI_field_get_ref(_this, f, rf);
-	LLNI_field_get_val(rf, flag, flag);
-
-	if (flag == false) {
+	if (override == false) {
 		/* This function is always called like this:
 		       [0] java.lang.reflect.VMField.xxx (Native Method)
 		       [1] java.lang.reflect.Field.xxx
@@ -190,37 +121,37 @@ static bool _field_access_check(java_lang_reflect_VMField *_this,
 *******************************************************************************/
 
 #define _FIELD_GET_TYPE(name, type, uniontype) \
-static inline type _field_get_##name(fieldinfo *f, java_lang_Object *o) \
+static inline type _field_get_##name(fieldinfo *f, java_handle_t* h) \
 { \
 	type ret; \
 	if (f->flags & ACC_STATIC) { \
 		ret = f->value->uniontype; \
 	} else { \
 		LLNI_CRITICAL_START; \
-		ret = *(type *) (((intptr_t) LLNI_DIRECT(o)) + f->offset); \
+		ret = *(type *) (((intptr_t) LLNI_DIRECT(h)) + f->offset); \
 		LLNI_CRITICAL_END; \
 	} \
 	return ret; \
 }
 
-static inline java_handle_t *_field_get_handle(fieldinfo *f, java_lang_Object *o)
+static inline java_handle_t *_field_get_handle(fieldinfo *f, java_handle_t* h)
 {
-	java_object_t *obj;
-	java_handle_t *hdl;
+	java_object_t* result;
+	java_handle_t* hresult;
 
 	LLNI_CRITICAL_START;
 
 	if (f->flags & ACC_STATIC) {
-		obj = (java_object_t*) f->value->a;
+		result = (java_object_t*) f->value->a;
 	} else {
-		obj = *(java_object_t **) (((intptr_t) LLNI_DIRECT(o)) + f->offset);
+		result = *(java_object_t**) (((intptr_t) LLNI_DIRECT(h)) + f->offset);
 	}
 
-	hdl = LLNI_WRAP(obj);
+	hresult = LLNI_WRAP(result);
 
 	LLNI_CRITICAL_END;
 
-	return hdl;
+	return hresult;
 }
 
 _FIELD_GET_TYPE(int,    int32_t, i)
@@ -236,25 +167,25 @@ _FIELD_GET_TYPE(double, double,  d)
 *******************************************************************************/
 
 #define _FIELD_SET_TYPE(name, type, uniontype) \
-static inline void _field_set_##name(fieldinfo *f, java_lang_Object *o, type value) \
+static inline void _field_set_##name(fieldinfo* f, java_handle_t* h, type value) \
 { \
 	if (f->flags & ACC_STATIC) { \
 		f->value->uniontype = value; \
 	} else { \
 		LLNI_CRITICAL_START; \
-		*(type *) (((intptr_t) LLNI_DIRECT(o)) + f->offset) = value; \
+		*(type *) (((intptr_t) LLNI_DIRECT(h)) + f->offset) = value; \
 		LLNI_CRITICAL_END; \
 	} \
 }
 
-static inline void _field_set_handle(fieldinfo *f, java_lang_Object *o, java_handle_t *value)
+static inline void _field_set_handle(fieldinfo* f, java_handle_t* h, java_handle_t* hvalue)
 {
 	LLNI_CRITICAL_START;
 
 	if (f->flags & ACC_STATIC) {
-		f->value->a = LLNI_DIRECT(value);
+		f->value->a = LLNI_DIRECT(hvalue);
 	} else {
-		*(java_object_t **) (((intptr_t) LLNI_DIRECT(o)) + f->offset) = LLNI_DIRECT(value);
+		*(java_object_t**) (((intptr_t) LLNI_DIRECT(h)) + f->offset) = LLNI_DIRECT(hvalue);
 	}
 
 	LLNI_CRITICAL_END;
@@ -274,16 +205,10 @@ extern "C" {
  * Method:    getModifiersInternal
  * Signature: ()I
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getModifiersInternal(JNIEnv *env, java_lang_reflect_VMField *_this)
+JNIEXPORT jint JNICALL Java_java_lang_reflect_VMField_getModifiersInternal(JNIEnv *env, jobject _this)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &(c->fields[slot]);
-
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 	return f->flags;
 }
 
@@ -293,16 +218,13 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getModifiersInternal(JN
  * Method:    getType
  * Signature: ()Ljava/lang/Class;
  */
-JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_VMField_getType(JNIEnv *env, java_lang_reflect_VMField *_this)
+JNIEXPORT jclass JNICALL Java_java_lang_reflect_VMField_getType(JNIEnv *env, jobject _this)
 {
-	classinfo *c;
-	typedesc  *desc;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 	classinfo *ret;
-	int32_t    slot;
 
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	desc = c->fields[slot].parseddesc;
+	typedesc* desc = f->parseddesc;
 
 	if (desc == NULL)
 		return NULL;
@@ -310,7 +232,7 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_VMField_getType(JNIEnv
 	if (!resolve_class_from_typedesc(desc, true, false, &ret))
 		return NULL;
 	
-	return LLNI_classinfo_wrap(ret);
+	return (jclass) LLNI_classinfo_wrap(ret);
 }
 
 
@@ -319,22 +241,19 @@ JNIEXPORT java_lang_Class* JNICALL Java_java_lang_reflect_VMField_getType(JNIEnv
  * Method:    get
  * Signature: (Ljava/lang/Object;)Ljava/lang/Object;
  */
-JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_VMField_get(JNIEnv *env, java_lang_reflect_VMField *_this, java_lang_Object *o)
+JNIEXPORT jobject JNICALL Java_java_lang_reflect_VMField_get(JNIEnv *env, jobject _this, jobject o)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
-	imm_union  value;
-	java_handle_t *object;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return NULL;
+
+	imm_union value;
 
 	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_BOOLEAN:
@@ -342,30 +261,30 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_VMField_get(JNIEnv *e
 	case PRIMITIVETYPE_CHAR:
 	case PRIMITIVETYPE_SHORT:
 	case PRIMITIVETYPE_INT:
-		value.i = _field_get_int(f, o);
+		value.i = _field_get_int(f, ho);
 		break;
 
 	case PRIMITIVETYPE_LONG:
-		value.l = _field_get_long(f, o);
+		value.l = _field_get_long(f, ho);
 		break;
 
 	case PRIMITIVETYPE_FLOAT:
-		value.f = _field_get_float(f, o);
+		value.f = _field_get_float(f, ho);
 		break;
 
 	case PRIMITIVETYPE_DOUBLE:
-		value.d = _field_get_double(f, o);
+		value.d = _field_get_double(f, ho);
 		break;
 
 	case TYPE_ADR:
-		return (java_lang_Object *) _field_get_handle(f, o);
+		return (jobject) _field_get_handle(f, ho);
 	}
 
 	/* Now box the primitive types. */
 
-	object = Primitive::box(f->parseddesc->primitivetype, value);
+	java_handle_t* object = Primitive::box(f->parseddesc->primitivetype, value);
 
-	return (java_lang_Object *) object;
+	return (jobject) object;
 }
 
 
@@ -374,28 +293,23 @@ JNIEXPORT java_lang_Object* JNICALL Java_java_lang_reflect_VMField_get(JNIEnv *e
  * Method:    getBoolean
  * Signature: (Ljava/lang/Object;)Z
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getBoolean(JNIEnv *env, java_lang_reflect_VMField *_this, java_lang_Object *o)
+JNIEXPORT jboolean JNICALL Java_java_lang_reflect_VMField_getBoolean(JNIEnv *env, jobject _this, jobject o)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return 0;
 
 	/* check the field type and return the value */
 
 	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_BOOLEAN:
-		return (int32_t) _field_get_int(f, o);
+		return (int32_t) _field_get_int(f, ho);
 	default:
 		exceptions_throw_illegalargumentexception();
 		return 0;
@@ -408,28 +322,23 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getBoolean(JNIEnv *env,
  * Method:    getByte
  * Signature: (Ljava/lang/Object;)B
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getByte(JNIEnv *env, java_lang_reflect_VMField *_this, java_lang_Object *o)
+JNIEXPORT jbyte JNICALL Java_java_lang_reflect_VMField_getByte(JNIEnv *env, jobject _this, jobject o)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return 0;
 
 	/* check the field type and return the value */
 
 	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_BYTE:
-		return (int32_t) _field_get_int(f, o);
+		return (int32_t) _field_get_int(f, ho);
 	default:
 		exceptions_throw_illegalargumentexception();
 		return 0;
@@ -442,28 +351,23 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getByte(JNIEnv *env, ja
  * Method:    getChar
  * Signature: (Ljava/lang/Object;)C
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getChar(JNIEnv *env, java_lang_reflect_VMField *_this, java_lang_Object *o)
+JNIEXPORT jchar JNICALL Java_java_lang_reflect_VMField_getChar(JNIEnv *env, jobject _this, jobject o)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return 0;
 
 	/* check the field type and return the value */
 
 	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_CHAR:
-		return (int32_t) _field_get_int(f, o);
+		return (int32_t) _field_get_int(f, ho);
 	default:
 		exceptions_throw_illegalargumentexception();
 		return 0;
@@ -476,21 +380,16 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getChar(JNIEnv *env, ja
  * Method:    getShort
  * Signature: (Ljava/lang/Object;)S
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getShort(JNIEnv *env, java_lang_reflect_VMField *_this, java_lang_Object *o)
+JNIEXPORT jshort JNICALL Java_java_lang_reflect_VMField_getShort(JNIEnv *env, jobject _this, jobject o)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return 0;
 
 	/* check the field type and return the value */
@@ -498,7 +397,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getShort(JNIEnv *env, j
 	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_BYTE:
 	case PRIMITIVETYPE_SHORT:
-		return (int32_t) _field_get_int(f, o);
+		return (int32_t) _field_get_int(f, ho);
 	default:
 		exceptions_throw_illegalargumentexception();
 		return 0;
@@ -511,21 +410,16 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getShort(JNIEnv *env, j
  * Method:    getInt
  * Signature: (Ljava/lang/Object;)I
  */
-JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getInt(JNIEnv *env , java_lang_reflect_VMField *_this, java_lang_Object *o)
+JNIEXPORT jint JNICALL Java_java_lang_reflect_VMField_getInt(JNIEnv *env , jobject _this, jobject o)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return 0;
 
 	/* check the field type and return the value */
@@ -535,7 +429,7 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getInt(JNIEnv *env , ja
 	case PRIMITIVETYPE_CHAR:
 	case PRIMITIVETYPE_SHORT:
 	case PRIMITIVETYPE_INT:
-		return (int32_t) _field_get_int(f, o);
+		return (int32_t) _field_get_int(f, ho);
 	default:
 		exceptions_throw_illegalargumentexception();
 		return 0;
@@ -548,21 +442,16 @@ JNIEXPORT int32_t JNICALL Java_java_lang_reflect_VMField_getInt(JNIEnv *env , ja
  * Method:    getLong
  * Signature: (Ljava/lang/Object;)J
  */
-JNIEXPORT int64_t JNICALL Java_java_lang_reflect_VMField_getLong(JNIEnv *env, java_lang_reflect_VMField *_this, java_lang_Object *o)
+JNIEXPORT jlong JNICALL Java_java_lang_reflect_VMField_getLong(JNIEnv *env, jobject _this, jobject o)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return 0;
 
 	/* check the field type and return the value */
@@ -572,9 +461,9 @@ JNIEXPORT int64_t JNICALL Java_java_lang_reflect_VMField_getLong(JNIEnv *env, ja
 	case PRIMITIVETYPE_CHAR:
 	case PRIMITIVETYPE_SHORT:
 	case PRIMITIVETYPE_INT:
-		return (int64_t) _field_get_int(f, o);
+		return (int64_t) _field_get_int(f, ho);
 	case PRIMITIVETYPE_LONG:
-		return (int64_t) _field_get_long(f, o);
+		return (int64_t) _field_get_long(f, ho);
 	default:
 		exceptions_throw_illegalargumentexception();
 		return 0;
@@ -587,21 +476,16 @@ JNIEXPORT int64_t JNICALL Java_java_lang_reflect_VMField_getLong(JNIEnv *env, ja
  * Method:    getFloat
  * Signature: (Ljava/lang/Object;)F
  */
-JNIEXPORT float JNICALL Java_java_lang_reflect_VMField_getFloat(JNIEnv *env, java_lang_reflect_VMField *_this, java_lang_Object *o)
+JNIEXPORT jfloat JNICALL Java_java_lang_reflect_VMField_getFloat(JNIEnv *env, jobject _this, jobject o)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return 0;
 
 	/* check the field type and return the value */
@@ -611,11 +495,11 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_VMField_getFloat(JNIEnv *env, jav
 	case PRIMITIVETYPE_CHAR:
 	case PRIMITIVETYPE_SHORT:
 	case PRIMITIVETYPE_INT:
-		return (float) _field_get_int(f, o);
+		return (float) _field_get_int(f, ho);
 	case PRIMITIVETYPE_LONG:
-		return (float) _field_get_long(f, o);
+		return (float) _field_get_long(f, ho);
 	case PRIMITIVETYPE_FLOAT:
-		return (float) _field_get_float(f, o);
+		return (float) _field_get_float(f, ho);
 	default:
 		exceptions_throw_illegalargumentexception();
 		return 0;
@@ -628,21 +512,16 @@ JNIEXPORT float JNICALL Java_java_lang_reflect_VMField_getFloat(JNIEnv *env, jav
  * Method:    getDouble
  * Signature: (Ljava/lang/Object;)D
  */
-JNIEXPORT double JNICALL Java_java_lang_reflect_VMField_getDouble(JNIEnv *env , java_lang_reflect_VMField *_this, java_lang_Object *o)
+JNIEXPORT jdouble JNICALL Java_java_lang_reflect_VMField_getDouble(JNIEnv *env , jobject _this, jobject o)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return 0;
 
 	/* check the field type and return the value */
@@ -652,13 +531,13 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_VMField_getDouble(JNIEnv *env , 
 	case PRIMITIVETYPE_CHAR:
 	case PRIMITIVETYPE_SHORT:
 	case PRIMITIVETYPE_INT:
-		return (double) _field_get_int(f, o);
+		return (jdouble) _field_get_int(f, ho);
 	case PRIMITIVETYPE_LONG:
-		return (double) _field_get_long(f, o);
+		return (jdouble) _field_get_long(f, ho);
 	case PRIMITIVETYPE_FLOAT:
-		return (double) _field_get_float(f, o);
+		return (jdouble) _field_get_float(f, ho);
 	case PRIMITIVETYPE_DOUBLE:
-		return (double) _field_get_double(f, o);
+		return (jdouble) _field_get_double(f, ho);
 	default:
 		exceptions_throw_illegalargumentexception();
 		return 0;
@@ -671,31 +550,28 @@ JNIEXPORT double JNICALL Java_java_lang_reflect_VMField_getDouble(JNIEnv *env , 
  * Method:    set
  * Signature: (Ljava/lang/Object;Ljava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang_reflect_VMField *_this, java_lang_Object *o, java_lang_Object *value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, jobject _this, jobject o, jobject value)
 {
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* df = rvmf.get_field();
+
+	java_handle_t* ho     = (java_handle_t*) o;
+	java_handle_t* hvalue = (java_handle_t*) value;
+
 	classinfo *sc;
-	classinfo *dc;
 	fieldinfo *sf;
-	fieldinfo *df;
-	int32_t    slot;
-
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, dc);
-	LLNI_field_get_val(_this, slot , slot);
-	df = &dc->fields[slot];
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, df, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, df, ho))
 		return;
 
 	/* get the source classinfo from the object */
 
-	if (value == NULL)
+	if (hvalue == NULL)
 		sc = NULL;
 	else
-		LLNI_class_get(value, sc);
+		LLNI_class_get(hvalue, sc);
 
 	/* The fieldid is used to set the new value, for primitive
 	   types the value has to be retrieved from the wrapping
@@ -712,14 +588,14 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 
 		switch (sf->parseddesc->primitivetype) {
 		case PRIMITIVETYPE_BOOLEAN:
-			LLNI_field_get_val((java_lang_Boolean *) value, value, val);
+			val = java_lang_Boolean(hvalue).get_value();
 			break;
 		default:
 			exceptions_throw_illegalargumentexception();
 			return;
 		}
 
-		_field_set_int(df, o, val);
+		_field_set_int(df, ho, val);
 		return;
 	}
 
@@ -731,14 +607,14 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 
 		switch (sf->parseddesc->primitivetype) {
 		case PRIMITIVETYPE_BYTE:
-			LLNI_field_get_val((java_lang_Byte *) value, value, val);
+			val = java_lang_Byte(hvalue).get_value();
 			break;
 		default:	
 			exceptions_throw_illegalargumentexception();
 			return;
 		}
 
-		_field_set_int(df, o, val);
+		_field_set_int(df, ho, val);
 		return;
 	}
 
@@ -750,14 +626,14 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 				   
 		switch (sf->parseddesc->primitivetype) {
 		case PRIMITIVETYPE_CHAR:
-			LLNI_field_get_val((java_lang_Character *) value, value, val);
+			val = java_lang_Character(hvalue).get_value();
 			break;
 		default:
 			exceptions_throw_illegalargumentexception();
 			return;
 		}
 
-		_field_set_int(df, o, val);
+		_field_set_int(df, ho, val);
 		return;
 	}
 
@@ -771,17 +647,17 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 				   
 		switch (sf->parseddesc->primitivetype) {
 		case PRIMITIVETYPE_BYTE:
-			LLNI_field_get_val((java_lang_Byte *) value, value, val);
+			val = java_lang_Byte(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_SHORT:
-			LLNI_field_get_val((java_lang_Short *) value, value, val);
+			val = java_lang_Short(hvalue).get_value();
 			break;
 		default:
 			exceptions_throw_illegalargumentexception();
 			return;
 		}
 
-		_field_set_int(df, o, val);
+		_field_set_int(df, ho, val);
 		return;
 	}
 
@@ -795,23 +671,23 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 
 		switch (sf->parseddesc->primitivetype) {
 		case PRIMITIVETYPE_BYTE:
-			LLNI_field_get_val((java_lang_Byte *) value, value, val);
+			val = java_lang_Byte(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_CHAR:
-			LLNI_field_get_val((java_lang_Character *) value, value, val);
+			val = java_lang_Character(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_SHORT:
-			LLNI_field_get_val((java_lang_Short *) value, value, val);
+			val = java_lang_Short(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_INT:
-			LLNI_field_get_val((java_lang_Integer *) value, value, val);
+			val = java_lang_Integer(hvalue).get_value();
 			break;
 		default:
 			exceptions_throw_illegalargumentexception();
 			return;
 		}
 
-		_field_set_int(df, o, val);
+		_field_set_int(df, ho, val);
 		return;
 	}
 
@@ -825,26 +701,26 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 
 		switch (sf->parseddesc->primitivetype) {
 		case PRIMITIVETYPE_BYTE:
-			LLNI_field_get_val((java_lang_Byte *) value, value, val);
+			val = java_lang_Byte(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_CHAR:
-			LLNI_field_get_val((java_lang_Character *) value, value, val);
+			val = java_lang_Character(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_SHORT:
-			LLNI_field_get_val((java_lang_Short *) value, value, val);
+			val = java_lang_Short(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_INT:
-			LLNI_field_get_val((java_lang_Integer *) value, value, val);
+			val = java_lang_Integer(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_LONG:
-			LLNI_field_get_val((java_lang_Long *) value, value, val);
+			val = java_lang_Long(hvalue).get_value();
 			break;
 		default:
 			exceptions_throw_illegalargumentexception();
 			return;
 		}
 
-		_field_set_long(df, o, val);
+		_field_set_long(df, ho, val);
 		return;
 	}
 
@@ -858,29 +734,29 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 
 		switch (sf->parseddesc->primitivetype) {
 		case PRIMITIVETYPE_BYTE:
-			LLNI_field_get_val((java_lang_Byte *) value, value, val);
+			val = java_lang_Byte(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_CHAR:
-			LLNI_field_get_val((java_lang_Character *) value, value, val);
+			val = java_lang_Character(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_SHORT:
-			LLNI_field_get_val((java_lang_Short *) value, value, val);
+			val = java_lang_Short(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_INT:
-			LLNI_field_get_val((java_lang_Integer *) value, value, val);
+			val = java_lang_Integer(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_LONG:
-			LLNI_field_get_val((java_lang_Long *) value, value, val);
+			val = java_lang_Long(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_FLOAT:
-			LLNI_field_get_val((java_lang_Float *) value, value, val);
+			val = java_lang_Float(hvalue).get_value();
 			break;
 		default:
 			exceptions_throw_illegalargumentexception();
 			return;
 		}
 
-		_field_set_float(df, o, val);
+		_field_set_float(df, ho, val);
 		return;
 	}
 
@@ -894,32 +770,32 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 
 		switch (sf->parseddesc->primitivetype) {
 		case PRIMITIVETYPE_BYTE:
-			LLNI_field_get_val((java_lang_Byte *) value, value, val);
+			val = java_lang_Byte(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_CHAR:
-			LLNI_field_get_val((java_lang_Character *) value, value, val);
+			val = java_lang_Character(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_SHORT:
-			LLNI_field_get_val((java_lang_Short *) value, value, val);
+			val = java_lang_Short(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_INT:
-			LLNI_field_get_val((java_lang_Integer *) value, value, val);
+			val = java_lang_Integer(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_LONG:
-			LLNI_field_get_val((java_lang_Long *) value, value, val);
+			val = java_lang_Long(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_FLOAT:
-			LLNI_field_get_val((java_lang_Float *) value, value, val);
+			val = java_lang_Float(hvalue).get_value();
 			break;
 		case PRIMITIVETYPE_DOUBLE:
-			LLNI_field_get_val((java_lang_Double *) value, value, val);
+			val = java_lang_Double(hvalue).get_value();
 			break;
 		default:
 			exceptions_throw_illegalargumentexception();
 			return;
 		}
 
-		_field_set_double(df, o, val);
+		_field_set_double(df, ho, val);
 		return;
 	}
 
@@ -930,7 +806,7 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
 		/*  			if (!builtin_instanceof((java_handle_t *) value, df->class)) */
 		/*  				break; */
 
-		_field_set_handle(df, o, (java_handle_t *) value);
+		_field_set_handle(df, ho, hvalue);
 		return;
 	}
 
@@ -945,34 +821,27 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_set(JNIEnv *env, java_lang
  * Method:    setBoolean
  * Signature: (Ljava/lang/Object;Z)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setBoolean(JNIEnv *env, java_lang_reflect_VMField *_this, java_lang_Object *o, int32_t value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setBoolean(JNIEnv *env, jobject _this, jobject o, jboolean value)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return;
 
 	/* check the field type and set the value */
 
 	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_BOOLEAN:
-		_field_set_int(f, o, value);
+		_field_set_int(f, ho, value);
 		break;
 	default:
 		exceptions_throw_illegalargumentexception();
 	}
-
-	return;
 }
 
 
@@ -981,21 +850,16 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setBoolean(JNIEnv *env, ja
  * Method:    setByte
  * Signature: (Ljava/lang/Object;B)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setByte(JNIEnv *env, java_lang_reflect_VMField *_this, java_lang_Object *o, int32_t value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setByte(JNIEnv *env, jobject _this, jobject o, jbyte value)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return;
 
 	/* check the field type and set the value */
@@ -1004,22 +868,20 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setByte(JNIEnv *env, java_
 	case PRIMITIVETYPE_BYTE:
 	case PRIMITIVETYPE_SHORT:
 	case PRIMITIVETYPE_INT:
-		_field_set_int(f, o, value);
+		_field_set_int(f, ho, value);
 		break;
 	case PRIMITIVETYPE_LONG:
-		_field_set_long(f, o, value);
+		_field_set_long(f, ho, value);
 		break;
 	case PRIMITIVETYPE_FLOAT:
-		_field_set_float(f, o, value);
+		_field_set_float(f, ho, value);
 		break;
 	case PRIMITIVETYPE_DOUBLE:
-		_field_set_double(f, o, value);
+		_field_set_double(f, ho, value);
 		break;
 	default:
 		exceptions_throw_illegalargumentexception();
 	}
-
-	return;
 }
 
 
@@ -1028,21 +890,16 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setByte(JNIEnv *env, java_
  * Method:    setChar
  * Signature: (Ljava/lang/Object;C)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setChar(JNIEnv *env, java_lang_reflect_VMField *_this, java_lang_Object *o, int32_t value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setChar(JNIEnv *env, jobject _this, jobject o, jchar value)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return;
 
 	/* check the field type and set the value */
@@ -1050,22 +907,20 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setChar(JNIEnv *env, java_
 	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_CHAR:
 	case PRIMITIVETYPE_INT:
-		_field_set_int(f, o, value);
+		_field_set_int(f, ho, value);
 		break;
 	case PRIMITIVETYPE_LONG:
-		_field_set_long(f, o, value);
+		_field_set_long(f, ho, value);
 		break;
 	case PRIMITIVETYPE_FLOAT:
-		_field_set_float(f, o, value);
+		_field_set_float(f, ho, value);
 		break;
 	case PRIMITIVETYPE_DOUBLE:
-		_field_set_double(f, o, value);
+		_field_set_double(f, ho, value);
 		break;
 	default:
 		exceptions_throw_illegalargumentexception();
 	}
-
-	return;
 }
 
 
@@ -1074,21 +929,16 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setChar(JNIEnv *env, java_
  * Method:    setShort
  * Signature: (Ljava/lang/Object;S)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setShort(JNIEnv *env, java_lang_reflect_VMField *_this, java_lang_Object *o, int32_t value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setShort(JNIEnv *env, jobject _this, jobject o, jshort value)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return;
 
 	/* check the field type and set the value */
@@ -1096,22 +946,20 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setShort(JNIEnv *env, java
 	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_SHORT:
 	case PRIMITIVETYPE_INT:
-		_field_set_int(f, o, value);
+		_field_set_int(f, ho, value);
 		break;
 	case PRIMITIVETYPE_LONG:
-		_field_set_long(f, o, value);
+		_field_set_long(f, ho, value);
 		break;
 	case PRIMITIVETYPE_FLOAT:
-		_field_set_float(f, o, value);
+		_field_set_float(f, ho, value);
 		break;
 	case PRIMITIVETYPE_DOUBLE:
-		_field_set_double(f, o, value);
+		_field_set_double(f, ho, value);
 		break;
 	default:
 		exceptions_throw_illegalargumentexception();
 	}
-
-	return;
 }
 
 
@@ -1120,43 +968,36 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setShort(JNIEnv *env, java
  * Method:    setInt
  * Signature: (Ljava/lang/Object;I)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setInt(JNIEnv *env, java_lang_reflect_VMField *_this, java_lang_Object *o, int32_t value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setInt(JNIEnv *env, jobject _this, jobject o, jint value)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return;
 
 	/* check the field type and set the value */
 
 	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_INT:
-		_field_set_int(f, o, value);
+		_field_set_int(f, ho, value);
 		break;
 	case PRIMITIVETYPE_LONG:
-		_field_set_long(f, o, value);
+		_field_set_long(f, ho, value);
 		break;
 	case PRIMITIVETYPE_FLOAT:
-		_field_set_float(f, o, value);
+		_field_set_float(f, ho, value);
 		break;
 	case PRIMITIVETYPE_DOUBLE:
-		_field_set_double(f, o, value);
+		_field_set_double(f, ho, value);
 		break;
 	default:
 		exceptions_throw_illegalargumentexception();
 	}
-
-	return;
 }
 
 
@@ -1165,40 +1006,33 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setInt(JNIEnv *env, java_l
  * Method:    setLong
  * Signature: (Ljava/lang/Object;J)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setLong(JNIEnv *env, java_lang_reflect_VMField *_this, java_lang_Object *o, int64_t value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setLong(JNIEnv *env, jobject _this, jobject o, jlong value)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return;
 
 	/* check the field type and set the value */
 
 	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_LONG:
-		_field_set_long(f, o, value);
+		_field_set_long(f, ho, value);
 		break;
 	case PRIMITIVETYPE_FLOAT:
-		_field_set_float(f, o, value);
+		_field_set_float(f, ho, value);
 		break;
 	case PRIMITIVETYPE_DOUBLE:
-		_field_set_double(f, o, value);
+		_field_set_double(f, ho, value);
 		break;
 	default:
 		exceptions_throw_illegalargumentexception();
 	}
-
-	return;
 }
 
 
@@ -1207,37 +1041,30 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setLong(JNIEnv *env, java_
  * Method:    setFloat
  * Signature: (Ljava/lang/Object;F)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setFloat(JNIEnv *env, java_lang_reflect_VMField *_this, java_lang_Object *o, float value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setFloat(JNIEnv *env, jobject _this, jobject o, jfloat value)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return;
 
 	/* check the field type and set the value */
 
 	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_FLOAT:
-		_field_set_float(f, o, value);
+		_field_set_float(f, ho, value);
 		break;
 	case PRIMITIVETYPE_DOUBLE:
-		_field_set_double(f, o, value);
+		_field_set_double(f, ho, value);
 		break;
 	default:
 		exceptions_throw_illegalargumentexception();
 	}
-
-	return;
 }
 
 
@@ -1246,34 +1073,27 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setFloat(JNIEnv *env, java
  * Method:    setDouble
  * Signature: (Ljava/lang/Object;D)V
  */
-JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setDouble(JNIEnv *env, java_lang_reflect_VMField *_this, java_lang_Object *o, double value)
+JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setDouble(JNIEnv *env, jobject _this, jobject o, jdouble value)
 {
-	classinfo *c;
-	fieldinfo *f;
-	int32_t    slot;
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_handle_t* ho = (java_handle_t*) o;
 
 	/* check if the field can be accessed */
 
-	if (!_field_access_check(_this, f, (java_handle_t *) o))
+	if (!_field_access_check(rvmf, f, ho))
 		return;
 
 	/* check the field type and set the value */
 
 	switch (f->parseddesc->primitivetype) {
 	case PRIMITIVETYPE_DOUBLE:
-		_field_set_double(f, o, value);
+		_field_set_double(f, ho, value);
 		break;
 	default:
 		exceptions_throw_illegalargumentexception();
 	}
-
-	return;
 }
 
 
@@ -1282,27 +1102,19 @@ JNIEXPORT void JNICALL Java_java_lang_reflect_VMField_setDouble(JNIEnv *env, jav
  * Method:    getSignature
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_VMField_getSignature(JNIEnv *env, java_lang_reflect_VMField* _this)
+JNIEXPORT jstring JNICALL Java_java_lang_reflect_VMField_getSignature(JNIEnv *env, jobject _this)
 {
-	classinfo     *c;
-	fieldinfo     *f;
-	java_handle_t *o;
-	int32_t        slot;
-
-	/* get the class and the field */
-
-	LLNI_field_get_cls(_this, clazz, c);
-	LLNI_field_get_val(_this, slot , slot);
-	f = &c->fields[slot];
+	java_lang_reflect_VMField rvmf(_this);
+	fieldinfo* f = rvmf.get_field();
 
 	if (f->signature == NULL)
 		return NULL;
 
-	o = javastring_new(f->signature);
+	java_handle_t* o = javastring_new(f->signature);
 
 	/* in error case o is NULL */
 
-	return (java_lang_String *) o;
+	return (jstring) o;
 }
 
 
@@ -1312,32 +1124,79 @@ JNIEXPORT java_lang_String* JNICALL Java_java_lang_reflect_VMField_getSignature(
  * Method:    declaredAnnotations
  * Signature: ()Ljava/util/Map;
  */
-JNIEXPORT struct java_util_Map* JNICALL Java_java_lang_reflect_VMField_declaredAnnotations(JNIEnv *env, java_lang_reflect_VMField *_this)
+JNIEXPORT jobject JNICALL Java_java_lang_reflect_VMField_declaredAnnotations(JNIEnv *env, jobject _this)
 {
-	java_util_Map           *declaredAnnotations = NULL; /* parsed annotations                                */
-	java_handle_bytearray_t *annotations         = NULL; /* unparsed annotations                              */
-	java_lang_Class         *declaringClass      = NULL; /* the constant pool of this class is used           */
-	classinfo               *referer             = NULL; /* class, which calles the annotation parser         */
-	                                                     /* (for the parameter 'referer' of vm_call_method()) */
+	java_lang_reflect_VMField rvmf(_this);
 
-	LLNI_field_get_ref(_this, declaredAnnotations, declaredAnnotations);
+	java_handle_t* declaredAnnotations = rvmf.get_declaredAnnotations();
 
-	/* are the annotations parsed yet? */
+	// Are the annotations parsed yet?
 	if (declaredAnnotations == NULL) {
-		LLNI_field_get_ref(_this, annotations, annotations);
-		LLNI_field_get_ref(_this, clazz, declaringClass);
+		java_handle_bytearray_t* annotations    = rvmf.get_annotations();
+		classinfo*               declaringClass = rvmf.get_clazz();
+
+		classinfo* referer;
 		LLNI_class_get(_this, referer);
 
-		declaredAnnotations = reflect_get_declaredannotations(annotations, (classinfo*) declaringClass, referer);
+		declaredAnnotations = Reflection::get_declaredannotations(annotations, declaringClass, referer);
 
-		LLNI_field_set_ref(_this, declaredAnnotations, declaredAnnotations);
+		rvmf.set_declaredAnnotations(declaredAnnotations);
 	}
 
-	return declaredAnnotations;
+	return (jobject) declaredAnnotations;
 }
 #endif
 
 } // extern "C"
+
+
+/* native methods implemented by this file ************************************/
+
+static const JNINativeMethod methods[] = {
+	{ (char*) "getModifiersInternal", (char*) "()I",                                     (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getModifiersInternal },
+	{ (char*) "getType",              (char*) "()Ljava/lang/Class;",                     (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getType              },
+	{ (char*) "get",                  (char*) "(Ljava/lang/Object;)Ljava/lang/Object;",  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_get                  },
+	{ (char*) "getBoolean",           (char*) "(Ljava/lang/Object;)Z",                   (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getBoolean           },
+	{ (char*) "getByte",              (char*) "(Ljava/lang/Object;)B",                   (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getByte              },
+	{ (char*) "getChar",              (char*) "(Ljava/lang/Object;)C",                   (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getChar              },
+	{ (char*) "getShort",             (char*) "(Ljava/lang/Object;)S",                   (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getShort             },
+	{ (char*) "getInt",               (char*) "(Ljava/lang/Object;)I",                   (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getInt               },
+	{ (char*) "getLong",              (char*) "(Ljava/lang/Object;)J",                   (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getLong              },
+	{ (char*) "getFloat",             (char*) "(Ljava/lang/Object;)F",                   (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getFloat             },
+	{ (char*) "getDouble",            (char*) "(Ljava/lang/Object;)D",                   (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getDouble            },
+	{ (char*) "set",                  (char*) "(Ljava/lang/Object;Ljava/lang/Object;)V", (void*) (uintptr_t) &Java_java_lang_reflect_VMField_set                  },
+	{ (char*) "setBoolean",           (char*) "(Ljava/lang/Object;Z)V",                  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_setBoolean           },
+	{ (char*) "setByte",              (char*) "(Ljava/lang/Object;B)V",                  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_setByte              },
+	{ (char*) "setChar",              (char*) "(Ljava/lang/Object;C)V",                  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_setChar              },
+	{ (char*) "setShort",             (char*) "(Ljava/lang/Object;S)V",                  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_setShort             },
+	{ (char*) "setInt",               (char*) "(Ljava/lang/Object;I)V",                  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_setInt               },
+	{ (char*) "setLong",              (char*) "(Ljava/lang/Object;J)V",                  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_setLong              },
+	{ (char*) "setFloat",             (char*) "(Ljava/lang/Object;F)V",                  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_setFloat             },
+	{ (char*) "setDouble",            (char*) "(Ljava/lang/Object;D)V",                  (void*) (uintptr_t) &Java_java_lang_reflect_VMField_setDouble            },
+	{ (char*) "getSignature",         (char*) "()Ljava/lang/String;",                    (void*) (uintptr_t) &Java_java_lang_reflect_VMField_getSignature         },
+#if defined(ENABLE_ANNOTATIONS)
+	{ (char*) "declaredAnnotations",  (char*) "()Ljava/util/Map;",                       (void*) (uintptr_t) &Java_java_lang_reflect_VMField_declaredAnnotations  },
+#endif
+};
+
+
+/* _Jv_java_lang_reflect_VMField_init ******************************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+// FIXME
+extern "C" {
+void _Jv_java_lang_reflect_VMField_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/reflect/VMField");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
+}
 
 
 /*

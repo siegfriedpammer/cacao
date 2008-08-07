@@ -32,12 +32,9 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_management_MemoryUsage.h"
-
-// FIXME
-extern "C" {
-#include "native/include/gnu_java_lang_management_VMMemoryMXBeanImpl.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/gnu_java_lang_management_VMMemoryMXBeanImpl.h"
+#endif
 
 #include "vm/builtin.h"
 #include "vm/global.h"
@@ -56,16 +53,15 @@ extern "C" {
  * Method:    getHeapMemoryUsage
  * Signature: ()Ljava/lang/management/MemoryUsage;
  */
-JNIEXPORT java_lang_management_MemoryUsage* JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getHeapMemoryUsage(JNIEnv *env, jclass clazz)
+JNIEXPORT jobject JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getHeapMemoryUsage(JNIEnv *env, jclass clazz)
 {
-	classinfo                        *class_java_lang_management_MemoryUsage;
-	java_handle_t                    *o;
-	java_lang_management_MemoryUsage *mu;
-	methodinfo                       *m;
-	int64_t                           init;
-	int64_t                           used;
-	int64_t                           commited;
-	int64_t                           maximum;
+	classinfo     *class_java_lang_management_MemoryUsage;
+	java_handle_t *o;
+	methodinfo    *m;
+	int64_t        init;
+	int64_t        used;
+	int64_t        commited;
+	int64_t        maximum;
 
 	/* get the class */
 	/* XXX optimize me! sometime... */
@@ -79,10 +75,6 @@ JNIEXPORT java_lang_management_MemoryUsage* JNICALL Java_gnu_java_lang_managemen
 	
 	if (o == NULL)
 		return NULL;
-
-	/* cast the object to a MemoryUsage object (for debugability) */
-
-	mu = (java_lang_management_MemoryUsage *) o;
 
 	/* find initializer */
 
@@ -106,7 +98,7 @@ JNIEXPORT java_lang_management_MemoryUsage* JNICALL Java_gnu_java_lang_managemen
 
 	(void) vm_call_method(m, o, init, used, commited, maximum);
 
-	return mu;
+	return (jobject) o;
 }
 
 
@@ -115,7 +107,7 @@ JNIEXPORT java_lang_management_MemoryUsage* JNICALL Java_gnu_java_lang_managemen
  * Method:    getNonHeapMemoryUsage
  * Signature: ()Ljava/lang/management/MemoryUsage;
  */
-JNIEXPORT java_lang_management_MemoryUsage* JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getNonHeapMemoryUsage(JNIEnv *env, jclass clazz)
+JNIEXPORT jobject JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getNonHeapMemoryUsage(JNIEnv *env, jclass clazz)
 {
 	log_println("Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getNonHeapMemoryUsage: IMPLEMENT ME!");
 
@@ -128,7 +120,7 @@ JNIEXPORT java_lang_management_MemoryUsage* JNICALL Java_gnu_java_lang_managemen
  * Method:    getObjectPendingFinalizationCount
  * Signature: ()I
  */
-JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getObjectPendingFinalizationCount(JNIEnv *env, jclass clazz)
+JNIEXPORT jint JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getObjectPendingFinalizationCount(JNIEnv *env, jclass clazz)
 {
 	log_println("Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getObjectPendingFinalizationCount: IMPLEMENT ME!");
 
@@ -141,7 +133,7 @@ JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getOb
  * Method:    isVerbose
  * Signature: ()Z
  */
-JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose(JNIEnv *env, jclass clazz)
+JNIEXPORT jboolean JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose(JNIEnv *env, jclass clazz)
 {
 /* 	return _Jv_jvm->Java_gnu_java_lang_management_VMMemoryMXBeanImpl_verbose; */
 #warning Move to C++
@@ -155,7 +147,7 @@ JNIEXPORT int32_t JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVer
  * Method:    setVerbose
  * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbose(JNIEnv *env, jclass clazz, int32_t verbose)
+JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbose(JNIEnv *env, jclass clazz, jboolean verbose)
 {
 /* 	_Jv_jvm->Java_gnu_java_lang_management_VMMemoryMXBeanImpl_verbose = verbose; */
 #warning Move to C++

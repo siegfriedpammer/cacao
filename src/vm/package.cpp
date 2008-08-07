@@ -33,8 +33,6 @@
 
 #include "native/jni.h"
 
-#include "native/include/java_lang_String.h"
-
 #include "vm/package.hpp"
 #include "vm/string.hpp"
 

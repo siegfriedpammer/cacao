@@ -23,9 +23,6 @@
 */
 
 
-// FIXME For now we export everything as C functions.
-extern "C" {
-
 #include "config.h"
 
 #include <stdio.h>
@@ -37,9 +34,6 @@ extern "C" {
 
 #include "native/jni.h"
 #include "native/llni.h"
-
-#include "native/include/java_lang_String.h"
-#include "native/include/java_lang_Throwable.h"
 
 #include "threads/thread.hpp"
 
@@ -53,12 +47,15 @@ extern "C" {
 #include "vm/jit/show.h"
 
 #include "vmcore/globals.hpp"
+#include "vmcore/javaobjects.hpp"
 #include "vmcore/options.h"
 #include "vmcore/utf8.h"
 
 
 #if !defined(NDEBUG)
 
+// FIXME For now we export everything as C functions.
+extern "C" {
 
 /* global variables ***********************************************************/
 
@@ -566,32 +563,33 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 
 *******************************************************************************/
 
-void trace_exception_builtin(java_object_t *xptr)
+void trace_exception_builtin(java_handle_t* h)
 {
-	java_lang_Throwable *t;
-	java_lang_String    *s;
 	char                *logtext;
 	s4                   logtextlen;
 	int32_t              dumpmarker;
 
-	t = (java_lang_Throwable *) xptr;
+	java_lang_Throwable jlt(h);
 
-	/* get detail message */
-	if (t)
-		LLNI_field_get_ref(t, detailMessage, s);
+	// Get detail message.
+	java_handle_t* s = NULL;
+
+	if (jlt.get_handle() != NULL)
+		s = jlt.get_detailMessage();
+
+	java_lang_String jls(s);
 
 	/* calculate message length */
 
 	logtextlen = strlen("Builtin exception thrown: ") + strlen("0");
 
-	if (t) {
-		logtextlen +=
-			utf_bytes(xptr->vftbl->clazz->name);
-		if (s) {
+	if (jlt.get_handle() != NULL) {
+		logtextlen += utf_bytes(jlt.get_vftbl()->clazz->name);
+
+		if (jls.get_handle()) {
+			// FIXME This is not handle capable!
 			logtextlen += strlen(": ") +
-				u2_utflength(LLNI_field_direct(s, value)->data 
-								+ LLNI_field_direct(s, offset),
-							 LLNI_field_direct(s,count));
+				u2_utflength(jls.get_value()->data + jls.get_offset(), jls.get_count());
 		}
 	} 
 	else {
@@ -606,13 +604,13 @@ void trace_exception_builtin(java_object_t *xptr)
 
 	strcpy(logtext, "Builtin exception thrown: ");
 
-	if (t) {
-		utf_cat_classname(logtext, xptr->vftbl->clazz->name);
+	if (jlt.get_handle()) {
+		utf_cat_classname(logtext, jlt.get_vftbl()->clazz->name);
 
 		if (s) {
 			char *buf;
 
-			buf = javastring_tochar((java_handle_t *) s);
+			buf = javastring_tochar(jls.get_handle());
 			strcat(logtext, ": ");
 			strcat(logtext, buf);
 			MFREE(buf, char, strlen(buf) + 1);
@@ -629,9 +627,9 @@ void trace_exception_builtin(java_object_t *xptr)
 	DRELEASE;
 }
 
-#endif /* !defined(NDEBUG) */
-
 } // extern "C"
+
+#endif /* !defined(NDEBUG) */
 
 
 /*

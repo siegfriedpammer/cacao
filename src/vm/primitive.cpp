@@ -31,15 +31,6 @@
 #include "native/jni.h"
 #include "native/llni.h"
 
-#include "native/include/java_lang_Boolean.h"
-#include "native/include/java_lang_Byte.h"
-#include "native/include/java_lang_Short.h"
-#include "native/include/java_lang_Character.h"
-#include "native/include/java_lang_Integer.h"
-#include "native/include/java_lang_Long.h"
-#include "native/include/java_lang_Float.h"
-#include "native/include/java_lang_Double.h"
-
 #include "vm/builtin.h"
 #include "vm/global.h"
 #include "vm/primitive.hpp"
@@ -47,6 +38,7 @@
 
 #include "vmcore/class.h"
 #include "vmcore/globals.hpp"
+#include "vmcore/javaobjects.hpp"
 #include "vmcore/utf8.h"
 
 
@@ -304,67 +296,172 @@ imm_union Primitive::unbox(java_handle_t *h)
 }
 
 
-/* primitive_box_xxx ***********************************************************
+/**
+ * Box a primitive type.
+ */
+java_handle_t* Primitive::box(uint8_t value)
+{
+	java_handle_t *h = builtin_new(class_java_lang_Boolean);
 
-   Box a primitive type.
+	if (h == NULL)
+		return NULL;
 
-*******************************************************************************/
+	java_lang_Boolean b(h);
+	b.set_value(value);
 
-#define PRIMITIVE_BOX_TYPE(name, object, type)	\
-java_handle_t* Primitive::box(type value)	\
-{                                                   \
-	java_handle_t      *o;                          \
-	java_lang_##object *jo;                         \
-                                                    \
-	o = builtin_new(class_java_lang_##object);      \
-                                                    \
-	if (o == NULL)                                  \
-		return NULL;                                \
-                                                    \
-	jo = (java_lang_##object *) o;                  \
-                                                    \
-	LLNI_field_set_val(jo, value, value);			\
-                                                    \
-	return o;                                       \
+	return h;
 }
 
-PRIMITIVE_BOX_TYPE(boolean, Boolean,   uint8_t)
-PRIMITIVE_BOX_TYPE(byte,    Byte,      int8_t)
-PRIMITIVE_BOX_TYPE(char,    Character, uint16_t)
-PRIMITIVE_BOX_TYPE(short,   Short,     int16_t)
-PRIMITIVE_BOX_TYPE(int,     Integer,   int32_t)
-PRIMITIVE_BOX_TYPE(long,    Long,      int64_t)
-PRIMITIVE_BOX_TYPE(float,   Float,     float)
-PRIMITIVE_BOX_TYPE(double,  Double,    double)
+java_handle_t* Primitive::box(int8_t value)
+{
+	java_handle_t *h = builtin_new(class_java_lang_Byte);
 
+	if (h == NULL)
+		return NULL;
 
-/* primitive_unbox_xxx *********************************************************
+	java_lang_Byte b(h);
+	b.set_value(value);
 
-   Unbox a primitive type.
-
-*******************************************************************************/
-
-#define PRIMITIVE_UNBOX_TYPE(name, object, type)	\
-type Primitive::unbox_##name(java_handle_t *h)	\
-{                                                 \
-	java_lang_##object *jo;                       \
-	type                value;                    \
-                                                  \
-	jo = (java_lang_##object *) h;                \
-                                                  \
-	LLNI_field_get_val(jo, value, value);         \
-                                                  \
-	return value;                                 \
+	return h;
 }
 
-PRIMITIVE_UNBOX_TYPE(boolean, Boolean,   uint8_t)
-PRIMITIVE_UNBOX_TYPE(byte,    Byte,      int8_t)
-PRIMITIVE_UNBOX_TYPE(char,    Character, uint16_t)
-PRIMITIVE_UNBOX_TYPE(short,   Short,     int16_t)
-PRIMITIVE_UNBOX_TYPE(int,     Integer,   int32_t)
-PRIMITIVE_UNBOX_TYPE(long,    Long,      int64_t)
-PRIMITIVE_UNBOX_TYPE(float,   Float,     float)
-PRIMITIVE_UNBOX_TYPE(double,  Double,    double)
+java_handle_t* Primitive::box(uint16_t value)
+{
+	java_handle_t *h = builtin_new(class_java_lang_Character);
+
+	if (h == NULL)
+		return NULL;
+
+	java_lang_Character c(h);
+	c.set_value(value);
+
+	return h;
+}
+
+java_handle_t* Primitive::box(int16_t value)
+{
+	java_handle_t *h = builtin_new(class_java_lang_Short);
+
+	if (h == NULL)
+		return NULL;
+
+	java_lang_Short s(h);
+	s.set_value(value);
+
+	return h;
+}
+
+java_handle_t* Primitive::box(int32_t value)
+{
+	java_handle_t *h = builtin_new(class_java_lang_Integer);
+
+	if (h == NULL)
+		return NULL;
+
+	java_lang_Integer i(h);
+	i.set_value(value);
+
+	return h;
+}
+
+java_handle_t* Primitive::box(int64_t value)
+{
+	java_handle_t *h = builtin_new(class_java_lang_Long);
+
+	if (h == NULL)
+		return NULL;
+
+	java_lang_Long l(h);
+	l.set_value(value);
+
+	return h;
+}
+
+java_handle_t* Primitive::box(float value)
+{
+	java_handle_t *h = builtin_new(class_java_lang_Float);
+
+	if (h == NULL)
+		return NULL;
+
+	java_lang_Float f(h);
+	f.set_value(value);
+
+	return h;
+}
+
+java_handle_t* Primitive::box(double value)
+{
+	java_handle_t *h = builtin_new(class_java_lang_Double);
+
+	if (h == NULL)
+		return NULL;
+
+	java_lang_Double d(h);
+	d.set_value(value);
+
+	return h;
+}
+
+
+
+/**
+ * Unbox a primitive type.
+ */
+
+// template<class T> T Primitive::unbox(java_handle_t *h)
+// {
+// 	return java_lang_Boolean::get_value(h);
+// }
+
+inline uint8_t Primitive::unbox_boolean(java_handle_t *h)
+{
+	java_lang_Boolean b(h);
+	return b.get_value();
+}
+
+inline int8_t Primitive::unbox_byte(java_handle_t *h)
+{
+	java_lang_Byte b(h);
+	return b.get_value();
+}
+
+inline uint16_t Primitive::unbox_char(java_handle_t *h)
+{
+	java_lang_Character c(h);
+	return c.get_value();
+}
+
+inline int16_t Primitive::unbox_short(java_handle_t *h)
+{
+	java_lang_Short s(h);
+	return s.get_value();
+}
+
+inline int32_t Primitive::unbox_int(java_handle_t *h)
+{
+	java_lang_Integer i(h);
+	return i.get_value();
+}
+
+inline int64_t Primitive::unbox_long(java_handle_t *h)
+{
+	java_lang_Long l(h);
+	return l.get_value();
+}
+
+inline float Primitive::unbox_float(java_handle_t *h)
+{
+	java_lang_Float f(h);
+	return f.get_value();
+}
+
+inline double Primitive::unbox_double(java_handle_t *h)
+{
+	java_lang_Double d(h);
+	return d.get_value();
+}
+
 
 
 // Legacy C interface.

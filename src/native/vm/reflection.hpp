@@ -1,9 +1,7 @@
-/* src/cacaoh/headers.h - export functions for header generation
+/* src/native/vm/reflection.hpp - helper functions for java/lang/reflect
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -24,38 +22,32 @@
 
 */
 
-#ifndef _HEADERS_H
-#define _HEADERS_H
+
+#ifndef _REFLECTION_HPP
+#define _REFLECTION_HPP
 
 #include "config.h"
 
-#include "toolbox/chain.h"
+#include <stdint.h>
 
-#include "vm/global.h"
+#include "native/jni.h"
+#include "native/native.h"
 
-#include "vmcore/class.h"
+#include "vmcore/field.h"
 #include "vmcore/method.h"
-#include "vmcore/utf8.h"
 
 
-/* export variables ***********************************************************/
+class Reflection {
+public:
+	static java_handle_t* invoke(methodinfo *m, java_handle_t *o, java_handle_objectarray_t *params);
 
-extern chain *nativemethod_chain;
-extern chain *nativeclass_chain;
-extern chain *ident_chain;
-extern FILE *file;
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH) && defined(ENABLE_ANNOTATIONS)
+	static java_handle_t* get_declaredannotations(java_handle_bytearray_t *annotations, classinfo* declaringClass, classinfo *referer);
+	static java_handle_objectarray_t* get_parameterannotations(java_handle_bytearray_t* parameterAnnotations, methodinfo* m, classinfo *referer);
+#endif
+};
 
-
-/* function prototypes ********************************************************/
-
-void printID(utf *u);
-void printOverloadPart(utf *desc);
-void printmethod(methodinfo *m);
-void gen_header_filename(char *buffer, utf *u);
-void headerfile_generate(classinfo *c, char *opt_directory);
-void print_classname(classinfo *clazz);
-
-#endif /* _HEADERS_H */
+#endif // _REFLECTION_HPP
 
 
 /*
@@ -64,9 +56,10 @@ void print_classname(classinfo *clazz);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

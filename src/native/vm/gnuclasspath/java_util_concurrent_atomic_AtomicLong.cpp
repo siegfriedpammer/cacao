@@ -1,4 +1,4 @@
-/* src/native/vm/gnu/java_util_concurrent_atomic_AtomicLong.cpp
+/* src/native/vm/gnuclasspath/java_util_concurrent_atomic_AtomicLong.cpp
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -30,10 +30,9 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-// FIXME
-extern "C" {
-#include "native/include/java_util_concurrent_atomic_AtomicLong.h"
-}
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/include/java_util_concurrent_atomic_AtomicLong.h"
+#endif
 
 #include "vmcore/utf8.h"
 
@@ -46,10 +45,9 @@ extern "C" {
  * Method:    VMSupportsCS8
  * Signature: ()Z
  */
-JNIEXPORT int32_t JNICALL Java_java_util_concurrent_atomic_AtomicLong_VMSupportsCS8(JNIEnv *env, jclass clazz)
+JNIEXPORT jboolean JNICALL Java_java_util_concurrent_atomic_AtomicLong_VMSupportsCS8(JNIEnv *env, jclass clazz)
 {
-	/* IMPLEMENT ME */
-
+	// IMPLEMENT ME
 	return 0;
 }
 
