@@ -132,7 +132,9 @@ public:
 	static inline int    shutdown(int s, int how);
 	static inline int    socket(int domain, int type, int protocol);
 	static inline int    stat(const char* path, struct stat* buf);
+#if defined(__SOLARIS__)
 	static inline int    str2sig(const char* str, int* signum);
+#endif
 	static inline char*  strcat(char* dest, const char* src);
 	static inline char*  strcpy(char* dest, const char* src);
 	static inline char*  strdup(const char* s);
@@ -485,6 +487,7 @@ inline int os::stat(const char* path, struct stat* buf)
 #endif
 }
 
+#if defined(__SOLARIS__)
 inline int os::str2sig(const char* str, int* signum)
 {
 #if defined(HAVE_STR2SIG)
@@ -493,6 +496,7 @@ inline int os::str2sig(const char* str, int* signum)
 # error str2sig not available
 #endif
 }
+#endif
 
 inline char* os::strcat(char* dest, const char* src)
 {
