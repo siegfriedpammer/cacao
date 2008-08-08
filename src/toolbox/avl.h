@@ -1,9 +1,7 @@
 /* src/toolbox/avl.h - AVL tree implementation
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -32,6 +30,8 @@
 
 #include "vm/types.h"
 
+#include "threads/mutex.hpp"
+
 #include "vm/global.h"
 
 
@@ -55,12 +55,10 @@ typedef struct avl_node_t avl_node_t;
 /* avl_tree_t *****************************************************************/
 
 struct avl_tree_t {
-#if defined(ENABLE_THREADS)
-	java_object_t     *lock;            /* threads lock object                */
-#endif
-	avl_node_t        *root;            /* pointer to root node               */
-	avl_comparator    *comparator;      /* pointer to comparison function     */
-	s4                 entries;         /* contains number of entries         */
+	Mutex*          mutex;              ///< Mutex to lock the tree.
+	avl_node_t     *root;               /* pointer to root node               */
+	avl_comparator *comparator;         /* pointer to comparison function     */
+	s4              entries;            /* contains number of entries         */
 };
 
 

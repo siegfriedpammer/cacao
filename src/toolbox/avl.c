@@ -31,7 +31,7 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/mutex.hpp"
 
 #include "toolbox/avl.h"
 #include "toolbox/logging.h"
@@ -52,17 +52,10 @@ avl_tree_t *avl_create(avl_comparator *comparator)
 
 	t = NEW(avl_tree_t);
 
+	t->mutex      = Mutex_new();
 	t->root       = NULL;
 	t->comparator = comparator;
 	t->entries    = 0;
-
-#if defined(ENABLE_THREADS)
-	/* create lock object for this tree */
-
-	t->lock       = NEW(java_object_t);
-
-	LOCK_INIT_OBJECT_LOCK(t->lock);
-#endif
 
 	return t;
 }
@@ -310,7 +303,7 @@ bool avl_insert(avl_tree_t *tree, void *data)
 	assert(tree);
 	assert(data);
 
-	LOCK_MONITOR_ENTER(tree->lock);
+	Mutex_lock(tree->mutex);
 
 	/* if we don't have a root node, create one */
 
@@ -323,7 +316,7 @@ bool avl_insert(avl_tree_t *tree, void *data)
 
 	tree->entries++;
 
-	LOCK_MONITOR_EXIT(tree->lock);
+	Mutex_unlock(tree->mutex);
 
 	/* insertion was ok */
 
@@ -346,7 +339,7 @@ void *avl_find(avl_tree_t *tree, void *data)
 	assert(tree);
 	assert(data);
 
-	LOCK_MONITOR_ENTER(tree->lock);
+	Mutex_lock(tree->mutex);
 
 	/* search the tree for the given node */
 
@@ -358,7 +351,7 @@ void *avl_find(avl_tree_t *tree, void *data)
 		/* was the entry found? return it */
 
 		if (res == 0) {
-			LOCK_MONITOR_EXIT(tree->lock);
+			Mutex_unlock(tree->mutex);
 
 			return node->data;
 		}
@@ -368,7 +361,7 @@ void *avl_find(avl_tree_t *tree, void *data)
 		node = node->childs[(res < 0) ? AVL_LEFT : AVL_RIGHT];
 	}
 
-	LOCK_MONITOR_EXIT(tree->lock);
+	Mutex_unlock(tree->mutex);
 
 	/* entry was not found, returning NULL */
 
