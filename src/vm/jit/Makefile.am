@@ -127,6 +127,13 @@ VERIFIER_LIB = \
 	verify/libverify.la
 endif
 
+if ENABLE_OPAGENT
+OPAGENT_SOURCES = \
+	oprofile-agent.cpp \
+	oprofile-agent.hpp
+
+endif
+
 if WITH_BINUTILS_DISASSEMBLER
 DISASS_SOURCES = disass-common.c
 endif
@@ -178,7 +185,8 @@ libjit_la_SOURCES = \
 	stacktrace.hpp \
 	trace.cpp \
 	trace.hpp \
-	$(TRAP_SOURCES)
+	$(TRAP_SOURCES) \
+	$(OPAGENT_SOURCES)
 
 libjit_la_SOURCES += \
 	cfg.c \

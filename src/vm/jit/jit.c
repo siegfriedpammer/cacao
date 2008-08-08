@@ -57,6 +57,10 @@
 #include "vm/jit/show.h"
 #include "vm/jit/stack.h"
 
+#if defined(ENABLE_OPAGENT)
+#include "vm/jit/oprofile-agent.hpp"
+#endif
+
 #include "vm/jit/allocator/simplereg.h"
 #if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
 # include "vm/jit/allocator/lsra.h"
@@ -210,6 +214,11 @@ void jit_init(void)
 #else
 	intrp_md_init();
 #endif
+
+#if defined(ENABLE_OPAGENT)
+	if (opt_EnableOpagent)
+		OprofileAgent_initialize();
+#endif
 }
 
 
@@ -221,7 +230,10 @@ void jit_init(void)
 
 void jit_close(void)
 {
-	/* do nothing */
+#if defined(ENABLE_OPAGENT)
+	if (opt_EnableOpagent)
+		OprofileAgent_close();
+#endif
 }
 
 
@@ -444,6 +456,11 @@ u1 *jit_compile(methodinfo *m)
 		compilingtime_stop();
 #endif
 
+#if defined(ENABLE_OPAGENT)
+	if (opt_EnableOpagent)
+		OprofileAgent_newmethod(m);
+#endif
+
 	/* leave the monitor */
 
 	LOCK_MONITOR_EXIT(m);
@@ -554,6 +571,11 @@ u1 *jit_recompile(methodinfo *m)
 
 	if (opt_getcompilingtime)
 		compilingtime_stop();
+#endif
+
+#if defined(ENABLE_OPAGENT)
+	if (opt_EnableOpagent)
+		OprofileAgent_newmethod(m);
 #endif
 
 	DEBUG_JIT_COMPILEVERBOSE("Recompiling done: ");

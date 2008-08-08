@@ -197,6 +197,9 @@ extern int      opt_DebugThreads;
 #if defined(ENABLE_DISASSEMBLER)
 extern int      opt_DisassembleStubs;
 #endif
+#if defined(ENABLE_OPAGENT)
+extern int      opt_EnableOpagent;
+#endif
 #if defined(ENABLE_GC_CACAO)
 extern int      opt_GCDebugRootSet;
 extern int      opt_GCStress;

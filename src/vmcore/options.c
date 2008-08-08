@@ -113,6 +113,9 @@ bool opt_prof    = false;
 bool opt_prof_bb = false;
 #endif
 
+#if defined(ENABLE_OPAGENT)
+bool opt_opagent = false;
+#endif
 
 /* optimization options *******************************************************/
 
@@ -174,6 +177,9 @@ int      opt_DebugStackTrace              = 0;
 int      opt_DebugThreads                 = 0;
 #if defined(ENABLE_DISASSEMBLER)
 int      opt_DisassembleStubs             = 0;
+#endif
+#if defined(ENABLE_OPAGENT)
+int      opt_EnableOpagent                = 0;
 #endif
 #if defined(ENABLE_GC_CACAO)
 int      opt_GCDebugRootSet               = 0;
@@ -240,6 +246,7 @@ enum {
 	OPT_DebugStackTrace,
 	OPT_DebugThreads,
 	OPT_DisassembleStubs,
+	OPT_EnableOpagent,
 	OPT_GCDebugRootSet,
 	OPT_GCStress,
 	OPT_Inline,
@@ -293,6 +300,9 @@ option_t options_XX[] = {
 	{ "DebugThreads",                 OPT_DebugThreads,                 OPT_TYPE_BOOLEAN, "print debug information for threads" },
 #if defined(ENABLE_DISASSEMBLER)
 	{ "DisassembleStubs",             OPT_DisassembleStubs,             OPT_TYPE_BOOLEAN, "disassemble builtin and native stubs when generated" },
+#endif
+#if defined(ENABLE_OPAGENT)
+	{ "EnableOpagent",                OPT_EnableOpagent,                OPT_TYPE_BOOLEAN, "enable providing JIT output to Oprofile" },
 #endif
 #if defined(ENABLE_GC_CACAO)
 	{ "GCDebugRootSet",               OPT_GCDebugRootSet,               OPT_TYPE_BOOLEAN, "GC: print root-set at collection" },
@@ -653,6 +663,12 @@ void options_xx(JavaVMInitArgs *vm_args)
 #if defined(ENABLE_DISASSEMBLER)
 		case OPT_DisassembleStubs:
 			opt_DisassembleStubs = enable;
+			break;
+#endif
+
+#if defined(ENABLE_OPAGENT)
+		case OPT_EnableOpagent:
+			opt_EnableOpagent = enable;
 			break;
 #endif
 
