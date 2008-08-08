@@ -38,8 +38,14 @@ libjvm_la_LDFLAGS = \
 	-avoid-version
 
 if WITH_JAVA_RUNTIME_LIBRARY_OPENJDK
+if WITH_GNU_LD
 libjvm_la_LDFLAGS += \
 	-Xlinker --version-script=$(top_srcdir)/contrib/mapfile-vers-product
+else
+# This is for the Solaris LD.
+libjvm_la_LDFLAGS += \
+	-Xlinker -M$(top_srcdir)/contrib/mapfile-vers-product
+endif
 endif
 
 cacao_LDFLAGS += \

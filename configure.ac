@@ -241,6 +241,8 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AM_PROG_MKDIR_P
 
+AM_CONDITIONAL([WITH_GNU_LD], [test x"$with_gnu_ld" = "xyes"])
+
 dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
