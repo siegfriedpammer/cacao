@@ -37,6 +37,7 @@
 #include "native/native.h"
 
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/field.h"
 #include "vm/initialize.h"
 #include "vm/options.h"
