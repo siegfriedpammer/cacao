@@ -36,6 +36,7 @@
 
 #include "vm/global.h"
 #include "vm/builtin.h"
+#include "vm/options.h"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
@@ -45,8 +46,6 @@
 #include "vm/jit/disass.h"
 #include "vm/jit/stack.h"
 #include "vm/jit/parse.h"
-
-#include "vmcore/options.h"
 
 #if defined(ENABLE_DEBUG_FILTER)
 # include <sys/types.h>

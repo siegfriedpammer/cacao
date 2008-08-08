@@ -37,10 +37,9 @@
 #endif
 
 #include "vm/exceptions.hpp"
+#include "vm/javaobjects.hpp"
 
 #include "vm/jit/stacktrace.hpp"
-
-#include "vmcore/javaobjects.hpp"
 
 
 // Native functions are exported as C functions.

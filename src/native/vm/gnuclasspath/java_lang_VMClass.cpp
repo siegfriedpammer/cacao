@@ -31,21 +31,20 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-// FIXME
-//#include "native/include/java_lang_VMClass.h"
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/java_lang_VMClass.h"
+#endif
 
+#include "vm/class.h"
 #include "vm/exceptions.hpp"
+#include "vm/globals.hpp"
 #include "vm/initialize.h"
+#include "vm/javaobjects.hpp"
 #include "vm/string.hpp"
 
-#include "vmcore/class.h"
-#include "vmcore/globals.hpp"
-#include "vmcore/javaobjects.hpp"
-
 #if defined(ENABLE_ANNOTATIONS)
+#include "vm/annotation.h"
 #include "vm/vm.hpp"
-
-#include "vmcore/annotation.h"
 #endif
 
 

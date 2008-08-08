@@ -152,16 +152,15 @@ error reporting.
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/globals.hpp"
+#include "vm/loader.h"
+#include "vm/options.h"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
 
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/show.h"
-
-#include "vmcore/globals.hpp"
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
 
 #include <typecheck-common.h>
 

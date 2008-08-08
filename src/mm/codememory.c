@@ -35,15 +35,13 @@
 #include "mm/codememory.h"
 #include "mm/memory.h"
 
-#include "vmcore/options.h"
+#include "vm/global.h"
+#include "vm/options.h"
+#include "vm/os.hpp"
 
 #if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
+# include "vm/statistics.h"
 #endif
-
-#include "vmcore/os.hpp"
-
-#include "vm/global.h"
 
 
 /* global code memory variables ***********************************************/

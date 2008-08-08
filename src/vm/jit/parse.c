@@ -41,7 +41,17 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/linker.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/resolve.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vm/statistics.h"
+#endif
+
 #include "vm/string.hpp"
+#include "vm/suck.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
@@ -50,16 +60,6 @@
 
 #include "vm/jit/ir/bytecode.h"
 
-#include "vmcore/linker.h"
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
-#include "vm/resolve.h"
-
-#if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
-#endif
-
-#include "vmcore/suck.h"
 
 #define INSTRUCTIONS_INCREMENT  5  /* number of additional instructions to    */
                                    /* allocate if space runs out              */

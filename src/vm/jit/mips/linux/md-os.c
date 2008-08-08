@@ -41,12 +41,11 @@
 #include "mm/memory.h"
 
 #include "vm/signallocal.h"
+#include "vm/os.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
 #include "vm/jit/trap.h"
-
-#include "vmcore/os.hpp"
 
 
 /* md_init *********************************************************************

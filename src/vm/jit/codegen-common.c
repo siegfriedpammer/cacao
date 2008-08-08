@@ -66,7 +66,12 @@
 
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
+#include "vm/method.h"
+#include "vm/options.h"
 #include "vm/string.hpp"
+
+# include "vm/statistics.h"
+
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
@@ -95,11 +100,6 @@
 #if defined(ENABLE_INTRP)
 #include "vm/jit/intrp/intrp.h"
 #endif
-
-#include "vmcore/method.h"
-#include "vmcore/options.h"
-
-# include "vmcore/statistics.h"
 
 #if defined(ENABLE_VMLOG)
 #include <vmlog_cacao.h>

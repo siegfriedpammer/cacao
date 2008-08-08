@@ -43,9 +43,10 @@
 #include "rootset.h"
 #include "mm/memory.h"
 #include "toolbox/logging.h"
+
 #include "vm/finalizer.h"
+#include "vm/rt-timing.h"
 #include "vm/vm.hpp"
-#include "vmcore/rt-timing.h"
 
 
 /* Global Variables ***********************************************************/

@@ -37,9 +37,8 @@
 # include "native/include/java_lang_String.h"
 #endif
 
+#include "vm/javaobjects.hpp"
 #include "vm/string.hpp"
-
-#include "vmcore/javaobjects.hpp"
 
 
 // Native functions are exported as C functions.

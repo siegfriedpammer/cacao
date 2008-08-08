@@ -39,8 +39,7 @@
 #include "toolbox/logging.h"
 
 #include "vm/builtin.h"
-
-#include "vmcore/javaobjects.hpp"
+#include "vm/javaobjects.hpp"
 
 
 // Native functions are exported as C functions.

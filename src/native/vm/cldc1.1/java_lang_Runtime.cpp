@@ -36,9 +36,8 @@
 # include "native/include/java_lang_Runtime.h"
 #endif
 
+#include "vm/utf8.h"
 #include "vm/vm.hpp"
-
-#include "vmcore/utf8.h"
 
 
 // Native functions are exported as C functions.

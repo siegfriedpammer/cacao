@@ -37,11 +37,12 @@
 #include "native/include/java_lang_String.h"
 #include "native/llni.h"
 #include "toolbox/logging.h"
+
 #include "vm/global.h"
+#include "vm/options.h"
+#include "vm/rt-timing.h"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
-#include "vmcore/options.h"
-#include "vmcore/rt-timing.h"
 
 
 /* Global Variables ***********************************************************/

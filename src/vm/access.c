@@ -36,14 +36,13 @@
 
 #include "vm/access.h"
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/exceptions.hpp"
+#include "vm/field.h"
+#include "vm/globals.hpp"
+#include "vm/method.h"
 
 #include "vm/jit/stacktrace.hpp"
-
-#include "vmcore/class.h"
-#include "vmcore/field.h"
-#include "vmcore/globals.hpp"
-#include "vmcore/method.h"
 
 
 /* access_is_accessible_class **************************************************

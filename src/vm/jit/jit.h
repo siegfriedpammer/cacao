@@ -41,7 +41,13 @@ typedef struct exception_entry exception_entry;
 #include "toolbox/chain.h"
 
 #include "vm/global.h"
+#include "vm/method.h"
+#include "vm/references.h"
 #include "vm/resolve.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vm/statistics.h"
+#endif
 
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/reg.h"
@@ -66,13 +72,6 @@ typedef struct exception_entry exception_entry;
 #endif
 
 #include "vm/jit/verify/typeinfo.h"
-
-#include "vmcore/method.h"
-#include "vmcore/references.h"
-
-#if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
-#endif
 
 
 /* common jit/codegen macros **************************************************/

@@ -38,12 +38,11 @@
 
 #include "native/vm/openjdk/hpi.h"
 
+#include "vm/options.h"
+#include "vm/os.hpp"
 #include "vm/properties.h"
+#include "vm/utf8.h"
 #include "vm/vm.hpp"
-
-#include "vmcore/options.h"
-#include "vmcore/os.hpp"
-#include "vmcore/utf8.h"
 
 
 /* VM callback functions ******************************************************/

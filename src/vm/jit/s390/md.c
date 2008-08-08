@@ -48,7 +48,7 @@
 #include "vm/jit/trap.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-#include "vmcore/options.h" /* XXX debug */
+#include "vm/options.h" /* XXX debug */
 #include "vm/jit/disass.h" /* XXX debug */
 #endif
 

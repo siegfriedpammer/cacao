@@ -37,6 +37,9 @@
 
 #include "threads/lock-common.h"
 
+#include "vm/options.h"
+#include "vm/statistics.h"
+
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
@@ -46,9 +49,6 @@
 #include "vm/jit/replace.h"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.h"
-
-#include "vmcore/options.h"
-#include "vmcore/statistics.h"
 
 
 /* emit_load ******************************************************************

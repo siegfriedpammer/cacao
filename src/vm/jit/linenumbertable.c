@@ -30,14 +30,15 @@
 
 #include "mm/memory.h"
 
+#if defined(ENABLE_STATISTICS)
+# include "vm/options.h"
+# include "vm/statistics.h"
+#endif
+
 #include "vm/jit/code.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/linenumbertable.h"
 
-#if defined(ENABLE_STATISTICS)
-# include "vmcore/options.h"
-# include "vmcore/statistics.h"
-#endif
 
 #if defined(__S390__)
 #  define ADDR_MASK(type, x) ((type)((uintptr_t)(x) & 0x7FFFFFFF))

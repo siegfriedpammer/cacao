@@ -38,6 +38,7 @@
 #include "vm/builtin.h"
 #include "vm/global.h"
 #include "vm/types.h"
+#include "vm/options.h"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
@@ -49,8 +50,6 @@
 #include "vm/jit/replace.h"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.h"
-
-#include "vmcore/options.h"
 
 
 /* emit_load *******************************************************************

@@ -31,9 +31,9 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "vmcore/class.h"
-#include "vmcore/method.h"
-#include "vmcore/utf8.h"
+#include "vm/class.h"
+#include "vm/method.h"
+#include "vm/utf8.h"
 
 
 /*500 is to small for eclipse traces, (builtin_trace_args, perhaps the

@@ -42,6 +42,7 @@
 
 #include "vm/exceptions.hpp"
 #include "vm/initialize.h"
+#include "vm/options.h"
 #include "vm/resolve.h"
 #include "vm/vm.hpp"                     /* for vm_abort */
 
@@ -49,8 +50,6 @@
 #include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/patcher-common.h"
-
-#include "vmcore/options.h"
 
 
 /* patcher_function_list *******************************************************

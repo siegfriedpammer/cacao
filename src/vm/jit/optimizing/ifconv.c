@@ -29,14 +29,13 @@
 
 #include "vm/types.h"
 
+#include "vm/method.h"
 #include "vm/vm.hpp"
 
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/show.h"
-
-#include "vmcore/method.h"
 
 
 /* patterns for a total number of 3 instructions ******************************/

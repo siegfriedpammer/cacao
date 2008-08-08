@@ -45,6 +45,8 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/options.h"
 #include "vm/vm.hpp"
 
 #include "vm/jit/abi.h"
@@ -62,9 +64,6 @@
 #if defined(ENABLE_LSRA)
 #include "vm/jit/allocator/lsra.h"
 #endif
-
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
 
 
 /* codegen_emit ****************************************************************

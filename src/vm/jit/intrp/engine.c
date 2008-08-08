@@ -42,13 +42,12 @@
 #include "threads/thread.hpp"
 
 #include "vm/builtin.h"
+#include "vm/loader.h"
+#include "vm/options.h"
 
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/stacktrace.hpp"
-
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
 
 
 #if defined(ENABLE_THREADS)

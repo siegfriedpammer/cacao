@@ -35,15 +35,14 @@
 #include "native/llni.h"
 
 #include "vm/array.h"
+#include "vm/descriptor.h"
 #include "vm/global.h"
+#include "vm/method.h"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
 #include "vm/vm.hpp"
 
 #include "vm/jit/abi-asm.h"
-
-#include "vmcore/descriptor.h"
-#include "vmcore/method.h"
 
 
 /* argument_jitarray_load ******************************************************

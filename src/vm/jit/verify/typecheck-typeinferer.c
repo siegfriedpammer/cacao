@@ -35,10 +35,13 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/array.h"
 #include "vm/access.h"
+#include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
+#include "vm/globals.hpp"
+#include "vm/loader.h"
+#include "vm/options.h"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
 #include "vm/vm.hpp"
@@ -48,10 +51,6 @@
 #include "vm/jit/parse.h"
 
 #include "vm/jit/verify/typecheck-typeinferer.h"
-
-#include "vmcore/globals.hpp"
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
 
 #define TYPECHECK_NO_STATISTICS
 #include <typecheck-common.h>

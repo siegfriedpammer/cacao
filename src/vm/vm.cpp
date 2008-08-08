@@ -64,15 +64,21 @@
 #endif
 
 #include "vm/builtin.h"
+#include "vm/classcache.h"
 #include "vm/exceptions.hpp"
 #include "vm/finalizer.h"
 #include "vm/global.h"
+#include "vm/globals.hpp"
 #include "vm/initialize.h"
+#include "vm/options.h"
+#include "vm/os.hpp"
 #include "vm/package.hpp"
 #include "vm/primitive.hpp"
 #include "vm/properties.h"
 #include "vm/signallocal.h"
+#include "vm/statistics.h"
 #include "vm/string.hpp"
+#include "vm/suck.h"
 #include "vm/vm.hpp"
 
 #include "vm/jit/argument.h"
@@ -97,13 +103,6 @@
 #endif
 
 #include "vm/jit/trap.h"
-
-#include "vmcore/classcache.h"
-#include "vmcore/globals.hpp"
-#include "vmcore/options.h"
-#include "vmcore/statistics.h"
-#include "vmcore/suck.h"
-#include "vmcore/os.hpp"
 
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/cacaodbg.h"
@@ -808,7 +807,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 	/* We need to check if the actual size of a java.lang.Class object
 	   is smaller or equal than the assumption made in
-	   src/vmcore/class.h. */
+	   src/vm/class.h. */
 
 #warning FIXME We need to check the size of java.lang.Class!!!
 // 	if (sizeof(java_lang_Class) > sizeof(dummy_java_lang_Class))

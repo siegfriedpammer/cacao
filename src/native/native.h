@@ -36,13 +36,12 @@ extern "C" {
 
 #include "native/jni.h"
 
+#include "vm/class.h"
 #include "vm/global.h"
-
-#include "vmcore/class.h"
-#include "vmcore/loader.h"
-#include "vmcore/method.h"
-#include "vmcore/os.hpp"
-#include "vmcore/utf8.h"
+#include "vm/loader.h"
+#include "vm/method.h"
+#include "vm/os.hpp"
+#include "vm/utf8.h"
 
 
 /* defines ********************************************************************/

@@ -37,6 +37,7 @@
 #include "threads/lock-common.h"
 
 #include "vm/builtin.h"
+#include "vm/options.h"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
@@ -47,8 +48,6 @@
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/trap.h"
-
-#include "vmcore/options.h"
 
 
 /* emit_load *******************************************************************

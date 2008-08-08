@@ -40,8 +40,15 @@
 
 #include "threads/lock-common.h"
 
+#include "vm/class.h"
 #include "vm/global.h"
+#include "vm/globals.hpp"
 #include "vm/initialize.h"
+#include "vm/loader.h"
+#include "vm/method.h"
+#include "vm/options.h"
+#include "vm/rt-timing.h"
+#include "vm/statistics.h"
 
 #include "vm/jit/asmpart.h"
 
@@ -92,14 +99,6 @@
 #endif
 
 #include "vm/jit/verify/typecheck.h"
-
-#include "vmcore/class.h"
-#include "vmcore/globals.hpp"
-#include "vmcore/loader.h"
-#include "vmcore/method.h"
-#include "vmcore/options.h"
-#include "vmcore/rt-timing.h"
-#include "vmcore/statistics.h"
 
 
 /* debug macros ***************************************************************/

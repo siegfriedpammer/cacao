@@ -35,15 +35,13 @@ typedef struct literalstring literalstring;
 
 #include "config.h"
 
-#include "vmcore/os.hpp"
-
 #include "vm/types.h"
 
 #include "toolbox/hashtable.h"
 
 #include "vm/global.h"
-
-#include "vmcore/utf8.h"
+#include "vm/os.hpp"
+#include "vm/utf8.h"
 
 
 /* data structure of internal javastrings stored in global hashtable **********/

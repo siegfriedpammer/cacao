@@ -35,8 +35,9 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-// FIXME
-//#include "native/include/java_lang_VMClassLoader.h"
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/java_lang_VMClassLoader.h"
+#endif
 
 #include "toolbox/logging.h"
 #include "toolbox/list.h"
@@ -46,24 +47,23 @@
 #endif
 
 #include "vm/builtin.h"
+#include "vm/class.h"
+#include "vm/classcache.h"
 #include "vm/exceptions.hpp"
+#include "vm/globals.hpp"
 #include "vm/initialize.h"
+#include "vm/javaobjects.hpp"
+#include "vm/linker.h"
+#include "vm/loader.h"
+#include "vm/options.h"
 #include "vm/primitive.hpp"
+#include "vm/statistics.h"
 #include "vm/string.hpp"
+#include "vm/suck.h"
 #include "vm/vm.hpp"
+#include "vm/zip.h"
 
 #include "vm/jit/asmpart.h"
-
-#include "vmcore/class.h"
-#include "vmcore/classcache.h"
-#include "vmcore/globals.hpp"
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/linker.h"
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
-#include "vmcore/statistics.h"
-#include "vmcore/suck.h"
-#include "vmcore/zip.h"
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"

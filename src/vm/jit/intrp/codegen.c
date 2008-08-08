@@ -48,8 +48,10 @@
 #include "native/native.h"
 
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/options.h"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
@@ -60,9 +62,6 @@
 #include "vm/jit/patcher.h"
 #include "vm/jit/stack.h"
 #include "vm/jit/stacktrace.hpp"
-
-#include "vmcore/class.h"
-#include "vmcore/options.h"
 
 
 #define gen_branch(_inst) { \

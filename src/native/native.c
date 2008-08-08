@@ -48,17 +48,16 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/globals.hpp"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/os.hpp"
 #include "vm/resolve.h"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
-
-#include "vmcore/globals.hpp"
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
-#include "vmcore/os.hpp"
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"

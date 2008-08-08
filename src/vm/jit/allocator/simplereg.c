@@ -37,6 +37,8 @@
 
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
+#include "vm/method.h"
+#include "vm/options.h"
 #include "vm/resolve.h"
 #include "vm/string.hpp"
 
@@ -44,9 +46,6 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/show.h"
 #include "vm/jit/allocator/simplereg.h"
-
-#include "vmcore/method.h"
-#include "vmcore/options.h"
 
 
 #if 0

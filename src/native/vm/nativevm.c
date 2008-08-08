@@ -29,12 +29,11 @@
 
 #include "native/vm/nativevm.h"
 
+#include "vm/class.h"
 #include "vm/initialize.h"
-
-#include "vmcore/class.h"
-#include "vmcore/method.h"
-#include "vmcore/options.h"
-#include "vmcore/os.hpp"
+#include "vm/method.h"
+#include "vm/options.h"
+#include "vm/os.hpp"
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 # include "mm/memory.h"
@@ -43,11 +42,10 @@
 
 # include "native/vm/openjdk/hpi.h"
 
+# include "vm/globals.hpp"
 # include "vm/properties.h"
+# include "vm/utf8.h"
 # include "vm/vm.hpp"
-
-# include "vmcore/globals.hpp"
-# include "vmcore/utf8.h"
 #endif
 
 

@@ -37,12 +37,11 @@
 #endif
 
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/global.h"
+#include "vm/loader.h"               /* XXX only for load_class_bootstrap */
+#include "vm/options.h"
 #include "vm/vm.hpp"
-
-#include "vmcore/class.h"
-#include "vmcore/loader.h"               /* XXX only for load_class_bootstrap */
-#include "vmcore/options.h"
 
 
 // Native functions are exported as C functions.

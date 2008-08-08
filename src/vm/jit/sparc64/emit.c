@@ -35,16 +35,16 @@
 
 #include "mm/memory.h"
 
+#include "vm/builtin.h"
+#include "vm/options.h"
+
 #include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
-#include "vm/builtin.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/replace.h"
-
-#include "vmcore/options.h"
 
 #include "vm/jit/sparc64/solaris/macro_rename.h"
 

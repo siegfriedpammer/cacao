@@ -32,20 +32,19 @@
 #include "mm/memory.h"
 
 #include "vm/access.h"
+#include "vm/classcache.h"
+#include "vm/descriptor.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/globals.hpp"
+#include "vm/linker.h"
+#include "vm/loader.h"
+#include "vm/options.h"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
 
 #include "vm/jit/jit.h"
 #include "vm/jit/verify/typeinfo.h"
-
-#include "vmcore/classcache.h"
-#include "vmcore/descriptor.h"
-#include "vmcore/globals.hpp"
-#include "vmcore/linker.h"
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
 
 
 /******************************************************************************/

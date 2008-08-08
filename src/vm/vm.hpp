@@ -37,8 +37,8 @@
 
 #include "vm/global.h"
 
-#include "vmcore/class.h"
-#include "vmcore/method.h"
+#include "vm/class.h"
+#include "vm/method.h"
 
 #ifdef __cplusplus
 

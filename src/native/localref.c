@@ -36,11 +36,10 @@
 
 #include "toolbox/logging.h"
 
+#include "vm/options.h"
 #include "vm/vm.hpp"
 
 #include "vm/jit/argument.h"
-
-#include "vmcore/options.h"
 
 
 /* debug **********************************************************************/

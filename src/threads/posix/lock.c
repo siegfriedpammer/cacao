@@ -47,16 +47,15 @@
 
 #include "toolbox/list.h"
 
-#include "vm/global.h"
 #include "vm/exceptions.hpp"
 #include "vm/finalizer.h"
+#include "vm/global.h"
+#include "vm/options.h"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
-#include "vmcore/options.h"
-
 #if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
+# include "vm/statistics.h"
 #endif
 
 #if defined(ENABLE_VMLOG)

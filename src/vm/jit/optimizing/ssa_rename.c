@@ -45,7 +45,7 @@
 #include "vm/jit/optimizing/ssa_rename.h"
 
 #if defined(SSA_DEBUG_VERBOSE)
-#include "vmcore/options.h"   /* compileverbose */
+#include "vm/options.h"   /* compileverbose */
 #endif
 
 /* function prototypes */

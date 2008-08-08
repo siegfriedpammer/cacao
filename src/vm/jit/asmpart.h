@@ -37,9 +37,8 @@ extern "C" {
 #include "vm/types.h"
 
 #include "vm/global.h"
+#include "vm/linker.h"
 #include "vm/vm.hpp"
-
-#include "vmcore/linker.h"
 
 
 /* function prototypes ********************************************************/

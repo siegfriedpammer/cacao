@@ -36,10 +36,9 @@
 
 #include "vm/builtin.h"
 #include "vm/global.h"
+#include "vm/globals.hpp"
+#include "vm/utf8.h"
 #include "vm/vm.hpp"
-
-#include "vmcore/globals.hpp"
-#include "vmcore/utf8.h"
 
 
 // Native functions are exported as C functions.

@@ -52,9 +52,14 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/globals.hpp"
 #include "vm/initialize.h"
+#include "vm/javaobjects.hpp"
+#include "vm/loader.h"
+#include "vm/options.h"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
+#include "vm/statistics.h"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
@@ -62,12 +67,6 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/stacktrace.hpp"
-
-#include "vmcore/globals.hpp"
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
-#include "vmcore/statistics.h"
 
 
 /* debug **********************************************************************/

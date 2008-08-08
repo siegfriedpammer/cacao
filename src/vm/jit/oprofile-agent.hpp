@@ -32,7 +32,7 @@
 extern "C" {
 #endif
 
-#include "vmcore/method.h"
+#include "vm/method.h"
 
 #include <opagent.h>
 

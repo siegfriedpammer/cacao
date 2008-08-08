@@ -39,8 +39,7 @@ extern "C" {
 #include "vm/types.h"
 
 #include "vm/global.h"
-
-#include "vmcore/method.h"
+#include "vm/method.h"
 
 
 /* localref_table **************************************************************

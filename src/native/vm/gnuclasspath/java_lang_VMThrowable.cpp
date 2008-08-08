@@ -34,21 +34,22 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-// FIXME
-//#include "native/include/java_lang_VMThrowable.h"
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/java_lang_VMThrowable.h"
+#endif
 
 #include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
+#include "vm/globals.hpp"
+#include "vm/javaobjects.hpp"
+#include "vm/loader.h"
 #include "vm/string.hpp"
 
 #include "vm/jit/code.h"
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/stacktrace.hpp"
 
-#include "vmcore/globals.hpp"
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/loader.h"
 
 
 // Native functions are exported as C functions.

@@ -34,9 +34,8 @@ extern "C" {
 #include "vm/types.h"
 
 #include "vm/global.h"
-
-#include "vmcore/references.h"
-#include "vmcore/method.h"
+#include "vm/references.h"
+#include "vm/method.h"
 
 
 /* function prototypes ********************************************************/

@@ -30,11 +30,11 @@
 
 #include "md-abi.h"
 
+#include "vm/descriptor.h"
+#include "vm/os.hpp"
+
 #include "vm/jit/abi.h"
 #include "vm/jit/executionstate.h"
-
-#include "vmcore/descriptor.h"
-#include "vmcore/os.hpp"
 
 
 /* executionstate_sanity_check *************************************************

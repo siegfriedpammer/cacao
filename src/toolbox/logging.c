@@ -41,7 +41,7 @@
 #include "vm/global.h"
 
 #if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
+# include "vm/statistics.h"
 #endif
 
 

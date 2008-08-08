@@ -48,7 +48,10 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/options.h"
 #include "vm/primitive.hpp"
+#include "vm/statistics.h"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
@@ -71,10 +74,6 @@
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
 #endif
-
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
-#include "vmcore/statistics.h"
 
 
 /* codegen_emit ****************************************************************

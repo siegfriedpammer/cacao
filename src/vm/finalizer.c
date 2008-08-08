@@ -37,11 +37,10 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/options.h"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
-
-#include "vmcore/options.h"
 
 
 /* global variables ***********************************************************/

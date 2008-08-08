@@ -25,7 +25,7 @@
 #define _VM_JIT_OPTIMIZING_ESCAPE_H
 
 #include "vm/jit/jit.h"
-#include "vmcore/method.h"
+#include "vm/method.h"
 
 typedef enum {
 	ESCAPE_UNKNOWN,

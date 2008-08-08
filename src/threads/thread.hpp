@@ -32,24 +32,24 @@
 extern "C" {
 #endif
 
-#include "vmcore/os.hpp"
+#include "vm/types.h"
 
-#include "threads/mutex.hpp"
-
+// Include early to get threadobject.
 #if defined(ENABLE_THREADS)
 # include "threads/posix/thread-posix.hpp"
 #else
 # include "threads/none/thread-none.h"
 #endif
 
-#include "vm/types.h"
-
-#include "vm/global.h"
+#include "vm/os.hpp"
 
 #include "native/jni.h"
 #include "native/llni.h"
 
-#include "vmcore/utf8.h"
+#include "threads/mutex.hpp"
+
+#include "vm/global.h"
+#include "vm/utf8.h"
 
 
 /* only define the following stuff with thread enabled ************************/

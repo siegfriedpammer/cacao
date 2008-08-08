@@ -38,10 +38,9 @@
 
 #include "toolbox/logging.h"
 
+#include "vm/classcache.h"
+#include "vm/utf8.h"
 #include "vm/vm.hpp"
-
-#include "vmcore/classcache.h"
-#include "vmcore/utf8.h"
 
 
 // Native functions are exported as C functions.

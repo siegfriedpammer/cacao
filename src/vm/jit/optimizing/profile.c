@@ -36,6 +36,10 @@
 #include "threads/thread.hpp"
 
 #include "vm/builtin.h"
+#include "vm/class.h"
+#include "vm/classcache.h"
+#include "vm/method.h"
+#include "vm/options.h"
 #include "vm/string.hpp"
 
 #include "vm/jit/jit.h"
@@ -43,11 +47,6 @@
 #include "vm/jit/methodtree.h"
 
 #include "vm/jit/optimizing/recompile.h"
-
-#include "vmcore/class.h"
-#include "vmcore/classcache.h"
-#include "vmcore/method.h"
-#include "vmcore/options.h"
 
 
 /* profile_init ****************************************************************

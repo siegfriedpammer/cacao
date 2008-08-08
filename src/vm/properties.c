@@ -41,17 +41,16 @@
 #include "toolbox/list.h"
 #include "toolbox/util.h"
 
+#include "vm/class.h"
 #include "vm/global.h"
+#include "vm/method.h"
+#include "vm/options.h"
+#include "vm/os.hpp"
 #include "vm/properties.h"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
-
-#include "vmcore/class.h"
-#include "vmcore/method.h"
-#include "vmcore/options.h"
-#include "vmcore/os.hpp"
 
 
 /* internal property structure ************************************************/

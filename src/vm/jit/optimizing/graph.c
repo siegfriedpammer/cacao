@@ -1,9 +1,7 @@
 /* src/vm/jit/optimizing/graph.c - CFG
 
-   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,12 +20,6 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Christian Ullrich
-
-   $Id: graph.c$
-
 */
 
 #include <stdlib.h>
@@ -45,7 +37,7 @@
 #include "vm/jit/optimizing/graph.h"
 
 #ifdef GRAPH_DEBUG_VERBOSE
-#include "vmcore/options.h"
+#include "vm/options.h"
 #endif
 
 /* Helpers for graph_make_cfg */

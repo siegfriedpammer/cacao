@@ -35,23 +35,23 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-// FIXME
-//#include "native/include/java_lang_reflect_VMMethod.h"
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/java_lang_reflect_VMMethod.h"
+#endif
 
 #include "native/vm/reflection.hpp"
 
 #include "vm/access.h"
-#include "vm/global.h"
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/exceptions.hpp"
+#include "vm/global.h"
+#include "vm/globals.hpp"
 #include "vm/initialize.h"
+#include "vm/javaobjects.hpp"
+#include "vm/method.h"
 #include "vm/resolve.h"
 #include "vm/string.hpp"
-
-#include "vmcore/class.h"
-#include "vmcore/globals.hpp"
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/method.h"
 
 
 // Native functions are exported as C functions.

@@ -31,14 +31,14 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-// FIXME
-//#include "native/include/gnu_java_lang_VMCPStringBuilder.h"
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/gnu_java_lang_VMCPStringBuilder.h"
+#endif
 
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
-
-#include "vmcore/globals.hpp"
-#include "vmcore/javaobjects.hpp"
+#include "vm/globals.hpp"
+#include "vm/javaobjects.hpp"
 
 
 /*

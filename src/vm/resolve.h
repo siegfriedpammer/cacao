@@ -37,16 +37,15 @@ typedef struct unresolved_subtype_set unresolved_subtype_set;
 #include "config.h"
 #include "vm/types.h"
 
+#include "vm/class.h"
+#include "vm/field.h"
 #include "vm/global.h"
+#include "vm/method.h"
+#include "vm/references.h"
 
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/verify/typeinfo.h"
-
-#include "vmcore/class.h"
-#include "vmcore/field.h"
-#include "vmcore/method.h"
-#include "vmcore/references.h"
 
 
 /* constants ******************************************************************/

@@ -46,8 +46,7 @@
 # include "native/jvmti/cacaodbg.h"
 #endif
 
-#include "vmcore/os.hpp"
-
+#include "vm/os.hpp"
 #include "vm/vm.hpp"
 
 

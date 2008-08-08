@@ -39,6 +39,7 @@
 
 #include "vm/builtin.h"
 #include "vm/signallocal.h"
+#include "vm/os.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
@@ -48,8 +49,6 @@
 #endif
 
 #include "vm/jit/trap.h"
-
-#include "vmcore/os.hpp"
 
 
 /* md_signal_handler_sigsegv ***************************************************

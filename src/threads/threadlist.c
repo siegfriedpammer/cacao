@@ -35,7 +35,7 @@
 
 #include "toolbox/list.h"
 
-#include "vmcore/options.h"
+#include "vm/options.h"
 
 
 /* global variables ***********************************************************/

@@ -30,7 +30,7 @@
 
 #include <stdint.h>
 
-#include "vmcore/method.h"
+#include "vm/method.h"
 
 #if !defined(NDEBUG)
 

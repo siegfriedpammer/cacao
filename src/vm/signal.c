@@ -46,15 +46,14 @@
 #include "threads/thread.hpp"
 
 #include "vm/exceptions.hpp"
+#include "vm/globals.hpp"
+#include "vm/method.h"
+#include "vm/options.h"
 #include "vm/signallocal.h"
 #include "vm/vm.hpp"
 
-#include "vmcore/globals.hpp"
-#include "vmcore/method.h"
-#include "vmcore/options.h"
-
 #if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
+# include "vm/statistics.h"
 #endif
 
 

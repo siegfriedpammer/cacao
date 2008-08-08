@@ -64,19 +64,18 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/globals.hpp"
+#include "vm/javaobjects.hpp"
+#include "vm/options.h"
 #include "vm/signallocal.h"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
-#include "vm/jit/asmpart.h"
-
-#include "vmcore/globals.hpp"
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/options.h"
-
 #if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
+# include "vm/statistics.h"
 #endif
+
+#include "vm/jit/asmpart.h"
 
 #if !defined(__DARWIN__)
 # include <semaphore.h>

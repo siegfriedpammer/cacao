@@ -1,4 +1,4 @@
-/* src/vm/optimizing/e&scape.c
+/* src/vm/jit/optimizing/escape.c
 
    Copyright (C) 2008
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
@@ -19,11 +19,16 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
+
 */
 
+
+#include "config.h"
+
+#include "vm/class.h"
+#include "vm/classcache.h"
+
 #include "vm/jit/jit.h"
-#include "vmcore/class.h"
-#include "vmcore/classcache.h"
 #include "vm/jit/optimizing/escape.h"
 
 #include <stdarg.h>

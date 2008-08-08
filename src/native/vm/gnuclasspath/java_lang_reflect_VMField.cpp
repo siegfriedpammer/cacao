@@ -32,8 +32,9 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-// FIXME
-//#include "native/include/java_lang_reflect_VMField.h"
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/java_lang_reflect_VMField.h"
+#endif
 
 #if defined(ENABLE_ANNOTATIONS)
 // REMOVEME
@@ -45,13 +46,12 @@
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/initialize.h"
+#include "vm/javaobjects.hpp"
+#include "vm/loader.h"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
 #include "vm/string.hpp"
-
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/loader.h"
-#include "vmcore/utf8.h"
+#include "vm/utf8.h"
 
 
 /* _field_access_check *********************************************************

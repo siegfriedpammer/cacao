@@ -28,11 +28,10 @@
 
 #include "vm/jit/arm/md-abi.h"
 
+#include "vm/descriptor.h"
 #include "vm/global.h"
 
 #include "vm/jit/abi.h"
-
-#include "vmcore/descriptor.h"
 
 
 /* register descripton array **************************************************/

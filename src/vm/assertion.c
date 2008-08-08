@@ -34,9 +34,8 @@
 
 #include "vm/assertion.h"
 #include "vm/global.h"
+#include "vm/os.hpp"
 #include "vm/vm.hpp"
-
-#include "vmcore/os.hpp"
 
 
 /* -ea/-da options ************************************************************/

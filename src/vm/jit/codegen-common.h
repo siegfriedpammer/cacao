@@ -41,17 +41,16 @@ typedef struct linenumberref          linenumberref;
 #include "vm/types.h"
 
 #include "vm/builtin.h"
+#include "vm/descriptor.h"
 #include "vm/global.h"
+#include "vm/method.h"
+#include "vm/references.h"
 
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/code.h"
 #include "vm/jit/replace.h"
-
-#include "vmcore/descriptor.h"
-#include "vmcore/method.h"
-#include "vmcore/references.h"
 
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */

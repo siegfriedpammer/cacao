@@ -37,20 +37,20 @@
 #include "vm/jit/sparc64/md-abi.h"
 
 #include "native/native.h"
+
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/exceptions.hpp"
+#include "vm/field.h"
 #include "vm/initialize.h"
+#include "vm/options.h"
+#include "vm/references.h"
+#include "vm/resolve.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/stacktrace.hpp"
-
-#include "vmcore/class.h"
-#include "vmcore/field.h"
-#include "vmcore/options.h"
-#include "vmcore/references.h"
-#include "vm/resolve.h"
 
 #include "vm/jit/sparc64/solaris/macro_rename.h"
 

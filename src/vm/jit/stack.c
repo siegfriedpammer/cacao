@@ -39,11 +39,17 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/global.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
+#include "vm/global.h"
+#include "vm/options.h"
+#include "vm/resolve.h"
 #include "vm/string.hpp"
 #include "vm/types.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vm/statistics.h"
+#endif
 
 #include "vm/jit/abi.h"
 #include "vm/jit/cfg.h"
@@ -65,13 +71,6 @@
 #elif defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
 #endif
-#endif
-
-#include "vmcore/options.h"
-#include "vm/resolve.h"
-
-#if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
 #endif
 
 /*#define STACK_VERBOSE*/

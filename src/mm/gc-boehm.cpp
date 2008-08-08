@@ -47,12 +47,11 @@
 #include "vm/exceptions.hpp"
 #include "vm/finalizer.h"
 #include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/rt-timing.h"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
-
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
-#include "vmcore/rt-timing.h"
 
 
 /* global variables ***********************************************************/

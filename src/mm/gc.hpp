@@ -35,8 +35,7 @@ extern "C" {
 #endif
 
 #include "vm/global.h"
-
-#include "vmcore/method.h"
+#include "vm/method.h"
 
 
 /* reference types ************************************************************/

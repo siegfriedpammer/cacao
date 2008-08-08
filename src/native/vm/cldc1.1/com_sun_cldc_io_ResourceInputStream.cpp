@@ -43,14 +43,13 @@
 
 #include "threads/lock-common.h"
 
-#include "vm/types.h"
 #include "vm/builtin.h"
-#include "vm/vm.hpp" /* REMOVE ME: temporarily */
 #include "vm/exceptions.hpp"
+#include "vm/javaobjects.hpp"
 #include "vm/string.hpp"
-
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/zip.h"
+#include "vm/types.h"
+#include "vm/vm.hpp" /* REMOVE ME: temporarily */
+#include "vm/zip.h"
 
 
 static java_handle_t* zip_read_resource(list_classpath_entry *lce, utf *name)

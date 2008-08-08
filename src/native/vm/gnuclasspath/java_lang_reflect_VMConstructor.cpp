@@ -32,15 +32,15 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-// FIXME
-//#include "native/include/java_lang_reflect_VMConstructor.h"
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/java_lang_reflect_VMConstructor.h"
+#endif
 
 #include "native/vm/reflection.hpp"
 
+#include "vm/javaobjects.hpp"
 #include "vm/string.hpp"
-
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/utf8.h"
+#include "vm/utf8.h"
 
 
 // Native functions are exported as C functions.

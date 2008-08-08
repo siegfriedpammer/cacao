@@ -32,14 +32,13 @@
 #include "native/llni.h"
 
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/global.h"
+#include "vm/globals.hpp"
+#include "vm/javaobjects.hpp"
 #include "vm/primitive.hpp"
+#include "vm/utf8.h"
 #include "vm/vm.hpp"
-
-#include "vmcore/class.h"
-#include "vmcore/globals.hpp"
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/utf8.h"
 
 
 /**

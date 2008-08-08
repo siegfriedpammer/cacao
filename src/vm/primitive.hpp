@@ -30,11 +30,10 @@
 
 #include <stdint.h>
 
+#include "vm/class.h"
 #include "vm/global.h"
-
-#include "vmcore/class.h"
-#include "vmcore/linker.h"
-#include "vmcore/utf8.h"
+#include "vm/linker.h"
+#include "vm/utf8.h"
 
 
 #ifdef __cplusplus
@@ -119,7 +118,7 @@ struct primitivetypeinfo {
 
 extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 
-/* this function is in src/vmcore/primitivecore.c */
+/* this function is in src/vm/primitivecore.c */
 void       primitive_init(void);
 void       primitive_postinit(void);
 

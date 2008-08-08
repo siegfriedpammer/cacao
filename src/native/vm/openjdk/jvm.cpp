@@ -66,9 +66,14 @@
 #endif
 
 #include "vm/builtin.h"
+#include "vm/classcache.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/globals.hpp"
 #include "vm/initialize.h"
+#include "vm/javaobjects.hpp"
+#include "vm/options.h"
+#include "vm/os.hpp"
 #include "vm/package.hpp"
 #include "vm/primitive.hpp"
 #include "vm/properties.h"
@@ -78,12 +83,6 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/stacktrace.hpp"
-
-#include "vmcore/classcache.h"
-#include "vmcore/globals.hpp"
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/options.h"
-#include "vmcore/os.hpp"
 
 
 /* debugging macros ***********************************************************/

@@ -43,11 +43,10 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/initialize.h"
+#include "vm/javaobjects.hpp"
+#include "vm/os.hpp"
 #include "vm/string.hpp"
-
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/os.hpp"
-#include "vmcore/utf8.h"
+#include "vm/utf8.h"
 
 
 // Native functions are exported as C functions.

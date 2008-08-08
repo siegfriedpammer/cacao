@@ -51,14 +51,13 @@ typedef struct ucontext {
 
 #include "threads/thread.hpp"
 
+#include "vm/os.hpp"
 #include "vm/signallocal.h"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
 #include "vm/jit/trap.h"
-
-#include "vmcore/os.hpp"
 
 
 /* md_signal_handler_sigsegv ***************************************************

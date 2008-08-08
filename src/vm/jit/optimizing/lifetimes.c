@@ -46,7 +46,7 @@
 #include "vm/jit/optimizing/lifetimes.h"
 
 #ifdef LT_DEBUG_VERBOSE
-#include "vmcore/options.h"
+#include "vm/options.h"
 #endif
 
 #include <time.h>

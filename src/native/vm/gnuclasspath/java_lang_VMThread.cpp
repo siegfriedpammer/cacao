@@ -39,10 +39,9 @@
 #include "threads/thread.hpp"
 
 #include "vm/exceptions.hpp"
+#include "vm/javaobjects.hpp"
 #include "vm/string.hpp"
-
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/utf8.h"
+#include "vm/utf8.h"
 
 
 // Native functions are exported as C functions.

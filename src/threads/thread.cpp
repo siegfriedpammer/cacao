@@ -48,23 +48,21 @@
 #include "threads/thread.hpp"
 
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/exceptions.hpp"
+#include "vm/globals.hpp"
+#include "vm/javaobjects.hpp"
+#include "vm/method.h"
+#include "vm/options.h"
 #include "vm/string.hpp"
+#include "vm/utf8.h"
 #include "vm/vm.hpp"
 
-#include "vm/jit/stacktrace.hpp"
-
-#include "vmcore/class.h"
-#include "vmcore/globals.hpp"
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/method.h"
-#include "vmcore/options.h"
-
 #if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
+# include "vm/statistics.h"
 #endif
 
-#include "vmcore/utf8.h"
+#include "vm/jit/stacktrace.hpp"
 
 
 // FIXME

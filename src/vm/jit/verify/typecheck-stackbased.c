@@ -35,14 +35,13 @@
 #include "vm/array.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/globals.hpp"
 #include "vm/primitive.hpp"
 
 #include "vm/jit/parse.h"
 #include "vm/jit/show.h"
 #include "vm/jit/stack.h"
 #include "vm/jit/verify/typecheck-common.h"
-
-#include "vmcore/globals.hpp"
 
 
 /* this #if runs over the whole file: */

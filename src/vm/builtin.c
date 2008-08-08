@@ -61,22 +61,21 @@
 
 #include "vm/array.h"
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/cycles-stats.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/globals.hpp"
 #include "vm/initialize.h"
+#include "vm/linker.h"
+#include "vm/loader.h"
+#include "vm/options.h"
 #include "vm/primitive.hpp"
+#include "vm/rt-timing.h"
 #include "vm/string.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/trace.hpp"
-
-#include "vmcore/class.h"
-#include "vmcore/globals.hpp"
-#include "vmcore/linker.h"
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
-#include "vmcore/rt-timing.h"
 
 #if defined(ENABLE_VMLOG)
 #include <vmlog_cacao.h>

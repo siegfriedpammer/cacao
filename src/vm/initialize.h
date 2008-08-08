@@ -32,9 +32,8 @@
 extern "C" {
 #endif
 
+#include "vm/class.h"
 #include "vm/global.h"
-
-#include "vmcore/class.h"
 
 
 /* function prototypes ********************************************************/

@@ -35,9 +35,9 @@
 
 #include "toolbox/bitvector.h"
 
-#include "vmcore/statistics.h"
-#include "vmcore/options.h"
-#include "vmcore/method.h"
+#include "vm/statistics.h"
+#include "vm/options.h"
+#include "vm/method.h"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/reg.h"

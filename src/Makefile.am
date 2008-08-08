@@ -30,8 +30,7 @@ DIST_SUBDIRS = \
 	scripts \
 	threads \
 	toolbox \
-	vm \
-	vmcore
+	vm
 
 # DON'T CHANGE THIS ORDER!!!
 
@@ -40,7 +39,6 @@ SUBDIRS = \
 	fdlibm \
 	toolbox \
 	mm \
-	vmcore \
 	vm \
 	threads \
 	native \

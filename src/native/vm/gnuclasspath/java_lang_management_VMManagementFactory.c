@@ -32,14 +32,14 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-// FIXME
-//#include "native/include/java_lang_management_VMManagementFactory.h"
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/java_lang_management_VMManagementFactory.h"
+#endif
 
 #include "toolbox/logging.h"
 
 #include "vm/builtin.h"
-
-#include "vmcore/globals.hpp"
+#include "vm/globals.hpp"
 
 
 /*

@@ -34,7 +34,7 @@
 # include "native/include/java_util_concurrent_atomic_AtomicLong.h"
 #endif
 
-#include "vmcore/utf8.h"
+#include "vm/utf8.h"
 
 
 // Native functions are exported as C functions.

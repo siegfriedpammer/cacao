@@ -53,16 +53,16 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/vm.hpp"
+#include "vm/class.h"
 #include "vm/exceptions.hpp"
+#include "vm/javaobjects.hpp"
 #include "vm/resolve.h"
 #include "vm/string.hpp"
-
-#include "vmcore/class.h"
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/utf8.h"
+#include "vm/utf8.h"
+#include "vm/vm.hpp"
 
 
+// Native functions are exported as C functions.
 extern "C" {
 
 /*

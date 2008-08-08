@@ -30,17 +30,20 @@
 
 #include "mm/memory.h"
 #include "native/native.h"
+
 #include "vm/builtin.h"
+#include "vm/class.h"
+#include "vm/field.h"
 #include "vm/initialize.h"
+#include "vm/options.h"
+#include "vm/references.h"
+#include "vm/resolve.h"
+#include "vm/types.h"
+
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/s390/codegen.h"
 #include "vm/jit/s390/md-abi.h"
-#include "vm/resolve.h"
-#include "vm/types.h"
-#include "vmcore/class.h"
-#include "vmcore/field.h"
-#include "vmcore/options.h"
-#include "vmcore/references.h"
+
 
 #define PATCH_BACK_ORIGINAL_MCODE \
 	*((u2 *) pr->mpc) = (u2) pr->mcode;

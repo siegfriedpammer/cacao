@@ -39,6 +39,36 @@ CYCLES_STATS_SOURCES = \
 	cycles-stats.h
 endif
 
+if ENABLE_JAVASE
+if ENABLE_ANNOTATIONS
+ANNOTATION_SOURCES = \
+	annotation.c \
+	annotation.h
+endif
+
+STACKMAP_SOURCES = \
+	stackmap.c \
+	stackmap.h
+endif
+
+if ENABLE_RT_TIMING
+RT_TIMING_SOURCES = \
+	rt-timing.c \
+	rt-timing.h
+endif
+
+if ENABLE_STATISTICS
+STATISTICS_SOURCES = \
+	statistics.c \
+	statistics.h
+endif
+
+if ENABLE_ZLIB
+ZLIB_SOURCES = \
+	zip.c \
+	zip.h
+endif
+
 noinst_HEADERS = \
 	global.h \
 	types.h
@@ -47,36 +77,69 @@ noinst_LTLIBRARIES = \
 	libvm.la
 
 libvm_la_SOURCES = \
-	$(ASSERTION_SOURCES) \
 	access.c \
 	access.h \
+	$(ANNOTATION_SOURCES) \
 	array.c \
 	array.h \
+	$(ASSERTION_SOURCES) \
 	builtin.c \
 	builtin.h \
 	builtintable.inc \
+	class.c \
+	class.h \
+	classcache.c \
+	classcache.h \
 	$(CYCLES_STATS_SOURCES) \
+	descriptor.c \
+	descriptor.h \
 	exceptions.cpp \
 	exceptions.hpp \
+	field.c \
+	field.h \
 	finalizer.c \
 	finalizer.h \
+	globals.cpp \
+	globals.hpp \
 	initialize.c \
 	initialize.h \
+	javaobjects.cpp \
+	javaobjects.hpp \
 	jit_interface.h \
+	linker.c \
+	linker.h \
+	loader.c \
+	loader.h \
+	method.c \
+	method.h \
+	options.c \
+	options.h \
+	os.cpp \
+	os.hpp \
 	package.cpp \
 	package.hpp \
 	primitive.cpp \
 	primitive.hpp \
+	primitivecore.c \
 	properties.c \
 	properties.h \
+	references.h \
 	resolve.c \
 	resolve.h \
+	$(RT_TIMING_SOURCES) \
 	signal.c \
 	signallocal.h \
+	$(STACKMAP_SOURCES) \
+	$(STATISTICS_SOURCES) \
 	string.cpp \
 	string.hpp \
+	suck.c \
+	suck.h \
+	utf8.c \
+	utf8.h \
 	vm.cpp \
-	vm.hpp
+	vm.hpp \
+	$(ZLIB_SOURCES)
 
 libvm_la_LIBADD = \
 	jit/libjit.la

@@ -28,12 +28,11 @@
 
 #include "vm/jit/sparc64/md-abi.h"
 
+#include "vm/descriptor.h"
 #include "vm/global.h"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/stack.h"
-
-#include "vmcore/descriptor.h"
 
 /* temp */
 #include "mm/memory.h"

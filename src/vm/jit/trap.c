@@ -38,6 +38,8 @@
 #include "toolbox/logging.h"
 
 #include "vm/exceptions.hpp"
+#include "vm/options.h"
+#include "vm/os.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/code.h"
@@ -47,9 +49,6 @@
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/stacktrace.hpp"
-
-#include "vmcore/options.h"
-#include "vmcore/os.hpp"
 
 
 /**

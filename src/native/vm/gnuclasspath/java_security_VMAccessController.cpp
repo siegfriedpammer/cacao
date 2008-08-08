@@ -35,10 +35,9 @@
 #endif
 
 #include "vm/global.h"
+#include "vm/utf8.h"
 
 #include "vm/jit/stacktrace.hpp"
-
-#include "vmcore/utf8.h"
 
 
 // Native functions are exported as C functions.

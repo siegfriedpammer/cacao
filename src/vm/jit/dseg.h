@@ -1,9 +1,7 @@
 /* src/vm/jit/dseg.c - data segment handling stuff
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -38,10 +36,10 @@ typedef struct dsegentry dsegentry;
 
 #include "toolbox/list.h"
 
+#include "vm/references.h"
+
 #include "vm/jit/jit.h"
 #include "vm/jit/codegen-common.h"
-
-#include "vmcore/references.h"
 
 
 /* convenience macros *********************************************************/

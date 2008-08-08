@@ -51,11 +51,10 @@
 
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
+#include "vm/os.hpp"
 #include "vm/string.hpp"
+#include "vm/utf8.h"
 #include "vm/vm.hpp"
-
-#include "vmcore/os.hpp"
-#include "vmcore/utf8.h"
 
 
 static bool finalizeOnExit = false;

@@ -47,11 +47,10 @@ typedef struct stacktrace_t       stacktrace_t;
 
 #include "threads/thread.hpp"
 
+#include "vm/class.h"
 #include "vm/global.h"
 
 #include "vm/jit/code.h"
-
-#include "vmcore/class.h"
 
 
 /* stackframeinfo **************************************************************

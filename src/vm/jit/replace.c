@@ -42,7 +42,14 @@
 
 #include "toolbox/logging.h"
 
+#include "vm/classcache.h"
+#include "vm/globals.hpp"
+#include "vm/options.h"
 #include "vm/string.hpp"
+
+#if defined(ENABLE_RT_TIMING)
+# include "vm/rt-timing.h"
+#endif
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
@@ -54,13 +61,6 @@
 #include "vm/jit/show.h"
 #include "vm/jit/stack.h"
 
-#include "vmcore/classcache.h"
-#include "vmcore/globals.hpp"
-#include "vmcore/options.h"
-
-#if defined(ENABLE_RT_TIMING)
-# include "vmcore/rt-timing.h"
-#endif
 
 #define REPLACE_PATCH_DYNAMIC_CALL
 /*#define REPLACE_PATCH_ALL*/

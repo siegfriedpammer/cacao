@@ -39,8 +39,7 @@
 
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
-
-#include "vmcore/utf8.h"
+#include "vm/utf8.h"
 
 
 // Native functions are exported as C functions.

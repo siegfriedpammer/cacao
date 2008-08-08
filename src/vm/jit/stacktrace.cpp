@@ -49,8 +49,14 @@
 
 #include "vm/array.h"
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/cycles-stats.h"
 #include "vm/exceptions.hpp"
+#include "vm/globals.hpp"
+#include "vm/javaobjects.hpp"
+#include "vm/loader.h"
+#include "vm/method.h"
+#include "vm/options.h"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
@@ -59,13 +65,6 @@
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/methodtree.h"
-
-#include "vmcore/class.h"
-#include "vmcore/globals.hpp"
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/loader.h"
-#include "vmcore/method.h"
-#include "vmcore/options.h"
 
 
 // FIXME Use C-linkage for now.

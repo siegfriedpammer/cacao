@@ -36,13 +36,12 @@
 #include "toolbox/list.h"
 
 #include "vm/global.h"
+#include "vm/method.h"
 
 #include "vm/jit/exceptiontable.h"
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/replace.h"
-
-#include "vmcore/method.h"
 
 
 /* constants ******************************************************************/

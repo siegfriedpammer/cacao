@@ -42,13 +42,12 @@
 
 #include "threads/lock-common.h"
 
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
-#include "vmcore/statistics.h"
-
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/statistics.h"
 #include "vm/types.h"
 #include "vm/vm.hpp"
 

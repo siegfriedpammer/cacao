@@ -32,14 +32,13 @@
 
 #include "mm/memory.h"
 
+#include "vm/options.h"
 #include "vm/vm.hpp"
 
 #include "vm/jit/code.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/methodtree.h"
-
-#include "vmcore/options.h"
 
 
 /* code_init *******************************************************************

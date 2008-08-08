@@ -30,9 +30,9 @@
 #include <assert.h>
 
 #include "vm/exceptions.hpp"
-#include "vm/jit/show.h"
+#include "vm/globals.hpp"
 
-#include "vmcore/globals.hpp"
+#include "vm/jit/show.h"
 
 #include "typecheck-common.h"
 

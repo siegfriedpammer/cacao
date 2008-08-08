@@ -43,7 +43,9 @@
 #include "threads/lock-common.h"
 
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/exceptions.hpp"
+#include "vm/options.h"
 #include "vm/vm.hpp"
 
 #include "vm/jit/abi.h"
@@ -61,9 +63,6 @@
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
 #endif
-
-#include "vmcore/class.h"
-#include "vmcore/options.h"
 
 
 /* codegen_emit ****************************************************************

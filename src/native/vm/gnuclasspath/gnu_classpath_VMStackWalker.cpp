@@ -34,12 +34,11 @@
 # include "native/vm/include/gnu_classpath_VMStackWalker.h"
 #endif
 
+#include "vm/class.h"
 #include "vm/global.h"
+#include "vm/utf8.h"
 
 #include "vm/jit/stacktrace.hpp"
-
-#include "vmcore/class.h"
-#include "vmcore/utf8.h"
 
 
 // Native functions are exported as C functions.

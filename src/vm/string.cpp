@@ -27,7 +27,7 @@
 
 #include <assert.h>
 
-#include "vmcore/os.hpp"
+#include "vm/os.hpp"
 
 #include "vm/types.h"
 
@@ -43,15 +43,14 @@
 #include "vm/array.h"
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
+#include "vm/globals.hpp"
+#include "vm/javaobjects.hpp"
+#include "vm/options.h"
 #include "vm/primitive.hpp"
+#include "vm/statistics.h"
 #include "vm/string.hpp"
+#include "vm/utf8.h"
 #include "vm/vm.hpp"
-
-#include "vmcore/globals.hpp"
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/options.h"
-#include "vmcore/statistics.h"
-#include "vmcore/utf8.h"
 
 
 /* global variables ***********************************************************/

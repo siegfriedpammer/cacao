@@ -40,16 +40,16 @@
 #include "toolbox/logging.h"
 
 #include "vm/global.h"
+#include "vm/globals.hpp"
+#include "vm/javaobjects.hpp"
+#include "vm/options.h"
 #include "vm/string.hpp"
+#include "vm/utf8.h"
+
 #include "vm/jit/argument.h"
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/show.h"
-
-#include "vmcore/globals.hpp"
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/options.h"
-#include "vmcore/utf8.h"
 
 
 #if !defined(NDEBUG)

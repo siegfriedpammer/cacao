@@ -51,13 +51,12 @@
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
-#include "vmcore/options.h"
+#include "vm/options.h"
+#include "vm/os.hpp"
 
 #if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
+# include "vm/statistics.h"
 #endif
-
-#include "vmcore/os.hpp"
 
 
 /* memory_mprotect *************************************************************

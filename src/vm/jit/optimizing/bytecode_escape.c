@@ -19,21 +19,25 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
+
 */
+
+
+#include "config.h"
 
 #include "mm/dumpmemory.h"
 #include "mm/memory.h"
 
 #include "toolbox/bitvector.h"
 
+#include "vm/class.h"
+#include "vm/descriptor.h"
 #include "vm/global.h"
-#include "vm/jit/ir/bytecode.h"
-#include "vm/jit/optimizing/escape.h"
+#include "vm/references.h"
 #include "vm/resolve.h"
 
-#include "vmcore/class.h"
-#include "vmcore/descriptor.h"
-#include "vmcore/references.h"
+#include "vm/jit/ir/bytecode.h"
+#include "vm/jit/optimizing/escape.h"
 
 #include <assert.h>
 #include <stdarg.h>

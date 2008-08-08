@@ -47,8 +47,15 @@
 #include "toolbox/util.h"
 
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/globals.hpp"
+#include "vm/javaobjects.hpp"
+#include "vm/loader.h"
+#include "vm/method.h"
+#include "vm/options.h"
+#include "vm/os.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
@@ -59,14 +66,6 @@
 #include "vm/jit/show.h"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trace.hpp"
-
-#include "vmcore/class.h"
-#include "vmcore/globals.hpp"
-#include "vmcore/javaobjects.hpp"
-#include "vmcore/loader.h"
-#include "vmcore/method.h"
-#include "vmcore/options.h"
-#include "vmcore/os.hpp"
 
 #if defined(ENABLE_VMLOG)
 #include <vmlog_cacao.h>

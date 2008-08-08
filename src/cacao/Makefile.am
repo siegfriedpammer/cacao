@@ -80,7 +80,6 @@ libjvm_la_LIBADD = \
 	$(top_builddir)/src/threads/libthreads.la \
 	$(top_builddir)/src/toolbox/libtoolbox.la \
 	$(top_builddir)/src/vm/libvm.la \
-	$(top_builddir)/src/vmcore/libvmcore.la \
 	$(GC_LIB)
 
 bin_PROGRAMS = \

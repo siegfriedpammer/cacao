@@ -38,16 +38,15 @@
 #include "toolbox/list.h"
 
 #include "vm/builtin.h"
+#include "vm/classcache.h"
 #include "vm/exceptions.hpp"
+#include "vm/options.h"
 #include "vm/string.hpp"
 
 #include "vm/jit/code.h"
 #include "vm/jit/jit.h"
 
 #include "vm/jit/optimizing/recompile.h"
-
-#include "vmcore/classcache.h"
-#include "vmcore/options.h"
 
 
 /* global variables ***********************************************************/

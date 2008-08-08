@@ -34,11 +34,10 @@
 extern "C" {
 #endif
 
+#include "vm/class.h"
+#include "vm/field.h"
 #include "vm/global.h"
-
-#include "vmcore/class.h"
-#include "vmcore/field.h"
-#include "vmcore/method.h"
+#include "vm/method.h"
 
 
 /* macros *********************************************************************/

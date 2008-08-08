@@ -33,8 +33,8 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "vmcore/field.h"
-#include "vmcore/method.h"
+#include "vm/field.h"
+#include "vm/method.h"
 
 
 class Reflection {

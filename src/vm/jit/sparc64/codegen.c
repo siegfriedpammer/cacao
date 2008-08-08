@@ -42,9 +42,12 @@
 #include "native/jni.h"
 #include "native/localref.h"
 #include "native/native.h"
+
 #include "vm/builtin.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/options.h"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
@@ -58,9 +61,6 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/stacktrace.hpp"
-
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
 
 #include "vm/jit/sparc64/solaris/macro_rename.h"
 
