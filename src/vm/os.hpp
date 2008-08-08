@@ -434,6 +434,8 @@ inline int os::scandir(const char *dir, struct dirent ***namelist, int(*filter)(
 #if defined(HAVE_SCANDIR)
 # if defined(__LINUX__)
 	return ::scandir(dir, namelist, filter, compar);
+#elif defined(__SOLARIS__)
+	return ::scandir(dir, namelist, filter, (int (*)(const dirent**, const dirent**)) compar);
 # else
 	return ::scandir(dir, namelist, (int (*)(struct dirent*)) filter, compar);
 # endif
