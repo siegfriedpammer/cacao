@@ -38,9 +38,6 @@
 #include "vm/jit/stack.h"
 
 
-#define CACAO_ALIGN(a)    do { if ((a) & 1) (a)++; } while (0)
-
-
 /* register descripton array **************************************************/
 
 s4 nregdescint[] = {
