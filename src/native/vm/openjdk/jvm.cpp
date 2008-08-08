@@ -3604,8 +3604,15 @@ jint JVM_FindSignal(const char *name)
 
 	if (strcmp(name, "TERM") == 0)
 		return SIGTERM;
+#elif defined(__SOLARIS__)
+	int signum;
+
+	if (os::str2sig(name, &signum) == -1)
+		return -1;
+
+	return signum;
 #else
-# error not implemented for this OS
+# error Not implemented for this OS.
 #endif
 
 	return -1;

@@ -53,6 +53,10 @@
 # endif
 #endif
 
+#if defined(HAVE_SIGNAL_H)
+# include <signal.h>
+#endif
+
 #if defined(HAVE_STDINT_H)
 # include <stdint.h>
 #endif
@@ -128,6 +132,7 @@ public:
 	static inline int    shutdown(int s, int how);
 	static inline int    socket(int domain, int type, int protocol);
 	static inline int    stat(const char* path, struct stat* buf);
+	static inline int    str2sig(const char* str, int* signum);
 	static inline char*  strcat(char* dest, const char* src);
 	static inline char*  strcpy(char* dest, const char* src);
 	static inline char*  strdup(const char* s);
@@ -477,6 +482,15 @@ inline int os::stat(const char* path, struct stat* buf)
 	return ::stat(path, buf);
 #else
 # error stat not available
+#endif
+}
+
+inline int os::str2sig(const char* str, int* signum)
+{
+#if defined(HAVE_STR2SIG)
+	return ::str2sig(str, signum);
+#else
+# error str2sig not available
 #endif
 }
 
