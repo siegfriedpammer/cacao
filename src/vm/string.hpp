@@ -52,10 +52,6 @@ struct literalstring {
 };
 
 
-/* javastring-hashtable */
-extern hashtable hashtable_string;
-
-
 /* function prototypes ********************************************************/
 
 /* initialize string subsystem */

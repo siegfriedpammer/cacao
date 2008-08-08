@@ -59,11 +59,8 @@
 
 #define HASHTABLE_STRING_SIZE    2048   /* initial size of javastring-hash    */
 
-hashtable hashtable_string;             /* hashtable for javastrings          */
-
-#if defined(ENABLE_THREADS)
-static java_object_t *lock_hashtable_string;
-#endif
+static hashtable hashtable_string;      /* hashtable for javastrings          */
+static Mutex* mutex;
 
 
 /* string_init *****************************************************************
@@ -80,13 +77,7 @@ bool string_init(void)
 
 	hashtable_create(&hashtable_string, HASHTABLE_STRING_SIZE);
 
-#if defined(ENABLE_THREADS)
-	/* create string hashtable lock object */
-
-	lock_hashtable_string = NEW(java_object_t);
-
-	LOCK_INIT_OBJECT_LOCK(lock_hashtable_string);
-#endif
+	mutex = new Mutex();
 
 	/* everything's ok */
 
@@ -467,7 +458,7 @@ static java_object_t *literalstring_u2(java_chararray_t *a, int32_t length,
     u4                slot;
     u2                i;
 
-	LOCK_MONITOR_ENTER(lock_hashtable_string);
+	mutex->lock();
 
     /* find location in hashtable */
 
@@ -493,7 +484,7 @@ static java_object_t *literalstring_u2(java_chararray_t *a, int32_t length,
 			if (!copymode)
 				mem_free(a, sizeof(java_chararray_t) + sizeof(u2) * (length - 1) + 10);
 
-			LOCK_MONITOR_EXIT(lock_hashtable_string);
+			mutex->unlock();
 
 			return (java_object_t*) LLNI_UNWRAP(js.get_handle());
 		}
@@ -600,7 +591,7 @@ static java_object_t *literalstring_u2(java_chararray_t *a, int32_t length,
 		hashtable_string = newhash;
 	}
 
-	LOCK_MONITOR_EXIT(lock_hashtable_string);
+	mutex->unlock();
 
 	return (java_object_t*) LLNI_UNWRAP(jls.get_handle());
 }
