@@ -56,8 +56,8 @@
 
 /* global variables ***********************************************************/
 
-#if defined(ENABLE_THREADS) && !defined(NDEBUG)
-static java_object_t *show_global_lock;
+#if !defined(NDEBUG)
+static Mutex* mutex;
 #endif
 
 
@@ -80,9 +80,7 @@ bool show_init(void)
 #if defined(ENABLE_THREADS)
 	/* initialize the show lock */
 
-	show_global_lock = NEW(java_object_t);
-
-	LOCK_INIT_OBJECT_LOCK(show_global_lock);
+	mutex = Mutex_new();
 #endif
 
 #if defined(ENABLE_DEBUG_FILTER)
@@ -157,7 +155,7 @@ void show_method(jitdata *jd, int stage)
 	   is not reentrant-able and we could not read functions printed
 	   at the same time. */
 
-	LOCK_MONITOR_ENTER(show_global_lock);
+	Mutex_lock(mutex);
 
 #if defined(ENABLE_INTRP)
 	if (opt_intrp)
@@ -388,7 +386,7 @@ void show_method(jitdata *jd, int stage)
 	}
 #endif
 
-	LOCK_MONITOR_EXIT(show_global_lock);
+	Mutex_unlock(mutex);
 
 	/* finally flush the output */
 
