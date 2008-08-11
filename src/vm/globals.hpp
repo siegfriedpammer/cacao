@@ -143,7 +143,7 @@ extern classinfo *pseudo_class_New;
 }
 #endif
 
-#endif // _CLASS_HPP
+#endif // _GLOBALS_HPP
 
 
 /*
