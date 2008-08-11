@@ -90,7 +90,7 @@
 #endif
 
 #include "vm/jit/jit.h"
-#include "vm/jit/jitcache.h"
+#include "vm/jit/jitcache.hpp"
 #include "vm/jit/methodtree.h"
 
 #if defined(ENABLE_PROFILING)

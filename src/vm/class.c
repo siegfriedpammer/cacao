@@ -50,7 +50,7 @@
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
-#include "vm/jit/jitcache.h"
+#include "vm/jit/jitcache.hpp"
 #include "vm/linker.h"
 #include "vm/loader.h"
 #include "vm/options.h"

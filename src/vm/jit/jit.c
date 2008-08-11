@@ -65,7 +65,7 @@
 #include "vm/jit/stack.h"
 
 #if defined(ENABLE_JITCACHE)
-# include "vm/jit/jitcache.h"
+# include "vm/jit/jitcache.hpp"
 #endif
 
 #if defined(ENABLE_OPAGENT)

@@ -186,7 +186,7 @@ bool patcher_instanceof_class(patchref_t *pr);
 
 #endif /* defined(__I386__) */
 
-void patch_md(s4 md_patch, ptrint dest, voidptr ref);
+void patch_md(s4 md_patch, ptrint dest, void* ref);
 
 #endif /* _PATCHER_COMMON_H */
 

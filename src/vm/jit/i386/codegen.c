@@ -58,7 +58,7 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
-#include "vm/jit/jitcache.h"
+#include "vm/jit/jitcache.hpp"
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher-common.h"
@@ -631,8 +631,8 @@ bool codegen_emit(jitdata *jd)
 						jd,
 						(iptr->flags.bits & INS_FLAG_CLASS) ? CRT_CLASSINFO
 															: CRT_STRING,
-						(iptr->flags.bits & INS_FLAG_CLASS) ? iptr->sx.val.c.cls
-															: iptr->sx.val.stringconst);
+						(iptr->flags.bits & INS_FLAG_CLASS) ? (void*) iptr->sx.val.c.cls
+															: (void*) iptr->sx.val.stringconst);
 				}
 			}
 			emit_store_dst(jd, iptr, d);
@@ -3286,7 +3286,7 @@ gen_method:
 					disp = 0;
 				}
 				else {
-					disp = iptr->sx.s23.s3.c.cls;
+					disp = (ptrint) iptr->sx.s23.s3.c.cls;
 				}
 
 				M_AST_IMM(disp, REG_SP, 1 * 4);

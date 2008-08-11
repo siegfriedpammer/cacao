@@ -45,7 +45,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "vm/jit/jitcache.h"
+#include "vm/jit/jitcache.hpp"
 
 #include "vm/types.h"
 

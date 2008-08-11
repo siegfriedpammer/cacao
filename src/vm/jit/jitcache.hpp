@@ -27,14 +27,18 @@
 
 #if defined(ENABLE_JITCACHE)
 
+#ifdef __cplusplus
+#extern "C" {
+#endif
+
 #include "config.h"
 
 #include <stdint.h>
 
 #include "vm/jit/patcher-common.h"
 
-#include "vmcore/class.h"
-#include "vmcore/method.h"
+#include "vm/class.h"
+#include "vm/method.h"
 
 typedef enum cachedreftype {
 	CRT_CODEINFO,
@@ -72,7 +76,7 @@ typedef struct cachedref_t {
 	cachedreftype type;			/* type of the cached reference */
 	s4			  md_patch;		/* machine dependent back patching */
 	s4       	  disp;         /* displacement of ref in the data segment    */
-	voidptr       ref;          /* reference passed                           */
+	void*       ref;          /* reference passed                           */
 	listnode_t    linkage;
 } cachedref_t;
 
@@ -104,11 +108,11 @@ void	jitcache_list_reset(codeinfo *code);
 
 void	jitcache_list_free(codeinfo *code);
 
-void	jitcache_add_cached_ref_jd(jitdata *jd, cachedreftype type, voidptr ref);
+void	jitcache_add_cached_ref_jd(jitdata *jd, cachedreftype type, void* ref);
 
-void	jitcache_add_cached_ref_md_jd(jitdata *jd, cachedreftype type, s4 md_patch, voidptr ref);
+void	jitcache_add_cached_ref_md_jd(jitdata *jd, cachedreftype type, s4 md_patch, void* ref);
 
-void	jitcache_add_cached_ref(codeinfo *code, cachedreftype type, voidptr ref, s4 disp);
+void	jitcache_add_cached_ref(codeinfo *code, cachedreftype type, void* ref, s4 disp);
 
 void    jitcache_store(methodinfo *m);
 
@@ -116,26 +120,26 @@ u1      jitcache_load(methodinfo *m);
 
 void	jitcache_handle_cached_ref(cachedref_t *cr, codeinfo *code);
 
-void    jitcache_quit();
+void  jitcache_quit();
 
 void	jitcache_freeclass(classinfo *);
 
 #define JITCACHE_ADD_CACHED_REF_JD(jd, type, ref) \
-	(jitcache_add_cached_ref_jd(jd, type, ref))
+	(jitcache_add_cached_ref_jd(jd, type, (void*) ref))
 
 #define JITCACHE_ADD_CACHED_REF_JD_COND(jd, type, ref, COND) \
 	if (COND) \
-	(jitcache_add_cached_ref_jd(jd, type, ref))
+	(jitcache_add_cached_ref_jd(jd, type, (void*) ref))
 
 #define JITCACHE_ADD_CACHED_REF_MD_JD(jd, type, md_patch, ref) \
-	(jitcache_add_cached_ref_md_jd(jd, type, md_patch, ref))
+	(jitcache_add_cached_ref_md_jd(jd, type, md_patch, (void*) ref))
 
 #define JITCACHE_ADD_CACHED_REF(code, type, ref, disp) \
-	(jitcache_add_cached_ref(code, type, ref, disp))
+	(jitcache_add_cached_ref(code, type, (void*) ref, disp))
 
 #define JITCACHE_ADD_CACHED_REF_COND(code, type, ref, disp, COND) \
 	if (COND) \
-		jitcache_add_cached_ref(code, type, ref, disp)
+		jitcache_add_cached_ref(code, type, (void*) ref, disp)
 
 #else
 
@@ -154,6 +158,10 @@ void	jitcache_freeclass(classinfo *);
 #define JITCACHE_ADD_CACHED_REF_COND(code, type, ref, disp, COND) \
 	while (0) { }
 
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* ENABLE_JITCACHE */
 
 #endif /* _LINENUMBERTABLE_H */
@@ -165,7 +173,7 @@ void	jitcache_freeclass(classinfo *);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

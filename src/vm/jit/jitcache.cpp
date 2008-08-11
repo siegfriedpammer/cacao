@@ -40,10 +40,12 @@
 #include "mm/memory.h"
 #include "mm/codememory.h"
 
-#include "vm/types.h"
-#include "vm/resolve.h"
 #include "vm/builtin.h"
-#include "vm/stringlocal.h"
+#include "vm/method.h"
+#include "vm/options.h"
+#include "vm/resolve.h"
+#include "vm/stringl.hpp"
+#include "vm/types.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
@@ -54,16 +56,14 @@
 #include "vm/jit/exceptiontable.h"
 #include "vm/jit/methodtree.h"
 
-#include "vmcore/references.h"
-#include "vmcore/method.h"
-#include "vmcore/system.h"
-#include "vmcore/field.h"
-#include "vmcore/utf8.h"
-#include "vmcore/options.h"
+#include "vm/references.h"
+#include "vm/os.hpp"
+#include "vm/field.h"
+#include "vm/utf8.h"
 
-#include "vm/jit/jitcache.h"
+#include "vm/jit/jitcache.hpp"
 
-#include "threads/mutex.h"
+#include "threads/thread.hpp"
 
 /* TODO: Wrap this in vm/system.h" */
 #include "unistd.h"
@@ -224,7 +224,7 @@ void jitcache_mru_add(classinfo *c, int fd)
 
 		assert (old_c);
 		assert (old_c->cache_file_fd);
-		system_close(old_c->cache_file_fd);
+		os::close(old_c->cache_file_fd);
 		old_c->cache_file_fd = 0;
 
 		jc_mru_list[mru_start] = c;
@@ -339,7 +339,7 @@ static cachedref_t *jitcache_list_find(codeinfo *code, s4 disp)
 
 *******************************************************************************/
 
-cachedref_t *jitcache_new_cached_ref(cachedreftype type, s4 md_patch, voidptr ref, s4 disp)
+cachedref_t *jitcache_new_cached_ref(cachedreftype type, s4 md_patch, void* ref, s4 disp)
 {
 	cachedref_t *cr;
 
@@ -402,7 +402,7 @@ void jitcache_add_cached_ref_intern(codeinfo *code, cachedref_t *cachedref)
 
 *******************************************************************************/
 
-void jitcache_add_cached_ref_jd(jitdata *jd, cachedreftype type, voidptr ref)
+void jitcache_add_cached_ref_jd(jitdata *jd, cachedreftype type, void* ref)
 {
 	jitcache_add_cached_ref_md_jd(jd, type, 0, ref);
 }
@@ -416,7 +416,7 @@ void jitcache_add_cached_ref_jd(jitdata *jd, cachedreftype type, voidptr ref)
 
 *******************************************************************************/
 
-void jitcache_add_cached_ref_md_jd(jitdata *jd, cachedreftype type, s4 md_patch, voidptr ref)
+void jitcache_add_cached_ref_md_jd(jitdata *jd, cachedreftype type, s4 md_patch, void* ref)
 {
 	patchref_t	 *patchref;
 	codegendata	 *cd;
@@ -465,7 +465,7 @@ void jitcache_add_cached_ref_md_jd(jitdata *jd, cachedreftype type, s4 md_patch,
 
 *******************************************************************************/
 
-void jitcache_add_cached_ref(codeinfo *code, cachedreftype type, voidptr ref, s4 disp)
+void jitcache_add_cached_ref(codeinfo *code, cachedreftype type, void* ref, s4 disp)
 {
 	cachedref_t *cr;
 
@@ -805,7 +805,7 @@ void filter_single(methodinfo *m)
 	filter_match();
 }
 
-mutex_t jitcache_lock;
+Mutex *jitcache_lock;
 
 /* jitcache_store **************************************************************
 
@@ -820,7 +820,7 @@ void jitcache_store (methodinfo *m)
 
 	if (init_lock)
 	{
-		mutex_init(&jitcache_lock);
+		jitcache_lock = Mutex_new();
 		init_lock = false;
 	}
 
@@ -852,8 +852,8 @@ void jitcache_store (methodinfo *m)
 	 * Acquire lock first because another thread may try to load a different
      * method from this class.
      */
-/*	mutex_lock(&m->clazz->cache_file_lock);*/
-	mutex_lock(&jitcache_lock);
+/*	Mutex_lock(&m->clazz->cache_file_lock);*/
+	Mutex_lock(jitcache_lock);
 
 	if (opt_DebugJitCache)
       log_message_method("[jitcache] store: ", m);
@@ -862,21 +862,21 @@ void jitcache_store (methodinfo *m)
 
 	/* flags, optlevel, basicblockcount, synchronizedoffset, stackframesize, entrypoint, mcodelength, mcode
     */
-	system_write(fd, (const void *) &m->code->flags, sizeof(m->code->flags));
+	os::write(fd, (const void *) &m->code->flags, sizeof(m->code->flags));
 
-	system_write(fd, (const void *) &m->code->optlevel, sizeof(m->code->optlevel));
-	system_write(fd, (const void *) &m->code->basicblockcount, sizeof(m->code->basicblockcount));
+	os::write(fd, (const void *) &m->code->optlevel, sizeof(m->code->optlevel));
+	os::write(fd, (const void *) &m->code->basicblockcount, sizeof(m->code->basicblockcount));
 
-	system_write(fd, (const void *)  &m->code->synchronizedoffset, sizeof(m->code->synchronizedoffset));
+	os::write(fd, (const void *)  &m->code->synchronizedoffset, sizeof(m->code->synchronizedoffset));
 
-	system_write(fd, (const void *)  &m->code->stackframesize, sizeof(m->code->stackframesize));
+	os::write(fd, (const void *)  &m->code->stackframesize, sizeof(m->code->stackframesize));
 
 	temp = to_offset(m->code->mcode, m->code->entrypoint);
-	system_write(fd, (const void *) &temp, sizeof(temp));
+	os::write(fd, (const void *) &temp, sizeof(temp));
 
-	system_write(fd, (const void *) &m->code->mcodelength, sizeof(m->code->mcodelength));
+	os::write(fd, (const void *) &m->code->mcodelength, sizeof(m->code->mcodelength));
 
-	system_write(fd, (const void *) m->code->mcode, m->code->mcodelength);
+	os::write(fd, (const void *) m->code->mcode, m->code->mcodelength);
 
 	store_to_file_exceptiontable(fd, m->code);
 
@@ -886,8 +886,8 @@ void jitcache_store (methodinfo *m)
 
 	store_to_file_cachedrefs(fd, m->code);
 
-/*	mutex_unlock(&m->clazz->cache_file_lock);*/
-	mutex_unlock(&jitcache_lock);
+/*	Mutex_unlock(&m->clazz->cache_file_lock);*/
+	Mutex_unlock(jitcache_lock);
 
 }
 
@@ -927,7 +927,7 @@ u1 jitcache_load (methodinfo *m)
 
 	if(!seek_method_table(m, fd))
 	{
-		system_close(fd);
+		os::close(fd);
 
 		return false;
 	}
@@ -940,21 +940,21 @@ u1 jitcache_load (methodinfo *m)
 
 	/* flags, optlevel, basicblockcount, synchronizedoffset, stackframesize, entrypoint, mcodelength, mcode
     */
-	system_read(fd, (void *) &code->flags, sizeof(code->flags));
+	os::read(fd, (void *) &code->flags, sizeof(code->flags));
 
-	system_read(fd, (void *) &code->optlevel, sizeof(code->optlevel));
-	system_read(fd, (void *) &code->basicblockcount, sizeof(code->basicblockcount));
+	os::read(fd, (void *) &code->optlevel, sizeof(code->optlevel));
+	os::read(fd, (void *) &code->basicblockcount, sizeof(code->basicblockcount));
 
-	system_read(fd, (void *) &code->synchronizedoffset, sizeof(code->synchronizedoffset));
+	os::read(fd, (void *) &code->synchronizedoffset, sizeof(code->synchronizedoffset));
 
-	system_read(fd, (void *) &code->stackframesize, sizeof(code->stackframesize));
+	os::read(fd, (void *) &code->stackframesize, sizeof(code->stackframesize));
 
-	system_read(fd, (void *) &code->entrypoint, sizeof(code->entrypoint));
+	os::read(fd, (void *) &code->entrypoint, sizeof(code->entrypoint));
 
-	system_read(fd, (void *) &code->mcodelength, sizeof(code->mcodelength));
+	os::read(fd, (void *) &code->mcodelength, sizeof(code->mcodelength));
 
 	code->mcode = CNEW(u1, code->mcodelength);
-	system_read(fd, (void *) code->mcode, code->mcodelength);
+	os::read(fd, (void *) code->mcode, code->mcodelength);
 	code->entrypoint = to_abs(code->mcode, code->entrypoint);
 
 	load_from_file_exceptiontable(code, fd);
@@ -965,7 +965,7 @@ u1 jitcache_load (methodinfo *m)
 
 	load_from_file_cachedrefs(code, fd);
 
-	system_close(fd);
+	os::close(fd);
 
 	endpc = (u1 *) ((ptrint) code->mcode) + code->mcodelength;
 
@@ -991,7 +991,7 @@ void jitcache_quit()
 
 	for (i = 0; i < mru_last_free; i++)
 	{
-		system_close(jc_mru_list[i]->cache_file_fd);
+		os::close(jc_mru_list[i]->cache_file_fd);
 		jc_mru_list[i]->cache_file_fd = 0;
 		jc_mru_list[i] = 0;
 	}
@@ -1012,24 +1012,24 @@ void update_method_table(methodinfo *m, int fd)
 {
 	int state = 0, i, temp, offset = 0;
 
-	system_lseek(fd, 0, SEEK_SET);
+	os::lseek(fd, 0, SEEK_SET);
 
-	system_read(fd, (void *) &state, sizeof(state));
+	os::read(fd, (void *) &state, sizeof(state));
 
 	/* table does not exist yet and needs to be created first */
 	if (state != 1)
 	{
-		system_lseek(fd, 0, SEEK_SET);
+		os::lseek(fd, 0, SEEK_SET);
 		state = 1;
-		system_write(fd, &state, sizeof(state));
+		os::write(fd, &state, sizeof(state));
 
 		temp = -1;
 		for (i = 0; i < m->clazz->methodscount; i++)
-			system_write(fd, &temp, sizeof(temp));
+			os::write(fd, &temp, sizeof(temp));
 	}
 
 	/* get last offset in file */
-	offset = system_lseek(fd, 0, SEEK_END);
+	offset = os::lseek(fd, 0, SEEK_END);
 
 	/* find out the index in the methods array */
 	temp = -1;
@@ -1042,21 +1042,21 @@ void update_method_table(methodinfo *m, int fd)
 	assert(temp != -1);
 
 	/* seek to the method's entry in the table */
-	system_lseek(fd, temp * sizeof(int) + sizeof(int), SEEK_SET);
+	os::lseek(fd, temp * sizeof(int) + sizeof(int), SEEK_SET);
 
 	/* enter the location */
-	system_write(fd, &offset, sizeof(offset));
+	os::write(fd, &offset, sizeof(offset));
 
-	system_lseek(fd, offset, SEEK_SET);
+	os::lseek(fd, offset, SEEK_SET);
 }
 
 int seek_method_table(methodinfo *m, int fd)
 {
 	int state = 0, i, temp, offset;
 
-	system_lseek(fd, 0, SEEK_SET);
+	os::lseek(fd, 0, SEEK_SET);
 
-	system_read(fd, (void *) &state, sizeof(state));
+	os::read(fd, (void *) &state, sizeof(state));
 
 	/* if table does not exist, we cannot load any machine code from this file */
 	if (state != 1)
@@ -1073,14 +1073,14 @@ int seek_method_table(methodinfo *m, int fd)
 	assert(temp != -1);
 
 	/* seek to the method's entry in the table */
-	system_lseek(fd, temp * sizeof(int) + sizeof(int), SEEK_SET);
+	os::lseek(fd, temp * sizeof(int) + sizeof(int), SEEK_SET);
 
 	/* get the location */
-	system_read(fd, &offset, sizeof(offset));
+	os::read(fd, &offset, sizeof(offset));
 
 	if (offset > 0)
 	{
-		system_lseek(fd, offset, SEEK_SET);
+		os::lseek(fd, offset, SEEK_SET);
 		return offset;
 	}
 
@@ -1099,12 +1099,12 @@ int get_cache_file_readable(methodinfo *m)
 	/* load from filesystem */
 	dest_file = get_dest_file(m);
 
-	if (system_access(dest_file, F_OK) != 0)
+	if (os::access(dest_file, F_OK) != 0)
 	{
 		if (opt_DebugJitCache)
 			log_message_method("[jitcache] no cache file found for ", m);
 
-		system_free(dest_file);
+		os::free(dest_file);
 
 		return 0;
 	}
@@ -1115,7 +1115,7 @@ int get_cache_file_readable(methodinfo *m)
 
 	fd = open_to_read(dest_file);
 
-	system_free(dest_file);
+	os::free(dest_file);
 
 /*
 	if (fd > 0)
@@ -1142,31 +1142,31 @@ int get_cache_file_writable(methodinfo *m)
 	if (fd <= 0) {
 		dest_dir = get_dest_dir(m);
 
-		if (system_access(dest_dir, F_OK) != 0)
+		if (os::access(dest_dir, F_OK) != 0)
 		{
 			if (mkdir_hier(dest_dir, S_IRWXU | S_IRWXG) != 0)
 			{
 				if (opt_DebugJitCache)
 					log_println("[jitcache] unable to create cache directory: %s", dest_dir);
 
-				system_free(dest_dir);
-				system_free(dest_file);
+				os::free(dest_dir);
+				os::free(dest_file);
 
 				return 0;
 			}
 		}
 
-		system_free(dest_dir);
+		os::free(dest_dir);
 
 		/* try to open the file again. */
 		fd = open_to_write(dest_file);
-		system_free(dest_file);
+		os::free(dest_file);
 
 		if (fd <= 0)
 			return 0;
 	}
 
-	system_free(dest_file);
+	os::free(dest_file);
 
 	jitcache_mru_add(m->clazz, fd);
 
@@ -1181,7 +1181,7 @@ int get_cache_file_writable(methodinfo *m)
 int mkdir_hier(char *path, mode_t mode)
 {
 	int index;
-	int length = system_strlen(path);
+	int length = os::strlen(path);
 
 	for (index = 0; index < length; index++)
 	{
@@ -1206,10 +1206,10 @@ int mkdir_hier(char *path, mode_t mode)
 
 char *get_dest_file(methodinfo *m)
 {
-	int len_cacheroot = system_strlen(CACHEROOT);
+	int len_cacheroot = os::strlen(CACHEROOT);
 	int len_classname = utf_bytes(m->clazz->name);
 
-	char *dest_file = system_calloc(sizeof(u1),
+	char *dest_file = os::calloc(sizeof(u1),
 								   len_cacheroot
 	                               + len_classname
 	                               + 2);
@@ -1229,10 +1229,10 @@ char *get_dest_file(methodinfo *m)
 
 char *get_dest_dir(methodinfo *m)
 {
-	int len_cacheroot = system_strlen(CACHEROOT);
+	int len_cacheroot = os::strlen(CACHEROOT);
 	int len_packagename = utf_bytes(m->clazz->packagename);
 
-	char *dest_dir = system_calloc(sizeof(u1),
+	char *dest_dir = os::calloc(sizeof(u1),
 								   len_cacheroot
 	                               + len_packagename + 2);
 
@@ -1279,9 +1279,9 @@ int open_to_read(char *dest_file)
 {
 	int fd;
 /*
-	fd = system_open(dest_file, O_RDONLY, 0);
+	fd = os::open(dest_file, O_RDONLY, 0);
 */
-	fd = system_open(dest_file,
+	fd = os::open(dest_file,
 					 O_RDWR,
 					 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 
@@ -1298,11 +1298,11 @@ int open_to_write(char *dest_file)
 {
 	int fd;
 
-/*	fd = system_open(filename,
+/*	fd = os::open(filename,
 					 O_CREAT | O_WRONLY,
 					 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 */
-	fd = system_open(dest_file,
+	fd = os::open(dest_file,
 					 O_CREAT | O_RDWR,
 					 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 
@@ -1321,13 +1321,13 @@ void store_utf(int fd, utf *s)
 	if (!s)
 	{
 		len = -1;
-		system_write(fd, (const void *) &len, sizeof(len));
+		os::write(fd, (const void *) &len, sizeof(len));
 	}
 	else
 	{
 		len = utf_bytes(s);
-		system_write(fd, (const void *) &len, sizeof(len));
-		system_write(fd, s->text, len);
+		os::write(fd, (const void *) &len, sizeof(len));
+		os::write(fd, s->text, len);
 	}
 }
 
@@ -1343,19 +1343,19 @@ void load_utf(utf **s, int fd)
 	int len = 0;
 	char *tmp;
 
-	system_read(fd, (void *) &len, sizeof(len));
+	os::read(fd, (void *) &len, sizeof(len));
 
 	if (len == -1)
 		*s = NULL;
 	else
 	{
-		tmp = system_calloc(sizeof(char), len);
+		tmp = os::calloc(sizeof(char), len);
 
-		system_read(fd, tmp, len);
+		os::read(fd, tmp, len);
 
 		*s = utf_new(tmp, len);
 
-/*		system_free(tmp);*/
+/*		os::free(tmp);*/
 	}
 }
 
@@ -1375,19 +1375,19 @@ void store_to_file_patchers(int fd, codeinfo *code)
 	list_t *patchers = code->patchers;
 
 	/* serialize patchers list */
-	system_write(fd, (const void *) &patchers->size, sizeof(patchers->size));
+	os::write(fd, (const void *) &patchers->size, sizeof(patchers->size));
 	if (opt_DebugJitCache)
 		log_println("store_to_file_patchers - patchers size %d", patchers->size);
 
 	for (pr = (patchref_t *) list_first(patchers); pr != NULL; pr = (patchref_t *) list_next(patchers, pr))
 	{
 		temp_ptr = to_offset(code->mcode, (u1 *) pr->mpc);
-		system_write(fd, (const void *) &temp_ptr, sizeof(temp_ptr));
+		os::write(fd, (const void *) &temp_ptr, sizeof(temp_ptr));
 
 		temp_ptr = to_offset(code->mcode, (u1 *) pr->datap);
-		system_write(fd, (const void *) &temp_ptr, sizeof(temp_ptr));
+		os::write(fd, (const void *) &temp_ptr, sizeof(temp_ptr));
 
-		system_write(fd, (const void *) &pr->disp, sizeof(pr->disp));
+		os::write(fd, (const void *) &pr->disp, sizeof(pr->disp));
 
 		temp = -1;
 		j = 0;
@@ -1396,7 +1396,7 @@ void store_to_file_patchers(int fd, codeinfo *code)
 			if (patcher_functions[j].patcher == pr->patcher)
 			{
 				temp = j;
-				system_write(fd, (const void *) &j, sizeof(j));
+				os::write(fd, (const void *) &j, sizeof(j));
 
 				(*patcher_functions[j].serializer)(fd, pr, code->m);
 
@@ -1410,10 +1410,10 @@ void store_to_file_patchers(int fd, codeinfo *code)
 		if (temp == -1)
 		{
 			log_println("warning! unknown patcher function stored!");
-			system_write(fd, (const void *) &temp, sizeof(temp));
+			os::write(fd, (const void *) &temp, sizeof(temp));
 		}
 
-		system_write(fd, (const void *) &pr->attached_ref, sizeof(pr->attached_ref));
+		os::write(fd, (const void *) &pr->attached_ref, sizeof(pr->attached_ref));
 
 		if (pr->attached_ref)
 		{
@@ -1426,7 +1426,7 @@ void store_to_file_patchers(int fd, codeinfo *code)
 			pr->attached_ref = NULL;
 		}
 
-		system_write(fd, (const void *) &pr->mcode, sizeof(pr->mcode));
+		os::write(fd, (const void *) &pr->mcode, sizeof(pr->mcode));
 	}
 }
 
@@ -1445,7 +1445,7 @@ void store_to_file_cachedrefs(int fd, codeinfo *code)
 		log_println("store_to_file_cachedrefs - cachedrefs size %d", cachedrefs->size);
 
 	/* serialize cachedrefs list */
-	system_write(fd, (const void *) &cachedrefs->size, sizeof(cachedrefs->size));
+	os::write(fd, (const void *) &cachedrefs->size, sizeof(cachedrefs->size));
 
 	for (cr = (cachedref_t *) list_first(cachedrefs);
 		 cr != NULL;
@@ -1461,9 +1461,9 @@ void store_to_file_cachedrefs(int fd, codeinfo *code)
 
 void store_cachedref(int fd, cachedref_t *cr)
 {
-	system_write(fd, (const void *) &cr->type, sizeof(cr->type));
-	system_write(fd, (const void *) &cr->md_patch, sizeof(cr->md_patch));
-	system_write(fd, (const void *) &cr->disp, sizeof(cr->disp));
+	os::write(fd, (const void *) &cr->type, sizeof(cr->type));
+	os::write(fd, (const void *) &cr->md_patch, sizeof(cr->md_patch));
+	os::write(fd, (const void *) &cr->disp, sizeof(cr->disp));
 
 	switch (cr->type) {
 		case CRT_CODEINFO:
@@ -1474,7 +1474,7 @@ void store_cachedref(int fd, cachedref_t *cr)
 			/* Nothing to store. */
 			break;
 		case CRT_NUM:
-			system_write(fd, (const void *) &cr->ref, sizeof(s4));
+			os::write(fd, (const void *) &cr->ref, sizeof(s4));
 			break;
 		case CRT_OBJECT_HEADER:
 		case CRT_CLASSINFO:
@@ -1503,7 +1503,7 @@ void store_cachedref(int fd, cachedref_t *cr)
 			store_fieldinfo(fd, (fieldinfo *) cr->ref);
 			break;
 		case CRT_JUMPREFERENCE:
-			system_write(fd, (const void *) &cr->ref, sizeof(cr->ref));
+			os::write(fd, (const void *) &cr->ref, sizeof(cr->ref));
 			
 			break;
 		default:
@@ -1533,7 +1533,7 @@ void store_to_file_exceptiontable(int fd, codeinfo *code)
 	if (code->exceptiontable)
 		count = code->exceptiontable->length;
 
-	system_write(fd, (const void *) &count, sizeof(count));
+	os::write(fd, (const void *) &count, sizeof(count));
 	if (opt_DebugJitCache)
 		log_println("store_exceptiontable - exceptiontable size %d", count);
 
@@ -1542,13 +1542,13 @@ void store_to_file_exceptiontable(int fd, codeinfo *code)
 		exceptiontable_entry_t *entry = &code->exceptiontable->entries[i];
 
 		temp_ptr = to_offset(code->mcode, entry->endpc);
-		system_write(fd, (const void *) &temp_ptr, sizeof(temp_ptr));
+		os::write(fd, (const void *) &temp_ptr, sizeof(temp_ptr));
 
 		temp_ptr = to_offset(code->mcode, entry->startpc);
-		system_write(fd, (const void *) &temp_ptr, sizeof(temp_ptr));
+		os::write(fd, (const void *) &temp_ptr, sizeof(temp_ptr));
 
 		temp_ptr = to_offset(code->mcode, entry->handlerpc);
-		system_write(fd, (const void *) &temp_ptr, sizeof(temp_ptr));
+		os::write(fd, (const void *) &temp_ptr, sizeof(temp_ptr));
 
 		/* store class name of entry->catchtype */
 		if (entry->catchtype.any)
@@ -1583,7 +1583,7 @@ void store_to_file_linenumbertable(int fd, codeinfo *code)
 		count = code->linenumbertable->length;
 
 	/* serialize patchers list */
-	system_write(fd, (const void *) &count, sizeof(count));
+	os::write(fd, (const void *) &count, sizeof(count));
 
 	if (opt_DebugJitCache)
 		log_println("store_to_file_linenumbertable - linenumbertable size %d", count);
@@ -1593,10 +1593,10 @@ void store_to_file_linenumbertable(int fd, codeinfo *code)
 		lte = linenumbertable->entries;
 		for (i = 0; i < count; i++)
 		{
-			system_write(fd, (const void *) &lte->linenumber, sizeof(lte->linenumber));
+			os::write(fd, (const void *) &lte->linenumber, sizeof(lte->linenumber));
 	
 			temp_ptr = to_offset(code->entrypoint, lte->pc);
-			system_write(fd, (const void *) &temp_ptr, sizeof(temp_ptr));
+			os::write(fd, (const void *) &temp_ptr, sizeof(temp_ptr));
 
 			lte++;
 		}
@@ -1618,7 +1618,7 @@ void load_from_file_patchers(codeinfo *code, int fd)
 	int i;
 
 	/* serialize patchers list */
-	system_read(fd, (void *) &count, sizeof(count));
+	os::read(fd, (void *) &count, sizeof(count));
 
 	if (opt_DebugJitCache	/* Insert method into methodtree to find the entrypoint. */
 )
@@ -1630,15 +1630,15 @@ void load_from_file_patchers(codeinfo *code, int fd)
 	{
 		patchref_t *pr = NEW(patchref_t);
 
-		system_read(fd, (void *) &temp_ptr, sizeof(temp_ptr));
+		os::read(fd, (void *) &temp_ptr, sizeof(temp_ptr));
 		pr->mpc = (ptrint) to_abs(code->mcode, temp_ptr);
 
-		system_read(fd, (void *) &temp_ptr, sizeof(temp_ptr));
+		os::read(fd, (void *) &temp_ptr, sizeof(temp_ptr));
 		pr->datap = (ptrint) to_abs(code->mcode, temp_ptr);
 
-		system_read(fd, (void *) &pr->disp, sizeof(pr->disp));
+		os::read(fd, (void *) &pr->disp, sizeof(pr->disp));
 
-		system_read(fd, (void *) &temp, sizeof(temp));
+		os::read(fd, (void *) &temp, sizeof(temp));
 		if (temp == -1)
 		{
 			vm_abort("Invalid patcher function index loaded!");
@@ -1650,7 +1650,7 @@ void load_from_file_patchers(codeinfo *code, int fd)
 
 		/* Load the pointer value to decide whether a cached reference must
          * be loaded or not. */
-		system_read(fd, (void *) &pr->attached_ref, sizeof(pr->attached_ref));
+		os::read(fd, (void *) &pr->attached_ref, sizeof(pr->attached_ref));
 
 		if (pr->attached_ref)
 		{
@@ -1658,7 +1658,7 @@ void load_from_file_patchers(codeinfo *code, int fd)
 			load_cachedref(&pr->attached_ref, fd, code);
 		}
 
-		system_read(fd, (void *) &pr->mcode, sizeof(pr->mcode));
+		os::read(fd, (void *) &pr->mcode, sizeof(pr->mcode));
 
 		pr->done = false;
 
@@ -1684,7 +1684,7 @@ void load_from_file_cachedrefs(codeinfo *code, int fd)
 	int i;
 
 	/* serialize cachedrefs list */
-	system_read(fd, (void *) &count, sizeof(count));
+	os::read(fd, (void *) &count, sizeof(count));
 
 	if (opt_DebugJitCache)
 		log_println("load_from_file_cachedrefs - cachedrefs size %d", count);
@@ -1736,33 +1736,33 @@ void load_cachedref(cachedref_t **result_cr, int fd, codeinfo *code)
 	else
 		*result_cr = cr = NEW(cachedref_t);
 
-	system_read(fd, (void *) &cr->type, sizeof(cr->type));
-	system_read(fd, (void *) &cr->md_patch, sizeof(cr->md_patch));
-	system_read(fd, (void *) &cr->disp, sizeof(cr->disp));
+	os::read(fd, (void *) &cr->type, sizeof(cr->type));
+	os::read(fd, (void *) &cr->md_patch, sizeof(cr->md_patch));
+	os::read(fd, (void *) &cr->disp, sizeof(cr->disp));
 
 	switch (cr->type) {
 		case CRT_CODEINFO:
 			/* Just set the current codeinfo. */
-			cr->ref = (voidptr) code;
+			cr->ref = (void*) code;
 			break;
 		case CRT_NUM:
-			system_read(fd, (void *) &cr->ref, sizeof(s4));
+			os::read(fd, (void *) &cr->ref, sizeof(s4));
 			break;
 		case CRT_ENTRYPOINT:
 			/* Just set the current entrypoint. */
-			cr->ref = (voidptr) code->entrypoint;
+			cr->ref = (void*) code->entrypoint;
 			break;
 		case CRT_CODEGEN_FINISH_NATIVE_CALL:
 			/* Just set the pointer to codegen_finish_native_call. */
-			cr->ref = (voidptr) (ptrint) codegen_finish_native_call;
+			cr->ref = (void*) (ptrint) codegen_finish_native_call;
 			break;
 		case CRT_ASM_HANDLE_EXCEPTION:
 			/* Just set the pointer to asm_handle_exception. */
-			cr->ref = (voidptr) (ptrint) asm_handle_exception;
+			cr->ref = (void*) (ptrint) asm_handle_exception;
 			break;
 		case CRT_ASM_HANDLE_NAT_EXCEPTION:
 			/* Just put the pointer to asm_handle_nat_exception. */
-			cr->ref = (voidptr) (ptrint) asm_handle_nat_exception;
+			cr->ref = (void*) (ptrint) asm_handle_nat_exception;
 			break;
 		case CRT_OBJECT_HEADER:
 			/* Load classinfo */
@@ -1775,78 +1775,78 @@ void load_cachedref(cachedref_t **result_cr, int fd, codeinfo *code)
 			 * use the function pointer directlty.
 			 * This should go away with a moving garbage collector.
              */
-			cr->ref = (voidptr) (bte->stub == NULL ? (ptrint) bte->fp : (ptrint) bte->stub);
+			cr->ref = (void*) (bte->stub == NULL ? (ptrint) bte->fp : (ptrint) bte->stub);
 
 			break;
 		case CRT_BUILTIN_FP:
 			load_builtin(&bte, fd);
-			cr->ref = (voidptr) (ptrint) bte->fp;
+			cr->ref = (void*) (ptrint) bte->fp;
 
 			break;
 		case CRT_STRING:
 			load_string(&h, fd);
-			cr->ref = (voidptr) h;
+			cr->ref = (void*) h;
 			break;
 		case CRT_CLASSINFO:
 			/* Load classinfo */
 			load_classinfo(&ci, fd, code->m);
-			cr->ref = (voidptr) ci;
+			cr->ref = (void*) ci;
 
 			break;
 		case CRT_CLASSINFO_INDEX:
 			/* Load classinfo */
 			load_classinfo(&ci, fd, code->m);
-			cr->ref = (voidptr) ci->index;
+			cr->ref = (void*) ci->index;
 			break;
 		case CRT_CLASSINFO_INTERFACETABLE:
 			/* Load classinfo */
 			load_classinfo(&ci, fd, code->m);
-			cr->ref = (voidptr) (OFFSET(vftbl_t, interfacetable[0]) -
+			cr->ref = (void*) (OFFSET(vftbl_t, interfacetable[0]) -
 						ci->index * sizeof(methodptr*));
 			break;
 		case CRT_CLASSINFO_VFTBL:
 			/* Load classinfo */
 			load_classinfo(&ci, fd, code->m);
-			cr->ref = (voidptr) ci->vftbl;
+			cr->ref = (void*) ci->vftbl;
 			break;
 		case CRT_METHODINFO_STUBROUTINE:
 			load_methodinfo(&mi, fd, code->m);
-			cr->ref = (voidptr) mi->stubroutine;
+			cr->ref = (void*) mi->stubroutine;
 			break;
 		case CRT_METHODINFO_TABLE:
 			load_methodinfo(&mi, fd, code->m);
-			cr->ref = (voidptr) ((OFFSET(vftbl_t, table[0]) +
+			cr->ref = (void*) ((OFFSET(vftbl_t, table[0]) +
 							   sizeof(methodptr) * mi->vftblindex));
 			break;
 		case CRT_METHODINFO_INTERFACETABLE:
 			load_methodinfo(&mi, fd, code->m);
-			cr->ref = (voidptr) (OFFSET(vftbl_t, interfacetable[0]) -
+			cr->ref = (void*) (OFFSET(vftbl_t, interfacetable[0]) -
 					sizeof(methodptr) * mi->clazz->index);
 			break;
 		case CRT_METHODINFO_METHODOFFSET:
 			load_methodinfo(&mi, fd, code->m);
-			cr->ref = (voidptr) ((sizeof(methodptr) * (mi - mi->clazz->methods)));
+			cr->ref = (void*) ((sizeof(methodptr) * (mi - mi->clazz->methods)));
 			break;
 		case CRT_FIELDINFO_VALUE:
 			load_fieldinfo(&fi, fd, code->m);
 
-			cr->ref = (voidptr) fi->value;
+			cr->ref = (void*) fi->value;
 			break;
 		case CRT_FIELDINFO_OFFSET:
 			load_fieldinfo(&fi, fd, code->m);
 
-			cr->ref = (voidptr) fi->offset;
+			cr->ref = (void*) fi->offset;
 			break;
 		case CRT_FIELDINFO_OFFSET_HIGH:
 			/* Should be used on 32 bit archs only. */
 			load_fieldinfo(&fi, fd, code->m);
 
-			cr->ref = (voidptr) fi->offset + 4;
+			cr->ref = (void*) fi->offset + 4;
 			break;
 		case CRT_JUMPREFERENCE:
-			system_read(fd, (void *) &cr->ref, sizeof(cr->ref));
+			os::read(fd, (void *) &cr->ref, sizeof(cr->ref));
 
-			cr->ref = (voidptr) ((ptrint) cr->ref + (ptrint) code->entrypoint);
+			cr->ref = (void*) ((ptrint) cr->ref + (ptrint) code->entrypoint);
 			break;
 		default:
 			log_println("Invalid (or unhandled) cachedreference type: %d", cr->type);
@@ -1862,7 +1862,7 @@ void load_cachedref(cachedref_t **result_cr, int fd, codeinfo *code)
 		else
 		{
 		log_println("[%X, %d]: replace %X with %X", code->entrypoint + cr->disp, cr->type, *((u1 **) (code->entrypoint + cr->disp)), cr->ref);
-		if ((cr->type == CRT_BUILTIN || cr->type == CRT_BUILTIN_FP) && (voidptr) (*((u1 **) (code->entrypoint + cr->disp))) != cr->ref)
+		if ((cr->type == CRT_BUILTIN || cr->type == CRT_BUILTIN_FP) && (void*) (*((u1 **) (code->entrypoint + cr->disp))) != cr->ref)
 			log_println("[!!!] differing builtin function pointer: %s", bte->cname);
 		}
 	}
@@ -1885,7 +1885,7 @@ void load_from_file_exceptiontable(codeinfo *code, int fd)
 
 	code->exceptiontable = NEW(exceptiontable_t);
 
-	system_read(fd, (void *) &code->exceptiontable->length, sizeof(code->exceptiontable->length));
+	os::read(fd, (void *) &code->exceptiontable->length, sizeof(code->exceptiontable->length));
 
 	if (opt_DebugJitCache)
 		log_println("load_exceptiontable - exceptiontable size %d", code->exceptiontable->length);
@@ -1896,13 +1896,13 @@ void load_from_file_exceptiontable(codeinfo *code, int fd)
 
 	for (i = 0; i < code->exceptiontable->length; i++)
 	{
-		system_read(fd, (void *) &temp_ptr, sizeof(temp_ptr));
+		os::read(fd, (void *) &temp_ptr, sizeof(temp_ptr));
 		ete->endpc = to_abs(code->mcode, temp_ptr);
 
-		system_read(fd, (void *) &temp_ptr, sizeof(temp_ptr));
+		os::read(fd, (void *) &temp_ptr, sizeof(temp_ptr));
 		ete->startpc = to_abs(code->mcode, temp_ptr);
 
-		system_read(fd, (void *) &temp_ptr, sizeof(temp_ptr));
+		os::read(fd, (void *) &temp_ptr, sizeof(temp_ptr));
 		ete->handlerpc = to_abs(code->mcode, temp_ptr);
 
 		/* load class name of entry->catchtype */
@@ -1937,7 +1937,7 @@ void load_from_file_linenumbertable(codeinfo *code, int fd)
 
 	code->linenumbertable = NEW(linenumbertable_t);
 
-	system_read(fd, (void *) &code->linenumbertable->length, sizeof(code->linenumbertable->length));
+	os::read(fd, (void *) &code->linenumbertable->length, sizeof(code->linenumbertable->length));
 
 	if (opt_DebugJitCache)
 		log_println("load_linenumbertable - linenumbertable size %d", code->linenumbertable->length);
@@ -1947,9 +1947,9 @@ void load_from_file_linenumbertable(codeinfo *code, int fd)
 
 	for (i = 0;i < code->linenumbertable->length; i++)
 	{
-		system_read(fd, (void *) &lte->linenumber, sizeof(lte->linenumber));
+		os::read(fd, (void *) &lte->linenumber, sizeof(lte->linenumber));
 
-		system_read(fd, (void *) &temp_ptr, sizeof(temp_ptr));
+		os::read(fd, (void *) &temp_ptr, sizeof(temp_ptr));
 		lte->pc = to_abs(code->entrypoint, temp_ptr);
 
 		lte++;
@@ -2013,13 +2013,13 @@ void s_unresolved_field(int fd, patchref_t *pr, methodinfo *m)
 	log_message_utf("field desc: ", ref->fieldref->descriptor);
 	log_message_utf("field's class: ", FIELDREF_CLASSNAME(ref->fieldref));
 */
-	system_write(fd, (const void *) &ref->flags, sizeof(ref->flags));
+	os::write(fd, (const void *) &ref->flags, sizeof(ref->flags));
 
 	for (i = 0; i < m->clazz->cpcount; i++)
 	{
-		if (m->clazz->cpinfos[i] == (voidptr) ref->fieldref)
+		if (m->clazz->cpinfos[i] == (void*) ref->fieldref)
 		{
-			system_write(fd, (const void *) &i, sizeof(i));
+			os::write(fd, (const void *) &i, sizeof(i));
 
 			return;
 		}
@@ -2043,13 +2043,13 @@ void s_unresolved_method(int fd, patchref_t *pr, methodinfo *m)
 
 	unresolved_method *ref = (unresolved_method *) pr->ref;
 
-	system_write(fd, (const void *) &ref->flags, sizeof(ref->flags));
+	os::write(fd, (const void *) &ref->flags, sizeof(ref->flags));
 
 	for (i = 0; i < m->clazz->cpcount; i++)
 	{
-		if (m->clazz->cpinfos[i] == (voidptr) ref->methodref)
+		if (m->clazz->cpinfos[i] == (void*) ref->methodref)
 		{
-			system_write(fd, (const void *) &i, sizeof(i));
+			os::write(fd, (const void *) &i, sizeof(i));
 
 			return;
 		}
@@ -2160,7 +2160,7 @@ void store_builtin(int fd, builtintable_entry *bte)
 
 	key = builtintable_get_key(bte);
 
-	system_write(fd, (const void *) &key, sizeof(key));
+	os::write(fd, (const void *) &key, sizeof(key));
 }
 
 /* store_string ****************************************************************
@@ -2210,11 +2210,11 @@ void d_unresolved_class(patchref_t *pr, int fd, methodinfo *m)
 
 	uc = create_unresolved_class(m, classref, NULL);
 
-	pr->ref = (voidptr) uc;
+	pr->ref = (void*) uc;
 
 /*	FREE(classref, constant_classref);*/
 
-/*	system_free(classname); */
+/*	os::free(classname); */
 }
 
 void d_unresolved_field(patchref_t *pr, int fd, methodinfo *m)
@@ -2223,16 +2223,16 @@ void d_unresolved_field(patchref_t *pr, int fd, methodinfo *m)
 
 	unresolved_field *ref = NEW(unresolved_field);
 
-	system_read(fd, (void *) &ref->flags, sizeof(ref->flags));
+	os::read(fd, (void *) &ref->flags, sizeof(ref->flags));
 
-	system_read(fd, (void *) &i, sizeof(i));
+	os::read(fd, (void *) &i, sizeof(i));
 	ref->fieldref = (constant_FMIref *) m->clazz->cpinfos[i];
 
 	ref->referermethod = m;
 
 	UNRESOLVED_SUBTYPE_SET_EMTPY(ref->valueconstraints);
 
-	pr->ref = (voidptr) ref;
+	pr->ref = (void*) ref;
 }
 
 void d_unresolved_method(patchref_t *pr, int fd, methodinfo *m)
@@ -2241,16 +2241,16 @@ void d_unresolved_method(patchref_t *pr, int fd, methodinfo *m)
 
 	unresolved_method *ref = NEW(unresolved_method);
 
-	system_read(fd, (void *) &ref->flags, sizeof(ref->flags));
+	os::read(fd, (void *) &ref->flags, sizeof(ref->flags));
 
-	system_read(fd, (void *) &i, sizeof(i));
+	os::read(fd, (void *) &i, sizeof(i));
 	ref->methodref = (constant_FMIref *) m->clazz->cpinfos[i];
 
 	ref->referermethod = m;
 	ref->paramconstraints = NULL;
 	UNRESOLVED_SUBTYPE_SET_EMTPY(ref->instancetypes);
 
-	pr->ref = (voidptr) ref;
+	pr->ref = (void*) ref;
 }
 
 void d_classinfo(patchref_t *pr, int fd, methodinfo *m)
@@ -2259,7 +2259,7 @@ void d_classinfo(patchref_t *pr, int fd, methodinfo *m)
 
 	load_classinfo(&ci, fd, m);
 
-	pr->ref = (voidptr) ci;
+	pr->ref = (void*) ci;
 }
 
 void d_methodinfo(patchref_t *pr, int fd, methodinfo *m)
@@ -2268,7 +2268,7 @@ void d_methodinfo(patchref_t *pr, int fd, methodinfo *m)
 
 	load_methodinfo(&lm, fd, m);
 
-	pr->ref = (voidptr) lm;
+	pr->ref = (void*) lm;
 }
 
 void load_methodinfo(methodinfo **lm, int fd, methodinfo *m)
@@ -2296,7 +2296,7 @@ void d_fieldinfo(patchref_t *pr, int fd, methodinfo *m)
 
 	load_fieldinfo(&fi, fd, m);
 	
-	pr->ref = (voidptr) fi;
+	pr->ref = (void*) fi;
 }
 
 void load_fieldinfo(fieldinfo **fi, int fd, methodinfo *m)
@@ -2334,16 +2334,16 @@ void d_constant_classref(patchref_t *pr, int fd, methodinfo *m)
 
 	CLASSREF_INIT(*cr, m->clazz, classname);
 
-	pr->ref = (voidptr) cr;
+	pr->ref = (void*) cr;
 
-/*	system_free(classname);*/
+/*	os::free(classname);*/
 }
 
 void load_builtin(builtintable_entry **bte, int fd)
 {
 	s4					key;
 
-	system_read(fd, (void *) &key, sizeof(key));
+	os::read(fd, (void *) &key, sizeof(key));
 
 	*bte = builtintable_get_by_key(key);
 }
@@ -2401,7 +2401,7 @@ void load_classinfo(classinfo **ci, int fd, methodinfo *m)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -116,8 +116,8 @@ endif
 
 if ENABLE_JITCACHE
 JITCACHE_SOURCES = \
-	jitcache.c \
-	jitcache.h
+	jitcache.cpp \
+	jitcache.hpp
 
 endif
 
