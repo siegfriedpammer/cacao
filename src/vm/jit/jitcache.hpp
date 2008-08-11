@@ -25,11 +25,11 @@
 #ifndef _JITCACHE_H
 #define _JITCACHE_H
 
-#if defined(ENABLE_JITCACHE)
-
 #ifdef __cplusplus
-#extern "C" {
+extern "C" {
 #endif
+
+#if defined(ENABLE_JITCACHE)
 
 #include "config.h"
 
@@ -158,13 +158,14 @@ void	jitcache_freeclass(classinfo *);
 #define JITCACHE_ADD_CACHED_REF_COND(code, type, ref, disp, COND) \
 	while (0) { }
 
+#endif /* ENABLE_JITCACHE */
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ENABLE_JITCACHE */
 
-#endif /* _LINENUMBERTABLE_H */
+#endif /* _JITCACHE_HPP */
 
 
 /*
