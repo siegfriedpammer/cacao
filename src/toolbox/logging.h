@@ -1,9 +1,7 @@
 /* src/toolbox/logging.h - contains logging functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -33,9 +31,9 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "vmcore/class.h"
-#include "vmcore/method.h"
-#include "vmcore/utf8.h"
+#include "vm/class.h"
+#include "vm/method.h"
+#include "vm/utf8.h"
 
 
 /*500 is to small for eclipse traces, (builtin_trace_args, perhaps the

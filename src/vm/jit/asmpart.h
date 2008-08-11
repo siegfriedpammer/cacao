@@ -1,9 +1,7 @@
 /* src/vm/jit/asmpart.h - prototypes for machine specfic functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -32,16 +30,14 @@
 
 #include <stdint.h>
 
-#include "vm/types.h"
-
-#if defined(ENABLE_THREADS)
-# include "threads/critical.h"
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#include "vm/global.h"
-#include "vm/vm.h"
+#include "vm/types.h"
 
-#include "vmcore/linker.h"
+#include "vm/global.h"
+#include "vm/vm.hpp"
 
 
 /* function prototypes ********************************************************/
@@ -103,11 +99,8 @@ void intrp_asm_abstractmethoderror(void);
 /* wrapper for code patching functions */
 void asm_patcher_wrapper(void);
 
-long asm_compare_and_swap(volatile long *p, long oldval, long newval);
-void asm_memory_barrier(void);
-
 /* cache flush function */
-void asm_cacheflush(u1 *addr, s4 nbytes);
+void asm_cacheflush(void* addr, int nbytes);
 
 u8 asm_get_cycle_count(void);
 
@@ -115,6 +108,10 @@ void *md_asm_codegen_get_pv_from_pc(void *ra);
 
 #if defined(ENABLE_ESCAPE_CHECK)
 void asm_escape_check(java_object_t *obj);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* _ASMPART_H */

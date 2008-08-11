@@ -37,15 +37,14 @@
 #include "vm/jit/mips/md.h"
 #include "vm/jit/mips/md-abi.h"
 
-#include "mm/gc-common.h"
+#include "mm/gc.hpp"
 #include "mm/memory.h"
 
-#include "vm/exceptions.h"
 #include "vm/signallocal.h"
+#include "vm/os.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
-#include "vm/jit/stacktrace.h"
 #include "vm/jit/trap.h"
 
 
@@ -305,7 +304,7 @@ void md_executionstate_read(executionstate_t* es, void* context)
 	   _mc->fpregs[i] can cause invalid conversions. */
 
 	assert(sizeof(_mc->fpregs.fp_r) == sizeof(es->fltregs));
-	system_memcpy(&es->fltregs, &_mc->fpregs.fp_r, sizeof(_mc->fpregs.fp_r));
+	os_memcpy(&es->fltregs, &_mc->fpregs.fp_r, sizeof(_mc->fpregs.fp_r));
 }
 
 
@@ -338,7 +337,7 @@ void md_executionstate_write(executionstate_t* es, void* context)
 	   _mc->fpregs[i] can cause invalid conversions. */
 
 	assert(sizeof(_mc->fpregs.fp_r) == sizeof(es->fltregs));
-	system_memcpy(&_mc->fpregs.fp_r, &es->fltregs, sizeof(_mc->fpregs.fp_r));
+	os_memcpy(&_mc->fpregs.fp_r, &es->fltregs, sizeof(_mc->fpregs.fp_r));
 
 	/* Write special registers. */
 
@@ -352,41 +351,6 @@ void md_executionstate_write(executionstate_t* es, void* context)
 	_gregs[REG_PV]  = (uintptr_t) es->pv;
 	_gregs[REG_RA]  = (uintptr_t) es->ra;
 }
-
-
-/* md_critical_section_restart *************************************************
-
-   Search the critical sections tree for a matching section and set
-   the PC to the restart point, if necessary.
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-void md_critical_section_restart(ucontext_t *_uc)
-{
-	mcontext_t *_mc;
-	u1         *pc;
-	u1         *npc;
-
-	_mc = &_uc->uc_mcontext;
-
-#if defined(__UCLIBC__)
-	pc = (u1 *) (ptrint) _mc->gpregs[CTX_EPC];
-#else
-	pc = (u1 *) (ptrint) _mc->pc;
-#endif
-
-	npc = critical_find_restart_point(pc);
-
-	if (npc != NULL) {
-#if defined(__UCLIBC__)
-		_mc->gpregs[CTX_EPC] = (ptrint) npc;
-#else
-		_mc->pc              = (ptrint) npc;
-#endif
-	}
-}
-#endif
 
 
 /*

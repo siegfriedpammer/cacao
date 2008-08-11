@@ -36,13 +36,12 @@
 #include "toolbox/list.h"
 
 #include "vm/global.h"
+#include "vm/method.h"
 
 #include "vm/jit/exceptiontable.h"
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/replace.h"
-
-#include "vmcore/method.h"
 
 
 /* constants ******************************************************************/
@@ -50,6 +49,7 @@
 #define CODE_FLAG_INVALID         0x0001
 #define CODE_FLAG_LEAFMETHOD      0x0002
 #define CODE_FLAG_SYNCHRONIZED    0x0004
+#define CODE_FLAG_TLH             0x0008
 
 
 /* codeinfo *******************************************************************

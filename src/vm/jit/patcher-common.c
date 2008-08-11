@@ -40,17 +40,16 @@
 #include "toolbox/list.h"
 #include "toolbox/logging.h"           /* XXX remove me! */
 
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/initialize.h"
+#include "vm/options.h"
 #include "vm/resolve.h"
-#include "vm/vm.h"                     /* for vm_abort */
+#include "vm/vm.hpp"                     /* for vm_abort */
 
 #include "vm/jit/code.h"
 #include "vm/jit/disass.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/patcher-common.h"
-
-#include "vmcore/options.h"
 
 
 /* patcher_function_list *******************************************************
@@ -175,8 +174,7 @@ static patchref_t *patcher_list_find(codeinfo *code, u1 *pc)
 
 *******************************************************************************/
 
-void patcher_add_patch_ref(jitdata *jd, functionptr patcher, voidptr ref,
-                           s4 disp)
+void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
 {
 	codegendata *cd;
 	codeinfo    *code;

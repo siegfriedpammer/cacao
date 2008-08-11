@@ -55,14 +55,17 @@
 #ifndef _JNI_H
 #define _JNI_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "vm/types.h"
 
 #include "vm/global.h"
+#include "vm/method.h"
 
-#include "vmcore/method.h"
 
-
+#if 0
 /* _Jv_JNIEnv *****************************************************************/
 
 #ifndef __cplusplus
@@ -103,6 +106,7 @@ struct _Jv_JavaVM {
 };
 
 #endif
+#endif
 
 
 /* CACAO related stuff ********************************************************/
@@ -126,6 +130,10 @@ struct hashtable_global_ref_entry {
 
 bool jni_init(void);
 bool jni_version_check(int version);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _JNI_H */
 

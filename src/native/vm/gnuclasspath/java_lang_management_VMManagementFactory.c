@@ -1,9 +1,7 @@
-/* src/native/vm/gnu/java_lang_management_VMManagementFactory.c
+/* src/native/vm/gnuclasspath/java_lang_management_VMManagementFactory.c
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -34,38 +32,14 @@
 #include "native/jni.h"
 #include "native/native.h"
 
-#include "native/include/java_lang_management_VMManagementFactory.h"
+#if defined(ENABLE_JNI_HEADERS)
+# include "native/vm/include/java_lang_management_VMManagementFactory.h"
+#endif
 
 #include "toolbox/logging.h"
 
 #include "vm/builtin.h"
-
-#include "vmcore/class.h"
-
-
-/* native methods implemented by this file ************************************/
-
-static JNINativeMethod methods[] = {
-	{ "getMemoryPoolNames",       "()[Ljava/lang/String;", (void *) (ptrint) &Java_java_lang_management_VMManagementFactory_getMemoryPoolNames       },
-	{ "getMemoryManagerNames",    "()[Ljava/lang/String;", (void *) (ptrint) &Java_java_lang_management_VMManagementFactory_getMemoryManagerNames    },
-	{ "getGarbageCollectorNames", "()[Ljava/lang/String;", (void *) (ptrint) &Java_java_lang_management_VMManagementFactory_getGarbageCollectorNames },
-};
-
-
-/* _Jv_java_lang_management_VMManagementFactory_init ***************************
-
-   Register native functions.
-
-*******************************************************************************/
-
-void _Jv_java_lang_management_VMManagementFactory_init(void)
-{
-	utf *u;
-
-	u = utf_new_char("java/lang/management/VMManagementFactory");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+#include "vm/globals.hpp"
 
 
 /*
@@ -73,7 +47,7 @@ void _Jv_java_lang_management_VMManagementFactory_init(void)
  * Method:    getMemoryPoolNames
  * Signature: ()[Ljava/lang/String;
  */
-JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_management_VMManagementFactory_getMemoryPoolNames(JNIEnv *env, jclass clazz)
+JNIEXPORT jobjectArray JNICALL Java_java_lang_management_VMManagementFactory_getMemoryPoolNames(JNIEnv *env, jclass clazz)
 {
 	java_handle_objectarray_t *oa;
 
@@ -90,7 +64,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_management_VMManagem
  * Method:    getMemoryManagerNames
  * Signature: ()[Ljava/lang/String;
  */
-JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_management_VMManagementFactory_getMemoryManagerNames(JNIEnv *env, jclass clazz)
+JNIEXPORT jobjectArray JNICALL Java_java_lang_management_VMManagementFactory_getMemoryManagerNames(JNIEnv *env, jclass clazz)
 {
 	java_handle_objectarray_t *oa;
 
@@ -107,7 +81,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_management_VMManagem
  * Method:    getGarbageCollectorNames
  * Signature: ()[Ljava/lang/String;
  */
-JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_management_VMManagementFactory_getGarbageCollectorNames(JNIEnv *env, jclass clazz)
+JNIEXPORT jobjectArray JNICALL Java_java_lang_management_VMManagementFactory_getGarbageCollectorNames(JNIEnv *env, jclass clazz)
 {
 	java_handle_objectarray_t *oa;
 
@@ -116,6 +90,31 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_java_lang_management_VMManagem
 	oa = builtin_anewarray(0, class_java_lang_String);
 
 	return oa;
+}
+
+
+/* native methods implemented by this file ************************************/
+
+static JNINativeMethod methods[] = {
+	{ "getMemoryPoolNames",       "()[Ljava/lang/String;", (void*) (uintptr_t) &Java_java_lang_management_VMManagementFactory_getMemoryPoolNames       },
+	{ "getMemoryManagerNames",    "()[Ljava/lang/String;", (void*) (uintptr_t) &Java_java_lang_management_VMManagementFactory_getMemoryManagerNames    },
+	{ "getGarbageCollectorNames", "()[Ljava/lang/String;", (void*) (uintptr_t) &Java_java_lang_management_VMManagementFactory_getGarbageCollectorNames },
+};
+
+
+/* _Jv_java_lang_management_VMManagementFactory_init ***************************
+
+   Register native functions.
+
+*******************************************************************************/
+
+void _Jv_java_lang_management_VMManagementFactory_init(void)
+{
+	utf *u;
+
+	u = utf_new_char("java/lang/management/VMManagementFactory");
+
+	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

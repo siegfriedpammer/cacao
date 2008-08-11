@@ -34,9 +34,9 @@
 
 #include "vm/jit/s390/md-abi.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/signallocal.h"
 
 #include "vm/jit/asmpart.h"
@@ -44,11 +44,11 @@
 #include "vm/jit/executionstate.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/methodtree.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.h"
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
-#include "vmcore/options.h" /* XXX debug */
+#include "vm/options.h" /* XXX debug */
 #include "vm/jit/disass.h" /* XXX debug */
 #endif
 
@@ -410,27 +410,6 @@ void md_executionstate_write(executionstate_t* es, void* context)
 {
 	vm_abort("md_executionstate_write: IMPLEMENT ME!");
 }
-
-
-#if defined(ENABLE_THREADS)
-void md_critical_section_restart(ucontext_t *_uc)
-{
-	mcontext_t *_mc;
-	u1         *pc;
-	void       *npc;
-
-	_mc = &_uc->uc_mcontext;
-
-	pc = (u1 *)_mc->psw.addr;
-
-	npc = critical_find_restart_point(pc);
-
-	if (npc != NULL) {
-		log_println("%s: pc=%p, npc=%p", __FUNCTION__, pc, npc);
-		_mc->psw.addr = (ptrint) npc;
-	}
-}
-#endif
 
 
 /* md_jit_method_patch_address *************************************************

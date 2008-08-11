@@ -31,7 +31,7 @@
 #include "vm/types.h"
 
 #include "threads/lock-common.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "compact.h"
 #include "copy.h"
@@ -43,9 +43,10 @@
 #include "rootset.h"
 #include "mm/memory.h"
 #include "toolbox/logging.h"
+
 #include "vm/finalizer.h"
-#include "vm/vm.h"
-#include "vmcore/rt-timing.h"
+#include "vm/rt-timing.h"
+#include "vm/vm.hpp"
 
 
 /* Global Variables ***********************************************************/

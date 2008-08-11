@@ -32,15 +32,14 @@
 
 #include "native/localref.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 
-#include "vm/vm.h"
+#include "vm/options.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/argument.h"
-
-#include "vmcore/options.h"
 
 
 /* debug **********************************************************************/

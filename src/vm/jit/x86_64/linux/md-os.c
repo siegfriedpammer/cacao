@@ -37,7 +37,7 @@
 #include "vm/jit/x86_64/codegen.h"
 #include "vm/jit/x86_64/md.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/builtin.h"
 #include "vm/signallocal.h"
@@ -45,7 +45,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
 #include "vm/jit/trap.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 
 /* md_signal_handler_sigsegv ***************************************************
@@ -496,35 +496,6 @@ void md_executionstate_write(executionstate_t *es, void *context)
 	_mc->gregs[REG_RIP] = (ptrint) es->pc;
 	_mc->gregs[REG_RSP] = (ptrint) es->sp;
 }
-
-
-/* md_critical_section_restart *************************************************
-
-   Search the critical sections tree for a matching section and set
-   the PC to the restart point, if necessary.
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-void md_critical_section_restart(ucontext_t *_uc)
-{
-	mcontext_t *_mc;
-	u1         *pc;
-	u1         *npc;
-
-	_mc = &_uc->uc_mcontext;
-
-	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
-	   different to the ones in <ucontext.h>. */
-
-	pc = (u1 *) _mc->gregs[REG_RIP];
-
-	npc = critical_find_restart_point(pc);
-
-	if (npc != NULL)
-		_mc->gregs[REG_RIP] = (ptrint) npc;
-}
-#endif
 
 
 /*

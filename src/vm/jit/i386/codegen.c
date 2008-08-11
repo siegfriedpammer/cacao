@@ -44,11 +44,13 @@
 #include "threads/lock-common.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/global.h"
-#include "vm/primitive.h"
-#include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/primitive.hpp"
+#include "vm/utf8.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
@@ -56,14 +58,13 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
+#include "vm/jit/jitcache.h"
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
-#include "vm/jit/stacktrace.h"
-
-#include "vm/jit/jitcache.h"
+#include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.h"
 
 #if defined(ENABLE_SSA)
@@ -72,10 +73,6 @@
 #elif defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
 #endif
-
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
-#include "vmcore/utf8.h"
 
 
 /* codegen_emit ****************************************************************
@@ -419,9 +416,7 @@ bool codegen_emit(jitdata *jd)
 		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
 			if (cd->replacementpoint[-1].flags & RPLPOINT_FLAG_COUNTDOWN) {
 				MCODECHECK(32);
-				disp = (s4) &(m->hitcountdown);
-				M_ISUB_IMM_MEMABS(1, disp);
-				M_BS(0);
+				emit_trap_countdown(cd, &(m->hitcountdown));
 			}
 		}
 #endif
@@ -2264,7 +2259,7 @@ bool codegen_emit(jitdata *jd)
 			break;
 
 		case ICMD_PUTSTATIC:  /* ..., value  ==> ...                          */
-
+			
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				uf        = iptr->sx.s23.s3.uf;
 				fieldtype = uf->fieldref->parseddesc.fd->type;
@@ -2939,6 +2934,21 @@ nowperformreturn:
 
 			bte = iptr->sx.s23.s3.bte;
 			md = bte->md;
+
+#if defined(ENABLE_ESCAPE_REASON)
+			if (bte->fp == BUILTIN_escape_reason_new) {
+				void set_escape_reasons(void *);
+				M_ASUB_IMM(8, REG_SP);
+				M_MOV_IMM(iptr->escape_reasons, REG_ITMP1);
+				M_AST(EDX, REG_SP, 4);
+				M_AST(REG_ITMP1, REG_SP, 0);
+				M_MOV_IMM(set_escape_reasons, REG_ITMP1);
+				M_CALL(REG_ITMP1);
+				M_ALD(EDX, REG_SP, 4);
+				M_AADD_IMM(8, REG_SP);
+			}
+#endif
+
 			goto gen_method;
 
 		case ICMD_INVOKESTATIC: /* ..., [arg1, [arg2 ...]] ==> ...            */
@@ -3157,10 +3167,6 @@ gen_method:
 					superindex = super->index;
 					supervftbl = super->vftbl;
 				}
-
-				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-					CODEGEN_CRITICAL_SECTION_NEW;
-
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 				/* if class is not resolved, check which code to call */
@@ -3235,8 +3241,6 @@ gen_method:
 					M_MOV_IMM(supervftbl, REG_ITMP3);
 					JITCACHE_ADD_CACHED_REF_JD(jd, CRT_CLASSINFO_VFTBL, super);
 
-					CODEGEN_CRITICAL_SECTION_START;
-
 					M_ILD32(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 
 					/* 				if (s1 != REG_ITMP1) { */
@@ -3253,8 +3257,6 @@ gen_method:
 					M_MOV_IMM(supervftbl, REG_ITMP3);
 					JITCACHE_ADD_CACHED_REF_JD(jd, CRT_CLASSINFO_VFTBL, super);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
-
-					CODEGEN_CRITICAL_SECTION_END;
 
 					/* 				} */
 
@@ -3324,9 +3326,6 @@ gen_method:
 				supervftbl = super->vftbl;
 			}
 			
-			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-				CODEGEN_CRITICAL_SECTION_NEW;
-
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 
@@ -3414,13 +3413,9 @@ gen_method:
 
 				M_MOV_IMM(supervftbl, REG_ITMP2);
 				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_CLASSINFO_VFTBL, super);
-				CODEGEN_CRITICAL_SECTION_START;
-
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, diffval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
-
-				CODEGEN_CRITICAL_SECTION_END;
 
 				M_ISUB(REG_ITMP2, REG_ITMP1);
 				M_CLR(d);                                 /* may be REG_ITMP2 */
@@ -3695,7 +3690,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 		/* put env into first argument */
 
-		M_AST_IMM(_Jv_env, REG_SP, 0 * 4);
+		M_AST_IMM(VM_get_jnienv(), REG_SP, 0 * 4);
 	}
 
 	/* Call the native function. */
@@ -3711,7 +3706,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	switch (md->returntype.type) {
 	case TYPE_INT:
 	case TYPE_ADR:
-		switch (md->returntype.decltype) {
+		switch (md->returntype.primitivetype) {
 		case PRIMITIVETYPE_BOOLEAN:
 			M_BZEXT(REG_RESULT, REG_RESULT);
 			break;

@@ -1,4 +1,4 @@
-## src/native/vm/sun/Makefile.am
+## src/native/vm/openjdk/Makefile.am
 ##
 ## Copyright (C) 2007, 2008
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -31,7 +31,7 @@ noinst_LTLIBRARIES = \
 libnativevmcore_la_SOURCES = \
 	hpi.c \
 	hpi.h \
-	jvm.c
+	jvm.cpp
 
 
 ## Local variables:

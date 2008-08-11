@@ -33,16 +33,16 @@
 #include "toolbox/logging.h"
 
 #include "vm/array.h"
-#include "vm/exceptions.h"
-#include "vm/primitive.h"
+#include "vm/class.h"
+#include "vm/descriptor.h"
+#include "vm/exceptions.hpp"
+#include "vm/globals.hpp"
+#include "vm/loader.h"
+#include "vm/primitive.hpp"
 #include "vm/resolve.h"
 
 #include "vm/jit/jit.h"
 #include "vm/jit/verify/typeinfo.h"
-
-#include "vmcore/class.h"
-#include "vmcore/descriptor.h"
-#include "vmcore/loader.h"
 
 
 /* check if a linked class is an array class. Only use for linked classes! */

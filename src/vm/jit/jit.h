@@ -41,13 +41,19 @@ typedef struct exception_entry exception_entry;
 #include "toolbox/chain.h"
 
 #include "vm/global.h"
+#include "vm/method.h"
+#include "vm/references.h"
 #include "vm/resolve.h"
+
+#if defined(ENABLE_STATISTICS)
+# include "vm/statistics.h"
+#endif
 
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
 #include "vm/jit/stack.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 #if defined(ENABLE_INLINING)
 # include "vm/jit/inline/inline.h"
@@ -66,13 +72,6 @@ typedef struct exception_entry exception_entry;
 #endif
 
 #include "vm/jit/verify/typeinfo.h"
-
-#include "vmcore/method.h"
-#include "vmcore/references.h"
-
-#if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
-#endif
 
 
 /* common jit/codegen macros **************************************************/
@@ -383,6 +382,9 @@ struct instruction {
 #if SIZEOF_VOID_P == 4
     flags_operand_t         flags;  /* 4 bytes      */
 #endif
+#if defined(ENABLE_ESCAPE_REASON)
+	void *escape_reasons;
+#endif
 };
 
 
@@ -548,6 +550,9 @@ struct basicblock {
 
 #define FOR_EACH_INSTRUCTION(bptr, it) \
 	for ((it) = (bptr)->iinstr; (it) != (bptr)->iinstr + (bptr)->icount; ++(it))
+
+#define FOR_EACH_INSTRUCTION_REV(bptr, it) \
+	for ((it) = (bptr)->iinstr + (bptr)->icount - 1; (it) != (bptr)->iinstr - 1; --(it))
 
 #if defined(ENABLE_SSA)
 

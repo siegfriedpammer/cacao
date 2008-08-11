@@ -25,7 +25,8 @@ DIST_SUBDIRS = \
 	cygwin \
 	darwin \
 	freebsd \
-	linux
+	linux \
+	solaris
 
 SUBDIRS = $(OS_DIR)
 
@@ -36,7 +37,7 @@ LIBS =
 
 noinst_HEADERS = \
 	arch.h \
-	machine-instr.h
+	md-atomic.hpp
 
 noinst_LTLIBRARIES = \
 	libarch.la

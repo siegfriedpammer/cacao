@@ -31,10 +31,13 @@
 
 #include "arch.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
+#include "vm/class.h"
+#include "vm/linker.h"
+#include "vm/loader.h"
+#include "vm/options.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/methodheader.h"
@@ -42,11 +45,6 @@
 #include "vm/jit/dseg.h"
 
 #include "vm/jit/intrp/intrp.h"
-
-#include "vmcore/class.h"
-#include "vmcore/linker.h"
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
 
 #if defined(ENABLE_VMLOG)
 #include <vmlog_cacao.h>

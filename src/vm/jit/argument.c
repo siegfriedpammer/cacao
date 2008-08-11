@@ -1,9 +1,7 @@
 /* src/vm/jit/argument.c - argument passing from and to JIT methods
 
-   Copyright (C) 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -37,15 +35,14 @@
 #include "native/llni.h"
 
 #include "vm/array.h"
+#include "vm/descriptor.h"
 #include "vm/global.h"
-#include "vm/primitive.h"
+#include "vm/method.h"
+#include "vm/primitive.hpp"
 #include "vm/resolve.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/abi-asm.h"
-
-#include "vmcore/descriptor.h"
-#include "vmcore/method.h"
 
 
 /* argument_jitarray_load ******************************************************
@@ -500,7 +497,7 @@ uint64_t *argument_vmarray_from_jvalue(methodinfo *m, java_handle_t *o,
 	} 
 
 	for (j = 0; i < md->paramcount; i++, j++, pd++, td++) {
-		switch (td->decltype) {
+		switch (td->primitivetype) {
 		case TYPE_INT:
 			argument_vmarray_store_int(array, pd, args[j].i);
 			break;
@@ -599,9 +596,9 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 			/* convert the value according to its declared type */
 
 			LLNI_class_get(param, c);
-			type = primitive_type_get_by_wrapperclass(c);
+			type = Primitive_get_type_by_wrapperclass(c);
 
-			switch (td->decltype) {
+			switch (td->primitivetype) {
 			case PRIMITIVETYPE_BOOLEAN:
 				switch (type) {
 				case PRIMITIVETYPE_BOOLEAN:
@@ -657,10 +654,10 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 
 			default:
 				vm_abort("argument_vmarray_from_objectarray: invalid type %d",
-						 td->decltype);
+						 td->primitivetype);
 			}
 
-			value = primitive_unbox(param);
+			value = Primitive_unbox(param);
 			argument_vmarray_store_int(array, pd, value.i);
 			break;
 
@@ -669,9 +666,9 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 				return NULL;
 
 			LLNI_class_get(param, c);
-			type = primitive_type_get_by_wrapperclass(c);
+			type = Primitive_get_type_by_wrapperclass(c);
 
-			assert(td->decltype == PRIMITIVETYPE_LONG);
+			assert(td->primitivetype == PRIMITIVETYPE_LONG);
 
 			switch (type) {
 			case PRIMITIVETYPE_BYTE:
@@ -684,7 +681,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 				return NULL;
 			}
 
-			value = primitive_unbox(param);
+			value = Primitive_unbox(param);
 			argument_vmarray_store_lng(array, pd, value.l);
 			break;
 
@@ -693,9 +690,9 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 				return NULL;
 
 			LLNI_class_get(param, c);
-			type = primitive_type_get_by_wrapperclass(c);
+			type = Primitive_get_type_by_wrapperclass(c);
 
-			assert(td->decltype == PRIMITIVETYPE_FLOAT);
+			assert(td->primitivetype == PRIMITIVETYPE_FLOAT);
 
 			switch (type) {
 			case PRIMITIVETYPE_FLOAT:
@@ -705,7 +702,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 				return NULL;
 			}
 
-			value = primitive_unbox(param);
+			value = Primitive_unbox(param);
 			argument_vmarray_store_flt(array, pd, value.l);
 			break;
 
@@ -714,9 +711,9 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 				return NULL;
 
 			LLNI_class_get(param, c);
-			type = primitive_type_get_by_wrapperclass(c);
+			type = Primitive_get_type_by_wrapperclass(c);
 
-			assert(td->decltype == PRIMITIVETYPE_DOUBLE);
+			assert(td->primitivetype == PRIMITIVETYPE_DOUBLE);
 
 			switch (type) {
 			case PRIMITIVETYPE_FLOAT:
@@ -727,7 +724,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 				return NULL;
 			}
 
-			value = primitive_unbox(param);
+			value = Primitive_unbox(param);
 			argument_vmarray_store_dbl(array, pd, value.l);
 			break;
 		

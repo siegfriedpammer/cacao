@@ -29,11 +29,12 @@ noinst_LTLIBRARIES = \
 	libthreadsposix.la
 
 libthreadsposix_la_SOURCES = \
+	condition-posix.hpp \
 	lock.c \
 	lock.h \
-	mutex-posix.h \
-	thread-posix.c \
-	thread-posix.h
+	mutex-posix.hpp \
+	thread-posix.cpp \
+	thread-posix.hpp
 
 
 ## Local variables:

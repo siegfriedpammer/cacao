@@ -1,4 +1,4 @@
-## src/native/vm/gnu/Makefile.am
+## src/native/vm/gnuclasspath/Makefile.am
 ##
 ## Copyright (C) 1996-2005, 2006, 2008
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -35,32 +35,32 @@ endif
 
 if ENABLE_ANNOTATIONS
 SUN_REFLECT_SOURCES = \
-	sun_reflect_ConstantPool.c
+	sun_reflect_ConstantPool.cpp
 endif
 
 libnativevmcore_la_SOURCES = \
-	gnu_classpath_VMStackWalker.c \
-	gnu_classpath_VMSystemProperties.c \
-	gnu_java_lang_VMCPStringBuilder.c \
-	gnu_java_lang_management_VMClassLoadingMXBeanImpl.c \
-	gnu_java_lang_management_VMMemoryMXBeanImpl.c \
-	gnu_java_lang_management_VMRuntimeMXBeanImpl.c \
-	gnu_java_lang_management_VMThreadMXBeanImpl.c \
-	java_lang_VMClass.c \
-	java_lang_VMClassLoader.c \
-	java_lang_VMObject.c \
-	java_lang_VMRuntime.c \
-	java_lang_VMString.c \
-	java_lang_VMSystem.c \
-	java_lang_VMThread.c \
-	java_lang_VMThrowable.c \
+	gnu_classpath_VMStackWalker.cpp \
+	gnu_classpath_VMSystemProperties.cpp \
+	gnu_java_lang_VMCPStringBuilder.cpp \
+	gnu_java_lang_management_VMClassLoadingMXBeanImpl.cpp \
+	gnu_java_lang_management_VMMemoryMXBeanImpl.cpp \
+	gnu_java_lang_management_VMRuntimeMXBeanImpl.cpp \
+	gnu_java_lang_management_VMThreadMXBeanImpl.cpp \
+	java_lang_VMClass.cpp \
+	java_lang_VMClassLoader.cpp \
+	java_lang_VMObject.cpp \
+	java_lang_VMRuntime.cpp \
+	java_lang_VMString.cpp \
+	java_lang_VMSystem.cpp \
+	java_lang_VMThread.cpp \
+	java_lang_VMThrowable.cpp \
 	java_lang_management_VMManagementFactory.c \
-	java_lang_reflect_VMConstructor.c \
-	java_lang_reflect_VMField.c \
-	java_lang_reflect_VMMethod.c \
+	java_lang_reflect_VMConstructor.cpp \
+	java_lang_reflect_VMField.cpp \
+	java_lang_reflect_VMMethod.cpp \
 	java_lang_reflect_VMProxy.c \
-	java_security_VMAccessController.c \
-	java_util_concurrent_atomic_AtomicLong.c \
+	java_security_VMAccessController.cpp \
+	java_util_concurrent_atomic_AtomicLong.cpp \
 	$(SUN_REFLECT_SOURCES)
 
 if ENABLE_JVMTI

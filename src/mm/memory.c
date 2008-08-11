@@ -26,11 +26,7 @@
 #include "config.h"
 
 #include <assert.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include <stdint.h>
 
 #if defined(__DARWIN__)
 /* If we compile with -ansi on darwin, <sys/types.h> is not
@@ -47,22 +43,20 @@
 #include "native/native.h"
 
 #include "threads/lock-common.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 
-#include "vm/exceptions.h"
 #include "vm/global.h"
-#include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/string.hpp"
+#include "vm/vm.hpp"
 
-#include "vmcore/options.h"
+#include "vm/options.h"
+#include "vm/os.hpp"
 
 #if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
+# include "vm/statistics.h"
 #endif
-
-#include "vmcore/system.h"
 
 
 /* memory_mprotect *************************************************************
@@ -74,9 +68,8 @@
 
 void memory_mprotect(void *addr, size_t len, int prot)
 {
-	if (system_mprotect(addr, len, prot) != 0)
-		vm_abort("memory_mprotect: system_mprotect failed: %s",
-				 strerror(errno));
+	if (os_mprotect(addr, len, prot) != 0)
+		vm_abort_errno("memory_mprotect: os_mprotect failed");
 }
 
 
@@ -93,7 +86,7 @@ void *memory_checked_alloc(size_t size)
 {
 	/* always allocate memory zeroed out */
 
-	void *p = calloc(size, 1);
+	void *p = os_calloc(size, 1);
 
 	if (p == NULL)
 		vm_abort("memory_checked_alloc: calloc failed: out of memory");
@@ -149,7 +142,7 @@ void *mem_realloc(void *src, int32_t len1, int32_t len2)
 
 #if defined(ENABLE_MEMCHECK)
 	if (len2 < len1)
-		memset((u1*)dst + len2, MEMORY_CLEAR_BYTE, len1 - len2);
+		os_memset((u1*)dst + len2, MEMORY_CLEAR_BYTE, len1 - len2);
 #endif
 
 	dst = realloc(src, len2);
@@ -159,7 +152,7 @@ void *mem_realloc(void *src, int32_t len1, int32_t len2)
 
 #if defined(ENABLE_MEMCHECK)
 	if (len2 > len1)
-		memset((u1*)dst + len1, MEMORY_CLEAR_BYTE, len2 - len1);
+		os_memset((u1*)dst + len1, MEMORY_CLEAR_BYTE, len2 - len1);
 #endif
 
 	return dst;
@@ -183,10 +176,10 @@ void mem_free(void *m, int32_t size)
 
 #if defined(ENABLE_MEMCHECK)
 	/* destroy the contents */
-	memset(m, MEMORY_CLEAR_BYTE, size);
+	os_memset(m, MEMORY_CLEAR_BYTE, size);
 #endif
 
-	free(m);
+	os_free(m);
 }
 
 

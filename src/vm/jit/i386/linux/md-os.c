@@ -35,15 +35,14 @@
 #include "vm/jit/i386/codegen.h"
 #include "vm/jit/i386/md.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/builtin.h"
 #include "vm/signallocal.h"
-#include "vm/stringlocal.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.h"
 
 
@@ -151,6 +150,11 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 			_mc->gregs[REG_EIP] = (uintptr_t) p;
 		}
 	}
+#if defined(ENABLE_REPLACEMENT)
+	else if (type == TRAP_COUNTDOWN) {
+		/* context has been written by md_replace_executionstate_write */
+	}
+#endif
 	else {
 		_mc->gregs[REG_EAX] = (uintptr_t) p;
 		_mc->gregs[REG_ECX] = (uintptr_t) xpc;               /* REG_ITMP2_XPC */
@@ -352,32 +356,6 @@ void md_executionstate_write(executionstate_t *es, void *context)
 	_mc->gregs[REG_EIP] = (ptrint) es->pc;
 	_mc->gregs[REG_ESP] = (ptrint) es->sp;
 }
-
-
-/* md_critical_section_restart *************************************************
-
-   Search the critical sections tree for a matching section and set
-   the PC to the restart point, if necessary.
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-void md_critical_section_restart(ucontext_t *_uc)
-{
-	mcontext_t *_mc;
-	u1         *pc;
-	u1         *npc;
-
-	_mc = &_uc->uc_mcontext;
-
-	pc = (u1 *) _mc->gregs[REG_EIP];
-
-	npc = critical_find_restart_point(pc);
-
-	if (npc != NULL)
-		_mc->gregs[REG_EIP] = (ptrint) npc;
-}
-#endif
 
 
 /*

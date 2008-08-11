@@ -26,6 +26,10 @@
 #ifndef _BUILTIN_H
 #define _BUILTIN_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* forward typedefs ***********************************************************/
 
 typedef struct builtintable_entry builtintable_entry;
@@ -38,7 +42,8 @@ typedef struct builtintable_entry builtintable_entry;
 
 #include "toolbox/logging.h"
 
-#include "vmcore/utf8.h"
+#include "vm/descriptor.h"
+#include "vm/utf8.h"
 
 
 /* define infinity for floating point numbers */
@@ -147,6 +152,17 @@ java_handle_t *builtin_new(classinfo *c);
 /* NOT AN OP */
 java_handle_t *builtin_java_new(java_handle_t *c);
 #define BUILTIN_new (functionptr) builtin_java_new
+
+#if defined(ENABLE_TLH)
+#define BUILTIN_tlh_new (functionptr) builtin_tlh_new
+java_handle_t *builtin_tlh_new(classinfo *c);
+#endif
+
+#if defined(ENABLE_ESCAPE_REASON)
+#define BUILTIN_escape_reason_new (functionptr)builtin_escape_reason_new
+java_handle_t *builtin_escape_reason_new(classinfo *c);
+#endif
+
 java_object_t *builtin_fast_new(classinfo *c);
 #define BUILTIN_FAST_new (functionptr) builtin_fast_new
 
@@ -316,6 +332,10 @@ s8 builtin_currenttimemillis(void);
 
 #if defined(ENABLE_CYCLES_STATS)
 void builtin_print_cycles_stats(FILE *file);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* _BUILTIN_H */

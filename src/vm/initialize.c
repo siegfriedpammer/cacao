@@ -31,22 +31,21 @@
 
 #include "threads/lock-common.h"
 
-#include "vm/global.h"
-#include "vm/initialize.h"
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
-#include "vm/stringlocal.h"
-#include "vm/vm.h"
-
-#include "vm/jit/asmpart.h"
-
-#include "vmcore/class.h"
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
+#include "vm/class.h"
+#include "vm/exceptions.hpp"
+#include "vm/global.h"
+#include "vm/globals.hpp"
+#include "vm/initialize.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/vm.hpp"
 
 #if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
+# include "vm/statistics.h"
 #endif
+
+#include "vm/jit/asmpart.h"
 
 
 /* private functions **********************************************************/

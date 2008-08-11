@@ -28,15 +28,22 @@
 
 #include "config.h"
 
-#include "vm/global.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#include "vmcore/class.h"
+#include "vm/class.h"
+#include "vm/global.h"
 
 
 /* function prototypes ********************************************************/
 
 void initialize_init(void);
 bool initialize_class(classinfo *c);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _INITIALIZE_H */
 

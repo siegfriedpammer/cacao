@@ -53,6 +53,7 @@ struct varinfo {
 		float f;
 		double d;
 		basicblock *retaddr;
+		s4 ii[2];
 	} vv;
 #if defined(ENABLE_VERIFIER)
 	typeinfo_t typeinfo;       /* type info for reference types              */

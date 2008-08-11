@@ -25,6 +25,7 @@
 
 #include "config.h"
 
+#include "vm/descriptor.h"
 #include "vm/global.h"
 #include "vm/types.h"
 
@@ -32,8 +33,6 @@
 #include "vm/jit/stack.h"
 
 #include "vm/jit/s390/md-abi.h"
-
-#include "vmcore/descriptor.h"
 
 #include <assert.h>
 

@@ -30,10 +30,10 @@
 #include "native/llni.h"
 
 #include "vm/array.h"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/global.h"
-#include "vm/primitive.h"
-#include "vm/vm.h"
+#include "vm/primitive.hpp"
+#include "vm/vm.hpp"
 
 
 /* array_element_get ***********************************************************
@@ -60,7 +60,7 @@ java_handle_t *array_element_get(java_handle_t *a, int32_t index)
 
 	value = array_element_primitive_get(a, index);
 
-	o = primitive_box(type, value);
+	o = Primitive_box(type, value);
 
 	return o;
 }
@@ -76,7 +76,7 @@ void array_element_set(java_handle_t *a, int32_t index, java_handle_t *o)
 {
 	imm_union value;
 
-	value = primitive_unbox(o);
+	value = Primitive_unbox(o);
 
 	array_element_primitive_set(a, index, value);
 }

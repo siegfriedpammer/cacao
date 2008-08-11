@@ -1,9 +1,7 @@
 ## src/native/vm/cldc1.1/Makefile.am
 ##
-## Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-## C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-## Institut f. Computersprachen - TU Wien
+## Copyright (C) 2006, 2007, 2008
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -31,20 +29,20 @@ noinst_LTLIBRARIES = \
 	libnativevmcore.la
 
 libnativevmcore_la_SOURCES = \
-	com_sun_cldc_io_ResourceInputStream.c \
-	com_sun_cldc_io_j2me_socket_Protocol.c \
-	com_sun_cldchi_io_ConsoleOutputStream.c \
-	com_sun_cldchi_jvm_JVM.c \
-	java_lang_Class.c \
-	java_lang_Double.c \
-	java_lang_Float.c \
-	java_lang_Math.c \
-	java_lang_Object.c \
-	java_lang_Runtime.c \
-	java_lang_String.c \
-	java_lang_System.c \
-	java_lang_Thread.c \
-	java_lang_Throwable.c
+	com_sun_cldc_io_ResourceInputStream.cpp \
+	com_sun_cldc_io_j2me_socket_Protocol.cpp \
+	com_sun_cldchi_io_ConsoleOutputStream.cpp \
+	com_sun_cldchi_jvm_JVM.cpp \
+	java_lang_Class.cpp \
+	java_lang_Double.cpp \
+	java_lang_Float.cpp \
+	java_lang_Math.cpp \
+	java_lang_Object.cpp \
+	java_lang_Runtime.cpp \
+	java_lang_String.cpp \
+	java_lang_System.cpp \
+	java_lang_Thread.cpp \
+	java_lang_Throwable.cpp
 
 
 ## Local variables:

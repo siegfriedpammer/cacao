@@ -32,19 +32,19 @@
 #include "mm/memory.h"
 
 #include "vm/access.h"
-#include "vm/exceptions.h"
+#include "vm/classcache.h"
+#include "vm/descriptor.h"
+#include "vm/exceptions.hpp"
 #include "vm/global.h"
-#include "vm/primitive.h"
+#include "vm/globals.hpp"
+#include "vm/linker.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/primitive.hpp"
 #include "vm/resolve.h"
 
 #include "vm/jit/jit.h"
 #include "vm/jit/verify/typeinfo.h"
-
-#include "vmcore/classcache.h"
-#include "vmcore/descriptor.h"
-#include "vmcore/linker.h"
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
 
 
 /******************************************************************************/
@@ -500,7 +500,7 @@ bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, class
 	else {
 		/* a primitive type */
 
-		cls = primitive_class_get_by_type(d->decltype);
+		cls = Primitive_get_class_by_type(d->primitivetype);
 
 		assert(cls->state & CLASS_LOADED);
 
@@ -1329,7 +1329,7 @@ resolve_result_t resolve_field_lazy(methodinfo *refmethod,
 
 	fi = class_resolvefield(container,
 							fieldref->name, fieldref->descriptor,
-							referer, true);
+							referer);
 	if (!fi) {
 		/* The field does not exist. But since we were called lazily, */
 		/* this error must not be reported now. (It will be reported   */
@@ -1427,7 +1427,7 @@ bool resolve_field(unresolved_field *ref,
 
 	fi = class_resolvefield(container,
 							ref->fieldref->name,ref->fieldref->descriptor,
-							referer,true);
+							referer);
 	if (!fi) {
 		if (mode == resolveLazy) {
 			/* The field does not exist. But since we were called lazily, */

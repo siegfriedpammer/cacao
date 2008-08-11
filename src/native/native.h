@@ -30,15 +30,18 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "native/jni.h"
 
+#include "vm/class.h"
 #include "vm/global.h"
-
-#include "vmcore/class.h"
-#include "vmcore/loader.h"
-#include "vmcore/method.h"
-#include "vmcore/system.h"
-#include "vmcore/utf8.h"
+#include "vm/loader.h"
+#include "vm/method.h"
+#include "vm/os.hpp"
+#include "vm/utf8.h"
 
 
 /* defines ********************************************************************/
@@ -109,6 +112,10 @@ int         native_library_load(JNIEnv *env, utf *name, classloader_t *cl);
 
 java_handle_t *native_new_and_init(classinfo *c);
 java_handle_t *native_new_and_init_string(classinfo *c, java_handle_t *s);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _NATIVE_H */
 

@@ -1,9 +1,7 @@
 /* src/vm/jit/mips/md.h - machine dependent MIPS functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -37,7 +35,7 @@
 
 #include "vm/types.h"
 
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 
 /* md_stacktrace_get_returnaddress *********************************************
@@ -70,28 +68,28 @@ inline static void *md_stacktrace_get_returnaddress(void *sp, int32_t stackframe
 
 *******************************************************************************/
 
-inline static u1 *md_codegen_get_pv_from_pc(u1 *ra)
+inline static void* md_codegen_get_pv_from_pc(void* ra)
 {
-	u1 *pv;
-	u4  mcode;
-	s4  offset;
+	int32_t offset;
+
+	uint32_t* pc = (uint32_t*) ra;
 
 	/* get the offset of the instructions */
 
 	/* get first instruction word after jump */
 
-	mcode = *((u4 *) ra);
+	uint32_t mcode = pc[0];
 
 	/* check if we have 2 instructions (lui, daddiu) */
 
 	if ((mcode >> 16) == 0x3c19) {
 		/* get displacement of first instruction (lui) */
 
-		offset = (s4) (mcode << 16);
+		offset = (int32_t) (mcode << 16);
 
 		/* get displacement of second instruction (daddiu) */
 
-		mcode = *((u4 *) (ra + 1 * 4));
+		mcode = pc[1];
 
 #if SIZEOF_VOID_P == 8
 		assert((mcode >> 16) == 0x6739);
@@ -99,12 +97,10 @@ inline static u1 *md_codegen_get_pv_from_pc(u1 *ra)
 		assert((mcode >> 16) == 0x2739);
 #endif
 
-		offset += (s2) (mcode & 0x0000ffff);
+		offset += (int16_t) (mcode & 0x0000ffff);
 	}
 	else {
 		/* get offset of first instruction (daddiu) */
-
-		mcode = *((u4 *) ra);
 
 #if SIZEOF_VOID_P == 8
 		assert((mcode >> 16) == 0x67fe);
@@ -112,12 +108,12 @@ inline static u1 *md_codegen_get_pv_from_pc(u1 *ra)
 		assert((mcode >> 16) == 0x27fe);
 #endif
 
-		offset = (s2) (mcode & 0x0000ffff);
+		offset = (int16_t) (mcode & 0x0000ffff);
 	}
 
 	/* calculate PV via RA + offset */
 
-	pv = ra + offset;
+	void* pv = (void*) (((uintptr_t) ra) + offset);
 
 	return pv;
 }

@@ -26,7 +26,7 @@
 #define _CACAODBG_H
 
 #include "threads/mutex.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 #include "native/jvmti/jvmti.h"
 #include "native/include/java_lang_String.h"
 #include <ltdl.h>

@@ -3,10 +3,8 @@
    Copyright (C) 1995,1996,1997,1998,2000,2003,2004 Free Software Foundation, Inc.
    Taken from Gforth.
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -24,6 +22,7 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
+
 */
 
 
@@ -44,10 +43,10 @@
 #include "toolbox/hashtable.h"
 #include "toolbox/logging.h"
 
+#include "vm/options.h"
+
 #include "vm/jit/disass.h"
 #include "vm/jit/intrp/intrp.h"
-
-#include "vmcore/options.h"
 
 
 s4 no_super=0;   /* option: just use replication, but no dynamic superinsts */

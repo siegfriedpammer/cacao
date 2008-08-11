@@ -35,13 +35,17 @@
 #include "mm/memory.h"
 
 #include "threads/lock-common.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 
 #include "vm/builtin.h"
+#include "vm/class.h"
 #include "vm/global.h"
 #include "vm/initialize.h"
+#include "vm/method.h"
+#include "vm/options.h"
+#include "vm/statistics.h"
 
 #include "vm/jit/jit.h"
 #include "vm/jit/parse.h"
@@ -53,11 +57,6 @@
 #include "vm/jit/loop/loop.h"
 
 #include "vm/jit/verify/typecheck.h"
-
-#include "vmcore/class.h"
-#include "vmcore/method.h"
-#include "vmcore/options.h"
-#include "vmcore/statistics.h"
 
 
 /* algorithm tuning constants *************************************************/

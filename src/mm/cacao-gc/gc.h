@@ -35,7 +35,7 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/list.h"
 #include "vm/jit/replace.h"
@@ -54,7 +54,7 @@
 
 #if !defined(NDEBUG) && defined(GC_DEBUGGING)
 # include <assert.h>
-# include "vmcore/options.h"
+# include "vm/options.h"
 # define GC_LOG(code) if (opt_verbosegc) { code; }
 # define GC_ASSERT(assertion) assert(assertion)
 #else

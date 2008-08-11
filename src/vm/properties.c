@@ -25,6 +25,7 @@
 
 #include "config.h"
 
+#include <stdint.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,29 +33,24 @@
 #include <unistd.h>
 #include <sys/utsname.h>
 
-#include "vm/types.h"
-
 #include "mm/memory.h"
 
 #include "native/jni.h"
 #include "native/llni.h"
 
-#include "vm/global.h"                      /* required by java_lang_String.h */
-#include "native/include/java_lang_String.h"
-
 #include "toolbox/list.h"
 #include "toolbox/util.h"
 
+#include "vm/class.h"
+#include "vm/global.h"
+#include "vm/method.h"
+#include "vm/options.h"
+#include "vm/os.hpp"
 #include "vm/properties.h"
-#include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/string.hpp"
+#include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
-
-#include "vmcore/class.h"
-#include "vmcore/method.h"
-#include "vmcore/options.h"
-#include "vmcore/system.h"
 
 
 /* internal property structure ************************************************/
@@ -62,8 +58,8 @@
 typedef struct list_properties_entry_t list_properties_entry_t;
 
 struct list_properties_entry_t {
-	char       *key;
-	char       *value;
+	const char* key;
+	const char* value;
 	listnode_t  linkage;
 };
 
@@ -139,8 +135,8 @@ void properties_set(void)
 
 	   Now let's strip two levels. */
 
-	p = system_dirname(p);
-	p = system_dirname(p);
+	p = os_dirname(p);
+	p = os_dirname(p);
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
@@ -177,7 +173,7 @@ void properties_set(void)
 
 	/* Check if that libjvm.so exists. */
 
-	if (system_access(java_home, F_OK) == 0) {
+	if (os_access(java_home, F_OK) == 0) {
 		/* Yes, we add /jre to java.home. */
 
 		strcpy(java_home, p);
@@ -578,7 +574,7 @@ void properties_set(void)
 
 *******************************************************************************/
 
-void properties_add(char *key, char *value)
+void properties_add(const char *key, const char *value)
 {
 	list_properties_entry_t *pe;
 
@@ -625,7 +621,7 @@ void properties_add(char *key, char *value)
 
 *******************************************************************************/
 
-char *properties_get(char *key)
+const char *properties_get(const char *key)
 {
 	list_properties_entry_t *pe;
 
@@ -645,7 +641,7 @@ char *properties_get(char *key)
 
 *******************************************************************************/
 
-void properties_system_add(java_handle_t *p, char *key, char *value)
+void properties_system_add(java_handle_t *p, const char *key, const char *value)
 {
 	classinfo     *c;
 	methodinfo    *m;

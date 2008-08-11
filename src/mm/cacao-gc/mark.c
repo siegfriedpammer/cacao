@@ -32,9 +32,10 @@
 #include "rootset.h"
 #include "mm/memory.h"
 #include "toolbox/logging.h"
+
 #include "vm/global.h"
-#include "vm/vm.h"
-#include "vmcore/linker.h"
+#include "vm/linker.h"
+#include "vm/vm.hpp"
 
 
 /* Helper Macros **************************************************************/

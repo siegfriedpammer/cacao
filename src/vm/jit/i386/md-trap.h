@@ -1,4 +1,4 @@
-/* src/vm/jit/x86_64/md-trap.h - i386 hardware traps
+/* src/vm/jit/i386/md-trap.h - i386 hardware traps
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -58,6 +58,7 @@ enum {
 	/* Don't use 8 (could be a normal load offset). */
 
 	TRAP_COMPILER                       = 9,
+	TRAP_COUNTDOWN                      = 10,
 	TRAP_END
 };
 

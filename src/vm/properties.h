@@ -1,9 +1,7 @@
 /* src/vm/properties.h - handling commandline properties
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -30,6 +28,10 @@
 
 #include "config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 
 #include "vm/global.h"
@@ -40,16 +42,20 @@
 void  properties_init(void);
 void  properties_set(void);
 
-void  properties_add(char *key, char *value);
-char *properties_get(char *key);
+void        properties_add(const char *key, const char *value);
+const char *properties_get(const char *key);
 
-void  properties_system_add(java_handle_t *p, char *key, char *value);
+void  properties_system_add(java_handle_t *p, const char *key, const char *value);
 
 #if defined(ENABLE_JAVASE)
 void  properties_system_add_all(java_handle_t *p);
 #endif
 
 void  properties_dump(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _PROPERTIES_H */
 

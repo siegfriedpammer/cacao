@@ -26,15 +26,15 @@
 #include "native/jvmti/jvmti.h"
 #include "native/jvmti/cacaodbg.h"
 #include "native/jvmti/dbg.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 #include "vm/loader.h"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/builtin.h"
 #include "vm/jit/asmpart.h"
-#include "vm/stringlocal.h"
+#include "vm/string.hpp"
 #include "toolbox/logging.h"
 #include "threads/mutex.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include <sys/types.h>
 #include <unistd.h>

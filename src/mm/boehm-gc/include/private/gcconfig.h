@@ -141,12 +141,12 @@
 #    define SEQUENT
 #    define mach_type_known
 # endif
-# if defined(sun) && (defined(i386) || defined(__i386__))
+# if (defined(sun) || defined(__sun)) && (defined(i386) || defined(__i386__))
 #    define I386
 #    define SOLARIS
 #    define mach_type_known
 # endif
-# if defined(sun) && defined(__amd64)
+# if (defined(sun) || defined(__sun)) && defined(__amd64)
 #    define X86_64
 #    define SOLARIS
 #    define mach_type_known

@@ -30,20 +30,18 @@
 #include <sys/mman.h> /* REMOVEME */
 
 #include "threads/lock-common.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "mm/codememory.h"
 #include "mm/memory.h"
 
-#include "vmcore/options.h"
+#include "vm/global.h"
+#include "vm/options.h"
+#include "vm/os.hpp"
 
 #if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
+# include "vm/statistics.h"
 #endif
-
-#include "vmcore/system.h"
-
-#include "vm/global.h"
 
 
 /* global code memory variables ***********************************************/
@@ -78,7 +76,7 @@ void codememory_init(void)
 
 	/* Get the pagesize of this architecture. */
 
-	pagesize = system_getpagesize();
+	pagesize = os_getpagesize();
 }
 
 
@@ -124,9 +122,9 @@ void *codememory_get(size_t size)
 
 		/* allocate the memory */
 
-		p = system_mmap_anonymous(NULL, code_memory_size,
-								  PROT_READ | PROT_WRITE | PROT_EXEC,
-								  MAP_PRIVATE);
+		p = os_mmap_anonymous(NULL, code_memory_size,
+							  PROT_READ | PROT_WRITE | PROT_EXEC,
+							  MAP_PRIVATE);
 
 		/* set global code memory pointer */
 

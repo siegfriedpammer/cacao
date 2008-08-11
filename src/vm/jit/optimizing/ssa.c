@@ -51,7 +51,7 @@
 #include "vm/jit/python.h"
 
 #if defined(SSA_DEBUG_VERBOSE)
-#include "vmcore/options.h"   /* compileverbose */
+#include "vm/options.h"   /* compileverbose */
 #endif
 
 /* function prototypes */
@@ -133,6 +133,7 @@ void ssa(jitdata *jd) {
 		yssa(jd);
 	}
 	/*pythonpass_run(jd, "foo", "after");*/
+	cfg_remove_root(jd);
 	return;
 
 	ls = jd->ls;

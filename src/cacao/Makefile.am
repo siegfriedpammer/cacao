@@ -35,11 +35,17 @@ lib_LTLIBRARIES = \
 	libjvm.la
 
 libjvm_la_LDFLAGS = \
-	-version-info 1:0:0
+	-avoid-version
 
 if WITH_JAVA_RUNTIME_LIBRARY_OPENJDK
+if WITH_GNU_LD
 libjvm_la_LDFLAGS += \
 	-Xlinker --version-script=$(top_srcdir)/contrib/mapfile-vers-product
+else
+# This is for the Solaris LD.
+libjvm_la_LDFLAGS += \
+	-Xlinker -M$(top_srcdir)/contrib/mapfile-vers-product
+endif
 endif
 
 cacao_LDFLAGS += \
@@ -80,14 +86,13 @@ libjvm_la_LIBADD = \
 	$(top_builddir)/src/threads/libthreads.la \
 	$(top_builddir)/src/toolbox/libtoolbox.la \
 	$(top_builddir)/src/vm/libvm.la \
-	$(top_builddir)/src/vmcore/libvmcore.la \
 	$(GC_LIB)
 
 bin_PROGRAMS = \
 	cacao
 
 cacao_SOURCES = \
-	cacao.c
+	cacao.cpp
 
 cacao_LDADD = \
 	$(CACAO_LIBS)

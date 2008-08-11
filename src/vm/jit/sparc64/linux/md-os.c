@@ -35,10 +35,9 @@
 #include "vm/jit/sparc64/md-abi.h"
 
 #include "vm/signallocal.h"
-#include "vm/stringlocal.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.h"
 
 
@@ -176,40 +175,6 @@ void md_icacheflush(u1 *addr, s4 nbytes)
 	}
 }
 
-#if defined(ENABLE_THREADS)
-/* md_critical_section_restart ************************************************
- 
-   Search the critical sections tree for a matching section and set
-   the NPC to the restart point, if necessary.
-
-   Reads PC and modifies NPC.
-
-******************************************************************************/
-
-void md_critical_section_restart(ucontext_t *_uc)
-{
-	/* mcontext_t *_mc; */
-	sigcontext *ctx;
-	u1         *pc;
-	u1         *npc;
-
-	printf("ignoring md_critical_section_restart\n");
-	return;
-
-	/* again, we are getting sigcontext instead of ucontext */
-	ctx = (sigcontext *) _uc;
-	
-	pc = (u1 *) ctx->sigc_regs.tpc;
-
-	npc = critical_find_restart_point(pc);
-
-	if (npc != NULL) {
-		log_println("md_critical_section_restart: pc=%p, npc=%p", pc, npc);
-		ctx->sigc_regs.tnpc = (ptrint) npc;
-	}
-
-}
-#endif
 	
 /*
  * These are local overrides for various environment variables in Emacs.

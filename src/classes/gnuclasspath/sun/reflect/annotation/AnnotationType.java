@@ -45,7 +45,7 @@ public class AnnotationType {
      * sun.misc.SharedSecrets.getJavaLangAccess().setAnnotationType() so
      * this class can be used with gnu classpath.
      *
-     * @author Mathias Panzenböck
+     * @author Mathias Panzenboeck
      */
     private static Map<Class, AnnotationType> annotationTypes =
         new HashMap<Class, AnnotationType>();

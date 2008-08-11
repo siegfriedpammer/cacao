@@ -33,13 +33,13 @@
 #include "mm/memory.h"
 
 #include "threads/threadlist.h"
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 
 #include "vm/global.h"
 #include "vm/jit/replace.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 
 rootset_t *rootset_create(void)

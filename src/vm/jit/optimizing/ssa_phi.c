@@ -1,9 +1,7 @@
 /* src/vm/jit/optimizing/ssa.c - static single-assignment form
 
-   Copyright (C) 2005 - 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005-2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,13 +20,10 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Christian Ullrich
-
-   $Id: $
-
 */
+
+
+#include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,7 +45,7 @@
 #include "vm/jit/optimizing/ssa_phi.h"
 
 #if defined(SSA_DEBUG_VERBOSE)
-#include "vmcore/options.h"   /* compileverbose */
+#include "vm/options.h"   /* compileverbose */
 #endif
 
 /* ssa_place_phi_functions *****************************************************

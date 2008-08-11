@@ -1,9 +1,7 @@
 /* src/vm/jit/x86_64/codegen.c - machine code generator for x86_64
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -48,11 +46,14 @@
 #include "threads/lock-common.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/global.h"
-#include "vm/primitive.h"
-#include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/primitive.hpp"
+#include "vm/statistics.h"
+#include "vm/string.hpp"
+#include "vm/vm.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
@@ -67,16 +68,12 @@
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.h"
 
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
 #endif
-
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
-#include "vmcore/statistics.h"
 
 
 /* codegen_emit ****************************************************************
@@ -2499,9 +2496,6 @@ gen_method:
 					superindex = super->index;
 				}
 
-				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-					CODEGEN_CRITICAL_SECTION_NEW;
-
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 				/* if class is not resolved, check which code to call */
@@ -2574,8 +2568,6 @@ gen_method:
 					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ALD(REG_ITMP3, RIP, disp);
 
-					CODEGEN_CRITICAL_SECTION_START;
-
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 
 					/*  					if (s1 != REG_ITMP1) { */
@@ -2597,8 +2589,6 @@ gen_method:
 					M_ALD(REG_ITMP3, RIP, disp);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
 					/*  					} */
-
-					CODEGEN_CRITICAL_SECTION_END;
 
 					M_ICMP(REG_ITMP3, REG_ITMP2);
 					emit_classcast_check(cd, iptr, BRANCH_UGT, REG_ITMP3, s1);
@@ -2662,9 +2652,6 @@ gen_method:
 				super      = iptr->sx.s23.s3.c.cls;
 				superindex = super->index;
 			}
-
-			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-				CODEGEN_CRITICAL_SECTION_NEW;
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -2747,13 +2734,9 @@ gen_method:
 				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ALD(REG_ITMP2, RIP, disp);
 
-				CODEGEN_CRITICAL_SECTION_START;
-
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, diffval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
-
-				CODEGEN_CRITICAL_SECTION_END;
 
 				M_ISUB(REG_ITMP2, REG_ITMP1);
 				M_CLR(d); /* may be REG_ITMP2 */
@@ -3043,7 +3026,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 		/* put env into first argument register */
 
-		M_MOV_IMM(_Jv_env, REG_A0);
+		M_MOV_IMM(VM_get_jnienv(), REG_A0);
 	}
 
 	/* Call the native function. */
@@ -3058,7 +3041,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	case TYPE_INT:
 	case TYPE_LNG:
 	case TYPE_ADR:
-		switch (md->returntype.decltype) {
+		switch (md->returntype.primitivetype) {
 		case PRIMITIVETYPE_BOOLEAN:
 			M_BZEXT(REG_RESULT, REG_RESULT);
 			break;

@@ -31,12 +31,16 @@
 
 #include "md-trap.h"
 
+#include "mm/memory.h"
+
 #include "native/llni.h"
 
 #include "toolbox/logging.h"
 
-#include "vm/exceptions.h"
-#include "vm/vm.h"
+#include "vm/exceptions.hpp"
+#include "vm/options.h"
+#include "vm/os.hpp"
+#include "vm/vm.hpp"
 
 #include "vm/jit/code.h"
 #include "vm/jit/disass.h"
@@ -44,10 +48,7 @@
 #include "vm/jit/methodtree.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/replace.h"
-#include "vm/jit/stacktrace.h"
-
-#include "vmcore/options.h"
-#include "vmcore/system.h"
+#include "vm/jit/stacktrace.hpp"
 
 
 /**
@@ -66,9 +67,9 @@ void trap_init(void)
 	/* mmap a memory page at address 0x0, so our hardware-exceptions
 	   work. */
 
-	pagesize = system_getpagesize();
+	pagesize = os_getpagesize();
 
-	(void) system_mmap_anonymous(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
+	(void) os_mmap_anonymous(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
 #endif
 
 	TRACESUBSYSTEMINITIALIZATION("trap_init");
@@ -181,6 +182,15 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 	case TRAP_COMPILER:
 		p = jit_compile_handle(m, sfi.pv, ra, (void *) val);
 		break;
+
+#if defined(ENABLE_REPLACEMENT)
+	case TRAP_COUNTDOWN:
+#if defined(__I386__)
+		replace_me_wrapper((char*)xpc - 13, context);
+#endif
+		p = NULL;
+		break;
+#endif
 
 	default:
 		/* Let's try to get a backtrace. */

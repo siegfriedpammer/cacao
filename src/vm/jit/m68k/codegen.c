@@ -42,10 +42,12 @@
 #include "threads/lock-common.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/global.h"
-#include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/utf8.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
@@ -58,12 +60,8 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.h"
-
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
-#include "vmcore/utf8.h"
 
 
 bool codegen_emit(jitdata *jd) 
@@ -1994,9 +1992,6 @@ nowperformreturn:
 				superindex = super->index;
 			}
 			
-			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-				CODEGEN_CRITICAL_SECTION_NEW;
-
 			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 
@@ -2060,13 +2055,9 @@ nowperformreturn:
 
 				M_ALD(REG_ATMP1, s1, OFFSET(java_object_t, vftbl));
 
-				CODEGEN_CRITICAL_SECTION_START;
-
 				M_ILD(REG_ITMP1, REG_ATMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ATMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ATMP2, OFFSET(vftbl_t, diffval));
-
-				CODEGEN_CRITICAL_SECTION_END;
 
 				M_ISUB(REG_ITMP3, REG_ITMP1);
 				M_ICMP(REG_ITMP2, REG_ITMP1);
@@ -2118,9 +2109,6 @@ nowperformreturn:
 					super      = iptr->sx.s23.s3.c.cls;
 					superindex = super->index;
 				}
-
-				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-					CODEGEN_CRITICAL_SECTION_NEW;
 
 				s1 = emit_load_s1(jd, iptr, REG_ATMP1);
 				assert(VAROP(iptr->s1)->type == TYPE_ADR);
@@ -2181,13 +2169,9 @@ nowperformreturn:
 
 					M_ALD(REG_ATMP2, s1, OFFSET(java_object_t, vftbl));
 
-					CODEGEN_CRITICAL_SECTION_START;
-
 					M_ILD(REG_ITMP3, REG_ATMP2, OFFSET(vftbl_t, baseval));	/* REG_ITMP3 == sub->vftbl->baseval */
 					M_ILD(REG_ITMP1, REG_ATMP3, OFFSET(vftbl_t, baseval));
 					M_ILD(REG_ITMP2, REG_ATMP3, OFFSET(vftbl_t, diffval));
-
-					CODEGEN_CRITICAL_SECTION_END;
 
 					M_ISUB(REG_ITMP1, REG_ITMP3);
 					M_ICMP(REG_ITMP2, REG_ITMP3);	/* XXX was CMPU */
@@ -2455,7 +2439,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 			M_AST(REG_ATMP3, REG_SP, 1 * 4);
 
 		/* env ist first argument */
-		M_AMOV_IMM(_Jv_env, REG_ATMP1);
+		M_AMOV_IMM(VM_get_jnienv(), REG_ATMP1);
 		M_AST(REG_ATMP1, REG_SP, 0 * 4);
 	}
 

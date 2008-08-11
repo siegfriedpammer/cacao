@@ -27,6 +27,11 @@
 #define _NATIVEVM_H
 
 #include "config.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "vm/types.h"
 
 #include "vm/global.h"
@@ -97,7 +102,12 @@ void _Jv_java_lang_Throwable_init();
 # error unknown Java configuration
 #endif
 
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* _NATIVEVM_H */
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

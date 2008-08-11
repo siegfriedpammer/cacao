@@ -1,9 +1,7 @@
 /* src/vm/jit/replace.h - on-stack replacement of methods
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -59,10 +57,10 @@ typedef union  replace_val_t replace_val_t;
 #include "arch.h"
 #include "md-abi.h"
 
-#include "vm/jit/reg.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/method.h"
 
-#include "vmcore/method.h"
+#include "vm/jit/reg.h"
+#include "vm/jit/stacktrace.hpp"
 
 
 /*** structs *********************************************************/
@@ -140,7 +138,6 @@ union replace_val_t {
 };
 
 
-	u1           *ra;                /* return address / link register */
 struct sourceframe_t {
 	sourceframe_t *down;           /* source frame down the call chain */
 

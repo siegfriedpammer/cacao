@@ -57,9 +57,6 @@
 
 	.globl asm_cacheflush
 
-	.globl asm_compare_and_swap
-	.globl asm_memory_barrier
-
 
 /* asm_vm_call_method **********************************************************
 *                                                                              *
@@ -460,36 +457,6 @@ asm_cacheflush:
 0:
 	sync
 	isync
-	blr
-
-
-/* asm_compare_and_swap ********************************************************
-
-   XXX
-
-*******************************************************************************/
-
-asm_compare_and_swap:
-1:
-	lwarx   a6,0,a0 
-	subf.   r0,a6,a1 
-	bne-    2f 
-	or      r0,a2,a2 
-	stwcx.  r0,0,a0 
-	bne-    1b 
-2: 
-	mr      a0,a6
-	blr
-
-
-/* asm_memory_barrier **********************************************************
-
-   XXX
-
-*******************************************************************************/
-
-asm_memory_barrier:
-	sync
 	blr
 
 

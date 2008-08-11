@@ -35,18 +35,15 @@
 #include "native/native.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
+#include "vm/class.h"
+#include "vm/field.h"
 #include "vm/initialize.h"
+#include "vm/options.h"
+#include "vm/references.h"
 #include "vm/resolve.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/patcher-common.h"
-#include "vm/jit/stacktrace.h"
-
-#include "vmcore/class.h"
-#include "vmcore/field.h"
-#include "vmcore/options.h"
-#include "vmcore/references.h"
 
 #include "codegen.h"
 

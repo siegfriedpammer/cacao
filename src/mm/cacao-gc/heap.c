@@ -1,9 +1,7 @@
 /* mm/cacao-gc/heap.c - GC module for heap management
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -39,11 +37,12 @@
 #include "native/include/java_lang_String.h"
 #include "native/llni.h"
 #include "toolbox/logging.h"
+
 #include "vm/global.h"
-#include "vm/stringlocal.h"
-#include "vm/vm.h"
-#include "vmcore/options.h"
-#include "vmcore/rt-timing.h"
+#include "vm/options.h"
+#include "vm/rt-timing.h"
+#include "vm/string.hpp"
+#include "vm/vm.hpp"
 
 
 /* Global Variables ***********************************************************/

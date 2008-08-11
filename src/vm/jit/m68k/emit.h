@@ -30,7 +30,7 @@
 #include "config.h"
 
 #include "vm/types.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 #include "vm/jit/codegen-common.h"
 
 void emit_mov_imm_reg (codegendata *cd, s4 imm, s4 dreg);

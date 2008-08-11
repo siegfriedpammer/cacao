@@ -24,7 +24,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 
 AC_INIT(cacao, 1.1.0pre, cacao@cacaojvm.org)
-AC_CONFIG_SRCDIR(src/cacao/cacao.c)
+AC_CONFIG_SRCDIR(src/cacao/cacao.cpp)
 AC_CANONICAL_HOST
 AC_PREREQ(2.59)
 AM_INIT_AUTOMAKE([1.9.0 dist-bzip2 tar-ustar])
@@ -37,13 +37,13 @@ AC_PREFIX_DEFAULT(/usr/local/cacao)
 
 dnl Set optimization and debugging for all architectures and systems.
 if test x"$CFLAGS" = "x"; then
-    OPT_CFLAGS="-O0 -g"
+    OPT_CFLAGS="-g -O0"
 else
     OPT_CFLAGS=$CFLAGS
 fi
 
 if test x"$CXXFLAGS" = "x"; then
-    OPT_CXXFLAGS="-O0 -g"
+    OPT_CXXFLAGS="-g -O0"
 else
     OPT_CXXFLAGS=$CXXFLAGS
 fi
@@ -56,7 +56,7 @@ alpha | alphaev56 | alphapca56 )
     JAVA_ARCH="alpha"
     ;;
 
-arm | armv4 | armv4tl | armv5b | armv5l )
+arm | armv4 | armv4tl | armv5b | armv5l | armv5tel | armv5tejl )
     ARCH_DIR="arm"
     ARCH_FLAGS="-D__ARM__"
     JAVA_ARCH="arm"
@@ -70,7 +70,7 @@ hppa2.0 )
 
 i386 | i486 | i586 | i686 )
     ARCH_DIR="i386"
-    ARCH_FLAGS="-D__I386__"
+    ARCH_FLAGS="-m32 -D__I386__"
     JAVA_ARCH="i386"
     ;;
 
@@ -89,13 +89,13 @@ mips | mipsel )
 
 powerpc )
     ARCH_DIR="powerpc"
-    ARCH_FLAGS="-D__POWERPC__"
+    ARCH_FLAGS="-m32 -D__POWERPC__"
     JAVA_ARCH="ppc"
     ;;
 
 powerpc64 )
     ARCH_DIR="powerpc64"
-    ARCH_FLAGS="-D__POWERPC64__"
+    ARCH_FLAGS="-m64 -D__POWERPC64__"
     JAVA_ARCH="ppc64"
     ;;
 
@@ -241,6 +241,8 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AM_PROG_MKDIR_P
 
+AM_CONDITIONAL([WITH_GNU_LD], [test x"$with_gnu_ld" = "xyes"])
+
 dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
@@ -255,6 +257,7 @@ AC_CHECK_HEADERS([errno.h])
 AC_CHECK_HEADERS([fcntl.h])
 AC_CHECK_HEADERS([libgen.h])
 AC_CHECK_HEADERS([netdb.h])
+AC_CHECK_HEADERS([signal.h])
 AC_CHECK_HEADERS([stdint.h])
 AC_CHECK_HEADERS([stdio.h])
 AC_CHECK_HEADERS([stdlib.h])
@@ -282,6 +285,12 @@ AC_STRUCT_TM
 
 dnl Checks for libraries (NOTE: Should be done before function checks,
 dnl as some functions may be in libraries we check for).
+
+case "${OS_DIR}" in
+    solaris )
+         AC_CHECK_LIB([socket], [gethostname],, [AC_MSG_ERROR(cannot find libsocket)])
+         ;;
+esac
 
 dnl Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
@@ -342,6 +351,7 @@ AC_CHECK_FUNCS([setsockopt])
 AC_CHECK_FUNCS([shutdown])
 AC_CHECK_FUNCS([socket])
 AC_CHECK_FUNCS([stat])
+AC_CHECK_FUNCS([str2sig])
 AC_CHECK_FUNCS([strcat])
 AC_CHECK_FUNCS([strchr])
 AC_CHECK_FUNCS([strcpy])
@@ -445,11 +455,13 @@ AC_MSG_RESULT(${ENABLE_SSA})
 AM_CONDITIONAL([ENABLE_SSA], test x"${ENABLE_SSA}" = "xyes")
 AM_CONDITIONAL([ENABLE_ESCAPE], test x"${ENABLE_SSA}" = "xyes")
 AM_CONDITIONAL([ENABLE_ESCAPE_CHECK], test x"${ENABLE_SSA}" = "xyes")
+AM_CONDITIONAL([ENABLE_TLH], test x"${ENABLE_SSA}" = "xyes")
 
 if test x"${ENABLE_SSA}" = "xyes"; then
     AC_DEFINE([ENABLE_SSA], 1, [enable lsra with ssa])
     AC_DEFINE([ENABLE_ESCAPE], 1, [enable escape analysis with ssa])
     AC_DEFINE([ENABLE_ESCAPE_CHECK], 1, [enable generating code to validate escape analysis results])
+    AC_DEFINE([ENABLE_TLH], 1, [enable thread local heap])
     ENABLE_LSRA="no"
 fi
 
@@ -514,6 +526,7 @@ else
 	AM_CONDITIONAL([USE_SCHEDULER], [false])
 fi
 
+AC_CHECK_ENABLE_OPAGENT
 
 AC_CHECK_ENABLE_ZLIB
 
@@ -543,7 +556,6 @@ AC_DEFINE_UNQUOTED([CACAO_VM_ZIP], "${CACAO_VM_ZIP}", [CACAO's vm.zip])
 AC_SUBST(CACAO_VM_ZIP)
 
 
-AC_CHECK_WITH_CACAOH
 AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY
 
 dnl Now we check for jre-layout so we can skip some checks that are
@@ -552,6 +564,7 @@ AC_CHECK_ENABLE_JRE_LAYOUT
 
 AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY_PREFIX
 AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY_CLASSES
+AC_CHECK_WITH_BUILD_JAVA_RUNTIME_LIBRARY_CLASSES
 
 if test x"${ENABLE_JRE_LAYOUT}" = "xno"; then
    AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY_LIBDIR
@@ -646,7 +659,6 @@ AC_CONFIG_FILES([Makefile]
 		[man/Makefile]
 		[src/Makefile]
 		[src/cacao/Makefile]
-		[src/cacaoh/Makefile]
 		[src/classes/Makefile]
 		[src/fdlibm/Makefile]
 		[src/mm/Makefile]
@@ -677,6 +689,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/i386/darwin/Makefile]
 		[src/vm/jit/i386/freebsd/Makefile]
 		[src/vm/jit/i386/linux/Makefile]
+		[src/vm/jit/i386/solaris/Makefile]
 		[src/vm/jit/intrp/Makefile]
 		[src/vm/jit/inline/Makefile]
 		[src/vm/jit/ir/Makefile]
@@ -705,7 +718,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/x86_64/Makefile]
 		[src/vm/jit/x86_64/freebsd/Makefile]
 		[src/vm/jit/x86_64/linux/Makefile]
-		[src/vmcore/Makefile]
+		[src/vm/jit/x86_64/solaris/Makefile]
 		[tests/Makefile]
 		[tests/regression/Makefile]
 		[tests/regression/assertion/Makefile]

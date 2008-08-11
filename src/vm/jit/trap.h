@@ -30,6 +30,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Include machine dependent trap stuff. */
 
 #include "md-trap.h"
@@ -39,6 +43,10 @@
 
 void  trap_init(void);
 void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xpc, void *context);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _TRAP_H */
 

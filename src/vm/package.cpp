@@ -33,13 +33,10 @@
 
 #include "native/jni.h"
 
-#include "native/include/java_lang_String.h"
-
+#include "vm/options.h"
 #include "vm/package.hpp"
-#include "vm/stringlocal.h"
-
-#include "vmcore/options.h"
-#include "vmcore/utf8.h"
+#include "vm/string.hpp"
+#include "vm/utf8.h"
 
 
 /* internal property structure ************************************************/

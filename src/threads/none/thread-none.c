@@ -27,9 +27,9 @@
 
 #include <stdint.h>
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 
 /* global variables ***********************************************************/

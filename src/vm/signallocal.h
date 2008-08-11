@@ -1,9 +1,7 @@
 /* src/vm/signallocal.h - machine independent signal functions
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -30,9 +28,24 @@
 
 #include "config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <signal.h>
 
 #include "vm/global.h"
+
+
+// Signal defines.
+
+#if defined(__LINUX__)
+// See openjdk/jdk/src/solaris/native/java/net/linux_close.c (sigWakeup)
+// See openjdk/jdk/src/solaris/native/sun/nio/ch/NativeThread.c (INTERRUPT_SIGNAL)
+# define Signal_INTERRUPT_SYSTEM_CALL    (__SIGRTMAX - 2)
+#else
+# define Signal_INTERRUPT_SYSTEM_CALL    SIGHUP
+#endif
 
 
 /* function prototypes ********************************************************/
@@ -64,6 +77,10 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p);
 void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p);
 
 void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _CACAO_SIGNAL_H */
 

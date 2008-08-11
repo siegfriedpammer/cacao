@@ -29,12 +29,12 @@
 #include <stdlib.h>
 #include <ucontext.h>
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/signallocal.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 
 
 /* md_signal_handler_sigsegv ***************************************************
@@ -125,25 +125,6 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 	pc = (u1 *) _mc->mc_rip;
 
 	t->pc = pc;
-}
-#endif
-
-
-#if defined(ENABLE_THREADS)
-void thread_restartcriticalsection(ucontext_t *_uc)
-{
-	mcontext_t *_mc;
-	u1         *pc;
-	void       *critical;
-
-	_mc = &_uc->uc_mcontext;
-
-	pc = (u1 *) _mc->mc_rip;
-
-	critical = critical_find_restart_point(pc);
-
-	if (critical != NULL)
-		_mc->mc_rip = (ptrint) critical;
 }
 #endif
 

@@ -49,16 +49,14 @@ typedef struct ucontext {
 
 #define scontext_t struct sigcontext
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
-#include "vm/exceptions.h"
+#include "vm/os.hpp"
 #include "vm/signallocal.h"
-#include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
-#include "vm/jit/stacktrace.h"
 #include "vm/jit/trap.h"
 
 
@@ -266,7 +264,7 @@ void md_executionstate_read(executionstate_t *es, void *context)
 	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
 
 	assert(sizeof(_mc->sc_fpregs) == sizeof(es->fltregs));
-	system_memcpy(&es->fltregs, &_mc->sc_fpregs, sizeof(_mc->sc_fpregs));
+	os_memcpy(&es->fltregs, &_mc->sc_fpregs, sizeof(_mc->sc_fpregs));
 #endif
 }
 
@@ -298,7 +296,7 @@ void md_executionstate_write(executionstate_t *es, void *context)
 	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
 
 	assert(sizeof(_mc->sc_fpregs) == sizeof(es->fltregs));
-	system_memcpy(&_mc->sc_fpregs, &es->fltregs, sizeof(_mc->sc_fpregs));
+	os_memcpy(&_mc->sc_fpregs, &es->fltregs, sizeof(_mc->sc_fpregs));
 
 	/* write special registers */
 	_mc->sc_pc           = (ptrint) es->pc;
@@ -307,32 +305,6 @@ void md_executionstate_write(executionstate_t *es, void *context)
 	_mc->sc_regs[REG_RA] = (ptrint) es->ra;
 #endif
 }
-
-
-/* md_critical_section_restart *************************************************
-
-   Search the critical sections tree for a matching section and set
-   the PC to the restart point, if necessary.
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-void md_critical_section_restart(ucontext_t *_uc)
-{
-	scontext_t *_sc;
-	u1         *pc;
-	u1         *npc;
-
-	_sc = &_uc->uc_mcontext;
-
-	pc = (u1 *) _sc->arm_pc;
-
-	npc = critical_find_restart_point(pc);
-
-	if (npc != NULL)
-		_sc->arm_pc = (ptrint) npc;
-}
-#endif
 
 
 /*

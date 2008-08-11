@@ -36,8 +36,9 @@
 
 #include "vm/global.h"
 #include "vm/builtin.h"
-#include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/options.h"
+#include "vm/string.hpp"
+#include "vm/vm.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/jit.h"
@@ -46,19 +47,17 @@
 #include "vm/jit/stack.h"
 #include "vm/jit/parse.h"
 
-#include "vmcore/options.h"
-
 #if defined(ENABLE_DEBUG_FILTER)
 # include <sys/types.h>
 # include <regex.h>
-# include "threads/thread.h"
+# include "threads/thread.hpp"
 #endif
 
 
 /* global variables ***********************************************************/
 
-#if defined(ENABLE_THREADS) && !defined(NDEBUG)
-static java_object_t *show_global_lock;
+#if !defined(NDEBUG)
+static Mutex* mutex;
 #endif
 
 
@@ -81,9 +80,7 @@ bool show_init(void)
 #if defined(ENABLE_THREADS)
 	/* initialize the show lock */
 
-	show_global_lock = NEW(java_object_t);
-
-	LOCK_INIT_OBJECT_LOCK(show_global_lock);
+	mutex = Mutex_new();
 #endif
 
 #if defined(ENABLE_DEBUG_FILTER)
@@ -158,7 +155,7 @@ void show_method(jitdata *jd, int stage)
 	   is not reentrant-able and we could not read functions printed
 	   at the same time. */
 
-	LOCK_MONITOR_ENTER(show_global_lock);
+	Mutex_lock(mutex);
 
 #if defined(ENABLE_INTRP)
 	if (opt_intrp)
@@ -389,7 +386,7 @@ void show_method(jitdata *jd, int stage)
 	}
 #endif
 
-	LOCK_MONITOR_EXIT(show_global_lock);
+	Mutex_unlock(mutex);
 
 	/* finally flush the output */
 
@@ -548,6 +545,18 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 			printf("\n");
 		}
 #endif /* defined(ENABLE_INLINING) */
+
+#if defined(ENABLE_SSA)
+	
+		iptr = bptr->phis;
+
+		for (i = 0; i < bptr->phicount; i++, iptr++) {
+			printf("%4d:%4d:  ", iptr->line, iptr->flags.bits >> INS_FLAG_ID_SHIFT);
+
+			show_icmd(jd, iptr, deadcode, irstage);
+			printf("\n");
+		}
+#endif
 
 		iptr = bptr->iinstr;
 
@@ -1425,6 +1434,19 @@ void show_icmd(jitdata *jd, instruction *iptr, bool deadcode, int stage)
 	case ICMD_GETEXCEPTION:
 		SHOW_DST(iptr);
 		break;
+#if defined(ENABLE_SSA)	
+	case ICMD_PHI:
+		printf("[ ");
+		for (i = 0; i < iptr->s1.argcount; ++i) {
+			SHOW_VARIABLE(iptr->sx.s23.s2.iargs[i]->dst.varindex);
+		}
+		printf("] ");
+		SHOW_DST(iptr);
+		if (iptr->flags.bits & (1 << 0)) printf("used ");
+		if (iptr->flags.bits & (1 << 1)) printf("redundantAll ");
+		if (iptr->flags.bits & (1 << 2)) printf("redundantOne ");
+		break;
+#endif
 	}
 	fflush(stdout);
 }

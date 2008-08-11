@@ -45,10 +45,11 @@
 #include "threads/lock-common.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/global.h"
-#include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
@@ -62,11 +63,8 @@
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.h"
-
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
 
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"
@@ -2204,10 +2202,6 @@ gen_method:
 					superindex = super->index;
 				}
 		
-				if ((super == NULL) || !(super->flags & ACC_INTERFACE))	{
-					CODEGEN_CRITICAL_SECTION_NEW;
-				}
-
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 				/* if class is not resolved, check which code to call */
@@ -2276,15 +2270,11 @@ gen_method:
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 
-					CODEGEN_CRITICAL_SECTION_START;
-
 					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					M_ALD(REG_ITMP2, REG_PV, disp);
 					if (s1 != REG_ITMP1) {
 						M_ILD(REG_ITMP1, REG_ITMP2, OFFSET(vftbl_t, baseval));
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-
-						CODEGEN_CRITICAL_SECTION_END;
 
 						M_SUB(REG_ITMP3, REG_ITMP1, REG_ITMP3);
 						M_EXTSW(REG_ITMP3, REG_ITMP3);
@@ -2294,9 +2284,6 @@ gen_method:
 						M_EXTSW(REG_ITMP3, REG_ITMP3);
 						M_ALD(REG_ITMP2, REG_PV, disp);
 						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-
-						CODEGEN_CRITICAL_SECTION_END;
-
 					}
 					M_CMPU(REG_ITMP3, REG_ITMP2);
 					emit_classcast_check(cd, iptr, BRANCH_GT, REG_ITMP3, s1);
@@ -2373,10 +2360,6 @@ gen_method:
 				superindex = super->index;
 			}
 			
-			if ((super == NULL) || !(super->flags & ACC_INTERFACE))	{
-				CODEGEN_CRITICAL_SECTION_NEW;
-			}
-
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (s1 == d) {
@@ -2453,13 +2436,9 @@ gen_method:
 				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ALD(REG_ITMP2, REG_PV, disp);
 
-				CODEGEN_CRITICAL_SECTION_START;
-
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-
-				CODEGEN_CRITICAL_SECTION_END;
 
 				M_SUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
 				M_EXTSW(REG_ITMP1, REG_ITMP1);
@@ -2727,7 +2706,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 		/* put env into first argument register */
 
-		disp = dseg_add_unique_address(cd, _Jv_env);
+		disp = dseg_add_unique_address(cd, VM_get_jnienv());
 		M_ALD(REG_A0, REG_PV, disp);
 	}
 

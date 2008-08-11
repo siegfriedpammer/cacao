@@ -42,9 +42,12 @@
 #include "native/jni.h"
 #include "native/localref.h"
 #include "native/native.h"
+
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/loader.h"
+#include "vm/options.h"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
@@ -57,10 +60,7 @@
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.h"
-#include "vm/jit/stacktrace.h"
-
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
+#include "vm/jit/stacktrace.hpp"
 
 #include "vm/jit/sparc64/solaris/macro_rename.h"
 
@@ -2671,9 +2671,6 @@ gen_method:
 					superindex = super->index;
 				}
 
-				if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-					CODEGEN_CRITICAL_SECTION_NEW;
-
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 				/* if class is not resolved, check which code to call */
@@ -2744,15 +2741,11 @@ gen_method:
 					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 					M_ALD(REG_ITMP3, REG_PV, disp);
 					
-					CODEGEN_CRITICAL_SECTION_START;
-
 					M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, baseval));
 					M_SUB(REG_ITMP2, REG_ITMP3, REG_ITMP2);
 					M_ALD(REG_ITMP3, REG_PV, disp);
 					M_ILD(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
-
-					CODEGEN_CRITICAL_SECTION_END;
 
 					/*  				} */
 					M_CMP(REG_ITMP3, REG_ITMP2);
@@ -2836,9 +2829,6 @@ gen_method:
 				supervftbl = super->vftbl;
 			}
 
-			if ((super == NULL) || !(super->flags & ACC_INTERFACE))
-				CODEGEN_CRITICAL_SECTION_NEW;
-
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 			if (s1 == d) {
@@ -2914,13 +2904,9 @@ gen_method:
 				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ALD(REG_ITMP2, REG_PV, disp);
 
-				CODEGEN_CRITICAL_SECTION_START;
-
 				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
 				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
-
-				CODEGEN_CRITICAL_SECTION_END;
 
 				M_SUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
 				M_CMP(REG_ITMP1, REG_ITMP2);
@@ -3434,7 +3420,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f)
 
 	/* put env into first argument register */
 
-	disp = dseg_add_address(cd, _Jv_env);
+	disp = dseg_add_address(cd, VM_get_jnienv());
 	M_ALD(REG_OUT0, REG_PV_CALLEE, disp);
 
 	/* do the native function call */

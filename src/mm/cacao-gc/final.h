@@ -1,9 +1,7 @@
 /* mm/cacao-gc/final.h - GC header for finalization and weak references
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -28,10 +26,11 @@
 #ifndef _FINAL_H
 #define _FINAL_H
 
+#include "config.h"
 #include "vm/types.h"
 
 #include "toolbox/list.h"
-#include "vmcore/method.h"
+#include "vm/method.h"
 
 
 /* Global Variables ***********************************************************/

@@ -35,16 +35,13 @@
 #include "vm/jit/powerpc/codegen.h"
 #include "vm/jit/powerpc/darwin/md-abi.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/signallocal.h"
-#include "vm/stringlocal.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/stacktrace.h"
 
 
 /* md_signal_handler_sigsegv ***************************************************
@@ -249,34 +246,6 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 
 	t->pc = pc;
 }
-
-
-/* md_critical_section_restart *************************************************
-
-   Search the critical sections tree for a matching section and set
-   the PC to the restart point, if necessary.
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-void md_critical_section_restart(ucontext_t *_uc)
-{
-	mcontext_t          _mc;
-	ppc_thread_state_t *_ss;
-	u1                 *pc;
-	u1                 *npc;
-
-	_mc = _uc->uc_mcontext;
-	_ss = &_mc->ss;
-
-	pc = (u1 *) _ss->srr0;
-
-	npc = critical_find_restart_point(pc);
-
-	if (npc != NULL)
-		_ss->srr0 = (ptrint) npc;
-}
-#endif
 
 
 /*

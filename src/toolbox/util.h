@@ -1,9 +1,7 @@
 /* src/toolbox/util.h - contains some utility functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,17 +20,15 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
 */
 
 
 #ifndef _UTIL_H
 #define _UTIL_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "config.h"
 
@@ -45,6 +41,10 @@
 
 char *_Jv_getcwd(void);
 int   get_variable_message_length(const char *fmt, va_list ap);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _UTIL_H */
 

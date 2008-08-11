@@ -33,12 +33,12 @@
 #include "arch.h"
 #include "codegen.h"
 
+#include "vm/options.h"
+#include "vm/statistics.h"
+
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.h"
 #include "vm/jit/patcher-common.h"
-
-#include "vmcore/options.h"
-#include "vmcore/statistics.h"
 
 
 /* emit_load_s1 ****************************************************************

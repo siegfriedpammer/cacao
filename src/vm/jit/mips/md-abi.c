@@ -34,13 +34,12 @@
 
 #include "mm/memory.h"
 
+#include "vm/descriptor.h"
 #include "vm/global.h"
+#include "vm/method.h"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/stack.h"
-
-#include "vmcore/descriptor.h"
-#include "vmcore/method.h"
 
 
 /* register descripton array **************************************************/

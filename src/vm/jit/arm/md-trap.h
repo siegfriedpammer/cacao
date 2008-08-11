@@ -50,7 +50,8 @@ enum {
 	TRAP_ClassCastException             = 5,
 	TRAP_CHECK_EXCEPTION                = 6,
 	TRAP_PATCHER                        = 7,
-	TRAP_COMPILER                       = 8
+	TRAP_COMPILER                       = 8,
+	TRAP_COUNTDOWN                      = 9
 };
 
 #endif /* _MD_TRAP_H */

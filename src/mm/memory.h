@@ -51,7 +51,7 @@ extern "C" {
 
 /* internal includes **********************************************************/
 
-#include "mm/gc-common.h"
+#include "mm/gc.hpp"
 
 
 /* 

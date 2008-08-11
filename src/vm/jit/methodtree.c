@@ -29,12 +29,11 @@
 
 #include "mm/memory.h"
 
-#include "threads/thread.h"
-
 #include "toolbox/avl.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/methodtree.h"
+#include "vm/jit/stacktrace.hpp"
 
 
 /* methodtree_element *********************************************************/

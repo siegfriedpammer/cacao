@@ -1,9 +1,7 @@
 /* src/vm/jit/x86_64/asmpart.S - Java-C interface functions for x86_64
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -57,9 +55,6 @@
 	.globl asm_builtin_f2l
 	.globl asm_builtin_d2i
 	.globl asm_builtin_d2l
-
-	.globl asm_compare_and_swap
-	.globl asm_memory_barrier
 
 	.globl asm_get_cycle_count
 
@@ -391,30 +386,6 @@ asm_builtin_d2l:
 	RESTORE_ARGUMENT_REGISTERS(0)
 	
 	add     $(ARG_CNT*8),sp
-	ret
-
-
-/* asm_compare_and_swap ********************************************************
-
-   Does an atomic compare and swap.  Required for the lock
-   implementation.
-
-*******************************************************************************/
-
-asm_compare_and_swap:
-	mov     a1,v0                       /* v0 is %rax                         */
-	lock cmpxchg a2,(a0)
-	ret
-
-
-/* asm_memory_barrier **********************************************************
-
-   A memory barrier for the Java Memory Model.
-
-*******************************************************************************/
-
-asm_memory_barrier:
-	mfence
 	ret
 
 

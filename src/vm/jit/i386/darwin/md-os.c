@@ -35,16 +35,15 @@
 #include "vm/jit/i386/codegen.h"
 #include "vm/jit/i386/md.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "vm/builtin.h"
 #include "vm/global.h"
 #include "vm/signallocal.h"
-#include "vm/stringlocal.h"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.h"
 
 #include "vm/jit/i386/codegen.h"
@@ -351,34 +350,6 @@ void md_executionstate_write(executionstate_t *es, void *context)
 	_ss->__eip = (ptrint) es->pc;
 	_ss->__esp = (ptrint) es->sp;
 }
-
-
-/* md_critical_section_restart *************************************************
-
-   Search the critical sections tree for a matching section and set
-   the PC to the restart point, if necessary.
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS)
-void thread_restartcriticalsection(ucontext_t *_uc)
-{
-	mcontext_t           _mc;
-	i386_thread_state_t *_ss;
-	u1                  *pc;
-	void                *rpc;
-
-	_mc = _uc->uc_mcontext;
-	_ss = &_mc->__ss;
-
-	pc = (u1 *) _ss->__eip;
-
-	rpc = critical_find_restart_point(pc);
-
-	if (rpc != NULL)
-		_ss->__eip = (ptrint) rpc;
-}
-#endif
 
 
 /*

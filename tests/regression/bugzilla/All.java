@@ -33,7 +33,8 @@ PR52.class,
 PR57.class,
 PR58.class,
 PR65.class,
-PR80.class
+PR80.class,
+PR89.class
 })
 
 public class All {

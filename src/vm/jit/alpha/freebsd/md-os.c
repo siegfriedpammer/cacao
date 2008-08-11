@@ -1,9 +1,7 @@
-/* src/vm/jit/alpha/freebsd/md.c - machine dependent Alpha FreeBSD functions
+/* src/vm/jit/alpha/freebsd/md-os.c - machine dependent Alpha FreeBSD functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,12 +20,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
 */
 
 
@@ -42,10 +34,8 @@
 
 #include "vm/jit/alpha/md-abi.h"
 
-#include "vm/exceptions.h"
 #include "vm/global.h"
 #include "vm/signallocal.h"
-#include "vm/stringlocal.h"
 #include "vm/jit/asmpart.h"
 
 
@@ -93,22 +83,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 								   addr, _mc->mc_regs[R_PC]);
 	}
 }
-
-
-#if defined(ENABLE_THREADS)
-void thread_restartcriticalsection(ucontext_t *_uc)
-{
-	mcontext_t *_mc;
-	void       *critical;
-
-	_mc = &_uc->uc_mcontext;
-
-	critical = critical_find_restart_point((void *) _mc->mc_regs[R_PC]);
-
-	if (critical)
-		_mc->mc_regs[R_PC] = (ptrint) critical;
-}
-#endif
 
 
 /*

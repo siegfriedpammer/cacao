@@ -37,12 +37,10 @@
 #include "vm/jit/sparc64/codegen.h"
 #include "vm/jit/sparc64/md-abi.h"
 
-#include "vm/exceptions.h"
 #include "vm/signallocal.h"
-#include "vm/stringlocal.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/stacktrace.h"
+#include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.h"
 
 
@@ -149,22 +147,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	_mc->gregs[REG_PC]  = (uintptr_t) asm_handle_exception;
 	_mc->gregs[REG_nPC] = (uintptr_t) asm_handle_exception + 4;	
 }
-
-
-#if defined(USE_THREADS) && defined(NATIVE_THREADS)
-void thread_restartcriticalsection(ucontext_t *_uc)
-{
-	mcontext_t *_mc;
-	void       *critical;
-
-	_mc = &_uc->uc_mcontext;
-
-	critical = thread_checkcritical((void *) _mc->sc_pc);
-
-	if (critical)
-		_mc->sc_pc = (ptrint) critical;
-}
-#endif
 
 
 /* md_icacheflush **************************************************************

@@ -1,9 +1,7 @@
 /* src/vm/jit/verify/typecheck-typeinferer.c - type inference pass
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -37,22 +35,22 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/array.h"
 #include "vm/access.h"
+#include "vm/array.h"
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
-#include "vm/primitive.h"
+#include "vm/exceptions.hpp"
+#include "vm/globals.hpp"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/primitive.hpp"
 #include "vm/resolve.h"
-#include "vm/vm.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/jit.h"
 #include "vm/jit/show.h"
 #include "vm/jit/parse.h"
 
 #include "vm/jit/verify/typecheck-typeinferer.h"
-
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
 
 #define TYPECHECK_NO_STATISTICS
 #include <typecheck-common.h>

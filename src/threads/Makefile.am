@@ -49,14 +49,16 @@ noinst_LTLIBRARIES = \
 
 if ENABLE_THREADS
 libthreads_la_SOURCES = \
-	critical.c \
-	critical.h \
+	atomic.cpp \
+	atomic.hpp \
+	condition.hpp \
 	lock-common.h \
-	mutex.h \
+	removeme.cpp \
+	mutex.hpp \
 	threadlist.c \
 	threadlist.h \
-	thread.c \
-	thread.h
+	thread.cpp \
+	thread.hpp
 else
 libthreads_la_SOURCES =
 endif

@@ -40,8 +40,15 @@
 
 #include "threads/lock-common.h"
 
+#include "vm/class.h"
 #include "vm/global.h"
+#include "vm/globals.hpp"
 #include "vm/initialize.h"
+#include "vm/loader.h"
+#include "vm/method.h"
+#include "vm/options.h"
+#include "vm/rt-timing.h"
+#include "vm/statistics.h"
 
 #include "vm/jit/asmpart.h"
 
@@ -59,6 +66,10 @@
 
 #if defined(ENABLE_JITCACHE)
 # include "vm/jit/jitcache.h"
+#endif
+
+#if defined(ENABLE_OPAGENT)
+#include "vm/jit/oprofile-agent.hpp"
 #endif
 
 #include "vm/jit/allocator/simplereg.h"
@@ -92,13 +103,6 @@
 #endif
 
 #include "vm/jit/verify/typecheck.h"
-
-#include "vmcore/class.h"
-#include "vmcore/loader.h"
-#include "vmcore/method.h"
-#include "vmcore/options.h"
-#include "vmcore/rt-timing.h"
-#include "vmcore/statistics.h"
 
 
 /* debug macros ***************************************************************/
@@ -213,6 +217,11 @@ void jit_init(void)
 #else
 	intrp_md_init();
 #endif
+
+#if defined(ENABLE_OPAGENT)
+	if (opt_EnableOpagent)
+		OprofileAgent_initialize();
+#endif
 }
 
 
@@ -224,7 +233,10 @@ void jit_init(void)
 
 void jit_close(void)
 {
-	/* do nothing */
+#if defined(ENABLE_OPAGENT)
+	if (opt_EnableOpagent)
+		OprofileAgent_close();
+#endif
 }
 
 
@@ -405,8 +417,9 @@ u1 *jit_compile(methodinfo *m)
 		jd->flags |= JITDATA_FLAG_VERBOSECALL;
 
 #if defined(ENABLE_REPLACEMENT) && defined(ENABLE_INLINING)
-	if (opt_Inline)
+	if (opt_Inline && (jd->m->hitcountdown > 0) && (jd->code->optlevel == 0)) {
 		jd->flags |= JITDATA_FLAG_COUNTDOWN;
+	}
 #endif
 
 #if defined(ENABLE_JIT)
@@ -459,6 +472,11 @@ u1 *jit_compile(methodinfo *m)
 
 	if (opt_getcompilingtime)
 		compilingtime_stop();
+#endif
+
+#if defined(ENABLE_OPAGENT)
+	if (opt_EnableOpagent)
+		OprofileAgent_newmethod(m);
 #endif
 
 	/* leave the monitor */
@@ -571,6 +589,11 @@ u1 *jit_recompile(methodinfo *m)
 
 	if (opt_getcompilingtime)
 		compilingtime_stop();
+#endif
+
+#if defined(ENABLE_OPAGENT)
+	if (opt_EnableOpagent)
+		OprofileAgent_newmethod(m);
 #endif
 
 	DEBUG_JIT_COMPILEVERBOSE("Recompiling done: ");
@@ -719,18 +742,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 #endif
 		RT_TIMING_GET_TIME(time_typecheck);
 
-#if defined(ENABLE_SSA)
-		if (opt_lsra) {
-			fix_exception_handlers(jd);
-		}
-#endif
-
-		/* Build the CFG.  This has to be done after stack_analyse, as
-		   there happens the JSR elimination. */
-
-		if (!cfg_build(jd))
-			return NULL;
-
 #if defined(ENABLE_LOOP)
 		if (opt_loops) {
 			depthFirst(jd);
@@ -752,12 +763,24 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 		/* inlining */
 
-#if defined(ENABLE_INLINING)
+#if defined(ENABLE_INLINING) && (!defined(ENABLE_ESCAPE) || 1)
 		if (JITDATA_HAS_FLAG_INLINE(jd)) {
 			if (!inline_inline(jd))
 				return NULL;
 		}
 #endif
+
+#if defined(ENABLE_SSA)
+		if (opt_lsra) {
+			fix_exception_handlers(jd);
+		}
+#endif
+
+		/* Build the CFG.  This has to be done after stack_analyse, as
+		   there happens the JSR elimination. */
+
+		if (!cfg_build(jd))
+			return NULL;
 
 #if defined(ENABLE_PROFILING)
 		/* Basic block reordering.  I think this should be done after
@@ -789,16 +812,17 @@ static u1 *jit_compile_intern(jitdata *jd)
 #if defined(ENABLE_SSA)
 		/* allocate registers */
 		if (
-			(opt_lsra) 
-			/*&& strncmp(jd->m->name->text, "banana", 6) == 0*/
+			(opt_lsra &&
+			jd->code->optlevel > 0) 
+			/* strncmp(jd->m->name->text, "hottie", 6) == 0*/
 			/*&& jd->exceptiontablelength == 0*/
 		) {
-			/* printf("=== %s ===\n", jd->m->name->text); */
+			/*printf("=== %s ===\n", jd->m->name->text);*/
 			jd->ls = DNEW(lsradata);
 			jd->ls = NULL;
 			ssa(jd);
 			/*lsra(jd);*/ regalloc(jd);
-			eliminate_subbasicblocks(jd);
+			/*eliminate_subbasicblocks(jd);*/
 			STATISTICS(count_methods_allocated_by_lsra++);
 
 		} else

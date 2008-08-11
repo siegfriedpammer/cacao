@@ -29,9 +29,13 @@
 
 #include <assert.h>
 
-#include <vm/exceptions.h>
-#include <vm/jit/show.h>
-#include <typecheck-common.h>
+#include "vm/exceptions.hpp"
+#include "vm/globals.hpp"
+
+#include "vm/jit/show.h"
+
+#include "typecheck-common.h"
+
 
 /****************************************************************************/
 /* DEBUG HELPERS                                                            */

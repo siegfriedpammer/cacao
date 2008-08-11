@@ -39,16 +39,21 @@
 
 #include "arch.h"
 
-#include "threads/thread.h"
+#if defined(ENABLE_GC_BOEHM)
+# include "mm/memory.h"
+#endif
 
-#include "vm/exceptions.h"
+#include "threads/thread.hpp"
+
+#include "vm/exceptions.hpp"
+#include "vm/globals.hpp"
+#include "vm/method.h"
+#include "vm/options.h"
 #include "vm/signallocal.h"
-#include "vm/vm.h"
-
-#include "vmcore/options.h"
+#include "vm/vm.hpp"
 
 #if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
+# include "vm/statistics.h"
 #endif
 
 
@@ -185,7 +190,7 @@ bool signal_init(void)
 #if defined(ENABLE_THREADS)
 	/* SIGHUP handler for threads_thread_interrupt */
 
-	signal_register_signal(SIGHUP, (functionptr) signal_handler_sighup, 0);
+	signal_register_signal(Signal_INTERRUPT_SYSTEM_CALL, (functionptr) signal_handler_sighup, 0);
 #endif
 
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
@@ -246,6 +251,7 @@ static void signal_thread(void)
 	threadobject *t;
 	sigset_t      mask;
 	int           sig;
+	int result;
 
 	t = THREADOBJECT;
 
@@ -271,14 +277,14 @@ static void signal_thread(void)
 		thread_set_state_waiting(t);
 #endif
 
-		/* XXX We don't check for an error here, although the man-page
-		   states sigwait does not return an error (which is wrong!),
-		   but it seems to make problems with Boehm-GC.  We should
-		   revisit this code with our new exact-GC. */
+		// sigwait can return EINTR (unlike what the Linux man-page
+		// says).
+		do {
+			result = sigwait(&mask, &sig);
+		} while (result == EINTR);
 
-/* 		if (sigwait(&mask, &sig) != 0) */
-/* 			vm_abort_errno("signal_thread: sigwait failed"); */
-		(void) sigwait(&mask, &sig);
+		if (result != 0)
+			vm_abort_errnum(result, "signal_thread: sigwait failed");
 
 #if defined(ENABLE_THREADS)
 		thread_set_state_runnable(t);
@@ -318,6 +324,24 @@ void signal_thread_handler(int sig)
 			statistics_print_memory_usage();
 #endif
 		break;
+
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	default: {
+		// For OpenJDK we dispatch all unknown signals to Java.
+		methodinfo* m = class_resolvemethod(class_sun_misc_Signal, utf_dispatch, utf_int__void);
+		(void) vm_call_method(m, NULL, sig);
+
+		if (exceptions_get_exception()) {
+			log_println("signal_thread_handler: Java signal handler throw an exception while dispatching signal %d:", sig);
+			exceptions_print_stacktrace();
+			vm_abort("signal_thread_handler: Aborting...");
+		}
+		break;
+	}
+#else
+	default:
+		vm_abort("signal_thread_handler: Unknown signal %d", sig);
+#endif
 	}
 }
 

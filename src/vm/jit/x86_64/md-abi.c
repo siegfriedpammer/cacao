@@ -28,13 +28,12 @@
 
 #include "vm/jit/x86_64/md-abi.h"
 
+#include "vm/descriptor.h"
 #include "vm/global.h"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/jit.h" /* for REG_* (maybe can be removed) */
 #include "vm/jit/stack.h"
-
-#include "vmcore/descriptor.h"
 
 
 /* register descripton array **************************************************/

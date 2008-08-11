@@ -31,15 +31,11 @@
 
 #include "vm/jit/powerpc64/linux/md-abi.h"
 
+#include "vm/descriptor.h"
 #include "vm/global.h"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/stack.h"
-
-#include "vmcore/descriptor.h"
-
-
-#define CACAO_ALIGN(a)    do { if ((a) & 1) (a)++; } while (0)
 
 
 /* register descripton array **************************************************/

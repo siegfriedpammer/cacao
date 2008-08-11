@@ -38,11 +38,18 @@
 
 #include "mm/memory.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 
-#include "vm/stringlocal.h"
+#include "vm/classcache.h"
+#include "vm/globals.hpp"
+#include "vm/options.h"
+#include "vm/string.hpp"
+
+#if defined(ENABLE_RT_TIMING)
+# include "vm/rt-timing.h"
+#endif
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
@@ -53,9 +60,6 @@
 #include "vm/jit/replace.h"
 #include "vm/jit/show.h"
 #include "vm/jit/stack.h"
-
-#include "vmcore/options.h"
-#include "vmcore/classcache.h"
 
 
 #define REPLACE_PATCH_DYNAMIC_CALL
@@ -72,7 +76,6 @@
 #undef REPLACE_RA_TOP_OF_FRAME
 #undef REPLACE_RA_LINKAGE_AREA
 #undef REPLACE_LEAFMETHODS_RA_REGISTER
-#undef REPLACE_REG_RA
 
 /* i386, x86_64 and m68k */
 #if defined(__I386__) || defined(__X86_64__) || defined(__M68K__)
@@ -81,16 +84,13 @@
 #elif defined(__ALPHA__)
 #define REPLACE_RA_TOP_OF_FRAME
 #define REPLACE_LEAFMETHODS_RA_REGISTER
-#define REPLACE_REG_RA REG_RA
 /* powerpc */
 #elif defined(__POWERPC__)
 #define REPLACE_RA_LINKAGE_AREA
 #define REPLACE_LEAFMETHODS_RA_REGISTER
-#define REPLACE_REG_RA REG_ITMP3 /* the execution state has the LR in itmp3 */
 /* s390 */
 #elif defined(__S390__)
 #define REPLACE_RA_TOP_OF_FRAME
-#define REPLACE_REG_RA REG_ITMP3
 #endif
 
 
@@ -1232,6 +1232,12 @@ static void replace_read_executionstate(rplpoint *rp,
 		replace_read_value(es, &instra, &(frame->instance));
 #endif
 	}
+#if defined(__I386__)
+	else if (!(rp->method->flags & ACC_STATIC)) {
+		/* On i386 we always pass the first argument on stack. */
+		frame->instance.a = *(java_object_t **)(basesp + 1);
+	} 
+#endif
 #endif /* defined(REPLACE_PATCH_DYNAMIC_CALL) */
 
 	/* read stack slots */
@@ -1463,6 +1469,12 @@ static void replace_write_executionstate(rplpoint *rp,
 
 		if (!topframe && ra->index == RPLALLOC_PARAM) {
 			/* skip it */
+			/*
+			ra->index = RPLALLOC_PARAM;
+			replace_val_t v;
+			v.l = 0;
+			replace_write_value(es,ra,&v);
+			*/
 		}
 		else {
 			assert(i < frame->javastackdepth);
@@ -1483,66 +1495,57 @@ static void replace_write_executionstate(rplpoint *rp,
 }
 
 
-/* replace_pop_activation_record ***********************************************
+/* md_pop_stackframe ***********************************************************
 
-   Peel a stack frame from the execution state.
-   
+   Restore callee-saved registers (including the RA register),
+   set the stack pointer to the next stackframe,
+   set the PC to the return address of the popped frame.
+
    *** This function imitates the effects of the method epilog ***
    *** and returning from the method call.                     ***
 
    IN:
-	   es...............execution state
-	   frame............source frame, receives synchronization slots
+       es...............execution state
 
    OUT:
        *es..............the execution state after popping the stack frame
-  
+                        NOTE: es->code and es->pv are NOT updated.
+
 *******************************************************************************/
 
-u1* replace_pop_activation_record(executionstate_t *es,
-								  sourceframe_t *frame)
+void md_pop_stackframe(executionstate_t *es)
 {
 	u1 *ra;
-	u1 *pv;
+	s4 ra_align_off;
 	s4 reg;
 	s4 i;
-	s4 count;
-	codeinfo *code;
 	stackslot_t *basesp;
 	stackslot_t *sp;
 
 	assert(es->code);
-	assert(frame);
+
+	/* alignment offset of RA */
+
+	ra_align_off = 0;
+#if defined(REPLACE_RA_BETWEEN_FRAMES)
+    if (es->code->stackframesize)
+		ra_align_off = SIZE_OF_STACKSLOT - SIZEOF_VOID_P;
+#endif
 
 	/* read the return address */
 
 #if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
 	if (code_is_leafmethod(es->code))
-		ra = (u1*) (ptrint) es->intregs[REPLACE_REG_RA];
+		ra = es->ra;
 	else
 #endif
 		ra = md_stacktrace_get_returnaddress(es->sp,
-				SIZE_OF_STACKSLOT * es->code->stackframesize);
-
-	DOLOG( printf("RA = %p\n", (void*)ra); );
-
-	assert(ra);
+			   SIZE_OF_STACKSLOT * es->code->stackframesize + ra_align_off);
 
 	/* calculate the base of the stack frame */
 
 	sp = (stackslot_t *) es->sp;
 	basesp = sp + es->code->stackframesize;
-
-	/* read slots used for synchronization */
-
-	assert(frame->syncslotcount == 0);
-	assert(frame->syncslots == NULL);
-	count = code_get_sync_slot_count(es->code);
-	frame->syncslotcount = count;
-	frame->syncslots = DMNEW(replace_val_t, count);
-	for (i=0; i<count; ++i) {
-		frame->syncslots[i].p = sp[es->code->memuse + i]; /* XXX */
-	}
 
 	/* restore return address, if part of frame */
 
@@ -1550,14 +1553,14 @@ u1* replace_pop_activation_record(executionstate_t *es,
 #if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
 	if (!code_is_leafmethod(es->code))
 #endif
-		es->intregs[REPLACE_REG_RA] = *--basesp;
+		es->ra = (u1*) (ptrint) *--basesp;
 #endif /* REPLACE_RA_TOP_OF_FRAME */
 
 #if defined(REPLACE_RA_LINKAGE_AREA)
 #if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
 	if (!code_is_leafmethod(es->code))
 #endif
-		es->intregs[REPLACE_REG_RA] = basesp[LA_LR_OFFSET / sizeof(stackslot_t)];
+		es->ra = (u1*) (ptrint) basesp[LA_LR_OFFSET / sizeof(stackslot_t)];
 #endif /* REPLACE_RA_LINKAGE_AREA */
 
 	/* restore saved int registers */
@@ -1596,13 +1599,221 @@ u1* replace_pop_activation_record(executionstate_t *es,
 	es->sp += SIZE_OF_STACKSLOT * es->code->stackframesize;
 
 #if defined(REPLACE_RA_BETWEEN_FRAMES)
-	es->sp += SIZE_OF_STACKSLOT; /* skip return address */
+	es->sp += ra_align_off + SIZEOF_VOID_P; /* skip return address */
 #endif
 
-	/* Set the new pc. Subtract one so we do not hit the replacement point */
-	/* of the instruction following the call, if there is one.             */
+	/* set the program counter to the return address */
 
-	es->pc = ra - 1;
+	es->pc = ra;
+
+	/* in debugging mode clobber non-saved registers */
+
+#if !defined(NDEBUG)
+	/* for debugging */
+	for (i=0; i<INT_REG_CNT; ++i)
+		if (nregdescint[i] != REG_SAV)
+			es->intregs[i] = (ptrint) 0x33dead3333dead33ULL;
+	for (i=0; i<FLT_REG_CNT; ++i)
+		if (nregdescfloat[i] != REG_SAV)
+			*(u8*)&(es->fltregs[i]) = 0x33dead3333dead33ULL;
+# if defined(HAS_ADDRESS_REGISTER_FILE)
+	for (i=0; i<ADR_REG_CNT; ++i)
+		if (nregdescadr[i] != REG_SAV)
+			es->adrregs[i] = (ptrint) 0x33dead3333dead33ULL;
+# endif
+#endif /* !defined(NDEBUG) */
+}
+
+
+/* md_push_stackframe **********************************************************
+
+   Save the given return address, build the new stackframe,
+   and store callee-saved registers.
+
+   *** This function imitates the effects of a call and the ***
+   *** method prolog of the callee.                         ***
+
+   IN:
+       es...............execution state
+       calleecode.......the code we are "calling"
+       ra...............the return address to save
+
+   OUT:
+       *es..............the execution state after pushing the stack frame
+                        NOTE: es->pc, es->code, and es->pv are NOT updated.
+
+*******************************************************************************/
+
+void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
+{
+	s4           reg;
+	s4           i;
+	stackslot_t *basesp;
+	stackslot_t *sp;
+
+	assert(es);
+	assert(calleecode);
+
+	/* write the return address */
+
+#if defined(REPLACE_RA_BETWEEN_FRAMES)
+	es->sp -= SIZEOF_VOID_P;
+	*((void **)es->sp) = (void *) ra;
+	if (calleecode->stackframesize)
+		es->sp -= (SIZE_OF_STACKSLOT - SIZEOF_VOID_P);
+#endif /* REPLACE_RA_BETWEEN_FRAMES */
+
+	es->ra = (u1*) (ptrint) ra;
+
+	/* build the stackframe */
+
+	DOLOG( printf("building stackframe of %d words at %p\n",
+				  calleecode->stackframesize, (void*)es->sp); );
+
+	sp = (stackslot_t *) es->sp;
+	basesp = sp;
+
+	sp -= calleecode->stackframesize;
+	es->sp = (u1*) sp;
+
+	/* in debug mode, invalidate stack frame first */
+
+	/* XXX may not invalidate linkage area used by native code! */
+
+#if !defined(NDEBUG) && 0
+	for (i=0; i< (basesp - sp) && i < 1; ++i) {
+		sp[i] = 0xdeaddeadU;
+	}
+#endif
+
+#if defined(__I386__)
+	/* Stackslot 0 may contain the object instance for vftbl patching.
+	   Destroy it, so there's no undefined value used. */
+	if ((basesp - sp) > 0) {
+		sp[0] = 0;
+	}
+#endif
+
+	/* save the return address register */
+
+#if defined(REPLACE_RA_TOP_OF_FRAME)
+#if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
+	if (!code_is_leafmethod(calleecode))
+#endif
+		*--basesp = (ptrint) ra;
+#endif /* REPLACE_RA_TOP_OF_FRAME */
+
+#if defined(REPLACE_RA_LINKAGE_AREA)
+#if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
+	if (!code_is_leafmethod(calleecode))
+#endif
+		basesp[LA_LR_OFFSET / sizeof(stackslot_t)] = (ptrint) ra;
+#endif /* REPLACE_RA_LINKAGE_AREA */
+
+	/* save int registers */
+
+	reg = INT_REG_CNT;
+	for (i=0; i<calleecode->savedintcount; ++i) {
+		while (nregdescint[--reg] != REG_SAV)
+			;
+		*--basesp = es->intregs[reg];
+
+		/* XXX may not clobber saved regs used by native code! */
+#if !defined(NDEBUG) && 0
+		es->intregs[reg] = (ptrint) 0x44dead4444dead44ULL;
+#endif
+	}
+
+	/* save flt registers */
+
+	/* XXX align? */
+	reg = FLT_REG_CNT;
+	for (i=0; i<calleecode->savedfltcount; ++i) {
+		while (nregdescfloat[--reg] != REG_SAV)
+			;
+		basesp -= STACK_SLOTS_PER_FLOAT;
+		*(double*)basesp = es->fltregs[reg];
+
+		/* XXX may not clobber saved regs used by native code! */
+#if !defined(NDEBUG) && 0
+		*(u8*)&(es->fltregs[reg]) = 0x44dead4444dead44ULL;
+#endif
+	}
+
+#if defined(HAS_ADDRESS_REGISTER_FILE)
+	/* save adr registers */
+
+	reg = ADR_REG_CNT;
+	for (i=0; i<calleecode->savedadrcount; ++i) {
+		while (nregdescadr[--reg] != REG_SAV)
+			;
+		*--basesp = es->adrregs[reg];
+
+		/* XXX may not clobber saved regs used by native code! */
+#if !defined(NDEBUG) && 0
+		es->adrregs[reg] = (ptrint) 0x44dead4444dead44ULL;
+#endif
+	}
+#endif
+}
+
+
+/* replace_pop_activation_record ***********************************************
+
+   Peel a stack frame from the execution state.
+
+   *** This function imitates the effects of the method epilog ***
+   *** and returning from the method call.                     ***
+
+   IN:
+       es...............execution state
+       frame............source frame, receives synchronization slots
+
+   OUT:
+       *es..............the execution state after popping the stack frame
+
+   RETURN VALUE:
+       the return address of the poped activation record
+
+*******************************************************************************/
+
+u1* replace_pop_activation_record(executionstate_t *es,
+								  sourceframe_t *frame)
+{
+	u1 *ra;
+	u1 *pv;
+	s4 i;
+	s4 count;
+	codeinfo *code;
+	stackslot_t *sp;
+
+	assert(es->code);
+	assert(frame);
+
+	/* calculate the base of the stack frame */
+
+	sp = (stackslot_t *) es->sp;
+	assert(frame->syncslotcount == 0);
+	assert(frame->syncslots == NULL);
+	count = code_get_sync_slot_count(es->code);
+	frame->syncslotcount = count;
+	frame->syncslots = DMNEW(replace_val_t, count);
+	for (i=0; i<count; ++i) {
+		frame->syncslots[i].p = sp[es->code->memuse + i]; /* XXX md_ function */
+	}
+
+	/* pop the stackframe */
+
+	md_pop_stackframe(es);
+
+	ra = es->pc;
+
+	DOLOG( printf("RA = %p\n", (void*)ra); );
+
+	/* Subtract one from the PC so we do not hit the replacement point */
+	/* of the instruction following the call, if there is one.         */
+
+	es->pc--;
 
 	/* find the new codeinfo */
 
@@ -1616,27 +1827,6 @@ u1* replace_pop_activation_record(executionstate_t *es,
 
 	es->pv = pv;
 	es->code = code;
-
-	/* in debugging mode clobber non-saved registers */
-
-#if !defined(NDEBUG)
-	/* for debugging */
-	for (i=0; i<INT_REG_CNT; ++i)
-		if ((nregdescint[i] != REG_SAV)
-#if defined(REG_RA)
-				&& (i != REPLACE_REG_RA)
-#endif
-			)
-			es->intregs[i] = (ptrint) 0x33dead3333dead33ULL;
-	for (i=0; i<FLT_REG_CNT; ++i)
-		if (nregdescfloat[i] != REG_SAV)
-			*(u8*)&(es->fltregs[i]) = 0x33dead3333dead33ULL;
-# if defined(HAS_ADDRESS_REGISTER_FILE)
-	for (i=0; i<ADR_REG_CNT; ++i)
-		if (nregdescadr[i] != REG_SAV)
-			es->adrregs[i] = (ptrint) 0x33dead3333dead33ULL;
-# endif
-#endif /* !defined(NDEBUG) */
 
 	return (code) ? ra : NULL;
 }
@@ -1830,8 +2020,11 @@ void replace_patch_future_calls(u1 *ra,
 
 		/* we can only patch such calls if we are at the entry point */
 
+#if !defined(__I386__)
+		/* On i386 we always know the instance argument. */
 		if (!atentry)
 			return;
+#endif
 
 		assert((calleem->flags & ACC_STATIC) == 0);
 
@@ -1859,6 +2052,11 @@ void replace_patch_future_calls(u1 *ra,
 	else {
 		/* the call was statically bound */
 
+#if defined(__I386__)
+		/* It happens that there is a patcher trap. (pm) */
+		if (*(u2 *)(patchpos - 1) == 0x0b0f) {
+		} else
+#endif
 		replace_patch_method_pointer((methodptr *) patchpos, entrypoint, "static   ");
 	}
 }
@@ -1888,10 +2086,8 @@ void replace_push_activation_record(executionstate_t *es,
 									sourceframe_t *callerframe,
 									sourceframe_t *calleeframe)
 {
-	s4           reg;
 	s4           i;
 	s4           count;
-	stackslot_t *basesp;
 	stackslot_t *sp;
 	u1          *ra;
 	codeinfo    *calleecode;
@@ -1915,119 +2111,24 @@ void replace_push_activation_record(executionstate_t *es,
 	else
 		ra = es->pc + 1 /* XXX this is ugly */;
 
-	/* write the return address */
+	/* push the stackframe */
 
-#if defined(REPLACE_RA_BETWEEN_FRAMES)
-	es->sp -= SIZE_OF_STACKSLOT;
+	md_push_stackframe(es, calleecode, ra);
 
-	*((stackslot_t *)es->sp) = (stackslot_t) ra;
-#endif /* REPLACE_RA_BETWEEN_FRAMES */
-
-#if defined(REPLACE_REG_RA)
-	es->intregs[REPLACE_REG_RA] = (ptrint) ra;
-#endif
-
-	/* we move into a new code unit */
+	/* we move into a new code unit, set code, PC, PV */
 
 	es->code = calleecode;
-
-	/* set the new pc XXX not needed? */
-
-	es->pc = calleecode->entrypoint;
-
-	/* build the stackframe */
-
-	DOLOG( printf("building stackframe of %d words at %p\n",
-				  calleecode->stackframesize, (void*)es->sp); );
-
-	sp = (stackslot_t *) es->sp;
-	basesp = sp;
-
-	sp -= calleecode->stackframesize;
-	es->sp = (u1*) sp;
-
-	/* in debug mode, invalidate stack frame first */
-
-	/* XXX may not invalidate linkage area used by native code! */
-#if !defined(NDEBUG) && 0
-	for (i=0; i<(basesp - sp); ++i) {
-		sp[i] = 0xdeaddeadU;
-	}
-#endif
-
-	/* save the return address register */
-
-#if defined(REPLACE_RA_TOP_OF_FRAME)
-#if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
-	if (!code_is_leafmethod(calleecode))
-#endif
-		*--basesp = (ptrint) ra;
-#endif /* REPLACE_RA_TOP_OF_FRAME */
-
-#if defined(REPLACE_RA_LINKAGE_AREA)
-#if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
-	if (!code_is_leafmethod(calleecode))
-#endif
-		basesp[LA_LR_OFFSET / sizeof(stackslot_t)] = (ptrint) ra;
-#endif /* REPLACE_RA_LINKAGE_AREA */
-
-	/* save int registers */
-
-	reg = INT_REG_CNT;
-	for (i=0; i<calleecode->savedintcount; ++i) {
-		while (nregdescint[--reg] != REG_SAV)
-			;
-		*--basesp = es->intregs[reg];
-
-		/* XXX may not clobber saved regs used by native code! */
-#if !defined(NDEBUG) && 0
-		es->intregs[reg] = (ptrint) 0x44dead4444dead44ULL;
-#endif
-	}
-
-	/* save flt registers */
-
-	/* XXX align? */
-	reg = FLT_REG_CNT;
-	for (i=0; i<calleecode->savedfltcount; ++i) {
-		while (nregdescfloat[--reg] != REG_SAV)
-			;
-		basesp -= STACK_SLOTS_PER_FLOAT;
-		*(double*)basesp = es->fltregs[reg];
-
-		/* XXX may not clobber saved regs used by native code! */
-#if !defined(NDEBUG) && 0
-		*(u8*)&(es->fltregs[reg]) = 0x44dead4444dead44ULL;
-#endif
-	}
-
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	/* save adr registers */
-
-	reg = ADR_REG_CNT;
-	for (i=0; i<calleecode->savedadrcount; ++i) {
-		while (nregdescadr[--reg] != REG_SAV)
-			;
-		*--basesp = es->adrregs[reg];
-
-		/* XXX may not clobber saved regs used by native code! */
-#if !defined(NDEBUG) && 0
-		es->adrregs[reg] = (ptrint) 0x44dead4444dead44ULL;
-#endif
-	}
-#endif
+	es->pc = calleecode->entrypoint; /* XXX not needed? */
+	es->pv = calleecode->entrypoint;
 
 	/* write slots used for synchronization */
 
+	sp = (stackslot_t *) es->sp;
 	count = code_get_sync_slot_count(calleecode);
 	assert(count == calleeframe->syncslotcount);
 	for (i=0; i<count; ++i) {
 		sp[calleecode->memuse + i] = calleeframe->syncslots[i].p;
 	}
-
-	/* set the PV */
-
-	es->pv = calleecode->entrypoint;
 
 	/* redirect future invocations */
 
@@ -2144,7 +2245,7 @@ no_match:
 
 *******************************************************************************/
 
-rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc)
+rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc, unsigned desired_flags)
 {
 	rplpoint *found;
 	rplpoint *rp;
@@ -2158,13 +2259,19 @@ rplpoint *replace_find_replacement_point_for_pc(codeinfo *code, u1 *pc)
 	rp = code->rplpoints;
 	for (i=0; i<code->rplpointcount; ++i, ++rp) {
 		DOLOG( replace_replacement_point_println(rp, 2); );
-		if (rp->pc <= pc && rp->pc + rp->callsize >= pc)
-			found = rp;
+		if (rp->pc <= pc && rp->pc + rp->callsize >= pc) {
+			if (desired_flags) {
+				if (rp->flags & desired_flags) {
+					found = rp;
+				}
+			} else {
+				found = rp;
+			}
+		}
 	}
 
 	return found;
 }
-
 
 /* replace_pop_native_frame ****************************************************
 
@@ -2199,7 +2306,7 @@ static void replace_pop_native_frame(executionstate_t *es,
 	/* remember pc and size of native frame */
 
 	frame->nativepc = es->pc;
-	frame->nativeframesize = (es->sp != 0) ? (sfi->sp - es->sp) : 0;
+	frame->nativeframesize = (es->sp != 0) ? (((uintptr_t) sfi->sp) - ((uintptr_t) es->sp)) : 0;
 	assert(frame->nativeframesize >= 0);
 
 	/* remember values of saved registers */
@@ -2271,12 +2378,12 @@ static void replace_pop_native_frame(executionstate_t *es,
 
 	/* XXX michi: use this instead:
 	es->sp = sfi->sp + code->stackframesize; */
-	es->sp   = sfi->sp + (*(s4 *) (sfi->pv + FrameSize));
+	es->sp   = (void*) (((uintptr_t) sfi->sp) + (*(s4 *) (((uintptr_t) sfi->pv) + FrameSize)));
 #if defined(REPLACE_RA_BETWEEN_FRAMES)
 	es->sp  += SIZE_OF_STACKSLOT; /* skip return address */
 #endif
 	es->pv   = md_codegen_get_pv_from_pc(sfi->ra);
-	es->pc   = ((sfi->xpc) ? sfi->xpc : sfi->ra) - 1;
+	es->pc   = (void*) (((uintptr_t) ((sfi->xpc) ? sfi->xpc : sfi->ra)) - 1);
 	es->code = code_get_codeinfo_for_pv(es->pv);
 }
 
@@ -2320,7 +2427,7 @@ static void replace_push_native_frame(executionstate_t *es, sourcestate_t *ss)
 
 	/* skip sp for the native stub */
 
-	es->sp -= (*(s4 *) (frame->sfi->pv + FrameSize));
+	es->sp -= (*(s4 *) (((uintptr_t) frame->sfi->pv) + FrameSize));
 #if defined(REPLACE_RA_BETWEEN_FRAMES)
 	es->sp -= SIZE_OF_STACKSLOT; /* skip return address */
 #endif
@@ -2492,7 +2599,7 @@ sourcestate_t *replace_recover_source_state(rplpoint *rp,
 			/* find the replacement point at the call site */
 
 after_machine_frame:
-			rp = replace_find_replacement_point_for_pc(es->code, es->pc);
+			rp = replace_find_replacement_point_for_pc(es->code, es->pc, 0);
 
 			if (rp == NULL)
 				vm_abort("could not find replacement point while unrolling call");
@@ -2763,6 +2870,12 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 	origcode = es->code;
 	origrp   = rp;
 
+#if defined(ENABLE_TLH)
+	/*printf("Replacing in %s/%s\n", rp->method->clazz->name->text, rp->method->name->text);*/
+#endif
+
+	/*if (strcmp(rp->method->clazz->name->text, "antlr/AlternativeElement") == 0 && strcmp(rp->method->name->text, "getAutoGenType") ==0) opt_TraceReplacement = 2; else opt_TraceReplacement = 0;*/
+
 	DOLOG_SHORT( printf("REPLACING(%d %p): (id %d %p) ",
 				 stat_replacements, (void*)THREADOBJECT,
 				 rp->id, (void*)rp);
@@ -2888,6 +3001,9 @@ bool replace_me_wrapper(u1 *pc, void *context)
 	codeinfo         *code;
 	rplpoint         *rp;
 	executionstate_t  es;
+#if defined(ENABLE_RT_TIMING)
+	struct timespec time_start, time_end;
+#endif
 
 	/* search the codeinfo for the given PC */
 
@@ -2896,11 +3012,14 @@ bool replace_me_wrapper(u1 *pc, void *context)
 
 	/* search for a replacement point at the given PC */
 
-	rp = replace_find_replacement_point_for_pc(code, pc);
+	rp = replace_find_replacement_point_for_pc(code, pc, (RPLPOINT_FLAG_ACTIVE | RPLPOINT_FLAG_COUNTDOWN));
 
 	/* check if the replacement point belongs to given PC and is active */
 
-	if ((rp != NULL) && (rp->pc == pc) && (rp->flags & RPLPOINT_FLAG_ACTIVE)) {
+	if ((rp != NULL) && (rp->pc == pc)
+	    && (rp->flags & (RPLPOINT_FLAG_ACTIVE | RPLPOINT_FLAG_COUNTDOWN))) {
+
+		DOLOG( printf("valid replacement point\n"); );
 
 #if !defined(NDEBUG)
 		executionstate_sanity_check(context);
@@ -2919,7 +3038,16 @@ bool replace_me_wrapper(u1 *pc, void *context)
 
 		/* do the actual replacement */
 
+#if defined(ENABLE_RT_TIMING)
+		RT_TIMING_GET_TIME(time_start);
+#endif
+
 		replace_me(rp, &es);
+
+#if defined(ENABLE_RT_TIMING)
+		RT_TIMING_GET_TIME(time_end);
+		RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_REPLACE);
+#endif
 
 		/* write execution state to current context */
 

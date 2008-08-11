@@ -33,7 +33,7 @@
 
 #include "mm/memory.h"
 
-#include "threads/thread.h"
+#include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
@@ -41,7 +41,7 @@
 #include "vm/global.h"
 
 #if defined(ENABLE_STATISTICS)
-# include "vmcore/statistics.h"
+# include "vm/statistics.h"
 #endif
 
 

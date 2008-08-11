@@ -29,12 +29,11 @@
 
 #include "native/vm/nativevm.h"
 
+#include "vm/class.h"
 #include "vm/initialize.h"
-
-#include "vmcore/class.h"
-#include "vmcore/method.h"
-#include "vmcore/options.h"
-#include "vmcore/system.h"
+#include "vm/method.h"
+#include "vm/options.h"
+#include "vm/os.hpp"
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 # include "mm/memory.h"
@@ -43,10 +42,10 @@
 
 # include "native/vm/openjdk/hpi.h"
 
+# include "vm/globals.hpp"
 # include "vm/properties.h"
-# include "vm/vm.h"
-
-# include "vmcore/utf8.h"
+# include "vm/utf8.h"
+# include "vm/vm.hpp"
 #endif
 
 
@@ -95,7 +94,7 @@ void nativevm_preinit(void)
 
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
-	char* boot_library_path;
+	const char* boot_library_path;
 	int   len;
 	char* p;
 	utf*  u;
@@ -108,14 +107,14 @@ void nativevm_preinit(void)
 	boot_library_path = properties_get("sun.boot.library.path");
 
 	len =
-		system_strlen(boot_library_path) +
-		system_strlen("/libjava.so") +
-		system_strlen("0");
+		os_strlen(boot_library_path) +
+		os_strlen("/libjava.so") +
+		os_strlen("0");
 
 	p = MNEW(char, len);
 
-	system_strcpy(p, boot_library_path);
-	system_strcat(p, "/libjava.so");
+	os_strcpy(p, boot_library_path);
+	os_strcat(p, "/libjava.so");
 
 	u = utf_new_char(p);
 

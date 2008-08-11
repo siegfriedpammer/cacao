@@ -55,12 +55,12 @@ NATIVEVM_LIB = \
 endif
 
 if ENABLE_JAVASE
-REFLECT_SOURCES = \
-	reflect.c \
-	reflect.h
+REFLECTION_SOURCES = \
+	reflection.c \
+	reflection.h
 
 SUN_MISC_UNSAFE_SOURCES = \
-	sun_misc_Unsafe.c
+	sun_misc_Unsafe.cpp
 endif
 
 noinst_LTLIBRARIES = \
@@ -69,7 +69,7 @@ noinst_LTLIBRARIES = \
 libnativevm_la_SOURCES = \
 	nativevm.c \
 	nativevm.h \
-	$(REFLECT_SOURCES) \
+	$(REFLECTION_SOURCES) \
 	$(SUN_MISC_UNSAFE_SOURCES)
 
 libnativevm_la_LIBADD = \

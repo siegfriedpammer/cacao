@@ -46,18 +46,18 @@
 #include "toolbox/logging.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/globals.hpp"
+#include "vm/loader.h"
+#include "vm/options.h"
+#include "vm/os.hpp"
 #include "vm/resolve.h"
-#include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/string.hpp"
+#include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.h"
-
-#include "vmcore/loader.h"
-#include "vmcore/options.h"
-#include "vmcore/system.h"
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"
@@ -553,10 +553,10 @@ functionptr native_method_resolve(methodinfo *m)
 		ne = le->namelink;
 			
 		while ((ne != NULL) && (f == NULL)) {
-			f = (functionptr) (ptrint) system_dlsym(ne->handle, name->text);
+			f = (functionptr) (ptrint) os_dlsym(ne->handle, name->text);
 
 			if (f == NULL)
-				f = (functionptr) (ptrint) system_dlsym(ne->handle, newname->text);
+				f = (functionptr) (ptrint) os_dlsym(ne->handle, newname->text);
 
 			ne = ne->hashlink;
 		}
@@ -657,7 +657,7 @@ void* native_library_open(utf *filename)
 
 	/* try to open the library */
 
-	handle = system_dlopen(filename->text, RTLD_LAZY);
+	handle = os_dlopen(filename->text, RTLD_LAZY);
 
 	if (handle == NULL) {
 		if (opt_verbosejni)
@@ -665,7 +665,7 @@ void* native_library_open(utf *filename)
 
 		if (opt_verbose) {
 			log_start();
-			log_print("native_library_open: system_dlopen failed: ");
+			log_print("native_library_open: os_dlopen failed: ");
 			log_print(dlerror());
 			log_finish();
 		}
@@ -703,12 +703,12 @@ void native_library_close(void* handle)
 
 	/* Close the library. */
 
-	result = system_dlclose(handle);
+	result = os_dlclose(handle);
 
 	if (result != 0) {
 		if (opt_verbose) {
 			log_start();
-			log_print("native_library_close: system_dlclose failed: ");
+			log_print("native_library_close: os_dlclose failed: ");
 			log_print(dlerror());
 			log_finish();
 		}
@@ -895,7 +895,7 @@ int native_library_load(JNIEnv *env, utf *name, classloader_t *cl)
 # if defined(ENABLE_JNI)
 	/* Resolve JNI_OnLoad function. */
 
-	onload = system_dlsym(handle, "JNI_OnLoad");
+	onload = os_dlsym(handle, "JNI_OnLoad");
 
 	if (onload != NULL) {
 		JNIEXPORT int32_t (JNICALL *JNI_OnLoad) (JavaVM *, void *);
@@ -911,7 +911,7 @@ int native_library_load(JNIEnv *env, utf *name, classloader_t *cl)
 		   loaded. */
 
 		if ((version != JNI_VERSION_1_2) && (version != JNI_VERSION_1_4)) {
-			system_dlclose(handle);
+			os_dlclose(handle);
 			return 0;
 		}
 	}

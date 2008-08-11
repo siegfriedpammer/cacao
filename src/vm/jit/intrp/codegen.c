@@ -48,10 +48,11 @@
 #include "native/native.h"
 
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
+#include "vm/class.h"
+#include "vm/exceptions.hpp"
 #include "vm/global.h"
-#include "vm/stringlocal.h"
-#include "vm/vm.h"
+#include "vm/options.h"
+#include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.h"
@@ -60,10 +61,7 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/stack.h"
-#include "vm/jit/stacktrace.h"
-
-#include "vmcore/class.h"
-#include "vmcore/options.h"
+#include "vm/jit/stacktrace.hpp"
 
 
 #define gen_branch(_inst) { \
@@ -2085,7 +2083,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 		assert(false);
 	}
 
-	av_ptr(alist, _Jv_JNIEnv *, _Jv_env);
+	av_ptr(alist, _Jv_JNIEnv *, VM_get_jnienv());
 
 	if (m->flags & ACC_STATIC)
 		av_ptr(alist, classinfo *, m->clazz);
@@ -2150,7 +2148,7 @@ Cell *nativecall(functionptr f, methodinfo *m, Cell *sp, Inst *ra, Cell *fp, u1 
 
 	/* pass env pointer */
 
-	penv = (_Jv_JNIEnv *) _Jv_env;
+	penv = (_Jv_JNIEnv *) VM_get_jnienv();
 	*pvalues++ = &penv;
 
 	/* for static methods, pass class pointer */

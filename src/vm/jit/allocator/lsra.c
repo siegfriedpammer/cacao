@@ -36,15 +36,18 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
+
 #include "toolbox/logging.h"
+
 #include "vm/builtin.h"
-#include "vm/exceptions.h"
+#include "vm/exceptions.hpp"
 #include "vm/resolve.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
-#include "vm/stringlocal.h"
+
 #include "vm/jit/abi.h"
 #include "vm/jit/reg.h"
+
 #include "vm/jit/allocator/liveness.h"
 #include "vm/jit/allocator/lsra.h"
 
