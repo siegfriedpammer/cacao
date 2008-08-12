@@ -33,7 +33,9 @@ libir_la_SOURCES = \
 	bytecode.h \
 	icmd.cpp \
 	icmd.hpp \
-	icmdtable.inc
+	icmdtable.inc \
+	instruction.cpp \
+	instruction.hpp
 
 
 ## Local variables:

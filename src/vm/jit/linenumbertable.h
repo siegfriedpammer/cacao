@@ -26,10 +26,6 @@
 #ifndef _LINENUMBERTABLE_H
 #define _LINENUMBERTABLE_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* forward typedefs ***********************************************************/
 
 typedef struct linenumbertable_t            linenumbertable_t;
@@ -49,6 +45,12 @@ typedef struct linenumbertable_list_entry_t linenumbertable_list_entry_t;
 #include "vm/jit/code.h"
 #include "vm/jit/codegen-common.h"
 
+#include "vm/jit/ir/instruction.hpp"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* linenumbertable_t **********************************************************/
 

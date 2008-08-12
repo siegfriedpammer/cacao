@@ -1173,15 +1173,6 @@ void jit_check_basicblock_numbers(jitdata *jd)
 }
 #endif /* !defined(NDEBUG) */
 
-methoddesc *instruction_call_site(const instruction *iptr) {
-	if (iptr->opc == ICMD_BUILTIN) {
-		return iptr->sx.s23.s3.bte->md;
-	} else if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-		return iptr->sx.s23.s3.um->methodref->parseddesc.md;
-	} else {
-		return iptr->sx.s23.s3.fmiref->p.method->parseddesc;
-	}
-}
 
 /*
  * These are local overrides for various environment variables in Emacs.

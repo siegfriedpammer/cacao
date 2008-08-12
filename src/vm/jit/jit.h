@@ -30,8 +30,6 @@
 
 typedef struct jitdata jitdata;
 typedef struct basicblock basicblock;
-typedef struct instruction instruction;
-typedef struct insinfo_inline insinfo_inline;
 typedef struct exception_entry exception_entry;
 
 
@@ -60,7 +58,7 @@ typedef struct exception_entry exception_entry;
 #endif
 
 #include "vm/jit/ir/bytecode.h"
-#include "vm/jit/ir/icmd.hpp"
+#include "vm/jit/ir/instruction.hpp"
 
 #if defined(ENABLE_LOOP)
 # include "vm/jit/loop/loop.h"
@@ -266,195 +264,6 @@ static inline bool var_is_saved(const jitdata *jd, s4 i) {
 }
 
 
-/**************************** instruction structure ***************************/
-
-/* branch_target_t: used in TABLESWITCH tables */
-
-typedef union {
-    s4                         insindex; /* used in parse                     */
-    basicblock                *block;    /* valid after parse                 */
-} branch_target_t;
-
-/* lookup_target_t: used in LOOKUPSWITCH tables */
-
-typedef struct {
-    s4                         value;    /* case value                        */
-    branch_target_t            target;   /* branch target, see above          */
-} lookup_target_t;
-
-/*** s1 operand ***/
-
-typedef union {
-	s4                         varindex;
-    s4                         argcount;
-} s1_operand_t;
-
-/*** s2 operand ***/
-
-typedef union {
-	s4                         varindex;
-	s4                        *args;
-    classref_or_classinfo      c;
-    unresolved_class          *uc;
-    ptrint                     constval;         /* for PUT*CONST             */
-    s4                         tablelow;         /* for TABLESWITCH           */
-    u4                         lookupcount;      /* for LOOKUPSWITCH          */
-	s4                         retaddrnr;        /* for ASTORE                */
-	instruction              **iargs;            /* for PHI                   */
-} s2_operand_t;
-
-/*** s3 operand ***/
-
-typedef union {
-	s4                         varindex;
-    ptrint                     constval;
-    classref_or_classinfo      c;
-    constant_FMIref           *fmiref;
-    unresolved_method         *um;
-    unresolved_field          *uf;
-    insinfo_inline            *inlineinfo;       /* for INLINE_START/END      */
-    s4                         tablehigh;        /* for TABLESWITCH           */
-    branch_target_t            lookupdefault;    /* for LOOKUPSWITCH          */
-    branch_target_t            jsrtarget;        /* for JSR                   */
-	s4                         javaindex;        /* for *STORE                */
-    struct builtintable_entry *bte;
-} s3_operand_t;
-
-/*** val operand ***/
-
-typedef union {
-    s4                        i;
-    s8                        l;
-    float                     f;
-    double                    d;
-    void                     *anyptr;
-    java_handle_t            *stringconst;       /* for ACONST with string    */
-    classref_or_classinfo     c;                 /* for ACONST with class     */
-} val_operand_t;
-
-/*** dst operand ***/
-
-typedef union {
-	s4                         varindex;
-    basicblock                *block;       /* valid after parse              */
-    branch_target_t           *table;       /* for TABLESWITCH                */
-    lookup_target_t           *lookup;      /* for LOOKUPSWITCH               */
-    s4                         insindex;    /* used in parse                  */
-} dst_operand_t;
-
-/*** flags (32 bits) ***/
-
-#define INS_FLAG_BASICBLOCK    0x01    /* marks a basic block start           */
-#define INS_FLAG_UNRESOLVED    0x02    /* contains unresolved field/meth/class*/
-#define INS_FLAG_CLASS         0x04    /* for ACONST, PUT*CONST with class    */
-#define INS_FLAG_ARRAY         0x08    /* for CHECKCAST/INSTANCEOF with array */
-#define INS_FLAG_CHECK         0x10    /* for *ALOAD|*ASTORE: check index     */
-                                       /* for BUILTIN: check exception        */
-#define INS_FLAG_KILL_PREV     0x04    /* for *STORE, invalidate prev local   */
-#define INS_FLAG_KILL_NEXT     0x08    /* for *STORE, invalidate next local   */
-#define INS_FLAG_RETADDR       0x10    /* for ASTORE: op is a returnAddress   */
-
-#define INS_FLAG_ID_SHIFT      5
-#define INS_FLAG_ID_MASK       (~0 << INS_FLAG_ID_SHIFT)
-
-typedef union {
-    u4                  bits;
-} flags_operand_t;
-
-/*** instruction ***/
-
-/* The instruction format for the intermediate representation: */
-
-struct instruction {
-    u2                      opc;    /* opcode       */
-    u2                      line;   /* line number  */
-#if SIZEOF_VOID_P == 8
-    flags_operand_t         flags;  /* 4 bytes      */
-#endif
-    s1_operand_t            s1;     /* pointer-size */
-    union {
-        struct {
-            s2_operand_t    s2;     /* pointer-size */
-            s3_operand_t    s3;     /* pointer-size */
-        } s23;                      /*     XOR      */
-        val_operand_t       val;    /*  long-size   */
-    } sx;
-    dst_operand_t           dst;    /* pointer-size */
-#if SIZEOF_VOID_P == 4
-    flags_operand_t         flags;  /* 4 bytes      */
-#endif
-#if defined(ENABLE_ESCAPE_REASON)
-	void *escape_reasons;
-#endif
-};
-
-
-#define INSTRUCTION_STARTS_BASICBLOCK(iptr) \
-	((iptr)->flags.bits & INS_FLAG_BASICBLOCK)
-
-#define INSTRUCTION_IS_RESOLVED(iptr) \
-	(!((iptr)->flags.bits & INS_FLAG_UNRESOLVED))
-
-#define INSTRUCTION_IS_UNRESOLVED(iptr) \
-	((iptr)->flags.bits & INS_FLAG_UNRESOLVED)
-
-#define INSTRUCTION_MUST_CHECK(iptr) \
-	((iptr)->flags.bits & INS_FLAG_CHECK)
-
-#define INSTRUCTION_GET_FIELDREF(iptr,fref) \
-	do { \
-		if (iptr->flags.bits & INS_FLAG_UNRESOLVED) \
-			fref = iptr->sx.s23.s3.uf->fieldref; \
-		else \
-			fref = iptr->sx.s23.s3.fmiref; \
-	} while (0)
-
-#define INSTRUCTION_GET_METHODREF(iptr,mref) \
-	do { \
-		if (iptr->flags.bits & INS_FLAG_UNRESOLVED) \
-			mref = iptr->sx.s23.s3.um->methodref; \
-		else \
-			mref = iptr->sx.s23.s3.fmiref; \
-	} while (0)
-
-#define INSTRUCTION_GET_METHODDESC(iptr, md) \
-	do { \
-		if (iptr->flags.bits & INS_FLAG_UNRESOLVED) \
-			md = iptr->sx.s23.s3.um->methodref->parseddesc.md; \
-		else \
-			md = iptr->sx.s23.s3.fmiref->parseddesc.md; \
-	} while (0)
-
-/* additional info structs for special instructions ***************************/
-
-/* for ICMD_INLINE_START and ICMD_INLINE_END */
-
-struct insinfo_inline {
-	/* fields copied from the inlining tree ----------------------------------*/
-	insinfo_inline *parent;     /* insinfo of the surrounding inlining, if any*/
-	methodinfo     *method;     /* the inlined method starting/ending here    */
-	methodinfo     *outer;      /* the outer method suspended/resumed here    */
-	s4              synclocal;      /* local index used for synchronization   */
-	bool            synchronize;    /* true if synchronization is needed      */
-	s4              throughcount;   /* total # of pass-through variables      */
-	s4              paramcount;     /* number of parameters of original call  */
-	s4              stackvarscount; /* source stackdepth at INLINE_START      */
-	s4             *stackvars;      /* stack vars at INLINE_START             */
-
-	/* fields set by inlining ------------------------------------------------*/
-	s4         *javalocals_start; /* javalocals at start of inlined body      */
-	s4         *javalocals_end;   /* javalocals after inlined body            */
-
-	/* fields set by replacement point creation ------------------------------*/
-#if defined(ENABLE_REPLACEMENT)
-	rplpoint   *rp;             /* replacement point at INLINE_START          */
-#endif
-
-	/* fields set by the codegen ---------------------------------------------*/
-	s4          startmpc;       /* machine code offset of start of inlining   */
-};
-
-
 /* basicblock *****************************************************************/
 
 /* flags */
@@ -601,20 +410,6 @@ static inline bool basicblock_reached(const basicblock *bptr) {
 }
 
 
-/* Additional instruction accessors */
-
-methoddesc *instruction_call_site(const instruction *iptr);
-
-static inline bool instruction_has_dst(const instruction *iptr) {
-	if (
-		(icmd_table[iptr->opc].dataflow == DF_INVOKE) ||
-		(icmd_table[iptr->opc].dataflow == DF_BUILTIN)
-		) {
-		return instruction_call_site(iptr)->returntype.type != TYPE_VOID;
-	} else {
-		return icmd_table[iptr->opc].dataflow >= DF_DST_BASE;
-	}
-}
 
 /***************************** register types *********************************/
 
