@@ -130,47 +130,6 @@
 #endif
 
 
-/* the ICMD table ************************************************************/
-
-#if !defined(NDEBUG)
-#define N(name)  name,
-#else
-#define N(name)
-#endif
-
-/* abbreviations for flags */
-
-#define PEI     ICMDTABLE_PEI
-#define CALLS   ICMDTABLE_CALLS
-
-/* some machine dependent values */
-
-#if SUPPORT_DIVISION
-#define IDIV_CALLS  0
-#else
-#define IDIV_CALLS  ICMDTABLE_CALLS
-#endif
-
-#if (SUPPORT_DIVISION && SUPPORT_LONG && SUPPORT_LONG_DIV)
-#define LDIV_CALLS  0
-#else
-#define LDIV_CALLS  ICMDTABLE_CALLS
-#endif
-
-/* include the actual table */
-
-icmdtable_entry_t icmd_table[256] = {
-#include <vm/jit/icmdtable.inc>
-};
-
-#undef N
-#undef PEI
-#undef CALLS
-
-/* XXX hack until the old "PEI" definition is removed */
-#define PEI 1
-
-
 /* jit_init ********************************************************************
 
    Initializes the JIT subsystem.
