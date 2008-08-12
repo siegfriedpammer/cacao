@@ -84,6 +84,7 @@ JNIEXPORT jboolean JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImp
 /* 	return _Jv_jvm->Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_verbose; */
 #warning Move to C++
 	log_println("Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVerbose: MOVE TO C++!");
+	return 0;
 }
 
 
