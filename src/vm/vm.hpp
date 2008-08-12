@@ -33,7 +33,7 @@
 
 #include "vm/types.h"
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 
 #include "vm/global.h"
 

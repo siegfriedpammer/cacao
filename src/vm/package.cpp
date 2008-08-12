@@ -31,8 +31,6 @@
 
 #include "mm/memory.h"
 
-#include "native/jni.h"
-
 #include "vm/options.h"
 #include "vm/package.hpp"
 #include "vm/string.hpp"

@@ -1,4 +1,4 @@
-/* src/native/jni.h - JNI types and data structures
+/* src/native/jni.hpp - JNI types and data structures
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -29,15 +29,23 @@
    jni.h.  We do this because otherwise we can get into unresolvable
    circular header dependencies.
 
-   This is OK as GNU Classpath defines:
+   GNU Classpath's headers define:
 
    #define __CLASSPATH_JNI_MD_H__
    #define _CLASSPATH_JNI_H
 
-   and OpenJDK defines:
+   and jni.h uses:
+
+   _CLASSPATH_VM_JNI_TYPES_DEFINED
+   
+   OpenJDK's headers define:
 
    #define _JAVASOFT_JNI_MD_H_
    #define _JAVASOFT_JNI_H_
+
+   and jni.h uses:
+
+   JNI_TYPES_ALREADY_DEFINED_IN_JNI_MD_H
 
    CLASSPATH_JNI_MD_H and CLASSPATH_JNI_H are defined in config.h.
 
@@ -52,62 +60,17 @@
 #include INCLUDE_JNI_MD_H
 #include INCLUDE_JNI_H
 
-#ifndef _JNI_H
-#define _JNI_H
+#ifndef _JNI_HPP
+#define _JNI_HPP
+
+#include <stdint.h>
+
+#include "vm/global.h"
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "vm/types.h"
-
-#include "vm/global.h"
-#include "vm/method.h"
-
-
-#if 0
-/* _Jv_JNIEnv *****************************************************************/
-
-#ifndef __cplusplus
-
-// FIXME The __cplusplus define is just a quick workaround and needs
-// to be fixed properly.
-
-typedef struct _Jv_JNIEnv _Jv_JNIEnv;
-
-struct _Jv_JNIEnv {
-	const struct JNINativeInterface_ *env;    /* This MUST be the first entry */
-};
-
-#endif
-
-
-/* _Jv_JavaVM *****************************************************************/
-
-#ifndef __cplusplus
-
-// FIXME The __cplusplus define is just a quick workaround and needs
-// to be fixed properly.
-
-typedef struct _Jv_JavaVM _Jv_JavaVM;
-
-struct _Jv_JavaVM {
-	const struct JNIInvokeInterface_ *functions;/*This MUST be the first entry*/
-
-	/* JVM instance-specific variables */
-
-	s8 starttime;                       /* VM startup time                    */
-
-	s4 Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_verbose;
-	s4 Java_gnu_java_lang_management_VMMemoryMXBeanImpl_verbose;
-	s4 java_lang_management_ThreadMXBean_PeakThreadCount;
-	s4 java_lang_management_ThreadMXBean_ThreadCount;
-	s8 java_lang_management_ThreadMXBean_TotalStartedThreadCount;
-};
-
-#endif
-#endif
-
 
 /* CACAO related stuff ********************************************************/
 
@@ -121,7 +84,7 @@ typedef struct hashtable_global_ref_entry hashtable_global_ref_entry;
 
 struct hashtable_global_ref_entry {
 	java_object_t              *o;      /* object pointer of global ref       */
-	s4                          refs;   /* references of the current pointer  */
+	int32_t                     refs;   /* references of the current pointer  */
 	hashtable_global_ref_entry *hashlink; /* link for external chaining       */
 };
 
@@ -135,7 +98,7 @@ bool jni_version_check(int version);
 }
 #endif
 
-#endif /* _JNI_H */
+#endif // _JNI_HPP
 
 
 /*
@@ -144,9 +107,10 @@ bool jni_version_check(int version);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

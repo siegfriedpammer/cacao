@@ -38,7 +38,6 @@
 
 #include "mm/memory.h"
 
-#include "native/jni.h"
 #include "native/localref.h"
 #include "native/native.h"
 

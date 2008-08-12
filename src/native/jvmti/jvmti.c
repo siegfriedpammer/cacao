@@ -36,7 +36,7 @@
 #include <unistd.h>
 #include <sched.h>
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 #include "native/native.h"
 #include "native/jvmti/cacaodbg.h"
 #include "native/jvmti/jvmti.h"

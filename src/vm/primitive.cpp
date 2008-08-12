@@ -28,7 +28,6 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include "native/jni.h"
 #include "native/llni.h"
 
 #include "vm/builtin.h"

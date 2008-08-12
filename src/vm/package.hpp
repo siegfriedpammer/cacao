@@ -28,19 +28,9 @@
 
 #include "config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdint.h>
 
-#include "native/jni.h"
-
-#include "vm/global.h"
-
-#ifdef __cplusplus
-}
-#endif
+#include "vm/utf8.h"
 
 
 #ifdef __cplusplus

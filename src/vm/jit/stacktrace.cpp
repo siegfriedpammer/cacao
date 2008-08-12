@@ -39,8 +39,6 @@
 
 #include "vm/jit/stacktrace.hpp"
 
-#include "vm/global.h"                   /* required here for native includes */
-#include "native/jni.h"
 #include "native/llni.h"
 
 #include "threads/thread.hpp"

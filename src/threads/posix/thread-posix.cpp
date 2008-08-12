@@ -49,7 +49,6 @@
 # include "mm/cacao-gc/gc.h"
 #endif
 
-#include "native/jni.h"
 #include "native/llni.h"
 #include "native/native.h"
 

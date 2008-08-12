@@ -28,17 +28,9 @@
 
 #include "config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "vm/types.h"
 
 #include <stdio.h>  /* for FILE */
-
-#if defined(ENABLE_JVMTI)
-# include "native/jni.h"
-#endif
 
 #include "toolbox/hashtable.h"
 
@@ -47,6 +39,10 @@ extern "C" {
 #include "vm/loader.h"
 #include "vm/references.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* forward declarations *******************************************************/
 

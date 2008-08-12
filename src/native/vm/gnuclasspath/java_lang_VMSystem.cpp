@@ -30,7 +30,7 @@
 
 #include "mm/gc.hpp"
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 #include "native/llni.h"
 #include "native/native.h"
 

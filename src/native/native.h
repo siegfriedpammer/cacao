@@ -34,7 +34,7 @@
 extern "C" {
 #endif
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 
 #include "vm/class.h"
 #include "vm/global.h"

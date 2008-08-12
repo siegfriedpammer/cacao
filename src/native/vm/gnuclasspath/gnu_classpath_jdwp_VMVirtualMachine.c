@@ -29,7 +29,7 @@
 #include <string.h>
 
 #include "toolbox/logging.h"
-#include "native/jni.h"
+#include "native/jni.hpp"
 #include "native/include/java_lang_Thread.h"
 #include "native/include/java_nio_ByteBuffer.h"
 #include "native/include/java_lang_Class.h"

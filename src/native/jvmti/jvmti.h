@@ -1,10 +1,8 @@
 /* src/native/jvmti.c - implementation of the Java Virtual Machine Tool 
                         Interface functions
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -23,19 +21,15 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Author: Martin Platter
-
-   Changes:             
-
-   
-
 */
+
+
 #ifndef _JVMTI_H
 #define _JVMTI_H
 
-#include "native/jni.h"
+#include "config.h"
+
+#include "native/jni.hpp"
 
 
 #define JVMTI_VERSION_INTERFACE_JNI   0x00000000

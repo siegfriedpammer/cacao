@@ -38,7 +38,7 @@ noinst_LTLIBRARIES = libnative.la
 if ENABLE_JNI
 JNI_SOURCES = \
 	jni.cpp \
-	jni.h \
+	jni.hpp \
 	localref.c \
 	localref.h
 endif

@@ -33,7 +33,7 @@
 
 #include "mm/memory.h"
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 #include "native/native.h"
 
 #include "native/vm/openjdk/hpi.h"

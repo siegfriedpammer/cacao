@@ -57,7 +57,6 @@
 #include "toolbox/list.h"
 #include "toolbox/logging.h"
 
-#include "native/jni.h"
 #include "native/llni.h"
 #include "native/localref.h"
 #include "native/native.h"

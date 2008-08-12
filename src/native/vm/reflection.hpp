@@ -30,7 +30,6 @@
 
 #include <stdint.h>
 
-#include "native/jni.h"
 #include "native/native.h"
 
 #include "vm/field.h"

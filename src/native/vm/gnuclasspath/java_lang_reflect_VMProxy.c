@@ -27,7 +27,7 @@
 
 #include <stdlib.h>
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 #include "native/native.h"
 
 // FIXME

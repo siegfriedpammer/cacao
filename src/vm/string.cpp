@@ -35,7 +35,6 @@
 
 #include "mm/memory.h"
 
-#include "native/jni.h"
 #include "native/llni.h"
 
 #include "threads/lock-common.h"

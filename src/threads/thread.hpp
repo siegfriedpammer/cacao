@@ -43,7 +43,6 @@ extern "C" {
 
 #include "vm/os.hpp"
 
-#include "native/jni.h"
 #include "native/llni.h"
 
 #include "threads/mutex.hpp"
