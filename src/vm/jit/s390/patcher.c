@@ -131,11 +131,6 @@ bool patcher_get_putfield(patchref_t *pr)
 
 	PATCH_BACK_ORIGINAL_MCODE;
 
-	/* If NOPs are generated, skip them */
-
-	if (opt_shownops)
-		ra += PATCHER_NOPS_SKIP;
-
 	/* If there is an operand load before, skip the load size passed in disp (see ICMD_PUTFIELD) */
 
 	ra += disp;
@@ -219,11 +214,6 @@ bool patcher_invokevirtual(patchref_t *pr)
 
 	PATCH_BACK_ORIGINAL_MCODE;
 
-	/* If NOPs are generated, skip them */
-
-	if (opt_shownops)
-		ra += PATCHER_NOPS_SKIP;
-
 	/* patch vftbl index */
 
 
@@ -266,11 +256,6 @@ bool patcher_invokeinterface(patchref_t *pr)
 	/* patch back original code */
 
 	PATCH_BACK_ORIGINAL_MCODE;
-
-	/* If NOPs are generated, skip them */
-
-	if (opt_shownops)
-		ra += PATCHER_NOPS_SKIP;
 
 	/* get interfacetable index */
 
@@ -427,11 +412,6 @@ bool patcher_checkcast_instanceof_interface(patchref_t *pr)
 	/* patch back original code */
 
 	PATCH_BACK_ORIGINAL_MCODE;
-
-	/* If NOPs are generated, skip them */
-
-	if (opt_shownops)
-		ra += PATCHER_NOPS_SKIP;
 
 	/* patch super class index */
 

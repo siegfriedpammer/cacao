@@ -49,7 +49,6 @@
 
 #define PATCHER_CALL_SIZE    2          /* size in bytes of a patcher call    */
 #define PATCHER_NOPS M_NOP3
-#define PATCHER_NOPS_SKIP   2
 
 /* branch defines ************************************************************/
 

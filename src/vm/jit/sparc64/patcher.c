@@ -231,22 +231,9 @@ bool patcher_get_putfield(u1 *sp)
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
-	/* if we show disassembly, we have to skip the nop's */
+	/* store the patched instruction on the stack */
 
-	if (opt_shownops) {
-		/* patch the field's offset into the instruction */
-
-		*((u4 *) (ra + 2 * 4)) |= (s2) (fi->offset & 0x00001fff);
-
-		/* synchronize instruction cache */
-
-		md_icacheflush(ra + 2 * 4, 1 * 4);
-	}
-	else {
-		/* otherwise store the patched instruction on the stack */
-
-		*((u4 *) (sp + 3 * 8)) |= (s2) (fi->offset & 0x00001fff);
-	}
+	*((u4 *) (sp + 3 * 8)) |= (s2) (fi->offset & 0x00001fff);
 
 	return true;
 }
@@ -445,28 +432,11 @@ bool patcher_invokevirtual(u1 *sp)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* if we show disassembly, we have to skip the nop's */
+	/* patch vftbl index */
 
-	if (opt_shownops) {
-		ra = ra + PATCHER_CALL_SIZE;
-
-		/* patch vftbl index */
-
-		*((s4 *) (ra + 1 * 4)) |=
-			(s4) ((OFFSET(vftbl_t, table[0]) +
-				   sizeof(methodptr) * m->vftblindex) & 0x00001fff);
-
-		/* synchronize instruction cache */
-
-		md_icacheflush(ra + 1 * 4, 1 * 4);
-	}
-	else {
-		/* patch vftbl index */
-
-		*((s4 *) (sp + 3 * 8 + 4)) |=
-			(s4) ((OFFSET(vftbl_t, table[0]) +
-				   sizeof(methodptr) * m->vftblindex) & 0x00001fff);
-	}
+	*((s4 *) (sp + 3 * 8 + 4)) |=
+		(s4) ((OFFSET(vftbl_t, table[0]) +
+			   sizeof(methodptr) * m->vftblindex) & 0x00001fff);
 
 	return true;
 }
@@ -501,42 +471,20 @@ bool patcher_invokeinterface(u1 *sp)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* if we show disassembly, we have to skip the nop's */
+	/* patch interfacetable index */
 
-	if (opt_shownops) {
-		ra = ra + PATCHER_CALL_SIZE;
+	*((s4 *) (sp + 3 * 8 + 4)) |=
+		(s4) ((OFFSET(vftbl_t, interfacetable[0]) -
+			   sizeof(methodptr*) * m->clazz->index) & 0x00001fff);
 
-		/* patch interfacetable index */
+	/* patch method offset */
 
-		*((s4 *) (ra + 1 * 4)) |= 
-			(s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-				sizeof(methodptr*) * m->clazz->index) & 0x00001fff);
+	*((s4 *) (ra + 2 * 4)) |=
+		(s4) ((sizeof(methodptr) * (m - m->clazz->methods)) & 0x00001fff);
 
-		/* patch method offset */
+	/* synchronize instruction cache */
 
-		*((s4 *) (ra + 2 * 4)) |=
-			(s4) ((sizeof(methodptr) * (m - m->clazz->methods)) & 0x00001fff);
-
-		/* synchronize instruction cache */
-
-		md_icacheflush(ra + 1 * 4, 2 * 4);
-	}
-	else {
-		/* patch interfacetable index */
-
-		*((s4 *) (sp + 3 * 8 + 4)) |=
-			(s4) ((OFFSET(vftbl_t, interfacetable[0]) -
-				sizeof(methodptr*) * m->clazz->index) & 0x00001fff);
-
-		/* patch method offset */
-
-		*((s4 *) (ra + 2 * 4)) |=
-			(s4) ((sizeof(methodptr) * (m - m->clazz->methods)) & 0x00001fff);
-
-		/* synchronize instruction cache */
-
-		md_icacheflush(ra + 2 * 4, 1 * 4);
-	}
+	md_icacheflush(ra + 2 * 4, 1 * 4);
 
 	return true;
 }
@@ -614,11 +562,6 @@ bool patcher_checkcast_interface(u1 *sp)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_shownops)
-		ra = ra + PATCHER_CALL_SIZE;
-
 	/* patch super class index */
 
 	*((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x00001fff);
@@ -629,10 +572,7 @@ bool patcher_checkcast_interface(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	if (opt_shownops)
-		md_icacheflush(ra - 2 * 4, (6 + EXCEPTION_CHECK_INSTRUCTIONS) * 4);
-	else
-		md_icacheflush(ra, (4 + EXCEPTION_CHECK_INSTRUCTIONS) * 4);
+	md_icacheflush(ra, (4 + EXCEPTION_CHECK_INSTRUCTIONS) * 4);
 
 	return true;
 }
@@ -667,11 +607,6 @@ bool patcher_instanceof_interface(u1 *sp)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* if we show disassembly, we have to skip the nop's */
-
-	if (opt_shownops)
-		ra = ra + PATCHER_CALL_SIZE;
-
 	/* patch super class index */
 
 	*((s4 *) (ra + 2 * 4)) |= (s4) ((c->index) & 0x00001fff);
@@ -681,10 +616,7 @@ bool patcher_instanceof_interface(u1 *sp)
 
 	/* synchronize instruction cache */
 
-	if (opt_shownops)
-		md_icacheflush(ra - PATCHER_CALL_SIZE * 4, 8 * 4);
-	else
-		md_icacheflush(ra, 6 * 4);
+	md_icacheflush(ra, 6 * 4);
 
 	return true;
 }

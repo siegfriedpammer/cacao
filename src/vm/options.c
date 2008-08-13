@@ -83,7 +83,6 @@ bool compileverbose =  false;           /* trace compiler actions             */
 bool showstack = false;
 
 bool opt_showdisassemble    = false;    /* generate disassembler listing      */
-bool opt_shownops           = false;
 bool opt_showddatasegment   = false;    /* generate data segment listing      */
 bool opt_showintermediate   = false;    /* generate intermediate code listing */
 

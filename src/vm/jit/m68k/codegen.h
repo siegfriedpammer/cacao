@@ -63,7 +63,7 @@
 #define PATCHER_NOPS \
 	do { M_TPFL; M_TPF; M_TPF } while (0);
 
-#define PATCHER_CALL_SIZE 	(3*2)
+#define PATCHER_CALL_SIZE 	2
 
 /* stub defines ***************************************************************/
 

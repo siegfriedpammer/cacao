@@ -253,11 +253,6 @@ bool patcher_get_putfield(patchref_t *pr)
 
 	PATCH_BACK_ORIGINAL_MCODE;
 
-	/* if we show disassembly, we have to skip the nop */
-
-	if (opt_shownops)
-		ra = ra + 4;
-
 	/* patch the field's offset into the instruction */
 
 	*((u4 *) ra) |= (s2) (fi->offset & 0x0000ffff);
@@ -333,11 +328,6 @@ bool patcher_invokevirtual(patchref_t *pr)
 
 	PATCH_BACK_ORIGINAL_MCODE;
 
-	/* if we show disassembly, we have to skip the nop */
-
-	if (opt_shownops)
-		ra = ra + 4;
-
 	/* patch vftbl index */
 
 	*((s4 *) (ra + 4)) |= (s4) ((OFFSET(vftbl_t, table[0]) +
@@ -378,11 +368,6 @@ bool patcher_invokeinterface(patchref_t *pr)
 		return false;
 
 	PATCH_BACK_ORIGINAL_MCODE;
-
-	/* if we show disassembly, we have to skip the nop */
-
-	if (opt_shownops)
-		ra = ra + 4;
 
 	/* patch interfacetable index */
 
@@ -431,11 +416,6 @@ bool patcher_checkcast_interface(patchref_t *pr)
 
 	PATCH_BACK_ORIGINAL_MCODE;
 
-	/* if we show disassembly, we have to skip the nop */
-
-	if (opt_shownops)
-		ra = ra + 4;
-
 	/* patch super class index */
 
 	*((s4 *) (ra + 2 * 4)) |= (s4) (-(c->index) & 0x0000ffff);
@@ -479,11 +459,6 @@ bool patcher_instanceof_interface(patchref_t *pr)
 		return false;
 
 	PATCH_BACK_ORIGINAL_MCODE;
-
-	/* if we show disassembly, we have to skip the nop */
-
-	if (opt_shownops)
-		ra = ra + 4;
 
 	/* patch super class index */
 

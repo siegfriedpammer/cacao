@@ -156,11 +156,6 @@ bool patcher_get_putfield(patchref_t *pr)
 
 	md_icacheflush(ra, 4);
 
-	/* if we show disassembly, we have to skip the nop */
-
-	if (opt_shownops)
-		ra = ra + 4;
-
 	/* patch the field's offset */
 
 	*((u4 *) ra) |= (s2) (fi->offset & 0x0000ffff);
@@ -263,11 +258,6 @@ bool patcher_invokevirtual(patchref_t *pr)
 
 	md_icacheflush(ra, 4);
 
-	/* if we show disassembly, we have to skip the nop */
-
-	if (opt_shownops)
-		ra = ra + 4;
-
 	/* patch vftbl index */
 
 	disp = (OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * m->vftblindex);
@@ -321,11 +311,6 @@ bool patcher_invokeinterface(patchref_t *pr)
 	/* synchronize instruction cache */
 
 	md_icacheflush(ra, 4);
-
-	/* if we show disassembly, we have to skip the nop */
-
-	if (opt_shownops)
-		ra = ra + 4;
 
 	/* patch interfacetable index */
 
@@ -391,10 +376,6 @@ bool patcher_checkcast_interface(patchref_t *pr)
 
 	md_icacheflush(ra, 4);
 
-	/* if we show NOPs, we have to skip them */
-	if (opt_shownops)
-		ra = ra +4;
-
 	/* patch super class index */
 	disp = -(c->index);
 
@@ -450,11 +431,6 @@ bool patcher_instanceof_interface(patchref_t *pr)
 	/* synchronize instruction cache */
 
 	md_icacheflush(ra, 4);
-
-	/* if we show disassembly, we have to skip the nop */
-
-	if (opt_shownops)
-		ra = ra + 4;
 
 	/* patch super class index */
 
