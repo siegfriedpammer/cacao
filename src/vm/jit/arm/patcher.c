@@ -81,7 +81,7 @@
    Patch back address in a machine dependent way 
 
 *******************************************************************************/
-void patch_md(s4 md_patch, ptrint dest, voidptr ref)
+void patch_md(s4 md_patch, ptrint dest, void* ref)
 {
 	gen_resolveload_unchecked(*((s4 *) dest), (s4) ref);
 }
