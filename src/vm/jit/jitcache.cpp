@@ -27,6 +27,9 @@
 #if defined(ENABLE_JITCACHE)
 
 /* for mkdir() */
+
+extern "C" {
+
 #include <sys/stat.h>
 
 #include <assert.h>
@@ -44,7 +47,6 @@
 #include "vm/method.h"
 #include "vm/options.h"
 #include "vm/resolve.h"
-#include "vm/string.hpp"
 #include "vm/types.h"
 
 #include "vm/jit/asmpart.h"
@@ -57,12 +59,14 @@
 #include "vm/jit/methodtree.h"
 
 #include "vm/references.h"
-#include "vm/os.hpp"
 #include "vm/field.h"
 #include "vm/utf8.h"
 
-#include "vm/jit/jitcache.hpp"
+}
 
+#include "vm/string.hpp"
+#include "vm/os.hpp"
+#include "vm/jit/jitcache.hpp"
 #include "threads/thread.hpp"
 
 /* TODO: Wrap this in vm/system.h" */
