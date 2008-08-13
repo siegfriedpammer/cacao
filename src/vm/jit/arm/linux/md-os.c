@@ -153,7 +153,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	/* check for undefined instruction we use */
 
 	if ((mcode & 0x0ff000f0) != 0x07f000f0) {
-		log_println("md_signal_handler_sigill: unknown illegal instruction: inst=%x", mcode);
+		log_println("md_signal_handler_sigill: Unknown illegal instruction 0x%x at 0x%x", mcode, xpc);
 #if defined(ENABLE_DISASSEMBLER)
 		DISASSINSTR(xpc);
 #endif
