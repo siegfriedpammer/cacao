@@ -57,13 +57,11 @@
 
 void patcher_patch_code(patchref_t *pr)
 {
-	/* patch back original code */
+	// Patch back original code.
+	*((uint32_t*) pr->mpc) = pr->mcode;
 
-	*((u4 *) pr->mpc) = pr->mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(pr->mpc, 4);
+	// Synchronize instruction cache.
+	md_icacheflush((void*) pr->mpc, 1 * 4);
 }
 
 
@@ -103,14 +101,6 @@ bool patcher_get_putstatic(patchref_t *pr)
 		if (!initialize_class(fi->clazz))
 			return false;
 
-	/* patch back original code */
-
-	*((u4 *) ra) = mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 4);
-
 	/* patch the field value's address */
 
 	*((intptr_t *) datap) = (intptr_t) fi->value;
@@ -118,6 +108,9 @@ bool patcher_get_putstatic(patchref_t *pr)
 	/* synchronize data cache */
 
 	md_dcacheflush(datap, SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -148,21 +141,12 @@ bool patcher_get_putfield(patchref_t *pr)
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
-	/* patch back original code */
+	// Patch the field offset in the patcher.  We also need this to
+	// validate patchers.
+	pr->mcode |= (int16_t) (fi->offset & 0x0000ffff);
 
-	*((u4 *) ra) = mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 4);
-
-	/* patch the field's offset */
-
-	*((u4 *) ra) |= (s2) (fi->offset & 0x0000ffff);
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 8);
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -199,21 +183,14 @@ bool patcher_invokestatic_special(patchref_t *pr)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) ra) = mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 4);
-
-	/* patch stubroutine */
-
+	// Patch stubroutine.
 	*((ptrint *) datap) = (ptrint) m->stubroutine;
 
-	/* synchronize data cache */
-
+	// Synchronize data cache.
 	md_dcacheflush(datap, SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -250,23 +227,16 @@ bool patcher_invokevirtual(patchref_t *pr)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) ra) = mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 4);
-
-	/* patch vftbl index */
-
+	// Patch vftbl index.
 	disp = (OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * m->vftblindex);
 
-	*((s4 *) (ra + 4)) |= (disp & 0x0000ffff);
+	*((uint32_t*) (ra + 1 * 4)) |= (disp & 0x0000ffff);
 
-	/* synchronize instruction cache */
-
+	// Synchronize instruction cache.
 	md_icacheflush(ra, 2 * 4);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -304,34 +274,24 @@ bool patcher_invokeinterface(patchref_t *pr)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) ra) = mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 4);
-
-	/* patch interfacetable index */
-
+	// Patch interfacetable index.
 	disp = OFFSET(vftbl_t, interfacetable[0]) -
 		sizeof(methodptr*) * m->clazz->index;
 
-	/* XXX TWISTI: check displacement */
+	// XXX TWISTI: check displacement
+	*((uint32_t*) (ra + 1 * 4)) |= (disp & 0x0000ffff);
 
-	*((s4 *) (ra + 1 * 4)) |= (disp & 0x0000ffff);
-
-	/* patch method offset */
-
+	// Patch method offset.
 	disp = sizeof(methodptr) * (m - m->clazz->methods);
 
-	/* XXX TWISTI: check displacement */
+	// XXX TWISTI: check displacement
+	*((uint32_t*) (ra + 2 * 4)) |= (disp & 0x0000ffff);
 
-	*((s4 *) (ra + 2 * 4)) |= (disp & 0x0000ffff);
-
-	/* synchronize instruction cache */
-
+	// Synchronize instruction cache.
 	md_icacheflush(ra, 3 * 4);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -369,24 +329,18 @@ bool patcher_checkcast_interface(patchref_t *pr)
 		return false;
 	}
 
-	/* patch back original code */
-	*((u4 *) ra) = mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 4);
-
-	/* patch super class index */
+	// Patch super class index.
 	disp = -(c->index);
-
-	*((s4*)(ra + 2*4)) |= (disp & 0x0000ffff);
+	*((uint32_t*) (ra + 2 * 4)) |= (disp & 0x0000ffff);
 
 	disp = OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*);
+	*((uint32_t*) (ra + 5 * 4)) |= (disp & 0x0000ffff);
 
-	*((s4 *)(ra + 5*4)) |= (disp & 0x0000ffff);
+	// Synchronize instruction cache.
+	md_icacheflush(ra, 6 * 4);
 
-	/* sync instruction cache */
-	md_icacheflush(ra, 6*4);
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -424,27 +378,18 @@ bool patcher_instanceof_interface(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* patch back original code */
-
-	*((u4 *) ra) = mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 4);
-
-	/* patch super class index */
-
+	// Patch super class index.
 	disp = -(c->index);
-
-	*((s4 *) (ra + 2 * 4)) |= (disp & 0x0000ffff);
+	*((uint32_t*) (ra + 2 * 4)) |= (disp & 0x0000ffff);
 
 	disp = OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*);
+	*((uint32_t*) (ra + 4 * 4)) |= (disp & 0x0000ffff);
 
-	*((s4 *) (ra + 4 * 4)) |= (disp & 0x0000ffff);
-
-	/* synchronize instruction cache */
-
+	// Synchronize instruction cache.
 	md_icacheflush(ra, 5 * 4);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -500,21 +445,14 @@ bool patcher_resolve_classref_to_classinfo(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* patch back original code */
+	// Patch the classinfo pointer.
+	*((uintptr_t*) datap) = (uintptr_t) c;
 
-	*((u4 *) ra) = mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 4);
-
-	/* patch the classinfo pointer */
-
-	*((ptrint *) datap) = (ptrint) c;
-
-	/* synchronize data cache */
-
+	// Synchronize data cache.
 	md_dcacheflush(datap, SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -557,21 +495,14 @@ bool patcher_resolve_classref_to_vftbl(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* patch back original code */
+	// Patch super class' vftbl.
+	*((uintptr_t*) datap) = (uintptr_t) c->vftbl;
 
-	*((u4 *) ra) = mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 4);
-
-	/* patch super class' vftbl */
-
-	*((ptrint *) datap) = (ptrint) c->vftbl;
-
-	/* synchronize data cache */
-
+	// Synchronize data cache.
 	md_dcacheflush(datap, SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -604,21 +535,14 @@ bool patcher_resolve_classref_to_flags(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	/* patch back original code */
+	// Patch class flags.
+	*((int32_t*) datap) = (int32_t) c->flags;
 
-	*((u4 *) ra) = mcode;
-
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra, 4);
-
-	/* patch class flags */
-
-	*((s4 *) datap) = (s4) c->flags;
-
-	/* synchronize data cache */
-
+	// Synchronize data cache.
 	md_dcacheflush(datap, SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
