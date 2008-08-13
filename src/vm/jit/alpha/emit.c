@@ -446,11 +446,10 @@ uint32_t emit_trap(codegendata *cd)
 	/* Get machine code which is patched back in later. The
 	   trap is 1 instruction word long. */
 
-	mcode = *((uint32_t *) cd->mcodeptr);
+	mcode = *((uint32_t*) cd->mcodeptr);
 
-	/* Destination register must not be REG_ZERO, because then no
-	   SIGSEGV is thrown. */
-	M_ALD_INTERN(REG_RESULT, REG_ZERO, TRAP_PATCHER);
+	// Generate a SIGILL.
+	M_UNDEFINED;
 
 	return mcode;
 }

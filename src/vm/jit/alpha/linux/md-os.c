@@ -2,6 +2,7 @@
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -42,6 +43,7 @@
 #include "vm/os.hpp"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/disass.h"
 #include "vm/jit/executionstate.h"
 #include "vm/jit/trap.h"
 
@@ -138,16 +140,65 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		/* fall-through */
 
-	case TRAP_PATCHER:
-		if (p == NULL)
-			break;
-
-		/* fall-through */
-		
 	default:
 		_mc->sc_regs[REG_ITMP1_XPTR] = (uintptr_t) p;
 		_mc->sc_regs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
 		_mc->sc_pc                   = (uintptr_t) asm_handle_exception;
+	}
+}
+
+
+/* md_signal_handler_sigill ****************************************************
+
+   Illegal Instruction signal handler for hardware exception checks.
+
+*******************************************************************************/
+
+void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
+{
+	ucontext_t* _uc = (ucontext_t*) _p;
+	mcontext_t* _mc = &_uc->uc_mcontext;
+
+	void* pv  = (u1 *) _mc->sc_regs[REG_PV];
+	void* sp  = (u1 *) _mc->sc_regs[REG_SP];
+	void* ra  = (u1 *) _mc->sc_regs[REG_RA]; // RA is correct for leaf methods.
+	void* xpc = (u1 *) _mc->sc_pc;
+
+	// The PC points to the instruction after the illegal instruction.
+	xpc = (void*) (((uintptr_t) xpc) - 4);
+
+	// Get the exception-throwing instruction.
+	uint32_t mcode = *((uint32_t*) xpc);
+
+	int opcode = M_OP3_GET_Opcode(mcode);
+
+	// Check for undefined instruction we use.
+	// TODO Check the whole instruction.
+	if (opcode != 0x4) {
+		log_println("md_signal_handler_sigill: Unknown illegal instruction %x at %p", mcode, xpc);
+#if defined(ENABLE_DISASSEMBLER)
+		(void) disassinstr(xpc);
+#endif
+		vm_abort("Aborting...");
+	}
+
+	// This signal is always a patcher.
+	int      type = TRAP_PATCHER;
+	intptr_t val  = 0;
+
+	// Handle the trap.
+	void* p = trap_handle(type, val, pv, sp, ra, xpc, _p);
+
+	// Set registers if we have an exception, continue execution
+	// otherwise.
+	if (p != NULL) {
+		_mc->sc_regs[REG_ITMP1_XPTR] = (uintptr_t) p;
+		_mc->sc_regs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
+		_mc->sc_pc                   = (uintptr_t) asm_handle_exception;
+	}
+	else {
+		// We need to set the PC because we adjusted it above.
+		_mc->sc_pc                   = (uintptr_t) xpc;
 	}
 }
 
