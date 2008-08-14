@@ -130,7 +130,7 @@ void patcher_list_free(codeinfo *code)
 
 	/* free the list itself */
 
-	FREE(code->patchers, list_t);
+	list_free(code->patchers);
 }
 
 
