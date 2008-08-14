@@ -72,19 +72,19 @@ inline Mutex::Mutex()
 	int result = pthread_mutexattr_init(&_attr);
 
 	if (result != 0) {
-		vm_abort_errnum(result, "Mutex::Mutex(): pthread_mutexattr_init failed");
+		VM::get_current()->abort_errnum(result, "Mutex::Mutex(): pthread_mutexattr_init failed");
 	}
 
 	result = pthread_mutexattr_settype(&_attr, PTHREAD_MUTEX_RECURSIVE);
 
 	if (result != 0) {
-		vm_abort_errnum(result, "Mutex::Mutex(): pthread_mutexattr_settype failed");
+		VM::get_current()->abort_errnum(result, "Mutex::Mutex(): pthread_mutexattr_settype failed");
 	}
 
 	result = pthread_mutex_init(&_mutex, &_attr);
 
 	if (result != 0) {
-		vm_abort_errnum(result, "Mutex::Mutex(): pthread_mutex_init failed");
+		VM::get_current()->abort_errnum(result, "Mutex::Mutex(): pthread_mutex_init failed");
 	}
 }
 
@@ -97,13 +97,13 @@ inline Mutex::~Mutex()
 	int result = pthread_mutexattr_destroy(&_attr);
 
 	if (result != 0) {
-		vm_abort_errnum(result, "Mutex::~Mutex(): pthread_mutexattr_destroy failed");
+		VM::get_current()->abort_errnum(result, "Mutex::~Mutex(): pthread_mutexattr_destroy failed");
 	}
 
 	result = pthread_mutex_destroy(&_mutex);
 
 	if (result != 0) {
-		vm_abort_errnum(result, "Mutex::~Mutex(): pthread_mutex_destroy failed");
+		VM::get_current()->abort_errnum(result, "Mutex::~Mutex(): pthread_mutex_destroy failed");
 	}
 }
 
@@ -122,7 +122,7 @@ inline void Mutex::lock()
 	int result = pthread_mutex_lock(&_mutex);
 
 	if (result != 0) {
-		vm_abort_errnum(result, "Mutex::lock(): pthread_mutex_lock failed");
+		VM::get_current()->abort_errnum(result, "Mutex::lock(): pthread_mutex_lock failed");
 	}
 }
 
@@ -136,7 +136,7 @@ inline void Mutex::unlock()
 	int result = pthread_mutex_unlock(&_mutex);
 
 	if (result != 0) {
-		vm_abort_errnum(result, "Mutex::unlock: pthread_mutex_unlock failed");
+		VM::get_current()->abort_errnum(result, "Mutex::unlock: pthread_mutex_unlock failed");
 	}
 }
 

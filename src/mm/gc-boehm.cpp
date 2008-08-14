@@ -240,7 +240,7 @@ void *gc_out_of_memory(size_t bytes_requested)
 
 	if (in_gc_out_of_memory) {
 		/* this is all we can do... */
-		vm_abort("gc_out_of_memory: out of memory");
+		VM::get_current()->abort("gc_out_of_memory: out of memory");
 	}
 
 	in_gc_out_of_memory = true;
@@ -265,7 +265,7 @@ void *gc_out_of_memory(size_t bytes_requested)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

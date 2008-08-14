@@ -3081,7 +3081,7 @@ jint _Jv_JNI_GetJavaVM(JNIEnv *env, JavaVM **javavm)
 {
 	STATISTICS(jniinvokation());
 
-    *javavm = vm->get_javavm();
+    *javavm = VM::get_current()->get_javavm();
 
 	return 0;
 }
@@ -3621,7 +3621,7 @@ jint _Jv_JNI_DestroyJavaVM(JavaVM *javavm)
 
 	TRACEJNICALLS(("_Jv_JNI_DestroyJavaVM(javavm=%p)", javavm));
 
-	if (vm->is_created() == false)
+	if (VM::get_current()->is_created() == false)
 		return JNI_ERR;
 
     status = vm_destroy(javavm);
@@ -3656,7 +3656,7 @@ static int jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon
 	result = thread_current_is_attached();
 
 	if (result == true) {
-		*p_env = vm->get_jnienv();
+		*p_env = VM::get_current()->get_jnienv();
 		return JNI_OK;
 	}
 
@@ -3675,7 +3675,7 @@ static int jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon
 		return JNI_ERR;
 #endif
 
-	*p_env = vm->get_jnienv();
+	*p_env = VM::get_current()->get_jnienv();
 
 	return JNI_OK;
 }
@@ -3687,7 +3687,7 @@ jint jni_AttachCurrentThread(JavaVM *javavm, void **p_env, void *thr_args)
 
 	TRACEJNICALLS(("jni_AttachCurrentThread(javavm=%p, p_env=%p, thr_args=%p)", javavm, p_env, thr_args));
 
-	if (vm->is_created() == false)
+	if (VM::get_current()->is_created() == false)
 		return JNI_ERR;
 
 	result = jni_attach_current_thread(p_env, thr_args, false);
@@ -3756,7 +3756,7 @@ jint jni_GetEnv(JavaVM *javavm, void **env, jint version)
 {
 	TRACEJNICALLS(("jni_GetEnv(javavm=%p, env=%p, version=%d)", javavm, env, version));
 
-	if (vm->is_created() == false) {
+	if (VM::get_current()->is_created() == false) {
 		*env = NULL;
 		return JNI_EDETACHED;
 	}
@@ -3772,7 +3772,7 @@ jint jni_GetEnv(JavaVM *javavm, void **env, jint version)
 	/* Check the JNI version. */
 
 	if (jni_version_check(version) == true) {
-		*env = vm->get_jnienv();
+		*env = VM::get_current()->get_jnienv();
 		return JNI_OK;
 	}
 
@@ -3812,7 +3812,7 @@ jint jni_AttachCurrentThreadAsDaemon(JavaVM *javavm, void **penv, void *args)
 
 	TRACEJNICALLS(("jni_AttachCurrentThreadAsDaemon(javavm=%p, penv=%p, args=%p)", javavm, penv, args));
 
-	if (vm->is_created() == false)
+	if (VM::get_current()->is_created() == false)
 		return JNI_ERR;
 
 	result = jni_attach_current_thread(penv, args, true);
@@ -4167,7 +4167,7 @@ jint JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 
 	// We currently only support 1 VM running.
 
-	vmBuf[0] = vm->get_javavm();
+	vmBuf[0] = VM::get_current()->get_javavm();
 	*nVMs    = 1;
 
     return JNI_OK;

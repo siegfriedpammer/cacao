@@ -84,7 +84,7 @@ void* os::mmap_anonymous(void *addr, size_t len, int prot, int flags)
 	fd = open("/dev/zero", O_RDONLY, 0);
 
 	if (fd == -1)
-		vm_abort("os::mmap_anonymous: open failed: %s", os::strerror(errno));
+		VM::get_current()->abort_errno("os::mmap_anonymous: open failed");
 
 	p = mmap(addr, len, prot, flags, fd, 0);
 #endif
@@ -94,7 +94,7 @@ void* os::mmap_anonymous(void *addr, size_t len, int prot, int flags)
 #else
 	if (p == (void *) -1)
 #endif
-		vm_abort("os::mmap_anonymous: mmap failed: %s", os::strerror(errno));
+		VM::get_current()->abort_errno("os::mmap_anonymous: mmap failed");
 
 	return p;
 }

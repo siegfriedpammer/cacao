@@ -107,8 +107,7 @@ void stringtable_update(void)
                                
 				if (js.is_null() || (js.get_value() == NULL)) {
 					/* error in hashtable found */
-
-					vm_abort("stringtable_update: invalid literalstring in hashtable");
+					VM::get_current()->abort("stringtable_update: invalid literalstring in hashtable");
 				}
 
 				a = LLNI_UNWRAP(js.get_value());

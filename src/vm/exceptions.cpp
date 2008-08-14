@@ -241,7 +241,7 @@ static void exceptions_abort(utf *classname, utf *message)
 
 	log_finish();
 
-	vm_abort("Aborting...");
+	VM::get_current()->abort("Aborting...");
 }
 
 
@@ -266,7 +266,7 @@ static java_handle_t *exceptions_new_class_utf(classinfo *c, utf *message)
 	java_handle_t *s;
 	java_handle_t *o;
 
-	if (vm->is_initializing()) {
+	if (VM::get_current()->is_initializing()) {
 		/* This can happen when global class variables are used which
 		   are not initialized yet. */
 
@@ -304,7 +304,7 @@ static java_handle_t *exceptions_new_utf(utf *classname)
 	classinfo     *c;
 	java_handle_t *o;
 
-	if (vm->is_initializing())
+	if (VM::get_current()->is_initializing())
 		exceptions_abort(classname, NULL);
 
 	c = load_class_bootstrap(classname);
@@ -342,7 +342,7 @@ static java_handle_t *exceptions_new_utf_javastring(utf *classname,
 	java_handle_t *o;
 	classinfo     *c;
    
-	if (vm->is_initializing())
+	if (VM::get_current()->is_initializing())
 		exceptions_abort(classname, NULL);
 
 	c = load_class_bootstrap(classname);
@@ -379,7 +379,7 @@ static java_handle_t *exceptions_new_utf_utf(utf *classname, utf *message)
 	classinfo     *c;
 	java_handle_t *o;
 
-	if (vm->is_initializing())
+	if (VM::get_current()->is_initializing())
 		exceptions_abort(classname, message);
 
 	c = load_class_bootstrap(classname);
@@ -454,7 +454,7 @@ static void exceptions_throw_utf_throwable(utf *classname,
 	classinfo           *c;
 	methodinfo          *m;
 
-	if (vm->is_initializing())
+	if (VM::get_current()->is_initializing())
 		exceptions_abort(classname, NULL);
 
 	java_lang_Throwable jlt(cause);
@@ -506,7 +506,7 @@ static void exceptions_throw_utf_exception(utf *classname,
 	java_handle_t *o;
 	methodinfo    *m;
 
-	if (vm->is_initializing())
+	if (VM::get_current()->is_initializing())
 		exceptions_abort(classname, NULL);
 
 	c = load_class_bootstrap(classname);
@@ -551,7 +551,7 @@ static void exceptions_throw_utf_exception(utf *classname,
 
 static void exceptions_throw_utf_cause(utf *classname, java_handle_t *cause)
 {
-	if (vm->is_initializing())
+	if (VM::get_current()->is_initializing())
 		exceptions_abort(classname, NULL);
 
 	java_lang_Throwable jltcause(cause);
@@ -2011,7 +2011,7 @@ void exceptions_print_stacktrace(void)
 									 false);
 
 		if (m == NULL)
-			vm_abort("exceptions_print_stacktrace: printStackTrace()V not found");
+			VM::get_current()->abort("exceptions_print_stacktrace: printStackTrace()V not found");
 
 		/* Print message. */
 

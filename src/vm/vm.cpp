@@ -114,9 +114,9 @@
 
 
 /**
- * This is _the_ instance of the VM.
+ * This is _the_ VM instance.
  */
-VM* vm;
+VM* VM::_vm = NULL;
 
 
 /* global variables ***********************************************************/
@@ -681,7 +681,7 @@ bool VM::create(JavaVM** p_vm, void** p_env, void* vm_args)
 
 	// Instantiate a new VM.
 	try {
-		vm = new VM(_vm_args);
+		_vm = new VM(_vm_args);
 	}
 	catch (std::exception e) {
 		// FIXME How can we delete the resources allocated?
@@ -689,15 +689,15 @@ bool VM::create(JavaVM** p_vm, void** p_env, void* vm_args)
 // 		FREE(env, _Jv_JNIEnv);
 // 		FREE(vm, _Jv_JavaVM);
 
-		vm = NULL;
+		_vm = NULL;
 
 		return false;
 	}
 
 	// Return the values.
 
-	*p_vm  = vm->get_javavm();
-	*p_env = vm->get_jnienv();
+	*p_vm  = _vm->get_javavm();
+	*p_env = _vm->get_jnienv();
 
 	return true;
 }
@@ -724,7 +724,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 	// Make ourself globally visible.
 	// XXX Is this a good idea?
-	vm = this;
+	_vm = this;
 
 	/* create and fill a JavaVM structure */
 
@@ -775,7 +775,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* Install the exit handler. */
 
 	if (atexit(vm_exit_handler))
-		vm_abort("atexit failed: %s\n", strerror(errno));
+		VM::get_current()->abort("atexit failed: %s\n", strerror(errno));
 
 	/* Set some options. */
 
@@ -1396,7 +1396,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* install architecture dependent signal handlers */
 
 	if (!signal_init())
-		vm_abort("vm_create: signal_init failed");
+		VM::get_current()->abort("vm_create: signal_init failed");
 
 #if defined(ENABLE_INTRP)
 	/* Allocate main thread stack on the Java heap. */
@@ -1410,7 +1410,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* AFTER: threads_preinit */
 
 	if (!string_init())
-		vm_abort("vm_create: string_init failed");
+		VM::get_current()->abort("vm_create: string_init failed");
 
 	/* AFTER: threads_preinit */
 
@@ -1419,7 +1419,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* AFTER: thread_preinit */
 
 	if (!suck_init())
-		vm_abort("vm_create: suck_init failed");
+		VM::get_current()->abort("vm_create: suck_init failed");
 
 	suck_add_from_property("java.endorsed.dirs");
 
@@ -1441,7 +1441,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	   (must be done _after_ threads_preinit) */
 
 	if (!classcache_init())
-		vm_abort("vm_create: classcache_init failed");
+		VM::get_current()->abort("vm_create: classcache_init failed");
 
 	/* Initialize the code memory management. */
 	/* AFTER: threads_preinit */
@@ -1452,7 +1452,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	   threads_preinit) */
 
 	if (!finalizer_init())
-		vm_abort("vm_create: finalizer_init failed");
+		VM::get_current()->abort("vm_create: finalizer_init failed");
 
 	/* Initialize the JIT compiler. */
 
@@ -1490,13 +1490,13 @@ VM::VM(JavaVMInitArgs* vm_args)
 #endif
 
 	if (!builtin_init())
-		vm_abort("vm_create: builtin_init failed");
+		VM::get_current()->abort("vm_create: builtin_init failed");
 
 	/* Initialize the native subsystem. */
 	/* BEFORE: threads_init */
 
 	if (!native_init())
-		vm_abort("vm_create: native_init failed");
+		VM::get_current()->abort("vm_create: native_init failed");
 
 	/* Register the native methods implemented in the VM. */
 	/* BEFORE: threads_init */
@@ -1509,7 +1509,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	   (e.g. NewGlobalRef). */
 
 	if (!jni_init())
-		vm_abort("vm_create: jni_init failed");
+		VM::get_current()->abort("vm_create: jni_init failed");
 #endif
 
 #if defined(ENABLE_JNI) || defined(ENABLE_HANDLES)
@@ -1517,7 +1517,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* BEFORE: threads_init */
 
 	if (!localref_table_init())
-		vm_abort("vm_create: localref_table_init failed");
+		VM::get_current()->abort("vm_create: localref_table_init failed");
 #endif
 
 	/* Iinitialize some important system classes. */
@@ -1538,14 +1538,14 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* initialize profiling */
 
 	if (!profile_init())
-		vm_abort("vm_create: profile_init failed");
+		VM::get_current()->abort("vm_create: profile_init failed");
 #endif
 
 #if defined(ENABLE_THREADS)
 	/* initialize recompilation */
 
 	if (!recompile_init())
-		vm_abort("vm_create: recompile_init failed");
+		VM::get_current()->abort("vm_create: recompile_init failed");
 
 	/* start the signal handler thread */
 
@@ -1554,33 +1554,33 @@ VM::VM(JavaVMInitArgs* vm_args)
 	if (threads_pthreads_implementation_nptl)
 #endif
 		if (!signal_start_thread())
-			vm_abort("vm_create: signal_start_thread failed");
+			VM::get_current()->abort("vm_create: signal_start_thread failed");
 
 	/* finally, start the finalizer thread */
 
 	if (!finalizer_start_thread())
-		vm_abort("vm_create: finalizer_start_thread failed");
+		VM::get_current()->abort("vm_create: finalizer_start_thread failed");
 
 # if !defined(NDEBUG)
 	/* start the memory profiling thread */
 
 	if (opt_ProfileMemoryUsage || opt_ProfileGCMemoryUsage)
 		if (!memory_start_thread())
-			vm_abort("vm_create: memory_start_thread failed");
+			VM::get_current()->abort("vm_create: memory_start_thread failed");
 # endif
 
 	/* start the recompilation thread (must be done before the
 	   profiling thread) */
 
 	if (!recompile_start_thread())
-		vm_abort("vm_create: recompile_start_thread failed");
+		VM::get_current()->abort("vm_create: recompile_start_thread failed");
 
 # if defined(ENABLE_PROFILING)
 	/* start the profile sampling thread */
 
 /* 	if (opt_prof) */
 /* 		if (!profile_start_thread()) */
-/* 			vm_abort("vm_create: profile_start_thread failed"); */
+/* 			VM::get_current()->abort("vm_create: profile_start_thread failed"); */
 # endif
 #endif
 
@@ -1800,7 +1800,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	   the application's main method exits. */
 
 	if (!thread_detach_current_thread())
-		vm_abort("vm_run: Could not detach main thread.");
+		VM::get_current()->abort("vm_run: Could not detach main thread.");
 #endif
 
 	/* Destroy the JavaVM. */
@@ -1998,21 +1998,16 @@ void vm_exit_handler(void)
 }
 
 
-/* vm_abort ********************************************************************
-
-   Prints an error message and aborts the VM.
-
-   IN:
-       text ... error message to print
-
-*******************************************************************************/
-
-void vm_abort(const char *text, ...)
+/**
+ * Prints an error message and aborts the VM.
+ *
+ * @param text Error message to print.
+ */
+void VM::abort(const char* text, ...)
 {
 	va_list ap;
 
-	/* Print the log message. */
-
+	// Print the log message.
 	log_start();
 
 	va_start(ap, text);
@@ -2021,62 +2016,50 @@ void vm_abort(const char *text, ...)
 
 	log_finish();
 
-	/* Now abort the VM. */
-
+	// Now abort the VM.
 	os::abort();
 }
 
 
-/* vm_abort_errnum *************************************************************
-
-   Prints an error message, appends ":" plus the strerror-message of
-   errnum and aborts the VM.
-
-   IN:
-       errnum ... error number
-       text ..... error message to print
-
-*******************************************************************************/
-
-void vm_abort_errnum(int errnum, const char *text, ...)
+/**
+ * Prints an error message, appends ":" plus the strerror-message of
+ * errnum and aborts the VM.
+ *
+ * @param errnum Error number.
+ * @param text   Error message to print.
+ */
+void VM::abort_errnum(int errnum, const char* text, ...)
 {
 	va_list ap;
 
-	/* Print the log message. */
-
+	// Print the log message.
 	log_start();
 
 	va_start(ap, text);
 	log_vprint(text, ap);
 	va_end(ap);
 
-	/* Print the strerror-message of errnum. */
-
+	// Print the strerror-message of errnum.
 	log_print(": %s", os::strerror(errnum));
 
 	log_finish();
 
-	/* Now abort the VM. */
-
+	// Now abort the VM.
 	os::abort();
 }
 
 
-/* vm_abort_errno **************************************************************
-
-   Equal to vm_abort_errnum, but uses errno to get the error number.
-
-   IN:
-       text ... error message to print
-
-*******************************************************************************/
-
-void vm_abort_errno(const char *text, ...)
+/**
+ * Equal to VM::abort_errnum, but uses errno to get the error number.
+ *
+ * @param text Error message to print.
+ */
+void VM::abort_errno(const char* text, ...)
 {
 	va_list ap;
 
 	va_start(ap, text);
-	vm_abort_errnum(errno, text, ap);
+	abort_errnum(errno, text, ap);
 	va_end(ap);
 }
 
@@ -2127,7 +2110,7 @@ void vm_abort_disassemble(void *pc, int count, const char *text, ...)
 		pc = disassinstr((u1*) pc);
 #endif
 
-	vm_abort("Aborting...");
+	VM::get_current()->abort("Aborting...");
 }
 
 
@@ -2368,7 +2351,7 @@ static void vm_compile_method(char* mainname)
 	}
 
 	if (m == NULL)
-		vm_abort("vm_compile_method: java.lang.NoSuchMethodException: %s.%s",
+		VM::get_current()->abort("vm_compile_method: java.lang.NoSuchMethodException: %s.%s",
 				 opt_method, opt_signature ? opt_signature : "");
 		
 	jit_compile(m);
@@ -2615,7 +2598,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 		break;
 
 	default:
-		vm_abort("vm_call_method_objectarray: invalid return type %d", m->parseddesc->returntype.primitivetype);
+		VM::get_current()->abort("vm_call_method_objectarray: invalid return type %d", m->parseddesc->returntype.primitivetype);
 	}
 
 	/* release dump area */
@@ -2651,11 +2634,38 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 
 extern "C" {
 
-JavaVM* VM_get_javavm()      { return vm->get_javavm(); }
-JNIEnv* VM_get_jnienv()      { return vm->get_jnienv(); }
-bool    VM_is_initializing() { return vm->is_initializing(); }
-bool    VM_is_created()      { return vm->is_created(); }
-int64_t VM_get_starttime()   { return vm->get_starttime(); }
+JavaVM* VM_get_javavm()      { return VM::get_current()->get_javavm(); }
+JNIEnv* VM_get_jnienv()      { return VM::get_current()->get_jnienv(); }
+bool    VM_is_initializing() { return VM::get_current()->is_initializing(); }
+bool    VM_is_created()      { return VM::get_current()->is_created(); }
+int64_t VM_get_starttime()   { return VM::get_current()->get_starttime(); }
+
+void vm_abort(const char* text, ...)
+{
+	va_list ap;
+
+	va_start(ap, text);
+	VM::get_current()->abort(text, ap);
+	va_end(ap);
+}
+
+void vm_abort_errnum(int errnum, const char* text, ...)
+{
+	va_list ap;
+
+	va_start(ap, text);
+	VM::get_current()->abort_errnum(errnum, text, ap);
+	va_end(ap);
+}
+
+void vm_abort_errno(const char* text, ...)
+{
+	va_list ap;
+
+	va_start(ap, text);
+	VM::get_current()->abort_errno(text, ap);
+	va_end(ap);
+}
 
 }
 
