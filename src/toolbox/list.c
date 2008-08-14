@@ -31,7 +31,7 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/mutex.hpp"
 
 #include "toolbox/list.h"
 
@@ -48,8 +48,7 @@ list_t *list_create(int nodeoffset)
 
 	l = NEW(list_t);
 
-	LOCK_INIT_OBJECT_LOCK(l);
-
+	l->mutex      = Mutex_new();
 	l->first      = NULL;
 	l->last       = NULL;
 	l->nodeoffset = nodeoffset;
@@ -69,6 +68,8 @@ void list_free(list_t *l)
 {
 	assert(l != NULL);
 
+	Mutex_delete(l->mutex);
+
 	FREE(l, list_t);
 }
 
@@ -87,6 +88,7 @@ list_t *list_create_dump(int nodeoffset)
 
 	l = DNEW(list_t);
 
+	l->mutex      = NULL;
 	l->first      = NULL;
 	l->last       = NULL;
 	l->nodeoffset = nodeoffset;
@@ -104,7 +106,7 @@ list_t *list_create_dump(int nodeoffset)
 
 void list_lock(list_t *l)
 {
-	LOCK_MONITOR_ENTER(l);
+	Mutex_lock(l->mutex);
 }
 
 
@@ -116,7 +118,7 @@ void list_lock(list_t *l)
 
 void list_unlock(list_t *l)
 {
-	LOCK_MONITOR_EXIT(l);
+	Mutex_unlock(l->mutex);
 }
 
 

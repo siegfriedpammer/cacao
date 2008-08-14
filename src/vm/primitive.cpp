@@ -226,7 +226,7 @@ java_handle_t* Primitive::box(int type, imm_union value)
 		break;
 	default:
 		o = NULL;
-		vm_abort("primitive_box: invalid primitive type %d", type);
+		VM::get_current()->abort("primitive_box: invalid primitive type %d", type);
 	}
 
 	return o;
@@ -287,7 +287,7 @@ imm_union Primitive::unbox(java_handle_t *h)
 		value.a = h;
 		break;
 	default:
-		vm_abort("Primitive::unbox: invalid primitive type %d", type);
+		VM::get_current()->abort("Primitive::unbox: invalid primitive type %d", type);
 	}
 
 	return value;

@@ -31,14 +31,8 @@
 #include <stdarg.h>
 #include <stdint.h>
 
-#include "vm/types.h"
-
+// We need the JNI types for the VM class.
 #include "native/jni.hpp"
-
-#include "vm/global.h"
-
-#include "vm/class.h"
-#include "vm/method.h"
 
 #ifdef __cplusplus
 
@@ -47,6 +41,9 @@
  */
 class VM {
 private:
+	// This is _the_ VM instance.
+	static VM* _vm;
+
 	// JNI variables.
 	JavaVM* _javavm;
 	JNIEnv* _jnienv;
@@ -64,6 +61,7 @@ public:
 
 	// Static methods.
 	static bool create(JavaVM** p_vm, void** p_env, void* vm_args);
+	static VM*  get_current() { return _vm; }
 
 	// Getters for private members.
 	JavaVM* get_javavm()      { return _javavm; }
@@ -72,13 +70,12 @@ public:
 	bool    is_created()      { return _created; }
 	bool    is_exiting()      { return _exiting; }
 	int64_t get_starttime()   { return _starttime; }
+
+	// Instance functions.
+	void abort(const char* text, ...);
+	void abort_errnum(int errnum, const char* text, ...);
+	void abort_errno(const char* text, ...);
 };
-
-
-/**
- * This is _the_ instance of the VM.
- */
-extern VM* vm;
 
 #else
 
@@ -89,6 +86,12 @@ bool    VM_is_created();
 int64_t VM_get_starttime();
 
 #endif
+
+
+// Includes.
+#include "vm/global.h"
+#include "vm/method.h"
+
 
 /* These C methods are the exported interface. ********************************/
 
@@ -106,7 +109,7 @@ bool VM_create(JavaVM** p_vm, void** p_env, void* vm_args);
 /* export global variables ****************************************************/
 
 #if defined(ENABLE_INTRP)
-extern u1 *intrp_main_stack;
+extern uint8_t* intrp_main_stack;
 #endif
 
 
@@ -120,15 +123,12 @@ void usage(void);
 
 bool vm_create(JavaVMInitArgs *vm_args);
 void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args);
-s4   vm_destroy(JavaVM *vm);
-void vm_exit(s4 status);
-void vm_shutdown(s4 status);
+int32_t   vm_destroy(JavaVM *vm);
+void vm_exit(int32_t status);
+void vm_shutdown(int32_t status);
 
 void vm_exit_handler(void);
 
-void vm_abort(const char *text, ...);
-void vm_abort_errnum(int errnum, const char *text, ...);
-void vm_abort_errno(const char *text, ...);
 void vm_abort_disassemble(void *pc, int count, const char *text, ...);
 
 /* Java method calling functions */
@@ -156,6 +156,12 @@ double  vm_call_method_double_valist(methodinfo *m, java_handle_t *o, va_list ap
 double  vm_call_method_double_jvalue(methodinfo *m, java_handle_t *o, const jvalue *args);
 
 java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o, java_handle_objectarray_t *params);
+
+
+// Legacy C interface.
+void vm_abort(const char* text, ...);
+void vm_abort_errnum(int errnum, const char* text, ...);
+void vm_abort_errno(const char* text, ...);
 
 #ifdef __cplusplus
 }

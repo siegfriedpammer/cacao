@@ -64,7 +64,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_gnu_java_lang_management_VMRun
  */
 JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime(JNIEnv *env, jclass clazz)
 {
-	return vm->get_starttime();
+	return VM::get_current()->get_starttime();
 }
 
 } // extern "C"

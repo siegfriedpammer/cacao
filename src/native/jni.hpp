@@ -63,6 +63,7 @@
 #ifndef _JNI_HPP
 #define _JNI_HPP
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "vm/global.h"
