@@ -55,11 +55,6 @@ public:
 };
 
 
-/* static mutex initializer ***************************************************/
-
-#define MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
-
-
 /**
  * Initializes the given mutex object and checks for errors.
  */
