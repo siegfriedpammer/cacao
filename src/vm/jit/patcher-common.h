@@ -51,7 +51,7 @@ typedef struct patchref_t {
 	s4           disp;          /* displacement of ref in the data segment    */
 	functionptr  patcher;       /* patcher function to call                   */
 	void*        ref;           /* reference passed                           */
-	u8           mcode;         /* machine code to be patched back in         */
+	uint32_t     mcode;         /* machine code to be patched back in         */
 	bool         done;          /* XXX preliminary: patch already applied?    */
 	listnode_t   linkage;
 } patchref_t;
