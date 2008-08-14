@@ -144,7 +144,8 @@ inline void Mutex::unlock()
 
 // This structure must have the same layout as the class above.
 typedef struct Mutex {
-	pthread_mutex_t _mutex;
+	pthread_mutex_t     _mutex;
+	pthread_mutexattr_t _attr;
 } Mutex;
 
 Mutex* Mutex_new();
