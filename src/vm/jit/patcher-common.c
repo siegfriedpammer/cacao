@@ -2,6 +2,7 @@
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -244,6 +245,49 @@ void patcher_resolve(jitdata* jd)
 		pr->mpc   += (intptr_t) code->entrypoint;
 		pr->datap  = (intptr_t) (pr->disp + code->entrypoint);
 	}
+}
+
+
+/**
+ * Check if the patcher is already patched.  This is done by comparing
+ * the machine instruction.
+ *
+ * @param pr Patcher structure.
+ *
+ * @return true if patched, false otherwise.
+ */
+bool patcher_is_patched(patchref_t* pr)
+{
+	// Validate the instruction at the patching position is the same
+	// instruction as the patcher structure contains.
+	uint32_t mcode = *((uint32_t*) pr->mpc);
+
+	if (mcode != pr->mcode) {
+		// The code differs.
+		return false;
+	}
+
+	return true;
+}
+
+
+/**
+ *
+ */
+bool patcher_is_patched_at(void* pc)
+{
+	codeinfo* code = code_find_codeinfo_for_pc(pc);
+
+	// Get the patcher for the given PC.
+	patchref_t* pr = patcher_list_find(code, pc);
+
+	if (pr == NULL) {
+		// The given PC is not a patcher position.
+		return false;
+	}
+
+	// Validate the instruction.
+	return patcher_is_patched(pr);
 }
 
 

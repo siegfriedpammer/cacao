@@ -70,6 +70,12 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
 
 void patcher_resolve(jitdata* jd);
 
+bool patcher_is_patched(patchref_t* pr);
+bool patcher_is_patched_at(void* pc);
+
+// MD function.
+bool patcher_is_valid_trap_instruction_at(void* pc);
+
 java_handle_t *patcher_handler(u1 *pc);
 
 
