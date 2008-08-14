@@ -28,14 +28,16 @@
 
 #include "config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdint.h>
 
 #include "vm/global.h"
 
+#include "threads/mutex.hpp"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* ---------------------- interface description -----------------------------
 
@@ -109,9 +111,7 @@ struct listnode_t {
 typedef struct list_t list_t;
 
 struct list_t {
-#if defined(ENABLE_THREADS)
-	java_object_t      lock;            /* threads lock object                */
-#endif
+	Mutex*             mutex;           /* threads lock object                */
 	listnode_t        *first;
 	listnode_t        *last;
 	int                nodeoffset;

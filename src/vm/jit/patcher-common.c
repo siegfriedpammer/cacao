@@ -36,8 +36,6 @@
 
 #include "native/native.h"
 
-#include "threads/lock-common.h"
-
 #include "toolbox/list.h"
 #include "toolbox/logging.h"           /* XXX remove me! */
 
@@ -333,7 +331,7 @@ java_handle_t *patcher_handler(u1 *pc)
 
 	/* enter a monitor on the patcher list */
 
-	LOCK_MONITOR_ENTER(code->patchers);
+	list_lock(code->patchers);
 
 	/* search the patcher information for the given PC */
 
@@ -348,7 +346,7 @@ java_handle_t *patcher_handler(u1 *pc)
 			log_println("patcher_handler: double-patching detected!");
 		}
 #endif
-		LOCK_MONITOR_EXIT(code->patchers);
+		list_unlock(code->patchers);
 		return NULL;
 	}
 
@@ -408,14 +406,14 @@ java_handle_t *patcher_handler(u1 *pc)
 	if (result == false) {
 		e = exceptions_get_and_clear_exception();
 
-		LOCK_MONITOR_EXIT(code->patchers);
+		list_unlock(code->patchers);
 
 		return e;
 	}
 
 	pr->done = true; /* XXX this is only preliminary to prevent double-patching */
 
-	LOCK_MONITOR_EXIT(code->patchers);
+	list_unlock(code->patchers);
 
 	return NULL;
 }
