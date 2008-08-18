@@ -1103,15 +1103,22 @@ do { \
 /* M_RECOMPUTE_PV:
    used to recompute our PV (we use the IP for this) out of the current PC
    ATTENTION: if you change this, you have to look at other functions as well!
-   Following things depend on it: asm_call_jit_compiler(); codegen_findmethod();
+   Following things depend on it: md_codegen_get_pv_from_pc();
 */
 #define M_RECOMPUTE_PV(disp) \
 	disp += 8; /* we use PC relative addr.  */ \
 	assert((disp & 0x03) == 0); \
 	assert(disp >= 0 && disp <= 0x03ffffff); \
-	M_SUB_IMM(REG_PV, REG_PC, IMM_ROTL(disp >> 2, 1)); \
-	if (disp > 0x000003ff) M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 10, 5)); \
-	if (disp > 0x0003ffff) M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 18, 9)); \
+	if (disp > 0x0003ffff) { \
+		M_SUB_IMM(REG_PV, REG_PC, IMM_ROTL(disp >> 18, 9)); \
+		M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 10, 5)); \
+		M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 2, 1)); \
+	} else if (disp > 0x000003ff) { \
+		M_SUB_IMM(REG_PV, REG_PC, IMM_ROTL(disp >> 10, 5)); \
+		M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 2, 1)); \
+	} else { \
+		M_SUB_IMM(REG_PV, REG_PC, IMM_ROTL(disp >> 2, 1)); \
+	}
 
 /* M_INTMOVE:
    generates an integer-move from register a to b.
