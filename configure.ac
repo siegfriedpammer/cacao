@@ -542,17 +542,8 @@ AC_CHECK_ENABLE_STATICVM
 AC_CHECK_ENABLE_ANNOTATIONS
 AC_CHECK_ENABLE_ASSERTION
 
-
-dnl where is CACAO's vm.zip
-AC_MSG_CHECKING(where CACAO's vm.zip is installed)
-AC_ARG_WITH([vm-zip],
-            [AS_HELP_STRING(--with-vm-zip=<path>,path to CACAO's vm.zip (includes the name of the file and may be flat) [[default=/usr/local/cacao/share/cacao/vm.zip]])],
-            [CACAO_VM_ZIP=${withval}],
-            [CACAO_VM_ZIP=${CACAO_PREFIX}/share/cacao/vm.zip])
-AC_MSG_RESULT(${CACAO_VM_ZIP})
-AC_DEFINE_UNQUOTED([CACAO_VM_ZIP], "${CACAO_VM_ZIP}", [CACAO's vm.zip])
-AC_SUBST(CACAO_VM_ZIP)
-
+dnl This one depends on AC_CHECK_ENABLE_ZLIB.
+AC_CHECK_WITH_VM_ZIP
 
 AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY
 
