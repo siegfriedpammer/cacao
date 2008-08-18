@@ -119,7 +119,7 @@ static char *trace_java_call_print_argument(methodinfo *m, char *logtext, s4 *lo
 
 		/* Cast to java.lang.Object. */
 
-		o = (java_object_t *) (ptrint) imu.l;
+		o = (java_handle_t*) (uintptr_t) imu.l;
 
 		/* Check return argument for java.lang.Class or
 		   java.lang.String. */
