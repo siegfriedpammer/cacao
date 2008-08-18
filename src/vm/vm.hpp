@@ -62,6 +62,8 @@ public:
 	// Static methods.
 	static bool create(JavaVM** p_vm, void** p_env, void* vm_args);
 	static VM*  get_current() { return _vm; }
+	static void print_build_time_config();
+	static void print_run_time_config();
 
 	// Getters for private members.
 	JavaVM* get_javavm()      { return _javavm; }

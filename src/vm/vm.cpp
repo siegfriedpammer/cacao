@@ -606,53 +606,6 @@ static void fullversion(void)
 }
 
 
-static void vm_printconfig(void)
-{
-	puts("Configure/Build options:\n");
-	puts("  ./configure: "VERSION_CONFIGURE_ARGS"");
-#if defined(__VERSION__)
-	puts("  CC         : "VERSION_CC" ("__VERSION__")");
-#else
-	puts("  CC         : "VERSION_CC"");
-#endif
-	puts("  CFLAGS     : "VERSION_CFLAGS"\n");
-
-	puts("Default variables:\n");
-	printf("  maximum heap size              : %d\n", HEAP_MAXSIZE);
-	printf("  initial heap size              : %d\n", HEAP_STARTSIZE);
-	printf("  stack size                     : %d\n", STACK_SIZE);
-
-#if defined(ENABLE_JRE_LAYOUT)
-	/* When we're building with JRE-layout, the default paths are the
-	   same as the runtime paths. */
-#else
-# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	puts("  gnu.classpath.boot.library.path: "JAVA_RUNTIME_LIBRARY_LIBDIR);
-	puts("  java.boot.class.path           : "CACAO_VM_ZIP":"JAVA_RUNTIME_LIBRARY_CLASSES"");
-# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	puts("  sun.boot.library.path          : "JAVA_RUNTIME_LIBRARY_LIBDIR);
-	puts("  java.boot.class.path           : "JAVA_RUNTIME_LIBRARY_CLASSES);
-# endif
-#endif
-
-	puts("");
-
-	puts("Runtime variables:\n");
-	printf("  maximum heap size              : %d\n", opt_heapmaxsize);
-	printf("  initial heap size              : %d\n", opt_heapstartsize);
-	printf("  stack size                     : %d\n", opt_stacksize);
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	printf("  gnu.classpath.boot.library.path: %s\n", properties_get("gnu.classpath.boot.library.path"));
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	printf("  sun.boot.library.path          : %s\n", properties_get("sun.boot.library.path"));
-#endif
-
-	printf("  java.boot.class.path           : %s\n", properties_get("java.boot.class.path"));
-	printf("  java.class.path                : %s\n", properties_get("java.class.path"));
-}
-
-
 /* forward declarations *******************************************************/
 
 static char *vm_get_mainclass_from_jar(char *mainstring);
@@ -793,13 +746,18 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 	properties_init();
 
-	/* First of all, parse the -XX options. */
+	// First of all, parse the -XX options.
 
 #if defined(ENABLE_VMLOG)
 	vmlog_cacao_init_options();
 #endif
 
 	options_xx(vm_args);
+
+	// After -XX options are parsed, print the build-time
+	// configuration, if requested.
+	if (opt_PrintConfig)
+		print_build_time_config();
 
 #if defined(ENABLE_VMLOG)
 	vmlog_cacao_init();
@@ -1366,6 +1324,11 @@ VM::VM(JavaVMInitArgs* vm_args)
 		}
 	}
 
+	// Print the preliminary run-time VM configuration after options
+	// are parsed.
+	if (opt_PrintConfig)
+		print_run_time_config();
+
 #if defined(ENABLE_JVMTI)
 	if (jvmti) {
 		jvmti_set_phase(JVMTI_PHASE_ONLOAD);
@@ -1603,11 +1566,75 @@ VM::VM(JavaVMInitArgs* vm_args)
 	_created      = true;
 	_initializing = false;
 	
-	/* Print the VM configuration after all stuff is set and the VM is
-	   initialized. */
-
+	// Print the run-time VM configuration after all stuff is set and
+	// the VM is initialized.
 	if (opt_PrintConfig)
-		vm_printconfig();
+		print_run_time_config();
+}
+
+
+/**
+ * Print build-time (default) VM configuration.
+ */
+void VM::print_build_time_config(void)
+{
+	puts("CACAO "VERSION" configure/build options:");
+	puts("");
+	puts("  ./configure: "VERSION_CONFIGURE_ARGS"");
+#if defined(__VERSION__)
+	puts("  CC         : "VERSION_CC" ("__VERSION__")");
+	puts("  CXX        : "VERSION_CXX" ("__VERSION__")");
+#else
+	puts("  CC         : "VERSION_CC"");
+	puts("  CXX        : "VERSION_CXX"");
+#endif
+	puts("  CFLAGS     : "VERSION_CFLAGS"");
+	puts("  CXXFLAGS   : "VERSION_CXXFLAGS"");
+
+	puts("");
+
+	puts("Build-time (default) variables:\n");
+	printf("  maximum heap size              : %d\n", HEAP_MAXSIZE);
+	printf("  initial heap size              : %d\n", HEAP_STARTSIZE);
+	printf("  stack size                     : %d\n", STACK_SIZE);
+
+#if defined(ENABLE_JRE_LAYOUT)
+	// When we're building with JRE-layout, the default paths are the
+	// same as the runtime paths.
+#else
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
+	puts("  gnu.classpath.boot.library.path: "JAVA_RUNTIME_LIBRARY_LIBDIR);
+	puts("  java.boot.class.path           : "CACAO_VM_ZIP":"JAVA_RUNTIME_LIBRARY_CLASSES"");
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	puts("  sun.boot.library.path          : "JAVA_RUNTIME_LIBRARY_LIBDIR);
+	puts("  java.boot.class.path           : "JAVA_RUNTIME_LIBRARY_CLASSES);
+# endif
+#endif
+
+	puts("");
+}
+
+
+/**
+ * Print run-time VM configuration.
+ */
+void VM::print_run_time_config(void)
+{
+	puts("Run-time variables:\n");
+	printf("  maximum heap size              : %d\n", opt_heapmaxsize);
+	printf("  initial heap size              : %d\n", opt_heapstartsize);
+	printf("  stack size                     : %d\n", opt_stacksize);
+
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
+	printf("  gnu.classpath.boot.library.path: %s\n", properties_get("gnu.classpath.boot.library.path"));
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	printf("  sun.boot.library.path          : %s\n", properties_get("sun.boot.library.path"));
+#endif
+
+	printf("  java.boot.class.path           : %s\n", properties_get("java.boot.class.path"));
+	printf("  java.class.path                : %s\n", properties_get("java.class.path"));
+
+	puts("");
 }
 
 
