@@ -47,11 +47,6 @@
 #include "vm/jit/patcher-common.h"
 
 
-#define PATCH_BACK_ORIGINAL_MCODE \
-    do { \
-    } while (0)
-
-
 /* patcher_patch_code **********************************************************
 
    Just patches back the original machine code.
