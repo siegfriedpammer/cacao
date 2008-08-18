@@ -2,6 +2,7 @@
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -97,6 +98,30 @@ void* os::mmap_anonymous(void *addr, size_t len, int prot, int flags)
 		VM::get_current()->abort_errno("os::mmap_anonymous: mmap failed");
 
 	return p;
+}
+
+
+/**
+ * Print a C backtrace.
+ */
+void os::print_backtrace()
+{
+#define BACKTRACE_SIZE 100
+	void** array = new void*[SIZEOF_VOID_P * BACKTRACE_SIZE];
+
+	// Get the backtrace.
+	int size = backtrace(array, BACKTRACE_SIZE);
+
+	// Resolve the symbols.
+	char** strings = backtrace_symbols(array, size);
+
+	log_println("Backtrace (%d stack frames):", size);
+
+	for (int i = 0; i < size; i++)
+		log_println("%s", strings[i]);
+
+	// We have to free the strings.
+	free(strings);
 }
 
 

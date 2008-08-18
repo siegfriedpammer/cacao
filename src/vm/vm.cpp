@@ -2043,6 +2043,9 @@ void VM::abort(const char* text, ...)
 
 	log_finish();
 
+	// Print a backtrace.
+	os::print_backtrace();
+
 	// Now abort the VM.
 	os::abort();
 }
@@ -2070,6 +2073,9 @@ void VM::abort_errnum(int errnum, const char* text, ...)
 	log_print(": %s", os::strerror(errnum));
 
 	log_finish();
+
+	// Print a backtrace.
+	os::print_backtrace();
 
 	// Now abort the VM.
 	os::abort();

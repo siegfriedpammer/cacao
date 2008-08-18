@@ -2,6 +2,7 @@
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -41,6 +42,10 @@
 
 #if defined(HAVE_ERRNO_H)
 # include <errno.h>
+#endif
+
+#if defined(HAVE_EXECINFO_H)
+# include <execinfo.h>
 #endif
 
 #if defined(HAVE_FCNTL_H)
@@ -104,6 +109,8 @@ public:
 	static inline int    accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen);
 	static inline int    access(const char *pathname, int mode);
 	static inline int    atoi(const char* nptr);
+	static inline int    backtrace(void** array, int size);
+	static inline char** backtrace_symbols(void* const* array, int size) throw ();
 	static inline void*  calloc(size_t nmemb, size_t size);
 	static inline int    close(int fd);
 	static inline int    connect(int sockfd, const struct sockaddr* serv_addr, socklen_t addrlen);
@@ -141,8 +148,10 @@ public:
 	static inline size_t strlen(const char* s);
 	static inline char*  strerror(int errnum);
 
+	// Convenience functions.
 	static void* mmap_anonymous(void *addr, size_t len, int prot, int flags);
-	static int   processors_online(void);
+	static void  print_backtrace();
+	static int   processors_online();
 };
 
 
@@ -179,6 +188,26 @@ inline int os::atoi(const char* nptr)
 	return ::atoi(nptr);
 #else
 # error atoi not available
+#endif
+}
+
+inline int os::backtrace(void** array, int size)
+{
+#if defined(HAVE_BACKTRACE)
+	return ::backtrace(array, size);
+#else
+	log_println("os::backtrace: Not available.");
+	return 0;
+#endif
+}
+
+inline char** os::backtrace_symbols(void* const* array, int size) throw ()
+{
+#if defined(HAVE_BACKTRACE_SYMBOLS)
+	return ::backtrace_symbols(array, size);
+#else
+	log_println("os::backtrace_symbols: Not available.");
+	return NULL;
 #endif
 }
 
