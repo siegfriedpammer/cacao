@@ -85,7 +85,8 @@ inline static void *md_codegen_get_pv_from_pc(void *ra)
 
 inline static void md_cacheflush(void *addr, int nbytes)
 {
-	/* do nothing */
+	// Compiler optimization barrier (see PR97).
+	__asm__ __volatile__ ("" : : : "memory");
 }
 
 
@@ -97,7 +98,8 @@ inline static void md_cacheflush(void *addr, int nbytes)
 
 inline static void md_icacheflush(void *addr, int nbytes)
 {
-	/* do nothing */
+	// Compiler optimization barrier (see PR97).
+	__asm__ __volatile__ ("" : : : "memory");
 }
 
 
@@ -109,7 +111,8 @@ inline static void md_icacheflush(void *addr, int nbytes)
 
 inline static void md_dcacheflush(void *addr, int nbytes)
 {
-	/* do nothing */
+	// Compiler optimization barrier (see PR97).
+	__asm__ __volatile__ ("" : : : "memory");
 }
 
 #endif /* _VM_JIT_I386_MD_H */

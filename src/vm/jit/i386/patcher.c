@@ -30,6 +30,7 @@
 #include "vm/types.h"
 
 #include "vm/jit/i386/codegen.h"
+#include "vm/jit/i386/md.h"
 
 #include "mm/memory.h"
 
@@ -46,7 +47,11 @@
 #include "vm/jit/patcher-common.h"
 
 
-#define PATCH_BACK_ORIGINAL_MCODE *((u2 *) pr->mpc) = (u2) pr->mcode
+#define PATCH_BACK_ORIGINAL_MCODE							\
+	do {													\
+		*((uint16_t*) pr->mpc) = (uint16_t) pr->mcode;		\
+		md_icacheflush((void*) pr->mpc, PATCHER_CALL_SIZE);	\
+	} while (0)
 
 
 /* patcher_patch_code **********************************************************
