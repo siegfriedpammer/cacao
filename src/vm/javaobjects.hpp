@@ -124,7 +124,7 @@ template<> inline java_handle_t* FieldAccess::get(java_handle_t* h, const off_t 
 	// gc->leave_critical();
 	LLNI_CRITICAL_END;
 
-	return result;
+	return hresult;
 }	
 
 
