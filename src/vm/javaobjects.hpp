@@ -179,13 +179,12 @@ protected:
 	// Handle of Java object.
 	java_handle_t* _handle;
 
-protected:
+public:
 	java_lang_Object() : _handle(NULL) {}
 	java_lang_Object(java_handle_t* h) : _handle(h) {}
 	java_lang_Object(jobject h) : _handle((java_handle_t*) h) {}
 	virtual ~java_lang_Object() {}
 
-public:
 	// Getters.
 	virtual inline java_handle_t* get_handle() const { return _handle; }
 	inline vftbl_t*               get_vftbl () const;

@@ -1448,24 +1448,21 @@ jboolean _Jv_JNI_IsInstanceOf(JNIEnv *env, jobject obj, jclass clazz)
 jmethodID jni_FromReflectedMethod(JNIEnv *env, jobject method)
 {
 #if defined(ENABLE_JAVASE)
-	java_handle_t* o;
 	methodinfo*    m;
 
 	TRACEJNICALLS(("jni_FromReflectedMethod(env=%p, method=%p)", env, method));
 
-	o = (java_handle_t *) method;
+	java_lang_Object o(method);
 
-	if (o == NULL)
+	if (o.is_null())
 		return NULL;
 
-	// FIXME We can't access the object here directly.
-	if (o->vftbl->clazz == class_java_lang_reflect_Constructor) {
+	if (o.get_Class() == class_java_lang_reflect_Constructor) {
 		java_lang_reflect_Constructor rc(method);
 		m = rc.get_method();
 	}
 	else {
-		// FIXME We can't access the object here directly.
-		assert(o->vftbl->clazz == class_java_lang_reflect_Method);
+		assert(o.get_Class() == class_java_lang_reflect_Method);
 
 		java_lang_reflect_Method rm(method);
 		m = rm.get_method();
@@ -3244,7 +3241,7 @@ void _Jv_JNI_DeleteWeakGlobalRef(JNIEnv* env, jweak ref)
    argument.
 
 *******************************************************************************/
-    
+
 jobject jni_NewGlobalRef(JNIEnv* env, jobject obj)
 {
 	hashtable_global_ref_entry *gre;
