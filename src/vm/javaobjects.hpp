@@ -86,32 +86,26 @@ template<class T> inline T FieldAccess::get(java_handle_t* h, const off_t offset
 {
 	java_object_t* o;
 	T result;
-		
-	// XXX Move this to a GC inline function, e.g.
-	// gc->enter_critical();
-	LLNI_CRITICAL_START;
+
+	GC::critical_enter();
 
 	// XXX This should be _handle->get_object();
 	o = LLNI_UNWRAP(h);
 
 	result = raw_get<T>(o, offset);
 
-	// XXX Move this to a GC inline function.
-	// gc->leave_critical();
-	LLNI_CRITICAL_END;
+	GC::critical_leave();
 
 	return result;
-}	
+}
 
 template<> inline java_handle_t* FieldAccess::get(java_handle_t* h, const off_t offset)
 {
 	java_object_t* o;
 	java_object_t* result;
 	java_handle_t* hresult;
-		
-	// XXX Move this to a GC inline function, e.g.
-	// gc->enter_critical();
-	LLNI_CRITICAL_START;
+
+	GC::critical_enter();
 
 	// XXX This should be _handle->get_object();
 	o = LLNI_UNWRAP(h);
@@ -120,9 +114,7 @@ template<> inline java_handle_t* FieldAccess::get(java_handle_t* h, const off_t 
 
 	hresult = LLNI_WRAP(result);
 
-	// XXX Move this to a GC inline function.
-	// gc->leave_critical();
-	LLNI_CRITICAL_END;
+	GC::critical_leave();
 
 	return hresult;
 }	
@@ -132,18 +124,14 @@ template<class T> inline void FieldAccess::set(java_handle_t* h, const off_t off
 {
 	java_object_t* o;
 
-	// XXX Move this to a GC inline function, e.g.
-	// gc->enter_critical();
-	LLNI_CRITICAL_START;
+	GC::critical_enter();
 
 	// XXX This should be h->get_object();
 	o = LLNI_UNWRAP(h);
 
 	raw_set(o, offset, value);
 
-	// XXX Move this to a GC inline function.
-	// gc->leave_critical();
-	LLNI_CRITICAL_END;
+	GC::critical_leave();
 }
 
 template<> inline void FieldAccess::set<java_handle_t*>(java_handle_t* h, const off_t offset, java_handle_t* value)
@@ -151,9 +139,7 @@ template<> inline void FieldAccess::set<java_handle_t*>(java_handle_t* h, const 
 	java_object_t* o;
 	java_object_t* ovalue;
 
-	// XXX Move this to a GC inline function, e.g.
-	// gc->enter_critical();
-	LLNI_CRITICAL_START;
+	GC::critical_enter();
 
 	// XXX This should be h->get_object();
 	o      = LLNI_UNWRAP(h);
@@ -161,9 +147,7 @@ template<> inline void FieldAccess::set<java_handle_t*>(java_handle_t* h, const 
 
 	raw_set(o, offset, ovalue);
 
-	// XXX Move this to a GC inline function.
-	// gc->leave_critical();
-	LLNI_CRITICAL_END;
+	GC::critical_leave();
 }
 
 
@@ -197,17 +181,13 @@ public:
 
 inline vftbl_t* java_lang_Object::get_vftbl() const
 {
-	// XXX Move this to a GC inline function, e.g.
-	// gc->enter_critical();
-	LLNI_CRITICAL_START;
+	GC::critical_enter();
 
 	// XXX This should be h->get_object();
 	java_object_t* o = LLNI_UNWRAP(_handle);
 	vftbl_t* vftbl = o->vftbl;
 
-	// XXX Move this to a GC inline function.
-	// gc->leave_critical();
-	LLNI_CRITICAL_END;
+	GC::critical_leave();
 
 	return vftbl;
 }

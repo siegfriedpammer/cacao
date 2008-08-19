@@ -28,7 +28,12 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <stdint.h>
+
+#if defined(ENABLE_GC_CACAO)
+# include "threads/thread.hpp"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,6 +41,22 @@ extern "C" {
 
 #include "vm/global.h"
 #include "vm/method.h"
+
+#ifdef __cplusplus
+}
+#endif
+
+#ifdef __cplusplus
+
+class GC {
+public:
+	// Critical section functions.
+	static void critical_enter(void);
+	static void critical_leave(void);
+};
+
+extern "C" {
+#endif
 
 
 /* reference types ************************************************************/
@@ -94,6 +115,41 @@ static inline int32_t heap_hashcode(java_object_t *obj)
 
 #ifdef __cplusplus
 }
+
+/**
+ * Enters a LLNI critical section which prevents the GC from moving
+ * objects around on the collected heap.
+ *
+ * There are no race conditions possible while entering such a critical
+ * section, because each thread only modifies its own thread local flag
+ * and the GC reads the flags while the world is stopped.
+ */
+inline void GC::critical_enter()
+{
+#if defined(ENABLE_GC_CACAO)
+	threadobject *t;
+
+	t = THREADOBJECT;
+	assert(!t->gc_critical);
+	t->gc_critical = true;
+#endif
+}
+
+/**
+ * Leaves a LLNI critical section and allows the GC to move objects
+ * around on the collected heap again.
+ */
+inline void GC::critical_leave()
+{
+#if defined(ENABLE_GC_CACAO)
+	threadobject *t;
+
+	t = THREADOBJECT;
+	assert(t->gc_critical);
+	t->gc_critical = false;
+#endif
+}
+
 #endif
 
 #endif /* _GC_HPP */
