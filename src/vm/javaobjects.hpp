@@ -2509,9 +2509,9 @@ inline java_lang_reflect_Method::java_lang_reflect_Method(methodinfo* m)
 	if (is_null())
 		return;
 
-	set(_handle, offset_clazz, m->clazz);
-	set(_handle, offset_slot,  m - m->clazz->methods);
-	set(_handle, offset_name,  javastring_intern(javastring_new(m->name)));
+	set(_handle, offset_clazz,                m->clazz);
+	set(_handle, offset_slot,                 m - m->clazz->methods);
+	set(_handle, offset_name,                 javastring_intern(javastring_new(m->name)));
 	set(_handle, offset_returnType,           method_returntype_get(m));
 	set(_handle, offset_parameterTypes,       method_get_parametertypearray(m));
 	set(_handle, offset_exceptionTypes,       method_get_exceptionarray(m));
