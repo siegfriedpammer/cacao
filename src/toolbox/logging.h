@@ -36,6 +36,10 @@
 #include "vm/utf8.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*500 is to small for eclipse traces, (builtin_trace_args, perhaps the
 buffer should be created there dynamically, if the text is longer,
 instead of setting the size for all invocations that big*/
@@ -64,6 +68,10 @@ void log_message_method(const char *msg, methodinfo *m);
 
 #define log_text(s) log_println("%s", (s))
 #define dolog log_println
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _LOGGING_H */
 
