@@ -40,12 +40,6 @@
 extern "C" {
 #endif
 
-/*500 is to small for eclipse traces, (builtin_trace_args, perhaps the
-buffer should be created there dynamically, if the text is longer,
-instead of setting the size for all invocations that big*/
-
-#define MAXLOGTEXT  16383 
-
 /* function prototypes ********************************************************/
 
 void log_init(const char *fname);
