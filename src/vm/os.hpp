@@ -155,6 +155,10 @@ public:
 };
 
 
+// Includes.
+#include "toolbox/logging.h"
+
+
 inline void os::abort(void)
 {
 #if defined(HAVE_ABORT)
