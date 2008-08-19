@@ -2510,12 +2510,12 @@ inline java_lang_reflect_Method::java_lang_reflect_Method(methodinfo* m)
 		return;
 
 	set(_handle, offset_clazz,                m->clazz);
-	set(_handle, offset_slot,                 m - m->clazz->methods);
+	set(_handle, offset_slot,                 (int32_t) (m - m->clazz->methods)); // This cast is important (see PR100).
 	set(_handle, offset_name,                 javastring_intern(javastring_new(m->name)));
 	set(_handle, offset_returnType,           method_returntype_get(m));
 	set(_handle, offset_parameterTypes,       method_get_parametertypearray(m));
 	set(_handle, offset_exceptionTypes,       method_get_exceptionarray(m));
-	set(_handle, offset_modifiers,            m->flags & ACC_CLASS_REFLECT_MASK);
+	set(_handle, offset_modifiers,            (int32_t) (m->flags & ACC_CLASS_REFLECT_MASK));
 	set(_handle, offset_signature,            m->signature ? javastring_new(m->signature) : NULL);
 	set(_handle, offset_annotations,          method_get_annotations(m));
 	set(_handle, offset_parameterAnnotations, method_get_parameterannotations(m));
