@@ -193,8 +193,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_reflect_VMMethod_getDefaultValue(JNIEnv
 			return NULL;
 		}
 
-		classinfo *referer;
-		LLNI_class_get((java_lang_reflect_VMMethod *) _this, referer);
+		classinfo *referer = rvmm.get_Class();
 
 		m_parseAnnotationDefault = class_resolveclassmethod(
 			class_sun_reflect_annotation_AnnotationParser,
@@ -232,9 +231,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_reflect_VMMethod_declaredAnnotations(JN
 	if (declaredAnnotations == NULL) {
 		java_handle_bytearray_t* annotations    = rvmm.get_annotations();
 		classinfo*               declaringClass = rvmm.get_clazz();
-
-		classinfo *referer;
-		LLNI_class_get((java_lang_reflect_VMMethod *) _this, referer);
+		classinfo*               referer        = rvmm.get_Class();
 
 		declaredAnnotations = Reflection::get_declaredannotations(annotations, declaringClass, referer);
 
@@ -255,9 +252,7 @@ JNIEXPORT jobjectArray JNICALL Java_java_lang_reflect_VMMethod_getParameterAnnot
 	java_lang_reflect_VMMethod rvmm(_this);
 	java_handle_bytearray_t* parameterAnnotations = rvmm.get_parameterAnnotations();
 	methodinfo* m = rvmm.get_method();
-
-	classinfo* referer;
-	LLNI_class_get((java_lang_reflect_VMMethod *) _this, referer);
+	classinfo* referer = rvmm.get_Class();
 
 	java_handle_objectarray_t* oa = Reflection::get_parameterannotations(parameterAnnotations, m, referer);
 	return (jobjectArray) oa;

@@ -148,9 +148,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_reflect_VMConstructor_declaredAnnotatio
 	if (declaredAnnotations == NULL) {
 		java_handle_bytearray_t* annotations    = rvmc.get_annotations();
 		classinfo*               declaringClass = rvmc.get_clazz();
-
-		classinfo *referer;
-		LLNI_class_get(_this, referer);
+		classinfo*               referer        = rvmc.get_Class();
 
 		declaredAnnotations = Reflection::get_declaredannotations(annotations, declaringClass, referer);
 
@@ -174,9 +172,7 @@ JNIEXPORT jobjectArray JNICALL Java_java_lang_reflect_VMConstructor_getParameter
 
 	java_handle_bytearray_t* parameterAnnotations = rvmc.get_parameterAnnotations();
 	methodinfo* m = rvmc.get_method();
-
-	classinfo* referer;
-	LLNI_class_get((java_lang_reflect_VMConstructor*) _this, referer);
+	classinfo* referer = rvmc.get_Class();
 
 	java_handle_objectarray_t* oa = Reflection::get_parameterannotations(parameterAnnotations, m, referer);
 

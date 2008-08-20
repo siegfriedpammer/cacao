@@ -52,16 +52,14 @@ extern "C" {
  */
 JNIEXPORT jclass JNICALL Java_java_lang_Object_getClass(JNIEnv *env, jobject obj)
 {
-	classinfo *c;
-
 	if (obj == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
-	LLNI_class_get(obj, c);
+	java_lang_Object o(obj);
 
-	return (jclass) LLNI_classinfo_wrap(c);
+	return (jclass) LLNI_classinfo_wrap(o.get_Class());
 }
 
 

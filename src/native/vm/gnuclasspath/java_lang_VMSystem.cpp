@@ -65,6 +65,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
 JNIEXPORT jint JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, jobject obj)
 {
 	java_lang_Object o(obj);
+
 	return o.get_hashcode();
 }
 

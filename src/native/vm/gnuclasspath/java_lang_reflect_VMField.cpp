@@ -1134,9 +1134,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_reflect_VMField_declaredAnnotations(JNI
 	if (declaredAnnotations == NULL) {
 		java_handle_bytearray_t* annotations    = rvmf.get_annotations();
 		classinfo*               declaringClass = rvmf.get_clazz();
-
-		classinfo* referer;
-		LLNI_class_get(_this, referer);
+		classinfo*               referer        = rvmf.get_Class();
 
 		declaredAnnotations = Reflection::get_declaredannotations(annotations, declaringClass, referer);
 
