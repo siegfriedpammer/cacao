@@ -170,9 +170,10 @@ public:
 	virtual ~java_lang_Object() {}
 
 	// Getters.
-	virtual inline java_handle_t* get_handle() const { return _handle; }
-	inline vftbl_t*               get_vftbl () const;
-	inline classinfo*             get_Class () const;
+	virtual inline java_handle_t* get_handle  () const { return _handle; }
+	inline vftbl_t*               get_vftbl   () const;
+	inline classinfo*             get_Class   () const;
+	inline int32_t                get_hashcode() const;
 
 	inline bool is_null    () const;
 	inline bool is_non_null() const;
@@ -195,6 +196,27 @@ inline vftbl_t* java_lang_Object::get_vftbl() const
 inline classinfo* java_lang_Object::get_Class() const
 {
 	return get_vftbl()->clazz;
+}
+
+inline int32_t java_lang_Object::get_hashcode() const
+{
+#if defined(ENABLE_GC_CACAO)
+	return heap_get_hashcode(_handle);
+#else
+	java_object_t* o;
+	int32_t hashcode;
+
+	GC::critical_enter();
+
+	// XXX This should be h->get_object();
+	o = LLNI_UNWRAP(_handle);
+
+	hashcode = (int32_t)(intptr_t) o;
+
+	GC::critical_leave();
+	
+	return hashcode;
+#endif
 }
 
 

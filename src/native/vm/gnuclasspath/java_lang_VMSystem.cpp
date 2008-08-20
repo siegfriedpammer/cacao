@@ -39,6 +39,7 @@
 #endif
 
 #include "vm/builtin.h"
+#include "vm/javaobjects.hpp"
 
 
 // Native functions are exported as C functions.
@@ -61,18 +62,10 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
  * Method:    identityHashCode
  * Signature: (Ljava/lang/Object;)I
  */
-JNIEXPORT jint JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, jobject o)
+JNIEXPORT jint JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, jobject obj)
 {
-	int32_t hashcode;
-
-	// XXX This critical section should be inside the heap function.
-	LLNI_CRITICAL_START;
-
-	hashcode = heap_hashcode(LLNI_UNWRAP((java_handle_t *) o));
-
-	LLNI_CRITICAL_END;
-
-	return hashcode;
+	java_lang_Object o(obj);
+	return o.get_hashcode();
 }
 
 } // extern "C"

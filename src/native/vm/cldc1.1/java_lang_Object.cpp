@@ -39,6 +39,7 @@
 #include "threads/lock-common.h"
 
 #include "vm/exceptions.hpp"
+#include "vm/javaobjects.hpp"
 
 
 // Native functions are exported as C functions.
@@ -71,11 +72,9 @@ JNIEXPORT jclass JNICALL Java_java_lang_Object_getClass(JNIEnv *env, jobject obj
  */
 JNIEXPORT jint JNICALL Java_java_lang_Object_hashCode(JNIEnv *env, jobject _this)
 {
-#if defined(ENABLE_GC_CACAO)
-	assert(0);
-#else
-	return (int32_t) ((uintptr_t) _this);
-#endif
+	java_lang_Object o(_this);
+
+	return o.get_hashcode();
 }
 
 

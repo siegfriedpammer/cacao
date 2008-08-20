@@ -531,7 +531,9 @@ jint JVM_IHashCode(JNIEnv* env, jobject handle)
 {
 	TRACEJVMCALLS(("JVM_IHashCode(env=%p, jobject=%p)", env, handle));
 
-	return (jint) ((ptrint) handle);
+	java_lang_Object o(handle);
+
+	return o.get_hashcode();
 }
 
 
