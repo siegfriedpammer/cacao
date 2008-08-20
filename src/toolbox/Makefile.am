@@ -41,8 +41,6 @@ libtoolbox_la_SOURCES = \
 	logging.h \
 	set.h \
 	set.c \
-	tree.c \
-	tree.h \
 	util.c \
 	util.h \
 	worklist.c \
