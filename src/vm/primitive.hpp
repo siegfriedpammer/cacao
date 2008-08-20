@@ -40,6 +40,9 @@
 
 class Primitive {
 public:
+	static void initialize_table();
+	static void post_initialize_table();
+
 	static classinfo*     get_class_by_name(utf *name);
 	static classinfo*     get_class_by_type(int type);
 	static classinfo*     get_class_by_char(char ch);
@@ -100,14 +103,14 @@ public:
 /* primitivetypeinfo **********************************************************/
 
 struct primitivetypeinfo {
-	char      *cname;                    /* char name of primitive class      */
-	utf       *name;                     /* name of primitive class           */
-	classinfo *class_wrap;               /* class for wrapping primitive type */
-	classinfo *class_primitive;          /* primitive class                   */
-	char      *wrapname;                 /* name of class for wrapping        */
-	char       typesig;                  /* one character type signature      */
-	char      *arrayname;                /* name of primitive array class     */
-	classinfo *arrayclass;               /* primitive array class             */
+	const char* cname;                   /* char name of primitive class      */
+	utf*        name;                    /* name of primitive class           */
+	classinfo*  class_wrap;              /* class for wrapping primitive type */
+	classinfo*  class_primitive;         /* primitive class                   */
+	const char* wrapname;                /* name of class for wrapping        */
+	const char  typesig;                 /* one character type signature      */
+	const char* arrayname;               /* name of primitive array class     */
+	classinfo*  arrayclass;              /* primitive array class             */
 };
 
 

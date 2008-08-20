@@ -120,7 +120,6 @@ libvm_la_SOURCES = \
 	package.hpp \
 	primitive.cpp \
 	primitive.hpp \
-	primitivecore.c \
 	properties.c \
 	properties.h \
 	references.h \

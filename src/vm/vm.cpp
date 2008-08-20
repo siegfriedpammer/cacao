@@ -1436,16 +1436,14 @@ VM::VM(JavaVMInitArgs* vm_args)
 	loader_preinit();
 	linker_preinit();
 
-	/* AFTER: loader_preinit, linker_preinit */
-
-	primitive_init();
+	// AFTER: loader_preinit, linker_preinit
+	Primitive::initialize_table();
 
 	loader_init();
 	linker_init();
 
-	/* AFTER: loader_init, linker_init */
-
-	primitive_postinit();
+	// AFTER: loader_init, linker_init
+	Primitive::post_initialize_table();
 	method_init();
 
 #if defined(ENABLE_JIT)
