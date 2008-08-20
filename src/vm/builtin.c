@@ -53,6 +53,7 @@
 #include "native/llni.h"
 
 #include "threads/lock-common.h"
+#include "threads/mutex.hpp"
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
@@ -698,7 +699,7 @@ bool builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 		if (valuevftbl == componentvftbl)
 			return 1;
 
-		LOCK_MONITOR_ENTER(linker_classrenumber_lock);
+		Mutex_lock(linker_classrenumber_mutex);
 
 		baseval = componentvftbl->baseval;
 
@@ -713,7 +714,7 @@ bool builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 			result  = diffval <= (uint32_t) componentvftbl->diffval;
 		}
 
-		LOCK_MONITOR_EXIT(linker_classrenumber_lock);
+		Mutex_unlock(linker_classrenumber_mutex);
 	}
 	else if (valuedesc == NULL) {
 		/* {oa has dimension > 1} */
@@ -765,7 +766,7 @@ bool builtin_fast_canstore_onedim(java_objectarray_t *a, java_object_t *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
+	Mutex_lock(linker_classrenumber_mutex);
 
 	baseval = elementvftbl->baseval;
 
@@ -779,7 +780,7 @@ bool builtin_fast_canstore_onedim(java_objectarray_t *a, java_object_t *o)
 		result  = diffval <= (uint32_t) elementvftbl->diffval;
 	}
 
-	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
+	Mutex_unlock(linker_classrenumber_mutex);
 
 	return result;
 }
@@ -814,12 +815,12 @@ bool builtin_fast_canstore_onedim_class(java_objectarray_t *a, java_object_t *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
+	Mutex_lock(linker_classrenumber_mutex);
 
 	diffval = valuevftbl->baseval - elementvftbl->baseval;
 	result  = diffval <= (uint32_t) elementvftbl->diffval;
 
-	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
+	Mutex_unlock(linker_classrenumber_mutex);
 
 	return result;
 }

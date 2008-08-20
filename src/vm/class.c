@@ -39,6 +39,7 @@
 #include "native/llni.h"
 
 #include "threads/lock-common.h"
+#include "threads/mutex.hpp"
 
 #include "toolbox/logging.h"
 
@@ -1475,12 +1476,12 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
 		if (sub->flags & ACC_INTERFACE)
 			return (super == class_java_lang_Object);
 
-		LOCK_MONITOR_ENTER(linker_classrenumber_lock);
+		Mutex_lock(linker_classrenumber_mutex);
 
 		diffval = sub->vftbl->baseval - super->vftbl->baseval;
 		result  = diffval <= (uint32_t) super->vftbl->diffval;
 
-		LOCK_MONITOR_EXIT(linker_classrenumber_lock);
+		Mutex_unlock(linker_classrenumber_mutex);
 	}
 
 	return result;

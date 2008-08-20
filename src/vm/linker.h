@@ -36,6 +36,8 @@ typedef struct primitivetypeinfo primitivetypeinfo;
 #include "config.h"
 #include "vm/types.h"
 
+#include "threads/mutex.hpp"
+
 #include "vm/class.h"
 #include "vm/references.h"
 
@@ -136,7 +138,7 @@ struct arraydescriptor {
 /* This lock must be taken while renumbering classes or while atomically      */
 /* accessing classes.                                                         */
 
-extern java_object_t *linker_classrenumber_lock;
+extern Mutex *linker_classrenumber_mutex;
 
 
 /* function prototypes ********************************************************/
