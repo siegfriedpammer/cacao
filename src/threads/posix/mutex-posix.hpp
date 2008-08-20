@@ -55,6 +55,11 @@ public:
 	inline void unlock();
 };
 
+#else
+
+// Forward typedefs
+typedef struct Mutex Mutex;
+
 #endif
 
 
@@ -143,10 +148,10 @@ inline void Mutex::unlock()
 #else
 
 // This structure must have the same layout as the class above.
-typedef struct Mutex {
+struct Mutex {
 	pthread_mutex_t     _mutex;
 	pthread_mutexattr_t _attr;
-} Mutex;
+};
 
 Mutex* Mutex_new();
 void   Mutex_delete(Mutex* mutex);
