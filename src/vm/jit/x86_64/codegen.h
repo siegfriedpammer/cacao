@@ -1,9 +1,7 @@
 /* src/vm/jit/x86_64/codegen.h - code generation macros for x86_64
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -129,11 +127,6 @@
         M_NOP; \
         M_NOP; \
     } while (0)
-
-
-/* stub defines ***************************************************************/
-
-#define COMPILERSTUB_CODESIZE    8
 
 
 /* macros to create code ******************************************************/

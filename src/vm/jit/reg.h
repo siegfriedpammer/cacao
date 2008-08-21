@@ -133,7 +133,15 @@ struct registerdata {
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void reg_setup(jitdata *jd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _REG_H */
 

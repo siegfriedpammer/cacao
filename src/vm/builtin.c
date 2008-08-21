@@ -75,6 +75,7 @@
 #include "vm/string.hpp"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/stubs.hpp"
 #include "vm/jit/trace.hpp"
 
 #if defined(ENABLE_VMLOG)
@@ -182,7 +183,7 @@ static bool builtintable_init(void)
 
 		if (bte->flags & BUILTINTABLE_FLAG_STUB) {
 			m = method_new_builtin(bte);
-			codegen_generate_stub_builtin(m, bte);
+			BuiltinStub_generate(m, bte);
 		}
 	}
 
@@ -209,7 +210,7 @@ static bool builtintable_init(void)
 
 		if (bte->flags & BUILTINTABLE_FLAG_STUB) {
 			m = method_new_builtin(bte);
-			codegen_generate_stub_builtin(m, bte);
+			BuiltinStub_generate(m, bte);
 		}
 	}
 

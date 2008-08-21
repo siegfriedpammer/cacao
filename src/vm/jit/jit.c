@@ -63,6 +63,7 @@
 
 #include "vm/jit/show.h"
 #include "vm/jit/stack.h"
+#include "vm/jit/stubs.hpp"
 
 #if defined(ENABLE_OPAGENT)
 #include "vm/jit/oprofile-agent.hpp"
@@ -590,7 +591,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		if (f == NULL)
 			return NULL;
 
-		code = codegen_generate_stub_native(m, f);
+		code = NativeStub_generate(m, f);
 
 		/* Native methods are never recompiled. */
 		

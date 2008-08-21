@@ -64,6 +64,10 @@ struct dsegentry {
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void dseg_finish(jitdata *jd);
 
 s4 dseg_add_unique_s4(codegendata *cd, s4 value);
@@ -88,6 +92,10 @@ void dseg_resolve_datareferences(jitdata *jd);
 
 #if !defined(NDEBUG)
 void dseg_display(jitdata *jd);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* _DSEG_H */

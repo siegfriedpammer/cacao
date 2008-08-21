@@ -64,12 +64,20 @@ extern const s4    abi_registers_float_temporary[];
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* machine dependent descriptor function */
 void md_param_alloc(methoddesc *md);
 void md_param_alloc_native(methoddesc *md);
 
 /* machine dependent return value handling function */
 void md_return_alloc(jitdata *jd, stackelement_t *stackslot);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _ABI_H */
 

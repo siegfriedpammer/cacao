@@ -54,6 +54,7 @@
 
 #include "vm/jit/code.h"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/stubs.hpp"
 
 
 #if !defined(NDEBUG) && defined(ENABLE_INLINING)
@@ -537,10 +538,10 @@ void method_free(methodinfo *m)
 
 	if (m->stubroutine) {
 		if (m->flags & ACC_NATIVE) {
-			removenativestub(m->stubroutine);
-
-		} else {
-			removecompilerstub(m->stubroutine);
+			NativeStub_remove(m->stubroutine);
+		}
+		else {
+			CompilerStub_remove(m->stubroutine);
 		}
 	}
 }

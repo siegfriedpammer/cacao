@@ -70,6 +70,10 @@
 
 /* code generation functions **************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 s4 emit_load(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg);
 s4 emit_load_s1(jitdata *jd, instruction *iptr, s4 tempreg);
 s4 emit_load_s2(jitdata *jd, instruction *iptr, s4 tempreg);
@@ -185,6 +189,10 @@ void emit_patcher_traps(jitdata *jd);
 
 void emit_verbosecall_enter(jitdata *jd);
 void emit_verbosecall_exit(jitdata *jd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _EMIT_COMMON_H */
 

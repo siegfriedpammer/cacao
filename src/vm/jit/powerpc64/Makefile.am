@@ -50,6 +50,7 @@ libarch_la_SOURCES = \
 	emit.c \
 	patcher.c \
 	\
+	md-stubs.hpp \
 	md-trap.h \
 	md.c \
 	md.h

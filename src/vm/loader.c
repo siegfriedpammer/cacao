@@ -2180,7 +2180,7 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 	if (!descriptor_params_from_paramtypes(clonedesc, clone->flags))
 		return false;
 
-	clone->code = codegen_generate_stub_native(clone, BUILTIN_clone);
+	clone->code = NativeStub_generate(clone, BUILTIN_clone);
 
 	/* XXX: field: length? */
 

@@ -122,11 +122,6 @@
     } while (0)
 
 
-/* stub defines ***************************************************************/
-
-#define COMPILERSTUB_CODESIZE    1 * 4
-
-
 /* macros to create code ******************************************************/
 
 #define M_OP3(opcode,y,oe,rc,d,a,b) \

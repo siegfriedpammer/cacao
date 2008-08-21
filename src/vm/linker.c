@@ -53,6 +53,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/stubs.hpp"
 
 
 /* debugging macros ***********************************************************/
@@ -846,7 +847,7 @@ static classinfo *link_class_intern(classinfo *c)
 			m->stubroutine = intrp_createcompilerstub(m);
 		else
 #endif
-			m->stubroutine = codegen_generate_stub_compiler(m);
+			m->stubroutine = CompilerStub_generate(m);
 #else
 		m->stubroutine = intrp_createcompilerstub(m);
 #endif

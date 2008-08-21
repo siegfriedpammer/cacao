@@ -212,6 +212,10 @@ struct linenumberref {
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void codegen_init(void);
 void codegen_setup(jitdata *jd);
 
@@ -247,29 +251,6 @@ void codegen_set_replacement_point(codegendata *cd);
 
 void codegen_finish(jitdata *jd);
 
-#if defined(ENABLE_DISASSEMBLER)
-void codegen_disassemble_stub(methodinfo *m, u1 *start, u1 *end);
-#endif
-
-/* stub functions */
-
-u1       *codegen_generate_stub_compiler(methodinfo *m);
-void      codegen_generate_stub_builtin(methodinfo *m, builtintable_entry *bte);
-codeinfo *codegen_generate_stub_native(methodinfo *m, functionptr f);
-
-#if !defined(JIT_COMPILER_VIA_SIGNAL)
-void      codegen_emit_stub_compiler(jitdata *jd);
-#endif
-void      codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int skipparams);
-
-#if defined(ENABLE_INTRP)
-u1 *intrp_createcompilerstub(methodinfo *m);
-u1 *intrp_createnativestub(functionptr f, jitdata *jd, methoddesc *md);
-#endif
-
-void removecompilerstub(u1 *stub);
-void removenativestub(u1 *stub);
-
 java_handle_t *codegen_start_native_call(u1 *currentsp, u1 *pv);
 java_object_t *codegen_finish_native_call(u1 *currentsp, u1 *pv);
 
@@ -278,6 +259,14 @@ s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum);
 
 #if defined(ENABLE_SSA)
 void codegen_emit_phi_moves(jitdata *jd, basicblock *bptr);
+#endif
+
+// REMOVEME
+void codegen_emit_stub_compiler(jitdata *jd);
+void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int skipparams);
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* _CODEGEN_COMMON_H */

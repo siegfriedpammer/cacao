@@ -105,11 +105,6 @@
     } while (0)
 
 
-/* stub defines ***************************************************************/
-
-#define COMPILERSTUB_CODESIZE    1 * 4
-
-
 /* macros to create code ******************************************************/
 
 /* M_MEM - memory instruction format *******************************************
