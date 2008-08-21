@@ -819,25 +819,22 @@ classinfo *class_array_of(classinfo *component, bool link)
     char              *namebuf;
 	utf               *u;
 	classinfo         *c;
-	int32_t            dumpmarker;
 
 	cl = component->classloader;
-
-	DMARKER;
 
     /* Assemble the array class name */
     namelen = component->name->blength;
     
     if (component->name->text[0] == '[') {
         /* the component is itself an array */
-        namebuf = DMNEW(char, namelen + 1);
+        namebuf = MNEW(char, namelen + 1);
         namebuf[0] = '[';
         MCOPY(namebuf + 1, component->name->text, char, namelen);
         namelen++;
     }
 	else {
         /* the component is a non-array class */
-        namebuf = DMNEW(char, namelen + 3);
+        namebuf = MNEW(char, namelen + 3);
         namebuf[0] = '[';
         namebuf[1] = 'L';
         MCOPY(namebuf + 2, component->name->text, char, namelen);
@@ -847,9 +844,9 @@ classinfo *class_array_of(classinfo *component, bool link)
 
 	u = utf_new(namebuf, namelen);
 
-	c = get_array_class(u, cl, cl, link);
+	MFREE(namebuf, char, namelen);
 
-	DRELEASE;
+	c = get_array_class(u, cl, cl, link);
 
 	return c;
 }
@@ -867,9 +864,6 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
     s4 namelen;
     char *namebuf;
 	classinfo *c;
-	int32_t    dumpmarker;
-
-	DMARKER;
 
 	if (dim < 1) {
 		log_text("Invalid array dimension requested");
@@ -881,13 +875,13 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
     
     if (element->name->text[0] == '[') {
         /* the element is itself an array */
-        namebuf = DMNEW(char, namelen + dim);
+        namebuf = MNEW(char, namelen + dim);
         memcpy(namebuf + dim, element->name->text, namelen);
         namelen += dim;
     }
     else {
         /* the element is a non-array class */
-        namebuf = DMNEW(char, namelen + 2 + dim);
+        namebuf = MNEW(char, namelen + 2 + dim);
         namebuf[dim] = 'L';
         memcpy(namebuf + dim + 1, element->name->text, namelen);
         namelen += (2 + dim);
@@ -895,12 +889,14 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
     }
 	memset(namebuf, '[', dim);
 
-	c = get_array_class(utf_new(namebuf, namelen),
+	utf* u = utf_new(namebuf, namelen);
+
+	MFREE(namebuf, char, namelen);
+
+	c = get_array_class(u,
 						element->classloader,
 						element->classloader,
 						link);
-
-	DRELEASE;
 
 	return c;
 }
@@ -1029,25 +1025,22 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
     s4 namelen;
     char *namebuf;
 	constant_classref *cr;
-	int32_t            dumpmarker;
 
 	assert(ref);
 	assert(dim >= 1 && dim <= 255);
-
-	DMARKER;
 
     /* Assemble the array class name */
     namelen = ref->name->blength;
     
     if (ref->name->text[0] == '[') {
         /* the element is itself an array */
-        namebuf = DMNEW(char, namelen + dim);
+        namebuf = MNEW(char, namelen + dim);
         memcpy(namebuf + dim, ref->name->text, namelen);
         namelen += dim;
     }
     else {
         /* the element is a non-array class */
-        namebuf = DMNEW(char, namelen + 2 + dim);
+        namebuf = MNEW(char, namelen + 2 + dim);
         namebuf[dim] = 'L';
         memcpy(namebuf + dim + 1, ref->name->text, namelen);
         namelen += (2 + dim);
@@ -1055,9 +1048,11 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
     }
 	memset(namebuf, '[', dim);
 
-    cr = class_get_classref(ref->referer,utf_new(namebuf, namelen));
+	utf* u = utf_new(namebuf, namelen);
 
-	DRELEASE;
+	MFREE(namebuf, char, namelen);
+
+    cr = class_get_classref(ref->referer, u);
 
 	return cr;
 }
