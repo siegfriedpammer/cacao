@@ -38,7 +38,7 @@
 #include "vm/types.h"
 
 #include "mm/memory.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 
 /* reorder_place_next_unplaced_block *******************************************

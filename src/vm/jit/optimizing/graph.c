@@ -30,7 +30,7 @@
 
 #include "toolbox/bitvector.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 #include "vm/jit/optimizing/lsra.h"
 #include "vm/jit/optimizing/ssa.h"

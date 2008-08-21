@@ -89,7 +89,7 @@
 # include "vm/jit/disass.h"
 #endif
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/methodtree.h"
 
 #if defined(ENABLE_PROFILING)

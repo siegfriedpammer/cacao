@@ -44,7 +44,7 @@
 #include "vm/string.hpp"
 
 #include "vm/jit/code.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 #include "vm/jit/optimizing/recompile.h"
 

@@ -158,7 +158,7 @@ error reporting.
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/parse.h"
 #include "vm/jit/show.h"
 

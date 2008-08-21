@@ -57,7 +57,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"

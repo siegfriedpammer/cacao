@@ -1,4 +1,4 @@
-/* src/vm/jit/jit.h - code generation header
+/* src/vm/jit/jit.hpp - Just-In-Time compiler
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _JIT_H
-#define _JIT_H
+#ifndef _JIT_HPP
+#define _JIT_HPP
 
 /* forward typedefs ***********************************************************/
 
@@ -477,7 +477,7 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr);
 }
 #endif
 
-#endif /* _JIT_H */
+#endif // _JIT_HPP
 
 
 /*
@@ -486,7 +486,7 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

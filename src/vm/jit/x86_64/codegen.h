@@ -34,7 +34,7 @@
 
 #include "vm/jit/x86_64/emit.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 
 /* additional functions and macros to generate code ***************************/

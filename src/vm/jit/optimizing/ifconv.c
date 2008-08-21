@@ -33,7 +33,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/codegen-common.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/reg.h"
 #include "vm/jit/show.h"
 

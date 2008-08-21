@@ -72,6 +72,8 @@
 # include "vm/zip.h"
 #endif
 
+#include "vm/jit/stubs.hpp"
+
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/cacaodbg.h"
 #endif

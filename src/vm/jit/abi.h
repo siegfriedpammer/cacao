@@ -32,7 +32,7 @@
 #include "arch.h"
 
 #include "vm/jit/abi-asm.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/stack.h"
 
 

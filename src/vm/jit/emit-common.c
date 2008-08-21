@@ -37,7 +37,7 @@
 #include "vm/statistics.h"
 
 #include "vm/jit/emit-common.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/patcher-common.h"
 
 

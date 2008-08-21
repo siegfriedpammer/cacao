@@ -43,7 +43,7 @@
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/verify/typeinfo.h"
 
 

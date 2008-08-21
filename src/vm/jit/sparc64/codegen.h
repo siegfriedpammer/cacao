@@ -29,7 +29,7 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 #include "md-abi.h" /* for INT_NATARG_CNT */
 

@@ -42,7 +42,7 @@
 #include "vm/options.h"
 #include "vm/string.hpp"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/methodtree.h"
 

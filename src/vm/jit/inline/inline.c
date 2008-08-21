@@ -47,7 +47,7 @@
 #include "vm/options.h"
 #include "vm/statistics.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/show.h"

@@ -33,7 +33,7 @@ extern "C" {
 #include "config.h"
 #include "vm/types.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 
 /* compiler stage defines *****************************************************/

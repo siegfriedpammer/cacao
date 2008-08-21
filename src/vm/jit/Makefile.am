@@ -164,8 +164,8 @@ libjit_la_SOURCES = \
 	exceptiontable.h \
 	executionstate.c \
 	executionstate.h \
-	jit.c \
-	jit.h \
+	jit.cpp \
+	jit.hpp \
 	linenumbertable.c \
 	linenumbertable.h \
 	methodtree.c \

@@ -41,7 +41,7 @@
 #include "vm/method.h"
 #include "vm/resolve.h"
 #include "vm/jit/codegen-common.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/allocator/lsra.h"
 #include "vm/jit/allocator/liveness.h"
 

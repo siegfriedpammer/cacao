@@ -45,7 +45,7 @@
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/replace.h"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.h"

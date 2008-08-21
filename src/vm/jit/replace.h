@@ -239,6 +239,10 @@ struct sourcestate_t {
 
 /*** prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool replace_create_replacement_points(jitdata *jd);
 void replace_free_replacement_points(codeinfo *code);
 
@@ -262,6 +266,10 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert);
 #endif
 
 #endif /* defined(ENABLE_REPLACEMENT) */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _REPLACE_H */
 

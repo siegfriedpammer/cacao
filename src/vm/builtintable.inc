@@ -31,7 +31,7 @@
 
 #include "vm/builtin.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 
 /* internal and not automatically replaced functions **************************/

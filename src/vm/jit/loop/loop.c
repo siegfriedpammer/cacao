@@ -43,7 +43,7 @@
 #include "mm/memory.h"
 #include "toolbox/logging.h"
 #include "vm/global.h"	
-#include "vm/jit/jit.h"	
+#include "vm/jit/jit.hpp"	
 #include "vm/jit/loop/loop.h"
 #include "vm/jit/loop/graph.h"
 #include "vm/jit/loop/tracing.h"

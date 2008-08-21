@@ -41,7 +41,7 @@
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/disass.h"
 #include "vm/jit/emit-common.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/show.h"
 #include "vm/jit/stubs.hpp"
 

@@ -35,7 +35,7 @@
 
 #include "vm/builtin.h"
 
-#include "vm/jit/jit.h" /* icmd_table */
+#include "vm/jit/jit.hpp" /* icmd_table */
 
 #include "vm/jit/optimizing/dominators.h"
 #include "vm/jit/optimizing/graph.h"

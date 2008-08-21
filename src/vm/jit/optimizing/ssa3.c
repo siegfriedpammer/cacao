@@ -38,7 +38,7 @@
    * Unify access to phi args.
 */
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/global.h"
 #include "mm/memory.h"
 #include "mm/dumpmemory.h"

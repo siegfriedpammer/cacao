@@ -24,7 +24,7 @@
 #ifndef _VM_JIT_OPTIMIZING_ESCAPE_H
 #define _VM_JIT_OPTIMIZING_ESCAPE_H
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/method.h"
 
 typedef enum {

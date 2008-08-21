@@ -29,7 +29,7 @@
 #include "vm/global.h"
 #include "vm/types.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/stack.h"
 
 #include "vm/jit/s390/md-abi.h"

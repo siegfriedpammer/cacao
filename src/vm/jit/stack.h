@@ -39,7 +39,7 @@ typedef struct stackelement_t stackelement_t;
 
 #include "vm/global.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/reg.h"
 
 
@@ -161,11 +161,19 @@ struct stackelement_t {
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool stack_init(void);
 
 bool stack_analyse(jitdata *jd);
 
 void stack_javalocals_store(instruction *iptr, s4 *javalocals);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _STACK_H */
 

@@ -31,7 +31,7 @@
 
 #include "vm/jit/i386/emit.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 
 #if defined(ENABLE_LSRA)

@@ -1,4 +1,4 @@
-/* src/vm/jit/jit.c - calls the code generation functions
+/* src/vm/jit/jit.cpp - Just-In-Time compiler
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -57,7 +57,7 @@
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/disass.h"
 #include "vm/jit/dseg.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 
@@ -591,7 +591,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		if (f == NULL)
 			return NULL;
 
-		code = NativeStub_generate(m, f);
+		code = NativeStub::generate(m, f);
 
 		/* Native methods are never recompiled. */
 		
@@ -1181,7 +1181,7 @@ void jit_check_basicblock_numbers(jitdata *jd)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

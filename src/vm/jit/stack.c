@@ -61,7 +61,7 @@
 # include "vm/jit/disass.h"
 #endif
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/stack.h"
 
 #if 0

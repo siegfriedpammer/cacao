@@ -33,7 +33,7 @@
 #include "toolbox/worklist.h"
 
 #include "vm/global.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 #if 1
 #define printf(...) do { if (getenv("VERB")) printf(__VA_ARGS__); } while (0)

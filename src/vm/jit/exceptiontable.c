@@ -32,7 +32,7 @@
 
 #include "vm/jit/code.h"
 #include "vm/jit/exceptiontable.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 
 /* exceptiontable_create *******************************************************

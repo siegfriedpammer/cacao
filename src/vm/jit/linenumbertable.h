@@ -41,7 +41,7 @@ typedef struct linenumbertable_list_entry_t linenumbertable_list_entry_t;
 
 #include "vm/method.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/code.h"
 #include "vm/jit/codegen-common.h"
 

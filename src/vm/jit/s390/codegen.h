@@ -32,7 +32,7 @@
 
 #include "vm/types.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 
 /* MCODECHECK(icnt) */

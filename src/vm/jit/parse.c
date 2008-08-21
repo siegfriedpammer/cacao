@@ -54,7 +54,7 @@
 #include "vm/suck.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/parse.h"
 #include "vm/jit/loop/loop.h"
 

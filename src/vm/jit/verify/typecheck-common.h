@@ -32,7 +32,7 @@
 
 #include <assert.h>
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 
 /****************************************************************************/

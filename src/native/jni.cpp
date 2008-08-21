@@ -65,7 +65,7 @@
 
 #include "vm/jit/argument.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/stacktrace.hpp"
 
 

@@ -41,7 +41,7 @@
 
 #include "vm/jit/abi.h"
 #include "vm/jit/reg.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 #include "vm/jit/optimizing/graph.h"
 #include "vm/jit/optimizing/lifetimes.h"

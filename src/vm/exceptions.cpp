@@ -59,7 +59,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/show.h"
