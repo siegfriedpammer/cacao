@@ -1,4 +1,4 @@
-/* src/vm/jit/replace.c - on-stack replacement of methods
+/* src/vm/jit/replace.cpp - on-stack replacement of methods
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -21,6 +21,7 @@
    02110-1301, USA.
 
 */
+
 
 #include "config.h"
 #include "vm/types.h"
@@ -57,7 +58,7 @@
 #include "vm/jit/executionstate.h"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/replace.h"
+#include "vm/jit/replace.hpp"
 #include "vm/jit/show.h"
 #include "vm/jit/stack.h"
 
@@ -1539,7 +1540,7 @@ void md_pop_stackframe(executionstate_t *es)
 		ra = es->ra;
 	else
 #endif
-		ra = md_stacktrace_get_returnaddress(es->sp,
+		ra = (u1*) md_stacktrace_get_returnaddress(es->sp,
 			   SIZE_OF_STACKSLOT * es->code->stackframesize + ra_align_off);
 
 	/* calculate the base of the stack frame */
@@ -1781,7 +1782,6 @@ u1* replace_pop_activation_record(executionstate_t *es,
 								  sourceframe_t *frame)
 {
 	u1 *ra;
-	u1 *pv;
 	s4 i;
 	s4 count;
 	codeinfo *code;
@@ -1817,15 +1817,15 @@ u1* replace_pop_activation_record(executionstate_t *es,
 
 	/* find the new codeinfo */
 
-	pv = md_codegen_get_pv_from_pc(ra);
-	DOLOG( printf("PV = %p\n", (void*) pv); );
+	void* pv = md_codegen_get_pv_from_pc(ra);
+	DOLOG( printf("PV = %p\n", pv); );
 
 	code = code_get_codeinfo_for_pv(pv);
 	DOLOG( printf("CODE = %p\n", (void*) code); );
 
 	/* return NULL if we reached native code */
 
-	es->pv = pv;
+	es->pv   = (uint8_t*) pv;
 	es->code = code;
 
 	return (code) ? ra : NULL;
@@ -1939,7 +1939,7 @@ void replace_patch_callback(classinfo *c, struct replace_patch_data_t *pd)
 
 	if (vftbl != NULL
 		&& vftbl->vftbllength > pd->m->vftblindex
-		&& vftbl->table[pd->m->vftblindex] != &asm_abstractmethoderror
+		&& (void*) vftbl->table[pd->m->vftblindex] != (void*) (uintptr_t) &asm_abstractmethoderror
 		&& code_get_methodinfo_for_pv(vftbl->table[pd->m->vftblindex]) == pd->m)
 	{
 		replace_patch_class(c->vftbl, pd->m, pd->oldentrypoint, pd->entrypoint);
@@ -2013,7 +2013,7 @@ void replace_patch_future_calls(u1 *ra,
 	/* get the position to patch, in case it was a statically bound call   */
 
 	pv = callerframe->fromcode->entrypoint;
-	patchpos = md_jit_method_patch_address(pv, ra, NULL);
+	patchpos = (u1*) md_jit_method_patch_address(pv, ra, NULL);
 
 	if (patchpos == NULL) {
 		/* the call was dispatched dynamically */
@@ -2378,12 +2378,12 @@ static void replace_pop_native_frame(executionstate_t *es,
 
 	/* XXX michi: use this instead:
 	es->sp = sfi->sp + code->stackframesize; */
-	es->sp   = (void*) (((uintptr_t) sfi->sp) + (*(s4 *) (((uintptr_t) sfi->pv) + FrameSize)));
+	es->sp   = (uint8_t*) (((uintptr_t) sfi->sp) + (*(s4 *) (((uintptr_t) sfi->pv) + FrameSize)));
 #if defined(REPLACE_RA_BETWEEN_FRAMES)
 	es->sp  += SIZE_OF_STACKSLOT; /* skip return address */
 #endif
-	es->pv   = md_codegen_get_pv_from_pc(sfi->ra);
-	es->pc   = (void*) (((uintptr_t) ((sfi->xpc) ? sfi->xpc : sfi->ra)) - 1);
+	es->pv   = (uint8_t*) md_codegen_get_pv_from_pc(sfi->ra);
+	es->pc   = (uint8_t*) (((uintptr_t) ((sfi->xpc) ? sfi->xpc : sfi->ra)) - 1);
 	es->code = code_get_codeinfo_for_pv(es->pv);
 }
 
@@ -3239,7 +3239,7 @@ static void replace_statistics_source_frame(sourceframe_t *frame)
 
 #define TYPECHAR(t)  (((t) >= 0 && (t) <= TYPE_RET) ? show_jit_type_letters[t] : '?')
 
-static char *replace_type_str[] = {
+static const char *replace_type_str[] = {
 	"STD",
 	"EXH",
 	"SBR",
@@ -3600,7 +3600,7 @@ static void replace_stackframeinfo_println(stackframeinfo_t *sfi)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

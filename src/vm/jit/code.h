@@ -41,7 +41,7 @@
 #include "vm/jit/exceptiontable.h"
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/replace.h"
+#include "vm/jit/replace.hpp"
 
 
 /* constants ******************************************************************/

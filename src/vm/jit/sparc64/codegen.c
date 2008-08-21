@@ -58,7 +58,7 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
-#include "vm/jit/replace.h"
+#include "vm/jit/replace.hpp"
 #include "vm/jit/stacktrace.hpp"
 
 #include "vm/jit/sparc64/solaris/macro_rename.h"

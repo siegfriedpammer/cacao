@@ -46,7 +46,7 @@
 #include "vm/jit/emit-common.h"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/patcher-common.h"
-#include "vm/jit/replace.h"
+#include "vm/jit/replace.hpp"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.h"
 

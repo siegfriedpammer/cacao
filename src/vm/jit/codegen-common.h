@@ -50,7 +50,7 @@ typedef struct linenumberref          linenumberref;
 #include "vm/jit/jit.hpp"
 #include "vm/jit/reg.h"
 #include "vm/jit/code.h"
-#include "vm/jit/replace.h"
+#include "vm/jit/replace.hpp"
 
 
 #define MCODEINITSIZE (1<<15)       /* 32 Kbyte code area initialization size */

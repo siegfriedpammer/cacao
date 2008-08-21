@@ -47,7 +47,7 @@ typedef struct exception_entry exception_entry;
 
 #include "vm/jit/codegen-common.h"
 #include "vm/jit/reg.h"
-#include "vm/jit/replace.h"
+#include "vm/jit/replace.hpp"
 #include "vm/jit/stack.h"
 #include "vm/jit/stacktrace.hpp"
 

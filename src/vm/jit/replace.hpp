@@ -1,4 +1,4 @@
-/* src/vm/jit/replace.h - on-stack replacement of methods
+/* src/vm/jit/replace.hpp - on-stack replacement of methods
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _REPLACE_H
-#define _REPLACE_H
+#ifndef _REPLACE_HPP
+#define _REPLACE_HPP
 
 #include "config.h"
 #include "vm/types.h"
@@ -271,7 +271,7 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert);
 }
 #endif
 
-#endif /* _REPLACE_H */
+#endif // _REPLACE_HPP
 
 
 /*
@@ -280,7 +280,7 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

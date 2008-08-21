@@ -103,7 +103,7 @@ REG_SOURCES = \
 	reg.h
 
 REPLACE_SOURCES += \
-	replace.h
+	replace.hpp
 
 STACK_SOURCES = \
 	stack.c \
@@ -116,7 +116,7 @@ endif
 
 if ENABLE_REPLACEMENT
 REPLACE_SOURCES += \
-	replace.c
+	replace.cpp
 endif
 
 if ENABLE_VERIFIER

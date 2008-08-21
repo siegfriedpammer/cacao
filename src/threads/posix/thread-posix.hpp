@@ -56,7 +56,7 @@ typedef struct threadobject threadobject;
 
 #if defined(ENABLE_GC_CACAO)
 # include "vm/jit/executionstate.h"
-# include "vm/jit/replace.h"
+# include "vm/jit/replace.hpp"
 #endif
 
 #include "vm/jit/stacktrace.hpp"

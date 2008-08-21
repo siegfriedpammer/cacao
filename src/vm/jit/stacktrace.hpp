@@ -132,7 +132,7 @@ u1 *md_get_pv_from_stackframe(u1 *sp);
 #endif
 
 #if defined(ENABLE_INTRP)
-u1 *intrp_md_stacktrace_get_returnaddress(u1 *sp, u4 framesize);
+void* intrp_md_stacktrace_get_returnaddress(void* sp, int32_t framesize);
 #endif
 
 #if defined(ENABLE_CYCLES_STATS)

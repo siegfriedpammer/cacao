@@ -88,7 +88,7 @@
 #include "vm/jit/methodheader.h"
 #include "vm/jit/methodtree.h"
 #include "vm/jit/patcher-common.h"
-#include "vm/jit/replace.h"
+#include "vm/jit/replace.hpp"
 #if defined(ENABLE_SSA)
 # include "vm/jit/optimizing/lsra.h"
 # include "vm/jit/optimizing/ssa.h"

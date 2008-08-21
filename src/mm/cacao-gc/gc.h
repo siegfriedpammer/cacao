@@ -38,7 +38,7 @@
 #include "threads/thread.hpp"
 
 #include "toolbox/list.h"
-#include "vm/jit/replace.h"
+#include "vm/jit/replace.hpp"
 
 
 /* Configuration Switches *****************************************************/

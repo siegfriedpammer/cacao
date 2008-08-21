@@ -59,7 +59,7 @@
 #include "vm/jit/abi.h"
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
-#include "vm/jit/replace.h"
+#include "vm/jit/replace.hpp"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.h"
 
