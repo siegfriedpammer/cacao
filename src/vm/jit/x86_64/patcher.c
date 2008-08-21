@@ -99,7 +99,7 @@ bool patcher_resolve_classref_to_classinfo(patchref_t *pr)
 	*datap = (uintptr_t) c;
 
 	// Synchronize data cache.
-	md_dcacheflush(pr->datap, SIZEOF_VOID_P);
+	md_dcacheflush((void*) pr->datap, SIZEOF_VOID_P);
 
 	// Patch back the original code.
 	patcher_patch_code(pr);
@@ -132,7 +132,7 @@ bool patcher_resolve_classref_to_vftbl(patchref_t *pr)
 	*datap = (uintptr_t) c->vftbl;
 
 	// Synchronize data cache.
-	md_dcacheflush(pr->datap, SIZEOF_VOID_P);
+	md_dcacheflush((void*) pr->datap, SIZEOF_VOID_P);
 
 	// Patch back the original code.
 	patcher_patch_code(pr);
@@ -206,7 +206,7 @@ bool patcher_get_putstatic(patchref_t *pr)
 	*datap = (uintptr_t) fi->value;
 
 	// Synchronize data cache.
-	md_dcacheflush(pr->datap, SIZEOF_VOID_P);
+	md_dcacheflush((void*) pr->datap, SIZEOF_VOID_P);
 
 	// Patch back the original code.
 	patcher_patch_code(pr);
@@ -333,7 +333,7 @@ bool patcher_invokestatic_special(patchref_t *pr)
 	*datap = (uintptr_t) m->stubroutine;
 
 	// Synchronize data cache.
-	md_dcacheflush(pr->datap, SIZEOF_VOID_P);
+	md_dcacheflush((void*) pr->datap, SIZEOF_VOID_P);
 
 	// Patch back the original code.
 	patcher_patch_code(pr);
