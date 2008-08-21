@@ -311,7 +311,7 @@ static dominator_tree_info *dominator_tree_init(jitdata *jd) {
 	return di;
 }
 
-inline basicblock_info *dominator_tree_get_basicblock(dominator_tree_info *di, basicblock *bb) {
+static inline basicblock_info *dominator_tree_get_basicblock(dominator_tree_info *di, basicblock *bb) {
 	return di->basicblocks + bb->nr;
 }
 
