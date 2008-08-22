@@ -26,11 +26,6 @@
 #ifndef _STACKTRACE_HPP
 #define _STACKTRACE_HPP
 
-// FIXME Use C-linkage for now.
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* forward typedefs ***********************************************************/
 
 typedef struct stackframeinfo_t   stackframeinfo_t;
@@ -98,6 +93,11 @@ struct stacktrace_t {
 
 
 /* function prototypes ********************************************************/
+
+// FIXME Use C-linkage for now.
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void                       stacktrace_stackframeinfo_add(stackframeinfo_t* sfi, void* pv, void* sp, void* ra, void* xpc);
 void                       stacktrace_stackframeinfo_remove(stackframeinfo_t *sfi);

@@ -99,9 +99,6 @@
 #endif
 
 
-// FIXME For now we export everything as C functions.
-extern "C" {
-
 #if defined(__DARWIN__)
 /* Darwin has no working semaphore implementation.  This one is taken
    from Boehm-GC. */
@@ -482,7 +479,7 @@ void threads_impl_thread_clear(threadobject *t)
 	t->es = NULL;
 #endif
 
-	MZERO(&t->dumpinfo, dumpinfo_t, 1);
+	// Simply reuse the existing dump memory.
 }
 
 /* threads_impl_thread_reuse ***************************************************
@@ -1579,8 +1576,6 @@ void threads_tlh_remove_frame() {
 }
 
 #endif
-
-} // extern "C"
 
 
 /*

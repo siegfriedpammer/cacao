@@ -31,7 +31,7 @@
 // Include machine dependent headers.
 #include "md.h"
 
-#include "mm/dumpmemory.h"
+#include "mm/dumpmemory.hpp"
 
 #include "vm/method.h"
 #include "vm/options.h"
@@ -59,18 +59,16 @@ void* CompilerStub::generate(methodinfo *m)
 	codegendata *cd;
 	ptrint      *d;                     /* pointer to data memory             */
 	u1          *c;                     /* pointer to code memory             */
-	int32_t      dumpmarker;
 
-	/* mark dump memory */
-
-	DMARKER;
+	// Create new dump memory area.
+	DumpMemoryArea dma;
 
 	/* allocate required data structures */
 
-	jd = DNEW(jitdata);
+	jd = (jitdata*) DumpMemory::allocate(sizeof(jitdata));
 
 	jd->m     = m;
-	jd->cd    = DNEW(codegendata);
+	jd->cd    = (codegendata*) DumpMemory::allocate(sizeof(codegendata));
 	jd->flags = 0;
 
 	/* get required compiler data */
@@ -144,10 +142,6 @@ void* CompilerStub::generate(methodinfo *m)
 	md_cacheflush(cd->mcodebase, 2 * SIZEOF_VOID_P + get_code_size());
 #endif
 
-	/* release dump memory */
-
-	DRELEASE;
-
 	/* return native stub code */
 
 	return c;
@@ -201,11 +195,9 @@ void BuiltinStub::generate(methodinfo* m, builtintable_entry* bte)
 	jitdata  *jd;
 	codeinfo *code;
 	int       skipparams;
-	int32_t   dumpmarker;
 
-	/* mark dump memory */
-
-	DMARKER;
+	// Create new dump memory area.
+	DumpMemoryArea dma;
 
 	/* Create JIT data structure. */
 
@@ -267,10 +259,6 @@ void BuiltinStub::generate(methodinfo* m, builtintable_entry* bte)
 			dseg_display(jd);
 	}
 #endif /* !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER) */
-
-	/* release memory */
-
-	DRELEASE;
 }
 
 
@@ -289,11 +277,9 @@ codeinfo* NativeStub::generate(methodinfo* m, functionptr f)
 	methoddesc  *md;
 	methoddesc  *nmd;	
 	int          skipparams;
-	int32_t      dumpmarker;
 
-	/* mark dump memory */
-
-	DMARKER;
+	// Create new dump memory area.
+	DumpMemoryArea dma;
 
 	/* Create JIT data structure. */
 
@@ -339,13 +325,13 @@ codeinfo* NativeStub::generate(methodinfo* m, functionptr f)
 	else
 		skipparams = 1;
 	
-	nmd = (methoddesc *) DMNEW(u1, sizeof(methoddesc) - sizeof(typedesc) +
-							   md->paramcount * sizeof(typedesc) +
-							   skipparams * sizeof(typedesc));
+	nmd = (methoddesc*) DumpMemory::allocate(sizeof(methoddesc) - sizeof(typedesc) +
+											 md->paramcount * sizeof(typedesc) +
+											 skipparams * sizeof(typedesc));
 
 	nmd->paramcount = md->paramcount + skipparams;
 
-	nmd->params = DMNEW(paramdesc, nmd->paramcount);
+	nmd->params = (paramdesc*) DumpMemory::allocate(sizeof(paramdesc) * nmd->paramcount);
 
 	nmd->paramtypes[0].type = TYPE_ADR; /* add environment pointer            */
 
@@ -407,10 +393,6 @@ codeinfo* NativeStub::generate(methodinfo* m, functionptr f)
 		}
 	}
 #endif /* !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER) */
-
-	/* release memory */
-
-	DRELEASE;
 
 	/* return native stub code */
 

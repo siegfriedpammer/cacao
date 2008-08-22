@@ -28,10 +28,6 @@
 
 #include "config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <pthread.h>
 
 #include "vm/types.h"
@@ -45,6 +41,9 @@ extern "C" {
 #include "vm/global.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* typedefs *******************************************************************/
 

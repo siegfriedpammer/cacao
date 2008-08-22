@@ -26,10 +26,6 @@
 #ifndef _EXCEPTIONS_HPP
 #define _EXCEPTIONS_HPP
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "config.h"
 #include "vm/types.h"
 
@@ -39,6 +35,10 @@ extern "C" {
 
 
 /* function prototypes ********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 java_handle_t *exceptions_get_exception(void);
 void           exceptions_set_exception(java_handle_t *o);

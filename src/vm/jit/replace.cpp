@@ -37,6 +37,7 @@
 # include "mm/cacao-gc/gc.h"
 #endif
 
+#include "mm/dumpmemory.hpp"
 #include "mm/memory.h"
 
 #include "threads/thread.hpp"
@@ -446,7 +447,7 @@ bool replace_create_replacement_points(jitdata *jd)
 	count = 0;
 	alloccount = 0;
 
-	javalocals = DMNEW(s4, jd->maxlocals);
+	javalocals = (s4*) DumpMemory::allocate(sizeof(s4) * jd->maxlocals);
 
 	for (bptr = jd->basicblocks; bptr; bptr = bptr->next) {
 
@@ -1082,7 +1083,7 @@ static sourceframe_t *replace_new_sourceframe(sourcestate_t *ss)
 {
 	sourceframe_t *frame;
 
-	frame = DNEW(sourceframe_t);
+	frame = (sourceframe_t*) DumpMemory::allocate(sizeof(sourceframe_t));
 	MZERO(frame, sourceframe_t, 1);
 
 	frame->down = ss->frames;
@@ -1169,8 +1170,8 @@ static void replace_read_executionstate(rplpoint *rp,
 
 	count = m->maxlocals;
 	frame->javalocalcount = count;
-	frame->javalocals = DMNEW(replace_val_t, count);
-	frame->javalocaltype = DMNEW(u1, count);
+	frame->javalocals = (replace_val_t*) DumpMemory::allocate(sizeof(replace_val_t) * count);
+	frame->javalocaltype = (u1*) DumpMemory::allocate(sizeof(u1) * count);
 
 	/* mark values as undefined */
 	for (i=0; i<count; ++i) {
@@ -1244,8 +1245,8 @@ static void replace_read_executionstate(rplpoint *rp,
 	/* read stack slots */
 
 	frame->javastackdepth = count;
-	frame->javastack = DMNEW(replace_val_t, count);
-	frame->javastacktype = DMNEW(u1, count);
+	frame->javastack = (replace_val_t*) DumpMemory::allocate(sizeof(replace_val_t) * count);
+	frame->javastacktype = (u1*) DumpMemory::allocate(sizeof(u1) * count);
 
 #if !defined(NDEBUG)
 	/* mark values as undefined */
@@ -1307,7 +1308,7 @@ static void replace_read_executionstate(rplpoint *rp,
 				assert(calleeframe->syncslots == NULL);
 
 				calleeframe->syncslotcount = 1;
-				calleeframe->syncslots = DMNEW(replace_val_t, 1);
+				calleeframe->syncslots = (replace_val_t*) DumpMemory::allocate(sizeof(replace_val_t));
 				replace_read_value(es,ra,calleeframe->syncslots);
 			}
 
@@ -1797,7 +1798,7 @@ u1* replace_pop_activation_record(executionstate_t *es,
 	assert(frame->syncslots == NULL);
 	count = code_get_sync_slot_count(es->code);
 	frame->syncslotcount = count;
-	frame->syncslots = DMNEW(replace_val_t, count);
+	frame->syncslots = (replace_val_t*) DumpMemory::allocate(sizeof(replace_val_t) * count);
 	for (i=0; i<count; ++i) {
 		frame->syncslots[i].p = sp[es->code->memuse + i]; /* XXX md_ function */
 	}
@@ -2515,7 +2516,7 @@ sourcestate_t *replace_recover_source_state(rplpoint *rp,
 
 	/* create the source frame structure in dump memory */
 
-	ss = DNEW(sourcestate_t);
+	ss = (sourcestate_t*) DumpMemory::allocate(sizeof(sourcestate_t));
 	ss->frames = NULL;
 
 	/* each iteration of the loop recovers one source frame */
@@ -2865,7 +2866,6 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 #if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
 	threadobject        *thread;
 #endif
-	int32_t              dumpmarker;
 
 	origcode = es->code;
 	origrp   = rp;
@@ -2885,9 +2885,8 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 
 	REPLACE_COUNT(stat_replacements);
 
-	/* mark start of dump memory area */
-
-	DMARKER;
+	// Create new dump memory area.
+	DumpMemoryArea dma();
 
 	/* Get the stackframeinfo for the current thread. */
 
@@ -2967,10 +2966,6 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 	if (opt_TestReplacement)
 		es->pc += REPLACEMENT_PATCH_SIZE;
 #endif
-
-	/* release dump area */
-
-	DRELEASE;
 }
 
 
@@ -3084,7 +3079,7 @@ void replace_gc_from_native(threadobject *thread, u1 *pc, u1 *sp)
 	sfi = threads_get_current_stackframeinfo();
 
 	/* create the execution state */
-	es = DNEW(executionstate_t);
+	es = (executionstate_t*) DumpMemory::allocate(sizeof(executionstate_t));
 	es->pc = pc;
 	es->sp = sp;
 	es->pv = 0;      /* since we are in a native, PV is invalid! */

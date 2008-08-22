@@ -31,6 +31,7 @@
 
 #include "vm/types.h"
 
+#include "mm/dumpmemory.hpp"
 #include "mm/memory.h"
 
 #include "native/llni.h"
@@ -589,7 +590,8 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 		switch (t) {
 		case CONSTANT_Class:
-			nfc = DNEW(forward_class);
+#warning Use list.
+			nfc = (forward_class*) DumpMemory::allocate(sizeof(forward_class));
 
 			nfc->next = forward_classes;
 			forward_classes = nfc;
@@ -605,7 +607,8 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			break;
 			
 		case CONSTANT_String:
-			nfs = DNEW(forward_string);
+#warning Use list.
+			nfs = (forward_string*) DumpMemory::allocate(sizeof(forward_string));
 				
 			nfs->next = forward_strings;
 			forward_strings = nfs;
@@ -622,7 +625,8 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 			break;
 
 		case CONSTANT_NameAndType:
-			nfn = DNEW(forward_nameandtype);
+#warning Use list.
+			nfn = (forward_nameandtype*) DumpMemory::allocate(sizeof(forward_nameandtype));
 				
 			nfn->next = forward_nameandtypes;
 			forward_nameandtypes = nfn;
@@ -645,7 +649,8 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		case CONSTANT_Fieldref:
 		case CONSTANT_Methodref:
 		case CONSTANT_InterfaceMethodref:
-			nff = DNEW(forward_fieldmethint);
+#warning Use list.
+			nff = (forward_fieldmethint*) DumpMemory::allocate(sizeof(forward_fieldmethint));
 			
 			nff->next = forward_fieldmethints;
 			forward_fieldmethints = nff;
@@ -1397,6 +1402,9 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 					time_parsecpool, time_verify, time_attrs;
 #endif
 
+	// Create new dump memory area.
+	DumpMemoryArea dma;
+
 	RT_TIMING_GET_TIME(time_start);
 
 	/* Get the classbuffer's class. */
@@ -1557,7 +1565,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* Get the names of the super interfaces. */
 
-	interfacesnames = DMNEW(utf*, c->interfacescount);
+	interfacesnames = (utf**) DumpMemory::allocate(sizeof(utf*) * c->interfacescount);
 
 	for (int32_t i = 0; i < c->interfacescount; i++) {
 		index = suck_u2(cb);
@@ -1946,7 +1954,6 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 {
 	classinfo *c;
 	bool       result;
-	int32_t    dumpmarker;
 
 	/* Get the classbuffer's class. */
 
@@ -1967,10 +1974,6 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 		log_message_class("Loading class: ", c);
 #endif
 
-	/* Mark start of dump memory area. */
-
-	DMARKER;
-
 	/* Class is currently loading. */
 
 	c->state |= CLASS_LOADING;
@@ -1978,10 +1981,6 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 	/* Parse the classbuffer. */
 
 	result = load_class_from_classbuffer_intern(cb);
-
-	/* Release dump area. */
-
-	DRELEASE;
 
 	/* An error occurred. */
 

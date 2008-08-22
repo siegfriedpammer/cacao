@@ -86,7 +86,7 @@ list_t *list_create_dump(int nodeoffset)
 {
 	list_t *l;
 
-	l = DNEW(list_t);
+	l = DumpMemory_allocate(sizeof(list_t));
 
 	l->mutex      = NULL;
 	l->first      = NULL;

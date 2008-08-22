@@ -25,7 +25,9 @@
 
 #include "config.h"
 
-#include "mm/dumpmemory.h"
+#include <stdint.h>
+
+#include "mm/dumpmemory.hpp"
 #include "mm/memory.h"
 
 #include "toolbox/bitvector.h"

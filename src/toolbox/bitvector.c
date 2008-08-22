@@ -1,9 +1,8 @@
 /* src/toolbox/bitvector.c - bitvector implementation
 
-   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005, 2006
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -22,12 +21,10 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Christian Ullrich
-
-
 */
+
+
+#include "config.h"
 
 #include "mm/memory.h"
 #include "toolbox/bitvector.h"
@@ -115,7 +112,7 @@ bitvector bv_new(int size) {
     /* n = (((size+7)/8) + sizeof(int) - 1)/sizeof(int);  */
 	n = BV_NUM_INTS(size);
 
-	bv = DMNEW(int, n);
+	bv = DumpMemory_allocate(sizeof(int) * n);
 
 	for(i = 0; i < n; i++) bv[i] = 0;
    

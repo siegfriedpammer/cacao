@@ -63,9 +63,9 @@ struct set {
 *******************************************************************************/
 
 set *set_new(unsigned capacity) {
-	set *s = DNEW(set);
+	set *s = DumpMemory_allocate(sizeof(set));
 
-	s->elements = DMNEW(void *, capacity);
+	s->elements = DumpMemory_allocate(sizeof(void*) * capacity);
 	MZERO(s->elements, void *, capacity);
 	s->capacity = capacity;
 	s->size = 0;

@@ -116,6 +116,10 @@ struct unresolved_method {
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void resolve_handle_pending_exception(bool throwError);
 
 bool resolve_class_from_name(classinfo* referer,methodinfo *refmethod,
@@ -256,6 +260,10 @@ void unresolved_class_debug_dump(unresolved_class *ref,FILE *file);
 void unresolved_field_debug_dump(unresolved_field *ref,FILE *file);
 void unresolved_method_debug_dump(unresolved_method *ref,FILE *file);
 void unresolved_subtype_set_debug_dump(unresolved_subtype_set *stset,FILE *file);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 	
 #endif /* _RESOLVE_H */

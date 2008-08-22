@@ -1558,7 +1558,6 @@ void show_filters_apply(methodinfo *m) {
 	int res;
 	char *method_name;
 	s4 len;
-	int32_t dumpmarker;
 
 	/* compose full name of method */
 
@@ -1569,9 +1568,7 @@ void show_filters_apply(methodinfo *m) {
 		utf_bytes(m->descriptor) +
 		1;
 
-	DMARKER;
-
-	method_name = DMNEW(char, len);
+	method_name = MNEW(char, len);
 
 	utf_cat_classname(method_name, m->clazz->name);
 	strcat(method_name, ".");
@@ -1596,9 +1593,8 @@ void show_filters_apply(methodinfo *m) {
 		}
 	}
 
-	/* release memory */
-
-	DRELEASE; 
+	// Release memory.
+	MFREE(method_name, char, len);
 }
 
 #define STATE_IS_INITIAL() ((FILTERVERBOSECALLCTR[0] == 0) && (FILTERVERBOSECALLCTR[1] == 0))

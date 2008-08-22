@@ -111,6 +111,10 @@ struct codeinfo {
 };
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* inline functions ***********************************************************/
 
 /* code_xxx_invalid ************************************************************
@@ -220,6 +224,10 @@ int code_get_sync_slot_count(codeinfo *code);
 #endif /* defined(ENABLE_REPLACEMENT) */
 
 void code_free_code_of_method(methodinfo *m);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _CODE_H */
 

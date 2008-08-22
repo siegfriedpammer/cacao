@@ -41,6 +41,7 @@
 #include "vm/jit/abi-asm.h"
 
 #include "mm/codememory.h"
+#include "mm/dumpmemory.hpp"
 #include "mm/gc.hpp"
 #include "mm/memory.h"
 
@@ -2484,19 +2485,18 @@ type vm_call_method##name##_valist(methodinfo *m, java_handle_t *o,     \
 {                                                                       \
 	uint64_t *array;                                                    \
 	type      value;                                                    \
-	int32_t   dumpmarker;                                               \
                                                                         \
 	if (m->code == NULL)                                                \
 		if (!jit_compile(m))                                            \
 			return 0;                                                   \
                                                                         \
 	THREAD_NATIVEWORLD_EXIT;                                            \
-	DMARKER;                                                            \
+																		\
+	DumpMemoryArea dma;													\
                                                                         \
 	array = argument_vmarray_from_valist(m, o, ap);                     \
 	value = vm_call##name##_array(m, array);                            \
                                                                         \
-	DRELEASE;                                                           \
 	THREAD_NATIVEWORLD_ENTER;                                           \
                                                                         \
 	return value;                                                       \
@@ -2522,19 +2522,18 @@ type vm_call_method##name##_jvalue(methodinfo *m, java_handle_t *o,     \
 {                                                                       \
 	uint64_t *array;                                                    \
 	type      value;                                                    \
-	int32_t   dumpmarker;                                               \
                                                                         \
 	if (m->code == NULL)                                                \
 		if (!jit_compile(m))                                            \
 			return 0;                                                   \
                                                                         \
 	THREAD_NATIVEWORLD_EXIT;                                            \
-	DMARKER;                                                            \
+																		\
+	DumpMemoryArea dma;													\
                                                                         \
 	array = argument_vmarray_from_jvalue(m, o, args);                   \
 	value = vm_call##name##_array(m, array);                            \
                                                                         \
-	DRELEASE;                                                           \
 	THREAD_NATIVEWORLD_ENTER;                                           \
                                                                         \
 	return value;                                                       \
@@ -2561,7 +2560,6 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 	java_handle_t *xptr;
 	java_handle_t *ro;
 	imm_union      value;
-	int32_t        dumpmarker;
 
 	/* Prevent compiler warnings. */
 
@@ -2577,19 +2575,14 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 
 	THREAD_NATIVEWORLD_EXIT;
 
-	/* mark start of dump memory area */
-
-	DMARKER;
+	// Create new dump memory area.
+	DumpMemoryArea dma;
 
 	/* Fill the argument array from a object-array. */
 
 	array = argument_vmarray_from_objectarray(m, o, params);
 
 	if (array == NULL) {
-		/* release dump area */
-
-		DRELEASE;
-
 		/* enter the nativeworld again */
 
 		THREAD_NATIVEWORLD_ENTER;
@@ -2631,10 +2624,6 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 	default:
 		VM::get_current()->abort("vm_call_method_objectarray: invalid return type %d", m->parseddesc->returntype.primitivetype);
 	}
-
-	/* release dump area */
-
-	DRELEASE;
 
 	/* enter the nativeworld again */
 

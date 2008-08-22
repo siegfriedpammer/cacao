@@ -25,6 +25,8 @@
 
 #include "config.h"
 
+#include "config.h"
+
 #include "mm/memory.h"
 
 #include "toolbox/bitvector.h"
@@ -56,7 +58,7 @@ dominatordata *compute_Dominators(graphdata *gd, int basicblockcount) {
 	graphiterator iter;
 	dominatordata *dd;
 
-	dd = DNEW(dominatordata);
+	dd = (dominatordata*) DumpMemory::allocate(sizeof(dominatordata));
 
 	dom_Dominators_init(dd, basicblockcount);
 	
@@ -138,7 +140,7 @@ void computeDF(graphdata *gd, dominatordata *dd, int basicblockcount, int n) {
 	bool *_S;
 	graphiterator iter;
 
-	_S = DMNEW(bool, basicblockcount);
+	_S = (bool*) DumpMemory::allocate(sizeof(bool) * basicblockcount);
 	for(i = 0; i < basicblockcount; i++)
 		_S[i] = false;
 	i = graph_get_first_successor(gd, n, &iter);
@@ -170,25 +172,25 @@ void computeDF(graphdata *gd, dominatordata *dd, int basicblockcount, int n) {
 void dom_Dominators_init(dominatordata *dd, int basicblockcount) {
 	int i;
 
-	dd->dfnum  = DMNEW(int, basicblockcount);
-	dd->vertex = DMNEW(int, basicblockcount);
-	dd->parent = DMNEW(int, basicblockcount);
-	dd->semi   = DMNEW(int, basicblockcount);
-	dd->ancestor = DMNEW(int, basicblockcount);
-	dd->idom     = DMNEW(int, basicblockcount);
-	dd->samedom  = DMNEW(int, basicblockcount);
-	dd->bucket   = DMNEW(int*, basicblockcount);
-	dd->num_bucket = DMNEW(int, basicblockcount);
-	dd->DF       = DMNEW(int*, basicblockcount);
-	dd->num_DF   = DMNEW(int, basicblockcount);
-	dd->best     = DMNEW(int, basicblockcount);
+	dd->dfnum      = (int*)  DumpMemory::allocate(sizeof(int) * basicblockcount);
+	dd->vertex     = (int*)  DumpMemory::allocate(sizeof(int) * basicblockcount);
+	dd->parent     = (int*)  DumpMemory::allocate(sizeof(int) * basicblockcount);
+	dd->semi       = (int*)  DumpMemory::allocate(sizeof(int) * basicblockcount);
+	dd->ancestor   = (int*)  DumpMemory::allocate(sizeof(int) * basicblockcount);
+	dd->idom       = (int*)  DumpMemory::allocate(sizeof(int) * basicblockcount);
+	dd->samedom    = (int*)  DumpMemory::allocate(sizeof(int) * basicblockcount);
+	dd->bucket     = (int**) DumpMemory::allocate(sizeof(int*) * basicblockcount);
+	dd->num_bucket = (int*)  DumpMemory::allocate(sizeof(int) * basicblockcount);
+	dd->DF         = (int**) DumpMemory::allocate(sizeof(int*) * basicblockcount);
+	dd->num_DF     = (int*)  DumpMemory::allocate(sizeof(int) * basicblockcount);
+	dd->best       = (int*)  DumpMemory::allocate(sizeof(int) * basicblockcount);
 	for (i=0; i < basicblockcount; i++) {
 		dd->dfnum[i] = -1;
 		dd->semi[i] = dd->ancestor[i] = dd->idom[i] = dd->samedom[i] = -1;
 		dd->num_bucket[i] = 0;
-		dd->bucket[i] = DMNEW(int, basicblockcount);
+		dd->bucket[i] = (int*) DumpMemory::allocate(sizeof(int) * basicblockcount);
 		dd->num_DF[i] = 0;
-		dd->DF[i] = DMNEW(int, basicblockcount);
+		dd->DF[i] = (int*) DumpMemory::allocate(sizeof(int) * basicblockcount);
 	}
 }
 
@@ -289,16 +291,16 @@ static dominator_tree_info *dominator_tree_init(jitdata *jd) {
 	basicblock *itb;
 	basicblock_info *iti;
 
-	di = DNEW(dominator_tree_info);
+	di = (dominator_tree_info*) DumpMemory::allocate(sizeof(dominator_tree_info));
 
 	di->jd = jd;
 
-	di->basicblocks = DMNEW(basicblock_info, jd->basicblockcount);
+	di->basicblocks = (basicblock_info*) DumpMemory::allocate(sizeof(basicblock_info) * jd->basicblockcount);
 	MZERO(di->basicblocks, basicblock_info, jd->basicblockcount);
 	
 	for (iti = di->basicblocks; iti != di->basicblocks + jd->basicblockcount; ++iti) {
 		iti->dfnum = -1;
-		iti->bucket = DMNEW(basicblock_info *, jd->basicblockcount);
+		iti->bucket = (basicblock_info**) DumpMemory::allocate(sizeof(basicblock_info*) * jd->basicblockcount);
 		iti->bucketcount = 0;
 	}
 
@@ -306,7 +308,7 @@ static dominator_tree_info *dominator_tree_init(jitdata *jd) {
 		di->basicblocks[itb->nr].bb = itb;
 	}
 
-	di->df_map = DMNEW(basicblock_info *, jd->basicblockcount);
+	di->df_map = (basicblock_info**) DumpMemory::allocate(sizeof(basicblock_info*) * jd->basicblockcount);
 	MZERO(di->df_map, basicblock_info *, jd->basicblockcount);
 
 	di->df_counter = 0;
@@ -432,22 +434,23 @@ void dominator_tree_build_intern(jitdata *jd) {
 
 void dominator_tree_link_children(jitdata *jd) {
 	basicblock *bb;
-	int32_t ds;
 	/* basicblock number => current number of successors */
 	unsigned *numsuccessors;
+
+	// Create new dump memory area.
+	DumpMemoryArea dma();
 
 	/* Allocate memory for successors */
 
 	for (bb = jd->basicblocks; bb; bb = bb->next) {
 		if (bb->domsuccessorcount > 0) {
-			bb->domsuccessors = DMNEW(basicblock *, bb->domsuccessorcount);
+			bb->domsuccessors = (basicblock**) DumpMemory::allocate(sizeof(basicblock*) * bb->domsuccessorcount);
 		}
 	}
 
 	/* Allocate memory for per basic block counter of successors */
 
-	ds = dumpmemory_marker();
-	numsuccessors = DMNEW(unsigned, jd->basicblockcount);
+	numsuccessors = (unsigned*) DumpMemory::allocate(sizeof(unsigned) * jd->basicblockcount);
 	MZERO(numsuccessors, unsigned, jd->basicblockcount);
 
 	/* Link immediate dominators with successors */
@@ -458,18 +461,13 @@ void dominator_tree_link_children(jitdata *jd) {
 			numsuccessors[bb->idom->nr] += 1;
 		}
 	}
-
-	/* Free memory */
-
-	dumpmemory_release(ds);
 }
 
 bool dominator_tree_build(jitdata *jd) {
-	int32_t ds;
-	
-	ds = dumpmemory_marker();
+	// Create new dump memory area.
+	DumpMemoryArea dma();
+
 	dominator_tree_build_intern(jd);
-	dumpmemory_release(ds);
 
 	dominator_tree_link_children(jd);
 
@@ -497,7 +495,7 @@ void dominance_frontier_list_add(dominance_frontier_list *list, basicblock *bb) 
 		if (item->bb == bb) return;
 	}
 
-	item = DNEW(dominance_frontier_item);
+	item = (dominance_frontier_item*) DumpMemory::allocate(sizeof(dominance_frontier_item));
 	item->bb = bb;
 	item->next = list->first;
 	list->first = item;
@@ -512,11 +510,11 @@ struct dominance_frontier_info {
 };
 
 dominance_frontier_info *dominance_frontier_init(jitdata *jd) {
-	dominance_frontier_info *dfi = DNEW(dominance_frontier_info);
+	dominance_frontier_info *dfi = (dominance_frontier_info*) DumpMemory::allocate(sizeof(dominance_frontier_info));
 
 	dfi->jd = jd;
 
-	dfi->map = DMNEW(dominance_frontier_list, jd->basicblockcount);
+	dfi->map = (dominance_frontier_list*) DumpMemory::allocate(sizeof(dominance_frontier_list) * jd->basicblockcount);
 	MZERO(dfi->map, dominance_frontier_list, jd->basicblockcount);
 
 	return dfi;
@@ -567,7 +565,7 @@ void dominance_frontier_store(dominance_frontier_info *dfi) {
 		if (bb->nr < dfi->jd->basicblockcount) {
 			if (dfi->map[bb->nr].count > 0) {
 				bb->domfrontiercount = dfi->map[bb->nr].count;
-				itout = bb->domfrontier = DMNEW(basicblock *, bb->domfrontiercount);
+				itout = bb->domfrontier = (basicblock**) DumpMemory::allocate(sizeof(basicblock*) * bb->domfrontiercount);
 				for (itdf = dfi->map[bb->nr].first; itdf; itdf = itdf->next) {
 					*itout = itdf->bb;
 					itout += 1;
@@ -578,7 +576,8 @@ void dominance_frontier_store(dominance_frontier_info *dfi) {
 }
 
 bool dominance_frontier_build(jitdata *jd) {
-	int32_t ds = dumpmemory_marker();
+	// Create new dump memory area.
+	DumpMemoryArea dma();
 
 	dominance_frontier_info *dfi = dominance_frontier_init(jd);
 	dominance_frontier_for_block(dfi, jd->basicblocks);
@@ -591,13 +590,15 @@ bool dominance_frontier_build(jitdata *jd) {
 extern "C" void graph_add_edge( graphdata *gd, int from, int to );
 
 void dominator_tree_validate(jitdata *jd, dominatordata *_dd) {
-	int32_t ds = dumpmemory_marker();
 	graphdata *gd;
 	int i, j;
 	basicblock *bptr, **it;
 	dominatordata *dd;
 	int *itnr;
 	bool found;
+
+	// Create new dump memory area.
+	DumpMemoryArea dma();
 
 	fprintf(stderr, "%s/%s: \n", jd->m->clazz->name->text, jd->m->name->text);
 	gd = graph_init(jd->basicblockcount);
@@ -639,9 +640,8 @@ void dominator_tree_validate(jitdata *jd, dominatordata *_dd) {
 			}
 		}
 	}
-
-	dumpmemory_release(ds);
 }
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

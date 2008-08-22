@@ -38,10 +38,13 @@
    * Unify access to phi args.
 */
 
+
+#include "config.h"
+
 #include "vm/jit/jit.hpp"
 #include "vm/global.h"
 #include "mm/memory.h"
-#include "mm/dumpmemory.h"
+#include "mm/dumpmemory.hpp"
 #include "toolbox/list.h"
 
 #include <limits.h>

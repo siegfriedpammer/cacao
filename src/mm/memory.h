@@ -28,29 +28,26 @@
 
 #include "config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <string.h>
-
-#include "vm/types.h"
-
-#include "mm/codememory.h"
-#include "mm/dumpmemory.h"
+#include <stdint.h>
 
 
-/* constants for ENABLE_MEMCHECK **********************************************/
+// Align the size of memory allocations to this size.
+#define ALIGNSIZE 8
+#define MEMORY_ALIGN(pos,size) ((((pos) + (size) - 1) / (size)) * (size))
+
+
+// Constants for ENABLE_MEMCHECK.
 
 #if defined(ENABLE_MEMCHECK)
 #define MEMORY_CANARY_SIZE          16
 #define MEMORY_CANARY_FIRST_BYTE    0xca
 #define MEMORY_CLEAR_BYTE           0xa5
-#endif /* defined(ENABLE_MEMCHECK) */
+#endif
 
 
-/* internal includes **********************************************************/
-
+// Includes.
+#include "mm/codememory.h"
+#include "mm/dumpmemory.hpp"
 #include "mm/gc.hpp"
 
 
@@ -91,7 +88,6 @@ Some more macros:
 
 */
 
-#define MEMORY_ALIGN(pos,size) ((((pos) + (size) - 1) / (size)) * (size))
 #define PADDING(pos,size)     (MEMORY_ALIGN((pos),(size)) - (pos))
 #define OFFSET(s,el)          ((int32_t) ((ptrint) &(((s*) 0)->el)))
 
@@ -129,6 +125,10 @@ Some more macros:
 
 
 /* function prototypes ********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 bool  memory_init(void);
 

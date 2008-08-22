@@ -28,10 +28,6 @@
 
 #include "config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "vm/types.h"
 
 // Include early to get threadobject.
@@ -95,6 +91,10 @@ extern "C" {
 extern bool threads_pthreads_implementation_nptl;
 #endif
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* inline functions ***********************************************************/
 

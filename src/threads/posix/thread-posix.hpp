@@ -26,11 +26,6 @@
 #ifndef _THREAD_POSIX_HPP
 #define _THREAD_POSIX_HPP
 
-/* forward typedefs ***********************************************************/
-
-typedef struct threadobject threadobject;
-
-
 #include "config.h"
 
 #include <pthread.h>
@@ -38,68 +33,15 @@ typedef struct threadobject threadobject;
 
 #include "vm/types.h"
 
-#include "mm/memory.h"
+
+// Includes required by Thread.
 
 #if defined(ENABLE_TLH)
-#include "mm/tlh.h"
+# include "mm/tlh.h"
 #endif
-
-#include "native/localref.h"
 
 #include "threads/condition.hpp"
 #include "threads/mutex.hpp"
-
-#include "threads/posix/lock.h"
-
-#include "vm/global.h"
-#include "vm/vm.hpp"
-
-#if defined(ENABLE_GC_CACAO)
-# include "vm/jit/executionstate.h"
-# include "vm/jit/replace.hpp"
-#endif
-
-#include "vm/jit/stacktrace.hpp"
-
-#if defined(ENABLE_INTRP)
-#include "vm/jit/intrp/intrp.h"
-#endif
-
-#if defined(__DARWIN__)
-# include <mach/mach.h>
-
-typedef struct {
-	Mutex* mutex;
-	Condition* cond;
-	int value;
-} sem_t;
-
-#else
-# include <semaphore.h>
-#endif
-
-
-// FIXME
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/* current threadobject *******************************************************/
-
-#if defined(HAVE___THREAD)
-
-#define THREADOBJECT      thread_current
-
-extern __thread threadobject *thread_current;
-
-#else /* defined(HAVE___THREAD) */
-
-#define THREADOBJECT \
-	((threadobject *) pthread_getspecific(thread_current_key))
-
-extern pthread_key_t thread_current_key;
-
-#endif /* defined(HAVE___THREAD) */
 
 
 /* threadobject ****************************************************************
@@ -116,6 +58,8 @@ extern pthread_key_t thread_current_key;
 #define SUSPEND_REASON_JNI       1      /* suspended from JNI                 */
 #define SUSPEND_REASON_STOPWORLD 2      /* suspended from stop-thw-world      */
 
+
+typedef struct threadobject threadobject;
 
 struct threadobject {
 	java_object_t        *object;       /* link to java.lang.Thread object    */
@@ -156,8 +100,8 @@ struct threadobject {
 	u1                   *pc;           /* current PC (used for profiling)    */
 
 	java_object_t        *_exceptionptr;     /* current exception             */
-	stackframeinfo_t     *_stackframeinfo;   /* current native stackframeinfo */
-	localref_table       *_localref_table;   /* JNI local references          */
+	struct stackframeinfo_t     *_stackframeinfo;   /* current native stackframeinfo */
+	struct localref_table       *_localref_table;   /* JNI local references          */
 
 #if defined(ENABLE_INTRP)
 	Cell                 *_global_sp;        /* stack pointer for interpreter */
@@ -170,7 +114,7 @@ struct threadobject {
 	executionstate_t     *es;
 #endif
 
-	dumpinfo_t            dumpinfo;     /* dump memory info structure         */
+	struct DumpMemory*    _dumpmemory;     ///< Dump memory structure.
 
 #if defined(ENABLE_DEBUG_FILTER)
 	u2                    filterverbosecallctr[2]; /* counters for verbose call filter */
@@ -192,6 +136,24 @@ struct threadobject {
 	listnode_t            linkage;      /* threads-list                       */
 	listnode_t            linkage_free; /* free-list                          */
 };
+
+
+/* current threadobject *******************************************************/
+
+#if defined(HAVE___THREAD)
+
+#define THREADOBJECT      thread_current
+
+extern __thread threadobject *thread_current;
+
+#else /* defined(HAVE___THREAD) */
+
+#define THREADOBJECT \
+	((threadobject *) pthread_getspecific(thread_current_key))
+
+extern pthread_key_t thread_current_key;
+
+#endif /* defined(HAVE___THREAD) */
 
 
 /* native-world flags *********************************************************/
@@ -219,18 +181,64 @@ struct threadobject {
 #endif
 
 
+// FIXME
+#ifdef __cplusplus
+extern "C" {
+#endif
+inline static threadobject* thread_get_current(void);
+#ifdef __cplusplus
+}
+#endif
+
+
+// Includes.
+#include "mm/memory.h"
+
+#include "native/localref.h"
+
+#include "threads/posix/lock.h"
+
+#include "vm/global.h"
+#include "vm/vm.hpp"
+
+#if defined(ENABLE_GC_CACAO)
+# include "vm/jit/executionstate.h"
+# include "vm/jit/replace.hpp"
+#endif
+
+#include "vm/jit/stacktrace.hpp"
+
+#if defined(ENABLE_INTRP)
+#include "vm/jit/intrp/intrp.h"
+#endif
+
+#if defined(__DARWIN__)
+# include <mach/mach.h>
+
+typedef struct {
+	Mutex* mutex;
+	Condition* cond;
+	int value;
+} sem_t;
+
+#else
+# include <semaphore.h>
+#endif
+
+
+// FIXME
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* inline functions ***********************************************************/
 
-/* thread_get_current **********************************************************
-
-   Return the threadobject of the current thread.
-   
-   RETURN:
-       the current threadobject *
-
-*******************************************************************************/
-
-inline static threadobject *thread_get_current(void)
+/**
+ * Return the Thread object of the current thread.
+ *
+ * @return The current Thread object.
+ */
+inline static threadobject* thread_get_current(void)
 {
 	threadobject *t;
 
@@ -244,16 +252,12 @@ inline static threadobject *thread_get_current(void)
 }
 
 
-/* thread_set_current **********************************************************
-
-   Set the current thread object.
-   
-   IN:
-      t ... the thread object to set
-
-*******************************************************************************/
-
-inline static void thread_set_current(threadobject *t)
+/**
+ * Set the current Thread object.
+ *
+ * @param t The thread object to set.
+ */
+inline static void thread_set_current(threadobject* t)
 {
 #if defined(HAVE___THREAD)
 	thread_current = t;

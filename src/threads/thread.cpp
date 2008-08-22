@@ -64,9 +64,6 @@
 #include "vm/jit/stacktrace.hpp"
 
 
-// FIXME
-extern "C" {
-
 /* global variables ***********************************************************/
 
 static methodinfo    *thread_method_init;
@@ -506,6 +503,8 @@ static threadobject *thread_new(void)
 		gc_reference_register(&(t->object), GC_REFTYPE_THREADOBJECT);
 		gc_reference_register(&(t->_exceptionptr), GC_REFTYPE_THREADOBJECT);
 #endif
+
+		t->_dumpmemory = new DumpMemory();
 	}
 
 	/* Pre-compute the thinlock-word. */
@@ -1237,8 +1236,6 @@ void threads_dump(void)
 
 	threadlist_unlock();
 }
-
-} // extern "C"
 
 
 /*

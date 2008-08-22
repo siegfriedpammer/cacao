@@ -164,11 +164,6 @@ static utf *native_make_overloaded_function(utf *name, utf *descriptor)
 	u2    c;
 	s4    i;
 	utf  *u;
-	int32_t dumpmarker;
-
-	/* mark memory */
-
-	DMARKER;
 
 	utf_ptr = descriptor->text;
 	namelen = strlen(name->text) + strlen("__") + strlen("0");
@@ -207,7 +202,7 @@ static utf *native_make_overloaded_function(utf *name, utf *descriptor)
 
 	i = strlen(name->text);
 
-	newname = DMNEW(char, namelen);
+	newname = MNEW(char, namelen);
 	MCOPY(newname, name->text, char, i);
 
 	utf_ptr = descriptor->text;
@@ -260,7 +255,7 @@ static utf *native_make_overloaded_function(utf *name, utf *descriptor)
 
 	/* release memory */
 
-	DRELEASE;
+	MFREE(newname, char, namelen);
 
 	return u;
 }
@@ -344,11 +339,6 @@ static utf *native_method_symbol(utf *classname, utf *methodname)
 	u2    c;
 	u4    pos;
 	utf  *u;
-	int32_t dumpmarker;
-
-	/* mark memory */
-
-	DMARKER;
 
 	/* Calculate length of native function name.  We multiply the
 	   class and method name length by 6 as this is the maxium
@@ -363,7 +353,7 @@ static utf *native_method_symbol(utf *classname, utf *methodname)
 
 	/* allocate memory */
 
-	name = DMNEW(char, namelen);
+	name = MNEW(char, namelen);
 
 	/* generate name of native functions */
 
@@ -404,7 +394,7 @@ static utf *native_method_symbol(utf *classname, utf *methodname)
 
 	/* release memory */
 
-	DRELEASE;
+	MFREE(name, char, namelen);
 
 	return u;
 }

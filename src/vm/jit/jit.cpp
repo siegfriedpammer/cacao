@@ -217,13 +217,13 @@ jitdata *jit_jitdata_new(methodinfo *m)
 
 	/* allocate jitdata structure and fill it */
 
-	jd = DNEW(jitdata);
+	jd = (jitdata*) DumpMemory::allocate(sizeof(jitdata));
 
 	jd->m     = m;
-	jd->cd    = DNEW(codegendata);
-	jd->rd    = DNEW(registerdata);
+	jd->cd    = (codegendata*) DumpMemory::allocate(sizeof(codegendata));
+	jd->rd    = (registerdata*) DumpMemory::allocate(sizeof(registerdata));
 #if defined(ENABLE_LOOP)
-	jd->ld    = DNEW(loopdata);
+	jd->ld    = (loopdata*) DumpMemory::allocate(sizeof(loopdata));
 #endif
 
 	/* Allocate codeinfo memory from the heap as we need to keep them. */
@@ -271,7 +271,6 @@ u1 *jit_compile(methodinfo *m)
 {
 	u1      *r;
 	jitdata *jd;
-	int32_t  dumpmarker;
 
 	STATISTICS(count_jit_calls++);
 
@@ -320,9 +319,8 @@ u1 *jit_compile(methodinfo *m)
 		compilingtime_start();
 #endif
 
-	/* mark start of dump memory area */
-
-	DMARKER;
+	// Create new dump memory area.
+	DumpMemoryArea dma;
 
 	/* create jitdata structure */
 
@@ -404,10 +402,6 @@ u1 *jit_compile(methodinfo *m)
 		DEBUG_JIT_COMPILEVERBOSE("Running: ");
 	}
 
-	/* release dump area */
-
-	DRELEASE;
-
 #if defined(ENABLE_STATISTICS)
 	/* measure time */
 
@@ -441,7 +435,6 @@ u1 *jit_recompile(methodinfo *m)
 	u1      *r;
 	jitdata *jd;
 	u1       optlevel;
-	int32_t  dumpmarker;
 
 	/* check for max. optimization level */
 
@@ -465,9 +458,8 @@ u1 *jit_recompile(methodinfo *m)
 		compilingtime_start();
 #endif
 
-	/* mark start of dump memory area */
-
-	DMARKER;
+	// Create new dump memory area.
+	DumpMemoryArea dma;
 
 	/* create jitdata structure */
 
@@ -520,10 +512,6 @@ u1 *jit_recompile(methodinfo *m)
 
 		code_codeinfo_free(jd->code);
 	}
-
-	/* release dump area */
-
-	DRELEASE;
 
 #if defined(ENABLE_STATISTICS)
 	/* measure time */
@@ -759,7 +747,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 			/*&& jd->exceptiontablelength == 0*/
 		) {
 			/*printf("=== %s ===\n", jd->m->name->text);*/
-			jd->ls = DNEW(lsradata);
+			jd->ls = (lsradata*) DumpMemory::allocate(sizeof(lsradata));
 			jd->ls = NULL;
 			ssa(jd);
 			/*lsra(jd);*/ regalloc(jd);

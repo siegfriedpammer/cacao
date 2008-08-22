@@ -19,10 +19,14 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
+
 */
+
 
 #ifndef _MM_TLH_H
 #define _MM_TLH_H
+
+#include "config.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -35,6 +39,10 @@ typedef struct {
 	unsigned overflows;
 } tlh_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void tlh_init(tlh_t *tlh);
 
 void tlh_destroy(tlh_t *tlh);
@@ -44,6 +52,10 @@ void tlh_add_frame(tlh_t *tlh);
 void tlh_remove_frame(tlh_t *tlh);
 
 void *tlh_alloc(tlh_t *tlh, size_t size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

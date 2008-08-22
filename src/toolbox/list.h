@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _LIST_H
-#define _LIST_H
+#ifndef _TOOLBOX_LIST_H
+#define _TOOLBOX_LIST_H
 
 #include "config.h"
 
@@ -145,7 +145,7 @@ void   *list_prev(list_t *l, void *element);
 }
 #endif
 
-#endif /* _LIST_H */
+#endif /* _TOOLBOX_LIST_H */
 
 
 /*

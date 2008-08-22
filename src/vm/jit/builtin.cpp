@@ -108,11 +108,9 @@ static bool builtintable_init(void)
 	descriptor_pool    *descpool;
 	builtintable_entry *bte;
 	methodinfo         *m;
-	int32_t             dumpmarker;
 
-	/* mark start of dump memory area */
-
-	DMARKER;
+	// Create new dump memory area.
+	DumpMemoryArea dma;
 
 	/* create a new descriptor pool */
 
@@ -132,22 +130,15 @@ static bool builtintable_init(void)
 		bte->name       = utf_new_char(bte->cname);
 		bte->descriptor = utf_new_char(bte->cdescriptor);
 
-		if (!descriptor_pool_add(descpool, bte->descriptor, NULL)) {
-			/* release dump area */
-
-			DRELEASE;
-
+		if (!descriptor_pool_add(descpool, bte->descriptor, NULL))
 			return false;
-		}
 	}
 
 	for (bte = builtintable_automatic; bte->fp != NULL; bte++) {
 		bte->descriptor = utf_new_char(bte->cdescriptor);
 
-		if (!descriptor_pool_add(descpool, bte->descriptor, NULL)) {
-			DRELEASE;
+		if (!descriptor_pool_add(descpool, bte->descriptor, NULL))
 			return false;
-		}
 	}
 
 	for (bte = builtintable_function; bte->fp != NULL; bte++) {
@@ -155,10 +146,8 @@ static bool builtintable_init(void)
 		bte->name       = utf_new_char(bte->cname);
 		bte->descriptor = utf_new_char(bte->cdescriptor);
 
-		if (!descriptor_pool_add(descpool, bte->descriptor, NULL)) {
-			DRELEASE;
+		if (!descriptor_pool_add(descpool, bte->descriptor, NULL))
 			return false;
-		}
 	}
 
 	/* create the class reference table */
@@ -213,10 +202,6 @@ static bool builtintable_init(void)
 			BuiltinStub::generate(m, bte);
 		}
 	}
-
-	/* release dump area */
-
-	DRELEASE;
 
 	return true;
 }

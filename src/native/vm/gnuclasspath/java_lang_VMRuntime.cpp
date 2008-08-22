@@ -39,7 +39,7 @@
 # include <mach/mach.h>
 #endif
 
-#include "mm/dumpmemory.h"
+#include "mm/memory.h"
 #include "mm/gc.hpp"
 
 #include "native/jni.hpp"
@@ -232,7 +232,6 @@ JNIEXPORT jstring JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIEnv *env, j
 	char          *buffer;
 	int32_t        buffer_len;
 	java_handle_t *o;
-	int32_t        dumpmarker;
 
 	if (libname == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -249,9 +248,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIEnv *env, j
 		strlen(NATIVE_LIBRARY_SUFFIX) +
 		strlen("0");
 
-	DMARKER;
-
-	buffer = DMNEW(char, buffer_len);
+	buffer = MNEW(char, buffer_len);
 
 	/* generate library name */
 
@@ -263,7 +260,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIEnv *env, j
 
 	/* release memory */
 
-	DRELEASE;
+	MFREE(buffer, char, buffer_len);
 
 	return (jstring) o;
 }

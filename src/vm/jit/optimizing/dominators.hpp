@@ -63,6 +63,9 @@ typedef struct dominatordata dominatordata;
 
 /* function prototypes */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 dominatordata *compute_Dominators(graphdata *gd, int basicblockcount);
 void computeDF(graphdata *gd, dominatordata *dd, int basicblockcount, int n);
@@ -75,7 +78,12 @@ bool dominance_frontier_build(jitdata *jd);
 
 void dominator_tree_validate(jitdata *jd, dominatordata *dd);
 
-#endif /* _DOMINATORS_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif // _DOMINATORS_HPP
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
