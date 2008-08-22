@@ -438,7 +438,7 @@ void dominator_tree_link_children(jitdata *jd) {
 	unsigned *numsuccessors;
 
 	// Create new dump memory area.
-	DumpMemoryArea dma();
+	DumpMemoryArea dma;
 
 	/* Allocate memory for successors */
 
@@ -465,7 +465,7 @@ void dominator_tree_link_children(jitdata *jd) {
 
 bool dominator_tree_build(jitdata *jd) {
 	// Create new dump memory area.
-	DumpMemoryArea dma();
+	DumpMemoryArea dma;
 
 	dominator_tree_build_intern(jd);
 
@@ -577,7 +577,7 @@ void dominance_frontier_store(dominance_frontier_info *dfi) {
 
 bool dominance_frontier_build(jitdata *jd) {
 	// Create new dump memory area.
-	DumpMemoryArea dma();
+	DumpMemoryArea dma;
 
 	dominance_frontier_info *dfi = dominance_frontier_init(jd);
 	dominance_frontier_for_block(dfi, jd->basicblocks);
@@ -598,7 +598,7 @@ void dominator_tree_validate(jitdata *jd, dominatordata *_dd) {
 	bool found;
 
 	// Create new dump memory area.
-	DumpMemoryArea dma();
+	DumpMemoryArea dma;
 
 	fprintf(stderr, "%s/%s: \n", jd->m->clazz->name->text, jd->m->name->text);
 	gd = graph_init(jd->basicblockcount);

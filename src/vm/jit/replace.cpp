@@ -2886,7 +2886,7 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 	REPLACE_COUNT(stat_replacements);
 
 	// Create new dump memory area.
-	DumpMemoryArea dma();
+	DumpMemoryArea dma;
 
 	/* Get the stackframeinfo for the current thread. */
 

@@ -259,7 +259,7 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 		strlen(")");
 
 	// Create new dump memory area.
-	DumpMemoryArea dma();
+	DumpMemoryArea dma;
 
 	// TODO Use a std::string here.
 	logtext = (char*) DumpMemory::allocate(sizeof(char) * logtextlen);
@@ -377,7 +377,7 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 	logtextlen += strlen("->0.4872328470301428 (0x0123456789abcdef)");
 
 	// Create new dump memory area.
-	DumpMemoryArea dma();
+	DumpMemoryArea dma;
 
 	// TODO Use a std::string here.
 	logtext = (char*) DumpMemory::allocate(sizeof(char) * logtextlen);
@@ -468,7 +468,7 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 	logtextlen += strlen("0");
 
 	// Create new dump memory area.
-	DumpMemoryArea dma();
+	DumpMemoryArea dma;
 
 	// TODO Use a std::string here.
 	logtext = (char*) DumpMemory::allocate(sizeof(char) * logtextlen);
@@ -579,7 +579,7 @@ void trace_exception_builtin(java_handle_t* h)
 	}
 
 	// Create new dump memory area.
-	DumpMemoryArea dma();
+	DumpMemoryArea dma;
 
 	logtext = (char*) DumpMemory::allocate(sizeof(char) * logtextlen);
 
