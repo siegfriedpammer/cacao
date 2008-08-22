@@ -34,7 +34,7 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/mutex.hpp"
 
 #include "toolbox/list.h"
 #include "toolbox/logging.h"
@@ -535,7 +535,7 @@ classbuffer *suck_start(classinfo *c)
 
 			/* enter a monitor on zip/jar archives */
 
-			LOCK_MONITOR_ENTER(lce);
+			Mutex_lock(lce->mutex);
 
 			/* try to get the file in current archive */
 
@@ -543,7 +543,7 @@ classbuffer *suck_start(classinfo *c)
 
 			/* leave the monitor */
 
-			LOCK_MONITOR_EXIT(lce);
+			Mutex_unlock(lce->mutex);
 
 		} else {
 #endif /* defined(ENABLE_ZLIB) */

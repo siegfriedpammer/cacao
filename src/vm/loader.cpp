@@ -36,7 +36,6 @@
 
 #include "native/llni.h"
 
-#include "threads/lock-common.h"
 #include "threads/mutex.hpp"
 
 #include "toolbox/hashtable.h"
@@ -110,7 +109,7 @@ void loader_preinit(void)
 	for (lce = (list_classpath_entry*) list_first(list_classpath_entries); lce != NULL;
 		 lce = (list_classpath_entry*) list_next(list_classpath_entries, lce)) {
 		if (lce->type == CLASSPATH_ARCHIVE)
-			LOCK_INIT_OBJECT_LOCK(lce);
+			lce->mutex = new Mutex();
 	}
 #endif
 

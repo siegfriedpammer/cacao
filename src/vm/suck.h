@@ -34,6 +34,8 @@ extern "C" {
 
 #include "vm/types.h"
 
+#include "threads/mutex.hpp"
+
 #include "toolbox/hashtable.h"
 #include "toolbox/list.h"
 
@@ -53,7 +55,7 @@ typedef struct list_classpath_entry list_classpath_entry;
 
 struct list_classpath_entry {
 #if defined(ENABLE_THREADS)
-	java_object_t      header;	        /* monitor locking on zip/jar files   */
+	Mutex             *mutex;	        /* mutex locking on zip/jar files */
 #endif
 	s4                 type;
 	char              *path;

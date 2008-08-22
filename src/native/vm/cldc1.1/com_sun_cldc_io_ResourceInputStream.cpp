@@ -41,7 +41,7 @@
 # include "native/include/com_sun_cldc_io_ResourceInputStream.h"
 #endif
 
-#include "threads/lock-common.h"
+#include "threads/mutex.hpp"
 
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
@@ -212,13 +212,13 @@ JNIEXPORT jobject JNICALL Java_com_sun_cldc_io_ResourceInputStream_open(JNIEnv *
 		if (lce->type == CLASSPATH_ARCHIVE) {
 
 			/* enter a monitor on zip/jar archives */
-			LOCK_MONITOR_ENTER(lce);
+			lce->mutex->lock();
 
 			/* try to get the file in current archive */
 			descriptor = zip_read_resource(lce, uname);
 
 			/* leave the monitor */
-			LOCK_MONITOR_EXIT(lce);
+			lce->mutex->unlock();
 			
 			if (descriptor != NULL) { /* file exists */
 				break;
