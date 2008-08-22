@@ -1,9 +1,7 @@
 /* src/vm/jit/optimizing/graph.h - control flow graph header
 
-   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,16 +20,13 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Christian Ullrich
-
-
 */
 
 
 #ifndef _LSRA_GRAPH_H
 #define _LSRA_GRAPH_H
+
+#include "config.h"
 
 #include "vm/jit/optimizing/lsra.h"
 
@@ -77,6 +72,11 @@ typedef struct graph_element graph_element;
 typedef graph_element *graphiterator;
 
 /* function prototypes */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void transform_BB(jitdata *, graphdata *gd);
 graphdata *graph_init(int basicblockcount);
                                             /* Generate the CFG */
@@ -90,6 +90,9 @@ int graph_get_num_successor(graphdata *gd, int b_index);
 bool graph_has_multiple_successors( graphdata *gd, int b_index);
 bool graph_has_multiple_predecessors( graphdata *gd, int b_index);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _LSRA_GRAPH_H */
 
