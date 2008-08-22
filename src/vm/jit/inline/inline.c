@@ -35,6 +35,7 @@
 #include "mm/memory.h"
 
 #include "threads/lock-common.h"
+#include "threads/mutex.hpp"
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
@@ -337,7 +338,7 @@ static bool inline_jit_compile(inline_node *iln)
 
 	/* enter a monitor on the method */
 
-	LOCK_MONITOR_ENTER(m);
+	Mutex_lock(m->mutex);
 
 	/* allocate jitdata structure and fill it */
 
@@ -380,7 +381,7 @@ static bool inline_jit_compile(inline_node *iln)
 
 	/* leave the monitor */
 
-	LOCK_MONITOR_EXIT(m);
+	Mutex_unlock(m->mutex);
 
 	return r;
 }

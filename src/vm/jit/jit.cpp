@@ -38,7 +38,7 @@
 
 #include "toolbox/logging.h"
 
-#include "threads/lock-common.h"
+#include "threads/mutex.hpp"
 
 #include "vm/class.h"
 #include "vm/global.h"
@@ -298,12 +298,12 @@ u1 *jit_compile(methodinfo *m)
 
 	/* enter a monitor on the method */
 
-	LOCK_MONITOR_ENTER(m);
+	m->mutex->lock();
 
 	/* if method has been already compiled return immediately */
 
 	if (m->code != NULL) {
-		LOCK_MONITOR_EXIT(m);
+		m->mutex->unlock();
 
 		assert(m->code->entrypoint);
 		return m->code->entrypoint;
@@ -422,7 +422,7 @@ u1 *jit_compile(methodinfo *m)
 
 	/* leave the monitor */
 
-	LOCK_MONITOR_EXIT(m);
+	m->mutex->unlock();
 
 	/* return pointer to the methods entry point */
 

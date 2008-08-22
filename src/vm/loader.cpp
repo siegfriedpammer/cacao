@@ -2162,13 +2162,10 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 	clone = c->methods;
 	MSET(clone, 0, methodinfo, 1);
 
-#if defined(ENABLE_THREADS)
-	lock_init_object_lock(&clone->header);
-#endif
-
 	/* ATTENTION: if you delete the ACC_NATIVE below, set
 	   clone->maxlocals=1 (interpreter related) */
 
+	clone->mutex      = new Mutex();
 	clone->flags      = ACC_PUBLIC | ACC_NATIVE;
 	clone->name       = utf_clone;
 	clone->descriptor = utf_void__java_lang_Object;

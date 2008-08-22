@@ -42,6 +42,8 @@ typedef struct codeinfo            codeinfo;
 #include "config.h"
 #include "vm/types.h"
 
+#include "threads/mutex.hpp"
+
 #include "vm/jit/builtin.hpp"
 #include "vm/descriptor.h"
 #include "vm/global.h"
@@ -65,7 +67,7 @@ typedef struct codeinfo            codeinfo;
 /* methodinfo *****************************************************************/
 
 struct methodinfo {                 /* method structure                       */
-	java_object_t header;           /* we need this in jit's monitorenter     */
+	Mutex        *mutex;            /* we need this in jit's locking          */
 	s4            flags;            /* ACC flags                              */
 	utf          *name;             /* name of method                         */
 	utf          *descriptor;       /* JavaVM descriptor string of method     */
