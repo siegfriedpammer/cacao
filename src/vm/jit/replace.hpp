@@ -229,12 +229,12 @@ struct sourcestate_t {
 		cd->replacementpoint[-1].callsize = (cd->mcodeptr - cd->mcodebase)\
 					- (ptrint) cd->replacementpoint[-1].pc;
 
-#else /* defined(ENABLE_GC_CACAO) */
+#else // ENABLE_GC_CACAO
 
 #define REPLACEMENT_POINT_FORGC_BUILTIN(cd, iptr)
 #define REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr)
 
-#endif /* defined(ENABLE_GC_CACAO) */
+#endif // ENABLE_GC_CACAO
 
 
 /*** prototypes ********************************************************/
@@ -265,11 +265,11 @@ void replace_source_frame_println(sourceframe_t *frame);
 void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert);
 #endif
 
-#endif /* defined(ENABLE_REPLACEMENT) */
-
 #ifdef __cplusplus
 }
 #endif
+
+#endif // ENABLE_REPLACEMENT
 
 #endif // _REPLACE_HPP
 
