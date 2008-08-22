@@ -1,4 +1,4 @@
-/* src/vm/loader.c - class loader functions
+/* src/vm/loader.cpp - class loader functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -47,7 +47,7 @@
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/linker.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/method.h"
 #include "vm/options.h"
 #include "vm/package.hpp"
@@ -105,8 +105,8 @@ void loader_preinit(void)
 #if defined(ENABLE_THREADS)
 	/* Initialize the monitor pointer for zip/jar file locking. */
 
-	for (lce = list_first(list_classpath_entries); lce != NULL;
-		 lce = list_next(list_classpath_entries, lce)) {
+	for (lce = (list_classpath_entry*) list_first(list_classpath_entries); lce != NULL;
+		 lce = (list_classpath_entry*) list_next(list_classpath_entries, lce)) {
 		if (lce->type == CLASSPATH_ARCHIVE)
 			LOCK_INIT_OBJECT_LOCK(lce);
 	}
@@ -119,7 +119,7 @@ void loader_preinit(void)
 
 	/* Load the most basic classes. */
 
-	assert(VM_is_initializing() == true);
+	assert(VM::get_current()->is_initializing() == true);
 
 	class_java_lang_Object     = load_class_bootstrap(utf_java_lang_Object);
 
@@ -145,7 +145,7 @@ void loader_init(void)
 
 	/* Load primitive-type wrapping classes. */
 
-	assert(VM_is_initializing() == true);
+	assert(VM::get_current()->is_initializing() == true);
 
 #if defined(ENABLE_JAVASE)
 	class_java_lang_Void       = load_class_bootstrap(utf_java_lang_Void);
@@ -276,7 +276,7 @@ classloader_t *loader_hashtable_classloader_add(java_handle_t *cl)
 
 	key  = heap_hashcode(LLNI_DIRECT(cl)) >> 4;
 	slot = key & (hashtable_classloader->size - 1);
-	cle  = hashtable_classloader->ptr[slot];
+	cle  = (hashtable_classloader_entry*) hashtable_classloader->ptr[slot];
 
 	/* search hashchain for existing entry */
 
@@ -316,7 +316,7 @@ classloader_t *loader_hashtable_classloader_add(java_handle_t *cl)
 
 		/* insert entry into hashtable */
 
-		cle->hashlink = hashtable_classloader->ptr[slot];
+		cle->hashlink = (hashtable_classloader_entry*) hashtable_classloader->ptr[slot];
 		hashtable_classloader->ptr[slot] = cle;
 
 		/* update number of entries */
@@ -357,7 +357,7 @@ classloader_t *loader_hashtable_classloader_find(java_handle_t *cl)
 
 	key  = heap_hashcode(LLNI_DIRECT(cl)) >> 4;
 	slot = key & (hashtable_classloader->size - 1);
-	cle  = hashtable_classloader->ptr[slot];
+	cle  = (hashtable_classloader_entry*) hashtable_classloader->ptr[slot];
 
 	/* search hashchain for existing entry */
 
@@ -398,20 +398,19 @@ void loader_load_all_classes(void)
 	list_classpath_entry    *lce;
 #if defined(ENABLE_ZLIB)
 	hashtable               *ht;
-	s4                       slot;
 	hashtable_zipfile_entry *htzfe;
 	utf                     *u;
 #endif
 
-	for (lce = list_first(list_classpath_entries); lce != NULL;
-		 lce = list_next(list_classpath_entries, lce)) {
+	for (lce = (list_classpath_entry*) list_first(list_classpath_entries); lce != NULL;
+		 lce = (list_classpath_entry*) list_next(list_classpath_entries, lce)) {
 #if defined(ENABLE_ZLIB)
 		if (lce->type == CLASSPATH_ARCHIVE) {
 			/* get the classes hashtable */
 
 			ht = lce->htclasses;
 
-			for (slot = 0; slot < ht->size; slot++) {
+			for (uint32_t slot = 0; slot < ht->size; slot++) {
 				htzfe = (hashtable_zipfile_entry *) ht->ptr[slot];
 
 				for (; htzfe; htzfe = htzfe->hashlink) {
@@ -791,8 +790,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 	/* resolve entries in temporary structures */
 
 	while (forward_classes) {
-		utf *name =
-			class_getconstant(c, forward_classes->name_index, CONSTANT_Utf8);
+		utf *name = (utf*) class_getconstant(c, forward_classes->name_index, CONSTANT_Utf8);
 		if (!name)
 			return false;
 
@@ -818,8 +816,8 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 	}
 
 	while (forward_strings) {
-		utf *text =
-			class_getconstant(c, forward_strings->string_index, CONSTANT_Utf8);
+		utf *text = (utf*) class_getconstant(c, forward_strings->string_index, CONSTANT_Utf8);
+
 		if (!text)
 			return false;
 
@@ -840,15 +838,15 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 #endif
 
 		/* resolve simple name and descriptor */
-		cn->name = class_getconstant(c,
-									 forward_nameandtypes->name_index,
-									 CONSTANT_Utf8);
+		cn->name = (utf*) class_getconstant(c,
+											forward_nameandtypes->name_index,
+											CONSTANT_Utf8);
 		if (!cn->name)
 			return false;
 
-		cn->descriptor = class_getconstant(c,
-										   forward_nameandtypes->sig_index,
-										   CONSTANT_Utf8);
+		cn->descriptor = (utf*) class_getconstant(c,
+												  forward_nameandtypes->sig_index,
+												  CONSTANT_Utf8);
 		if (!cn->descriptor)
 			return false;
 
@@ -888,9 +886,10 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 #endif
 		/* resolve simple name and descriptor */
 
-		nat = class_getconstant(c,
-								forward_fieldmethints->nameandtype_index,
-								CONSTANT_NameAndType);
+		nat = (constant_nameandtype*) class_getconstant(c,
+														forward_fieldmethints->nameandtype_index,
+														CONSTANT_NameAndType);
+
 		if (!nat)
 			return false;
 
@@ -962,7 +961,9 @@ bool loader_load_attribute_signature(classbuffer *cb, utf **signature)
 
 	signature_index = suck_u2(cb);
 
-	if (!(*signature = class_getconstant(c, signature_index, CONSTANT_Utf8)))
+	*signature = (utf*) class_getconstant(c, signature_index, CONSTANT_Utf8);
+
+	if (*signature == NULL)
 		return false;
 
 	return true;
@@ -1321,9 +1322,8 @@ classinfo *load_class_bootstrap(utf *name)
 			class_free(c);
 		}
 		else {
-			/* Add the package name to the boot packages. */
-
-			Package_add(c->packagename);
+			// Add the package name to the boot packages.
+			Package::add(c->packagename);
 		}
 
 		r = res;
@@ -1384,7 +1384,6 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	constant_classref  *cr;
 	int16_t             index;
 
-	u4 i,j;
 	u4 ma, mi;
 	descriptor_pool *descpool;
 #if defined(ENABLE_STATISTICS)
@@ -1560,7 +1559,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	interfacesnames = DMNEW(utf*, c->interfacescount);
 
-	for (i = 0; i < c->interfacescount; i++) {
+	for (int32_t i = 0; i < c->interfacescount; i++) {
 		index = suck_u2(cb);
 
 		u = (utf *) class_getconstant(c, index, CONSTANT_Class);
@@ -1583,7 +1582,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	MZERO(c->fields, fieldinfo, c->fieldscount);
 
-	for (i = 0; i < c->fieldscount; i++) {
+	for (int32_t i = 0; i < c->fieldscount; i++) {
 		if (!field_load(cb, &(c->fields[i]), descpool))
 			return false;
 	}
@@ -1600,7 +1599,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	MZERO(c->methods, methodinfo, c->methodscount);
 	
-	for (i = 0; i < c->methodscount; i++) {
+	for (int32_t i = 0; i < c->methodscount; i++) {
 		if (!method_load(cb, &(c->methods[i]), descpool))
 			return false;
 	}
@@ -1617,8 +1616,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	/* allocate space for the parsed descriptors */
 
 	descriptor_pool_alloc_parsed_descriptors(descpool);
-	c->parseddescs =
-		descriptor_pool_get_parsed_descriptors(descpool, &(c->parseddescsize));
+	c->parseddescs = (u1*) descriptor_pool_get_parsed_descriptors(descpool, &(c->parseddescsize));
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
@@ -1632,7 +1630,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* put the classrefs in the constant pool */
 
-	for (i = 0; i < c->cpcount; i++) {
+	for (int32_t i = 0; i < c->cpcount; i++) {
 		if (c->cptags[i] == CONSTANT_Class) {
 			utf *name = (utf *) c->cpinfos[i];
 			c->cpinfos[i] = descriptor_pool_lookup_classref(descpool, name);
@@ -1677,7 +1675,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* Resolve the super interfaces. */
 
-	for (i = 0; i < c->interfacescount; i++) {
+	for (int32_t i = 0; i < c->interfacescount; i++) {
 		u  = interfacesnames[i];
 		cr = descriptor_pool_lookup_classref(descpool, u);
 
@@ -1714,7 +1712,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* Parse the field descriptors. */
 
-	for (i = 0; i < c->fieldscount; i++) {
+	for (int32_t i = 0; i < c->fieldscount; i++) {
 		c->fields[i].parseddesc =
 			descriptor_pool_parse_field_descriptor(descpool,
 												   c->fields[i].descriptor);
@@ -1726,7 +1724,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* parse method descriptors */
 
-	for (i = 0; i < c->methodscount; i++) {
+	for (int32_t i = 0; i < c->methodscount; i++) {
 		methodinfo *m = &c->methods[i];
 		m->parseddesc =
 			descriptor_pool_parse_method_descriptor(descpool, m->descriptor,
@@ -1734,7 +1732,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		if (!m->parseddesc)
 			return false;
 
-		for (j = 0; j < m->rawexceptiontablelength; j++) {
+		for (int32_t j = 0; j < m->rawexceptiontablelength; j++) {
 			if (!m->rawexceptiontable[j].catchtype.any)
 				continue;
 
@@ -1744,7 +1742,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 				return false;
 		}
 
-		for (j = 0; j < m->thrownexceptionscount; j++) {
+		for (int32_t j = 0; j < m->thrownexceptionscount; j++) {
 			if (!m->thrownexceptions[j].any)
 				continue;
 
@@ -1758,7 +1756,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 
 	/* parse the loaded descriptors */
 
-	for (i = 0; i < c->cpcount; i++) {
+	for (int32_t i = 0; i < c->cpcount; i++) {
 		constant_FMIref *fmi;
 		s4               index;
 
@@ -1811,8 +1809,8 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		static int shift = 0;
 		u2 *hashtab;
 		u2 *next; /* for chaining colliding hash entries */
-		size_t len;
-		size_t hashlen;
+		int32_t len;
+		int32_t hashlen;
 		u2 index;
 		u2 old;
 
@@ -1835,7 +1833,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		/* Check fields */
 		memset(hashtab, 0, sizeof(u2) * (hashlen + len));
 
-		for (i = 0; i < c->fieldscount; ++i) {
+		for (int32_t i = 0; i < c->fieldscount; ++i) {
 			fieldinfo *fi = c->fields + i;
 
 			/* It's ok if we lose bits here */
@@ -1859,7 +1857,7 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 		/* Check methods */
 		memset(hashtab, 0, sizeof(u2) * (hashlen + hashlen/5));
 
-		for (i = 0; i < c->methodscount; ++i) {
+		for (int32_t i = 0; i < c->methodscount; ++i) {
 			methodinfo *mi = c->methods + i;
 
 			/* It's ok if we lose bits here */
@@ -2100,7 +2098,7 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 		/* check for cases like `[II' and whether the character is a
 		   valid primitive type */
 
-		if ((namelen > 2) || (Primitive_get_class_by_char(text[1]) == NULL)) {
+		if ((namelen > 2) || (Primitive::get_class_by_char(text[1]) == NULL)) {
 			exceptions_throw_classnotfoundexception(c->name);
 			return NULL;
 		}
@@ -2182,7 +2180,7 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 	if (!descriptor_params_from_paramtypes(clonedesc, clone->flags))
 		return false;
 
-	clone->code = NativeStub_generate(clone, BUILTIN_clone);
+	clone->code = NativeStub::generate(clone, BUILTIN_clone);
 
 	/* XXX: field: length? */
 
@@ -2219,7 +2217,7 @@ void loader_close(void)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -51,7 +51,7 @@
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/method.h"
 #include "vm/options.h"
 #include "vm/os.hpp"

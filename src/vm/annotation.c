@@ -38,7 +38,7 @@
 #include "vm/array.h"
 #include "vm/jit/builtin.hpp"
 #include "vm/class.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/primitive.hpp"
 #include "vm/suck.h"
 #include "vm/types.h"

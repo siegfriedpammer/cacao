@@ -43,7 +43,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/string.hpp"
 
 #include "vm/jit/code.h"

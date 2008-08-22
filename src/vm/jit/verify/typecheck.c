@@ -153,7 +153,7 @@ error reporting.
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"

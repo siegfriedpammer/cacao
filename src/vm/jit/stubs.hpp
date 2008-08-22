@@ -77,7 +77,6 @@ public:
 void*     CompilerStub_generate(methodinfo* m);
 void*     CompilerStub_remove(void* stub);
 void      BuiltinStub_generate(methodinfo* m, builtintable_entry* bte);
-codeinfo* NativeStub_generate(methodinfo* m, functionptr f);
 void      NativeStub_remove(void* stub);
 
 #endif

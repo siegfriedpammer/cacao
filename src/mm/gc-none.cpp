@@ -42,7 +42,7 @@
 
 #include "vm/jit/builtin.hpp"
 #include "vm/global.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/vm.hpp"
 

@@ -129,7 +129,6 @@ void       primitive_postinit(void);
 // Legacy C interface.
 classinfo *Primitive_get_class_by_name(utf *name);
 classinfo *Primitive_get_class_by_type(int type);
-classinfo *Primitive_get_class_by_char(char ch);
 
 classinfo *Primitive_get_arrayclass_by_name(utf *name);
 classinfo *Primitive_get_arrayclass_by_type(int type);

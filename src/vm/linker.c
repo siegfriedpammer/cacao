@@ -45,7 +45,7 @@
 #include "vm/classcache.h"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
 #include "vm/rt-timing.h"

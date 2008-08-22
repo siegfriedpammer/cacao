@@ -438,7 +438,6 @@ extern "C" {
 
 	void      BuiltinStub_generate(methodinfo* m, builtintable_entry* bte) { BuiltinStub::generate(m, bte); }
 
-	codeinfo* NativeStub_generate(methodinfo* m, functionptr f) { return NativeStub::generate(m, f); }
 	void      NativeStub_remove(void* stub) { NativeStub::remove(stub); }
 }
 

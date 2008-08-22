@@ -52,7 +52,7 @@
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/linker.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/resolve.h"
 

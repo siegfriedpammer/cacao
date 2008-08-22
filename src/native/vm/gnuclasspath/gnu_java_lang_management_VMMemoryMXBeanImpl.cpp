@@ -39,7 +39,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/global.h"
-#include "vm/loader.h"               /* XXX only for load_class_bootstrap */
+#include "vm/loader.hpp"               /* XXX only for load_class_bootstrap */
 #include "vm/options.h"
 #include "vm/vm.hpp"
 

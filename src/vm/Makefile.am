@@ -105,8 +105,8 @@ libvm_la_SOURCES = \
 	jit_interface.h \
 	linker.c \
 	linker.h \
-	loader.c \
-	loader.h \
+	loader.cpp \
+	loader.hpp \
 	method.c \
 	method.h \
 	options.c \

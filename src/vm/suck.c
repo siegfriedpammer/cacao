@@ -41,7 +41,7 @@
 #include "toolbox/util.h"
 
 #include "vm/exceptions.hpp"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/os.hpp"
 #include "vm/properties.h"

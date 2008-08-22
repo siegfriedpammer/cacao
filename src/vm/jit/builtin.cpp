@@ -68,7 +68,7 @@
 #include "vm/globals.hpp"
 #include "vm/initialize.h"
 #include "vm/linker.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
 #include "vm/rt-timing.h"

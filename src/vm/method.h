@@ -46,7 +46,7 @@ typedef struct codeinfo            codeinfo;
 #include "vm/descriptor.h"
 #include "vm/global.h"
 #include "vm/linker.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/references.h"
 
 #if defined(ENABLE_JAVASE)

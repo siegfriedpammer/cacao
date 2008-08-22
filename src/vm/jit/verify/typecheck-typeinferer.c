@@ -40,7 +40,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"

@@ -55,7 +55,7 @@
 #include "vm/globals.hpp"
 #include "vm/initialize.h"
 #include "vm/javaobjects.hpp"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"

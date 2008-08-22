@@ -42,7 +42,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/linker.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/resolve.h"
 

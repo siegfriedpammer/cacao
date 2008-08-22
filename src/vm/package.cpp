@@ -142,8 +142,6 @@ utf* Package::find(utf *packagename)
 
 extern "C" {
 
-void Package_initialize(void) { Package::initialize(); }
-void Package_add(utf* packagename) { Package::add(packagename); }
 utf* Package_find(utf *packagename) { return Package::find(packagename); }
 
 }

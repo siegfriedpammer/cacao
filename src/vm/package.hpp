@@ -53,13 +53,11 @@ public:
 
 typedef struct Package Package;
 
-void Package_initialize();
-void Package_add(utf* packagename);
 utf* Package_find(utf* packagename);
 
 #endif
 
-#endif /* _VM_PACKAGE_HPP */
+#endif // _VM_PACKAGE_HPP
 
 
 /*

@@ -34,7 +34,7 @@
 #include "vm/class.h"
 #include "vm/field.h"
 #include "vm/global.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/method.h"
 
 

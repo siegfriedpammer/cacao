@@ -37,7 +37,7 @@
 #include "vm/descriptor.h"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
 

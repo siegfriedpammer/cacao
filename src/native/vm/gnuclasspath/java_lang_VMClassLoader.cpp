@@ -54,7 +54,7 @@
 #include "vm/initialize.h"
 #include "vm/javaobjects.hpp"
 #include "vm/linker.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
 #include "vm/statistics.h"

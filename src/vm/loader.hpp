@@ -1,4 +1,4 @@
-/* src/vm/loader.h - class loader header
+/* src/vm/loader.hpp - class loader header
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _LOADER_H
-#define _LOADER_H
+#ifndef _LOADER_HPP
+#define _LOADER_HPP
 
 /* forward typedefs ***********************************************************/
 
@@ -138,6 +138,10 @@ typedef java_object_t               classloader_t;
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void loader_preinit(void);
 void loader_init(void);
 
@@ -165,7 +169,12 @@ classinfo *load_class_bootstrap(utf *name);
 classinfo *load_class_from_classbuffer(classbuffer *cb);
 classinfo *load_newly_created_array(classinfo *c, classloader_t *loader);
 
-#endif /* _LOADER_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif // _LOADER_HPP
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -173,7 +182,7 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

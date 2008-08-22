@@ -52,7 +52,7 @@ typedef struct extra_classref extra_classref;
 #include "vm/field.h"
 #include "vm/global.h"
 #include "vm/linker.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/method.h"
 #include "vm/references.h"
 #include "vm/string.hpp"

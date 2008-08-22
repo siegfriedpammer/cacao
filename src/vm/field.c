@@ -43,7 +43,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/field.h"
 #include "vm/global.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
 #include "vm/references.h"

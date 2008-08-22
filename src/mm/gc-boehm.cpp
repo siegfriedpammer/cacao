@@ -47,7 +47,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/finalizer.h"
 #include "vm/global.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/rt-timing.h"
 #include "vm/string.hpp"

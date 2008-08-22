@@ -36,7 +36,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/linker.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 
 #include "vm/jit/asmpart.h"

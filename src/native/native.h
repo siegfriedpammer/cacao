@@ -38,7 +38,7 @@ extern "C" {
 
 #include "vm/class.h"
 #include "vm/global.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/method.h"
 #include "vm/os.hpp"
 #include "vm/utf8.h"

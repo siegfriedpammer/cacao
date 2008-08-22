@@ -39,7 +39,7 @@ extern "C" {
 
 #include "vm/class.h"
 #include "vm/global.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 
 
 /* list_classpath_entry *******************************************************/
