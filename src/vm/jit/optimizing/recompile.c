@@ -32,7 +32,8 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/condition.hpp"
+#include "threads/mutex.hpp"
 #include "threads/thread.hpp"
 
 #include "toolbox/list.h"
@@ -51,8 +52,9 @@
 
 /* global variables ***********************************************************/
 
-static java_object_t *lock_thread_recompile;
-static list_t        *list_recompile_methods;
+static Mutex     *recompile_thread_mutex;
+static Condition *recompile_thread_cond;
+static list_t    *list_recompile_methods;
 
 
 /* recompile_init **************************************************************
@@ -65,11 +67,10 @@ bool recompile_init(void)
 {
 	TRACESUBSYSTEMINITIALIZATION("recompile_init");
 
-	/* initialize the recompile lock object */
+	/* initialize the recompile thread mutex and condition */
 
-	lock_thread_recompile = NEW(java_object_t);
-
-	LOCK_INIT_OBJECT_LOCK(lock_thread_recompile);
+	recompile_thread_mutex = Mutex_new();
+	recompile_thread_cond  = Condition_new();
 
 	/* create method list */
 
@@ -162,17 +163,17 @@ static void recompile_thread(void)
 	list_method_entry *lme;
 
 	while (true) {
-		/* get the lock on the recompile lock object, so we can call wait */
+		/* get the lock on the recompile mutex, so we can call wait */
 
-		LOCK_MONITOR_ENTER(lock_thread_recompile);
+		Mutex_lock(recompile_thread_mutex);
 
-		/* wait forever on that object till we are signaled */
-	
-		LOCK_WAIT_FOREVER(lock_thread_recompile);
+		/* wait forever on that condition till we are signaled */
+
+		Condition_wait(recompile_thread_cond, recompile_thread_mutex);
 
 		/* leave the lock */
 
-		LOCK_MONITOR_EXIT(lock_thread_recompile);
+		Mutex_unlock(recompile_thread_mutex);
 
 		/* get the next method and recompile it */
 
@@ -243,17 +244,17 @@ void recompile_queue_method(methodinfo *m)
 
 	list_add_last(list_recompile_methods, lme);
 
-	/* get the lock on the recompile lock object, so we can call notify */
+	/* get the lock on the recompile mutex, so we can call notify */
 
-	LOCK_MONITOR_ENTER(lock_thread_recompile);
+	Mutex_lock(recompile_thread_mutex);
 
 	/* signal the recompiler thread */
-	
-	LOCK_NOTIFY(lock_thread_recompile);
+
+	Condition_signal(recompile_thread_cond);
 
 	/* leave the lock */
 
-	LOCK_MONITOR_EXIT(lock_thread_recompile);
+	Mutex_unlock(recompile_thread_mutex);
 }
 
 
