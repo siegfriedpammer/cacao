@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <sys/mman.h> /* REMOVEME */
 
-#include "threads/lock-common.h"
+#include "threads/mutex.hpp"
 #include "threads/thread.hpp"
 
 #include "mm/codememory.h"
@@ -49,11 +49,11 @@
 #define DEFAULT_CODE_MEMORY_SIZE    128 * 1024 /* defaulting to 128kB         */
 
 #if defined(ENABLE_THREADS)
-static java_object_t *lock_code_memory = NULL;
+static Mutex *code_memory_mutex = NULL;
 #endif
-static void          *code_memory      = NULL;
-static int            code_memory_size = 0;
-static int            pagesize         = 0;
+static void  *code_memory       = NULL;
+static int    code_memory_size  = 0;
+static int    pagesize          = 0;
 
 
 /* codememory_init *************************************************************
@@ -67,11 +67,9 @@ void codememory_init(void)
 	TRACESUBSYSTEMINITIALIZATION("codememory_init");
 
 #if defined(ENABLE_THREADS)
-	/* create lock for code memory */
+	/* create mutex for code memory */
 
-	lock_code_memory = NEW(java_object_t);
-
-	lock_init_object_lock(lock_code_memory);
+	code_memory_mutex = Mutex_new();
 #endif
 
 	/* Get the pagesize of this architecture. */
@@ -91,7 +89,7 @@ void *codememory_get(size_t size)
 {
 	void *p;
 
-	LOCK_MONITOR_ENTER(lock_code_memory);
+	Mutex_lock(code_memory_mutex);
 
 	size = MEMORY_ALIGN(size, ALIGNSIZE);
 
@@ -138,7 +136,7 @@ void *codememory_get(size_t size)
 	code_memory       = (void *) ((ptrint) code_memory + size);
 	code_memory_size -= size;
 
-	LOCK_MONITOR_EXIT(lock_code_memory);
+	Mutex_unlock(code_memory_mutex);
 
 	return p;
 }
