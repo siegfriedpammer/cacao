@@ -79,11 +79,11 @@
 #include "vm/jit/python.h"
 #include "vm/jit/show.h"
 #if defined(ENABLE_THREADS)
-# include "threads/lock-common.h"
+# include "threads/mutex.hpp"
 #endif
 
 #if defined(ENABLE_THREADS)
-static java_object_t *python_global_lock;
+static Mutex *python_global_mutex;
 #endif
 
 /*
@@ -1825,8 +1825,7 @@ void pythonpass_init() {
 	}
 
 #if defined(ENABLE_THREADS)
-	python_global_lock = NEW(java_object_t);
-	LOCK_INIT_OBJECT_LOCK(python_global_lock);
+	python_global_mutex = Mutex_new();
 #endif
 
 }
@@ -1847,7 +1846,7 @@ int pythonpass_run(jitdata *jd, const char *module, const char *function) {
 	int success = 0;
 	root_state root;
 
-	LOCK_MONITOR_ENTER(python_global_lock);
+	Mutex_lock(python_global_mutex);
 
 	pymodname = PyString_FromString(module);
 	pymod = PyImport_Import(pymodname);
@@ -1888,7 +1887,7 @@ int pythonpass_run(jitdata *jd, const char *module, const char *function) {
 	Py_XDECREF(pyret);
 	Py_XDECREF(objcache);
 
-	LOCK_MONITOR_EXIT(python_global_lock);
+	Mutex_unlock(python_global_mutex);
 
 	return (success == 1 ? 1 : 0);
 }
