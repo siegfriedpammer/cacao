@@ -432,33 +432,6 @@ void threads_startworld(void)
 #endif
 
 
-/* threads_impl_thread_init ****************************************************
-
-   Initialize OS-level locking constructs in threadobject.
-
-   IN:
-      t....the threadobject
-
-*******************************************************************************/
-
-void threads_impl_thread_init(threadobject *t)
-{
-	/* initialize the mutex and the condition */
-
-	t->flc_lock = new Mutex();
-	t->flc_cond = new Condition();
-
-	t->waitmutex = new Mutex();
-	t->waitcond = new Condition();
-
-	t->suspendmutex = new Mutex();
-	t->suspendcond = new Condition();
-
-#if defined(ENABLE_TLH)
-	tlh_init(&(t->tlh));
-#endif
-}
-
 /* threads_impl_thread_clear ***************************************************
 
    Clears all fields in threadobject the way an MZERO would have

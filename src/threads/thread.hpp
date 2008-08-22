@@ -348,7 +348,6 @@ void          threads_mutex_gc_unlock(void);
 void          threads_mutex_join_lock(void);
 void          threads_mutex_join_unlock(void);
 
-void          threads_impl_thread_init(threadobject *t);
 void          threads_impl_thread_clear(threadobject *t);
 void          threads_impl_thread_reuse(threadobject *t);
 void          threads_impl_thread_free(threadobject *t);

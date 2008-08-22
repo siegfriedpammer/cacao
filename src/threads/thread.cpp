@@ -485,6 +485,20 @@ static threadobject *thread_new(void)
 
 		MZERO(t, threadobject, 1);
 
+		// Initialize the mutex and the condition.
+		t->flc_lock = new Mutex();
+		t->flc_cond = new Condition();
+
+		t->waitmutex = new Mutex();
+		t->waitcond = new Condition();
+
+		t->suspendmutex = new Mutex();
+		t->suspendcond = new Condition();
+
+#if defined(ENABLE_TLH)
+		tlh_init(&(t->tlh));
+#endif
+
 #if defined(ENABLE_GC_CACAO)
 		/* Register reference to java.lang.Thread with the GC. */
 		/* FIXME is it ok to do this only once? */
@@ -492,10 +506,6 @@ static threadobject *thread_new(void)
 		gc_reference_register(&(t->object), GC_REFTYPE_THREADOBJECT);
 		gc_reference_register(&(t->_exceptionptr), GC_REFTYPE_THREADOBJECT);
 #endif
-
-		/* Initialize the implementation-specific bits. */
-
-		threads_impl_thread_init(t);
 	}
 
 	/* Pre-compute the thinlock-word. */
