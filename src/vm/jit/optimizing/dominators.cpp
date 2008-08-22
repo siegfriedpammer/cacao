@@ -588,7 +588,7 @@ bool dominance_frontier_build(jitdata *jd) {
 #include "vm/jit/show.h"
 #include "vm/jit/python.h"
 
-extern void graph_add_edge( graphdata *gd, int from, int to );
+extern "C" void graph_add_edge( graphdata *gd, int from, int to );
 
 void dominator_tree_validate(jitdata *jd, dominatordata *_dd) {
 	int32_t ds = dumpmemory_marker();
