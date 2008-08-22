@@ -28,7 +28,7 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/mutex.hpp"
 
 #include "toolbox/hashtable.h"
 
@@ -39,7 +39,7 @@
 
    Initializes a hashtable structure and allocates memory. The
    parameter size specifies the initial size of the hashtable.
-	
+
 *******************************************************************************/
 
 void hashtable_create(hashtable *hash, u4 size)
@@ -47,13 +47,11 @@ void hashtable_create(hashtable *hash, u4 size)
 	/* initialize locking pointer */
 
 #if defined(ENABLE_THREADS)
-	/* We need to seperately allocate a java_object_t here, as we
-	   need to store the lock object in the new hashtable if it's
-	   resized.  Otherwise we get an IllegalMonitorStateException. */
+	/* We need to seperately allocate a mutex here, as we need to
+	   store the lock object in the new hashtable if it's resized.
+	   Otherwise we get an IllegalMonitorStateException. */
 
-	hash->header = NEW(java_object_t);
-
-	LOCK_INIT_OBJECT_LOCK(hash->header);
+	hash->mutex   = Mutex_new();
 #endif
 
 	/* set initial hash values */
@@ -87,9 +85,9 @@ hashtable *hashtable_resize(hashtable *hash, u4 size)
 	/* We need to store the old lock object in the new hashtable.
 	   Otherwise we get an IllegalMonitorStateException. */
 
-	FREE(newhash->header, java_object_t);
+	Mutex_delete(newhash->mutex);
 
-	newhash->header  = hash->header;
+	newhash->mutex   = hash->mutex;
 #endif
 
 	/* store the number of entries in the new hashtable */

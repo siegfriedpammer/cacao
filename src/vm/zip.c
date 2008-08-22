@@ -34,6 +34,7 @@
 
 #include "vm/types.h"
 
+#include "vm/descriptor.h" /* needed to prevent circular dependency */
 #include "toolbox/hashtable.h"
 
 #include "mm/memory.h"

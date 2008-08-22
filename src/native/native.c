@@ -39,7 +39,7 @@
 
 #include "native/vm/nativevm.h"
 
-#include "threads/lock-common.h"
+#include "threads/mutex.hpp"
 
 #include "toolbox/avl.h"
 #include "toolbox/hashtable.h"
@@ -731,7 +731,7 @@ void native_library_add(utf *filename, classloader_t *loader, void* handle)
 	u4   key;                           /* hashkey                            */
 	u4   slot;                          /* slot in hashtable                  */
 
-	LOCK_MONITOR_ENTER(hashtable_library->header);
+	Mutex_lock(hashtable_library->mutex);
 
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
@@ -774,7 +774,7 @@ void native_library_add(utf *filename, classloader_t *loader, void* handle)
 
 	while (ne) {
 		if (ne->name == filename) {
-			LOCK_MONITOR_EXIT(hashtable_library->header);
+			Mutex_unlock(hashtable_library->mutex);
 
 			return;
 		}
@@ -794,7 +794,7 @@ void native_library_add(utf *filename, classloader_t *loader, void* handle)
 	ne->hashlink = le->namelink;
 	le->namelink = ne;
 
-	LOCK_MONITOR_EXIT(hashtable_library->header);
+	Mutex_unlock(hashtable_library->mutex);
 }
 #endif
 

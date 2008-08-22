@@ -44,6 +44,7 @@
 #endif
 
 #include "threads/lock-common.h"
+#include "threads/mutex.hpp"
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
@@ -3253,7 +3254,7 @@ jobject jni_NewGlobalRef(JNIEnv* env, jobject obj)
 
 	o = (java_handle_t *) obj;
 
-	LOCK_MONITOR_ENTER(hashtable_global_ref->header);
+	hashtable_global_ref->mutex->lock();
 
 	LLNI_CRITICAL_START;
 
@@ -3308,7 +3309,7 @@ jobject jni_NewGlobalRef(JNIEnv* env, jobject obj)
 		hashtable_global_ref->entries++;
 	}
 
-	LOCK_MONITOR_EXIT(hashtable_global_ref->header);
+	hashtable_global_ref->mutex->unlock();
 
 #if defined(ENABLE_HANDLES)
 	return gre;
@@ -3336,7 +3337,7 @@ void jni_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 
 	o = (java_handle_t *) globalRef;
 
-	LOCK_MONITOR_ENTER(hashtable_global_ref->header);
+	hashtable_global_ref->mutex->lock();
 
 	LLNI_CRITICAL_START;
 
@@ -3379,7 +3380,7 @@ void jni_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 
 			LLNI_CRITICAL_END;
 
-			LOCK_MONITOR_EXIT(hashtable_global_ref->header);
+			hashtable_global_ref->mutex->unlock();
 
 			return;
 		}
@@ -3392,7 +3393,7 @@ void jni_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 
 	LLNI_CRITICAL_END;
 
-	LOCK_MONITOR_EXIT(hashtable_global_ref->header);
+	hashtable_global_ref->mutex->unlock();
 }
 
 
