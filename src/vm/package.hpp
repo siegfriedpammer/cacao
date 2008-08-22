@@ -30,32 +30,22 @@
 
 #include <stdint.h>
 
+#include <set>
+
 #include "vm/utf8.h"
 
-
-#ifdef __cplusplus
 
 /**
  *
  */
 class Package {
+private:
+	static std::set<utf*> _packages;
+
 public:
-	static void initialize();
-	/* static void add(java_handle_t *packagename); */
-	static void add(utf *packagename);
-	/* static java_handle_t* find(java_handle_t *packagename); */
-	static utf* find(utf *packagename);
+	static void add (utf* packagename);
+	static utf* find(utf* packagename);
 };
-
-#else
-
-/* Legacy C interface *********************************************************/
-
-typedef struct Package Package;
-
-utf* Package_find(utf* packagename);
-
-#endif
 
 #endif // _VM_PACKAGE_HPP
 

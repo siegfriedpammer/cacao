@@ -27,8 +27,6 @@
 
 #include <stdint.h>
 
-#include "toolbox/list.h"
-
 #include "mm/memory.h"
 
 #include "vm/options.h"
@@ -37,33 +35,9 @@
 #include "vm/utf8.h"
 
 
-/* internal property structure ************************************************/
+// Package list.
 
-typedef struct list_package_entry_t list_package_entry_t;
-
-struct list_package_entry_t {
-/* 	java_string_t *packagename; */
-	utf           *packagename;
-	listnode_t     linkage;
-};
-
-
-/* global variables ***********************************************************/
-
-static list_t *list_package = NULL;
-
-
-/**
- * Initialize the package list.
- */
-void Package::initialize(void)
-{
-	TRACESUBSYSTEMINITIALIZATION("package_init");
-
-	/* create the properties list */
-
-	list_package = list_create(OFFSET(list_package_entry_t, linkage));
-}
+std::set<utf*> Package::_packages;
 
 
 /**
@@ -71,22 +45,10 @@ void Package::initialize(void)
  *
  * @param packagename Package name as Java string.
  */
-/* void package_add(java_handle_t *packagename) */
-void Package::add(utf *packagename)
+void Package::add(utf* packagename)
 {
-/*  	java_string_t        *s; */
-	list_package_entry_t *lpe;
-
-	/* Intern the Java string to get a unique address. */
-
+	// Intern the Java string to get a unique address.
 /* 	s = javastring_intern(packagename); */
-
-	/* Check if the package is already stored. */
-
-	if (Package::find(packagename) != NULL)
-		return;
-
-	/* Add the package. */
 
 #if !defined(NDEBUG)
 	if (opt_DebugPackage) {
@@ -98,11 +60,8 @@ void Package::add(utf *packagename)
 	}
 #endif
 
-	lpe = NEW(list_package_entry_t);
-
-	lpe->packagename = packagename;
-
-	list_add_last(list_package, lpe);
+	// Add the package name.
+	_packages.insert(packagename);
 }
 
 
@@ -113,37 +72,14 @@ void Package::add(utf *packagename)
  *
  * @return Package name as Java string.
  */
-/* java_handle_t *package_find(java_handle_t *packagename) */
-utf* Package::find(utf *packagename)
+utf* Package::find(utf* packagename)
 {
-/* 	java_string_t        *s; */
-	list_t               *l;
-	list_package_entry_t *lpe;
+	std::set<utf*>::iterator it = _packages.find(packagename);
 
-	/* Intern the Java string to get a unique address. */
+	if (it == _packages.end())
+		return NULL;
 
-/* 	s = javastring_intern(packagename); */
-
-	/* For convenience. */
-
-	l = list_package;
-
-	for (lpe = (list_package_entry_t*) list_first(l); lpe != NULL; lpe = (list_package_entry_t*) list_next(l, lpe)) {
-/* 		if (lpe->packagename == s) */
-		if (lpe->packagename == packagename)
-			return lpe->packagename;
-	}
-
-	return NULL;
-}
-
-
-/* Legacy C interface *********************************************************/
-
-extern "C" {
-
-utf* Package_find(utf *packagename) { return Package::find(packagename); }
-
+	return *it;
 }
 
 

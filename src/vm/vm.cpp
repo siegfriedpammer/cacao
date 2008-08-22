@@ -73,7 +73,6 @@
 #include "vm/initialize.h"
 #include "vm/options.h"
 #include "vm/os.hpp"
-#include "vm/package.hpp"
 #include "vm/primitive.hpp"
 #include "vm/properties.h"
 #include "vm/signallocal.h"
@@ -1427,10 +1426,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 #if defined(ENABLE_PYTHON)
 	pythonpass_init();
 #endif
-
-	/* BEFORE: loader_preinit */
-
-	Package::initialize();
 
 	/* AFTER: utf8_init, classcache_init */
 
