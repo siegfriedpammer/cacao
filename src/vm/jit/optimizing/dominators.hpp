@@ -1,9 +1,7 @@
-/* src/vm/jit/optimizing/dominators.h - Dominators and Dominance Frontier header
+/* src/vm/jit/optimizing/dominators.hpp - Dominators and Dominance Frontier header
 
-   Copyright (C) 2005, 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,16 +20,13 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.
 
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Christian Ullrich
-
-
 */
 
 
-#ifndef _DOMINATORS_H
-#define _DOMINATORS_H
+#ifndef _DOMINATORS_HPP
+#define _DOMINATORS_HPP
+
+#include "config.h"
 
 #include "vm/jit/optimizing/graph.h"
 
@@ -67,6 +62,8 @@ struct dominatordata {
 typedef struct dominatordata dominatordata;
 
 /* function prototypes */
+
+
 dominatordata *compute_Dominators(graphdata *gd, int basicblockcount);
 void computeDF(graphdata *gd, dominatordata *dd, int basicblockcount, int n);
 
@@ -86,7 +83,7 @@ void dominator_tree_validate(jitdata *jd, dominatordata *dd);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

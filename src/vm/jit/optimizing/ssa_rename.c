@@ -37,7 +37,7 @@
 
 #include "vm/jit/jit.hpp" /* icmd_table */
 
-#include "vm/jit/optimizing/dominators.h"
+#include "vm/jit/optimizing/dominators.hpp"
 #include "vm/jit/optimizing/graph.h"
 #include "vm/jit/optimizing/lifetimes.h"
 #include "vm/jit/optimizing/lsra.h"

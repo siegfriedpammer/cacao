@@ -1,4 +1,4 @@
-/* src/vm/jit/optimizing/dominators.c - dominators and dominance frontier
+/* src/vm/jit/optimizing/dominators.cpp - dominators and dominance frontier
 
    Copyright (C) 2005, 2006, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,6 +23,8 @@
 */
 
 
+#include "config.h"
+
 #include "mm/memory.h"
 
 #include "toolbox/bitvector.h"
@@ -30,7 +32,8 @@
 #include "vm/jit/jit.hpp"
 
 #include "vm/jit/optimizing/graph.h"
-#include "vm/jit/optimizing/dominators.h"
+#include "vm/jit/optimizing/dominators.hpp"
+
 
 /* function prototypes */
 void dom_Dominators_init(dominatordata *dd, int basicblockcount);
@@ -646,7 +649,7 @@ void dominator_tree_validate(jitdata *jd, dominatordata *_dd) {
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
