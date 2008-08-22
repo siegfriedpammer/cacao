@@ -36,6 +36,7 @@
 #include "native/llni.h"
 
 #include "threads/lock-common.h"
+#include "threads/mutex.hpp"
 
 #include "toolbox/hashtable.h"
 #include "toolbox/logging.h"
@@ -267,7 +268,7 @@ classloader_t *loader_hashtable_classloader_add(java_handle_t *cl)
 	if (cl == NULL)
 		return NULL;
 
-	LOCK_MONITOR_ENTER(hashtable_classloader->header);
+	hashtable_classloader->mutex->lock();
 
 	LLNI_CRITICAL_START;
 
@@ -324,8 +325,7 @@ classloader_t *loader_hashtable_classloader_add(java_handle_t *cl)
 		hashtable_classloader->entries++;
 	}
 
-
-	LOCK_MONITOR_EXIT(hashtable_classloader->header);
+	hashtable_classloader->mutex->unlock();
 
 #if defined(ENABLE_HANDLES)
 	return cle;

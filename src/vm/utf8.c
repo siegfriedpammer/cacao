@@ -32,7 +32,7 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/mutex.hpp"
 
 #include "toolbox/hashtable.h"
 
@@ -691,7 +691,7 @@ utf *utf_new(const char *text, u2 length)
 	utf *u;                             /* hashtable element                  */
 	u2 i;
 
-	LOCK_MONITOR_ENTER(hashtable_utf->header);
+	Mutex_lock(hashtable_utf->mutex);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
@@ -719,7 +719,7 @@ utf *utf_new(const char *text, u2 length)
 
 			/* symbol found in hashtable */
 
-			LOCK_MONITOR_EXIT(hashtable_utf->header);
+			Mutex_unlock(hashtable_utf->mutex);
 
 			return u;
 		}
@@ -792,7 +792,7 @@ utf *utf_new(const char *text, u2 length)
 		hashtable_utf = newhash;
 	}
 
-	LOCK_MONITOR_EXIT(hashtable_utf->header);
+	Mutex_unlock(hashtable_utf->mutex);
 
 	return u;
 }
@@ -812,7 +812,7 @@ utf *utf_new_u2(u2 *unicode_pos, u4 unicode_length, bool isclassname)
 	u4 left;                        /* unicode characters left                */
 	u4 buflength;                   /* utf length in bytes of the u2 array    */
 	utf *result;                    /* resulting utf-string                   */
-	int i;    	
+	int i;
 
 	/* determine utf length in bytes and allocate memory */
 
