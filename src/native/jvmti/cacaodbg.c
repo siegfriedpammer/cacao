@@ -29,7 +29,7 @@
 #include "vm/vm.hpp"
 #include "vm/loader.h"
 #include "vm/exceptions.hpp"
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/asmpart.h"
 #include "vm/string.hpp"
 #include "toolbox/logging.h"

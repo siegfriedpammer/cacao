@@ -35,7 +35,7 @@
 #include "threads/threadlist.h"
 #include "threads/thread.hpp"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/classcache.h"
 #include "vm/method.h"

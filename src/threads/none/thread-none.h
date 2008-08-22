@@ -32,7 +32,7 @@
 
 #include "vm/types.h"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/globals.hpp"
 
 #include "vm/jit/stacktrace.hpp"

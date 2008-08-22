@@ -33,7 +33,7 @@
 #include "toolbox/bitvector.h"
 #include "toolbox/worklist.h"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 
 #include "vm/jit/jit.hpp" /* icmd_table */
 

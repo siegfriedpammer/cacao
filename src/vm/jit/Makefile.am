@@ -150,6 +150,9 @@ noinst_LTLIBRARIES = \
 libjit_la_SOURCES = \
 	argument.c \
 	argument.h \
+	builtin.cpp \
+	builtin.hpp \
+	builtintable.inc \
 	code.c \
 	code.h \
 	codegen-common.c \

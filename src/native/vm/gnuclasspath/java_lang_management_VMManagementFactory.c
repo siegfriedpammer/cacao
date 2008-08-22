@@ -38,7 +38,7 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/globals.hpp"
 
 

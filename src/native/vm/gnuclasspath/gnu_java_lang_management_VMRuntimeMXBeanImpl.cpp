@@ -34,7 +34,7 @@
 # include "native/vm/include/gnu_java_lang_management_VMRuntimeMXBeanImpl.h"
 #endif
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/utf8.h"

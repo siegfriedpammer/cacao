@@ -35,7 +35,7 @@
 #include "toolbox/logging.h"
 #include "toolbox/worklist.h"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/method.h"

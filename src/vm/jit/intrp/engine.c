@@ -41,7 +41,7 @@
 
 #include "threads/thread.hpp"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/loader.h"
 #include "vm/options.h"
 

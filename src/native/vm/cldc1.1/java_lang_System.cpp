@@ -37,7 +37,7 @@
 # include "native/include/java_lang_System.h"
 #endif
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/properties.h"
 #include "vm/string.hpp"
 

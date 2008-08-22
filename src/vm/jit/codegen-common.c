@@ -63,7 +63,7 @@
 
 #include "threads/thread.hpp"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/method.h"
 #include "vm/options.h"

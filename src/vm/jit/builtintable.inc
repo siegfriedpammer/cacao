@@ -1,4 +1,4 @@
-/* src/vm/builtintable.inc - tables of builtin functions
+/* src/vm/jit/builtintable.inc - tables of builtin functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -29,8 +29,7 @@
 
 #include "threads/lock-common.h"
 
-#include "vm/builtin.h"
-
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/jit.hpp"
 
 

@@ -37,7 +37,7 @@
 
 #include "toolbox/list.h"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/classcache.h"
 #include "vm/exceptions.hpp"
 #include "vm/options.h"

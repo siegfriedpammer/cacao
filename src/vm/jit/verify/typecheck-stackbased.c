@@ -29,7 +29,7 @@
 
 #include "vm/types.h"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "mm/memory.h"
 
 #include "vm/array.h"

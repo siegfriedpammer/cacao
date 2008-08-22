@@ -46,7 +46,7 @@
 #include "toolbox/logging.h"
 
 #include "vm/array.h"
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/cycles-stats.h"
 #include "vm/exceptions.hpp"

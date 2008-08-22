@@ -1,4 +1,4 @@
-/* src/vm/builtin.c - functions for unsupported operations
+/* src/vm/jit/builtin.cpp - functions for unsupported operations
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -60,7 +60,7 @@
 #include "toolbox/util.h"
 
 #include "vm/array.h"
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/cycles-stats.h"
 #include "vm/exceptions.hpp"
@@ -85,7 +85,7 @@
 
 /* include builtin tables *****************************************************/
 
-#include "vm/builtintable.inc"
+#include "vm/jit/builtintable.inc"
 
 
 CYCLES_STATS_DECLARE(builtin_new         ,100,5)
@@ -183,7 +183,7 @@ static bool builtintable_init(void)
 
 		if (bte->flags & BUILTINTABLE_FLAG_STUB) {
 			m = method_new_builtin(bte);
-			BuiltinStub_generate(m, bte);
+			BuiltinStub::generate(m, bte);
 		}
 	}
 
@@ -210,7 +210,7 @@ static bool builtintable_init(void)
 
 		if (bte->flags & BUILTINTABLE_FLAG_STUB) {
 			m = method_new_builtin(bte);
-			BuiltinStub_generate(m, bte);
+			BuiltinStub::generate(m, bte);
 		}
 	}
 
@@ -700,7 +700,7 @@ bool builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 		if (valuevftbl == componentvftbl)
 			return 1;
 
-		Mutex_lock(linker_classrenumber_mutex);
+		linker_classrenumber_mutex->lock();
 
 		baseval = componentvftbl->baseval;
 
@@ -715,7 +715,7 @@ bool builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 			result  = diffval <= (uint32_t) componentvftbl->diffval;
 		}
 
-		Mutex_unlock(linker_classrenumber_mutex);
+		linker_classrenumber_mutex->unlock();
 	}
 	else if (valuedesc == NULL) {
 		/* {oa has dimension > 1} */
@@ -767,7 +767,7 @@ bool builtin_fast_canstore_onedim(java_objectarray_t *a, java_object_t *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-	Mutex_lock(linker_classrenumber_mutex);
+	linker_classrenumber_mutex->lock();
 
 	baseval = elementvftbl->baseval;
 
@@ -781,7 +781,7 @@ bool builtin_fast_canstore_onedim(java_objectarray_t *a, java_object_t *o)
 		result  = diffval <= (uint32_t) elementvftbl->diffval;
 	}
 
-	Mutex_unlock(linker_classrenumber_mutex);
+	linker_classrenumber_mutex->unlock();
 
 	return result;
 }
@@ -816,12 +816,12 @@ bool builtin_fast_canstore_onedim_class(java_objectarray_t *a, java_object_t *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
-	Mutex_lock(linker_classrenumber_mutex);
+	linker_classrenumber_mutex->lock();
 
 	diffval = valuevftbl->baseval - elementvftbl->baseval;
 	result  = diffval <= (uint32_t) elementvftbl->diffval;
 
-	Mutex_unlock(linker_classrenumber_mutex);
+	linker_classrenumber_mutex->unlock();
 
 	return result;
 }
@@ -878,8 +878,8 @@ java_handle_t *builtin_new(classinfo *c)
 			return NULL;
 	}
 
-	o = heap_alloc(c->instancesize, c->flags & ACC_CLASS_HAS_POINTERS,
-				   c->finalizer, true);
+	o = (java_handle_t*) heap_alloc(c->instancesize, c->flags & ACC_CLASS_HAS_POINTERS,
+									c->finalizer, true);
 
 	if (!o)
 		return NULL;
@@ -959,8 +959,8 @@ java_handle_t *builtin_tlh_new(classinfo *c)
 	o = NULL;
 
 	if (o == NULL) {
-		o = heap_alloc(c->instancesize, c->flags & ACC_CLASS_HAS_POINTERS,
-					   c->finalizer, true);
+		o = (java_handle_t*) heap_alloc(c->instancesize, c->flags & ACC_CLASS_HAS_POINTERS,
+										c->finalizer, true);
 	}
 
 	if (!o)
@@ -1045,8 +1045,8 @@ java_object_t *builtin_fast_new(classinfo *c)
 	if (!(c->state & CLASS_INITIALIZED))
 		return NULL;
 
-	o = heap_alloc(c->instancesize, c->flags & ACC_CLASS_HAS_POINTERS,
-				   c->finalizer, false);
+	o = (java_handle_t*) heap_alloc(c->instancesize, c->flags & ACC_CLASS_HAS_POINTERS,
+									c->finalizer, false);
 
 	if (!o)
 		return NULL;
@@ -1110,7 +1110,7 @@ java_handle_t *builtin_newarray(int32_t size, classinfo *arrayclass)
 		return NULL;
 	}
 
-	a = heap_alloc(actualsize, (desc->arraytype == ARRAYTYPE_OBJECT), NULL, true);
+	a = (java_handle_t*) heap_alloc(actualsize, (desc->arraytype == ARRAYTYPE_OBJECT), NULL, true);
 
 	if (a == NULL)
 		return NULL;
@@ -2341,7 +2341,7 @@ java_handle_t *builtin_clone(void *env, java_handle_t *o)
 	if (ad != NULL) {
 		size = ad->dataoffset + ad->componentsize * LLNI_array_size(o);
         
-		co = heap_alloc(size, (ad->arraytype == ARRAYTYPE_OBJECT), NULL, true);
+		co = (java_handle_t*) heap_alloc(size, (ad->arraytype == ARRAYTYPE_OBJECT), NULL, true);
 
 		if (co == NULL)
 			return NULL;
@@ -2430,7 +2430,7 @@ void builtin_print_cycles_stats(FILE *file)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

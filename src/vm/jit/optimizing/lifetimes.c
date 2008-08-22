@@ -33,7 +33,7 @@
 #include "toolbox/bitvector.h"
 #include "toolbox/worklist.h"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/resolve.h"
 #include "vm/exceptions.hpp"
 #include "vm/string.hpp"

@@ -35,7 +35,7 @@
 
 
 #include "mm/memory.h"
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/resolve.h"
 #include "vm/jit/loop/loop.h"
 #include "vm/jit/loop/tracing.h"

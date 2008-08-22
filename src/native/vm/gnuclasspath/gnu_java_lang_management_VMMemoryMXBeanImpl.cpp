@@ -36,7 +36,7 @@
 # include "native/vm/include/gnu_java_lang_management_VMMemoryMXBeanImpl.h"
 #endif
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/global.h"
 #include "vm/loader.h"               /* XXX only for load_class_bootstrap */

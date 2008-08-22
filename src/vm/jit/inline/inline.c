@@ -39,7 +39,7 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/global.h"
 #include "vm/initialize.h"

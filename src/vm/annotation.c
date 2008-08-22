@@ -36,7 +36,7 @@
 
 #include "vm/annotation.h"
 #include "vm/array.h"
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/loader.h"
 #include "vm/primitive.hpp"

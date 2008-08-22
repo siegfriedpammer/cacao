@@ -1,4 +1,4 @@
-/* src/vm/builtin.h - prototypes of builtin functions
+/* src/vm/jit/builtin.hpp - prototypes of builtin functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,12 +23,8 @@
 */
 
 
-#ifndef _BUILTIN_H
-#define _BUILTIN_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef _BUILTIN_HPP
+#define _BUILTIN_HPP
 
 /* forward typedefs ***********************************************************/
 
@@ -74,9 +70,9 @@ struct builtintable_entry {
 	u4           flags;                 /* e.g. check for exception           */
 	functionptr  fp;                    /* function pointer of builtin        */
 	u1          *stub;                  /* pointer to builtin stub code       */
-	char        *cclassname;            /* char name of the class             */
-	char        *cname;                 /* char name of the function          */
-	char        *cdescriptor;           /* char name of the descriptor        */
+	const char*  cclassname;            /* char name of the class             */
+	const char*  cname;                 /* char name of the function          */
+	const char*  cdescriptor;           /* char name of the descriptor        */
 	utf         *classname;             /* class of the function              */
 	utf         *name;                  /* name of the function               */
 	utf         *descriptor;            /* descriptor of the function         */
@@ -91,6 +87,10 @@ struct builtintable_entry {
 
 
 /* function prototypes ********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 bool builtin_init(void);
 
@@ -336,7 +336,7 @@ void builtin_print_cycles_stats(FILE *file);
 }
 #endif
 
-#endif /* _BUILTIN_H */
+#endif // _BUILTIN_HPP
 
 
 /*
@@ -345,7 +345,7 @@ void builtin_print_cycles_stats(FILE *file);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

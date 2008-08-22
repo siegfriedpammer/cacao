@@ -43,7 +43,7 @@
 #include "vm/jit/stacktrace.hpp"
 #include "vm/global.h"
 #include "vm/loader.h"
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/asmpart.h"
 #include "vm/class.h"
 #include "vm/classcache.h"

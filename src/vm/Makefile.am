@@ -83,9 +83,6 @@ libvm_la_SOURCES = \
 	array.c \
 	array.h \
 	$(ASSERTION_SOURCES) \
-	builtin.c \
-	builtin.h \
-	builtintable.inc \
 	class.c \
 	class.h \
 	classcache.c \

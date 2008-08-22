@@ -35,7 +35,7 @@
 
 #include "threads/lock-common.h"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/global.h"
 #include "vm/types.h"
 #include "vm/options.h"

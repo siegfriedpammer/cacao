@@ -49,7 +49,7 @@
 # include "native/vm/include/java_lang_VMRuntime.h"
 #endif
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/os.hpp"
 #include "vm/string.hpp"

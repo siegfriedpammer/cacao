@@ -35,7 +35,7 @@
 # include "native/vm/include/gnu_java_lang_VMCPStringBuilder.h"
 #endif
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"

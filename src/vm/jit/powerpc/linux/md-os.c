@@ -37,7 +37,7 @@
 
 #include "threads/thread.hpp"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/signallocal.h"
 #include "vm/os.hpp"
 

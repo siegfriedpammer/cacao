@@ -42,7 +42,7 @@ typedef struct codeinfo            codeinfo;
 #include "config.h"
 #include "vm/types.h"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/descriptor.h"
 #include "vm/global.h"
 #include "vm/linker.h"

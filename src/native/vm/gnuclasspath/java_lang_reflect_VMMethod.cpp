@@ -42,7 +42,7 @@
 #include "native/vm/reflection.hpp"
 
 #include "vm/access.h"
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"

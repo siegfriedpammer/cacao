@@ -34,7 +34,7 @@
 # include "native/include/java_lang_Float.h"
 #endif
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 
 
 // Native functions are exported as C functions.

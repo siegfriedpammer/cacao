@@ -40,7 +40,7 @@
 # include "native/include/sun_misc_Unsafe.h"
 #endif
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/initialize.h"
 #include "vm/javaobjects.hpp"
