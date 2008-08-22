@@ -34,7 +34,7 @@
 #include "native/llni.h"
 
 #include "vm/class.h"
-#include "vm/field.h"
+#include "vm/field.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/method.h"

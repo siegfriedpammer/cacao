@@ -92,8 +92,8 @@ libvm_la_SOURCES = \
 	descriptor.h \
 	exceptions.cpp \
 	exceptions.hpp \
-	field.c \
-	field.h \
+	field.cpp \
+	field.hpp \
 	finalizer.c \
 	finalizer.h \
 	globals.cpp \

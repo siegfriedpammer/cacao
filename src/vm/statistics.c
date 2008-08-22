@@ -47,7 +47,7 @@
 #include "toolbox/logging.h"
 
 #include "vm/class.h"
-#include "vm/field.h"
+#include "vm/field.hpp"
 #include "vm/global.h"
 #include "vm/method.h"
 #include "vm/options.h"

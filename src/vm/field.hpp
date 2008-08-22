@@ -1,4 +1,4 @@
-/* src/vm/field.h - field functions header
+/* src/vm/field.hpp - field functions header
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _FIELD_H
-#define _FIELD_H
+#ifndef _FIELD_HPP
+#define _FIELD_HPP
 
 /* forward typedefs ***********************************************************/
 
@@ -82,7 +82,7 @@ void field_fieldref_print(constant_FMIref *fr);
 void field_fieldref_println(constant_FMIref *fr);
 #endif
 
-#endif /* _FIELD_H */
+#endif /* _FIELD_HPP */
 
 
 /*

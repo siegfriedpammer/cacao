@@ -49,7 +49,7 @@ typedef struct extra_classref extra_classref;
 # include "vm/annotation.h"
 #endif
 
-#include "vm/field.h"
+#include "vm/field.hpp"
 #include "vm/global.h"
 #include "vm/linker.h"
 #include "vm/loader.hpp"

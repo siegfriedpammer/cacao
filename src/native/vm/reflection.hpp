@@ -32,7 +32,7 @@
 
 #include "native/native.h"
 
-#include "vm/field.h"
+#include "vm/field.hpp"
 #include "vm/method.h"
 
 

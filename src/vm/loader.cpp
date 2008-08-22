@@ -44,7 +44,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/classcache.h"
 #include "vm/exceptions.hpp"
-#include "vm/field.h"
+#include "vm/field.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/linker.h"

@@ -1,4 +1,4 @@
-/* src/vm/field.c - field functions
+/* src/vm/field.cpp - field functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -41,7 +41,7 @@
 #include "vm/class.h"
 #include "vm/descriptor.h"
 #include "vm/exceptions.hpp"
-#include "vm/field.h"
+#include "vm/field.hpp"
 #include "vm/global.h"
 #include "vm/loader.hpp"
 #include "vm/options.h"
@@ -84,14 +84,14 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 
 	/* Get name. */
 
-	if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+	if (!(u = (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 		return false;
 
 	f->name = u;
 
 	/* Get descriptor. */
 
-	if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+	if (!(u = (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 		return false;
 
 	f->descriptor = u;
@@ -222,7 +222,7 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 		if (!suck_check_classbuffer_size(cb, 2))
 			return false;
 
-		if (!(u = class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
+		if (!(u = (utf*) class_getconstant(c, suck_u2(cb), CONSTANT_Utf8)))
 			return false;
 
 		if (u == utf_ConstantValue) {
@@ -235,35 +235,35 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 				exceptions_throw_classformaterror(c, "Wrong size for VALUE attribute");
 				return false;
 			}
-			
+
 			/* constant value attribute */
 
 			if (pindex != field_load_NOVALUE) {
 				exceptions_throw_classformaterror(c, "Multiple ConstantValue attributes");
 				return false;
 			}
-			
+
 			/* index of value in constantpool */
 
 			pindex = suck_u2(cb);
-		
-			/* initialize field with value from constantpool */		
+
+			/* initialize field with value from constantpool */
 
 			switch (f->type) {
 			case TYPE_INT: {
 				constant_integer *ci; 
 
-				if (!(ci = class_getconstant(c, pindex, CONSTANT_Integer)))
+				if (!(ci = (constant_integer*) class_getconstant(c, pindex, CONSTANT_Integer)))
 					return false;
 
 				f->value->i = ci->value;
 			}
 			break;
-					
+
 			case TYPE_LNG: {
 				constant_long *cl; 
 
-				if (!(cl = class_getconstant(c, pindex, CONSTANT_Long)))
+				if (!(cl = (constant_long*) class_getconstant(c, pindex, CONSTANT_Long)))
 					return false;
 
 				f->value->l = cl->value;
@@ -273,32 +273,32 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 			case TYPE_FLT: {
 				constant_float *cf;
 
-				if (!(cf = class_getconstant(c, pindex, CONSTANT_Float)))
+				if (!(cf = (constant_float*) class_getconstant(c, pindex, CONSTANT_Float)))
 					return false;
 
 				f->value->f = cf->value;
 			}
 			break;
-											
+
 			case TYPE_DBL: {
 				constant_double *cd;
 
-				if (!(cd = class_getconstant(c, pindex, CONSTANT_Double)))
+				if (!(cd = (constant_double*) class_getconstant(c, pindex, CONSTANT_Double)))
 					return false;
 
 				f->value->d = cd->value;
 			}
 			break;
-						
+
 			case TYPE_ADR:
-				if (!(u = class_getconstant(c, pindex, CONSTANT_String)))
+				if (!(u = (utf*) class_getconstant(c, pindex, CONSTANT_String)))
 					return false;
 
 				/* Create Java-string from compressed UTF8-string. */
 
 				f->value->a = literalstring_new(u);
 				break;
-	
+
 			default: 
 				vm_abort("field_load: invalid field type %d", f->type);
 			}
@@ -363,7 +363,7 @@ classinfo *field_get_type(fieldinfo *f)
 		c = load_class_from_classloader(u, f->clazz->classloader);
 	}
 	else {
-		c = Primitive_get_class_by_type(td->primitivetype);
+		c = Primitive::get_class_by_type(td->primitivetype);
 	}
 
 	return c;

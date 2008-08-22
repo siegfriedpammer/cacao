@@ -41,7 +41,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/exceptions.hpp"
-#include "vm/field.h"
+#include "vm/field.hpp"
 #include "vm/initialize.h"
 #include "vm/options.h"
 #include "vm/references.h"
