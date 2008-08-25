@@ -112,52 +112,52 @@
 class os {
 public:
 	// Inline functions.
-	static inline void   abort();
-	static inline int    accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen);
-	static inline int    access(const char *pathname, int mode);
-	static inline int    atoi(const char* nptr);
-	static inline int    backtrace(void** array, int size);
-	static inline char** backtrace_symbols(void* const* array, int size) throw ();
-	static inline void*  calloc(size_t nmemb, size_t size);
-	static inline int    close(int fd);
-	static inline int    connect(int sockfd, const struct sockaddr* serv_addr, socklen_t addrlen);
+	static inline void    abort();
+	static inline int     accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen);
+	static inline int     access(const char *pathname, int mode);
+	static inline int     atoi(const char* nptr);
+	static inline int     backtrace(void** array, int size);
+	static inline char**  backtrace_symbols(void* const* array, int size) throw ();
+	static inline void*   calloc(size_t nmemb, size_t size);
+	static inline int     close(int fd);
+	static inline int     connect(int sockfd, const struct sockaddr* serv_addr, socklen_t addrlen);
 #if defined(ENABLE_JRE_LAYOUT)
-	static inline char*  dirname(char* path);
+	static inline char*   dirname(char* path);
 #endif
-	static inline int    dlclose(void* handle);
-	static inline char*  dlerror(void);
-	static inline void*  dlopen(const char* filename, int flag);
-	static inline void*  dlsym(void* handle, const char* symbol);
-	static inline int    fclose(FILE* fp);
-	static inline FILE*  fopen(const char* path, const char* mode);
-	static inline int    fprintf(FILE* stream, const char* format, ...);
-	static inline size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
-	static inline void   free(void* ptr);
-	static inline char*  getenv(const char* name);
-	static inline int    gethostname(char* name, size_t len);
-	static inline int    getpagesize(void);
-	static inline int    getsockname(int s, struct sockaddr* name, socklen_t* namelen);
-	static inline int    getsockopt(int s, int level, int optname, void* optval, socklen_t* optlen);
-	static inline int    listen(int sockfd, int backlog);
-	static inline void*  malloc(size_t size);
-	static inline void*  memcpy(void* dest, const void* src, size_t n);
-	static inline void*  memset(void* s, int c, size_t n);
-	static inline int    mprotect(void* addr, size_t len, int prot);
+	static inline int     dlclose(void* handle);
+	static inline char*   dlerror(void);
+	static inline void*   dlopen(const char* filename, int flag);
+	static inline void*   dlsym(void* handle, const char* symbol);
+	static inline int     fclose(FILE* fp);
+	static inline FILE*   fopen(const char* path, const char* mode);
+	static inline int     fprintf(FILE* stream, const char* format, ...);
+	static inline size_t  fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
+	static inline void    free(void* ptr);
+	static inline char*   getenv(const char* name);
+	static inline int     gethostname(char* name, size_t len);
+	static inline int     getpagesize(void);
+	static inline int     getsockname(int s, struct sockaddr* name, socklen_t* namelen);
+	static inline int     getsockopt(int s, int level, int optname, void* optval, socklen_t* optlen);
+	static inline int     listen(int sockfd, int backlog);
+	static inline void*   malloc(size_t size);
+	static inline void*   memcpy(void* dest, const void* src, size_t n);
+	static inline void*   memset(void* s, int c, size_t n);
+	static inline int     mprotect(void* addr, size_t len, int prot);
 	static inline ssize_t readlink(const char* path, char* buf, size_t bufsiz);
-	static inline int    scandir(const char* dir, struct dirent*** namelist, int(*filter)(const struct dirent*), int(*compar)(const void*, const void*));
-	static inline int    setsockopt(int s, int level, int optname, const void* optval, socklen_t optlen);
-	static inline int    shutdown(int s, int how);
-	static inline int    socket(int domain, int type, int protocol);
-	static inline int    stat(const char* path, struct stat* buf);
+	static inline int     scandir(const char* dir, struct dirent*** namelist, int(*filter)(const struct dirent*), int(*compar)(const void*, const void*));
+	static inline int     setsockopt(int s, int level, int optname, const void* optval, socklen_t optlen);
+	static inline int     shutdown(int s, int how);
+	static inline int     socket(int domain, int type, int protocol);
+	static inline int     stat(const char* path, struct stat* buf);
 #if defined(__SOLARIS__)
-	static inline int    str2sig(const char* str, int* signum);
+	static inline int     str2sig(const char* str, int* signum);
 #endif
-	static inline char*  strcat(char* dest, const char* src);
-	static inline int    strcmp(const char* s1, const char* s2);
-	static inline char*  strcpy(char* dest, const char* src);
-	static inline char*  strdup(const char* s);
-	static inline size_t strlen(const char* s);
-	static inline char*  strerror(int errnum);
+	static inline char*   strcat(char* dest, const char* src);
+	static inline int     strcmp(const char* s1, const char* s2);
+	static inline char*   strcpy(char* dest, const char* src);
+	static inline char*   strdup(const char* s);
+	static inline size_t  strlen(const char* s);
+	static inline char*   strerror(int errnum);
 
 	// Convenience functions.
 	static void* mmap_anonymous(void *addr, size_t len, int prot, int flags);
