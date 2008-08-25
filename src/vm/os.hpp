@@ -29,8 +29,11 @@
 
 #include "config.h"
 
-/* NOTE: In this file we check for all system headers, because we wrap
-   all system calls into inline functions for better portability. */
+// NOTE: In this file we check for all system headers, because we wrap
+// all system calls into inline functions for better portability.
+
+// Please don't include CACAO headers here as this header should be a
+// very low-level one.
 
 #if defined(HAVE_DIRENT_H)
 # include <dirent.h>
@@ -60,6 +63,10 @@
 
 #if defined(HAVE_SIGNAL_H)
 # include <signal.h>
+#endif
+
+#if defined(HAVE_STDARG_H)
+# include <stdarg.h>
 #endif
 
 #if defined(HAVE_STDINT_H)
@@ -123,6 +130,7 @@ public:
 	static inline void*  dlsym(void* handle, const char* symbol);
 	static inline int    fclose(FILE* fp);
 	static inline FILE*  fopen(const char* path, const char* mode);
+	static inline int    fprintf(FILE* stream, const char* format, ...);
 	static inline size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
 	static inline void   free(void* ptr);
 	static inline char*  getenv(const char* name);
@@ -155,10 +163,6 @@ public:
 	static void  print_backtrace();
 	static int   processors_online();
 };
-
-
-// Includes.
-#include "toolbox/logging.h"
 
 
 inline void os::abort(void)
@@ -202,7 +206,7 @@ inline int os::backtrace(void** array, int size)
 #if defined(HAVE_BACKTRACE)
 	return ::backtrace(array, size);
 #else
-	log_println("os::backtrace: Not available.");
+	fprintf(stderr, "os::backtrace: Not available.");
 	return 0;
 #endif
 }
@@ -212,7 +216,7 @@ inline char** os::backtrace_symbols(void* const* array, int size) throw ()
 #if defined(HAVE_BACKTRACE_SYMBOLS)
 	return ::backtrace_symbols(array, size);
 #else
-	log_println("os::backtrace_symbols: Not available.");
+	fprintf(stderr, "os::backtrace_symbols: Not available.");
 	return NULL;
 #endif
 }
@@ -306,6 +310,19 @@ inline FILE* os::fopen(const char* path, const char* mode)
 	return ::fopen(path, mode);
 #else
 # error fopen not available
+#endif
+}
+
+inline int os::fprintf(FILE* stream, const char* format, ...)
+{
+#if defined(HAVE_FPRINTF)
+	va_list ap;
+	va_start(ap, format);
+	int result = ::fprintf(stream, format, ap);
+	va_end(ap);
+	return result;
+#else
+# error fprintf not available
 #endif
 }
 
