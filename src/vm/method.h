@@ -26,10 +26,6 @@
 #ifndef _METHOD_H
 #define _METHOD_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* forward typedefs ***********************************************************/
 
 typedef struct methodinfo          methodinfo; 
@@ -166,6 +162,10 @@ struct lineinfo {
 
 extern methodinfo *method_java_lang_reflect_Method_invoke;
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* inline functions ***********************************************************/
 

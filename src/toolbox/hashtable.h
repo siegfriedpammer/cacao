@@ -105,6 +105,10 @@ struct hashtable {
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* create hashtable */
 void hashtable_create(hashtable *hash, u4 size);
 
@@ -113,6 +117,10 @@ hashtable *hashtable_resize(hashtable *hash, u4 size);
 
 /* frees a hashtable */
 void hashtable_free(hashtable *hash);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _HASHTABLE_H */
 

@@ -32,10 +32,6 @@ typedef struct localref_table localref_table;
 
 #include "config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "vm/types.h"
 
 #include "vm/global.h"
@@ -71,6 +67,10 @@ extern localref_table *_no_threads_localref_table;
 
 
 /* function prototypes ********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 bool localref_table_init(void);
 bool localref_table_destroy(void);

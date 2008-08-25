@@ -151,6 +151,10 @@ struct methoddesc {
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 descriptor_pool * descriptor_pool_new(classinfo *referer);
 
 bool descriptor_pool_add_class(descriptor_pool *pool,utf *name);
@@ -181,6 +185,10 @@ void descriptor_debug_print_methoddesc(FILE *file,methoddesc *d);
 void descriptor_debug_print_paramdesc(FILE *file,paramdesc *d);
 void descriptor_pool_debug_dump(descriptor_pool *pool, FILE *file);
 #endif /* !defined(NDEBUG) */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _DESCRIPTOR_H */
 

@@ -26,10 +26,6 @@
 #ifndef _CLASS_H
 #define _CLASS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* forward typedefs ***********************************************************/
 
 typedef struct classinfo      classinfo; 
@@ -194,6 +190,10 @@ struct extra_classref {
 
 
 /* inline functions ***********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Returns the classname of the class, where slashes ('/') are

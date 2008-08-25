@@ -30,10 +30,6 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "native/jni.hpp"
 
 #include "vm/class.h"
@@ -96,6 +92,10 @@ struct hashtable_library_name_entry {
 
 
 /* function prototypes ********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 bool native_init(void);
 

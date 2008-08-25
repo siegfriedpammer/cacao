@@ -143,9 +143,17 @@ extern Mutex *linker_classrenumber_mutex;
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void       linker_preinit(void);
 void       linker_init(void);
 classinfo *link_class(classinfo *c);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _LINKER_H */
 
