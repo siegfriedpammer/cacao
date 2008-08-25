@@ -35,16 +35,9 @@
 # include "threads/thread.hpp"
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "vm/global.h"
 #include "vm/method.h"
 
-#ifdef __cplusplus
-}
-#endif
 
 #ifdef __cplusplus
 
