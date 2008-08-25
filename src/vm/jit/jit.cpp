@@ -977,17 +977,18 @@ codeinfo *jit_get_current_code(methodinfo *m)
 
 #if defined(ENABLE_JIT)
 #if !defined(JIT_COMPILER_VIA_SIGNAL)
-u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra)
+extern "C" {
+void* jit_asm_compile(methodinfo *m, void* mptr, void* sp, void* ra)
 {
 	stackframeinfo_t  sfi;
-	u1               *entrypoint;
-	u1               *pa;
-	ptrint           *p;
+	void             *entrypoint;
+	void             *pa;
+	uintptr_t        *p;
 
 	/* create the stackframeinfo (subtract 1 from RA as it points to the */
 	/* instruction after the call)                                       */
 
-	stacktrace_stackframeinfo_add(&sfi, NULL, sp, ra, ra-1);
+	stacktrace_stackframeinfo_add(&sfi, NULL, sp, ra, ((uint8_t*) ra) - 1);
 
 	/* actually compile the method */
 
@@ -1008,15 +1009,16 @@ u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra)
 
 	/* patch the method entry point */
 
-	p = (ptrint *) pa;
+	p = (uintptr_t*) pa;
 
-	*p = (ptrint) entrypoint;
+	*p = (uintptr_t) entrypoint;
 
 	/* flush the instruction cache */
 
 	md_icacheflush(pa, SIZEOF_VOID_P);
 
 	return entrypoint;
+}
 }
 #endif
 

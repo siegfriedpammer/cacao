@@ -449,7 +449,7 @@ void jit_request_optimization(methodinfo *m);
 
 /* patch the method entrypoint */
 #if !defined(JIT_COMPILER_VIA_SIGNAL)
-u1 *jit_asm_compile(methodinfo *m, u1 *mptr, u1 *sp, u1 *ra);
+void *jit_asm_compile(methodinfo *m, void* mptr, void* sp, void* ra);
 #endif
 void *jit_compile_handle(methodinfo *m, void *pv, void *ra, void *mptr);
 
