@@ -129,8 +129,8 @@ libvm_la_SOURCES = \
 	$(STATISTICS_SOURCES) \
 	string.cpp \
 	string.hpp \
-	suck.c \
-	suck.h \
+	suck.cpp \
+	suck.hpp \
 	utf8.c \
 	utf8.h \
 	vm.cpp \

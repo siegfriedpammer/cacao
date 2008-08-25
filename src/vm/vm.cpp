@@ -78,7 +78,7 @@
 #include "vm/signallocal.h"
 #include "vm/statistics.h"
 #include "vm/string.hpp"
-#include "vm/suck.h"
+#include "vm/suck.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/argument.h"

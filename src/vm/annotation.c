@@ -40,7 +40,7 @@
 #include "vm/class.h"
 #include "vm/loader.hpp"
 #include "vm/primitive.hpp"
-#include "vm/suck.h"
+#include "vm/suck.hpp"
 #include "vm/types.h"
 
 #if !defined(ENABLE_ANNOTATIONS)

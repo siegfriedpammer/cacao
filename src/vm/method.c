@@ -48,7 +48,7 @@
 #include "vm/method.h"
 #include "vm/options.h"
 #include "vm/resolve.h"
-#include "vm/suck.h"
+#include "vm/suck.hpp"
 #include "vm/utf8.h"
 #include "vm/vm.hpp"
 

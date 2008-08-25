@@ -60,7 +60,7 @@
 # include "vm/statistics.h"
 #endif
 
-#include "vm/suck.h"
+#include "vm/suck.hpp"
 #include "vm/utf8.h"
 
 #include "vm/jit/asmpart.h"

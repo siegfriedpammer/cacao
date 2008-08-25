@@ -63,7 +63,7 @@
 #include "native/include/java_lang_VMObject.h"
 #include "native/include/java_lang_VMSystem.h"
 #include "native/include/java_lang_VMClass.h"
-#include "vm/suck.h"
+#include "vm/suck.hpp"
 #include "boehm-gc/include/gc.h"
 
 #if defined(ENABLE_THREADS)

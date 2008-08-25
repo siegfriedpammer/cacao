@@ -26,10 +26,6 @@
 #ifndef _ZIP_H
 #define _ZIP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "config.h"
 #include "vm/types.h"
 
@@ -38,7 +34,7 @@ extern "C" {
 #include "vm/class.h"
 #include "vm/global.h"
 #include "vm/loader.hpp"
-#include "vm/suck.h"
+#include "vm/suck.hpp"
 #include "vm/utf8.h"
 
 
@@ -92,6 +88,10 @@ struct hashtable_zipfile_entry {
 
 
 /* function prototypes ********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 hashtable *zip_open(char *path);
 hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, utf *u);

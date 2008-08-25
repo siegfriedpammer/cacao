@@ -48,7 +48,7 @@
 #include "vm/primitive.hpp"
 #include "vm/references.h"
 #include "vm/string.hpp"
-#include "vm/suck.h"
+#include "vm/suck.hpp"
 #include "vm/utf8.h"
 #include "vm/vm.hpp"
 

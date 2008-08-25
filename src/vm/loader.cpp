@@ -56,7 +56,7 @@
 #include "vm/resolve.h"
 #include "vm/rt-timing.h"
 #include "vm/string.hpp"
-#include "vm/suck.h"
+#include "vm/suck.hpp"
 #include "vm/vm.hpp"
 
 

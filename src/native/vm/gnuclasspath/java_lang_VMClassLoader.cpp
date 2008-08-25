@@ -59,7 +59,6 @@
 #include "vm/primitive.hpp"
 #include "vm/statistics.h"
 #include "vm/string.hpp"
-#include "vm/suck.h"
 #include "vm/vm.hpp"
 #include "vm/zip.h"
 

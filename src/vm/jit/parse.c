@@ -51,7 +51,7 @@
 #endif
 
 #include "vm/string.hpp"
-#include "vm/suck.h"
+#include "vm/suck.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.hpp"

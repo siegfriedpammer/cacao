@@ -1,4 +1,4 @@
-/* src/vm/suck.h - functions to read LE ordered types from a buffer
+/* src/vm/suck.hpp - functions to read LE ordered types from a buffer
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,14 +23,10 @@
 */
 
 
-#ifndef _SUCK_H
-#define _SUCK_H
+#ifndef _SUCK_HPP
+#define _SUCK_HPP
 
 #include "config.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include "vm/types.h"
 
@@ -167,6 +163,10 @@ extern list_t *list_classpath_entries;
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool suck_init(void);
 
 void suck_add(char *classpath);
@@ -193,7 +193,8 @@ void suck_stop(classbuffer *cb);
 }
 #endif
 
-#endif /* _SUCK_H */
+#endif // _SUCK_HPP
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -201,9 +202,10 @@ void suck_stop(classbuffer *cb);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

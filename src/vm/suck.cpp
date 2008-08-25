@@ -1,4 +1,4 @@
-/* src/vm/suck.c - functions to read LE ordered types from a buffer
+/* src/vm/suck.cpp - functions to read LE ordered types from a buffer
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -45,7 +45,7 @@
 #include "vm/options.h"
 #include "vm/os.hpp"
 #include "vm/properties.hpp"
-#include "vm/suck.h"
+#include "vm/suck.hpp"
 #include "vm/vm.hpp"
 #include "vm/zip.h"
 
@@ -185,7 +185,7 @@ void suck_add(char *classpath)
 				}
 
 #else
-				vm_abort("suck_add: zip/jar files not supported");
+				VM::get_current()->abort("suck_add: zip/jar files not supported");
 #endif
 			}
 			else {
@@ -230,18 +230,16 @@ void suck_add_from_property(const char *key)
 	const char     *value;
 	const char     *start;
 	const char     *end;
-	char           *path;
 	s4              pathlen;
 	struct dirent **namelist;
 	s4              n;
 	s4              i;
 	s4              namlen;
-	char           *boot_class_path;
 	char           *p;
 
 	/* get the property value */
-
-	value = Properties_get(key);
+	Properties properties = VM::get_current()->get_properties();
+	value = properties.get(key);
 
 	if (value == NULL)
 		return;
@@ -260,7 +258,7 @@ void suck_add_from_property(const char *key)
 			/* allocate memory for the path entry */
 
 			pathlen = end - start;
-			path = MNEW(char, pathlen + strlen("0"));
+			char* path = MNEW(char, pathlen + strlen("0"));
 
 			/* copy and terminate the string */
 
@@ -274,7 +272,7 @@ void suck_add_from_property(const char *key)
 
 			/* scan the directory found for zip/jar files */
 
-			n = os_scandir(path, &namelist, scandir_filter, alphasort);
+			n = os::scandir((const char*) path, &namelist, &scandir_filter, (int (*)(const void*, const void*)) &alphasort);
 
 			/* On error, just continue, this should be ok. */
 
@@ -289,7 +287,7 @@ void suck_add_from_property(const char *key)
 					/* Allocate memory for bootclasspath. */
 
 					// FIXME Make boot_class_path const char*.
-					boot_class_path = (char*) Properties_get("sun.boot.class.path");
+					char* boot_class_path = (char*) properties.get("sun.boot.class.path");
 
 					p = MNEW(char,
 							 pathlen + strlen("/") + namlen +
@@ -305,8 +303,8 @@ void suck_add_from_property(const char *key)
 					strcat(p, ":");
 					strcat(p, boot_class_path);
 
-					Properties_put("sun.boot.class.path", p);
-					Properties_put("java.boot.class.path", p);
+					properties.put("sun.boot.class.path", p);
+					properties.put("java.boot.class.path", p);
 
 					MFREE(boot_class_path, char, strlen(boot_class_path));
 
@@ -528,14 +526,14 @@ classbuffer *suck_start(classinfo *c)
 
 	/* walk through all classpath entries */
 
-	for (lce = list_first(list_classpath_entries); lce != NULL && cb == NULL;
-		 lce = list_next(list_classpath_entries, lce)) {
+	for (lce = (list_classpath_entry*) list_first(list_classpath_entries); lce != NULL && cb == NULL;
+		 lce = (list_classpath_entry*) list_next(list_classpath_entries, lce)) {
 #if defined(ENABLE_ZLIB)
 		if (lce->type == CLASSPATH_ARCHIVE) {
 
 			/* enter a monitor on zip/jar archives */
 
-			Mutex_lock(lce->mutex);
+			lce->mutex->lock();
 
 			/* try to get the file in current archive */
 
@@ -543,7 +541,7 @@ classbuffer *suck_start(classinfo *c)
 
 			/* leave the monitor */
 
-			Mutex_unlock(lce->mutex);
+			lce->mutex->unlock();
 
 		} else {
 #endif /* defined(ENABLE_ZLIB) */
@@ -551,10 +549,10 @@ classbuffer *suck_start(classinfo *c)
 			strcpy(path, lce->path);
 			strcat(path, filename);
 
-			classfile = os_fopen(path, "r");
+			classfile = os::fopen(path, "r");
 
 			if (classfile) {                                   /* file exists */
-				if (!os_stat(path, &buffer)) {     /* read classfile data */
+				if (!os::stat(path, &buffer)) {     /* read classfile data */
 					cb = NEW(classbuffer);
 					cb->clazz = c;
 					cb->size  = buffer.st_size;
@@ -564,7 +562,7 @@ classbuffer *suck_start(classinfo *c)
 
 					/* read class data */
 
-					len = os_fread((void *) cb->data, 1, cb->size,
+					len = os::fread((void *) cb->data, 1, cb->size,
 									   classfile);
 
 					if (len != buffer.st_size) {
@@ -575,7 +573,7 @@ classbuffer *suck_start(classinfo *c)
 
 					/* close the class file */
 
-					os_fclose(classfile);
+					os::fclose(classfile);
 				}
 			}
 
@@ -619,9 +617,10 @@ void suck_stop(classbuffer *cb)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
