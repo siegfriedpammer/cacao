@@ -125,6 +125,7 @@ public:
 	static inline FILE*  fopen(const char* path, const char* mode);
 	static inline size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
 	static inline void   free(void* ptr);
+	static inline char*  getenv(const char* name);
 	static inline int    gethostname(char* name, size_t len);
 	static inline int    getpagesize(void);
 	static inline int    getsockname(int s, struct sockaddr* name, socklen_t* namelen);
@@ -143,6 +144,7 @@ public:
 	static inline int    str2sig(const char* str, int* signum);
 #endif
 	static inline char*  strcat(char* dest, const char* src);
+	static inline int    strcmp(const char* s1, const char* s2);
 	static inline char*  strcpy(char* dest, const char* src);
 	static inline char*  strdup(const char* s);
 	static inline size_t strlen(const char* s);
@@ -343,6 +345,15 @@ inline static int system_ftruncate(int fd, off_t length)
 #endif
 }
 
+inline char* os::getenv(const char* name)
+{
+#if defined(HAVE_GETENV)
+	return ::getenv(name);
+#else
+# error getenv not available
+#endif
+}
+
 inline int os::gethostname(char* name, size_t len)
 {
 #if defined(HAVE_GETHOSTNAME)
@@ -537,6 +548,15 @@ inline char* os::strcat(char* dest, const char* src)
 	return ::strcat(dest, src);
 #else
 # error strcat not available
+#endif
+}
+
+inline int os::strcmp(const char* s1, const char* s2)
+{
+#if defined(HAVE_STRCMP)
+	return ::strcmp(s1, s2);
+#else
+# error strcmp not available
 #endif
 }
 
