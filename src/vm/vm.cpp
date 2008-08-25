@@ -74,7 +74,7 @@
 #include "vm/options.h"
 #include "vm/os.hpp"
 #include "vm/primitive.hpp"
-#include "vm/properties.h"
+#include "vm/properties.hpp"
 #include "vm/signallocal.h"
 #include "vm/statistics.h"
 #include "vm/string.hpp"
@@ -741,11 +741,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 	opt_heapstartsize = HEAP_STARTSIZE;
 	opt_stacksize     = STACK_SIZE;
 
-	/* Initialize the properties list before command-line handling.
-	   Otherwise -XX:+PrintConfig crashes. */
-
-	properties_init();
-
 	// First of all, parse the -XX options.
 
 #if defined(ENABLE_VMLOG)
@@ -779,10 +774,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* initialize JVMTI related  **********************************************/
 	jvmti = false;
 #endif
-
-	/* Fill the properties before command-line handling. */
-
-	properties_set();
 
 	/* iterate over all passed options */
 
@@ -818,14 +809,14 @@ VM::VM(JavaVMInitArgs* vm_args)
 			   classpath. */
 
 			// FIXME Make class_path const char*.
-			class_path = (char*) properties_get("java.class.path");
+			class_path = (char*) _properties.get("java.class.path");
 
 			p = MNEW(char, strlen(opt_arg) + strlen("0"));
 
 			strcpy(p, opt_arg);
 
 #if defined(ENABLE_JAVASE)
-			properties_add("java.class.path", p);
+			_properties.put("java.class.path", p);
 #endif
 
 			MFREE(class_path, char, strlen(class_path));
@@ -835,14 +826,14 @@ VM::VM(JavaVMInitArgs* vm_args)
 			for (unsigned int i = 0; i < strlen(opt_arg); i++) {
 				if (opt_arg[i] == '=') {
 					opt_arg[i] = '\0';
-					properties_add(opt_arg, opt_arg + i + 1);
+					_properties.put(opt_arg, opt_arg + i + 1);
 					goto opt_d_done;
 				}
 			}
 
 			/* if no '=' is given, just create an empty property */
 
-			properties_add(opt_arg, "");
+			_properties.put(opt_arg, "");
 
 		opt_d_done:
 			break;
@@ -852,14 +843,14 @@ VM::VM(JavaVMInitArgs* vm_args)
 			   new boot classpath. */
 
 			// FIXME Make boot_class_path const char*.
-			boot_class_path = (char*) properties_get("sun.boot.class.path");
+			boot_class_path = (char*) _properties.get("sun.boot.class.path");
 
 			p = MNEW(char, strlen(opt_arg) + strlen("0"));
 
 			strcpy(p, opt_arg);
 
-			properties_add("sun.boot.class.path", p);
-			properties_add("java.boot.class.path", p);
+			_properties.put("sun.boot.class.path", p);
+			_properties.put("java.boot.class.path", p);
 
 			MFREE(boot_class_path, char, strlen(boot_class_path));
 			break;
@@ -868,7 +859,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 			/* Append to bootclasspath. */
 
 			// FIXME Make boot_class_path const char*.
-			boot_class_path = (char*) properties_get("sun.boot.class.path");
+			boot_class_path = (char*) _properties.get("sun.boot.class.path");
 
 			len = strlen(boot_class_path);
 
@@ -882,15 +873,15 @@ VM::VM(JavaVMInitArgs* vm_args)
 			strcat(p, ":");
 			strcat(p, opt_arg);
 
-			properties_add("sun.boot.class.path", p);
-			properties_add("java.boot.class.path", p);
+			_properties.put("sun.boot.class.path", p);
+			_properties.put("java.boot.class.path", p);
 			break;
 
 		case OPT_BOOTCLASSPATH_P:
 			/* Prepend to bootclasspath. */
 
 			// FIXME Make boot_class_path const char*.
-			boot_class_path = (char*) properties_get("sun.boot.class.path");
+			boot_class_path = (char*) _properties.get("sun.boot.class.path");
 
 			len = strlen(boot_class_path);
 
@@ -900,8 +891,8 @@ VM::VM(JavaVMInitArgs* vm_args)
 			strcat(p, ":");
 			strcat(p, boot_class_path);
 
-			properties_add("sun.boot.class.path", p);
-			properties_add("java.boot.class.path", p);
+			_properties.put("sun.boot.class.path", p);
+			_properties.put("java.boot.class.path", p);
 
 			MFREE(boot_class_path, char, len);
 			break;
@@ -911,7 +902,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 			   classes. */
 
 			// FIXME Make boot_class_path const char*.
-			boot_class_path = (char*) properties_get("sun.boot.class.path");
+			boot_class_path = (char*) _properties.get("sun.boot.class.path");
 
 			len =
 				strlen(CACAO_VM_ZIP) +
@@ -925,8 +916,8 @@ VM::VM(JavaVMInitArgs* vm_args)
 			strcat(p, ":");
 			strcat(p, opt_arg);
 
-			properties_add("sun.boot.class.path", p);
-			properties_add("java.boot.class.path", p);
+			_properties.put("sun.boot.class.path", p);
+			_properties.put("java.boot.class.path", p);
 
 			MFREE(boot_class_path, char, strlen(boot_class_path));
 			break;
@@ -1397,7 +1388,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* AFTER: utf8_init */
 
 	// FIXME Make boot_class_path const char*.
-	boot_class_path = (char*) properties_get("sun.boot.class.path");
+	boot_class_path = (char*) _properties.get("sun.boot.class.path");
 	suck_add(boot_class_path);
 
 	/* initialize the classcache hashtable stuff: lock, hashtable
@@ -1612,7 +1603,7 @@ void VM::print_build_time_config(void)
 /**
  * Print run-time VM configuration.
  */
-void VM::print_run_time_config(void)
+void VM::print_run_time_config()
 {
 	puts("Run-time variables:\n");
 	printf("  maximum heap size              : %d\n", opt_heapmaxsize);
@@ -1620,13 +1611,13 @@ void VM::print_run_time_config(void)
 	printf("  stack size                     : %d\n", opt_stacksize);
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	printf("  gnu.classpath.boot.library.path: %s\n", properties_get("gnu.classpath.boot.library.path"));
+	printf("  gnu.classpath.boot.library.path: %s\n", _properties.get("gnu.classpath.boot.library.path"));
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	printf("  sun.boot.library.path          : %s\n", properties_get("sun.boot.library.path"));
+	printf("  sun.boot.library.path          : %s\n", _properties.get("sun.boot.library.path"));
 #endif
 
-	printf("  java.boot.class.path           : %s\n", properties_get("java.boot.class.path"));
-	printf("  java.class.path                : %s\n", properties_get("java.class.path"));
+	printf("  java.boot.class.path           : %s\n", _properties.get("java.boot.class.path"));
+	printf("  java.class.path                : %s\n", _properties.get("java.class.path"));
 
 	puts("");
 }
@@ -1681,7 +1672,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 			strcpy(p, mainname);
 
 #if defined(ENABLE_JAVASE)
-			properties_add("java.class.path", p);
+			VM::get_current()->get_properties().put("java.class.path", p);
 #endif
 		}
 		else {

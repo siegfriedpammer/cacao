@@ -43,7 +43,7 @@
 # include "native/vm/openjdk/hpi.h"
 
 # include "vm/globals.hpp"
-# include "vm/properties.h"
+# include "vm/properties.hpp"
 # include "vm/utf8.h"
 # include "vm/vm.hpp"
 #endif
@@ -104,7 +104,7 @@ void nativevm_preinit(void)
 
 	/* Load libjava.so */
 
-	boot_library_path = properties_get("sun.boot.library.path");
+	boot_library_path = Properties_get("sun.boot.library.path");
 
 	len =
 		os_strlen(boot_library_path) +

@@ -34,6 +34,9 @@
 // We need the JNI types for the VM class.
 #include "native/jni.hpp"
 
+#include "vm/properties.hpp"
+
+
 #ifdef __cplusplus
 
 /**
@@ -54,6 +57,9 @@ private:
 	bool    _exiting;
 	int64_t _starttime;
 
+	// Subsystems.
+	Properties _properties; ///< Commandline properties.
+
 public:
 	// Constructor, Destructor.
 	VM(JavaVMInitArgs*);
@@ -62,8 +68,9 @@ public:
 	// Static methods.
 	static bool create(JavaVM** p_vm, void** p_env, void* vm_args);
 	static VM*  get_current() { return _vm; }
+
 	static void print_build_time_config();
-	static void print_run_time_config();
+	void        print_run_time_config();
 
 	// Getters for private members.
 	JavaVM* get_javavm()      { return _javavm; }
@@ -72,6 +79,8 @@ public:
 	bool    is_created()      { return _created; }
 	bool    is_exiting()      { return _exiting; }
 	int64_t get_starttime()   { return _starttime; }
+
+	Properties& get_properties() { return _properties; }
 
 	// Instance functions.
 	void abort(const char* text, ...);

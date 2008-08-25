@@ -1,4 +1,4 @@
-/* src/vm/properties.h - handling commandline properties
+/* src/vm/properties.hpp - handling commandline properties
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,41 +23,60 @@
 */
 
 
-#ifndef _PROPERTIES_H
-#define _PROPERTIES_H
+#ifndef _PROPERTIES_HPP
+#define _PROPERTIES_HPP
 
 #include "config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdint.h>
 
-#include "vm/global.h"
-
-
-/* function prototypes ********************************************************/
-
-void  properties_init(void);
-void  properties_set(void);
-
-void        properties_add(const char *key, const char *value);
-const char *properties_get(const char *key);
-
-void  properties_system_add(java_handle_t *p, const char *key, const char *value);
-
-#if defined(ENABLE_JAVASE)
-void  properties_system_add_all(java_handle_t *p);
-#endif
-
-void  properties_dump(void);
-
 #ifdef __cplusplus
-}
+
+#include <map>
+
+#include "vm/os.hpp"
+
+
+class ltstr {
+public:
+	bool operator()(const char* s1, const char* s2) const
+	{
+		return os::strcmp(s1, s2) < 0;
+	}
+};
+
+
+/**
+ * Commandline properties.
+ */
+class Properties {
+private:
+	std::map<const char*, const char*, ltstr> _properties;
+
+public:
+	Properties();
+
+	// Static function.
+	void        put(java_handle_t* p, const char* key, const char* value);
+
+	void        put(const char* key, const char* value);
+	const char* get(const char* key);
+	void        fill(java_handle_t* p);
+#if !defined(NDEBUG)
+	void        dump();
+#endif
+};
+
+#else
+
+typedef struct Properties Properties;
+
+void        Properties_put(const char *key, const char *value);
+const char *Properties_get(const char *key);
+
 #endif
 
-#endif /* _PROPERTIES_H */
+#endif // _PROPERTIES_HPP
 
 
 /*
@@ -66,9 +85,10 @@ void  properties_dump(void);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

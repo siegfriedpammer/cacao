@@ -76,7 +76,7 @@
 #include "vm/os.hpp"
 #include "vm/package.hpp"
 #include "vm/primitive.hpp"
-#include "vm/properties.h"
+#include "vm/properties.hpp"
 #include "vm/resolve.h"
 #include "vm/signallocal.h"
 #include "vm/string.hpp"
@@ -285,11 +285,10 @@ jobject JVM_InitProperties(JNIEnv *env, jobject properties)
 	   -D option, as requested. */
 
 	jio_snprintf(buf, sizeof(buf), PRINTF_FORMAT_INT64_T, opt_MaxDirectMemorySize);
-	properties_add("sun.nio.MaxDirectMemorySize", buf);
+	VM::get_current()->get_properties().put("sun.nio.MaxDirectMemorySize", buf);
 
-	/* Add all properties. */
-
-	properties_system_add_all(h);
+	// Fill the java.util.Properties object.
+	VM::get_current()->get_properties().fill(h);
 
 	return properties;
 }

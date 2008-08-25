@@ -117,8 +117,8 @@ libvm_la_SOURCES = \
 	package.hpp \
 	primitive.cpp \
 	primitive.hpp \
-	properties.c \
-	properties.h \
+	properties.cpp \
+	properties.hpp \
 	references.h \
 	resolve.c \
 	resolve.h \

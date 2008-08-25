@@ -44,7 +44,7 @@
 #include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/os.hpp"
-#include "vm/properties.h"
+#include "vm/properties.hpp"
 #include "vm/suck.h"
 #include "vm/vm.hpp"
 #include "vm/zip.h"
@@ -241,7 +241,7 @@ void suck_add_from_property(const char *key)
 
 	/* get the property value */
 
-	value = properties_get(key);
+	value = Properties_get(key);
 
 	if (value == NULL)
 		return;
@@ -289,7 +289,7 @@ void suck_add_from_property(const char *key)
 					/* Allocate memory for bootclasspath. */
 
 					// FIXME Make boot_class_path const char*.
-					boot_class_path = (char*) properties_get("sun.boot.class.path");
+					boot_class_path = (char*) Properties_get("sun.boot.class.path");
 
 					p = MNEW(char,
 							 pathlen + strlen("/") + namlen +
@@ -305,8 +305,8 @@ void suck_add_from_property(const char *key)
 					strcat(p, ":");
 					strcat(p, boot_class_path);
 
-					properties_add("sun.boot.class.path", p);
-					properties_add("java.boot.class.path", p);
+					Properties_put("sun.boot.class.path", p);
+					Properties_put("java.boot.class.path", p);
 
 					MFREE(boot_class_path, char, strlen(boot_class_path));
 

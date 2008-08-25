@@ -40,7 +40,7 @@
 #endif
 
 #include "vm/exceptions.hpp"
-#include "vm/properties.h"
+#include "vm/properties.hpp"
 #include "vm/vm.hpp"
 
 
@@ -63,9 +63,8 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_preInit(JNIEnv *env
 		return;
 	}
 
-	/* fill the java.util.Properties object */
-
-	properties_system_add_all(p);
+	// Fill the java.util.Properties object.
+	VM::get_current()->get_properties().fill(p);
 }
 
 
@@ -96,9 +95,9 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *en
 	/* XXX when we do it that way, we can't set these properties on
 	   commandline */
 
-	java_home = properties_get("java.home");
+	java_home = VM::get_current()->get_properties().get("java.home");
 
-	properties_system_add(p, "gnu.classpath.home", java_home);
+	Properties::put(p, "gnu.classpath.home", java_home);
 
 	len =
 		strlen("file://") +
@@ -112,7 +111,7 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *en
 	strcat(path, java_home);
 	strcat(path, "/lib");
 
-	properties_system_add(p, "gnu.classpath.home.url", path);
+	Properties::put(p, "gnu.classpath.home.url", path);
 
 	MFREE(path, char, len);
 #endif

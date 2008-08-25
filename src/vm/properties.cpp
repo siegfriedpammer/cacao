@@ -1,4 +1,4 @@
-/* src/vm/properties.c - handling commandline properties
+/* src/vm/properties.cpp - handling commandline properties
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -25,9 +25,10 @@
 
 #include "config.h"
 
-#include <stdint.h>
 #include <errno.h>
+#include <stdint.h>
 #include <stdlib.h>
+
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -37,7 +38,6 @@
 
 #include "native/llni.h"
 
-#include "toolbox/list.h"
 #include "toolbox/util.h"
 
 #include "vm/class.h"
@@ -45,74 +45,27 @@
 #include "vm/method.h"
 #include "vm/options.h"
 #include "vm/os.hpp"
-#include "vm/properties.h"
+#include "vm/properties.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
 
 
-/* internal property structure ************************************************/
-
-typedef struct list_properties_entry_t list_properties_entry_t;
-
-struct list_properties_entry_t {
-	const char* key;
-	const char* value;
-	listnode_t  linkage;
-};
-
-
-/* global variables ***********************************************************/
-
-static list_t *list_properties = NULL;
-
-
-/* properties_init *************************************************************
-
-   Initialize the properties list and fill the list with default
-   values.
-
-*******************************************************************************/
-
-void properties_init(void)
-{
-	TRACESUBSYSTEMINITIALIZATION("properties_init");
-
-	list_properties = list_create(OFFSET(list_properties_entry_t, linkage));
-}
-
-
-/* properties_set **************************************************************
-
-   Fill the properties list with default values.
-
-*******************************************************************************/
-
-void properties_set(void)
+/**
+ * Constructor fills the properties list with default values.
+ */
+Properties::Properties()
 {
 	int             len;
 	char           *p;
 
-	char           *java_home;
 	char           *boot_class_path;
 
 #if defined(ENABLE_JAVASE)
-	char           *class_path;
-	char           *boot_library_path;
-	char           *extdirs;
-	char           *endorseddirs;
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	char           *cwd;
-	char           *env_user;
-	char           *env_home;
-	char           *env_lang;
-	char           *lang;
-	char           *country;
 	struct utsname *utsnamebuf;
-
-	char           *java_library_path;
 # endif
 #endif
 
@@ -121,8 +74,8 @@ void properties_set(void)
 
 	p = MNEW(char, 4096);
 
-	if (readlink("/proc/self/exe", p, 4095) == -1)
-		vm_abort("properties_set: readlink failed: %s\n", strerror(errno));
+	if (os::readlink("/proc/self/exe", p, 4095) == -1)
+		VM::get->current()->abort_errno("readlink failed");
 
 	/* We have a path like:
 
@@ -134,20 +87,20 @@ void properties_set(void)
 
 	   Now let's strip two levels. */
 
-	p = os_dirname(p);
-	p = os_dirname(p);
+	p = os::dirname(p);
+	p = os::dirname(p);
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	/* Set java.home. */
 
-	java_home = strdup(p);
+	const char* java_home = strdup(p);
 
 	/* Set the path to Java core native libraries. */
 
 	len = strlen(java_home) + strlen("/lib/classpath") + strlen("0");
 
-	boot_library_path = MNEW(char, len);
+	const char* boot_library_path = MNEW(char, len);
 
 	strcpy(boot_library_path, java_home);
 	strcat(boot_library_path, "/lib/classpath");
@@ -165,7 +118,7 @@ void properties_set(void)
 		strlen("/jre/lib/"JAVA_ARCH"/server/libjvm.so") +
 		strlen("0");
 
-	java_home = MNEW(char, len);
+	const char* java_home = MNEW(char, len);
 
 	strcpy(java_home, p);
 	strcat(java_home, "/jre/lib/"JAVA_ARCH"/server/libjvm.so");
@@ -188,7 +141,7 @@ void properties_set(void)
 
 	len = strlen(java_home) + strlen("/lib/"JAVA_ARCH) + strlen("0");
 
-	boot_library_path = MNEW(char, len);
+	const char* boot_library_path = MNEW(char, len);
 
 	strcpy(boot_library_path, java_home);
 	strcat(boot_library_path, "/lib/"JAVA_ARCH);
@@ -202,30 +155,30 @@ void properties_set(void)
 	MFREE(p, char, len);
 
 #else
-	java_home         = CACAO_PREFIX;
+	const char* java_home = CACAO_PREFIX;
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
-	boot_library_path = JAVA_RUNTIME_LIBRARY_LIBDIR"/classpath";
+	const char* boot_library_path = JAVA_RUNTIME_LIBRARY_LIBDIR"/classpath";
 
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
-	boot_library_path = JAVA_RUNTIME_LIBRARY_LIBDIR;
+	const char* boot_library_path = JAVA_RUNTIME_LIBRARY_LIBDIR;
 
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
-	/* No boot_library_path required. */
+	// No boot_library_path required.
 
 # else
 #  error unknown classpath configuration
 # endif
 #endif
 
-	properties_add("java.home", java_home);
+	put("java.home", java_home);
 
 	/* Set the bootclasspath. */
 
-	p = getenv("BOOTCLASSPATH");
+	p = os::getenv("BOOTCLASSPATH");
 
 	if (p != NULL) {
 		boot_class_path = MNEW(char, strlen(p) + strlen("0"));
@@ -341,14 +294,16 @@ void properties_set(void)
 #endif
 	}
 
-	properties_add("sun.boot.class.path", boot_class_path);
-	properties_add("java.boot.class.path", boot_class_path);
+	put("sun.boot.class.path", boot_class_path);
+	put("java.boot.class.path", boot_class_path);
 
 #if defined(ENABLE_JAVASE)
 
 	/* Set the classpath. */
 
-	p = getenv("CLASSPATH");
+	p = os::getenv("CLASSPATH");
+
+	char* class_path;
 
 	if (p != NULL) {
 		class_path = MNEW(char, strlen(p) + strlen("0"));
@@ -359,100 +314,98 @@ void properties_set(void)
 		strcpy(class_path, ".");
 	}
 
-	properties_add("java.class.path", class_path);
+	put("java.class.path", class_path);
 
-	/* Add java.vm properties. */
-
-	properties_add("java.vm.specification.version", "1.0");
-	properties_add("java.vm.specification.vendor", "Sun Microsystems Inc.");
-	properties_add("java.vm.specification.name", "Java Virtual Machine Specification");
-	properties_add("java.vm.version", VERSION);
-	properties_add("java.vm.vendor", "CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO");
-	properties_add("java.vm.name", "CACAO");
+	// Add java.vm properties.
+	put("java.vm.specification.version", "1.0");
+	put("java.vm.specification.vendor", "Sun Microsystems Inc.");
+	put("java.vm.specification.name", "Java Virtual Machine Specification");
+	put("java.vm.version", VERSION);
+	put("java.vm.vendor", "CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO");
+	put("java.vm.name", "CACAO");
 
 # if defined(ENABLE_INTRP)
 	if (opt_intrp) {
 		/* XXX We don't support java.lang.Compiler */
-/*  		properties_add("java.compiler", "cacao.intrp"); */
-		properties_add("java.vm.info", "interpreted mode");
+/*  		put("java.compiler", "cacao.intrp"); */
+		put("java.vm.info", "interpreted mode");
 	}
 	else
 # endif
 	{
 		/* XXX We don't support java.lang.Compiler */
-/*  		properties_add("java.compiler", "cacao.jit"); */
-		properties_add("java.vm.info", "JIT mode");
+/*  		put("java.compiler", "cacao.jit"); */
+		put("java.vm.info", "JIT mode");
 	}
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	/* Get properties from system. */
 
-	cwd      = _Jv_getcwd();
+	char* cwd      = _Jv_getcwd();
 
-	env_user = getenv("USER");
-	env_home = getenv("HOME");
-	env_lang = getenv("LANG");
+	char* env_user = os::getenv("USER");
+	char* env_home = os::getenv("HOME");
+	char* env_lang = os::getenv("LANG");
 
 	utsnamebuf = NEW(struct utsname);
 
 	uname(utsnamebuf);
 
-	properties_add("java.runtime.version", VERSION);
-	properties_add("java.runtime.name", "CACAO");
+	put("java.runtime.version", VERSION);
+	put("java.runtime.name", "CACAO");
 
-	properties_add("java.specification.version", "1.5");
-	properties_add("java.specification.vendor", "Sun Microsystems Inc.");
-	properties_add("java.specification.name", "Java Platform API Specification");
+	put("java.specification.version", "1.5");
+	put("java.specification.vendor", "Sun Microsystems Inc.");
+	put("java.specification.name", "Java Platform API Specification");
 
-	properties_add("java.version", JAVA_VERSION);
-	properties_add("java.vendor", "GNU Classpath");
-	properties_add("java.vendor.url", "http://www.gnu.org/software/classpath/");
+	put("java.version", JAVA_VERSION);
+	put("java.vendor", "GNU Classpath");
+	put("java.vendor.url", "http://www.gnu.org/software/classpath/");
 
-	properties_add("java.class.version", CLASS_VERSION);
+	put("java.class.version", CLASS_VERSION);
 
-	properties_add("gnu.classpath.boot.library.path", boot_library_path);
+	put("gnu.classpath.boot.library.path", boot_library_path);
 
-	/* Get and set java.library.path. */
-
-	java_library_path = getenv("LD_LIBRARY_PATH");
+	// Get and set java.library.path.
+	const char* java_library_path = os::getenv("LD_LIBRARY_PATH");
 
 	if (java_library_path == NULL)
 		java_library_path = "";
 
-	properties_add("java.library.path", java_library_path);
+	put("java.library.path", java_library_path);
 
-	properties_add("java.io.tmpdir", "/tmp");
+	put("java.io.tmpdir", "/tmp");
 
 #  if defined(ENABLE_INTRP)
 	if (opt_intrp) {
-		properties_add("gnu.java.compiler.name", "cacao.intrp");
+		put("gnu.java.compiler.name", "cacao.intrp");
 	}
 	else
 #  endif
 	{
-		properties_add("gnu.java.compiler.name", "cacao.jit");
+		put("gnu.java.compiler.name", "cacao.jit");
 	}
 
 	/* Set the java.ext.dirs property. */
 
 	len = strlen(java_home) + strlen("/jre/lib/ext") + strlen("0");
 
-	extdirs = MNEW(char, len);
+	char* extdirs = MNEW(char, len);
 
 	sprintf(extdirs, "%s/jre/lib/ext", java_home);
 
-	properties_add("java.ext.dirs", extdirs);
+	put("java.ext.dirs", extdirs);
 
 	/* Set the java.ext.endorsed property. */
 
 	len = strlen(java_home) + strlen("/jre/lib/endorsed") + strlen("0");
 
-	endorseddirs = MNEW(char, len);
+	char* endorseddirs = MNEW(char, len);
 
 	sprintf(endorseddirs, "%s/jre/lib/endorsed", java_home);
 
-	properties_add("java.endorsed.dirs", endorseddirs);
+	put("java.endorsed.dirs", endorseddirs);
 
 #  if defined(DISABLE_GC)
 	/* When we disable the GC, we mmap the whole heap to a specific
@@ -461,28 +414,28 @@ void properties_set(void)
 	   more memory may be allocated (e.g. strlen("i386")
 	   vs. strlen("alpha"). */
 
-	properties_add("os.arch", "unknown");
- 	properties_add("os.name", "unknown");
-	properties_add("os.version", "unknown");
+	put("os.arch", "unknown");
+ 	put("os.name", "unknown");
+	put("os.version", "unknown");
 #  else
-	properties_add("os.arch", JAVA_ARCH);
- 	properties_add("os.name", utsnamebuf->sysname);
-	properties_add("os.version", utsnamebuf->release);
+	put("os.arch", JAVA_ARCH);
+ 	put("os.name", utsnamebuf->sysname);
+	put("os.version", utsnamebuf->release);
 #  endif
 
 #  if WORDS_BIGENDIAN == 1
-	properties_add("gnu.cpu.endian", "big");
+	put("gnu.cpu.endian", "big");
 #  else
-	properties_add("gnu.cpu.endian", "little");
+	put("gnu.cpu.endian", "little");
 #  endif
 
-	properties_add("file.separator", "/");
-	properties_add("path.separator", ":");
-	properties_add("line.separator", "\n");
+	put("file.separator", "/");
+	put("path.separator", ":");
+	put("line.separator", "\n");
 
-	properties_add("user.name", env_user ? env_user : "null");
-	properties_add("user.home", env_home ? env_home : "null");
-	properties_add("user.dir", cwd ? cwd : "null");
+	put("user.name", env_user ? env_user : "null");
+	put("user.home", env_home ? env_home : "null");
+	put("user.dir", cwd ? cwd : "null");
 
 	/* get locale */
 
@@ -490,28 +443,28 @@ void properties_set(void)
 		/* get the local stuff from the environment */
 
 		if (strlen(env_lang) <= 2) {
-			properties_add("user.language", env_lang);
+			put("user.language", env_lang);
 		}
 		else {
 			if ((env_lang[2] == '_') && (strlen(env_lang) >= 5)) {
-				lang = MNEW(char, 3);
-				strncpy(lang, (char *) &env_lang[0], 2);
+				char* lang = MNEW(char, 3);
+				strncpy(lang, (char*) &env_lang[0], 2);
 				lang[2] = '\0';
 
-				country = MNEW(char, 3);
-				strncpy(country, (char *) &env_lang[3], 2);
+				char* country = MNEW(char, 3);
+				strncpy(country, (char*) &env_lang[3], 2);
 				country[2] = '\0';
 
-				properties_add("user.language", lang);
-				properties_add("user.country", country);
+				put("user.language", lang);
+				put("user.country", country);
 			}
 		}
 	}
 	else {
 		/* if no default locale was specified, use `en_US' */
 
-		properties_add("user.language", "en");
-		properties_add("user.country", "US");
+		put("user.language", "en");
+		put("user.country", "US");
 	}
 
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
@@ -519,31 +472,29 @@ void properties_set(void)
 	/* Actually this property is set by OpenJDK, but we need it in
 	   nativevm_preinit(). */
 
-	properties_add("sun.boot.library.path", boot_library_path);
+	put("sun.boot.library.path", boot_library_path);
 
-	/* Set the java.ext.dirs property. */
-
+	// Set the java.ext.dirs property.
 	len =
 		strlen(java_home) + strlen("/lib/ext") +
 		strlen(":") +
 		strlen("/usr/java/packages/lib/ext") +
 		strlen("0");
 
-	extdirs = MNEW(char, len);
+	char* extdirs = MNEW(char, len);
 
 	sprintf(extdirs, "%s/lib/ext:/usr/java/packages/lib/ext", java_home);
 
-	properties_add("java.ext.dirs", extdirs);
+	put("java.ext.dirs", extdirs);
 
-	/* Set the java.ext.endorsed property. */
-
+	// Set the java.ext.endorsed property.
 	len = strlen(java_home) + strlen("/lib/endorsed") + strlen("0");
 
-	endorseddirs = MNEW(char, len);
+	char* endorseddirs = MNEW(char, len);
 
 	sprintf(endorseddirs, "%s/lib/endorsed", java_home);
 
-	properties_add("java.endorsed.dirs", endorseddirs);
+	put("java.endorsed.dirs", endorseddirs);
 
 # else
 
@@ -553,10 +504,10 @@ void properties_set(void)
 
 #elif defined(ENABLE_JAVAME_CLDC1_1)
 
-    properties_add("microedition.configuration", "CLDC-1.1");
-    properties_add("microedition.platform", "generic");
-    properties_add("microedition.encoding", "ISO8859_1");
-    properties_add("microedition.profiles", "");
+    put("microedition.configuration", "CLDC-1.1");
+    put("microedition.platform", "generic");
+    put("microedition.encoding", "ISO8859_1");
+    put("microedition.profiles", "");
 
 #else
 
@@ -566,174 +517,146 @@ void properties_set(void)
 }
 
 
-/* properties_add **************************************************************
-
-   Adds a property entry to the internal property list.  If there's
-   already an entry with the same key, replace it.
-
-*******************************************************************************/
-
-void properties_add(const char *key, const char *value)
+/**
+ * Add the given property to the given Java system properties.
+ *
+ * @param p     Java properties object.
+ * @param key   Key.
+ * @param value Value.
+ */
+void Properties::put(java_handle_t* p, const char* key, const char* value)
 {
-	list_properties_entry_t *pe;
-
-	/* search for the entry */
-
-	for (pe = list_first(list_properties); pe != NULL;
-		 pe = list_next(list_properties, pe)) {
-		if (strcmp(pe->key, key) == 0) {
-			/* entry was found, replace the value */
-
-#if !defined(NDEBUG)
-			if (opt_DebugProperties) {
-				printf("[properties_add: key=%s, old value=%s, new value=%s]\n",
-					   key, pe->value, value);
-			}
-#endif
-
-			pe->value = value;
-
-			return;
-		}
-	}
-
-	/* entry was not found, insert a new one */
-
-#if !defined(NDEBUG)
-	if (opt_DebugProperties) {
-		printf("[properties_add: key=%s, value=%s]\n", key, value);
-	}
-#endif
-
-	pe = NEW(list_properties_entry_t);
-
-	pe->key   = key;
-	pe->value = value;
-
-	list_add_last(list_properties, pe);
-}
-
-
-/* properties_get **************************************************************
-
-   Get a property entry from the internal property list.
-
-*******************************************************************************/
-
-const char *properties_get(const char *key)
-{
-	list_properties_entry_t *pe;
-
-	for (pe = list_first(list_properties); pe != NULL;
-		 pe = list_next(list_properties, pe)) {
-		if (strcmp(pe->key, key) == 0)
-			return pe->value;
-	}
-
-	return NULL;
-}
-
-
-/* properties_system_add *******************************************************
-
-   Adds a given property to the Java system properties.
-
-*******************************************************************************/
-
-void properties_system_add(java_handle_t *p, const char *key, const char *value)
-{
-	classinfo     *c;
-	methodinfo    *m;
-	java_handle_t *k;
-	java_handle_t *v;
-
-	/* search for method to add properties */
-
+	// Get Properties.put() method to add properties.
+	classinfo* c;
 	LLNI_class_get(p, c);
 
-	m = class_resolveclassmethod(c,
-								 utf_put,
-								 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
-								 NULL,
-								 true);
+	methodinfo* m = class_resolveclassmethod(c,
+											 utf_put,
+											 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
+											 NULL,
+											 true);
 
 	if (m == NULL)
 		return;
 
-	/* add to the Java system properties */
-
-	k = javastring_new_from_utf_string(key);
-	v = javastring_new_from_utf_string(value);
+	// Add to the Java system properties.
+	java_handle_t* k = javastring_new_from_utf_string(key);
+	java_handle_t* v = javastring_new_from_utf_string(value);
 
 	(void) vm_call_method(m, p, k, v);
 }
 
 
-/* properties_system_add_all ***************************************************
-
-   Adds all properties from the properties list to the Java system
-   properties.
-
-   ARGUMENTS:
-       p.... is actually a java_util_Properties structure
-
-*******************************************************************************/
-
-#if defined(ENABLE_JAVASE)
-void properties_system_add_all(java_handle_t *p)
+/**
+ * Put the given property into the internal property map.  If there's
+ * already an entry with the same key, replace it.
+ *
+ * @param key   Key.
+ * @param value Value.
+ */
+void Properties::put(const char* key, const char* value)
 {
-	list_properties_entry_t *pe;
-	classinfo               *c;
-	methodinfo              *m;
-	java_handle_t           *key;
-	java_handle_t           *value;
+	// Try to find the key.
+	std::map<const char*, const char*>::iterator it = _properties.find(key);
 
-	/* search for method to add properties */
+	// The key is already in the map.
+	if (it != _properties.end()) {
+#if !defined(NDEBUG)
+		if (opt_DebugProperties) {
+			printf("[Properties::put: key=%s, old value=%s, new value=%s]\n",
+				   key, it->second, value);
+		}
+#endif
 
+		// Replace the value in the current entry.
+		it->second = value;
+
+		return;
+	}
+
+	// The key was not found, insert the pair.
+#if !defined(NDEBUG)
+	if (opt_DebugProperties) {
+		printf("[Properties::put: key=%s, value=%s]\n", key, value);
+	}
+#endif
+
+	_properties.insert(std::make_pair(key, value));
+}
+
+
+/**
+ * Get a property entry from the internal property map.
+ *
+ * @param key Key.
+ *
+ * @return Value associated with the key or NULL when not found.
+ */
+const char* Properties::get(const char* key)
+{
+	// Try to find the key.
+	std::map<const char*, const char*>::iterator it = _properties.find(key);
+
+	// The key is not in the map.
+	if (it == _properties.end())
+		return NULL;
+
+	// Return the value.
+	return it->second;
+}
+
+
+/**
+ * Fill the given Java system properties with all properties from the
+ * internal properties map.
+ *
+ * @param p Java Properties object.
+ */
+#if defined(ENABLE_JAVASE)
+void Properties::fill(java_handle_t* p)
+{
+	// Get Properties.put() method to add properties.
+	classinfo* c;
 	LLNI_class_get(p, c);
 
-	m = class_resolveclassmethod(c,
-								 utf_put,
-								 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
-								 NULL,
-								 true);
+	methodinfo* m = class_resolveclassmethod(c,
+											 utf_put,
+											 utf_new_char("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
+											 NULL,
+											 true);
 
 	if (m == NULL)
 		return;
 
-	/* process all properties stored in the internal table */
+	// Iterator over all properties.
+	for (std::map<const char*, const char*>::iterator it = _properties.begin(); it != _properties.end(); it++) {
+		// Put into the Java system properties.
+		java_handle_t* key   = javastring_new_from_utf_string(it->first);
+		java_handle_t* value = javastring_new_from_utf_string(it->second);
 
-	for (pe = list_first(list_properties); pe != NULL;
-		 pe = list_next(list_properties, pe)) {
-		/* add to the Java system properties */
-
-		key   = javastring_new_from_utf_string(pe->key);
-		value = javastring_new_from_utf_string(pe->value);
-
-		(void) vm_call_method(m, (java_handle_t *) p, key, value);
+		(void) vm_call_method(m, p, key, value);
 	}
 }
-#endif /* defined(ENABLE_JAVASE) */
+#endif
 
 
-/* properties_dump *************************************************************
-
-   Dump all property entries.
-
-*******************************************************************************/
-
-void properties_dump(void)
+/**
+ * Dump all property entries.
+ */
+#if !defined(NDEBUG)
+void Properties::dump()
 {
-	list_t                  *l;
-	list_properties_entry_t *pe;
-
-	/* For convenience. */
-
-	l = list_properties;
-
-	for (pe = list_first(l); pe != NULL; pe = list_next(l, pe)) {
-		log_println("[properties_dump: key=%s, value=%s]", pe->key, pe->value);
+	for (std::map<const char*, const char*>::iterator it = _properties.begin(); it != _properties.end(); it++) {
+		log_println("[Properties::dump: key=%s, value=%s]", it->first, it->second);
 	}
+}
+#endif
+
+
+// Legacy C interface.
+extern "C" {
+	void        Properties_put(const char *key, const char *value) { VM::get_current()->get_properties().put(key, value); }
+	const char *Properties_get(const char *key) { return VM::get_current()->get_properties().get(key); }
 }
 
 
@@ -743,9 +666,10 @@ void properties_dump(void)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

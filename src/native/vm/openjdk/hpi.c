@@ -40,7 +40,7 @@
 
 #include "vm/options.h"
 #include "vm/os.hpp"
-#include "vm/properties.h"
+#include "vm/properties.hpp"
 #include "vm/utf8.h"
 #include "vm/vm.hpp"
 
@@ -93,7 +93,7 @@ void hpi_initialize(void)
 
 	/* Load libhpi.so */
 
-	boot_library_path = properties_get("sun.boot.library.path");
+	boot_library_path = Properties_get("sun.boot.library.path");
 
 	len =
 		os_strlen(boot_library_path) +

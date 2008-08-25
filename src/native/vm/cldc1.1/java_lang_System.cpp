@@ -38,8 +38,9 @@
 #endif
 
 #include "vm/jit/builtin.hpp"
-#include "vm/properties.h"
+#include "vm/properties.hpp"
 #include "vm/string.hpp"
+#include "vm/vm.hpp"
 
 
 // Native functions are exported as C functions.
@@ -78,7 +79,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_System_getProperty0(JNIEnv *env, jclass
 
 	/* get the property from the internal table */
 
-	value = properties_get(key);
+	value = VM::get_current()->get_properties().get(key);
 
 	/* release the memory allocated in javastring_tochar */
 
