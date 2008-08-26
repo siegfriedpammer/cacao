@@ -51,7 +51,7 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.hpp"
-#include "vm/jit/patcher-common.h"
+#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/dseg.h"
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/emit-common.hpp"

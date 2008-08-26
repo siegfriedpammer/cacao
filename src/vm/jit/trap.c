@@ -46,7 +46,7 @@
 #include "vm/jit/disass.h"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodtree.h"
-#include "vm/jit/patcher-common.h"
+#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/replace.hpp"
 #include "vm/jit/stacktrace.hpp"
 

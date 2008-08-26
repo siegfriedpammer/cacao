@@ -44,7 +44,7 @@
 #include "vm/resolve.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/patcher-common.h"
+#include "vm/jit/patcher-common.hpp"
 
 
 /* patcher_patch_code **********************************************************

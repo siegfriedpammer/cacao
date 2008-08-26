@@ -87,7 +87,7 @@
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/methodtree.h"
-#include "vm/jit/patcher-common.h"
+#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/replace.hpp"
 #if defined(ENABLE_SSA)
 # include "vm/jit/optimizing/lsra.h"

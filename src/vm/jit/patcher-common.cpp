@@ -1,4 +1,4 @@
-/* src/vm/jit/patcher-common.c - architecture independent code patching stuff
+/* src/vm/jit/patcher-common.cpp - architecture independent code patching stuff
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -48,7 +48,7 @@
 #include "vm/jit/code.hpp"
 #include "vm/jit/disass.h"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/patcher-common.h"
+#include "vm/jit/patcher-common.hpp"
 
 
 /* patcher_function_list *******************************************************
@@ -61,8 +61,8 @@
 
 #if !defined(NDEBUG)
 typedef struct patcher_function_list_t {
-	functionptr  patcher;
-	char        *name;
+	functionptr patcher;
+	const char* name;
 } patcher_function_list_t;
 
 static patcher_function_list_t patcher_function_list[] = {
@@ -102,7 +102,7 @@ void patcher_list_reset(codeinfo *code)
 
 	/* free all elements of the list */
 
-	while((pr = list_first(code->patchers)) != NULL) {
+	while((pr = (patchref_t*) list_first(code->patchers)) != NULL) {
 		list_remove(code->patchers, pr);
 
 		FREE(pr, patchref_t);
@@ -142,13 +142,13 @@ void patcher_list_free(codeinfo *code)
 
 *******************************************************************************/
 
-static patchref_t *patcher_list_find(codeinfo *code, u1 *pc)
+static patchref_t *patcher_list_find(codeinfo *code, void *pc)
 {
 	patchref_t *pr;
 
 	/* walk through all patcher references for the given codeinfo */
 
-	pr = list_first(code->patchers);
+	pr = (patchref_t*) list_first(code->patchers);
 
 	while (pr) {
 
@@ -160,7 +160,7 @@ static patchref_t *patcher_list_find(codeinfo *code, u1 *pc)
 		if (pr->mpc == (ptrint) pc)
 			return pr;
 
-		pr = list_next(code->patchers, pr);
+		pr = (patchref_t*) list_next(code->patchers, pr);
 	}
 
 	return NULL;
@@ -185,7 +185,7 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
 	patchmpc = cd->mcodeptr - cd->mcodebase;
 
 #if !defined(NDEBUG)
-	if (patcher_list_find(code, (u1 *) (intptr_t) patchmpc) != NULL)
+	if (patcher_list_find(code, (void*) (intptr_t) patchmpc) != NULL)
 		vm_abort("patcher_add_patch_ref: different patchers at same position.");
 #endif
 
@@ -239,7 +239,7 @@ void patcher_resolve(jitdata* jd)
 
 	code = jd->code;
 
-	for (pr = list_first(code->patchers); pr != NULL; pr = list_next(code->patchers, pr)) {
+	for (pr = (patchref_t*) list_first(code->patchers); pr != NULL; pr = (patchref_t*) list_next(code->patchers, pr)) {
 		pr->mpc   += (intptr_t) code->entrypoint;
 		pr->datap  = (intptr_t) (pr->disp + code->entrypoint);
 	}
@@ -363,7 +363,7 @@ java_handle_t *patcher_handler(u1 *pc)
 		printf("\tmachine code before = ");
 
 # if defined(ENABLE_DISASSEMBLER)
-		disassinstr((void *) pr->mpc);
+		disassinstr((u1*) (void*) pr->mpc);
 # else
 		printf("%x at %p (disassembler disabled)\n", *((uint32_t*) pr->mpc), (void*) pr->mpc);
 # endif
@@ -390,7 +390,7 @@ java_handle_t *patcher_handler(u1 *pc)
 		printf("\tmachine code after  = ");
 
 # if defined(ENABLE_DISASSEMBLER)
-		disassinstr((void *) pr->mpc);
+		disassinstr((u1*) (void*) pr->mpc);
 # else
 		printf("%x at %p (disassembler disabled)\n", *((uint32_t*) pr->mpc), (void*) pr->mpc);
 # endif
@@ -523,7 +523,7 @@ bool patcher_resolve_native_function(patchref_t *pr)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -40,7 +40,7 @@
 #include "vm/resolve.h"
 #include "vm/types.h"
 
-#include "vm/jit/patcher-common.h"
+#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/s390/codegen.h"
 #include "vm/jit/s390/md-abi.h"
 

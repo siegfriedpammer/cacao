@@ -58,7 +58,7 @@
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/parse.h"
-#include "vm/jit/patcher-common.h"
+#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/reg.h"
 
 #if defined(ENABLE_LSRA)

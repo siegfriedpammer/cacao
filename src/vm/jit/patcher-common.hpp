@@ -1,4 +1,4 @@
-/* src/vm/jit/patcher-common.h - architecture independent code patching stuff
+/* src/vm/jit/patcher-common.hpp - architecture independent code patching stuff
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _PATCHER_COMMON_H
-#define _PATCHER_COMMON_H
+#ifndef _PATCHER_COMMON_HPP
+#define _PATCHER_COMMON_HPP
 
 /* forward typedefs ***********************************************************/
 
@@ -192,7 +192,7 @@ bool patcher_instanceof_class(patchref_t *pr);
 } // extern "C"
 #endif
 
-#endif /* _PATCHER_COMMON_H */
+#endif // _PATCHER_COMMON_HPP
 
 
 /*
@@ -201,7 +201,7 @@ bool patcher_instanceof_class(patchref_t *pr);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

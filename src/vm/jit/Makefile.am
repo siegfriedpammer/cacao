@@ -175,8 +175,8 @@ libjit_la_SOURCES = \
 	methodtree.h \
 	parse.c \
 	parse.h \
-	patcher-common.c \
-	patcher-common.h \
+	patcher-common.cpp \
+	patcher-common.hpp \
 	$(RECOMPILE_SOURCES) \
 	$(REG_SOURCES) \
 	$(REPLACE_SOURCES) \

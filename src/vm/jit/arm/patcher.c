@@ -46,7 +46,7 @@
 #include "vm/resolve.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/patcher-common.h"
+#include "vm/jit/patcher-common.hpp"
 
 
 #define gen_resolveload(inst,offset) \

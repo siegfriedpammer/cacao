@@ -61,7 +61,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/patcher-common.h"
+#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/show.h"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trace.hpp"

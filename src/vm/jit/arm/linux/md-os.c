@@ -58,7 +58,7 @@ typedef struct ucontext {
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
-#include "vm/jit/patcher-common.h"
+#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/trap.h"
 
 

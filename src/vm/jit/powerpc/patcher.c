@@ -46,7 +46,7 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/methodheader.h"
-#include "vm/jit/patcher-common.h"
+#include "vm/jit/patcher-common.hpp"
 
 
 #define PATCH_BACK_ORIGINAL_MCODE \

@@ -26,10 +26,6 @@
 #ifndef _DISASS_H
 #define _DISASS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "config.h"
 
 #if defined(WITH_BINUTILS_DISASSEMBLER)
@@ -97,6 +93,10 @@ extern s4   disass_len;
 
 
 /* function prototypes *******************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #if defined(ENABLE_JIT)
 void disassemble(u1 *start, u1 *end);
