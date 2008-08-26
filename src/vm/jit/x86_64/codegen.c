@@ -2570,8 +2570,9 @@ gen_method:
 					M_ALD(REG_ITMP3, RIP, disp);
 
 					if (super == NULL || super->vftbl->subtype_depth >= DISPLAY_SIZE) {
+					M_AADD_IMM(-32, REG_SP); /* need some stack */
 					if (s1 == REG_ITMP1)
-						M_AST(REG_ITMP1, REG_SP, -8); /* store in red zone */
+						M_AST(REG_ITMP1, REG_SP, -8 + 32);
 
 					M_ALD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
 
@@ -2586,16 +2587,14 @@ gen_method:
 					M_LCMP_IMM(OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]), REG_ITMP1);
 					emit_classcast_check(cd, iptr, BRANCH_NE, REG_ITMP3, s1);
 
-					/* use red zone */
-					M_AST(REG_ITMP3, REG_SP, -16);
-					M_AST_IMM32(0, REG_SP, -24);
+					M_AST(REG_ITMP3, REG_SP, -16 + 32);
+					M_AST_IMM32(0, REG_SP, -24 + 32);
 					M_ALD(REG_ITMP1, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
 					looptarget = cd->mcodeptr - cd->mcodebase;
 
-					M_ALD(REG_ITMP3, REG_SP, -24);
+					M_ALD(REG_ITMP3, REG_SP, -24 + 32);
 					M_ICMP_MEMBASE(REG_ITMP2, OFFSET(vftbl_t, subtype_overflow_length), REG_ITMP3);
-
-					emit_classcast_check(cd, iptr, BRANCH_GE, REG_ITMP3, s1);
+					emit_label_bge(cd, BRANCH_LABEL_9); /* throw */
 
 					*(cd->mcodeptr++) = 0x4e;
 					*(cd->mcodeptr++) = 0x8b;
@@ -2603,18 +2602,23 @@ gen_method:
 					*(cd->mcodeptr++) = 0xd8;
 					/* movq (ITMP1, ITMP3, 8), ITMP3 */
 
-					M_LCMP_MEMBASE(REG_SP, -16, REG_ITMP3);
+					M_LCMP_MEMBASE(REG_SP, -16 + 32, REG_ITMP3);
 					emit_label_beq(cd, BRANCH_LABEL_7); /* good, pop */
 
-					M_LINC_MEMBASE(REG_SP, -24);
+					M_LINC_MEMBASE(REG_SP, -24 + 32);
 					M_JMP_IMM2(looptarget - (cd->mcodeptr - cd->mcodebase) - 2); /* 1 byte displacement */
+
+					emit_label(cd, BRANCH_LABEL_9);
+					M_AADD_IMM(32, REG_SP); /* restore stack frame */
+					M_ALD_MEM(REG_ITMP3, TRAP_ClassCastException);
 
 					emit_label(cd, BRANCH_LABEL_7);
 
 					emit_label(cd, BRANCH_LABEL_6);
 
 					if (s1 == REG_ITMP1)
-						M_ALD(REG_ITMP1, REG_SP, -8);
+						M_ALD(REG_ITMP1, REG_SP, -8 + 32);
+					M_AADD_IMM(32, REG_SP);
 					}
 					else {
 						assert(super->vftbl->subtype_offset < 0x80);
@@ -2771,6 +2775,7 @@ gen_method:
 				M_ALD(REG_ITMP3, RIP, disp);
 
 				if (super == NULL || super->vftbl->subtype_depth >= DISPLAY_SIZE) {
+				M_AADD_IMM(-32, REG_SP); /* need some stack */
 				M_ALD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
 
 				*(cd->mcodeptr++) = 0x4d;
@@ -2792,13 +2797,12 @@ gen_method:
 				M_LCMP_IMM(OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]), REG_ITMP1);
 				emit_label_bne(cd, BRANCH_LABEL_6); /* ende false */
 
-				/* use the red zone */
-				M_AST(REG_ITMP3, REG_SP, -16);
-				M_AST_IMM32(0, REG_SP, -24);
+				M_AST(REG_ITMP3, REG_SP, -16 + 32);
+				M_AST_IMM32(0, REG_SP, -24 + 32);
 				M_ALD(REG_ITMP1, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
 				looptarget = cd->mcodeptr - cd->mcodebase;
 
-				M_ALD(REG_ITMP3, REG_SP, -24);
+				M_ALD(REG_ITMP3, REG_SP, -24 + 32);
 				M_ICMP_MEMBASE(REG_ITMP2, OFFSET(vftbl_t, subtype_overflow_length), REG_ITMP3);
 				emit_label_bge(cd, BRANCH_LABEL_8); /* ende false */
 
@@ -2808,7 +2812,7 @@ gen_method:
 				*(cd->mcodeptr++) = 0xd8;
 				/* movq (ITMP1, ITMP3, 8), ITMP3 */
 
-				M_LCMP_MEMBASE(REG_SP, -16, REG_ITMP3);
+				M_LCMP_MEMBASE(REG_SP, -16 + 32, REG_ITMP3);
 				emit_label_bne(cd, BRANCH_LABEL_9);
 				if (d == REG_ITMP2) {
 					M_SETE(d);
@@ -2818,7 +2822,7 @@ gen_method:
 				emit_label_br(cd, BRANCH_LABEL_10); /* ende true */
 				emit_label(cd, BRANCH_LABEL_9);
 
-				M_LINC_MEMBASE(REG_SP, -24);
+				M_LINC_MEMBASE(REG_SP, -24 + 32);
 				M_JMP_IMM2(looptarget - (cd->mcodeptr - cd->mcodebase) - 2); /* 1 byte displacement */
 
 				emit_label(cd, BRANCH_LABEL_8);
@@ -2829,6 +2833,7 @@ gen_method:
 
 				emit_label(cd, BRANCH_LABEL_10);
 				emit_label(cd, BRANCH_LABEL_7);
+				M_AADD_IMM(32, REG_SP);
 				}
 				else {
 					assert(super->vftbl->subtype_offset < 0x80);
