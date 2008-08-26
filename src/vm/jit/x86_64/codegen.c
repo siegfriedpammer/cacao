@@ -2582,7 +2582,7 @@ gen_method:
 					*(cd->mcodeptr++) = 0x02;
 					/* cmp (ITMP2, ITMP1, 1), ITMP3 */
 
-					emit_label_beq(cd, BRANCH_LABEL_6); /* good */
+					emit_label_beq(cd, BRANCH_LABEL_6);  /* good */
 
 					M_LCMP_IMM(OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]), REG_ITMP1);
 					emit_classcast_check(cd, iptr, BRANCH_NE, REG_ITMP3, s1);
@@ -2594,7 +2594,7 @@ gen_method:
 
 					M_ALD(REG_ITMP3, REG_SP, -24 + 32);
 					M_ICMP_MEMBASE(REG_ITMP2, OFFSET(vftbl_t, subtype_overflow_length), REG_ITMP3);
-					emit_label_bge(cd, BRANCH_LABEL_9); /* throw */
+					emit_label_bge(cd, BRANCH_LABEL_9);  /* throw */
 
 					*(cd->mcodeptr++) = 0x4e;
 					*(cd->mcodeptr++) = 0x8b;
@@ -2603,7 +2603,7 @@ gen_method:
 					/* movq (ITMP1, ITMP3, 8), ITMP3 */
 
 					M_LCMP_MEMBASE(REG_SP, -16 + 32, REG_ITMP3);
-					emit_label_beq(cd, BRANCH_LABEL_7); /* good, pop */
+					emit_label_beq(cd, BRANCH_LABEL_7);  /* good */
 
 					M_LINC_MEMBASE(REG_SP, -24 + 32);
 					M_JMP_IMM2(looptarget - (cd->mcodeptr - cd->mcodebase) - 2); /* 1 byte displacement */
@@ -2790,12 +2790,12 @@ gen_method:
 					M_BSEXT(d, d);
 				} else
 					M_LINC(d);
-				emit_label_br(cd, BRANCH_LABEL_7); /* ende true */
+				emit_label_br(cd, BRANCH_LABEL_7);    /* done, true */
 
 				emit_label(cd, BRANCH_LABEL_6);
 
 				M_LCMP_IMM(OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]), REG_ITMP1);
-				emit_label_bne(cd, BRANCH_LABEL_6); /* ende false */
+				emit_label_bne(cd, BRANCH_LABEL_6);   /* done, false */
 
 				M_AST(REG_ITMP3, REG_SP, -16 + 32);
 				M_AST_IMM32(0, REG_SP, -24 + 32);
@@ -2804,7 +2804,7 @@ gen_method:
 
 				M_ALD(REG_ITMP3, REG_SP, -24 + 32);
 				M_ICMP_MEMBASE(REG_ITMP2, OFFSET(vftbl_t, subtype_overflow_length), REG_ITMP3);
-				emit_label_bge(cd, BRANCH_LABEL_8); /* ende false */
+				emit_label_bge(cd, BRANCH_LABEL_8);   /* done, false */
 
 				*(cd->mcodeptr++) = 0x4e;
 				*(cd->mcodeptr++) = 0x8b;
@@ -2819,7 +2819,7 @@ gen_method:
 					M_BSEXT(d, d);
 				} else
 					M_LINC(d);
-				emit_label_br(cd, BRANCH_LABEL_10); /* ende true */
+				emit_label_br(cd, BRANCH_LABEL_10);   /* done, true */
 				emit_label(cd, BRANCH_LABEL_9);
 
 				M_LINC_MEMBASE(REG_SP, -24 + 32);
