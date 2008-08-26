@@ -75,7 +75,7 @@ Properties::Properties()
 	p = MNEW(char, 4096);
 
 	if (os::readlink("/proc/self/exe", p, 4095) == -1)
-		VM::get->current()->abort_errno("readlink failed");
+		VM::get_current()->abort_errno("readlink failed");
 
 	/* We have a path like:
 
@@ -94,13 +94,13 @@ Properties::Properties()
 
 	/* Set java.home. */
 
-	const char* java_home = strdup(p);
+	char* java_home = strdup(p);
 
 	/* Set the path to Java core native libraries. */
 
 	len = strlen(java_home) + strlen("/lib/classpath") + strlen("0");
 
-	const char* boot_library_path = MNEW(char, len);
+	char* boot_library_path = MNEW(char, len);
 
 	strcpy(boot_library_path, java_home);
 	strcat(boot_library_path, "/lib/classpath");
@@ -118,22 +118,19 @@ Properties::Properties()
 		strlen("/jre/lib/"JAVA_ARCH"/server/libjvm.so") +
 		strlen("0");
 
-	const char* java_home = MNEW(char, len);
+	char* java_home = MNEW(char, len);
 
 	strcpy(java_home, p);
 	strcat(java_home, "/jre/lib/"JAVA_ARCH"/server/libjvm.so");
 
-	/* Check if that libjvm.so exists. */
-
-	if (os_access(java_home, F_OK) == 0) {
-		/* Yes, we add /jre to java.home. */
-
+	// Check if that libjvm.so exists.
+	if (os::access(java_home, F_OK) == 0) {
+		// Yes, we add /jre to java.home.
 		strcpy(java_home, p);
 		strcat(java_home, "/jre");
 	}
 	else {
-		/* No, java.home is parent directory. */
-
+		// No, java.home is parent directory.
 		strcpy(java_home, p);
 	}
 
@@ -141,7 +138,7 @@ Properties::Properties()
 
 	len = strlen(java_home) + strlen("/lib/"JAVA_ARCH) + strlen("0");
 
-	const char* boot_library_path = MNEW(char, len);
+	char* boot_library_path = MNEW(char, len);
 
 	strcpy(boot_library_path, java_home);
 	strcat(boot_library_path, "/lib/"JAVA_ARCH);
