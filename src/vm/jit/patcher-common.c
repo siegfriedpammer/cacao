@@ -45,7 +45,7 @@
 #include "vm/resolve.h"
 #include "vm/vm.hpp"                     /* for vm_abort */
 
-#include "vm/jit/code.h"
+#include "vm/jit/code.hpp"
 #include "vm/jit/disass.h"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/patcher-common.h"

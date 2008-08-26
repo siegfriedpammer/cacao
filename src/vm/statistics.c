@@ -53,7 +53,7 @@
 #include "vm/options.h"
 #include "vm/statistics.h"
 
-#include "vm/jit/code.h"
+#include "vm/jit/code.hpp"
 
 
 /* global variables ***********************************************************/

@@ -1,4 +1,4 @@
-/* src/vm/jit/code.c - codeinfo struct for representing compiled code
+/* src/vm/jit/code.cpp - codeinfo struct for representing compiled code
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -35,7 +35,7 @@
 #include "vm/options.h"
 #include "vm/vm.hpp"
 
-#include "vm/jit/code.h"
+#include "vm/jit/code.hpp"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/methodtree.h"
@@ -286,7 +286,7 @@ void code_free_code_of_method(methodinfo *m)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -31,7 +31,7 @@
 
 #include "vm/method.h"
 
-#include "vm/jit/code.h"
+#include "vm/jit/code.hpp"
 
 
 #ifdef __cplusplus

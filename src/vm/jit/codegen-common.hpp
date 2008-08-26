@@ -49,7 +49,7 @@ typedef struct linenumberref          linenumberref;
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/reg.h"
-#include "vm/jit/code.h"
+#include "vm/jit/code.hpp"
 #include "vm/jit/replace.hpp"
 
 

@@ -52,7 +52,7 @@
 #include "vm/utf8.h"
 #include "vm/vm.hpp"
 
-#include "vm/jit/code.h"
+#include "vm/jit/code.hpp"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/stubs.hpp"
 

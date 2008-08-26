@@ -46,7 +46,7 @@
 #include "vm/loader.hpp"
 #include "vm/string.hpp"
 
-#include "vm/jit/code.h"
+#include "vm/jit/code.hpp"
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/stacktrace.hpp"
 

@@ -44,7 +44,7 @@
 #include "vm/options.h"
 #include "vm/string.hpp"
 
-#include "vm/jit/code.h"
+#include "vm/jit/code.hpp"
 #include "vm/jit/jit.hpp"
 
 #include "vm/jit/optimizing/recompile.h"

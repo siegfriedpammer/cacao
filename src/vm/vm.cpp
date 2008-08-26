@@ -83,7 +83,7 @@
 
 #include "vm/jit/argument.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/code.h"
+#include "vm/jit/code.hpp"
 
 #if defined(ENABLE_DISASSEMBLER)
 # include "vm/jit/disass.h"

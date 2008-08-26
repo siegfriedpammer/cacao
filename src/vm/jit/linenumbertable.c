@@ -35,7 +35,7 @@
 # include "vm/statistics.h"
 #endif
 
-#include "vm/jit/code.h"
+#include "vm/jit/code.hpp"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/linenumbertable.h"
 

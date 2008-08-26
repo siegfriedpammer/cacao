@@ -153,8 +153,8 @@ libjit_la_SOURCES = \
 	builtin.cpp \
 	builtin.hpp \
 	builtintable.inc \
-	code.c \
-	code.h \
+	code.cpp \
+	code.hpp \
 	codegen-common.cpp \
 	codegen-common.hpp \
 	disass.h \

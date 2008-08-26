@@ -36,7 +36,7 @@ typedef struct exceptiontable_entry_t exceptiontable_entry_t;
 
 #include <stdint.h>
 
-#include "vm/jit/code.h"
+#include "vm/jit/code.hpp"
 #include "vm/jit/jit.hpp"
 
 

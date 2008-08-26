@@ -42,7 +42,7 @@
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
 
-#include "vm/jit/code.h"
+#include "vm/jit/code.hpp"
 #include "vm/jit/disass.h"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodtree.h"
