@@ -1471,12 +1471,7 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
 		if (sub->flags & ACC_INTERFACE)
 			return (super == class_java_lang_Object);
 
-		Mutex_lock(linker_classrenumber_mutex);
-
-		diffval = sub->vftbl->baseval - super->vftbl->baseval;
-		result  = diffval <= (uint32_t) super->vftbl->diffval;
-
-		Mutex_unlock(linker_classrenumber_mutex);
+		result = fast_subtype_check(sub->vftbl, super->vftbl);
 	}
 
 	return result;
