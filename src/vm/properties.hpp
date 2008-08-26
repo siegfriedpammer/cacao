@@ -57,7 +57,7 @@ public:
 	Properties();
 
 	// Static function.
-	void        put(java_handle_t* p, const char* key, const char* value);
+	static void put(java_handle_t* p, const char* key, const char* value);
 
 	void        put(const char* key, const char* value);
 	const char* get(const char* key);
