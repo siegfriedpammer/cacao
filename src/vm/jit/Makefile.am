@@ -155,8 +155,8 @@ libjit_la_SOURCES = \
 	builtintable.inc \
 	code.c \
 	code.h \
-	codegen-common.c \
-	codegen-common.h \
+	codegen-common.cpp \
+	codegen-common.hpp \
 	disass.h \
 	$(DISASS_SOURCES) \
 	dseg.c \

@@ -31,7 +31,7 @@
 
 #include "vm/types.h"
 #include "vm/vm.hpp"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 
 void emit_mov_imm_reg (codegendata *cd, s4 imm, s4 dreg);
 void emit_mov_imm_areg(codegendata *cd, s4 imm, s4 dreg);

@@ -62,6 +62,10 @@ typedef struct patchref_t {
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void patcher_list_create(codeinfo *code);
 void patcher_list_reset(codeinfo *code);
 void patcher_list_free(codeinfo *code);
@@ -184,6 +188,9 @@ bool patcher_instanceof_class(patchref_t *pr);
 
 #endif /* defined(__I386__) */
 
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif /* _PATCHER_COMMON_H */
 

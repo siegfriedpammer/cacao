@@ -38,7 +38,7 @@
 
 #include "vm/jit/abi.h"
 #include "vm/jit/code.h"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/disass.h"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"

@@ -1,4 +1,4 @@
-/* src/vm/jit/codegen-common.c - architecture independent code generator stuff
+/* src/vm/jit/codegen-common.cpp - architecture independent code generator stuff
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -75,7 +75,7 @@
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/code.h"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 
 #if defined(ENABLE_DISASSEMBLER)
 # include "vm/jit/disass.h"
@@ -138,7 +138,7 @@ void codegen_setup(jitdata *jd)
 
 	cd->flags        = 0;
 
-	cd->mcodebase    = DMNEW(u1, MCODEINITSIZE);
+	cd->mcodebase    = (u1*) DumpMemory::allocate(MCODEINITSIZE);
 	cd->mcodeend     = cd->mcodebase + MCODEINITSIZE;
 	cd->mcodesize    = MCODEINITSIZE;
 
@@ -151,7 +151,7 @@ void codegen_setup(jitdata *jd)
 	/* native dynamic superinstructions variables */
 
 	if (opt_intrp) {
-		cd->ncodebase = DMNEW(u1, NCODEINITSIZE);
+		cd->ncodebase = (u1*) DumpMemory::allocate(NCODEINITSIZE);
 		cd->ncodesize = NCODEINITSIZE;
 
 		/* initialize ncode variables */
@@ -329,10 +329,9 @@ void codegen_increase(codegendata *cd)
 
 	/* reallocate to new, doubled memory */
 
-	cd->mcodebase = DMREALLOC(cd->mcodebase,
-							  u1,
-							  cd->mcodesize,
-							  cd->mcodesize * 2);
+	cd->mcodebase = (u1*) DumpMemory::reallocate(cd->mcodebase,
+												 cd->mcodesize,
+												 cd->mcodesize * 2);
 	cd->mcodesize *= 2;
 	cd->mcodeend   = cd->mcodebase + cd->mcodesize;
 
@@ -397,7 +396,7 @@ void codegen_add_branch_ref(codegendata *cd, basicblock *target, s4 condition, s
 
 	branchmpc = cd->mcodeptr - cd->mcodebase;
 
-	br = DNEW(branchref);
+	br = (branchref*) DumpMemory::allocate(sizeof(branchref));
 
 	br->branchmpc = branchmpc;
 	br->condition = condition;
@@ -467,7 +466,7 @@ void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u
 
 	mpc = cd->mcodeptr - cd->mcodebase;
 
-	br = DNEW(branch_label_ref_t);
+	br = (branch_label_ref_t*) DumpMemory::allocate(sizeof(branch_label_ref_t));
 
 	br->mpc       = mpc;
 	br->label     = label;
@@ -746,7 +745,7 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 
 	framesize = *((int32_t *) (pv + FrameSize));
 
-	assert(framesize >= sizeof(stackframeinfo_t) + sizeof(localref_table));
+	assert(framesize >= (int32_t) (sizeof(stackframeinfo_t) + sizeof(localref_table)));
 
 	/* calculate needed values */
 
@@ -1077,7 +1076,7 @@ void *md_asm_codegen_get_pv_from_pc(void *ra)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -52,7 +52,7 @@
 #include "vm/jit/disass.h" /* XXX debug */
 #endif
 
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/s390/codegen.h"
 #include "vm/jit/s390/md.h"
 

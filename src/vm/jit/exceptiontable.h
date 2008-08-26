@@ -60,11 +60,19 @@ struct exceptiontable_entry_t {
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void exceptiontable_create(jitdata *jd);
 void exceptiontable_free(codeinfo *code);
 
 #if !defined(NDEBUG)
 void exceptiontable_print(codeinfo *code);
+#endif
+
+#ifdef __cplusplus
+} // extern "C"
 #endif
 
 #endif /* _EXCEPTIONTABLE_H */

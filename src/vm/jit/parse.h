@@ -30,7 +30,7 @@
 #include "vm/types.h"
 
 #include "vm/global.h"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 
 
 /* macros for verifier checks during parsing **********************************/

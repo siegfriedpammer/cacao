@@ -51,7 +51,7 @@ typedef s4 Cell;
 #include "vm/references.h"
 #include "vm/resolve.h"
 
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 
 
 typedef void *Label;

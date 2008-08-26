@@ -54,7 +54,7 @@
 
 #include "vm/jit/cfg.h"
 
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/disass.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.hpp"

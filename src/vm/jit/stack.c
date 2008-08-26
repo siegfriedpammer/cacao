@@ -53,7 +53,7 @@
 
 #include "vm/jit/abi.h"
 #include "vm/jit/cfg.h"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/parse.h"
 #include "vm/jit/show.h"
 

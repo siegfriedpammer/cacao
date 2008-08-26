@@ -31,7 +31,7 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/jit.hpp"
 
 

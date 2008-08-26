@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _CODEGEN_COMMON_H
-#define _CODEGEN_COMMON_H
+#ifndef _CODEGEN_COMMON_HPP
+#define _CODEGEN_COMMON_HPP
 
 /* forward typedefs ***********************************************************/
 
@@ -269,7 +269,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 }
 #endif
 
-#endif /* _CODEGEN_COMMON_H */
+#endif // _CODEGEN_COMMON_HPP
 
 
 /*
@@ -278,7 +278,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

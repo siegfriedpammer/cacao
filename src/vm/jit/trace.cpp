@@ -46,7 +46,7 @@
 #include "vm/utf8.h"
 
 #include "vm/jit/argument.h"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/show.h"
 

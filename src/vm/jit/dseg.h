@@ -39,7 +39,7 @@ typedef struct dsegentry dsegentry;
 #include "vm/references.h"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 
 
 /* convenience macros *********************************************************/

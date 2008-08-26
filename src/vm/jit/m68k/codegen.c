@@ -50,7 +50,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/linenumbertable.h"

@@ -32,7 +32,7 @@
 #include "vm/method.h"
 #include "vm/vm.hpp"
 
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/reg.h"
 #include "vm/jit/show.h"

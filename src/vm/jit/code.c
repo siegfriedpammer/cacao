@@ -36,7 +36,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/code.h"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/patcher-common.h"
 #include "vm/jit/methodtree.h"
 

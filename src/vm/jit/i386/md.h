@@ -31,7 +31,7 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/methodtree.h"
 
 
