@@ -30,10 +30,6 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "vm/types.h"
 
 #include "vm/global.h"
@@ -41,6 +37,10 @@ extern "C" {
 
 
 /* function prototypes ********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* machine dependent initialization */
 s4   asm_md_init(void);
@@ -111,7 +111,7 @@ void asm_escape_check(java_object_t *obj);
 #endif
 
 #ifdef __cplusplus
-}
+} // extern "C"
 #endif
 
 #endif /* _ASMPART_H */
