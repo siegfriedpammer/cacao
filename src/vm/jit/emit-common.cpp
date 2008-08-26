@@ -1,4 +1,4 @@
-/* src/vm/jit/emit-common.c - common code emitter functions
+/* src/vm/jit/emit-common.cpp - common code emitter functions
 
    Copyright (C) 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -36,7 +36,7 @@
 #include "vm/options.h"
 #include "vm/statistics.h"
 
-#include "vm/jit/emit-common.h"
+#include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/patcher-common.h"
 
@@ -267,7 +267,7 @@ void emit_patcher_traps(jitdata *jd)
 
 	/* generate patcher traps code */
 
-	for (pr = list_first(code->patchers); pr != NULL; pr = list_next(code->patchers, pr)) {
+	for (pr = (patchref_t*) list_first(code->patchers); pr != NULL; pr = (patchref_t*) list_next(code->patchers, pr)) {
 
 		/* Calculate the patch position where the original machine
 		   code is located and the trap should be placed. */
@@ -520,7 +520,7 @@ void emit_label_bccz(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options
 
 	/* search if the label is already in the list */
 
-	for (br = list_first(list); br != NULL; br = list_next(list, br)) {
+	for (br = (branch_label_ref_t*) list_first(list); br != NULL; br = (branch_label_ref_t*) list_next(list, br)) {
 		/* is this entry the correct label? */
 
 		if (br->label == label)
@@ -585,7 +585,7 @@ void emit_label(codegendata *cd, s4 label)
 
 	/* search if the label is already in the list */
 
-	for (br = list_first(list); br != NULL; br = list_next(list, br)) {
+	for (br = (branch_label_ref_t*) list_first(list); br != NULL; br = (branch_label_ref_t*) list_next(list, br)) {
 		/* is this entry the correct label? */
 
 		if (br->label == label)
@@ -722,7 +722,7 @@ void emit_label_ble(codegendata *cd, s4 label)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

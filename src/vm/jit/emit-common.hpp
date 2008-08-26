@@ -1,4 +1,4 @@
-/* src/vm/jit/emit-common.h - common code emitter functions
+/* src/vm/jit/emit-common.hpp - common code emitter functions
 
    Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
    R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,

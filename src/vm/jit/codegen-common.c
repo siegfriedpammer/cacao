@@ -82,7 +82,7 @@
 #endif
 
 #include "vm/jit/dseg.h"
-#include "vm/jit/emit-common.h"
+#include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/linenumbertable.h"
 #include "vm/jit/methodheader.h"

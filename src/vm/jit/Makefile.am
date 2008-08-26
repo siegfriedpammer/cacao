@@ -161,8 +161,8 @@ libjit_la_SOURCES = \
 	$(DISASS_SOURCES) \
 	dseg.c \
 	dseg.h \
-	emit-common.c \
-	emit-common.h \
+	emit-common.cpp \
+	emit-common.hpp \
 	exceptiontable.c \
 	exceptiontable.h \
 	executionstate.c \
