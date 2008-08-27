@@ -119,11 +119,11 @@ u1 *intrp_disassinstr(u1 *code);
 void intrp_disassemble(u1 *start, u1 *end);
 #endif
 
-#endif /* defined(ENABLE_DISASSEMBLER) */
-
 #ifdef __cplusplus
-}
+} // extern "C"
 #endif
+
+#endif /* defined(ENABLE_DISASSEMBLER) */
 
 #endif // _DISASS_H
 
