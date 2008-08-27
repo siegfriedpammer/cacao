@@ -33,7 +33,6 @@ typedef struct branchref              branchref;
 typedef struct branch_label_ref_t     branch_label_ref_t;
 typedef struct jumpref                jumpref;
 typedef struct dataref                dataref;
-typedef struct exceptionref           exceptionref;
 
 
 #include "config.h"
