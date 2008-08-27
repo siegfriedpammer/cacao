@@ -84,7 +84,7 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/linenumbertable.h"
+#include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/methodtree.h"
 #include "vm/jit/patcher-common.hpp"
@@ -173,7 +173,7 @@ void codegen_setup(jitdata *jd)
 #endif
 
 	cd->brancheslabel  = new DumpList<branch_label_ref_t*>();
-	cd->linenumbers    = new DumpList<linenumbertable_list_entry_t*>();
+	cd->linenumbers    = new DumpList<Linenumber>();
 }
 
 
@@ -214,7 +214,7 @@ static void codegen_reset(jitdata *jd)
 #endif
 
 	cd->brancheslabel   = new DumpList<branch_label_ref_t*>();
-	cd->linenumbers     = new DumpList<linenumbertable_list_entry_t*>();
+	cd->linenumbers     = new DumpList<Linenumber>();
 	
 	/* We need to clear the mpc and the branch references from all
 	   basic blocks as they will definitely change. */
@@ -641,7 +641,7 @@ void codegen_finish(jitdata *jd)
 
 	/* Create the linenumber table. */
 
-	linenumbertable_create(jd);
+	code->linenumbertable = new LinenumberTable(jd);
 
 	/* jump table resolving */
 

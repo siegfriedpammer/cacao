@@ -52,7 +52,7 @@ typedef struct linenumberref          linenumberref;
 #include "vm/jit/jit.hpp"
 #include "vm/jit/reg.h"
 #include "vm/jit/code.hpp"
-#include "vm/jit/linenumbertable.h"
+#include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/replace.hpp"
 
 
@@ -133,7 +133,7 @@ struct codegendata {
 
 #ifdef __cplusplus
 	DumpList<branch_label_ref_t*>* brancheslabel;
-	DumpList<linenumbertable_list_entry_t*>* linenumbers; ///< List of line numbers.
+	DumpList<Linenumber>* linenumbers; ///< List of line numbers.
 #else
 	// REMOVEME
 	DumpList* brancheslabel;

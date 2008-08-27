@@ -39,7 +39,7 @@
 #include "vm/method.h"
 
 #include "vm/jit/exceptiontable.h"
-#include "vm/jit/linenumbertable.h"
+#include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/replace.hpp"
@@ -81,7 +81,7 @@ struct codeinfo {
 	s4            mcodelength;          /* length of generated machine code   */
 
 	exceptiontable_t  *exceptiontable;
-	linenumbertable_t *linenumbertable;
+	LinenumberTable* linenumbertable;
 
 	/* patcher list */
 #ifdef __cplusplus

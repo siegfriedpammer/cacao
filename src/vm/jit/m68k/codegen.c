@@ -53,7 +53,7 @@
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/dseg.h"
-#include "vm/jit/linenumbertable.h"
+#include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/abi.h"
