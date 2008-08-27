@@ -584,7 +584,7 @@ bool dominance_frontier_build(jitdata *jd) {
 	dominance_frontier_store(dfi);
 }
 
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 #include "vm/jit/python.h"
 
 extern "C" void graph_add_edge( graphdata *gd, int from, int to );

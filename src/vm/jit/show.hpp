@@ -1,4 +1,4 @@
-/* src/vm/jit/show.h - showing the intermediate representation
+/* src/vm/jit/show.hpp - showing the intermediate representation
 
    Copyright (C) 1996-2005, 2006, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,12 +23,8 @@
 */
 
 
-#ifndef _SHOW_H
-#define _SHOW_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef _SHOW_HPP
+#define _SHOW_HPP
 
 #include "config.h"
 #include "vm/types.h"
@@ -48,9 +44,13 @@ extern "C" {
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if !defined(NDEBUG)
-extern char *show_jit_type_names[];
-extern char show_jit_type_letters[];
+extern const char *show_jit_type_names[];
+extern const char show_jit_type_letters[];
 
 bool show_init(void);
 
@@ -76,10 +76,10 @@ int show_filters_test_verbosecall_exit(methodinfo *m);
 #endif
 
 #ifdef __cplusplus
-}
+} // extern "C"
 #endif
 
-#endif /* _SHOW_H */
+#endif // _SHOW_HPP
 
 
 /*
@@ -88,7 +88,7 @@ int show_filters_test_verbosecall_exit(methodinfo *m);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

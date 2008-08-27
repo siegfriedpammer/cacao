@@ -55,7 +55,7 @@
 #include "vm/jit/cfg.h"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/parse.h"
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 
 #if defined(ENABLE_DISASSEMBLER)
 # include "vm/jit/disass.h"

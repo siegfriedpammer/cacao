@@ -104,7 +104,7 @@
 #include <vmlog_cacao.h>
 #endif
 
-#include "show.h"
+#include "show.hpp"
 
 
 /* codegen_init ****************************************************************

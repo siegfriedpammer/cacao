@@ -61,7 +61,7 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 #include "vm/jit/stack.h"
 #include "vm/jit/stubs.hpp"
 

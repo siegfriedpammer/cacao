@@ -47,7 +47,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 #include "vm/jit/parse.h"
 
 #include "vm/jit/verify/typecheck-typeinferer.h"
