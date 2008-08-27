@@ -188,7 +188,6 @@ extern "C" {
  */
 JNIEXPORT jobject JNICALL Java_com_sun_cldc_io_ResourceInputStream_open(JNIEnv *env, jclass clazz, jstring name)
 {
-	list_classpath_entry *lce;
 	char *filename;
 	s4 filenamelen;
 	char *path;
@@ -205,9 +204,9 @@ JNIEXPORT jobject JNICALL Java_com_sun_cldc_io_ResourceInputStream_open(JNIEnv *
 	
 	/* walk through all classpath entries */
 
-	for (lce = (list_classpath_entry*) list_first(list_classpath_entries); lce != NULL;
-		 lce = (list_classpath_entry*) list_next(list_classpath_entries, lce)) {
-		 	
+	for (List<list_classpath_entry*>::iterator it = list_classpath_entries->begin(); it != list_classpath_entries->end(); it++) {
+		list_classpath_entry* lce = *it;
+
 #if defined(ENABLE_ZLIB)
 		if (lce->type == CLASSPATH_ARCHIVE) {
 

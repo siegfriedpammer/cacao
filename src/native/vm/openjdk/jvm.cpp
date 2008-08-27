@@ -502,10 +502,9 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 		linenumber = -2;
 	}
 	else {
-		/* FIXME The linenumbertable_linenumber_for_pc could change
-		   the methodinfo pointer when hitting an inlined method. */
-
-		linenumber = linenumbertable_linenumber_for_pc(&m, code, ste->pc);
+		// FIXME linenumbertable->find could change the methodinfo
+		// pointer when hitting an inlined method.
+		linenumber = code->linenumbertable->find(&m, ste->pc);
 		linenumber = (linenumber == 0) ? -1 : linenumber;
 	}
 

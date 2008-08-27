@@ -88,10 +88,6 @@ public:
 
 typedef struct LinenumberTable LinenumberTable;
 
-#include "vm/jit/codegen-common.hpp"
-
-int32_t linenumbertable_linenumber_for_pc(methodinfo** m, codeinfo* code, void* pc);
-
 #endif
 
 #include "vm/jit/codegen-common.hpp"

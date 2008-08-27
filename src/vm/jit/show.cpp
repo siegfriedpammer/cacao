@@ -577,8 +577,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 
 			if (bptr->next != NULL) {
 				for (; pc < (void *) (code->mcode + cd->dseglen + bptr->next->mpc);) {
-					currentlinenumber =
-						linenumbertable_linenumber_for_pc(&m, code, pc);
+					currentlinenumber = code->linenumbertable->find(&m, pc);
 
 					if (currentlinenumber != linenumber) {
 						linenumber = currentlinenumber;
@@ -590,8 +589,7 @@ void show_basicblock(jitdata *jd, basicblock *bptr, int stage)
 			}
 			else {
 				for (; pc < (void *) (code->mcode + code->mcodelength);) {
-					currentlinenumber =
-						linenumbertable_linenumber_for_pc(&m, code, pc);
+					currentlinenumber = code->linenumbertable->find(&m, pc);
 
 					if (currentlinenumber != linenumber) {
 						linenumber = currentlinenumber;

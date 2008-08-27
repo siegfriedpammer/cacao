@@ -57,7 +57,7 @@
  * If the entry contains an mcode pointer (normal case), resolve it
  * (see doc/inlining_stacktrace.txt for details).
  *
- * @param pv Procedure vector.
+ * @param code Code structure.
  */
 void Linenumber::resolve(codeinfo* code)
 {
@@ -257,12 +257,6 @@ void linenumbertable_list_entry_add_inline_end(codegendata *cd, instruction *ipt
 	Linenumber lne(-1, (void*) insinfo->startmpc);
 
 	cd->linenumbers->push_front(lne);
-}
-
-
-// Legacy C interface.
-extern "C" {
-	int32_t linenumbertable_linenumber_for_pc(methodinfo** m, codeinfo* code, void* pc) { return code->linenumbertable->find(m, pc); }
 }
 
 
