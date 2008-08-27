@@ -1,6 +1,6 @@
-/* src/vm/assertion.h - assertion options
+/* src/vm/assertion.hpp - assertion options
 
-   Copyright (C) 2007
+   Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,16 +23,12 @@
 */
 
 
-#ifndef _ASSERTION_H
-#define _ASSERTION_H
+#ifndef _ASSERTION_HPP
+#define _ASSERTION_HPP
 
 #include "config.h"
 
 #include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include "vm/global.h"
 #include "toolbox/list.h"
@@ -57,13 +53,17 @@ extern bool     assertion_system_enabled;
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void assertion_ea_da(const char *name, bool enabled);
 
 #ifdef __cplusplus
-}
+} // extern "C"
 #endif
 
-#endif /* _ASSERTION_H */
+#endif // _ASSERTION_HPP
 
 
 /*
@@ -72,7 +72,7 @@ void assertion_ea_da(const char *name, bool enabled);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

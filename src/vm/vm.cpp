@@ -61,7 +61,7 @@
 #include "vm/array.h"
 
 #if defined(ENABLE_ASSERTION)
-#include "vm/assertion.h"
+#include "vm/assertion.hpp"
 #endif
 
 #include "vm/jit/builtin.hpp"

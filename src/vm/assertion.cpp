@@ -1,4 +1,4 @@
-/* src/vm/assertion.c - assertion options
+/* src/vm/assertion.cpp - assertion options
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -26,13 +26,14 @@
 #include "config.h"
 
 #include <stdint.h>
-#include <errno.h>
+
+#include <cstddef>
 
 #include "mm/memory.h"
 
 #include "toolbox/list.h"
 
-#include "vm/assertion.h"
+#include "vm/assertion.hpp"
 #include "vm/global.h"
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
@@ -59,7 +60,6 @@ void assertion_ea_da(const char *name, bool enabled)
 	size_t            len;
 	char             *buf;
 	assertion_name_t *item;
-	int32_t           i;
 
 	if (name == NULL) {
 		assertion_user_enabled = enabled;
@@ -67,16 +67,16 @@ void assertion_ea_da(const char *name, bool enabled)
 	}
 
 	package = false;
-	len     = os_strlen(name);
+	len     = os::strlen(name);
 
 	if (name[len - 1] == '/') {
 		return;
 	}
 
-	buf = os_strdup(name);
+	buf = os::strdup(name);
 
 	if (buf == NULL) {
-		vm_abort("assertion_ea_da: strdup failed: %s", strerror(errno));
+		VM::get_current()->abort_errno("assertion_ea_da: strdup failed");
 	}
 
 	if ((len > 2) && (strcmp(name + (len - 3), "...") == 0)) {
@@ -93,9 +93,9 @@ void assertion_ea_da(const char *name, bool enabled)
 		assertion_class_count += 1;
 	}
 
-	len = os_strlen(buf);
+	len = os::strlen(buf);
 
-	for (i = 0; i < len; i++) {
+	for (size_t i = 0; i < len; i++) {
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 		if (buf[i] == '.') {
 			buf[i] = '/';
@@ -126,7 +126,7 @@ void assertion_ea_da(const char *name, bool enabled)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

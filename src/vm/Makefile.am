@@ -29,8 +29,8 @@ SUBDIRS = jit
 
 if ENABLE_ASSERTION
 ASSERTION_SOURCES = \
-	assertion.c \
-	assertion.h
+	assertion.cpp \
+	assertion.hpp
 endif
 
 if ENABLE_CYCLES_STATS
