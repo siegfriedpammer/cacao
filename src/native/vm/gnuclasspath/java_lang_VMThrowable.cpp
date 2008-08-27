@@ -47,7 +47,7 @@
 #include "vm/string.hpp"
 
 #include "vm/jit/code.hpp"
-#include "vm/jit/linenumbertable.h"
+#include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/stacktrace.hpp"
 
 

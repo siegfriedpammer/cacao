@@ -39,7 +39,7 @@
 #include "vm/method.h"
 
 #include "vm/jit/exceptiontable.h"
-#include "vm/jit/linenumbertable.h"
+#include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/replace.hpp"
 

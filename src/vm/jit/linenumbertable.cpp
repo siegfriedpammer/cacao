@@ -1,6 +1,6 @@
-/* src/vm/jit/linenumbertable.c - linenumber handling stuff
+/* src/vm/jit/linenumbertable.cpp - linenumber handling stuff
 
-   Copyright (C) 2007
+   Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -37,7 +37,7 @@
 
 #include "vm/jit/code.hpp"
 #include "vm/jit/codegen-common.hpp"
-#include "vm/jit/linenumbertable.h"
+#include "vm/jit/linenumbertable.hpp"
 
 
 #if defined(__S390__)
@@ -106,7 +106,7 @@ void linenumbertable_create(jitdata *jd)
 
 	pv = ADDR_MASK(uint8_t *, code->entrypoint);
 
-	for (le = list_first(l); le != NULL; le = list_next(l, le), lnte++) {
+	for (le = (linenumbertable_list_entry_t*) list_first(l); le != NULL; le = (linenumbertable_list_entry_t*) list_next(l, le), lnte++) {
 		/* If the entry contains an mcode pointer (normal case),
 		   resolve it (see doc/inlining_stacktrace.txt for
 		   details). */
@@ -142,7 +142,7 @@ void linenumbertable_list_entry_add(codegendata *cd, int32_t linenumber)
 {
 	linenumbertable_list_entry_t *le;
 
-	le = DNEW(linenumbertable_list_entry_t);
+	le = (linenumbertable_list_entry_t*) DumpMemory::allocate(sizeof(linenumbertable_list_entry_t));
 
 	le->linenumber = linenumber;
 	le->mpc        = cd->mcodeptr - cd->mcodebase;
@@ -168,7 +168,7 @@ void linenumbertable_list_entry_add_inline_start(codegendata *cd, instruction *i
 	insinfo_inline               *insinfo;
 	uintptr_t                     mpc;
 
-	le = DNEW(linenumbertable_list_entry_t);
+	le = (linenumbertable_list_entry_t*) DumpMemory::allocate(sizeof(linenumbertable_list_entry_t));
 
 	le->linenumber = (-2); /* marks start of inlined method */
 	le->mpc        = (mpc = cd->mcodeptr - cd->mcodebase);
@@ -204,7 +204,7 @@ void linenumbertable_list_entry_add_inline_end(codegendata *cd, instruction *ipt
 
 	assert(insinfo);
 
-	le = DNEW(linenumbertable_list_entry_t);
+	le = (linenumbertable_list_entry_t*) DumpMemory::allocate(sizeof(linenumbertable_list_entry_t));
 
 	/* special entry containing the methodinfo * */
 	le->linenumber = (-3) - iptr->line;
@@ -212,7 +212,7 @@ void linenumbertable_list_entry_add_inline_end(codegendata *cd, instruction *ipt
 
 	list_add_first(cd->linenumbers, le);
 
-	le = DNEW(linenumbertable_list_entry_t);
+	le = (linenumbertable_list_entry_t*) DumpMemory::allocate(sizeof(linenumbertable_list_entry_t));
 
 	/* end marker with PC of start of body */
 	le->linenumber = (-1);
@@ -331,7 +331,7 @@ int32_t linenumbertable_linenumber_for_pc(methodinfo **pm, codeinfo *code, void 
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

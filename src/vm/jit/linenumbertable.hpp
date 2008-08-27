@@ -1,4 +1,4 @@
-/* src/vm/jit/linenumbertable.h - linenumber table
+/* src/vm/jit/linenumbertable.hpp - linenumber table
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _LINENUMBERTABLE_H
-#define _LINENUMBERTABLE_H
+#ifndef _LINENUMBERTABLE_HPP
+#define _LINENUMBERTABLE_HPP
 
 /* forward typedefs ***********************************************************/
 
@@ -47,10 +47,6 @@ typedef struct linenumbertable_list_entry_t linenumbertable_list_entry_t;
 
 #include "vm/jit/ir/instruction.hpp"
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* linenumbertable_t **********************************************************/
 
@@ -92,6 +88,10 @@ struct linenumbertable_list_entry_t {
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void    linenumbertable_create(jitdata *jd);
 
 void    linenumbertable_list_entry_add(codegendata *cd, int32_t linenumber);
@@ -101,10 +101,10 @@ void    linenumbertable_list_entry_add_inline_end(codegendata *cd, instruction *
 int32_t linenumbertable_linenumber_for_pc(methodinfo **pm, codeinfo *code, void *pc);
 
 #ifdef __cplusplus
-}
+} // extern "C"
 #endif
 
-#endif /* _LINENUMBERTABLE_H */
+#endif // _LINENUMBERTABLE_HPP
 
 
 /*
@@ -113,7 +113,7 @@ int32_t linenumbertable_linenumber_for_pc(methodinfo **pm, codeinfo *code, void 
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
