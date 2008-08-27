@@ -36,11 +36,11 @@
 #include "vm/utf8.h"
 
 
+/* function prototypes ********************************************************/
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* function prototypes ********************************************************/
 
 void log_init(const char *fname);
 

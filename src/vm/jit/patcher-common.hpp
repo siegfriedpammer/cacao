@@ -28,10 +28,12 @@
 
 /* forward typedefs ***********************************************************/
 
+typedef struct patchref_t patchref_t;
+
 #include "config.h"
 #include "vm/types.h"
 
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 
 #include "vm/global.h"
 
@@ -45,7 +47,7 @@
 
 *******************************************************************************/
 
-typedef struct patchref_t {
+struct patchref_t {
 	ptrint       mpc;           /* absolute position in code segment          */
 	ptrint       datap;         /* absolute position in data segment          */
 	s4           disp;          /* displacement of ref in the data segment    */
@@ -53,8 +55,7 @@ typedef struct patchref_t {
 	void*        ref;           /* reference passed                           */
 	uint32_t     mcode;         /* machine code to be patched back in         */
 	bool         done;          /* XXX preliminary: patch already applied?    */
-	listnode_t   linkage;
-} patchref_t;
+};
 
 
 /* macros *********************************************************************/

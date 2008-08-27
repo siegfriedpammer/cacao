@@ -55,8 +55,8 @@ libthreads_la_SOURCES = \
 	lock-common.h \
 	removeme.cpp \
 	mutex.hpp \
-	threadlist.c \
-	threadlist.h \
+	threadlist.cpp \
+	threadlist.hpp \
 	thread.cpp \
 	thread.hpp
 else

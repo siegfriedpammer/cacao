@@ -53,7 +53,6 @@
 #include "native/vm/nativevm.h"
 
 #include "threads/lock-common.h"
-#include "threads/threadlist.h"
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
@@ -1337,10 +1336,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 	gc_init(opt_heapmaxsize, opt_heapstartsize);
 
 #if defined(ENABLE_THREADS)
-	/* BEFORE: threads_preinit */
-
-	threadlist_init();
-
 	/* AFTER: gc_init */
 
   	threads_preinit();

@@ -44,6 +44,7 @@
 #endif
 
 #include "threads/thread.hpp"
+#include "threads/threadlist.hpp"
 
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
@@ -316,7 +317,7 @@ void signal_thread_handler(int sig)
 	case SIGQUIT:
 		/* print a thread dump */
 #if defined(ENABLE_THREADS)
-		threads_dump();
+		ThreadList_dump_threads();
 #endif
 
 #if defined(ENABLE_STATISTICS)

@@ -1,4 +1,4 @@
-/* src/vm/jit/codegen-common.h - architecture independent code generator stuff
+/* src/vm/jit/codegen-common.hpp - architecture independent code generator stuff
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -40,6 +40,8 @@ typedef struct linenumberref          linenumberref;
 #include "config.h"
 #include "vm/types.h"
 
+#include "toolbox/list.hpp"
+
 #include "vm/jit/builtin.hpp"
 #include "vm/descriptor.h"
 #include "vm/global.h"
@@ -50,6 +52,7 @@ typedef struct linenumberref          linenumberref;
 #include "vm/jit/jit.hpp"
 #include "vm/jit/reg.h"
 #include "vm/jit/code.hpp"
+#include "vm/jit/linenumbertable.h"
 #include "vm/jit/replace.hpp"
 
 
@@ -128,8 +131,14 @@ struct codegendata {
 	dataref        *datareferences; /* list of data segment references        */
 #endif
 
-	list_t         *brancheslabel;
-	list_t         *linenumbers;    /* list of line numbers                   */
+#ifdef __cplusplus
+	DumpList<branch_label_ref_t*>* brancheslabel;
+	DumpList<linenumbertable_list_entry_t*>* linenumbers; ///< List of line numbers.
+#else
+	// REMOVEME
+	DumpList* brancheslabel;
+	DumpList* linenumbers;
+#endif
 
 	methodinfo     *method;
 
@@ -171,7 +180,7 @@ struct branch_label_ref_t {
 	s4         condition;       /* conditional branch condition               */
 	s4         reg;             /* register number to check                   */
 	u4         options;         /* branch options                             */
-	listnode_t linkage;
+/* 	listnode_t linkage; */
 };
 
 

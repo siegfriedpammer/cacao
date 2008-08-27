@@ -32,7 +32,7 @@
 
 #include "mm/memory.h"
 
-#include "threads/threadlist.h"
+#include "threads/threadlist.hpp"
 #include "threads/thread.hpp"
 
 #include "vm/jit/builtin.hpp"
@@ -92,13 +92,12 @@ static void profile_thread(void)
 		threads_sleep(0, nanos);
 		runs++;
 
-		/* lock the threads lists */
-
-		threadlist_lock();
+		// Lock the thread lists.
+		ThreadList_lock();
 
 		/* iterate over all started threads */
 
-		for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
+		for (t = ThreadList_first(); t != NULL; t = ThreadList_next(t)) {
 			/* is this a Java thread? */
 
 			if (!(t->flags & THREAD_FLAG_JAVA))
@@ -155,9 +154,8 @@ static void profile_thread(void)
 			}
 		}
 
-		/* unlock the threads lists */
-
-		threadlist_unlock();
+		// Unlock the thread lists.
+		ThreadList_unlock();
 	}
 }
 #endif
@@ -195,9 +193,6 @@ bool profile_start_thread(void)
 #if !defined(NDEBUG)
 void profile_printstats(void)
 {
-	list_t                 *l;
-	list_method_entry      *lme;
-	list_method_entry      *tlme;
 	classinfo              *c;
 	methodinfo             *m;
 	codeinfo               *code;
@@ -213,8 +208,8 @@ void profile_printstats(void)
 	cycles    = 0;
 
 	/* create new method list */
-
-	l = list_create(OFFSET(list_method_entry, linkage));
+	// TODO Use a sorted container.
+	List* l = List_new();
 
 	/* iterate through all classes and methods */
 
@@ -245,15 +240,10 @@ void profile_printstats(void)
 						frequency += code->frequency;
 						cycles    += code->cycles;
 
-						/* create new list entry */
-
-						lme = NEW(list_method_entry);
-						lme->m = m;
-
 						/* sort the new entry into the list */
 						
-						if ((tlme = list_first(l)) == NULL) {
-							list_add_first(l, lme);
+						if (List_empty(l) == NULL) {
+							List_push_back(l, m);
 						}
 						else {
 							for (; tlme != NULL; tlme = list_next(l, tlme)) {

@@ -40,7 +40,7 @@
 #endif
 
 #include "toolbox/logging.h"
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 
 #if defined(ENABLE_ASSERTION)
 #include "vm/assertion.h"
@@ -248,7 +248,6 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 	java_handle_t        *o;         /* vector being created     */
 	methodinfo           *m;         /* "add" method of vector   */
 	java_handle_t        *path;      /* path to be added         */
-	list_classpath_entry *lce;       /* classpath entry          */
 	utf                  *utfname;   /* utf to look for          */
 	char                 *buffer;    /* char buffer              */
 	char                 *namestart; /* start of name to use     */
@@ -319,8 +318,9 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 
 	/* iterate over all classpath entries */
 
-	for (lce = (list_classpath_entry*) list_first(list_classpath_entries); lce != NULL;
-		 lce = (list_classpath_entry*) list_next(list_classpath_entries, lce)) {
+	for (List<list_classpath_entry*>::iterator it = list_classpath_entries->begin(); it != list_classpath_entries->end(); it++) {
+		list_classpath_entry* lce = *it;
+
 		/* clear path pointer */
   		path = NULL;
 
@@ -421,7 +421,6 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_packageAssertionStatus0(J
 #if defined(ENABLE_ASSERTION)
 	java_handle_t     *js;
 	methodinfo        *m;
-	assertion_name_t  *item;
 #endif
 
 	/* new HashMap() */
@@ -450,13 +449,11 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_packageAssertionStatus0(J
 		return NULL;
 	}
 
-	item = (assertion_name_t *)list_first(list_assertion_names);
+	for (List<assertion_name_t*>::iterator it = list_assertion_names->begin(); it != list_assertion_names->end(); it++) {
+		assertion_name_t* item = *it;
 
-	while (item != NULL) {
-		if (item->package == false) {
-			item = (assertion_name_t *)list_next(list_assertion_names, item);
+		if (item->package == false)
 			continue;
-		}
 		
 		if (strcmp(item->name, "") == 0) {
 			/* unnamed package wanted */
@@ -475,8 +472,6 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_packageAssertionStatus0(J
 		else {
 			vm_call_method(m, hm, js, jfalse);
 		}
-
-		item = (assertion_name_t *)list_next(list_assertion_names, item);
 	}
 #endif
 
@@ -494,7 +489,6 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_classAssertionStatus0(JNI
 #if defined(ENABLE_ASSERTION)
 	java_handle_t     *js;
 	methodinfo        *m;
-	assertion_name_t  *item;
 #endif
 
 	/* new HashMap() */
@@ -523,13 +517,11 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_classAssertionStatus0(JNI
 		return NULL;
 	}
 
-	item = (assertion_name_t *)list_first(list_assertion_names);
+	for (List<assertion_name_t*>::iterator it = list_assertion_names->begin(); it != list_assertion_names->end(); it++) {
+		assertion_name_t* item = *it;
 
-	while (item != NULL) {
-		if (item->package == true) {
-			item = (assertion_name_t *)list_next(list_assertion_names, item);
+		if (item->package == true)
 			continue;
-		}
 
 		js = javastring_new_from_ascii(item->name);
 		if (js == NULL) {
@@ -542,8 +534,6 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_classAssertionStatus0(JNI
 		else {
 			vm_call_method(m, hm, js, jfalse);
 		}
-
-		item = (assertion_name_t *)list_next(list_assertion_names, item);
 	}
 #endif
 

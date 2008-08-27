@@ -29,6 +29,9 @@
 #include <assert.h>
 #include <stdint.h>
 
+#include <algorithm>
+#include <functional>
+
 #include "codegen.h"                   /* for PATCHER_NOPS */
 #include "md.h"
 
@@ -36,7 +39,7 @@
 
 #include "native/native.h"
 
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 #include "toolbox/logging.h"           /* XXX remove me! */
 
 #include "vm/exceptions.hpp"
@@ -85,7 +88,7 @@ static patcher_function_list_t patcher_function_list[] = {
 
 void patcher_list_create(codeinfo *code)
 {
-	code->patchers = list_create(OFFSET(patchref_t, linkage));
+	code->patchers = new List<patchref_t>();
 }
 
 
@@ -98,20 +101,13 @@ void patcher_list_create(codeinfo *code)
 
 void patcher_list_reset(codeinfo *code)
 {
-	patchref_t *pr;
-
-	/* free all elements of the list */
-
-	while((pr = (patchref_t*) list_first(code->patchers)) != NULL) {
-		list_remove(code->patchers, pr);
-
-		FREE(pr, patchref_t);
-
 #if defined(ENABLE_STATISTICS)
-		if (opt_stat)
-			size_patchref -= sizeof(patchref_t);
+	if (opt_stat)
+		size_patchref -= sizeof(patchref_t) * code->patchers->size();
 #endif
-	}
+
+	// Free all elements of the list.
+	code->patchers->clear();
 }
 
 /* patcher_list_free ***********************************************************
@@ -122,48 +118,42 @@ void patcher_list_reset(codeinfo *code)
 
 void patcher_list_free(codeinfo *code)
 {
-	/* free all elements of the list */
-
+	// Free all elements of the list.
 	patcher_list_reset(code);
 
-	/* free the list itself */
-
-	list_free(code->patchers);
+	// Free the list itself.
+	delete code->patchers;
 }
 
 
-/* patcher_list_find ***********************************************************
+/**
+ * Find an entry inside the patcher list for the given codeinfo by
+ * specifying the program counter of the patcher position.
+ *
+ * NOTE: Caller should hold the patcher list lock or maintain
+ * exclusive access otherwise.
+ *
+ * @param pc Program counter to find.
+ *
+ * @return Pointer to patcher.
+ */
 
-   Find an entry inside the patcher list for the given codeinfo
-   by specifying the program counter of the patcher position.
-
-   NOTE: Caller should hold the patcher list lock or maintain
-   exclusive access otherwise.
-
-*******************************************************************************/
-
-static patchref_t *patcher_list_find(codeinfo *code, void *pc)
-{
-	patchref_t *pr;
-
-	/* walk through all patcher references for the given codeinfo */
-
-	pr = (patchref_t*) list_first(code->patchers);
-
-	while (pr) {
-
-/*#define TRACE_PATCHER_FIND*/
-#ifdef TRACE_PATCHER_FIND
-		log_println("patcher_list_find: %p == %p", pr->mpc, pc);
-#endif
-
-		if (pr->mpc == (ptrint) pc)
-			return pr;
-
-		pr = (patchref_t*) list_next(code->patchers, pr);
+struct foo : public std::binary_function<patchref_t, void*, bool> {
+	bool operator() (const patchref_t& pr, const void* pc) const
+	{
+		return (pr.mpc == (uintptr_t) pc);
 	}
+};
 
-	return NULL;
+static patchref_t* patcher_list_find(codeinfo* code, void* pc)
+{
+	// Search for a patcher with the given PC.
+	List<patchref_t>::iterator it = std::find_if(code->patchers->begin(), code->patchers->end(), std::bind2nd(foo(), pc));
+
+	if (it == code->patchers->end())
+		return NULL;
+
+	return &(*it);
 }
 
 
@@ -177,7 +167,6 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
 {
 	codegendata *cd;
 	codeinfo    *code;
-	patchref_t  *pr;
 	s4           patchmpc;
 
 	cd       = jd->cd;
@@ -189,24 +178,23 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
 		vm_abort("patcher_add_patch_ref: different patchers at same position.");
 #endif
 
-	/* allocate patchref on heap (at least freed together with codeinfo) */
+	// Set patcher information (mpc is resolved later).
+	patchref_t pr;
 
-	pr = NEW(patchref_t);
-	list_add_first(code->patchers, pr);
+	pr.mpc     = patchmpc;
+	pr.disp    = disp;
+	pr.patcher = patcher;
+	pr.ref     = ref;
+	pr.mcode   = 0;
+	pr.done    = false;
+
+	// Store patcher in the list (NOTE: structure is copied).
+	code->patchers->push_back(pr);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
 		size_patchref += sizeof(patchref_t);
 #endif
-
-	/* set patcher information (mpc is resolved later) */
-
-	pr->mpc     = patchmpc;
-	pr->disp    = disp;
-	pr->patcher = patcher;
-	pr->ref     = ref;
-	pr->mcode   = 0;
-	pr->done    = false;
 
 #if defined(ENABLE_JIT) && (defined(__I386__) || defined(__M68K__) || defined(__SPARC_64__) || defined(__X86_64__))
 
@@ -232,16 +220,14 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
  */
 void patcher_resolve(jitdata* jd)
 {
-	codeinfo*   code;
-	patchref_t* pr;
+	// Get required compiler data.
+	codeinfo* code = jd->code;
 
-	/* Get required compiler data. */
+	for (List<patchref_t>::iterator it = code->patchers->begin(); it != code->patchers->end(); it++) {
+		patchref_t& pr = *it;
 
-	code = jd->code;
-
-	for (pr = (patchref_t*) list_first(code->patchers); pr != NULL; pr = (patchref_t*) list_next(code->patchers, pr)) {
-		pr->mpc   += (intptr_t) code->entrypoint;
-		pr->datap  = (intptr_t) (pr->disp + code->entrypoint);
+		pr.mpc   += (intptr_t) code->entrypoint;
+		pr.datap  = (intptr_t) (pr.disp + code->entrypoint);
 	}
 }
 
@@ -329,9 +315,8 @@ java_handle_t *patcher_handler(u1 *pc)
 	code = code_find_codeinfo_for_pc(pc);
 	assert(code);
 
-	/* enter a monitor on the patcher list */
-
-	list_lock(code->patchers);
+	// Enter a mutex on the patcher list.
+	code->patchers->lock();
 
 	/* search the patcher information for the given PC */
 
@@ -346,7 +331,7 @@ java_handle_t *patcher_handler(u1 *pc)
 			log_println("patcher_handler: double-patching detected!");
 		}
 #endif
-		list_unlock(code->patchers);
+		code->patchers->unlock();
 		return NULL;
 	}
 
@@ -406,14 +391,14 @@ java_handle_t *patcher_handler(u1 *pc)
 	if (result == false) {
 		e = exceptions_get_and_clear_exception();
 
-		list_unlock(code->patchers);
+		code->patchers->unlock();
 
 		return e;
 	}
 
 	pr->done = true; /* XXX this is only preliminary to prevent double-patching */
 
-	list_unlock(code->patchers);
+	code->patchers->unlock();
 
 	return NULL;
 }

@@ -40,12 +40,12 @@
 
 #include "threads/lock-common.h"
 #include "threads/mutex.hpp"
-#include "threads/threadlist.h"
+#include "threads/threadlist.hpp"
 #include "threads/thread.hpp"
 
 #include "threads/posix/lock.h"
 
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 
 #include "vm/exceptions.hpp"
 #include "vm/finalizer.h"
@@ -259,7 +259,7 @@ static lock_record_t *lock_record_new(void)
 	lr->object  = NULL;
 	lr->owner   = NULL;
 	lr->count   = 0;
-	lr->waiters = list_create(OFFSET(lock_waiter_t, linkage));
+	lr->waiters = List_new();
 
 #if defined(ENABLE_GC_CACAO)
 	/* register the lock object as weak reference with the GC */
@@ -302,7 +302,7 @@ static void lock_record_free(lock_record_t *lr)
 
 	/* Free the waiters list. */
 
-	list_free(lr->waiters);
+	List_delete(lr->waiters);
 
 	/* Free the data structure. */
 
@@ -813,25 +813,6 @@ static void lock_inflate(threadobject *t, java_handle_t *o, lock_record_t *lr)
 }
 
 
-/* TODO Move this function into threadlist.[ch]. */
-
-static threadobject *threads_lookup_thread_id(int index)
-{
-	threadobject *t;
-
-	threadlist_lock();
-
-	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
-		if (t->state == THREAD_STATE_NEW)
-			continue;
-		if (t->index == index)
-			break;
-	}
-
-	threadlist_unlock();
-	return t;
-}
-
 static void sable_flc_waiting(ptrint lockword, threadobject *t, java_handle_t *o)
 {
 	int index;
@@ -839,7 +820,7 @@ static void sable_flc_waiting(ptrint lockword, threadobject *t, java_handle_t *o
 	int old_flc;
 
 	index = GET_THREAD_INDEX(lockword);
-	t_other = threads_lookup_thread_id(index);
+	t_other = ThreadList_get_thread_by_index(index);
 	if (!t_other)
 /* 		failure, TODO: add statistics */
 		return;
@@ -1186,7 +1167,7 @@ static void lock_record_add_waiter(lock_record_t *lr, threadobject *thread)
 
 	/* Add the waiter as last entry to waiters list. */
 
-	list_add_last(lr->waiters, w);
+	List_push_back(lr->waiters, w);
 }
 
 
@@ -1205,18 +1186,21 @@ static void lock_record_add_waiter(lock_record_t *lr, threadobject *thread)
 
 static void lock_record_remove_waiter(lock_record_t *lr, threadobject *thread)
 {
-	list_t        *l;
+	List*          l;
+	void*          it;
 	lock_waiter_t *w;
 
 	/* Get the waiters list. */
 
 	l = lr->waiters;
 
-	for (w = list_first(l); w != NULL; w = list_next(l, w)) {
+	for (it = List_iterator_begin(l); it != List_iterator_end(l); it = List_iterator_plusplus(it)) {
+		w = (lock_waiter_t*) List_iterator_deref(it);
+
 		if (w->thread == thread) {
 			/* Remove the waiter entry from the list. */
 
-			list_remove(l, w);
+			List_remove(l, w);
 
 			/* Free the waiter data structure. */
 
@@ -1389,7 +1373,8 @@ static void lock_monitor_wait(threadobject *t, java_handle_t *o, s8 millis, s4 n
 
 static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
 {
-	list_t        *l;
+	List*          l;
+	void*          it;
 	lock_waiter_t *w;
 	threadobject  *waitingthread;
 
@@ -1399,7 +1384,9 @@ static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
 
 	l = lr->waiters;
 
-	for (w = list_first(l); w != NULL; w = list_next(l, w)) {
+	for (it = List_iterator_begin(l); it != List_iterator_end(l); it = List_iterator_plusplus(it)) {
+		w = (lock_waiter_t*) List_iterator_deref(it);
+
 		/* signal the waiting thread */
 
 		waitingthread = w->thread;

@@ -28,10 +28,6 @@
 
 #include "config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "vm/types.h"
 
 #include "vm/global.h"
@@ -48,6 +44,10 @@ extern "C" {
 #if defined(ENABLE_THREADS)
 
 /* functions ******************************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void lock_init(void);
 
@@ -67,11 +67,11 @@ void lock_wait_for_object(java_handle_t *o, s8 millis, s4 nanos);
 void lock_notify_object(java_handle_t *o);
 void lock_notify_all_object(java_handle_t *o);
 
-#endif /* ENABLE_THREADS */
-
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* ENABLE_THREADS */
 
 #endif /* _LOCK_COMMON_H */
 

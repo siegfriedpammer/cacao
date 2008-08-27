@@ -43,7 +43,7 @@ typedef struct list_method_entry list_method_entry;
 
 struct list_method_entry {
 	methodinfo *m;
-	listnode_t  linkage;
+/* 	listnode_t  linkage; */
 };
 
 

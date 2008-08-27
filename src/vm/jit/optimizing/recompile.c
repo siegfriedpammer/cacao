@@ -36,7 +36,7 @@
 #include "threads/mutex.hpp"
 #include "threads/thread.hpp"
 
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 
 #include "vm/jit/builtin.hpp"
 #include "vm/classcache.h"
@@ -54,7 +54,7 @@
 
 static Mutex     *recompile_thread_mutex;
 static Condition *recompile_thread_cond;
-static list_t    *list_recompile_methods;
+static List*      list_recompile_methods;
 
 
 /* recompile_init **************************************************************
@@ -74,7 +74,7 @@ bool recompile_init(void)
 
 	/* create method list */
 
-	list_recompile_methods = list_create(OFFSET(list_method_entry, linkage));
+	list_recompile_methods = List_new();
 
 	/* everything's ok */
 
@@ -177,7 +177,7 @@ static void recompile_thread(void)
 
 		/* get the next method and recompile it */
 
-		while ((lme = list_first(list_recompile_methods)) != NULL) {
+		while ((lme = List_front(list_recompile_methods)) != NULL) {
 			/* recompile this method */
 
 			if (jit_recompile(lme->m) != NULL) {
@@ -193,7 +193,7 @@ static void recompile_thread(void)
 
 			/* remove the compiled method */
 
-			list_remove(list_recompile_methods, lme);
+			List_remove(list_recompile_methods, lme);
 
 			/* free the entry */
 
@@ -242,7 +242,7 @@ void recompile_queue_method(methodinfo *m)
 
 	/* and add it to the list */
 
-	list_add_last(list_recompile_methods, lme);
+	List_push_back(list_recompile_methods, lme);
 
 	/* get the lock on the recompile mutex, so we can call notify */
 

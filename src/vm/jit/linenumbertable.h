@@ -37,7 +37,7 @@ typedef struct linenumbertable_list_entry_t linenumbertable_list_entry_t;
 
 #include <stdint.h>
 
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 
 #include "vm/method.h"
 
@@ -51,6 +51,18 @@ typedef struct linenumbertable_list_entry_t linenumbertable_list_entry_t;
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* LinenumberTable */
+
+#ifdef __cplusplus
+
+class LinenumberTable {
+public:
+	static void create(jitdata* jd);
+};
+
+#endif
+
 
 /* linenumbertable_t **********************************************************/
 
@@ -86,7 +98,7 @@ struct linenumbertable_list_entry_t {
 	                            /* instruction for given line                 */
 	                            /* NOTE: for linenumber <= -3 this is a the   */
 	                            /* (methodinfo *) of the inlined method       */
-	listnode_t linkage;
+/* 	listnode_t linkage; */
 };
 
 
@@ -113,7 +125,7 @@ int32_t linenumbertable_linenumber_for_pc(methodinfo **pm, codeinfo *code, void 
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

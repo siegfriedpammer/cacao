@@ -30,6 +30,8 @@
 
 #include "mm/memory.h"
 
+#include "toolbox/list.hpp"
+
 #if defined(ENABLE_STATISTICS)
 # include "vm/options.h"
 # include "vm/statistics.h"
@@ -60,7 +62,8 @@ void linenumbertable_create(jitdata *jd)
 	codegendata                  *cd;
 	linenumbertable_t            *lnt;
 	linenumbertable_entry_t      *lnte;
-	list_t                       *l;
+	List*                         l;
+	void*                         it;
 	linenumbertable_list_entry_t *le;
 	uint8_t                      *pv;
 	void                         *pc;
@@ -74,13 +77,13 @@ void linenumbertable_create(jitdata *jd)
 
 	l = cd->linenumbers;
 
-	if (l->size == 0)
+	if (List_size(l) == 0)
 		return;
 
 	/* Allocate the linenumber table and the entries array. */
 
 	lnt  = NEW(linenumbertable_t);
-	lnte = MNEW(linenumbertable_entry_t, l->size);
+	lnte = MNEW(linenumbertable_entry_t, List_size(l));
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
@@ -88,13 +91,13 @@ void linenumbertable_create(jitdata *jd)
 
 		size_linenumbertable +=
 			sizeof(linenumbertable_t) +
-			sizeof(linenumbertable_entry_t) * l->size;
+			sizeof(linenumbertable_entry_t) * List_size(l);
 	}
 #endif
 
 	/* Fill the linenumber table. */
 
-	lnt->length  = l->size;
+	lnt->length  = List_size(l);
 	lnt->entries = lnte;
 
 	/* Fill the linenumber table entries in reverse order, so the
@@ -106,7 +109,8 @@ void linenumbertable_create(jitdata *jd)
 
 	pv = ADDR_MASK(uint8_t *, code->entrypoint);
 
-	for (le = list_first(l); le != NULL; le = list_next(l, le), lnte++) {
+	for (it = List_iterator_begin(l); it != List_iterator_end(l); it = List_iterator_plusplus(it), lnte++) {
+		le = (linenumbertable_list_entry_t*) List_iterator_deref(it);
 		/* If the entry contains an mcode pointer (normal case),
 		   resolve it (see doc/inlining_stacktrace.txt for
 		   details). */
@@ -147,7 +151,7 @@ void linenumbertable_list_entry_add(codegendata *cd, int32_t linenumber)
 	le->linenumber = linenumber;
 	le->mpc        = cd->mcodeptr - cd->mcodebase;
 
-	list_add_first(cd->linenumbers, le);
+	DumpList_push_front(cd->linenumbers, le);
 }
 
 
@@ -173,7 +177,7 @@ void linenumbertable_list_entry_add_inline_start(codegendata *cd, instruction *i
 	le->linenumber = (-2); /* marks start of inlined method */
 	le->mpc        = (mpc = cd->mcodeptr - cd->mcodebase);
 
-	list_add_first(cd->linenumbers, le);
+	DumpList_push_front(cd->linenumbers, le);
 
 	insinfo = iptr->sx.s23.s3.inlineinfo;
 
@@ -210,7 +214,7 @@ void linenumbertable_list_entry_add_inline_end(codegendata *cd, instruction *ipt
 	le->linenumber = (-3) - iptr->line;
 	le->mpc        = (uintptr_t) insinfo->method;
 
-	list_add_first(cd->linenumbers, le);
+	DumpList_push_front(cd->linenumbers, le);
 
 	le = DNEW(linenumbertable_list_entry_t);
 
@@ -218,7 +222,7 @@ void linenumbertable_list_entry_add_inline_end(codegendata *cd, instruction *ipt
 	le->linenumber = (-1);
 	le->mpc        = insinfo->startmpc;
 
-	list_add_first(cd->linenumbers, le);
+	DumpList_push_front(cd->linenumbers, le);
 }
 
 
@@ -331,7 +335,7 @@ int32_t linenumbertable_linenumber_for_pc(methodinfo **pm, codeinfo *code, void 
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

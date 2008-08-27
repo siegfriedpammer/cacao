@@ -36,14 +36,10 @@
 
 #include "threads/mutex.hpp"
 
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 
 #include "vm/global.h"
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* typedefs *******************************************************************/
 
@@ -60,7 +56,7 @@ typedef struct lock_hashtable_t lock_hashtable_t;
 
 struct lock_waiter_t {
 	struct threadobject *thread;        /* the waiting thread                 */
-	listnode_t           linkage;
+/* 	listnode_t           linkage; */
 };
 
 
@@ -75,7 +71,8 @@ struct lock_record_t {
 	struct threadobject *owner;              /* current owner of this monitor */
 	s4                   count;              /* recursive lock count          */
 	Mutex*               mutex;              /* mutex for synchronizing       */
-	list_t              *waiters;            /* list of threads waiting       */
+/* 	List                *waiters;            /\* list of threads waiting       *\/ */
+	void*                waiters;
 	lock_record_t       *hashlink;           /* next record in hash chain     */
 };
 
@@ -95,6 +92,10 @@ struct lock_hashtable_t {
 
 
 /* defines ********************************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define LOCK_INIT_OBJECT_LOCK(o) lock_init_object_lock((java_object_t *) (o))
 

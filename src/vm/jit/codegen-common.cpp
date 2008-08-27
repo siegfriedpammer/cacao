@@ -54,7 +54,7 @@
 #include "mm/memory.h"
 
 #include "toolbox/avl.h"
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 #include "toolbox/logging.h"
 
 #include "native/llni.h"
@@ -172,8 +172,8 @@ void codegen_setup(jitdata *jd)
 	cd->datareferences = NULL;
 #endif
 
-	cd->brancheslabel  = list_create_dump(OFFSET(branch_label_ref_t, linkage));
-	cd->linenumbers    = list_create_dump(OFFSET(linenumbertable_list_entry_t, linkage));
+	cd->brancheslabel  = new DumpList<branch_label_ref_t*>();
+	cd->linenumbers    = new DumpList<linenumbertable_list_entry_t*>();
 }
 
 
@@ -213,8 +213,8 @@ static void codegen_reset(jitdata *jd)
 	cd->datareferences  = NULL;
 #endif
 
-	cd->brancheslabel   = list_create_dump(OFFSET(branch_label_ref_t, linkage));
-	cd->linenumbers     = list_create_dump(OFFSET(linenumbertable_list_entry_t, linkage));
+	cd->brancheslabel   = new DumpList<branch_label_ref_t*>();
+	cd->linenumbers     = new DumpList<linenumbertable_list_entry_t*>();
 	
 	/* We need to clear the mpc and the branch references from all
 	   basic blocks as they will definitely change. */
@@ -454,19 +454,10 @@ void codegen_resolve_branchrefs(codegendata *cd, basicblock *bptr)
 
 void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options)
 {
-	list_t             *l;
-	branch_label_ref_t *br;
-	s4                  mpc;
+	// Calculate the current mpc.
+	int32_t mpc = cd->mcodeptr - cd->mcodebase;
 
-	/* Get the label list. */
-
-	l = cd->brancheslabel;
-	
-	/* calculate the current mpc */
-
-	mpc = cd->mcodeptr - cd->mcodebase;
-
-	br = (branch_label_ref_t*) DumpMemory::allocate(sizeof(branch_label_ref_t));
+	branch_label_ref_t* br = (branch_label_ref_t*) DumpMemory::allocate(sizeof(branch_label_ref_t));
 
 	br->mpc       = mpc;
 	br->label     = label;
@@ -474,9 +465,8 @@ void codegen_branch_label_add(codegendata *cd, s4 label, s4 condition, s4 reg, u
 	br->reg       = reg;
 	br->options   = options;
 
-	/* Add the branch to the list. */
-
-	list_add_last(l, br);
+	// Add the branch to the list.
+	cd->brancheslabel->push_back(br);
 }
 
 

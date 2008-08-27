@@ -30,7 +30,7 @@
 
 #include "mm/memory.h"
 
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 
 #include "vm/assertion.h"
 #include "vm/global.h"
@@ -40,7 +40,7 @@
 
 /* -ea/-da options ************************************************************/
 
-list_t  *list_assertion_names     = (list_t *)NULL;
+List*    list_assertion_names     = NULL;
 int32_t  assertion_class_count    = 0;
 int32_t  assertion_package_count  = 0;
 bool     assertion_user_enabled   = false;
@@ -113,10 +113,10 @@ void assertion_ea_da(const char *name, bool enabled)
 	item->package = package;
 
 	if (list_assertion_names == NULL) {
-		list_assertion_names = list_create(OFFSET(assertion_name_t, linkage));
+		list_assertion_names = List_new();
 	}
 
-	list_add_last(list_assertion_names, item);
+	List_push_back(list_assertion_names, item);
 }
 
 
