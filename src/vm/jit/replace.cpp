@@ -60,7 +60,7 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/replace.hpp"
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 #include "vm/jit/stack.h"
 
 

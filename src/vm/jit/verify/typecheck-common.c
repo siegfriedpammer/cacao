@@ -32,7 +32,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
 
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 
 #include "typecheck-common.h"
 

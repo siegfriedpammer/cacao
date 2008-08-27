@@ -39,7 +39,7 @@
 #include "vm/primitive.hpp"
 
 #include "vm/jit/parse.h"
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 #include "vm/jit/stack.h"
 #include "vm/jit/verify/typecheck-common.h"
 

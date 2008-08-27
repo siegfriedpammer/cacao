@@ -1,4 +1,4 @@
-/* src/vm/jit/show.c - showing the intermediate representation
+/* src/vm/jit/show.cpp - showing the intermediate representation
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -42,7 +42,7 @@
 
 #include "vm/jit/abi.h"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 #include "vm/jit/disass.h"
 #include "vm/jit/stack.h"
 #include "vm/jit/parse.h"
@@ -57,7 +57,7 @@
 /* global variables ***********************************************************/
 
 #if !defined(NDEBUG)
-static Mutex* mutex;
+static Mutex mutex;
 #endif
 
 
@@ -77,12 +77,6 @@ static void show_variable_intern(jitdata *jd, s4 index, int stage);
 #if !defined(NDEBUG)
 bool show_init(void)
 {
-#if defined(ENABLE_THREADS)
-	/* initialize the show lock */
-
-	mutex = Mutex_new();
-#endif
-
 #if defined(ENABLE_DEBUG_FILTER)
 	show_filters_init();
 #endif
@@ -95,7 +89,7 @@ bool show_init(void)
 
 
 #if !defined(NDEBUG)
-char *show_jit_type_names[] = {
+const char *show_jit_type_names[] = {
 	"INT",
 	"LNG",
 	"FLT",
@@ -106,7 +100,8 @@ char *show_jit_type_names[] = {
 	"??7",
 	"RET"
 };
-char show_jit_type_letters[] = {
+
+const char show_jit_type_letters[] = {
 	'I',
 	'L',
 	'F',
@@ -151,11 +146,10 @@ void show_method(jitdata *jd, int stage)
 	cd   = jd->cd;
 	rd   = jd->rd;
 
-	/* We need to enter a lock here, since the binutils disassembler
-	   is not reentrant-able and we could not read functions printed
-	   at the same time. */
-
-	Mutex_lock(mutex);
+	// We need to enter a lock here, since the binutils disassembler
+	// is not reentrant-able and we could not read functions printed
+	// at the same time.
+	mutex.lock();
 
 #if defined(ENABLE_INTRP)
 	if (opt_intrp)
@@ -386,7 +380,7 @@ void show_method(jitdata *jd, int stage)
 	}
 #endif
 
-	Mutex_unlock(mutex);
+	mutex.unlock();
 
 	/* finally flush the output */
 
@@ -1670,7 +1664,7 @@ int show_filters_test_verbosecall_exit(methodinfo *m) {
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

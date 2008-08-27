@@ -180,8 +180,8 @@ libjit_la_SOURCES = \
 	$(RECOMPILE_SOURCES) \
 	$(REG_SOURCES) \
 	$(REPLACE_SOURCES) \
-	show.c \
-	show.h \
+	show.cpp \
+	show.hpp \
 	$(STACK_SOURCES) \
 	stacktrace.cpp \
 	stacktrace.hpp \
