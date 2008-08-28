@@ -39,8 +39,6 @@ typedef struct extra_classref extra_classref;
 
 #include "vm/types.h"
 
-#include "toolbox/list.h"
-
 #if defined(ENABLE_JAVASE)
 # include "vm/annotation.h"
 #endif

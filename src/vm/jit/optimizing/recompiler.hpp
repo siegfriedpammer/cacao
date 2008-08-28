@@ -31,10 +31,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+#include <queue>
+#endif
+
 #include "threads/condition.hpp"
 #include "threads/mutex.hpp"
-
-#include "toolbox/list.h"
 
 #include "vm/method.h"
 
@@ -46,15 +48,15 @@
  */
 class Recompiler {
 private:
-	Mutex      _mutex;
-	Condition  _cond;
-	list_t    *_list_recompile_methods;
-	bool       _run;                    ///< Flag to stop worker thread.
+	Mutex                   _mutex;
+	Condition               _cond;
+	std::queue<methodinfo*> _methods;
+	bool                    _run;       ///< Flag to stop worker thread.
 
 	static void thread();               ///< Worker thread.
 
 public:
-	Recompiler();
+	Recompiler() : _run(true) {}
 	~Recompiler();
 
 	bool start();                       ///< Start the worker thread.
@@ -69,7 +71,7 @@ typedef struct list_method_entry list_method_entry;
 
 struct list_method_entry {
 	methodinfo *m;
-	listnode_t  linkage;
+/* 	listnode_t  linkage; */
 };
 
 

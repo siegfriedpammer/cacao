@@ -32,32 +32,15 @@
 
 #include "threads/mutex.hpp"
 
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 
 #include "vm/global.h"
 
 
-/* only define the following stuff with thread enabled ************************/
-
-#if defined(ENABLE_THREADS)
-
 /* typedefs *******************************************************************/
 
 typedef struct lock_record_t    lock_record_t;
-typedef struct lock_waiter_t    lock_waiter_t;
 typedef struct lock_hashtable_t lock_hashtable_t;
-
-
-/* lock_waiter_t ***************************************************************
-
-   List node for storing a waiting thread.
-
-*******************************************************************************/
-
-struct lock_waiter_t {
-	struct threadobject *thread;        /* the waiting thread                 */
-	listnode_t           linkage;
-};
 
 
 /* lock_record_t ***************************************************************
@@ -71,7 +54,11 @@ struct lock_record_t {
 	struct threadobject *owner;              /* current owner of this monitor */
 	s4                   count;              /* recursive lock count          */
 	Mutex*               mutex;              /* mutex for synchronizing       */
-	list_t              *waiters;            /* list of threads waiting       */
+#ifdef __cplusplus
+	List<threadobject*>* waiters;            /* list of threads waiting       */
+#else
+	List* waiters;
+#endif
 	lock_record_t       *hashlink;           /* next record in hash chain     */
 };
 
@@ -120,6 +107,10 @@ void lock_notify_all_object(java_handle_t *o);
 
 
 /* defines ********************************************************************/
+
+/* only define the following stuff with thread enabled ************************/
+
+#if defined(ENABLE_THREADS)
 
 #define LOCK_INIT_OBJECT_LOCK(o) lock_init_object_lock((java_object_t *) (o))
 

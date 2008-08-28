@@ -30,8 +30,7 @@
 
 #include <stdint.h>
 
-#include "vm/global.h"
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 
 
 typedef struct assertion_name_t assertion_name_t;
@@ -40,16 +39,21 @@ struct assertion_name_t {
 	char      *name;
 	bool       enabled;
 	bool       package;
-	listnode_t linkage;
+/* 	listnode_t linkage; */
 };
 
 /* -ea/-esa/-da/-dsa options **************************************************/
 
-extern list_t  *list_assertion_names;
-extern int32_t  assertion_class_count;
-extern int32_t  assertion_package_count;
-extern bool     assertion_user_enabled;
-extern bool     assertion_system_enabled;
+#ifdef __cplusplus
+extern List<assertion_name_t*>*   list_assertion_names;
+#else
+extern List*   list_assertion_names;
+#endif
+
+extern int32_t assertion_class_count;
+extern int32_t assertion_package_count;
+extern bool    assertion_user_enabled;
+extern bool    assertion_system_enabled;
 
 /* function prototypes ********************************************************/
 

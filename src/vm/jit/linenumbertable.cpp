@@ -28,7 +28,11 @@
 #include <assert.h>
 #include <stdint.h>
 
+#include <algorithm>
+
 #include "mm/memory.h"
+
+#include "toolbox/list.hpp"
 
 #if defined(ENABLE_STATISTICS)
 # include "vm/options.h"
@@ -46,85 +50,126 @@
 #  define ADDR_MASK(type, x) (x)
 #endif
 
-/* linenumbertable_create ******************************************************
 
-   Creates the linenumber table.  We allocate an array and store the
-   linenumber entry in reverse-order, so we can search the correct
-   linenumber more easily.
-
-*******************************************************************************/
-
-void linenumbertable_create(jitdata *jd)
+/**
+ * Resolve the linenumber.
+ *
+ * If the entry contains an mcode pointer (normal case), resolve it
+ * (see doc/inlining_stacktrace.txt for details).
+ *
+ * @param code Code structure.
+ */
+void Linenumber::resolve(const codeinfo* code)
 {
-	codeinfo                     *code;
-	codegendata                  *cd;
-	linenumbertable_t            *lnt;
-	linenumbertable_entry_t      *lnte;
-	list_t                       *l;
-	linenumbertable_list_entry_t *le;
-	uint8_t                      *pv;
-	void                         *pc;
+	void* pv = ADDR_MASK(void*, code->entrypoint);
 
-	/* Get required compiler data. */
+	// TODO Use constant.
+	if (_linenumber >= -2)
+		_pc = (void*) ((uintptr_t) pv + (uintptr_t) _pc);
+}
 
-	code = jd->code;
-	cd   = jd->cd;
 
-	/* Don't allocate a linenumber table if we don't need one. */
-
-	l = cd->linenumbers;
-
-	if (l->size == 0)
-		return;
-
-	/* Allocate the linenumber table and the entries array. */
-
-	lnt  = NEW(linenumbertable_t);
-	lnte = MNEW(linenumbertable_entry_t, l->size);
+/**
+ * Creates a linenumber table.
+ *
+ * We allocate an array and store the linenumber entry in
+ * reverse-order, so we can search the correct linenumber more easily.
+ *
+ * @param jd JIT data.
+ */
+LinenumberTable::LinenumberTable(jitdata* jd) : _linenumbers(jd->cd->linenumbers->begin(), jd->cd->linenumbers->end())
+{
+	// Get required compiler data.
+	codeinfo* code = jd->code;
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
 		count_linenumbertable++;
 
 		size_linenumbertable +=
-			sizeof(linenumbertable_t) +
-			sizeof(linenumbertable_entry_t) * l->size;
+			sizeof(LinenumberTable) +
+			sizeof(Linenumber) * _linenumbers.size();
 	}
 #endif
 
-	/* Fill the linenumber table. */
+	// Resolve all linenumbers in the vector.
+	(void) for_each(_linenumbers.begin(), _linenumbers.end(), std::bind2nd(LinenumberResolver(), code));
+}
 
-	lnt->length  = l->size;
-	lnt->entries = lnte;
 
-	/* Fill the linenumber table entries in reverse order, so the
-	   search can be forward. */
+/**
+ * Search the the line number table for the line corresponding to a
+ * given program counter.
+ *
+ * @param pc Program counter.
+ *
+ * @return Line number.
+ */
 
-	/* FIXME I only made this change to prevent a problem when moving
-	   to C++. This should be changed back when this file has
-	   converted to C++. */
+struct foo : public std::binary_function<Linenumber, void*, bool> {
+	bool operator() (const Linenumber& ln, const void* pc) const
+	{
+		return (pc >= ln.get_pc());
+	}
+};
 
-	pv = ADDR_MASK(uint8_t *, code->entrypoint);
+int32_t LinenumberTable::find(methodinfo **pm, void* pc)
+{
+	void* maskpc = ADDR_MASK(void*, pc);
 
-	for (le = (linenumbertable_list_entry_t*) list_first(l); le != NULL; le = (linenumbertable_list_entry_t*) list_next(l, le), lnte++) {
-		/* If the entry contains an mcode pointer (normal case),
-		   resolve it (see doc/inlining_stacktrace.txt for
-		   details). */
+	std::vector<Linenumber>::iterator it = find_if(_linenumbers.begin(), _linenumbers.end(), std::bind2nd(foo(), maskpc));
 
-		if (le->linenumber >= -2)
-			pc = pv + le->mpc;
-		else
-			pc = (void *) le->mpc;
+	// No matching entry found.
+	if (it == _linenumbers.end())
+		return 0;
 
-		/* Fill the linenumber table entry. */
+	Linenumber& ln = *it;
+	int32_t linenumber = ln.get_linenumber();
 
-		lnte->linenumber = le->linenumber;
-		lnte->pc         = pc;
+	// Check for linenumber entry type.
+	if (linenumber < 0) {
+		os::abort("FIX ME!");
+
+#if 0
+		// We found a special inline entry (see
+		// doc/inlining_stacktrace.txt for details).
+		switch (linenumber) {
+		case -1:
+			// Begin of an inlined method (ie. INLINE_END instruction.
+			lntinline = --lnte;            /* get entry with methodinfo * */
+			lnte--;                        /* skip the special entry      */
+
+			/* search inside the inlined method */
+
+			if (linenumbertable_linenumber_for_pc_intern(pm, lnte, lntsize, pc)) {
+				/* the inlined method contained the pc */
+
+				*pm = (methodinfo *) lntinline->pc;
+
+				assert(lntinline->linenumber <= -3);
+
+				return (-3) - lntinline->linenumber;
+			}
+
+			/* pc was not in inlined method, continue search.
+			   Entries inside the inlined method will be skipped
+			   because their lntentry->pc is higher than pc.  */
+			break;
+
+		case -2: 
+			/* end of inlined method */
+
+			return 0;
+
+			/* default: is only reached for an -3-line entry after
+			   a skipped -2 entry. We can safely ignore it and
+			   continue searching.  */
+		}
+#endif
 	}
 
-	/* Store the linenumber table in the codeinfo. */
-
-	code->linenumbertable = lnt;
+	// Normal linenumber entry, return it.
+	return linenumber;
 }
 
 
@@ -140,14 +185,10 @@ void linenumbertable_create(jitdata *jd)
 
 void linenumbertable_list_entry_add(codegendata *cd, int32_t linenumber)
 {
-	linenumbertable_list_entry_t *le;
+	void* pc = (void*) (cd->mcodeptr - cd->mcodebase);
+	Linenumber ln(linenumber, pc);
 
-	le = (linenumbertable_list_entry_t*) DumpMemory::allocate(sizeof(linenumbertable_list_entry_t));
-
-	le->linenumber = linenumber;
-	le->mpc        = cd->mcodeptr - cd->mcodebase;
-
-	list_add_first(cd->linenumbers, le);
+	cd->linenumbers->push_front(ln);
 }
 
 
@@ -164,20 +205,14 @@ void linenumbertable_list_entry_add(codegendata *cd, int32_t linenumber)
 
 void linenumbertable_list_entry_add_inline_start(codegendata *cd, instruction *iptr)
 {
-	linenumbertable_list_entry_t *le;
-	insinfo_inline               *insinfo;
-	uintptr_t                     mpc;
+	void* pc = (void*) (cd->mcodeptr - cd->mcodebase);
 
-	le = (linenumbertable_list_entry_t*) DumpMemory::allocate(sizeof(linenumbertable_list_entry_t));
+	Linenumber ln(-2 /* marks start of inlined method */, pc);
 
-	le->linenumber = (-2); /* marks start of inlined method */
-	le->mpc        = (mpc = cd->mcodeptr - cd->mcodebase);
+	cd->linenumbers->push_front(ln);
 
-	list_add_first(cd->linenumbers, le);
-
-	insinfo = iptr->sx.s23.s3.inlineinfo;
-
-	insinfo->startmpc = mpc; /* store for corresponding INLINE_END */
+	insinfo_inline* insinfo = iptr->sx.s23.s3.inlineinfo;
+	insinfo->startmpc = (int32_t) (uintptr_t) pc; /* store for corresponding INLINE_END */
 }
 
 
@@ -197,131 +232,20 @@ void linenumbertable_list_entry_add_inline_start(codegendata *cd, instruction *i
 
 void linenumbertable_list_entry_add_inline_end(codegendata *cd, instruction *iptr)
 {
-	linenumbertable_list_entry_t *le;
-	insinfo_inline               *insinfo;
+	insinfo_inline* insinfo = iptr->sx.s23.s3.inlineinfo;
 
-	insinfo = iptr->sx.s23.s3.inlineinfo;
-
+	// Sanity check.
 	assert(insinfo);
 
-	le = (linenumbertable_list_entry_t*) DumpMemory::allocate(sizeof(linenumbertable_list_entry_t));
+	// Special entry containing the methodinfo.
+	Linenumber ln((-3) - iptr->line, insinfo->method);
 
-	/* special entry containing the methodinfo * */
-	le->linenumber = (-3) - iptr->line;
-	le->mpc        = (uintptr_t) insinfo->method;
+	cd->linenumbers->push_front(ln);
 
-	list_add_first(cd->linenumbers, le);
+	// End marker with PC of start of body.
+	Linenumber lne(-1, (void*) insinfo->startmpc);
 
-	le = (linenumbertable_list_entry_t*) DumpMemory::allocate(sizeof(linenumbertable_list_entry_t));
-
-	/* end marker with PC of start of body */
-	le->linenumber = (-1);
-	le->mpc        = insinfo->startmpc;
-
-	list_add_first(cd->linenumbers, le);
-}
-
-
-/* linenumbertable_linenumber_for_pc_intern ************************************
-
-   This function search the line number table for the line
-   corresponding to a given pc. The function recurses for inlined
-   methods.
-
-*******************************************************************************/
-
-static s4 linenumbertable_linenumber_for_pc_intern(methodinfo **pm, linenumbertable_entry_t *lnte, int32_t lntsize, void *pc)
-{
-	linenumbertable_entry_t *lntinline;   /* special entry for inlined method */
-
-	pc = ADDR_MASK(void *, pc);
-
-	for (; lntsize > 0; lntsize--, lnte++) {
-		/* Note: In case of inlining this may actually compare the pc
-		   against a methodinfo *, yielding a non-sensical
-		   result. This is no problem, however, as we ignore such
-		   entries in the switch below. This way we optimize for the
-		   common case (ie. a real pc in lntentry->pc). */
-
-		if (pc >= lnte->pc) {
-			/* did we reach the current line? */
-
-			if (lnte->linenumber >= 0)
-				return lnte->linenumber;
-
-			/* we found a special inline entry (see
-			   doc/inlining_stacktrace.txt for details */
-
-			switch (lnte->linenumber) {
-			case -1: 
-				/* begin of inlined method (ie. INLINE_END
-				   instruction) */
-
-				lntinline = --lnte;            /* get entry with methodinfo * */
-				lnte--;                        /* skip the special entry      */
-				lntsize -= 2;
-
-				/* search inside the inlined method */
-
-				if (linenumbertable_linenumber_for_pc_intern(pm, lnte, lntsize, pc)) {
-					/* the inlined method contained the pc */
-
-					*pm = (methodinfo *) lntinline->pc;
-
-					assert(lntinline->linenumber <= -3);
-
-					return (-3) - lntinline->linenumber;
-				}
-
-				/* pc was not in inlined method, continue search.
-				   Entries inside the inlined method will be skipped
-				   because their lntentry->pc is higher than pc.  */
-				break;
-
-			case -2: 
-				/* end of inlined method */
-
-				return 0;
-
-				/* default: is only reached for an -3-line entry after
-				   a skipped -2 entry. We can safely ignore it and
-				   continue searching.  */
-			}
-		}
-	}
-
-	/* PC not found. */
-
-	return 0;
-}
-
-
-/* linenumbertable_linenumber_for_pc *******************************************
-
-   A wrapper for linenumbertable_linenumber_for_pc_intern.
-
-   NOTE: We have a intern version because the function is called
-   recursively for inlined methods.
-
-*******************************************************************************/
-
-int32_t linenumbertable_linenumber_for_pc(methodinfo **pm, codeinfo *code, void *pc)
-{
-	linenumbertable_t *lnt;
-	int32_t            linenumber;
-
-	/* Get line number table. */
-
-	lnt = code->linenumbertable;
-
-	if (lnt == NULL)
-		return 0;
-
-	/* Get the line number. */
-
-	linenumber = linenumbertable_linenumber_for_pc_intern(pm, lnt->entries, lnt->length, pc);
-
-	return linenumber;
+	cd->linenumbers->push_front(lne);
 }
 
 

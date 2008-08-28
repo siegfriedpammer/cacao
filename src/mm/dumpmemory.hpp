@@ -165,26 +165,26 @@ public:
 	}
 
 	pointer allocate(size_type n, void* = 0) {
-		printf("allocate: n=%d * %d\n", n, sizeof(T));
+// 		printf("allocate: n=%d * %d\n", n, sizeof(T));
 		return static_cast<pointer>(DumpMemory::allocate(n * sizeof(T)));
 	}
 
 	// Initialize elements of allocated storage p with value value.
 	void construct(pointer p, const T& value) {
-		printf("construct: p=%p, value=%p\n", p, value);
+// 		printf("construct: p=%p, value=%p\n", (void*) p, (void*) value);
 		// Initialize memory with placement new.
 		new ((void*) p) T(value);
 	}
 
 	// Destroy elements of initialized storage p.
 	void destroy(pointer p) {
-		printf("destroy: p=%p\n", p);
+// 		printf("destroy: p=%p\n", (void*) p);
 		// Destroy objects by calling their destructor.
 		p->~T();
 	}
 
 	void deallocate(pointer p, size_type n) {
-		printf("deallocate: p=%p, n=%d\n", p, n);
+// 		printf("deallocate: p=%p, n=%d\n", (void*) p, n);
 		// We don't need to deallocate on dump memory.
 	}
 };

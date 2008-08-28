@@ -33,7 +33,7 @@
 #include "threads/mutex.hpp"
 
 #include "toolbox/hashtable.h"
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 
 #include "vm/class.h"
 #include "vm/global.h"
@@ -59,7 +59,6 @@ struct list_classpath_entry {
 #if defined(ENABLE_ZLIB)
 	hashtable         *htclasses;
 #endif
-	listnode_t         linkage;
 };
 
 
@@ -158,8 +157,11 @@ struct list_classpath_entry {
 
 /* export variables ***********************************************************/
 
-extern list_t *list_classpath_entries;
-
+#ifdef __cplusplus
+extern List<list_classpath_entry*>* list_classpath_entries;
+#else
+extern List* list_classpath_entries;
+#endif
 
 /* function prototypes ********************************************************/
 

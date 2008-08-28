@@ -33,7 +33,7 @@
 
 #include "vm/types.h"
 
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 
 #include "vm/global.h"
 #include "vm/method.h"
@@ -41,6 +41,7 @@
 #include "vm/jit/exceptiontable.h"
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/replace.hpp"
 
 
@@ -80,10 +81,14 @@ struct codeinfo {
 	s4            mcodelength;          /* length of generated machine code   */
 
 	exceptiontable_t  *exceptiontable;
-	linenumbertable_t *linenumbertable;
+	LinenumberTable* linenumbertable;
 
 	/* patcher list */
-	list_t       *patchers;
+#ifdef __cplusplus
+	List<patchref_t>* patchers;
+#else
+	List*         patchers;
+#endif
 
 	/* replacement */				    
 	s4            stackframesize;       /* size of the stackframe in slots    */

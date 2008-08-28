@@ -26,9 +26,7 @@
 #include "config.h"
 
 #include <assert.h>
-#include <stdlib.h>
-
-#include "vm/types.h"
+#include <stdint.h>
 
 #include "mm/memory.h"
 
@@ -36,31 +34,16 @@
 #include "threads/mutex.hpp"
 #include "threads/thread.hpp"
 
-#include "toolbox/list.h"
-
-#include "vm/jit/builtin.hpp"
 #include "vm/classcache.h"
 #include "vm/exceptions.hpp"
 #include "vm/options.h"
 #include "vm/string.hpp"
 
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/code.hpp"
 #include "vm/jit/jit.hpp"
 
 #include "vm/jit/optimizing/recompiler.hpp"
-
-
-/**
- * Initializes the recompilation system.
- */
-Recompiler::Recompiler() : _run(true)
-{
-	TRACESUBSYSTEMINITIALIZATION("recompile_init");
-
-	/* create method list */
-
-	_list_recompile_methods = list_create(OFFSET(list_method_entry, linkage));
-}
 
 
 /**
@@ -153,8 +136,6 @@ static void recompile_replace_vftbl(methodinfo *m)
  */
 void Recompiler::thread()
 {
-	list_method_entry *lme;
-
 	// FIXME This just works for one recompiler.
 	Recompiler& r = VM::get_current()->get_recompiler();
 
@@ -172,30 +153,25 @@ void Recompiler::thread()
 		if (r._run == false)
 			break;
 
-		/* get the next method and recompile it */
+		// Sanity check.
+		assert(r._methods.empty() == false);
 
-		while ((lme = (list_method_entry*) list_first(r._list_recompile_methods)) != NULL) {
+		// Get the next method form the queue and recompile it.
+		while (r._methods.empty() == false) {
+			methodinfo* m = r._methods.front();
 
-			/* recompile this method */
-
-			if (jit_recompile(lme->m) != NULL) {
-				/* replace in vftbl's */
-
-				recompile_replace_vftbl(lme->m);
+			// Recompile this method.
+			if (jit_recompile(m) != NULL) {
+				// Replace in vftbl's.
+				recompile_replace_vftbl(m);
 			}
 			else {
-				/* XXX what is the right-thing(tm) to do here? */
-
+				// XXX What is the right-thing(tm) to do here?
 				exceptions_print_current_exception();
 			}
 
-			/* remove the compiled method */
-
-			list_remove(r._list_recompile_methods, lme);
-
-			/* free the entry */
-
-			FREE(lme, list_method_entry);
+			// Remove the method from the queue.
+			r._methods.pop();
 		}
 	}
 }
@@ -225,16 +201,8 @@ bool Recompiler::start()
  */
 void Recompiler::queue_method(methodinfo *m)
 {
-	list_method_entry *lme;
-
-	/* create a method entry */
-
-	lme = NEW(list_method_entry);
-	lme->m = m;
-
-	/* and add it to the list */
-
-	list_add_last(_list_recompile_methods, lme);
+	// Add the method to the queue.
+	_methods.push(m);
 
 	// Enter the recompile mutex, so we can call notify.
 	_mutex.lock();

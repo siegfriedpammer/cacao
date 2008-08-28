@@ -36,7 +36,7 @@
 
 #include "threads/mutex.hpp"
 
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 #include "toolbox/logging.h"
 #include "toolbox/util.h"
 
@@ -52,7 +52,7 @@
 
 /* global variables ***********************************************************/
 
-list_t *list_classpath_entries;
+List<list_classpath_entry*>* list_classpath_entries;
 
 
 /* suck_init *******************************************************************
@@ -66,7 +66,8 @@ bool suck_init(void)
 {
 	TRACESUBSYSTEMINITIALIZATION("suck_init");
 
-	list_classpath_entries = list_create(OFFSET(list_classpath_entry, linkage));
+#warning Move this list into VM.
+	list_classpath_entries = new List<list_classpath_entry*>();
 
 	/* everything's ok */
 
@@ -205,7 +206,7 @@ void suck_add(char *classpath)
 			/* add current classpath entry, if no error */
 
 			if (lce != NULL)
-				list_add_last(list_classpath_entries, lce);
+				list_classpath_entries->push_back(lce);
 		}
 
 		/* goto next classpath entry, skip ':' delimiter */
@@ -526,8 +527,9 @@ classbuffer *suck_start(classinfo *c)
 
 	/* walk through all classpath entries */
 
-	for (lce = (list_classpath_entry*) list_first(list_classpath_entries); lce != NULL && cb == NULL;
-		 lce = (list_classpath_entry*) list_next(list_classpath_entries, lce)) {
+	for (List<list_classpath_entry*>::iterator it = list_classpath_entries->begin(); it != list_classpath_entries->end() && cb == NULL; it++) {
+		lce = *it;
+
 #if defined(ENABLE_ZLIB)
 		if (lce->type == CLASSPATH_ARCHIVE) {
 

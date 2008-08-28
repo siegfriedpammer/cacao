@@ -43,8 +43,6 @@
 #include "threads/condition.hpp"
 #include "threads/mutex.hpp"
 
-#include "toolbox/list.h"
-
 #include "vm/global.h"
 
 
@@ -136,9 +134,6 @@ struct threadobject {
 #if defined(ENABLE_ESCAPE_REASON)
 	void *escape_reasons;
 #endif
-
-	listnode_t            linkage;      /* threads-list                       */
-	listnode_t            linkage_free; /* free-list                          */
 };
 
 

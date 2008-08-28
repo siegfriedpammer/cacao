@@ -34,8 +34,6 @@ typedef struct dsegentry dsegentry;
 #include "config.h"
 #include "vm/types.h"
 
-#include "toolbox/list.h"
-
 #include "vm/references.h"
 
 #include "vm/jit/jit.hpp"

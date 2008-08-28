@@ -26,79 +26,93 @@
 #ifndef _LINENUMBERTABLE_HPP
 #define _LINENUMBERTABLE_HPP
 
-/* forward typedefs ***********************************************************/
-
-typedef struct linenumbertable_t            linenumbertable_t;
-typedef struct linenumbertable_entry_t      linenumbertable_entry_t;
-typedef struct linenumbertable_list_entry_t linenumbertable_list_entry_t;
-
-
 #include "config.h"
 
 #include <stdint.h>
 
-#include "toolbox/list.h"
+#ifdef __cplusplus
+#include <functional>
+#include <vector>
+#endif
+
+#include "toolbox/list.hpp"
 
 #include "vm/method.h"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/code.hpp"
-#include "vm/jit/codegen-common.hpp"
 
 #include "vm/jit/ir/instruction.hpp"
 
 
-/* linenumbertable_t **********************************************************/
+#ifdef __cplusplus
 
-struct linenumbertable_t {
-	int32_t                  length;    /* length of the entries array        */
-	linenumbertable_entry_t *entries;   /* actual linenumber entries          */
+/**
+ * Represents a Java line number.
+ */
+class Linenumber {
+private:
+	// TODO Add constants.
+	/* -1......start of inlined body              */
+	/* -2......end of inlined body                */
+	/* <= -3...special entry with methodinfo *    */
+	/* (see doc/inlining_stacktrace.txt)          */
+
+	int32_t _linenumber;
+	void*   _pc;
+
+public:
+	Linenumber(int32_t linenumber, void* pc) : _linenumber(linenumber), _pc(pc) {}
+
+	inline int32_t get_linenumber() const { return _linenumber; }
+	inline void*   get_pc        () const { return _pc; }
+
+	void resolve(const codeinfo* code);
 };
 
 
-/* linenumbertable_entry_t *****************************************************
-
-   NOTE: See doc/inlining_stacktrace.txt for special meanings of line
-   and pc.
-
-*******************************************************************************/
-
-struct linenumbertable_entry_t {
-	int32_t  linenumber;                /* linenumber of this entry           */
-	void    *pc;                        /* PC where this linenumber starts    */
+/**
+ * Unary function to resolve Linenumber objects.
+ */
+class LinenumberResolver : public std::binary_function<Linenumber, codeinfo*, void> {
+public:
+	// Unary resolve function.
+	void operator() (Linenumber& ln, const codeinfo* code) const
+	{
+		ln.resolve(code);
+	}
 };
 
 
-/* linenumbertable_list_entry_t ***********************************************/
+/**
+ * Linenumber table of a Java method.
+ */
+class LinenumberTable {
+private:
+	std::vector<Linenumber> _linenumbers;
 
-struct linenumbertable_list_entry_t {
-	int32_t    linenumber;      /* line number, used for inserting into the   */
-	                            /* table and for validity checking            */
-	                            /* -1......start of inlined body              */
-	                            /* -2......end of inlined body                */
-	                            /* <= -3...special entry with methodinfo *    */
-								/* (see doc/inlining_stacktrace.txt)          */
-	ptrint     mpc;             /* machine code program counter of first      */
-	                            /* instruction for given line                 */
-	                            /* NOTE: for linenumber <= -3 this is a the   */
-	                            /* (methodinfo *) of the inlined method       */
-	listnode_t linkage;
+public:
+	LinenumberTable(jitdata* jd);
+	~LinenumberTable();
+
+	int32_t find(methodinfo **pm, void* pc);
 };
 
+#else
 
-/* function prototypes ********************************************************/
+typedef struct LinenumberTable LinenumberTable;
+
+#endif
+
+#include "vm/jit/codegen-common.hpp"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void    linenumbertable_create(jitdata *jd);
-
 void    linenumbertable_list_entry_add(codegendata *cd, int32_t linenumber);
 void    linenumbertable_list_entry_add_inline_start(codegendata *cd, instruction *iptr);
 void    linenumbertable_list_entry_add_inline_end(codegendata *cd, instruction *iptr);
-
-int32_t linenumbertable_linenumber_for_pc(methodinfo **pm, codeinfo *code, void *pc);
 
 #ifdef __cplusplus
 } // extern "C"

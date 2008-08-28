@@ -137,11 +137,10 @@ JNIEXPORT jobjectArray JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *
 			linenumber = -1;
 		}
 		else {
-			/* FIXME The linenumbertable_linenumber_for_pc could
-			   change the methodinfo pointer when hitting an inlined
-			   method. */
+			/* FIXME linenumbertable->find could change the methodinfo
+			   pointer when hitting an inlined method. */
 
-			linenumber = linenumbertable_linenumber_for_pc(&m, code, ste->pc);
+			linenumber = code->linenumbertable->find(&m, ste->pc);
 			linenumber = (linenumber == 0) ? -1 : linenumber;
 		}
 

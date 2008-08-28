@@ -57,7 +57,7 @@
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 
 #include "vm/array.h"
 
@@ -502,10 +502,9 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 		linenumber = -2;
 	}
 	else {
-		/* FIXME The linenumbertable_linenumber_for_pc could change
-		   the methodinfo pointer when hitting an inlined method. */
-
-		linenumber = linenumbertable_linenumber_for_pc(&m, code, ste->pc);
+		// FIXME linenumbertable->find could change the methodinfo
+		// pointer when hitting an inlined method.
+		linenumber = code->linenumbertable->find(&m, ste->pc);
 		linenumber = (linenumber == 0) ? -1 : linenumber;
 	}
 
@@ -1658,7 +1657,6 @@ jstring JVM_ConstantPoolGetUTF8At(JNIEnv *env, jobject unused, jobject jcpool, j
 jboolean JVM_DesiredAssertionStatus(JNIEnv *env, jclass unused, jclass cls)
 {
 #if defined(ENABLE_ASSERTION)
-	assertion_name_t  *item;
 	classinfo         *c;
 	jboolean           status;
 	utf               *name;
@@ -1675,8 +1673,10 @@ jboolean JVM_DesiredAssertionStatus(JNIEnv *env, jclass unused, jclass cls)
 	}
 
 	if (list_assertion_names != NULL) {
-		item = (assertion_name_t *)list_first(list_assertion_names);
-		while (item != NULL) {
+		for (List<assertion_name_t*>::iterator it = list_assertion_names->begin();
+			 it != list_assertion_names->end(); it++) {
+			assertion_name_t* item = *it;
+
 			name = utf_new_char(item->name);
 			if (name == c->packagename) {
 				status = (jboolean)item->enabled;
@@ -1684,8 +1684,6 @@ jboolean JVM_DesiredAssertionStatus(JNIEnv *env, jclass unused, jclass cls)
 			else if (name == c->name) {
 				status = (jboolean)item->enabled;
 			}
-
-			item = (assertion_name_t *)list_next(list_assertion_names, item);
 		}
 	}
 
@@ -1705,7 +1703,6 @@ jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 	java_booleanarray_t                   *classEnabled;
 	java_booleanarray_t                   *packageEnabled;
 #if defined(ENABLE_ASSERTION)
-	assertion_name_t                      *item;
 	java_handle_t                         *js;
 	s4                                     i, j;
 #endif
@@ -1751,8 +1748,9 @@ jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 		i = 0;
 		j = 0;
 		
-		item = (assertion_name_t *)list_first(list_assertion_names);
-		while (item != NULL) {
+		for (List<assertion_name_t*>::iterator it = list_assertion_names->begin(); it != list_assertion_names->end(); it++) {
+			assertion_name_t* item = *it;
+
 			js = javastring_new_from_ascii(item->name);
 			if (js == NULL) {
 				return NULL;
@@ -1768,8 +1766,6 @@ jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 				packageEnabled->data[j] = (jboolean) item->enabled;
 				j += 1;
 			}
-
-			item = (assertion_name_t *)list_next(list_assertion_names, item);
 		}
 	}
 #endif
