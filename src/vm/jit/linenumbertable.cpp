@@ -128,7 +128,7 @@ int32_t LinenumberTable::find(methodinfo **pm, void* pc)
 
 	// Check for linenumber entry type.
 	if (linenumber < 0) {
-		VM::get_current()->abort("FIX ME!");
+		os::abort("FIX ME!");
 
 #if 0
 		// We found a special inline entry (see
