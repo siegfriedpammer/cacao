@@ -81,11 +81,6 @@ public:
 	int64_t get_starttime()   { return _starttime; }
 
 	Properties& get_properties() { return _properties; }
-
-	// Instance functions.
-	void abort(const char* text, ...);
-	void abort_errnum(int errnum, const char* text, ...);
-	void abort_errno(const char* text, ...);
 };
 
 #else

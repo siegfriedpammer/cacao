@@ -75,7 +75,7 @@ Properties::Properties()
 	p = MNEW(char, 4096);
 
 	if (os::readlink("/proc/self/exe", p, 4095) == -1)
-		VM::get_current()->abort_errno("readlink failed");
+		os::abort_errno("readlink failed");
 
 	/* We have a path like:
 

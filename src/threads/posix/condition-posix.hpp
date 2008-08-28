@@ -31,7 +31,6 @@
 #include <pthread.h>
 #include <time.h>
 
-#include "vm/vm.hpp"
 
 #ifdef __cplusplus
 
@@ -54,6 +53,10 @@ public:
 };
 
 
+// Includes.
+#include "vm/os.hpp"
+
+
 /**
  * Initialize a POSIX condition variable.
  */
@@ -64,7 +67,7 @@ inline Condition::Condition()
 	result = pthread_cond_init(&_cond, NULL);
 
 	if (result != 0) {
-		VM::get_current()->abort_errnum(result, "Condition::Condition(): pthread_cond_init failed");
+		os::abort_errnum(result, "Condition::Condition(): pthread_cond_init failed");
 	}
 }
 
@@ -79,7 +82,7 @@ inline Condition::~Condition()
 	result = pthread_cond_destroy(&_cond);
 
 	if (result != 0) {
-		VM::get_current()->abort_errnum(result, "Condition::~Condition(): pthread_cond_destroy failed");
+		os::abort_errnum(result, "Condition::~Condition(): pthread_cond_destroy failed");
 	}
 }
 
@@ -95,7 +98,7 @@ inline void Condition::broadcast()
 	result = pthread_cond_broadcast(&_cond);
 
 	if (result != 0) {
-		VM::get_current()->abort_errnum(result, "Condition::broadcast(): pthread_cond_broadcast failed");
+		os::abort_errnum(result, "Condition::broadcast(): pthread_cond_broadcast failed");
 	}
 }
 
@@ -111,7 +114,7 @@ inline void Condition::signal()
 	result = pthread_cond_signal(&_cond);
 
 	if (result != 0) {
-		VM::get_current()->abort_errnum(result, "Condition::signal(): pthread_cond_signal failed");
+		os::abort_errnum(result, "Condition::signal(): pthread_cond_signal failed");
 	}
 }
 
@@ -137,7 +140,7 @@ inline void Condition::wait(Mutex* mutex)
 	result = pthread_cond_wait(&_cond, &(mutex->_mutex));
 
 	if (result != 0) {
-		VM::get_current()->abort_errnum(result, "Condition::wait(): pthread_cond_wait failed");
+		os::abort_errnum(result, "Condition::wait(): pthread_cond_wait failed");
 	}
 }
 

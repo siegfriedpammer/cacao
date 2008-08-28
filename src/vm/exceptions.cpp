@@ -241,7 +241,7 @@ static void exceptions_abort(utf *classname, utf *message)
 
 	log_finish();
 
-	VM::get_current()->abort("Aborting...");
+	os::abort("Aborting...");
 }
 
 
@@ -2011,7 +2011,7 @@ void exceptions_print_stacktrace(void)
 									 false);
 
 		if (m == NULL)
-			VM::get_current()->abort("exceptions_print_stacktrace: printStackTrace()V not found");
+			os::abort("exceptions_print_stacktrace: printStackTrace()V not found");
 
 		/* Print message. */
 

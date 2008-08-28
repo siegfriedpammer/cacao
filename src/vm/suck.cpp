@@ -186,7 +186,7 @@ void suck_add(char *classpath)
 				}
 
 #else
-				VM::get_current()->abort("suck_add: zip/jar files not supported");
+				os::abort("suck_add: zip/jar files not supported");
 #endif
 			}
 			else {

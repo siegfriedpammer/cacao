@@ -49,7 +49,6 @@
 #include "vm/statistics.h"
 #include "vm/string.hpp"
 #include "vm/utf8.h"
-#include "vm/vm.hpp"
 
 
 /* global variables ***********************************************************/
@@ -107,7 +106,7 @@ void stringtable_update(void)
                                
 				if (js.is_null() || (js.get_value() == NULL)) {
 					/* error in hashtable found */
-					VM::get_current()->abort("stringtable_update: invalid literalstring in hashtable");
+					os::abort("stringtable_update: invalid literalstring in hashtable");
 				}
 
 				a = LLNI_UNWRAP(js.get_value());

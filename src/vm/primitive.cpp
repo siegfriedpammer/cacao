@@ -36,9 +36,9 @@
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/options.h"
+#include "vm/os.hpp"
 #include "vm/primitive.hpp"
 #include "vm/utf8.h"
-#include "vm/vm.hpp"
 
 
 /* primitivetype_table *********************************************************
@@ -412,7 +412,7 @@ java_handle_t* Primitive::box(int type, imm_union value)
 		break;
 	default:
 		o = NULL;
-		VM::get_current()->abort("primitive_box: invalid primitive type %d", type);
+		os::abort("primitive_box: invalid primitive type %d", type);
 	}
 
 	return o;
@@ -473,7 +473,7 @@ imm_union Primitive::unbox(java_handle_t *h)
 		value.a = h;
 		break;
 	default:
-		VM::get_current()->abort("Primitive::unbox: invalid primitive type %d", type);
+		os::abort("Primitive::unbox: invalid primitive type %d", type);
 	}
 
 	return value;
