@@ -1,4 +1,4 @@
-/* src/threads/posix/lock.h - lock implementation
+/* src/threads/lock.hpp - lock implementation
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,14 +23,10 @@
 */
 
 
-#ifndef _LOCK_H
-#define _LOCK_H
+#ifndef _LOCK_HPP
+#define _LOCK_HPP
 
-#include "config.h"
-
-#include <pthread.h>
-
-#include "vm/types.h"
+#include <stdint.h>
 
 #include "native/llni.h"
 
@@ -44,20 +40,7 @@
 /* typedefs *******************************************************************/
 
 typedef struct lock_record_t    lock_record_t;
-typedef struct lock_waiter_t    lock_waiter_t;
 typedef struct lock_hashtable_t lock_hashtable_t;
-
-
-/* lock_waiter_t ***************************************************************
-
-   List node for storing a waiting thread.
-
-*******************************************************************************/
-
-struct lock_waiter_t {
-	struct threadobject *thread;        /* the waiting thread                 */
-/* 	listnode_t           linkage; */
-};
 
 
 /* lock_record_t ***************************************************************
@@ -71,8 +54,11 @@ struct lock_record_t {
 	struct threadobject *owner;              /* current owner of this monitor */
 	s4                   count;              /* recursive lock count          */
 	Mutex*               mutex;              /* mutex for synchronizing       */
-/* 	List                *waiters;            /\* list of threads waiting       *\/ */
-	void*                waiters;
+#ifdef __cplusplus
+	List<threadobject*>* waiters;            /* list of threads waiting       */
+#else
+	List* waiters;
+#endif
 	lock_record_t       *hashlink;           /* next record in hash chain     */
 };
 
@@ -91,22 +77,49 @@ struct lock_hashtable_t {
 };
 
 
-/* defines ********************************************************************/
+/* functions ******************************************************************/
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+void lock_init(void);
+
+void lock_init_object_lock(java_object_t *);
+
+ptrint lock_pre_compute_thinlock(s4 index);
+
+bool lock_monitor_enter(java_handle_t *);
+bool lock_monitor_exit(java_handle_t *);
+
+#define LOCK_monitor_enter    (functionptr) lock_monitor_enter
+#define LOCK_monitor_exit     (functionptr) lock_monitor_exit
+
+bool lock_is_held_by_current_thread(java_handle_t *o);
+
+void lock_wait_for_object(java_handle_t *o, s8 millis, s4 nanos);
+void lock_notify_object(java_handle_t *o);
+void lock_notify_all_object(java_handle_t *o);
+
+#ifdef __cplusplus
+}
+#endif
+
+
+/* defines ********************************************************************/
+
+/* only define the following stuff with thread enabled ************************/
+
+#if defined(ENABLE_THREADS)
 
 #define LOCK_INIT_OBJECT_LOCK(o) lock_init_object_lock((java_object_t *) (o))
 
 #define LOCK_MONITOR_ENTER(o)    lock_monitor_enter((java_handle_t *) LLNI_QUICKWRAP(o))
 #define LOCK_MONITOR_EXIT(o)     lock_monitor_exit((java_handle_t *) LLNI_QUICKWRAP(o))
 
-#ifdef __cplusplus
-}
 #endif
 
-#endif /* _LOCK_H */
+#endif // _LOCK_HPP
 
 
 /*
@@ -115,7 +128,7 @@ extern "C" {
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

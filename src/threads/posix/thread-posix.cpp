@@ -53,7 +53,7 @@
 #include "native/native.h"
 
 #include "threads/condition.hpp"
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 #include "threads/mutex.hpp"
 #include "threads/threadlist.hpp"
 #include "threads/thread.hpp"

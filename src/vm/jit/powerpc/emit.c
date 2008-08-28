@@ -36,7 +36,7 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
 #include "vm/options.h"
 

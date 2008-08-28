@@ -1,4 +1,4 @@
-/* src/threads/posix/lock.c - lock implementation
+/* src/threads/lock.cpp - lock implementation
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
-#include <pthread.h>
 
 #include "vm/types.h"
 
@@ -38,12 +37,10 @@
 
 #include "native/llni.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 #include "threads/mutex.hpp"
 #include "threads/threadlist.hpp"
 #include "threads/thread.hpp"
-
-#include "threads/posix/lock.h"
 
 #include "toolbox/list.hpp"
 
@@ -259,7 +256,7 @@ static lock_record_t *lock_record_new(void)
 	lr->object  = NULL;
 	lr->owner   = NULL;
 	lr->count   = 0;
-	lr->waiters = List_new();
+	lr->waiters = new List<threadobject*>();
 
 #if defined(ENABLE_GC_CACAO)
 	/* register the lock object as weak reference with the GC */
@@ -267,9 +264,8 @@ static lock_record_t *lock_record_new(void)
 	gc_weakreference_register(&(lr->object), GC_REFTYPE_LOCKRECORD);
 #endif
 
-	/* initialize the mutex */
-
-	lr->mutex = Mutex_new();
+	// Initialize the mutex.
+	lr->mutex = new Mutex();
 
 	DEBUGLOCKS(("[lock_record_new   : lr=%p]", (void *) lr));
 
@@ -290,9 +286,8 @@ static void lock_record_free(lock_record_t *lr)
 {
 	DEBUGLOCKS(("[lock_record_free  : lr=%p]", (void *) lr));
 
-	/* Destroy the mutex. */
-
-	Mutex_delete(lr->mutex);
+	// Destroy the mutex.
+	delete lr->mutex;
 
 #if defined(ENABLE_GC_CACAO)
 	/* unregister the lock object reference with the GC */
@@ -300,9 +295,8 @@ static void lock_record_free(lock_record_t *lr)
 	gc_weakreference_unregister(&(lr->object));
 #endif
 
-	/* Free the waiters list. */
-
-	List_delete(lr->waiters);
+	// Free the waiters list.
+	delete lr->waiters;
 
 	/* Free the data structure. */
 
@@ -327,7 +321,7 @@ static void lock_record_free(lock_record_t *lr)
 
 static void lock_hashtable_init(void)
 {
-	lock_hashtable.mutex = Mutex_new();
+	lock_hashtable.mutex   = new Mutex();
 
 	lock_hashtable.size    = LOCK_INITIAL_HASHTABLE_SIZE;
 	lock_hashtable.entries = 0;
@@ -500,9 +494,8 @@ static lock_record_t *lock_hashtable_get(threadobject *t, java_handle_t *o)
 	if (IS_FAT_LOCK(lockword))
 		return GET_FAT_LOCK(lockword);
 
-	/* lock the hashtable */
-
-	Mutex_lock(lock_hashtable.mutex);
+	// Lock the hashtable.
+	lock_hashtable.mutex->lock();
 
 	/* lookup the lock record in the hashtable */
 
@@ -544,9 +537,8 @@ static lock_record_t *lock_hashtable_get(threadobject *t, java_handle_t *o)
 		}
 	}
 
-	/* unlock the hashtable */
-
-	Mutex_unlock(lock_hashtable.mutex);
+	// Unlock the hashtable.
+	lock_hashtable.mutex->unlock();
 
 	/* return the new lock record */
 
@@ -572,9 +564,8 @@ static void lock_hashtable_remove(threadobject *t, java_handle_t *o)
 	u4             slot;
 	lock_record_t *tmplr;
 
-	/* lock the hashtable */
-
-	Mutex_lock(lock_hashtable.mutex);
+	// Lock the hashtable.
+	lock_hashtable.mutex->lock();
 
 	/* get lock record */
 
@@ -611,9 +602,8 @@ static void lock_hashtable_remove(threadobject *t, java_handle_t *o)
 
 	lock_hashtable.entries--;
 
-	/* unlock the hashtable */
-
-	Mutex_unlock(lock_hashtable.mutex);
+	// Unlock the hashtable.
+	lock_hashtable.mutex->unlock();
 
 	/* free the lock record */
 
@@ -741,7 +731,7 @@ static inline void lock_lockword_set(threadobject *t, java_handle_t *o, uintptr_
 
 static inline void lock_record_enter(threadobject *t, lock_record_t *lr)
 {
-	Mutex_lock(lr->mutex);
+	lr->mutex->lock();
 	lr->owner = t;
 }
 
@@ -763,7 +753,7 @@ static inline void lock_record_enter(threadobject *t, lock_record_t *lr)
 static inline void lock_record_exit(threadobject *t, lock_record_t *lr)
 {
 	lr->owner = NULL;
-	Mutex_unlock(lr->mutex);
+	lr->mutex->unlock();
 }
 
 
@@ -820,20 +810,21 @@ static void sable_flc_waiting(ptrint lockword, threadobject *t, java_handle_t *o
 	int old_flc;
 
 	index = GET_THREAD_INDEX(lockword);
-	t_other = ThreadList_get_thread_by_index(index);
+	t_other = ThreadList::get_thread_by_index(index);
+
 	if (!t_other)
 /* 		failure, TODO: add statistics */
 		return;
 
-	Mutex_lock(t_other->flc_lock);
+	t_other->flc_lock->lock();
 	old_flc = t_other->flc_bit;
 	t_other->flc_bit = true;
 
 	DEBUGLOCKS(("thread %d set flc bit for lock-holding thread %d",
 				t->index, t_other->index));
 
-	/* Set FLC bit first, then read the lockword again */
-	Atomic_memory_barrier();
+	// Set FLC bit first, then read the lockword again.
+	Atomic::memory_barrier();
 
 	lockword = lock_lockword_get(t, o);
 
@@ -849,9 +840,9 @@ static void sable_flc_waiting(ptrint lockword, threadobject *t, java_handle_t *o
 		{
 			threadobject *current;
 
-			/* Wait until another thread sees the flc bit and notifies
-			   us of unlocking. */
-			Condition_wait(t->flc_cond, t_other->flc_lock);
+			// Wait until another thread sees the flc bit and notifies
+			// us of unlocking.
+			t->flc_cond->wait(t_other->flc_lock);
 
 			/* Traverse FLC list looking if we're still there */
 			current = t_other->flc_list;
@@ -872,14 +863,14 @@ static void sable_flc_waiting(ptrint lockword, threadobject *t, java_handle_t *o
 	else
 		t_other->flc_bit = old_flc;
 
-	Mutex_unlock(t_other->flc_lock);
+	t_other->flc_lock->unlock();
 }
 
 static void notify_flc_waiters(threadobject *t, java_handle_t *o)
 {
 	threadobject *current;
 
-	Mutex_lock(t->flc_lock);
+	t->flc_lock->lock();
 
 	current = t->flc_list;
 	while (current)
@@ -901,15 +892,17 @@ static void notify_flc_waiters(threadobject *t, java_handle_t *o)
 				lock_inflate(t, current->flc_object, lr);
 			}
 		}
-		/* Wake the waiting thread */
-		Condition_broadcast(current->flc_cond);
+
+		// Wake the waiting threads.
+		current->flc_cond->broadcast();
 
 		current = current->flc_next;
 	}
 
 	t->flc_list = NULL;
 	t->flc_bit = false;
-	Mutex_unlock(t->flc_lock);
+
+	t->flc_lock->unlock();
 }
 
 /* lock_monitor_enter **********************************************************
@@ -950,14 +943,14 @@ retry:
 	/* most common case: try to thin-lock an unlocked object */
 
 	LLNI_CRITICAL_START_THREAD(t);
-	lockword = Atomic_compare_and_swap_ptr(&(LLNI_DIRECT(o)->lockword), THIN_UNLOCKED, thinlock);
+	lockword = Atomic::compare_and_swap(&(LLNI_DIRECT(o)->lockword), THIN_UNLOCKED, thinlock);
 	LLNI_CRITICAL_END_THREAD(t);
 
 	if (lockword == THIN_UNLOCKED) {
 		/* success. we locked it */
-		/* The Java Memory Model requires a memory barrier here: */
-		/* Because of the CAS above, this barrier is a nop on x86 / x86_64 */
-		Atomic_instruction_barrier();
+		// The Java Memory Model requires an instruction barrier here
+		// (because of the CAS above).
+		Atomic::instruction_barrier();
 		return true;
 	}
 
@@ -1071,11 +1064,11 @@ bool lock_monitor_exit(java_handle_t *o)
 	/* most common case: we release a thin lock that we hold once */
 
 	if (lockword == thinlock) {
-		/* memory barrier for Java Memory Model */
-		Atomic_write_memory_barrier();
+		// Memory barrier for Java Memory Model.
+		Atomic::write_memory_barrier();
 		lock_lockword_set(t, o, THIN_UNLOCKED);
-		/* Memory barrier for thin locking. */
-		Atomic_memory_barrier();
+		// Memory barrier for thin locking.
+		Atomic::memory_barrier();
 
 		/* check if there has been a flat lock contention on this object */
 
@@ -1125,7 +1118,7 @@ bool lock_monitor_exit(java_handle_t *o)
 		/* unlock this lock record */
 
 		lr->owner = NULL;
-		Mutex_unlock(lr->mutex);
+		lr->mutex->unlock();
 
 		return true;
 	}
@@ -1148,26 +1141,15 @@ bool lock_monitor_exit(java_handle_t *o)
 
 *******************************************************************************/
 
-static void lock_record_add_waiter(lock_record_t *lr, threadobject *thread)
+static void lock_record_add_waiter(lock_record_t *lr, threadobject* t)
 {
-	lock_waiter_t *w;
-
-	/* Allocate a waiter data structure. */
-
-	w = NEW(lock_waiter_t);
+	// Add the thread as last entry to waiters list.
+	lr->waiters->push_back(t);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
-		size_lock_waiter += sizeof(lock_waiter_t);
+		size_lock_waiter += sizeof(threadobject*);
 #endif
-
-	/* Store the thread in the waiter structure. */
-
-	w->thread = thread;
-
-	/* Add the waiter as last entry to waiters list. */
-
-	List_push_back(lr->waiters, w);
 }
 
 
@@ -1184,40 +1166,15 @@ static void lock_record_add_waiter(lock_record_t *lr, threadobject *thread)
    
 *******************************************************************************/
 
-static void lock_record_remove_waiter(lock_record_t *lr, threadobject *thread)
+static void lock_record_remove_waiter(lock_record_t *lr, threadobject* t)
 {
-	List*          l;
-	void*          it;
-	lock_waiter_t *w;
-
-	/* Get the waiters list. */
-
-	l = lr->waiters;
-
-	for (it = List_iterator_begin(l); it != List_iterator_end(l); it = List_iterator_plusplus(it)) {
-		w = (lock_waiter_t*) List_iterator_deref(it);
-
-		if (w->thread == thread) {
-			/* Remove the waiter entry from the list. */
-
-			List_remove(l, w);
-
-			/* Free the waiter data structure. */
-
-			FREE(w, lock_waiter_t);
+	// Remove the thread from the waiters.
+	lr->waiters->remove(t);
 
 #if defined(ENABLE_STATISTICS)
-			if (opt_stat)
-				size_lock_waiter -= sizeof(lock_waiter_t);
+	if (opt_stat)
+		size_lock_waiter -= sizeof(threadobject*);
 #endif
-
-			return;
-		}
-	}
-
-	/* This should never happen. */
-
-	vm_abort("lock_record_remove_waiter: thread not found in list of waiters\n");
 }
 
 
@@ -1373,49 +1330,31 @@ static void lock_monitor_wait(threadobject *t, java_handle_t *o, s8 millis, s4 n
 
 static void lock_record_notify(threadobject *t, lock_record_t *lr, bool one)
 {
-	List*          l;
-	void*          it;
-	lock_waiter_t *w;
-	threadobject  *waitingthread;
-
 	/* { the thread t owns the fat lock record lr on the object o } */
 
-	/* Get the waiters list. */
+	for (List<threadobject*>::iterator it = lr->waiters->begin(); it != lr->waiters->end(); it++) {
+		threadobject* waiter = *it;
 
-	l = lr->waiters;
-
-	for (it = List_iterator_begin(l); it != List_iterator_end(l); it = List_iterator_plusplus(it)) {
-		w = (lock_waiter_t*) List_iterator_deref(it);
-
-		/* signal the waiting thread */
-
-		waitingthread = w->thread;
-
-		/* We must skip threads which have already been notified. They will
-		   remove themselves from the list. */
-
-		if (waitingthread->signaled)
+		// We must skip threads which have already been notified. They
+		// will remove themselves from the list.
+		if (waiter->signaled)
 			continue;
 
-		/* Enter the wait-mutex. */
+		// Enter the wait-mutex.
+		waiter->waitmutex->lock();
 
-		Mutex_lock(waitingthread->waitmutex);
+		DEBUGLOCKS(("[lock_record_notify: lr=%p, t=%p, waitingthread=%p, one=%d]", lr, t, waiter, one));
 
-		DEBUGLOCKS(("[lock_record_notify: lr=%p, t=%p, waitingthread=%p, one=%d]",
-					lr, t, waitingthread, one));
+		// Signal the waiter.
+		waiter->waitcond->signal();
 
-		Condition_signal(waitingthread->waitcond);
+		// Mark the thread as signaled.
+		waiter->signaled = true;
 
-		/* Mark the thread as signaled. */
+		// Leave the wait-mutex.
+		waiter->waitmutex->unlock();
 
-		waitingthread->signaled = true;
-
-		/* Leave the wait-mutex. */
-
-		Mutex_unlock(waitingthread->waitmutex);
-
-		/* if we should only wake one, we are done */
-
+		// If we should only wake one thread, we are done.
 		if (one)
 			break;
 	}
@@ -1592,7 +1531,7 @@ void lock_notify_all_object(java_handle_t *o)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -195,7 +195,7 @@ inline static threadobject* thread_get_current(void);
 
 #include "native/localref.h"
 
-#include "threads/posix/lock.h"
+#include "threads/lock.hpp"
 
 #include "vm/global.h"
 #include "vm/vm.hpp"

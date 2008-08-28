@@ -42,7 +42,7 @@
 #include "native/llni.h"
 #include "native/native.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 #include "threads/threadlist.hpp"
 #include "threads/thread.hpp"
 
