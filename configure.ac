@@ -35,20 +35,7 @@ AM_CONFIG_HEADER([config.h])
 AC_PREFIX_DEFAULT(/usr/local/cacao)
 
 
-dnl Set optimization and debugging for all architectures and systems.
-if test x"$CFLAGS" = "x"; then
-    OPT_CFLAGS="-g -O0"
-else
-    OPT_CFLAGS=$CFLAGS
-fi
-
-if test x"$CXXFLAGS" = "x"; then
-    OPT_CXXFLAGS="-g -O0"
-else
-    OPT_CXXFLAGS=$CXXFLAGS
-fi
-
-dnl system type
+dnl Host CPU type.
 case "$host_cpu" in
 alpha | alphaev56 | alphapca56 )
     ARCH_DIR="alpha"
@@ -126,25 +113,22 @@ xdspcore )
     ;;
 
 * )
-    AC_MSG_ERROR($host_cpu systems are not supported at this time)
+    AC_MSG_ERROR([$host_cpu systems are currently not supported.])
     ;;
 esac
 
-dnl host type
+
+dnl Host operating system type.
 case "$host_os" in
 *cygwin* )
     OS_DIR="cygwin"
     OS_FLAGS="-D__WINDOWS__ -D__CYGWIN__"
-    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
-    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
     INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *darwin* )
     OS_DIR="darwin"
     OS_FLAGS="-D__DARWIN__"
-    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
-    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
     INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
@@ -152,24 +136,18 @@ dnl Must be BEFORE *freebsd*.
 *kfreebsd*-gnu)
     OS_DIR="freebsd"
     OS_FLAGS="-D__FREEBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
-    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
     INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *freebsd* )
     OS_DIR="freebsd"
     OS_FLAGS="-D__FREEBSD__ -D_XOPEN_SOURCE_EXTENDED"
-    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
-    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
     INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *irix* )
     OS_DIR="irix"
     OS_FLAGS="-D__IRIX__"
-    CC_FLAGS=""
-    CXX_FLAGS=""
     INTRP_CFLAGS="$ARCH_FLAGS $OS_FLAGS"
     ;;
 
@@ -177,24 +155,18 @@ dnl Must be BEFORE *linux*.
 *uclinux | *elf )
     OS_DIR="uclinux"
     OS_FLAGS="-D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
-    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
     INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *linux* | *Linux* )
     OS_DIR="linux"
     OS_FLAGS="-D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
-    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
     INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 *netbsd* )
     OS_DIR="netbsd"
     OS_FLAGS="-D__NETBSD__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE"
-    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long"
-    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
     INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
@@ -204,18 +176,57 @@ dnl Must be BEFORE *linux*.
     dnl not set when cpp is called with -std=c99, therefore we add them
     dnl here.
     OS_FLAGS="-D__SOLARIS__ -D_POSIX_C_SOURCE=200112L -D__EXTENSIONS__ -D_BSD_SOURCE"
-    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long -D_XOPEN_SOURCE=600"
-    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long"
+    CC_FLAGS="-D_XOPEN_SOURCE=600"
+    CXX_FLAGS="-D_XOPEN_SOURCE=500"
     INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
 * )
+    AC_MSG_ERROR([$host_os operating systems are currently not supported.])
     ;;
 esac
 
 
-dnl temporary set the CFLAGS for configure tests (e.g. inline keyword)
-dnl we set it properly at the end of this file
+dnl Set optimization and debugging for all architectures and systems.
+dnl NOTE: Setting the CFLAGS/CXXFLAGS only works before calling AC_PROG_CC/AC_PROG_CXX.
+if test x"$CFLAGS" = "x"; then
+    OPT_CFLAGS="-g -O0"
+else
+    OPT_CFLAGS=$CFLAGS
+fi
+
+if test x"$CXXFLAGS" = "x"; then
+    OPT_CXXFLAGS="-g -O0"
+else
+    OPT_CXXFLAGS=$CXXFLAGS
+fi
+
+dnl Check for compiler.
+AC_PROG_CC
+AC_PROG_CXX
+
+dnl Check compiler vendor.
+AX_COMPILER_VENDOR
+
+dnl Set compiler flags depending on the compiler vendor.
+case "$ax_cv_c_compiler_vendor" in
+gnu )
+    CC_FLAGS="-std=c99 -pedantic -Wall -Wno-long-long $CC_FLAGS"
+    CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long $CXX_FLAGS"
+    ;;
+
+sun )
+    CC_FLAGS="-xc99 $CC_FLAGS"
+    CXX_FLAGS="$CXX_FLAGS"
+    ;;
+
+* )    
+    AC_MSG_ERROR([$ax_cv_c_compiler_vendor compilers are currently not supported.])
+    ;;
+esac
+
+dnl Temporary set the CFLAGS for configure tests (e.g. inline keyword)
+dnl we set it properly at the end of this file.
 CFLAGS="$OPT_CFLAGS $ARCH_FLAGS $OS_FLAGS $CC_FLAGS"
 CXXFLAGS="$OPT_CXXFLAGS $ARCH_FLAGS $OS_FLAGS $CXX_FLAGS"
 
@@ -230,10 +241,7 @@ AC_SUBST(JAVA_ARCH)
 AC_SUBST(OS_DIR)
 AC_SUBST(USE_SCHEDULER)
 
-
 dnl Checks for programs.
-AC_PROG_CC
-AC_PROG_CXX
 AM_PROG_AS
 AC_PROG_LD
 AC_PROG_LD_GNU
@@ -287,7 +295,6 @@ AC_STRUCT_TM
 
 dnl Checks for libraries (NOTE: Should be done before function checks,
 dnl as some functions may be in libraries we check for).
-
 case "${OS_DIR}" in
     solaris )
          AC_CHECK_LIB([socket], [gethostname],, [AC_MSG_ERROR(cannot find libsocket)])
