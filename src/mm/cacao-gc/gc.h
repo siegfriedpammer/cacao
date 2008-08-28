@@ -37,7 +37,7 @@
 
 #include "threads/thread.hpp"
 
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 #include "vm/jit/replace.hpp"
 
 
