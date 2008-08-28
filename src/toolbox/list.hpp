@@ -113,40 +113,6 @@ public:
 typedef struct List List;
 typedef struct DumpList DumpList;
 
-void* List_new(void);
-void  List_delete(List* l);
-
-void* List_back(List* l);
-void* List_front(List* l);
-void  List_push_back(List* l, void* e);
-void  List_push_front(List* l, void* e);
-void  List_remove(List* l, void* e);
-int   List_size(List* l);
-
-void  List_lock(List* l);
-void  List_unlock(List* l);
-
-void* List_iterator_begin(List* l);
-void* List_iterator_end(List* l);
-void* List_rbegin(List* l);
-void* List_rend(List* l);
-
-void* List_iterator_plusplus(void* it);
-void* List_iterator_deref(void* it);
-
-void* List_reverse_iterator_plusplus(void* it);
-void* List_reverse_iterator_deref(void* it);
-
-void* DumpList_new(void);
-void  DumpList_push_back(DumpList* l, void* e);
-void  DumpList_push_front(DumpList* l, void* e);
-void  DumpList_remove(DumpList* l, void* e);
-
-void* DumpList_iterator_begin(DumpList* l);
-void* DumpList_iterator_end(DumpList* l);
-
-void* DumpList_iterator_plusplus(void* it);
-void* DumpList_iterator_deref(void* it);
 #endif
 
 #endif // _LIST_HPP

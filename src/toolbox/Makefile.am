@@ -35,7 +35,6 @@ libtoolbox_la_SOURCES = \
 	bitvector.h \
 	hashtable.c \
 	hashtable.h \
-	list.cpp \
 	list.hpp \
 	logging.c \
 	logging.h \
