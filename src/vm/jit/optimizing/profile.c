@@ -46,7 +46,7 @@
 #include "vm/jit/methodheader.h"
 #include "vm/jit/methodtree.h"
 
-#include "vm/jit/optimizing/recompile.h"
+#include "vm/jit/optimizing/recompiler.hpp"
 
 
 /* profile_init ****************************************************************
@@ -147,7 +147,7 @@ static void profile_thread(void)
 							/* add this method to the method list and
 							   start recompilation */
 
-							recompile_queue_method(m);
+							Recompiler_queue_method(m);
 						}
 					}
 				}

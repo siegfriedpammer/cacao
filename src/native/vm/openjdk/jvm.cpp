@@ -3629,4 +3629,5 @@ jint JVM_FindSignal(const char *name)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

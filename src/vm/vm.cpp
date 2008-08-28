@@ -95,7 +95,7 @@
 # include "vm/jit/optimizing/profile.h"
 #endif
 
-#include "vm/jit/optimizing/recompile.h"
+#include "vm/jit/optimizing/recompiler.hpp"
 
 #if defined(ENABLE_PYTHON)
 # include "vm/jit/python.h"
@@ -1485,11 +1485,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 #endif
 
 #if defined(ENABLE_THREADS)
-	/* initialize recompilation */
-
-	if (!recompile_init())
-		os::abort("vm_create: recompile_init failed");
-
 	/* start the signal handler thread */
 
 #if defined(__LINUX__)
@@ -1512,11 +1507,10 @@ VM::VM(JavaVMInitArgs* vm_args)
 			os::abort("vm_create: memory_start_thread failed");
 # endif
 
-	/* start the recompilation thread (must be done before the
-	   profiling thread) */
-
-	if (!recompile_start_thread())
-		os::abort("vm_create: recompile_start_thread failed");
+	// Start the recompilation thread (must be done before the
+	// profiling thread).
+	// FIXME Only works for one recompiler.
+	_recompiler.start();
 
 # if defined(ENABLE_PROFILING)
 	/* start the profile sampling thread */

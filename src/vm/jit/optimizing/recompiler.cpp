@@ -1,4 +1,4 @@
-/* src/vm/jit/optimizing/recompile.c - recompilation system
+/* src/vm/jit/optimizing/recompiler.cpp - recompilation system
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -47,38 +47,21 @@
 #include "vm/jit/code.hpp"
 #include "vm/jit/jit.hpp"
 
-#include "vm/jit/optimizing/recompile.h"
+#include "vm/jit/optimizing/recompiler.hpp"
 
 
-/* global variables ***********************************************************/
-
-static Mutex     *recompile_thread_mutex;
-static Condition *recompile_thread_cond;
-static List*      list_recompile_methods;
-
-
-/* recompile_init **************************************************************
-
-   Initializes the recompilation system.
-
-*******************************************************************************/
-
-bool recompile_init(void)
+/**
+ * Stop the worker thread.
+ */
+Recompiler::~Recompiler()
 {
-	TRACESUBSYSTEMINITIALIZATION("recompile_init");
+	// Set the running flag to false.
+	_run = false;
 
-	/* initialize the recompile thread mutex and condition */
+	// Now signal the worker thread.
+	_cond.signal();
 
-	recompile_thread_mutex = Mutex_new();
-	recompile_thread_cond  = Condition_new();
-
-	/* create method list */
-
-	list_recompile_methods = List_new();
-
-	/* everything's ok */
-
-	return true;
+	// TODO We should wait here until the thread exits.
 }
 
 
@@ -152,109 +135,94 @@ static void recompile_replace_vftbl(methodinfo *m)
 }
 
 
-/* recompile_thread ************************************************************
-
-   XXX
-
-*******************************************************************************/
-
-static void recompile_thread(void)
+/**
+ * The actual recompilation thread.
+ */
+void Recompiler::thread()
 {
-	list_method_entry *lme;
+	// FIXME This just works for one recompiler.
+	Recompiler& r = VM::get_current()->get_recompiler();
 
-	while (true) {
-		/* get the lock on the recompile mutex, so we can call wait */
+	while (r._run == true) {
+		// Enter the recompile mutex, so we can call wait.
+		r._mutex.lock();
 
-		Mutex_lock(recompile_thread_mutex);
+		// Wait forever on that condition until we are signaled.
+		r._cond.wait(r._mutex);
 
-		/* wait forever on that condition till we are signaled */
+		// Leave the mutex.
+		r._mutex.unlock();
 
-		Condition_wait(recompile_thread_cond, recompile_thread_mutex);
+		// FIXME Move this into the for loop.
+		if (r._run == false)
+			break;
 
-		/* leave the lock */
+		// Sanity check.
+		assert(r._methods.empty() == false);
 
-		Mutex_unlock(recompile_thread_mutex);
+		// Get the next method form the queue and recompile it.
+		while (r._methods.empty() == false) {
+			methodinfo* m = r._methods.front();
 
-		/* get the next method and recompile it */
-
-		while ((lme = List_front(list_recompile_methods)) != NULL) {
-			/* recompile this method */
-
-			if (jit_recompile(lme->m) != NULL) {
-				/* replace in vftbl's */
-
-				recompile_replace_vftbl(lme->m);
+			// Recompile this method.
+			if (jit_recompile(m) != NULL) {
+				// Replace in vftbl's.
+				recompile_replace_vftbl(m);
 			}
 			else {
-				/* XXX what is the right-thing(tm) to do here? */
-
+				// XXX What is the right-thing(tm) to do here?
 				exceptions_print_current_exception();
 			}
 
-			/* remove the compiled method */
-
-			List_remove(list_recompile_methods, lme);
-
-			/* free the entry */
-
-			FREE(lme, list_method_entry);
+			// Remove the method from the queue.
+			r._methods.pop();
 		}
 	}
 }
 
 
-/* recompile_start_thread ******************************************************
-
-   Starts the recompilation thread.
-
-*******************************************************************************/
-
-bool recompile_start_thread(void)
+/**
+ * Start the recompilation thread.
+ *
+ * @return true on success, false otherwise.
+ */
+bool Recompiler::start()
 {
-	utf *name;
+	utf *name = utf_new_char("Recompiler");
 
-	name = utf_new_char("Recompiler");
-
-	if (!threads_thread_start_internal(name, recompile_thread))
+	if (!threads_thread_start_internal(name, (functionptr) &Recompiler::thread))
 		return false;
-
-	/* everything's ok */
 
 	return true;
 }
 
 
-/* recompile_queue_method ******************************************************
-
-   Adds a method to the recompilation list and signal the
-   recompilation thread that there is some work to do.
-
-*******************************************************************************/
-
-void recompile_queue_method(methodinfo *m)
+/**
+ * Add a method to the recompilation queue and signal the
+ * recompilation thread that there is some work to do.
+ *
+ * @param m Method to recompile.
+ */
+void Recompiler::queue_method(methodinfo *m)
 {
-	list_method_entry *lme;
+	// Add the method to the queue.
+	_methods.push(m);
 
-	/* create a method entry */
+	// Enter the recompile mutex, so we can call notify.
+	_mutex.lock();
 
-	lme = NEW(list_method_entry);
-	lme->m = m;
+	// Signal the recompiler thread.
+	_cond.signal();
 
-	/* and add it to the list */
+	// Leave the mutex.
+	_mutex.unlock();
+}
 
-	List_push_back(list_recompile_methods, lme);
 
-	/* get the lock on the recompile mutex, so we can call notify */
 
-	Mutex_lock(recompile_thread_mutex);
-
-	/* signal the recompiler thread */
-
-	Condition_signal(recompile_thread_cond);
-
-	/* leave the lock */
-
-	Mutex_unlock(recompile_thread_mutex);
+// Legacy C interface.
+extern "C" {
+	void Recompiler_queue_method(methodinfo* m) { VM::get_current()->get_recompiler().queue_method(m); }
 }
 
 
@@ -264,9 +232,10 @@ void recompile_queue_method(methodinfo *m)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

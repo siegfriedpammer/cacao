@@ -42,9 +42,9 @@ REORDER_SOURCES = \
 endif
 
 if ENABLE_THREADS
-RECOMPILE_SOURCES = \
-	recompile.c \
-	recompile.h
+RECOMPILER_SOURCES = \
+	recompiler.cpp \
+	recompiler.hpp
 endif
 
 if ENABLE_SSA
@@ -80,7 +80,7 @@ noinst_LTLIBRARIES = \
 liboptimizing_la_SOURCES = \
 	$(IFCONV_SOURCES) \
 	$(PROFILE_SOURCES) \
-	$(RECOMPILE_SOURCES) \
+	$(RECOMPILER_SOURCES) \
 	$(REORDER_SOURCES) \
 	$(SSA_SOURCES) \
 	$(ESCAPE_SOURCES)

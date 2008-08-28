@@ -1,4 +1,4 @@
-/* src/vm/jit/optimizing/recompile.h - recompilation system
+/* src/vm/jit/optimizing/recompiler.hpp - recompilation system
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,19 +23,47 @@
 */
 
 
-#ifndef _RECOMPILE_H
-#define _RECOMPILE_H
+#ifndef _RECOMPILER_HPP
+#define _RECOMPILER_HPP
 
 #include "config.h"
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #ifdef __cplusplus
-extern "C" {
+#include <queue>
 #endif
 
-#include "vm/types.h"
+#include "threads/condition.hpp"
+#include "threads/mutex.hpp"
 
-#include "vm/global.h"
+#include "vm/method.h"
 
+
+#ifdef __cplusplus
+
+/**
+ * Thread for JIT recompilations.
+ */
+class Recompiler {
+private:
+	Mutex                   _mutex;
+	Condition               _cond;
+	std::queue<methodinfo*> _methods;
+	bool                    _run;       ///< Flag to stop worker thread.
+
+	static void thread();               ///< Worker thread.
+
+public:
+	Recompiler() : _run(true) {}
+	~Recompiler();
+
+	bool start();                       ///< Start the worker thread.
+	void queue_method(methodinfo* m);   ///< Queue a method for recompilation.
+};
+
+#endif
 
 /* list_method_entry **********************************************************/
 
@@ -49,16 +77,17 @@ struct list_method_entry {
 
 /* function prototypes ********************************************************/
 
-bool recompile_init(void);
-bool recompile_start_thread(void);
-
-void recompile_queue_method(methodinfo *m);
-
 #ifdef __cplusplus
-}
+extern "C" {
 #endif
 
-#endif /* _RECOMPILE_H */
+void Recompiler_queue_method(methodinfo *m);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif // _RECOMPILER_HPP
 
 
 /*
@@ -67,9 +96,10 @@ void recompile_queue_method(methodinfo *m);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

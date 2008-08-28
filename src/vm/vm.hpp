@@ -36,6 +36,8 @@
 
 #include "vm/properties.hpp"
 
+#include "vm/jit/optimizing/recompiler.hpp"
+
 
 #ifdef __cplusplus
 
@@ -59,6 +61,9 @@ private:
 
 	// Subsystems.
 	Properties _properties; ///< Commandline properties.
+#if defined(ENABLE_THREADS)
+	Recompiler _recompiler; ///< JIT recompilation framework.
+#endif
 
 public:
 	// Constructor, Destructor.
@@ -81,6 +86,7 @@ public:
 	int64_t get_starttime()   { return _starttime; }
 
 	Properties& get_properties() { return _properties; }
+	Recompiler& get_recompiler() { return _recompiler; } // REMOVEME
 };
 
 #else
