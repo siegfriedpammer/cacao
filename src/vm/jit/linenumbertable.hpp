@@ -31,6 +31,7 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
+#include <functional>
 #include <vector>
 #endif
 
@@ -66,7 +67,20 @@ public:
 	inline int32_t get_linenumber() const { return _linenumber; }
 	inline void*   get_pc        () const { return _pc; }
 
-	void resolve(codeinfo* code);
+	void resolve(const codeinfo* code);
+};
+
+
+/**
+ * Unary function to resolve Linenumber objects.
+ */
+class LinenumberResolver : public std::binary_function<Linenumber, codeinfo*, void> {
+public:
+	// Unary resolve function.
+	void operator() (Linenumber& ln, const codeinfo* code) const
+	{
+		ln.resolve(code);
+	}
 };
 
 

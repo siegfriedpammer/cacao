@@ -59,7 +59,7 @@
  *
  * @param code Code structure.
  */
-void Linenumber::resolve(codeinfo* code)
+void Linenumber::resolve(const codeinfo* code)
 {
 	void* pv = ADDR_MASK(void*, code->entrypoint);
 
@@ -77,12 +77,10 @@ void Linenumber::resolve(codeinfo* code)
  *
  * @param jd JIT data.
  */
-//LinenumberTable::LinenumberTable(jitdata* jd) : _linenumbers(jd->cd->linenumbers->size())
-LinenumberTable::LinenumberTable(jitdata* jd)
+LinenumberTable::LinenumberTable(jitdata* jd) : _linenumbers(jd->cd->linenumbers->begin(), jd->cd->linenumbers->end())
 {
 	// Get required compiler data.
-	codeinfo*    code = jd->code;
-	codegendata* cd   = jd->cd;
+	codeinfo* code = jd->code;
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
@@ -90,21 +88,12 @@ LinenumberTable::LinenumberTable(jitdata* jd)
 
 		size_linenumbertable +=
 			sizeof(LinenumberTable) +
-			sizeof(Linenumber) * cd->linenumbers->size();
+			sizeof(Linenumber) * _linenumbers.size();
 	}
 #endif
 
-	// Fill the linenumber table entries in reverse order, so the
-	// search can be forward.
-	for (List<Linenumber>::iterator it = cd->linenumbers->begin(); it != cd->linenumbers->end(); it++) {
-		Linenumber& ln = *it;
-
-		// Resolve the linenumber.
-		ln.resolve(code);
-
-		// Store the linenumber in the vector.
-		_linenumbers.push_back(ln);
-	}
+	// Resolve all linenumbers in the vector.
+	(void) for_each(_linenumbers.begin(), _linenumbers.end(), std::bind2nd(LinenumberResolver(), code));
 }
 
 
