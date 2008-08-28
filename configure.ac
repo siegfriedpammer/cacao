@@ -215,6 +215,11 @@ gnu )
     CXX_FLAGS="-std=c++98 -pedantic -Wall -Wno-long-long $CXX_FLAGS"
     ;;
 
+sgi )
+    CC_FLAGS="-c99 $CC_FLAGS"
+    CXX_FLAGS="$CXX_FLAGS"
+    ;;
+
 sun )
     CC_FLAGS="-xc99 $CC_FLAGS"
     CXX_FLAGS="$CXX_FLAGS"
