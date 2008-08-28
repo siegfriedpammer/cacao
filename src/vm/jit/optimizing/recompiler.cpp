@@ -26,9 +26,7 @@
 #include "config.h"
 
 #include <assert.h>
-#include <stdlib.h>
-
-#include "vm/types.h"
+#include <stdint.h>
 
 #include "mm/memory.h"
 
@@ -36,14 +34,12 @@
 #include "threads/mutex.hpp"
 #include "threads/thread.hpp"
 
-#include "toolbox/list.hpp"
-
-#include "vm/jit/builtin.hpp"
 #include "vm/classcache.h"
 #include "vm/exceptions.hpp"
 #include "vm/options.h"
 #include "vm/string.hpp"
 
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/code.hpp"
 #include "vm/jit/jit.hpp"
 
