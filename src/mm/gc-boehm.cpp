@@ -240,7 +240,7 @@ void *gc_out_of_memory(size_t bytes_requested)
 
 	if (in_gc_out_of_memory) {
 		/* this is all we can do... */
-		VM::get_current()->abort("gc_out_of_memory: out of memory");
+		os::abort("gc_out_of_memory: out of memory");
 	}
 
 	in_gc_out_of_memory = true;

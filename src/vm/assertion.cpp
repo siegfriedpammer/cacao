@@ -36,7 +36,6 @@
 #include "vm/assertion.hpp"
 #include "vm/global.h"
 #include "vm/os.hpp"
-#include "vm/vm.hpp"
 
 
 /* -ea/-da options ************************************************************/
@@ -76,7 +75,7 @@ void assertion_ea_da(const char *name, bool enabled)
 	buf = os::strdup(name);
 
 	if (buf == NULL) {
-		VM::get_current()->abort_errno("assertion_ea_da: strdup failed");
+		os::abort_errno("assertion_ea_da: strdup failed");
 	}
 
 	if ((len > 2) && (strcmp(name + (len - 3), "...") == 0)) {

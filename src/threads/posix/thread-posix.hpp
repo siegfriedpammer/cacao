@@ -43,6 +43,10 @@
 #include "threads/condition.hpp"
 #include "threads/mutex.hpp"
 
+#include "toolbox/list.h"
+
+#include "vm/global.h"
+
 
 /* threadobject ****************************************************************
 
