@@ -34,7 +34,7 @@
 #include "md-abi.h"
 #include "vm/jit/powerpc64/codegen.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
 #include "vm/options.h"
 #include "vm/vm.hpp"

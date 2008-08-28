@@ -36,7 +36,7 @@
 # include "native/include/java_lang_Object.h"
 #endif
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
 #include "vm/exceptions.hpp"
 #include "vm/javaobjects.hpp"

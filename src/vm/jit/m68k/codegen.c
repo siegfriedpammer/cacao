@@ -39,7 +39,7 @@
 #include "native/localref.h"
 #include "native/native.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"

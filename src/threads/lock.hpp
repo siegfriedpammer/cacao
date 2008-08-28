@@ -1,4 +1,4 @@
-/* src/threads/posix/lock.h - lock implementation
+/* src/threads/lock.hpp - lock implementation
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,14 +23,10 @@
 */
 
 
-#ifndef _LOCK_H
-#define _LOCK_H
+#ifndef _LOCK_HPP
+#define _LOCK_HPP
 
-#include "config.h"
-
-#include <pthread.h>
-
-#include "vm/types.h"
+#include <stdint.h>
 
 #include "native/llni.h"
 
@@ -41,9 +37,9 @@
 #include "vm/global.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+/* only define the following stuff with thread enabled ************************/
+
+#if defined(ENABLE_THREADS)
 
 /* typedefs *******************************************************************/
 
@@ -94,6 +90,35 @@ struct lock_hashtable_t {
 };
 
 
+/* functions ******************************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void lock_init(void);
+
+void lock_init_object_lock(java_object_t *);
+
+ptrint lock_pre_compute_thinlock(s4 index);
+
+bool lock_monitor_enter(java_handle_t *);
+bool lock_monitor_exit(java_handle_t *);
+
+#define LOCK_monitor_enter    (functionptr) lock_monitor_enter
+#define LOCK_monitor_exit     (functionptr) lock_monitor_exit
+
+bool lock_is_held_by_current_thread(java_handle_t *o);
+
+void lock_wait_for_object(java_handle_t *o, s8 millis, s4 nanos);
+void lock_notify_object(java_handle_t *o);
+void lock_notify_all_object(java_handle_t *o);
+
+#ifdef __cplusplus
+}
+#endif
+
+
 /* defines ********************************************************************/
 
 #define LOCK_INIT_OBJECT_LOCK(o) lock_init_object_lock((java_object_t *) (o))
@@ -101,11 +126,9 @@ struct lock_hashtable_t {
 #define LOCK_MONITOR_ENTER(o)    lock_monitor_enter((java_handle_t *) LLNI_QUICKWRAP(o))
 #define LOCK_MONITOR_EXIT(o)     lock_monitor_exit((java_handle_t *) LLNI_QUICKWRAP(o))
 
-#ifdef __cplusplus
-}
 #endif
 
-#endif /* _LOCK_H */
+#endif // _LOCK_HPP
 
 
 /*
@@ -114,7 +137,7 @@ struct lock_hashtable_t {
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

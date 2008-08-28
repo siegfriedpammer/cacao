@@ -37,7 +37,7 @@
 
 #include "native/llni.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
 #include "vm/array.h"
 #include "vm/jit/builtin.hpp"

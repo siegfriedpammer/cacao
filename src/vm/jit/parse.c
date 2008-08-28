@@ -34,7 +34,7 @@
 
 #include "native/native.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
 #include "toolbox/logging.h"
 
