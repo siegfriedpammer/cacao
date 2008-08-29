@@ -25,10 +25,12 @@
 
 #include "config.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "native/jni.hpp"
+#include INCLUDE_JNI_MD_H
+#include INCLUDE_JNI_H
 
 
 JNIEXPORT jobject JNICALL Java_testarguments_adr(JNIEnv *env, jclass clazz, jint i)

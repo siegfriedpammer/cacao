@@ -25,15 +25,17 @@
 
 #include "config.h"
 
-/* We include hpi_md.h before hpi.h as the latter includes the
-   former. */
+// Include our JNI header before the HPI headers, because the HPI
+// headers include jni.h and we want to override the typedefs in
+// jni.h.
+#include "native/jni.hpp"
 
+// We include hpi_md.h before hpi.h as the latter includes the former.
 #include INCLUDE_HPI_MD_H
 #include INCLUDE_HPI_H
 
 #include "mm/memory.h"
 
-#include "native/jni.hpp"
 #include "native/native.hpp"
 
 #include "native/vm/openjdk/hpi.h"
