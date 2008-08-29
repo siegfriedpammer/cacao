@@ -37,7 +37,7 @@
 #include <sched.h>
 
 #include "native/jni.hpp"
-#include "native/native.h"
+#include "native/native.hpp"
 #include "native/jvmti/cacaodbg.h"
 #include "native/jvmti/jvmti.h"
 #include "vm/jit/stacktrace.hpp"

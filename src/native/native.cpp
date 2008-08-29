@@ -1,4 +1,4 @@
-/* src/native/native.c - native library support
+/* src/native/native.cpp - native library support
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -35,7 +35,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.hpp"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "native/vm/nativevm.h"
 
@@ -124,8 +124,8 @@ static s4 native_tree_native_methods_comparator(const void *treenode, const void
 	const native_methods_node_t *treenmn;
 	const native_methods_node_t *nmn;
 
-	treenmn = treenode;
-	nmn     = node;
+	treenmn = (native_methods_node_t*) treenode;
+	nmn     = (native_methods_node_t*) node;
 
 	/* these are for walking the tree */
 
@@ -386,7 +386,7 @@ static utf *native_method_symbol(utf *classname, utf *methodname)
 
 	/* check for an buffer overflow */
 
-	assert(pos <= namelen);
+	assert((int32_t) pos <= namelen);
 
 	/* make a utf-string */
 
@@ -463,7 +463,7 @@ static functionptr native_method_find(methodinfo *m)
 
 	/* find the entry in the AVL-tree */
 
-	nmn = avl_find(tree_native_methods, &tmpnmn);
+	nmn = (native_methods_node_t*) avl_find(tree_native_methods, &tmpnmn);
 
 	if (nmn == NULL)
 		return NULL;
@@ -533,7 +533,7 @@ functionptr native_method_resolve(methodinfo *m)
 
 	key  = ((u4) (ptrint) cl) >> 4;                       /* align to 16-byte */
 	slot = key & (hashtable_library->size - 1);
-	le   = hashtable_library->ptr[slot];
+	le   = (hashtable_library_loader_entry*) hashtable_library->ptr[slot];
 
 	/* iterate through loaders in this hash slot */
 
@@ -543,10 +543,10 @@ functionptr native_method_resolve(methodinfo *m)
 		ne = le->namelink;
 			
 		while ((ne != NULL) && (f == NULL)) {
-			f = (functionptr) (ptrint) os_dlsym(ne->handle, name->text);
+			f = (functionptr) (ptrint) os::dlsym(ne->handle, name->text);
 
 			if (f == NULL)
-				f = (functionptr) (ptrint) os_dlsym(ne->handle, newname->text);
+				f = (functionptr) (ptrint) os::dlsym(ne->handle, newname->text);
 
 			ne = ne->hashlink;
 		}
@@ -647,7 +647,7 @@ void* native_library_open(utf *filename)
 
 	/* try to open the library */
 
-	handle = os_dlopen(filename->text, RTLD_LAZY);
+	handle = os::dlopen(filename->text, RTLD_LAZY);
 
 	if (handle == NULL) {
 		if (opt_verbosejni)
@@ -655,7 +655,7 @@ void* native_library_open(utf *filename)
 
 		if (opt_verbose) {
 			log_start();
-			log_print("native_library_open: os_dlopen failed: ");
+			log_print("native_library_open: os::dlopen failed: ");
 			log_print(dlerror());
 			log_finish();
 		}
@@ -693,12 +693,12 @@ void native_library_close(void* handle)
 
 	/* Close the library. */
 
-	result = os_dlclose(handle);
+	result = os::dlclose(handle);
 
 	if (result != 0) {
 		if (opt_verbose) {
 			log_start();
-			log_print("native_library_close: os_dlclose failed: ");
+			log_print("native_library_close: os::dlclose failed: ");
 			log_print(dlerror());
 			log_finish();
 		}
@@ -721,13 +721,13 @@ void native_library_add(utf *filename, classloader_t *loader, void* handle)
 	u4   key;                           /* hashkey                            */
 	u4   slot;                          /* slot in hashtable                  */
 
-	Mutex_lock(hashtable_library->mutex);
+	hashtable_library->mutex->lock();
 
 	/* normally addresses are aligned to 4, 8 or 16 bytes */
 
 	key  = ((u4) (ptrint) loader) >> 4;        /* align to 16-byte boundaries */
 	slot = key & (hashtable_library->size - 1);
-	le   = hashtable_library->ptr[slot];
+	le   = (hashtable_library_loader_entry*) hashtable_library->ptr[slot];
 
 	/* search external hash chain for the entry */
 
@@ -764,8 +764,7 @@ void native_library_add(utf *filename, classloader_t *loader, void* handle)
 
 	while (ne) {
 		if (ne->name == filename) {
-			Mutex_unlock(hashtable_library->mutex);
-
+			hashtable_library->mutex->unlock();
 			return;
 		}
 
@@ -784,7 +783,7 @@ void native_library_add(utf *filename, classloader_t *loader, void* handle)
 	ne->hashlink = le->namelink;
 	le->namelink = ne;
 
-	Mutex_unlock(hashtable_library->mutex);
+	hashtable_library->mutex->unlock();
 }
 #endif
 
@@ -808,7 +807,7 @@ hashtable_library_name_entry *native_library_find(utf *filename,
 
 	key  = ((u4) (ptrint) loader) >> 4;        /* align to 16-byte boundaries */
 	slot = key & (hashtable_library->size - 1);
-	le   = hashtable_library->ptr[slot];
+	le   = (hashtable_library_loader_entry*) hashtable_library->ptr[slot];
 
 	/* search external hash chain for the entry */
 
@@ -885,7 +884,7 @@ int native_library_load(JNIEnv *env, utf *name, classloader_t *cl)
 # if defined(ENABLE_JNI)
 	/* Resolve JNI_OnLoad function. */
 
-	onload = os_dlsym(handle, "JNI_OnLoad");
+	onload = os::dlsym(handle, "JNI_OnLoad");
 
 	if (onload != NULL) {
 		JNIEXPORT int32_t (JNICALL *JNI_OnLoad) (JavaVM *, void *);
@@ -893,7 +892,7 @@ int native_library_load(JNIEnv *env, utf *name, classloader_t *cl)
 
 		JNI_OnLoad = (JNIEXPORT int32_t (JNICALL *)(JavaVM *, void *)) (ptrint) onload;
 
-		(*env)->GetJavaVM(env, &vm);
+		env->GetJavaVM(&vm);
 
 		version = JNI_OnLoad(vm, NULL);
 
@@ -901,7 +900,7 @@ int native_library_load(JNIEnv *env, utf *name, classloader_t *cl)
 		   loaded. */
 
 		if ((version != JNI_VERSION_1_2) && (version != JNI_VERSION_1_4)) {
-			os_dlclose(handle);
+			os::dlclose(handle);
 			return 0;
 		}
 	}
@@ -1000,7 +999,7 @@ java_handle_t *native_new_and_init_string(classinfo *c, java_handle_t *s)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

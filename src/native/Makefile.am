@@ -47,8 +47,8 @@ libnative_la_SOURCES = \
 	$(JNI_SOURCES) \
 	llni.c \
 	llni.h \
-	native.c \
-	native.h
+	native.cpp \
+	native.hpp
 
 libnative_la_LIBADD = \
 	vm/libnativevm.la \

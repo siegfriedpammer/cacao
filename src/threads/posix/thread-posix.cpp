@@ -50,7 +50,7 @@
 #endif
 
 #include "native/llni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "threads/condition.hpp"
 #include "threads/lock.hpp"

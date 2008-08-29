@@ -40,7 +40,7 @@
 #include "mm/memory.h"
 
 #include "native/localref.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "threads/lock.hpp"
 

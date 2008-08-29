@@ -32,7 +32,7 @@
 
 #include "mm/memory.h"
 
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "threads/lock.hpp"
 #include "threads/mutex.hpp"

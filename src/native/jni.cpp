@@ -37,7 +37,7 @@
 #include "native/jni.hpp"
 #include "native/llni.h"
 #include "native/localref.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/cacaodbg.h"

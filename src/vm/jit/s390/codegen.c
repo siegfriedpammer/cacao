@@ -35,7 +35,7 @@
 #include "vm/jit/s390/md-abi.h"
 
 #include "native/localref.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "mm/memory.h"
 

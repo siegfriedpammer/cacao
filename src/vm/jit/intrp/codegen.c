@@ -45,7 +45,7 @@
 
 #include "mm/memory.h"
 
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "vm/jit/builtin.hpp"
 #include "vm/class.h"

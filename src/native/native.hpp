@@ -1,4 +1,4 @@
-/* src/native/native.h - native library support
+/* src/native/native.hpp - native library support
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,10 +23,8 @@
 */
 
 
-#ifndef _NATIVE_H
-#define _NATIVE_H
-
-#include "config.h"
+#ifndef _NATIVE_HPP
+#define _NATIVE_HPP
 
 #include <stdint.h>
 
@@ -114,10 +112,10 @@ java_handle_t *native_new_and_init(classinfo *c);
 java_handle_t *native_new_and_init_string(classinfo *c, java_handle_t *s);
 
 #ifdef __cplusplus
-}
+} // extern "C"
 #endif
 
-#endif /* _NATIVE_H */
+#endif // _NATIVE_HPP
 
 
 /*
@@ -126,7 +124,7 @@ java_handle_t *native_new_and_init_string(classinfo *c, java_handle_t *s);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

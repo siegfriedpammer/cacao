@@ -34,7 +34,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.hpp"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "native/vm/openjdk/hpi.h"
 

@@ -59,7 +59,7 @@
 
 #include "native/llni.h"
 #include "native/localref.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "threads/thread.hpp"
 

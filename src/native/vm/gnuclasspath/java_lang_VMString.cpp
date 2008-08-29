@@ -29,7 +29,7 @@
 #include <stdlib.h>
 
 #include "native/jni.hpp"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/vm/include/java_lang_VMString.h"

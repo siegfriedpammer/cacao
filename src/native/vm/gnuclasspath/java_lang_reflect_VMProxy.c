@@ -28,7 +28,7 @@
 #include <stdlib.h>
 
 #include "native/jni.hpp"
-#include "native/native.h"
+#include "native/native.hpp"
 
 // FIXME
 //#include "native/include/java_lang_reflect_VMProxy.h"

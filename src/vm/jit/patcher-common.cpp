@@ -37,7 +37,7 @@
 
 #include "mm/memory.h"
 
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "toolbox/list.hpp"
 #include "toolbox/logging.h"           /* XXX remove me! */

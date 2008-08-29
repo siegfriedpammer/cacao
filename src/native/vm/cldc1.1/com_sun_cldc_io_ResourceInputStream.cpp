@@ -35,7 +35,7 @@
 
 #include "native/jni.hpp"
 #include "native/llni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/include/com_sun_cldc_io_ResourceInputStream.h"

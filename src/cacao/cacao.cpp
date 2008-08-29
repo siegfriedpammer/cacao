@@ -39,7 +39,7 @@
 #include "vm/types.h"
 
 #include "native/jni.hpp"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/jvmti.h"

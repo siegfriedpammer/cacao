@@ -265,9 +265,7 @@ extern "C" {
 #if defined(ENABLE_JRE_LAYOUT)
 	char*  os_dirname(char* path) { return os::dirname(path); }
 #endif
-	int    os_dlclose(void* handle) { return os::dlclose(handle); }
 	char*  os_dlerror(void) { return os::dlerror(); }
-	void*  os_dlopen(const char* filename, int flag) { return os::dlopen(filename, flag); }
 	void*  os_dlsym(void* handle, const char* symbol) { return os::dlsym(handle, symbol); }
 	int    os_fclose(FILE* fp) { return os::fclose(fp); }
 	FILE*  os_fopen(const char* path, const char* mode) { return os::fopen(path, mode); }

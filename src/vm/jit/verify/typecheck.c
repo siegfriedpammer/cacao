@@ -143,7 +143,7 @@ error reporting.
 
 #include "mm/memory.h"
 
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "toolbox/logging.h"
 

@@ -28,7 +28,7 @@
 #include <stdint.h>
 
 #include "native/jni.hpp"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/include/java_lang_Float.h"
