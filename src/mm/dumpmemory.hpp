@@ -149,20 +149,13 @@ public:
 		typedef DumpMemoryAllocator<U> other;
 	};
 
-	/* constructors and destructor
-	 * - nothing to do because the allocator has no state
-	 */
-	DumpMemoryAllocator() throw() {
-	}
+	// Constructors and destructor, nothing to do because the
+	// allocator has no state.
+	DumpMemoryAllocator() throw() {}
+	DumpMemoryAllocator(const DumpMemoryAllocator&) throw() {}
+	template <class U> DumpMemoryAllocator(const DumpMemoryAllocator<U>&) throw() {}
 
-	DumpMemoryAllocator(const DumpMemoryAllocator&) throw() {
-	}
-
-	template <class U> DumpMemoryAllocator(const DumpMemoryAllocator<U>&) throw() {
-	}
-
-	~DumpMemoryAllocator() throw() {
-	}
+	~DumpMemoryAllocator() throw() {}
 
 	pointer allocate(size_type n, void* = 0) {
 // 		printf("allocate: n=%d * %d\n", n, sizeof(T));
