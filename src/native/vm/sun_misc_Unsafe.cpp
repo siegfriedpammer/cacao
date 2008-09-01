@@ -1145,10 +1145,21 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLongVolatile(JNIEnv *env, jobject
 
 /*
  * Class:     sun/misc/Unsafe
+ * Method:    getFloatVolatile
+ * Signature: (Ljava/lang/Object;J)F
+ */
+JNIEXPORT jfloat JNICALL Java_sun_misc_Unsafe_getFloatVolatile(JNIEnv* env, jobject _this, jobject o, jlong offset)
+{
+	UNSAFE_GET_VOLATILE(float);
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
  * Method:    getDoubleVolatile
  * Signature: (Ljava/lang/Object;J)D
  */
-JNIEXPORT jdouble JNICALL Java_sun_misc_Unsafe_getDoubleVolatile(JNIEnv *env, jobject __this, jobject o, jlong offset)
+JNIEXPORT jdouble JNICALL Java_sun_misc_Unsafe_getDoubleVolatile(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
 	UNSAFE_GET_VOLATILE(double);
 }
@@ -1294,6 +1305,7 @@ static JNINativeMethod methods[] = {
 	{ (char*) "putIntVolatile",         (char*) "(Ljava/lang/Object;JI)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putIntVolatile                   },
 	{ (char*) "getLongVolatile",        (char*) "(Ljava/lang/Object;J)J",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getLongVolatile                  },
 	{ (char*) "putLongVolatile",        (char*) "(Ljava/lang/Object;JJ)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putLongVolatile                  },
+	{ (char*) "getFloatVolatile",       (char*) "(Ljava/lang/Object;J)F",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getFloatVolatile                 },
 	{ (char*) "getDoubleVolatile",      (char*) "(Ljava/lang/Object;J)D",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getDoubleVolatile                },
 	{ (char*) "putOrderedObject",       (char*) "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void*) (uintptr_t) &Java_sun_misc_Unsafe_putOrderedObject                 },
 	{ (char*) "putOrderedInt",          (char*) "(Ljava/lang/Object;JI)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putOrderedInt                    },
