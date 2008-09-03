@@ -34,6 +34,8 @@
 #include "toolbox/list.hpp"
 #include "toolbox/logging.h"
 
+#include "vm/jit/stacktrace.hpp"
+
 
 /* class variables */
 

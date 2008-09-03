@@ -205,8 +205,6 @@ inline static threadobject* thread_get_current(void);
 # include "vm/jit/replace.hpp"
 #endif
 
-#include "vm/jit/stacktrace.hpp"
-
 #if defined(ENABLE_INTRP)
 #include "vm/jit/intrp/intrp.h"
 #endif
@@ -271,12 +269,12 @@ inline static void thread_set_current(threadobject* t)
 }
 
 
-inline static stackframeinfo_t *threads_get_current_stackframeinfo(void)
+inline static struct stackframeinfo_t* threads_get_current_stackframeinfo(void)
 {
 	return THREADOBJECT->_stackframeinfo;
 }
 
-inline static void threads_set_current_stackframeinfo(stackframeinfo_t *sfi)
+inline static void threads_set_current_stackframeinfo(struct stackframeinfo_t* sfi)
 {
 	THREADOBJECT->_stackframeinfo = sfi;
 }
