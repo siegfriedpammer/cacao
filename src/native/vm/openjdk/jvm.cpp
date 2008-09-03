@@ -2990,35 +2990,31 @@ jstring JVM_InternString(JNIEnv *env, jstring str)
 
 JNIEXPORT void* JNICALL JVM_RawMonitorCreate(void)
 {
-	java_object_t *o;
-
 	TRACEJVMCALLS(("JVM_RawMonitorCreate()"));
 
-	o = NEW(java_object_t);
+	Mutex* m = new Mutex();
 
-	lock_init_object_lock(o);
-
-	return o;
+	return m;
 }
 
 
 /* JVM_RawMonitorDestroy */
 
-JNIEXPORT void JNICALL JVM_RawMonitorDestroy(void *mon)
+JNIEXPORT void JNICALL JVM_RawMonitorDestroy(void* mon)
 {
 	TRACEJVMCALLS(("JVM_RawMonitorDestroy(mon=%p)", mon));
 
-	FREE(mon, java_object_t);
+	delete ((Mutex*) mon);
 }
 
 
 /* JVM_RawMonitorEnter */
 
-JNIEXPORT jint JNICALL JVM_RawMonitorEnter(void *mon)
+JNIEXPORT jint JNICALL JVM_RawMonitorEnter(void* mon)
 {
 	TRACEJVMCALLS(("JVM_RawMonitorEnter(mon=%p)", mon));
 
-	(void) lock_monitor_enter((java_object_t *) mon);
+	((Mutex*) mon)->lock();
 
 	return 0;
 }
@@ -3026,11 +3022,11 @@ JNIEXPORT jint JNICALL JVM_RawMonitorEnter(void *mon)
 
 /* JVM_RawMonitorExit */
 
-JNIEXPORT void JNICALL JVM_RawMonitorExit(void *mon)
+JNIEXPORT void JNICALL JVM_RawMonitorExit(void* mon)
 {
 	TRACEJVMCALLS(("JVM_RawMonitorExit(mon=%p)", mon));
 
-	(void) lock_monitor_exit((java_object_t *) mon);
+	((Mutex*) mon)->unlock();
 }
 
 
