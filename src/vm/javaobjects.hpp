@@ -33,6 +33,8 @@
 
 #include "native/llni.h"
 
+#include "threads/atomic.hpp"
+
 #include "vm/class.h"
 #include "vm/field.hpp"
 #include "vm/global.h"
@@ -77,22 +79,24 @@ template<class T> inline void RawFieldAccess::raw_set(void* address, const off_t
  * afterwards.
  */
 class FieldAccess : private RawFieldAccess {
-protected:
+public:
+	// Normal field accessors.
 	template<class T> static inline T    get(java_handle_t* h, const off_t offset);
 	template<class T> static inline void set(java_handle_t* h, const off_t offset, T value);
+
+	// Volatile field accessors.
+	template<class T> static inline T    get_volatile(java_handle_t* h, const off_t offset);
+	template<class T> static inline void set_volatile(java_handle_t* h, const off_t offset, T value);
 };
+
 
 template<class T> inline T FieldAccess::get(java_handle_t* h, const off_t offset)
 {
-	java_object_t* o;
-	T result;
-
 	GC::critical_enter();
 
 	// XXX This should be _handle->get_object();
-	o = LLNI_UNWRAP(h);
-
-	result = raw_get<T>(o, offset);
+	java_object_t* ho = LLNI_UNWRAP(h);
+	T result = raw_get<T>(ho, offset);
 
 	GC::critical_leave();
 
@@ -101,18 +105,12 @@ template<class T> inline T FieldAccess::get(java_handle_t* h, const off_t offset
 
 template<> inline java_handle_t* FieldAccess::get(java_handle_t* h, const off_t offset)
 {
-	java_object_t* o;
-	java_object_t* result;
-	java_handle_t* hresult;
-
 	GC::critical_enter();
 
 	// XXX This should be _handle->get_object();
-	o = LLNI_UNWRAP(h);
-
-	result = raw_get<java_object_t*>(o, offset);
-
-	hresult = LLNI_WRAP(result);
+	java_object_t* o = LLNI_UNWRAP(h);
+	java_object_t* result = raw_get<java_object_t*>(o, offset);
+	java_handle_t* hresult = LLNI_WRAP(result);
 
 	GC::critical_leave();
 
@@ -122,30 +120,80 @@ template<> inline java_handle_t* FieldAccess::get(java_handle_t* h, const off_t 
 
 template<class T> inline void FieldAccess::set(java_handle_t* h, const off_t offset, T value)
 {
-	java_object_t* o;
-
 	GC::critical_enter();
 
-	// XXX This should be h->get_object();
-	o = LLNI_UNWRAP(h);
-
-	raw_set(o, offset, value);
+	java_object_t* ho = LLNI_UNWRAP(h);
+	raw_set(ho, offset, value);
 
 	GC::critical_leave();
 }
 
 template<> inline void FieldAccess::set<java_handle_t*>(java_handle_t* h, const off_t offset, java_handle_t* value)
 {
-	java_object_t* o;
-	java_object_t* ovalue;
-
 	GC::critical_enter();
 
 	// XXX This should be h->get_object();
-	o      = LLNI_UNWRAP(h);
-	ovalue = LLNI_UNWRAP(value);
+	java_object_t* o      = LLNI_UNWRAP(h);
+	java_object_t* ovalue = LLNI_UNWRAP(value);
 
 	raw_set(o, offset, ovalue);
+
+	GC::critical_leave();
+}
+
+
+template<class T> inline T FieldAccess::get_volatile(java_handle_t* h, const off_t offset)
+{
+	GC::critical_enter();
+
+	// XXX This should be _handle->get_object();
+	java_object_t* ho = LLNI_UNWRAP(h);
+	T result = raw_get<volatile T>(ho, offset);
+
+	GC::critical_leave();
+
+	return result;
+}
+
+template<> inline java_handle_t* FieldAccess::get_volatile(java_handle_t* h, const off_t offset)
+{
+	GC::critical_enter();
+
+	// XXX This should be _handle->get_object();
+	java_object_t* o = LLNI_UNWRAP(h);
+	java_object_t* result = (java_object_t*) raw_get<volatile java_object_t*>(o, offset);
+	java_handle_t* hresult = LLNI_WRAP(result);
+
+	GC::critical_leave();
+
+	return hresult;
+}	
+
+
+template<class T> inline void FieldAccess::set_volatile(java_handle_t* h, const off_t offset, T value)
+{
+	GC::critical_enter();
+
+	java_object_t* ho = LLNI_UNWRAP(h);
+	raw_set(ho, offset, (volatile T) value);
+
+	// Memory barrier for the Java Memory Model.
+	Atomic::memory_barrier();
+
+	GC::critical_leave();
+}
+
+template<> inline void FieldAccess::set_volatile<java_handle_t*>(java_handle_t* h, const off_t offset, java_handle_t* value)
+{
+	GC::critical_enter();
+
+	// XXX This should be h->get_object();
+	java_object_t* o      = LLNI_UNWRAP(h);
+	java_object_t* ovalue = LLNI_UNWRAP(value);
+	raw_set(o, offset, (volatile java_object_t*) ovalue);
+
+	// Memory barrier for the Java Memory Model.
+	Atomic::memory_barrier();
 
 	GC::critical_leave();
 }
