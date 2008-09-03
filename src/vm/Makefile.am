@@ -80,8 +80,8 @@ libvm_la_SOURCES = \
 	access.c \
 	access.h \
 	$(ANNOTATION_SOURCES) \
-	array.c \
-	array.h \
+	array.cpp \
+	array.hpp \
 	$(ASSERTION_SOURCES) \
 	class.c \
 	class.h \

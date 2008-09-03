@@ -38,7 +38,7 @@
 # include "native/vm/include/java_lang_VMThrowable.h"
 #endif
 
-#include "vm/array.h"
+#include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"

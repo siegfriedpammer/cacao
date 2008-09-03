@@ -57,7 +57,7 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/array.h"
+#include "vm/array.hpp"
 
 #if defined(ENABLE_ASSERTION)
 #include "vm/assertion.hpp"

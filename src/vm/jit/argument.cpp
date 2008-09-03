@@ -34,7 +34,7 @@
 
 #include "native/llni.h"
 
-#include "vm/array.h"
+#include "vm/array.hpp"
 #include "vm/descriptor.h"
 #include "vm/global.h"
 #include "vm/method.h"

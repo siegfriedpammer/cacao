@@ -412,7 +412,7 @@ java_handle_t* Primitive::box(int type, imm_union value)
 		break;
 	default:
 		o = NULL;
-		os::abort("primitive_box: invalid primitive type %d", type);
+		os::abort("Primitive::box: Invalid primitive type %d", type);
 	}
 
 	return o;
@@ -473,7 +473,7 @@ imm_union Primitive::unbox(java_handle_t *h)
 		value.a = h;
 		break;
 	default:
-		os::abort("Primitive::unbox: invalid primitive type %d", type);
+		os::abort("Primitive::unbox: Invalid primitive type %d", type);
 	}
 
 	return value;
@@ -652,11 +652,9 @@ inline double Primitive::unbox_double(java_handle_t *h)
 
 extern "C" {
 
-	classinfo* Primitive_get_class_by_name(utf *name) { return Primitive::get_class_by_name(name); }
+classinfo* Primitive_get_class_by_name(utf *name) { return Primitive::get_class_by_name(name); }
 classinfo* Primitive_get_class_by_type(int type) { return Primitive::get_class_by_type(type); }
 classinfo* Primitive_get_arrayclass_by_type(int type) { return Primitive::get_arrayclass_by_type(type); }
-java_handle_t* Primitive_box(int type, imm_union value) { return Primitive::box(type, value); }
-imm_union Primitive_unbox(java_handle_t *h) { return Primitive::unbox(h); }
 }
 
 

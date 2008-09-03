@@ -1,4 +1,4 @@
-/* src/vm/array.c - Java array functions
+/* src/vm/array.cpp - Java array functions
 
    Copyright (C) 2007
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -29,7 +29,7 @@
 
 #include "native/llni.h"
 
-#include "vm/array.h"
+#include "vm/array.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/primitive.hpp"
@@ -60,7 +60,7 @@ java_handle_t *array_element_get(java_handle_t *a, int32_t index)
 
 	value = array_element_primitive_get(a, index);
 
-	o = Primitive_box(type, value);
+	o = Primitive::box(type, value);
 
 	return o;
 }
@@ -76,7 +76,7 @@ void array_element_set(java_handle_t *a, int32_t index, java_handle_t *o)
 {
 	imm_union value;
 
-	value = Primitive_unbox(o);
+	value = Primitive::unbox(o);
 
 	array_element_primitive_set(a, index, value);
 }
@@ -204,7 +204,7 @@ void array_element_primitive_set(java_handle_t *a, int32_t index, imm_union valu
 		break;
 	case ARRAYTYPE_OBJECT:
 		array_objectarray_element_set((java_handle_objectarray_t *) a,
-									  index, value.a);
+									  index, static_cast<java_handle_t*>(value.a));
 		break;
 	default:
 		vm_abort("array_element_primitive_set: invalid array element type %d",
@@ -387,7 +387,7 @@ int32_t array_length_get(java_handle_t *a)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

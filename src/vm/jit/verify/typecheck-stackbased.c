@@ -32,7 +32,7 @@
 #include "vm/jit/builtin.hpp"
 #include "mm/memory.h"
 
-#include "vm/array.h"
+#include "vm/array.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"

@@ -1,4 +1,4 @@
-/* src/vm/array.h - Java array functions
+/* src/vm/array.hpp - Java array functions
 
    Copyright (C) 2007
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,16 +23,12 @@
 */
 
 
-#ifndef _VM_ARRAY_H
-#define _VM_ARRAY_H
+#ifndef _VM_ARRAY_HPP
+#define _VM_ARRAY_HPP
 
 #include "config.h"
 
 #include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include "vm/global.h"
 #include "vm/primitive.hpp"
@@ -56,6 +52,10 @@ extern "C" {
 
 
 /* function prototypes ********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 java_handle_t *array_element_get(java_handle_t *a, int32_t index);
 void           array_element_set(java_handle_t *a, int32_t index, java_handle_t *o);
@@ -86,10 +86,10 @@ void           array_objectarray_element_set(java_handle_objectarray_t *a, int32
 int32_t        array_length_get(java_handle_t *a);
 
 #ifdef __cplusplus
-}
+} // extern "C"
 #endif
 
-#endif /* _VM_ARRAY_H */
+#endif // _VM_ARRAY_HPP
 
 
 /*
@@ -98,7 +98,7 @@ int32_t        array_length_get(java_handle_t *a);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

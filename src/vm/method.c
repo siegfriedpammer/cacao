@@ -37,7 +37,7 @@
 
 #include "threads/mutex.hpp"
 
-#include "vm/array.h"
+#include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/exceptions.hpp"
