@@ -1,4 +1,4 @@
-/* src/native/localref.c - Management of local reference tables
+/* src/native/localref.cpp - Management of local reference tables
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -30,7 +30,7 @@
 
 #include "mm/memory.h"
 
-#include "native/localref.h"
+#include "native/localref.hpp"
 
 #include "threads/thread.hpp"
 
@@ -39,7 +39,7 @@
 #include "vm/options.h"
 #include "vm/vm.hpp"
 
-#include "vm/jit/argument.h"
+#include "vm/jit/argument.hpp"
 
 
 /* debug **********************************************************************/
@@ -92,10 +92,10 @@ bool localref_table_init(void)
 
 #if !defined(ENABLE_GC_BOEHM)
 	/* this is freed by localref_table_destroy */
-	lrt = NEW(localref_table);
+	lrt = (localref_table*) NEW(localref_table);
 #else
 	/* this does not need to be freed again */
-	lrt = GCNEW(localref_table);
+	lrt = (localref_table*) GCNEW(localref_table);
 #endif
 
 	if (lrt == NULL)
@@ -633,7 +633,7 @@ static bool localref_check_uncleared()
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

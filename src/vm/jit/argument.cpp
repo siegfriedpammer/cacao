@@ -1,4 +1,4 @@
-/* src/vm/jit/argument.c - argument passing from and to JIT methods
+/* src/vm/jit/argument.cpp - argument passing from and to JIT methods
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -132,7 +132,7 @@ void argument_jitarray_store(methoddesc *md, int32_t index,
 			}
 			break;
 		default:
-			vm_abort("argument_jitarray_store: type not implemented");
+			os::abort("argument_jitarray_store: type not implemented");
 			break;
 	}
 }
@@ -189,7 +189,7 @@ void argument_jitreturn_store(methoddesc *md, uint64_t *return_regs, imm_union r
 #endif
 			break;
 		default:
-			vm_abort("argument_jitreturn_store: type not implemented");
+			os::abort("argument_jitreturn_store: type not implemented");
 			break;
 	}
 }
@@ -393,9 +393,8 @@ uint64_t *argument_vmarray_from_valist(methodinfo *m, java_handle_t *o, va_list 
 	pd = md->params;
 	td = md->paramtypes;
 
-	/* allocate argument array */
-
-	array = DMNEW(uint64_t, INT_ARG_CNT + FLT_ARG_CNT + md->memuse);
+	// Allocate argument array.
+	array = (uint64_t*) DumpMemory::allocate(sizeof(uint64_t) * (INT_ARG_CNT + FLT_ARG_CNT + md->memuse));
 
 	/* if method is non-static fill first block and skip `this' pointer */
 
@@ -441,7 +440,7 @@ uint64_t *argument_vmarray_from_valist(methodinfo *m, java_handle_t *o, va_list 
 
 		case TYPE_ADR: 
 			value.a = va_arg(ap, void*);
-			argument_vmarray_store_adr(array, pd, value.a);
+			argument_vmarray_store_adr(array, pd, static_cast<java_handle_t*>(value.a));
 			break;
 		}
 	}
@@ -478,9 +477,9 @@ uint64_t *argument_vmarray_from_jvalue(methodinfo *m, java_handle_t *o,
 	/* allocate argument array */
 
 #if defined(HAS_ADDRESS_REGISTER_FILE)
-	array = DMNEW(uint64_t, INT_ARG_CNT + FLT_ARG_CNT + ADR_ARG_CNT + md->memuse);
+	array = (uint64_t*) DumpMemory::allocate(sizeof(uint64_t) * (INT_ARG_CNT + FLT_ARG_CNT + ADR_ARG_CNT + md->memuse));
 #else
-	array = DMNEW(uint64_t, INT_ARG_CNT + FLT_ARG_CNT + md->memuse);
+	array = (uint64_t*) DumpMemory::allocate(sizeof(uint64_t) * (INT_ARG_CNT + FLT_ARG_CNT + md->memuse));
 #endif
 
 	/* if method is non-static fill first block and skip `this' pointer */
@@ -560,7 +559,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 
 	/* allocate argument array */
 
-	array = DMNEW(uint64_t, INT_ARG_CNT + FLT_ARG_CNT + md->memuse);
+	array = (uint64_t*) DumpMemory::allocate(sizeof(uint64_t) * (INT_ARG_CNT + FLT_ARG_CNT + md->memuse));
 
 	/* The array can be NULL if we don't have any arguments to pass
 	   and the architecture does not have any argument registers
@@ -596,7 +595,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 			/* convert the value according to its declared type */
 
 			LLNI_class_get(param, c);
-			type = Primitive_get_type_by_wrapperclass(c);
+			type = Primitive::get_type_by_wrapperclass(c);
 
 			switch (td->primitivetype) {
 			case PRIMITIVETYPE_BOOLEAN:
@@ -653,11 +652,11 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 				break;
 
 			default:
-				vm_abort("argument_vmarray_from_objectarray: invalid type %d",
+				os::abort("argument_vmarray_from_objectarray: invalid type %d",
 						 td->primitivetype);
 			}
 
-			value = Primitive_unbox(param);
+			value = Primitive::unbox(param);
 			argument_vmarray_store_int(array, pd, value.i);
 			break;
 
@@ -666,7 +665,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 				return NULL;
 
 			LLNI_class_get(param, c);
-			type = Primitive_get_type_by_wrapperclass(c);
+			type = Primitive::get_type_by_wrapperclass(c);
 
 			assert(td->primitivetype == PRIMITIVETYPE_LONG);
 
@@ -681,7 +680,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 				return NULL;
 			}
 
-			value = Primitive_unbox(param);
+			value = Primitive::unbox(param);
 			argument_vmarray_store_lng(array, pd, value.l);
 			break;
 
@@ -690,7 +689,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 				return NULL;
 
 			LLNI_class_get(param, c);
-			type = Primitive_get_type_by_wrapperclass(c);
+			type = Primitive::get_type_by_wrapperclass(c);
 
 			assert(td->primitivetype == PRIMITIVETYPE_FLOAT);
 
@@ -702,7 +701,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 				return NULL;
 			}
 
-			value = Primitive_unbox(param);
+			value = Primitive::unbox(param);
 			argument_vmarray_store_flt(array, pd, value.l);
 			break;
 
@@ -711,7 +710,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 				return NULL;
 
 			LLNI_class_get(param, c);
-			type = Primitive_get_type_by_wrapperclass(c);
+			type = Primitive::get_type_by_wrapperclass(c);
 
 			assert(td->primitivetype == PRIMITIVETYPE_DOUBLE);
 
@@ -724,7 +723,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 				return NULL;
 			}
 
-			value = Primitive_unbox(param);
+			value = Primitive::unbox(param);
 			argument_vmarray_store_dbl(array, pd, value.l);
 			break;
 		
@@ -747,7 +746,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 			break;
 
 		default:
-			vm_abort("argument_vmarray_from_objectarray: invalid type %d", td->type);
+			os::abort("argument_vmarray_from_objectarray: invalid type %d", td->type);
 		}
 	}
 
@@ -761,7 +760,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

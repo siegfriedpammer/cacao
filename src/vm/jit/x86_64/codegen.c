@@ -39,7 +39,7 @@
 
 #include "mm/memory.h"
 
-#include "native/localref.h"
+#include "native/localref.hpp"
 #include "native/native.hpp"
 
 #include "threads/lock.hpp"

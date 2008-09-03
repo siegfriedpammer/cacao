@@ -130,10 +130,7 @@ void       primitive_postinit(void);
 classinfo *Primitive_get_class_by_name(utf *name);
 classinfo *Primitive_get_class_by_type(int type);
 
-classinfo *Primitive_get_arrayclass_by_name(utf *name);
 classinfo *Primitive_get_arrayclass_by_type(int type);
-
-int        Primitive_get_type_by_wrapperclass(classinfo *c);
 
 java_handle_t *Primitive_box(int type, imm_union value);
 imm_union      Primitive_unbox(java_handle_t *h);

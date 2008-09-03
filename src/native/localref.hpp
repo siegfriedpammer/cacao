@@ -1,4 +1,4 @@
-/* src/native/localref.h - Management of local reference tables
+/* src/native/localref.hpp - Management of local reference tables
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _LOCALREF_H
-#define _LOCALREF_H
+#ifndef _LOCALREF_HPP
+#define _LOCALREF_HPP
 
 /* forward typedefs ***********************************************************/
 
@@ -94,7 +94,7 @@ void localref_dump(void);
 }
 #endif
 
-#endif /* _LOCALREF_H */
+#endif // _LOCALREF_HPP
 
 
 /*
@@ -103,9 +103,10 @@ void localref_dump(void);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -39,8 +39,8 @@ if ENABLE_JNI
 JNI_SOURCES = \
 	jni.cpp \
 	jni.hpp \
-	localref.c \
-	localref.h
+	localref.cpp \
+	localref.hpp
 endif
 
 libnative_la_SOURCES = \

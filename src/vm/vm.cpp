@@ -47,7 +47,7 @@
 
 #include "native/jni.hpp"
 #include "native/llni.h"
-#include "native/localref.h"
+#include "native/localref.hpp"
 #include "native/native.hpp"
 
 #include "native/vm/nativevm.h"
@@ -80,7 +80,7 @@
 #include "vm/suck.hpp"
 #include "vm/vm.hpp"
 
-#include "vm/jit/argument.h"
+#include "vm/jit/argument.hpp"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/code.hpp"
 

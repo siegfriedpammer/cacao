@@ -148,8 +148,8 @@ noinst_LTLIBRARIES = \
 	libjit.la
 
 libjit_la_SOURCES = \
-	argument.c \
-	argument.h \
+	argument.cpp \
+	argument.hpp \
 	builtin.cpp \
 	builtin.hpp \
 	builtintable.inc \

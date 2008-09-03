@@ -36,7 +36,7 @@
 
 #include "native/jni.hpp"
 #include "native/llni.h"
-#include "native/localref.h"
+#include "native/localref.hpp"
 #include "native/native.hpp"
 
 #if defined(ENABLE_JVMTI)
@@ -64,7 +64,6 @@
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
-#include "vm/jit/argument.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/stacktrace.hpp"

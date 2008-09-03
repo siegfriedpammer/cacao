@@ -654,9 +654,7 @@ extern "C" {
 
 	classinfo* Primitive_get_class_by_name(utf *name) { return Primitive::get_class_by_name(name); }
 classinfo* Primitive_get_class_by_type(int type) { return Primitive::get_class_by_type(type); }
-classinfo* Primitive_get_arrayclass_by_name(utf *name) { return Primitive::get_arrayclass_by_name(name); }
 classinfo* Primitive_get_arrayclass_by_type(int type) { return Primitive::get_arrayclass_by_type(type); }
-int Primitive_get_type_by_wrapperclass(classinfo *c) { return Primitive::get_type_by_wrapperclass(c); }
 java_handle_t* Primitive_box(int type, imm_union value) { return Primitive::box(type, value); }
 imm_union Primitive_unbox(java_handle_t *h) { return Primitive::unbox(h); }
 }

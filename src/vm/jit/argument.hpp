@@ -1,4 +1,4 @@
-/* src/vm/jit/argument.h - argument passing from and to JIT methods
+/* src/vm/jit/argument.hpp - argument passing from and to JIT methods
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,18 +23,15 @@
 */
 
 
-#ifndef _VM_JIT_ARGUMENT_H
-#define _VM_JIT_ARGUMENT_H
+#ifndef _VM_JIT_ARGUMENT_HPP
+#define _VM_JIT_ARGUMENT_HPP
 
 #include "config.h"
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "vm/global.h"
+#include "vm/method.h"
 
 
 /* function prototypes ********************************************************/
@@ -56,11 +53,7 @@ uint64_t *argument_vmarray_from_jvalue(methodinfo *m, java_handle_t *o,
 uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 											java_handle_objectarray_t *params);
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* _VM_JIT_ARGUMENT_H */
+#endif // _VM_JIT_ARGUMENT_HPP
 
 
 /*
@@ -69,7 +62,7 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
