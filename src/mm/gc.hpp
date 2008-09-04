@@ -31,13 +31,6 @@
 #include <assert.h>
 #include <stdint.h>
 
-#if defined(ENABLE_GC_CACAO)
-# include "threads/thread.hpp"
-#endif
-
-#include "vm/global.h"
-#include "vm/method.h"
-
 
 #ifdef __cplusplus
 
@@ -48,66 +41,12 @@ public:
 	static void critical_leave(void);
 };
 
-extern "C" {
-#endif
 
-
-/* reference types ************************************************************/
-
-enum {
-	GC_REFTYPE_THREADOBJECT,
-	GC_REFTYPE_CLASSLOADER,
-	GC_REFTYPE_JNI_GLOBALREF,
-	GC_REFTYPE_FINALIZER,
-	GC_REFTYPE_LOCALREF,
-	GC_REFTYPE_STACK,
-	GC_REFTYPE_CLASSREF,
-	GC_REFTYPE_LOCKRECORD
-};
-
-
-/* function prototypes ********************************************************/
-
-void    gc_init(size_t heapmaxsize, size_t heapstartsize);
-
-void*   heap_alloc_uncollectable(size_t size);
-void*   heap_alloc(size_t size, int references, methodinfo *finalizer, bool collect);
-void    heap_free(void *p);
-
+// Includes.
 #if defined(ENABLE_GC_CACAO)
-void    heap_init_objectheader(java_object_t *o, uint32_t size);
-int32_t heap_get_hashcode(java_object_t *o);
-
-void    gc_reference_register(java_object_t **ref, int32_t reftype);
-void    gc_reference_unregister(java_object_t **ref);
-
-void    gc_weakreference_register(java_object_t **ref, int32_t reftype);
-void    gc_weakreference_unregister(java_object_t **ref);
+# include "threads/thread.hpp"
 #endif
 
-void    gc_call(void);
-int64_t gc_get_heap_size(void);
-int64_t gc_get_free_bytes(void);
-int64_t gc_get_total_bytes(void);
-int64_t gc_get_max_heap_size(void);
-void    gc_invoke_finalizers(void);
-void    gc_finalize_all(void);
-void*   gc_out_of_memory(size_t bytes_requested);
-
-
-/* inlined functions **********************************************************/
-
-static inline int32_t heap_hashcode(java_object_t *obj)
-{
-#if defined(ENABLE_GC_CACAO)
-	return heap_get_hashcode(obj);
-#else
-	return (int32_t)(intptr_t) obj;
-#endif
-}
-
-#ifdef __cplusplus
-}
 
 /**
  * Enters a LLNI critical section which prevents the GC from moving
@@ -145,7 +84,75 @@ inline void GC::critical_leave()
 
 #endif
 
-#endif /* _GC_HPP */
+
+/* reference types ************************************************************/
+
+enum {
+	GC_REFTYPE_THREADOBJECT,
+	GC_REFTYPE_CLASSLOADER,
+	GC_REFTYPE_JNI_GLOBALREF,
+	GC_REFTYPE_FINALIZER,
+	GC_REFTYPE_LOCALREF,
+	GC_REFTYPE_STACK,
+	GC_REFTYPE_CLASSREF,
+	GC_REFTYPE_LOCKRECORD
+};
+
+
+// Includes.
+#include "vm/global.h"
+#include "vm/method.h"
+
+
+/* function prototypes ********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void    gc_init(size_t heapmaxsize, size_t heapstartsize);
+
+void*   heap_alloc_uncollectable(size_t size);
+void*   heap_alloc(size_t size, int references, methodinfo *finalizer, bool collect);
+void    heap_free(void *p);
+
+#if defined(ENABLE_GC_CACAO)
+void    heap_init_objectheader(java_object_t *o, uint32_t size);
+int32_t heap_get_hashcode(java_object_t *o);
+
+void    gc_reference_register(java_object_t **ref, int32_t reftype);
+void    gc_reference_unregister(java_object_t **ref);
+
+void    gc_weakreference_register(java_object_t **ref, int32_t reftype);
+void    gc_weakreference_unregister(java_object_t **ref);
+#endif
+
+void    gc_call(void);
+int64_t gc_get_heap_size(void);
+int64_t gc_get_free_bytes(void);
+int64_t gc_get_total_bytes(void);
+int64_t gc_get_max_heap_size(void);
+void    gc_invoke_finalizers(void);
+void    gc_finalize_all(void);
+void*   gc_out_of_memory(size_t bytes_requested);
+
+
+/* inlined functions **********************************************************/
+
+static inline int32_t heap_hashcode(java_object_t* obj)
+{
+#if defined(ENABLE_GC_CACAO)
+	return heap_get_hashcode(obj);
+#else
+	return (int32_t)(intptr_t) obj;
+#endif
+}
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif // _GC_HPP
 
 
 /*
@@ -154,9 +161,10 @@ inline void GC::critical_leave()
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
