@@ -41,11 +41,17 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "vm/types.h"
+// Include our JNI header before the JVM headers, because the JVM
+// headers include jni.h and we want to override the typedefs in
+// jni.h.
+#include "native/jni.hpp"
+
+// We include jvm_md.h before jvm.h as the latter includes the former.
+#include INCLUDE_JVM_MD_H
+#include INCLUDE_JVM_H
 
 #include "mm/memory.h"
 
-#include "native/jni.hpp"
 #include "native/llni.h"
 #include "native/native.hpp"
 
@@ -136,40 +142,6 @@
 # define PRINTJVMWARNINGS(x)
 
 #endif
-
-
-typedef struct {
-    /* Naming convention of RE build version string: n.n.n[_uu[c]][-<identifier>]-bxx */
-    unsigned int jvm_version;   /* Consists of major, minor, micro (n.n.n) */
-                                /* and build number (xx) */
-    unsigned int update_version : 8;         /* Update release version (uu) */
-    unsigned int special_update_version : 8; /* Special update release version (c) */
-    unsigned int reserved1 : 16; 
-    unsigned int reserved2; 
-
-    /* The following bits represents JVM supports that JDK has dependency on.
-     * JDK can use these bits to determine which JVM version
-     * and support it has to maintain runtime compatibility.
-     *
-     * When a new bit is added in a minor or update release, make sure
-     * the new bit is also added in the main/baseline.
-     */
-    unsigned int is_attachable : 1;
-    unsigned int : 31;
-    unsigned int : 32;
-    unsigned int : 32;
-} jvm_version_info;
-
-
-/*
- * A structure used to a capture exception table entry in a Java method.
- */
-typedef struct {
-    jint start_pc;
-    jint end_pc;
-    jint handler_pc;
-    jint catchType;
-} JVM_ExceptionTableEntryType;
 
 
 // Interface functions are exported as C functions.
