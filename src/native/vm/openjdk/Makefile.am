@@ -31,7 +31,9 @@ noinst_LTLIBRARIES = \
 libnativevmcore_la_SOURCES = \
 	hpi.c \
 	hpi.h \
-	jvm.cpp
+	jvm.cpp \
+	management.cpp \
+	management.hpp
 
 
 ## Local variables:

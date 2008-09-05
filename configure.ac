@@ -589,6 +589,7 @@ case "${WITH_JAVA_RUNTIME_LIBRARY}" in
     openjdk)
         AC_CHECK_WITH_HPI_MD_H
         AC_CHECK_WITH_HPI_H
+        AC_CHECK_WITH_JMM_H
         ;;
     *)
         ;;

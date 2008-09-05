@@ -34,6 +34,10 @@
 // We need the JNI types for the VM class.
 #include "native/jni.hpp"
 
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+# include "native/vm/openjdk/management.hpp"
+#endif
+
 #include "vm/properties.hpp"
 
 #include "vm/jit/optimizing/recompiler.hpp"
@@ -64,6 +68,9 @@ private:
 #if defined(ENABLE_THREADS)
 	Recompiler _recompiler; ///< JIT recompilation framework.
 #endif
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	Management _management;
+#endif
 
 public:
 	// Constructor, Destructor.
@@ -87,6 +94,9 @@ public:
 
 	Properties& get_properties() { return _properties; }
 	Recompiler& get_recompiler() { return _recompiler; } // REMOVEME
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	Management& get_management() { return _management; }
+#endif
 };
 
 #else

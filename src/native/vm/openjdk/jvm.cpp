@@ -52,6 +52,7 @@
 #include "native/vm/reflection.hpp"
 
 #include "native/vm/openjdk/hpi.h"
+#include "native/vm/openjdk/management.hpp"
 
 #include "threads/lock.hpp"
 #include "threads/thread.hpp"
@@ -3259,9 +3260,7 @@ void *JVM_GetManagement(jint version)
 {
 	TRACEJVMCALLS(("JVM_GetManagement(version=%d)", version));
 
-	/* TODO We current don't support the management interface. */
-
-	return NULL;
+	return Management::get_jmm_interface(version);
 }
 
 
