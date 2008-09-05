@@ -36,9 +36,19 @@
 
 class GC {
 public:
-	// Critical section functions.
-	static void critical_enter(void);
-	static void critical_leave(void);
+};
+
+
+/**
+ * Critical section for the GC.
+ */
+class GCCriticalSection {
+public:
+	GCCriticalSection()  { enter(); }
+	~GCCriticalSection() { leave(); }
+
+	static void enter(void);
+	static void leave(void);
 };
 
 
@@ -56,13 +66,15 @@ public:
  * section, because each thread only modifies its own thread local flag
  * and the GC reads the flags while the world is stopped.
  */
-inline void GC::critical_enter()
+#include <stdio.h>
+inline void GCCriticalSection::enter()
 {
 #if defined(ENABLE_GC_CACAO)
-	threadobject *t;
+	threadobject* t = thread_get_current();
 
-	t = THREADOBJECT;
-	assert(!t->gc_critical);
+	// Sanity check.
+	assert(t->gc_critical == false);
+
 	t->gc_critical = true;
 #endif
 }
@@ -71,13 +83,14 @@ inline void GC::critical_enter()
  * Leaves a LLNI critical section and allows the GC to move objects
  * around on the collected heap again.
  */
-inline void GC::critical_leave()
+inline void GCCriticalSection::leave()
 {
 #if defined(ENABLE_GC_CACAO)
-	threadobject *t;
+	threadobject* t = thread_get_current();
 
-	t = THREADOBJECT;
-	assert(t->gc_critical);
+	// Sanity check.
+	assert(t->gc_critical == true);
+
 	t->gc_critical = false;
 #endif
 }

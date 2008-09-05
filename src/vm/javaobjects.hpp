@@ -92,100 +92,85 @@ public:
 
 template<class T> inline T FieldAccess::get(java_handle_t* h, const off_t offset)
 {
-	GC::critical_enter();
+	// This function is inside a critical section.
+	GCCriticalSection cs;
 
 	// XXX This should be _handle->get_object();
 	java_object_t* ho = LLNI_UNWRAP(h);
-	T result = raw_get<T>(ho, offset);
-
-	GC::critical_leave();
-
-	return result;
+	return raw_get<T>(ho, offset);
 }
 
 template<> inline java_handle_t* FieldAccess::get(java_handle_t* h, const off_t offset)
 {
-	GC::critical_enter();
+	// This function is inside a critical section.
+	GCCriticalSection cs;
 
 	// XXX This should be _handle->get_object();
 	java_object_t* o = LLNI_UNWRAP(h);
 	java_object_t* result = raw_get<java_object_t*>(o, offset);
-	java_handle_t* hresult = LLNI_WRAP(result);
-
-	GC::critical_leave();
-
-	return hresult;
+	return LLNI_WRAP(result);
 }	
 
 
 template<class T> inline void FieldAccess::set(java_handle_t* h, const off_t offset, T value)
 {
-	GC::critical_enter();
+	// This function is inside a critical section.
+	GCCriticalSection cs;
 
 	java_object_t* ho = LLNI_UNWRAP(h);
 	raw_set(ho, offset, value);
-
-	GC::critical_leave();
 }
 
 template<> inline void FieldAccess::set<java_handle_t*>(java_handle_t* h, const off_t offset, java_handle_t* value)
 {
-	GC::critical_enter();
+	// This function is inside a critical section.
+	GCCriticalSection cs;
 
 	// XXX This should be h->get_object();
 	java_object_t* o      = LLNI_UNWRAP(h);
 	java_object_t* ovalue = LLNI_UNWRAP(value);
-
 	raw_set(o, offset, ovalue);
-
-	GC::critical_leave();
 }
 
 
 template<class T> inline T FieldAccess::get_volatile(java_handle_t* h, const off_t offset)
 {
-	GC::critical_enter();
+	// This function is inside a critical section.
+	GCCriticalSection cs;
 
 	// XXX This should be _handle->get_object();
 	java_object_t* ho = LLNI_UNWRAP(h);
-	T result = raw_get<volatile T>(ho, offset);
-
-	GC::critical_leave();
-
-	return result;
+	return raw_get<volatile T>(ho, offset);
 }
 
 template<> inline java_handle_t* FieldAccess::get_volatile(java_handle_t* h, const off_t offset)
 {
-	GC::critical_enter();
+	// This function is inside a critical section.
+	GCCriticalSection cs;
 
 	// XXX This should be _handle->get_object();
 	java_object_t* o = LLNI_UNWRAP(h);
 	java_object_t* result = (java_object_t*) raw_get<volatile java_object_t*>(o, offset);
-	java_handle_t* hresult = LLNI_WRAP(result);
-
-	GC::critical_leave();
-
-	return hresult;
+	return LLNI_WRAP(result);
 }	
 
 
 template<class T> inline void FieldAccess::set_volatile(java_handle_t* h, const off_t offset, T value)
 {
-	GC::critical_enter();
+	// This function is inside a critical section.
+	GCCriticalSection cs;
 
 	java_object_t* ho = LLNI_UNWRAP(h);
 	raw_set(ho, offset, (volatile T) value);
 
 	// Memory barrier for the Java Memory Model.
 	Atomic::memory_barrier();
-
-	GC::critical_leave();
 }
 
 template<> inline void FieldAccess::set_volatile<java_handle_t*>(java_handle_t* h, const off_t offset, java_handle_t* value)
 {
-	GC::critical_enter();
+	// This function is inside a critical section.
+	GCCriticalSection cs;
 
 	// XXX This should be h->get_object();
 	java_object_t* o      = LLNI_UNWRAP(h);
@@ -194,8 +179,6 @@ template<> inline void FieldAccess::set_volatile<java_handle_t*>(java_handle_t* 
 
 	// Memory barrier for the Java Memory Model.
 	Atomic::memory_barrier();
-
-	GC::critical_leave();
 }
 
 
@@ -229,15 +212,12 @@ public:
 
 inline vftbl_t* java_lang_Object::get_vftbl() const
 {
-	GC::critical_enter();
+	// This function is inside a critical section.
+	GCCriticalSection cs;
 
 	// XXX This should be h->get_object();
 	java_object_t* o = LLNI_UNWRAP(_handle);
-	vftbl_t* vftbl = o->vftbl;
-
-	GC::critical_leave();
-
-	return vftbl;
+	return o->vftbl;
 }
 
 inline classinfo* java_lang_Object::get_Class() const
@@ -250,19 +230,12 @@ inline int32_t java_lang_Object::get_hashcode() const
 #if defined(ENABLE_GC_CACAO)
 	return heap_get_hashcode(_handle);
 #else
-	java_object_t* o;
-	int32_t hashcode;
-
-	GC::critical_enter();
+	// This function is inside a critical section.
+	GCCriticalSection cs;
 
 	// XXX This should be h->get_object();
-	o = LLNI_UNWRAP(_handle);
-
-	hashcode = (int32_t)(intptr_t) o;
-
-	GC::critical_leave();
-	
-	return hashcode;
+	java_object_t* o = LLNI_UNWRAP(_handle);
+	return (int32_t) (intptr_t) o;
 #endif
 }
 
