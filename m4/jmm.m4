@@ -36,9 +36,6 @@ AC_ARG_WITH([jmm_h],
             esac])
 AC_MSG_RESULT(${WITH_JMM_H})
 
-dnl Added that path to the CPPFLAGS.
-CPPFLAGS="${CPPFLAGS} -I${WITH_JMM_H}"
-
 AC_CHECK_HEADER([${WITH_JMM_H}/jmm.h],
                 [AC_DEFINE_UNQUOTED([INCLUDE_JMM_H], "${WITH_JMM_H}/jmm.h", [Java runtime library jmm.h header])],
                 [AC_MSG_ERROR(cannot find jmm.h)])
