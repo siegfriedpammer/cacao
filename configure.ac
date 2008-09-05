@@ -584,11 +584,14 @@ dnl The check for jni_md.h must be before jni.h.
 AC_CHECK_WITH_JNI_MD_H
 AC_CHECK_WITH_JNI_H
 
-dnl HPI is only required for OpenJDK
+dnl JVM, HPI, and JMM is only required for OpenJDK.
 case "${WITH_JAVA_RUNTIME_LIBRARY}" in
     openjdk)
+        AC_CHECK_WITH_JVM_MD_H
+        AC_CHECK_WITH_JVM_H
         AC_CHECK_WITH_HPI_MD_H
         AC_CHECK_WITH_HPI_H
+        AC_CHECK_WITH_JMM_H
         ;;
     *)
         ;;
