@@ -47,8 +47,9 @@ public:
 	GCCriticalSection()  { enter(); }
 	~GCCriticalSection() { leave(); }
 
-	static void enter(void);
-	static void leave(void);
+	inline static void enter ();
+	inline static void leave ();
+	inline static bool inside();
 };
 
 
@@ -66,8 +67,7 @@ public:
  * section, because each thread only modifies its own thread local flag
  * and the GC reads the flags while the world is stopped.
  */
-#include <stdio.h>
-inline void GCCriticalSection::enter()
+void GCCriticalSection::enter()
 {
 #if defined(ENABLE_GC_CACAO)
 	threadobject* t = thread_get_current();
@@ -83,7 +83,7 @@ inline void GCCriticalSection::enter()
  * Leaves a LLNI critical section and allows the GC to move objects
  * around on the collected heap again.
  */
-inline void GCCriticalSection::leave()
+void GCCriticalSection::leave()
 {
 #if defined(ENABLE_GC_CACAO)
 	threadobject* t = thread_get_current();
@@ -92,6 +92,22 @@ inline void GCCriticalSection::leave()
 	assert(t->gc_critical == true);
 
 	t->gc_critical = false;
+#endif
+}
+
+
+/**
+ * Checks if the calling thread is inside a GC critical section.
+ *
+ * @return true if inside, false otherwise.
+ */
+bool GCCriticalSection::inside()
+{
+#if defined(ENABLE_GC_CACAO)
+	threadobject* t = thread_get_current();
+	return t->gc_critical;
+#else
+	return true;
 #endif
 }
 
