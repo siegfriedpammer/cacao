@@ -522,7 +522,7 @@ static java_object_t *literalstring_u2(java_chararray_t *a, int32_t length,
 #endif
 
 #if defined(ENABLE_THREADS)
-	lock_init_object_lock(o);
+	o->lockword.init();
 #endif
 
 	o->vftbl = class_java_lang_String->vftbl;

@@ -508,7 +508,7 @@ static threadobject *thread_new(void)
 	assert(index != 0);
 
 	t->index     = index;
-	t->thinlock  = lock_pre_compute_thinlock(t->index);
+	t->thinlock  = Lockword::pre_compute_thinlock(t->index);
 	t->flags     = 0;
 	t->state     = THREAD_STATE_NEW;
 

@@ -85,10 +85,6 @@ extern "C" {
 
 void lock_init(void);
 
-void lock_init_object_lock(java_object_t *);
-
-ptrint lock_pre_compute_thinlock(s4 index);
-
 bool lock_monitor_enter(java_handle_t *);
 bool lock_monitor_exit(java_handle_t *);
 
@@ -111,8 +107,6 @@ void lock_notify_all_object(java_handle_t *o);
 /* only define the following stuff with thread enabled ************************/
 
 #if defined(ENABLE_THREADS)
-
-#define LOCK_INIT_OBJECT_LOCK(o) lock_init_object_lock((java_object_t *) (o))
 
 #define LOCK_MONITOR_ENTER(o)    lock_monitor_enter((java_handle_t *) LLNI_QUICKWRAP(o))
 #define LOCK_MONITOR_EXIT(o)     lock_monitor_exit((java_handle_t *) LLNI_QUICKWRAP(o))

@@ -177,7 +177,7 @@ classinfo *class_create_classinfo(utf *classname)
 	if (classname != utf_not_named_yet)
 		class_set_packagename(c);
 
-	LOCK_INIT_OBJECT_LOCK(&c->object.header);
+	Lockword_init(&(c->object.header.lockword));
 
 	return c;
 }

@@ -878,7 +878,7 @@ java_handle_t *builtin_new(classinfo *c)
 	LLNI_vftbl_direct(o) = c->vftbl;
 
 #if defined(ENABLE_THREADS)
-	lock_init_object_lock(LLNI_DIRECT(o));
+	LLNI_DIRECT(o)->lockword.init();
 #endif
 
 	CYCLES_STATS_GET(cycles_end);
@@ -1039,7 +1039,7 @@ java_object_t *builtin_fast_new(classinfo *c)
 	o->vftbl = c->vftbl;
 
 #if defined(ENABLE_THREADS)
-	lock_init_object_lock(o);
+	LLNI_DIRECT(o)->lockword.init();
 #endif
 
 	CYCLES_STATS_GET(cycles_end);
@@ -1109,7 +1109,7 @@ java_handle_t *builtin_newarray(int32_t size, classinfo *arrayclass)
 	LLNI_vftbl_direct(a) = arrayclass->vftbl;
 
 #if defined(ENABLE_THREADS)
-	lock_init_object_lock(LLNI_DIRECT(a));
+	LLNI_DIRECT(a)->lockword.init();
 #endif
 
 	LLNI_array_size(a) = size;
@@ -2346,7 +2346,7 @@ java_handle_t *builtin_clone(void *env, java_handle_t *o)
 #endif
 
 #if defined(ENABLE_THREADS)
-		lock_init_object_lock(LLNI_DIRECT(co));
+		LLNI_DIRECT(co)->lockword.init();
 #endif
 
 		LLNI_CRITICAL_END;
@@ -2381,7 +2381,7 @@ java_handle_t *builtin_clone(void *env, java_handle_t *o)
 #endif
 
 #if defined(ENABLE_THREADS)
-	lock_init_object_lock(LLNI_DIRECT(co));
+	LLNI_DIRECT(co)->lockword.init();
 #endif
 
 	LLNI_CRITICAL_END;

@@ -230,10 +230,12 @@ typedef struct java_objectarray_t java_objectarray_t;
 #define HDRFLAG_HASH_ATTACHED 0x20
 #define HDRFLAG_REFERENCING   0x40
 
+#include "threads/lockword.hpp"
+
 struct java_object_t {                 /* header for all objects              */
 	struct _vftbl *vftbl;              /* pointer to virtual function table   */
 #if defined(ENABLE_THREADS)
-	uintptr_t      lockword;
+	Lockword       lockword;
 #endif
 #if defined(ENABLE_GC_CACAO)
 	uintptr_t      hdrflags;           /* word containing the GC bits         */

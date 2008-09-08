@@ -30,8 +30,6 @@
 
 /* define some stuff to no-ops *************************************************/
 
-#define LOCK_INIT_OBJECT_LOCK(o)
-
 #define LOCK_MONITOR_ENTER(o)
 #define LOCK_MONITOR_EXIT(o)
 
