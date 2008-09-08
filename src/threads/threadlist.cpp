@@ -27,6 +27,8 @@
 
 #include <stdint.h>
 
+#include <algorithm>
+
 #include "threads/mutex.hpp"
 #include "threads/threadlist.hpp"
 #include "threads/thread.hpp"
@@ -175,24 +177,36 @@ int32_t ThreadList::get_number_of_non_daemon_threads(void)
  *
  * @return thread object
  */
+
+class foo : public std::binary_function<threadobject*, int32_t, bool> {
+public:
+	bool operator() (const threadobject* t, const int32_t index) const
+	{
+		return (t->index == index);
+	}
+};
+
 threadobject* ThreadList::get_thread_by_index(int32_t index)
 {
-	threadobject* t = NULL;
-
 	lock();
 
-	for (List<threadobject*>::iterator it = _active_thread_list.begin(); it != _active_thread_list.end(); it++) {
-		t = *it;
+	List<threadobject*>::iterator it = find_if(_active_thread_list.begin(), _active_thread_list.end(), std::bind2nd(foo(), index));
 
-		if (t->state == THREAD_STATE_NEW)
-			continue;
+	// No thread found.
+	if (it == _active_thread_list.end()) {
+		unlock();
+		return NULL;
+	}
 
-		if (t->index == index)
-			break;
+	threadobject* t = *it;
+
+	// The thread found is in state new.
+	if (t->state == THREAD_STATE_NEW) {
+		unlock();
+		return NULL;
 	}
 
 	unlock();
-
 	return t;
 }
 
