@@ -105,19 +105,11 @@ LinenumberTable::LinenumberTable(jitdata* jd) : _linenumbers(jd->cd->linenumbers
  *
  * @return Line number.
  */
-
-struct foo : public std::binary_function<Linenumber, void*, bool> {
-	bool operator() (const Linenumber& ln, const void* pc) const
-	{
-		return (pc >= ln.get_pc());
-	}
-};
-
 int32_t LinenumberTable::find(methodinfo **pm, void* pc)
 {
 	void* maskpc = ADDR_MASK(void*, pc);
 
-	std::vector<Linenumber>::iterator it = find_if(_linenumbers.begin(), _linenumbers.end(), std::bind2nd(foo(), maskpc));
+	std::vector<Linenumber>::iterator it = find_if(_linenumbers.begin(), _linenumbers.end(), std::bind2nd(comparator(), maskpc));
 
 	// No matching entry found.
 	if (it == _linenumbers.end())

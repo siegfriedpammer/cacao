@@ -91,6 +91,15 @@ class LinenumberTable {
 private:
 	std::vector<Linenumber> _linenumbers;
 
+	// Comparator class.
+	class comparator : public std::binary_function<Linenumber, void*, bool> {
+	public:
+		bool operator() (const Linenumber& ln, const void* pc) const
+		{
+			return (pc >= ln.get_pc());
+		}
+	};
+
 public:
 	LinenumberTable(jitdata* jd);
 	~LinenumberTable();
