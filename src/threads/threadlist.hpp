@@ -55,6 +55,16 @@ private:
 	static inline void          add_to_free_thread_list(threadobject* t);
 	static inline void          add_to_free_index_list(int32_t index);
 
+private:
+	// Comparator class.
+	class comparator : public std::binary_function<threadobject*, int32_t, bool> {
+	public:
+		bool operator() (const threadobject* t, const int32_t index) const
+		{
+			return (t->index == index);
+		}
+	};
+
 public:
 	static inline void          lock()   { _mutex.lock(); }
 	static inline void          unlock() { _mutex.unlock(); }
