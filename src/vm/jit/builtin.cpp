@@ -960,7 +960,7 @@ java_handle_t *builtin_tlh_new(classinfo *c)
 	LLNI_vftbl_direct(o) = c->vftbl;
 
 # if defined(ENABLE_THREADS)
-	lock_init_object_lock(LLNI_DIRECT(o));
+	LLNI_DIRECT(o)->lockword.init();
 # endif
 
 	CYCLES_STATS_GET(cycles_end);
