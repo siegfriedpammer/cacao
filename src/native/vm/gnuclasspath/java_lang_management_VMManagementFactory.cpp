@@ -1,4 +1,4 @@
-/* src/native/vm/gnuclasspath/java_lang_management_VMManagementFactory.c
+/* src/native/vm/gnuclasspath/java_lang_management_VMManagementFactory.cpp
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -41,6 +41,9 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/globals.hpp"
 
+
+// Native functions are exported as C functions.
+extern "C" {
 
 /*
  * Class:     java/lang/management/VMManagementFactory
@@ -92,13 +95,15 @@ JNIEXPORT jobjectArray JNICALL Java_java_lang_management_VMManagementFactory_get
 	return oa;
 }
 
+} // extern "C"
+
 
 /* native methods implemented by this file ************************************/
 
 static JNINativeMethod methods[] = {
-	{ "getMemoryPoolNames",       "()[Ljava/lang/String;", (void*) (uintptr_t) &Java_java_lang_management_VMManagementFactory_getMemoryPoolNames       },
-	{ "getMemoryManagerNames",    "()[Ljava/lang/String;", (void*) (uintptr_t) &Java_java_lang_management_VMManagementFactory_getMemoryManagerNames    },
-	{ "getGarbageCollectorNames", "()[Ljava/lang/String;", (void*) (uintptr_t) &Java_java_lang_management_VMManagementFactory_getGarbageCollectorNames },
+	{ (char*) "getMemoryPoolNames",       (char*) "()[Ljava/lang/String;", (void*) (uintptr_t) &Java_java_lang_management_VMManagementFactory_getMemoryPoolNames       },
+	{ (char*) "getMemoryManagerNames",    (char*) "()[Ljava/lang/String;", (void*) (uintptr_t) &Java_java_lang_management_VMManagementFactory_getMemoryManagerNames    },
+	{ (char*) "getGarbageCollectorNames", (char*) "()[Ljava/lang/String;", (void*) (uintptr_t) &Java_java_lang_management_VMManagementFactory_getGarbageCollectorNames },
 };
 
 
@@ -108,6 +113,8 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
+// FIXME
+extern "C" {
 void _Jv_java_lang_management_VMManagementFactory_init(void)
 {
 	utf *u;
@@ -115,6 +122,7 @@ void _Jv_java_lang_management_VMManagementFactory_init(void)
 	u = utf_new_char("java/lang/management/VMManagementFactory");
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+}
 }
 
 
@@ -124,7 +132,7 @@ void _Jv_java_lang_management_VMManagementFactory_init(void)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
