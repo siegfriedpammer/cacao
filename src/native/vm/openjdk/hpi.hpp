@@ -1,4 +1,4 @@
-/* src/native/vm/openjdk/hpi.h - HotSpot HPI interface functions
+/* src/native/vm/openjdk/hpi.hpp - HotSpot HPI interface functions
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,12 +23,8 @@
 */
 
 
-#ifndef _HPI_H
-#define _HPI_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef _HPI_HPP
+#define _HPI_HPP
 
 #include "config.h"
 
@@ -43,28 +39,47 @@ extern "C" {
 
 *******************************************************************************/
 
+// Include our JNI header before the HPI headers, because the HPI
+// headers include jni.h and we want to override the typedefs in
+// jni.h.
+#include "native/jni.hpp"
+
 #include INCLUDE_HPI_MD_H
 #include INCLUDE_HPI_H
 
 
-/* HPI interfaces *************************************************************/
-
-extern HPI_FileInterface    *hpi_file;
-extern HPI_SocketInterface  *hpi_socket;
-extern HPI_LibraryInterface *hpi_library;
-extern HPI_SystemInterface  *hpi_system;
-
-
-/* functions ******************************************************************/
-
-void hpi_initialize(void);
-int  hpi_initialize_socket_library(void);
-
 #ifdef __cplusplus
-}
+
+/**
+ * Host Porting Interface (HPI).
+ */
+class HPI {
+private:
+	GetInterfaceFunc      _get_interface;
+	HPI_FileInterface*    _file;
+	HPI_SocketInterface*  _socket;
+	HPI_LibraryInterface* _library;
+	HPI_SystemInterface*  _system;
+
+public:	
+	HPI();
+
+	inline HPI_FileInterface&    get_file   () const { return *_file; }
+	inline HPI_SocketInterface&  get_socket () const { return *_socket; }
+	inline HPI_LibraryInterface& get_library() const { return *_library; }
+	inline HPI_SystemInterface&  get_system () const { return *_system; }
+	
+	void initialize(); // REMOVEME
+	int initialize_socket_library();
+};
+
+#else
+
+void HPI_initialize();
+
 #endif
 
-#endif /* _HPI_H */
+#endif // _HPI_HPP
 
 
 /*
@@ -73,7 +88,7 @@ int  hpi_initialize_socket_library(void);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
