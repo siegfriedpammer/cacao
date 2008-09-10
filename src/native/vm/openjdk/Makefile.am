@@ -29,8 +29,8 @@ noinst_LTLIBRARIES = \
 	libnativevmcore.la
 
 libnativevmcore_la_SOURCES = \
-	hpi.c \
-	hpi.h \
+	hpi.cpp \
+	hpi.hpp \
 	jvm.cpp \
 	management.cpp \
 	management.hpp

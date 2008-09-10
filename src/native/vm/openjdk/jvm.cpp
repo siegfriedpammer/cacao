@@ -57,7 +57,7 @@
 
 #include "native/vm/reflection.hpp"
 
-#include "native/vm/openjdk/hpi.h"
+#include "native/vm/openjdk/hpi.hpp"
 #include "native/vm/openjdk/management.hpp"
 
 #include "threads/lock.hpp"
@@ -645,21 +645,23 @@ void JVM_DisableCompiler(JNIEnv *env, jclass compCls)
 
 /* JVM_GetLastErrorString */
 
-jint JVM_GetLastErrorString(char *buf, int len)
+jint JVM_GetLastErrorString(char* buf, int len)
 {
 	TRACEJVMCALLS(("JVM_GetLastErrorString(buf=%p, len=%d", buf, len));
 
-	return hpi_system->GetLastErrorString(buf, len);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return hpi.get_system().GetLastErrorString(buf, len);
 }
 
 
 /* JVM_NativePath */
 
-char *JVM_NativePath(char *path)
+char *JVM_NativePath(char* path)
 {
 	TRACEJVMCALLS(("JVM_NativePath(path=%s)", path));
 
-	return hpi_file->NativePath(path);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return hpi.get_file().NativePath(path);
 }
 
 
@@ -2050,13 +2052,14 @@ jboolean JVM_IsSameClassPackage(JNIEnv *env, jclass class1, jclass class2)
  */
 #define JVM_EEXIST       -100
 
-jint JVM_Open(const char *fname, jint flags, jint mode)
+jint JVM_Open(const char* fname, jint flags, jint mode)
 {
 	int result;
 
 	TRACEJVMCALLS(("JVM_Open(fname=%s, flags=%d, mode=%d)", fname, flags, mode));
 
-	result = hpi_file->Open(fname, flags, mode);
+	HPI& hpi = VM::get_current()->get_hpi();
+	result = hpi.get_file().Open(fname, flags, mode);
 
 	if (result >= 0) {
 		return result;
@@ -2078,37 +2081,41 @@ jint JVM_Close(jint fd)
 {
 	TRACEJVMCALLS(("JVM_Close(fd=%d)", fd));
 
-	return hpi_file->Close(fd);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return hpi.get_file().Close(fd);
 }
 
 
 /* JVM_Read */
 
-jint JVM_Read(jint fd, char *buf, jint nbytes)
+jint JVM_Read(jint fd, char* buf, jint nbytes)
 {
 	TRACEJVMCALLS(("JVM_Read(fd=%d, buf=%p, nbytes=%d)", fd, buf, nbytes));
 
-	return (jint) hpi_file->Read(fd, buf, nbytes);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return (jint) hpi.get_file().Read(fd, buf, nbytes);
 }
 
 
 /* JVM_Write */
 
-jint JVM_Write(jint fd, char *buf, jint nbytes)
+jint JVM_Write(jint fd, char* buf, jint nbytes)
 {
 	TRACEJVMCALLS(("JVM_Write(fd=%d, buf=%s, nbytes=%d)", fd, buf, nbytes));
 
-	return (jint) hpi_file->Write(fd, buf, nbytes);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return (jint) hpi.get_file().Write(fd, buf, nbytes);
 }
 
 
 /* JVM_Available */
 
-jint JVM_Available(jint fd, jlong *pbytes)
+jint JVM_Available(jint fd, jlong* pbytes)
 {
 	TRACEJVMCALLS(("JVM_Available(fd=%d, pbytes=%p)", fd, pbytes));
 
-	return hpi_file->Available(fd, pbytes);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return hpi.get_file().Available(fd, pbytes);
 }
 
 
@@ -2118,7 +2125,8 @@ jlong JVM_Lseek(jint fd, jlong offset, jint whence)
 {
 	TRACEJVMCALLS(("JVM_Lseek(fd=%d, offset=%ld, whence=%d)", fd, offset, whence));
 
-	return hpi_file->Seek(fd, (off_t) offset, whence);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return hpi.get_file().Seek(fd, (off_t) offset, whence);
 }
 
 
@@ -2128,7 +2136,8 @@ jint JVM_SetLength(jint fd, jlong length)
 {
 	TRACEJVMCALLS(("JVM_SetLength(fd=%d, length=%ld)", length));
 
-	return hpi_file->SetLength(fd, length);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return hpi.get_file().SetLength(fd, length);
 }
 
 
@@ -2138,7 +2147,8 @@ jint JVM_Sync(jint fd)
 {
 	TRACEJVMCALLS(("JVM_Sync(fd=%d)", fd));
 
-	return hpi_file->Sync(fd);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return hpi.get_file().Sync(fd);
 }
 
 
@@ -2658,7 +2668,8 @@ jint JVM_InitializeSocketLibrary()
 {
 	TRACEJVMCALLS(("JVM_InitializeSocketLibrary()"));
 
-	return hpi_initialize_socket_library();
+	HPI& hpi = VM::get_current()->get_hpi();
+	return hpi.initialize_socket_library();
 }
 
 
@@ -2915,13 +2926,14 @@ void JVM_UnloadLibrary(void* handle)
 
 /* JVM_FindLibraryEntry */
 
-void *JVM_FindLibraryEntry(void *handle, const char *name)
+void *JVM_FindLibraryEntry(void* handle, const char* name)
 {
 	void* symbol;
 
 	TRACEJVMCALLSENTER(("JVM_FindLibraryEntry(handle=%p, name=%s)", handle, name));
 
-	symbol = hpi_library->FindLibraryEntry(handle, name);
+	HPI& hpi = VM::get_current()->get_hpi();
+	symbol = hpi.get_library().FindLibraryEntry(handle, name);
 
 	TRACEJVMCALLSEXIT(("->%p", symbol));
 

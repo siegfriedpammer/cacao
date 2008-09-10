@@ -40,7 +40,7 @@
 
 # include "native/native.hpp"
 
-# include "native/vm/openjdk/hpi.h"
+# include "native/vm/openjdk/hpi.hpp"
 
 # include "vm/globals.hpp"
 # include "vm/properties.hpp"
@@ -129,7 +129,7 @@ void nativevm_preinit(void)
 
 	/* Initialize the HPI. */
 
-	hpi_initialize();
+	HPI_initialize();
 
 	_Jv_sun_misc_Unsafe_init();
 

@@ -35,6 +35,7 @@
 #include "native/jni.hpp"
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+# include "native/vm/openjdk/hpi.hpp"
 # include "native/vm/openjdk/management.hpp"
 #endif
 
@@ -69,6 +70,7 @@ private:
 	Recompiler _recompiler; ///< JIT recompilation framework.
 #endif
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	HPI        _hpi;
 	Management _management;
 #endif
 
@@ -95,6 +97,7 @@ public:
 	Properties& get_properties() { return _properties; }
 	Recompiler& get_recompiler() { return _recompiler; } // REMOVEME
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	HPI&        get_hpi       () { return _hpi; }
 	Management& get_management() { return _management; }
 #endif
 };
