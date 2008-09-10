@@ -2972,20 +2972,18 @@ JNI_SET_ARRAY_REGION(Double,  jdouble,  double,  double)
 
 *******************************************************************************/
 
-jint _Jv_JNI_RegisterNatives(JNIEnv *env, jclass clazz,
-							 const JNINativeMethod *methods, jint nMethods)
+jint jni_RegisterNatives(JNIEnv* env, jclass clazz, const JNINativeMethod* methods, jint nMethods)
 {
-	classinfo *c;
+	TRACEJNICALLS(("jni_RegisterNatives(env=%p, clazz=%p, methods=%p, nMethods=%d)", env, clazz, methods, nMethods));
 
-	STATISTICS(jniinvokation());
-
-	c = LLNI_classinfo_unwrap(clazz);
+	classinfo* c = LLNI_classinfo_unwrap(clazz);
 
 	/* XXX: if implemented this needs a call to jvmti_NativeMethodBind
 	if (jvmti) jvmti_NativeMethodBind(method, address,  new_address_ptr);
 	*/
 
-	native_method_register(c->name, methods, nMethods);
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(c->name, methods, nMethods);
 
     return 0;
 }
@@ -4074,7 +4072,7 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 	_Jv_JNI_SetFloatArrayRegion,
 	_Jv_JNI_SetDoubleArrayRegion,
 
-	_Jv_JNI_RegisterNatives,
+	jni_RegisterNatives,
 	_Jv_JNI_UnregisterNatives,
 
 	_Jv_JNI_MonitorEnter,

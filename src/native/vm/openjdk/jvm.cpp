@@ -2897,17 +2897,15 @@ struct protoent *JVM_GetProtoByName(char* name)
 
 /* JVM_LoadLibrary */
 
-void *JVM_LoadLibrary(const char *name)
+void* JVM_LoadLibrary(const char* name)
 {
-	utf*  u;
-	void* handle;
-
 	TRACEJVMCALLSENTER(("JVM_LoadLibrary(name=%s)", name));
 
-	u = utf_new_char(name);
+	utf* u = utf_new_char(name);
 
-	handle = native_library_open(u);
-
+	NativeLibrary nl(u);
+	void* handle = nl.open();
+	
 	TRACEJVMCALLSEXIT(("->%p", handle));
 
 	return handle;
@@ -2920,7 +2918,8 @@ void JVM_UnloadLibrary(void* handle)
 {
 	TRACEJVMCALLS(("JVM_UnloadLibrary(handle=%p)", handle));
 
-	native_library_close(handle);
+	NativeLibrary nl(handle);
+	nl.close();
 }
 
 

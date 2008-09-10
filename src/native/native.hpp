@@ -2,6 +2,7 @@
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -28,6 +29,11 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+#include <map>
+#include <set>
+#endif
+
 #include "native/jni.hpp"
 
 #include "vm/class.h"
@@ -52,60 +58,111 @@
 #endif
 
 
-/* native_methods_node_t ******************************************************/
+#ifdef __cplusplus
 
-typedef struct native_methods_node_t native_methods_node_t;
+#if defined(ENABLE_DL)
+/**
+ * Represents a native library.
+ */
+class NativeLibrary {
+private:
+	utf*           _filename;    ///< Name of the native library.
+	classloader_t* _classloader; ///< Defining classloader.
+	void*          _handle;      ///< Filesystem handle.
 
-struct native_methods_node_t {
-	utf         *classname;             /* class name                         */
-	utf         *name;                  /* method name                        */
-	utf         *descriptor;            /* descriptor name                    */
-	functionptr  function;              /* pointer to the implementation      */
+public:
+	NativeLibrary(utf* filename, classloader_t* classloader = 0, void* handle = 0) : _filename(filename), _classloader(classloader), _handle(handle) {}
+	NativeLibrary(void* handle) : _filename(0), _classloader(0), _handle(handle) {}
+
+	inline classloader_t* get_classloader() const { return _classloader; }
+	inline utf*           get_filename   () const { return _filename; }
+	inline void*          get_handle     () const { return _handle; }
+
+	void* open();
+	void  close();
+	bool  load(JNIEnv* env);
+	bool  is_loaded();
+	void* resolve_symbol(utf* symbolname) const;
 };
 
 
-/* hashtable_library_loader_entry *********************************************/
+/**
+ * Table containing all loaded native libraries.
+ */
+class NativeLibraries {
+private:
+	Mutex _mutex; ///< Mutex to make the container thread-safe.
+	typedef std::multimap<classloader_t*, NativeLibrary> MAP;
+	MAP _libraries;
 
-#if defined(ENABLE_DL)
-typedef struct hashtable_library_loader_entry hashtable_library_loader_entry;
-typedef struct hashtable_library_name_entry   hashtable_library_name_entry;
+private:
+	// Comparator class.
+	class comparator : public std::binary_function<std::pair<classloader_t*, NativeLibrary>, utf*, bool> {
+	public:
+		bool operator() (std::pair<classloader_t*, NativeLibrary> args, const utf* filename) const
+		{
+			return (args.second.get_filename() == filename);
+		}
+	};
 
-struct hashtable_library_loader_entry {
-	classloader_t                  *loader;  /* class loader                  */
-	hashtable_library_name_entry   *namelink;/* libs loaded by this loader    */
-	hashtable_library_loader_entry *hashlink;/* link for external chaining    */
+public:
+	void  add(NativeLibrary& library);
+	bool  is_loaded(NativeLibrary& library);
+	void* resolve_symbol(utf* symbolname, classloader_t* classloader);
 };
 #endif
 
 
-/* hashtable_library_name_entry ***********************************************/
+/**
+ * Represents a native method.
+ */
+class NativeMethod {
+private:
+	utf*  _classname;  ///< Class name.
+	utf*  _name;       ///< Method name.
+	utf*  _descriptor; ///< Method signature.
+	void* _function;   ///< Pointer to the native function.
 
-#if defined(ENABLE_DL)
-struct hashtable_library_name_entry {
-	utf                          *name;      /* library name                  */
-	void*                         handle;    /* libtool library handle        */
-	hashtable_library_name_entry *hashlink;  /* link for external chaining    */
+	friend bool operator< (const NativeMethod& first, const NativeMethod& second);
+
+public:
+	NativeMethod(utf* classname, utf* name, utf* signature, void* function) : _classname(classname), _name(name), _descriptor(signature), _function(function) {}
+	NativeMethod(methodinfo* m) : _classname(m->clazz->name), _name(m->name), _descriptor(m->descriptor), _function(0) {}
+
+	inline void* get_function() const { return _function; }
 };
-#endif
 
+
+/**
+ * Table containing all native methods registered with the VM.
+ */
+class NativeMethods {
+private:
+	Mutex _mutex;
+	std::set<NativeMethod> _methods;
+
+private:
+	// Comparator class.
+	class comparator : public std::binary_function<std::pair<classloader_t*, NativeLibrary>, utf*, bool> {
+	public:
+		bool operator() (std::pair<classloader_t*, NativeLibrary> args, const utf* filename) const
+		{
+			return (args.second.get_filename() == filename);
+		}
+	};
+	
+public:
+	void  register_methods(utf* classname, const JNINativeMethod* methods, size_t count);
+	void* resolve_method(methodinfo* m);
+	void* find_registered_method(methodinfo* m);
+};
+
+#endif
 
 /* function prototypes ********************************************************/
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-bool native_init(void);
-
-void        native_method_register(utf *classname, const JNINativeMethod *methods, int32_t count);
-functionptr native_method_resolve(methodinfo *m);
-
-#if defined(ENABLE_DL)
-void*       native_library_open(utf *filename);
-void        native_library_close(void* handle);
-void        native_library_add(utf *filename, classloader_t *loader, void *handle);
-hashtable_library_name_entry *native_library_find(utf *filename, classloader_t *loader);
-int         native_library_load(JNIEnv *env, utf *name, classloader_t *cl);
 #endif
 
 java_handle_t *native_new_and_init(classinfo *c);

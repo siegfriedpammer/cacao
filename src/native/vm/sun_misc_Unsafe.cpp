@@ -1155,11 +1155,10 @@ static JNINativeMethod methods[] = {
 
 void _Jv_sun_misc_Unsafe_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("sun/misc/Unsafe");
 
-	u = utf_new_char("sun/misc/Unsafe");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

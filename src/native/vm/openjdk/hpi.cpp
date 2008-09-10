@@ -68,7 +68,8 @@ void HPI::initialize() // REMOVEME
 	TRACESUBSYSTEMINITIALIZATION("hpi_init");
 
 	// Load libhpi.so
-	Properties& properties = VM::get_current()->get_properties();
+	VM* vm = VM::get_current();
+	Properties& properties = vm->get_properties();
 	const char* boot_library_path = properties.get("sun.boot.library.path");
 
 	size_t len =
@@ -88,7 +89,8 @@ void HPI::initialize() // REMOVEME
 
 	MFREE(p, char, len);
 
-	void* handle = native_library_open(u);
+	NativeLibrary nl(u);
+	void* handle = nl.open();
 
 	if (handle == NULL)
 		if (opt_TraceHPI)
@@ -108,7 +110,8 @@ void HPI::initialize() // REMOVEME
 			vm_abort("hpi_init: HPI DLL_Initialize failed");
     }
 
-	native_library_add(u, NULL, handle);
+	NativeLibraries& nls = vm->get_nativelibraries();
+	nls.add(nl);
 
     if (opt_TraceHPI)
 		log_println("HPI::initialize: HPI loaded successfully");

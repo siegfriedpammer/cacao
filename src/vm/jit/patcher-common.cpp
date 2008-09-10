@@ -474,7 +474,6 @@ bool patcher_resolve_native_function(patchref_t *pr)
 {
 	methodinfo  *m;
 	uint8_t     *datap;
-	functionptr  f;
 
 	/* get stuff from the patcher reference */
 
@@ -483,12 +482,15 @@ bool patcher_resolve_native_function(patchref_t *pr)
 
 	/* resolve native function */
 
-	if (!(f = native_method_resolve(m)))
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	void* f = nm.resolve_method(m);
+
+	if (f == NULL)
 		return false;
 
 	/* patch native function pointer */
 
-	*((intptr_t *) datap) = (intptr_t) f;
+	*((intptr_t*) datap) = (intptr_t) f;
 
 	/* synchronize data cache */
 

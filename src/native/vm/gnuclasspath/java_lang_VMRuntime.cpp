@@ -203,10 +203,7 @@ JNIEXPORT jint JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env,
  */
 JNIEXPORT jint JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, jstring libname, jobject loader)
 {
-	classloader_t *cl;
-	utf           *name;
-
-	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
+	classloader_t* cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 	/* REMOVEME When we use Java-strings internally. */
 
@@ -215,9 +212,10 @@ JNIEXPORT jint JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass c
 		return 0;
 	}
 
-	name = javastring_toutf((java_handle_t *) libname, false);
+	utf* name = javastring_toutf((java_handle_t *) libname, false);
 
-	return native_library_load(env, name, cl);
+	NativeLibrary library(name, cl);
+	return library.load(env);
 }
 
 
@@ -295,11 +293,10 @@ static JNINativeMethod methods[] = {
 
 void _Jv_java_lang_VMRuntime_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("java/lang/VMRuntime");
 
-	u = utf_new_char("java/lang/VMRuntime");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

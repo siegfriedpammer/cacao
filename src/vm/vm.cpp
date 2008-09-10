@@ -1435,12 +1435,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 	if (!builtin_init())
 		os::abort("vm_create: builtin_init failed");
 
-	/* Initialize the native subsystem. */
-	/* BEFORE: threads_init */
-
-	if (!native_init())
-		os::abort("vm_create: native_init failed");
-
 	/* Register the native methods implemented in the VM. */
 	/* BEFORE: threads_init */
 
