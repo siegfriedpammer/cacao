@@ -1153,8 +1153,6 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_sun_misc_Unsafe_init(void)
 {
 	utf *u;
@@ -1163,7 +1161,7 @@ void _Jv_sun_misc_Unsafe_init(void)
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
 }
-}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -1176,4 +1174,5 @@ void _Jv_sun_misc_Unsafe_init(void)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

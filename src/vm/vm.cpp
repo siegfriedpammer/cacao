@@ -50,7 +50,7 @@
 #include "native/localref.hpp"
 #include "native/native.hpp"
 
-#include "native/vm/nativevm.h"
+#include "native/vm/nativevm.hpp"
 
 #include "threads/lock.hpp"
 #include "threads/thread.hpp"

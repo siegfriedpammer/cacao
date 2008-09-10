@@ -1111,8 +1111,6 @@ static const JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_java_lang_reflect_VMField_init(void)
 {
 	utf *u;
@@ -1120,7 +1118,6 @@ void _Jv_java_lang_reflect_VMField_init(void)
 	u = utf_new_char("java/lang/reflect/VMField");
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
 }
 
 

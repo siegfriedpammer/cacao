@@ -238,8 +238,6 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
  
-// FIXME
-extern "C" {
 void _Jv_com_sun_cldc_io_j2me_socket_Protocol_init(void)
 {
 	utf *u;
@@ -247,7 +245,6 @@ void _Jv_com_sun_cldc_io_j2me_socket_Protocol_init(void)
 	u = utf_new_char("com/sun/cldc/io/j2me/socket/Protocol");
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
 }
 
 

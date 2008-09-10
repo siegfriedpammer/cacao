@@ -134,8 +134,6 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_gnu_classpath_VMSystemProperties_init(void)
 {
 	utf *u;
@@ -143,7 +141,6 @@ void _Jv_gnu_classpath_VMSystemProperties_init(void)
 	u = utf_new_char("gnu/classpath/VMSystemProperties");
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
 }
 
 

@@ -124,8 +124,6 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_gnu_classpath_VMStackWalker_init(void)
 {
 	utf *u;
@@ -133,7 +131,6 @@ void _Jv_gnu_classpath_VMStackWalker_init(void)
 	u = utf_new_char("gnu/classpath/VMStackWalker");
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
 }
 
 

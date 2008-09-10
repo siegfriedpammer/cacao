@@ -105,8 +105,6 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
  
-// FIXME
-extern "C" {
 void _Jv_java_lang_Runtime_init(void)
 {
 	utf *u;
@@ -114,7 +112,6 @@ void _Jv_java_lang_Runtime_init(void)
 	u = utf_new_char("java/lang/Runtime");
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
 }
 
 

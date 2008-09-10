@@ -67,8 +67,6 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
  
-// FIXME
-extern "C" { 
 void _Jv_com_sun_cldchi_io_ConsoleOutputStream_init(void)
 {
 	utf *u;
@@ -76,7 +74,6 @@ void _Jv_com_sun_cldchi_io_ConsoleOutputStream_init(void)
 	u = utf_new_char("com/sun/cldchi/io/ConsoleOutputStream");
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
 }
 
 

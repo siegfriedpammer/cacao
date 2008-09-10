@@ -144,8 +144,6 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_java_lang_VMObject_init(void)
 {
 	utf *u;
@@ -153,7 +151,6 @@ void _Jv_java_lang_VMObject_init(void)
 	u = utf_new_char("java/lang/VMObject");
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
 }
 
 

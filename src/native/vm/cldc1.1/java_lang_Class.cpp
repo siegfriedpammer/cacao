@@ -214,14 +214,13 @@ static JNINativeMethod methods[] = {
 	{ (char*) "getName",          (char*) "()Ljava/lang/String;",                 (void*) (uintptr_t) &Java_java_lang_Class_getName          },
 };
 
+
 /* _Jv_java_lang_Class_init ****************************************************
  
    Register native functions.
  
 *******************************************************************************/
 
-// FIXME
-extern "C" { 
 void _Jv_java_lang_Class_init(void)
 {
 	utf *u;
@@ -229,7 +228,6 @@ void _Jv_java_lang_Class_init(void)
 	u = utf_new_char("java/lang/Class");
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
 }
 
 

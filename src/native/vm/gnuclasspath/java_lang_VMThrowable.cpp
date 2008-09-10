@@ -180,7 +180,6 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-extern "C" {
 void _Jv_java_lang_VMThrowable_init(void)
 {
 	utf *u;
@@ -188,7 +187,6 @@ void _Jv_java_lang_VMThrowable_init(void)
 	u = utf_new_char("java/lang/VMThrowable");
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
 }
 
 

@@ -101,8 +101,6 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_gnu_java_lang_VMCPStringBuilder_init(void)
 {
 	utf *u;
@@ -110,7 +108,6 @@ void _Jv_gnu_java_lang_VMCPStringBuilder_init(void)
 	u = utf_new_char("gnu/java/lang/VMCPStringBuilder");
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
 }
 
 

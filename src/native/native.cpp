@@ -37,8 +37,6 @@
 #include "native/jni.hpp"
 #include "native/native.hpp"
 
-#include "native/vm/nativevm.h"
-
 #include "threads/mutex.hpp"
 
 #include "toolbox/avl.h"

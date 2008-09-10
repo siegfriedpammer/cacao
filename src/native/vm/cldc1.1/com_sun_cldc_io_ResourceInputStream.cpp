@@ -375,8 +375,6 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
  
-// FIXME
-extern "C" {
 void _Jv_com_sun_cldc_io_ResourceInputStream_init(void)
 {
 	utf *u;
@@ -384,7 +382,6 @@ void _Jv_com_sun_cldc_io_ResourceInputStream_init(void)
 	u = utf_new_char("com/sun/cldc/io/ResourceInputStream");
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
 }
 
 

@@ -173,8 +173,6 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_gnu_java_lang_management_VMMemoryMXBeanImpl_init(void)
 {
 	utf *u;
@@ -182,7 +180,6 @@ void _Jv_gnu_java_lang_management_VMMemoryMXBeanImpl_init(void)
 	u = utf_new_char("gnu/java/lang/management/VMMemoryMXBeanImpl");
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
 }
 
 

@@ -1,4 +1,4 @@
-/* src/native/vm/nativevm.c - register the native functions
+/* src/native/vm/nativevm.cpp - Register native VM interface functions.
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -27,7 +27,7 @@
 
 #include <stdint.h>
 
-#include "native/vm/nativevm.h"
+#include "native/vm/nativevm.hpp"
 
 #include "vm/class.h"
 #include "vm/initialize.h"
@@ -57,12 +57,12 @@
 
 void nativevm_preinit(void)
 {
+	TRACESUBSYSTEMINITIALIZATION("nativevm_preinit");
+
 	/* Register native methods of all classes implemented. */
 
 #if defined(ENABLE_JAVASE)
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-
-	TRACESUBSYSTEMINITIALIZATION("nativevm_preinit");
 
 	_Jv_gnu_classpath_VMStackWalker_init();
 	_Jv_gnu_classpath_VMSystemProperties_init();
@@ -83,7 +83,7 @@ void nativevm_preinit(void)
 	_Jv_java_lang_reflect_VMConstructor_init();
 	_Jv_java_lang_reflect_VMField_init();
 	_Jv_java_lang_reflect_VMMethod_init();
-	_Jv_java_lang_reflect_VMProxy_init();
+	//_Jv_java_lang_reflect_VMProxy_init();
 	_Jv_java_security_VMAccessController_init();
 	_Jv_java_util_concurrent_atomic_AtomicLong_init();
 	_Jv_sun_misc_Unsafe_init();
@@ -94,31 +94,24 @@ void nativevm_preinit(void)
 
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
-	const char* boot_library_path;
-	int   len;
-	char* p;
-	utf*  u;
-	void* handle;
+	// Load libjava.so
+	VM* vm = VM::get_current();
+	Properties& properties = vm->get_properties();
+	const char* boot_library_path = properties.get("sun.boot.library.path");
 
-	TRACESUBSYSTEMINITIALIZATION("nativevm_preinit");
+	size_t len =
+		os::strlen(boot_library_path) +
+		os::strlen("/libjava.so") +
+		os::strlen("0");
 
-	/* Load libjava.so */
+	char* p = MNEW(char, len);
 
-	boot_library_path = Properties_get("sun.boot.library.path");
+	os::strcpy(p, boot_library_path);
+	os::strcat(p, "/libjava.so");
 
-	len =
-		os_strlen(boot_library_path) +
-		os_strlen("/libjava.so") +
-		os_strlen("0");
+	utf* u = utf_new_char(p);
 
-	p = MNEW(char, len);
-
-	os_strcpy(p, boot_library_path);
-	os_strcat(p, "/libjava.so");
-
-	u = utf_new_char(p);
-
-	handle = native_library_open(u);
+	void* handle = native_library_open(u);
 
 	if (handle == NULL)
 		vm_abort("nativevm_init: failed to open libjava.so at: %s", p);
@@ -127,9 +120,9 @@ void nativevm_preinit(void)
 
 	native_library_add(u, NULL, handle);
 
-	/* Initialize the HPI. */
-
-	HPI_initialize();
+	// Initialize the HPI.
+	HPI& hpi = vm->get_hpi();
+	hpi.initialize();
 
 	_Jv_sun_misc_Unsafe_init();
 
@@ -138,8 +131,6 @@ void nativevm_preinit(void)
 # endif
 
 #elif defined(ENABLE_JAVAME_CLDC1_1)
-
-	TRACESUBSYSTEMINITIALIZATION("nativevm_preinit");
 
 	_Jv_com_sun_cldc_io_ResourceInputStream_init();
 	_Jv_com_sun_cldc_io_j2me_socket_Protocol_init();
@@ -170,28 +161,24 @@ void nativevm_preinit(void)
 
 void nativevm_init(void)
 {
+	TRACESUBSYSTEMINITIALIZATION("nativevm_init");
+
 #if defined(ENABLE_JAVASE)
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
-	TRACESUBSYSTEMINITIALIZATION("nativevm_init");
-
-	/* nothing to do */
+	// Nothing to do.
 
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
-	methodinfo *m;
-
-	TRACESUBSYSTEMINITIALIZATION("nativevm_init");
-
-	m = class_resolveclassmethod(class_java_lang_System,
-								 utf_new_char("initializeSystemClass"),
-								 utf_void__void,
-								 class_java_lang_Object,
-								 false);
+	methodinfo* m = class_resolveclassmethod(class_java_lang_System,
+											 utf_new_char("initializeSystemClass"),
+											 utf_void__void,
+											 class_java_lang_Object,
+											 false);
 
 	if (m == NULL)
-		vm_abort("nativevm_init: Error resolving java.lang.System.initializeSystemClass()");
+		os::abort("nativevm_init: Error resolving java.lang.System.initializeSystemClass()");
 
 	(void) vm_call_method(m, NULL);
 
@@ -201,9 +188,7 @@ void nativevm_init(void)
 
 #elif defined(ENABLE_JAVAME_CLDC1_1)
 
-	TRACESUBSYSTEMINITIALIZATION("nativevm_init");
-
-	/* nothing to do */
+	// Nothing to do.
 
 #else
 # error unknown Java configuration
@@ -217,9 +202,10 @@ void nativevm_init(void)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

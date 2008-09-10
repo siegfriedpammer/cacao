@@ -92,8 +92,6 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
  
-// FIXME
-extern "C" {
 void _Jv_java_lang_Throwable_init(void)
 {
 	utf *u;
@@ -101,7 +99,6 @@ void _Jv_java_lang_Throwable_init(void)
 	u = utf_new_char("java/lang/Throwable");
  
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
 }
 
 

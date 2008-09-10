@@ -67,8 +67,6 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_java_util_concurrent_atomic_AtomicLong_init(void)
 {
 	utf *u;
@@ -76,7 +74,6 @@ void _Jv_java_util_concurrent_atomic_AtomicLong_init(void)
 	u = utf_new_char("java/util/concurrent/atomic/AtomicLong");
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
 }
 
 

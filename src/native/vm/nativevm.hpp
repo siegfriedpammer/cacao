@@ -1,4 +1,4 @@
-/* src/native/vm/nativevm.h - register the native functions
+/* src/native/vm/nativevm.hpp - Register native VM interface functions.
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,19 +23,10 @@
 */
 
 
-#ifndef _NATIVEVM_H
-#define _NATIVEVM_H
+#ifndef _NATIVEVM_HPP
+#define _NATIVEVM_HPP
 
 #include "config.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include "vm/types.h"
-
-#include "vm/global.h"
-
 
 /* function prototypes ********************************************************/
 
@@ -102,11 +93,7 @@ void _Jv_java_lang_Throwable_init();
 # error unknown Java configuration
 #endif
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* _NATIVEVM_H */
+#endif // _NATIVEVM_HPP
 
 
 /*
@@ -115,9 +102,10 @@ void _Jv_java_lang_Throwable_init();
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
