@@ -2156,9 +2156,6 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 	/* we need bigger free memory stacks (XXX these should not be allocated in reg_setup) */
 
 	n_jd->rd->freemem = DMNEW(s4, iln->ctx->maxinoutdepth + 1000) /* XXX max vars/block */;
-#if defined(HAS_4BYTE_STACKSLOT)
-	n_jd->rd->freemem_2 = DMNEW(s4, iln->ctx->maxinoutdepth + 1000) /* XXX max vars/block */;
-#endif
 
 #if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
 	if (   (n_jd->instructioncount >= opt_InlineMinSize)
