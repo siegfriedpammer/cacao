@@ -1115,17 +1115,13 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			if (opt_noieee) {
-				M_FADD(s1, s2, d);
+			if (d == s1 || d == s2) {
+				M_FADDS(s1, s2, REG_FTMP3);
+				M_TRAPB;
+				M_FMOV(REG_FTMP3, d);
 			} else {
-				if (d == s1 || d == s2) {
-					M_FADDS(s1, s2, REG_FTMP3);
-					M_TRAPB;
-					M_FMOV(REG_FTMP3, d);
-				} else {
-					M_FADDS(s1, s2, d);
-					M_TRAPB;
-				}
+				M_FADDS(s1, s2, d);
+				M_TRAPB;
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1135,17 +1131,13 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			if (opt_noieee) {
-				M_DADD(s1, s2, d);
+			if (d == s1 || d == s2) {
+				M_DADDS(s1, s2, REG_FTMP3);
+				M_TRAPB;
+				M_FMOV(REG_FTMP3, d);
 			} else {
-				if (d == s1 || d == s2) {
-					M_DADDS(s1, s2, REG_FTMP3);
-					M_TRAPB;
-					M_FMOV(REG_FTMP3, d);
-				} else {
-					M_DADDS(s1, s2, d);
-					M_TRAPB;
-				}
+				M_DADDS(s1, s2, d);
+				M_TRAPB;
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1155,17 +1147,13 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			if (opt_noieee) {
-				M_FSUB(s1, s2, d);
+			if (d == s1 || d == s2) {
+				M_FSUBS(s1, s2, REG_FTMP3);
+				M_TRAPB;
+				M_FMOV(REG_FTMP3, d);
 			} else {
-				if (d == s1 || d == s2) {
-					M_FSUBS(s1, s2, REG_FTMP3);
-					M_TRAPB;
-					M_FMOV(REG_FTMP3, d);
-				} else {
-					M_FSUBS(s1, s2, d);
-					M_TRAPB;
-				}
+				M_FSUBS(s1, s2, d);
+				M_TRAPB;
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1175,17 +1163,13 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			if (opt_noieee) {
-				M_DSUB(s1, s2, d);
+			if (d == s1 || d == s2) {
+				M_DSUBS(s1, s2, REG_FTMP3);
+				M_TRAPB;
+				M_FMOV(REG_FTMP3, d);
 			} else {
-				if (d == s1 || d == s2) {
-					M_DSUBS(s1, s2, REG_FTMP3);
-					M_TRAPB;
-					M_FMOV(REG_FTMP3, d);
-				} else {
-					M_DSUBS(s1, s2, d);
-					M_TRAPB;
-				}
+				M_DSUBS(s1, s2, d);
+				M_TRAPB;
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1195,17 +1179,13 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			if (opt_noieee) {
-				M_FMUL(s1, s2, d);
+			if (d == s1 || d == s2) {
+				M_FMULS(s1, s2, REG_FTMP3);
+				M_TRAPB;
+				M_FMOV(REG_FTMP3, d);
 			} else {
-				if (d == s1 || d == s2) {
-					M_FMULS(s1, s2, REG_FTMP3);
-					M_TRAPB;
-					M_FMOV(REG_FTMP3, d);
-				} else {
-					M_FMULS(s1, s2, d);
-					M_TRAPB;
-				}
+				M_FMULS(s1, s2, d);
+				M_TRAPB;
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1215,17 +1195,13 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			if (opt_noieee) {
-				M_DMUL(s1, s2, d);
+			if (d == s1 || d == s2) {
+				M_DMULS(s1, s2, REG_FTMP3);
+				M_TRAPB;
+				M_FMOV(REG_FTMP3, d);
 			} else {
-				if (d == s1 || d == s2) {
-					M_DMULS(s1, s2, REG_FTMP3);
-					M_TRAPB;
-					M_FMOV(REG_FTMP3, d);
-				} else {
-					M_DMULS(s1, s2, d);
-					M_TRAPB;
-				}
+				M_DMULS(s1, s2, d);
+				M_TRAPB;
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1235,17 +1211,13 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			if (opt_noieee) {
-				M_FDIV(s1, s2, d);
+			if (d == s1 || d == s2) {
+				M_FDIVS(s1, s2, REG_FTMP3);
+				M_TRAPB;
+				M_FMOV(REG_FTMP3, d);
 			} else {
-				if (d == s1 || d == s2) {
-					M_FDIVS(s1, s2, REG_FTMP3);
-					M_TRAPB;
-					M_FMOV(REG_FTMP3, d);
-				} else {
-					M_FDIVS(s1, s2, d);
-					M_TRAPB;
-				}
+				M_FDIVS(s1, s2, d);
+				M_TRAPB;
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1255,17 +1227,13 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			if (opt_noieee) {
-				M_DDIV(s1, s2, d);
+			if (d == s1 || d == s2) {
+				M_DDIVS(s1, s2, REG_FTMP3);
+				M_TRAPB;
+				M_FMOV(REG_FTMP3, d);
 			} else {
-				if (d == s1 || d == s2) {
-					M_DDIVS(s1, s2, REG_FTMP3);
-					M_TRAPB;
-					M_FMOV(REG_FTMP3, d);
-				} else {
-					M_DDIVS(s1, s2, d);
-					M_TRAPB;
-				}
+				M_DDIVS(s1, s2, d);
+				M_TRAPB;
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1328,12 +1296,8 @@ bool codegen_emit(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP3);
-			if (opt_noieee) {
-				M_CVTDF(s1, d);
-			} else {
-				M_CVTDFS(s1, d);
-				M_TRAPB;
-			}
+			M_CVTDFS(s1, d);
+			M_TRAPB;
 			emit_store_dst(jd, iptr, d);
 			break;
 		
@@ -1342,25 +1306,15 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			if (opt_noieee) {
-				M_LSUB_IMM(REG_ZERO, 1, d);
-				M_FCMPEQ(s1, s2, REG_FTMP3);
-				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instructions */
-				M_CLR   (d);
-				M_FCMPLT(s2, s1, REG_FTMP3);
-				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
-				M_LADD_IMM(REG_ZERO, 1, d);
-			} else {
-				M_LSUB_IMM(REG_ZERO, 1, d);
-				M_FCMPEQS(s1, s2, REG_FTMP3);
-				M_TRAPB;
-				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instructions */
-				M_CLR   (d);
-				M_FCMPLTS(s2, s1, REG_FTMP3);
-				M_TRAPB;
-				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
-				M_LADD_IMM(REG_ZERO, 1, d);
-			}
+			M_LSUB_IMM(REG_ZERO, 1, d);
+			M_FCMPEQS(s1, s2, REG_FTMP3);
+			M_TRAPB;
+			M_FBEQZ (REG_FTMP3, 1);        /* jump over next instructions */
+			M_CLR   (d);
+			M_FCMPLTS(s2, s1, REG_FTMP3);
+			M_TRAPB;
+			M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
+			M_LADD_IMM(REG_ZERO, 1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 			
@@ -1369,25 +1323,15 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP3);
-			if (opt_noieee) {
-				M_LADD_IMM(REG_ZERO, 1, d);
-				M_FCMPEQ(s1, s2, REG_FTMP3);
-				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
-				M_CLR   (d);
-				M_FCMPLT(s1, s2, REG_FTMP3);
-				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
-				M_LSUB_IMM(REG_ZERO, 1, d);
-			} else {
-				M_LADD_IMM(REG_ZERO, 1, d);
-				M_FCMPEQS(s1, s2, REG_FTMP3);
-				M_TRAPB;
-				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
-				M_CLR   (d);
-				M_FCMPLTS(s1, s2, REG_FTMP3);
-				M_TRAPB;
-				M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
-				M_LSUB_IMM(REG_ZERO, 1, d);
-			}
+			M_LADD_IMM(REG_ZERO, 1, d);
+			M_FCMPEQS(s1, s2, REG_FTMP3);
+			M_TRAPB;
+			M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
+			M_CLR   (d);
+			M_FCMPLTS(s1, s2, REG_FTMP3);
+			M_TRAPB;
+			M_FBEQZ (REG_FTMP3, 1);        /* jump over next instruction  */
+			M_LSUB_IMM(REG_ZERO, 1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 

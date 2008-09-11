@@ -1463,54 +1463,38 @@ invoke_method:
 
 		case BC_f2i:
 #if defined(__ALPHA__)
-			if (!opt_noieee) {
-				bte = builtintable_get_internal(BUILTIN_f2i);
-				OP_BUILTIN_NO_EXCEPTION(bte);
-			}
-			else
+			bte = builtintable_get_internal(BUILTIN_f2i);
+			OP_BUILTIN_NO_EXCEPTION(bte);
+#else
+			OP(opcode);
 #endif
-			{
-				OP(opcode);
-			}
 			break;
 
 		case BC_f2l:
 #if defined(__ALPHA__)
-			if (!opt_noieee) {
-				bte = builtintable_get_internal(BUILTIN_f2l);
-				OP_BUILTIN_NO_EXCEPTION(bte);
-			}
-			else
+			bte = builtintable_get_internal(BUILTIN_f2l);
+			OP_BUILTIN_NO_EXCEPTION(bte);
+#else
+			OP(opcode);
 #endif
-			{
-				OP(opcode);
-			}
 			break;
 
 		case BC_d2i:
 #if defined(__ALPHA__)
-			if (!opt_noieee) {
-				bte = builtintable_get_internal(BUILTIN_d2i);
-				OP_BUILTIN_NO_EXCEPTION(bte);
-			}
-			else
+			bte = builtintable_get_internal(BUILTIN_d2i);
+			OP_BUILTIN_NO_EXCEPTION(bte);
+#else
+			OP(opcode);
 #endif
-			{
-				OP(opcode);
-			}
 			break;
 
 		case BC_d2l:
 #if defined(__ALPHA__)
-			if (!opt_noieee) {
-				bte = builtintable_get_internal(BUILTIN_d2l);
-				OP_BUILTIN_NO_EXCEPTION(bte);
-			}
-			else
+			bte = builtintable_get_internal(BUILTIN_d2l);
+			OP_BUILTIN_NO_EXCEPTION(bte);
+#else
+			OP(opcode);
 #endif
-			{
-				OP(opcode);
-			}
 			break;
 
 

@@ -192,7 +192,6 @@ enum {
 	/* CACAO options */
 
 	OPT_VERBOSE1,
-	OPT_NOIEEE,
 
 #if defined(ENABLE_STATISTICS)
 	OPT_TIME,
@@ -312,9 +311,6 @@ opt_struct opts[] = {
 
 #if defined(ENABLE_VERIFIER) && defined(TYPECHECK_VERBOSE)
 	{ "verbosetc",         false, OPT_VERBOSETC },
-#endif
-#if defined(__ALPHA__)
-	{ "noieee",            false, OPT_NOIEEE },
 #endif
 #if defined(ENABLE_STATISTICS)
 	{ "time",              false, OPT_TIME },
@@ -507,9 +503,6 @@ static void XXusage(void)
 #endif
 #ifdef TYPECHECK_VERBOSE
 	puts("    -verbosetc               write debug messages while typechecking");
-#endif
-#if defined(__ALPHA__)
-	puts("    -noieee                  don't use ieee compliant arithmetic");
 #endif
 #if defined(ENABLE_VERIFIER)
 	puts("    -noverify                don't verify classfiles");
@@ -733,8 +726,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 	opt_version       = false;
 	opt_exit          = false;
-
-	opt_noieee        = false;
 
 	opt_heapmaxsize   = HEAP_MAXSIZE;
 	opt_heapstartsize = HEAP_STARTSIZE;
@@ -1034,10 +1025,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 		case OPT_SHOWVERSION:
 			opt_version = true;
-			break;
-
-		case OPT_NOIEEE:
-			opt_noieee = true;
 			break;
 
 #if defined(ENABLE_VERIFIER)
