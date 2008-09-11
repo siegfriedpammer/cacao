@@ -64,7 +64,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p);
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p);
 #endif
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__S390__) || defined(__X86_64__) || defined(__M68K__)
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__) || defined(__M68K__)
 /* XXX use better defines for that (in arch.h) */
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p);
 #endif
