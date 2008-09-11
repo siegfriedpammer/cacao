@@ -705,10 +705,14 @@ static void sable_flc_waiting(Lockword *lockword, threadobject *t, java_handle_t
 	/* Lockword is still the way it was seen before */
 	if (lockword->is_thin_lock() && (lockword->get_thin_lock_thread_index() == index))
 	{
+		threadobject *f;
 		/* Add tuple (t, o) to the other thread's FLC list */
 		t->flc_object = o;
 		t->flc_next = t_other->flc_list;
 		t_other->flc_list = t;
+		if (t->flc_next == 0)
+			t_other->flc_tail = t;
+		f = t_other->flc_tail;
 
 		for (;;)
 		{
@@ -718,6 +722,8 @@ static void sable_flc_waiting(Lockword *lockword, threadobject *t, java_handle_t
 			// us of unlocking.
 			t->flc_cond->wait(t_other->flc_lock);
 
+			if (t_other->flc_tail != f)
+				break;
 			/* Traverse FLC list looking if we're still there */
 			current = t_other->flc_list;
 			while (current && current != t)
