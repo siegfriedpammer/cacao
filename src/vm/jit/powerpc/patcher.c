@@ -49,11 +49,6 @@
 #include "vm/jit/patcher-common.hpp"
 
 
-#define PATCH_BACK_ORIGINAL_MCODE \
-	*((u4 *) pr->mpc) = (u4) pr->mcode; \
-	md_icacheflush((u1 *) pr->mpc, 4);
-
-
 /* patcher_patch_code **********************************************************
 
    Just patches back the original machine code.
@@ -62,7 +57,11 @@
 
 void patcher_patch_code(patchref_t *pr)
 {
-	PATCH_BACK_ORIGINAL_MCODE;
+	// Patch back original code.
+	*((uint32_t*) pr->mpc) = pr->mcode;
+
+	// Synchronize instruction cache.
+	md_icacheflush((void*) pr->mpc, 1 * 4);
 }
 
 
@@ -113,8 +112,6 @@ bool patcher_resolve_classref_to_classinfo(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch the classinfo pointer */
 
 	*((ptrint *) datap) = (ptrint) c;
@@ -122,6 +119,9 @@ bool patcher_resolve_classref_to_classinfo(patchref_t *pr)
 	/* synchronize data cache */
 
 	md_dcacheflush(datap, SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -161,8 +161,6 @@ bool patcher_resolve_classref_to_vftbl(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch super class' vftbl */
 
 	*((ptrint *) datap) = (ptrint) c->vftbl;
@@ -170,6 +168,9 @@ bool patcher_resolve_classref_to_vftbl(patchref_t *pr)
 	/* synchronize data cache */
 
 	md_dcacheflush(datap, SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -200,8 +201,6 @@ bool patcher_resolve_classref_to_flags(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch class flags */
 
 	*((s4 *) datap) = (s4) c->flags;
@@ -209,6 +208,9 @@ bool patcher_resolve_classref_to_flags(patchref_t *pr)
 	/* synchronize data cache */
 
 	md_dcacheflush(datap, SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -248,8 +250,6 @@ bool patcher_get_putstatic(patchref_t *pr)
 		if (!initialize_class(fi->clazz))
 			return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch the field value's address */
 
 	*((intptr_t *) datap) = (intptr_t) fi->value;
@@ -257,6 +257,9 @@ bool patcher_get_putstatic(patchref_t *pr)
 	/* synchronize data cache */
 
 	md_dcacheflush(datap, SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -285,8 +288,6 @@ bool patcher_get_putfield(patchref_t *pr)
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch the field's offset */
 
 	if (IS_LNG_TYPE(fi->type)) {
@@ -295,25 +296,28 @@ bool patcher_get_putfield(patchref_t *pr)
 		   is first.  We do that with the offset of the first
 		   instruction. */
 
-		uint32_t disp = (*((uint32_t*) (ra + 0 * 4)) & 0x0000ffff);
+		uint32_t disp = (pr->mcode & 0x0000ffff);
 
 		if (disp == 4) {
-			*((u4 *) (ra + 0 * 4)) &= 0xffff0000;
-			*((u4 *) (ra + 0 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
-			*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
+			pr->mcode &= 0xffff0000;
+			pr->mcode |= ((fi->offset + 4) & 0x0000ffff);
+			*((u4 *) (ra + 1 * 4)) |= ((fi->offset + 0) & 0x0000ffff);
 		}
 		else {
-			*((u4 *) (ra + 0 * 4)) |= (s2) ((fi->offset + 0) & 0x0000ffff);
+			pr->mcode |= ((fi->offset + 0) & 0x0000ffff);
 			*((u4 *) (ra + 1 * 4)) &= 0xffff0000;
-			*((u4 *) (ra + 1 * 4)) |= (s2) ((fi->offset + 4) & 0x0000ffff);
+			*((u4 *) (ra + 1 * 4)) |= ((fi->offset + 4) & 0x0000ffff);
 		}
+
+		// Synchronize instruction cache.
+		md_icacheflush(ra + 1 * 4, 1 * 4);
 	}
-	else
-		*((u4 *) (ra + 0 * 4)) |= (s2) (fi->offset & 0x0000ffff);
+	else {
+		pr->mcode |= (fi->offset & 0x0000ffff);
+	}
 
-	/* synchronize instruction cache */
-
-	md_icacheflush(ra + 0 * 4, 2 * 4);
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -346,8 +350,6 @@ bool patcher_invokestatic_special(patchref_t *pr)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch stubroutine */
 
 	*((ptrint *) datap) = (ptrint) m->stubroutine;
@@ -355,6 +357,9 @@ bool patcher_invokestatic_special(patchref_t *pr)
 	/* synchronize data cache */
 
 	md_dcacheflush(datap, SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -389,8 +394,6 @@ bool patcher_invokevirtual(patchref_t *pr)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch vftbl index */
 
 	disp = (OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * m->vftblindex);
@@ -400,6 +403,9 @@ bool patcher_invokevirtual(patchref_t *pr)
 	/* synchronize instruction cache */
 
 	md_icacheflush(ra + 1 * 4, 1 * 4);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -435,8 +441,6 @@ bool patcher_invokeinterface(patchref_t *pr)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch interfacetable index */
 
 	disp = OFFSET(vftbl_t, interfacetable[0]) -
@@ -457,6 +461,9 @@ bool patcher_invokeinterface(patchref_t *pr)
 	/* synchronize instruction cache */
 
 	md_icacheflush(ra + 1 * 4, 2 * 4);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -493,8 +500,6 @@ bool patcher_checkcast_interface(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch super class index */
 
 	disp = -(c->index);
@@ -508,6 +513,9 @@ bool patcher_checkcast_interface(patchref_t *pr)
 	/* synchronize instruction cache */
 
 	md_icacheflush(ra + 2 * 4, 4 * 4);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -544,8 +552,6 @@ bool patcher_instanceof_interface(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch super class index */
 
 	disp = -(c->index);
@@ -559,6 +565,9 @@ bool patcher_instanceof_interface(patchref_t *pr)
 	/* synchronize instruction cache */
 
 	md_icacheflush(ra + 2 * 4, 3 * 4);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
