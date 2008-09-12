@@ -68,7 +68,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	ptrint          val;
 	s4              type;
 	void           *p;
-	java_object_t  *o;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -138,27 +137,8 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	if (type == TRAP_COMPILER) {
 		if (p == NULL) {
-			o = builtin_retrieve_exception();
-
 			_mc->gregs[REG_ESP] = (uintptr_t) sp;    /* Remove RA from stack. */
-
-			_mc->gregs[REG_EAX] = (uintptr_t) o;
-			_mc->gregs[REG_ECX] = (uintptr_t) xpc;           /* REG_ITMP2_XPC */
-			_mc->gregs[REG_EIP] = (uintptr_t) asm_handle_exception;
 		}
-		else {
-			_mc->gregs[REG_EIP] = (uintptr_t) p;
-		}
-	}
-#if defined(ENABLE_REPLACEMENT)
-	else if (type == TRAP_COUNTDOWN) {
-		/* context has been written by md_replace_executionstate_write */
-	}
-#endif
-	else {
-		_mc->gregs[REG_EAX] = (uintptr_t) p;
-		_mc->gregs[REG_ECX] = (uintptr_t) xpc;               /* REG_ITMP2_XPC */
-		_mc->gregs[REG_EIP] = (uintptr_t) asm_handle_exception;
 	}
 }
 
@@ -180,7 +160,6 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	u1             *xpc;
 	s4              type;
 	ptrint          val;
-	void           *p;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -197,13 +176,7 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Handle the trap. */
 
-	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	/* Set registers. */
-
-	_mc->gregs[REG_EAX] = (uintptr_t) p;
-	_mc->gregs[REG_ECX] = (uintptr_t) xpc;                   /* REG_ITMP2_XPC */
-	_mc->gregs[REG_EIP] = (uintptr_t) asm_handle_exception;
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
 }
 
 
@@ -223,7 +196,6 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	u1                *xpc;
 	s4                 type;
 	ptrint             val;
-	void              *p;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -238,15 +210,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Handle the trap. */
 
-	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	/* Set registers. */
-
-	if (p != NULL) {
-		_mc->gregs[REG_EAX] = (uintptr_t) p;
-		_mc->gregs[REG_ECX] = (uintptr_t) xpc;               /* REG_ITMP2_XPC */
-		_mc->gregs[REG_EIP] = (uintptr_t) asm_handle_exception;
-	}
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
 }
 
 

@@ -119,7 +119,7 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 	o = NULL;
 	m = NULL;
 
-#if defined(__X86_64__)
+#if defined(__I386__) || defined(__X86_64__)
 # if !defined(NDEBUG)
 	/* Perform a sanity check on our execution state functions. */
 
@@ -239,7 +239,7 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 
 	stacktrace_stackframeinfo_remove(&sfi);
 
-#if defined(__X86_64__)
+#if defined(__I386__) || defined(__X86_64__)
 	/* Update execution state and write it back to the current context. */
 	/* AFTER: removing stackframeinfo */
 
