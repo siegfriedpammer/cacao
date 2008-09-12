@@ -276,7 +276,6 @@ bool patcher_get_putfield(patchref_t *pr)
 	u1               *ra;
 	unresolved_field *uf;
 	fieldinfo        *fi;
-	s2                disp;
 
 	ra = (u1 *)               pr->mpc;
 	uf = (unresolved_field *) pr->ref;
@@ -296,7 +295,7 @@ bool patcher_get_putfield(patchref_t *pr)
 		   is first.  We do that with the offset of the first
 		   instruction. */
 
-		disp = *((u4 *) (ra + 0 * 4));
+		uint32_t disp = (*((uint32_t*) (ra + 0 * 4)) & 0x0000ffff);
 
 		if (disp == 4) {
 			*((u4 *) (ra + 0 * 4)) &= 0xffff0000;
