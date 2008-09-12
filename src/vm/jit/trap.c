@@ -42,8 +42,10 @@
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
 
+#include "vm/jit/asmpart.h"
 #include "vm/jit/code.hpp"
 #include "vm/jit/disass.h"
+#include "vm/jit/executionstate.h"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodtree.h"
 #include "vm/jit/patcher-common.hpp"
@@ -96,6 +98,7 @@ void trap_init(void)
  */
 void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xpc, void *context)
 {
+	executionstate_t  es;
 	stackframeinfo_t  sfi;
 	int32_t           index;
 	java_handle_t    *o;
@@ -115,6 +118,19 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 
 	o = NULL;
 	m = NULL;
+
+#if defined(__X86_64__)
+# if !defined(NDEBUG)
+	/* Perform a sanity check on our execution state functions. */
+
+	executionstate_sanity_check(context);
+# endif
+
+	/* Read execution state from current context. */
+
+	es.code = NULL;
+	md_executionstate_read(&es, context);
+#endif
 
 	/* wrap the value into a handle if it is a reference */
 	/* BEFORE: creating stackframeinfo */
@@ -222,6 +238,30 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 	/* Remove stackframeinfo. */
 
 	stacktrace_stackframeinfo_remove(&sfi);
+
+#if defined(__X86_64__)
+	/* Update execution state and write it back to the current context. */
+	/* AFTER: removing stackframeinfo */
+
+	if (type == TRAP_COMPILER) {
+		if (p == NULL) {
+			java_handle_t *e = exceptions_get_and_clear_exception();
+			es.intregs[REG_ITMP1]     = (uintptr_t) LLNI_DIRECT(e);
+			es.intregs[REG_ITMP2_XPC] = (uintptr_t) xpc;
+			es.pc                     = (uint8_t *) (uintptr_t) asm_handle_exception;
+		} else {
+			es.pc                     = (uint8_t *) (uintptr_t) p;
+		}
+	} else {
+		if (p != NULL) {
+			es.intregs[REG_ITMP1]     = (uintptr_t) p;
+			es.intregs[REG_ITMP2_XPC] = (uintptr_t) xpc;
+			es.pc                     = (uint8_t *) (uintptr_t) asm_handle_exception;
+		}
+	}
+
+	md_executionstate_write(&es, context);
+#endif
 
 	/* unwrap and return the exception object */
 	/* AFTER: removing stackframeinfo */
