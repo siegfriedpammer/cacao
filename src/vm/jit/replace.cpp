@@ -100,15 +100,9 @@
 
 /* XXX this should be in md-abi.h files, probably */
 
-#if defined(HAS_4BYTE_STACKSLOT)
-#define SIZE_OF_STACKSLOT      4
-#define STACK_SLOTS_PER_FLOAT  2
-typedef u4 stackslot_t;
-#else
 #define SIZE_OF_STACKSLOT      8
 #define STACK_SLOTS_PER_FLOAT  1
 typedef u8 stackslot_t;
-#endif
 
 
 /*** debugging ****************************************************************/
@@ -3466,12 +3460,7 @@ void replace_source_frame_println(sourceframe_t *frame)
 	if (frame->syncslotcount) {
 		printf("\tsynchronization slots (%d):\n",frame->syncslotcount);
 		for (i=0; i<frame->syncslotcount; ++i) {
-			printf("\tslot[%2d] = ",i);
-#ifdef HAS_4BYTE_STACKSLOT
-			printf("%08lx\n",(unsigned long) frame->syncslots[i].p);
-#else
-			printf("%016llx\n",(unsigned long long) frame->syncslots[i].p);
-#endif
+			printf("\tslot[%2d] = %016llx\n",i,(unsigned long long) frame->syncslots[i].p);
 		}
 		printf("\n");
 	}

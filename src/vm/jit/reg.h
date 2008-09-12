@@ -99,10 +99,6 @@ struct registerdata {
 	int freeargadrtop;              /* free argument address register count   */
 #endif
 
-#if defined(HAS_4BYTE_STACKSLOT)
-	int *freemem_2;
-	int freememtop_2;
-#endif
 	int *freemem;                   /* free scratch memory                    */
 	int freememtop;                 /* free memory count                      */
 

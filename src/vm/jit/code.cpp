@@ -199,12 +199,6 @@ int code_get_sync_slot_count(codeinfo *code)
 
 	count = 1;
 
-#ifdef HAS_4BYTE_STACKSLOT
-	/* long and double need 2 4-byte slots */
-	if (IS_2_WORD_TYPE(code->m->parseddesc->returntype.type))
-		count++;
-#endif
-
 #if defined(__POWERPC__)
 	/* powerpc needs an extra slot */
 	count++;
