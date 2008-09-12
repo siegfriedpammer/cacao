@@ -2,6 +2,7 @@
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -48,6 +49,7 @@
 # include "vm/jit/optimizing/profile.h"
 #endif
 
+#include "vm/jit/disass.h"
 #include "vm/jit/trap.h"
 
 
@@ -170,6 +172,22 @@ void md_signal_handler_sigill(int sig, siginfo_t* siginfo, void* _p)
 
 	// Get the illegal-instruction.
 	uint32_t mcode = *((uint32_t*) xpc);
+
+	// Check if the trap instruction is valid.
+	// TODO Move this into patcher_handler.
+	if (patcher_is_valid_trap_instruction_at(xpc) == false) {
+		// Check if the PC has been patched during our way to this
+		// signal handler (see PR85).
+		if (patcher_is_patched_at(xpc) == true)
+			return;
+
+		// We have a problem...
+		log_println("md_signal_handler_sigill: Unknown illegal instruction 0x%x at 0x%lx", mcode, xpc);
+#if defined(ENABLE_DISASSEMBLER)
+		(void) disassinstr(xpc);
+#endif
+		vm_abort("Aborting...");
+	}
 
 	// This signal is always a patcher.
 	int      type = TRAP_PATCHER;

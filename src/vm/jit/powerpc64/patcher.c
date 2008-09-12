@@ -2,6 +2,7 @@
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -62,6 +63,22 @@ void patcher_patch_code(patchref_t *pr)
 
 	// Synchronize instruction cache.
 	md_icacheflush((void*) pr->mpc, 1 * 4);
+}
+
+
+/**
+ * Check if the trap instruction at the given PC is valid.
+ *
+ * @param pc Program counter.
+ *
+ * @return true if valid, false otherwise.
+ */
+bool patcher_is_valid_trap_instruction_at(void* pc)
+{
+	uint32_t mcode = *((uint32_t*) pc);
+
+	// Check for the undefined instruction we use.
+	return (mcode == 0x00000000);
 }
 
 
