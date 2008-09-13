@@ -182,6 +182,7 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
 	patchref_t pr;
 
 	pr.mpc     = patchmpc;
+	pr.datap   = 0;
 	pr.disp    = disp;
 	pr.patcher = patcher;
 	pr.ref     = ref;
