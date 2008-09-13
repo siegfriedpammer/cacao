@@ -183,6 +183,7 @@
 #define MI_and(rA,rS,rB)                M_OP3(31,  28, 0, 0, rS, rA, rB)
 #define MI_anddot(rA,rS,rB)             M_OP3(31,  28, 0, 1, rS, rA, rB)
 #define MI_andi(rA,rS,UIMM)             M_OP2_IMM(28, rS, rA, UIMM)
+#define MI_illegal                      M_OP3( 0,   0, 0, 0,  0,  0,  0)
 #define MI_lwarx(rD,rA,rB)              M_OP3(31,  20, 0, 0, rD, rA, rB)
 #define MI_or(rA,rS,rB)                 M_OP3(31, 444, 0, 0, rS, rA, rB)
 #define MI_ordot(rA,rS,rB)              M_OP3(31, 444, 0, 1, rS, rA, rB)
@@ -209,6 +210,7 @@
 
 #define M_IAND(a,b,d)                   MI_and(d, a, b)
 #define M_IAND_IMM(a,b,d)               MI_andi(d, a, b)
+#define M_ILLEGAL                       MI_illegal
 #define M_IOR(a,b,d)                    MI_or(d, a, b)
 #define M_IOR_IMM(a,b,d)                MI_ori(d, a, b)
 #define M_IOR_TST(a,b,d)                MI_ordot(d, a, b)

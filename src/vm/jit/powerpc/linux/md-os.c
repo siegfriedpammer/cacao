@@ -150,13 +150,48 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		/* fall-through */
 
-	case TRAP_PATCHER:
-		if (p == NULL)
-			break;
-
-		/* fall-through */
-		
 	default:
+		_gregs[REG_ITMP1_XPTR] = (uintptr_t) p;
+		_gregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
+		_gregs[PT_NIP]         = (uintptr_t) asm_handle_exception;
+	}
+}
+
+
+/**
+ * Signal handler for patcher calls.
+ */
+void md_signal_handler_sigill(int sig, siginfo_t* siginfo, void* _p)
+{
+	ucontext_t* _uc = (ucontext_t*) _p;
+	mcontext_t* _mc;
+	unsigned long* _gregs;
+
+#if defined(__UCLIBC__)
+	_mc    = &(_uc->uc_mcontext);
+	_gregs = _mc->regs->gpr;
+#else
+	_mc    = _uc->uc_mcontext.uc_regs;
+	_gregs = _mc->gregs;
+#endif
+
+	/* get register values */
+
+	void* pv = (void*) _gregs[REG_PV];
+	void* sp = (void*) _gregs[REG_SP];
+	void* ra = (void*) _gregs[PT_LNK]; // The RA is correct for leag methods.
+	void* xpc =(void*) _gregs[PT_NIP];
+
+	// This signal is always a patcher.
+	int      type = TRAP_PATCHER;
+	intptr_t val  = 0;
+
+	// Handle the trap.
+	void* p = trap_handle(type, val, pv, sp, ra, xpc, _p);
+
+	// Set registers if we have an exception, continue execution
+	// otherwise.
+	if (p != NULL) {
 		_gregs[REG_ITMP1_XPTR] = (uintptr_t) p;
 		_gregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
 		_gregs[PT_NIP]         = (uintptr_t) asm_handle_exception;
