@@ -332,7 +332,7 @@ Properties::Properties()
 	{
 		/* XXX We don't support java.lang.Compiler */
 /*  		put("java.compiler", "cacao.jit"); */
-		put("java.vm.info", "JIT mode");
+		put("java.vm.info", "compiled mode");
 	}
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
