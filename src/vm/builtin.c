@@ -669,15 +669,11 @@ bool builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o)
 
 bool fast_subtype_check(struct _vftbl *s, struct _vftbl *t)
 {
-	int i;
 	if (s->subtype_display[t->subtype_depth] == t)
 		return true;
 	if (t->subtype_offset != OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]))
 		return false;
-	for (i=0; i<s->subtype_overflow_length; i++)
-		if (s->subtype_overflow[i] == t)
-			return true;
-	return false;
+	return s->subtype_overflow_length > (t->subtype_depth - DISPLAY_SIZE) && s->subtype_overflow[t->subtype_depth - DISPLAY_SIZE] == t;
 }
 
 bool builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)

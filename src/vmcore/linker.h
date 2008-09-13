@@ -113,9 +113,9 @@ struct _vftbl {
 	s4           diffval;              /* high - base for runtime type check  */
 
 	s4 subtype_depth;
-	ptrint subtype_offset;
-	struct _vftbl *subtype_display[DISPLAY_SIZE+1];  /* the last one is cache */
+	s4 subtype_offset;
 	s4 subtype_overflow_length;
+	struct _vftbl *subtype_display[DISPLAY_SIZE+1];  /* the last one is cache */
 	struct _vftbl **subtype_overflow;
 
 	s4          *interfacevftbllength; /* length of interface vftbls          */
