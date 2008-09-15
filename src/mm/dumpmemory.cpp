@@ -55,75 +55,6 @@ static dumpinfo_t _no_threads_dumpinfo;
 #endif
 
 
-/* dump_check_canaries *********************************************************
-
-   Check canaries in dump memory.
-
-   IN:
-      di...........dumpinfo_t * of the dump area to check
-	  bottomsize...dump size down to which the dump area should be checked
-	               (specify 0 to check the whole dump area)
-
-   ERROR HANDLING:
-      If any canary has been changed, this function aborts the VM with
-	  an error message.
-
-*******************************************************************************/
-
-#if defined(ENABLE_MEMCHECK)
-static void dump_check_canaries(dumpinfo_t *di, s4 bottomsize)
-{
-	dump_allocation_t *da;
-	uint8_t           *pm;
-	int                i, j;
-
-	/* iterate over all dump memory allocations above bottomsize */
-
-	da = di->allocations;
-
-	while (da && da->used >= bottomsize) {
-		/* check canaries */
-
-		pm = ((uint8_t *) da->mem) - MEMORY_CANARY_SIZE;
-
-		for (i = 0; i < MEMORY_CANARY_SIZE; ++i) {
-			if (pm[i] != i + MEMORY_CANARY_FIRST_BYTE) {
-				fprintf(stderr, "canary bytes:");
-
-				for (j = 0; j < MEMORY_CANARY_SIZE; ++j)
-					fprintf(stderr, " %02x", pm[j]);
-
-				fprintf(stderr,"\n");
-
-				vm_abort("error: dump memory bottom canary killed: "
-						 "%p (%d bytes allocated at %p)\n",
-						 pm + i, da->size, da->mem);
-			}
-		}
-
-		pm = ((uint8_t *) da->mem) + da->size;
-
-		for (i = 0; i < MEMORY_CANARY_SIZE; ++i) {
-			if (pm[i] != i + MEMORY_CANARY_FIRST_BYTE) {
-				fprintf(stderr, "canary bytes:");
-
-				for (j = 0; j < MEMORY_CANARY_SIZE; ++j)
-					fprintf(stderr, " %02x", pm[j]);
-
-				fprintf(stderr, "\n");
-
-				vm_abort("error: dump memory top canary killed: "
-						 "%p (%d bytes allocated at %p)\n",
-						 pm + i, da->size, da->mem);
-			}
-		}
-
-		da = da->next;
-	}
-}
-#endif /* defined(ENABLE_MEMCHECK) */
-
-
 /**
  * Allocate a new thread-local dump memory structure.
  */
@@ -215,32 +146,22 @@ DumpMemoryArea::~DumpMemoryArea()
 	DumpMemory* dm = DumpMemory::get_current();
 
 #if defined(ENABLE_MEMCHECK)
-	{
-		dump_allocation_t *da, *next;
+	// Check canaries.
 
-		/* check canaries */
+	check_canaries();
 
-		dump_check_canaries(di, size);
+	// Iterate over all dump memory allocations about to be released.
 
-		/* iterate over all dump memory allocations about to be released */
+	for (std::vector<DumpMemoryAllocation*>::iterator it = _allocs.begin(); it != _allocs.end(); it++) {
+		DumpMemoryAllocation* dma = *it;
 
-		da = di->allocations;
+		// Invalidate the freed memory.
+		(void) os::memset(dma->get_mem(), MEMORY_CLEAR_BYTE, dma->get_size());
 
-		while ((da != NULL) && (da->used >= size)) {
-			next = da->next;
-
-			/* invalidate the freed memory */
-
-			(void) os_memset(da->mem, MEMORY_CLEAR_BYTE, da->size);
-
-			FREE(da, dump_allocation_t);
-
-			da = next;
-		}
-		di->allocations = da;
+		// Call the destructor of the current allocation.
+		delete dma;
 	}
 #endif /* defined(ENABLE_MEMCHECK) */
-
 
 	// Free all memory blocks.
 	for (std::vector<DumpMemoryBlock*>::iterator it = _blocks.begin(); it != _blocks.end(); it++) {
@@ -277,6 +198,60 @@ DumpMemoryBlock* DumpMemoryArea::allocate_new_block(size_t size)
 
 	return dmb;
 }
+
+
+/**
+ * Checks canaries in this dump memory area. If any canary has been changed,
+ * this function aborts the VM with an error message.
+ */
+#if defined(ENABLE_MEMCHECK)
+void DumpMemoryArea::check_canaries()
+{
+	uint8_t* pm;
+
+	// Iterate over all dump memory allocations.
+
+	for (std::vector<DumpMemoryAllocation*>::iterator it = _allocs.begin(); it != _allocs.end(); it++) {
+		DumpMemoryAllocation* dma = *it;
+
+		// Check canaries.
+
+		pm = ((uint8_t *) dma->get_mem()) - MEMORY_CANARY_SIZE;
+
+		for (int i = 0; i < MEMORY_CANARY_SIZE; ++i) {
+			if (pm[i] != i + MEMORY_CANARY_FIRST_BYTE) {
+				fprintf(stderr, "canary bytes:");
+
+				for (int j = 0; j < MEMORY_CANARY_SIZE; ++j)
+					fprintf(stderr, " %02x", pm[j]);
+
+				fprintf(stderr,"\n");
+
+				vm_abort("error: dump memory bottom canary killed: "
+						 "%p (%d bytes allocated at %p)\n",
+						 pm + i, dma->get_size(), dma->get_mem());
+			}
+		}
+
+		pm = ((uint8_t *) dma->get_mem()) + dma->get_size();
+
+		for (int i = 0; i < MEMORY_CANARY_SIZE; ++i) {
+			if (pm[i] != i + MEMORY_CANARY_FIRST_BYTE) {
+				fprintf(stderr, "canary bytes:");
+
+				for (int j = 0; j < MEMORY_CANARY_SIZE; ++j)
+					fprintf(stderr, " %02x", pm[j]);
+
+				fprintf(stderr, "\n");
+
+				vm_abort("error: dump memory top canary killed: "
+						 "%p (%d bytes allocated at %p)\n",
+						 pm + i, dma->get_size(), dma->get_mem());
+			}
+		}
+	}
+}
+#endif /* defined(ENABLE_MEMCHECK) */
 
 
 /**
