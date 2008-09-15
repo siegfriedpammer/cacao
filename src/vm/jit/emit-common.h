@@ -160,6 +160,7 @@ void emit_label_br(codegendata *cd, s4 label);
 
 #if SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER
 void emit_label_beqz(codegendata *cd, s4 label, s4 reg);
+void emit_label_bnez(codegendata *cd, s4 label, s4 reg);
 #endif
 
 #if SUPPORT_BRANCH_CONDITIONAL_CONDITION_REGISTER
