@@ -3933,9 +3933,9 @@ jint _Jv_JNI_DetachCurrentThread(JavaVM *vm)
 
 *******************************************************************************/
 
-jint _Jv_JNI_GetEnv(JavaVM *vm, void **env, jint version)
+jint jni_GetEnv(JavaVM *vm, void **env, jint version)
 {
-	TRACEJNICALLS(("_Jv_JNI_GetEnv(vm=%p, env=%p, %d=version)", vm, env, version));
+	TRACEJNICALLS(("jni_GetEnv(vm=%p, env=%p, version=%d)", vm, env, version));
 
 	if (vm_created == false) {
 		*env = NULL;
@@ -4012,7 +4012,7 @@ const struct JNIInvokeInterface_ _Jv_JNIInvokeInterface = {
 	_Jv_JNI_DestroyJavaVM,
 	_Jv_JNI_AttachCurrentThread,
 	_Jv_JNI_DetachCurrentThread,
-	_Jv_JNI_GetEnv,
+	jni_GetEnv,
 	_Jv_JNI_AttachCurrentThreadAsDaemon
 };
 

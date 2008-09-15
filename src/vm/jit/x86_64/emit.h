@@ -219,6 +219,7 @@ void emit_movswq_reg_reg(codegendata *cd, s8 reg, s8 dreg);
 void emit_movswq_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 void emit_movslq_reg_reg(codegendata *cd, s8 reg, s8 dreg);
 void emit_movslq_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
+void emit_movzbq_reg_reg(codegendata *cd, s8 reg, s8 dreg);
 void emit_movzwq_reg_reg(codegendata *cd, s8 reg, s8 dreg);
 void emit_movzwq_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 void emit_movswq_memindex_reg(codegendata *cd, s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg);

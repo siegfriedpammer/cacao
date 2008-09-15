@@ -296,9 +296,10 @@
 
 #define M_CMP_IMM32(a,b)        emit_alu_imm32_reg(cd, ALU_CMP, (a), (b))
 
-#define M_BSEXT(a,b)            /* XXX does not work, because of nibbles */
+#define M_BSEXT(a,b)            emit_movsbl_reg_reg(cd, (a), (b))
 #define M_SSEXT(a,b)            emit_movswl_reg_reg(cd, (a), (b))
 
+#define M_BZEXT(a,b)            emit_movzbl_reg_reg(cd, (a), (b))
 #define M_CZEXT(a,b)            emit_movzwl_reg_reg(cd, (a), (b))
 
 #define M_CLTD                  M_BYTE1(0x99)

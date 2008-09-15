@@ -50,6 +50,7 @@
 #include "vm/builtin.h"
 #include "vm/exceptions.h"
 #include "vm/global.h"
+#include "vm/primitive.h"
 #include "vm/stringlocal.h"
 #include "vm/vm.h"
 
@@ -3146,6 +3147,20 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	case TYPE_INT:
 	case TYPE_LNG:
 	case TYPE_ADR:
+		switch (md->returntype.decltype) {
+		case PRIMITIVETYPE_BOOLEAN:
+			M_BZEXT(REG_RESULT, REG_RESULT);
+			break;
+		case PRIMITIVETYPE_BYTE:
+			M_BSEXT(REG_RESULT, REG_RESULT);
+			break;
+		case PRIMITIVETYPE_CHAR:
+			M_CZEXT(REG_RESULT, REG_RESULT);
+			break;
+		case PRIMITIVETYPE_SHORT:
+			M_SSEXT(REG_RESULT, REG_RESULT);
+			break;
+		}
 		M_LST(REG_RESULT, REG_SP, 0 * 8);
 		break;
 	case TYPE_FLT:
