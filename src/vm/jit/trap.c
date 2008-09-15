@@ -119,7 +119,7 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 	o = NULL;
 	m = NULL;
 
-#if defined(__I386__) || defined(__X86_64__)
+#if defined(__ARM__) || defined(__I386__) || defined(__X86_64__)
 # if !defined(NDEBUG)
 	/* Perform a sanity check on our execution state functions. */
 
@@ -239,24 +239,24 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 
 	stacktrace_stackframeinfo_remove(&sfi);
 
-#if defined(__I386__) || defined(__X86_64__)
+#if defined(__ARM__) || defined(__I386__) || defined(__X86_64__)
 	/* Update execution state and write it back to the current context. */
 	/* AFTER: removing stackframeinfo */
 
 	if (type == TRAP_COMPILER) {
 		if (p == NULL) {
 			java_handle_t *e = exceptions_get_and_clear_exception();
-			es.intregs[REG_ITMP1]     = (uintptr_t) LLNI_DIRECT(e);
-			es.intregs[REG_ITMP2_XPC] = (uintptr_t) xpc;
-			es.pc                     = (uint8_t *) (uintptr_t) asm_handle_exception;
+			es.intregs[REG_ITMP1_XPTR] = (uintptr_t) LLNI_DIRECT(e);
+			es.intregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
+			es.pc                      = (uint8_t *) (uintptr_t) asm_handle_exception;
 		} else {
-			es.pc                     = (uint8_t *) (uintptr_t) p;
+			es.pc                      = (uint8_t *) (uintptr_t) p;
 		}
 	} else {
 		if (p != NULL) {
-			es.intregs[REG_ITMP1]     = (uintptr_t) p;
-			es.intregs[REG_ITMP2_XPC] = (uintptr_t) xpc;
-			es.pc                     = (uint8_t *) (uintptr_t) asm_handle_exception;
+			es.intregs[REG_ITMP1_XPTR] = (uintptr_t) p;
+			es.intregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
+			es.pc                      = (uint8_t *) (uintptr_t) asm_handle_exception;
 		}
 	}
 
