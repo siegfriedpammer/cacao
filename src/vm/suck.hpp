@@ -78,10 +78,7 @@ struct list_classpath_entry {
 #define SUCK_LE_U1(p)    *((u1 *) (p))
 #define SUCK_LE_U2(p)    *((u2 *) (p))
 #define SUCK_LE_U4(p)    *((u4 *) (p))
-
-#if U8_AVAILABLE == 1
 #define SUCK_LE_U8(p)    *((u8 *) (p))
-#endif
 
 #else /* defined(__I386__) || defined(__X86_64__) */
 
@@ -98,7 +95,6 @@ struct list_classpath_entry {
      (((u4) (p)[1]) << 8) + \
       ((u4) (p)[0]))
 
-#if U8_AVAILABLE == 1
 #define SUCK_LE_U8(p) \
     ((((u8) (p)[7]) << 56) + \
      (((u8) (p)[6]) << 48) + \
@@ -108,7 +104,6 @@ struct list_classpath_entry {
      (((u8) (p)[2]) << 16) + \
      (((u8) (p)[1]) << 8) + \
       ((u8) (p)[0]))
-#endif
 
 #endif /* defined(__I386__) || defined(__X86_64__) */
 
@@ -128,7 +123,6 @@ struct list_classpath_entry {
      (((u4) (p)[2]) << 8) + \
       ((u4) (p)[3]))
 
-#if U8_AVAILABLE == 1
 #define SUCK_BE_U8(p) \
     ((((u8) (p)[0]) << 56) + \
      (((u8) (p)[1]) << 48) + \
@@ -138,7 +132,6 @@ struct list_classpath_entry {
      (((u8) (p)[5]) << 16) + \
      (((u8) (p)[6]) << 8) + \
       ((u8) (p)[7]))
-#endif
 
 
 #define SUCK_BE_S1(p)    (s1) SUCK_BE_U1(p)

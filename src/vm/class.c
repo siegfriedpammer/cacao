@@ -2362,15 +2362,7 @@ void class_showconstantpool (classinfo *c)
 				printf ("Double -> %f", ((constant_double*)e) -> value);
 				break;
 			case CONSTANT_Long:
-				{
-					u8 v = ((constant_long*)e) -> value;
-#if U8_AVAILABLE
-					printf ("Long -> %ld", (long int) v);
-#else
-					printf ("Long -> HI: %ld, LO: %ld\n", 
-							(long int) v.high, (long int) v.low);
-#endif 
-				}
+				printf ("Long -> %ld", (long int) ((constant_long*)e) -> value);
 				break;
 			case CONSTANT_NameAndType:
 				{

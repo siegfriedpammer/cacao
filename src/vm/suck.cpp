@@ -392,21 +392,12 @@ u4 suck_u4(classbuffer *cb)
 
 u8 suck_u8(classbuffer *cb)
 {
-#if U8_AVAILABLE == 1
 	u8 a;
 
 	a = SUCK_BE_U8(cb->pos);
 	cb->pos += 8;
 
 	return a;
-#else
-	u8 v;
-
-	v.high = suck_u4(cb);
-	v.low = suck_u4(cb);
-
-	return v;
-#endif
 }
 
 

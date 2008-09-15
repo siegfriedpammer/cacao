@@ -46,8 +46,6 @@
 
 /* define architecture features ***********************************************/
 
-#define U8_AVAILABLE                     1
-
 #define SUPPORT_DIVISION                 1
 #define SUPPORT_LONG                     1
 

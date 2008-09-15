@@ -1391,11 +1391,7 @@ s8 builtin_ladd(s8 a, s8 b)
 {
 	s8 c;
 
-#if U8_AVAILABLE
 	c = a + b; 
-#else
-	c = builtin_i2l(0);
-#endif
 
 	return c;
 }
@@ -1404,11 +1400,7 @@ s8 builtin_lsub(s8 a, s8 b)
 {
 	s8 c;
 
-#if U8_AVAILABLE
 	c = a - b; 
-#else
-	c = builtin_i2l(0);
-#endif
 
 	return c;
 }
@@ -1417,11 +1409,7 @@ s8 builtin_lneg(s8 a)
 {
 	s8 c;
 
-#if U8_AVAILABLE
 	c = -a;
-#else
-	c = builtin_i2l(0);
-#endif
 
 	return c;
 }
@@ -1433,11 +1421,7 @@ s8 builtin_lmul(s8 a, s8 b)
 {
 	s8 c;
 
-#if U8_AVAILABLE
 	c = a * b; 
-#else
-	c = builtin_i2l(0);
-#endif
 
 	return c;
 }
@@ -1449,11 +1433,7 @@ s8 builtin_ldiv(s8 a, s8 b)
 {
 	s8 c;
 
-#if U8_AVAILABLE
 	c = a / b; 
-#else
-	c = builtin_i2l(0);
-#endif
 
 	return c;
 }
@@ -1462,11 +1442,7 @@ s8 builtin_lrem(s8 a, s8 b)
 {
 	s8 c;
 
-#if U8_AVAILABLE
 	c = a % b; 
-#else
-	c = builtin_i2l(0);
-#endif
 
 	return c;
 }
@@ -1478,11 +1454,7 @@ s8 builtin_lshl(s8 a, s4 b)
 {
 	s8 c;
 
-#if U8_AVAILABLE
 	c = a << (b & 63);
-#else
-	c = builtin_i2l(0);
-#endif
 
 	return c;
 }
@@ -1491,11 +1463,7 @@ s8 builtin_lshr(s8 a, s4 b)
 {
 	s8 c;
 
-#if U8_AVAILABLE
 	c = a >> (b & 63);
-#else
-	c = builtin_i2l(0);
-#endif
 
 	return c;
 }
@@ -1504,11 +1472,7 @@ s8 builtin_lushr(s8 a, s4 b)
 {
 	s8 c;
 
-#if U8_AVAILABLE
 	c = ((u8) a) >> (b & 63);
-#else
-	c = builtin_i2l(0);
-#endif
 
 	return c;
 }
@@ -1520,11 +1484,7 @@ s8 builtin_land(s8 a, s8 b)
 {
 	s8 c;
 
-#if U8_AVAILABLE
 	c = a & b; 
-#else
-	c = builtin_i2l(0);
-#endif
 
 	return c;
 }
@@ -1533,11 +1493,7 @@ s8 builtin_lor(s8 a, s8 b)
 {
 	s8 c;
 
-#if U8_AVAILABLE
 	c = a | b; 
-#else
-	c = builtin_i2l(0);
-#endif
 
 	return c;
 }
@@ -1546,11 +1502,7 @@ s8 builtin_lxor(s8 a, s8 b)
 {
 	s8 c;
 
-#if U8_AVAILABLE
 	c = a ^ b; 
-#else
-	c = builtin_i2l(0);
-#endif
 
 	return c;
 }
@@ -1560,7 +1512,6 @@ s8 builtin_lxor(s8 a, s8 b)
 #if !(SUPPORT_LONG && SUPPORT_LONG_CMP)
 s4 builtin_lcmp(s8 a, s8 b)
 { 
-#if U8_AVAILABLE
 	if (a < b)
 		return -1;
 
@@ -1568,9 +1519,6 @@ s4 builtin_lcmp(s8 a, s8 b)
 		return 1;
 
 	return 0;
-#else
-	return 0;
-#endif
 }
 #endif /* !(SUPPORT_LONG && SUPPORT_LONG_CMP) */
 
@@ -1968,30 +1916,6 @@ double builtin_drem(double a, double b)
 
 /* conversion operations ******************************************************/
 
-#if 0
-s8 builtin_i2l(s4 i)
-{
-#if U8_AVAILABLE
-	return i;
-#else
-	s8 v;
-	v.high = 0;
-	v.low = i;
-	return v;
-#endif
-}
-
-s4 builtin_l2i(s8 l)
-{
-#if U8_AVAILABLE
-	return (s4) l;
-#else
-	return l.low;
-#endif
-}
-#endif
-
-
 #if !(SUPPORT_FLOAT && SUPPORT_I2F)
 float builtin_i2f(s4 a)
 {
@@ -2013,12 +1937,8 @@ double builtin_i2d(s4 a)
 #if !(SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_L2F)
 float builtin_l2f(s8 a)
 {
-#if U8_AVAILABLE
 	float f = (float) a;
 	return f;
-#else
-	return 0.0;
-#endif
 }
 #endif /* !(SUPPORT_LONG && SUPPORT_FLOAT && SUPPORT_L2F) */
 
@@ -2026,12 +1946,8 @@ float builtin_l2f(s8 a)
 #if !(SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_L2D)
 double builtin_l2d(s8 a)
 {
-#if U8_AVAILABLE
 	double d = (double) a;
 	return d;
-#else
-	return 0.0;
-#endif
 }
 #endif /* !(SUPPORT_LONG && SUPPORT_DOUBLE && SUPPORT_L2D) */
 
