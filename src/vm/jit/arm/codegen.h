@@ -643,6 +643,7 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #if !defined(ENABLE_SOFTFLOAT)
 
 #if defined(__VFP_FP__)
+
 #define M_FADD(a,b,d)      M_CPDP(UNCOND,0,1,1,0,10,0,0,0,d,a,b)/* d = a +  b */
 #define M_FSUB(a,b,d)      M_CPDP(UNCOND,0,1,1,1,10,0,0,0,d,a,b)/* d = a -  b */
 #define M_FMUL(a,b,d)      M_CPDP(UNCOND,0,1,0,0,10,0,0,0,d,a,b)/* d = a *  b */
@@ -664,8 +665,8 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define M_CVTFD(a,d)       M_CPDP(UNCOND,1,1,1,1,10,0,1,0,d,0x7,a)
 #define M_CVTIF(a,d)       M_CPDP(UNCOND,1,1,1,1,10,0,1,0,d,0x8,a)
 #define M_CVTID(a,d)       M_CPDP(UNCOND,1,1,1,1,11,0,1,0,d,0x8,a)
-#define M_CVTFI(a,d)       M_CPDP(UNCOND,1,1,1,1,10,0,1,0,d,0xc,a)
-#define M_CVTDI(a,d)       M_CPDP(UNCOND,1,1,1,1,11,0,1,0,d,0xc,a)
+#define M_CVTFI(a,d)       M_CPDP(UNCOND,1,1,1,1,10,0,1,0,d,0xd,a) // ftosis
+#define M_CVTDI(a,d)       M_CPDP(UNCOND,1,1,1,1,11,0,1,0,d,0xd,a) // ftosid
 
 #define M_FMSTAT           M_CPRT(UNCOND,0x07,1,10,0,0x1,0xf)
 
@@ -675,7 +676,9 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define M_FMRDL(Fa,b)      M_CPRT(UNCOND,0x00,1,11,0,Fa,b)
 #define M_FMDHR(a,Fb)      M_CPRT(UNCOND,0x01,0,11,0,Fb,a)
 #define M_FMRDH(Fa,b)      M_CPRT(UNCOND,0x01,1,11,0,Fa,b)
+
 #else
+
 #define M_FADD(a,b,d)      M_CPDOS(UNCOND,0x00,0,d,a,b)         /* d = a +  b */
 #define M_FSUB(a,b,d)      M_CPDOS(UNCOND,0x02,0,d,a,b)         /* d = a -  b */
 #define M_FMUL(a,b,d)      M_CPDOS(UNCOND,0x01,0,d,a,b)         /* d = a *  b */
@@ -701,6 +704,7 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define M_CVTID(a,d)       M_CPRTD(UNCOND,0,a,d,0)              /* d = (float) a */
 #define M_CVTFI(a,d)       M_CPRTI(UNCOND,1,d,0,a)              /* d = (int)   a */
 #define M_CVTDI(a,d)       M_CPRTI(UNCOND,1,d,0,a)              /* d = (int)   a */
+
 #endif
 
 
