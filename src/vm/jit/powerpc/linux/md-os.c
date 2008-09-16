@@ -76,7 +76,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	intptr_t        addr;
 	intptr_t        val;
 	int             type;
-	void           *p;
 
  	_uc = (ucontext_t *) _p;
 
@@ -127,37 +126,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Handle the trap. */
 
-	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	/* Set registers. */
-
-	switch (type) {
-	case TRAP_COMPILER:
-		if (p != NULL) {
-			_gregs[REG_PV] = (uintptr_t) p;
-			_gregs[PT_NIP] = (uintptr_t) p;
-			break;
-		}
-
-		/* Get and set the PV from the parent Java method. */
-
-		pv = md_codegen_get_pv_from_pc(ra);
-
-		_gregs[REG_PV] = (uintptr_t) pv;
-
-		/* Get the exception object. */
-
-		p = builtin_retrieve_exception();
-
-		assert(p != NULL);
-
-		/* fall-through */
-
-	default:
-		_gregs[REG_ITMP1_XPTR] = (uintptr_t) p;
-		_gregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
-		_gregs[PT_NIP]         = (uintptr_t) asm_handle_exception;
-	}
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
 }
 
 
@@ -209,15 +178,7 @@ void md_signal_handler_sigill(int sig, siginfo_t* siginfo, void* _p)
 	intptr_t val  = 0;
 
 	// Handle the trap.
-	void* p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	// Set registers if we have an exception, continue execution
-	// otherwise.
-	if (p != NULL) {
-		_gregs[REG_ITMP1_XPTR] = (uintptr_t) p;
-		_gregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
-		_gregs[PT_NIP]         = (uintptr_t) asm_handle_exception;
-	}
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
 }
 
 
@@ -240,7 +201,6 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 	int             s1;
 	intptr_t        val;
 	int             type;
-	void           *p;
 
  	_uc = (ucontext_t *) _p;
 
@@ -270,13 +230,7 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Handle the trap. */
 
-	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	/* Set registers. */
-
-	_gregs[REG_ITMP1_XPTR] = (uintptr_t) p;
-	_gregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
-	_gregs[PT_NIP]         = (uintptr_t) asm_handle_exception;
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
 }
 
 
