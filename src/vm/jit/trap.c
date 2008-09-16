@@ -246,7 +246,7 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 
 	switch (type) {
 	case TRAP_COMPILER:
-		// The default case for a compiler trap is to jump directly to
+		// The normal case for a compiler trap is to jump directly to
 		// the newly compiled method.
 
 		if (p != NULL) {
@@ -270,8 +270,19 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 		es.intregs[REG_ITMP1_XPTR] = (uintptr_t) LLNI_DIRECT(e);
 		es.intregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
 		es.pc                      = (uint8_t *) (uintptr_t) asm_handle_exception;
-
 		break;
+
+	case TRAP_PATCHER:
+		// The normal case for a patcher trap is to continue execution at
+		// the trap instruction. On some archs the PC may point after the
+		// trap instruction, so we reset it here.
+
+		if (p == NULL) {
+			es.pc = (uint8_t *) (uintptr_t) xpc;
+			break;
+		}
+
+		/* fall-through */
 
 	default:
 		if (p != NULL) {

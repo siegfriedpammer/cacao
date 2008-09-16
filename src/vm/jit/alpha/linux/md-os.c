@@ -156,13 +156,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	intptr_t val  = 0;
 
 	// Handle the trap.
-	void* p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	// Set registers
-	if (p == NULL) {
-		// We need to set the PC because we adjusted it above.
-		_mc->sc_pc                   = (uintptr_t) xpc;
-	}
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
 }
 
 
