@@ -29,6 +29,7 @@
 
 /* Include machine dependent trap stuff. */
 
+#include "md.h"
 #include "md-trap.h"
 
 #include "mm/memory.h"
@@ -240,25 +241,47 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 	stacktrace_stackframeinfo_remove(&sfi);
 
 #if defined(__ARM__) || defined(__I386__) || defined(__X86_64__)
-	/* Update execution state and write it back to the current context. */
+	/* Update execution state and set registers. */
 	/* AFTER: removing stackframeinfo */
 
-	if (type == TRAP_COMPILER) {
-		if (p == NULL) {
-			java_handle_t *e = exceptions_get_and_clear_exception();
-			es.intregs[REG_ITMP1_XPTR] = (uintptr_t) LLNI_DIRECT(e);
-			es.intregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
-			es.pc                      = (uint8_t *) (uintptr_t) asm_handle_exception;
-		} else {
-			es.pc                      = (uint8_t *) (uintptr_t) p;
-		}
-	} else {
+	switch (type) {
+	case TRAP_COMPILER:
+		// The default case for a compiler trap is to jump directly to
+		// the newly compiled method.
+
 		if (p != NULL) {
-			es.intregs[REG_ITMP1_XPTR] = (uintptr_t) p;
+			es.pc = (uint8_t *) (uintptr_t) p;
+			es.pv = (uint8_t *) (uintptr_t) p;
+			break;
+		}
+
+		// In case of an exception during JIT compilation, we fetch
+		// the exception here and proceed with exception handling.
+
+		java_handle_t *e = exceptions_get_and_clear_exception();
+		assert(e != NULL);
+
+		// Get and set the PV from the parent Java method.
+
+		es.pv = md_codegen_get_pv_from_pc(ra);
+
+		// XXX: Make the code below a fall-through to default case!
+
+		es.intregs[REG_ITMP1_XPTR] = (uintptr_t) LLNI_DIRECT(e);
+		es.intregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
+		es.pc                      = (uint8_t *) (uintptr_t) asm_handle_exception;
+
+		break;
+
+	default:
+		if (p != NULL) {
+			es.intregs[REG_ITMP1_XPTR] = (uintptr_t) LLNI_DIRECT(p);
 			es.intregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
 			es.pc                      = (uint8_t *) (uintptr_t) asm_handle_exception;
 		}
 	}
+
+	/* Write back execution state to current context. */
 
 	md_executionstate_write(&es, context);
 #endif

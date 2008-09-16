@@ -127,7 +127,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 
 	void* pv  = (void*) _sc->arm_ip;
 	void* sp  = (void*) _sc->arm_sp;
-	u1*   ra  = (void*) _sc->arm_lr; // The RA is correct for leaf methods.
+	void* ra  = (void*) _sc->arm_lr; // The RA is correct for leaf methods.
 	void* xpc = (void*) _sc->arm_pc;
 
 	// Get the exception-throwing instruction.
@@ -158,24 +158,11 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 		/* The XPC is the RA minus 4, because the RA points to the
 		   instruction after the call. */
 
-		xpc = ra - 4;
+		xpc = (void*) (((uintptr_t) ra) - 4);
 	}
 
 	// Handle the trap.
-	void* p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	if (type == TRAP_COMPILER) {
-		if (p != NULL) {
-			_sc->arm_ip = (uintptr_t) p; // set REG_PV correctly
-		}
-		else {
-			/* Get and set the PV from the parent Java method. */
-
-			pv = md_codegen_get_pv_from_pc(ra);
-
-			_sc->arm_ip = (uintptr_t) pv;
-		}
-	}
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
 }
 
 
