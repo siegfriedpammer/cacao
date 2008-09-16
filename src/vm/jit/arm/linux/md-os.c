@@ -28,12 +28,6 @@
 
 #include <stdint.h>
 
-#include "vm/types.h"
-
-#include "vm/jit/disass.h"
-
-#include "vm/jit/arm/md-abi.h"
-
 #define ucontext broken_glibc_ucontext
 #define ucontext_t broken_glibc_ucontext_t
 #include <ucontext.h>
@@ -50,6 +44,11 @@ typedef struct ucontext {
 
 #define scontext_t struct sigcontext
 
+#include "vm/types.h"
+
+#include "vm/jit/arm/md.h"
+#include "vm/jit/arm/md-abi.h"
+
 #include "threads/thread.hpp"
 
 #include "vm/os.hpp"
@@ -57,6 +56,7 @@ typedef struct ucontext {
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/disass.h"
 #include "vm/jit/executionstate.h"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/trap.h"
@@ -127,7 +127,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 
 	void* pv  = (void*) _sc->arm_ip;
 	void* sp  = (void*) _sc->arm_sp;
-	void* ra  = (void*) _sc->arm_lr; // The RA is correct for leaf methods.
+	u1*   ra  = (void*) _sc->arm_lr; // The RA is correct for leaf methods.
 	void* xpc = (void*) _sc->arm_pc;
 
 	// Get the exception-throwing instruction.
@@ -154,8 +154,28 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	int      type = (mcode >> 8) & 0x0fff;
 	intptr_t val  = *((int32_t*) _sc + OFFSET(scontext_t, arm_r0)/4 + (mcode & 0x0f));
 
+	if (type == TRAP_COMPILER) {
+		/* The XPC is the RA minus 4, because the RA points to the
+		   instruction after the call. */
+
+		xpc = ra - 4;
+	}
+
 	// Handle the trap.
-	trap_handle(type, val, pv, sp, ra, xpc, _p);
+	void* p = trap_handle(type, val, pv, sp, ra, xpc, _p);
+
+	if (type == TRAP_COMPILER) {
+		if (p != NULL) {
+			_sc->arm_ip = (uintptr_t) p; // set REG_PV correctly
+		}
+		else {
+			/* Get and set the PV from the parent Java method. */
+
+			pv = md_codegen_get_pv_from_pc(ra);
+
+			_sc->arm_ip = (uintptr_t) pv;
+		}
+	}
 }
 
 
