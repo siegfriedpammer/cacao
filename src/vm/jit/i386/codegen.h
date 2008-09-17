@@ -254,6 +254,8 @@
 
 #define M_ISUB_IMM_MEMABS(a,b)  emit_alu_imm_memabs(cd, ALU_SUB, (a), (b))
 
+#define M_IINC(a)               emit_inc_reg(cd, (a))
+
 #define M_IADDC(a,b)            emit_alu_reg_reg(cd, ALU_ADC, (a), (b))
 #define M_ISUBB(a,b)            emit_alu_reg_reg(cd, ALU_SBB, (a), (b))
 
@@ -322,6 +324,8 @@
 #define M_CALL_IMM(a)           emit_call_imm(cd, (a))
 #define M_RET                   M_BYTE1(0xc3)
 
+#define M_ICMP_IMM(a,b)         emit_alu_imm_reg(cd, ALU_CMP, (a), (b))
+
 #define M_BEQ(a)                emit_jcc(cd, CC_E, (a))
 #define M_BNE(a)                emit_jcc(cd, CC_NE, (a))
 #define M_BLT(a)                emit_jcc(cd, CC_L, (a))
@@ -335,6 +339,8 @@
 #define M_BA(a)                 emit_jcc(cd, CC_A, (a))
 #define M_BNS(a)                emit_jcc(cd, CC_NS, (a))
 #define M_BS(a)                 emit_jcc(cd, CC_S, (a))
+
+#define M_SETE(a)               emit_setcc_reg(cd, CC_E, (a))
 
 #define M_JMP(a)                emit_jmp_reg(cd, (a))
 #define M_JMP_IMM(a)            emit_jmp_imm(cd, (a))

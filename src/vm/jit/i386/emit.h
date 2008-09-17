@@ -187,6 +187,7 @@ void emit_alu_imm_reg(codegendata *cd, s4 opc, s4 imm, s4 reg);
 void emit_alu_imm32_reg(codegendata *cd, s4 opc, s4 imm, s4 reg);
 void emit_alu_imm_membase(codegendata *cd, s4 opc, s4 imm, s4 basereg, s4 disp);
 void emit_alu_imm_memabs(codegendata *cd, s4 opc, s4 imm, s4 disp);
+void emit_inc_reg(codegendata *cd, s4 reg);
 void emit_test_reg_reg(codegendata *cd, s4 reg, s4 dreg);
 void emit_test_imm_reg(codegendata *cd, s4 imm, s4 dreg);
 void emit_dec_mem(codegendata *cd, s4 mem);

@@ -460,8 +460,14 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 		case BRANCH_LE:
 			M_BGT(6);
 			break;
+		case BRANCH_GE:
+			M_BLT(6);
+			break;
 		case BRANCH_EQ:
 			M_BNE(6);
+			break;
+		case BRANCH_NE:
+			M_BEQ(6);
 			break;
 		case BRANCH_ULE:
 			M_BBE(6);
@@ -1092,6 +1098,12 @@ void emit_test_imm_reg(codegendata *cd, s4 imm, s4 reg)
 /*
  * inc, dec operations
  */
+void emit_inc_reg(codegendata *cd, s4 reg)
+{
+	*(cd->mcodeptr++) = 0xff;
+	emit_reg(0,(reg));
+}
+
 void emit_dec_mem(codegendata *cd, s4 mem)
 {
 	*(cd->mcodeptr++) = 0xff;
