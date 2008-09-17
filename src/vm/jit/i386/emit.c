@@ -1078,6 +1078,11 @@ void emit_alu_imm_memabs(codegendata *cd, s4 opc, s4 imm, s4 disp)
 	}
 }
 
+void emit_alu_memindex_reg(codegendata *cd, s4 opc, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
+{
+	*(cd->mcodeptr++) = (((u1) (opc)) << 3) + 3;
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
+}
 
 void emit_test_reg_reg(codegendata *cd, s4 reg, s4 dreg)
 {
