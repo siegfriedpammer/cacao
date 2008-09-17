@@ -429,39 +429,47 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 							  CODEGENDATA_FLAG_LONGBRANCHES);
 			}
 
-			branchdisp --;		/* we jump from the second instruction */
-			switch (condition) {
-			case BRANCH_EQ:
-				M_BNE(1);
-				M_BR(branchdisp);
-				break;
-			case BRANCH_NE:
-				M_BEQ(1);
-				M_BR(branchdisp);
-				break;
-			case BRANCH_LT:
-				M_BGE(1);
-				M_BR(branchdisp);
-				break;
-			case BRANCH_GE:
-				M_BLT(1);
-				M_BR(branchdisp);
-				break;
-			case BRANCH_GT:
-				M_BLE(1);
-				M_BR(branchdisp);
-				break;
-			case BRANCH_LE:
-				M_BGT(1);
-				M_BR(branchdisp);
-				break;
-			case BRANCH_NAN:
-				vm_abort("emit_branch: long BRANCH_NAN");
-				break;
-			default:
-				vm_abort("emit_branch: unknown condition %d", condition);
-			}
+			// Subtract 1 instruction from the displacement as the
+			// actual branch is the second instruction.
+			checkdisp  = checkdisp - 4;
+			branchdisp = branchdisp - 1;
 
+			if ((checkdisp < (int32_t) 0xfe000000) || (checkdisp > (int32_t) 0x01fffffc)) {
+				vm_abort("emit_branch: emit conditional long-branch code");
+			}
+			else {
+				switch (condition) {
+				case BRANCH_EQ:
+					M_BNE(1);
+					M_BR(branchdisp);
+					break;
+				case BRANCH_NE:
+					M_BEQ(1);
+					M_BR(branchdisp);
+					break;
+				case BRANCH_LT:
+					M_BGE(1);
+					M_BR(branchdisp);
+					break;
+				case BRANCH_GE:
+					M_BLT(1);
+					M_BR(branchdisp);
+					break;
+				case BRANCH_GT:
+					M_BLE(1);
+					M_BR(branchdisp);
+					break;
+				case BRANCH_LE:
+					M_BGT(1);
+					M_BR(branchdisp);
+					break;
+				case BRANCH_NAN:
+					vm_abort("emit_branch: long BRANCH_NAN");
+					break;
+				default:
+					vm_abort("emit_branch: unknown condition %d", condition);
+				}
+			}
 		}
 		else {
 			switch (condition) {
