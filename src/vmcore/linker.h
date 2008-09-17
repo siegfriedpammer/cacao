@@ -114,7 +114,6 @@ struct _vftbl {
 
 	s4 subtype_depth;
 	s4 subtype_offset;
-	s4 subtype_overflow_length;
 	struct _vftbl *subtype_display[DISPLAY_SIZE+1];  /* the last one is cache */
 	struct _vftbl **subtype_overflow;
 

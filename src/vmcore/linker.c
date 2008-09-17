@@ -577,7 +577,6 @@ static int build_display_inner(classinfo *topc, classinfo *c, int i)
 	{
 		if (depth == DISPLAY_SIZE)
 		{
-			topc->vftbl->subtype_overflow_length = i+1;
 			topc->vftbl->subtype_overflow = malloc(sizeof(void*) * (i+1));
 #if defined(ENABLE_STATISTICS)
 			if (opt_stat)
@@ -607,7 +606,6 @@ static void build_display(classinfo *c)
 		c->vftbl->subtype_offset = OFFSET(vftbl_t, subtype_display[0]) + sizeof(void*) * depth;
 		for (i=depth+1; i<=DISPLAY_SIZE; i++)
 			c->vftbl->subtype_display[i] = NULL;
-		c->vftbl->subtype_overflow_length = 0;
 	}
 }
 

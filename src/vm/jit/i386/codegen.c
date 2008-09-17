@@ -3190,19 +3190,19 @@ gen_method:
 						}
 
 						M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
-						M_ISUB_IMM(DISPLAY_SIZE, REG_ITMP1);
 						*(cd->mcodeptr++) = 0x39;
 						*(cd->mcodeptr++) = 0x41;
-						*(cd->mcodeptr++) = OFFSET(vftbl_t, subtype_overflow_length);
-						/* cmpl ITMP1, subtype_overflow_length(ITMP2) */
-						emit_label_ble(cd, BRANCH_LABEL_9);  /* throw */
+						*(cd->mcodeptr++) = OFFSET(vftbl_t, subtype_depth);
+						/* cmpl ITMP1, subtype_depth(ITMP2) */
+						emit_label_blt(cd, BRANCH_LABEL_9);  /* throw */
 
 						M_ALD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
 
 						*(cd->mcodeptr++) = 0x3b;
-						*(cd->mcodeptr++) = 0x14;
+						*(cd->mcodeptr++) = 0x54;
 						*(cd->mcodeptr++) = 0x81;
-						/* cmp (ITMP2, ITMP1, 4), ITMP3 */
+						*(cd->mcodeptr++) = -4*DISPLAY_SIZE;
+						/* cmp -4*DISPL(ITMP2, ITMP1, 4), ITMP3 */
 
 						emit_label_beq(cd, BRANCH_LABEL_7);  /* good */
 
@@ -3388,19 +3388,19 @@ gen_method:
 					}
 
 					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
-					M_ISUB_IMM(DISPLAY_SIZE, REG_ITMP1);
 					*(cd->mcodeptr++) = 0x39;
 					*(cd->mcodeptr++) = 0x41;
-					*(cd->mcodeptr++) = OFFSET(vftbl_t, subtype_overflow_length);
-					/* cmpl ITMP1, subtype_overflow_length(ITMP2) */
-					emit_label_ble(cd, BRANCH_LABEL_9);  /* false */
+					*(cd->mcodeptr++) = OFFSET(vftbl_t, subtype_depth);
+					/* cmpl ITMP1, subtype_depth(ITMP2) */
+					emit_label_blt(cd, BRANCH_LABEL_9);  /* false */
 
 					M_ALD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
 
 					*(cd->mcodeptr++) = 0x3b;
-					*(cd->mcodeptr++) = 0x14;
+					*(cd->mcodeptr++) = 0x54;
 					*(cd->mcodeptr++) = 0x81;
-					/* cmp (ITMP2, ITMP1, 4), ITMP3 */
+					*(cd->mcodeptr++) = -4*DISPLAY_SIZE;
+					/* cmp -4*DISPL(ITMP2, ITMP1, 4), ITMP3 */
 
 					M_SETE(d);
 					if (d == REG_ITMP2) {
