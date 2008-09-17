@@ -627,15 +627,11 @@ void emit_trap_compiler(codegendata *cd)
 
 uint32_t emit_trap(codegendata *cd)
 {
-	uint32_t mcode;
+	// Get machine code which is patched back in later. The trap is 1
+	// instruction word long.
+	uint32_t mcode = *((uint32_t*) cd->mcodeptr);
 
-	/* Get machine code which is patched back in later. The
-	   trap is 1 instruction word long. */
-
-	mcode = *((uint32_t *) cd->mcodeptr);
-
-	/* ALD is 4 byte aligned, ILD 2, only LWZ is byte aligned */
-	M_LWZ(REG_ZERO, REG_ZERO, TRAP_PATCHER);
+	M_ILLEGAL;
 
 	return mcode;
 }

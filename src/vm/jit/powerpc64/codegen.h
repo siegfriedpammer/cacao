@@ -153,7 +153,8 @@
 
 /* instruction macros *********************************************************/
 
-#define M_IADD(a,b,c) 			M_LADD(a,b,c)
+#define M_ILLEGAL                       M_OP3(0, 0, 0, 0, 0, 0, 0)
+#define M_IADD(a,b,c)                   M_LADD(a,b,c)
 #define M_LADD(a,b,c)                   M_OP3(31, 266, 0, 0, c, a, b) 
 #define M_IADD_IMM(a,b,c)               M_OP2_IMM(14, c, a, b)	/* XXX */
 #define M_LADD_IMM(a,b,c)               M_OP2_IMM(14, c, a, b)

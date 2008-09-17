@@ -81,6 +81,7 @@ struct threadobject {
 	/* for the sable tasuki lock extension */
 	bool                  flc_bit;
 	struct threadobject  *flc_list;     /* FLC list head for this thread      */
+	struct threadobject  *flc_tail;     /* tail pointer for FLC list          */
 	struct threadobject  *flc_next;     /* next pointer for FLC list          */
 	java_handle_t        *flc_object;
 	Mutex*                flc_lock;     /* controlling access to these fields */

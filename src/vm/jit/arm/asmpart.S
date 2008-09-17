@@ -47,8 +47,6 @@
 	.globl asm_vm_call_method_exception_handler
 	.globl asm_vm_call_method_end
 
-	.globl asm_call_jit_compiler
-
 	.globl asm_handle_exception
 	.globl asm_handle_nat_exception
 
@@ -135,56 +133,6 @@ asm_vm_call_method_exception_handler:
 	RESTORE_SCRATCH_REGS_AND_RETURN   /* return to caller, restore regs   */
 
 asm_vm_call_method_end:
-
-
-/****************** function asm_call_jit_compiler *****************************
-*                                                                              *
-*   Invokes the compiler for untranslated JavaVM methods.                      *
-*   What this method does:                                                     *
-*    - save args and LR                                                        *
-*    - fire up jit_compile (pass methodinfo pointer)                           *
-*    - try to find out where to write back the new method pointer              *
-*    - restore args and LR                                                     *
-*    - check for exceptions                                                    *
-*    - eventually write back new method pointer                                *
-*    - call jit code (wich will then return to caller)                         *
-*                                                                              *
-*   These methods can call us: codegen_compilerstub & asm_calljavafunction     *
-*   ATTENTION: use REG_ITMP1 to pass methodinfo pointer to me!                 *
-*                                                                              *
-*******************************************************************************/
-
-#define MYSTACKSIZE (6*4)
-
-asm_call_jit_compiler:
-	SAVE_ARGUMENT_REGISTERS             /* save our argument registers & LR   */
-	sub   sp, sp, #4                    /* keep stack 8-byte aligned          */
-
-	mov   a0, itmp1                     /* pass methodinfo pointer            */
-	mov   a1, mptr                      /* pass method pointer                */
-	add   a2, sp, #MYSTACKSIZE          /* pass Java sp                       */
-	mov   a3, lr                        /* pass Java RA (correct for leafs)   */
-	bl    jit_asm_compile
-	mov   itmp1, res1                   /* save pointer to new jit-code       */
-
-	tst   itmp1,itmp1                   /* check for exeption                 */
-	beq   L_asm_call_jit_compiler_exception
-
-	add   sp, sp, #4                    /* keep stack 8-byte aligned          */
-	RESTORE_ARGUMENT_REGISTERS          /* load our argument registers & LR   */
-
-	mov   ip, itmp1
-	mov   pc, ip                        /* call jit-code                      */
-
-L_asm_call_jit_compiler_exception:
-	bl    exceptions_get_and_clear_exception
-	mov   xptr, res1                    /* get exception                      */
-
-	add   sp, sp, #4                    /* keep stack 8-byte aligned          */
-	RESTORE_ARGUMENT_REGISTERS          /* load LR                            */
-
-	sub   xpc, lr, #4                   /* xpc = instruction that called us   */
-	b     asm_handle_nat_exception
 
 
 /********************* function asm_handle_exception ***************************

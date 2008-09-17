@@ -31,8 +31,6 @@
 
 /* define architecture features ***********************************************/
 
-#define U8_AVAILABLE                     1
-
 /*  #define USEBUILTINTABLE */
 
 #define SUPPORT_DIVISION                 0

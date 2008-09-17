@@ -1013,7 +1013,12 @@ bool codegen_emit(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
+#if defined(__VFP_FP__)
+			M_FMSR(s1, d);
+			M_CVTIF(d, d);
+#else
 			M_CVTIF(s1, d);
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1021,7 +1026,12 @@ bool codegen_emit(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
+#if defined(__VFP_FP__)
+			M_FMSR(s1, d);
+			M_CVTID(d, d);
+#else
 			M_CVTID(s1, d);
+#endif
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1029,9 +1039,12 @@ bool codegen_emit(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+#if defined(__VFP_FP__)
+			M_CVTFI(s1, REG_FTMP2);
+			M_FMRS(REG_FTMP2, d);
+#else
 			/* this uses round towards zero, as Java likes it */
 			M_CVTFI(s1, d);
-#if !defined(__VFP_FP__)
 			/* this checks for NaN; to return zero as Java likes it */
 			M_FCMP(s1, 0x8);
 			M_MOVVS_IMM(0, d);
@@ -1043,9 +1056,12 @@ bool codegen_emit(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+#if defined(__VFP_FP__)
+			M_CVTDI(s1, REG_FTMP2);
+			M_FMRS(REG_FTMP2, d);
+#else
 			/* this uses round towards zero, as Java likes it */
 			M_CVTDI(s1, d);
-#if !defined(__VFP_FP__)
 			/* this checks for NaN; to return zero as Java likes it */
 			M_DCMP(s1, 0x8);
 			M_MOVVS_IMM(0, d);
@@ -2807,29 +2823,6 @@ bool codegen_emit(jitdata *jd)
 	/* everything's ok */
 
 	return true;
-}
-
-
-/* codegen_emit_stub_compiler **************************************************
-
-   Emits a stub routine which calls the compiler.
-	
-*******************************************************************************/
-
-void codegen_emit_stub_compiler(jitdata *jd)
-{
-	methodinfo  *m;
-	codegendata *cd;
-
-	/* get required compiler data */
-
-	m  = jd->m;
-	cd = jd->cd;
-
-	/* code for the stub */
-
-	M_LDR_INTERN(REG_ITMP1, REG_PC, -(2 * 4 + 2 * SIZEOF_VOID_P));
-	M_LDR_INTERN(REG_PC, REG_PC, -(3 * 4 + 3 * SIZEOF_VOID_P));
 }
 
 

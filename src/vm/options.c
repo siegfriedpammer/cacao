@@ -87,7 +87,6 @@ bool opt_showddatasegment   = false;    /* generate data segment listing      */
 bool opt_showintermediate   = false;    /* generate intermediate code listing */
 
 bool checkbounds = true;       /* check array bounds                         */
-bool opt_noieee = false;       /* don't implement ieee compliant floats      */
 bool checksync = true;         /* do synchronization                         */
 #if defined(ENABLE_LOOP)
 bool opt_loops = false;        /* optimize array accesses in loops           */

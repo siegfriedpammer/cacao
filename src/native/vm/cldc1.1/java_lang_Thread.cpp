@@ -201,11 +201,10 @@ static JNINativeMethod methods[] = {
  
 void _Jv_java_lang_Thread_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("java/lang/Thread");
  
-	u = utf_new_char("java/lang/Thread");
- 
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

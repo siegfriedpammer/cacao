@@ -952,6 +952,17 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObjectVolatile(JNIEnv *env, jobje
 
 /*
  * Class:     sun/misc/Unsafe
+ * Method:    getByteVolatile
+ * Signature: (Ljava/lang/Object;J)B
+ */
+JNIEXPORT jbyte JNICALL Java_sun_misc_Unsafe_getByteVolatile(JNIEnv* env, jobject _this, jobject o, jlong offset)
+{
+	return FieldAccess::get_volatile<int32_t>(o, offset);
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
  * Method:    getIntVolatile
  * Signature: (Ljava/lang/Object;J)I
  */
@@ -1133,6 +1144,7 @@ static JNINativeMethod methods[] = {
 	{ (char*) "compareAndSwapLong",     (char*) "(Ljava/lang/Object;JJJ)Z",                                   (void*) (uintptr_t) &Java_sun_misc_Unsafe_compareAndSwapLong               },
 	{ (char*) "getObjectVolatile",      (char*) "(Ljava/lang/Object;J)Ljava/lang/Object;",                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_getObjectVolatile                },
 	{ (char*) "putObjectVolatile",      (char*) "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void*) (uintptr_t) &Java_sun_misc_Unsafe_putObjectVolatile                },
+	{ (char*) "getByteVolatile",        (char*) "(Ljava/lang/Object;J)B",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getByteVolatile                  },
 	{ (char*) "getIntVolatile",         (char*) "(Ljava/lang/Object;J)I",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getIntVolatile                   },
 	{ (char*) "putIntVolatile",         (char*) "(Ljava/lang/Object;JI)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putIntVolatile                   },
 	{ (char*) "getLongVolatile",        (char*) "(Ljava/lang/Object;J)J",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getLongVolatile                  },
@@ -1155,11 +1167,10 @@ static JNINativeMethod methods[] = {
 
 void _Jv_sun_misc_Unsafe_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("sun/misc/Unsafe");
 
-	u = utf_new_char("sun/misc/Unsafe");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

@@ -30,7 +30,9 @@
 
 #include <stdint.h>
 
-#include "vm/types.h"
+#include <algorithm>
+#include <functional>
+#include <map>
 
 #include "mm/memory.h"
 
@@ -39,8 +41,6 @@
 
 #include "threads/mutex.hpp"
 
-#include "toolbox/avl.h"
-#include "toolbox/hashtable.h"
 #include "toolbox/logging.h"
 
 #include "vm/jit/builtin.hpp"
@@ -60,92 +60,6 @@
 #if defined(ENABLE_JVMTI)
 #include "native/jvmti/cacaodbg.h"
 #endif
-
-
-/* global variables ***********************************************************/
-
-static avl_tree_t *tree_native_methods;
-
-#if defined(ENABLE_DL)
-static hashtable *hashtable_library;
-#endif
-
-
-/* prototypes *****************************************************************/
-
-static s4 native_tree_native_methods_comparator(const void *treenode, const void *node);
-
-
-/* native_init *****************************************************************
-
-   Initializes the native subsystem.
-
-*******************************************************************************/
-
-bool native_init(void)
-{
-	TRACESUBSYSTEMINITIALIZATION("native_init");
-
-#if defined(ENABLE_DL)
-	/* initialize library hashtable, 10 entries should be enough */
-
-	hashtable_library = NEW(hashtable);
-
-	hashtable_create(hashtable_library, 10);
-#endif
-
-	/* initialize the native methods table */
-
-	tree_native_methods = avl_create(&native_tree_native_methods_comparator);
-
-	/* everything's ok */
-
-	return true;
-}
-
-
-/* native_tree_native_methods_comparator ***************************************
-
-   Comparison function for AVL tree of native methods.
-
-   IN:
-       treenode....node in the tree
-	   node........node to compare with tree-node
-
-   RETURN VALUE:
-       -1, 0, +1
-
-*******************************************************************************/
-
-static s4 native_tree_native_methods_comparator(const void *treenode, const void *node)
-{
-	const native_methods_node_t *treenmn;
-	const native_methods_node_t *nmn;
-
-	treenmn = (native_methods_node_t*) treenode;
-	nmn     = (native_methods_node_t*) node;
-
-	/* these are for walking the tree */
-
-	if (treenmn->classname < nmn->classname)
-		return -1;
-	else if (treenmn->classname > nmn->classname)
-		return 1;
-
-	if (treenmn->name < nmn->name)
-		return -1;
-	else if (treenmn->name > nmn->name)
-		return 1;
-
-	if (treenmn->descriptor < nmn->descriptor)
-		return -1;
-	else if (treenmn->descriptor > nmn->descriptor)
-		return 1;
-
-	/* all pointers are equal, we have found the entry */
-
-	return 0;
-}
 
 
 /* native_make_overloaded_function *********************************************
@@ -398,109 +312,68 @@ static utf *native_method_symbol(utf *classname, utf *methodname)
 }
 
 
-/* native_method_register ******************************************************
-
-   Register a native method in the native method table.
-
-*******************************************************************************/
-
-void native_method_register(utf *classname, const JNINativeMethod *methods,
-							int32_t count)
+bool operator< (const NativeMethod& first, const NativeMethod& second)
 {
-	native_methods_node_t *nmn;
-	utf                   *name;
-	utf                   *descriptor;
-	int32_t                i;
+	if (first._classname < second._classname)
+		return true;
+	else if (first._classname > second._classname)
+		return false;
+		
+	if (first._name < second._name)
+		return true;
+	else if (first._name > second._name)
+		return false;
 
-	/* insert all methods passed */
+	if (first._descriptor < second._descriptor)
+		return true;
+	else if (first._descriptor > second._descriptor)
+		return false;
 
-	for (i = 0; i < count; i++) {
+	// All pointers are equal, we have found the entry.
+	return false;
+}
+
+
+/**
+ * Register native methods with the VM.  This is done by inserting
+ * them into the native method table.
+ *
+ * @param classname
+ * @param methods   Native methods array.
+ * @param count     Number of methods in the array.
+ */
+void NativeMethods::register_methods(utf* classname, const JNINativeMethod* methods, size_t count)
+{
+	// Insert all methods passed */
+	for (size_t i = 0; i < count; i++) {
 		if (opt_verbosejni) {
 			printf("[Registering JNI native method ");
 			utf_display_printable_ascii_classname(classname);
 			printf(".%s]\n", methods[i].name);
 		}
 
-		/* generate the utf8 names */
+		// Generate the UTF8 names.
+		utf* name      = utf_new_char(methods[i].name);
+		utf* signature = utf_new_char(methods[i].signature);
 
-		name       = utf_new_char(methods[i].name);
-		descriptor = utf_new_char(methods[i].signature);
+		NativeMethod nm(classname, name, signature, methods[i].fnPtr);
 
-		/* allocate a new tree node */
-
-		nmn = NEW(native_methods_node_t);
-
-		nmn->classname  = classname;
-		nmn->name       = name;
-		nmn->descriptor = descriptor;
-		nmn->function   = (functionptr) (ptrint) methods[i].fnPtr;
-
-		/* insert the method into the tree */
-
-		avl_insert(tree_native_methods, nmn);
+		// Insert the method into the table.
+		_methods.insert(nm);
 	}
 }
 
 
-/* native_method_find **********************************************************
-
-   Find a native method in the native method table.
-
-*******************************************************************************/
-
-static functionptr native_method_find(methodinfo *m)
+/**
+ * Resolves a native method, maybe from a dynamic library.
+ *
+ * @param m Method structure of the native Java method to resolve.
+ *
+ * @return Pointer to the resolved method (symbol).
+ */
+void* NativeMethods::resolve_method(methodinfo* m)
 {
-	native_methods_node_t  tmpnmn;
-	native_methods_node_t *nmn;
-
-	/* fill the temporary structure used for searching the tree */
-
-	tmpnmn.classname  = m->clazz->name;
-	tmpnmn.name       = m->name;
-	tmpnmn.descriptor = m->descriptor;
-
-	/* find the entry in the AVL-tree */
-
-	nmn = (native_methods_node_t*) avl_find(tree_native_methods, &tmpnmn);
-
-	if (nmn == NULL)
-		return NULL;
-
-	return nmn->function;
-}
-
-
-/* native_method_resolve *******************************************************
-
-   Resolves a native method, maybe from a dynamic library.
-
-   IN:
-       m ... methodinfo of the native Java method to resolve
-
-   RESULT:
-       pointer to the resolved method (symbol)
-
-*******************************************************************************/
-
-functionptr native_method_resolve(methodinfo *m)
-{
-	utf                            *name;
-	utf                            *newname;
-	functionptr                     f;
-#if defined(ENABLE_DL)
-	classloader_t                  *cl;
-	hashtable_library_loader_entry *le;
-	hashtable_library_name_entry   *ne;
-	u4                              key;    /* hashkey                        */
-	u4                              slot;   /* slot in hashtable              */
-#endif
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	methodinfo                     *method_findNative;
-	java_handle_t                  *s;
-#endif
-
-	/* verbose output */
-
+	// Verbose output.
 	if (opt_verbosejni) {
 		printf("[Dynamic-linking native method ");
 		utf_display_printable_ascii_classname(m->clazz->name);
@@ -511,54 +384,33 @@ functionptr native_method_resolve(methodinfo *m)
 
 	/* generate method symbol string */
 
-	name = native_method_symbol(m->clazz->name, m->name);
+	utf* name = native_method_symbol(m->clazz->name, m->name);
 
 	/* generate overloaded function (having the types in it's name)           */
 
-	newname = native_make_overloaded_function(name, m->descriptor);
+	utf* newname = native_make_overloaded_function(name, m->descriptor);
 
-	/* check the library hash entries of the classloader of the
-	   methods's class  */
-
-	f = NULL;
+	// Try to find the symbol.
+	void* symbol = NULL;
 
 #if defined(ENABLE_DL)
-	/* Get the classloader. */
+	// Get the classloader.
+	classloader_t* classloader = class_get_classloader(m->clazz);
 
-	cl = class_get_classloader(m->clazz);
+	// Resolve the native method name from the native libraries.
+	NativeLibraries& libraries = VM::get_current()->get_nativelibraries();
+	symbol = libraries.resolve_symbol(name, classloader);
 
-	/* normally addresses are aligned to 4, 8 or 16 bytes */
-
-	key  = ((u4) (ptrint) cl) >> 4;                       /* align to 16-byte */
-	slot = key & (hashtable_library->size - 1);
-	le   = (hashtable_library_loader_entry*) hashtable_library->ptr[slot];
-
-	/* iterate through loaders in this hash slot */
-
-	while ((le != NULL) && (f == NULL)) {
-		/* iterate through names in this loader */
-
-		ne = le->namelink;
-			
-		while ((ne != NULL) && (f == NULL)) {
-			f = (functionptr) (ptrint) os::dlsym(ne->handle, name->text);
-
-			if (f == NULL)
-				f = (functionptr) (ptrint) os::dlsym(ne->handle, newname->text);
-
-			ne = ne->hashlink;
-		}
-
-		le = le->hashlink;
-	}
+	if (symbol == NULL)
+		symbol = libraries.resolve_symbol(newname, classloader);
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	if (f == NULL) {
+	if (symbol == NULL) {
 		/* We can resolve the function directly from
 		   java.lang.ClassLoader as it's a static function. */
 		/* XXX should be done in native_init */
 
-		method_findNative =
+		methodinfo* method_findNative =
 			class_resolveclassmethod(class_java_lang_ClassLoader,
 									 utf_findNative,
 									 utf_java_lang_ClassLoader_java_lang_String__J,
@@ -568,36 +420,29 @@ functionptr native_method_resolve(methodinfo *m)
 		if (method_findNative == NULL)
 			return NULL;
 
-		/* try the normal name */
+		// Try the normal name.
+		java_handle_t* s = javastring_new(name);
+		symbol = (void*) vm_call_method_long(method_findNative, NULL, classloader, s);
 
-		s = javastring_new(name);
-
-		f = (functionptr) (intptr_t) vm_call_method_long(method_findNative,
-														 NULL, cl, s);
-
-		/* if not found, try the mangled name */
-
-		if (f == NULL) {
+		// If not found, try the mangled name.
+		if (symbol == NULL) {
 			s = javastring_new(newname);
-
-			f = (functionptr) (intptr_t) vm_call_method_long(method_findNative,
-															 NULL, cl, s);
+			symbol = (void*) vm_call_method_long(method_findNative, NULL, classloader, s);
 		}
 	}
 # endif
 
-	if (f != NULL)
+	if (symbol != NULL)
 		if (opt_verbosejni)
 			printf("JNI ]\n");
 #endif
 
-	/* If not found, try to find the native function symbol in the
-	   main program. */
+	// If not found already, try to find the native method symbol in
+	// the native methods registered with the VM.
+	if (symbol == NULL) {
+		symbol = find_registered_method(m);
 
-	if (f == NULL) {
-		f = native_method_find(m);
-
-		if (f != NULL)
+		if (symbol != NULL)
 			if (opt_verbosejni)
 				printf("internal ]\n");
 	}
@@ -607,54 +452,66 @@ functionptr native_method_resolve(methodinfo *m)
 	if (jvmti) jvmti_NativeMethodBind(m, f, &f);
 #endif
 
-	/* no symbol found? throw exception */
-
-	if (f == NULL) {
+	// Symbol not found?  Throw an exception.
+	if (symbol == NULL) {
 		if (opt_verbosejni)
 			printf("failed ]\n");
 
 		exceptions_throw_unsatisfiedlinkerror(m->name);
 	}
 
-	return f;
+	return symbol;
 }
 
 
-/* native_library_open *********************************************************
-
-   Open a native library with the given utf8 name.
-
-   IN:
-       filename ... filename of the library to open
-
-   RETURN:
-       handle of the opened library
-
-*******************************************************************************/
-
-#if defined(ENABLE_DL)
-void* native_library_open(utf *filename)
+/**
+ * Try to find the given method in the native methods registered with
+ * the VM.
+ *
+ * @param m Method structure.
+ *
+ * @return Pointer to function if found, NULL otherwise.
+ */
+void* NativeMethods::find_registered_method(methodinfo* m)
 {
-	void* handle;
+	NativeMethod nm(m);
+	std::set<NativeMethod>::iterator it = _methods.find(nm);
 
+	if (it == _methods.end())
+		return NULL;
+
+	return (*it).get_function();
+}
+
+
+/**
+ * Open this native library.
+ *
+ * @return File handle on success, NULL otherwise.
+ */
+#if defined(ENABLE_DL)
+void* NativeLibrary::open()
+{
 	if (opt_verbosejni) {
 		printf("[Loading native library ");
-		utf_display_printable_ascii(filename);
+		utf_display_printable_ascii(_filename);
 		printf(" ... ");
 	}
 
-	/* try to open the library */
+	// Sanity check.
+	assert(_filename != NULL);
 
-	handle = os::dlopen(filename->text, RTLD_LAZY);
+	// Try to open the library.
+	_handle = os::dlopen(_filename->text, RTLD_LAZY);
 
-	if (handle == NULL) {
+	if (_handle == NULL) {
 		if (opt_verbosejni)
 			printf("failed ]\n");
 
 		if (opt_verbose) {
 			log_start();
-			log_print("native_library_open: os::dlopen failed: ");
-			log_print(dlerror());
+			log_print("NativeLibrary::open: os::dlopen failed: ");
+			log_print(os::dlerror());
 			log_finish();
 		}
 
@@ -664,258 +521,209 @@ void* native_library_open(utf *filename)
 	if (opt_verbosejni)
 		printf("OK ]\n");
 
-	return handle;
+	return _handle;
 }
 #endif
 
 
-/* native_library_close ********************************************************
-
-   Close the native library of the given handle.
-
-   IN:
-       handle ... handle of the open library
-
-*******************************************************************************/
-
+/**
+ * Close this native library.
+ */
 #if defined(ENABLE_DL)
-void native_library_close(void* handle)
+void NativeLibrary::close()
 {
-	int result;
-
 	if (opt_verbosejni) {
 		printf("[Unloading native library ");
 /* 		utf_display_printable_ascii(filename); */
 		printf(" ... ");
 	}
 
-	/* Close the library. */
+	// Sanity check.
+	assert(_handle != NULL);
 
-	result = os::dlclose(handle);
+	// Close the library.
+	int result = os::dlclose(_handle);
 
 	if (result != 0) {
+		if (opt_verbosejni)
+			printf("failed ]\n");
+
 		if (opt_verbose) {
 			log_start();
-			log_print("native_library_close: os::dlclose failed: ");
-			log_print(dlerror());
+			log_print("NativeLibrary::close: os::dlclose failed: ");
+			log_print(os::dlerror());
 			log_finish();
 		}
 	}
+
+	if (opt_verbosejni)
+		printf("OK ]\n");
 }
 #endif
 
 
-/* native_library_add **********************************************************
-
-   Adds an entry to the native library hashtable.
-
-*******************************************************************************/
-
-#if defined(ENABLE_DL)
-void native_library_add(utf *filename, classloader_t *loader, void* handle)
-{
-	hashtable_library_loader_entry *le;
-	hashtable_library_name_entry   *ne; /* library name                       */
-	u4   key;                           /* hashkey                            */
-	u4   slot;                          /* slot in hashtable                  */
-
-	hashtable_library->mutex->lock();
-
-	/* normally addresses are aligned to 4, 8 or 16 bytes */
-
-	key  = ((u4) (ptrint) loader) >> 4;        /* align to 16-byte boundaries */
-	slot = key & (hashtable_library->size - 1);
-	le   = (hashtable_library_loader_entry*) hashtable_library->ptr[slot];
-
-	/* search external hash chain for the entry */
-
-	while (le) {
-		if (le->loader == loader)
-			break;
-
-		le = le->hashlink;                  /* next element in external chain */
-	}
-
-	/* no loader found? create a new entry */
-
-	if (le == NULL) {
-		le = NEW(hashtable_library_loader_entry);
-
-		le->loader   = loader;
-		le->namelink = NULL;
-
-		/* insert entry into hashtable */
-
-		le->hashlink =
-			(hashtable_library_loader_entry *) hashtable_library->ptr[slot];
-		hashtable_library->ptr[slot] = le;
-
-		/* update number of hashtable-entries */
-
-		hashtable_library->entries++;
-	}
-
-
-	/* search for library name */
-
-	ne = le->namelink;
-
-	while (ne) {
-		if (ne->name == filename) {
-			hashtable_library->mutex->unlock();
-			return;
-		}
-
-		ne = ne->hashlink;                  /* next element in external chain */
-	}
-
-	/* not found? add the library name to the classloader */
-
-	ne = NEW(hashtable_library_name_entry);
-
-	ne->name   = filename;
-	ne->handle = handle;
-
-	/* insert entry into external chain */
-
-	ne->hashlink = le->namelink;
-	le->namelink = ne;
-
-	hashtable_library->mutex->unlock();
-}
-#endif
-
-
-/* native_library_find *********************************************************
-
-   Find an entry in the native library hashtable.
-
-*******************************************************************************/
-
-#if defined(ENABLE_DL)
-hashtable_library_name_entry *native_library_find(utf *filename,
-												  classloader_t *loader)
-{
-	hashtable_library_loader_entry *le;
-	hashtable_library_name_entry   *ne; /* library name                       */
-	u4   key;                           /* hashkey                            */
-	u4   slot;                          /* slot in hashtable                  */
-
-	/* normally addresses are aligned to 4, 8 or 16 bytes */
-
-	key  = ((u4) (ptrint) loader) >> 4;        /* align to 16-byte boundaries */
-	slot = key & (hashtable_library->size - 1);
-	le   = (hashtable_library_loader_entry*) hashtable_library->ptr[slot];
-
-	/* search external hash chain for the entry */
-
-	while (le) {
-		if (le->loader == loader)
-			break;
-
-		le = le->hashlink;                  /* next element in external chain */
-	}
-
-	/* no loader found? return NULL */
-
-	if (le == NULL)
-		return NULL;
-
-	/* search for library name */
-
-	ne = le->namelink;
-
-	while (ne) {
-		if (ne->name == filename)
-			return ne;
-
-		ne = ne->hashlink;                  /* next element in external chain */
-	}
-
-	/* return entry, if no entry was found, ne is NULL */
-
-	return ne;
-}
-#endif
-
-
-/* native_library_load *********************************************************
-
-   Load a native library and initialize it, if possible.
-
-   IN:
-       name ... name of the library
-	   cl ..... classloader which loads this library
-
-   RETURN:
-       1 ... library loaded successfully
-       0 ... error
-
-*******************************************************************************/
-
-int native_library_load(JNIEnv *env, utf *name, classloader_t *cl)
+/**
+ * Load this native library and initialize it, if possible.
+ *
+ * @param env JNI environment.
+ *
+ * @return true if library loaded successfully, false otherwise.
+ */
+bool NativeLibrary::load(JNIEnv* env)
 {
 #if defined(ENABLE_DL)
-	void*   handle;
-# if defined(ENABLE_JNI)
-	void*   onload;
-	int32_t version;
-# endif
-
-	if (name == NULL) {
+	if (_filename == NULL) {
 		exceptions_throw_nullpointerexception();
-		return 0;
+		return false;
 	}
 
-	/* Is the library already loaded? */
+	// Is the library already loaded?
+	if (is_loaded())
+		return true;
 
-	if (native_library_find(name, cl) != NULL)
-		return 1;
+	// Open the library.
+	open();
 
-	/* Open the library. */
-
-	handle = native_library_open(name);
-
-	if (handle == NULL)
-		return 0;
+	if (_handle == NULL)
+		return false;
 
 # if defined(ENABLE_JNI)
-	/* Resolve JNI_OnLoad function. */
-
-	onload = os::dlsym(handle, "JNI_OnLoad");
+	// Resolve JNI_OnLoad function.
+	void* onload = os::dlsym(_handle, "JNI_OnLoad");
 
 	if (onload != NULL) {
-		JNIEXPORT int32_t (JNICALL *JNI_OnLoad) (JavaVM *, void *);
+		JNIEXPORT jint (JNICALL *JNI_OnLoad) (JavaVM*, void*);
 		JavaVM *vm;
 
-		JNI_OnLoad = (JNIEXPORT int32_t (JNICALL *)(JavaVM *, void *)) (ptrint) onload;
+		JNI_OnLoad = (JNIEXPORT jint (JNICALL *)(JavaVM*, void*)) (uintptr_t) onload;
 
 		env->GetJavaVM(&vm);
 
-		version = JNI_OnLoad(vm, NULL);
+		jint version = JNI_OnLoad(vm, NULL);
 
-		/* If the version is not 1.2 and not 1.4 the library cannot be
-		   loaded. */
-
+		// If the version is not 1.2 and not 1.4 the library cannot be
+		// loaded.
 		if ((version != JNI_VERSION_1_2) && (version != JNI_VERSION_1_4)) {
-			os::dlclose(handle);
-			return 0;
+			os::dlclose(_handle);
+			return false;
 		}
 	}
 # endif
 
-	/* Insert the library name into the library hash. */
+	// Insert the library name into the native library table.
+	NativeLibraries& nativelibraries = VM::get_current()->get_nativelibraries();
+	nativelibraries.add(*this);
 
-	native_library_add(name, cl, handle);
-
-	return 1;
+	return true;
 #else
-	vm_abort("native_library_load: not available");
+	os::abort("NativeLibrary::load: Not available in this configuration.");
 
-	/* Keep compiler happy. */
-
-	return 0;
+	// Keep the compiler happy.
+	return false;
 #endif
+}
+
+
+/**
+ * Checks if this native library is loaded.
+ *
+ * @return true if loaded, false otherwise.
+ */
+#if defined(ENABLE_DL)
+bool NativeLibrary::is_loaded()
+{
+	NativeLibraries& libraries = VM::get_current()->get_nativelibraries();
+	return libraries.is_loaded(*this);
+}
+#endif
+
+
+/**
+ * Resolve the given symbol in this native library.
+ *
+ * @param symbolname Symbol name.
+ *
+ * @return Pointer to symbol if found, NULL otherwise.
+ */
+void* NativeLibrary::resolve_symbol(utf* symbolname) const
+{
+	return os::dlsym(_handle, symbolname->text);
+}
+
+
+/**
+ * Add the given native library to the native libraries table.
+ *
+ * @param library Native library to insert.
+ */
+#if defined(ENABLE_DL)
+void NativeLibraries::add(NativeLibrary& library)
+{
+	// Make the container thread-safe.
+	_mutex.lock();
+
+	// XXX Check for double entries.
+	// Insert the native library.
+	_libraries.insert(std::make_pair(library.get_classloader(), library));
+
+	_mutex.unlock();
+}
+#endif
+
+
+/**
+ * Checks if the given native library is loaded.
+ *
+ * @param library Native library.
+ *
+ * @return true if loaded, false otherwise.
+ */
+bool NativeLibraries::is_loaded(NativeLibrary& library)
+{
+	std::pair<MAP::const_iterator, MAP::const_iterator> its = _libraries.equal_range(library.get_classloader());
+
+	// No entry for the classloader was found (the range has length
+	// zero).
+	if (its.first == its.second)
+		return false;
+	
+	MAP::const_iterator it = find_if(its.first, its.second, std::bind2nd(comparator(), library.get_filename()));
+
+	// No matching entry in the range found.
+	if (it == its.second)
+		return false;
+
+	return true;
+}
+
+
+/**
+ * Try to find a symbol with the given name in all loaded native
+ * libraries defined by classloader.
+ *
+ * @param symbolname  Name of the symbol to find.
+ * @param classloader Defining classloader.
+ *
+ * @return Pointer to symbol if found, NULL otherwise.
+ */
+void* NativeLibraries::resolve_symbol(utf* symbolname, classloader_t* classloader)
+{
+	std::pair<MAP::const_iterator, MAP::const_iterator> its = _libraries.equal_range(classloader);
+
+	// No entry for the classloader was found (the range has length
+	// zero).
+	if (its.first == its.second)
+		return NULL;
+
+	for (MAP::const_iterator it = its.first; it != its.second; it++) {
+		const NativeLibrary& library = (*it).second;
+		void* symbol = library.resolve_symbol(symbolname);
+
+		if (symbol != NULL)
+			return symbol;
+	}
+
+	return NULL;
 }
 
 

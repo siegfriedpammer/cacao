@@ -573,6 +573,18 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 }
 
 
+/* emit_trap_compiler **********************************************************
+
+   Emit a trap instruction which calls the JIT compiler.
+
+*******************************************************************************/
+
+void emit_trap_compiler(codegendata *cd)
+{
+	M_TRAP(REG_METHODPTR, TRAP_COMPILER);
+}
+
+
 /* emit_trap *******************************************************************
 
    Emit a trap instruction and return the original machine code.

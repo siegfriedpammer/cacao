@@ -318,11 +318,7 @@ void show_method(jitdata *jd, int stage)
 		}
 		printf(")\n");
 		for (i = 0; i < max; ++i) {
-#if defined(HAS_4BYTE_STACKSLOT)
-			printf("    M%02d = 0x%02x(sp): ", i, i * 4);
-#else
 			printf("    M%02d = 0x%02x(sp): ", i, i * 8);
-#endif
 			for (j = 0; j < jd->vartop; ++j) {
 				varinfo *v = VAR(j);
 				if ((v->flags & INMEMORY) && (v->vv.regoff == i)) {

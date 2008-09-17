@@ -111,14 +111,16 @@ void nativevm_preinit(void)
 
 	utf* u = utf_new_char(p);
 
-	void* handle = native_library_open(u);
+	NativeLibrary nl(u);
+	void* handle = nl.open();
 
 	if (handle == NULL)
-		vm_abort("nativevm_init: failed to open libjava.so at: %s", p);
+		os::abort("nativevm_init: failed to open libjava.so at: %s", p);
 
 	MFREE(p, char, len);
 
-	native_library_add(u, NULL, handle);
+	NativeLibraries& nls = vm->get_nativelibraries();
+	nls.add(nl);
 
 	// Initialize the HPI.
 	HPI& hpi = vm->get_hpi();
