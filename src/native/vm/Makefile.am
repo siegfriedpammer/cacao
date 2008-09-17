@@ -67,7 +67,7 @@ noinst_LTLIBRARIES = \
 	libnativevm.la
 
 libnativevm_la_SOURCES = \
-	nativevm.c \
+	nativevm.cpp \
 	nativevm.h \
 	$(REFLECTION_SOURCES) \
 	$(SUN_MISC_UNSAFE_SOURCES)
