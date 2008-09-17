@@ -1403,6 +1403,19 @@ void emit_alul_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp)
 	}
 }
 
+void emit_alu_memindex_reg(codegendata *cd, s8 opc, s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg)
+{
+	emit_rex(1,(reg),(indexreg),(basereg));
+	*(cd->mcodeptr++) = (((opc)) << 3) + 3;
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
+}
+
+void emit_alul_memindex_reg(codegendata *cd, s8 opc, s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg)
+{
+	emit_rex(0,(reg),(indexreg),(basereg));
+	*(cd->mcodeptr++) = (((opc)) << 3) + 3;
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
+}
 
 void emit_test_reg_reg(codegendata *cd, s8 reg, s8 dreg) {
 	emit_rex(1,(reg),0,(dreg));

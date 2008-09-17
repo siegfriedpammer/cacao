@@ -2570,13 +2570,7 @@ gen_method:
 
 					if (super == NULL || super->vftbl->subtype_depth >= DISPLAY_SIZE) {
 						M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
-
-						*(cd->mcodeptr++) = 0x4d;
-						*(cd->mcodeptr++) = 0x3b;
-						*(cd->mcodeptr++) = 0x1c;
-						*(cd->mcodeptr++) = 0x02;
-						/* cmp (ITMP2, ITMP1, 1), ITMP3 */
-
+						M_LCMP_MEMINDEX(REG_ITMP2, 0, REG_ITMP1, 0, REG_ITMP3);
 						emit_label_beq(cd, BRANCH_LABEL_6);  /* good */
 
 						if (super == NULL) {
@@ -2585,22 +2579,11 @@ gen_method:
 						}
 
 						M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
-						*(cd->mcodeptr++) = 0x41;
-						*(cd->mcodeptr++) = 0x39;
-						*(cd->mcodeptr++) = 0x42;
-						*(cd->mcodeptr++) = OFFSET(vftbl_t, subtype_depth);
-						/* cmpl ITMP1, subtype_depth(ITMP2) */
-						emit_label_blt(cd, BRANCH_LABEL_9);  /* throw */
+						M_ICMP_MEMBASE(REG_ITMP2, OFFSET(vftbl_t, subtype_depth), REG_ITMP1);
+						emit_label_bgt(cd, BRANCH_LABEL_9);  /* throw */
 
 						M_ALD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
-
-						*(cd->mcodeptr++) = 0x4d;
-						*(cd->mcodeptr++) = 0x3b;
-						*(cd->mcodeptr++) = 0x5c;
-						*(cd->mcodeptr++) = 0xc2;
-						*(cd->mcodeptr++) = -8*DISPLAY_SIZE;
-						/* cmp -8*DISPL(ITMP2, ITMP1, 8), ITMP3 */
-
+						M_LCMP_MEMINDEX(REG_ITMP2, -8*DISPLAY_SIZE, REG_ITMP1, 3, REG_ITMP3);
 						emit_label_beq(cd, BRANCH_LABEL_7);  /* good */
 
 						emit_label(cd, BRANCH_LABEL_9);
@@ -2617,13 +2600,7 @@ gen_method:
 						emit_load_s1(jd, iptr, REG_ITMP1);
 					}
 					else {
-						assert(super->vftbl->subtype_offset < 0x80);
-						*(cd->mcodeptr++) = 0x4d;
-						*(cd->mcodeptr++) = 0x3b;
-						*(cd->mcodeptr++) = 0x5a;
-						*(cd->mcodeptr++) = super->vftbl->subtype_offset;
-						/* cmp off(ITMP2), ITMP3 */
-
+						M_LCMP_MEMBASE(REG_ITMP2, super->vftbl->subtype_offset, REG_ITMP3);
 						emit_classcast_check(cd, iptr, BRANCH_NE, REG_ITMP3, s1);
 					}
 
@@ -2770,13 +2747,7 @@ gen_method:
 
 				if (super == NULL || super->vftbl->subtype_depth >= DISPLAY_SIZE) {
 					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
-
-					*(cd->mcodeptr++) = 0x4d;
-					*(cd->mcodeptr++) = 0x3b;
-					*(cd->mcodeptr++) = 0x1c;
-					*(cd->mcodeptr++) = 0x02;
-					/* cmp (ITMP2, ITMP1, 1), ITMP3 */
-
+					M_LCMP_MEMINDEX(REG_ITMP2, 0, REG_ITMP1, 0, REG_ITMP3);
 					emit_label_bne(cd, BRANCH_LABEL_8); /* jump over INC/SETE */
 					if (d == REG_ITMP2) {
 						M_SETE(d);
@@ -2792,22 +2763,11 @@ gen_method:
 					}
 
 					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
-					*(cd->mcodeptr++) = 0x41;
-					*(cd->mcodeptr++) = 0x39;
-					*(cd->mcodeptr++) = 0x42;
-					*(cd->mcodeptr++) = OFFSET(vftbl_t, subtype_depth);
-					/* cmpl ITMP1, subtype_depth(ITMP2) */
-					emit_label_blt(cd, BRANCH_LABEL_9);  /* false */
+					M_ICMP_MEMBASE(REG_ITMP2, OFFSET(vftbl_t, subtype_depth), REG_ITMP1);
+					emit_label_bgt(cd, BRANCH_LABEL_9);  /* false */
 
 					M_ALD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
-
-					*(cd->mcodeptr++) = 0x4d;
-					*(cd->mcodeptr++) = 0x3b;
-					*(cd->mcodeptr++) = 0x5c;
-					*(cd->mcodeptr++) = 0xc2;
-					*(cd->mcodeptr++) = -8*DISPLAY_SIZE;
-					/* cmp -8*DISPL(ITMP2, ITMP1, 8), ITMP3 */
-
+					M_LCMP_MEMINDEX(REG_ITMP2, -8*DISPLAY_SIZE, REG_ITMP1, 3, REG_ITMP3);
 					M_SETE(d);
 					if (d == REG_ITMP2) {
 						M_BSEXT(d, d);
@@ -2826,13 +2786,7 @@ gen_method:
 					emit_label(cd, BRANCH_LABEL_6);
 				}
 				else {
-					assert(super->vftbl->subtype_offset < 0x80);
-					*(cd->mcodeptr++) = 0x4d;
-					*(cd->mcodeptr++) = 0x3b;
-					*(cd->mcodeptr++) = 0x5a;
-					*(cd->mcodeptr++) = super->vftbl->subtype_offset;
-					/* cmp off(ITMP2), ITMP3 */
-
+					M_LCMP_MEMBASE(REG_ITMP2, super->vftbl->subtype_offset, REG_ITMP3);
 					M_SETE(d);
 					if (d == REG_ITMP2)
 						M_BSEXT(d, d);
