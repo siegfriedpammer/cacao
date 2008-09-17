@@ -2794,16 +2794,14 @@ gen_method:
 						}
 
 						M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
-						M_LDA(REG_ITMP1, REG_ITMP1, -DISPLAY_SIZE);
-
-						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow_length));
-						M_CMPLT(REG_ITMP1, REG_ITMP3, REG_ITMP3);
+						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, subtype_depth));
+						M_CMPLE(REG_ITMP1, REG_ITMP3, REG_ITMP3);
 						emit_label_beqz(cd, BRANCH_LABEL_9, REG_ITMP3);  /* throw */
 						/* reload */
 						M_ALD(REG_ITMP3, REG_PV, disp);
 						M_ALD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
 						M_S8ADDQ(REG_ITMP1, REG_ITMP2, REG_ITMP2);
-						M_ALD(REG_ITMP1, REG_ITMP2, 0);
+						M_ALD(REG_ITMP1, REG_ITMP2, -DISPLAY_SIZE*8);
 						M_CMPEQ(REG_ITMP1, REG_ITMP3, REG_ITMP1);
 						emit_label_bnez(cd, BRANCH_LABEL_7, REG_ITMP1);  /* good */
 
@@ -2988,16 +2986,15 @@ gen_method:
 					}
 
 					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
-					M_LDA(REG_ITMP1, REG_ITMP1, -DISPLAY_SIZE);
 
-					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow_length));
-					M_CMPLT(REG_ITMP1, REG_ITMP3, REG_ITMP3);
+					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, subtype_depth));
+					M_CMPLE(REG_ITMP1, REG_ITMP3, REG_ITMP3);
 					emit_label_beqz(cd, BRANCH_LABEL_9, REG_ITMP3);  /* false */
 					/* reload */
 					M_ALD(REG_ITMP3, REG_PV, disp);
 					M_ALD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
 					M_S8ADDQ(REG_ITMP1, REG_ITMP2, REG_ITMP2);
-					M_ALD(REG_ITMP1, REG_ITMP2, 0);
+					M_ALD(REG_ITMP1, REG_ITMP2, -DISPLAY_SIZE*8);
 					M_CMPEQ(REG_ITMP1, REG_ITMP3, d);
 
 					if (d == REG_ITMP2)
