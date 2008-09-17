@@ -633,7 +633,6 @@ bool patcher_checkcast_class(patchref_t *pr)
 	/* patch super class' vftbl */
 
 	*((ptrint *) (ra + 1)) = (ptrint) c->vftbl;
-	*((ptrint *) (ra + 5 + 6 + 6 + 2 + 1)) = (ptrint) c->vftbl;
 
 	return true;
 }

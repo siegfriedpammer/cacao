@@ -244,6 +244,8 @@ void emit_alul_imm32_reg(codegendata *cd, s4 opc, s4 imm, s4 dreg);
 void emit_alul_imm_reg(codegendata *cd, s8 opc, s8 imm, s8 dreg);
 void emit_alu_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp);
 void emit_alul_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp);
+void emit_alu_memindex_reg(codegendata *cd, s8 opc, s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg);
+void emit_alul_memindex_reg(codegendata *cd, s8 opc, s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg);
 void emit_test_reg_reg(codegendata *cd, s8 reg, s8 dreg);
 void emit_testl_reg_reg(codegendata *cd, s8 reg, s8 dreg);
 void emit_test_imm_reg(codegendata *cd, s8 imm, s8 reg);

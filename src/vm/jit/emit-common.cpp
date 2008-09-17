@@ -672,6 +672,11 @@ void emit_label_beqz(codegendata *cd, s4 label, s4 reg)
 	emit_label_bccz(cd, label, BRANCH_EQ, reg, BRANCH_OPT_NONE);
 }
 
+void emit_label_bnez(codegendata *cd, s4 label, s4 reg)
+{
+	emit_label_bccz(cd, label, BRANCH_NE, reg, BRANCH_OPT_NONE);
+}
+
 #endif /* SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER */
 
 
