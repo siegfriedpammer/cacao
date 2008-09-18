@@ -51,7 +51,7 @@
 #endif
 
 
-#include "native/localref.h"
+#include "native/localref.hpp"
 
 #include "threads/thread.hpp"
 

@@ -28,10 +28,14 @@
 #include <assert.h>
 #include <stdint.h>
 
+#include <algorithm>
+
 #include "vm/types.h"
 
 #include "arch.h"
 #include "codegen.h"
+
+#include "toolbox/list.hpp"
 
 #include "vm/options.h"
 #include "vm/statistics.h"
@@ -255,7 +259,6 @@ void emit_patcher_traps(jitdata *jd)
 {
 	codegendata *cd;
 	codeinfo    *code;
-	patchref_t  *pr;
 	u1          *savedmcodeptr;
 	u1          *tmpmcodeptr;
 	uint32_t     mcode;
@@ -265,14 +268,14 @@ void emit_patcher_traps(jitdata *jd)
 	cd   = jd->cd;
 	code = jd->code;
 
-	/* generate patcher traps code */
-
-	for (pr = (patchref_t*) list_first(code->patchers); pr != NULL; pr = (patchref_t*) list_next(code->patchers, pr)) {
+	// Generate patcher traps code.
+	for (List<patchref_t>::iterator it = code->patchers->begin(); it != code->patchers->end(); it++) {
+		patchref_t& pr = *it;
 
 		/* Calculate the patch position where the original machine
 		   code is located and the trap should be placed. */
 
-		tmpmcodeptr = (u1 *) (cd->mcodebase + pr->mpc);
+		tmpmcodeptr = (u1 *) (cd->mcodebase + pr.mpc);
 
 		/* Patch in the trap to call the signal handler (done at
 		   compile time). */
@@ -287,7 +290,7 @@ void emit_patcher_traps(jitdata *jd)
 		/* Remember the original machine code which is patched
 		   back in later (done at runtime). */
 
-		pr->mcode = mcode;
+		pr.mcode = mcode;
 	}
 }
 
@@ -509,25 +512,18 @@ void emit_bnan(codegendata *cd, basicblock *target)
 
 void emit_label_bccz(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options)
 {
-	list_t             *list;
-	branch_label_ref_t *br;
-	s4                  mpc;
-	s4                  disp;
+	// Search if the label is already in the list.
+	DumpList<branch_label_ref_t*>::iterator it;
+	for (it = cd->brancheslabel->begin(); it != cd->brancheslabel->end(); it++) {
+		branch_label_ref_t* br = *it;
 
-	/* get the label list */
-
-	list = cd->brancheslabel;
-
-	/* search if the label is already in the list */
-
-	for (br = (branch_label_ref_t*) list_first(list); br != NULL; br = (branch_label_ref_t*) list_next(list, br)) {
 		/* is this entry the correct label? */
 
 		if (br->label == label)
 			break;
 	}
 
-	if (br == NULL) {
+	if (it == cd->brancheslabel->end()) {
 		/* current mcodeptr is the correct position,
 		   afterwards emit the NOPs */
 
@@ -539,12 +535,13 @@ void emit_label_bccz(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options
 		return;
 	}
 
-	/* Branch reference was found. */
+	// Branch reference was found.
+	branch_label_ref_t* br = *it;
 
 	/* calculate the mpc of the branch instruction */
 
-	mpc  = cd->mcodeptr - cd->mcodebase;
-	disp = br->mpc - mpc;
+	int32_t mpc  = cd->mcodeptr - cd->mcodebase;
+	int32_t disp = br->mpc - mpc;
 
 #if defined(ENABLE_STATISTICS)
 	count_emit_branch++;
@@ -558,9 +555,8 @@ void emit_label_bccz(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options
 
 	emit_branch(cd, disp, condition, reg, options);
 
-	/* now remove the branch reference */
-
-	list_remove(list, br);
+	// Now remove the branch reference.
+	cd->brancheslabel->remove(br);
 }
 
 
@@ -573,26 +569,20 @@ void emit_label_bccz(codegendata *cd, s4 label, s4 condition, s4 reg, u4 options
 
 void emit_label(codegendata *cd, s4 label)
 {
-	list_t             *list;
-	branch_label_ref_t *br;
-	s4                  mpc;
-	s4                  disp;
-	u1                 *mcodeptr;
+	u1* mcodeptr;
 
-	/* get the label list */
+	// Search if the label is already in the list.
+	DumpList<branch_label_ref_t*>::iterator it;
+	for (it = cd->brancheslabel->begin(); it != cd->brancheslabel->end(); it++) {
+		branch_label_ref_t* br = *it;
 
-	list = cd->brancheslabel;
-
-	/* search if the label is already in the list */
-
-	for (br = (branch_label_ref_t*) list_first(list); br != NULL; br = (branch_label_ref_t*) list_next(list, br)) {
 		/* is this entry the correct label? */
 
 		if (br->label == label)
 			break;
 	}
 
-	if (br == NULL) {
+	if (it == cd->brancheslabel->end()) {
 		/* No branch reference found, add the label to the list (use
 		   invalid values for condition and register). */
 
@@ -600,12 +590,12 @@ void emit_label(codegendata *cd, s4 label)
 		return;
 	}
 
-	/* Branch reference was found. */
+	// Branch reference was found.
+	branch_label_ref_t* br = *it;
 
-	/* calculate the mpc of the branch instruction */
-
-	mpc  = cd->mcodeptr - cd->mcodebase;
-	disp = mpc - br->mpc;
+	// Calculate the mpc of the branch instruction.
+	int32_t mpc  = cd->mcodeptr - cd->mcodebase;
+	int32_t disp = mpc - br->mpc;
 
 	/* temporary set the mcodeptr */
 
@@ -628,9 +618,8 @@ void emit_label(codegendata *cd, s4 label)
 
 	cd->mcodeptr = mcodeptr;
 
-	/* now remove the branch reference */
-
-	list_remove(list, br);
+	// Now remove the branch reference.
+	cd->brancheslabel->remove(br);
 }
 
 

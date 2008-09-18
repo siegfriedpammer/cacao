@@ -35,7 +35,7 @@
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/reg.h"
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 
 
 /* patterns for a total number of 3 instructions ******************************/

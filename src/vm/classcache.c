@@ -31,7 +31,7 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 #include "threads/mutex.hpp"
 
 #include "toolbox/hashtable.h"

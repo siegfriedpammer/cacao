@@ -148,8 +148,8 @@ noinst_LTLIBRARIES = \
 	libjit.la
 
 libjit_la_SOURCES = \
-	argument.c \
-	argument.h \
+	argument.cpp \
+	argument.hpp \
 	builtin.cpp \
 	builtin.hpp \
 	builtintable.inc \
@@ -169,8 +169,8 @@ libjit_la_SOURCES = \
 	executionstate.h \
 	jit.cpp \
 	jit.hpp \
-	linenumbertable.c \
-	linenumbertable.h \
+	linenumbertable.cpp \
+	linenumbertable.hpp \
 	methodtree.c \
 	methodtree.h \
 	parse.c \
@@ -180,8 +180,8 @@ libjit_la_SOURCES = \
 	$(RECOMPILE_SOURCES) \
 	$(REG_SOURCES) \
 	$(REPLACE_SOURCES) \
-	show.c \
-	show.h \
+	show.cpp \
+	show.hpp \
 	$(STACK_SOURCES) \
 	stacktrace.cpp \
 	stacktrace.hpp \

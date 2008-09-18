@@ -26,10 +26,6 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "config.h"
 
 #include <stdarg.h>
@@ -38,6 +34,10 @@ extern "C" {
 
 
 /* function prototypes ********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 char *_Jv_getcwd(void);
 int   get_variable_message_length(const char *fmt, va_list ap);

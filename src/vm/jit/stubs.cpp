@@ -42,7 +42,7 @@
 #include "vm/jit/disass.h"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 #include "vm/jit/stubs.hpp"
 
 

@@ -282,14 +282,10 @@ s4 builtin_dcmpg(double a, double b);
 double builtin_drem(double a, double b);
 #define BUILTIN_drem (functionptr) builtin_drem
 
-s8       builtin_i2l(s4 i);
-/* NOT AN OP */
 float    builtin_i2f(s4 i);
 #define BUILTIN_i2f (functionptr) builtin_i2f
 double   builtin_i2d(s4 i);
 #define BUILTIN_i2d (functionptr) builtin_i2d
-s4       builtin_l2i(s8 l);
-/* NOT AN OP */
 float    builtin_l2f(s8 l);
 #define BUILTIN_l2f (functionptr) builtin_l2f
 double   builtin_l2d(s8 l);

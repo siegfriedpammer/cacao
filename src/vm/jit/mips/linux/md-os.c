@@ -215,21 +215,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 		/* fall-through */
 
-	case TRAP_PATCHER:
-		if (p == NULL) {
-			/* We set the PC again because the cause may have changed
-			   the XPC. */
-
-#if defined(__UCLIBC__)
-			_gregs[CTX_EPC] = (uintptr_t) xpc;
-#else
-			_mc->pc         = (uintptr_t) xpc;
-#endif
-			break;
-		}
-
-		/* fall-through */
-		
 	default:
 		_gregs[REG_ITMP1_XPTR] = (uintptr_t) p;
 		_gregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
@@ -237,6 +222,64 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 		_gregs[CTX_EPC]        = (uintptr_t) asm_handle_exception;
 #else
 		_mc->pc                = (uintptr_t) asm_handle_exception;
+#endif
+	}
+}
+
+
+/**
+ * Signal handler for patcher calls.
+ */
+void md_signal_handler_sigill(int sig, siginfo_t* siginfo, void* _p)
+{
+	ucontext_t* _uc = (struct ucontext *) _p;
+	mcontext_t* _mc = &_uc->uc_mcontext;
+	greg_t* _gregs;
+
+#if defined(__UCLIBC__)
+	_gregs = _mc->gpregs;
+#else	
+	_gregs = _mc->gregs;
+#endif
+
+	// In glibc's ucontext.h the registers are defined as long long
+	// int, even for MIPS32, so we cast them.  This is not the case
+	// for uClibc.
+	void* pv  = (void*) (uintptr_t) _gregs[REG_PV];
+	void* sp  = (void*) (uintptr_t) _gregs[REG_SP];
+	void* ra  = (void*) (uintptr_t) _gregs[REG_RA]; // The RA is correct for leaf methods.
+
+#if defined(__UCLIBC__)
+	void* xpc = (void*) (uintptr_t) _gregs[CTX_EPC];
+#else
+	void* xpc = (void*) (uintptr_t) _mc->pc;
+#endif
+
+	// This signal is always a patcher.
+	int      type = TRAP_PATCHER;
+	intptr_t val  = 0;
+
+	// Handle the trap.
+	void* p = trap_handle(type, val, pv, sp, ra, xpc, _p);
+
+	// Set registers if we have an exception, continue execution
+	// otherwise.
+	if (p != NULL) {
+		_gregs[REG_ITMP1_XPTR] = (uintptr_t) p;
+		_gregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
+#if defined(__UCLIBC__)
+		_gregs[CTX_EPC]        = (uintptr_t) asm_handle_exception;
+#else
+		_mc->pc                = (uintptr_t) asm_handle_exception;
+#endif
+	}
+	else {
+		// We set the PC again because the cause may have changed the
+		// XPC.
+#if defined(__UCLIBC__)
+		_gregs[CTX_EPC] = (uintptr_t) xpc;
+#else
+		_mc->pc         = (uintptr_t) xpc;
 #endif
 	}
 }

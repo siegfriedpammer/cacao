@@ -28,12 +28,12 @@
 #ifndef _ARCH_H
 #define _ARCH_H
 
+#define JIT_COMPILER_VIA_SIGNAL
+
 #include "config.h"
 
 
 /* define architecture features ***********************************************/
-
-#define U8_AVAILABLE                     1
 
 #define SUPPORT_DIVISION                 0
 #define SUPPORT_LONG                     1

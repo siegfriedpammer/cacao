@@ -37,9 +37,9 @@
 
 #include "native/llni.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
-#include "vm/array.h"
+#include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
@@ -49,7 +49,6 @@
 #include "vm/statistics.h"
 #include "vm/string.hpp"
 #include "vm/utf8.h"
-#include "vm/vm.hpp"
 
 
 /* global variables ***********************************************************/
@@ -107,7 +106,7 @@ void stringtable_update(void)
                                
 				if (js.is_null() || (js.get_value() == NULL)) {
 					/* error in hashtable found */
-					VM::get_current()->abort("stringtable_update: invalid literalstring in hashtable");
+					os::abort("stringtable_update: invalid literalstring in hashtable");
 				}
 
 				a = LLNI_UNWRAP(js.get_value());
@@ -523,7 +522,7 @@ static java_object_t *literalstring_u2(java_chararray_t *a, int32_t length,
 #endif
 
 #if defined(ENABLE_THREADS)
-	lock_init_object_lock(o);
+	o->lockword.init();
 #endif
 
 	o->vftbl = class_java_lang_String->vftbl;

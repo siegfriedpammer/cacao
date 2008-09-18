@@ -36,7 +36,7 @@
 #include "vm/jit/sparc64/md.h"
 #include "vm/jit/sparc64/md-abi.h"
 
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "vm/jit/builtin.hpp"
 #include "vm/class.h"

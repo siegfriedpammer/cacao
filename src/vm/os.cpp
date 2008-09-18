@@ -62,6 +62,78 @@
 
 
 /**
+ * Prints an error message and aborts the VM.
+ *
+ * @param text Error message to print.
+ */
+void os::abort(const char* text, ...)
+{
+	va_list ap;
+
+	// Print the log message.
+	log_start();
+
+	va_start(ap, text);
+	log_vprint(text, ap);
+	va_end(ap);
+
+	log_finish();
+
+	// Print a backtrace.
+	os::print_backtrace();
+
+	// Now abort the VM.
+	os::abort();
+}
+
+
+/**
+ * Prints an error message, appends ":" plus the strerror-message of
+ * errnum and aborts the VM.
+ *
+ * @param errnum Error number.
+ * @param text   Error message to print.
+ */
+void os::abort_errnum(int errnum, const char* text, ...)
+{
+	va_list ap;
+
+	// Print the log message.
+	log_start();
+
+	va_start(ap, text);
+	log_vprint(text, ap);
+	va_end(ap);
+
+	// Print the strerror-message of errnum.
+	log_print(": %s", os::strerror(errnum));
+
+	log_finish();
+
+	// Print a backtrace.
+	os::print_backtrace();
+
+	// Now abort the VM.
+	os::abort();
+}
+
+
+/**
+ * Equal to abort_errnum, but uses errno to get the error number.
+ *
+ * @param text Error message to print.
+ */
+void os::abort_errno(const char* text, ...)
+{
+	va_list ap;
+
+	va_start(ap, text);
+	abort_errnum(errno, text, ap);
+	va_end(ap);
+}
+
+
+/**
  * Maps anonymous memory, even on systems not defining
  * MAP_ANON(YMOUS).
  *
@@ -85,7 +157,7 @@ void* os::mmap_anonymous(void *addr, size_t len, int prot, int flags)
 	fd = open("/dev/zero", O_RDONLY, 0);
 
 	if (fd == -1)
-		VM::get_current()->abort_errno("os::mmap_anonymous: open failed");
+		os::abort_errno("os::mmap_anonymous: open failed");
 
 	p = mmap(addr, len, prot, flags, fd, 0);
 #endif
@@ -95,7 +167,7 @@ void* os::mmap_anonymous(void *addr, size_t len, int prot, int flags)
 #else
 	if (p == (void *) -1)
 #endif
-		VM::get_current()->abort_errno("os::mmap_anonymous: mmap failed");
+		os::abort_errno("os::mmap_anonymous: mmap failed");
 
 	return p;
 }
@@ -193,9 +265,7 @@ extern "C" {
 #if defined(ENABLE_JRE_LAYOUT)
 	char*  os_dirname(char* path) { return os::dirname(path); }
 #endif
-	int    os_dlclose(void* handle) { return os::dlclose(handle); }
 	char*  os_dlerror(void) { return os::dlerror(); }
-	void*  os_dlopen(const char* filename, int flag) { return os::dlopen(filename, flag); }
 	void*  os_dlsym(void* handle, const char* symbol) { return os::dlsym(handle, symbol); }
 	int    os_fclose(FILE* fp) { return os::fclose(fp); }
 	FILE*  os_fopen(const char* path, const char* mode) { return os::fopen(path, mode); }

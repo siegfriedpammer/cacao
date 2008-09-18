@@ -30,7 +30,7 @@
 
 #include <stdint.h>
 
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "vm/field.hpp"
 #include "vm/method.h"

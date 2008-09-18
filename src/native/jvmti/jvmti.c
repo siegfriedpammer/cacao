@@ -37,7 +37,7 @@
 #include <sched.h>
 
 #include "native/jni.hpp"
-#include "native/native.h"
+#include "native/native.hpp"
 #include "native/jvmti/cacaodbg.h"
 #include "native/jvmti/jvmti.h"
 #include "vm/jit/stacktrace.hpp"
@@ -54,7 +54,7 @@
 #include "mm/memory.h"
 #include "threads/mutex.h"
 #include "threads/thread.hpp"
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 #include "vm/exceptions.hpp"
 #include "native/include/java_io_PrintStream.h"
 #include "native/include/java_io_InputStream.h"

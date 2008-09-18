@@ -72,7 +72,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	intptr_t             val;
 	int                  type;
 	void                *p;
-	java_object_t       *o;
 
 	_uc = (ucontext_t *) _p;
 	_mc = _uc->uc_mcontext;
@@ -142,23 +141,9 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	/* Set registers. */
 
 	if (type == TRAP_COMPILER) {
-		if (p == NULL) { 
-			o = builtin_retrieve_exception();
-
+		if (p == NULL) {
 			_ss->__esp = (uintptr_t) sp;  /* Remove RA from stack. */
-
-			_ss->__eax = (uintptr_t) o;
-			_ss->__ecx = (uintptr_t) xpc;           /* REG_ITMP2_XPC */
-			_ss->__eip = (uintptr_t) asm_handle_exception;
 		}
-		else {
-			_ss->__eip = (uintptr_t) p;
-		}
-	}
-	else {
-		_ss->__eax = (uintptr_t) p;
-		_ss->__ecx = (uintptr_t) xpc;            /* REG_ITMP2_XPC */
-		_ss->__eip = (uintptr_t) asm_handle_exception;
 	}
 }
 
@@ -181,7 +166,6 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 	u1                  *xpc;
 	int                  type;
 	intptr_t             val;
-	void                *p;
 
 
 	_uc = (ucontext_t *) _p;
@@ -200,13 +184,7 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Handle the trap. */
 
-	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	/* Set registers. */
-
-	_ss->__eax = (uintptr_t) p;
-	_ss->__ecx = (uintptr_t) xpc;            /* REG_ITMP2_XPC */
-	_ss->__eip = (uintptr_t) asm_handle_exception;
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
 }
 
 
@@ -253,7 +231,6 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	u1                  *xpc;
 	int                  type;
 	intptr_t             val;
-	void                *p;
 
 
 	_uc = (ucontext_t *) _p;
@@ -270,15 +247,7 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Handle the trap. */
 
-	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	/* Set registers. */
-
-	if (p != NULL) {
-		_ss->__eax = (uintptr_t) p;
-		_ss->__ecx = (uintptr_t) xpc;            /* REG_ITMP2_XPC */
-		_ss->__eip = (uintptr_t) asm_handle_exception;
-	}
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
 }
 
 /* md_executionstate_read ******************************************************

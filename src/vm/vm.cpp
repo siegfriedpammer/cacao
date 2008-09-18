@@ -47,21 +47,20 @@
 
 #include "native/jni.hpp"
 #include "native/llni.h"
-#include "native/localref.h"
-#include "native/native.h"
+#include "native/localref.hpp"
+#include "native/native.hpp"
 
-#include "native/vm/nativevm.h"
+#include "native/vm/nativevm.hpp"
 
-#include "threads/lock-common.h"
-#include "threads/threadlist.h"
+#include "threads/lock.hpp"
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 
-#include "vm/array.h"
+#include "vm/array.hpp"
 
 #if defined(ENABLE_ASSERTION)
-#include "vm/assertion.h"
+#include "vm/assertion.hpp"
 #endif
 
 #include "vm/jit/builtin.hpp"
@@ -81,7 +80,7 @@
 #include "vm/suck.hpp"
 #include "vm/vm.hpp"
 
-#include "vm/jit/argument.h"
+#include "vm/jit/argument.hpp"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/code.hpp"
 
@@ -96,7 +95,7 @@
 # include "vm/jit/optimizing/profile.h"
 #endif
 
-#include "vm/jit/optimizing/recompile.h"
+#include "vm/jit/optimizing/recompiler.hpp"
 
 #if defined(ENABLE_PYTHON)
 # include "vm/jit/python.h"
@@ -193,7 +192,6 @@ enum {
 	/* CACAO options */
 
 	OPT_VERBOSE1,
-	OPT_NOIEEE,
 
 #if defined(ENABLE_STATISTICS)
 	OPT_TIME,
@@ -313,9 +311,6 @@ opt_struct opts[] = {
 
 #if defined(ENABLE_VERIFIER) && defined(TYPECHECK_VERBOSE)
 	{ "verbosetc",         false, OPT_VERBOSETC },
-#endif
-#if defined(__ALPHA__)
-	{ "noieee",            false, OPT_NOIEEE },
 #endif
 #if defined(ENABLE_STATISTICS)
 	{ "time",              false, OPT_TIME },
@@ -508,9 +503,6 @@ static void XXusage(void)
 #endif
 #ifdef TYPECHECK_VERBOSE
 	puts("    -verbosetc               write debug messages while typechecking");
-#endif
-#if defined(__ALPHA__)
-	puts("    -noieee                  don't use ieee compliant arithmetic");
 #endif
 #if defined(ENABLE_VERIFIER)
 	puts("    -noverify                don't verify classfiles");
@@ -728,14 +720,12 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* Install the exit handler. */
 
 	if (atexit(vm_exit_handler))
-		VM::get_current()->abort("atexit failed: %s\n", strerror(errno));
+		os::abort("atexit failed: %s\n", strerror(errno));
 
 	/* Set some options. */
 
 	opt_version       = false;
 	opt_exit          = false;
-
-	opt_noieee        = false;
 
 	opt_heapmaxsize   = HEAP_MAXSIZE;
 	opt_heapstartsize = HEAP_STARTSIZE;
@@ -1037,10 +1027,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 			opt_version = true;
 			break;
 
-		case OPT_NOIEEE:
-			opt_noieee = true;
-			break;
-
 #if defined(ENABLE_VERIFIER)
 		case OPT_NOVERIFY:
 			opt_verify = false;
@@ -1337,10 +1323,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 	gc_init(opt_heapmaxsize, opt_heapstartsize);
 
 #if defined(ENABLE_THREADS)
-	/* BEFORE: threads_preinit */
-
-	threadlist_init();
-
 	/* AFTER: gc_init */
 
   	threads_preinit();
@@ -1350,7 +1332,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* install architecture dependent signal handlers */
 
 	if (!signal_init())
-		VM::get_current()->abort("vm_create: signal_init failed");
+		os::abort("vm_create: signal_init failed");
 
 #if defined(ENABLE_INTRP)
 	/* Allocate main thread stack on the Java heap. */
@@ -1364,7 +1346,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* AFTER: threads_preinit */
 
 	if (!string_init())
-		VM::get_current()->abort("vm_create: string_init failed");
+		os::abort("vm_create: string_init failed");
 
 	/* AFTER: threads_preinit */
 
@@ -1373,7 +1355,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* AFTER: thread_preinit */
 
 	if (!suck_init())
-		VM::get_current()->abort("vm_create: suck_init failed");
+		os::abort("vm_create: suck_init failed");
 
 	suck_add_from_property("java.endorsed.dirs");
 
@@ -1395,7 +1377,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	   (must be done _after_ threads_preinit) */
 
 	if (!classcache_init())
-		VM::get_current()->abort("vm_create: classcache_init failed");
+		os::abort("vm_create: classcache_init failed");
 
 	/* Initialize the code memory management. */
 	/* AFTER: threads_preinit */
@@ -1406,7 +1388,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	   threads_preinit) */
 
 	if (!finalizer_init())
-		VM::get_current()->abort("vm_create: finalizer_init failed");
+		os::abort("vm_create: finalizer_init failed");
 
 	/* Initialize the JIT compiler. */
 
@@ -1438,13 +1420,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 #endif
 
 	if (!builtin_init())
-		VM::get_current()->abort("vm_create: builtin_init failed");
-
-	/* Initialize the native subsystem. */
-	/* BEFORE: threads_init */
-
-	if (!native_init())
-		VM::get_current()->abort("vm_create: native_init failed");
+		os::abort("vm_create: builtin_init failed");
 
 	/* Register the native methods implemented in the VM. */
 	/* BEFORE: threads_init */
@@ -1457,7 +1433,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	   (e.g. NewGlobalRef). */
 
 	if (!jni_init())
-		VM::get_current()->abort("vm_create: jni_init failed");
+		os::abort("vm_create: jni_init failed");
 #endif
 
 #if defined(ENABLE_JNI) || defined(ENABLE_HANDLES)
@@ -1465,7 +1441,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* BEFORE: threads_init */
 
 	if (!localref_table_init())
-		VM::get_current()->abort("vm_create: localref_table_init failed");
+		os::abort("vm_create: localref_table_init failed");
 #endif
 
 	/* Iinitialize some important system classes. */
@@ -1486,15 +1462,10 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* initialize profiling */
 
 	if (!profile_init())
-		VM::get_current()->abort("vm_create: profile_init failed");
+		os::abort("vm_create: profile_init failed");
 #endif
 
 #if defined(ENABLE_THREADS)
-	/* initialize recompilation */
-
-	if (!recompile_init())
-		VM::get_current()->abort("vm_create: recompile_init failed");
-
 	/* start the signal handler thread */
 
 #if defined(__LINUX__)
@@ -1502,33 +1473,32 @@ VM::VM(JavaVMInitArgs* vm_args)
 	if (threads_pthreads_implementation_nptl)
 #endif
 		if (!signal_start_thread())
-			VM::get_current()->abort("vm_create: signal_start_thread failed");
+			os::abort("vm_create: signal_start_thread failed");
 
 	/* finally, start the finalizer thread */
 
 	if (!finalizer_start_thread())
-		VM::get_current()->abort("vm_create: finalizer_start_thread failed");
+		os::abort("vm_create: finalizer_start_thread failed");
 
 # if !defined(NDEBUG)
 	/* start the memory profiling thread */
 
 	if (opt_ProfileMemoryUsage || opt_ProfileGCMemoryUsage)
 		if (!memory_start_thread())
-			VM::get_current()->abort("vm_create: memory_start_thread failed");
+			os::abort("vm_create: memory_start_thread failed");
 # endif
 
-	/* start the recompilation thread (must be done before the
-	   profiling thread) */
-
-	if (!recompile_start_thread())
-		VM::get_current()->abort("vm_create: recompile_start_thread failed");
+	// Start the recompilation thread (must be done before the
+	// profiling thread).
+	// FIXME Only works for one recompiler.
+	_recompiler.start();
 
 # if defined(ENABLE_PROFILING)
 	/* start the profile sampling thread */
 
 /* 	if (opt_prof) */
 /* 		if (!profile_start_thread()) */
-/* 			VM::get_current()->abort("vm_create: profile_start_thread failed"); */
+/* 			os::abort("vm_create: profile_start_thread failed"); */
 # endif
 #endif
 
@@ -1812,7 +1782,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	   the application's main method exits. */
 
 	if (!thread_detach_current_thread())
-		VM::get_current()->abort("vm_run: Could not detach main thread.");
+		os::abort("vm_run: Could not detach main thread.");
 #endif
 
 	/* Destroy the JavaVM. */
@@ -2010,78 +1980,6 @@ void vm_exit_handler(void)
 }
 
 
-/**
- * Prints an error message and aborts the VM.
- *
- * @param text Error message to print.
- */
-void VM::abort(const char* text, ...)
-{
-	va_list ap;
-
-	// Print the log message.
-	log_start();
-
-	va_start(ap, text);
-	log_vprint(text, ap);
-	va_end(ap);
-
-	log_finish();
-
-	// Print a backtrace.
-	os::print_backtrace();
-
-	// Now abort the VM.
-	os::abort();
-}
-
-
-/**
- * Prints an error message, appends ":" plus the strerror-message of
- * errnum and aborts the VM.
- *
- * @param errnum Error number.
- * @param text   Error message to print.
- */
-void VM::abort_errnum(int errnum, const char* text, ...)
-{
-	va_list ap;
-
-	// Print the log message.
-	log_start();
-
-	va_start(ap, text);
-	log_vprint(text, ap);
-	va_end(ap);
-
-	// Print the strerror-message of errnum.
-	log_print(": %s", os::strerror(errnum));
-
-	log_finish();
-
-	// Print a backtrace.
-	os::print_backtrace();
-
-	// Now abort the VM.
-	os::abort();
-}
-
-
-/**
- * Equal to VM::abort_errnum, but uses errno to get the error number.
- *
- * @param text Error message to print.
- */
-void VM::abort_errno(const char* text, ...)
-{
-	va_list ap;
-
-	va_start(ap, text);
-	abort_errnum(errno, text, ap);
-	va_end(ap);
-}
-
-
 /* vm_abort_disassemble ********************************************************
 
    Prints an error message, disassemble the given code range (if
@@ -2128,7 +2026,7 @@ void vm_abort_disassemble(void *pc, int count, const char *text, ...)
 		pc = disassinstr((u1*) pc);
 #endif
 
-	VM::get_current()->abort("Aborting...");
+	os::abort("Aborting...");
 }
 
 
@@ -2369,7 +2267,7 @@ static void vm_compile_method(char* mainname)
 	}
 
 	if (m == NULL)
-		VM::get_current()->abort("vm_compile_method: java.lang.NoSuchMethodException: %s.%s",
+		os::abort("vm_compile_method: java.lang.NoSuchMethodException: %s.%s",
 				 opt_method, opt_signature ? opt_signature : "");
 		
 	jit_compile(m);
@@ -2608,7 +2506,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 		break;
 
 	default:
-		VM::get_current()->abort("vm_call_method_objectarray: invalid return type %d", m->parseddesc->returntype.primitivetype);
+		os::abort("vm_call_method_objectarray: invalid return type %d", m->parseddesc->returntype.primitivetype);
 	}
 
 	/* enter the nativeworld again */
@@ -2651,7 +2549,7 @@ void vm_abort(const char* text, ...)
 	va_list ap;
 
 	va_start(ap, text);
-	VM::get_current()->abort(text, ap);
+	os::abort(text, ap);
 	va_end(ap);
 }
 
@@ -2660,7 +2558,7 @@ void vm_abort_errnum(int errnum, const char* text, ...)
 	va_list ap;
 
 	va_start(ap, text);
-	VM::get_current()->abort_errnum(errnum, text, ap);
+	os::abort_errnum(errnum, text, ap);
 	va_end(ap);
 }
 
@@ -2669,7 +2567,7 @@ void vm_abort_errno(const char* text, ...)
 	va_list ap;
 
 	va_start(ap, text);
-	VM::get_current()->abort_errno(text, ap);
+	os::abort_errno(text, ap);
 	va_end(ap);
 }
 

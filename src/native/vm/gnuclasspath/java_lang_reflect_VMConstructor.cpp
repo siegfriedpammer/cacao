@@ -30,7 +30,7 @@
 
 #include "native/jni.hpp"
 #include "native/llni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/vm/include/java_lang_reflect_VMConstructor.h"
@@ -204,15 +204,12 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-extern "C" {
 void _Jv_java_lang_reflect_VMConstructor_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("java/lang/reflect/VMConstructor");
 
-	u = utf_new_char("java/lang/reflect/VMConstructor");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

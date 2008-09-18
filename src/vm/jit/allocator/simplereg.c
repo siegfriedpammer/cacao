@@ -44,7 +44,7 @@
 
 #include "vm/jit/abi.h"
 #include "vm/jit/reg.h"
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 #include "vm/jit/allocator/simplereg.h"
 
 
@@ -64,11 +64,7 @@ static void simplereg_allocate_temporaries(jitdata *jd);
 
 /* size of a stackslot used by the internal ABI */
 
-#if defined(HAS_4BYTE_STACKSLOT)
-# define SIZE_OF_STACKSLOT 4
-#else 
-# define SIZE_OF_STACKSLOT 8
-#endif
+#define SIZE_OF_STACKSLOT 8
 
 
 /* total number of registers */
@@ -207,44 +203,12 @@ static void simplereg_allocate_temporaries(jitdata *jd);
 #define NEW_MEM_SLOT(r)                                              \
     do {                                                             \
         (r) = rd->memuse * SIZE_OF_STACKSLOT;                        \
-        rd->memuse += memneeded + 1;                                 \
+        rd->memuse += 1;                                             \
     } while (0)
 
-#define NEW_MEM_SLOT_ALIGNED(r)                                      \
-    do {                                                             \
-        if ( (memneeded) && (rd->memuse & 1))                        \
-            rd->memuse++;                                            \
-        (r) = rd->memuse * SIZE_OF_STACKSLOT;                        \
-        rd->memuse += memneeded + 1;                                 \
-    } while (0)
-
-#define NEW_MEM_SLOT_ALIGNED_REUSE_PADDING(r)                        \
-    do {                                                             \
-        if ( (memneeded) && (rd->memuse & 1)) {                      \
-			PUSH_BACK(rd->freemem, rd->freememtop, rd->memuse);      \
-            rd->memuse++;                                            \
-		}                                                            \
-        (r) = rd->memuse * SIZE_OF_STACKSLOT;                        \
-        rd->memuse += memneeded + 1;                                 \
-    } while (0)
-
-#if defined(ALIGN_LONGS_IN_MEMORY)
-#define NEW_MEM_SLOT_INT_LNG(r)  NEW_MEM_SLOT_ALIGNED(r)
-#else
 #define NEW_MEM_SLOT_INT_LNG(r)  NEW_MEM_SLOT(r)
-#endif
-
-#if defined(ALIGN_DOUBLES_IN_MEMORY)
-#define NEW_MEM_SLOT_FLT_DBL(r)  NEW_MEM_SLOT_ALIGNED(r)
-#else
 #define NEW_MEM_SLOT_FLT_DBL(r)  NEW_MEM_SLOT(r)
-#endif
-
-#if defined(ALIGN_LONGS_IN_MEMORY) || defined(ALIGN_DOUBLES_IN_MEMORY)
-#define NEW_MEM_SLOT_REUSE_PADDING(r)  NEW_MEM_SLOT_ALIGNED_REUSE_PADDING(r)
-#else
 #define NEW_MEM_SLOT_REUSE_PADDING(r)  NEW_MEM_SLOT(r)
-#endif
 
 
 /* macros for creating/freeing temporary variables ***************************/
@@ -282,9 +246,9 @@ static void simplereg_allocate_temporaries(jitdata *jd);
 /* regalloc ********************************************************************
 
    Does a simple register allocation.
-	
+
 *******************************************************************************/
-	
+
 bool regalloc(jitdata *jd)
 {
 	/* There is a problem with the use of unused float argument
@@ -308,9 +272,9 @@ bool regalloc(jitdata *jd)
 /* simplereg_allocate_interfaces ***********************************************
 
    Allocates registers for all interface variables.
-	
+
 *******************************************************************************/
-	
+
 static void simplereg_allocate_interfaces(jitdata *jd)
 {
 	methodinfo   *m;
@@ -321,9 +285,8 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 	int     s, t, tt, saved;
 	int     intalloc, fltalloc; /* Remember allocated Register/Memory offset */
 	                /* in case more vars are packed into this interface slot */
-	int		memneeded = 0;
-	/* Allocate LNG and DBL types first to ensure 2 memory slots or          */
-	/* registers on HAS_4BYTE_STACKSLOT architectures.                       */
+	/* Allocate LNG and DBL types first to ensure 2 registers                */
+	/* on some architectures.                                                */
 	int     typeloop[] = { TYPE_LNG, TYPE_DBL, TYPE_INT, TYPE_FLT, TYPE_ADR };
 	int     flags, regoff;
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
@@ -386,10 +349,6 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			intregsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
-#endif
-
-#if defined(HAS_4BYTE_STACKSLOT)
-			memneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
 #endif
 
 			if (!saved) {
@@ -561,9 +520,9 @@ static void simplereg_allocate_interfaces(jitdata *jd)
 /* simplereg_allocate_locals_leafmethod ****************************************
 
    Allocates registers for all local variables of a leafmethod.
-	
+
 *******************************************************************************/
-	
+
 static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 {
 	methodinfo   *m;
@@ -575,7 +534,6 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 	int     intalloc, fltalloc;
 	varinfo *v;
 	int     intregsneeded = 0;
-	int     memneeded = 0;
 	int     typeloop[] = { TYPE_LNG, TYPE_DBL, TYPE_INT, TYPE_FLT, TYPE_ADR };
 	int     fargcnt, iargcnt;
 #ifdef HAS_ADDRESS_REGISTER_FILE
@@ -607,9 +565,6 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 			intregsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
-#endif
-#if defined(HAS_4BYTE_STACKSLOT)
-			memneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
 #endif
 
 			/*
@@ -769,9 +724,9 @@ static void simplereg_allocate_locals_leafmethod(jitdata *jd)
 /* simplereg_allocate_locals ***************************************************
 
    Allocates registers for all local variables.
-	
+
 *******************************************************************************/
-	
+
 static void simplereg_allocate_locals(jitdata *jd)
 {
 	codeinfo     *code;
@@ -781,7 +736,6 @@ static void simplereg_allocate_locals(jitdata *jd)
 	int     s, t, tt, varindex;
 	int     intalloc, fltalloc;
 	varinfo *v;
-	int     memneeded = 0;
 	int     typeloop[] = { TYPE_LNG, TYPE_DBL, TYPE_INT, TYPE_FLT, TYPE_ADR };
 #ifdef SUPPORT_COMBINE_INTEGER_REGISTERS
 	s4 intregsneeded;
@@ -811,10 +765,6 @@ static void simplereg_allocate_locals(jitdata *jd)
 
 #ifdef SUPPORT_COMBINE_INTEGER_REGISTERS
 				intregsneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
-#endif
-
-#if defined(HAS_4BYTE_STACKSLOT)
-				memneeded = (IS_2_WORD_TYPE(t)) ? 1 : 0;
 #endif
 
 #ifdef HAS_ADDRESS_REGISTER_FILE
@@ -893,9 +843,6 @@ static void simplereg_init(jitdata *jd, registerdata *rd)
 	int i;
 
 	rd->freememtop = 0;
-#if defined(HAS_4BYTE_STACKSLOT)
-	rd->freememtop_2 = 0;
-#endif
 
 	rd->freetmpinttop = 0;
 	rd->freesavinttop = 0;
@@ -1010,7 +957,6 @@ static void simplereg_new_temp(jitdata *jd, s4 index)
 #ifdef SUPPORT_COMBINE_INTEGER_REGISTERS
 	s4 intregsneeded;
 #endif
-	s4 memneeded;
 	s4 tryagain;
 	registerdata *rd;
 	varinfo      *v;
@@ -1028,12 +974,6 @@ static void simplereg_new_temp(jitdata *jd, s4 index)
 
 #ifdef SUPPORT_COMBINE_INTEGER_REGISTERS
 	intregsneeded = (IS_2_WORD_TYPE(v->type)) ? 1 : 0;
-#endif
-
-#if defined(HAS_4BYTE_STACKSLOT)
-	memneeded = (IS_2_WORD_TYPE(v->type)) ? 1 : 0;
-#else
-	memneeded = 0;
 #endif
 
 	for(; tryagain; --tryagain) {
@@ -1156,15 +1096,10 @@ static void simplereg_new_temp(jitdata *jd, s4 index)
 
 	v->flags |= INMEMORY;
 
-#if defined(HAS_4BYTE_STACKSLOT)
-	if ((memneeded == 1) && (rd->freememtop_2 > 0))
-		POP_BACK(rd->freemem_2, rd->freememtop_2, v->vv.regoff);
+	if (rd->freememtop > 0)
+		POP_BACK(rd->freemem, rd->freememtop, v->vv.regoff);
 	else
-#endif /*defined(HAS_4BYTE_STACKSLOT) */
-		if ((memneeded == 0) && (rd->freememtop > 0))
-			POP_BACK(rd->freemem, rd->freememtop, v->vv.regoff);
-		else
-			NEW_MEM_SLOT_REUSE_PADDING(v->vv.regoff);
+		NEW_MEM_SLOT_REUSE_PADDING(v->vv.regoff);
 }
 
 
@@ -1212,13 +1147,7 @@ static void simplereg_free(registerdata *rd, s4 flags, s4 regoff, s4 type)
 	}
 
 	if (flags & INMEMORY) {
-#if defined(HAS_4BYTE_STACKSLOT)
-		if (IS_2_WORD_TYPE(type))
-			PUSH_BACK(rd->freemem_2, rd->freememtop_2, regoff);
-		else 
-#endif
-			PUSH_BACK(rd->freemem, rd->freememtop, regoff);
-
+		PUSH_BACK(rd->freemem, rd->freememtop, regoff);
 		return;
 	} 
 

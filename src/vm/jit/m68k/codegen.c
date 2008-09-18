@@ -36,10 +36,10 @@
 
 #include "mm/memory.h"
 
-#include "native/localref.h"
-#include "native/native.h"
+#include "native/localref.hpp"
+#include "native/native.hpp"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
@@ -53,7 +53,7 @@
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/dseg.h"
-#include "vm/jit/linenumbertable.h"
+#include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/abi.h"

@@ -34,7 +34,7 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 #include "threads/mutex.hpp"
 #include "threads/thread.hpp"
 
@@ -51,7 +51,7 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 #include "vm/jit/stack.h"
 
 #include "vm/jit/inline/inline.h"
@@ -2156,9 +2156,6 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 	/* we need bigger free memory stacks (XXX these should not be allocated in reg_setup) */
 
 	n_jd->rd->freemem = DMNEW(s4, iln->ctx->maxinoutdepth + 1000) /* XXX max vars/block */;
-#if defined(HAS_4BYTE_STACKSLOT)
-	n_jd->rd->freemem_2 = DMNEW(s4, iln->ctx->maxinoutdepth + 1000) /* XXX max vars/block */;
-#endif
 
 #if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
 	if (   (n_jd->instructioncount >= opt_InlineMinSize)

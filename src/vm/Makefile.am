@@ -29,8 +29,8 @@ SUBDIRS = jit
 
 if ENABLE_ASSERTION
 ASSERTION_SOURCES = \
-	assertion.c \
-	assertion.h
+	assertion.cpp \
+	assertion.hpp
 endif
 
 if ENABLE_CYCLES_STATS
@@ -80,8 +80,8 @@ libvm_la_SOURCES = \
 	access.c \
 	access.h \
 	$(ANNOTATION_SOURCES) \
-	array.c \
-	array.h \
+	array.cpp \
+	array.hpp \
 	$(ASSERTION_SOURCES) \
 	class.c \
 	class.h \
@@ -102,7 +102,6 @@ libvm_la_SOURCES = \
 	initialize.h \
 	javaobjects.cpp \
 	javaobjects.hpp \
-	jit_interface.h \
 	linker.c \
 	linker.h \
 	loader.cpp \
@@ -133,6 +132,7 @@ libvm_la_SOURCES = \
 	suck.hpp \
 	utf8.c \
 	utf8.h \
+	vftbl.hpp \
 	vm.cpp \
 	vm.hpp \
 	$(ZLIB_SOURCES)

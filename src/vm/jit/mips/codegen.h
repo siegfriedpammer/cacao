@@ -167,6 +167,8 @@
 
 /* macros for all used commands (see a MIPS-manual for description) ***********/
 
+#define M_RESERVED              M_RTYPE(0x3b, 0, 0, 0, 0, 0)
+
 /* load/store macros use the form OPERATION(source/dest, base, offset)        */
 
 #define M_LDA(a,b,disp) \

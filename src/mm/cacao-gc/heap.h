@@ -32,7 +32,7 @@
 
 #include "gc.h"
 #include "region.h"
-#include "vm/array.h" /* needed for ARRAYTYPE_OBJECT */
+#include "vm/array.hpp" /* needed for ARRAYTYPE_OBJECT */
 
 
 #define GC_SIZE_DUMMY 0xff

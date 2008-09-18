@@ -29,6 +29,7 @@
 
 /* Include machine dependent trap stuff. */
 
+#include "md.h"
 #include "md-trap.h"
 
 #include "mm/memory.h"
@@ -42,8 +43,10 @@
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
 
+#include "vm/jit/asmpart.h"
 #include "vm/jit/code.hpp"
 #include "vm/jit/disass.h"
+#include "vm/jit/executionstate.h"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodtree.h"
 #include "vm/jit/patcher-common.hpp"
@@ -96,6 +99,7 @@ void trap_init(void)
  */
 void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xpc, void *context)
 {
+	executionstate_t  es;
 	stackframeinfo_t  sfi;
 	int32_t           index;
 	java_handle_t    *o;
@@ -115,6 +119,19 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 
 	o = NULL;
 	m = NULL;
+
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
+# if !defined(NDEBUG)
+	/* Perform a sanity check on our execution state functions. */
+
+	executionstate_sanity_check(context);
+# endif
+
+	/* Read execution state from current context. */
+
+	es.code = NULL;
+	md_executionstate_read(&es, context);
+#endif
 
 	/* wrap the value into a handle if it is a reference */
 	/* BEFORE: creating stackframeinfo */
@@ -222,6 +239,63 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 	/* Remove stackframeinfo. */
 
 	stacktrace_stackframeinfo_remove(&sfi);
+
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
+	/* Update execution state and set registers. */
+	/* AFTER: removing stackframeinfo */
+
+	switch (type) {
+	case TRAP_COMPILER:
+		// The normal case for a compiler trap is to jump directly to
+		// the newly compiled method.
+
+		if (p != NULL) {
+			es.pc = (uint8_t *) (uintptr_t) p;
+			es.pv = (uint8_t *) (uintptr_t) p;
+			break;
+		}
+
+		// In case of an exception during JIT compilation, we fetch
+		// the exception here and proceed with exception handling.
+
+		java_handle_t *e = exceptions_get_and_clear_exception();
+		assert(e != NULL);
+
+		// Get and set the PV from the parent Java method.
+
+		es.pv = md_codegen_get_pv_from_pc(ra);
+
+		// XXX: Make the code below a fall-through to default case!
+
+		es.intregs[REG_ITMP1_XPTR] = (uintptr_t) LLNI_DIRECT(e);
+		es.intregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
+		es.pc                      = (uint8_t *) (uintptr_t) asm_handle_exception;
+		break;
+
+	case TRAP_PATCHER:
+		// The normal case for a patcher trap is to continue execution at
+		// the trap instruction. On some archs the PC may point after the
+		// trap instruction, so we reset it here.
+
+		if (p == NULL) {
+			es.pc = (uint8_t *) (uintptr_t) xpc;
+			break;
+		}
+
+		/* fall-through */
+
+	default:
+		if (p != NULL) {
+			es.intregs[REG_ITMP1_XPTR] = (uintptr_t) LLNI_DIRECT(p);
+			es.intregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
+			es.pc                      = (uint8_t *) (uintptr_t) asm_handle_exception;
+		}
+	}
+
+	/* Write back execution state to current context. */
+
+	md_executionstate_write(&es, context);
+#endif
 
 	/* unwrap and return the exception object */
 	/* AFTER: removing stackframeinfo */

@@ -30,7 +30,7 @@
 #include "mm/gc.hpp"
 
 #include "native/jni.hpp"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/include/java_lang_Runtime.h"
@@ -105,16 +105,12 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
  
-// FIXME
-extern "C" {
 void _Jv_java_lang_Runtime_init(void)
 {
-	utf *u;
- 
-	u = utf_new_char("java/lang/Runtime");
- 
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	utf* u = utf_new_char("java/lang/Runtime");
+
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

@@ -31,24 +31,86 @@
 #include <assert.h>
 #include <stdint.h>
 
-#if defined(ENABLE_GC_CACAO)
-# include "threads/thread.hpp"
-#endif
-
-#include "vm/global.h"
-#include "vm/method.h"
-
 
 #ifdef __cplusplus
 
 class GC {
 public:
-	// Critical section functions.
-	static void critical_enter(void);
-	static void critical_leave(void);
 };
 
-extern "C" {
+
+/**
+ * Critical section for the GC.
+ */
+class GCCriticalSection {
+public:
+	GCCriticalSection()  { enter(); }
+	~GCCriticalSection() { leave(); }
+
+	inline static void enter ();
+	inline static void leave ();
+	inline static bool inside();
+};
+
+
+// Includes.
+#if defined(ENABLE_GC_CACAO)
+# include "threads/thread.hpp"
+#endif
+
+
+/**
+ * Enters a LLNI critical section which prevents the GC from moving
+ * objects around on the collected heap.
+ *
+ * There are no race conditions possible while entering such a critical
+ * section, because each thread only modifies its own thread local flag
+ * and the GC reads the flags while the world is stopped.
+ */
+void GCCriticalSection::enter()
+{
+#if defined(ENABLE_GC_CACAO)
+	threadobject* t = thread_get_current();
+
+	// Sanity check.
+	assert(t->gc_critical == false);
+
+	t->gc_critical = true;
+#endif
+}
+
+/**
+ * Leaves a LLNI critical section and allows the GC to move objects
+ * around on the collected heap again.
+ */
+void GCCriticalSection::leave()
+{
+#if defined(ENABLE_GC_CACAO)
+	threadobject* t = thread_get_current();
+
+	// Sanity check.
+	assert(t->gc_critical == true);
+
+	t->gc_critical = false;
+#endif
+}
+
+
+/**
+ * Checks if the calling thread is inside a GC critical section.
+ *
+ * @return true if inside, false otherwise.
+ */
+bool GCCriticalSection::inside()
+{
+#if defined(ENABLE_GC_CACAO)
+	threadobject* t = thread_get_current();
+	return t->gc_critical;
+#else
+	return true;
+#endif
+}
+
 #endif
 
 
@@ -66,7 +128,16 @@ enum {
 };
 
 
+// Includes.
+#include "vm/global.h"
+#include "vm/method.h"
+
+
 /* function prototypes ********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void    gc_init(size_t heapmaxsize, size_t heapstartsize);
 
@@ -97,7 +168,7 @@ void*   gc_out_of_memory(size_t bytes_requested);
 
 /* inlined functions **********************************************************/
 
-static inline int32_t heap_hashcode(java_object_t *obj)
+static inline int32_t heap_hashcode(java_object_t* obj)
 {
 #if defined(ENABLE_GC_CACAO)
 	return heap_get_hashcode(obj);
@@ -107,45 +178,10 @@ static inline int32_t heap_hashcode(java_object_t *obj)
 }
 
 #ifdef __cplusplus
-}
-
-/**
- * Enters a LLNI critical section which prevents the GC from moving
- * objects around on the collected heap.
- *
- * There are no race conditions possible while entering such a critical
- * section, because each thread only modifies its own thread local flag
- * and the GC reads the flags while the world is stopped.
- */
-inline void GC::critical_enter()
-{
-#if defined(ENABLE_GC_CACAO)
-	threadobject *t;
-
-	t = THREADOBJECT;
-	assert(!t->gc_critical);
-	t->gc_critical = true;
-#endif
-}
-
-/**
- * Leaves a LLNI critical section and allows the GC to move objects
- * around on the collected heap again.
- */
-inline void GC::critical_leave()
-{
-#if defined(ENABLE_GC_CACAO)
-	threadobject *t;
-
-	t = THREADOBJECT;
-	assert(t->gc_critical);
-	t->gc_critical = false;
-#endif
-}
-
+} // extern "C"
 #endif
 
-#endif /* _GC_HPP */
+#endif // _GC_HPP
 
 
 /*
@@ -154,9 +190,10 @@ inline void GC::critical_leave()
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

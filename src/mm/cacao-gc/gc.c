@@ -30,7 +30,7 @@
 
 #include "vm/types.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 #include "threads/thread.hpp"
 
 #include "compact.h"

@@ -31,12 +31,12 @@
 
 #include "mm/memory.h"
 
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "toolbox/logging.h"
 
 #include "vm/access.h"
-#include "vm/array.h"
+#include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
@@ -47,7 +47,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 #include "vm/jit/parse.h"
 
 #include "vm/jit/verify/typecheck-typeinferer.h"

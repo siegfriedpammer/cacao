@@ -43,6 +43,8 @@
 #include "threads/condition.hpp"
 #include "threads/mutex.hpp"
 
+#include "vm/global.h"
+
 
 /* threadobject ****************************************************************
 
@@ -79,6 +81,7 @@ struct threadobject {
 	/* for the sable tasuki lock extension */
 	bool                  flc_bit;
 	struct threadobject  *flc_list;     /* FLC list head for this thread      */
+	struct threadobject  *flc_tail;     /* tail pointer for FLC list          */
 	struct threadobject  *flc_next;     /* next pointer for FLC list          */
 	java_handle_t        *flc_object;
 	Mutex*                flc_lock;     /* controlling access to these fields */
@@ -132,9 +135,6 @@ struct threadobject {
 #if defined(ENABLE_ESCAPE_REASON)
 	void *escape_reasons;
 #endif
-
-	listnode_t            linkage;      /* threads-list                       */
-	listnode_t            linkage_free; /* free-list                          */
 };
 
 
@@ -194,9 +194,9 @@ inline static threadobject* thread_get_current(void);
 // Includes.
 #include "mm/memory.h"
 
-#include "native/localref.h"
+#include "native/localref.hpp"
 
-#include "threads/posix/lock.h"
+#include "threads/lock.hpp"
 
 #include "vm/global.h"
 #include "vm/vm.hpp"
@@ -205,8 +205,6 @@ inline static threadobject* thread_get_current(void);
 # include "vm/jit/executionstate.h"
 # include "vm/jit/replace.hpp"
 #endif
-
-#include "vm/jit/stacktrace.hpp"
 
 #if defined(ENABLE_INTRP)
 #include "vm/jit/intrp/intrp.h"
@@ -272,12 +270,12 @@ inline static void thread_set_current(threadobject* t)
 }
 
 
-inline static stackframeinfo_t *threads_get_current_stackframeinfo(void)
+inline static struct stackframeinfo_t* threads_get_current_stackframeinfo(void)
 {
 	return THREADOBJECT->_stackframeinfo;
 }
 
-inline static void threads_set_current_stackframeinfo(stackframeinfo_t *sfi)
+inline static void threads_set_current_stackframeinfo(struct stackframeinfo_t* sfi)
 {
 	THREADOBJECT->_stackframeinfo = sfi;
 }

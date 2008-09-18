@@ -28,7 +28,7 @@
 #include <stdint.h>
 
 #include "native/jni.hpp"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/include/com_sun_cldchi_jvm_JVM.h"
@@ -36,6 +36,7 @@
 
 #include "vm/exceptions.hpp"
 #include "vm/string.hpp"
+#include "vm/vm.hpp"
 
 
 // Native functions are exported as C functions.
@@ -53,15 +54,14 @@ JNIEXPORT void JNICALL Java_com_sun_cldchi_jvm_JVM_loadLibrary(JNIEnv *env, jcla
 		return;
 	}
 
-	/* REMOVEME When we use Java-strings internally. */
+	// REMOVEME When we use Java-strings internally.
+	utf* name = javastring_toutf((java_handle_t*) libName, false);
 
-	utf* name = javastring_toutf((java_handle_t *) libName, false);
+	NativeLibrary nl(name);
+	bool result = nl.load(env);
 
-	int result = native_library_load(env, name, NULL);
-
-	/* Check for error and throw an exception in case. */
-
-	if (result == 0) {
+	// Check for error and throw an exception in case.
+	if (result == false) {
 		exceptions_throw_unsatisfiedlinkerror(name);
 	}
 }
@@ -82,16 +82,12 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
  
-// FIXME
-extern "C" { 
 void _Jv_com_sun_cldchi_jvm_JVM_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("com/sun/cldchi/jvm/JVM");
  
-	u = utf_new_char("com/sun/cldchi/jvm/JVM");
- 
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

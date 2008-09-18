@@ -332,8 +332,6 @@ threadobject *thread_get_thread(java_handle_t *h);
 
 bool          threads_thread_is_alive(threadobject *t);
 
-void          threads_dump(void);
-
 
 /* implementation specific functions */
 
@@ -355,11 +353,11 @@ void          threads_impl_thread_start(threadobject *thread, functionptr f);
 
 void          threads_yield(void);
 
-#endif /* ENABLE_THREADS */
-
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* ENABLE_THREADS */
 
 #endif // _THREAD_HPP
 

@@ -33,7 +33,7 @@
 #include "mm/memory.h"
 
 #include "native/jni.hpp"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/include/gnu_classpath_VMSystemProperties.h"
@@ -134,16 +134,12 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_gnu_classpath_VMSystemProperties_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("gnu/classpath/VMSystemProperties");
 
-	u = utf_new_char("gnu/classpath/VMSystemProperties");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

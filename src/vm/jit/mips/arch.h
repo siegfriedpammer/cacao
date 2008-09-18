@@ -35,8 +35,6 @@
 
 /* define architecture features ***********************************************/
 
-#define U8_AVAILABLE                     1
-
 #if SIZEOF_VOID_P == 8
 
 #define SUPPORT_DIVISION                 1

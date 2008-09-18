@@ -32,7 +32,7 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/array.h"
+#include "vm/array.hpp"
 #include "vm/class.h"
 #include "vm/descriptor.h"
 #include "vm/exceptions.hpp"

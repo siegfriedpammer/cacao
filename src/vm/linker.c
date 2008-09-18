@@ -32,15 +32,15 @@
 
 #include "mm/memory.h"
 
-#include "native/native.h"
+#include "native/native.hpp"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 #include "threads/mutex.hpp"
 
 #include "toolbox/logging.h"
 
 #include "vm/access.h"
-#include "vm/array.h"
+#include "vm/array.hpp"
 #include "vm/class.h"
 #include "vm/classcache.h"
 #include "vm/exceptions.hpp"

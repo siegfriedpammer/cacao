@@ -33,6 +33,8 @@
 
 #include "native/llni.h"
 
+#include "threads/atomic.hpp"
+
 #include "vm/class.h"
 #include "vm/field.hpp"
 #include "vm/global.h"
@@ -77,77 +79,106 @@ template<class T> inline void RawFieldAccess::raw_set(void* address, const off_t
  * afterwards.
  */
 class FieldAccess : private RawFieldAccess {
-protected:
+public:
+	// Normal field accessors.
 	template<class T> static inline T    get(java_handle_t* h, const off_t offset);
 	template<class T> static inline void set(java_handle_t* h, const off_t offset, T value);
+
+	// Volatile field accessors.
+	template<class T> static inline T    get_volatile(java_handle_t* h, const off_t offset);
+	template<class T> static inline void set_volatile(java_handle_t* h, const off_t offset, T value);
 };
+
 
 template<class T> inline T FieldAccess::get(java_handle_t* h, const off_t offset)
 {
-	java_object_t* o;
-	T result;
-
-	GC::critical_enter();
+	// This function is inside a critical section.
+	GCCriticalSection cs;
 
 	// XXX This should be _handle->get_object();
-	o = LLNI_UNWRAP(h);
-
-	result = raw_get<T>(o, offset);
-
-	GC::critical_leave();
-
-	return result;
+	java_object_t* ho = LLNI_UNWRAP(h);
+	return raw_get<T>(ho, offset);
 }
 
 template<> inline java_handle_t* FieldAccess::get(java_handle_t* h, const off_t offset)
 {
-	java_object_t* o;
-	java_object_t* result;
-	java_handle_t* hresult;
-
-	GC::critical_enter();
+	// This function is inside a critical section.
+	GCCriticalSection cs;
 
 	// XXX This should be _handle->get_object();
-	o = LLNI_UNWRAP(h);
-
-	result = raw_get<java_object_t*>(o, offset);
-
-	hresult = LLNI_WRAP(result);
-
-	GC::critical_leave();
-
-	return hresult;
+	java_object_t* o = LLNI_UNWRAP(h);
+	java_object_t* result = raw_get<java_object_t*>(o, offset);
+	return LLNI_WRAP(result);
 }	
 
 
 template<class T> inline void FieldAccess::set(java_handle_t* h, const off_t offset, T value)
 {
-	java_object_t* o;
+	// This function is inside a critical section.
+	GCCriticalSection cs;
 
-	GC::critical_enter();
-
-	// XXX This should be h->get_object();
-	o = LLNI_UNWRAP(h);
-
-	raw_set(o, offset, value);
-
-	GC::critical_leave();
+	java_object_t* ho = LLNI_UNWRAP(h);
+	raw_set(ho, offset, value);
 }
 
 template<> inline void FieldAccess::set<java_handle_t*>(java_handle_t* h, const off_t offset, java_handle_t* value)
 {
-	java_object_t* o;
-	java_object_t* ovalue;
-
-	GC::critical_enter();
+	// This function is inside a critical section.
+	GCCriticalSection cs;
 
 	// XXX This should be h->get_object();
-	o      = LLNI_UNWRAP(h);
-	ovalue = LLNI_UNWRAP(value);
-
+	java_object_t* o      = LLNI_UNWRAP(h);
+	java_object_t* ovalue = LLNI_UNWRAP(value);
 	raw_set(o, offset, ovalue);
+}
 
-	GC::critical_leave();
+
+template<class T> inline T FieldAccess::get_volatile(java_handle_t* h, const off_t offset)
+{
+	// This function is inside a critical section.
+	GCCriticalSection cs;
+
+	// XXX This should be _handle->get_object();
+	java_object_t* ho = LLNI_UNWRAP(h);
+	return raw_get<volatile T>(ho, offset);
+}
+
+template<> inline java_handle_t* FieldAccess::get_volatile(java_handle_t* h, const off_t offset)
+{
+	// This function is inside a critical section.
+	GCCriticalSection cs;
+
+	// XXX This should be _handle->get_object();
+	java_object_t* o = LLNI_UNWRAP(h);
+	java_object_t* result = (java_object_t*) raw_get<volatile java_object_t*>(o, offset);
+	return LLNI_WRAP(result);
+}	
+
+
+template<class T> inline void FieldAccess::set_volatile(java_handle_t* h, const off_t offset, T value)
+{
+	// This function is inside a critical section.
+	GCCriticalSection cs;
+
+	java_object_t* ho = LLNI_UNWRAP(h);
+	raw_set(ho, offset, (volatile T) value);
+
+	// Memory barrier for the Java Memory Model.
+	Atomic::memory_barrier();
+}
+
+template<> inline void FieldAccess::set_volatile<java_handle_t*>(java_handle_t* h, const off_t offset, java_handle_t* value)
+{
+	// This function is inside a critical section.
+	GCCriticalSection cs;
+
+	// XXX This should be h->get_object();
+	java_object_t* o      = LLNI_UNWRAP(h);
+	java_object_t* ovalue = LLNI_UNWRAP(value);
+	raw_set(o, offset, (volatile java_object_t*) ovalue);
+
+	// Memory barrier for the Java Memory Model.
+	Atomic::memory_barrier();
 }
 
 
@@ -166,7 +197,6 @@ protected:
 public:
 	java_lang_Object() : _handle(NULL) {}
 	java_lang_Object(java_handle_t* h) : _handle(h) {}
-	java_lang_Object(jobject h) : _handle((java_handle_t*) h) {}
 	virtual ~java_lang_Object() {}
 
 	// Getters.
@@ -182,15 +212,12 @@ public:
 
 inline vftbl_t* java_lang_Object::get_vftbl() const
 {
-	GC::critical_enter();
+	// This function is inside a critical section.
+	GCCriticalSection cs;
 
 	// XXX This should be h->get_object();
 	java_object_t* o = LLNI_UNWRAP(_handle);
-	vftbl_t* vftbl = o->vftbl;
-
-	GC::critical_leave();
-
-	return vftbl;
+	return o->vftbl;
 }
 
 inline classinfo* java_lang_Object::get_Class() const
@@ -203,19 +230,12 @@ inline int32_t java_lang_Object::get_hashcode() const
 #if defined(ENABLE_GC_CACAO)
 	return heap_get_hashcode(_handle);
 #else
-	java_object_t* o;
-	int32_t hashcode;
-
-	GC::critical_enter();
+	// This function is inside a critical section.
+	GCCriticalSection cs;
 
 	// XXX This should be h->get_object();
-	o = LLNI_UNWRAP(_handle);
-
-	hashcode = (int32_t)(intptr_t) o;
-
-	GC::critical_leave();
-	
-	return hashcode;
+	java_object_t* o = LLNI_UNWRAP(_handle);
+	return (int32_t) (intptr_t) o;
 #endif
 }
 
@@ -562,17 +582,11 @@ public:
 
 	// Setters.
 	inline void set_pd(java_handle_t* value);
-	inline void set_pd(jobject value);
 };
 
 inline void java_lang_Class::set_pd(java_handle_t* value)
 {
 	set(_handle, offset_pd, value);
-}
-
-inline void java_lang_Class::set_pd(jobject value)
-{
-	set_pd((java_handle_t*) value);
 }
 
 
@@ -637,7 +651,6 @@ private:
 
 public:
 	java_lang_String(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_String(jstring h);
 	java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset = 0);
 
 	// Getters.
@@ -650,11 +663,6 @@ public:
 	inline void set_count (int32_t value);
 	inline void set_offset(int32_t value);
 };
-
-inline java_lang_String::java_lang_String(jstring h) : java_lang_Object(h)
-{
-	java_lang_String((java_handle_t*) h);
-}
 
 inline java_lang_String::java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset) : java_lang_Object(h)
 {
@@ -814,7 +822,6 @@ private:
 
 public:
 	java_lang_VMThread(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_VMThread(jobject h);
 	java_lang_VMThread(java_handle_t* h, java_handle_t* thread, threadobject* vmdata);
 
 	// Getters.
@@ -826,11 +833,6 @@ public:
 	inline void set_vmdata(threadobject* value);
 };
 
-
-inline java_lang_VMThread::java_lang_VMThread(jobject h) : java_lang_Object(h)
-{
-	java_lang_VMThread((java_handle_t*) h);
-}
 
 inline java_lang_VMThread::java_lang_VMThread(java_handle_t* h, java_handle_t* thread, threadobject* vmdata) : java_lang_Object(h)
 {
@@ -923,16 +925,11 @@ private:
 
 public:
 	java_lang_VMThrowable(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_VMThrowable(jobject h);
 
 	inline java_handle_bytearray_t* get_vmdata() const;
 	inline void                     set_vmdata(java_handle_bytearray_t* value);
 };
 
-inline java_lang_VMThrowable::java_lang_VMThrowable(jobject h) : java_lang_Object(h)
-{
-	java_lang_VMThrowable((java_handle_t*) h);
-}
 
 inline java_handle_bytearray_t* java_lang_VMThrowable::get_vmdata() const
 {
@@ -971,7 +968,6 @@ private:
 
 public:
 	java_lang_reflect_VMConstructor(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_reflect_VMConstructor(jobject h);
 	java_lang_reflect_VMConstructor(methodinfo* m);
 
 	// Getters.
@@ -994,11 +990,6 @@ public:
 	inline methodinfo* get_method();
 };
 
-
-inline java_lang_reflect_VMConstructor::java_lang_reflect_VMConstructor(jobject h) : java_lang_Object(h)
-{
-	java_lang_reflect_VMConstructor((java_handle_t*) h);
-}
 
 inline java_lang_reflect_VMConstructor::java_lang_reflect_VMConstructor(methodinfo* m)
 {
@@ -1107,7 +1098,6 @@ private:
 
 public:
 	java_lang_reflect_Constructor(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_reflect_Constructor(jobject h);
 	java_lang_reflect_Constructor(methodinfo* m);
 
 	java_handle_t* new_instance(java_handle_objectarray_t* args);
@@ -1124,11 +1114,6 @@ public:
 	inline int32_t     get_override() const;
 };
 
-
-inline java_lang_reflect_Constructor::java_lang_reflect_Constructor(jobject h) : java_lang_Object(h)
-{
-	java_lang_reflect_Constructor((java_handle_t*) h);
-}
 
 inline java_lang_reflect_Constructor::java_lang_reflect_Constructor(methodinfo* m)
 {
@@ -1203,7 +1188,6 @@ private:
 
 public:
 	java_lang_reflect_VMField(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_reflect_VMField(jobject h);
 	java_lang_reflect_VMField(fieldinfo* f);
 
 	// Getters.
@@ -1225,11 +1209,6 @@ public:
 	inline fieldinfo* get_field() const;
 };
 
-
-inline java_lang_reflect_VMField::java_lang_reflect_VMField(jobject h) : java_lang_Object(h)
-{
-	java_lang_reflect_VMField((java_handle_t*) h);
-}
 
 inline java_lang_reflect_VMField::java_lang_reflect_VMField(fieldinfo* f)
 {
@@ -1334,7 +1313,6 @@ private:
 
 public:
 	java_lang_reflect_Field(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_reflect_Field(jobject h);
 	java_lang_reflect_Field(fieldinfo* f);
 
 	// Getters.
@@ -1348,11 +1326,6 @@ public:
 	inline fieldinfo* get_field() const;
 };
 
-
-inline java_lang_reflect_Field::java_lang_reflect_Field(jobject h) : java_lang_Object(h)
-{
-	java_lang_reflect_Field((java_handle_t*) h);
-}
 
 inline java_lang_reflect_Field::java_lang_reflect_Field(fieldinfo* f)
 {
@@ -1426,7 +1399,6 @@ private:
 
 public:
 	java_lang_reflect_VMMethod(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_reflect_VMMethod(jobject h);
 	java_lang_reflect_VMMethod(methodinfo* m);
 
 	// Getters.
@@ -1452,10 +1424,6 @@ public:
 	inline methodinfo* get_method() const;
 };
 
-inline java_lang_reflect_VMMethod::java_lang_reflect_VMMethod(jobject h) : java_lang_Object(h)
-{
-	java_lang_reflect_VMMethod((java_handle_t*) h);
-}
 
 inline java_lang_reflect_VMMethod::java_lang_reflect_VMMethod(methodinfo* m)
 {
@@ -1582,7 +1550,6 @@ private:
 
 public:
 	java_lang_reflect_Method(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_reflect_Method(jobject h);
 	java_lang_reflect_Method(methodinfo* m);
 
 	java_handle_t* invoke(java_handle_t* o, java_handle_objectarray_t* args);
@@ -1599,11 +1566,6 @@ public:
 	inline int32_t     get_override() const;
 };
 
-
-inline java_lang_reflect_Method::java_lang_reflect_Method(jobject h) : java_lang_Object(h)
-{
-	java_lang_reflect_Method((java_handle_t*) h);
-}
 
 inline java_lang_reflect_Method::java_lang_reflect_Method(methodinfo* m)
 {
@@ -1719,16 +1681,11 @@ private:
 
 public:
 	java_nio_DirectByteBufferImpl(java_handle_t* h) : java_lang_Object(h) {}
-	java_nio_DirectByteBufferImpl(jobject h);
 
 	// Getters.
 	inline java_handle_t* get_address() const;
 };
 
-inline java_nio_DirectByteBufferImpl::java_nio_DirectByteBufferImpl(jobject h) : java_lang_Object(h)
-{
-	java_nio_DirectByteBufferImpl((java_handle_t*) h);
-}
 
 inline java_handle_t* java_nio_DirectByteBufferImpl::get_address() const
 {
@@ -1892,7 +1849,6 @@ private:
 
 public:
 	java_lang_String(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_String(jstring h);
 	java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset = 0);
 
 	// Getters.
@@ -1905,11 +1861,6 @@ public:
 	inline void set_offset(int32_t value);
 	inline void set_count (int32_t value);
 };
-
-inline java_lang_String::java_lang_String(jstring h) : java_lang_Object(h)
-{
-	java_lang_String((java_handle_t*) h);
-}
 
 inline java_lang_String::java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset) : java_lang_Object(h)
 {
@@ -2078,8 +2029,7 @@ private:
 
 public:
 	java_lang_Throwable(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_Throwable(jobject h);
-	java_lang_Throwable(jobject h, java_handle_bytearray_t* backtrace);
+	java_lang_Throwable(java_handle_t* h, java_handle_bytearray_t* backtrace);
 
 	// Getters.
 	inline java_handle_bytearray_t* get_backtrace    () const;
@@ -2091,14 +2041,8 @@ public:
 };
 
 
-inline java_lang_Throwable::java_lang_Throwable(jobject h) : java_lang_Object(h)
+inline java_lang_Throwable::java_lang_Throwable(java_handle_t* h, java_handle_bytearray_t* backtrace) : java_lang_Object(h)
 {
-	java_lang_Throwable((java_handle_t*) h);
-}
-
-inline java_lang_Throwable::java_lang_Throwable(jobject h, java_handle_bytearray_t* backtrace) : java_lang_Object(h)
-{
-	java_lang_Throwable((java_handle_t*) h);
 	set_backtrace(backtrace);
 }
 
@@ -2167,7 +2111,6 @@ private:
 
 public:
 	java_lang_reflect_Constructor(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_reflect_Constructor(jobject h);
 	java_lang_reflect_Constructor(methodinfo* m);
 
 	java_handle_t* new_instance(java_handle_objectarray_t* args);
@@ -2192,11 +2135,6 @@ public:
 	inline methodinfo* get_method();
 };
 
-
-inline java_lang_reflect_Constructor::java_lang_reflect_Constructor(jobject h) : java_lang_Object(h)
-{
-	java_lang_reflect_Constructor((java_handle_t*) h);
-}
 
 inline java_lang_reflect_Constructor::java_lang_reflect_Constructor(methodinfo* m)
 {
@@ -2337,7 +2275,6 @@ private:
 
 public:
 	java_lang_reflect_Field(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_reflect_Field(jobject h);
 	java_lang_reflect_Field(fieldinfo* f);
 
 	// Getters.
@@ -2359,11 +2296,6 @@ public:
 	inline fieldinfo* get_field() const;
 };
 
-
-inline java_lang_reflect_Field::java_lang_reflect_Field(jobject h) : java_lang_Object(h)
-{
-	java_lang_reflect_Field((java_handle_t*) h);
-}
 
 inline java_lang_reflect_Field::java_lang_reflect_Field(fieldinfo* f)
 {
@@ -2499,7 +2431,6 @@ private:
 
 public:
 	java_lang_reflect_Method(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_reflect_Method(jobject h);
 	java_lang_reflect_Method(methodinfo* m);
 
 	java_handle_t* invoke(java_handle_t* o, java_handle_objectarray_t* args);
@@ -2518,11 +2449,6 @@ public:
 	inline methodinfo* get_method() const;
 };
 
-
-inline java_lang_reflect_Method::java_lang_reflect_Method(jobject h) : java_lang_Object(h)
-{
-	java_lang_reflect_Method((java_handle_t*) h);
-}
 
 inline java_lang_reflect_Method::java_lang_reflect_Method(methodinfo* m)
 {
@@ -2609,7 +2535,6 @@ private:
 
 public:
 	java_nio_Buffer(java_handle_t* h) : java_lang_Object(h) {}
-	java_nio_Buffer(jobject h) : java_lang_Object(h) {}
 
 	// Getters.
 	inline void* get_address() const;
@@ -2646,7 +2571,6 @@ private:
 
 public:
 	com_sun_cldchi_jvm_FileDescriptor(java_handle_t* h) : java_lang_Object(h) {}
-	com_sun_cldchi_jvm_FileDescriptor(jobject h);
 	com_sun_cldchi_jvm_FileDescriptor(java_handle_t* h, int64_t pointer, int32_t position, int32_t length);
 	com_sun_cldchi_jvm_FileDescriptor(java_handle_t* h, com_sun_cldchi_jvm_FileDescriptor& fd);
 
@@ -2661,11 +2585,6 @@ public:
 	inline void set_length  (int32_t value);
 };
 
-
-inline com_sun_cldchi_jvm_FileDescriptor::com_sun_cldchi_jvm_FileDescriptor(jobject h) : java_lang_Object(h)
-{
-	com_sun_cldchi_jvm_FileDescriptor((java_handle_t*) h);
-}
 
 inline com_sun_cldchi_jvm_FileDescriptor::com_sun_cldchi_jvm_FileDescriptor(java_handle_t* h, int64_t pointer, int32_t position, int32_t length) : java_lang_Object(h)
 {
@@ -2732,7 +2651,6 @@ private:
 
 public:
 	java_lang_String(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_String(jstring h);
 	java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset = 0);
 
 	// Getters.
@@ -2746,10 +2664,6 @@ public:
 	inline void set_count (int32_t value);
 };
 
-inline java_lang_String::java_lang_String(jstring h) : java_lang_Object(h)
-{
-	java_lang_String((java_handle_t*) h);
-}
 
 inline java_lang_String::java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset) : java_lang_Object(h)
 {
@@ -2815,7 +2729,6 @@ private:
 
 public:
 	java_lang_Thread(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_Thread(jobject h);
 // 	java_lang_Thread(threadobject* t);
 
 	// Getters.
@@ -2827,11 +2740,6 @@ public:
 	inline void set_vm_thread(threadobject* value);
 };
 
-
-inline java_lang_Thread::java_lang_Thread(jobject h) : java_lang_Object(h)
-{
-	java_lang_Thread((java_handle_t*) h);
-}
 
 // inline java_lang_Thread::java_lang_Thread(threadobject* t) : java_lang_Object(h)
 // {
@@ -2879,7 +2787,6 @@ private:
 
 public:
 	java_lang_Throwable(java_handle_t* h) : java_lang_Object(h) {}
-	java_lang_Throwable(jobject h);
 
 	// Getters.
 	inline java_handle_t*           get_detailMessage() const;
@@ -2888,12 +2795,6 @@ public:
 	// Setters.
 	inline void set_backtrace(java_handle_bytearray_t* value);
 };
-
-
-inline java_lang_Throwable::java_lang_Throwable(jobject h) : java_lang_Object(h)
-{
-	java_lang_Throwable((java_handle_t*) h);
-}
 
 
 inline java_handle_t* java_lang_Throwable::get_detailMessage() const

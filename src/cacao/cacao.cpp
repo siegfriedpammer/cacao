@@ -25,21 +25,18 @@
 
 #include "config.h"
 
-#include <assert.h>
-
 #if defined(ENABLE_JRE_LAYOUT)
 # include <errno.h>
 # include <libgen.h>
 # include <unistd.h>
 #endif
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "vm/types.h"
-
 #include "native/jni.hpp"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/jvmti.h"
@@ -83,17 +80,12 @@ int main(int argc, char **argv)
 	void*       libjvm_vm_run;
 	const char* lterror;
 
-	bool (*VM_create)(JavaVM **, void **, void *);
-	void (*vm_run)(JavaVM *, JavaVMInitArgs *);
+	bool (*VM_create)(JavaVM**, void**, void*);
+	void (*vm_run)(JavaVM*, JavaVMInitArgs*);
 #endif
 
-	JavaVM         *vm;                 /* denotes a Java VM                  */
-	JNIEnv         *env;
-	JavaVMInitArgs *vm_args;
-
-	/* prepare the options */
-
-	vm_args = prepare_options(argc, argv);
+	// Prepare the options.
+	JavaVMInitArgs* vm_args = prepare_options(argc, argv);
 	
 	/* load and initialize a Java VM, return a JNI interface pointer in env */
 
@@ -118,7 +110,7 @@ int main(int argc, char **argv)
 		os::abort();
 	}
 
-	/* concatinate the library name */
+	/* concatenate the library name */
 
 	strcat(path, "/../lib/"LIBJVM_NAME);
 # else
@@ -148,9 +140,8 @@ int main(int argc, char **argv)
 			os::abort();
 		}
 
-		/* free the error string */
-
-		free((void *) lterror);
+		// Free the error string.
+		os::free((void*) lterror);
 	}
 
 	libjvm_VM_create = os::dlsym(libjvm_handle, "VM_create");
@@ -160,13 +151,14 @@ int main(int argc, char **argv)
 		os::abort();
 	}
 
-	VM_create =
-		(bool (*)(JavaVM **, void **, void *)) (ptrint) libjvm_VM_create;
+	VM_create = (bool (*)(JavaVM**, void**, void*)) (uintptr_t) libjvm_VM_create;
 #endif
 
-	/* create the Java VM */
+	// Create the Java VM.
+	JavaVM* vm;
+	void*   env; // We use a void* instead of a JNIEnv* here to prevent a compiler warning.
 
-	(void) VM_create(&vm, (void**) &env, vm_args);
+	(void) VM_create(&vm, &env, vm_args);
 
 #if defined(ENABLE_JVMTI)
 # error This should be a JVMTI function.
@@ -182,15 +174,13 @@ int main(int argc, char **argv)
 		os::abort();
 	}
 
-	vm_run = (void (*)(JavaVM *, JavaVMInitArgs *)) (ptrint) libjvm_vm_run;
+	vm_run = (void (*)(JavaVM*, JavaVMInitArgs*)) (uintptr_t) libjvm_vm_run;
 #endif
 
-	/* run the VM */
-
+	// Run the VM.
 	vm_run(vm, vm_args);
 
-	/* keep compiler happy */
-
+	// Keep compiler happy.
 	return 0;
 }
 

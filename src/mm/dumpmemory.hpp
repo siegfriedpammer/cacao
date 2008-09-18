@@ -44,6 +44,9 @@
 // Forward declaration.
 class DumpMemoryArea;
 class DumpMemoryBlock;
+#if defined(ENABLE_MEMCHECK)
+class DumpMemoryAllocation;
+#endif
 
 
 /**
@@ -54,12 +57,6 @@ private:
 	size_t                     _size;  ///< Size of the dump areas in this dump memory.
 	size_t                     _used;  ///< Used memory in this dump memory.
 	std::list<DumpMemoryArea*> _areas; ///< Pointer to the current dump area.
-
-#if 0
-#if defined(ENABLE_MEMCHECK)
-	dump_allocation_t *allocations;       /* list of allocations in this area */
-#endif
-#endif
 
 public:
 	DumpMemory();
@@ -90,6 +87,9 @@ private:
 	size_t                        _size;   ///< Size of the current memory block.
 	size_t                        _used;   ///< Used memory in the current memory block.
 	std::vector<DumpMemoryBlock*> _blocks; ///< List of memory blocks in this area.
+#if defined(ENABLE_MEMCHECK)
+	std::vector<DumpMemoryAllocation*> _allocs; ///< List of allocations in this area.
+#endif
 
 public:
 	DumpMemoryArea(size_t size = 0);
@@ -103,6 +103,11 @@ public:
 	inline DumpMemoryBlock* get_current_block() const;
 
 	DumpMemoryBlock* allocate_new_block(size_t size);
+
+#if defined(ENABLE_MEMCHECK)
+private:
+	void check_canaries();
+#endif
 };
 
 
@@ -149,64 +154,57 @@ public:
 		typedef DumpMemoryAllocator<U> other;
 	};
 
-	/* constructors and destructor
-	 * - nothing to do because the allocator has no state
-	 */
-	DumpMemoryAllocator() throw() {
-	}
+	// Constructors and destructor, nothing to do because the
+	// allocator has no state.
+	DumpMemoryAllocator() throw() {}
+	DumpMemoryAllocator(const DumpMemoryAllocator&) throw() {}
+	template <class U> DumpMemoryAllocator(const DumpMemoryAllocator<U>&) throw() {}
 
-	DumpMemoryAllocator(const DumpMemoryAllocator&) throw() {
-	}
-
-	template <class U> DumpMemoryAllocator(const DumpMemoryAllocator<U>&) throw() {
-	}
-
-	~DumpMemoryAllocator() throw() {
-	}
+	~DumpMemoryAllocator() throw() {}
 
 	pointer allocate(size_type n, void* = 0) {
-		printf("allocate: n=%d * %d\n", n, sizeof(T));
+// 		printf("allocate: n=%d * %d\n", n, sizeof(T));
 		return static_cast<pointer>(DumpMemory::allocate(n * sizeof(T)));
 	}
 
 	// Initialize elements of allocated storage p with value value.
 	void construct(pointer p, const T& value) {
-		printf("construct: p=%p, value=%p\n", p, value);
+// 		printf("construct: p=%p, value=%p\n", (void*) p, (void*) value);
 		// Initialize memory with placement new.
 		new ((void*) p) T(value);
 	}
 
 	// Destroy elements of initialized storage p.
 	void destroy(pointer p) {
-		printf("destroy: p=%p\n", p);
+// 		printf("destroy: p=%p\n", (void*) p);
 		// Destroy objects by calling their destructor.
 		p->~T();
 	}
 
 	void deallocate(pointer p, size_type n) {
-		printf("deallocate: p=%p, n=%d\n", p, n);
+// 		printf("deallocate: p=%p, n=%d\n", (void*) p, n);
 		// We don't need to deallocate on dump memory.
 	}
 };
 
 
-/* dump_allocation *************************************************************
-
-   This struct is used to record dump memory allocations for ENABLE_MEMCHECK.
-
-*******************************************************************************/
-
-#if 0
+/**
+ * Dump memory allocation, used for for ENABLE_MEMCHECK.
+ */
 #if defined(ENABLE_MEMCHECK)
-typedef struct dump_allocation_t dump_allocation_t;
+class DumpMemoryAllocation {
+private:
+	size_t _size;
+	void*  _mem;
 
-struct dump_allocation_t {
-	dump_allocation_t *next;
-	void              *mem;
-	int32_t            used;
-	int32_t            size;
+public:
+	DumpMemoryAllocation() : _size(0), _mem(NULL) {}
+	DumpMemoryAllocation(size_t size, void* mem) : _size(size), _mem(mem) {}
+	~DumpMemoryAllocation() {};
+
+	inline size_t get_size() const { return _size; }
+	inline void*  get_mem()  const { return _mem; }
 };
-#endif
 #endif
 
 
@@ -282,6 +280,37 @@ inline void* DumpMemoryArea::allocate(size_t size)
 
 	void* p = dmb->allocate(size);
 
+#if defined(ENABLE_MEMCHECK)
+	uint8_t *pm;
+	size_t   origsize = size - 2 * MEMORY_CANARY_SIZE;
+
+	// Make p point after the bottom canary.
+
+	p = ((uint8_t *) p) + MEMORY_CANARY_SIZE;
+
+	// Add the allocation to our list of allocations
+
+	DumpMemoryAllocation* dma = new DumpMemoryAllocation(origsize, p);
+
+	_allocs.push_back(dma);
+
+	// Write the canaries.
+
+	pm = ((uint8_t *) p) - MEMORY_CANARY_SIZE;
+
+	for (int i = 0; i < MEMORY_CANARY_SIZE; ++i)
+		pm[i] = i + MEMORY_CANARY_FIRST_BYTE;
+
+	pm = ((uint8_t *) p) + dma->get_size();
+
+	for (int i = 0; i < MEMORY_CANARY_SIZE; ++i)
+		pm[i] = i + MEMORY_CANARY_FIRST_BYTE;
+
+	// Clear the memory.
+
+	(void) os::memset(p, MEMORY_CLEAR_BYTE, dma->get_size());
+#endif /* defined(ENABLE_MEMCHECK) */
+
 	// Increase the used size of the memory area.
 	_used += size;
 
@@ -308,10 +337,6 @@ inline void* DumpMemoryArea::allocate(size_t size)
  */
 void* DumpMemoryBlock::allocate(size_t size)
 {
-#if defined(ENABLE_MEMCHECK)
-	size_t origsize = size; /* needed for the canary system */
-#endif
-
 	if (size == 0)
 		return NULL;
 
@@ -320,43 +345,6 @@ void* DumpMemoryBlock::allocate(size_t size)
 
 	// Calculate the memory address of the newly allocated memory.
 	void* p = (void*) (((uint8_t*) _block) + _used);
-
-#if defined(ENABLE_MEMCHECK)
-	{
-		dump_allocation_t *da = NEW(dump_allocation_t);
-		uint8_t           *pm;
-		int                i;
-
-		/* add the allocation to our linked list of allocations */
-
-		da->next = di->allocations;
-		da->mem  = ((uint8_t *) p) + MEMORY_CANARY_SIZE;
-		da->size = origsize;
-		da->used = di->used;
-
-		di->allocations = da;
-
-		/* write the canaries */
-
-		pm = (uint8_t *) p;
-
-		for (i = 0; i < MEMORY_CANARY_SIZE; ++i)
-			pm[i] = i + MEMORY_CANARY_FIRST_BYTE;
-
-		pm = ((uint8_t *) da->mem) + da->size;
-
-		for (i = 0; i < MEMORY_CANARY_SIZE; ++i)
-			pm[i] = i + MEMORY_CANARY_FIRST_BYTE;
-
-		/* make m point after the bottom canary */
-
-		p = ((uint8_t *) p) + MEMORY_CANARY_SIZE;
-
-		/* clear the memory */
-
-		(void) os_memset(p, MEMORY_CLEAR_BYTE, da->size);
-	}
-#endif /* defined(ENABLE_MEMCHECK) */
 
 	// Increase used memory block size by the allocated memory size.
 	_used += size;

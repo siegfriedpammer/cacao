@@ -97,17 +97,14 @@ static hashtable *hashtable_classloader;
  
 void loader_preinit(void)
 {
-#if defined(ENABLE_THREADS)
-	list_classpath_entry *lce;
-#endif
-
 	TRACESUBSYSTEMINITIALIZATION("loader_preinit");
 
 #if defined(ENABLE_THREADS)
 	/* Initialize the monitor pointer for zip/jar file locking. */
 
-	for (lce = (list_classpath_entry*) list_first(list_classpath_entries); lce != NULL;
-		 lce = (list_classpath_entry*) list_next(list_classpath_entries, lce)) {
+	for (List<list_classpath_entry*>::iterator it = list_classpath_entries->begin(); it != list_classpath_entries->end(); it++) {
+		list_classpath_entry* lce = *it;
+
 		if (lce->type == CLASSPATH_ARCHIVE)
 			lce->mutex = new Mutex();
 	}
@@ -395,15 +392,15 @@ classloader_t *loader_hashtable_classloader_find(java_handle_t *cl)
 
 void loader_load_all_classes(void)
 {
-	list_classpath_entry    *lce;
 #if defined(ENABLE_ZLIB)
 	hashtable               *ht;
 	hashtable_zipfile_entry *htzfe;
 	utf                     *u;
 #endif
 
-	for (lce = (list_classpath_entry*) list_first(list_classpath_entries); lce != NULL;
-		 lce = (list_classpath_entry*) list_next(list_classpath_entries, lce)) {
+	for (List<list_classpath_entry*>::iterator it = list_classpath_entries->begin(); it != list_classpath_entries->end(); it++) {
+		list_classpath_entry* lce = *it;
+
 #if defined(ENABLE_ZLIB)
 		if (lce->type == CLASSPATH_ARCHIVE) {
 			/* get the classes hashtable */

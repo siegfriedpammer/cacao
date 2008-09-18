@@ -36,7 +36,7 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
 #include "vm/global.h"
 
@@ -570,6 +570,18 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 		M_TST(REG_RESULT, REG_RESULT);
 		M_TRAPEQ(0, TRAP_CHECK_EXCEPTION);
 	}
+}
+
+
+/* emit_trap_compiler **********************************************************
+
+   Emit a trap instruction which calls the JIT compiler.
+
+*******************************************************************************/
+
+void emit_trap_compiler(codegendata *cd)
+{
+	M_TRAP(REG_METHODPTR, TRAP_COMPILER);
 }
 
 

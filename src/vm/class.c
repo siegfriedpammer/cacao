@@ -38,12 +38,12 @@
 
 #include "native/llni.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 #include "threads/mutex.hpp"
 
 #include "toolbox/logging.h"
 
-#include "vm/array.h"
+#include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/classcache.h"
@@ -177,7 +177,7 @@ classinfo *class_create_classinfo(utf *classname)
 	if (classname != utf_not_named_yet)
 		class_set_packagename(c);
 
-	LOCK_INIT_OBJECT_LOCK(&c->object.header);
+	Lockword_init(&(c->object.header.lockword));
 
 	return c;
 }
@@ -2357,15 +2357,7 @@ void class_showconstantpool (classinfo *c)
 				printf ("Double -> %f", ((constant_double*)e) -> value);
 				break;
 			case CONSTANT_Long:
-				{
-					u8 v = ((constant_long*)e) -> value;
-#if U8_AVAILABLE
-					printf ("Long -> %ld", (long int) v);
-#else
-					printf ("Long -> HI: %ld, LO: %ld\n", 
-							(long int) v.high, (long int) v.low);
-#endif 
-				}
+				printf ("Long -> %ld", (long int) ((constant_long*)e) -> value);
 				break;
 			case CONSTANT_NameAndType:
 				{

@@ -34,7 +34,7 @@
 
 #include "mm/memory.h"
 
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "toolbox/logging.h"
 
@@ -61,7 +61,7 @@
 #include "vm/jit/parse.h"
 #include "vm/jit/reg.h"
 
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 #include "vm/jit/stack.h"
 #include "vm/jit/stubs.hpp"
 
@@ -569,17 +569,15 @@ static u1 *jit_compile_intern(jitdata *jd)
 	show_filters_apply(jd->m);
 #endif
 
-	/* Handle native methods and create a native stub. */
-
+	// Handle native methods and create a native stub.
 	if (m->flags & ACC_NATIVE) {
-		functionptr f;
-
-		f = native_method_resolve(m);
+		NativeMethods& nm = VM::get_current()->get_nativemethods();
+		void* f = nm.resolve_method(m);
 
 		if (f == NULL)
 			return NULL;
 
-		code = NativeStub::generate(m, f);
+		code = NativeStub::generate(m, (functionptr) f);
 
 		/* Native methods are never recompiled. */
 		

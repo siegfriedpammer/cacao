@@ -113,7 +113,6 @@ extern bool opt_showddatasegment;
 extern bool opt_showintermediate;
 
 extern bool checkbounds;
-extern bool opt_noieee;
 extern bool checksync;
 #if defined(ENABLE_LOOP)
 extern bool opt_loops;

@@ -28,7 +28,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "native/jni.hpp"
+#include INCLUDE_JNI_MD_H
+#include INCLUDE_JNI_H
 
 
 JNIEXPORT jboolean JNICALL Java_checkjni_IsAssignableFrom(JNIEnv *env, jclass clazz, jclass sub, jclass sup)

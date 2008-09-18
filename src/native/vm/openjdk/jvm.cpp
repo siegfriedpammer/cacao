@@ -41,28 +41,35 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "vm/types.h"
+// Include our JNI header before the JVM headers, because the JVM
+// headers include jni.h and we want to override the typedefs in
+// jni.h.
+#include "native/jni.hpp"
+
+// We include jvm_md.h before jvm.h as the latter includes the former.
+#include INCLUDE_JVM_MD_H
+#include INCLUDE_JVM_H
 
 #include "mm/memory.h"
 
-#include "native/jni.hpp"
 #include "native/llni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "native/vm/reflection.hpp"
 
-#include "native/vm/openjdk/hpi.h"
+#include "native/vm/openjdk/hpi.hpp"
+#include "native/vm/openjdk/management.hpp"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 
-#include "vm/array.h"
+#include "vm/array.hpp"
 
 #if defined(ENABLE_ASSERTION)
-#include "vm/assertion.h"
+#include "vm/assertion.hpp"
 #endif
 
 #include "vm/jit/builtin.hpp"
@@ -135,40 +142,6 @@
 # define PRINTJVMWARNINGS(x)
 
 #endif
-
-
-typedef struct {
-    /* Naming convention of RE build version string: n.n.n[_uu[c]][-<identifier>]-bxx */
-    unsigned int jvm_version;   /* Consists of major, minor, micro (n.n.n) */
-                                /* and build number (xx) */
-    unsigned int update_version : 8;         /* Update release version (uu) */
-    unsigned int special_update_version : 8; /* Special update release version (c) */
-    unsigned int reserved1 : 16; 
-    unsigned int reserved2; 
-
-    /* The following bits represents JVM supports that JDK has dependency on.
-     * JDK can use these bits to determine which JVM version
-     * and support it has to maintain runtime compatibility.
-     *
-     * When a new bit is added in a minor or update release, make sure
-     * the new bit is also added in the main/baseline.
-     */
-    unsigned int is_attachable : 1;
-    unsigned int : 31;
-    unsigned int : 32;
-    unsigned int : 32;
-} jvm_version_info;
-
-
-/*
- * A structure used to a capture exception table entry in a Java method.
- */
-typedef struct {
-    jint start_pc;
-    jint end_pc;
-    jint handler_pc;
-    jint catchType;
-} JVM_ExceptionTableEntryType;
 
 
 // Interface functions are exported as C functions.
@@ -502,10 +475,9 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 		linenumber = -2;
 	}
 	else {
-		/* FIXME The linenumbertable_linenumber_for_pc could change
-		   the methodinfo pointer when hitting an inlined method. */
-
-		linenumber = linenumbertable_linenumber_for_pc(&m, code, ste->pc);
+		// FIXME linenumbertable->find could change the methodinfo
+		// pointer when hitting an inlined method.
+		linenumber = code->linenumbertable->find(&m, ste->pc);
 		linenumber = (linenumber == 0) ? -1 : linenumber;
 	}
 
@@ -673,21 +645,23 @@ void JVM_DisableCompiler(JNIEnv *env, jclass compCls)
 
 /* JVM_GetLastErrorString */
 
-jint JVM_GetLastErrorString(char *buf, int len)
+jint JVM_GetLastErrorString(char* buf, int len)
 {
 	TRACEJVMCALLS(("JVM_GetLastErrorString(buf=%p, len=%d", buf, len));
 
-	return hpi_system->GetLastErrorString(buf, len);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return hpi.get_system().GetLastErrorString(buf, len);
 }
 
 
 /* JVM_NativePath */
 
-char *JVM_NativePath(char *path)
+char *JVM_NativePath(char* path)
 {
 	TRACEJVMCALLS(("JVM_NativePath(path=%s)", path));
 
-	return hpi_file->NativePath(path);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return hpi.get_file().NativePath(path);
 }
 
 
@@ -1658,7 +1632,6 @@ jstring JVM_ConstantPoolGetUTF8At(JNIEnv *env, jobject unused, jobject jcpool, j
 jboolean JVM_DesiredAssertionStatus(JNIEnv *env, jclass unused, jclass cls)
 {
 #if defined(ENABLE_ASSERTION)
-	assertion_name_t  *item;
 	classinfo         *c;
 	jboolean           status;
 	utf               *name;
@@ -1675,8 +1648,10 @@ jboolean JVM_DesiredAssertionStatus(JNIEnv *env, jclass unused, jclass cls)
 	}
 
 	if (list_assertion_names != NULL) {
-		item = (assertion_name_t *)list_first(list_assertion_names);
-		while (item != NULL) {
+		for (List<assertion_name_t*>::iterator it = list_assertion_names->begin();
+			 it != list_assertion_names->end(); it++) {
+			assertion_name_t* item = *it;
+
 			name = utf_new_char(item->name);
 			if (name == c->packagename) {
 				status = (jboolean)item->enabled;
@@ -1684,8 +1659,6 @@ jboolean JVM_DesiredAssertionStatus(JNIEnv *env, jclass unused, jclass cls)
 			else if (name == c->name) {
 				status = (jboolean)item->enabled;
 			}
-
-			item = (assertion_name_t *)list_next(list_assertion_names, item);
 		}
 	}
 
@@ -1705,7 +1678,6 @@ jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 	java_booleanarray_t                   *classEnabled;
 	java_booleanarray_t                   *packageEnabled;
 #if defined(ENABLE_ASSERTION)
-	assertion_name_t                      *item;
 	java_handle_t                         *js;
 	s4                                     i, j;
 #endif
@@ -1751,8 +1723,9 @@ jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 		i = 0;
 		j = 0;
 		
-		item = (assertion_name_t *)list_first(list_assertion_names);
-		while (item != NULL) {
+		for (List<assertion_name_t*>::iterator it = list_assertion_names->begin(); it != list_assertion_names->end(); it++) {
+			assertion_name_t* item = *it;
+
 			js = javastring_new_from_ascii(item->name);
 			if (js == NULL) {
 				return NULL;
@@ -1768,8 +1741,6 @@ jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 				packageEnabled->data[j] = (jboolean) item->enabled;
 				j += 1;
 			}
-
-			item = (assertion_name_t *)list_next(list_assertion_names, item);
 		}
 	}
 #endif
@@ -2081,13 +2052,14 @@ jboolean JVM_IsSameClassPackage(JNIEnv *env, jclass class1, jclass class2)
  */
 #define JVM_EEXIST       -100
 
-jint JVM_Open(const char *fname, jint flags, jint mode)
+jint JVM_Open(const char* fname, jint flags, jint mode)
 {
 	int result;
 
 	TRACEJVMCALLS(("JVM_Open(fname=%s, flags=%d, mode=%d)", fname, flags, mode));
 
-	result = hpi_file->Open(fname, flags, mode);
+	HPI& hpi = VM::get_current()->get_hpi();
+	result = hpi.get_file().Open(fname, flags, mode);
 
 	if (result >= 0) {
 		return result;
@@ -2109,37 +2081,41 @@ jint JVM_Close(jint fd)
 {
 	TRACEJVMCALLS(("JVM_Close(fd=%d)", fd));
 
-	return hpi_file->Close(fd);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return hpi.get_file().Close(fd);
 }
 
 
 /* JVM_Read */
 
-jint JVM_Read(jint fd, char *buf, jint nbytes)
+jint JVM_Read(jint fd, char* buf, jint nbytes)
 {
 	TRACEJVMCALLS(("JVM_Read(fd=%d, buf=%p, nbytes=%d)", fd, buf, nbytes));
 
-	return (jint) hpi_file->Read(fd, buf, nbytes);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return (jint) hpi.get_file().Read(fd, buf, nbytes);
 }
 
 
 /* JVM_Write */
 
-jint JVM_Write(jint fd, char *buf, jint nbytes)
+jint JVM_Write(jint fd, char* buf, jint nbytes)
 {
 	TRACEJVMCALLS(("JVM_Write(fd=%d, buf=%s, nbytes=%d)", fd, buf, nbytes));
 
-	return (jint) hpi_file->Write(fd, buf, nbytes);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return (jint) hpi.get_file().Write(fd, buf, nbytes);
 }
 
 
 /* JVM_Available */
 
-jint JVM_Available(jint fd, jlong *pbytes)
+jint JVM_Available(jint fd, jlong* pbytes)
 {
 	TRACEJVMCALLS(("JVM_Available(fd=%d, pbytes=%p)", fd, pbytes));
 
-	return hpi_file->Available(fd, pbytes);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return hpi.get_file().Available(fd, pbytes);
 }
 
 
@@ -2149,7 +2125,8 @@ jlong JVM_Lseek(jint fd, jlong offset, jint whence)
 {
 	TRACEJVMCALLS(("JVM_Lseek(fd=%d, offset=%ld, whence=%d)", fd, offset, whence));
 
-	return hpi_file->Seek(fd, (off_t) offset, whence);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return hpi.get_file().Seek(fd, (off_t) offset, whence);
 }
 
 
@@ -2159,7 +2136,8 @@ jint JVM_SetLength(jint fd, jlong length)
 {
 	TRACEJVMCALLS(("JVM_SetLength(fd=%d, length=%ld)", length));
 
-	return hpi_file->SetLength(fd, length);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return hpi.get_file().SetLength(fd, length);
 }
 
 
@@ -2169,7 +2147,8 @@ jint JVM_Sync(jint fd)
 {
 	TRACEJVMCALLS(("JVM_Sync(fd=%d)", fd));
 
-	return hpi_file->Sync(fd);
+	HPI& hpi = VM::get_current()->get_hpi();
+	return hpi.get_file().Sync(fd);
 }
 
 
@@ -2689,7 +2668,8 @@ jint JVM_InitializeSocketLibrary()
 {
 	TRACEJVMCALLS(("JVM_InitializeSocketLibrary()"));
 
-	return hpi_initialize_socket_library();
+	HPI& hpi = VM::get_current()->get_hpi();
+	return hpi.initialize_socket_library();
 }
 
 
@@ -2917,17 +2897,15 @@ struct protoent *JVM_GetProtoByName(char* name)
 
 /* JVM_LoadLibrary */
 
-void *JVM_LoadLibrary(const char *name)
+void* JVM_LoadLibrary(const char* name)
 {
-	utf*  u;
-	void* handle;
-
 	TRACEJVMCALLSENTER(("JVM_LoadLibrary(name=%s)", name));
 
-	u = utf_new_char(name);
+	utf* u = utf_new_char(name);
 
-	handle = native_library_open(u);
-
+	NativeLibrary nl(u);
+	void* handle = nl.open();
+	
 	TRACEJVMCALLSEXIT(("->%p", handle));
 
 	return handle;
@@ -2940,19 +2918,21 @@ void JVM_UnloadLibrary(void* handle)
 {
 	TRACEJVMCALLS(("JVM_UnloadLibrary(handle=%p)", handle));
 
-	native_library_close(handle);
+	NativeLibrary nl(handle);
+	nl.close();
 }
 
 
 /* JVM_FindLibraryEntry */
 
-void *JVM_FindLibraryEntry(void *handle, const char *name)
+void *JVM_FindLibraryEntry(void* handle, const char* name)
 {
 	void* symbol;
 
 	TRACEJVMCALLSENTER(("JVM_FindLibraryEntry(handle=%p, name=%s)", handle, name));
 
-	symbol = hpi_library->FindLibraryEntry(handle, name);
+	HPI& hpi = VM::get_current()->get_hpi();
+	symbol = hpi.get_library().FindLibraryEntry(handle, name);
 
 	TRACEJVMCALLSEXIT(("->%p", symbol));
 
@@ -2994,35 +2974,31 @@ jstring JVM_InternString(JNIEnv *env, jstring str)
 
 JNIEXPORT void* JNICALL JVM_RawMonitorCreate(void)
 {
-	java_object_t *o;
-
 	TRACEJVMCALLS(("JVM_RawMonitorCreate()"));
 
-	o = NEW(java_object_t);
+	Mutex* m = new Mutex();
 
-	lock_init_object_lock(o);
-
-	return o;
+	return m;
 }
 
 
 /* JVM_RawMonitorDestroy */
 
-JNIEXPORT void JNICALL JVM_RawMonitorDestroy(void *mon)
+JNIEXPORT void JNICALL JVM_RawMonitorDestroy(void* mon)
 {
 	TRACEJVMCALLS(("JVM_RawMonitorDestroy(mon=%p)", mon));
 
-	FREE(mon, java_object_t);
+	delete ((Mutex*) mon);
 }
 
 
 /* JVM_RawMonitorEnter */
 
-JNIEXPORT jint JNICALL JVM_RawMonitorEnter(void *mon)
+JNIEXPORT jint JNICALL JVM_RawMonitorEnter(void* mon)
 {
 	TRACEJVMCALLS(("JVM_RawMonitorEnter(mon=%p)", mon));
 
-	(void) lock_monitor_enter((java_object_t *) mon);
+	((Mutex*) mon)->lock();
 
 	return 0;
 }
@@ -3030,11 +3006,11 @@ JNIEXPORT jint JNICALL JVM_RawMonitorEnter(void *mon)
 
 /* JVM_RawMonitorExit */
 
-JNIEXPORT void JNICALL JVM_RawMonitorExit(void *mon)
+JNIEXPORT void JNICALL JVM_RawMonitorExit(void* mon)
 {
 	TRACEJVMCALLS(("JVM_RawMonitorExit(mon=%p)", mon));
 
-	(void) lock_monitor_exit((java_object_t *) mon);
+	((Mutex*) mon)->unlock();
 }
 
 
@@ -3267,9 +3243,7 @@ void *JVM_GetManagement(jint version)
 {
 	TRACEJVMCALLS(("JVM_GetManagement(version=%d)", version));
 
-	/* TODO We current don't support the management interface. */
-
-	return NULL;
+	return Management::get_jmm_interface(version);
 }
 
 
@@ -3633,4 +3607,5 @@ jint JVM_FindSignal(const char *name)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -31,7 +31,6 @@
 #include <pthread.h>
 #include <time.h>
 
-#include "vm/vm.hpp"
 
 #ifdef __cplusplus
 
@@ -51,7 +50,16 @@ public:
 	void signal();
 	void timedwait(Mutex* mutex, const struct timespec* abstime);
 	void wait(Mutex* mutex);
+	void wait(Mutex& mutex);
 };
+
+
+// Includes.
+#include "vm/vm.hpp"
+
+
+// Includes.
+#include "vm/os.hpp"
 
 
 /**
@@ -59,12 +67,10 @@ public:
  */
 inline Condition::Condition()
 {
-	int result;
-
-	result = pthread_cond_init(&_cond, NULL);
+	int result = pthread_cond_init(&_cond, NULL);
 
 	if (result != 0) {
-		VM::get_current()->abort_errnum(result, "Condition::Condition(): pthread_cond_init failed");
+		os::abort_errnum(result, "Condition::Condition(): pthread_cond_init failed");
 	}
 }
 
@@ -74,12 +80,13 @@ inline Condition::Condition()
  */
 inline Condition::~Condition()
 {
-	int result;
+	// Restart all threads waiting on this condition.
+	broadcast();
 
-	result = pthread_cond_destroy(&_cond);
+	int result = pthread_cond_destroy(&_cond);
 
 	if (result != 0) {
-		VM::get_current()->abort_errnum(result, "Condition::~Condition(): pthread_cond_destroy failed");
+		os::abort_errnum(result, "Condition::~Condition(): pthread_cond_destroy failed");
 	}
 }
 
@@ -90,12 +97,10 @@ inline Condition::~Condition()
  */
 inline void Condition::broadcast()
 {
-	int result;
-
-	result = pthread_cond_broadcast(&_cond);
+	int result = pthread_cond_broadcast(&_cond);
 
 	if (result != 0) {
-		VM::get_current()->abort_errnum(result, "Condition::broadcast(): pthread_cond_broadcast failed");
+		os::abort_errnum(result, "Condition::broadcast(): pthread_cond_broadcast failed");
 	}
 }
 
@@ -106,12 +111,10 @@ inline void Condition::broadcast()
  */
 inline void Condition::signal()
 {
-	int result;
-
-	result = pthread_cond_signal(&_cond);
+	int result = pthread_cond_signal(&_cond);
 
 	if (result != 0) {
-		VM::get_current()->abort_errnum(result, "Condition::signal(): pthread_cond_signal failed");
+		os::abort_errnum(result, "Condition::signal(): pthread_cond_signal failed");
 	}
 }
 
@@ -132,12 +135,19 @@ inline void Condition::timedwait(Mutex* mutex, const struct timespec* abstime)
  */
 inline void Condition::wait(Mutex* mutex)
 {
-	int result;
+	wait(*mutex);
+}
 
-	result = pthread_cond_wait(&_cond, &(mutex->_mutex));
+
+/**
+ * Waits for the condition variable.
+ */
+inline void Condition::wait(Mutex& mutex)
+{
+	int result = pthread_cond_wait(&_cond, &(mutex._mutex));
 
 	if (result != 0) {
-		VM::get_current()->abort_errnum(result, "Condition::wait(): pthread_cond_wait failed");
+		os::abort_errnum(result, "Condition::wait(): pthread_cond_wait failed");
 	}
 }
 

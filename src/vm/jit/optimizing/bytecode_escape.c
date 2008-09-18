@@ -38,7 +38,7 @@
 #include "vm/references.h"
 #include "vm/resolve.h"
 
-#include "vm/jit/ir/bytecode.hpp"
+#include "vm/jit/ir/bytecode.h"
 #include "vm/jit/optimizing/escape.h"
 
 #include <assert.h>

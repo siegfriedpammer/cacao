@@ -29,7 +29,7 @@
 
 #include "native/jni.hpp"
 #include "native/llni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/include/java_lang_Class.h"
@@ -214,22 +214,19 @@ static JNINativeMethod methods[] = {
 	{ (char*) "getName",          (char*) "()Ljava/lang/String;",                 (void*) (uintptr_t) &Java_java_lang_Class_getName          },
 };
 
+
 /* _Jv_java_lang_Class_init ****************************************************
  
    Register native functions.
  
 *******************************************************************************/
 
-// FIXME
-extern "C" { 
 void _Jv_java_lang_Class_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("java/lang/Class");
  
-	u = utf_new_char("java/lang/Class");
- 
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

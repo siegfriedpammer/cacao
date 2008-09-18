@@ -44,6 +44,7 @@
 #endif
 
 #include "threads/thread.hpp"
+#include "threads/threadlist.hpp"
 
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
@@ -138,7 +139,7 @@ bool signal_init(void)
 							   SA_NODEFER | SA_SIGINFO);
 #  endif
 
-#  if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__S390__) || defined(__X86_64__) || defined(__M68K__)
+#  if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__) || defined(__M68K__)
 		/* XXX use better defines for that (in arch.h) */
 		/* SIGILL handler */
 
@@ -316,7 +317,7 @@ void signal_thread_handler(int sig)
 	case SIGQUIT:
 		/* print a thread dump */
 #if defined(ENABLE_THREADS)
-		threads_dump();
+		ThreadList_dump_threads();
 #endif
 
 #if defined(ENABLE_STATISTICS)

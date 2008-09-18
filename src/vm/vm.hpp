@@ -33,8 +33,16 @@
 
 // We need the JNI types for the VM class.
 #include "native/jni.hpp"
+#include "native/native.hpp"
+
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+# include "native/vm/openjdk/hpi.hpp"
+# include "native/vm/openjdk/management.hpp"
+#endif
 
 #include "vm/properties.hpp"
+
+#include "vm/jit/optimizing/recompiler.hpp"
 
 
 #ifdef __cplusplus
@@ -58,7 +66,16 @@ private:
 	int64_t _starttime;
 
 	// Subsystems.
-	Properties _properties; ///< Commandline properties.
+	Properties      _properties;      ///< Commandline properties.
+#if defined(ENABLE_THREADS)
+	Recompiler      _recompiler;      ///< JIT recompilation framework.
+#endif
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	HPI             _hpi;             ///< Host Porting Interface.
+	Management      _management;      ///< Java management interface.
+#endif
+	NativeLibraries _nativelibraries; ///< Native library table.
+	NativeMethods   _nativemethods;   ///< Native methods table.
 
 public:
 	// Constructor, Destructor.
@@ -80,12 +97,14 @@ public:
 	bool    is_exiting()      { return _exiting; }
 	int64_t get_starttime()   { return _starttime; }
 
-	Properties& get_properties() { return _properties; }
-
-	// Instance functions.
-	void abort(const char* text, ...);
-	void abort_errnum(int errnum, const char* text, ...);
-	void abort_errno(const char* text, ...);
+	Properties&      get_properties     () { return _properties; }
+	Recompiler&      get_recompiler     () { return _recompiler; } // REMOVEME
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	HPI&             get_hpi            () { return _hpi; }
+	Management&      get_management     () { return _management; }
+#endif
+	NativeLibraries& get_nativelibraries() { return _nativelibraries; }
+	NativeMethods&   get_nativemethods  () { return _nativemethods; }
 };
 
 #else

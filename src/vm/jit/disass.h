@@ -46,9 +46,9 @@
 #define DISASSINSTR(code) \
     do { \
         if (opt_intrp) \
-            (code) = intrp_disassinstr((code)); \
+            (code) = intrp_disassinstr((u1*) (code));	\
         else \
-            (code) = disassinstr((code)); \
+            (code) = disassinstr((u1*) (code));	\
     } while (0)
 
 #define DISASSEMBLE(start,end) \
@@ -62,7 +62,7 @@
 # else /* defined(ENABLE_INTRP) */
 
 #define DISASSINSTR(code) \
-    (code) = disassinstr((code))
+    (code) = disassinstr((u1*) (code))
 
 #define DISASSEMBLE(start,end) \
     disassemble((start), (end))
@@ -71,7 +71,7 @@
 #else /* defined(ENABLE_JIT) */
 
 #define DISASSINSTR(code) \
-    (code) = intrp_disassinstr((code))
+    (code) = intrp_disassinstr((u1*) (code))
 
 #define DISASSEMBLE(start,end) \
     intrp_disassemble((start), (end))
@@ -119,11 +119,11 @@ u1 *intrp_disassinstr(u1 *code);
 void intrp_disassemble(u1 *start, u1 *end);
 #endif
 
-#endif /* defined(ENABLE_DISASSEMBLER) */
-
 #ifdef __cplusplus
-}
+} // extern "C"
 #endif
+
+#endif /* defined(ENABLE_DISASSEMBLER) */
 
 #endif // _DISASS_H
 

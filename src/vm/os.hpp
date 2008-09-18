@@ -160,6 +160,9 @@ public:
 	static inline char*   strerror(int errnum);
 
 	// Convenience functions.
+	static void  abort(const char* text, ...);
+	static void  abort_errnum(int errnum, const char* text, ...);
+	static void  abort_errno(const char* text, ...);
 	static void* mmap_anonymous(void *addr, size_t len, int prot, int flags);
 	static void  print_backtrace();
 	static int   processors_online();
@@ -641,9 +644,7 @@ int    os_access(const char* pathname, int mode);
 int    os_atoi(const char* nptr);
 void*  os_calloc(size_t nmemb, size_t size);
 char*  os_dirname(char* path);
-int    os_dlclose(void* handle);
 char*  os_dlerror(void);
-void*  os_dlopen(const char* filename, int flag);
 void*  os_dlsym(void* handle, const char* symbol);
 int    os_fclose(FILE* fp);
 FILE*  os_fopen(const char* path, const char* mode);

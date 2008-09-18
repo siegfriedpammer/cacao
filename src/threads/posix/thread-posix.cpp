@@ -50,12 +50,12 @@
 #endif
 
 #include "native/llni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "threads/condition.hpp"
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 #include "threads/mutex.hpp"
-#include "threads/threadlist.h"
+#include "threads/threadlist.hpp"
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
@@ -1292,7 +1292,7 @@ void threads_join_all_threads(void)
 	   compare against 1 because the current (main thread) is also a
 	   non-daemon thread. */
 
-	while (threadlist_get_non_daemons() > 1)
+	while (ThreadList::get_number_of_non_daemon_threads() > 1)
 		cond_join->wait(mutex_join);
 
 	/* leave join mutex */

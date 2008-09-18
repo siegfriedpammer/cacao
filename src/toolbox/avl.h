@@ -73,12 +73,20 @@ struct avl_node_t {
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 avl_tree_t *avl_create(avl_comparator *comparator);
 bool        avl_insert(avl_tree_t *tree, void *data);
 void       *avl_find(avl_tree_t *tree, void *data);
 
 #if !defined(NDEBUG)
 void        avl_dump(avl_node_t* node, s4 indent);
+#endif
+
+#ifdef __cplusplus
+} // extern "C"
 #endif
 
 #endif /* _AVL_H */

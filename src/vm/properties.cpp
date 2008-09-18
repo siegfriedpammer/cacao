@@ -75,7 +75,7 @@ Properties::Properties()
 	p = MNEW(char, 4096);
 
 	if (os::readlink("/proc/self/exe", p, 4095) == -1)
-		VM::get_current()->abort_errno("readlink failed");
+		os::abort_errno("readlink failed");
 
 	/* We have a path like:
 
@@ -332,7 +332,7 @@ Properties::Properties()
 	{
 		/* XXX We don't support java.lang.Compiler */
 /*  		put("java.compiler", "cacao.jit"); */
-		put("java.vm.info", "JIT mode");
+		put("java.vm.info", "compiled mode");
 	}
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
