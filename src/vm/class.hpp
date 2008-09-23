@@ -1,4 +1,4 @@
-/* src/vm/class.h - class related functions header
+/* src/vm/class.hpp - class related functions header
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _CLASS_H
-#define _CLASS_H
+#ifndef _CLASS_HPP
+#define _CLASS_HPP
 
 /* forward typedefs ***********************************************************/
 
@@ -443,7 +443,7 @@ void class_showconstantpool(classinfo *c);
 }
 #endif
 
-#endif /* _CLASS_H */
+#endif /* _CLASS_HPP */
 
 
 /*

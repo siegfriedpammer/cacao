@@ -41,7 +41,7 @@
 #include "toolbox/logging.h"
 
 #include "vm/jit/builtin.hpp"
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/initialize.hpp"
 #include "vm/method.h"

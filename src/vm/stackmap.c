@@ -28,7 +28,7 @@
 
 #include "mm/memory.h"
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/method.h"
 #include "vm/options.h"

@@ -37,7 +37,7 @@
 #endif
 
 #include "vm/jit/builtin.hpp"
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/loader.hpp"               /* XXX only for load_class_bootstrap */
 #include "vm/options.h"

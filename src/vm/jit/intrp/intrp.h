@@ -44,7 +44,7 @@ typedef s8 Cell;
 typedef s4 Cell;
 #endif
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/linker.h"
 #include "vm/method.h"

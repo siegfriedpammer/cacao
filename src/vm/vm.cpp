@@ -750,7 +750,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 	/* We need to check if the actual size of a java.lang.Class object
 	   is smaller or equal than the assumption made in
-	   src/vm/class.h. */
+	   src/vm/class.hpp. */
 
 #warning FIXME We need to check the size of java.lang.Class!!!
 // 	if (sizeof(java_lang_Class) > sizeof(dummy_java_lang_Class))

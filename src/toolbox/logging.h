@@ -31,7 +31,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/method.h"
 #include "vm/utf8.h"
 

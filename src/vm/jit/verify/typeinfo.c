@@ -33,7 +33,7 @@
 #include "toolbox/logging.h"
 
 #include "vm/array.hpp"
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/descriptor.h"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"

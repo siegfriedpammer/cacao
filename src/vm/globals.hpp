@@ -30,7 +30,7 @@
 
 #include <stdint.h>
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 
 
 // FIXME For now we export them a C symbols.

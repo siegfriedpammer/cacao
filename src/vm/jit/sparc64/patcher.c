@@ -39,7 +39,7 @@
 #include "native/native.hpp"
 
 #include "vm/jit/builtin.hpp"
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/initialize.hpp"

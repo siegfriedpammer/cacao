@@ -47,7 +47,7 @@
 #endif
 
 #include "vm/jit/builtin.hpp"
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/classcache.h"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"

@@ -32,7 +32,7 @@
 extern "C" {
 #endif
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/global.h"
 
 

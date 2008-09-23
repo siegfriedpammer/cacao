@@ -31,7 +31,7 @@
 
 #include "toolbox/hashtable.h"
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/loader.hpp"
 #include "vm/suck.hpp"

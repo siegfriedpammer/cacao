@@ -83,8 +83,8 @@ libvm_la_SOURCES = \
 	array.cpp \
 	array.hpp \
 	$(ASSERTION_SOURCES) \
-	class.c \
-	class.h \
+	class.cpp \
+	class.hpp \
 	classcache.c \
 	classcache.h \
 	$(CYCLES_STATS_SOURCES) \

@@ -34,7 +34,7 @@
 # include "native/vm/include/gnu_classpath_VMStackWalker.h"
 #endif
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/utf8.h"
 
