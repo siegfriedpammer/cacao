@@ -74,7 +74,7 @@
 #endif
 
 
-/* #include "vm/resolve.h" */
+/* #include "vm/resolve.hpp" */
 /* copied prototype to avoid bootstrapping problem: */
 classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls, bool checkaccess);
 

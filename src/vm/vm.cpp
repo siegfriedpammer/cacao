@@ -69,7 +69,7 @@
 #include "vm/finalizer.h"
 #include "vm/global.h"
 #include "vm/globals.hpp"
-#include "vm/initialize.h"
+#include "vm/initialize.hpp"
 #include "vm/options.h"
 #include "vm/os.hpp"
 #include "vm/primitive.hpp"

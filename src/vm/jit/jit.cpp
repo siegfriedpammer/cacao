@@ -43,7 +43,7 @@
 #include "vm/class.h"
 #include "vm/global.h"
 #include "vm/globals.hpp"
-#include "vm/initialize.h"
+#include "vm/initialize.hpp"
 #include "vm/loader.hpp"
 #include "vm/method.h"
 #include "vm/options.h"

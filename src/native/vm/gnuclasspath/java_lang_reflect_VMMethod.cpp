@@ -47,10 +47,10 @@
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
-#include "vm/initialize.h"
+#include "vm/initialize.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/method.h"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 #include "vm/string.hpp"
 
 

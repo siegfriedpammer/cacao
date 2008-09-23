@@ -49,7 +49,7 @@ typedef s4 Cell;
 #include "vm/linker.h"
 #include "vm/method.h"
 #include "vm/references.h"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 
 #include "vm/jit/codegen-common.hpp"
 

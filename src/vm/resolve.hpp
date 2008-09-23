@@ -1,4 +1,4 @@
-/* src/vm/resolve.h - resolving classes/interfaces/fields/methods
+/* src/vm/resolve.hpp - resolving classes/interfaces/fields/methods
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _RESOLVE_H
-#define _RESOLVE_H
+#ifndef _RESOLVE_HPP
+#define _RESOLVE_HPP
 
 /* forward declarations *******************************************************/
 
@@ -266,7 +266,7 @@ void unresolved_subtype_set_debug_dump(unresolved_subtype_set *stset,FILE *file)
 }
 #endif
 	
-#endif /* _RESOLVE_H */
+#endif /* _RESOLVE_HPP */
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -1,4 +1,4 @@
-/* src/vm/initialize.c - static class initializer functions
+/* src/vm/initialize.cpp - static class initializer functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -36,7 +36,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
-#include "vm/initialize.h"
+#include "vm/initialize.hpp"
 #include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/vm.hpp"
@@ -169,7 +169,7 @@ static bool initialize_class_intern(classinfo *c)
 {
 	methodinfo    *m;
 	java_handle_t *cause;
-	classinfo     *class;
+	classinfo     *clazz;
 
 	/* maybe the class is not already linked */
 
@@ -236,14 +236,14 @@ static bool initialize_class_intern(classinfo *c)
 
 		/* Load java/lang/Exception for the instanceof check. */
 
-		class = load_class_bootstrap(utf_java_lang_Exception);
+		clazz = load_class_bootstrap(utf_java_lang_Exception);
 
-		if (class == NULL)
+		if (clazz == NULL)
 			return false;
 
 		/* Is this an exception?  Yes, than wrap it. */
 
-		if (builtin_instanceof(cause, class)) {
+		if (builtin_instanceof(cause, clazz)) {
 			/* clear exception, because we are calling jit code again */
 
 			exceptions_clear_exception();

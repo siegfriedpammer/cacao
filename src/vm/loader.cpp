@@ -53,7 +53,7 @@
 #include "vm/options.h"
 #include "vm/package.hpp"
 #include "vm/primitive.hpp"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 #include "vm/rt-timing.h"
 #include "vm/string.hpp"
 #include "vm/suck.hpp"

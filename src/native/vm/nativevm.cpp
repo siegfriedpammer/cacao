@@ -30,7 +30,7 @@
 #include "native/vm/nativevm.hpp"
 
 #include "vm/class.h"
-#include "vm/initialize.h"
+#include "vm/initialize.hpp"
 #include "vm/method.h"
 #include "vm/options.h"
 #include "vm/os.hpp"

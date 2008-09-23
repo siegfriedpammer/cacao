@@ -43,9 +43,9 @@
 #include "toolbox/logging.h"           /* XXX remove me! */
 
 #include "vm/exceptions.hpp"
-#include "vm/initialize.h"
+#include "vm/initialize.hpp"
 #include "vm/options.h"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 #include "vm/vm.hpp"                     /* for vm_abort */
 
 #include "vm/jit/code.hpp"

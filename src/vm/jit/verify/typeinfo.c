@@ -39,7 +39,7 @@
 #include "vm/globals.hpp"
 #include "vm/loader.hpp"
 #include "vm/primitive.hpp"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/verify/typeinfo.h"

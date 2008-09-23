@@ -36,7 +36,7 @@
 #include "vm/descriptor.h"
 #include "vm/global.h"
 #include "vm/references.h"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 
 #include "vm/jit/ir/bytecode.h"
 #include "vm/jit/optimizing/escape.h"
