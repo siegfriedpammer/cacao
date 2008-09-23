@@ -28,19 +28,12 @@
 
 #include "config.h"
 
-#ifdef __cplusplus
 extern "C" {
-#endif
 
 #include "vm/method.h"
-
 #include <opagent.h>
 
-#ifdef __cplusplus
 }
-#endif
-
-#ifdef __cplusplus
 
 class OprofileAgent
 {
@@ -53,18 +46,6 @@ public:
 
 	static void close();
 };
-
-#else
-
-/* Legacy C interface *********************************************************/
-
-typedef struct OprofileAgent OprofileAgent;
-
-void  OprofileAgent_initialize(void);
-void  OprofileAgent_newmethod(methodinfo *);
-void  OprofileAgent_close();
-
-#endif
 
 #endif /* _OPROFILE_AGENT_HPP */
 

@@ -50,7 +50,7 @@
 #include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/os.hpp"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 

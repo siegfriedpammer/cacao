@@ -39,7 +39,7 @@
 
 #include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
@@ -47,7 +47,7 @@
 #include "vm/loader.hpp"
 #include "vm/method.h"
 #include "vm/options.h"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 #include "vm/suck.hpp"
 #include "vm/utf8.h"
 #include "vm/vm.hpp"

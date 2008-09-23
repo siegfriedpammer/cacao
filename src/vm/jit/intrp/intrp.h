@@ -44,12 +44,12 @@ typedef s8 Cell;
 typedef s4 Cell;
 #endif
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/linker.h"
 #include "vm/method.h"
 #include "vm/references.h"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 
 #include "vm/jit/codegen-common.hpp"
 

@@ -1,4 +1,4 @@
-/* src/vm/class.c - class related functions
+/* src/vm/class.cpp - class related functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -45,7 +45,7 @@
 
 #include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/classcache.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
@@ -54,7 +54,7 @@
 #include "vm/linker.h"
 #include "vm/loader.hpp"
 #include "vm/options.h"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 
 #if defined(ENABLE_STATISTICS)
 # include "vm/statistics.h"
@@ -177,7 +177,7 @@ classinfo *class_create_classinfo(utf *classname)
 	if (classname != utf_not_named_yet)
 		class_set_packagename(c);
 
-	Lockword_init(&(c->object.header.lockword));
+	c->object.header.lockword.init();
 
 	return c;
 }
@@ -360,7 +360,7 @@ static bool class_load_attribute_sourcefile(classbuffer *cb)
 	/* get sourcefile */
 
 	sourcefile_index = suck_u2(cb);
-	sourcefile = class_getconstant(c, sourcefile_index, CONSTANT_Utf8);
+	sourcefile = (utf*) class_getconstant(c, sourcefile_index, CONSTANT_Utf8);
 
 	if (sourcefile == NULL)
 		return false;
@@ -422,12 +422,12 @@ static bool class_load_attribute_enclosingmethod(classbuffer *cb)
 	/* get class index */
 
 	class_index = suck_u2(cb);
-	cr.ref = innerclass_getconstant(c, class_index, CONSTANT_Class);
+	cr.ref = (constant_classref*) innerclass_getconstant(c, class_index, CONSTANT_Class);
 
 	/* get method index */
 
 	method_index = suck_u2(cb);
-	cn = innerclass_getconstant(c, method_index, CONSTANT_NameAndType);
+	cn = (constant_nameandtype*) innerclass_getconstant(c, method_index, CONSTANT_NameAndType);
 
 	/* store info in classinfo */
 
@@ -486,7 +486,7 @@ bool class_load_attributes(classbuffer *cb)
 
 		attribute_name_index = suck_u2(cb);
 		attribute_name =
-			class_getconstant(c, attribute_name_index, CONSTANT_Utf8);
+			(utf*) class_getconstant(c, attribute_name_index, CONSTANT_Utf8);
 
 		if (attribute_name == NULL)
 			return false;
@@ -521,9 +521,9 @@ bool class_load_attributes(classbuffer *cb)
    								
 				info = c->innerclass + j;
 
-				inner.ref = innerclass_getconstant(c, suck_u2(cb), CONSTANT_Class);
-				outer.ref = innerclass_getconstant(c, suck_u2(cb), CONSTANT_Class);
-				name      = innerclass_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
+				inner.ref = (constant_classref*) innerclass_getconstant(c, suck_u2(cb), CONSTANT_Class);
+				outer.ref = (constant_classref*) innerclass_getconstant(c, suck_u2(cb), CONSTANT_Class);
+				name      = (utf*) innerclass_getconstant(c, suck_u2(cb), CONSTANT_Utf8);
 				flags     = suck_u2(cb);
 
 				/* If the current inner-class is the currently loaded
@@ -1558,7 +1558,7 @@ classinfo *class_get_componenttype(classinfo *c)
 	if (ad->arraytype == ARRAYTYPE_OBJECT)
 		component = ad->componentvftbl->clazz;
 	else
-		component = Primitive_get_class_by_type(ad->arraytype);
+		component = Primitive::get_class_by_type(ad->arraytype);
 		
 	return component;
 }
@@ -1665,7 +1665,6 @@ java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool pub
 {
 	methodinfo*                m;
 	java_handle_objectarray_t* oa;
-	java_handle_t*             rc;
 	int                        count;
 	int                        index;
 	int                        i;
@@ -1698,11 +1697,11 @@ java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool pub
 			(m->name == utf_init)) {
 			// Create a java.lang.reflect.Constructor object.
 
-			rc = java_lang_reflect_Constructor_create(m);
+			java_lang_reflect_Constructor rc(m);
 
 			/* Store object into array. */
 
-			array_objectarray_element_set(oa, index, rc);
+			array_objectarray_element_set(oa, index, rc.get_handle());
 			index++;
 		}
 	}
@@ -1730,7 +1729,6 @@ java_handle_objectarray_t *class_get_declaredfields(classinfo *c, bool publicOnl
 {
 	java_handle_objectarray_t *oa;
 	fieldinfo                 *f;
-	java_handle_t             *h;
 	int                        count;
 	int                        index;
 	int                        i;
@@ -1758,11 +1756,11 @@ java_handle_objectarray_t *class_get_declaredfields(classinfo *c, bool publicOnl
 		if ((f->flags & ACC_PUBLIC) || (publicOnly == 0)) {
 			// Create a java.lang.reflect.Field object.
 
-			h = java_lang_reflect_Field_create(f);
+			java_lang_reflect_Field rf(f);
 
 			/* Store object into array. */
 
-			array_objectarray_element_set(oa, index, h);
+			array_objectarray_element_set(oa, index, rf.get_handle());
 			index++;
 		}
 	}
@@ -1790,7 +1788,6 @@ java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOn
 {
 	java_handle_objectarray_t *oa;         /* result: array of Method-objects */
 	methodinfo                *m;     /* the current method to be represented */
-	java_handle_t             *h;
 	int                        count;
 	int                        index;
 	int                        i;
@@ -1833,11 +1830,11 @@ java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOn
 			!(m->flags & ACC_MIRANDA)) {
 			// Create java.lang.reflect.Method object.
 
-			h = java_lang_reflect_Method_create(m);
+			java_lang_reflect_Method rm(m);
 
 			/* Store object into array. */
 
-			array_objectarray_element_set(oa, index, h);
+			array_objectarray_element_set(oa, index, rm.get_handle());
 			index++;
 		}
 	}
@@ -1938,7 +1935,6 @@ classinfo *class_get_enclosingclass(classinfo *c)
 java_handle_t* class_get_enclosingconstructor(classinfo *c)
 {
 	methodinfo*    m;
-	java_handle_t* rc;
 
 	m = class_get_enclosingmethod_raw(c);
 
@@ -1952,9 +1948,9 @@ java_handle_t* class_get_enclosingconstructor(classinfo *c)
 
 	// Create a java.lang.reflect.Constructor object.
 
-	rc = java_lang_reflect_Constructor_create(m);
+	java_lang_reflect_Constructor rc(m);
 
-	return rc;
+	return rc.get_handle();
 }
 #endif
 
@@ -2015,7 +2011,6 @@ methodinfo *class_get_enclosingmethod_raw(classinfo *c)
 java_handle_t* class_get_enclosingmethod(classinfo *c)
 {
 	methodinfo*    m;
-	java_handle_t* rm;
 
 	m = class_get_enclosingmethod_raw(c);
 
@@ -2029,9 +2024,9 @@ java_handle_t* class_get_enclosingmethod(classinfo *c)
 
 	// Create a java.lang.reflect.Method object.
 
-	rm = java_lang_reflect_Method_create(m);
+	java_lang_reflect_Method rm(m);
 
-	return rm;
+	return rm.get_handle();
 }
 #endif
 
@@ -2345,7 +2340,7 @@ void class_showconstantpool (classinfo *c)
 				break;
 			case CONSTANT_String:
 				printf ("String -> ");
-				utf_display_printable_ascii (e);
+				utf_display_printable_ascii ((utf*) e);
 				break;
 			case CONSTANT_Integer:
 				printf ("Integer -> %d", (int) ( ((constant_integer*)e) -> value) );
@@ -2361,7 +2356,7 @@ void class_showconstantpool (classinfo *c)
 				break;
 			case CONSTANT_NameAndType:
 				{
-					constant_nameandtype *cnt = e;
+					constant_nameandtype *cnt = (constant_nameandtype *) e;
 					printf ("NameAndType: ");
 					utf_display_printable_ascii (cnt->name);
 					printf (" ");
@@ -2370,7 +2365,7 @@ void class_showconstantpool (classinfo *c)
 				break;
 			case CONSTANT_Utf8:
 				printf ("Utf8 -> ");
-				utf_display_printable_ascii (e);
+				utf_display_printable_ascii ((utf*) e);
 				break;
 			default: 
 				log_text("Invalid type of ConstantPool-Entry");

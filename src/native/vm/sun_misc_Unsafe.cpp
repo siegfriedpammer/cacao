@@ -42,7 +42,7 @@
 
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/initialize.h"
+#include "vm/initialize.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/os.hpp"
 #include "vm/string.hpp"

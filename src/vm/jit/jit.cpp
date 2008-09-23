@@ -40,10 +40,10 @@
 
 #include "threads/mutex.hpp"
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
-#include "vm/initialize.h"
+#include "vm/initialize.hpp"
 #include "vm/loader.hpp"
 #include "vm/method.h"
 #include "vm/options.h"
@@ -176,7 +176,7 @@ void jit_init(void)
 
 #if defined(ENABLE_OPAGENT)
 	if (opt_EnableOpagent)
-		OprofileAgent_initialize();
+		OprofileAgent::initialize();
 #endif
 }
 
@@ -191,7 +191,7 @@ void jit_close(void)
 {
 #if defined(ENABLE_OPAGENT)
 	if (opt_EnableOpagent)
-		OprofileAgent_close();
+		OprofileAgent::close();
 #endif
 }
 
@@ -411,7 +411,7 @@ u1 *jit_compile(methodinfo *m)
 
 #if defined(ENABLE_OPAGENT)
 	if (opt_EnableOpagent)
-		OprofileAgent_newmethod(m);
+		OprofileAgent::newmethod(m);
 #endif
 
 	/* leave the monitor */
@@ -522,7 +522,7 @@ u1 *jit_recompile(methodinfo *m)
 
 #if defined(ENABLE_OPAGENT)
 	if (opt_EnableOpagent)
-		OprofileAgent_newmethod(m);
+		OprofileAgent::newmethod(m);
 #endif
 
 	DEBUG_JIT_COMPILEVERBOSE("Recompiling done: ");

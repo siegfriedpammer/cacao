@@ -40,7 +40,7 @@
 
 #include "toolbox/util.h"
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/method.h"
 #include "vm/options.h"
@@ -648,13 +648,6 @@ void Properties::dump()
 	}
 }
 #endif
-
-
-// Legacy C interface.
-extern "C" {
-	void        Properties_put(const char *key, const char *value) { VM::get_current()->get_properties().put(key, value); }
-	const char *Properties_get(const char *key) { return VM::get_current()->get_properties().get(key); }
-}
 
 
 /*

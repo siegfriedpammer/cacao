@@ -22,7 +22,6 @@
 
 */
 
-
 #include "config.h"
 
 #include "mm/memory.h"
@@ -93,15 +92,6 @@ void OprofileAgent::close()
 		op_close_agent(_handle);
 
 	_handle = 0;
-}
-/* Legacy C interface *********************************************************/
-
-extern "C" {
-
-void OprofileAgent_initialize() { OprofileAgent::initialize(); }
-void OprofileAgent_newmethod(methodinfo *m) { OprofileAgent::newmethod(m); }
-void OprofileAgent_close() { OprofileAgent::close(); }
-
 }
 
 /*

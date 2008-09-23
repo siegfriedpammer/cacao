@@ -67,13 +67,6 @@ public:
 #endif
 };
 
-#else
-
-typedef struct Properties Properties;
-
-void        Properties_put(const char *key, const char *value);
-const char *Properties_get(const char *key);
-
 #endif
 
 #endif // _PROPERTIES_HPP

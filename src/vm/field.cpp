@@ -38,7 +38,7 @@
 #include "vm/annotation.h"
 #include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/descriptor.h"
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"

@@ -53,10 +53,10 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/javaobjects.hpp"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 #include "vm/string.hpp"
 #include "vm/utf8.h"
 #include "vm/vm.hpp"

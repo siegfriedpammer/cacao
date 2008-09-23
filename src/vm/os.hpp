@@ -275,7 +275,9 @@ inline int os::dlclose(void* handle)
 inline char* os::dlerror(void)
 {
 #if defined(HAVE_DLERROR)
-	return ::dlerror();
+	// At least FreeBSD defines dlerror() to return a const char*, so
+	// we simply cast it.
+	return (char*) ::dlerror();
 #else
 # error dlerror not available
 #endif

@@ -32,7 +32,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
-#include "vm/initialize.h"
+#include "vm/initialize.hpp"
 #include "vm/javaobjects.hpp"
 
 

@@ -156,7 +156,7 @@ error reporting.
 #include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.h"
