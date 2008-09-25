@@ -120,15 +120,6 @@ java_handle_t* java_lang_reflect_Method::invoke(java_handle_t* o, java_handle_ob
 	return result;
 }
 
-
-// Legacy C interface.
-
-extern "C" {
-	java_handle_t* java_lang_reflect_Constructor_create(methodinfo* m) { return java_lang_reflect_Constructor(m).get_handle(); }
-	java_handle_t* java_lang_reflect_Field_create(fieldinfo* f) { return java_lang_reflect_Field(f).get_handle(); }
-	java_handle_t* java_lang_reflect_Method_create(methodinfo* m) { return java_lang_reflect_Method(m).get_handle(); }
-}
-
 #endif // ENABLE_JAVASE
 
 
