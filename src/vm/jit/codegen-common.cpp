@@ -136,7 +136,13 @@ void codegen_setup(jitdata *jd)
 
 	/* initialize members */
 
-	cd->flags        = 0;
+	// Set flags as requested.
+	if (opt_AlwaysEmitLongBranches) {
+		cd->flags = CODEGENDATA_FLAG_LONGBRANCHES;
+	}
+	else {
+		cd->flags = 0;
+	}
 
 	cd->mcodebase    = (u1*) DumpMemory::allocate(MCODEINITSIZE);
 	cd->mcodeend     = cd->mcodebase + MCODEINITSIZE;

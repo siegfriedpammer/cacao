@@ -160,6 +160,7 @@ int      opt_ThreadStackSize              = 0;
 
 /* Debugging options which can be turned off. */
 
+bool     opt_AlwaysEmitLongBranches       = false;
 int      opt_DebugExceptions              = 0;
 int      opt_DebugFinalizer               = 0;
 int      opt_DebugLocalReferences         = 0;
@@ -230,6 +231,7 @@ enum {
 
 	/* Debugging options which can be turned off. */
 
+	OPT_AlwaysEmitLongBranches,
 	OPT_DebugExceptions,
 	OPT_DebugFinalizer,
 	OPT_DebugLocalReferences,
@@ -283,6 +285,7 @@ option_t options_XX[] = {
 
 	/* Debugging options which can be turned off. */
 
+	{ "AlwaysEmitLongBranches",       OPT_AlwaysEmitLongBranches,       OPT_TYPE_BOOLEAN, "Always emit long-branches." },
 	{ "DebugExceptions",              OPT_DebugExceptions,              OPT_TYPE_BOOLEAN, "debug exceptions" },
 	{ "DebugFinalizer",               OPT_DebugFinalizer,               OPT_TYPE_BOOLEAN, "debug finalizer thread" },
 	{ "DebugLocalReferences",         OPT_DebugLocalReferences,         OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
@@ -614,6 +617,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 			break;
 
 		/* Debugging options which can be turned off. */
+
+		case OPT_AlwaysEmitLongBranches:
+			opt_AlwaysEmitLongBranches = enable;
+			break;
 
 		case OPT_DebugExceptions:
 			opt_DebugExceptions = enable;

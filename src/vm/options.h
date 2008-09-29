@@ -182,6 +182,7 @@ extern int      opt_ThreadStackSize;
 
 /* Debugging options which can be turned off. */
 
+extern bool     opt_AlwaysEmitLongBranches;
 extern int      opt_DebugExceptions;
 extern int      opt_DebugFinalizer;
 extern int      opt_DebugLocalReferences;
