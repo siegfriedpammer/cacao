@@ -1,9 +1,7 @@
-/* src/vm/reorder.h - basic block reordering
+/* src/vm/optimizing/reorder.h - basic block reordering
 
-   Copyright (C) 2006 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,12 +20,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
 */
 
 
@@ -35,14 +27,23 @@
 #define _REORDER_H
 
 #include "config.h"
-#include "vm/types.h"
 
-#include "vm/jit/jit.h"
+#include <stdbool.h>
+
+#include "vm/jit/jit.hpp"
 
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool reorder(jitdata *jd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _REORDER_H */
 

@@ -27,9 +27,8 @@
 
 #include <stdint.h>
 
-#include "native/jni.h"
 #include "native/llni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_ANNOTATIONS) && defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 # include "vm/vm.hpp"
@@ -38,7 +37,7 @@
 #include "native/vm/reflection.hpp"
 
 #include "vm/access.h"
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"

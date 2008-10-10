@@ -28,17 +28,18 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 #include "native/llni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/include/java_lang_Object.h"
 #endif
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
 #include "vm/exceptions.hpp"
+#include "vm/javaobjects.hpp"
 
 
 // Native functions are exported as C functions.
@@ -51,16 +52,14 @@ extern "C" {
  */
 JNIEXPORT jclass JNICALL Java_java_lang_Object_getClass(JNIEnv *env, jobject obj)
 {
-	classinfo *c;
-
 	if (obj == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
-	LLNI_class_get(obj, c);
+	java_lang_Object o(obj);
 
-	return (jclass) LLNI_classinfo_wrap(c);
+	return (jclass) LLNI_classinfo_wrap(o.get_Class());
 }
 
 
@@ -71,11 +70,9 @@ JNIEXPORT jclass JNICALL Java_java_lang_Object_getClass(JNIEnv *env, jobject obj
  */
 JNIEXPORT jint JNICALL Java_java_lang_Object_hashCode(JNIEnv *env, jobject _this)
 {
-#if defined(ENABLE_GC_CACAO)
-	assert(0);
-#else
-	return (int32_t) ((uintptr_t) _this);
-#endif
+	java_lang_Object o(_this);
+
+	return o.get_hashcode();
 }
 
 
@@ -148,16 +145,12 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
  
-// FIXME
-extern "C" {
 void _Jv_java_lang_Object_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("java/lang/Object");
  
-	u = utf_new_char("java/lang/Object");
- 
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

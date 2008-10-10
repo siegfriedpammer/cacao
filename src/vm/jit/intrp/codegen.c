@@ -45,9 +45,9 @@
 
 #include "mm/memory.h"
 
-#include "native/native.h"
+#include "native/native.hpp"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
@@ -55,9 +55,9 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/dseg.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher.h"
 #include "vm/jit/stack.h"

@@ -38,7 +38,7 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
 #include "toolbox/hashtable.h"
 #include "toolbox/logging.h"

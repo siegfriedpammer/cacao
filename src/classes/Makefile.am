@@ -77,7 +77,7 @@ endif
 if ENABLE_ZLIB
 pkgdata_DATA = vm.zip
 else
-pkgdata_DATA = nozip
+noinst_DATA = nozip
 endif
 endif
 
@@ -88,7 +88,7 @@ VM_JAVA_FILES = \
 if ENABLE_ZLIB
 pkgdata_DATA = vm.zip
 else
-pkgdata_DATA = nozip
+noinst_DATA = nozip
 endif
 endif
 
@@ -107,6 +107,14 @@ else
 nozip: $(VM_JAVA_FILES)
 	$(mkdir_p) classes
 	$(JAVAC) -bootclasspath $(BOOTCLASSPATH) -source 1.5 -target 1.5 -d classes $(VM_JAVA_FILES)
+
+install-data-local: nozip
+	$(mkinstalldirs) $(DESTDIR)$(pkgdatadir)
+	cp -R classes $(DESTDIR)$(pkgdatadir)
+
+uninstall-local:
+	rm -rf $(DESTDIR)$(pkgdatadir)/classes
+
 endif
 
 clean-local:

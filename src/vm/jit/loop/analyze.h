@@ -36,7 +36,7 @@
 
 #include "config.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 
 /* function prototypes ********************************************************/

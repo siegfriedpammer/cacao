@@ -35,18 +35,18 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
 #include "vm/options.h"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/codegen-common.h"
-#include "vm/jit/emit-common.h"
-#include "vm/jit/jit.h"
-#include "vm/jit/patcher-common.h"
-#include "vm/jit/replace.h"
+#include "vm/jit/codegen-common.hpp"
+#include "vm/jit/emit-common.hpp"
+#include "vm/jit/jit.hpp"
+#include "vm/jit/patcher-common.hpp"
+#include "vm/jit/replace.hpp"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.h"
 

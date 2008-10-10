@@ -39,17 +39,17 @@
 # include <mach/mach.h>
 #endif
 
-#include "mm/dumpmemory.h"
+#include "mm/memory.h"
 #include "mm/gc.hpp"
 
-#include "native/jni.h"
-#include "native/native.h"
+#include "native/jni.hpp"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/vm/include/java_lang_VMRuntime.h"
 #endif
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/os.hpp"
 #include "vm/string.hpp"
@@ -203,10 +203,7 @@ JNIEXPORT jint JNICALL Java_java_lang_VMRuntime_availableProcessors(JNIEnv *env,
  */
 JNIEXPORT jint JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass clazz, jstring libname, jobject loader)
 {
-	classloader_t *cl;
-	utf           *name;
-
-	cl = loader_hashtable_classloader_add((java_handle_t *) loader);
+	classloader_t* cl = loader_hashtable_classloader_add((java_handle_t *) loader);
 
 	/* REMOVEME When we use Java-strings internally. */
 
@@ -215,9 +212,10 @@ JNIEXPORT jint JNICALL Java_java_lang_VMRuntime_nativeLoad(JNIEnv *env, jclass c
 		return 0;
 	}
 
-	name = javastring_toutf((java_handle_t *) libname, false);
+	utf* name = javastring_toutf((java_handle_t *) libname, false);
 
-	return native_library_load(env, name, cl);
+	NativeLibrary library(name, cl);
+	return library.load(env);
 }
 
 
@@ -232,7 +230,6 @@ JNIEXPORT jstring JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIEnv *env, j
 	char          *buffer;
 	int32_t        buffer_len;
 	java_handle_t *o;
-	int32_t        dumpmarker;
 
 	if (libname == NULL) {
 		exceptions_throw_nullpointerexception();
@@ -249,9 +246,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIEnv *env, j
 		strlen(NATIVE_LIBRARY_SUFFIX) +
 		strlen("0");
 
-	DMARKER;
-
-	buffer = DMNEW(char, buffer_len);
+	buffer = MNEW(char, buffer_len);
 
 	/* generate library name */
 
@@ -263,7 +258,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_VMRuntime_mapLibraryName(JNIEnv *env, j
 
 	/* release memory */
 
-	DRELEASE;
+	MFREE(buffer, char, buffer_len);
 
 	return (jstring) o;
 }
@@ -296,16 +291,12 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_java_lang_VMRuntime_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("java/lang/VMRuntime");
 
-	u = utf_new_char("java/lang/VMRuntime");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

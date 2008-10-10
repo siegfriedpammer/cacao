@@ -35,11 +35,11 @@
 
 #include "mm/memory.h"
 
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "toolbox/logging.h"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/options.h"
@@ -53,15 +53,15 @@
 
 #include "vm/jit/abi.h"
 #include "vm/jit/cfg.h"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/parse.h"
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 
 #if defined(ENABLE_DISASSEMBLER)
 # include "vm/jit/disass.h"
 #endif
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/stack.h"
 
 #if 0

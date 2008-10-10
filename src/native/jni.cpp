@@ -34,28 +34,29 @@
 #include "mm/gc.hpp"
 #include "mm/memory.h"
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 #include "native/llni.h"
-#include "native/localref.h"
-#include "native/native.h"
+#include "native/localref.hpp"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/cacaodbg.h"
 #endif
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
+#include "threads/mutex.hpp"
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 
-#include "vm/array.h"
-#include "vm/builtin.h"
+#include "vm/array.hpp"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/initialize.h"
 #include "vm/javaobjects.hpp"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
@@ -63,9 +64,8 @@
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
-#include "vm/jit/argument.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/stacktrace.hpp"
 
 
@@ -1448,24 +1448,21 @@ jboolean _Jv_JNI_IsInstanceOf(JNIEnv *env, jobject obj, jclass clazz)
 jmethodID jni_FromReflectedMethod(JNIEnv *env, jobject method)
 {
 #if defined(ENABLE_JAVASE)
-	java_handle_t* o;
 	methodinfo*    m;
 
 	TRACEJNICALLS(("jni_FromReflectedMethod(env=%p, method=%p)", env, method));
 
-	o = (java_handle_t *) method;
+	java_lang_Object o(method);
 
-	if (o == NULL)
+	if (o.is_null())
 		return NULL;
 
-	// FIXME We can't access the object here directly.
-	if (o->vftbl->clazz == class_java_lang_reflect_Constructor) {
+	if (o.get_Class() == class_java_lang_reflect_Constructor) {
 		java_lang_reflect_Constructor rc(method);
 		m = rc.get_method();
 	}
 	else {
-		// FIXME We can't access the object here directly.
-		assert(o->vftbl->clazz == class_java_lang_reflect_Method);
+		assert(o.get_Class() == class_java_lang_reflect_Method);
 
 		java_lang_reflect_Method rm(method);
 		m = rm.get_method();
@@ -2975,20 +2972,18 @@ JNI_SET_ARRAY_REGION(Double,  jdouble,  double,  double)
 
 *******************************************************************************/
 
-jint _Jv_JNI_RegisterNatives(JNIEnv *env, jclass clazz,
-							 const JNINativeMethod *methods, jint nMethods)
+jint jni_RegisterNatives(JNIEnv* env, jclass clazz, const JNINativeMethod* methods, jint nMethods)
 {
-	classinfo *c;
+	TRACEJNICALLS(("jni_RegisterNatives(env=%p, clazz=%p, methods=%p, nMethods=%d)", env, clazz, methods, nMethods));
 
-	STATISTICS(jniinvokation());
-
-	c = LLNI_classinfo_unwrap(clazz);
+	classinfo* c = LLNI_classinfo_unwrap(clazz);
 
 	/* XXX: if implemented this needs a call to jvmti_NativeMethodBind
 	if (jvmti) jvmti_NativeMethodBind(method, address,  new_address_ptr);
 	*/
 
-	native_method_register(c->name, methods, nMethods);
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(c->name, methods, nMethods);
 
     return 0;
 }
@@ -3081,7 +3076,7 @@ jint _Jv_JNI_GetJavaVM(JNIEnv *env, JavaVM **javavm)
 {
 	STATISTICS(jniinvokation());
 
-    *javavm = vm->get_javavm();
+    *javavm = VM::get_current()->get_javavm();
 
 	return 0;
 }
@@ -3244,7 +3239,7 @@ void _Jv_JNI_DeleteWeakGlobalRef(JNIEnv* env, jweak ref)
    argument.
 
 *******************************************************************************/
-    
+
 jobject jni_NewGlobalRef(JNIEnv* env, jobject obj)
 {
 	hashtable_global_ref_entry *gre;
@@ -3256,7 +3251,7 @@ jobject jni_NewGlobalRef(JNIEnv* env, jobject obj)
 
 	o = (java_handle_t *) obj;
 
-	LOCK_MONITOR_ENTER(hashtable_global_ref->header);
+	hashtable_global_ref->mutex->lock();
 
 	LLNI_CRITICAL_START;
 
@@ -3311,7 +3306,7 @@ jobject jni_NewGlobalRef(JNIEnv* env, jobject obj)
 		hashtable_global_ref->entries++;
 	}
 
-	LOCK_MONITOR_EXIT(hashtable_global_ref->header);
+	hashtable_global_ref->mutex->unlock();
 
 #if defined(ENABLE_HANDLES)
 	return gre;
@@ -3339,7 +3334,7 @@ void jni_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 
 	o = (java_handle_t *) globalRef;
 
-	LOCK_MONITOR_ENTER(hashtable_global_ref->header);
+	hashtable_global_ref->mutex->lock();
 
 	LLNI_CRITICAL_START;
 
@@ -3382,7 +3377,7 @@ void jni_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 
 			LLNI_CRITICAL_END;
 
-			LOCK_MONITOR_EXIT(hashtable_global_ref->header);
+			hashtable_global_ref->mutex->unlock();
 
 			return;
 		}
@@ -3395,7 +3390,7 @@ void jni_DeleteGlobalRef(JNIEnv* env, jobject globalRef)
 
 	LLNI_CRITICAL_END;
 
-	LOCK_MONITOR_EXIT(hashtable_global_ref->header);
+	hashtable_global_ref->mutex->unlock();
 }
 
 
@@ -3621,7 +3616,7 @@ jint _Jv_JNI_DestroyJavaVM(JavaVM *javavm)
 
 	TRACEJNICALLS(("_Jv_JNI_DestroyJavaVM(javavm=%p)", javavm));
 
-	if (vm->is_created() == false)
+	if (VM::get_current()->is_created() == false)
 		return JNI_ERR;
 
     status = vm_destroy(javavm);
@@ -3656,7 +3651,7 @@ static int jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon
 	result = thread_current_is_attached();
 
 	if (result == true) {
-		*p_env = vm->get_jnienv();
+		*p_env = VM::get_current()->get_jnienv();
 		return JNI_OK;
 	}
 
@@ -3675,7 +3670,7 @@ static int jni_attach_current_thread(void **p_env, void *thr_args, bool isdaemon
 		return JNI_ERR;
 #endif
 
-	*p_env = vm->get_jnienv();
+	*p_env = VM::get_current()->get_jnienv();
 
 	return JNI_OK;
 }
@@ -3687,7 +3682,7 @@ jint jni_AttachCurrentThread(JavaVM *javavm, void **p_env, void *thr_args)
 
 	TRACEJNICALLS(("jni_AttachCurrentThread(javavm=%p, p_env=%p, thr_args=%p)", javavm, p_env, thr_args));
 
-	if (vm->is_created() == false)
+	if (VM::get_current()->is_created() == false)
 		return JNI_ERR;
 
 	result = jni_attach_current_thread(p_env, thr_args, false);
@@ -3756,7 +3751,7 @@ jint jni_GetEnv(JavaVM *javavm, void **env, jint version)
 {
 	TRACEJNICALLS(("jni_GetEnv(javavm=%p, env=%p, version=%d)", javavm, env, version));
 
-	if (vm->is_created() == false) {
+	if (VM::get_current()->is_created() == false) {
 		*env = NULL;
 		return JNI_EDETACHED;
 	}
@@ -3772,7 +3767,7 @@ jint jni_GetEnv(JavaVM *javavm, void **env, jint version)
 	/* Check the JNI version. */
 
 	if (jni_version_check(version) == true) {
-		*env = vm->get_jnienv();
+		*env = VM::get_current()->get_jnienv();
 		return JNI_OK;
 	}
 
@@ -3812,7 +3807,7 @@ jint jni_AttachCurrentThreadAsDaemon(JavaVM *javavm, void **penv, void *args)
 
 	TRACEJNICALLS(("jni_AttachCurrentThreadAsDaemon(javavm=%p, penv=%p, args=%p)", javavm, penv, args));
 
-	if (vm->is_created() == false)
+	if (VM::get_current()->is_created() == false)
 		return JNI_ERR;
 
 	result = jni_attach_current_thread(penv, args, true);
@@ -4077,7 +4072,7 @@ struct JNINativeInterface_ _Jv_JNINativeInterface = {
 	_Jv_JNI_SetFloatArrayRegion,
 	_Jv_JNI_SetDoubleArrayRegion,
 
-	_Jv_JNI_RegisterNatives,
+	jni_RegisterNatives,
 	_Jv_JNI_UnregisterNatives,
 
 	_Jv_JNI_MonitorEnter,
@@ -4167,7 +4162,7 @@ jint JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 
 	// We currently only support 1 VM running.
 
-	vmBuf[0] = vm->get_javavm();
+	vmBuf[0] = VM::get_current()->get_javavm();
 	*nVMs    = 1;
 
     return JNI_OK;

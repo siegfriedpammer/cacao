@@ -2,6 +2,7 @@
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -37,11 +38,12 @@
 
 #include "threads/thread.hpp"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/signallocal.h"
 #include "vm/os.hpp"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/disass.h"
 #include "vm/jit/executionstate.h"
 #include "vm/jit/trap.h"
 
@@ -68,7 +70,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	intptr_t        val;
 	intptr_t        addr;
 	int             type;
-	void           *p;
 
 	_uc = (ucontext_t *) _p;
 	_mc = &_uc->uc_mcontext;
@@ -112,43 +113,50 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Handle the trap. */
 
-	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
+}
 
-	/* Set registers. */
 
-	switch (type) {
-	case TRAP_COMPILER:
-		if (p != NULL) {
-			_mc->sc_regs[REG_PV] = (uintptr_t) p;
-			_mc->sc_pc           = (uintptr_t) p;
-			break;
-		}
+/* md_signal_handler_sigill ****************************************************
 
-		/* Get and set the PV from the parent Java method. */
+   Illegal Instruction signal handler for hardware exception checks.
 
-		pv = md_codegen_get_pv_from_pc(ra);
+*******************************************************************************/
 
-		_mc->sc_regs[REG_PV] = (uintptr_t) pv;
+void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
+{
+	ucontext_t* _uc = (ucontext_t*) _p;
+	mcontext_t* _mc = &_uc->uc_mcontext;
 
-		/* Get the exception object. */
+	void* pv  = (u1 *) _mc->sc_regs[REG_PV];
+	void* sp  = (u1 *) _mc->sc_regs[REG_SP];
+	void* ra  = (u1 *) _mc->sc_regs[REG_RA]; // RA is correct for leaf methods.
+	void* xpc = (u1 *) _mc->sc_pc;
 
-		p = builtin_retrieve_exception();
+	// The PC points to the instruction after the illegal instruction.
+	xpc = (void*) (((uintptr_t) xpc) - 4);
 
-		assert(p != NULL);
+	// Get the exception-throwing instruction.
+	uint32_t mcode = *((uint32_t*) xpc);
 
-		/* fall-through */
+	int opcode = M_OP3_GET_Opcode(mcode);
 
-	case TRAP_PATCHER:
-		if (p == NULL)
-			break;
-
-		/* fall-through */
-		
-	default:
-		_mc->sc_regs[REG_ITMP1_XPTR] = (uintptr_t) p;
-		_mc->sc_regs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
-		_mc->sc_pc                   = (uintptr_t) asm_handle_exception;
+	// Check for undefined instruction we use.
+	// TODO Check the whole instruction.
+	if (opcode != 0x4) {
+		log_println("md_signal_handler_sigill: Unknown illegal instruction %x at %p", mcode, xpc);
+#if defined(ENABLE_DISASSEMBLER)
+		(void) disassinstr(xpc);
+#endif
+		vm_abort("Aborting...");
 	}
+
+	// This signal is always a patcher.
+	int      type = TRAP_PATCHER;
+	intptr_t val  = 0;
+
+	// Handle the trap.
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
 }
 
 

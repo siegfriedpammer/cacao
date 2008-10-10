@@ -56,8 +56,8 @@ endif
 
 if ENABLE_JAVASE
 REFLECTION_SOURCES = \
-	reflection.c \
-	reflection.h
+	reflection.cpp \
+	reflection.hpp
 
 SUN_MISC_UNSAFE_SOURCES = \
 	sun_misc_Unsafe.cpp
@@ -67,8 +67,8 @@ noinst_LTLIBRARIES = \
 	libnativevm.la
 
 libnativevm_la_SOURCES = \
-	nativevm.c \
-	nativevm.h \
+	nativevm.cpp \
+	nativevm.hpp \
 	$(REFLECTION_SOURCES) \
 	$(SUN_MISC_UNSAFE_SOURCES)
 

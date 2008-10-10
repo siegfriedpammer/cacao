@@ -27,18 +27,19 @@
 
 #include <stdint.h>
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 #include "native/llni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/vm/include/java_lang_VMObject.h"
 #endif
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
+#include "vm/javaobjects.hpp"
 #include "vm/utf8.h"
 
 
@@ -50,18 +51,16 @@ extern "C" {
  * Method:    getClass
  * Signature: (Ljava/lang/Object;)Ljava/lang/Class;
  */
-JNIEXPORT jclass JNICALL Java_java_lang_VMObject_getClass(JNIEnv *env, jclass clazz, jobject obj)
+JNIEXPORT jclass JNICALL Java_java_lang_VMObject_getClass(JNIEnv* env, jclass clazz, jobject obj)
 {
-	classinfo *c;
-
 	if (obj == NULL) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
-	LLNI_class_get(obj, c);
+	java_lang_Object o(obj);
 
-	return (jclass) LLNI_classinfo_wrap(c);
+	return (jclass) LLNI_classinfo_wrap(o.get_Class());
 }
 
 
@@ -70,16 +69,9 @@ JNIEXPORT jclass JNICALL Java_java_lang_VMObject_getClass(JNIEnv *env, jclass cl
  * Method:    clone
  * Signature: (Ljava/lang/Cloneable;)Ljava/lang/Object;
  */
-JNIEXPORT jobject JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, jclass clazz, jobject _this)
+JNIEXPORT jobject JNICALL Java_java_lang_VMObject_clone(JNIEnv* env, jclass clazz, jobject _this)
 {
-	java_handle_t *o;
-	java_handle_t *co;
-
-	o = (java_handle_t *) _this;
-
-	co = builtin_clone(NULL, o);
-
-	return (jobject) co;
+	return builtin_clone(NULL, _this);
 }
 
 
@@ -88,10 +80,10 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMObject_clone(JNIEnv *env, jclass claz
  * Method:    notify
  * Signature: (Ljava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz, jobject _this)
+JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv* env, jclass clazz, jobject _this)
 {
 #if defined(ENABLE_THREADS)
-	lock_notify_object((java_handle_t *) _this);
+	lock_notify_object(_this);
 #endif
 }
 
@@ -101,10 +93,10 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notify(JNIEnv *env, jclass clazz,
  * Method:    notifyAll
  * Signature: (Ljava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass clazz, jobject _this)
+JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv* env, jclass clazz, jobject _this)
 {
 #if defined(ENABLE_THREADS)
-	lock_notify_all_object((java_handle_t *) _this);
+	lock_notify_all_object(_this);
 #endif
 }
 
@@ -114,7 +106,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv *env, jclass cla
  * Method:    wait
  * Signature: (Ljava/lang/Object;JI)V
  */
-JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, jobject o, jlong ms, jint ns)
+JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv* env, jclass clazz, jobject o, jlong ms, jint ns)
 {
 #if defined(ENABLE_JVMTI)
 	/* Monitor Wait */
@@ -122,7 +114,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv *env, jclass clazz, j
 #endif
 
 #if defined(ENABLE_THREADS)
-	lock_wait_for_object((java_handle_t *) o, ms, ns);
+	lock_wait_for_object(o, ms, ns);
 #endif
 
 #if defined(ENABLE_JVMTI)
@@ -152,16 +144,12 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_java_lang_VMObject_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("java/lang/VMObject");
 
-	u = utf_new_char("java/lang/VMObject");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

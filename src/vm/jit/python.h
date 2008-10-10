@@ -26,7 +26,7 @@
 #define _VM_JIT_PYTHON_H
 #if defined(ENABLE_PYTHON)
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 void pythonpass_init();
 void pythonpass_cleanup();

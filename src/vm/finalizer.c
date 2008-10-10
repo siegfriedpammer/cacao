@@ -31,10 +31,11 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/condition.hpp"
+#include "threads/mutex.hpp"
 #include "threads/thread.hpp"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/options.h"
@@ -46,7 +47,8 @@
 /* global variables ***********************************************************/
 
 #if defined(ENABLE_THREADS)
-static java_object_t *lock_thread_finalizer;
+static Mutex     *finalizer_thread_mutex;
+static Condition *finalizer_thread_cond;
 #endif
 
 
@@ -61,9 +63,8 @@ bool finalizer_init(void)
 	TRACESUBSYSTEMINITIALIZATION("finalizer_init");
 
 #if defined(ENABLE_THREADS)
-	lock_thread_finalizer = NEW(java_object_t);
-
-	LOCK_INIT_OBJECT_LOCK(lock_thread_finalizer);
+	finalizer_thread_mutex = Mutex_new();
+	finalizer_thread_cond  = Condition_new();
 #endif
 
 	/* everything's ok */
@@ -84,17 +85,17 @@ bool finalizer_init(void)
 static void finalizer_thread(void)
 {
 	while (true) {
-		/* get the lock on the finalizer lock object, so we can call wait */
+		/* get the lock on the finalizer mutex, so we can call wait */
 
-		LOCK_MONITOR_ENTER(lock_thread_finalizer);
+		Mutex_lock(finalizer_thread_mutex);
 
-		/* wait forever on that object till we are signaled */
+		/* wait forever on that condition till we are signaled */
 	
-		LOCK_WAIT_FOREVER(lock_thread_finalizer);
+		Condition_wait(finalizer_thread_cond, finalizer_thread_mutex);
 
 		/* leave the lock */
 
-		LOCK_MONITOR_EXIT(lock_thread_finalizer);
+		Mutex_unlock(finalizer_thread_mutex);
 
 #if !defined(NDEBUG)
 		if (opt_DebugFinalizer)
@@ -154,15 +155,15 @@ void finalizer_notify(void)
 #if defined(ENABLE_THREADS)
 	/* get the lock on the finalizer lock object, so we can call wait */
 
-	LOCK_MONITOR_ENTER(lock_thread_finalizer);
+	Mutex_lock(finalizer_thread_mutex);
 
 	/* signal the finalizer thread */
-	
-	LOCK_NOTIFY(lock_thread_finalizer);
+
+	Condition_signal(finalizer_thread_cond);
 
 	/* leave the lock */
 
-	LOCK_MONITOR_EXIT(lock_thread_finalizer);
+	Mutex_unlock(finalizer_thread_mutex);
 #else
 	/* if we don't have threads, just run the finalizers */
 

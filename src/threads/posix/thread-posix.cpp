@@ -49,19 +49,18 @@
 # include "mm/cacao-gc/gc.h"
 #endif
 
-#include "native/jni.h"
 #include "native/llni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "threads/condition.hpp"
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 #include "threads/mutex.hpp"
-#include "threads/threadlist.h"
+#include "threads/threadlist.hpp"
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
@@ -99,9 +98,6 @@
 #include "native/jvmti/cacaodbg.h"
 #endif
 
-
-// FIXME For now we export everything as C functions.
-extern "C" {
 
 #if defined(__DARWIN__)
 /* Darwin has no working semaphore implementation.  This one is taken
@@ -433,33 +429,6 @@ void threads_startworld(void)
 #endif
 
 
-/* threads_impl_thread_init ****************************************************
-
-   Initialize OS-level locking constructs in threadobject.
-
-   IN:
-      t....the threadobject
-
-*******************************************************************************/
-
-void threads_impl_thread_init(threadobject *t)
-{
-	/* initialize the mutex and the condition */
-
-	t->flc_lock = new Mutex();
-	t->flc_cond = new Condition();
-
-	t->waitmutex = new Mutex();
-	t->waitcond = new Condition();
-
-	t->suspendmutex = new Mutex();
-	t->suspendcond = new Condition();
-
-#if defined(ENABLE_TLH)
-	tlh_init(&(t->tlh));
-#endif
-}
-
 /* threads_impl_thread_clear ***************************************************
 
    Clears all fields in threadobject the way an MZERO would have
@@ -510,7 +479,7 @@ void threads_impl_thread_clear(threadobject *t)
 	t->es = NULL;
 #endif
 
-	MZERO(&t->dumpinfo, dumpinfo_t, 1);
+	// Simply reuse the existing dump memory.
 }
 
 /* threads_impl_thread_reuse ***************************************************
@@ -1323,7 +1292,7 @@ void threads_join_all_threads(void)
 	   compare against 1 because the current (main thread) is also a
 	   non-daemon thread. */
 
-	while (threadlist_get_non_daemons() > 1)
+	while (ThreadList::get_number_of_non_daemon_threads() > 1)
 		cond_join->wait(mutex_join);
 
 	/* leave join mutex */
@@ -1607,8 +1576,6 @@ void threads_tlh_remove_frame() {
 }
 
 #endif
-
-} // extern "C"
 
 
 /*

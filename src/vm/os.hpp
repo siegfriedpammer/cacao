@@ -2,6 +2,7 @@
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -28,8 +29,11 @@
 
 #include "config.h"
 
-/* NOTE: In this file we check for all system headers, because we wrap
-   all system calls into inline functions for better portability. */
+// NOTE: In this file we check for all system headers, because we wrap
+// all system calls into inline functions for better portability.
+
+// Please don't include CACAO headers here as this header should be a
+// very low-level one.
 
 #if defined(HAVE_DIRENT_H)
 # include <dirent.h>
@@ -41,6 +45,10 @@
 
 #if defined(HAVE_ERRNO_H)
 # include <errno.h>
+#endif
+
+#if defined(HAVE_EXECINFO_H)
+# include <execinfo.h>
 #endif
 
 #if defined(HAVE_FCNTL_H)
@@ -55,6 +63,10 @@
 
 #if defined(HAVE_SIGNAL_H)
 # include <signal.h>
+#endif
+
+#if defined(HAVE_STDARG_H)
+# include <stdarg.h>
 #endif
 
 #if defined(HAVE_STDINT_H)
@@ -100,49 +112,60 @@
 class os {
 public:
 	// Inline functions.
-	static inline void   abort();
-	static inline int    accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen);
-	static inline int    access(const char *pathname, int mode);
-	static inline int    atoi(const char* nptr);
-	static inline void*  calloc(size_t nmemb, size_t size);
-	static inline int    close(int fd);
-	static inline int    connect(int sockfd, const struct sockaddr* serv_addr, socklen_t addrlen);
+	static inline void    abort();
+	static inline int     accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen);
+	static inline int     access(const char *pathname, int mode);
+	static inline int     atoi(const char* nptr);
+	static inline int     backtrace(void** array, int size);
+	static inline char**  backtrace_symbols(void* const* array, int size) throw ();
+	static inline void*   calloc(size_t nmemb, size_t size);
+	static inline int     close(int fd);
+	static inline int     connect(int sockfd, const struct sockaddr* serv_addr, socklen_t addrlen);
 #if defined(ENABLE_JRE_LAYOUT)
-	static inline char*  dirname(char* path);
+	static inline char*   dirname(char* path);
 #endif
-	static inline int    dlclose(void* handle);
-	static inline char*  dlerror(void);
-	static inline void*  dlopen(const char* filename, int flag);
-	static inline void*  dlsym(void* handle, const char* symbol);
-	static inline int    fclose(FILE* fp);
-	static inline FILE*  fopen(const char* path, const char* mode);
-	static inline size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
-	static inline void   free(void* ptr);
-	static inline int    gethostname(char* name, size_t len);
-	static inline int    getpagesize(void);
-	static inline int    getsockname(int s, struct sockaddr* name, socklen_t* namelen);
-	static inline int    getsockopt(int s, int level, int optname, void* optval, socklen_t* optlen);
-	static inline int    listen(int sockfd, int backlog);
-	static inline void*  malloc(size_t size);
-	static inline void*  memcpy(void* dest, const void* src, size_t n);
-	static inline void*  memset(void* s, int c, size_t n);
-	static inline int    mprotect(void* addr, size_t len, int prot);
-	static inline int    scandir(const char* dir, struct dirent*** namelist, int(*filter)(const struct dirent*), int(*compar)(const void*, const void*));
-	static inline int    setsockopt(int s, int level, int optname, const void* optval, socklen_t optlen);
-	static inline int    shutdown(int s, int how);
-	static inline int    socket(int domain, int type, int protocol);
-	static inline int    stat(const char* path, struct stat* buf);
+	static inline int     dlclose(void* handle);
+	static inline char*   dlerror(void);
+	static inline void*   dlopen(const char* filename, int flag);
+	static inline void*   dlsym(void* handle, const char* symbol);
+	static inline int     fclose(FILE* fp);
+	static inline FILE*   fopen(const char* path, const char* mode);
+	static inline int     fprintf(FILE* stream, const char* format, ...);
+	static inline size_t  fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
+	static inline void    free(void* ptr);
+	static inline char*   getenv(const char* name);
+	static inline int     gethostname(char* name, size_t len);
+	static inline int     getpagesize(void);
+	static inline int     getsockname(int s, struct sockaddr* name, socklen_t* namelen);
+	static inline int     getsockopt(int s, int level, int optname, void* optval, socklen_t* optlen);
+	static inline int     listen(int sockfd, int backlog);
+	static inline void*   malloc(size_t size);
+	static inline void*   memcpy(void* dest, const void* src, size_t n);
+	static inline void*   memset(void* s, int c, size_t n);
+	static inline int     mprotect(void* addr, size_t len, int prot);
+	static inline ssize_t readlink(const char* path, char* buf, size_t bufsiz);
+	static inline int     scandir(const char* dir, struct dirent*** namelist, int(*filter)(const struct dirent*), int(*compar)(const void*, const void*));
+	static inline int     setsockopt(int s, int level, int optname, const void* optval, socklen_t optlen);
+	static inline int     shutdown(int s, int how);
+	static inline int     socket(int domain, int type, int protocol);
+	static inline int     stat(const char* path, struct stat* buf);
 #if defined(__SOLARIS__)
-	static inline int    str2sig(const char* str, int* signum);
+	static inline int     str2sig(const char* str, int* signum);
 #endif
-	static inline char*  strcat(char* dest, const char* src);
-	static inline char*  strcpy(char* dest, const char* src);
-	static inline char*  strdup(const char* s);
-	static inline size_t strlen(const char* s);
-	static inline char*  strerror(int errnum);
+	static inline char*   strcat(char* dest, const char* src);
+	static inline int     strcmp(const char* s1, const char* s2);
+	static inline char*   strcpy(char* dest, const char* src);
+	static inline char*   strdup(const char* s);
+	static inline size_t  strlen(const char* s);
+	static inline char*   strerror(int errnum);
 
+	// Convenience functions.
+	static void  abort(const char* text, ...);
+	static void  abort_errnum(int errnum, const char* text, ...);
+	static void  abort_errno(const char* text, ...);
 	static void* mmap_anonymous(void *addr, size_t len, int prot, int flags);
-	static int   processors_online(void);
+	static void  print_backtrace();
+	static int   processors_online();
 };
 
 
@@ -179,6 +202,26 @@ inline int os::atoi(const char* nptr)
 	return ::atoi(nptr);
 #else
 # error atoi not available
+#endif
+}
+
+inline int os::backtrace(void** array, int size)
+{
+#if defined(HAVE_BACKTRACE)
+	return ::backtrace(array, size);
+#else
+	fprintf(stderr, "os::backtrace: Not available.");
+	return 0;
+#endif
+}
+
+inline char** os::backtrace_symbols(void* const* array, int size) throw ()
+{
+#if defined(HAVE_BACKTRACE_SYMBOLS)
+	return ::backtrace_symbols(array, size);
+#else
+	fprintf(stderr, "os::backtrace_symbols: Not available.");
+	return NULL;
 #endif
 }
 
@@ -232,7 +275,9 @@ inline int os::dlclose(void* handle)
 inline char* os::dlerror(void)
 {
 #if defined(HAVE_DLERROR)
-	return ::dlerror();
+	// At least FreeBSD defines dlerror() to return a const char*, so
+	// we simply cast it.
+	return (char*) ::dlerror();
 #else
 # error dlerror not available
 #endif
@@ -271,6 +316,19 @@ inline FILE* os::fopen(const char* path, const char* mode)
 	return ::fopen(path, mode);
 #else
 # error fopen not available
+#endif
+}
+
+inline int os::fprintf(FILE* stream, const char* format, ...)
+{
+#if defined(HAVE_FPRINTF)
+	va_list ap;
+	va_start(ap, format);
+	int result = ::fprintf(stream, format, ap);
+	va_end(ap);
+	return result;
+#else
+# error fprintf not available
 #endif
 }
 
@@ -316,6 +374,15 @@ inline static int system_ftruncate(int fd, off_t length)
 	return ftruncate(fd, length);
 #else
 # error ftruncate not available
+#endif
+}
+
+inline char* os::getenv(const char* name)
+{
+#if defined(HAVE_GETENV)
+	return ::getenv(name);
+#else
+# error getenv not available
 #endif
 }
 
@@ -427,6 +494,15 @@ inline static ssize_t system_read(int fd, void *buf, size_t count)
 #endif
 }
 
+inline ssize_t os::readlink(const char* path, char* buf, size_t bufsiz)
+{
+#if defined(HAVE_READLINK)
+	return ::readlink(path, buf, bufsiz);
+#else
+# error readlink not available
+#endif
+}
+
 inline static void *system_realloc(void *ptr, size_t size)
 {
 #if defined(HAVE_REALLOC)
@@ -516,6 +592,15 @@ inline char* os::strcat(char* dest, const char* src)
 #endif
 }
 
+inline int os::strcmp(const char* s1, const char* s2)
+{
+#if defined(HAVE_STRCMP)
+	return ::strcmp(s1, s2);
+#else
+# error strcmp not available
+#endif
+}
+
 inline char* os::strcpy(char* dest, const char* src)
 {
 #if defined(HAVE_STRCPY)
@@ -570,9 +655,7 @@ int    os_access(const char* pathname, int mode);
 int    os_atoi(const char* nptr);
 void*  os_calloc(size_t nmemb, size_t size);
 char*  os_dirname(char* path);
-int    os_dlclose(void* handle);
 char*  os_dlerror(void);
-void*  os_dlopen(const char* filename, int flag);
 void*  os_dlsym(void* handle, const char* symbol);
 int    os_fclose(FILE* fp);
 FILE*  os_fopen(const char* path, const char* mode);

@@ -26,10 +26,6 @@
 #ifndef _METHOD_H
 #define _METHOD_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* forward typedefs ***********************************************************/
 
 typedef struct methodinfo          methodinfo; 
@@ -42,11 +38,13 @@ typedef struct codeinfo            codeinfo;
 #include "config.h"
 #include "vm/types.h"
 
-#include "vm/builtin.h"
+#include "threads/mutex.hpp"
+
+#include "vm/jit/builtin.hpp"
 #include "vm/descriptor.h"
 #include "vm/global.h"
 #include "vm/linker.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/references.h"
 
 #if defined(ENABLE_JAVASE)
@@ -65,7 +63,7 @@ typedef struct codeinfo            codeinfo;
 /* methodinfo *****************************************************************/
 
 struct methodinfo {                 /* method structure                       */
-	java_object_t header;           /* we need this in jit's monitorenter     */
+	Mutex        *mutex;            /* we need this in jit's locking          */
 	s4            flags;            /* ACC flags                              */
 	utf          *name;             /* name of method                         */
 	utf          *descriptor;       /* JavaVM descriptor string of method     */
@@ -164,6 +162,10 @@ struct lineinfo {
 
 extern methodinfo *method_java_lang_reflect_Method_invoke;
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* inline functions ***********************************************************/
 

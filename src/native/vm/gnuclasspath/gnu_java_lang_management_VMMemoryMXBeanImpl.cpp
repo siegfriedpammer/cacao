@@ -29,17 +29,17 @@
 
 #include "mm/gc.hpp"
 
-#include "native/jni.h"
-#include "native/native.h"
+#include "native/jni.hpp"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/vm/include/gnu_java_lang_management_VMMemoryMXBeanImpl.h"
 #endif
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/global.h"
-#include "vm/loader.h"               /* XXX only for load_class_bootstrap */
+#include "vm/loader.hpp"               /* XXX only for load_class_bootstrap */
 #include "vm/options.h"
 #include "vm/vm.hpp"
 
@@ -173,16 +173,12 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_gnu_java_lang_management_VMMemoryMXBeanImpl_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("gnu/java/lang/management/VMMemoryMXBeanImpl");
 
-	u = utf_new_char("gnu/java/lang/management/VMMemoryMXBeanImpl");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

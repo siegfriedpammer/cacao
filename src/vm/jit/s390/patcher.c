@@ -29,18 +29,18 @@
 #include <stdint.h>
 
 #include "mm/memory.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
-#include "vm/field.h"
+#include "vm/field.hpp"
 #include "vm/initialize.h"
 #include "vm/options.h"
 #include "vm/references.h"
 #include "vm/resolve.h"
 #include "vm/types.h"
 
-#include "vm/jit/patcher-common.h"
+#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/s390/codegen.h"
 #include "vm/jit/s390/md-abi.h"
 
@@ -131,11 +131,6 @@ bool patcher_get_putfield(patchref_t *pr)
 
 	PATCH_BACK_ORIGINAL_MCODE;
 
-	/* If NOPs are generated, skip them */
-
-	if (opt_shownops)
-		ra += PATCHER_NOPS_SKIP;
-
 	/* If there is an operand load before, skip the load size passed in disp (see ICMD_PUTFIELD) */
 
 	ra += disp;
@@ -219,11 +214,6 @@ bool patcher_invokevirtual(patchref_t *pr)
 
 	PATCH_BACK_ORIGINAL_MCODE;
 
-	/* If NOPs are generated, skip them */
-
-	if (opt_shownops)
-		ra += PATCHER_NOPS_SKIP;
-
 	/* patch vftbl index */
 
 
@@ -266,11 +256,6 @@ bool patcher_invokeinterface(patchref_t *pr)
 	/* patch back original code */
 
 	PATCH_BACK_ORIGINAL_MCODE;
-
-	/* If NOPs are generated, skip them */
-
-	if (opt_shownops)
-		ra += PATCHER_NOPS_SKIP;
 
 	/* get interfacetable index */
 
@@ -427,11 +412,6 @@ bool patcher_checkcast_instanceof_interface(patchref_t *pr)
 	/* patch back original code */
 
 	PATCH_BACK_ORIGINAL_MCODE;
-
-	/* If NOPs are generated, skip them */
-
-	if (opt_shownops)
-		ra += PATCHER_NOPS_SKIP;
 
 	/* patch super class index */
 

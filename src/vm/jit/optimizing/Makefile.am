@@ -1,9 +1,7 @@
 ## src/vm/jit/optimizing/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-## R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-## C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-## Institut f. Computersprachen - TU Wien
+## Copyright (C) 1996-2005, 2006, 2007, 2008
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -44,9 +42,9 @@ REORDER_SOURCES = \
 endif
 
 if ENABLE_THREADS
-RECOMPILE_SOURCES = \
-	recompile.c \
-	recompile.h
+RECOMPILER_SOURCES = \
+	recompiler.cpp \
+	recompiler.hpp
 endif
 
 if ENABLE_SSA
@@ -61,8 +59,8 @@ SSA_SOURCES = \
 	ssa_rename.h \
 	graph.c \
 	graph.h \
-	dominators.c \
-	dominators.h \
+	dominators.cpp \
+	dominators.hpp \
 	lifetimes.c \
 	lifetimes.h \
 	ssa2.c \
@@ -82,7 +80,7 @@ noinst_LTLIBRARIES = \
 liboptimizing_la_SOURCES = \
 	$(IFCONV_SOURCES) \
 	$(PROFILE_SOURCES) \
-	$(RECOMPILE_SOURCES) \
+	$(RECOMPILER_SOURCES) \
 	$(REORDER_SOURCES) \
 	$(SSA_SOURCES) \
 	$(ESCAPE_SOURCES)

@@ -1,9 +1,7 @@
 /* src/vm/jit/parse.h - parser header
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,11 +20,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Author:  Christian Thalinger
-            Edwin Steiner
-
 */
 
 
@@ -37,7 +30,7 @@
 #include "vm/types.h"
 
 #include "vm/global.h"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 
 
 /* macros for verifier checks during parsing **********************************/
@@ -276,7 +269,15 @@
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool parse(jitdata *jd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _PARSE_H */
 

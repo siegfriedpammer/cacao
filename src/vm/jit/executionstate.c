@@ -221,11 +221,7 @@ void executionstate_println(executionstate_t *es)
 			if (i%4 == 0)
 				printf("\n\t\t");
 			printf("M%02d%c", i, (i >= slots) ? '(' : ' ');
-#ifdef HAS_4BYTE_STACKSLOT
-			printf("%08lx",(unsigned long)*sp++);
-#else
 			printf("%016llx",(unsigned long long)*sp++);
-#endif
 			printf("%c", (i >= slots) ? ')' : ' ');
 		}
 		printf("\n");

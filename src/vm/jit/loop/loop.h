@@ -32,7 +32,7 @@
 #include "vm/global.h"
 #include "vm/method.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 
 /*	Different types for struct Trace										*/

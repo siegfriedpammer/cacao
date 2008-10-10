@@ -119,7 +119,7 @@ void reg_setup(jitdata *jd)
 	assert(rd->tmpadrreguse == ADR_TMP_CNT);
 	assert(rd->argadrreguse == ADR_ARG_CNT);
 #endif
-		
+
 	/* setup the float register table */
 
 	rd->tmpfltregs = DMNEW(s4, FLT_TMP_CNT);
@@ -148,11 +148,7 @@ void reg_setup(jitdata *jd)
 	assert(rd->savfltreguse == FLT_SAV_CNT);
 	assert(rd->tmpfltreguse == FLT_TMP_CNT);
 
-
 	rd->freemem    = DMNEW(s4, m->maxstack);
-#if defined(HAS_4BYTE_STACKSLOT)
-	rd->freemem_2  = DMNEW(s4, m->maxstack);
-#endif
 
 #if defined(SPECIALMEMUSE)
 # if defined(__DARWIN__)

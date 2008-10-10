@@ -30,15 +30,16 @@
 
 #include "mm/gc.hpp"
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 #include "native/llni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/vminclude/java_lang_VMSystem.h"
 #endif
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
+#include "vm/javaobjects.hpp"
 
 
 // Native functions are exported as C functions.
@@ -61,18 +62,11 @@ JNIEXPORT void JNICALL Java_java_lang_VMSystem_arraycopy(JNIEnv *env, jclass cla
  * Method:    identityHashCode
  * Signature: (Ljava/lang/Object;)I
  */
-JNIEXPORT jint JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, jobject o)
+JNIEXPORT jint JNICALL Java_java_lang_VMSystem_identityHashCode(JNIEnv *env, jclass clazz, jobject obj)
 {
-	int32_t hashcode;
+	java_lang_Object o(obj);
 
-	// XXX This critical section should be inside the heap function.
-	LLNI_CRITICAL_START;
-
-	hashcode = heap_hashcode(LLNI_UNWRAP((java_handle_t *) o));
-
-	LLNI_CRITICAL_END;
-
-	return hashcode;
+	return o.get_hashcode();
 }
 
 } // extern "C"
@@ -92,16 +86,12 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_java_lang_VMSystem_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("java/lang/VMSystem");
 
-	u = utf_new_char("java/lang/VMSystem");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

@@ -53,7 +53,7 @@ typedef struct Uninitialized_variable_info_t     Uninitialized_variable_info_t;
 #include "vm/types.h"
 
 #include "vm/global.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/method.h"
 
 

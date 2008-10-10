@@ -34,12 +34,13 @@
 
 #include "vm/types.h"
 
+#include "vm/descriptor.h" /* needed to prevent circular dependency */
 #include "toolbox/hashtable.h"
 
 #include "mm/memory.h"
 
 #include "vm/global.h"
-#include "vm/suck.h"
+#include "vm/suck.hpp"
 #include "vm/utf8.h"
 #include "vm/vm.hpp"
 #include "vm/zip.h"

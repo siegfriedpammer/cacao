@@ -59,8 +59,8 @@ noinst_LTLIBRARIES = \
 libmm_la_SOURCES = \
 	codememory.c \
 	codememory.h \
-	dumpmemory.c \
-	dumpmemory.h \
+	dumpmemory.cpp \
+	dumpmemory.hpp \
 	$(GC_FILE) \
 	gc.hpp \
 	memory.c \

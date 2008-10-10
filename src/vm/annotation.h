@@ -32,13 +32,17 @@
 #include "vm/types.h"
 
 #include "vm/class.h"
-#include "vm/field.h"
+#include "vm/field.hpp"
 #include "vm/global.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/method.h"
 
 
 /* function prototypes ********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 bool annotation_load_class_attribute_runtimevisibleannotations(
 	classbuffer *cb);
@@ -66,6 +70,10 @@ bool annotation_load_method_attribute_runtimevisibleparameterannotations(
 
 bool annotation_load_method_attribute_runtimeinvisibleparameterannotations(
 	classbuffer *cb, methodinfo *m);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _ANNOTATION_H */
 

@@ -35,7 +35,7 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
 #include "vm/options.h"
 
@@ -43,10 +43,10 @@
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
-#include "vm/jit/emit-common.h"
-#include "vm/jit/jit.h"
-#include "vm/jit/patcher-common.h"
-#include "vm/jit/replace.h"
+#include "vm/jit/emit-common.hpp"
+#include "vm/jit/jit.hpp"
+#include "vm/jit/patcher-common.hpp"
+#include "vm/jit/replace.hpp"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.h"
 
@@ -446,11 +446,10 @@ uint32_t emit_trap(codegendata *cd)
 	/* Get machine code which is patched back in later. The
 	   trap is 1 instruction word long. */
 
-	mcode = *((uint32_t *) cd->mcodeptr);
+	mcode = *((uint32_t*) cd->mcodeptr);
 
-	/* Destination register must not be REG_ZERO, because then no
-	   SIGSEGV is thrown. */
-	M_ALD_INTERN(REG_RESULT, REG_ZERO, TRAP_PATCHER);
+	// Generate a SIGILL.
+	M_UNDEFINED;
 
 	return mcode;
 }

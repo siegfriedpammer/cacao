@@ -36,7 +36,16 @@ AC_MSG_RESULT(${ENABLE_DL})
 
 if test x"${ENABLE_DL}" = "xyes"; then
     AC_CHECK_HEADERS([dlfcn.h],, [AC_MSG_ERROR(cannot find dlfcn.h)])
-    AC_CHECK_LIB([dl], [dlopen],, [AC_MSG_ERROR(cannot find libdl)])
+
+    case "${OS_DIR}" in
+        freebsd | netbsd )
+            dnl There is no libdl on FreeBSD, and NetBSD (see PR96).
+            ;;
+        *)
+            AC_CHECK_LIB([dl], [dlopen],, [AC_MSG_ERROR(cannot find libdl)])
+            ;;
+    esac
+    
     AC_CHECK_FUNCS([dlclose])
     AC_CHECK_FUNCS([dlerror])
     AC_CHECK_FUNCS([dlopen])

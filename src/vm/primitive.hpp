@@ -40,6 +40,9 @@
 
 class Primitive {
 public:
+	static void initialize_table();
+	static void post_initialize_table();
+
 	static classinfo*     get_class_by_name(utf *name);
 	static classinfo*     get_class_by_type(int type);
 	static classinfo*     get_class_by_char(char ch);
@@ -100,14 +103,14 @@ public:
 /* primitivetypeinfo **********************************************************/
 
 struct primitivetypeinfo {
-	char      *cname;                    /* char name of primitive class      */
-	utf       *name;                     /* name of primitive class           */
-	classinfo *class_wrap;               /* class for wrapping primitive type */
-	classinfo *class_primitive;          /* primitive class                   */
-	char      *wrapname;                 /* name of class for wrapping        */
-	char       typesig;                  /* one character type signature      */
-	char      *arrayname;                /* name of primitive array class     */
-	classinfo *arrayclass;               /* primitive array class             */
+	const char* cname;                   /* char name of primitive class      */
+	utf*        name;                    /* name of primitive class           */
+	classinfo*  class_wrap;              /* class for wrapping primitive type */
+	classinfo*  class_primitive;         /* primitive class                   */
+	const char* wrapname;                /* name of class for wrapping        */
+	const char  typesig;                 /* one character type signature      */
+	const char* arrayname;               /* name of primitive array class     */
+	classinfo*  arrayclass;              /* primitive array class             */
 };
 
 
@@ -126,15 +129,7 @@ void       primitive_postinit(void);
 // Legacy C interface.
 classinfo *Primitive_get_class_by_name(utf *name);
 classinfo *Primitive_get_class_by_type(int type);
-classinfo *Primitive_get_class_by_char(char ch);
-
-classinfo *Primitive_get_arrayclass_by_name(utf *name);
 classinfo *Primitive_get_arrayclass_by_type(int type);
-
-int        Primitive_get_type_by_wrapperclass(classinfo *c);
-
-java_handle_t *Primitive_box(int type, imm_union value);
-imm_union      Primitive_unbox(java_handle_t *h);
 #endif
 
 #endif // _PRIMITIVE_HPP

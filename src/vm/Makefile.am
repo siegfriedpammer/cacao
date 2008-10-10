@@ -29,8 +29,8 @@ SUBDIRS = jit
 
 if ENABLE_ASSERTION
 ASSERTION_SOURCES = \
-	assertion.c \
-	assertion.h
+	assertion.cpp \
+	assertion.hpp
 endif
 
 if ENABLE_CYCLES_STATS
@@ -80,12 +80,9 @@ libvm_la_SOURCES = \
 	access.c \
 	access.h \
 	$(ANNOTATION_SOURCES) \
-	array.c \
-	array.h \
+	array.cpp \
+	array.hpp \
 	$(ASSERTION_SOURCES) \
-	builtin.c \
-	builtin.h \
-	builtintable.inc \
 	class.c \
 	class.h \
 	classcache.c \
@@ -95,8 +92,8 @@ libvm_la_SOURCES = \
 	descriptor.h \
 	exceptions.cpp \
 	exceptions.hpp \
-	field.c \
-	field.h \
+	field.cpp \
+	field.hpp \
 	finalizer.c \
 	finalizer.h \
 	globals.cpp \
@@ -105,11 +102,10 @@ libvm_la_SOURCES = \
 	initialize.h \
 	javaobjects.cpp \
 	javaobjects.hpp \
-	jit_interface.h \
 	linker.c \
 	linker.h \
-	loader.c \
-	loader.h \
+	loader.cpp \
+	loader.hpp \
 	method.c \
 	method.h \
 	options.c \
@@ -120,9 +116,8 @@ libvm_la_SOURCES = \
 	package.hpp \
 	primitive.cpp \
 	primitive.hpp \
-	primitivecore.c \
-	properties.c \
-	properties.h \
+	properties.cpp \
+	properties.hpp \
 	references.h \
 	resolve.c \
 	resolve.h \
@@ -133,10 +128,11 @@ libvm_la_SOURCES = \
 	$(STATISTICS_SOURCES) \
 	string.cpp \
 	string.hpp \
-	suck.c \
-	suck.h \
+	suck.cpp \
+	suck.hpp \
 	utf8.c \
 	utf8.h \
+	vftbl.hpp \
 	vm.cpp \
 	vm.hpp \
 	$(ZLIB_SOURCES)

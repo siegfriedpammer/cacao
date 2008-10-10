@@ -31,9 +31,9 @@
 #include "vm/vm.hpp"
 #endif
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 #include "native/llni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/vm/include/java_lang_reflect_VMMethod.h"
@@ -42,7 +42,7 @@
 #include "native/vm/reflection.hpp"
 
 #include "vm/access.h"
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
@@ -193,8 +193,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_reflect_VMMethod_getDefaultValue(JNIEnv
 			return NULL;
 		}
 
-		classinfo *referer;
-		LLNI_class_get((java_lang_reflect_VMMethod *) _this, referer);
+		classinfo *referer = rvmm.get_Class();
 
 		m_parseAnnotationDefault = class_resolveclassmethod(
 			class_sun_reflect_annotation_AnnotationParser,
@@ -232,9 +231,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_reflect_VMMethod_declaredAnnotations(JN
 	if (declaredAnnotations == NULL) {
 		java_handle_bytearray_t* annotations    = rvmm.get_annotations();
 		classinfo*               declaringClass = rvmm.get_clazz();
-
-		classinfo *referer;
-		LLNI_class_get((java_lang_reflect_VMMethod *) _this, referer);
+		classinfo*               referer        = rvmm.get_Class();
 
 		declaredAnnotations = Reflection::get_declaredannotations(annotations, declaringClass, referer);
 
@@ -255,9 +252,7 @@ JNIEXPORT jobjectArray JNICALL Java_java_lang_reflect_VMMethod_getParameterAnnot
 	java_lang_reflect_VMMethod rvmm(_this);
 	java_handle_bytearray_t* parameterAnnotations = rvmm.get_parameterAnnotations();
 	methodinfo* m = rvmm.get_method();
-
-	classinfo* referer;
-	LLNI_class_get((java_lang_reflect_VMMethod *) _this, referer);
+	classinfo* referer = rvmm.get_Class();
 
 	java_handle_objectarray_t* oa = Reflection::get_parameterannotations(parameterAnnotations, m, referer);
 	return (jobjectArray) oa;
@@ -290,16 +285,12 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_java_lang_reflect_VMMethod_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("java/lang/reflect/VMMethod");
 
-	u = utf_new_char("java/lang/reflect/VMMethod");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

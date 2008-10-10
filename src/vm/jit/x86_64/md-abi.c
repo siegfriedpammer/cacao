@@ -32,7 +32,7 @@
 #include "vm/global.h"
 
 #include "vm/jit/abi.h"
-#include "vm/jit/jit.h" /* for REG_* (maybe can be removed) */
+#include "vm/jit/jit.hpp" /* for REG_* (maybe can be removed) */
 #include "vm/jit/stack.h"
 
 

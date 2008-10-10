@@ -230,10 +230,12 @@ typedef struct java_objectarray_t java_objectarray_t;
 #define HDRFLAG_HASH_ATTACHED 0x20
 #define HDRFLAG_REFERENCING   0x40
 
+#include "threads/lockword.hpp"
+
 struct java_object_t {                 /* header for all objects              */
 	struct _vftbl *vftbl;              /* pointer to virtual function table   */
 #if defined(ENABLE_THREADS)
-	uintptr_t      lockword;
+	Lockword       lockword;
 #endif
 #if defined(ENABLE_GC_CACAO)
 	uintptr_t      hdrflags;           /* word containing the GC bits         */
@@ -326,6 +328,7 @@ typedef struct java_handle_t {
 	java_object_t *heap_object;
 } java_handle_t;
 
+typedef struct java_handle_array_t        { java_array_t        *heap_object; } java_handle_array_t;
 typedef struct java_handle_objectarray_t  { java_objectarray_t  *heap_object; } java_handle_objectarray_t;
 typedef struct java_handle_booleanarray_t { java_booleanarray_t *heap_object; } java_handle_booleanarray_t;
 typedef struct java_handle_bytearray_t    { java_bytearray_t    *heap_object; } java_handle_bytearray_t;
@@ -337,6 +340,7 @@ typedef struct java_handle_floatarray_t   { java_floatarray_t   *heap_object; } 
 typedef struct java_handle_doublearray_t  { java_doublearray_t  *heap_object; } java_handle_doublearray_t;
 #else
 typedef java_object_t       java_handle_t;
+typedef java_array_t        java_handle_array_t;
 typedef java_objectarray_t  java_handle_objectarray_t;
 typedef java_booleanarray_t java_handle_booleanarray_t;
 typedef java_bytearray_t    java_handle_bytearray_t;

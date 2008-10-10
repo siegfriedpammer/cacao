@@ -1,9 +1,7 @@
 /* src/vm/jit/arm/codegen.h - code generation macros and definitions for ARM
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -114,11 +112,6 @@
     do { \
         M_NOP; \
     } while (0)
-
-
-/* stub defines ***************************************************************/
-
-#define COMPILERSTUB_CODESIZE    2 * 4
 
 
 /* lazy debugger **************************************************************/
@@ -650,6 +643,7 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #if !defined(ENABLE_SOFTFLOAT)
 
 #if defined(__VFP_FP__)
+
 #define M_FADD(a,b,d)      M_CPDP(UNCOND,0,1,1,0,10,0,0,0,d,a,b)/* d = a +  b */
 #define M_FSUB(a,b,d)      M_CPDP(UNCOND,0,1,1,1,10,0,0,0,d,a,b)/* d = a -  b */
 #define M_FMUL(a,b,d)      M_CPDP(UNCOND,0,1,0,0,10,0,0,0,d,a,b)/* d = a *  b */
@@ -671,8 +665,8 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define M_CVTFD(a,d)       M_CPDP(UNCOND,1,1,1,1,10,0,1,0,d,0x7,a)
 #define M_CVTIF(a,d)       M_CPDP(UNCOND,1,1,1,1,10,0,1,0,d,0x8,a)
 #define M_CVTID(a,d)       M_CPDP(UNCOND,1,1,1,1,11,0,1,0,d,0x8,a)
-#define M_CVTFI(a,d)       M_CPDP(UNCOND,1,1,1,1,10,0,1,0,d,0xc,a)
-#define M_CVTDI(a,d)       M_CPDP(UNCOND,1,1,1,1,11,0,1,0,d,0xc,a)
+#define M_CVTFI(a,d)       M_CPDP(UNCOND,1,1,1,1,10,0,1,0,d,0xd,a) // ftosis
+#define M_CVTDI(a,d)       M_CPDP(UNCOND,1,1,1,1,11,0,1,0,d,0xd,a) // ftosid
 
 #define M_FMSTAT           M_CPRT(UNCOND,0x07,1,10,0,0x1,0xf)
 
@@ -682,7 +676,9 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define M_FMRDL(Fa,b)      M_CPRT(UNCOND,0x00,1,11,0,Fa,b)
 #define M_FMDHR(a,Fb)      M_CPRT(UNCOND,0x01,0,11,0,Fb,a)
 #define M_FMRDH(Fa,b)      M_CPRT(UNCOND,0x01,1,11,0,Fa,b)
+
 #else
+
 #define M_FADD(a,b,d)      M_CPDOS(UNCOND,0x00,0,d,a,b)         /* d = a +  b */
 #define M_FSUB(a,b,d)      M_CPDOS(UNCOND,0x02,0,d,a,b)         /* d = a -  b */
 #define M_FMUL(a,b,d)      M_CPDOS(UNCOND,0x01,0,d,a,b)         /* d = a *  b */
@@ -708,6 +704,7 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define M_CVTID(a,d)       M_CPRTD(UNCOND,0,a,d,0)              /* d = (float) a */
 #define M_CVTFI(a,d)       M_CPRTI(UNCOND,1,d,0,a)              /* d = (int)   a */
 #define M_CVTDI(a,d)       M_CPRTI(UNCOND,1,d,0,a)              /* d = (int)   a */
+
 #endif
 
 
@@ -1103,15 +1100,22 @@ do { \
 /* M_RECOMPUTE_PV:
    used to recompute our PV (we use the IP for this) out of the current PC
    ATTENTION: if you change this, you have to look at other functions as well!
-   Following things depend on it: asm_call_jit_compiler(); codegen_findmethod();
+   Following things depend on it: md_codegen_get_pv_from_pc();
 */
 #define M_RECOMPUTE_PV(disp) \
 	disp += 8; /* we use PC relative addr.  */ \
 	assert((disp & 0x03) == 0); \
 	assert(disp >= 0 && disp <= 0x03ffffff); \
-	M_SUB_IMM(REG_PV, REG_PC, IMM_ROTL(disp >> 2, 1)); \
-	if (disp > 0x000003ff) M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 10, 5)); \
-	if (disp > 0x0003ffff) M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 18, 9)); \
+	if (disp > 0x0003ffff) { \
+		M_SUB_IMM(REG_PV, REG_PC, IMM_ROTL(disp >> 18, 9)); \
+		M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 10, 5)); \
+		M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 2, 1)); \
+	} else if (disp > 0x000003ff) { \
+		M_SUB_IMM(REG_PV, REG_PC, IMM_ROTL(disp >> 10, 5)); \
+		M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 2, 1)); \
+	} else { \
+		M_SUB_IMM(REG_PV, REG_PC, IMM_ROTL(disp >> 2, 1)); \
+	}
 
 /* M_INTMOVE:
    generates an integer-move from register a to b.

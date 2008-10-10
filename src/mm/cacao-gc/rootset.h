@@ -35,7 +35,7 @@ typedef struct rootset_t rootset_t;
 
 #include "vm/method.h"
 
-#include "vm/jit/replace.h"
+#include "vm/jit/replace.hpp"
 
 
 /* Structures *****************************************************************/

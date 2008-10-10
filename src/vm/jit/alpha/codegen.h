@@ -1,9 +1,8 @@
 /* src/vm/jit/alpha/codegen.h - code generation macros and definitions for Alpha
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -31,7 +30,7 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 
 /* additional functions and macros to generate code ***************************/
@@ -106,11 +105,6 @@
     } while (0)
 
 
-/* stub defines ***************************************************************/
-
-#define COMPILERSTUB_CODESIZE    1 * 4
-
-
 /* macros to create code ******************************************************/
 
 /* M_MEM - memory instruction format *******************************************
@@ -168,6 +162,8 @@
         *((u4 *) cd->mcodeptr) = ((((s4) (op)) << 26) | ((a) << 21) | ((b) << (16 - 3 * (const))) | ((const) << 12) | ((fu) << 5) | ((c))); \
         cd->mcodeptr += 4; \
     } while (0)
+
+#define M_OP3_GET_Opcode(x)             (          (((x) >> 26) & 0x3f  ))
 
 
 /* 3-address-floating-point-operation: M_FOP3 
@@ -441,7 +437,7 @@
 
 #define M_FBEQZ(fa,disp)        M_BRA (0x31,fa,disp)            /* br a == 0.0*/
 
-/* macros for special commands (see an Alpha-manual for description) **********/ 
+/* macros for special commands (see an Alpha-manual for description) **********/
 
 #define M_TRAPB                 M_MEM (0x18,0,0,0x0000)        /* trap barrier*/
 
@@ -538,6 +534,10 @@
 #define M_CMOVGE_IMM(a,b,c)     M_OP3 (0x11,0x46, a,b,c,1)     /* a>=0 ? c=b  */
 #define M_CMOVLE_IMM(a,b,c)     M_OP3 (0x11,0x64, a,b,c,1)     /* a<=0 ? c=b  */
 #define M_CMOVGT_IMM(a,b,c)     M_OP3 (0x11,0x66, a,b,c,1)     /* a> 0 ? c=b  */
+
+// 0x04 seems to be the first undefined instruction which does not
+// call PALcode.
+#define M_UNDEFINED             M_OP3(0x04, 0, 0, 0, 0, 0)
 
 /* macros for unused commands (see an Alpha-manual for description) ***********/
 

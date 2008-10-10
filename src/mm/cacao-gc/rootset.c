@@ -38,7 +38,7 @@
 #include "toolbox/logging.h"
 
 #include "vm/global.h"
-#include "vm/jit/replace.h"
+#include "vm/jit/replace.hpp"
 #include "vm/jit/stacktrace.hpp"
 
 

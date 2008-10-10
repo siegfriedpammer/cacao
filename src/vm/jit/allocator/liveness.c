@@ -35,13 +35,13 @@
 #include "toolbox/logging.h"
 #include "toolbox/worklist.h"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/method.h"
 #include "vm/resolve.h"
-#include "vm/jit/codegen-common.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/codegen-common.hpp"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/allocator/lsra.h"
 #include "vm/jit/allocator/liveness.h"
 

@@ -52,11 +52,14 @@ libthreads_la_SOURCES = \
 	atomic.cpp \
 	atomic.hpp \
 	condition.hpp \
-	lock-common.h \
+	lock.cpp \
+	lock.hpp \
+	lockword.cpp \
+	lockword.hpp \
 	removeme.cpp \
 	mutex.hpp \
-	threadlist.c \
-	threadlist.h \
+	threadlist.cpp \
+	threadlist.hpp \
 	thread.cpp \
 	thread.hpp
 else

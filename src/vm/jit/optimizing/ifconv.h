@@ -27,16 +27,23 @@
 #define _IFCONV_H
 
 #include "config.h"
-#include "vm/types.h"
 
-#include "vm/jit/codegen-common.h"
-#include "vm/jit/jit.h"
-#include "vm/jit/reg.h"
+#include <stdbool.h>
+
+#include "vm/jit/jit.hpp"
 
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool ifconv_static(jitdata *jd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _IFCONV_H */
 

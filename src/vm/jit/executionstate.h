@@ -38,7 +38,7 @@ typedef struct executionstate_t executionstate_t;
 #include "arch.h"
 #include "md-abi.h"
 
-#include "vm/jit/code.h"
+#include "vm/jit/code.hpp"
 
 
 /* executionstate_t ************************************************************
@@ -68,6 +68,10 @@ struct executionstate_t {
 
 /* prototypes *****************************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if !defined(NDEBUG)
 void executionstate_sanity_check(void *context);
 void executionstate_println(executionstate_t *es);
@@ -77,6 +81,10 @@ void executionstate_println(executionstate_t *es);
 
 void md_executionstate_read(executionstate_t *es, void *ucontext);
 void md_executionstate_write(executionstate_t *es, void *ucontext);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _EXECUTIONSTATE_H */
 

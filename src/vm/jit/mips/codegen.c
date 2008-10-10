@@ -37,12 +37,12 @@
 
 #include "mm/memory.h"
 
-#include "native/localref.h"
-#include "native/native.h"
+#include "native/localref.hpp"
+#include "native/native.hpp"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/exceptions.hpp"
 #include "vm/options.h"
@@ -50,14 +50,14 @@
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/dseg.h"
-#include "vm/jit/emit-common.h"
-#include "vm/jit/jit.h"
-#include "vm/jit/linenumbertable.h"
-#include "vm/jit/patcher-common.h"
+#include "vm/jit/emit-common.hpp"
+#include "vm/jit/jit.hpp"
+#include "vm/jit/linenumbertable.hpp"
+#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/reg.h"
-#include "vm/jit/replace.h"
+#include "vm/jit/replace.hpp"
 #include "vm/jit/trap.h"
 
 #if defined(ENABLE_LSRA)

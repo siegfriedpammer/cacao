@@ -35,10 +35,10 @@
 #include "native/llni.h"
 
 #include "vm/access.h"
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/exceptions.hpp"
-#include "vm/field.h"
+#include "vm/field.hpp"
 #include "vm/globals.hpp"
 #include "vm/method.h"
 

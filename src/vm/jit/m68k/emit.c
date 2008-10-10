@@ -32,10 +32,10 @@
 
 #include "mm/memory.h"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/emit-common.h"
+#include "vm/jit/emit-common.hpp"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.h"
 

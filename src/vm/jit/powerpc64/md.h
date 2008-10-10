@@ -37,7 +37,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 
 /* md_stacktrace_get_returnaddress *********************************************

@@ -1,9 +1,7 @@
 ## src/toolbox/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-## C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-## E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-## J. Wenninger, Institut f. Computersprachen - TU Wien
+## Copyright (C) 1996-2005, 2006, 2007, 2008
+## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
 ##
@@ -21,12 +19,8 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## 02110-1301, USA.
-##
-## Contact: cacao@cacaojvm.org
-##
-## Authors: Christian Thalinger
-##
-##
+
+
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR) -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 
 LIBS =
@@ -39,18 +33,13 @@ libtoolbox_la_SOURCES = \
 	avl.h \
 	bitvector.c \
 	bitvector.h \
-	chain.c \
-	chain.h \
 	hashtable.c \
 	hashtable.h \
-	list.c \
-	list.h \
+	list.hpp \
 	logging.c \
 	logging.h \
 	set.h \
 	set.c \
-	tree.c \
-	tree.h \
 	util.c \
 	util.h \
 	worklist.c \

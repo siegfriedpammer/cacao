@@ -26,10 +26,6 @@
 #ifndef _LLNI_H
 #define _LLNI_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "config.h"
 
 /* forward defines ************************************************************/
@@ -55,7 +51,7 @@ extern "C" {
 #endif
 
 
-#include "native/localref.h"
+#include "native/localref.hpp"
 
 #include "threads/thread.hpp"
 
@@ -147,6 +143,10 @@ extern "C" {
 # define LLNI_CRITICAL_END
 # define LLNI_CRITICAL_START_THREAD(t)
 # define LLNI_CRITICAL_END_THREAD(t)
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 void llni_critical_start();

@@ -31,7 +31,8 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
+#include "threads/mutex.hpp"
 
 #include "toolbox/hashtable.h"
 #include "toolbox/logging.h"
@@ -209,8 +210,8 @@ void classcache_print_statistics(FILE *file) {
 	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
 #if defined(ENABLE_THREADS)
-# define CLASSCACHE_LOCK()      LOCK_MONITOR_ENTER(lock_hashtable_classcache)
-# define CLASSCACHE_UNLOCK()    LOCK_MONITOR_EXIT(lock_hashtable_classcache)
+# define CLASSCACHE_LOCK()      Mutex_lock(classcache_hashtable_mutex)
+# define CLASSCACHE_UNLOCK()    Mutex_unlock(classcache_hashtable_mutex)
 #else
 # define CLASSCACHE_LOCK()
 # define CLASSCACHE_UNLOCK()
@@ -223,7 +224,7 @@ void classcache_print_statistics(FILE *file) {
 hashtable hashtable_classcache;
 
 #if defined(ENABLE_THREADS)
-static java_object_t *lock_hashtable_classcache;
+static Mutex *classcache_hashtable_mutex;
 #endif
 
 
@@ -258,11 +259,9 @@ bool classcache_init(void)
 	hashtable_create(&hashtable_classcache, CLASSCACHE_INIT_SIZE);
 
 #if defined(ENABLE_THREADS)
-	/* create utf hashtable lock object */
+	/* create utf hashtable mutex */
 
-	lock_hashtable_classcache = NEW(java_object_t);
-
-	LOCK_INIT_OBJECT_LOCK(lock_hashtable_classcache);
+	classcache_hashtable_mutex = Mutex_new();
 #endif
 
 	/* everything's ok */

@@ -32,7 +32,6 @@
 
 #include "mm/memory.h"
 
-#include "native/jni.h"
 #include "native/llni.h"
 
 #include "threads/thread.hpp"
@@ -46,10 +45,10 @@
 #include "vm/string.hpp"
 #include "vm/utf8.h"
 
-#include "vm/jit/argument.h"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/argument.hpp"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/trace.hpp"
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 
 
 #if !defined(NDEBUG)
@@ -120,7 +119,7 @@ static char *trace_java_call_print_argument(methodinfo *m, char *logtext, s4 *lo
 
 		/* Cast to java.lang.Object. */
 
-		o = (java_object_t *) (ptrint) imu.l;
+		o = (java_handle_t*) (uintptr_t) imu.l;
 
 		/* Check return argument for java.lang.Class or
 		   java.lang.String. */
@@ -136,7 +135,7 @@ static char *trace_java_call_print_argument(methodinfo *m, char *logtext, s4 *lo
 
 				/* realloc memory for string length */
 
-				logtext = DMREALLOC(logtext, char, *logtextlen, *logtextlen + len);
+				logtext = (char*) DumpMemory::reallocate(logtext, *logtextlen, *logtextlen + len);
 				*logtextlen += len;
 
 				/* convert to utf8 string and strcat it to the logtext */
@@ -166,7 +165,7 @@ static char *trace_java_call_print_argument(methodinfo *m, char *logtext, s4 *lo
 
 				/* realloc memory for string length */
 
-				logtext = DMREALLOC(logtext, char, *logtextlen, *logtextlen + len);
+				logtext = (char*) DumpMemory::reallocate(logtext, *logtextlen, *logtextlen + len);
 				*logtextlen += len;
 
 				/* strcat to the logtext */
@@ -202,7 +201,6 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 	s4          logtextlen;
 	s4          i;
 	s4          pos;
-	int32_t     dumpmarker;
 
 	/* We don't trace builtin functions here because the argument
 	   passing happens via the native ABI and does not fit these
@@ -260,11 +258,11 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 		strlen("...(255)") +
 		strlen(")");
 
-	/* allocate memory */
+	// Create new dump memory area.
+	DumpMemoryArea dma;
 
-	DMARKER;
-
-	logtext = DMNEW(char, logtextlen);
+	// TODO Use a std::string here.
+	logtext = (char*) DumpMemory::allocate(sizeof(char) * logtextlen);
 
 	TRACEJAVACALLCOUNT++;
 
@@ -313,12 +311,7 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 
 	log_text(logtext);
 
-	/* release memory */
-
-	DRELEASE;
-
 	TRACEJAVACALLINDENT++;
-
 }
 
 /* trace_java_call_exit ********************************************************
@@ -339,7 +332,6 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 	s4          i;
 	s4          pos;
 	imm_union   val;
-	int32_t     dumpmarker;
 
 	/* We don't trace builtin functions here because the argument
 	   passing happens via the native ABI and does not fit these
@@ -384,11 +376,11 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 
 	logtextlen += strlen("->0.4872328470301428 (0x0123456789abcdef)");
 
-	/* allocate memory */
+	// Create new dump memory area.
+	DumpMemoryArea dma;
 
-	DMARKER;
-
-	logtext = DMNEW(char, logtextlen);
+	// TODO Use a std::string here.
+	logtext = (char*) DumpMemory::allocate(sizeof(char) * logtextlen);
 
 	/* generate the message */
 
@@ -419,10 +411,6 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 	}
 
 	log_text(logtext);
-
-	/* release memory */
-
-	DRELEASE;
 }
 
 
@@ -437,7 +425,6 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 	char *logtext;
 	s4    logtextlen;
 	codeinfo *code;
-	int32_t   dumpmarker;
 
 	/* calculate message length */
 
@@ -480,11 +467,11 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 
 	logtextlen += strlen("0");
 
-	/* allocate memory */
+	// Create new dump memory area.
+	DumpMemoryArea dma;
 
-	DMARKER;
-
-	logtext = DMNEW(char, logtextlen);
+	// TODO Use a std::string here.
+	logtext = (char*) DumpMemory::allocate(sizeof(char) * logtextlen);
 
 	if (xptr) {
 		strcpy(logtext, "Exception ");
@@ -550,10 +537,6 @@ void trace_exception(java_object_t *xptr, methodinfo *m, void *pos)
 		strcat(logtext, "call_java_method");
 
 	log_text(logtext);
-
-	/* release memory */
-
-	DRELEASE;
 }
 
 
@@ -567,7 +550,6 @@ void trace_exception_builtin(java_handle_t* h)
 {
 	char                *logtext;
 	s4                   logtextlen;
-	int32_t              dumpmarker;
 
 	java_lang_Throwable jlt(h);
 
@@ -596,11 +578,10 @@ void trace_exception_builtin(java_handle_t* h)
 		logtextlen += strlen("(nil)");
 	}
 
-	/* allocate memory */
+	// Create new dump memory area.
+	DumpMemoryArea dma;
 
-	DMARKER;
-
-	logtext = DMNEW(char, logtextlen);
+	logtext = (char*) DumpMemory::allocate(sizeof(char) * logtextlen);
 
 	strcpy(logtext, "Builtin exception thrown: ");
 
@@ -621,10 +602,6 @@ void trace_exception_builtin(java_handle_t* h)
 	}
 
 	log_text(logtext);
-
-	/* release memory */
-
-	DRELEASE;
 }
 
 } // extern "C"

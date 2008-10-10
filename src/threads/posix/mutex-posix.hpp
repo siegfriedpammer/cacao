@@ -2,6 +2,7 @@
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -30,7 +31,6 @@
 
 #include <pthread.h>
 
-#include "vm/vm.hpp"
 
 #ifdef __cplusplus
 
@@ -40,37 +40,57 @@
 class Mutex {
 private:
 	// POSIX mutex structure.
-	pthread_mutex_t _mutex;
+	pthread_mutex_t     _mutex;
+	pthread_mutexattr_t _attr;
 
 	// Condition class needs to access _mutex for wait() and
 	// timedwait().
 	friend class Condition;
 	
 public:
-	Mutex();
-	~Mutex();
+	inline Mutex();
+	inline ~Mutex();
 
-	void lock();
-	void unlock();
+	inline void lock();
+	inline void unlock();
 };
 
+#else
 
-/* static mutex initializer ***************************************************/
+// Forward typedefs
+typedef struct Mutex Mutex;
 
-#define MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
+#endif
 
+
+// Includes.
+#include "vm/os.hpp"
+
+
+#ifdef __cplusplus
 
 /**
  * Initializes the given mutex object and checks for errors.
  */
 inline Mutex::Mutex()
 {
-	int result;
+	int result = pthread_mutexattr_init(&_attr);
 
-	result = pthread_mutex_init(&_mutex, NULL);
+	if (result != 0) {
+		os::abort_errnum(result, "Mutex::Mutex(): pthread_mutexattr_init failed");
+	}
 
-	if (result != 0)
-		vm_abort_errnum(result, "Mutex::Mutex(): pthread_mutex_init failed");
+	result = pthread_mutexattr_settype(&_attr, PTHREAD_MUTEX_RECURSIVE);
+
+	if (result != 0) {
+		os::abort_errnum(result, "Mutex::Mutex(): pthread_mutexattr_settype failed");
+	}
+
+	result = pthread_mutex_init(&_mutex, &_attr);
+
+	if (result != 0) {
+		os::abort_errnum(result, "Mutex::Mutex(): pthread_mutex_init failed");
+	}
 }
 
 
@@ -79,12 +99,17 @@ inline Mutex::Mutex()
  */
 inline Mutex::~Mutex()
 {
-	int result;
+	int result = pthread_mutexattr_destroy(&_attr);
+
+	if (result != 0) {
+		os::abort_errnum(result, "Mutex::~Mutex(): pthread_mutexattr_destroy failed");
+	}
 
 	result = pthread_mutex_destroy(&_mutex);
 
-	if (result != 0)
-		vm_abort_errnum(result, "Mutex::~Mutex(): pthread_mutex_destroy failed");
+	if (result != 0) {
+		os::abort_errnum(result, "Mutex::~Mutex(): pthread_mutex_destroy failed");
+	}
 }
 
 
@@ -99,12 +124,11 @@ inline Mutex::~Mutex()
  */
 inline void Mutex::lock()
 {
-	int result;
+	int result = pthread_mutex_lock(&_mutex);
 
-	result = pthread_mutex_lock(&_mutex);
-
-	if (result != 0)
-		vm_abort_errnum(result, "Mutex::lock(): pthread_mutex_lock failed");
+	if (result != 0) {
+		os::abort_errnum(result, "Mutex::lock(): pthread_mutex_lock failed");
+	}
 }
 
 
@@ -114,20 +138,20 @@ inline void Mutex::lock()
  */
 inline void Mutex::unlock()
 {
-	int result;
+	int result = pthread_mutex_unlock(&_mutex);
 
-	result = pthread_mutex_unlock(&_mutex);
-
-	if (result != 0)
-		vm_abort_errnum(result, "Mutex::unlock: pthread_mutex_unlock failed");
+	if (result != 0) {
+		os::abort_errnum(result, "Mutex::unlock: pthread_mutex_unlock failed");
+	}
 }
 
 #else
 
 // This structure must have the same layout as the class above.
-typedef struct Mutex {
-	pthread_mutex_t _mutex;
-} Mutex;
+struct Mutex {
+	pthread_mutex_t     _mutex;
+	pthread_mutexattr_t _attr;
+};
 
 Mutex* Mutex_new();
 void   Mutex_delete(Mutex* mutex);

@@ -30,16 +30,17 @@
 
 #include "mm/memory.h"
 
-#include "native/jni.h"
-#include "native/native.h"
+#include "native/jni.hpp"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/include/java_lang_System.h"
 #endif
 
-#include "vm/builtin.h"
-#include "vm/properties.h"
+#include "vm/jit/builtin.hpp"
+#include "vm/properties.hpp"
 #include "vm/string.hpp"
+#include "vm/vm.hpp"
 
 
 // Native functions are exported as C functions.
@@ -78,7 +79,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_System_getProperty0(JNIEnv *env, jclass
 
 	/* get the property from the internal table */
 
-	value = properties_get(key);
+	value = VM::get_current()->get_properties().get(key);
 
 	/* release the memory allocated in javastring_tochar */
 
@@ -109,16 +110,12 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
  
-// FIXME
-extern "C" {
 void _Jv_java_lang_System_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("java/lang/System");
  
-	u = utf_new_char("java/lang/System");
- 
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

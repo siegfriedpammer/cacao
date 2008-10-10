@@ -29,7 +29,7 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "toolbox/list.h"
+#include "toolbox/list.hpp"
 #include "vm/method.h"
 
 

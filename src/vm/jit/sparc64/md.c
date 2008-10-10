@@ -33,8 +33,8 @@
 #include "vm/jit/sparc64/md-abi.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/codegen-common.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/codegen-common.hpp"
+#include "vm/jit/jit.hpp"
 
 
 /* assembler function prototypes **********************************************/

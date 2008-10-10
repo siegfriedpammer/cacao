@@ -34,12 +34,10 @@ typedef struct dsegentry dsegentry;
 #include "config.h"
 #include "vm/types.h"
 
-#include "toolbox/list.h"
-
 #include "vm/references.h"
 
-#include "vm/jit/jit.h"
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/jit.hpp"
+#include "vm/jit/codegen-common.hpp"
 
 
 /* convenience macros *********************************************************/
@@ -63,6 +61,10 @@ struct dsegentry {
 
 
 /* function prototypes ********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void dseg_finish(jitdata *jd);
 
@@ -88,6 +90,10 @@ void dseg_resolve_datareferences(jitdata *jd);
 
 #if !defined(NDEBUG)
 void dseg_display(jitdata *jd);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* _DSEG_H */

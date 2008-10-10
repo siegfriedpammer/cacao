@@ -27,14 +27,14 @@
 
 #include <stdint.h>
 
-#include "native/jni.h"
-#include "native/native.h"
+#include "native/jni.hpp"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/vm/include/gnu_java_lang_management_VMRuntimeMXBeanImpl.h"
 #endif
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/utf8.h"
@@ -64,7 +64,7 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_gnu_java_lang_management_VMRun
  */
 JNIEXPORT int64_t JNICALL Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getStartTime(JNIEnv *env, jclass clazz)
 {
-	return vm->get_starttime();
+	return VM::get_current()->get_starttime();
 }
 
 } // extern "C"
@@ -84,16 +84,12 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_gnu_java_lang_management_VMRuntimeMXBeanImpl_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("gnu/java/lang/management/VMRuntimeMXBeanImpl");
 
-	u = utf_new_char("gnu/java/lang/management/VMRuntimeMXBeanImpl");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

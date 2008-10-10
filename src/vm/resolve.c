@@ -38,12 +38,12 @@
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/linker.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/verify/typeinfo.h"
 
 

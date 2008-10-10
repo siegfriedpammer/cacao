@@ -34,19 +34,19 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/options.h"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/abi-asm.h"
 #include "vm/jit/asmpart.h"
 #include "vm/jit/dseg.h"
-#include "vm/jit/emit-common.h"
-#include "vm/jit/jit.h"
-#include "vm/jit/patcher-common.h"
-#include "vm/jit/replace.h"
+#include "vm/jit/emit-common.hpp"
+#include "vm/jit/jit.hpp"
+#include "vm/jit/patcher-common.hpp"
+#include "vm/jit/replace.hpp"
 #include "vm/jit/trap.h"
 
 
@@ -615,14 +615,11 @@ void emit_trap_compiler(codegendata *cd)
 
 uint32_t emit_trap(codegendata *cd)
 {
-	uint32_t mcode;
+	// Get machine code which is patched back in later. The trap is 1
+	// instruction word long.
+	uint32_t mcode = *((uint32_t*) cd->mcodeptr);
 
-	/* Get machine code which is patched back in later. The
-	   trap is 1 instruction word long. */
-
-	mcode = *((uint32_t *) cd->mcodeptr);
-
-	M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_PATCHER);
+	M_RESERVED;
 
 	return mcode;
 }

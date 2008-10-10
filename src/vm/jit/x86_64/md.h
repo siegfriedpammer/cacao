@@ -1,6 +1,7 @@
 /* src/vm/jit/x86_64/md.h - machine dependent x86_64 functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -30,7 +31,7 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 #include "vm/jit/methodtree.h"
 
 
@@ -82,9 +83,10 @@ inline static void *md_codegen_get_pv_from_pc(void *ra)
 
 *******************************************************************************/
 
-inline static void md_cacheflush(u1 *addr, s4 nbytes)
+inline static void md_cacheflush(void* addr, int nbytes)
 {
-	/* do nothing */
+	// Compiler optimization barrier (see PR97).
+	__asm__ __volatile__ ("" : : : "memory");
 }
 
 
@@ -94,9 +96,10 @@ inline static void md_cacheflush(u1 *addr, s4 nbytes)
 
 *******************************************************************************/
 
-inline static void md_icacheflush(u1 *addr, s4 nbytes)
+inline static void md_icacheflush(void* addr, int nbytes)
 {
-	/* do nothing */
+	// Compiler optimization barrier (see PR97).
+	__asm__ __volatile__ ("" : : : "memory");
 }
 
 
@@ -106,9 +109,10 @@ inline static void md_icacheflush(u1 *addr, s4 nbytes)
 
 *******************************************************************************/
 
-inline static void md_dcacheflush(u1 *addr, s4 nbytes)
+inline static void md_dcacheflush(void* addr, int nbytes)
 {
-	/* do nothing */
+	// Compiler optimization barrier (see PR97).
+	__asm__ __volatile__ ("" : : : "memory");
 }
 
 #endif /* _VM_JIT_X86_64_MD_H */

@@ -36,7 +36,7 @@
 
 #include "vm/types.h"
 
-#include "vm/jit/codegen-common.h"
+#include "vm/jit/codegen-common.hpp"
 
 
 #define REG_AL       0

@@ -28,7 +28,7 @@
 #include "vm/class.h"
 #include "vm/classcache.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/optimizing/escape.h"
 
 #include <stdarg.h>

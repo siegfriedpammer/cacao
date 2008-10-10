@@ -38,13 +38,15 @@ typedef struct unresolved_subtype_set unresolved_subtype_set;
 #include "vm/types.h"
 
 #include "vm/class.h"
-#include "vm/field.h"
+#include "vm/field.hpp"
 #include "vm/global.h"
 #include "vm/method.h"
 #include "vm/references.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/reg.h"
+
+#include "vm/jit/ir/instruction.hpp"
 #include "vm/jit/verify/typeinfo.h"
 
 
@@ -113,6 +115,10 @@ struct unresolved_method {
 
 
 /* function prototypes ********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void resolve_handle_pending_exception(bool throwError);
 
@@ -254,6 +260,10 @@ void unresolved_class_debug_dump(unresolved_class *ref,FILE *file);
 void unresolved_field_debug_dump(unresolved_field *ref,FILE *file);
 void unresolved_method_debug_dump(unresolved_method *ref,FILE *file);
 void unresolved_subtype_set_debug_dump(unresolved_subtype_set *stset,FILE *file);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 	
 #endif /* _RESOLVE_H */

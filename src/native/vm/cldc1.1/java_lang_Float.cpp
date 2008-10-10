@@ -27,14 +27,16 @@
 
 #include <stdint.h>
 
-#include "native/jni.h"
-#include "native/native.h"
+#include "native/jni.hpp"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/include/java_lang_Float.h"
 #endif
 
-#include "vm/builtin.h"
+#include "vm/vm.hpp"
+
+#include "vm/jit/builtin.hpp"
 
 
 // Native functions are exported as C functions.
@@ -77,16 +79,12 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
 
-// FIXME
-extern "C" { 
 void _Jv_java_lang_Float_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("java/lang/Float");
  
-	u = utf_new_char("java/lang/Float");
- 
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

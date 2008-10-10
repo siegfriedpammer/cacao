@@ -28,11 +28,11 @@
 
 #include "mm/memory.h"
 
-#include "native/native.h"
+#include "native/native.hpp"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
-#include "vm/field.h"
+#include "vm/field.hpp"
 #include "vm/initialize.h"
 #include "vm/options.h"
 #include "vm/references.h"

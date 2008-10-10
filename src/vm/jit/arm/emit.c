@@ -36,16 +36,16 @@
 
 #include "mm/memory.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
 #include "vm/global.h"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/emit-common.h"
-#include "vm/jit/jit.h"
-#include "vm/jit/patcher-common.h"
-#include "vm/jit/replace.h"
+#include "vm/jit/emit-common.hpp"
+#include "vm/jit/jit.hpp"
+#include "vm/jit/patcher-common.hpp"
+#include "vm/jit/replace.hpp"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.h"
 
@@ -570,6 +570,18 @@ void emit_exception_check(codegendata *cd, instruction *iptr)
 		M_TST(REG_RESULT, REG_RESULT);
 		M_TRAPEQ(0, TRAP_CHECK_EXCEPTION);
 	}
+}
+
+
+/* emit_trap_compiler **********************************************************
+
+   Emit a trap instruction which calls the JIT compiler.
+
+*******************************************************************************/
+
+void emit_trap_compiler(codegendata *cd)
+{
+	M_TRAP(REG_METHODPTR, TRAP_COMPILER);
 }
 
 

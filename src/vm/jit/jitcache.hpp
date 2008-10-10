@@ -25,6 +25,8 @@
 #ifndef _JITCACHE_H
 #define _JITCACHE_H
 
+#include "vm/jit/patcher-common.hpp"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -34,8 +36,6 @@ extern "C" {
 #include "config.h"
 
 #include <stdint.h>
-
-#include "vm/jit/patcher-common.h"
 
 #include "vm/class.h"
 #include "vm/method.h"
@@ -72,13 +72,12 @@ typedef enum cachedreftype {
 
 *******************************************************************************/
 
-typedef struct cachedref_t {
+struct cachedref_t {
 	cachedreftype type;			/* type of the cached reference */
 	s4			  md_patch;		/* machine dependent back patching */
 	s4       	  disp;         /* displacement of ref in the data segment    */
 	void*       ref;          /* reference passed                           */
-	listnode_t    linkage;
-} cachedref_t;
+};
 
 /*
 typedef struct mru_entry_t {
@@ -94,11 +93,11 @@ typedef void (*deserializerfptr) (patchref_t *, int, methodinfo *);
 
 /* jitcache_patcher_function_list_t typedef ***********************************/
 
-typedef struct jitcache_patcher_function_list_t {
+struct jitcache_patcher_function_list_t {
 	functionptr patcher;
 	serializerfptr serializer;
 	deserializerfptr deserializer;
-} jitcache_patcher_function_list_t;
+};
 
 /* function prototypes ********************************************************/
 

@@ -28,10 +28,6 @@
 
 #include "config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "vm/types.h"
 
 // Include early to get threadobject.
@@ -43,7 +39,6 @@ extern "C" {
 
 #include "vm/os.hpp"
 
-#include "native/jni.h"
 #include "native/llni.h"
 
 #include "threads/mutex.hpp"
@@ -96,6 +91,10 @@ extern "C" {
 extern bool threads_pthreads_implementation_nptl;
 #endif
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* inline functions ***********************************************************/
 
@@ -333,8 +332,6 @@ threadobject *thread_get_thread(java_handle_t *h);
 
 bool          threads_thread_is_alive(threadobject *t);
 
-void          threads_dump(void);
-
 
 /* implementation specific functions */
 
@@ -349,7 +346,6 @@ void          threads_mutex_gc_unlock(void);
 void          threads_mutex_join_lock(void);
 void          threads_mutex_join_unlock(void);
 
-void          threads_impl_thread_init(threadobject *t);
 void          threads_impl_thread_clear(threadobject *t);
 void          threads_impl_thread_reuse(threadobject *t);
 void          threads_impl_thread_free(threadobject *t);
@@ -357,11 +353,11 @@ void          threads_impl_thread_start(threadobject *thread, functionptr f);
 
 void          threads_yield(void);
 
-#endif /* ENABLE_THREADS */
-
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* ENABLE_THREADS */
 
 #endif // _THREAD_HPP
 

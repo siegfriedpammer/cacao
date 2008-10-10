@@ -30,12 +30,14 @@
 
 #include "vm/types.h"
 
-#include "native/jni.h"
-#include "native/native.h"
+#include "native/jni.hpp"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/include/com_sun_cldchi_io_ConsoleOutputStream.h"
 #endif
+
+#include "vm/vm.hpp"
 
 
 // Native functions are exported as C functions.
@@ -67,16 +69,12 @@ static JNINativeMethod methods[] = {
  
 *******************************************************************************/
  
-// FIXME
-extern "C" { 
 void _Jv_com_sun_cldchi_io_ConsoleOutputStream_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("com/sun/cldchi/io/ConsoleOutputStream");
  
-	u = utf_new_char("com/sun/cldchi/io/ConsoleOutputStream");
- 
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

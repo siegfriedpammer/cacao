@@ -26,10 +26,26 @@
 
 #if defined(ENABLE_JITCACHE)
 
-/* for mkdir() */
+#include "threads/thread.hpp"
+
+#include "toolbox/list.hpp"
+
+#include "vm/field.hpp"
+
+#include "vm/jit/builtin.hpp"
+#include "vm/jit/code.hpp"
+#include "vm/jit/codegen-common.hpp"
+#include "vm/jit/jit.hpp"
+#include "vm/jit/jitcache.hpp"
+#include "vm/jit/linenumbertable.hpp"
+#include "vm/jit/patcher-common.hpp"
+
+#include "vm/os.hpp"
+#include "vm/string.hpp"
 
 extern "C" {
 
+/* for mkdir() */
 #include <sys/stat.h>
 
 #include <assert.h>
@@ -37,37 +53,25 @@ extern "C" {
 
 #include "md.h"
 
-#include "toolbox/list.h"
 #include "toolbox/logging.h"
 
 #include "mm/memory.h"
 #include "mm/codememory.h"
 
-#include "vm/builtin.h"
 #include "vm/method.h"
 #include "vm/options.h"
 #include "vm/resolve.h"
 #include "vm/types.h"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/jit.h"
-#include "vm/jit/code.h"
-#include "vm/jit/patcher-common.h"
-#include "vm/jit/codegen-common.h"
-#include "vm/jit/linenumbertable.h"
 #include "vm/jit/exceptiontable.h"
 #include "vm/jit/methodtree.h"
 
 #include "vm/references.h"
-#include "vm/field.h"
 #include "vm/utf8.h"
 
 }
 
-#include "vm/string.hpp"
-#include "vm/os.hpp"
-#include "vm/jit/jitcache.hpp"
-#include "threads/thread.hpp"
 
 /* TODO: Wrap this in vm/system.h" */
 #include "unistd.h"
@@ -261,7 +265,7 @@ void jitcache_mru_remove(classinfo *c)
 
 void jitcache_list_create(codeinfo *code)
 {
-	code->cachedrefs = list_create(OFFSET(cachedref_t, linkage));
+	code->cachedrefs = new List<cachedref_t>();
 }
 
 
@@ -273,20 +277,7 @@ void jitcache_list_create(codeinfo *code)
 
 void jitcache_list_reset(codeinfo *code)
 {
-	cachedref_t *pr;
-
-	/* free all elements of the list */
-
-	while((pr = (cachedref_t *) list_first(code->cachedrefs)) != NULL) {
-		list_remove(code->cachedrefs, pr);
-
-		FREE(pr, cachedref_t);
-
-#if defined(ENABLE_STATISTICS)
-		if (opt_stat)
-			size_cachedref -= sizeof(cachedref_t);
-#endif
-	}
+	code->cachedrefs->clear();
 }
 
 
@@ -304,7 +295,8 @@ void jitcache_list_free(codeinfo *code)
 
 	/* free the list itself */
 
-	FREE(code->cachedrefs, list_t);
+	delete code->cachedrefs;
+	code->cachedrefs = 0;
 }
 
 
@@ -320,17 +312,14 @@ void jitcache_list_free(codeinfo *code)
 
 static cachedref_t *jitcache_list_find(codeinfo *code, s4 disp)
 {
-	cachedref_t *cr;
-
 	/* walk through all cached references for the given codeinfo */
 
-	cr = (cachedref_t *) list_first(code->cachedrefs);
-	while (cr) {
+	for (List<cachedref_t>::iterator it = code->cachedrefs->begin();
+			it != code->cachedrefs->end(); it++)
+	{
 
-		if (cr->disp == disp)
-			return cr;
-
-		cr = (cachedref_t *) list_next(code->cachedrefs, cr);
+		if (it->disp == disp)
+			return &(*it);
 	}
 
 	return NULL;
@@ -343,48 +332,35 @@ static cachedref_t *jitcache_list_find(codeinfo *code, s4 disp)
 
 *******************************************************************************/
 
-cachedref_t *jitcache_new_cached_ref(cachedreftype type, s4 md_patch, void* ref, s4 disp)
+cachedref_t jitcache_new_cached_ref(cachedreftype type, s4 md_patch, void* ref, s4 disp)
 {
-	cachedref_t *cr;
-
-	/* allocate cachedref on heap (at least freed together with codeinfo) */
-
-	cr = NEW(cachedref_t);
-
-#if defined(ENABLE_STATISTICS)
-	if (opt_stat)
-		size_cachedref += sizeof(cachedref_t);
-#endif
+	cachedref_t cr;
 
 	/* set reference information */
 
-	cr->type    = type;
-	cr->md_patch= md_patch;
-	cr->disp    = disp;
-	cr->ref     = ref;
+	cr.type    = type;
+	cr.md_patch= md_patch;
+	cr.disp    = disp;
+	cr.ref     = ref;
 
 	return cr;
 }
-/* jitcache_add_cachedref_jd ***************************************************
+/* jitcache_add_cachedref_intern ***********************************************
 
-   Creates a new cached ref appends it to the list in the codeinfo structure
-   *or* attaches it to the *last* patchref_t if it overlaps with the address
-   of the cached reference.
+   Creates a new cached ref appends it to the list in the codeinfo structure.
 
 *******************************************************************************/
 
-void jitcache_add_cached_ref_intern(codeinfo *code, cachedref_t *cachedref)
+void jitcache_add_cached_ref_intern(codeinfo *code, cachedref_t cachedref)
 {
-	cachedref_t *list_cr;
+	List<cachedref_t>::iterator it = code->cachedrefs->begin();
 
-	list_cr = (cachedref_t *) list_first(code->cachedrefs);
-
-	while (list_cr)
+	while (it != code->cachedrefs->end())
 	{
-		if (list_cr->disp == cachedref->disp)
+		if (it->disp == cachedref.disp)
 		{
-			assert(list_cr->type == cachedref->type);
-			assert(list_cr->ref == cachedref->ref);
+			assert(it->type == cachedref.type);
+			assert(it->ref == cachedref.ref);
 
 			/* Cachedref for already existing object found. No need to store
 			 * it.
@@ -392,10 +368,10 @@ void jitcache_add_cached_ref_intern(codeinfo *code, cachedref_t *cachedref)
 			return;
 		}
 
-		list_cr = (cachedref_t *) list_next(code->cachedrefs, list_cr);
+		it++;
 	}
 
-	list_add_first(code->cachedrefs, cachedref);
+	code->cachedrefs->push_front(cachedref);
 }
 
 /* jitcache_add_cachedref_jd ***************************************************
@@ -422,10 +398,10 @@ void jitcache_add_cached_ref_jd(jitdata *jd, cachedreftype type, void* ref)
 
 void jitcache_add_cached_ref_md_jd(jitdata *jd, cachedreftype type, s4 md_patch, void* ref)
 {
-	patchref_t	 *patchref;
+	patchref_t	 patchref;
 	codegendata	 *cd;
 	ptrint			 disp;
-	cachedref_t *cachedref;
+	cachedref_t  cachedref;
 
 	if (type >= CRT_OBJECT_HEADER && !ref)
 		return;
@@ -435,15 +411,14 @@ void jitcache_add_cached_ref_md_jd(jitdata *jd, cachedreftype type, s4 md_patch,
 	disp = (ptrint) (cd->mcodeptr - cd->mcodebase) - SIZEOF_VOID_P;
 	cachedref = jitcache_new_cached_ref(type, md_patch, ref, disp);
 
-	patchref = (patchref_t *) list_first(jd->code->patchers);
+	patchref = jd->code->patchers->front();
 
-	if (patchref
-		&& (patchref->mpc) <= disp
-		&& (patchref->mpc + sizeof(patchref->mcode)) >= disp)
+	if ((patchref.mpc) <= disp
+		  && (patchref.mpc + sizeof(patchref.mcode)) >= disp)
 	{
 		/* patchers and cachedref overlap: cached ref must
 		 * be handled after the patcher.
-         */
+     */
 
 		if (opt_DebugJitCache)
 		{
@@ -451,12 +426,12 @@ void jitcache_add_cached_ref_md_jd(jitdata *jd, cachedreftype type, s4 md_patch,
 		}
 
 		/* There can be only one cached ref per patcher currently.
-         * If the need arises to handle more cached refs a list can
-         * be used.
-         */
-		assert(!patchref->attached_ref);
+     * If the need arises to handle more cached refs a list can
+     * be used.
+     */
+		assert(!patchref.attached_ref);
 
-		patchref->attached_ref = cachedref;
+		patchref.attached_ref = &cachedref;
 	}
 	else
 		jitcache_add_cached_ref_intern(jd->code, cachedref);
@@ -471,7 +446,7 @@ void jitcache_add_cached_ref_md_jd(jitdata *jd, cachedreftype type, s4 md_patch,
 
 void jitcache_add_cached_ref(codeinfo *code, cachedreftype type, void* ref, s4 disp)
 {
-	cachedref_t *cr;
+	cachedref_t cr;
 
 	/* allocate cachedref on heap (at least freed together with codeinfo) */
 	cr = jitcache_new_cached_ref(type, 0, ref,disp);
@@ -494,9 +469,11 @@ void jitcache_handle_cached_ref(cachedref_t *cr, codeinfo *code)
 	location = (u1 **) (code->entrypoint + cr->disp);
 
 	/* Write the restored reference into the code. */
+#if defined (__ARM__)
 	if (cr->md_patch)
 		patch_md(cr->md_patch, (ptrint) location, cr->ref);
 	else
+#endif
 		*location = (u1 *) cr->ref;
 
 	md_cacheflush(location, SIZEOF_VOID_P);
@@ -1108,6 +1085,8 @@ int get_cache_file_readable(methodinfo *m)
 		if (opt_DebugJitCache)
 			log_message_method("[jitcache] no cache file found for ", m);
 
+		perror("get_cache_file_writable: ");
+
 		os::free(dest_file);
 
 		return 0;
@@ -1150,6 +1129,8 @@ int get_cache_file_writable(methodinfo *m)
 		{
 			if (mkdir_hier(dest_dir, S_IRWXU | S_IRWXG) != 0)
 			{
+				perror("get_cache_file_writable: ");
+
 				if (opt_DebugJitCache)
 					log_println("[jitcache] unable to create cache directory: %s", dest_dir);
 
@@ -1167,7 +1148,10 @@ int get_cache_file_writable(methodinfo *m)
 		os::free(dest_file);
 
 		if (fd <= 0)
+		{
+			perror("get_cache_file_writable2: ");
 			return 0;
+		}
 	}
 
 	os::free(dest_file);
@@ -1198,7 +1182,8 @@ int mkdir_hier(char *path, mode_t mode)
 		}
 	}
 
-	return mkdir(path, mode);
+	if (!mkdir(path, mode) || errno == EEXIST)
+		return 0;
 }
 
 /* get_dest_file ****************************************************************
@@ -1373,36 +1358,36 @@ void store_to_file_patchers(int fd, codeinfo *code)
 {
 	int temp = 0;
 	void *temp_ptr;
-	patchref_t *pr;
 	int j;
 
-	list_t *patchers = code->patchers;
+	int size = code->patchers->size();
 
 	/* serialize patchers list */
-	system_write(fd, (const void *) &patchers->size, sizeof(patchers->size));
+	system_write(fd, (const void *) &size, sizeof(size));
 	if (opt_DebugJitCache)
-		log_println("store_to_file_patchers - patchers size %d", patchers->size);
+		log_println("store_to_file_patchers - patchers size %d", size);
 
-	for (pr = (patchref_t *) list_first(patchers); pr != NULL; pr = (patchref_t *) list_next(patchers, pr))
+	for (List<patchref_t>::iterator it = code->patchers->begin();
+			it != code->patchers->end(); it++)
 	{
-		temp_ptr = to_offset(code->mcode, (u1 *) pr->mpc);
+		temp_ptr = to_offset(code->mcode, (u1 *) it->mpc);
 		system_write(fd, (const void *) &temp_ptr, sizeof(temp_ptr));
 
-		temp_ptr = to_offset(code->mcode, (u1 *) pr->datap);
+		temp_ptr = to_offset(code->mcode, (u1 *) it->datap);
 		system_write(fd, (const void *) &temp_ptr, sizeof(temp_ptr));
 
-		system_write(fd, (const void *) &pr->disp, sizeof(pr->disp));
+		system_write(fd, (const void *) &it->disp, sizeof(it->disp));
 
 		temp = -1;
 		j = 0;
 		while (patcher_functions[j].patcher)
 		{
-			if (patcher_functions[j].patcher == pr->patcher)
+			if (patcher_functions[j].patcher == it->patcher)
 			{
 				temp = j;
 				system_write(fd, (const void *) &j, sizeof(j));
 
-				(*patcher_functions[j].serializer)(fd, pr, code->m);
+				(*patcher_functions[j].serializer)(fd, &(*it), code->m);
 
 				if (patcher_functions[j].serializer == s_dummy)
 					log_println("store_to_file_patchers: unhandled patcher function for %d", j);
@@ -1417,20 +1402,23 @@ void store_to_file_patchers(int fd, codeinfo *code)
 			system_write(fd, (const void *) &temp, sizeof(temp));
 		}
 
-		system_write(fd, (const void *) &pr->attached_ref, sizeof(pr->attached_ref));
+		if (it->attached_ref)
+			temp = 1;
+		
+		system_write(fd, (const void *) &temp, sizeof(temp));
 
-		if (pr->attached_ref)
+		if (it->attached_ref)
 		{
-			store_cachedref(fd, pr->attached_ref);
+			store_cachedref(fd, it->attached_ref);
 
 			/* Release the cached reference now because it should not be used
 			 * in the current Cacao process.
 			 */
-			FREE(pr->attached_ref, cachedref_t);
-			pr->attached_ref = NULL;
+			FREE(it->attached_ref, cachedref_t);
+			it->attached_ref = NULL;
 		}
 
-		system_write(fd, (const void *) &pr->mcode, sizeof(pr->mcode));
+		system_write(fd, (const void *) &it->mcode, sizeof(it->mcode));
 	}
 }
 
@@ -1442,19 +1430,16 @@ void store_to_file_patchers(int fd, codeinfo *code)
 *******************************************************************************/
 void store_to_file_cachedrefs(int fd, codeinfo *code)
 {
-	cachedref_t *cr;
-
-	list_t *cachedrefs = code->cachedrefs;
+	int size = code->cachedrefs->size();
 	if (opt_DebugJitCache)
-		log_println("store_to_file_cachedrefs - cachedrefs size %d", cachedrefs->size);
+		log_println("store_to_file_cachedrefs - cachedrefs size %d", size);
 
 	/* serialize cachedrefs list */
-	system_write(fd, (const void *) &cachedrefs->size, sizeof(cachedrefs->size));
+	system_write(fd, (const void *) &size, sizeof(size));
 
-	for (cr = (cachedref_t *) list_first(cachedrefs);
-		 cr != NULL;
-		 cr = (cachedref_t *) list_next(cachedrefs, cr))
-		store_cachedref(fd, cr);
+	for (List<cachedref_t>::iterator it = code->cachedrefs->begin();
+			it != code->cachedrefs->end(); it++)
+		store_cachedref(fd, &(*it));
 }
 
 /* store_cachedref *************************************************************
@@ -1576,15 +1561,10 @@ void store_to_file_exceptiontable(int fd, codeinfo *code)
 void store_to_file_linenumbertable(int fd, codeinfo *code)
 {
 	void *temp_ptr;
-	linenumbertable_entry_t *lte;
 	int count = 0;
-	int i;
-	linenumbertable_t *linenumbertable;
-
-	linenumbertable = code->linenumbertable;
 
 	if (code->linenumbertable)
-		count = code->linenumbertable->length;
+		count = code->linenumbertable->_linenumbers.size();
 
 	/* serialize patchers list */
 	system_write(fd, (const void *) &count, sizeof(count));
@@ -1594,15 +1574,14 @@ void store_to_file_linenumbertable(int fd, codeinfo *code)
 
 	if (count)
 	{
-		lte = linenumbertable->entries;
-		for (i = 0; i < count; i++)
+		for (std::vector<Linenumber>::iterator it = code->linenumbertable->_linenumbers.begin();
+			it != code->linenumbertable->_linenumbers.end(); it++)
 		{
-			system_write(fd, (const void *) &lte->linenumber, sizeof(lte->linenumber));
+			int temp = it->get_linenumber();
+			system_write(fd, (const void *) &temp, sizeof(temp));
 	
-			temp_ptr = to_offset(code->entrypoint, lte->pc);
+			temp_ptr = to_offset(code->entrypoint, it->get_pc());
 			system_write(fd, (const void *) &temp_ptr, sizeof(temp_ptr));
-
-			lte++;
 		}
 	}
 
@@ -1632,15 +1611,15 @@ void load_from_file_patchers(codeinfo *code, int fd)
 
 	for (i = 0;i < count; i++)
 	{
-		patchref_t *pr = NEW(patchref_t);
+		patchref_t pr;
 
 		system_read(fd, (void *) &temp_ptr, sizeof(temp_ptr));
-		pr->mpc = (ptrint) to_abs(code->mcode, temp_ptr);
+		pr.mpc = (ptrint) to_abs(code->mcode, temp_ptr);
 
 		system_read(fd, (void *) &temp_ptr, sizeof(temp_ptr));
-		pr->datap = (ptrint) to_abs(code->mcode, temp_ptr);
+		pr.datap = (ptrint) to_abs(code->mcode, temp_ptr);
 
-		system_read(fd, (void *) &pr->disp, sizeof(pr->disp));
+		system_read(fd, (void *) &pr.disp, sizeof(pr.disp));
 
 		system_read(fd, (void *) &temp, sizeof(temp));
 		if (temp == -1)
@@ -1648,25 +1627,25 @@ void load_from_file_patchers(codeinfo *code, int fd)
 			vm_abort("Invalid patcher function index loaded!");
 			temp = 0;
 		}
-		pr->patcher = patcher_functions[temp].patcher;
+		pr.patcher = patcher_functions[temp].patcher;
 
-		(*patcher_functions[temp].deserializer)(pr, fd, code->m);
+		(*patcher_functions[temp].deserializer)(&pr, fd, code->m);
 
 		/* Load the pointer value to decide whether a cached reference must
          * be loaded or not. */
-		system_read(fd, (void *) &pr->attached_ref, sizeof(pr->attached_ref));
+		system_read(fd, (void *) &temp, sizeof(temp));
 
-		if (pr->attached_ref)
+		if (temp)
 		{
-			pr->attached_ref = NULL;
-			load_cachedref(&pr->attached_ref, fd, code);
+			pr.attached_ref = 0;
+			load_cachedref(&pr.attached_ref, fd, code);
 		}
 
-		system_read(fd, (void *) &pr->mcode, sizeof(pr->mcode));
+		system_read(fd, (void *) &pr.mcode, sizeof(pr.mcode));
 
-		pr->done = false;
+		pr.done = false;
 
-		list_add_first(code->patchers, pr);
+		code->patchers->push_front(pr);
 	}
 }
 
@@ -1702,9 +1681,11 @@ void load_from_file_cachedrefs(codeinfo *code, int fd)
 		load_cachedref(&cr, fd, code);
 
 		/* Write the restored reference into the code. */
+#if defined (__ARM__)
 		if (cr->md_patch)
 			patch_md(cr->md_patch, ((ptrint) code->entrypoint) + cr->disp, cr->ref);
 		else
+#endif
 		{
 		  *((u1 **) (code->entrypoint + cr->disp)) = (u1 *) cr->ref;
 		}
@@ -1935,28 +1916,26 @@ void load_from_file_exceptiontable(codeinfo *code, int fd)
 *******************************************************************************/
 void load_from_file_linenumbertable(codeinfo *code, int fd)
 {
-	linenumbertable_entry_t *lte;
 	void *temp_ptr;
 	int i;
 
-	code->linenumbertable = NEW(linenumbertable_t);
+	code->linenumbertable = new LinenumberTable();
 
-	system_read(fd, (void *) &code->linenumbertable->length, sizeof(code->linenumbertable->length));
+	int size;
+	system_read(fd, (void *) &size, sizeof(size));
 
 	if (opt_DebugJitCache)
-		log_println("load_linenumbertable - linenumbertable size %d", code->linenumbertable->length);
+		log_println("load_linenumbertable - linenumbertable size %d", size);
 
-	lte = MNEW(linenumbertable_entry_t, code->linenumbertable->length);
-	code->linenumbertable->entries = lte;
-
-	for (i = 0;i < code->linenumbertable->length; i++)
+	for (i = 0;i < size; i++)
 	{
-		system_read(fd, (void *) &lte->linenumber, sizeof(lte->linenumber));
+		int linenumber;
+		system_read(fd, (void *) &linenumber, sizeof(linenumber));
 
 		system_read(fd, (void *) &temp_ptr, sizeof(temp_ptr));
-		lte->pc = to_abs(code->entrypoint, temp_ptr);
 
-		lte++;
+		code->linenumbertable->_linenumbers.push_back(
+			Linenumber(linenumber, to_abs(code->entrypoint, temp_ptr)));
 	}
 }
 

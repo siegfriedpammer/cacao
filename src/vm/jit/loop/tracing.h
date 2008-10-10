@@ -33,7 +33,7 @@
 #ifndef _TRACING_H
 #define _TRACING_H
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 
 typedef struct Trace Trace;

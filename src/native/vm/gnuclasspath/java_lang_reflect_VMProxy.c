@@ -27,8 +27,8 @@
 
 #include <stdlib.h>
 
-#include "native/jni.h"
-#include "native/native.h"
+#include "native/jni.hpp"
+#include "native/native.hpp"
 
 // FIXME
 //#include "native/include/java_lang_reflect_VMProxy.h"
@@ -51,16 +51,16 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
+#if 0
 void _Jv_java_lang_reflect_VMProxy_init(void)
 {
-#if 0
 	utf *u;
 
 	u = utf_new_char("java/lang/reflect/VMProxy");
 
 	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-#endif
 }
+#endif
 
 
 #if 0

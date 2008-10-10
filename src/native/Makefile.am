@@ -38,17 +38,17 @@ noinst_LTLIBRARIES = libnative.la
 if ENABLE_JNI
 JNI_SOURCES = \
 	jni.cpp \
-	jni.h \
-	localref.c \
-	localref.h
+	jni.hpp \
+	localref.cpp \
+	localref.hpp
 endif
 
 libnative_la_SOURCES = \
 	$(JNI_SOURCES) \
 	llni.c \
 	llni.h \
-	native.c \
-	native.h
+	native.cpp \
+	native.hpp
 
 libnative_la_LIBADD = \
 	vm/libnativevm.la \

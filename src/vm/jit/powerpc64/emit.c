@@ -34,15 +34,15 @@
 #include "md-abi.h"
 #include "vm/jit/powerpc64/codegen.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
 #include "vm/options.h"
 #include "vm/vm.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/emit-common.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/emit-common.hpp"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.h"
 
@@ -429,39 +429,47 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 							  CODEGENDATA_FLAG_LONGBRANCHES);
 			}
 
-			branchdisp --;		/* we jump from the second instruction */
-			switch (condition) {
-			case BRANCH_EQ:
-				M_BNE(1);
-				M_BR(branchdisp);
-				break;
-			case BRANCH_NE:
-				M_BEQ(1);
-				M_BR(branchdisp);
-				break;
-			case BRANCH_LT:
-				M_BGE(1);
-				M_BR(branchdisp);
-				break;
-			case BRANCH_GE:
-				M_BLT(1);
-				M_BR(branchdisp);
-				break;
-			case BRANCH_GT:
-				M_BLE(1);
-				M_BR(branchdisp);
-				break;
-			case BRANCH_LE:
-				M_BGT(1);
-				M_BR(branchdisp);
-				break;
-			case BRANCH_NAN:
-				vm_abort("emit_branch: long BRANCH_NAN");
-				break;
-			default:
-				vm_abort("emit_branch: unknown condition %d", condition);
-			}
+			// Subtract 1 instruction from the displacement as the
+			// actual branch is the second instruction.
+			checkdisp  = checkdisp - 4;
+			branchdisp = branchdisp - 1;
 
+			if ((checkdisp < (int32_t) 0xfe000000) || (checkdisp > (int32_t) 0x01fffffc)) {
+				vm_abort("emit_branch: emit conditional long-branch code");
+			}
+			else {
+				switch (condition) {
+				case BRANCH_EQ:
+					M_BNE(1);
+					M_BR(branchdisp);
+					break;
+				case BRANCH_NE:
+					M_BEQ(1);
+					M_BR(branchdisp);
+					break;
+				case BRANCH_LT:
+					M_BGE(1);
+					M_BR(branchdisp);
+					break;
+				case BRANCH_GE:
+					M_BLT(1);
+					M_BR(branchdisp);
+					break;
+				case BRANCH_GT:
+					M_BLE(1);
+					M_BR(branchdisp);
+					break;
+				case BRANCH_LE:
+					M_BGT(1);
+					M_BR(branchdisp);
+					break;
+				case BRANCH_NAN:
+					vm_abort("emit_branch: long BRANCH_NAN");
+					break;
+				default:
+					vm_abort("emit_branch: unknown condition %d", condition);
+				}
+			}
 		}
 		else {
 			switch (condition) {
@@ -627,15 +635,11 @@ void emit_trap_compiler(codegendata *cd)
 
 uint32_t emit_trap(codegendata *cd)
 {
-	uint32_t mcode;
+	// Get machine code which is patched back in later. The trap is 1
+	// instruction word long.
+	uint32_t mcode = *((uint32_t*) cd->mcodeptr);
 
-	/* Get machine code which is patched back in later. The
-	   trap is 1 instruction word long. */
-
-	mcode = *((uint32_t *) cd->mcodeptr);
-
-	/* ALD is 4 byte aligned, ILD 2, only LWZ is byte aligned */
-	M_LWZ(REG_ZERO, REG_ZERO, TRAP_PATCHER);
+	M_ILLEGAL;
 
 	return mcode;
 }

@@ -32,19 +32,20 @@
 
 #include "mm/memory.h"
 
-#include "native/native.h"
+#include "native/native.hpp"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
+#include "threads/mutex.hpp"
 
 #include "toolbox/logging.h"
 
 #include "vm/access.h"
-#include "vm/array.h"
+#include "vm/array.hpp"
 #include "vm/class.h"
 #include "vm/classcache.h"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
 #include "vm/rt-timing.h"
@@ -52,6 +53,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/stubs.hpp"
 
 
 /* debugging macros ***********************************************************/
@@ -92,7 +94,7 @@ classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls, bool c
 static s4 interfaceindex;       /* sequential numbering of interfaces         */
 static s4 classvalue;
 
-java_object_t *linker_classrenumber_lock;
+Mutex *linker_classrenumber_mutex;
 
 
 /* private functions **********************************************************/
@@ -121,11 +123,9 @@ void linker_preinit(void)
 	interfaceindex = 0;
 
 #if defined(ENABLE_THREADS)
-	/* create the global lock object */
+	/* create the global mutex */
 
-	linker_classrenumber_lock = NEW(java_object_t);
-
-	LOCK_INIT_OBJECT_LOCK(linker_classrenumber_lock);
+	linker_classrenumber_mutex = Mutex_new();
 #endif
 
 	/* Link the most basic classes. */
@@ -847,7 +847,7 @@ static classinfo *link_class_intern(classinfo *c)
 			m->stubroutine = intrp_createcompilerstub(m);
 		else
 #endif
-			m->stubroutine = codegen_generate_stub_compiler(m);
+			m->stubroutine = CompilerStub_generate(m);
 #else
 		m->stubroutine = intrp_createcompilerstub(m);
 #endif
@@ -1119,7 +1119,7 @@ static arraydescriptor *link_array(classinfo *c)
 
 static void linker_compute_subclasses(classinfo *c)
 {
-	LOCK_MONITOR_ENTER(linker_classrenumber_lock);
+	Mutex_lock(linker_classrenumber_mutex);
 
 	if (!(c->flags & ACC_INTERFACE)) {
 		c->nextsub = NULL;
@@ -1137,7 +1137,7 @@ static void linker_compute_subclasses(classinfo *c)
 
 	linker_compute_class_values(class_java_lang_Object);
 
-	LOCK_MONITOR_EXIT(linker_classrenumber_lock);
+	Mutex_unlock(linker_classrenumber_mutex);
 }
 
 

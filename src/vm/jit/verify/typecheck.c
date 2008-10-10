@@ -143,24 +143,24 @@ error reporting.
 
 #include "mm/memory.h"
 
-#include "native/native.h"
+#include "native/native.hpp"
 
 #include "toolbox/logging.h"
 
 #include "vm/access.h"
-#include "vm/array.h"
-#include "vm/builtin.h"
+#include "vm/array.hpp"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/parse.h"
-#include "vm/jit/show.h"
+#include "vm/jit/show.hpp"
 
 #include <typecheck-common.h>
 

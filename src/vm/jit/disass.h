@@ -26,10 +26,6 @@
 #ifndef _DISASS_H
 #define _DISASS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "config.h"
 
 #if defined(WITH_BINUTILS_DISASSEMBLER)
@@ -50,9 +46,9 @@ extern "C" {
 #define DISASSINSTR(code) \
     do { \
         if (opt_intrp) \
-            (code) = intrp_disassinstr((code)); \
+            (code) = intrp_disassinstr((u1*) (code));	\
         else \
-            (code) = disassinstr((code)); \
+            (code) = disassinstr((u1*) (code));	\
     } while (0)
 
 #define DISASSEMBLE(start,end) \
@@ -66,7 +62,7 @@ extern "C" {
 # else /* defined(ENABLE_INTRP) */
 
 #define DISASSINSTR(code) \
-    (code) = disassinstr((code))
+    (code) = disassinstr((u1*) (code))
 
 #define DISASSEMBLE(start,end) \
     disassemble((start), (end))
@@ -75,7 +71,7 @@ extern "C" {
 #else /* defined(ENABLE_JIT) */
 
 #define DISASSINSTR(code) \
-    (code) = intrp_disassinstr((code))
+    (code) = intrp_disassinstr((u1*) (code))
 
 #define DISASSEMBLE(start,end) \
     intrp_disassemble((start), (end))
@@ -98,6 +94,10 @@ extern s4   disass_len;
 
 /* function prototypes *******************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if defined(ENABLE_JIT)
 void disassemble(u1 *start, u1 *end);
 #endif
@@ -119,11 +119,11 @@ u1 *intrp_disassinstr(u1 *code);
 void intrp_disassemble(u1 *start, u1 *end);
 #endif
 
-#endif /* defined(ENABLE_DISASSEMBLER) */
-
 #ifdef __cplusplus
-}
+} // extern "C"
 #endif
+
+#endif /* defined(ENABLE_DISASSEMBLER) */
 
 #endif // _DISASS_H
 

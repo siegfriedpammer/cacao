@@ -32,15 +32,15 @@
 
 #include "mm/memory.h"
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 #include "native/llni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/include/sun_misc_Unsafe.h"
 #endif
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/initialize.h"
 #include "vm/javaobjects.hpp"
@@ -72,14 +72,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_registerNatives(JNIEnv *env, jclass 
  */
 JNIEXPORT jint JNICALL Java_sun_misc_Unsafe_getInt__Ljava_lang_Object_2J(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
-	int32_t *p;
-	int32_t  value;
-
-	p = (int32_t *) (((uint8_t *) o) + offset);
-
-	value = *p;
-
-	return value;
+	return FieldAccess::get<int32_t>(o, offset);
 }
 
 
@@ -90,11 +83,7 @@ JNIEXPORT jint JNICALL Java_sun_misc_Unsafe_getInt__Ljava_lang_Object_2J(JNIEnv 
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putInt__Ljava_lang_Object_2JI(JNIEnv *env, jobject _this, jobject o, jlong offset, jint x)
 {
-	int32_t *p;
-
-	p = (int32_t *) (((uint8_t *) o) + offset);
-
-	*p = x;
+	FieldAccess::set(o, offset, x);
 }
 
 
@@ -105,14 +94,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putInt__Ljava_lang_Object_2JI(JNIEnv
  */
 JNIEXPORT jobject JNICALL Java_sun_misc_Unsafe_getObject(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
-	void **p;
-	void  *value;
-
-	p = (void **) (((uint8_t *) o) + offset);
-
-	value = *p;
-
-	return (jobject) value;
+	return FieldAccess::get<jobject>(o, offset);
 }
 
 
@@ -123,11 +105,7 @@ JNIEXPORT jobject JNICALL Java_sun_misc_Unsafe_getObject(JNIEnv *env, jobject _t
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObject(JNIEnv *env, jobject _this, jobject o, jlong offset, jobject x)
 {
-	void **p;
-
-	p = (void **) (((uint8_t *) o) + offset);
-
-	*p = (void *) x;
+	FieldAccess::set(o, offset, x);
 }
 
 
@@ -138,14 +116,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObject(JNIEnv *env, jobject _this
  */
 JNIEXPORT jboolean JNICALL Java_sun_misc_Unsafe_getBoolean(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
-	int32_t *p;
-	int32_t  value;
-
-	p = (int32_t *) (((uint8_t *) o) + offset);
-
-	value = *p;
-
-	return value;
+	return FieldAccess::get<int32_t>(o, offset);
 }
 
 
@@ -156,11 +127,7 @@ JNIEXPORT jboolean JNICALL Java_sun_misc_Unsafe_getBoolean(JNIEnv *env, jobject 
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putBoolean(JNIEnv *env, jobject _this, jobject o, jlong offset, jboolean x)
 {
-	int32_t *p;
-
-	p = (int32_t *) (((uint8_t *) o) + offset);
-
-	*p = x;
+	FieldAccess::set(o, offset, (int32_t) x);
 }
 
 
@@ -171,14 +138,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putBoolean(JNIEnv *env, jobject _thi
  */
 JNIEXPORT jbyte JNICALL Java_sun_misc_Unsafe_getByte__Ljava_lang_Object_2J(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
-	int32_t *p;
-	int32_t  value;
-
-	p = (int32_t *) (((uint8_t *) o) + offset);
-
-	value = *p;
-
-	return value;
+	return FieldAccess::get<int32_t>(o, offset);
 }
 
 
@@ -189,11 +149,7 @@ JNIEXPORT jbyte JNICALL Java_sun_misc_Unsafe_getByte__Ljava_lang_Object_2J(JNIEn
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putByte__Ljava_lang_Object_2JB(JNIEnv *env, jobject _this, jobject o, jlong offset, jbyte x)
 {
-	int32_t *p;
-
-	p = (int32_t *) (((uint8_t *) o) + offset);
-
-	*p = x;
+	FieldAccess::set(o, offset, (int32_t) x);
 }
 
 
@@ -204,14 +160,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putByte__Ljava_lang_Object_2JB(JNIEn
  */
 JNIEXPORT jshort JNICALL Java_sun_misc_Unsafe_getShort__Ljava_lang_Object_2J(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
-	int32_t *p;
-	int32_t  value;
-
-	p = (int32_t *) (((uint8_t *) o) + offset);
-
-	value = *p;
-
-	return value;
+	return FieldAccess::get<int32_t>(o, offset);
 }
 
 
@@ -222,11 +171,7 @@ JNIEXPORT jshort JNICALL Java_sun_misc_Unsafe_getShort__Ljava_lang_Object_2J(JNI
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putShort__Ljava_lang_Object_2JS(JNIEnv *env, jobject _this, jobject o, jlong offset, jshort x)
 {
-	int32_t *p;
-
-	p = (int32_t *) (((uint8_t *) o) + offset);
-
-	*p = x;
+	FieldAccess::set(o, offset, (int32_t) x);
 }
 
 
@@ -237,14 +182,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putShort__Ljava_lang_Object_2JS(JNIE
  */
 JNIEXPORT jchar JNICALL Java_sun_misc_Unsafe_getChar__Ljava_lang_Object_2J(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
-	int32_t *p;
-	int32_t  value;
-
-	p = (int32_t *) (((uint8_t *) o) + offset);
-
-	value = *p;
-
-	return value;
+	return FieldAccess::get<int32_t>(o, offset);
 }
 
 
@@ -255,11 +193,7 @@ JNIEXPORT jchar JNICALL Java_sun_misc_Unsafe_getChar__Ljava_lang_Object_2J(JNIEn
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putChar__Ljava_lang_Object_2JC(JNIEnv *env, jobject _this, jobject o, jlong offset, jchar x)
 {
-	int32_t *p;
-
-	p = (int32_t *) (((uint8_t *) o) + offset);
-
-	*p = x;
+	FieldAccess::set(o, offset, (int32_t) x);
 }
 
 
@@ -270,14 +204,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putChar__Ljava_lang_Object_2JC(JNIEn
  */
 JNIEXPORT jlong JNICALL Java_sun_misc_Unsafe_getLong__Ljava_lang_Object_2J(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
-	int64_t *p;
-	int64_t  value;
-
-	p = (int64_t *) (((uint8_t *) o) + offset);
-
-	value = *p;
-
-	return value;
+	return FieldAccess::get<int64_t>(o, offset);
 }
 
 
@@ -288,11 +215,7 @@ JNIEXPORT jlong JNICALL Java_sun_misc_Unsafe_getLong__Ljava_lang_Object_2J(JNIEn
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLong__Ljava_lang_Object_2JJ(JNIEnv *env, jobject _this, jobject o, jlong offset, jlong x)
 {
-	int64_t *p;
-
-	p = (int64_t *) (((uint8_t *) o) + offset);
-
-	*p = x;
+	FieldAccess::set(o, offset, x);
 }
 
 
@@ -303,14 +226,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLong__Ljava_lang_Object_2JJ(JNIEn
  */
 JNIEXPORT jfloat JNICALL Java_sun_misc_Unsafe_getFloat__Ljava_lang_Object_2J(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
-	float *p;
-	float  value;
-
-	p = (float *) (((uint8_t *) o) + offset);
-
-	value = *p;
-
-	return value;
+	return FieldAccess::get<float>(o, offset);
 }
 
 
@@ -321,11 +237,7 @@ JNIEXPORT jfloat JNICALL Java_sun_misc_Unsafe_getFloat__Ljava_lang_Object_2J(JNI
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putFloat__Ljava_lang_Object_2JF(JNIEnv *env, jobject _this, jobject o, jlong offset, jfloat x)
 {
-	float *p;
-
-	p = (float *) (((uint8_t *) o) + offset);
-
-	*p = x;
+	FieldAccess::set(o, offset, x);
 }
 
 
@@ -336,14 +248,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putFloat__Ljava_lang_Object_2JF(JNIE
  */
 JNIEXPORT jdouble JNICALL Java_sun_misc_Unsafe_getDouble__Ljava_lang_Object_2J(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
-	double *p;
-	double  value;
-
-	p = (double *) (((uint8_t *) o) + offset);
-
-	value = *p;
-
-	return value;
+	return FieldAccess::get<double>(o, offset);
 }
 
 
@@ -354,11 +259,7 @@ JNIEXPORT jdouble JNICALL Java_sun_misc_Unsafe_getDouble__Ljava_lang_Object_2J(J
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putDouble__Ljava_lang_Object_2JD(JNIEnv *env, jobject _this, jobject o, jlong offset, jdouble x)
 {
-	double *p;
-
-	p = (double *) (((uint8_t *) o) + offset);
-
-	*p = x;
+	FieldAccess::set(o, offset, x);
 }
 
 
@@ -1034,14 +935,7 @@ JNIEXPORT jboolean JNICALL Java_sun_misc_Unsafe_compareAndSwapLong(JNIEnv *env, 
  */
 JNIEXPORT jobject JNICALL Java_sun_misc_Unsafe_getObjectVolatile(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
-	volatile void **p;
-	volatile void  *value;
-
-	p = (volatile void **) (((uint8_t *) o) + offset);
-
-	value = *p;
-
-	return (jobject ) value;
+	return FieldAccess::get_volatile<jobject>(o, offset);
 }
 
 
@@ -1052,51 +946,19 @@ JNIEXPORT jobject JNICALL Java_sun_misc_Unsafe_getObjectVolatile(JNIEnv *env, jo
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObjectVolatile(JNIEnv *env, jobject _this, jobject o, jlong offset, jobject x)
 {
-	volatile void **p;
-
-	p = (volatile void **) (((uint8_t *) o) + offset);
-
-	*p = x;
+	FieldAccess::set_volatile(o, offset, x);
 }
 
 
-#define UNSAFE_GET_VOLATILE(type)							\
-	java_handle_t *_h;										\
-	java_object_t *_o;										\
-	volatile type *_p;										\
-	volatile type  _x;										\
-															\
-	_h = (java_handle_t *) o;								\
-															\
-	LLNI_CRITICAL_START;									\
-															\
-	_o = LLNI_UNWRAP(_h);									\
-	_p = (volatile type *) (((uint8_t *) _o) + offset);		\
-															\
-	_x = *_p;												\
-															\
-	LLNI_CRITICAL_END;										\
-															\
-	return _x;
-
-
-#define UNSAFE_PUT_VOLATILE(type)							\
-	java_handle_t *_h;										\
-	java_object_t *_o;										\
-	volatile type *_p;										\
-															\
-	_h = (java_handle_t *) o;								\
-															\
-	LLNI_CRITICAL_START;									\
-															\
-	_o = LLNI_UNWRAP(_h);									\
-	_p = (volatile type *) (((uint8_t *) _o) + offset);		\
-															\
-	*_p = x;												\
-															\
-	Atomic::memory_barrier();								\
-															\
-	LLNI_CRITICAL_END;
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    getByteVolatile
+ * Signature: (Ljava/lang/Object;J)B
+ */
+JNIEXPORT jbyte JNICALL Java_sun_misc_Unsafe_getByteVolatile(JNIEnv* env, jobject _this, jobject o, jlong offset)
+{
+	return FieldAccess::get_volatile<int32_t>(o, offset);
+}
 
 
 /*
@@ -1106,7 +968,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putObjectVolatile(JNIEnv *env, jobje
  */
 JNIEXPORT jint JNICALL Java_sun_misc_Unsafe_getIntVolatile(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
-	UNSAFE_GET_VOLATILE(int32_t);
+	return FieldAccess::get_volatile<int32_t>(o, offset);
 }
 
 
@@ -1117,7 +979,7 @@ JNIEXPORT jint JNICALL Java_sun_misc_Unsafe_getIntVolatile(JNIEnv *env, jobject 
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putIntVolatile(JNIEnv *env, jobject _this, jobject o, jlong offset, jint x)
 {
-	UNSAFE_PUT_VOLATILE(int32_t);
+	FieldAccess::set_volatile(o, offset, x);
 }
 
 
@@ -1128,7 +990,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putIntVolatile(JNIEnv *env, jobject 
  */
 JNIEXPORT jlong JNICALL Java_sun_misc_Unsafe_getLongVolatile(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
-	UNSAFE_GET_VOLATILE(int64_t);
+	return FieldAccess::get_volatile<int64_t>(o, offset);
 }
 
 
@@ -1139,7 +1001,18 @@ JNIEXPORT jlong JNICALL Java_sun_misc_Unsafe_getLongVolatile(JNIEnv *env, jobjec
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLongVolatile(JNIEnv *env, jobject _this, jobject o, jlong offset, jlong x)
 {
-	UNSAFE_PUT_VOLATILE(int64_t);
+	FieldAccess::set_volatile(o, offset, x);
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    getFloatVolatile
+ * Signature: (Ljava/lang/Object;J)F
+ */
+JNIEXPORT jfloat JNICALL Java_sun_misc_Unsafe_getFloatVolatile(JNIEnv* env, jobject _this, jobject o, jlong offset)
+{
+	return FieldAccess::get_volatile<float>(o, offset);
 }
 
 
@@ -1148,9 +1021,9 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putLongVolatile(JNIEnv *env, jobject
  * Method:    getDoubleVolatile
  * Signature: (Ljava/lang/Object;J)D
  */
-JNIEXPORT jdouble JNICALL Java_sun_misc_Unsafe_getDoubleVolatile(JNIEnv *env, jobject __this, jobject o, jlong offset)
+JNIEXPORT jdouble JNICALL Java_sun_misc_Unsafe_getDoubleVolatile(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
-	UNSAFE_GET_VOLATILE(double);
+	return FieldAccess::get_volatile<double>(o, offset);
 }
 
 
@@ -1161,26 +1034,7 @@ JNIEXPORT jdouble JNICALL Java_sun_misc_Unsafe_getDoubleVolatile(JNIEnv *env, jo
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedObject(JNIEnv *env, jobject _this, jobject o, jlong offset, jobject x)
 {
-	java_handle_t  *_h;
-	java_handle_t  *_hx;
-	java_object_t  *_o;
-	java_object_t  *_x;
-	volatile void **_p;
-
-	_h  = (java_handle_t *) o;
-	_hx = (java_handle_t *) x;
-
-	LLNI_CRITICAL_START;
-
-	_o = LLNI_UNWRAP(_h);
-	_x = LLNI_UNWRAP(_hx);
-	_p = (volatile void **) (((uint8_t *) _o) + offset);
-
-	*_p = _x;
-
-	Atomic::memory_barrier();
-
-	LLNI_CRITICAL_END;
+	FieldAccess::set_volatile(o, offset, x);
 }
 
 
@@ -1191,7 +1045,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedObject(JNIEnv *env, jobjec
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedInt(JNIEnv *env, jobject _this, jobject o, jlong offset, jint x)
 {
-	UNSAFE_PUT_VOLATILE(int32_t);
+	FieldAccess::set_volatile(o, offset, x);
 }
 
 
@@ -1202,7 +1056,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedInt(JNIEnv *env, jobject _
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedLong(JNIEnv *env, jobject _this, jobject o, jlong offset, jlong x)
 {
-	UNSAFE_PUT_VOLATILE(int64_t);
+	FieldAccess::set_volatile(o, offset, x);
 }
 
 
@@ -1290,10 +1144,12 @@ static JNINativeMethod methods[] = {
 	{ (char*) "compareAndSwapLong",     (char*) "(Ljava/lang/Object;JJJ)Z",                                   (void*) (uintptr_t) &Java_sun_misc_Unsafe_compareAndSwapLong               },
 	{ (char*) "getObjectVolatile",      (char*) "(Ljava/lang/Object;J)Ljava/lang/Object;",                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_getObjectVolatile                },
 	{ (char*) "putObjectVolatile",      (char*) "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void*) (uintptr_t) &Java_sun_misc_Unsafe_putObjectVolatile                },
+	{ (char*) "getByteVolatile",        (char*) "(Ljava/lang/Object;J)B",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getByteVolatile                  },
 	{ (char*) "getIntVolatile",         (char*) "(Ljava/lang/Object;J)I",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getIntVolatile                   },
 	{ (char*) "putIntVolatile",         (char*) "(Ljava/lang/Object;JI)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putIntVolatile                   },
 	{ (char*) "getLongVolatile",        (char*) "(Ljava/lang/Object;J)J",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getLongVolatile                  },
 	{ (char*) "putLongVolatile",        (char*) "(Ljava/lang/Object;JJ)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putLongVolatile                  },
+	{ (char*) "getFloatVolatile",       (char*) "(Ljava/lang/Object;J)F",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getFloatVolatile                 },
 	{ (char*) "getDoubleVolatile",      (char*) "(Ljava/lang/Object;J)D",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getDoubleVolatile                },
 	{ (char*) "putOrderedObject",       (char*) "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void*) (uintptr_t) &Java_sun_misc_Unsafe_putOrderedObject                 },
 	{ (char*) "putOrderedInt",          (char*) "(Ljava/lang/Object;JI)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putOrderedInt                    },
@@ -1309,17 +1165,14 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_sun_misc_Unsafe_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("sun/misc/Unsafe");
 
-	u = utf_new_char("sun/misc/Unsafe");
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
+}
 
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
-}
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -1332,4 +1185,5 @@ void _Jv_sun_misc_Unsafe_init(void)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

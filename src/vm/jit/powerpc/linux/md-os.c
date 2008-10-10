@@ -2,6 +2,7 @@
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -37,17 +38,19 @@
 
 #include "threads/thread.hpp"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/signallocal.h"
 #include "vm/os.hpp"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/disass.h"
 #include "vm/jit/executionstate.h"
 
 #if defined(ENABLE_PROFILING)
 # include "vm/jit/optimizing/profile.h"
 #endif
 
+#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/trap.h"
 
 
@@ -73,7 +76,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	intptr_t        addr;
 	intptr_t        val;
 	int             type;
-	void           *p;
 
  	_uc = (ucontext_t *) _p;
 
@@ -124,43 +126,59 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Handle the trap. */
 
-	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
+}
 
-	/* Set registers. */
 
-	switch (type) {
-	case TRAP_COMPILER:
-		if (p != NULL) {
-			_gregs[REG_PV] = (uintptr_t) p;
-			_gregs[PT_NIP] = (uintptr_t) p;
-			break;
-		}
+/**
+ * Signal handler for patcher calls.
+ */
+void md_signal_handler_sigill(int sig, siginfo_t* siginfo, void* _p)
+{
+	ucontext_t* _uc = (ucontext_t*) _p;
+	mcontext_t* _mc;
+	unsigned long* _gregs;
 
-		/* Get and set the PV from the parent Java method. */
+#if defined(__UCLIBC__)
+	_mc    = &(_uc->uc_mcontext);
+	_gregs = _mc->regs->gpr;
+#else
+	_mc    = _uc->uc_mcontext.uc_regs;
+	_gregs = _mc->gregs;
+#endif
 
-		pv = md_codegen_get_pv_from_pc(ra);
+	/* get register values */
 
-		_gregs[REG_PV] = (uintptr_t) pv;
+	void* pv = (void*) _gregs[REG_PV];
+	void* sp = (void*) _gregs[REG_SP];
+	void* ra = (void*) _gregs[PT_LNK]; // The RA is correct for leag methods.
+	void* xpc =(void*) _gregs[PT_NIP];
 
-		/* Get the exception object. */
+	// Get the illegal-instruction.
+	uint32_t mcode = *((uint32_t*) xpc);
 
-		p = builtin_retrieve_exception();
+	// Check if the trap instruction is valid.
+	// TODO Move this into patcher_handler.
+	if (patcher_is_valid_trap_instruction_at(xpc) == false) {
+		// Check if the PC has been patched during our way to this
+		// signal handler (see PR85).
+		if (patcher_is_patched_at(xpc) == true)
+			return;
 
-		assert(p != NULL);
-
-		/* fall-through */
-
-	case TRAP_PATCHER:
-		if (p == NULL)
-			break;
-
-		/* fall-through */
-		
-	default:
-		_gregs[REG_ITMP1_XPTR] = (uintptr_t) p;
-		_gregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
-		_gregs[PT_NIP]         = (uintptr_t) asm_handle_exception;
+		// We have a problem...
+		log_println("md_signal_handler_sigill: Unknown illegal instruction 0x%x at 0x%lx", mcode, xpc);
+#if defined(ENABLE_DISASSEMBLER)
+		(void) disassinstr(xpc);
+#endif
+		vm_abort("Aborting...");
 	}
+
+	// This signal is always a patcher.
+	int      type = TRAP_PATCHER;
+	intptr_t val  = 0;
+
+	// Handle the trap.
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
 }
 
 
@@ -183,7 +201,6 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 	int             s1;
 	intptr_t        val;
 	int             type;
-	void           *p;
 
  	_uc = (ucontext_t *) _p;
 
@@ -213,13 +230,7 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Handle the trap. */
 
-	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	/* Set registers. */
-
-	_gregs[REG_ITMP1_XPTR] = (uintptr_t) p;
-	_gregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
-	_gregs[PT_NIP]         = (uintptr_t) asm_handle_exception;
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
 }
 
 

@@ -28,9 +28,9 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 #include "native/llni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/vm/include/java_lang_reflect_VMConstructor.h"
@@ -148,9 +148,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_reflect_VMConstructor_declaredAnnotatio
 	if (declaredAnnotations == NULL) {
 		java_handle_bytearray_t* annotations    = rvmc.get_annotations();
 		classinfo*               declaringClass = rvmc.get_clazz();
-
-		classinfo *referer;
-		LLNI_class_get(_this, referer);
+		classinfo*               referer        = rvmc.get_Class();
 
 		declaredAnnotations = Reflection::get_declaredannotations(annotations, declaringClass, referer);
 
@@ -174,9 +172,7 @@ JNIEXPORT jobjectArray JNICALL Java_java_lang_reflect_VMConstructor_getParameter
 
 	java_handle_bytearray_t* parameterAnnotations = rvmc.get_parameterAnnotations();
 	methodinfo* m = rvmc.get_method();
-
-	classinfo* referer;
-	LLNI_class_get((java_lang_reflect_VMConstructor*) _this, referer);
+	classinfo* referer = rvmc.get_Class();
 
 	java_handle_objectarray_t* oa = Reflection::get_parameterannotations(parameterAnnotations, m, referer);
 
@@ -208,15 +204,12 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-extern "C" {
 void _Jv_java_lang_reflect_VMConstructor_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("java/lang/reflect/VMConstructor");
 
-	u = utf_new_char("java/lang/reflect/VMConstructor");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

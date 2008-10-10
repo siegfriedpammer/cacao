@@ -26,7 +26,7 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
 #include "gc.h"
 #include "final.h"

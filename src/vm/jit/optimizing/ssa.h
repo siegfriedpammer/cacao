@@ -1,9 +1,7 @@
 /* src/vm/jit/optimizing/ssa.h - static single assignment form header
 
-   Copyright (C) 2005 - 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2005, 2006, 2007, 2008
+   CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
 
@@ -19,20 +17,16 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-   02111-1307, USA.
-
-   Contact: cacao@complang.tuwien.ac.at
-
-   Authors: Christian Ullrich
-
-   $Id: ssa.h$
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301, USA.
 
 */
 
 
 #ifndef _SSA_H
 #define _SSA_H
+
+#include "config.h"
 
 #include "vm/jit/optimizing/graph.h"
 
@@ -51,8 +45,19 @@
 #endif
 
 /* function prototypes */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void ssa_init(jitdata *);
 void ssa(jitdata */* , graphdata **/);
+
+void fix_exception_handlers(jitdata *jd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _SSA_H */
 

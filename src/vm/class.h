@@ -26,10 +26,6 @@
 #ifndef _CLASS_H
 #define _CLASS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* forward typedefs ***********************************************************/
 
 typedef struct classinfo      classinfo; 
@@ -43,16 +39,14 @@ typedef struct extra_classref extra_classref;
 
 #include "vm/types.h"
 
-#include "toolbox/list.h"
-
 #if defined(ENABLE_JAVASE)
 # include "vm/annotation.h"
 #endif
 
-#include "vm/field.h"
+#include "vm/field.hpp"
 #include "vm/global.h"
 #include "vm/linker.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/method.h"
 #include "vm/references.h"
 #include "vm/string.hpp"
@@ -196,6 +190,10 @@ struct extra_classref {
 
 
 /* inline functions ***********************************************************/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Returns the classname of the class, where slashes ('/') are

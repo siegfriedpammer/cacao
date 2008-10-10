@@ -39,15 +39,14 @@
 # include "mm/boehm-gc/include/gc.h"
 #endif
 
-#include "native/jni.h"
 #include "native/llni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
-#include "threads/lock-common.h"
-#include "threads/threadlist.h"
+#include "threads/lock.hpp"
+#include "threads/threadlist.hpp"
 #include "threads/thread.hpp"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
@@ -64,9 +63,6 @@
 
 #include "vm/jit/stacktrace.hpp"
 
-
-// FIXME
-extern "C" {
 
 /* global variables ***********************************************************/
 
@@ -409,7 +405,7 @@ static void thread_create_initial_thread(void)
 	/* Get the main-thread (NOTE: The main thread is always the first
 	   thread in the list). */
 
-	t = threadlist_first();
+	t = ThreadList::get_main_thread();
 
 	/* The thread name. */
 
@@ -451,21 +447,17 @@ static threadobject *thread_new(void)
 	
 	/* Lock the thread lists */
 
-	threadlist_lock();
+	ThreadList::lock();
 
-	index = threadlist_get_free_index();
+	index = ThreadList::get_free_thread_index();
 
 	/* Allocate a thread data structure. */
 
 	/* First, try to get one from the free-list. */
 
-	t = threadlist_free_first();
+	t = ThreadList::get_free_thread();
 
 	if (t != NULL) {
-		/* Remove from free list. */
-
-		threadlist_free_remove(t);
-
 		/* Equivalent of MZERO on the else path */
 
 		threads_impl_thread_clear(t);
@@ -486,6 +478,20 @@ static threadobject *thread_new(void)
 
 		MZERO(t, threadobject, 1);
 
+		// Initialize the mutex and the condition.
+		t->flc_lock = new Mutex();
+		t->flc_cond = new Condition();
+
+		t->waitmutex = new Mutex();
+		t->waitcond = new Condition();
+
+		t->suspendmutex = new Mutex();
+		t->suspendcond = new Condition();
+
+#if defined(ENABLE_TLH)
+		tlh_init(&(t->tlh));
+#endif
+
 #if defined(ENABLE_GC_CACAO)
 		/* Register reference to java.lang.Thread with the GC. */
 		/* FIXME is it ok to do this only once? */
@@ -494,9 +500,7 @@ static threadobject *thread_new(void)
 		gc_reference_register(&(t->_exceptionptr), GC_REFTYPE_THREADOBJECT);
 #endif
 
-		/* Initialize the implementation-specific bits. */
-
-		threads_impl_thread_init(t);
+		t->_dumpmemory = new DumpMemory();
 	}
 
 	/* Pre-compute the thinlock-word. */
@@ -504,7 +508,7 @@ static threadobject *thread_new(void)
 	assert(index != 0);
 
 	t->index     = index;
-	t->thinlock  = lock_pre_compute_thinlock(t->index);
+	t->thinlock  = Lockword::pre_compute_thinlock(t->index);
 	t->flags     = 0;
 	t->state     = THREAD_STATE_NEW;
 
@@ -518,11 +522,11 @@ static threadobject *thread_new(void)
 
 	/* Add the thread to the thread list. */
 
-	threadlist_add(t);
+	ThreadList::add_to_active_thread_list(t);
 
 	/* Unlock the thread lists. */
 
-	threadlist_unlock();
+	ThreadList::unlock();
 
 	return t;
 }
@@ -541,29 +545,13 @@ static threadobject *thread_new(void)
 
 void thread_free(threadobject *t)
 {
-	/* Lock the thread lists. */
-
-	threadlist_lock();
-
-	/* Remove the thread from the thread-list. */
-
-	threadlist_remove(t);
-
-	/* Add the thread index to the free list. */
-
-	threadlist_index_add(t->index);
-
 	/* Set the reference to the Java object to NULL. */
 
 	thread_set_object(t, NULL);
 
-	/* Add the thread data structure to the free list. */
+	/* Release the thread. */
 
-	threadlist_free_add(t);
-
-	/* Unlock the thread lists. */
-
-	threadlist_unlock();
+	ThreadList::release_thread(t);
 }
 
 
@@ -887,7 +875,7 @@ void thread_fprint_name(threadobject *t, FILE *stream)
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
 	/* FIXME: In OpenJDK and CLDC the name is a char[]. */
-	java_chararray_t *name;
+	//java_chararray_t *name;
 
 	/* FIXME This prints to stdout. */
 	utf_display_printable_ascii(utf_null);
@@ -1006,7 +994,7 @@ void thread_set_state_runnable(threadobject *t)
 {
 	/* Set the state inside a lock. */
 
-	threadlist_lock();
+	ThreadList::lock();
 
 	if (t->state != THREAD_STATE_TERMINATED) {
 		t->state = THREAD_STATE_RUNNABLE;
@@ -1014,7 +1002,7 @@ void thread_set_state_runnable(threadobject *t)
 		DEBUGTHREADS("is RUNNABLE", t);
 	}
 
-	threadlist_unlock();
+	ThreadList::unlock();
 }
 
 
@@ -1031,7 +1019,7 @@ void thread_set_state_waiting(threadobject *t)
 {
 	/* Set the state inside a lock. */
 
-	threadlist_lock();
+	ThreadList::lock();
 
 	if (t->state != THREAD_STATE_TERMINATED) {
 		t->state = THREAD_STATE_WAITING;
@@ -1039,7 +1027,7 @@ void thread_set_state_waiting(threadobject *t)
 		DEBUGTHREADS("is WAITING", t);
 	}
 
-	threadlist_unlock();
+	ThreadList::unlock();
 }
 
 
@@ -1057,7 +1045,7 @@ void thread_set_state_timed_waiting(threadobject *t)
 {
 	/* Set the state inside a lock. */
 
-	threadlist_lock();
+	ThreadList::lock();
 
 	if (t->state != THREAD_STATE_TERMINATED) {
 		t->state = THREAD_STATE_TIMED_WAITING;
@@ -1065,7 +1053,7 @@ void thread_set_state_timed_waiting(threadobject *t)
 		DEBUGTHREADS("is TIMED_WAITING", t);
 	}
 
-	threadlist_unlock();
+	ThreadList::unlock();
 }
 
 
@@ -1080,13 +1068,13 @@ void thread_set_state_terminated(threadobject *t)
 {
 	/* Set the state inside a lock. */
 
-	threadlist_lock();
+	ThreadList::lock();
 
 	t->state = THREAD_STATE_TERMINATED;
 
 	DEBUGTHREADS("is TERMINATED", t);
 
-	threadlist_unlock();
+	ThreadList::unlock();
 }
 
 
@@ -1112,23 +1100,11 @@ threadobject *thread_get_thread(java_handle_t *h)
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
 	/* XXX This is just a quick hack. */
-	threadobject* t;
-	bool          equal;
-
-	threadlist_lock();
-
-	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
-		LLNI_equals(t->object, h, equal);
-
-		if (equal == true)
-			break;
-	}
-
-	threadlist_unlock();
+	threadobject* t = ThreadList::get_thread_from_java_object(h);
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
-	log_println("threads_get_thread: IMPLEMENT ME!");
+	log_println("thread_get_thread: IMPLEMENT ME!");
 	threadobject* t = NULL;
 
 #else
@@ -1170,66 +1146,6 @@ bool threads_thread_is_alive(threadobject *t)
 
 	return false;
 }
-
-
-/* threads_dump ****************************************************************
-
-   Dumps info for all threads running in the JVM.  This function is
-   called when SIGQUIT (<ctrl>-\) is sent to CACAO.
-
-*******************************************************************************/
-
-void threads_dump(void)
-{
-	threadobject *t;
-
-	/* XXX we should stop the world here */
-
-	/* Lock the thread lists. */
-
-	threadlist_lock();
-
-	printf("Full thread dump CACAO "VERSION":\n");
-
-	/* iterate over all started threads */
-
-	for (t = threadlist_first(); t != NULL; t = threadlist_next(t)) {
-		/* ignore threads which are in state NEW */
-		if (t->state == THREAD_STATE_NEW)
-			continue;
-
-#if defined(ENABLE_GC_CACAO)
-		/* Suspend the thread. */
-		/* XXX Is the suspend reason correct? */
-
-		if (threads_suspend_thread(t, SUSPEND_REASON_JNI) == false)
-			vm_abort("threads_dump: threads_suspend_thread failed");
-#endif
-
-		/* Print thread info. */
-
-		printf("\n");
-		thread_print_info(t);
-		printf("\n");
-
-		/* Print trace of thread. */
-
-		stacktrace_print_of_thread(t);
-
-#if defined(ENABLE_GC_CACAO)
-		/* Resume the thread. */
-
-		if (threads_resume_thread(t) == false)
-			vm_abort("threads_dump: threads_resume_thread failed");
-#endif
-	}
-
-	/* Unlock the thread lists. */
-
-	threadlist_unlock();
-}
-
-} // extern "C"
 
 
 /*

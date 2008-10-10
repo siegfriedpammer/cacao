@@ -37,7 +37,7 @@ typedef struct registerdata registerdata;
 
 #include "arch.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/verify/typeinfo.h"
 
 
@@ -99,10 +99,6 @@ struct registerdata {
 	int freeargadrtop;              /* free argument address register count   */
 #endif
 
-#if defined(HAS_4BYTE_STACKSLOT)
-	int *freemem_2;
-	int freememtop_2;
-#endif
 	int *freemem;                   /* free scratch memory                    */
 	int freememtop;                 /* free memory count                      */
 
@@ -133,7 +129,15 @@ struct registerdata {
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void reg_setup(jitdata *jd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _REG_H */
 

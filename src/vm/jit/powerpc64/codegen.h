@@ -1,10 +1,8 @@
-/* src/vm/jit/powerpc64/codegen.h - code generation macros and definitions for
-                                 64-bit PowerPC
+/* src/vm/jit/powerpc64/codegen.h - code generation macros and
+                                    definitions for PowerPC64
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -23,14 +21,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Andreas Krall
-            Stefan Ring
-            Christian Thalinger
-            Christian Ullrich
-
-
 */
 
 
@@ -42,7 +32,7 @@
 #include "md-abi.h"
 
 #include "vm/global.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/reg.h"
 
 
@@ -116,11 +106,6 @@
     } while (0)
 
 
-/* stub defines ***************************************************************/
-
-#define COMPILERSTUB_CODESIZE    1 * 4
-
-
 /* macros to create code ******************************************************/
 
 #define M_OP3(opcode,y,oe,rc,d,a,b) \
@@ -168,7 +153,8 @@
 
 /* instruction macros *********************************************************/
 
-#define M_IADD(a,b,c) 			M_LADD(a,b,c)
+#define M_ILLEGAL                       M_OP3(0, 0, 0, 0, 0, 0, 0)
+#define M_IADD(a,b,c)                   M_LADD(a,b,c)
 #define M_LADD(a,b,c)                   M_OP3(31, 266, 0, 0, c, a, b) 
 #define M_IADD_IMM(a,b,c)               M_OP2_IMM(14, c, a, b)	/* XXX */
 #define M_LADD_IMM(a,b,c)               M_OP2_IMM(14, c, a, b)

@@ -38,12 +38,13 @@
 
 #include "native/llni.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
+#include "threads/mutex.hpp"
 
 #include "toolbox/logging.h"
 
-#include "vm/array.h"
-#include "vm/builtin.h"
+#include "vm/array.hpp"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/classcache.h"
 #include "vm/exceptions.hpp"
@@ -52,7 +53,7 @@
 #include "vm/javaobjects.hpp"
 #include "vm/jit/jitcache.hpp"
 #include "vm/linker.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/resolve.h"
 
@@ -60,7 +61,7 @@
 # include "vm/statistics.h"
 #endif
 
-#include "vm/suck.h"
+#include "vm/suck.hpp"
 #include "vm/utf8.h"
 
 #include "vm/jit/asmpart.h"
@@ -180,7 +181,7 @@ classinfo *class_create_classinfo(utf *classname)
     c->cache_file_fd = 0;
 #endif
 
-	LOCK_INIT_OBJECT_LOCK(&c->object.header);
+	Lockword_init(&(c->object.header.lockword));
 
 	return c;
 }
@@ -827,25 +828,22 @@ classinfo *class_array_of(classinfo *component, bool link)
     char              *namebuf;
 	utf               *u;
 	classinfo         *c;
-	int32_t            dumpmarker;
 
 	cl = component->classloader;
-
-	DMARKER;
 
     /* Assemble the array class name */
     namelen = component->name->blength;
     
     if (component->name->text[0] == '[') {
         /* the component is itself an array */
-        namebuf = DMNEW(char, namelen + 1);
+        namebuf = MNEW(char, namelen + 1);
         namebuf[0] = '[';
         MCOPY(namebuf + 1, component->name->text, char, namelen);
         namelen++;
     }
 	else {
         /* the component is a non-array class */
-        namebuf = DMNEW(char, namelen + 3);
+        namebuf = MNEW(char, namelen + 3);
         namebuf[0] = '[';
         namebuf[1] = 'L';
         MCOPY(namebuf + 2, component->name->text, char, namelen);
@@ -855,9 +853,9 @@ classinfo *class_array_of(classinfo *component, bool link)
 
 	u = utf_new(namebuf, namelen);
 
-	c = get_array_class(u, cl, cl, link);
+	MFREE(namebuf, char, namelen);
 
-	DRELEASE;
+	c = get_array_class(u, cl, cl, link);
 
 	return c;
 }
@@ -875,9 +873,6 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
     s4 namelen;
     char *namebuf;
 	classinfo *c;
-	int32_t    dumpmarker;
-
-	DMARKER;
 
 	if (dim < 1) {
 		log_text("Invalid array dimension requested");
@@ -889,13 +884,13 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
     
     if (element->name->text[0] == '[') {
         /* the element is itself an array */
-        namebuf = DMNEW(char, namelen + dim);
+        namebuf = MNEW(char, namelen + dim);
         memcpy(namebuf + dim, element->name->text, namelen);
         namelen += dim;
     }
     else {
         /* the element is a non-array class */
-        namebuf = DMNEW(char, namelen + 2 + dim);
+        namebuf = MNEW(char, namelen + 2 + dim);
         namebuf[dim] = 'L';
         memcpy(namebuf + dim + 1, element->name->text, namelen);
         namelen += (2 + dim);
@@ -903,12 +898,14 @@ classinfo *class_multiarray_of(s4 dim, classinfo *element, bool link)
     }
 	memset(namebuf, '[', dim);
 
-	c = get_array_class(utf_new(namebuf, namelen),
+	utf* u = utf_new(namebuf, namelen);
+
+	MFREE(namebuf, char, namelen);
+
+	c = get_array_class(u,
 						element->classloader,
 						element->classloader,
 						link);
-
-	DRELEASE;
 
 	return c;
 }
@@ -1037,25 +1034,22 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
     s4 namelen;
     char *namebuf;
 	constant_classref *cr;
-	int32_t            dumpmarker;
 
 	assert(ref);
 	assert(dim >= 1 && dim <= 255);
-
-	DMARKER;
 
     /* Assemble the array class name */
     namelen = ref->name->blength;
     
     if (ref->name->text[0] == '[') {
         /* the element is itself an array */
-        namebuf = DMNEW(char, namelen + dim);
+        namebuf = MNEW(char, namelen + dim);
         memcpy(namebuf + dim, ref->name->text, namelen);
         namelen += dim;
     }
     else {
         /* the element is a non-array class */
-        namebuf = DMNEW(char, namelen + 2 + dim);
+        namebuf = MNEW(char, namelen + 2 + dim);
         namebuf[dim] = 'L';
         memcpy(namebuf + dim + 1, ref->name->text, namelen);
         namelen += (2 + dim);
@@ -1063,9 +1057,11 @@ constant_classref *class_get_classref_multiarray_of(s4 dim, constant_classref *r
     }
 	memset(namebuf, '[', dim);
 
-    cr = class_get_classref(ref->referer,utf_new(namebuf, namelen));
+	utf* u = utf_new(namebuf, namelen);
 
-	DRELEASE;
+	MFREE(namebuf, char, namelen);
+
+    cr = class_get_classref(ref->referer, u);
 
 	return cr;
 }
@@ -1484,12 +1480,12 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
 		if (sub->flags & ACC_INTERFACE)
 			return (super == class_java_lang_Object);
 
-		LOCK_MONITOR_ENTER(linker_classrenumber_lock);
+		Mutex_lock(linker_classrenumber_mutex);
 
 		diffval = sub->vftbl->baseval - super->vftbl->baseval;
 		result  = diffval <= (uint32_t) super->vftbl->diffval;
 
-		LOCK_MONITOR_EXIT(linker_classrenumber_lock);
+		Mutex_unlock(linker_classrenumber_mutex);
 	}
 
 	return result;
@@ -2375,15 +2371,7 @@ void class_showconstantpool (classinfo *c)
 				printf ("Double -> %f", ((constant_double*)e) -> value);
 				break;
 			case CONSTANT_Long:
-				{
-					u8 v = ((constant_long*)e) -> value;
-#if U8_AVAILABLE
-					printf ("Long -> %ld", (long int) v);
-#else
-					printf ("Long -> HI: %ld, LO: %ld\n", 
-							(long int) v.high, (long int) v.low);
-#endif 
-				}
+				printf ("Long -> %ld", (long int) ((constant_long*)e) -> value);
 				break;
 			case CONSTANT_NameAndType:
 				{

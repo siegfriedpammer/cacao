@@ -41,7 +41,7 @@
 
 #include "vm/jit/abi.h"
 #include "vm/jit/reg.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 #include "vm/jit/optimizing/graph.h"
 #include "vm/jit/optimizing/lifetimes.h"
@@ -538,9 +538,6 @@ void lsra_alloc(jitdata *jd, int *lifet, int lifetimecount, int *mem_use)
 	struct lifetime *lt;
 	struct freemem *fmem;
 	int lt_index;
-#ifdef HAS_4BYTE_STACKSLOT
-	struct freemem *fmem_2;
-#endif
 	methodinfo *m;
 	registerdata *rd;
 	lsradata *ls;
@@ -552,11 +549,6 @@ void lsra_alloc(jitdata *jd, int *lifet, int lifetimecount, int *mem_use)
 	fmem=DNEW(struct freemem);
 	fmem->off=-1;
 	fmem->next=NULL;
-#ifdef HAS_4BYTE_STACKSLOT
-	fmem_2=DNEW(struct freemem);
-	fmem_2->off=-1;
-	fmem_2->next=NULL;
-#endif
 
 	for (lt_index = 0; lt_index < lifetimecount; lt_index ++) {
 		lt = ls->lifetime + lifet[lt_index];
@@ -565,11 +557,6 @@ void lsra_alloc(jitdata *jd, int *lifet, int lifetimecount, int *mem_use)
 #endif
 		if (lt->regoff == -1) {
 			flags = INMEMORY;
-#ifdef HAS_4BYTE_STACKSLOT
-			if (IS_2_WORD_TYPE(lt->type))
-				regoff = lsra_getmem(lt, fmem_2, mem_use);
-			else
-#endif
 			regoff = lsra_getmem(lt, fmem, mem_use);
 		} else {
 			flags = lt->savedvar;
@@ -589,17 +576,7 @@ int lsra_getmem(struct lifetime *lt, struct freemem *fmem, int *mem_use)
 	/* no memmory allocated till now, or all other are still live */
 	if ((fmem->next == NULL) || (fmem->next->end > lt->i_start)) {
 /* 	if (1) { */
-#ifdef HAS_4BYTE_STACKSLOT
-		if (IS_2_WORD_TYPE(lt->type))
-			if ( (*mem_use)&1 ) /* align memory location for 2 Word Types */
-				(*mem_use)++;
 		fm=lsra_getnewmem(mem_use);
-		if (IS_2_WORD_TYPE(lt->type))
-			/* allocate a second following Slot for 2 Word Types */
-			(*mem_use)++;
-#else
-		fm=lsra_getnewmem(mem_use);
-#endif
 	} else {
 		/* Speicherstelle frei */
 		fm=fmem->next;
@@ -934,7 +911,7 @@ void lsra_calc_lifetime_length(jitdata *jd)
 
 			switch (lt->type) {
 			case TYPE_LNG:
-#if (defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)) || defined (__I386__)
+#if defined (__I386__)
 				flags = 0;
 #else
 				flags = 1;

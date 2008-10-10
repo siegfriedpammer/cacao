@@ -46,14 +46,16 @@
 
 #include "toolbox/logging.h"
 
+#include "threads/thread.hpp"
+
 #include "vm/class.h"
-#include "vm/field.h"
+#include "vm/field.hpp"
 #include "vm/global.h"
 #include "vm/method.h"
 #include "vm/options.h"
 #include "vm/statistics.h"
 
-#include "vm/jit/code.h"
+#include "vm/jit/code.hpp"
 
 
 /* global variables ***********************************************************/
@@ -304,12 +306,25 @@ s8 getcputime(void)
 
 *******************************************************************************/
 
+Mutex *loadingtime_lock = Mutex_new();
+
 void loadingtime_start(void)
 {
+	Mutex_lock(loadingtime_lock);
+
 	loadingtime_recursion++;
 
 	if (loadingtime_recursion == 1)
 		loadingstarttime = getcputime();
+	else {
+		int end = getcputime();
+		loadingtime += (end - loadingstarttime);
+
+		loadingstarttime = loadingstoptime = end;
+	}
+	
+
+	Mutex_unlock(loadingtime_lock);
 }
 
 
@@ -321,12 +336,18 @@ void loadingtime_start(void)
 
 void loadingtime_stop(void)
 {
-	if (loadingtime_recursion == 1) {
-		loadingstoptime = getcputime();
-		loadingtime += (loadingstoptime - loadingstarttime);
+	Mutex_lock(loadingtime_lock);
+
+	loadingstoptime = getcputime();
+	loadingtime += (loadingstoptime - loadingstarttime);
+
+	if (loadingtime_recursion > 1) {
+		loadingstarttime = loadingstoptime;
 	}
 
 	loadingtime_recursion--;
+
+	Mutex_unlock(loadingtime_lock);
 }
 
 

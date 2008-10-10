@@ -1,9 +1,7 @@
 /* tests/native/test.c - for testing native stuff
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   TU Wien
+   Copyright (C) 1996-2005, 2006, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,18 +20,14 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-
 */
 
 
+#include "config.h"
+
 #include <stdio.h>
 
-#include "config.h"
-#include "native/jni.h"
+#include "native/jni.hpp"
 
 
 JNIEXPORT void JNICALL Java_test_nsub(JNIEnv *env, jclass clazz)

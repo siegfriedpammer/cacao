@@ -32,16 +32,16 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/array.h"
+#include "vm/array.hpp"
 #include "vm/class.h"
 #include "vm/descriptor.h"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/primitive.hpp"
 #include "vm/resolve.h"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/verify/typeinfo.h"
 
 

@@ -103,7 +103,7 @@ REG_SOURCES = \
 	reg.h
 
 REPLACE_SOURCES += \
-	replace.h
+	replace.hpp
 
 STACK_SOURCES = \
 	stack.c \
@@ -124,7 +124,7 @@ endif
 
 if ENABLE_REPLACEMENT
 REPLACE_SOURCES += \
-	replace.c
+	replace.cpp
 endif
 
 if ENABLE_VERIFIER
@@ -156,42 +156,46 @@ noinst_LTLIBRARIES = \
 	libjit.la
 
 libjit_la_SOURCES = \
-	argument.c \
-	argument.h \
-	code.c \
-	code.h \
-	codegen-common.c \
-	codegen-common.h \
+	argument.cpp \
+	argument.hpp \
+	builtin.cpp \
+	builtin.hpp \
+	builtintable.inc \
+	code.cpp \
+	code.hpp \
+	codegen-common.cpp \
+	codegen-common.hpp \
 	disass.h \
 	$(DISASS_SOURCES) \
 	dseg.c \
 	dseg.h \
-	emit-common.c \
-	emit-common.h \
+	emit-common.cpp \
+	emit-common.hpp \
 	exceptiontable.c \
 	exceptiontable.h \
 	executionstate.c \
 	executionstate.h \
-	icmdtable.inc \
-	jit.c \
-	jit.h \
-	linenumbertable.c \
-	linenumbertable.h \
+	jit.cpp \
+	jit.hpp \
+	linenumbertable.cpp \
+	linenumbertable.hpp \
 	methodtree.c \
 	methodtree.h \
 	parse.c \
 	parse.h \
-	patcher-common.c \
-	patcher-common.h \
+	patcher-common.cpp \
+	patcher-common.hpp \
 	$(RECOMPILE_SOURCES) \
 	$(REG_SOURCES) \
 	$(JITCACHE_SOURCES) \
 	$(REPLACE_SOURCES) \
-	show.c \
-	show.h \
+	show.cpp \
+	show.hpp \
 	$(STACK_SOURCES) \
 	stacktrace.cpp \
 	stacktrace.hpp \
+	stubs.cpp \
+	stubs.hpp \
 	trace.cpp \
 	trace.hpp \
 	$(TRAP_SOURCES) \

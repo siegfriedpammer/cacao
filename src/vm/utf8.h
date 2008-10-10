@@ -226,6 +226,10 @@ extern utf *array_packagename;
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* initialize the utf8 subsystem */
 void utf8_init(void);
 
@@ -288,6 +292,10 @@ bool is_valid_name_utf(utf *u);
 
 /* show utf-table */
 void utf_show(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _UTF_H */
 

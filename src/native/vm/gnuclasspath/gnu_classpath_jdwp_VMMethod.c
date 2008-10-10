@@ -27,7 +27,7 @@
 
 #include <stdint.h>
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 
 #include "native/include/gnu_classpath_jdwp_VMMethod.h"
 

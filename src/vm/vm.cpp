@@ -41,29 +41,29 @@
 #include "vm/jit/abi-asm.h"
 
 #include "mm/codememory.h"
+#include "mm/dumpmemory.hpp"
 #include "mm/gc.hpp"
 #include "mm/memory.h"
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 #include "native/llni.h"
-#include "native/localref.h"
-#include "native/native.h"
+#include "native/localref.hpp"
+#include "native/native.hpp"
 
-#include "native/vm/nativevm.h"
+#include "native/vm/nativevm.hpp"
 
-#include "threads/lock-common.h"
-#include "threads/threadlist.h"
+#include "threads/lock.hpp"
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 
-#include "vm/array.h"
+#include "vm/array.hpp"
 
 #if defined(ENABLE_ASSERTION)
-#include "vm/assertion.h"
+#include "vm/assertion.hpp"
 #endif
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/classcache.h"
 #include "vm/exceptions.hpp"
 #include "vm/finalizer.h"
@@ -72,24 +72,22 @@
 #include "vm/initialize.h"
 #include "vm/options.h"
 #include "vm/os.hpp"
-#include "vm/package.hpp"
 #include "vm/primitive.hpp"
-#include "vm/properties.h"
+#include "vm/properties.hpp"
 #include "vm/signallocal.h"
 #include "vm/statistics.h"
 #include "vm/string.hpp"
-#include "vm/suck.h"
+#include "vm/suck.hpp"
 #include "vm/vm.hpp"
 
-#include "vm/jit/argument.h"
+#include "vm/jit/argument.hpp"
 #include "vm/jit/asmpart.h"
-#include "vm/jit/code.h"
+#include "vm/jit/code.hpp"
 
 #if defined(ENABLE_DISASSEMBLER)
 # include "vm/jit/disass.h"
 #endif
 
-#include "vm/jit/jit.h"
 #include "vm/jit/jitcache.hpp"
 #include "vm/jit/methodtree.h"
 
@@ -97,7 +95,7 @@
 # include "vm/jit/optimizing/profile.h"
 #endif
 
-#include "vm/jit/optimizing/recompile.h"
+#include "vm/jit/optimizing/recompiler.hpp"
 
 #if defined(ENABLE_PYTHON)
 # include "vm/jit/python.h"
@@ -115,9 +113,9 @@
 
 
 /**
- * This is _the_ instance of the VM.
+ * This is _the_ VM instance.
  */
-VM* vm;
+VM* VM::_vm = NULL;
 
 
 /* global variables ***********************************************************/
@@ -194,7 +192,6 @@ enum {
 	/* CACAO options */
 
 	OPT_VERBOSE1,
-	OPT_NOIEEE,
 
 #if defined(ENABLE_STATISTICS)
 	OPT_TIME,
@@ -314,9 +311,6 @@ opt_struct opts[] = {
 
 #if defined(ENABLE_VERIFIER) && defined(TYPECHECK_VERBOSE)
 	{ "verbosetc",         false, OPT_VERBOSETC },
-#endif
-#if defined(__ALPHA__)
-	{ "noieee",            false, OPT_NOIEEE },
 #endif
 #if defined(ENABLE_STATISTICS)
 	{ "time",              false, OPT_TIME },
@@ -510,9 +504,6 @@ static void XXusage(void)
 #ifdef TYPECHECK_VERBOSE
 	puts("    -verbosetc               write debug messages while typechecking");
 #endif
-#if defined(__ALPHA__)
-	puts("    -noieee                  don't use ieee compliant arithmetic");
-#endif
 #if defined(ENABLE_VERIFIER)
 	puts("    -noverify                don't verify classfiles");
 #endif
@@ -607,53 +598,6 @@ static void fullversion(void)
 }
 
 
-static void vm_printconfig(void)
-{
-	puts("Configure/Build options:\n");
-	puts("  ./configure: "VERSION_CONFIGURE_ARGS"");
-#if defined(__VERSION__)
-	puts("  CC         : "VERSION_CC" ("__VERSION__")");
-#else
-	puts("  CC         : "VERSION_CC"");
-#endif
-	puts("  CFLAGS     : "VERSION_CFLAGS"\n");
-
-	puts("Default variables:\n");
-	printf("  maximum heap size              : %d\n", HEAP_MAXSIZE);
-	printf("  initial heap size              : %d\n", HEAP_STARTSIZE);
-	printf("  stack size                     : %d\n", STACK_SIZE);
-
-#if defined(ENABLE_JRE_LAYOUT)
-	/* When we're building with JRE-layout, the default paths are the
-	   same as the runtime paths. */
-#else
-# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	puts("  gnu.classpath.boot.library.path: "JAVA_RUNTIME_LIBRARY_LIBDIR);
-	puts("  java.boot.class.path           : "CACAO_VM_ZIP":"JAVA_RUNTIME_LIBRARY_CLASSES"");
-# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	puts("  sun.boot.library.path          : "JAVA_RUNTIME_LIBRARY_LIBDIR);
-	puts("  java.boot.class.path           : "JAVA_RUNTIME_LIBRARY_CLASSES);
-# endif
-#endif
-
-	puts("");
-
-	puts("Runtime variables:\n");
-	printf("  maximum heap size              : %d\n", opt_heapmaxsize);
-	printf("  initial heap size              : %d\n", opt_heapstartsize);
-	printf("  stack size                     : %d\n", opt_stacksize);
-
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-	printf("  gnu.classpath.boot.library.path: %s\n", properties_get("gnu.classpath.boot.library.path"));
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	printf("  sun.boot.library.path          : %s\n", properties_get("sun.boot.library.path"));
-#endif
-
-	printf("  java.boot.class.path           : %s\n", properties_get("java.boot.class.path"));
-	printf("  java.class.path                : %s\n", properties_get("java.class.path"));
-}
-
-
 /* forward declarations *******************************************************/
 
 static char *vm_get_mainclass_from_jar(char *mainstring);
@@ -682,7 +626,7 @@ bool VM::create(JavaVM** p_vm, void** p_env, void* vm_args)
 
 	// Instantiate a new VM.
 	try {
-		vm = new VM(_vm_args);
+		_vm = new VM(_vm_args);
 	}
 	catch (std::exception e) {
 		// FIXME How can we delete the resources allocated?
@@ -690,15 +634,15 @@ bool VM::create(JavaVM** p_vm, void** p_env, void* vm_args)
 // 		FREE(env, _Jv_JNIEnv);
 // 		FREE(vm, _Jv_JavaVM);
 
-		vm = NULL;
+		_vm = NULL;
 
 		return false;
 	}
 
 	// Return the values.
 
-	*p_vm  = vm->get_javavm();
-	*p_env = vm->get_jnienv();
+	*p_vm  = _vm->get_javavm();
+	*p_env = _vm->get_jnienv();
 
 	return true;
 }
@@ -725,7 +669,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 	// Make ourself globally visible.
 	// XXX Is this a good idea?
-	vm = this;
+	_vm = this;
 
 	/* create and fill a JavaVM structure */
 
@@ -776,31 +720,29 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* Install the exit handler. */
 
 	if (atexit(vm_exit_handler))
-		vm_abort("atexit failed: %s\n", strerror(errno));
+		os::abort("atexit failed: %s\n", strerror(errno));
 
 	/* Set some options. */
 
 	opt_version       = false;
 	opt_exit          = false;
 
-	opt_noieee        = false;
-
 	opt_heapmaxsize   = HEAP_MAXSIZE;
 	opt_heapstartsize = HEAP_STARTSIZE;
 	opt_stacksize     = STACK_SIZE;
 
-	/* Initialize the properties list before command-line handling.
-	   Otherwise -XX:+PrintConfig crashes. */
-
-	properties_init();
-
-	/* First of all, parse the -XX options. */
+	// First of all, parse the -XX options.
 
 #if defined(ENABLE_VMLOG)
 	vmlog_cacao_init_options();
 #endif
 
 	options_xx(vm_args);
+
+	// After -XX options are parsed, print the build-time
+	// configuration, if requested.
+	if (opt_PrintConfig)
+		print_build_time_config();
 
 #if defined(ENABLE_VMLOG)
 	vmlog_cacao_init();
@@ -822,10 +764,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* initialize JVMTI related  **********************************************/
 	jvmti = false;
 #endif
-
-	/* Fill the properties before command-line handling. */
-
-	properties_set();
 
 	/* iterate over all passed options */
 
@@ -861,14 +799,14 @@ VM::VM(JavaVMInitArgs* vm_args)
 			   classpath. */
 
 			// FIXME Make class_path const char*.
-			class_path = (char*) properties_get("java.class.path");
+			class_path = (char*) _properties.get("java.class.path");
 
 			p = MNEW(char, strlen(opt_arg) + strlen("0"));
 
 			strcpy(p, opt_arg);
 
 #if defined(ENABLE_JAVASE)
-			properties_add("java.class.path", p);
+			_properties.put("java.class.path", p);
 #endif
 
 			MFREE(class_path, char, strlen(class_path));
@@ -878,14 +816,14 @@ VM::VM(JavaVMInitArgs* vm_args)
 			for (unsigned int i = 0; i < strlen(opt_arg); i++) {
 				if (opt_arg[i] == '=') {
 					opt_arg[i] = '\0';
-					properties_add(opt_arg, opt_arg + i + 1);
+					_properties.put(opt_arg, opt_arg + i + 1);
 					goto opt_d_done;
 				}
 			}
 
 			/* if no '=' is given, just create an empty property */
 
-			properties_add(opt_arg, "");
+			_properties.put(opt_arg, "");
 
 		opt_d_done:
 			break;
@@ -895,14 +833,14 @@ VM::VM(JavaVMInitArgs* vm_args)
 			   new boot classpath. */
 
 			// FIXME Make boot_class_path const char*.
-			boot_class_path = (char*) properties_get("sun.boot.class.path");
+			boot_class_path = (char*) _properties.get("sun.boot.class.path");
 
 			p = MNEW(char, strlen(opt_arg) + strlen("0"));
 
 			strcpy(p, opt_arg);
 
-			properties_add("sun.boot.class.path", p);
-			properties_add("java.boot.class.path", p);
+			_properties.put("sun.boot.class.path", p);
+			_properties.put("java.boot.class.path", p);
 
 			MFREE(boot_class_path, char, strlen(boot_class_path));
 			break;
@@ -911,7 +849,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 			/* Append to bootclasspath. */
 
 			// FIXME Make boot_class_path const char*.
-			boot_class_path = (char*) properties_get("sun.boot.class.path");
+			boot_class_path = (char*) _properties.get("sun.boot.class.path");
 
 			len = strlen(boot_class_path);
 
@@ -925,15 +863,15 @@ VM::VM(JavaVMInitArgs* vm_args)
 			strcat(p, ":");
 			strcat(p, opt_arg);
 
-			properties_add("sun.boot.class.path", p);
-			properties_add("java.boot.class.path", p);
+			_properties.put("sun.boot.class.path", p);
+			_properties.put("java.boot.class.path", p);
 			break;
 
 		case OPT_BOOTCLASSPATH_P:
 			/* Prepend to bootclasspath. */
 
 			// FIXME Make boot_class_path const char*.
-			boot_class_path = (char*) properties_get("sun.boot.class.path");
+			boot_class_path = (char*) _properties.get("sun.boot.class.path");
 
 			len = strlen(boot_class_path);
 
@@ -943,8 +881,8 @@ VM::VM(JavaVMInitArgs* vm_args)
 			strcat(p, ":");
 			strcat(p, boot_class_path);
 
-			properties_add("sun.boot.class.path", p);
-			properties_add("java.boot.class.path", p);
+			_properties.put("sun.boot.class.path", p);
+			_properties.put("java.boot.class.path", p);
 
 			MFREE(boot_class_path, char, len);
 			break;
@@ -954,7 +892,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 			   classes. */
 
 			// FIXME Make boot_class_path const char*.
-			boot_class_path = (char*) properties_get("sun.boot.class.path");
+			boot_class_path = (char*) _properties.get("sun.boot.class.path");
 
 			len =
 				strlen(CACAO_VM_ZIP) +
@@ -968,8 +906,8 @@ VM::VM(JavaVMInitArgs* vm_args)
 			strcat(p, ":");
 			strcat(p, opt_arg);
 
-			properties_add("sun.boot.class.path", p);
-			properties_add("java.boot.class.path", p);
+			_properties.put("sun.boot.class.path", p);
+			_properties.put("java.boot.class.path", p);
 
 			MFREE(boot_class_path, char, strlen(boot_class_path));
 			break;
@@ -1089,10 +1027,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 			opt_version = true;
 			break;
 
-		case OPT_NOIEEE:
-			opt_noieee = true;
-			break;
-
 #if defined(ENABLE_VERIFIER)
 		case OPT_NOVERIFY:
 			opt_verify = false;
@@ -1176,10 +1110,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 				case 'a':
 					opt_showdisassemble = true;
 					compileverbose = true;
-					break;
-
-				case 'o':
-					opt_shownops = true;
 					break;
 #endif
 
@@ -1371,6 +1301,11 @@ VM::VM(JavaVMInitArgs* vm_args)
 		}
 	}
 
+	// Print the preliminary run-time VM configuration after options
+	// are parsed.
+	if (opt_PrintConfig)
+		print_run_time_config();
+
 #if defined(ENABLE_JVMTI)
 	if (jvmti) {
 		jvmti_set_phase(JVMTI_PHASE_ONLOAD);
@@ -1388,10 +1323,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 	gc_init(opt_heapmaxsize, opt_heapstartsize);
 
 #if defined(ENABLE_THREADS)
-	/* BEFORE: threads_preinit */
-
-	threadlist_init();
-
 	/* AFTER: gc_init */
 
   	threads_preinit();
@@ -1401,7 +1332,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* install architecture dependent signal handlers */
 
 	if (!signal_init())
-		vm_abort("vm_create: signal_init failed");
+		os::abort("vm_create: signal_init failed");
 
 #if defined(ENABLE_INTRP)
 	/* Allocate main thread stack on the Java heap. */
@@ -1415,7 +1346,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* AFTER: threads_preinit */
 
 	if (!string_init())
-		vm_abort("vm_create: string_init failed");
+		os::abort("vm_create: string_init failed");
 
 	/* AFTER: threads_preinit */
 
@@ -1424,7 +1355,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* AFTER: thread_preinit */
 
 	if (!suck_init())
-		vm_abort("vm_create: suck_init failed");
+		os::abort("vm_create: suck_init failed");
 
 	suck_add_from_property("java.endorsed.dirs");
 
@@ -1439,14 +1370,14 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* AFTER: utf8_init */
 
 	// FIXME Make boot_class_path const char*.
-	boot_class_path = (char*) properties_get("sun.boot.class.path");
+	boot_class_path = (char*) _properties.get("sun.boot.class.path");
 	suck_add(boot_class_path);
 
 	/* initialize the classcache hashtable stuff: lock, hashtable
 	   (must be done _after_ threads_preinit) */
 
 	if (!classcache_init())
-		vm_abort("vm_create: classcache_init failed");
+		os::abort("vm_create: classcache_init failed");
 
 	/* Initialize the code memory management. */
 	/* AFTER: threads_preinit */
@@ -1457,7 +1388,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	   threads_preinit) */
 
 	if (!finalizer_init())
-		vm_abort("vm_create: finalizer_init failed");
+		os::abort("vm_create: finalizer_init failed");
 
 	/* Initialize the JIT compiler. */
 
@@ -1469,25 +1400,19 @@ VM::VM(JavaVMInitArgs* vm_args)
 	pythonpass_init();
 #endif
 
-	/* BEFORE: loader_preinit */
-
-	Package::initialize();
-
 	/* AFTER: utf8_init, classcache_init */
 
 	loader_preinit();
 	linker_preinit();
 
-	/* AFTER: loader_preinit, linker_preinit */
-
-	primitive_init();
+	// AFTER: loader_preinit, linker_preinit
+	Primitive::initialize_table();
 
 	loader_init();
 	linker_init();
 
-	/* AFTER: loader_init, linker_init */
-
-	primitive_postinit();
+	// AFTER: loader_init, linker_init
+	Primitive::post_initialize_table();
 	method_init();
 
 #if defined(ENABLE_JIT)
@@ -1495,13 +1420,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 #endif
 
 	if (!builtin_init())
-		vm_abort("vm_create: builtin_init failed");
-
-	/* Initialize the native subsystem. */
-	/* BEFORE: threads_init */
-
-	if (!native_init())
-		vm_abort("vm_create: native_init failed");
+		os::abort("vm_create: builtin_init failed");
 
 	/* Register the native methods implemented in the VM. */
 	/* BEFORE: threads_init */
@@ -1514,7 +1433,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	   (e.g. NewGlobalRef). */
 
 	if (!jni_init())
-		vm_abort("vm_create: jni_init failed");
+		os::abort("vm_create: jni_init failed");
 #endif
 
 #if defined(ENABLE_JNI) || defined(ENABLE_HANDLES)
@@ -1522,7 +1441,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* BEFORE: threads_init */
 
 	if (!localref_table_init())
-		vm_abort("vm_create: localref_table_init failed");
+		os::abort("vm_create: localref_table_init failed");
 #endif
 
 	/* Iinitialize some important system classes. */
@@ -1543,15 +1462,10 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* initialize profiling */
 
 	if (!profile_init())
-		vm_abort("vm_create: profile_init failed");
+		os::abort("vm_create: profile_init failed");
 #endif
 
 #if defined(ENABLE_THREADS)
-	/* initialize recompilation */
-
-	if (!recompile_init())
-		vm_abort("vm_create: recompile_init failed");
-
 	/* start the signal handler thread */
 
 #if defined(__LINUX__)
@@ -1559,33 +1473,32 @@ VM::VM(JavaVMInitArgs* vm_args)
 	if (threads_pthreads_implementation_nptl)
 #endif
 		if (!signal_start_thread())
-			vm_abort("vm_create: signal_start_thread failed");
+			os::abort("vm_create: signal_start_thread failed");
 
 	/* finally, start the finalizer thread */
 
 	if (!finalizer_start_thread())
-		vm_abort("vm_create: finalizer_start_thread failed");
+		os::abort("vm_create: finalizer_start_thread failed");
 
 # if !defined(NDEBUG)
 	/* start the memory profiling thread */
 
 	if (opt_ProfileMemoryUsage || opt_ProfileGCMemoryUsage)
 		if (!memory_start_thread())
-			vm_abort("vm_create: memory_start_thread failed");
+			os::abort("vm_create: memory_start_thread failed");
 # endif
 
-	/* start the recompilation thread (must be done before the
-	   profiling thread) */
-
-	if (!recompile_start_thread())
-		vm_abort("vm_create: recompile_start_thread failed");
+	// Start the recompilation thread (must be done before the
+	// profiling thread).
+	// FIXME Only works for one recompiler.
+	_recompiler.start();
 
 # if defined(ENABLE_PROFILING)
 	/* start the profile sampling thread */
 
 /* 	if (opt_prof) */
 /* 		if (!profile_start_thread()) */
-/* 			vm_abort("vm_create: profile_start_thread failed"); */
+/* 			os::abort("vm_create: profile_start_thread failed"); */
 # endif
 #endif
 
@@ -1608,11 +1521,75 @@ VM::VM(JavaVMInitArgs* vm_args)
 	_created      = true;
 	_initializing = false;
 	
-	/* Print the VM configuration after all stuff is set and the VM is
-	   initialized. */
-
+	// Print the run-time VM configuration after all stuff is set and
+	// the VM is initialized.
 	if (opt_PrintConfig)
-		vm_printconfig();
+		print_run_time_config();
+}
+
+
+/**
+ * Print build-time (default) VM configuration.
+ */
+void VM::print_build_time_config(void)
+{
+	puts("CACAO "VERSION" configure/build options:");
+	puts("");
+	puts("  ./configure: "VERSION_CONFIGURE_ARGS"");
+#if defined(__VERSION__)
+	puts("  CC         : "VERSION_CC" ("__VERSION__")");
+	puts("  CXX        : "VERSION_CXX" ("__VERSION__")");
+#else
+	puts("  CC         : "VERSION_CC"");
+	puts("  CXX        : "VERSION_CXX"");
+#endif
+	puts("  CFLAGS     : "VERSION_CFLAGS"");
+	puts("  CXXFLAGS   : "VERSION_CXXFLAGS"");
+
+	puts("");
+
+	puts("Build-time (default) variables:\n");
+	printf("  maximum heap size              : %d\n", HEAP_MAXSIZE);
+	printf("  initial heap size              : %d\n", HEAP_STARTSIZE);
+	printf("  stack size                     : %d\n", STACK_SIZE);
+
+#if defined(ENABLE_JRE_LAYOUT)
+	// When we're building with JRE-layout, the default paths are the
+	// same as the runtime paths.
+#else
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
+	puts("  gnu.classpath.boot.library.path: "JAVA_RUNTIME_LIBRARY_LIBDIR);
+	puts("  java.boot.class.path           : "CACAO_VM_ZIP":"JAVA_RUNTIME_LIBRARY_CLASSES"");
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	puts("  sun.boot.library.path          : "JAVA_RUNTIME_LIBRARY_LIBDIR);
+	puts("  java.boot.class.path           : "JAVA_RUNTIME_LIBRARY_CLASSES);
+# endif
+#endif
+
+	puts("");
+}
+
+
+/**
+ * Print run-time VM configuration.
+ */
+void VM::print_run_time_config()
+{
+	puts("Run-time variables:\n");
+	printf("  maximum heap size              : %d\n", opt_heapmaxsize);
+	printf("  initial heap size              : %d\n", opt_heapstartsize);
+	printf("  stack size                     : %d\n", opt_stacksize);
+
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
+	printf("  gnu.classpath.boot.library.path: %s\n", _properties.get("gnu.classpath.boot.library.path"));
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	printf("  sun.boot.library.path          : %s\n", _properties.get("sun.boot.library.path"));
+#endif
+
+	printf("  java.boot.class.path           : %s\n", _properties.get("java.boot.class.path"));
+	printf("  java.class.path                : %s\n", _properties.get("java.class.path"));
+
+	puts("");
 }
 
 
@@ -1665,7 +1642,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 			strcpy(p, mainname);
 
 #if defined(ENABLE_JAVASE)
-			properties_add("java.class.path", p);
+			VM::get_current()->get_properties().put("java.class.path", p);
 #endif
 		}
 		else {
@@ -1805,7 +1782,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	   the application's main method exits. */
 
 	if (!thread_detach_current_thread())
-		vm_abort("vm_run: Could not detach main thread.");
+		os::abort("vm_run: Could not detach main thread.");
 #endif
 
 	/* Destroy the JavaVM. */
@@ -2007,89 +1984,6 @@ void vm_exit_handler(void)
 }
 
 
-/* vm_abort ********************************************************************
-
-   Prints an error message and aborts the VM.
-
-   IN:
-       text ... error message to print
-
-*******************************************************************************/
-
-void vm_abort(const char *text, ...)
-{
-	va_list ap;
-
-	/* Print the log message. */
-
-	log_start();
-
-	va_start(ap, text);
-	log_vprint(text, ap);
-	va_end(ap);
-
-	log_finish();
-
-	/* Now abort the VM. */
-
-	os::abort();
-}
-
-
-/* vm_abort_errnum *************************************************************
-
-   Prints an error message, appends ":" plus the strerror-message of
-   errnum and aborts the VM.
-
-   IN:
-       errnum ... error number
-       text ..... error message to print
-
-*******************************************************************************/
-
-void vm_abort_errnum(int errnum, const char *text, ...)
-{
-	va_list ap;
-
-	/* Print the log message. */
-
-	log_start();
-
-	va_start(ap, text);
-	log_vprint(text, ap);
-	va_end(ap);
-
-	/* Print the strerror-message of errnum. */
-
-	log_print(": %s", os::strerror(errnum));
-
-	log_finish();
-
-	/* Now abort the VM. */
-
-	os::abort();
-}
-
-
-/* vm_abort_errno **************************************************************
-
-   Equal to vm_abort_errnum, but uses errno to get the error number.
-
-   IN:
-       text ... error message to print
-
-*******************************************************************************/
-
-void vm_abort_errno(const char *text, ...)
-{
-	va_list ap;
-
-	va_start(ap, text);
-	vm_abort_errnum(errno, text, ap);
-	va_end(ap);
-}
-
-
 /* vm_abort_disassemble ********************************************************
 
    Prints an error message, disassemble the given code range (if
@@ -2136,7 +2030,7 @@ void vm_abort_disassemble(void *pc, int count, const char *text, ...)
 		pc = disassinstr((u1*) pc);
 #endif
 
-	vm_abort("Aborting...");
+	os::abort("Aborting...");
 }
 
 
@@ -2377,7 +2271,7 @@ static void vm_compile_method(char* mainname)
 	}
 
 	if (m == NULL)
-		vm_abort("vm_compile_method: java.lang.NoSuchMethodException: %s.%s",
+		os::abort("vm_compile_method: java.lang.NoSuchMethodException: %s.%s",
 				 opt_method, opt_signature ? opt_signature : "");
 		
 	jit_compile(m);
@@ -2479,19 +2373,18 @@ type vm_call_method##name##_valist(methodinfo *m, java_handle_t *o,     \
 {                                                                       \
 	uint64_t *array;                                                    \
 	type      value;                                                    \
-	int32_t   dumpmarker;                                               \
                                                                         \
 	if (m->code == NULL)                                                \
 		if (!jit_compile(m))                                            \
 			return 0;                                                   \
                                                                         \
 	THREAD_NATIVEWORLD_EXIT;                                            \
-	DMARKER;                                                            \
+																		\
+	DumpMemoryArea dma;													\
                                                                         \
 	array = argument_vmarray_from_valist(m, o, ap);                     \
 	value = vm_call##name##_array(m, array);                            \
                                                                         \
-	DRELEASE;                                                           \
 	THREAD_NATIVEWORLD_ENTER;                                           \
                                                                         \
 	return value;                                                       \
@@ -2517,19 +2410,18 @@ type vm_call_method##name##_jvalue(methodinfo *m, java_handle_t *o,     \
 {                                                                       \
 	uint64_t *array;                                                    \
 	type      value;                                                    \
-	int32_t   dumpmarker;                                               \
                                                                         \
 	if (m->code == NULL)                                                \
 		if (!jit_compile(m))                                            \
 			return 0;                                                   \
                                                                         \
 	THREAD_NATIVEWORLD_EXIT;                                            \
-	DMARKER;                                                            \
+																		\
+	DumpMemoryArea dma;													\
                                                                         \
 	array = argument_vmarray_from_jvalue(m, o, args);                   \
 	value = vm_call##name##_array(m, array);                            \
                                                                         \
-	DRELEASE;                                                           \
 	THREAD_NATIVEWORLD_ENTER;                                           \
                                                                         \
 	return value;                                                       \
@@ -2556,7 +2448,6 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 	java_handle_t *xptr;
 	java_handle_t *ro;
 	imm_union      value;
-	int32_t        dumpmarker;
 
 	/* Prevent compiler warnings. */
 
@@ -2572,19 +2463,14 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 
 	THREAD_NATIVEWORLD_EXIT;
 
-	/* mark start of dump memory area */
-
-	DMARKER;
+	// Create new dump memory area.
+	DumpMemoryArea dma;
 
 	/* Fill the argument array from a object-array. */
 
 	array = argument_vmarray_from_objectarray(m, o, params);
 
 	if (array == NULL) {
-		/* release dump area */
-
-		DRELEASE;
-
 		/* enter the nativeworld again */
 
 		THREAD_NATIVEWORLD_ENTER;
@@ -2624,12 +2510,8 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 		break;
 
 	default:
-		vm_abort("vm_call_method_objectarray: invalid return type %d", m->parseddesc->returntype.primitivetype);
+		os::abort("vm_call_method_objectarray: invalid return type %d", m->parseddesc->returntype.primitivetype);
 	}
-
-	/* release dump area */
-
-	DRELEASE;
 
 	/* enter the nativeworld again */
 
@@ -2660,11 +2542,38 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 
 extern "C" {
 
-JavaVM* VM_get_javavm()      { return vm->get_javavm(); }
-JNIEnv* VM_get_jnienv()      { return vm->get_jnienv(); }
-bool    VM_is_initializing() { return vm->is_initializing(); }
-bool    VM_is_created()      { return vm->is_created(); }
-int64_t VM_get_starttime()   { return vm->get_starttime(); }
+JavaVM* VM_get_javavm()      { return VM::get_current()->get_javavm(); }
+JNIEnv* VM_get_jnienv()      { return VM::get_current()->get_jnienv(); }
+bool    VM_is_initializing() { return VM::get_current()->is_initializing(); }
+bool    VM_is_created()      { return VM::get_current()->is_created(); }
+int64_t VM_get_starttime()   { return VM::get_current()->get_starttime(); }
+
+void vm_abort(const char* text, ...)
+{
+	va_list ap;
+
+	va_start(ap, text);
+	os::abort(text, ap);
+	va_end(ap);
+}
+
+void vm_abort_errnum(int errnum, const char* text, ...)
+{
+	va_list ap;
+
+	va_start(ap, text);
+	os::abort_errnum(errnum, text, ap);
+	va_end(ap);
+}
+
+void vm_abort_errno(const char* text, ...)
+{
+	va_list ap;
+
+	va_start(ap, text);
+	os::abort_errno(text, ap);
+	va_end(ap);
+}
 
 }
 

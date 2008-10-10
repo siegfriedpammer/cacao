@@ -26,7 +26,9 @@
 #ifndef _LIFETIMES_H
 #define _LIFETIMES_H
 
-#include "vm/jit/optimizing/dominators.h"
+#include "config.h"
+
+#include "vm/jit/optimizing/dominators.hpp"
 
 #if !defined(NDEBUG)
 # include <assert.h>

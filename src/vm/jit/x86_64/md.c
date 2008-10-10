@@ -33,8 +33,8 @@
 
 #include "vm/vm.hpp"
 
-#include "vm/jit/codegen-common.h"
-#include "vm/jit/jit.h"
+#include "vm/jit/codegen-common.hpp"
+#include "vm/jit/jit.hpp"
 
 
 /* md_init *********************************************************************

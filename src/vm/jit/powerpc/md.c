@@ -37,7 +37,7 @@
 #include "vm/global.h"
 #include "vm/vm.hpp"
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 
 /* md_init *********************************************************************

@@ -34,6 +34,8 @@ typedef struct hashtable hashtable;
 #include "config.h"
 #include "vm/types.h"
 
+#include "threads/mutex.hpp"
+
 #include "vm/global.h"
 #include "vm/utf8.h"
 
@@ -93,7 +95,7 @@ hashtable.ptr-->+-------------------+
 
 struct hashtable {            
 #if defined(ENABLE_THREADS)
-	java_object_t      *header;         /* required for locking               */
+	Mutex              *mutex;          /* required for locking               */
 #endif
 	u4                  size;           /* current size of the hashtable      */
 	u4                  entries;        /* number of entries in the table     */
@@ -103,6 +105,10 @@ struct hashtable {
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* create hashtable */
 void hashtable_create(hashtable *hash, u4 size);
 
@@ -111,6 +117,10 @@ hashtable *hashtable_resize(hashtable *hash, u4 size);
 
 /* frees a hashtable */
 void hashtable_free(hashtable *hash);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _HASHTABLE_H */
 

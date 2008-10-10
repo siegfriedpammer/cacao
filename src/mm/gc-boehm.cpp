@@ -43,11 +43,11 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/finalizer.h"
 #include "vm/global.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/rt-timing.h"
 #include "vm/string.hpp"
@@ -240,7 +240,7 @@ void *gc_out_of_memory(size_t bytes_requested)
 
 	if (in_gc_out_of_memory) {
 		/* this is all we can do... */
-		vm_abort("gc_out_of_memory: out of memory");
+		os::abort("gc_out_of_memory: out of memory");
 	}
 
 	in_gc_out_of_memory = true;
@@ -265,7 +265,7 @@ void *gc_out_of_memory(size_t bytes_requested)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

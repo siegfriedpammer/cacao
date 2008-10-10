@@ -39,7 +39,7 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/resolve.h"
 #include "vm/options.h"
@@ -1340,9 +1340,6 @@ void lsra_alloc(jitdata *jd, int *lifet, int lifetimecount, int *mem_use)
 	struct freemem *fmem;
 	struct stackslot *n;
 	int lt_index;
-#ifdef HAS_4BYTE_STACKSLOT
-	struct freemem *fmem_2;
-#endif
 	registerdata *rd;
 	lsradata     *ls;
 
@@ -1352,11 +1349,6 @@ void lsra_alloc(jitdata *jd, int *lifet, int lifetimecount, int *mem_use)
 	fmem = DNEW(struct freemem);
 	fmem->off  = -1;
 	fmem->next = NULL;
-#ifdef HAS_4BYTE_STACKSLOT
-	fmem_2=DNEW(struct freemem);
-	fmem_2->off  = -1;
-	fmem_2->next = NULL;
-#endif
 
 	for (lt_index = 0; lt_index < lifetimecount; lt_index ++) {
 		lt = &(ls->lifetime[lifet[lt_index]]);
@@ -1365,11 +1357,6 @@ void lsra_alloc(jitdata *jd, int *lifet, int lifetimecount, int *mem_use)
 #endif
 		if (lt->reg == -1) {
 			flags = INMEMORY;
-#ifdef HAS_4BYTE_STACKSLOT
-			if (IS_2_WORD_TYPE(lt->type))
-				regoff = lsra_getmem(lt, fmem_2, mem_use);
-			else
-#endif
 			regoff = lsra_getmem(lt, fmem, mem_use);
 		} else {
 			flags  = lt->savedvar;
@@ -1411,17 +1398,7 @@ int lsra_getmem(struct lifetime *lt, struct freemem *fmem, int *mem_use)
 
 	/* no Memory Slot allocated till now or all are still live */
 	if ((fmem->next == NULL) || (fmem->next->end > lt->i_start)) {
-#ifdef HAS_4BYTE_STACKSLOT
-		if (IS_2_WORD_TYPE(lt->type))
-			if ( (*mem_use)&1 ) /* align memory location for 2 Word Types */
-				(*mem_use)++;
 		fm=lsra_getnewmem(mem_use);
-		if (IS_2_WORD_TYPE(lt->type))
-			/* allocate a second following Slot for 2 Word Types */
-			(*mem_use)++;
-#else
-		fm=lsra_getnewmem(mem_use);
-#endif
 	} else {
 		/* Memoryslot free */
 		fm = fmem->next;
@@ -1729,13 +1706,8 @@ void lsra_calc_lifetime_length(jitdata *jd) {
 
 			switch (lt->type) {
 			case TYPE_LNG:
-#if defined(HAS_4BYTE_STACKSLOT) && !defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-				flags = 0;
-#else
 				flags = 1;
-#endif
 				break;
-
 			case TYPE_INT:
 			case TYPE_ADR:
 				flags=1;

@@ -30,10 +30,9 @@
 
 #include <stdint.h>
 
-#include "native/jni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
-#include "vm/field.h"
+#include "vm/field.hpp"
 #include "vm/method.h"
 
 

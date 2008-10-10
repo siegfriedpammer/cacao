@@ -35,25 +35,26 @@
 
 #include "native/llni.h"
 
-#include "threads/lock-common.h"
+#include "threads/mutex.hpp"
 
-#include "vm/array.h"
-#include "vm/builtin.h"
+#include "vm/array.hpp"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/linker.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/method.h"
 #include "vm/options.h"
 #include "vm/resolve.h"
-#include "vm/suck.h"
+#include "vm/suck.hpp"
 #include "vm/utf8.h"
 #include "vm/vm.hpp"
 
-#include "vm/jit/code.h"
+#include "vm/jit/code.hpp"
 #include "vm/jit/methodheader.h"
+#include "vm/jit/stubs.hpp"
 
 
 #if !defined(NDEBUG) && defined(ENABLE_INLINING)
@@ -143,7 +144,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 
 	c = cb->clazz;
 
-	LOCK_INIT_OBJECT_LOCK(&(m->header));
+	m->mutex = Mutex_new();
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
@@ -527,6 +528,9 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 
 void method_free(methodinfo *m)
 {
+	if (m->mutex)
+		Mutex_delete(m->mutex);
+
 	if (m->jcode)
 		MFREE(m->jcode, u1, m->jcodelength);
 
@@ -537,10 +541,10 @@ void method_free(methodinfo *m)
 
 	if (m->stubroutine) {
 		if (m->flags & ACC_NATIVE) {
-			removenativestub(m->stubroutine);
-
-		} else {
-			removecompilerstub(m->stubroutine);
+			NativeStub_remove(m->stubroutine);
+		}
+		else {
+			CompilerStub_remove(m->stubroutine);
 		}
 	}
 }
@@ -586,8 +590,8 @@ methodinfo *method_new_builtin(builtintable_entry *bte)
 	/* initialize methodinfo structure */
 
 	MZERO(m, methodinfo, 1);
-	LOCK_INIT_OBJECT_LOCK(&(m->header));
-
+	
+	m->mutex      = Mutex_new();
 	m->flags      = ACC_METHOD_BUILTIN;
 	m->parseddesc = bte->md;
 	m->name       = bte->name;

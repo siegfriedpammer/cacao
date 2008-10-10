@@ -36,14 +36,14 @@
 #include <unistd.h>
 #include <sched.h>
 
-#include "native/jni.h"
-#include "native/native.h"
+#include "native/jni.hpp"
+#include "native/native.hpp"
 #include "native/jvmti/cacaodbg.h"
 #include "native/jvmti/jvmti.h"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/global.h"
-#include "vm/loader.h"
-#include "vm/builtin.h"
+#include "vm/loader.hpp"
+#include "vm/jit/builtin.hpp"
 #include "vm/jit/asmpart.h"
 #include "vm/class.h"
 #include "vm/classcache.h"
@@ -54,7 +54,7 @@
 #include "mm/memory.h"
 #include "threads/mutex.h"
 #include "threads/thread.hpp"
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 #include "vm/exceptions.hpp"
 #include "native/include/java_io_PrintStream.h"
 #include "native/include/java_io_InputStream.h"
@@ -63,7 +63,7 @@
 #include "native/include/java_lang_VMObject.h"
 #include "native/include/java_lang_VMSystem.h"
 #include "native/include/java_lang_VMClass.h"
-#include "vm/suck.h"
+#include "vm/suck.hpp"
 #include "boehm-gc/include/gc.h"
 
 #if defined(ENABLE_THREADS)

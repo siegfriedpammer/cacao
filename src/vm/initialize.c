@@ -29,15 +29,15 @@
 
 #include "vm/types.h"
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 
-#include "vm/builtin.h"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/initialize.h"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/vm.hpp"
 

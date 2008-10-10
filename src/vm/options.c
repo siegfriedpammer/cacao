@@ -32,8 +32,6 @@
 
 #include "mm/memory.h"
 
-#include "native/jni.h"
-
 #include "vm/options.h"
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
@@ -85,12 +83,10 @@ bool compileverbose =  false;           /* trace compiler actions             */
 bool showstack = false;
 
 bool opt_showdisassemble    = false;    /* generate disassembler listing      */
-bool opt_shownops           = false;
 bool opt_showddatasegment   = false;    /* generate data segment listing      */
 bool opt_showintermediate   = false;    /* generate intermediate code listing */
 
 bool checkbounds = true;       /* check array bounds                         */
-bool opt_noieee = false;       /* don't implement ieee compliant floats      */
 bool checksync = true;         /* do synchronization                         */
 #if defined(ENABLE_LOOP)
 bool opt_loops = false;        /* optimize array accesses in loops           */

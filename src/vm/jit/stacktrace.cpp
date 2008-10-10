@@ -39,30 +39,28 @@
 
 #include "vm/jit/stacktrace.hpp"
 
-#include "vm/global.h"                   /* required here for native includes */
-#include "native/jni.h"
 #include "native/llni.h"
 
 #include "threads/thread.hpp"
 
 #include "toolbox/logging.h"
 
-#include "vm/array.h"
-#include "vm/builtin.h"
+#include "vm/array.hpp"
+#include "vm/jit/builtin.hpp"
 #include "vm/class.h"
 #include "vm/cycles-stats.h"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
-#include "vm/loader.h"
+#include "vm/loader.hpp"
 #include "vm/method.h"
 #include "vm/options.h"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/codegen-common.h"
-#include "vm/jit/linenumbertable.h"
+#include "vm/jit/codegen-common.hpp"
+#include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/methodtree.h"
 
@@ -1141,7 +1139,7 @@ void stacktrace_print(stacktrace_t *st)
 
 		/* Get the line number. */
 
-		linenumber = linenumbertable_linenumber_for_pc(&m, ste->code, ste->pc);
+		linenumber = ste->code->linenumbertable->find(&m, ste->pc);
 
 		stacktrace_print_entry(m, linenumber);
 	}
@@ -1181,9 +1179,8 @@ void stacktrace_print_current(void)
 		code = tmpsfi.code;
 		m    = code->m;
 
-		/* Get the line number. */
-
-		linenumber = linenumbertable_linenumber_for_pc(&m, code, tmpsfi.xpc);
+		// Get the line number.
+		linenumber = code->linenumbertable->find(&m, tmpsfi.xpc);
 
 		stacktrace_print_entry(m, linenumber);
 	}
@@ -1226,9 +1223,8 @@ void stacktrace_print_of_thread(threadobject *t)
 		code = tmpsfi.code;
 		m    = code->m;
 
-		/* Get the line number. */
-
-		linenumber = linenumbertable_linenumber_for_pc(&m, code, tmpsfi.xpc);
+		// Get the line number.
+		linenumber = code->linenumbertable->find(&m, tmpsfi.xpc);
 
 		stacktrace_print_entry(m, linenumber);
 	}

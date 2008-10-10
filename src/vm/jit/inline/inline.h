@@ -1,9 +1,7 @@
 /* src/vm/jit/inline/inline.h - code inliner
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -30,14 +28,22 @@
 
 #include "config.h"
 
-#include "vm/global.h"
+#include <stdbool.h>
 
-#include "vm/jit/jit.h"
+#include "vm/jit/jit.hpp"
 
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool inline_inline(jitdata *jd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _INLINE_H */
 

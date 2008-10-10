@@ -36,7 +36,7 @@ extern "C" {
 
 #include "vm/types.h"
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 
 #include "vm/global.h"
 
@@ -109,12 +109,10 @@ extern bool compileverbose;
 extern bool showstack;
 
 extern bool opt_showdisassemble;
-extern bool opt_shownops;
 extern bool opt_showddatasegment;
 extern bool opt_showintermediate;
 
 extern bool checkbounds;
-extern bool opt_noieee;
 extern bool checksync;
 #if defined(ENABLE_LOOP)
 extern bool opt_loops;

@@ -27,15 +27,15 @@
 
 #include <stdint.h>
 
-#include "native/jni.h"
+#include "native/jni.hpp"
 #include "native/llni.h"
-#include "native/native.h"
+#include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
 # include "native/vm/include/java_lang_VMThread.h"
 #endif
 
-#include "threads/lock-common.h"
+#include "threads/lock.hpp"
 #include "threads/thread.hpp"
 
 #include "vm/exceptions.hpp"
@@ -346,16 +346,12 @@ static JNINativeMethod methods[] = {
 
 *******************************************************************************/
 
-// FIXME
-extern "C" {
 void _Jv_java_lang_VMThread_init(void)
 {
-	utf *u;
+	utf* u = utf_new_char("java/lang/VMThread");
 
-	u = utf_new_char("java/lang/VMThread");
-
-	native_method_register(u, methods, NATIVE_METHODS_COUNT);
-}
+	NativeMethods& nm = VM::get_current()->get_nativemethods();
+	nm.register_methods(u, methods, NATIVE_METHODS_COUNT);
 }
 
 

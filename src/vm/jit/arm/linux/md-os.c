@@ -2,6 +2,7 @@
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -27,12 +28,6 @@
 
 #include <stdint.h>
 
-#include "vm/types.h"
-
-#include "vm/jit/disass.h"
-
-#include "vm/jit/arm/md-abi.h"
-
 #define ucontext broken_glibc_ucontext
 #define ucontext_t broken_glibc_ucontext_t
 #include <ucontext.h>
@@ -49,6 +44,11 @@ typedef struct ucontext {
 
 #define scontext_t struct sigcontext
 
+#include "vm/types.h"
+
+#include "vm/jit/arm/md.h"
+#include "vm/jit/arm/md-abi.h"
+
 #include "threads/thread.hpp"
 
 #include "vm/os.hpp"
@@ -56,7 +56,9 @@ typedef struct ucontext {
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
+#include "vm/jit/disass.h"
 #include "vm/jit/executionstate.h"
+#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/trap.h"
 
 
@@ -78,7 +80,6 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	intptr_t        addr;
 	int             type;
 	intptr_t        val;
-	void           *p;
 
 	_uc = (ucontext_t*) _p;
 	_sc = &_uc->uc_mcontext;
@@ -106,13 +107,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 	/* Handle the trap. */
 
-	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	/* set registers */
-
-	_sc->arm_r10 = (uintptr_t) p;
-	_sc->arm_fp  = (uintptr_t) xpc;
-	_sc->arm_pc  = (uintptr_t) asm_handle_exception;
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
 }
 
 
@@ -124,57 +119,50 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t     *_uc;
-	scontext_t     *_sc;
-	u1             *pv;
-	u1             *sp;
-	u1             *ra;
-	u1             *xpc;
-	u4              mcode;
-	int             type;
-	intptr_t        val;
-	void           *p;
-
-	_uc = (ucontext_t*) _p;
-	_sc = &_uc->uc_mcontext;
+	ucontext_t* _uc = (ucontext_t*) _p;
+	scontext_t* _sc = &_uc->uc_mcontext;
 
 	/* ATTENTION: glibc included messed up kernel headers we needed a
 	   workaround for the ucontext structure. */
 
-	pv  = (u1 *) _sc->arm_ip;
-	sp  = (u1 *) _sc->arm_sp;
-	ra  = (u1 *) _sc->arm_lr;                    /* this is correct for leafs */
-	xpc = (u1 *) _sc->arm_pc;
+	void* pv  = (void*) _sc->arm_ip;
+	void* sp  = (void*) _sc->arm_sp;
+	void* ra  = (void*) _sc->arm_lr; // The RA is correct for leaf methods.
+	void* xpc = (void*) _sc->arm_pc;
 
-	/* get exception-throwing instruction */
+	// Get the exception-throwing instruction.
+	uint32_t mcode = *((uint32_t*) xpc);
 
-	mcode = *((u4 *) xpc);
+	// Check if the trap instruction is valid.
+	// TODO Move this into patcher_handler.
+	if (patcher_is_valid_trap_instruction_at(xpc) == false) {
+		// Check if the PC has been patched during our way to this
+		// signal handler (see PR85).
+		// NOTE: ARM uses SIGILL for other traps too, but it's OK to
+		// do this check anyway because it will fail.
+		if (patcher_is_patched_at(xpc) == true)
+			return;
 
-	/* check for undefined instruction we use */
-
-	if ((mcode & 0x0ff000f0) != 0x07f000f0) {
-		log_println("md_signal_handler_sigill: unknown illegal instruction: inst=%x", mcode);
+		// We have a problem...
+		log_println("md_signal_handler_sigill: Unknown illegal instruction 0x%x at 0x%x", mcode, xpc);
 #if defined(ENABLE_DISASSEMBLER)
-		DISASSINSTR(xpc);
+		(void) disassinstr(xpc);
 #endif
 		vm_abort("Aborting...");
 	}
 
-	type = (mcode >> 8) & 0x0fff;
-	val  = *((s4 *) _sc + OFFSET(scontext_t, arm_r0)/4 + (mcode & 0x0f));
+	int      type = (mcode >> 8) & 0x0fff;
+	intptr_t val  = *((int32_t*) _sc + OFFSET(scontext_t, arm_r0)/4 + (mcode & 0x0f));
 
-	/* Handle the trap. */
+	if (type == TRAP_COMPILER) {
+		/* The XPC is the RA minus 4, because the RA points to the
+		   instruction after the call. */
 
-	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	/* set registers if we have an exception, continue execution
-	   otherwise (this is needed for patchers to work) */
-
-	if (p != NULL) {
-		_sc->arm_r10 = (uintptr_t) p;
-		_sc->arm_fp  = (uintptr_t) xpc;
-		_sc->arm_pc  = (uintptr_t) asm_handle_exception;
+		xpc = (void*) (((uintptr_t) ra) - 4);
 	}
+
+	// Handle the trap.
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
 }
 
 
@@ -239,33 +227,32 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
  */
 void md_executionstate_read(executionstate_t *es, void *context)
 {
-	vm_abort("md_executionstate_read: IMPLEMENT ME!");
-
-#if 0
 	ucontext_t *_uc;
-	mcontext_t *_mc;
+	scontext_t *_sc;
 	int         i;
 
 	_uc = (ucontext_t *) context;
-	_mc = &_uc->uc_mcontext;
+	_sc = &_uc->uc_mcontext;
+
+	/* ATTENTION: glibc included messed up kernel headers we needed a
+	   workaround for the ucontext structure. */
 
 	/* read special registers */
-	es->pc = (u1 *) _mc->sc_pc;
-	es->sp = (u1 *) _mc->sc_regs[REG_SP];
-	es->pv = (u1 *) _mc->sc_regs[REG_PV];
-	es->ra = (u1 *) _mc->sc_regs[REG_RA];
+
+	es->pc = (u1 *) _sc->arm_pc;
+	es->sp = (u1 *) _sc->arm_sp;
+	es->pv = (u1 *) _sc->arm_ip;
+	es->ra = (u1 *) _sc->arm_lr;
 
 	/* read integer registers */
+
 	for (i = 0; i < INT_REG_CNT; i++)
-		es->intregs[i] = _mc->sc_regs[i];
+		es->intregs[i] = *((int32_t*) _sc + OFFSET(scontext_t, arm_r0)/4 + i);
 
 	/* read float registers */
-	/* Do not use the assignment operator '=', as the type of
-	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
 
-	assert(sizeof(_mc->sc_fpregs) == sizeof(es->fltregs));
-	os_memcpy(&es->fltregs, &_mc->sc_fpregs, sizeof(_mc->sc_fpregs));
-#endif
+	for (i = 0; i < FLT_REG_CNT; i++)
+		es->fltregs[i] = 0xdeadbeefdeadbeefULL;
 }
 
 
@@ -277,33 +264,27 @@ void md_executionstate_read(executionstate_t *es, void *context)
  */
 void md_executionstate_write(executionstate_t *es, void *context)
 {
-	vm_abort("md_executionstate_write: IMPLEMENT ME!");
-
-#if 0
 	ucontext_t *_uc;
-	mcontext_t *_mc;
+	scontext_t *_sc;
 	int         i;
 
 	_uc = (ucontext_t *) context;
-	_mc = &_uc->uc_mcontext;
+	_sc = &_uc->uc_mcontext;
+
+	/* ATTENTION: glibc included messed up kernel headers we needed a
+	   workaround for the ucontext structure. */
 
 	/* write integer registers */
+
 	for (i = 0; i < INT_REG_CNT; i++)
-		_mc->sc_regs[i] = es->intregs[i];
-
-	/* write float registers */
-	/* Do not use the assignment operator '=', as the type of
-	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
-
-	assert(sizeof(_mc->sc_fpregs) == sizeof(es->fltregs));
-	os_memcpy(&_mc->sc_fpregs, &es->fltregs, sizeof(_mc->sc_fpregs));
+		*((int32_t*) _sc + OFFSET(scontext_t, arm_r0)/4 + i) = es->intregs[i];
 
 	/* write special registers */
-	_mc->sc_pc           = (ptrint) es->pc;
-	_mc->sc_regs[REG_SP] = (ptrint) es->sp;
-	_mc->sc_regs[REG_PV] = (ptrint) es->pv;
-	_mc->sc_regs[REG_RA] = (ptrint) es->ra;
-#endif
+
+	_sc->arm_pc = (ptrint) es->pc;
+	_sc->arm_sp = (ptrint) es->sp;
+	_sc->arm_ip = (ptrint) es->pv;
+	_sc->arm_lr = (ptrint) es->ra;
 }
 
 
