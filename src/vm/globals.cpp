@@ -27,7 +27,7 @@
 
 #include <stdint.h>
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 
 
 // Classes.

@@ -34,7 +34,7 @@
 #include "threads/thread.hpp"
 
 #include "vm/jit/builtin.hpp"
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/linker.h"
 #include "vm/loader.hpp"
 #include "vm/options.h"

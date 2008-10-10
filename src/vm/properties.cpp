@@ -40,7 +40,7 @@
 
 #include "toolbox/util.h"
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/method.h"
 #include "vm/options.h"

@@ -30,7 +30,7 @@
 
 #include <stdint.h>
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/linker.h"
 #include "vm/utf8.h"

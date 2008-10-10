@@ -36,7 +36,7 @@
 
 #include "native/jni.hpp"
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/loader.hpp"
 #include "vm/method.h"

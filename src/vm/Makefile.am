@@ -83,8 +83,8 @@ libvm_la_SOURCES = \
 	array.cpp \
 	array.hpp \
 	$(ASSERTION_SOURCES) \
-	class.c \
-	class.h \
+	class.cpp \
+	class.hpp \
 	classcache.c \
 	classcache.h \
 	$(CYCLES_STATS_SOURCES) \
@@ -98,8 +98,8 @@ libvm_la_SOURCES = \
 	finalizer.h \
 	globals.cpp \
 	globals.hpp \
-	initialize.c \
-	initialize.h \
+	initialize.cpp \
+	initialize.hpp \
 	javaobjects.cpp \
 	javaobjects.hpp \
 	linker.c \
@@ -119,8 +119,8 @@ libvm_la_SOURCES = \
 	properties.cpp \
 	properties.hpp \
 	references.h \
-	resolve.c \
-	resolve.h \
+	resolve.cpp \
+	resolve.hpp \
 	$(RT_TIMING_SOURCES) \
 	signal.c \
 	signallocal.h \

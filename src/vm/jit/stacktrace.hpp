@@ -42,7 +42,7 @@ typedef struct stacktrace_t       stacktrace_t;
 
 #include "threads/thread.hpp"
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/global.h"
 
 #include "vm/jit/code.hpp"

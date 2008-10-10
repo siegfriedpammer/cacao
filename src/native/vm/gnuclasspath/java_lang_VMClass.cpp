@@ -35,10 +35,10 @@
 # include "native/vm/include/java_lang_VMClass.h"
 #endif
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
-#include "vm/initialize.h"
+#include "vm/initialize.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/string.hpp"
 

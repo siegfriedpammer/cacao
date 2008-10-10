@@ -39,7 +39,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/method.h"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/allocator/lsra.h"

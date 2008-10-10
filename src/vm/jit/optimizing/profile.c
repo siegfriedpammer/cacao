@@ -36,7 +36,7 @@
 #include "threads/thread.hpp"
 
 #include "vm/jit/builtin.hpp"
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/classcache.h"
 #include "vm/method.h"
 #include "vm/options.h"

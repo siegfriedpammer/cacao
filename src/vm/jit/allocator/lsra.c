@@ -41,7 +41,7 @@
 
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 #include "vm/options.h"
 #include "vm/statistics.h"
 

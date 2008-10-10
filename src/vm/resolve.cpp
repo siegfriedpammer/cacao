@@ -1,4 +1,4 @@
-/* src/vm/resolve.c - resolving classes/interfaces/fields/methods
+/* src/vm/resolve.cpp - resolving classes/interfaces/fields/methods
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -41,7 +41,7 @@
 #include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/verify/typeinfo.h"
@@ -500,7 +500,7 @@ bool resolve_class_from_typedesc(typedesc *d, bool checkaccess, bool link, class
 	else {
 		/* a primitive type */
 
-		cls = Primitive_get_class_by_type(d->primitivetype);
+		cls = Primitive::get_class_by_type(d->primitivetype);
 
 		assert(cls->state & CLASS_LOADED);
 
@@ -566,7 +566,7 @@ static resolve_result_t resolve_subtype_check(methodinfo *refmethod,
 											  resolve_err_t error)
 {
 	classinfo        *subclass;
-	typeinfo_t          subti;
+	typeinfo_t        subti;
 	typecheck_result  r;
 	char             *msg;
 	s4                msglen;
@@ -838,7 +838,7 @@ static resolve_result_t resolve_and_check_subtype_set(methodinfo *refmethod,
 								          resolve_err_t error)
 {
 	classref_or_classinfo *setp;
-	typecheck_result checkresult;
+	resolve_result_t checkresult;
 
 	assert(refmethod);
 	assert(ref);
@@ -1742,7 +1742,7 @@ resolve_result_t resolve_method_instance_type_checks(methodinfo *refmethod,
 									 : CLASSREF_OR_CLASSINFO(refmethod->clazz);
 		tip = &tinfo;
 		if (!typeinfo_init_class(tip, initclass))
-			return false;
+			return resolveFailed;
 	}
 	else {
 		tip = instanceti;

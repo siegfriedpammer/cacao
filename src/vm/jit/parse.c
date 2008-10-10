@@ -44,7 +44,7 @@
 #include "vm/linker.h"
 #include "vm/loader.hpp"
 #include "vm/options.h"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 
 #if defined(ENABLE_STATISTICS)
 # include "vm/statistics.h"

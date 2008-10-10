@@ -36,12 +36,12 @@
 #include "native/native.hpp"
 
 #include "vm/jit/builtin.hpp"
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/field.hpp"
-#include "vm/initialize.h"
+#include "vm/initialize.hpp"
 #include "vm/options.h"
 #include "vm/references.h"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/patcher-common.hpp"

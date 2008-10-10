@@ -39,7 +39,7 @@ typedef struct exception_entry exception_entry;
 #include "vm/global.h"
 #include "vm/method.h"
 #include "vm/references.h"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 
 #if defined(ENABLE_STATISTICS)
 # include "vm/statistics.h"

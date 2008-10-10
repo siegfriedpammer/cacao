@@ -147,4 +147,4 @@ fi
 
 export ACLOCAL AUTOCONF AUTOHEADER AUTOMAKE LIBTOOLIZE
 
-${AUTORECONF} --install --symlink
+${AUTORECONF} --force --install

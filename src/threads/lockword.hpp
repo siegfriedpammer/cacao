@@ -228,8 +228,6 @@ typedef struct Lockword {
 	uintptr_t _lockword;
 } Lockword;
 
-void Lockword_init(Lockword* lockword);
-
 #endif
 
 #endif // _LOCKWORD_HPP

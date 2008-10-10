@@ -48,7 +48,7 @@
 
 #include "threads/thread.hpp"
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/field.hpp"
 #include "vm/global.h"
 #include "vm/method.h"

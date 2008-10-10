@@ -42,7 +42,7 @@
 
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/initialize.h"
+#include "vm/initialize.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/os.hpp"
 #include "vm/string.hpp"
@@ -1067,7 +1067,15 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putOrderedLong(JNIEnv *env, jobject 
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_unpark(JNIEnv *env, jobject _this, jobject thread)
 {
-	/* XXX IMPLEMENT ME */
+	java_handle_t *h = (java_handle_t *) thread;
+	threadobject *t;
+
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
+	h = java_lang_Thread(h).get_vmThread();
+#endif
+	t = thread_get_thread(h);
+
+	threads_unpark(t);
 }
 
 
@@ -1078,7 +1086,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_unpark(JNIEnv *env, jobject _this, j
  */
 JNIEXPORT void JNICALL Java_sun_misc_Unsafe_park(JNIEnv *env, jobject _this, jboolean isAbsolute, jlong time)
 {
-	/* XXX IMPLEMENT ME */
+	threads_park(isAbsolute, time);
 }
 
 } // extern "C"

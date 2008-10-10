@@ -63,10 +63,6 @@ void Lockword::inflate(lock_record_t* lr)
 }
 
 
-extern "C" {
-	void Lockword_init(Lockword* lockword) { lockword->init(); }
-}
-
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

@@ -41,7 +41,7 @@
 
 #include "vm/access.h"
 #include "vm/array.hpp"
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/classcache.h"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
@@ -74,7 +74,7 @@
 #endif
 
 
-/* #include "vm/resolve.h" */
+/* #include "vm/resolve.hpp" */
 /* copied prototype to avoid bootstrapping problem: */
 classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls, bool checkaccess);
 

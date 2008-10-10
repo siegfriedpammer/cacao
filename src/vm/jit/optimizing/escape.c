@@ -25,7 +25,7 @@
 
 #include "config.h"
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/classcache.h"
 
 #include "vm/jit/jit.hpp"

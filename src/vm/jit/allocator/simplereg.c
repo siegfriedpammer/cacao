@@ -39,7 +39,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/method.h"
 #include "vm/options.h"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 #include "vm/string.hpp"
 
 #include "vm/jit/abi.h"

@@ -36,7 +36,7 @@
 #endif
 
 #include "vm/exceptions.hpp"
-#include "vm/initialize.h"
+#include "vm/initialize.hpp"
 
 
 // Native functions are exported as C functions.

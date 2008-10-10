@@ -160,6 +160,7 @@ int      opt_ThreadStackSize              = 0;
 
 /* Debugging options which can be turned off. */
 
+bool     opt_AlwaysEmitLongBranches       = false;
 int      opt_DebugExceptions              = 0;
 int      opt_DebugFinalizer               = 0;
 #if defined(ENABLE_JITCACHE)
@@ -233,6 +234,7 @@ enum {
 
 	/* Debugging options which can be turned off. */
 
+	OPT_AlwaysEmitLongBranches,
 	OPT_DebugExceptions,
 	OPT_DebugFinalizer,
   OPT_DebugJitCache,
@@ -287,6 +289,7 @@ option_t options_XX[] = {
 
 	/* Debugging options which can be turned off. */
 
+	{ "AlwaysEmitLongBranches",       OPT_AlwaysEmitLongBranches,       OPT_TYPE_BOOLEAN, "Always emit long-branches." },
 	{ "DebugExceptions",              OPT_DebugExceptions,              OPT_TYPE_BOOLEAN, "debug exceptions" },
 	{ "DebugFinalizer",               OPT_DebugFinalizer,               OPT_TYPE_BOOLEAN, "debug finalizer thread" },
 #if defined (ENABLE_JITCACHE)
@@ -621,6 +624,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 			break;
 
 		/* Debugging options which can be turned off. */
+
+		case OPT_AlwaysEmitLongBranches:
+			opt_AlwaysEmitLongBranches = enable;
+			break;
 
 		case OPT_DebugExceptions:
 			opt_DebugExceptions = enable;

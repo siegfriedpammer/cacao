@@ -37,7 +37,7 @@ typedef struct primitivetypeinfo primitivetypeinfo;
 
 #include "threads/mutex.hpp"
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/references.h"
 #include "vm/vftbl.hpp"
 

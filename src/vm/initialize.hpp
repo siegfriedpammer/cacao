@@ -1,4 +1,4 @@
-/* src/vm/initialize.h - static class initializer functions
+/* src/vm/initialize.hpp - static class initializer functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _INITIALIZE_H
-#define _INITIALIZE_H
+#ifndef _INITIALIZE_HPP
+#define _INITIALIZE_HPP
 
 #include "config.h"
 
@@ -32,7 +32,7 @@
 extern "C" {
 #endif
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/global.h"
 
 
@@ -45,7 +45,7 @@ bool initialize_class(classinfo *c);
 }
 #endif
 
-#endif /* _INITIALIZE_H */
+#endif /* _INITIALIZE_HPP */
 
 
 /*

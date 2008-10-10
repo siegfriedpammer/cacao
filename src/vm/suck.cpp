@@ -238,8 +238,8 @@ void suck_add_from_property(const char *key)
 	s4              namlen;
 	char           *p;
 
-	/* get the property value */
-	Properties properties = VM::get_current()->get_properties();
+	// Get the property value.
+	Properties& properties = VM::get_current()->get_properties();
 	value = properties.get(key);
 
 	if (value == NULL)
