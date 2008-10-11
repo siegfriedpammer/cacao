@@ -1708,9 +1708,8 @@
 #       define OS_TYPE "LINUX"
 #       define LINUX_STACKBOTTOM
 #       define DYNAMIC_LOADING
-	extern int __data_start[];
-#       define DATASTART ((ptr_t)(__data_start))
-    extern int _end[];
+#       define SEARCH_FOR_DATA_START
+        extern int _end[];
 #   define DATAEND (_end)
 #   define CACHE_LINE_SIZE 256
 #   define GETPAGESIZE() 4096
