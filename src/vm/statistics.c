@@ -46,6 +46,8 @@
 
 #include "toolbox/logging.h"
 
+#include "threads/thread.hpp"
+
 #include "vm/class.hpp"
 #include "vm/field.hpp"
 #include "vm/global.h"
@@ -105,6 +107,8 @@ int32_t count_linenumbertable = 0;
 int32_t size_linenumbertable  = 0;
 
 s4 size_patchref         = 0;
+
+s4 size_cachedref	     = 0;
 
 u8 count_calls_java_to_native = 0;
 u8 count_calls_native_to_java = 0;
@@ -302,12 +306,25 @@ s8 getcputime(void)
 
 *******************************************************************************/
 
+Mutex *loadingtime_lock = Mutex_new();
+
 void loadingtime_start(void)
 {
+	Mutex_lock(loadingtime_lock);
+
 	loadingtime_recursion++;
 
 	if (loadingtime_recursion == 1)
 		loadingstarttime = getcputime();
+	else {
+		int end = getcputime();
+		loadingtime += (end - loadingstarttime);
+
+		loadingstarttime = loadingstoptime = end;
+	}
+	
+
+	Mutex_unlock(loadingtime_lock);
 }
 
 
@@ -319,12 +336,18 @@ void loadingtime_start(void)
 
 void loadingtime_stop(void)
 {
-	if (loadingtime_recursion == 1) {
-		loadingstoptime = getcputime();
-		loadingtime += (loadingstoptime - loadingstarttime);
+	Mutex_lock(loadingtime_lock);
+
+	loadingstoptime = getcputime();
+	loadingtime += (loadingstoptime - loadingstarttime);
+
+	if (loadingtime_recursion > 1) {
+		loadingstarttime = loadingstoptime;
 	}
 
 	loadingtime_recursion--;
+
+	Mutex_unlock(loadingtime_lock);
 }
 
 
@@ -692,12 +715,14 @@ void statistics_print_memory_usage(void)
 	log_println("linenumber tables (%5d): %10d", count_linenumbertable, size_linenumbertable);
 	log_println("exception tables:          %10d", count_extable_len);
 	log_println("patcher references:        %10d", size_patchref);
+	log_println("cached references:         %10d", size_cachedref);
 	log_println("                            ----------");
 
 	sum =
 		size_linenumbertable +
 		count_extable_len +
-		size_patchref;
+		size_patchref +
+		size_cachedref;
 
 	log_println("                           %10d", sum);
 

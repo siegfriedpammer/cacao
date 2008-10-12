@@ -58,6 +58,7 @@
 #include "vm/jit/dseg.h"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
+#include "vm/jit/jitcache.hpp"
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/parse.h"
 #include "vm/jit/patcher-common.hpp"
@@ -134,7 +135,6 @@ bool codegen_emit(jitdata *jd)
 	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
 
 	cd->stackframesize = rd->memuse + savedregs_num;
-
 	   
 #if defined(ENABLE_THREADS)
 	/* space to save argument of monitor_enter */
@@ -153,7 +153,12 @@ bool codegen_emit(jitdata *jd)
 
 	align_off = cd->stackframesize ? 4 : 0;
 
+#if defined(ENABLE_JITCACHE)
+	disp = dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+	jitcache_add_cached_ref(code, CRT_CODEINFO, 0, disp);
+#else
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
+#endif
 	(void) dseg_add_unique_s4(
 		cd, cd->stackframesize * 8 + align_off);           /* FrameSize       */
 
@@ -176,6 +181,8 @@ bool codegen_emit(jitdata *jd)
 		/* count frequency */
 
 		M_MOV_IMM(code, REG_ITMP3);
+		JITCACHE_ADD_CACHED_REF_JD(jd, CRT_CODEINFO, NULL);
+
 		M_IADD_IMM_MEMBASE(1, REG_ITMP3, OFFSET(codeinfo, frequency));
 	}
 #endif
@@ -354,6 +361,7 @@ bool codegen_emit(jitdata *jd)
 
 		if (m->flags & ACC_STATIC) {
 			M_MOV_IMM(&m->clazz->object.header, REG_ITMP1);
+			JITCACHE_ADD_CACHED_REF_JD(jd, CRT_OBJECT_HEADER, m->clazz);
 		}
 		else {
 			M_ALD(REG_ITMP1, REG_SP, cd->stackframesize * 8 + 4 + align_off);
@@ -365,6 +373,8 @@ bool codegen_emit(jitdata *jd)
 		M_AST(REG_ITMP1, REG_SP, s1 * 8);
 		M_AST(REG_ITMP1, REG_SP, 0 * 4);
 		M_MOV_IMM(LOCK_monitor_enter, REG_ITMP3);
+		JITCACHE_ADD_CACHED_REF_JD(jd, CRT_BUILTIN_FP,
+							  builtintable_get_internal(LOCK_monitor_enter));
 		M_CALL(REG_ITMP3);
 	}			
 #endif
@@ -566,6 +576,7 @@ bool codegen_emit(jitdata *jd)
   				disp = dseg_add_float(cd, iptr->sx.val.f);
 				emit_mov_imm_reg(cd, 0, REG_ITMP1);
 				dseg_adddata(cd);
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_ENTRYPOINT, NULL);
 				emit_flds_membase(cd, REG_ITMP1, disp);
 			}
 			emit_store_dst(jd, iptr, d);
@@ -594,6 +605,7 @@ bool codegen_emit(jitdata *jd)
 				disp = dseg_add_double(cd, iptr->sx.val.d);
 				emit_mov_imm_reg(cd, 0, REG_ITMP1);
 				dseg_adddata(cd);
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_ENTRYPOINT, NULL);
 				emit_fldl_membase(cd, REG_ITMP1, disp);
 			}
 			emit_store_dst(jd, iptr, d);
@@ -613,7 +625,15 @@ bool codegen_emit(jitdata *jd)
 				if (iptr->sx.val.anyptr == NULL)
 					M_CLR(d);
 				else
+				{
 					M_MOV_IMM(iptr->sx.val.anyptr, d);
+					JITCACHE_ADD_CACHED_REF_JD(
+						jd,
+						(iptr->flags.bits & INS_FLAG_CLASS) ? CRT_CLASSINFO
+															: CRT_STRING,
+						(iptr->flags.bits & INS_FLAG_CLASS) ? (void*) iptr->sx.val.c.cls
+															: (void*) iptr->sx.val.stringconst);
+				}
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -995,6 +1015,7 @@ bool codegen_emit(jitdata *jd)
 			M_LST(s1, REG_SP, 0 * 4);
 
 			M_MOV_IMM(bte->fp, REG_ITMP3);
+			JITCACHE_ADD_CACHED_REF_JD(jd, CRT_BUILTIN_FP, bte);
 			M_CALL(REG_ITMP3);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1562,6 +1583,7 @@ bool codegen_emit(jitdata *jd)
 				disp = dseg_add_unique_s4(cd, 0);
 				emit_mov_imm_reg(cd, 0, REG_ITMP1);
 				dseg_adddata(cd);
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_ENTRYPOINT, NULL);
 				emit_mov_reg_membase(cd, var->vv.regoff, REG_ITMP1, disp);
 				emit_fildl_membase(cd, REG_ITMP1, disp);
 			}
@@ -1591,6 +1613,7 @@ bool codegen_emit(jitdata *jd)
 
 			emit_mov_imm_reg(cd, 0, REG_ITMP1);
 			dseg_adddata(cd);
+			JITCACHE_ADD_CACHED_REF_JD(jd, CRT_ENTRYPOINT, NULL);
 
 			/* Round to zero, 53-bit mode, exception masked */
 			disp = dseg_add_s4(cd, 0x0e7f);
@@ -1636,6 +1659,8 @@ bool codegen_emit(jitdata *jd)
 			/* XXX: change this when we use registers */
 			emit_flds_membase(cd, REG_SP, var1->vv.regoff);
 			emit_mov_imm_reg(cd, (ptrint) asm_builtin_f2i, REG_ITMP1);
+			JITCACHE_ADD_CACHED_REF_JD(jd, CRT_BUILTIN_FP,
+								  builtintable_get_internal(BUILTIN_f2i));
 			emit_call_reg(cd, REG_ITMP1);
 
 			if (var->flags & INMEMORY) {
@@ -1653,6 +1678,7 @@ bool codegen_emit(jitdata *jd)
 
 			emit_mov_imm_reg(cd, 0, REG_ITMP1);
 			dseg_adddata(cd);
+			JITCACHE_ADD_CACHED_REF_JD(jd, CRT_ENTRYPOINT, NULL);
 
 			/* Round to zero, 53-bit mode, exception masked */
 			disp = dseg_add_s4(cd, 0x0e7f);
@@ -1698,6 +1724,8 @@ bool codegen_emit(jitdata *jd)
 			/* XXX: change this when we use registers */
 			emit_fldl_membase(cd, REG_SP, var1->vv.regoff);
 			emit_mov_imm_reg(cd, (ptrint) asm_builtin_d2i, REG_ITMP1);
+			JITCACHE_ADD_CACHED_REF_JD(jd, CRT_BUILTIN_FP,
+								  builtintable_get_internal(BUILTIN_d2i));
 			emit_call_reg(cd, REG_ITMP1);
 
 			if (var->flags & INMEMORY) {
@@ -1714,6 +1742,7 @@ bool codegen_emit(jitdata *jd)
 
 			emit_mov_imm_reg(cd, 0, REG_ITMP1);
 			dseg_adddata(cd);
+			JITCACHE_ADD_CACHED_REF_JD(jd, CRT_ENTRYPOINT, NULL);
 
 			/* Round to zero, 53-bit mode, exception masked */
 			disp = dseg_add_s4(cd, 0x0e7f);
@@ -1757,6 +1786,8 @@ bool codegen_emit(jitdata *jd)
 				/* XXX: change this when we use registers */
 				emit_flds_membase(cd, REG_SP, var1->vv.regoff);
 				emit_mov_imm_reg(cd, (ptrint) asm_builtin_f2l, REG_ITMP1);
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_BUILTIN_FP,
+								  builtintable_get_internal(BUILTIN_f2l));
 				emit_call_reg(cd, REG_ITMP1);
 				emit_mov_reg_membase(cd, REG_RESULT, REG_SP, var->vv.regoff);
 				emit_mov_reg_membase(cd, REG_RESULT2, 
@@ -1775,6 +1806,7 @@ bool codegen_emit(jitdata *jd)
 
 			emit_mov_imm_reg(cd, 0, REG_ITMP1);
 			dseg_adddata(cd);
+			JITCACHE_ADD_CACHED_REF_JD(jd, CRT_ENTRYPOINT, NULL);
 
 			/* Round to zero, 53-bit mode, exception masked */
 			disp = dseg_add_s4(cd, 0x0e7f);
@@ -1817,6 +1849,8 @@ bool codegen_emit(jitdata *jd)
 				/* XXX: change this when we use registers */
 				emit_fldl_membase(cd, REG_SP, var1->vv.regoff);
 				emit_mov_imm_reg(cd, (ptrint) asm_builtin_d2l, REG_ITMP1);
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_BUILTIN_FP,
+								  builtintable_get_internal(BUILTIN_d2l));
 				emit_call_reg(cd, REG_ITMP1);
 				emit_mov_reg_membase(cd, REG_RESULT, REG_SP, var->vv.regoff);
 				emit_mov_reg_membase(cd, REG_RESULT2, 
@@ -2103,6 +2137,8 @@ bool codegen_emit(jitdata *jd)
 			M_AST(s1, REG_SP, 0 * 4);
 			M_AST(s3, REG_SP, 1 * 4);
 			M_MOV_IMM(BUILTIN_FAST_canstore, REG_ITMP1);
+			JITCACHE_ADD_CACHED_REF_JD(jd, CRT_BUILTIN_FP,
+								  builtintable_get_internal(BUILTIN_FAST_canstore));
 			M_CALL(REG_ITMP1);
 			emit_arraystore_check(cd, iptr);
 
@@ -2191,6 +2227,7 @@ bool codegen_emit(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
+
 				disp      = (intptr_t) fi->value;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
@@ -2198,6 +2235,7 @@ bool codegen_emit(jitdata *jd)
   			}
 
 			M_MOV_IMM(disp, REG_ITMP1);
+			JITCACHE_ADD_CACHED_REF_JD_COND(jd, CRT_FIELDINFO_VALUE, fi, disp);
 			switch (fieldtype) {
 			case TYPE_INT:
 			case TYPE_ADR:
@@ -2232,13 +2270,14 @@ bool codegen_emit(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
+
 				disp      = (intptr_t) fi->value;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
 					patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz, 0);
   			}
-
 			M_MOV_IMM(disp, REG_ITMP1);
+			JITCACHE_ADD_CACHED_REF_JD_COND(jd, CRT_FIELDINFO_VALUE, fi, disp);
 			switch (fieldtype) {
 			case TYPE_INT:
 			case TYPE_ADR:
@@ -2274,6 +2313,7 @@ bool codegen_emit(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
+
 				disp      = (intptr_t) fi->value;
 
 				if (!CLASS_IS_OR_ALMOST_INITIALIZED(fi->clazz))
@@ -2281,6 +2321,7 @@ bool codegen_emit(jitdata *jd)
   			}
 
 			M_MOV_IMM(disp, REG_ITMP1);
+			JITCACHE_ADD_CACHED_REF_JD_COND(jd, CRT_FIELDINFO_VALUE, fi, disp);
 			switch (fieldtype) {
 			case TYPE_INT:
 			case TYPE_ADR:
@@ -2315,7 +2356,9 @@ bool codegen_emit(jitdata *jd)
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
+
 				disp      = fi->offset;
+
 			}
 
 			switch (fieldtype) {
@@ -2449,6 +2492,7 @@ bool codegen_emit(jitdata *jd)
 			M_POP(REG_ITMP2_XPC);
 
 			M_MOV_IMM(asm_handle_exception, REG_ITMP3);
+			JITCACHE_ADD_CACHED_REF_JD(jd, CRT_ASM_HANDLE_EXCEPTION, 1);
 			M_JMP(REG_ITMP3);
 			break;
 
@@ -2763,6 +2807,8 @@ nowperformreturn:
 
 				M_AST(REG_ITMP2, REG_SP, 0);
 				M_MOV_IMM(LOCK_monitor_exit, REG_ITMP3);
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_BUILTIN_FP,
+								  builtintable_get_internal(LOCK_monitor_exit));
 				M_CALL(REG_ITMP3);
 
 				/* and now restore the proper return value */
@@ -2852,6 +2898,7 @@ nowperformreturn:
 
 				M_MOV_IMM(0, REG_ITMP2);
 				dseg_adddata(cd);
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_ENTRYPOINT, NULL);
 				emit_mov_memindex_reg(cd, -(cd->dseglen), REG_ITMP2, REG_ITMP1, 2, REG_ITMP1);
 				M_JMP(REG_ITMP1);
 			}
@@ -2975,6 +3022,7 @@ gen_method:
 				else {
 					M_MOV_IMM(bte->stub, REG_ITMP1);
 				}
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_BUILTIN, bte);
 				M_CALL(REG_ITMP1);
 
 #if defined(ENABLE_ESCAPE_CHECK)
@@ -3001,10 +3049,11 @@ gen_method:
 				}
 				else {
 					disp = (ptrint) lm->stubroutine;
+
 					d = lm->parseddesc->returntype.type;
 				}
-
 				M_MOV_IMM(disp, REG_ITMP2);
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_METHODINFO_STUBROUTINE, lm);
 				M_CALL(REG_ITMP2);
 				break;
 
@@ -3023,12 +3072,14 @@ gen_method:
 				else {
 					s1 = OFFSET(vftbl_t, table[0]) +
 						sizeof(methodptr) * lm->vftblindex;
+
 					d = md->returntype.type;
 				}
 
 				M_ALD(REG_METHODPTR, REG_ITMP1,
 					  OFFSET(java_object_t, vftbl));
 				M_ALD32(REG_ITMP3, REG_METHODPTR, s1);
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_METHODINFO_TABLE, lm);
 				M_CALL(REG_ITMP3);
 				break;
 
@@ -3057,7 +3108,9 @@ gen_method:
 				M_ALD(REG_METHODPTR, REG_ITMP1,
 					  OFFSET(java_object_t, vftbl));
 				M_ALD32(REG_METHODPTR, REG_METHODPTR, s1);
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_METHODINFO_INTERFACETABLE, lm);
 				M_ALD32(REG_ITMP3, REG_METHODPTR, s2);
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_METHODINFO_METHODOFFSET, lm);
 				M_CALL(REG_ITMP3);
 				break;
 			}
@@ -3114,11 +3167,9 @@ gen_method:
 					superindex = super->index;
 					supervftbl = super->vftbl;
 				}
-			
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 
 				/* if class is not resolved, check which code to call */
-
 				if (super == NULL) {
 					M_TEST(s1);
 					emit_label_beq(cd, BRANCH_LABEL_1);
@@ -3150,6 +3201,7 @@ gen_method:
 					M_ILD32(REG_ITMP3,
 							REG_ITMP2, OFFSET(vftbl_t, interfacetablelength));
 					M_ISUB_IMM32(superindex, REG_ITMP3);
+					JITCACHE_ADD_CACHED_REF_JD(jd, CRT_CLASSINFO_INDEX, super);
 					/* XXX do we need this one? */
 					M_TEST(REG_ITMP3);
 					emit_classcast_check(cd, iptr, BRANCH_LE, REG_ITMP3, s1);
@@ -3157,6 +3209,7 @@ gen_method:
 					M_ALD32(REG_ITMP3, REG_ITMP2,
 							OFFSET(vftbl_t, interfacetable[0]) -
 							superindex * sizeof(methodptr*));
+					JITCACHE_ADD_CACHED_REF_JD(jd, CRT_CLASSINFO_INTERFACETABLE, super);
 					M_TEST(REG_ITMP3);
 					emit_classcast_check(cd, iptr, BRANCH_EQ, REG_ITMP3, s1);
 
@@ -3184,6 +3237,7 @@ gen_method:
 											0);
 					}
 					M_MOV_IMM(supervftbl, REG_ITMP3);
+					JITCACHE_ADD_CACHED_REF_JD(jd, CRT_CLASSINFO_VFTBL, super);
 
 					if (super == NULL || super->vftbl->subtype_depth >= DISPLAY_SIZE) {
 						M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
@@ -3242,10 +3296,18 @@ gen_method:
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 					patcher_add_patch_ref(jd, PATCHER_builtin_arraycheckcast,
 										iptr->sx.s23.s3.c.ref, 0);
+					disp = 0;
+				}
+				else {
+					disp = (ptrint) iptr->sx.s23.s3.c.cls;
 				}
 
-				M_AST_IMM(iptr->sx.s23.s3.c.cls, REG_SP, 1 * 4);
+				M_AST_IMM(disp, REG_SP, 1 * 4);
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_CLASSINFO, disp);
+
 				M_MOV_IMM(BUILTIN_arraycheckcast, REG_ITMP3);
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_BUILTIN_FP,
+									   builtintable_get_internal(BUILTIN_arraycheckcast));
 				M_CALL(REG_ITMP3);
 
 				s1 = emit_load_s1(jd, iptr, REG_ITMP2);
@@ -3309,6 +3371,7 @@ gen_method:
 					emit_label_beq(cd, BRANCH_LABEL_3);
 				}
 
+
 				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 
 				if (super == NULL) {
@@ -3319,6 +3382,8 @@ gen_method:
 				M_ILD32(REG_ITMP3,
 						REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 				M_ISUB_IMM32(superindex, REG_ITMP3);
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_CLASSINFO_INDEX, super);
+
 				M_TEST(REG_ITMP3);
 
 				disp = (2 + 4 /* mov_membase32_reg */ + 2 /* test */ +
@@ -3328,6 +3393,7 @@ gen_method:
 				M_ALD32(REG_ITMP1, REG_ITMP1,
 						OFFSET(vftbl_t, interfacetable[0]) -
 						superindex * sizeof(methodptr*));
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_CLASSINFO_INTERFACETABLE, super);
 				M_TEST(REG_ITMP1);
 /*  					emit_setcc_reg(cd, CC_A, d); */
 /*  					emit_jcc(cd, CC_BE, 5); */
@@ -3357,6 +3423,7 @@ gen_method:
 										iptr->sx.s23.s3.c.ref, 0);
 				}
 				M_MOV_IMM(supervftbl, REG_ITMP3);
+				JITCACHE_ADD_CACHED_REF_JD(jd, CRT_CLASSINFO_VFTBL, super);
 
 				if (super == NULL || super->vftbl->subtype_depth >= DISPLAY_SIZE) {
 					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
@@ -3459,6 +3526,7 @@ gen_method:
 			/* a1 = arraydescriptor */
 
 			M_IST_IMM(disp, REG_SP, 1 * 4);
+			JITCACHE_ADD_CACHED_REF_JD(jd, CRT_CLASSINFO, disp);
 
 			/* a2 = pointer to dimensions = stack pointer */
 
@@ -3467,6 +3535,8 @@ gen_method:
 			M_AST(REG_ITMP1, REG_SP, 2 * 4);
 
 			M_MOV_IMM(BUILTIN_multianewarray, REG_ITMP1);
+			JITCACHE_ADD_CACHED_REF_JD(jd, CRT_BUILTIN_FP,
+								  builtintable_get_internal(BUILTIN_multianewarray));
 			M_CALL(REG_ITMP1);
 
 			/* check for exception before result assignment */
@@ -3588,6 +3658,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 		M_MOV_IMM(code, REG_ITMP1);
 		M_IADD_IMM_MEMBASE(1, REG_ITMP1, OFFSET(codeinfo, frequency));
+		JITCACHE_ADD_CACHED_REF_JD(jd, CRT_CODEINFO, 0);
 	}
 #endif
 

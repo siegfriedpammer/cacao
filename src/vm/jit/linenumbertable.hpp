@@ -88,8 +88,9 @@ public:
  * Linenumber table of a Java method.
  */
 class LinenumberTable {
-private:
+public:
 	std::vector<Linenumber> _linenumbers;
+private:
 
 	// Comparator class.
 	class comparator : public std::binary_function<Linenumber, void*, bool> {
@@ -102,6 +103,7 @@ private:
 
 public:
 	LinenumberTable(jitdata* jd);
+	LinenumberTable() { }
 	~LinenumberTable();
 
 	int32_t find(methodinfo **pm, void* pc);

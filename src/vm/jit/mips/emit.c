@@ -378,20 +378,15 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 
 void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 {
-	s4 checkdisp;
-	s4 branchdisp;
-
-	/* calculate the different displacements */
-
-	checkdisp  = (disp - 4);
-	branchdisp = (disp - 4) >> 2;
+	// Calculate the displacements.
+	int32_t checkdisp  = (disp - 4);
+	int32_t branchdisp = (disp - 4) >> 2;
 
 	/* check which branch to generate */
 
 	if (condition == BRANCH_UNCONDITIONAL) {
-		/* check displacement for overflow */
-
-		if ((checkdisp < (s4) 0xffff8000) || (checkdisp > (s4) 0x00007fff)) {
+		// Check displacement for overflow.
+		if (opt_AlwaysEmitLongBranches || ((checkdisp < (int32_t) 0xffff8000) || (checkdisp > (int32_t) 0x00007fff))) {
 			/* if the long-branches flag isn't set yet, do it */
 
 			if (!CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
@@ -399,7 +394,20 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 							  CODEGENDATA_FLAG_LONGBRANCHES);
 			}
 
-			vm_abort("emit_branch: emit unconditional long-branch code");
+			// Calculate the offset relative to PV.
+			int32_t currentrpc = cd->mcodeptr - cd->mcodebase;
+			int32_t offset     = currentrpc + disp;
+
+			// Sanity check.
+			assert(offset % 4 == 0);
+
+			// Do the long-branch.
+			M_LUI(REG_ITMP3, offset >> 16);
+			M_OR_IMM(REG_ITMP3, offset, REG_ITMP3);
+			M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
+			M_JMP(REG_ITMP3);
+			M_NOP;
+			M_NOP; // This nop is to have 6 instructions (see BRANCH_NOPS).
 		}
 		else {
 			M_BR(branchdisp);
@@ -407,15 +415,22 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 		}
 	}
 	else {
-		/* and displacement for overflow */
-
-		if ((checkdisp < (s4) 0xffff8000) || (checkdisp > (s4) 0x00007fff)) {
+		// Check displacement for overflow.
+		if (opt_AlwaysEmitLongBranches || ((checkdisp < (int32_t) 0xffff8000) || (checkdisp > (int32_t) 0x00007fff))) {
 			/* if the long-branches flag isn't set yet, do it */
 
 			if (!CODEGENDATA_HAS_FLAG_LONGBRANCHES(cd)) {
 				cd->flags |= (CODEGENDATA_FLAG_ERROR |
 							  CODEGENDATA_FLAG_LONGBRANCHES);
 			}
+
+			// Calculate the offset relative to PV before we generate
+			// new code.
+			int32_t currentrpc = cd->mcodeptr - cd->mcodebase;
+			int32_t offset     = currentrpc + disp;
+
+			// Sanity check.
+			assert(offset % 4 == 0);
 
 			switch (condition) {
 			case BRANCH_EQ:
@@ -440,15 +455,16 @@ void emit_branch(codegendata *cd, s4 disp, s4 condition, s4 reg, u4 opt)
 				vm_abort("emit_branch: unknown condition %d", condition);
 			}
 
-			/* The actual branch code which is over-jumped (NOTE: we
-			   don't use a branch delay slot here). */
+			// The actual branch code which is over-jumped.  NOTE: We
+			// don't use a branch delay slot for the conditional
+			// branch.
 
-			M_LUI(REG_ITMP3, branchdisp >> 16);
-			M_OR_IMM(REG_ITMP3, branchdisp, REG_ITMP3);
+			// Do the long-branch.
+			M_LUI(REG_ITMP3, offset >> 16);
+			M_OR_IMM(REG_ITMP3, offset, REG_ITMP3);
 			M_AADD(REG_PV, REG_ITMP3, REG_ITMP3);
 			M_JMP(REG_ITMP3);
 			M_NOP;
-
 		}
 		else {
 			switch (condition) {

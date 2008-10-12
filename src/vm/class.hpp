@@ -52,7 +52,6 @@ typedef struct extra_classref extra_classref;
 #include "vm/string.hpp"
 #include "vm/utf8.h"
 
-
 /* class state defines ********************************************************/
 
 #define CLASS_LOADING         0x0001
@@ -161,6 +160,9 @@ struct classinfo {                /* class structure                          */
 	java_object_t      *protectiondomain;
 	java_objectarray_t *signers;
 # endif
+#endif
+#if defined(ENABLE_JITCACHE)
+	int         cache_file_fd;
 #endif
 };
 

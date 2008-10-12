@@ -341,6 +341,15 @@ inline size_t os::fread(void* ptr, size_t size, size_t nmemb, FILE* stream)
 #endif
 }
 
+inline static int system_fseek(FILE *stream, off_t offset, int whence)
+{
+#if defined(HAVE_FSEEK)
+	return fseek(stream, offset, whence);
+#else
+# error fseek not available
+#endif
+}
+
 inline void os::free(void* ptr)
 {
 #if defined(HAVE_FREE)

@@ -45,6 +45,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include "vm/jit/jitcache.hpp"
+
 #include "vm/types.h"
 
 #include "codegen.h"
@@ -136,7 +138,13 @@ void codegen_setup(jitdata *jd)
 
 	/* initialize members */
 
-	cd->flags        = 0;
+	// Set flags as requested.
+	if (opt_AlwaysEmitLongBranches) {
+		cd->flags = CODEGENDATA_FLAG_LONGBRANCHES;
+	}
+	else {
+		cd->flags = 0;
+	}
 
 	cd->mcodebase    = (u1*) DumpMemory::allocate(MCODEINITSIZE);
 	cd->mcodeend     = cd->mcodebase + MCODEINITSIZE;
@@ -646,8 +654,12 @@ void codegen_finish(jitdata *jd)
 	/* jump table resolving */
 
 	for (jr = cd->jumpreferences; jr != NULL; jr = jr->next)
+	{
 		*((functionptr *) ((ptrint) epoint + jr->tablepos)) =
 			(functionptr) ((ptrint) epoint + (ptrint) jr->target->mpc);
+
+		JITCACHE_ADD_CACHED_REF(code, CRT_JUMPREFERENCE, jr->target->mpc, jr->tablepos);
+	}
 
 	/* patcher resolving */
 

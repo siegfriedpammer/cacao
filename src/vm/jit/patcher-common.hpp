@@ -28,6 +28,7 @@
 
 /* forward typedefs ***********************************************************/
 
+typedef struct cachedref_t cachedref_t;
 typedef struct patchref_t patchref_t;
 
 #include "config.h"
@@ -39,6 +40,9 @@ typedef struct patchref_t patchref_t;
 
 #include "vm/jit/jit.hpp"
 
+#if defined (ENABLE_JITCACHE)
+struct cached_ref_t;
+#endif
 
 /* patchref_t ******************************************************************
 
@@ -55,6 +59,11 @@ struct patchref_t {
 	void*        ref;           /* reference passed                           */
 	uint32_t     mcode;         /* machine code to be patched back in         */
 	bool         done;          /* XXX preliminary: patch already applied?    */
+#if defined (ENABLE_JITCACHE)
+	cachedref_t  *attached_ref;
+								/* cached reference which must be resolved    *
+								 * patcher has been run.                      */
+#endif
 };
 
 
@@ -188,6 +197,10 @@ bool patcher_instanceof_class(patchref_t *pr);
 #define PATCHER_instanceof_class (functionptr) patcher_instanceof_class
 
 #endif /* defined(__I386__) */
+
+#if defined (__ARM__)
+void patch_md(s4 md_patch, ptrint dest, void* ref);
+#endif /* defined(__ARM__) */
 
 #ifdef __cplusplus
 } // extern "C"

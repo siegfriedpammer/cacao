@@ -39,6 +39,9 @@
 #include "vm/method.h"
 
 #include "vm/jit/exceptiontable.h"
+#if defined (ENABLE_JITCACHE)
+#include "vm/jit/jitcache.hpp"
+#endif
 #include "vm/jit/linenumbertable.hpp"
 #include "vm/jit/methodheader.h"
 #include "vm/jit/patcher-common.hpp"
@@ -88,6 +91,14 @@ struct codeinfo {
 	List<patchref_t>* patchers;
 #else
 	List*         patchers;
+#endif
+
+#if defined (ENABLE_JITCACHE)
+#ifdef __cplusplus
+	List<cachedref_t>* cachedrefs;
+#else
+	List*         cachedrefs;
+#endif
 #endif
 
 	/* replacement */				    

@@ -51,6 +51,7 @@
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
+#include "vm/jit/jitcache.hpp"
 #include "vm/linker.h"
 #include "vm/loader.hpp"
 #include "vm/options.h"
@@ -176,6 +177,9 @@ classinfo *class_create_classinfo(utf *classname)
 
 	if (classname != utf_not_named_yet)
 		class_set_packagename(c);
+#if defined (ENABLE_JITCACHE)
+    c->cache_file_fd = 0;
+#endif
 
 	c->object.header.lockword.init();
 
@@ -719,6 +723,11 @@ void class_free(classinfo *c)
 {
 	s4 i;
 	vftbl_t *v;
+
+#if defined(ENABLE_JITCACHE)
+/* TODO: Find a way around the linker problem */
+/*    jitcache_freeclass(c);*/
+#endif
 
 	class_freecpool(c);
 

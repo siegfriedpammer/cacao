@@ -2815,13 +2815,6 @@ inline void java_lang_Throwable::set_backtrace(java_handle_bytearray_t* value)
 
 #endif // WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1
 
-#else
-
-// Legacy C interface.
-java_handle_t* java_lang_reflect_Constructor_create(methodinfo* m);
-java_handle_t* java_lang_reflect_Field_create(fieldinfo* f);
-java_handle_t* java_lang_reflect_Method_create(methodinfo* m);
-
 #endif
 
 #endif // _JAVAOBJECTS_HPP

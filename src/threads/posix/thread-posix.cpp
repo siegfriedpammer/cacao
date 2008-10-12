@@ -1369,7 +1369,7 @@ static bool threads_current_time_is_earlier_than(const struct timespec *tv)
 
 *******************************************************************************/
 
-static void threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTime)
+static void threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTime, bool parking)
 {
 	// Acquire the waitmutex.
 	t->waitmutex->lock();
@@ -1378,7 +1378,7 @@ static void threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTi
 
 	if (wakeupTime->tv_sec || wakeupTime->tv_nsec) {
 		/* with timeout */
-		while (!t->interrupted && !t->signaled
+		while (!t->interrupted && !(parking ? t->park_permit : t->signaled)
 			   && threads_current_time_is_earlier_than(wakeupTime))
 		{
 			thread_set_state_timed_waiting(t);
@@ -1390,7 +1390,7 @@ static void threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTi
 	}
 	else {
 		/* no timeout */
-		while (!t->interrupted && !t->signaled) {
+		while (!t->interrupted && !(parking ? t->park_permit : t->signaled)) {
 			thread_set_state_waiting(t);
 
 			t->waitcond->wait(t->waitmutex);
@@ -1398,6 +1398,9 @@ static void threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTi
 			thread_set_state_runnable(t);
 		}
 	}
+
+	if (parking)
+		t->park_permit = false;
 
 	// Release the waitmutex.
 	t->waitmutex->unlock();
@@ -1427,7 +1430,7 @@ void threads_wait_with_timeout_relative(threadobject *thread, s8 millis,
 
 	/* wait */
 
-	threads_wait_with_timeout(thread, &wakeupTime);
+	threads_wait_with_timeout(thread, &wakeupTime, false);
 }
 
 
@@ -1538,7 +1541,7 @@ void threads_sleep(int64_t millis, int32_t nanos)
 	else {
 		threads_calc_absolute_time(&wakeupTime, millis, nanos);
 
-		threads_wait_with_timeout(t, &wakeupTime);
+		threads_wait_with_timeout(t, &wakeupTime, false);
 
 		interrupted = thread_is_interrupted(t);
 
@@ -1551,6 +1554,47 @@ void threads_sleep(int64_t millis, int32_t nanos)
 				exceptions_throw_interruptedexception();
 		}
 	}
+}
+
+/**
+ * Park the current thread for the specified amount of time or until a
+ * specified deadline.
+ *
+ * @param absolute Is the time in nanos a deadline or a duration?
+ * @param nanos    Nanoseconds to park (absolute=false)
+ *                 or deadline in milliseconds (absolute=true)
+ */
+void threads_park(bool absolute, int64_t nanos)
+{
+	threadobject    *t;
+	struct timespec  wakeupTime;
+
+	t = thread_get_current();
+
+	if (absolute) {
+		wakeupTime.tv_nsec = 0;
+		wakeupTime.tv_sec = nanos / 1000; /* milliseconds */
+	}
+	else
+		threads_calc_absolute_time(&wakeupTime, nanos / 1000000, nanos % 1000000);
+
+	threads_wait_with_timeout(t, &wakeupTime, true);
+}
+
+/**
+ * Unpark the specified thread.
+ *
+ * @param t The thread to unpark.
+ */
+void threads_unpark(threadobject *t)
+{
+	t->waitmutex->lock();
+
+	t->waitcond->signal();
+
+	t->park_permit = true;
+
+	t->waitmutex->unlock();
 }
 
 

@@ -96,6 +96,7 @@ struct threadobject {
 
 	bool                  interrupted;
 	bool                  signaled;
+	bool                  park_permit;
 
 	bool                  suspended;    /* is this thread suspended?          */
 	s4                    suspend_reason; /* reason for suspending            */
@@ -304,6 +305,9 @@ void threads_sleep(int64_t millis, int32_t nanos);
 void threads_wait_with_timeout_relative(threadobject *t, s8 millis, s4 nanos);
 
 void threads_thread_interrupt(threadobject *thread);
+
+void threads_park(bool absolute, int64_t nanos);
+void threads_unpark(threadobject *thread);
 
 #if defined(ENABLE_TLH)
 void threads_tlh_add_frame();

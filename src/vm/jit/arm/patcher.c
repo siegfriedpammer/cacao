@@ -60,6 +60,28 @@
 		/*(inst) |= (1 << 23);*/ \
 	}
 
+/* This is the same as gen_resolveload but does not check whether the opcode
+ * is 'clean' (= current offset is zero).
+ */
+#define gen_resolveload_unchecked(inst,offset) \
+	assert((offset) >= -0x0fff && (offset) <= 0x0fff); \
+	if ((offset) <  0) { \
+		(inst) = ((inst) & 0xff7ff000) | ((-(offset)) & 0x0fff); \
+		/*(inst) &= ~(1 << 23);*/ \
+	} else { \
+		(inst) = ((inst) & 0xfffff000) | ((offset) & 0x0fff); \
+		/*(inst) |= (1 << 23);*/ \
+	}
+
+/* patch_md ********************************************************************
+
+   Patch back address in a machine dependent way 
+
+*******************************************************************************/
+void patch_md(s4 md_patch, ptrint dest, void* ref)
+{
+	gen_resolveload_unchecked(*((s4 *) dest), (s4) ref);
+}
 
 /* patcher_patch_code **********************************************************
 

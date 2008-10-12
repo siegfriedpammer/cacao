@@ -53,6 +53,10 @@ class Properties {
 private:
 	std::map<const char*, const char*, ltstr> _properties;
 
+private:
+	// Don't allow to copy the properties.
+	Properties(const Properties&);
+
 public:
 	Properties();
 
