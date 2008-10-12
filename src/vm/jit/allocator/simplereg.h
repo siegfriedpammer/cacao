@@ -33,7 +33,7 @@
 
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/inline/inline.h"
+#include "vm/jit/inline/inline.hpp"
 
 
 /* function prototypes ********************************************************/

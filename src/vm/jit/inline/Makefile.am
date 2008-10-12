@@ -31,8 +31,8 @@ noinst_LTLIBRARIES = \
 	libinline.la
 
 libinline_la_SOURCES = \
-	inline.c \
-	inline.h \
+	inline.cpp \
+	inline.hpp \
 	inline_debug.inc
 
 

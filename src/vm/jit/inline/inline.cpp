@@ -54,7 +54,7 @@
 #include "vm/jit/show.hpp"
 #include "vm/jit/stack.h"
 
-#include "vm/jit/inline/inline.h"
+#include "vm/jit/inline/inline.hpp"
 #include "vm/jit/loop/loop.h"
 
 #include "vm/jit/verify/typecheck.h"
@@ -122,6 +122,9 @@
 /* #define INLINE_VERIFY_RESULT */
 #endif
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* types **********************************************************************/
 
@@ -338,7 +341,7 @@ static bool inline_jit_compile(inline_node *iln)
 
 	/* enter a monitor on the method */
 
-	Mutex_lock(m->mutex);
+	m->mutex->lock();
 
 	/* allocate jitdata structure and fill it */
 
@@ -354,7 +357,7 @@ static bool inline_jit_compile(inline_node *iln)
 	/* setup the codegendata memory */
 
 	/* XXX do a pseudo setup */
-	jd->cd = DNEW(codegendata);
+	jd->cd = (codegendata*) DumpMemory::allocate(sizeof(codegendata));
 	MZERO(jd->cd, codegendata, 1);
 	jd->cd->method = m;
 	/* XXX uses too much dump memory codegen_setup(jd); */
@@ -381,7 +384,7 @@ static bool inline_jit_compile(inline_node *iln)
 
 	/* leave the monitor */
 
-	Mutex_unlock(m->mutex);
+	m->mutex->unlock();
 
 	return r;
 }
@@ -471,7 +474,7 @@ static void inline_add_candidate(inline_context *ctx,
 	inline_candidate **link;
 	inline_candidate *cand;
 
-	cand = DNEW(inline_candidate);
+	cand = (inline_candidate*) DumpMemory::allocate(sizeof(inline_candidate));
 #if defined(INLINE_DIVIDE_COST_BY_FREQ)
 	cand->freq = INLINE_COUNTDOWN_INIT - callee->hitcountdown;
 	if (cand->freq < 1)
@@ -546,7 +549,7 @@ static s4 inline_new_variable(jitdata *jd, s4 type, s4 flags)
 	index = jd->vartop++;
 	if (index >= jd->varcount) {
 		newcount = jd->vartop * 2; /* XXX */
-		jd->var = DMREALLOC(jd->var, varinfo, jd->varcount, newcount);
+		jd->var = (varinfo*) DumpMemory::reallocate(jd->var, sizeof(varinfo) * jd->varcount, sizeof(varinfo) * newcount);
 		MZERO(jd->var + jd->varcount, varinfo, (newcount - jd->varcount));
 		jd->varcount = newcount;
 	}
@@ -605,7 +608,7 @@ static s4 *create_variable_map(inline_node *callee)
 
 	/* create the variable mapping */
 
-	varmap = DMNEW(s4, callee->jd->varcount);
+	varmap = (s4*) DumpMemory::allocate(sizeof(s4) * callee->jd->varcount);
 	for (i=0; i<callee->jd->varcount; ++i)
 		varmap[i] = -1;
 
@@ -667,7 +670,7 @@ static void inline_add_block_reference(inline_node *iln, basicblock **blockp)
 {
 	inline_target_ref *ref;
 
-	ref = DNEW(inline_target_ref);
+	ref = (inline_target_ref*) DumpMemory::allocate(sizeof(inline_target_ref));
 	ref->ref.block = blockp;
 	ref->isnumber = false;
 	ref->next = iln->refs;
@@ -680,7 +683,7 @@ static void inline_add_blocknr_reference(inline_node *iln, s4 *nrp)
 {
 	inline_target_ref *ref;
 
-	ref = DNEW(inline_target_ref);
+	ref = (inline_target_ref*) DumpMemory::allocate(inline_target_ref);
 	ref->ref.nr = nrp;
 	ref->isnumber = true;
 	ref->next = iln->refs;
@@ -813,7 +816,7 @@ static basicblock * create_block(inline_node *container,
 		container->ctx->maxinoutdepth = indepth;
 
 	if (indepth) {
-		n_bptr->invars = DMNEW(s4, indepth);
+		n_bptr->invars = (s4*) DumpMemory::allocate(sizeof(s4) * indepth);
 
 
 		for (i=0; i<indepth; ++i)
@@ -849,7 +852,7 @@ static basicblock * create_block(inline_node *container,
 	{
 		varinfo *dv;
 
-		dv = DMNEW(varinfo, iln->ctx->resultjd->localcount + VERIFIER_EXTRA_LOCALS);
+		dv = (varinfo*) DumpMemory::allocate(sizeof(varinfo) * (iln->ctx->resultjd->localcount + VERIFIER_EXTRA_LOCALS));
 		MZERO(dv, varinfo,  iln->ctx->resultjd->localcount + VERIFIER_EXTRA_LOCALS);
 		n_bptr->inlocals = dv;
 	}
@@ -863,7 +866,7 @@ static s4 *translate_javalocals(inline_node *iln, s4 *javalocals)
 	s4 *jl;
 	s4 i, j;
 
-	jl = DMNEW(s4, iln->jd->maxlocals);
+	jl = (s4*) DumpMemory::allocate(sizeof(s4) * iln->jd->maxlocals);
 
 	for (i=0; i<iln->jd->maxlocals; ++i) {
 		j = javalocals[i];
@@ -952,7 +955,7 @@ static basicblock * create_epilog_block(inline_node *caller, inline_node *callee
 
 	/* set javalocals */
 
-	n_bptr->javalocals = DMNEW(s4, caller->jd->maxlocals);
+	n_bptr->javalocals = (s4*) DumpMemory::allocate(sizeof(s4) * caller->jd->maxlocals);
 	MCOPY(n_bptr->javalocals, caller->javalocals, s4, caller->jd->maxlocals);
 
 	/* set block flags & type */
@@ -972,7 +975,7 @@ static void close_block(inline_node *iln, inline_node *inner, basicblock *n_bptr
 	s4           varidx;
 
 	n_bptr->outdepth = outdepth;
-	n_bptr->outvars = DMNEW(s4, outdepth);
+	n_bptr->outvars = (s4*) DumpMemory::allocate(sizeof(s4) * outdepth);
 
 	for (i=0; i<outdepth; ++i)
 		n_bptr->outvars[i] = 0; /* XXX debug */
@@ -1092,7 +1095,7 @@ static void inline_generate_sync_builtin(inline_node *iln,
 	n_ins = inline_instruction(iln, ICMD_BUILTIN, o_iptr);
 	n_ins->sx.s23.s3.bte = builtintable_get_internal(func);
 	n_ins->s1.argcount = 1; /* XXX add through-vars */
-	n_ins->sx.s23.s2.args = DMNEW(s4, 1);
+	n_ins->sx.s23.s2.args = (s4*) DumpMemory::allocate(sizeof(s4));
 	n_ins->sx.s23.s2.args[0] = syncvar;
 }
 
@@ -1119,7 +1122,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 
 	n_ins = inline_instruction(iln, ICMD_INLINE_START, o_iptr);
 
-	insinfo = DNEW(insinfo_inline);
+	insinfo = (insinfo_inline*) DumpMemory::allocate(sizeof(insinfo_inline));
 	insinfo->method = callee->m;
 	insinfo->outer = iln->m;
 	insinfo->synclocal = callee->synclocal;
@@ -1132,7 +1135,7 @@ static s4 emit_inlining_prolog(inline_node *iln,
 	insinfo->throughcount = callee->n_passthroughcount;
 	insinfo->paramcount = md->paramcount;
 	insinfo->stackvarscount = o_iptr->s1.argcount;
-	insinfo->stackvars = DMNEW(s4, insinfo->stackvarscount);
+	insinfo->stackvars = (s4*) DumpMemory::allocate(sizeof(s4) * insinfo->stackvarscount);
 	for (i=0; i<insinfo->stackvarscount; ++i)
 		insinfo->stackvars[i] = iln->varmap[o_iptr->sx.s23.s2.args[i]];
 
@@ -1268,7 +1271,7 @@ static void emit_inlining_epilog(inline_node *iln, inline_node *callee, instruct
 
 	/* set the javalocals */
 
-	jl = DMNEW(s4, iln->jd->maxlocals);
+	jl = (s4*) DumpMemory::allocate(sizeof(s4) * iln->jd->maxlocals);
 	MCOPY(jl, iln->javalocals, s4, iln->jd->maxlocals);
 	n_ins->sx.s23.s3.inlineinfo->javalocals_end = jl;
 
@@ -1323,7 +1326,7 @@ static void inline_clone_instruction(inline_node *iln,
 			break;
 
 		case DF_N_TO_1:
-			n_iptr->sx.s23.s2.args = DMNEW(s4, n_iptr->s1.argcount);
+			n_iptr->sx.s23.s2.args = (s4*) DumpMemory::allocate(sizeof(s4) * n_iptr->s1.argcount);
 			for (i=0; i<n_iptr->s1.argcount; ++i) {
 				n_iptr->sx.s23.s2.args[i] =
 					inline_translate_variable(jd, origjd, varmap,
@@ -1336,7 +1339,7 @@ static void inline_clone_instruction(inline_node *iln,
 			INSTRUCTION_GET_METHODDESC(n_iptr, md);
 clone_call:
 			n_iptr->s1.argcount += iln->n_passthroughcount;
-			n_iptr->sx.s23.s2.args = DMNEW(s4, n_iptr->s1.argcount);
+			n_iptr->sx.s23.s2.args = (s4*) DumpMemory::allocate(sizeof(s4) * n_iptr->s1.argcount);
 			for (i=0; i<o_iptr->s1.argcount; ++i) {
 				n_iptr->sx.s23.s2.args[i] =
 					inline_translate_variable(jd, origjd, varmap,
@@ -1377,7 +1380,7 @@ clone_call:
 		case CF_TABLE:
 			i = n_iptr->sx.s23.s3.tablehigh - n_iptr->sx.s23.s2.tablelow + 1 + 1 /* default */;
 
-			table = DMNEW(branch_target_t, i);
+			table = (branch_target_t*) DumpMemory::allocate(sizeof(branch_target_t) *  i);
 			MCOPY(table, o_iptr->dst.table, branch_target_t, i);
 			n_iptr->dst.table = table;
 
@@ -1391,7 +1394,7 @@ clone_call:
 			inline_add_block_reference(iln, &(n_iptr->sx.s23.s3.lookupdefault.block));
 
 			i = n_iptr->sx.s23.s2.lookupcount;
-			lookup = DMNEW(lookup_target_t, i);
+			lookup = (lookup_target_t*) DumpMemory::allocate(sizeof(lookup_target_t) * i);
 			MCOPY(lookup, o_iptr->dst.lookup, lookup_target_t, i);
 			n_iptr->dst.lookup = lookup;
 
@@ -1464,7 +1467,7 @@ static void inline_rewrite_method(inline_node *iln)
 
 	/* allocate temporary buffers */
 
-	iln->javalocals = DMNEW(s4, iln->jd->maxlocals);
+	iln->javalocals = (s4*) DumpMemory::allocate(sizeof(s4) * iln->jd->maxlocals);
 
 	/* loop over basic blocks */
 
@@ -1874,7 +1877,7 @@ static void inline_interface_variables(inline_node *iln)
 
 	resultjd = iln->ctx->resultjd;
 
-	resultjd->interface_map = DMNEW(interface_info, 5*iln->ctx->maxinoutdepth);
+	resultjd->interface_map = (interface_info*) DumpMemory::allocate(sizeof(interface_info) * 5 * iln->ctx->maxinoutdepth);
 	for (i=0; i<5*iln->ctx->maxinoutdepth; ++i)
 		resultjd->interface_map[i].flags = UNUSED;
 
@@ -1976,7 +1979,7 @@ static void inline_write_exception_handlers(inline_node *master, inline_node *il
 		n_ins = master->inlined_iinstr_cursor++;
 		n_ins->opc = ICMD_BUILTIN;
 		n_ins->s1.argcount = 1 + iln->n_passthroughcount + 1;
-		n_ins->sx.s23.s2.args = DMNEW(s4, n_ins->s1.argcount);
+		n_ins->sx.s23.s2.args = (s4*) DumpMemory::allocate(sizeof(s4) * n_ins->s1.argcount);
 		n_ins->sx.s23.s2.args[0] = syncvar;
 		for (i=0; i < iln->n_passthroughcount + 1; ++i) {
 			n_ins->sx.s23.s2.args[1 + i] = n_bptr->invars[i];
@@ -2023,15 +2026,15 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 
 	assert(iln && jd);
 
-	n_ins = DMNEW(instruction, iln->cumul_instructioncount);
+	n_ins = (instruction*) DumpMemory::allocate(sizeof(instruction) * iln->cumul_instructioncount);
 	MZERO(n_ins, instruction, iln->cumul_instructioncount);
 	iln->inlined_iinstr = n_ins;
 
-	n_bb = DMNEW(basicblock, iln->cumul_basicblockcount);
+	n_bb = (basicblock*) DumpMemory::allocate(sizeof(basicblock) * iln->cumul_basicblockcount);
 	MZERO(n_bb, basicblock, iln->cumul_basicblockcount);
 	iln->inlined_basicblocks = n_bb;
 
-	iln->ctx->blockmap = DMNEW(inline_block_map, iln->cumul_blockmapcount);
+	iln->ctx->blockmap = (inline_block_map*) DumpMemory::allocate(sizeof(inline_block_map) * iln->cumul_blockmapcount);
 
 	n_jd = jit_jitdata_new(iln->m);
 	n_jd->flags = jd->flags;
@@ -2042,7 +2045,7 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 
 	/* create the local_map */
 
-	n_jd->local_map = DMNEW(s4, 5*iln->cumul_maxlocals);
+	n_jd->local_map = (s4*) DumpMemory::allocate(sizeof(s4) *  5 * iln->cumul_maxlocals);
 	for (i=0; i<5*iln->cumul_maxlocals; ++i)
 		n_jd->local_map[i] = UNUSED;
 
@@ -2063,7 +2066,7 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 		n_jd->vartop   += VERIFIER_EXTRA_LOCALS + VERIFIER_EXTRA_VARS + 100 /* XXX m->maxstack */;
 		if (n_jd->vartop > n_jd->varcount) {
 			/* XXX why? */
-			n_jd->var = DMREALLOC(n_jd->var, varinfo, n_jd->varcount, n_jd->vartop);
+			n_jd->var = (varinfo*) DumpMemory::realloc(n_jd->var, sizeof(varinfo) * n_jd->varcount, sizeof(varinfo) * n_jd->vartop);
 			n_jd->varcount = n_jd->vartop;
 		}
 	}
@@ -2108,7 +2111,7 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 	if (iln->cumul_exceptiontablelength) {
 		exception_entry *tableend;
 
-		n_ext = DMNEW(exception_entry, iln->cumul_exceptiontablelength);
+		n_ext = (exception_entry*) DumpMemory::allocate(sizeof(exception_entry) * iln->cumul_exceptiontablelength);
 		prevext = NULL;
 		tableend = inline_exception_tables(iln, n_ext, &prevext);
 		assert(tableend == n_ext + iln->cumul_exceptiontablelength);
@@ -2155,7 +2158,7 @@ static bool inline_transform(inline_node *iln, jitdata *jd)
 
 	/* we need bigger free memory stacks (XXX these should not be allocated in reg_setup) */
 
-	n_jd->rd->freemem = DMNEW(s4, iln->ctx->maxinoutdepth + 1000) /* XXX max vars/block */;
+	n_jd->rd->freemem = (s4*) DumpMemory::allocate(sizeof(s4) * (iln->ctx->maxinoutdepth + 1000)) /* XXX max vars/block */;
 
 #if defined(ENABLE_INLINING_DEBUG) || !defined(NDEBUG)
 	if (   (n_jd->instructioncount >= opt_InlineMinSize)
@@ -2414,7 +2417,7 @@ static inline_node * inline_create_callee_node(const inline_node *caller,
 {
 	inline_node *cn;              /* the callee inline_node */
 
-	cn = DNEW(inline_node);
+	cn = (inline_node*) DumpMemory::allocate(sizeof(inline_node));
 	MZERO(cn, inline_node, 1);
 
 	cn->depth = caller->depth + 1;
@@ -2553,7 +2556,7 @@ static void inline_set_callee_properties(const inline_node *caller,
 
 	i = site->iptr->s1.argcount - cn->m->parseddesc->paramcount; /* max # of pass-though vars */
 
-	cn->n_passthroughvars = DMNEW(s4, i);
+	cn->n_passthroughvars = (s4*) DumpMemory::allocate(sizeof(s4) * i);
 	j = 0;
 	for (argi = site->iptr->s1.argcount - 1; argi >= cn->m->parseddesc->paramcount; --argi) {
 		s4 idx = site->iptr->sx.s23.s2.args[argi];
@@ -2791,7 +2794,7 @@ static bool inline_analyse_code(inline_node *iln)
 		/* allocate the buffer of active exception handlers */
 		/* XXX this wastes some memory, but probably it does not matter */
 
-		handlers = DMNEW(exception_entry*, mjd->exceptiontablelength + 1);
+		handlers = (exception_entry**) DumpMemory::allocate(sizeof(exception_entry*) * (mjd->exceptiontablelength + 1));
 
 		/* determine the active exception handlers for this block     */
 		/* XXX maybe the handlers of a block should be part of our IR */
@@ -3043,7 +3046,7 @@ static void inline_post_process(jitdata *jd)
 
 	/* allocate the life counters */
 
-	live = DMNEW(s4, jd->vartop);
+	live = (s4*) DumpMemory::allocate(sizeof(s4) * jd->vartop);
 	MZERO(live, s4, jd->vartop);
 
 	/* iterate over all basic blocks */
@@ -3158,7 +3161,7 @@ static inline_node * inline_create_root_node(jitdata *jd)
 {
 	inline_node *iln;
 
-	iln = DNEW(inline_node);
+	iln = (inline_node*) DumpMemory::allocate(sizeof(inline_node));
 	MZERO(iln, inline_node, 1);
 
 	iln->m = jd->m;
@@ -3173,7 +3176,7 @@ static inline_node * inline_create_root_node(jitdata *jd)
 
 	/* create inlining context */
 
-	iln->ctx = DNEW(inline_context);
+	iln->ctx = (inline_context*) DumpMemory::allocate(sizeof(inline_context));
 	MZERO(iln->ctx, inline_context, 1);
 	iln->ctx->master = iln;
 	iln->ctx->next_debugnr = 1; /* XXX debug */
@@ -3221,6 +3224,10 @@ bool inline_inline(jitdata *jd)
 
 	return true;
 }
+
+#if defined(__cplusplus)
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

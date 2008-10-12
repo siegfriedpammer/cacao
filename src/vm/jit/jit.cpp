@@ -84,7 +84,7 @@
 #endif
 
 #if defined(ENABLE_INLINING)
-# include "vm/jit/inline/inline.h"
+# include "vm/jit/inline/inline.hpp"
 #endif
 
 #include "vm/jit/ir/bytecode.h"
