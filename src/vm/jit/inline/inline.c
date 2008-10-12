@@ -49,7 +49,7 @@
 #include "vm/statistics.h"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/parse.h"
+#include "vm/jit/parse.hpp"
 #include "vm/jit/reg.h"
 #include "vm/jit/show.hpp"
 #include "vm/jit/stack.h"

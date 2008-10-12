@@ -38,7 +38,7 @@
 #include "vm/globals.hpp"
 #include "vm/primitive.hpp"
 
-#include "vm/jit/parse.h"
+#include "vm/jit/parse.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/stack.h"
 #include "vm/jit/verify/typecheck-common.h"

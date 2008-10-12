@@ -58,7 +58,7 @@
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/parse.h"
+#include "vm/jit/parse.hpp"
 #include "vm/jit/patcher.h"
 #include "vm/jit/stack.h"
 #include "vm/jit/stacktrace.hpp"

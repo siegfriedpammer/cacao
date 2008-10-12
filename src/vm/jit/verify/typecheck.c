@@ -159,7 +159,7 @@ error reporting.
 #include "vm/resolve.hpp"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/parse.h"
+#include "vm/jit/parse.hpp"
 #include "vm/jit/show.hpp"
 
 #include <typecheck-common.h>
