@@ -60,7 +60,7 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/jitcache.hpp"
 #include "vm/jit/linenumbertable.hpp"
-#include "vm/jit/parse.h"
+#include "vm/jit/parse.hpp"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.hpp"

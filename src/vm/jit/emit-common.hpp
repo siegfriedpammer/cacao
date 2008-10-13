@@ -1,9 +1,7 @@
 /* src/vm/jit/emit-common.hpp - common code emitter functions
 
-   Copyright (C) 2006, 2007 R. Grafl, A. Krall, C. Kruegel, C. Oates,
-   R. Obermaisser, M. Platter, M. Probst, S. Ring, E. Steiner,
-   C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich, J. Wenninger,
-   Institut f. Computersprachen - TU Wien
+   Copyright (C) 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -163,8 +161,14 @@ void emit_label_bcc(codegendata *cd, s4 label, s4 condition, u4 options);
 void emit_label_br(codegendata *cd, s4 label);
 
 #if SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER
-void emit_label_beqz(codegendata *cd, s4 label, s4 reg);
-void emit_label_bnez(codegendata *cd, s4 label, s4 reg);
+void emit_label_beqz(codegendata* cd, int label, int reg);
+void emit_label_bnez(codegendata* cd, int label, int reg);
+void emit_label_bltz(codegendata* cd, int label, int reg);
+void emit_label_bgtz(codegendata* cd, int label, int reg);
+#endif
+
+#if SUPPORT_BRANCH_CONDITIONAL_TWO_INTEGER_REGISTERS
+void emit_label_bne(codegendata* cd, int label, int s1, int s2);
 #endif
 
 #if SUPPORT_BRANCH_CONDITIONAL_CONDITION_REGISTER

@@ -55,7 +55,7 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/parse.h"
+#include "vm/jit/parse.hpp"
 #include "vm/jit/loop/loop.h"
 
 #include "vm/jit/ir/bytecode.h"
@@ -90,6 +90,9 @@ struct parsedata_t {
 	s4          *instructionmap;        /* IR to basic-block mapping          */
 };
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* parse_setup *****************************************************************
 
@@ -107,23 +110,23 @@ static void parse_setup(jitdata *jd, parsedata_t *pd)
 
 	/* bytecode start array */
 
-	pd->bytecodestart = DMNEW(u1, m->jcodelength + 1);
+	pd->bytecodestart = (u1*) DumpMemory::allocate(sizeof(u1) * (m->jcodelength + 1));
 	MZERO(pd->bytecodestart, u1, m->jcodelength + 1);
 
 	/* bytecode basic-block start array */
 
-	pd->basicblockstart = DMNEW(u1, m->jcodelength + 1);
+	pd->basicblockstart = (u1*) DumpMemory::allocate(sizeof(u1) *(m->jcodelength + 1));
 	MZERO(pd->basicblockstart, u1, m->jcodelength + 1);
 
 	/* bytecode instruction index to IR instruction mapping */
 
-	pd->bytecodemap = DMNEW(s4, m->jcodelength + 1);
+	pd->bytecodemap = (s4*) DumpMemory::allocate(sizeof(s4) * (m->jcodelength + 1));
 	MSET(pd->bytecodemap, -1, s4, m->jcodelength + 1);
 
 	/* allocate the instruction array */
 
 	pd->instructionslength = m->jcodelength + 1;
-	pd->instructions = DMNEW(instruction, pd->instructionslength);
+	pd->instructions = (instruction*) DumpMemory::allocate(sizeof(instruction) * pd->instructionslength);
 
 	/* Zero the intermediate instructions array so we don't have any
 	   invalid pointers in it if we cannot finish stack_analyse(). */
@@ -155,8 +158,8 @@ static instruction *parse_realloc_instructions(parsedata_t *pd, s4 icount, s4 n)
 
 	/* reallocate the array */
 
-	pd->instructions = DMREALLOC(pd->instructions, instruction, icount,
-								 pd->instructionslength);
+	pd->instructions = (instruction*) DumpMemory::reallocate(pd->instructions, sizeof(instruction) * icount,
+								 sizeof(instruction) * pd->instructionslength);
 	MZERO(pd->instructions + icount, instruction,
 		  (pd->instructionslength - icount));
 
@@ -301,7 +304,7 @@ static bool parse_resolve_exception_table(jitdata *jd, parsedata_t *pd)
 	/* allocate the exception table */
 
 	jd->exceptiontablelength = len;
-	jd->exceptiontable = DMNEW(exception_entry, len + 1); /* XXX why +1? */
+	jd->exceptiontable = (exception_entry*) DumpMemory::allocate(sizeof(exception_entry) * (len + 1)); /* XXX why +1? */
 
 	/* copy and resolve the entries */
 
@@ -418,7 +421,7 @@ bool parse(jitdata *jd)
 
 	/* allocate buffers for local variable renaming */
 
-	local_map = DMNEW(int, m->maxlocals * 5);
+	local_map = (int*) DumpMemory::allocate(sizeof(int) * m->maxlocals * 5);
 
 	for (i = 0; i < m->maxlocals; i++) {
 		local_map[i * 5 + 0] = 0;
@@ -1040,7 +1043,7 @@ jsr_tail:
 
 				/* allocate the intermediate code table */
 
-				lookup = DMNEW(lookup_target_t, num);
+				lookup = (lookup_target_t*) DumpMemory::allocate(sizeof(lookup_target_t) * num);
 				iptr->dst.lookup = lookup;
 
 				/* iterate over the lookup table */
@@ -1124,7 +1127,7 @@ jsr_tail:
 				/* create the intermediate code table */
 				/* the first entry is the default target */
 
-				table = DMNEW(branch_target_t, 1 + num);
+				table = (branch_target_t*) DumpMemory::allocate(sizeof(branch_target_t) * (1 + num));
 				iptr->dst.table = table;
 				(table++)->insindex = deftarget;
 
@@ -1157,7 +1160,7 @@ jsr_tail:
 		case BC_getfield:
 		case BC_putfield:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			fmi = class_getconstant(m->clazz, i, CONSTANT_Fieldref);
+			fmi = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_Fieldref);
 
 			if (fmi == NULL)
 				return false;
@@ -1199,7 +1202,7 @@ jsr_tail:
 			OP_PREPARE_ZEROFLAGS(opcode);
 
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			fmi = class_getconstant(m->clazz, i, CONSTANT_Methodref);
+			fmi = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_Methodref);
 
 			if (fmi == NULL)
 				return false;
@@ -1216,7 +1219,7 @@ jsr_tail:
 			OP_PREPARE_FLAGS(opcode, INS_FLAG_CHECK);
 
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			fmi = class_getconstant(m->clazz, i, CONSTANT_Methodref);
+			fmi = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_Methodref);
 
 			goto invoke_nonstatic_method;
 
@@ -1224,7 +1227,7 @@ jsr_tail:
 			OP_PREPARE_ZEROFLAGS(opcode);
 
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			fmi = class_getconstant(m->clazz, i, CONSTANT_InterfaceMethodref);
+			fmi = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_InterfaceMethodref);
 
 			goto invoke_nonstatic_method;
 
@@ -1232,7 +1235,7 @@ jsr_tail:
 			OP_PREPARE_ZEROFLAGS(opcode);
 
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			fmi = class_getconstant(m->clazz, i, CONSTANT_Methodref);
+			fmi = (constant_FMIref*) class_getconstant(m->clazz, i, CONSTANT_Methodref);
 
 invoke_nonstatic_method:
 			if (fmi == NULL)
@@ -1298,7 +1301,7 @@ invoke_method:
 
 		case BC_new:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			cr = class_getconstant(m->clazz, i, CONSTANT_Class);
+			cr = (constant_classref*) class_getconstant(m->clazz, i, CONSTANT_Class);
 
 			if (cr == NULL)
 				return false;
@@ -1315,7 +1318,7 @@ invoke_method:
 
 		case BC_checkcast:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			cr = class_getconstant(m->clazz, i, CONSTANT_Class);
+			cr = (constant_classref*) class_getconstant(m->clazz, i, CONSTANT_Class);
 
 			if (cr == NULL)
 				return false;
@@ -1337,7 +1340,7 @@ invoke_method:
 
 		case BC_instanceof:
 			i = SUCK_BE_U2(m->jcode + bcindex + 1);
-			cr = class_getconstant(m->clazz, i, CONSTANT_Class);
+			cr = (constant_classref*) class_getconstant(m->clazz, i, CONSTANT_Class);
 
 			if (cr == NULL)
 				return false;
@@ -1668,7 +1671,7 @@ invoke_method:
 
 	/* IR instruction index to basic-block index mapping */
 
-	pd.instructionmap = DMNEW(s4, ircount);
+	pd.instructionmap = (s4*) DumpMemory::allocate(sizeof(s4) * ircount);
 	MZERO(pd.instructionmap, s4, ircount);
 
 	/* Iterate over all IR instructions and count the basic blocks. */
@@ -1692,7 +1695,7 @@ invoke_method:
 
 	/* Allocate basic block array (one more for end ipc). */
 
-	jd->basicblocks = DMNEW(basicblock, bbcount + 1);
+	jd->basicblocks = (basicblock*) DumpMemory::allocate(sizeof(basicblock) * (bbcount + 1));
 	MZERO(jd->basicblocks, basicblock, bbcount + 1);
 
 	/* Now iterate again over all IR instructions and initialize the
@@ -1852,13 +1855,13 @@ invoke_method:
 #endif
 		/* allocate and initialize the variable array */
 
-		jd->var = DMNEW(varinfo, jd->varcount);
+		jd->var = (varinfo*) DumpMemory::allocate(sizeof(varinfo) * jd->varcount);
 		MZERO(jd->var, varinfo, jd->varcount);
 
 		/* set types of all locals in jd->var */
 		/* and fill the reverselocalmap       */
 
-		reversemap = DMNEW(s4, nlocals);
+		reversemap = (s4*) DumpMemory::allocate(sizeof(s4) * nlocals);
 
 		for (i = 0; i < m->maxlocals; i++)
 			for (t=0; t<5; t++) {
@@ -1881,7 +1884,7 @@ invoke_method:
 
 	/* allocate stack table */
 
-	jd->stack = DMNEW(stackelement_t, jd->stackcount);
+	jd->stack = (stackelement_t*) DumpMemory::allocate(sizeof(stackelement_t) * jd->stackcount);
 
 	/* everything's ok */
 
@@ -1906,6 +1909,9 @@ throw_illegal_local_variable_number:
 #endif /* ENABLE_VERIFIER */
 }
 
+#if defined(__cplusplus)
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

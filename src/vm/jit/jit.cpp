@@ -58,7 +58,7 @@
 #include "vm/jit/disass.h"
 #include "vm/jit/dseg.h"
 #include "vm/jit/jit.hpp"
-#include "vm/jit/parse.h"
+#include "vm/jit/parse.hpp"
 #include "vm/jit/reg.h"
 
 #include "vm/jit/show.hpp"
@@ -84,7 +84,7 @@
 #endif
 
 #if defined(ENABLE_INLINING)
-# include "vm/jit/inline/inline.h"
+# include "vm/jit/inline/inline.hpp"
 #endif
 
 #include "vm/jit/ir/bytecode.h"

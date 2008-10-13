@@ -656,17 +656,46 @@ void emit_label_br(codegendata *cd, s4 label)
 
 #if SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER
 
-void emit_label_beqz(codegendata *cd, s4 label, s4 reg)
+void emit_label_beqz(codegendata* cd, int label, int reg)
 {
 	emit_label_bccz(cd, label, BRANCH_EQ, reg, BRANCH_OPT_NONE);
 }
 
-void emit_label_bnez(codegendata *cd, s4 label, s4 reg)
+void emit_label_bnez(codegendata* cd, int label, int reg)
 {
 	emit_label_bccz(cd, label, BRANCH_NE, reg, BRANCH_OPT_NONE);
 }
 
+void emit_label_bltz(codegendata* cd, int label, int reg)
+{
+	emit_label_bccz(cd, label, BRANCH_LT, reg, BRANCH_OPT_NONE);
+}
+
+void emit_label_bgtz(codegendata* cd, int label, int reg)
+{
+	emit_label_bccz(cd, label, BRANCH_GT, reg, BRANCH_OPT_NONE);
+}
+
 #endif /* SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER */
+
+
+/* emit_label_bxx **************************************************************
+
+   Wrappers for label-branches on two integer registers.
+
+   We use PACK_REGS here, so we don't have to change the branchref
+   data structure and the emit_bccz function.
+
+*******************************************************************************/
+
+#if SUPPORT_BRANCH_CONDITIONAL_TWO_INTEGER_REGISTERS
+
+void emit_label_bne(codegendata* cd, int label, int s1, int s2)
+{
+	emit_label_bccz(cd, label, BRANCH_NE, PACK_REGS(s1, s2), BRANCH_OPT_NONE);
+}
+
+#endif /* SUPPORT_BRANCH_CONDITIONAL_TWO_INTEGER_REGISTERS */
 
 
 /* emit_label_bxx **************************************************************

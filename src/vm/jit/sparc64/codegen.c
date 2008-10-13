@@ -55,7 +55,7 @@
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/linenumbertable.hpp"
-#include "vm/jit/parse.h"
+#include "vm/jit/parse.hpp"
 #include "vm/jit/patcher.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.hpp"

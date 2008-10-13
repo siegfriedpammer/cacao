@@ -181,8 +181,8 @@ libjit_la_SOURCES = \
 	linenumbertable.hpp \
 	methodtree.c \
 	methodtree.h \
-	parse.c \
-	parse.h \
+	parse.cpp \
+	parse.hpp \
 	patcher-common.cpp \
 	patcher-common.hpp \
 	$(RECOMPILE_SOURCES) \
