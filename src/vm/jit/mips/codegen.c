@@ -1403,13 +1403,13 @@ bool codegen_emit(jitdata *jd)
 			M_CMPLT(s1, s2, REG_ITMP3);
 			M_CMPLT(s2, s1, REG_ITMP1);
 			M_ISUB(REG_ITMP1, REG_ITMP3, d);
-			M_BNEZ(d, 4);
-			M_NOP;
+			emit_label_bnez(cd, BRANCH_LABEL_1, d);
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
 			M_CMPULT(s1, s2, REG_ITMP3);
 			M_CMPULT(s2, s1, REG_ITMP1);
 			M_ISUB(REG_ITMP1, REG_ITMP3, d);
+			emit_label(cd, BRANCH_LABEL_1);
 #endif
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -2430,12 +2430,12 @@ bool codegen_emit(jitdata *jd)
 				ICONST(REG_ITMP2, iptr->sx.val.l >> 32);
 				M_CMPLT(s1, REG_ITMP2, REG_ITMP3);
 				emit_bnez(cd, iptr->dst.block, REG_ITMP3);
+				emit_label_bne(cd, BRANCH_LABEL_1, s1, REG_ITMP2);
 				s2 = emit_load_s1_low(jd, iptr, REG_ITMP3);
-				M_BNE(s1, REG_ITMP2, 5); /* XXX */
-				M_NOP;
 				ICONST(REG_ITMP2, iptr->sx.val.l & 0xffffffff);
 				M_CMPULT(s2, REG_ITMP2, REG_ITMP3);
 				emit_bnez(cd, iptr->dst.block, REG_ITMP3);
+				emit_label(cd, BRANCH_LABEL_1);
 			}
 #endif
 			break;
@@ -2460,22 +2460,22 @@ bool codegen_emit(jitdata *jd)
 #else
 			if (iptr->sx.val.l == 0) {
 				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
-				M_BGTZ(GET_HIGH_REG(s1), 5); /* XXX */
-				M_NOP;
+				emit_label_bgtz(cd, BRANCH_LABEL_1, GET_HIGH_REG(s1));
 				emit_bltz(cd, iptr->dst.block, GET_HIGH_REG(s1));
-				emit_beqz(cd, iptr->dst.block, GET_LOW_REG(s1));
+				emit_beqz(cd, iptr->dst.block, GET_LOW_REG(s1));	
+				emit_label(cd, BRANCH_LABEL_1);
 			}
 			else {
 				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 				ICONST(REG_ITMP2, iptr->sx.val.l >> 32);
 				M_CMPLT(s1, REG_ITMP2, REG_ITMP3);
 				emit_bnez(cd, iptr->dst.block, REG_ITMP3);
+				emit_label_bne(cd, BRANCH_LABEL_1, s1, REG_ITMP2);
 				s2 = emit_load_s1_low(jd, iptr, REG_ITMP3);
-				M_BNE(s1, REG_ITMP2, 5); /* XXX */
-				M_NOP;
 				ICONST(REG_ITMP2, iptr->sx.val.l & 0xffffffff);
 				M_CMPUGT(s2, REG_ITMP2, REG_ITMP3);
 				emit_beqz(cd, iptr->dst.block, REG_ITMP3);
+				emit_label(cd, BRANCH_LABEL_1);
 			}
 #endif
 			break;
@@ -2530,21 +2530,21 @@ bool codegen_emit(jitdata *jd)
 			if (iptr->sx.val.l == 0) {
 				s1 = emit_load_s1(jd, iptr, REG_ITMP12_PACKED);
 				emit_bgtz(cd, iptr->dst.block, GET_HIGH_REG(s1));
-				M_BLTZ(GET_HIGH_REG(s1), 3); /* XXX */
-				M_NOP;
+				emit_label_bltz(cd, BRANCH_LABEL_1, GET_HIGH_REG(s1));
 				emit_bnez(cd, iptr->dst.block, GET_LOW_REG(s1));
+				emit_label(cd, BRANCH_LABEL_1);
 			}
 			else {
 				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 				ICONST(REG_ITMP2, iptr->sx.val.l >> 32);
 				M_CMPGT(s1, REG_ITMP2, REG_ITMP3);
 				emit_bnez(cd, iptr->dst.block, REG_ITMP3);
+				emit_label_bne(cd, BRANCH_LABEL_1, s1, REG_ITMP2);
 				s2 = emit_load_s1_low(jd, iptr, REG_ITMP3);
-				M_BNE(s1, REG_ITMP2, 5); /* XXX */
-				M_NOP;
 				ICONST(REG_ITMP2, iptr->sx.val.l & 0xffffffff);
 				M_CMPUGT(s2, REG_ITMP2, REG_ITMP3);
 				emit_bnez(cd, iptr->dst.block, REG_ITMP3);
+				emit_label(cd, BRANCH_LABEL_1);
 			}
 #endif
 			break;
@@ -2576,12 +2576,12 @@ bool codegen_emit(jitdata *jd)
 				ICONST(REG_ITMP2, iptr->sx.val.l >> 32);
 				M_CMPGT(s1, REG_ITMP2, REG_ITMP3);
 				emit_bnez(cd, iptr->dst.block, REG_ITMP3);
+				emit_label_bne(cd, BRANCH_LABEL_1, s1, REG_ITMP2);
 				s2 = emit_load_s1_low(jd, iptr, REG_ITMP3);
-				M_BNE(s1, REG_ITMP2, 5); /* XXX */
-				M_NOP;
 				ICONST(REG_ITMP2, iptr->sx.val.l & 0xffffffff);
 				M_CMPULT(s2, REG_ITMP2, REG_ITMP3);
 				emit_beqz(cd, iptr->dst.block, REG_ITMP3);
+				emit_label(cd, BRANCH_LABEL_1);
 			}
 #endif
 			break;
@@ -2603,11 +2603,11 @@ bool codegen_emit(jitdata *jd)
 
 			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP2);
-			M_BNE(s1, s2, 3); /* XXX TWISTI: uff, that is a problem */
-			M_NOP;
+			emit_label_bne(cd, BRANCH_LABEL_1, s1, s2);
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
 			emit_beq(cd, iptr->dst.block, s1, s2);
+			emit_label(cd, BRANCH_LABEL_1);
 			break;
 #endif
 
@@ -2654,13 +2654,12 @@ bool codegen_emit(jitdata *jd)
 			M_CMPLT(s1, s2, REG_ITMP3);
 			emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			M_CMPGT(s1, s2, REG_ITMP3);
-			/* load low-bits before the branch, so we know the distance */
+			emit_label_bnez(cd, BRANCH_LABEL_1, REG_ITMP3);
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			M_BNEZ(REG_ITMP3, 4); /* XXX */
-			M_NOP;
 			M_CMPULT(s1, s2, REG_ITMP3);
 			emit_bnez(cd, iptr->dst.block, REG_ITMP3);
+			emit_label(cd, BRANCH_LABEL_1);
 			break;
 #endif
 
@@ -2683,13 +2682,12 @@ bool codegen_emit(jitdata *jd)
 			M_CMPGT(s1, s2, REG_ITMP3);
 			emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			M_CMPLT(s1, s2, REG_ITMP3);
-			/* load low-bits before the branch, so we know the distance */
+			emit_label_bnez(cd, BRANCH_LABEL_1, REG_ITMP3);
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			M_BNEZ(REG_ITMP3, 4); /* XXX */
-			M_NOP;
 			M_CMPUGT(s1, s2, REG_ITMP3);
 			emit_bnez(cd, iptr->dst.block, REG_ITMP3);
+			emit_label(cd, BRANCH_LABEL_1);
 			break;
 #endif
 
@@ -2712,13 +2710,12 @@ bool codegen_emit(jitdata *jd)
 			M_CMPLT(s1, s2, REG_ITMP3);
 			emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			M_CMPGT(s1, s2, REG_ITMP3);
-			/* load low-bits before the branch, so we know the distance */
+			emit_label_bnez(cd, BRANCH_LABEL_1, REG_ITMP3);
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			M_BNEZ(REG_ITMP3, 4); /* XXX */
-			M_NOP;
 			M_CMPUGT(s1, s2, REG_ITMP3);
 			emit_beqz(cd, iptr->dst.block, REG_ITMP3);
+			emit_label(cd, BRANCH_LABEL_1);
 			break;
 #endif
 
@@ -2741,13 +2738,12 @@ bool codegen_emit(jitdata *jd)
 			M_CMPGT(s1, s2, REG_ITMP3);
 			emit_bnez(cd, iptr->dst.block, REG_ITMP3);
 			M_CMPLT(s1, s2, REG_ITMP3);
-			/* load low-bits before the branch, so we know the distance */
+			emit_label_bnez(cd, BRANCH_LABEL_1, REG_ITMP3);
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
-			M_BNEZ(REG_ITMP3, 4); /* XXX */
-			M_NOP;
 			M_CMPULT(s1, s2, REG_ITMP3);
 			emit_beqz(cd, iptr->dst.block, REG_ITMP3);
+			emit_label(cd, BRANCH_LABEL_1);
 			break;
 #endif
 
