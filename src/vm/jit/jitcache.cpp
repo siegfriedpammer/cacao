@@ -60,7 +60,7 @@ extern "C" {
 
 #include "vm/method.h"
 #include "vm/options.h"
-#include "vm/resolve.h"
+#include "vm/resolve.hpp"
 #include "vm/types.h"
 
 #include "vm/jit/asmpart.h"
