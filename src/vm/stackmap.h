@@ -54,7 +54,7 @@ typedef struct Uninitialized_variable_info_t     Uninitialized_variable_info_t;
 
 #include "vm/global.h"
 #include "vm/loader.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 
 /* verification_type_info *****************************************************/
@@ -206,10 +206,17 @@ union stack_map_frame_t {
 	full_frame_t                              full_frame;
 };
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* function prototypes ********************************************************/
 
 bool stackmap_load_attribute_stackmaptable(classbuffer *cb, methodinfo *m);
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* _STACKMAP_H */
 

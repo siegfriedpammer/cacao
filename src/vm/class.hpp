@@ -47,10 +47,11 @@ typedef struct extra_classref extra_classref;
 #include "vm/global.h"
 #include "vm/linker.h"
 #include "vm/loader.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/references.h"
 #include "vm/string.hpp"
 #include "vm/utf8.h"
+
 
 /* class state defines ********************************************************/
 
@@ -160,9 +161,6 @@ struct classinfo {                /* class structure                          */
 	java_object_t      *protectiondomain;
 	java_objectarray_t *signers;
 # endif
-#endif
-#if defined(ENABLE_JITCACHE)
-	int         cache_file_fd;
 #endif
 };
 

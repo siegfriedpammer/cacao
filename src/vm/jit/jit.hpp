@@ -37,7 +37,7 @@ typedef struct exception_entry exception_entry;
 #include "vm/types.h"
 
 #include "vm/global.h"
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/references.h"
 #include "vm/resolve.hpp"
 
@@ -68,7 +68,7 @@ typedef struct exception_entry exception_entry;
 # include "vm/jit/allocator/lsra.h"
 #endif
 
-#include "vm/jit/verify/typeinfo.h"
+#include "vm/jit/verify/typeinfo.hpp"
 
 
 /* common jit/codegen macros **************************************************/

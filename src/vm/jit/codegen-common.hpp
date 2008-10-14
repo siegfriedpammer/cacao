@@ -43,7 +43,7 @@ typedef struct dataref                dataref;
 #include "vm/jit/builtin.hpp"
 #include "vm/descriptor.h"
 #include "vm/global.h"
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/references.h"
 
 #include "vm/jit/dseg.h"

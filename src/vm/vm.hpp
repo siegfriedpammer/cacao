@@ -120,7 +120,7 @@ int64_t VM_get_starttime();
 
 // Includes.
 #include "vm/global.h"
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 
 /* These C methods are the exported interface. ********************************/

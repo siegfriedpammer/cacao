@@ -1,4 +1,4 @@
-/* src/vm/method.c - method functions
+/* src/vm/method.cpp - method functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -45,7 +45,7 @@
 #include "vm/globals.hpp"
 #include "vm/linker.h"
 #include "vm/loader.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/options.h"
 #include "vm/resolve.hpp"
 #include "vm/suck.hpp"
@@ -63,10 +63,14 @@
 #define INLINELOG(code)
 #endif
 
-
 /* global variables ***********************************************************/
 
 methodinfo *method_java_lang_reflect_Method_invoke;
+
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 
 /* method_init *****************************************************************
@@ -144,7 +148,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 
 	c = cb->clazz;
 
-	m->mutex = Mutex_new();
+	m->mutex = new Mutex();
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
@@ -166,7 +170,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 
 	name_index = suck_u2(cb);
 
-	if (!(u = class_getconstant(c, name_index, CONSTANT_Utf8)))
+	if (!(u = (utf*) class_getconstant(c, name_index, CONSTANT_Utf8)))
 		return false;
 
 	m->name = u;
@@ -175,7 +179,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 
 	descriptor_index = suck_u2(cb);
 
-	if (!(u = class_getconstant(c, descriptor_index, CONSTANT_Utf8)))
+	if (!(u = (utf*) class_getconstant(c, descriptor_index, CONSTANT_Utf8)))
 		return false;
 
 	m->descriptor = u;
@@ -274,7 +278,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 		attribute_name_index = suck_u2(cb);
 
 		attribute_name =
-			class_getconstant(c, attribute_name_index, CONSTANT_Utf8);
+			(utf*) class_getconstant(c, attribute_name_index, CONSTANT_Utf8);
 
 		if (attribute_name == NULL)
 			return false;
@@ -377,7 +381,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 				code_attribute_name_index = suck_u2(cb);
 
 				code_attribute_name =
-					class_getconstant(c, code_attribute_name_index, CONSTANT_Utf8);
+					(utf*) class_getconstant(c, code_attribute_name_index, CONSTANT_Utf8);
 
 				if (code_attribute_name == NULL)
 					return false;
@@ -529,7 +533,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 void method_free(methodinfo *m)
 {
 	if (m->mutex)
-		Mutex_delete(m->mutex);
+		delete m->mutex;
 
 	if (m->jcode)
 		MFREE(m->jcode, u1, m->jcodelength);
@@ -541,10 +545,10 @@ void method_free(methodinfo *m)
 
 	if (m->stubroutine) {
 		if (m->flags & ACC_NATIVE) {
-			NativeStub_remove(m->stubroutine);
+			NativeStub::remove(m->stubroutine);
 		}
 		else {
-			CompilerStub_remove(m->stubroutine);
+			CompilerStub::remove(m->stubroutine);
 		}
 	}
 }
@@ -591,7 +595,7 @@ methodinfo *method_new_builtin(builtintable_entry *bte)
 
 	MZERO(m, methodinfo, 1);
 	
-	m->mutex      = Mutex_new();
+	m->mutex      = new Mutex();
 	m->flags      = ACC_METHOD_BUILTIN;
 	m->parseddesc = bte->md;
 	m->name       = bte->name;
@@ -1203,6 +1207,9 @@ void method_methodref_println(constant_FMIref *mr)
 }
 #endif /* !defined(NDEBUG) */
 
+#if defined(__cplusplus)
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

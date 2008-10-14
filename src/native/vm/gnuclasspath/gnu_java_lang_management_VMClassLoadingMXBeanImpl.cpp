@@ -38,7 +38,7 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/classcache.h"
+#include "vm/classcache.hpp"
 #include "vm/utf8.h"
 #include "vm/vm.hpp"
 

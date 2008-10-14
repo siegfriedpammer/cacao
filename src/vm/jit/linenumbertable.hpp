@@ -37,7 +37,7 @@
 
 #include "toolbox/list.hpp"
 
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/code.hpp"
@@ -88,9 +88,8 @@ public:
  * Linenumber table of a Java method.
  */
 class LinenumberTable {
-public:
-	std::vector<Linenumber> _linenumbers;
 private:
+	std::vector<Linenumber> _linenumbers;
 
 	// Comparator class.
 	class comparator : public std::binary_function<Linenumber, void*, bool> {
@@ -103,7 +102,6 @@ private:
 
 public:
 	LinenumberTable(jitdata* jd);
-	LinenumberTable() { }
 	~LinenumberTable();
 
 	int32_t find(methodinfo **pm, void* pc);

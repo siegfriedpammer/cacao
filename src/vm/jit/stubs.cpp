@@ -33,7 +33,7 @@
 
 #include "mm/dumpmemory.hpp"
 
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/options.h"
 
 #include "vm/jit/abi.h"

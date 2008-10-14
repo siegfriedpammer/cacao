@@ -65,7 +65,7 @@ typedef union parseddesc {
 #include "vm/descriptor.h"
 #include "vm/field.hpp"
 #include "vm/global.h"
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/utf8.h"
 
 
@@ -135,7 +135,7 @@ struct constant_FMIref{      /* Fieldref, Methodref and InterfaceMethodref    */
 	(IS_FMIREF_RESOLVED(fmiref) ? (fmiref)->p.method->clazz->name \
 	 							: (fmiref)->p.classref->name)
 
-/* macro for accessing the class name of a field reference                   */
+/* macro for accessing the class name of a method reference                   */
 #define FIELDREF_CLASSNAME(fmiref) \
 	(IS_FMIREF_RESOLVED(fmiref) ? (fmiref)->p.field->clazz->name \
 	 							: (fmiref)->p.classref->name)

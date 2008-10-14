@@ -42,14 +42,14 @@
 #include "toolbox/logging.h"
 
 #include "vm/jit/builtin.hpp"
-#include "vm/classcache.h"
+#include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/linker.h"
 #include "vm/loader.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/options.h"
 #include "vm/package.hpp"
 #include "vm/primitive.hpp"
@@ -70,7 +70,7 @@
 #endif
 
 #if defined(ENABLE_ZLIB)
-# include "vm/zip.h"
+# include "vm/zip.hpp"
 #endif
 
 #include "vm/jit/stubs.hpp"

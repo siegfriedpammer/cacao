@@ -37,7 +37,7 @@ extern "C" {
 #include "vm/class.hpp"
 #include "vm/field.hpp"
 #include "vm/global.h"
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 
 /* macros *********************************************************************/

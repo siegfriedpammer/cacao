@@ -31,7 +31,7 @@
 
 #include "vm/class.hpp"
 #include "vm/initialize.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/options.h"
 #include "vm/os.hpp"
 

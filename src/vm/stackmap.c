@@ -30,7 +30,7 @@
 
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/options.h"
 #include "vm/stackmap.h"
 #include "vm/statistics.h"

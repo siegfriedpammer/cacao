@@ -38,7 +38,7 @@
 #include "threads/condition.hpp"
 #include "threads/mutex.hpp"
 
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 
 #ifdef __cplusplus

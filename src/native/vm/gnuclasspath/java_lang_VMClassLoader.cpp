@@ -48,7 +48,7 @@
 
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
-#include "vm/classcache.h"
+#include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
 #include "vm/initialize.hpp"
@@ -60,7 +60,7 @@
 #include "vm/statistics.h"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
-#include "vm/zip.h"
+#include "vm/zip.hpp"
 
 #include "vm/jit/asmpart.h"
 

@@ -39,7 +39,7 @@
 #include "vm/field.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 
 #ifdef __cplusplus

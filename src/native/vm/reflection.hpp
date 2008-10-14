@@ -33,7 +33,7 @@
 #include "native/native.hpp"
 
 #include "vm/field.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 
 class Reflection {

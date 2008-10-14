@@ -30,7 +30,7 @@
 
 #include <stdint.h>
 
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 #if !defined(NDEBUG)
 

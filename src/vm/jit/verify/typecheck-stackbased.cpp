@@ -41,8 +41,11 @@
 #include "vm/jit/parse.hpp"
 #include "vm/jit/show.hpp"
 #include "vm/jit/stack.h"
-#include "vm/jit/verify/typecheck-common.h"
+#include "vm/jit/verify/typecheck-common.hpp"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* this #if runs over the whole file: */
 #if defined(ENABLE_VERIFIER)
@@ -196,7 +199,7 @@ static typecheck_result typecheck_stackbased_merge_locals(methodinfo *m,
 		a++;
 		b++;
 	}
-	return changed;
+	return (typecheck_result) changed;
 }
 
 static typecheck_result typecheck_stackbased_merge(verifier_state *state,
@@ -263,7 +266,7 @@ static typecheck_result typecheck_stackbased_merge(verifier_state *state,
 		return r;
 	changed |= r;
 
-	return changed;
+	return (typecheck_result) changed;
 }
 
 static bool typecheck_stackbased_reach(verifier_state *state,
@@ -526,7 +529,7 @@ static void typecheck_stackbased_add_jsr_caller(typecheck_jsr_t *jsr,
 		if (jc->callblock == bptr)
 			return;
 
-	jc = DNEW(typecheck_jsr_caller_t);
+	jc = (typecheck_jsr_caller_t*) DumpMemory::allocate(sizeof(typecheck_jsr_caller_t));
 	jc->next = jsr->callers;
 	jc->callblock = bptr;
 	jsr->callers = jc;
@@ -578,16 +581,16 @@ static typedescriptor_t *typecheck_stackbased_jsr(verifier_state *state,
 		if (!jsr) {
 			LOG1("first JSR to block L%03d", tbptr->nr);
 
-			jsr = DNEW(typecheck_jsr_t);
+			jsr = (typecheck_jsr_t*) DumpMemory::allocate(sizeof(typecheck_jsr_t));
 			state->jsrinfos[tbptr->nr] = jsr;
 			jsr->callers = NULL;
-			jsr->blockflags = DMNEW(char, state->basicblockcount);
+			jsr->blockflags = (char*) DumpMemory::allocate(sizeof(char) * state->basicblockcount);
 			jsr->retblock = NULL;
 			jsr->start = tbptr;
-			jsr->usedlocals = DMNEW(char, state->numlocals);
+			jsr->usedlocals = (char*) DumpMemory::allocate(sizeof(char) * state->numlocals);
 			MZERO(jsr->usedlocals, char, state->numlocals);
-			jsr->retlocals = DMNEW(typedescriptor_t, state->numlocals);
-			jsr->retstack = DMNEW(typedescriptor_t, state->m->maxstack);
+			jsr->retlocals = (typedescriptor_t*) DumpMemory::allocate(sizeof(typedescriptor_t) * state->numlocals);
+			jsr->retstack = (typedescriptor_t*) DumpMemory::allocate(sizeof(typedescriptor_t) * state->m->maxstack);
 			jsr->retdepth = 0;
 		}
 		else {
@@ -630,7 +633,7 @@ static bool typecheck_stackbased_ret(verifier_state *state,
 
 	/* get the subroutine we are RETurning from */
 
-	tbptr = TYPEINFO_RETURNADDRESS(state->locals[state->iptr->s1.varindex].typeinfo);
+	tbptr = (basicblock*) TYPEINFO_RETURNADDRESS(state->locals[state->iptr->s1.varindex].typeinfo);
 	if (tbptr == NULL) {
 		exceptions_throw_verifyerror(state->m, "Illegal RET");
 		return false;
@@ -735,11 +738,11 @@ bool typecheck_stackbased(jitdata *jd)
 
 	/* allocate the stack buffers */
 
-	stackfloor = DMNEW(verifier_slot_t, state.m->maxstack + 1);
+	stackfloor = (verifier_slot_t*) DumpMemory::allocate(sizeof(verifier_slot_t) * (state.m->maxstack + 1));
 	state.stackceiling = stackfloor + state.m->maxstack;
 	stack = stackfloor - 1;
-	state.indepth = DMNEW(s4, state.basicblockcount);
-	state.startstack = DMNEW(verifier_slot_t, state.m->maxstack * state.basicblockcount);
+	state.indepth = (s4*) DumpMemory::allocate(sizeof(s4) * state.basicblockcount);
+	state.startstack = (verifier_slot_t*) DumpMemory::allocate(sizeof(verifier_slot_t) * state.m->maxstack * state.basicblockcount);
 
 	/* allocate the local variables buffers */
 
@@ -748,12 +751,12 @@ bool typecheck_stackbased(jitdata *jd)
     if (state.initmethod)
 		state.numlocals++; /* extra marker variable */
 
-	state.locals = DMNEW(verifier_slot_t, state.numlocals);
-	state.startlocals = DMNEW(verifier_slot_t, state.numlocals * state.basicblockcount);
+	state.locals = (verifier_slot_t*) DumpMemory::allocate(sizeof(verifier_slot_t) * state.numlocals);
+	state.startlocals = (verifier_slot_t*) DumpMemory::allocate(sizeof(verifier_slot_t) * state.numlocals * state.basicblockcount);
 
     /* allocate the buffer of active exception handlers */
 
-    state.handlers = DMNEW(exception_entry*, state.jd->exceptiontablelength + 1);
+    state.handlers = (exception_entry**) DumpMemory::allocate(sizeof(exception_entry*) * (state.jd->exceptiontablelength + 1));
 
     /* initialize instack of exception handlers */
 
@@ -765,7 +768,7 @@ bool typecheck_stackbased(jitdata *jd)
 
 	/* initialize jsr info buffer */
 
-	state.jsrinfos = DMNEW(typecheck_jsr_t *, state.basicblockcount);
+	state.jsrinfos = (typecheck_jsr_t**) DumpMemory::allocate(sizeof(typecheck_jsr_t*) * state.basicblockcount);
 	MZERO(state.jsrinfos, typecheck_jsr_t *, state.basicblockcount);
 
 	/* initialize stack of first block */
@@ -1005,6 +1008,10 @@ static void typecheck_stackbased_show_state(verifier_state *state,
 		DOLOG( show_icmd(state->jd, state->iptr, false, SHOW_PARSE); );
 		LOGNL;
 	}
+}
+#endif
+
+#if defined(__cplusplus)
 }
 #endif
 

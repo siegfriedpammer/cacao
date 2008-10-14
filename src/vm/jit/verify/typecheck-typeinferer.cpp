@@ -50,11 +50,14 @@
 #include "vm/jit/show.hpp"
 #include "vm/jit/parse.hpp"
 
-#include "vm/jit/verify/typecheck-typeinferer.h"
+#include "vm/jit/verify/typecheck-typeinferer.hpp"
 
 #define TYPECHECK_NO_STATISTICS
-#include <typecheck-common.h>
+#include "vm/jit/verify/typecheck-common.hpp"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* macros used by the generated code ******************************************/
 
@@ -410,11 +413,11 @@ bool typecheck_infer_types(jitdata *jd)
 
     /* allocate the buffer of active exception handlers */
 	
-    state.handlers = DMNEW(exception_entry*, state.jd->exceptiontablelength + 1);
+    state.handlers = (exception_entry**) DumpMemory::allocate(sizeof(exception_entry*) * (state.jd->exceptiontablelength + 1));
 
 	/* save local variables */
 
-	savedlocals = DMNEW(varinfo, state.numlocals);
+	savedlocals = (varinfo*) DumpMemory::allocate(sizeof(varinfo) * state.numlocals);
 	MCOPY(savedlocals, jd->var, varinfo, state.numlocals);
 
 	/* initialized local variables of first block */
@@ -469,6 +472,10 @@ bool typecheck_infer_types(jitdata *jd)
     LOGimp("exiting type inference");
 	return true;
 }
+
+#if defined(__cplusplus)
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

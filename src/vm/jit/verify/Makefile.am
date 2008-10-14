@@ -37,22 +37,22 @@ LIBS =
 noinst_LTLIBRARIES = libverify.la
 
 libverify_la_SOURCES = \
-	typecheck.c \
-	typecheck.h \
-	typecheck-common.c \
-	typecheck-common.h \
+	typecheck.cpp \
+	typecheck.hpp \
+	typecheck-common.cpp \
+	typecheck-common.hpp \
 	typecheck-builtins.inc \
 	typecheck-fields.inc \
 	typecheck-invoke.inc \
 	typecheck-multianewarray.inc \
-	typecheck-stackbased.c \
-	typecheck-typeinferer.c \
-	typecheck-typeinferer.h \
+	typecheck-stackbased.cpp \
+	typecheck-typeinferer.cpp \
+	typecheck-typeinferer.hpp \
 	typecheck-stackbased-gen.inc \
 	typecheck-variablesbased-gen.inc \
 	typecheck-typeinferer-gen.inc \
-	typeinfo.c \
-	typeinfo.h
+	typeinfo.cpp \
+	typeinfo.hpp
 
 
 ## Local variables:

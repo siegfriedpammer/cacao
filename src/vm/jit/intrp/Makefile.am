@@ -55,7 +55,7 @@ libintrp_la_SOURCES = \
 	codegen.c \
 	codegen.h \
 	disasm.c \
-	disass.c \
+	disass.cpp \
 	dynamic-super.c \
 	engine1.c \
 	engine2.c \

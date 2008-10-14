@@ -65,8 +65,8 @@ endif
 
 if ENABLE_ZLIB
 ZLIB_SOURCES = \
-	zip.c \
-	zip.h
+	zip.cpp \
+	zip.hpp
 endif
 
 noinst_HEADERS = \
@@ -85,8 +85,8 @@ libvm_la_SOURCES = \
 	$(ASSERTION_SOURCES) \
 	class.cpp \
 	class.hpp \
-	classcache.c \
-	classcache.h \
+	classcache.cpp \
+	classcache.hpp \
 	$(CYCLES_STATS_SOURCES) \
 	descriptor.c \
 	descriptor.h \
@@ -106,8 +106,8 @@ libvm_la_SOURCES = \
 	linker.h \
 	loader.cpp \
 	loader.hpp \
-	method.c \
-	method.h \
+	method.cpp \
+	method.hpp \
 	options.c \
 	options.h \
 	os.cpp \

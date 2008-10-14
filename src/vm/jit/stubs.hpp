@@ -29,7 +29,7 @@
 
 #include <stdint.h>
 
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 #include "vm/jit/code.hpp"
 

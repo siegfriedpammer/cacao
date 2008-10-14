@@ -64,7 +64,7 @@
 #endif
 
 #include "vm/jit/builtin.hpp"
-#include "vm/classcache.h"
+#include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/finalizer.h"
 #include "vm/global.h"
@@ -88,7 +88,7 @@
 # include "vm/jit/disass.h"
 #endif
 
-#include "vm/jit/jitcache.hpp"
+#include "vm/jit/jit.hpp"
 #include "vm/jit/methodtree.h"
 
 #if defined(ENABLE_PROFILING)
@@ -1913,10 +1913,6 @@ void vm_shutdown(s4 status)
 		mutex_unlock(&dbgcomlock);
 		jvmti_cacaodbgserver_quit();
 	}	
-#endif
-
-#if defined (ENABLE_JITCACHE)
-  jitcache_quit();
 #endif
 
 	exit(status);

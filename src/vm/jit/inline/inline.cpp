@@ -44,7 +44,7 @@
 #include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/initialize.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/options.h"
 #include "vm/statistics.h"
 
@@ -57,7 +57,7 @@
 #include "vm/jit/inline/inline.hpp"
 #include "vm/jit/loop/loop.h"
 
-#include "vm/jit/verify/typecheck.h"
+#include "vm/jit/verify/typecheck.hpp"
 
 
 /* algorithm tuning constants *************************************************/

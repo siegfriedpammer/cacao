@@ -37,8 +37,8 @@
 
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
-#include "vm/classcache.h"
-#include "vm/method.h"
+#include "vm/classcache.hpp"
+#include "vm/method.hpp"
 #include "vm/options.h"
 #include "vm/string.hpp"
 

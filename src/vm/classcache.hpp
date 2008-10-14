@@ -1,4 +1,4 @@
-/* src/vm/classcache.h - loaded class cache and loading constraints
+/* src/vm/classcache.hpp - loaded class cache and loading constraints
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO

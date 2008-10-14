@@ -49,7 +49,7 @@
 #include "vm/string.hpp"
 #include "vm/types.h"
 #include "vm/vm.hpp" /* REMOVE ME: temporarily */
-#include "vm/zip.h"
+#include "vm/zip.hpp"
 
 
 static java_handle_t* zip_read_resource(list_classpath_entry *lce, utf *name)

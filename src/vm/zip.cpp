@@ -1,4 +1,4 @@
-/* src/vm/zip.c - ZIP file handling for bootstrap classloader
+/* src/vm/zip.cpp - ZIP file handling for bootstrap classloader
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -43,7 +43,7 @@
 #include "vm/suck.hpp"
 #include "vm/utf8.h"
 #include "vm/vm.hpp"
-#include "vm/zip.h"
+#include "vm/zip.hpp"
 
 
 /* start size for classes hashtable *******************************************/
@@ -155,6 +155,9 @@ struct eocdr {
 	u4 offset;
 };
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* zip_open ********************************************************************
 
@@ -200,7 +203,7 @@ hashtable *zip_open(char *path)
 
 	/* we better mmap the file */
 
-	filep = mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
+	filep = (u1*) mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
 
 	/* some older compilers, like DEC OSF cc, don't like comparisons
        on void* types */
@@ -273,7 +276,7 @@ hashtable *zip_open(char *path)
 
 			/* insert into external chain */
 
-			htzfe->hashlink = ht->ptr[slot];
+			htzfe->hashlink = (hashtable_zipfile_entry*) ht->ptr[slot];
 
 			/* insert hashtable zipfile entry */
 
@@ -330,7 +333,7 @@ hashtable_zipfile_entry *zip_find(list_classpath_entry *lce, utf *u)
 
 	key   = utf_hashkey(u->text, u->blength);
 	slot  = key & (ht->size - 1);
-	htzfe = ht->ptr[slot];
+	htzfe = (hashtable_zipfile_entry*) ht->ptr[slot];
 
 	/* search external hash chain for utf-symbol */
 
@@ -444,6 +447,9 @@ classbuffer *zip_get(list_classpath_entry *lce, classinfo *c)
 	return cb;
 }
 
+#if defined(__cplusplus)
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

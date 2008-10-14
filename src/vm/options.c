@@ -163,9 +163,6 @@ int      opt_ThreadStackSize              = 0;
 bool     opt_AlwaysEmitLongBranches       = false;
 int      opt_DebugExceptions              = 0;
 int      opt_DebugFinalizer               = 0;
-#if defined(ENABLE_JITCACHE)
-int      opt_DebugJitCache                = 0;
-#endif
 int      opt_DebugLocalReferences         = 0;
 int      opt_DebugLocks                   = 0;
 int      opt_DebugPackage                 = 0;
@@ -237,7 +234,6 @@ enum {
 	OPT_AlwaysEmitLongBranches,
 	OPT_DebugExceptions,
 	OPT_DebugFinalizer,
-  OPT_DebugJitCache,
 	OPT_DebugLocalReferences,
 	OPT_DebugLocks,
 	OPT_DebugPackage,
@@ -292,9 +288,6 @@ option_t options_XX[] = {
 	{ "AlwaysEmitLongBranches",       OPT_AlwaysEmitLongBranches,       OPT_TYPE_BOOLEAN, "Always emit long-branches." },
 	{ "DebugExceptions",              OPT_DebugExceptions,              OPT_TYPE_BOOLEAN, "debug exceptions" },
 	{ "DebugFinalizer",               OPT_DebugFinalizer,               OPT_TYPE_BOOLEAN, "debug finalizer thread" },
-#if defined (ENABLE_JITCACHE)
-  { "DebugJitCache",                OPT_DebugJitCache,                OPT_TYPE_BOOLEAN, "debug JIT cache actions" },
-#endif
 	{ "DebugLocalReferences",         OPT_DebugLocalReferences,         OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
 	{ "DebugLocks",                   OPT_DebugLocks,                   OPT_TYPE_BOOLEAN, "print debug information for locks" },
 	{ "DebugPackage",                 OPT_DebugPackage,                 OPT_TYPE_BOOLEAN, "debug Java boot-packages" },
@@ -636,12 +629,6 @@ void options_xx(JavaVMInitArgs *vm_args)
 		case OPT_DebugFinalizer:
 			opt_DebugFinalizer = enable;
 			break;
-
-#if defined(ENABLE_JITCACHE)
-    case OPT_DebugJitCache:
-      opt_DebugJitCache = enable;
-      break;
-#endif
 
 		case OPT_DebugLocalReferences:
 			opt_DebugLocalReferences = enable;

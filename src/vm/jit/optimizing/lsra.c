@@ -37,7 +37,7 @@
 
 #include "vm/statistics.h"
 #include "vm/options.h"
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/reg.h"

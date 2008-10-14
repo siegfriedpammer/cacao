@@ -57,7 +57,7 @@ typedef union  replace_val_t replace_val_t;
 #include "arch.h"
 #include "md-abi.h"
 
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 #include "vm/jit/reg.h"
 #include "vm/jit/stacktrace.hpp"

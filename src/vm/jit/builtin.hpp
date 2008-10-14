@@ -94,8 +94,6 @@ extern "C" {
 
 bool builtin_init(void);
 
-s4					builtintable_get_key(builtintable_entry *);
-builtintable_entry *builtintable_get_by_key(s4 key);
 builtintable_entry *builtintable_get_internal(functionptr fp);
 builtintable_entry *builtintable_get_automatic(s4 opcode);
 
@@ -117,7 +115,7 @@ bool builtintable_replace_function(void *iptr);
  *
  * IMPORTANT:
  * For each builtin function which is used in a BUILTIN* opcode there
- * must be an entry in the tables in vm/builtintable.inc.
+ * must be an entry in the builtin_desc table in jit/jit.c.
  *
  * Below each prototype is either the BUILTIN_ macro definition or a
  * comment specifiying that this function is not used in BUILTIN*
