@@ -37,7 +37,7 @@ extern "C" {
 
 #include <stdint.h>
 
-#include "vm/class.h"
+#include "vm/class.hpp"
 #include "vm/method.h"
 
 typedef enum cachedreftype {
