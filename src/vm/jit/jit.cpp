@@ -103,7 +103,7 @@
 # include "vm/jit/python.h"
 #endif
 
-#include "vm/jit/verify/typecheck.h"
+#include "vm/jit/verify/typecheck.hpp"
 
 
 /* debug macros ***************************************************************/

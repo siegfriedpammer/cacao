@@ -34,8 +34,11 @@
 
 #include "vm/jit/show.hpp"
 
-#include "typecheck-common.h"
+#include "typecheck-common.hpp"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /****************************************************************************/
 /* DEBUG HELPERS                                                            */
@@ -343,7 +346,7 @@ typecheck_result typecheck_merge_types(verifier_state *state,
 			}
 		}
 	}
-	return changed;
+	return (typecheck_result) changed;
 }
 
 
@@ -387,7 +390,7 @@ typecheck_result typestate_merge(verifier_state *state,
 	r = typevector_merge(state->m, dstlocals, srclocals, state->numlocals);
 	if (r == typecheck_FAIL)
 		return r;
-	return changed | r;
+	return (typecheck_result) (changed | r);
 }
 
 
@@ -536,6 +539,9 @@ bool typecheck_init_locals(verifier_state *state, bool newthis)
 	return true;
 }
 
+#if defined(__cplusplus)
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -42,8 +42,11 @@
 #include "vm/resolve.hpp"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/verify/typeinfo.h"
+#include "vm/jit/verify/typeinfo.hpp"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* check if a linked class is an array class. Only use for linked classes! */
 #define CLASSINFO_IS_ARRAY(clsinfo)  ((clsinfo)->vftbl->arraydesc != NULL)
@@ -324,7 +327,7 @@ typevector_merge(methodinfo *m,varinfo *dst,varinfo *y,int size)
 		a++;
 		b++;
 	}
-	return changed;
+	return (typecheck_result) changed;
 }
 
 /**********************************************************************/
@@ -461,11 +464,11 @@ classinfo_implements_interface(classinfo *cls,classinfo *interf)
             return typecheck_TRUE;
 
         /* check superinterfaces */
-        return interface_extends_interface(cls,interf);
+        return (typecheck_result) interface_extends_interface(cls,interf);
     }
 
 	TYPEINFO_ASSERT(cls->state & CLASS_LINKED);
-    return CLASSINFO_IMPLEMENTS_INTERFACE(cls,interf->index);
+    return (typecheck_result) CLASSINFO_IMPLEMENTS_INTERFACE(cls,interf->index);
 }
 
 /* mergedlist_implements_interface *********************************************
@@ -769,7 +772,7 @@ typeinfo_is_assignable_to_class(typeinfo_t *value,classref_or_classinfo dest)
             }
 
             /* We are assigning to a class type. */
-            return class_issubclass(pseudo_class_Arraystub,elementclass);
+            return (typecheck_result) class_issubclass(pseudo_class_Arraystub,elementclass);
         }
 
         /* {value and dest.cls have the same dimension} */
@@ -1701,7 +1704,7 @@ typeinfo_merge_nonarrays(typeinfo_t *dest,
         dest->merged = NULL;
         *result = x;
         /* DEBUG */ /* log_text("returning"); */
-        return changed;
+        return (typecheck_result) changed;
     }
 
 	xname = (IS_CLASSREF(x)) ? x.ref->name : x.cls->name;
@@ -1780,7 +1783,7 @@ typeinfo_merge_nonarrays(typeinfo_t *dest,
 
             /* {We know that x.cls!=y.cls (see common case at beginning.)} */
             result->cls = class_java_lang_Object;
-            return typeinfo_merge_two(dest,x,y);
+            return (typecheck_result) typeinfo_merge_two(dest,x,y);
         }
 
         /* {We know: x is an interface, y is a class.} */
@@ -1874,17 +1877,17 @@ typeinfo_merge_nonarrays(typeinfo_t *dest,
     if (mergedx) {
         result->cls = common;
         if (mergedy)
-            return typeinfo_merge_mergedlists(dest,mergedx,mergedy);
+            return (typecheck_result) typeinfo_merge_mergedlists(dest,mergedx,mergedy);
         else
-            return typeinfo_merge_add(dest,mergedx,y);
+            return (typecheck_result) typeinfo_merge_add(dest,mergedx,y);
     }
 
 merge_with_simple_x:
     result->cls = common;
     if (mergedy)
-        return typeinfo_merge_add(dest,mergedy,x);
+        return (typecheck_result) typeinfo_merge_add(dest,mergedy,x);
     else
-        return typeinfo_merge_two(dest,x,y);
+        return (typecheck_result) typeinfo_merge_two(dest,x,y);
 }
 
 /* typeinfo_merge **************************************************************
@@ -1946,11 +1949,11 @@ typeinfo_merge(methodinfo *m,typeinfo_t *dest,typeinfo_t* y)
     /* handle uninitialized object types */
     if (TYPEINFO_IS_NEWOBJECT(*dest) || TYPEINFO_IS_NEWOBJECT(*y)) {
         if (!TYPEINFO_IS_NEWOBJECT(*dest) || !TYPEINFO_IS_NEWOBJECT(*y)) {
-            typeinfo_merge_error(m,"Trying to merge uninitialized object type.",dest,y);
+            typeinfo_merge_error(m,(char*) "Trying to merge uninitialized object type.",dest,y);
 			return typecheck_FAIL;
 		}
         if (TYPEINFO_NEWOBJECT_INSTRUCTION(*dest) != TYPEINFO_NEWOBJECT_INSTRUCTION(*y)) {
-            typeinfo_merge_error(m,"Trying to merge different uninitialized objects.",dest,y);
+            typeinfo_merge_error(m,(char*) "Trying to merge different uninitialized objects.",dest,y);
 			return typecheck_FAIL;
 		}
 		/* the same uninitialized object -- no change */
@@ -1970,7 +1973,7 @@ return_simple:
         changed = (dest->merged != NULL);
         TYPEINFO_FREEMERGED_IF_ANY(dest->merged);
         dest->merged = NULL;
-        return changed;
+        return (typecheck_result) changed;
     }
     
     /* Handle null types: */
@@ -2131,7 +2134,7 @@ return_simple:
         changed = true;
     }
 
-    return changed;
+    return (typecheck_result) changed;
 }
 #endif /* ENABLE_VERIFER */
 
@@ -2163,8 +2166,8 @@ typeinfo_test_parse(typeinfo_t *info,char *str)
     
     num = typeinfo_count_method_args(desc,false);
     if (num) {
-        typebuf = DMNEW(u1,num);
-        infobuf = DMNEW(typeinfo_t,num);
+        typebuf = (u1*) DumpMemory::allocate(sizeof(u1) * num);
+        infobuf = (typeinfo_t*) DumpMemory::allocate(sizeof(typeinfo_t) * num);
         
         typeinfo_init_from_method_args(desc,typebuf,infobuf,num,false,
                                        &returntype,info);
@@ -2546,6 +2549,10 @@ typevector_print(FILE *file,varinfo *vec,int size)
         typeinfo_print_type(file, vec[i].type, &(vec[i].typeinfo));
     }
 }
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* TYPEINFO_DEBUG */
 

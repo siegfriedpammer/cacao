@@ -38,11 +38,18 @@
 #include "vm/global.h"
 #include "vm/jit/jit.hpp"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* function prototypes ********************************************************/
 
 #if defined(ENABLE_VERIFIER)
 bool typecheck_infer_types(jitdata *jd);
+#endif
+
+#if defined(__cplusplus)
+}
 #endif
 
 #endif /* _TYPECHECK_TYPEINFERER_H */

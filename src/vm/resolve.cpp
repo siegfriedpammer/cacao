@@ -44,7 +44,7 @@
 #include "vm/resolve.hpp"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/verify/typeinfo.h"
+#include "vm/jit/verify/typeinfo.hpp"
 
 
 /******************************************************************************/

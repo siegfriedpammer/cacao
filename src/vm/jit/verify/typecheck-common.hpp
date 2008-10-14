@@ -34,6 +34,9 @@
 
 #include "vm/jit/jit.hpp"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /****************************************************************************/
 /* DEBUG HELPERS                                                            */
@@ -290,6 +293,10 @@ bool typestate_reach(verifier_state *state,
 					 s4 *srcvars, varinfo *srclocals, s4 n);
 
 bool typecheck_init_locals(verifier_state *state, bool newthis);
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* _TYPECHECK_COMMON_H */
 

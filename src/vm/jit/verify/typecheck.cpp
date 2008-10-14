@@ -162,8 +162,11 @@ error reporting.
 #include "vm/jit/parse.hpp"
 #include "vm/jit/show.hpp"
 
-#include <typecheck-common.h>
+#include "vm/jit/verify/typecheck-common.hpp"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /****************************************************************************/
 /* MACROS FOR VARIABLE TYPE CHECKING                                        */
@@ -221,7 +224,7 @@ typestate_save_invars(verifier_state *state)
 
 	if (!state->savedindices) {
 		LOG("allocating savedindices buffer");
-		pindex = DMNEW(s4, state->m->maxstack);
+		pindex = (s4*) DumpMemory::allocate(sizeof(s4) * state->m->maxstack);
 		state->savedindices = pindex;
 		index = state->numlocals + VERIFIER_EXTRA_VARS;
 		for (i=0; i<state->m->maxstack; ++i)
@@ -750,11 +753,11 @@ bool typecheck(jitdata *jd)
 
     /* allocate the buffer of active exception handlers */
 	
-    state.handlers = DMNEW(exception_entry*, state.jd->exceptiontablelength + 1);
+    state.handlers = (exception_entry**) DumpMemory::allocate(sizeof(exception_entry*) * (state.jd->exceptiontablelength + 1));
 
 	/* save local variables */
 
-	savedlocals = DMNEW(varinfo, state.numlocals);
+	savedlocals = (varinfo*) DumpMemory::allocate(sizeof(varinfo) * state.numlocals);
 	MCOPY(savedlocals, jd->var, varinfo, state.numlocals);
 
 	/* initialized local variables of first block */
@@ -816,6 +819,11 @@ bool typecheck(jitdata *jd)
     LOGimp("exiting typecheck");
 	return true;
 }
+
+#if defined(__cplusplus)
+}
+#endif
+
 #endif /* ENABLE_VERIFIER */
 
 /*

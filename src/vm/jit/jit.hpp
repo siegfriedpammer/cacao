@@ -68,7 +68,7 @@ typedef struct exception_entry exception_entry;
 # include "vm/jit/allocator/lsra.h"
 #endif
 
-#include "vm/jit/verify/typeinfo.h"
+#include "vm/jit/verify/typeinfo.hpp"
 
 
 /* common jit/codegen macros **************************************************/

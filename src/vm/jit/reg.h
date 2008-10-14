@@ -38,7 +38,7 @@ typedef struct registerdata registerdata;
 #include "arch.h"
 
 #include "vm/jit/jit.hpp"
-#include "vm/jit/verify/typeinfo.h"
+#include "vm/jit/verify/typeinfo.hpp"
 
 
 /************************* pseudo variable structure **************************/

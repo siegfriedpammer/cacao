@@ -47,7 +47,7 @@ typedef struct unresolved_subtype_set unresolved_subtype_set;
 #include "vm/jit/reg.h"
 
 #include "vm/jit/ir/instruction.hpp"
-#include "vm/jit/verify/typeinfo.h"
+#include "vm/jit/verify/typeinfo.hpp"
 
 
 /* constants ******************************************************************/

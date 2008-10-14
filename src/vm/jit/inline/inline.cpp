@@ -57,7 +57,7 @@
 #include "vm/jit/inline/inline.hpp"
 #include "vm/jit/loop/loop.h"
 
-#include "vm/jit/verify/typecheck.h"
+#include "vm/jit/verify/typecheck.hpp"
 
 
 /* algorithm tuning constants *************************************************/
