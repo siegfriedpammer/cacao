@@ -65,10 +65,6 @@
 #include "vm/jit/stack.h"
 #include "vm/jit/stubs.hpp"
 
-#if defined(ENABLE_JITCACHE)
-# include "vm/jit/jitcache.hpp"
-#endif
-
 #if defined(ENABLE_OPAGENT)
 #include "vm/jit/oprofile-agent.hpp"
 #endif
@@ -316,17 +312,6 @@ u1 *jit_compile(methodinfo *m)
 
 	STATISTICS(count_methods++);
 
-#if defined (ENABLE_JITCACHE)
-
-	if (jitcache_load (m))
-	{
-		m->mutex->unlock();
-
-		return m->code->entrypoint;
-	}
-
-#endif
-
 #if defined(ENABLE_STATISTICS)
 	/* measure time */
 
@@ -416,10 +401,6 @@ u1 *jit_compile(methodinfo *m)
 	else {
 		DEBUG_JIT_COMPILEVERBOSE("Running: ");
 	}
-
-#if defined (ENABLE_JITCACHE)
-	jitcache_store(m);
-#endif
 
 #if defined(ENABLE_STATISTICS)
 	/* measure time */

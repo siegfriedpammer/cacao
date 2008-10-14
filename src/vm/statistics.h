@@ -112,8 +112,6 @@ extern int32_t size_linenumbertable;
 
 extern s4 size_patchref;
 
-extern s4 size_cachedref;
-
 extern u8 count_calls_java_to_native;
 extern u8 count_calls_native_to_java;
 

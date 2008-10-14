@@ -114,14 +114,6 @@ TRAP_SOURCES = \
 	trap.h
 endif
 
-if ENABLE_JITCACHE
-JITCACHE_SOURCES = \
-	jitcache.cpp \
-	jitcache.hpp
-
-endif
-
-
 if ENABLE_REPLACEMENT
 REPLACE_SOURCES += \
 	replace.cpp
@@ -187,7 +179,6 @@ libjit_la_SOURCES = \
 	patcher-common.hpp \
 	$(RECOMPILE_SOURCES) \
 	$(REG_SOURCES) \
-	$(JITCACHE_SOURCES) \
 	$(REPLACE_SOURCES) \
 	show.cpp \
 	show.hpp \

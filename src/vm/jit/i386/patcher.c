@@ -245,7 +245,7 @@ bool patcher_putfieldconst(patchref_t *pr)
 
    Machine code:
 
-   <patched call position>
+   <patched call postition>
    c7 04 24 00 00 00 00       movl   $0x0000000,(%esp)
    b8 00 00 00 00             mov    $0x0000000,%eax
 
@@ -380,7 +380,7 @@ bool patcher_invokestatic_special(patchref_t *pr)
 	ra    = (u1 *)                pr->mpc;
 	um    = (unresolved_method *) pr->ref;
 
-	/* get the methodinfo */
+	/* get the fieldinfo */
 
 	if (!(m = resolve_method_eager(um)))
 		return false;

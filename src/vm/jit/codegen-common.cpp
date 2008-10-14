@@ -45,8 +45,6 @@
 #include <assert.h>
 #include <string.h>
 
-#include "vm/jit/jitcache.hpp"
-
 #include "vm/types.h"
 
 #include "codegen.h"
@@ -654,12 +652,8 @@ void codegen_finish(jitdata *jd)
 	/* jump table resolving */
 
 	for (jr = cd->jumpreferences; jr != NULL; jr = jr->next)
-	{
 		*((functionptr *) ((ptrint) epoint + jr->tablepos)) =
 			(functionptr) ((ptrint) epoint + (ptrint) jr->target->mpc);
-
-		JITCACHE_ADD_CACHED_REF(code, CRT_JUMPREFERENCE, jr->target->mpc, jr->tablepos);
-	}
 
 	/* patcher resolving */
 
