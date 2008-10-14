@@ -1,4 +1,4 @@
-/* src/vm/zip.c - ZIP file handling for bootstrap classloader
+/* src/vm/zip.cpp - ZIP file handling for bootstrap classloader
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _ZIP_H
-#define _ZIP_H
+#ifndef _ZIP_HPP
+#define _ZIP_HPP
 
 #include "config.h"
 #include "vm/types.h"
@@ -101,7 +101,7 @@ classbuffer *zip_get(list_classpath_entry *lce, classinfo *c);
 }
 #endif
 
-#endif /* _ZIP_H */
+#endif /* _ZIP_HPP */
 
 
 /*

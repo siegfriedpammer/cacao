@@ -45,7 +45,7 @@
 #include "vm/globals.hpp"
 #include "vm/initialize.hpp"
 #include "vm/loader.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/options.h"
 #include "vm/rt-timing.h"
 #include "vm/statistics.h"

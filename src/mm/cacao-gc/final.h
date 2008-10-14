@@ -30,7 +30,7 @@
 #include "vm/types.h"
 
 #include "toolbox/list.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 
 /* Global Variables ***********************************************************/

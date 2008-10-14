@@ -29,7 +29,7 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 #include "vm/jit/loop/loop.h"
 

@@ -49,7 +49,7 @@
 #include "vm/globals.hpp"
 #include "vm/initialize.hpp"
 #include "vm/javaobjects.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/resolve.hpp"
 #include "vm/string.hpp"
 

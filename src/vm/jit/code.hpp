@@ -36,7 +36,7 @@
 #include "toolbox/list.hpp"
 
 #include "vm/global.h"
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 #include "vm/jit/exceptiontable.h"
 #if defined (ENABLE_JITCACHE)

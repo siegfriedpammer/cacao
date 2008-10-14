@@ -130,7 +130,7 @@ enum {
 
 // Includes.
 #include "vm/global.h"
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 
 /* function prototypes ********************************************************/

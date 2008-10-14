@@ -58,7 +58,7 @@ extern "C" {
 #include "mm/memory.h"
 #include "mm/codememory.h"
 
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/options.h"
 #include "vm/resolve.hpp"
 #include "vm/types.h"

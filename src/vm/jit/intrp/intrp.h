@@ -47,7 +47,7 @@ typedef s4 Cell;
 #include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/linker.h"
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/references.h"
 #include "vm/resolve.hpp"
 

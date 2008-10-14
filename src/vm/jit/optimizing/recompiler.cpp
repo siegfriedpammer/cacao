@@ -34,7 +34,7 @@
 #include "threads/mutex.hpp"
 #include "threads/thread.hpp"
 
-#include "vm/classcache.h"
+#include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/options.h"
 #include "vm/string.hpp"

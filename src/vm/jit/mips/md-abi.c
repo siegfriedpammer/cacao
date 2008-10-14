@@ -36,7 +36,7 @@
 
 #include "vm/descriptor.h"
 #include "vm/global.h"
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 #include "vm/jit/abi.h"
 #include "vm/jit/stack.h"

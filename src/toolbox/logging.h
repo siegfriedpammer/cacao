@@ -32,7 +32,7 @@
 #include <stdarg.h>
 
 #include "vm/class.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/utf8.h"
 
 

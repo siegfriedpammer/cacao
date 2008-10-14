@@ -39,7 +39,7 @@
 #include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/loader.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/os.hpp"
 #include "vm/utf8.h"
 

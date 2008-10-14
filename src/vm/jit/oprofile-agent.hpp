@@ -30,7 +30,7 @@
 
 extern "C" {
 
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include <opagent.h>
 
 }

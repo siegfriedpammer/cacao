@@ -32,7 +32,7 @@
 #include "mm/memory.h"
 
 #include "vm/access.h"
-#include "vm/classcache.h"
+#include "vm/classcache.hpp"
 #include "vm/descriptor.h"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"

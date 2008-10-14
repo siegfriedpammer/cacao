@@ -47,7 +47,7 @@
 #include "vm/properties.hpp"
 #include "vm/suck.hpp"
 #include "vm/vm.hpp"
-#include "vm/zip.h"
+#include "vm/zip.hpp"
 
 
 /* global variables ***********************************************************/

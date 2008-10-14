@@ -64,7 +64,7 @@
 #endif
 
 #include "vm/jit/builtin.hpp"
-#include "vm/classcache.h"
+#include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/finalizer.h"
 #include "vm/global.h"

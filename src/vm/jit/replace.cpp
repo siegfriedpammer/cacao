@@ -44,7 +44,7 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/classcache.h"
+#include "vm/classcache.hpp"
 #include "vm/globals.hpp"
 #include "vm/options.h"
 #include "vm/string.hpp"

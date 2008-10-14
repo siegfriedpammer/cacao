@@ -38,7 +38,7 @@ extern "C" {
 #include <stdint.h>
 
 #include "vm/class.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 typedef enum cachedreftype {
 	CRT_CODEINFO,

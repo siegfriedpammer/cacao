@@ -1,4 +1,4 @@
-/* src/vm/method.h - method functions header
+/* src/vm/method.hpp - method functions header
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -58,7 +58,6 @@ typedef struct codeinfo            codeinfo;
 /* Initial value for the hit countdown field of each method. */
 #define METHOD_INITIAL_HIT_COUNTDOWN  1000
 #endif
-
 
 /* methodinfo *****************************************************************/
 

@@ -35,7 +35,7 @@
 #include "vm/field.hpp"
 #include "vm/global.h"
 #include "vm/loader.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 
 /* function prototypes ********************************************************/

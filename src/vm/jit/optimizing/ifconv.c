@@ -29,7 +29,7 @@
 
 #include "vm/types.h"
 
-#include "vm/method.h"
+#include "vm/method.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/codegen-common.hpp"

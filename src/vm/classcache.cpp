@@ -1,4 +1,4 @@
-/* src/vm/classcache.c - loaded class cache and loading constraints
+/* src/vm/classcache.cpp - loaded class cache and loading constraints
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -37,7 +37,7 @@
 #include "toolbox/hashtable.h"
 #include "toolbox/logging.h"
 
-#include "vm/classcache.h"
+#include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/options.h"
 #include "vm/utf8.h"
@@ -138,6 +138,10 @@
 
 /* #define CLASSCACHE_VERBOSE */
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 /*============================================================================*/
 /* STATISTICS                                                                 */
 /*============================================================================*/
@@ -210,8 +214,8 @@ void classcache_print_statistics(FILE *file) {
 	/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
 #if defined(ENABLE_THREADS)
-# define CLASSCACHE_LOCK()      Mutex_lock(classcache_hashtable_mutex)
-# define CLASSCACHE_UNLOCK()    Mutex_unlock(classcache_hashtable_mutex)
+# define CLASSCACHE_LOCK()      classcache_hashtable_mutex->lock();
+# define CLASSCACHE_UNLOCK()    classcache_hashtable_mutex->unlock();
 #else
 # define CLASSCACHE_LOCK()
 # define CLASSCACHE_UNLOCK()
@@ -261,7 +265,7 @@ bool classcache_init(void)
 #if defined(ENABLE_THREADS)
 	/* create utf hashtable mutex */
 
-	classcache_hashtable_mutex = Mutex_new();
+	classcache_hashtable_mutex = new Mutex();
 #endif
 
 	/* everything's ok */
@@ -438,7 +442,7 @@ static classcache_name_entry *classcache_lookup_name(utf *name)
 
 	key  = CLASSCACHE_HASH(name->text, (u4) name->blength);
 	slot = key & (hashtable_classcache.size - 1);
-	c    = hashtable_classcache.ptr[slot];
+	c    = (classcache_name_entry*) hashtable_classcache.ptr[slot];
 
 	/* search external hash chain for the entry */
 
@@ -484,7 +488,7 @@ static classcache_name_entry *classcache_new_name(utf *name)
 
 	key  = CLASSCACHE_HASH(name->text, (u4) name->blength);
 	slot = key & (hashtable_classcache.size - 1);
-	c    = hashtable_classcache.ptr[slot];
+	c    = (classcache_name_entry*) hashtable_classcache.ptr[slot];
 
 	/* search external hash chain for the entry */
 
@@ -1347,7 +1351,7 @@ static s4 classcache_number_of_loaded_classes(void)
 	for (i = 0; i < hashtable_classcache.size; i++) {
 		/* iterate over hashlink */
 
-		for (en = hashtable_classcache.ptr[i]; en != NULL; en = en->hashlink) {
+		for (en = (classcache_name_entry*) hashtable_classcache.ptr[i]; en != NULL; en = en->hashlink) {
 			/* filter pseudo classes $NEW$, $NULL$, $ARRAYSTUB$ out */
 
 			if (en->name->text[0] == '$')
@@ -1468,7 +1472,7 @@ void classcache_foreach_loaded_class(classcache_foreach_functionptr_t func,
 	for (i = 0; i < hashtable_classcache.size; i++) {
 		/* iterate over hashlink */
 
-		for (en = hashtable_classcache.ptr[i]; en != NULL; en = en->hashlink) {
+		for (en = (classcache_name_entry*) hashtable_classcache.ptr[i]; en != NULL; en = en->hashlink) {
 			/* filter pseudo classes $NEW$, $NULL$, $ARRAYSTUB$ out */
 
 			if (en->name->text[0] == '$')
@@ -1569,6 +1573,11 @@ dump_it:
 
 	CLASSCACHE_UNLOCK();
 }
+
+#if defined(__cplusplus)
+}
+#endif
+
 #endif /* NDEBUG */
 
 /*

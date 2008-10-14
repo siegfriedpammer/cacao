@@ -40,7 +40,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/globals.hpp"
-#include "vm/method.h"
+#include "vm/method.hpp"
 
 #include "vm/jit/stacktrace.hpp"
 
