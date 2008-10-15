@@ -770,7 +770,7 @@ case ICMD_DUP2_X2: /* {STACKBASED} */
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
