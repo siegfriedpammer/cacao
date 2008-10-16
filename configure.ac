@@ -384,8 +384,6 @@ AC_CHECK_FUNCS([strlen])
 AC_CHECK_FUNCS([strncmp])
 AC_CHECK_FUNCS([strstr])
 AC_CHECK_FUNCS([time])
-AC_CHECK_FUNCS([va_end])
-AC_CHECK_FUNCS([va_start])
 AC_CHECK_FUNCS([write])
 
 
