@@ -77,8 +77,8 @@ noinst_LTLIBRARIES = \
 	libvm.la
 
 libvm_la_SOURCES = \
-	access.c \
-	access.h \
+	access.cpp \
+	access.hpp \
 	$(ANNOTATION_SOURCES) \
 	array.cpp \
 	array.hpp \

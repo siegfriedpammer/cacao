@@ -31,7 +31,7 @@
 
 #include "mm/memory.h"
 
-#include "vm/access.h"
+#include "vm/access.hpp"
 #include "vm/classcache.hpp"
 #include "vm/descriptor.h"
 #include "vm/exceptions.hpp"

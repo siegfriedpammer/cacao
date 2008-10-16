@@ -685,7 +685,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	_jnienv = new JNIEnv();
 
 #if defined(ENABLE_JNI)
-	_jnienv->functions = &_Jv_JNINativeInterface;
+	_jnienv->p = &_Jv_JNINativeInterface;
 #endif
 
 	/* actually create the JVM */

@@ -41,7 +41,7 @@
 # include "native/vm/reflection.hpp"
 #endif
 
-#include "vm/access.h"
+#include "vm/access.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"

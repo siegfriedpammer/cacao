@@ -39,7 +39,7 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/access.h"
+#include "vm/access.hpp"
 #include "vm/array.hpp"
 #include "vm/class.hpp"
 #include "vm/classcache.hpp"
