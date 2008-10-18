@@ -32,7 +32,7 @@
 
 #include "vm/class.hpp"
 #include "vm/global.h"
-#include "vm/linker.h"
+#include "vm/linker.hpp"
 #include "vm/utf8.h"
 
 

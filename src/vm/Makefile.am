@@ -102,8 +102,8 @@ libvm_la_SOURCES = \
 	initialize.hpp \
 	javaobjects.cpp \
 	javaobjects.hpp \
-	linker.c \
-	linker.h \
+	linker.cpp \
+	linker.hpp \
 	loader.cpp \
 	loader.hpp \
 	method.cpp \

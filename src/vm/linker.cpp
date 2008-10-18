@@ -96,6 +96,9 @@ static s4 classvalue;
 
 Mutex *linker_classrenumber_mutex;
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* private functions **********************************************************/
 
@@ -125,7 +128,7 @@ void linker_preinit(void)
 #if defined(ENABLE_THREADS)
 	/* create the global mutex */
 
-	linker_classrenumber_mutex = Mutex_new();
+	linker_classrenumber_mutex = new Mutex();
 #endif
 
 	/* Link the most basic classes. */
@@ -724,7 +727,7 @@ static classinfo *link_class_intern(classinfo *c)
 
 			/* reallocate methods memory */
 
-			c->methods = MREALLOC(c->methods, methodinfo, c->methodscount,
+			c->methods = (methodinfo*) MREALLOC(c->methods, methodinfo, c->methodscount,
 								  c->methodscount + abstractmethodscount);
 
 			for (i = 0; i < c->interfacescount; i++) {
@@ -847,7 +850,7 @@ static classinfo *link_class_intern(classinfo *c)
 			m->stubroutine = intrp_createcompilerstub(m);
 		else
 #endif
-			m->stubroutine = CompilerStub_generate(m);
+			m->stubroutine = (u1*) CompilerStub::generate(m);
 #else
 		m->stubroutine = intrp_createcompilerstub(m);
 #endif
@@ -1119,7 +1122,7 @@ static arraydescriptor *link_array(classinfo *c)
 
 static void linker_compute_subclasses(classinfo *c)
 {
-	Mutex_lock(linker_classrenumber_mutex);
+	linker_classrenumber_mutex->lock();
 
 	if (!(c->flags & ACC_INTERFACE)) {
 		c->nextsub = NULL;
@@ -1137,7 +1140,7 @@ static void linker_compute_subclasses(classinfo *c)
 
 	linker_compute_class_values(class_java_lang_Object);
 
-	Mutex_unlock(linker_classrenumber_mutex);
+	linker_classrenumber_mutex->unlock();
 }
 
 
@@ -1304,6 +1307,9 @@ static s4 class_highestinterface(classinfo *c)
 	return h;
 }
 
+#if defined(__cplusplus)
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -45,7 +45,7 @@ typedef struct extra_classref extra_classref;
 
 #include "vm/field.hpp"
 #include "vm/global.h"
-#include "vm/linker.h"
+#include "vm/linker.hpp"
 #include "vm/loader.hpp"
 #include "vm/method.hpp"
 #include "vm/references.h"
