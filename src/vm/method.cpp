@@ -43,7 +43,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
-#include "vm/linker.h"
+#include "vm/linker.hpp"
 #include "vm/loader.hpp"
 #include "vm/method.hpp"
 #include "vm/options.h"
@@ -1217,7 +1217,7 @@ void method_methodref_println(constant_FMIref *mr)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

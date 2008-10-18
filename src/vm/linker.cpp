@@ -39,7 +39,7 @@
 
 #include "toolbox/logging.h"
 
-#include "vm/access.h"
+#include "vm/access.hpp"
 #include "vm/array.hpp"
 #include "vm/class.hpp"
 #include "vm/classcache.hpp"
@@ -94,6 +94,9 @@ classinfo *resolve_classref_or_classinfo_eager(classref_or_classinfo cls, bool c
 static s4 interfaceindex;       /* sequential numbering of interfaces         */
 static s4 classvalue;
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* private functions **********************************************************/
 
@@ -778,7 +781,7 @@ static classinfo *link_class_intern(classinfo *c)
 
 			/* reallocate methods memory */
 
-			c->methods = MREALLOC(c->methods, methodinfo, c->methodscount,
+			c->methods = (methodinfo*) MREALLOC(c->methods, methodinfo, c->methodscount,
 								  c->methodscount + abstractmethodscount);
 
 			for (i = 0; i < c->interfacescount; i++) {
@@ -901,7 +904,7 @@ static classinfo *link_class_intern(classinfo *c)
 			m->stubroutine = intrp_createcompilerstub(m);
 		else
 #endif
-			m->stubroutine = CompilerStub_generate(m);
+			m->stubroutine = (u1*) CompilerStub::generate(m);
 #else
 		m->stubroutine = intrp_createcompilerstub(m);
 #endif
@@ -1356,6 +1359,9 @@ static s4 class_highestinterface(classinfo *c)
 	return h;
 }
 
+#if defined(__cplusplus)
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

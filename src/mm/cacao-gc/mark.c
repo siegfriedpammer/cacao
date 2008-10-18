@@ -34,7 +34,7 @@
 #include "toolbox/logging.h"
 
 #include "vm/global.h"
-#include "vm/linker.h"
+#include "vm/linker.hpp"
 #include "vm/vm.hpp"
 
 

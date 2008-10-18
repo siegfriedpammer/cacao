@@ -147,7 +147,7 @@ error reporting.
 
 #include "toolbox/logging.h"
 
-#include "vm/access.h"
+#include "vm/access.hpp"
 #include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
@@ -832,7 +832,7 @@ bool typecheck(jitdata *jd)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -43,7 +43,7 @@ typedef struct codeinfo            codeinfo;
 #include "vm/jit/builtin.hpp"
 #include "vm/descriptor.h"
 #include "vm/global.h"
-#include "vm/linker.h"
+#include "vm/linker.hpp"
 #include "vm/loader.hpp"
 #include "vm/references.h"
 
@@ -221,7 +221,7 @@ void method_methodref_println(constant_FMIref *mr);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

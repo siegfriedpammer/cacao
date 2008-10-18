@@ -34,7 +34,7 @@
 
 #include "native/llni.h"
 
-#include "vm/access.h"
+#include "vm/access.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"
@@ -44,6 +44,9 @@
 
 #include "vm/jit/stacktrace.hpp"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* access_is_accessible_class **************************************************
  
@@ -337,6 +340,11 @@ bool access_check_method(methodinfo *m, int callerdepth)
 
 	return true;
 }
+
+#if defined(__cplusplus)
+}
+#endif
+
 #endif
 
 
@@ -346,7 +354,7 @@ bool access_check_method(methodinfo *m, int callerdepth)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

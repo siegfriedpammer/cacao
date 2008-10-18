@@ -77,8 +77,8 @@ noinst_LTLIBRARIES = \
 	libvm.la
 
 libvm_la_SOURCES = \
-	access.c \
-	access.h \
+	access.cpp \
+	access.hpp \
 	$(ANNOTATION_SOURCES) \
 	array.cpp \
 	array.hpp \
@@ -102,8 +102,8 @@ libvm_la_SOURCES = \
 	initialize.hpp \
 	javaobjects.cpp \
 	javaobjects.hpp \
-	linker.c \
-	linker.h \
+	linker.cpp \
+	linker.hpp \
 	loader.cpp \
 	loader.hpp \
 	method.cpp \
