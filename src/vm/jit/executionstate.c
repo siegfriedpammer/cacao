@@ -30,7 +30,7 @@
 
 #include "md-abi.h"
 
-#include "vm/descriptor.h"
+#include "vm/descriptor.hpp"
 #include "vm/os.hpp"
 
 #include "vm/jit/abi.h"

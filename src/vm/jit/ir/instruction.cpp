@@ -27,7 +27,7 @@
 
 #include <stdint.h>
 
-#include "vm/descriptor.h"
+#include "vm/descriptor.hpp"
 
 #include "vm/jit/ir/instruction.hpp"
 

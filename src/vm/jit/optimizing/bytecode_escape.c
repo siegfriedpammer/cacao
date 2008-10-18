@@ -33,7 +33,7 @@
 #include "toolbox/bitvector.h"
 
 #include "vm/class.hpp"
-#include "vm/descriptor.h"
+#include "vm/descriptor.hpp"
 #include "vm/global.h"
 #include "vm/references.h"
 #include "vm/resolve.hpp"

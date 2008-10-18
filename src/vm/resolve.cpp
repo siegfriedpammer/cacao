@@ -33,7 +33,7 @@
 
 #include "vm/access.hpp"
 #include "vm/classcache.hpp"
-#include "vm/descriptor.h"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"

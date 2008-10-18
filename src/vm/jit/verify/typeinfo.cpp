@@ -34,7 +34,7 @@
 
 #include "vm/array.hpp"
 #include "vm/class.hpp"
-#include "vm/descriptor.h"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
 #include "vm/loader.hpp"

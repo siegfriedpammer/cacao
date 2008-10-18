@@ -46,7 +46,7 @@
 #include "toolbox/list.hpp"
 
 #include "vm/exceptions.hpp"
-#include "vm/finalizer.h"
+#include "vm/finalizer.hpp"
 #include "vm/global.h"
 #include "vm/options.h"
 #include "vm/string.hpp"

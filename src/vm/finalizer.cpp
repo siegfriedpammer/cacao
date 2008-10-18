@@ -51,6 +51,9 @@ static Mutex     *finalizer_thread_mutex;
 static Condition *finalizer_thread_cond;
 #endif
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* finalizer_init **************************************************************
 
@@ -63,8 +66,8 @@ bool finalizer_init(void)
 	TRACESUBSYSTEMINITIALIZATION("finalizer_init");
 
 #if defined(ENABLE_THREADS)
-	finalizer_thread_mutex = Mutex_new();
-	finalizer_thread_cond  = Condition_new();
+	finalizer_thread_mutex = new Mutex();
+	finalizer_thread_cond  = new Condition();
 #endif
 
 	/* everything's ok */
@@ -87,15 +90,15 @@ static void finalizer_thread(void)
 	while (true) {
 		/* get the lock on the finalizer mutex, so we can call wait */
 
-		Mutex_lock(finalizer_thread_mutex);
+		finalizer_thread_mutex->lock();
 
 		/* wait forever on that condition till we are signaled */
 	
-		Condition_wait(finalizer_thread_cond, finalizer_thread_mutex);
+		finalizer_thread_cond->wait(finalizer_thread_mutex);
 
 		/* leave the lock */
 
-		Mutex_unlock(finalizer_thread_mutex);
+		finalizer_thread_mutex->unlock();
 
 #if !defined(NDEBUG)
 		if (opt_DebugFinalizer)
@@ -155,15 +158,15 @@ void finalizer_notify(void)
 #if defined(ENABLE_THREADS)
 	/* get the lock on the finalizer lock object, so we can call wait */
 
-	Mutex_lock(finalizer_thread_mutex);
+	finalizer_thread_mutex->lock();
 
 	/* signal the finalizer thread */
 
-	Condition_signal(finalizer_thread_cond);
+	finalizer_thread_cond->signal();
 
 	/* leave the lock */
 
-	Mutex_unlock(finalizer_thread_mutex);
+	finalizer_thread_mutex->unlock();
 #else
 	/* if we don't have threads, just run the finalizers */
 
@@ -219,6 +222,9 @@ void finalizer_run(void *o, void *p)
 	exceptions_clear_exception();
 }
 
+#if defined(__cplusplus)
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

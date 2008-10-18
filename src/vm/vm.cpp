@@ -66,7 +66,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
-#include "vm/finalizer.h"
+#include "vm/finalizer.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/initialize.hpp"

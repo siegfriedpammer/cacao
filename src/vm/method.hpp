@@ -41,7 +41,7 @@ typedef struct codeinfo            codeinfo;
 #include "threads/mutex.hpp"
 
 #include "vm/jit/builtin.hpp"
-#include "vm/descriptor.h"
+#include "vm/descriptor.hpp"
 #include "vm/global.h"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"

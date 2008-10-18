@@ -35,7 +35,7 @@ typedef struct insinfo_inline insinfo_inline;
 
 #include <stdint.h>
 
-#include "vm/descriptor.h"
+#include "vm/descriptor.hpp"
 
 #include "vm/jit/jit.hpp"
 #include "vm/jit/replace.hpp"

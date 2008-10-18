@@ -38,7 +38,7 @@ typedef struct builtintable_entry builtintable_entry;
 
 #include "toolbox/logging.h"
 
-#include "vm/descriptor.h"
+#include "vm/descriptor.hpp"
 #include "vm/utf8.h"
 
 

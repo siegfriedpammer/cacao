@@ -44,7 +44,7 @@
 #include "mm/memory.h"
 #include "toolbox/logging.h"
 
-#include "vm/finalizer.h"
+#include "vm/finalizer.hpp"
 #include "vm/rt-timing.h"
 #include "vm/vm.hpp"
 

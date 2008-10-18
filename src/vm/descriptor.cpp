@@ -33,7 +33,7 @@
 
 #include "mm/memory.h"
 
-#include "vm/descriptor.h"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
@@ -114,6 +114,10 @@ struct descriptor_hash_entry {
 				if ((utf_ptr)[-1] != ';')								\
 					(errorflag) = true; }} while(0)
 
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /****************************************************************************/
 /* DEBUG HELPERS                                                            */
@@ -415,7 +419,7 @@ descriptor_pool_new(classinfo *referer)
 	u4 hashsize;
 	u4 slot;
 
-	pool = DNEW(descriptor_pool);
+	pool = (descriptor_pool*) DumpMemory::allocate(sizeof(descriptor_pool));
 	assert(pool);
 
 	pool->referer = referer;
@@ -432,14 +436,14 @@ descriptor_pool_new(classinfo *referer)
 	hashsize = CLASSREFHASH_INIT_SIZE;
 	pool->classrefhash.size = hashsize;
 	pool->classrefhash.entries = 0;
-	pool->classrefhash.ptr = DMNEW(void*, hashsize);
+	pool->classrefhash.ptr = (void **) DumpMemory::allocate(sizeof(void*) * hashsize);
 	for (slot=0; slot<hashsize; ++slot)
 		pool->classrefhash.ptr[slot] = NULL;
 
 	hashsize = DESCRIPTORHASH_INIT_SIZE;
 	pool->descriptorhash.size = hashsize;
 	pool->descriptorhash.entries = 0;
-	pool->descriptorhash.ptr = DMNEW(void*, hashsize);
+	pool->descriptorhash.ptr = (void**) DumpMemory::allocate(sizeof(void*) * hashsize);
 	for (slot=0; slot<hashsize; ++slot)
 		pool->descriptorhash.ptr[slot] = NULL;
 
@@ -496,7 +500,7 @@ descriptor_pool_add_class(descriptor_pool *pool, utf *name)
 
 	/* XXX check maximum array dimension */
 	
-	c = DNEW(classref_hash_entry);
+	c = (classref_hash_entry*) DumpMemory::allocate(sizeof(classref_hash_entry));
 	c->name = name;
 	c->index = pool->classrefhash.entries++;
 	c->hashlink = (classref_hash_entry *) pool->classrefhash.ptr[slot];
@@ -566,7 +570,7 @@ descriptor_pool_add(descriptor_pool *pool, utf *desc, int *paramslots)
 
 	/* add the descriptor to the pool */
 
-	d = DNEW(descriptor_hash_entry);
+	d = (descriptor_hash_entry*) DumpMemory::allocate(sizeof(descriptor_hash_entry));
 	d->desc = desc;
 	d->parseddesc.any = NULL;
 	d->hashlink = (descriptor_hash_entry *) pool->descriptorhash.ptr[slot];
@@ -773,7 +777,7 @@ descriptor_pool_alloc_parsed_descriptors(descriptor_pool *pool)
 
 	size = pool->fieldcount + pool->methodcount;
 	if (size) {
-		pool->descriptor_kind = DMNEW(u1, size);
+		pool->descriptor_kind = (u1*) DumpMemory::allocate(sizeof(u1) * size);
 		pool->descriptor_kind_next = pool->descriptor_kind;
 	}
 }
@@ -1381,6 +1385,10 @@ descriptor_pool_debug_dump(descriptor_pool *pool,FILE *file)
 	fprintf(file,"==========================================================\n");
 }
 #endif /* !defined(NDEBUG) */
+
+#if defined(__cplusplus)
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

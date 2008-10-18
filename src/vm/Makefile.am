@@ -88,14 +88,14 @@ libvm_la_SOURCES = \
 	classcache.cpp \
 	classcache.hpp \
 	$(CYCLES_STATS_SOURCES) \
-	descriptor.c \
-	descriptor.h \
+	descriptor.cpp \
+	descriptor.hpp \
 	exceptions.cpp \
 	exceptions.hpp \
 	field.cpp \
 	field.hpp \
-	finalizer.c \
-	finalizer.h \
+	finalizer.cpp \
+	finalizer.hpp \
 	globals.cpp \
 	globals.hpp \
 	initialize.cpp \

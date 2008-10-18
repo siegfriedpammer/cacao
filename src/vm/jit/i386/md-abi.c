@@ -28,7 +28,7 @@
 
 #include "vm/jit/i386/md-abi.h"
 
-#include "vm/descriptor.h"
+#include "vm/descriptor.hpp"
 #include "vm/global.h"
 
 #include "vm/jit/abi.h"

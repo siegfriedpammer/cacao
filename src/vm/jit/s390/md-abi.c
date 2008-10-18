@@ -25,7 +25,7 @@
 
 #include "config.h"
 
-#include "vm/descriptor.h"
+#include "vm/descriptor.hpp"
 #include "vm/global.h"
 #include "vm/types.h"
 

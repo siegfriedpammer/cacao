@@ -39,7 +39,7 @@
 #include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
-#include "vm/descriptor.h"
+#include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/global.h"

@@ -34,7 +34,7 @@
 
 #include "mm/memory.h"
 
-#include "vm/descriptor.h"
+#include "vm/descriptor.hpp"
 #include "vm/global.h"
 #include "vm/method.hpp"
 

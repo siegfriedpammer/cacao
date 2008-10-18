@@ -30,7 +30,7 @@
 #include "final.h"
 #include "heap.h"
 #include "mm/memory.h"
-#include "vm/finalizer.h"
+#include "vm/finalizer.hpp"
 
 
 /* Global Variables ***********************************************************/

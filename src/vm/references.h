@@ -62,7 +62,7 @@ typedef union parseddesc {
 #include "vm/types.h"
 
 #include "vm/class.hpp"
-#include "vm/descriptor.h"
+#include "vm/descriptor.hpp"
 #include "vm/field.hpp"
 #include "vm/global.h"
 #include "vm/method.hpp"
