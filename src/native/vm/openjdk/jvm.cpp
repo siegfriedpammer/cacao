@@ -3358,6 +3358,24 @@ jintArray JVM_GetThreadStateValues(JNIEnv* env, jint javaThreadState)
 /* 		array_intarray_element_set(ia, 2, PARKED); */
 		break; 
 
+    case THREAD_STATE_PARKED:
+		ia = builtin_newarray_int(2);
+
+		if (ia == NULL)
+			return NULL;
+
+		array_intarray_element_set(ia, 0, THREAD_STATE_PARKED);
+		break; 
+
+    case THREAD_STATE_TIMED_PARKED:
+		ia = builtin_newarray_int(2);
+
+		if (ia == NULL)
+			return NULL;
+
+		array_intarray_element_set(ia, 0, THREAD_STATE_TIMED_PARKED);
+		break; 
+
     case THREAD_STATE_TERMINATED:
 		ia = builtin_newarray_int(1);
 
@@ -3453,7 +3471,6 @@ jobjectArray JVM_GetThreadStateNames(JNIEnv* env, jint javaThreadState, jintArra
 			return NULL;
 
 		s = javastring_new(utf_new_char("WAITING.OBJECT_WAIT"));
-/* 		s = javastring_new(utf_new_char("WAITING.PARKED")); */
 
 		if (s == NULL)
 			return NULL;
@@ -3470,7 +3487,6 @@ jobjectArray JVM_GetThreadStateNames(JNIEnv* env, jint javaThreadState, jintArra
 
 /* 		s = javastring_new(utf_new_char("TIMED_WAITING.SLEEPING")); */
 		s = javastring_new(utf_new_char("TIMED_WAITING.OBJECT_WAIT"));
-/* 		s = javastring_new(utf_new_char("TIMED_WAITING.PARKED")); */
 
 		if (s == NULL)
 			return NULL;
@@ -3478,6 +3494,36 @@ jobjectArray JVM_GetThreadStateNames(JNIEnv* env, jint javaThreadState, jintArra
 /* 		array_objectarray_element_set(oa, 0, s); */
 		array_objectarray_element_set(oa, 0, s);
 /* 		array_objectarray_element_set(oa, 2, s); */
+		break; 
+
+    case THREAD_STATE_PARKED:
+		oa = builtin_anewarray(2, class_java_lang_String);
+
+		if (oa == NULL)
+			return NULL;
+
+		s = javastring_new(utf_new_char("WAITING.PARKED"));
+
+		if (s == NULL)
+			return NULL;
+
+		array_objectarray_element_set(oa, 0, s);
+/* 		array_objectarray_element_set(oa, 1, s); */
+		break; 
+
+    case THREAD_STATE_TIMED_PARKED:
+		oa = builtin_anewarray(3, class_java_lang_String);
+
+		if (oa == NULL)
+			return NULL;
+
+		s = javastring_new(utf_new_char("TIMED_WAITING.PARKED"));
+
+		if (s == NULL)
+			return NULL;
+
+		array_objectarray_element_set(oa, 0, s);
+/* 		array_objectarray_element_set(oa, 1, s); */
 		break; 
 
     case THREAD_STATE_TERMINATED:
