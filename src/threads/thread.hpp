@@ -59,6 +59,8 @@
 #define THREAD_STATE_WAITING          3
 #define THREAD_STATE_TIMED_WAITING    4
 #define THREAD_STATE_TERMINATED       5
+#define THREAD_STATE_PARKED           6
+#define THREAD_STATE_TIMED_PARKED     7
 
 
 /* thread priorities **********************************************************/
@@ -326,6 +328,8 @@ intptr_t      threads_get_current_tid(void);
 void          thread_set_state_runnable(threadobject *t);
 void          thread_set_state_waiting(threadobject *t);
 void          thread_set_state_timed_waiting(threadobject *t);
+void          thread_set_state_parked(threadobject *t);
+void          thread_set_state_timed_parked(threadobject *t);
 void          thread_set_state_terminated(threadobject *t);
 
 threadobject *thread_get_thread(java_handle_t *h);

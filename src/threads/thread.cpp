@@ -948,6 +948,12 @@ void thread_print_info(threadobject *t)
 	case THREAD_STATE_TIMED_WAITING:
 		printf(" waiting on condition");
 		break;
+	case THREAD_STATE_PARKED:
+		printf(" parked");
+		break;
+	case THREAD_STATE_TIMED_PARKED:
+		printf(" timed parked");
+		break;
 	case THREAD_STATE_TERMINATED:
 		printf(" terminated");
 		break;
@@ -1051,6 +1057,56 @@ void thread_set_state_timed_waiting(threadobject *t)
 		t->state = THREAD_STATE_TIMED_WAITING;
 
 		DEBUGTHREADS("is TIMED_WAITING", t);
+	}
+
+	ThreadList::unlock();
+}
+
+
+/* thread_set_state_parked *****************************************************
+
+   Set the current state of the given thread to THREAD_STATE_PARKED.
+
+   NOTE: If the thread has already terminated, don't set the state.
+         This is important for threads_detach_thread.
+
+*******************************************************************************/
+
+void thread_set_state_parked(threadobject *t)
+{
+	/* Set the state inside a lock. */
+
+	ThreadList::lock();
+
+	if (t->state != THREAD_STATE_TERMINATED) {
+		t->state = THREAD_STATE_PARKED;
+
+		DEBUGTHREADS("is PARKED", t);
+	}
+
+	ThreadList::unlock();
+}
+
+
+/* thread_set_state_timed_parked ***********************************************
+
+   Set the current state of the given thread to THREAD_STATE_TIMED_PARKED.
+
+   NOTE: If the thread has already terminated, don't set the state.
+         This is important for threads_detach_thread.
+
+*******************************************************************************/
+
+void thread_set_state_timed_parked(threadobject *t)
+{
+	/* Set the state inside a lock. */
+
+	ThreadList::lock();
+
+	if (t->state != THREAD_STATE_TERMINATED) {
+		t->state = THREAD_STATE_TIMED_PARKED;
+
+		DEBUGTHREADS("is TIMED_PARKED", t);
 	}
 
 	ThreadList::unlock();

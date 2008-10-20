@@ -298,6 +298,12 @@ JNIEXPORT jstring JNICALL Java_java_lang_VMThread_getState(JNIEnv *env, jobject 
 	case THREAD_STATE_TIMED_WAITING:
 		u = utf_new_char("TIMED_WAITING");
 		break;
+	case THREAD_STATE_PARKED:
+		u = utf_new_char("PARKED");
+		break;
+	case THREAD_STATE_TIMED_PARKED:
+		u = utf_new_char("TIMED_PARKED");
+		break;
 	case THREAD_STATE_TERMINATED:
 		u = utf_new_char("TERMINATED");
 		break;

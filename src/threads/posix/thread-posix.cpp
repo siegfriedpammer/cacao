@@ -1381,7 +1381,10 @@ static void threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTi
 		while (!t->interrupted && !(parking ? t->park_permit : t->signaled)
 			   && threads_current_time_is_earlier_than(wakeupTime))
 		{
-			thread_set_state_timed_waiting(t);
+			if (parking)
+				thread_set_state_timed_parked(t);
+			else
+				thread_set_state_timed_waiting(t);
 
 			t->waitcond->timedwait(t->waitmutex, wakeupTime);
 
@@ -1391,7 +1394,10 @@ static void threads_wait_with_timeout(threadobject *t, struct timespec *wakeupTi
 	else {
 		/* no timeout */
 		while (!t->interrupted && !(parking ? t->park_permit : t->signaled)) {
-			thread_set_state_waiting(t);
+			if (parking)
+				thread_set_state_parked(t);
+			else
+				thread_set_state_waiting(t);
 
 			t->waitcond->wait(t->waitmutex);
 
