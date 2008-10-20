@@ -577,7 +577,7 @@ static int build_display_inner(classinfo *topc, classinfo *c, int i)
 	{
 		if (depth == DISPLAY_SIZE)
 		{
-			topc->vftbl->subtype_overflow = malloc(sizeof(void*) * (i+1));
+			topc->vftbl->subtype_overflow = MNEW(vftbl_t *, i+1);
 #if defined(ENABLE_STATISTICS)
 			if (opt_stat)
 				count_vftbl_len += sizeof(void*) * (i+1);
