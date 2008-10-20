@@ -212,6 +212,8 @@ enum {
 
 #if defined(ENABLE_VERIFIER)
 	OPT_NOVERIFY,
+	OPT_XVERIFY_ALL,
+	OPT_XVERIFY_NONE,
 #if defined(TYPECHECK_VERBOSE)
 	OPT_VERBOSETC,
 #endif
@@ -304,7 +306,8 @@ opt_struct opts[] = {
 	{ "noasyncgc",         false, OPT_IGNORE },
 #if defined(ENABLE_VERIFIER)
 	{ "noverify",          false, OPT_NOVERIFY },
-	{ "Xverify:none",      false, OPT_NOVERIFY },
+	{ "Xverify:all",       false, OPT_XVERIFY_ALL },
+	{ "Xverify:none",      false, OPT_XVERIFY_NONE },
 #endif
 	{ "v",                 false, OPT_VERBOSE1 },
 	{ "verbose:",          true,  OPT_VERBOSE },
@@ -1028,7 +1031,12 @@ VM::VM(JavaVMInitArgs* vm_args)
 			break;
 
 #if defined(ENABLE_VERIFIER)
+		case OPT_XVERIFY_ALL:
+			opt_verify = true;
+			break;
+
 		case OPT_NOVERIFY:
+		case OPT_XVERIFY_NONE:
 			opt_verify = false;
 			break;
 #endif
