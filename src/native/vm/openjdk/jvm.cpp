@@ -2717,9 +2717,13 @@ jint JVM_Recv(jint fd, char *buf, jint nBytes, jint flags)
 
 jint JVM_Send(jint fd, char *buf, jint nBytes, jint flags)
 {
-	log_println("JVM_Send: IMPLEMENT ME!");
+	TRACEJVMCALLSENTER(("JVM_Send(fd=%d, buf=%p, nBytes=%d, flags=%d", fd, buf, nBytes, flags));
 
-	return 0;
+	int result = os::send(fd, buf, nBytes, flags);
+
+	TRACEJVMCALLSEXIT(("->%d", result));
+
+	return result;
 }
 
 

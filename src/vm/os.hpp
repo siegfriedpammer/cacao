@@ -145,6 +145,7 @@ public:
 	static inline int     mprotect(void* addr, size_t len, int prot);
 	static inline ssize_t readlink(const char* path, char* buf, size_t bufsiz);
 	static inline int     scandir(const char* dir, struct dirent*** namelist, int(*filter)(const struct dirent*), int(*compar)(const void*, const void*));
+	static inline ssize_t send(int s, const void* buf, size_t len, int flags);
 	static inline int     setsockopt(int s, int level, int optname, const void* optval, socklen_t optlen);
 	static inline int     shutdown(int s, int how);
 	static inline int     socket(int domain, int type, int protocol);
@@ -524,6 +525,16 @@ inline int os::scandir(const char *dir, struct dirent ***namelist, int(*filter)(
 # endif
 #else
 # error scandir not available
+#endif
+}
+
+inline ssize_t os::send(int s, const void* buf, size_t len, int flags)
+{
+	// TODO Should be restartable on Linux and interruptible on Solaris.
+#if defined(HAVE_SEND)
+	return ::send(s, buf, len, flags);
+#else
+# error send not available
 #endif
 }
 
