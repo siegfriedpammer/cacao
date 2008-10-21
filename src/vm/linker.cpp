@@ -1029,8 +1029,8 @@ static arraydescriptor *link_array(classinfo *c)
 			desc->elementvftbl = compvftbl->arraydesc->elementvftbl;
 
 			if (compvftbl->arraydesc->dimension >= 255) {
-				log_text("Creating array of dimension >255");
-				assert(0);
+				exceptions_throw_illegalargumentexception();
+				return NULL;
 			}
 
 			desc->dimension = compvftbl->arraydesc->dimension + 1;
