@@ -481,6 +481,21 @@ JNIEXPORT jdouble JNICALL Java_sun_misc_Unsafe_getDouble__J(JNIEnv *env, jobject
 
 /*
  * Class:     sun/misc/Unsafe
+ * Method:    putDouble
+ * Signature: (JD)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putDouble__JD(JNIEnv *env, jobject _this, jlong address, jdouble value)
+{
+	double* p;
+
+	p = (double*) (intptr_t) address;
+
+	*p = value;
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
  * Method:    objectFieldOffset
  * Signature: (Ljava/lang/reflect/Field;)J
  */
@@ -1145,6 +1160,7 @@ static JNINativeMethod methods[] = {
 	{ (char*) "getFloat",               (char*) "(J)F",                                                       (void*) (uintptr_t) &Java_sun_misc_Unsafe_getFloat__J                      },
 	{ (char*) "putFloat",               (char*) "(JF)V",                                                      (void*) (uintptr_t) &Java_sun_misc_Unsafe_putFloat__JF                     },
 	{ (char*) "getDouble",              (char*) "(J)D",                                                       (void*) (uintptr_t) &Java_sun_misc_Unsafe_getDouble__J                     },
+	{ (char*) "putDouble",              (char*) "(JD)V",                                                      (void*) (uintptr_t) &Java_sun_misc_Unsafe_putDouble__JD                    },
 	{ (char*) "objectFieldOffset",      (char*) "(Ljava/lang/reflect/Field;)J",                               (void*) (uintptr_t) &Java_sun_misc_Unsafe_objectFieldOffset                },
 	{ (char*) "allocateMemory",         (char*) "(J)J",                                                       (void*) (uintptr_t) &Java_sun_misc_Unsafe_allocateMemory                   },
 #if 0
