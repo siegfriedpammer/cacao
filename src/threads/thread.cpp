@@ -1192,6 +1192,8 @@ bool threads_thread_is_alive(threadobject *t)
 	case THREAD_STATE_BLOCKED:
 	case THREAD_STATE_WAITING:
 	case THREAD_STATE_TIMED_WAITING:
+	case THREAD_STATE_PARKED:
+	case THREAD_STATE_TIMED_PARKED:
 		return true;
 
 	default:
