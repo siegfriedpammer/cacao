@@ -2113,6 +2113,13 @@ int32_t class_get_modifiers(classinfo *c, bool ignoreInnerClassesAttrib)
 	classref_or_classinfo  outer;
 	utf                   *innername;
 	int                    i;
+	int32_t                flags;
+
+	/* default to flags of passed class */
+
+	flags = c->flags;
+
+	/* if requested we check if passed class is inner class */
 
 	if (!ignoreInnerClassesAttrib && (c->innerclasscount != 0)) {
 		/* search for passed class as inner class */
@@ -2133,16 +2140,16 @@ int32_t class_get_modifiers(classinfo *c, bool ignoreInnerClassesAttrib)
 
 				if (outer.any)
 					/* return flags got from the outer class file */
-					return c->innerclass[i].flags & ACC_CLASS_REFLECT_MASK;
-				else
-					return c->flags & ACC_CLASS_REFLECT_MASK;
+					flags = c->innerclass[i].flags;
+
+				break;
 			}
 		}
 	}
 
-	/* passed class is no inner class or it was not requested */
+	/* remove ACC_SUPER bit from flags */
 
-	return c->flags & ACC_CLASS_REFLECT_MASK;
+	return flags & ~ACC_SUPER & ACC_CLASS_REFLECT_MASK;
 }
 
 
