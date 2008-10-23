@@ -1,4 +1,4 @@
-/* tests/regression/bugzilla/All.java - runs all CACAO regression unit tests
+/* tests/regression/bugzilla/PR112.java
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,21 +23,15 @@
 */
 
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-@RunWith(Suite.class)
-
-@Suite.SuiteClasses({
-PR52.class,
-PR57.class,
-PR58.class,
-PR65.class,
-PR80.class,
-PR89.class,
-PR112.class,
-PR113.class
-})
-
-public class All {
+public class PR113 {
+    @Test
+    public void test() {
+        // Derived from OpenJDK's jdk jtreg test
+        // java/lang/Class/getModifiers/StripACC_SUPER.java
+	int modifiers = PR113.class.getModifiers();
+	assertFalse(java.lang.reflect.Modifier.isSynchronized(modifiers));
+    }
 }
