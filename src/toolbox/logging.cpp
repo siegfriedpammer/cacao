@@ -35,7 +35,7 @@
 
 #include "threads/thread.hpp"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 #include "toolbox/util.h"
 
 #include "vm/global.h"

@@ -39,7 +39,7 @@
 # include "native/vm/include/java_lang_VMClassLoader.h"
 #endif
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 #include "toolbox/list.hpp"
 
 #if defined(ENABLE_ASSERTION)

@@ -145,7 +145,7 @@ error reporting.
 
 #include "native/native.hpp"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/access.hpp"
 #include "vm/array.hpp"

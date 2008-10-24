@@ -36,7 +36,7 @@
 
 #include "threads/thread.hpp"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/jit/builtin.hpp"
 #include "vm/javaobjects.hpp"

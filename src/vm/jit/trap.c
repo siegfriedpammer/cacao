@@ -36,7 +36,7 @@
 
 #include "native/llni.h"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/exceptions.hpp"
 #include "vm/options.h"

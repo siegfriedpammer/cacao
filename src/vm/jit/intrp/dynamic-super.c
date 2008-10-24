@@ -41,7 +41,7 @@
 #include "threads/lock.hpp"
 
 #include "toolbox/hashtable.h"
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/options.h"
 

@@ -34,7 +34,7 @@
 #include "threads/mutex.hpp"
 
 #include "toolbox/avl.h"
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/global.h"
 #include "vm/vm.hpp"

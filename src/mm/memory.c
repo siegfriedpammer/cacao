@@ -45,7 +45,7 @@
 #include "threads/lock.hpp"
 #include "threads/thread.hpp"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/global.h"
 #include "vm/string.hpp"

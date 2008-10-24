@@ -32,7 +32,7 @@
 #include "native/include/java_lang_Object.h"
 #include "native/include/gnu_classpath_jdwp_VMFrame.h"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 
 /*

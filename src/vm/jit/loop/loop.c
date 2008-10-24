@@ -41,7 +41,7 @@
 #include <stdlib.h>
 
 #include "mm/memory.h"
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 #include "vm/global.h"	
 #include "vm/jit/jit.hpp"	
 #include "vm/jit/loop/loop.h"

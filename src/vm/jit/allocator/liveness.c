@@ -32,7 +32,7 @@
 
 #include "mm/memory.h"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 #include "toolbox/worklist.h"
 
 #include "vm/jit/builtin.hpp"

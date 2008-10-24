@@ -36,7 +36,7 @@
 #include "mm/memory.h"
 #include "native/include/java_lang_String.h"
 #include "native/llni.h"
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/global.h"
 #include "vm/options.h"

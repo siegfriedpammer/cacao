@@ -30,7 +30,7 @@
 
 #include "region.h"
 #include "mm/memory.h"
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 
 /* region_init *****************************************************************

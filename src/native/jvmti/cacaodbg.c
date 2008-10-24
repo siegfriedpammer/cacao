@@ -32,7 +32,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/jit/asmpart.h"
 #include "vm/string.hpp"
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 #include "threads/mutex.h"
 #include "threads/thread.hpp"
 

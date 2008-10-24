@@ -28,7 +28,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 #include "native/jni.hpp"
 #include "native/include/java_lang_Thread.h"
 #include "native/include/java_nio_ByteBuffer.h"

@@ -40,7 +40,7 @@
 #include "native/native.hpp"
 
 #include "toolbox/list.hpp"
-#include "toolbox/logging.h"           /* XXX remove me! */
+#include "toolbox/logging.hpp"           /* XXX remove me! */
 
 #include "vm/exceptions.hpp"
 #include "vm/initialize.hpp"

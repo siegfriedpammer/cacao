@@ -49,7 +49,7 @@
 #include "vm/jit/trace.hpp"
 #include "vm/jit/trap.h"
 
-#include "toolbox/logging.h" /* XXX for debugging only */
+#include "toolbox/logging.hpp" /* XXX for debugging only */
 
 
 /* emit_load *******************************************************************

@@ -36,8 +36,8 @@ libtoolbox_la_SOURCES = \
 	hashtable.c \
 	hashtable.h \
 	list.hpp \
-	logging.c \
-	logging.h \
+	logging.cpp \
+	logging.hpp \
 	set.h \
 	set.c \
 	util.c \

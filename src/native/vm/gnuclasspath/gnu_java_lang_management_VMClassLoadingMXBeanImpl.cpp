@@ -36,7 +36,7 @@
 # include "native/vm/include/gnu_java_lang_management_VMClassLoadingMXBeanImpl.h"
 #endif
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/classcache.hpp"
 #include "vm/utf8.h"

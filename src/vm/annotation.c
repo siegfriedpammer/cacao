@@ -32,7 +32,7 @@
 
 #include "mm/memory.h"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/annotation.h"
 #include "vm/array.hpp"

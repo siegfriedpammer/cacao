@@ -48,7 +48,7 @@
 #include "vm/class.hpp"
 #include "vm/classcache.hpp"
 #include "mm/gc.hpp"
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 #include "vm/options.h"
 #include "vm/string.hpp"
 #include "mm/memory.h"

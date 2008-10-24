@@ -51,7 +51,7 @@
 
 #include "native/vm/reflection.hpp"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"

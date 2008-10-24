@@ -63,7 +63,7 @@
 #include "threads/lock.hpp"
 #include "threads/thread.hpp"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 #include "toolbox/list.hpp"
 
 #include "vm/array.hpp"

@@ -36,7 +36,7 @@
 # include "native/vm/include/java_lang_management_VMManagementFactory.h"
 #endif
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/globals.hpp"
 #include "vm/vm.hpp"

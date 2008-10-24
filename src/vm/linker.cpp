@@ -37,7 +37,7 @@
 #include "threads/lock.hpp"
 #include "threads/mutex.hpp"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/access.hpp"
 #include "vm/array.hpp"

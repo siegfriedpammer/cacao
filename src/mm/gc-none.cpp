@@ -38,7 +38,7 @@
 #include "mm/gc.hpp"
 #include "mm/memory.h"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/jit/builtin.hpp"
 #include "vm/global.h"

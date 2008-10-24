@@ -30,7 +30,7 @@
 
 #include "mm/memory.h"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/array.hpp"
 #include "vm/class.hpp"

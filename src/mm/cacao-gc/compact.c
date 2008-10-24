@@ -32,7 +32,7 @@
 #include "heap.h"
 #include "mark.h"
 #include "mm/memory.h"
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 
 /* Threading macros ***********************************************************/

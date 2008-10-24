@@ -35,7 +35,7 @@
 #include "threads/mutex.hpp"
 
 #include "toolbox/hashtable.h"
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"

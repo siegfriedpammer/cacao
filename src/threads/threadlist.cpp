@@ -34,7 +34,7 @@
 #include "threads/thread.hpp"
 
 #include "toolbox/list.hpp"
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/jit/stacktrace.hpp"
 

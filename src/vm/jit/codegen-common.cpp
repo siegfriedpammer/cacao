@@ -55,7 +55,7 @@
 
 #include "toolbox/avl.h"
 #include "toolbox/list.hpp"
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "native/llni.h"
 #include "native/localref.hpp"

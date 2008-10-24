@@ -37,7 +37,7 @@
 #include <assert.h>
 
 #include "mm/memory.h"
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/loop/graph.h"
 #include "vm/jit/loop/loop.h"

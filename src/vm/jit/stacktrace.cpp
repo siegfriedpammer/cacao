@@ -43,7 +43,7 @@
 
 #include "threads/thread.hpp"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"

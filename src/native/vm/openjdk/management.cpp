@@ -34,7 +34,7 @@
 
 #include "native/vm/openjdk/management.hpp"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/os.hpp"
 #include "vm/vm.hpp"

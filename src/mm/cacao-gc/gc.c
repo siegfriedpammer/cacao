@@ -42,7 +42,7 @@
 #include "region.h"
 #include "rootset.h"
 #include "mm/memory.h"
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/finalizer.hpp"
 #include "vm/rt-timing.h"

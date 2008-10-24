@@ -42,7 +42,7 @@
 
 #include "threads/thread.hpp"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 #include "vm/classcache.hpp"
 #include "vm/globals.hpp"

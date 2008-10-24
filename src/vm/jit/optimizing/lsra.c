@@ -49,7 +49,7 @@
 
 #include "vm/jit/optimizing/lsra.h"
 
-#include "toolbox/logging.h"
+#include "toolbox/logging.hpp"
 
 extern const char *string_java_lang_InternalError;
 /* function prototypes */
