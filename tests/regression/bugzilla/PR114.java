@@ -1,4 +1,4 @@
-/* tests/regression/bugzilla/All.java - runs all CACAO regression unit tests
+/* tests/regression/bugzilla/PR114.java
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,22 +23,21 @@
 */
 
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-@RunWith(Suite.class)
+import java.io.File;
 
-@Suite.SuiteClasses({
-PR52.class,
-PR57.class,
-PR58.class,
-PR65.class,
-PR80.class,
-PR89.class,
-PR112.class,
-PR113.class,
-PR114.class
-})
+public class PR114 {
+    @Test ( expected = NoClassDefFoundError.class )
+    public void test() throws NoClassDefFoundError {
+        // Delete the class file which is extended.
+        new File("PR114$A.class").delete();
 
-public class All {
+        new A().sub();
+    }
+
+    class A {
+        public void sub() {}
+    }
 }
