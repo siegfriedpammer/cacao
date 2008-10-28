@@ -301,7 +301,6 @@ java_handle_t *patcher_handler(u1 *pc)
 	codeinfo      *code;
 	patchref_t    *pr;
 	bool           result;
-	java_handle_t *e;
 #if !defined(NDEBUG)
 	patcher_function_list_t *l;
 	int                      i;
@@ -387,10 +386,13 @@ java_handle_t *patcher_handler(u1 *pc)
 	}
 #endif
 
-	/* check for return value and exit accordingly */
-
+	// Check for return value and exit accordingly.
 	if (result == false) {
-		e = exceptions_get_and_clear_exception();
+		// Mangle the pending exception.
+		resolve_handle_pending_exception(true);
+
+		// Get the exception and return it.
+		java_handle_t* e = exceptions_get_and_clear_exception();
 
 		code->patchers->unlock();
 
