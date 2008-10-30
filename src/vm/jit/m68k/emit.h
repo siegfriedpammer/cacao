@@ -1,9 +1,7 @@
 /* src/vm/jit/m68k/emit.h
  
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2007, 2008
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -24,8 +22,9 @@
 
 */
 
-#ifndef _EMIT_H_
-#define _EMIT_H_
+
+#ifndef _EMIT_H
+#define _EMIT_H
 
 #include "config.h"
 
@@ -35,7 +34,20 @@
 
 void emit_mov_imm_reg (codegendata *cd, s4 imm, s4 dreg);
 void emit_mov_imm_areg(codegendata *cd, s4 imm, s4 dreg);
-void emit_verbosecall_enter(jitdata* jd);
-void emit_verbosecall_exit(jitdata* jd);
 
-#endif
+#endif /* _EMIT_H */
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */
