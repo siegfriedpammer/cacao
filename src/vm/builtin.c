@@ -654,6 +654,27 @@ bool builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o)
 	return result;
 }
 
+#if USES_NEW_SUBTYPE
+/* fast_subtype_check **********************************************************
+
+   Checks if s is a subtype of t, using the restricted subtype relation (see
+   Cliff Click and John Rose: Fast subtype checking in the Hotspot JVM.)
+
+   RETURN VALUE:
+      1......s is a subtype of t.
+      0......otherwise
+
+*******************************************************************************/
+
+bool fast_subtype_check(struct _vftbl *s, struct _vftbl *t)
+{
+   if (s->subtype_display[t->subtype_depth] == t)
+       return true;
+   if (t->subtype_offset != OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]))
+       return false;
+   return s->subtype_depth >= t->subtype_depth && s->subtype_overflow[t->subtype_depth - DISPLAY_SIZE] == t;
+}
+#endif
 
 /* builtin_fast_canstore *******************************************************
 
@@ -666,15 +687,6 @@ bool builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o)
    NOTE: This is a FAST builtin and can be called from JIT code only.
 
 *******************************************************************************/
-
-bool fast_subtype_check(struct _vftbl *s, struct _vftbl *t)
-{
-	if (s->subtype_display[t->subtype_depth] == t)
-		return true;
-	if (t->subtype_offset != OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]))
-		return false;
-	return s->subtype_depth >= t->subtype_depth && s->subtype_overflow[t->subtype_depth - DISPLAY_SIZE] == t;
-}
 
 bool builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 {
@@ -708,6 +720,8 @@ bool builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 		if (valuevftbl == componentvftbl)
 			return 1;
 
+		LOCK_CLASSRENUMBER_LOCK;
+
 		baseval = componentvftbl->baseval;
 
 		if (baseval <= 0) {
@@ -717,8 +731,15 @@ bool builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 					  (valuevftbl->interfacetable[baseval] != NULL));
 		}
 		else {
+#if USES_NEW_SUBTYPE
 			result = fast_subtype_check(valuevftbl, componentvftbl);
+#else
+			diffval = valuevftbl->baseval - componentvftbl->baseval;
+			result  = diffval <= (uint32_t) componentvftbl->diffval;
+#endif
 		}
+
+		UNLOCK_CLASSRENUMBER_LOCK;
 	}
 	else if (valuedesc == NULL) {
 		/* {oa has dimension > 1} */
@@ -770,6 +791,8 @@ bool builtin_fast_canstore_onedim(java_objectarray_t *a, java_object_t *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
+	LOCK_CLASSRENUMBER_LOCK;
+
 	baseval = elementvftbl->baseval;
 
 	if (baseval <= 0) {
@@ -778,8 +801,15 @@ bool builtin_fast_canstore_onedim(java_objectarray_t *a, java_object_t *o)
 				  (valuevftbl->interfacetable[baseval] != NULL));
 	}
 	else {
+#if USES_NEW_SUBTYPE
 		result = fast_subtype_check(valuevftbl, elementvftbl);
+#else
+		diffval = valuevftbl->baseval - elementvftbl->baseval;
+		result  = diffval <= (uint32_t) elementvftbl->diffval;
+#endif
 	}
+
+	UNLOCK_CLASSRENUMBER_LOCK;
 
 	return result;
 }
@@ -814,7 +844,16 @@ bool builtin_fast_canstore_onedim_class(java_objectarray_t *a, java_object_t *o)
 	if (valuevftbl == elementvftbl)
 		return 1;
 
+	LOCK_CLASSRENUMBER_LOCK;
+
+#if USES_NEW_SUBTYPE
 	result = fast_subtype_check(valuevftbl, elementvftbl);
+#else
+	diffval = valuevftbl->baseval - elementvftbl->baseval;
+	result  = diffval <= (uint32_t) elementvftbl->diffval;
+#endif
+
+	UNLOCK_CLASSRENUMBER_LOCK;
 
 	return result;
 }

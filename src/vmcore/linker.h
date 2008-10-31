@@ -100,7 +100,9 @@ typedef struct primitivetypeinfo primitivetypeinfo;
 
 *******************************************************************************/
 
+#if USES_NEW_SUBTYPE
 #define DISPLAY_SIZE 4
+#endif
 
 struct _vftbl {
 	methodptr   *interfacetable[1];    /* interface table (access via macro)  */
@@ -112,10 +114,12 @@ struct _vftbl {
 	                                   /* (-index for interfaces)             */
 	s4           diffval;              /* high - base for runtime type check  */
 
+#if USES_NEW_SUBTYPE
 	s4 subtype_depth;
 	s4 subtype_offset;
 	struct _vftbl *subtype_display[DISPLAY_SIZE+1];  /* the last one is cache */
 	struct _vftbl **subtype_overflow;
+#endif
 
 	s4          *interfacevftbllength; /* length of interface vftbls          */
 	methodptr    table[1];             /* class vftbl                         */
@@ -139,6 +143,25 @@ struct arraydescriptor {
 	s4       componentsize;  /* size of a component in bytes                  */
 	s2       elementtype;    /* ARRAYTYPE_* constant                          */
 };
+
+
+/* global variables ***********************************************************/
+
+/* This lock must be taken while renumbering classes or while atomically      */
+/* accessing classes.                                                         */
+
+#if USES_NEW_SUBTYPE
+
+#define LOCK_CLASSRENUMBER_LOCK   /* nothing */
+#define UNLOCK_CLASSRENUMBER_LOCK /* nothing */
+
+#else
+extern java_object_t *linker_classrenumber_lock;
+
+#define LOCK_CLASSRENUMBER_LOCK   LOCK_MONITOR_ENTER(linker_classrenumber_lock)
+#define UNLOCK_CLASSRENUMBER_LOCK LOCK_MONITOR_EXIT(linker_classrenumber_lock)
+
+#endif
 
 
 /* function prototypes ********************************************************/
