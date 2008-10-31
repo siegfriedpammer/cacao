@@ -61,6 +61,25 @@ struct arraydescriptor {
 };
 
 
+/* global variables ***********************************************************/
+
+/* This lock must be taken while renumbering classes or while atomically      */
+/* accessing classes.                                                         */
+
+#if USES_NEW_SUBTYPE
+
+#define LOCK_CLASSRENUMBER_LOCK   /* nothing */
+#define UNLOCK_CLASSRENUMBER_LOCK /* nothing */
+
+#else
+extern java_object_t *linker_classrenumber_lock;
+
+#define LOCK_CLASSRENUMBER_LOCK   LOCK_MONITOR_ENTER(linker_classrenumber_lock)
+#define UNLOCK_CLASSRENUMBER_LOCK LOCK_MONITOR_EXIT(linker_classrenumber_lock)
+
+#endif
+
+
 /* function prototypes ********************************************************/
 
 #ifdef __cplusplus

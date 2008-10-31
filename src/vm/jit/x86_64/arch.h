@@ -112,6 +112,10 @@
 
 #define REPLACEMENT_PATCH_SIZE           2             /* bytes */
 
+/* subtype ********************************************************************/
+
+#define USES_NEW_SUBTYPE                 1
+
 #endif /* _ARCH_H */
 
 
