@@ -487,6 +487,9 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define M_LDMFD(regs,base) M_MEM_MULTI(UNCOND,1,0,regs,base,0,1,1)
 #define M_STMFD(regs,base) M_MEM_MULTI(UNCOND,0,0,regs,base,1,0,1)
 
+#define M_LDR_REG(d,base,offreg) M_MEM(UNCOND,1,0,d,base,offreg,1,1,1,0)
+#define M_STR_REG(d,base,offreg) M_MEM(UNCOND,0,0,d,base,offreg,1,1,1,0)
+
 #define M_LDR_INTERN(d,base,off) \
     do { \
         CHECK_OFFSET(off, 0x0fff); \

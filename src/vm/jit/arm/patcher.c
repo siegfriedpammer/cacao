@@ -320,8 +320,8 @@ bool patcher_invokevirtual(patchref_t *pr)
 
 bool patcher_invokeinterface(patchref_t *pr)
 {
-	uint32_t*          pc = (uint32_t*)           pr->mpc;
-	unresolved_method* um = (unresolved_method *) pr->ref;
+	unresolved_method* um    = (unresolved_method*) pr->ref;
+	int32_t*           datap = (int32_t*)           pr->datap;
 
 	// Resolve the method.
 	methodinfo* m = resolve_method_eager(um);
@@ -330,13 +330,15 @@ bool patcher_invokeinterface(patchref_t *pr)
 		return false;
 
 	// Patch interfacetable index.
-	gen_resolveload(pc[1], (int32_t) (OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * m->clazz->index));
+	int32_t disp = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * m->clazz->index;
+	*datap = disp;
+
+	// HACK The next data segment entry is one below.
+	datap--;
 
 	// Patch method offset.
-	gen_resolveload(pc[2], (int32_t) (sizeof(methodptr) * (m - m->clazz->methods)));
-
-	// Synchronize instruction cache.
-	md_icacheflush(pc + 1, 2 * 4);
+	disp = sizeof(methodptr) * (m - m->clazz->methods);
+	*datap = disp;
 
 	// Patch back the original code.
 	patcher_patch_code(pr);

@@ -2319,25 +2319,44 @@ bool codegen_emit(jitdata *jd)
 
 			case ICMD_INVOKEINTERFACE:
 				if (lm == NULL) {
-					patcher_add_patch_ref(jd, PATCHER_invokeinterface, um, 0);
+					int32_t disp  = dseg_add_unique_s4(cd, 0);
+					int32_t disp2 = dseg_add_unique_s4(cd, 0);
 
-					s1 = 0;
-					s2 = 0;
+					// XXX We need two displacements.
+					assert(disp2 = disp + 4);
+					patcher_add_patch_ref(jd, PATCHER_invokeinterface, um, disp);
+
+					// The following instruction MUST NOT change a0 because of the implicit NPE check.
+					M_LDR_INTERN(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
+
+					// Sanity check.
+					assert(REG_ITMP1 != REG_METHODPTR);
+					assert(REG_ITMP2 == REG_METHODPTR);
+					assert(REG_ITMP3 != REG_METHODPTR);
+
+					M_DSEG_LOAD(REG_ITMP1, disp);
+					M_LDR_REG(REG_METHODPTR, REG_METHODPTR, REG_ITMP1);
+
+					M_DSEG_LOAD(REG_ITMP3, disp2);
+					M_ADD(REG_METHODPTR, REG_METHODPTR, REG_ITMP3);
+
+					// This must be a load with displacement,
+					// otherwise the JIT method address patching does
+					// not work anymore (see md_jit_method_patch_address).
+					M_LDR_INTERN(REG_PV, REG_METHODPTR, 0);
 				}
 				else {
-					s1 = OFFSET(vftbl_t, interfacetable[0]) -
-						sizeof(methodptr*) * lm->clazz->index;
+					s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * lm->clazz->index;
 					s2 = sizeof(methodptr) * (lm - lm->clazz->methods);
+
+					// The following instruction MUST NOT change a0 because of the implicit NPE check.
+					M_LDR_INTERN(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
+					M_LDR(REG_METHODPTR, REG_METHODPTR, s1);
+					// XXX The offset s2 will exceed the boundry soon. Fix me!
+					M_LDR_INTERN(REG_PV, REG_METHODPTR, s2);
 				}
 
-				/* implicit null-pointer check */
-				M_LDR_INTERN(REG_METHODPTR, REG_A0,
-							 OFFSET(java_object_t, vftbl));
-				M_LDR_INTERN(REG_METHODPTR, REG_METHODPTR, s1);
-				M_LDR_INTERN(REG_PV, REG_METHODPTR, s2);
-
-				/* generate the actual call */
-
+				// Generate the actual call.
 				M_MOV(REG_LR, REG_PC);
 				M_MOV(REG_PC, REG_PV);
 				s1 = (s4) (cd->mcodeptr - cd->mcodebase);
