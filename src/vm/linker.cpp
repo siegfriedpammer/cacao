@@ -95,7 +95,7 @@ static s4 interfaceindex;       /* sequential numbering of interfaces         */
 static s4 classvalue;
 
 #if !USES_NEW_SUBTYPE
-java_object_t *linker_classrenumber_lock;
+Mutex *linker_classrenumber_lock;
 #endif
 
 #if defined(__cplusplus)
@@ -128,11 +128,9 @@ void linker_preinit(void)
 	interfaceindex = 0;
 
 #if defined(ENABLE_THREADS) && !USES_NEW_SUBTYPE
-	/* create the global lock object */
+	/* create the global mutex */
 
-	linker_classrenumber_lock = NEW(java_object_t);
-
-	LOCK_INIT_OBJECT_LOCK(linker_classrenumber_lock);
+	linker_classrenumber_lock = new Mutex();
 #endif
 
 	/* Link the most basic classes. */

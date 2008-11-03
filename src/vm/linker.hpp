@@ -72,10 +72,10 @@ struct arraydescriptor {
 #define UNLOCK_CLASSRENUMBER_LOCK /* nothing */
 
 #else
-extern java_object_t *linker_classrenumber_lock;
+extern Mutex *linker_classrenumber_lock;
 
-#define LOCK_CLASSRENUMBER_LOCK   LOCK_MONITOR_ENTER(linker_classrenumber_lock)
-#define UNLOCK_CLASSRENUMBER_LOCK LOCK_MONITOR_EXIT(linker_classrenumber_lock)
+#define LOCK_CLASSRENUMBER_LOCK   linker_classrenumber_lock->lock()
+#define UNLOCK_CLASSRENUMBER_LOCK linker_classrenumber_lock->unlock()
 
 #endif
 
