@@ -2323,7 +2323,7 @@ bool codegen_emit(jitdata *jd)
 					int32_t disp2 = dseg_add_unique_s4(cd, 0);
 
 					// XXX We need two displacements.
-					assert(disp2 = disp + 4);
+					assert(disp2 == disp - 4);
 					patcher_add_patch_ref(jd, PATCHER_invokeinterface, um, disp);
 
 					// The following instruction MUST NOT change a0 because of the implicit NPE check.
