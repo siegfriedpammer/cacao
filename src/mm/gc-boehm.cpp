@@ -39,7 +39,7 @@
 
 #include "boehm-gc/include/gc.h"
 #include "mm/gc.hpp"
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "toolbox/logging.hpp"
 

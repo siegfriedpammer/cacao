@@ -51,7 +51,7 @@
 #include "md.h"
 #include "md-abi.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "toolbox/avl.h"
 #include "toolbox/list.hpp"

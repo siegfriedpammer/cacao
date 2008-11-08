@@ -31,7 +31,7 @@
 #include "arch.h"
 #include "md-abi.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "toolbox/bitvector.h"
 

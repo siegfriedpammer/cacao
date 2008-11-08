@@ -27,7 +27,7 @@
 
 #include <stdint.h>
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "toolbox/avl.h"
 

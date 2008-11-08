@@ -30,7 +30,7 @@
 
 #include "native/llni.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "toolbox/logging.hpp"
 

@@ -33,7 +33,7 @@
 
 #include "vm/jit/powerpc/md.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/native.hpp"
 

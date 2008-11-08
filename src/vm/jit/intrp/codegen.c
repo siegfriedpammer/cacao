@@ -43,7 +43,7 @@
 #include "vm/jit/intrp/codegen.h"
 #include "vm/jit/intrp/intrp.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/native.hpp"
 

@@ -30,7 +30,7 @@
 
 #include "arch.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "vm/options.h"
 #include "vm/vm.hpp"

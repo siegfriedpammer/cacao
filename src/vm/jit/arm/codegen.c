@@ -35,7 +35,7 @@
 #include "vm/jit/arm/arch.h"
 #include "vm/jit/arm/codegen.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/localref.hpp"
 #include "native/native.hpp"

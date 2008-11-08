@@ -32,7 +32,7 @@
 
 #include "vm/types.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "threads/lock.hpp"
 #include "threads/mutex.hpp"

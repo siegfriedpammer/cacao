@@ -33,7 +33,7 @@
 #include "vm/jit/sparc64/md-abi.h"
 #include "vm/jit/sparc64/emit.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "vm/jit/builtin.hpp"
 #include "vm/options.h"

@@ -28,7 +28,7 @@
 // Include this one early.
 #include "native/vm/openjdk/hpi.hpp"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/native.hpp"
 

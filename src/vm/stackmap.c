@@ -26,7 +26,7 @@
 #include "config.h"
 #include "vm/types.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"

@@ -43,7 +43,7 @@
 
 #include "vm/jit/jit.hpp"
 #include "vm/global.h"
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 #include "mm/dumpmemory.hpp"
 #include "toolbox/list.hpp"
 

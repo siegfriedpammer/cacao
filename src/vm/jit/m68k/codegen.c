@@ -34,7 +34,7 @@
 #include "vm/jit/m68k/codegen.h"
 #include "vm/jit/m68k/emit.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/localref.hpp"
 #include "native/native.hpp"

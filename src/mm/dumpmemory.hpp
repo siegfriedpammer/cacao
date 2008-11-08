@@ -209,7 +209,7 @@ public:
 
 
 // Includes.
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "threads/thread.hpp"
 

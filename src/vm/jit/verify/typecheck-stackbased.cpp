@@ -30,7 +30,7 @@
 #include "vm/types.h"
 
 #include "vm/jit/builtin.hpp"
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "vm/array.hpp"
 #include "vm/exceptions.hpp"

@@ -33,7 +33,7 @@
 #include "threads/thread.hpp"
 
 #include "mm/codememory.h"
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "vm/global.h"
 #include "vm/options.h"

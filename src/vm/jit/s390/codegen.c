@@ -37,7 +37,7 @@
 #include "native/localref.hpp"
 #include "native/native.hpp"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "threads/lock.hpp"
 

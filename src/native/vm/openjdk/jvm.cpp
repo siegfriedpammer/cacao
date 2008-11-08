@@ -50,7 +50,7 @@
 #include INCLUDE_JVM_MD_H
 #include INCLUDE_JVM_H
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/llni.h"
 #include "native/native.hpp"

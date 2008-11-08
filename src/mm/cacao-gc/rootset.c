@@ -30,7 +30,7 @@
 #include "heap.h"
 #include "mark.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "threads/threadlist.h"
 #include "threads/thread.hpp"

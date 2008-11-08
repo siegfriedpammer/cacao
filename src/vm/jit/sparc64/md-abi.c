@@ -35,7 +35,7 @@
 #include "vm/jit/stack.h"
 
 /* temp */
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 #include <assert.h>
 
 

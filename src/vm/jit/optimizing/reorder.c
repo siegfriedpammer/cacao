@@ -37,7 +37,7 @@
 
 #include "vm/types.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 #include "vm/jit/jit.hpp"
 
 

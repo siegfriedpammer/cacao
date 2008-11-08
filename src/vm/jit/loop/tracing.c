@@ -34,7 +34,7 @@
 */
 
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/resolve.hpp"
 #include "vm/jit/loop/loop.h"

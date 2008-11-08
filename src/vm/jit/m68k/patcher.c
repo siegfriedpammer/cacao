@@ -31,7 +31,7 @@
 
 #include "vm/jit/m68k/md.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 #include "native/native.hpp"
 
 #include "vm/jit/builtin.hpp"

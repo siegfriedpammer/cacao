@@ -37,7 +37,7 @@
 #include "vm/descriptor.hpp" /* needed to prevent circular dependency */
 #include "toolbox/hashtable.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "vm/global.h"
 #include "vm/suck.hpp"

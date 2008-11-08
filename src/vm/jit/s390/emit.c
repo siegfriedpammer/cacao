@@ -31,7 +31,7 @@
 #include "vm/jit/s390/emit.h"
 #include "vm/jit/s390/md-abi.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "threads/lock.hpp"
 

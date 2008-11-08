@@ -24,7 +24,7 @@
 
 #include "config.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "vm/jit/code.hpp"
 #include "vm/jit/oprofile-agent.hpp"

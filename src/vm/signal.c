@@ -40,7 +40,7 @@
 #include "arch.h"
 
 #if defined(ENABLE_GC_BOEHM)
-# include "mm/memory.h"
+# include "mm/memory.hpp"
 #endif
 
 #include "threads/thread.hpp"

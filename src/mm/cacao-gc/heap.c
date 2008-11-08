@@ -33,7 +33,7 @@
 #include "heap.h"
 #include "mark.h"
 #include "region.h"
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 #include "native/include/java_lang_String.h"
 #include "native/llni.h"
 #include "toolbox/logging.hpp"

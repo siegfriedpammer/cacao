@@ -40,7 +40,7 @@
 
 #include "disass.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 #include "vm/options.h"
 #include "vm/statistics.h"
 #include "vm/jit/schedule/schedule.h"

@@ -41,7 +41,7 @@
 #include "mark.h"
 #include "region.h"
 #include "rootset.h"
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 #include "toolbox/logging.hpp"
 
 #include "vm/finalizer.hpp"

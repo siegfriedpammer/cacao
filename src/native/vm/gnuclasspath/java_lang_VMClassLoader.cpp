@@ -29,7 +29,7 @@
 #include <stdint.h>
 #include <sys/stat.h>
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/jni.hpp"
 #include "native/llni.h"

@@ -43,7 +43,7 @@
 #include "mm/codememory.h"
 #include "mm/dumpmemory.hpp"
 #include "mm/gc.hpp"
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/jni.hpp"
 #include "native/llni.h"
@@ -692,7 +692,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	_jnienv = new JNIEnv();
 
 #if defined(ENABLE_JNI)
-	_jnienv->functions = &_Jv_JNINativeInterface;
+	_jnienv->p = &_Jv_JNINativeInterface;
 #endif
 
 	/* actually create the JVM */

@@ -23,7 +23,7 @@
 
 #include "config.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 #include "mm/tlh.h"
 
 #include "vm/global.h"

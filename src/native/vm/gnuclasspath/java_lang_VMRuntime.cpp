@@ -39,7 +39,7 @@
 # include <mach/mach.h>
 #endif
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 #include "mm/gc.hpp"
 
 #include "native/jni.hpp"

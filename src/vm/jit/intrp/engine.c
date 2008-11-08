@@ -37,7 +37,7 @@
 
 #include "md-abi.h"                           /* required for TRACE_ARGS_NUM */
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "threads/thread.hpp"
 

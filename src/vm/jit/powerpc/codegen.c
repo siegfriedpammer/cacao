@@ -36,7 +36,7 @@
 #include "vm/jit/powerpc/arch.h"
 #include "vm/jit/powerpc/codegen.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/localref.hpp"
 #include "native/native.hpp"

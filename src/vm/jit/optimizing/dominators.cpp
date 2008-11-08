@@ -27,7 +27,7 @@
 
 #include "config.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "toolbox/bitvector.h"
 

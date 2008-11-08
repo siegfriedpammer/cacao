@@ -29,7 +29,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/native.hpp"
 

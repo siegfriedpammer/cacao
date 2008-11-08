@@ -32,7 +32,7 @@
 #include "vm/jit/mips/codegen.h"
 #include "vm/jit/mips/md-abi.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "threads/lock.hpp"
 

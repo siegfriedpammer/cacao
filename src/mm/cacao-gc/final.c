@@ -29,7 +29,7 @@
 #include "gc.h"
 #include "final.h"
 #include "heap.h"
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 #include "vm/finalizer.hpp"
 
 

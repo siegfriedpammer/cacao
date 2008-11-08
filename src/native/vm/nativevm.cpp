@@ -36,7 +36,7 @@
 #include "vm/os.hpp"
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-# include "mm/memory.h"
+# include "mm/memory.hpp"
 
 # include "native/native.hpp"
 

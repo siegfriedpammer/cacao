@@ -31,7 +31,7 @@
 #include "vm/jit/mips/codegen.h"
 #include "vm/jit/mips/md.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/native.hpp"
 

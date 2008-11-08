@@ -29,7 +29,7 @@
 
 #include "vm/types.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "vm/access.hpp"
 #include "vm/classcache.hpp"

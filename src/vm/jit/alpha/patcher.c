@@ -31,7 +31,7 @@
 
 #include "vm/jit/alpha/md.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/native.hpp"
 

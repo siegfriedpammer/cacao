@@ -141,7 +141,7 @@ error reporting.
 
 #ifdef ENABLE_VERIFIER
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/native.hpp"
 

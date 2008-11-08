@@ -48,7 +48,7 @@
 #endif
 
 #include "mm/gc.hpp"
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/llni.h"
 

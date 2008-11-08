@@ -32,7 +32,7 @@
 #include "vm/jit/x86_64/codegen.h"
 #include "vm/jit/x86_64/md.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/native.hpp"
 

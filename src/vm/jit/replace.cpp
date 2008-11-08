@@ -38,7 +38,7 @@
 #endif
 
 #include "mm/dumpmemory.hpp"
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "threads/thread.hpp"
 

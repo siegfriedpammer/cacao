@@ -51,7 +51,7 @@
 #include "toolbox/logging.hpp"
 #include "vm/options.h"
 #include "vm/string.hpp"
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 #include "threads/mutex.h"
 #include "threads/thread.hpp"
 #include "threads/lock.hpp"

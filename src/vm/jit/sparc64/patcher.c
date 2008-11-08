@@ -30,7 +30,7 @@
 
 #include "vm/types.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "vm/jit/sparc64/codegen.h"
 #include "vm/jit/sparc64/md.h"

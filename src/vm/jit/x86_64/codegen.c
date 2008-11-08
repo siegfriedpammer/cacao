@@ -37,7 +37,7 @@
 #include "vm/jit/x86_64/codegen.h"
 #include "vm/jit/x86_64/emit.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/localref.hpp"
 #include "native/native.hpp"

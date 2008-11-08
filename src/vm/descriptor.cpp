@@ -31,7 +31,7 @@
 
 #include "md-abi.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "vm/descriptor.hpp"
 #include "vm/exceptions.hpp"

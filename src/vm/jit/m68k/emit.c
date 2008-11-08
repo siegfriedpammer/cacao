@@ -30,7 +30,7 @@
 #include "vm/jit/m68k/codegen.h"
 #include "vm/jit/m68k/emit.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "vm/jit/builtin.hpp"
 

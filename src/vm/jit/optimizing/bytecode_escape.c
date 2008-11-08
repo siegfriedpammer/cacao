@@ -28,7 +28,7 @@
 #include <stdint.h>
 
 #include "mm/dumpmemory.hpp"
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "toolbox/bitvector.h"
 

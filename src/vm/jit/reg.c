@@ -34,7 +34,7 @@
 #include "arch.h"
 #include "md-abi.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 #include "vm/jit/abi.h"
 #include "vm/jit/reg.h"
 

@@ -35,7 +35,7 @@
 
 #include "md-abi.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/llni.h"
 #include "native/native.hpp"

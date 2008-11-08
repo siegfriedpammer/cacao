@@ -31,7 +31,7 @@
 
 #include "vm/types.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #if defined(ENABLE_GC_BOEHM)
 /* We need to include Boehm's gc.h here for GC_register_my_thread and

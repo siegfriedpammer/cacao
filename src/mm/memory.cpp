@@ -1,4 +1,4 @@
-/* src/mm/memory.c - memory management
+/* src/mm/memory.cpp - memory management
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -38,7 +38,7 @@
 
 #include "arch.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/native.hpp"
 
@@ -68,8 +68,8 @@
 
 void memory_mprotect(void *addr, size_t len, int prot)
 {
-	if (os_mprotect(addr, len, prot) != 0)
-		vm_abort_errno("memory_mprotect: os_mprotect failed");
+	if (os::mprotect(addr, len, prot) != 0)
+		vm_abort_errno("memory_mprotect: os::mprotect failed");
 }
 
 
@@ -86,7 +86,7 @@ void *memory_checked_alloc(size_t size)
 {
 	/* always allocate memory zeroed out */
 
-	void *p = os_calloc(size, 1);
+	void *p = os::calloc(size, 1);
 
 	if (p == NULL)
 		vm_abort("memory_checked_alloc: calloc failed: out of memory");
@@ -142,7 +142,7 @@ void *mem_realloc(void *src, int32_t len1, int32_t len2)
 
 #if defined(ENABLE_MEMCHECK)
 	if (len2 < len1)
-		os_memset((u1*)dst + len2, MEMORY_CLEAR_BYTE, len1 - len2);
+		os::memset((u1*)dst + len2, MEMORY_CLEAR_BYTE, len1 - len2);
 #endif
 
 	dst = realloc(src, len2);
@@ -152,7 +152,7 @@ void *mem_realloc(void *src, int32_t len1, int32_t len2)
 
 #if defined(ENABLE_MEMCHECK)
 	if (len2 > len1)
-		os_memset((u1*)dst + len1, MEMORY_CLEAR_BYTE, len2 - len1);
+		os::memset((u1*)dst + len1, MEMORY_CLEAR_BYTE, len2 - len1);
 #endif
 
 	return dst;
@@ -176,10 +176,10 @@ void mem_free(void *m, int32_t size)
 
 #if defined(ENABLE_MEMCHECK)
 	/* destroy the contents */
-	os_memset(m, MEMORY_CLEAR_BYTE, size);
+	os::memset(m, MEMORY_CLEAR_BYTE, size);
 #endif
 
-	os_free(m);
+	os::free(m);
 }
 
 
@@ -265,7 +265,7 @@ bool memory_start_thread(void)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

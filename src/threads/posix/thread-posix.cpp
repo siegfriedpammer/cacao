@@ -43,7 +43,7 @@
 #include "arch.h"
 
 #include "mm/gc.hpp"
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #if defined(ENABLE_GC_CACAO)
 # include "mm/cacao-gc/gc.h"

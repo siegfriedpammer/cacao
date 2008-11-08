@@ -33,7 +33,7 @@
 #include "vm/jit/i386/emit.h"
 #include "vm/jit/i386/md-abi.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "threads/lock.hpp"
 

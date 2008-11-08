@@ -35,7 +35,7 @@
 #include "codegen.h"                   /* for PATCHER_NOPS */
 #include "md.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "native/native.hpp"
 

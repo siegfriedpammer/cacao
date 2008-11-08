@@ -63,8 +63,8 @@ libmm_la_SOURCES = \
 	dumpmemory.hpp \
 	$(GC_FILE) \
 	gc.hpp \
-	memory.c \
-	memory.h
+	memory.cpp \
+	memory.hpp
 
 libmm_la_LIBADD = \
 	$(GC_LIB)

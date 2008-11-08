@@ -33,7 +33,7 @@
 
 #include "vm/jit/alpha/codegen.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "threads/lock.hpp"
 

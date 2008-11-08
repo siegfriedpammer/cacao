@@ -38,7 +38,7 @@
 #include "vm/jit/mips/md-abi.h"
 
 #include "mm/gc.hpp"
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "vm/signallocal.h"
 #include "vm/os.hpp"

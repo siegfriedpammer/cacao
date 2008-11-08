@@ -29,7 +29,7 @@
 
 #include "vm/types.h"
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 
 #include "md-abi.h"
 #include "vm/jit/powerpc64/codegen.h"

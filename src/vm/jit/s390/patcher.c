@@ -28,7 +28,7 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include "mm/memory.h"
+#include "mm/memory.hpp"
 #include "native/native.hpp"
 
 #include "vm/jit/builtin.hpp"
