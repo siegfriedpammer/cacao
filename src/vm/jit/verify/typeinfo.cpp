@@ -44,9 +44,6 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/verify/typeinfo.hpp"
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 /* check if a linked class is an array class. Only use for linked classes! */
 #define CLASSINFO_IS_ARRAY(clsinfo)  ((clsinfo)->vftbl->arraydesc != NULL)
@@ -2549,10 +2546,6 @@ typevector_print(FILE *file,varinfo *vec,int size)
         typeinfo_print_type(file, vec[i].type, &(vec[i].typeinfo));
     }
 }
-
-#if defined(__cplusplus)
-}
-#endif
 
 #endif /* TYPEINFO_DEBUG */
 

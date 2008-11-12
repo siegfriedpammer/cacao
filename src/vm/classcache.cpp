@@ -138,10 +138,6 @@
 
 /* #define CLASSCACHE_VERBOSE */
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 /*============================================================================*/
 /* STATISTICS                                                                 */
 /*============================================================================*/
@@ -1573,10 +1569,6 @@ dump_it:
 
 	CLASSCACHE_UNLOCK();
 }
-
-#if defined(__cplusplus)
-}
-#endif
 
 #endif /* NDEBUG */
 
