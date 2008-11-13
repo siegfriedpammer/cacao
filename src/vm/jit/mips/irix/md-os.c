@@ -38,7 +38,7 @@
 #include "mm/gc.hpp"
 
 #include "vm/global.h"
-#include "vm/signallocal.h"
+#include "vm/signallocal.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/codegen-common.hpp"

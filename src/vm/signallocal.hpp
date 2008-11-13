@@ -91,7 +91,7 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

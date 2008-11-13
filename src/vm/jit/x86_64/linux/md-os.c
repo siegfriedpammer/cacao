@@ -40,7 +40,7 @@
 #include "threads/thread.hpp"
 
 #include "vm/jit/builtin.hpp"
-#include "vm/signallocal.h"
+#include "vm/signallocal.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"

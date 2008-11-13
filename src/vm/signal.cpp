@@ -50,7 +50,7 @@
 #include "vm/globals.hpp"
 #include "vm/method.hpp"
 #include "vm/options.h"
-#include "vm/signallocal.h"
+#include "vm/signallocal.hpp"
 #include "vm/vm.hpp"
 
 #if defined(ENABLE_STATISTICS)
@@ -317,7 +317,7 @@ void signal_thread_handler(int sig)
 	case SIGQUIT:
 		/* print a thread dump */
 #if defined(ENABLE_THREADS)
-		ThreadList_dump_threads();
+		ThreadList::dump_threads();
 #endif
 
 #if defined(ENABLE_STATISTICS)
@@ -393,7 +393,7 @@ void signal_handler_sighup(int sig, siginfo_t *siginfo, void *_p)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

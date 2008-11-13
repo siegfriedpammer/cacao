@@ -52,7 +52,7 @@ typedef struct ucontext {
 #include "threads/thread.hpp"
 
 #include "vm/os.hpp"
-#include "vm/signallocal.h"
+#include "vm/signallocal.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"

@@ -85,7 +85,7 @@
 #include "vm/primitive.hpp"
 #include "vm/properties.hpp"
 #include "vm/resolve.hpp"
-#include "vm/signallocal.h"
+#include "vm/signallocal.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 

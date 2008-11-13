@@ -32,7 +32,7 @@
 
 #include "vm/types.h"
 
-#include "vm/signallocal.h"
+#include "vm/signallocal.hpp"
 #include "vm/jit/asmpart.h"
 
 

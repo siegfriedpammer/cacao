@@ -39,7 +39,7 @@
 #include "threads/thread.hpp"
 
 #include "vm/jit/builtin.hpp"
-#include "vm/signallocal.h"
+#include "vm/signallocal.hpp"
 #include "vm/os.hpp"
 
 #include "vm/jit/asmpart.h"

@@ -66,7 +66,7 @@
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/options.h"
-#include "vm/signallocal.h"
+#include "vm/signallocal.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
 

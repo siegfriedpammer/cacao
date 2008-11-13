@@ -122,8 +122,8 @@ libvm_la_SOURCES = \
 	resolve.cpp \
 	resolve.hpp \
 	$(RT_TIMING_SOURCES) \
-	signal.c \
-	signallocal.h \
+	signal.cpp \
+	signallocal.hpp \
 	$(STACKMAP_SOURCES) \
 	$(STATISTICS_SOURCES) \
 	string.cpp \

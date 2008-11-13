@@ -37,7 +37,7 @@
 #include "threads/thread.hpp"
 
 #include "vm/exceptions.hpp"
-#include "vm/signallocal.h"
+#include "vm/signallocal.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/abi.h"

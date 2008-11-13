@@ -74,7 +74,7 @@
 #include "vm/os.hpp"
 #include "vm/primitive.hpp"
 #include "vm/properties.hpp"
-#include "vm/signallocal.h"
+#include "vm/signallocal.hpp"
 #include "vm/statistics.h"
 #include "vm/string.hpp"
 #include "vm/suck.hpp"

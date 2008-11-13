@@ -34,7 +34,7 @@
 #include "vm/jit/sparc64/codegen.h"
 #include "vm/jit/sparc64/md-abi.h"
 
-#include "vm/signallocal.h"
+#include "vm/signallocal.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.hpp"

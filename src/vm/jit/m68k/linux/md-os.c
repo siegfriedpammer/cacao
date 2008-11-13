@@ -28,7 +28,7 @@
 #include "vm/jit/m68k/md.h"
 #include "vm/jit/m68k/linux/md-abi.h"
 
-#include "vm/signallocal.h"
+#include "vm/signallocal.hpp"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
