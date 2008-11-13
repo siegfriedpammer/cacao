@@ -2352,8 +2352,7 @@ bool codegen_emit(jitdata *jd)
 					// The following instruction MUST NOT change a0 because of the implicit NPE check.
 					M_LDR_INTERN(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
 					M_LDR(REG_METHODPTR, REG_METHODPTR, s1);
-					// XXX The offset s2 will exceed the boundry soon. Fix me!
-					M_LDR_INTERN(REG_PV, REG_METHODPTR, s2);
+					M_LDR(REG_PV, REG_METHODPTR, s2);
 				}
 
 				// Generate the actual call.

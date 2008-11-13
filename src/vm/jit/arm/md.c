@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <stdint.h>
 
+#include "vm/jit/arm/codegen.h"
 #include "vm/jit/arm/md.h"
 #include "vm/jit/arm/md-abi.h"
 
@@ -59,9 +60,17 @@ void md_init(void)
    or
 
    e590b000    ldr   fp, [r0]
-   e59bc000    ldr   ip, [fp]
+   e59bc004    ldr   ip, [fp, #4]
    e1a0e00f    mov   lr, pc
    e1a0f00c    mov   pc, ip
+
+   or
+
+   e590b000    ldr	fp, [r0]
+   e28bca01    add	ip, fp, #4096	; 0x1000
+   e59cc004    ldr	ip, [ip, #4]
+   e1a0e00f    mov	lr, pc
+   e1a0f00c    mov	pc, ip
 
    How we find out the patching address to store new method pointer:
     - loaded IP with LDR IP,[METHODPTR]?
@@ -76,7 +85,7 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 {
 	uint32_t *pc;
 	uint32_t  mcode;
-	int32_t   offset;
+	int32_t   disp;
 	void     *pa;                       /* patch address                      */
 
 	/* Go back to the actual load instruction. */
@@ -87,22 +96,39 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 
 	mcode = pc[0];
 
-	/* sanity check: are we inside jit code? */
+	/* Sanity check: Are we inside jit code? */
 
 	assert(pc[1] == 0xe1a0e00f /*MOV LR,PC*/);
 	assert(pc[2] == 0xe1a0f00c /*MOV PC,IP*/);
 
-	/* get the load instruction and offset */
-
-	offset = (int32_t) (mcode & 0x0fff);
+	/* Sanity check: We unconditionally loaded a word into REG_PV? */
 
 	assert ((mcode & 0xff70f000) == 0xe510c000);
 
-	if ((mcode & 0x000f0000) == 0x000b0000) {
-		/* sanity check: offset was positive */
+	/* Get load displacement. */
 
-		assert((mcode & 0x00800000) == 0x00800000);
+	disp = (int32_t) (mcode & 0x0fff);
 
+	/* Case: We loaded from base REG_PV with negative displacement. */
+
+	if (M_MEM_GET_Rbase(mcode) == REG_PV && (mcode & 0x00800000) == 0) {
+		/* We loaded from data segment, displacement can be larger. */
+
+		mcode = pc[-1];
+
+		/* check for "SUB IP, IP, #??, ROTL 12" */
+
+		if ((mcode & 0xffffff00) == 0xe24cca00)
+			disp += (int32_t) ((mcode & 0x00ff) << 12);
+
+		/* and get the final data segment address */
+
+		pa = ((uint8_t *) pv) - disp;
+	}
+
+	/* Case: We loaded from base REG_METHODPTR with positive displacement. */
+
+	else if (M_MEM_GET_Rbase(mcode) == REG_METHODPTR && (mcode & 0x00800000) == 0x00800000) {
 		/* return NULL if no mptr was specified (used for replacement) */
 
 		if (mptr == NULL)
@@ -110,26 +136,36 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 
 		/* we loaded from REG_METHODPTR */
 
-		pa = ((uint8_t *) mptr) + offset;
+		pa = ((uint8_t *) mptr) + disp;
 	}
-	else {
-		/* sanity check: we loaded from REG_IP; offset was negative or zero */
 
-		assert((mcode & 0x008f0000) == 0x000c0000 ||
-		       (mcode & 0x008f0fff) == 0x008c0000);
+	/* Case: We loaded from base REG_PV with positive offset. */
 
-		/* we loaded from data segment; offset can be larger */
+	else if (M_MEM_GET_Rbase(mcode) == REG_PV && (mcode & 0x00800000) == 0x00800000) {
+		/* We loaded from REG_METHODPTR with a larger displacement */
 
 		mcode = pc[-1];
 
-		/* check for "SUB IP, IP, #??, ROTL 12" */
+		/* check for "ADD IP, FP, #??, ROTL 12" */
 
-		if ((mcode & 0xffffff00) == 0xe24cca00)
-			offset += (int32_t) ((mcode & 0x00ff) << 12);
+		if ((mcode & 0xffffff00) == 0xe28bca00)
+			disp += (int32_t) ((mcode & 0x00ff) << 12);
+		else
+			vm_abort_disassemble(pc - 1, 4, "md_jit_method_patch_address: unknown instruction %x", mcode);
 
-		/* and get the final data segment address */
+		/* we loaded from REG_METHODPTR */
 
-		pa = ((uint8_t *) pv) - offset;        
+		pa = ((uint8_t *) mptr) + disp;
+	}
+
+	/* Case is not covered, something is severely wrong. */
+
+	else {
+		vm_abort_disassemble(pc, 3, "md_jit_method_patch_address: unknown instruction %x", mcode);
+
+		/* Keep compiler happy. */
+
+		pa = NULL;
 	}
 
 	return pa;

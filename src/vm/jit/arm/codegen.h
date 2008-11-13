@@ -186,6 +186,9 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
         cd->mcodeptr += 4; \
     } while (0)
 
+#define M_MEM_GET_Rd(mcode)    (((mcode) >> 12) & 0x0f)
+#define M_MEM_GET_Rbase(mcode) (((mcode) >> 16) & 0x0f)
+
 
 /* load and store instruction: M_MEM2
    cond ... conditional execution
