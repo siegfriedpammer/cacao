@@ -49,18 +49,6 @@
 #include "vm/jit/patcher-common.hpp"
 
 
-#define gen_resolveload(inst,offset) \
-	assert((offset) >= -0x0fff && (offset) <= 0x0fff); \
-	assert(!((inst) & 0x0fff)); \
-	if ((offset) <  0) { \
-		(inst) = ((inst) & 0xff7ff000) | ((-(offset)) & 0x0fff); \
-		/*(inst) &= ~(1 << 23);*/ \
-	} else { \
-		(inst) = ((inst) & 0xfffff000) | ((offset) & 0x0fff); \
-		/*(inst) |= (1 << 23);*/ \
-	}
-
-
 /* patcher_patch_code **********************************************************
 
    Just patches back the original machine code.
@@ -282,8 +270,8 @@ bool patcher_invokestatic_special(patchref_t *pr)
 
 bool patcher_invokevirtual(patchref_t *pr)
 {
-	uint32_t*          pc = (uint32_t*)           pr->mpc;
-	unresolved_method* um = (unresolved_method *) pr->ref;
+	unresolved_method* um    = (unresolved_method*) pr->ref;
+	int32_t*           datap = (int32_t*)           pr->datap;
 
 	// Resolve the method.
 	methodinfo* m = resolve_method_eager(um);
@@ -292,10 +280,8 @@ bool patcher_invokevirtual(patchref_t *pr)
 		return false;
 
 	// Patch vftbl index.
-	gen_resolveload(pc[1], (int32_t) (OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * m->vftblindex));
-
-	// Synchronize instruction cache.
-	md_icacheflush(pc + 1, 1 * 4);
+	int32_t disp = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * m->vftblindex;
+	*datap = disp;
 
 	// Patch back the original code.
 	patcher_patch_code(pr);
@@ -314,7 +300,6 @@ bool patcher_invokevirtual(patchref_t *pr)
    e59bc000    ldr   ip, [fp, #__]
    e1a0e00f    mov   lr, pc
    e1a0f00c    mov   pc, ip
-
 
 *******************************************************************************/
 

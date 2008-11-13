@@ -2296,21 +2296,33 @@ bool codegen_emit(jitdata *jd)
 
 			case ICMD_INVOKEVIRTUAL:
 				if (lm == NULL) {
-					patcher_add_patch_ref(jd, PATCHER_invokevirtual, um, 0);
+					int32_t disp = dseg_add_unique_s4(cd, 0);
+					patcher_add_patch_ref(jd, PATCHER_invokevirtual, um, disp);
 
-					s1 = 0;
+					// The following instruction MUST NOT change a0 because of the implicit NPE check.
+					M_LDR_INTERN(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
+
+					// Sanity check.
+					assert(REG_ITMP1 != REG_METHODPTR);
+					assert(REG_ITMP2 == REG_METHODPTR);
+
+					M_DSEG_LOAD(REG_ITMP1, disp);
+					M_ADD(REG_METHODPTR, REG_METHODPTR, REG_ITMP1);
+
+					// This must be a load with displacement,
+					// otherwise the JIT method address patching does
+					// not work anymore (see md_jit_method_patch_address).
+					M_LDR_INTERN(REG_PV, REG_METHODPTR, 0);
 				}
-				else
-					s1 = OFFSET(vftbl_t, table[0]) +
-						sizeof(methodptr) * lm->vftblindex;
+				else {
+					s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * lm->vftblindex;
 
-				/* implicit null-pointer check */
-				M_LDR_INTERN(REG_METHODPTR, REG_A0,
-							 OFFSET(java_object_t, vftbl));
-				M_LDR_INTERN(REG_PV, REG_METHODPTR, s1);
+					// The following instruction MUST NOT change a0 because of the implicit NPE check.
+					M_LDR_INTERN(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
+					M_LDR(REG_PV, REG_METHODPTR, s1);
+				}
 
-				/* generate the actual call */
-
+				// Generate the actual call.
 				M_MOV(REG_LR, REG_PC);
 				M_MOV(REG_PC, REG_PV);
 				s1 = (s4) (cd->mcodeptr - cd->mcodebase);
