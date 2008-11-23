@@ -521,6 +521,74 @@ static bool linker_overwrite_method(methodinfo *mg,
 }
 
 
+#if USES_NEW_SUBTYPE
+/* build_display ***************************************************************
+
+   Builds the entire display for a class. This entails filling the fixed part
+   as well as allocating and initializing the overflow part.
+
+   See Cliff Click and John Rose: Fast subtype checking in the Hotspot JVM.
+
+*******************************************************************************/
+
+static void build_display(classinfo *c)
+{
+	int depth, i;
+	int depth_fixed;
+	classinfo *super;
+
+	do {
+		/* Handle arrays. */
+		if (c->vftbl->arraydesc) {
+			arraydescriptor *a = c->vftbl->arraydesc;
+			if (a->elementvftbl && a->elementvftbl->clazz->super) {
+				classinfo *cls = a->elementvftbl->clazz->super;
+				int n;
+				for (n=0; n<a->dimension; n++)
+					cls = class_array_of(cls, true);
+				super = cls;
+				break;
+			}
+			if (a->componentvftbl && a->elementvftbl) {
+				super = a->componentvftbl->clazz;
+				break;
+			}
+		}
+		/* Normal classes. */
+		super = c->super;
+	} while (false);
+	if (super) {
+		build_display(super);
+		depth = super->vftbl->subtype_depth + 1;
+	} else
+		/* java.lang.Object doesn't have a super class. */
+		depth = 0;
+
+	/* Now copy super's display, append c->vftbl and initialize the remaining fields. */
+	if (depth >= DISPLAY_SIZE) {
+		c->vftbl->subtype_overflow = MNEW(vftbl_t *, depth - DISPLAY_SIZE + 1);
+#if defined(ENABLE_STATISTICS)
+		if (opt_stat)
+			count_vftbl_len += sizeof(vftbl_t*) * (depth - DISPLAY_SIZE + 1);
+#endif
+		memcpy(c->vftbl->subtype_overflow, super->vftbl->subtype_overflow, sizeof(vftbl_t*) * (depth - DISPLAY_SIZE));
+		c->vftbl->subtype_overflow[depth - DISPLAY_SIZE] = c->vftbl;
+		depth_fixed = DISPLAY_SIZE;
+	}
+	else {
+		depth_fixed = depth;
+		c->vftbl->subtype_display[depth] = c->vftbl;
+	}
+
+	if (super)
+		memcpy(c->vftbl->subtype_display, super->vftbl->subtype_display, sizeof(vftbl_t*) * depth_fixed);
+	for (i=depth_fixed+1; i<=DISPLAY_SIZE; i++)
+		c->vftbl->subtype_display[i] = NULL;
+	c->vftbl->subtype_offset = OFFSET(vftbl_t, subtype_display[0]) + sizeof(vftbl_t*) * depth_fixed;
+	c->vftbl->subtype_depth = depth;
+}
+#endif
+
 /* link_class_intern ***********************************************************
 
    Tries to link a class. The function calculates the length in bytes
@@ -528,70 +596,6 @@ static bool linker_overwrite_method(methodinfo *mg,
    methods and interface methods.
 	
 *******************************************************************************/
-
-#if USES_NEW_SUBTYPE
-static int build_display_inner(classinfo *topc, classinfo *c, int i)
-{
-	int depth;
-	if (!c)
-		return 0;
-	do {
-		if (c->vftbl->arraydesc)
-		{
-			arraydescriptor *a = c->vftbl->arraydesc;
-			if (a->elementvftbl && a->elementvftbl->clazz->super)
-			{
-				classinfo *cls = a->elementvftbl->clazz->super;
-				int n;
-				for (n=0; n<a->dimension; n++)
-					cls = class_array_of(cls, true);
-				depth = build_display_inner(topc, cls, i+1);
-				break;
-			}
-			if (a->componentvftbl && a->elementvftbl)
-			{
-				depth = build_display_inner(topc, a->componentvftbl->clazz, i+1);
-				break;
-			}
-		}
-		depth = build_display_inner(topc, c->super, i+1);
-	} while (false);
-	if (depth >= DISPLAY_SIZE)
-	{
-		if (depth == DISPLAY_SIZE)
-		{
-			topc->vftbl->subtype_overflow = MNEW(vftbl_t *, i+1);
-#if defined(ENABLE_STATISTICS)
-			if (opt_stat)
-				count_vftbl_len += sizeof(void*) * (i+1);
-#endif
-		}
-		topc->vftbl->subtype_overflow[depth - DISPLAY_SIZE] = c->vftbl;
-		return depth + 1;
-	}
-	topc->vftbl->subtype_display[depth] = c->vftbl;
-	return depth + 1;
-}
-
-static void build_display(classinfo *c)
-{
-	int depth;
-	int i;
-
-	depth = build_display_inner(c, c, 0) - 1;
-	c->vftbl->subtype_depth = depth;
-	if (depth >= DISPLAY_SIZE)
-	{
-		c->vftbl->subtype_offset = OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]);
-	}
-	else
-	{
-		c->vftbl->subtype_offset = OFFSET(vftbl_t, subtype_display[0]) + sizeof(void*) * depth;
-		for (i=depth+1; i<=DISPLAY_SIZE; i++)
-			c->vftbl->subtype_display[i] = NULL;
-	}
-}
-#endif
 
 static classinfo *link_class_intern(classinfo *c)
 {
