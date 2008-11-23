@@ -657,8 +657,9 @@ bool builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o)
 #if USES_NEW_SUBTYPE
 /* fast_subtype_check **********************************************************
 
-   Checks if s is a subtype of t, using the restricted subtype relation (see
-   Cliff Click and John Rose: Fast subtype checking in the Hotspot JVM.)
+   Checks if s is a subtype of t, using both the restricted subtype relation
+   and the overflow array (see Cliff Click and John Rose: Fast subtype checking
+   in the Hotspot JVM.)
 
    RETURN VALUE:
       1......s is a subtype of t.
