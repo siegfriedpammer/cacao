@@ -3381,11 +3381,17 @@ gen_method:
 
 					M_ALD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
 					M_CMP_MEMINDEX(REG_ITMP2, -4*DISPLAY_SIZE, REG_ITMP1, 2, REG_ITMP3);
-					M_SETE(d);
-					if (d == REG_ITMP2) {
-						M_BSEXT(d, d);
+					if (d >= 4) {
+						M_SETE(REG_ITMP1);
+						M_BSEXT(REG_ITMP1, d);
+					}
+					else {
+						M_SETE(d);
+						if (d == REG_ITMP2) {
+							M_BSEXT(d, d);
 
-						emit_label_br(cd, BRANCH_LABEL_7); /* jump over M_CLR */
+							emit_label_br(cd, BRANCH_LABEL_7); /* jump over M_CLR */
+						}
 					}
 
 					emit_label(cd, BRANCH_LABEL_9);
@@ -3401,9 +3407,15 @@ gen_method:
 				else {
 					M_CMP_MEMBASE(REG_ITMP2, super->vftbl->subtype_offset, REG_ITMP3);
 
-					M_SETE(d);
-					if (d == REG_ITMP2)
-						M_BSEXT(d, d);
+					if (d >= 4) {
+						M_SETE(REG_ITMP1);
+						M_BSEXT(REG_ITMP1, d);
+					}
+					else {
+						M_SETE(d);
+						if (d == REG_ITMP2)
+							M_BSEXT(d, d);
+					}
 				}
 
 				if (super != NULL)

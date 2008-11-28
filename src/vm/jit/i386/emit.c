@@ -1313,6 +1313,7 @@ void emit_jcc(codegendata *cd, s4 opc, s4 imm)
  */
 void emit_setcc_reg(codegendata *cd, s4 opc, s4 reg)
 {
+	assert(reg < 4);                     /* Can only operate on al, bl, cl, dl. */
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x90 + (u1) (opc);
 	emit_reg(0,(reg));
