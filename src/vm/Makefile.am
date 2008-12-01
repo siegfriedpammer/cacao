@@ -42,8 +42,8 @@ endif
 if ENABLE_JAVASE
 if ENABLE_ANNOTATIONS
 ANNOTATION_SOURCES = \
-	annotation.c \
-	annotation.h
+	annotation.cpp \
+	annotation.hpp
 endif
 
 STACKMAP_SOURCES = \

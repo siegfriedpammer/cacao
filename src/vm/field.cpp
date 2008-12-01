@@ -35,7 +35,7 @@
 
 #include "vm/types.h"
 
-#include "vm/annotation.h"
+#include "vm/annotation.hpp"
 #include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"

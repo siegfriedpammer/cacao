@@ -43,7 +43,7 @@
 #include "vm/string.hpp"
 
 #if defined(ENABLE_ANNOTATIONS)
-#include "vm/annotation.h"
+#include "vm/annotation.hpp"
 #include "vm/vm.hpp"
 #endif
 

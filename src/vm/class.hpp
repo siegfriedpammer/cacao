@@ -40,7 +40,7 @@ typedef struct extra_classref extra_classref;
 #include "vm/types.h"
 
 #if defined(ENABLE_JAVASE)
-# include "vm/annotation.h"
+# include "vm/annotation.hpp"
 #endif
 
 #include "vm/field.hpp"

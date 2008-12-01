@@ -1,4 +1,4 @@
-/* src/vm/annotation.c - class annotations
+/* src/vm/annotation.cpp - class annotations
 
    Copyright (C) 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -34,7 +34,7 @@
 
 #include "toolbox/logging.hpp"
 
-#include "vm/annotation.h"
+#include "vm/annotation.hpp"
 #include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
@@ -79,7 +79,7 @@ static java_handle_objectarray_t *annotation_bytearrays_resize(
 	}
 	
 	newbas = builtin_anewarray(size,
-		Primitive_get_arrayclass_by_type(PRIMITIVETYPE_BYTE));
+		Primitive::get_arrayclass_by_type(PRIMITIVETYPE_BYTE));
 	
 	/* is there a old byte array array? */
 	if (newbas != NULL && bytearrays != NULL) {
@@ -605,7 +605,7 @@ bool annotation_load_field_attribute_runtimeinvisibleannotations(
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

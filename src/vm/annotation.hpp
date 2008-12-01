@@ -1,4 +1,4 @@
-/* src/vm/annotation.h - class annotations
+/* src/vm/annotation.hpp - class annotations
 
    Copyright (C) 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _ANNOTATION_H
-#define _ANNOTATION_H
+#ifndef _ANNOTATION_HPP
+#define _ANNOTATION_HPP
 
 
 #include "config.h"
@@ -75,7 +75,7 @@ bool annotation_load_method_attribute_runtimeinvisibleparameterannotations(
 }
 #endif
 
-#endif /* _ANNOTATION_H */
+#endif /* _ANNOTATION_HPP */
 
 
 /*
@@ -84,7 +84,7 @@ bool annotation_load_method_attribute_runtimeinvisibleparameterannotations(
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
