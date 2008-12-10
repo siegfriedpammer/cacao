@@ -435,64 +435,11 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 	java_lang_Throwable jlt(throwable);
 	java_handle_bytearray_t* ba = jlt.get_backtrace();
 
-	// We need a critical section here as the stacktrace structure is
+	// XXX We need a critical section here as the stacktrace structure is
 	// mapped onto a Java byte-array.
-	LLNI_CRITICAL_START;
-
 	stacktrace_t* st = (stacktrace_t *) LLNI_array_data(ba);
 
-	if ((index < 0) || (index >= st->length)) {
-		/* XXX This should be an IndexOutOfBoundsException (check this
-		   again). */
-		exceptions_throw_arrayindexoutofboundsexception();
-		return NULL;
-	}
-
-	// Get the stacktrace entry.
-	stacktrace_entry_t* ste = &(st->entries[index]);
-
-	// Get the codeinfo, methodinfo and classinfo.
-	codeinfo*   code = ste->code;
-	methodinfo* m    = code->m;
-	classinfo*  c    = m->clazz;
-
-	// Get filename.
-	java_handle_t* filename;
-
-	if (!(m->flags & ACC_NATIVE)) {
-		if (c->sourcefile != NULL)
-			filename = javastring_new(c->sourcefile);
-		else
-			filename = NULL;
-	}
-	else
-		filename = NULL;
-
-	// Get line number.
-	int32_t linenumber;
-
-	if (m->flags & ACC_NATIVE) {
-		linenumber = -2;
-	}
-	else {
-		// FIXME linenumbertable->find could change the methodinfo
-		// pointer when hitting an inlined method.
-		linenumber = code->linenumbertable->find(&m, ste->pc);
-		linenumber = (linenumber == 0) ? -1 : linenumber;
-	}
-
-	LLNI_CRITICAL_END;
-
-	// Get declaring class name.
-	java_handle_t* declaringclass = class_get_classname(c);
-
-	// Allocate a new StackTraceElement object.
-	java_lang_StackTraceElement jlste(declaringclass, javastring_new(m->name), filename, linenumber);
-
-	if (jlste.is_null())
-		return NULL;
-
-	return (jobject) jlste.get_handle();
+	return stacktrace_get_StackTraceElement(st, index);
 }
 
 
@@ -3235,9 +3182,54 @@ jobjectArray JVM_GetAllThreads(JNIEnv *env, jclass dummy)
 
 jobjectArray JVM_DumpThreads(JNIEnv *env, jclass threadClass, jobjectArray threads)
 {
-	log_println("JVM_DumpThreads: IMPLEMENT ME!");
+	int32_t i;
 
-	return NULL;
+	TRACEJVMCALLS(("JVM_DumpThreads((env=%p, threadClass=%p, threads=%p)", env, threadClass, threads));
+
+	if (threads == NULL) {
+		exceptions_throw_nullpointerexception();
+		return NULL;
+	}
+
+	// Get length of the threads array.
+	int32_t length = array_length_get((java_handle_t*) threads);
+
+	if (length <= 0) {
+		exceptions_throw_illegalargumentexception();
+		return NULL;
+	}
+
+	// Allocate array to hold stacktraces.
+	classinfo* arrayclass = class_array_of(class_java_lang_StackTraceElement, true);
+	java_handle_objectarray_t* oas = builtin_anewarray(length, arrayclass);
+
+	if (oas == NULL) {
+		return NULL;
+	}
+
+	// Iterate over all passed thread objects.
+	for (i = 0; i < length; i++) {
+		java_handle_t* thread = array_objectarray_element_get(threads, i);
+
+		// Get thread for the given thread object.
+		threadobject* t = thread_get_thread(thread);
+
+		if (t == NULL)
+			continue;
+
+		// Get stacktrace for given thread.
+		stacktrace_t* st = stacktrace_get_of_thread(t);
+
+		if (st == NULL)
+			continue;
+
+		// Convert stacktrace into array of StackTraceElements.
+		java_handle_objectarray_t* oa = stacktrace_get_StackTraceElements(st);
+
+		array_objectarray_element_set(oas, i, (java_handle_t*) oa);
+	}
+
+	return oas;
 }
 
 

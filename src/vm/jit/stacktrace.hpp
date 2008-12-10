@@ -106,6 +106,8 @@ java_handle_bytearray_t   *stacktrace_get(stackframeinfo_t *sfi);
 java_handle_bytearray_t   *stacktrace_get_current(void);
 
 #if defined(ENABLE_JAVASE)
+java_handle_t*             stacktrace_get_StackTraceElement(stacktrace_t *st, int32_t index);
+java_handle_objectarray_t* stacktrace_get_StackTraceElements(stacktrace_t *st);
 classinfo                 *stacktrace_get_caller_class(int depth);
 classloader_t             *stacktrace_first_nonnull_classloader(void);
 java_handle_objectarray_t *stacktrace_getClassContext(void);
@@ -117,6 +119,7 @@ void                       stacktrace_print(stacktrace_t *st);
 void                       stacktrace_print_current(void);
 
 #if defined(ENABLE_THREADS)
+stacktrace_t*              stacktrace_get_of_thread(threadobject *t);
 void                       stacktrace_print_of_thread(threadobject *t);
 #endif
 

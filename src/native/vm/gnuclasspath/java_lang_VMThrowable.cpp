@@ -101,66 +101,7 @@ JNIEXPORT jobjectArray JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *
 
 	assert(st != NULL);
 
-	stacktrace_entry_t* ste = st->entries;
-
-	/* Create the stacktrace element array. */
-
-	java_handle_objectarray_t* oa = builtin_anewarray(st->length, class_java_lang_StackTraceElement);
-
-	if (oa == NULL)
-		return NULL;
-
-	for (int i = 0; i < st->length; i++, ste++) {
-		/* Get the codeinfo and methodinfo. */
-
-		codeinfo*   code = ste->code;
-		methodinfo* m    = code->m;
-
-		/* Get filename. */
-
-		java_handle_t* filename;
-
-		if (!(m->flags & ACC_NATIVE)) {
-			if (m->clazz->sourcefile)
-				filename = javastring_new(m->clazz->sourcefile);
-			else
-				filename = NULL;
-		}
-		else
-			filename = NULL;
-
-		/* get line number */
-
-		int32_t linenumber;
-
-		if (m->flags & ACC_NATIVE) {
-			linenumber = -1;
-		}
-		else {
-			/* FIXME linenumbertable->find could change the methodinfo
-			   pointer when hitting an inlined method. */
-
-			linenumber = code->linenumbertable->find(&m, ste->pc);
-			linenumber = (linenumber == 0) ? -1 : linenumber;
-		}
-
-		/* get declaring class name */
-
-		java_handle_t* declaringclass = class_get_classname(m->clazz);
-
-		/* allocate a new stacktrace element */
-
-		java_handle_t* h = builtin_new(class_java_lang_StackTraceElement);
-
-		if (h == NULL)
-			return NULL;
-
-		java_lang_StackTraceElement ste(h, filename, linenumber, declaringclass, javastring_new(m->name), ((m->flags & ACC_NATIVE) ? 1 : 0));
-
-		array_objectarray_element_set(oa, i, ste.get_handle());
-	}
-
-	return (jobjectArray) oa;
+	return stacktrace_get_StackTraceElements(st);
 }
 
 } // extern "C"

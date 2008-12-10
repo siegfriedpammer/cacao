@@ -674,6 +674,123 @@ java_handle_bytearray_t *stacktrace_get_current(void)
 }
 
 
+/**
+ * Creates a java.lang.StackTraceElement for one element of the given
+ * stacktrace.
+ *
+ * @param st Given stacktrace.
+ * @param index Index of element inside stacktrace.
+ * @return The filled StackTraceElement object.
+ */
+#if defined(ENABLE_JAVASE)
+java_handle_t* stacktrace_get_StackTraceElement(stacktrace_t* st, int32_t index)
+{
+	if ((index < 0) || (index >= st->length)) {
+		/* XXX This should be an IndexOutOfBoundsException (check this
+		   again). */
+		exceptions_throw_arrayindexoutofboundsexception();
+		return NULL;
+	}
+
+	// Get the stacktrace entry.
+	stacktrace_entry_t* ste = &(st->entries[index]);
+
+	// Get the codeinfo, methodinfo and classinfo.
+	codeinfo*   code = ste->code;
+	methodinfo* m    = code->m;
+	classinfo*  c    = m->clazz;
+
+	// Get filename.
+	java_handle_t* filename;
+
+	if (!(m->flags & ACC_NATIVE)) {
+		if (c->sourcefile != NULL)
+			filename = javastring_new(c->sourcefile);
+		else
+			filename = NULL;
+	}
+	else
+		filename = NULL;
+
+	// Get line number.
+	int32_t linenumber;
+
+	if (m->flags & ACC_NATIVE) {
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
+		linenumber = -1;
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+		linenumber = -2;
+#else
+# error unknown classpath configuration
+#endif
+	}
+	else {
+		// FIXME linenumbertable->find could change the methodinfo
+		// pointer when hitting an inlined method.
+		linenumber = code->linenumbertable->find(&m, ste->pc);
+		linenumber = (linenumber == 0) ? -1 : linenumber;
+	}
+
+	// Get declaring class name.
+	java_handle_t* declaringclass = class_get_classname(c);
+
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
+	// Allocate a new StackTraceElement object.
+	java_handle_t* h = builtin_new(class_java_lang_StackTraceElement);
+
+	if (h == NULL)
+			return NULL;
+
+	java_lang_StackTraceElement jlste(h, filename, linenumber, declaringclass, javastring_new(m->name), ((m->flags & ACC_NATIVE) ? 1 : 0));
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	// Allocate a new StackTraceElement object.
+	java_lang_StackTraceElement jlste(declaringclass, javastring_new(m->name), filename, linenumber);
+
+	if (jlste.is_null())
+		return NULL;
+#else
+# error unknown classpath configuration
+#endif
+
+	return jlste.get_handle();
+}
+#endif
+
+
+/**
+ * Creates a complete array of java.lang.StackTraceElement objects
+ * for the given stacktrace.
+ *
+ * @param st Given stacktrace.
+ * @return Array of filled StackTraceElement objects.
+ */
+#if defined(ENABLE_JAVASE)
+java_handle_objectarray_t* stacktrace_get_StackTraceElements(stacktrace_t* st)
+{
+	// Create the stacktrace element array.
+	java_handle_objectarray_t* oa = builtin_anewarray(st->length, class_java_lang_StackTraceElement);
+
+	if (oa == NULL)
+		return NULL;
+
+	// Iterate over all stacktrace elements.
+	for (int i = 0; i < st->length; i++) {
+
+		// Get stacktrace element at current index.
+		java_handle_t* h = stacktrace_get_StackTraceElement(st, i);
+
+		if (h == NULL)
+			return NULL;
+
+		// Store stacktrace element in array.
+		array_objectarray_element_set(oa, i, h);
+	}
+
+	return oa;
+}
+#endif
+
+
 /* stacktrace_get_caller_class *************************************************
 
    Get the class on the stack at the given depth.  This function skips
@@ -1185,6 +1302,36 @@ void stacktrace_print_current(void)
 		stacktrace_print_entry(m, linenumber);
 	}
 }
+
+
+/**
+ * Creates a stacktrace for the given thread.
+ *
+ * @param t Given thread.
+ * @return Current stacktrace of the given thread.
+ *
+ * XXX: Creation of the stacktrace starts at the most recent
+ * stackframeinfo block. If the thread is not inside the native
+ * world, the created stacktrace is not complete!
+ */
+#if defined(ENABLE_THREADS)
+stacktrace_t* stacktrace_get_of_thread(threadobject* t)
+{
+	stackframeinfo_t*        sfi;
+	java_handle_bytearray_t* ba;
+	stacktrace_t*            st;
+
+	sfi = t->_stackframeinfo;
+	ba  = stacktrace_get(sfi);
+
+	if (ba == NULL)
+		return NULL;
+
+	st  = (stacktrace_t*) LLNI_array_data(ba);
+
+	return st;
+}
+#endif
 
 
 /* stacktrace_print_of_thread **************************************************
