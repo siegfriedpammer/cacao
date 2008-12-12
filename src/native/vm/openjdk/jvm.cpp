@@ -50,6 +50,8 @@
 #include INCLUDE_JVM_MD_H
 #include INCLUDE_JVM_H
 
+#include "fdlibm/fdlibm.h"
+
 #include "mm/memory.hpp"
 
 #include "native/llni.h"
@@ -2893,11 +2895,17 @@ void *JVM_FindLibraryEntry(void* handle, const char* name)
 
 /* JVM_IsNaN */
 
-jboolean JVM_IsNaN(jdouble a)
+jboolean JVM_IsNaN(jdouble d)
 {
-	log_println("JVM_IsNaN: IMPLEMENT ME!");
+	bool result;
 
-	return 0;
+	TRACEJVMCALLSENTER(("JVM_IsNaN(d=%f)", d));
+
+	result = isnan(d);
+
+	TRACEJVMCALLSEXIT(("->%d", result));
+
+	return result;
 }
 
 
