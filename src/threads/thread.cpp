@@ -987,6 +987,26 @@ intptr_t threads_get_current_tid(void)
 }
 
 
+/**
+ * Set the current state of the given thread. This method should only
+ * be called while holding the threadlist-lock and after checking that
+ * the new state is valid. It is best to not call this method directly
+ * but call the specific setter methods below.
+ */
+static inline void thread_set_state(threadobject *t, int state)
+{
+	// Set the state of our internal threadobject.
+	t->state = state;
+
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+	// Set the state of the java.lang.Thread object.
+	java_lang_Thread thread(thread_get_object(t));
+	assert(thread.is_non_null());
+	thread.set_threadStatus(state);
+#endif
+}
+
+
 /* thread_set_state_runnable ***************************************************
 
    Set the current state of the given thread to THREAD_STATE_RUNNABLE.
@@ -1003,7 +1023,7 @@ void thread_set_state_runnable(threadobject *t)
 	ThreadList::lock();
 
 	if (t->state != THREAD_STATE_TERMINATED) {
-		t->state = THREAD_STATE_RUNNABLE;
+		thread_set_state(t, THREAD_STATE_RUNNABLE);
 
 		DEBUGTHREADS("is RUNNABLE", t);
 	}
@@ -1028,7 +1048,7 @@ void thread_set_state_waiting(threadobject *t)
 	ThreadList::lock();
 
 	if (t->state != THREAD_STATE_TERMINATED) {
-		t->state = THREAD_STATE_WAITING;
+		thread_set_state(t, THREAD_STATE_WAITING);
 
 		DEBUGTHREADS("is WAITING", t);
 	}
@@ -1054,7 +1074,7 @@ void thread_set_state_timed_waiting(threadobject *t)
 	ThreadList::lock();
 
 	if (t->state != THREAD_STATE_TERMINATED) {
-		t->state = THREAD_STATE_TIMED_WAITING;
+		thread_set_state(t, THREAD_STATE_TIMED_WAITING);
 
 		DEBUGTHREADS("is TIMED_WAITING", t);
 	}
@@ -1079,7 +1099,7 @@ void thread_set_state_parked(threadobject *t)
 	ThreadList::lock();
 
 	if (t->state != THREAD_STATE_TERMINATED) {
-		t->state = THREAD_STATE_PARKED;
+		thread_set_state(t, THREAD_STATE_PARKED);
 
 		DEBUGTHREADS("is PARKED", t);
 	}
@@ -1104,7 +1124,7 @@ void thread_set_state_timed_parked(threadobject *t)
 	ThreadList::lock();
 
 	if (t->state != THREAD_STATE_TERMINATED) {
-		t->state = THREAD_STATE_TIMED_PARKED;
+		thread_set_state(t, THREAD_STATE_TIMED_PARKED);
 
 		DEBUGTHREADS("is TIMED_PARKED", t);
 	}
@@ -1126,7 +1146,7 @@ void thread_set_state_terminated(threadobject *t)
 
 	ThreadList::lock();
 
-	t->state = THREAD_STATE_TERMINATED;
+	thread_set_state(t, THREAD_STATE_TERMINATED);
 
 	DEBUGTHREADS("is TERMINATED", t);
 

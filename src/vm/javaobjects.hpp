@@ -1969,8 +1969,9 @@ public:
 	inline java_handle_t* get_uncaughtExceptionHandler() const;
 
 	// Setters.
-	inline void set_priority(int32_t value);
-	inline void set_group   (java_handle_t* value);
+	inline void set_priority    (int32_t value);
+	inline void set_group       (java_handle_t* value);
+	inline void set_threadStatus(int32_t value);
 };
 
 
@@ -2003,6 +2004,11 @@ inline void java_lang_Thread::set_priority(int32_t value)
 inline void java_lang_Thread::set_group(java_handle_t* value)
 {
 	set(_handle, offset_group, value);
+}
+
+inline void java_lang_Thread::set_threadStatus(int32_t value)
+{
+	set(_handle, offset_threadStatus, value);
 }
 
 
