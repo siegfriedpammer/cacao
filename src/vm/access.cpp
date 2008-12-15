@@ -341,10 +341,10 @@ bool access_check_method(methodinfo *m, int callerdepth)
 	return true;
 }
 
-#if defined(__cplusplus)
-}
 #endif
 
+#if defined(__cplusplus)
+}
 #endif
 
 
