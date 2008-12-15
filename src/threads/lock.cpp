@@ -675,6 +675,22 @@ static void lock_inflate(java_handle_t *o, lock_record_t *lr)
 }
 
 
+/* sable_flc_waiting ***********************************************************
+
+   Enqueue the current thread on another thread's FLC list. The function
+   blocks until the lock has been inflated by the owning thread.
+
+   The algorithm used to be an almost literal copy from SableVM. The
+   superfluous list traversal in the waiting loop has been removed since,
+   though.
+
+   IN:
+	  lockword.....the object's lockword as seen at the first locking attempt
+	  t............the current thread
+	  o............the object of which to enter the monitor
+
+*******************************************************************************/
+
 static void sable_flc_waiting(Lockword *lockword, threadobject *t, java_handle_t *o)
 {
 	int32_t index;
@@ -714,30 +730,18 @@ static void sable_flc_waiting(Lockword *lockword, threadobject *t, java_handle_t
 			t_other->flc_tail = t;
 		f = t_other->flc_tail;
 
-		for (;;)
+		// The other thread will clear flc_object.
+		while (t->flc_object)
 		{
-			threadobject *current;
+			// We are not cleared yet -- the other thread cannot have seen
+			// the FLC bit yet.
+			assert(t_other->flc_bit);
 
 			// Wait until another thread sees the flc bit and notifies
 			// us of unlocking.
 			t->flc_cond->wait(t_other->flc_lock);
-
-			if (t_other->flc_tail != f)
-				break;
-			/* Traverse FLC list looking if we're still there */
-			current = t_other->flc_list;
-			while (current && current != t)
-				current = current->flc_next;
-			if (!current)
-				/* not in list anymore, can stop waiting */
-				break;
-
-			/* We are still in the list -- the other thread cannot have seen
-			   the FLC bit yet */
-			assert(t_other->flc_bit);
 		}
 
-		t->flc_object = NULL;   /* for garbage collector? */
 		t->flc_next = NULL;
 	}
 	else
@@ -745,6 +749,17 @@ static void sable_flc_waiting(Lockword *lockword, threadobject *t, java_handle_t
 
 	t_other->flc_lock->unlock();
 }
+
+/* notify_flc_waiters **********************************************************
+
+   Traverse the thread's FLC list and inflate all corresponding locks. Notify
+   the associated threads as well.
+
+   IN:
+	  t............the current thread
+	  o............the object currently being unlocked
+
+*******************************************************************************/
 
 static void notify_flc_waiters(threadobject *t, java_handle_t *o)
 {
@@ -775,6 +790,7 @@ static void notify_flc_waiters(threadobject *t, java_handle_t *o)
 
 		// Wake the waiting threads.
 		current->flc_cond->broadcast();
+		current->flc_object = NULL;
 
 		current = current->flc_next;
 	}
