@@ -2597,13 +2597,25 @@ jobject JVM_NewMultiArray(JNIEnv *env, jclass eltClass, jintArray dim)
 
 	/* Create an array-class if necessary. */
 
-	if (class_is_primitive(c))
+	if (class_is_primitive(c)) {
 		ac = Primitive::get_arrayclass_by_name(c->name);
+
+		// Arrays of void are not allowed.
+		if (ac == NULL) {
+			exceptions_throw_illegalargumentexception();
+			return NULL;
+		}
+
+		if (length > 1)
+			ac = class_multiarray_of((length - 1), ac, true);
+	}
 	else
-		ac = class_array_of(c, true);
+		ac = class_multiarray_of(length, c, true);
 
 	if (ac == NULL)
 		return NULL;
+
+	/* Allocate a new array on the heap. */
 
 	a = builtin_multianewarray(length, (java_handle_t *) ac, dims);
 
