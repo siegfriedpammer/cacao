@@ -38,6 +38,7 @@
 #endif
 
 #include "vm/jit/builtin.hpp"
+#include "vm/javaobjects.hpp"
 #include "vm/properties.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
@@ -93,6 +94,18 @@ JNIEXPORT jstring JNICALL Java_java_lang_System_getProperty0(JNIEnv *env, jclass
 	return (jstring) result;
 }
 
+/*
+ * Class:     java/lang/System
+ * Method:    identityHashCode
+ * Signature: (Ljava/lang/Object;)I
+ */
+JNIEXPORT jint JNICALL Java_java_lang_System_identityHashCode(JNIEnv *env, jclass clazz, jobject obj)
+{
+        java_lang_Object o(obj);
+
+        return o.get_hashcode();
+}
+
 } // extern "C"
 
 
@@ -101,6 +114,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_System_getProperty0(JNIEnv *env, jclass
 static JNINativeMethod methods[] = {
 	{ (char*) "arraycopy",    (char*) "(Ljava/lang/Object;ILjava/lang/Object;II)V", (void*) (uintptr_t) &Java_java_lang_System_arraycopy    },
 	{ (char*) "getProperty0", (char*) "(Ljava/lang/String;)Ljava/lang/String;",     (void*) (uintptr_t) &Java_java_lang_System_getProperty0 },
+	{ (char*) "identityHashCode", (char*) "(Ljava/lang/Object;)I",                  (void*) (uintptr_t) &Java_java_lang_System_identityHashCode }
 };
 
 

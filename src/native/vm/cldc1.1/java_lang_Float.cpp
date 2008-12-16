@@ -63,6 +63,18 @@ JNIEXPORT jint JNICALL Java_java_lang_Float_floatToIntBits(JNIEnv *env, jclass c
 	return val.i;
 }
 
+/*
+ * Class:     java/lang/Float
+ * Method:    intBitsToFloat
+ * Signature: (I)F
+ */
+JNIEXPORT jfloat JNICALL Java_java_lang_Float_intBitsToFloat(JNIEnv *env, jclass clazz, jint value)
+{
+        imm_union val;
+        val.i = value;
+        return val.f;
+}
+
 } // extern "C"
 
 
@@ -70,6 +82,7 @@ JNIEXPORT jint JNICALL Java_java_lang_Float_floatToIntBits(JNIEnv *env, jclass c
  
 static JNINativeMethod methods[] = {
 	{ (char*) "floatToIntBits", (char*) "(F)I", (void*) (uintptr_t) &Java_java_lang_Float_floatToIntBits },
+	{ (char*) "intBitsToFloat", (char*) "(I)F", (void*) (uintptr_t) &Java_java_lang_Float_intBitsToFloat }
 };
  
  

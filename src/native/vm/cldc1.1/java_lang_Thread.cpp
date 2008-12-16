@@ -35,6 +35,7 @@
 #endif
 
 #include "threads/thread.hpp"
+#include "threads/threadlist.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -128,7 +129,6 @@ JNIEXPORT jboolean JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, jobject _t
 }
 
 
-#if 0
 /*
  * Class:     java/lang/Thread
  * Method:    activeCount
@@ -136,6 +136,11 @@ JNIEXPORT jboolean JNICALL Java_java_lang_Thread_isAlive(JNIEnv *env, jobject _t
  */
 JNIEXPORT s4 JNICALL Java_java_lang_Thread_activeCount(JNIEnv *env, jclass clazz)
 {
+#if defined(ENABLE_THREADS)
+	return ThreadList::get_number_of_non_daemon_threads();
+#else
+	return 1;
+#endif
 }
 
 
@@ -146,9 +151,14 @@ JNIEXPORT s4 JNICALL Java_java_lang_Thread_activeCount(JNIEnv *env, jclass clazz
  */
 JNIEXPORT void JNICALL Java_java_lang_Thread_interrupt0(JNIEnv *env, jobject _this)
 {
+#if defined(ENABLE_THREADS)
+	java_lang_Thread jlt(_this);
+        threadobject* t = jlt.get_vm_thread();
+        threads_thread_interrupt(t);
+#endif
 }
 
-
+#if 0
 /*
  * Class:     java/lang/Thread
  * Method:    internalExit
@@ -183,10 +193,10 @@ static JNINativeMethod methods[] = {
 	{ (char*) "sleep",         (char*) "(J)V",                 (void*) (uintptr_t) &Java_java_lang_Thread_sleep         },
 	{ (char*) "start0",        (char*) "()V",                  (void*) (uintptr_t) &Java_java_lang_Thread_start0        },
 	{ (char*) "isAlive",       (char*) "()Z",                  (void*) (uintptr_t) &Java_java_lang_Thread_isAlive       },
-#if 0
 	{ (char*) "activeCount",   (char*) "()I",                  (void*) (uintptr_t) &Java_java_lang_Thread_activeCount   },
 	{ (char*) "setPriority0",  (char*) "(II)V",                (void*) (uintptr_t) &Java_java_lang_Thread_setPriority0  },
 	{ (char*) "interrupt0",    (char*) "()V",                  (void*) (uintptr_t) &Java_java_lang_Thread_interrupt0    },
+#if 0
 	{ (char*) "internalExit",  (char*) "()V",                  (void*) (uintptr_t) &Java_java_lang_Thread_internalExit  },
 #endif
 	{ (char*) "yield",         (char*) "()V",                  (void*) (uintptr_t) &Java_java_lang_Thread_yield         },
