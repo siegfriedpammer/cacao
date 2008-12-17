@@ -64,6 +64,7 @@
 
 #include "threads/lock.hpp"
 #include "threads/thread.hpp"
+#include "threads/threadlist.hpp"
 
 #include "toolbox/logging.hpp"
 #include "toolbox/list.hpp"
@@ -3192,9 +3193,31 @@ jboolean JVM_CX8Field(JNIEnv *env, jobject obj, jfieldID fid, jlong oldVal, jlon
 
 jobjectArray JVM_GetAllThreads(JNIEnv *env, jclass dummy)
 {
-	log_println("JVM_GetAllThreads: IMPLEMENT ME!");
+	// Get a list of all active threads.
+	list<threadobject*> active_threads;
+	ThreadList::get_active_threads(active_threads);
 
-	return NULL;
+	// Allocate array to hold the java.lang.Thread objects.
+	int32_t length = active_threads.size();
+	java_handle_objectarray_t* oa = builtin_anewarray(length, class_java_lang_Thread);
+
+	if (oa == NULL)
+		return NULL;
+
+	// Iterate over all threads (which were active just a second ago).
+	int32_t index = 0;
+	for (List<threadobject*>::iterator it = active_threads.begin(); it != active_threads.end(); it++) {
+		threadobject* t = *it;
+
+		java_handle_t* h = thread_get_object(t);
+		assert(h != NULL);
+
+		array_objectarray_element_set(oa, index, h);
+
+		index++;
+	}
+
+	return oa;
 }
 
 
@@ -3240,11 +3263,11 @@ jobjectArray JVM_DumpThreads(JNIEnv *env, jclass threadClass, jobjectArray threa
 		// Get stacktrace for given thread.
 		stacktrace_t* st = stacktrace_get_of_thread(t);
 
-		if (st == NULL)
-			continue;
-
 		// Convert stacktrace into array of StackTraceElements.
 		java_handle_objectarray_t* oa = stacktrace_get_StackTraceElements(st);
+
+		if (oa == NULL)
+			return NULL;
 
 		array_objectarray_element_set(oas, i, (java_handle_t*) oa);
 	}

@@ -102,6 +102,26 @@ void ThreadList::dump_threads()
 
 
 /**
+ * Fills the passed list with all currently active threads. Creating a copy
+ * of the thread list here, is the only way to ensure we do not end up in a
+ * dead-lock when iterating over the list.
+ *
+ * @param list list class to be filled
+ */
+void ThreadList::get_active_threads(list<threadobject*> &list)
+{
+	// Lock the thread lists.
+	lock();
+
+	// Use the assignment operator to create a copy of the thread list.
+	list = _active_thread_list;
+
+	// Unlock the thread lists.
+	unlock();
+}
+
+
+/**
  * Return a free thread object.
  *
  * @return free thread object or NULL if none available

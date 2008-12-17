@@ -685,6 +685,8 @@ java_handle_bytearray_t *stacktrace_get_current(void)
 #if defined(ENABLE_JAVASE)
 java_handle_t* stacktrace_get_StackTraceElement(stacktrace_t* st, int32_t index)
 {
+	assert(st != NULL);
+
 	if ((index < 0) || (index >= st->length)) {
 		/* XXX This should be an IndexOutOfBoundsException (check this
 		   again). */
@@ -767,14 +769,18 @@ java_handle_t* stacktrace_get_StackTraceElement(stacktrace_t* st, int32_t index)
 #if defined(ENABLE_JAVASE)
 java_handle_objectarray_t* stacktrace_get_StackTraceElements(stacktrace_t* st)
 {
+	// Get length of stacktrace. If stacktrace is not available
+	// an empty array should be returned.
+	int32_t length = (st != NULL) ? st->length : 0;
+
 	// Create the stacktrace element array.
-	java_handle_objectarray_t* oa = builtin_anewarray(st->length, class_java_lang_StackTraceElement);
+	java_handle_objectarray_t* oa = builtin_anewarray(length, class_java_lang_StackTraceElement);
 
 	if (oa == NULL)
 		return NULL;
 
 	// Iterate over all stacktrace elements.
-	for (int i = 0; i < st->length; i++) {
+	for (int i = 0; i < length; i++) {
 
 		// Get stacktrace element at current index.
 		java_handle_t* h = stacktrace_get_StackTraceElement(st, i);

@@ -73,6 +73,7 @@ public:
 	static inline void          add_to_active_thread_list(threadobject* t);
 
 	static void                 dump_threads();
+	static void                 get_active_threads(list<threadobject*> &list);
 	static inline threadobject* get_main_thread();
 	static threadobject*        get_free_thread();
 	static int32_t              get_free_thread_index();
