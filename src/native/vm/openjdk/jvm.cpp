@@ -2133,8 +2133,7 @@ jboolean JVM_IsThreadAlive(JNIEnv* env, jobject jthread)
 	h = (java_handle_t *) jthread;
 	t = thread_get_thread(h);
 
-	/* The threadobject is null when a thread is created in Java. The
-	   priority is set later during startup. */
+	/* The threadobject is null when a thread is created in Java. */
 
 	if (t == NULL)
 		return 0;
@@ -2239,6 +2238,8 @@ void JVM_Interrupt(JNIEnv* env, jobject jthread)
 	h = (java_handle_t *) jthread;
 	t = thread_get_thread(h);
 
+	/* The threadobject is null when a thread is created in Java. */
+
 	if (t == NULL)
 		return;
 
@@ -2258,6 +2259,11 @@ jboolean JVM_IsInterrupted(JNIEnv* env, jobject jthread, jboolean clear_interrup
 
 	h = (java_handle_t *) jthread;
 	t = thread_get_thread(h);
+
+	/* The threadobject is null when a thread is created in Java. */
+
+	if (t == NULL)
+		return JNI_FALSE;
 
 	interrupted = thread_is_interrupted(t);
 
@@ -3257,6 +3263,7 @@ jobjectArray JVM_DumpThreads(JNIEnv *env, jclass threadClass, jobjectArray threa
 		// Get thread for the given thread object.
 		threadobject* t = thread_get_thread(thread);
 
+		// The threadobject is null when a thread is created in Java.
 		if (t == NULL)
 			continue;
 

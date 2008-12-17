@@ -25,6 +25,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <stdint.h>
 
 #include "native/jni.hpp"
@@ -56,7 +57,7 @@ JNIEXPORT jint JNICALL Java_java_lang_VMThread_countStackFrames(JNIEnv *env, job
 {
 	log_println("Java_java_lang_VMThread_countStackFrames: Deprecated.  Not implemented.");
 
-    return 0;
+	return 0;
 }
 
 
@@ -88,6 +89,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, jobject _t
 
 	h = (java_handle_t *) _this;
 	t = thread_get_thread(h);
+	assert(t != NULL);
 
 	threads_thread_interrupt(t);
 #endif
@@ -107,6 +109,7 @@ JNIEXPORT jboolean JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, jo
 
 	h = (java_handle_t *) _this;
 	t = thread_get_thread(h);
+	assert(t != NULL);
 
 	return thread_is_interrupted(t);
 #else
@@ -154,6 +157,7 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, jo
 
 	h = (java_handle_t *) _this;
 	t = thread_get_thread(h);
+	assert(t != NULL);
 
 	threads_set_thread_priority(t->tid, priority);
 #endif
@@ -279,6 +283,7 @@ JNIEXPORT jstring JNICALL Java_java_lang_VMThread_getState(JNIEnv *env, jobject 
 
 	h = (java_handle_t *) _this;
 	t = thread_get_thread(h);
+	assert(t != NULL);
 
 	state = cacaothread_get_state(t);
 	
