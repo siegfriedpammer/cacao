@@ -94,6 +94,10 @@ typedef struct _vftbl vftbl_t;
 #include "vm/class.hpp"
 #include "vm/references.h"
 
+#if USES_NEW_SUBTYPE
+#define DISPLAY_SIZE 4
+#endif
+
 struct _vftbl {
 	methodptr   *interfacetable[1];    /* interface table (access via macro)  */
 	classinfo   *clazz;                /* class, the vtbl belongs to          */
@@ -103,6 +107,14 @@ struct _vftbl {
 	s4           baseval;              /* base for runtime type check         */
 	                                   /* (-index for interfaces)             */
 	s4           diffval;              /* high - base for runtime type check  */
+
+#if USES_NEW_SUBTYPE
+	s4 subtype_depth;
+	s4 subtype_offset;
+	struct _vftbl *subtype_display[DISPLAY_SIZE+1];  /* the last one is cache */
+	struct _vftbl **subtype_overflow;
+#endif
+
 	s4          *interfacevftbllength; /* length of interface vftbls          */
 	methodptr    table[1];             /* class vftbl                         */
 };

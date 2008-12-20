@@ -359,8 +359,14 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 		case BRANCH_LE:
 			M_BGT(8);
 			break;
+		case BRANCH_GE:
+			M_BLT(8);
+			break;
 		case BRANCH_EQ:
 			M_BNE(8);
+			break;
+		case BRANCH_NE:
+			M_BEQ(8);
 			break;
 		case BRANCH_UGT:
 			M_BULE(8);
@@ -1395,6 +1401,19 @@ void emit_alul_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 disp)
 	}
 }
 
+void emit_alu_memindex_reg(codegendata *cd, s8 opc, s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg)
+{
+	emit_rex(1,(reg),(indexreg),(basereg));
+	*(cd->mcodeptr++) = (((opc)) << 3) + 3;
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
+}
+
+void emit_alul_memindex_reg(codegendata *cd, s8 opc, s8 disp, s8 basereg, s8 indexreg, s8 scale, s8 reg)
+{
+	emit_rex(0,(reg),(indexreg),(basereg));
+	*(cd->mcodeptr++) = (((opc)) << 3) + 3;
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
+}
 
 void emit_test_reg_reg(codegendata *cd, s8 reg, s8 dreg) {
 	emit_rex(1,(reg),0,(dreg));
@@ -1446,10 +1465,29 @@ void emit_leal_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 reg) {
 }
 
 
+void emit_incl_reg(codegendata *cd, s8 reg)
+{
+	*(cd->mcodeptr++) = 0xff;
+	emit_reg(0,(reg));
+}
+
+void emit_incq_reg(codegendata *cd, s8 reg)
+{
+	emit_rex(1,0,0,(reg));
+	*(cd->mcodeptr++) = 0xff;
+	emit_reg(0,(reg));
+}
 
 void emit_incl_membase(codegendata *cd, s8 basereg, s8 disp)
 {
 	emit_rex(0,0,0,(basereg));
+	*(cd->mcodeptr++) = 0xff;
+	emit_membase(cd, (basereg),(disp),0);
+}
+
+void emit_incq_membase(codegendata *cd, s8 basereg, s8 disp)
+{
+	emit_rex(1,0,0,(basereg));
 	*(cd->mcodeptr++) = 0xff;
 	emit_membase(cd, (basereg),(disp),0);
 }
@@ -1684,6 +1722,18 @@ void emit_shiftl_imm_membase(codegendata *cd, s8 opc, s8 imm, s8 basereg, s8 dis
 void emit_jmp_imm(codegendata *cd, s8 imm) {
 	*(cd->mcodeptr++) = 0xe9;
 	emit_imm32((imm));
+}
+
+/* like emit_jmp_imm but allows 8 bit optimization */
+void emit_jmp_imm2(codegendata *cd, s8 imm) {
+	if (IS_IMM8(imm)) {
+		*(cd->mcodeptr++) = 0xeb;
+		emit_imm8((imm));
+	}
+	else {
+		*(cd->mcodeptr++) = 0xe9;
+		emit_imm32((imm));
+	}
 }
 
 

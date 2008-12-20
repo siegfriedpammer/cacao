@@ -43,6 +43,10 @@
 #define BRANCH_LABEL_4    4
 #define BRANCH_LABEL_5    5
 #define BRANCH_LABEL_6    6
+#define BRANCH_LABEL_7    7
+#define BRANCH_LABEL_8    8
+#define BRANCH_LABEL_9    9
+#define BRANCH_LABEL_10  10
 
 
 /* constant range macros ******************************************************/

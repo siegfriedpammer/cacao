@@ -188,6 +188,7 @@
 #define M_LMUL_IMM(a,b,c)       emit_imul_imm_reg_reg(cd, (b), (a), (c))
 
 #define M_IINC(a)               emit_incl_reg(cd, (a))
+#define M_LINC(a)               emit_incq_reg(cd, (a))
 #define M_IDEC(a)               emit_decl_reg(cd, (a))
 
 #define M_ALD(a,b,disp) \
@@ -267,12 +268,14 @@
 #define M_LCMP_IMM(a,b)         emit_alu_imm_reg(cd, ALU_CMP, (a), (b))
 #define M_LCMP_IMM_MEMBASE(a,b,c) emit_alu_imm_membase(cd, ALU_CMP, (a), (b), (c))
 #define M_LCMP_MEMBASE(a,b,c)   emit_alu_membase_reg(cd, ALU_CMP, (a), (b), (c))
+#define M_LCMP_MEMINDEX(a,b,c,d,e) emit_alul_memindex_reg(cd, ALU_CMP, (b), (a), (c), (d), (e))
 
 #define M_ICMP(a,b)             emit_alul_reg_reg(cd, ALU_CMP, (a), (b))
 #define M_ICMP_IMM(a,b)         emit_alul_imm_reg(cd, ALU_CMP, (a), (b))
 #define M_ICMP_IMM32(a,b)       emit_alul_imm32_reg(cd, ALU_CMP, (a), (b))
 #define M_ICMP_IMM_MEMBASE(a,b,c) emit_alul_imm_membase(cd, ALU_CMP, (a), (b), (c))
 #define M_ICMP_MEMBASE(a,b,c)   emit_alul_membase_reg(cd, ALU_CMP, (a), (b), (c))
+#define M_ICMP_MEMINDEX(a,b,c,d,e) emit_alu_memindex_reg(cd, ALU_CMP, (b), (a), (c), (d), (e))
 
 #define M_BEQ(disp)             emit_jcc(cd, CC_E, (disp))
 #define M_BNE(disp)             emit_jcc(cd, CC_NE, (disp))
@@ -286,6 +289,7 @@
 #define M_BUGE(disp)            emit_jcc(cd, CC_AE, (disp))
 #define M_BUGT(disp)            emit_jcc(cd, CC_A, (disp))
 
+#define M_SETE(a)               emit_setcc_reg(cd, CC_E, (a))
 #define M_SETNE(a)              emit_setcc_reg(cd, CC_NE, (a))
 #define M_SETULE(a)             emit_setcc_reg(cd, CC_BE, (a))
 
@@ -306,6 +310,7 @@
 
 #define M_JMP(a)                emit_jmp_reg(cd, (a))
 #define M_JMP_IMM(a)            emit_jmp_imm(cd, (a))
+#define M_JMP_IMM2(a)           emit_jmp_imm2(cd, (a))
 #define M_CALL(a)               emit_call_reg(cd, (a))
 #define M_CALL_IMM(a)           emit_call_imm(cd, (a))
 #define M_RET                   M_BYTE1(0xc3)
@@ -355,6 +360,7 @@
 #define M_RDTSC                 emit_rdtsc(cd)
 
 #define M_IINC_MEMBASE(a,b)     emit_incl_membase(cd, (a), (b))
+#define M_LINC_MEMBASE(a,b)     emit_incq_membase(cd, (a), (b))
 
 #define M_IADD_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_ADD, (a), (b), (c))
 #define M_IADC_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_ADC, (a), (b), (c))

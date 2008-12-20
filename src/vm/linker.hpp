@@ -66,7 +66,18 @@ struct arraydescriptor {
 /* This lock must be taken while renumbering classes or while atomically      */
 /* accessing classes.                                                         */
 
-extern Mutex *linker_classrenumber_mutex;
+#if USES_NEW_SUBTYPE
+
+#define LOCK_CLASSRENUMBER_LOCK   /* nothing */
+#define UNLOCK_CLASSRENUMBER_LOCK /* nothing */
+
+#else
+extern Mutex *linker_classrenumber_lock;
+
+#define LOCK_CLASSRENUMBER_LOCK   linker_classrenumber_lock->lock()
+#define UNLOCK_CLASSRENUMBER_LOCK linker_classrenumber_lock->unlock()
+
+#endif
 
 
 /* function prototypes ********************************************************/

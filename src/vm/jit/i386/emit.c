@@ -458,8 +458,14 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 		case BRANCH_LE:
 			M_BGT(6);
 			break;
+		case BRANCH_GE:
+			M_BLT(6);
+			break;
 		case BRANCH_EQ:
 			M_BNE(6);
+			break;
+		case BRANCH_NE:
+			M_BEQ(6);
 			break;
 		case BRANCH_ULE:
 			M_BBE(6);
@@ -1084,6 +1090,11 @@ void emit_alu_imm_memabs(codegendata *cd, s4 opc, s4 imm, s4 disp)
 	}
 }
 
+void emit_alu_memindex_reg(codegendata *cd, s4 opc, s4 disp, s4 basereg, s4 indexreg, s4 scale, s4 reg)
+{
+	*(cd->mcodeptr++) = (((u1) (opc)) << 3) + 3;
+	emit_memindex(cd, (reg),(disp),(basereg),(indexreg),(scale));
+}
 
 void emit_test_reg_reg(codegendata *cd, s4 reg, s4 dreg)
 {
@@ -1104,6 +1115,12 @@ void emit_test_imm_reg(codegendata *cd, s4 imm, s4 reg)
 /*
  * inc, dec operations
  */
+void emit_inc_reg(codegendata *cd, s4 reg)
+{
+	*(cd->mcodeptr++) = 0xff;
+	emit_reg(0,(reg));
+}
+
 void emit_dec_mem(codegendata *cd, s4 mem)
 {
 	*(cd->mcodeptr++) = 0xff;
@@ -1296,6 +1313,7 @@ void emit_jcc(codegendata *cd, s4 opc, s4 imm)
  */
 void emit_setcc_reg(codegendata *cd, s4 opc, s4 reg)
 {
+	assert(reg < 4);                     /* Can only operate on al, bl, cl, dl. */
 	*(cd->mcodeptr++) = 0x0f;
 	*(cd->mcodeptr++) = 0x90 + (u1) (opc);
 	emit_reg(0,(reg));
