@@ -247,7 +247,13 @@ bool patcher_is_patched(patchref_t* pr)
 	// instruction as the patcher structure contains.
 	uint32_t mcode = *((uint32_t*) pr->mpc);
 
+#if PATCHER_CALL_SIZE == 4
 	if (mcode != pr->mcode) {
+#elif PATCHER_CALL_SIZE == 2
+	if ((uint16_t) mcode != (uint16_t) pr->mcode) {
+#else
+#error Unknown PATCHER_CALL_SIZE
+#endif
 		// The code differs.
 		return false;
 	}
