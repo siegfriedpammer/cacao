@@ -787,9 +787,9 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			M_AND_IMM(s2, 0x1f, REG_ITMP2);
+			M_AND_IMM(s2, 0x1f, REG_ITMP3);
             M_IZEXT(s1, d);
-			M_SRL(d, REG_ITMP2, d);
+			M_SRL(d, REG_ITMP3, d);
 			M_IADD(d, REG_ZERO, d);
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -912,11 +912,11 @@ bool codegen_emit(jitdata *jd)
 				M_ISUB(REG_ZERO, s1, d);
 				M_ZAPNOT_IMM(d, 0x07, d);
 			} else {
-				ICONST(REG_ITMP2, iptr->sx.val.i);
-				M_AND(s1, REG_ITMP2, d);
+				ICONST(REG_ITMP3, iptr->sx.val.i);
+				M_AND(s1, REG_ITMP3, d);
 				M_BGEZ(s1, 3);
 				M_ISUB(REG_ZERO, s1, d);
-				M_AND(d, REG_ITMP2, d);
+				M_AND(d, REG_ITMP3, d);
 			}
 			M_ISUB(REG_ZERO, d, d);
 			emit_store_dst(jd, iptr, d);
@@ -993,11 +993,11 @@ bool codegen_emit(jitdata *jd)
 				M_LSUB(REG_ZERO, s1, d);
 				M_ZAPNOT_IMM(d, 0x7f, d);
 			} else {
-				LCONST(REG_ITMP2, iptr->sx.val.l);
-				M_AND(s1, REG_ITMP2, d);
+				LCONST(REG_ITMP3, iptr->sx.val.l);
+				M_AND(s1, REG_ITMP3, d);
 				M_BGEZ(s1, 3);
 				M_LSUB(REG_ZERO, s1, d);
-				M_AND(d, REG_ITMP2, d);
+				M_AND(d, REG_ITMP3, d);
 			}
 			M_LSUB(REG_ZERO, d, d);
 			emit_store_dst(jd, iptr, d);
