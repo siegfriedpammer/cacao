@@ -70,25 +70,25 @@ esac
 ])
 
 
-dnl currently NOT USED
+AC_DEFUN([AC_CHECK_USE___THREAD],[
+AC_ARG_ENABLE([__thread], [AS_HELP_STRING(--enable-__thread,use TLS features [[default=yes]])], [use__thread=$enableval], [use__thread=yes])
 
-dnl AC_ARG_ENABLE([__thread], [AS_HELP_STRING(--enable-__thread,use TLS features)], [use__thread=$enableval], [use__thread=no])
-dnl 
-dnl dnl Check whether the compiler supports the __thread keyword.
-dnl if test "x$use__thread" != xno; then
-dnl   AC_CACHE_CHECK([for __thread], ac_cv_gcc___thread,
-dnl   [cat > conftest.c <<\EOF
-dnl __thread int a = 42;
-dnl EOF
-dnl   if AC_TRY_COMMAND([${CC-cc} $ARCH_CFLAGS $OPT_CFLAGS -c conftest.c >&AS_MESSAGE_LOG_FD]); then
-dnl     ac_cv_gcc___thread=yes 
-dnl   else
-dnl     ac_cv_gcc___thread=no
-dnl   fi
-dnl   rm -f conftest*])
-dnl   if test "$ac_cv_gcc___thread" = yes; then
-dnl     AC_DEFINE([HAVE___THREAD], 1, [have __thread])
-dnl   fi
-dnl else
-dnl   ac_cv_gcc___thread=no
-dnl fi
+dnl Check whether the compiler supports the __thread keyword.
+if test "x$use__thread" != xno; then
+  AC_CACHE_CHECK([for __thread], ac_cv_gcc___thread,
+  [cat > conftest.c <<\EOF
+__thread int a = 42;
+EOF
+  if AC_TRY_COMMAND([${CC-cc} $ARCH_CFLAGS $OPT_CFLAGS -c conftest.c >&AS_MESSAGE_LOG_FD]); then
+    ac_cv_gcc___thread=yes 
+  else
+    ac_cv_gcc___thread=no
+  fi
+  rm -f conftest*])
+  if test "$ac_cv_gcc___thread" = yes; then
+    AC_DEFINE([HAVE___THREAD], 1, [have __thread])
+  fi
+else
+  ac_cv_gcc___thread=no
+fi
+])
