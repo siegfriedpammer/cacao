@@ -40,6 +40,7 @@
 # include "native/include/sun_misc_Unsafe.h"
 #endif
 
+#include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/initialize.hpp"
@@ -825,7 +826,9 @@ JNIEXPORT jclass JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_String_2_3
 
 	/* check the indexes passed */
 
-	if ((off < 0) || (len < 0) || ((off + len) > LLNI_array_size(b))) {
+	ByteArray ba(b);
+
+	if ((off < 0) || (len < 0) || ((off + len) > ba.get_length())) {
 		exceptions_throw_arrayindexoutofboundsexception();
 		return NULL;
 	}
@@ -841,7 +844,8 @@ JNIEXPORT jclass JNICALL Java_sun_misc_Unsafe_defineClass__Ljava_lang_String_2_3
 
 	/* define the class */
 
-	c = class_define(utfname, cl, len, (uint8_t *) &(LLNI_array_direct((java_handle_bytearray_t*) b, off)),
+	uint8_t* ptr = ((uint8_t*) ba.get_raw_data_ptr()) + off;
+	c = class_define(utfname, cl, len, ptr,
 					 (java_handle_t *) protectionDomain);
 
 	if (c == NULL)

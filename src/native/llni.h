@@ -117,9 +117,6 @@
 
 #define LLNI_field_direct(obj, field) (LLNI_DIRECT(obj)->field)
 #define LLNI_vftbl_direct(obj)        (LLNI_DIRECT((java_handle_t *) (obj))->vftbl)
-#define LLNI_array_direct(arr, index) (LLNI_DIRECT(arr)->data[(index)])
-#define LLNI_array_data(arr)          (LLNI_DIRECT(arr)->data)
-#define LLNI_array_size(arr)          (LLNI_DIRECT((java_handle_objectarray_t *) (arr))->header.size)
 
 
 /* LLNI critical sections ******************************************************

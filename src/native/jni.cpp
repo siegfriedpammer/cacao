@@ -2484,22 +2484,25 @@ void _Jv_JNI_SetStaticObjectField(JNIEnv *env, jclass clazz, jfieldID fieldID,
 jstring jni_NewString(JNIEnv *env, const jchar *buf, jsize len)
 {
 	TRACEJNICALLS(("jni_NewString(env=%p, buf=%p, len=%d)", env, buf, len));
-	
-	java_handle_chararray_t* a = builtin_newarray_char(len);
 
-	if (a == NULL)
+	CharArray ca(len);
+
+	if (ca.is_null())
 		return NULL;
 
 	/* copy text */
+
+	// XXX: Fix me!
+	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
 	for (jsize i = 0; i < len; i++)
-		LLNI_array_direct(a, i) = buf[i];
+		ptr[i] = buf[i];
 
 	java_handle_t* h = builtin_new(class_java_lang_String);
 
 	if (h == NULL)
 		return NULL;
 
-	java_lang_String s(h, a, len, 0);
+	java_lang_String s(h, ca.get_handle(), len, 0);
 
 	return (jstring) jni_NewLocalRef(env, (jobject) s.get_handle());
 }
@@ -2547,11 +2550,12 @@ const jchar* jni_GetStringChars(JNIEnv *env, jstring str, jboolean *isCopy)
 
 	java_lang_String s(str);
 
-	java_handle_chararray_t* ca     = s.get_value();
-	int32_t                  count  = s.get_count();
-	int32_t                  offset = s.get_offset();
+	CharArray ca(s.get_value());
+
+	int32_t count  = s.get_count();
+	int32_t offset = s.get_offset();
 	
-	if (ca == NULL)
+	if (ca.is_null())
 		return NULL;
 
 	/* allocate memory */
@@ -2560,8 +2564,10 @@ const jchar* jni_GetStringChars(JNIEnv *env, jstring str, jboolean *isCopy)
 
 	/* copy text */
 
+	// XXX: Fix me!
+	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
 	for (i = 0; i < count; i++)
-		stringbuffer[i] = LLNI_array_direct(ca, offset + i);
+		stringbuffer[i] = ptr[offset + i];
 	
 	/* terminate string */
 
@@ -2621,11 +2627,12 @@ jsize jni_GetStringUTFLength(JNIEnv *env, jstring string)
 	TRACEJNICALLS(("jni_GetStringUTFLength(env=%p, string=%p)", env, string));
 
 	java_lang_String s(string);
-	java_handle_chararray_t* ca     = s.get_value();
-	int32_t                  count  = s.get_count();
+	CharArray        ca(s.get_value());
+	int32_t          count = s.get_count();
 
 	// FIXME GC critical section!
-	int32_t length = u2_utflength(ca->data, count);
+	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
+	int32_t length = u2_utflength(ptr, count);
 
 	return length;
 }
@@ -2689,14 +2696,11 @@ void _Jv_JNI_ReleaseStringUTFChars(JNIEnv *env, jstring string, const char *utf)
 
 jsize _Jv_JNI_GetArrayLength(JNIEnv *env, jarray array)
 {
-	java_handle_t *a;
-	jsize          size;
-
 	TRACEJNICALLS(("_Jv_JNI_GetArrayLength(env=%p, array=%p)", env, array));
 
-	a = (java_handle_t *) array;
+	Array a(array);
 
-	size = LLNI_array_size(a);
+	jsize size = a.get_length();
 
 	return size;
 }
@@ -2712,10 +2716,9 @@ jsize _Jv_JNI_GetArrayLength(JNIEnv *env, jarray array)
 jobjectArray _Jv_JNI_NewObjectArray(JNIEnv *env, jsize length,
 									jclass elementClass, jobject initialElement)
 {
-	classinfo                 *c;
-	java_handle_t             *o;
-	java_handle_objectarray_t *oa;
-	s4                         i;
+	classinfo*     c;
+	java_handle_t* o;
+	s4             i;
 
 	STATISTICS(jniinvokation());
 
@@ -2727,36 +2730,33 @@ jobjectArray _Jv_JNI_NewObjectArray(JNIEnv *env, jsize length,
 		return NULL;
 	}
 
-    oa = builtin_anewarray(length, c);
+	ObjectArray oa(length, c);
 
-	if (oa == NULL)
+	if (oa.is_null())
 		return NULL;
 
 	/* set all elements to initialElement */
 
 	for (i = 0; i < length; i++)
-		array_objectarray_element_set(oa, i, o);
+		oa.set_element(i, o);
 
-	return (jobjectArray) jni_NewLocalRef(env, (jobject) oa);
+	return (jobjectArray) jni_NewLocalRef(env, (jobject) oa.get_handle());
 }
 
 
 jobject _Jv_JNI_GetObjectArrayElement(JNIEnv *env, jobjectArray array,
 									  jsize index)
 {
-	java_handle_objectarray_t *oa;
-	java_handle_t             *o;
-
 	STATISTICS(jniinvokation());
 
-	oa = (java_handle_objectarray_t *) array;
+	ObjectArray oa(array);
 
-	if (index >= LLNI_array_size(oa)) {
+	if (index >= oa.get_length()) {
 		exceptions_throw_arrayindexoutofboundsexception();
 		return NULL;
 	}
 
-	o = array_objectarray_element_get(oa, index);
+	java_handle_t* o = oa.get_element(index);
 
 	return jni_NewLocalRef(env, (jobject) o);
 }
@@ -2765,15 +2765,11 @@ jobject _Jv_JNI_GetObjectArrayElement(JNIEnv *env, jobjectArray array,
 void _Jv_JNI_SetObjectArrayElement(JNIEnv *env, jobjectArray array,
 								   jsize index, jobject val)
 {
-	java_handle_objectarray_t *oa;
-	java_handle_t             *o;
-
 	STATISTICS(jniinvokation());
 
-	oa = (java_handle_objectarray_t *) array;
-	o  = (java_handle_t *) val;
+	ObjectArray oa(array);
 
-	if (index >= LLNI_array_size(oa)) {
+	if (index >= oa.get_length()) {
 		exceptions_throw_arrayindexoutofboundsexception();
 		return;
 	}
@@ -2781,18 +2777,18 @@ void _Jv_JNI_SetObjectArrayElement(JNIEnv *env, jobjectArray array,
 	/* check if the class of value is a subclass of the element class
 	   of the array */
 
-	if (!builtin_canstore(oa, o))
+	java_handle_t* o  = (java_handle_t *) val;
+
+	if (!builtin_canstore(oa.get_handle(), o))
 		return;
 
-	array_objectarray_element_set(oa, index, o);
+	oa.set_element(index, o);
 }
 
 
-#define JNI_NEW_ARRAY(name, type, intern)                \
+#define JNI_NEW_ARRAY(name, type)                        \
 type _Jv_JNI_New##name##Array(JNIEnv *env, jsize len)    \
 {                                                        \
-	java_handle_##intern##array_t *a;                    \
-                                                         \
 	STATISTICS(jniinvokation());                         \
                                                          \
 	if (len < 0) {                                       \
@@ -2800,19 +2796,20 @@ type _Jv_JNI_New##name##Array(JNIEnv *env, jsize len)    \
 		return NULL;                                     \
 	}                                                    \
                                                          \
-	a = builtin_newarray_##intern(len);                  \
+	name##Array a(len);                                  \
                                                          \
-	return (type) jni_NewLocalRef(env, (jobject) a); \
+	return (type) jni_NewLocalRef(env,                   \
+			(jobject) a.get_handle());                   \
 }
 
-JNI_NEW_ARRAY(Boolean, jbooleanArray, boolean)
-JNI_NEW_ARRAY(Byte,    jbyteArray,    byte)
-JNI_NEW_ARRAY(Char,    jcharArray,    char)
-JNI_NEW_ARRAY(Short,   jshortArray,   short)
-JNI_NEW_ARRAY(Int,     jintArray,     int)
-JNI_NEW_ARRAY(Long,    jlongArray,    long)
-JNI_NEW_ARRAY(Float,   jfloatArray,   float)
-JNI_NEW_ARRAY(Double,  jdoubleArray,  double)
+JNI_NEW_ARRAY(Boolean, jbooleanArray)
+JNI_NEW_ARRAY(Byte,    jbyteArray)
+JNI_NEW_ARRAY(Char,    jcharArray)
+JNI_NEW_ARRAY(Short,   jshortArray)
+JNI_NEW_ARRAY(Int,     jintArray)
+JNI_NEW_ARRAY(Long,    jlongArray)
+JNI_NEW_ARRAY(Float,   jfloatArray)
+JNI_NEW_ARRAY(Double,  jdoubleArray)
 
 
 /* Get<PrimitiveType>ArrayElements *********************************************
@@ -2825,16 +2822,14 @@ JNI_NEW_ARRAY(Double,  jdoubleArray,  double)
 type *_Jv_JNI_Get##name##ArrayElements(JNIEnv *env, type##Array array, \
 										 jboolean *isCopy)             \
 {                                                                      \
-	java_handle_##intern##array_t *a;                                  \
-                                                                       \
 	TRACEJNICALLS(("_Jv_JNI_Get" STR(name) "ArrayElements(env=%p, array=%p, isCopy=%d)", env, array, isCopy)); \
                                                                        \
-	a = (java_handle_##intern##array_t *) array;                       \
+	name##Array a(array);                                              \
                                                                        \
 	if (isCopy)                                                        \
 		*isCopy = JNI_FALSE;                                           \
                                                                        \
-	return (type *) LLNI_array_data(a);                                \
+	return (type *) a.get_raw_data_ptr();                              \
 }
 
 JNI_GET_ARRAY_ELEMENTS(Boolean, jboolean, boolean)
@@ -2862,19 +2857,17 @@ JNI_GET_ARRAY_ELEMENTS(Double,  jdouble,  double)
 void _Jv_JNI_Release##name##ArrayElements(JNIEnv *env, type##Array array,  \
 										  type *elems, jint mode)          \
 {                                                                          \
-	java_handle_##intern##array_t *a;                                      \
-                                                                           \
 	STATISTICS(jniinvokation());                                           \
                                                                            \
-	a = (java_handle_##intern##array_t *) array;                           \
+	name##Array a(array);                                                  \
                                                                            \
-	if (elems != (type *) LLNI_array_data(a)) {                            \
+	if (elems != (type *) a.get_raw_data_ptr()) {                          \
 		switch (mode) {                                                    \
 		case JNI_COMMIT:                                                   \
-			MCOPY(LLNI_array_data(a), elems, intern2, LLNI_array_size(a)); \
+			a.set_region(0, a.get_length(), (intern2 *) elems);            \
 			break;                                                         \
 		case 0:                                                            \
-			MCOPY(LLNI_array_data(a), elems, intern2, LLNI_array_size(a)); \
+			a.set_region(0, a.get_length(), (intern2 *) elems);            \
 			/* XXX TWISTI how should it be freed? */                       \
 			break;                                                         \
 		case JNI_ABORT:                                                    \
@@ -2905,16 +2898,14 @@ JNI_RELEASE_ARRAY_ELEMENTS(Double,  jdouble,  double,  double)
 void _Jv_JNI_Get##name##ArrayRegion(JNIEnv *env, type##Array array,     \
 									jsize start, jsize len, type *buf)  \
 {                                                                       \
-	java_handle_##intern##array_t *a;                                   \
-                                                                        \
 	TRACEJNICALLS(("_Jv_JNI_Get" STR(name) "ArrayRegion(env=%p, array=%p, start=%d, len=%d, buf=%p)", env, array, start, len, buf)); \
                                                                         \
-	a = (java_handle_##intern##array_t *) array;                        \
+	name##Array a(array);                                               \
                                                                         \
-	if ((start < 0) || (len < 0) || (start + len > LLNI_array_size(a))) \
+	if ((start < 0) || (len < 0) || (start + len > a.get_length()))     \
 		exceptions_throw_arrayindexoutofboundsexception();              \
 	else                                                                \
-		MCOPY(buf, &LLNI_array_direct(a, start), intern2, len);         \
+		a.get_region(start, len, (intern2 *) buf);                      \
 }
 
 JNI_GET_ARRAY_REGION(Boolean, jboolean, boolean, u1)
@@ -2938,16 +2929,14 @@ JNI_GET_ARRAY_REGION(Double,  jdouble,  double,  double)
 void _Jv_JNI_Set##name##ArrayRegion(JNIEnv *env, type##Array array,          \
 									jsize start, jsize len, const type *buf) \
 {                                                                            \
-	java_handle_##intern##array_t *a;                                        \
-                                                                             \
 	STATISTICS(jniinvokation());                                             \
                                                                              \
-	a = (java_handle_##intern##array_t *) array;                             \
+	name##Array a(array);                                                    \
                                                                              \
-	if ((start < 0) || (len < 0) || (start + len > LLNI_array_size(a)))      \
+	if ((start < 0) || (len < 0) || (start + len > a.get_length()))          \
 		exceptions_throw_arrayindexoutofboundsexception();                   \
 	else                                                                     \
-		MCOPY(&LLNI_array_direct(a, start), buf, intern2, len);              \
+		a.set_region(start, len, (intern2 *) buf);                           \
 }
 
 JNI_SET_ARRAY_REGION(Boolean, jboolean, boolean, u1)
@@ -3094,15 +3083,15 @@ jint _Jv_JNI_GetJavaVM(JNIEnv *env, JavaVM **javavm)
 void jni_GetStringRegion(JNIEnv* env, jstring str, jsize start, jsize len, jchar *buf)
 {
 	java_lang_String s(str);
-	java_handle_chararray_t* ca    = s.get_value();
-	int32_t                  count = s.get_count();
+	CharArray        ca(s.get_value());
+	int32_t          count = s.get_count();
 
 	if ((start < 0) || (len < 0) || (start > count) || (start + len > count)) {
 		exceptions_throw_stringindexoutofboundsexception();
 		return;
 	}
 
-	MCOPY(buf, &LLNI_array_direct(ca, start), u2, len);
+	ca.get_region(start, len, buf);
 }
 
 
@@ -3121,9 +3110,11 @@ void jni_GetStringUTFRegion(JNIEnv* env, jstring str, jsize start, jsize len, ch
 	TRACEJNICALLS(("jni_GetStringUTFRegion(env=%p, str=%p, start=%d, len=%d, buf=%p)", env, str, start, len, buf));
 
 	java_lang_String s(str);
-	java_handle_chararray_t* ca     = s.get_value();
-	int32_t                  count  = s.get_count();
-	int32_t                  offset = s.get_offset();
+
+	CharArray ca(s.get_value());
+
+	int32_t count  = s.get_count();
+	int32_t offset = s.get_offset();
 
 	if ((start < 0) || (len < 0) || (start > count) || (start + len > count)) {
 		exceptions_throw_stringindexoutofboundsexception();
@@ -3132,8 +3123,10 @@ void jni_GetStringUTFRegion(JNIEnv* env, jstring str, jsize start, jsize len, ch
 
 	int32_t i;
 
+	// XXX: Fix me!
+	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
 	for (i = 0; i < len; i++)
-		buf[i] = LLNI_array_direct(ca, offset + start + i);
+		buf[i] = ptr[offset + start + i];
 
 	buf[i] = '\0';
 }

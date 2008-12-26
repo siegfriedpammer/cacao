@@ -34,6 +34,7 @@
 # include "native/vm/include/gnu_java_lang_management_VMRuntimeMXBeanImpl.h"
 #endif
 
+#include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
@@ -53,7 +54,9 @@ JNIEXPORT java_handle_objectarray_t* JNICALL Java_gnu_java_lang_management_VMRun
 {
 	log_println("Java_gnu_java_lang_management_VMRuntimeMXBeanImpl_getInputArguments: IMPLEMENT ME!");
 
-	return builtin_anewarray(0, class_java_lang_String);
+	ObjectArray oa(0, class_java_lang_String);
+
+	return oa.get_handle();
 }
 
 

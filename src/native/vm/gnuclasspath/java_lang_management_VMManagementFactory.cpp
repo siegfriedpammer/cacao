@@ -38,6 +38,7 @@
 
 #include "toolbox/logging.hpp"
 
+#include "vm/array.hpp"
 #include "vm/globals.hpp"
 #include "vm/vm.hpp"
 
@@ -54,13 +55,11 @@ extern "C" {
  */
 JNIEXPORT jobjectArray JNICALL Java_java_lang_management_VMManagementFactory_getMemoryPoolNames(JNIEnv *env, jclass clazz)
 {
-	java_handle_objectarray_t *oa;
-
 	log_println("Java_java_lang_management_VMManagementFactory_getMemoryPoolNames: IMPLEMENT ME!");
 
-	oa = builtin_anewarray(0, class_java_lang_String);
+	ObjectArray oa(0, class_java_lang_String);
 
-	return oa;
+	return oa.get_handle();
 }
 
 
@@ -71,13 +70,11 @@ JNIEXPORT jobjectArray JNICALL Java_java_lang_management_VMManagementFactory_get
  */
 JNIEXPORT jobjectArray JNICALL Java_java_lang_management_VMManagementFactory_getMemoryManagerNames(JNIEnv *env, jclass clazz)
 {
-	java_handle_objectarray_t *oa;
-
 	log_println("Java_java_lang_management_VMManagementFactory_getMemoryManagerNames: IMPLEMENT ME!");
 
-	oa = builtin_anewarray(0, class_java_lang_String);
+	ObjectArray oa(0, class_java_lang_String);
 
-	return oa;
+	return oa.get_handle();
 }
 
 
@@ -88,13 +85,11 @@ JNIEXPORT jobjectArray JNICALL Java_java_lang_management_VMManagementFactory_get
  */
 JNIEXPORT jobjectArray JNICALL Java_java_lang_management_VMManagementFactory_getGarbageCollectorNames(JNIEnv *env, jclass clazz)
 {
-	java_handle_objectarray_t *oa;
-
 	log_println("Java_java_lang_management_VMManagementFactory_getGarbageCollectorNames: IMPLEMENT ME!");
 
-	oa = builtin_anewarray(0, class_java_lang_String);
+	ObjectArray oa(0, class_java_lang_String);
 
-	return oa;
+	return oa.get_handle();
 }
 
 } // extern "C"

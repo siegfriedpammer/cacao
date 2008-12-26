@@ -37,7 +37,6 @@
 #include "mm/memory.hpp"
 
 #include "native/jni.hpp"
-#include "native/llni.h"
 #include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
@@ -63,7 +62,8 @@ JNIEXPORT jint JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_open0(JNIEnv *e
 
 	// The hostname byte-array is a NULL terminated C-string.
 	// XXX Not GC safe.
-	char* name = (char*) &(LLNI_array_data((java_handle_bytearray_t*) hostname));
+	ByteArray ba(hostname);
+	char* name = (char*) ba.get_raw_data_ptr();
 
 	/* get the host */
 
@@ -106,7 +106,8 @@ JNIEXPORT jint JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf(JNIEnv 
 {
 	// Get pointer to the buffer.
 	// XXX Not GC safe.
-	void* buf = &(LLNI_array_direct((java_handle_bytearray_t*) b, off));
+	ByteArray ba(b);
+	void* buf = (void*) (((int8_t*) ba.get_raw_data_ptr()) + off);
 
 	// Receive from the socket.
 	ssize_t result = recv(handle, buf, len, 0);
@@ -157,7 +158,8 @@ JNIEXPORT jint JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_writeBuf(JNIEnv
 {
 	// Get pointer to the buffer.
 	// XXX Not GC safe.
-	void* buf = &(LLNI_array_direct((java_handle_bytearray_t*) b, off));
+	ByteArray ba(b);
+	void* buf = (void*) (((int8_t*) ba.get_raw_data_ptr()) + off);
 	
 	// Send the given byte to the socket.
 	ssize_t result = send(handle, buf, len, 0);

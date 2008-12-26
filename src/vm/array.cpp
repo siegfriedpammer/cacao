@@ -2,6 +2,7 @@
 
    Copyright (C) 2007
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -32,33 +33,31 @@
 #include "vm/array.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
+#include "vm/globals.hpp"
 #include "vm/primitive.hpp"
 #include "vm/vm.hpp"
 
 
-/* array_element_get ***********************************************************
-
-   Returns a boxed element of the given Java array.
-
-*******************************************************************************/
-
-java_handle_t *array_element_get(java_handle_t *a, int32_t index)
+/**
+ * Returns a boxed element of the given Java array.
+ */
+java_handle_t* Array::get_boxed_element(int32_t index)
 {
 	vftbl_t       *v;
 	int            type;
 	imm_union      value;
 	java_handle_t *o;
 
-	if (a == NULL) {
+	if (is_null()) {
 		exceptions_throw_nullpointerexception();
 		return NULL;
 	}
 
-	v = LLNI_vftbl_direct(a);
+	v = LLNI_vftbl_direct(_handle);
 
 	type = v->arraydesc->arraytype;
 
-	value = array_element_primitive_get(a, index);
+	value = get_primitive_element(index);
 
 	o = Primitive::box(type, value);
 
@@ -66,39 +65,35 @@ java_handle_t *array_element_get(java_handle_t *a, int32_t index)
 }
 
 
-/* array_element_set ***********************************************************
-
-   Sets a boxed element in the given Java array.
-
-*******************************************************************************/
-
-void array_element_set(java_handle_t *a, int32_t index, java_handle_t *o)
+/**
+ * Sets a boxed element in the given Java array.
+ */
+void Array::set_boxed_element(int32_t index, java_handle_t *o)
 {
 	imm_union value;
 
 	value = Primitive::unbox(o);
 
-	array_element_primitive_set(a, index, value);
+	set_primitive_element(index, value);
 }
 
 
-/* array_element_primitive_get *************************************************
-
-   Returns a primitive element of the given Java array.
-
-*******************************************************************************/
-
-imm_union array_element_primitive_get(java_handle_t *a, int32_t index)
+/**
+ * Returns a primitive element of the given Java array.
+ */
+imm_union Array::get_primitive_element(int32_t index)
 {
 	vftbl_t  *v;
 	int       type;
 	imm_union value;
 
-	if (a == NULL) {
+	if (is_null()) {
 		exceptions_throw_nullpointerexception();
 		value.a = NULL;
 		return value;
 	}
+
+	java_handle_array_t* a = _handle;
 
 	v = LLNI_vftbl_direct(a);
 
@@ -106,42 +101,61 @@ imm_union array_element_primitive_get(java_handle_t *a, int32_t index)
 
 	switch (type) {
 	case ARRAYTYPE_BOOLEAN:
-		value.i = array_booleanarray_element_get((java_handle_booleanarray_t *) a, index);
+		{
+			BooleanArray array(a);
+			value.i = array.get_element(index);
+		}
 		break;
 	case ARRAYTYPE_BYTE:
-		value.i = array_bytearray_element_get((java_handle_bytearray_t *) a,
-											  index);
+		{
+			ByteArray array(a);
+			value.i = array.get_element(index);
+		}
 		break;
 	case ARRAYTYPE_CHAR:
-		value.i = array_chararray_element_get((java_handle_chararray_t *) a,
-											  index);
+		{
+			CharArray array(a);
+			value.i = array.get_element(index);
+		}
 		break;
 	case ARRAYTYPE_SHORT:
-		value.i = array_shortarray_element_get((java_handle_shortarray_t *) a,
-											   index);
+		{
+			ShortArray array(a);
+			value.i = array.get_element(index);
+		}
 		break;
 	case ARRAYTYPE_INT:
-		value.i = array_intarray_element_get((java_handle_intarray_t *) a,
-											 index);
+		{
+			IntArray array(a);
+			value.i = array.get_element(index);
+		}
 		break;
 	case ARRAYTYPE_LONG:
-		value.l = array_longarray_element_get((java_handle_longarray_t *) a,
-											  index);
+		{
+			LongArray array(a);
+			value.l = array.get_element(index);
+		}
 		break;
 	case ARRAYTYPE_FLOAT:
-		value.f = array_floatarray_element_get((java_handle_floatarray_t *) a,
-											   index);
+		{
+			FloatArray array(a);
+			value.f = array.get_element(index);
+		}
 		break;
 	case ARRAYTYPE_DOUBLE:
-		value.d = array_doublearray_element_get((java_handle_doublearray_t *) a,
-												index);
+		{
+			DoubleArray array(a);
+			value.d = array.get_element(index);
+		}
 		break;
 	case ARRAYTYPE_OBJECT:
-		value.a = array_objectarray_element_get((java_handle_objectarray_t *) a,
-												index);
+		{
+			ObjectArray array(a);
+			value.a = array.get_element(index);
+		}
 		break;
 	default:
-		vm_abort("array_element_primitive_get: invalid array element type %d",
+		vm_abort("Array::primitive_element_get: invalid array element type %d",
 				 type);
 	}
 
@@ -149,21 +163,20 @@ imm_union array_element_primitive_get(java_handle_t *a, int32_t index)
 }
 
 
-/* array_element_primitive_set *************************************************
-
-   Sets a primitive element in the given Java array.
-
-*******************************************************************************/
-
-void array_element_primitive_set(java_handle_t *a, int32_t index, imm_union value)
+/**
+ * Sets a primitive element in the given Java array.
+ */
+void Array::set_primitive_element(int32_t index, imm_union value)
 {
 	vftbl_t *v;
 	int      type;
 
-	if (a == NULL) {
+	if (is_null()) {
 		exceptions_throw_nullpointerexception();
 		return;
 	}
+
+	java_handle_array_t* a = _handle;
 
 	v = LLNI_vftbl_direct(a);
 
@@ -171,40 +184,58 @@ void array_element_primitive_set(java_handle_t *a, int32_t index, imm_union valu
 
 	switch (type) {
 	case ARRAYTYPE_BOOLEAN:
-		array_booleanarray_element_set((java_handle_booleanarray_t *) a,
-									   index, value.i);
+		{
+			BooleanArray array(a);
+			array.set_element(index, value.i);
+		}
 		break;
 	case ARRAYTYPE_BYTE:
-		array_bytearray_element_set((java_handle_bytearray_t *) a,
-									index, value.i);
+		{
+			ByteArray array(a);
+			array.set_element(index, value.i);
+		}
 		break;
 	case ARRAYTYPE_CHAR:
-		array_chararray_element_set((java_handle_chararray_t *) a,
-									index, value.i);
+		{
+			CharArray array(a);
+			array.set_element(index, value.i);
+		}
 		break;
 	case ARRAYTYPE_SHORT:
-		array_shortarray_element_set((java_handle_shortarray_t *) a,
-									 index, value.i);
+		{
+			ShortArray array(a);
+			array.set_element(index, value.i);
+		}
 		break;
 	case ARRAYTYPE_INT:
-		array_intarray_element_set((java_handle_intarray_t *) a,
-								   index, value.i);
+		{
+			IntArray array(a);
+			array.set_element(index, value.i);
+		}
 		break;
 	case ARRAYTYPE_LONG:
-		array_longarray_element_set((java_handle_longarray_t *) a,
-									index, value.l);
+		{
+			LongArray array(a);
+			array.set_element(index, value.l);
+		}
 		break;
 	case ARRAYTYPE_FLOAT:
-		array_floatarray_element_set((java_handle_floatarray_t *) a,
-									 index, value.f);
+		{
+			FloatArray array(a);
+			array.set_element(index, value.f);
+		}
 		break;
 	case ARRAYTYPE_DOUBLE:
-		array_doublearray_element_set((java_handle_doublearray_t *) a,
-									  index, value.d);
+		{
+			DoubleArray array(a);
+			array.set_element(index, value.d);
+		}
 		break;
 	case ARRAYTYPE_OBJECT:
-		array_objectarray_element_set((java_handle_objectarray_t *) a,
-									  index, static_cast<java_handle_t*>(value.a));
+		{
+			ObjectArray array(a);
+			array.set_element(index, static_cast<java_handle_t*>(value.a));
+		}
 		break;
 	default:
 		vm_abort("array_element_primitive_set: invalid array element type %d",
@@ -213,171 +244,48 @@ void array_element_primitive_set(java_handle_t *a, int32_t index, imm_union valu
 }
 
 
-/* array_xxxarray_element_get **************************************************
-
-   Returns a primitive element of the given Java array.
-
-*******************************************************************************/
-
-#define ARRAY_TYPEARRAY_ELEMENT_GET(name, type)                                \
-type array_##name##array_element_get(java_handle_##name##array_t *a, int32_t index) \
-{                                                                              \
-	type    value;                                                             \
-	int32_t size;                                                              \
-                                                                               \
-	if (a == NULL) {                                                           \
-		exceptions_throw_nullpointerexception();                               \
-		return (type) 0;                                                       \
-	}                                                                          \
-                                                                               \
-	size = LLNI_array_size(a);                                                 \
-                                                                               \
-	if ((index < 0) || (index >= size)) {                                      \
-		exceptions_throw_arrayindexoutofboundsexception();                     \
-		return (type) 0;                                                       \
-	}                                                                          \
-                                                                               \
-	value = LLNI_array_direct(a, index);                                       \
-                                                                               \
-	return value;                                                              \
-}
-
-java_handle_t *array_objectarray_element_get(java_handle_objectarray_t *a, int32_t index)
+/**
+ * Creates an array of references to the given class type on the heap.
+ * The handle pointer to the array can be NULL in case of an exception.
+ */
+ObjectArray::ObjectArray(int32_t length, classinfo* componentclass)
+		: ArrayTemplate<java_handle_t*>(NULL)
 {
-	java_handle_t *value;
-	int32_t size;
+	// Is class loaded?
+	assert(componentclass->state & CLASS_LOADED);
 
-	if (a == NULL) {
-		exceptions_throw_nullpointerexception();
-		return NULL;
-	}
-
-	size = LLNI_array_size(a);
-
-	if ((index < 0) || (index >= size)) {
-		exceptions_throw_arrayindexoutofboundsexception();
-		return NULL;
-	}
-
-	LLNI_CRITICAL_START;
-	value = LLNI_WRAP(LLNI_array_direct(a, index));
-	LLNI_CRITICAL_END;
-
-	return value;
-}
-
-ARRAY_TYPEARRAY_ELEMENT_GET(boolean, uint8_t)
-ARRAY_TYPEARRAY_ELEMENT_GET(byte,    int8_t)
-ARRAY_TYPEARRAY_ELEMENT_GET(char,    uint16_t)
-ARRAY_TYPEARRAY_ELEMENT_GET(short,   int16_t)
-ARRAY_TYPEARRAY_ELEMENT_GET(int,     int32_t)
-ARRAY_TYPEARRAY_ELEMENT_GET(long,    int64_t)
-ARRAY_TYPEARRAY_ELEMENT_GET(float,   float)
-ARRAY_TYPEARRAY_ELEMENT_GET(double,  double)
-
-
-/* array_xxxarray_element_set **************************************************
-
-   Sets a primitive element in the given Java array.
-
-*******************************************************************************/
-
-#define ARRAY_TYPEARRAY_ELEMENT_SET(name, type)                                \
-void array_##name##array_element_set(java_handle_##name##array_t *a, int32_t index, type value) \
-{                                                                              \
-	int32_t size;                                                              \
-                                                                               \
-	if (a == NULL) {                                                           \
-		exceptions_throw_nullpointerexception();                               \
-		return;                                                                \
-	}                                                                          \
-                                                                               \
-	size = LLNI_array_size(a);                                                 \
-                                                                               \
-	if ((index < 0) || (index >= size)) {                                      \
-		exceptions_throw_arrayindexoutofboundsexception();                     \
-		return;                                                                \
-	}                                                                          \
-                                                                               \
-	LLNI_array_direct(a, index) = value;                                       \
-}
-
-void array_objectarray_element_set(java_handle_objectarray_t *a, int32_t index, java_handle_t *value)
-{
-	int32_t size;
-
-	if (a == NULL) {
-		exceptions_throw_nullpointerexception();
-		return;
-	}
-
-	/* Sanity check. */
-
-	assert(a->header.objheader.vftbl->arraydesc->arraytype == ARRAYTYPE_OBJECT);
-
-	if (value != NULL) {
-		if (builtin_canstore(a, value) == false) {
-			exceptions_throw_illegalargumentexception();
+	// Is class linked?
+	if (!(componentclass->state & CLASS_LINKED))
+		if (!link_class(componentclass)) {
+			_handle = NULL;
 			return;
 		}
-	}
 
-	size = LLNI_array_size(a);
+	classinfo* arrayclass = class_array_of(componentclass, true);
 
-	if ((index < 0) || (index >= size)) {
-		exceptions_throw_arrayindexoutofboundsexception();
+	if (arrayclass == NULL) {
+		_handle = NULL;
 		return;
 	}
 
-	LLNI_CRITICAL_START;
-	LLNI_array_direct(a, index) = LLNI_UNWRAP(value);
-	LLNI_CRITICAL_END;
+	// Delegate allocation to generic array class
+	Array a(length, arrayclass);
+
+	_handle = a.get_handle();
 }
 
-ARRAY_TYPEARRAY_ELEMENT_SET(boolean, uint8_t)
-ARRAY_TYPEARRAY_ELEMENT_SET(byte,    int8_t)
-ARRAY_TYPEARRAY_ELEMENT_SET(char,    uint16_t)
-ARRAY_TYPEARRAY_ELEMENT_SET(short,   int16_t)
-ARRAY_TYPEARRAY_ELEMENT_SET(int,     int32_t)
-ARRAY_TYPEARRAY_ELEMENT_SET(long,    int64_t)
-ARRAY_TYPEARRAY_ELEMENT_SET(float,   float)
-ARRAY_TYPEARRAY_ELEMENT_SET(double,  double)
 
-
-/* array_length_get ***********************************************************
-
-   Returns a the length of the given Java array.
-
-   ARGUMENTS:
-       a ... Java array
-
-   RETURN VALUE:
-         -1 ... exception thrown
-	   >= 0 ... length of the Java array
-
-*******************************************************************************/
-
-int32_t array_length_get(java_handle_t *a)
+/**
+ * Creates an array of references to classinfos on the heap.
+ * The handle pointer to the array can be NULL in case of an exception.
+ */
+ClassArray::ClassArray(int32_t length)
+		: ArrayTemplate<classinfo*>(NULL)
 {
-	classinfo *c;
-	int32_t    size;
+	// Delegate allocation to object array class
+	ObjectArray oa(length, class_java_lang_Class);
 
-	if (a == NULL) {
-		exceptions_throw_nullpointerexception();
-		return -1;
-	}
-
-	LLNI_class_get(a, c);
-
-	if (!class_is_array(c)) {
-/* 		exceptions_throw_illegalargumentexception("Argument is not an array"); */
-		exceptions_throw_illegalargumentexception();
-		return -1;
-	}
-
-	size = LLNI_array_size(a);
-
-	return size;
+	_handle = oa.get_handle();
 }
 
 

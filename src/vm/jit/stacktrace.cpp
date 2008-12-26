@@ -516,15 +516,14 @@ static int stacktrace_depth(stackframeinfo_t *sfi)
 
 java_handle_bytearray_t *stacktrace_get(stackframeinfo_t *sfi)
 {
-	stackframeinfo_t         tmpsfi;
-	int                      depth;
-	java_handle_bytearray_t *ba;
-	int32_t                  ba_size;
-	stacktrace_t            *st;
-	stacktrace_entry_t      *ste;
-	methodinfo              *m;
-	bool                     skip_fillInStackTrace;
-	bool                     skip_init;
+	stackframeinfo_t    tmpsfi;
+	int                 depth;
+	int32_t             ba_size;
+	stacktrace_t       *st;
+	stacktrace_entry_t *ste;
+	methodinfo         *m;
+	bool                skip_fillInStackTrace;
+	bool                skip_init;
 
 	CYCLES_STATS_DECLARE_AND_START_WITH_OVERHEAD
 
@@ -550,9 +549,9 @@ java_handle_bytearray_t *stacktrace_get(stackframeinfo_t *sfi)
 
 	ba_size = sizeof(stacktrace_t) + sizeof(stacktrace_entry_t) * depth;
 
-	ba = builtin_newarray_byte(ba_size);
+	ByteArray ba(ba_size);
 
-	if (ba == NULL)
+	if (ba.is_null())
 		goto return_NULL;
 
 	/* Get a stacktrace entry pointer. */
@@ -561,7 +560,7 @@ java_handle_bytearray_t *stacktrace_get(stackframeinfo_t *sfi)
 
 	LLNI_CRITICAL_START;
 
-	st = (stacktrace_t *) LLNI_array_data(ba);
+	st = (stacktrace_t *) ba.get_raw_data_ptr();
 
 	ste = st->entries;
 
@@ -639,7 +638,7 @@ java_handle_bytearray_t *stacktrace_get(stackframeinfo_t *sfi)
 
 	CYCLES_STATS_END_WITH_OVERHEAD(stacktrace_fillInStackTrace,
 								   stacktrace_overhead)
-	return ba;
+	return ba.get_handle();
 
 return_NULL:
 /* 	dump_release(dumpsize); */
@@ -774,9 +773,9 @@ java_handle_objectarray_t* stacktrace_get_StackTraceElements(stacktrace_t* st)
 	int32_t length = (st != NULL) ? st->length : 0;
 
 	// Create the stacktrace element array.
-	java_handle_objectarray_t* oa = builtin_anewarray(length, class_java_lang_StackTraceElement);
+	ObjectArray oa(length, class_java_lang_StackTraceElement);
 
-	if (oa == NULL)
+	if (oa.is_null())
 		return NULL;
 
 	// Iterate over all stacktrace elements.
@@ -789,10 +788,10 @@ java_handle_objectarray_t* stacktrace_get_StackTraceElements(stacktrace_t* st)
 			return NULL;
 
 		// Store stacktrace element in array.
-		array_objectarray_element_set(oa, i, h);
+		oa.set_element(i, h);
 	}
 
-	return oa;
+	return oa.get_handle();
 }
 #endif
 
@@ -931,8 +930,6 @@ java_handle_objectarray_t *stacktrace_getClassContext(void)
 	stackframeinfo_t           *sfi;
 	stackframeinfo_t            tmpsfi;
 	int                         depth;
-	java_handle_objectarray_t  *oa;
-	java_object_t             **data;
 	int                         i;
 	methodinfo                 *m;
 
@@ -959,20 +956,15 @@ java_handle_objectarray_t *stacktrace_getClassContext(void)
 
 	/* Allocate the Class array. */
 
-	oa = builtin_anewarray(depth, class_java_lang_Class);
+	ClassArray ca(depth);
 
-	if (oa == NULL) {
+	if (ca.is_null()) {
 		CYCLES_STATS_END(stacktrace_getClassContext);
 
 		return NULL;
 	}
 
 	/* Fill the Class array from the stacktrace list. */
-
-	LLNI_CRITICAL_START;
-
-	data = LLNI_array_data(oa);
-
 	/* Iterate over the whole stack. */
 
 	i = 0;
@@ -991,7 +983,7 @@ java_handle_objectarray_t *stacktrace_getClassContext(void)
 
 		/* Store the class in the array. */
 
-		data[i] = (java_object_t *) m->clazz;
+		ca.set_element(i, m->clazz);
 
 		i++;
 	}
@@ -1000,7 +992,7 @@ java_handle_objectarray_t *stacktrace_getClassContext(void)
 
 	CYCLES_STATS_END(stacktrace_getClassContext)
 
-	return oa;
+	return ca.get_handle();
 }
 
 
@@ -1092,15 +1084,12 @@ classinfo *stacktrace_get_current_class(void)
 #if defined(ENABLE_JAVASE) && defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 java_handle_objectarray_t *stacktrace_get_stack(void)
 {
-	stackframeinfo_t          *sfi;
-	stackframeinfo_t           tmpsfi;
-	int                        depth;
-	java_handle_objectarray_t *oa;
-	java_handle_objectarray_t *classes;
-	java_handle_objectarray_t *methodnames;
-	methodinfo                *m;
-	java_handle_t             *string;
-	int                        i;
+	stackframeinfo_t *sfi;
+	stackframeinfo_t  tmpsfi;
+	int               depth;
+	methodinfo       *m;
+	java_handle_t    *string;
+	int               i;
 
 	CYCLES_STATS_DECLARE_AND_START
 
@@ -1122,25 +1111,23 @@ java_handle_objectarray_t *stacktrace_get_stack(void)
 
 	/* Allocate the required arrays. */
 
-	oa = builtin_anewarray(2, arrayclass_java_lang_Object);
+	ObjectArray oa(2, arrayclass_java_lang_Object);
+	ClassArray  classes(depth);
+	ObjectArray methodnames(depth, class_java_lang_String);
 
-	if (oa == NULL)
+	if (oa.is_null())
 		goto return_NULL;
 
-	classes = builtin_anewarray(depth, class_java_lang_Class);
-
-	if (classes == NULL)
+	if (classes.is_null())
 		goto return_NULL;
 
-	methodnames = builtin_anewarray(depth, class_java_lang_String);
-
-	if (methodnames == NULL)
+	if (methodnames.is_null())
 		goto return_NULL;
 
 	/* Set up the 2-dimensional array. */
 
-	array_objectarray_element_set(oa, 0, (java_handle_t *) classes);
-	array_objectarray_element_set(oa, 1, (java_handle_t *) methodnames);
+	oa.set_element(0, (java_handle_t *) classes.get_handle());
+	oa.set_element(1, (java_handle_t *) methodnames.get_handle());
 
 	/* Iterate over the whole stack. */
 	/* TODO We should use a critical section here to speed things
@@ -1161,10 +1148,8 @@ java_handle_objectarray_t *stacktrace_get_stack(void)
 			continue;
 
 		/* Store the class in the array. */
-		/* NOTE: We use a LLNI-macro here, because a classinfo is not
-		   a handle. */
 
-		LLNI_array_direct(classes, i) = (java_object_t *) m->clazz;
+		classes.set_element(i, m->clazz);
 
 		/* Store the name in the array. */
 
@@ -1173,14 +1158,14 @@ java_handle_objectarray_t *stacktrace_get_stack(void)
 		if (string == NULL)
 			goto return_NULL;
 
-		array_objectarray_element_set(methodnames, i, string);
+		methodnames.set_element(i, string);
 
 		i++;
 	}
 
 	CYCLES_STATS_END(stacktrace_get_stack)
 
-	return oa;
+	return oa.get_handle();
 
 return_NULL:
 	CYCLES_STATS_END(stacktrace_get_stack)
@@ -1324,16 +1309,18 @@ void stacktrace_print_current(void)
 stacktrace_t* stacktrace_get_of_thread(threadobject* t)
 {
 	stackframeinfo_t*        sfi;
-	java_handle_bytearray_t* ba;
+	java_handle_bytearray_t* stba;
 	stacktrace_t*            st;
 
-	sfi = t->_stackframeinfo;
-	ba  = stacktrace_get(sfi);
+	sfi  = t->_stackframeinfo;
+	stba = stacktrace_get(sfi);
 
-	if (ba == NULL)
+	ByteArray ba(stba);
+
+	if (ba.is_null())
 		return NULL;
 
-	st  = (stacktrace_t*) LLNI_array_data(ba);
+	st  = (stacktrace_t*) ba.get_raw_data_ptr();
 
 	return st;
 }
@@ -1407,11 +1394,11 @@ void stacktrace_print_exception(java_handle_t *h)
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	java_lang_VMThrowable vmt(t.get_vmState());
-	java_handle_bytearray_t* backtrace = vmt.get_vmdata();
+	ByteArray backtrace(vmt.get_vmdata());
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
 
-	java_handle_bytearray_t* backtrace = t.get_backtrace();
+	ByteArray backtrace(t.get_backtrace());
 
 #else
 # error unknown classpath configuration
@@ -1419,14 +1406,14 @@ void stacktrace_print_exception(java_handle_t *h)
 
 	// Sanity check.
 
-	assert(backtrace != NULL);
+	assert(backtrace.is_non_null());
 
 	/* We need a critical section here as we use the byte-array data
 	   pointer directly. */
 
 	LLNI_CRITICAL_START;
 	
-	stacktrace_t* st = (stacktrace_t*) LLNI_array_data(backtrace);
+	stacktrace_t* st = (stacktrace_t*) backtrace.get_raw_data_ptr();
 
 	stacktrace_print(st);
 

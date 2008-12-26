@@ -582,10 +582,12 @@ uint64_t *argument_vmarray_from_objectarray(methodinfo *m, java_handle_t *o,
 		i++;
 	}
 
+	ObjectArray oa(params);
+
 	for (j = 0; i < md->paramcount; i++, j++, pd++, td++) {
 		/* XXX This function can throw an exception, which should not happend
 		   here, since we are outside the nativeworld. */
-		param = array_objectarray_element_get(params, j);
+		param = oa.get_element(j);
 
 		switch (td->type) {
 		case TYPE_INT:

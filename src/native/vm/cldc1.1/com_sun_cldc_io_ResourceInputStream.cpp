@@ -34,7 +34,6 @@
 #include "mm/memory.hpp"
 
 #include "native/jni.hpp"
-#include "native/llni.h"
 #include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
@@ -302,8 +301,9 @@ JNIEXPORT jint JNICALL Java_com_sun_cldc_io_ResourceInputStream_readBytes(JNIEnv
 {
 	/* get pointer to the buffer */
 	// XXX Not GC safe.
-	void* buf = &(LLNI_array_direct((java_handle_bytearray_t*) byteArray, off));
-	
+	ByteArray ba(byteArray);
+	void* buf = (void*) (((int8_t*) ba.get_raw_data_ptr()) + off);
+
 	com_sun_cldchi_jvm_FileDescriptor fd(jobj);
 
 	int64_t filep      = fd.get_pointer();

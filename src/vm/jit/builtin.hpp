@@ -168,13 +168,8 @@ java_handle_t *builtin_escape_reason_new(classinfo *c);
 java_object_t *builtin_fast_new(classinfo *c);
 #define BUILTIN_FAST_new (functionptr) builtin_fast_new
 
-java_handle_t *builtin_newarray(int32_t size, classinfo *arrayclass);
-/* NOT AN OP */
-java_handle_t *builtin_java_newarray(int32_t size, java_handle_t *arrayclass);
+java_handle_array_t *builtin_java_newarray(int32_t size, java_handle_t *arrayclass);
 #define BUILTIN_newarray (functionptr) builtin_java_newarray
-
-java_handle_objectarray_t *builtin_anewarray(int32_t size, classinfo *componentclass);
-/* NOT AN OP */
 
 java_handle_booleanarray_t *builtin_newarray_boolean(int32_t size);
 #define BUILTIN_newarray_boolean (functionptr) builtin_newarray_boolean

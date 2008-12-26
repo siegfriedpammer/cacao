@@ -37,6 +37,7 @@
 #include "native/vm/reflection.hpp"
 
 #include "vm/access.hpp"
+#include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
@@ -85,8 +86,10 @@ java_handle_t* Reflection::invoke(methodinfo *m, java_handle_t *o, java_handle_o
 
 	/* check if we got the right number of arguments */
 
+	ObjectArray oa(params);
+
 	if (((params == NULL) && (paramcount != 0)) ||
-		(params && (LLNI_array_size(params) != paramcount))) 
+		(params && (oa.get_length() != paramcount))) 
 	{
 		exceptions_throw_illegalargumentexception();
 		return NULL;

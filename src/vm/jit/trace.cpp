@@ -38,6 +38,7 @@
 
 #include "toolbox/logging.hpp"
 
+#include "vm/array.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
@@ -569,9 +570,11 @@ void trace_exception_builtin(java_handle_t* h)
 		logtextlen += utf_bytes(jlt.get_vftbl()->clazz->name);
 
 		if (jls.get_handle()) {
+			CharArray ca(jls.get_value());
 			// FIXME This is not handle capable!
+			uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
 			logtextlen += strlen(": ") +
-				u2_utflength(jls.get_value()->data + jls.get_offset(), jls.get_count());
+				u2_utflength(ptr + jls.get_offset(), jls.get_count());
 		}
 	} 
 	else {
