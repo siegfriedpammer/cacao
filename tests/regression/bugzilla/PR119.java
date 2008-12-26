@@ -1,4 +1,4 @@
-/* tests/regression/bugzilla/All.java - runs all CACAO regression unit tests
+/* tests/regression/bugzilla/PR119.java
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,24 +23,18 @@
 */
 
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-@RunWith(Suite.class)
+import java.lang.reflect.Array;
 
-@Suite.SuiteClasses({
-PR52.class,
-PR57.class,
-PR58.class,
-PR65.class,
-PR80.class,
-PR89.class,
-PR112.class,
-PR113.class,
-PR114.class,
-PR116.class,
-PR119.class
-})
+public class PR119 {
+    private static final int i = 23;
 
-public class All {
+    @Test
+    public void test() {
+        Integer[] a = new Integer[1];
+        Array.set(a, 0, new Integer(i));
+        assertEquals(i, a[0]);
+    }
 }
