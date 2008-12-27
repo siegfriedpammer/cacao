@@ -441,53 +441,6 @@ bool builtin_checkcast(java_handle_t *o, classinfo *c)
 }
 
 
-/* builtin_descriptorscompatible ***********************************************
-
-   Checks if two array type descriptors are assignment compatible.
-
-   RETURN VALUE:
-      1......target = desc is possible
-      0......otherwise
-			
-*******************************************************************************/
-
-static bool builtin_descriptorscompatible(arraydescriptor *desc, arraydescriptor *target)
-{
-	if (desc == target)
-		return 1;
-
-	if (desc->arraytype != target->arraytype)
-		return 0;
-
-	if (desc->arraytype != ARRAYTYPE_OBJECT)
-		return 1;
-	
-	/* {both arrays are arrays of references} */
-
-	if (desc->dimension == target->dimension) {
-		if (!desc->elementvftbl)
-			return 0;
-		/* an array which contains elements of interface types is
-           allowed to be casted to Object (JOWENN)*/
-
-		if ((desc->elementvftbl->baseval < 0) &&
-			(target->elementvftbl->baseval == 1))
-			return 1;
-
-		return class_isanysubclass(desc->elementvftbl->clazz,
-								   target->elementvftbl->clazz);
-	}
-
-	if (desc->dimension < target->dimension)
-		return 0;
-
-	/* {desc has higher dimension than target} */
-
-	return class_isanysubclass(pseudo_class_Arraystub,
-							   target->elementvftbl->clazz);
-}
-
-
 /* builtin_arraycheckcast ******************************************************
 
    Checks if an object is really a subtype of the requested array
@@ -515,7 +468,7 @@ bool builtin_fast_arraycheckcast(java_object_t *o, classinfo *targetclass)
 	if (desc == NULL)
 		return 0;
  
-	return builtin_descriptorscompatible(desc, targetclass->vftbl->arraydesc);
+	return class_is_arraycompatible(desc, targetclass->vftbl->arraydesc);
 }
 
 
@@ -738,7 +691,7 @@ bool builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 	else {
 		/* {o is an array} */
 
-		result = builtin_descriptorscompatible(valuedesc, componentvftbl->arraydesc);
+		result = class_is_arraycompatible(valuedesc, componentvftbl->arraydesc);
 	}
 
 	/* return result */

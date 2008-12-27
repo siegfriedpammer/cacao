@@ -399,6 +399,7 @@ methodinfo *class_resolveinterfacemethod(classinfo *c, utf *name, utf *dest, cla
 
 bool                       class_issubclass(classinfo *sub, classinfo *super);
 bool                       class_isanysubclass(classinfo *sub, classinfo *super);
+bool                       class_is_arraycompatible(arraydescriptor *desc, arraydescriptor *target);
 bool                       class_is_assignable_from(classinfo *to, classinfo *from);
 bool                       class_is_instance(classinfo *c, java_handle_t *h);
 

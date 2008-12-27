@@ -1486,6 +1486,53 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
 }
 
 
+/* class_is_arraycompatible ****************************************************
+
+   Checks if two array type descriptors are assignment compatible.
+
+   RETURN VALUE:
+      true .... target = desc is possible
+      false ... otherwise
+			
+*******************************************************************************/
+
+bool class_is_arraycompatible(arraydescriptor *desc, arraydescriptor *target)
+{
+	if (desc == target)
+		return 1;
+
+	if (desc->arraytype != target->arraytype)
+		return 0;
+
+	if (desc->arraytype != ARRAYTYPE_OBJECT)
+		return 1;
+	
+	/* {both arrays are arrays of references} */
+
+	if (desc->dimension == target->dimension) {
+		if (!desc->elementvftbl)
+			return 0;
+		/* an array which contains elements of interface types is
+           allowed to be casted to Object (JOWENN)*/
+
+		if ((desc->elementvftbl->baseval < 0) &&
+			(target->elementvftbl->baseval == 1))
+			return 1;
+
+		return class_isanysubclass(desc->elementvftbl->clazz,
+								   target->elementvftbl->clazz);
+	}
+
+	if (desc->dimension < target->dimension)
+		return 0;
+
+	/* {desc has higher dimension than target} */
+
+	return class_isanysubclass(pseudo_class_Arraystub,
+							   target->elementvftbl->clazz);
+}
+
+
 /* class_is_assignable_from ****************************************************
 
    Return whether an instance of the "from" class parameter would be
@@ -1511,7 +1558,12 @@ bool class_is_assignable_from(classinfo *to, classinfo *from)
 		if (!link_class(from))
 			return false;
 
-	return class_isanysubclass(from, to);
+	/* Decide whether we are dealing with array types or object types. */
+
+	if (class_is_array(to))
+		return class_is_arraycompatible(from->vftbl->arraydesc, to->vftbl->arraydesc);
+	else
+		return class_isanysubclass(from, to);
 }
 
 
@@ -1535,7 +1587,12 @@ bool class_is_instance(classinfo *c, java_handle_t *h)
 		if (!link_class(c))
 			return false;
 
-	return builtin_instanceof(h, c);
+	/* Decide whether we are dealing with array types or object types. */
+
+	if (class_is_array(c))
+		return builtin_arrayinstanceof(h, c);
+	else
+		return builtin_instanceof(h, c);
 }
 
 
