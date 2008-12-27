@@ -29,6 +29,7 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 
 @Suite.SuiteClasses({
+TestArrayClasses.class,
 TestExceptionInStaticClassInitializer.class,
 TestPatcher.class
 })
