@@ -682,7 +682,6 @@ bool builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 	vftbl_t         *componentvftbl;
 	vftbl_t         *valuevftbl;
 	int32_t          baseval;
-	uint32_t         diffval;
 	bool             result;
 
 	if (o == NULL)
@@ -721,8 +720,8 @@ bool builtin_fast_canstore(java_objectarray_t *oa, java_object_t *o)
 #if USES_NEW_SUBTYPE
 			result = fast_subtype_check(valuevftbl, componentvftbl);
 #else
-			diffval = valuevftbl->baseval - componentvftbl->baseval;
-			result  = diffval <= (uint32_t) componentvftbl->diffval;
+			uint32_t diffval = valuevftbl->baseval - componentvftbl->baseval;
+			result = diffval <= (uint32_t) componentvftbl->diffval;
 #endif
 		}
 
@@ -755,7 +754,6 @@ bool builtin_fast_canstore_onedim(java_objectarray_t *a, java_object_t *o)
 	vftbl_t         *elementvftbl;
 	vftbl_t         *valuevftbl;
 	int32_t          baseval;
-	uint32_t         diffval;
 	bool             result;
 	
 	if (o == NULL)
@@ -791,8 +789,8 @@ bool builtin_fast_canstore_onedim(java_objectarray_t *a, java_object_t *o)
 #if USES_NEW_SUBTYPE
 		result = fast_subtype_check(valuevftbl, elementvftbl);
 #else
-		diffval = valuevftbl->baseval - elementvftbl->baseval;
-		result  = diffval <= (uint32_t) elementvftbl->diffval;
+		uint32_t diffval = valuevftbl->baseval - elementvftbl->baseval;
+		result = diffval <= (uint32_t) elementvftbl->diffval;
 #endif
 	}
 
@@ -806,10 +804,9 @@ bool builtin_fast_canstore_onedim(java_objectarray_t *a, java_object_t *o)
  * one-dimensional array of a class type */
 bool builtin_fast_canstore_onedim_class(java_objectarray_t *a, java_object_t *o)
 {
-	vftbl_t  *elementvftbl;
-	vftbl_t  *valuevftbl;
-	uint32_t  diffval;
-	bool      result;
+	vftbl_t *elementvftbl;
+	vftbl_t *valuevftbl;
+	bool     result;
 	
 	if (o == NULL)
 		return 1;
@@ -836,8 +833,8 @@ bool builtin_fast_canstore_onedim_class(java_objectarray_t *a, java_object_t *o)
 #if USES_NEW_SUBTYPE
 	result = fast_subtype_check(valuevftbl, elementvftbl);
 #else
-	diffval = valuevftbl->baseval - elementvftbl->baseval;
-	result  = diffval <= (uint32_t) elementvftbl->diffval;
+	uint32_t diffval = valuevftbl->baseval - elementvftbl->baseval;
+	result = diffval <= (uint32_t) elementvftbl->diffval;
 #endif
 
 	UNLOCK_CLASSRENUMBER_LOCK;

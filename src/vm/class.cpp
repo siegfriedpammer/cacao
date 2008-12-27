@@ -1445,8 +1445,7 @@ bool class_issubclass(classinfo *sub, classinfo *super)
 
 bool class_isanysubclass(classinfo *sub, classinfo *super)
 {
-	uint32_t diffval;
-	bool     result;
+	bool result;
 
 	/* This is the trivial case. */
 
@@ -1476,8 +1475,8 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
 #else
 		LOCK_CLASSRENUMBER_LOCK;
 
-		diffval = sub->vftbl->baseval - super->vftbl->baseval;
-		result  = diffval <= (uint32_t) super->vftbl->diffval;
+		uint32_t diffval = sub->vftbl->baseval - super->vftbl->baseval;
+		result = diffval <= (uint32_t) super->vftbl->diffval;
 
 		UNLOCK_CLASSRENUMBER_LOCK;
 #endif
