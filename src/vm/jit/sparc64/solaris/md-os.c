@@ -41,7 +41,7 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stacktrace.hpp"
-#include "vm/jit/trap.h"
+#include "vm/jit/trap.hpp"
 
 
 ptrint md_get_reg_from_context(mcontext_t *_mc, u4 rindex)

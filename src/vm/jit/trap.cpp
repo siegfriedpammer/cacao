@@ -1,4 +1,4 @@
-/* src/vm/jit/trap.c - hardware traps
+/* src/vm/jit/trap.cpp - hardware traps
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -53,6 +53,9 @@
 #include "vm/jit/replace.hpp"
 #include "vm/jit/stacktrace.hpp"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Mmap the first memory page to support hardware exceptions and check
@@ -70,9 +73,9 @@ void trap_init(void)
 	/* mmap a memory page at address 0x0, so our hardware-exceptions
 	   work. */
 
-	pagesize = os_getpagesize();
+	pagesize = os::getpagesize();
 
-	(void) os_mmap_anonymous(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
+	(void) os::mmap_anonymous(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
 #endif
 
 	TRACESUBSYSTEMINITIALIZATION("trap_init");
@@ -99,12 +102,8 @@ void trap_init(void)
  */
 void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xpc, void *context)
 {
-	executionstate_t  es;
-	stackframeinfo_t  sfi;
-	int32_t           index;
-	java_handle_t    *o;
-	methodinfo       *m;
-	java_handle_t    *p;
+	executionstate_t es;
+	stackframeinfo_t sfi;
 
 #if !defined(NDEBUG)
 	if (opt_TraceTraps)
@@ -117,8 +116,8 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 
 	/* Prevent compiler warnings. */
 
-	o = NULL;
-	m = NULL;
+	java_handle_t* o = NULL;
+	methodinfo*    m = NULL;
 
 #if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
 # if !defined(NDEBUG)
@@ -133,11 +132,13 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 	md_executionstate_read(&es, context);
 #endif
 
-	/* wrap the value into a handle if it is a reference */
+	/* Do some preparations before we enter the nativeworld. */
 	/* BEFORE: creating stackframeinfo */
 
 	switch (type) {
 	case TRAP_ClassCastException:
+		/* Wrap the value into a handle, as it is a reference. */
+
 		o = LLNI_WRAP((java_object_t *) val);
 		break;
 
@@ -160,6 +161,11 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 
 	stacktrace_stackframeinfo_add(&sfi, pv, sp, ra, xpc);
 
+	/* Get resulting exception (or pointer to compiled method). */
+
+	int32_t        index;
+	java_handle_t* p;
+
 	switch (type) {
 	case TRAP_NullPointerException:
 		p = exceptions_new_nullpointerexception();
@@ -170,7 +176,7 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 		break;
 
 	case TRAP_ArrayIndexOutOfBoundsException:
-		index = (s4) val;
+		index = (int32_t) val;
 		p = exceptions_new_arrayindexoutofboundsexception(index);
 		break;
 
@@ -188,23 +194,23 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 
 	case TRAP_PATCHER:
 #if defined(ENABLE_REPLACEMENT)
-		if (replace_me_wrapper(xpc, context)) {
+		if (replace_me_wrapper((uint8_t*) xpc, context)) {
 			p = NULL;
 			break;
 		}
 #endif
-		p = patcher_handler(xpc);
+		p = patcher_handler((uint8_t*) xpc);
 		break;
 
 	case TRAP_COMPILER:
-		p = jit_compile_handle(m, sfi.pv, ra, (void *) val);
+		p = (java_handle_t*) jit_compile_handle(m, sfi.pv, ra, (void*) val);
 		break;
 
 #if defined(ENABLE_REPLACEMENT)
 	case TRAP_COUNTDOWN:
-#if defined(__I386__)
+# if defined(__I386__)
 		replace_me_wrapper((char*)xpc - 13, context);
-#endif
+# endif
 		p = NULL;
 		break;
 #endif
@@ -226,7 +232,7 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 
 #if defined(ENABLE_DISASSEMBLER)
 		log_println("machine instruction at PC:");
-		disassinstr(xpc);
+		disassinstr((uint8_t*) xpc);
 #endif
 
 		vm_abort("Exiting...");
@@ -258,19 +264,16 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 		// In case of an exception during JIT compilation, we fetch
 		// the exception here and proceed with exception handling.
 
-		java_handle_t *e = exceptions_get_and_clear_exception();
-		assert(e != NULL);
+		p = exceptions_get_and_clear_exception();
+		assert(p != NULL);
 
 		// Get and set the PV from the parent Java method.
 
-		es.pv = md_codegen_get_pv_from_pc(ra);
+		es.pv = (uint8_t *) md_codegen_get_pv_from_pc(ra);
 
-		// XXX: Make the code below a fall-through to default case!
+		// Now fall-through to default exception handling.
 
-		es.intregs[REG_ITMP1_XPTR] = (uintptr_t) LLNI_DIRECT(e);
-		es.intregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
-		es.pc                      = (uint8_t *) (uintptr_t) asm_handle_exception;
-		break;
+		goto trap_handle_exception;
 
 	case TRAP_PATCHER:
 		// The normal case for a patcher trap is to continue execution at
@@ -282,8 +285,9 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 			break;
 		}
 
-		/* fall-through */
+		// Fall-through to default exception handling.
 
+	trap_handle_exception:
 	default:
 		if (p != NULL) {
 			es.intregs[REG_ITMP1_XPTR] = (uintptr_t) LLNI_DIRECT(p);
@@ -297,7 +301,7 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 	md_executionstate_write(&es, context);
 #endif
 
-	/* unwrap and return the exception object */
+	/* Unwrap and return the exception object. */
 	/* AFTER: removing stackframeinfo */
 
 	if (type == TRAP_COMPILER)
@@ -306,6 +310,10 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 		return LLNI_UNWRAP(p);
 }
 
+#ifdef __cplusplus
+}
+#endif
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -313,7 +321,7 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -1,4 +1,4 @@
-/* src/vm/jit/trap.h - hardware traps
+/* src/vm/jit/trap.hpp - hardware traps
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,8 +23,8 @@
 */
 
 
-#ifndef _TRAP_H
-#define _TRAP_H
+#ifndef _TRAP_HPP
+#define _TRAP_HPP
 
 #include "config.h"
 
@@ -48,7 +48,7 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 }
 #endif
 
-#endif /* _TRAP_H */
+#endif /* _TRAP_HPP */
 
 
 /*
@@ -57,7 +57,7 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

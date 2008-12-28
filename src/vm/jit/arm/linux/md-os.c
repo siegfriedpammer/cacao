@@ -59,7 +59,7 @@ typedef struct ucontext {
 #include "vm/jit/disass.h"
 #include "vm/jit/executionstate.h"
 #include "vm/jit/patcher-common.hpp"
-#include "vm/jit/trap.h"
+#include "vm/jit/trap.hpp"
 
 
 /* md_signal_handler_sigsegv ***************************************************

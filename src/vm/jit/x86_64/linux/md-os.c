@@ -44,7 +44,7 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
-#include "vm/jit/trap.h"
+#include "vm/jit/trap.hpp"
 #include "vm/jit/stacktrace.hpp"
 
 

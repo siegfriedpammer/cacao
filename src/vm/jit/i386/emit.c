@@ -48,7 +48,7 @@
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/replace.hpp"
 #include "vm/jit/trace.hpp"
-#include "vm/jit/trap.h"
+#include "vm/jit/trap.hpp"
 
 
 /* emit_load ******************************************************************

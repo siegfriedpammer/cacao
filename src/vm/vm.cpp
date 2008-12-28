@@ -101,7 +101,7 @@
 # include "vm/jit/python.h"
 #endif
 
-#include "vm/jit/trap.h"
+#include "vm/jit/trap.hpp"
 
 #if defined(ENABLE_JVMTI)
 # include "native/jvmti/cacaodbg.h"

@@ -58,7 +58,7 @@
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.hpp"
-#include "vm/jit/trap.h"
+#include "vm/jit/trap.hpp"
 
 #if defined(ENABLE_LSRA)
 # include "vm/jit/allocator/lsra.h"

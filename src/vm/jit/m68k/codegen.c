@@ -61,7 +61,7 @@
 #include "vm/jit/reg.h"
 #include "vm/jit/replace.hpp"
 #include "vm/jit/stacktrace.hpp"
-#include "vm/jit/trap.h"
+#include "vm/jit/trap.hpp"
 
 
 bool codegen_emit(jitdata *jd) 

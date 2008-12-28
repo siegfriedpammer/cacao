@@ -32,7 +32,7 @@
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
-#include "vm/jit/trap.h"
+#include "vm/jit/trap.hpp"
 
 #include <assert.h>
 #include <stdlib.h>

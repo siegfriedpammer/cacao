@@ -37,7 +37,7 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/trace.hpp"
-#include "vm/jit/trap.h"
+#include "vm/jit/trap.hpp"
 
 
 /* emit_mov_imm_reg **************************************************************************
