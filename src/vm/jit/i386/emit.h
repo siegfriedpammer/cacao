@@ -154,6 +154,7 @@
 
 void emit_mov_reg_reg(codegendata *cd, s4 reg, s4 dreg);
 void emit_mov_imm_reg(codegendata *cd, s4 imm, s4 dreg);
+void emit_mov_imm2_reg(codegendata *cd, s4 imm, s4 dreg);
 void emit_movb_imm_reg(codegendata *cd, s4 imm, s4 dreg);
 void emit_mov_membase_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg);
 void emit_mov_membase32_reg(codegendata *cd, s4 basereg, s4 disp, s4 reg);

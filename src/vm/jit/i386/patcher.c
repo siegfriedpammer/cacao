@@ -49,8 +49,6 @@
 
 #define PATCH_BACK_ORIGINAL_MCODE							\
 	do {													\
-		*((uint16_t*) pr->mpc) = (uint16_t) pr->mcode;		\
-		md_icacheflush((void*) pr->mpc, PATCHER_CALL_SIZE);	\
 	} while (0)
 
 
@@ -62,7 +60,8 @@
 
 void patcher_patch_code(patchref_t *pr)
 {
-	PATCH_BACK_ORIGINAL_MCODE;
+	*((uint16_t*) pr->mpc) = (uint16_t) pr->mcode;
+	md_icacheflush((void*) pr->mpc, PATCHER_CALL_SIZE);
 }
 
 
@@ -71,7 +70,7 @@ void patcher_patch_code(patchref_t *pr)
    Machine code:
 
    <patched call position>
-   b8 00 00 00 00             mov    $0x00000000,%eax
+   c7 c0 00 00 00 00          mov    $0x00000000,%eax
 
 *******************************************************************************/
 
@@ -97,11 +96,13 @@ bool patcher_get_putstatic(patchref_t *pr)
 		if (!initialize_class(fi->clazz))
 			return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch the field value's address */
 
-	*((intptr_t *) (ra + 1)) = (intptr_t) fi->value;
+	*((intptr_t *) (ra + 2)) = (intptr_t) fi->value;
+	md_icacheflush((void*) (ra + 2), SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -132,16 +133,22 @@ bool patcher_getfield(patchref_t *pr)
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch the field's offset */
 
 	*((u4 *) (ra + 2)) = (u4) (fi->offset);
+	int clen = SIZEOF_VOID_P;
 
 	/* if the field has type long, we need to patch the second move too */
 
-	if (fi->type == TYPE_LNG)
+	if (fi->type == TYPE_LNG) {
 		*((u4 *) (ra + 6 + 2)) = (u4) (fi->offset + 4);
+		clen += 6;
+	}
+
+	md_icacheflush((void*) (ra + 2), clen);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -172,10 +179,9 @@ bool patcher_putfield(patchref_t *pr)
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch the field's offset */
 
+	int clen = SIZEOF_VOID_P;
 	if (fi->type != TYPE_LNG) {
 		*((u4 *) (ra + 2)) = (u4) (fi->offset);
 	}
@@ -188,7 +194,13 @@ bool patcher_putfield(patchref_t *pr)
 
 		*((u4 *) (ra + 2))     = (u4) (fi->offset);
 		*((u4 *) (ra + 6 + 2)) = (u4) (fi->offset + 4);
+		clen += 6;
 	}
+
+	md_icacheflush((void*) (ra + 2), clen);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -219,10 +231,9 @@ bool patcher_putfieldconst(patchref_t *pr)
 	if (!(fi = resolve_field_eager(uf)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch the field's offset */
 
+	int clen = SIZEOF_VOID_P;
 	if (!IS_2_WORD_TYPE(fi->type)) {
 		*((u4 *) (ra + 2)) = (u4) (fi->offset);
 	}
@@ -235,7 +246,13 @@ bool patcher_putfieldconst(patchref_t *pr)
 
 		*((u4 *) (ra + 2))      = (u4) (fi->offset);
 		*((u4 *) (ra + 10 + 2)) = (u4) (fi->offset + 4);
+		clen += 10;
 	}
+
+	md_icacheflush((void*) (ra + 2), clen);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -246,8 +263,7 @@ bool patcher_putfieldconst(patchref_t *pr)
    Machine code:
 
    <patched call postition>
-   c7 04 24 00 00 00 00       movl   $0x0000000,(%esp)
-   b8 00 00 00 00             mov    $0x0000000,%eax
+   c7 c0 00 00 00 00          mov    $0x00000000,%eax
 
 *******************************************************************************/
 
@@ -267,11 +283,13 @@ bool patcher_aconst(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch the classinfo pointer */
 
-	*((ptrint *) (ra + 1)) = (ptrint) c;
+	*((ptrint *) (ra + 2)) = (ptrint) c;
+	md_icacheflush((void*) (ra + 2), SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -308,11 +326,13 @@ bool patcher_builtin_multianewarray(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch the classinfo pointer */
 
 	*((ptrint *) (ra + 7 + 4)) = (ptrint) c;
+	md_icacheflush((void*) (ra + 7 + 4), SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -345,8 +365,6 @@ bool patcher_builtin_arraycheckcast(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch the classinfo pointer */
 
 	*((ptrint *) (ra + 4)) = (ptrint) c;
@@ -354,6 +372,10 @@ bool patcher_builtin_arraycheckcast(patchref_t *pr)
 	/* patch new function address */
 
 	*((ptrint *) (ra + 8 + 1)) = (ptrint) BUILTIN_arraycheckcast;
+	md_icacheflush((void*) (ra + 4), SIZEOF_VOID_P + 8 + 1 - 4);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -364,7 +386,7 @@ bool patcher_builtin_arraycheckcast(patchref_t *pr)
    Machine code:
 
    <patched call position>
-   b9 00 00 00 00             mov    $0x00000000,%ecx
+   c7 c1 00 00 00 00          mov    $0x00000000,%ecx
    ff d1                      call   *%ecx
 
 *******************************************************************************/
@@ -385,11 +407,13 @@ bool patcher_invokestatic_special(patchref_t *pr)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch stubroutine */
 
-	*((ptrint *) (ra + 1)) = (ptrint) m->stubroutine;
+	*((ptrint *) (ra + 2)) = (ptrint) m->stubroutine;
+	md_icacheflush((void*) (ra + 2), SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -422,12 +446,14 @@ bool patcher_invokevirtual(patchref_t *pr)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch vftbl index */
 
 	*((s4 *) (ra + 2 + 2)) = (s4) (OFFSET(vftbl_t, table[0]) +
 								   sizeof(methodptr) * m->vftblindex);
+	md_icacheflush((void*) (ra + 2 + 2), SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -461,8 +487,6 @@ bool patcher_invokeinterface(patchref_t *pr)
 	if (!(m = resolve_method_eager(um)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch interfacetable index */
 
 	*((s4 *) (ra + 2 + 2)) = (s4) (OFFSET(vftbl_t, interfacetable[0]) -
@@ -472,6 +496,10 @@ bool patcher_invokeinterface(patchref_t *pr)
 
 	*((s4 *) (ra + 2 + 6 + 2)) =
 		(s4) (sizeof(methodptr) * (m - m->clazz->methods));
+	md_icacheflush((void*) (ra + 2 + 2), SIZEOF_VOID_P + 6);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -482,7 +510,7 @@ bool patcher_invokeinterface(patchref_t *pr)
    Machine code:
 
    <patched call position>
-   b9 00 00 00 00             mov    $0x00000000,%ecx
+   c7 c1 00 00 00 00          mov    $0x00000000,%ecx
 
 *******************************************************************************/
 
@@ -502,11 +530,13 @@ bool patcher_checkcast_instanceof_flags(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch class flags */
 
-	*((s4 *) (ra + 1)) = (s4) c->flags;
+	*((s4 *) (ra + 2)) = (s4) c->flags;
+	md_icacheflush((void*) (ra + 2), SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -542,8 +572,6 @@ bool patcher_checkcast_interface(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch super class index */
 
 	*((s4 *) (ra + 6 + 2)) = (s4) c->index;
@@ -551,6 +579,10 @@ bool patcher_checkcast_interface(patchref_t *pr)
 	*((s4 *) (ra + 6 + 6 + 2 + 6 + 6 + 2)) =
 		(s4) (OFFSET(vftbl_t, interfacetable[0]) -
 			  c->index * sizeof(methodptr*));
+	md_icacheflush((void*) (ra + 6 + 2), SIZEOF_VOID_P + 6 + 6 + 6 + 2);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -585,8 +617,6 @@ bool patcher_instanceof_interface(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch super class index */
 
 	*((s4 *) (ra + 6 + 2)) = (s4) c->index;
@@ -594,6 +624,10 @@ bool patcher_instanceof_interface(patchref_t *pr)
 	*((s4 *) (ra + 6 + 6 + 2 + 6 + 2)) =
 		(s4) (OFFSET(vftbl_t, interfacetable[0]) -
 			  c->index * sizeof(methodptr*));
+	md_icacheflush((void*) (ra + 6 + 2), SIZEOF_VOID_P + 6 + 6 + 2);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -604,11 +638,7 @@ bool patcher_instanceof_interface(patchref_t *pr)
    Machine code:
 
    <patched call position>
-   ba 00 00 00 00             mov    $0x00000000,%edx
-   8b 89 00 00 00 00          mov    0x00000000(%ecx),%ecx
-   8b 92 00 00 00 00          mov    0x00000000(%edx),%edx
-   29 d1                      sub    %edx,%ecx
-   ba 00 00 00 00             mov    $0x00000000,%edx
+   c7 c1 00 00 00 00          mov    $0x00000000,%ecx
 
 *******************************************************************************/
 
@@ -628,11 +658,13 @@ bool patcher_checkcast_class(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch super class' vftbl */
 
-	*((ptrint *) (ra + 1)) = (ptrint) c->vftbl;
+	*((ptrint *) (ra + 2)) = (ptrint) c->vftbl;
+	md_icacheflush((void*) (ra + 2), SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }
@@ -643,10 +675,7 @@ bool patcher_checkcast_class(patchref_t *pr)
    Machine code:
 
    <patched call position>
-   b9 00 00 00 00             mov    $0x0,%ecx
-   8b 40 14                   mov    0x14(%eax),%eax
-   8b 51 18                   mov    0x18(%ecx),%edx
-   8b 49 14                   mov    0x14(%ecx),%ecx
+   c7 c1 00 00 00 00          mov    $0x00000000,%ecx
 
 *******************************************************************************/
 
@@ -666,11 +695,13 @@ bool patcher_instanceof_class(patchref_t *pr)
 	if (!(c = resolve_classref_eager(cr)))
 		return false;
 
-	PATCH_BACK_ORIGINAL_MCODE;
-
 	/* patch super class' vftbl */
 
-	*((ptrint *) (ra + 1)) = (ptrint) c->vftbl;
+	*((ptrint *) (ra + 2)) = (ptrint) c->vftbl;
+	md_icacheflush((void*) (ra + 2), SIZEOF_VOID_P);
+
+	// Patch back the original code.
+	patcher_patch_code(pr);
 
 	return true;
 }

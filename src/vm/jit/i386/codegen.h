@@ -279,6 +279,7 @@
 
 #define M_MOV(a,b)              emit_mov_reg_reg(cd, (a), (b))
 #define M_MOV_IMM(a,b)          emit_mov_imm_reg(cd, (u4) (a), (b))
+#define M_MOV_IMM2(a,b)         emit_mov_imm2_reg(cd, (u4) (a), (b))
 
 #define M_TEST(a)               emit_test_reg_reg(cd, (a), (a))
 #define M_TEST_IMM(a,b)         emit_test_imm_reg(cd, (a), (b))

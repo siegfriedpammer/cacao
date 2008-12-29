@@ -805,6 +805,15 @@ void emit_mov_imm_reg(codegendata *cd, s4 imm, s4 reg)
 	emit_imm32((imm));
 }
 
+/* 2-byte opcode for use with patchers */
+void emit_mov_imm2_reg(codegendata *cd, s4 imm, s4 reg)
+{
+	*(cd->mcodeptr++) = 0xc7;
+	emit_address_byte(3, 0, reg);
+	emit_imm32((imm));
+}
+
+
 
 void emit_movb_imm_reg(codegendata *cd, s4 imm, s4 reg)
 {
