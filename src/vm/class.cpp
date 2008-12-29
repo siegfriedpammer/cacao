@@ -1499,32 +1499,33 @@ bool class_isanysubclass(classinfo *sub, classinfo *super)
 bool class_is_arraycompatible(arraydescriptor *desc, arraydescriptor *target)
 {
 	if (desc == target)
-		return 1;
+		return true;
 
 	if (desc->arraytype != target->arraytype)
-		return 0;
+		return false;
 
 	if (desc->arraytype != ARRAYTYPE_OBJECT)
-		return 1;
+		return true;
 	
 	/* {both arrays are arrays of references} */
 
 	if (desc->dimension == target->dimension) {
 		if (!desc->elementvftbl)
-			return 0;
+			return false;
+
 		/* an array which contains elements of interface types is
-           allowed to be casted to Object (JOWENN)*/
+		   allowed to be casted to array of Object (JOWENN) */
 
 		if ((desc->elementvftbl->baseval < 0) &&
 			(target->elementvftbl->baseval == 1))
-			return 1;
+			return true;
 
 		return class_isanysubclass(desc->elementvftbl->clazz,
 								   target->elementvftbl->clazz);
 	}
 
 	if (desc->dimension < target->dimension)
-		return 0;
+		return false;
 
 	/* {desc has higher dimension than target} */
 
@@ -1560,7 +1561,7 @@ bool class_is_assignable_from(classinfo *to, classinfo *from)
 
 	/* Decide whether we are dealing with array types or object types. */
 
-	if (class_is_array(to))
+	if (class_is_array(to) && class_is_array(from))
 		return class_is_arraycompatible(from->vftbl->arraydesc, to->vftbl->arraydesc);
 	else
 		return class_isanysubclass(from, to);
