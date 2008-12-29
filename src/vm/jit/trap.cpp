@@ -165,6 +165,7 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 
 	int32_t        index;
 	java_handle_t* p;
+	void*          entry;
 
 	switch (type) {
 	case TRAP_NullPointerException:
@@ -203,7 +204,8 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 		break;
 
 	case TRAP_COMPILER:
-		p = (java_handle_t*) jit_compile_handle(m, sfi.pv, ra, (void*) val);
+		entry = jit_compile_handle(m, sfi.pv, ra, (void*) val);
+		p = NULL;
 		break;
 
 #if defined(ENABLE_REPLACEMENT)
@@ -255,9 +257,9 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 		// The normal case for a compiler trap is to jump directly to
 		// the newly compiled method.
 
-		if (p != NULL) {
-			es.pc = (uint8_t *) (uintptr_t) p;
-			es.pv = (uint8_t *) (uintptr_t) p;
+		if (entry != NULL) {
+			es.pc = (uint8_t *) (uintptr_t) entry;
+			es.pv = (uint8_t *) (uintptr_t) entry;
 			break;
 		}
 
@@ -305,7 +307,7 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 	/* AFTER: removing stackframeinfo */
 
 	if (type == TRAP_COMPILER)
-		return p;
+		return entry;
 	else
 		return LLNI_UNWRAP(p);
 }
