@@ -64,6 +64,21 @@ void patcher_patch_code(patchref_t *pr)
 	md_icacheflush((void*) pr->mpc, PATCHER_CALL_SIZE);
 }
 
+/**
+ * Check if the trap instruction at the given PC is valid.
+ *
+ * @param pc Program counter.
+ *
+ * @return true if valid, false otherwise.
+ */
+bool patcher_is_valid_trap_instruction_at(void* pc)
+{
+	uint16_t mcode = *((uint16_t*) pc);
+
+	// Check for the undefined instruction we use.
+	return (mcode == 0x0b0f);
+}
+
 
 /* patcher_get_putstatic *******************************************************
 

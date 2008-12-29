@@ -205,6 +205,22 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 	xpc = (u1 *) _mc->gregs[REG_EIP];
 	ra  = xpc;                            /* return address is equal to xpc   */
 
+	// Check if the trap instruction is valid.
+	// TODO Move this into patcher_handler.
+	if (patcher_is_valid_trap_instruction_at(xpc) == false) {
+		// Check if the PC has been patched during our way to this
+		// signal handler (see PR85).
+		if (patcher_is_patched_at(xpc) == true)
+			return;
+
+		// We have a problem...
+		log_println("md_signal_handler_sigill: Unknown illegal instruction at 0x%lx", xpc);
+#if defined(ENABLE_DISASSEMBLER)
+		(void) disassinstr(xpc);
+#endif
+		vm_abort("Aborting...");
+	}
+
 	type = TRAP_PATCHER;
 	val  = 0;
 
