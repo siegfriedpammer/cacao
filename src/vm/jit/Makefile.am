@@ -110,8 +110,8 @@ STACK_SOURCES = \
 	stack.h
 
 TRAP_SOURCES = \
-	trap.c \
-	trap.h
+	trap.cpp \
+	trap.hpp
 endif
 
 if ENABLE_REPLACEMENT
