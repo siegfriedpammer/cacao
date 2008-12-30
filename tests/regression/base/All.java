@@ -30,6 +30,7 @@ import org.junit.runners.Suite;
 
 @Suite.SuiteClasses({
 TestArrayClasses.class,
+TestCloning.class,
 TestExceptionInStaticClassInitializer.class,
 TestPatcher.class
 })
