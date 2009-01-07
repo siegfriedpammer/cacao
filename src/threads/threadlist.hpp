@@ -51,9 +51,9 @@ private:
 
 	static int32_t             _number_of_non_daemon_threads;
 
-	static inline void          remove_from_active_thread_list(threadobject* t);
-	static inline void          add_to_free_thread_list(threadobject* t);
-	static inline void          add_to_free_index_list(int32_t index);
+	static void                 remove_from_active_thread_list(threadobject* t);
+	static void                 add_to_free_thread_list(threadobject* t);
+	static void                 add_to_free_index_list(int32_t index);
 
 private:
 	// Comparator class.
@@ -66,15 +66,15 @@ private:
 	};
 
 public:
-	static inline void          lock()   { _mutex.lock(); }
-	static inline void          unlock() { _mutex.unlock(); }
+	static void                 lock()   { _mutex.lock(); }
+	static void                 unlock() { _mutex.unlock(); }
 
 	// TODO make private
-	static inline void          add_to_active_thread_list(threadobject* t);
+	static void                 add_to_active_thread_list(threadobject* t);
 
 	static void                 dump_threads();
 	static void                 get_active_threads(list<threadobject*> &list);
-	static inline threadobject* get_main_thread();
+	static threadobject*        get_main_thread();
 	static threadobject*        get_free_thread();
 	static int32_t              get_free_thread_index();
 	static int32_t              get_number_of_non_daemon_threads();
