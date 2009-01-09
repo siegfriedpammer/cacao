@@ -115,7 +115,7 @@ void* Atomic::generic_compare_and_swap(volatile void** p, void* oldval, void* ne
 	if (oldval == result)
 		*p = newval;
 
-	lock.lock();
+	lock.unlock();
 
 	return result;
 }
