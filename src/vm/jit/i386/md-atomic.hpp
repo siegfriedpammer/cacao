@@ -48,7 +48,8 @@ inline uint32_t Atomic::compare_and_swap(volatile uint32_t *p, uint32_t oldval, 
 
 	__asm__ __volatile__ ("lock; cmpxchgl %2, %1"
 						  : "=a" (result), "=m" (*p)
-						  : "r" (newval), "m" (*p), "0" (oldval));
+						  : "r" (newval), "m" (*p), "0" (oldval)
+						  : "cc");
 
 	return result;
 }
@@ -108,7 +109,9 @@ inline void Atomic::write_memory_barrier(void)
  */
 inline void Atomic::instruction_barrier(void)
 {
-	// Nothing.
+	// We need the "memory" constraint here because compare_and_swap does not
+	// have it.
+	__asm__ __volatile__ ("" : : : "memory");
 }
 
 #endif // _MD_ATOMIC_HPP
