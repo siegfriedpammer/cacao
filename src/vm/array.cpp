@@ -70,9 +70,32 @@ java_handle_t* Array::get_boxed_element(int32_t index)
  */
 void Array::set_boxed_element(int32_t index, java_handle_t *o)
 {
+	vftbl_t  *v;
+	int       type;
 	imm_union value;
 
-	value = Primitive::unbox(o);
+	if (is_null()) {
+		exceptions_throw_nullpointerexception();
+		return;
+	}
+
+	v = LLNI_vftbl_direct(_handle);
+
+	type = v->arraydesc->arraytype;
+
+	// Special handling for object arrays.
+	if (type == ARRAYTYPE_OBJECT) {
+		ObjectArray array(_handle);
+		array.set_element(index, o);
+		return;
+	}
+
+	// Check if primitive type can be stored.
+	if (!Primitive::unbox_typed(o, type, &value)) {
+/*		exceptions_throw_illegalargumentexception("argument type mismatch"); */
+		exceptions_throw_illegalargumentexception();
+		return;
+	}
 
 	set_primitive_element(index, value);
 }
