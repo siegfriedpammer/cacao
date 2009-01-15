@@ -47,6 +47,7 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/replace.hpp"
+#include "vm/jit/trace.hpp"
 #include "vm/jit/trap.hpp"
 
 
@@ -656,7 +657,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	registerdata *rd;
 	methoddesc   *md;
 	s4            disp;
-	s4            i, j, t;
+	s4            i, s;
 
 	/* get required compiler data */
 
@@ -671,98 +672,91 @@ void emit_verbosecall_enter(jitdata *jd)
 
 	M_NOP;
 
-	M_LDA(REG_SP, REG_SP, -(PA_SIZE + (2 + ARG_CNT + TMP_CNT) * 8));
-	M_AST(REG_RA, REG_SP, PA_SIZE + 1 * 8);
+	/* keep stack 16-byte aligned */
+
+	M_LDA(REG_SP, REG_SP, -(PA_SIZE + (md->paramcount + 2 + TMP_CNT) * 8));
+	M_AST(REG_RA, REG_SP, PA_SIZE + md->paramcount * 8);
 
 	/* save argument registers (we store the registers as address
 	   types, so it's correct for MIPS32 too) */
 
-	for (i = 0; i < INT_ARG_CNT; i++)
-		M_AST(abi_registers_integer_argument[i], REG_SP, PA_SIZE + (2 + i) * 8);
-
-	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DST(abi_registers_float_argument[i], REG_SP, PA_SIZE + (2 + INT_ARG_CNT + i) * 8);
+	for (i = 0; i < md->paramcount; i++) {
+		if (!md->params[i].inmemory) {
+			s = md->params[i].regoff;
+			switch (md->paramtypes[i].type) {
+			case TYPE_ADR:
+			case TYPE_INT:
+				M_AST(s, REG_SP, PA_SIZE + i * 8);
+				break;
+			case TYPE_LNG:
+				M_LST(s, REG_SP, PA_SIZE + i * 8);
+				break;
+			case TYPE_FLT:
+				M_FST(s, REG_SP, PA_SIZE + i * 8);
+				break;
+			case TYPE_DBL:
+				M_DST(s, REG_SP, PA_SIZE + i * 8);
+				break;
+			}
+		}
+	}
 
 	/* save temporary registers for leaf methods */
 
 	if (code_is_leafmethod(code)) {
 		for (i = 0; i < INT_TMP_CNT; i++)
-			M_AST(rd->tmpintregs[i], REG_SP, PA_SIZE + (2 + ARG_CNT + i) * 8);
+			M_AST(rd->tmpintregs[i], REG_SP, PA_SIZE + (md->paramcount + 2 + i) * 8);
 
 		for (i = 0; i < FLT_TMP_CNT; i++)
-			M_DST(rd->tmpfltregs[i], REG_SP, PA_SIZE + (2 + ARG_CNT + INT_TMP_CNT + i) * 8);
+			M_DST(rd->tmpfltregs[i], REG_SP, PA_SIZE + (md->paramcount + 2 + INT_TMP_CNT + i) * 8);
 	}
-
-	/* Load float arguments into integer registers.  MIPS32 has less
-	   float argument registers than integer ones, we need to check
-	   that. */
-
-	for (i = 0; i < md->paramcount && i < INT_ARG_CNT && i < FLT_ARG_CNT; i++) {
-		t = md->paramtypes[i].type;
-
-		if (IS_FLT_DBL_TYPE(t)) {
-			if (IS_2_WORD_TYPE(t)) {
-				M_DST(abi_registers_float_argument[i], REG_SP, 0 * 8);
-				M_LLD(abi_registers_integer_argument[i], REG_SP, 0 * 8);
-			}
-			else {
-				M_FST(abi_registers_float_argument[i], REG_SP, 0 * 8);
-				M_ILD(abi_registers_integer_argument[i], REG_SP, 0 * 8);
-			}
-		}
-	}
-
-#if SIZEOF_VOID_P == 4
-		for (i = 0, j = 0; i < md->paramcount && i < TRACE_ARGS_NUM; i++) {
-			t = md->paramtypes[i].type;
-
-			if (IS_INT_LNG_TYPE(t)) {
-				if (IS_2_WORD_TYPE(t)) {
-					M_ILD(abi_registers_integer_argument[j], REG_SP, PA_SIZE + (2 + i) * 8);
-					M_ILD(abi_registers_integer_argument[j + 1], REG_SP, PA_SIZE + (2 + i) * 8 + 4);
-				}
-				else {
-# if WORDS_BIGENDIAN == 1
-					M_MOV(REG_ZERO, abi_registers_integer_argument[j]);
-					M_ILD(abi_registers_integer_argument[j + 1], REG_SP, PA_SIZE + (2 + i) * 8);
-# else
-					M_ILD(abi_registers_integer_argument[j], REG_SP, PA_SIZE + (2 + i) * 8);
-					M_MOV(REG_ZERO, abi_registers_integer_argument[j + 1]);
-# endif
-				}
-				j += 2;
-			}
-		}
-#endif
 
 	disp = dseg_add_address(cd, m);
-	M_ALD(REG_ITMP1, REG_PV, disp);
-	M_AST(REG_ITMP1, REG_SP, PA_SIZE + 0 * 8);
-	disp = dseg_add_functionptr(cd, builtin_verbosecall_enter);
+	M_ALD(REG_A0, REG_PV, disp);
+	M_LDA(REG_A1, REG_SP, PA_SIZE);
+	M_LDA(REG_A2, REG_SP, PA_SIZE + (md->paramcount + 2 + TMP_CNT) * 8 + cd->stackframesize * 8);
+	disp = dseg_add_functionptr(cd, trace_java_call_enter);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
 	M_NOP;
 
 	/* restore argument registers */
 
-	for (i = 0; i < INT_ARG_CNT; i++)
-		M_ALD(abi_registers_integer_argument[i], REG_SP, PA_SIZE + (2 + i) * 8);
-
-	for (i = 0; i < FLT_ARG_CNT; i++)
-		M_DLD(abi_registers_float_argument[i], REG_SP, PA_SIZE + (2 + INT_ARG_CNT + i) * 8);
+	for (i = 0; i < md->paramcount; i++) {
+		if (!md->params[i].inmemory) {
+			s = md->params[i].regoff;
+			switch (md->paramtypes[i].type) {
+			case TYPE_ADR:
+			case TYPE_INT:
+				M_ALD(s, REG_SP, PA_SIZE + i * 8);
+				break;
+			case TYPE_LNG:
+				M_LLD(s, REG_SP, PA_SIZE + i * 8);
+				break;
+			case TYPE_FLT:
+				M_FLD(s, REG_SP, PA_SIZE + i * 8);
+				break;
+			case TYPE_DBL:
+				M_DLD(s, REG_SP, PA_SIZE + i * 8);
+				break;
+			}
+		}
+	}
 
 	/* restore temporary registers for leaf methods */
 
 	if (code_is_leafmethod(code)) {
 		for (i = 0; i < INT_TMP_CNT; i++)
-			M_ALD(rd->tmpintregs[i], REG_SP, PA_SIZE + (2 + ARG_CNT + i) * 8);
+			M_ALD(rd->tmpintregs[i], REG_SP, PA_SIZE + (md->paramcount + 2 + i) * 8);
 
 		for (i = 0; i < FLT_TMP_CNT; i++)
-			M_DLD(rd->tmpfltregs[i], REG_SP, PA_SIZE + (2 + ARG_CNT + INT_TMP_CNT + i) * 8);
+			M_DLD(rd->tmpfltregs[i], REG_SP, PA_SIZE + (md->paramcount + 2 + INT_TMP_CNT + i) * 8);
 	}
 
-	M_ALD(REG_RA, REG_SP, PA_SIZE + 1 * 8);
-	M_LDA(REG_SP, REG_SP, PA_SIZE + (2 + ARG_CNT + TMP_CNT) * 8);
+	/* keep stack 16-byte aligned */
+
+	M_ALD(REG_RA, REG_SP, PA_SIZE + md->paramcount * 8);
+	M_LDA(REG_SP, REG_SP, PA_SIZE + (md->paramcount + 2 + TMP_CNT) * 8);
 
 	/* mark trace code */
 
@@ -774,8 +768,6 @@ void emit_verbosecall_enter(jitdata *jd)
 /* emit_verbosecall_exit *******************************************************
 
    Generates the code for the call trace.
-
-   void builtin_verbosecall_exit(s8 l, double d, float f, methodinfo *m);
 
 *******************************************************************************/
 
@@ -800,67 +792,68 @@ void emit_verbosecall_exit(jitdata *jd)
 
 	M_NOP;
 
+	/* keep stack 16-byte aligned */
+
 #if SIZEOF_VOID_P == 8
-	M_ASUB_IMM(REG_SP, 4 * 8, REG_SP);          /* keep stack 16-byte aligned */
-	M_AST(REG_RA, REG_SP, 0 * 8);
+	assert(0); // XXX: Revisit this code for MIPS64!
+#endif
+	M_ASUB_IMM(REG_SP, PA_SIZE + 2 * 8, REG_SP);
+	M_AST(REG_RA, REG_SP, PA_SIZE + 1 * 8);
 
-	M_LST(REG_RESULT, REG_SP, 1 * 8);
-	M_DST(REG_FRESULT, REG_SP, 2 * 8);
-
-	M_MOV(REG_RESULT, REG_A0);
-	M_DMOV(REG_FRESULT, REG_FA1);
-	M_FMOV(REG_FRESULT, REG_FA2);
-
-	disp = dseg_add_address(cd, m);
-	M_ALD(REG_A4, REG_PV, disp);
-#else
-	M_ASUB_IMM(REG_SP, (8*4 + 4 * 8), REG_SP);
-	M_AST(REG_RA, REG_SP, 8*4 + 0 * 8);
-
-	M_LST(REG_RESULT_PACKED, REG_SP, 8*4 + 1 * 8);
-	M_DST(REG_FRESULT, REG_SP, 8*4 + 2 * 8);
+	/* save return value */
 
 	switch (md->returntype.type) {
-	case TYPE_LNG:
-		M_LNGMOVE(REG_RESULT_PACKED, REG_A0_A1_PACKED);
+	case TYPE_ADR:
+	case TYPE_INT:
+		M_AST(REG_RESULT, REG_SP, PA_SIZE + 0 * 8);
 		break;
-
-	default:
-# if WORDS_BIGENDIAN == 1
-		M_MOV(REG_ZERO, REG_A0);
-		M_MOV(REG_RESULT, REG_A1);
-# else
-		M_MOV(REG_RESULT, REG_A0);
-		M_MOV(REG_ZERO, REG_A1);
-# endif
+	case TYPE_LNG:
+#if SIZEOF_VOID_P == 8
+		M_LST(REG_RESULT, REG_SP, PA_SIZE + 0 * 8);
+#else
+		M_LST(REG_RESULT_PACKED, REG_SP, PA_SIZE + 0 * 8);
+#endif
+		break;
+	case TYPE_FLT:
+		M_FST(REG_FRESULT, REG_SP, PA_SIZE + 0 * 8);
+		break;
+	case TYPE_DBL:
+		M_DST(REG_FRESULT, REG_SP, PA_SIZE + 0 * 8);
 	}
 
-	M_LLD(REG_A2_A3_PACKED, REG_SP, 8*4 + 2 * 8);
-	M_FST(REG_FRESULT, REG_SP, 4*4 + 0 * 4);
-
 	disp = dseg_add_address(cd, m);
-	M_ALD(REG_ITMP1, REG_PV, disp);
-	M_AST(REG_ITMP1, REG_SP, 4*4 + 1 * 4);
-#endif
-
-	disp = dseg_add_functionptr(cd, builtin_verbosecall_exit);
+	M_ALD(REG_A0, REG_PV, disp);
+	M_AADD_IMM(REG_SP, PA_SIZE, REG_A1);
+	disp = dseg_add_functionptr(cd, trace_java_call_exit);
 	M_ALD(REG_ITMP3, REG_PV, disp);
 	M_JSR(REG_RA, REG_ITMP3);
 	M_NOP;
 
+	/* restore return value */
+
+	switch (md->returntype.type) {
+	case TYPE_ADR:
+	case TYPE_INT:
+		M_ALD(REG_RESULT, REG_SP, PA_SIZE + 0 * 8);
+		break;
+	case TYPE_LNG:
 #if SIZEOF_VOID_P == 8
-	M_DLD(REG_FRESULT, REG_SP, 2 * 8);
-	M_LLD(REG_RESULT, REG_SP, 1 * 8);
-
-	M_ALD(REG_RA, REG_SP, 0 * 8);
-	M_AADD_IMM(REG_SP, 4 * 8, REG_SP);
+		M_LLD(REG_RESULT, REG_SP, PA_SIZE + 0 * 8);
 #else
-	M_DLD(REG_FRESULT, REG_SP, 8*4 + 2 * 8);
-	M_LLD(REG_RESULT_PACKED, REG_SP, 8*4 + 1 * 8);
-
-	M_ALD(REG_RA, REG_SP, 8*4 + 0 * 8);
-	M_AADD_IMM(REG_SP, 8*4 + 4 * 8, REG_SP);
+		M_LLD(REG_RESULT_PACKED, REG_SP, PA_SIZE + 0 * 8);
 #endif
+		break;
+	case TYPE_FLT:
+		M_FLD(REG_FRESULT, REG_SP, PA_SIZE + 0 * 8);
+		break;
+	case TYPE_DBL:
+		M_DLD(REG_FRESULT, REG_SP, PA_SIZE + 0 * 8);
+	}
+
+	/* keep stack 16-byte aligned */
+
+	M_ALD(REG_RA, REG_SP, PA_SIZE + 1 * 8);
+	M_AADD_IMM(REG_SP, PA_SIZE + 2 * 8, REG_SP);
 
 	/* mark trace code */
 
