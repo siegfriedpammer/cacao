@@ -107,7 +107,7 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 
 #if !defined(NDEBUG)
 	if (opt_TraceTraps)
-		log_println("[signal_handle: trap %d]", type);
+		log_println("[trap_handle: type=%d, val=%p, pv=%p, sp=%p, ra=%p, xpc=%p]", type, val, pv, sp, ra, xpc);
 #endif
 	
 #if defined(ENABLE_VMLOG)
@@ -130,6 +130,16 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 
 	es.code = NULL;
 	md_executionstate_read(&es, context);
+
+//# define TRAPS_VERBOSE
+# if !defined(NDEBUG) && defined(TRAPS_VERBOSE)
+	/* Dump contents of execution state */
+
+	if (opt_TraceTraps) {
+		log_println("[trap_handle: dumping execution state BEFORE ...]");
+		executionstate_println(&es);
+	}
+# endif
 #endif
 
 	/* Do some preparations before we enter the nativeworld. */
@@ -301,6 +311,15 @@ void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xp
 	/* Write back execution state to current context. */
 
 	md_executionstate_write(&es, context);
+
+# if !defined(NDEBUG) && defined(TRAPS_VERBOSE)
+	/* Dump contents of execution state */
+
+	if (opt_TraceTraps) {
+		log_println("[trap_handle: dumping execution state AFTER ...]");
+		executionstate_println(&es);
+	}
+# endif
 #endif
 
 	/* Unwrap and return the exception object. */
