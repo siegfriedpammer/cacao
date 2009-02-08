@@ -48,6 +48,18 @@
 
 #include "vm/jit/i386/codegen.h"
 
+#if !__DARWIN_UNIX03
+#define __eax eax
+#define __ebx ebx
+#define __ecx ecx
+#define __edx edx
+#define __esi esi
+#define __edi edi
+#define __ebp ebp
+#define __esp esp
+#define __eip eip
+#define __ss ss
+#endif
 
 /* md_signal_handler_sigsegv ***************************************************
 
