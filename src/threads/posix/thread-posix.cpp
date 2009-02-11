@@ -27,6 +27,8 @@
 
 /* XXX cleanup these includes */
 
+#define __STDC_LIMIT_MACROS
+
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -1455,20 +1457,26 @@ void threads_wait_with_timeout_relative(threadobject *thread, s8 millis,
 
 static void threads_calc_absolute_time(struct timespec *tm, s8 millis, s4 nanos)
 {
-	if ((millis != 0x7fffffffffffffffLLU) && (millis || nanos)) {
+	// (at least with GNU classpath) we know that 0 <= nanos <= 999999
+	do {
+		if (!millis && !nanos)
+			break;
 		struct timeval tv;
-		long nsec;
 		gettimeofday(&tv, NULL);
-		tv.tv_sec += millis / 1000;
+		s8 secs = tv.tv_sec + millis / 1000;
+		if (secs > INT32_MAX)	// integer overflow
+			break;
+		tv.tv_sec = secs;
 		millis %= 1000;
-		nsec = tv.tv_usec * 1000 + (s4) millis * 1000000 + nanos;
+		long nsec = tv.tv_usec * 1000 + (s4) millis * 1000000 + nanos;
 		tm->tv_sec = tv.tv_sec + nsec / 1000000000;
+		if (tm->tv_sec < tv.tv_sec) // integer overflow
+			break;
 		tm->tv_nsec = nsec % 1000000000;
-	}
-	else {
-		tm->tv_sec = 0;
-		tm->tv_nsec = 0;
-	}
+		return;
+	} while (0);
+	tm->tv_sec = 0;
+	tm->tv_nsec = 0;
 }
 
 
