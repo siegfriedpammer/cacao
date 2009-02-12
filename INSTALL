@@ -20,8 +20,6 @@ directory tree like the JVMs from Sun or IBM do.
 Requirements:
 -------------
 
-In order to compile the Java classes from GNU classpath, you need a
-Java compiler supported by GNU classpath. To get a working classpath
-in an appropriate time, we recommend IBM jikes 1.18 or newer. For
-further instructions concerning GNU classpath, please refer to
-`src/classpath/INSTALL'.
+In order to build CACAO you need a Java runtime library such as GNU
+classpath or OpenJDK. Please refer to the respective project
+documentation for building.
