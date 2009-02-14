@@ -33,6 +33,7 @@
 // Gobal mutex for generic atomic instructions.
 static Mutex lock;
 
+namespace Atomic {
 
 /**
  * A generic atomic compare and swap for 32-bit integer values.  This
@@ -44,7 +45,7 @@ static Mutex lock;
  *
  * @return value of the memory location before the store
  */
-uint32_t Atomic::generic_compare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
+uint32_t generic_compare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
 {
 	uint32_t result;
 
@@ -73,7 +74,7 @@ uint32_t Atomic::generic_compare_and_swap(volatile uint32_t *p, uint32_t oldval,
  *
  * @return value of the memory location before the store
  */
-uint64_t Atomic::generic_compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
+uint64_t generic_compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
 {
 	uint64_t result;
 
@@ -102,7 +103,7 @@ uint64_t Atomic::generic_compare_and_swap(volatile uint64_t *p, uint64_t oldval,
  *
  * @return value of the memory location before the store
  */
-void* Atomic::generic_compare_and_swap(volatile void** p, void* oldval, void* newval)
+void* generic_compare_and_swap(volatile void** p, void* oldval, void* newval)
 {
 	void* result;
 
@@ -125,19 +126,20 @@ void* Atomic::generic_compare_and_swap(volatile void** p, void* oldval, void* ne
  * A generic memory barrier.  This function is using a mutex to
  * provide atomicity.
  */
-void Atomic::generic_memory_barrier(void)
+void generic_memory_barrier(void)
 {
 	lock.lock();
 	lock.unlock();
 }
 
+}
 
 // Legacy C interface.
 
 extern "C" {
-uint32_t Atomic_compare_and_swap_32(volatile uint32_t *p, uint32_t oldval, uint32_t newval) { return Atomic::compare_and_swap(p, oldval, newval); }
-uint64_t Atomic_compare_and_swap_64(volatile uint64_t *p, uint64_t oldval, uint64_t newval) { return Atomic::compare_and_swap(p, oldval, newval); }
-void*    Atomic_compare_and_swap_ptr(volatile void** p, void* oldval, void* newval) { return Atomic::compare_and_swap(p, oldval, newval); }
+uint32_t Atomic_compare_and_swap_32(uint32_t *p, uint32_t oldval, uint32_t newval) { return Atomic::compare_and_swap(p, oldval, newval); }
+uint64_t Atomic_compare_and_swap_64(uint64_t *p, uint64_t oldval, uint64_t newval) { return Atomic::compare_and_swap(p, oldval, newval); }
+void*    Atomic_compare_and_swap_ptr(void** p, void* oldval, void* newval) { return Atomic::compare_and_swap(p, oldval, newval); }
 void     Atomic_memory_barrier(void) { Atomic::memory_barrier(); }
 void     Atomic_write_memory_barrier(void) { Atomic::write_memory_barrier(); }
 void     Atomic_instruction_barrier(void) { Atomic::instruction_barrier(); }

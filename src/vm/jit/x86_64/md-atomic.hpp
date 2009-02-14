@@ -32,6 +32,7 @@
 
 #include "threads/atomic.hpp"
 
+namespace Atomic_md {
 
 /**
  * An atomic compare and swap for 32-bit integer values.
@@ -42,7 +43,7 @@
  *
  * @return value of the memory location before the store
  */
-inline uint32_t Atomic::compare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
+inline uint32_t compare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
 {
 	uint32_t result;
 
@@ -64,7 +65,7 @@ inline uint32_t Atomic::compare_and_swap(volatile uint32_t *p, uint32_t oldval, 
  *
  * @return value of the memory location before the store
  */
-inline uint64_t Atomic::compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
+inline uint64_t compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
 {
 	uint64_t result;
 
@@ -78,24 +79,9 @@ inline uint64_t Atomic::compare_and_swap(volatile uint64_t *p, uint64_t oldval, 
 
 
 /**
- * An atomic compare and swap for pointer values.
- *
- * @param p      Pointer to memory address.
- * @param oldval Old value to be expected.
- * @param newval New value to be stored.
- *
- * @return value of the memory location before the store
- */
-inline void* Atomic::compare_and_swap(volatile void** p, void* oldval, void* newval)
-{
-	return (void*) compare_and_swap((volatile uint64_t*) p, (uint64_t) oldval, (uint64_t) newval);
-}
-
-
-/**
  * A memory barrier.
  */
-inline void Atomic::memory_barrier(void)
+inline void memory_barrier(void)
 {
 	__asm__ __volatile__ ("mfence" : : : "memory");
 }
@@ -104,7 +90,7 @@ inline void Atomic::memory_barrier(void)
 /**
  * A write memory barrier.
  */
-inline void Atomic::write_memory_barrier(void)
+inline void write_memory_barrier(void)
 {
 	__asm__ __volatile__ ("" : : : "memory");
 }
@@ -113,11 +99,13 @@ inline void Atomic::write_memory_barrier(void)
 /**
  * An instruction barrier.
  */
-inline void Atomic::instruction_barrier(void)
+inline void instruction_barrier(void)
 {
 	// We need the "memory" constraint here because compare_and_swap does not
 	// have it.
 	__asm__ __volatile__ ("" : : : "memory");
+}
+
 }
 
 #endif // _MD_ATOMIC_HPP

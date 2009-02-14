@@ -32,33 +32,81 @@
 
 #ifdef __cplusplus
 
-class Atomic {
-public:
-	// Generic functions.
-	static uint32_t generic_compare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t newval);
-	static uint64_t generic_compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval);
-	static void*    generic_compare_and_swap(volatile void** p, void* oldval, void* newval);
-	static void     generic_memory_barrier(void);
-
+namespace Atomic_md {
 	// Machine dependent functions.
-	static uint32_t compare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t newval);
-	static uint64_t compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval);
-	static void*    compare_and_swap(volatile void** p, void* oldval, void* newval);
-	static void     memory_barrier(void);
-	static void     write_memory_barrier(void);
-	static void     instruction_barrier(void);
-};
+	uint32_t compare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t newval);
+	uint64_t compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval);
+
+	void     memory_barrier(void);
+	void     write_memory_barrier(void);
+	void     instruction_barrier(void);
+}
+
+namespace Atomic {
+
+	// Generic functions.
+	uint32_t generic_compare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t newval);
+	uint64_t generic_compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval);
+	void*    generic_compare_and_swap(volatile void** p, void* oldval, void* newval);
+	void     generic_memory_barrier(void);
+
+}
 
 // Include machine dependent implementation.
 #include "md-atomic.hpp"
+
+namespace Atomic {
+
+	struct CAS_32_functor {
+		typedef uint32_t value_type;
+		static value_type compare_and_swap(value_type *p, value_type o, value_type n) {
+			return Atomic_md::compare_and_swap(p, o, n);
+		}
+	};
+
+	struct CAS_64_functor {
+		typedef uint64_t value_type;
+		static value_type compare_and_swap(value_type *p, value_type o, value_type n) {
+			return Atomic_md::compare_and_swap(p, o, n);
+		}
+	};
+
+	template<int N> class CAS_chooser;
+	template<> class CAS_chooser<4> {
+		public:
+			typedef CAS_32_functor the_type;
+	};
+	template<> class CAS_chooser<8> {
+		public:
+			typedef CAS_64_functor the_type;
+	};
+
+	template<class T> class CAS {
+		public:
+			typedef typename CAS_chooser<sizeof(T)>::the_type S;
+			static T compare_and_swap(T *p, T o, T n) {
+				return (T) S::compare_and_swap((typename S::value_type*) p,
+						(typename S::value_type) o,
+						(typename S::value_type) n);
+			}
+	};
+
+	template<class T> T compare_and_swap(T *p, T o, T n) {
+		return CAS<T>::compare_and_swap(p, o, n);
+	}
+
+	inline void     memory_barrier(void)       { Atomic_md::memory_barrier(); }
+	inline void     write_memory_barrier(void) { Atomic_md::write_memory_barrier(); }
+	inline void     instruction_barrier(void)  { Atomic_md::instruction_barrier(); }
+}
 
 #else
 
 // Legacy C interface.
 
-uint32_t Atomic_compare_and_swap_32(volatile uint32_t *p, uint32_t oldval, uint32_t newval);
-uint64_t Atomic_compare_and_swap_64(volatile uint64_t *p, uint64_t oldval, uint64_t newval);
-void*    Atomic_compare_and_swap_ptr(volatile void** p, void* oldval, void* newval);
+uint32_t Atomic_compare_and_swap_32(uint32_t *p, uint32_t oldval, uint32_t newval);
+uint64_t Atomic_compare_and_swap_64(uint64_t *p, uint64_t oldval, uint64_t newval);
+void*    Atomic_compare_and_swap_ptr(void** p, void* oldval, void* newval);
 void     Atomic_memory_barrier(void);
 void     Atomic_write_memory_barrier(void);
 void     Atomic_instruction_barrier(void);

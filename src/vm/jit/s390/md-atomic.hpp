@@ -32,6 +32,7 @@
 
 #include "threads/atomic.hpp"
 
+namespace Atomic_md {
 
 /**
  * An atomic compare and swap for 32-bit integer values.
@@ -42,7 +43,7 @@
  *
  * @return value of the memory location before the store
  */
-inline uint32_t Atomic::compare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
+inline uint32_t ompare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
 {
 	__asm__ __volatile__ (
 		"cs %0,%3,0(%2)\n"
@@ -63,31 +64,16 @@ inline uint32_t Atomic::compare_and_swap(volatile uint32_t *p, uint32_t oldval, 
  *
  * @return value of the memory location before the store
  */
-inline uint64_t Atomic::compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
+inline uint64_t ompare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
 {
-	return generic_compare_and_swap(p, oldval, newval);
-}
-
-
-/**
- * An atomic compare and swap for pointer values.
- *
- * @param p      Pointer to memory address.
- * @param oldval Old value to be expected.
- * @param newval New value to be stored.
- *
- * @return value of the memory location before the store
- */
-inline void* Atomic::compare_and_swap(volatile void** p, void* oldval, void* newval)
-{
-	return (void*) compare_and_swap((volatile uint32_t*) p, (uint32_t) oldval, (uint32_t) newval);
+	return Atomic::generic_compare_and_swap(p, oldval, newval);
 }
 
 
 /**
  * A memory barrier.
  */
-inline void Atomic::memory_barrier(void)
+inline void emory_barrier(void)
 {
 	__asm__ __volatile__ ("bcr 15,0" : : : "memory" );
 }
@@ -96,7 +82,7 @@ inline void Atomic::memory_barrier(void)
 /**
  * A write memory barrier.
  */
-inline void Atomic::write_memory_barrier(void)
+inline void rite_memory_barrier(void)
 {
 	memory_barrier();
 }
@@ -104,9 +90,11 @@ inline void Atomic::write_memory_barrier(void)
 /**
  * An instruction barrier.
  */
-inline void Atomic::instruction_barrier(void)
+inline void nstruction_barrier(void)
 {
 	memory_barrier();
+}
+
 }
 
 #endif // _MD_ATOMIC_HPP
