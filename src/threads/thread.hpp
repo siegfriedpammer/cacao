@@ -192,67 +192,7 @@ inline static bool thread_is_attached(threadobject *t)
 
 	o = thread_get_object(t);
 
-	if (o != NULL)
-		return true;
-	else
-		return false;
-}
-
-
-/* thread_is_interrupted *******************************************************
-
-   Check if the given thread has been interrupted.
-
-   ARGUMENTS:
-       t ... the thread to check
-
-   RETURN VALUE:
-      true, if the given thread had been interrupted
-
-*******************************************************************************/
-
-inline static bool thread_is_interrupted(threadobject *t)
-{
-	bool interrupted;
-
-	/* We need the mutex because classpath will call this function when
-	   a blocking system call is interrupted. The mutex ensures that it will
-	   see the correct value for the interrupted flag. */
-
-#ifdef __cplusplus
-	t->waitmutex->lock();
-	interrupted = t->interrupted;
-	t->waitmutex->unlock();
-#else
-	Mutex_lock(t->waitmutex);
-	interrupted = t->interrupted;
-	Mutex_unlock(t->waitmutex);
-#endif
-
-	return interrupted;
-}
-
-
-/* thread_set_interrupted ******************************************************
-
-   Set the interrupted flag to the given value.
-
-   ARGUMENTS:
-       interrupted ... value to set
-
-*******************************************************************************/
-
-inline static void thread_set_interrupted(threadobject *t, bool interrupted)
-{
-#ifdef __cplusplus
-	t->waitmutex->lock();
-	t->interrupted = interrupted;
-	t->waitmutex->unlock();
-#else
-	Mutex_lock(t->waitmutex);
-	t->interrupted = interrupted;
-	Mutex_unlock(t->waitmutex);
-#endif
+	return o != NULL;
 }
 
 
@@ -271,10 +211,7 @@ inline static void thread_set_interrupted(threadobject *t, bool interrupted)
 
 inline static bool thread_is_daemon(threadobject *t)
 {
-	if (t->flags & THREAD_FLAG_DAEMON)
-		return true;
-	else
-		return false;
+	return (t->flags & THREAD_FLAG_DAEMON) != 0;
 }
 
 
@@ -291,16 +228,13 @@ inline static bool thread_is_daemon(threadobject *t)
 inline static bool thread_current_is_attached(void)
 {
 	threadobject  *t;
-	bool           result;
 
 	t = thread_get_current();
 
 	if (t == NULL)
 		return false;
 
-	result = thread_is_attached(t);
-
-	return result;
+	return thread_is_attached(t);
 }
 
 
@@ -335,7 +269,8 @@ void          thread_set_state_terminated(threadobject *t);
 threadobject *thread_get_thread(java_handle_t *h);
 
 bool          threads_thread_is_alive(threadobject *t);
-
+bool          thread_is_interrupted(threadobject *t);
+void          thread_set_interrupted(threadobject *t, bool interrupted);
 
 /* implementation specific functions */
 

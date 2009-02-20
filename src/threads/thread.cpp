@@ -1225,6 +1225,49 @@ bool threads_thread_is_alive(threadobject *t)
 	return false;
 }
 
+/* thread_is_interrupted *******************************************************
+
+   Check if the given thread has been interrupted.
+
+   ARGUMENTS:
+       t ... the thread to check
+
+   RETURN VALUE:
+      true, if the given thread had been interrupted
+
+*******************************************************************************/
+
+bool thread_is_interrupted(threadobject *t)
+{
+	/* We need the mutex because classpath will call this function when
+	   a blocking system call is interrupted. The mutex ensures that it will
+	   see the correct value for the interrupted flag. */
+
+	t->waitmutex->lock();
+	bool interrupted = t->interrupted;
+	t->waitmutex->unlock();
+
+	return interrupted;
+}
+
+
+/* thread_set_interrupted ******************************************************
+
+   Set the interrupted flag to the given value.
+
+   ARGUMENTS:
+       interrupted ... value to set
+
+*******************************************************************************/
+
+void thread_set_interrupted(threadobject *t, bool interrupted)
+{
+	t->waitmutex->lock();
+	t->interrupted = interrupted;
+	t->waitmutex->unlock();
+}
+
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
