@@ -200,13 +200,13 @@ public:
 	virtual ~java_lang_Object() {}
 
 	// Getters.
-	virtual inline java_handle_t* get_handle  () const { return _handle; }
-	inline vftbl_t*               get_vftbl   () const;
-	inline classinfo*             get_Class   () const;
-	inline int32_t                get_hashcode() const;
+	virtual java_handle_t* get_handle  () const { return _handle; }
+	vftbl_t*               get_vftbl   () const;
+	classinfo*             get_Class   () const;
+	int32_t                get_hashcode() const;
 
-	inline bool is_null    () const;
-	inline bool is_non_null() const;
+	bool is_null    () const;
+	bool is_non_null() const;
 };
 
 
@@ -268,8 +268,8 @@ private:
 public:
 	java_lang_Boolean(java_handle_t* h) : java_lang_Object(h) {}
 
-	inline uint8_t get_value();
-	inline void    set_value(uint8_t value);
+	uint8_t get_value();
+	void    set_value(uint8_t value);
 };
 
 inline uint8_t java_lang_Boolean::get_value()
@@ -300,8 +300,8 @@ private:
 public:
 	java_lang_Byte(java_handle_t* h) : java_lang_Object(h) {}
 
-	inline int8_t get_value();
-	inline void   set_value(int8_t value);
+	int8_t get_value();
+	void   set_value(int8_t value);
 };
 
 inline int8_t java_lang_Byte::get_value()
@@ -332,8 +332,8 @@ private:
 public:
 	java_lang_Character(java_handle_t* h) : java_lang_Object(h) {}
 
-	inline uint16_t get_value();
-	inline void     set_value(uint16_t value);
+	uint16_t get_value();
+	void     set_value(uint16_t value);
 };
 
 inline uint16_t java_lang_Character::get_value()
@@ -364,8 +364,8 @@ private:
 public:
 	java_lang_Short(java_handle_t* h) : java_lang_Object(h) {}
 
-	inline int16_t get_value();
-	inline void    set_value(int16_t value);
+	int16_t get_value();
+	void    set_value(int16_t value);
 };
 
 inline int16_t java_lang_Short::get_value()
@@ -396,8 +396,8 @@ private:
 public:
 	java_lang_Integer(java_handle_t* h) : java_lang_Object(h) {}
 
-	inline int32_t get_value();
-	inline void    set_value(int32_t value);
+	int32_t get_value();
+	void    set_value(int32_t value);
 };
 
 inline int32_t java_lang_Integer::get_value()
@@ -428,8 +428,8 @@ private:
 public:
 	java_lang_Long(java_handle_t* h) : java_lang_Object(h) {}
 
-	inline int64_t get_value();
-	inline void    set_value(int64_t value);
+	int64_t get_value();
+	void    set_value(int64_t value);
 };
 
 inline int64_t java_lang_Long::get_value()
@@ -460,8 +460,8 @@ private:
 public:
 	java_lang_Float(java_handle_t* h) : java_lang_Object(h) {}
 
-	inline float get_value();
-	inline void  set_value(float value);
+	float get_value();
+	void  set_value(float value);
 };
 
 inline float java_lang_Float::get_value()
@@ -492,8 +492,8 @@ private:
 public:
 	java_lang_Double(java_handle_t* h) : java_lang_Object(h) {}
 
-	inline double get_value();
-	inline void   set_value(double value);
+	double get_value();
+	void   set_value(double value);
 };
 
 inline double java_lang_Double::get_value()
@@ -529,8 +529,8 @@ public:
 	sun_reflect_ConstantPool(java_handle_t* h, jclass constantPoolOop);
 
 	// Setters.
-	inline void set_constantPoolOop(classinfo* value);
-	inline void set_constantPoolOop(jclass value);
+	void set_constantPoolOop(classinfo* value);
+	void set_constantPoolOop(jclass value);
 };
 
 
@@ -581,7 +581,7 @@ public:
 	java_lang_Class(java_handle_t* h) : java_lang_Object(h) {}
 
 	// Setters.
-	inline void set_pd(java_handle_t* value);
+	void set_pd(java_handle_t* value);
 };
 
 inline void java_lang_Class::set_pd(java_handle_t* value)
@@ -654,14 +654,14 @@ public:
 	java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset = 0);
 
 	// Getters.
-	inline java_handle_chararray_t* get_value () const;
-	inline int32_t                  get_count () const;
-	inline int32_t                  get_offset() const;
+	java_handle_chararray_t* get_value () const;
+	int32_t                  get_count () const;
+	int32_t                  get_offset() const;
 
 	// Setters.
-	inline void set_value (java_handle_chararray_t* value);
-	inline void set_count (int32_t value);
-	inline void set_offset(int32_t value);
+	void set_value (java_handle_chararray_t* value);
+	void set_count (int32_t value);
+	void set_offset(int32_t value);
 };
 
 inline java_lang_String::java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset) : java_lang_Object(h)
@@ -747,15 +747,15 @@ public:
 // 	java_lang_Thread(threadobject* t);
 
 	// Getters.
-	inline java_handle_t* get_vmThread        () const;
-	inline java_handle_t* get_group           () const;
-	inline java_handle_t* get_name            () const;
-	inline int32_t        get_daemon          () const;
-	inline int32_t        get_priority        () const;
-	inline java_handle_t* get_exceptionHandler() const;
+	java_handle_t* get_vmThread        () const;
+	java_handle_t* get_group           () const;
+	java_handle_t* get_name            () const;
+	int32_t        get_daemon          () const;
+	int32_t        get_priority        () const;
+	java_handle_t* get_exceptionHandler() const;
 
 	// Setters.
-	inline void set_group(java_handle_t* value);
+	void set_group(java_handle_t* value);
 };
 
 
@@ -825,12 +825,12 @@ public:
 	java_lang_VMThread(java_handle_t* h, java_handle_t* thread, threadobject* vmdata);
 
 	// Getters.
-	inline java_handle_t* get_thread() const;
-	inline threadobject*  get_vmdata() const;
+	java_handle_t* get_thread() const;
+	threadobject*  get_vmdata() const;
 
 	// Setters.
-	inline void set_thread(java_handle_t* value);
-	inline void set_vmdata(threadobject* value);
+	void set_thread(java_handle_t* value);
+	void set_vmdata(threadobject* value);
 };
 
 
@@ -887,9 +887,9 @@ public:
 	java_lang_Throwable(java_handle_t* h) : java_lang_Object(h) {}
 
 	// Getters.
-	inline java_handle_t* get_detailMessage() const;
-	inline java_handle_t* get_cause        () const;
-	inline java_handle_t* get_vmState      () const;
+	java_handle_t* get_detailMessage() const;
+	java_handle_t* get_cause        () const;
+	java_handle_t* get_vmState      () const;
 };
 
 
@@ -926,8 +926,8 @@ private:
 public:
 	java_lang_VMThrowable(java_handle_t* h) : java_lang_Object(h) {}
 
-	inline java_handle_bytearray_t* get_vmdata() const;
-	inline void                     set_vmdata(java_handle_bytearray_t* value);
+	java_handle_bytearray_t* get_vmdata() const;
+	void                     set_vmdata(java_handle_bytearray_t* value);
 };
 
 
@@ -971,23 +971,23 @@ public:
 	java_lang_reflect_VMConstructor(methodinfo* m);
 
 	// Getters.
-	inline classinfo*               get_clazz               () const;
-	inline int32_t                  get_slot                () const;
-	inline java_handle_bytearray_t* get_annotations         () const;
-	inline java_handle_bytearray_t* get_parameterAnnotations() const;
-	inline java_handle_t*           get_declaredAnnotations () const;
-	inline java_handle_t*           get_cons                () const;
+	classinfo*               get_clazz               () const;
+	int32_t                  get_slot                () const;
+	java_handle_bytearray_t* get_annotations         () const;
+	java_handle_bytearray_t* get_parameterAnnotations() const;
+	java_handle_t*           get_declaredAnnotations () const;
+	java_handle_t*           get_cons                () const;
 
 	// Setters.
-	inline void set_clazz               (classinfo* value);
-	inline void set_slot                (int32_t value);
-	inline void set_annotations         (java_handle_bytearray_t* value);
-	inline void set_parameterAnnotations(java_handle_bytearray_t* value);
-	inline void set_declaredAnnotations (java_handle_t* value);
-	inline void set_cons                (java_handle_t* value);
+	void set_clazz               (classinfo* value);
+	void set_slot                (int32_t value);
+	void set_annotations         (java_handle_bytearray_t* value);
+	void set_parameterAnnotations(java_handle_bytearray_t* value);
+	void set_declaredAnnotations (java_handle_t* value);
+	void set_cons                (java_handle_t* value);
 
 	// Convenience functions.
-	inline methodinfo* get_method();
+	methodinfo* get_method();
 };
 
 
@@ -1103,15 +1103,15 @@ public:
 	java_handle_t* new_instance(java_handle_objectarray_t* args);
 
 	// Getters.
-	inline int32_t        get_flag() const;
-	inline java_handle_t* get_cons() const;
+	int32_t        get_flag() const;
+	java_handle_t* get_cons() const;
 
 	// Setters.
-	inline void set_cons(java_handle_t* value);
+	void set_cons(java_handle_t* value);
 
 	// Convenience functions.
-	inline methodinfo* get_method  () const;
-	inline int32_t     get_override() const;
+	methodinfo* get_method  () const;
+	int32_t     get_override() const;
 };
 
 
@@ -1191,22 +1191,22 @@ public:
 	java_lang_reflect_VMField(fieldinfo* f);
 
 	// Getters.
-	inline classinfo*               get_clazz              () const;
-	inline int32_t                  get_slot               () const;
-	inline java_handle_bytearray_t* get_annotations        () const;
-	inline java_handle_t*           get_declaredAnnotations() const;
-	inline java_handle_t*           get_f                  () const;
+	classinfo*               get_clazz              () const;
+	int32_t                  get_slot               () const;
+	java_handle_bytearray_t* get_annotations        () const;
+	java_handle_t*           get_declaredAnnotations() const;
+	java_handle_t*           get_f                  () const;
 
 	// Setters.
-	inline void set_clazz              (classinfo* value);
-	inline void set_name               (java_handle_t* value);
-	inline void set_slot               (int32_t value);
-	inline void set_annotations        (java_handle_bytearray_t* value);
-	inline void set_declaredAnnotations(java_handle_t* value);
-	inline void set_f                  (java_handle_t* value);
+	void set_clazz              (classinfo* value);
+	void set_name               (java_handle_t* value);
+	void set_slot               (int32_t value);
+	void set_annotations        (java_handle_bytearray_t* value);
+	void set_declaredAnnotations(java_handle_t* value);
+	void set_f                  (java_handle_t* value);
 
 	// Convenience functions.
-	inline fieldinfo* get_field() const;
+	fieldinfo* get_field() const;
 };
 
 
@@ -1316,14 +1316,14 @@ public:
 	java_lang_reflect_Field(fieldinfo* f);
 
 	// Getters.
-	inline int32_t        get_flag() const;
-	inline java_handle_t* get_f() const;
+	int32_t        get_flag() const;
+	java_handle_t* get_f() const;
 
 	// Setters.
-	inline void set_f(java_handle_t* value);
+	void set_f(java_handle_t* value);
 
 	// Convenience functions.
-	inline fieldinfo* get_field() const;
+	fieldinfo* get_field() const;
 };
 
 
@@ -1402,26 +1402,26 @@ public:
 	java_lang_reflect_VMMethod(methodinfo* m);
 
 	// Getters.
-	inline classinfo*               get_clazz               () const;
-	inline int32_t                  get_slot                () const;
-	inline java_handle_bytearray_t* get_annotations         () const;
-	inline java_handle_bytearray_t* get_parameterAnnotations() const;
-	inline java_handle_bytearray_t* get_annotationDefault   () const;
-	inline java_handle_t*           get_declaredAnnotations () const;
-	inline java_handle_t*           get_m                   () const;
+	classinfo*               get_clazz               () const;
+	int32_t                  get_slot                () const;
+	java_handle_bytearray_t* get_annotations         () const;
+	java_handle_bytearray_t* get_parameterAnnotations() const;
+	java_handle_bytearray_t* get_annotationDefault   () const;
+	java_handle_t*           get_declaredAnnotations () const;
+	java_handle_t*           get_m                   () const;
 
 	// Setters.
-	inline void set_clazz               (classinfo* value);
-	inline void set_name                (java_handle_t* value);
-	inline void set_slot                (int32_t value);
-	inline void set_annotations         (java_handle_bytearray_t* value);
-	inline void set_parameterAnnotations(java_handle_bytearray_t* value);
-	inline void set_annotationDefault   (java_handle_bytearray_t* value);
-	inline void set_declaredAnnotations (java_handle_t* value);
-	inline void set_m                   (java_handle_t* value);
+	void set_clazz               (classinfo* value);
+	void set_name                (java_handle_t* value);
+	void set_slot                (int32_t value);
+	void set_annotations         (java_handle_bytearray_t* value);
+	void set_parameterAnnotations(java_handle_bytearray_t* value);
+	void set_annotationDefault   (java_handle_bytearray_t* value);
+	void set_declaredAnnotations (java_handle_t* value);
+	void set_m                   (java_handle_t* value);
 
 	// Convenience functions.
-	inline methodinfo* get_method() const;
+	methodinfo* get_method() const;
 };
 
 
@@ -1555,15 +1555,15 @@ public:
 	java_handle_t* invoke(java_handle_t* o, java_handle_objectarray_t* args);
 
 	// Getters.
-	inline int32_t        get_flag() const;
-	inline java_handle_t* get_m() const;
+	int32_t        get_flag() const;
+	java_handle_t* get_m() const;
 
 	// Setters.
-	inline void set_m(java_handle_t* value);
+	void set_m(java_handle_t* value);
 
 	// Convenience functions.
-	inline methodinfo* get_method  () const;
-	inline int32_t     get_override() const;
+	methodinfo* get_method  () const;
+	int32_t     get_override() const;
 };
 
 
@@ -1640,7 +1640,7 @@ public:
 	java_nio_Buffer(java_handle_t* h) : java_lang_Object(h) {}
 
 	// Getters.
-	inline int32_t get_cap() const;
+	int32_t get_cap() const;
 };
 
 inline int32_t java_nio_Buffer::get_cap() const
@@ -1683,7 +1683,7 @@ public:
 	java_nio_DirectByteBufferImpl(java_handle_t* h) : java_lang_Object(h) {}
 
 	// Getters.
-	inline java_handle_t* get_address() const;
+	java_handle_t* get_address() const;
 };
 
 
@@ -1716,10 +1716,10 @@ public:
 	gnu_classpath_Pointer(java_handle_t* h, void* data);
 
 	// Setters.
-	inline void* get_data() const;
+	void* get_data() const;
 
 	// Setters.
-	inline void set_data(void* value);
+	void set_data(void* value);
 };
 
 inline gnu_classpath_Pointer::gnu_classpath_Pointer(java_handle_t* h, void* data) : java_lang_Object(h)
@@ -1852,14 +1852,14 @@ public:
 	java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset = 0);
 
 	// Getters.
-	inline java_handle_chararray_t* get_value () const;
-	inline int32_t                  get_offset() const;
-	inline int32_t                  get_count () const;
+	java_handle_chararray_t* get_value () const;
+	int32_t                  get_offset() const;
+	int32_t                  get_count () const;
 
 	// Setters.
-	inline void set_value (java_handle_chararray_t* value);
-	inline void set_offset(int32_t value);
-	inline void set_count (int32_t value);
+	void set_value (java_handle_chararray_t* value);
+	void set_offset(int32_t value);
+	void set_count (int32_t value);
 };
 
 inline java_lang_String::java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset) : java_lang_Object(h)
@@ -1963,15 +1963,15 @@ public:
 // 	java_lang_Thread(threadobject* t);
 
 	// Getters.
-	inline int32_t        get_priority                () const;
-	inline int32_t        get_daemon                  () const;
-	inline java_handle_t* get_group                   () const;
-	inline java_handle_t* get_uncaughtExceptionHandler() const;
+	int32_t        get_priority                () const;
+	int32_t        get_daemon                  () const;
+	java_handle_t* get_group                   () const;
+	java_handle_t* get_uncaughtExceptionHandler() const;
 
 	// Setters.
-	inline void set_priority    (int32_t value);
-	inline void set_group       (java_handle_t* value);
-	inline void set_threadStatus(int32_t value);
+	void set_priority    (int32_t value);
+	void set_group       (java_handle_t* value);
+	void set_threadStatus(int32_t value);
 };
 
 
@@ -2038,12 +2038,12 @@ public:
 	java_lang_Throwable(java_handle_t* h, java_handle_bytearray_t* backtrace);
 
 	// Getters.
-	inline java_handle_bytearray_t* get_backtrace    () const;
-	inline java_handle_t*           get_detailMessage() const;
-	inline java_handle_t*           get_cause        () const;
+	java_handle_bytearray_t* get_backtrace    () const;
+	java_handle_t*           get_detailMessage() const;
+	java_handle_t*           get_cause        () const;
 
 	// Setters.
-	inline void set_backtrace(java_handle_bytearray_t* value);
+	void set_backtrace(java_handle_bytearray_t* value);
 };
 
 
@@ -2122,23 +2122,23 @@ public:
 	java_handle_t* new_instance(java_handle_objectarray_t* args);
 
 	// Getters.
-	inline int32_t                  get_override   () const;
-	inline classinfo*               get_clazz      () const;
-	inline int32_t                  get_slot       () const;
-	inline java_handle_bytearray_t* get_annotations() const;
+	int32_t                  get_override   () const;
+	classinfo*               get_clazz      () const;
+	int32_t                  get_slot       () const;
+	java_handle_bytearray_t* get_annotations() const;
 
 	// Setters.
-	inline void set_clazz               (classinfo* value);
-	inline void set_slot                (int32_t value);
-	inline void set_parameterTypes      (java_handle_objectarray_t* value);
-	inline void set_exceptionTypes      (java_handle_objectarray_t* value);
-	inline void set_modifiers           (int32_t value);
-	inline void set_signature           (java_handle_t* value);
-	inline void set_annotations         (java_handle_bytearray_t* value);
-	inline void set_parameterAnnotations(java_handle_bytearray_t* value);
+	void set_clazz               (classinfo* value);
+	void set_slot                (int32_t value);
+	void set_parameterTypes      (java_handle_objectarray_t* value);
+	void set_exceptionTypes      (java_handle_objectarray_t* value);
+	void set_modifiers           (int32_t value);
+	void set_signature           (java_handle_t* value);
+	void set_annotations         (java_handle_bytearray_t* value);
+	void set_parameterAnnotations(java_handle_bytearray_t* value);
 
 	// Convenience functions.
-	inline methodinfo* get_method();
+	methodinfo* get_method();
 };
 
 
@@ -2284,22 +2284,22 @@ public:
 	java_lang_reflect_Field(fieldinfo* f);
 
 	// Getters.
-	inline int32_t                  get_override   () const;
-	inline classinfo*               get_clazz      () const;
-	inline int32_t                  get_slot       () const;
-	inline java_handle_bytearray_t* get_annotations() const;
+	int32_t                  get_override   () const;
+	classinfo*               get_clazz      () const;
+	int32_t                  get_slot       () const;
+	java_handle_bytearray_t* get_annotations() const;
 
 	// Setters.
-	inline void set_clazz      (classinfo* value);
-	inline void set_slot       (int32_t value);
-	inline void set_name       (java_handle_t* value);
-	inline void set_type       (classinfo* value);
-	inline void set_modifiers  (int32_t value);
-	inline void set_signature  (java_handle_t* value);
-	inline void set_annotations(java_handle_bytearray_t* value);
+	void set_clazz      (classinfo* value);
+	void set_slot       (int32_t value);
+	void set_name       (java_handle_t* value);
+	void set_type       (classinfo* value);
+	void set_modifiers  (int32_t value);
+	void set_signature  (java_handle_t* value);
+	void set_annotations(java_handle_bytearray_t* value);
 
 	// Convenience functions.
-	inline fieldinfo* get_field() const;
+	fieldinfo* get_field() const;
 };
 
 
@@ -2442,17 +2442,17 @@ public:
 	java_handle_t* invoke(java_handle_t* o, java_handle_objectarray_t* args);
 
 	// Getters.
-	inline int32_t                  get_override            () const;
-	inline classinfo*               get_clazz               () const;
-	inline int32_t                  get_slot                () const;
-	inline java_handle_bytearray_t* get_annotations         () const;
-	inline java_handle_bytearray_t* get_parameterAnnotations() const;
-	inline java_handle_bytearray_t* get_annotationDefault   () const;
+	int32_t                  get_override            () const;
+	classinfo*               get_clazz               () const;
+	int32_t                  get_slot                () const;
+	java_handle_bytearray_t* get_annotations         () const;
+	java_handle_bytearray_t* get_parameterAnnotations() const;
+	java_handle_bytearray_t* get_annotationDefault   () const;
 
 	// Setters.
 
 	// Convenience functions.
-	inline methodinfo* get_method() const;
+	methodinfo* get_method() const;
 };
 
 
@@ -2543,7 +2543,7 @@ public:
 	java_nio_Buffer(java_handle_t* h) : java_lang_Object(h) {}
 
 	// Getters.
-	inline void* get_address() const;
+	void* get_address() const;
 };
 
 
@@ -2581,14 +2581,14 @@ public:
 	com_sun_cldchi_jvm_FileDescriptor(java_handle_t* h, com_sun_cldchi_jvm_FileDescriptor& fd);
 
 	// Getters.
-	inline int64_t get_pointer () const;
-	inline int32_t get_position() const;
-	inline int32_t get_length  () const;
+	int64_t get_pointer () const;
+	int32_t get_position() const;
+	int32_t get_length  () const;
 
 	// Setters.
-	inline void set_pointer (int64_t value);
-	inline void set_position(int32_t value);
-	inline void set_length  (int32_t value);
+	void set_pointer (int64_t value);
+	void set_position(int32_t value);
+	void set_length  (int32_t value);
 };
 
 
@@ -2660,14 +2660,14 @@ public:
 	java_lang_String(java_handle_t* h, java_handle_chararray_t* value, int32_t count, int32_t offset = 0);
 
 	// Getters.
-	inline java_handle_chararray_t* get_value () const;
-	inline int32_t                  get_offset() const;
-	inline int32_t                  get_count () const;
+	java_handle_chararray_t* get_value () const;
+	int32_t                  get_offset() const;
+	int32_t                  get_count () const;
 
 	// Setters.
-	inline void set_value (java_handle_chararray_t* value);
-	inline void set_offset(int32_t value);
-	inline void set_count (int32_t value);
+	void set_value (java_handle_chararray_t* value);
+	void set_offset(int32_t value);
+	void set_count (int32_t value);
 };
 
 
@@ -2738,12 +2738,12 @@ public:
 // 	java_lang_Thread(threadobject* t);
 
 	// Getters.
-	inline int32_t                  get_priority () const;
-	inline threadobject*            get_vm_thread() const;
-	inline java_handle_chararray_t* get_name     () const;
+	int32_t                  get_priority () const;
+	threadobject*            get_vm_thread() const;
+	java_handle_chararray_t* get_name     () const;
 
 	// Setters.
-	inline void set_vm_thread(threadobject* value);
+	void set_vm_thread(threadobject* value);
 };
 
 
@@ -2795,11 +2795,11 @@ public:
 	java_lang_Throwable(java_handle_t* h) : java_lang_Object(h) {}
 
 	// Getters.
-	inline java_handle_t*           get_detailMessage() const;
-	inline java_handle_bytearray_t* get_backtrace    () const;
+	java_handle_t*           get_detailMessage() const;
+	java_handle_bytearray_t* get_backtrace    () const;
 
 	// Setters.
-	inline void set_backtrace(java_handle_bytearray_t* value);
+	void set_backtrace(java_handle_bytearray_t* value);
 };
 
 
