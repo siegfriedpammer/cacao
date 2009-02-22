@@ -300,6 +300,11 @@ void          threads_yield(void);
 
 #endif // _THREAD_HPP
 
+void          thread_handle_set_priority(java_handle_t *th, int);
+bool          thread_handle_is_interrupted(java_handle_t *th);
+void          thread_handle_interrupt(java_handle_t *th);
+int           thread_handle_get_state(java_handle_t *th);
+
 
 /*
  * These are local overrides for various environment variables in Emacs.

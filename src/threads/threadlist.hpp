@@ -83,6 +83,11 @@ public:
 	static void                 release_thread(threadobject* t);
 };
 
+struct ThreadListLocker {
+	ThreadListLocker()  { ThreadList::lock(); }
+	~ThreadListLocker()  { ThreadList::unlock(); }
+};
+
 
 inline void ThreadList::add_to_active_thread_list(threadobject* t)
 {

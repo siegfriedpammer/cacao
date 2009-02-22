@@ -85,13 +85,9 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_interrupt(JNIEnv *env, jobject _t
 {
 #if defined(ENABLE_THREADS)
 	java_handle_t *h;
-	threadobject  *t;
 
 	h = (java_handle_t *) _this;
-	t = thread_get_thread(h);
-	assert(t != NULL);
-
-	threads_thread_interrupt(t);
+	thread_handle_interrupt(h);
 #endif
 }
 
@@ -105,13 +101,9 @@ JNIEXPORT jboolean JNICALL Java_java_lang_VMThread_isInterrupted(JNIEnv *env, jo
 {
 #if defined(ENABLE_THREADS)
 	java_handle_t *h;
-	threadobject  *t;
 
 	h = (java_handle_t *) _this;
-	t = thread_get_thread(h);
-	assert(t != NULL);
-
-	return thread_is_interrupted(t);
+	return thread_handle_is_interrupted(h);
 #else
 	return 0;
 #endif
@@ -153,13 +145,9 @@ JNIEXPORT void JNICALL Java_java_lang_VMThread_nativeSetPriority(JNIEnv *env, jo
 {
 #if defined(ENABLE_THREADS)
 	java_handle_t *h;
-	threadobject  *t;
 
 	h = (java_handle_t *) _this;
-	t = thread_get_thread(h);
-	assert(t != NULL);
-
-	threads_set_thread_priority(t->tid, priority);
+	thread_handle_set_priority(h, priority);
 #endif
 }
 
@@ -276,16 +264,13 @@ JNIEXPORT jstring JNICALL Java_java_lang_VMThread_getState(JNIEnv *env, jobject 
 {
 #if defined(ENABLE_THREADS)
 	java_handle_t *h;
-	threadobject  *t;
 	int            state;
 	utf           *u;
 	java_handle_t *o;
 
 	h = (java_handle_t *) _this;
-	t = thread_get_thread(h);
-	assert(t != NULL);
 
-	state = cacaothread_get_state(t);
+	state = thread_handle_get_state(h);
 	
 	switch (state) {
 	case THREAD_STATE_NEW:

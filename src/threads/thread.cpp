@@ -654,7 +654,9 @@ void threads_thread_start(java_handle_t *object)
 	assert(jlvmt.get_handle() != NULL);
 	assert(jlvmt.get_vmdata() == NULL);
 
+	ThreadList::lock();
 	jlvmt.set_vmdata(t);
+	ThreadList::unlock();
 
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
@@ -1164,6 +1166,10 @@ void thread_set_state_terminated(threadobject *t)
    RETURN VALUE:
        the thread object
 
+   NOTE:
+       Usage of this function without the thread list lock held is
+       almost certainly a bug.
+
 *******************************************************************************/
 
 threadobject *thread_get_thread(java_handle_t *h)
@@ -1267,6 +1273,75 @@ void thread_set_interrupted(threadobject *t, bool interrupted)
 	t->waitmutex->unlock();
 }
 
+/* thread_handle_set_priority **************************************************
+
+   Calls threads_set_thread_priority for the threadobject associated
+   with the thread indicated by handle th, while holding the thread
+   list lock.
+
+*******************************************************************************/
+
+void thread_handle_set_priority(java_handle_t *th, int priority)
+{
+	ThreadListLocker l;
+	
+	threadobject *t = thread_get_thread(th);
+	/* For GNU classpath, this should not happen, because both
+	   setPriority() and start() are synchronized. */
+	assert(t != 0);
+	threads_set_thread_priority(t->tid, priority);
+}
+
+/* thread_handle_is_interrupted ************************************************
+
+   Calls thread_is_interrupted for the threadobject associated with
+   the thread indicated by handle th, while holding the thread list
+   lock.
+
+*******************************************************************************/
+
+bool thread_handle_is_interrupted(java_handle_t *th)
+{
+	ThreadListLocker l;
+	
+	threadobject *t = thread_get_thread(th);
+	return t ? thread_is_interrupted(t) : false;
+}
+
+/* thread_handle_interrupt *****************************************************
+
+   Calls threads_thread_interrupt for the threadobject associated with
+   the thread indicated by handle th, while holding the thread list
+   lock.
+
+*******************************************************************************/
+
+void thread_handle_interrupt(java_handle_t *th)
+{
+	ThreadListLocker l;
+	
+	threadobject *t = thread_get_thread(th);
+	/* For GNU classpath, this should not happen, because both
+	   interrupt() and start() are synchronized. */
+	assert(t != 0);
+	threads_thread_interrupt(t);
+}
+
+/* thread_handle_get_state *****************************************************
+
+   Calls cacaothread_get_state for the threadobject associated with
+   the thread indicated by handle th, while holding the thread list
+   lock.
+
+*******************************************************************************/
+
+int thread_handle_get_state(java_handle_t *th)
+{
+	ThreadListLocker l;
+
+	threadobject *t = thread_get_thread(th);
+	return t ? cacaothread_get_state(t) : THREAD_STATE_NEW;
+}
 
 
 /*
