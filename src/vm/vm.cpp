@@ -1472,7 +1472,8 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* Initialize the native VM subsystem. */
 	/* AFTER: threads_init (at least for SUN's classes) */
 
-	nativevm_init();
+	if (!nativevm_init())
+		os::abort("vm_create: nativevm_init failed");
 
 #if defined(ENABLE_PROFILING)
 	/* initialize profiling */

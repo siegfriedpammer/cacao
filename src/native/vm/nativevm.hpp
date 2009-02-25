@@ -31,7 +31,7 @@
 /* function prototypes ********************************************************/
 
 void nativevm_preinit(void);
-void nativevm_init(void);
+bool nativevm_init(void);
 
 #if defined(ENABLE_JAVASE)
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)

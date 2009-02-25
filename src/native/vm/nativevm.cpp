@@ -30,6 +30,7 @@
 #include "native/vm/nativevm.hpp"
 
 #include "vm/class.hpp"
+#include "vm/exceptions.hpp"
 #include "vm/initialize.hpp"
 #include "vm/method.hpp"
 #include "vm/options.h"
@@ -161,7 +162,7 @@ void nativevm_preinit(void)
 
 *******************************************************************************/
 
-void nativevm_init(void)
+bool nativevm_init(void)
 {
 	TRACESUBSYSTEMINITIALIZATION("nativevm_init");
 
@@ -180,9 +181,12 @@ void nativevm_init(void)
 											 false);
 
 	if (m == NULL)
-		os::abort("nativevm_init: Error resolving java.lang.System.initializeSystemClass()");
+		return false;
 
 	(void) vm_call_method(m, NULL);
+
+	if (exceptions_get_exception() != NULL)
+		return false;
 
 # else
 #  error unknown classpath configuration
@@ -195,6 +199,8 @@ void nativevm_init(void)
 #else
 # error unknown Java configuration
 #endif
+
+	return true;
 }
 
 
