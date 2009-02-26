@@ -142,20 +142,41 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 	/* Case: We loaded from base REG_PV with positive offset. */
 
 	else if (M_MEM_GET_Rbase(mcode) == REG_PV && (mcode & 0x00800000) == 0x00800000) {
-		/* We loaded from REG_METHODPTR with a larger displacement */
+		/* We loaded with a larger displacement. Normally this means we loaded
+		   from REG_METHODPTR. However there is a corner case if we loaded
+		   from the data segment at an address aligned to 12 bit, which leads to a
+		   zero (positive) displacement for the last instruction. */
 
 		mcode = pc[-1];
 
 		/* check for "ADD IP, FP, #??, ROTL 12" */
 
-		if ((mcode & 0xffffff00) == 0xe28bca00)
+		if ((mcode & 0xffffff00) == 0xe28bca00) {
+			/* We loaded from REG_METHODPTR with a larger displacement. */
+
+			assert(mptr != NULL);
 			disp += (int32_t) ((mcode & 0x00ff) << 12);
-		else
+			pa = ((uint8_t *) mptr) + disp;
+		}
+
+		/* check for "SUB IP, IP, #??, ROTL 12" (corner case) */
+
+		else if ((mcode & 0xffffff00) == 0xe24cca00 && disp == 0) {
+			/* We loaded from data segment with a larger displacement aligned to 12 bit. */
+
+			disp += (int32_t) ((mcode & 0x00ff) << 12);
+			pa = ((uint8_t *) pv) - disp;
+		}
+
+		/* Case is not covered, something is severely wrong. */
+
+		else {
 			vm_abort_disassemble(pc - 1, 4, "md_jit_method_patch_address: unknown instruction %x", mcode);
 
-		/* we loaded from REG_METHODPTR */
+			/* Keep compiler happy. */
 
-		pa = ((uint8_t *) mptr) + disp;
+			pa = NULL;
+		}
 	}
 
 	/* Case is not covered, something is severely wrong. */
