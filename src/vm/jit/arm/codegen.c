@@ -1638,10 +1638,14 @@ bool codegen_emit(jitdata *jd)
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			M_INTMOVE(s1, REG_ITMP1_XPTR);
+
+#ifdef ENABLE_VERIFIER
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				patcher_add_patch_ref(jd, PATCHER_resolve_class,
-									iptr->sx.s23.s2.uc, 0);
+				unresolved_class *uc = iptr->sx.s23.s2.uc;
+				patcher_add_patch_ref(jd, PATCHER_resolve_class, uc, 0);
 			}
+#endif /* ENABLE_VERIFIER */
+
 			disp = dseg_add_functionptr(cd, asm_handle_exception);
 			M_DSEG_LOAD(REG_ITMP3, disp);
 			M_MOV(REG_ITMP2_XPC, REG_PC);
@@ -2092,10 +2096,14 @@ bool codegen_emit(jitdata *jd)
 			REPLACEMENT_POINT_RETURN(cd, iptr);
 			s1 = emit_load_s1(jd, iptr, REG_RESULT);
 			M_INTMOVE(s1, REG_RESULT);
+
+#ifdef ENABLE_VERIFIER
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				patcher_add_patch_ref(jd, PATCHER_resolve_class,
-									iptr->sx.s23.s2.uc, 0);
+				unresolved_class *uc = iptr->sx.s23.s2.uc;
+				patcher_add_patch_ref(jd, PATCHER_resolve_class, uc, 0);
 			}
+#endif /* ENABLE_VERIFIER */
+
 			goto ICMD_RETURN_do;
 
 		case ICMD_RETURN:       /* ...  ==> ...                               */

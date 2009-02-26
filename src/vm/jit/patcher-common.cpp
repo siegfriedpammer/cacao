@@ -70,7 +70,9 @@ typedef struct patcher_function_list_t {
 
 static patcher_function_list_t patcher_function_list[] = {
 	{ PATCHER_initialize_class,              "initialize_class" },
+#ifdef ENABLE_VERIFIER
 	{ PATCHER_resolve_class,                 "resolve_class" },
+#endif /* ENABLE_VERIFIER */
 	{ PATCHER_resolve_native_function,       "resolve_native_function" },
 	{ PATCHER_invokestatic_special,          "invokestatic_special" },
 	{ PATCHER_invokevirtual,                 "invokevirtual" },
