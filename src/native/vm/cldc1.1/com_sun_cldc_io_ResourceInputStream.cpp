@@ -193,7 +193,10 @@ JNIEXPORT jobject JNICALL Java_com_sun_cldc_io_ResourceInputStream_open(JNIEnv *
 	char *path;
 	utf *uname;
 	java_handle_t* descriptor;
-	
+
+	// Get current list of classpath entries.
+	SuckClasspath& suckclasspath = VM::get_current()->get_suckclasspath();
+
 	/* get the classname as char string (do it here for the warning at
        the end of the function) */
 
@@ -201,10 +204,10 @@ JNIEXPORT jobject JNICALL Java_com_sun_cldc_io_ResourceInputStream_open(JNIEnv *
 	filenamelen = utf_bytes(uname) + strlen("0");
 	filename = MNEW(char, filenamelen);
 	utf_copy(filename, uname);
-	
+
 	/* walk through all classpath entries */
 
-	for (List<list_classpath_entry*>::iterator it = list_classpath_entries->begin(); it != list_classpath_entries->end(); it++) {
+	for (SuckClasspath::iterator it = suckclasspath.begin(); it != suckclasspath.end(); it++) {
 		list_classpath_entry* lce = *it;
 
 #if defined(ENABLE_ZLIB)

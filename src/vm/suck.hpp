@@ -28,12 +28,15 @@
 
 #include "config.h"
 
+#ifdef __cplusplus
+#include <list>
+#endif
+
 #include "vm/types.h"
 
 #include "threads/mutex.hpp"
 
 #include "toolbox/hashtable.h"
-#include "toolbox/list.hpp"
 
 #include "vm/class.hpp"
 #include "vm/global.h"
@@ -47,9 +50,7 @@ enum {
 	CLASSPATH_ARCHIVE
 };
 
-typedef struct list_classpath_entry list_classpath_entry;
-
-struct list_classpath_entry {
+typedef struct list_classpath_entry {
 #if defined(ENABLE_THREADS)
 	Mutex             *mutex;	        /* mutex locking on zip/jar files */
 #endif
@@ -59,8 +60,28 @@ struct list_classpath_entry {
 #if defined(ENABLE_ZLIB)
 	hashtable         *htclasses;
 #endif
+} list_classpath_entry;
+
+
+#ifdef __cplusplus
+
+/**
+ * Classpath entries list.
+ */
+class SuckClasspath : protected std::list<list_classpath_entry*> {
+public:
+	void add(char *classpath);
+	void add_from_property(const char *key);
+
+	// make iterator of std::list visible
+	using std::list<list_classpath_entry*>::iterator;
+
+	// make functions of std::list visible
+	using std::list<list_classpath_entry*>::begin;
+	using std::list<list_classpath_entry*>::end;
 };
 
+#endif
 
 /* macros to read LE and BE types from a buffer ********************************
 
@@ -148,24 +169,11 @@ struct list_classpath_entry {
 #define suck_s8(a)    (s8) suck_u8((a))
 
 
-/* export variables ***********************************************************/
-
-#ifdef __cplusplus
-extern List<list_classpath_entry*>* list_classpath_entries;
-#else
-extern List* list_classpath_entries;
-#endif
-
 /* function prototypes ********************************************************/
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-bool suck_init(void);
-
-void suck_add(char *classpath);
-void suck_add_from_property(const char *key);
 
 bool suck_check_classbuffer_size(classbuffer *cb, s4 len);
 

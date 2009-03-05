@@ -41,6 +41,7 @@
 #endif
 
 #include "vm/properties.hpp"
+#include "vm/suck.hpp"
 
 #include "vm/jit/optimizing/recompiler.hpp"
 
@@ -76,6 +77,7 @@ private:
 #endif
 	NativeLibraries _nativelibraries; ///< Native library table.
 	NativeMethods   _nativemethods;   ///< Native methods table.
+	SuckClasspath   _suckclasspath;   ///< Classpath entries list.
 
 public:
 	// Constructor, Destructor.
@@ -105,6 +107,7 @@ public:
 #endif
 	NativeLibraries& get_nativelibraries() { return _nativelibraries; }
 	NativeMethods&   get_nativemethods  () { return _nativemethods; }
+	SuckClasspath&   get_suckclasspath  () { return _suckclasspath; }
 };
 
 #else

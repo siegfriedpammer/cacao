@@ -100,9 +100,12 @@ void loader_preinit(void)
 	TRACESUBSYSTEMINITIALIZATION("loader_preinit");
 
 #if defined(ENABLE_THREADS)
+	// Get current list of classpath entries.
+	SuckClasspath& suckclasspath = VM::get_current()->get_suckclasspath();
+
 	/* Initialize the monitor pointer for zip/jar file locking. */
 
-	for (List<list_classpath_entry*>::iterator it = list_classpath_entries->begin(); it != list_classpath_entries->end(); it++) {
+	for (SuckClasspath::iterator it = suckclasspath.begin(); it != suckclasspath.end(); it++) {
 		list_classpath_entry* lce = *it;
 
 		if (lce->type == CLASSPATH_ARCHIVE)
@@ -398,7 +401,10 @@ void loader_load_all_classes(void)
 	utf                     *u;
 #endif
 
-	for (List<list_classpath_entry*>::iterator it = list_classpath_entries->begin(); it != list_classpath_entries->end(); it++) {
+	// Get current list of classpath entries.
+	SuckClasspath& suckclasspath = VM::get_current()->get_suckclasspath();
+
+	for (SuckClasspath::iterator it = suckclasspath.begin(); it != suckclasspath.end(); it++) {
 		list_classpath_entry* lce = *it;
 
 #if defined(ENABLE_ZLIB)

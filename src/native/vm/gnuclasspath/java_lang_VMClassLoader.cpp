@@ -259,6 +259,9 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 	struct stat           buf;       /* buffer for stat          */
 	jboolean              ret;       /* return value of "add"    */
 
+	// Get current list of classpath entries.
+	SuckClasspath& suckclasspath = VM::get_current()->get_suckclasspath();
+
 	/* get the resource name as utf string */
 
 	utfname = javastring_toutf((java_handle_t *) name, false);
@@ -318,7 +321,7 @@ JNIEXPORT jobject JNICALL Java_java_lang_VMClassLoader_nativeGetResources(JNIEnv
 
 	/* iterate over all classpath entries */
 
-	for (List<list_classpath_entry*>::iterator it = list_classpath_entries->begin(); it != list_classpath_entries->end(); it++) {
+	for (SuckClasspath::iterator it = suckclasspath.begin(); it != suckclasspath.end(); it++) {
 		list_classpath_entry* lce = *it;
 
 		/* clear path pointer */

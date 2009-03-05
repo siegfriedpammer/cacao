@@ -1370,10 +1370,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 	/* AFTER: thread_preinit */
 
-	if (!suck_init())
-		os::abort("vm_create: suck_init failed");
-
-	suck_add_from_property("java.endorsed.dirs");
+	_suckclasspath.add_from_property("java.endorsed.dirs");
 
 	/* Now we have all options handled and we can print the version
 	   information.
@@ -1387,7 +1384,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 	// FIXME Make boot_class_path const char*.
 	boot_class_path = (char*) _properties.get("sun.boot.class.path");
-	suck_add(boot_class_path);
+	_suckclasspath.add(boot_class_path);
 
 	/* initialize the classcache hashtable stuff: lock, hashtable
 	   (must be done _after_ threads_preinit) */

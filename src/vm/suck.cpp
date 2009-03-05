@@ -50,31 +50,6 @@
 #include "vm/zip.hpp"
 
 
-/* global variables ***********************************************************/
-
-List<list_classpath_entry*>* list_classpath_entries;
-
-
-/* suck_init *******************************************************************
-
-   Initializes the suck subsystem like initializing the classpath
-   entries list.
-
-*******************************************************************************/
-
-bool suck_init(void)
-{
-	TRACESUBSYSTEMINITIALIZATION("suck_init");
-
-#warning Move this list into VM.
-	list_classpath_entries = new List<list_classpath_entry*>();
-
-	/* everything's ok */
-
-	return true;
-}
-
-
 /* scandir_filter **************************************************************
 
    Filters for zip/jar files.
@@ -99,13 +74,10 @@ static int scandir_filter(const struct dirent *a)
 }
 
 
-/* suck_add ********************************************************************
-
-   Adds a classpath to the global classpath entries list.
-
-*******************************************************************************/
-
-void suck_add(char *classpath)
+/**
+ * Adds a classpath to the global classpath entries list.
+ */
+void SuckClasspath::add(char *classpath)
 {
 	list_classpath_entry *lce;
 	char                 *start;
@@ -206,7 +178,7 @@ void suck_add(char *classpath)
 			/* add current classpath entry, if no error */
 
 			if (lce != NULL)
-				list_classpath_entries->push_back(lce);
+				push_back(lce);
 		}
 
 		/* goto next classpath entry, skip ':' delimiter */
@@ -219,14 +191,11 @@ void suck_add(char *classpath)
 }
 
 
-/* suck_add_from_property ******************************************************
-
-   Adds a classpath form a property entry to the global classpath
-   entries list.
-
-*******************************************************************************/
-
-void suck_add_from_property(const char *key)
+/**
+ * Adds a classpath form a property entry to the global classpath
+ * entries list.
+ */
+void SuckClasspath::add_from_property(const char *key)
 {
 	const char     *value;
 	const char     *start;
@@ -516,9 +485,12 @@ classbuffer *suck_start(classinfo *c)
 	utf_copy(filename, c->name);
 	strcat(filename, ".class");
 
+	// Get current list of classpath entries.
+	SuckClasspath& suckclasspath = VM::get_current()->get_suckclasspath();
+
 	/* walk through all classpath entries */
 
-	for (List<list_classpath_entry*>::iterator it = list_classpath_entries->begin(); it != list_classpath_entries->end() && cb == NULL; it++) {
+	for (SuckClasspath::iterator it = suckclasspath.begin(); it != suckclasspath.end() && cb == NULL; it++) {
 		lce = *it;
 
 #if defined(ENABLE_ZLIB)
