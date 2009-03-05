@@ -78,6 +78,12 @@
 //#include "vm/javaobjects.hpp"
 #include "vm/global.h"
 
+
+// Some additional JNI version numbers, we currently support JNI 1.6.
+#define JNI_VERSION_SUPPORTED JNI_VERSION_1_6
+#define JNI_VERSION_CACAO     0xcaca0000
+
+
 // Typedef the JNI types.
 typedef java_handle_t*              jobject;
 typedef java_handle_t*              jclass;

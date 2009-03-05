@@ -793,9 +793,7 @@ jint _Jv_JNI_GetVersion(JNIEnv *env)
 {
 	TRACEJNICALLS(("_Jv_JNI_GetVersion(env=%p)", env));
 
-	/* We support JNI 1.6. */
-
-	return JNI_VERSION_1_6;
+	return JNI_VERSION_SUPPORTED;
 }
 
 
@@ -4125,22 +4123,28 @@ jint JNI_GetDefaultJavaVMInitArgs(void *vm_args)
 	/* GNU classpath currently supports JNI 1.2 */
 
 	switch (_vm_args->version) {
-    case JNI_VERSION_1_1:
+	case JNI_VERSION_1_1:
 		_vm_args->version = JNI_VERSION_1_1;
 		break;
 
-    case JNI_VERSION_1_2:
-    case JNI_VERSION_1_4:
+	case JNI_VERSION_1_2:
+	case JNI_VERSION_1_4:
 		_vm_args->ignoreUnrecognized = JNI_FALSE;
 		_vm_args->options = NULL;
 		_vm_args->nOptions = 0;
 		break;
 
-    default:
-		return -1;
+	case JNI_VERSION_CACAO:
+		// We reveal ourselves by accepting this version number,
+		// this actually means we are using the supported JNI version.
+		_vm_args->version = JNI_VERSION_SUPPORTED;
+		break;
+
+	default:
+		return JNI_ERR;
 	}
-  
-	return 0;
+
+	return JNI_OK;
 }
 
 
