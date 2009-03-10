@@ -2555,17 +2555,67 @@ bool codegen_emit(jitdata *jd)
 					emit_label_beq(cd, BRANCH_LABEL_5);
 				}
 
+				// The following code checks whether object s is a subtype of class t.
+				// Represents the following semantic:
+				//    if (!fast_subtype_check(s->vftbl, t->vftbl)) throw;
+
 				M_LDR_INTERN(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
 				M_DSEG_LOAD(REG_ITMP3, disp);
 
-				M_LDR_INTERN(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
-				M_LDR_INTERN(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, baseval));
-				M_SUB(REG_ITMP2, REG_ITMP2, REG_ITMP3);
-				M_DSEG_LOAD(REG_ITMP3, disp);
-				M_LDR_INTERN(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, diffval));
+				if (super == NULL || super->vftbl->subtype_depth >= DISPLAY_SIZE) {
+					// Represents the following semantic:
+					//    if (*(s->vftbl + t->vftbl->subtype_offset) == t->vftbl) good;
+					// Preconditions:
+					//    REG_ITMP2==s->vftbl; REG_ITMP3==t->vftbl;
+					M_LDR_INTERN(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
+					M_LDR_REG(REG_ITMP1, REG_ITMP2, REG_ITMP1);
+					M_CMP(REG_ITMP1, REG_ITMP3);
+					emit_load_s1(jd, iptr, REG_ITMP1);  /* reload s1, might have been destroyed */
+					emit_label_beq(cd, BRANCH_LABEL_6);  /* good */
 
-				M_CMP(REG_ITMP2, REG_ITMP3);
-				emit_classcast_check(cd, iptr, BRANCH_UGT, 0, s1);
+					// Represents the following semantic:
+					//    if (t->vftbl->subtype_offset != OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE])) throw;
+					// Preconditions:
+					//    REG_ITMP3==t->vftbl;
+					if (super == NULL) {
+						M_LDR_INTERN(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
+						M_CMP_IMM(REG_ITMP1, OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]));
+						emit_load_s1(jd, iptr, REG_ITMP1);  /* reload s1, might have been destroyed */
+						emit_classcast_check(cd, iptr, BRANCH_NE, 0, s1);  /* throw */
+					}
+
+					// Represents the following semantic:
+					//    if (s->vftbl->subtype_depth < t->vftbl->subtype_depth) throw;
+					// Preconditions:
+					//    REG_ITMP2==s->vftbl; REG_ITMP3==t->vftbl;
+					M_LDR_INTERN(REG_ITMP1, REG_ITMP2, OFFSET(vftbl_t, subtype_depth));
+					M_LDR_INTERN(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
+					M_CMP(REG_ITMP1, REG_ITMP3);
+					emit_load_s1(jd, iptr, REG_ITMP1);  /* reload s1, might have been destroyed */
+					emit_classcast_check(cd, iptr, BRANCH_LT, 0, s1);  /* throw */
+
+					// Represents the following semantic:
+					//    if (s->vftbl->subtype_overflow[t->vftbl->subtype_depth - DISPLAY_SIZE] != t->vftbl) throw;
+					// Preconditions:
+					//    REG_ITMP2==s->vftbl; REG_ITMP3==t->vftbl->subtype_depth;
+					M_LDR_INTERN(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
+					M_ADD(REG_ITMP2, REG_ITMP2, REG_LSL(REG_ITMP3, 2));  /* REG_ITMP2 = REG_ITMP2 + 4 * REG_ITMP3 */
+					M_LDR_INTERN(REG_ITMP2, REG_ITMP2, -DISPLAY_SIZE * SIZEOF_VOID_P);
+					M_DSEG_LOAD(REG_ITMP3, disp);  /* reload REG_ITMP3, was destroyed */
+					M_CMP(REG_ITMP2, REG_ITMP3);
+					emit_classcast_check(cd, iptr, BRANCH_NE, 0, s1);  /* throw */
+
+					emit_label(cd, BRANCH_LABEL_6);
+				}
+				else {
+					// Represents the following semantic:
+					//    if (*(s->vftbl + t->vftbl->subtype_offset) != t->vftbl) throw;
+					// Preconditions:
+					//    REG_ITMP2==s->vftbl; REG_ITMP3==t->vftbl;
+					M_ALD(REG_ITMP2, REG_ITMP2, super->vftbl->subtype_offset);
+					M_CMP(REG_ITMP2, REG_ITMP3);
+					emit_classcast_check(cd, iptr, BRANCH_NE, 0, s1);
+				}
 
 				if (super != NULL)
 					emit_label(cd, BRANCH_LABEL_5);
@@ -2747,19 +2797,74 @@ bool codegen_emit(jitdata *jd)
 					emit_label_beq(cd, BRANCH_LABEL_5);
 				}
 
-				M_LDR_INTERN(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
-				M_DSEG_LOAD(REG_ITMP2, disp);
+				// The following code checks whether object s is a subtype of class t.
+				// Represents the following semantic:
+				//    fast_subtype_check(s->vftbl, t->vftbl));
 
-				M_LDR_INTERN(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
-				M_LDR_INTERN(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
-				M_LDR_INTERN(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
+				M_LDR_INTERN(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
+				M_DSEG_LOAD(REG_ITMP3, disp);
 
-				M_SUB(REG_ITMP1, REG_ITMP1, REG_ITMP3);
-				M_CMP(REG_ITMP1, REG_ITMP2);
-				/* If d == REG_ITMP2, then it's destroyed */
-				if (d == REG_ITMP2)
-					M_EOR(d, d, d);
-				M_MOVLS_IMM(1, d);
+				if (super == NULL || super->vftbl->subtype_depth >= DISPLAY_SIZE) {
+					// Represents the following semantic:
+					//    if (*(s->vftbl + t->vftbl->subtype_offset) == t->vftbl) true;
+					// Preconditions:
+					//    REG_ITMP2==s->vftbl; REG_ITMP3==t->vftbl;
+					M_LDR_INTERN(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
+					M_LDR_REG(REG_ITMP1, REG_ITMP2, REG_ITMP1);
+					M_CMP(REG_ITMP1, REG_ITMP3);
+					emit_label_beq(cd, BRANCH_LABEL_6);  /* true */
+
+					// Represents the following semantic:
+					//    if (t->vftbl->subtype_offset != OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE])) false;
+					// Preconditions:
+					//    REG_ITMP3==t->vftbl;
+					if (super == NULL) {
+						M_LDR_INTERN(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
+						M_CMP_IMM(REG_ITMP1, OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]));
+						emit_label_bne(cd, BRANCH_LABEL_7);  /* false */
+					}
+
+					// Represents the following semantic:
+					//    if (s->vftbl->subtype_depth < t->vftbl->subtype_depth) false;
+					// Preconditions:
+					//    REG_ITMP2==s->vftbl; REG_ITMP3==t->vftbl;
+					M_LDR_INTERN(REG_ITMP1, REG_ITMP2, OFFSET(vftbl_t, subtype_depth));
+					M_LDR_INTERN(REG_ITMP3, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
+					M_CMP(REG_ITMP1, REG_ITMP3);
+					emit_label_blt(cd, BRANCH_LABEL_8);  /* false */
+
+					// Represents the following semantic:
+					//    if (s->vftbl->subtype_overflow[t->vftbl->subtype_depth - DISPLAY_SIZE] != t->vftbl) false;
+					// Preconditions:
+					//    REG_ITMP2==s->vftbl; REG_ITMP3==t->vftbl->subtype_depth;
+					M_LDR_INTERN(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
+					M_ADD(REG_ITMP2, REG_ITMP2, REG_LSL(REG_ITMP3, 2));  /* REG_ITMP2 = REG_ITMP2 + 4 * REG_ITMP3 */
+					M_LDR_INTERN(REG_ITMP2, REG_ITMP2, -DISPLAY_SIZE * SIZEOF_VOID_P);
+					M_DSEG_LOAD(REG_ITMP3, disp);  /* reload REG_ITMP3, was destroyed */
+					M_CMP(REG_ITMP2, REG_ITMP3);
+
+					emit_label(cd, BRANCH_LABEL_6);
+					if (super == NULL)
+						emit_label(cd, BRANCH_LABEL_7);
+					emit_label(cd, BRANCH_LABEL_8);
+
+					/* If d == REG_ITMP2, then it's destroyed */
+					if (d == REG_ITMP2)
+						M_EOR(d, d, d);
+					M_MOVEQ_IMM(1, d);
+				}
+				else {
+					// Represents the following semantic:
+					//    *(s->vftbl + t->vftbl->subtype_offset) == t->vftbl;
+					// Preconditions:
+					//    REG_ITMP2==s->vftbl; REG_ITMP3==t->vftbl;
+					M_ALD(REG_ITMP2, REG_ITMP2, super->vftbl->subtype_offset);
+					M_CMP(REG_ITMP2, REG_ITMP3);
+					/* If d == REG_ITMP2, then it's destroyed */
+					if (d == REG_ITMP2)
+						M_EOR(d, d, d);
+					M_MOVEQ_IMM(1, d);
+				}
 
 				if (super != NULL)
 					emit_label(cd, BRANCH_LABEL_5);

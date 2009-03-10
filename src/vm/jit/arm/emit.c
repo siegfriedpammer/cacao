@@ -544,6 +544,14 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 			M_TRAPEQ(s1, TRAP_ClassCastException);
 			break;
 
+		case BRANCH_NE:
+			M_TRAPNE(s1, TRAP_ClassCastException);
+			break;
+
+		case BRANCH_LT:
+			M_TRAPLT(s1, TRAP_ClassCastException);
+			break;
+
 		case BRANCH_LE:
 			M_TRAPLE(s1, TRAP_ClassCastException);
 			break;

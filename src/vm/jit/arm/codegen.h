@@ -556,6 +556,8 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 
 #define M_TRAP(a,i)        M_UNDEFINED(UNCOND,i,a);
 #define M_TRAPEQ(a,i)      M_UNDEFINED(COND_EQ,i,a);
+#define M_TRAPNE(a,i)      M_UNDEFINED(COND_NE,i,a);
+#define M_TRAPLT(a,i)      M_UNDEFINED(COND_LT,i,a);
 #define M_TRAPLE(a,i)      M_UNDEFINED(COND_LE,i,a);
 #define M_TRAPHI(a,i)      M_UNDEFINED(COND_HI,i,a);
 #define M_TRAPHS(a,i)      M_UNDEFINED(COND_CS,i,a);
@@ -1158,6 +1160,7 @@ do { \
 	} else if(IS_IMM(-(val))) { \
 		M_CMN_IMM(reg, -(val)); \
 	} else { \
+		assert((reg) != REG_ITMP3); \
 		ICONST(REG_ITMP3, (val)); \
 		M_CMP(reg, REG_ITMP3); \
 	}
