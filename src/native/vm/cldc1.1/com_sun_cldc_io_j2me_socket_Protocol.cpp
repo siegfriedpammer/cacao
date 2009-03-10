@@ -45,6 +45,7 @@
 #endif
 
 #include "vm/global.h"
+#include "vm/os.hpp"
 #include "vm/vm.hpp" /* REMOVE ME: temporarily */
 
 
@@ -116,7 +117,7 @@ JNIEXPORT jint JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf(JNIEnv 
 		return -1;
 	}
 	else if (result < 0) {
-		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf: recv failed");
+		os::abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_readBuf: recv failed");
 	}
 
 	return result;
@@ -141,7 +142,7 @@ JNIEXPORT jint JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_readByte(JNIEnv
 	}
 	else if (result < 0) {
 		// TODO Should throw an IOException.
-		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_readByte: recv failed");
+		os::abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_readByte: recv failed");
 	}
 
 	return byte;
@@ -164,7 +165,7 @@ JNIEXPORT jint JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_writeBuf(JNIEnv
 
 	if (result < 0) {
 		// TODO Should throw an IOException.
-		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_writeBuf: send failed");
+		os::abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_writeBuf: send failed");
 	}
 
 	return result;
@@ -184,7 +185,7 @@ JNIEXPORT jint JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_writeByte(JNIEn
 	ssize_t result = send(handle, &byte, 1, 0);
 
 	if (result < 0)
-		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_writeByte: send failed");
+		os::abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_writeByte: send failed");
 
 	return result;
 }
@@ -213,7 +214,7 @@ JNIEXPORT void JNICALL Java_com_sun_cldc_io_j2me_socket_Protocol_close0(JNIEnv *
 	int result = close(handle);
 
 	if (result < 0)
-		vm_abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_close0: close failed");
+		os::abort_errno("Java_com_sun_cldc_io_j2me_socket_Protocol_close0: close failed");
 }
 
 } // extern "C"

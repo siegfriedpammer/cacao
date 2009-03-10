@@ -193,8 +193,6 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o, java_
 
 // Legacy C interface.
 void vm_abort(const char* text, ...);
-void vm_abort_errnum(int errnum, const char* text, ...);
-void vm_abort_errno(const char* text, ...);
 
 #ifdef __cplusplus
 }

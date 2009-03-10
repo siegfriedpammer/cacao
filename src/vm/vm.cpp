@@ -2562,27 +2562,22 @@ void vm_abort(const char* text, ...)
 {
 	va_list ap;
 
-	va_start(ap, text);
-	os::abort(text, ap);
-	va_end(ap);
-}
+	log_println("vm_abort: WARNING, port me to C++ and use os::abort() instead.");
 
-void vm_abort_errnum(int errnum, const char* text, ...)
-{
-	va_list ap;
+	// Print the log message.
+	log_start();
 
 	va_start(ap, text);
-	os::abort_errnum(errnum, text, ap);
+	log_vprint(text, ap);
 	va_end(ap);
-}
 
-void vm_abort_errno(const char* text, ...)
-{
-	va_list ap;
+	log_finish();
 
-	va_start(ap, text);
-	os::abort_errno(text, ap);
-	va_end(ap);
+	// Print a backtrace.
+	os::print_backtrace();
+
+	// Now abort the VM.
+	os::abort();
 }
 
 }

@@ -69,7 +69,7 @@
 void memory_mprotect(void *addr, size_t len, int prot)
 {
 	if (os::mprotect(addr, len, prot) != 0)
-		vm_abort_errno("memory_mprotect: os::mprotect failed");
+		os::abort_errno("memory_mprotect: os::mprotect failed");
 }
 
 

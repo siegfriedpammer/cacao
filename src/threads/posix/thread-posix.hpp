@@ -266,7 +266,9 @@ inline static void thread_set_current(threadobject* t)
 	result = pthread_setspecific(thread_current_key, t);
 
 	if (result != 0)
-		vm_abort_errnum(result, "thread_set_current: pthread_setspecific failed");
+#warning Use below method instead!
+		//os::abort_errnum(result, "thread_set_current: pthread_setspecific failed");
+		vm_abort("thread_set_current: pthread_setspecific failed");
 #endif
 }
 

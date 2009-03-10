@@ -50,6 +50,7 @@
 #include "vm/globals.hpp"
 #include "vm/method.hpp"
 #include "vm/options.h"
+#include "vm/os.hpp"
 #include "vm/signallocal.hpp"
 #include "vm/vm.hpp"
 
@@ -86,22 +87,22 @@ bool signal_init(void)
 	   this thread. */
 
 	if (sigemptyset(&mask) != 0)
-		vm_abort_errno("signal_init: sigemptyset failed");
+		os::abort_errno("signal_init: sigemptyset failed");
 
 #if !defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	/* Let OpenJDK handle SIGINT itself. */
 
 	if (sigaddset(&mask, SIGINT) != 0)
-		vm_abort_errno("signal_init: sigaddset failed");
+		os::abort_errno("signal_init: sigaddset failed");
 #endif
 
 #if !defined(__FREEBSD__)
 	if (sigaddset(&mask, SIGQUIT) != 0)
-		vm_abort_errno("signal_init: sigaddset failed");
+		os::abort_errno("signal_init: sigaddset failed");
 #endif
 
 	if (sigprocmask(SIG_BLOCK, &mask, NULL) != 0)
-		vm_abort_errno("signal_init: sigprocmask failed");
+		os::abort_errno("signal_init: sigprocmask failed");
 
 #if defined(__LINUX__) && defined(ENABLE_THREADS)
 	/* XXX Remove for exact-GC. */
@@ -229,13 +230,13 @@ void signal_register_signal(int signum, functionptr handler, int flags)
 	function = (void (*)(int, siginfo_t *, void *)) handler;
 
 	if (sigemptyset(&act.sa_mask) != 0)
-		vm_abort_errno("signal_register_signal: sigemptyset failed");
+		os::abort_errno("signal_register_signal: sigemptyset failed");
 
 	act.sa_sigaction = function;
 	act.sa_flags     = flags;
 
 	if (sigaction(signum, &act, NULL) != 0)
-		vm_abort_errno("signal_register_signal: sigaction failed");
+		os::abort_errno("signal_register_signal: sigaction failed");
 }
 
 
@@ -257,18 +258,18 @@ static void signal_thread(void)
 	t = THREADOBJECT;
 
 	if (sigemptyset(&mask) != 0)
-		vm_abort_errno("signal_thread: sigemptyset failed");
+		os::abort_errno("signal_thread: sigemptyset failed");
 
 #if !defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	/* Let OpenJDK handle SIGINT itself. */
 
 	if (sigaddset(&mask, SIGINT) != 0)
-		vm_abort_errno("signal_thread: sigaddset failed");
+		os::abort_errno("signal_thread: sigaddset failed");
 #endif
 
 #if !defined(__FREEBSD__)
 	if (sigaddset(&mask, SIGQUIT) != 0)
-		vm_abort_errno("signal_thread: sigaddset failed");
+		os::abort_errno("signal_thread: sigaddset failed");
 #endif
 
 	for (;;) {
@@ -285,7 +286,7 @@ static void signal_thread(void)
 		} while (result == EINTR);
 
 		if (result != 0)
-			vm_abort_errnum(result, "signal_thread: sigwait failed");
+			os::abort_errnum(result, "signal_thread: sigwait failed");
 
 #if defined(ENABLE_THREADS)
 		thread_set_state_runnable(t);

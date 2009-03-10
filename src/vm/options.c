@@ -743,7 +743,9 @@ void options_xx(JavaVMInitArgs *vm_args)
 			file = fopen(filename, "w");
 
 			if (file == NULL)
-				vm_abort_errno("options_xx: fopen failed");
+#warning Use below method instead!
+				//os::abort_errno("options_xx: fopen failed");
+				vm_abort("options_xx: fopen failed");
 
 			opt_ProfileMemoryUsageGNUPlot = file;
 			break;

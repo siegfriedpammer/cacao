@@ -43,7 +43,7 @@ void OprofileAgent::initialize(void)
 {
 	_handle = op_open_agent();
 	if (!_handle)
-		vm_abort_errno("unable to open opagent handle:");
+		os::abort_errno("unable to open opagent handle:");
 }
 
 /**

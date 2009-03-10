@@ -68,6 +68,7 @@
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/options.h"
+#include "vm/os.hpp"
 #include "vm/signallocal.hpp"
 #include "vm/string.hpp"
 #include "vm/vm.hpp"
@@ -547,21 +548,21 @@ void threads_impl_thread_free(threadobject *t)
 	result = pthread_cond_destroy(&(t->flc_cond));
 
 	if (result != 0)
-		vm_abort_errnum(result, "threads_impl_thread_free: pthread_cond_destroy failed");
+		os::abort_errnum(result, "threads_impl_thread_free: pthread_cond_destroy failed");
 
 	delete t->waitmutex;
 
 	result = pthread_cond_destroy(&(t->waitcond));
 
 	if (result != 0)
-		vm_abort_errnum(result, "threads_impl_thread_free: pthread_cond_destroy failed");
+		os::abort_errnum(result, "threads_impl_thread_free: pthread_cond_destroy failed");
 
 	delete t->suspendmutex;
 
 	result = pthread_cond_destroy(&(t->suspendcond));
 
 	if (result != 0)
-		vm_abort_errnum(result, "threads_impl_thread_free: pthread_cond_destroy failed");
+		os::abort_errnum(result, "threads_impl_thread_free: pthread_cond_destroy failed");
 }
 #endif
 
@@ -597,7 +598,7 @@ void threads_impl_preinit(void)
 #if !defined(HAVE___THREAD)
 	result = pthread_key_create(&thread_current_key, NULL);
 	if (result != 0)
-		vm_abort_errnum(result, "threads_impl_preinit: pthread_key_create failed");
+		os::abort_errnum(result, "threads_impl_preinit: pthread_key_create failed");
 #endif
 }
 
@@ -671,12 +672,12 @@ void threads_impl_init(void)
 	result = pthread_attr_init(&attr);
 
 	if (result != 0)
-		vm_abort_errnum(result, "threads_impl_init: pthread_attr_init failed");
+		os::abort_errnum(result, "threads_impl_init: pthread_attr_init failed");
 
 	result = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
 	if (result != 0)
-		vm_abort_errnum(result, "threads_impl_init: pthread_attr_setdetachstate failed");
+		os::abort_errnum(result, "threads_impl_init: pthread_attr_setdetachstate failed");
 }
 
 
@@ -927,33 +928,33 @@ void threads_impl_thread_start(threadobject *thread, functionptr f)
 	result = pthread_attr_init(&attr);
 
 	if (result != 0)
-		vm_abort_errnum(result, "threads_impl_thread_start: pthread_attr_init failed");
+		os::abort_errnum(result, "threads_impl_thread_start: pthread_attr_init failed");
 
     result = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
     if (result != 0)
-		vm_abort_errnum(result, "threads_impl_thread_start: pthread_attr_setdetachstate failed");
+		os::abort_errnum(result, "threads_impl_thread_start: pthread_attr_setdetachstate failed");
 
 	/* initialize thread stacksize */
 
 	result = pthread_attr_setstacksize(&attr, opt_stacksize);
 
 	if (result != 0)
-		vm_abort_errnum(result, "threads_impl_thread_start: pthread_attr_setstacksize failed");
+		os::abort_errnum(result, "threads_impl_thread_start: pthread_attr_setstacksize failed");
 
 	/* create the thread */
 
 	result = pthread_create(&(thread->tid), &attr, threads_startup_thread, &startup);
 
 	if (result != 0)
-		vm_abort_errnum(result, "threads_impl_thread_start: pthread_create failed");
+		os::abort_errnum(result, "threads_impl_thread_start: pthread_create failed");
 
 	/* destroy the thread attributes */
 
 	result = pthread_attr_destroy(&attr);
 
 	if (result != 0)
-		vm_abort_errnum(result, "threads_impl_thread_start: pthread_attr_destroy failed");
+		os::abort_errnum(result, "threads_impl_thread_start: pthread_attr_destroy failed");
 
 	/* signal that pthread_create has returned, so thread->tid is valid */
 
