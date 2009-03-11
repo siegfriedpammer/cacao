@@ -168,6 +168,7 @@ void emit_label_bgtz(codegendata* cd, int label, int reg);
 #endif
 
 #if SUPPORT_BRANCH_CONDITIONAL_TWO_INTEGER_REGISTERS
+void emit_label_beq(codegendata* cd, int label, int s1, int s2);
 void emit_label_bne(codegendata* cd, int label, int s1, int s2);
 #endif
 

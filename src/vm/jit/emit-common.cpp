@@ -690,6 +690,11 @@ void emit_label_bgtz(codegendata* cd, int label, int reg)
 
 #if SUPPORT_BRANCH_CONDITIONAL_TWO_INTEGER_REGISTERS
 
+void emit_label_beq(codegendata* cd, int label, int s1, int s2)
+{
+	emit_label_bccz(cd, label, BRANCH_EQ, PACK_REGS(s1, s2), BRANCH_OPT_NONE);
+}
+
 void emit_label_bne(codegendata* cd, int label, int s1, int s2)
 {
 	emit_label_bccz(cd, label, BRANCH_NE, PACK_REGS(s1, s2), BRANCH_OPT_NONE);
