@@ -206,12 +206,6 @@ enum {
 	OPT_SHOW,
 	OPT_DEBUGCOLOR,
 
-#if !defined(NDEBUG)
-	OPT_ALL,
-	OPT_METHOD,
-	OPT_SIGNATURE,
-#endif
-
 #if defined(ENABLE_VERIFIER)
 	OPT_NOVERIFY,
 	OPT_XVERIFY_ALL,
@@ -325,11 +319,6 @@ opt_struct opts[] = {
 	{ "c",                 true,  OPT_CHECK },
 	{ "l",                 false, OPT_LOAD },
 
-#if !defined(NDEBUG)
-	{ "all",               false, OPT_ALL },
-	{ "sig",               true,  OPT_SIGNATURE },
-#endif
-
 #if defined(ENABLE_LOOP)
 	{ "oloop",             false, OPT_OLOOP },
 #endif
@@ -389,10 +378,6 @@ opt_struct opts[] = {
 #endif
 
 	/* keep these at the end of the list */
-
-#if !defined(NDEBUG)
-	{ "m",                 true,  OPT_METHOD },
-#endif
 
 	{ "s",                 true,  OPT_SHOW },
 	{ "debug-color",      false,  OPT_DEBUGCOLOR },
@@ -525,11 +510,6 @@ static void XXusage(void)
 	puts("    -oloop                   optimize array accesses in loops");
 #endif
 	puts("    -l                       don't start the class after loading");
-#if !defined(NDEBUG)
-	puts("    -all                     compile all methods, no execution");
-	puts("    -m                       compile only a specific method");
-	puts("    -sig                     specify signature for a specific method");
-#endif
 
 	puts("    -s...                    show...");
 	puts("      (c)onstants            the constant pool");
@@ -1084,24 +1064,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 			makeinitializations = false;
 			break;
 
-#if !defined(NDEBUG)
-		case OPT_ALL:
-			compileall = true;
-			opt_run = false;
-			makeinitializations = false;
-			break;
-
-		case OPT_METHOD:
-			opt_run = false;
-			opt_method = opt_arg;
-			makeinitializations = false;
-			break;
-
-		case OPT_SIGNATURE:
-			opt_signature = opt_arg;
-			break;
-#endif
-
 		case OPT_SHOW:       /* Display options */
 			for (unsigned int i = 0; i < strlen(opt_arg); i++) {		
 				switch (opt_arg[i]) {
@@ -1632,7 +1594,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	oa = NULL;
 
 #if !defined(NDEBUG)
-	if (compileall) {
+	if (opt_CompileAll) {
 		vm_compile_all();
 		return;
 	}
@@ -1691,7 +1653,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 		usage();
 
 #if !defined(NDEBUG)
-	if (opt_method != NULL) {
+	if (opt_CompileMethod != NULL) {
 		vm_compile_method(mainname);
 		return;
 	}
@@ -2265,16 +2227,16 @@ static void vm_compile_method(char* mainname)
 	if (!link_class(mainclass))
 		exceptions_print_stacktrace();
 
-	if (opt_signature != NULL) {
+	if (opt_CompileSignature != NULL) {
 		m = class_resolveclassmethod(mainclass,
-									 utf_new_char(opt_method),
-									 utf_new_char(opt_signature),
+									 utf_new_char(opt_CompileMethod),
+									 utf_new_char(opt_CompileSignature),
 									 mainclass,
 									 false);
 	}
 	else {
 		m = class_resolveclassmethod(mainclass,
-									 utf_new_char(opt_method),
+									 utf_new_char(opt_CompileMethod),
 									 NULL,
 									 mainclass,
 									 false);
@@ -2282,7 +2244,7 @@ static void vm_compile_method(char* mainname)
 
 	if (m == NULL)
 		os::abort("vm_compile_method: java.lang.NoSuchMethodException: %s.%s",
-				 opt_method, opt_signature ? opt_signature : "");
+				 opt_CompileMethod, opt_CompileSignature ? opt_CompileSignature : "");
 		
 	jit_compile(m);
 }

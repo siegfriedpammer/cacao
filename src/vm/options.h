@@ -88,7 +88,6 @@ extern s4   opt_stacksize;
 
 extern bool opt_verbose;
 extern bool opt_debugcolor;
-extern bool compileall;
 
 extern bool loadverbose;         /* Print debug messages during loading */
 extern bool initverbose;         /* Log class initialization */ 
@@ -101,9 +100,6 @@ extern bool opt_verbosecall;
 extern bool showmethods;
 extern bool showconstantpool;
 extern bool showutf;
-
-extern char *opt_method;
-extern char *opt_signature;
 
 extern bool compileverbose;
 extern bool showstack;
@@ -183,6 +179,9 @@ extern int      opt_ThreadStackSize;
 /* Debugging options which can be turned off. */
 
 extern bool     opt_AlwaysEmitLongBranches;
+extern int      opt_CompileAll;
+extern char*    opt_CompileMethod;
+extern char*    opt_CompileSignature;
 extern int      opt_DebugExceptions;
 extern int      opt_DebugFinalizer;
 extern int      opt_DebugLocalReferences;

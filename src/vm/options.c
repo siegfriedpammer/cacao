@@ -62,7 +62,6 @@ s4   opt_stacksize     = 0;     /* thread stack size                          */
 
 bool opt_verbose = false;
 bool opt_debugcolor = false;	/* use ANSI terminal sequences 		      */
-bool compileall = false;
 
 bool loadverbose = false;
 bool initverbose = false;
@@ -75,9 +74,6 @@ bool opt_verbosecall      = false;      /* trace all method invocation        */
 bool showmethods = false;
 bool showconstantpool = false;
 bool showutf = false;
-
-char *opt_method = NULL;
-char *opt_signature = NULL;
 
 bool compileverbose =  false;           /* trace compiler actions             */
 bool showstack = false;
@@ -161,6 +157,9 @@ int      opt_ThreadStackSize              = 0;
 /* Debugging options which can be turned off. */
 
 bool     opt_AlwaysEmitLongBranches       = false;
+int      opt_CompileAll                   = 0;
+char*    opt_CompileMethod                = NULL;
+char*    opt_CompileSignature             = NULL;
 int      opt_DebugExceptions              = 0;
 int      opt_DebugFinalizer               = 0;
 int      opt_DebugLocalReferences         = 0;
@@ -232,6 +231,9 @@ enum {
 	/* Debugging options which can be turned off. */
 
 	OPT_AlwaysEmitLongBranches,
+	OPT_CompileAll,
+	OPT_CompileMethod,
+	OPT_CompileSignature,
 	OPT_DebugExceptions,
 	OPT_DebugFinalizer,
 	OPT_DebugLocalReferences,
@@ -286,6 +288,9 @@ option_t options_XX[] = {
 	/* Debugging options which can be turned off. */
 
 	{ "AlwaysEmitLongBranches",       OPT_AlwaysEmitLongBranches,       OPT_TYPE_BOOLEAN, "Always emit long-branches." },
+	{ "CompileAll",                   OPT_CompileAll,                   OPT_TYPE_BOOLEAN, "compile all methods, no execution" },
+	{ "CompileMethod",                OPT_CompileMethod,                OPT_TYPE_VALUE,   "compile only a specific method" },
+	{ "CompileSignature",             OPT_CompileSignature,             OPT_TYPE_VALUE,   "specify signature for a specific method" },
 	{ "DebugExceptions",              OPT_DebugExceptions,              OPT_TYPE_BOOLEAN, "debug exceptions" },
 	{ "DebugFinalizer",               OPT_DebugFinalizer,               OPT_TYPE_BOOLEAN, "debug finalizer thread" },
 	{ "DebugLocalReferences",         OPT_DebugLocalReferences,         OPT_TYPE_BOOLEAN, "print debug information for local reference tables" },
@@ -620,6 +625,22 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 		case OPT_AlwaysEmitLongBranches:
 			opt_AlwaysEmitLongBranches = enable;
+			break;
+
+		case OPT_CompileAll:
+			opt_CompileAll = enable;
+			opt_run = false;
+			makeinitializations = false;
+			break;
+
+		case OPT_CompileMethod:
+			opt_CompileMethod = value;
+			opt_run = false;
+			makeinitializations = false;
+			break;
+
+		case OPT_CompileSignature:
+			opt_CompileSignature = value;
 			break;
 
 		case OPT_DebugExceptions:
