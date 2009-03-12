@@ -2,6 +2,7 @@
 
    Copyright (C) 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -30,6 +31,34 @@
 
 #include <stdint.h>
 
+#include "vm/options.h"
+
+#include "vm/jit/executionstate.h"
+
+
+/**
+ * Contains information about a decoded trap instruction.
+ */
+typedef struct trapinfo_t {
+	int      type;   ///< Specific trap type (see md-trap.h).
+	intptr_t value;  ///< Value (numeric or address) passed with the trap.
+} trapinfo_t;
+
+
+/**
+ * Trap signal number defines. Use these instead of the signal
+ * numbers provided by your specific OS.
+ */
+enum {
+	TRAP_SIGRESERVED = 0,
+	TRAP_SIGSEGV     = 1,
+	TRAP_SIGILL      = 2,
+	TRAP_SIGTRAP     = 3,
+	TRAP_SIGFPE      = 4,
+	TRAP_SIGEND
+};
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -41,8 +70,10 @@ extern "C" {
 
 /* function prototypes ********************************************************/
 
-void  trap_init(void);
-void* trap_handle(int type, intptr_t val, void *pv, void *sp, void *ra, void *xpc, void *context);
+void trap_init(void);
+void trap_handle(int sig, void* xpc, void* context);
+
+bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es);
 
 #ifdef __cplusplus
 }
