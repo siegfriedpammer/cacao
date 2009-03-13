@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc64/linux/md-os.c - machine dependent PowerPC64 Linux functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -38,83 +38,25 @@
 
 #include "threads/thread.hpp"
 
-#include "vm/jit/builtin.hpp"
 #include "vm/signallocal.hpp"
-#include "vm/os.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
-
-#if defined(ENABLE_PROFILING)
-# include "vm/jit/optimizing/profile.h"
-#endif
-
-#include "vm/jit/disass.h"
 #include "vm/jit/trap.hpp"
 
 
-/* md_signal_handler_sigsegv ***************************************************
- 
-	Signal handler for hardware-exceptions.
-
-*******************************************************************************/
-
+/**
+ * Signal handler for hardware-exceptions.
+ */
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t     *_uc;
-	mcontext_t     *_mc;
-	u1             *pv;
-	u1             *sp;
-	u1             *ra;
-	u1             *xpc;
-	u4              mcode;
-	int             s1;
-	int16_t         disp;
-	int             d;
-	int             type;
-	intptr_t        addr;
-	intptr_t        val;
+ 	ucontext_t* _uc = (ucontext_t *) _p;
+ 	mcontext_t* _mc = &(_uc->uc_mcontext);
 
- 	_uc = (ucontext_t *) _p;
- 	_mc = &(_uc->uc_mcontext);
+	void* xpc = (void*) _mc->gp_regs[PT_NIP];
 
-	/* get register values */
-
-	pv = (u1*) _mc->gp_regs[REG_PV];
-	sp = (u1*) _mc->gp_regs[REG_SP];
-	ra = (u1*) _mc->gp_regs[PT_LNK];                     /* correct for leafs */
-	xpc =(u1*) _mc->gp_regs[PT_NIP];
-
-	/* get the throwing instruction */
-
-	mcode = *((u4*)xpc);
-
-	s1   = M_INSTR_OP2_IMM_A(mcode);
-	disp = M_INSTR_OP2_IMM_I(mcode);
-	d    = M_INSTR_OP2_IMM_D(mcode);
-
-	val  = _mc->gp_regs[d];
-
-	if (s1 == REG_ZERO) {
-		/* We use the exception type as load displacement. */
-		type = disp;
-
-		if (type == TRAP_COMPILER) {
-			/* The XPC is the RA minus 1, because the RA points to the
-			   instruction after the call. */
-
-			xpc = ra - 4;
-		}
-	}
-	else {
-		/* Normal NPE. */
-		addr = _mc->gp_regs[s1];
-		type = (int) addr;
-	}
-
-	/* Handle the trap. */
-
-	trap_handle(type, val, pv, sp, ra, xpc, _p);
+	// Handle the trap.
+	trap_handle(TRAP_SIGSEGV, xpc, _p);
 }
 
 
@@ -126,38 +68,10 @@ void md_signal_handler_sigill(int sig, siginfo_t* siginfo, void* _p)
 	ucontext_t* _uc = (ucontext_t*) _p;
 	mcontext_t* _mc = &(_uc->uc_mcontext);
 
-	/* get register values */
-
-	void* pv = (void*) _mc->gp_regs[REG_PV];
-	void* sp = (void*) _mc->gp_regs[REG_SP];
-	void* ra = (void*) _mc->gp_regs[PT_LNK]; // The RA is correct for leag methods.
 	void* xpc =(void*) _mc->gp_regs[PT_NIP];
 
-	// Get the illegal-instruction.
-	uint32_t mcode = *((uint32_t*) xpc);
-
-	// Check if the trap instruction is valid.
-	// TODO Move this into patcher_handler.
-	if (patcher_is_valid_trap_instruction_at(xpc) == false) {
-		// Check if the PC has been patched during our way to this
-		// signal handler (see PR85).
-		if (patcher_is_patched_at(xpc) == true)
-			return;
-
-		// We have a problem...
-		log_println("md_signal_handler_sigill: Unknown illegal instruction 0x%x at 0x%lx", mcode, xpc);
-#if defined(ENABLE_DISASSEMBLER)
-		(void) disassinstr(xpc);
-#endif
-		vm_abort("Aborting...");
-	}
-
-	// This signal is always a patcher.
-	int      type = TRAP_PATCHER;
-	intptr_t val  = 0;
-
 	// Handle the trap.
-	trap_handle(type, val, pv, sp, ra, xpc, _p);
+	trap_handle(TRAP_SIGILL, xpc, _p);
 }
 
 
