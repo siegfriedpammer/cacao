@@ -581,7 +581,7 @@ bool builtin_canstore(java_handle_objectarray_t *oa, java_handle_t *o)
 
 	LLNI_CRITICAL_START;
 
-	result = builtin_fast_canstore(LLNI_DIRECT(oa), LLNI_UNWRAP(o));
+	result = builtin_fast_canstore((java_objectarray_t*) LLNI_DIRECT(oa), LLNI_UNWRAP(o));
 
 	LLNI_CRITICAL_END;
 
@@ -1036,7 +1036,7 @@ java_object_t *builtin_fast_new(classinfo *c)
 }
 
 
-/* builtin_newarray ************************************************************
+/* builtin_java_newarray *******************************************************
 
    Creates an array with the given vftbl on the heap. This function
    takes as class argument an array class.
@@ -1044,111 +1044,27 @@ java_object_t *builtin_fast_new(classinfo *c)
    RETURN VALUE:
       pointer to the array or NULL if no memory is available
 
-   NOTE: This builtin can be called from NATIVE code only.
+   NOTE: This is a SLOW builtin and can be called from JIT code only.
 
 *******************************************************************************/
 
-java_handle_t *builtin_newarray(int32_t size, classinfo *arrayclass)
+java_handle_array_t *builtin_java_newarray(int32_t size, java_handle_t *arrayclazz)
 {
-	arraydescriptor *desc;
-	s4               dataoffset;
-	s4               componentsize;
-	s4               actualsize;
-	java_handle_t   *a;
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_end;
 #endif
 
 	RT_TIMING_GET_TIME(time_start);
 
-	desc          = arrayclass->vftbl->arraydesc;
-	dataoffset    = desc->dataoffset;
-	componentsize = desc->componentsize;
+	classinfo* arrayclass = LLNI_classinfo_unwrap(arrayclazz);
 
-	if (size < 0) {
-		exceptions_throw_negativearraysizeexception();
-		return NULL;
-	}
-
-	actualsize = dataoffset + size * componentsize;
-
-	/* check for overflow */
-
-	if (((u4) actualsize) < ((u4) size)) {
-		exceptions_throw_outofmemoryerror();
-		return NULL;
-	}
-
-	a = (java_handle_t*) heap_alloc(actualsize, (desc->arraytype == ARRAYTYPE_OBJECT), NULL, true);
-
-	if (a == NULL)
-		return NULL;
-
-#if !defined(ENABLE_GC_CACAO) && defined(ENABLE_HANDLES)
-	/* XXX this is only a dirty hack to make Boehm work with handles */
-
-	a = LLNI_WRAP((java_object_t *) a);
-#endif
-
-	LLNI_vftbl_direct(a) = arrayclass->vftbl;
-
-#if defined(ENABLE_THREADS)
-	LLNI_DIRECT(a)->lockword.init();
-#endif
-
-	LLNI_array_size(a) = size;
+	// Allocate a new array with given size and class on the heap
+	Array a(size, arrayclass);
 
 	RT_TIMING_GET_TIME(time_end);
 	RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_NEW_ARRAY);
 
-	return a;
-}
-
-
-/* builtin_java_newarray *******************************************************
-
-   NOTE: This is a SLOW builtin and can be called from JIT code only.
-
-*******************************************************************************/
-
-java_handle_t *builtin_java_newarray(int32_t size, java_handle_t *arrayclazz)
-{
-	return builtin_newarray(size, LLNI_classinfo_unwrap(arrayclazz));
-}
-
-
-/* builtin_anewarray ***********************************************************
-
-   Creates an array of references to the given class type on the heap.
-
-   RETURN VALUE:
-      pointer to the array or NULL if no memory is
-      available
-
-   NOTE: This builtin can be called from NATIVE code only.
-
-*******************************************************************************/
-
-java_handle_objectarray_t *builtin_anewarray(int32_t size, classinfo *componentclass)
-{
-	classinfo *arrayclass;
-	
-	/* is class loaded */
-
-	assert(componentclass->state & CLASS_LOADED);
-
-	/* is class linked */
-
-	if (!(componentclass->state & CLASS_LINKED))
-		if (!link_class(componentclass))
-			return NULL;
-
-	arrayclass = class_array_of(componentclass, true);
-
-	if (!arrayclass)
-		return NULL;
-
-	return (java_handle_objectarray_t *) builtin_newarray(size, arrayclass);
+	return a.get_handle();
 }
 
 
@@ -1163,21 +1079,21 @@ java_handle_objectarray_t *builtin_anewarray(int32_t size, classinfo *componentc
 
 *******************************************************************************/
 
-#define BUILTIN_NEWARRAY_TYPE(type, arraytype)                             \
-java_handle_##type##array_t *builtin_newarray_##type(int32_t size)              \
-{                                                                          \
-	return (java_handle_##type##array_t *)                                 \
-		builtin_newarray(size, primitivetype_table[arraytype].arrayclass); \
+#define BUILTIN_NEWARRAY_TYPE(type, name)                          \
+java_handle_##type##array_t *builtin_newarray_##type(int32_t size) \
+{                                                                  \
+	name##Array a(size);                                           \
+	return a.get_handle();                                         \
 }
 
-BUILTIN_NEWARRAY_TYPE(boolean, ARRAYTYPE_BOOLEAN)
-BUILTIN_NEWARRAY_TYPE(byte,    ARRAYTYPE_BYTE)
-BUILTIN_NEWARRAY_TYPE(char,    ARRAYTYPE_CHAR)
-BUILTIN_NEWARRAY_TYPE(short,   ARRAYTYPE_SHORT)
-BUILTIN_NEWARRAY_TYPE(int,     ARRAYTYPE_INT)
-BUILTIN_NEWARRAY_TYPE(long,    ARRAYTYPE_LONG)
-BUILTIN_NEWARRAY_TYPE(float,   ARRAYTYPE_FLOAT)
-BUILTIN_NEWARRAY_TYPE(double,  ARRAYTYPE_DOUBLE)
+BUILTIN_NEWARRAY_TYPE(boolean, Boolean)
+BUILTIN_NEWARRAY_TYPE(byte,    Byte)
+BUILTIN_NEWARRAY_TYPE(char,    Char)
+BUILTIN_NEWARRAY_TYPE(short,   Short)
+BUILTIN_NEWARRAY_TYPE(int,     Int)
+BUILTIN_NEWARRAY_TYPE(long,    Long)
+BUILTIN_NEWARRAY_TYPE(float,   Float)
+BUILTIN_NEWARRAY_TYPE(double,  Double)
 
 
 /* builtin_multianewarray_intern ***********************************************
@@ -1195,38 +1111,37 @@ BUILTIN_NEWARRAY_TYPE(double,  ARRAYTYPE_DOUBLE)
 
 ******************************************************************************/
 
-static java_handle_t *builtin_multianewarray_intern(int n,
+static java_handle_array_t *builtin_multianewarray_intern(int n,
 													classinfo *arrayclass,
 													long *dims)
 {
-	s4             size;
-	java_handle_t *a;
-	classinfo     *componentclass;
-	s4             i;
+	int32_t i;
 
 	/* create this dimension */
 
-	size = (s4) dims[0];
-	a = builtin_newarray(size, arrayclass);
+	int32_t size = (int32_t) dims[0];
+	Array a(size, arrayclass);
 
-	if (!a)
+	if (a.is_null())
 		return NULL;
 
 	/* if this is the last dimension return */
 
 	if (!--n)
-		return a;
+		return a.get_handle();
 
 	/* get the class of the components to create */
 
-	componentclass = arrayclass->vftbl->arraydesc->componentvftbl->clazz;
+	classinfo* componentclass = arrayclass->vftbl->arraydesc->componentvftbl->clazz;
 
 	/* The verifier guarantees that the dimension count is in the range. */
 
 	/* create the component arrays */
 
+	ObjectArray oa(a.get_handle());
+
 	for (i = 0; i < size; i++) {
-		java_handle_t *ea =
+		java_handle_array_t *ea =
 #if defined(__MIPS__) && (SIZEOF_VOID_P == 4)
 			/* we save an s4 to a s8 slot, 8-byte aligned */
 
@@ -1238,10 +1153,10 @@ static java_handle_t *builtin_multianewarray_intern(int n,
 		if (!ea)
 			return NULL;
 
-		array_objectarray_element_set((java_handle_objectarray_t *) a, i, ea);
+		oa.set_element(i, (java_handle_t*) ea);
 	}
 
-	return a;
+	return a.get_handle();
 }
 
 
@@ -2086,6 +2001,9 @@ void builtin_arraycopy(java_handle_t *src, s4 srcStart,
 		return;
 	}
 
+	Array sa(src);
+	Array da(dest);
+
 	sdesc = LLNI_vftbl_direct(src)->arraydesc;
 	ddesc = LLNI_vftbl_direct(dest)->arraydesc;
 
@@ -2101,8 +2019,8 @@ void builtin_arraycopy(java_handle_t *src, s4 srcStart,
 	}
 
 	// Check if ranges are valid.
-	if ((((uint32_t) srcStart  + (uint32_t) len) > (uint32_t) LLNI_array_size(src)) ||
-		(((uint32_t) destStart + (uint32_t) len) > (uint32_t) LLNI_array_size(dest))) {
+	if ((((uint32_t) srcStart  + (uint32_t) len) > (uint32_t) sa.get_length()) ||
+		(((uint32_t) destStart + (uint32_t) len) > (uint32_t) da.get_length())) {
 		exceptions_throw_arrayindexoutofboundsexception();
 		return;
 	}
@@ -2129,19 +2047,17 @@ void builtin_arraycopy(java_handle_t *src, s4 srcStart,
 	else {
 		/* We copy references of different type */
 
-		java_handle_objectarray_t *oas = (java_handle_objectarray_t *) src;
-		java_handle_objectarray_t *oad = (java_handle_objectarray_t *) dest;
+		ObjectArray oas((java_handle_objectarray_t*) src);
+		ObjectArray oad((java_handle_objectarray_t*) dest);
  
 		if (destStart <= srcStart) {
 			for (i = 0; i < len; i++) {
-				java_handle_t *o;
+				java_handle_t* o = oas.get_element(srcStart + i);
 
-				o = array_objectarray_element_get(oas, srcStart + i);
-
-				if (!builtin_canstore(oad, o))
+				if (!builtin_canstore(oad.get_handle(), o))
 					return;
 
-				array_objectarray_element_set(oad, destStart + i, o);
+				oad.set_element(destStart + i, o);
 			}
 		}
 		else {
@@ -2152,14 +2068,12 @@ void builtin_arraycopy(java_handle_t *src, s4 srcStart,
 			   index have been copied before the throw. */
 
 			for (i = len - 1; i >= 0; i--) {
-				java_handle_t *o;
+				java_handle_t* o = oas.get_element(srcStart + i);
 
-				o = array_objectarray_element_get(oas, srcStart + i);
-
-				if (!builtin_canstore(oad, o))
+				if (!builtin_canstore(oad.get_handle(), o))
 					return;
 
-				array_objectarray_element_set(oad, destStart + i, o);
+				oad.set_element(destStart + i, o);
 			}
 		}
 	}
@@ -2224,7 +2138,9 @@ java_handle_t *builtin_clone(void *env, java_handle_t *o)
 	/* we are cloning an array */
 
 	if (ad != NULL) {
-		size = ad->dataoffset + ad->componentsize * LLNI_array_size(o);
+		Array a(o);
+
+		size = ad->dataoffset + ad->componentsize * a.get_length();
         
 		co = (java_handle_t*) heap_alloc(size, (ad->arraytype == ARRAYTYPE_OBJECT), NULL, true);
 

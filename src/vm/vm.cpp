@@ -1577,21 +1577,8 @@ void VM::print_run_time_config()
 
 void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 {
-	char*                      option;
-	char*                      mainname;
-	char*                      p;
-	utf                       *mainutf;
-	classinfo                 *mainclass;
-	java_handle_t             *e;
-	methodinfo                *m;
-	java_handle_objectarray_t *oa; 
-	s4                         oalength;
-	utf                       *u;
-	java_handle_t             *s;
-	int                        status;
-
-	// Prevent compiler warnings.
-	oa = NULL;
+	methodinfo* m;
+	int         status;
 
 #if !defined(NDEBUG)
 	if (opt_CompileAll) {
@@ -1600,9 +1587,9 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	}
 #endif
 
-	/* Get the main class plus it's arguments. */
+	/* Get the main class or jar file argument. */
 
-	mainname = NULL;
+	char* mainname = NULL;
 
 	if (opt_index < vm_args->nOptions) {
 		/* Get main-class argument. */
@@ -1613,7 +1600,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 		   classpath. */
 
 		if (opt_jar == true) {
-			p = MNEW(char, strlen(mainname) + strlen("0"));
+			char* p = MNEW(char, strlen(mainname) + strlen("0"));
 
 			strcpy(p, mainname);
 
@@ -1629,22 +1616,9 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 					mainname[i] = '/';
 		}
 
-		/* Build argument array.  Move index to first argument. */
+		/* Move index to first argument. */
 
 		opt_index++;
-
-		oalength = vm_args->nOptions - opt_index;
-
-		oa = builtin_anewarray(oalength, class_java_lang_String);
-
-		for (int i = 0; i < oalength; i++) {
-			option = vm_args->options[opt_index + i].optionString;
-
-			u = utf_new_char(option);
-			s = javastring_new(u);
-
-			array_objectarray_element_set(oa, i, s);
-		}
 	}
 
 	/* Do we have a main-class argument? */
@@ -1658,6 +1632,24 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 		return;
 	}
 #endif
+
+	/* Build argument array. */
+
+	int32_t oalength = vm_args->nOptions - opt_index;
+
+	ObjectArray oa(oalength, class_java_lang_String);
+
+	if (oa.is_null())
+		vm_exit(1);
+
+	for (int i = 0; i < oalength; i++) {
+		char* option = vm_args->options[opt_index + i].optionString;
+
+		utf*           u = utf_new_char(option);
+		java_handle_t* s = javastring_new(u);
+
+		oa.set_element(i, s);
+	}
 
 	/* set return value to OK */
 
@@ -1674,17 +1666,17 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 
 	/* load the main class */
 
-	mainutf = utf_new_char(mainname);
+	utf* mainutf = utf_new_char(mainname);
 
 #if defined(ENABLE_JAVAME_CLDC1_1)
-	mainclass = load_class_bootstrap(mainutf);
+	classinfo* mainclass = load_class_bootstrap(mainutf);
 #else
-	mainclass = load_class_from_sysloader(mainutf);
+	classinfo* mainclass = load_class_from_sysloader(mainutf);
 #endif
 
 	/* error loading class */
 
-	e = exceptions_get_and_clear_exception();
+	java_handle_t* e = exceptions_get_and_clear_exception();
 
 	if ((e != NULL) || (mainclass == NULL)) {
 		exceptions_throw_noclassdeffounderror_cause(e);
@@ -1744,7 +1736,7 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 
 	/* start the main thread */
 
-	(void) vm_call_method(m, NULL, oa);
+	(void) vm_call_method(m, NULL, oa.get_handle());
 
 	/* exception occurred? */
 

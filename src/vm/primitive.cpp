@@ -481,6 +481,161 @@ imm_union Primitive::unbox(java_handle_t *h)
 
 
 /**
+ * Unbox a primitive of the given type. Also checks if the
+ * boxed primitive type can be widened into the destination
+ * type. This conversion is done according to
+ * "The Java Language Specification, Third Edition,
+ * $5.1.2 Widening Primitive Conversion".
+ *
+ * @param h Handle of the boxing Java object.
+ * @param type Destination type of the conversion.
+ * @param value Pointer to union where the resulting primitive
+ * value will be stored will.
+ *
+ * @return True of the conversion is allowed, false otherwise.
+ */
+bool Primitive::unbox_typed(java_handle_t *h, int type, imm_union* value)
+{
+	classinfo *c;
+	int        src_type;
+
+	if (h == NULL)
+		return false;
+
+	LLNI_class_get(h, c);
+
+	src_type = get_type_by_wrapperclass(c);
+
+	switch (src_type) {
+	case PRIMITIVETYPE_BOOLEAN:
+		switch (type) {
+			case PRIMITIVETYPE_BOOLEAN:
+				value->i = unbox_boolean(h);
+				return true;
+			default:
+				return false;
+		}
+
+	case PRIMITIVETYPE_BYTE:
+		switch (type) {
+			case PRIMITIVETYPE_BYTE:
+			case PRIMITIVETYPE_SHORT:
+			case PRIMITIVETYPE_INT:
+				value->i = unbox_byte(h);
+				return true;
+			case PRIMITIVETYPE_LONG:
+				value->l = unbox_byte(h);
+				return true;
+			case PRIMITIVETYPE_FLOAT:
+				value->f = unbox_byte(h);
+				return true;
+			case PRIMITIVETYPE_DOUBLE:
+				value->d = unbox_byte(h);
+				return true;
+			default:
+				return false;
+		}
+
+	case PRIMITIVETYPE_CHAR:
+		switch (type) {
+			case PRIMITIVETYPE_CHAR:
+			case PRIMITIVETYPE_INT:
+				value->i = unbox_char(h);
+				return true;
+			case PRIMITIVETYPE_LONG:
+				value->l = unbox_char(h);
+				return true;
+			case PRIMITIVETYPE_FLOAT:
+				value->f = unbox_char(h);
+				return true;
+			case PRIMITIVETYPE_DOUBLE:
+				value->d = unbox_char(h);
+				return true;
+			default:
+				return false;
+		}
+
+	case PRIMITIVETYPE_SHORT:
+		switch (type) {
+			case PRIMITIVETYPE_SHORT:
+			case PRIMITIVETYPE_INT:
+				value->i = unbox_short(h);
+				return true;
+			case PRIMITIVETYPE_LONG:
+				value->l = unbox_short(h);
+				return true;
+			case PRIMITIVETYPE_FLOAT:
+				value->f = unbox_short(h);
+				return true;
+			case PRIMITIVETYPE_DOUBLE:
+				value->d = unbox_short(h);
+				return true;
+			default:
+				return false;
+		}
+
+	case PRIMITIVETYPE_INT:
+		switch (type) {
+			case PRIMITIVETYPE_INT:
+				value->i = unbox_int(h);
+				return true;
+			case PRIMITIVETYPE_LONG:
+				value->l = unbox_int(h);
+				return true;
+			case PRIMITIVETYPE_FLOAT:
+				value->f = unbox_int(h);
+				return true;
+			case PRIMITIVETYPE_DOUBLE:
+				value->d = unbox_int(h);
+				return true;
+			default:
+				return false;
+		}
+
+	case PRIMITIVETYPE_LONG:
+		switch (type) {
+			case PRIMITIVETYPE_LONG:
+				value->l = unbox_long(h);
+				return true;
+			case PRIMITIVETYPE_FLOAT:
+				value->f = unbox_long(h);
+				return true;
+			case PRIMITIVETYPE_DOUBLE:
+				value->d = unbox_long(h);
+				return true;
+			default:
+				return false;
+		}
+
+	case PRIMITIVETYPE_FLOAT:
+		switch (type) {
+			case PRIMITIVETYPE_FLOAT:
+				value->f = unbox_float(h);
+				return true;
+			case PRIMITIVETYPE_DOUBLE:
+				value->d = unbox_float(h);
+				return true;
+			default:
+				return false;
+		}
+
+	case PRIMITIVETYPE_DOUBLE:
+		switch (type) {
+			case PRIMITIVETYPE_DOUBLE:
+				value->d = unbox_double(h);
+				return true;
+			default:
+				return false;
+		}
+
+	default:
+		os::abort("Primitive::unbox_typed: Invalid primitive type %d", type);
+		return false;
+	}
+}
+
+
+/**
  * Box a primitive type.
  */
 java_handle_t* Primitive::box(uint8_t value)

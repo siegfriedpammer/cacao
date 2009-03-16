@@ -409,9 +409,9 @@ jint JVM_GetStackTraceDepth(JNIEnv *env, jobject throwable)
 		return 0;
 	}
 
-	java_handle_bytearray_t* ba = jlt.get_backtrace();
+	ByteArray ba(jlt.get_backtrace());
 
-	if (ba == NULL)
+	if (ba.is_null())
 		return 0;
 
 	// We need a critical section here as the stacktrace structure is
@@ -419,7 +419,7 @@ jint JVM_GetStackTraceDepth(JNIEnv *env, jobject throwable)
 
 	LLNI_CRITICAL_START;
 
-	stacktrace_t* st = (stacktrace_t *) LLNI_array_data(ba);
+	stacktrace_t* st = (stacktrace_t *) ba.get_raw_data_ptr();
 
 	int32_t depth = st->length;
 
@@ -436,11 +436,11 @@ jobject JVM_GetStackTraceElement(JNIEnv *env, jobject throwable, jint index)
 	TRACEJVMCALLS(("JVM_GetStackTraceElement(env=%p, throwable=%p, index=%d)", env, throwable, index));
 
 	java_lang_Throwable jlt(throwable);
-	java_handle_bytearray_t* ba = jlt.get_backtrace();
+	ByteArray ba(jlt.get_backtrace());
 
 	// XXX We need a critical section here as the stacktrace structure is
 	// mapped onto a Java byte-array.
-	stacktrace_t* st = (stacktrace_t *) LLNI_array_data(ba);
+	stacktrace_t* st = (stacktrace_t *) ba.get_raw_data_ptr();
 
 	return stacktrace_get_StackTraceElement(st, index);
 }
@@ -777,7 +777,7 @@ jobjectArray JVM_GetClassInterfaces(JNIEnv *env, jclass cls)
 
 	oa = class_get_interfaces(c);
 
-	return (jobjectArray) oa;
+	return oa;
 }
 
 
@@ -827,14 +827,11 @@ jobjectArray JVM_GetClassSigners(JNIEnv *env, jclass cls)
 
 void JVM_SetClassSigners(JNIEnv *env, jclass cls, jobjectArray signers)
 {
-	classinfo                 *c;
-	java_handle_objectarray_t *hoa;
-
 	TRACEJVMCALLS(("JVM_SetClassSigners(env=%p, cls=%p, signers=%p)", env, cls, signers));
 
-	c = LLNI_classinfo_unwrap(cls);
+	classinfo* c = LLNI_classinfo_unwrap(cls);
 
-	hoa = (java_handle_objectarray_t *) signers;
+	ObjectArray oa(signers);
 
     /* This call is ignored for primitive types and arrays.  Signers
 	   are only set once, ClassLoader.java, and thus shouldn't be
@@ -844,7 +841,8 @@ void JVM_SetClassSigners(JNIEnv *env, jclass cls, jobjectArray signers)
 	if (class_is_primitive(c) || class_is_array(c))
 		return;
 
-	LLNI_classinfo_field_set(c, signers, hoa);
+	// XXX: Fix this!
+	LLNI_classinfo_field_set(c, signers, (java_objectarray_t*) oa.get_handle());
 }
 
 
@@ -1030,7 +1028,7 @@ jobjectArray JVM_GetDeclaredClasses(JNIEnv *env, jclass ofClass)
 
 	oa = class_get_declaredclasses(c, false);
 
-	return (jobjectArray) oa;
+	return oa;
 }
 
 
@@ -1179,7 +1177,7 @@ jobjectArray JVM_GetClassDeclaredFields(JNIEnv *env, jclass ofClass, jboolean pu
 
 	oa = class_get_declaredfields(c, publicOnly);
 
-	return (jobjectArray) oa;
+	return oa;
 }
 
 
@@ -1193,7 +1191,7 @@ jobjectArray JVM_GetClassDeclaredMethods(JNIEnv *env, jclass ofClass, jboolean p
 
 	java_handle_objectarray_t* oa = class_get_declaredmethods(c, publicOnly);
 
-	return (jobjectArray) oa;
+	return oa;
 }
 
 
@@ -1210,7 +1208,7 @@ jobjectArray JVM_GetClassDeclaredConstructors(JNIEnv *env, jclass ofClass, jbool
 
 	oa = class_get_declaredconstructors(c, publicOnly);
 
-	return (jobjectArray) oa;
+	return oa;
 }
 
 
@@ -1623,47 +1621,43 @@ jboolean JVM_DesiredAssertionStatus(JNIEnv *env, jclass unused, jclass cls)
 
 jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 {
-	java_handle_objectarray_t             *classes;
-	java_handle_objectarray_t             *packages;
-	java_booleanarray_t                   *classEnabled;
-	java_booleanarray_t                   *packageEnabled;
 #if defined(ENABLE_ASSERTION)
-	java_handle_t                         *js;
-	s4                                     i, j;
+	java_handle_t* js;
+	s4             i, j;
 #endif
 
 	TRACEJVMCALLS(("JVM_AssertionStatusDirectives(env=%p, unused=%p)", env, unused));
 
 #if defined(ENABLE_ASSERTION)
-	classes = builtin_anewarray(assertion_class_count, class_java_lang_Object);
+	ObjectArray classes(assertion_class_count, class_java_lang_Object);
 #else
-	classes = builtin_anewarray(0, class_java_lang_Object);
+	ObjectArray classes(0, class_java_lang_Object);
 #endif
-	if (classes == NULL)
+	if (classes.is_null())
 		return NULL;
 
 #if defined(ENABLE_ASSERTION)
-	packages = builtin_anewarray(assertion_package_count, class_java_lang_Object);
+	ObjectArray packages(assertion_package_count, class_java_lang_Object);
 #else
-	packages = builtin_anewarray(0, class_java_lang_Object);
+	ObjectArray packages(0, class_java_lang_Object);
 #endif
-	if (packages == NULL)
+	if (packages.is_null())
 		return NULL;
 	
 #if defined(ENABLE_ASSERTION)
-	classEnabled = builtin_newarray_boolean(assertion_class_count);
+	BooleanArray classEnabled(assertion_class_count);
 #else
-	classEnabled = builtin_newarray_boolean(0);
+	BooleanArray classEnabled(0);
 #endif
-	if (classEnabled == NULL)
+	if (classEnabled.is_null())
 		return NULL;
 
 #if defined(ENABLE_ASSERTION)
-	packageEnabled = builtin_newarray_boolean(assertion_package_count);
+	BooleanArray packageEnabled(assertion_package_count);
 #else
-	packageEnabled = builtin_newarray_boolean(0);
+	BooleanArray packageEnabled(0);
 #endif
-	if (packageEnabled == NULL)
+	if (packageEnabled.is_null())
 		return NULL;
 
 #if defined(ENABLE_ASSERTION)
@@ -1682,13 +1676,13 @@ jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 			}
 
 			if (item->package == false) {
-				classes->data[i] = js;
-				classEnabled->data[i] = (jboolean) item->enabled;
+				classes.set_element(i, js);
+				classEnabled.set_element(i, (jboolean) item->enabled);
 				i += 1;
 			}
 			else {
-				packages->data[j] = js;
-				packageEnabled->data[j] = (jboolean) item->enabled;
+				packages.set_element(j, js);
+				packageEnabled.set_element(j, (jboolean) item->enabled);
 				j += 1;
 			}
 		}
@@ -1697,7 +1691,11 @@ jobject JVM_AssertionStatusDirectives(JNIEnv *env, jclass unused)
 
 	/* set instance fields */
 
-	java_lang_AssertionStatusDirectives jlasd(classes, classEnabled, packages, packageEnabled);
+	java_lang_AssertionStatusDirectives jlasd(
+			classes.get_handle(),
+			classEnabled.get_handle(),
+			packages.get_handle(),
+			packageEnabled.get_handle());
 
 	return (jobject) jlasd.get_handle();
 }
@@ -2333,7 +2331,7 @@ jobjectArray JVM_GetClassContext(JNIEnv *env)
 {
 	TRACEJVMCALLS(("JVM_GetClassContext(env=%p)", env));
 
-	return (jobjectArray) stacktrace_getClassContext();
+	return stacktrace_getClassContext();
 }
 
 
@@ -2439,13 +2437,21 @@ jclass JVM_LoadClass0(JNIEnv *env, jobject receiver, jclass currClass, jstring c
 
 jint JVM_GetArrayLength(JNIEnv *env, jobject arr)
 {
-	java_handle_t *a;
-
 	TRACEJVMCALLS(("JVM_GetArrayLength(arr=%p)", arr));
 
-	a = (java_handle_t *) arr;
+	if (arr == NULL) {
+		exceptions_throw_nullpointerexception();
+		return -1;
+	}
 
-	return array_length_get(a);
+	Array a(arr);
+
+	// Check for exception in constructor.
+	if (a.is_null()) {
+		return -1;
+	}
+
+	return a.get_length();
 }
 
 
@@ -2453,21 +2459,16 @@ jint JVM_GetArrayLength(JNIEnv *env, jobject arr)
 
 jobject JVM_GetArrayElement(JNIEnv *env, jobject arr, jint index)
 {
-	java_handle_t *a;
-	java_handle_t *o;
-
 	TRACEJVMCALLS(("JVM_GetArrayElement(env=%p, arr=%p, index=%d)", env, arr, index));
 
-	a = (java_handle_t *) arr;
+	Array a(arr);
 
 /* 	if (!class_is_array(a->objheader.vftbl->class)) { */
 /* 		exceptions_throw_illegalargumentexception(); */
 /* 		return NULL; */
 /* 	} */
 
-	o = array_element_get(a, index);
-
-	return (jobject) o;
+	return a.get_boxed_element(index);
 }
 
 
@@ -2489,15 +2490,11 @@ jvalue JVM_GetPrimitiveArrayElement(JNIEnv *env, jobject arr, jint index, jint w
 
 void JVM_SetArrayElement(JNIEnv *env, jobject arr, jint index, jobject val)
 {
-	java_handle_t *a;
-	java_handle_t *value;
-
 	TRACEJVMCALLS(("JVM_SetArrayElement(env=%p, arr=%p, index=%d, val=%p)", env, arr, index, val));
 
-	a     = (java_handle_t *) arr;
-	value = (java_handle_t *) val;
+	Array a(arr);
 
-	array_element_set(a, index, value);
+	a.set_boxed_element(index, val);
 }
 
 
@@ -2513,11 +2510,6 @@ void JVM_SetPrimitiveArrayElement(JNIEnv *env, jobject arr, jint index, jvalue v
 
 jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 {
-	classinfo                 *c;
-	classinfo                 *pc;
-	java_handle_t             *a;
-	java_handle_objectarray_t *oa;
-
 	TRACEJVMCALLS(("JVM_NewArray(env=%p, eltClass=%p, length=%d)", env, eltClass, length));
 
 	if (eltClass == NULL) {
@@ -2525,14 +2517,14 @@ jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 		return NULL;
 	}
 
-	/* NegativeArraySizeException is checked in builtin_newarray. */
+	/* NegativeArraySizeException is checked by array constructor. */
 
-	c = LLNI_classinfo_unwrap(eltClass);
+	classinfo* c = LLNI_classinfo_unwrap(eltClass);
 
 	/* Create primitive or object array. */
 
 	if (class_is_primitive(c)) {
-		pc = Primitive::get_arrayclass_by_name(c->name);
+		classinfo* pc = Primitive::get_arrayclass_by_name(c->name);
 
 		/* void arrays are not allowed. */
 
@@ -2541,14 +2533,14 @@ jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 			return NULL;
 		}
 
-		a = builtin_newarray(length, pc);
+		Array a(length, pc);
 
-		return (jobject) a;
+		return (jobject) a.get_handle();
 	}
 	else {
-		oa = builtin_anewarray(length, c);
+		ObjectArray oa(length, c);
 
-		return (jobject) oa;
+		return (jobject) oa.get_handle();
 	}
 }
 
@@ -2558,7 +2550,6 @@ jobject JVM_NewArray(JNIEnv *env, jclass eltClass, jint length)
 jobject JVM_NewMultiArray(JNIEnv *env, jclass eltClass, jintArray dim)
 {
 	classinfo                 *c;
-	java_handle_intarray_t    *ia;
 	int32_t                    length;
 	long                      *dims;
 	int32_t                    value;
@@ -2577,16 +2568,16 @@ jobject JVM_NewMultiArray(JNIEnv *env, jclass eltClass, jintArray dim)
 
 	c = LLNI_classinfo_unwrap(eltClass);
 
-	ia = (java_handle_intarray_t *) dim;
-
-	length = array_length_get((java_handle_t *) ia);
+	IntArray ia(dim);
 
 	/* We check here for exceptions thrown in array_length_get,
 	   otherwise these exceptions get overwritten by the following
 	   IllegalArgumentException. */
 
-	if (length < 0)
+	if (ia.is_null())
 		return NULL;
+
+	length = ia.get_length();
 
 	if ((length <= 0) || (length > /* MAX_DIM */ 255)) {
 		exceptions_throw_illegalargumentexception();
@@ -2598,7 +2589,7 @@ jobject JVM_NewMultiArray(JNIEnv *env, jclass eltClass, jintArray dim)
 	dims = MNEW(long, length);
 
 	for (i = 0; i < length; i++) {
-		value = LLNI_array_direct(ia, i);
+		value = ia.get_element(i);
 		dims[i] = (long) value;
 	}
 
@@ -3205,9 +3196,9 @@ jobjectArray JVM_GetAllThreads(JNIEnv *env, jclass dummy)
 
 	// Allocate array to hold the java.lang.Thread objects.
 	int32_t length = active_threads.size();
-	java_handle_objectarray_t* oa = builtin_anewarray(length, class_java_lang_Thread);
+	ObjectArray oa(length, class_java_lang_Thread);
 
-	if (oa == NULL)
+	if (oa.is_null())
 		return NULL;
 
 	// Iterate over all threads (which were active just a second ago).
@@ -3218,12 +3209,12 @@ jobjectArray JVM_GetAllThreads(JNIEnv *env, jclass dummy)
 		java_handle_t* h = thread_get_object(t);
 		assert(h != NULL);
 
-		array_objectarray_element_set(oa, index, h);
+		oa.set_element(index, h);
 
 		index++;
 	}
 
-	return oa;
+	return oa.get_handle();
 }
 
 
@@ -3240,8 +3231,10 @@ jobjectArray JVM_DumpThreads(JNIEnv *env, jclass threadClass, jobjectArray threa
 		return NULL;
 	}
 
+	ObjectArray oa(threads);
+
 	// Get length of the threads array.
-	int32_t length = array_length_get((java_handle_t*) threads);
+	int32_t length = oa.get_length();
 
 	if (length <= 0) {
 		exceptions_throw_illegalargumentexception();
@@ -3250,15 +3243,15 @@ jobjectArray JVM_DumpThreads(JNIEnv *env, jclass threadClass, jobjectArray threa
 
 	// Allocate array to hold stacktraces.
 	classinfo* arrayclass = class_array_of(class_java_lang_StackTraceElement, true);
-	java_handle_objectarray_t* oas = builtin_anewarray(length, arrayclass);
+	ObjectArray oaresult(length, arrayclass);
 
-	if (oas == NULL) {
+	if (oaresult.is_null()) {
 		return NULL;
 	}
 
 	// Iterate over all passed thread objects.
 	for (i = 0; i < length; i++) {
-		java_handle_t* thread = array_objectarray_element_get(threads, i);
+		java_handle_t* thread = oa.get_element(i);
 
 		// Get thread for the given thread object.
 		threadobject* t = thread_get_thread(thread);
@@ -3271,15 +3264,15 @@ jobjectArray JVM_DumpThreads(JNIEnv *env, jclass threadClass, jobjectArray threa
 		stacktrace_t* st = stacktrace_get_of_thread(t);
 
 		// Convert stacktrace into array of StackTraceElements.
-		java_handle_objectarray_t* oa = stacktrace_get_StackTraceElements(st);
+		java_handle_objectarray_t* oaste = stacktrace_get_StackTraceElements(st);
 
-		if (oa == NULL)
+		if (oaste == NULL)
 			return NULL;
 
-		array_objectarray_element_set(oas, i, (java_handle_t*) oa);
+		oaresult.set_element(i, oaste);
 	}
 
-	return oas;
+	return oaresult.get_handle();
 }
 
 
@@ -3307,32 +3300,28 @@ jobject JVM_InitAgentProperties(JNIEnv *env, jobject properties)
 
 jobjectArray JVM_GetEnclosingMethodInfo(JNIEnv *env, jclass ofClass)
 {
-	classinfo                 *c;
-	methodinfo                *m;
-	java_handle_objectarray_t *oa;
-
 	TRACEJVMCALLS(("JVM_GetEnclosingMethodInfo(env=%p, ofClass=%p)", env, ofClass));
 
-	c = LLNI_classinfo_unwrap(ofClass);
+	classinfo* c = LLNI_classinfo_unwrap(ofClass);
 
 	if ((c == NULL) || class_is_primitive(c))
 		return NULL;
 
-	m = class_get_enclosingmethod_raw(c);
+	methodinfo* m = class_get_enclosingmethod_raw(c);
 
 	if (m == NULL)
 		return NULL;
 
-	oa = builtin_anewarray(3, class_java_lang_Object);
+	ObjectArray oa(3, class_java_lang_Object);
 
-	if (oa == NULL)
+	if (oa.is_null())
 		return NULL;
 
-	array_objectarray_element_set(oa, 0, (java_handle_t *) LLNI_classinfo_wrap(m->clazz));
-	array_objectarray_element_set(oa, 1, javastring_new(m->name));
-	array_objectarray_element_set(oa, 2, javastring_new(m->descriptor));
+	oa.set_element(0, (java_handle_t *) LLNI_classinfo_wrap(m->clazz));
+	oa.set_element(1, javastring_new(m->name));
+	oa.set_element(2, javastring_new(m->descriptor));
 
-	return (jobjectArray) oa;
+	return oa.get_handle();
 }
 
 
@@ -3340,8 +3329,6 @@ jobjectArray JVM_GetEnclosingMethodInfo(JNIEnv *env, jclass ofClass)
 
 jintArray JVM_GetThreadStateValues(JNIEnv* env, jint javaThreadState)
 {
-	java_handle_intarray_t *ia;
-
 	TRACEJVMCALLS(("JVM_GetThreadStateValues(env=%p, javaThreadState=%d)",
 				  env, javaThreadState));
 
@@ -3354,69 +3341,79 @@ jintArray JVM_GetThreadStateValues(JNIEnv* env, jint javaThreadState)
 
 	switch (javaThreadState) {
     case THREAD_STATE_NEW:
-		ia = builtin_newarray_int(1);
+		{
+			IntArray ia(1);
 
-		if (ia == NULL)
-			return NULL;
+			if (ia.is_null())
+				return NULL;
 
-		array_intarray_element_set(ia, 0, THREAD_STATE_NEW);
-		break; 
+			ia.set_element(0, THREAD_STATE_NEW);
+			return ia.get_handle();
+		}
 
     case THREAD_STATE_RUNNABLE:
-		ia = builtin_newarray_int(1);
+		{
+			IntArray ia(1);
 
-		if (ia == NULL)
-			return NULL;
+			if (ia.is_null())
+				return NULL;
 
-		array_intarray_element_set(ia, 0, THREAD_STATE_RUNNABLE);
-		break; 
+			ia.set_element(0, THREAD_STATE_RUNNABLE);
+			return ia.get_handle();
+		}
 
     case THREAD_STATE_BLOCKED:
-		ia = builtin_newarray_int(1);
+		{
+			IntArray ia(1);
 
-		if (ia == NULL)
-			return NULL;
+			if (ia.is_null())
+				return NULL;
 
-		array_intarray_element_set(ia, 0, THREAD_STATE_BLOCKED);
-		break; 
+			ia.set_element(0, THREAD_STATE_BLOCKED);
+			return ia.get_handle();
+		}
 
     case THREAD_STATE_WAITING:
-		ia = builtin_newarray_int(2);
+		{
+			IntArray ia(2);
 
-		if (ia == NULL)
-			return NULL;
+			if (ia.is_null())
+				return NULL;
 
-		array_intarray_element_set(ia, 0, THREAD_STATE_WAITING);
-		array_intarray_element_set(ia, 1, THREAD_STATE_PARKED);
-		break; 
+			ia.set_element(0, THREAD_STATE_WAITING);
+			ia.set_element(1, THREAD_STATE_PARKED);
+			return ia.get_handle();
+		}
 
     case THREAD_STATE_TIMED_WAITING:
-		ia = builtin_newarray_int(2);
+		{
+			IntArray ia(2);
 
-		if (ia == NULL)
-			return NULL;
+			if (ia.is_null())
+				return NULL;
 
-		/* XXX Not sure about that one. */
-/* 		array_intarray_element_set(ia, 0, SLEEPING); */
-		array_intarray_element_set(ia, 0, THREAD_STATE_TIMED_WAITING);
-		array_intarray_element_set(ia, 1, THREAD_STATE_TIMED_PARKED);
-		break; 
+			/* XXX Not sure about that one. */
+/* 			ia.set_element(0, SLEEPING); */
+			ia.set_element(0, THREAD_STATE_TIMED_WAITING);
+			ia.set_element(1, THREAD_STATE_TIMED_PARKED);
+			return ia.get_handle();
+		}
 
     case THREAD_STATE_TERMINATED:
-		ia = builtin_newarray_int(1);
+		{
+			IntArray ia(1);
 
-		if (ia == NULL)
-			return NULL;
+			if (ia.is_null())
+				return NULL;
 
-		array_intarray_element_set(ia, 0, THREAD_STATE_TERMINATED);
-		break; 
+			ia.set_element(0, THREAD_STATE_TERMINATED);
+			return ia.get_handle();
+		}
 
     default:
 		/* Unknown state - probably incompatible JDK version */
 		return NULL;
 	}
-
-	return (jintArray) ia;
 }
 
 
@@ -3424,14 +3421,12 @@ jintArray JVM_GetThreadStateValues(JNIEnv* env, jint javaThreadState)
 
 jobjectArray JVM_GetThreadStateNames(JNIEnv* env, jint javaThreadState, jintArray values)
 {
-	java_handle_intarray_t    *ia;
-	java_handle_objectarray_t *oa;
-	java_object_t             *s;
+	java_object_t* s;
 
 	TRACEJVMCALLS(("JVM_GetThreadStateNames(env=%p, javaThreadState=%d, values=%p)",
 				  env, javaThreadState, values));
 
-	ia = (java_handle_intarray_t *) values;
+	IntArray ia(values);
 
 	/* If new thread states are added in future JDK and VM versions,
 	   this should check if the JDK version is compatible with thread
@@ -3447,112 +3442,122 @@ jobjectArray JVM_GetThreadStateNames(JNIEnv* env, jint javaThreadState, jintArra
 
 	switch (javaThreadState) {
     case THREAD_STATE_NEW:
-		assert(ia->header.size == 1 && ia->data[0] == THREAD_STATE_NEW);
+		{
+			assert(ia.get_length() == 1 && ia.get_element(0) == THREAD_STATE_NEW);
 
-		oa = builtin_anewarray(1, class_java_lang_String);
+			ObjectArray oa(1, class_java_lang_String);
 
-		if (oa == NULL)
-			return NULL;
+			if (oa.is_null())
+				return NULL;
 
-		s = javastring_new(utf_new_char("NEW"));
+			s = javastring_new(utf_new_char("NEW"));
 
-		if (s == NULL)
-			return NULL;
+			if (s == NULL)
+				return NULL;
 
-		array_objectarray_element_set(oa, 0, s);
-		break; 
+			oa.set_element(0, s);
+			return oa.get_handle();
+		}
 
     case THREAD_STATE_RUNNABLE:
-		oa = builtin_anewarray(1, class_java_lang_String);
+		{
+			ObjectArray oa(1, class_java_lang_String);
 
-		if (oa == NULL)
-			return NULL;
+			if (oa.is_null())
+				return NULL;
 
-		s = javastring_new(utf_new_char("RUNNABLE"));
+			s = javastring_new(utf_new_char("RUNNABLE"));
 
-		if (s == NULL)
-			return NULL;
+			if (s == NULL)
+				return NULL;
 
-		array_objectarray_element_set(oa, 0, s);
-		break; 
+			oa.set_element(0, s);
+			return oa.get_handle();
+		}
 
     case THREAD_STATE_BLOCKED:
-		oa = builtin_anewarray(1, class_java_lang_String);
+		{
+			ObjectArray oa(1, class_java_lang_String);
 
-		if (oa == NULL)
-			return NULL;
+			if (oa.is_null())
+				return NULL;
 
-		s = javastring_new(utf_new_char("BLOCKED"));
+			s = javastring_new(utf_new_char("BLOCKED"));
 
-		if (s == NULL)
-			return NULL;
+			if (s == NULL)
+				return NULL;
 
-		array_objectarray_element_set(oa, 0, s);
-		break; 
+			oa.set_element(0, s);
+			return oa.get_handle();
+		}
 
     case THREAD_STATE_WAITING:
-		oa = builtin_anewarray(2, class_java_lang_String);
+		{
+			ObjectArray oa(2, class_java_lang_String);
 
-		if (oa == NULL)
-			return NULL;
+			if (oa.is_null())
+				return NULL;
 
-		s = javastring_new(utf_new_char("WAITING.OBJECT_WAIT"));
+			s = javastring_new(utf_new_char("WAITING.OBJECT_WAIT"));
 
-		if (s == NULL)
-			return NULL;
+			if (s == NULL)
+				return NULL;
 
-		array_objectarray_element_set(oa, 0, s);
+			oa.set_element(0, s);
 
-		s = javastring_new(utf_new_char("WAITING.PARKED"));
+			s = javastring_new(utf_new_char("WAITING.PARKED"));
 
-		if (s == NULL)
-			return NULL;
+			if (s == NULL)
+				return NULL;
 
-		array_objectarray_element_set(oa, 1, s);
-		break; 
+			oa.set_element(1, s);
+			return oa.get_handle();
+		}
 
     case THREAD_STATE_TIMED_WAITING:
-		oa = builtin_anewarray(2, class_java_lang_String);
+		{
+			ObjectArray oa(2, class_java_lang_String);
 
-		if (oa == NULL)
-			return NULL;
+			if (oa.is_null())
+				return NULL;
 
-/* 		s = javastring_new(utf_new_char("TIMED_WAITING.SLEEPING")); */
-		s = javastring_new(utf_new_char("TIMED_WAITING.OBJECT_WAIT"));
+/* 			s = javastring_new(utf_new_char("TIMED_WAITING.SLEEPING")); */
+			s = javastring_new(utf_new_char("TIMED_WAITING.OBJECT_WAIT"));
 
-		if (s == NULL)
-			return NULL;
+			if (s == NULL)
+				return NULL;
 
-		array_objectarray_element_set(oa, 0, s);
+			oa.set_element(0, s);
 
-		s = javastring_new(utf_new_char("TIMED_WAITING.PARKED"));
+			s = javastring_new(utf_new_char("TIMED_WAITING.PARKED"));
 
-		if (s == NULL)
-			return NULL;
+			if (s == NULL)
+				return NULL;
 
-		array_objectarray_element_set(oa, 1, s);
-		break; 
+			oa.set_element(1, s);
+			return oa.get_handle();
+		}
 
     case THREAD_STATE_TERMINATED:
-		oa = builtin_anewarray(1, class_java_lang_String);
+		{
+			ObjectArray oa(1, class_java_lang_String);
 
-		if (oa == NULL)
-			return NULL;
+			if (oa.is_null())
+				return NULL;
 
-		s = javastring_new(utf_new_char("TERMINATED"));
+			s = javastring_new(utf_new_char("TERMINATED"));
 
-		if (s == NULL)
-			return NULL;
+			if (s == NULL)
+				return NULL;
 
-		array_objectarray_element_set(oa, 0, s);
-		break; 
+			oa.set_element(0, s);
+			return oa.get_handle();
+		}
 
 	default:
 		/* Unknown state - probably incompatible JDK version */
 		return NULL;
 	}
-
-	return (jobjectArray) oa;
 }
 
 

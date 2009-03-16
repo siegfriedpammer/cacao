@@ -94,10 +94,10 @@ JNIEXPORT jobjectArray JNICALL Java_java_lang_VMThrowable_getStackTrace(JNIEnv *
 
 	// Get the stacktrace from the VMThrowable object.
 
-	java_handle_bytearray_t* ba = vmt.get_vmdata();
+	ByteArray ba(vmt.get_vmdata());
 
 	// XXX Critical GC section?
-	stacktrace_t* st = (stacktrace_t*) LLNI_array_data(ba);
+	stacktrace_t* st = (stacktrace_t*) ba.get_raw_data_ptr();
 
 	assert(st != NULL);
 

@@ -46,6 +46,7 @@
 #include "vm/assertion.hpp"
 #endif
 
+#include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
 #include "vm/classcache.hpp"
@@ -79,11 +80,10 @@ extern "C" {
  */
 JNIEXPORT jclass JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, jclass clazz, jobject cl, jstring name, jbyteArray data, jint offset, jint len, jobject pd)
 {
-	utf             *utfname;
-	classinfo       *c;
-	classloader_t   *loader;
-	java_handle_bytearray_t* ba;
-	uint8_t*                 stream;
+	utf*           utfname;
+	classinfo*     c;
+	classloader_t* loader;
+	uint8_t*       stream;
 
 #if defined(ENABLE_JVMTI)
 	jint new_class_data_len = 0;
@@ -99,7 +99,9 @@ JNIEXPORT jclass JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, j
 
 	/* check the indexes passed */
 
-	if ((offset < 0) || (len < 0) || ((offset + len) > LLNI_array_size(data))) {
+	ByteArray ba(data);
+
+	if ((offset < 0) || (len < 0) || ((offset + len) > ba.get_length())) {
 		exceptions_throw_arrayindexoutofboundsexception();
 		return NULL;
 	}
@@ -138,8 +140,7 @@ JNIEXPORT jclass JNICALL Java_java_lang_VMClassLoader_defineClass(JNIEnv *env, j
 	else
 #endif
 	{
-		ba = (java_handle_bytearray_t*) data;
-		stream = (uint8_t *) &LLNI_array_direct(ba, offset);
+		stream = ((uint8_t *) ba.get_raw_data_ptr()) + offset;
 		c = class_define(utfname, loader, len, stream, (java_handle_t *) pd);
 	}
 

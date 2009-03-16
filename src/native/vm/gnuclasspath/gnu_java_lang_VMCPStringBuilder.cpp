@@ -35,6 +35,7 @@
 # include "native/vm/include/gnu_java_lang_VMCPStringBuilder.h"
 #endif
 
+#include "vm/array.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
@@ -51,13 +52,13 @@ JNIEXPORT jstring JNICALL Java_gnu_java_lang_VMCPStringBuilder_toString(JNIEnv *
 	/* This is a native version of
 	   java.lang.String.<init>([CIIZ)Ljava/lang/String; */
 
-    if (startIndex < 0) {
+	if (startIndex < 0) {
 /* 		exceptions_throw_stringindexoutofboundsexception("offset: " + offset); */
 		exceptions_throw_stringindexoutofboundsexception();
 		return NULL;
 	}
 
-    if (count < 0) {
+	if (count < 0) {
 /* 		exceptions_throw_stringindexoutofboundsexception("count: " + count); */
 		exceptions_throw_stringindexoutofboundsexception();
 		return NULL;
@@ -65,13 +66,9 @@ JNIEXPORT jstring JNICALL Java_gnu_java_lang_VMCPStringBuilder_toString(JNIEnv *
 
     /* equivalent to: offset + count < 0 || offset + count > data.length */
 
-	java_handle_chararray_t* ca = (java_handle_chararray_t*) value;
+	CharArray ca(value);
 
-	LLNI_CRITICAL_START;
-	int32_t length = LLNI_array_size(ca);
-	LLNI_CRITICAL_END;
-
-    if (length - startIndex < count) {
+	if (ca.get_length() - startIndex < count) {
 /* 		exceptions_throw_stringindexoutofboundsexception("offset + count: " + (offset + count)); */
 		exceptions_throw_stringindexoutofboundsexception();
 		return NULL;
@@ -82,7 +79,7 @@ JNIEXPORT jstring JNICALL Java_gnu_java_lang_VMCPStringBuilder_toString(JNIEnv *
 	if (h == NULL)
 		return NULL;
 
-	java_lang_String s(h, ca, (int32_t) count, (int32_t) startIndex);
+	java_lang_String s(h, ca.get_handle(), (int32_t) count, (int32_t) startIndex);
 
 	return (jstring) s.get_handle();
 }

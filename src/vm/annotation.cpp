@@ -65,34 +65,37 @@
 static java_handle_objectarray_t *annotation_bytearrays_resize(
 	java_handle_objectarray_t *bytearrays, uint32_t size)
 {
-	java_handle_objectarray_t *newbas = NULL; /* new array     */
 	uint32_t minsize = 0;      /* count of object refs to copy */
 	uint32_t oldsize = 0;      /* size of old array            */
 
+	ObjectArray bas(bytearrays);
+
 	if (bytearrays != NULL) {
-		oldsize = array_length_get((java_handle_t*)bytearrays);
+		oldsize = bas.get_length();
 		
 		/* if the size already fits do nothing */
 		if (size == oldsize) {
 			return bytearrays;
 		}
 	}
-	
-	newbas = builtin_anewarray(size,
+
+	// Allocate new array on the heap.
+
+	ObjectArray newbas(size,
 		Primitive::get_arrayclass_by_type(PRIMITIVETYPE_BYTE));
-	
+
 	/* is there a old byte array array? */
-	if (newbas != NULL && bytearrays != NULL) {
+	if (newbas.is_non_null() && bytearrays != NULL) {
 		minsize = size < oldsize ? size : oldsize;
 
 		LLNI_CRITICAL_START;
 		MCOPY(
-			LLNI_array_data(newbas), LLNI_array_data(bytearrays),
+			newbas.get_raw_data_ptr(), bas.get_raw_data_ptr(),
 			java_object_t*, minsize);
 		LLNI_CRITICAL_END;
 	}
 
-	return newbas;
+	return newbas.get_handle();
 }
 
 
@@ -118,7 +121,6 @@ static java_handle_t *annotation_bytearrays_insert(
 	java_handle_t *bytearrays, uint32_t index,
 	java_handle_bytearray_t *bytearray)
 {
-	java_handle_objectarray_t *bas; /* bytearrays                */
 	uint32_t size = 0;              /* current size of the array */
 
 	/* do nothing if NULL is inserted but no array exists */
@@ -126,34 +128,35 @@ static java_handle_t *annotation_bytearrays_insert(
 		return NULL;
 	}
 
+	ObjectArray bas(bytearrays);
+
 	/* get lengths if array exists */
 	if (bytearrays != NULL) {
-		size = array_length_get(bytearrays);
+		size = bas.get_length();
 	}
-
-	bas = (java_handle_objectarray_t*)bytearrays;
 
 	if (bytearray == NULL) {
 		/* insert NULL only if array is big enough */
 		if (size > index) {
-			array_objectarray_element_set(bas, index, NULL);
+			bas.set_element(index, NULL);
 		}
 	}
 	else {
+		// XXX: We should use a clone function here!!!
 		/* resize array if it's not enough for inserted value */
 		if (size <= index) {
-			bas = annotation_bytearrays_resize(bas, index + 1);
+			bas = annotation_bytearrays_resize(bas.get_handle(), index + 1);
 
-			if (bas == NULL) {
+			if (bas.is_null()) {
 				/* out of memory */
 				return NULL;
 			}
 		}
 
-		array_objectarray_element_set(bas, index, (java_handle_t*)bytearray);
+		bas.set_element(index, (java_handle_t*) bytearray);
 	}
 	
-	return (java_handle_t*)bas;
+	return bas.get_handle();
 }
 
 
@@ -186,7 +189,6 @@ static bool annotation_load_attribute_body(classbuffer *cb,
 	java_handle_bytearray_t **attribute, const char *errormsg_prefix)
 {
 	uint32_t                 size = 0;    /* size of the attribute     */
-	java_handle_bytearray_t *ba   = NULL; /* the raw attributes' bytes */
 
 	assert(cb != NULL);
 	assert(attribute != NULL);
@@ -207,9 +209,9 @@ static bool annotation_load_attribute_body(classbuffer *cb,
 	/* if attribute_length == 0 then NULL is
 	 * the right value for this attribute */
 	if (size > 0) {
-		ba = builtin_newarray_byte(size);
+		ByteArray ba(size);
 
-		if (ba == NULL) {
+		if (ba.is_null()) {
 			/* out of memory */
 			return false;
 		}
@@ -217,12 +219,13 @@ static bool annotation_load_attribute_body(classbuffer *cb,
 		/* load data */
 		LLNI_CRITICAL_START;
 
-		suck_nbytes((uint8_t*)LLNI_array_data(ba), cb, size);
+		uint8_t* ptr = (uint8_t*) ba.get_raw_data_ptr();
+		suck_nbytes(ptr, cb, size);
 
 		LLNI_CRITICAL_END;
 
 		/* return data */
-		*attribute = ba;
+		*attribute = ba.get_handle();
 	}
 	
 	return true;

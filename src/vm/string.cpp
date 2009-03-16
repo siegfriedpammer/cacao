@@ -93,7 +93,6 @@ bool string_init(void)
  
 void stringtable_update(void)
 {
-	java_chararray_t *a;
 	literalstring    *s;       /* hashtable entry */
 
 	for (unsigned int i = 0; i < hashtable_string.size; i++) {
@@ -109,7 +108,7 @@ void stringtable_update(void)
 					os::abort("stringtable_update: invalid literalstring in hashtable");
 				}
 
-				a = LLNI_UNWRAP(js.get_value());
+				java_chararray_t* a = (java_chararray_t*) js.get_value();
 
 				if (js.get_vftbl() == NULL)
 					// FIXME
@@ -150,23 +149,26 @@ static java_handle_t *javastring_new_from_utf_buffer(const char *buffer, u4 blen
 	int32_t utflength = utf_get_number_of_u2s_for_buffer(buffer, blength);
 
 	java_handle_t*           h  = builtin_new(class_java_lang_String);
-	java_handle_chararray_t* ca = builtin_newarray_char(utflength);
+	CharArray ca(utflength);
 
 	/* javastring or character-array could not be created */
 
-	if ((h == NULL) || (ca == NULL))
+	if ((h == NULL) || ca.is_null())
 		return NULL;
+
+	// XXX: Fix me!
+	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
 
 	/* decompress utf-string */
 
 	utf_ptr = buffer;
 
 	for (int32_t i = 0; i < utflength; i++)
-		LLNI_array_direct(ca, i) = utf_nextu2((char **) &utf_ptr);
+		ptr[i] = utf_nextu2((char **) &utf_ptr);
 	
 	/* set fields of the javastring-object */
 
-	java_lang_String jls(h, ca, utflength);
+	java_lang_String jls(h, ca.get_handle(), utflength);
 
 	return jls.get_handle();
 }
@@ -204,20 +206,23 @@ java_handle_t *javastring_safe_new_from_utf8(const char *text)
 	/* allocate the String object and the char array */
 
 	java_handle_t*           h  = builtin_new(class_java_lang_String);
-	java_handle_chararray_t* ca = builtin_newarray_char(len);
+	CharArray ca(len);
 
 	/* javastring or character-array could not be created? */
 
-	if ((h == NULL) || (ca == NULL))
+	if ((h == NULL) || ca.is_null())
 		return NULL;
+
+	// XXX: Fix me!
+	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
 
 	/* decompress UTF-8 string */
 
-	utf8_safe_convert_to_u2s(text, nbytes, LLNI_array_data(ca));
+	utf8_safe_convert_to_u2s(text, nbytes, ptr);
 
 	/* set fields of the String object */
 
-	java_lang_String jls(h, ca, len);
+	java_lang_String jls(h, ca.get_handle(), len);
 
 	return jls.get_handle();
 }
@@ -266,21 +271,24 @@ java_handle_t *javastring_new(utf *u)
 	int32_t utflength = utf_get_number_of_u2s(u);
 
 	java_handle_t*           h  = builtin_new(class_java_lang_String);
-	java_handle_chararray_t* ca = builtin_newarray_char(utflength);
+	CharArray ca(utflength);
 
 	/* javastring or character-array could not be created */
 
-	if ((h == NULL) || (ca == NULL))
+	if ((h == NULL) || ca.is_null())
 		return NULL;
+
+	// XXX: Fix me!
+	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
 
 	/* decompress utf-string */
 
 	for (int32_t i = 0; i < utflength; i++)
-		LLNI_array_direct(ca, i) = utf_nextu2(&utf_ptr);
+		ptr[i] = utf_nextu2(&utf_ptr);
 	
 	/* set fields of the javastring-object */
 
-	java_lang_String jls(h, ca, utflength);
+	java_lang_String jls(h, ca.get_handle(), utflength);
 
 	return jls.get_handle();
 }
@@ -306,11 +314,14 @@ java_handle_t *javastring_new_slash_to_dot(utf *u)
 	int32_t utflength = utf_get_number_of_u2s(u);
 
 	java_handle_t*           h  = builtin_new(class_java_lang_String);
-	java_handle_chararray_t* ca = builtin_newarray_char(utflength);
+	CharArray ca(utflength);
 
 	/* javastring or character-array could not be created */
-	if ((h == NULL) || (ca == NULL))
+	if ((h == NULL) || ca.is_null())
 		return NULL;
+
+	// XXX: Fix me!
+	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
 
 	/* decompress utf-string */
 
@@ -320,12 +331,12 @@ java_handle_t *javastring_new_slash_to_dot(utf *u)
 		if (ch == '/')
 			ch = '.';
 
-		LLNI_array_direct(ca, i) = ch;
+		ptr[i] = ch;
 	}
 	
 	/* set fields of the javastring-object */
 
-	java_lang_String jls(h, ca, utflength);
+	java_lang_String jls(h, ca.get_handle(), utflength);
 
 	return jls.get_handle();
 }
@@ -355,21 +366,24 @@ java_handle_t *javastring_new_from_ascii(const char *text)
 	int32_t len = strlen(text);
 
 	java_handle_t*           h  = builtin_new(class_java_lang_String);
-	java_handle_chararray_t* ca = builtin_newarray_char(len);
+	CharArray ca(len);
 
 	/* javastring or character-array could not be created */
 
-	if ((h == NULL) || (ca == NULL))
+	if ((h == NULL) || ca.is_null())
 		return NULL;
+
+	// XXX: Fix me!
+	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
 
 	/* copy text */
 
 	for (int32_t i = 0; i < len; i++)
-		LLNI_array_direct(ca, i) = text[i];
+		ptr[i] = text[i];
 	
 	/* set fields of the javastring-object */
 
-	java_lang_String jls(h, ca, len);
+	java_lang_String jls(h, ca.get_handle(), len);
 
 	return jls.get_handle();
 }
@@ -392,9 +406,9 @@ char* javastring_tochar(java_handle_t* h)
 	if (jls.is_null())
 		return (char*) "";
 
-	java_handle_chararray_t* ca = jls.get_value();
+	CharArray ca(jls.get_value());
 
-	if (ca == NULL)
+	if (ca.is_null())
 		return (char*) "";
 
 	int32_t count  = jls.get_count();
@@ -402,9 +416,12 @@ char* javastring_tochar(java_handle_t* h)
 
 	char* buf = MNEW(char, count + 1);
 
+	// XXX: Fix me!
+	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
+
 	int32_t i;
 	for (i = 0; i < count; i++)
-		buf[i] = LLNI_array_direct(ca, offset + i);
+		buf[i] = ptr[offset + i];
 
 	buf[i] = '\0';
 
@@ -425,15 +442,18 @@ utf *javastring_toutf(java_handle_t *string, bool isclassname)
 	if (jls.is_null())
 		return utf_null;
 
-	java_handle_chararray_t* value = jls.get_value();
+	CharArray ca(jls.get_value());
 
-	if (jls.get_value() == NULL)
+	if (ca.is_null())
 		return utf_null;
 
 	int32_t count  = jls.get_count();
 	int32_t offset = jls.get_offset();
 
-	return utf_new_u2(LLNI_array_data(value) + offset, count, isclassname);
+	// XXX: Fix me!
+	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
+
+	return utf_new_u2(ptr + offset, count, isclassname);
 }
 
 
@@ -446,35 +466,41 @@ utf *javastring_toutf(java_handle_t *string, bool isclassname)
 
 *******************************************************************************/
 
-static java_object_t *literalstring_u2(java_chararray_t *a, int32_t length,
+static java_handle_t *literalstring_u2(java_handle_chararray_t *a, int32_t length,
 									   u4 offset, bool copymode)
 {
-    literalstring    *s;                /* hashtable element                  */
-    java_chararray_t *ca;               /* copy of u2-array                   */
-    u4                key;
-    u4                slot;
-    u2                i;
+	literalstring    *s;                /* hashtable element                  */
+	u4                key;
+	u4                slot;
+	u2                i;
 
 	mutex->lock();
 
-    /* find location in hashtable */
+	// XXX: Fix me!
+	CharArray ca(a);
+	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
 
-    key  = unicode_hashkey(a->data + offset, length);
-    slot = key & (hashtable_string.size - 1);
-    s    = (literalstring*) hashtable_string.ptr[slot];
+	/* find location in hashtable */
 
-    while (s) {
+	key  = unicode_hashkey(ptr + offset, length);
+	slot = key & (hashtable_string.size - 1);
+	s    = (literalstring*) hashtable_string.ptr[slot];
+
+	while (s) {
 		// FIXME
 		java_lang_String js(LLNI_WRAP(s->string));
 
 		if (length == js.get_count()) {
 			/* compare text */
 
-			for (i = 0; i < length; i++)
+			for (i = 0; i < length; i++) {
 				// FIXME This is not handle capable!
+				CharArray jsca(js.get_value());
+				uint16_t* sptr = (uint16_t*) jsca.get_raw_data_ptr();
 				
-				if (a->data[offset + i] != ((java_chararray_t*) LLNI_UNWRAP(js.get_value()))->data[i])
+				if (ptr[offset + i] != sptr[i])
 					goto nomatch;
+			}
 
 			/* string already in hashtable, free memory */
 
@@ -483,38 +509,37 @@ static java_object_t *literalstring_u2(java_chararray_t *a, int32_t length,
 
 			mutex->unlock();
 
-			return (java_object_t*) LLNI_UNWRAP(js.get_handle());
+			return js.get_handle();
 		}
 
 	nomatch:
 		/* follow link in external hash chain */
 		s = s->hashlink;
-    }
-
-    if (copymode) {
-		/* create copy of u2-array for new javastring */
-		u4 arraysize = sizeof(java_chararray_t) + sizeof(u2) * (length - 1) + 10;
-		ca = (java_chararray_t*) mem_alloc(arraysize);
-/*    		memcpy(ca, a, arraysize); */
-  		memcpy(&(ca->header), &(a->header), sizeof(java_array_t));
-  		memcpy(&(ca->data), &(a->data) + offset, sizeof(u2) * (length - 1) + 10);
-    }
-	else {
-		ca = a;
 	}
 
-    /* location in hashtable found, complete arrayheader */
+	java_chararray_t* acopy;
+	if (copymode) {
+		/* create copy of u2-array for new javastring */
+		u4 arraysize = sizeof(java_chararray_t) + sizeof(u2) * (length - 1) + 10;
+		acopy = (java_chararray_t*) mem_alloc(arraysize);
+/*    		memcpy(ca, a, arraysize); */
+		memcpy(&(acopy->header), &(((java_chararray_t*) a)->header), sizeof(java_array_t));
+		memcpy(&(acopy->data), &(((java_chararray_t*) a)->data) + offset, sizeof(u2) * (length - 1) + 10);
+	}
+	else {
+		acopy = (java_chararray_t*) a;
+	}
 
-    ca->header.objheader.vftbl = Primitive::get_arrayclass_by_type(ARRAYTYPE_CHAR)->vftbl;
-    ca->header.size            = length;
+	/* location in hashtable found, complete arrayheader */
+
+	acopy->header.objheader.vftbl = Primitive::get_arrayclass_by_type(ARRAYTYPE_CHAR)->vftbl;
+	acopy->header.size            = length;
 
 	assert(class_java_lang_String);
 	assert(class_java_lang_String->state & CLASS_LOADED);
 
 	// Create a new java.lang.String object on the system heap.
 	java_object_t* o = (java_object_t*) MNEW(uint8_t, class_java_lang_String->instancesize);
-	// FIXME
-	java_handle_t* h = LLNI_WRAP(o);
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat)
@@ -527,8 +552,8 @@ static java_object_t *literalstring_u2(java_chararray_t *a, int32_t length,
 
 	o->vftbl = class_java_lang_String->vftbl;
 
-	// FIXME
-	java_lang_String jls(h, LLNI_WRAP(ca), length);
+	CharArray cacopy((java_handle_chararray_t*) acopy);
+	java_lang_String jls(o, cacopy.get_handle(), length);
 
 	/* create new literalstring */
 
@@ -603,23 +628,23 @@ static java_object_t *literalstring_u2(java_chararray_t *a, int32_t length,
 
 java_object_t *literalstring_new(utf *u)
 {
-    char             *utf_ptr;       /* pointer to current unicode character  */
+	char             *utf_ptr;       /* pointer to current unicode character  */
 	                                 /* utf string                            */
-    u4                utflength;     /* length of utf-string if uncompressed  */
-    java_chararray_t *a;             /* u2-array constructed from utf string  */
-    u4                i;
+	u4                utflength;     /* length of utf-string if uncompressed  */
+	java_chararray_t *a;             /* u2-array constructed from utf string  */
+	u4                i;
 
 	utf_ptr = u->text;
 	utflength = utf_get_number_of_u2s(u);
 
-    /* allocate memory */ 
-    a = (java_chararray_t*) mem_alloc(sizeof(java_chararray_t) + sizeof(u2) * (utflength - 1) + 10);
+	/* allocate memory */ 
+	a = (java_chararray_t*) mem_alloc(sizeof(java_chararray_t) + sizeof(u2) * (utflength - 1) + 10);
 
-    /* convert utf-string to u2-array */
-    for (i = 0; i < utflength; i++)
+	/* convert utf-string to u2-array */
+	for (i = 0; i < utflength; i++)
 		a->data[i] = utf_nextu2(&utf_ptr);
 
-    return literalstring_u2(a, utflength, 0, false);
+	return literalstring_u2((java_handle_chararray_t*) a, utflength, 0, false);
 }
 
 
@@ -653,25 +678,20 @@ static void literalstring_free(java_object_t* string)
 
    Intern the given Java string.
 
-   XXX NOTE: Literal Strings are direct references since they are not placed
-   onto the GC-Heap. That's why this function looks so "different".
-
 *******************************************************************************/
 
 java_handle_t *javastring_intern(java_handle_t *string)
 {
 	java_lang_String jls(string);
 
-	java_handle_chararray_t* value = jls.get_value();
-	// FIXME
-	java_chararray_t* ca = LLNI_UNWRAP(value); /* XXX see note above */
+	CharArray ca(jls.get_value());
 
 	int32_t count  = jls.get_count();
 	int32_t offset = jls.get_offset();
 
-	java_object_t* o = literalstring_u2(ca, count, offset, true); /* XXX see note above */
+	java_handle_t* o = literalstring_u2(ca.get_handle(), count, offset, true);
 
-	return LLNI_WRAP(o); /* XXX see note above */
+	return o;
 }
 
 
@@ -685,13 +705,16 @@ void javastring_fprint(java_handle_t *s, FILE *stream)
 {
 	java_lang_String jls(s);
 
-	java_handle_chararray_t* value = jls.get_value();
+	CharArray ca(jls.get_value());
 
 	int32_t count  = jls.get_count();
 	int32_t offset = jls.get_offset();
 
+	// XXX: Fix me!
+	uint16_t* ptr = (uint16_t*) ca.get_raw_data_ptr();
+
 	for (int32_t i = offset; i < offset + count; i++) {
-		uint16_t c = LLNI_array_direct(value, i);
+		uint16_t c = ptr[i];
 		fputc(c, stream);
 	}
 }

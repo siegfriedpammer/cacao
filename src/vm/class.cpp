@@ -1643,7 +1643,6 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 	utf                   *outername;
 	int                    declaredclasscount;  /* number of declared classes */
 	int                    pos;                     /* current declared class */
-	java_handle_objectarray_t *oa;               /* array of declared classes */
 	int                    i;
 	classinfo             *ic;
 
@@ -1676,9 +1675,9 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 
 	/* Allocate Class[] and check for OOM. */
 
-	oa = builtin_anewarray(declaredclasscount, class_java_lang_Class);
+	ClassArray declaredclasses(declaredclasscount);
 
-	if (oa == NULL)
+	if (declaredclasses.is_null())
 		return NULL;
 
 	for (i = 0, pos = 0; i < c->innerclasscount; i++) {
@@ -1710,11 +1709,11 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 				if (!link_class(ic))
 					return NULL;
 
-			LLNI_array_direct(oa, pos++) = (java_object_t *) ic;
+			declaredclasses.set_element(pos++, ic);
 		}
 	}
 
-	return oa;
+	return declaredclasses.get_handle();
 }
 
 
@@ -1729,11 +1728,10 @@ java_handle_objectarray_t *class_get_declaredclasses(classinfo *c, bool publicOn
 #if defined(ENABLE_JAVASE)
 java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool publicOnly)
 {
-	methodinfo*                m;
-	java_handle_objectarray_t* oa;
-	int                        count;
-	int                        index;
-	int                        i;
+	methodinfo* m;
+	int         count;
+	int         index;
+	int         i;
 
 	/* Determine number of constructors. */
 
@@ -1749,9 +1747,9 @@ java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool pub
 
 	/* Create array of constructors. */
 
-	oa = builtin_anewarray(count, class_java_lang_reflect_Constructor);
+	ObjectArray oa(count, class_java_lang_reflect_Constructor);
 
-	if (oa == NULL)
+	if (oa.is_null())
 		return NULL;
 
 	/* Get the constructors and store them in the array. */
@@ -1767,12 +1765,12 @@ java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool pub
 
 			/* Store object into array. */
 
-			array_objectarray_element_set(oa, index, rc.get_handle());
+			oa.set_element(index, rc.get_handle());
 			index++;
 		}
 	}
 
-	return oa;
+	return oa.get_handle();
 }
 #endif
 
@@ -1793,11 +1791,10 @@ java_handle_objectarray_t *class_get_declaredconstructors(classinfo *c, bool pub
 #if defined(ENABLE_JAVASE)
 java_handle_objectarray_t *class_get_declaredfields(classinfo *c, bool publicOnly)
 {
-	java_handle_objectarray_t *oa;
-	fieldinfo                 *f;
-	int                        count;
-	int                        index;
-	int                        i;
+	fieldinfo* f;
+	int        count;
+	int        index;
+	int        i;
 
 	/* Determine number of fields. */
 
@@ -1809,9 +1806,9 @@ java_handle_objectarray_t *class_get_declaredfields(classinfo *c, bool publicOnl
 
 	/* Create array of fields. */
 
-	oa = builtin_anewarray(count, class_java_lang_reflect_Field);
+	ObjectArray oa(count, class_java_lang_reflect_Field);
 
-	if (oa == NULL)
+	if (oa.is_null())
 		return NULL;
 
 	/* Get the fields and store them in the array. */
@@ -1826,12 +1823,12 @@ java_handle_objectarray_t *class_get_declaredfields(classinfo *c, bool publicOnl
 
 			/* Store object into array. */
 
-			array_objectarray_element_set(oa, index, rf.get_handle());
+			oa.set_element(index, rf.get_handle());
 			index++;
 		}
 	}
 
-	return oa;
+	return oa.get_handle();
 }
 #endif
 
@@ -1852,19 +1849,20 @@ java_handle_objectarray_t *class_get_declaredfields(classinfo *c, bool publicOnl
 #if defined(ENABLE_JAVASE)
 java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOnly)
 {
-	java_handle_objectarray_t *oa;         /* result: array of Method-objects */
-	methodinfo                *m;     /* the current method to be represented */
-	int                        count;
-	int                        index;
-	int                        i;
+	methodinfo* m;     /* the current method to be represented */
+	int         count;
+	int         index;
+	int         i;
 
 	/* JOWENN: array classes do not declare methods according to mauve
 	   test.  It should be considered, if we should return to my old
 	   clone method overriding instead of declaring it as a member
 	   function. */
 
-	if (class_is_array(c))
-		return builtin_anewarray(0, class_java_lang_reflect_Method);
+	if (class_is_array(c)) {
+		ObjectArray oa(0, class_java_lang_reflect_Method);
+		return oa.get_handle();
+	}
 
 	/* Determine number of methods. */
 
@@ -1881,9 +1879,9 @@ java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOn
 
 	/* Create array of methods. */
 
-	oa = builtin_anewarray(count, class_java_lang_reflect_Method);
+	ObjectArray oa(count, class_java_lang_reflect_Method);
 
-	if (oa == NULL)
+	if (oa.is_null())
 		return NULL;
 
 	/* Get the methods and store them in the array. */
@@ -1900,12 +1898,12 @@ java_handle_objectarray_t *class_get_declaredmethods(classinfo *c, bool publicOn
 
 			/* Store object into array. */
 
-			array_objectarray_element_set(oa, index, rm.get_handle());
+			oa.set_element(index, rm.get_handle());
 			index++;
 		}
 	}
 
-	return oa;
+	return oa.get_handle();
 }
 #endif
 
@@ -2103,28 +2101,27 @@ java_handle_t* class_get_enclosingmethod(classinfo *c)
 
 *******************************************************************************/
 
-java_handle_objectarray_t *class_get_interfaces(classinfo *c)
+java_handle_objectarray_t* class_get_interfaces(classinfo *c)
 {
-	classinfo                 *ic;
-	java_handle_objectarray_t *oa;
-	u4                         i;
+	classinfo* ic;
+	u4         i;
 
 	if (!(c->state & CLASS_LINKED))
 		if (!link_class(c))
 			return NULL;
 
-	oa = builtin_anewarray(c->interfacescount, class_java_lang_Class);
+	ClassArray interfaces(c->interfacescount);
 
-	if (oa == NULL)
+	if (interfaces.is_null())
 		return NULL;
 
 	for (i = 0; i < c->interfacescount; i++) {
 		ic = c->interfaces[i];
 
-		LLNI_array_direct(oa, i) = (java_object_t *) ic;
+		interfaces.set_element(i, ic);
 	}
 
-	return oa;
+	return interfaces.get_handle();
 }
 
 
@@ -2149,7 +2146,7 @@ java_handle_bytearray_t *class_get_annotations(classinfo *c)
 
 	LLNI_classinfo_field_get(c, annotations, annotations);
 
-	return (java_handle_bytearray_t*)annotations;
+	return (java_handle_bytearray_t*) annotations;
 #else
 	return NULL;
 #endif

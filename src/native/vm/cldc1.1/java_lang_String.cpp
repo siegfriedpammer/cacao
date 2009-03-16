@@ -30,7 +30,6 @@
 #include <string.h>
 
 #include "native/jni.hpp"
-#include "native/llni.h"
 #include "native/native.hpp"
 
 #if defined(ENABLE_JNI_HEADERS)
@@ -53,14 +52,15 @@ JNIEXPORT jint JNICALL Java_java_lang_String_hashCode(JNIEnv *env, jstring _this
 {
 	java_lang_String jls(_this);
 
-	java_handle_chararray_t* value = jls.get_value();
+	CharArray value(jls.get_value());
+
 	int32_t offset = jls.get_offset();
 	int32_t count  = jls.get_count();
 
 	int32_t hash = 0;
 
 	for (int32_t i = 0; i < count; i++) {
-		hash = (31 * hash) + LLNI_array_direct(value, offset + i);
+		hash = (31 * hash) + value.get_element(offset + i);
 	}
 
 	return hash;
@@ -76,12 +76,13 @@ JNIEXPORT jint JNICALL Java_java_lang_String_indexOf__I(JNIEnv *env, jstring _th
 {
 	java_lang_String jls(_this);
 
-	java_handle_chararray_t* value = jls.get_value();
+	CharArray value(jls.get_value());
+
 	int32_t offset = jls.get_offset();
 	int32_t count  = jls.get_count();
 
 	for (int32_t i = 0; i < count; i++) {
-		if (LLNI_array_direct(value, offset + i) == ch) {
+		if (value.get_element(offset + i) == ch) {
 			return i;
 		}
 	}
@@ -99,7 +100,8 @@ JNIEXPORT jint JNICALL Java_java_lang_String_indexOf__II(JNIEnv *env, jstring _t
 {
 	java_lang_String jls(_this);
 
-	java_handle_chararray_t* value = jls.get_value();
+	CharArray value(jls.get_value());
+
 	int32_t offset = jls.get_offset();
 	int32_t count  = jls.get_count();
 
@@ -112,7 +114,7 @@ JNIEXPORT jint JNICALL Java_java_lang_String_indexOf__II(JNIEnv *env, jstring _t
 	}
 
 	for (int32_t i = fromIndex ; i < count ; i++) {
-		if (LLNI_array_direct(value, offset + i) == ch) {
+		if (value.get_element(offset + i) == ch) {
 			return i;
 		}
 	}
@@ -130,14 +132,15 @@ JNIEXPORT jint JNICALL Java_java_lang_String_lastIndexOf__II(JNIEnv *env, jstrin
 {
 	java_lang_String jls(_this);
 
-	java_handle_chararray_t* value = jls.get_value();
+	CharArray value(jls.get_value());
+
 	int32_t offset = jls.get_offset();
 	int32_t count  = jls.get_count();
 
 	int32_t start = ((fromIndex >= count) ? count - 1 : fromIndex);
 
 	for (int32_t i = start; i >= 0; i--) {
-		if (LLNI_array_direct(value, offset + i) == ch) {
+		if (value.get_element(offset + i) == ch) {
 			return i;
 		}
 	}

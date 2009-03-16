@@ -63,6 +63,7 @@ public:
 	static java_handle_t* box(double value);
 
 	static imm_union      unbox(java_handle_t *o);
+	static bool           unbox_typed(java_handle_t *o, int type, imm_union* value);
 
 	static uint8_t        unbox_boolean(java_handle_t* o);
 	static int8_t         unbox_byte(java_handle_t* o);

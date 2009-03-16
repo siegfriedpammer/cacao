@@ -405,26 +405,24 @@ java_handle_bytearray_t *field_get_annotations(fieldinfo *f)
 #if defined(ENABLE_ANNOTATIONS)
 	classinfo               *c;           /* declaring class           */
 	int                      slot;        /* slot of this field        */
-	java_handle_bytearray_t *annotations; /* unparsed annotations      */
 	java_handle_t           *field_annotations;  /* array of unparsed  */
 	               /* annotations of all fields of the declaring class */
 
-	c           = f->clazz;
-	slot        = f - c->fields;
-	annotations = NULL;
+	c    = f->clazz;
+	slot = f - c->fields;
 
 	LLNI_classinfo_field_get(c, field_annotations, field_annotations);
+
+	ObjectArray oa(field_annotations);
 
 	/* the field_annotations array might be shorter then the field
 	 * count if the fields above a certain index have no annotations.
 	 */
-	if (field_annotations != NULL &&
-		array_length_get(field_annotations) > slot) {
-		annotations = (java_handle_bytearray_t*)array_objectarray_element_get(
-				(java_handle_objectarray_t*)field_annotations, slot);
+	if (field_annotations != NULL && oa.get_length() > slot) {
+		return (java_handle_bytearray_t*) oa.get_element(slot);
+	} else {
+		return NULL;
 	}
-	
-	return annotations;
 #else
 	return NULL;
 #endif
