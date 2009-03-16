@@ -75,16 +75,17 @@ private:
 	Array(Array& a) {}
 
 public:
-	inline Array(java_handle_t* h);
-	inline Array(int32_t length, classinfo* arrayclass);
+	Array(java_handle_t* h);
+	Array(int32_t length, classinfo* arrayclass);
 	virtual ~Array() {}
 
 	// Getters.
-	virtual inline java_handle_array_t* get_handle() const { return _handle; }
-	inline int32_t                      get_length() const;
+	virtual java_handle_array_t* get_handle() const { return _handle; }
+	int32_t                      get_length() const;
 
-	inline bool is_null    () const;
-	inline bool is_non_null() const;
+	// Null checks.
+	bool is_null    () const;
+	bool is_non_null() const;
 
 	// Safe element modification functions for primitive values
 	imm_union get_primitive_element(int32_t index);
@@ -93,9 +94,6 @@ public:
 	// Safe element modification functions for boxed values
 	java_handle_t* get_boxed_element(int32_t index);
 	void           set_boxed_element(int32_t index, java_handle_t *o);
-
-	// XXX REMOVE ME!
-	inline void* get_raw_data_ptr() { return ((java_objectarray_t*) _handle)->data; }
 };
 
 
@@ -204,15 +202,18 @@ protected:
 	ArrayTemplate(int32_t length, classinfo* arrayclass) : Array(length, arrayclass) {}
 
 public:
-	inline ArrayTemplate(java_handle_array_t* h) : Array(h) {}
+	ArrayTemplate(java_handle_array_t* h) : Array(h) {}
+
+	// XXX This should be protected or private!
+	virtual T* get_raw_data_ptr() = 0;
 
 	// Safe element modification functions
-	inline T    get_element(int32_t index);
-	inline void set_element(int32_t index, T value);
+	T    get_element(int32_t index);
+	void set_element(int32_t index, T value);
 
 	// Region copy functions
-	inline void get_region(int32_t offset, int32_t count, T* buffer);
-	inline void set_region(int32_t offset, int32_t count, const T* buffer);
+	void get_region(int32_t offset, int32_t count, T* buffer);
+	void set_region(int32_t offset, int32_t count, const T* buffer);
 };
 
 
@@ -228,8 +229,7 @@ template<class T> inline T ArrayTemplate<T>::get_element(int32_t index)
 		return 0;
 	}
 
-	// XXX Fix me!
-	T* ptr = (T*) get_raw_data_ptr();
+	T* ptr = get_raw_data_ptr();
 
 	return ptr[index];
 }
@@ -246,8 +246,7 @@ template<class T> inline void ArrayTemplate<T>::set_element(int32_t index, T val
 		return;
 	}
 
-	// XXX Fix me!
-	T* ptr = (T*) get_raw_data_ptr();
+	T* ptr = get_raw_data_ptr();
 
 	ptr[index] = value;
 }
@@ -260,14 +259,12 @@ template<> inline void ArrayTemplate<java_handle_t*>::set_element(int32_t index,
 	}
 
 	// Sanity check.
-	assert(((java_array_t*) _handle)->objheader.vftbl->arraydesc->arraytype == ARRAYTYPE_OBJECT);
+	assert(((java_array_t*) get_handle())->objheader.vftbl->arraydesc->arraytype == ARRAYTYPE_OBJECT);
 
 	// Check if value can be stored
-	if (value != NULL) {
-		if (builtin_canstore(get_handle(), value) == false) {
-			exceptions_throw_illegalargumentexception();
-			return;
-		}
+	if (!builtin_canstore(get_handle(), value)) {
+		exceptions_throw_illegalargumentexception();
+		return;
 	}
 
 	if ((index < 0) || (index >= get_length())) {
@@ -275,8 +272,7 @@ template<> inline void ArrayTemplate<java_handle_t*>::set_element(int32_t index,
 		return;
 	}
 
-	// XXX Fix me!
-	java_handle_t** ptr = (java_handle_t**) get_raw_data_ptr();
+	java_handle_t** ptr = get_raw_data_ptr();
 
 	ptr[index] = value;
 }
@@ -286,8 +282,7 @@ template<class T> inline void ArrayTemplate<T>::get_region(int32_t offset, int32
 	// Copy the array region inside a GC critical section.
 	GCCriticalSection cs;
 
-	// XXX Fix me!
-	const T* ptr = (T*) get_raw_data_ptr();
+	const T* ptr = get_raw_data_ptr();
 
 	os::memcpy(buffer, ptr + offset, sizeof(T) * count);
 }
@@ -297,8 +292,7 @@ template<class T> inline void ArrayTemplate<T>::set_region(int32_t offset, int32
 	// Copy the array region inside a GC critical section.
 	GCCriticalSection cs;
 
-	// XXX Fix me!
-	T* ptr = (T*) get_raw_data_ptr();
+	T* ptr = get_raw_data_ptr();
 
 	os::memcpy(ptr + offset, buffer, sizeof(T) * count);
 }
@@ -309,50 +303,58 @@ template<class T> inline void ArrayTemplate<T>::set_region(int32_t offset, int32
  */
 class BooleanArray : public ArrayTemplate<uint8_t> {
 public:
-	inline BooleanArray(java_handle_booleanarray_t* h) : ArrayTemplate<uint8_t>(h) {}
-	inline BooleanArray(int32_t length) : ArrayTemplate<uint8_t>(length, primitivetype_table[ARRAYTYPE_BOOLEAN].arrayclass) {}
+	BooleanArray(java_handle_booleanarray_t* h) : ArrayTemplate<uint8_t>(h) {}
+	BooleanArray(int32_t length) : ArrayTemplate<uint8_t>(length, primitivetype_table[ARRAYTYPE_BOOLEAN].arrayclass) {}
+	uint8_t* get_raw_data_ptr() { return ((java_booleanarray_t*) get_handle())->data; }
 };
 
 class ByteArray : public ArrayTemplate<int8_t> {
 public:
-	inline ByteArray(java_handle_bytearray_t* h) : ArrayTemplate<int8_t>(h) {}
-	inline ByteArray(int32_t length) : ArrayTemplate<int8_t>(length, primitivetype_table[ARRAYTYPE_BYTE].arrayclass) {}
+	ByteArray(java_handle_bytearray_t* h) : ArrayTemplate<int8_t>(h) {}
+	ByteArray(int32_t length) : ArrayTemplate<int8_t>(length, primitivetype_table[ARRAYTYPE_BYTE].arrayclass) {}
+	int8_t* get_raw_data_ptr() { return ((java_bytearray_t*) get_handle())->data; }
 };
 
 class CharArray : public ArrayTemplate<uint16_t> {
 public:
-	inline CharArray(java_handle_chararray_t* h) : ArrayTemplate<uint16_t>(h) {}
-	inline CharArray(int32_t length) : ArrayTemplate<uint16_t>(length, primitivetype_table[ARRAYTYPE_CHAR].arrayclass) {}
+	CharArray(java_handle_chararray_t* h) : ArrayTemplate<uint16_t>(h) {}
+	CharArray(int32_t length) : ArrayTemplate<uint16_t>(length, primitivetype_table[ARRAYTYPE_CHAR].arrayclass) {}
+	uint16_t* get_raw_data_ptr() { return ((java_chararray_t*) get_handle())->data; }
 };
 
 class ShortArray : public ArrayTemplate<int16_t> {
 public:
-	inline ShortArray(java_handle_shortarray_t* h) : ArrayTemplate<int16_t>(h) {}
-	inline ShortArray(int32_t length) : ArrayTemplate<int16_t>(length, primitivetype_table[ARRAYTYPE_SHORT].arrayclass) {}
+	ShortArray(java_handle_shortarray_t* h) : ArrayTemplate<int16_t>(h) {}
+	ShortArray(int32_t length) : ArrayTemplate<int16_t>(length, primitivetype_table[ARRAYTYPE_SHORT].arrayclass) {}
+	int16_t* get_raw_data_ptr() { return ((java_shortarray_t*) get_handle())->data; }
 };
 
 class IntArray : public ArrayTemplate<int32_t> {
 public:
-	inline IntArray(java_handle_intarray_t* h) : ArrayTemplate<int32_t>(h) {}
-	inline IntArray(int32_t length) : ArrayTemplate<int32_t>(length, primitivetype_table[ARRAYTYPE_INT].arrayclass) {}
+	IntArray(java_handle_intarray_t* h) : ArrayTemplate<int32_t>(h) {}
+	IntArray(int32_t length) : ArrayTemplate<int32_t>(length, primitivetype_table[ARRAYTYPE_INT].arrayclass) {}
+	int32_t* get_raw_data_ptr() { return ((java_intarray_t*) get_handle())->data; }
 };
 
 class LongArray : public ArrayTemplate<int64_t> {
 public:
-	inline LongArray(java_handle_longarray_t* h) : ArrayTemplate<int64_t>(h) {}
-	inline LongArray(int32_t length) : ArrayTemplate<int64_t>(length, primitivetype_table[ARRAYTYPE_LONG].arrayclass) {}
+	LongArray(java_handle_longarray_t* h) : ArrayTemplate<int64_t>(h) {}
+	LongArray(int32_t length) : ArrayTemplate<int64_t>(length, primitivetype_table[ARRAYTYPE_LONG].arrayclass) {}
+	int64_t* get_raw_data_ptr() { return ((java_longarray_t*) get_handle())->data; }
 };
 
 class FloatArray : public ArrayTemplate<float> {
 public:
-	inline FloatArray(java_handle_floatarray_t* h) : ArrayTemplate<float>(h) {}
-	inline FloatArray(int32_t length) : ArrayTemplate<float>(length, primitivetype_table[ARRAYTYPE_FLOAT].arrayclass) {}
+	FloatArray(java_handle_floatarray_t* h) : ArrayTemplate<float>(h) {}
+	FloatArray(int32_t length) : ArrayTemplate<float>(length, primitivetype_table[ARRAYTYPE_FLOAT].arrayclass) {}
+	float* get_raw_data_ptr() { return ((java_floatarray_t*) get_handle())->data; }
 };
 
 class DoubleArray : public ArrayTemplate<double> {
 public:
-	inline DoubleArray(java_handle_doublearray_t* h) : ArrayTemplate<double>(h) {}
-	inline DoubleArray(int32_t length) : ArrayTemplate<double>(length, primitivetype_table[ARRAYTYPE_DOUBLE].arrayclass) {}
+	DoubleArray(java_handle_doublearray_t* h) : ArrayTemplate<double>(h) {}
+	DoubleArray(int32_t length) : ArrayTemplate<double>(length, primitivetype_table[ARRAYTYPE_DOUBLE].arrayclass) {}
+	double* get_raw_data_ptr() { return ((java_doublearray_t*) get_handle())->data; }
 };
 
 /**
@@ -360,8 +362,9 @@ public:
  */
 class ObjectArray : public ArrayTemplate<java_handle_t*> {
 public:
-	inline ObjectArray(java_handle_objectarray_t* h) : ArrayTemplate<java_handle_t*>(h) {}
+	ObjectArray(java_handle_objectarray_t* h) : ArrayTemplate<java_handle_t*>(h) {}
 	ObjectArray(int32_t length, classinfo* componentclass);
+	java_handle_t** get_raw_data_ptr() { return ((java_objectarray_t*) get_handle())->data; }
 };
 
 /**
@@ -370,6 +373,7 @@ public:
 class ClassArray : public ArrayTemplate<classinfo*> {
 public:
 	ClassArray(int32_t length);
+	classinfo** get_raw_data_ptr() { return (classinfo**) ((java_objectarray_t*) get_handle())->data; }
 };
 
 
