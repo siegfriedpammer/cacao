@@ -43,6 +43,7 @@
 # include "native/include/com_sun_cldc_io_j2me_socket_Protocol.h"
 #endif
 
+#include "vm/array.hpp"
 #include "vm/global.h"
 #include "vm/os.hpp"
 #include "vm/vm.hpp" /* REMOVE ME: temporarily */

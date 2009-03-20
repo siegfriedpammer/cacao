@@ -36,6 +36,7 @@
 # include "native/include/java_lang_String.h"
 #endif
 
+#include "vm/array.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/string.hpp"
 
