@@ -1,6 +1,6 @@
 /* tests/regression/bugzilla/All.java - runs all CACAO regression unit tests
 
-   Copyright (C) 2008
+   Copyright (C) 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -39,7 +39,8 @@ PR112.class,
 PR113.class,
 PR114.class,
 PR116.class,
-PR119.class
+PR119.class,
+PR125.class
 })
 
 public class All {
