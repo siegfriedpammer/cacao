@@ -2,6 +2,7 @@
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -30,11 +31,14 @@
 
 #include "vm/types.h"
 
+#include "vm/jit/i386/codegen.h"
+
 #include "vm/global.h"
 #include "vm/vm.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.hpp"
+#include "vm/jit/trap.hpp"
 
 
 /* md_init *********************************************************************
@@ -126,6 +130,68 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 	}
 
 	return pa;
+}
+
+
+/**
+ * Decode the trap instruction at the given PC.
+ *
+ * @param trp information about trap to be filled
+ * @param sig signal number
+ * @param xpc exception PC
+ * @param es execution state of the machine
+ * @return true if trap was decoded successfully, false otherwise.
+ */
+bool md_trap_decode(trapinfo_t* trp, int sig, void* _xpc, executionstate_t* es)
+{
+	uint8_t* xpc = (uint8_t*) _xpc;
+
+	switch (sig) {
+	case TRAP_SIGFPE:
+		// This is an ArithmeticException.
+		trp->type  = TRAP_ArithmeticException;
+		trp->value = 0;
+		return true;
+
+	case TRAP_SIGILL:
+		// Check for valid trap instruction.
+		if (patcher_is_valid_trap_instruction_at(xpc)) {
+			trp->type  = TRAP_PATCHER;
+			trp->value = 0;
+			return true;
+		}
+		return false;
+
+	case TRAP_SIGSEGV:
+	{
+		// Get exception-throwing instruction.
+		uint8_t opc = M_ALD_MEM_GET_OPC(xpc);
+		uint8_t mod = M_ALD_MEM_GET_MOD(xpc);
+		uint8_t rm  = M_ALD_MEM_GET_RM(xpc);
+
+		// Check for hardware exception, for values
+		// see emit_mov_mem_reg and emit_mem.
+		if ((opc == 0x8b) && (mod == 0) && (rm == 5)) {
+			int32_t d    = M_ALD_MEM_GET_REG(xpc);
+			int32_t disp = M_ALD_MEM_GET_DISP(xpc);
+
+			// We use the exception type as load displacement.
+			trp->type  = disp;
+			trp->value = es->intregs[d];
+			return true;
+		}
+
+		// Default case is a normal NullPointerException.
+		else {
+			trp->type  = TRAP_NullPointerException;
+			trp->value = 0;
+			return true;
+		}
+	}
+
+	default:
+		return false;
+	}
 }
 
 

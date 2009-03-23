@@ -271,7 +271,7 @@ void trap_handle(int sig, void *xpc, void *context)
 #if defined(ENABLE_REPLACEMENT)
 	case TRAP_COUNTDOWN:
 # if defined(__I386__)
-		replace_me_wrapper((char*)xpc - 13, context);
+		replace_me_wrapper((uint8_t*) xpc - 13, context);
 # endif
 		p = NULL;
 		break;
