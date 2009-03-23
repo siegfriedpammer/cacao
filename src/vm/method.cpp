@@ -201,7 +201,15 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 		}
 	}
 #endif /* ENABLE_VERIFIER */
-	
+
+	/* Ignore flags for class initializer according to section 4.6
+	   of "The Java Virtual Machine Specification, 2nd Edition" (see PR125). */
+
+	if (m->name == utf_clinit) {
+		m->flags &= ACC_STRICT;
+		m->flags |= ACC_STATIC;
+	}
+
 	if (!(m->flags & ACC_STATIC))
 		argcount++; /* count the 'this' argument */
 
