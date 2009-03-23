@@ -2,7 +2,7 @@
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
-   Copyright (C) 2008 Theobroma Systems Ltd.
+   Copyright (C) 2008, 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -38,125 +38,42 @@
 
 #include "threads/thread.hpp"
 
-#include "vm/jit/builtin.hpp"
 #include "vm/signallocal.hpp"
-#include "vm/os.hpp"
 
-#include "vm/jit/asmpart.h"
-#include "vm/jit/disass.h"
 #include "vm/jit/executionstate.h"
 #include "vm/jit/trap.hpp"
 
 
-/* md_signal_handler_sigsegv ***************************************************
-
-   NullPointerException signal handler for hardware null pointer
-   check.
-
-*******************************************************************************/
-
+/**
+ * NullPointerException signal handler for hardware null pointer check.
+ */
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t     *_uc;
-	mcontext_t     *_mc;
-	u1             *pv;
-	u1             *sp;
-	u1             *ra;
-	u1             *xpc;
-	u4              mcode;
-	s4              d;
-	s4              s1;
-	s4              disp;
-	intptr_t        val;
-	intptr_t        addr;
-	int             type;
+	ucontext_t* _uc = (ucontext_t *) _p;
+	mcontext_t* _mc = &_uc->uc_mcontext;
 
-	_uc = (ucontext_t *) _p;
-	_mc = &_uc->uc_mcontext;
+	void* xpc = (void*) _mc->sc_pc;
 
-	pv  = (u1 *) _mc->sc_regs[REG_PV];
-	sp  = (u1 *) _mc->sc_regs[REG_SP];
-	ra  = (u1 *) _mc->sc_regs[REG_RA];           /* this is correct for leafs */
-	xpc = (u1 *) _mc->sc_pc;
-
-	/* get exception-throwing instruction */
-
-	mcode = *((u4 *) xpc);
-
-	d    = M_MEM_GET_Ra(mcode);
-	s1   = M_MEM_GET_Rb(mcode);
-	disp = M_MEM_GET_Memory_disp(mcode);
-
-	val  = _mc->sc_regs[d];
-
-	/* check for special-load */
-
-	if (s1 == REG_ZERO) {
-		/* we use the exception type as load displacement */
-
-		type = disp;
-
-		if (type == TRAP_COMPILER) {
-			/* The XPC is the RA minus 1, because the RA points to the
-			   instruction after the call. */
-
-			xpc = ra - 4;
-		}
-	}
-	else {
-		/* This is a normal NPE: addr must be NULL and the NPE-type
-		   define is 0. */
-
-		addr = _mc->sc_regs[s1];
-		type = (int) addr;
-	}
-
-	/* Handle the trap. */
-
-	trap_handle(type, val, pv, sp, ra, xpc, _p);
+	// Handle the trap.
+	trap_handle(TRAP_SIGSEGV, xpc, _p);
 }
 
 
-/* md_signal_handler_sigill ****************************************************
-
-   Illegal Instruction signal handler for hardware exception checks.
-
-*******************************************************************************/
-
+/**
+ * Illegal Instruction signal handler for hardware exception checks.
+ */
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
 	ucontext_t* _uc = (ucontext_t*) _p;
 	mcontext_t* _mc = &_uc->uc_mcontext;
 
-	void* pv  = (u1 *) _mc->sc_regs[REG_PV];
-	void* sp  = (u1 *) _mc->sc_regs[REG_SP];
-	void* ra  = (u1 *) _mc->sc_regs[REG_RA]; // RA is correct for leaf methods.
-	void* xpc = (u1 *) _mc->sc_pc;
+	void* xpc = (void*) _mc->sc_pc;
 
 	// The PC points to the instruction after the illegal instruction.
 	xpc = (void*) (((uintptr_t) xpc) - 4);
 
-	// Get the exception-throwing instruction.
-	uint32_t mcode = *((uint32_t*) xpc);
-
-	int opcode = M_OP3_GET_Opcode(mcode);
-
-	// Check for undefined instruction we use.
-	// TODO Check the whole instruction.
-	if (opcode != 0x4) {
-		log_println("md_signal_handler_sigill: Unknown illegal instruction %x at %p", mcode, xpc);
-#if defined(ENABLE_DISASSEMBLER)
-		(void) disassinstr(xpc);
-#endif
-		vm_abort("Aborting...");
-	}
-
-	// This signal is always a patcher.
-	int      type = TRAP_PATCHER;
-	intptr_t val  = 0;
-
 	// Handle the trap.
-	trap_handle(type, val, pv, sp, ra, xpc, _p);
+	trap_handle(TRAP_SIGILL, xpc, _p);
 }
 
 

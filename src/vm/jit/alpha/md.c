@@ -2,6 +2,7 @@
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -186,6 +187,64 @@ void *md_jit_method_patch_address(void *pv, void *ra, void *mptr)
 	}
 
 	return pa;
+}
+
+
+/**
+ * Decode the trap instruction at the given PC.
+ *
+ * @param trp information about trap to be filled
+ * @param sig signal number
+ * @param xpc exception PC
+ * @param es execution state of the machine
+ * @return true if trap was decoded successfully, false otherwise.
+ */
+bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es)
+{
+	// Get the exception-throwing instruction.
+	uint32_t mcode = *((uint32_t*) xpc);
+
+	switch (sig) {
+	case TRAP_SIGILL:
+		// Check for valid trap instruction.
+		// TODO Check the whole instruction.
+		if (M_OP3_GET_Opcode(mcode) == 0x4) {
+			trp->type  = TRAP_PATCHER;
+			trp->value = 0;
+			return true;
+		}
+		return false;
+
+	case TRAP_SIGSEGV:
+	{
+		// Retrieve base address of instruction.
+		int32_t   s1   = M_MEM_GET_Rb(mcode);
+		uintptr_t addr = es->intregs[s1];
+
+		// Check for special-load.
+		if (s1 == REG_ZERO) {
+			int32_t d    = M_MEM_GET_Ra(mcode);
+			int32_t disp = M_MEM_GET_Memory_disp(mcode);
+
+			// We use the exception type as load displacement.
+			trp->type  = disp;
+			trp->value = es->intregs[d];
+			return true;
+		}
+
+		// Check for implicit NullPointerException.
+		if (addr == 0) {
+			trp->type  = TRAP_NullPointerException;
+			trp->value = 0;
+			return true;
+		}
+
+		return false;
+	}
+
+	default:
+		return false;
+	}
 }
 
 
