@@ -1,6 +1,6 @@
 /* src/vm/jit/i386/darwin/md-os.c - machine dependent i386 Darwin functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -37,13 +37,10 @@
 
 #include "threads/thread.hpp"
 
-#include "vm/jit/builtin.hpp"
 #include "vm/global.h"
 #include "vm/signallocal.hpp"
 
-#include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
-#include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.hpp"
 
 #include "vm/jit/i386/codegen.h"
@@ -61,142 +58,36 @@
 #define __ss ss
 #endif
 
-/* md_signal_handler_sigsegv ***************************************************
-
-   Signal handler for hardware exceptions.
-
-*******************************************************************************/
-
+/**
+ * Signal handler for hardware exceptions.
+ */
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t          *_uc;
-	mcontext_t           _mc;
-	u1                  *pv;
-	i386_thread_state_t *_ss;
-	u1                  *sp;
-	u1                  *ra;
-	u1                  *xpc;
-	u1                   opc;
-	u1                   mod;
-	u1                   rm;
-	int                  d;
-	int32_t              disp;
-	intptr_t             val;
-	int                  type;
-	void                *p;
+	ucontext_t*          _uc = (ucontext_t *) _p;
+	mcontext_t           _mc = _uc->uc_mcontext;
+	i386_thread_state_t* _ss = &_mc->__ss;
 
-	_uc = (ucontext_t *) _p;
-	_mc = _uc->uc_mcontext;
-	_ss = &_mc->__ss;
+	void* xpc = (void*) _ss->__eip;
 
-	pv  = NULL;                 /* is resolved during stackframeinfo creation */
-	sp  = (u1 *) _ss->__esp;
-	xpc = (u1 *) _ss->__eip;
-	ra  = xpc;                              /* return address is equal to XPC */
-
-	/* get exception-throwing instruction */
-
-	opc = M_ALD_MEM_GET_OPC(xpc);
-	mod = M_ALD_MEM_GET_MOD(xpc);
-	rm  = M_ALD_MEM_GET_RM(xpc);
-
-	/* for values see emit_mov_mem_reg and emit_mem */
-
-	if ((opc == 0x8b) && (mod == 0) && (rm == 5)) {
-		/* this was a hardware-exception */
-
-		d    = M_ALD_MEM_GET_REG(xpc);
-		disp = M_ALD_MEM_GET_DISP(xpc);
-
-		/* we use the exception type as load displacement */
-
-		type = disp;
-
-		val = (d == 0) ? _ss->__eax :
-			((d == 1) ? _ss->__ecx :
-			((d == 2) ? _ss->__edx :
-			((d == 3) ? _ss->__ebx :
-			((d == 4) ? _ss->__esp :
-			((d == 5) ? _ss->__ebp :
-			((d == 6) ? _ss->__esi : _ss->__edi))))));
-
-		if (type == TRAP_COMPILER) {
-			/* The PV from the compiler stub is equal to the XPC. */
-
-			pv = xpc;
-
-			/* We use a framesize of zero here because the call pushed
-			   the return addres onto the stack. */
-
-			ra = md_stacktrace_get_returnaddress(sp, 0);
-
-			/* Skip the RA on the stack. */
-
-			sp = sp + 1 * SIZEOF_VOID_P;
-
-			/* The XPC is the RA minus 2, because the RA points to the
-			   instruction after the call. */
-
-			xpc = ra - 2;
-		} 
-	}
-	else {
-		/* this was a normal NPE */
-
-		type = TRAP_NullPointerException;
-	}
-
-	/* Handle the trap. */
-
-	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	/* Set registers. */
-
-	if (type == TRAP_COMPILER) {
-		if (p == NULL) {
-			_ss->__esp = (uintptr_t) sp;  /* Remove RA from stack. */
-		}
-	}
+	// Handle the trap.
+	trap_handle(TRAP_SIGSEGV, xpc, _p);
 }
 
 
-/* md_signal_handler_sigfpe ****************************************************
-
-   ArithmeticException signal handler for hardware divide by zero
-   check.
-
-*******************************************************************************/
-
+/**
+ * Signal handler for hardware divide by zero (ArithmeticException)
+ * check.
+ */
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t          *_uc;
-	mcontext_t           _mc;
-	u1                  *pv;
-	i386_thread_state_t *_ss;
-	u1                  *sp;
-	u1                  *ra;
-	u1                  *xpc;
-	int                  type;
-	intptr_t             val;
+	ucontext_t*          _uc = (ucontext_t *) _p;
+	mcontext_t           _mc = _uc->uc_mcontext;
+	i386_thread_state_t* _ss = &_mc->__ss;
 
+	void* xpc = (void*) _ss->__eip;
 
-	_uc = (ucontext_t *) _p;
-	_mc = _uc->uc_mcontext;
-	_ss = &_mc->__ss;
-
-	pv  = NULL;                 /* is resolved during stackframeinfo creation */
-	sp  = (u1 *) _ss->__esp;
-	xpc = (u1 *) _ss->__eip;
-	ra  = xpc;                          /* return address is equal to xpc     */
-
-	/* This is an ArithmeticException */
-
-	type = TRAP_ArithmeticException;
-	val  = 0;
-
-	/* Handle the trap. */
-
-	trap_handle(type, val, pv, sp, ra, xpc, _p);
+	// Handle the trap.
+	trap_handle(TRAP_SIGFPE, xpc, _p);
 }
 
 
@@ -226,56 +117,19 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 }
 
 
-/* md_signal_handler_sigill ****************************************************
-
-   Signal handler for hardware patcher traps (ud2).
-
-*******************************************************************************/
-
+/**
+ * Signal handler for hardware patcher traps (ud2).
+ */
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t          *_uc;
-	mcontext_t           _mc;
-	u1                  *pv;
-	i386_thread_state_t *_ss;
-	u1                  *sp;
-	u1                  *ra;
-	u1                  *xpc;
-	int                  type;
-	intptr_t             val;
+	ucontext_t*          _uc = (ucontext_t *) _p;
+	mcontext_t           _mc = _uc->uc_mcontext;
+	i386_thread_state_t* _ss = &_mc->__ss;
 
+	void* xpc = (void*) _ss->__eip;
 
-	_uc = (ucontext_t *) _p;
-	_mc = _uc->uc_mcontext;
-	_ss = &_mc->__ss;
-
-	pv  = NULL;                 /* is resolved during stackframeinfo creation */
-	sp  = (u1 *) _ss->__esp;
-	xpc = (u1 *) _ss->__eip;
-	ra  = xpc;                          /* return address is equal to xpc     */
-
-	// Check if the trap instruction is valid.
-	// TODO Move this into patcher_handler.
-	if (patcher_is_valid_trap_instruction_at(xpc) == false) {
-		// Check if the PC has been patched during our way to this
-		// signal handler (see PR85).
-		if (patcher_is_patched_at(xpc) == true)
-			return;
-
-		// We have a problem...
-		log_println("md_signal_handler_sigill: Unknown illegal instruction at 0x%lx", xpc);
-#if defined(ENABLE_DISASSEMBLER)
-		(void) disassinstr(xpc);
-#endif
-		vm_abort("Aborting...");
-	}
-
-	type = TRAP_PATCHER;
-	val  = 0;
-
-	/* Handle the trap. */
-
-	trap_handle(type, val, pv, sp, ra, xpc, _p);
+	// Handle the trap.
+	trap_handle(TRAP_SIGILL, xpc, _p);
 }
 
 /* md_executionstate_read ******************************************************
