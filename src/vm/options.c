@@ -190,6 +190,7 @@ int      opt_InlineMinSize                = 0;
 #endif
 #endif
 int      opt_PrintConfig                  = 0;
+int      opt_PrintWarnings                = 0;
 int      opt_ProfileGCMemoryUsage         = 0;
 int      opt_ProfileMemoryUsage           = 0;
 FILE    *opt_ProfileMemoryUsageGNUPlot    = NULL;
@@ -254,6 +255,7 @@ enum {
 	OPT_InlineMaxSize,
 	OPT_InlineMinSize,
 	OPT_PrintConfig,
+	OPT_PrintWarnings,
 	OPT_ProfileGCMemoryUsage,
 	OPT_ProfileMemoryUsage,
 	OPT_ProfileMemoryUsageGNUPlot,
@@ -321,6 +323,7 @@ option_t options_XX[] = {
 #endif
 #endif
 	{ "PrintConfig",                  OPT_PrintConfig,                  OPT_TYPE_BOOLEAN, "print VM configuration" },
+	{ "PrintWarnings",                OPT_PrintWarnings,                OPT_TYPE_BOOLEAN, "print warnings about suspicious behavior"},
 	{ "ProfileGCMemoryUsage",         OPT_ProfileGCMemoryUsage,         OPT_TYPE_VALUE,   "profiles GC memory usage in the given interval, <value> is in seconds (default: 5)" },
 	{ "ProfileMemoryUsage",           OPT_ProfileMemoryUsage,           OPT_TYPE_VALUE,   "TODO" },
 	{ "ProfileMemoryUsageGNUPlot",    OPT_ProfileMemoryUsageGNUPlot,    OPT_TYPE_VALUE,   "TODO" },
@@ -733,6 +736,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 		case OPT_PrintConfig:
 			opt_PrintConfig = enable;
+			break;
+
+		case OPT_PrintWarnings:
+			opt_PrintWarnings = enable;
 			break;
 
 		case OPT_ProfileGCMemoryUsage:

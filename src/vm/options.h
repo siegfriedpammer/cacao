@@ -212,6 +212,7 @@ extern int      opt_InlineMinSize;
 #endif
 #endif
 extern int      opt_PrintConfig;
+extern int      opt_PrintWarnings;
 extern int      opt_ProfileGCMemoryUsage;
 extern int      opt_ProfileMemoryUsage;
 extern FILE    *opt_ProfileMemoryUsageGNUPlot;

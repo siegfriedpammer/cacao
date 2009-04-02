@@ -2,6 +2,7 @@
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -1187,6 +1188,18 @@ classinfo *load_class_from_classloader(utf *name, classloader_t *cl)
 			}
 
 			c = tmpc;
+		}
+		else {
+			// Expected behavior for the classloader is to throw an exception
+			// and never return NULL. If the classloader shows a different
+			// behavior, we are correcting it here (see PR126).
+			if (exceptions_get_exception() == NULL) {
+#if !defined(NDEBUG)
+				if (opt_PrintWarnings)
+					log_message_utf("load_class_from_classloader: Correcting faulty classloader behavior (PR126) for ", name);
+#endif
+				exceptions_throw_classnotfoundexception(name);
+			}
 		}
 
 		RT_TIMING_GET_TIME(time_cache);
