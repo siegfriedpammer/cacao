@@ -64,6 +64,17 @@ enum {
 	TRAP_PATCHER                        = 99 // A large number.
 };
 
+
+/**
+ * Macro to fixup a compiler stub. The XPC is the RA minus 4,
+ * because the RA points to the instruction after the call.
+ */
+#define MD_TRAP_COMPILER_FIXUP(xpc, ra, sp, pv) \
+	do { \
+		(xpc) = (void*) (((uintptr_t) (ra)) - 4); \
+	} while(0)
+
+
 #endif /* _MD_TRAP_H */
 
 

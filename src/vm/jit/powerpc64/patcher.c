@@ -66,22 +66,6 @@ void patcher_patch_code(patchref_t *pr)
 }
 
 
-/**
- * Check if the trap instruction at the given PC is valid.
- *
- * @param pc Program counter.
- *
- * @return true if valid, false otherwise.
- */
-bool patcher_is_valid_trap_instruction_at(void* pc)
-{
-	uint32_t mcode = *((uint32_t*) pc);
-
-	// Check for the undefined instruction we use.
-	return (mcode == 0x00000000);
-}
-
-
 /* patcher_get_putstatic *******************************************************
 
    Machine code:

@@ -62,6 +62,25 @@ enum {
 	TRAP_END
 };
 
+
+/**
+* Macro to fixup a compiler stub.
+* PV : The PV from the compiler stub is equal to the XPC.
+* RA : We use a framesize of zero here because the call pushed
+*      the return addres onto the stack.
+* SP : Skip the RA on the stack.
+* XPC: The XPC is the RA minus 2, because the RA points to the
+*      instruction after the call.
+*/
+#define MD_TRAP_COMPILER_FIXUP(xpc, ra, sp, pv) \
+	do { \
+		(pv)  = (xpc); \
+		(ra)  = md_stacktrace_get_returnaddress((sp), 0); \
+		(sp)  = (void*) (((uintptr_t) (sp)) + 1 * SIZEOF_VOID_P); \
+		(xpc) = (void*) (((uintptr_t) (ra)) - 2); \
+	} while(0)
+
+
 #endif /* _MD_TRAP_H */
 
 
