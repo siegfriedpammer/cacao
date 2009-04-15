@@ -2,6 +2,7 @@
 
    Copyright (C) 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -129,12 +130,12 @@
         }										\
     } while (0)
 
-# define PRINTJVMWARNINGS(x)
-/*     do { \ */
-/*         if (opt_PrintJVMWarnings) { \ */
-/*             log_println x; \ */
-/*         } \ */
-/*     } while (0) */
+# define PRINTJVMWARNINGS(x)					\
+    do {										\
+        if (opt_PrintWarnings) {				\
+            log_println x;						\
+        }										\
+    } while (0)
 
 #else
 
@@ -2316,12 +2317,10 @@ jclass JVM_CurrentLoadedClass(JNIEnv *env)
 
 jobject JVM_CurrentClassLoader(JNIEnv *env)
 {
-    /* XXX if a method in a class in a trusted loader is in a
-	   doPrivileged, return NULL */
+	TRACEJVMCALLS(("JVM_CurrentClassLoader(env=%p)", env));
+	PRINTJVMWARNINGS(("JVM_CurrentClassLoader is deprecated, do not use it."));
 
-	log_println("JVM_CurrentClassLoader: IMPLEMENT ME!");
-
-	return NULL;
+	return stacktrace_first_nonsystem_classloader();
 }
 
 
@@ -2413,13 +2412,9 @@ jobject JVM_AllocateNewArray(JNIEnv *env, jobject obj, jclass currClass, jint le
 
 jobject JVM_LatestUserDefinedLoader(JNIEnv *env)
 {
-	classloader_t *cl;
-
 	TRACEJVMCALLS(("JVM_LatestUserDefinedLoader(env=%p)", env));
 
-	cl = stacktrace_first_nonnull_classloader();
-
-	return (jobject) cl;
+	return stacktrace_first_nonnull_classloader();
 }
 
 

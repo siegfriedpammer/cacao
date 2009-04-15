@@ -2011,7 +2011,11 @@ static char *vm_get_mainclass_from_jar(char *mainname)
 	methodinfo    *m;
 	java_handle_t *s;
 
+#if defined(ENABLE_JAVAME_CLDC1_1)
+	c = load_class_bootstrap(utf_new_char("java/util/jar/JarFile"));
+#else
 	c = load_class_from_sysloader(utf_new_char("java/util/jar/JarFile"));
+#endif
 
 	if (c == NULL) {
 		exceptions_print_stacktrace();

@@ -1,6 +1,6 @@
 /* src/vm/javaobjects.cpp - functions to create and access Java objects
 
-   Copyright (C) 2008 Theobroma Systems Ltd.
+   Copyright (C) 2008, 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -39,6 +39,42 @@
 #if defined(ENABLE_JAVASE)
 
 /**
+ * Invokes the static Java method getSystemClassLoader().
+ *
+ * @return Return value of the invocation or NULL in
+ * case of an exception.
+ */
+java_handle_t* java_lang_ClassLoader::invoke_getSystemClassLoader()
+{
+	methodinfo    *m;
+	java_handle_t *clo;
+	classloader_t *cl;
+
+	assert(class_java_lang_Object);
+	assert(class_java_lang_ClassLoader);
+	assert(class_java_lang_ClassLoader->state & CLASS_LINKED);
+
+	m = class_resolveclassmethod(class_java_lang_ClassLoader,
+								 utf_getSystemClassLoader,
+								 utf_void__java_lang_ClassLoader,
+								 class_java_lang_Object,
+								 false);
+
+	if (m == NULL)
+		return NULL;
+
+	clo = vm_call_method(m, NULL);
+
+	if (clo == NULL)
+		return NULL;
+
+	cl = loader_hashtable_classloader_add(clo);
+
+	return cl;
+}
+
+
+/**
  * Constructs a Java object with the given
  * java.lang.reflect.Constructor.
  *
@@ -67,7 +103,7 @@ java_handle_t* java_lang_reflect_Constructor::new_instance(java_handle_objectarr
 
 	if (h == NULL)
 		return NULL;
-        
+
 	// Call initializer.
 	(void) Reflection::invoke(m, h, args);
 

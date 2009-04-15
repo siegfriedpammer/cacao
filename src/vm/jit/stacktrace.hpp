@@ -110,6 +110,7 @@ java_handle_t*             stacktrace_get_StackTraceElement(stacktrace_t *st, in
 java_handle_objectarray_t* stacktrace_get_StackTraceElements(stacktrace_t *st);
 classinfo                 *stacktrace_get_caller_class(int depth);
 classloader_t             *stacktrace_first_nonnull_classloader(void);
+classloader_t             *stacktrace_first_nonsystem_classloader(void);
 java_handle_objectarray_t *stacktrace_getClassContext(void);
 classinfo                 *stacktrace_get_current_class(void);
 java_handle_objectarray_t *stacktrace_get_stack(void);

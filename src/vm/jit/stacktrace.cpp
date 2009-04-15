@@ -2,6 +2,7 @@
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -872,17 +873,12 @@ classinfo *stacktrace_get_caller_class(int depth)
 #endif
 
 
-/* stacktrace_first_nonnull_classloader ****************************************
-
-   Returns the first non-null (user-defined) classloader on the stack.
-   If none is found NULL is returned.
-
-   RETURN:
-       classloader
-
-*******************************************************************************/
-
-classloader_t *stacktrace_first_nonnull_classloader(void)
+/**
+ * Returns the first non-null (user-defined) classloader on the stack.
+ *
+ * @return The first non-null classloader or NULL if none is found.
+ */
+classloader_t* stacktrace_first_nonnull_classloader(void)
 {
 	stackframeinfo_t *sfi;
 	stackframeinfo_t  tmpsfi;
@@ -913,6 +909,82 @@ classloader_t *stacktrace_first_nonnull_classloader(void)
 
 	return NULL;
 }
+
+
+/**
+ * Checks if a given classloader is equal to the the second classloader
+ * or one of its ancestors (parents).
+ *
+ * XXX: This helper method should be moved to java_lang_Classloader.
+ */
+#if defined(ENABLE_JAVASE)
+static bool is_ancestor_of(classloader_t* loader, classloader_t* parent)
+{
+	// Iterate over chain of possible parents.
+	while (parent != NULL) {
+
+		// Check if given loader is parent.
+		if (loader == parent)
+			return true;
+
+		// Jump to next parent.
+		java_lang_ClassLoader jlcl(parent);
+		parent = jlcl.get_parent();
+	}
+
+	return false;
+}
+#endif /* defined(ENABLE_JAVASE) */
+
+
+/**
+ * Returns the first non-system (user-defined) classloader on the stack.
+ * A non-system classloader is a non-null classloader being not equal to
+ * the system classloader (or one of its ancestors).
+ *
+ * @return The first non-system classloader or NULL if none is found.
+ */
+#if defined(ENABLE_JAVASE)
+classloader_t* stacktrace_first_nonsystem_classloader(void)
+{
+	stackframeinfo_t *sfi;
+	stackframeinfo_t  tmpsfi;
+	methodinfo       *m;
+	classloader_t    *cl;
+	classloader_t    *syscl;
+
+#if !defined(NDEBUG)
+	if (opt_DebugStackTrace)
+		log_println("[stacktrace_first_nonsystem_classloader]");
+#endif
+
+	// Get the stackframeinfo of the current thread.
+	sfi = threads_get_current_stackframeinfo();
+
+	// Get the system class class loader.
+	syscl = java_lang_ClassLoader::invoke_getSystemClassLoader();
+
+	// Iterate over the whole stack.
+	for (stacktrace_stackframeinfo_fill(&tmpsfi, sfi);
+		 stacktrace_stackframeinfo_end_check(&tmpsfi) == false;
+		 stacktrace_stackframeinfo_next(&tmpsfi)) {
+
+		m  = tmpsfi.code->m;
+		cl = class_get_classloader(m->clazz);
+
+		if (cl == NULL)
+			continue;
+
+		// XXX if a method in a class in a trusted loader is in a
+		// doPrivileged, return NULL (or break) here.
+
+		if (!is_ancestor_of(cl, syscl))
+			return cl;
+	}
+
+	return NULL;
+}
+#endif /* defined(ENABLE_JAVASE) */
 
 
 /* stacktrace_getClassContext **************************************************

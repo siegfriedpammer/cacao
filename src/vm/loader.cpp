@@ -48,6 +48,7 @@
 #include "vm/field.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
+#include "vm/javaobjects.hpp"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
 #include "vm/method.hpp"
@@ -992,37 +993,22 @@ bool loader_load_attribute_signature(classbuffer *cb, utf **signature)
 
 *******************************************************************************/
 
+#if defined(ENABLE_JAVASE)
 classinfo *load_class_from_sysloader(utf *name)
 {
-	methodinfo    *m;
-	java_handle_t *clo;
 	classloader_t *cl;
 	classinfo     *c;
 
-	assert(class_java_lang_Object);
-	assert(class_java_lang_ClassLoader);
-	assert(class_java_lang_ClassLoader->state & CLASS_LINKED);
-	
-	m = class_resolveclassmethod(class_java_lang_ClassLoader,
-								 utf_getSystemClassLoader,
-								 utf_void__java_lang_ClassLoader,
-								 class_java_lang_Object,
-								 false);
+	cl = java_lang_ClassLoader::invoke_getSystemClassLoader();
 
-	if (!m)
+	if (cl == NULL)
 		return false;
-
-	clo = vm_call_method(m, NULL);
-
-	if (!clo)
-		return false;
-
-	cl = loader_hashtable_classloader_add(clo);
 
 	c = load_class_from_classloader(name, cl);
 
 	return c;
 }
+#endif /* defined(ENABLE_JAVASE) */
 
 
 /* load_class_from_classloader *************************************************

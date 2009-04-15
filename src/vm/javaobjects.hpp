@@ -1,6 +1,6 @@
 /* src/vm/javaobjects.hpp - functions to create and access Java objects
 
-   Copyright (C) 2008 Theobroma Systems Ltd.
+   Copyright (C) 2008, 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -587,6 +587,39 @@ public:
 inline void java_lang_Class::set_pd(java_handle_t* value)
 {
 	set(_handle, offset_pd, value);
+}
+
+
+/**
+ * GNU Classpath java/lang/ClassLoader
+ *
+ * Object layout:
+ *
+ * 0. object header
+ * 1. java.util.HashMap     definedPackages
+ * 2. java.lang.ClassLoader parent
+ * [other fields are not used]
+ */
+class java_lang_ClassLoader : public java_lang_Object, private FieldAccess {
+private:
+	// Static offsets of the object's instance fields.
+	// TODO These offsets need to be checked on VM startup.
+	static const off_t offset_definedPackages = MEMORY_ALIGN(sizeof(java_object_t),                  SIZEOF_VOID_P);
+	static const off_t offset_parent          = MEMORY_ALIGN(offset_definedPackages + SIZEOF_VOID_P, SIZEOF_VOID_P);
+
+public:
+	java_lang_ClassLoader(java_handle_t* h) : java_lang_Object(h) {}
+
+	// Getters.
+	java_handle_t* get_parent() const;
+
+	// Invocation wrappers for static methods.
+	static java_handle_t* invoke_getSystemClassLoader();
+};
+
+inline java_handle_t* java_lang_ClassLoader::get_parent() const
+{
+	return get<java_handle_t*>(_handle, offset_parent);
 }
 
 
@@ -1715,7 +1748,7 @@ public:
 	gnu_classpath_Pointer(java_handle_t* h) : java_lang_Object(h) {}
 	gnu_classpath_Pointer(java_handle_t* h, void* data);
 
-	// Setters.
+	// Getters.
 	void* get_data() const;
 
 	// Setters.
@@ -1785,6 +1818,39 @@ inline java_lang_AssertionStatusDirectives::java_lang_AssertionStatusDirectives(
 	set(_handle, offset_classEnabled,   classEnabled);
 	set(_handle, offset_packages,       packages);
 	set(_handle, offset_packageEnabled, packageEnabled);
+}
+
+
+/**
+ * OpenJDK java/lang/ClassLoader
+ *
+ * Object layout:
+ *
+ * 0. object header
+ * 1. boolean               initialized
+ * 2. java.lang.ClassLoader parent
+ * [other fields are not used]
+ */
+class java_lang_ClassLoader : public java_lang_Object, private FieldAccess {
+private:
+	// Static offsets of the object's instance fields.
+	// TODO These offsets need to be checked on VM startup.
+	static const off_t offset_initialized = MEMORY_ALIGN(sizeof(java_object_t),                sizeof(int32_t));
+	static const off_t offset_parent      = MEMORY_ALIGN(offset_initialized + sizeof(int32_t), SIZEOF_VOID_P);
+
+public:
+	java_lang_ClassLoader(java_handle_t* h) : java_lang_Object(h) {}
+
+	// Getters.
+	java_handle_t* get_parent() const;
+
+	// Invocation wrappers for static methods.
+	static java_handle_t* invoke_getSystemClassLoader();
+};
+
+inline java_handle_t* java_lang_ClassLoader::get_parent() const
+{
+	return get<java_handle_t*>(_handle, offset_parent);
 }
 
 
