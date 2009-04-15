@@ -2,7 +2,7 @@
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
-   Copyright (C) 2008 Theobroma Systems Ltd.
+   Copyright (C) 2008, 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -38,46 +38,21 @@
 
 #include "threads/thread.hpp"
 
-#include "vm/jit/builtin.hpp"
 #include "vm/signallocal.hpp"
 #include "vm/os.hpp"
 
-#include "vm/jit/asmpart.h"
-#include "vm/jit/disass.h"
 #include "vm/jit/executionstate.h"
-
-#if defined(ENABLE_PROFILING)
-# include "vm/jit/optimizing/profile.h"
-#endif
-
-#include "vm/jit/patcher-common.hpp"
 #include "vm/jit/trap.hpp"
 
 
-/* md_signal_handler_sigsegv ***************************************************
-
-   Signal handler for hardware-exceptions.
-
-*******************************************************************************/
-
+/**
+ * Signal handler for hardware-exceptions.
+ */
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t     *_uc;
-	mcontext_t     *_mc;
-	unsigned long  *_gregs;
-	u1             *pv;
-	u1             *sp;
-	u1             *ra;
-	u1             *xpc;
-	u4              mcode;
-	int             s1;
-	int16_t         disp;
-	int             d;
-	intptr_t        addr;
-	intptr_t        val;
-	int             type;
-
- 	_uc = (ucontext_t *) _p;
+	ucontext_t* _uc = (ucontext_t*) _p;
+	mcontext_t* _mc;
+	unsigned long* _gregs;
 
 #if defined(__UCLIBC__)
 	_mc    = &(_uc->uc_mcontext);
@@ -87,46 +62,10 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	_gregs = _mc->gregs;
 #endif
 
-	pv  = (u1 *) _gregs[REG_PV];
-	sp  = (u1 *) _gregs[REG_SP];
-	ra  = (u1 *) _gregs[PT_LNK];                 /* this is correct for leafs */
-	xpc = (u1 *) _gregs[PT_NIP];
+	void* xpc = (void*) _gregs[PT_NIP];
 
-	/* get exception-throwing instruction */
-
-	mcode = *((u4 *) xpc);
-
-	s1   = M_INSTR_OP2_IMM_A(mcode);
-	disp = M_INSTR_OP2_IMM_I(mcode);
-	d    = M_INSTR_OP2_IMM_D(mcode);
-
-	val  = _gregs[d];
-
-	/* check for special-load */
-
-	if (s1 == REG_ZERO) {
-		/* we use the exception type as load displacement */
-
-		type = disp;
-
-		if (type == TRAP_COMPILER) {
-			/* The XPC is the RA minus 4, because the RA points to the
-			   instruction after the call. */
-
-			xpc = ra - 4;
-		}
-	}
-	else {
-		/* This is a normal NPE: addr must be NULL and the NPE-type
-		   define is 0. */
-
-		addr = _gregs[s1];
-		type = addr;
-	}
-
-	/* Handle the trap. */
-
-	trap_handle(type, val, pv, sp, ra, xpc, _p);
+	// Handle the trap.
+	trap_handle(TRAP_SIGSEGV, xpc, _p);
 }
 
 
@@ -147,62 +86,21 @@ void md_signal_handler_sigill(int sig, siginfo_t* siginfo, void* _p)
 	_gregs = _mc->gregs;
 #endif
 
-	/* get register values */
-
-	void* pv = (void*) _gregs[REG_PV];
-	void* sp = (void*) _gregs[REG_SP];
-	void* ra = (void*) _gregs[PT_LNK]; // The RA is correct for leag methods.
-	void* xpc =(void*) _gregs[PT_NIP];
-
-	// Get the illegal-instruction.
-	uint32_t mcode = *((uint32_t*) xpc);
-
-	// Check if the trap instruction is valid.
-	// TODO Move this into patcher_handler.
-	if (patcher_is_valid_trap_instruction_at(xpc) == false) {
-		// Check if the PC has been patched during our way to this
-		// signal handler (see PR85).
-		if (patcher_is_patched_at(xpc) == true)
-			return;
-
-		// We have a problem...
-		log_println("md_signal_handler_sigill: Unknown illegal instruction 0x%x at 0x%lx", mcode, xpc);
-#if defined(ENABLE_DISASSEMBLER)
-		(void) disassinstr(xpc);
-#endif
-		vm_abort("Aborting...");
-	}
-
-	// This signal is always a patcher.
-	int      type = TRAP_PATCHER;
-	intptr_t val  = 0;
+	void* xpc = (void*) _gregs[PT_NIP];
 
 	// Handle the trap.
-	trap_handle(type, val, pv, sp, ra, xpc, _p);
+	trap_handle(TRAP_SIGILL, xpc, _p);
 }
 
 
-/* md_signal_handler_sigtrap ***************************************************
-
-   Signal handler for hardware-traps.
-
-*******************************************************************************/
-
+/**
+ * Signal handler for hardware-traps.
+ */
 void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t     *_uc;
-	mcontext_t     *_mc;
-	unsigned long  *_gregs;
-	u1             *pv;
-	u1             *sp;
-	u1             *ra;
-	u1             *xpc;
-	u4              mcode;
-	int             s1;
-	intptr_t        val;
-	int             type;
-
- 	_uc = (ucontext_t *) _p;
+ 	ucontext_t* _uc = (ucontext_t*) _p;
+	mcontext_t* _mc;
+	unsigned long* _gregs;
 
 #if defined(__UCLIBC__)
 	_mc    = &(_uc->uc_mcontext);
@@ -212,25 +110,10 @@ void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 	_gregs = _mc->gregs;
 #endif
 
-	pv  = (u1 *) _gregs[REG_PV];
-	sp  = (u1 *) _gregs[REG_SP];
-	ra  = (u1 *) _gregs[PT_LNK];                 /* this is correct for leafs */
-	xpc = (u1 *) _gregs[PT_NIP];
+	void* xpc = (void*) _gregs[PT_NIP];
 
-	/* get exception-throwing instruction */
-
-	mcode = *((u4 *) xpc);
-
-	s1 = M_OP3_GET_A(mcode);
-
-	/* For now we only handle ArrayIndexOutOfBoundsException. */
-
-	type = TRAP_ArrayIndexOutOfBoundsException;
-	val  = _gregs[s1];
-
-	/* Handle the trap. */
-
-	trap_handle(type, val, pv, sp, ra, xpc, _p);
+	// Handle the trap.
+	trap_handle(TRAP_SIGTRAP, xpc, _p);
 }
 
 
