@@ -191,6 +191,8 @@
 #define M_SRL_IMM(a,b,c)                M_OP3(30, ((64-(b))&0x20 ? 1:0), 0, (((((b))&0x1f)<<6) | ((((b))&0x20 ? 1:0)<<5) | 0x00), a, c, (64-(b))&0x1f);
 #define M_SRA(a,b,c)                    M_OP3(31, 794, 0, 0, a, c, b)
 #define M_SRA_IMM(a,b,c)                M_OP3(31, (826 | ((b)&0x20?1:0)), 0, 0, a, c, ((b)&0x1f))
+#define M_RLDICL(a,b,c,d)               M_OP4(30, ((b)&0x20 ? 1:0), 0, a, d, (b)&0x1f, c)
+#define M_CNTLZ(a,b)                    M_OP3(31, 58, 0, 0, a, b, 0)
 
 #define M_MUL(a,b,c)                   M_OP3(31, 233, 0, 0, c, a, b)
 #define M_MUL_IMM(a,b,c)               M_OP2_IMM(7, c, a, b)
