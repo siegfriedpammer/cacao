@@ -688,7 +688,9 @@ bool codegen_emit(jitdata *jd)
 			M_ANDIS(REG_ITMP2, 0x4000, REG_ITMP2);	/* test OV */
 			M_BLE(2); 
 			LCONST(REG_ITMP3, 0);			/* result == 0 in this case */
-			M_BR(2);
+			M_BR(2 + (s2==REG_ITMP2));
+			/* might require a reload */
+			emit_load_s2(jd, iptr, REG_ITMP2);
 			M_MUL(REG_ITMP3, s2, REG_ITMP2);
 			M_SUB(s1, REG_ITMP2,  REG_ITMP3);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
@@ -2350,9 +2352,9 @@ gen_method:
 				M_MTCTR(REG_ITMP2);
 				M_JSR;
 				M_TST(REG_RESULT);
+				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 				emit_classcast_check(cd, iptr, BRANCH_EQ, REG_RESULT, s1);
 
-				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 				d = codegen_reg_of_dst(jd, iptr, s1);
 			}
 			M_INTMOVE(s1, d);
