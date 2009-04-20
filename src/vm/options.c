@@ -194,6 +194,7 @@ int      opt_PrintWarnings                = 0;
 int      opt_ProfileGCMemoryUsage         = 0;
 int      opt_ProfileMemoryUsage           = 0;
 FILE    *opt_ProfileMemoryUsageGNUPlot    = NULL;
+int      opt_RegallocSpillAll             = 0;
 #if defined(ENABLE_REPLACEMENT)
 int      opt_TestReplacement              = 0;
 #endif
@@ -259,6 +260,7 @@ enum {
 	OPT_ProfileGCMemoryUsage,
 	OPT_ProfileMemoryUsage,
 	OPT_ProfileMemoryUsageGNUPlot,
+	OPT_RegallocSpillAll,
 	OPT_TestReplacement,
 	OPT_TraceCompilerCalls,
 	OPT_TraceExceptions,
@@ -327,6 +329,7 @@ option_t options_XX[] = {
 	{ "ProfileGCMemoryUsage",         OPT_ProfileGCMemoryUsage,         OPT_TYPE_VALUE,   "profiles GC memory usage in the given interval, <value> is in seconds (default: 5)" },
 	{ "ProfileMemoryUsage",           OPT_ProfileMemoryUsage,           OPT_TYPE_VALUE,   "TODO" },
 	{ "ProfileMemoryUsageGNUPlot",    OPT_ProfileMemoryUsageGNUPlot,    OPT_TYPE_VALUE,   "TODO" },
+	{ "RegallocSpillAll",             OPT_RegallocSpillAll,             OPT_TYPE_BOOLEAN, "spill all variables to the stack" },
 #if defined(ENABLE_REPLACEMENT)
 	{ "TestReplacement",              OPT_TestReplacement,              OPT_TYPE_BOOLEAN, "activate all replacement points during code generation" },
 #endif
@@ -776,6 +779,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 				vm_abort("options_xx: fopen failed");
 
 			opt_ProfileMemoryUsageGNUPlot = file;
+			break;
+
+		case OPT_RegallocSpillAll:
+			opt_RegallocSpillAll = enable;
 			break;
 
 #if defined(ENABLE_REPLACEMENT)

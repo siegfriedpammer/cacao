@@ -2,6 +2,7 @@
 
    Copyright (C) 1996-2005, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -78,15 +79,25 @@ static void simplereg_allocate_temporaries(jitdata *jd);
 
 /* macros for handling register stacks ****************************************/
 
-#define AVAIL_FRONT(cnt, limit)   ((cnt) < (limit))
-#define AVAIL_BACK(cnt)           ((cnt) > 0)
+#if !defined(NDEBUG)
+# define AVAIL_FRONT(cnt, limit)   (!opt_RegallocSpillAll && ((cnt) < (limit)))
+# define AVAIL_BACK(cnt)           (!opt_RegallocSpillAll && ((cnt) > 0))
+#else
+# define AVAIL_FRONT(cnt, limit)   ((cnt) < (limit))
+# define AVAIL_BACK(cnt)           ((cnt) > 0)
+#endif
 
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
-#define AVAIL_FRONT_INT(cnt, limit)   ((cnt) < (limit) - intregsneeded)
-#define AVAIL_BACK_INT(cnt)           ((cnt) > intregsneeded)
+# if !defined(NDEBUG)
+#  define AVAIL_FRONT_INT(cnt, limit)   (!opt_RegallocSpillAll && ((cnt) < (limit) - intregsneeded))
+#  define AVAIL_BACK_INT(cnt)           (!opt_RegallocSpillAll && ((cnt) > intregsneeded))
+# else
+#  define AVAIL_FRONT_INT(cnt, limit)   ((cnt) < (limit) - intregsneeded)
+#  define AVAIL_BACK_INT(cnt)           ((cnt) > intregsneeded)
+# endif
 #else
-#define AVAIL_FRONT_INT(cnt, limit)   AVAIL_FRONT(cnt, limit)
-#define AVAIL_BACK_INT(cnt)           AVAIL_BACK(cnt)
+# define AVAIL_FRONT_INT(cnt, limit)   AVAIL_FRONT(cnt, limit)
+# define AVAIL_BACK_INT(cnt)           AVAIL_BACK(cnt)
 #endif
 
 #define POP_FRONT(stk, cnt, reg)   do {  reg = stk[cnt++];    } while (0)

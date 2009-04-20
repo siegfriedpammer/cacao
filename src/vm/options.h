@@ -216,6 +216,7 @@ extern int      opt_PrintWarnings;
 extern int      opt_ProfileGCMemoryUsage;
 extern int      opt_ProfileMemoryUsage;
 extern FILE    *opt_ProfileMemoryUsageGNUPlot;
+extern int      opt_RegallocSpillAll;
 #if defined(ENABLE_REPLACEMENT)
 extern int      opt_TestReplacement;
 #endif
