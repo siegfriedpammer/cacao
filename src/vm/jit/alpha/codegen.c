@@ -210,7 +210,7 @@ bool codegen_emit(jitdata *jd)
  				if (!IS_INMEMORY(var->flags))
  					M_FLTMOVE(s1, var->vv.regoff);
  				else
- 					M_DST(s1, REG_SP, var->vv.regoff * 8);
+ 					M_DST(s1, REG_SP, var->vv.regoff);
 			}
 			else {                                   /* stack arguments       */
  				if (!(var->flags & INMEMORY))
