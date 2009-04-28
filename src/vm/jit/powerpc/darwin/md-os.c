@@ -1,6 +1,6 @@
 /* src/vm/jit/powerpc/darwin/md-os.c - machine dependent PowerPC Darwin functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -37,188 +37,64 @@
 
 #include "threads/thread.hpp"
 
-#include "vm/jit/builtin.hpp"
-#include "vm/global.h"
 #include "vm/signallocal.hpp"
 
-#include "vm/jit/asmpart.h"
+#include "vm/jit/trap.hpp"
 
+#if !__DARWIN_UNIX03
+#define __srr0 srr0
+#define __r0   r0
+#define __r1   r1
+#define __r13  r13
+#define __lr   lr
+#define __ss   ss
+#endif
 
-/* md_signal_handler_sigsegv ***************************************************
-
-   NullPointerException signal handler for hardware null pointer
-   check.
-
-*******************************************************************************/
-
+/**
+ * Signal handler for hardware-exceptions.
+ */
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t         *_uc;
-	mcontext_t          _mc;
-	ppc_thread_state_t *_ss;
-	ptrint             *gregs;
-	u1                 *pv;
-	u1                 *sp;
-	u1                 *ra;
-	u1                 *xpc;
-	u4                  mcode;
-	int                 s1;
-	int16_t             disp;
-	int                 d;
-	intptr_t            addr;
-	intptr_t            val;
-	int                 type;
-	void               *p;
+	ucontext_t*         _uc = (ucontext_t *) _p;
+	mcontext_t          _mc = _uc->uc_mcontext;
+	ppc_thread_state_t* _ss = &(_mc->__ss);
 
-	_uc = (ucontext_t *) _p;
-	_mc = _uc->uc_mcontext;
-	_ss = &_mc->ss;
+	void* xpc = (void*) _ss->__srr0;
 
-	/* immitate a gregs array */
-
-	gregs = &_ss->r0;
-
-	/* get register values */
-
-	pv  = (u1 *) _ss->r13;
-	sp  = (u1 *) _ss->r1;
-	ra  = (u1 *) _ss->lr;                        /* this is correct for leafs */
-	xpc = (u1 *) _ss->srr0;
-
-	/* get exception-throwing instruction */
-
-	mcode = *((u4 *) xpc);
-
-	s1   = M_INSTR_OP2_IMM_A(mcode);
-	disp = M_INSTR_OP2_IMM_I(mcode);
-	d    = M_INSTR_OP2_IMM_D(mcode);
-
-	val  = gregs[d];
-
-	/* check for special-load */
-
-	if (s1 == REG_ZERO) {
-		/* we use the exception type as load displacement */
-
-		type = disp;
-
-		if (type == EXCEPTION_HARDWARE_COMPILER) {
-			/* The XPC is the RA minus 4, because the RA points to the
-			   instruction after the call. */
-
-			xpc = ra - 4;
-		}
-	}
-	else {
-		/* This is a normal NPE: addr must be NULL and the NPE-type
-		   define is 0. */
-
-		addr = gregs[s1];
-		type = EXCEPTION_HARDWARE_NULLPOINTER;
-
-		if (addr != 0)
-			vm_abort("md_signal_handler_sigsegv: faulting address is not NULL: addr=%p", addr);
-	}
-
-	/* Handle the type. */
-
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
-
-	/* Set registers. */
-
-	switch (type) {
-	case EXCEPTION_HARDWARE_COMPILER:
-		if (p != NULL) {
-			_ss->r13  = (uintptr_t) p;                              /* REG_PV */
-			_ss->srr0 = (uintptr_t) p;
-			break;
-		}
-
-		/* Get and set the PV from the parent Java method. */
-
-		pv = md_codegen_get_pv_from_pc(ra);
-
-		_ss->r13 = (uintptr_t) pv;
-
-		/* Get the exception object. */
-
-		p = builtin_retrieve_exception();
-
-		assert(p != NULL);
-
-		/* fall-through */
-
-	case EXCEPTION_HARDWARE_PATCHER:
-		if (p == NULL)
-			break;
-
-		/* fall-through */
-		
-	default:
-		_ss->r11  = (uintptr_t) p;
-		_ss->r12  = (uintptr_t) xpc;
-		_ss->srr0 = (uintptr_t) asm_handle_exception;
-	}
+	// Handle the trap.
+	trap_handle(TRAP_SIGSEGV, xpc, _p);
 }
 
 
-/* md_signal_handler_sigtrap ***************************************************
-
-   Signal handler for hardware-traps.
-
-*******************************************************************************/
-
+/**
+ * Signal handler for hardware-traps.
+ */
 void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t         *_uc;
-	mcontext_t          _mc;
-	ppc_thread_state_t *_ss;
-	ptrint             *gregs;
-	u1                 *pv;
-	u1                 *sp;
-	u1                 *ra;
-	u1                 *xpc;
-	u4                  mcode;
-	int                 s1;
-	intptr_t            val;
-	int                 type;
-	void               *p;
+	ucontext_t*         _uc = (ucontext_t *) _p;
+	mcontext_t          _mc = _uc->uc_mcontext;
+	ppc_thread_state_t* _ss = &(_mc->__ss);
 
- 	_uc = (ucontext_t *) _p;
-	_mc = _uc->uc_mcontext;
-	_ss = &_mc->ss;
+	void* xpc = (void*) _ss->__srr0;
 
-	/* immitate a gregs array */
+	// Handle the trap.
+	trap_handle(TRAP_SIGTRAP, xpc, _p);
+}
 
-	gregs = &_ss->r0;
 
-	/* get register values */
+/**
+ * Signal handler for hardware-patchers.
+ */
+void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
+{
+	ucontext_t*         _uc = (ucontext_t *) _p;
+	mcontext_t          _mc = _uc->uc_mcontext;
+	ppc_thread_state_t* _ss = &(_mc->__ss);
 
-	pv  = (u1 *) _ss->r13;
-	sp  = (u1 *) _ss->r1;
-	ra  = (u1 *) _ss->lr;                    /* this is correct for leafs */
-	xpc = (u1 *) _ss->srr0;
+	void* xpc = (void*) _ss->__srr0;
 
-	/* get exception-throwing instruction */
-
-	mcode = *((u4 *) xpc);
-
-	s1 = M_OP3_GET_A(mcode);
-
-	/* for now we only handle ArrayIndexOutOfBoundsException */
-
-	type = EXCEPTION_HARDWARE_ARRAYINDEXOUTOFBOUNDS;
-	val  = gregs[s1];
-
-	/* Handle the type. */
-
-	p = signal_handle(type, val, pv, sp, ra, xpc, _p);
-
-	/* set registers */
-
-	_ss->r11  = (intptr_t) p;
-	_ss->r12  = (intptr_t) xpc;
-	_ss->srr0 = (intptr_t) asm_handle_exception;
+	// Handle the trap.
+	trap_handle(TRAP_SIGILL, xpc, _p);
 }
 
 
@@ -240,11 +116,65 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
 
 	_uc = (ucontext_t *) _p;
 	_mc = _uc->uc_mcontext;
-	_ss = &_mc->ss;
+	_ss = &_mc->__ss;
 
-	pc = (u1 *) _ss->srr0;
+	pc = (u1 *) _ss->__srr0;
 
 	t->pc = pc;
+}
+
+
+/* md_executionstate_read ******************************************************
+
+   Read the given context into an executionstate.
+
+*******************************************************************************/
+
+void md_executionstate_read(executionstate_t *es, void *context)
+{
+	ucontext_t*         _uc = (ucontext_t *) context;
+	mcontext_t          _mc = _uc->uc_mcontext;
+	ppc_thread_state_t* _ss = &(_mc->__ss);
+
+	/* read special registers */
+	es->pc = (uint8_t*) _ss->__srr0;
+	es->sp = (uint8_t*) _ss->__r1;
+	es->pv = (uint8_t*) _ss->__r13;
+	es->ra = (uint8_t*) _ss->__lr;
+
+	/* read integer registers */
+	unsigned int* regs = &(_ss->__r0);
+	for (int i = 0; i < INT_REG_CNT; i++)
+		es->intregs[i] = regs[i];
+
+	/* read float registers */
+	for (int i = 0; i < FLT_REG_CNT; i++)
+		es->fltregs[i] = 0xdeadbeefdeadbeefULL;
+}
+
+
+/* md_executionstate_write *****************************************************
+
+   Write the given executionstate back to the context.
+
+*******************************************************************************/
+
+void md_executionstate_write(executionstate_t *es, void *context)
+{
+	ucontext_t*         _uc = (ucontext_t *) context;
+	mcontext_t          _mc = _uc->uc_mcontext;
+	ppc_thread_state_t* _ss = &(_mc->__ss);
+
+	/* write integer registers */
+	unsigned int* regs = &(_ss->__r0);
+	for (int i = 0; i < INT_REG_CNT; i++)
+		regs[i] = es->intregs[i];
+
+	/* write special registers */
+	_ss->__srr0 = (intptr_t) es->pc;
+	_ss->__r1   = (intptr_t) es->sp;
+	_ss->__r13  = (intptr_t) es->pv;
+	_ss->__lr   = (intptr_t) es->ra;
 }
 
 
