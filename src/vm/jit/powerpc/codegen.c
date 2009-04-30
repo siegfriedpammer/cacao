@@ -2508,23 +2508,53 @@ gen_method:
 					}
 
 					M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
+					M_ALD(REG_ITMP3, REG_PV, disp);
 
-					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
-					M_ALD(REG_ITMP2, REG_PV, disp);
-					if (s1 != REG_ITMP1) {
-						M_ILD(REG_ITMP1, REG_ITMP2, OFFSET(vftbl_t, baseval));
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
+					if (super == NULL || super->vftbl->subtype_depth >= DISPLAY_SIZE) {
+						M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
+						M_IADD(REG_ITMP1, REG_ITMP2, REG_ITMP1);
+						M_ALD(REG_ITMP1, REG_ITMP1, 0);
+						M_CMP(REG_ITMP1, REG_ITMP3);
+						emit_label_beq(cd, BRANCH_LABEL_6);  /* good */
 
-						M_ISUB(REG_ITMP3, REG_ITMP1, REG_ITMP3);
+						if (super == NULL) {
+							M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
+							M_CMPI(REG_ITMP1, OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]));
+							emit_label_bne(cd, BRANCH_LABEL_10);  /* throw */
+						}
+
+						M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
+						M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, subtype_depth));
+						M_CMP(REG_ITMP1, REG_ITMP3);
+						emit_label_bgt(cd, BRANCH_LABEL_9);  /* throw */
+						/* reload */
+						M_ALD(REG_ITMP3, REG_PV, disp);
+						M_ALD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
+
+						M_SLL_IMM(REG_ITMP1, 2, REG_ITMP1);
+						M_IADD_IMM(REG_ITMP2, -DISPLAY_SIZE*4, REG_ITMP2);
+						M_LWZX(REG_ITMP1, REG_ITMP2, REG_ITMP1);
+						M_CMP(REG_ITMP1, REG_ITMP3);
+						emit_label_beq(cd, BRANCH_LABEL_7);  /* good */
+
+						emit_label(cd, BRANCH_LABEL_9);
+						if (super == NULL)
+							emit_label(cd, BRANCH_LABEL_10);
+
+						/* reload s1, might have been destroyed */
+						emit_load_s1(jd, iptr, REG_ITMP1);
+						M_ALD_INTERN(s1, REG_ZERO, TRAP_ClassCastException);
+
+						emit_label(cd, BRANCH_LABEL_7);
+						emit_label(cd, BRANCH_LABEL_6);
+						/* reload s1, might have been destroyed */
+						emit_load_s1(jd, iptr, REG_ITMP1);
 					}
 					else {
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, baseval));
-						M_ISUB(REG_ITMP3, REG_ITMP2, REG_ITMP3);
-						M_ALD(REG_ITMP2, REG_PV, disp);
-						M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
+						M_ALD(REG_ITMP2, REG_ITMP2, super->vftbl->subtype_offset);
+						M_CMP(REG_ITMP2, REG_ITMP3);
+						emit_classcast_check(cd, iptr, BRANCH_NE, REG_ITMP2, s1);
 					}
-					M_CMPU(REG_ITMP3, REG_ITMP2);
-					emit_classcast_check(cd, iptr, BRANCH_GT, REG_ITMP3, s1);
 
 					if (super != NULL)
 						emit_label(cd, BRANCH_LABEL_5);
@@ -2591,12 +2621,11 @@ gen_method:
 				s1 = REG_ITMP1;
 			}
 
-			M_CLR(d);
-
 			/* if class is not resolved, check which code to call */
 
 			if (super == NULL) {
 				M_TST(s1);
+				M_CLR(d);
 				emit_label_beq(cd, BRANCH_LABEL_1);
 
 				disp = dseg_add_unique_s4(cd, 0);             /* super->flags */
@@ -2613,25 +2642,31 @@ gen_method:
 
 			if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
 				if (super == NULL) {
+					/* If d == REG_ITMP2, then it's destroyed in check
+					   code above. */
+					if (d == REG_ITMP2)
+						M_CLR(d);
+
 					patcher_add_patch_ref(jd,
 										PATCHER_instanceof_interface,
 										iptr->sx.s23.s3.c.ref, 0);
 				}
 				else {
 					M_TST(s1);
+					M_CLR(d);
 					emit_label_beq(cd, BRANCH_LABEL_3);
 				}
 
 				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
 				M_ILD(REG_ITMP3, REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 				M_LDATST(REG_ITMP3, REG_ITMP3, -superindex);
-				M_BLE(4);
+				M_BLE(3);
 				M_ALD(REG_ITMP1, REG_ITMP1,
 					  OFFSET(vftbl_t, interfacetable[0]) -
 					  superindex * sizeof(methodptr*));
-				M_TST(REG_ITMP1);
-				M_BEQ(1);
-				M_IADD_IMM(REG_ZERO, 1, d);
+
+				M_ADDIC(REG_ITMP1, -1, d);
+				M_SUBE(REG_ITMP1, d, d);
 
 				if (super == NULL)
 					emit_label_br(cd, BRANCH_LABEL_4);
@@ -2655,21 +2690,65 @@ gen_method:
 					disp = dseg_add_address(cd, super->vftbl);
 
 					M_TST(s1);
+					M_CLR(d);
 					emit_label_beq(cd, BRANCH_LABEL_5);
 				}
 
-				M_ALD(REG_ITMP1, s1, OFFSET(java_object_t, vftbl));
-				M_ALD(REG_ITMP2, REG_PV, disp);
+				M_ALD(REG_ITMP2, s1, OFFSET(java_object_t, vftbl));
+				M_ALD(REG_ITMP3, REG_PV, disp);
 
-				M_ILD(REG_ITMP1, REG_ITMP1, OFFSET(vftbl_t, baseval));
-				M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, baseval));
-				M_ILD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, diffval));
+				if (super == NULL || super->vftbl->subtype_depth >= DISPLAY_SIZE) {
+					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
+					M_IADD(REG_ITMP1, REG_ITMP2, REG_ITMP1);
+					M_ALD(REG_ITMP1, REG_ITMP1, 0);
+					M_CMP(REG_ITMP1, REG_ITMP3);
+					emit_label_bne(cd, BRANCH_LABEL_8);
+					ICONST(d, 1);
+					emit_label_br(cd, BRANCH_LABEL_6);  /* true */
+					emit_label(cd, BRANCH_LABEL_8);
 
-				M_ISUB(REG_ITMP1, REG_ITMP3, REG_ITMP1);
-				M_CMPU(REG_ITMP1, REG_ITMP2);
-				M_CLR(d);
-				M_BGT(1);
-				M_IADD_IMM(REG_ZERO, 1, d);
+					if (super == NULL) {
+						M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_offset));
+						M_CMPI(REG_ITMP1, OFFSET(vftbl_t, subtype_display[DISPLAY_SIZE]));
+						emit_label_bne(cd, BRANCH_LABEL_10);  /* false */
+					}
+
+					M_ILD(REG_ITMP1, REG_ITMP3, OFFSET(vftbl_t, subtype_depth));
+
+					M_ILD(REG_ITMP3, REG_ITMP2, OFFSET(vftbl_t, subtype_depth));
+					M_CMP(REG_ITMP1, REG_ITMP3);
+					emit_label_bgt(cd, BRANCH_LABEL_9);  /* false */
+					/* reload */
+					M_ALD(REG_ITMP3, REG_PV, disp);
+					M_ALD(REG_ITMP2, REG_ITMP2, OFFSET(vftbl_t, subtype_overflow));
+
+					M_SLL_IMM(REG_ITMP1, 2, REG_ITMP1);
+					M_IADD_IMM(REG_ITMP2, -DISPLAY_SIZE*4, REG_ITMP2);
+					M_LWZX(REG_ITMP1, REG_ITMP2, REG_ITMP1);
+					/* This seems to be the canonical sequence to emulate
+					 * the Alpha instruction M_CMPEQ. */
+					M_XOR(REG_ITMP1, REG_ITMP3, d);
+					M_CNTLZ(d, d);
+					M_RLWINM(d, 27, 5, 31, d);
+
+					if (d == REG_ITMP2)
+						emit_label_br(cd, BRANCH_LABEL_7);
+					emit_label(cd, BRANCH_LABEL_9);
+					if (super == NULL)
+						emit_label(cd, BRANCH_LABEL_10);
+					if (d == REG_ITMP2) {
+						M_CLR(d);
+
+						emit_label(cd, BRANCH_LABEL_7);
+					}
+					emit_label(cd, BRANCH_LABEL_6);
+				}
+				else {
+					M_ALD(REG_ITMP2, REG_ITMP2, super->vftbl->subtype_offset);
+					M_XOR(REG_ITMP2, REG_ITMP3, d);
+					M_CNTLZ(d, d);
+					M_RLWINM(d, 27, 5, 31, d);
+				}
 
 				if (super != NULL)
 					emit_label(cd, BRANCH_LABEL_5);

@@ -480,6 +480,9 @@ void emit_classcast_check(codegendata *cd, instruction *iptr, s4 condition, s4 r
 		case BRANCH_EQ:
 			M_BNE(1);
 			break;
+		case BRANCH_NE:
+			M_BEQ(1);
+			break;
 		case BRANCH_GT:
 			M_BLE(1);
 			break;

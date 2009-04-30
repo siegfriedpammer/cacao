@@ -245,6 +245,7 @@
 #define M_CMPI(a,b)                     M_OP2_IMM(11, 0, a, b)
 #define M_CMPU(a,b)                     M_OP3(31, 32, 0, 0, 0, a, b)
 #define M_CMPUI(a,b)                    M_OP2_IMM(10, 0, a, b)
+#define M_CNTLZ(a,b)                    M_OP3(31, 26, 0, 0, a, b, 0)
 #define M_CZEXT(a,b)                    M_RLWINM(a,0,16,31,b)
 #define M_IADD(a,b,c)                   M_OP3(31, 266, 0, 0, c, a, b)
 #define M_IADD_IMM(a,b,c)               M_OP2_IMM(14, c, a, b)
