@@ -85,9 +85,9 @@ struct codeinfo {
 
 	/* patcher list */
 #ifdef __cplusplus
-	List<patchref_t>* patchers;
+	LockedList<patchref_t>* patchers;
 #else
-	List*         patchers;
+	LockedList*   patchers;
 #endif
 
 	/* replacement */				    

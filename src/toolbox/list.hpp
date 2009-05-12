@@ -31,27 +31,14 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
+
 #include <list>
-#endif
-
-#include "threads/mutex.hpp"
-
-
-#ifdef __cplusplus
 
 /**
- * List implementation with a Mutex.
+ * List implementation.
  */
 template<class T> class List : protected std::list<T> {
-private:
-	Mutex _mutex;
-
 public:
-	virtual ~List() {}
-
-	void lock  () { _mutex.lock(); }
-	void unlock() { _mutex.unlock(); }
-
 	// make iterator of std::list visible
 	using std::list<T>::iterator;
 	using std::list<T>::reverse_iterator;
@@ -69,6 +56,25 @@ public:
 	using std::list<T>::remove;
 	using std::list<T>::rend;
 	using std::list<T>::size;
+};
+
+
+// Required by LockedList.
+#include "threads/mutex.hpp"
+
+
+/**
+ * List implementation with a Mutex.
+ */
+template<class T> class LockedList : public List<T> {
+private:
+	Mutex _mutex;
+
+public:
+	virtual ~LockedList() {}
+
+	void lock  () { _mutex.lock(); }
+	void unlock() { _mutex.unlock(); }
 };
 
 
@@ -111,6 +117,7 @@ public:
 #else
 
 typedef struct List List;
+typedef struct LockedList LockedList;
 typedef struct DumpList DumpList;
 
 #endif

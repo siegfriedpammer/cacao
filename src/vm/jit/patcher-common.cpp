@@ -90,7 +90,7 @@ static patcher_function_list_t patcher_function_list[] = {
 
 void patcher_list_create(codeinfo *code)
 {
-	code->patchers = new List<patchref_t>();
+	code->patchers = new LockedList<patchref_t>();
 }
 
 

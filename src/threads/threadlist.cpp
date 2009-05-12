@@ -43,9 +43,9 @@
 
 Mutex               ThreadList::_mutex;                // a mutex for all thread lists
 
-list<threadobject*> ThreadList::_active_thread_list;   // list of active threads
-list<threadobject*> ThreadList::_free_thread_list;     // list of free threads
-list<int32_t>       ThreadList::_free_index_list;      // list of free thread indexes
+List<threadobject*> ThreadList::_active_thread_list;   // list of active threads
+List<threadobject*> ThreadList::_free_thread_list;     // list of free threads
+List<int32_t>       ThreadList::_free_index_list;      // list of free thread indexes
 
 int32_t             ThreadList::_number_of_non_daemon_threads;
 
@@ -108,7 +108,7 @@ void ThreadList::dump_threads()
  *
  * @param list list class to be filled
  */
-void ThreadList::get_active_threads(list<threadobject*> &list)
+void ThreadList::get_active_threads(List<threadobject*> &list)
 {
 	// Lock the thread lists.
 	lock();

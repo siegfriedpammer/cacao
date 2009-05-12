@@ -39,15 +39,13 @@
 
 #ifdef __cplusplus
 
-using std::list;
-
 class ThreadList {
 private:
 	static Mutex               _mutex;              // a mutex for all thread lists
 
-	static list<threadobject*> _active_thread_list; // list of active threads
-	static list<threadobject*> _free_thread_list;   // list of free threads
-	static list<int32_t>       _free_index_list;    // list of free thread indexes
+	static List<threadobject*> _active_thread_list; // list of active threads
+	static List<threadobject*> _free_thread_list;   // list of free threads
+	static List<int32_t>       _free_index_list;    // list of free thread indexes
 
 	static int32_t             _number_of_non_daemon_threads;
 
@@ -73,7 +71,7 @@ public:
 	static void                 add_to_active_thread_list(threadobject* t);
 
 	static void                 dump_threads();
-	static void                 get_active_threads(list<threadobject*> &list);
+	static void                 get_active_threads(List<threadobject*> &list);
 	static threadobject*        get_main_thread();
 	static threadobject*        get_free_thread();
 	static int32_t              get_free_thread_index();
