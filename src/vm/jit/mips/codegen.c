@@ -2256,9 +2256,11 @@ bool codegen_emit(jitdata *jd)
 			}
 #endif /* ENABLE_VERIFIER */
 
+			// Some processor implementations seem to have a problem when using
+			// the JALR instruction with (reg_dest == reg_src), so avoid that.
 			disp = dseg_add_functionptr(cd, asm_handle_exception);
-			M_ALD(REG_ITMP2, REG_PV, disp);
-			M_JSR(REG_ITMP2_XPC, REG_ITMP2);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+			M_JSR(REG_ITMP2_XPC, REG_ITMP3);
 			M_NOP;
 			M_NOP;              /* nop ensures that XPC is less than the end */
 			                    /* of basic block                            */
