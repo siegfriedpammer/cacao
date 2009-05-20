@@ -3186,7 +3186,7 @@ jboolean JVM_CX8Field(JNIEnv *env, jobject obj, jfieldID fid, jlong oldVal, jlon
 jobjectArray JVM_GetAllThreads(JNIEnv *env, jclass dummy)
 {
 	// Get a list of all active threads.
-	list<threadobject*> active_threads;
+	List<threadobject*> active_threads;
 	ThreadList::get_active_threads(active_threads);
 
 	// Allocate array to hold the java.lang.Thread objects.
