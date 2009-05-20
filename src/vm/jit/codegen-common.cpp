@@ -754,6 +754,12 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 	/* MIPS always uses 8 bytes to store the RA */
 	datasp    = sp + framesize - 8;
 	javasp    = sp + framesize;
+# if SIZEOF_VOID_P == 8
+	arg_regs  = (uint64_t *) sp;
+# else
+	arg_regs  = (uint64_t *) (sp + 5 * 8);
+# endif
+	arg_stack = (uint64_t *) javasp;
 #elif defined(__S390__)
 	datasp    = sp + framesize - 8;
 	javasp    = sp + framesize;
@@ -793,7 +799,7 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 #endif
 
 #if !defined(NDEBUG)
-# if defined(__ALPHA__) || defined(__I386__) || defined(__M68K__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
+# if defined(__ALPHA__) || defined(__I386__) || defined(__M68K__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 	/* BEFORE: filling the local reference table */
 
@@ -865,6 +871,11 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 #elif defined(__MIPS__)
 	/* MIPS always uses 8 bytes to store the RA */
 	datasp   = sp + framesize - 8;
+# if SIZEOF_VOID_P == 8
+	ret_regs = (uint64_t *) sp;
+# else
+	ret_regs = (uint64_t *) (sp + 1 * 8);
+# endif
 #elif defined(__S390__)
 	datasp   = sp + framesize - 8;
 	ret_regs = (uint64_t *) (sp + 96);
@@ -918,7 +929,7 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 #endif
 
 #if !defined(NDEBUG)
-# if defined(__ALPHA__) || defined(__I386__) || defined(__M68K__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
+# if defined(__ALPHA__) || defined(__I386__) || defined(__M68K__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
 	/* print the call-trace if necesarry */
 	/* AFTER: unwrapping the return value */
 

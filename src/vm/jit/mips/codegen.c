@@ -3746,11 +3746,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	M_LDA(REG_SP, REG_SP, -cd->stackframesize * 8); /* build up stackframe    */
 	M_AST(REG_RA, REG_SP, (cd->stackframesize - 1) * 8); /* store RA          */
 
-#if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_enter(jd);
-#endif
-
 	/* save integer and float argument registers */
 
 #if SIZEOF_VOID_P == 8
@@ -4019,11 +4014,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	case TYPE_VOID:
 		break;
 	}
-
-#if !defined(NDEBUG)
-	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
-		emit_verbosecall_exit(jd);
-#endif
 
 	/* remove native stackframe info */
 
