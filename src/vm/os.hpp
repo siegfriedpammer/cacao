@@ -1,6 +1,6 @@
 /* src/vm/os.hpp - system (OS) functions
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -325,7 +325,7 @@ inline int os::fprintf(FILE* stream, const char* format, ...)
 #if defined(HAVE_FPRINTF)
 	va_list ap;
 	va_start(ap, format);
-	int result = ::fprintf(stream, format, ap);
+	int result = ::vfprintf(stream, format, ap);
 	va_end(ap);
 	return result;
 #else
