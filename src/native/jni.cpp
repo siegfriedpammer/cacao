@@ -2253,7 +2253,7 @@ jobject _Jv_JNI_CallStaticObjectMethodV(JNIEnv *env, jclass clazz,
 	methodinfo    *m;
 	java_handle_t *o;
 
-	TRACEJNICALLS(("_Jv_JNI_CallStaticObjectMethodV(env=%p, clazz=%p, methodID=%p, args=%p)", env, clazz, methodID, args));
+	TRACEJNICALLS(("_Jv_JNI_CallStaticObjectMethodV(env=%p, clazz=%p, methodID=%p)", env, clazz, methodID));
 
 	m = (methodinfo *) methodID;
 
@@ -2300,7 +2300,7 @@ void _Jv_JNI_CallStaticVoidMethodV(JNIEnv *env, jclass clazz,
 {
 	methodinfo *m;
 
-	TRACEJNICALLS(("_Jv_JNI_CallStaticVoidMethodV(env=%p, clazz=%p, methodID=%p, args=%p)", env, clazz, methodID, args));
+	TRACEJNICALLS(("_Jv_JNI_CallStaticVoidMethodV(env=%p, clazz=%p, methodID=%p)", env, clazz, methodID));
 
 	m = (methodinfo *) methodID;
 
