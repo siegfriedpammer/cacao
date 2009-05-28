@@ -88,22 +88,14 @@ void os::abort(const char* text, ...)
 
 
 /**
- * Prints an error message, appends ":" plus the strerror-message of
- * errnum and aborts the VM.
- *
- * @param errnum Error number.
- * @param text   Error message to print.
+ * Common code for both os::abort_errnum and os::abort_errno.
  */
-void os::abort_errnum(int errnum, const char* text, ...)
+static void abort_verrnum(int errnum, const char* text, va_list ap)
 {
-	va_list ap;
-
 	// Print the log message.
 	log_start();
 
-	va_start(ap, text);
 	log_vprint(text, ap);
-	va_end(ap);
 
 	// Print the strerror-message of errnum.
 	log_print(": %s", os::strerror(errnum));
@@ -117,6 +109,22 @@ void os::abort_errnum(int errnum, const char* text, ...)
 	os::abort();
 }
 
+/**
+ * Prints an error message, appends ":" plus the strerror-message of
+ * errnum and aborts the VM.
+ *
+ * @param errnum Error number.
+ * @param text   Error message to print.
+ */
+void os::abort_errnum(int errnum, const char* text, ...)
+{
+	va_list ap;
+
+	va_start(ap, text);
+	abort_verrnum(errnum, text, ap);
+	va_end(ap);
+}
+
 
 /**
  * Equal to abort_errnum, but uses errno to get the error number.
@@ -128,7 +136,7 @@ void os::abort_errno(const char* text, ...)
 	va_list ap;
 
 	va_start(ap, text);
-	abort_errnum(errno, text, ap);
+	abort_verrnum(errno, text, ap);
 	va_end(ap);
 }
 
