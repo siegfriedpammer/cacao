@@ -1,6 +1,6 @@
 /* src/native/vm/sun_misc_Unsafe.cpp - sun/misc/Unsafe
 
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -544,7 +544,6 @@ JNIEXPORT jlong JNICALL Java_sun_misc_Unsafe_allocateMemory(JNIEnv *env, jobject
 }
 
 
-#if 0
 /* OpenJDK 7 */
 
 /*
@@ -552,7 +551,7 @@ JNIEXPORT jlong JNICALL Java_sun_misc_Unsafe_allocateMemory(JNIEnv *env, jobject
  * Method:    setMemory
  * Signature: (Ljava/lang/Object;JJB)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, jobject _this, jobject o, jlong offset, jlong bytes, jbyte value)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory_jdk7(JNIEnv *env, jobject _this, jobject o, jlong offset, jlong bytes, jbyte value)
 {
 	size_t  length;
 	void   *p;
@@ -579,7 +578,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, jobject _this
  * Method:    copyMemory
  * Signature: (Ljava/lang/Object;JLjava/lang/Object;JJ)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory(JNIEnv *env, jobject _this, jobject srcBase, jlong srcOffset, jobject destBase, jlong destOffset, jlong bytes)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory_jdk7(JNIEnv *env, jobject _this, jobject srcBase, jlong srcOffset, jobject destBase, jlong destOffset, jlong bytes)
 {
 	size_t  length;
 	void   *src;
@@ -602,13 +601,13 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory(JNIEnv *env, jobject _thi
 
 	os::memcpy(dest, src, length);
 }
-#else
+
 /*
  * Class:     sun/misc/Unsafe
  * Method:    setMemory
  * Signature: (JJB)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, jobject _this, jlong address, jlong bytes, jbyte value)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory_jdk6(JNIEnv *env, jobject _this, jlong address, jlong bytes, jbyte value)
 {
 	size_t  length;
 	void   *p;
@@ -633,7 +632,7 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_setMemory(JNIEnv *env, jobject _this
  * Method:    copyMemory
  * Signature: (JJJ)V
  */
-JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory(JNIEnv *env, jobject _this, jlong srcAddress, jlong destAddress, jlong bytes)
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory_jdk6(JNIEnv *env, jobject _this, jlong srcAddress, jlong destAddress, jlong bytes)
 {
 	size_t  length;
 	void   *src;
@@ -654,7 +653,6 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_copyMemory(JNIEnv *env, jobject _thi
 
 	os::memcpy(dest, src, length);
 }
-#endif
 
 
 /*
@@ -1200,14 +1198,12 @@ static JNINativeMethod methods[] = {
 	{ (char*) "putDouble",              (char*) "(JD)V",                                                      (void*) (uintptr_t) &Java_sun_misc_Unsafe_putDouble__JD                    },
 	{ (char*) "objectFieldOffset",      (char*) "(Ljava/lang/reflect/Field;)J",                               (void*) (uintptr_t) &Java_sun_misc_Unsafe_objectFieldOffset                },
 	{ (char*) "allocateMemory",         (char*) "(J)J",                                                       (void*) (uintptr_t) &Java_sun_misc_Unsafe_allocateMemory                   },
-#if 0
-	// OpenJDK 7
-	{ (char*) "setMemory",              (char*) "(Ljava/lang/Object;JJB)V",                                   (void*) (uintptr_t) &Java_sun_misc_Unsafe_setMemory                        },
-	{ (char*) "copyMemory",             (char*) "(Ljava/lang/Object;JLjava/lang/Object;JJ)V",                 (void*) (uintptr_t) &Java_sun_misc_Unsafe_copyMemory                       },
-#else
-	{ (char*) "setMemory",              (char*) "(JJB)V",                                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_setMemory                        },
-	{ (char*) "copyMemory",             (char*) "(JJJ)V",                                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_copyMemory                       },
-#endif
+	// next two methods: OpenJDK 7
+	{ (char*) "setMemory",              (char*) "(Ljava/lang/Object;JJB)V",                                   (void*) (uintptr_t) &Java_sun_misc_Unsafe_setMemory_jdk7                   },
+	{ (char*) "copyMemory",             (char*) "(Ljava/lang/Object;JLjava/lang/Object;JJ)V",                 (void*) (uintptr_t) &Java_sun_misc_Unsafe_copyMemory_jdk7                  },
+	// next two methods: OpenJDK 6
+	{ (char*) "setMemory",              (char*) "(JJB)V",                                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_setMemory_jdk6                   },
+	{ (char*) "copyMemory",             (char*) "(JJJ)V",                                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_copyMemory_jdk6                  },
 	{ (char*) "freeMemory",             (char*) "(J)V",                                                       (void*) (uintptr_t) &Java_sun_misc_Unsafe_freeMemory                       },
 	{ (char*) "staticFieldOffset",      (char*) "(Ljava/lang/reflect/Field;)J",                               (void*) (uintptr_t) &Java_sun_misc_Unsafe_staticFieldOffset                },
 	{ (char*) "staticFieldBase",        (char*) "(Ljava/lang/reflect/Field;)Ljava/lang/Object;",              (void*) (uintptr_t) &Java_sun_misc_Unsafe_staticFieldBase                  },
