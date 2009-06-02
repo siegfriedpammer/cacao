@@ -872,7 +872,7 @@ void options_xx(JavaVMInitArgs *vm_args)
 #endif
 
 		default:
-			printf("Unknown -XX option: %s\n", name);
+			fprintf(stderr, "Unknown -XX option: %s\n", name);
 			break;
 		}
 	}
