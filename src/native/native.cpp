@@ -1,6 +1,6 @@
 /* src/native/native.cpp - native library support
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -391,18 +391,30 @@ void* NativeMethods::resolve_method(methodinfo* m)
 	utf* newname = native_make_overloaded_function(name, m->descriptor);
 
 	// Try to find the symbol.
-	void* symbol = NULL;
+	void* symbol;
+
+	// Try to find the native method symbol in the native methods registered
+	// with the VM.
+	symbol = find_registered_method(m);
+
+	if (symbol != NULL)
+		if (opt_verbosejni)
+			printf("internal ]\n");
 
 #if defined(ENABLE_DL)
-	// Get the classloader.
-	classloader_t* classloader = class_get_classloader(m->clazz);
+	classloader_t* classloader;
+	if (symbol == NULL) {
+		// Get the classloader.
+		classloader = class_get_classloader(m->clazz);
 
-	// Resolve the native method name from the native libraries.
-	NativeLibraries& libraries = VM::get_current()->get_nativelibraries();
-	symbol = libraries.resolve_symbol(name, classloader);
+		// Resolve the native method name from the native libraries.
+		NativeLibraries& libraries = VM::get_current()->get_nativelibraries();
 
-	if (symbol == NULL)
-		symbol = libraries.resolve_symbol(newname, classloader);
+		symbol = libraries.resolve_symbol(name, classloader);
+
+		if (symbol == NULL)
+			symbol = libraries.resolve_symbol(newname, classloader);
+	}
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 	if (symbol == NULL) {
@@ -417,17 +429,16 @@ void* NativeMethods::resolve_method(methodinfo* m)
 									 class_java_lang_ClassLoader,
 									 true);
 
-		if (method_findNative == NULL)
-			return NULL;
-
-		// Try the normal name.
-		java_handle_t* s = javastring_new(name);
-		symbol = (void*) vm_call_method_long(method_findNative, NULL, classloader, s);
-
-		// If not found, try the mangled name.
-		if (symbol == NULL) {
-			s = javastring_new(newname);
+		if (method_findNative != NULL) {
+			// Try the normal name.
+			java_handle_t* s = javastring_new(name);
 			symbol = (void*) vm_call_method_long(method_findNative, NULL, classloader, s);
+
+			// If not found, try the mangled name.
+			if (symbol == NULL) {
+				s = javastring_new(newname);
+				symbol = (void*) vm_call_method_long(method_findNative, NULL, classloader, s);
+			}
 		}
 	}
 # endif
@@ -436,16 +447,6 @@ void* NativeMethods::resolve_method(methodinfo* m)
 		if (opt_verbosejni)
 			printf("JNI ]\n");
 #endif
-
-	// If not found already, try to find the native method symbol in
-	// the native methods registered with the VM.
-	if (symbol == NULL) {
-		symbol = find_registered_method(m);
-
-		if (symbol != NULL)
-			if (opt_verbosejni)
-				printf("internal ]\n");
-	}
 
 #if defined(ENABLE_JVMTI)
 	/* fire Native Method Bind event */
