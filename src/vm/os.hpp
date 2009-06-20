@@ -167,6 +167,10 @@ public:
 	static void* mmap_anonymous(void *addr, size_t len, int prot, int flags);
 	static void  print_backtrace();
 	static int   processors_online();
+
+	// Template helper
+	template<class F1, class F2>
+	static int call_scandir(int (*scandir)(const char *, struct dirent ***, F1, F2), const char *dir, struct dirent ***namelist, int(*filter)(const struct dirent *), int(*compar)(const void *, const void *));
 };
 
 
@@ -504,25 +508,16 @@ inline static void *system_realloc(void *ptr, size_t size)
 #endif
 }
 
+template<class F1, class F2>
+inline int os::call_scandir(int (*scandir)(const char *, struct dirent ***, F1, F2), const char *dir, struct dirent ***namelist, int(*filter)(const struct dirent *), int(*compar)(const void *, const void *))
+{
+	return scandir(dir, namelist, (F1) filter, (F2) compar);
+}
+
 inline int os::scandir(const char *dir, struct dirent ***namelist, int(*filter)(const struct dirent *), int(*compar)(const void *, const void *))
-/*
-#elif defined(__SOLARIS__)
-inline int os::scandir(const char *dir, struct dirent ***namelist, int(*filter)(const struct dirent *), int(*compar)(const struct dirent **, const struct dirent **))
-#elif defined(__IRIX__)
-inline int os::scandir(const char *dir, struct dirent ***namelist, int(*filter)(dirent_t *), int(*compar)(dirent_t **, dirent_t **))
-#else
-inline int os::scandir(const char *dir, struct dirent ***namelist, int(*filter)(struct dirent *), int(*compar)(const void *, const void *))
-#endif
-*/
 {
 #if defined(HAVE_SCANDIR)
-# if defined(__LINUX__)
-	return ::scandir(dir, namelist, filter, compar);
-#elif defined(__SOLARIS__)
-	return ::scandir(dir, namelist, filter, (int (*)(const dirent**, const dirent**)) compar);
-# else
-	return ::scandir(dir, namelist, (int (*)(struct dirent*)) filter, compar);
-# endif
+	return call_scandir(::scandir, dir, namelist, filter, compar);
 #else
 # error scandir not available
 #endif
