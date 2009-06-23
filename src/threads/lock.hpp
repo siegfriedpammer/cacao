@@ -97,6 +97,10 @@ void lock_wait_for_object(java_handle_t *o, s8 millis, s4 nanos);
 void lock_notify_object(java_handle_t *o);
 void lock_notify_all_object(java_handle_t *o);
 
+#if defined(ENABLE_GC_BOEHM)
+void lock_schedule_lockrecord_removal(java_handle_t *o);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

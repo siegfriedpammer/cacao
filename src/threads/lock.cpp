@@ -459,7 +459,14 @@ static lock_record_t *lock_hashtable_get(java_handle_t* o)
 #if defined(ENABLE_GC_BOEHM)
 		/* register new finalizer to clean up the lock record */
 
-		GC_REGISTER_FINALIZER(LLNI_DIRECT(o), lock_record_finalizer, 0, 0, 0);
+		GC_finalization_proc ofinal = 0;
+		GC_REGISTER_FINALIZER_UNREACHABLE(LLNI_DIRECT(o), lock_record_finalizer, 0, &ofinal, 0);
+
+		/* There was a finalizer -- reinstall it. We do not want to disrupt the
+		   normal finalizer operation. We hold the monitor on this object, so
+		   this is thread-safe. */
+		if (ofinal)
+			GC_REGISTER_FINALIZER(LLNI_DIRECT(o), ofinal, 0, 0, 0);
 #endif
 
 		/* enter it in the hashtable */
@@ -482,6 +489,29 @@ static lock_record_t *lock_hashtable_get(java_handle_t* o)
 
 	return lr;
 }
+
+/* lock_schedule_lockrecord_removal ********************************************
+
+   Gives the locking system a chance to schedule the removal of an unused lock
+   record. This function is called after an object's finalizer has run.
+
+   IN:
+	  o....the object which has been finalized
+
+*******************************************************************************/
+
+#if defined(ENABLE_GC_BOEHM)
+void lock_schedule_lockrecord_removal(java_handle_t *o)
+{
+	Lockword* lockword = lock_lockword_get(o);
+	if (!lockword->is_fat_lock())
+		/* there is no lock record */
+		return;
+
+	/* register new finalizer to clean up the lock record */
+	GC_REGISTER_FINALIZER_UNREACHABLE(LLNI_DIRECT(o), lock_record_finalizer, 0, 0, 0);
+}
+#endif
 
 
 /* lock_hashtable_remove *******************************************************
@@ -577,11 +607,6 @@ static void lock_record_finalizer(void *object, void *p)
 		log_finish();
 	}
 #endif
-
-	/* check for a finalizer function */
-
-	if (c->finalizer != NULL)
-		finalizer_run(object, p);
 
 	/* remove the lock-record entry from the hashtable and free it */
 

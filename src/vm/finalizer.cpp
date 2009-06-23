@@ -34,6 +34,7 @@
 #include "threads/condition.hpp"
 #include "threads/mutex.hpp"
 #include "threads/thread.hpp"
+#include "threads/lock.hpp"
 
 #include "vm/jit/builtin.hpp"
 #include "vm/exceptions.hpp"
@@ -220,6 +221,10 @@ void finalizer_run(void *o, void *p)
 	/* if we had an exception in the finalizer, ignore it */
 
 	exceptions_clear_exception();
+
+#if defined(ENABLE_GC_BOEHM)
+    lock_schedule_lockrecord_removal(h);
+#endif
 }
 
 #if defined(__cplusplus)
