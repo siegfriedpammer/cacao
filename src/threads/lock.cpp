@@ -466,7 +466,7 @@ static lock_record_t *lock_hashtable_get(java_handle_t* o)
 		   normal finalizer operation. We hold the monitor on this object, so
 		   this is thread-safe. */
 		if (ofinal)
-			GC_REGISTER_FINALIZER(LLNI_DIRECT(o), ofinal, 0, 0, 0);
+			GC_REGISTER_FINALIZER_NO_ORDER(LLNI_DIRECT(o), ofinal, 0, 0, 0);
 #endif
 
 		/* enter it in the hashtable */
