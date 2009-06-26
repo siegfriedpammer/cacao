@@ -35,6 +35,6 @@ public class PR119 {
     public void test() {
         Integer[] a = new Integer[1];
         Array.set(a, 0, new Integer(i));
-        assertEquals(i, a[0]);
+        assertEquals(new Integer(i), a[0]);
     }
 }
