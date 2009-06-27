@@ -1,6 +1,6 @@
 /* src/vm/array.hpp - Java array functions
 
-   Copyright (C) 2007
+   Copyright (C) 2007, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -312,7 +312,7 @@ class ByteArray : public ArrayTemplate<int8_t> {
 public:
 	ByteArray(java_handle_bytearray_t* h) : ArrayTemplate<int8_t>(h) {}
 	ByteArray(int32_t length) : ArrayTemplate<int8_t>(length, primitivetype_table[ARRAYTYPE_BYTE].arrayclass) {}
-	int8_t* get_raw_data_ptr() { return ((java_bytearray_t*) get_handle())->data; }
+	int8_t* get_raw_data_ptr() { return (int8_t*) ((java_bytearray_t*) get_handle())->data; }
 };
 
 class CharArray : public ArrayTemplate<uint16_t> {

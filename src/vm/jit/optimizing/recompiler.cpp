@@ -1,6 +1,6 @@
 /* src/vm/jit/optimizing/recompiler.cpp - recompilation system
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -152,9 +152,6 @@ void Recompiler::thread()
 		// FIXME Move this into the for loop.
 		if (r._run == false)
 			break;
-
-		// Sanity check.
-		assert(r._methods.empty() == false);
 
 		// Get the next method form the queue and recompile it.
 		while (r._methods.empty() == false) {

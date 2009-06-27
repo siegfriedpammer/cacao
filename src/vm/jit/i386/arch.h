@@ -1,9 +1,7 @@
 /* src/vm/jit/i386/arch.h - architecture defines for i386
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2008, 2009
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -35,6 +33,21 @@
 
 /* define x86 register numbers ************************************************/
 
+#if !defined(__SOLARIS__) || !defined(SKIP_REG_DEFS)
+
+#if defined(__SOLARIS__)
+
+#undef EAX
+#undef ECX
+#undef EDX
+#undef EBX
+#undef ESP
+#undef EBP
+#undef ESI
+#undef EDI
+
+#endif
+
 #define EAX    0
 #define ECX    1
 #define EDX    2
@@ -43,6 +56,8 @@
 #define EBP    5
 #define ESI    6
 #define EDI    7
+
+#endif
 
 /* define architecture features ***********************************************/
 

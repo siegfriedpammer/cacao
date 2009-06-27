@@ -1,9 +1,7 @@
 /* src/vm/jit/i386/md-abi.h - defines for i386 Linux ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2008, 2009
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -21,12 +19,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
 
 */
 
@@ -52,6 +44,10 @@
 
 #define REG_ITMP1_XPTR  EAX     /* exception pointer = temporary register 1   */
 #define REG_ITMP2_XPC   ECX     /* exception pc = temporary register 2        */
+
+#if defined(__SOLARIS__)
+#undef REG_SP
+#endif
 
 #define REG_SP          ESP     /* stack pointer                              */
 
