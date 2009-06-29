@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/solaris/md-os.c - machine dependent x86_64 Solaris functions
 
-   Copyright (C) 2008
+   Copyright (C) 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -37,296 +37,65 @@
 
 #include "threads/thread.hpp"
 
-#include "vm/jit/builtin.hpp"
 #include "vm/signallocal.hpp"
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
 #include "vm/jit/trap.hpp"
-#include "vm/jit/stacktrace.hpp"
 
 
-/* md_signal_handler_sigsegv ***************************************************
-
-   Signal handler for hardware exception.
-
-*******************************************************************************/
-
+/**
+ * Signal handler for hardware exceptions.
+ */
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t     *_uc;
-	mcontext_t     *_mc;
-	void           *pv;
-	u1             *sp;
-	u1             *ra;
-	u1             *xpc;
-	u1              opc;
-	u1              mod;
-	u1              rm;
-	s4              d;
-	s4              disp;
-	int             type;
-	intptr_t        val;
-	void           *p;
-	java_object_t  *o;
-
-	_uc = (ucontext_t *) _p;
-	_mc = &_uc->uc_mcontext;
+	ucontext_t *_uc = (ucontext_t *) _p;
+	mcontext_t *_mc = &_uc->uc_mcontext;
 
 	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
 	   different to the ones in <ucontext.h>. */
 
-	pv  = NULL;                 /* is resolved during stackframeinfo creation */
-	sp  = (u1 *) _mc->gregs[REG_RSP];
-	xpc = (u1 *) _mc->gregs[REG_RIP];
-	ra  = xpc;                              /* return address is equal to XPC */
+	void* xpc = (void *) _mc->gregs[REG_RIP];
 
-#if 0
-	/* check for StackOverflowException */
-
-	threads_check_stackoverflow(sp);
-#endif
-
-	/* get exception-throwing instruction */
-
-	opc = M_ALD_MEM_GET_OPC(xpc);
-	mod = M_ALD_MEM_GET_MOD(xpc);
-	rm  = M_ALD_MEM_GET_RM(xpc);
-
-	/* for values see emit_mov_mem_reg and emit_mem */
-
-	if ((opc == 0x8b) && (mod == 0) && (rm == 4)) {
-		/* this was a hardware-exception */
-
-		d    = M_ALD_MEM_GET_REG(xpc);
-		disp = M_ALD_MEM_GET_DISP(xpc);
-
-		/* we use the exception type as load displacement */
-
-		type = disp;
-
-		/* XXX FIX ME! */
-
-		/* ATTENTION: The _mc->gregs layout is even worse than on
-		   i386! See /usr/include/sys/ucontext.h.  We need a
-		   switch-case here... */
-
-		switch (d) {
-		case 0:  /* REG_RAX == 14 */
-			d = REG_RAX;
-			break;
-		case 1:  /* REG_RCX == 13 */
-			d = REG_RCX;
-			break;
-		case 2:  /* REG_RDX == 12 */
-			d = REG_RDX;
-			break;
-		case 3:  /* REG_RBX == 11 */
-			d = REG_RBX;
-			break;
-		case 4:  /* REG_RSP == 20 */
-			d = REG_RSP;
-			break;
-		case 5:  /* REG_RBP == 10 */
-			d = REG_RBP;
-			break;
-		case 6:  /* REG_RSI == 9  */
-			d = REG_RSI;
-			break;
-		case 7:  /* REG_RDI == 8  */
-			d = REG_RDI;
-			break;
-		case 8:  /* REG_R8  == 7  */
-			d = REG_R8;
-			break;
-		case 9:  /* REG_R9  == 6  */
-			d = REG_R9;
-			break;
-		case 10: /* REG_R10 == 5  */
-			d = REG_R10;
-			break;
-		case 11: /* REG_R11 == 4  */
-			d = REG_R11;
-			break;
-		case 12: /* REG_R12 == 3  */
-			d = REG_R12;
-			break;
-		case 13: /* REG_R13 == 2  */
-			d = REG_R13;
-			break;
-		case 14: /* REG_R14 == 1  */
-			d = REG_R14;
-			break;
-		case 15: /* REG_R15 == 0  */
-			d = REG_R15;
-			break;
-		}
-
-		val = _mc->gregs[d];
-
-		if (type == TRAP_COMPILER) {
-			/* The PV from the compiler stub is equal to the XPC. */
-
-			pv = xpc;
-
-			/* We use a framesize of zero here because the call pushed
-			   the return addres onto the stack. */
-
-			ra = md_stacktrace_get_returnaddress(sp, 0);
-
-			/* Skip the RA on the stack. */
-
-			sp = sp + 1 * SIZEOF_VOID_P;
-
-			/* The XPC is the RA minus 1, because the RA points to the
-			   instruction after the call. */
-
-			xpc = ra - 3;
-		}
-	}
-	else {
-		/* this was a normal NPE */
-
-		type = TRAP_NullPointerException;
-		val  = 0;
-	}
-
-	/* Handle the trap. */
-
-	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	/* Set registers. */
-
-	if (type == TRAP_COMPILER) {
-		if (p == NULL) {
-			o = builtin_retrieve_exception();
-
-			_mc->gregs[REG_RSP] = (uintptr_t) sp;    /* Remove RA from stack. */
-
-			_mc->gregs[REG_RAX] = (uintptr_t) o;
-			_mc->gregs[REG_R10] = (uintptr_t) xpc;           /* REG_ITMP2_XPC */
-			_mc->gregs[REG_RIP] = (uintptr_t) asm_handle_exception;
-		}
-		else {
-			_mc->gregs[REG_RIP] = (uintptr_t) p;
-		}
-	}
-	else {
-		_mc->gregs[REG_RAX] = (uintptr_t) p;
-		_mc->gregs[REG_R10] = (uintptr_t) xpc;               /* REG_ITMP2_XPC */
-		_mc->gregs[REG_RIP] = (uintptr_t) asm_handle_exception;
-	}
+    // Handle the trap.
+    trap_handle(TRAP_SIGSEGV, xpc, _p);
 }
 
 
-/* md_signal_handler_sigfpe ****************************************************
-
-   ArithmeticException signal handler for hardware divide by zero
-   check.
-
-*******************************************************************************/
-
+/**
+ * Signal handler for hardware divide by zero (ArithmeticException)
+ * check.
+ */
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t     *_uc;
-	mcontext_t     *_mc;
-	u1             *pv;
-	u1             *sp;
-	u1             *ra;
-	u1             *xpc;
-	int             type;
-	intptr_t        val;
-	void           *p;
-
-	_uc = (ucontext_t *) _p;
-	_mc = &_uc->uc_mcontext;
+	ucontext_t *_uc = (ucontext_t *) _p;
+	mcontext_t *_mc = &_uc->uc_mcontext;
 
 	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
 	   different to the ones in <ucontext.h>. */
 
-	pv  = NULL;
-	sp  = (u1 *) _mc->gregs[REG_RSP];
-	xpc = (u1 *) _mc->gregs[REG_RIP];
-	ra  = xpc;                          /* return address is equal to xpc     */
+	void* xpc = (void *) _mc->gregs[REG_RIP];
 
-	/* This is an ArithmeticException. */
-
-	type = TRAP_ArithmeticException;
-	val  = 0;
-
-	/* Handle the trap. */
-
-	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	/* set registers */
-
-	_mc->gregs[REG_RAX] = (intptr_t) p;
-	_mc->gregs[REG_R10] = (intptr_t) xpc;                    /* REG_ITMP2_XPC */
-	_mc->gregs[REG_RIP] = (intptr_t) asm_handle_exception;
+    // Handle the trap.
+    trap_handle(TRAP_SIGFPE, xpc, _p);
 }
 
 
-/* md_signal_handler_sigill ****************************************************
-
-   Signal handler for patchers.
-
-*******************************************************************************/
-
+/**
+ * Signal handler for hardware patcher traps (ud2).
+ */
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t     *_uc;
-	mcontext_t     *_mc;
-	u1             *pv;
-	u1             *sp;
-	u1             *ra;
-	u1             *xpc;
-	int             type;
-	intptr_t        val;
-	void           *p;
-
-	_uc = (ucontext_t *) _p;
-	_mc = &_uc->uc_mcontext;
+	ucontext_t *_uc = (ucontext_t *) _p;
+	mcontext_t *_mc = &_uc->uc_mcontext;
 
 	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
 	   different to the ones in <ucontext.h>. */
 
-	pv  = NULL;
-	sp  = (u1 *) _mc->gregs[REG_RSP];
-	xpc = (u1 *) _mc->gregs[REG_RIP];
-	ra  = xpc;                          /* return address is equal to xpc     */
+	void* xpc = (void *) _mc->gregs[REG_RIP];
 
-	// Check if the trap instruction is valid.
-	// TODO Move this into patcher_handler.
-	if (patcher_is_valid_trap_instruction_at(xpc) == false) {
-		// Check if the PC has been patched during our way to this
-		// signal handler (see PR85).
-		if (patcher_is_patched_at(xpc) == true)
-			return;
-
-		// We have a problem...
-		log_println("md_signal_handler_sigill: Unknown illegal instruction at 0x%lx", xpc);
-#if defined(ENABLE_DISASSEMBLER)
-		(void) disassinstr(xpc);
-#endif
-		vm_abort("Aborting...");
-	}
-
-	/* This is a patcher. */
-
-	type = TRAP_PATCHER;
-	val  = 0;
-
-	/* Handle the trap. */
-
-	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	/* set registers */
-
-	if (p != NULL) {
-		_mc->gregs[REG_RAX] = (intptr_t) p;
-		_mc->gregs[REG_R10] = (intptr_t) xpc;                /* REG_ITMP2_XPC */
-		_mc->gregs[REG_RIP] = (intptr_t) asm_handle_exception;
-	}
+    // Handle the trap.
+    trap_handle(TRAP_SIGILL, xpc, _p);
 }
 
 
@@ -412,42 +181,40 @@ void md_executionstate_read(executionstate_t *es, void *context)
 
 	/* read integer registers */
 	for (i = 0; i < INT_REG_CNT; i++) {
-		/* XXX FIX ME! */
-
 		switch (i) {
-		case 0:  /* REG_RAX == 13 */
+		case 0:  /* REG_RAX */
 			d = REG_RAX;
 			break;
-		case 1:  /* REG_RCX == 14 */
+		case 1:  /* REG_RCX */
 			d = REG_RCX;
 			break;
-		case 2:  /* REG_RDX == 12 */
+		case 2:  /* REG_RDX */
 			d = REG_RDX;
 			break;
-		case 3:  /* REG_RBX == 11 */
+		case 3:  /* REG_RBX */
 			d = REG_RBX;
 			break;
-		case 4:  /* REG_RSP == 15 */
+		case 4:  /* REG_RSP */
 			d = REG_RSP;
 			break;
-		case 5:  /* REG_RBP == 10 */
+		case 5:  /* REG_RBP */
 			d = REG_RBP;
 			break;
-		case 6:  /* REG_RSI == 9  */
+		case 6:  /* REG_RSI */
 			d = REG_RSI;
 			break;
-		case 7:  /* REG_RDI == 8  */
+		case 7:  /* REG_RDI */
 			d = REG_RDI;
 			break;
-		case 8:  /* REG_R8  == 0  */
-		case 9:  /* REG_R9  == 1  */
-		case 10: /* REG_R10 == 2  */
-		case 11: /* REG_R11 == 3  */
-		case 12: /* REG_R12 == 4  */
-		case 13: /* REG_R13 == 5  */
-		case 14: /* REG_R14 == 6  */
-		case 15: /* REG_R15 == 7  */
-			d = i - 8;
+		case 8:  /* REG_R8  == 7  */
+		case 9:  /* REG_R9  == 6  */
+		case 10: /* REG_R10 == 5  */
+		case 11: /* REG_R11 == 4  */
+		case 12: /* REG_R12 == 3  */
+		case 13: /* REG_R13 == 2  */
+		case 14: /* REG_R14 == 1  */
+		case 15: /* REG_R15 == 0  */
+			d = 15 - i;
 			break;
 		}
 
@@ -478,42 +245,40 @@ void md_executionstate_write(executionstate_t *es, void *context)
 
 	/* write integer registers */
 	for (i = 0; i < INT_REG_CNT; i++) {
-		/* XXX FIX ME! */
-
 		switch (i) {
-		case 0:  /* REG_RAX == 13 */
+		case 0:  /* REG_RAX */
 			d = REG_RAX;
 			break;
-		case 1:  /* REG_RCX == 14 */
+		case 1:  /* REG_RCX */
 			d = REG_RCX;
 			break;
-		case 2:  /* REG_RDX == 12 */
+		case 2:  /* REG_RDX */
 			d = REG_RDX;
 			break;
-		case 3:  /* REG_RBX == 11 */
+		case 3:  /* REG_RBX */
 			d = REG_RBX;
 			break;
-		case 4:  /* REG_RSP == 15 */
+		case 4:  /* REG_RSP */
 			d = REG_RSP;
 			break;
-		case 5:  /* REG_RBP == 10 */
+		case 5:  /* REG_RBP */
 			d = REG_RBP;
 			break;
-		case 6:  /* REG_RSI == 9  */
+		case 6:  /* REG_RSI */
 			d = REG_RSI;
 			break;
-		case 7:  /* REG_RDI == 8  */
+		case 7:  /* REG_RDI */
 			d = REG_RDI;
 			break;
-		case 8:  /* REG_R8  == 0  */
-		case 9:  /* REG_R9  == 1  */
-		case 10: /* REG_R10 == 2  */
-		case 11: /* REG_R11 == 3  */
-		case 12: /* REG_R12 == 4  */
-		case 13: /* REG_R13 == 5  */
-		case 14: /* REG_R14 == 6  */
-		case 15: /* REG_R15 == 7  */
-			d = i - 8;
+		case 8:  /* REG_R8  == 7  */
+		case 9:  /* REG_R9  == 6  */
+		case 10: /* REG_R10 == 5  */
+		case 11: /* REG_R11 == 4  */
+		case 12: /* REG_R12 == 3  */
+		case 13: /* REG_R13 == 2  */
+		case 14: /* REG_R14 == 1  */
+		case 15: /* REG_R15 == 0  */
+			d = 15 - i;
 			break;
 		}
 

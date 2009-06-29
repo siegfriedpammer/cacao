@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/emit.c - x86_64 code emitter functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -27,6 +27,7 @@
 #include <assert.h>
 
 #include "vm/types.h"
+#include "vm/os.hpp"
 
 #include "md-abi.h"
 
