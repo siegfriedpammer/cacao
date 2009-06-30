@@ -4,7 +4,7 @@ New in release 1.1pre (not yet released)
   * Fixed various array-related bugs, including PR116, PR119.
   * Fixed PR120 (races in thread code).
   * Fixed code generation bugs on Alpha, ARM and PPC64.
-  * Simplified signal handling (much less architecture-specific code).
+  * Simplified signal handling (much less code duplication).
   * Works with icedtea-1.10. (PR128, PR129).
   * OpenSolaris support.
   * Various other fixes.
