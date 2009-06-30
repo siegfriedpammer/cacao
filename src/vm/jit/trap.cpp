@@ -162,8 +162,8 @@ void trap_handle(int sig, void *xpc, void *context)
 		// NOTE: Some archs use SIGILL for other traps too, but it's OK to
 		// do this check anyway because it will fail.
 		if (patcher_is_patched_at(xpc) == true) {
-			// XXX remove this debug output!
-			log_println("trap_handle: Detected patcher race condition (PR85) at %p", xpc);
+			if (opt_PrintWarnings)
+				log_println("trap_handle: Detected patcher race condition (PR85) at %p", xpc);
 			return;
 		}
 
@@ -380,4 +380,5 @@ void trap_handle(int sig, void *xpc, void *context)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
