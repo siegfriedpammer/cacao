@@ -1,3 +1,34 @@
+New in release 1.1pre (not yet released)
+
+  * park/unpark support.
+  * Fixed various array-related bugs, including PR116, PR119.
+  * Fixed PR120 (races in thread code).
+  * Fixed code generation bugs on Alpha, ARM and PPC64.
+  * Simplified signal handling (much less architecture-specific code).
+  * Works with icedtea-1.10. (PR128, PR129).
+  * OpenSolaris support.
+  * Various other fixes.
+
+New in release 0.99.4 (March 16, 2009)
+
+  * New subtype checking code fixes unexpected class cast exceptions
+    and no longer needs critical sections in JIT code.
+  * Fixed race condition in patcher subsystem which caused illegal
+    instructions and segmentation faults (PR85).
+  * Fixed PR112, PR116, PR118, PR122.
+
+New in release 0.99.3 (August 12, 2008)
+
+  * Fixed PR93 (Process.destroy() now works correctly).
+  * Yield threads when sleeping time is zero.
+  * Implemented sun.misc.Unsafe.putFloat(JF)V
+
+New in release 0.99.2 (July 8, 2008)
+
+  * Rewrite of atomic instructions code. This fixes problems with
+    AWT/Swing programs with OpenJDK.
+  * Fixed PR83, PR89.
+
 New in release 0.99.1 (June 17, 2008)
 
   * Fixed compilation of OpenJDK code (libltdl related).
@@ -176,7 +207,7 @@ New in release 0.91 (December 23, 2004)
   * smaller fixes...
 
 
-New in relaese 0.90 (December 8, 2004)
+New in release 0.90 (December 8, 2004)
 
   * More architectures supported: At the moment, CACAO is able to run on
     Alpha, MIPS (64-bit), x86, x86-64 and PowerPC (32-bit) architectures.
