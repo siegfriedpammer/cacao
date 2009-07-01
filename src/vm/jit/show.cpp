@@ -214,7 +214,7 @@ void show_method(jitdata *jd, int stage)
 		for (i = 0; i < jd->localcount; i++) {
 			printf("   %3d: ", i);
 
-#if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
+#if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 			if (!opt_intrp) {
 # endif
@@ -225,7 +225,7 @@ void show_method(jitdata *jd, int stage)
 # if defined(ENABLE_INTRP)
 			}
 # endif
-#endif /* defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER) */
+#endif /* defined(ENABLE_JIT) */
 		}
 		printf("\n");
 	}
@@ -793,7 +793,7 @@ void show_allocation(s4 type, s4 flags, s4 regoff)
 
 #if defined(SUPPORT_COMBINE_INTEGER_REGISTERS)
 	if (IS_2_WORD_TYPE(type)) {
-# if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
+# if defined(ENABLE_JIT)
 #  if defined(ENABLE_INTRP)
 		if (opt_intrp)
 			printf("%3d/%3d", GET_LOW_REG(regoff),
@@ -810,7 +810,7 @@ void show_allocation(s4 type, s4 flags, s4 regoff)
 	} 
 #endif /* defined(SUPPORT_COMBINE_INTEGER_REGISTERS) */
 
-#if defined(ENABLE_JIT) && defined(ENABLE_DISASSEMBLER)
+#if defined(ENABLE_JIT)
 # if defined(ENABLE_INTRP)
 	if (opt_intrp)
 		printf("%3d", regoff);
