@@ -34,6 +34,7 @@
 
 #include "codegen.h"                   /* for PATCHER_NOPS */
 #include "md.h"
+#include "trap.hpp"
 
 #include "mm/memory.hpp"
 
@@ -174,6 +175,11 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
 	cd       = jd->cd;
 	code     = jd->code;
 	patchmpc = cd->mcodeptr - cd->mcodebase;
+
+#if defined(ALIGN_PATCHER_TRAP)
+	emit_patcher_alignment(cd);
+	patchmpc = cd->mcodeptr - cd->mcodebase;
+#endif
 
 #if !defined(NDEBUG)
 	if (patcher_list_find(code, (void*) (intptr_t) patchmpc) != NULL)

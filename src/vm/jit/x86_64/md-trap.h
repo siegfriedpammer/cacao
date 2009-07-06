@@ -81,6 +81,14 @@ enum {
 	} while(0)
 
 
+/**
+ * Align traps so they don't cross cache line boundaries.
+ */
+ 
+#define ALIGN_PATCHER_TRAP
+
+void emit_patcher_alignment(codegendata *cd);
+
 #endif /* _MD_TRAP_H */
 
 

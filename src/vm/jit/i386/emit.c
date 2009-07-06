@@ -537,6 +537,19 @@ void emit_trap_countdown(codegendata *cd, s4 *counter)
 	M_ALD_MEM(REG_METHODPTR, TRAP_COUNTDOWN);
 }
 
+/* emit_patcher_alignment ******************************************************
+
+   Emit NOP to ensure placement at an even address.
+
+*******************************************************************************/
+
+void emit_patcher_alignment(codegendata *cd)
+{
+	if ((uintptr_t) cd->mcodeptr & 1)
+		M_NOP;
+}
+
+
 /* emit_trap *******************************************************************
 
    Emit a trap instruction and return the original machine code.
