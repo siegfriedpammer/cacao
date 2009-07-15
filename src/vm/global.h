@@ -89,6 +89,12 @@ typedef union {
 
 #define STR(a)  #a
 
+/* There are multiple definitions of MIN out there, but we cannot be sure. */
+
+#ifndef MIN
+# define MIN(a,b)  (((a) < (b)) ? (a) : (b))
+#endif
+
 
 /* forward typedefs ***********************************************************/
 

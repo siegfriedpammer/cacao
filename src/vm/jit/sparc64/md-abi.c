@@ -39,9 +39,6 @@
 #include <assert.h>
 
 
-/* helper macros for allocation methods ***************************************/
-#define MIN(a,b) (((a) <= (b)) ? (a) : (b))
-
 /* register descripton array **************************************************/
 
 /* callee point-of-view, after SAVE has been called. */

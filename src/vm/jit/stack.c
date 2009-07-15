@@ -93,9 +93,6 @@
 #endif
 
 
-#define MIN(a,b)  (((a) < (b)) ? (a) : (b))
-
-
 /* For returnAddresses we use a field of the typeinfo to store from which  */
 /* subroutine the returnAddress will return, if used.                      */
 /* XXX It would be nicer to use typeinfo.typeclass, but the verifier seems */
