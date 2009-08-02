@@ -198,6 +198,7 @@ int      opt_RegallocSpillAll             = 0;
 #if defined(ENABLE_REPLACEMENT)
 int      opt_TestReplacement              = 0;
 #endif
+int      opt_TraceBuiltinCalls            = 0;
 int      opt_TraceCompilerCalls           = 0;
 int      opt_TraceExceptions              = 0;
 int      opt_TraceHPI                     = 0;
@@ -262,6 +263,7 @@ enum {
 	OPT_ProfileMemoryUsageGNUPlot,
 	OPT_RegallocSpillAll,
 	OPT_TestReplacement,
+	OPT_TraceBuiltinCalls,
 	OPT_TraceCompilerCalls,
 	OPT_TraceExceptions,
 	OPT_TraceHPI,
@@ -333,6 +335,7 @@ option_t options_XX[] = {
 #if defined(ENABLE_REPLACEMENT)
 	{ "TestReplacement",              OPT_TestReplacement,              OPT_TYPE_BOOLEAN, "activate all replacement points during code generation" },
 #endif
+	{ "TraceBuiltinCalls",            OPT_TraceBuiltinCalls,            OPT_TYPE_BOOLEAN, "trace calls to VM builtin functions" },
 	{ "TraceCompilerCalls",           OPT_TraceCompilerCalls,           OPT_TYPE_BOOLEAN, "trace JIT compiler calls" },
 	{ "TraceExceptions",              OPT_TraceExceptions,              OPT_TYPE_BOOLEAN, "trace Exception throwing" },
 	{ "TraceHPI",                     OPT_TraceHPI,                     OPT_TYPE_BOOLEAN, "Trace Host Porting Interface (HPI)" },
@@ -790,6 +793,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 			opt_TestReplacement = enable;
 			break;
 #endif
+
+		case OPT_TraceBuiltinCalls:
+			opt_TraceBuiltinCalls = enable;
+			break;
 
 		case OPT_TraceCompilerCalls:
 			opt_TraceCompilerCalls = enable;

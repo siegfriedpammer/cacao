@@ -203,17 +203,22 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 	s4          i;
 	s4          pos;
 
-	/* We don't trace builtin functions here because the argument
-	   passing happens via the native ABI and does not fit these
-	   functions. */
+	/* We can only trace "slow" builtin functions (those with a stub)
+	 * here, because the argument passing of "fast" ones happens via
+	 * the native ABI and does not fit these functions. */
 
-	if (method_is_builtin(m))
-		return;
-
+	if (method_is_builtin(m)) {
+		if (!opt_TraceBuiltinCalls)
+			return;
+	}
+	else {
+		if (!opt_TraceJavaCalls)
+			return;
 #if defined(ENABLE_DEBUG_FILTER)
-	if (!show_filters_test_verbosecall_enter(m))
-		return;
+		if (!show_filters_test_verbosecall_enter(m))
+			return;
 #endif
+	}
 
 #if defined(ENABLE_VMLOG)
 	vmlog_cacao_enter_method(m);
@@ -334,17 +339,22 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 	s4          pos;
 	imm_union   val;
 
-	/* We don't trace builtin functions here because the argument
-	   passing happens via the native ABI and does not fit these
-	   functions. */
+	/* We can only trace "slow" builtin functions (those with a stub)
+	 * here, because the argument passing of "fast" ones happens via
+	 * the native ABI and does not fit these functions. */
 
-	if (method_is_builtin(m))
-		return;
-
+	if (method_is_builtin(m)) {
+		if (!opt_TraceBuiltinCalls)
+			return;
+	}
+	else {
+		if (!opt_TraceJavaCalls)
+			return;
 #if defined(ENABLE_DEBUG_FILTER)
-	if (!show_filters_test_verbosecall_exit(m))
-		return;
+		if (!show_filters_test_verbosecall_exit(m))
+			return;
 #endif
+	}
 
 #if defined(ENABLE_VMLOG)
 	vmlog_cacao_leave_method(m);

@@ -220,6 +220,7 @@ extern int      opt_RegallocSpillAll;
 #if defined(ENABLE_REPLACEMENT)
 extern int      opt_TestReplacement;
 #endif
+extern int      opt_TraceBuiltinCalls;
 extern int      opt_TraceCompilerCalls;
 extern int      opt_TraceExceptions;
 extern int      opt_TraceHPI;

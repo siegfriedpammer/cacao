@@ -803,7 +803,7 @@ java_handle_t *codegen_start_native_call(u1 *sp, u1 *pv)
 	/* print the call-trace if necesarry */
 	/* BEFORE: filling the local reference table */
 
-	if (opt_TraceJavaCalls)
+	if (opt_TraceJavaCalls || opt_TraceBuiltinCalls)
 		trace_java_call_enter(m, arg_regs, arg_stack);
 # endif
 #endif
@@ -933,7 +933,7 @@ java_object_t *codegen_finish_native_call(u1 *sp, u1 *pv)
 	/* print the call-trace if necesarry */
 	/* AFTER: unwrapping the return value */
 
-	if (opt_TraceJavaCalls)
+	if (opt_TraceJavaCalls || opt_TraceBuiltinCalls)
 		trace_java_call_exit(m, ret_regs);
 # endif
 #endif
