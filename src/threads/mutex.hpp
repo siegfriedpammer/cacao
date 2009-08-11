@@ -32,6 +32,23 @@
 # include "threads/posix/mutex-posix.hpp"
 #endif
 
+#if __cplusplus
+
+/**
+ * Helper class used to implicitly acquire and release a mutex
+ * within a method scope.
+ */
+class MutexLocker {
+private:
+	Mutex& _mutex;
+
+public:
+	MutexLocker(Mutex& mutex) : _mutex(mutex) { _mutex.lock(); }
+	~MutexLocker()                            { _mutex.unlock(); }
+};
+
+#endif
+
 #endif /* _MUTEX_HPP */
 
 
