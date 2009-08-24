@@ -126,13 +126,6 @@ extern primitivetypeinfo primitivetype_table[PRIMITIVETYPE_COUNT];
 void       primitive_init(void);
 void       primitive_postinit(void);
 
-#ifndef __cplusplus
-// Legacy C interface.
-classinfo *Primitive_get_class_by_name(utf *name);
-classinfo *Primitive_get_class_by_type(int type);
-classinfo *Primitive_get_arrayclass_by_type(int type);
-#endif
-
 #endif // _PRIMITIVE_HPP
 
 

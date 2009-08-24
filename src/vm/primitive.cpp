@@ -802,17 +802,6 @@ inline double Primitive::unbox_double(java_handle_t *h)
 }
 
 
-
-// Legacy C interface.
-
-extern "C" {
-
-classinfo* Primitive_get_class_by_name(utf *name) { return Primitive::get_class_by_name(name); }
-classinfo* Primitive_get_class_by_type(int type) { return Primitive::get_class_by_type(type); }
-classinfo* Primitive_get_arrayclass_by_type(int type) { return Primitive::get_arrayclass_by_type(type); }
-}
-
-
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where
