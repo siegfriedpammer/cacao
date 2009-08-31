@@ -175,6 +175,10 @@ void *methodtree_find(void *pc)
 {
 	void *pv;
 
+	// This flag indicates whether a methodtree lookup is failing. We need
+	// to keep track of this to avoid endless loops during stacktrace creation.
+	static bool methodtree_find_failing = false;
+
 	/* Try to find a method. */
 
 	pv = methodtree_find_nocheck(pc);
@@ -196,8 +200,14 @@ void *methodtree_find(void *pc)
 #endif
 		log_println("");
 
-		log_println("Dumping the current stacktrace:");
+		// Detect and avoid endless loops.
+		if (methodtree_find_failing)
+			vm_abort("Exiting without stacktrace...");
+		else
+			methodtree_find_failing = true;
 
+		// Actually try to dump a stacktrace.
+		log_println("Dumping the current stacktrace:");
 		stacktrace_print_current();
 
 		vm_abort("Exiting...");
