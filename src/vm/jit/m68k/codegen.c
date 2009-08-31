@@ -1,6 +1,6 @@
-/* src/vm/jit/m68k/codegen.c
+/* src/vm/jit/m68k/codegen.c - machine code generator for m68k
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -59,313 +59,195 @@
 #include "vm/jit/abi.h"
 #include "vm/jit/parse.hpp"
 #include "vm/jit/reg.h"
-#include "vm/jit/replace.hpp"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.hpp"
 
 
-bool codegen_emit(jitdata *jd) 
-{ 	
-	methodinfo         *m;
-	codeinfo           *code;
-	codegendata        *cd;
-	registerdata       *rd;
-	s4                  len, s1, s2, s3, d, disp;
-	varinfo            *var;
-	basicblock         *bptr;
-	instruction        *iptr;
-	u2                  currentline;
-	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
-	unresolved_method  *um;
-	builtintable_entry *bte;
-	methoddesc         *md;
-	s4                  fieldtype;
-	s4                  varindex;
-	unresolved_field   *uf;
-	fieldinfo          *fi;
+/**
+ * Generates machine code for the method prolog.
+ */
+void codegen_emit_prolog(jitdata* jd)
+{
+	varinfo*    var;
+	methoddesc* md;
+	int32_t     s1;
+	int32_t     p, t, l;
+	int32_t     varindex;
+	int         i;
 
-	/* get required compiler data */
+	// Get required compiler data.
+	methodinfo*   m    = jd->m;
+	codeinfo*     code = jd->code;
+	codegendata*  cd   = jd->cd;
+	registerdata* rd   = jd->rd;
 
-	m    = jd->m;
-	code = jd->code;
-	cd   = jd->cd;
-	rd   = jd->rd;
+	// XXX XXX
+	// XXX Fix the below stuff, cd->stackframesize is a slot counter
+	//     and not a byte counter!!!
+	// XXX XXX
 
-	/* prevent compiler warnings */
+	/* create stack frame */
+	M_AADD_IMM(-(cd->stackframesize), REG_SP);
 
-	d = 0;
-	lm = NULL;
-	bte = NULL;
+	/* save used callee saved registers */
+	p = cd->stackframesize;
+	for (i=INT_SAV_CNT-1; i>=rd->savintreguse; --i)	{
+		p-=8; M_IST(rd->savintregs[i], REG_SP, p);
+	}
+	for (i=ADR_SAV_CNT-1; i>=rd->savadrreguse; --i)	{
+		p-=8; M_AST(rd->savadrregs[i], REG_SP, p);
+	}
+#if !defined(ENABLE_SOFTFLOAT)
+	for (i=FLT_SAV_CNT-1; i>=rd->savfltreguse; --i)	{
+		p-=8; M_FSTORE(rd->savfltregs[i], REG_SP, p);
+	}	
+#else
+	assert(FLT_SAV_CNT == 0);
+	assert(rd->savfltreguse == 0);
+#endif
+	/* take arguments out of stack frame */
+	md = m->parseddesc;
+	for (p = 0, l = 0; p < md->paramcount; p++) {
+		t = md->paramtypes[p].type;
+		varindex = jd->local_map[l * 5 + t];
 
-	{
-		s4 i, p, t, l;
-		/* save calle saved registers */
-		s4 savedregs_num = 0;
+			l++;
+			if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
+				l++;
 
-		savedregs_num += (INT_SAV_CNT - rd->savintreguse);
-		savedregs_num += (ADR_SAV_CNT - rd->savadrreguse);
-		savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
+		if (varindex == UNUSED)
+			continue;
 
-		cd->stackframesize = rd->memuse + savedregs_num;
-	
-		/* we always add 2 stack slots.
-		 * 1 word the lock word, which may be unused and resides @ rd->memuse * 8
-		 * + 2 words to either save the return value for LOCK_monitor_exit @ rd->memuse * 8 + 8
-		 * on the other hand we could use 2 words when a builtin returns a doulbe which are
-		 * returned in %d0, %d1 and need to be stored onto the stack and read in used a fmovemd
-		 * so we always _need_ at least 2 slots, and this keeps the code simple */
-		cd->stackframesize += 2;	
+		var = VAR(varindex);
 
-		cd->stackframesize *= 8;	/* we use 8 byte stack slots */
+		s1 = md->params[p].regoff;
+		assert(md->params[p].inmemory);			/* all args are on stack */
+
+		switch (t)	{
+#if defined(ENABLE_SOFTFLOAT)
+		case TYPE_FLT:
+		case TYPE_DBL:
+#endif
+		case TYPE_LNG:
+		case TYPE_INT:
+			if (!IS_INMEMORY(var->flags)) {      /* stack arg -> register */
+				if (IS_2_WORD_TYPE(t))	{
+					M_LLD(var->vv.regoff, REG_SP, cd->stackframesize + s1 + 4);
+				} else {
+					M_ILD(var->vv.regoff, REG_SP, cd->stackframesize + s1 + 4);
+				}
+			} else {                             /* stack arg -> spilled  */
+					M_ILD(REG_ITMP1, REG_SP, cd->stackframesize + s1 + 4);
+					M_IST(REG_ITMP1, REG_SP, var->vv.regoff);
+				if (IS_2_WORD_TYPE(t)) {
+					M_ILD(REG_ITMP1, REG_SP, cd->stackframesize  + s1 + 4 + 4);
+					M_IST(REG_ITMP1, REG_SP, var->vv.regoff + 4);
+				}
+			} 
+			break;
+#if !defined(ENABLE_SOFTFLOAT)
+		case TYPE_FLT:
+		case TYPE_DBL:
+				if (!IS_INMEMORY(var->flags)) {      /* stack-arg -> register */
+				if (IS_2_WORD_TYPE(t))	{
+					M_DLD(var->vv.regoff, REG_SP, cd->stackframesize + s1 + 4);
+				} else {
+					M_FLD(var->vv.regoff, REG_SP, cd->stackframesize + s1 + 4);
+				}
+				} else {                             /* stack-arg -> spilled  */
+				if (IS_2_WORD_TYPE(t)) {
+					M_DLD(REG_FTMP1, REG_SP, cd->stackframesize + s1 + 4);
+					M_DST(REG_FTMP1, REG_SP, var->vv.regoff);
+				} else {
+					M_FLD(REG_FTMP1, REG_SP, cd->stackframesize + s1 + 4);
+					M_FST(REG_FTMP1, REG_SP, var->vv.regoff);
+				}
+			}
+			break;
+#endif /* SOFTFLOAT */
+		case TYPE_ADR:
+				if (!IS_INMEMORY(var->flags)) {      /* stack-arg -> register */
+				M_ALD(var->vv.regoff, REG_SP, cd->stackframesize + s1 + 4);
+				} else {                             /* stack-arg -> spilled  */
+				M_ALD(REG_ATMP1, REG_SP, cd->stackframesize + s1 + 4);
+				M_AST(REG_ATMP1, REG_SP, var->vv.regoff);
+			}
+			break;
+		default: assert(0);
+		}
+	} /* end for argument out of stack*/
+}
+
+
+/**
+ * Generates machine code for the method epilog.
+ */
+void codegen_emit_epilog(jitdata* jd)
+{
+	int32_t p;
+	int i;
+
+	// Get required compiler data.
+	codeinfo*     code = jd->code;
+	codegendata*  cd   = jd->cd;
+	registerdata* rd   = jd->rd;
+
+	p = cd->stackframesize;
+
+	/* restore return address */
 
 #if 0
-#if defined(ENABLE_THREADS)
-		/* we need additional space to save argument of monitor_enter */
-		if (checksync && code_is_synchronized(code))	{
-			if (IS_2_WORD_TYPE(m->parseddesc->returntype.type))	{
-				cd->stackframesize += 2;
-			} else	{
-				cd->stackframesize += 1;
-			}
-		}
-#endif
-#endif	
-	
-		/* create method header */
-		(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-		(void) dseg_add_unique_s4(cd, cd->stackframesize); 	   /* FrameSize       */
+	if (!code_is_leafmethod(code)) {
+		/* ATTENTION: Don't use REG_ZERO (r0) here, as M_ALD
+		   may have a displacement overflow. */
 
-		code->synchronizedoffset = rd->memuse * 8;
-
-		/* REMOVEME: We still need it for exception handling in assembler. */
-
-		if (code_is_leafmethod(code))
-			(void) dseg_add_unique_s4(cd, 1);
-		else
-			(void) dseg_add_unique_s4(cd, 0);
-
-		/* XXX we use the IntSave a split field for the adr now */
-		(void) dseg_add_unique_s4(cd, (ADR_SAV_CNT - rd->savadrreguse) << 16 | (INT_SAV_CNT - rd->savintreguse)); /* IntSave */
-		(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
-
-#if defined(ENABLE_PROFILING)
-		assert(0);
+		M_ALD(REG_ITMP1, REG_SP, p * 4 + LA_LR_OFFSET);
+		M_MTLR(REG_ITMP1);
+	}
 #endif
 
-#if !defined(NDEBUG)
-		emit_verbosecall_enter(jd);
-#endif
-		/* create stack frame */
-		M_AADD_IMM(-(cd->stackframesize), REG_SP);
+	/* restore saved registers */
 
-		/* save used callee saved registers */
-		p = cd->stackframesize;
-		for (i=INT_SAV_CNT-1; i>=rd->savintreguse; --i)	{
-			p-=8; M_IST(rd->savintregs[i], REG_SP, p);
-		}
-		for (i=ADR_SAV_CNT-1; i>=rd->savadrreguse; --i)	{
-			p-=8; M_AST(rd->savadrregs[i], REG_SP, p);
-		}
+	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
+		p-=8; M_ILD(rd->savintregs[i], REG_SP, p);
+	}
+	for (i = ADR_SAV_CNT - 1; i >= rd->savadrreguse; --i) {
+		p-=8; M_ALD(rd->savadrregs[i], REG_SP, p);
+	}
 #if !defined(ENABLE_SOFTFLOAT)
-		for (i=FLT_SAV_CNT-1; i>=rd->savfltreguse; --i)	{
-			p-=8; M_FSTORE(rd->savfltregs[i], REG_SP, p);
-		}	
-#else
-		assert(FLT_SAV_CNT == 0);
-		assert(rd->savfltreguse == 0);
-#endif
-		/* take arguments out of stack frame */
-		md = m->parseddesc;
- 		for (p = 0, l = 0; p < md->paramcount; p++) {
- 			t = md->paramtypes[p].type;
-			varindex = jd->local_map[l * 5 + t];
-	
- 			l++;
- 			if (IS_2_WORD_TYPE(t))    /* increment local counter for 2 word types */
- 				l++;
-
-			if (varindex == UNUSED)
-				continue;
-
-			var = VAR(varindex);
-	
-			s1 = md->params[p].regoff;
-			assert(md->params[p].inmemory);			/* all args are on stack */
-
-			switch (t)	{
-#if defined(ENABLE_SOFTFLOAT)
-			case TYPE_FLT:
-			case TYPE_DBL:
-#endif
-			case TYPE_LNG:
-			case TYPE_INT:
-				if (!IS_INMEMORY(var->flags)) {      /* stack arg -> register */
-					if (IS_2_WORD_TYPE(t))	{
-						M_LLD(var->vv.regoff, REG_SP, cd->stackframesize + s1 + 4);
-					} else {
-						M_ILD(var->vv.regoff, REG_SP, cd->stackframesize + s1 + 4);
-					}
-				} else {                             /* stack arg -> spilled  */
- 					M_ILD(REG_ITMP1, REG_SP, cd->stackframesize + s1 + 4);
- 					M_IST(REG_ITMP1, REG_SP, var->vv.regoff);
-					if (IS_2_WORD_TYPE(t)) {
-						M_ILD(REG_ITMP1, REG_SP, cd->stackframesize  + s1 + 4 + 4);
-						M_IST(REG_ITMP1, REG_SP, var->vv.regoff + 4);
-					}
-				} 
-				break;
-#if !defined(ENABLE_SOFTFLOAT)
-			case TYPE_FLT:
-			case TYPE_DBL:
- 				if (!IS_INMEMORY(var->flags)) {      /* stack-arg -> register */
-					if (IS_2_WORD_TYPE(t))	{
-						M_DLD(var->vv.regoff, REG_SP, cd->stackframesize + s1 + 4);
-					} else {
-						M_FLD(var->vv.regoff, REG_SP, cd->stackframesize + s1 + 4);
-					}
- 				} else {                             /* stack-arg -> spilled  */
-					if (IS_2_WORD_TYPE(t)) {
-						M_DLD(REG_FTMP1, REG_SP, cd->stackframesize + s1 + 4);
-						M_DST(REG_FTMP1, REG_SP, var->vv.regoff);
-					} else {
-						M_FLD(REG_FTMP1, REG_SP, cd->stackframesize + s1 + 4);
-						M_FST(REG_FTMP1, REG_SP, var->vv.regoff);
-					}
-				}
-				break;
-#endif /* SOFTFLOAT */
-			case TYPE_ADR:
- 				if (!IS_INMEMORY(var->flags)) {      /* stack-arg -> register */
-					M_ALD(var->vv.regoff, REG_SP, cd->stackframesize + s1 + 4);
- 				} else {                             /* stack-arg -> spilled  */
-					M_ALD(REG_ATMP1, REG_SP, cd->stackframesize + s1 + 4);
-					M_AST(REG_ATMP1, REG_SP, var->vv.regoff);
-				}
-				break;
-			default: assert(0);
-			}
-		} /* end for argument out of stack*/
-
-#if defined(ENABLE_THREADS)
-	/* call lock_monitor_enter function */
-	if (checksync && code_is_synchronized(code))	{
-		if (m->flags & ACC_STATIC)	{
-			M_AMOV_IMM((&m->clazz->object.header), REG_ATMP1);
-		} else	{
-			/* for non-static case the first arg is the object */
-			M_ALD(REG_ATMP1, REG_SP, cd->stackframesize + 4);
-			M_ATST(REG_ATMP1);
-			M_BNE(2);
-			M_TRAP(TRAP_NullPointerException);
-		}
-
-		M_AST(REG_ATMP1, REG_SP, rd->memuse * 8);
-		M_AST(REG_ATMP1, REG_SP, 0 * 4);
-		M_JSR_IMM(LOCK_monitor_enter);
+	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
+		p-=8; M_FLOAD(rd->savfltregs[i], REG_SP, p);
 	}
 #endif
 
-	}
+	/* deallocate stack */
+	M_AADD_IMM(cd->stackframesize, REG_SP);
+	M_RET;
+}
 
-	/* create replacement points */
-	REPLACEMENT_POINTS_INIT(cd, jd);
 
-	/* foreach basic block */
-	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
-	
-	bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
+/**
+ * Generates machine code for one ICMD.
+ */
+void codegen_emit_instruction(jitdata* jd, instruction* iptr)
+{
+	varinfo*            var;
+	builtintable_entry* bte;
+	methodinfo*         lm;             // Local methodinfo for ICMD_INVOKE*.
+	unresolved_method*  um;
+	fieldinfo*          fi;
+	unresolved_field*   uf;
+	int32_t             fieldtype;
+	int32_t             s1, s2, s3, d;
+	int32_t             disp;
 
-	if (bptr->flags >= BBREACHED)	{
-	
-	/* branch resolving */
-	codegen_resolve_branchrefs(cd, bptr);
+	// Get required compiler data.
+	codeinfo*     code = jd->code;
+	codegendata*  cd   = jd->cd;
 
-	/* handle replacement points */
-	REPLACEMENT_POINT_BLOCK_START(cd, bptr);
-
-#if defined(ENABLE_PROFILING)
-	assert(0);
-#endif
-	/* FIXME there are still some constrcuts to copy in here */
-
-#if defined(ENABLE_LSRA)
-	assert(0);
-#endif
-
-	/* copy interface registers to their destination */
-	len = bptr->indepth;
-	MCODECHECK(64+len);
-
-	while (len > 0) {
-		len--;
-		var = VAR(bptr->invars[len]);
-		if ((len == bptr->indepth-1) && (bptr->type == BBTYPE_EXH)) {
-			d = codegen_reg_of_var(0, var, REG_ATMP1_XPTR);
-			M_ADRMOVE(REG_ATMP1_XPTR, d);
-			emit_store(jd, NULL, var, d);
-		}
-		else {
-			assert((var->flags & INOUT));
-		}
-	}
-
-	/* walk through all instructions */
-	len = bptr->icount;
-	currentline = 0;
-
-	for (iptr = bptr->iinstr; len > 0; len--, iptr++) {
-		if (iptr->line != currentline) {
-			linenumbertable_list_entry_add(cd, iptr->line);
-			currentline = iptr->line;
-		}
-
-		MCODECHECK(1024);                         /* 1kB should be enough */
-
-		switch (iptr->opc) {
-		case ICMD_NOP:        /* ...  ==> ...                                 */
-		case ICMD_POP:        /* ..., value  ==> ...                          */
-		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
-			break;
-
-		case ICMD_INLINE_START:
-
-			REPLACEMENT_POINT_INLINE_START(cd, iptr);
-			break;
-
-		case ICMD_INLINE_BODY:
-
-			REPLACEMENT_POINT_INLINE_BODY(cd, iptr);
-			linenumbertable_list_entry_add_intern(cd, iptr);
-			linenumbertable_list_entry_add(cd, iptr->line);
-			break;
-
-		case ICMD_INLINE_END:
-
-			linenumbertable_list_entry_add_inline(cd, iptr);
-			linenumbertable_list_entry_add(cd, iptr->line);
-			break;
-
-		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			assert(VAROP(iptr->s1)->type == TYPE_ADR);
-			emit_nullpointer_check(cd, iptr, s1);
-			break;
-
+	switch (iptr->opc) {
 
 		/* CONST **************************************************************/
-		case ICMD_ICONST:     /* ...  ==> ..., constant                       */
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_IMOV_IMM(iptr->sx.val.i, d);
-			emit_store_dst(jd, iptr, d);
-			break;
-
-		case ICMD_LCONST:     /* ...  ==> ..., constant                       */
-
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-			LCONST(iptr->sx.val.l, d);
-			emit_store_dst(jd, iptr, d);
-			break;
 
 		case ICMD_FCONST:     /* ...  ==> ..., constant                       */
 
@@ -876,9 +758,9 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
-			M_FLTMOVE(s2, REG_FTMP2);
+			emit_fmove(cd, s2, REG_FTMP2);
 			M_FMUL(s1, REG_FTMP2);
-			M_FLTMOVE(REG_FTMP2, d);
+			emit_fmove(cd, REG_FTMP2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -886,9 +768,9 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
-			M_DBLMOVE(s2, REG_FTMP2);
+			emit_dmove(cd, s2, REG_FTMP2);
 			M_DMUL(s1, REG_FTMP2);
-			M_DBLMOVE(REG_FTMP2, d);
+			emit_dmove(cd, REG_FTMP2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -896,9 +778,9 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			M_FLTMOVE(s1, REG_FTMP1);
+			emit_fmove(cd, s1, REG_FTMP1);
 			M_FDIV(s2, REG_FTMP1);
-			M_FLTMOVE(REG_FTMP1, d);
+			emit_fmove(cd, REG_FTMP1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -906,9 +788,9 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-			M_DBLMOVE(s1, REG_FTMP1);
+			emit_dmove(cd, s1, REG_FTMP1);
 			M_DDIV(s2, REG_FTMP1);
-			M_DBLMOVE(REG_FTMP1, d);
+			emit_dmove(cd, REG_FTMP1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -916,9 +798,9 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
-			M_FLTMOVE(s2, REG_FTMP2);
+			emit_fmove(cd, s2, REG_FTMP2);
 			M_FADD(s1, REG_FTMP2);
-			M_FLTMOVE(REG_FTMP2, d);
+			emit_fmove(cd, REG_FTMP2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -926,9 +808,9 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
-			M_DBLMOVE(s2, REG_FTMP2);
+			emit_dmove(cd, s2, REG_FTMP2);
 			M_DADD(s1, REG_FTMP2);
-			M_DBLMOVE(REG_FTMP2, d);
+			emit_dmove(cd, REG_FTMP2, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -936,9 +818,9 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
-			M_FLTMOVE(s1, REG_FTMP1);
+			emit_fmove(cd, s1, REG_FTMP1);
 			M_FSUB(s2, REG_FTMP1);
-			M_FLTMOVE(REG_FTMP1, d);
+			emit_fmove(cd, REG_FTMP1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -946,9 +828,9 @@ bool codegen_emit(jitdata *jd)
 			s1 = emit_load_s1(jd, iptr, REG_FTMP1);
 			s2 = emit_load_s2(jd, iptr, REG_FTMP2);
 			d = codegen_reg_of_dst(jd, iptr, REG_FTMP2);
-			M_DBLMOVE(s1, REG_FTMP1);
+			emit_dmove(cd, s1, REG_FTMP1);
 			M_DSUB(s2, REG_FTMP1);
-			M_DBLMOVE(REG_FTMP1, d);
+			emit_dmove(cd, REG_FTMP1, d);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -982,29 +864,6 @@ bool codegen_emit(jitdata *jd)
 
 		#endif
 
-		/* load/store/copy/move operations ************************************/
-
-		case ICMD_ILOAD:      /* ...  ==> ..., content of local variable      */
-		case ICMD_ALOAD:      /* s1 = local variable                          */
-		case ICMD_LLOAD:
-		case ICMD_FLOAD:  
-		case ICMD_DLOAD:  
-		case ICMD_ISTORE:     /* ..., value  ==> ...                          */
-		case ICMD_LSTORE:
-		case ICMD_FSTORE:
-		case ICMD_DSTORE: 
-		case ICMD_COPY:
-		case ICMD_MOVE:
-
-			emit_copy(jd, iptr);
-			break;
-
-		case ICMD_ASTORE:
-
-			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
-				emit_copy(jd, iptr);
-			break;
-
 
 		case ICMD_ACONST:     /* ...  ==> ..., constant                       */
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
@@ -1022,82 +881,12 @@ bool codegen_emit(jitdata *jd)
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
-			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
-			M_ADRMOVE(s1, REG_ATMP1_XPTR);
-
-#ifdef ENABLE_VERIFIER
-			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_class *uc = iptr->sx.s23.s2.uc;
-
-				patcher_add_patch_ref(jd, PATCHER_resolve_class, uc, 0);
-			}
-#endif /* ENABLE_VERIFIER */
 			M_JSR_PCREL(2);				/* get current PC */
 			M_APOP(REG_ATMP2);		
 
 			M_AMOV_IMM(asm_handle_exception, REG_ATMP3);
 			M_JMP(REG_ATMP3);
-			ALIGNCODENOP;
 			break;
-
-		case ICMD_GOTO:         /* ... ==> ...                                */
-		case ICMD_RET:          /* ... ==> ...                                */
-
-			emit_br(cd, iptr->dst.block);
-			ALIGNCODENOP;
-			break;
-
-		case ICMD_JSR:          /* ... ==> ...                                */
-
-			emit_br(cd, iptr->sx.s23.s3.jsrtarget.block);
-			ALIGNCODENOP;
-			break;
-
-
-
-		case ICMD_IFNULL:       /* ..., value ==> ...                         */
-		case ICMD_IFNONNULL:
-			assert(IS_ADR_TYPE(VAROP(iptr->s1)->type));
-			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
-			M_ATST(s1);
-			emit_bcc(cd, iptr->dst.block, iptr->opc - ICMD_IFNULL, BRANCH_OPT_NONE);
-			break;
-
-		case ICMD_IFLT:
-		case ICMD_IFLE:
-		case ICMD_IFNE:
-		case ICMD_IFGT:
-		case ICMD_IFGE:
-		case ICMD_IFEQ:         /* ..., value ==> ...                         */
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			assert (VAROP(iptr->s1)->type == TYPE_INT);
-			M_ICMP_IMM(iptr->sx.val.i, s1); 
-			emit_bcc(cd, iptr->dst.block, iptr->opc - ICMD_IFEQ, BRANCH_OPT_NONE);
-			break;
-
-		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
-		case ICMD_IF_ICMPNE:
-		case ICMD_IF_ICMPLT:
-		case ICMD_IF_ICMPGT:
-		case ICMD_IF_ICMPLE:
-		case ICMD_IF_ICMPGE:
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_ICMP(s2, s1);
-			emit_bcc(cd, iptr->dst.block, iptr->opc - ICMD_IF_ICMPEQ, BRANCH_OPT_NONE);
-			break;
-
-		case ICMD_IF_ACMPEQ:    /* op1 = target JavaVM pc                     */
-		case ICMD_IF_ACMPNE:
-
-			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ATMP2);
-			M_ACMP(s1, s2);
-			emit_bcc(cd, iptr->dst.block, iptr->opc - ICMD_IF_ACMPEQ, BRANCH_OPT_NONE);
-			break;
-
 
 		/* MEMORY *************************************************************/
 
@@ -1314,15 +1103,6 @@ bool codegen_emit(jitdata *jd)
 				break;
 #endif
 			}
-			break;
-
-		case ICMD_ARRAYLENGTH: /* ..., arrayref  ==> ..., length              */
-
-			s1 = emit_load_s1(jd, iptr, REG_ATMP1);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
-			/* implicit null-pointer check */
-			M_ILD(d, s1, OFFSET(java_array_t, size));
-			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_BALOAD:     /* ..., arrayref, index  ==> ..., value         */
@@ -1605,172 +1385,81 @@ bool codegen_emit(jitdata *jd)
 
 		/* METHOD INVOCATION *********************************************************/
 		case ICMD_BUILTIN:      /* ..., [arg1, [arg2 ...]] ==> ...            */
-			REPLACEMENT_POINT_FORGC_BUILTIN(cd, iptr);
-
 			bte = iptr->sx.s23.s3.bte;
-			md  = bte->md;
-			goto gen_method;
+			if (bte->stub == NULL)
+				disp = (ptrint) bte->fp;
+			else
+				disp = (ptrint) bte->stub;
+			M_JSR_IMM(disp);
+			break;
+
+		case ICMD_INVOKESPECIAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
+			/* adress register for sure */
+			M_ALD(REG_ATMP1, REG_SP, 0);
+			emit_nullpointer_check(cd, iptr, REG_ATMP1);
+			/* fall through */
 
 		case ICMD_INVOKESTATIC: /* ..., [arg1, [arg2 ...]] ==> ...            */
-		case ICMD_INVOKESPECIAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
-		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
-		case ICMD_INVOKEINTERFACE:
-			REPLACEMENT_POINT_INVOKE(cd, iptr);
-
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				lm = NULL;
 				um = iptr->sx.s23.s3.um;
-				md = um->methodref->parseddesc.md;
-			}
-			else {
+				patcher_add_patch_ref(jd, PATCHER_invokestatic_special, um, 0);
+				disp = 0;
+				M_AMOV_IMM(disp, REG_ATMP1);
+			} else	{
 				lm = iptr->sx.s23.s3.fmiref->p.method;
-				um = NULL;
-				md = lm->parseddesc;
-			}
-	gen_method:
-			s3 = md->paramcount;
-	
-			MCODECHECK((s3 << 1) + 64);
-
-			/* copy arguments to stack */
-			for (s3 = s3 - 1; s3 >= 0; s3--)	{
-				var = VAR(iptr->sx.s23.s2.args[s3]);
-				/* already preallocated */
-				if (var->flags & PREALLOC) continue;
-		
-				if (!md->params[s3].inmemory) assert(0);
-
-				switch (var->type)	{
-#if defined(ENABLE_SOFTFLOAT)
-					case TYPE_DBL:
-#endif
-					case TYPE_LNG:
-						d = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
-						M_LST(d, REG_SP, md->params[s3].regoff);
-						break;
-#if defined(ENABLE_SOFTFLOAT)
-					case TYPE_FLT:
-#endif
-					case TYPE_INT:
-						d = emit_load(jd, iptr, var, REG_ITMP1);
-						M_IST(d, REG_SP, md->params[s3].regoff);
-						break;
-					case TYPE_ADR:
-						d = emit_load(jd, iptr, var, REG_ATMP1);
-						M_AST(d, REG_SP, md->params[s3].regoff);
-						break;
-#if !defined(ENABLE_SOFTFLOAT)
-					case TYPE_FLT:
-						d = emit_load(jd, iptr, var, REG_FTMP1);
-						M_FST(d, REG_SP, md->params[s3].regoff);
-						break;
-					case TYPE_DBL:
-						d = emit_load(jd, iptr, var, REG_FTMP1);
-						M_DST(d, REG_SP, md->params[s3].regoff);
-						break;
-#endif
-					default:
-						assert(0);
-				}
+				disp = lm->stubroutine;
+				M_AMOV_IMM(disp, REG_ATMP1);
 			}
 
-			/* arguments in place now */
-			switch(iptr->opc)	{
-				case ICMD_BUILTIN:
-					if (bte->stub == NULL)
-						disp = (ptrint) bte->fp;
-					else
-						disp = (ptrint) bte->stub;
-					d = md->returntype.type;
-					M_JSR_IMM(disp);
+			/* generate the actual call */
+			M_JSR(REG_ATMP1);
+			break;
 
-					REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
-					break;
+		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				um = iptr->sx.s23.s3.um;
+				patcher_add_patch_ref(jd, PATCHER_invokevirtual, um, 0);
+				s1 = 0;
+			} else {
+				lm = iptr->sx.s23.s3.fmiref->p.method;
+				s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * lm->vftblindex;
+			}
+			/* load object pointer (==argument 0) */
+			M_ALD(REG_ATMP1, REG_SP, 0);
+			/* implicit null-pointer check */
+			M_ALD(REG_METHODPTR, REG_ATMP1, OFFSET(java_object_t, vftbl));
+			M_ALD(REG_ATMP3, REG_METHODPTR, s1);
+			/* generate the actual call */
+			M_JSR(REG_ATMP3);
+			break;
 
-				case ICMD_INVOKESPECIAL: 
-					/* adress register for sure */
-					M_ALD(REG_ATMP1, REG_SP, 0);
-					emit_nullpointer_check(cd, iptr, REG_ATMP1);
-					/* fall through */
-				case ICMD_INVOKESTATIC: 
-					if (lm == NULL) {
-						patcher_add_patch_ref(jd, PATCHER_invokestatic_special, um, 0);
-						disp = 0;
-						M_AMOV_IMM(disp, REG_ATMP1);
-					} else	{
-						disp = lm->stubroutine;
-						M_AMOV_IMM(disp, REG_ATMP1);
-					}
+		case ICMD_INVOKEINTERFACE:
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				um = iptr->sx.s23.s3.um;
+				patcher_add_patch_ref(jd, PATCHER_invokeinterface, um, 0);
 
-					/* generate the actual call */
-					M_JSR(REG_ATMP1);
-					REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
-					break;
+				s1 = 0;
+				s2 = 0;
+			} else {
+				lm = iptr->sx.s23.s3.fmiref->p.method;
+				s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * lm->clazz->index;
+				s2 = sizeof(methodptr) * (lm - lm->clazz->methods);
+			}
+			/* load object pointer (==argument 0) */
+			M_ALD(REG_ATMP1, REG_SP, 0);
 
+			/* implicit null-pointer check */
+			M_ALD(REG_METHODPTR, REG_ATMP1, OFFSET(java_object_t, vftbl));
+			M_ALD(REG_METHODPTR, REG_METHODPTR, s1);
+			M_ALD(REG_ATMP3, REG_METHODPTR, s2);
 
-				case ICMD_INVOKEVIRTUAL:
-					if (lm == NULL) {
-						patcher_add_patch_ref(jd, PATCHER_invokevirtual, um, 0);
-						s1 = 0;
-					} else {
-						s1 = OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * lm->vftblindex;
-					}
-					/* load object pointer (==argument 0) */
-					M_ALD(REG_ATMP1, REG_SP, 0);
-					/* implicit null-pointer check */
-					M_ALD(REG_METHODPTR, REG_ATMP1, OFFSET(java_object_t, vftbl));
-					M_ALD(REG_ATMP3, REG_METHODPTR, s1);
-					/* generate the actual call */
-					M_JSR(REG_ATMP3);
-					break;
-				case ICMD_INVOKEINTERFACE: 
-					if (lm == NULL) {
-						patcher_add_patch_ref(jd, PATCHER_invokeinterface, um, 0);
+			/* generate the actual call */
+			M_JSR(REG_ATMP3);
+			break;
 
-						s1 = 0;
-						s2 = 0;
-					} else {
-						s1 = OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr*) * lm->clazz->index;
-						s2 = sizeof(methodptr) * (lm - lm->clazz->methods);
-					}
-					/* load object pointer (==argument 0) */
-					M_ALD(REG_ATMP1, REG_SP, 0);
-
-					/* implicit null-pointer check */
-					M_ALD(REG_METHODPTR, REG_ATMP1, OFFSET(java_object_t, vftbl));
-					M_ALD(REG_METHODPTR, REG_METHODPTR, s1);
-					M_ALD(REG_ATMP3, REG_METHODPTR, s2);
-
-					/* generate the actual call */
-					M_JSR(REG_ATMP3);
-					REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
-					break;
-
-				default: assert(0);
-				}	/* switch (iptr->opc) */
-
-				REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
-				REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr);
-				
-				/* store return value */
-				d = md->returntype.type;
+XXXXXX
 
 				switch (d)	{
-					case TYPE_VOID:	break;
-#if defined(ENABLE_SOFTFLOAT)
-					case TYPE_FLT:
-#endif
-					case TYPE_INT:
-						s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT);
-						M_INTMOVE(REG_RESULT, s1);
-						break;
-#if defined(ENABLE_SOFTFLOAT)
-					case TYPE_DBL:
-#endif
-					case TYPE_LNG:
-						s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT_PACKED);
-						M_LNGMOVE(REG_RESULT_PACKED, s1);
-						break;
 					case TYPE_ADR:
 						s1 = codegen_reg_of_dst(jd, iptr, REG_ATMP1);
 						/* all stuff is returned in %d0 */
@@ -1786,7 +1475,7 @@ bool codegen_emit(jitdata *jd)
 						if (iptr->opc == ICMD_BUILTIN)	{
 							M_INT2FLTMOVE(REG_FRESULT, s1);
 						} else	{
-							M_FLTMOVE(REG_FRESULT, s1);
+							emit_fmove(cd, REG_FRESULT, s1);
 						}
 						break;
 					case TYPE_DBL:
@@ -1795,172 +1484,13 @@ bool codegen_emit(jitdata *jd)
 							M_LST(REG_RESULT_PACKED, REG_SP, rd->memuse * 4 + 4);
 							M_DLD(s1, REG_SP, rd->memuse * 4 + 4);
 						} else	{
-							M_DBLMOVE(REG_FRESULT, s1);
+							emit_dmove(cd, REG_FRESULT, s1);
 						}
 						break;
 #endif
-					default:
-						assert(0);
-				}
-				if (d != TYPE_VOID) emit_store_dst(jd, iptr, s1);
-			break; /* ICMD_INVOKE* */
-
-#if defined(ENABLE_SOFTFLOAT)
-		case ICMD_FRETURN:
-#endif
-		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
-
-			REPLACEMENT_POINT_RETURN(cd, iptr);
-			s1 = emit_load_s1(jd, iptr, REG_RESULT);
-			M_INTMOVE(s1, REG_RESULT);
-			goto nowperformreturn;
-
-		case ICMD_ARETURN:      /* ..., retvalue ==> ...                      */
-
-			REPLACEMENT_POINT_RETURN(cd, iptr);
-			s1 = emit_load_s1(jd, iptr, REG_RESULT);
-			assert(VAROP(iptr->s1)->type == TYPE_ADR);
-			M_ADR2INTMOVE(s1, REG_RESULT);
-
-#ifdef ENABLE_VERIFIER
-			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				unresolved_class *uc = iptr->sx.s23.s2.uc;
-
-				patcher_add_patch_ref(jd, PATCHER_resolve_class, uc, 0);
-			}
-#endif /* ENABLE_VERIFIER */
-			goto nowperformreturn;
-
-#if defined(ENABLE_SOFTFLOAT)
-		case ICMD_DRETURN:
-#endif
-		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
-			REPLACEMENT_POINT_RETURN(cd, iptr);
-			s1 = emit_load_s1(jd, iptr, REG_RESULT_PACKED);
-			M_LNGMOVE(s1, REG_RESULT_PACKED);
-			goto nowperformreturn;
-
-#if !defined(ENABLE_SOFTFLOAT)
-		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
-			REPLACEMENT_POINT_RETURN(cd, iptr);
-			s1 = emit_load_s1(jd, iptr, REG_FRESULT);
-			M_FLTMOVE(s1, REG_FRESULT);
-			goto nowperformreturn;
-
-		case ICMD_DRETURN:
-			REPLACEMENT_POINT_RETURN(cd, iptr);
-			s1 = emit_load_s1(jd, iptr, REG_FRESULT);
-			M_DBLMOVE(s1, REG_FRESULT);
-			goto nowperformreturn;
-
-#endif
-
-		case ICMD_RETURN:      /* ...  ==> ...                                */
-
-			REPLACEMENT_POINT_RETURN(cd, iptr);
-
-nowperformreturn:
-			{
-			s4 i, p;
-			
-			p = cd->stackframesize;
-
-			/* call trace function */
-#if !defined(NDEBUG)
-			emit_verbosecall_exit(jd);
-#endif
-
-#if defined(ENABLE_THREADS)
-			/* call lock_monitor_exit */
-			if (checksync && code_is_synchronized(code)) {
-				M_ILD(REG_ITMP3, REG_SP, rd->memuse * 8);
-
-				/* we need to save the proper return value */
-				/* we do not care for the long -> doubel convert space here */
-				switch (iptr->opc) {
-#if defined(ENABLE_SOFTFLOAT)
-				case ICMD_DRETURN:
-#endif
-				case ICMD_LRETURN:
-					M_LST(REG_RESULT_PACKED, REG_SP, rd->memuse * 8 + 8);
-					break;
-#if defined(ENABLE_SOFTFLOAT)
-				case ICMD_FRETURN:
-#endif
-				case ICMD_IRETURN:
-				case ICMD_ARETURN:
-					M_IST(REG_RESULT , REG_SP, rd->memuse * 8 + 8);
-					break;
-#if !defined(ENABLE_SOFTFLOAT)
-				case ICMD_FRETURN:
-					M_FST(REG_FRESULT, REG_SP, rd->memuse * 8 + 8);
-					break;
-				case ICMD_DRETURN:
-					M_DST(REG_FRESULT, REG_SP, rd->memuse * 8 + 8);
-					break;
-#endif
 				}
 
-				M_IST(REG_ITMP3, REG_SP, 0 * 4);
-				M_JSR_IMM(LOCK_monitor_exit);
-
-				/* and now restore the proper return value */
-				switch (iptr->opc) {
-
-#if defined(ENABLE_SOFTFLOAT)
-				case ICMD_DRETURN:
-#endif
-				case ICMD_LRETURN:
-					M_LLD(REG_RESULT_PACKED, REG_SP, rd->memuse * 8 + 8);
-					break;
-#if defined(ENABLE_SOFTFLOAT)
-				case ICMD_FRETURN:
-#endif
-				case ICMD_IRETURN:
-				case ICMD_ARETURN:
-					M_ILD(REG_RESULT , REG_SP, rd->memuse * 8 + 8);
-					break;
-#if !defined(ENABLE_SOFTFLOAT)
-				case ICMD_FRETURN:
-					M_FLD(REG_FRESULT, REG_SP, rd->memuse * 8 + 8);
-					break;
-				case ICMD_DRETURN:
-					M_DLD(REG_FRESULT, REG_SP, rd->memuse * 8 + 8);
-					break;
-#endif
-				}
-			}
-#endif
-
-
-			/* restore return address                                         */
-#if 0
-			if (!code_is_leafmethod(code)) {
-				/* ATTENTION: Don't use REG_ZERO (r0) here, as M_ALD
-				   may have a displacement overflow. */
-
-				M_ALD(REG_ITMP1, REG_SP, p * 4 + LA_LR_OFFSET);
-				M_MTLR(REG_ITMP1);
-			}
-#endif
-			/* restore saved registers                                        */
-
-			for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
-				p-=8; M_ILD(rd->savintregs[i], REG_SP, p);
-			}
-			for (i=ADR_SAV_CNT-1; i>=rd->savadrreguse; --i)	{
-				p-=8; M_ALD(rd->savadrregs[i], REG_SP, p);
-			}
-#if !defined(ENABLE_SOFTFLOAT)
-			for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-				p-=8; M_FLOAD(rd->savfltregs[i], REG_SP, p);
-			}
-#endif
-			/* deallocate stack                                               */
-			M_AADD_IMM(cd->stackframesize, REG_SP);
-			M_RET;
-			}
-			break;
+XXXXXXX
 
 		/* the evil ones */
 		case ICMD_INSTANCEOF: /* ..., objectref ==> ..., intresult            */
@@ -2257,29 +1787,6 @@ nowperformreturn:
 			}
 			break;
 
-		case ICMD_LOOKUPSWITCH: /* ..., key ==> ...                           */
-			{
-			s4 i;
-			lookup_target_t *lookup;
-
-			lookup = iptr->dst.lookup;
-
-			i = iptr->sx.s23.s2.lookupcount;
-			
-			MCODECHECK((i<<2)+8);
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-
-			while (--i >= 0) {
-				M_ICMP_IMM(lookup->value, s1);
-				emit_beq(cd, lookup->target.block);
-				lookup++;
-			}
-
-			emit_br(cd, iptr->sx.s23.s3.lookupdefault.block);
-			ALIGNCODENOP;
-			break;
-			}
-
 		case ICMD_MULTIANEWARRAY:/* ..., cnt1, [cnt2, ...] ==> ..., arrayref  */
 
 			/* check for negative sizes and copy sizes to stack if necessary  */
@@ -2327,33 +1834,10 @@ nowperformreturn:
 
 
 		default:
-			printf("UNKNOWN OPCODE %d\n", iptr->opc);
-			exceptions_throw_internalerror("Unknown ICMD %d during code generation", iptr->opc);
-			return false;
+			vm_abort("Unknown ICMD %d during code generation", iptr->opc);
 	} /* switch */
-	/* M_TPF; */ /* nop after each ICMD */
-	} /* for each instruction */
-
-	/* At the end of a basic block we may have to append some nops,
-	   because the patcher stub calling code might be longer than the
-	   actual instruction. So codepatching does not change the
-	   following block unintentionally. */
-
-	if (cd->mcodeptr < cd->lastmcodeptr) {
-		while (cd->mcodeptr < cd->lastmcodeptr) {
-			M_NOP;
-		}
-	}
-
-
-	} /* if (btpre->flags >= BBREACHED) */
-	} /* for each basic block */
-
-	/* generate stubs */
-	emit_patcher_traps(jd);
-
-	return true;
 }
+
 
 /* codegen_emit_stub_native ****************************************************
 

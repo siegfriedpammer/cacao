@@ -71,6 +71,19 @@ typedef struct dataref                dataref;
 #define GET_LOW_REG(a)      ((a) & 0x0000ffff)
 #define GET_HIGH_REG(a)    (((a) & 0xffff0000) >> 16)
 
+/* All 32-bit machines we support use packed registers to store
+   return values and temporary values. */
+
+#if SIZEOF_VOID_P == 8
+# define REG_LRESULT         REG_RESULT
+# define REG_LTMP12          REG_ITMP1
+# define REG_LTMP23          REG_ITMP2
+#else
+# define REG_LRESULT         REG_RESULT_PACKED
+# define REG_LTMP12          REG_ITMP12_PACKED
+# define REG_LTMP23          REG_ITMP23_PACKED
+#endif
+
 
 /* branch conditions **********************************************************/
 
@@ -210,6 +223,10 @@ void codegen_setup(jitdata *jd);
 
 bool codegen_generate(jitdata *jd);
 bool codegen_emit(jitdata *jd);
+
+void codegen_emit_prolog(jitdata* jd);
+void codegen_emit_epilog(jitdata* jd);
+void codegen_emit_instruction(jitdata* jd, instruction* iptr);
 
 #if defined(ENABLE_INTRP)
 bool intrp_codegen(jitdata *jd);

@@ -74,25 +74,11 @@
 /*** architecture-dependent configuration *************************************/
 
 /* first unset the macros (default) */
-#undef REPLACE_RA_BETWEEN_FRAMES
-#undef REPLACE_RA_TOP_OF_FRAME
 #undef REPLACE_RA_LINKAGE_AREA
-#undef REPLACE_LEAFMETHODS_RA_REGISTER
 
-/* i386, x86_64 and m68k */
-#if defined(__I386__) || defined(__X86_64__) || defined(__M68K__)
-#define REPLACE_RA_BETWEEN_FRAMES
-/* alpha */
-#elif defined(__ALPHA__)
-#define REPLACE_RA_TOP_OF_FRAME
-#define REPLACE_LEAFMETHODS_RA_REGISTER
 /* powerpc */
-#elif defined(__POWERPC__)
-#define REPLACE_RA_LINKAGE_AREA
-#define REPLACE_LEAFMETHODS_RA_REGISTER
-/* s390 */
-#elif defined(__S390__)
-#define REPLACE_RA_TOP_OF_FRAME
+#if defined(__POWERPC__)
+# define REPLACE_RA_LINKAGE_AREA
 #endif
 
 
@@ -728,13 +714,7 @@ bool replace_create_replacement_points(jitdata *jd)
 	code->regalloc      = regalloc;
 	code->regalloccount = alloccount;
 	code->globalcount   = 0;
-	code->savedintcount = INT_SAV_CNT - rd->savintreguse;
-	code->savedfltcount = FLT_SAV_CNT - rd->savfltreguse;
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	code->savedadrcount = ADR_SAV_CNT - rd->savadrreguse;
-#endif
 	code->memuse        = rd->memuse;
-	code->stackframesize = jd->cd->stackframesize;
 
 	REPLACE_COUNT_DIST(stat_dist_method_rplpoints, count);
 	REPLACE_COUNT_INC(stat_regallocs, alloccount);
@@ -1512,7 +1492,7 @@ static void replace_write_executionstate(rplpoint *rp,
 void md_pop_stackframe(executionstate_t *es)
 {
 	u1 *ra;
-	s4 ra_align_off;
+	s4 framesize;
 	s4 reg;
 	s4 i;
 	stackslot_t *basesp;
@@ -1520,23 +1500,18 @@ void md_pop_stackframe(executionstate_t *es)
 
 	assert(es->code);
 
-	/* alignment offset of RA */
+	/* calculate the size of the stackframe */
 
-	ra_align_off = 0;
-#if defined(REPLACE_RA_BETWEEN_FRAMES)
-    if (es->code->stackframesize)
-		ra_align_off = SIZE_OF_STACKSLOT - SIZEOF_VOID_P;
-#endif
+	framesize = md_stacktrace_get_framesize(es->code);
 
 	/* read the return address */
 
-#if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
+#if STACKFRAME_LEAFMETHODS_RA_REGISTER
 	if (code_is_leafmethod(es->code))
 		ra = es->ra;
 	else
 #endif
-		ra = (u1*) md_stacktrace_get_returnaddress(es->sp,
-			   SIZE_OF_STACKSLOT * es->code->stackframesize + ra_align_off);
+		ra = (u1*) md_stacktrace_get_returnaddress(es->sp, framesize);
 
 	/* calculate the base of the stack frame */
 
@@ -1545,17 +1520,17 @@ void md_pop_stackframe(executionstate_t *es)
 
 	/* restore return address, if part of frame */
 
-#if defined(REPLACE_RA_TOP_OF_FRAME)
-#if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
+#if STACKFRAME_RA_TOP_OF_FRAME
+# if STACKFRAME_LEAFMETHODS_RA_REGISTER
 	if (!code_is_leafmethod(es->code))
-#endif
+# endif
 		es->ra = (u1*) (ptrint) *--basesp;
-#endif /* REPLACE_RA_TOP_OF_FRAME */
+#endif /* STACKFRAME_RA_TOP_OF_FRAME */
 
 #if defined(REPLACE_RA_LINKAGE_AREA)
-#if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
+# if STACKFRAME_LEAFMETHODS_RA_REGISTER
 	if (!code_is_leafmethod(es->code))
-#endif
+# endif
 		es->ra = (u1*) (ptrint) basesp[LA_LR_OFFSET / sizeof(stackslot_t)];
 #endif /* REPLACE_RA_LINKAGE_AREA */
 
@@ -1592,10 +1567,9 @@ void md_pop_stackframe(executionstate_t *es)
 
 	/* adjust the stackpointer */
 
-	es->sp += SIZE_OF_STACKSLOT * es->code->stackframesize;
-
-#if defined(REPLACE_RA_BETWEEN_FRAMES)
-	es->sp += ra_align_off + SIZEOF_VOID_P; /* skip return address */
+	es->sp += framesize;
+#if STACKFRMAE_RA_BETWEEN_FRAMES
+	es->sp += SIZEOF_VOID_P; /* skip return address */
 #endif
 
 	/* set the program counter to the return address */
@@ -1652,12 +1626,12 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 
 	/* write the return address */
 
-#if defined(REPLACE_RA_BETWEEN_FRAMES)
+#if STACKFRMAE_RA_BETWEEN_FRAMES
 	es->sp -= SIZEOF_VOID_P;
 	*((void **)es->sp) = (void *) ra;
 	if (calleecode->stackframesize)
 		es->sp -= (SIZE_OF_STACKSLOT - SIZEOF_VOID_P);
-#endif /* REPLACE_RA_BETWEEN_FRAMES */
+#endif /* STACKFRAME_RA_BETWEEN_FRAMES */
 
 	es->ra = (u1*) (ptrint) ra;
 
@@ -1692,17 +1666,17 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 
 	/* save the return address register */
 
-#if defined(REPLACE_RA_TOP_OF_FRAME)
-#if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
+#if STACKFRAME_RA_TOP_OF_FRAME
+# if STACKFRAME_LEAFMETHODS_RA_REGISTER
 	if (!code_is_leafmethod(calleecode))
-#endif
+# endif
 		*--basesp = (ptrint) ra;
-#endif /* REPLACE_RA_TOP_OF_FRAME */
+#endif /* STACKFRAME_RA_TOP_OF_FRAME */
 
 #if defined(REPLACE_RA_LINKAGE_AREA)
-#if defined(REPLACE_LEAFMETHODS_RA_REGISTER)
+# if STACKFRAME_LEAFMETHODS_RA_REGISTER
 	if (!code_is_leafmethod(calleecode))
-#endif
+# endif
 		basesp[LA_LR_OFFSET / sizeof(stackslot_t)] = (ptrint) ra;
 #endif /* REPLACE_RA_LINKAGE_AREA */
 
@@ -2371,11 +2345,9 @@ static void replace_pop_native_frame(executionstate_t *es,
 
 	/* restore sp, pv, pc and codeinfo of the parent method */
 
-	/* XXX michi: use this instead:
-	es->sp = sfi->sp + code->stackframesize; */
-	es->sp   = (uint8_t*) (((uintptr_t) sfi->sp) + (*(s4 *) (((uintptr_t) sfi->pv) + FrameSize)));
-#if defined(REPLACE_RA_BETWEEN_FRAMES)
-	es->sp  += SIZE_OF_STACKSLOT; /* skip return address */
+	es->sp   = (uint8_t*) (((uintptr_t) sfi->sp) + md_stacktrace_get_framesize(code));
+#if STACKFRMAE_RA_BETWEEN_FRAMES
+	es->sp  += SIZEOF_VOID_P; /* skip return address */
 #endif
 	es->pv   = (uint8_t*) md_codegen_get_pv_from_pc(sfi->ra);
 	es->pc   = (uint8_t*) (((uintptr_t) ((sfi->xpc) ? sfi->xpc : sfi->ra)) - 1);
@@ -2422,9 +2394,9 @@ static void replace_push_native_frame(executionstate_t *es, sourcestate_t *ss)
 
 	/* skip sp for the native stub */
 
-	es->sp -= (*(s4 *) (((uintptr_t) frame->sfi->pv) + FrameSize));
-#if defined(REPLACE_RA_BETWEEN_FRAMES)
-	es->sp -= SIZE_OF_STACKSLOT; /* skip return address */
+	es->sp -= md_stacktrace_get_framesize(frame->sfi->code);
+#if STACKFRMAE_RA_BETWEEN_FRAMES
+	es->sp -= SIZEOF_VOID_P; /* skip return address */
 #endif
 
 	/* assert that the native frame has not moved */

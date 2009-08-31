@@ -96,6 +96,15 @@
 #define SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER     0
 #define SUPPORT_BRANCH_CONDITIONAL_TWO_INTEGER_REGISTERS    0
 
+
+/* stackframe *****************************************************************/
+
+#define STACKFRMAE_RA_BETWEEN_FRAMES              1
+#define STACKFRAME_RA_TOP_OF_FRAME                0
+#define STACKFRAME_LEAFMETHODS_RA_REGISTER        0
+#define STACKFRAME_SYNC_NEEDS_TWO_SLOTS           1
+
+
 #define TRACE_ARGS_NUM			8
 
 #define REG_ZERO -1

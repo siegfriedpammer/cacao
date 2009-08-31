@@ -95,6 +95,7 @@ static void profile_thread(void)
 		// Lock the thread lists.
 		ThreadList_lock();
 
+#if 0
 		/* iterate over all started threads */
 
 		for (t = ThreadList_first(); t != NULL; t = ThreadList_next(t)) {
@@ -153,6 +154,7 @@ static void profile_thread(void)
 				}
 			}
 		}
+#endif
 
 		// Unlock the thread lists.
 		ThreadList_unlock();
@@ -207,6 +209,7 @@ void profile_printstats(void)
 	frequency = 0;
 	cycles    = 0;
 
+#if 0
 	/* create new method list */
 	// TODO Use a sorted container.
 	List* l = List_new();
@@ -297,6 +300,7 @@ void profile_printstats(void)
 					   j, code->bbfrequency[j]);
 		}
 	}
+#endif
 
 	printf("-----------           -------------- \n");
 	printf("%10d             %12ld\n", frequency, (long) cycles);

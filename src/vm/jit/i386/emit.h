@@ -1,9 +1,7 @@
-/* src/vm/jit/i386/emitfuncs.h - emit function prototypes
+/* src/vm/jit/i386/emit.h - machine dependent emit function prototypes
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,18 +20,13 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
-
 */
 
 
-#ifndef _EMITFUNCS_H
-#define _EMITFUNCS_H
+#ifndef _MD_EMIT_H
+#define _MD_EMIT_H
 
+#include "config.h"
 #include "vm/types.h"
 
 #include "vm/jit/codegen-common.hpp"
@@ -149,6 +142,9 @@
 
 #define emit_reg(reg,rm)                emit_address_byte(3,(reg),(rm))
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* integer instructions */
 
@@ -304,7 +300,19 @@ void emit_escape_check(codegendata *cd, s4 reg);
 void emit_escape_annotate_object(codegendata *cd, methodinfo *m);
 #endif
 
-#endif /* _EMITFUNCS_H */
+
+/**
+ * Emit code to recompute the procedure vector. This is a nop,
+ * because we do not use a procedure vector.
+ */
+static inline void emit_recompute_pv(codegendata* cd) {}
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _MD_EMIT_H */
 
 
 /*

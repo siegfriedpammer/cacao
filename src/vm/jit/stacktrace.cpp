@@ -33,6 +33,7 @@
 
 #include "vm/types.h"
 
+#include "arch.h"
 #include "md.h"
 
 #include "mm/gc.hpp"
@@ -138,7 +139,7 @@ void stacktrace_stackframeinfo_add(stackframeinfo_t* sfi, void* pv, void* sp, vo
 		/* On S390 we use REG_RA as REG_ITMP3, so we have always to get
 		   the RA from stack. */
 
-		framesize = *((u4 *) (((uintptr_t) pv) + FrameSize));
+		framesize = md_stacktrace_get_framesize(code);
 
 		ra = md_stacktrace_get_returnaddress(sp, framesize);
 # else
@@ -149,7 +150,7 @@ void stacktrace_stackframeinfo_add(stackframeinfo_t* sfi, void* pv, void* sp, vo
 		   the asm_vm_call_method special case. */
 
 		if ((code == NULL) || !code_is_leafmethod(code)) {
-			framesize = *((u4 *) (((uintptr_t) pv) + FrameSize));
+			framesize = md_stacktrace_get_framesize(code);
 
 			ra = md_stacktrace_get_returnaddress(sp, framesize);
 		}
@@ -306,7 +307,7 @@ static inline void stacktrace_stackframeinfo_next(stackframeinfo_t *tmpsfi)
  
 	/* Get the current stack frame size. */
 
-	framesize = *((uint32_t *) (((intptr_t) pv) + FrameSize));
+	framesize = md_stacktrace_get_framesize(code);
 
 	/* Get the RA of the current stack frame (RA to the parent Java
 	   method) if the current method is a non-leaf method.  Otherwise
@@ -357,7 +358,7 @@ static inline void stacktrace_stackframeinfo_next(stackframeinfo_t *tmpsfi)
 	else
 #endif
 		{
-#if defined(__I386__) || defined (__X86_64__) || defined (__M68K__)
+#if STACKFRMAE_RA_BETWEEN_FRAMES
 			sp = (void *) (((intptr_t) sp) + framesize + SIZEOF_VOID_P);
 #elif defined(__SPARC_64__)
 			/* already has the new sp */

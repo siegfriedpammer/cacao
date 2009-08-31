@@ -48,44 +48,6 @@
         M_NOP; \
     }
 
-#define M_INTMOVE(a,b) \
-    do { \
-        if ((a) != (b)) \
-            M_MOV(a, b); \
-    } while (0)
-
-#if SIZEOF_VOID_P == 8
-
-#define M_LNGMOVE(a,b)    M_INTMOVE(a,b)
-
-#else /* SIZEOF_VOID_P == 8 */
-
-#define M_LNGMOVE(a,b) \
-    do { \
-        if (GET_LOW_REG(b) == GET_HIGH_REG(a)) { \
-            assert(GET_HIGH_REG(b) == GET_LOW_REG(a)); \
-            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
-            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
-        } else { \
-            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
-            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
-        } \
-    } while (0)
-
-#endif /* SIZEOF_VOID_P == 8 */
-
-#define M_FLTMOVE(a,b) \
-    do { \
-        if ((a) != (b)) \
-            M_FMOV(a, b); \
-    } while (0)
-
-#define M_DBLMOVE(a,b) \
-    do { \
-        if ((a) != (b)) \
-            M_DMOV(a, b); \
-    } while (0)
-
 #define ICONST(r,c)                     emit_iconst(cd, (r), (c))
 #define LCONST(r,c)                     emit_lconst(cd, (r), (c))
 

@@ -69,43 +69,13 @@
     } while (0)
 
 
-/* M_INTMOVE:
-     generates an integer-move from register a to b.
-     if a and b are the same int-register, no code will be generated.
-*/ 
-
-#define M_INTMOVE(a,b) \
-    do { \
-        if ((a) != (b)) \
-            M_MOV(a, b); \
-    } while (0)
-
-#define M_LNGMOVE(a,b) \
-    do { \
-        if (GET_HIGH_REG(a) == GET_LOW_REG(b)) { \
-            assert((GET_LOW_REG(a) != GET_HIGH_REG(b))); \
-            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
-            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
-        } else { \
-            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
-            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
-        } \
-    } while (0)
-
-
-/* M_FLTMOVE:
-    generates a floating-point-move from register a to b.
-    if a and b are the same float-register, no code will be generated
-*/
-
-#define M_FLTMOVE(reg,dreg)                                          \
+#define M_FMOV(reg,dreg)                                             \
     do {                                                             \
-        if ((reg) != (dreg)) {                                       \
-            log_text("M_FLTMOVE");                                   \
-            assert(0);                                               \
-        }                                                            \
+        log_text("M_FMOV");                                          \
+        assert(0);                                                   \
     } while (0)
 
+#define M_DMOV(a,b) M_FMOV(a,b)
 
 #define ICONST(d,c) \
     do { \
@@ -319,6 +289,9 @@
 #define M_CALL_IMM(a)           emit_call_imm(cd, (a))
 #define M_RET                   M_BYTE1(0xc3)
 
+#define M_ACMP(a,b)             M_CMP(a,b)
+
+#define M_ICMP(a,b)             M_CMP(a,b)
 #define M_ICMP_IMM(a,b)         emit_alu_imm_reg(cd, ALU_CMP, (a), (b))
 
 #define M_BEQ(a)                emit_jcc(cd, CC_E, (a))

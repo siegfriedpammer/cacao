@@ -47,34 +47,6 @@
     } while (0)
 
 
-/* M_INTMOVE:
-     generates an integer-move from register a to b.
-     if a and b are the same int-register, no code will be generated.
-*/ 
-
-#define M_INTMOVE(a,b) \
-    do { \
-        if ((a) != (b)) { \
-            M_MOV(a, b); \
-        } \
-    } while (0)
-
-#define M_LNGMOVE(a,b) M_INTMOVE(a,b)
-
-
-/* M_FLTMOVE:
-    generates a floating-point-move from register a to b.
-    if a and b are the same float-register, no code will be generated
-*/ 
-
-#define M_FLTMOVE(a,b) \
-    do { \
-        if ((a) != (b)) { \
-            M_FMOV(a, b); \
-        } \
-    } while (0)
-
-
 #define ICONST(d,c)                     emit_iconst(cd, (d), (c))
 #define LCONST(reg,c) 			emit_lconst(cd, (reg), (c))
 
@@ -322,6 +294,7 @@
 
 #define M_ALD_INTERN(a,b,disp)          M_LLD_INTERN(a,b,disp)
 #define M_ALD(a,b,disp)                 M_LLD(a,b,disp)
+#define M_ALD_DSEG(a,disp)              M_LLD(a,REG_PV,disp)
 #define M_ALDX(a,b,c)			M_OP3(31, 21, 0, 0, a, b, c)	/* LDX */
 
 #define M_BST(a,b,c)                    M_OP2_IMM(38, a, b, c)	/* STB */
@@ -469,6 +442,13 @@
 #define M_CLR(a)                        M_LADD_IMM(0, 0, a)
 #define M_CLR_HIGH(a)			M_OP3(30, 0, 0, 0x20, (a), (a), 0);
 #define M_AADD_IMM(a,b,c)               M_LADD_IMM(a, b, c)
+
+#define M_DMOV(a,b)                     M_FMOV(a,b)
+
+#define M_ACMP(a,b)                     M_CMP(a,b)
+#define M_ICMP(a,b)                     M_CMP(a,b)
+
+#define M_TEST(a)                       M_TST(a)
 
 #endif /* _CODEGEN_H */
 

@@ -180,6 +180,10 @@ typedef union {
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void emit_cmovxx(codegendata *cd, instruction *iptr, s4 s, s4 d);
 
 
@@ -362,6 +366,18 @@ void emit_xorpd_membase_reg(codegendata *cd, s8 basereg, s8 disp, s8 dreg);
 /* system instructions ********************************************************/
 
 void emit_rdtsc(codegendata *cd);
+
+
+/**
+ * Emit code to recompute the procedure vector. This is a nop,
+ * because we do not use a procedure vector.
+ */
+static inline void emit_recompute_pv(codegendata* cd) {}
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _MD_EMIT_H */
 

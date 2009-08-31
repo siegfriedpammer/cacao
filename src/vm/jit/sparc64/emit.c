@@ -239,6 +239,23 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 	}
 }
 
+
+/**
+ * Emits code updating the condition register by comparing one integer
+ * register to an immediate integer value.
+ */
+void emit_icmp_imm(codegendata* cd, int reg, int32_t value)
+{
+	if ((value >= -4096) && (value <= 4095)) {
+		M_CMP_IMM(reg, value);
+	} else {
+		assert(reg != REG_ITMP2);
+		ICONST(REG_ITMP2, value);
+		M_CMP(reg, REG_ITMP2);
+	}
+}
+
+
 /* emit_branch *****************************************************************
 
    Emits the code for conditional and unconditional branchs.
@@ -581,6 +598,124 @@ uint32_t emit_trap(codegendata *cd)
 
 	return mcode;
 }
+
+
+/**
+ * Emit code to recompute the procedure vector.
+ */
+void emit_recompute_pv(codegendata *cd)
+{
+	int32_t disp = (int32_t) (cd->mcodeptr - cd->mcodebase);
+
+	/* REG_RA holds the value of the jmp instruction, therefore +8 */
+	M_LDA(REG_ZERO, REG_RA_CALLER, -disp + 8); 
+}
+
+
+/**
+ * Generates synchronization code to enter a monitor.
+ */
+#if defined(ENABLE_THREADS)
+void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
+{
+	int32_t i, slots;
+	int32_t disp;
+
+	// Get required compiler data.
+	methodinfo*  m  = jd->m;
+	codegendata* cd = jd->cd;
+
+# if !defined(NDEBUG)
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+		/* save float argument registers */
+
+		/* XXX jit-c-call */
+		slots = FLT_ARG_CNT;
+		ALIGN_STACK_SLOTS(slots);
+
+		M_LDA(REG_SP, REG_SP, -(slots * 8));
+		for (i = 0; i < FLT_ARG_CNT; i++)
+			M_DST(abi_registers_float_argument[i], REG_SP, CSTACK +  i * 8);
+
+		syncslot_offset += slots * 8;
+	}
+# endif
+
+	/* get correct lock object */
+
+	if (m->flags & ACC_STATIC) {
+		disp = dseg_add_address(cd, &m->clazz->object.header);
+		M_ALD(REG_OUT0, REG_PV, disp);
+		disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
+		M_ALD(REG_ITMP3, REG_PV, disp);
+	}
+	else {
+		/* copy class pointer: $i0 -> $o0 */
+		M_MOV(REG_RESULT_CALLEE, REG_OUT0);
+		M_BNEZ(REG_OUT0, 3);
+		disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
+		M_ALD(REG_ITMP3, REG_PV, disp);                       /* branch delay */
+		M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_NullPointerException);
+	}
+
+	M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
+	M_AST(REG_OUT0, REG_SP, CSTACK + syncslot_offset);        /* branch delay */
+
+# if !defined(NDEBUG)
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+		/* restore float argument registers */
+
+		for (i = 0; i < FLT_ARG_CNT; i++)
+			M_DLD(abi_registers_float_argument[i], REG_SP, CSTACK + i * 8);
+
+		M_LDA(REG_SP, REG_SP, slots * 8);
+	}
+# endif
+}
+#endif
+
+
+/**
+ * Generates synchronization code to leave a monitor.
+ */
+#if defined(ENABLE_THREADS)
+void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
+{
+	int32_t disp;
+
+	// Get required compiler data.
+	methodinfo*  m  = jd->m;
+	codegendata* cd = jd->cd;
+
+	/* XXX jit-c-call */
+	disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
+	M_ALD(REG_ITMP3, REG_PV, disp);
+
+	/* we need to save fp return value (int saved by window) */
+
+	methoddesc* md = m->parseddesc;
+
+	switch (md->returntype.type) {
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_ALD(REG_OUT0, REG_SP, CSTACK + syncslot_offset);
+		M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
+		M_DST(REG_FRESULT, REG_SP, CSTACK + syncslot_offset); /* delay */
+
+		/* restore the fp return value */
+
+		M_DLD(REG_FRESULT, REG_SP, CSTACK + syncslot_offset);
+		break;
+	case TYPE_INT:
+	case TYPE_LNG:
+	case TYPE_DBL:
+	default:
+		M_JMP(REG_RA_CALLER, REG_ITMP3, REG_ZERO);
+		M_ALD(REG_OUT0, REG_SP, CSTACK + syncslot_offset); /* delay */
+		break;
+	}
+}
+#endif
 
 
 /* emit_patcher_stubs **********************************************************

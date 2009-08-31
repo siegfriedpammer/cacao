@@ -78,22 +78,15 @@
             codegen_increase(cd); \
     } while (0)
 
+#define ALIGNCODENOP /* empty */
 
 /* TODO: correct this! */
 #define IS_IMM(val) ( ((val) >= 0) && ((val) <= 255) )
 #define IS_OFFSET(off,max) ((s4)(off) <= (max) && (s4)(off) >= -(max))
 
-#if !defined(NDEBUG)
-# define CHECK_INT_REG(r) if ((r)<0 || (r)>15) printf("CHECK_INT_REG: this is not an integer register: %d\n", r); assert((r)>=0 && (r)<=15)
-# define CHECK_FLT_REG(r) if ((r)<0 || (r)>7) printf("CHECK_FLT_REG: this is not an float register: %d\n", r); assert((r)>=0 && (r)<=7)
-# define CHECK_OFFSET(off,max) \
-	if (!IS_OFFSET(off,max)) printf("CHECK_OFFSET: offset out of range: %x (>%x) SEVERE ERROR!!!\n", ((off)<0)?-(off):off, max); \
-	assert(IS_OFFSET(off,max))
-#else
-# define CHECK_INT_REG(r)
-# define CHECK_FLT_REG(r)
-# define CHECK_OFFSET(off,max)
-#endif
+#define CHECK_INT_REG(r)              assert((r)>=0 && (r)<=15)
+#define CHECK_FLT_REG(r)              assert((r)>=0 && (r)<=7)
+#define CHECK_OFFSET(off,max)         assert(IS_OFFSET(off,max))
 
 
 /* branch defines *************************************************************/
@@ -1105,66 +1098,6 @@ do { \
 #endif /* !defined(ENABLE_SOFTFLOAT) */
 
 
-/* M_RECOMPUTE_PV:
-   used to recompute our PV (we use the IP for this) out of the current PC
-   ATTENTION: if you change this, you have to look at other functions as well!
-   Following things depend on it: md_codegen_get_pv_from_pc();
-*/
-#define M_RECOMPUTE_PV(disp) \
-	disp += 8; /* we use PC relative addr.  */ \
-	assert((disp & 0x03) == 0); \
-	assert(disp >= 0 && disp <= 0x03ffffff); \
-	if (disp > 0x0003ffff) { \
-		M_SUB_IMM(REG_PV, REG_PC, IMM_ROTL(disp >> 18, 9)); \
-		M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 10, 5)); \
-		M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 2, 1)); \
-	} else if (disp > 0x000003ff) { \
-		M_SUB_IMM(REG_PV, REG_PC, IMM_ROTL(disp >> 10, 5)); \
-		M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 2, 1)); \
-	} else { \
-		M_SUB_IMM(REG_PV, REG_PC, IMM_ROTL(disp >> 2, 1)); \
-	}
-
-/* M_INTMOVE:
-   generates an integer-move from register a to b.
-   if a and b are the same int-register, no code will be generated.
-*/
-
-#define M_INTMOVE(a,b) \
-    do { \
-        if ((a) != (b)) \
-            M_MOV(b, a); \
-    } while (0)
-
-#define M_LNGMOVE(a,b) \
-    do { \
-        if (GET_HIGH_REG(a) == GET_LOW_REG(b)) { \
-            assert((GET_LOW_REG(a) != GET_HIGH_REG(b))); \
-            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
-            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
-        } else { \
-            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
-            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
-        } \
-    } while (0)
-
-
-/* M_COMPARE:
-   generates the compare part of an if-sequece
-   uses M_CMP or M_CMP_IMM to do the compare
-   ATTENTION: uses REG_ITMP3 as intermediate register
-*/
-#define M_COMPARE(reg, val) \
-	if (IS_IMM(val)) { \
-		M_CMP_IMM(reg, (val)); \
-	} else if(IS_IMM(-(val))) { \
-		M_CMN_IMM(reg, -(val)); \
-	} else { \
-		assert((reg) != REG_ITMP3); \
-		ICONST(REG_ITMP3, (val)); \
-		M_CMP(reg, REG_ITMP3); \
-	}
-
 /* M_LONGBRANCH:
    performs a long branch to an absolute address with return address in LR
    takes up 3 bytes of code space; address is hard-coded into code
@@ -1203,6 +1136,7 @@ do { \
 
 #define M_ALD(a,b,c)                    M_ILD(a,b,c)
 #define M_ALD_INTERN(a,b,c)             M_ILD_INTERN(a,b,c)
+#define M_ALD_DSEG(a,c)                 M_DSEG_LOAD(a,c)
 
 
 #define M_IST(a,b,c)                    M_STR(a,b,c)
@@ -1213,6 +1147,13 @@ do { \
 
 #define M_AST(a,b,c)                    M_IST(a,b,c)
 #define M_AST_INTERN(a,b,c)             M_IST_INTERN(a,b,c)
+
+
+#define M_ACMP(a,b)                     M_CMP(a,b)
+#define M_ICMP(a,b)                     M_CMP(a,b)
+
+
+#define M_TEST(a)                       M_TEQ_IMM(a, 0);
 
 
 #if !defined(ENABLE_SOFTFLOAT)

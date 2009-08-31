@@ -63,129 +63,36 @@
 #include "vm/jit/parse.hpp"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/reg.h"
-#include "vm/jit/replace.hpp"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.hpp"
 
-#if defined(ENABLE_SSA)
-# include "vm/jit/optimizing/lsra.h"
-# include "vm/jit/optimizing/ssa.h"
-#elif defined(ENABLE_LSRA)
-# include "vm/jit/allocator/lsra.h"
-#endif
 
-
-/* codegen_emit ****************************************************************
-
-   Generates machine code.
-
-*******************************************************************************/
-
-bool codegen_emit(jitdata *jd)
+/**
+ * Generates machine code for the method prolog.
+ */
+void codegen_emit_prolog(jitdata* jd)
 {
-	methodinfo         *m;
-	codeinfo           *code;
-	codegendata        *cd;
-	registerdata       *rd;
-	s4                  len, s1, s2, s3, d, disp;
-	int                 align_off;      /* offset for alignment compensation  */
-	varinfo            *var, *var1;
-	basicblock         *bptr;
-	instruction        *iptr;
-	u2                  currentline;
-	methodinfo         *lm;             /* local methodinfo for ICMD_INVOKE*  */
-	builtintable_entry *bte;
-	methoddesc         *md;
-	fieldinfo          *fi;
-	unresolved_field   *uf;
-	s4                  fieldtype;
-	s4                  varindex;
-#if defined(ENABLE_SSA)
-	lsradata *ls;
-	bool last_cmd_was_goto;
+	varinfo*    var;
+	methoddesc* md;
+	int32_t     s1, d;
+	int32_t     p, t, l;
+	int32_t     varindex;
+	int         i;
+	int         align_off;
 
-	last_cmd_was_goto = false;
-	ls = jd->ls;
-#endif
-
-	/* get required compiler data */
-
-	m    = jd->m;
-	code = jd->code;
-	cd   = jd->cd;
-	rd   = jd->rd;
-
-	/* prevent compiler warnings */
-
-	s1          = 0;
-	s2          = 0;
-	d           = 0;
-	currentline = 0;
-	lm          = NULL;
-	bte         = NULL;
-
-	{
-	s4 i, p, t, l;
-  	s4 savedregs_num = 0;
-	s4 stack_off = 0;
-
-	/* space to save used callee saved registers */
-
-	savedregs_num += (INT_SAV_CNT - rd->savintreguse);
-	savedregs_num += (FLT_SAV_CNT - rd->savfltreguse);
-
-	cd->stackframesize = rd->memuse + savedregs_num;
-
-	   
-#if defined(ENABLE_THREADS)
-	/* space to save argument of monitor_enter */
-
-	if (checksync && code_is_synchronized(code))
-		cd->stackframesize++;
-#endif
-
-	/* create method header */
-
-    /* Keep stack of non-leaf functions 16-byte aligned. */
-
-	if (!code_is_leafmethod(code)) {
-		ALIGN_ODD(cd->stackframesize);
-	}
-
-	align_off = cd->stackframesize ? 4 : 0;
-
-	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(
-		cd, cd->stackframesize * 8 + align_off);           /* FrameSize       */
-
-	code->synchronizedoffset = rd->memuse * 8;
-
-	/* REMOVEME: We still need it for exception handling in assembler. */
-
-	if (code_is_leafmethod(code))
-		(void) dseg_add_unique_s4(cd, 1);                  /* IsLeaf          */
-	else
-		(void) dseg_add_unique_s4(cd, 0);                  /* IsLeaf          */
-
-	(void) dseg_add_unique_s4(cd, INT_SAV_CNT - rd->savintreguse); /* IntSave */
-	(void) dseg_add_unique_s4(cd, FLT_SAV_CNT - rd->savfltreguse); /* FltSave */
-
-#if defined(ENABLE_PROFILING)
-	/* generate method profiling code */
-
-	if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
-		/* count frequency */
-
-		M_MOV_IMM(code, REG_ITMP3);
-		M_IADD_IMM_MEMBASE(1, REG_ITMP3, OFFSET(codeinfo, frequency));
-	}
-#endif
+	// Get required compiler data.
+	methodinfo*   m  = jd->m;
+	codegendata*  cd = jd->cd;
+	registerdata* rd = jd->rd;
 
 	/* create stack frame (if necessary) */
 
-	if (cd->stackframesize)
-		/* align_off == 4 */
+	align_off = cd->stackframesize ? 4 : 0;
+
+	if (cd->stackframesize) {
+		assert(align_off == 4);
 		M_ASUB_IMM(cd->stackframesize * 8 + 4, REG_SP);
+	}
 
 	/* save return address and used callee saved registers */
 
@@ -201,9 +108,8 @@ bool codegen_emit(jitdata *jd)
 
 	md = m->parseddesc;
 
-	stack_off = 0;
- 	for (p = 0, l = 0; p < md->paramcount; p++) {
- 		t = md->paramtypes[p].type;
+	for (p = 0, l = 0; p < md->paramcount; p++) {
+		t = md->paramtypes[p].type;
 
 		varindex = jd->local_map[l * 5 + t];
 #if defined(ENABLE_SSA)
@@ -346,203 +252,75 @@ bool codegen_emit(jitdata *jd)
 			}
 		}
 	}
+}
 
-	/* call monitorenter function */
 
-#if defined(ENABLE_THREADS)
-	if (checksync && code_is_synchronized(code)) {
-		s1 = rd->memuse;
+/**
+ * Generates machine code for the method epilog.
+ */
+void codegen_emit_epilog(jitdata* jd)
+{
+	methoddesc* md;
+	int32_t p;
+	int i;
 
-		if (m->flags & ACC_STATIC) {
-			M_MOV_IMM(&m->clazz->object.header, REG_ITMP1);
+	// Get required compiler data.
+	methodinfo*   m  = jd->m;
+	codegendata*  cd = jd->cd;
+	registerdata* rd = jd->rd;
+
+	p = cd->stackframesize;
+	md = m->parseddesc;
+
+	/* restore saved registers */
+
+	for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
+		p--; M_ALD(rd->savintregs[i], REG_SP, p * 8);
+	}
+
+	for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
+		p--;
+		emit_fldl_membase(cd, REG_SP, p * 8);
+		if (md->returntype.type == TYPE_FLT || md->returntype.type == TYPE_DBL) {
+			assert(0);
+/* 			emit_fstp_reg(cd, rd->savfltregs[i] + fpu_st_offset + 1); */
+		} else {
+			assert(0);
+/* 			emit_fstp_reg(cd, rd->savfltregs[i] + fpu_st_offset); */
 		}
-		else {
-			M_ALD(REG_ITMP1, REG_SP, cd->stackframesize * 8 + 4 + align_off);
-			M_TEST(REG_ITMP1);
-			M_BNE(6);
-			M_ALD_MEM(REG_ITMP1, TRAP_NullPointerException);
-		}
+	}
 
-		M_AST(REG_ITMP1, REG_SP, s1 * 8);
-		M_AST(REG_ITMP1, REG_SP, 0 * 4);
-		M_MOV_IMM(LOCK_monitor_enter, REG_ITMP3);
-		M_CALL(REG_ITMP3);
-	}			
-#endif
+	/* deallocate stack */
 
-#if !defined(NDEBUG)
-	emit_verbosecall_enter(jd);
-#endif
+	if (cd->stackframesize)
+		M_AADD_IMM(cd->stackframesize * 8 + 4, REG_SP);
 
-	} 
+	M_RET;
+}
 
-#if defined(ENABLE_SSA)
-	/* with SSA the Header is Basic Block 0 - insert phi Moves if necessary */
-	if ( ls != NULL)
-		codegen_emit_phi_moves(jd, ls->basicblocks[0]);
-#endif
 
-	/* end of header generation */
+/**
+ * Generates machine code for one ICMD.
+ */
+void codegen_emit_instruction(jitdata* jd, instruction* iptr)
+{
+	varinfo*            var;
+	varinfo*            var1;
+	builtintable_entry* bte;
+	methodinfo*         lm;             // Local methodinfo for ICMD_INVOKE*.
+	unresolved_method*  um;
+	fieldinfo*          fi;
+	unresolved_field*   uf;
+	int32_t             fieldtype;
+	int32_t             s1, s2, s3, d;
+	int32_t             disp;
 
-	/* create replacement points */
+	// Get required compiler data.
+	codegendata* cd = jd->cd;
 
-	REPLACEMENT_POINTS_INIT(cd, jd);
-
-	/* walk through all basic blocks */
-
-	for (bptr = jd->basicblocks; bptr != NULL; bptr = bptr->next) {
-
-		bptr->mpc = (s4) (cd->mcodeptr - cd->mcodebase);
-
-		if (bptr->flags >= BBREACHED) {
-		/* branch resolving */
-
-		codegen_resolve_branchrefs(cd, bptr);
-
-		/* handle replacement points */
-
-		REPLACEMENT_POINT_BLOCK_START(cd, bptr);
-
-#if defined(ENABLE_REPLACEMENT)
-		if (bptr->bitflags & BBFLAG_REPLACEMENT) {
-			if (cd->replacementpoint[-1].flags & RPLPOINT_FLAG_COUNTDOWN) {
-				MCODECHECK(32);
-				emit_trap_countdown(cd, &(m->hitcountdown));
-			}
-		}
-#endif
-
-		/* copy interface registers to their destination */
-
-		len = bptr->indepth;
-		MCODECHECK(512);
-
-#if defined(ENABLE_PROFILING)
-		/* generate basic block profiling code */
-
-		if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
-			/* count frequency */
-
-			M_MOV_IMM(code->bbfrequency, REG_ITMP3);
-			M_IADD_IMM_MEMBASE(1, REG_ITMP3, bptr->nr * 4);
-		}
-#endif
-
-#if defined(ENABLE_LSRA) || defined(ENABLE_SSA)
-# if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
-		if (opt_lsra) {
-# endif
-# if defined(ENABLE_SSA)
-		if (ls != NULL) {
-			last_cmd_was_goto = false;
-# endif
-			if (len > 0) {
-				len--;
-				var = VAR(bptr->invars[len]);
-				if (bptr->type != BBTYPE_STD) {
-					if (!IS_2_WORD_TYPE(var->type)) {
-#if !defined(ENABLE_SSA)
-						if (bptr->type == BBTYPE_EXH) {
-							d = codegen_reg_of_var(0, var, REG_ITMP1);
-							M_INTMOVE(REG_ITMP1, d);
-							emit_store(jd, NULL, var, d);
-						}
-#endif
-					} 
-					else {
-						log_text("copy interface registers(EXH, SBR): longs \
-                                  have to be in memory (begin 1)");
-						assert(0);
-					}
-				}
-			}
-
-		} 
-		else
-#endif /* defined(ENABLE_LSRA) || defined(ENABLE_SSA) */
-		{
-		while (len) {
-			len--;
-			var = VAR(bptr->invars[len]);
-			if ((len == bptr->indepth-1) && (bptr->type != BBTYPE_STD)) {
-				if (!IS_2_WORD_TYPE(var->type)) {
-					if (bptr->type == BBTYPE_EXH) {
-						d = codegen_reg_of_var(0, var, REG_ITMP1);
-						M_INTMOVE(REG_ITMP1, d);
-						emit_store(jd, NULL, var, d);
-					}
-				} 
-				else {
-					log_text("copy interface registers: longs have to be in \
-                               memory (begin 1)");
-					assert(0);
-				}
-
-			} 
-			else {
-				assert((var->flags & INOUT));
-			}
-		} /* while (len) */
-		} /* */
-
-		/* walk through all instructions */
-		
-		len = bptr->icount;
-		currentline = 0;
-
-		for (iptr = bptr->iinstr; len > 0; len--, iptr++) {
-			if (iptr->line != currentline) {
-				linenumbertable_list_entry_add(cd, iptr->line);
-				currentline = iptr->line;
-			}
-
-			MCODECHECK(1024);                         /* 1kB should be enough */
-
-		switch (iptr->opc) {
-		case ICMD_NOP:        /* ...  ==> ...                                 */
-		case ICMD_POP:        /* ..., value  ==> ...                          */
-		case ICMD_POP2:       /* ..., value, value  ==> ...                   */
-			break;
-
-		case ICMD_INLINE_START:
-
-			REPLACEMENT_POINT_INLINE_START(cd, iptr);
-			break;
-
-		case ICMD_INLINE_BODY:
-
-			REPLACEMENT_POINT_INLINE_BODY(cd, iptr);
-			linenumbertable_list_entry_add_inline_start(cd, iptr);
-			linenumbertable_list_entry_add(cd, iptr->line);
-			break;
-
-		case ICMD_INLINE_END:
-
-			linenumbertable_list_entry_add_inline_end(cd, iptr);
-			linenumbertable_list_entry_add(cd, iptr->line);
-			break;
-
-		case ICMD_CHECKNULL:  /* ..., objectref  ==> ..., objectref           */
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			emit_nullpointer_check(cd, iptr, s1);
-			break;
+	switch (iptr->opc) {
 
 		/* constant operations ************************************************/
-
-		case ICMD_ICONST:     /* ...  ==> ..., constant                       */
-
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			ICONST(d, iptr->sx.val.i);
-			emit_store_dst(jd, iptr, d);
-			break;
-
-		case ICMD_LCONST:     /* ...  ==> ..., constant                       */
-
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-			LCONST(d, iptr->sx.val.l);
-			emit_store_dst(jd, iptr, d);
-			break;
 
 		case ICMD_FCONST:     /* ...  ==> ..., constant                       */
 
@@ -617,29 +395,6 @@ bool codegen_emit(jitdata *jd)
 					M_MOV_IMM(iptr->sx.val.anyptr, d);
 			}
 			emit_store_dst(jd, iptr, d);
-			break;
-
-
-		/* load/store/copy/move operations ************************************/
-
-		case ICMD_ILOAD:
-		case ICMD_ALOAD:
-		case ICMD_LLOAD:
-		case ICMD_FLOAD:
-		case ICMD_DLOAD:
-		case ICMD_ISTORE:
-		case ICMD_LSTORE:
-		case ICMD_FSTORE:
-		case ICMD_DSTORE:
-		case ICMD_COPY:
-		case ICMD_MOVE:
-
-			emit_copy(jd, iptr);
-			break;
-
-		case ICMD_ASTORE:
-			if (!(iptr->flags.bits & INS_FLAG_RETADDR))
-				emit_copy(jd, iptr);
 			break;
 
 
@@ -988,7 +743,6 @@ bool codegen_emit(jitdata *jd)
 			emit_arithmetic_check(cd, iptr, REG_ITMP3);
 
 			bte = iptr->sx.s23.s3.bte;
-			md = bte->md;
 
 			M_LST(s2, REG_SP, 2 * 4);
 
@@ -1894,15 +1648,6 @@ bool codegen_emit(jitdata *jd)
 
 		/* memory operations **************************************************/
 
-		case ICMD_ARRAYLENGTH: /* ..., arrayref  ==> ..., length              */
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			/* implicit null-pointer check */
-			M_ILD(d, s1, OFFSET(java_array_t, size));
-			emit_store_dst(jd, iptr, d);
-			break;
-
 		case ICMD_BALOAD:     /* ..., arrayref, index  ==> ..., value         */
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
@@ -2436,64 +2181,11 @@ bool codegen_emit(jitdata *jd)
 
 		case ICMD_ATHROW:       /* ..., objectref ==> ... (, objectref)       */
 
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_INTMOVE(s1, REG_ITMP1_XPTR);
-
-#ifdef ENABLE_VERIFIER
-			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				patcher_add_patch_ref(jd, PATCHER_resolve_class,
-									iptr->sx.s23.s2.uc, 0);
-			}
-#endif /* ENABLE_VERIFIER */
-
 			M_CALL_IMM(0);                            /* passing exception pc */
 			M_POP(REG_ITMP2_XPC);
 
 			M_MOV_IMM(asm_handle_exception, REG_ITMP3);
 			M_JMP(REG_ITMP3);
-			break;
-
-		case ICMD_GOTO:         /* ... ==> ...                                */
-		case ICMD_RET:          /* ... ==> ...                                */
-
-#if defined(ENABLE_SSA)
-			if ( ls != NULL ) {
-				last_cmd_was_goto = true;
-
-				/* In case of a Goto phimoves have to be inserted before the */
-				/* jump */
-
-				codegen_emit_phi_moves(jd, bptr);
-			}
-#endif
-			emit_br(cd, iptr->dst.block);
-			ALIGNCODENOP;
-			break;
-
-		case ICMD_JSR:          /* ... ==> ...                                */
-
-			emit_br(cd, iptr->sx.s23.s3.jsrtarget.block);
-			ALIGNCODENOP;
-			break;
-			
-		case ICMD_IFNULL:       /* ..., value ==> ...                         */
-		case ICMD_IFNONNULL:
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_TEST(s1);
-			emit_bcc(cd, iptr->dst.block, iptr->opc - ICMD_IFNULL, BRANCH_OPT_NONE);
-			break;
-
-		case ICMD_IFEQ:         /* ..., value ==> ...                         */
-		case ICMD_IFLT:
-		case ICMD_IFLE:
-		case ICMD_IFNE:
-		case ICMD_IFGT:
-		case ICMD_IFGE:
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			M_CMP_IMM(iptr->sx.val.i, s1);
-			emit_bcc(cd, iptr->dst.block, iptr->opc - ICMD_IFEQ, BRANCH_OPT_NONE);
 			break;
 
 		case ICMD_IF_LEQ:       /* ..., value ==> ...                         */
@@ -2586,28 +2278,6 @@ bool codegen_emit(jitdata *jd)
 			}
 			break;
 
-		case ICMD_IF_ICMPEQ:    /* ..., value, value ==> ...                  */
-		case ICMD_IF_ICMPNE:
-		case ICMD_IF_ICMPLT:
-		case ICMD_IF_ICMPGT:
-		case ICMD_IF_ICMPGE:
-		case ICMD_IF_ICMPLE:
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_CMP(s2, s1);
-			emit_bcc(cd, iptr->dst.block, iptr->opc - ICMD_IF_ICMPEQ, BRANCH_OPT_NONE);
-			break;
-
-		case ICMD_IF_ACMPEQ:    /* ..., value, value ==> ...                  */
-		case ICMD_IF_ACMPNE:
-
-			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-			s2 = emit_load_s2(jd, iptr, REG_ITMP2);
-			M_CMP(s2, s1);
-			emit_bcc(cd, iptr->dst.block, iptr->opc - ICMD_IF_ACMPEQ, BRANCH_OPT_NONE);
-			break;
-
 		case ICMD_IF_LCMPEQ:    /* ..., value, value ==> ...                  */
 
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
@@ -2688,134 +2358,6 @@ bool codegen_emit(jitdata *jd)
 			emit_buge(cd, iptr->dst.block);
 			break;
 
-
-		case ICMD_IRETURN:      /* ..., retvalue ==> ...                      */
-
-			REPLACEMENT_POINT_RETURN(cd, iptr);
-			s1 = emit_load_s1(jd, iptr, REG_RESULT);
-			M_INTMOVE(s1, REG_RESULT);
-			goto nowperformreturn;
-
-		case ICMD_LRETURN:      /* ..., retvalue ==> ...                      */
-
-			REPLACEMENT_POINT_RETURN(cd, iptr);
-			s1 = emit_load_s1(jd, iptr, REG_RESULT_PACKED);
-			M_LNGMOVE(s1, REG_RESULT_PACKED);
-			goto nowperformreturn;
-
-		case ICMD_ARETURN:      /* ..., retvalue ==> ...                      */
-
-			REPLACEMENT_POINT_RETURN(cd, iptr);
-			s1 = emit_load_s1(jd, iptr, REG_RESULT);
-			M_INTMOVE(s1, REG_RESULT);
-
-#ifdef ENABLE_VERIFIER
-			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				patcher_add_patch_ref(jd, PATCHER_resolve_class,
-									iptr->sx.s23.s2.uc, 0);
-			}
-#endif /* ENABLE_VERIFIER */
-			goto nowperformreturn;
-
-		case ICMD_FRETURN:      /* ..., retvalue ==> ...                      */
-		case ICMD_DRETURN:
-
-			REPLACEMENT_POINT_RETURN(cd, iptr);
-			s1 = emit_load_s1(jd, iptr, REG_FRESULT);
-			goto nowperformreturn;
-
-		case ICMD_RETURN:      /* ...  ==> ...                                */
-
-			REPLACEMENT_POINT_RETURN(cd, iptr);
-
-nowperformreturn:
-			{
-			s4 i, p;
-			
-  			p = cd->stackframesize;
-			
-#if !defined(NDEBUG)
-			emit_verbosecall_exit(jd);
-#endif
-
-#if defined(ENABLE_THREADS)
-			if (checksync && code_is_synchronized(code)) {
-				M_ALD(REG_ITMP2, REG_SP, rd->memuse * 8);
-
-				/* we need to save the proper return value */
-				switch (iptr->opc) {
-				case ICMD_IRETURN:
-				case ICMD_ARETURN:
-					M_IST(REG_RESULT, REG_SP, rd->memuse * 8);
-					break;
-
-				case ICMD_LRETURN:
-					M_LST(REG_RESULT_PACKED, REG_SP, rd->memuse * 8);
-					break;
-
-				case ICMD_FRETURN:
-					emit_fstps_membase(cd, REG_SP, rd->memuse * 8);
-					break;
-
-				case ICMD_DRETURN:
-					emit_fstpl_membase(cd, REG_SP, rd->memuse * 8);
-					break;
-				}
-
-				M_AST(REG_ITMP2, REG_SP, 0);
-				M_MOV_IMM(LOCK_monitor_exit, REG_ITMP3);
-				M_CALL(REG_ITMP3);
-
-				/* and now restore the proper return value */
-				switch (iptr->opc) {
-				case ICMD_IRETURN:
-				case ICMD_ARETURN:
-					M_ILD(REG_RESULT, REG_SP, rd->memuse * 8);
-					break;
-
-				case ICMD_LRETURN:
-					M_LLD(REG_RESULT_PACKED, REG_SP, rd->memuse * 8);
-					break;
-
-				case ICMD_FRETURN:
-					emit_flds_membase(cd, REG_SP, rd->memuse * 8);
-					break;
-
-				case ICMD_DRETURN:
-					emit_fldl_membase(cd, REG_SP, rd->memuse * 8);
-					break;
-				}
-			}
-#endif
-
-			/* restore saved registers */
-
-			for (i = INT_SAV_CNT - 1; i >= rd->savintreguse; i--) {
-				p--; M_ALD(rd->savintregs[i], REG_SP, p * 8);
-			}
-
-			for (i = FLT_SAV_CNT - 1; i >= rd->savfltreguse; i--) {
-  				p--;
-				emit_fldl_membase(cd, REG_SP, p * 8);
-				if (iptr->opc == ICMD_FRETURN || iptr->opc == ICMD_DRETURN) {
-					assert(0);
-/* 					emit_fstp_reg(cd, rd->savfltregs[i] + fpu_st_offset + 1); */
-				} else {
-					assert(0);
-/* 					emit_fstp_reg(cd, rd->savfltregs[i] + fpu_st_offset); */
-				}
-			}
-
-			/* deallocate stack */
-
-			if (cd->stackframesize)
-				M_AADD_IMM(cd->stackframesize * 8 + 4, REG_SP);
-
-			M_RET;
-			}
-			break;
-
-
 		case ICMD_TABLESWITCH:  /* ..., index ==> ...                         */
 			{
 				s4 i, l;
@@ -2858,243 +2400,95 @@ nowperformreturn:
 			}
 			break;
 
-
-		case ICMD_LOOKUPSWITCH: /* ..., key ==> ...                           */
- 			{
-				s4 i;
-				lookup_target_t *lookup;
-
-				lookup = iptr->dst.lookup;
-
-				i = iptr->sx.s23.s2.lookupcount;
-			
-				MCODECHECK((i<<2)+8);
-				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
-
-				while (--i >= 0) {
-					M_CMP_IMM(lookup->value, s1);
-					emit_beq(cd, lookup->target.block);
-					lookup++;
-				}
-
-				emit_br(cd, iptr->sx.s23.s3.lookupdefault.block);
-				ALIGNCODENOP;
-			}
-			break;
-
-		case ICMD_BUILTIN:      /* ..., [arg1, [arg2 ...]] ==> ...            */
-
-			REPLACEMENT_POINT_FORGC_BUILTIN(cd, iptr);
-
+		case ICMD_BUILTIN:
 			bte = iptr->sx.s23.s3.bte;
-			md = bte->md;
+			if (bte->stub == NULL) {
+				M_MOV_IMM(bte->fp, REG_ITMP1);
+			}
+			else {
+				M_MOV_IMM(bte->stub, REG_ITMP1);
+			}
+			M_CALL(REG_ITMP1);
 
-#if defined(ENABLE_ESCAPE_REASON)
-			if (bte->fp == BUILTIN_escape_reason_new) {
-				void set_escape_reasons(void *);
-				M_ASUB_IMM(8, REG_SP);
-				M_MOV_IMM(iptr->escape_reasons, REG_ITMP1);
-				M_AST(EDX, REG_SP, 4);
-				M_AST(REG_ITMP1, REG_SP, 0);
-				M_MOV_IMM(set_escape_reasons, REG_ITMP1);
-				M_CALL(REG_ITMP1);
-				M_ALD(EDX, REG_SP, 4);
-				M_AADD_IMM(8, REG_SP);
+#if defined(ENABLE_ESCAPE_CHECK)
+			if (bte->opcode == ICMD_NEW || bte->opcode == ICMD_NEWARRAY) {
+				/*emit_escape_annotate_object(cd, m);*/
 			}
 #endif
+			break;
 
-			goto gen_method;
+		case ICMD_INVOKESPECIAL:
+			M_ALD(REG_ITMP1, REG_SP, 0 * 8);
+			emit_nullpointer_check(cd, iptr, REG_ITMP1);
+			/* fall through */
 
-		case ICMD_INVOKESTATIC: /* ..., [arg1, [arg2 ...]] ==> ...            */
-
-		case ICMD_INVOKESPECIAL:/* ..., objectref, [arg1, [arg2 ...]] ==> ... */
-		case ICMD_INVOKEVIRTUAL:/* op1 = arg count, val.a = method pointer    */
-		case ICMD_INVOKEINTERFACE:
-
-			REPLACEMENT_POINT_INVOKE(cd, iptr);
-
+		case ICMD_INVOKESTATIC:
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				md = iptr->sx.s23.s3.um->methodref->parseddesc.md;
-				lm = NULL;
+				um = iptr->sx.s23.s3.um;
+
+				patcher_add_patch_ref(jd, PATCHER_invokestatic_special,
+									um, 0);
+
+				disp = 0;
 			}
 			else {
 				lm = iptr->sx.s23.s3.fmiref->p.method;
-				md = lm->parseddesc;
+				disp = (ptrint) lm->stubroutine;
 			}
 
-gen_method:
-			s3 = md->paramcount;
-
-			MCODECHECK((s3 << 1) + 64);
-
-			/* copy arguments to registers or stack location                  */
-
-			for (s3 = s3 - 1; s3 >= 0; s3--) {
-				var = VAR(iptr->sx.s23.s2.args[s3]);
-	  
-				/* Already Preallocated (ARGVAR) ? */
-				if (var->flags & PREALLOC)
-					continue;
-				if (IS_INT_LNG_TYPE(var->type)) {
-					if (!md->params[s3].inmemory) {
-						log_text("No integer argument registers available!");
-						assert(0);
-
-					} else {
-						if (IS_2_WORD_TYPE(var->type)) {
-							d = emit_load(jd, iptr, var, REG_ITMP12_PACKED);
-							M_LST(d, REG_SP, md->params[s3].regoff);
-						} else {
-							d = emit_load(jd, iptr, var, REG_ITMP1);
-							M_IST(d, REG_SP, md->params[s3].regoff);
-						}
-					}
-
-				} else {
-					if (!md->params[s3].inmemory) {
-						s1 = md->params[s3].regoff;
-						d = emit_load(jd, iptr, var, s1);
-						M_FLTMOVE(d, s1);
-
-					} else {
-						d = emit_load(jd, iptr, var, REG_FTMP1);
-						if (IS_2_WORD_TYPE(var->type))
-							M_DST(d, REG_SP, md->params[s3].regoff);
-						else
-							M_FST(d, REG_SP, md->params[s3].regoff);
-					}
-				}
-			} /* end of for */
-
-			switch (iptr->opc) {
-			case ICMD_BUILTIN:
-				d = md->returntype.type;
-
-				if (bte->stub == NULL) {
-					M_MOV_IMM(bte->fp, REG_ITMP1);
-				}
-				else {
-					M_MOV_IMM(bte->stub, REG_ITMP1);
-				}
-				M_CALL(REG_ITMP1);
-
-#if defined(ENABLE_ESCAPE_CHECK)
-				if (bte->opcode == ICMD_NEW || bte->opcode == ICMD_NEWARRAY) {
-					/*emit_escape_annotate_object(cd, m);*/
-				}
-#endif
-				break;
-
-			case ICMD_INVOKESPECIAL:
-				M_ALD(REG_ITMP1, REG_SP, 0 * 8);
-				emit_nullpointer_check(cd, iptr, REG_ITMP1);
-				/* fall through */
-
-			case ICMD_INVOKESTATIC:
-				if (lm == NULL) {
-					unresolved_method *um = iptr->sx.s23.s3.um;
-
-					patcher_add_patch_ref(jd, PATCHER_invokestatic_special,
-										um, 0);
-
-					disp = 0;
-					d = md->returntype.type;
-				}
-				else {
-					disp = (ptrint) lm->stubroutine;
-					d = lm->parseddesc->returntype.type;
-				}
-
-				M_MOV_IMM2(disp, REG_ITMP2);
-				M_CALL(REG_ITMP2);
-				break;
-
-			case ICMD_INVOKEVIRTUAL:
-				M_ALD(REG_ITMP1, REG_SP, 0 * 8);
-				emit_nullpointer_check(cd, iptr, s1);
-
-				if (lm == NULL) {
-					unresolved_method *um = iptr->sx.s23.s3.um;
-
-					patcher_add_patch_ref(jd, PATCHER_invokevirtual, um, 0);
-
-					s1 = 0;
-					d = md->returntype.type;
-				}
-				else {
-					s1 = OFFSET(vftbl_t, table[0]) +
-						sizeof(methodptr) * lm->vftblindex;
-					d = md->returntype.type;
-				}
-
-				M_ALD(REG_METHODPTR, REG_ITMP1,
-					  OFFSET(java_object_t, vftbl));
-				M_ALD32(REG_ITMP3, REG_METHODPTR, s1);
-				M_CALL(REG_ITMP3);
-				break;
-
-			case ICMD_INVOKEINTERFACE:
-				M_ALD(REG_ITMP1, REG_SP, 0 * 8);
-				emit_nullpointer_check(cd, iptr, s1);
-
-				if (lm == NULL) {
-					unresolved_method *um = iptr->sx.s23.s3.um;
-
-					patcher_add_patch_ref(jd, PATCHER_invokeinterface, um, 0);
-
-					s1 = 0;
-					s2 = 0;
-					d = md->returntype.type;
-				}
-				else {
-					s1 = OFFSET(vftbl_t, interfacetable[0]) -
-						sizeof(methodptr) * lm->clazz->index;
-
-					s2 = sizeof(methodptr) * (lm - lm->clazz->methods);
-
-					d = md->returntype.type;
-				}
-
-				M_ALD(REG_METHODPTR, REG_ITMP1,
-					  OFFSET(java_object_t, vftbl));
-				M_ALD32(REG_METHODPTR, REG_METHODPTR, s1);
-				M_ALD32(REG_ITMP3, REG_METHODPTR, s2);
-				M_CALL(REG_ITMP3);
-				break;
-			}
-
-			/* store size of call code in replacement point */
-
-			REPLACEMENT_POINT_INVOKE_RETURN(cd, iptr);
-			REPLACEMENT_POINT_FORGC_BUILTIN_RETURN(cd, iptr);
-
-			/* d contains return type */
-
-			if (d != TYPE_VOID) {
-#if defined(ENABLE_SSA)
-				if ((ls == NULL) /* || (!IS_TEMPVAR_INDEX(iptr->dst.varindex)) */ ||
-					(ls->lifetime[iptr->dst.varindex].type != UNUSED)) 
-					/* a "living" stackslot */
-#endif
-				{
-					if (IS_INT_LNG_TYPE(d)) {
-						if (IS_2_WORD_TYPE(d)) {
-							s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT_PACKED);
-							M_LNGMOVE(REG_RESULT_PACKED, s1);
-						}
-						else {
-							s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT);
-							M_INTMOVE(REG_RESULT, s1);
-						}
-					}
-					else {
-						s1 = codegen_reg_of_dst(jd, iptr, REG_NULL);
-					}
-					emit_store_dst(jd, iptr, s1);
-				}
-			}
+			M_MOV_IMM2(disp, REG_ITMP2);
+			M_CALL(REG_ITMP2);
 			break;
 
+		case ICMD_INVOKEVIRTUAL:
+			M_ALD(REG_ITMP1, REG_SP, 0 * 8);
+			emit_nullpointer_check(cd, iptr, s1);
+
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				um = iptr->sx.s23.s3.um;
+
+				patcher_add_patch_ref(jd, PATCHER_invokevirtual, um, 0);
+
+				s1 = 0;
+			}
+			else {
+				lm = iptr->sx.s23.s3.fmiref->p.method;
+				s1 = OFFSET(vftbl_t, table[0]) +
+					sizeof(methodptr) * lm->vftblindex;
+			}
+
+			M_ALD(REG_METHODPTR, REG_ITMP1,
+				  OFFSET(java_object_t, vftbl));
+			M_ALD32(REG_ITMP3, REG_METHODPTR, s1);
+			M_CALL(REG_ITMP3);
+			break;
+
+		case ICMD_INVOKEINTERFACE:
+			M_ALD(REG_ITMP1, REG_SP, 0 * 8);
+			emit_nullpointer_check(cd, iptr, s1);
+
+			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+				um = iptr->sx.s23.s3.um;
+
+				patcher_add_patch_ref(jd, PATCHER_invokeinterface, um, 0);
+
+				s1 = 0;
+				s2 = 0;
+			}
+			else {
+				lm = iptr->sx.s23.s3.fmiref->p.method;
+				s1 = OFFSET(vftbl_t, interfacetable[0]) -
+					sizeof(methodptr) * lm->clazz->index;
+
+				s2 = sizeof(methodptr) * (lm - lm->clazz->methods);
+			}
+
+			M_ALD(REG_METHODPTR, REG_ITMP1,
+				  OFFSET(java_object_t, vftbl));
+			M_ALD32(REG_METHODPTR, REG_METHODPTR, s1);
+			M_ALD32(REG_ITMP3, REG_METHODPTR, s2);
+			M_CALL(REG_ITMP3);
+			break;
 
 		case ICMD_CHECKCAST:  /* ..., objectref ==> ..., objectref            */
 
@@ -3491,59 +2885,9 @@ gen_method:
 			emit_store_dst(jd, iptr, s1);
 			break;
 
-#if defined(ENABLE_SSA)
-		case ICMD_GETEXCEPTION:
-			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-			M_INTMOVE(REG_ITMP1, d);
-			emit_store_dst(jd, iptr, d);
-			break;
-#endif
 		default:
-			exceptions_throw_internalerror("Unknown ICMD %d during code generation",
-										   iptr->opc);
-			return false;
+			vm_abort("Unknown ICMD %d during code generation", iptr->opc);
 	} /* switch */
-		
-	} /* for instruction */
-		
-	MCODECHECK(64);
-
-#if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
-	if (!opt_lsra)
-#endif
-#if defined(ENABLE_SSA)
-	if ( ls != NULL ) {
-
-		/* by edge splitting, in Blocks with phi moves there can only */
-		/* be a goto as last command, no other Jump/Branch Command    */
-
-		if (!last_cmd_was_goto)
-			codegen_emit_phi_moves(jd, bptr);
-	}
-
-#endif
-
-	/* At the end of a basic block we may have to append some nops,
-	   because the patcher stub calling code might be longer than the
-	   actual instruction. So codepatching does not change the
-	   following block unintentionally. */
-
-	if (cd->mcodeptr < cd->lastmcodeptr) {
-		while (cd->mcodeptr < cd->lastmcodeptr) {
-			M_NOP;
-		}
-	}
-
-	} /* if (bptr -> flags >= BBREACHED) */
-	} /* for basic block */
-
-	/* generate stubs */
-
-	emit_patcher_traps(jd);
-
-	/* everything's ok */
-
-	return true;
 }
 
 
@@ -3588,7 +2932,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* create method header */
 
 	(void) dseg_add_unique_address(cd, code);              /* CodeinfoPointer */
-	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8 + 4); /* FrameSize       */
+	(void) dseg_add_unique_s4(cd, cd->stackframesize * 8); /* FrameSize       */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IsLeaf          */
 	(void) dseg_add_unique_s4(cd, 0);                      /* IntSave         */
 	(void) dseg_add_unique_s4(cd, 0);                      /* FltSave         */

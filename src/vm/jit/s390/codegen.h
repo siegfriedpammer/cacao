@@ -730,6 +730,7 @@ static inline uint8_t N_ILL_GET_TYPE(uint8_t *instrp) {
 #define M_ICMP(a, b) N_CR(a, b)
 #define M_ICMPU(a, b) N_CLR(a, b)
 #define M_ICMP_IMM(a, b) N_CHI(a, b)
+#define M_ACMP(a, b) N_CR(a, b)
 #define M_CVTIF(src, dst) N_CEFBR(dst, src)
 #define M_CVTID(src, dst) N_CDFBR(dst, src)
 #define M_FMUL(a, dest) N_MEEBR(dest, a)
@@ -802,42 +803,6 @@ static inline uint8_t N_ILL_GET_TYPE(uint8_t *instrp) {
 	    ICONST(GET_HIGH_REG((reg)), (s4) ((s8) (c) >> 32));	\
 	    ICONST(GET_LOW_REG((reg)), (s4) ((s8) (c))); \
 	} while (0)
-
-/* M_INTMOVE:
-    generates an integer-move from register a to b.
-    if a and b are the same int-register, no code will be generated.
-*/ 
-
-#define M_INTMOVE(reg,dreg) \
-    do { \
-        if ((reg) != (dreg)) { \
-            M_MOV(reg, dreg); \
-        } \
-    } while (0)
-
-#define M_LNGMOVE(a, b) \
-    do { \
-        if (GET_HIGH_REG(a) == GET_LOW_REG(b)) { \
-            assert((GET_LOW_REG(a) != GET_HIGH_REG(b))); \
-            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
-            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
-        } else { \
-            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
-            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
-        } \
-    } while (0)
-
-/* M_FLTMOVE:
-    generates a floating-point-move from register a to b.
-    if a and b are the same float-register, no code will be generated
-*/ 
-
-#define M_FLTMOVE(reg,dreg) \
-    do { \
-        if ((reg) != (dreg)) { \
-            M_FMOV(reg, dreg); \
-        } \
-    } while (0)
 
 #define M_ISUB_IMM32(imm, tmpreg, reg) \
 	do { \

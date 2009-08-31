@@ -298,6 +298,26 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 }
 
 
+/**
+ * Emits code updating the condition register by comparing one integer
+ * register to an immediate integer value.
+ */
+void emit_icmp_imm(codegendata* cd, int reg, int32_t value)
+{
+	int32_t disp;
+
+	if ((value >= -32768) && (value <= 32767)) {
+		M_CMPI(reg, value);
+	}
+	else {
+		assert(reg != REG_ITMP2);
+		disp = dseg_add_s4(cd, value);
+		M_ILD(REG_ITMP2, REG_PV, disp);
+		M_CMP(reg, REG_ITMP2);
+	}
+}
+
+
 /* emit_branch *****************************************************************
 
    Emits the code for conditional and unconditional branchs.
@@ -554,6 +574,165 @@ uint32_t emit_trap(codegendata *cd)
 
 	return mcode;
 }
+
+
+/**
+ * Emit code to recompute the procedure vector.
+ */
+void emit_recompute_pv(codegendata *cd)
+{
+	int32_t disp = (int32_t) (cd->mcodeptr - cd->mcodebase);
+
+	M_MFLR(REG_ITMP1);
+	M_LDA(REG_PV, REG_ITMP1, -disp);
+}
+
+
+/**
+ * Generates synchronization code to enter a monitor.
+ */
+#if defined(ENABLE_THREADS)
+void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
+{
+	int32_t p;
+	int32_t disp;
+
+	// Get required compiler data.
+	methodinfo*  m  = jd->m;
+	codegendata* cd = jd->cd;
+
+# if !defined(NDEBUG)
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+		M_AADD_IMM(REG_SP, -((LA_SIZE_IN_POINTERS + ARG_CNT) * 8), REG_SP);
+
+		for (p = 0; p < INT_ARG_CNT; p++)
+			M_IST(abi_registers_integer_argument[p], REG_SP, LA_SIZE + p * 8);
+
+		for (p = 0; p < FLT_ARG_CNT; p++)
+			M_DST(abi_registers_float_argument[p], REG_SP, LA_SIZE + (INT_ARG_CNT + p) * 8);
+
+		syncslot_offset += (LA_SIZE_IN_POINTERS + ARG_CNT) * 8;
+	}
+# endif
+
+	disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
+	M_ALD(REG_ITMP3, REG_PV, disp);
+	M_MTCTR(REG_ITMP3);
+
+	/* get or test the lock object */
+
+	if (m->flags & ACC_STATIC) {
+		disp = dseg_add_address(cd, &m->clazz->object.header);
+		M_ALD(REG_A0, REG_PV, disp);
+	}
+	else {
+		M_TST(REG_A0);
+		M_BNE(1);
+		M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_NullPointerException);
+	}
+
+	M_AST(REG_A0, REG_SP, syncslot_offset);
+	M_JSR;
+
+# if !defined(NDEBUG)
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+		for (p = 0; p < INT_ARG_CNT; p++)
+			M_ILD(abi_registers_integer_argument[p], REG_SP, LA_SIZE + p * 8);
+
+		for (p = 0; p < FLT_ARG_CNT; p++)
+			M_DLD(abi_registers_float_argument[p], REG_SP, LA_SIZE + (INT_ARG_CNT + p) * 8);
+
+		M_AADD_IMM(REG_SP, (LA_SIZE_IN_POINTERS + ARG_CNT) * 8, REG_SP);
+	}
+# endif
+}
+#endif
+
+
+/**
+ * Generates synchronization code to leave a monitor.
+ */
+#if defined(ENABLE_THREADS)
+void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
+{
+	int32_t disp;
+
+	// Get required compiler data.
+	methodinfo*  m  = jd->m;
+	codegendata* cd = jd->cd;
+
+	disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
+	M_ALD(REG_ITMP3, REG_PV, disp);
+	M_MTCTR(REG_ITMP3);
+
+	/* we need to save the proper return value */
+
+	methoddesc* md = m->parseddesc;
+
+	switch (md->returntype.type) {
+	case TYPE_LNG:
+		M_IST(REG_RESULT2, REG_SP, syncslot_offset + 8);
+		/* fall through */
+	case TYPE_INT:
+	case TYPE_ADR:
+		M_IST(REG_RESULT , REG_SP, syncslot_offset + 4);
+		break;
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DST(REG_FRESULT, REG_SP, syncslot_offset + 4);
+		break;
+	}
+
+	M_ALD(REG_A0, REG_SP, syncslot_offset);
+	M_JSR;
+
+	/* and now restore the proper return value */
+
+	switch (md->returntype.type) {
+	case TYPE_LNG:
+		M_ILD(REG_RESULT2, REG_SP, syncslot_offset + 8);
+		/* fall through */
+	case TYPE_INT:
+	case TYPE_ADR:
+		M_ILD(REG_RESULT , REG_SP, syncslot_offset + 4);
+		break;
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DLD(REG_FRESULT, REG_SP, syncslot_offset + 4);
+		break;
+	}
+}
+#endif
+
+
+/**
+ * Emit profiling code for method frequency counting.
+ */
+#if defined(ENABLE_PROFILING)
+void emit_profile_method(codegendata* cd, codeinfo* code)
+{
+	M_ALD(REG_ITMP1, REG_PV, CodeinfoPointer);
+	M_ALD(REG_ITMP2, REG_ITMP1, OFFSET(codeinfo, frequency));
+	M_IADD_IMM(REG_ITMP2, 1, REG_ITMP2);
+	M_AST(REG_ITMP2, REG_ITMP1, OFFSET(codeinfo, frequency));
+}
+#endif
+
+
+/**
+ * Emit profiling code for basicblock frequency counting.
+ */
+#if defined(ENABLE_PROFILING)
+void emit_profile_basicblock(codegendata* cd, codeinfo* code, basicblock* bptr)
+{
+	int32_t disp = dseg_add_address(cd, code->bbfrequency);
+
+	M_ALD(REG_ITMP2, REG_PV, disp);
+	M_ALD(REG_ITMP3, REG_ITMP2, bptr->nr * 4);
+	M_IADD_IMM(REG_ITMP3, 1, REG_ITMP3);
+	M_AST(REG_ITMP3, REG_ITMP2, bptr->nr * 4);
+}
+#endif
 
 
 /* emit_verbosecall_enter ******************************************************

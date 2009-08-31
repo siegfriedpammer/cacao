@@ -1,6 +1,6 @@
 /* src/vm/jit/i386/md.h - machine dependent i386 functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -36,6 +36,30 @@
 
 
 /* inline functions ***********************************************************/
+
+/**
+ * Returns the size (in bytes) of the current stackframe, specified by
+ * the passed codeinfo structure.
+ */
+inline static int32_t md_stacktrace_get_framesize(codeinfo* code)
+{
+	int32_t stackframesize;
+
+	// Check for the asm_vm_call_method special case.
+	if (code == NULL)
+		return 0;
+
+	// On i386 we use 8-byte stackslots.
+	stackframesize = code->stackframesize * 8;
+
+	// If there is a stackframe present, we need to take the alignment
+	// compensation for the stored return address into account.
+	if (stackframesize != 0)
+		stackframesize += 4;
+
+	return stackframesize;
+}
+
 
 /* md_stacktrace_get_returnaddress *********************************************
 

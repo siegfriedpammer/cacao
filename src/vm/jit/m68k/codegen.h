@@ -242,15 +242,6 @@
 #define M_INEG(a)		OPWORD(0x112, 0, (a))						/* neg.l */
 #define M_INEGX(a)		OPWORD(0x102, 0, (a))						/* neg.l */
 
-/* only generate opcode when condition true */
-#define OPWORD_COND(c, u,v,w)	\
-	do { \
-		if ( (c) ) { OPWORD( (u),(v),(w) ) }  \
-	} while(0);
-#define OPWORD_IMM16_COND(c, u,v,w,x)	\
-	do { \
-		if ( (c) ) { OPWORD_IMM16( (u),(v),(w),(x) ) }  \
-	} while(0);
 /* assert on the opcode */
 #define OPWORD_ASSERT(a, u,v,w)	\
 	do { \
@@ -259,19 +250,15 @@
 	} while(0);
 
 /* M_XMOVE....M_XMOVE(sourcereg, destreg) */
-#define M_INTMOVE(a,b)		OPWORD_COND(((a) != (b)), ( ( 2<<6) | ((b) << 3) | 0), 0, (a));
-#define M_ADRMOVE(a,b)		OPWORD_COND(((a) != (b)), ( ( 2<<6) | ((b) << 3) | 1), 1, (a));
+#define M_MOV(a,b)			OPWORD( ( ( 2<<6) | ((b) << 3) | 0), 0, (a));
+#define M_AMOV(a,b)			OPWORD( ( ( 2<<6) | ((b) << 3) | 1), 1, (a));
 #define M_INT2ADRMOVE(a,b)	OPWORD( ( (2<<6) | ((b) << 3) | 1), 0, (a));
 #define M_ADR2INTMOVE(a,b)	OPWORD( ( (2<<6) | ((b) << 3) | 0), 1, (a));
-#define M_LNGMOVE(a,b)		do 	{\
-					M_INTMOVE(GET_LOW_REG (a), GET_LOW_REG (b));\
-					M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b));\
-				} while(0);
 
 #if !defined(ENABLE_SOFTLFOAT)
-	#define M_FLTMOVE(a,b)		OPWORD_IMM16_COND( ((a)!=(b)), 0x3c8, 0, 0, ((a)<<10) | ((b)<<7) | 0x40)
+	#define M_FMOV(a,b)			OPWORD_IMM16( 0x3c8, 0, 0, ((a)<<10) | ((b)<<7) | 0x40)
 	#define M_INT2FLTMOVE(a,b)	OPWORD_IMM16( 0x3c8, 0, (a), ((0x11 << 10) | ((b) << 7) | 0x40 )) 
-	#define M_DBLMOVE(a,b)		OPWORD_IMM16_COND( ((a)!=(b)), 0x3c8, 0, 0, ((a)<<10) | ((b)<<7) | 0x44)
+	#define M_DMOV(a,b)			OPWORD_IMM16( 0x3c8, 0, 0, ((a)<<10) | ((b)<<7) | 0x44)
 #endif
 /* M_XTST....M_XTST(register) */
 #define M_ITST(a)		OPWORD(0x12a, 0, (a))			/* tst.l */
@@ -402,6 +389,8 @@
 		*((u2*)cd->mcodeptr) = (u2) ( 0x4e40 | (a) ); \
 		cd->mcodeptr += 2; \
 	} while(0);
+
+#define M_TEST(a)			M_ATST(a)
 
 
 #if !defined(ENABLE_SOFTFLOAT)

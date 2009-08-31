@@ -1,7 +1,8 @@
 /* src/vm/jit/emit-common.hpp - common code emitter functions
 
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -23,13 +24,14 @@
 */
 
 
-#ifndef _EMIT_COMMON_H
-#define _EMIT_COMMON_H
+#ifndef _EMIT_COMMON_HPP
+#define _EMIT_COMMON_HPP
 
 #include "config.h"
 #include "vm/types.h"
 
 #include "arch.h"
+#include "codegen.h"
 
 #include "vm/jit/codegen-common.hpp"
 #include "vm/jit/jit.hpp"
@@ -105,6 +107,18 @@ void emit_copy(jitdata *jd, instruction *iptr);
 
 void emit_iconst(codegendata *cd, s4 d, s4 value);
 void emit_lconst(codegendata *cd, s4 d, s8 value);
+
+/* compare-emitting functions targeting an integer register */
+
+#if SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER
+void emit_icmpeq_imm(codegendata* cd, int reg, int32_t value, int d);
+#endif
+
+/* compare-emitting functions targeting the condition register */
+
+#if SUPPORT_BRANCH_CONDITIONAL_CONDITION_REGISTER
+void emit_icmp_imm(codegendata* cd, int reg, int32_t value);
+#endif
 
 /* branch-emitting functions */
 void emit_bccz(codegendata *cd, basicblock *target, s4 condition, s4 reg, u4 options);
@@ -197,6 +211,20 @@ uint32_t emit_trap(codegendata *cd);
 
 void emit_patcher_traps(jitdata *jd);
 
+void emit_recompute_pv(codegendata* cd);
+
+#if defined(ENABLE_THREADS)
+void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset);
+void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset);
+#endif
+
+#if defined(ENABLE_PROFILING)
+void emit_profile_method(codegendata* cd, codeinfo* code);
+void emit_profile_basicblock(codegendata* cd, codeinfo* code, basicblock* bptr);
+void emit_profile_cycle_start();
+void emit_profile_cycle_stop();
+#endif
+
 void emit_verbosecall_enter(jitdata *jd);
 void emit_verbosecall_exit(jitdata *jd);
 
@@ -204,7 +232,77 @@ void emit_verbosecall_exit(jitdata *jd);
 }
 #endif
 
-#endif /* _EMIT_COMMON_H */
+
+/* inline code generation functions *******************************************/
+
+/**
+ * Generates an integer-move from register s to d. If s and d are
+ * the same registers, no code will be generated.
+ */
+static inline void emit_imove(codegendata* cd, int s, int d)
+{
+	if (s != d)
+#if defined(__ARM__)
+		// XXX Fix this!!!
+		M_MOV(d, s);
+#else
+		M_MOV(s, d);
+#endif
+}
+
+
+/**
+ * Generates a long-move from register s to d. If s and d are
+ * the same registers, no code will be generated.
+ */
+static inline void emit_lmove(codegendata* cd, int s, int d)
+{
+#if SIZEOF_VOID_P == 8
+	emit_imove(cd, s, d);
+#else
+	if (GET_HIGH_REG(s) == GET_LOW_REG(d)) {
+		assert((GET_LOW_REG(s) != GET_HIGH_REG(d)));
+		emit_imove(cd, GET_HIGH_REG(s), GET_HIGH_REG(d));
+		emit_imove(cd, GET_LOW_REG(s), GET_LOW_REG(d));
+	} else {
+		emit_imove(cd, GET_LOW_REG(s), GET_LOW_REG(d));
+		emit_imove(cd, GET_HIGH_REG(s), GET_HIGH_REG(d));
+	}
+#endif
+}
+
+
+/**
+ * Generates a float-move from register s to d. If s and d are
+ * the same registers, no code will be generated.
+ */
+static inline void emit_fmove(codegendata* cd, int s, int d)
+{
+	if (s != d)
+		M_FMOV(s, d);
+}
+
+
+/**
+ * Generates an double-move from register s to d. If s and d are
+ * the same registers, no code will be generated.
+ */
+static inline void emit_dmove(codegendata* cd, int s, int d)
+{
+	if (s != d)
+		M_DMOV(s, d);
+}
+
+
+/* preserve compatibility with legacy code ************************************/
+
+#define M_INTMOVE(a, b)      emit_imove(cd, a, b)
+#define M_LNGMOVE(a, b)      emit_lmove(cd, a, b)
+#define M_FLTMOVE(a, b)      emit_fmove(cd, a, b)
+#define M_DBLMOVE(a, b)      emit_dmove(cd, a, b)
+
+
+#endif /* _EMIT_COMMON_HPP */
 
 
 /*

@@ -310,6 +310,18 @@ s4 emit_load_high(jitdata *jd, instruction *iptr, varinfo *src, s4 tempreg)
 	}
 	return reg;
 }
+
+
+/**
+ * Emits code updating the condition register by comparing one integer
+ * register to an immediate integer value.
+ */
+void emit_icmp_imm(codegendata* cd, int reg, int32_t value)
+{
+	M_ICMP_IMM(value, reg);
+}
+
+
 /* emit_branch *****************************************************************
 
    Emits the code for conditional and unconditional branchs.
@@ -700,6 +712,115 @@ uint32_t emit_trap(codegendata *cd)
 	return mcode;
 }
 
+
+/**
+ * Emit code to recompute the procedure vector.
+ */
+void emit_recompute_pv(codegendata *cd)
+{
+	// This is a nop, because we do not use a procedure vector.
+}
+
+
+/**
+ * Generates synchronization code to enter a monitor.
+ */
+#if defined(ENABLE_THREADS)
+void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
+{
+	// Get required compiler data.
+	methodinfo*  m  = jd->m;
+	codegendata* cd = jd->cd;
+
+	if (m->flags & ACC_STATIC) {
+		M_AMOV_IMM((&m->clazz->object.header), REG_ATMP1);
+	} else	{
+		/* for non-static case the first arg is the object */
+		M_ALD(REG_ATMP1, REG_SP, cd->stackframesize + 4);
+		M_ATST(REG_ATMP1);
+		M_BNE(2);
+		M_TRAP(TRAP_NullPointerException);
+	}
+
+	M_AST(REG_ATMP1, REG_SP, syncslot_offset);
+	M_AST(REG_ATMP1, REG_SP, 0 * 4);
+	M_JSR_IMM(LOCK_monitor_enter);
+}
+#endif
+
+
+/**
+ * Generates synchronization code to leave a monitor.
+ */
+#if defined(ENABLE_THREADS)
+void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
+{
+	// Get required compiler data.
+	methodinfo*  m  = jd->m;
+	codegendata* cd = jd->cd;
+
+	M_ILD(REG_ITMP3, REG_SP, syncslot_offset);
+
+	/* we need to save the proper return value */
+	/* we do not care for the long -> doubel convert space here */
+
+	methoddesc* md = m->parseddesc;
+
+	switch (md->returntype.type) {
+#if defined(ENABLE_SOFTFLOAT)
+	case TYPE_DBL:
+#endif
+	case TYPE_LNG:
+		M_LST(REG_RESULT_PACKED, REG_SP, syncslot_offset + 8);
+		break;
+#if defined(ENABLE_SOFTFLOAT)
+	case TYPE_FLT:
+#endif
+	case TYPE_INT:
+	case TYPE_ADR:
+		M_IST(REG_RESULT , REG_SP, syncslot_offset + 8);
+		break;
+#if !defined(ENABLE_SOFTFLOAT)
+	case TYPE_FLT:
+		M_FST(REG_FRESULT, REG_SP, syncslot_offset + 8);
+		break;
+	case TYPE_DBL:
+		M_DST(REG_FRESULT, REG_SP, syncslot_offset + 8);
+		break;
+#endif
+	}
+
+	M_IST(REG_ITMP3, REG_SP, 0 * 4);
+	M_JSR_IMM(LOCK_monitor_exit);
+
+	/* and now restore the proper return value */
+
+	switch (md->returntype.type) {
+
+#if defined(ENABLE_SOFTFLOAT)
+	case TYPE_DBL:
+#endif
+	case TYPE_LNG:
+		M_LLD(REG_RESULT_PACKED, REG_SP, syncslot_offset + 8);
+		break;
+#if defined(ENABLE_SOFTFLOAT)
+	case TYPE_FLT:
+#endif
+	case TYPE_INT:
+	case TYPE_ADR:
+		M_ILD(REG_RESULT , REG_SP, syncslot_offset + 8);
+		break;
+#if !defined(ENABLE_SOFTFLOAT)
+	case TYPE_FLT:
+		M_FLD(REG_FRESULT, REG_SP, syncslot_offset + 8);
+		break;
+	case TYPE_DBL:
+		M_DLD(REG_FRESULT, REG_SP, syncslot_offset + 8);
+		break;
+#endif
+	}
+}
+#endif
 
 
 /*

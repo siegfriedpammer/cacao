@@ -383,6 +383,27 @@ void emit_iconst(codegendata *cd, s4 d, s4 value)
 }
 
 
+/**
+ * Emits code updating the condition register by comparing one integer
+ * register to an immediate integer value.
+ */
+void emit_icmp_imm(codegendata* cd, int reg, int32_t value)
+{
+	int32_t disp;
+
+	if (IS_IMM(value)) {
+		M_CMP_IMM(reg, value);
+	} else if (IS_IMM(-value)) {
+		M_CMN_IMM(reg, -value);
+	} else {
+		assert(reg != REG_ITMP3);
+		disp = dseg_add_s4(cd, value);
+		M_DSEG_LOAD(REG_ITMP3, disp);
+		M_CMP(reg, REG_ITMP3);
+	}
+}
+
+
 /* emit_branch *****************************************************************
 
    Emits the code for conditional and unconditional branchs.
@@ -614,6 +635,126 @@ uint32_t emit_trap(codegendata *cd)
 }
 
 
+/**
+ * Emit code to recompute the procedure vector.
+ */
+void emit_recompute_pv(codegendata *cd)
+{
+	// This is used to recompute our PV (we use the IP for this) out
+	// of the current PC.
+	int32_t disp = (int32_t) (cd->mcodeptr - cd->mcodebase);
+
+	// We use PC relative addressing.
+	disp += 8;
+
+	// Sanity checks.
+	assert((disp & 0x03) == 0);
+	assert(disp >= 0 && disp <= 0x03ffffff);
+
+	// ATTENTION: If you change this, you have to look at other functions
+	// as well! Following things depend on it: md_codegen_get_pv_from_pc();
+	if (disp > 0x0003ffff) {
+		M_SUB_IMM(REG_PV, REG_PC, IMM_ROTL(disp >> 18, 9));
+		M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 10, 5));
+		M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 2, 1));
+	} else if (disp > 0x000003ff) {
+		M_SUB_IMM(REG_PV, REG_PC, IMM_ROTL(disp >> 10, 5));
+		M_SUB_IMM(REG_PV, REG_PV, IMM_ROTL(disp >> 2, 1));
+	} else {
+		M_SUB_IMM(REG_PV, REG_PC, IMM_ROTL(disp >> 2, 1));
+	}
+}
+
+
+/**
+ * Generates synchronization code to enter a monitor.
+ */
+#if defined(ENABLE_THREADS)
+void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
+{
+	int32_t disp;
+
+	// Get required compiler data.
+	methodinfo*  m  = jd->m;
+	codegendata* cd = jd->cd;
+
+# if !defined(NDEBUG)
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+		M_STMFD(BITMASK_ARGS, REG_SP);
+		syncslot_offset += 4 * 4;
+	}
+# endif
+
+	/* get the correct lock object */
+
+	if (m->flags & ACC_STATIC) {
+		disp = dseg_add_address(cd, &m->clazz->object.header);
+		M_DSEG_LOAD(REG_A0, disp);
+	}
+	else {
+		emit_nullpointer_check_force(cd, NULL, REG_A0);
+	}
+
+	M_STR(REG_A0, REG_SP, syncslot_offset);
+	disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
+	M_DSEG_BRANCH(disp);
+	emit_recompute_pv(cd);
+
+# if !defined(NDEBUG)
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd))
+		M_LDMFD(BITMASK_ARGS, REG_SP);
+# endif
+}
+#endif
+
+
+/**
+ * Generates synchronization code to leave a monitor.
+ */
+#if defined(ENABLE_THREADS)
+void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
+{
+	int32_t disp;
+
+	// Get required compiler data.
+	methodinfo*  m  = jd->m;
+	codegendata* cd = jd->cd;
+
+	/* we need to save the proper return value */
+
+	methoddesc* md = m->parseddesc;
+
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_ADR:
+	case TYPE_LNG:
+	case TYPE_FLT: /* XXX TWISTI: is that correct? */
+	case TYPE_DBL:
+		M_STMFD(BITMASK_RESULT, REG_SP);
+		syncslot_offset += 2 * 4;
+		break;
+	}
+
+	M_LDR(REG_A0, REG_SP, syncslot_offset);
+	disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
+	M_DSEG_BRANCH(disp);
+
+	/* we no longer need PV here, no more loading */
+	/*emit_recompute_pv(cd);*/
+
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_ADR:
+	case TYPE_LNG:
+	case TYPE_FLT: /* XXX TWISTI: is that correct? */
+	case TYPE_DBL:
+		M_LDMFD(BITMASK_RESULT, REG_SP);
+		break;
+	}
+}
+#endif
+
+
 /* emit_verbosecall_enter ******************************************************
 
    Generates the code for the call trace.
@@ -688,7 +829,7 @@ void emit_verbosecall_enter(jitdata *jd)
 	disp = dseg_add_address(cd, m);
 	M_DSEG_LOAD(REG_A0, disp);
 	M_MOV(REG_A1, REG_SP);
-	M_ADD_IMM(REG_A2, REG_SP, md->paramcount * 8 + 2 * 4 + cd->stackframesize);
+	M_ADD_IMM(REG_A2, REG_SP, md->paramcount * 8 + 2 * 4 + cd->stackframesize * 8);
 	M_LONGBRANCH(trace_java_call_enter);
 
 	/* restore argument registers */

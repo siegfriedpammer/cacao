@@ -73,12 +73,19 @@ struct codeinfo {
 	u1            optlevel;             /* optimization level of this code    */
 	s4            basicblockcount;      /* number of basic blocks             */
 
-	int32_t       synchronizedoffset;   /* stack offset of synchronized obj.  */
-
 	/* machine code */
 	u1           *mcode;                /* pointer to machine code            */
 	u1           *entrypoint;           /* machine code entry point           */
 	s4            mcodelength;          /* length of generated machine code   */
+
+	/* runtime information */
+	int32_t       stackframesize;       /* size of the stackframe in slots    */
+	int32_t       synchronizedoffset;   /* stack offset of synchronized obj.  */
+	uint8_t       savedintcount;        /* number of callee saved int regs    */
+	uint8_t       savedfltcount;        /* number of callee saved flt regs    */
+# if defined(HAS_ADDRESS_REGISTER_FILE)
+	uint8_t       savedadrcount;        /* number of callee saved adr regs    */
+# endif
 
 	exceptiontable_t  *exceptiontable;
 	LinenumberTable* linenumbertable;
@@ -90,9 +97,7 @@ struct codeinfo {
 	LockedList*   patchers;
 #endif
 
-	/* replacement */				    
-	s4            stackframesize;       /* size of the stackframe in slots    */
-
+	/* replacement */
 #if defined(ENABLE_REPLACEMENT)
 	rplpoint     *rplpoints;            /* replacement points                 */
 	rplalloc     *regalloc;             /* register allocation info           */
@@ -100,11 +105,6 @@ struct codeinfo {
 	s4            globalcount;          /* number of global allocations       */
 	s4            regalloccount;        /* number of total allocations        */
 	s4            memuse;               /* number of arg + local slots        */
-	u1            savedintcount;        /* number of callee saved int regs    */
-	u1            savedfltcount;        /* number of callee saved flt regs    */
-# if defined(HAS_ADDRESS_REGISTER_FILE)
-	u1            savedadrcount;        /* number of callee saved adr regs    */
-# endif
 	u1           *savedmcode;           /* saved code under patches           */
 #endif
 

@@ -196,6 +196,146 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 }
 
 
+/**
+ * Emits code updating the condition register by comparing one integer
+ * register to an immediate integer value.
+ */
+void emit_icmp_imm(codegendata* cd, int reg, int32_t value)
+{
+	int32_t disp;
+
+	if ((value >= -32768) && (value <= 32767)) {
+		M_CMPI(reg, value);
+	} else {
+		assert(reg != REG_ITMP2);
+		disp = dseg_add_s4(cd, value);
+		M_ILD(REG_ITMP2, REG_PV, disp);
+		M_CMP(reg, REG_ITMP2);
+	}
+}
+
+
+/**
+ * Generates synchronization code to enter a monitor.
+ */
+#if defined(ENABLE_THREADS)
+void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
+{
+	int32_t p;
+
+	// Get required compiler data.
+	methodinfo*  m  = jd->m;
+	codegendata* cd = jd->cd;
+
+#if !defined (NDEBUG)
+		if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+			M_AADD_IMM(REG_SP, -((LA_SIZE_IN_POINTERS + PA_SIZE_IN_POINTERS + ARG_CNT) * 8), REG_SP);
+
+			for (p = 0; p < INT_ARG_CNT; p++)
+				M_LST(abi_registers_integer_argument[p], REG_SP, LA_SIZE + PA_SIZE + p * 8);
+
+			for (p = 0; p < FLT_ARG_CNT; p++)
+				M_DST(abi_registers_float_argument[p], REG_SP, LA_SIZE + PA_SIZE + (INT_ARG_CNT + p) * 8);
+
+			/* used for LOCK_monitor_exit, adopt size because we created another stackframe */
+			syncslot_offset += (LA_SIZE_IN_POINTERS + PA_SIZE_IN_POINTERS + ARG_CNT) * 8;
+		}
+#endif
+
+		p = dseg_add_functionptr(cd, LOCK_monitor_enter);
+		M_ALD(REG_ITMP3, REG_PV, p);
+		M_ALD(REG_ITMP3, REG_ITMP3, 0); /* TOC */
+		M_MTCTR(REG_ITMP3);
+
+		/* get or test the lock object */
+
+		if (m->flags & ACC_STATIC) {
+			p = dseg_add_address(cd, &m->clazz->object.header);
+			M_ALD(REG_A0, REG_PV, p);
+		}
+		else {
+			M_TST(REG_A0);
+			M_BNE(1);
+			M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_NullPointerException);
+		}
+
+		M_AST(REG_A0, REG_SP, syncslot_offset);
+		M_JSR;
+
+#if !defined(NDEBUG)
+		if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+			for (p = 0; p < INT_ARG_CNT; p++)
+				M_LLD(abi_registers_integer_argument[p], REG_SP, LA_SIZE + PA_SIZE + p * 8);
+
+			for (p = 0; p < FLT_ARG_CNT; p++)
+				M_DLD(abi_registers_float_argument[p], REG_SP, LA_SIZE + PA_SIZE + (INT_ARG_CNT + p) * 8);
+
+			M_AADD_IMM(REG_SP, (LA_SIZE_IN_POINTERS + PA_SIZE_IN_POINTERS + ARG_CNT) * 8, REG_SP);
+		}
+#endif
+}
+#endif
+
+
+/**
+ * Generates synchronization code to leave a monitor.
+ */
+#if defined(ENABLE_THREADS)
+void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
+{
+	int32_t disp;
+
+	// Get required compiler data.
+	methodinfo*  m  = jd->m;
+	codegendata* cd = jd->cd;
+
+	disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
+	M_ALD(REG_ITMP3, REG_PV, disp);
+	M_ALD(REG_ITMP3, REG_ITMP3, 0); /* TOC */
+	M_MTCTR(REG_ITMP3);
+
+	/* we need to save the proper return value */
+
+	methoddesc* md = m->parseddesc;
+
+	switch (md->returntype.type) {
+	case TYPE_LNG:
+	case TYPE_INT:
+	case TYPE_ADR:
+		/* fall through */
+		M_LST(REG_RESULT , REG_SP, syncslot_offset + 8);
+		break;
+	case TYPE_FLT:
+		M_FST(REG_FRESULT, REG_SP, syncslot_offset + 8);
+		break;
+	case TYPE_DBL:
+		M_DST(REG_FRESULT, REG_SP, syncslot_offset + 8);
+		break;
+	}
+
+	M_ALD(REG_A0, REG_SP, syncslot_offset);
+	M_JSR;
+
+	/* and now restore the proper return value */
+
+	switch (md->returntype.type) {
+	case TYPE_LNG:
+	case TYPE_INT:
+	case TYPE_ADR:
+		/* fall through */
+		M_LLD(REG_RESULT , REG_SP, syncslot_offset + 8);
+		break;
+	case TYPE_FLT:
+		M_FLD(REG_FRESULT, REG_SP, syncslot_offset + 8);
+		break;
+	case TYPE_DBL:
+		M_DLD(REG_FRESULT, REG_SP, syncslot_offset + 8);
+		break;
+	}
+}
+#endif
+
+
 /* emit_verbosecall_enter ******************************************************
 
    Generates the code for the call trace.
@@ -645,6 +785,18 @@ uint32_t emit_trap(codegendata *cd)
 	M_ILLEGAL;
 
 	return mcode;
+}
+
+
+/**
+ * Emit code to recompute the procedure vector.
+ */
+void emit_recompute_pv(codegendata *cd)
+{
+	int32_t disp = (int32_t) (cd->mcodeptr - cd->mcodebase);
+
+	M_MFLR(REG_ITMP1);
+	M_LDA(REG_PV, REG_ITMP1, -disp);
 }
 
 

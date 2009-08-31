@@ -37,6 +37,50 @@ extern "C" {
 #include "vm/global.h"
 
 
+/* CPU cycle counting macros **************************************************/
+
+#if defined(ENABLE_PROFILING) && defined(__X86_64__)
+
+#define PROFILE_CYCLE_START \
+    do { \
+        if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) { \
+            M_PUSH(RAX); \
+            M_PUSH(RDX); \
+            \
+            M_MOV_IMM(code, REG_ITMP3); \
+            M_RDTSC; \
+            M_ISUB_MEMBASE(RAX, REG_ITMP3, OFFSET(codeinfo, cycles)); \
+            M_ISBB_MEMBASE(RDX, REG_ITMP3, OFFSET(codeinfo, cycles) + 4); \
+            \
+            M_POP(RDX); \
+            M_POP(RAX); \
+        } \
+    } while (0)
+
+#define PROFILE_CYCLE_STOP \
+    do { \
+        if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) { \
+            M_PUSH(RAX); \
+            M_PUSH(RDX); \
+            \
+            M_MOV_IMM(code, REG_ITMP3); \
+            M_RDTSC; \
+            M_IADD_MEMBASE(RAX, REG_ITMP3, OFFSET(codeinfo, cycles)); \
+            M_IADC_MEMBASE(RDX, REG_ITMP3, OFFSET(codeinfo, cycles) + 4); \
+            \
+            M_POP(RDX); \
+            M_POP(RAX); \
+        } \
+    } while (0)
+
+#else
+
+#define PROFILE_CYCLE_START
+#define PROFILE_CYCLE_STOP
+
+#endif
+
+
 /* function prototypes ********************************************************/
 
 bool profile_init(void);

@@ -234,6 +234,28 @@ void emit_lconst(codegendata *cd, s4 d, s8 value)
 }
 
 
+/**
+ * Emits code comparing one integer register to an immediate value.
+ */
+void emit_icmpeq_imm(codegendata* cd, int reg, int32_t value, int d)
+{
+	int32_t disp;
+
+	if ((value >= 0) && (value <= 255)) {
+		M_CMPEQ_IMM(reg, value, d);
+	} else {
+		assert(reg != REG_ITMP2);
+		if ((value >= -32768) && (value <= 32767)) {
+			M_LDA(REG_ITMP2, REG_ZERO, value);
+		} else {
+			disp = dseg_add_s4(cd, value);
+			M_ILD(REG_ITMP2, REG_PV, disp);
+		}
+		M_CMPEQ(reg, REG_ITMP2, d);
+	}
+}
+
+
 /* emit_branch *****************************************************************
 
    Emits the code for conditional and unconditional branchs.
@@ -453,6 +475,124 @@ uint32_t emit_trap(codegendata *cd)
 
 	return mcode;
 }
+
+
+/**
+ * Emit code to recompute the procedure vector.
+ */
+void emit_recompute_pv(codegendata *cd)
+{
+	int32_t disp = (int32_t) (cd->mcodeptr - cd->mcodebase);
+
+	M_LDA(REG_PV, REG_RA, -disp);
+}
+
+
+/**
+ * Generates synchronization code to enter a monitor.
+ */
+#if defined(ENABLE_THREADS)
+void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
+{
+	int32_t p;
+	int32_t disp;
+
+	// Get required compiler data.
+	methodinfo*  m  = jd->m;
+	codegendata* cd = jd->cd;
+
+#if !defined(NDEBUG)
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+		M_LDA(REG_SP, REG_SP, -(INT_ARG_CNT + FLT_ARG_CNT) * 8);
+
+		for (p = 0; p < INT_ARG_CNT; p++)
+			M_LST(abi_registers_integer_argument[p], REG_SP, p * 8);
+
+		for (p = 0; p < FLT_ARG_CNT; p++)
+			M_DST(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
+
+		syncslot_offset += (INT_ARG_CNT + FLT_ARG_CNT) * 8;
+	}
+#endif /* !defined(NDEBUG) */
+
+	/* decide which monitor enter function to call */
+
+	if (m->flags & ACC_STATIC) {
+		disp = dseg_add_address(cd, &m->clazz->object.header);
+		M_ALD(REG_A0, REG_PV, disp);
+	}
+	else {
+		M_BNEZ(REG_A0, 1);
+		M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_NullPointerException);
+	}
+
+	M_AST(REG_A0, REG_SP, syncslot_offset);
+	disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
+	M_ALD(REG_PV, REG_PV, disp);
+	M_JSR(REG_RA, REG_PV);
+	emit_recompute_pv(cd);
+
+#if !defined(NDEBUG)
+	if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+		for (p = 0; p < INT_ARG_CNT; p++)
+			M_LLD(abi_registers_integer_argument[p], REG_SP, p * 8);
+
+		for (p = 0; p < FLT_ARG_CNT; p++)
+			M_DLD(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
+
+		M_LDA(REG_SP, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT) * 8);
+	}
+#endif
+}
+#endif
+
+
+/**
+ * Generates synchronization code to leave a monitor.
+ */
+#if defined(ENABLE_THREADS)
+void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
+{
+	int32_t disp;
+
+	// Get required compiler data.
+	methodinfo*  m  = jd->m;
+	codegendata* cd = jd->cd;
+
+	M_ALD(REG_A0, REG_SP, syncslot_offset);
+
+	methoddesc* md = m->parseddesc;
+
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_LNG:
+	case TYPE_ADR:
+		M_LST(REG_RESULT, REG_SP, syncslot_offset);
+		break;
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DST(REG_FRESULT, REG_SP, syncslot_offset);
+		break;
+	}
+
+	disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
+	M_ALD(REG_PV, REG_PV, disp);
+	M_JSR(REG_RA, REG_PV);
+	emit_recompute_pv(cd);
+
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_LNG:
+	case TYPE_ADR:
+		M_LLD(REG_RESULT, REG_SP, syncslot_offset);
+		break;
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DLD(REG_FRESULT, REG_SP, syncslot_offset);
+		break;
+	}
+}
+#endif
 
 
 /* emit_verbosecall_enter ******************************************************

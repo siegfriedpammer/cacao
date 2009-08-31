@@ -642,6 +642,152 @@ uint32_t emit_trap(codegendata *cd)
 }
 
 
+/**
+ * Emit code to recompute the procedure vector.
+ */
+void emit_recompute_pv(codegendata *cd)
+{
+	int32_t disp = (int32_t) (cd->mcodeptr - cd->mcodebase);
+
+	M_LDA(REG_PV, REG_RA, -disp);
+}
+
+
+/**
+ * Generates synchronization code to enter a monitor.
+ */
+#if defined(ENABLE_THREADS)
+void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset)
+{
+	int32_t p;
+	int32_t disp;
+
+	// Get required compiler data.
+	methodinfo*  m  = jd->m;
+	codegendata* cd = jd->cd;
+
+# if !defined(NDEBUG)
+		if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+			M_LDA(REG_SP, REG_SP, -(INT_ARG_CNT + FLT_ARG_CNT) * 8);
+
+			for (p = 0; p < INT_ARG_CNT; p++)
+				M_AST(abi_registers_integer_argument[p], REG_SP, p * 8);
+
+			for (p = 0; p < FLT_ARG_CNT; p++)
+				M_DST(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
+
+			syncslot_offset += (INT_ARG_CNT + FLT_ARG_CNT) * 8;
+		}
+# endif
+
+		/* get correct lock object */
+
+		if (m->flags & ACC_STATIC) {
+			disp = dseg_add_address(cd, &m->clazz->object.header);
+			M_ALD(REG_A0, REG_PV, disp);
+			disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
+			M_ALD(REG_ITMP3, REG_PV, disp);
+		}
+		else {
+/* 			emit_nullpointer_check(cd, iptr, REG_A0); */
+			M_BNEZ(REG_A0, 2);
+			disp = dseg_add_functionptr(cd, LOCK_monitor_enter);
+			M_ALD(REG_ITMP3, REG_PV, disp);                   /* branch delay */
+			M_ALD_INTERN(REG_ZERO, REG_ZERO, TRAP_NullPointerException);
+		}
+
+		M_JSR(REG_RA, REG_ITMP3);
+		M_AST(REG_A0, REG_SP, syncslot_offset);               /* branch delay */
+
+# if !defined(NDEBUG)
+		if (JITDATA_HAS_FLAG_VERBOSECALL(jd)) {
+			for (p = 0; p < INT_ARG_CNT; p++)
+				M_ALD(abi_registers_integer_argument[p], REG_SP, p * 8);
+
+			for (p = 0; p < FLT_ARG_CNT; p++)
+				M_DLD(abi_registers_float_argument[p], REG_SP, (INT_ARG_CNT + p) * 8);
+
+
+			M_LDA(REG_SP, REG_SP, (INT_ARG_CNT + FLT_ARG_CNT) * 8);
+		}
+# endif
+}
+#endif
+
+
+/**
+ * Generates synchronization code to leave a monitor.
+ */
+#if defined(ENABLE_THREADS)
+void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset)
+{
+	int32_t disp;
+
+	// Get required compiler data.
+	methodinfo*  m  = jd->m;
+	codegendata* cd = jd->cd;
+
+	disp = dseg_add_functionptr(cd, LOCK_monitor_exit);
+	M_ALD(REG_ITMP3, REG_PV, disp);
+
+	/* we need to save the proper return value */
+
+	methoddesc* md = m->parseddesc;
+
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_ADR:
+#if SIZEOF_VOID_P == 8
+	case TYPE_LNG:
+#endif
+		M_ALD(REG_A0, REG_SP, syncslot_offset);
+		M_JSR(REG_RA, REG_ITMP3);
+		M_AST(REG_RESULT, REG_SP, syncslot_offset);  /* delay slot */
+		break;
+#if SIZEOF_VOID_P == 4
+	case TYPE_LNG:
+		M_ALD(REG_A0, REG_SP, syncslot_offset);
+		M_LST(REG_RESULT_PACKED, REG_SP, syncslot_offset);
+		M_JSR(REG_RA, REG_ITMP3);
+		M_NOP;
+		break;
+#endif
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_ALD(REG_A0, REG_SP, syncslot_offset);
+		M_JSR(REG_RA, REG_ITMP3);
+		M_DST(REG_FRESULT, REG_SP, syncslot_offset); /* delay slot */
+		break;
+	default:
+		M_JSR(REG_RA, REG_ITMP3);
+		M_ALD(REG_A0, REG_SP, syncslot_offset); /* delay*/
+		break;
+	}
+
+	/* and now restore the proper return value */
+
+	switch (md->returntype.type) {
+	case TYPE_INT:
+	case TYPE_ADR:
+#if SIZEOF_VOID_P == 8
+	case TYPE_LNG:
+#endif
+		M_ALD(REG_RESULT, REG_SP, syncslot_offset);
+		break;
+#if SIZEOF_VOID_P == 4
+	case TYPE_LNG:
+		M_LLD(REG_RESULT_PACKED, REG_SP, syncslot_offset);
+		break;
+#endif
+	case TYPE_FLT:
+	case TYPE_DBL:
+		M_DLD(REG_FRESULT, REG_SP, syncslot_offset);
+		break;
+	}
+}
+#endif
+
+
 /* emit_verbosecall_enter ******************************************************
 
    Generates the code for the call trace.

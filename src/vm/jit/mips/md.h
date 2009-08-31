@@ -38,6 +38,21 @@
 #include "vm/vm.hpp"
 
 
+/**
+ * Returns the size (in bytes) of the current stackframe, specified by
+ * the passed codeinfo structure.
+ */
+inline static int32_t md_stacktrace_get_framesize(codeinfo* code)
+{
+	// Check for the asm_vm_call_method special case.
+	if (code == NULL)
+		return 0;
+
+	// On MIPS we use 8-byte stackslots.
+	return code->stackframesize * 8;
+}
+
+
 /* md_stacktrace_get_returnaddress *********************************************
 
    Returns the return address of the current stackframe, specified by

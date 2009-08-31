@@ -47,50 +47,13 @@
     } while (0)
 
 
-/* M_INTMOVE:
-     generates an integer-move from register a to b.
-     if a and b are the same int-register, no code will be generated.
-*/ 
-
-#define M_INTMOVE(a,b) \
-    do { \
-        if ((a) != (b)) { \
-            M_MOV(a, b); \
-        } \
-    } while (0)
-
-#define M_LNGMOVE(a,b) \
-    do { \
-        if (GET_HIGH_REG(a) == GET_LOW_REG(b)) { \
-            assert((GET_LOW_REG(a) != GET_HIGH_REG(b))); \
-            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
-            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
-        } else { \
-            M_INTMOVE(GET_LOW_REG(a), GET_LOW_REG(b)); \
-            M_INTMOVE(GET_HIGH_REG(a), GET_HIGH_REG(b)); \
-        } \
-    } while (0)
-
-
-/* M_FLTMOVE:
-    generates a floating-point-move from register a to b.
-    if a and b are the same float-register, no code will be generated
-*/ 
-
-#define M_FLTMOVE(a,b) \
-    do { \
-        if ((a) != (b)) { \
-            M_FMOV(a, b); \
-        } \
-    } while (0)
-
-
 #define ICONST(d,c)                     emit_iconst(cd, (d), (c))
 
 #define LCONST(reg,c) \
     ICONST(GET_HIGH_REG((reg)), (s4) ((s8) (c) >> 32));	\
     ICONST(GET_LOW_REG((reg)), (s4) ((s8) (c)));
 
+#define M_DMOV(a,b) M_FMOV(a,b)
 
 #define ALIGNCODENOP \
     if ((s4) ((ptrint) cd->mcodeptr & 7)) { \
@@ -406,6 +369,12 @@
 #define M_ALD(a,b,disp)                 M_ILD(a,b,disp)
 #define M_AST_INTERN(a,b,disp)          M_IST_INTERN(a,b,disp)
 #define M_AST(a,b,disp)                 M_IST(a,b,disp)
+
+#define M_ACMP(a,b)                     M_CMP(a,b)
+#define M_ICMP(a,b)                     M_CMP(a,b)
+
+#define M_TEST(a)                       M_TST(a)
+#define M_ALD_DSEG(a,disp)              M_ALD(a,REG_PV,disp);
 
 
 /* floating point instructions ************************************************/

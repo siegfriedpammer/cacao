@@ -92,31 +92,6 @@ s4 nat_argintregs[INT_NATARG_CNT];
 		slots++;
 
 
-/* M_INTMOVE:
-     generates an integer-move from register rs to rd.
-     if rs and rd are the same int-register, no code will be generated.
-*/ 
-
-#define M_INTMOVE(rs,rd) if (rs != rd) { M_MOV(rs, rd); }
-
-
-/* M_DBLMOVE:
-    generates a double floating-point-move from register (pair) rs to rd.
-    if rs and rd are the same double-register, no code will be generated
-*/ 
-
-#define M_DBLMOVE(rs, rd) if (rs != rd) { M_DMOV (rs, rd); }
-
-
-/* M_FLTMOVE:
-    generates a double floating-point-move from pseudo register rs to rd.
-	(ie. lower register of double rs pair to lower register of double rd pair)
-    if rs and rd are the same double-register, no code will be generated
-*/ 
-#define M_FLTMOVE(rs, rd) if (rs != rd) { M_FMOV (rs, rd); }
-
-
-
 #define M_COPY(s,d)                     emit_copy(jd, iptr, (s), (d))
 #define ICONST(d,c)                     emit_iconst(cd, (d), (c))
 #define LCONST(d,c)                     emit_lconst(cd, (d), (c))
@@ -692,6 +667,8 @@ s4   get_lopart_disp(s4 disp);
 #define M_AADD_IMM(a,b,c)       M_ADD_IMM(a,b,c)
 #define M_ASUB_IMM(a,b,c)       M_SUB_IMM(a,b,c)
 #define M_ASLL_IMM(a,b,c)       M_SLLX_IMM(a,b,c)
-	
+
+#define M_ACMP(a,b)             M_CMP(a,b)
+#define M_ICMP(a,b)             M_CMP(a,b)
 
 #endif /* _CODEGEN_H */

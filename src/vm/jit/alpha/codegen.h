@@ -59,30 +59,6 @@
     }
 
 
-/* M_INTMOVE:
-     generates an integer-move from register a to b.
-     if a and b are the same int-register, no code will be generated.
-*/ 
-
-#define M_INTMOVE(a,b) \
-    do { \
-        if ((a) != (b)) \
-            M_MOV(a, b); \
-    } while (0)
-
-
-/* M_FLTMOVE:
-    generates a floating-point-move from register a to b.
-    if a and b are the same float-register, no code will be generated
-*/ 
-
-#define M_FLTMOVE(a,b) \
-    do { \
-        if ((a) != (b)) \
-            M_FMOV(a, b); \
-    } while (0)
-
-
 #define ICONST(d,c)        emit_iconst(cd, (d), (c))
 #define LCONST(d,c)        emit_lconst(cd, (d), (c))
 
@@ -230,6 +206,7 @@
 
 #define M_ALD_INTERN(a,b,disp)  M_LLD_INTERN(a,b,disp)
 #define M_ALD(a,b,disp)         M_LLD(a,b,disp)                 /* addr load  */
+#define M_ALD_DSEG(a,disp)      M_LLD(a,REG_PV,disp)
 
 #define M_BST(a,b,disp)         M_MEM(0x0e,a,b,disp)            /*  8 store   */
 #define M_SST(a,b,disp)         M_MEM(0x0d,a,b,disp)            /* 16 store   */
@@ -431,6 +408,7 @@
 #define M_FCMPLTS(a,b,c)        M_FOP3 (0x16, 0x5a6, a,b,c)     /* c = a<b    */
 
 #define M_FMOV(fa,fb)           M_FOP3 (0x17, 0x020, fa,fa,fb)  /* b = a      */
+#define M_DMOV(fa,fb)           M_FMOV (fa,fb)
 #define M_FMOVN(fa,fb)          M_FOP3 (0x17, 0x021, fa,fa,fb)  /* b = -a     */
 
 #define M_FNOP                  M_FMOV (31,31)

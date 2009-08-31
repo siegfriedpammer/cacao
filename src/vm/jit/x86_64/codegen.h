@@ -55,32 +55,6 @@
     } while (0)
 
 
-/* M_INTMOVE:
-    generates an integer-move from register a to b.
-    if a and b are the same int-register, no code will be generated.
-*/ 
-
-#define M_INTMOVE(reg,dreg) \
-    do { \
-        if ((reg) != (dreg)) { \
-            M_MOV(reg, dreg); \
-        } \
-    } while (0)
-
-
-/* M_FLTMOVE:
-    generates a floating-point-move from register a to b.
-    if a and b are the same float-register, no code will be generated
-*/ 
-
-#define M_FLTMOVE(reg,dreg) \
-    do { \
-        if ((reg) != (dreg)) { \
-            M_FMOV(reg, dreg); \
-        } \
-    } while (0)
-
-
 #define ICONST(r,c) \
     do { \
         if ((c) == 0) \
@@ -152,6 +126,7 @@
 #define M_IMOV_IMM(a,b)         emit_movl_imm_reg(cd, (u4) (a), (b))
 
 #define M_FMOV(a,b)             emit_movq_reg_reg(cd, (a), (b))
+#define M_DMOV(a,b)             M_FMOV(a,b)
 
 #define M_ILD(a,b,disp)         emit_movl_membase_reg(cd, (b), (disp), (a))
 #define M_LLD(a,b,disp)         emit_mov_membase_reg(cd, (b), (disp), (a))
@@ -200,6 +175,7 @@
     } while (0)
 
 #define M_ALD32(a,b,disp)       M_LLD32(a,b,disp)
+#define M_ALD_DSEG(a,disp)      M_ALD(a,RIP,disp)
 
 #define M_ALD_MEM(a,disp)       emit_mov_mem_reg(cd, (disp), (a))
 
@@ -276,6 +252,8 @@
 #define M_ICMP_IMM_MEMBASE(a,b,c) emit_alul_imm_membase(cd, ALU_CMP, (a), (b), (c))
 #define M_ICMP_MEMBASE(a,b,c)   emit_alul_membase_reg(cd, ALU_CMP, (a), (b), (c))
 #define M_ICMP_MEMINDEX(a,b,c,d,e) emit_alu_memindex_reg(cd, ALU_CMP, (b), (a), (c), (d), (e))
+
+#define M_ACMP(a,b)             M_LCMP(a,b)
 
 #define M_BEQ(disp)             emit_jcc(cd, CC_E, (disp))
 #define M_BNE(disp)             emit_jcc(cd, CC_NE, (disp))
@@ -367,47 +345,6 @@
 #define M_ISUB_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_SUB, (a), (b), (c))
 #define M_ISBB_MEMBASE(a,b,c)   emit_alul_reg_membase(cd, ALU_SBB, (a), (b), (c))
 
-
-#if defined(ENABLE_PROFILING)
-
-#define PROFILE_CYCLE_START \
-    do { \
-        if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) { \
-            M_PUSH(RAX); \
-            M_PUSH(RDX); \
-            \
-            M_MOV_IMM(code, REG_ITMP3); \
-            M_RDTSC; \
-            M_ISUB_MEMBASE(RAX, REG_ITMP3, OFFSET(codeinfo, cycles)); \
-            M_ISBB_MEMBASE(RDX, REG_ITMP3, OFFSET(codeinfo, cycles) + 4); \
-            \
-            M_POP(RDX); \
-            M_POP(RAX); \
-        } \
-    } while (0)
-
-#define PROFILE_CYCLE_STOP \
-    do { \
-        if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) { \
-            M_PUSH(RAX); \
-            M_PUSH(RDX); \
-            \
-            M_MOV_IMM(code, REG_ITMP3); \
-            M_RDTSC; \
-            M_IADD_MEMBASE(RAX, REG_ITMP3, OFFSET(codeinfo, cycles)); \
-            M_IADC_MEMBASE(RDX, REG_ITMP3, OFFSET(codeinfo, cycles) + 4); \
-            \
-            M_POP(RDX); \
-            M_POP(RAX); \
-        } \
-    } while (0)
-
-#else
-
-#define PROFILE_CYCLE_START
-#define PROFILE_CYCLE_STOP
-
-#endif
 
 #endif /* _CODEGEN_H */
 
