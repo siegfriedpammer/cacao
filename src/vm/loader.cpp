@@ -40,6 +40,7 @@
 #include "threads/mutex.hpp"
 
 #include "toolbox/hashtable.h"
+#include "toolbox/list.hpp"
 #include "toolbox/logging.hpp"
 
 #include "vm/jit/builtin.hpp"
@@ -492,58 +493,51 @@ bool loader_skip_attribute_body(classbuffer *cb)
 
 *******************************************************************************/
 
+/* The following structures are used to save information which cannot be 
+   processed during the first pass. After the complete constantpool has 
+   been traversed the references can be resolved (only in specific order). */
+
+/* CONSTANT_Class entries */
+typedef struct forward_class {
+	u2 thisindex;
+	u2 name_index;
+} forward_class;
+
+/* CONSTANT_String */
+typedef struct forward_string {
+	u2 thisindex;
+	u2 string_index;
+} forward_string;
+
+/* CONSTANT_NameAndType */
+typedef struct forward_nameandtype {
+	u2 thisindex;
+	u2 name_index;
+	u2 sig_index;
+} forward_nameandtype;
+
+/* CONSTANT_Fieldref, CONSTANT_Methodref or CONSTANT_InterfaceMethodref */
+typedef struct forward_fieldmethint {
+	u2 thisindex;
+	u1 tag;
+	u2 class_index;
+	u2 nameandtype_index;
+} forward_fieldmethint;
+
 static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 {
-
-	/* The following structures are used to save information which cannot be 
-	   processed during the first pass. After the complete constantpool has 
-	   been traversed the references can be resolved. 
-	   (only in specific order)						   */
-	
-	/* CONSTANT_Class entries */
-	typedef struct forward_class {
-		struct forward_class *next;
-		u2 thisindex;
-		u2 name_index;
-	} forward_class;
-
-	/* CONSTANT_String */
-	typedef struct forward_string {
-		struct forward_string *next;
-		u2 thisindex;
-		u2 string_index;
-	} forward_string;
-
-	/* CONSTANT_NameAndType */
-	typedef struct forward_nameandtype {
-		struct forward_nameandtype *next;
-		u2 thisindex;
-		u2 name_index;
-		u2 sig_index;
-	} forward_nameandtype;
-
-	/* CONSTANT_Fieldref, CONSTANT_Methodref or CONSTANT_InterfaceMethodref */
-	typedef struct forward_fieldmethint {
-		struct forward_fieldmethint *next;
-		u2 thisindex;
-		u1 tag;
-		u2 class_index;
-		u2 nameandtype_index;
-	} forward_fieldmethint;
-
-
 	classinfo *c;
 	u4 idx;
 
-	forward_class *forward_classes = NULL;
-	forward_string *forward_strings = NULL;
-	forward_nameandtype *forward_nameandtypes = NULL;
-	forward_fieldmethint *forward_fieldmethints = NULL;
+	DumpList<forward_class>        forward_classes;
+	DumpList<forward_string>       forward_strings;
+	DumpList<forward_nameandtype>  forward_nameandtypes;
+	DumpList<forward_fieldmethint> forward_fieldmethints;
 
-	forward_class *nfc;
-	forward_string *nfs;
-	forward_nameandtype *nfn;
-	forward_fieldmethint *nff;
+	forward_class nfc;
+	forward_string nfs;
+	forward_nameandtype nfn;
+	forward_fieldmethint nff;
 
 	u4 cpcount;
 	u1 *cptags;
@@ -577,11 +571,11 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		cpinfos[idx] = NULL;
 	}
 
-			
+
 	/******* first pass *******/
 	/* entries which cannot be resolved now are written into 
 	   temporary structures and traversed again later        */
-		   
+
 	idx = 1;
 	while (idx < cpcount) {
 		u4 t;
@@ -594,88 +588,73 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 		switch (t) {
 		case CONSTANT_Class:
-#warning Use list.
-			nfc = (forward_class*) DumpMemory::allocate(sizeof(forward_class));
+			nfc.thisindex = idx;
 
-			nfc->next = forward_classes;
-			forward_classes = nfc;
-
-			nfc->thisindex = idx;
 			/* reference to CONSTANT_NameAndType */
 			if (!suck_check_classbuffer_size(cb, 2))
 				return false;
 
-			nfc->name_index = suck_u2(cb);
+			nfc.name_index = suck_u2(cb);
+
+			forward_classes.push_front(nfc);
 
 			idx++;
 			break;
-			
+
 		case CONSTANT_String:
-#warning Use list.
-			nfs = (forward_string*) DumpMemory::allocate(sizeof(forward_string));
-				
-			nfs->next = forward_strings;
-			forward_strings = nfs;
-				
-			nfs->thisindex = idx;
+			nfs.thisindex = idx;
 
 			/* reference to CONSTANT_Utf8_info with string characters */
 			if (!suck_check_classbuffer_size(cb, 2))
 				return false;
 
-			nfs->string_index = suck_u2(cb);
-				
+			nfs.string_index = suck_u2(cb);
+
+			forward_strings.push_front(nfs);
+
 			idx++;
 			break;
 
 		case CONSTANT_NameAndType:
-#warning Use list.
-			nfn = (forward_nameandtype*) DumpMemory::allocate(sizeof(forward_nameandtype));
-				
-			nfn->next = forward_nameandtypes;
-			forward_nameandtypes = nfn;
-				
-			nfn->thisindex = idx;
+			nfn.thisindex = idx;
 
 			if (!suck_check_classbuffer_size(cb, 2 + 2))
 				return false;
 
 			/* reference to CONSTANT_Utf8_info containing simple name */
-			nfn->name_index = suck_u2(cb);
+			nfn.name_index = suck_u2(cb);
 
 			/* reference to CONSTANT_Utf8_info containing field or method
 			   descriptor */
-			nfn->sig_index = suck_u2(cb);
-				
+			nfn.sig_index = suck_u2(cb);
+
+			forward_nameandtypes.push_front(nfn);
+
 			idx++;
 			break;
 
 		case CONSTANT_Fieldref:
 		case CONSTANT_Methodref:
 		case CONSTANT_InterfaceMethodref:
-#warning Use list.
-			nff = (forward_fieldmethint*) DumpMemory::allocate(sizeof(forward_fieldmethint));
-			
-			nff->next = forward_fieldmethints;
-			forward_fieldmethints = nff;
-
-			nff->thisindex = idx;
+			nff.thisindex = idx;
 			/* constant type */
-			nff->tag = t;
+			nff.tag = t;
 
 			if (!suck_check_classbuffer_size(cb, 2 + 2))
 				return false;
 
 			/* class or interface type that contains the declaration of the
 			   field or method */
-			nff->class_index = suck_u2(cb);
+			nff.class_index = suck_u2(cb);
 
 			/* name and descriptor of the field or method */
-			nff->nameandtype_index = suck_u2(cb);
+			nff.nameandtype_index = suck_u2(cb);
+
+			forward_fieldmethints.push_front(nff);
 
 			idx++;
 			break;
-				
+
 		case CONSTANT_Integer: {
 			constant_integer *ci = NEW(constant_integer);
 
@@ -798,8 +777,10 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 	/* resolve entries in temporary structures */
 
-	while (forward_classes) {
-		utf *name = (utf*) class_getconstant(c, forward_classes->name_index, CONSTANT_Utf8);
+	for (DumpList<forward_class>::iterator it = forward_classes.begin();
+			it != forward_classes.end(); ++it) {
+
+		utf *name = (utf*) class_getconstant(c, it->name_index, CONSTANT_Utf8);
 		if (!name)
 			return false;
 
@@ -815,30 +796,28 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		if (!descriptor_pool_add_class(descpool, name))
 			return false;
 
-		cptags[forward_classes->thisindex] = CONSTANT_Class;
+		cptags[it->thisindex] = CONSTANT_Class;
 
 		/* the classref is created later */
-		cpinfos[forward_classes->thisindex] = name;
-
-		nfc = forward_classes;
-		forward_classes = forward_classes->next;
+		cpinfos[it->thisindex] = name;
 	}
 
-	while (forward_strings) {
-		utf *text = (utf*) class_getconstant(c, forward_strings->string_index, CONSTANT_Utf8);
+	for (DumpList<forward_string>::iterator it = forward_strings.begin();
+			it != forward_strings.end(); ++it) {
+
+		utf *text = (utf*) class_getconstant(c, it->string_index, CONSTANT_Utf8);
 
 		if (!text)
 			return false;
 
 		/* resolve utf-string */
-		cptags[forward_strings->thisindex] = CONSTANT_String;
-		cpinfos[forward_strings->thisindex] = text;
-		
-		nfs = forward_strings;
-		forward_strings = forward_strings->next;
+		cptags[it->thisindex] = CONSTANT_String;
+		cpinfos[it->thisindex] = text;
 	}
 
-	while (forward_nameandtypes) {
+	for (DumpList<forward_nameandtype>::iterator it = forward_nameandtypes.begin();
+			it != forward_nameandtypes.end(); ++it) {
+
 		constant_nameandtype *cn = NEW(constant_nameandtype);	
 
 #if defined(ENABLE_STATISTICS)
@@ -848,13 +827,13 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 		/* resolve simple name and descriptor */
 		cn->name = (utf*) class_getconstant(c,
-											forward_nameandtypes->name_index,
+											it->name_index,
 											CONSTANT_Utf8);
 		if (!cn->name)
 			return false;
 
 		cn->descriptor = (utf*) class_getconstant(c,
-												  forward_nameandtypes->sig_index,
+												  it->sig_index,
 												  CONSTANT_Utf8);
 		if (!cn->descriptor)
 			return false;
@@ -878,14 +857,13 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		}
 #endif /* ENABLE_VERIFIER */
 
-		cptags[forward_nameandtypes->thisindex] = CONSTANT_NameAndType;
-		cpinfos[forward_nameandtypes->thisindex] = cn;
-
-		nfn = forward_nameandtypes;
-		forward_nameandtypes = forward_nameandtypes->next;
+		cptags[it->thisindex] = CONSTANT_NameAndType;
+		cpinfos[it->thisindex] = cn;
 	}
 
-	while (forward_fieldmethints) {
+	for (DumpList<forward_fieldmethint>::iterator it = forward_fieldmethints.begin();
+			it != forward_fieldmethints.end(); ++it) {
+
 		constant_nameandtype *nat;
 		constant_FMIref *fmi = NEW(constant_FMIref);
 
@@ -896,7 +874,7 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 		/* resolve simple name and descriptor */
 
 		nat = (constant_nameandtype*) class_getconstant(c,
-														forward_fieldmethints->nameandtype_index,
+														it->nameandtype_index,
 														CONSTANT_NameAndType);
 
 		if (!nat)
@@ -909,15 +887,12 @@ static bool load_constantpool(classbuffer *cb, descriptor_pool *descpool)
 
 		/* the classref is created later */
 
-		fmi->p.index = forward_fieldmethints->class_index;
+		fmi->p.index = it->class_index;
 		fmi->name = nat->name;
 		fmi->descriptor = nat->descriptor;
 
-		cptags[forward_fieldmethints->thisindex] = forward_fieldmethints->tag;
-		cpinfos[forward_fieldmethints->thisindex] = fmi;
-	
-		nff = forward_fieldmethints;
-		forward_fieldmethints = forward_fieldmethints->next;
+		cptags[it->thisindex] = it->tag;
+		cpinfos[it->thisindex] = fmi;
 	}
 
 	/* everything was ok */
