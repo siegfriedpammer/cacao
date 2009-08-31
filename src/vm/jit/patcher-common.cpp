@@ -160,6 +160,49 @@ static patchref_t* patcher_list_find(codeinfo* code, void* pc)
 }
 
 
+/**
+ * Show the content of the whole patcher reference list for
+ * debugging purposes.
+ *
+ * @param code The codeinfo containing the patcher list.
+ */
+#if !defined(NDEBUG)
+void patcher_list_show(codeinfo *code)
+{
+	for (List<patchref_t>::iterator it = code->patchers->begin(); it != code->patchers->end(); it++) {
+		patchref_t& pr = *it;
+
+		// Lookup name in patcher function list.
+		patcher_function_list_t* l;
+		for (l = patcher_function_list; l->patcher != NULL; l++)
+			if (l->patcher == pr.patcher)
+				break;
+
+		// Display information about patcher.
+		printf("\tpatcher pc:"PRINTF_FORMAT_INTPTR_T, pr.mpc);
+		printf(" datap:"PRINTF_FORMAT_INTPTR_T, pr.datap);
+		printf(" ref:"PRINTF_FORMAT_INTPTR_T, (intptr_t) pr.ref);
+#if PATCHER_CALL_SIZE == 4
+		printf(" mcode:%08x", (uint32_t) pr.mcode);
+#elif PATCHER_CALL_SIZE == 2
+		printf(" mcode:%04x", (uint16_t) pr.mcode);
+#else
+# error Unknown PATCHER_CALL_SIZE
+#endif
+		printf(" type:%s\n", l->name);
+
+		// Display machine code of patched position.
+#if 0 && defined(ENABLE_DISASSEMBLER)
+		printf("\t\tcurrent -> ");
+		disassinstr((uint8_t*) pr.mpc);
+		printf("\t\tapplied -> ");
+		disassinstr((uint8_t*) &(pr.mcode));
+#endif
+	}
+}
+#endif
+
+
 /* patcher_add_patch_ref *******************************************************
 
    Appends a new patcher reference to the list of patching positions.

@@ -71,6 +71,10 @@ void patcher_list_create(codeinfo *code);
 void patcher_list_reset(codeinfo *code);
 void patcher_list_free(codeinfo *code);
 
+#if !defined(NDEBUG)
+void patcher_list_show(codeinfo *code);
+#endif
+
 void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp);
 
 void patcher_resolve(jitdata* jd);

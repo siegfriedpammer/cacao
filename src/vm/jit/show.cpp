@@ -192,7 +192,7 @@ void show_method(jitdata *jd, int stage)
 	}
 
 	if (stage >= SHOW_PARSE) {
-		printf("Exceptions (Number: %d):\n", jd->exceptiontablelength);
+		printf("Exceptions (number=%d):\n", jd->exceptiontablelength);
 		for (ex = jd->exceptiontable; ex != NULL; ex = ex->down) {
 			printf("    L%03d ... ", ex->start->nr );
 			printf("L%03d  = ", ex->end->nr);
@@ -311,12 +311,12 @@ void show_method(jitdata *jd, int stage)
 		int max;
 
 		max = rd->memuse;
-		printf("Stack slots: (memuse=%d", rd->memuse);
+		printf("Stack slots (memuse=%d", rd->memuse);
 		if (irstage >= SHOW_CODE) {
 			printf(", stackframesize=%d", cd->stackframesize);
 			max = cd->stackframesize;
 		}
-		printf(")\n");
+		printf("):\n");
 		for (i = 0; i < max; ++i) {
 			printf("    M%02d = 0x%02x(sp): ", i, i * 8);
 			for (j = 0; j < jd->vartop; ++j) {
@@ -330,6 +330,13 @@ void show_method(jitdata *jd, int stage)
 			printf("\n");
 
 		}
+		printf("\n");
+	}
+
+	if (!code->patchers->empty()) {
+		int number = code->patchers->size();
+		printf("Patcher References (number=%d):\n", number);
+		patcher_list_show(code);
 		printf("\n");
 	}
 

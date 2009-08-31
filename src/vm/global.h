@@ -77,8 +77,10 @@ typedef union {
 /* Define printf formats which change size between 32- and 64-bit. */
 
 #if SIZEOF_VOID_P == 8
+# define PRINTF_FORMAT_INTPTR_T   "0x%016lx"
 # define PRINTF_FORMAT_INT64_T    "%ld"
 #else
+# define PRINTF_FORMAT_INTPTR_T   "0x%08lx"
 # define PRINTF_FORMAT_INT64_T    "%lld"
 #endif
 
