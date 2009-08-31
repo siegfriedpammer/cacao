@@ -85,7 +85,9 @@ public:
 /**
  * List implementation with dump memory.
  */
-template<class T> class DumpList : protected std::list<T, DumpMemoryAllocator<T> > {
+template<class T> class DumpList :
+		public DumpClass,
+		protected std::list<T, DumpMemoryAllocator<T> > {
 public:
 	virtual ~DumpList() {}
 
@@ -106,12 +108,6 @@ public:
 	using std::list<T, DumpMemoryAllocator<T> >::remove;
 	using std::list<T, DumpMemoryAllocator<T> >::rend;
 	using std::list<T, DumpMemoryAllocator<T> >::size;
-
-	void* operator new(size_t size) {
-		return DumpMemory::allocate(size);
-	}
-
-	void operator delete(void* p) {}
 };
 
 #else
@@ -136,4 +132,5 @@ typedef struct DumpList DumpList;
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -50,6 +50,17 @@ class DumpMemoryAllocation;
 
 
 /**
+ * All classes intended to be allocated on dump memory should extend this
+ * base class to inherit the appropriate allocation operators.
+ */
+class DumpClass {
+public:
+	void* operator new(size_t size);
+	void operator delete(void* p);
+};
+
+
+/**
  * Thread-local dump memory structure.
  */
 class DumpMemory {
@@ -221,6 +232,16 @@ public:
 
 
 // Inline functions.
+
+inline void* DumpClass::operator new(size_t size)
+{
+	return DumpMemory::allocate(size);
+}
+
+inline void DumpClass::operator delete(void* p)
+{
+	// We don't need to deallocate on dump memory.
+}
 
 inline DumpMemory* DumpMemory::get_current()
 {
