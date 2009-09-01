@@ -1,7 +1,8 @@
-/* src/vm/jit/optimizing/profile.c - runtime profiling
+/* src/vm/jit/optimizing/profile.cpp - runtime profiling
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -93,7 +94,7 @@ static void profile_thread(void)
 		runs++;
 
 		// Lock the thread lists.
-		ThreadList_lock();
+		ThreadList::lock();
 
 #if 0
 		/* iterate over all started threads */
@@ -157,7 +158,7 @@ static void profile_thread(void)
 #endif
 
 		// Unlock the thread lists.
-		ThreadList_unlock();
+		ThreadList::unlock();
 	}
 }
 #endif
@@ -186,12 +187,26 @@ bool profile_start_thread(void)
 #endif
 
 
-/* profile_printstats **********************************************************
+/**
+ * Comparison function used to sort a method list from higher to lower by
+ * comparing the method call frequencies.
+ *
+ * @param m1 First method to be compared.
+ * @param m2 Second method to be compared.
+ * @return Returns true if the first method goes before the second method in
+ * the specific order, and false otherwise.
+ */
+#if !defined(NDEBUG)
+static bool profile_compare_frequency(methodinfo* m1, methodinfo* m2)
+{
+	return (m1->code->frequency > m2->code->frequency);
+}
+#endif
 
-   Prints profiling statistics gathered during runtime.
 
-*******************************************************************************/
-
+/**
+ * Prints profiling statistics gathered during runtime.
+ */
 #if !defined(NDEBUG)
 void profile_printstats(void)
 {
@@ -209,10 +224,9 @@ void profile_printstats(void)
 	frequency = 0;
 	cycles    = 0;
 
-#if 0
 	/* create new method list */
-	// TODO Use a sorted container.
-	List* l = List_new();
+
+	DumpList<methodinfo*> l;
 
 	/* iterate through all classes and methods */
 
@@ -243,32 +257,18 @@ void profile_printstats(void)
 						frequency += code->frequency;
 						cycles    += code->cycles;
 
-						/* sort the new entry into the list */
-						
-						if (List_empty(l) == NULL) {
-							List_push_back(l, m);
-						}
-						else {
-							for (; tlme != NULL; tlme = list_next(l, tlme)) {
-								/* check the frequency */
+						/* add new entry into method list */
 
-								if (code->frequency > tlme->m->code->frequency) {
-									list_add_before(l, tlme, lme);
-									break;
-								}
-							}
-
-							/* if we are at the end of the list, add
-							   it as last entry */
-
-							if (tlme == NULL)
-								list_add_last(l, lme);
-						}
+						l.push_back(m);
 					}
 				}
 			}
 		}
 	}
+
+	/* sort the method list */
+
+	l.sort(profile_compare_frequency);
 
 	/* print all methods sorted */
 
@@ -277,10 +277,8 @@ void profile_printstats(void)
 
 	/* now iterate through the list and print it */
 
-	for (lme = list_first(l); lme != NULL; lme = list_next(l, lme)) {
-		/* get method of the list element */
-
-		m = lme->m;
+	for (DumpList<methodinfo*>::iterator it = l.begin(); it != l.end(); ++it) {
+		m = *(it);
 
 		code = m->code;
 
@@ -300,7 +298,6 @@ void profile_printstats(void)
 					   j, code->bbfrequency[j]);
 		}
 	}
-#endif
 
 	printf("-----------           -------------- \n");
 	printf("%10d             %12ld\n", frequency, (long) cycles);
@@ -318,7 +315,7 @@ void profile_printstats(void)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

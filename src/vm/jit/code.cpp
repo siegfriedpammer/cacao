@@ -238,6 +238,13 @@ void code_codeinfo_free(codeinfo *code)
 	replace_free_replacement_points(code);
 #endif
 
+#if defined(ENABLE_PROFILING)
+	/* Release memory for basic block profiling information. */
+
+	if (code->bbfrequency != NULL)
+		MFREE(code->bbfrequency, u4, code->basicblockcount);
+#endif
+
 	FREE(code, codeinfo);
 
 #if defined(ENABLE_STATISTICS)

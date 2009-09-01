@@ -108,6 +108,7 @@ public:
 	using std::list<T, DumpMemoryAllocator<T> >::remove;
 	using std::list<T, DumpMemoryAllocator<T> >::rend;
 	using std::list<T, DumpMemoryAllocator<T> >::size;
+	using std::list<T, DumpMemoryAllocator<T> >::sort;
 };
 
 #else

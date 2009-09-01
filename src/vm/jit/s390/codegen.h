@@ -816,10 +816,6 @@ static inline uint8_t N_ILL_GET_TYPE(uint8_t *instrp) {
 
 #define M_ASUB_IMM32(imm, tmpreg, reg) M_ISUB_IMM32(imm, tmpreg, reg)
 
-#define PROFILE_CYCLE_START 
-
-#define PROFILE_CYCLE_STOP 
-
 #endif /* _CODEGEN_H */
 
 /*

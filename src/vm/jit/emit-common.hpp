@@ -221,8 +221,8 @@ void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset);
 #if defined(ENABLE_PROFILING)
 void emit_profile_method(codegendata* cd, codeinfo* code);
 void emit_profile_basicblock(codegendata* cd, codeinfo* code, basicblock* bptr);
-void emit_profile_cycle_start();
-void emit_profile_cycle_stop();
+void emit_profile_cycle_start(codegendata* cd, codeinfo* code);
+void emit_profile_cycle_stop(codegendata* cd, codeinfo* code);
 #endif
 
 void emit_verbosecall_enter(jitdata *jd);

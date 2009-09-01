@@ -600,6 +600,46 @@ void emit_profile_basicblock(codegendata* cd, codeinfo* code, basicblock* bptr)
 #endif
 
 
+/**
+ * Emit profiling code to start CPU cycle counting.
+ */
+#if defined(ENABLE_PROFILING)
+void emit_profile_cycle_start(codegendata* cd, codeinfo* code)
+{
+	M_PUSH(RAX);
+	M_PUSH(RDX);
+
+	M_MOV_IMM(code, REG_ITMP3);
+	M_RDTSC;
+	M_ISUB_MEMBASE(RAX, REG_ITMP3, OFFSET(codeinfo, cycles));
+	M_ISBB_MEMBASE(RDX, REG_ITMP3, OFFSET(codeinfo, cycles) + 4);
+
+	M_POP(RDX);
+	M_POP(RAX);
+}
+#endif
+
+
+/**
+ * Emit profiling code to stop CPU cycle counting.
+ */
+#if defined(ENABLE_PROFILING)
+void emit_profile_cycle_stop(codegendata* cd, codeinfo* code)
+{
+	M_PUSH(RAX);
+	M_PUSH(RDX);
+
+	M_MOV_IMM(code, REG_ITMP3);
+	M_RDTSC;
+	M_IADD_MEMBASE(RAX, REG_ITMP3, OFFSET(codeinfo, cycles));
+	M_IADC_MEMBASE(RDX, REG_ITMP3, OFFSET(codeinfo, cycles) + 4);
+
+	M_POP(RDX);
+	M_POP(RAX);
+}
+#endif
+
+
 /* emit_verbosecall_enter ******************************************************
 
    Generates the code for the call trace.

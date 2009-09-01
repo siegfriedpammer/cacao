@@ -91,10 +91,7 @@
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodtree.h"
 
-#if defined(ENABLE_PROFILING)
-# include "vm/jit/optimizing/profile.h"
-#endif
-
+#include "vm/jit/optimizing/profile.hpp"
 #include "vm/jit/optimizing/recompiler.hpp"
 
 #if defined(ENABLE_PYTHON)

@@ -33,8 +33,8 @@ endif
 
 if ENABLE_PROFILING
 PROFILE_SOURCES = \
-	profile.c \
-	profile.h
+	profile.cpp \
+	profile.hpp
 
 REORDER_SOURCES = \
 	reorder.c \

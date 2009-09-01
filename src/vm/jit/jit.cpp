@@ -389,14 +389,6 @@ u1 *jit_compile(methodinfo *m)
 		/* release codeinfo */
 
 		code_codeinfo_free(jd->code);
-
-#if defined(ENABLE_PROFILING)
-		/* Release memory for basic block profiling information. */
-
-		if (JITDATA_HAS_FLAG_INSTRUMENT(jd))
-			if (jd->code->bbfrequency != NULL)
-				MFREE(jd->code->bbfrequency, u4, jd->code->basicblockcount);
-#endif
 	}
 	else {
 		DEBUG_JIT_COMPILEVERBOSE("Running: ");
@@ -774,8 +766,10 @@ static u1 *jit_compile_intern(jitdata *jd)
 	   _must_ be done after loop optimization and register allocation,
 	   since they can change the basic block count. */
 
-	if (JITDATA_HAS_FLAG_INSTRUMENT(jd))
+	if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) {
+		code->basicblockcount = jd->basicblockcount;
 		code->bbfrequency = MNEW(u4, jd->basicblockcount);
+	}
 #endif
 
 	DEBUG_JIT_COMPILEVERBOSE("Generating code: ");

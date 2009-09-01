@@ -71,7 +71,6 @@ struct codeinfo {
 	uint32_t      flags;                /* OR of CODE_FLAG_ constants         */
 
 	u1            optlevel;             /* optimization level of this code    */
-	s4            basicblockcount;      /* number of basic blocks             */
 
 	/* machine code */
 	u1           *mcode;                /* pointer to machine code            */
@@ -108,9 +107,11 @@ struct codeinfo {
 	u1           *savedmcode;           /* saved code under patches           */
 #endif
 
+	/* profiling information */
 #if defined(ENABLE_PROFILING)
 	u4            frequency;            /* number of method invocations       */
-	u4           *bbfrequency;		    
+	s4            basicblockcount;      /* number of basic blocks             */
+	u4           *bbfrequency;          /* basic block profiling information  */
 	s8            cycles;               /* number of cpu cycles               */
 #endif
 };

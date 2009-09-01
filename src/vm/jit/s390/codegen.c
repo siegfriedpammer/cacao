@@ -330,12 +330,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				constant_classref *cr = iptr->sx.val.c.ref;
 				disp = dseg_add_unique_address(cd, cr);
 
-/* 				PROFILE_CYCLE_STOP; */
-
 				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_classinfo,
 									  cr, disp);
-
-/* 				PROFILE_CYCLE_START; */
 
 				M_ALD_DSEG(d, disp);
 			} else {

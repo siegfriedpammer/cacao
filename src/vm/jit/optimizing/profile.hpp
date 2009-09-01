@@ -1,7 +1,8 @@
-/* src/vm/jit/optimizing/profile.h - runtime profiling
+/* src/vm/jit/optimizing/profile.hpp - runtime profiling
 
-   Copyright (C) 1996-2005, 2006, 2008
+   Copyright (C) 1996-2005, 2006, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -23,14 +24,10 @@
 */
 
 
-#ifndef _PROFILE_H
-#define _PROFILE_H
+#ifndef _PROFILE_HPP
+#define _PROFILE_HPP
 
 #include "config.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include "vm/types.h"
 
@@ -39,44 +36,26 @@ extern "C" {
 
 /* CPU cycle counting macros **************************************************/
 
-#if defined(ENABLE_PROFILING) && defined(__X86_64__)
+#if defined(ENABLE_PROFILING)
 
 #define PROFILE_CYCLE_START \
-    do { \
-        if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) { \
-            M_PUSH(RAX); \
-            M_PUSH(RDX); \
-            \
-            M_MOV_IMM(code, REG_ITMP3); \
-            M_RDTSC; \
-            M_ISUB_MEMBASE(RAX, REG_ITMP3, OFFSET(codeinfo, cycles)); \
-            M_ISBB_MEMBASE(RDX, REG_ITMP3, OFFSET(codeinfo, cycles) + 4); \
-            \
-            M_POP(RDX); \
-            M_POP(RAX); \
-        } \
-    } while (0)
+	do { \
+		if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) { \
+			emit_profile_cycle_start(cd, code); \
+		} \
+	} while (0)
 
 #define PROFILE_CYCLE_STOP \
-    do { \
-        if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) { \
-            M_PUSH(RAX); \
-            M_PUSH(RDX); \
-            \
-            M_MOV_IMM(code, REG_ITMP3); \
-            M_RDTSC; \
-            M_IADD_MEMBASE(RAX, REG_ITMP3, OFFSET(codeinfo, cycles)); \
-            M_IADC_MEMBASE(RDX, REG_ITMP3, OFFSET(codeinfo, cycles) + 4); \
-            \
-            M_POP(RDX); \
-            M_POP(RAX); \
-        } \
-    } while (0)
+	do { \
+		if (JITDATA_HAS_FLAG_INSTRUMENT(jd)) { \
+			emit_profile_cycle_stop(cd, code); \
+		} \
+	} while (0)
 
 #else
 
-#define PROFILE_CYCLE_START
-#define PROFILE_CYCLE_STOP
+#define PROFILE_CYCLE_START  /* nop */
+#define PROFILE_CYCLE_STOP   /* nop */
 
 #endif
 
@@ -90,11 +69,7 @@ bool profile_start_thread(void);
 void profile_printstats(void);
 #endif
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* _PROFILE_H */
+#endif /* _PROFILE_HPP */
 
 
 /*
@@ -103,7 +78,7 @@ void profile_printstats(void);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

@@ -706,6 +706,28 @@ void emit_profile_basicblock(codegendata* cd, codeinfo* code, basicblock* bptr)
 #endif
 
 
+/**
+ * Emit profiling code to start CPU cycle counting.
+ */
+#if defined(ENABLE_PROFILING)
+void emit_profile_cycle_start(codegendata* cd, codeinfo* code)
+{
+	// XXX Not implemented yet!
+}
+#endif
+
+
+/**
+ * Emit profiling code to stop CPU cycle counting.
+ */
+#if defined(ENABLE_PROFILING)
+void emit_profile_cycle_stop(codegendata* cd, codeinfo* code)
+{
+	// XXX Not implemented yet!
+}
+#endif
+
+
 /* emit_verbosecall_enter ******************************************************
 
    Generates the code for the call trace.

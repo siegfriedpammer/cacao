@@ -92,7 +92,7 @@
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trace.hpp"
 
-#include "vm/jit/optimizing/profile.h"
+#include "vm/jit/optimizing/profile.hpp"
 
 #if defined(ENABLE_SSA)
 # include "vm/jit/optimizing/lsra.h"
@@ -1098,10 +1098,8 @@ bool codegen_emit(jitdata *jd)
 		// Count method frequency.
 		emit_profile_method(cd, code);
 
-# if defined(__X86_64__)
 		// Start CPU cycle counting.
-		emit_profile_cycle_start();
-# endif
+		emit_profile_cycle_start(cd, code);
 	}
 #endif
 
@@ -1166,11 +1164,9 @@ bool codegen_emit(jitdata *jd)
 			// Count basicblock frequency.
 			emit_profile_basicblock(cd, code, bptr);
 
-# if defined(__X86_64__)
 			// If this is an exception handler, start profiling again.
 			if (bptr->type == BBTYPE_EXH)
-				emit_profile_cycle_start();
-# endif
+				emit_profile_cycle_start(cd, code);
 		}
 #endif
 
