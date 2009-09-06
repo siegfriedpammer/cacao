@@ -100,10 +100,6 @@
 
 #include "vm/jit/trap.hpp"
 
-#if defined(ENABLE_JVMTI)
-# include "native/jvmti/cacaodbg.h"
-#endif
-
 #if defined(ENABLE_VMLOG)
 #include <vmlog_cacao.h>
 #endif
@@ -238,12 +234,10 @@ enum {
 
 	OPT_SS,
 
-#ifdef ENABLE_JVMTI
-	OPT_DEBUG,
-	OPT_XRUNJDWP,
-	OPT_NOAGENT,
+#if defined(ENABLE_JVMTI)
 	OPT_AGENTLIB,
 	OPT_AGENTPATH,
+	OPT_RUN,
 #endif
 
 #if defined(ENABLE_DEBUG_FILTER)
@@ -340,7 +334,7 @@ opt_struct opts[] = {
 #endif
 
 	/* JVMTI Agent Command Line Options */
-#ifdef ENABLE_JVMTI
+#if defined(ENABLE_JVMTI)
 	{ "agentlib:",         true,  OPT_AGENTLIB },
 	{ "agentpath:",        true,  OPT_AGENTPATH },
 #endif
@@ -354,11 +348,11 @@ opt_struct opts[] = {
 	{ "Xbootclasspath/p:", true,  OPT_BOOTCLASSPATH_P },
 	{ "Xbootclasspath/c:", true,  OPT_BOOTCLASSPATH_C },
 
-#ifdef ENABLE_JVMTI
-	{ "Xdebug",            false, OPT_DEBUG },
-	{ "Xnoagent",          false, OPT_NOAGENT },
-	{ "Xrunjdwp",          true,  OPT_XRUNJDWP },
-#endif 
+#if defined(ENABLE_JVMTI)
+	{ "Xdebug",            false, OPT_IGNORE },
+	{ "Xnoagent",          false, OPT_IGNORE },
+	{ "Xrun",              true,  OPT_RUN },
+#endif
 
 	{ "Xms",               true,  OPT_MS },
 	{ "ms",                true,  OPT_MS },
@@ -431,16 +425,18 @@ void usage(void)
 	puts("    -dsa | -disablesystemassertions");
 	puts("                             disable system assertions");
 
-#ifdef ENABLE_JVMTI
-	puts("    -agentlib:<agent-lib-name>=<options>  library to load containg JVMTI agent");
-	puts ("                                         for jdwp help use: -agentlib:jdwp=help");
-	puts("    -agentpath:<path-to-agent>=<options>  path to library containg JVMTI agent");
+#if defined(ENABLE_JVMTI)
+	puts("    -agentlib:<agent-lib-name>=<options>");
+	puts("                             load native agent library by library name");
+	puts("                             for additional help use: -agentlib:jdwp=help");
+	puts("    -agentpath:<path-to-agent>=<options>");
+	puts("                             load native agent library by full pathname");
 #endif
 
 	/* exit with error code */
 
 	exit(1);
-}   
+}
 
 
 static void Xusage(void)
@@ -467,14 +463,6 @@ static void Xusage(void)
 #if defined(ENABLE_PROFILING)
 	puts("    -Xprof[:bb]              collect and print profiling data");
 #endif
-
-#if defined(ENABLE_JVMTI)
-    /* -Xdebug option depend on gnu classpath JDWP options. options: 
-	 transport=dt_socket,address=<hostname:port>,server=(y|n),suspend(y|n) */
-	puts("    -Xdebug                  enable remote debugging\n");
-	puts("    -Xrunjdwp transport=[dt_socket|...],address=<hostname:port>,server=[y|n],suspend=[y|n]\n");
-	puts("                             enable remote debugging\n");
-#endif 
 
 	/* exit with error code */
 
@@ -682,13 +670,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 	bool  opt_version;
 	bool  opt_exit;
 
-#if defined(ENABLE_JVMTI)
-	lt_dlhandle  handle;
-	char *libname, *agentarg;
-	bool jdwp,agentbypath;
-	jdwp = agentbypath = false;
-#endif
-
 #if defined(ENABLE_JNI)
 	/* Check the JNI version requested. */
 
@@ -743,11 +724,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* set the VM starttime */
 
 	_starttime = builtin_currenttimemillis();
-
-#if defined(ENABLE_JVMTI)
-	/* initialize JVMTI related  **********************************************/
-	jvmti = false;
-#endif
 
 	/* iterate over all passed options */
 
@@ -897,42 +873,34 @@ VM::VM(JavaVMInitArgs* vm_args)
 			break;
 
 #if defined(ENABLE_JVMTI)
-		case OPT_DEBUG:
-			/* this option exists only for compatibility reasons */
-			break;
+		case OPT_AGENTLIB:
+			// Parse option argument.
+			p = strchr(opt_arg, '=');
+			if (p != NULL)
+				*(p++) = '\0';
 
-		case OPT_NOAGENT:
-			/* I don't know yet what Xnoagent should do. This is only for 
-			   compatiblity with eclipse - motse */
-			break;
-
-		case OPT_XRUNJDWP:
-			agentbypath = true;
-			jvmti       = true;
-			jdwp        = true;
-
-			len =
-				strlen(CACAO_LIBDIR) +
-				strlen("/libjdwp.so=") +
-				strlen(opt_arg) +
-				strlen("0");
-
-			agentarg = MNEW(char, len);
-
-			strcpy(agentarg, CACAO_LIBDIR);
-			strcat(agentarg, "/libjdwp.so=");
-			strcat(agentarg, &opt_arg[1]);
+			_nativeagents.register_agent_library(opt_arg, p);
 			break;
 
 		case OPT_AGENTPATH:
-			agentbypath = true;
+			// Parse option argument.
+			p = strchr(opt_arg, '=');
+			if (p != NULL)
+				*(p++) = '\0';
 
-		case OPT_AGENTLIB:
-			jvmti = true;
-			agentarg = opt_arg;
+			_nativeagents.register_agent_path(opt_arg, p);
+			break;
+
+		case OPT_RUN:
+			// Parse option argument.
+			p = strchr(opt_arg, ':');
+			if (p != NULL)
+				*(p++) = '\0';
+
+			_nativeagents.register_agent_library(opt_arg, p);
 			break;
 #endif
-			
+
 		case OPT_MX:
 		case OPT_MS:
 		case OPT_SS:
@@ -1281,18 +1249,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 	if (opt_PrintConfig)
 		print_run_time_config();
 
-#if defined(ENABLE_JVMTI)
-	if (jvmti) {
-		jvmti_set_phase(JVMTI_PHASE_ONLOAD);
-		jvmti_agentload(agentarg, agentbypath, &handle, &libname);
-
-		if (jdwp)
-			MFREE(agentarg, char, strlen(agentarg));
-
-		jvmti_set_phase(JVMTI_PHASE_PRIMORDIAL);
-	}
-#endif
-
 	/* initialize the garbage collector */
 
 	gc_init(opt_heapmaxsize, opt_heapstartsize);
@@ -1326,6 +1282,12 @@ VM::VM(JavaVMInitArgs* vm_args)
 	/* AFTER: threads_preinit */
 
 	utf8_init();
+
+#if defined(ENABLE_JVMTI)
+	// AFTER: utf8_init
+	if (!_nativeagents.load_agents())
+		os::abort("vm_create: load_agents failed");
+#endif
 
 	/* AFTER: thread_preinit */
 
@@ -1473,17 +1435,6 @@ VM::VM(JavaVMInitArgs* vm_args)
 /* 		if (!profile_start_thread()) */
 /* 			os::abort("vm_create: profile_start_thread failed"); */
 # endif
-#endif
-
-#if defined(ENABLE_JVMTI)
-# if defined(ENABLE_GC_CACAO)
-	/* XXX this will not work with the new indirection cells for classloaders!!! */
-	assert(0);
-# endif
-	if (jvmti) {
-		/* add agent library to native library hashtable */
-		native_hashtable_library_add(utf_new_char(libname), class_java_lang_Object->classloader, handle);
-	}
 #endif
 
 	/* Increment the number of VMs. */
@@ -1714,10 +1665,6 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 #ifdef TYPEINFO_DEBUG_TEST
 	/* test the typeinfo system */
 	typeinfo_test();
-#endif
-
-#if defined(ENABLE_JVMTI)
-	jvmti_set_phase(JVMTI_PHASE_LIVE);
 #endif
 
 	/* set ThreadMXBean variables */

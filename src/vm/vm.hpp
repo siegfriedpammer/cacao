@@ -77,6 +77,9 @@ private:
 #endif
 	NativeLibraries _nativelibraries; ///< Native library table.
 	NativeMethods   _nativemethods;   ///< Native methods table.
+#if defined(ENABLE_JVMTI)
+	NativeAgents    _nativeagents;    ///< Native agents table.
+#endif
 	SuckClasspath   _suckclasspath;   ///< Classpath entries list.
 
 public:

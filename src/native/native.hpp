@@ -32,6 +32,7 @@
 #ifdef __cplusplus
 #include <map>
 #include <set>
+#include <vector>
 #endif
 
 #include "native/jni.hpp"
@@ -110,7 +111,7 @@ public:
 	bool  is_loaded(NativeLibrary& library);
 	void* resolve_symbol(utf* symbolname, classloader_t* classloader);
 };
-#endif
+#endif /* defined(ENABLE_DL) */
 
 
 /**
@@ -156,6 +157,39 @@ public:
 	void* resolve_method(methodinfo* m);
 	void* find_registered_method(methodinfo* m);
 };
+
+
+#if defined(ENABLE_JVMTI)
+/**
+ * Represents a registered native agent.
+ */
+class NativeAgent {
+private:
+	char* _library;
+	char* _options;
+
+public:
+	NativeAgent(char* library, char* options) : _library(library), _options(options) {}
+
+	char* get_library() const { return _library; }
+	char* get_options() const { return _options; }
+};
+
+
+/**
+ * Table containing all native agent libraries.
+ */
+class NativeAgents {
+private:
+	std::vector<NativeAgent> _agents;
+
+public:
+	void register_agent_library(char* library, char* options);
+	void register_agent_path(char* path, char* options);
+	bool load_agents();
+	bool unload_agents();
+};
+#endif /* defined(ENABLE_JVMTI) */
 
 #endif
 

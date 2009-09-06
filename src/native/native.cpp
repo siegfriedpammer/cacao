@@ -57,10 +57,6 @@
 #include "vm/jit/asmpart.h"
 #include "vm/jit/jit.hpp"
 
-#if defined(ENABLE_JVMTI)
-#include "native/jvmti/cacaodbg.h"
-#endif
-
 
 /* native_make_overloaded_function *********************************************
 
@@ -448,11 +444,6 @@ void* NativeMethods::resolve_method(methodinfo* m)
 			printf("JNI ]\n");
 #endif
 
-#if defined(ENABLE_JVMTI)
-	/* fire Native Method Bind event */
-	if (jvmti) jvmti_NativeMethodBind(m, f, &f);
-#endif
-
 	// Symbol not found?  Throw an exception.
 	if (symbol == NULL) {
 		if (opt_verbosejni)
@@ -726,6 +717,110 @@ void* NativeLibraries::resolve_symbol(utf* symbolname, classloader_t* classloade
 
 	return NULL;
 }
+
+
+/**
+ * Registers a new native agent by specified by it's library name
+ * and with an optional options string.
+ *
+ * @param library Name of the native agent library.
+ * @param options The options string or NULL if not specified.
+ */
+#if defined(ENABLE_JVMTI)
+void NativeAgents::register_agent_library(char* library, char* options)
+{
+	NativeAgent na(library, options);
+
+	// Insert native agent into list of agents.
+	_agents.push_back(na);
+}
+#endif
+
+
+/**
+ * Registers a new native agent by specified by a path to it's library
+ * and with an optional options string.
+ *
+ * @param path Path of the native agent library.
+ * @param options The options string or NULL if not specified.
+ */
+#if defined(ENABLE_JVMTI)
+void NativeAgents::register_agent_path(char* path, char* options)
+{
+	os::abort("NativeAgents::register_agent_library: Implement me!");
+}
+#endif
+
+
+/**
+ * Loads all registered native agents and in turn calls their exported
+ * start-up functions (Agent_OnLoad). If one of the agents reports an
+ * error during start-up, the loading is stopped.
+ *
+ * @return True if all agents were loaded successfully, false if
+ * one of them was not found or reported an error.
+ */
+#if defined(ENABLE_JVMTI)
+bool NativeAgents::load_agents()
+{
+	// Iterate over all registered agents.
+	for (std::vector<NativeAgent>::iterator it = _agents.begin(); it != _agents.end(); ++it) {
+		NativeAgent& na = *(it);
+
+		// Construct agent library name.
+		size_t len =
+			os::strlen(NATIVE_LIBRARY_PREFIX) +
+			os::strlen(na.get_library()) +
+			os::strlen(NATIVE_LIBRARY_SUFFIX) +
+			os::strlen("0");
+
+		char* p = MNEW(char, len);
+
+		os::strcpy(p, NATIVE_LIBRARY_PREFIX);
+		os::strcat(p, na.get_library());
+		os::strcat(p, NATIVE_LIBRARY_SUFFIX);
+
+		utf* u = utf_new_char(p);
+
+		MFREE(p, char, len);
+
+		// Construct new native library.
+		NativeLibrary nl(u);
+
+		// Try to open the library.
+		if (nl.open() == NULL)
+			return false;
+
+		// Resolve Agent_OnLoad function.
+		void* onload = os::dlsym(nl.get_handle(), "Agent_OnLoad");
+
+		// Call Agent_OnLoad function if present.
+		if (onload != NULL) {
+			JNIEXPORT jint (JNICALL *Agent_OnLoad) (JavaVM*, char*, void*);
+			JavaVM* vm = VM::get_current()->get_javavm();
+
+			Agent_OnLoad = (JNIEXPORT jint (JNICALL *)(JavaVM*, char*, void*)) (uintptr_t) onload;
+
+			jint result = Agent_OnLoad(vm, na.get_options(), NULL);
+
+			// Check for error in Agent_OnLoad.
+			if (result != 0) {
+				nl.close();
+				return false;
+			}
+		}
+
+		// According to the interface spec, the library _must_ export
+		// a start-up function.
+		else {
+			log_println("NativeAgents::load_agents: Native agent library does not export Agent_OnLoad");
+			return false;
+		}
+	}
+
+	return true;
+}
+#endif
 
 
 /* native_new_and_init *********************************************************
