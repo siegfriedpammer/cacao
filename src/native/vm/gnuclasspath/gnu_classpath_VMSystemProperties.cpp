@@ -39,6 +39,8 @@
 # include "native/include/gnu_classpath_VMSystemProperties.h"
 #endif
 
+#include "toolbox/sequence.hpp"
+
 #include "vm/exceptions.hpp"
 #include "vm/properties.hpp"
 #include "vm/vm.hpp"
@@ -78,8 +80,6 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *en
 	java_handle_t *p;
 #if defined(ENABLE_JRE_LAYOUT)
 	const char *java_home;
-	char *path;
-	s4    len;
 #endif
 
 	p = (java_handle_t *) properties;
@@ -99,21 +99,14 @@ JNIEXPORT void JNICALL Java_gnu_classpath_VMSystemProperties_postInit(JNIEnv *en
 
 	Properties::put(p, "gnu.classpath.home", java_home);
 
-	len =
-		strlen("file://") +
-		strlen(java_home) +
-		strlen("/lib") +
-		strlen("0");
+	// Use sequence builder to assemble value.
+	SequenceBuilder sb;
 
-	path = MNEW(char, len);
+	sb.cat("file://");
+	sb.cat(java_home);
+	sb.cat("/lib");
 
-	strcpy(path, "file://");
-	strcat(path, java_home);
-	strcat(path, "/lib");
-
-	Properties::put(p, "gnu.classpath.home.url", path);
-
-	MFREE(path, char, len);
+	Properties::put(p, "gnu.classpath.home.url", sb.c_str());
 #endif
 }
 

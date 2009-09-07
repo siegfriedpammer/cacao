@@ -38,6 +38,7 @@ libtoolbox_la_SOURCES = \
 	list.hpp \
 	logging.cpp \
 	logging.hpp \
+	sequence.hpp \
 	set.h \
 	set.c \
 	util.c \

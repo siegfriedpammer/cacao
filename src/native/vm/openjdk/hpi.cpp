@@ -32,6 +32,8 @@
 
 #include "native/native.hpp"
 
+#include "toolbox/sequence.hpp"
+
 #include "vm/options.h"
 #include "vm/os.hpp"
 #include "vm/properties.hpp"
@@ -72,22 +74,17 @@ void HPI::initialize() // REMOVEME
 	Properties& properties = vm->get_properties();
 	const char* boot_library_path = properties.get("sun.boot.library.path");
 
-	size_t len =
-		os::strlen(boot_library_path) +
-		os::strlen("/native_threads/libhpi.so") +
-		os::strlen("0");
+	// Use sequence builder to assemble library path.
+	SequenceBuilder sb;
 
-	char* p = MNEW(char, len);
+	sb.cat(boot_library_path);
+	sb.cat("/native_threads/libhpi.so");
 
-	os::strcpy(p, boot_library_path);
-	os::strcat(p, "/native_threads/libhpi.so");
-
-	utf* u = utf_new_char(p);
+	// XXX This should actually be sb.export_symbol()
+	utf* u = utf_new_char(sb.c_str());
 
     if (opt_TraceHPI)
-		log_println("HPI::initialize: Loading HPI %s ", p);
-
-	MFREE(p, char, len);
+		log_println("HPI::initialize: Loading HPI %s ", sb.c_str());
 
 	NativeLibrary nl(u);
 	void* handle = nl.open();
