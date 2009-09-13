@@ -1,6 +1,6 @@
 /* src/vm/jit/mips/linux/md-os.c - machine dependent MIPS Linux functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -41,9 +41,7 @@
 #include "mm/memory.hpp"
 
 #include "vm/signallocal.hpp"
-#include "vm/os.hpp"
 
-#include "vm/jit/asmpart.h"
 #include "vm/jit/executionstate.h"
 #include "vm/jit/trap.hpp"
 
@@ -77,151 +75,33 @@ void md_init(void)
 }
 
 
-/* md_signal_handler_sigsegv ***************************************************
-
-   NullPointerException signal handler for hardware null pointer
-   check.
-
-*******************************************************************************/
-
+/**
+ * NullPointerException signal handler for hardware null pointer check.
+ */
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t     *_uc;
-	mcontext_t     *_mc;
-	greg_t         *_gregs;
-	u1             *pv;
-	u1             *sp;
-	u1             *ra;
-	u1             *xpc;
-	unsigned int    cause;
-	u4              mcode;
-	int             d;
-	int             s1;
-	int16_t         disp;
-	intptr_t        val;
-	intptr_t        addr;
-	int             type;
+	ucontext_t* _uc = (struct ucontext *) _p;
+	mcontext_t* _mc = &_uc->uc_mcontext;
 
-	_uc    = (struct ucontext *) _p;
-	_mc    = &_uc->uc_mcontext;
+	void* xpc = (void*) _mc->pc;
 
-#if defined(__UCLIBC__)
-	_gregs = _mc->gpregs;
-#else	
-	_gregs = _mc->gregs;
-#endif
-
-	/* In glibc's ucontext.h the registers are defined as long long,
-	   even for MIPS32, so we cast them.  This is not the case for
-	   uClibc. */
-
-	pv  = (u1 *) (ptrint) _gregs[REG_PV];
-	sp  = (u1 *) (ptrint) _gregs[REG_SP];
-	ra  = (u1 *) (ptrint) _gregs[REG_RA];        /* this is correct for leafs */
-
-#if !defined(__UCLIBC__)
-# if ((__GLIBC__ == 2) && (__GLIBC_MINOR__ < 5))
-	/* NOTE: We only need this for pre glibc-2.5. */
-
-	xpc = (u1 *) (ptrint) _mc->pc;
-
-	/* get the cause of this exception */
-
-	cause = _mc->cause;
-
-	/* check the cause to find the faulting instruction */
-
-	/* TODO: use defines for that stuff */
-
-	switch (cause & 0x0000003c) {
-	case 0x00000008:
-		/* TLBL: XPC is ok */
-		break;
-
-	case 0x00000010:
-		/* AdEL: XPC is of the following instruction */
-		xpc = xpc - 4;
-		break;
-	}
-# else
-	xpc = (u1 *) (ptrint) _mc->pc;
-# endif
-#else
-	xpc = (u1 *) (ptrint) _gregs[CTX_EPC];
-#endif
-
-	/* get exception-throwing instruction */
-
-	mcode = *((u4 *) xpc);
-
-	d    = M_ITYPE_GET_RT(mcode);
-	s1   = M_ITYPE_GET_RS(mcode);
-	disp = M_ITYPE_GET_IMM(mcode);
-
-	/* check for special-load */
-
-	if (s1 == REG_ZERO) {
-		/* we use the exception type as load displacement */
-
-		type = disp;
-		val  = _gregs[d];
-
-		if (type == TRAP_COMPILER) {
-			/* The XPC is the RA minus 4, because the RA points to the
-			   instruction after the call. */
-
-			xpc = ra - 4;
-		}
-	}
-	else {
-		/* This is a normal NPE: addr must be NULL and the NPE-type
-		   define is 0. */
-
-		addr = _gregs[s1];
-		type = (int) addr;
-		val  = 0;
-	}
-
-	/* Handle the trap. */
-
-	trap_handle(type, val, pv, sp, ra, xpc, _p);
+	// Handle the trap.
+	trap_handle(TRAP_SIGSEGV, xpc, _p);
 }
 
 
 /**
- * Signal handler for patcher calls.
+ * Illegal Instruction signal handler for hardware exception checks.
  */
 void md_signal_handler_sigill(int sig, siginfo_t* siginfo, void* _p)
 {
 	ucontext_t* _uc = (struct ucontext *) _p;
 	mcontext_t* _mc = &_uc->uc_mcontext;
-	greg_t* _gregs;
 
-#if defined(__UCLIBC__)
-	_gregs = _mc->gpregs;
-#else	
-	_gregs = _mc->gregs;
-#endif
-
-	// In glibc's ucontext.h the registers are defined as long long
-	// int, even for MIPS32, so we cast them.  This is not the case
-	// for uClibc.
-	void* pv  = (void*) (uintptr_t) _gregs[REG_PV];
-	void* sp  = (void*) (uintptr_t) _gregs[REG_SP];
-	void* ra  = (void*) (uintptr_t) _gregs[REG_RA]; // The RA is correct for leaf methods.
-
-#if defined(__UCLIBC__)
-	void* xpc = (void*) (uintptr_t) _gregs[CTX_EPC];
-#else
-	void* xpc = (void*) (uintptr_t) _mc->pc;
-#endif
-
-	// This signal is always a patcher.
-	int      type = TRAP_PATCHER;
-	intptr_t val  = 0;
+	void* xpc = (void*) _mc->pc;
 
 	// Handle the trap.
-	trap_handle(type, val, pv, sp, ra, xpc, _p);
+	trap_handle(TRAP_SIGILL, xpc, _p);
 }
 
 
