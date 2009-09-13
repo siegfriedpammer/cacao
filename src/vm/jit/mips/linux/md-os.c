@@ -221,18 +221,7 @@ void md_signal_handler_sigill(int sig, siginfo_t* siginfo, void* _p)
 	intptr_t val  = 0;
 
 	// Handle the trap.
-	void* p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	// Set registers
-	if (p == NULL) {
-		// We set the PC again because the cause may have changed the
-		// XPC.
-#if defined(__UCLIBC__)
-		_gregs[CTX_EPC] = (uintptr_t) xpc;
-#else
-		_mc->pc         = (uintptr_t) xpc;
-#endif
-	}
+	trap_handle(type, val, pv, sp, ra, xpc, _p);
 }
 
 
