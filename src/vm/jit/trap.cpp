@@ -119,7 +119,7 @@ void trap_handle(int sig, void *xpc, void *context)
 		vm_abort("trap_handle: The program counter is NULL!");
 #endif
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
 # if !defined(NDEBUG)
 	/* Perform a sanity check on our execution state functions. */
 
@@ -295,7 +295,7 @@ void trap_handle(int sig, void *xpc, void *context)
 
 	stacktrace_stackframeinfo_remove(&sfi);
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
 	/* Update execution state and set registers. */
 	/* AFTER: removing stackframeinfo */
 
