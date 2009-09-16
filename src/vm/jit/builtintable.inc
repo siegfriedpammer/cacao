@@ -49,6 +49,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -59,6 +60,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		"d2l",
 		"(D)J",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -75,6 +77,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -85,6 +88,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		"d2i",
 		"(D)I",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -104,6 +108,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -114,6 +119,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		"irem",
 		"(II)I",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -133,6 +139,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -143,6 +150,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		"lrem",
 		"(JJ)J",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -161,6 +169,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -171,6 +180,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		"drem",
 		"(DD)D",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -191,6 +201,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 
@@ -203,6 +214,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		"tlh_new",
 		"(Ljava/lang/Class;)Ljava/lang/Object;",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -222,6 +234,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 #endif
@@ -234,6 +247,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		"fast-new",
 		"(Ljava/lang/Class;)Ljava/lang/Object;",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -250,6 +264,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -260,6 +275,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		"newarray_boolean",
 		"(I)[Z",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -276,6 +292,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -286,6 +303,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		"newarray_char",
 		"(I)[C",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -302,6 +320,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -312,6 +331,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		"newarray_int",
 		"(I)[I",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -328,6 +348,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -341,6 +362,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -351,6 +373,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		"newarray_double",
 		"(I)[D",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -368,6 +391,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -378,6 +402,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		"arraycheckcast",
 		"([Ljava/lang/Object;[Ljava/lang/Object;)[Ljava/lang/Object;",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -394,6 +419,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -404,6 +430,7 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		"fast-canstore",
 		"([Ljava/lang/Object;Ljava/lang/Object;)I",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -422,7 +449,8 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL,
 		NULL,
-		NULL
+		NULL,
+		EMIT_FASTPATH_monitor_enter
 	},
 	{
 		ICMD_MONITOREXIT,
@@ -435,7 +463,8 @@ static builtintable_entry builtintable_internal[] = {
 		NULL,
 		NULL,
 		NULL,
-		NULL
+		NULL,
+		EMIT_FASTPATH_monitor_exit
 	},
 #endif
 
@@ -445,6 +474,7 @@ static builtintable_entry builtintable_internal[] = {
 	{
 		255,
 		0,
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -474,6 +504,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 #endif
@@ -490,6 +521,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -503,6 +535,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -513,6 +546,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		"lxor",
 		"(JJ)J",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -532,6 +566,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -545,6 +580,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -555,6 +591,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		"lushr",
 		"(JI)J",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -574,6 +611,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -587,6 +625,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -597,6 +636,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		"lneg",
 		"(J)J",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -616,6 +656,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 #endif
@@ -629,6 +670,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		"i2f",
 		"(I)F",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -648,6 +690,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 #endif
@@ -661,6 +704,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		"l2f",
 		"(J)F",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -680,6 +724,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 #endif
@@ -693,6 +738,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		"f2i",
 		"(F)I",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -712,6 +758,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 #endif
@@ -728,6 +775,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 #endif
@@ -741,6 +789,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		"d2l",
 		"(D)J",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -763,6 +812,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -773,6 +823,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		"fsub",
 		"(FF)F",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -789,6 +840,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -802,6 +854,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -812,6 +865,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		"fneg",
 		"(F)F",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -831,6 +885,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -841,6 +896,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		"fcmpg",
 		"(FF)I",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -863,6 +919,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -873,6 +930,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		"dsub",
 		"(DD)D",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -889,6 +947,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -902,6 +961,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -912,6 +972,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		"dneg",
 		"(D)D",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -931,6 +992,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -941,6 +1003,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		"dcmpg",
 		"(DD)I",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -963,6 +1026,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 	{
@@ -976,6 +1040,7 @@ static builtintable_entry builtintable_automatic[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 #endif /* !(SUPPORT_FLOAT && SUPPORT_DOUBLE) */
@@ -986,6 +1051,7 @@ static builtintable_entry builtintable_automatic[] = {
 	{
 		255,
 		0,
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -1017,6 +1083,7 @@ static builtintable_entry builtintable_function[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 
@@ -1037,6 +1104,7 @@ static builtintable_entry builtintable_function[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 #endif
@@ -1051,6 +1119,7 @@ static builtintable_entry builtintable_function[] = {
 		"java/lang/VMSystem",
 		"currentTimeMillis",
 		"()J",
+		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -1070,6 +1139,7 @@ static builtintable_entry builtintable_function[] = {
 		NULL,
 		NULL,
 		NULL,
+		NULL,
 		NULL
 	},
 
@@ -1080,6 +1150,7 @@ static builtintable_entry builtintable_function[] = {
 	{
 		255,
 		0,
+		NULL,
 		NULL,
 		NULL,
 		NULL,

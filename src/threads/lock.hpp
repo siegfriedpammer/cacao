@@ -88,9 +88,6 @@ void lock_init(void);
 bool lock_monitor_enter(java_handle_t *);
 bool lock_monitor_exit(java_handle_t *);
 
-#define LOCK_monitor_enter    (functionptr) lock_monitor_enter
-#define LOCK_monitor_exit     (functionptr) lock_monitor_exit
-
 bool lock_is_held_by_current_thread(java_handle_t *o);
 
 void lock_wait_for_object(java_handle_t *o, s8 millis, s4 nanos);

@@ -77,6 +77,7 @@ struct builtintable_entry {
 	utf         *name;                  /* name of the function               */
 	utf         *descriptor;            /* descriptor of the function         */
 	methoddesc  *md;
+	functionptr  emit_fastpath;         /* emitter for fast-path code         */
 };
 
 
@@ -127,6 +128,22 @@ bool builtintable_replace_function(void *iptr);
 
 #if USES_NEW_SUBTYPE
 bool fast_subtype_check(struct _vftbl *, struct _vftbl *);
+#endif
+
+/* From lock.hpp: bool lock_monitor_enter(java_handle_t *); */
+#define LOCK_monitor_enter          (functionptr) lock_monitor_enter
+#if defined(__X86_64__)
+# define EMIT_FASTPATH_monitor_enter (functionptr) emit_fastpath_monitor_enter
+#else
+# define EMIT_FASTPATH_monitor_enter (functionptr) NULL
+#endif
+
+/* From lock.hpp: bool lock_monitor_exit(java_handle_t *); */
+#define LOCK_monitor_exit          (functionptr) lock_monitor_exit
+#if defined(__X86_64__)
+# define EMIT_FASTPATH_monitor_exit (functionptr) emit_fastpath_monitor_exit
+#else
+# define EMIT_FASTPATH_monitor_exit (functionptr) NULL
 #endif
 
 bool builtin_instanceof(java_handle_t *obj, classinfo *c);

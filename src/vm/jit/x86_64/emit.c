@@ -472,6 +472,38 @@ uint32_t emit_trap(codegendata *cd)
 
 
 /**
+ * Generates fast-path code for the below builtin.
+ *   Function:  LOCK_monitor_enter
+ *   Signature: (Ljava/lang/Object;)V
+ *   Slow-path: bool lock_monitor_enter(java_handle_t*);
+ */
+void emit_fastpath_monitor_enter(jitdata* jd, instruction* iptr, int d)
+{
+	// Get required compiler data.
+	codegendata* cd = jd->cd;
+
+	// XXX Currently the fast-path always fails. Implement me!
+	M_CLR(d);
+}
+
+
+/**
+ * Generates fast-path code for the below builtin.
+ *   Function:  LOCK_monitor_exit
+ *   Signature: (Ljava/lang/Object;)V
+ *   Slow-path: bool lock_monitor_exit(java_handle_t*);
+ */
+void emit_fastpath_monitor_exit(jitdata* jd, instruction* iptr, int d)
+{
+	// Get required compiler data.
+	codegendata* cd = jd->cd;
+
+	// XXX Currently the fast-path always fails. Implement me!
+	M_CLR(d);
+}
+
+
+/**
  * Generates synchronization code to enter a monitor.
  */
 #if defined(ENABLE_THREADS)

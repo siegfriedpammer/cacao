@@ -213,6 +213,10 @@ void emit_patcher_traps(jitdata *jd);
 
 void emit_recompute_pv(codegendata* cd);
 
+/* machine dependent faspath-emitting functions */
+void emit_fastpath_monitor_enter(jitdata* jd, instruction* iptr, int d);
+void emit_fastpath_monitor_exit(jitdata* jd, instruction* iptr, int d);
+
 #if defined(ENABLE_THREADS)
 void emit_monitor_enter(jitdata* jd, int32_t syncslot_offset);
 void emit_monitor_exit(jitdata* jd, int32_t syncslot_offset);

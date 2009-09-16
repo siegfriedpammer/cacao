@@ -1887,6 +1887,32 @@ nowperformreturn:
 				}
 #endif
 
+				// Emit the fast-path if available.
+				if (bte->emit_fastpath != NULL) {
+					void (*emit_fastpath)(jitdata* jd, instruction* iptr, int d);
+					emit_fastpath = (void (*)(jitdata* jd, instruction* iptr, int d)) bte->emit_fastpath;
+
+					assert(md->returntype.type == TYPE_VOID);
+					d = REG_ITMP1;
+
+					// Actually call the fast-path emitter.
+					emit_fastpath(jd, iptr, d);
+
+					// If fast-path succeeded, jump to the end of the builtin
+					// invocation.
+					// XXX Actually the slow-path block below should be moved
+					// out of the instruction stream and the jump below should be
+					// inverted.
+#if SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER
+					os::abort("codegen_emit: Implement jump over slow-path for this configuration.");
+#elif SUPPORT_BRANCH_CONDITIONAL_CONDITION_REGISTER
+					M_TEST(d);
+					emit_label_bne(cd, BRANCH_LABEL_10);
+#else
+# error Unable to generate code for this configuration!
+#endif
+				}
+
 				goto gen_method;
 
 			case ICMD_INVOKESTATIC: /* ..., [arg1, [arg2 ...]] ==> ...        */
@@ -2064,6 +2090,12 @@ if (!md->params[s3].inmemory) {
 
 				case TYPE_VOID:
 					break;
+				}
+
+				// If we are emitting a fast-path block, this is the label for
+				// successful fast-path execution.
+				if ((iptr->opc == ICMD_BUILTIN) && (bte->emit_fastpath != NULL)) {
+					emit_label(cd, BRANCH_LABEL_10);
 				}
 
 				break;
