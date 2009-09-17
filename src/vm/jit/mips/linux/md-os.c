@@ -83,7 +83,7 @@ void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 	ucontext_t* _uc = (struct ucontext *) _p;
 	mcontext_t* _mc = &_uc->uc_mcontext;
 
-	void* xpc = (void*) _mc->pc;
+	void* xpc = (void*) (_mc->pc - 4);
 
 	// Handle the trap.
 	trap_handle(TRAP_SIGSEGV, xpc, _p);
@@ -98,7 +98,7 @@ void md_signal_handler_sigill(int sig, siginfo_t* siginfo, void* _p)
 	ucontext_t* _uc = (struct ucontext *) _p;
 	mcontext_t* _mc = &_uc->uc_mcontext;
 
-	void* xpc = (void*) _mc->pc;
+	void* xpc = (void*) (_mc->pc - 4);
 
 	// Handle the trap.
 	trap_handle(TRAP_SIGILL, xpc, _p);
@@ -128,8 +128,6 @@ void md_executionstate_read(executionstate_t* es, void* context)
 	mcontext_t* _mc;
 	greg_t*     _gregs;
 	int         i;
-
-	vm_abort("md_executionstate_read: PLEASE REVISE ME!");
 
 	_uc = (ucontext_t*) context;
 	_mc = &_uc->uc_mcontext;
@@ -184,10 +182,14 @@ void md_executionstate_write(executionstate_t* es, void* context)
 	greg_t*     _gregs;
 	int         i;
 
-	vm_abort("md_executionstate_write: PLEASE REVISE ME!");
-
 	_uc = (ucontext_t *) context;
 	_mc = &_uc->uc_mcontext;
+
+#if defined(__UCLIBC__)
+	_gregs = _mc->gpregs;
+#else	
+	_gregs = _mc->gregs;
+#endif
 
 	/* Write integer registers. */
 

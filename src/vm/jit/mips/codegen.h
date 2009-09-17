@@ -572,6 +572,7 @@
 
 #define M_ALD_INTERN(a,b,disp)  M_LLD_INTERN(a,b,disp)
 #define M_ALD(a,b,disp)         M_LLD(a,b,disp)
+#define M_ALD_DSEG(a,disp)      M_LLD(a,REG_PV,disp)
 #define M_AST_INTERN(a,b,disp)  M_LST_INTERN(a,b,disp)
 #define M_AST(a,b,disp)         M_LST(a,b,disp)
 #define M_AADD(a,b,c)           M_LADD(a,b,c)
@@ -585,6 +586,7 @@
 
 #define M_ALD_INTERN(a,b,disp)  M_ILD_INTERN(a,b,disp)
 #define M_ALD(a,b,disp)         M_ILD(a,b,disp)
+#define M_ALD_DSEG(a,disp)      M_ILD(a,REG_PV,disp)
 #define M_AST_INTERN(a,b,disp)  M_IST_INTERN(a,b,disp)
 #define M_AST(a,b,disp)         M_IST(a,b,disp)
 #define M_AADD(a,b,c)           M_IADD(a,b,c)

@@ -1,6 +1,6 @@
 /* src/vm/jit/mips/codegen.c - machine code generator for MIPS
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -55,60 +55,11 @@
 #include "vm/jit/emit-common.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/linenumbertable.hpp"
+#include "vm/jit/parse.hpp"
 #include "vm/jit/patcher-common.hpp"
 #include "vm/jit/reg.h"
+#include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.hpp"
-
-#if defined(ENABLE_LSRA)
-# include "vm/jit/allocator/lsra.h"
-#endif
-
-
-/* codegen_emit ****************************************************************
-
-   Generates machine code.
-
-*******************************************************************************/
-
-bool codegen_emit(jitdata *jd)
-{
-
-
-	savedregs_num = code_is_leafmethod(code) ? 0 : 1; /* space to save the RA */
-
-
-#if defined(ENABLE_THREADS)
-	/* space to save argument of monitor_enter */
-
-	if (checksync && code_is_synchronized(code)) {
-# if SIZEOF_VOID_P == 8
-		cd->stackframesize++;
-# else
-		rd->memuse++;
-		cd->stackframesize += 2;
-# endif
-	}
-#endif
-
-	/* keep stack 16-byte aligned */
-
-	if (cd->stackframesize & 1)
-		cd->stackframesize++;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /**
@@ -266,7 +217,7 @@ void codegen_emit_epilog(jitdata* jd)
 	/* deallocate stack and return */
 
 	if (cd->stackframesize) {
-		int32_t lo, hi;
+		int32_t lo, hi, disp;
 
 		disp = cd->stackframesize * 8;
 		lo = (short) (disp);
@@ -2698,19 +2649,6 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 
 
-XXX
-				else {
-					s1 = codegen_reg_of_dst(jd, iptr, REG_FRESULT);
-					if (IS_2_WORD_TYPE(d))
-						M_DMOV(REG_FRESULT, s1);
-					else
-						M_FMOV(REG_FRESULT, s1);
-				}
-				emit_store_dst(jd, iptr, s1);
-			}
-			break;
-
-
 		case ICMD_CHECKCAST:  /* ..., objectref ==> ..., objectref            */
 
 			if (!(iptr->flags.bits & INS_FLAG_ARRAY)) {
@@ -2953,10 +2891,8 @@ XXX
 
 			if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
 				if (super == NULL) {
-					constant_classref * iptr->sx.s23.s3.c.ref;
-
 					patcher_add_patch_ref(jd, PATCHER_instanceof_interface,
-										  cr, 0);
+										  iptr->sx.s23.s3.c.ref, 0);
 				}
 				else {
 					emit_label_beqz(cd, BRANCH_LABEL_3, s1);

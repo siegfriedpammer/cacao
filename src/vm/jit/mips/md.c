@@ -25,17 +25,15 @@
 
 #include "config.h"
 
-#include <assert.h>
 #include <stdint.h>
+#include <ucontext.h>
 
-#include "vm/types.h"
-
+#include "vm/jit/mips/codegen.h"
 #include "vm/jit/mips/md.h"
 
-#include "vm/global.h"
-#include "vm/vm.hpp"
-
+#include "vm/jit/asmpart.h"
 #include "vm/jit/jit.hpp"
+#include "vm/jit/trap.hpp"
 
 
 /* md_jit_method_patch_address *************************************************

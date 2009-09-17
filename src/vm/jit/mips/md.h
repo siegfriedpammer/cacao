@@ -30,13 +30,13 @@
 
 #include <assert.h>
 #include <stdint.h>
-#include <unistd.h>
 #include <sys/cachectl.h>
 
-#include "vm/types.h"
-
+#include "vm/global.h"
 #include "vm/vm.hpp"
 
+#include "vm/jit/asmpart.h"
+#include "vm/jit/codegen-common.hpp"
 
 /**
  * Returns the size (in bytes) of the current stackframe, specified by
