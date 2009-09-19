@@ -1,6 +1,6 @@
 /* src/vm/jit/patcher-common.cpp - architecture independent code patching stuff
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -43,11 +43,12 @@
 #include "toolbox/list.hpp"
 #include "toolbox/logging.hpp"           /* XXX remove me! */
 
+#include "vm/breakpoint.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/initialize.hpp"
 #include "vm/options.h"
+#include "vm/os.hpp"
 #include "vm/resolve.hpp"
-#include "vm/vm.hpp"                     /* for vm_abort */
 
 #include "vm/jit/code.hpp"
 #include "vm/jit/disass.h"
@@ -78,6 +79,7 @@ static patcher_function_list_t patcher_function_list[] = {
 	{ PATCHER_invokestatic_special,          "invokestatic_special" },
 	{ PATCHER_invokevirtual,                 "invokevirtual" },
 	{ PATCHER_invokeinterface,               "invokeinterface" },
+	{ PATCHER_breakpoint,                    "breakpoint" },
 	{ NULL,                                  "-UNKNOWN PATCHER FUNCTION-" }
 };
 #endif
@@ -226,7 +228,7 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
 
 #if !defined(NDEBUG)
 	if (patcher_list_find(code, (void*) (intptr_t) patchmpc) != NULL)
-		vm_abort("patcher_add_patch_ref: different patchers at same position.");
+		os::abort("patcher_add_patch_ref: different patchers at same position.");
 #endif
 
 	// Set patcher information (mpc is resolved later).
@@ -380,7 +382,7 @@ java_handle_t *patcher_handler(u1 *pc)
 	pr = patcher_list_find(code, pc);
 
 	if (pr == NULL)
-		vm_abort("patcher_handler: Unable to find patcher reference.");
+		os::abort("patcher_handler: Unable to find patcher reference.");
 
 	if (pr->done) {
 #if !defined(NDEBUG)
@@ -558,6 +560,36 @@ bool patcher_resolve_native_function(patchref_t *pr)
 
 	/* patch back original code */
 
+	patcher_patch_code(pr);
+
+	return true;
+}
+
+
+/**
+ * Deals with breakpoint instructions (ICMD_BREAKPOINT) compiled
+ * into a JIT method. This patcher might never patch back the
+ * original machine code because breakpoints are kept active.
+ */
+bool patcher_breakpoint(patchref_t *pr)
+{
+	// Get stuff from the patcher reference.
+	Breakpoint* breakp = (Breakpoint*) pr->ref;
+
+#if defined(ENABLE_JVMTI)
+	methodinfo* m = breakp->method;
+	int32_t     l = breakp->location;
+
+	log_message_method("JVMTI: Reached breakpoint in method ", m);
+	log_println("JVMTI: Reached breakpoint at location %d", l);
+#endif
+
+	// In case the breakpoint wants to be kept active, we simply
+	// fail to "patch" at this point.
+	if (!breakp->is_oneshot)
+		return false;
+
+	// Patch back original code.
 	patcher_patch_code(pr);
 
 	return true;

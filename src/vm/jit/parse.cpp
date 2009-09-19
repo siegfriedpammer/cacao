@@ -1,6 +1,6 @@
 /* src/vm/jit/parse.c - parser for JavaVM to intermediate code translation
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -533,6 +533,17 @@ fetch_opcode:
 		/* add stack elements produced by this instruction */
 
 		s_count += bytecode[opcode].slots;
+
+		/* Generate a breakpoint instruction right before the actual
+		   instruction, if the method contains a breakpoint at the
+		   current bytecode index. */
+
+		if (m->breakpoints != NULL && m->breakpoints->contains(bcindex)) {
+			INSTRUCTIONS_CHECK(1);
+			OP_PREPARE_ZEROFLAGS(ICMD_BREAKPOINT);
+			iptr->sx.val.anyptr = m->breakpoints->get_breakpoint(bcindex);
+			PINC;
+		}
 
 		/* We check here for the space of 1 instruction in the
 		   instruction array.  If an opcode is converted to more than

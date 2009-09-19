@@ -559,6 +559,9 @@ void method_free(methodinfo *m)
 			CompilerStub::remove(m->stubroutine);
 		}
 	}
+
+	if (m->breakpoints)
+		delete m->breakpoints;
 }
 
 

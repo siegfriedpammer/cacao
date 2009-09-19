@@ -2337,6 +2337,10 @@ icmd_NOP:
 						sd.jd->returnblock = sd.bptr;
 						break;
 
+					case ICMD_BREAKPOINT:
+						OP0_0;
+						break;
+
 
 						/* pop 0 push 1 const */
 

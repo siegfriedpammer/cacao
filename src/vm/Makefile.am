@@ -83,6 +83,7 @@ libvm_la_SOURCES = \
 	array.cpp \
 	array.hpp \
 	$(ASSERTION_SOURCES) \
+	breakpoint.hpp \
 	class.cpp \
 	class.hpp \
 	classcache.cpp \

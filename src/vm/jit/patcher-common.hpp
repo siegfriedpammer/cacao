@@ -1,6 +1,6 @@
 /* src/vm/jit/patcher-common.hpp - architecture independent code patching stuff
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -117,6 +117,9 @@ bool patcher_resolve_classref_to_flags(patchref_t *pr);
 
 bool patcher_resolve_native_function(patchref_t *pr);
 #define PATCHER_resolve_native_function (functionptr) patcher_resolve_native_function
+
+bool patcher_breakpoint(patchref_t *pr);
+#define PATCHER_breakpoint (functionptr) patcher_breakpoint
 
 /* old patcher functions */
 

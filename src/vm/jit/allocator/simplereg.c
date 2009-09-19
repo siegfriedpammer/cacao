@@ -1370,6 +1370,7 @@ static void simplereg_allocate_temporaries(jitdata *jd)
 				case ICMD_RET:
 				case ICMD_RETURN:
 				case ICMD_GOTO:
+				case ICMD_BREAKPOINT:
 				case ICMD_PUTSTATICCONST:
 				case ICMD_INLINE_START:
 				case ICMD_INLINE_END:

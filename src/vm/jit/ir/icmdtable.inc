@@ -253,7 +253,7 @@
 /*199*/ {N("IFNONNULL      ") DF_1_TO_0 , CF_IF    , 0              /*    (A--)                */},
 /*200*/ {N("UNDEF200       ") DF_0_TO_0 , CF_NORMAL, 0              /* -- ()                   */},
 /*201*/ {N("UNDEF201       ") DF_0_TO_0 , CF_NORMAL, 0              /* -- ()                   */},
-/*202*/ {N("UNDEF202       ") DF_0_TO_0 , CF_NORMAL, 0              /* -- ()                   */},
+/*202*/ {N("BREAKPOINT     ") DF_0_TO_0 , CF_NORMAL, 0              /*    (--)                 */},
 /*203*/ {N("UNDEF203       ") DF_0_TO_0 , CF_NORMAL, 0              /* -- ()                   */},
 /*204*/ {N("IASTORECONST   ") DF_2_TO_0 , CF_NORMAL, PEI            /* S+ (AI--)               */},
 /*205*/ {N("LASTORECONST   ") DF_2_TO_0 , CF_NORMAL, PEI            /* S+ (AI--)               */},

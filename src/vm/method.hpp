@@ -40,6 +40,7 @@ typedef struct codeinfo            codeinfo;
 
 #include "threads/mutex.hpp"
 
+#include "vm/breakpoint.hpp"
 #include "vm/jit/builtin.hpp"
 #include "vm/descriptor.hpp"
 #include "vm/global.h"
@@ -99,6 +100,8 @@ struct methodinfo {                 /* method structure                       */
 
 	methodinfo   *overwrites;       /* method that is directly overwritten    */
 	method_assumption *assumptions; /* list of assumptions about this method  */
+
+	BreakpointTable* breakpoints;   /* breakpoints in this method             */
 
 #if defined(ENABLE_REPLACEMENT)
 	s4            hitcountdown;     /* decreased for each hit                 */

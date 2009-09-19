@@ -1250,6 +1250,13 @@ bool codegen_emit(jitdata *jd)
 				emit_nullpointer_check(cd, iptr, s1);
 				break;
 
+			case ICMD_BREAKPOINT: /* ...  ==> ...                             */
+			                      /* sx.val.anyptr = Breakpoint               */
+
+				patcher_add_patch_ref(jd, PATCHER_breakpoint, iptr->sx.val.anyptr, 0);
+				PATCHER_NOPS;
+	 			break;
+
 #if defined(ENABLE_SSA)
 			case ICMD_GETEXCEPTION:
 

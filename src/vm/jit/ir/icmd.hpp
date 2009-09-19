@@ -300,7 +300,8 @@ enum {
 
 	/* 200 */
 	/* 201 */
-	/* 202 */
+
+	ICMD_BREAKPOINT       = BC_breakpoint,
 
 	ICMD_IASTORECONST     = 204,
 	ICMD_LASTORECONST     = 205,
