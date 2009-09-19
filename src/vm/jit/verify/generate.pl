@@ -86,7 +86,7 @@ if (!defined($opt_icmdtable)
 
 #################### constants
 
-my $VERIFY_C = 'src/vm/jit/verify/icmds.c';
+my $VERIFY_C = 'src/vm/jit/verify/icmds.cpp';
 my $TYPECHECK_STACKBASED_INC = 'src/vm/jit/verify/typecheck-stackbased-gen.inc';
 my $TYPECHECK_VARIABLESBASED_INC = 'src/vm/jit/verify/typecheck-variablesbased-gen.inc';
 my $TYPECHECK_TYPEINFERER_INC = 'src/vm/jit/verify/typecheck-typeinferer-gen.inc';
