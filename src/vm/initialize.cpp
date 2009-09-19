@@ -1,6 +1,6 @@
 /* src/vm/initialize.cpp - static class initializer functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -145,8 +145,13 @@ bool initialize_class(classinfo *c)
 	/* if return value is not NULL everything was ok and the class is
 	   initialized */
 
-	if (r)
-		c->state |= CLASS_INITIALIZED;
+	if (r) {
+        // Let's make sure that everything is flushed out to memory before
+        // marking the class as initialized.
+        Atomic::write_memory_barrier();
+
+        c->state |= CLASS_INITIALIZED;
+    }
 
 	/* this initalizing run is done */
 
@@ -271,7 +276,7 @@ static bool initialize_class_intern(classinfo *c)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

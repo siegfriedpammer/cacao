@@ -1,4 +1,4 @@
-/* src/vm/linker.c - class linker functions
+/* src/vm/linker.cpp - class linker functions
 
    Copyright (C) 1996-2005, 2006, 2007, 2008
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -1403,7 +1403,7 @@ static s4 class_highestinterface(classinfo *c)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
