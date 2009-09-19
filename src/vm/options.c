@@ -157,6 +157,7 @@ int      opt_ThreadStackSize              = 0;
 /* Debugging options which can be turned off. */
 
 bool     opt_AlwaysEmitLongBranches       = false;
+bool     opt_AlwaysMmapFirstPage          = false;
 int      opt_CompileAll                   = 0;
 char*    opt_CompileMethod                = NULL;
 char*    opt_CompileSignature             = NULL;
@@ -234,6 +235,7 @@ enum {
 	/* Debugging options which can be turned off. */
 
 	OPT_AlwaysEmitLongBranches,
+	OPT_AlwaysMmapFirstPage,
 	OPT_CompileAll,
 	OPT_CompileMethod,
 	OPT_CompileSignature,
@@ -294,6 +296,7 @@ option_t options_XX[] = {
 	/* Debugging options which can be turned off. */
 
 	{ "AlwaysEmitLongBranches",       OPT_AlwaysEmitLongBranches,       OPT_TYPE_BOOLEAN, "Always emit long-branches." },
+	{ "AlwaysMmapFirstPage",          OPT_AlwaysMmapFirstPage,          OPT_TYPE_BOOLEAN, "Always mmap memory page at address 0x0." },
 	{ "CompileAll",                   OPT_CompileAll,                   OPT_TYPE_BOOLEAN, "compile all methods, no execution" },
 	{ "CompileMethod",                OPT_CompileMethod,                OPT_TYPE_VALUE,   "compile only a specific method" },
 	{ "CompileSignature",             OPT_CompileSignature,             OPT_TYPE_VALUE,   "specify signature for a specific method" },
@@ -634,6 +637,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 
 		case OPT_AlwaysEmitLongBranches:
 			opt_AlwaysEmitLongBranches = enable;
+			break;
+
+		case OPT_AlwaysMmapFirstPage:
+			opt_AlwaysMmapFirstPage = enable;
 			break;
 
 		case OPT_CompileAll:

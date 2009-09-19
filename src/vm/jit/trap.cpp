@@ -1,6 +1,6 @@
 /* src/vm/jit/trap.cpp - hardware traps
 
-   Copyright (C) 2008
+   Copyright (C) 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -66,21 +66,15 @@ extern "C" {
  */
 void trap_init(void)
 {
-#if !(defined(__ARM__) && defined(__LINUX__))
-	/* On arm-linux the first memory page can't be mmap'ed, as it
-	   contains the exception vectors. */
-
-	int pagesize;
-
-	/* mmap a memory page at address 0x0, so our hardware-exceptions
-	   work. */
-
-	pagesize = os::getpagesize();
-
-	(void) os::mmap_anonymous(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
-#endif
-
 	TRACESUBSYSTEMINITIALIZATION("trap_init");
+
+	/* If requested we mmap a memory page at address 0x0,
+	   so our hardware-exceptions work. */
+
+	if (opt_AlwaysMmapFirstPage) {
+		int pagesize = os::getpagesize();
+		(void) os::mmap_anonymous(NULL, pagesize, PROT_NONE, MAP_PRIVATE | MAP_FIXED);
+	}
 
 #if !defined(TRAP_INSTRUCTION_IS_LOAD)
 # error TRAP_INSTRUCTION_IS_LOAD is not defined in your md-trap.h

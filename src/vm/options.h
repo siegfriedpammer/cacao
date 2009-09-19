@@ -179,6 +179,7 @@ extern int      opt_ThreadStackSize;
 /* Debugging options which can be turned off. */
 
 extern bool     opt_AlwaysEmitLongBranches;
+extern bool     opt_AlwaysMmapFirstPage;
 extern int      opt_CompileAll;
 extern char*    opt_CompileMethod;
 extern char*    opt_CompileSignature;
