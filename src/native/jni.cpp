@@ -2079,7 +2079,7 @@ void _Jv_JNI_Set##name##Field(JNIEnv *env, jobject obj, jfieldID fieldID,  \
                                                                            \
 	SET_FIELD(LLNI_DIRECT((java_handle_t *) obj), intern, fieldID, value); \
 	                                                                       \
-	LLNI_CRITICAL_START;                                                   \
+	LLNI_CRITICAL_END;                                                     \
 }
 
 JNI_SET_FIELD(Boolean, jboolean, s4)
