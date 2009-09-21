@@ -2069,6 +2069,8 @@ jobject _Jv_JNI_GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID)
 #define SET_FIELD(o,type,f,value) \
     *((type *) (((intptr_t) (o)) + ((intptr_t) ((fieldinfo *) (f))->offset))) = (type) (value)
 
+#define GET_FIELDINFO(f) ((fieldinfo*) (f))
+
 #define JNI_SET_FIELD(name, type, intern)                                  \
 void _Jv_JNI_Set##name##Field(JNIEnv *env, jobject obj, jfieldID fieldID,  \
 							  type value)                                  \
@@ -2080,6 +2082,9 @@ void _Jv_JNI_Set##name##Field(JNIEnv *env, jobject obj, jfieldID fieldID,  \
 	SET_FIELD(LLNI_DIRECT((java_handle_t *) obj), intern, fieldID, value); \
 	                                                                       \
 	LLNI_CRITICAL_END;                                                     \
+																		   \
+	if (GET_FIELDINFO(fieldID)->flags & ACC_VOLATILE)                      \
+		Atomic::memory_barrier();                                          \
 }
 
 JNI_SET_FIELD(Boolean, jboolean, s4)
@@ -2102,6 +2107,9 @@ void _Jv_JNI_SetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID,
 	SET_FIELD(obj, java_handle_t*, fieldID, LLNI_UNWRAP((java_handle_t*) value));
 
 	LLNI_CRITICAL_END;
+
+	if (GET_FIELDINFO(fieldID)->flags & ACC_VOLATILE)
+		Atomic::memory_barrier();
 }
 
 
@@ -2439,6 +2447,9 @@ void _Jv_JNI_SetStatic##name##Field(JNIEnv *env, jclass clazz, \
 			return;                                            \
                                                                \
 	f->value->field = value;                                   \
+															   \
+	if (f->flags & ACC_VOLATILE)                               \
+		Atomic::memory_barrier();                              \
 }
 
 JNI_SET_STATIC_FIELD(Boolean, jboolean, i)
@@ -2467,6 +2478,9 @@ void _Jv_JNI_SetStaticObjectField(JNIEnv *env, jclass clazz, jfieldID fieldID,
 			return;
 
 	f->value->a = LLNI_UNWRAP((java_handle_t *) value);
+
+	if (f->flags & ACC_VOLATILE)
+		Atomic::memory_barrier();
 }
 
 
