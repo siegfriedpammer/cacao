@@ -1,9 +1,7 @@
 /* src/vm/jit/x86_64/arch.h - architecture defines for x86_64
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2008, 2009
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -123,6 +121,10 @@
 /* subtype ********************************************************************/
 
 #define USES_NEW_SUBTYPE                 1
+
+/* memory barriers ************************************************************/
+
+#define CAS_PROVIDES_FULL_BARRIER        1
 
 #endif /* _ARCH_H */
 

@@ -864,9 +864,15 @@ retry:
 
 	if (result == true) {
 		// Success, we locked it.
-		// NOTE: The Java Memory Model requires an instruction barrier
-		// here (because of the CAS above).
+		// NOTE: The Java Memory Model requires a memory barrier here.
+#if defined(CAS_PROVIDES_FULL_BARRIER) && CAS_PROVIDES_FULL_BARRIER
+		// On some architectures, the CAS (hidden in the
+		// lockword->lock call above), already provides this barrier,
+		// so we only need to inform the compiler.
 		Atomic::instruction_barrier();
+#else
+		Atomic::memory_barrier();
+#endif
 		return true;
 	}
 
@@ -972,7 +978,7 @@ bool lock_monitor_exit(java_handle_t* o)
 		// Memory barrier for Java Memory Model.
 		Atomic::write_memory_barrier();
 		lockword->unlock();
-		// Memory barrier for thin locking.
+		// Memory barrier for FLC bit testing.
 		Atomic::memory_barrier();
 
 		/* check if there has been a flat lock contention on this object */

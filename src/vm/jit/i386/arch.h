@@ -149,6 +149,10 @@
 
 #define USES_NEW_SUBTYPE                 1
 
+/* memory barriers ************************************************************/
+
+#define CAS_PROVIDES_FULL_BARRIER        1
+
 #endif /* _ARCH_H */
 
 
