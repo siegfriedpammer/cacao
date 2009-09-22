@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/codegen.h - code generation macros for x86_64
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -335,6 +335,7 @@
 
 /* system instructions ********************************************************/
 
+#define M_MFENCE                emit_mfence(cd)
 #define M_RDTSC                 emit_rdtsc(cd)
 
 #define M_IINC_MEMBASE(a,b)     emit_incl_membase(cd, (a), (b))
@@ -360,4 +361,5 @@
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

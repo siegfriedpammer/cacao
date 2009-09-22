@@ -2573,6 +2573,13 @@ void emit_rdtsc(codegendata *cd)
 	*(cd->mcodeptr++) = 0x31;
 }
 
+void emit_mfence(codegendata *cd)
+{
+	*(cd->mcodeptr++) = 0x0f;
+	*(cd->mcodeptr++) = 0xae;
+	*(cd->mcodeptr++) = 0xf0;
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -2585,4 +2592,5 @@ void emit_rdtsc(codegendata *cd)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
