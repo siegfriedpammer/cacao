@@ -135,6 +135,7 @@ public:
 	static inline void    free(void* ptr);
 	static inline char*   getenv(const char* name);
 	static inline int     gethostname(char* name, size_t len);
+	static inline int     getloadavg(double loadavg[], int nelem);
 	static inline int     getpagesize(void);
 	static inline int     getsockname(int s, struct sockaddr* name, socklen_t* namelen);
 	static inline int     getsockopt(int s, int level, int optname, void* optval, socklen_t* optlen);
@@ -388,6 +389,15 @@ inline int os::gethostname(char* name, size_t len)
 	return ::gethostname(name, len);
 #else
 # error gethostname not available
+#endif
+}
+
+inline int os::getloadavg(double loadavg[], int nelem)
+{
+#if defined(HAVE_GETLOADAVG)
+	return ::getloadavg(loadavg, nelem);
+#else
+# error getloadavg not available
 #endif
 }
 

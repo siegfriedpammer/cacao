@@ -1157,6 +1157,36 @@ JNIEXPORT void JNICALL Java_sun_misc_Unsafe_park(JNIEnv *env, jobject _this, jbo
 	threads_park(isAbsolute, time);
 }
 
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    getLoadAverage
+ * Signature: ([DI)I
+ */
+JNIEXPORT jint JNICALL Java_sun_misc_Unsafe_getLoadAverage(JNIEnv *env, jobject _this, jdoubleArray loadavg, jint nelem)
+{
+	DoubleArray da(loadavg);
+
+#define MAX_SAMPLES 3
+
+	// Check the passed number of samples.
+	if ((nelem < 0) || (nelem > da.get_length()) || nelem > MAX_SAMPLES) {
+		exceptions_throw_arrayindexoutofboundsexception();
+		return -1;
+	}
+
+	// Actually retrieve samples.
+	double values[MAX_SAMPLES];
+	int result = os::getloadavg(values, nelem);
+
+	// Save samples into the given array.
+	for (int i = 0; i < result; i++) {
+		da.set_element(i, values[i]);
+	}
+
+	return result;
+}
+
 } // extern "C"
 
 
@@ -1235,6 +1265,7 @@ static JNINativeMethod methods[] = {
 	{ (char*) "putOrderedLong",         (char*) "(Ljava/lang/Object;JJ)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putOrderedLong                   },
 	{ (char*) "unpark",                 (char*) "(Ljava/lang/Object;)V",                                      (void*) (uintptr_t) &Java_sun_misc_Unsafe_unpark                           },
 	{ (char*) "park",                   (char*) "(ZJ)V",                                                      (void*) (uintptr_t) &Java_sun_misc_Unsafe_park                             },
+	{ (char*) "getLoadAverage",         (char*) "([DI)I",                                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getLoadAverage                   },
 };
 
 
