@@ -1449,6 +1449,10 @@ VM::VM(JavaVMInitArgs* vm_args)
 	// the VM is initialized.
 	if (opt_PrintConfig)
 		print_run_time_config();
+
+	// Start runtime agents after the VM is created.
+	if (!start_runtime_agents())
+		os::abort("vm_create: start_runtime_agents failed");
 }
 
 
@@ -1514,6 +1518,60 @@ void VM::print_run_time_config()
 	printf("  java.class.path                : %s\n", _properties.get("java.class.path"));
 
 	puts("");
+}
+
+
+/**
+ * Start runtime agents which are provided by the JRE but need to be
+ * started explicitly by the VM.
+ */
+bool VM::start_runtime_agents()
+{
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
+
+	// Nothing to do.
+
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+
+	// Check whether the management agent should be loaded.
+	if ((_properties.get("com.sun.management.jmxremote") != NULL) ||
+		(_properties.get("com.sun.management.snmp") != NULL))
+	{
+
+		// Load the management agent class.
+		classinfo* class_sun_management_Agent;
+		if (!(class_sun_management_Agent = load_class_from_sysloader(utf_new_char("sun/management/Agent"))))
+			return false;
+
+		// Link the management agent class.
+		if (!link_class(class_sun_management_Agent))
+			return false;
+
+		// Actually start the management agent.
+		methodinfo* m = class_resolveclassmethod(class_sun_management_Agent,
+												 utf_new_char("startAgent"),
+												 utf_void__void,
+												 class_java_lang_Object,
+												 false);
+
+		if (m == NULL)
+			return false;
+
+		(void) vm_call_method(m, NULL);
+
+		if (exceptions_get_exception() != NULL)
+			return false;
+	}
+
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
+
+	// Nothing to do.
+
+#else
+# error unknown classpath configuration
+#endif
+
+	return true;
 }
 
 

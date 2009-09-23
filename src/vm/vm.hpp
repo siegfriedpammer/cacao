@@ -111,6 +111,10 @@ public:
 	NativeLibraries& get_nativelibraries() { return _nativelibraries; }
 	NativeMethods&   get_nativemethods  () { return _nativemethods; }
 	SuckClasspath&   get_suckclasspath  () { return _suckclasspath; }
+
+private:
+	// Internal helper methods.
+	bool start_runtime_agents();
 };
 
 #else
