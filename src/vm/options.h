@@ -229,6 +229,7 @@ extern int      opt_TraceHPI;
 extern int      opt_TraceInlining;
 #endif
 extern int      opt_TraceJavaCalls;
+extern bool     opt_TraceJMMCalls;
 extern int      opt_TraceJNICalls;
 extern int      opt_TraceJVMCalls;
 extern int      opt_TraceJVMCallsVerbose;

@@ -207,6 +207,7 @@ int      opt_TraceHPI                     = 0;
 int      opt_TraceInlining                = 0;
 #endif
 int      opt_TraceJavaCalls               = 0;
+bool     opt_TraceJMMCalls                = false;
 int      opt_TraceJNICalls                = 0;
 int      opt_TraceJVMCalls                = 0;
 int      opt_TraceJVMCallsVerbose         = 0;
@@ -271,6 +272,7 @@ enum {
 	OPT_TraceHPI,
 	OPT_TraceInlining,
 	OPT_TraceJavaCalls,
+	OPT_TraceJMMCalls,
 	OPT_TraceJNICalls,
 	OPT_TraceJVMCalls,
 	OPT_TraceJVMCallsVerbose,
@@ -348,6 +350,7 @@ option_t options_XX[] = {
 #if !defined(ENABLE_VMLOG)
 	{ "TraceJavaCalls",               OPT_TraceJavaCalls,               OPT_TYPE_BOOLEAN, "trace Java method calls" },
 #endif
+	{ "TraceJMMCalls",                OPT_TraceJMMCalls,                OPT_TYPE_BOOLEAN, "trace JMM method calls" },
 	{ "TraceJNICalls",                OPT_TraceJNICalls,                OPT_TYPE_BOOLEAN, "trace JNI method calls" },
 	{ "TraceJVMCalls",                OPT_TraceJVMCalls,                OPT_TYPE_BOOLEAN, "trace JVM method calls but omit very frequent ones" },
 	{ "TraceJVMCallsVerbose",         OPT_TraceJVMCallsVerbose,         OPT_TYPE_BOOLEAN, "trace all JVM method calls" },
@@ -829,6 +832,10 @@ void options_xx(JavaVMInitArgs *vm_args)
 		case OPT_TraceJavaCalls:
 			opt_verbosecall = enable;
 			opt_TraceJavaCalls = enable;
+			break;
+
+		case OPT_TraceJMMCalls:
+			opt_TraceJMMCalls = enable;
 			break;
 
 		case OPT_TraceJNICalls:

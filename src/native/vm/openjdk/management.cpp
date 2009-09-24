@@ -1,6 +1,8 @@
  /* src/native/vm/openjdk/management.cpp - HotSpot management interface functions
 
-   Copyright (C) 2008 Theobroma Systems Ltd.
+   Copyright (C) 2009
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
+   Copyright (C) 2008, 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
 
@@ -34,10 +36,34 @@
 
 #include "native/vm/openjdk/management.hpp"
 
+#include "threads/threadlist.hpp"
+
 #include "toolbox/logging.hpp"
 
+#include "vm/array.hpp"
+#include "vm/classcache.hpp"
+#include "vm/globals.hpp" // XXX Remove!!!
+#include "vm/options.h"
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
+
+
+/* debugging macros ***********************************************************/
+
+#if !defined(NDEBUG)
+
+# define TRACEJMMCALLS(x)               \
+	do {                                \
+		if (opt_TraceJMMCalls) {        \
+			log_println x;              \
+		}                               \
+	} while (0)
+
+#else
+
+# define TRACEJMMCALLS(x)
+
+#endif
 
 
 /**
@@ -80,16 +106,12 @@ const jmmOptionalSupport& Management::get_optional_support() const
 // Interface functions are exported as C functions.
 extern "C" {
 
-// Returns a version string and sets major and minor version if the
-// input parameters are non-null.
 jint jmm_GetVersion(JNIEnv* env)
 {
 	return JMM_VERSION;
 }
 
 
-// Gets the list of VM monitoring and management optional supports
-// Returns 0 if succeeded; otherwise returns non-zero.
 jint jmm_GetOptionalSupport(JNIEnv* env, jmmOptionalSupport* support)
 {
 	if (support == NULL) {
@@ -121,15 +143,25 @@ jobjectArray jmm_GetInputArgumentArray(JNIEnv* env)
 
 jobjectArray jmm_GetMemoryPools(JNIEnv* env, jobject obj)
 {
-	log_println("jmm_GetMemoryPools: IMPLEMENT ME!");
-	return NULL;
+	TRACEJMMCALLS(("jmm_GetMemoryPools(env=%p, obj=%p)", env, obj));
+
+	// XXX This should be an array of java/lang/management/MemoryPoolMXBean.
+	log_println("jmm_GetMemoryPools: FIX ME!");
+	ObjectArray oa(0, class_java_lang_String);
+
+	return oa.get_handle();
 }
 
 
 jobjectArray jmm_GetMemoryManagers(JNIEnv* env, jobject obj)
 {
-	log_println("jmm_GetMemoryManagers: IMPLEMENT ME!");
-	return NULL;
+	TRACEJMMCALLS(("jmm_GetMemoryManagers(env=%p, obj=%p)", env, obj));
+
+	// XXX This should be an array of java/lang/management/MemoryManagerMXBean.
+	log_println("jmm_GetMemoryManagers: FIX ME!");
+	ObjectArray oa(0, class_java_lang_String);
+
+	return oa.get_handle();
 }
 
 
@@ -176,22 +208,69 @@ jobject jmm_GetMemoryUsage(JNIEnv* env, jboolean heap)
 
 jboolean jmm_GetBoolAttribute(JNIEnv* env, jmmBoolAttribute att)
 {
-	log_println("jmm_GetBoolAttribute: IMPLEMENT ME!");
-	return 0;
+	TRACEJMMCALLS(("jmm_GetBoolAttribute(env=%p, att=%d)", env, att));
+
+	jboolean result;
+
+	switch (att) {
+	default:
+		log_println("jmm_GetBoolAttribute: Unknown attribute %d", att);
+		return false;
+	}
+
+	return result;
 }
 
 
 jboolean jmm_SetBoolAttribute(JNIEnv* env, jmmBoolAttribute att, jboolean flag)
 {
-	log_println("jmm_SetBoolAttribute: IMPLEMENT ME!");
-	return 0;
+	TRACEJMMCALLS(("jmm_SetBoolAttribute(env=%p, att=%d, flag=%d)", env, att, flag));
+
+	switch (att) {
+	default:
+		log_println("jmm_SetBoolAttribute: Unknown attribute %d", att);
+		return false;
+	}
+
+	return true;
 }
 
 
 jlong jmm_GetLongAttribute(JNIEnv* env, jobject obj, jmmLongAttribute att)
 {
-	log_println("jmm_GetLongAttribute: IMPLEMENT ME!");
-	return 0;
+	TRACEJMMCALLS(("jmm_GetLongAttribute(env=%p, obj=%p, att=%d)", env, obj, att));
+
+	jlong result;
+
+	switch (att) {
+	case JMM_CLASS_LOADED_COUNT:
+		result = classcache_get_loaded_class_count();
+		break;
+	case JMM_CLASS_UNLOADED_COUNT:
+		// XXX Fix this once we support class unloading!
+		result = 0;
+		break;
+	case JMM_THREAD_TOTAL_COUNT:
+		result = ThreadList::get_number_of_started_java_threads();
+		break;
+	case JMM_THREAD_LIVE_COUNT:
+		result = ThreadList::get_number_of_active_java_threads();
+		break;
+	case JMM_THREAD_PEAK_COUNT:
+		result = ThreadList::get_peak_of_active_java_threads();
+		break;
+	case JMM_THREAD_DAEMON_COUNT:
+		result = ThreadList::get_number_of_daemon_java_threads();
+		break;
+	case JMM_JVM_INIT_DONE_TIME_MS:
+		result = VM::get_current()->get_inittime();
+		break;
+	default:
+		log_println("jmm_GetLongAttribute: Unknown attribute %d", att);
+		return -1;
+	}
+
+	return result;
 }
 
 
@@ -225,8 +304,18 @@ jobjectArray jmm_GetLoadedClasses(JNIEnv* env)
 
 jboolean jmm_ResetStatistic(JNIEnv* env, jvalue obj, jmmStatisticType type)
 {
-	log_println("jmm_ResetStatistic: IMPLEMENT ME!");
-	return 0;
+	TRACEJMMCALLS(("jmm_ResetStatistic(env=%p, obj=%p, type=%d)", env, obj, type));
+
+	switch (type) {
+	case JMM_STAT_PEAK_THREAD_COUNT:
+		ThreadList::reset_peak_of_active_java_threads();
+		break;
+	default:
+		log_println("jmm_ResetStatistic: Unknown statistic type %d", type);
+		return false;
+	}
+
+	return true;
 }
 
 
