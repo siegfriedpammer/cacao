@@ -1,6 +1,6 @@
 /* src/threads/threadlist.hpp - different thread-lists
 
-   Copyright (C) 2008
+   Copyright (C) 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -34,6 +34,8 @@
 
 #include "toolbox/list.hpp"
 
+#include "vm/global.h"
+
 
 /* ThreadList *****************************************************************/
 
@@ -47,6 +49,12 @@ private:
 	static List<threadobject*> _free_thread_list;   // list of free threads
 	static List<int32_t>       _free_index_list;    // list of free thread indexes
 
+	// Thread counters visible to Java.
+	static int32_t             _number_of_started_java_threads;
+	static int32_t             _number_of_active_java_threads;
+	static int32_t             _peak_of_active_java_threads;
+
+	// Thread counters for internal usage.
 	static int32_t             _number_of_non_daemon_threads;
 
 	static void                 remove_from_active_thread_list(threadobject* t);
@@ -70,15 +78,31 @@ public:
 	// TODO make private
 	static void                 add_to_active_thread_list(threadobject* t);
 
-	static void                 dump_threads();
-	static void                 get_active_threads(List<threadobject*> &list);
+	// Thread management methods.
 	static threadobject*        get_main_thread();
 	static threadobject*        get_free_thread();
 	static int32_t              get_free_thread_index();
-	static int32_t              get_number_of_non_daemon_threads();
 	static threadobject*        get_thread_by_index(int32_t index);
 	static threadobject*        get_thread_from_java_object(java_handle_t* h);
 	static void                 release_thread(threadobject* t);
+
+	// Thread listing methods.
+	static void                 get_active_threads(List<threadobject*> &list);
+	static void                 get_active_java_threads(List<threadobject*> &list);
+
+	// Thread counting methods visible to Java.
+	static int32_t              get_number_of_started_java_threads();
+	static int32_t              get_number_of_active_java_threads();
+	static int32_t              get_number_of_daemon_java_threads();
+	static int32_t              get_peak_of_active_java_threads();
+	static void                 reset_peak_of_active_java_threads();
+
+	// Thread counting methods for internal use.
+	static int32_t              get_number_of_active_threads();
+	static int32_t              get_number_of_non_daemon_threads();
+
+	// Debugging methods.
+	static void                 dump_threads();
 };
 
 struct ThreadListLocker {
@@ -90,11 +114,23 @@ struct ThreadListLocker {
 inline void ThreadList::add_to_active_thread_list(threadobject* t)
 {
 	_active_thread_list.push_back(t);
+
+	// Update counter variables.
+	if ((t->flags & THREAD_FLAG_INTERNAL) == 0) {
+		_number_of_started_java_threads++;
+		_number_of_active_java_threads++;
+		_peak_of_active_java_threads = MAX(_peak_of_active_java_threads, _number_of_active_java_threads);
+	}
 }
 
 inline void ThreadList::remove_from_active_thread_list(threadobject* t)
 {
 	_active_thread_list.remove(t);
+
+	// Update counter variables.
+	if ((t->flags & THREAD_FLAG_INTERNAL) == 0) {
+		_number_of_active_java_threads--;
+	}
 }
 
 inline void ThreadList::add_to_free_thread_list(threadobject* t)
@@ -110,6 +146,31 @@ inline void ThreadList::add_to_free_index_list(int32_t index)
 inline threadobject* ThreadList::get_main_thread()
 {
 	return _active_thread_list.front();
+}
+
+inline int32_t ThreadList::get_number_of_active_threads()
+{
+	return _active_thread_list.size();
+}
+
+inline int32_t ThreadList::get_number_of_started_java_threads()
+{
+	return _number_of_started_java_threads;
+}
+
+inline int32_t ThreadList::get_number_of_active_java_threads()
+{
+	return _number_of_active_java_threads;
+}
+
+inline int32_t ThreadList::get_peak_of_active_java_threads()
+{
+	return _peak_of_active_java_threads;
+}
+
+inline void ThreadList::reset_peak_of_active_java_threads()
+{
+	_peak_of_active_java_threads = _number_of_active_java_threads;
 }
 
 #else

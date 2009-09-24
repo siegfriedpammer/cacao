@@ -80,7 +80,7 @@ bool threads_pthreads_implementation_nptl;
 
 static void          thread_create_initial_threadgroups(void);
 static void          thread_create_initial_thread(void);
-static threadobject *thread_new(void);
+static threadobject *thread_new(int32_t flags);
 
 
 /* threads_preinit *************************************************************
@@ -138,7 +138,7 @@ void threads_preinit(void)
 
 	/* Create internal thread data-structure for the main thread. */
 
-	mainthread = thread_new();
+	mainthread = thread_new(THREAD_FLAG_JAVA);
 
 	/* The main thread should always have index 1. */
 
@@ -146,9 +146,8 @@ void threads_preinit(void)
 		vm_abort("threads_preinit: main thread index not 1: %d != 1",
 				 mainthread->index);
 
-	/* thread is a Java thread and running */
+	/* Thread is already running. */
 
-	mainthread->flags |= THREAD_FLAG_JAVA;
 	mainthread->state = THREAD_STATE_RUNNABLE;
 
 	/* Store the internal thread data-structure in the TSD. */
@@ -440,7 +439,7 @@ static void thread_create_initial_thread(void)
 
 *******************************************************************************/
 
-static threadobject *thread_new(void)
+static threadobject *thread_new(int32_t flags)
 {
 	int32_t       index;
 	threadobject *t;
@@ -509,7 +508,7 @@ static threadobject *thread_new(void)
 
 	t->index     = index;
 	t->thinlock  = Lockword::pre_compute_thinlock(t->index);
-	t->flags     = 0;
+	t->flags     = flags;
 	t->state     = THREAD_STATE_NEW;
 
 #if defined(ENABLE_GC_CACAO)
@@ -578,9 +577,7 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 
 	/* Create internal thread data-structure. */
 
-	t = thread_new();
-
-	t->flags |= THREAD_FLAG_INTERNAL | THREAD_FLAG_DAEMON;
+	t = thread_new(THREAD_FLAG_INTERNAL | THREAD_FLAG_DAEMON);
 
 	/* The thread is flagged as (non-)daemon thread, we can leave the
 	   mutex. */
@@ -624,11 +621,7 @@ void threads_thread_start(java_handle_t *object)
 
 	/* Create internal thread data-structure. */
 
-	threadobject* t = thread_new();
-
-	/* this is a normal Java thread */
-
-	t->flags |= THREAD_FLAG_JAVA;
+	threadobject* t = thread_new(THREAD_FLAG_JAVA);
 
 #if defined(ENABLE_JAVASE)
 	/* Is this a daemon thread? */
@@ -710,11 +703,7 @@ bool thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	/* Create internal thread data structure. */
 
-	t = thread_new();
-
-	/* Thread is a Java thread and running. */
-
-	t->flags = THREAD_FLAG_JAVA;
+	t = thread_new(THREAD_FLAG_JAVA);
 
 	if (isdaemon)
 		t->flags |= THREAD_FLAG_DAEMON;

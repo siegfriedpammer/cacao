@@ -65,6 +65,7 @@ private:
 	bool    _created;
 	bool    _exiting;
 	int64_t _starttime;
+	int64_t _inittime;
 
 	// Subsystems.
 	Properties      _properties;      ///< Commandline properties.
@@ -101,6 +102,7 @@ public:
 	bool    is_created()      { return _created; }
 	bool    is_exiting()      { return _exiting; }
 	int64_t get_starttime()   { return _starttime; }
+	int64_t get_inittime()    { return _inittime; }
 
 	Properties&      get_properties     () { return _properties; }
 	Recompiler&      get_recompiler     () { return _recompiler; } // REMOVEME

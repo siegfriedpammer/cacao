@@ -1444,7 +1444,10 @@ VM::VM(JavaVMInitArgs* vm_args)
 	// Initialization is done, VM is created.
 	_created      = true;
 	_initializing = false;
-	
+
+	// Set the VM inittime.
+	_inittime = builtin_currenttimemillis();
+
 	// Print the run-time VM configuration after all stuff is set and
 	// the VM is initialized.
 	if (opt_PrintConfig)
@@ -1724,17 +1727,6 @@ void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args)
 	/* test the typeinfo system */
 	typeinfo_test();
 #endif
-
-	/* set ThreadMXBean variables */
-
-// 	_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount++;
-// 	_Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount++;
-
-// 	if (_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount >
-// 		_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount)
-// 		_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount =
-// 			_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount;
-#warning Move to C++
 
 	/* start the main thread */
 

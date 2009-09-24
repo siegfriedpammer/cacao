@@ -824,17 +824,6 @@ static void *threads_startup_thread(void *arg)
 		if (m == NULL)
 			vm_abort("threads_startup_thread: run() method not found in class");
 
-		/* set ThreadMXBean variables */
-
-/* 		_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount++; */
-/* 		_Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount++; */
-
-/* 		if (_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount > */
-/* 			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount) */
-/* 			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount = */
-/* 				_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount; */
-#warning Move to C++
-
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 		// We need to start the run method of java.lang.VMThread.
@@ -854,17 +843,6 @@ static void *threads_startup_thread(void *arg)
 		(void) vm_call_method(m, h);
 	}
 	else {
-		/* set ThreadMXBean variables */
-
-/* 		_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount++; */
-/* 		_Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount++; */
-
-/* 		if (_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount > */
-/* 			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount) */
-/* 			_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount = */
-/* 				_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount; */
-#warning Move to C++
-
 		/* call passed function, e.g. finalizer_thread */
 
 		(function)();
@@ -882,11 +860,6 @@ static void *threads_startup_thread(void *arg)
 	/* We ignore the return value. */
 
 	(void) thread_detach_current_thread();
-
-	/* set ThreadMXBean variables */
-
-/* 	_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount--; */
-#warning Move to C++
 
 	return NULL;
 }

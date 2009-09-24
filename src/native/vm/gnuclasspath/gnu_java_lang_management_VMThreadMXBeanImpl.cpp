@@ -36,6 +36,8 @@
 # include "native/vm/include/gnu_java_lang_management_VMThreadMXBeanImpl.h"
 #endif
 
+#include "threads/threadlist.hpp"
+
 #include "toolbox/logging.hpp"
 
 #include "vm/classcache.hpp"
@@ -92,10 +94,7 @@ JNIEXPORT jlong JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getCurr
  */
 JNIEXPORT jint JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getPeakThreadCount(JNIEnv *env, jclass clazz)
 {
-/* 	return _Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount; */
-#warning Move to C++
-	log_println("Java_gnu_java_lang_management_ThreadMXBean_getPeakThreadCount: MOVE TO C++!");
-	return 0;
+	return ThreadList::get_peak_of_active_java_threads();
 }
 
 
@@ -145,10 +144,7 @@ JNIEXPORT jlong JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getThre
  */
 JNIEXPORT jlong JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTotalStartedThreadCount(JNIEnv *env, jclass clazz)
 {
-/* 	return _Jv_jvm->java_lang_management_ThreadMXBean_TotalStartedThreadCount; */
-#warning Move to C++
-	log_println("Java_gnu_java_lang_management_ThreadMXBean_getTotalStartedThreadCount: MOVE TO C++!");
-	return 0;
+	return ThreadList::get_number_of_started_java_threads();
 }
 
 
@@ -159,10 +155,7 @@ JNIEXPORT jlong JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_getTota
  */
 JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMThreadMXBeanImpl_resetPeakThreadCount(JNIEnv *env, jclass clazz)
 {
-/* 	_Jv_jvm->java_lang_management_ThreadMXBean_PeakThreadCount = */
-/* 		_Jv_jvm->java_lang_management_ThreadMXBean_ThreadCount; */
-#warning Move to C++
-	log_println("Java_gnu_java_lang_management_VMThreadMXBeanImpl_resetPeakThreadCount: MOVE TO C++!");
+	return ThreadList::reset_peak_of_active_java_threads();
 }
 
 } // extern "C"

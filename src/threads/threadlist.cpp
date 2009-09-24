@@ -1,6 +1,6 @@
 /* src/threads/threadlist.cpp - thread list
 
-   Copyright (C) 2008
+   Copyright (C) 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -47,6 +47,9 @@ List<threadobject*> ThreadList::_active_thread_list;   // list of active threads
 List<threadobject*> ThreadList::_free_thread_list;     // list of free threads
 List<int32_t>       ThreadList::_free_index_list;      // list of free thread indexes
 
+int32_t             ThreadList::_number_of_started_java_threads;
+int32_t             ThreadList::_number_of_active_java_threads;
+int32_t             ThreadList::_peak_of_active_java_threads;
 int32_t             ThreadList::_number_of_non_daemon_threads;
 
 
@@ -122,6 +125,34 @@ void ThreadList::get_active_threads(List<threadobject*> &list)
 
 
 /**
+ * Fills the passed list with all currently active threads which should be
+ * visible to Java. Creating a copy of the thread list here, is the only way
+ * to ensure we do not end up in a dead-lock when iterating over the list.
+ *
+ * @param list list class to be filled
+ */
+void ThreadList::get_active_java_threads(List<threadobject*> &list)
+{
+	// Lock the thread lists.
+	lock();
+
+	// Iterate over all active threads.
+	for (List<threadobject*>::iterator it = _active_thread_list.begin(); it != _active_thread_list.end(); it++) {
+		threadobject* t = *it;
+
+		// We skip internal threads.
+		if (t->flags & THREAD_FLAG_INTERNAL)
+			continue;
+
+		list.push_back(t);
+	}
+
+	// Unlock the thread lists.
+	unlock();
+}
+
+
+/**
  * Return a free thread object.
  *
  * @return free thread object or NULL if none available
@@ -162,6 +193,40 @@ int32_t ThreadList::get_free_thread_index()
 	}
 
 	return index;
+}
+
+
+/**
+ * Return the number of daemon threads visible to Java.
+ *
+ * NOTE: This function does a linear-search over the threads list,
+ *       because it is only used by the management interface.
+ *
+ * @return number of daemon threads
+ */
+int32_t ThreadList::get_number_of_daemon_java_threads(void)
+{
+	int number = 0;
+
+	// Lock the thread lists.
+	lock();
+
+	// Iterate over all active threads.
+	for (List<threadobject*>::iterator it = _active_thread_list.begin(); it != _active_thread_list.end(); it++) {
+		threadobject* t = *it;
+
+		// We skip internal threads.
+		if (t->flags & THREAD_FLAG_INTERNAL)
+			continue;
+
+		if (thread_is_daemon(t))
+			number++;
+	}
+
+	// Unlock the thread lists.
+	unlock();
+
+	return number;
 }
 
 
