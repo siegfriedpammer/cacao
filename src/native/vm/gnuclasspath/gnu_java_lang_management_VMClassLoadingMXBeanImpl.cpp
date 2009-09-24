@@ -39,6 +39,7 @@
 #include "toolbox/logging.hpp"
 
 #include "vm/classcache.hpp"
+#include "vm/options.h"
 #include "vm/utf8.h"
 #include "vm/vm.hpp"
 
@@ -68,9 +69,12 @@ JNIEXPORT jint JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_ge
  */
 JNIEXPORT jlong JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getUnloadedClassCount(JNIEnv *env, jclass clazz)
 {
-	log_println("Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_getUnloadedClassCount: IMPLEMENT ME!");
+	int32_t count;
 
-	return 0;
+	// XXX Fix this once we support class unloading!
+	count = 0;
+
+	return count;
 }
 
 
@@ -81,10 +85,7 @@ JNIEXPORT jlong JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_g
  */
 JNIEXPORT jboolean JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVerbose(JNIEnv *env, jclass clazz)
 {
-/* 	return _Jv_jvm->Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_verbose; */
-#warning Move to C++
-	log_println("Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_isVerbose: MOVE TO C++!");
-	return 0;
+	return opt_verboseclass;
 }
 
 
@@ -95,9 +96,7 @@ JNIEXPORT jboolean JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImp
  */
 JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_setVerbose(JNIEnv *env, jclass clazz, jboolean verbose)
 {
-/* 	_Jv_jvm->Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_verbose = verbose; */
-#warning Move to C++
-	log_println("Java_gnu_java_lang_management_VMClassLoadingMXBeanImpl_setVerbose: MOVE TO C++!");
+	opt_verboseclass = verbose;
 }
 
 } // extern "C"

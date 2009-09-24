@@ -36,10 +36,9 @@
 # include "native/vm/include/gnu_java_lang_management_VMMemoryMXBeanImpl.h"
 #endif
 
-#include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
 #include "vm/global.h"
-#include "vm/loader.hpp"               /* XXX only for load_class_bootstrap */
+#include "vm/javaobjects.hpp"
 #include "vm/options.h"
 #include "vm/vm.hpp"
 
@@ -54,50 +53,17 @@ extern "C" {
  */
 JNIEXPORT jobject JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getHeapMemoryUsage(JNIEnv *env, jclass clazz)
 {
-	classinfo     *class_java_lang_management_MemoryUsage;
-	java_handle_t *o;
-	methodinfo    *m;
-	int64_t        init;
-	int64_t        used;
-	int64_t        commited;
-	int64_t        maximum;
+	// Get values from the VM.
+	// XXX If we ever support more than one VM, change this.
+	int64_t init     = opt_heapstartsize;
+	int64_t used     = gc_get_total_bytes();
+	int64_t commited = gc_get_heap_size();
+	int64_t maximum  = gc_get_max_heap_size();
 
-	/* get the class */
-	/* XXX optimize me! sometime... */
+	// Construct a new java.lang.management.MemoryUsage object.
+	java_lang_management_MemoryUsage jlmmu(init, used, commited, maximum);
 
-	if (!(class_java_lang_management_MemoryUsage = load_class_bootstrap(utf_new_char("java/lang/management/MemoryUsage"))))
-		return false;
-
-	/* create the object */
-
-	o = builtin_new(class_java_lang_management_MemoryUsage);
-	
-	if (o == NULL)
-		return NULL;
-
-	/* find initializer */
-
-	m = class_findmethod(class_java_lang_management_MemoryUsage,
-						 utf_init, utf_new_char("(JJJJ)V"));
-	                      	                      
-	/* initializer not found */
-
-	if (m == NULL)
-		return NULL;
-
-	/* get values from the VM */
-	/* XXX if we ever support more than one VM, change this */
-
-	init     = opt_heapstartsize;
-	used     = gc_get_total_bytes();
-	commited = gc_get_heap_size();
-	maximum  = gc_get_max_heap_size();
-
-	/* call initializer */
-
-	(void) vm_call_method(m, o, init, used, commited, maximum);
-
-	return (jobject) o;
+	return jlmmu.get_handle();
 }
 
 
@@ -134,10 +100,7 @@ JNIEXPORT jint JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_getObjec
  */
 JNIEXPORT jboolean JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose(JNIEnv *env, jclass clazz)
 {
-/* 	return _Jv_jvm->Java_gnu_java_lang_management_VMMemoryMXBeanImpl_verbose; */
-#warning Move to C++
-	log_println("Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVerbose: MOVE TO C++!");
-	return 0;
+	return opt_verbosegc;
 }
 
 
@@ -148,9 +111,7 @@ JNIEXPORT jboolean JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_isVe
  */
 JNIEXPORT void JNICALL Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbose(JNIEnv *env, jclass clazz, jboolean verbose)
 {
-/* 	_Jv_jvm->Java_gnu_java_lang_management_VMMemoryMXBeanImpl_verbose = verbose; */
-#warning Move to C++
-	log_println("Java_gnu_java_lang_management_VMMemoryMXBeanImpl_setVerbose: MOVE TO C++!");
+	opt_verbosegc = verbose;
 }
 
 } // extern "C"

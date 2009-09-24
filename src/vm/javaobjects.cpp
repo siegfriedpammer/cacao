@@ -75,6 +75,38 @@ java_handle_t* java_lang_ClassLoader::invoke_getSystemClassLoader()
 
 
 /**
+ * Constructs a new instance of the class by calling the
+ * appropriate Java initializer.
+ */
+java_lang_management_MemoryUsage::java_lang_management_MemoryUsage(int64_t init, int64_t used, int64_t commited, int64_t maximum)
+{
+	// Load the class.
+	// XXX Maybe this should be made global at some points.
+	classinfo* class_java_lang_management_MemoryUsage;
+	if (!(class_java_lang_management_MemoryUsage = load_class_bootstrap(utf_new_char("java/lang/management/MemoryUsage"))))
+		return;
+
+	// Find the appropriate initializer.
+	// XXX Maybe this should be made global at some points.
+	methodinfo* m = class_findmethod(class_java_lang_management_MemoryUsage,
+									 utf_init,
+									 utf_new_char("(JJJJ)V"));
+
+	if (m == NULL)
+		return;
+
+	// Instantiate a new object.
+	_handle = builtin_new(class_java_lang_management_MemoryUsage);
+
+	if (is_null())
+		return;
+
+	// Call initializer.
+	(void) vm_call_method(m, _handle, init, used, commited, maximum);
+}
+
+
+/**
  * Constructs a Java object with the given
  * java.lang.reflect.Constructor.
  *

@@ -509,6 +509,21 @@ inline void java_lang_Double::set_value(double value)
 
 #if defined(ENABLE_JAVASE)
 
+/**
+ * java/lang/management/MemoryUsage
+ *
+ * Object layout:
+ *
+ * 0. object header
+ * [other fields are not used]
+ */
+class java_lang_management_MemoryUsage : public java_lang_Object, private FieldAccess {
+public:
+	java_lang_management_MemoryUsage(java_handle_t* h) : java_lang_Object(h) {}
+	java_lang_management_MemoryUsage(int64_t init, int64_t used, int64_t commited, int64_t maximum);
+};
+
+
 # if defined(ENABLE_ANNOTATIONS)
 /**
  * OpenJDK sun/reflect/ConstantPool
