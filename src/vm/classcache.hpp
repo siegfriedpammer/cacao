@@ -146,11 +146,6 @@ s4 classcache_get_loaded_class_count(void);
 void classcache_foreach_loaded_class(classcache_foreach_functionptr_t func,
 									 void *data);
 
-#if defined(ENABLE_JVMTI)
-void classcache_get_loaded_classes(s4 *class_count_ptr,
-								   classinfo ***classes_ptr);
-#endif
-
 #ifndef NDEBUG
 void classcache_debug_dump(FILE *file,utf *only);
 #endif

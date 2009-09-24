@@ -1388,66 +1388,6 @@ s4 classcache_get_loaded_class_count(void)
 }
 
 
-/* classcache_get_loaded_classes ***********************************************
-
-   Returns an array of all loaded classes as array.  The array is
-   allocaed on the Java heap.
-
-*******************************************************************************/
-
-#if defined(ENABLE_JVMTI)
-void classcache_get_loaded_classes(s4 *class_count_ptr,
-								   classinfo ***classes_ptr)
-{
-	classinfo              **classes;
-	s4                       class_count;
-	classcache_name_entry   *en;
-	classcache_class_entry  *clsen;
-	s4                       i;
-	s4                       j;
-
-	CLASSCACHE_LOCK();
-
-	/* get the number of loaded classes and allocate the array */
-
-	class_count = classcache_number_of_loaded_classes();
-
-	classes = GCMNEW(classinfo*, class_count);
-
-	/* look in every slot of the hashtable */
-
-	for (i = 0, j = 0; i < hashtable_classcache.size; i++) {
-		/* iterate over hashlink */
-
-		for (en = hashtable_classcache.ptr[i]; en != NULL; en = en->hashlink) {
-			/* filter pseudo classes $NEW$, $NULL$, $ARRAYSTUB$ out */
-
-			if (en->name->text[0] == '$')
-				continue;
-
-			/* iterate over classes with same name */
-
-			for (clsen = en->classes; clsen != NULL; clsen = clsen->next) {
-				/* get only loaded classes */
-
-				if (clsen->classobj != NULL) {
-					classes[j] = clsen->classobj;
-					j++;
-				}
-			}
-		}
-	}
-
-	/* pass the return values */
-
-	*class_count_ptr = class_count;
-	*classes_ptr     = classes;
-
-	CLASSCACHE_UNLOCK();
-}
-#endif /* defined(ENABLE_JVMTI) */
-
-
 /* classcache_foreach_loaded_class *********************************************
 
    Calls the given function for each loaded class.
