@@ -80,10 +80,41 @@ void md_init(void)
  */
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
+	int disp = 0;
+	int cause;
 	ucontext_t* _uc = (struct ucontext *) _p;
 	mcontext_t* _mc = &_uc->uc_mcontext;
+	void *xpc;
 
-	void* xpc = (void*) (_mc->pc - 4);
+#if !defined(__UCLIBC__)
+# if ((__GLIBC__ == 2) && (__GLIBC_MINOR__ < 5))
+	/* NOTE: We only need this for pre glibc-2.5. */
+
+	/* get the cause of this exception */
+
+	cause = _mc->cause;
+
+	/* check the cause to find the faulting instruction */
+
+	/* TODO: use defines for that stuff */
+
+	switch (cause & 0x0000003c) {
+	case 0x00000008:
+		/* TLBL: XPC is ok */
+		break;
+
+	case 0x00000010:
+		/* AdEL: XPC is of the following instruction */
+		disp -= 4;
+		break;
+	}
+	xpc = (void*) (_mc->pc + disp);
+# else
+	xpc = (void*) _mc->pc;
+# endif
+#else
+	xpc = (void*) _gregs[CTX_EPC];
+#endif
 
 	// Handle the trap.
 	trap_handle(TRAP_SIGSEGV, xpc, _p);
@@ -98,7 +129,11 @@ void md_signal_handler_sigill(int sig, siginfo_t* siginfo, void* _p)
 	ucontext_t* _uc = (struct ucontext *) _p;
 	mcontext_t* _mc = &_uc->uc_mcontext;
 
-	void* xpc = (void*) (_mc->pc - 4);
+#if !defined(__UCLIBC__)
+	void* xpc = (void*) _mc->pc;
+#else
+	void* xpc = (void*) _gregs[CTX_EPC];
+#endif
 
 	// Handle the trap.
 	trap_handle(TRAP_SIGILL, xpc, _p);
