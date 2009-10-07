@@ -477,19 +477,19 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				M_IADD(GET_HIGH_REG(s1), REG_ITMP3, GET_HIGH_REG(d));
 			}
 			else if ((iptr->sx.val.l >= (-32768 + 1)) && (iptr->sx.val.l < 0)) {
-				s1 = emit_load_s1_low(jd, iptr, REG_ITMP2);
+				s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 				M_ISUB_IMM(s1, -(iptr->sx.val.l), GET_LOW_REG(d));
 				M_CMPULT_IMM(GET_LOW_REG(d), iptr->sx.val.l, REG_ITMP3);
-				s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 				M_ISUB_IMM(s1, 1, GET_HIGH_REG(d));
 				M_IADD(GET_HIGH_REG(d), REG_ITMP3, GET_HIGH_REG(d));
 			}
 			else {
-				ICONST(REG_ITMP2, iptr->sx.val.l & 0xffffffff);
+				ICONST(REG_ITMP1, iptr->sx.val.l & 0xffffffff);
 				s1 = emit_load_s1_low(jd, iptr, REG_ITMP3);
-				M_IADD(s1, REG_ITMP2, GET_LOW_REG(d));
+				M_IADD(s1, REG_ITMP1, GET_LOW_REG(d));
 				M_CMPULT(GET_LOW_REG(d), s1, REG_ITMP3);
-				s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 				M_IADD(s1, REG_ITMP3, GET_HIGH_REG(d));
 				ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
 				M_IADD(GET_HIGH_REG(d), REG_ITMP3, GET_HIGH_REG(d));
@@ -534,7 +534,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
 			M_ISUB(s1, s2, GET_HIGH_REG(d));
 			s1 = emit_load_s1_low(jd, iptr, REG_ITMP3);
-			s2 = emit_load_s2_low(jd, iptr, REG_ITMP1);
+			s2 = emit_load_s2_low(jd, iptr, REG_ITMP2);
 			M_CMPULT(s1, s2, REG_ITMP3);
 			M_ISUB(GET_HIGH_REG(d), REG_ITMP3, GET_HIGH_REG(d));
 			/* if s1 is equal to REG_ITMP3 we have to reload it, since
@@ -562,10 +562,10 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 #else
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
 			if ((iptr->sx.val.l >= 0) && (iptr->sx.val.l <= 32768)) {
-				s1 = emit_load_s1_low(jd, iptr, REG_ITMP2);
+				s1 = emit_load_s1_low(jd, iptr, REG_ITMP1);
 				M_ISUB_IMM(s1, iptr->sx.val.l, GET_LOW_REG(d));
 				M_CMPULT_IMM(GET_LOW_REG(d), -(iptr->sx.val.l), REG_ITMP3);
-				s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 				M_ISUB_IMM(s1, 1, GET_HIGH_REG(d));
 				M_IADD(GET_HIGH_REG(d), REG_ITMP3, GET_HIGH_REG(d));
 			}
@@ -576,11 +576,11 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				M_IADD(GET_HIGH_REG(s1), REG_ITMP3, GET_HIGH_REG(d));
 			}
 			else {
-				ICONST(REG_ITMP2, iptr->sx.val.l & 0xffffffff);
+				ICONST(REG_ITMP1, iptr->sx.val.l & 0xffffffff);
 				s1 = emit_load_s1_low(jd, iptr, REG_ITMP3);
-				M_ISUB(s1, REG_ITMP2, GET_LOW_REG(d));
-				M_CMPULT(s1, REG_ITMP2, REG_ITMP3);
-				s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+				M_ISUB(s1, REG_ITMP1, GET_LOW_REG(d));
+				M_CMPULT(s1, REG_ITMP1, REG_ITMP3);
+				s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 				M_ISUB(s1, REG_ITMP3, GET_HIGH_REG(d));
 				ICONST(REG_ITMP3, iptr->sx.val.l >> 32);
 				M_ISUB(GET_HIGH_REG(d), REG_ITMP3, GET_HIGH_REG(d));
@@ -780,12 +780,12 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				M_AND_IMM(d, iptr->sx.val.i, d);
 			}
 			else {
-				ICONST(REG_ITMP2, iptr->sx.val.i);
-				M_AND(s1, REG_ITMP2, d);
+				ICONST(REG_ITMP3, iptr->sx.val.i);
+				M_AND(s1, REG_ITMP3, d);
 				M_BGEZ(s1, 4);
 				M_NOP;
 				M_ISUB(REG_ZERO, s1, d);
-				M_AND(d, REG_ITMP2, d);
+				M_AND(d, REG_ITMP3, d);
 			}
 			M_ISUB(REG_ZERO, d, d);
 			emit_store_dst(jd, iptr, d);
