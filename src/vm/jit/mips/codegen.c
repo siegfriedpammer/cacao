@@ -1010,7 +1010,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP3);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
 			M_AND(s1, s2, GET_LOW_REG(d));
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);
 			M_AND(s1, s2, GET_HIGH_REG(d));
 #endif
@@ -1082,7 +1082,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP3);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
 			M_OR(s1, s2, GET_LOW_REG(d));
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);
 			M_OR(s1, s2, GET_HIGH_REG(d));
 #endif
@@ -1154,7 +1154,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			s2 = emit_load_s2_low(jd, iptr, REG_ITMP3);
 			d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
 			M_XOR(s1, s2, GET_LOW_REG(d));
-			s1 = emit_load_s1_high(jd, iptr, REG_ITMP2);
+			s1 = emit_load_s1_high(jd, iptr, REG_ITMP1);
 			s2 = emit_load_s2_high(jd, iptr, REG_ITMP3);
 			M_XOR(s1, s2, GET_HIGH_REG(d));
 #endif
