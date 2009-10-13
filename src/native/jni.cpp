@@ -2876,7 +2876,7 @@ void _Jv_JNI_Release##name##ArrayElements(JNIEnv *env, type##Array array,  \
 }
 
 JNI_RELEASE_ARRAY_ELEMENTS(Boolean, jboolean, boolean, u1)
-JNI_RELEASE_ARRAY_ELEMENTS(Byte,    jbyte,    byte,    int8_t)
+JNI_RELEASE_ARRAY_ELEMENTS(Byte,    jbyte,    byte,    s1)
 JNI_RELEASE_ARRAY_ELEMENTS(Char,    jchar,    char,    u2)
 JNI_RELEASE_ARRAY_ELEMENTS(Short,   jshort,   short,   s2)
 JNI_RELEASE_ARRAY_ELEMENTS(Int,     jint,     int,     s4)
@@ -2907,7 +2907,7 @@ void _Jv_JNI_Get##name##ArrayRegion(JNIEnv *env, type##Array array,     \
 }
 
 JNI_GET_ARRAY_REGION(Boolean, jboolean, boolean, u1)
-JNI_GET_ARRAY_REGION(Byte,    jbyte,    byte,    int8_t)
+JNI_GET_ARRAY_REGION(Byte,    jbyte,    byte,    s1)
 JNI_GET_ARRAY_REGION(Char,    jchar,    char,    u2)
 JNI_GET_ARRAY_REGION(Short,   jshort,   short,   s2)
 JNI_GET_ARRAY_REGION(Int,     jint,     int,     s4)
@@ -2938,7 +2938,7 @@ void _Jv_JNI_Set##name##ArrayRegion(JNIEnv *env, type##Array array,          \
 }
 
 JNI_SET_ARRAY_REGION(Boolean, jboolean, boolean, u1)
-JNI_SET_ARRAY_REGION(Byte,    jbyte,    byte,    int8_t)
+JNI_SET_ARRAY_REGION(Byte,    jbyte,    byte,    s1)
 JNI_SET_ARRAY_REGION(Char,    jchar,    char,    u2)
 JNI_SET_ARRAY_REGION(Short,   jshort,   short,   s2)
 JNI_SET_ARRAY_REGION(Int,     jint,     int,     s4)
