@@ -1,6 +1,6 @@
 ## src/native/vm/openjdk/Makefile.am
 ##
-## Copyright (C) 2007, 2008
+## Copyright (C) 2007, 2008, 2009
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -33,7 +33,8 @@ libnativevmcore_la_SOURCES = \
 	hpi.hpp \
 	jvm.cpp \
 	management.cpp \
-	management.hpp
+	management.hpp \
+	sun_misc_Perf.cpp
 
 
 ## Local variables:

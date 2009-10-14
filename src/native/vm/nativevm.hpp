@@ -66,6 +66,7 @@ void _Jv_sun_reflect_ConstantPool_init();
 
 # elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 
+void _Jv_sun_misc_Perf_init();
 void _Jv_sun_misc_Unsafe_init();
 
 # else

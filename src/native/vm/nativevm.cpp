@@ -124,6 +124,7 @@ void nativevm_preinit(void)
 	HPI& hpi = vm->get_hpi();
 	hpi.initialize();
 
+	_Jv_sun_misc_Perf_init();
 	_Jv_sun_misc_Unsafe_init();
 
 # else
