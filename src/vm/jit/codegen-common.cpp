@@ -1356,8 +1356,12 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_IMUL:       /* ..., val1, val2  ==> ..., val1 * val2    */
 			case ICMD_IMULCONST:  /* ..., value  ==> ..., value * constant    */
 			                      /* sx.val.i = constant                      */
+			case ICMD_IMULPOW2:   /* ..., value  ==> ..., value * (2 ^ constant) */
+			                      /* sx.val.i = constant                      */
 			case ICMD_LMUL:       /* ..., val1, val2  ==> ..., val1 * val2    */
 			case ICMD_LMULCONST:  /* ..., value  ==> ..., value * constant    */
+			                      /* sx.val.l = constant                      */
+			case ICMD_LMULPOW2:   /* ..., value  ==> ..., value * (2 ^ constant) */
 			                      /* sx.val.l = constant                      */
 			case ICMD_IDIV:       /* ..., val1, val2  ==> ..., val1 / val2    */
 			case ICMD_IREM:       /* ..., val1, val2  ==> ..., val1 % val2    */
@@ -1527,7 +1531,6 @@ bool codegen_emit(jitdata *jd)
 				/* This approach is much faster than moving the field
 				   address inline into a register. */
 
-				// XXX ARM: M_DSEG_LOAD(REG_ITMP3, disp);
 				M_ALD_DSEG(REG_ITMP1, disp);
 
 				switch (fieldtype) {
@@ -1585,7 +1588,6 @@ bool codegen_emit(jitdata *jd)
 				/* This approach is much faster than moving the field
 				   address inline into a register. */
 
-				// XXX ARM: M_DSEG_LOAD(REG_ITMP3, disp);
 				M_ALD_DSEG(REG_ITMP1, disp);
 
 				switch (fieldtype) {
@@ -1839,16 +1841,22 @@ bool codegen_emit(jitdata *jd)
 
 				REPLACEMENT_POINT_RETURN(cd, iptr);
 				s1 = emit_load_s1(jd, iptr, REG_FRESULT);
-				// XXX ARM: Here this was M_CAST_F2I(s1, REG_RESULT);
+#if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 				emit_fmove(cd, s1, REG_FRESULT);
+#else
+				M_CAST_F2I(s1, REG_RESULT);
+#endif
 				goto nowperformreturn;
 
 			case ICMD_DRETURN:    /* ..., retvalue ==> ...                    */
 
 				REPLACEMENT_POINT_RETURN(cd, iptr);
 				s1 = emit_load_s1(jd, iptr, REG_FRESULT);
-				// XXX ARM: Here this was M_CAST_D2L(s1, REG_RESULT_PACKED);
+#if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 				emit_dmove(cd, s1, REG_FRESULT);
+#else
+				M_CAST_D2L(s1, REG_LRESULT);
+#endif
 				goto nowperformreturn;
 
 nowperformreturn:
@@ -1964,26 +1972,24 @@ gen_method:
 							emit_imove(cd, s1, d);
 							break;
 
-#if 0 //XXX For ARM:
-if (!md->params[s3].inmemory) {
-	s1 = emit_load(jd, iptr, var, REG_FTMP1);
-	if (IS_2_WORD_TYPE(var->type))
-		M_CAST_D2L(s1, d);
-	else
-		M_CAST_F2I(s1, d);
-}
-#endif //XXX End of ARM!
-
 						case TYPE_LNG:
 							emit_lmove(cd, s1, d);
 							break;
 
 						case TYPE_FLT:
+#if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 							emit_fmove(cd, s1, d);
+#else
+							M_CAST_F2I(s1, d);
+#endif
 							break;
 
 						case TYPE_DBL:
+#if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 							emit_dmove(cd, s1, d);
+#else
+							M_CAST_D2L(s1, d);
+#endif
 							break;
 						}
 					}
@@ -2071,27 +2077,25 @@ if (!md->params[s3].inmemory) {
 					emit_store_dst(jd, iptr, s1);
 					break;
 
-#if 0 //XXX For ARM!!!
-#if !defined(ENABLE_SOFTFLOAT)
-				} else {
-					s1 = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-					if (IS_2_WORD_TYPE(d))
-						M_CAST_L2D(REG_RESULT_PACKED, s1);
-					else
-						M_CAST_I2F(REG_RESULT, s1);
-				}
-#endif /* !defined(ENABLE_SOFTFLOAT) */
-#endif //XXX End of ARM
-
 				case TYPE_FLT:
+#if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 					s1 = codegen_reg_of_dst(jd, iptr, REG_FRESULT);
 					emit_fmove(cd, REG_FRESULT, s1);
+#else
+					s1 = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
+					M_CAST_I2F(REG_RESULT, s1);
+#endif
 					emit_store_dst(jd, iptr, s1);
 					break;
 
 				case TYPE_DBL:
+#if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 					s1 = codegen_reg_of_dst(jd, iptr, REG_FRESULT);
 					emit_dmove(cd, REG_FRESULT, s1);
+#else
+					s1 = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
+					M_CAST_L2D(REG_LRESULT, s1);
+#endif
 					emit_store_dst(jd, iptr, s1);
 					break;
 

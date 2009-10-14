@@ -961,11 +961,11 @@ do { \
 
 #define M_STR(d, base, offset) \
 do { \
-	assert((d) != REG_ITMP3); \
 	CHECK_OFFSET(offset, 0x0fffff); \
 	if (IS_OFFSET(offset, 0x000fff)) { \
 		M_STR_INTERN(d, base, offset); \
 	} else { \
+		assert((d) != REG_ITMP3); \
 		if ((offset) > 0) { \
 			M_ADD_IMM(REG_ITMP3, base, IMM_ROTL((offset) >> 12, 6)); \
 			M_STR_INTERN(d, REG_ITMP3, (offset) & 0x000fff); \
@@ -978,8 +978,6 @@ do { \
 
 #define M_STRD(d, base, offset) \
 do { \
-	assert(GET_LOW_REG(d) != REG_ITMP3); \
-	assert(GET_HIGH_REG(d) != REG_ITMP3); \
 	CHECK_OFFSET(offset, 0x0fffff - 4); \
 	if (IS_OFFSET(offset, 0x000fff - 4)) { \
 		M_STRD_INTERN(d,base,offset); \
@@ -987,6 +985,8 @@ do { \
 		dolog("M_STRD: this offset seems to be complicated (%d)", offset); \
 		assert(0); \
 	} else { \
+		assert(GET_LOW_REG(d) != REG_ITMP3); \
+		assert(GET_HIGH_REG(d) != REG_ITMP3); \
 		if ((offset) > 0) { \
 			M_ADD_IMM(REG_ITMP3, base, IMM_ROTL((offset) >> 12, 6)); \
 			M_STRD_INTERN(d, REG_ITMP3, (offset) & 0x000fff); \

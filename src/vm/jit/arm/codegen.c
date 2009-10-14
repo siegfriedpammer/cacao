@@ -2405,14 +2405,14 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* calculate stackframe size */
 
 	cd->stackframesize =
-		4 +                                                /* return address  */
-		sizeof(stackframeinfo_t) +                         /* stackframeinfo  */
-		sizeof(localref_table) +                           /* localref_table  */
-		nmd->memuse * 4;                                   /* stack arguments */
+		1 +                                                /* return address  */
+		sizeof(stackframeinfo_t) / SIZEOF_VOID_P +         /* stackframeinfo  */
+		sizeof(localref_table) / SIZEOF_VOID_P +           /* localref_table  */
+		nmd->memuse;                                       /* stack arguments */
 
 	/* align stack to 8-byte */
 
-	cd->stackframesize = (cd->stackframesize + 4) & ~4;
+	cd->stackframesize = (cd->stackframesize + 1) & ~1;
 
 	/* create method header */
 
@@ -2425,7 +2425,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	/* generate stub code */
 
 	M_STMFD(1<<REG_LR, REG_SP);
-	M_SUB_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize / 4 - 1);
+	M_SUB_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize * 2 - 1);
 
 #if defined(ENABLE_GC_CACAO)
 	/* Save callee saved integer registers in stackframeinfo (GC may
@@ -2498,7 +2498,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 			}
 		}
 		else {
-			s1 = md->params[i].regoff + cd->stackframesize;
+			s1 = md->params[i].regoff + cd->stackframesize * 8;
 			s2 = nmd->params[j].regoff;
 
 			if (IS_2_WORD_TYPE(t)) {
@@ -2583,7 +2583,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	/* finish stub code, but do not yet return to caller */
 
-	M_ADD_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize / 4 - 1);
+	M_ADD_IMM_EXT_MUL4(REG_SP, REG_SP, cd->stackframesize * 2 - 1);
 	M_LDMFD(1<<REG_LR, REG_SP);
 
 	/* check for exception */
