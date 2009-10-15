@@ -66,6 +66,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
+#include "vm/hook.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/options.h"
 #include "vm/os.hpp"
@@ -95,10 +96,6 @@
 /* We need to include Boehm's gc.h here because it overrides
    pthread_create and friends. */
 # include "mm/boehm-gc/include/gc.h"
-#endif
-
-#if defined(ENABLE_JVMTI)
-#include "native/jvmti/cacaodbg.h"
 #endif
 
 
@@ -795,12 +792,8 @@ static void *threads_startup_thread(void *arg)
 		thread->_global_sp = (Cell *) (intrp_thread_stack + opt_stacksize);
 #endif
 
-#if defined(ENABLE_JVMTI)
-	/* fire thread start event */
-
-	if (jvmti) 
-		jvmti_ThreadStartEnd(JVMTI_EVENT_THREAD_START);
-#endif
+	// Hook point just before the threads initial method is executed.
+	Hook::thread_start(t);
 
 	DEBUGTHREADS("starting", t);
 
@@ -850,12 +843,8 @@ static void *threads_startup_thread(void *arg)
 
 	DEBUGTHREADS("stopping", t);
 
-#if defined(ENABLE_JVMTI)
-	/* fire thread end event */
-
-	if (jvmti)
-		jvmti_ThreadStartEnd(JVMTI_EVENT_THREAD_END);
-#endif
+	// Hook point just after the threads initial method returned.
+	Hook::thread_end(t);
 
 	/* We ignore the return value. */
 

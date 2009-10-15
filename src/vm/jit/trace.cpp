@@ -41,6 +41,7 @@
 #include "vm/array.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
+#include "vm/hook.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/options.h"
 #include "vm/string.hpp"
@@ -225,6 +226,9 @@ void trace_java_call_enter(methodinfo *m, uint64_t *arg_regs, uint64_t *stack)
 	return;
 #endif
 
+	// Hook point on entry into Java method.
+	Hook::method_enter(m);
+
 	md = m->parseddesc;
 
 	/* calculate message length */
@@ -360,6 +364,9 @@ void trace_java_call_exit(methodinfo *m, uint64_t *return_regs)
 	vmlog_cacao_leave_method(m);
 	return;
 #endif
+
+	// Hook point upon exit from Java method.
+	Hook::method_exit(m);
 
 	md = m->parseddesc;
 

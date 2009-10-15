@@ -38,11 +38,6 @@
 #include "native/jni.hpp"
 #include "native/native.hpp"
 
-#if defined(ENABLE_JVMTI)
-# include "native/jvmti/jvmti.h"
-# include "native/jvmti/cacaodbg.h"
-#endif
-
 #include "vm/os.hpp"
 #include "vm/vm.hpp"
 
@@ -159,12 +154,6 @@ int main(int argc, char **argv)
 	void*   env; // We use a void* instead of a JNIEnv* here to prevent a compiler warning.
 
 	(void) VM_create(&vm, &env, vm_args);
-
-#if defined(ENABLE_JVMTI)
-# error This should be a JVMTI function.
-	Mutex_init(&dbgcomlock);
-	if (jvmti) jvmti_set_phase(JVMTI_PHASE_START);
-#endif
 
 #if defined(ENABLE_LIBJVM)
 	libjvm_vm_run = os::dlsym(libjvm_handle, "vm_run");

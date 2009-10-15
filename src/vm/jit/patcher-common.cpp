@@ -45,6 +45,7 @@
 
 #include "vm/breakpoint.hpp"
 #include "vm/exceptions.hpp"
+#include "vm/hook.hpp"
 #include "vm/initialize.hpp"
 #include "vm/options.h"
 #include "vm/os.hpp"
@@ -576,13 +577,8 @@ bool patcher_breakpoint(patchref_t *pr)
 	// Get stuff from the patcher reference.
 	Breakpoint* breakp = (Breakpoint*) pr->ref;
 
-#if defined(ENABLE_JVMTI)
-	methodinfo* m = breakp->method;
-	int32_t     l = breakp->location;
-
-	log_message_method("JVMTI: Reached breakpoint in method ", m);
-	log_println("JVMTI: Reached breakpoint at location %d", l);
-#endif
+	// Hook point when a breakpoint was triggered.
+	Hook::breakpoint(breakp);
 
 	// In case the breakpoint wants to be kept active, we simply
 	// fail to "patch" at this point.

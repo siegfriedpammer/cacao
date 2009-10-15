@@ -47,6 +47,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
+#include "vm/hook.hpp"
 #include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/os.hpp"
@@ -451,6 +452,9 @@ void* NativeMethods::resolve_method(methodinfo* m)
 
 		exceptions_throw_unsatisfiedlinkerror(m->name);
 	}
+
+	// Hook point just after method resolving finished.
+	Hook::native_resolved(m, symbol, &symbol);
 
 	return symbol;
 }

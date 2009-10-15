@@ -99,6 +99,7 @@ libvm_la_SOURCES = \
 	finalizer.hpp \
 	globals.cpp \
 	globals.hpp \
+	hook.hpp \
 	initialize.cpp \
 	initialize.hpp \
 	javaobjects.cpp \

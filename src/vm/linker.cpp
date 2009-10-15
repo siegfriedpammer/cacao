@@ -45,6 +45,7 @@
 #include "vm/classcache.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/globals.hpp"
+#include "vm/hook.hpp"
 #include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
@@ -424,6 +425,9 @@ classinfo *link_class(classinfo *c)
 	RT_TIMING_GET_TIME(time_end);
 
 	RT_TIMING_TIME_DIFF(time_start,time_end,RT_TIMING_LINK_TOTAL);
+
+	// Hook point just after a class was linked.
+	Hook::class_linked(r);
 
 	return r;
 }

@@ -2965,14 +2965,10 @@ jint jni_RegisterNatives(JNIEnv* env, jclass clazz, const JNINativeMethod* metho
 
 	classinfo* c = LLNI_classinfo_unwrap(clazz);
 
-	/* XXX: if implemented this needs a call to jvmti_NativeMethodBind
-	if (jvmti) jvmti_NativeMethodBind(method, address,  new_address_ptr);
-	*/
-
 	NativeMethods& nm = VM::get_current()->get_nativemethods();
 	nm.register_methods(c->name, methods, nMethods);
 
-    return 0;
+	return 0;
 }
 
 

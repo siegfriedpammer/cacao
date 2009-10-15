@@ -69,6 +69,7 @@
 #include "vm/finalizer.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
+#include "vm/hook.hpp"
 #include "vm/initialize.hpp"
 #include "vm/options.h"
 #include "vm/os.hpp"
@@ -1447,6 +1448,9 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 	// Set the VM inittime.
 	_inittime = builtin_currenttimemillis();
+
+	// Hook point after the VM is initialized.
+	Hook::vm_init();
 
 	// Print the run-time VM configuration after all stuff is set and
 	// the VM is initialized.

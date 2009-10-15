@@ -108,19 +108,8 @@ JNIEXPORT void JNICALL Java_java_lang_VMObject_notifyAll(JNIEnv* env, jclass cla
  */
 JNIEXPORT void JNICALL Java_java_lang_VMObject_wait(JNIEnv* env, jclass clazz, jobject o, jlong ms, jint ns)
 {
-#if defined(ENABLE_JVMTI)
-	/* Monitor Wait */
-	if (jvmti) jvmti_MonitorWaiting(true, o, ms);
-#endif
-
 #if defined(ENABLE_THREADS)
 	lock_wait_for_object(o, ms, ns);
-#endif
-
-#if defined(ENABLE_JVMTI)
-	/* Monitor Waited */
-	/* XXX: How do you know if wait timed out ?*/
-	if (jvmti) jvmti_MonitorWaiting(false, o, 0);
 #endif
 }
 

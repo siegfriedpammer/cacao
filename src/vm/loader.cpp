@@ -49,6 +49,7 @@
 #include "vm/field.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
+#include "vm/hook.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
@@ -77,10 +78,6 @@
 #endif
 
 #include "vm/jit/stubs.hpp"
-
-#if defined(ENABLE_JVMTI)
-# include "native/jvmti/cacaodbg.h"
-#endif
 
 
 /* global variables ***********************************************************/
@@ -1177,12 +1174,6 @@ classinfo *load_class_from_classloader(utf *name, classloader_t *cl)
 			printf("]\n");
 		}
 
-#if defined(ENABLE_JVMTI)
-		/* fire Class Load JVMTI event */
-		if (jvmti) jvmti_ClassLoadPrepare(false, c);
-#endif
-
-
 		return c;
 	} 
 
@@ -1972,17 +1963,13 @@ classinfo *load_class_from_classbuffer(classbuffer *cb)
 
 	c->state = (c->state & ~CLASS_LOADING) | CLASS_LOADED;
 
-#if defined(ENABLE_JVMTI)
-	/* fire Class Prepare JVMTI event */
-
-	if (jvmti)
-		jvmti_ClassLoadPrepare(true, c);
-#endif
-
 #if !defined(NDEBUG)
 	if (loadverbose)
 		log_message_class("Loading done class: ", c);
 #endif
+
+	// Hook point just after a class was loaded.
+	Hook::class_loaded(c);
 
 	return c;
 }
