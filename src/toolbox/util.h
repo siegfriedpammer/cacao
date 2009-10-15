@@ -39,7 +39,6 @@
 extern "C" {
 #endif
 
-char *_Jv_getcwd(void);
 int   get_variable_message_length(const char *fmt, va_list ap);
 
 #ifdef __cplusplus

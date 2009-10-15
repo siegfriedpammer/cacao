@@ -38,8 +38,6 @@
 
 #include "native/llni.h"
 
-#include "toolbox/util.h"
-
 #include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/method.hpp"
@@ -339,7 +337,7 @@ Properties::Properties()
 
 	/* Get properties from system. */
 
-	char* cwd      = _Jv_getcwd();
+	char* cwd      = os::getcwd();
 
 	char* env_user = os::getenv("USER");
 	char* env_home = os::getenv("HOME");

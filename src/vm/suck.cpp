@@ -38,7 +38,6 @@
 
 #include "toolbox/list.hpp"
 #include "toolbox/logging.hpp"
-#include "toolbox/util.h"
 
 #include "vm/exceptions.hpp"
 #include "vm/loader.hpp"
@@ -115,7 +114,7 @@ void SuckClasspath::add(char *classpath)
 			cwdlen = 0;
 
 			if (*start != '/') {                      /* XXX fix me for win32 */
-				cwd = _Jv_getcwd();
+				cwd = os::getcwd();
 				cwdlen = strlen(cwd) + strlen("/");
 			}
 

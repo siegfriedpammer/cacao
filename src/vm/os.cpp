@@ -58,6 +58,8 @@
 /* this should work on BSD */
 /* #include <sys/sysctl.h> */
 
+#include "mm/memory.hpp"
+
 #include "vm/vm.hpp"
 
 
@@ -138,6 +140,40 @@ void os::abort_errno(const char* text, ...)
 	va_start(ap, text);
 	abort_verrnum(errno, text, ap);
 	va_end(ap);
+}
+
+
+/**
+ * Return the current working directory.
+ *
+ * @return Pointer to a char array allocated by MNEW, or
+ *         NULL if memory could not be allocated.
+ */
+char* os::getcwd(void)
+{
+	int32_t size = 1024;
+
+	char* buf = MNEW(char, size);
+
+	while (buf != NULL) {
+		if (getcwd(buf, size) != NULL)
+			return buf;
+
+		MFREE(buf, char, size);
+
+		/* too small buffer or a more serious problem */
+
+		if (errno != ERANGE)
+			abort_errno("os::getcwd: getcwd failed");
+
+		/* double the buffer size */
+
+		size *= 2;
+
+		buf = MNEW(char, size);
+	}
+
+	return NULL;
 }
 
 

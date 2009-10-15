@@ -36,47 +36,6 @@
 #include "vm/vm.hpp"
 
 
-/* _Jv_getcwd ******************************************************************
-
-   Return the current working directory.
-
-   RETURN VALUE:
-       pointer to a char array allocated by MNEW, or
-	   NULL if memory could not be allocated.
-
-*******************************************************************************/
-
-char *_Jv_getcwd(void)
-{
-	char *buf;
-	s4    size;
-
-	size = 1024;
-
-	buf = MNEW(char, size);
-
-	while (buf) {
-		if (getcwd(buf, size) != NULL)
-			return buf;
-
-		MFREE(buf, char, size);
-
-		/* too small buffer or a more serious problem */
-
-		if (errno != ERANGE)
-			vm_abort("getcwd failed: %s", strerror(errno));
-
-		/* double the buffer size */
-
-		size *= 2;
-
-		buf = MNEW(char, size);
-	}
-
-	return NULL;
-}
-
-
 /* get_variable_message_length *************************************************
 
    This function simluates the print of a variable message and

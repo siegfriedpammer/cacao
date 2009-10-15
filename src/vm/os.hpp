@@ -137,6 +137,7 @@ public:
 	static inline int     fprintf(FILE* stream, const char* format, ...);
 	static inline size_t  fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
 	static inline void    free(void* ptr);
+	static inline char*   getcwd(char* buf, size_t size);
 	static inline char*   getenv(const char* name);
 	static inline int     gethostname(char* name, size_t len);
 	static inline int     getloadavg(double loadavg[], int nelem);
@@ -170,6 +171,7 @@ public:
 	static void  abort(const char* text, ...);
 	static void  abort_errnum(int errnum, const char* text, ...);
 	static void  abort_errno(const char* text, ...);
+	static char* getcwd(void);
 	static void* mmap_anonymous(void *addr, size_t len, int prot, int flags);
 	static void  print_backtrace();
 	static int   processors_online();
@@ -376,6 +378,15 @@ inline static int system_ftruncate(int fd, off_t length)
 	return ftruncate(fd, length);
 #else
 # error ftruncate not available
+#endif
+}
+
+inline char* os::getcwd(char* buf, size_t size)
+{
+#if defined(HAVE_GETCWD)
+	return ::getcwd(buf, size);
+#else
+# error getcwd not available
 #endif
 }
 
