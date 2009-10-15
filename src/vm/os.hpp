@@ -89,6 +89,10 @@
 # include <unistd.h>
 #endif
 
+#if defined(HAVE_SYS_LOADAVG_H)
+# include <sys/loadavg.h>
+#endif
+
 #if defined(HAVE_SYS_MMAN_H)
 # include <sys/mman.h>
 #endif
