@@ -213,6 +213,12 @@ jboolean jmm_GetBoolAttribute(JNIEnv* env, jmmBoolAttribute att)
 	jboolean result;
 
 	switch (att) {
+	case JMM_VERBOSE_GC:
+		result = opt_verbosegc;
+		break;
+	case JMM_VERBOSE_CLASS:
+		result = opt_verboseclass;
+		break;
 	default:
 		log_println("jmm_GetBoolAttribute: Unknown attribute %d", att);
 		return false;
@@ -227,6 +233,12 @@ jboolean jmm_SetBoolAttribute(JNIEnv* env, jmmBoolAttribute att, jboolean flag)
 	TRACEJMMCALLS(("jmm_SetBoolAttribute(env=%p, att=%d, flag=%d)", env, att, flag));
 
 	switch (att) {
+	case JMM_VERBOSE_GC:
+		opt_verbosegc = flag;
+		break;
+	case JMM_VERBOSE_CLASS:
+		opt_verboseclass = flag;
+		break;
 	default:
 		log_println("jmm_SetBoolAttribute: Unknown attribute %d", att);
 		return false;
@@ -264,6 +276,9 @@ jlong jmm_GetLongAttribute(JNIEnv* env, jobject obj, jmmLongAttribute att)
 		break;
 	case JMM_JVM_INIT_DONE_TIME_MS:
 		result = VM::get_current()->get_inittime();
+		break;
+	case JMM_OS_PROCESS_ID:
+		result = os::getpid();
 		break;
 	default:
 		log_println("jmm_GetLongAttribute: Unknown attribute %d", att);

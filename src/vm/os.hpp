@@ -141,6 +141,7 @@ public:
 	static inline int     gethostname(char* name, size_t len);
 	static inline int     getloadavg(double loadavg[], int nelem);
 	static inline int     getpagesize(void);
+	static inline pid_t   getpid(void);
 	static inline int     getsockname(int s, struct sockaddr* name, socklen_t* namelen);
 	static inline int     getsockopt(int s, int level, int optname, void* optval, socklen_t* optlen);
 	static inline int     listen(int sockfd, int backlog);
@@ -411,6 +412,15 @@ inline int os::getpagesize(void)
 	return ::getpagesize();
 #else
 # error getpagesize not available
+#endif
+}
+
+inline pid_t os::getpid(void)
+{
+#if defined(HAVE_GETPID)
+	return ::getpid();
+#else
+# error getpid not available
 #endif
 }
 
