@@ -682,25 +682,10 @@ inline static ssize_t system_write(int fd, const void *buf, size_t count)
 
 void*  os_mmap_anonymous(void *addr, size_t len, int prot, int flags);
 
-void   os_abort(void);
-int    os_access(const char* pathname, int mode);
 int    os_atoi(const char* nptr);
-void*  os_calloc(size_t nmemb, size_t size);
-char*  os_dirname(char* path);
-char*  os_dlerror(void);
-void*  os_dlsym(void* handle, const char* symbol);
-int    os_fclose(FILE* fp);
-FILE*  os_fopen(const char* path, const char* mode);
-size_t os_fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
-void   os_free(void* ptr);
 int    os_getpagesize(void);
 void*  os_memcpy(void* dest, const void* src, size_t n);
 void*  os_memset(void* s, int c, size_t n);
-int    os_mprotect(void* addr, size_t len, int prot);
-int    os_scandir(const char* dir, struct dirent*** namelist, int(*filter)(const struct dirent*), int(*compar)(const void*, const void*));
-int    os_stat(const char* path, struct stat* buf);
-char*  os_strcat(char* dest, const char* src);
-char*  os_strcpy(char* dest, const char* src);
 char*  os_strdup(const char* s);
 int    os_strlen(const char* s);
 

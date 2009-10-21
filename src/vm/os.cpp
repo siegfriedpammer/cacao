@@ -302,27 +302,10 @@ int os::processors_online(void)
 extern "C" {
 	void*  os_mmap_anonymous(void *addr, size_t len, int prot, int flags) { return os::mmap_anonymous(addr, len, prot, flags); }
 
-	void   os_abort(void) { os::abort(); }
-	int    os_access(const char* pathname, int mode) { return os::access(pathname, mode); }
 	int    os_atoi(const char* nptr) { return os::atoi(nptr); }
-	void*  os_calloc(size_t nmemb, size_t size) { return os::calloc(nmemb, size); }
-#if defined(ENABLE_JRE_LAYOUT)
-	char*  os_dirname(char* path) { return os::dirname(path); }
-#endif
-	char*  os_dlerror(void) { return os::dlerror(); }
-	void*  os_dlsym(void* handle, const char* symbol) { return os::dlsym(handle, symbol); }
-	int    os_fclose(FILE* fp) { return os::fclose(fp); }
-	FILE*  os_fopen(const char* path, const char* mode) { return os::fopen(path, mode); }
-	size_t os_fread(void* ptr, size_t size, size_t nmemb, FILE* stream) { return os::fread(ptr, size, nmemb, stream); }
-	void   os_free(void* ptr) { os::free(ptr); }
 	int    os_getpagesize(void) { return os::getpagesize(); }
 	void*  os_memcpy(void* dest, const void* src, size_t n) { return os::memcpy(dest, src, n); }
 	void*  os_memset(void* s, int c, size_t n) { return os::memset(s, c, n); }
-	int    os_mprotect(void* addr, size_t len, int prot) { return os::mprotect(addr, len, prot); }
-	int    os_scandir(const char* dir, struct dirent*** namelist, int(*filter)(const struct dirent*), int(*compar)(const void*, const void*)) { return os::scandir(dir, namelist, filter, compar); }
-	int    os_stat(const char* path, struct stat* buf) { return os::stat(path, buf); }
-	char*  os_strcat(char* dest, const char* src) { return os::strcat(dest, src); }
-	char*  os_strcpy(char* dest, const char* src) { return os::strcpy(dest, src); }
 	char*  os_strdup(const char* s) { return os::strdup(s); }
 	int    os_strlen(const char* s) { return os::strlen(s); }
 
