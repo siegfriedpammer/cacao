@@ -103,10 +103,6 @@ void trap_handle(int sig, void *xpc, void *context)
 	stackframeinfo_t sfi;
 	trapinfo_t       trp;
 
-	// Prevent compiler warnings.
-	java_handle_t* o = NULL;
-	methodinfo*    m = NULL;
-
 #if !defined(NDEBUG)
 	// Sanity checking the XPC.
 	if (xpc == NULL)
@@ -172,7 +168,18 @@ void trap_handle(int sig, void *xpc, void *context)
 	/* Do some preparations before we enter the nativeworld. */
 	/* BEFORE: creating stackframeinfo */
 
+	// Prevent compiler warnings.
+	int32_t        index = 0;
+	java_handle_t* o     = NULL;
+	methodinfo*    m     = NULL;
+
 	switch (type) {
+	case TRAP_ArrayIndexOutOfBoundsException:
+		/* Get the index into the array causing the exception. */
+
+		index = (int32_t) val;
+		break;
+
 	case TRAP_ClassCastException:
 		/* Wrap the value into a handle, as it is a reference. */
 
@@ -217,9 +224,12 @@ void trap_handle(int sig, void *xpc, void *context)
 
 	/* Get resulting exception (or pointer to compiled method). */
 
-	int32_t        index;
 	java_handle_t* p;
 	void*          entry;
+	bool           was_patched;
+#if defined(ENABLE_REPLACEMENT)
+	bool           was_replaced;
+#endif
 
 	switch (type) {
 	case TRAP_NullPointerException:
@@ -231,7 +241,6 @@ void trap_handle(int sig, void *xpc, void *context)
 		break;
 
 	case TRAP_ArrayIndexOutOfBoundsException:
-		index = (int32_t) val;
 		p = exceptions_new_arrayindexoutofboundsexception(index);
 		break;
 
@@ -248,26 +257,25 @@ void trap_handle(int sig, void *xpc, void *context)
 		break;
 
 	case TRAP_PATCHER:
+		p = NULL;
 #if defined(ENABLE_REPLACEMENT)
-		if (replace_me_wrapper((uint8_t*) xpc, context)) {
-			p = NULL;
+		was_replaced = replace_me_wrapper((uint8_t*) xpc, context);
+		if (was_replaced)
 			break;
-		}
 #endif
-		p = patcher_handler((uint8_t*) xpc);
+		was_patched = patcher_handler((uint8_t*) xpc);
 		break;
 
 	case TRAP_COMPILER:
-		entry = jit_compile_handle(m, sfi.pv, ra, (void*) val);
 		p = NULL;
+		entry = jit_compile_handle(m, sfi.pv, ra, (void*) val);
 		break;
 
-#if defined(ENABLE_REPLACEMENT)
+#if defined(__I386__) && defined(ENABLE_REPLACEMENT)
+# warning Port the below stuff to use the patching subsystem.
 	case TRAP_COUNTDOWN:
-# if defined(__I386__)
-		replace_me_wrapper((uint8_t*) xpc - 13, context);
-# endif
 		p = NULL;
+		(void) replace_me_wrapper((uint8_t*) xpc - 13, context);
 		break;
 #endif
 
@@ -323,12 +331,47 @@ void trap_handle(int sig, void *xpc, void *context)
 		goto trap_handle_exception;
 
 	case TRAP_PATCHER:
+#if defined(ENABLE_REPLACEMENT)
+		// If on-stack-replacement suceeded, we are not allowed to touch
+		// the execution state. We assume that there was no exception.
+
+		if (was_replaced) {
+			assert(exceptions_get_exception() == NULL);
+			break;
+		}
+#endif
+
 		// The normal case for a patcher trap is to continue execution at
 		// the trap instruction. On some archs the PC may point after the
 		// trap instruction, so we reset it here.
 
-		if (p == NULL) {
+		if (was_patched) {
+			assert(exceptions_get_exception() == NULL);
 			es.pc = (uint8_t *) (uintptr_t) xpc;
+			break;
+		}
+
+		// In case patching was not successful, we try to fetch the pending
+		// exception here.
+
+		p = exceptions_get_and_clear_exception();
+
+		// If there is no pending exception, we continue execution behind
+		// the position still in need of patching. Normally this would
+		// indicate an error in the patching subsystem, but others might
+		// want to piggyback patchers and we want to be able to provide
+		// "reusable trap points" and avoid inifinite loops here. This is
+		// especially useful to implement breakpoints or profiling points
+		// of any kind. So before changing the trap logic, think about
+		// utilizing the patching subsystem on your quest. :)
+
+		if (p == NULL) {
+#if !defined(NDEBUG)
+			if (opt_PrintWarnings)
+				log_println("trap_handle: Detected reusable trap at %p", xpc);
+#endif
+			es.pc = (uint8_t *) (uintptr_t) xpc;
+			es.pc += REPLACEMENT_PATCH_SIZE;
 			break;
 		}
 

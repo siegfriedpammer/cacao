@@ -356,7 +356,7 @@ static int patcher_depth = 0;
 #define TRACE_PATCHER_INDENT for (i=0; i<patcher_depth; i++) printf("\t")
 #endif /* !defined(NDEBUG) */
 
-java_handle_t *patcher_handler(u1 *pc)
+bool patcher_handler(u1 *pc)
 {
 	codeinfo      *code;
 	patchref_t    *pr;
@@ -392,7 +392,7 @@ java_handle_t *patcher_handler(u1 *pc)
 		}
 #endif
 		code->patchers->unlock();
-		return NULL;
+		return true;
 	}
 
 #if !defined(NDEBUG)
@@ -446,24 +446,17 @@ java_handle_t *patcher_handler(u1 *pc)
 	}
 #endif
 
-	// Check for return value and exit accordingly.
-	if (result == false) {
-		// Mangle the pending exception.
+	// Check return value and mangle the pending exception.
+	if (result == false)
 		resolve_handle_pending_exception(true);
 
-		// Get the exception and return it.
-		java_handle_t* e = exceptions_get_and_clear_exception();
-
-		code->patchers->unlock();
-
-		return e;
-	}
-
-	pr->done = true; /* XXX this is only preliminary to prevent double-patching */
+	// XXX This is only preliminary to prevent double-patching.
+	else
+		pr->done = true;
 
 	code->patchers->unlock();
 
-	return NULL;
+	return result;
 }
 
 

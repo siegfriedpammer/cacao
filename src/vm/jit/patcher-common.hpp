@@ -85,7 +85,7 @@ bool patcher_is_patched_at(void* pc);
 // MD function.
 bool patcher_is_valid_trap_instruction_at(void* pc);
 
-java_handle_t *patcher_handler(u1 *pc);
+bool patcher_handler(u1 *pc);
 
 
 /* empty patcher (just patches back original mcode) ***************************/
