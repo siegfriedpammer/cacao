@@ -59,6 +59,7 @@ typedef union  replace_val_t replace_val_t;
 
 #include "vm/method.hpp"
 
+#include "vm/jit/executionstate.h"
 #include "vm/jit/reg.h"
 #include "vm/jit/stacktrace.hpp"
 
@@ -249,7 +250,7 @@ void replace_free_replacement_points(codeinfo *code);
 void replace_activate_replacement_points(codeinfo *code, bool mappable);
 void replace_deactivate_replacement_points(codeinfo *code);
 
-bool replace_me_wrapper(u1 *pc, void *context);
+bool replace_handler(u1 *pc, executionstate_t *es);
 
 #if !defined(NDEBUG)
 void replace_show_replacement_points(codeinfo *code);

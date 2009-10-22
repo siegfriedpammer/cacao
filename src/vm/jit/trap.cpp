@@ -259,7 +259,7 @@ void trap_handle(int sig, void *xpc, void *context)
 	case TRAP_PATCHER:
 		p = NULL;
 #if defined(ENABLE_REPLACEMENT)
-		was_replaced = replace_me_wrapper((uint8_t*) xpc, context);
+		was_replaced = replace_handler((uint8_t*) xpc, &es);
 		if (was_replaced)
 			break;
 #endif
@@ -275,7 +275,7 @@ void trap_handle(int sig, void *xpc, void *context)
 # warning Port the below stuff to use the patching subsystem.
 	case TRAP_COUNTDOWN:
 		p = NULL;
-		(void) replace_me_wrapper((uint8_t*) xpc - 13, context);
+		(void) replace_handler((uint8_t*) xpc - 13, &es);
 		break;
 #endif
 

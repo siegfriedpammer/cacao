@@ -1,6 +1,6 @@
 /* src/vm/jit/replace.cpp - on-stack replacement of methods
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -2935,7 +2935,7 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 }
 
 
-/* replace_me_wrapper **********************************************************
+/* replace_handler *************************************************************
 
    This function is called by the signal handler. It determines if there
    is an active replacement point pending at the given PC and returns
@@ -2945,23 +2945,22 @@ static void replace_me(rplpoint *rp, executionstate_t *es)
 
    IN:
        pc...............the program counter that triggered the replacement.
-       context..........the context (machine state) to which the
+       es...............the execution state (machine state) to which the
 	                    replacement should be applied.
 
    OUT:
-       context..........the context after replacement finished.
+       es...............the execution state after replacement finished.
 
    RETURN VALUE:
        true.............replacement done, everything went ok
-       false............no replacement done, context unchanged
+       false............no replacement done, execution state unchanged
 
 *******************************************************************************/
 
-bool replace_me_wrapper(u1 *pc, void *context)
+bool replace_handler(u1 *pc, executionstate_t *es)
 {
 	codeinfo         *code;
 	rplpoint         *rp;
-	executionstate_t  es;
 #if defined(ENABLE_RT_TIMING)
 	struct timespec time_start, time_end;
 #endif
@@ -2982,20 +2981,9 @@ bool replace_me_wrapper(u1 *pc, void *context)
 
 		DOLOG( printf("valid replacement point\n"); );
 
-#if !defined(NDEBUG)
-		executionstate_sanity_check(context);
-#endif
-
 		/* set codeinfo pointer in execution state */
 
-		es.code = code;
-
-		/* read execution state from current context */
-
-		md_executionstate_read(&es, context);
-
-		DOLOG( printf("REPLACEMENT READ: ");
-			   executionstate_println(&es); );
+		es->code = code;
 
 		/* do the actual replacement */
 
@@ -3003,19 +2991,12 @@ bool replace_me_wrapper(u1 *pc, void *context)
 		RT_TIMING_GET_TIME(time_start);
 #endif
 
-		replace_me(rp, &es);
+		replace_me(rp, es);
 
 #if defined(ENABLE_RT_TIMING)
 		RT_TIMING_GET_TIME(time_end);
 		RT_TIMING_TIME_DIFF(time_start, time_end, RT_TIMING_REPLACE);
 #endif
-
-		/* write execution state to current context */
-
-		md_executionstate_write(&es, context);
-
-		DOLOG( printf("REPLACEMENT WRITE: ");
-			   executionstate_println(&es); );
 
 		/* new code is entered after returning */
 
