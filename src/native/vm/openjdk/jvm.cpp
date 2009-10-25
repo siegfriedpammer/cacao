@@ -1,6 +1,6 @@
 /* src/native/vm/openjdk/jvm.cpp - HotSpot VM interface functions
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -3560,7 +3560,15 @@ jobjectArray JVM_GetThreadStateNames(JNIEnv* env, jint javaThreadState, jintArra
 
 void JVM_GetVersionInfo(JNIEnv* env, jvm_version_info* info, size_t info_size)
 {
-	log_println("JVM_GetVersionInfo: IMPLEMENT ME!");
+	TRACEJVMCALLS(("JVM_GetVersionInfo(env=%p, info=%p, info_size=%z)", env, info, info_size));
+
+	memset(info, 0, sizeof(info_size));
+
+	info->jvm_version = ((VERSION_MAJOR & 0xff) << 24) | ((VERSION_MINOR & 0xff) << 16) | (VERSION_MICRO & 0xff);
+	info->update_version = 0;
+	info->special_update_version = 0;
+	info->is_attach_supported = 0;
+	info->is_kernel_jvm = 0;
 }
 
 
