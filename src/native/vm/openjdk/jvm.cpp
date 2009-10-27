@@ -3560,9 +3560,9 @@ jobjectArray JVM_GetThreadStateNames(JNIEnv* env, jint javaThreadState, jintArra
 
 void JVM_GetVersionInfo(JNIEnv* env, jvm_version_info* info, size_t info_size)
 {
-	TRACEJVMCALLS(("JVM_GetVersionInfo(env=%p, info=%p, info_size=%z)", env, info, info_size));
+	TRACEJVMCALLS(("JVM_GetVersionInfo(env=%p, info=%p, info_size=%d)", env, info, info_size));
 
-	memset(info, 0, sizeof(info_size));
+	memset(info, 0, info_size);
 
 	info->jvm_version = ((VERSION_MAJOR & 0xff) << 24) | ((VERSION_MINOR & 0xff) << 16) | (VERSION_MICRO & 0xff);
 	info->update_version = 0;
