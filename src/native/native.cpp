@@ -504,12 +504,8 @@ void* NativeLibrary::open()
 		if (opt_verbosejni)
 			printf("failed ]\n");
 
-		if (opt_verbose) {
-			log_start();
-			log_print("NativeLibrary::open: os::dlopen failed: ");
-			log_print(os::dlerror());
-			log_finish();
-		}
+		if (opt_PrintWarnings)
+			log_println("NativeLibrary::open: os::dlopen failed: %s", os::dlerror());
 
 		return NULL;
 	}
@@ -544,12 +540,8 @@ void NativeLibrary::close()
 		if (opt_verbosejni)
 			printf("failed ]\n");
 
-		if (opt_verbose) {
-			log_start();
-			log_print("NativeLibrary::close: os::dlclose failed: ");
-			log_print(os::dlerror());
-			log_finish();
-		}
+		if (opt_PrintWarnings)
+			log_println("NativeLibrary::close: os::dlclose failed: %s", os::dlerror());
 	}
 
 	if (opt_verbosejni)
