@@ -390,7 +390,7 @@ opt_struct opts[] = {
 
 *******************************************************************************/
 
-void usage(void)
+static void usage(void)
 {
 	puts("Usage: cacao [-options] classname [arguments]");
 	puts("               (to run a class file)");
@@ -2508,11 +2508,7 @@ java_handle_t *vm_call_method_objectarray(methodinfo *m, java_handle_t *o,
 
 extern "C" {
 
-JavaVM* VM_get_javavm()      { return VM::get_current()->get_javavm(); }
 JNIEnv* VM_get_jnienv()      { return VM::get_current()->get_jnienv(); }
-bool    VM_is_initializing() { return VM::get_current()->is_initializing(); }
-bool    VM_is_created()      { return VM::get_current()->is_created(); }
-int64_t VM_get_starttime()   { return VM::get_current()->get_starttime(); }
 
 void vm_abort(const char* text, ...)
 {

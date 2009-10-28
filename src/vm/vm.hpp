@@ -121,11 +121,7 @@ private:
 
 #else
 
-JavaVM* VM_get_javavm();
 JNIEnv* VM_get_jnienv();
-bool    VM_is_initializing();
-bool    VM_is_created();
-int64_t VM_get_starttime();
 
 #endif
 
@@ -161,9 +157,6 @@ extern uint8_t* intrp_main_stack;
 extern "C" {
 #endif
 
-void usage(void);
-
-bool vm_create(JavaVMInitArgs *vm_args);
 void vm_run(JavaVM *vm, JavaVMInitArgs *vm_args);
 int32_t   vm_destroy(JavaVM *vm);
 void vm_exit(int32_t status);
