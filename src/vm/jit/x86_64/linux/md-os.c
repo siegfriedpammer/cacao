@@ -101,36 +101,6 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 }
 
 
-/* md_signal_handler_sigusr1 ***************************************************
-
-   Signal handler for suspending threads.
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
-{
-	ucontext_t *_uc;
-	mcontext_t *_mc;
-	u1         *pc;
-	u1         *sp;
-
-	_uc = (ucontext_t *) _p;
-	_mc = &_uc->uc_mcontext;
-
-	/* ATTENTION: Don't use CACAO's internal REG_* defines as they are
-	   different to the ones in <ucontext.h>. */
-
-	/* get the PC and SP for this thread */
-	pc = (u1 *) _mc->gregs[REG_RIP];
-	sp = (u1 *) _mc->gregs[REG_RSP];
-
-	/* now suspend the current thread */
-	threads_suspend_ack(pc, sp);
-}
-#endif
-
-
 /* md_signal_handler_sigusr2 ***************************************************
 
    Signal handler for profiling sampling.

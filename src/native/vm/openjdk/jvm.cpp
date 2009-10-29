@@ -2147,7 +2147,23 @@ jboolean JVM_IsThreadAlive(JNIEnv* env, jobject jthread)
 
 void JVM_SuspendThread(JNIEnv* env, jobject jthread)
 {
-	log_println("JVM_SuspendThread: Deprecated.  Not implemented.");
+	java_handle_t *h;
+	threadobject  *t;
+
+	TRACEJVMCALLS(("JVM_SuspendThread(env=%p, jthread=%p)", env, jthread));
+
+	if (opt_PrintWarnings)
+		log_println("JVM_SuspendThread: Deprecated, do not use!");
+
+	h = (java_handle_t *) jthread;
+	t = thread_get_thread(h);
+
+	/* The threadobject is null when a thread is created in Java. */
+
+	if (t == NULL)
+		return;
+
+	threads_suspend_thread(t, SUSPEND_REASON_JAVA);
 }
 
 
@@ -2155,7 +2171,23 @@ void JVM_SuspendThread(JNIEnv* env, jobject jthread)
 
 void JVM_ResumeThread(JNIEnv* env, jobject jthread)
 {
-	log_println("JVM_ResumeThread: Deprecated.  Not implemented.");
+	java_handle_t *h;
+	threadobject  *t;
+
+	TRACEJVMCALLS(("JVM_ResumeThread(env=%p, jthread=%p)", env, jthread));
+
+	if (opt_PrintWarnings)
+		log_println("JVM_ResumeThread: Deprecated, do not use!");
+
+	h = (java_handle_t *) jthread;
+	t = thread_get_thread(h);
+
+	/* The threadobject is null when a thread is created in Java. */
+
+	if (t == NULL)
+		return;
+
+	threads_resume_thread(t, SUSPEND_REASON_JAVA);
 }
 
 

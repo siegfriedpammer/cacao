@@ -57,8 +57,11 @@
 #define THREAD_FLAG_DAEMON      0x04    /* daemon thread                      */
 #define THREAD_FLAG_IN_NATIVE   0x08    /* currently executing native code    */
 
-#define SUSPEND_REASON_JNI       1      /* suspended from JNI                 */
-#define SUSPEND_REASON_STOPWORLD 2      /* suspended from stop-thw-world      */
+#define SUSPEND_REASON_NONE      0      /* no reason to suspend               */
+#define SUSPEND_REASON_JAVA      1      /* suspended from java.lang.Thread    */
+#define SUSPEND_REASON_STOPWORLD 2      /* suspended from stop-the-world      */
+#define SUSPEND_REASON_DUMP      3      /* suspended from threadlist dumping  */
+#define SUSPEND_REASON_JVMTI     4      /* suspended from JVMTI agent         */
 
 
 typedef struct threadobject threadobject;
@@ -294,11 +297,9 @@ void threads_start_thread(threadobject *thread, functionptr function);
 
 void threads_set_thread_priority(pthread_t tid, int priority);
 
-#if defined(ENABLE_GC_CACAO)
-bool threads_suspend_thread(threadobject *thread, s4 reason);
-void threads_suspend_ack(u1* pc, u1* sp);
-bool threads_resume_thread(threadobject *thread);
-#endif
+bool threads_suspend_thread(threadobject *thread, int32_t reason);
+bool threads_resume_thread(threadobject *thread, int32_t reason);
+void threads_suspend_ack();
 
 void threads_join_all_threads(void);
 

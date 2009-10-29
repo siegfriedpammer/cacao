@@ -94,33 +94,6 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 }
 
 
-/* md_signal_handler_sigusr1 ***************************************************
-
-   Signal handler for suspending threads.
-
-*******************************************************************************/
-
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
-{
-	ucontext_t *_uc;
-	scontext_t *_sc;
-	u1         *pc;
-	u1         *sp;
-
-	_uc = (ucontext_t *) _p;
-	_sc = &_uc->uc_mcontext;
-
-	/* get the PC and SP for this thread */
-	pc = (u1 *) _sc->arm_pc;
-	sp = (u1 *) _sc->arm_sp;
-
-	/* now suspend the current thread */
-	threads_suspend_ack(pc, sp);
-}
-#endif
-
-
 /* md_signal_handler_sigusr2 ***************************************************
 
    Signal handler for profiling sampling.

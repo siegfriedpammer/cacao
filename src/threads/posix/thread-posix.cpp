@@ -1101,134 +1101,146 @@ bool thread_detach_current_thread(void)
 }
 
 
-/* threads_suspend_thread ******************************************************
-
-   Suspend the passed thread. Execution stops until the thread
-   is explicitly resumend again.
-
-   IN:
-     reason.....Reason for suspending this thread.
-
-*******************************************************************************/
-
-bool threads_suspend_thread(threadobject *thread, s4 reason)
+/**
+ * Internal helper function which suspends the current thread. This is
+ * the core method of the suspension mechanism actually blocking the
+ * execution until the suspension reason is cleared again. Note that
+ * the current thread needs to hold the suspension mutex while calling
+ * this function.
+ */
+static void threads_suspend_self()
 {
-	/* acquire the suspendmutex */
-	thread->suspendmutex->lock();
-
-	if (thread->suspended) {
-		thread->suspendmutex->unlock();
-		return false;
-	}
-
-	/* set the reason for the suspension */
-	thread->suspend_reason = reason;
-
-	/* send the suspend signal to the thread */
-	assert(thread != THREADOBJECT);
-	if (pthread_kill(thread->tid, SIGUSR1) != 0)
-		vm_abort("threads_suspend_thread: pthread_kill failed: %s",
-				 strerror(errno));
-
-	/* REMEMBER: do not release the suspendmutex, this is done
-	   by the thread itself in threads_suspend_ack().  */
-
-	return true;
-}
-
-
-/* threads_suspend_ack *********************************************************
-
-   Acknowledges the suspension of the current thread.
-
-   IN:
-     pc.....The PC where the thread suspended its execution.
-     sp.....The SP before the thread suspended its execution.
-
-*******************************************************************************/
-
-#if defined(ENABLE_GC_CACAO)
-void threads_suspend_ack(u1* pc, u1* sp)
-{
-	threadobject *thread;
-
-	thread = THREADOBJECT;
-
-	assert(thread->suspend_reason != 0);
-
-	/* TODO: remember dump memory size */
-
-	/* inform the GC about the suspension */
-	if (thread->suspend_reason == SUSPEND_REASON_STOPWORLD && gc_pending) {
-
-		/* check if the GC wants to leave the thread running */
-		if (!gc_suspend(thread, pc, sp)) {
-
-			/* REMEMBER: we do not unlock the suspendmutex because the thread
-			   will suspend itself again at a later time */
-			return;
-
-		}
-	}
-
-	/* mark this thread as suspended and remember the PC */
-	thread->pc        = pc;
-	thread->suspended = true;
-
-	/* if we are stopping the world, we should send a global ack */
-	if (thread->suspend_reason == SUSPEND_REASON_STOPWORLD) {
-		threads_sem_post(&suspend_ack);
-	}
+	threadobject* thread = THREADOBJECT;
 
 	DEBUGTHREADS("suspending", thread);
 
-	/* release the suspension mutex and wait till we are resumed */
-	thread->suspendcond->wait(thread->suspendmutex);
+	// Mark thread as suspended.
+	assert(!thread->suspended);
+	assert(thread->suspend_reason != SUSPEND_REASON_NONE);
+	thread->suspended = true;
 
-	DEBUGTHREADS("resuming", thread);
-
-	/* if we are stopping the world, we should send a global ack */
-	if (thread->suspend_reason == SUSPEND_REASON_STOPWORLD) {
-		threads_sem_post(&suspend_ack);
-	}
-
-	/* TODO: free dump memory */
-
-	/* release the suspendmutex */
-	thread->suspendmutex->unlock();
-}
-#endif
-
-
-/* threads_resume_thread *******************************************************
-
-   Resumes the execution of the passed thread.
-
-*******************************************************************************/
-
-#if defined(ENABLE_GC_CACAO)
-bool threads_resume_thread(threadobject *thread)
-{
-	/* acquire the suspendmutex */
-	thread->suspendmutex->lock();
-
-	if (!thread->suspended) {
-		thread->suspendmutex->unlock();
-		return false;
-	}
-
-	thread->suspended = false;
-
-	/* tell everyone that the thread should resume */
-	assert(thread != THREADOBJECT);
+	// Acknowledge the suspension.
 	thread->suspendcond->broadcast();
 
-	/* release the suspendmutex */
-	thread->suspendmutex->unlock();
+#if defined(ENABLE_GC_CACAO)
+	// If we are stopping the world, we should send a global ack.
+	if (thread->suspend_reason == SUSPEND_REASON_STOPWORLD)
+		threads_sem_post(&suspend_ack);
+#endif
+
+	// Release the suspension mutex and wait till we are resumed.
+	thread->suspendcond->wait(thread->suspendmutex);
+
+#if defined(ENABLE_GC_CACAO)
+	// XXX This is propably not ok!
+	// If we are starting the world, we should send a global ack.
+	if (thread->suspend_reason == SUSPEND_REASON_STOPWORLD)
+		threads_sem_post(&suspend_ack);
+#endif
+
+	// Mark thread as not suspended.
+	assert(thread->suspended);
+	assert(thread->suspend_reason == SUSPEND_REASON_NONE);
+	thread->suspended = false;
+
+	DEBUGTHREADS("resuming", thread);
+}
+
+
+/**
+ * Suspend the passed thread. Execution of that thread stops until the thread
+ * is explicitly resumend again.
+ *
+ * @param thread The thread to be suspended.
+ * @param reason Reason for suspending the given thread.
+ * @return True of operation was successful, false otherwise.
+ */
+bool threads_suspend_thread(threadobject *thread, int32_t reason)
+{
+	// Sanity check.
+	assert(reason != SUSPEND_REASON_NONE);
+
+	// Guard this with the suspension mutex.
+	MutexLocker ml(*thread->suspendmutex);
+
+	// Check if thread is already suspended.
+	if (thread->suspended)
+		return false;
+
+	// Check if thread is in the process of suspending.
+	if (thread->suspend_reason != SUSPEND_REASON_NONE)
+		return false;
+
+	// Set the reason for suspending the thread.
+	thread->suspend_reason = reason;
+
+	if (thread == THREADOBJECT) {
+		// We already hold the suspension mutex and can suspend ourselves
+		// immediately without using signals at all.
+		threads_suspend_self();
+	}
+	else {
+		// Send the suspend signal to the other thread.
+		if (pthread_kill(thread->tid, SIGUSR1) != 0)
+			os::abort_errno("threads_suspend_thread: pthread_kill failed");
+
+		// Wait for the thread to acknowledge the suspension.
+		// XXX A possible optimization would be to not wait here, but you
+		//     better think this through twice before trying it!
+		thread->suspendcond->wait(thread->suspendmutex);
+	}
 
 	return true;
 }
-#endif
+
+
+/**
+ * Resumes execution of the passed thread.
+ *
+ * @param thread The thread to be resumed.
+ * @param reason Reason for suspending the given thread.
+ * @return True of operation was successful, false otherwise.
+ */
+bool threads_resume_thread(threadobject *thread, int32_t reason)
+{
+	// Sanity check.
+	assert(thread != THREADOBJECT);
+	assert(reason != SUSPEND_REASON_NONE);
+
+	// Guard this with the suspension mutex.
+	MutexLocker ml(*thread->suspendmutex);
+
+	// Check if thread really is suspended.
+	if (!thread->suspended)
+		return false;
+
+	// Threads can only be resumed for the same reason they were suspended.
+	if (thread->suspend_reason != reason)
+		return false;
+
+	// Clear the reason for suspending the thread.
+	thread->suspend_reason = SUSPEND_REASON_NONE;
+
+	// Tell everyone that the thread should resume.
+	thread->suspendcond->broadcast();
+
+	return true;
+}
+
+
+/**
+ * Acknowledges the suspension of the current thread.
+ */
+void threads_suspend_ack()
+{
+	threadobject* thread = THREADOBJECT;
+
+	// Guard this with the suspension mutex.
+	MutexLocker ml(*thread->suspendmutex);
+
+	// Suspend ourselves while holding the suspension mutex.
+	threads_suspend_self();
+}
 
 
 /* threads_join_all_threads ****************************************************

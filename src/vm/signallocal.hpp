@@ -74,8 +74,6 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p);
 void md_signal_handler_sigtrap(int sig, siginfo_t *siginfo, void *_p);
 #endif
 
-void md_signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p);
-
 void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p);
 
 #ifdef __cplusplus

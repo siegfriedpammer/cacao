@@ -59,13 +59,15 @@ int32_t             ThreadList::_number_of_non_daemon_threads;
  */
 void ThreadList::dump_threads()
 {
-	// XXX we should stop the world here
+	// XXX we should stop the world here and remove explicit
+	//     thread suspension from the loop below.
 	// Lock the thread lists.
 	lock();
 
 	printf("Full thread dump CACAO "VERSION":\n");
 
 	// Iterate over all started threads.
+	threadobject* self = THREADOBJECT;
 	for (List<threadobject*>::iterator it = _active_thread_list.begin(); it != _active_thread_list.end(); it++) {
 		threadobject* t = *it;
 
@@ -73,13 +75,10 @@ void ThreadList::dump_threads()
 		if (t->state == THREAD_STATE_NEW)
 			continue;
 
-#if defined(ENABLE_GC_CACAO)
-		/* Suspend the thread. */
-		/* XXX Is the suspend reason correct? */
+		/* Suspend the thread (and ignore return value). */
 
-		if (threads_suspend_thread(t, SUSPEND_REASON_JNI) == false)
-			vm_abort("threads_dump: threads_suspend_thread failed");
-#endif
+		if (t != self)
+			(void) threads_suspend_thread(t, SUSPEND_REASON_DUMP);
 
 		/* Print thread info. */
 
@@ -91,12 +90,10 @@ void ThreadList::dump_threads()
 
 		stacktrace_print_of_thread(t);
 
-#if defined(ENABLE_GC_CACAO)
-		/* Resume the thread. */
+		/* Resume the thread (and ignore return value). */
 
-		if (threads_resume_thread(t) == false)
-			vm_abort("threads_dump: threads_resume_thread failed");
-#endif
+		if (t != self)
+			(void) threads_resume_thread(t, SUSPEND_REASON_DUMP);
 	}
 
 	// Unlock the thread lists.

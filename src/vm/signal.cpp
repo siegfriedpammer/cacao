@@ -62,6 +62,7 @@
 /* function prototypes ********************************************************/
 
 void signal_handler_sighup(int sig, siginfo_t *siginfo, void *_p);
+void signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p);
 
 
 /* signal_init *****************************************************************
@@ -195,10 +196,10 @@ bool signal_init(void)
 	signal_register_signal(Signal_INTERRUPT_SYSTEM_CALL, (functionptr) signal_handler_sighup, 0);
 #endif
 
-#if defined(ENABLE_THREADS) && defined(ENABLE_GC_CACAO)
-	/* SIGUSR1 handler for the exact GC to suspend threads */
+#if defined(ENABLE_THREADS)
+	/* SIGUSR1 handler for thread suspension */
 
-	signal_register_signal(SIGUSR1, (functionptr) md_signal_handler_sigusr1,
+	signal_register_signal(SIGUSR1, (functionptr) signal_handler_sigusr1,
 						   SA_SIGINFO);
 #endif
 
@@ -384,6 +385,21 @@ bool signal_start_thread(void)
 void signal_handler_sighup(int sig, siginfo_t *siginfo, void *_p)
 {
 	/* do nothing */
+}
+#endif
+
+
+/* signal_handler_sigusr1 ******************************************************
+
+   Signal handler for suspending threads.
+
+*******************************************************************************/
+
+#if defined(ENABLE_THREADS)
+void signal_handler_sigusr1(int sig, siginfo_t *siginfo, void *_p)
+{
+	// Really suspend ourselves by acknowledging the suspension.
+	threads_suspend_ack();
 }
 #endif
 
