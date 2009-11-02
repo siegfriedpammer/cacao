@@ -214,19 +214,6 @@ inline static threadobject* thread_get_current(void);
 #include "vm/jit/intrp/intrp.h"
 #endif
 
-#if defined(__DARWIN__)
-# include <mach/mach.h>
-
-typedef struct {
-	Mutex* mutex;
-	Condition* cond;
-	int value;
-} sem_t;
-
-#else
-# include <semaphore.h>
-#endif
-
 
 // FIXME
 #ifdef __cplusplus
@@ -288,10 +275,6 @@ inline static void threads_set_current_stackframeinfo(struct stackframeinfo_t* s
 
 
 /* functions ******************************************************************/
-
-void threads_sem_init(sem_t *sem, bool shared, int value);
-void threads_sem_wait(sem_t *sem);
-void threads_sem_post(sem_t *sem);
 
 void threads_start_thread(threadobject *thread, functionptr function);
 
