@@ -370,6 +370,27 @@ int Primitive::get_type_by_wrapperclass(classinfo *c)
 
 
 /**
+ * Returns the primitive type of the given primitive-class.
+ *
+ * @param c Class structure.
+ *
+ * @return Integer type of the class.
+ */
+int Primitive::get_type_by_primitiveclass(classinfo *c)
+{
+	/* Search primitive table. */
+
+	for (int i = 0; i < PRIMITIVETYPE_COUNT; i++)
+		if (primitivetype_table[i].class_primitive == c)
+			return i;
+	
+	/* Invalid primitive class. */
+
+	return -1;
+}
+
+
+/**
  * Box a primitive of the given type.  If the type is an object,
  * simply return it.
  *

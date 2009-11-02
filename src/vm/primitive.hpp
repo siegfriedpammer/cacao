@@ -50,6 +50,7 @@ public:
 	static classinfo*     get_arrayclass_by_type(int type);
 
 	static int            get_type_by_wrapperclass(classinfo *c);
+	static int            get_type_by_primitiveclass(classinfo *c);
 
 	static java_handle_t* box(int type, imm_union value);
 
