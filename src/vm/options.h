@@ -233,6 +233,9 @@ extern bool     opt_TraceJMMCalls;
 extern int      opt_TraceJNICalls;
 extern int      opt_TraceJVMCalls;
 extern int      opt_TraceJVMCallsVerbose;
+#if defined(ENABLE_JVMTI)
+extern int      opt_TraceJVMTICalls;
+#endif
 extern int      opt_TraceLinkClass;
 #if defined(ENABLE_REPLACEMENT)
 extern int      opt_TraceReplacement;

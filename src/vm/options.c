@@ -211,6 +211,9 @@ bool     opt_TraceJMMCalls                = false;
 int      opt_TraceJNICalls                = 0;
 int      opt_TraceJVMCalls                = 0;
 int      opt_TraceJVMCallsVerbose         = 0;
+#if defined(ENABLE_JVMTI)
+int      opt_TraceJVMTICalls              = 0;
+#endif
 int      opt_TraceLinkClass               = 0;
 #if defined(ENABLE_REPLACEMENT)
 int      opt_TraceReplacement             = 0;
@@ -276,6 +279,7 @@ enum {
 	OPT_TraceJNICalls,
 	OPT_TraceJVMCalls,
 	OPT_TraceJVMCallsVerbose,
+	OPT_TraceJVMTICalls,
 	OPT_TraceLinkClass,
 	OPT_TraceReplacement,
 	OPT_TraceSubsystemInitialization,
@@ -354,6 +358,9 @@ option_t options_XX[] = {
 	{ "TraceJNICalls",                OPT_TraceJNICalls,                OPT_TYPE_BOOLEAN, "trace JNI method calls" },
 	{ "TraceJVMCalls",                OPT_TraceJVMCalls,                OPT_TYPE_BOOLEAN, "trace JVM method calls but omit very frequent ones" },
 	{ "TraceJVMCallsVerbose",         OPT_TraceJVMCallsVerbose,         OPT_TYPE_BOOLEAN, "trace all JVM method calls" },
+#if defined(ENABLE_JVMTI)
+	{ "TraceJVMTICalls",              OPT_TraceJVMTICalls,              OPT_TYPE_BOOLEAN, "trace JVMTI method calls" },
+#endif
 	{ "TraceLinkClass",               OPT_TraceLinkClass,               OPT_TYPE_BOOLEAN, "trace class linking" },
 #if defined(ENABLE_REPLACEMENT)
 	{ "TraceReplacement",             OPT_TraceReplacement,             OPT_TYPE_VALUE,   "trace on-stack replacement with the given verbosity level (default: 1)" },
@@ -849,6 +856,12 @@ void options_xx(JavaVMInitArgs *vm_args)
 		case OPT_TraceJVMCallsVerbose:
 			opt_TraceJVMCallsVerbose = enable;
 			break;
+
+#if defined(ENABLE_JVMTI)
+		case OPT_TraceJVMTICalls:
+			opt_TraceJVMTICalls = enable;
+			break;
+#endif
 
 		case OPT_TraceLinkClass:
 			opt_TraceLinkClass = enable;
