@@ -30,7 +30,8 @@
 
 typedef struct methodinfo          methodinfo; 
 typedef struct raw_exception_entry raw_exception_entry;
-typedef struct lineinfo            lineinfo; 
+typedef struct lineinfo            lineinfo;
+typedef struct localvarinfo        localvarinfo;
 typedef struct method_assumption   method_assumption;
 typedef struct method_worklist     method_worklist;
 typedef struct codeinfo            codeinfo;
@@ -73,7 +74,7 @@ struct methodinfo {                 /* method structure                       */
 #endif
 
 	methoddesc   *parseddesc;       /* parsed descriptor                      */
-			     
+
 	classinfo    *clazz;            /* class, the method belongs to           */
 	s4            vftblindex;       /* index of method in virtual function    */
 	                                /* table (if it is a virtual method)      */
@@ -90,6 +91,11 @@ struct methodinfo {                 /* method structure                       */
 
 	u2            linenumbercount;  /* number of linenumber attributes        */
 	lineinfo     *linenumbers;      /* array of lineinfo items                */
+
+#if defined(ENABLE_JAVASE) && defined(ENABLE_JVMTI)
+	uint16_t      localvarcount;    /* number of local variable attributes    */
+	localvarinfo* localvars;        /* array of localvarinfo items            */
+#endif
 
 	u1           *stubroutine;      /* stub for compiling or calling natives  */
 	codeinfo     *code;             /* current code of this method            */
@@ -157,6 +163,17 @@ struct raw_exception_entry {    /* exceptiontable entry in a method           */
 struct lineinfo {
 	u2 start_pc;
 	u2 line_number;
+};
+
+
+/* localvarinfo ***************************************************************/
+
+struct localvarinfo {
+	uint16_t start_pc;
+	uint16_t length;
+	utf*     name;
+	utf*     descriptor;
+	uint16_t index;
 };
 
 

@@ -149,13 +149,17 @@ extern utf *utf_EnclosingMethod;
 extern utf *utf_Signature;
 extern utf *utf_StackMapTable;
 
-#if defined(ENABLE_ANNOTATIONS)
+# if defined(ENABLE_JVMTI)
+extern utf *utf_LocalVariableTable;
+# endif
+
+# if defined(ENABLE_ANNOTATIONS)
 extern utf *utf_RuntimeVisibleAnnotations;
 extern utf *utf_RuntimeInvisibleAnnotations;
 extern utf *utf_RuntimeVisibleParameterAnnotations;
 extern utf *utf_RuntimeInvisibleParameterAnnotations;
 extern utf *utf_AnnotationDefault;
-#endif
+# endif
 #endif
 
 extern utf *utf_init;

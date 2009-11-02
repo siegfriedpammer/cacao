@@ -152,13 +152,17 @@ utf *utf_EnclosingMethod;
 utf *utf_Signature;
 utf *utf_StackMapTable;
 
-#if defined(ENABLE_ANNOTATIONS)
+# if defined(ENABLE_JVMTI)
+utf *utf_LocalVariableTable;
+# endif
+
+# if defined(ENABLE_ANNOTATIONS)
 utf *utf_RuntimeVisibleAnnotations;            /* RuntimeVisibleAnnotations            */
 utf *utf_RuntimeInvisibleAnnotations;          /* RuntimeInvisibleAnnotations          */
 utf *utf_RuntimeVisibleParameterAnnotations;   /* RuntimeVisibleParameterAnnotations   */
 utf *utf_RuntimeInvisibleParameterAnnotations; /* RuntimeInvisibleParameterAnnotations */
 utf *utf_AnnotationDefault;                    /* AnnotationDefault                    */
-#endif
+# endif
 #endif
 
 utf *utf_init;                          /* <init>                             */
@@ -413,6 +417,10 @@ void utf8_init(void)
 	utf_EnclosingMethod            = utf_new_char("EnclosingMethod");
 	utf_Signature                  = utf_new_char("Signature");
 	utf_StackMapTable              = utf_new_char("StackMapTable");
+
+# if defined(ENABLE_JVMTI)
+	utf_LocalVariableTable         = utf_new_char("LocalVariableTable");
+# endif
 
 # if defined(ENABLE_ANNOTATIONS)
 	utf_RuntimeVisibleAnnotations            = utf_new_char("RuntimeVisibleAnnotations");

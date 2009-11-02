@@ -127,6 +127,19 @@ void method_init(void)
 	   } line_number_table[line_number_table_length];
    }
 
+   LocalVariableTable_attribute {
+       u2 attribute_name_index;
+       u4 attribute_length;
+       u2 local_variable_table_length;
+       {
+           u2 start_pc;
+           u2 length;
+           u2 name_index;
+           u2 descriptor_index;
+           u2 index;
+       } local_variable_table[local_variable_table_length];
+   }
+
 *******************************************************************************/
 
 bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
@@ -433,7 +446,48 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 					if (!stackmap_load_attribute_stackmaptable(cb, m))
 						return false;
 				}
-#endif
+# if defined(ENABLE_JVMTI)
+				else if (code_attribute_name == utf_LocalVariableTable) {
+					/* LocalVariableTable */
+
+					if (m->localvars != NULL) {
+						exceptions_throw_classformaterror(c, "Multiple LocalVariableTable attributes");
+						return false;
+					}
+
+					if (!suck_check_classbuffer_size(cb, 4 + 2))
+						return false;
+
+					// Attribute length.
+					(void) suck_u4(cb);
+
+					m->localvarcount = suck_u2(cb);
+
+					if (!suck_check_classbuffer_size(cb, 10 * m->localvarcount))
+						return false;
+
+					m->localvars = MNEW(localvarinfo, m->localvarcount);
+
+					for (l = 0; l < m->localvarcount; l++) {
+						m->localvars[l].start_pc = suck_u2(cb);
+						m->localvars[l].length   = suck_u2(cb);
+
+						uint16_t name_index = suck_u2(cb);
+						if (!(m->localvars[l].name = (utf*) class_getconstant(c, name_index, CONSTANT_Utf8)))
+							return false;
+
+						uint16_t descriptor_index = suck_u2(cb);
+						if (!(m->localvars[l].descriptor = (utf*) class_getconstant(c, descriptor_index, CONSTANT_Utf8)))
+							return false;
+
+						m->localvars[l].index = suck_u2(cb);
+
+						// XXX Check if index is in range.
+						// XXX Check if index already taken.
+					}
+				}
+# endif /* defined(ENABLE_JVMTI) */
+#endif /* defined(ENABLE_JAVASE) */
 				else {
 					/* unknown code attribute */
 
@@ -479,7 +533,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 				return false;
 		}
 
-#if defined(ENABLE_ANNOTATIONS)
+# if defined(ENABLE_ANNOTATIONS)
 		else if (attribute_name == utf_RuntimeVisibleAnnotations) {
 			/* RuntimeVisibleAnnotations */
 			if (!annotation_load_method_attribute_runtimevisibleannotations(cb, m))
@@ -505,7 +559,7 @@ bool method_load(classbuffer *cb, methodinfo *m, descriptor_pool *descpool)
 			if (!annotation_load_method_attribute_annotationdefault(cb, m))
 				return false;
 		}
-#endif
+# endif
 #endif
 		else {
 			/* unknown attribute */
