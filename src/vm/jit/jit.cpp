@@ -43,6 +43,7 @@
 #include "vm/class.hpp"
 #include "vm/global.h"
 #include "vm/globals.hpp"
+#include "vm/hook.hpp"
 #include "vm/initialize.hpp"
 #include "vm/loader.hpp"
 #include "vm/method.hpp"
@@ -64,10 +65,6 @@
 #include "vm/jit/show.hpp"
 #include "vm/jit/stack.h"
 #include "vm/jit/stubs.hpp"
-
-#if defined(ENABLE_OPAGENT)
-#include "vm/jit/oprofile-agent.hpp"
-#endif
 
 #include "vm/jit/allocator/simplereg.h"
 #if defined(ENABLE_LSRA) && !defined(ENABLE_SSA)
@@ -173,11 +170,6 @@ void jit_init(void)
 #else
 	intrp_md_init();
 #endif
-
-#if defined(ENABLE_OPAGENT)
-	if (opt_EnableOpagent)
-		OprofileAgent::initialize();
-#endif
 }
 
 
@@ -189,10 +181,7 @@ void jit_init(void)
 
 void jit_close(void)
 {
-#if defined(ENABLE_OPAGENT)
-	if (opt_EnableOpagent)
-		OprofileAgent::close();
-#endif
+	/* nop */
 }
 
 
@@ -401,10 +390,8 @@ u1 *jit_compile(methodinfo *m)
 		compilingtime_stop();
 #endif
 
-#if defined(ENABLE_OPAGENT)
-	if (opt_EnableOpagent)
-		OprofileAgent::newmethod(m);
-#endif
+	// Hook point just after code was generated.
+	Hook::jit_generated(m, m->code);
 
 	/* leave the monitor */
 
@@ -512,10 +499,8 @@ u1 *jit_recompile(methodinfo *m)
 		compilingtime_stop();
 #endif
 
-#if defined(ENABLE_OPAGENT)
-	if (opt_EnableOpagent)
-		OprofileAgent::newmethod(m);
-#endif
+	// Hook point just after code was generated.
+	Hook::jit_generated(m, m->code);
 
 	DEBUG_JIT_COMPILEVERBOSE("Recompiling done: ");
 

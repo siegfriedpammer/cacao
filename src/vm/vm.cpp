@@ -1284,6 +1284,9 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 	utf8_init();
 
+	// Hook point before the VM is initialized.
+	Hook::vm_preinit();
+
 #if defined(ENABLE_JVMTI)
 	// AFTER: utf8_init
 	if (!_nativeagents.load_agents())
@@ -1785,6 +1788,9 @@ int vm_destroy(JavaVM *vm)
 
 	threads_join_all_threads();
 #endif
+
+	// Hook point before the VM is actually destroyed.
+	Hook::vm_shutdown();
 
 	/* VM is gone. */
 

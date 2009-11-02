@@ -28,6 +28,10 @@
 
 #include "config.h"
 
+#if defined(ENABLE_OPAGENT)
+#include "vm/jit/oprofile-agent.hpp"
+#endif
+
 
 /**
  * Hook points are inline functions acting as probes scattered throughout
@@ -40,6 +44,8 @@ namespace Hook {
 	void breakpoint     (Breakpoint *bp);
 	void class_linked   (classinfo *c);
 	void class_loaded   (classinfo *c);
+	void jit_generated  (methodinfo *m, codeinfo *code);
+	void jit_recycled   (methodinfo *m, codeinfo *code);
 	void method_enter   (methodinfo *m);
 	void method_exit    (methodinfo *m);
 	void method_unwind  (methodinfo *m);
@@ -47,6 +53,8 @@ namespace Hook {
 	void thread_start   (threadobject *t);
 	void thread_end     (threadobject *t);
 	void vm_init        ();
+	void vm_preinit     ();
+	void vm_shutdown    ();
 }
 
 
@@ -69,6 +77,22 @@ inline void Hook::class_linked(classinfo *c)
 inline void Hook::class_loaded(classinfo *c)
 {
 	/* nop */
+}
+
+/**
+ * Hook point just after code was generated. Note that one method can have
+ * multiple code realizations, the hook is fired for each of them. The code
+ * was not yet executed.
+ *
+ * @param m The method for which code was generated.
+ * @param code The fully initialized codeinfo for the generated code.
+ */
+inline void Hook::jit_generated(methodinfo *m, codeinfo *code)
+{
+#if defined(ENABLE_OPAGENT)
+	if (opt_EnableOpagent)
+		OprofileAgent::newmethod(m);
+#endif
 }
 
 inline void Hook::method_enter(methodinfo *m)
@@ -101,9 +125,40 @@ inline void Hook::thread_end(threadobject *t)
 	/* nop */
 }
 
+/**
+ * Hook point after the VM is initialized. At this point the VM is fully
+ * operating and ready to execute Java code. Final intializations and thread
+ * startup should be done here.
+ */
 inline void Hook::vm_init()
 {
 	/* nop */
+}
+
+/**
+ * Hook point before the VM is initialized. At this point the VM can not
+ * yet execute Java code but some central native subsystems are initialized.
+ * Only basic initialization steps should be done here.
+ */
+inline void Hook::vm_preinit()
+{
+#if defined(ENABLE_OPAGENT)
+	if (opt_EnableOpagent)
+		OprofileAgent::initialize();
+#endif
+}
+
+/**
+ * Hook point before the VM is actually destroyed. At this point the VM is
+ * still running, but all non-daemon threads have terminated and resources
+ * are ready to be reclaimed. Final cleanup tasks should be done here.
+ */
+inline void Hook::vm_shutdown()
+{
+#if defined(ENABLE_OPAGENT)
+	if (opt_EnableOpagent)
+		OprofileAgent::close();
+#endif
 }
 
 
