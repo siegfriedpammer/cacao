@@ -26,29 +26,6 @@
 
 #include "config.h"
 
-/* NOTE: In this file we check for all system headers, because we wrap
-   all system calls into functions for better portability. */
-
-#if defined(HAVE_ERRNO_H)
-# include <errno.h>
-#endif
-
-#if defined(HAVE_STDINT_H)
-# include <stdint.h>
-#endif
-
-#if defined(HAVE_STRING_H)
-# include <string.h>
-#endif
-
-#if defined(HAVE_UNISTD_H)
-# include <unistd.h>
-#endif
-
-#if defined(HAVE_SYS_MMAN_H)
-# include <sys/mman.h>
-#endif
-
 #if defined(__DARWIN__)
 # include <mach/mach.h>
 # include <mach/mach_host.h>
@@ -60,6 +37,7 @@
 
 #include "mm/memory.hpp"
 
+#include "vm/os.hpp"
 #include "vm/vm.hpp"
 
 
