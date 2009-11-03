@@ -240,8 +240,8 @@ void md_patch_replacement_point(u1 *pc, u1 *savedmcode, bool revert)
 		/* save the current machine code */
 		*(u4*)(savedmcode) = *(u4*)(pc);
 
-		/* build the machine code for the patch */
-		assert(0); /* XXX build trap instruction below */
+		// Build the machine code for the patch. On PowerPC we use
+		// an illegal instruction which really is just 0, believe me!
 		mcode = 0;
 
 		/* write the new machine code */

@@ -1531,7 +1531,7 @@ void md_pop_stackframe(executionstate_t *es)
 # if STACKFRAME_LEAFMETHODS_RA_REGISTER
 	if (!code_is_leafmethod(es->code))
 # endif
-		es->ra = (u1*) (ptrint) basesp[LA_LR_OFFSET / sizeof(stackslot_t)];
+		es->ra = *((uint8_t**) ((intptr_t) basesp + LA_LR_OFFSET));
 #endif /* REPLACE_RA_LINKAGE_AREA */
 
 	/* restore saved int registers */
@@ -1540,7 +1540,8 @@ void md_pop_stackframe(executionstate_t *es)
 	for (i=0; i<es->code->savedintcount; ++i) {
 		while (nregdescint[--reg] != REG_SAV)
 			;
-		es->intregs[reg] = *--basesp;
+		basesp -= 1;
+		es->intregs[reg] = *((uintptr_t*) basesp);
 	}
 
 	/* restore saved flt registers */
@@ -1551,7 +1552,7 @@ void md_pop_stackframe(executionstate_t *es)
 		while (nregdescfloat[--reg] != REG_SAV)
 			;
 		basesp -= STACK_SLOTS_PER_FLOAT;
-		es->fltregs[reg] = *(double*)basesp;
+		es->fltregs[reg] = *((double*) basesp);
 	}
 
 #if defined(HAS_ADDRESS_REGISTER_FILE)
@@ -1561,7 +1562,8 @@ void md_pop_stackframe(executionstate_t *es)
 	for (i=0; i<es->code->savedadrcount; ++i) {
 		while (nregdescadr[--reg] != REG_SAV)
 			;
-		es->adrregs[reg] = *--basesp;
+		basesp -= 1;
+		es->adrregs[reg] = *((uintptr_t*) basesp);
 	}
 #endif
 
@@ -1677,7 +1679,7 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 # if STACKFRAME_LEAFMETHODS_RA_REGISTER
 	if (!code_is_leafmethod(calleecode))
 # endif
-		basesp[LA_LR_OFFSET / sizeof(stackslot_t)] = (ptrint) ra;
+		*((uint8_t**) ((intptr_t) basesp + LA_LR_OFFSET)) = ra;
 #endif /* REPLACE_RA_LINKAGE_AREA */
 
 	/* save int registers */
@@ -1686,7 +1688,8 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 	for (i=0; i<calleecode->savedintcount; ++i) {
 		while (nregdescint[--reg] != REG_SAV)
 			;
-		*--basesp = es->intregs[reg];
+		basesp -= 1;
+		*((uintptr_t*) basesp) = es->intregs[reg];
 
 		/* XXX may not clobber saved regs used by native code! */
 #if !defined(NDEBUG) && 0
@@ -1702,7 +1705,7 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 		while (nregdescfloat[--reg] != REG_SAV)
 			;
 		basesp -= STACK_SLOTS_PER_FLOAT;
-		*(double*)basesp = es->fltregs[reg];
+		*((double*) basesp) = es->fltregs[reg];
 
 		/* XXX may not clobber saved regs used by native code! */
 #if !defined(NDEBUG) && 0
@@ -1717,7 +1720,8 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 	for (i=0; i<calleecode->savedadrcount; ++i) {
 		while (nregdescadr[--reg] != REG_SAV)
 			;
-		*--basesp = es->adrregs[reg];
+		basesp -= 1;
+		*((uintptr_t*) basesp) = es->adrregs[reg];
 
 		/* XXX may not clobber saved regs used by native code! */
 #if !defined(NDEBUG) && 0
@@ -1768,7 +1772,7 @@ u1* replace_pop_activation_record(executionstate_t *es,
 	frame->syncslotcount = count;
 	frame->syncslots = (replace_val_t*) DumpMemory::allocate(sizeof(replace_val_t) * count);
 	for (i=0; i<count; ++i) {
-		frame->syncslots[i].p = sp[es->code->memuse + i]; /* XXX md_ function */
+		frame->syncslots[i].p = *((intptr_t*) (sp + es->code->memuse + i)); /* XXX md_ function */
 	}
 
 	/* pop the stackframe */
@@ -2096,7 +2100,7 @@ void replace_push_activation_record(executionstate_t *es,
 	count = code_get_sync_slot_count(calleecode);
 	assert(count == calleeframe->syncslotcount);
 	for (i=0; i<count; ++i) {
-		sp[calleecode->memuse + i] = calleeframe->syncslots[i].p;
+		*((intptr_t*) (sp + calleecode->memuse + i)) = calleeframe->syncslots[i].p;
 	}
 
 	/* redirect future invocations */
