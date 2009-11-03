@@ -89,6 +89,12 @@
 # include <unistd.h>
 #endif
 
+#if defined(__DARWIN__)
+# if defined(HAVE_MACH_MACH_H)
+#  include <mach/mach.h>
+# endif
+#endif
+
 #if defined(HAVE_SYS_LOADAVG_H)
 # include <sys/loadavg.h>
 #endif

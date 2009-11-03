@@ -81,7 +81,6 @@
 #include "vm/jit/asmpart.h"
 
 #if defined(__DARWIN__)
-# include <mach/mach.h>
 
 typedef struct {
 	Mutex* mutex;

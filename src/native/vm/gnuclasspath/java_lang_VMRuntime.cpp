@@ -31,13 +31,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#if defined(__DARWIN__)
-# if defined(__POWERPC__)
-#  define OS_INLINE    /* required for <libkern/ppc/OSByteOrder.h> */
-# endif
-# include <mach/mach.h>
-#endif
-
 #include "mm/memory.hpp"
 #include "mm/gc.hpp"
 
