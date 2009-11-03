@@ -594,6 +594,11 @@ dnl The check for jni_md.h must be before jni.h.
 AC_CHECK_WITH_JNI_MD_H
 AC_CHECK_WITH_JNI_H
 
+dnl The jvmti.h header is only required if JVMTI is enabled.
+if test x"${ENABLE_JVMTI}" = "xyes"; then
+    AC_CHECK_WITH_JVMTI_H
+fi
+
 dnl JVM, HPI, and JMM is only required for OpenJDK.
 case "${WITH_JAVA_RUNTIME_LIBRARY}" in
     openjdk)
