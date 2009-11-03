@@ -29,7 +29,6 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <sys/mman.h>
 
 #include "vm/types.h"
 

@@ -30,13 +30,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#if defined(__DARWIN__)
-/* If we compile with -ansi on darwin, <sys/types.h> is not
- included. So let's do it here. */
-# include <sys/types.h>
-# include <sys/utsname.h>
-#endif
-
 #include "arch.h"
 
 #if defined(ENABLE_GC_BOEHM)

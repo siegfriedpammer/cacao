@@ -38,8 +38,6 @@
 #include <sys/ioctl.h>
 #endif
 
-#include <sys/socket.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 
 // Include our JNI header before the JVM headers, because the JVM

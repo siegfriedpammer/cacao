@@ -27,7 +27,6 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <sys/mman.h> /* REMOVEME */
 
 #include "threads/mutex.hpp"
 #include "threads/thread.hpp"

@@ -25,9 +25,6 @@
 
 #include "config.h"
 
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <fcntl.h>
 #include <errno.h>
 #include <zlib.h>
 
@@ -45,6 +42,7 @@
 #include "vm/array.hpp"
 #include "vm/exceptions.hpp"
 #include "vm/javaobjects.hpp"
+#include "vm/os.hpp"
 #include "vm/string.hpp"
 #include "vm/types.h"
 #include "vm/vm.hpp" /* REMOVE ME: temporarily */

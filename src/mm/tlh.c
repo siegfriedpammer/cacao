@@ -27,9 +27,9 @@
 #include "mm/tlh.h"
 
 #include "vm/global.h"
+#include "vm/os.hpp"
 
 #include <assert.h>
-#include <sys/mman.h>
 
 static const int TLH_MAX_SIZE = (20 * 1024 * 1024);
 

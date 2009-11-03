@@ -30,7 +30,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/utsname.h>
 
 #if defined(__DARWIN__)
 # if defined(__POWERPC__)

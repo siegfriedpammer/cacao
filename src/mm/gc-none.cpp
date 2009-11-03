@@ -27,10 +27,6 @@
 
 #include <stdlib.h>
 
-#if defined(HAVE_SYS_MMAN_H)
-# include <sys/mman.h>
-#endif
-
 #include "vm/types.h"
 
 #include "boehm-gc/include/gc.h"
@@ -44,6 +40,7 @@
 #include "vm/global.h"
 #include "vm/loader.hpp"
 #include "vm/options.h"
+#include "vm/os.hpp"
 #include "vm/vm.hpp"
 
 

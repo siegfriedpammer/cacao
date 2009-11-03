@@ -109,6 +109,10 @@
 # include <sys/types.h>
 #endif
 
+#if defined(HAVE_SYS_UTSNAME_H)
+# include <sys/utsname.h>
+#endif
+
 
 #ifdef __cplusplus
 

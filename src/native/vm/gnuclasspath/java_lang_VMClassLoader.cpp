@@ -27,7 +27,6 @@
 
 #include <assert.h>
 #include <stdint.h>
-#include <sys/stat.h>
 
 #include "mm/memory.hpp"
 
@@ -57,6 +56,7 @@
 #include "vm/linker.hpp"
 #include "vm/loader.hpp"
 #include "vm/options.h"
+#include "vm/os.hpp"
 #include "vm/primitive.hpp"
 #include "vm/statistics.h"
 #include "vm/string.hpp"

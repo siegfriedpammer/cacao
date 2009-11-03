@@ -27,10 +27,8 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <unistd.h>
 #include <zlib.h>
-#include <sys/mman.h>
 
 #include "vm/types.h"
 
@@ -40,6 +38,7 @@
 #include "mm/memory.hpp"
 
 #include "vm/global.h"
+#include "vm/os.hpp"
 #include "vm/suck.hpp"
 #include "vm/utf8.h"
 #include "vm/vm.hpp"
