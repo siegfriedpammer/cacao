@@ -71,16 +71,6 @@
 #include <vmlog_cacao.h>
 #endif
 
-/*** architecture-dependent configuration *************************************/
-
-/* first unset the macros (default) */
-#undef REPLACE_RA_LINKAGE_AREA
-
-/* powerpc */
-#if defined(__POWERPC__)
-# define REPLACE_RA_LINKAGE_AREA
-#endif
-
 
 /*** configuration of native stack slot size **********************************/
 
@@ -1527,12 +1517,12 @@ void md_pop_stackframe(executionstate_t *es)
 		es->ra = (u1*) (ptrint) *--basesp;
 #endif /* STACKFRAME_RA_TOP_OF_FRAME */
 
-#if defined(REPLACE_RA_LINKAGE_AREA)
+#if STACKFRAME_RA_LINKAGE_AREA
 # if STACKFRAME_LEAFMETHODS_RA_REGISTER
 	if (!code_is_leafmethod(es->code))
 # endif
 		es->ra = *((uint8_t**) ((intptr_t) basesp + LA_LR_OFFSET));
-#endif /* REPLACE_RA_LINKAGE_AREA */
+#endif /* STACKFRAME_RA_LINKAGE_AREA */
 
 	/* restore saved int registers */
 
@@ -1675,12 +1665,12 @@ void md_push_stackframe(executionstate_t *es, codeinfo *calleecode, u1 *ra)
 		*--basesp = (ptrint) ra;
 #endif /* STACKFRAME_RA_TOP_OF_FRAME */
 
-#if defined(REPLACE_RA_LINKAGE_AREA)
+#if STACKFRAME_RA_LINKAGE_AREA
 # if STACKFRAME_LEAFMETHODS_RA_REGISTER
 	if (!code_is_leafmethod(calleecode))
 # endif
 		*((uint8_t**) ((intptr_t) basesp + LA_LR_OFFSET)) = ra;
-#endif /* REPLACE_RA_LINKAGE_AREA */
+#endif /* STACKFRAME_RA_LINKAGE_AREA */
 
 	/* save int registers */
 
