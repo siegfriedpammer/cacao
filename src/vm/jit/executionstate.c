@@ -1,6 +1,6 @@
 /* src/vm/jit/executionstate.c - execution-state handling
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -147,6 +147,59 @@ void executionstate_pop_stackframe(executionstate_t *es)
 			es->adrregs[i] = (ptrint) 0x33dead3333dead33ULL;
 # endif
 #endif /* !defined(NDEBUG) */
+}
+
+
+// XXX Move this prototype somewhere else!
+void *exceptions_handle_exception(java_object_t *xptro, void *xpc, void *pv, void *sp);
+
+
+/**
+ * Performs stack unwinding in case of an exception. This is done by
+ * popping frames off the given execution state until a frame is reached
+ * for which there is a handler. Execution will continue at the handler
+ * site once the execution state is written back to the machine.
+ *
+ * @param es Execution state to be modified.
+ * @param e The thrown exception object.
+ *
+ * This is specified in:
+ *    The Java(TM) Virtual Machine Specification, Second Edition
+ *    Section 3.6.5: Abrupt Method Invocation Completion
+ */
+void executionstate_unwind_exception(executionstate_t* es, java_handle_t* e)
+{
+	void* handler = NULL;
+
+	// Iterate until we find an exception handler.
+	while (handler == NULL) {
+
+		// Search an exception handler in the current frame.
+		handler = exceptions_handle_exception(e, es->pc, es->pv, es->sp);
+
+		// Jump directly into the handler in case we found one.
+		if (handler != NULL)
+			break;
+
+		// Find the codeinfo structure for the current frame.
+		es->code = code_get_codeinfo_for_pv(es->pv);
+
+		// Pop one frame off the stack.
+		executionstate_pop_stackframe(es);
+
+		// Get the PV for the parent Java method.
+		es->pv = md_codegen_get_pv_from_pc(es->pc);
+
+		// After popping the frame the PC points to the instruction just after
+		// the invocation. To get the XPC we need to correct the PC to point
+		// just before the invocation. But we do not know how big the
+		// invocation site actually is, so we subtract one, which should be
+		// sufficient for our purposes.
+		es->pc -= 1;
+	}
+
+	// Update the execution state to continue at the handler site.
+	es->pc = (uint8_t*) handler;
 }
 
 

@@ -380,9 +380,19 @@ void trap_handle(int sig, void *xpc, void *context)
 	trap_handle_exception:
 	default:
 		if (p != NULL) {
+#if defined(__X86_64__)
+			// Perform stack unwinding for exceptions on execution state.
+			es.pc = (uint8_t *) (uintptr_t) xpc;
+			es.pv = (uint8_t *) (uintptr_t) sfi.pv;
+			executionstate_unwind_exception(&es, p);
+
+			// Pass the exception object to the exception handler.
+			es.intregs[REG_ITMP1_XPTR] = (uintptr_t) LLNI_DIRECT(p);
+#else
 			es.intregs[REG_ITMP1_XPTR] = (uintptr_t) LLNI_DIRECT(p);
 			es.intregs[REG_ITMP2_XPC]  = (uintptr_t) xpc;
 			es.pc                      = (uint8_t *) (uintptr_t) asm_handle_exception;
+#endif
 		}
 	}
 

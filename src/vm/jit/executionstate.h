@@ -1,6 +1,6 @@
 /* src/vm/jit/executionstate.h - execution-state handling
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -80,6 +80,8 @@ extern "C" {
 #endif
 
 void executionstate_pop_stackframe(executionstate_t *es);
+
+void executionstate_unwind_exception(executionstate_t* es, java_handle_t* e);
 
 #if !defined(NDEBUG)
 void executionstate_sanity_check(void *context);
