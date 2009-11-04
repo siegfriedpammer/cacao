@@ -127,6 +127,13 @@ void nativevm_preinit(void)
 	_Jv_sun_misc_Perf_init();
 	_Jv_sun_misc_Unsafe_init();
 
+#  if !defined(NDEBUG)
+	// Sanity check current time in milliseconds, because negative values
+	// might confuse OpenJDKs sanity checks.
+	if (opt_PrintWarnings && (builtin_currenttimemillis() < 0))
+		log_println("nativevm_preinit: Current time in milliseconds is negative, please check your time!");
+#  endif
+
 # else
 #  error unknown classpath configuration
 # endif
