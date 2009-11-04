@@ -41,6 +41,13 @@ typedef struct executionstate_t executionstate_t;
 #include "vm/jit/code.hpp"
 
 
+/* configuration of native stack slot size ************************************/
+
+#define SIZE_OF_STACKSLOT      8
+#define STACK_SLOTS_PER_FLOAT  1
+typedef uint64_t stackslot_t;
+
+
 /* executionstate_t ************************************************************
 
    An execution-state represents the state of a thread containing all
@@ -71,6 +78,8 @@ struct executionstate_t {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+void executionstate_pop_stackframe(executionstate_t *es);
 
 #if !defined(NDEBUG)
 void executionstate_sanity_check(void *context);

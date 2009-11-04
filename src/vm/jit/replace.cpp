@@ -72,15 +72,6 @@
 #endif
 
 
-/*** configuration of native stack slot size **********************************/
-
-/* XXX this should be in md-abi.h files, probably */
-
-#define SIZE_OF_STACKSLOT      8
-#define STACK_SLOTS_PER_FLOAT  1
-typedef u8 stackslot_t;
-
-
 /*** debugging ****************************************************************/
 
 #if !defined(NDEBUG)
@@ -1461,132 +1452,6 @@ static void replace_write_executionstate(rplpoint *rp,
 }
 
 
-/* md_pop_stackframe ***********************************************************
-
-   Restore callee-saved registers (including the RA register),
-   set the stack pointer to the next stackframe,
-   set the PC to the return address of the popped frame.
-
-   *** This function imitates the effects of the method epilog ***
-   *** and returning from the method call.                     ***
-
-   IN:
-       es...............execution state
-
-   OUT:
-       *es..............the execution state after popping the stack frame
-                        NOTE: es->code and es->pv are NOT updated.
-
-*******************************************************************************/
-
-void md_pop_stackframe(executionstate_t *es)
-{
-	u1 *ra;
-	s4 framesize;
-	s4 reg;
-	s4 i;
-	stackslot_t *basesp;
-	stackslot_t *sp;
-
-	assert(es->code);
-
-	/* calculate the size of the stackframe */
-
-	framesize = md_stacktrace_get_framesize(es->code);
-
-	/* read the return address */
-
-#if STACKFRAME_LEAFMETHODS_RA_REGISTER
-	if (code_is_leafmethod(es->code))
-		ra = es->ra;
-	else
-#endif
-		ra = (u1*) md_stacktrace_get_returnaddress(es->sp, framesize);
-
-	/* calculate the base of the stack frame */
-
-	sp = (stackslot_t *) es->sp;
-	basesp = sp + es->code->stackframesize;
-
-	/* restore return address, if part of frame */
-
-#if STACKFRAME_RA_TOP_OF_FRAME
-# if STACKFRAME_LEAFMETHODS_RA_REGISTER
-	if (!code_is_leafmethod(es->code))
-# endif
-		es->ra = (u1*) (ptrint) *--basesp;
-#endif /* STACKFRAME_RA_TOP_OF_FRAME */
-
-#if STACKFRAME_RA_LINKAGE_AREA
-# if STACKFRAME_LEAFMETHODS_RA_REGISTER
-	if (!code_is_leafmethod(es->code))
-# endif
-		es->ra = *((uint8_t**) ((intptr_t) basesp + LA_LR_OFFSET));
-#endif /* STACKFRAME_RA_LINKAGE_AREA */
-
-	/* restore saved int registers */
-
-	reg = INT_REG_CNT;
-	for (i=0; i<es->code->savedintcount; ++i) {
-		while (nregdescint[--reg] != REG_SAV)
-			;
-		basesp -= 1;
-		es->intregs[reg] = *((uintptr_t*) basesp);
-	}
-
-	/* restore saved flt registers */
-
-	/* XXX align? */
-	reg = FLT_REG_CNT;
-	for (i=0; i<es->code->savedfltcount; ++i) {
-		while (nregdescfloat[--reg] != REG_SAV)
-			;
-		basesp -= STACK_SLOTS_PER_FLOAT;
-		es->fltregs[reg] = *((double*) basesp);
-	}
-
-#if defined(HAS_ADDRESS_REGISTER_FILE)
-	/* restore saved adr registers */
-
-	reg = ADR_REG_CNT;
-	for (i=0; i<es->code->savedadrcount; ++i) {
-		while (nregdescadr[--reg] != REG_SAV)
-			;
-		basesp -= 1;
-		es->adrregs[reg] = *((uintptr_t*) basesp);
-	}
-#endif
-
-	/* adjust the stackpointer */
-
-	es->sp += framesize;
-#if STACKFRMAE_RA_BETWEEN_FRAMES
-	es->sp += SIZEOF_VOID_P; /* skip return address */
-#endif
-
-	/* set the program counter to the return address */
-
-	es->pc = ra;
-
-	/* in debugging mode clobber non-saved registers */
-
-#if !defined(NDEBUG)
-	/* for debugging */
-	for (i=0; i<INT_REG_CNT; ++i)
-		if (nregdescint[i] != REG_SAV)
-			es->intregs[i] = (ptrint) 0x33dead3333dead33ULL;
-	for (i=0; i<FLT_REG_CNT; ++i)
-		if (nregdescfloat[i] != REG_SAV)
-			*(u8*)&(es->fltregs[i]) = 0x33dead3333dead33ULL;
-# if defined(HAS_ADDRESS_REGISTER_FILE)
-	for (i=0; i<ADR_REG_CNT; ++i)
-		if (nregdescadr[i] != REG_SAV)
-			es->adrregs[i] = (ptrint) 0x33dead3333dead33ULL;
-# endif
-#endif /* !defined(NDEBUG) */
-}
-
-
 /* md_push_stackframe **********************************************************
 
    Save the given return address, build the new stackframe,
@@ -1767,7 +1632,7 @@ u1* replace_pop_activation_record(executionstate_t *es,
 
 	/* pop the stackframe */
 
-	md_pop_stackframe(es);
+	executionstate_pop_stackframe(es);
 
 	ra = es->pc;
 
