@@ -29,6 +29,7 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 
 @Suite.SuiteClasses({
+TestAbstractMethodError.class,
 TestArrayClasses.class,
 TestCloning.class,
 TestExceptionInStaticClassInitializer.class,
