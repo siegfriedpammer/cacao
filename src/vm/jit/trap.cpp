@@ -380,7 +380,7 @@ void trap_handle(int sig, void *xpc, void *context)
 	trap_handle_exception:
 	default:
 		if (p != NULL) {
-#if defined(__ALPHA__) || defined(__X86_64__)
+#if defined(__ALPHA__) || defined(__I386__) || defined(__X86_64__)
 			// Perform stack unwinding for exceptions on execution state.
 			es.pc = (uint8_t *) (uintptr_t) xpc;
 			es.pv = (uint8_t *) (uintptr_t) sfi.pv;
