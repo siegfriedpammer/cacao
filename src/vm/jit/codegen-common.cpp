@@ -1962,32 +1962,34 @@ gen_method:
 						continue;
 
 					if (!md->params[i].inmemory) {
-						assert(ARG_CNT > 0);
-						s1 = emit_load(jd, iptr, var, d);
-
 						switch (var->type) {
 						case TYPE_ADR:
 						case TYPE_INT:
-							assert(INT_ARG_CNT > 0);
+							s1 = emit_load(jd, iptr, var, d);
 							emit_imove(cd, s1, d);
 							break;
 
 						case TYPE_LNG:
+							s1 = emit_load(jd, iptr, var, d);
 							emit_lmove(cd, s1, d);
 							break;
 
 						case TYPE_FLT:
 #if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
+							s1 = emit_load(jd, iptr, var, d);
 							emit_fmove(cd, s1, d);
 #else
+							s1 = emit_load(jd, iptr, var, REG_FTMP1);
 							M_CAST_F2I(s1, d);
 #endif
 							break;
 
 						case TYPE_DBL:
 #if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
+							s1 = emit_load(jd, iptr, var, d);
 							emit_dmove(cd, s1, d);
 #else
+							s1 = emit_load(jd, iptr, var, REG_FTMP1);
 							M_CAST_D2L(s1, d);
 #endif
 							break;
