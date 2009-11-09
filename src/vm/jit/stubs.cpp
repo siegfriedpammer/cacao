@@ -412,18 +412,6 @@ void NativeStub::remove(void* stub)
 }
 
 
-// Legacy C interface.
-
-extern "C" {
-	void*     CompilerStub_generate(methodinfo* m) { return CompilerStub::generate(m); }
-	void      CompilerStub_remove(void* stub) { CompilerStub::remove(stub); }
-
-	void      BuiltinStub_generate(methodinfo* m, builtintable_entry* bte) { BuiltinStub::generate(m, bte); }
-
-	void      NativeStub_remove(void* stub) { NativeStub::remove(stub); }
-}
-
-
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

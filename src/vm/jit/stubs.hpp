@@ -70,15 +70,6 @@ public:
 // Include machine dependent implementation.
 #include "md-stubs.hpp"
 
-#else
-
-// Legacy C interface.
-
-void*     CompilerStub_generate(methodinfo* m);
-void*     CompilerStub_remove(void* stub);
-void      BuiltinStub_generate(methodinfo* m, builtintable_entry* bte);
-void      NativeStub_remove(void* stub);
-
 #endif
 
 #endif // _STUBS_HPP
