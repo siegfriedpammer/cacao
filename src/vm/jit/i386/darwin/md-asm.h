@@ -117,8 +117,6 @@
 #define builtin_d2i                           _builtin_d2i
 #define builtin_d2l                           _builtin_d2l
 
-#define asm_get_cycle_count                   _asm_get_cycle_count
-
 #endif /* _MD_ASM_H */
 
 

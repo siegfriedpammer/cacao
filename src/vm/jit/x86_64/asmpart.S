@@ -56,8 +56,6 @@
 	.globl asm_builtin_d2i
 	.globl asm_builtin_d2l
 
-	.globl asm_get_cycle_count
-
 
 /********************* function asm_calljavafunction ***************************
 *                                                                              *
@@ -386,20 +384,6 @@ asm_builtin_d2l:
 	RESTORE_ARGUMENT_REGISTERS(0)
 	
 	add     $(ARG_CNT*8),sp
-	ret
-
-
-/* asm_get_cycle_count *********************************************************
-
-   Get the current time-stamp counter from the CPU.
-
-*******************************************************************************/
-
-asm_get_cycle_count:
-	rdtsc
-	shl $0x20, %rdx
-	mov %eax, %eax
-	or %rdx, %rax
 	ret
 
 

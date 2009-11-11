@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/md.h - machine dependent x86_64 functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -128,6 +128,23 @@ inline static void md_dcacheflush(void* addr, int nbytes)
 {
 	// Compiler optimization barrier (see PR97).
 	__asm__ __volatile__ ("" : : : "memory");
+}
+
+
+/* md_get_cycle_count **********************************************************
+
+   Get the current time-stamp counter from the CPU.
+
+*******************************************************************************/
+
+inline static uint64_t md_get_cycle_count()
+{
+	uint64_t cycles;
+
+	// Get current cycles count from the CPU.
+	__asm__ __volatile__ ("rdtsc" : "=A" (cycles));
+
+	return cycles;
 }
 
 #endif /* _VM_JIT_X86_64_MD_H */

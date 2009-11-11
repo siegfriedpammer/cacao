@@ -1,9 +1,7 @@
 /* src/vm/cycles-stats.h - macros for cycle count statistics
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2005, 2006, 2009
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -22,12 +20,6 @@
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
 
-   Contact: cacao@cacaojvm.org
-
-   Authors: Edwin Steiner
-
-   Changes:
-
 */
 
 #ifndef _CYCLES_STATS_H
@@ -40,6 +32,8 @@
 
 #include <stdio.h>
 
+#include "md.h"
+
 #define CYCLES_STATS_DECLARE(name,nbins,divisor)                            \
     static const int CYCLES_STATS_##name##_MAX = (nbins);                   \
     static const int CYCLES_STATS_##name##_DIV = (divisor);                 \
@@ -50,7 +44,7 @@
     static u8 cycles_stats_##name##_min = 1000000000;
 
 #define CYCLES_STATS_GET(var)                                               \
-	(var) = asm_get_cycle_count()                                           \
+	(var) = md_get_cycle_count()                                            \
 
 #define CYCLES_STATS_COUNT(name,cyclesexpr)                                 \
     do {                                                                    \
@@ -94,27 +88,35 @@
     } while (0)
 
 #define CYCLES_STATS_DECLARE_AND_START                                      \
-    u8 cycles_start = asm_get_cycle_count();                                \
+    u8 cycles_start = md_get_cycle_count();                                 \
     u8 cycles_end;
 
 #define CYCLES_STATS_DECLARE_AND_START_WITH_OVERHEAD                        \
-    u8 cycles_start = asm_get_cycle_count();                                \
-    u8 cycles_overhead = asm_get_cycle_count();                             \
+    u8 cycles_start = md_get_cycle_count();                                 \
+    u8 cycles_overhead = md_get_cycle_count();                              \
     u8 cycles_end;
 
 #define CYCLES_STATS_END(name)                                              \
-    cycles_end = asm_get_cycle_count();                                     \
+    cycles_end = md_get_cycle_count();                                      \
     CYCLES_STATS_COUNT(name, cycles_end - cycles_start);
 
 #define CYCLES_STATS_END_WITH_OVERHEAD(name,ovname)                         \
-    cycles_end = asm_get_cycle_count();                                     \
+    cycles_end = md_get_cycle_count();                                      \
     CYCLES_STATS_COUNT(ovname, cycles_overhead - cycles_start);             \
     CYCLES_STATS_COUNT(name, cycles_end - cycles_overhead);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void cycles_stats_print(FILE *file,
 					    const char *name, int nbins, int div,
 					    u4 *bins, u8 count, u8 total, u8 min, u8 max,
 						int overhead);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #else /* !defined(ENABLE_CYCLES_STATS) */

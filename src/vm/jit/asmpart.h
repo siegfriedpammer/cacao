@@ -102,8 +102,6 @@ void asm_patcher_wrapper(void);
 /* cache flush function */
 void asm_cacheflush(void* addr, int nbytes);
 
-u8 asm_get_cycle_count(void);
-
 void *md_asm_codegen_get_pv_from_pc(void *ra);
 
 #if defined(ENABLE_ESCAPE_CHECK)

@@ -62,8 +62,6 @@
 	.globl asm_compare_and_swap
 	.globl asm_memory_barrier
 
-	.globl asm_get_cycle_count
-
 #if defined(ENABLE_ESCAPE_CHECK)
 	.globl asm_escape_check
 #endif
@@ -416,16 +414,6 @@ asm_memory_barrier:
 	lock; add $0,0(sp)
 	ret
 
-		
-/* asm_get_cycle_count *********************************************************
-
-   Get the current time-stamp counter from the CPU.
-
-*******************************************************************************/
-
-asm_get_cycle_count:
-	rdtsc
-	ret
 
 #if defined(ENABLE_ESCAPE_CHECK)
 asm_escape_check:

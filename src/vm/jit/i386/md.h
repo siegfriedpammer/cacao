@@ -139,6 +139,23 @@ inline static void md_dcacheflush(void *addr, int nbytes)
 	__asm__ __volatile__ ("" : : : "memory");
 }
 
+
+/* md_get_cycle_count **********************************************************
+
+   Get the current time-stamp counter from the CPU.
+
+*******************************************************************************/
+
+inline static uint64_t md_get_cycle_count()
+{
+	uint64_t cycles;
+
+	// Get current cycles count from the CPU.
+	__asm__ __volatile__ ("rdtsc" : "=A" (cycles));
+
+	return cycles;
+}
+
 #endif /* _VM_JIT_I386_MD_H */
 
 
