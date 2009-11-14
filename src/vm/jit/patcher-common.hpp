@@ -48,9 +48,10 @@ typedef struct patchref_t patchref_t;
 *******************************************************************************/
 
 struct patchref_t {
-	ptrint       mpc;           /* absolute position in code segment          */
-	ptrint       datap;         /* absolute position in data segment          */
-	s4           disp;          /* displacement of ref in the data segment    */
+	uintptr_t    mpc;           /* absolute position in code segment          */
+	uintptr_t    datap;         /* absolute position in data segment          */
+	int32_t      disp;          /* displacement of ref in the data segment    */
+	int32_t      disp_mb;       /* auxiliary code displacement (for membar)   */
 	functionptr  patcher;       /* patcher function to call                   */
 	void*        ref;           /* reference passed                           */
 	uint32_t     mcode;         /* machine code to be patched back in         */
@@ -75,7 +76,7 @@ void patcher_list_free(codeinfo *code);
 void patcher_list_show(codeinfo *code);
 #endif
 
-void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp);
+patchref_t *patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp);
 
 void patcher_resolve(jitdata* jd);
 

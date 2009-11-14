@@ -82,6 +82,9 @@
 #define BRANCH_UNCONDITIONAL_SIZE    5  /* size in bytes of a branch          */
 #define BRANCH_CONDITIONAL_SIZE      6  /* size in bytes of a branch          */
 
+/* These NOPs are never executed; they are only used as placeholders during
+ * code generation.
+ */
 #define BRANCH_NOPS \
     do { \
         M_NOP; \

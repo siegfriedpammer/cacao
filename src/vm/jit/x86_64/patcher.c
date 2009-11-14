@@ -74,6 +74,25 @@ bool patcher_is_valid_trap_instruction_at(void* pc)
 	return (mcode == 0x0b0f);
 }
 
+/**
+ * Overwrites the MFENCE instruction at the indicated address with a 3-byte
+ * NOP. The MFENCE instruction is not allowed to cross a (4-byte) word
+ * boundary.
+ *
+ * @param pc Program counter.
+ */
+static void patch_out_mfence(void *pc)
+{
+	uint32_t *p = (uint32_t*) (((uintptr_t) pc) & ~3);
+
+	assert((((uintptr_t) pc) & 3) < 2);
+	if (((uintptr_t) pc) & 1)
+		*p = *p & 0x000000ff | 0x001f0f00;
+	else
+		*p = *p & 0xff000000 | 0x00001f0f;
+
+	md_icacheflush(p, 4);
+}
 
 /* patcher_resolve_classref_to_classinfo ***************************************
 
@@ -225,6 +244,9 @@ bool patcher_get_putstatic(patchref_t *pr)
 	// Patch the field value's address.
 	*datap = (uintptr_t) fi->value;
 
+	if (pr->disp_mb && !(fi->flags & ACC_VOLATILE))
+		patch_out_mfence(ra + pr->disp_mb - 2);
+
 	// Synchronize data cache.
 	md_dcacheflush((void*) pr->datap, SIZEOF_VOID_P);
 
@@ -274,6 +296,9 @@ bool patcher_get_putfield(patchref_t *pr)
 			*((int32_t*) (pc + 5)) = fi->offset;
 	}
 
+	if (pr->disp_mb && !(fi->flags & ACC_VOLATILE))
+		patch_out_mfence(pc + pr->disp_mb - 2);
+
 	// Synchronize instruction cache.
 	md_icacheflush(pc, 6 + sizeof(int32_t));
 
@@ -321,6 +346,9 @@ bool patcher_putfieldconst(patchref_t *pr)
 		else
 			*((uint32_t*) (pc + 3)) = fi->offset;
 	}
+
+	if (pr->disp_mb && !(fi->flags & ACC_VOLATILE))
+		patch_out_mfence(pc + pr->disp_mb - 2);
 
 	// Synchronize instruction cache.
 	md_icacheflush(pc, 14 + sizeof(int32_t));

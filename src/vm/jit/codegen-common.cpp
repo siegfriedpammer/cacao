@@ -1503,16 +1503,20 @@ bool codegen_emit(jitdata *jd)
 #if defined(__I386__)
 				// Generate architecture specific instructions.
 				codegen_emit_instruction(jd, iptr);
+				break;
 #else
+			{
+				fieldinfo* fi;
+				patchref_t* pr;
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 					unresolved_field* uf = iptr->sx.s23.s3.uf;
 					fieldtype = uf->fieldref->parseddesc.fd->type;
 					disp      = dseg_add_unique_address(cd, 0);
 
-					patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
+					pr = patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
 				}
 				else {
-					fieldinfo* fi = iptr->sx.s23.s3.fmiref->p.field;
+					fi        = iptr->sx.s23.s3.fmiref->p.field;
 					fieldtype = fi->type;
 					disp      = dseg_add_address(cd, fi->value);
 
@@ -1522,6 +1526,10 @@ bool codegen_emit(jitdata *jd)
 						PROFILE_CYCLE_START;
 					}
 				}
+
+#if defined(USES_PATCHABLE_MEMORY_BARRIER)
+				codegen_emit_patchable_barrier(iptr, cd, pr, fi);
+#endif
 
 				// XXX X86_64: Here We had this:
 				/* This approach is much faster than moving the field
@@ -1553,24 +1561,30 @@ bool codegen_emit(jitdata *jd)
 					break;
 				}
 				emit_store_dst(jd, iptr, d);
-#endif
 				break;
+			}
+#endif
 
 			case ICMD_PUTSTATIC:  /* ..., value  ==> ...                      */
 
 #if defined(__I386__)
 				// Generate architecture specific instructions.
 				codegen_emit_instruction(jd, iptr);
+				break;
 #else
+			{
+				fieldinfo* fi;
+				patchref_t* pr;
+
 				if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 					unresolved_field* uf = iptr->sx.s23.s3.uf;
 					fieldtype = uf->fieldref->parseddesc.fd->type;
 					disp      = dseg_add_unique_address(cd, 0);
 
-					patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
+					pr = patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
 				}
 				else {
-					fieldinfo* fi = iptr->sx.s23.s3.fmiref->p.field;
+					fi = iptr->sx.s23.s3.fmiref->p.field;
 					fieldtype = fi->type;
 					disp      = dseg_add_address(cd, fi->value);
 
@@ -1610,8 +1624,12 @@ bool codegen_emit(jitdata *jd)
 					M_DST(s1, REG_ITMP1, 0);
 					break;
 				}
+#if defined(USES_PATCHABLE_MEMORY_BARRIER)
+				codegen_emit_patchable_barrier(iptr, cd, pr, fi);
 #endif
 				break;
+			}
+#endif
 
 			/* branch operations **********************************************/
 

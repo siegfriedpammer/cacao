@@ -187,6 +187,22 @@ void codegen_emit_epilog(jitdata* jd)
 	M_RET;
 }
 
+/**
+ * Generates a memory barrier to be used after volatile writes. It can be
+ * patched out later if the field turns out not to be volatile.
+ */
+void codegen_emit_patchable_barrier(instruction *iptr, codegendata *cd, patchref_t *pr, fieldinfo *fi)
+{
+	if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
+		/* Align on word boundary */
+		if ((((intptr_t) cd->mcodeptr) & 3) >= 2)
+			emit_nop(cd, 4 - (((intptr_t) cd->mcodeptr) & 3));
+		/* Displacement for patching out MFENCE */
+		pr->disp_mb = (cd->mcodeptr - cd->mcodebase - pr->mpc);
+	}
+	if (INSTRUCTION_IS_UNRESOLVED(iptr) || fi->flags & ACC_VOLATILE)
+		M_MFENCE;
+}
 
 /**
  * Generates machine code for one ICMD.
@@ -200,6 +216,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 	unresolved_method*  um;
 	fieldinfo*          fi;
 	unresolved_field*   uf;
+	patchref_t*         pr;
 	int32_t             fieldtype;
 	int32_t             s1, s2, s3, d;
 	int32_t             disp;
@@ -1487,7 +1504,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 /* 				PROFILE_CYCLE_STOP; */
 
-				patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
+				pr = patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
 
 /* 				PROFILE_CYCLE_START; */
 			}
@@ -1527,6 +1544,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				}
 				break;
 			}
+			codegen_emit_patchable_barrier(iptr, cd, pr, fi);
 			break;
 
 		case ICMD_GETFIELD:   /* ...  ==> ..., value                          */
@@ -1585,7 +1603,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 /* 				PROFILE_CYCLE_STOP; */
 
-				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
+				pr = patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
 
 /* 				PROFILE_CYCLE_START; */
 			} 
@@ -1611,6 +1629,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				M_DST32(s2, s1, disp);
 				break;
 			}
+			codegen_emit_patchable_barrier(iptr, cd, pr, fi);
 			break;
 
 		case ICMD_PUTFIELDCONST:  /* ..., objectref, value  ==> ...           */
@@ -1626,7 +1645,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 /* 				PROFILE_CYCLE_STOP; */
 
-				patcher_add_patch_ref(jd, PATCHER_putfieldconst, uf, 0);
+				pr = patcher_add_patch_ref(jd, PATCHER_putfieldconst, uf, 0);
 
 /* 				PROFILE_CYCLE_START; */
 			} 
@@ -1653,6 +1672,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 					M_LST32(REG_ITMP2, s1, disp);
 				break;
 			}
+			codegen_emit_patchable_barrier(iptr, cd, pr, fi);
 			break;
 
 

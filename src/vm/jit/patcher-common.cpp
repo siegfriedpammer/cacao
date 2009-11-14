@@ -209,9 +209,11 @@ void patcher_list_show(codeinfo *code)
 
    Appends a new patcher reference to the list of patching positions.
 
+   Returns a pointer to the newly created patchref_t.
+
 *******************************************************************************/
 
-void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
+patchref_t *patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
 {
 	codegendata *cd   = jd->cd;
 	codeinfo    *code = jd->code;
@@ -237,6 +239,7 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
 	pr.mpc     = patchmpc;
 	pr.datap   = 0;
 	pr.disp    = disp;
+	pr.disp_mb = 0;
 	pr.patcher = patcher;
 	pr.ref     = ref;
 	pr.mcode   = 0;
@@ -264,6 +267,8 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
 
 	cd->lastmcodeptr = cd->mcodeptr + PATCHER_CALL_SIZE;
 #endif
+
+	return &code->patchers->back();
 }
 
 
