@@ -213,22 +213,22 @@ void patcher_list_show(codeinfo *code)
 
 void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
 {
-	codegendata *cd;
-	codeinfo    *code;
-	s4           patchmpc;
-
-	cd       = jd->cd;
-	code     = jd->code;
-	patchmpc = cd->mcodeptr - cd->mcodebase;
+	codegendata *cd   = jd->cd;
+	codeinfo    *code = jd->code;
 
 #if defined(ALIGN_PATCHER_TRAP)
 	emit_patcher_alignment(cd);
-	patchmpc = cd->mcodeptr - cd->mcodebase;
 #endif
+
+	int32_t patchmpc = cd->mcodeptr - cd->mcodebase;
 
 #if !defined(NDEBUG)
 	if (patcher_list_find(code, (void*) (intptr_t) patchmpc) != NULL)
 		os::abort("patcher_add_patch_ref: different patchers at same position.");
+#endif
+
+#if defined(USES_PATCHABLE_MEMORY_BARRIER)
+	PATCHER_NOPS;
 #endif
 
 	// Set patcher information (mpc is resolved later).

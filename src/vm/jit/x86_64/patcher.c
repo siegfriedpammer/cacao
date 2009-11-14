@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/patcher.c - x86_64 code patching functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -176,6 +176,8 @@ bool patcher_resolve_classref_to_flags(patchref_t *pr)
 	if (c == NULL)
 		return false;
 
+	ra += PATCHER_CALL_SIZE;
+
 	// Patch class flags.
 /* 	*datap = c->flags; */
 	*((int32_t*) (ra + 2)) = c->flags;
@@ -205,12 +207,15 @@ bool patcher_get_putstatic(patchref_t *pr)
 {
 	unresolved_field* uf    = (unresolved_field*) pr->ref;
 	uintptr_t*        datap = (uintptr_t*)        pr->datap;
+	uint8_t*          ra    = (uint8_t*)          pr->mpc;
 
 	// Resolve the field.
 	fieldinfo* fi = resolve_field_eager(uf);
 
 	if (fi == NULL)
 		return false;
+
+	ra += PATCHER_CALL_SIZE;
 
 	// Check if the field's class is initialized/
 	if (!(fi->clazz->state & CLASS_INITIALIZED))
@@ -249,6 +254,8 @@ bool patcher_get_putfield(patchref_t *pr)
 
 	if (fi == NULL)
 		return false;
+
+	pc += PATCHER_CALL_SIZE;
 
 	// Patch the field's offset: we check for the field type, because
 	// the instructions have different lengths.
@@ -296,6 +303,8 @@ bool patcher_putfieldconst(patchref_t *pr)
 
 	if (fi == NULL)
 		return false;
+
+	pc += PATCHER_CALL_SIZE;
 
 	// Patch the field's offset.
 	if (IS_2_WORD_TYPE(fi->type) || IS_ADR_TYPE(fi->type)) {
@@ -379,6 +388,8 @@ bool patcher_invokevirtual(patchref_t *pr)
 	if (m == NULL)
 		return false;
 
+	pc += PATCHER_CALL_SIZE;
+
 	// Patch vftbl index.
 	*((int32_t*) (pc + 3 + 3)) = (int32_t) (OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * m->vftblindex);
 
@@ -414,6 +425,8 @@ bool patcher_invokeinterface(patchref_t *pr)
 
 	if (m == NULL)
 		return false;
+
+	pc += PATCHER_CALL_SIZE;
 
 	// Patch interfacetable index.
 	*((int32_t*) (pc + 3 + 3)) = (int32_t) (OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * m->clazz->index);
@@ -455,6 +468,8 @@ bool patcher_checkcast_interface(patchref_t *pr)
 	if (c == NULL)
 		return false;
 
+	pc += PATCHER_CALL_SIZE;
+
 	// Patch super class index.
 	*((int32_t*) (pc + 7 + 3)) = c->index;
 
@@ -492,6 +507,8 @@ bool patcher_instanceof_interface(patchref_t *pr)
 
 	if (c == NULL)
 		return false;
+
+	pc += PATCHER_CALL_SIZE;
 
 	// Patch super class index.
 	*((int32_t*) (pc + 7 + 3)) = c->index;

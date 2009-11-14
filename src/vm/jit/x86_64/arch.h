@@ -126,6 +126,8 @@
 
 #define CAS_PROVIDES_FULL_BARRIER        1
 
+#define USES_PATCHABLE_MEMORY_BARRIER    1
+
 #endif /* _ARCH_H */
 
 
@@ -140,4 +142,5 @@
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
