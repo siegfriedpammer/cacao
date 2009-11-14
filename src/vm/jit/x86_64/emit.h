@@ -193,6 +193,7 @@ void emit_lshift(jitdata *jd, s4 shift_op, instruction *iptr);
 
 /* integer instructions */
 
+void emit_nop(codegendata *cd, int length);
 void emit_mov_reg_reg(codegendata *cd, s8 reg, s8 dreg);
 void emit_mov_imm_reg(codegendata *cd, s8 imm, s8 reg);
 void emit_movl_reg_reg(codegendata *cd, s8 reg, s8 dreg);

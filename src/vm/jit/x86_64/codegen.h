@@ -50,8 +50,9 @@
 
 #define ALIGNCODENOP \
     do { \
-        for (s1 = 0; s1 < (s4) (((ptrint) cd->mcodeptr) & 7); s1++) \
-            M_NOP; \
+        int len = (-(ptrint) cd->mcodeptr) & 7; \
+        if (len) \
+            emit_nop(cd, len); \
     } while (0)
 
 
@@ -98,8 +99,7 @@
 
 #define PATCHER_NOPS \
     do { \
-        M_NOP; \
-        M_NOP; \
+        emit_nop(cd, 2); \
     } while (0)
 
 
