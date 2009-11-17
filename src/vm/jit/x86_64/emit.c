@@ -1205,6 +1205,76 @@ void emit_lshift(jitdata *jd, s4 shift_op, instruction *iptr)
 
 /* low-level code emitter functions *******************************************/
 
+void emit_nop(codegendata *cd, int length)
+{
+    assert(length >= 1 && length <= 9);
+    switch (length) {
+    case 1:
+        *(cd->mcodeptr++) = 0x90;
+        break;
+    case 2:
+        *(cd->mcodeptr++) = 0x66;
+        *(cd->mcodeptr++) = 0x90;
+        break;
+    case 3:
+        *(cd->mcodeptr++) = 0x0f;
+        *(cd->mcodeptr++) = 0x1f;
+        *(cd->mcodeptr++) = 0x00;
+        break;
+    case 4:
+        *(cd->mcodeptr++) = 0x0f;
+        *(cd->mcodeptr++) = 0x1f;
+        *(cd->mcodeptr++) = 0x40;
+        *(cd->mcodeptr++) = 0x00;
+        break;
+    case 5:
+        *(cd->mcodeptr++) = 0x0f;
+        *(cd->mcodeptr++) = 0x1f;
+        *(cd->mcodeptr++) = 0x44;
+        *(cd->mcodeptr++) = 0x00;
+        *(cd->mcodeptr++) = 0x00;
+        break;
+    case 6:
+        *(cd->mcodeptr++) = 0x66;
+        *(cd->mcodeptr++) = 0x0f;
+        *(cd->mcodeptr++) = 0x1f;
+        *(cd->mcodeptr++) = 0x44;
+        *(cd->mcodeptr++) = 0x00;
+        *(cd->mcodeptr++) = 0x00;
+        break;
+    case 7:
+        *(cd->mcodeptr++) = 0x0f;
+        *(cd->mcodeptr++) = 0x1f;
+        *(cd->mcodeptr++) = 0x80;
+        *(cd->mcodeptr++) = 0x00;
+        *(cd->mcodeptr++) = 0x00;
+        *(cd->mcodeptr++) = 0x00;
+        *(cd->mcodeptr++) = 0x00;
+        break;
+    case 8:
+        *(cd->mcodeptr++) = 0x0f;
+        *(cd->mcodeptr++) = 0x1f;
+        *(cd->mcodeptr++) = 0x84;
+        *(cd->mcodeptr++) = 0x00;
+        *(cd->mcodeptr++) = 0x00;
+        *(cd->mcodeptr++) = 0x00;
+        *(cd->mcodeptr++) = 0x00;
+        *(cd->mcodeptr++) = 0x00;
+        break;
+    case 9:
+        *(cd->mcodeptr++) = 0x66;
+        *(cd->mcodeptr++) = 0x0f;
+        *(cd->mcodeptr++) = 0x1f;
+        *(cd->mcodeptr++) = 0x84;
+        *(cd->mcodeptr++) = 0x00;
+        *(cd->mcodeptr++) = 0x00;
+        *(cd->mcodeptr++) = 0x00;
+        *(cd->mcodeptr++) = 0x00;
+        *(cd->mcodeptr++) = 0x00;
+        break;
+    }
+}
+
 void emit_mov_reg_reg(codegendata *cd, s8 reg, s8 dreg)
 {
 	emit_rex(1,(reg),0,(dreg));
@@ -2573,6 +2643,13 @@ void emit_rdtsc(codegendata *cd)
 	*(cd->mcodeptr++) = 0x31;
 }
 
+void emit_mfence(codegendata *cd)
+{
+	*(cd->mcodeptr++) = 0x0f;
+	*(cd->mcodeptr++) = 0xae;
+	*(cd->mcodeptr++) = 0xf0;
+}
+
 
 /*
  * These are local overrides for various environment variables in Emacs.
@@ -2585,4 +2662,5 @@ void emit_rdtsc(codegendata *cd)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/codegen.h - code generation macros for x86_64
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -50,8 +50,9 @@
 
 #define ALIGNCODENOP \
     do { \
-        for (s1 = 0; s1 < (s4) (((ptrint) cd->mcodeptr) & 7); s1++) \
-            M_NOP; \
+        int len = (-(ptrint) cd->mcodeptr) & 7; \
+        if (len) \
+            emit_nop(cd, len); \
     } while (0)
 
 
@@ -81,6 +82,9 @@
 #define BRANCH_UNCONDITIONAL_SIZE    5  /* size in bytes of a branch          */
 #define BRANCH_CONDITIONAL_SIZE      6  /* size in bytes of a branch          */
 
+/* These NOPs are never executed; they are only used as placeholders during
+ * code generation.
+ */
 #define BRANCH_NOPS \
     do { \
         M_NOP; \
@@ -98,8 +102,7 @@
 
 #define PATCHER_NOPS \
     do { \
-        M_NOP; \
-        M_NOP; \
+        emit_nop(cd, 2); \
     } while (0)
 
 
@@ -335,6 +338,7 @@
 
 /* system instructions ********************************************************/
 
+#define M_MFENCE                emit_mfence(cd)
 #define M_RDTSC                 emit_rdtsc(cd)
 
 #define M_IINC_MEMBASE(a,b)     emit_incl_membase(cd, (a), (b))
@@ -360,4 +364,5 @@
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

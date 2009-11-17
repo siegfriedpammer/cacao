@@ -210,26 +210,28 @@ void patcher_list_show(codeinfo *code)
 
    Appends a new patcher reference to the list of patching positions.
 
+   Returns a pointer to the newly created patchref_t.
+
 *******************************************************************************/
 
-void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
+patchref_t *patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
 {
-	codegendata *cd;
-	codeinfo    *code;
-	s4           patchmpc;
-
-	cd       = jd->cd;
-	code     = jd->code;
-	patchmpc = cd->mcodeptr - cd->mcodebase;
+	codegendata *cd   = jd->cd;
+	codeinfo    *code = jd->code;
 
 #if defined(ALIGN_PATCHER_TRAP)
 	emit_patcher_alignment(cd);
-	patchmpc = cd->mcodeptr - cd->mcodebase;
 #endif
+
+	int32_t patchmpc = cd->mcodeptr - cd->mcodebase;
 
 #if !defined(NDEBUG)
 	if (patcher_list_find(code, (void*) (intptr_t) patchmpc) != NULL)
 		os::abort("patcher_add_patch_ref: different patchers at same position.");
+#endif
+
+#if defined(USES_PATCHABLE_MEMORY_BARRIER)
+	PATCHER_NOPS;
 #endif
 
 	// Set patcher information (mpc is resolved later).
@@ -238,6 +240,7 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
 	pr.mpc     = patchmpc;
 	pr.datap   = 0;
 	pr.disp    = disp;
+	pr.disp_mb = 0;
 	pr.patcher = patcher;
 	pr.ref     = ref;
 	pr.mcode   = 0;
@@ -265,6 +268,8 @@ void patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s4 disp)
 
 	cd->lastmcodeptr = cd->mcodeptr + PATCHER_CALL_SIZE;
 #endif
+
+	return &code->patchers->back();
 }
 
 

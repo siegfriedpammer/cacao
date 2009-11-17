@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/patcher.c - x86_64 code patching functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -74,6 +74,25 @@ bool patcher_is_valid_trap_instruction_at(void* pc)
 	return (mcode == 0x0b0f);
 }
 
+/**
+ * Overwrites the MFENCE instruction at the indicated address with a 3-byte
+ * NOP. The MFENCE instruction is not allowed to cross a (4-byte) word
+ * boundary.
+ *
+ * @param pc Program counter.
+ */
+static void patch_out_mfence(void *pc)
+{
+	uint32_t *p = (uint32_t*) (((uintptr_t) pc) & ~3);
+
+	assert((((uintptr_t) pc) & 3) < 2);
+	if (((uintptr_t) pc) & 1)
+		*p = *p & 0x000000ff | 0x001f0f00;
+	else
+		*p = *p & 0xff000000 | 0x00001f0f;
+
+	md_icacheflush(p, 4);
+}
 
 /* patcher_resolve_classref_to_classinfo ***************************************
 
@@ -176,6 +195,8 @@ bool patcher_resolve_classref_to_flags(patchref_t *pr)
 	if (c == NULL)
 		return false;
 
+	ra += PATCHER_CALL_SIZE;
+
 	// Patch class flags.
 /* 	*datap = c->flags; */
 	*((int32_t*) (ra + 2)) = c->flags;
@@ -205,12 +226,15 @@ bool patcher_get_putstatic(patchref_t *pr)
 {
 	unresolved_field* uf    = (unresolved_field*) pr->ref;
 	uintptr_t*        datap = (uintptr_t*)        pr->datap;
+	uint8_t*          ra    = (uint8_t*)          pr->mpc;
 
 	// Resolve the field.
 	fieldinfo* fi = resolve_field_eager(uf);
 
 	if (fi == NULL)
 		return false;
+
+	ra += PATCHER_CALL_SIZE;
 
 	// Check if the field's class is initialized/
 	if (!(fi->clazz->state & CLASS_INITIALIZED))
@@ -219,6 +243,9 @@ bool patcher_get_putstatic(patchref_t *pr)
 
 	// Patch the field value's address.
 	*datap = (uintptr_t) fi->value;
+
+	if (pr->disp_mb && !(fi->flags & ACC_VOLATILE))
+		patch_out_mfence(ra + pr->disp_mb - 2);
 
 	// Synchronize data cache.
 	md_dcacheflush((void*) pr->datap, SIZEOF_VOID_P);
@@ -250,6 +277,8 @@ bool patcher_get_putfield(patchref_t *pr)
 	if (fi == NULL)
 		return false;
 
+	pc += PATCHER_CALL_SIZE;
+
 	// Patch the field's offset: we check for the field type, because
 	// the instructions have different lengths.
 	if (IS_INT_LNG_TYPE(fi->type)) {
@@ -266,6 +295,9 @@ bool patcher_get_putfield(patchref_t *pr)
 		else
 			*((int32_t*) (pc + 5)) = fi->offset;
 	}
+
+	if (pr->disp_mb && !(fi->flags & ACC_VOLATILE))
+		patch_out_mfence(pc + pr->disp_mb - 2);
 
 	// Synchronize instruction cache.
 	md_icacheflush(pc, 6 + sizeof(int32_t));
@@ -297,6 +329,8 @@ bool patcher_putfieldconst(patchref_t *pr)
 	if (fi == NULL)
 		return false;
 
+	pc += PATCHER_CALL_SIZE;
+
 	// Patch the field's offset.
 	if (IS_2_WORD_TYPE(fi->type) || IS_ADR_TYPE(fi->type)) {
 		// Handle special case when the base register is %r12.
@@ -312,6 +346,9 @@ bool patcher_putfieldconst(patchref_t *pr)
 		else
 			*((uint32_t*) (pc + 3)) = fi->offset;
 	}
+
+	if (pr->disp_mb && !(fi->flags & ACC_VOLATILE))
+		patch_out_mfence(pc + pr->disp_mb - 2);
 
 	// Synchronize instruction cache.
 	md_icacheflush(pc, 14 + sizeof(int32_t));
@@ -379,6 +416,8 @@ bool patcher_invokevirtual(patchref_t *pr)
 	if (m == NULL)
 		return false;
 
+	pc += PATCHER_CALL_SIZE;
+
 	// Patch vftbl index.
 	*((int32_t*) (pc + 3 + 3)) = (int32_t) (OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * m->vftblindex);
 
@@ -414,6 +453,8 @@ bool patcher_invokeinterface(patchref_t *pr)
 
 	if (m == NULL)
 		return false;
+
+	pc += PATCHER_CALL_SIZE;
 
 	// Patch interfacetable index.
 	*((int32_t*) (pc + 3 + 3)) = (int32_t) (OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * m->clazz->index);
@@ -455,6 +496,8 @@ bool patcher_checkcast_interface(patchref_t *pr)
 	if (c == NULL)
 		return false;
 
+	pc += PATCHER_CALL_SIZE;
+
 	// Patch super class index.
 	*((int32_t*) (pc + 7 + 3)) = c->index;
 
@@ -492,6 +535,8 @@ bool patcher_instanceof_interface(patchref_t *pr)
 
 	if (c == NULL)
 		return false;
+
+	pc += PATCHER_CALL_SIZE;
 
 	// Patch super class index.
 	*((int32_t*) (pc + 7 + 3)) = c->index;

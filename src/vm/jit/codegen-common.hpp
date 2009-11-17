@@ -1,6 +1,6 @@
 /* src/vm/jit/codegen-common.hpp - architecture independent code generator stuff
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -34,6 +34,7 @@ typedef struct branch_label_ref_t     branch_label_ref_t;
 typedef struct jumpref                jumpref;
 typedef struct dataref                dataref;
 
+struct patchref_t;
 
 #include "config.h"
 #include "vm/types.h"
@@ -227,6 +228,10 @@ bool codegen_emit(jitdata *jd);
 void codegen_emit_prolog(jitdata* jd);
 void codegen_emit_epilog(jitdata* jd);
 void codegen_emit_instruction(jitdata* jd, instruction* iptr);
+
+#if defined(USES_PATCHABLE_MEMORY_BARRIER)
+void codegen_emit_patchable_barrier(instruction *iptr, codegendata *cd, struct patchref_t *pr, fieldinfo *fi);
+#endif
 
 #if defined(ENABLE_INTRP)
 bool intrp_codegen(jitdata *jd);
