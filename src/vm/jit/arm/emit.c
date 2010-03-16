@@ -959,6 +959,58 @@ void emit_verbosecall_exit(jitdata *jd)
 #endif /* !defined(NDEBUG) */
 
 
+/**
+ * Emit profiling code for method frequency counting.
+ * Its slow but working, so be carefull, if you want to use it...
+ */
+#if defined(ENABLE_PROFILING)
+void emit_profile_method(codegendata* cd, codeinfo* code)
+{
+	ICONST(REG_ITMP3,code);
+	M_LDR(REG_ITMP2,REG_ITMP3,OFFSET(codeinfo, frequency));
+	M_ADD_IMM(REG_ITMP2, REG_ITMP2, 1);
+	M_STR(REG_ITMP2,REG_ITMP3,OFFSET(codeinfo, frequency));
+//	M_TRAP(0, TRAP_DEBUG);
+}
+
+#endif
+
+/**
+ * Emit profiling code for basicblock frequency counting.
+ * Its slow but working, so be carefull, if you want to use it...
+ */
+#if defined(ENABLE_PROFILING)
+void emit_profile_basicblock(codegendata* cd, codeinfo* code, basicblock* bptr)
+{
+	ICONST(REG_ITMP3,code);
+	M_LDR(REG_ITMP2,REG_ITMP3,OFFSET(codeinfo, bbfrequency));
+	M_ADD_IMM(REG_ITMP2, REG_ITMP2, 1);
+	M_STR(REG_ITMP2,REG_ITMP3,OFFSET(codeinfo, bbfrequency));
+}
+#endif
+
+
+/**
+ * Emit profiling code to start CPU cycle counting.
+ */
+#if defined(ENABLE_PROFILING)
+void emit_profile_cycle_start(codegendata* cd, codeinfo* code)
+{
+	// XXX Not implemented yet!
+}
+#endif
+
+
+/**
+ * Emit profiling code to stop CPU cycle counting.
+ */
+#if defined(ENABLE_PROFILING)
+void emit_profile_cycle_stop(codegendata* cd, codeinfo* code)
+{
+	// XXX Not implemented yet!
+}
+#endif
+
 /*
  * These are local overrides for various environment variables in Emacs.
  * Please do not remove this and leave it at the end of the file, where

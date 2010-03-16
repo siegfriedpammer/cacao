@@ -226,7 +226,8 @@ void profile_printstats(void)
 
 	/* create new method list */
 
-	DumpList<methodinfo*> l;
+	std::list<methodinfo*> l;
+	//DumpList<methodinfo*> l; // XXX currently the DumpList doesn't work here.
 
 	/* iterate through all classes and methods */
 
