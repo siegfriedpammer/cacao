@@ -72,6 +72,7 @@ JNIEXPORT jobject JNICALL Java_sun_misc_Perf_createByteArray(JNIEnv *env, jobjec
 	return NULL;
 }
 
+static uint64_t dummy_perf;
 
 /*
  * Class:     sun/misc/Perf
@@ -80,8 +81,7 @@ JNIEXPORT jobject JNICALL Java_sun_misc_Perf_createByteArray(JNIEnv *env, jobjec
  */
 JNIEXPORT jobject JNICALL Java_sun_misc_Perf_createLong(JNIEnv *env, jobject _this, jstring name, jint variability, jint units, jlong value)
 {
-	log_println("Java_sun_misc_Perf_createLong: Not supported!");
-	return NULL;
+	return env->functions->NewDirectByteBuffer(env, &dummy_perf, sizeof(dummy_perf));
 }
 
 
