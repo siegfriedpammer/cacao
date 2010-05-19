@@ -49,6 +49,7 @@ libarch_la_SOURCES = \
 	codegen.h \
 	$(DISASS_SOURCES) \
 	emit.c \
+	emit.h \
 	patcher.c \
 	\
 	md-stubs.hpp \

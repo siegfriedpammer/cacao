@@ -32,12 +32,15 @@
 
 dist_noinst_DATA = \
 	alpha.tex \
+	arch.eps \
 	arm.tex \
+	arm-double-memory.png \
 	cacao.tex \
 	inlining.tex \
 	intro.tex \
 	java.bib \
 	jit.tex \
+	jvmti.tex \
 	library.tex \
 	loader.tex \
 	loopopt.tex \
@@ -47,6 +50,7 @@ dist_noinst_DATA = \
 	powerpc.tex \
 	reflection.tex \
 	runtime.tex \
+	s390.tex \
 	threads.tex \
 	verification.tex \
 	x86.tex \

@@ -31,9 +31,11 @@ dist_noinst_DATA = \
 	jsr.bib
 
 EXTRA_DIST = \
+	design_onstack_replacement.txt \
 	inlining_stacktrace.txt \
 	native_threads.txt \
-	stack.txt
+	stack.txt \
+	stack_frames.txt
 
 CLEANFILES = \
 	annotations.aux \

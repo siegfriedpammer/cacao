@@ -210,7 +210,8 @@ libjit_la_LIBADD = \
 
 if ENABLE_PYTHON
 libjit_la_SOURCES += \
-	python.c
+	python.c \
+	python.h
 AM_CPPFLAGS += \
 	@PYTHON_CSPEC@
 LIBS += \
