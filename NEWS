@@ -1,13 +1,19 @@
 New in release 1.1pre (not yet released)
 
+  * Large parts rewritten in C++.
+  * No more cacaoh, simplifying cross-compilation.
+  * Works with icedtea-1.10 and newer (PR128, PR129, PR139).
+  * --enable-handles switch for making native code ready for moving GC.
   * park/unpark support.
+  * Simplified signal handling -- much less code duplication.
+  * Stack unwinding rewritten in C -- much less assembler code.
+  * OpenSolaris support.
+  * Experimental python mode for easier inspection of internal compiler
+    structures.
   * Fixed various array-related bugs, including PR116, PR119.
   * Fixed PR120 (races in thread code).
-  * Fixed code generation bugs on Alpha, ARM and PPC64.
-  * Simplified signal handling (much less code duplication).
-  * Works with icedtea-1.10. (PR128, PR129).
-  * OpenSolaris support.
-  * Various other fixes.
+  * Fixed code generation bugs on Alpha, ARM, MIPS and PPC64.
+  * Various other improvements and fixes.
 
 New in release 0.99.4 (March 16, 2009)
 
