@@ -23,7 +23,7 @@ dnl 02110-1301, USA.
 dnl Process this file with autoconf to produce a configure script.
 
 
-AC_INIT(cacao, 1.1.0pre, cacao@cacaojvm.org)
+AC_INIT(cacao, 1.1.0pre1, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.cpp)
 AC_CONFIG_AUX_DIR([.])
 AC_CANONICAL_HOST
@@ -196,16 +196,18 @@ esac
 dnl Set optimization and debugging for all architectures and systems.
 dnl NOTE: Setting the CFLAGS/CXXFLAGS only works before calling AC_PROG_CC/AC_PROG_CXX.
 if test x"$CFLAGS" = "x"; then
-    OPT_CFLAGS="-g -O0"
+    OPT_CFLAGS="-g -O2"
 else
     OPT_CFLAGS=$CFLAGS
 fi
+OPT_CFLAGS="$OPT_CFLAGS -fno-strict-aliasing"
 
 if test x"$CXXFLAGS" = "x"; then
-    OPT_CXXFLAGS="-g -O0"
+    OPT_CXXFLAGS="-g -O2"
 else
     OPT_CXXFLAGS=$CXXFLAGS
 fi
+OPT_CXXFLAGS="$OPT_CXXFLAGS -fno-strict-aliasing"
 
 dnl Check for compiler.
 AC_PROG_CC
