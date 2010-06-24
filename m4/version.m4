@@ -29,7 +29,7 @@ if test x`echo "$version" | $SED -e 's/[[0-9a-z+]]*//g'` = "x..";
 then
     major=`echo "$version" | $SED -e 's/\.[[0-9a-z.+]]*$//'`
     minor=`echo "$version" | $SED -e 's/^[[0-9]]*\.//' -e 's/\.[[0-9a-z.+]]*$//'`
-    micro=`echo "$version" | $SED -e 's/^[[0-9]]*\.[[0-9]]*\.//' -e 's/[[a-z.+]]*$//'`
+    micro=`echo "$version" | $SED -r -e 's/^[[0-9]]*\.[[0-9]]*\.([[0-9]]*).*/\1/'`
     extra=`echo "$version" | $SED -e 's/^[[0-9]]*\.[[0-9]]*\.[[0-9]]*//'`
 else
     major=`echo "$version" | $SED -e 's/\.[[0-9a-z.+]]*$//'`
