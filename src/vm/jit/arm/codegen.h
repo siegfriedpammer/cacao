@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/codegen.h - code generation macros and definitions for ARM
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -1163,6 +1163,15 @@ do { \
 
 #define M_FST(a,b,c)                    M_STFS(a,b,c)
 #define M_DST(a,b,c)                    M_STFD(a,b,c)
+
+#else /* !defined(ENABLE_SOFTFLOAT) */
+
+#define M_FMOV(s,d)                     M_MOV((d), (s))
+#define M_DMOV(s,d) \
+	{ \
+		M_MOV(GET_LOW_REG(d), GET_LOW_REG(s)); \
+		M_MOV(GET_HIGH_REG(d), GET_HIGH_REG(s)); \
+	}
 
 #endif /* !defined(ENABLE_SOFTFLOAT) */
 

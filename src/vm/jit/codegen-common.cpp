@@ -1,6 +1,6 @@
 /* src/vm/jit/codegen-common.cpp - architecture independent code generator stuff
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -1547,13 +1547,20 @@ bool codegen_emit(jitdata *jd)
 					M_ALD(d, REG_ITMP1, 0);
 					break;
 				case TYPE_INT:
+#if defined(ENABLE_SOFTFLOAT)
+				case TYPE_FLT:
+#endif
 					d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
 					M_ILD(d, REG_ITMP1, 0);
 					break;
 				case TYPE_LNG:
+#if defined(ENABLE_SOFTFLOAT)
+				case TYPE_DBL:
+#endif
 					d = codegen_reg_of_dst(jd, iptr, REG_LTMP23);
 					M_LLD(d, REG_ITMP1, 0);
 					break;
+#if !defined(ENABLE_SOFTFLOAT)
 				case TYPE_FLT:
 					d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 					M_FLD(d, REG_ITMP1, 0);
@@ -1562,6 +1569,7 @@ bool codegen_emit(jitdata *jd)
 					d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 					M_DLD(d, REG_ITMP1, 0);
 					break;
+#endif
 				}
 				emit_store_dst(jd, iptr, d);
 				break;
@@ -1610,13 +1618,20 @@ bool codegen_emit(jitdata *jd)
 					M_AST(s1, REG_ITMP1, 0);
 					break;
 				case TYPE_INT:
+#if defined(ENABLE_SOFTFLOAT)
+				case TYPE_FLT:
+#endif
 					s1 = emit_load_s1(jd, iptr, REG_ITMP2);
 					M_IST(s1, REG_ITMP1, 0);
 					break;
 				case TYPE_LNG:
+#if defined(ENABLE_SOFTFLOAT)
+				case TYPE_DBL:
+#endif
 					s1 = emit_load_s1(jd, iptr, REG_LTMP23);
 					M_LST(s1, REG_ITMP1, 0);
 					break;
+#if !defined(ENABLE_SOFTFLOAT)
 				case TYPE_FLT:
 					s1 = emit_load_s1(jd, iptr, REG_FTMP2);
 					M_FST(s1, REG_ITMP1, 0);
@@ -1625,6 +1640,7 @@ bool codegen_emit(jitdata *jd)
 					s1 = emit_load_s1(jd, iptr, REG_FTMP2);
 					M_DST(s1, REG_ITMP1, 0);
 					break;
+#endif
 				}
 #if defined(USES_PATCHABLE_MEMORY_BARRIER)
 				codegen_emit_patchable_barrier(iptr, cd, pr, fi);
@@ -1840,6 +1856,9 @@ bool codegen_emit(jitdata *jd)
 				goto nowperformreturn;
 
 			case ICMD_IRETURN:    /* ..., retvalue ==> ...                    */
+#if defined(ENABLE_SOFTFLOAT)
+			case ICMD_FRETURN:
+#endif
 
 				REPLACEMENT_POINT_RETURN(cd, iptr);
 				s1 = emit_load_s1(jd, iptr, REG_RESULT);
@@ -1848,6 +1867,9 @@ bool codegen_emit(jitdata *jd)
 				goto nowperformreturn;
 
 			case ICMD_LRETURN:    /* ..., retvalue ==> ...                    */
+#if defined(ENABLE_SOFTFLOAT)
+			case ICMD_DRETURN:
+#endif
 
 				REPLACEMENT_POINT_RETURN(cd, iptr);
 				s1 = emit_load_s1(jd, iptr, REG_LRESULT);
@@ -1855,6 +1877,7 @@ bool codegen_emit(jitdata *jd)
 				emit_lmove(cd, s1, REG_LRESULT);
 				goto nowperformreturn;
 
+#if !defined(ENABLE_SOFTFLOAT)
 			case ICMD_FRETURN:    /* ..., retvalue ==> ...                    */
 
 				REPLACEMENT_POINT_RETURN(cd, iptr);
@@ -1876,6 +1899,7 @@ bool codegen_emit(jitdata *jd)
 				M_CAST_D2L(s1, REG_LRESULT);
 #endif
 				goto nowperformreturn;
+#endif
 
 nowperformreturn:
 #if !defined(NDEBUG)
@@ -1983,15 +2007,22 @@ gen_method:
 						switch (var->type) {
 						case TYPE_ADR:
 						case TYPE_INT:
+#if defined(ENABLE_SOFTFLOAT)
+						case TYPE_FLT:
+#endif
 							s1 = emit_load(jd, iptr, var, d);
 							emit_imove(cd, s1, d);
 							break;
 
 						case TYPE_LNG:
+#if defined(ENABLE_SOFTFLOAT)
+						case TYPE_DBL:
+#endif
 							s1 = emit_load(jd, iptr, var, d);
 							emit_lmove(cd, s1, d);
 							break;
 
+#if !defined(ENABLE_SOFTFLOAT)
 						case TYPE_FLT:
 #if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 							s1 = emit_load(jd, iptr, var, d);
@@ -2011,6 +2042,7 @@ gen_method:
 							M_CAST_D2L(s1, d);
 #endif
 							break;
+#endif
 						}
 					}
 					else {
@@ -2025,6 +2057,9 @@ gen_method:
 							break;
 
 						case TYPE_INT:
+#if defined(ENABLE_SOFTFLOAT)
+						case TYPE_FLT:
+#endif
 #if SIZEOF_VOID_P == 4
 							s1 = emit_load(jd, iptr, var, REG_ITMP1);
 							M_IST(s1, REG_SP, d);
@@ -2034,12 +2069,16 @@ gen_method:
 #endif
 
 						case TYPE_LNG:
+#if defined(ENABLE_SOFTFLOAT)
+						case TYPE_DBL:
+#endif
 							s1 = emit_load(jd, iptr, var, REG_LTMP12);
 							// XXX Sparc64: Here this actually was:
 							//     M_STX(s1, REG_SP, JITSTACK + d);
 							M_LST(s1, REG_SP, d);
 							break;
 
+#if !defined(ENABLE_SOFTFLOAT)
 						case TYPE_FLT:
 #if SIZEOF_VOID_P == 4
 							s1 = emit_load(jd, iptr, var, REG_FTMP1);
@@ -2055,6 +2094,7 @@ gen_method:
 							//     M_DST(s1, REG_SP, JITSTACK + d);
 							M_DST(s1, REG_SP, d);
 							break;
+#endif
 						}
 					}
 				}
@@ -2084,6 +2124,9 @@ gen_method:
 				switch (md->returntype.type) {
 				case TYPE_INT:
 				case TYPE_ADR:
+#if defined(ENABLE_SOFTFLOAT)
+				case TYPE_FLT:
+#endif
 					s1 = codegen_reg_of_dst(jd, iptr, REG_RESULT);
 					// XXX Sparc64: This should actually be REG_RESULT_CALLER, fix this!
 					emit_imove(cd, REG_RESULT, s1);
@@ -2091,12 +2134,16 @@ gen_method:
 					break;
 
 				case TYPE_LNG:
+#if defined(ENABLE_SOFTFLOAT)
+				case TYPE_DBL:
+#endif
 					s1 = codegen_reg_of_dst(jd, iptr, REG_LRESULT);
 					// XXX Sparc64: This should actually be REG_RESULT_CALLER, fix this!
 					emit_lmove(cd, REG_LRESULT, s1);
 					emit_store_dst(jd, iptr, s1);
 					break;
 
+#if !defined(ENABLE_SOFTFLOAT)
 				case TYPE_FLT:
 #if !defined(SUPPORT_PASS_FLOATARGS_IN_INTREGS)
 					s1 = codegen_reg_of_dst(jd, iptr, REG_FRESULT);
@@ -2118,6 +2165,7 @@ gen_method:
 #endif
 					emit_store_dst(jd, iptr, s1);
 					break;
+#endif
 
 				case TYPE_VOID:
 					break;
