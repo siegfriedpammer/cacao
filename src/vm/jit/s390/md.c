@@ -1,6 +1,6 @@
 /* src/vm/jit/s390/md.c - machine dependent s390 Linux functions
 
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -39,7 +39,6 @@
 #include "vm/exceptions.hpp"
 #include "vm/signallocal.hpp"
 
-#include "vm/jit/asmpart.h"
 #include "vm/jit/abi.h"
 #include "vm/jit/executionstate.h"
 #include "vm/jit/methodheader.h"
@@ -49,7 +48,6 @@
 
 #if !defined(NDEBUG) && defined(ENABLE_DISASSEMBLER)
 #include "vm/options.h" /* XXX debug */
-#include "vm/jit/disass.h" /* XXX debug */
 #endif
 
 #include "vm/jit/codegen-common.hpp"
@@ -129,152 +127,32 @@ void md_dump_context(u1 *pc, mcontext_t *mc) {
 	stacktrace_print_current();
 }
 
-/* md_signal_handler_sigsegv ***************************************************
-
-   NullPointerException signal handler for hardware null pointer
-   check.
-
-*******************************************************************************/
-
+/**
+ * NullPointerException signal handler for hardware null pointer check.
+ */
 void md_signal_handler_sigsegv(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t     *_uc;
-	mcontext_t     *_mc;
-	u1             *pv;
-	u1             *sp;
-	u1             *ra;
-	u1             *xpc;
-	int             type;
-	intptr_t        val;
-	void           *p;
-	s4              base;
-	s4              is_null;
+	ucontext_t* _uc = (ucontext_t *) _p;
+	mcontext_t* _mc = &_uc->uc_mcontext;
 
-	_uc = (ucontext_t *) _p;
-	_mc = &_uc->uc_mcontext;
+	void* xpc = (u1 *) _mc->psw.addr;
 
-	xpc = (u1 *)_mc->psw.addr;
-
-	/* Check opcodes and verify it is a null pointer exception */
-
-	switch (N_RX_GET_OPC(xpc)) {
-		case OPC_L:
-		case OPC_ST:
-		case OPC_CL: /* array size check on NULL array */
-			base = N_RX_GET_BASE(xpc);
-			if (base == 0) {
-				is_null = 1;
-			} else if (_mc->gregs[base] == 0) {
-				is_null = 1;
-			} else {
-				is_null = 0;
-			}
-			break;
-		default:
-			is_null = 0;
-			break;
-	}
-
-	if (! is_null) {
-#if !defined(NDEBUG)
-		md_dump_context(xpc, _mc);
-#endif
-		vm_abort("%s: segmentation fault at %p, aborting.", __FUNCTION__, xpc);
-	}
-
-	pv = (u1 *)_mc->gregs[REG_PV] - N_PV_OFFSET;
-	sp = (u1 *)_mc->gregs[REG_SP];
-	ra = xpc;
-	type = TRAP_NullPointerException;
-	val = 0;
-
-	/* Handle the trap. */
-
-	p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-	if (p != NULL) {
-		_mc->gregs[REG_ITMP3_XPTR] = (uintptr_t) p;
-		_mc->gregs[REG_ITMP1_XPC]  = (uintptr_t) xpc;
-		_mc->psw.addr              = (uintptr_t) asm_handle_exception;
-	}
-	else {
-		_mc->psw.addr              = (uintptr_t) xpc;
-	}
+	// Handle the trap.
+	trap_handle(TRAP_SIGSEGV, xpc, _p);
 }
 
+/**
+  * Illegal Instruction signal handler for hardware exception checks.
+  */
 void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t     *_uc;
-	mcontext_t     *_mc;
-	u1             *xpc;
-	u1             *ra;
-	u1             *pv;
-	u1             *sp;
-	int             type;
-	intptr_t        val;
-	void           *p;
-	s4              reg;
+	ucontext_t* _uc = (ucontext_t *) _p;
+	mcontext_t* _mc = &_uc->uc_mcontext;
 
-	_uc = (ucontext_t *) _p;
-	_mc = &_uc->uc_mcontext;
-	xpc = ra = siginfo->si_addr;
+	void* xpc = siginfo->si_addr;
 
-	/* Our trap instruction has the format: { 0x02, one_byte_of_data }. */
-
-	if ((siginfo->si_code == ILL_ILLOPC) && (N_RR_GET_OPC(xpc) == OPC_ILL)) {
-
-		/* bits 7-4 contain a register holding a value */
-		reg = N_ILL_GET_REG(xpc);
-
-		/* bits 3-0 designate the exception type */
-		type = N_ILL_GET_TYPE(xpc);
-
-		pv = (u1 *)_mc->gregs[REG_PV] - N_PV_OFFSET;
-		sp = (u1 *)_mc->gregs[REG_SP];
-		val = (ptrint)_mc->gregs[reg];
-
-		if (TRAP_COMPILER == type) {
-			/* The PV from the compiler stub is equal to the XPC. */
-
-			pv = xpc;
-
-			/* The return address in is REG_RA */
-
-			ra = (u1 *)_mc->gregs[REG_RA];
-
-			xpc = ra - 2;
-		}
-
-		/* Handle the trap. */
-
-		p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-		if (TRAP_COMPILER == type) {
-			if (NULL == p) {
-				_mc->gregs[REG_ITMP3_XPTR] = (uintptr_t) builtin_retrieve_exception();
-				_mc->gregs[REG_ITMP1_XPC]  = (uintptr_t) ra - 2;
-				_mc->gregs[REG_PV]         = (uintptr_t) md_codegen_get_pv_from_pc(ra);
-				_mc->psw.addr              = (uintptr_t) asm_handle_exception;
-			} else {
-				_mc->gregs[REG_PV]         = (uintptr_t) p;
-				_mc->psw.addr              = (uintptr_t) p;
-			}
-		} else {
-			if (p != NULL) {
-				_mc->gregs[REG_ITMP3_XPTR] = (uintptr_t) p;
-				_mc->gregs[REG_ITMP1_XPC]  = (uintptr_t) xpc;
-				_mc->psw.addr              = (uintptr_t) asm_handle_exception;
-			}
-			else {
-				_mc->psw.addr              = (uintptr_t) xpc;
-			}
-		}
-	} else {
-#if !defined(NDEBUG)
-		md_dump_context(xpc, _mc);
-#endif
-		vm_abort("%s: illegal instruction at %p, aborting.", __FUNCTION__, xpc);
-	}
+	// Handle the trap.
+	trap_handle(TRAP_SIGILL, xpc, _p);
 }
 
 /* md_signal_handler_sigfpe ****************************************************
@@ -286,30 +164,15 @@ void md_signal_handler_sigill(int sig, siginfo_t *siginfo, void *_p)
 
 void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 {
-	ucontext_t     *_uc;
-	mcontext_t     *_mc;
-	u1             *pv;
-	u1             *sp;
-	u1             *ra;
-	u1             *xpc;
-	u1             *pc;
-	int             r1, r2;
-	int             type;
-	intptr_t        val;
-	void           *p;
+	ucontext_t* _uc = (ucontext_t *) _p;
+	mcontext_t* _mc = &_uc->uc_mcontext;
 
-	_uc = (ucontext_t *) _p;
-	_mc = &_uc->uc_mcontext;
-
-	/* Instruction that raised signal */
-	xpc = siginfo->si_addr;
-
-	/* Check opcodes */
+	void* xpc = siginfo->si_addr;
 
 	if (N_RR_GET_OPC(xpc) == OPC_DR) { /* DR */
 
-		r1 = N_RR_GET_REG1(xpc);
-		r2 = N_RR_GET_REG2(xpc);
+		int r1 = N_RR_GET_REG1(xpc);
+		int r2 = N_RR_GET_REG2(xpc);
 
 		if (
 			(_mc->gregs[r1] == 0xFFFFFFFF) &&
@@ -318,8 +181,8 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 		) {
 			/* handle special case 0x80000000 / 0xFFFFFFFF that fails on hardware */
 			/* next instruction */
-			pc = (u1 *)_mc->psw.addr;
-			/* reminder */
+			u1 *pc = (u1 *)_mc->psw.addr;
+			/* remainder */
 			_mc->gregs[r1] = 0;
 			/* quotient */
 			_mc->gregs[r1 + 1] = 0x80000000;
@@ -328,34 +191,10 @@ void md_signal_handler_sigfpe(int sig, siginfo_t *siginfo, void *_p)
 
 			return;
 		}
-		else if (_mc->gregs[r2] == 0) {
-			/* division by 0 */
-
-			pv = (u1 *)_mc->gregs[REG_PV] - N_PV_OFFSET;
-			sp = (u1 *)_mc->gregs[REG_SP];
-			ra = xpc;
-
-			type = TRAP_ArithmeticException;
-			val = 0;
-
-			/* Handle the trap. */
-
-			p = trap_handle(type, val, pv, sp, ra, xpc, _p);
-
-			_mc->gregs[REG_ITMP3_XPTR] = (uintptr_t) p;
-			_mc->gregs[REG_ITMP1_XPC]  = (uintptr_t) xpc;
-			_mc->psw.addr              = (uintptr_t) asm_handle_exception;
-
-			return;
-		}
 	}
 
-	/* Could not handle signal */
-
-#if !defined(NDEBUG)
-	md_dump_context(xpc, _mc);
-#endif
-	vm_abort("%s: floating point exception at %p, aborting.", __FUNCTION__, xpc);
+	// Handle the trap.
+	trap_handle(TRAP_SIGFPE, xpc, _p);
 }
 
 
@@ -396,7 +235,29 @@ void md_signal_handler_sigusr2(int sig, siginfo_t *siginfo, void *_p)
  */
 void md_executionstate_read(executionstate_t* es, void* context)
 {
-	vm_abort("md_executionstate_read: IMPLEMENT ME!");
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	int         i;
+
+	_uc = (ucontext_t *) context;
+	_mc = &_uc->uc_mcontext;
+
+	/* read special registers */
+	es->pc = (u1 *) _mc->psw.addr;
+	es->sp = (u1 *) _mc->gregs[REG_SP];
+	es->pv = (u1 *) _mc->gregs[REG_PV] - N_PV_OFFSET;
+	es->ra = (u1 *) _mc->gregs[REG_RA];
+
+	/* read integer registers */
+	for (i = 0; i < INT_REG_CNT; i++)
+		es->intregs[i] = _mc->gregs[i];
+
+	/* read float registers */
+	/* Do not use the assignment operator '=', as the type of
+	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
+
+	assert(sizeof(_mc->fpregs.fprs) == sizeof(es->fltregs));
+	os_memcpy(&es->fltregs, &_mc->fpregs.fprs, sizeof(_mc->fpregs.fprs));
 }
 
 
@@ -408,7 +269,29 @@ void md_executionstate_read(executionstate_t* es, void* context)
  */
 void md_executionstate_write(executionstate_t* es, void* context)
 {
-	vm_abort("md_executionstate_write: IMPLEMENT ME!");
+	ucontext_t *_uc;
+	mcontext_t *_mc;
+	int         i;
+
+	_uc = (ucontext_t *) context;
+	_mc = &_uc->uc_mcontext;
+
+	/* write integer registers */
+	for (i = 0; i < INT_REG_CNT; i++)
+		_mc->gregs[i] = es->intregs[i];
+
+	/* write float registers */
+	/* Do not use the assignment operator '=', as the type of
+	 * the _mc->sc_fpregs[i] can cause invalid conversions. */
+
+	assert(sizeof(_mc->fpregs.fprs) == sizeof(es->fltregs));
+	os_memcpy(&_mc->fpregs.fprs, &es->fltregs, sizeof(_mc->fpregs.fprs));
+
+	/* write special registers */
+	_mc->psw.addr      = (ptrint) es->pc;
+	_mc->gregs[REG_SP] = (ptrint) es->sp;
+	_mc->gregs[REG_PV] = (ptrint) es->pv + N_PV_OFFSET;
+	_mc->gregs[REG_RA] = (ptrint) es->ra;
 }
 
 
@@ -509,6 +392,80 @@ void *md_jit_method_patch_address(void* pv, void *ra, void *mptr)
 }
 
 
+/**
+ * Decode the trap instruction at the given PC.
+ *
+ * @param trp information about trap to be filled
+ * @param sig signal number
+ * @param xpc exception PC
+ * @param es execution state of the machine
+ * @return true if trap was decoded successfully, false otherwise.
+ */
+bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es)
+{
+	switch (sig) {
+	case TRAP_SIGILL:
+		if (N_RR_GET_OPC(xpc) == OPC_ILL) {
+			int32_t reg = N_ILL_GET_REG(xpc);
+			trp->type  = N_ILL_GET_TYPE(xpc);
+			trp->value = es->intregs[reg];
+			return true;
+		}
+		return false;
+
+	case TRAP_SIGSEGV:
+	{
+		int is_null;
+		int32_t base;
+		switch (N_RX_GET_OPC(xpc)) {
+			case OPC_L:
+			case OPC_ST:
+			case OPC_CL: /* array size check on NULL array */
+				base = N_RX_GET_BASE(xpc);
+				if (base == 0) {
+					is_null = 1;
+				} else if (es->intregs[base] == 0) {
+					is_null = 1;
+				} else {
+					is_null = 0;
+				}
+				break;
+			default:
+				is_null = 0;
+				break;
+		}
+
+		// Check for implicit NullPointerException.
+		if (is_null) {
+			trp->type  = TRAP_NullPointerException;
+			trp->value = 0;
+			return true;
+		}
+
+		return false;
+	}
+
+	case TRAP_SIGFPE:
+	{
+		if (N_RR_GET_OPC(xpc) == OPC_DR) {
+			int r2 = N_RR_GET_REG2(xpc);
+			if (es->intregs[r2] == 0) {
+				trp->type = TRAP_ArithmeticException;
+				trp->value = 0;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	default:
+		return false;
+	}
+}
+
+
+
 /* md_patch_replacement_point **************************************************
 
    Patch the given replacement point.
@@ -539,8 +496,8 @@ void md_handle_exception(int32_t *regs, int64_t *fregs, int32_t *out) {
 
 	/* get registers */
 
-	xptr = *(uint8_t **)(regs + REG_ITMP3_XPTR);
-	xpc = *(uint8_t **)(regs + REG_ITMP1_XPC);
+	xptr = *(uint8_t **)(regs + REG_ITMP1_XPTR);
+	xpc = *(uint8_t **)(regs + REG_ITMP2_XPC);
 	sp = *(uint8_t **)(regs + REG_SP);
 
 
@@ -615,8 +572,8 @@ void md_handle_exception(int32_t *regs, int64_t *fregs, int32_t *out) {
 
 	/* write new values for registers */
 
-	*(uint8_t **)(regs + REG_ITMP3_XPTR) = xptr;
-	*(uint8_t **)(regs + REG_ITMP1_XPC) = xpc;
+	*(uint8_t **)(regs + REG_ITMP1_XPTR) = xptr;
+	*(uint8_t **)(regs + REG_ITMP2_XPC) = xpc;
 	*(uint8_t **)(regs + REG_SP) = sp;
 	*(uint8_t **)(regs + REG_PV) = pv - 0XFFC;
 

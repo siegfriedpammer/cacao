@@ -1,6 +1,6 @@
 /* src/vm/jit/trap.cpp - hardware traps
 
-   Copyright (C) 2008, 2009
+   Copyright (C) 2008, 2009, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -54,6 +54,12 @@
 #include "vm/jit/replace.hpp"
 #include "vm/jit/stacktrace.hpp"
 #include "vm/jit/trap.hpp"
+
+#if defined(__S390__)
+#include "vm/jit/s390/codegen.h"
+#else
+#define N_PV_OFFSET 0
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -109,7 +115,7 @@ void trap_handle(int sig, void *xpc, void *context)
 		vm_abort("trap_handle: The program counter is NULL!");
 #endif
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
 # if !defined(NDEBUG)
 	/* Perform a sanity check on our execution state functions. */
 
@@ -297,7 +303,7 @@ void trap_handle(int sig, void *xpc, void *context)
 
 	stacktrace_stackframeinfo_remove(&sfi);
 
-#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__X86_64__)
+#if defined(__ALPHA__) || defined(__ARM__) || defined(__I386__) || defined(__MIPS__) || defined(__POWERPC__) || defined(__POWERPC64__) || defined(__S390__) || defined(__X86_64__)
 	/* Update execution state and set registers. */
 	/* AFTER: removing stackframeinfo */
 
@@ -308,7 +314,9 @@ void trap_handle(int sig, void *xpc, void *context)
 
 		if (entry != NULL) {
 			es.pc = (uint8_t *) (uintptr_t) entry;
-			es.pv = (uint8_t *) (uintptr_t) entry;
+			// The s390 executionstate offsets pv, so we need to
+			// compensate here.
+			es.pv = (uint8_t *) (uintptr_t) entry - N_PV_OFFSET;
 			break;
 		}
 
@@ -324,7 +332,7 @@ void trap_handle(int sig, void *xpc, void *context)
 
 		// Get and set the PV from the parent Java method.
 
-		es.pv = (uint8_t*) md_codegen_get_pv_from_pc(ra);
+		es.pv = (uint8_t*) md_codegen_get_pv_from_pc(ra) - N_PV_OFFSET;
 
 		// Now fall-through to default exception handling.
 

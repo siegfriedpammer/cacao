@@ -1,6 +1,6 @@
 /* src/vm/jit/s390/md-trap.h - s390 hardware traps
 
-   Copyright (C) 2008
+   Copyright (C) 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -49,6 +49,18 @@ enum {
 	TRAP_COMPILER                       = 7,
 	TRAP_COUNTDOWN                      = 8
 };
+
+
+/**
+ * Macro to fixup a compiler stub. The XPC is the RA minus 2,
+ * because the RA points to the instruction after the call.
+ */
+#define MD_TRAP_COMPILER_FIXUP(xpc, ra, sp, pv) \
+	do { \
+		(pv) = (xpc); \
+		(xpc) = (void*) (((uintptr_t) (ra)) - 2); \
+	} while(0)
+
 
 #endif /* _MD_TRAP_H */
 
