@@ -1,9 +1,7 @@
-/* src/vm/jit/x86_64/md-abi.h - defines for x86_64 Linux ABI
+/* src/vm/jit/s390/md-abi.h - defines for s390 Linux ABI
 
-   Copyright (C) 1996-2005, 2006 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2010
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -21,12 +19,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
    02110-1301, USA.
-
-   Contact: cacao@cacaojvm.org
-
-   Authors: Christian Thalinger
-
-   Changes:
 
 */
 
@@ -95,8 +87,8 @@
 
 #define REG_NULL        -1       /* used for reg_of_var where d is not needed */
 
-#define REG_ITMP3_XPTR  REG_ITMP3/* exception pointer = temporary register 3  */
-#define REG_ITMP1_XPC   REG_ITMP1/* exception pc = temporary register 1       */
+#define REG_ITMP1_XPTR  REG_ITMP3/* exception pointer = temporary register 3  */
+#define REG_ITMP2_XPC   REG_ITMP1/* exception pc = temporary register 1       */
 
 #define REG_SP          R15      /* stack pointer                             */
 #define REG_RA          R14      /* same as itmp3 */

@@ -1,6 +1,6 @@
 /* src/vm/jit/s390/codegen.c - machine code generator for s390
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -123,7 +123,7 @@ void codegen_emit_prolog(jitdata* jd)
 {
 	varinfo*    var;
 	methoddesc* md;
-	int32_t     s1;
+	int32_t     s1, s2;
 	int32_t     p, t, l;
 	int32_t     varindex;
 	int         i;
@@ -298,7 +298,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 	fieldinfo*          fi;
 	unresolved_field*   uf;
 	int32_t             fieldtype;
-	int32_t             s1, s2, s3, d;
+	int32_t             s1, s2, s3, d, dd;
 	int32_t             disp;
 
 	// Get required compiler data.
@@ -699,7 +699,6 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 		case ICMD_LREM:       /* ..., val1, val2  ==> ..., val1 % val2        */
 
 			bte = iptr->sx.s23.s3.bte;
-			md  = bte->md;
 
 			/* test s2 for zero */
 
@@ -1759,6 +1758,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 		case ICMD_PUTFIELD:   /* ..., objectref, value  ==> ...               */
 			{
 			u1 *ref;
+			patchref_t *pr;
 
 			s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 			emit_nullpointer_check(cd, iptr, s1);
@@ -1784,7 +1784,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			 */
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
+				pr = patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
 				ref = cd->mcodeptr;
 			}
 
@@ -1799,7 +1799,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			}
 
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
-				((patchref_t *)list_first(jd->code->patchers))->disp = (cd->mcodeptr - ref);
+				pr->disp = (cd->mcodeptr - ref);
 			}
 
 			switch (fieldtype) {
@@ -1830,7 +1830,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 			disp = dseg_add_functionptr(cd, asm_handle_exception);
 			M_ALD_DSEG(REG_ITMP1, disp);
-			M_JMP(REG_ITMP1_XPC, REG_ITMP1);
+			M_JMP(REG_ITMP2_XPC, REG_ITMP1);
 			M_NOP;
 
 			break;
@@ -2888,7 +2888,7 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	M_ALD_DSEG(REG_ITMP1, disp);
 	M_CALL(REG_ITMP1);
 
-	M_MOV(REG_RESULT, REG_ITMP3_XPTR);
+	M_MOV(REG_RESULT, REG_ITMP1_XPTR);
 
 	/* restore return value */
 
@@ -2929,15 +2929,15 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 
 	/* check for exception */
 
-	M_TEST(REG_ITMP3_XPTR);
+	M_TEST(REG_ITMP1_XPTR);
 	M_BNE(SZ_BRC + SZ_BCR);                     /* if no exception then return        */
 
 	M_RET;
 
 	/* handle exception */
 
-	M_MOV(REG_RA, REG_ITMP1_XPC);
-	M_ASUB_IMM(2, REG_ITMP1_XPC);
+	M_MOV(REG_RA, REG_ITMP2_XPC);
+	M_ASUB_IMM(2, REG_ITMP2_XPC);
 
 	disp = dseg_add_functionptr(cd, asm_handle_nat_exception);
 	M_ALD_DSEG(REG_ITMP2, disp);

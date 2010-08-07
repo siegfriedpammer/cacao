@@ -1,6 +1,6 @@
 /* src/vm/jit/s390/emit.c - s390 code emitter functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -227,13 +227,13 @@ void emit_icmp_imm(codegendata* cd, int reg, int32_t value)
 	if (N_VALID_IMM(value)) {
 		M_ICMP_IMM(reg, value);
 	} else {
-		disp = dseg_add_s4(cd, iptr->sx.val.i);
+		disp = dseg_add_s4(cd, value);
 		if (N_VALID_DSEG_DISP(disp)) {
-			N_C(s1, N_DSEG_DISP(disp), RN, REG_PV);
+			N_C(reg, N_DSEG_DISP(disp), RN, REG_PV);
 		} else {
 			assert(reg != REG_ITMP2);
 			ICONST(REG_ITMP2, disp);
-			N_C(s1, -N_PV_OFFSET, REG_ITMP2, REG_PV);
+			N_C(reg, -N_PV_OFFSET, REG_ITMP2, REG_PV);
 		}
 	}
 }

@@ -1,6 +1,6 @@
 /* src/vm/jit/s390/codegen.h - code generation macros for s390
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -41,6 +41,16 @@
     do { \
         if ((cd->mcodeptr + (icnt)) > cd->mcodeend) \
             codegen_increase(cd); \
+    } while (0)
+
+#define ALIGNCODENOP \
+    do { \
+        while (((ptrint) cd->mcodeptr) & 2) { \
+            M_NOP2; \
+        } \
+        while (((ptrint) cd->mcodeptr) & 4) { \
+            M_NOP; \
+        } \
     } while (0)
 
 /* some patcher defines *******************************************************/
@@ -690,6 +700,7 @@ static inline uint8_t N_ILL_GET_TYPE(uint8_t *instrp) {
 
 #define M_MOV(a, b) N_LR(b, a)
 #define M_FMOV(a, b) N_LDR(b, a)
+#define M_DMOV(a, b) M_FMOV((a), (b))
 #define M_DST(r, b, d) _IFNEG(d, assert(0), N_STD(r, d, RN, b))
 #define M_FST(r, b, d) _IFNEG(d, assert(0), N_STE(r, d, RN, b))
 #define M_IST(r, b, d) _IFNEG( \
