@@ -1,6 +1,6 @@
 /* src/vm/jit/s390/md-atomic.hpp - s390 atomic instructions
 
-   Copyright (C) 2008
+   Copyright (C) 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -43,7 +43,7 @@ namespace Atomic_md {
  *
  * @return value of the memory location before the store
  */
-inline uint32_t ompare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
+inline uint32_t compare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t newval)
 {
 	__asm__ __volatile__ (
 		"cs %0,%3,0(%2)\n"
@@ -64,7 +64,7 @@ inline uint32_t ompare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t 
  *
  * @return value of the memory location before the store
  */
-inline uint64_t ompare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
+inline uint64_t compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
 {
 	return Atomic::generic_compare_and_swap(p, oldval, newval);
 }
@@ -73,7 +73,7 @@ inline uint64_t ompare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t 
 /**
  * A memory barrier.
  */
-inline void emory_barrier(void)
+inline void memory_barrier(void)
 {
 	__asm__ __volatile__ ("bcr 15,0" : : : "memory" );
 }
@@ -82,7 +82,7 @@ inline void emory_barrier(void)
 /**
  * A write memory barrier.
  */
-inline void rite_memory_barrier(void)
+inline void write_memory_barrier(void)
 {
 	memory_barrier();
 }
@@ -90,9 +90,9 @@ inline void rite_memory_barrier(void)
 /**
  * An instruction barrier.
  */
-inline void nstruction_barrier(void)
+inline void instruction_barrier(void)
 {
-	memory_barrier();
+	__asm__ __volatile__ ("" : : : "memory" );
 }
 
 }
