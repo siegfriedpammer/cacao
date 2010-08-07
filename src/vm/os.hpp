@@ -1,6 +1,6 @@
 /* src/vm/os.hpp - system (OS) functions
 
-   Copyright (C) 2007, 2008, 2009
+   Copyright (C) 2007, 2008, 2009, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -187,8 +187,8 @@ public:
 	static int   processors_online();
 
 	// Template helper
-	template<class F1, class F2>
-	static int call_scandir(int (*scandir)(const char *, struct dirent ***, F1, F2), const char *dir, struct dirent ***namelist, int(*filter)(const struct dirent *), int(*compar)(const void *, const void *));
+	template<class _F1, class _F2>
+	static int call_scandir(int (*scandir)(const char *, struct dirent ***, _F1, _F2), const char *dir, struct dirent ***namelist, int(*filter)(const struct dirent *), int(*compar)(const void *, const void *));
 };
 
 
@@ -553,10 +553,10 @@ inline static void *system_realloc(void *ptr, size_t size)
 #endif
 }
 
-template<class F1, class F2>
-inline int os::call_scandir(int (*scandir)(const char *, struct dirent ***, F1, F2), const char *dir, struct dirent ***namelist, int(*filter)(const struct dirent *), int(*compar)(const void *, const void *))
+template<class _F1, class _F2>
+inline int os::call_scandir(int (*scandir)(const char *, struct dirent ***, _F1, _F2), const char *dir, struct dirent ***namelist, int(*filter)(const struct dirent *), int(*compar)(const void *, const void *))
 {
-	return scandir(dir, namelist, (F1) filter, (F2) compar);
+	return scandir(dir, namelist, (_F1) filter, (_F2) compar);
 }
 
 inline int os::scandir(const char *dir, struct dirent ***namelist, int(*filter)(const struct dirent *), int(*compar)(const void *, const void *))
