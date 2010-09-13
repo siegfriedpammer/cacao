@@ -1,6 +1,6 @@
 /* src/vm/string.cpp - java.lang.String related functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -547,7 +547,7 @@ static java_handle_t *literalstring_u2(java_handle_chararray_t *a, int32_t lengt
 #endif
 
 #if defined(ENABLE_THREADS)
-	o->lockword.init();
+	Lockword(o->lockword).init();
 #endif
 
 	o->vftbl = class_java_lang_String->vftbl;

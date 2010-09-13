@@ -1,6 +1,6 @@
 /* src/vm/class.cpp - class related functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -177,7 +177,7 @@ classinfo *class_create_classinfo(utf *classname)
 	if (classname != utf_not_named_yet)
 		class_set_packagename(c);
 
-	c->object.header.lockword.init();
+	Lockword(c->object.header.lockword).init();
 
 	return c;
 }

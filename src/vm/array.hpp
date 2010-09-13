@@ -1,6 +1,6 @@
 /* src/vm/array.hpp - Java array functions
 
-   Copyright (C) 2007, 2009
+   Copyright (C) 2007, 2009, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -160,7 +160,7 @@ inline Array::Array(int32_t size, classinfo* arrayclass)
 	LLNI_vftbl_direct(a) = arrayclass->vftbl;
 
 #if defined(ENABLE_THREADS)
-	a->objheader.lockword.init();
+	Lockword(a->objheader.lockword).init();
 #endif
 
 	a->size = size;

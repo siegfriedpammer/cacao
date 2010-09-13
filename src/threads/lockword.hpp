@@ -1,6 +1,6 @@
 /* src/threads/lockword.hpp - lockword implementation
 
-   Copyright (C) 2008
+   Copyright (C) 2008-2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -53,13 +53,10 @@ private:
 
 private:
 	// The actual lockword.
-	uintptr_t _lockword;
-
-private:
-	Lockword(uintptr_t lockword) : _lockword(lockword) {}
+	uintptr_t& _lockword;
 
 public:
-	Lockword() : _lockword(THIN_UNLOCKED) {}
+	Lockword(uintptr_t& lockword) : _lockword(lockword) {}
 
 	void init() { _lockword = THIN_UNLOCKED; } // REMOVEME
 

@@ -1,6 +1,6 @@
 /* src/threads/lock.cpp - lock implementation
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -143,7 +143,7 @@ static lock_hashtable_t lock_hashtable;
 
 static void lock_hashtable_init(void);
 
-static inline Lockword* lock_lockword_get(java_handle_t* o);
+static inline uintptr_t* lock_lockword_get(java_handle_t* o);
 static void lock_record_enter(threadobject *t, lock_record_t *lr);
 static void lock_record_exit(threadobject *t, lock_record_t *lr);
 static bool lock_record_wait(threadobject *t, lock_record_t *lr, s8 millis, s4 nanos);
@@ -431,10 +431,16 @@ static lock_record_t *lock_hashtable_get(java_handle_t* o)
 	u4             slot;
 	lock_record_t *lr;
 
-	Lockword* lockword = lock_lockword_get(o);
+	// lw_cache is used throughout this file because the lockword can change at
+	// any time, unless it is absolutely certain that we are holding the lock.
+	// We don't do deflation, so we would also not expect a fat lockword to
+	// change, but for the sake of uniformity, lw_cache is used even in this
+	// case.
+	uintptr_t lw_cache = *lock_lockword_get(o);
+	Lockword lockword(lw_cache);
 
-	if (lockword->is_fat_lock())
-		return lockword->get_fat_lock();
+	if (lockword.is_fat_lock())
+		return lockword.get_fat_lock();
 
 	// Lock the hashtable.
 	lock_hashtable.mutex->lock();
@@ -503,8 +509,8 @@ static lock_record_t *lock_hashtable_get(java_handle_t* o)
 #if defined(ENABLE_GC_BOEHM)
 void lock_schedule_lockrecord_removal(java_handle_t *o)
 {
-	Lockword* lockword = lock_lockword_get(o);
-	if (!lockword->is_fat_lock())
+	Lockword lockword(*lock_lockword_get(o));
+	if (!lockword.is_fat_lock())
 		/* there is no lock record */
 		return;
 
@@ -536,12 +542,13 @@ static void lock_hashtable_remove(threadobject *t, java_handle_t *o)
 
 	/* get lock record */
 
-	Lockword* lockword = lock_lockword_get(o);
+	uintptr_t lw_cache = *lock_lockword_get(o);
+	Lockword lockword(lw_cache);
 
 	// Sanity check.
-	assert(lockword->is_fat_lock());
+	assert(lockword.is_fat_lock());
 
-	lr = lockword->get_fat_lock();
+	lr = lockword.get_fat_lock();
 
 	/* remove the lock-record from the hashtable */
 
@@ -628,7 +635,7 @@ static void lock_record_finalizer(void *object, void *p)
 
 *******************************************************************************/
 
-static inline Lockword* lock_lockword_get(java_handle_t* o)
+static inline uintptr_t* lock_lockword_get(java_handle_t* o)
 {
 #if defined(ENABLE_GC_CACAO)
 	// Sanity check.
@@ -695,8 +702,8 @@ static inline void lock_record_exit(threadobject *t, lock_record_t *lr)
 
 static void lock_inflate(java_handle_t *o, lock_record_t *lr)
 {
-	Lockword* lockword = lock_lockword_get(o);
-	lockword->inflate(lr);
+	Lockword lockword(*lock_lockword_get(o));
+	lockword.inflate(lr);
 }
 
 
@@ -716,13 +723,14 @@ static void lock_inflate(java_handle_t *o, lock_record_t *lr)
 
 *******************************************************************************/
 
-static void sable_flc_waiting(Lockword *lockword, threadobject *t, java_handle_t *o)
+static void sable_flc_waiting(uintptr_t lw_cache, threadobject *t, java_handle_t *o)
 {
 	int32_t index;
 	threadobject *t_other;
 	int old_flc;
 
-	index = lockword->get_thin_lock_thread_index();
+	Lockword lockword(lw_cache);
+	index = lockword.get_thin_lock_thread_index();
 	t_other = ThreadList::get_thread_by_index(index);
 
 	// The lockword could have changed during our way here.  If the
@@ -741,10 +749,10 @@ static void sable_flc_waiting(Lockword *lockword, threadobject *t, java_handle_t
 	// Set FLC bit first, then read the lockword again.
 	Atomic::memory_barrier();
 
-	lockword = lock_lockword_get(o);
+	lw_cache = *lock_lockword_get(o);
 
 	/* Lockword is still the way it was seen before */
-	if (lockword->is_thin_lock() && (lockword->get_thin_lock_thread_index() == index))
+	if (lockword.is_thin_lock() && (lockword.get_thin_lock_thread_index() == index))
 	{
 		threadobject *f;
 		/* Add tuple (t, o) to the other thread's FLC list */
@@ -801,8 +809,8 @@ static void notify_flc_waiters(threadobject *t, java_handle_t *o)
 			   block on it. */
 
 			// Only if not already inflated.
-			Lockword* lockword = lock_lockword_get(current->flc_object);
-			if (lockword->is_thin_lock()) {
+			Lockword lockword(*lock_lockword_get(current->flc_object));
+			if (lockword.is_thin_lock()) {
 				lock_record_t *lr = lock_hashtable_get(current->flc_object);
 				lock_record_enter(t, lr);
 
@@ -859,15 +867,17 @@ bool lock_monitor_enter(java_handle_t *o)
 
 retry:
 	// Most common case: try to thin-lock an unlocked object.
-	Lockword* lockword = lock_lockword_get(o);
-	bool result = lockword->lock(thinlock);
+	uintptr_t *lw_ptr = lock_lockword_get(o);
+	uintptr_t lw_cache = *lw_ptr;
+	Lockword lockword(lw_cache);
+	bool result = Lockword(*lw_ptr).lock(thinlock);
 
 	if (result == true) {
 		// Success, we locked it.
 		// NOTE: The Java Memory Model requires a memory barrier here.
 #if defined(CAS_PROVIDES_FULL_BARRIER) && CAS_PROVIDES_FULL_BARRIER
 		// On some architectures, the CAS (hidden in the
-		// lockword->lock call above), already provides this barrier,
+		// lockword.lock call above), already provides this barrier,
 		// so we only need to inform the compiler.
 		Atomic::instruction_barrier();
 #else
@@ -880,11 +890,11 @@ retry:
 	// NOTE: We don't have to worry about stale values here, as any
 	// stale value will indicate another thread holding the lock (or
 	// an inflated lock).
-	if (lockword->get_thin_lock_without_count() == thinlock) {
+	if (lockword.get_thin_lock_without_count() == thinlock) {
 		// We own this monitor.  Check the current recursion count.
-		if (lockword->is_max_thin_lock_count() == false) {
+		if (lockword.is_max_thin_lock_count() == false) {
 			// The recursion count is low enough.
-			lockword->increase_thin_lock_count();
+			Lockword(*lw_ptr).increase_thin_lock_count();
 
 			// Success, we locked it.
 			return true;
@@ -903,8 +913,8 @@ retry:
 	}
 
 	// The lock is either contented or fat.
-	if (lockword->is_fat_lock()) {
-		lock_record_t* lr = lockword->get_fat_lock();
+	if (lockword.is_fat_lock()) {
+		lock_record_t* lr = lockword.get_fat_lock();
 
 		// Check for recursive entering.
 		if (lr->owner == t) {
@@ -927,7 +937,7 @@ retry:
 	jvmti_MonitorContendedEntering(false, o);
 #endif
 
-	sable_flc_waiting(lockword, t, o);
+	sable_flc_waiting(lw_cache, t, o);
 
 #if defined(ENABLE_JVMTI)
 	/* Monitor Contended Entered */
@@ -971,13 +981,15 @@ bool lock_monitor_exit(java_handle_t* o)
 
 	// We don't have to worry about stale values here, as any stale
 	// value will indicate that we don't own the lock.
-	Lockword* lockword = lock_lockword_get(o);
+	uintptr_t *lw_ptr = lock_lockword_get(o);
+	uintptr_t lw_cache = *lw_ptr;
+	Lockword lockword(lw_cache);
 
 	// Most common case: we release a thin lock that we hold once.
-	if (lockword->get_thin_lock() == thinlock) {
+	if (lockword.get_thin_lock() == thinlock) {
 		// Memory barrier for Java Memory Model.
 		Atomic::write_memory_barrier();
-		lockword->unlock();
+		Lockword(*lw_ptr).unlock();
 		// Memory barrier for FLC bit testing.
 		Atomic::memory_barrier();
 
@@ -994,14 +1006,14 @@ bool lock_monitor_exit(java_handle_t* o)
 	}
 
 	// Next common case: we release a recursive lock, count > 0.
-	if (lockword->get_thin_lock_without_count() == thinlock) {
-		lockword->decrease_thin_lock_count();
+	if (lockword.get_thin_lock_without_count() == thinlock) {
+		Lockword(*lw_ptr).decrease_thin_lock_count();
 		return true;
 	}
 
 	// Either the lock is fat, or we don't hold it at all.
-	if (lockword->is_fat_lock()) {
-		lock_record_t* lr = lockword->get_fat_lock();
+	if (lockword.is_fat_lock()) {
+		lock_record_t* lr = lockword.get_fat_lock();
 
 		// Check if we own this monitor.
 		// NOTE: We don't have to worry about stale values here, as
@@ -1175,13 +1187,15 @@ static void lock_monitor_wait(threadobject *t, java_handle_t *o, s8 millis, s4 n
 {
 	lock_record_t *lr;
 
-	Lockword* lockword = lock_lockword_get(o);
+	uintptr_t *lw_ptr = lock_lockword_get(o);
+	uintptr_t lw_cache = *lw_ptr;
+	Lockword lockword(lw_cache);
 
 	// Check if we own this monitor.
 	// NOTE: We don't have to worry about stale values here, as any
 	// stale value will fail this check.
-	if (lockword->is_fat_lock()) {
-		lr = lockword->get_fat_lock();
+	if (lockword.is_fat_lock()) {
+		lr = lockword.get_fat_lock();
 
 		if (lr->owner != t) {
 			exceptions_throw_illegalmonitorstateexception();
@@ -1190,7 +1204,7 @@ static void lock_monitor_wait(threadobject *t, java_handle_t *o, s8 millis, s4 n
 	}
 	else {
 		// It's a thin lock.
-		if (lockword->get_thin_lock_without_count() != t->thinlock) {
+		if (lockword.get_thin_lock_without_count() != t->thinlock) {
 			exceptions_throw_illegalmonitorstateexception();
 			return;
 		}
@@ -1200,7 +1214,7 @@ static void lock_monitor_wait(threadobject *t, java_handle_t *o, s8 millis, s4 n
 		lock_record_enter(t, lr);
 
 		// Inflate this lock.
-		lockword->inflate(lr);
+		Lockword(*lw_ptr).inflate(lr);
 
 		notify_flc_waiters(t, o);
 	}
@@ -1287,14 +1301,15 @@ static void lock_monitor_notify(threadobject *t, java_handle_t *o, bool one)
 		// This scope is inside a critical section.
 		GCCriticalSection cs;
 
-		Lockword* lockword = lock_lockword_get(o);
+		uintptr_t lw_cache = *lock_lockword_get(o);
+		Lockword lockword(lw_cache);
 
 		// Check if we own this monitor.
 		// NOTE: We don't have to worry about stale values here, as any
 		// stale value will fail this check.
 
-		if (lockword->is_fat_lock()) {
-			lr = lockword->get_fat_lock();
+		if (lockword.is_fat_lock()) {
+			lr = lockword.get_fat_lock();
 
 			if (lr->owner != t) {
 				exceptions_throw_illegalmonitorstateexception();
@@ -1303,7 +1318,7 @@ static void lock_monitor_notify(threadobject *t, java_handle_t *o, bool one)
 		}
 		else {
 			// It's a thin lock.
-			if (lockword->get_thin_lock_without_count() != t->thinlock) {
+			if (lockword.get_thin_lock_without_count() != t->thinlock) {
 				exceptions_throw_illegalmonitorstateexception();
 				return;
 			}
@@ -1345,16 +1360,17 @@ bool lock_is_held_by_current_thread(java_handle_t *o)
 	// NOTE: We don't have to worry about stale values here, as any
 	// stale value will fail this check.
 	threadobject* t = thread_get_current();
-	Lockword* lockword = lock_lockword_get(o);
+	uintptr_t lw_cache = *lock_lockword_get(o);
+	Lockword lockword(lw_cache);
 
-	if (lockword->is_fat_lock()) {
+	if (lockword.is_fat_lock()) {
 		// It's a fat lock.
-		lock_record_t* lr = lockword->get_fat_lock();
+		lock_record_t* lr = lockword.get_fat_lock();
 		return (lr->owner == t);
 	}
 	else {
 		// It's a thin lock.
-		return (lockword->get_thin_lock_without_count() == t->thinlock);
+		return (lockword.get_thin_lock_without_count() == t->thinlock);
 	}
 }
 

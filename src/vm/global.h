@@ -1,6 +1,6 @@
 /* src/vm/global.h - global definitions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -247,7 +247,7 @@ typedef struct java_objectarray_t java_objectarray_t;
 struct java_object_t {                 /* header for all objects              */
 	struct _vftbl *vftbl;              /* pointer to virtual function table   */
 #if defined(ENABLE_THREADS)
-	Lockword       lockword;
+	uintptr_t      lockword;
 #endif
 #if defined(ENABLE_GC_CACAO)
 	uintptr_t      hdrflags;           /* word containing the GC bits         */

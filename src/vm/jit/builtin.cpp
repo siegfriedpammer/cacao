@@ -1,6 +1,6 @@
 /* src/vm/jit/builtin.cpp - functions for unsupported operations
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -863,7 +863,7 @@ java_handle_t *builtin_new(classinfo *c)
 	LLNI_vftbl_direct(o) = c->vftbl;
 
 #if defined(ENABLE_THREADS)
-	LLNI_DIRECT(o)->lockword.init();
+	Lockword(LLNI_DIRECT(o)->lockword).init();
 #endif
 
 	CYCLES_STATS_GET(cycles_end);
@@ -945,7 +945,7 @@ java_handle_t *builtin_tlh_new(classinfo *c)
 	LLNI_vftbl_direct(o) = c->vftbl;
 
 # if defined(ENABLE_THREADS)
-	LLNI_DIRECT(o)->lockword.init();
+	Lockword(LLNI_DIRECT(o)->lockword).init();
 # endif
 
 	CYCLES_STATS_GET(cycles_end);
@@ -1024,7 +1024,7 @@ java_object_t *builtin_fast_new(classinfo *c)
 	o->vftbl = c->vftbl;
 
 #if defined(ENABLE_THREADS)
-	LLNI_DIRECT(o)->lockword.init();
+	Lockword(LLNI_DIRECT(o)->lockword).init();
 #endif
 
 	CYCLES_STATS_GET(cycles_end);
@@ -2163,7 +2163,7 @@ java_handle_t *builtin_clone(void *env, java_handle_t *o)
 #endif
 
 #if defined(ENABLE_THREADS)
-		LLNI_DIRECT(co)->lockword.init();
+		Lockword(LLNI_DIRECT(co)->lockword).init();
 #endif
 
 		LLNI_CRITICAL_END;
@@ -2198,7 +2198,7 @@ java_handle_t *builtin_clone(void *env, java_handle_t *o)
 #endif
 
 #if defined(ENABLE_THREADS)
-	LLNI_DIRECT(co)->lockword.init();
+	Lockword(LLNI_DIRECT(co)->lockword).init();
 #endif
 
 	LLNI_CRITICAL_END;
