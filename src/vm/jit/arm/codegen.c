@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/codegen.c - machine code generator for Arm
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -257,7 +257,6 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 	int32_t             disp;
 
 	// Get required compiler data.
-	codeinfo*     code = jd->code;
 	codegendata*  cd   = jd->cd;
 
 	/* the big switch */

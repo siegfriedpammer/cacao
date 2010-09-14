@@ -612,7 +612,7 @@ bool class_load_attributes(classbuffer *cb)
 
 static void class_freecpool(classinfo *c)
 {
-	u4 idx;
+	int idx;
 	u4 tag;
 	void* info;
 	
@@ -669,7 +669,7 @@ void* class_getconstant(classinfo *c, u4 pos, u4 ctype)
 	/* check index and type of constantpool entry */
 	/* (pos == 0 is caught by type comparison) */
 
-	if ((pos >= c->cpcount) || (c->cptags[pos] != ctype)) {
+	if (((int) pos >= c->cpcount) || (c->cptags[pos] != ctype)) {
 		exceptions_throw_classformaterror(c, "Illegal constant pool index");
 		return NULL;
 	}
@@ -688,7 +688,7 @@ void* innerclass_getconstant(classinfo *c, u4 pos, u4 ctype)
 {
 	/* invalid position in constantpool */
 
-	if (pos >= c->cpcount) {
+	if ((int) pos >= c->cpcount) {
 		exceptions_throw_classformaterror(c, "Illegal constant pool index");
 		return NULL;
 	}
@@ -2104,7 +2104,7 @@ java_handle_t* class_get_enclosingmethod(classinfo *c)
 java_handle_objectarray_t* class_get_interfaces(classinfo *c)
 {
 	classinfo* ic;
-	u4         i;
+	int        i;
 
 	if (!(c->state & CLASS_LINKED))
 		if (!link_class(c))
@@ -2380,13 +2380,13 @@ void class_classref_or_classinfo_println(classref_or_classinfo c)
 #if !defined(NDEBUG)
 void class_showconstantpool (classinfo *c) 
 {
-	u4 i;
+	int i;
 	void* e;
 
 	printf ("---- dump of constant pool ----\n");
 
 	for (i=0; i<c->cpcount; i++) {
-		printf ("#%d:  ", (int) i);
+		printf ("#%d:  ", i);
 		
 		e = c -> cpinfos [i];
 		if (e) {

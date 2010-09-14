@@ -1,6 +1,6 @@
 /* src/vm/vm.cpp - VM startup and shutdown functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -718,7 +718,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	   is smaller or equal than the assumption made in
 	   src/vm/class.hpp. */
 
-#warning FIXME We need to check the size of java.lang.Class!!!
+// FIXME We need to check the size of java.lang.Class!!!
 // 	if (sizeof(java_lang_Class) > sizeof(dummy_java_lang_Class))
 // 		vm_abort("vm_create: java_lang_Class structure is bigger than classinfo.object (%d > %d)", sizeof(java_lang_Class), sizeof(dummy_java_lang_Class));
 
@@ -1795,7 +1795,6 @@ int vm_destroy(JavaVM *vm)
 	/* VM is gone. */
 
 // 	_created = false;
-#warning Move to C++
 
 	/* Everything is ok. */
 
@@ -1816,7 +1815,6 @@ void vm_exit(s4 status)
 	/* signal that we are exiting */
 
 // 	_exiting = true;
-#warning Move to C++
 
 	assert(class_java_lang_System);
 	assert(class_java_lang_System->state & CLASS_LOADED);

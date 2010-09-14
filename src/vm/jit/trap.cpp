@@ -231,8 +231,8 @@ void trap_handle(int sig, void *xpc, void *context)
 	/* Get resulting exception (or pointer to compiled method). */
 
 	java_handle_t* p;
-	void*          entry;
-	bool           was_patched;
+	void*          entry = 0;
+	bool           was_patched = false;
 #if defined(ENABLE_REPLACEMENT)
 	bool           was_replaced;
 #endif

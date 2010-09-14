@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/patcher.c - x86_64 code patching functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -87,9 +87,9 @@ static void patch_out_mfence(void *pc)
 
 	assert((((uintptr_t) pc) & 3) < 2);
 	if (((uintptr_t) pc) & 1)
-		*p = *p & 0x000000ff | 0x001f0f00;
+		*p = (*p & 0x000000ff) | 0x001f0f00;
 	else
-		*p = *p & 0xff000000 | 0x00001f0f;
+		*p = (*p & 0xff000000) | 0x00001f0f;
 
 	md_icacheflush(p, 4);
 }

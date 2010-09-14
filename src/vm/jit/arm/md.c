@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/md.c - machine dependent ARM functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -224,7 +224,7 @@ bool md_trap_decode(trapinfo_t* trp, int sig, void* xpc, executionstate_t* es)
 	case TRAP_SIGSEGV:
 	{
 		// Sanity check for load/store instruction.
-#warning Implement this!
+		// FIXME Implement this!
 
 		// Retrieve base address of load/store instruction.
 		uintptr_t addr = es->intregs[(mcode >> 16) & 0x0f];

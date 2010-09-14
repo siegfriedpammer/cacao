@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typeinfo.c - type system used by the type checker
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -2279,7 +2279,7 @@ typeinfo_inc_dimension(typeinfo_t *info)
 #define TYPEINFO_TEST_MAXDIM  10
 
 static void
-typeinfo_testrun(char *filename)
+typeinfo_testrun(const char *filename)
 {
     char buf[TYPEINFO_TEST_BUFLEN];
     char bufa[TYPEINFO_TEST_BUFLEN];

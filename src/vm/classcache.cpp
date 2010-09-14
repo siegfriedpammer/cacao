@@ -1,6 +1,6 @@
 /* src/vm/classcache.cpp - loaded class cache and loading constraints
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -1338,7 +1338,7 @@ static s4 classcache_number_of_loaded_classes(void)
 	classcache_name_entry  *en;
 	classcache_class_entry *clsen;
 	s4                      number;
-	s4                      i;
+	u4                      i;
 
 	/* initialize class counter */
 
@@ -1399,7 +1399,7 @@ void classcache_foreach_loaded_class(classcache_foreach_functionptr_t func,
 {
 	classcache_name_entry   *en;
 	classcache_class_entry  *clsen;
-	s4                       i;
+	u4                       i;
 
 	CLASSCACHE_LOCK();
 

@@ -1,6 +1,6 @@
 /* src/vm/jit/i386/atomic.hpp - i386 atomic instructions
 
-   Copyright (C) 2008
+   Copyright (C) 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -67,7 +67,6 @@ inline uint32_t compare_and_swap(volatile uint32_t *p, uint32_t oldval, uint32_t
  */
 inline uint64_t compare_and_swap(volatile uint64_t *p, uint64_t oldval, uint64_t newval)
 {
-#warning Should we use cmpxchg8b or a generic version?
 	return Atomic::generic_compare_and_swap(p, oldval, newval);
 }
 

@@ -1,6 +1,6 @@
 /* src/vm/options.c - contains global options
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -794,7 +794,7 @@ void options_xx(JavaVMInitArgs *vm_args)
 			file = fopen(filename, "w");
 
 			if (file == NULL)
-#warning Use below method instead!
+				/* FIXME Use below method instead! */
 				//os::abort_errno("options_xx: fopen failed");
 				vm_abort("options_xx: fopen failed");
 

@@ -1,6 +1,6 @@
 /* src/threads/posix/thread-posix.cpp - POSIX thread functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -583,8 +583,6 @@ void threads_impl_thread_free(threadobject *t)
 
 void threads_impl_preinit(void)
 {
-	int result;
-
 	stopworldlock = new Mutex();
 
 	/* initialize exit mutex and condition (on exit we join all
@@ -601,7 +599,7 @@ void threads_impl_preinit(void)
 #endif
 
 #if !defined(HAVE___THREAD)
-	result = pthread_key_create(&thread_current_key, NULL);
+	int result = pthread_key_create(&thread_current_key, NULL);
 	if (result != 0)
 		os::abort_errnum(result, "threads_impl_preinit: pthread_key_create failed");
 #endif

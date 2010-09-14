@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/codegen.c - machine code generator for x86_64
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -1507,6 +1507,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				pr = patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
 
 /* 				PROFILE_CYCLE_START; */
+
+				fi = NULL;		/* Silence compiler warning */
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
@@ -1521,6 +1523,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 					//PROFILE_CYCLE_START;
 				}
+
+				pr = NULL;		/* Silence compiler warning */
   			}
 
 			/* This approach is much faster than moving the field
@@ -1561,6 +1565,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
 
 /* 				PROFILE_CYCLE_START; */
+
+				fi = NULL;		/* Silence compiler warning */
 			}
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
@@ -1587,6 +1593,9 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
 				M_DLD32(d, s1, disp);
 				break;
+			default:
+				// Silence compiler warning.
+				d = 0;
 			}
 			emit_store_dst(jd, iptr, d);
 			break;
@@ -1606,11 +1615,15 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				pr = patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
 
 /* 				PROFILE_CYCLE_START; */
+
+				fi = NULL;		/* Silence compiler warning */
 			} 
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = fi->offset;
+
+				pr = NULL;		/* Silence compiler warning */
 			}
 
 			/* implicit null-pointer check */
@@ -1648,11 +1661,15 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				pr = patcher_add_patch_ref(jd, PATCHER_putfieldconst, uf, 0);
 
 /* 				PROFILE_CYCLE_START; */
+
+				fi = NULL;		/* Silence compiler warning */
 			} 
 			else {
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = fi->offset;
+
+				pr = NULL;		/* Silence compiler warning */
 			}
 
 			/* implicit null-pointer check */

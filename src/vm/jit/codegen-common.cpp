@@ -996,7 +996,7 @@ s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum)
 bool codegen_emit(jitdata *jd)
 {
 	varinfo*            var;
-	builtintable_entry* bte;
+	builtintable_entry* bte = 0;
 	methoddesc*         md;
 	int32_t             s1, s2, /*s3,*/ d;
 	int32_t             fieldtype;
@@ -1518,6 +1518,8 @@ bool codegen_emit(jitdata *jd)
 					disp      = dseg_add_unique_address(cd, 0);
 
 					pr = patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
+
+					fi = NULL;		/* Silence compiler warning */
 				}
 				else {
 					fi        = iptr->sx.s23.s3.fmiref->p.field;
@@ -1529,6 +1531,8 @@ bool codegen_emit(jitdata *jd)
 						patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz, 0);
 						PROFILE_CYCLE_START;
 					}
+
+					pr = NULL;		/* Silence compiler warning */
 				}
 
 #if defined(USES_PATCHABLE_MEMORY_BARRIER)
@@ -1570,6 +1574,9 @@ bool codegen_emit(jitdata *jd)
 					M_DLD(d, REG_ITMP1, 0);
 					break;
 #endif
+				default:
+					// Silence compiler warning.
+					d = 0;
 				}
 				emit_store_dst(jd, iptr, d);
 				break;
@@ -1593,6 +1600,8 @@ bool codegen_emit(jitdata *jd)
 					disp      = dseg_add_unique_address(cd, 0);
 
 					pr = patcher_add_patch_ref(jd, PATCHER_get_putstatic, uf, disp);
+
+					fi = NULL;		/* Silence compiler warning */
 				}
 				else {
 					fi = iptr->sx.s23.s3.fmiref->p.field;
@@ -1604,6 +1613,8 @@ bool codegen_emit(jitdata *jd)
 						patcher_add_patch_ref(jd, PATCHER_initialize_class, fi->clazz, 0);
 						PROFILE_CYCLE_START;
 					}
+
+					pr = NULL;		/* Silence compiler warning */
 				}
 
 				// XXX X86_64: Here We had this:
