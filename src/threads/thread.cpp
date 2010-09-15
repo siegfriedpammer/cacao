@@ -1009,17 +1009,11 @@ static inline void thread_set_state(threadobject *t, int state)
 
 void thread_set_state_runnable(threadobject *t)
 {
-	/* Set the state inside a lock. */
-
-	ThreadList::lock();
-
 	if (t->state != THREAD_STATE_TERMINATED) {
 		thread_set_state(t, THREAD_STATE_RUNNABLE);
 
 		DEBUGTHREADS("is RUNNABLE", t);
 	}
-
-	ThreadList::unlock();
 }
 
 
@@ -1034,17 +1028,11 @@ void thread_set_state_runnable(threadobject *t)
 
 void thread_set_state_waiting(threadobject *t)
 {
-	/* Set the state inside a lock. */
-
-	ThreadList::lock();
-
 	if (t->state != THREAD_STATE_TERMINATED) {
 		thread_set_state(t, THREAD_STATE_WAITING);
 
 		DEBUGTHREADS("is WAITING", t);
 	}
-
-	ThreadList::unlock();
 }
 
 
@@ -1060,17 +1048,11 @@ void thread_set_state_waiting(threadobject *t)
 
 void thread_set_state_timed_waiting(threadobject *t)
 {
-	/* Set the state inside a lock. */
-
-	ThreadList::lock();
-
 	if (t->state != THREAD_STATE_TERMINATED) {
 		thread_set_state(t, THREAD_STATE_TIMED_WAITING);
 
 		DEBUGTHREADS("is TIMED_WAITING", t);
 	}
-
-	ThreadList::unlock();
 }
 
 
@@ -1085,17 +1067,11 @@ void thread_set_state_timed_waiting(threadobject *t)
 
 void thread_set_state_parked(threadobject *t)
 {
-	/* Set the state inside a lock. */
-
-	ThreadList::lock();
-
 	if (t->state != THREAD_STATE_TERMINATED) {
 		thread_set_state(t, THREAD_STATE_PARKED);
 
 		DEBUGTHREADS("is PARKED", t);
 	}
-
-	ThreadList::unlock();
 }
 
 
@@ -1110,17 +1086,11 @@ void thread_set_state_parked(threadobject *t)
 
 void thread_set_state_timed_parked(threadobject *t)
 {
-	/* Set the state inside a lock. */
-
-	ThreadList::lock();
-
 	if (t->state != THREAD_STATE_TERMINATED) {
 		thread_set_state(t, THREAD_STATE_TIMED_PARKED);
 
 		DEBUGTHREADS("is TIMED_PARKED", t);
 	}
-
-	ThreadList::unlock();
 }
 
 
