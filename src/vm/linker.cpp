@@ -1,6 +1,6 @@
 /* src/vm/linker.cpp - class linker functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -55,6 +55,9 @@
 
 #include "vm/jit/asmpart.h"
 #include "vm/jit/stubs.hpp"
+
+#include <vector>
+#include <utility>
 
 
 /* debugging macros ***********************************************************/
@@ -112,6 +115,9 @@ static void linker_compute_subclasses(classinfo *c);
 static bool linker_addinterface(classinfo *c, classinfo *ic);
 static s4 class_highestinterface(classinfo *c);
 
+
+typedef std::vector<std::pair<java_object_t**, utf*> > deferred_strings_vec_t;
+static deferred_strings_vec_t deferred_strings;
 
 /* linker_init *****************************************************************
 
@@ -1188,6 +1194,24 @@ static arraydescriptor *link_array(classinfo *c)
 	}
 
 	return desc;
+}
+
+/* linker_create_string_later **************************************************
+
+   A hack so we can initialize java.lang.String objects during initialization.
+
+*******************************************************************************/
+void linker_create_string_later(java_object_t **a, utf *u)
+{
+	deferred_strings.push_back(std::make_pair(a, u));
+}
+
+void linker_initialize_deferred_strings()
+{
+	deferred_strings_vec_t::const_iterator it = deferred_strings.begin();
+	for (; it != deferred_strings.end(); ++it)
+		*it->first = literalstring_new(it->second);
+	deferred_strings.clear();
 }
 
 

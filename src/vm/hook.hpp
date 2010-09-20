@@ -1,6 +1,6 @@
 /* src/vm/hook.hpp - hook points inside the VM
 
-   Copyright (C) 2009
+   Copyright (C) 2009, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -27,6 +27,7 @@
 #define _HOOK_HPP
 
 #include "config.h"
+#include "vm/globals.hpp"
 
 #if defined(ENABLE_OPAGENT)
 #include "vm/jit/oprofile-agent.hpp"
@@ -71,7 +72,8 @@ inline void Hook::breakpoint(Breakpoint *bp)
 
 inline void Hook::class_linked(classinfo *c)
 {
-	/* nop */
+	if (c == class_java_lang_String)
+		linker_initialize_deferred_strings();
 }
 
 inline void Hook::class_loaded(classinfo *c)

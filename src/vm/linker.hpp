@@ -1,6 +1,6 @@
 /* src/vm/linker.h - class linker header
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -89,6 +89,9 @@ extern "C" {
 void       linker_preinit(void);
 void       linker_init(void);
 classinfo *link_class(classinfo *c);
+
+void linker_create_string_later(java_object_t **a, utf *u);
+void linker_initialize_deferred_strings();
 
 #ifdef __cplusplus
 }

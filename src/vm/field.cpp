@@ -1,6 +1,6 @@
 /* src/vm/field.cpp - field functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -43,6 +43,7 @@
 #include "vm/exceptions.hpp"
 #include "vm/field.hpp"
 #include "vm/global.h"
+#include "vm/globals.hpp"
 #include "vm/loader.hpp"
 #include "vm/options.h"
 #include "vm/primitive.hpp"
@@ -296,7 +297,10 @@ bool field_load(classbuffer *cb, fieldinfo *f, descriptor_pool *descpool)
 
 				/* Create Java-string from compressed UTF8-string. */
 
-				f->value->a = literalstring_new(u);
+				if (!(class_java_lang_String->flags & CLASS_LINKED))
+					linker_create_string_later(reinterpret_cast<java_object_t**>(&f->value->a), u);
+				else
+					f->value->a = literalstring_new(u);
 				break;
 
 			default: 
