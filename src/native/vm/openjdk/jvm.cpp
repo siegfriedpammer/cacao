@@ -653,6 +653,25 @@ void JVM_ResolveClass(JNIEnv* env, jclass cls)
 }
 
 
+/* JVM_FindClassFromBootLoader */
+
+jclass JVM_FindClassFromBootLoader(JNIEnv* env, const char* name)
+{
+	classinfo     *c;
+	utf           *u;
+
+	TRACEJVMCALLS(("JVM_FindClassFromBootLoader(name=%s)", name));
+
+	u  = utf_new_char(name);
+	c = load_class_from_classloader(u, NULL);
+
+	if (c == NULL)
+		return NULL;
+
+	return (jclass) LLNI_classinfo_wrap(c);
+}
+
+
 /* JVM_FindClassFromClassLoader */
 
 jclass JVM_FindClassFromClassLoader(JNIEnv* env, const char* name, jboolean init, jobject loader, jboolean throwError)
