@@ -1,6 +1,6 @@
 /* src/native/vm/sun_misc_Unsafe.cpp - sun/misc/Unsafe
 
-   Copyright (C) 2006, 2007, 2008, 2009
+   Copyright (C) 2006, 2007, 2008, 2009, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -909,6 +909,11 @@ JNIEXPORT jboolean JNICALL Java_sun_misc_Unsafe_compareAndSwapObject(JNIEnv *env
 	p = (void **) (((uint8_t *) o) + offset);
 
 	result = Atomic::compare_and_swap(p, (void *) expected, (void *) x);
+#if defined(CAS_PROVIDES_FULL_BARRIER) && CAS_PROVIDES_FULL_BARRIER
+	Atomic::instruction_barrier();
+#else
+	Atomic::memory_barrier();
+#endif
 
 	if (result == expected)
 		return true;
@@ -932,6 +937,11 @@ JNIEXPORT jboolean JNICALL Java_sun_misc_Unsafe_compareAndSwapInt(JNIEnv *env, j
 	p = (uint32_t *) (((uint8_t *) o) + offset);
 
 	result = Atomic::compare_and_swap(p, (uint32_t) expected, (uint32_t) x);
+#if defined(CAS_PROVIDES_FULL_BARRIER) && CAS_PROVIDES_FULL_BARRIER
+	Atomic::instruction_barrier();
+#else
+	Atomic::memory_barrier();
+#endif
 
 	if (result == (uint32_t) expected)
 		return true;
@@ -955,6 +965,11 @@ JNIEXPORT jboolean JNICALL Java_sun_misc_Unsafe_compareAndSwapLong(JNIEnv *env, 
 	p = (uint64_t *) (((uint8_t *) o) + offset);
 
 	result = Atomic::compare_and_swap(p, (uint64_t) expected, (uint64_t) x);
+#if defined(CAS_PROVIDES_FULL_BARRIER) && CAS_PROVIDES_FULL_BARRIER
+	Atomic::instruction_barrier();
+#else
+	Atomic::memory_barrier();
+#endif
 
 	if (result == (uint64_t) expected)
 		return true;
