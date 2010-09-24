@@ -48,6 +48,10 @@ libjvm_la_LDFLAGS += \
 endif
 endif
 
+if GCC_PR40134
+libjvm_la_LDFLAGS += -lgcc
+endif
+
 cacao_LDFLAGS += \
 	-export-dynamic
 
