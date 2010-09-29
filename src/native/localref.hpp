@@ -1,6 +1,6 @@
 /* src/native/localref.hpp - Management of local reference tables
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -50,10 +50,15 @@ typedef struct localref_table localref_table;
 struct localref_table {
 	s4                 capacity;        /* table size                         */
 	s4                 used;            /* currently used references          */
+	s4                 firstfree;       /* head of the free list              */
+	s4                 hwm;             /* high water mark                    */
 	s4                 localframes;     /* number of current frames           */
 	s4                 PADDING;         /* 8-byte padding                     */
 	localref_table    *prev;            /* link to prev table (LocalFrame)    */
-	java_object_t     *refs[LOCALREFTABLE_CAPACITY]; /* references            */
+	union {
+		java_object_t *ptr;
+		s4 nextfree;
+	} refs[LOCALREFTABLE_CAPACITY];     /* references            */
 };
 
 

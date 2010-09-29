@@ -1,6 +1,6 @@
 /* src/native/localref.cpp - Management of local reference tables
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -50,7 +50,7 @@
 		if (opt_DebugLocalReferences) { \
 			localref_table *dlrt = LOCALREFTABLE; \
 			log_start(); \
-			log_print("[local reference %-12s: lrt=%016p frame=%d capacity=%d used=%d", message, dlrt, dlrt->localframes, dlrt->capacity, dlrt->used); \
+			log_print("[local reference %-12s: lrt=%016p frame=%d capacity=%d used=%d hwm=%d", message, dlrt, dlrt->localframes, dlrt->capacity, dlrt->used, dlrt->hwm); \
 			if (index >= 0) \
 				log_print(" localref=%p object=%p", &(dlrt->refs[index]), dlrt->refs[index]); \
 			log_print("]"); \
@@ -150,9 +150,8 @@ void localref_table_add(localref_table *lrt)
 	lrt->localframes = 1;
 	lrt->prev        = LOCALREFTABLE;
 
-	/* clear the references array (memset is faster the a for-loop) */
-
-	MSET(lrt->refs, 0, void*, LOCALREFTABLE_CAPACITY);
+	lrt->hwm = 0;
+	lrt->firstfree = -1;
 
 	/* add given local references table to this thread */
 
@@ -286,10 +285,6 @@ void localref_frame_pop_all(void)
 
 		DEBUGLOCALREF("frame pop", -1);
 
-		/* clear all reference entries */
-
-		MSET(lrt->refs, 0, void*, lrt->capacity);
-
 		lrt->prev = NULL;
 
 #if !defined(ENABLE_GC_BOEHM)
@@ -350,28 +345,34 @@ java_handle_t *localref_add(java_object_t *o)
 
 	/* insert the reference into the local reference table */
 
-	for (i = 0; i < lrt->capacity; i++) {
-		if (lrt->refs[i] == NULL) {
-			lrt->refs[i] = o;
-			lrt->used++;
+	i = lrt->hwm;
+	if (i == lrt->capacity) {
+		if (lrt->firstfree >= 0) {
+			i = lrt->firstfree;
+			lrt->firstfree = lrt->refs[i].nextfree;
+		}
+		else {
+			/* this should not happen */
+
+			log_println("localref_add: WARNING: unable to add localref for %p", o);
+
+			return NULL;
+		}
+	} else
+		lrt->hwm++;
+
+	lrt->refs[i].ptr = o;
+	lrt->used++;
 
 #if defined(ENABLE_HANDLES)
-			h = (java_handle_t *) &(lrt->refs[i]);
+	h = (java_handle_t *) &(lrt->refs[i].ptr);
 #else
-			h = (java_handle_t *) o;
+	h = (java_handle_t *) o;
 #endif
 
-			/*DEBUGLOCALREF("entry add", i);*/
+	/*DEBUGLOCALREF("entry add", i);*/
 
-			return h;
-		}
-	}
-
-	/* this should not happen */
-
-	log_println("localref_add: WARNING: unable to add localref for %p", o);
-
-	return NULL;
+	return h;
 }
 
 
@@ -403,17 +404,18 @@ void localref_del(java_handle_t *localref)
 
 		/* and try to remove the reference */
     
-		for (i = 0; i < lrt->capacity; i++) {
+		for (i = 0; i < lrt->hwm; i++) {
 #if defined(ENABLE_HANDLES)
-			h = (java_handle_t *) &(lrt->refs[i]);
+			h = (java_handle_t *) &(lrt->refs[i].ptr);
 #else
-			h = (java_handle_t *) lrt->refs[i];
+			h = (java_handle_t *) lrt->refs[i].ptr;
 #endif
 
 			if (h == localref) {
 				DEBUGLOCALREF("entry delete", i);
 
-				lrt->refs[i] = NULL;
+				lrt->refs[i].nextfree = lrt->firstfree;
+				lrt->firstfree = i;
 				lrt->used--;
 
 				return;
@@ -539,7 +541,7 @@ void localref_native_exit(methodinfo *m, uint64_t *return_regs)
 # define LOCALREF_DUMP_REFS_PER_LINE 4
 void localref_dump()
 {
-	localref_table *lrt;
+	localref_table *lrt, dlrt;
 	int i, j;
 
 	/* get current local reference table from thread */
@@ -549,21 +551,27 @@ void localref_dump()
 	log_println("--------- Local Reference Tables Dump ---------");
 
 	while (lrt != NULL) {
-		log_println("Frame #%d, Used=%d, Capacity=%d, Addr=%p:", lrt->localframes, lrt->used, lrt->capacity, (void *) lrt);
+		log_println("Frame #%d, Used=%d, Capacity=%d, Hwm=%d, Addr=%p:", lrt->localframes, lrt->used, lrt->capacity, lrt->hwm, (void *) lrt);
 
 			if (lrt->used != 0) {
+
+				dlrt = *lrt;			// copy it for dumping
+				for (i = dlrt.firstfree; i >= 0; i = j) {
+					j = dlrt.refs[i].nextfree;
+					dlrt.refs[i].ptr = NULL;
+				}
 
 				log_start();
 
 				j = 0;
-				for (i = 0; i < lrt->capacity; i++) {
-					if (lrt->refs[i] != NULL) {
+				for (i = 0; i < dlrt.hwm; i++) {
+					if (dlrt.refs[i].ptr != NULL) {
 						if (j != 0 && j % LOCALREF_DUMP_REFS_PER_LINE == 0) {
 							log_finish();
 							log_start();
 						}
 						j++;
-						log_print("\t0x%016lx ", (intptr_t) lrt->refs[i]);
+						log_print("\t0x%016lx ", (intptr_t) dlrt.refs[i].ptr);
 					}
 				}
 
@@ -604,10 +612,9 @@ static bool localref_check_uncleared()
 	for (; localframes > 0; localframes--) {
 		lrt_used += lrt->used;
 
-		for (i = 0; i < lrt->capacity; i++) {
-			if (lrt->refs[i] != NULL)
-				lrt_uncleared++;
-		}
+		lrt_uncleared += lrt->hwm;
+		for (i = lrt->firstfree; i >= 0; i = lrt->refs[i].nextfree)
+			lrt_uncleared--;
 
 		lrt = lrt->prev;
 	}
