@@ -147,4 +147,4 @@ fi
 
 export ACLOCAL AUTOCONF AUTOHEADER AUTOMAKE LIBTOOLIZE
 
-${AUTORECONF} --force --install
+${AUTORECONF} --force --install --no-recursive

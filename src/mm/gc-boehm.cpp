@@ -41,6 +41,7 @@
 #endif
 
 #include "boehm-gc/include/gc.h"
+#include "boehm-gc/include/javaxfc.h"
 #include "mm/gc.hpp"
 #include "mm/memory.hpp"
 
@@ -60,6 +61,7 @@
 /* global variables ***********************************************************/
 
 static bool in_gc_out_of_memory = false;    /* is GC out of memory?           */
+static size_t gc_max_heap_size = 0;
 
 
 /* prototype static functions *************************************************/
@@ -105,6 +107,7 @@ void gc_init(size_t heapmaxsize, size_t heapstartsize)
 	/* set the maximal heap size */
 
 	GC_set_max_heap_size(heapmaxsize);
+	gc_max_heap_size = heapmaxsize;
 
 	/* set the initial heap size */
 
@@ -215,7 +218,7 @@ int64_t gc_get_total_bytes(void)
 
 int64_t gc_get_max_heap_size(void)
 {
-	return GC_get_max_heap_size();
+	return gc_max_heap_size;
 }
 
 
