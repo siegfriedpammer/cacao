@@ -75,9 +75,13 @@ typedef char * ptr_t;	/* A generic pointer to which we can add	*/
 #if __GNUC__ >= 3
 # define EXPECT(expr, outcome) __builtin_expect(expr,outcome)
   /* Equivalent to (expr), but predict that usually (expr)==outcome. */
-# define INLINE inline
 #else
 # define EXPECT(expr, outcome) (expr)
+#endif /* __GNUC__ */
+
+#if __GNUC__ >= 3
+# define INLINE inline
+#else
 # define INLINE
 #endif /* __GNUC__ */
 
@@ -119,7 +123,7 @@ typedef char * ptr_t;	/* A generic pointer to which we can add	*/
 /*********************************/
 
 /* #define STUBBORN_ALLOC */
-		    /* Enable stubborm allocation, and thus a limited	*/
+		    /* Enable stubborn allocation, and thus a limited	*/
 		    /* form of incremental collection w/o dirty bits.	*/
 
 /* #define ALL_INTERIOR_POINTERS */
@@ -138,7 +142,7 @@ typedef char * ptr_t;	/* A generic pointer to which we can add	*/
 		    /* 2. This option makes it hard for the collector	*/
 		    /*    to allocate space that is not ``pointed to''  */
 		    /*    by integers, etc.  Under SunOS 4.X with a 	*/
-		    /*    statically linked libc, we empiricaly		*/
+		    /*    statically linked libc, we empirically	*/
 		    /*    observed that it would be difficult to 	*/
 		    /*	  allocate individual objects larger than 100K.	*/
 		    /* 	  Even if only smaller objects are allocated,	*/
@@ -170,9 +174,6 @@ typedef char * ptr_t;	/* A generic pointer to which we can add	*/
 #   define MINHINCR 64
 #   define MAXHINCR 4096
 # endif
-
-# define TIME_LIMIT 50	   /* We try to keep pause times from exceeding	 */
-			   /* this by much. In milliseconds.		 */
 
 # define BL_LIMIT GC_black_list_spacing
 			   /* If we need a block of N bytes, and we have */
@@ -230,8 +231,9 @@ void GC_print_callers(struct callinfo info[NFRAMES]);
 #   define GET_TIME(x) { struct rusage rusage; \
 			 getrusage (RUSAGE_SELF,  &rusage); \
 			 x = rusage.ru_utime; }
-#   define MS_TIME_DIFF(a,b) ((double) (a.tv_sec - b.tv_sec) * 1000.0 \
-                               + (double) (a.tv_usec - b.tv_usec) / 1000.0)
+#   define MS_TIME_DIFF(a,b) \
+		((unsigned long)((double) (a.tv_sec - b.tv_sec) * 1000.0 \
+                               + (double) (a.tv_usec - b.tv_usec) / 1000.0))
 #else /* !BSD_TIME */
 # if defined(MSWIN32) || defined(MSWINCE)
 #   include <windows.h>
@@ -242,7 +244,7 @@ void GC_print_callers(struct callinfo info[NFRAMES]);
 # else /* !MSWIN32, !MSWINCE, !BSD_TIME */
 #   include <time.h>
 #   if !defined(__STDC__) && defined(SPARC) && defined(SUNOS4)
-      clock_t clock();	/* Not in time.h, where it belongs	*/
+      clock_t clock(void);	/* Not in time.h, where it belongs	*/
 #   endif
 #   if defined(FREEBSD) && !defined(CLOCKS_PER_SEC)
 #     include <machine/limits.h>
@@ -313,10 +315,9 @@ void GC_print_callers(struct callinfo info[NFRAMES]);
  				   PCR_allSigsBlocked, \
  				   PCR_waitForever);
 # else
-#   if defined(GC_SOLARIS_THREADS) || defined(GC_WIN32_THREADS) \
-	|| defined(GC_PTHREADS)
-      void GC_stop_world();
-      void GC_start_world();
+#   if defined(GC_WIN32_THREADS) || defined(GC_PTHREADS)
+      void GC_stop_world(void);
+      void GC_start_world(void);
 #     define STOP_WORLD() GC_stop_world()
 #     define START_WORLD() GC_start_world()
 #   else
@@ -330,7 +331,11 @@ void GC_print_callers(struct callinfo info[NFRAMES]);
 #   define ABORT(s) PCR_Base_Panic(s)
 # else
 #   ifdef SMALL_CONFIG
-#	define ABORT(msg) abort()
+#	if defined(MSWIN32) || defined(MSWINCE)
+#	    define ABORT(msg) DebugBreak()
+#	else
+#	    define ABORT(msg) abort()
+#	endif
 #   else
 	GC_API void GC_abort(const char * msg);
 #       define ABORT(msg) GC_abort(msg)
@@ -401,7 +406,11 @@ extern GC_warn_proc GC_current_warn_proc;
 #                 define GC_GETSECTBYNAME getsectbynamefromheader_64
 #               endif
 #	else
-#		error define GC_THREAD_STATE_T
+#		if defined(ARM32)
+#		  define GC_THREAD_STATE_T arm_thread_state_t
+#		else
+#		  error define GC_THREAD_STATE_T
+#		endif
 #		define GC_MACH_THREAD_STATE MACHINE_THREAD_STATE
 #		define GC_MACH_THREAD_STATE_COUNT MACHINE_THREAD_STATE_COUNT
 #	endif
@@ -566,8 +575,6 @@ extern GC_warn_proc GC_current_warn_proc;
 # define HBLKDISPL(objptr) (((size_t) (objptr)) & (HBLKSIZE-1))
 
 /* Round up byte allocation requests to integral number of words, etc. */
-# define ROUNDED_UP_WORDS(n) \
-	BYTES_TO_WORDS((n) + (WORDS_TO_BYTES(1) - 1 + EXTRA_BYTES))
 # define ROUNDED_UP_GRANULES(n) \
 	BYTES_TO_GRANULES((n) + (GRANULE_BYTES - 1 + EXTRA_BYTES))
 # if MAX_EXTRA_BYTES == 0
@@ -781,7 +788,7 @@ struct hblk {
 
 # define HBLK_IS_FREE(hdr) (((hdr) -> hb_flags & FREE_BLK) != 0)
 
-# define OBJ_SZ_TO_BLOCKS(sz) divHBLKSZ(sz + HBLKSIZE-1)
+# define OBJ_SZ_TO_BLOCKS(sz) divHBLKSZ((sz) + HBLKSIZE-1)
     /* Size of block (in units of HBLKSIZE) needed to hold objects of	*/
     /* given sz (in bytes).						*/
 
@@ -887,7 +894,7 @@ struct _GC_arrays {
 	/* even though they are not useful to the client.	*/
   word _bytes_finalized;
   	/* Approximate number of bytes in objects (and headers)	*/
-  	/* That became ready for finalization in the last 	*/
+  	/* that became ready for finalization in the last 	*/
   	/* collection.						*/
   word _non_gc_bytes_at_gc;
   	/* Number of explicitly managed bytes of storage 	*/
@@ -936,8 +943,8 @@ struct _GC_arrays {
 # endif
 
     size_t _size_map[MAXOBJBYTES+1];
-    	/* Number of words to allocate for a given allocation request in */
-    	/* bytes.							 */
+    	/* Number of granules to allocate when asked for a certain 	*/
+    	/* number of bytes.						*/
 
 # ifdef STUBBORN_ALLOC
     ptr_t _sobjfreelist[MAXOBJGRANULES+1];
@@ -986,7 +993,7 @@ struct _GC_arrays {
 # endif
 # ifdef LARGE_CONFIG
 #   if CPP_WORDSZ > 32
-#     define MAX_HEAP_SECTS 4096 	/* overflows at roughly 64 GB	   */
+#     define MAX_HEAP_SECTS 8192 	/* overflows at roughly 128 GB	   */
 #   else
 #     define MAX_HEAP_SECTS 768		/* Separately added heap sections. */
 #   endif
@@ -994,7 +1001,11 @@ struct _GC_arrays {
 #   ifdef SMALL_CONFIG
 #     define MAX_HEAP_SECTS 128		/* Roughly 256MB (128*2048*1K)	*/
 #   else
-#     define MAX_HEAP_SECTS 384		/* Roughly 3GB			*/
+#     if CPP_WORDSZ > 32
+#       define MAX_HEAP_SECTS 1024	/* Roughly 8GB			 */
+#     else
+#       define MAX_HEAP_SECTS 512	/* Roughly 4GB			 */
+#     endif
 #   endif
 # endif
   struct HeapSect {
@@ -1013,7 +1024,7 @@ struct _GC_arrays {
 # endif
 # ifdef MSWINCE
     word _heap_lengths[MAX_HEAP_SECTS];
-    		/* Commited lengths of memory regions obtained from kernel. */
+    		/* Committed lengths of memory regions obtained from kernel. */
 # endif
   struct roots _static_roots[MAX_ROOT_SETS];
 # if !defined(MSWIN32) && !defined(MSWINCE)
@@ -1084,6 +1095,8 @@ GC_API GC_FAR struct _GC_arrays GC_arrays;
 #endif
 # ifdef USE_MUNMAP
 #   define GC_unmapped_bytes GC_arrays._unmapped_bytes
+# else
+#   define GC_unmapped_bytes 0
 # endif
 # if defined(MSWIN32) || defined(MSWINCE)
 #   define GC_heap_bases GC_arrays._heap_bases
@@ -1240,12 +1253,6 @@ extern long GC_large_alloc_warn_suppressed;
   extern GC_bool GC_world_stopped;
 #endif
 
-/* Operations */
-# ifndef abs
-#   define abs(x)  ((x) < 0? (-(x)) : (x))
-# endif
-
-
 /*  Marks are in a reserved area in                          */
 /*  each heap block.  Each word has one mark bit associated  */
 /*  with it. Only those corresponding to the beginning of an */
@@ -1334,7 +1341,7 @@ GC_bool GC_mark_some(ptr_t cold_gc_frame);
 void GC_initiate_gc(void);
 				/* initiate collection.			*/
   				/* If the mark state is invalid, this	*/
-  				/* becomes full colleection.  Otherwise */
+  				/* becomes full collection.  Otherwise	*/
   				/* it's partial.			*/
 void GC_push_all(ptr_t bottom, ptr_t top);
 				/* Push everything in a range 		*/
@@ -1373,31 +1380,16 @@ void GC_push_all_eager (ptr_t b, ptr_t t);
   /* stacks are scheduled for scanning in *GC_push_other_roots, which	*/
   /* is thread-package-specific.					*/
 #endif
-void GC_push_current_stack(ptr_t cold_gc_frame, void *context);
-  			/* Push enough of the current stack eagerly to	*/
-  			/* ensure that callee-save registers saved in	*/
-  			/* GC frames are scanned.			*/
-  			/* In the non-threads case, schedule entire	*/
-  			/* stack for scanning.				*/
-			/* The second argument is a pointer to the 	*/
-			/* (possibly null) thread context, for		*/
-			/* (currently hypothetical) more precise	*/
-			/* stack scanning.				*/
 void GC_push_roots(GC_bool all, ptr_t cold_gc_frame);
   			/* Push all or dirty roots.	*/
 extern void (*GC_push_other_roots)(void);
   			/* Push system or application specific roots	*/
   			/* onto the mark stack.  In some environments	*/
   			/* (e.g. threads environments) this is		*/
-  			/* predfined to be non-zero.  A client supplied */
-  			/* replacement should also call the original	*/
-  			/* function.					*/
-extern void GC_push_gc_structures(void);
-			/* Push GC internal roots.  These are normally	*/
-			/* included in the static data segment, and 	*/
-			/* Thus implicitly pushed.  But we must do this	*/
-			/* explicitly if normal root processing is 	*/
-			/* disabled.  Calls the following:		*/
+  			/* predefined to be non-zero.  A client		*/
+  			/* supplied replacement should also call the	*/
+  			/* original function.				*/
+
 	extern void GC_push_finalizer_structures(void);
 	extern void GC_push_stubborn_structures (void);
 #	ifdef THREADS
@@ -1411,7 +1403,6 @@ extern void (*GC_start_call_back) (void);
   			/* Not called if 0.  Called with allocation 	*/
   			/* lock held.					*/
   			/* 0 by default.				*/
-void GC_push_regs_and_stack(ptr_t cold_gc_frame);
 
 void GC_push_regs(void);
 
@@ -1461,9 +1452,6 @@ struct hblk * GC_push_next_marked(struct hblk * h);
   		/* Ditto, but also mark from clean pages.	*/
 struct hblk * GC_push_next_marked_uncollectable(struct hblk * h);
   		/* Ditto, but mark only from uncollectable pages.	*/
-GC_bool GC_stopped_mark(GC_stop_func stop_func);
- 			/* Stop world and mark from all roots	*/
-  			/* and rescuers.			*/
 void GC_clear_hdr_marks(hdr * hhdr);
 				    /* Clear the mark bits in a header */
 void GC_set_hdr_marks(hdr * hhdr);
@@ -1566,8 +1554,7 @@ GC_bool GC_add_map_entry(size_t sz);
   				/* Return FALSE on failure.		*/
 void GC_register_displacement_inner(size_t offset);
   				/* Version of GC_register_displacement	*/
-  				/* that assumes lock is already held	*/
-  				/* and signals are already disabled.	*/
+  				/* that assumes lock is already held.	*/
 
 void GC_initialize_offsets(void);
 				/* Initialize GC_valid_offsets,		*/
@@ -1641,20 +1628,16 @@ ptr_t GC_reclaim_generic(struct hblk * hbp, hdr *hhdr, size_t sz,
 				/* reclaimed bytes to *count.		*/
 GC_bool GC_block_empty(hdr * hhdr);
  				/* Block completely unmarked? 	*/
-GC_bool GC_never_stop_func(void);
+GC_bool GC_CALLBACK GC_never_stop_func(void);
 				/* Returns FALSE.		*/
 GC_bool GC_try_to_collect_inner(GC_stop_func f);
 
 				/* Collect; caller must have acquired	*/
-				/* lock and disabled signals.		*/
-				/* Collection is aborted if f returns	*/
-				/* TRUE.  Returns TRUE if it completes	*/
-				/* successfully.			*/
+				/* lock.  Collection is aborted if f	*/
+				/* returns TRUE.  Returns TRUE if it	*/
+				/* completes successfully.		*/
 # define GC_gcollect_inner() \
 	(void) GC_try_to_collect_inner(GC_never_stop_func)
-void GC_finish_collection(void);
- 				/* Finish collection.  Mark bits are	*/
-  				/* consistent and lock is still held.	*/
 GC_bool GC_collect_or_expand(word needed_blocks, GC_bool ignore_off_page);
   				/* Collect or expand heap in an attempt */
   				/* make the indicated number of free	*/
@@ -1752,7 +1735,7 @@ void GC_notify_or_invoke_finalizers(void);
 			/* this procedure yet this GC cycle.		*/
 
 GC_API void * GC_make_closure(GC_finalization_proc fn, void * data);
-GC_API void GC_debug_invoke_finalizer(void * obj, void * data);
+GC_API void GC_CALLBACK GC_debug_invoke_finalizer(void * obj, void * data);
 			/* Auxiliary fns to make finalization work	*/
 			/* correctly with displaced pointers introduced	*/
 			/* by the debugging allocators.			*/
@@ -1867,7 +1850,7 @@ GC_bool GC_page_was_ever_dirty(struct hblk *h);
   			/* Could the page contain valid heap pointers?	*/
 void GC_remove_protection(struct hblk *h, word nblocks,
 			  GC_bool pointerfree);
-  			/* h is about to be writteni or allocated.  Ensure  */
+  			/* h is about to be written or allocated.  Ensure   */
 			/* that it's not write protected by the virtual	    */
 			/* dirty bit implementation.			    */
 			
@@ -1905,7 +1888,7 @@ void GC_print_finalization_stats(void);
 #endif
 
 /* Make arguments appear live to compiler */
-# ifdef __WATCOMC__
+# if defined(__BORLANDC__) || defined(__WATCOMC__)
     void GC_noop(void*, ...);
 # else
 #   ifdef __DMC__
@@ -1915,7 +1898,7 @@ void GC_print_finalization_stats(void);
 #   endif
 # endif
 
-void GC_noop1(word);
+GC_API void GC_CALL GC_noop1(word);
 
 /* Logging and diagnostic output: 	*/
 GC_API void GC_printf (const char * format, ...);
@@ -1952,10 +1935,10 @@ void GC_err_puts(const char *s);
    This code works correctly (ugliness is to avoid "unused var" warnings) */
 # define GC_STATIC_ASSERT(expr) do { if (0) { char j[(expr)? 1 : -1]; j[0]='\0'; j[0]=j[0]; } } while(0)
 #else
-# define GC_STATIC_ASSERT(expr) sizeof(char[(expr)? 1 : -1])
+# define GC_STATIC_ASSERT(expr) (void)sizeof(char[(expr)? 1 : -1])
 #endif
 
-# if defined(PARALLEL_MARK) || defined(THREAD_LOCAL_ALLOC)
+# if defined(PARALLEL_MARK)
     /* We need additional synchronization facilities from the thread	*/
     /* support.  We believe these are less performance critical		*/
     /* than the main garbage collector lock; standard pthreads-based	*/
@@ -1972,17 +1955,15 @@ void GC_err_puts(const char *s);
     /* GC_notify_all_builder() is called when GC_fl_builder_count	*/
     /* reaches 0.							*/
 
-     extern void GC_acquire_mark_lock();
-     extern void GC_release_mark_lock();
-     extern void GC_notify_all_builder();
-     /* extern void GC_wait_builder(); */
-     extern void GC_wait_for_reclaim();
+     void GC_acquire_mark_lock(void);
+     void GC_release_mark_lock(void);
+     void GC_notify_all_builder(void);
+     void GC_wait_for_reclaim(void);
 
      extern word GC_fl_builder_count;	/* Protected by mark lock.	*/
-# endif /* PARALLEL_MARK || THREAD_LOCAL_ALLOC */
-# ifdef PARALLEL_MARK
-     extern void GC_notify_all_marker();
-     extern void GC_wait_marker();
+
+     void GC_notify_all_marker(void);
+     void GC_wait_marker(void);
      extern word GC_mark_no;		/* Protected by mark lock.	*/
 
      extern void GC_help_marker(word my_mark_no);
@@ -2024,7 +2005,7 @@ void GC_err_puts(const char *s);
 /* were possible, and a couple of routines to facilitate	*/
 /* catching accesses to bad addresses when that's		*/
 /* possible/needed.						*/
-#ifdef UNIX_LIKE
+#if defined(UNIX_LIKE) || (defined(NEED_FIND_LIMIT) && defined(CYGWIN32))
 # include <setjmp.h>
 # if defined(SUNOS5SIGS) && !defined(FREEBSD)
 #  include <sys/siginfo.h>

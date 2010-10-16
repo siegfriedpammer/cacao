@@ -10,9 +10,6 @@
  * provided the above notices are retained, and a notice that the code was
  * modified is included with the above copyright notice.
  */
-
-#include "config.h"
-
 #include "private/gc_priv.h"
 
 # if defined(THREAD_LOCAL_ALLOC)
@@ -43,8 +40,9 @@ static void return_single_freelist(void *fl, void **gfl)
     } else {
       GC_ASSERT(GC_size(fl) == GC_size(*gfl));
       /* Concatenate: */
-	for (qptr = &(obj_link(fl)), q = *qptr;
-	     (word)q >= HBLKSIZE; qptr = &(obj_link(q)), q = *qptr);
+	qptr = &(obj_link(fl));
+	while ((word)(q = *qptr) >= HBLKSIZE)
+	  qptr = &(obj_link(q));
 	GC_ASSERT(0 == q);
 	*qptr = *gfl;
 	*gfl = fl;
@@ -91,18 +89,18 @@ void GC_init_thread_local(GC_tlfs p)
 	ABORT("Failed to set thread specific allocation pointers");
     }
     for (i = 1; i < TINY_FREELISTS; ++i) {
-	p -> ptrfree_freelists[i] = (void *)1;
-	p -> normal_freelists[i] = (void *)1;
+	p -> ptrfree_freelists[i] = (void *)(word)1;
+	p -> normal_freelists[i] = (void *)(word)1;
 #	ifdef GC_GCJ_SUPPORT
-	  p -> gcj_freelists[i] = (void *)1;
+	  p -> gcj_freelists[i] = (void *)(word)1;
 #	endif
     }   
     /* Set up the size 0 free lists.	*/
     /* We now handle most of them like regular free lists, to ensure	*/
     /* That explicit deallocation works.  However, allocation of a	*/
     /* size 0 "gcj" object is always an error.				*/
-    p -> ptrfree_freelists[0] = (void *)1;
-    p -> normal_freelists[0] = (void *)1;
+    p -> ptrfree_freelists[0] = (void *)(word)1;
+    p -> normal_freelists[0] = (void *)(word)1;
 #   ifdef GC_GCJ_SUPPORT
         p -> gcj_freelists[0] = ERROR_FL;
 #   endif
@@ -134,10 +132,10 @@ void GC_destroy_thread_local(GC_tlfs p)
 #endif
 
 #if defined(GC_ASSERTIONS) && defined(GC_WIN32_THREADS)
-  extern char * GC_lookup_thread(int id);
+  void * /*GC_thread*/ GC_lookup_thread_inner(unsigned /*DWORD*/ thread_id);
 #endif
 
-void * GC_malloc(size_t bytes)
+GC_API void * GC_CALL GC_malloc(size_t bytes)
 {
     size_t granules = ROUNDED_UP_GRANULES(bytes);
     void *tsd;
@@ -179,12 +177,13 @@ void * GC_malloc(size_t bytes)
     GC_FAST_MALLOC_GRANS(result, granules, tiny_fl, DIRECT_GRANULES,
 		         NORMAL, GC_core_malloc(bytes), obj_link(result)=0);
 #   ifdef LOG_ALLOCS
-      GC_err_printf("GC_malloc(%d) = %p : %d\n", bytes, result, GC_gc_no);
+      GC_err_printf("GC_malloc(%u) = %p : %u\n",
+			(unsigned)bytes, result, (unsigned)GC_gc_no);
 #   endif
     return result;
 }
 
-void * GC_malloc_atomic(size_t bytes)
+GC_API void * GC_CALL GC_malloc_atomic(size_t bytes)
 {
     size_t granules = ROUNDED_UP_GRANULES(bytes);
     void *tsd;
@@ -209,8 +208,8 @@ void * GC_malloc_atomic(size_t bytes)
 #   endif
     GC_ASSERT(GC_is_initialized);
     tiny_fl = ((GC_tlfs)tsd) -> ptrfree_freelists;
-    GC_FAST_MALLOC_GRANS(result, granules, tiny_fl, DIRECT_GRANULES,
-		         PTRFREE, GC_core_malloc_atomic(bytes), 0/* no init */);
+    GC_FAST_MALLOC_GRANS(result, granules, tiny_fl, DIRECT_GRANULES, PTRFREE,
+			 GC_core_malloc_atomic(bytes), (void)0 /* no init */);
     return result;
 }
 
@@ -228,8 +227,8 @@ extern int GC_gcj_kind;
 /* fundamental issue is that we may end up marking a free list, which	*/
 /* has freelist links instead of "vtable" pointers.  That is usually	*/
 /* OK, since the next object on the free list will be cleared, and	*/
-/* will thus be interpreted as containg a zero descriptor.  That's fine	*/
-/* if the object has not yet been initialized.  But there are		*/
+/* will thus be interpreted as containing a zero descriptor.  That's	*/
+/* fine if the object has not yet been initialized.  But there are	*/
 /* interesting potential races.						*/
 /* In the case of incremental collection, this seems hopeless, since	*/
 /* the marker may run asynchronously, and may pick up the pointer to  	*/
@@ -244,8 +243,8 @@ extern int GC_gcj_kind;
 /* incremental GC should be enabled before we fork a second thread.	*/
 /* Unlike the other thread local allocation calls, we assume that the	*/
 /* collector has been explicitly initialized.				*/
-void * GC_gcj_malloc(size_t bytes,
-		     void * ptr_to_struct_containing_descr)
+GC_API void * GC_CALL GC_gcj_malloc(size_t bytes,
+			    void * ptr_to_struct_containing_descr)
 {
   if (GC_EXPECT(GC_incremental, 0)) {
     return GC_core_gcj_malloc(bytes, ptr_to_struct_containing_descr);
@@ -287,21 +286,23 @@ void * GC_gcj_malloc(size_t bytes,
 
 /* The thread support layer must arrange to mark thread-local	*/
 /* free lists explicitly, since the link field is often 	*/
-/* invisible to the marker.  It knows hoe to find all threads;	*/
+/* invisible to the marker.  It knows how to find all threads;	*/
 /* we take care of an individual thread freelist structure.	*/
 void GC_mark_thread_local_fls_for(GC_tlfs p)
 {
     ptr_t q;
     int j;
     
-    for (j = 1; j < TINY_FREELISTS; ++j) {
+    for (j = 0; j < TINY_FREELISTS; ++j) {
       q = p -> ptrfree_freelists[j];
       if ((word)q > HBLKSIZE) GC_set_fl_marks(q);
       q = p -> normal_freelists[j];
       if ((word)q > HBLKSIZE) GC_set_fl_marks(q);
 #     ifdef GC_GCJ_SUPPORT
-        q = p -> gcj_freelists[j];
-        if ((word)q > HBLKSIZE) GC_set_fl_marks(q);
+	if (j > 0) {
+          q = p -> gcj_freelists[j];
+          if ((word)q > HBLKSIZE) GC_set_fl_marks(q);
+	}
 #     endif /* GC_GCJ_SUPPORT */
     }
 }
@@ -326,9 +327,5 @@ void GC_mark_thread_local_fls_for(GC_tlfs p)
     }
 #endif /* GC_ASSERTIONS */
 
-# else  /* !THREAD_LOCAL_ALLOC  */
-
-#   define GC_destroy_thread_local(t)
-
-# endif /* !THREAD_LOCAL_ALLOC */
+# endif /* THREAD_LOCAL_ALLOC */
 

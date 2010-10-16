@@ -9,7 +9,6 @@ AM_CONFIG_HEADER(src/config.h)
 
 # Checks for programs.
 AC_PROG_CC
-AM_PROG_CC_C_O
 AM_PROG_AS
 
 # Checks for functions.

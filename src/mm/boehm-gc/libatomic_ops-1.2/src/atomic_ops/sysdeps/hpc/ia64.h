@@ -22,7 +22,7 @@
 
 /*
  * This file specifies Itanimum primitives for use with the HP compiler
- * unde HP/UX.  We use intrinsics instead of the inline assembly code in the
+ * under HP/UX.  We use intrinsics instead of the inline assembly code in the
  * gcc file.
  */
 
@@ -43,7 +43,7 @@
 #endif
 
 AO_INLINE void
-AO_nop_full()
+AO_nop_full(void)
 {
   _Asm_mf();
 }

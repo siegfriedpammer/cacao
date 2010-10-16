@@ -12,7 +12,6 @@
  * provided the above notices are retained, and a notice that the code was
  * modified is included with the above copyright notice.
  */
-#include "config.h"
  
 #include <stdio.h>
 #include <string.h>
@@ -24,7 +23,7 @@ void GC_extend_size_map(size_t);	/* in misc.c. */
 
 /* Allocate reclaim list for kind:	*/
 /* Return TRUE on success		*/
-GC_bool GC_alloc_reclaim_list(struct obj_kind *kind)
+STATIC GC_bool GC_alloc_reclaim_list(struct obj_kind *kind)
 {
     struct hblk ** result = (struct hblk **)
     		GC_scratch_alloc((MAXOBJGRANULES+1) * sizeof(struct hblk *));
@@ -160,12 +159,12 @@ void * GC_generic_malloc(size_t lb, int k)
         result = GC_generic_malloc_inner((word)lb, k);
 	UNLOCK();
     } else {
-	size_t lw;
+	size_t lg;
 	size_t lb_rounded;
 	word n_blocks;
 	GC_bool init;
-	lw = ROUNDED_UP_WORDS(lb);
-	lb_rounded = WORDS_TO_BYTES(lw);
+	lg = ROUNDED_UP_GRANULES(lb);
+	lb_rounded = GRANULES_TO_BYTES(lg);
 	n_blocks = OBJ_SZ_TO_BLOCKS(lb_rounded);
 	init = GC_obj_kinds[k].ok_init;
 	LOCK();
@@ -179,8 +178,8 @@ void * GC_generic_malloc(size_t lb, int k)
 	      /* before we release the lock.			      */
 	        ((word *)result)[0] = 0;
 	        ((word *)result)[1] = 0;
-	        ((word *)result)[lw-1] = 0;
-	        ((word *)result)[lw-2] = 0;
+	        ((word *)result)[GRANULES_TO_WORDS(lg)-1] = 0;
+	        ((word *)result)[GRANULES_TO_WORDS(lg)-2] = 0;
 #	    endif
 	  }
 	}
@@ -207,7 +206,7 @@ void * GC_generic_malloc(size_t lb, int k)
 #ifdef THREAD_LOCAL_ALLOC
   void * GC_core_malloc_atomic(size_t lb)
 #else
-  void * GC_malloc_atomic(size_t lb)
+  GC_API void * GC_CALL GC_malloc_atomic(size_t lb)
 #endif
 {
     void *op;
@@ -234,12 +233,7 @@ void * GC_generic_malloc(size_t lb, int k)
 
 /* provide a version of strdup() that uses the collector to allocate the
    copy of the string */
-# ifdef __STDC__
-    char *GC_strdup(const char *s)
-# else
-    char *GC_strdup(s)
-    char *s;
-#endif
+GC_API char * GC_CALL GC_strdup(const char *s)
 {
   char *copy;
 
@@ -256,7 +250,7 @@ void * GC_generic_malloc(size_t lb, int k)
 #ifdef THREAD_LOCAL_ALLOC
   void * GC_core_malloc(size_t lb)
 #else
-  void * GC_malloc(size_t lb)
+  GC_API void * GC_CALL GC_malloc(size_t lb)
 #endif
 {
     void *op;
@@ -274,10 +268,10 @@ void * GC_generic_malloc(size_t lb, int k)
         }
         /* See above comment on signals.	*/
 	GC_ASSERT(0 == obj_link(op)
-		  || (word)obj_link(op)
+		  || ((word)obj_link(op)
 		  	<= (word)GC_greatest_plausible_heap_addr
 		     && (word)obj_link(op)
-		     	>= (word)GC_least_plausible_heap_addr);
+		     	>= (word)GC_least_plausible_heap_addr));
         *opp = obj_link(op);
         obj_link(op) = 0;
         GC_bytes_allocd += GRANULES_TO_BYTES(lg);
@@ -328,7 +322,7 @@ void * malloc(size_t lb)
   extern GC_bool GC_text_mapping(char *nm, ptr_t *startp, ptr_t *endp);
   	/* From os_dep.c */
 
-  void GC_init_lib_bounds(void)
+  STATIC void GC_init_lib_bounds(void)
   {
     if (GC_libpthread_start != 0) return;
     if (!GC_text_mapping("libpthread-",
@@ -392,7 +386,7 @@ void * calloc(size_t n, size_t lb)
 # endif /* REDIRECT_MALLOC */
 
 /* Explicitly deallocate an object p.				*/
-void GC_free(void * p)
+GC_API void GC_CALL GC_free(void * p)
 {
     struct hblk *h;
     hdr *hhdr;
@@ -406,12 +400,10 @@ void GC_free(void * p)
     if (p == 0) return;
     	/* Required by ANSI.  It's not my fault ...	*/
 #   ifdef LOG_ALLOCS
-      GC_err_printf("GC_free(%p): %d\n", p, GC_gc_no);
+      GC_err_printf("GC_free(%p): %lu\n", p, (unsigned long)GC_gc_no);
 #   endif
     h = HBLKPTR(p);
     hhdr = HDR(h);
-    sz = hhdr -> hb_sz;
-    ngranules = BYTES_TO_GRANULES(sz);
 #   if defined(REDIRECT_MALLOC) && \
 	(defined(GC_SOLARIS_THREADS) || defined(GC_LINUX_THREADS) \
 	 || defined(MSWIN32))
@@ -422,6 +414,8 @@ void GC_free(void * p)
 	if (0 == hhdr) return;
 #   endif
     GC_ASSERT(GC_base(p) == p);
+    sz = hhdr -> hb_sz;
+    ngranules = BYTES_TO_GRANULES(sz);
     knd = hhdr -> hb_obj_kind;
     ok = &GC_obj_kinds[knd];
     if (EXPECT((ngranules <= MAXOBJGRANULES), 1)) {

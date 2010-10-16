@@ -29,7 +29,7 @@
 # ifdef THREADS
 #  include <atomic_ops.h>
 
-   void GC_noop1(word);
+   GC_API void GC_CALL GC_noop1(word);
 #  ifdef PCR
 #    include <base/PCR_Base.h>
 #    include <th/PCR_Th.h>
@@ -187,7 +187,7 @@
 #   define I_HOLD_LOCK() TRUE
 #   define I_DONT_HOLD_LOCK() TRUE
        		/* Used only in positive assertions or to test whether	*/
-       		/* we still need to acaquire the lock.	TRUE works in	*/
+       		/* we still need to acquire the lock.  TRUE works in	*/
        		/* either case.						*/
 # endif /* !THREADS */
 

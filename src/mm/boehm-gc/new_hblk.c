@@ -18,7 +18,6 @@
  */
 /* Boehm, May 19, 1994 2:09 pm PDT */
 
-#include "config.h"
 
 # include <stdio.h>
 # include "private/gc_priv.h"
@@ -29,7 +28,7 @@
  * Set the last link to
  * be ofl.  Return a pointer tpo the first free list entry.
  */
-ptr_t GC_build_fl_clear2(struct hblk *h, ptr_t ofl)
+STATIC ptr_t GC_build_fl_clear2(struct hblk *h, ptr_t ofl)
 {
     word * p = (word *)(h -> hb_body);
     word * lim = (word *)(h + 1);
@@ -49,7 +48,7 @@ ptr_t GC_build_fl_clear2(struct hblk *h, ptr_t ofl)
 }
 
 /* The same for size 4 cleared objects */
-ptr_t GC_build_fl_clear4(struct hblk *h, ptr_t ofl)
+STATIC ptr_t GC_build_fl_clear4(struct hblk *h, ptr_t ofl)
 {
     word * p = (word *)(h -> hb_body);
     word * lim = (word *)(h + 1);
@@ -69,7 +68,7 @@ ptr_t GC_build_fl_clear4(struct hblk *h, ptr_t ofl)
 }
 
 /* The same for size 2 uncleared objects */
-ptr_t GC_build_fl2(struct hblk *h, ptr_t ofl)
+STATIC ptr_t GC_build_fl2(struct hblk *h, ptr_t ofl)
 {
     word * p = (word *)(h -> hb_body);
     word * lim = (word *)(h + 1);
@@ -85,7 +84,7 @@ ptr_t GC_build_fl2(struct hblk *h, ptr_t ofl)
 }
 
 /* The same for size 4 uncleared objects */
-ptr_t GC_build_fl4(struct hblk *h, ptr_t ofl)
+STATIC ptr_t GC_build_fl4(struct hblk *h, ptr_t ofl)
 {
     word * p = (word *)(h -> hb_body);
     word * lim = (word *)(h + 1);
@@ -182,7 +181,6 @@ void GC_new_hblk(size_t gran, int kind)
   struct hblk *h;	/* the new heap block			*/
   GC_bool clear = GC_obj_kinds[kind].ok_init;
 
-  /* Ignore gcc "no effect" warning on the following: */
   GC_STATIC_ASSERT((sizeof (struct hblk)) == HBLKSIZE);
   
   if (GC_debugging_started) clear = TRUE;

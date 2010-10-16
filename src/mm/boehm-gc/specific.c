@@ -11,8 +11,6 @@
  * modified is included with the above copyright notice.
  */
 
-#include "config.h"
-
 #include "private/gc_priv.h"	/* For configuration, pthreads.h. */
 #include "private/thread_local_alloc.h"
 				/* To determine type of tsd impl. */

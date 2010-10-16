@@ -1,5 +1,3 @@
-#include "config.h"
-
 #include "private/pthread_support.h"
 
 /* This probably needs more porting work to ppc64. */
@@ -74,8 +72,11 @@ unsigned long FindTopOfStack(unsigned long stack_start)
   return (unsigned long)frame;
 }
 
+void GC_thr_init(void);
+
 #ifdef DARWIN_DONT_PARSE_STACK
-void GC_push_all_stacks()
+
+void GC_push_all_stacks(void)
 {
   int i;
   kern_return_t r;
@@ -176,8 +177,30 @@ void GC_push_all_stacks()
 	  GC_push_one(state . THREAD_FLD (r29));
 	  GC_push_one(state . THREAD_FLD (r30));
 	  GC_push_one(state . THREAD_FLD (r31));
+
+#	elif defined(ARM32)
+	  lo = (void*)state.__sp;
+
+	  GC_push_one(state.__r[0]);
+	  GC_push_one(state.__r[1]);
+	  GC_push_one(state.__r[2]);
+	  GC_push_one(state.__r[3]);
+	  GC_push_one(state.__r[4]);
+	  GC_push_one(state.__r[5]);
+	  GC_push_one(state.__r[6]);
+	  GC_push_one(state.__r[7]);
+	  GC_push_one(state.__r[8]);
+	  GC_push_one(state.__r[9]);
+	  GC_push_one(state.__r[10]);
+	  GC_push_one(state.__r[11]);
+	  GC_push_one(state.__r[12]);
+	  /* GC_push_one(state.__sp); */
+	  GC_push_one(state.__lr);
+	  GC_push_one(state.__pc);
+	  GC_push_one(state.__cpsr);
+
 #	else
-#	  error FIXME for non-x86 || ppc architectures
+#	  error FIXME for non-x86 || ppc || arm architectures
 #	endif
       } /* p != me */
       if(p->flags & MAIN_THREAD)
@@ -196,7 +219,7 @@ void GC_push_all_stacks()
 
 #else /* !DARWIN_DONT_PARSE_STACK; Use FindTopOfStack() */
 
-void GC_push_all_stacks()
+void GC_push_all_stacks(void)
 {
   unsigned int i;
   task_t my_task;
@@ -325,8 +348,38 @@ void GC_push_all_stacks()
 	GC_push_one(info . THREAD_FLD (fs));
 	GC_push_one(info . THREAD_FLD (gs));
 
+#      elif defined(ARM32)
+	GC_THREAD_STATE_T info;
+	mach_msg_type_number_t outCount = THREAD_STATE_MAX;
+	r = thread_get_state(thread, GC_MACH_THREAD_STATE, (natural_t *)&info,
+			     &outCount);
+	if(r != KERN_SUCCESS)
+	  ABORT("task_get_state failed");
+
+	hi = (ptr_t)FindTopOfStack(info . __sp);
+
+	lo = (void*)info.__sp;
+
+	GC_push_one(info.__r[0]);
+	GC_push_one(info.__r[1]);
+	GC_push_one(info.__r[2]);
+	GC_push_one(info.__r[3]);
+	GC_push_one(info.__r[4]);
+	GC_push_one(info.__r[5]);
+	GC_push_one(info.__r[6]);
+	GC_push_one(info.__r[7]);
+	GC_push_one(info.__r[8]);
+	GC_push_one(info.__r[9]);
+	GC_push_one(info.__r[10]);
+	GC_push_one(info.__r[11]);
+	GC_push_one(info.__r[12]);
+	/* GC_push_one(info.__sp); */
+	GC_push_one(info.__lr);
+	GC_push_one(info.__pc);
+	GC_push_one(info.__cpsr);
+
 #     else
-#	error FIXME for non-x86 || ppc architectures
+#	error FIXME for non-x86 || ppc || arm architectures
 #     endif
       }
 #     if DEBUG_THREADS
@@ -348,7 +401,7 @@ static int GC_use_mach_handler_thread = 0;
 static struct GC_mach_thread GC_mach_threads[THREAD_TABLE_SZ];
 static int GC_mach_threads_count;
 
-void GC_stop_init()
+void GC_stop_init(void)
 {
   int i;
 
@@ -360,8 +413,8 @@ void GC_stop_init()
 }
 
 /* returns true if there's a thread in act_list that wasn't in old_list */
-int GC_suspend_thread_list(thread_act_array_t act_list, int count,
-			   thread_act_array_t old_list, int old_count)
+STATIC int GC_suspend_thread_list(thread_act_array_t act_list, int count,
+				  thread_act_array_t old_list, int old_count)
 {
   mach_port_t my_thread = mach_thread_self();
   int i, j;
@@ -443,7 +496,7 @@ int GC_suspend_thread_list(thread_act_array_t act_list, int count,
 
 
 /* Caller holds allocation lock.	*/
-void GC_stop_world()
+void GC_stop_world(void)
 {
     unsigned int i, changes;
     task_t my_task = current_task();
@@ -465,9 +518,11 @@ void GC_stop_world()
     /* required to acquire and release the GC lock before it starts,	*/
     /* and we have the lock.						*/
 #   ifdef PARALLEL_MARK
-      GC_acquire_mark_lock();
-      GC_ASSERT(GC_fl_builder_count == 0);
-      /* We should have previously waited for it to become zero. */
+      if (GC_parallel) {
+	GC_acquire_mark_lock();
+	GC_ASSERT(GC_fl_builder_count == 0);
+	/* We should have previously waited for it to become zero. */
+      }
 #   endif /* PARALLEL_MARK */
 
     /* Loop stopping threads until you have gone over the whole list
@@ -518,7 +573,8 @@ void GC_stop_world()
 #   endif
 
 #   ifdef PARALLEL_MARK
-      GC_release_mark_lock();
+      if (GC_parallel)
+	GC_release_mark_lock();
 #   endif
 #   if DEBUG_THREADS
       GC_printf("World stopped from 0x%lx\n", (unsigned long)my_thread);
@@ -529,7 +585,7 @@ void GC_stop_world()
 
 /* Caller holds allocation lock, and has held it continuously since	*/
 /* the world stopped.							*/
-void GC_start_world()
+void GC_start_world(void)
 {
   task_t my_task = current_task();
   mach_port_t my_thread = mach_thread_self();

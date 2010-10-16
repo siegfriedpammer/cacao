@@ -21,12 +21,12 @@
  */ 
 
 /*
- * Definitions for architecturs on which loads and stores of unsigned int are
- * atomic fo all legal alignments.
+ * Definitions for architectures on which loads and stores of unsigned int are
+ * atomic for all legal alignments.
  */
 
 AO_INLINE unsigned int
-AO_int_load(volatile unsigned int *addr)
+AO_int_load(const volatile unsigned int *addr)
 {
   assert(((size_t)addr & (sizeof(unsigned int) - 1)) == 0);
   /* Cast away the volatile for architectures like IA64 where	*/

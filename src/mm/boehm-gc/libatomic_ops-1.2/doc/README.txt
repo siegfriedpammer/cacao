@@ -80,7 +80,7 @@ are also specified:
 
 void nop()
 	No atomic operation.  The barrier may still be useful.
-AO_t load(volatile AO_t * addr)
+AO_t load(const volatile AO_t * addr)
 	Atomic load of *addr.
 void store(volatile AO_t * addr, AO_t new_val)
 	Atomically store new_val to *addr.
@@ -230,15 +230,11 @@ Platform notes:
 
 All X86: We quietly assume 486 or better.
 
-Windows:
-Currently AO_REQUIRE_CAS is not supported.
-
 Microsoft compilers:
 Define AO_ASSUME_WINDOWS98 to get access to hardware compare-and-swap
 functionality.  This relies on the InterlockedCompareExchange() function
 which was apparently not supported in Windows95.  (There may be a better
-way to get access to this.)  Currently only X86(32 bit) is supported for
-Windows.
+way to get access to this.)
 
 Gcc on x86:
 Define AO_USE_PENTIUM4_INSTRS to use the Pentium 4 mfence instruction.

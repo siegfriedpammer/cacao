@@ -21,12 +21,12 @@
  */ 
 
 /*
- * Definitions for architecturs on which loads and stores of unsigned short are
- * atomic fo all legal alignments.
+ * Definitions for architectures on which loads and stores of unsigned short
+ * are atomic for all legal alignments.
  */
 
 AO_INLINE unsigned short
-AO_short_load(volatile unsigned short *addr)
+AO_short_load(const volatile unsigned short *addr)
 {
   assert(((size_t)addr & (sizeof(unsigned short) - 1)) == 0);
   /* Cast away the volatile for architectures like IA64 where	*/

@@ -11,9 +11,6 @@
  * provided the above notices are retained, and a notice that the code was
  * modified is included with the above copyright notice.
  */
-
-#include "config.h"
-
 # include <stdio.h>
 # include "private/gc_priv.h"
 
@@ -49,14 +46,10 @@ void GC_print_static_roots(void)
     size_t total = 0;
     
     for (i = 0; i < n_root_sets; i++) {
-        GC_printf("From %p to %p ",
+        GC_printf("From %p to %p%s\n",
         	  GC_static_roots[i].r_start,
-        	  GC_static_roots[i].r_end);
-        if (GC_static_roots[i].r_tmp) {
-            GC_printf(" (temporary)\n");
-        } else {
-            GC_printf("\n");
-        }
+        	  GC_static_roots[i].r_end,
+		  GC_static_roots[i].r_tmp ? " (temporary)" : "");
         total += GC_static_roots[i].r_end - GC_static_roots[i].r_start;
     }
     GC_printf("Total size: %ld\n", (unsigned long) total);
@@ -138,10 +131,6 @@ static void add_roots_to_index(struct roots *p)
     GC_root_index[h] = p;
 }
 
-# else /* MSWIN32 || MSWINCE */
-
-#   define add_roots_to_index(p)
-
 # endif
 
 
@@ -149,7 +138,7 @@ static void add_roots_to_index(struct roots *p)
 
 word GC_root_size = 0;
 
-void GC_add_roots(void *b, void *e)
+GC_API void GC_CALL GC_add_roots(void *b, void *e)
 {
     DCL_LOCK_STATE;
     
@@ -161,11 +150,11 @@ void GC_add_roots(void *b, void *e)
 
 
 /* Add [b,e) to the root set.  Adding the same interval a second time	*/
-/* is a moderately fast noop, and hence benign.  We do not handle	*/
+/* is a moderately fast no-op, and hence benign.  We do not handle	*/
 /* different but overlapping intervals efficiently.  (We do handle	*/
 /* them correctly.)							*/
 /* Tmp specifies that the interval may be deleted before 		*/
-/* reregistering dynamic libraries.					*/ 
+/* re-registering dynamic libraries.					*/ 
 void GC_add_roots_inner(ptr_t b, ptr_t e, GC_bool tmp)
 {
     struct roots * old;
@@ -179,7 +168,7 @@ void GC_add_roots_inner(ptr_t b, ptr_t e, GC_bool tmp)
       /* takes to scan the roots.				*/
       {
         register int i;
-        
+        old = 0; /* initialized to prevent warning. */
         for (i = 0; i < n_root_sets; i++) {
             old = GC_static_roots + i;
             if (b <= old -> r_end && e >= old -> r_start) {
@@ -241,15 +230,15 @@ void GC_add_roots_inner(ptr_t b, ptr_t e, GC_bool tmp)
     GC_static_roots[n_root_sets].r_tmp = tmp;
 #   if !defined(MSWIN32) && !defined(MSWINCE)
       GC_static_roots[n_root_sets].r_next = 0;
+      add_roots_to_index(GC_static_roots + n_root_sets);
 #   endif
-    add_roots_to_index(GC_static_roots + n_root_sets);
     GC_root_size += e - b;
     n_root_sets++;
 }
 
 static GC_bool roots_were_cleared = FALSE;
 
-void GC_clear_roots (void)
+GC_API void GC_CALL GC_clear_roots (void)
 {
     DCL_LOCK_STATE;
     
@@ -289,8 +278,10 @@ static void GC_rebuild_root_index(void)
 }
 #endif
 
+#if defined(DYNAMIC_LOADING) || defined(MSWIN32) || defined(MSWINCE) \
+     || defined(PCR)
 /* Internal use only; lock held.	*/
-void GC_remove_tmp_roots(void)
+STATIC void GC_remove_tmp_roots(void)
 {
     int i;
     
@@ -301,13 +292,14 @@ void GC_remove_tmp_roots(void)
     	    i++;
 	}
     }
-    #if !defined(MSWIN32) && !defined(MSWINCE)
-    GC_rebuild_root_index();
-    #endif
+#   if !defined(MSWIN32) && !defined(MSWINCE)
+      GC_rebuild_root_index();
+#   endif
 }
+#endif
 
 #if !defined(MSWIN32) && !defined(MSWINCE)
-void GC_remove_roots(void *b, void *e)
+GC_API void GC_CALL GC_remove_roots(void *b, void *e)
 {
     DCL_LOCK_STATE;
     
@@ -357,18 +349,13 @@ GC_bool GC_is_tmp_root(ptr_t p)
 
 ptr_t GC_approx_sp(void)
 {
-    volatile word dummy;
-
-    dummy = 42;	/* Force stack to grow if necessary.	Otherwise the	*/
+    volatile word sp;
+    sp = (word)&sp;
+		/* Also force stack to grow if necessary. Otherwise the	*/
     		/* later accesses might cause the kernel to think we're	*/
     		/* doing something wrong.				*/
-#   ifdef _MSC_VER
-#     pragma warning(disable:4172)
-#   endif
-    return((ptr_t)(&dummy));
-#   ifdef _MSC_VER
-#     pragma warning(default:4172)
-#   endif
+
+    return((ptr_t)sp);
 }
 
 /*
@@ -385,12 +372,12 @@ struct exclusion GC_excl_table[MAX_EXCLUSIONS];
 					-- address order.
 */
 
-size_t GC_excl_table_entries = 0;	/* Number of entries in use.	  */
+STATIC size_t GC_excl_table_entries = 0;/* Number of entries in use.	  */
 
 /* Return the first exclusion range that includes an address >= start_addr */
 /* Assumes the exclusion table contains at least one entry (namely the	   */
 /* GC data structures).							   */
-struct exclusion * GC_next_exclusion(ptr_t start_addr)
+STATIC struct exclusion * GC_next_exclusion(ptr_t start_addr)
 {
     size_t low = 0;
     size_t high = GC_excl_table_entries - 1;
@@ -409,7 +396,7 @@ struct exclusion * GC_next_exclusion(ptr_t start_addr)
     return GC_excl_table + low;
 }
 
-void GC_exclude_static_roots(void *start, void *finish)
+GC_API void GC_CALL GC_exclude_static_roots(void *start, void *finish)
 {
     struct exclusion * next;
     size_t next_index, i;
@@ -443,7 +430,9 @@ void GC_exclude_static_roots(void *start, void *finish)
 }
 
 /* Invoke push_conditional on ranges that are not excluded. */
-void GC_push_conditional_with_exclusions(ptr_t bottom, ptr_t top, GC_bool all)
+/*ARGSUSED*/
+STATIC void GC_push_conditional_with_exclusions(ptr_t bottom, ptr_t top,
+						GC_bool all)
 {
     struct exclusion * next;
     ptr_t excl_start;
@@ -459,6 +448,15 @@ void GC_push_conditional_with_exclusions(ptr_t bottom, ptr_t top, GC_bool all)
     }
 }
 
+  			/* Push enough of the current stack eagerly to	*/
+  			/* ensure that callee-save registers saved in	*/
+  			/* GC frames are scanned.			*/
+  			/* In the non-threads case, schedule entire	*/
+  			/* stack for scanning.				*/
+			/* The second argument is a pointer to the 	*/
+			/* (possibly null) thread context, for		*/
+			/* (currently hypothetical) more precise	*/
+			/* stack scanning.				*/
 /*
  * In the absence of threads, push the stack contents.
  * In the presence of threads, push enough of the current stack
@@ -466,7 +464,8 @@ void GC_push_conditional_with_exclusions(ptr_t bottom, ptr_t top, GC_bool all)
  * seen.
  * FIXME: Merge with per-thread stuff.
  */
-void GC_push_current_stack(ptr_t cold_gc_frame, void * context)
+/*ARGSUSED*/
+STATIC void GC_push_current_stack(ptr_t cold_gc_frame, void * context)
 {
 #   if defined(THREADS)
 	if (0 == cold_gc_frame) return;
@@ -516,11 +515,16 @@ void GC_push_current_stack(ptr_t cold_gc_frame, void * context)
 
 void (*GC_push_typed_structures) (void) = NULL;
 
+			/* Push GC internal roots.  These are normally	*/
+			/* included in the static data segment, and 	*/
+			/* Thus implicitly pushed.  But we must do this	*/
+			/* explicitly if normal root processing is 	*/
+			/* disabled.					*/
 /*
  * Push GC internal roots.  Only called if there is some reason to believe
  * these would not otherwise get registered.
  */
-void GC_push_gc_structures(void)
+STATIC void GC_push_gc_structures(void)
 {
     GC_push_finalizer_structures();
 #   if defined(THREADS)
@@ -545,6 +549,11 @@ void GC_cond_register_dynamic_libraries(void)
 # endif
 }
 
+STATIC void GC_push_regs_and_stack(ptr_t cold_gc_frame)
+{
+    GC_with_callee_saves_pushed(GC_push_current_stack, cold_gc_frame);
+}
+
 /*
  * Call the mark routines (GC_tl_push for a single pointer, GC_push_conditional
  * on groups of pointers) on every top level accessible pointer.
@@ -563,7 +572,7 @@ void GC_push_roots(GC_bool all, ptr_t cold_gc_frame)
      * Next push static data.  This must happen early on, since it's
      * not robust against mark stack overflow.
      */
-     /* Reregister dynamic libraries, in case one got added.		*/
+     /* Re-register dynamic libraries, in case one got added.		*/
      /* There is some argument for doing this as late as possible,	*/
      /* especially on win32, where it can change asynchronously.	*/
      /* In those cases, we do it here.  But on other platforms, it's	*/

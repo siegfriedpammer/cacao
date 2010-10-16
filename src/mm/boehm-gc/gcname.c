@@ -1,5 +1,3 @@
-#include "config.h"
-
 #include <stdio.h>
 #include <gc.h>
 

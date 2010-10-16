@@ -52,10 +52,10 @@
     /* Used in oh_back_ptr fields and as "source"	*/
     /* argument to some marking functions.		*/
 #	define NOT_MARKED (ptr_t)(0)
-#	define MARKED_FOR_FINALIZATION (ptr_t)(2)
+#	define MARKED_FOR_FINALIZATION ((ptr_t)(word)2)
 	    /* Object was marked because it is finalizable.	*/
-#	define MARKED_FROM_REGISTER (ptr_t)(4)
-	    /* Object was marked from a rgister.  Hence the	*/
+#	define MARKED_FROM_REGISTER ((ptr_t)(word)4)
+	    /* Object was marked from a register.  Hence the	*/
 	    /* source of the reference doesn't have an address.	*/
 # endif /* KEEP_BACK_PTRS || PRINT_BLACK_LIST */
 
@@ -110,7 +110,7 @@ typedef struct {
       word oh_sf;			/* start flag */
 #   endif /* SHORT_DBG_HDRS */
 } oh;
-/* The size of the above structure is assumed not to dealign things,	*/
+/* The size of the above structure is assumed not to de-align things,	*/
 /* and to be a multiple of the word length.				*/
 
 #ifdef SHORT_DBG_HDRS
@@ -161,7 +161,7 @@ typedef struct {
 #ifdef SHORT_DBG_HDRS
 # define GC_has_other_debug_info(p) TRUE
 #else
-  GC_bool GC_has_other_debug_info(/* p */);
+  GC_bool GC_has_other_debug_info(ptr_t p);
 #endif
 
 #if defined(KEEP_BACK_PTRS) || defined(MAKE_BACK_GRAPH)
@@ -173,6 +173,6 @@ typedef struct {
 
 /* Store debugging info into p.  Return displaced pointer. */
 /* Assumes we don't hold allocation lock.		   */
-ptr_t GC_store_debug_info(/* p, sz, string, integer */);
+ptr_t GC_store_debug_info(ptr_t p, word sz, const char *str, word integer);
 
 #endif /* _DBG_MLC_H */

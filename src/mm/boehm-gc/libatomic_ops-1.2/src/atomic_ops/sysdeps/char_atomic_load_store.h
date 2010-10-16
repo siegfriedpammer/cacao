@@ -21,16 +21,16 @@
  */ 
 
 /*
- * Definitions for architecturs on which loads and stores of unsigned char are
+ * Definitions for architectures on which loads and stores of unsigned char are
  * atomic for all legal alignments.
  */
 
 AO_INLINE unsigned char
-AO_char_load(volatile unsigned char *addr)
+AO_char_load(const volatile unsigned char *addr)
 {
   /* Cast away the volatile for architectures like IA64 where	*/
   /* volatile adds barrier semantics.				*/
-  return (*(unsigned char *)addr);
+  return (*(const unsigned char *)addr);
 }
 
 #define AO_HAVE_char_load

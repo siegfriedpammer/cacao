@@ -21,14 +21,10 @@
  * executables.  We should probably break this up further.
  */
 
-#include "config.h"
-
 #include <stdio.h>
 #include "private/gc_priv.h"
 
-extern ptr_t GC_clear_stack();  /* in misc.c, behaves like identity */
-void GC_extend_size_map();      /* in misc.c. */
-GC_bool GC_alloc_reclaim_list();	/* in malloc.c */
+void * GC_clear_stack(void *);	/* in misc.c, behaves like identity */
 
 /* Some externally visible but unadvertised variables to allow access to */
 /* free lists from inlined allocators without including gc_priv.h	 */
@@ -41,7 +37,7 @@ void ** const GC_uobjfreelist_ptr = GC_uobjfreelist;
 # endif
 
 
-void * GC_generic_or_special_malloc(size_t lb, int knd)
+STATIC void * GC_generic_or_special_malloc(size_t lb, int knd)
 {
     switch(knd) {
 #     ifdef STUBBORN_ALLOC
@@ -68,7 +64,7 @@ void * GC_generic_or_special_malloc(size_t lb, int knd)
 /* lb bytes.  The object may be (and quite likely will be) moved.     */
 /* The kind (e.g. atomic) is the same as that of the old.	      */
 /* Shrinking of large blocks is not implemented well.                 */
-void * GC_realloc(void * p, size_t lb)
+GC_API void * GC_CALL GC_realloc(void * p, size_t lb)
 {
     struct hblk * h;
     hdr * hhdr;
@@ -171,7 +167,7 @@ void * realloc(void * p, size_t lb)
 void * GC_generic_malloc_ignore_off_page(size_t lb, int k)
 {
     void *result;
-    size_t lw;
+    size_t lg;
     size_t lb_rounded;
     word n_blocks;
     GC_bool init;
@@ -179,8 +175,8 @@ void * GC_generic_malloc_ignore_off_page(size_t lb, int k)
     
     if (SMALL_OBJ(lb))
         return(GC_generic_malloc((word)lb, k));
-    lw = ROUNDED_UP_WORDS(lb);
-    lb_rounded = WORDS_TO_BYTES(lw);
+    lg = ROUNDED_UP_GRANULES(lb);
+    lb_rounded = GRANULES_TO_BYTES(lg);
     n_blocks = OBJ_SZ_TO_BLOCKS(lb_rounded);
     init = GC_obj_kinds[k].ok_init;
     if (GC_have_errors) GC_print_all_errors();
@@ -196,8 +192,8 @@ void * GC_generic_malloc_ignore_off_page(size_t lb, int k)
 	      /* before we release the lock.			      */
 	        ((word *)result)[0] = 0;
 	        ((word *)result)[1] = 0;
-	        ((word *)result)[lw-1] = 0;
-	        ((word *)result)[lw-2] = 0;
+	        ((word *)result)[GRANULES_TO_WORDS(lg)-1] = 0;
+	        ((word *)result)[GRANULES_TO_WORDS(lg)-2] = 0;
 #	    endif
         }
     }
@@ -213,12 +209,12 @@ void * GC_generic_malloc_ignore_off_page(size_t lb, int k)
     }
 }
 
-void * GC_malloc_ignore_off_page(size_t lb)
+GC_API void * GC_CALL GC_malloc_ignore_off_page(size_t lb)
 {
     return((void *)GC_generic_malloc_ignore_off_page(lb, NORMAL));
 }
 
-void * GC_malloc_atomic_ignore_off_page(size_t lb)
+GC_API void * GC_CALL GC_malloc_atomic_ignore_off_page(size_t lb)
 {
     return((void *)GC_generic_malloc_ignore_off_page(lb, PTRFREE));
 }
@@ -278,7 +274,7 @@ signed_word my_bytes_allocd = 0;
 struct obj_kind * ok = &(GC_obj_kinds[k]);
 DCL_LOCK_STATE;
 
-    GC_ASSERT((lb & (GRANULE_BYTES-1)) == 0);
+    GC_ASSERT(lb != 0 && (lb & (GRANULE_BYTES-1)) == 0);
     if (!SMALL_OBJ(lb)) {
         op = GC_generic_malloc(lb, k);
         if(0 != op) obj_link(op) = 0;
@@ -311,7 +307,7 @@ DCL_LOCK_STATE;
 	    GC_ASSERT(hhdr -> hb_sz == lb);
 	    hhdr -> hb_last_reclaimed = (unsigned short) GC_gc_no;
 #	    ifdef PARALLEL_MARK
-		{
+	      if (GC_parallel) {
 		  signed_word my_bytes_allocd_tmp = GC_bytes_allocd_tmp;
 
 		  GC_ASSERT(my_bytes_allocd_tmp >= 0);
@@ -320,15 +316,15 @@ DCL_LOCK_STATE;
 		  /* than one thread simultaneously.			*/
 		  if (my_bytes_allocd_tmp != 0) {
 		    (void)AO_fetch_and_add(
-				(volatile AO_t *)(&GC_bytes_allocd_tmp),
+				(volatile void *)(&GC_bytes_allocd_tmp),
 				(AO_t)(-my_bytes_allocd_tmp));
 		    GC_bytes_allocd += my_bytes_allocd_tmp;
 		  }
-		}
-		GC_acquire_mark_lock();
-		++ GC_fl_builder_count;
-		UNLOCK();
-		GC_release_mark_lock();
+		  GC_acquire_mark_lock();
+		  ++ GC_fl_builder_count;
+		  UNLOCK();
+		  GC_release_mark_lock();
+	      }
 #	    endif
 	    op = GC_reclaim_generic(hbp, hhdr, lb,
 				    ok -> ok_init, 0, &my_bytes_allocd);
@@ -339,30 +335,33 @@ DCL_LOCK_STATE;
 	      /* inaccurate.						*/
 	      GC_bytes_found += my_bytes_allocd;
 #	      ifdef PARALLEL_MARK
-		*result = op;
-		(void)AO_fetch_and_add(
+		if (GC_parallel) {
+		  *result = op;
+		  (void)AO_fetch_and_add(
 				(volatile AO_t *)(&GC_bytes_allocd_tmp),
 				(AO_t)(my_bytes_allocd));
+		  GC_acquire_mark_lock();
+		  -- GC_fl_builder_count;
+		  if (GC_fl_builder_count == 0) GC_notify_all_builder();
+		  GC_release_mark_lock();
+		  (void) GC_clear_stack(0);
+		  return;
+		}
+#	      endif
+	      GC_bytes_allocd += my_bytes_allocd;
+	      goto out;
+	    }
+#	    ifdef PARALLEL_MARK
+	      if (GC_parallel) {
 		GC_acquire_mark_lock();
 		-- GC_fl_builder_count;
 		if (GC_fl_builder_count == 0) GC_notify_all_builder();
 		GC_release_mark_lock();
-		(void) GC_clear_stack(0);
-		return;
-#	      else
-	        GC_bytes_allocd += my_bytes_allocd;
-	        goto out;
-#	      endif
-	    }
-#	    ifdef PARALLEL_MARK
-	      GC_acquire_mark_lock();
-	      -- GC_fl_builder_count;
-	      if (GC_fl_builder_count == 0) GC_notify_all_builder();
-	      GC_release_mark_lock();
-	      LOCK();
-	      /* GC lock is needed for reclaim list access.	We	*/
-	      /* must decrement fl_builder_count before reaquiring GC	*/
-	      /* lock.  Hopefully this path is rare.			*/
+		LOCK();
+		/* GC lock is needed for reclaim list access.	We	*/
+		/* must decrement fl_builder_count before reaquiring GC	*/
+		/* lock.  Hopefully this path is rare.			*/
+	      }
 #	    endif
     	}
     }
@@ -391,24 +390,26 @@ DCL_LOCK_STATE;
 	  if (IS_UNCOLLECTABLE(k)) GC_set_hdr_marks(HDR(h));
 	  GC_bytes_allocd += HBLKSIZE - HBLKSIZE % lb;
 #	  ifdef PARALLEL_MARK
-	    GC_acquire_mark_lock();
-	    ++ GC_fl_builder_count;
-	    UNLOCK();
-	    GC_release_mark_lock();
-#	  endif
+	    if (GC_parallel) {
+	      GC_acquire_mark_lock();
+	      ++ GC_fl_builder_count;
+	      UNLOCK();
+	      GC_release_mark_lock();
 
-	  op = GC_build_fl(h, lw, ok -> ok_init, 0);
-#	  ifdef PARALLEL_MARK
-	    *result = op;
-	    GC_acquire_mark_lock();
-	    -- GC_fl_builder_count;
-	    if (GC_fl_builder_count == 0) GC_notify_all_builder();
-	    GC_release_mark_lock();
-	    (void) GC_clear_stack(0);
-	    return;
-#	  else
-	    goto out;
+	      op = GC_build_fl(h, lw,
+			(ok -> ok_init || GC_debugging_started), 0);
+	    
+	      *result = op;
+	      GC_acquire_mark_lock();
+	      -- GC_fl_builder_count;
+	      if (GC_fl_builder_count == 0) GC_notify_all_builder();
+	      GC_release_mark_lock();
+	      (void) GC_clear_stack(0);
+	      return;
+	    }
 #	  endif
+	  op = GC_build_fl(h, lw, (ok -> ok_init || GC_debugging_started), 0);
+	  goto out;
 	}
     }
     
@@ -423,7 +424,7 @@ DCL_LOCK_STATE;
     (void) GC_clear_stack(0);
 }
 
-void * GC_malloc_many(size_t lb)
+GC_API void * GC_CALL GC_malloc_many(size_t lb)
 {
     void *result;
     GC_generic_malloc_many(((lb + EXTRA_BYTES + GRANULE_BYTES-1)
@@ -437,7 +438,7 @@ void * GC_malloc_many(size_t lb)
 # endif
 
 /* Allocate lb bytes of pointerful, traced, but not collectable data */
-void * GC_malloc_uncollectable(size_t lb)
+GC_API void * GC_CALL GC_malloc_uncollectable(size_t lb)
 {
     void *op;
     void **opp;
@@ -452,7 +453,6 @@ void * GC_malloc_uncollectable(size_t lb)
 	opp = &(GC_uobjfreelist[lg]);
 	LOCK();
         if( (op = *opp) != 0 ) {
-            /* See above comment on signals.	*/
             *opp = obj_link(op);
             obj_link(op) = 0;
             GC_bytes_allocd += GRANULES_TO_BYTES(lg);
@@ -475,11 +475,10 @@ void * GC_malloc_uncollectable(size_t lb)
         if (0 == op) return(0);
 	
 	GC_ASSERT(((word)op & (HBLKSIZE - 1)) == 0); /* large block */
-	hhdr = HDR((struct hbklk *)op);
+	hhdr = HDR(op);
 	/* We don't need the lock here, since we have an undisguised 	*/
 	/* pointer.  We do need to hold the lock while we adjust	*/
 	/* mark bits.							*/
-	lb = hhdr -> hb_sz;
 	LOCK();
 	set_mark_bit_from_hdr(hhdr, 0);	/* Only object.	*/
 	GC_ASSERT(hhdr -> hb_n_marks == 0);
@@ -493,7 +492,7 @@ void * GC_malloc_uncollectable(size_t lb)
 /* Debug version is tricky and currently missing.	*/
 #include <limits.h>
 
-void * GC_memalign(size_t align, size_t lb) 
+GC_API void * GC_CALL GC_memalign(size_t align, size_t lb) 
 { 
     size_t new_lb;
     size_t offset;
@@ -526,7 +525,7 @@ void * GC_memalign(size_t align, size_t lb)
 /* Allocate lb bytes of pointerfree, untraced, uncollectable data 	*/
 /* This is normally roughly equivalent to the system malloc.		*/
 /* But it may be useful if malloc is redefined.				*/
-void * GC_malloc_atomic_uncollectable(size_t lb)
+GC_API void * GC_CALL GC_malloc_atomic_uncollectable(size_t lb)
 {
     void *op;
     void **opp;
@@ -541,7 +540,6 @@ void * GC_malloc_atomic_uncollectable(size_t lb)
 	opp = &(GC_auobjfreelist[lg]);
 	LOCK();
         if( (op = *opp) != 0 ) {
-            /* See above comment on signals.	*/
             *opp = obj_link(op);
             obj_link(op) = 0;
             GC_bytes_allocd += GRANULES_TO_BYTES(lg);
@@ -561,8 +559,7 @@ void * GC_malloc_atomic_uncollectable(size_t lb)
         if (0 == op) return(0);
 
 	GC_ASSERT(((word)op & (HBLKSIZE - 1)) == 0);
-	hhdr = HDR((struct hbklk *)op);
-	lb = hhdr -> hb_sz;
+	hhdr = HDR(op);
 	
 	LOCK();
 	set_mark_bit_from_hdr(hhdr, 0);	/* Only object.	*/

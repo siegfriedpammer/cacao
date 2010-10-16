@@ -24,16 +24,14 @@
  * a growing space leak.
  */
 
-#include "config.h"
-
 #ifdef MAKE_BACK_GRAPH
 
 #define MAX_IN	10	/* Maximum in-degree we handle directly */
 
 #include "private/dbg_mlc.h"
-#include <unistd.h>
+/* #include <unistd.h> */
 
-#if !defined(DBG_HDRS_ALL) || (ALIGNMENT != CPP_WORDSZ/8) || !defined(UNIX_LIKE)
+#if !defined(DBG_HDRS_ALL) || (ALIGNMENT != CPP_WORDSZ/8) /* || !defined(UNIX_LIKE) */
 # error Configuration doesnt support MAKE_BACK_GRAPH
 #endif
 
@@ -77,7 +75,8 @@ typedef struct back_edges_struct {
 /* if this were production code.					*/
 #define MAX_BACK_EDGE_STRUCTS 100000
 static back_edges *back_edge_space = 0;
-int GC_n_back_edge_structs = 0;	/* Serves as pointer to never used	*/
+STATIC int GC_n_back_edge_structs = 0;
+				/* Serves as pointer to never used	*/
 				/* back_edges space.			*/
 static back_edges *avail_back_edges = 0;
 				/* Pointer to free list of deallocated	*/
@@ -125,7 +124,7 @@ static size_t n_in_progress = 0;
 
 static void push_in_progress(ptr_t p)
 {
-  if (n_in_progress >= in_progress_size) 
+  if (n_in_progress >= in_progress_size) {
     if (in_progress_size == 0) {
       in_progress_size = INITIAL_IN_PROGRESS;
       in_progress_space = (ptr_t *)GET_MEM(in_progress_size * sizeof(ptr_t));
@@ -143,6 +142,7 @@ static void push_in_progress(ptr_t p)
       in_progress_space = new_in_progress_space;
       /* FIXME: This just drops the old space.	*/
     }
+  }
   if (in_progress_space == 0)
       ABORT("MAKE_BACK_GRAPH: Out of in-progress space: "
 	    "Huge linear data structure?");
@@ -151,7 +151,7 @@ static void push_in_progress(ptr_t p)
 
 static GC_bool is_in_progress(ptr_t p)
 {
-  int i;
+  size_t i;
   for (i = 0; i < n_in_progress; ++i) {
     if (in_progress_space[i] == p) return TRUE;
   }
@@ -179,8 +179,9 @@ static void pop_in_progress(ptr_t p)
     } else { \
       back_edges *orig_be_ = (back_edges *)((word)q & ~FLAG_MANY); \
       back_edges *be_ = orig_be_; \
-      int total_, local_; \
-      int n_edges_ = be_ -> n_edges; \
+      int local_; \
+      word total_; \
+      word n_edges_ = be_ -> n_edges; \
       for (total_ = 0, local_ = 0; total_ < n_edges_; ++local_, ++total_) { \
 	  if (local_ == MAX_IN) { \
 	      be_ = be_ -> cont; \
@@ -206,7 +207,7 @@ static void ensure_struct(ptr_t p)
       be -> edges[0] = old_back_ptr;
     }
     be -> height = HEIGHT_UNKNOWN;
-    be -> height_gc_no = GC_gc_no - 1;
+    be -> height_gc_no = (unsigned short)(GC_gc_no - 1);
     GC_ASSERT(be >= back_edge_space);
     SET_OH_BG_PTR(p, (word)be | FLAG_MANY);
   }
@@ -274,8 +275,8 @@ static void per_object_helper(struct hblk *h, word fn)
 
   do {
     f((ptr_t)(h -> hb_body + i), sz, descr);
-    i += sz;
-  } while (i + sz <= BYTES_TO_WORDS(HBLKSIZE));
+    i += (int)sz;
+  } while (i + (int)sz <= BYTES_TO_WORDS(HBLKSIZE));
 }
 
 void GC_apply_to_each_object(per_object_func f)
@@ -283,6 +284,7 @@ void GC_apply_to_each_object(per_object_func f)
   GC_apply_to_all_blocks(per_object_helper, (word)f);
 }
 
+/*ARGSUSED*/
 static void reset_back_edge(ptr_t p, size_t n_bytes, word gc_descr)
 {
   /* Skip any free list links, or dropped blocks */
@@ -294,7 +296,6 @@ static void reset_back_edge(ptr_t p, size_t n_bytes, word gc_descr)
 	deallocate_back_edges(be);
         SET_OH_BG_PTR(p, 0); 
       } else {
-        word *currentp;
 
 	GC_ASSERT(GC_is_marked(p));
 
@@ -367,7 +368,7 @@ static word backwards_height(ptr_t p)
     return result;
   }
   be = (back_edges *)((word)back_ptr & ~FLAG_MANY);
-  if (be -> height >= 0 && be -> height_gc_no == GC_gc_no)
+  if (be -> height >= 0 && be -> height_gc_no == (unsigned short)GC_gc_no)
       return be -> height;
   /* Ignore back edges in DFS */
     if (be -> height == HEIGHT_IN_PROGRESS) return 0;
@@ -377,7 +378,7 @@ static word backwards_height(ptr_t p)
     word this_height;
     if (GC_is_marked(q) && !(FLAG_MANY & (word)GET_OH_BG_PTR(p))) {
       if (GC_print_stats)
-	  GC_log_printf("Found bogus pointer from 0x%lx to 0x%lx\n", q, p);
+	  GC_log_printf("Found bogus pointer from %p to %p\n", q, p);
 	/* Reachable object "points to" unreachable one.		*/
 	/* Could be caused by our lax treatment of GC descriptors.	*/
       this_height = 1;
@@ -387,12 +388,12 @@ static word backwards_height(ptr_t p)
     if (this_height >= result) result = this_height + 1;
   });
   be -> height = result;
-  be -> height_gc_no = GC_gc_no;
+  be -> height_gc_no = (unsigned short)GC_gc_no;
   return result;
 }
 
-word GC_max_height;
-ptr_t GC_deepest_obj;
+STATIC word GC_max_height;
+STATIC ptr_t GC_deepest_obj;
 
 /* Compute the maximum height of every unreachable predecessor p of  a 	*/
 /* reachable object.  Arrange to save the heights of all such objects p	*/
@@ -400,10 +401,10 @@ ptr_t GC_deepest_obj;
 /* next GC.								*/
 /* Set GC_max_height to be the maximum height we encounter, and 	*/
 /* GC_deepest_obj to be the corresponding object.			*/
+/*ARGSUSED*/
 static void update_max_height(ptr_t p, size_t n_bytes, word gc_descr)
 {
   if (GC_is_marked(p) && GC_HAS_DEBUG_INFO(p)) {
-    int i;
     word p_height = 0;
     ptr_t p_deepest_obj = 0;
     ptr_t back_ptr;
@@ -437,7 +438,7 @@ static void update_max_height(ptr_t p, size_t n_bytes, word gc_descr)
 	}
 	be -> flags |= RETAIN;
 	be -> height = p_height;
-	be -> height_gc_no = GC_gc_no;
+	be -> height_gc_no = (unsigned short)GC_gc_no;
     }
     if (p_height > GC_max_height) {
 	GC_max_height = p_height;
@@ -446,7 +447,7 @@ static void update_max_height(ptr_t p, size_t n_bytes, word gc_descr)
   }
 }
 
-word GC_max_max_height = 0;
+STATIC word GC_max_max_height = 0;
 
 void GC_traverse_back_graph(void)
 {
@@ -467,11 +468,16 @@ void GC_print_back_graph_stats(void)
     GC_print_heap_obj(GC_deepest_obj);
   }
   if (GC_print_stats) {
-    GC_log_printf("Needed max total of %ld back-edge structs\n",
+    GC_log_printf("Needed max total of %d back-edge structs\n",
 	          GC_n_back_edge_structs);
   }
   GC_apply_to_each_object(reset_back_edge);
   GC_deepest_obj = 0;
 }
 
-#endif /* MAKE_BACK_GRAPH */
+#else  /* !MAKE_BACK_GRAPH */
+
+extern int GC_quiet;
+	/* ANSI C doesn't allow translation units to be empty.  */
+
+#endif /* !MAKE_BACK_GRAPH */

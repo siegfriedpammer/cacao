@@ -141,7 +141,7 @@ by UseGC.  GC is an alias for UseGC, unless GC_NAME_CONFLICT is defined.
 #include "gc.h"
 
 #ifndef THINK_CPLUS
-#  define GC_cdecl
+#  define GC_cdecl GC_CALLBACK
 #else
 #  define GC_cdecl _cdecl
 #endif
@@ -160,7 +160,8 @@ by UseGC.  GC is an alias for UseGC, unless GC_NAME_CONFLICT is defined.
 #endif
 
 #if    ! defined ( __BORLANDC__ )  /* Confuses the Borland compiler. */ \
-    && ! defined ( __sgi )
+    && ! defined ( __sgi ) && ! defined( __WATCOMC__ ) \
+    && (!defined(_MSC_VER) || _MSC_VER > 1020)
 #  define GC_PLACEMENT_DELETE
 #endif
 
@@ -211,7 +212,9 @@ private:
     member derived from "gc_cleanup", its destructors will be
     invoked. */
 
-extern "C" {typedef void (*GCCleanUpFunc)( void* obj, void* clientData );}
+extern "C" {
+    typedef void (GC_CALLBACK * GCCleanUpFunc)( void* obj, void* clientData );
+}
 
 #ifdef _MSC_VER
   // Disable warning that "no matching operator delete found; memory will
@@ -249,9 +252,11 @@ inline void* operator new(
   *  There seems to be no way to redirect new in this environment without
   *  including this everywhere. 
   */
+#if _MSC_VER > 1020
  void *operator new[]( size_t size );
  
  void operator delete[](void* obj);
+#endif
 
  void* operator new( size_t size);
 
@@ -336,7 +341,7 @@ inline void gc::operator delete[]( void* obj ) {
 inline gc_cleanup::~gc_cleanup() {
     GC_register_finalizer_ignore_self( GC_base(this), 0, 0, 0, 0 );}
 
-inline void gc_cleanup::cleanup( void* obj, void* displ ) {
+inline void GC_CALLBACK gc_cleanup::cleanup( void* obj, void* displ ) {
     ((gc_cleanup*) ((char*) obj + (ptrdiff_t) displ))->~gc_cleanup();}
 
 inline gc_cleanup::gc_cleanup() {

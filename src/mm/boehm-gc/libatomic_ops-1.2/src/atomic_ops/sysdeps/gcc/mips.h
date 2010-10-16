@@ -11,6 +11,13 @@
  * modified is included with the above copyright notice.
  */
 
+/*
+ * FIXME:  This should probably make finer distinctions.  SGI MIPS is
+ * much more strongly ordered, and in fact closer to sequentially
+ * consistent.  This is really aimed at modern embedded implementations.
+ * It looks to me like this assumes a 32-bit ABI.  -HB
+ */
+
 #include "../all_aligned_atomic_load_store.h"
 #include "../acquire_release_volatile.h"
 #include "../test_and_set_t_is_ao_t.h"
@@ -20,7 +27,7 @@
 #define AO_NO_DD_ORDERING
 
 AO_INLINE void
-AO_nop_full()
+AO_nop_full(void)
 {
   __asm__ __volatile__(
       "       .set push           \n"
@@ -60,6 +67,9 @@ AO_compare_and_swap(volatile AO_t *addr, AO_t old, AO_t new_val)
 }
 
 #define AO_HAVE_compare_and_swap
+
+/* FIXME: I think the implementations below should be automatically	*/
+/* generated if we omit them.  - HB					*/
 
 AO_INLINE int
 AO_compare_and_swap_acquire(volatile AO_t *addr, AO_t old, AO_t new_val) {

@@ -13,7 +13,6 @@
  */
 /* Boehm, May 19, 1994 2:04 pm PDT */
 
-#include "config.h"
 
 # ifdef PCR
 /*
@@ -28,5 +27,12 @@ void * real_malloc(size_t size)
 {
     return(malloc(size));
 }
+
+# else
+
+extern int GC_quiet;
+	/* ANSI C doesn't allow translation units to be empty.	*/
+	/* So we guarantee this one is nonempty.		*/
+
 #endif /* PCR */
 

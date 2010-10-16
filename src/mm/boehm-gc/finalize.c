@@ -14,9 +14,6 @@
  * modified is included with the above copyright notice.
  */
 /* Boehm, February 1, 1996 1:19 pm PST */
-
-#include "config.h"
-
 # define I_HIDE_POINTERS
 # include "private/gc_pmark.h"
 
@@ -35,7 +32,7 @@
 /* Type of mark procedure used for marking from finalizable object.	*/
 /* This procedure normally does not mark the object, only its		*/
 /* descendents.								*/
-typedef void finalization_mark_proc(/* ptr_t finalizable_obj_ptr */); 
+typedef void (* finalization_mark_proc)(ptr_t /* finalizable_obj_ptr */);
 
 # define HASH3(addr,size,log_size) \
     ((((word)(addr) >> 3) ^ ((word)(addr) >> (3+(log_size)))) \
@@ -46,9 +43,6 @@ struct hash_chain_entry {
     word hidden_key;
     struct hash_chain_entry * next;
 };
-
-unsigned GC_finalization_failures = 0;
-	/* Number of finalization requests that failed for lack of memory. */
 
 static struct disappearing_link {
     struct hash_chain_entry prolog;
@@ -65,7 +59,8 @@ static signed_word log_dl_table_size = -1;
 			/* current size of array pointed to by dl_head.	*/
 			/* -1 ==> size is 0.				*/
 
-word GC_dl_entries = 0;	/* Number of entries currently in disappearing	*/
+STATIC word GC_dl_entries = 0;
+			/* Number of entries currently in disappearing	*/
 			/* link table.					*/
 
 static struct finalizable_object {
@@ -79,11 +74,11 @@ static struct finalizable_object {
     GC_finalization_proc fo_fn;	/* Finalizer.			*/
     ptr_t fo_client_data;
     word fo_object_size;	/* In bytes.			*/
-    finalization_mark_proc * fo_mark_proc;	/* Mark-through procedure */
+    finalization_mark_proc fo_mark_proc;	/* Mark-through procedure */
 } **fo_head = 0;
 
-struct finalizable_object * GC_finalize_now = 0;
-	/* LIst of objects that should be finalized now.	*/
+STATIC struct finalizable_object * GC_finalize_now = 0;
+	/* List of objects that should be finalized now.	*/
 
 static signed_word log_fo_table_size = -1;
 
@@ -98,12 +93,12 @@ void GC_push_finalizer_structures(void)
 }
 
 /* Double the size of a hash table. *size_ptr is the log of its current	*/
-/* size.  May be a noop.						*/
+/* size.  May be a no-op.						*/
 /* *table is a pointer to an array of hash headers.  If we succeed, we	*/
 /* update both *table and *log_size_ptr.				*/
-/* Lock is held.  Signals are disabled.					*/
-void GC_grow_table(struct hash_chain_entry ***table,
-		   signed_word *log_size_ptr)
+/* Lock is held.							*/
+STATIC void GC_grow_table(struct hash_chain_entry ***table,
+			  signed_word *log_size_ptr)
 {
     register word i;
     register struct hash_chain_entry *p;
@@ -139,7 +134,7 @@ void GC_grow_table(struct hash_chain_entry ***table,
     *table = new_table;
 }
 
-int GC_register_disappearing_link(void * * link)
+GC_API int GC_CALL GC_register_disappearing_link(void * * link)
 {
     ptr_t base;
     
@@ -149,29 +144,30 @@ int GC_register_disappearing_link(void * * link)
     return(GC_general_register_disappearing_link(link, base));
 }
 
-int GC_general_register_disappearing_link(void * * link, void * obj)
+GC_API int GC_CALL GC_general_register_disappearing_link(void * * link,
+							void * obj)
 {
     struct disappearing_link *curr_dl;
     size_t index;
     struct disappearing_link * new_dl;
     DCL_LOCK_STATE;
     
-    if ((word)link & (ALIGNMENT-1))
+    if (((word)link & (ALIGNMENT-1)) || link == NULL)
     	ABORT("Bad arg to GC_general_register_disappearing_link");
 #   ifdef THREADS
     	LOCK();
 #   endif
+    GC_ASSERT(obj != NULL && GC_base(obj) == obj);
     if (log_dl_table_size == -1
         || GC_dl_entries > ((word)1 << log_dl_table_size)) {
     	GC_grow_table((struct hash_chain_entry ***)(&dl_head),
     		      &log_dl_table_size);
 	if (GC_print_stats) {
 	    GC_log_printf("Grew dl table to %u entries\n",
-	    	      (1 << log_dl_table_size));
+	    	      (1 << (unsigned)log_dl_table_size));
 	}
     }
     index = HASH2(link, log_dl_table_size);
-    curr_dl = dl_head[index];
     for (curr_dl = dl_head[index]; curr_dl != 0; curr_dl = dl_next(curr_dl)) {
         if (curr_dl -> dl_hidden_link == HIDE_POINTER(link)) {
             curr_dl -> dl_hidden_obj = HIDE_POINTER(obj);
@@ -190,7 +186,6 @@ int GC_general_register_disappearing_link(void * * link, void * obj)
       new_dl = (struct disappearing_link *)
 	      GC_oom_fn(sizeof(struct disappearing_link));
       if (0 == new_dl) {
-	GC_finalization_failures++;
 	return(2);
       }
       /* It's not likely we'll make it here, but ... */
@@ -209,15 +204,16 @@ int GC_general_register_disappearing_link(void * * link, void * obj)
     return(0);
 }
 
-int GC_unregister_disappearing_link(void * * link)
+GC_API int GC_CALL GC_unregister_disappearing_link(void * * link)
 {
     struct disappearing_link *curr_dl, *prev_dl;
     size_t index;
     DCL_LOCK_STATE;
     
+    if (((word)link & (ALIGNMENT-1)) != 0) return(0); /* Nothing to do. */
+
     LOCK();
     index = HASH2(link, log_dl_table_size);
-    if (((word)link & (ALIGNMENT-1))) goto out;
     prev_dl = 0; curr_dl = dl_head[index];
     while (curr_dl != 0) {
         if (curr_dl -> dl_hidden_link == HIDE_POINTER(link)) {
@@ -238,14 +234,13 @@ int GC_unregister_disappearing_link(void * * link)
         prev_dl = curr_dl;
         curr_dl = dl_next(curr_dl);
     }
-out:
     UNLOCK();
     return(0);
 }
 
 /* Possible finalization_marker procedures.  Note that mark stack	*/
 /* overflow is handled by the caller, and is not a disaster.		*/
-GC_API void GC_normal_finalize_mark_proc(ptr_t p)
+STATIC void GC_normal_finalize_mark_proc(ptr_t p)
 {
     hdr * hhdr = HDR(p);
     
@@ -256,11 +251,12 @@ GC_API void GC_normal_finalize_mark_proc(ptr_t p)
 /* This only pays very partial attention to the mark descriptor.	*/
 /* It does the right thing for normal and atomic objects, and treats	*/
 /* most others as normal.						*/
-GC_API void GC_ignore_self_finalize_mark_proc(ptr_t p)
+STATIC void GC_ignore_self_finalize_mark_proc(ptr_t p)
 {
     hdr * hhdr = HDR(p);
     word descr = hhdr -> hb_descr;
-    ptr_t q, r;
+    ptr_t q;
+    word r;
     ptr_t scan_limit;
     ptr_t target_limit = p + hhdr -> hb_sz - 1;
     
@@ -270,15 +266,15 @@ GC_API void GC_ignore_self_finalize_mark_proc(ptr_t p)
        scan_limit = target_limit + 1 - sizeof(word);
     }
     for (q = p; q <= scan_limit; q += ALIGNMENT) {
-    	r = *(ptr_t *)q;
-    	if (r < p || r > target_limit) {
+    	r = *(word *)q;
+    	if ((ptr_t)r < p || (ptr_t)r > target_limit) {
     	    GC_PUSH_ONE_HEAP(r, q);
     	}
     }
 }
 
 /*ARGSUSED*/
-GC_API void GC_null_finalize_mark_proc(ptr_t p)
+STATIC void GC_null_finalize_mark_proc(ptr_t p)
 {
 }
 
@@ -288,9 +284,9 @@ GC_API void GC_null_finalize_mark_proc(ptr_t p)
 /* GC_unreachable_finalize_mark_proc is an alias for normal marking,	*/
 /* but it is explicitly tested for, and triggers different		*/
 /* behavior.  Objects registered in this way are not finalized		*/
-/* if they are reachable by other finalizable objects, eve if those	*/
+/* if they are reachable by other finalizable objects, even if those	*/
 /* other objects specify no ordering.					*/
-GC_API void GC_unreachable_finalize_mark_proc(ptr_t p)
+STATIC void GC_unreachable_finalize_mark_proc(ptr_t p)
 {
     GC_normal_finalize_mark_proc(p);
 }
@@ -298,14 +294,11 @@ GC_API void GC_unreachable_finalize_mark_proc(ptr_t p)
 
 
 /* Register a finalization function.  See gc.h for details.	*/
-/* in the nonthreads case, we try to avoid disabling signals,	*/
-/* since it can be expensive.  Threads packages typically	*/
-/* make it cheaper.						*/
 /* The last parameter is a procedure that determines		*/
 /* marking for finalization ordering.  Any objects marked	*/
 /* by that procedure will be guaranteed to not have been	*/
 /* finalized when this finalizer is invoked.			*/
-GC_API void GC_register_finalizer_inner(void * obj,
+STATIC void GC_register_finalizer_inner(void * obj,
 					GC_finalization_proc fn, void *cd,
 					GC_finalization_proc *ofn, void **ocd,
 					finalization_mark_proc mp)
@@ -326,11 +319,10 @@ GC_API void GC_register_finalizer_inner(void * obj,
     		      &log_fo_table_size);
 	if (GC_print_stats) {
 	    GC_log_printf("Grew fo table to %u entries\n",
-	    	          (1 << log_fo_table_size));
+	    	          (1 << (unsigned)log_fo_table_size));
 	}
     }
-    /* in the THREADS case signals are disabled and we hold allocation	*/
-    /* lock; otherwise neither is true.  Proceed carefully.		*/
+    /* in the THREADS case we hold allocation lock.		*/
     base = (ptr_t)obj;
     index = HASH2(base, log_fo_table_size);
     prev_fo = 0; curr_fo = fo_head[index];
@@ -402,7 +394,6 @@ GC_API void GC_register_finalizer_inner(void * obj,
       new_fo = (struct finalizable_object *)
 	      GC_oom_fn(sizeof(struct finalizable_object));
       if (0 == new_fo) {
-	GC_finalization_failures++;
 	return;
       }
       /* It's not likely we'll make it here, but ... */
@@ -424,15 +415,15 @@ GC_API void GC_register_finalizer_inner(void * obj,
 #   endif
 }
 
-void GC_register_finalizer(void * obj,
-			       GC_finalization_proc fn, void * cd,
-			       GC_finalization_proc *ofn, void ** ocd)
+GC_API void GC_CALL GC_register_finalizer(void * obj,
+				  GC_finalization_proc fn, void * cd,
+				  GC_finalization_proc *ofn, void ** ocd)
 {
     GC_register_finalizer_inner(obj, fn, cd, ofn,
     				ocd, GC_normal_finalize_mark_proc);
 }
 
-void GC_register_finalizer_ignore_self(void * obj,
+GC_API void GC_CALL GC_register_finalizer_ignore_self(void * obj,
 			       GC_finalization_proc fn, void * cd,
 			       GC_finalization_proc *ofn, void ** ocd)
 {
@@ -440,7 +431,7 @@ void GC_register_finalizer_ignore_self(void * obj,
     				ocd, GC_ignore_self_finalize_mark_proc);
 }
 
-void GC_register_finalizer_no_order(void * obj,
+GC_API void GC_CALL GC_register_finalizer_no_order(void * obj,
 			       GC_finalization_proc fn, void * cd,
 			       GC_finalization_proc *ofn, void ** ocd)
 {
@@ -451,7 +442,7 @@ void GC_register_finalizer_no_order(void * obj,
 static GC_bool need_unreachable_finalization = FALSE;
 	/* Avoid the work if this isn't used.	*/
 
-void GC_register_finalizer_unreachable(void * obj,
+GC_API void GC_CALL GC_register_finalizer_unreachable(void * obj,
 			       GC_finalization_proc fn, void * cd,
 			       GC_finalization_proc *ofn, void ** ocd)
 {
@@ -489,8 +480,9 @@ void GC_dump_finalization(void)
 }
 #endif
 
-/* Called with world stopped.  Cause disappearing links to disappear,	*/
-/* and invoke finalizers.						*/
+/* Called with held lock (but the world is running).			*/
+/* Cause disappearing links to disappear and unreachable objects to be	*/
+/* enqueued for finalization.						*/
 void GC_finalize(void)
 {
     struct disappearing_link * curr_dl, * prev_dl, * next_dl;
@@ -535,7 +527,7 @@ void GC_finalize(void)
 	    GC_MARKED_FOR_FINALIZATION(real_ptr);
             GC_MARK_FO(real_ptr, curr_fo -> fo_mark_proc);
             if (GC_is_marked(real_ptr)) {
-                WARN("Finalization cycle involving %lx\n", real_ptr);
+                WARN("Finalization cycle involving %p\n", real_ptr);
             }
         }
       }
@@ -656,9 +648,8 @@ void GC_finalize(void)
 
 #ifndef JAVA_FINALIZATION_NOT_NEEDED
 
-/* Enqueue all remaining finalizers to be run - Assumes lock is
- * held, and signals are disabled */
-void GC_enqueue_all_finalizers(void)
+/* Enqueue all remaining finalizers to be run - Assumes lock is held.	*/
+STATIC void GC_enqueue_all_finalizers(void)
 {
     struct finalizable_object * curr_fo, * prev_fo, * next_fo;
     ptr_t real_ptr;
@@ -716,7 +707,7 @@ void GC_enqueue_all_finalizers(void)
  * This routine is externally callable, so is called without 
  * the allocation lock. 
  */
-GC_API void GC_finalize_all(void)
+GC_API void GC_CALL GC_finalize_all(void)
 {
     DCL_LOCK_STATE;
 
@@ -724,7 +715,11 @@ GC_API void GC_finalize_all(void)
     while (GC_fo_entries > 0) {
       GC_enqueue_all_finalizers();
       UNLOCK();
-      GC_INVOKE_FINALIZERS();
+      GC_invoke_finalizers();
+      /* Running the finalizers in this thread is arguably not a good	*/
+      /* idea when we should be notifying another thread to run them.	*/
+      /* But otherwise we don't have a great way to wait for them to	*/
+      /* run.								*/
       LOCK();
     }
     UNLOCK();
@@ -734,18 +729,18 @@ GC_API void GC_finalize_all(void)
 /* Returns true if it is worth calling GC_invoke_finalizers. (Useful if	*/
 /* finalizers can only be called from some kind of `safe state' and	*/
 /* getting into that safe state is expensive.)				*/
-int GC_should_invoke_finalizers(void)
+GC_API int GC_CALL GC_should_invoke_finalizers(void)
 {
     return GC_finalize_now != 0;
 }
 
 /* Invoke finalizers for all objects that are ready to be finalized.	*/
 /* Should be called without allocation lock.				*/
-int GC_invoke_finalizers(void)
+GC_API int GC_CALL GC_invoke_finalizers(void)
 {
     struct finalizable_object * curr_fo;
     int count = 0;
-    word bytes_freed_before;
+    word bytes_freed_before = 0; /* initialized to prevent warning. */
     DCL_LOCK_STATE;
     
     while (GC_finalize_now != 0) {
@@ -785,7 +780,8 @@ int GC_invoke_finalizers(void)
     return count;
 }
 
-void (* GC_finalizer_notifier)() = (void (*) (void))0;
+GC_finalizer_notifier_proc GC_finalizer_notifier =
+	(GC_finalizer_notifier_proc)0;
 
 static GC_word last_finalizer_notification = 0;
 
@@ -797,9 +793,8 @@ void GC_notify_or_invoke_finalizers(void)
       static word last_back_trace_gc_no = 1;	/* Skip first one. */
 
       if (GC_gc_no > last_back_trace_gc_no) {
-	word i;
-  
 #	ifdef KEEP_BACK_PTRS
+	  long i;
 	  LOCK();
   	  /* Stops when GC_gc_no wraps; that's OK.	*/
 	  last_back_trace_gc_no = (word)(-1);  /* disable others. */
@@ -829,14 +824,15 @@ void GC_notify_or_invoke_finalizers(void)
 #	endif	/* Otherwise GC can run concurrently and add more */
 	return;
     }
-    if (GC_finalizer_notifier != (void (*) (void))0
+    if (GC_finalizer_notifier != (GC_finalizer_notifier_proc)0
 	&& last_finalizer_notification != GC_gc_no) {
 	last_finalizer_notification = GC_gc_no;
 	GC_finalizer_notifier();
     }
 }
 
-void * GC_call_with_alloc_lock(GC_fn_type fn, void * client_data)
+GC_API void * GC_CALL GC_call_with_alloc_lock(GC_fn_type fn,
+					void * client_data)
 {
     void * result;
     DCL_LOCK_STATE;
@@ -861,10 +857,10 @@ void * GC_call_with_alloc_lock(GC_fn_type fn, void * client_data)
 void GC_print_finalization_stats(void)
 {
     struct finalizable_object *fo = GC_finalize_now;
-    size_t ready = 0;
+    unsigned ready = 0;
 
     GC_printf("%u finalization table entries; %u disappearing links\n",
-	       GC_fo_entries, GC_dl_entries);
+	       (unsigned)GC_fo_entries, (unsigned)GC_dl_entries);
     for (; 0 != fo; fo = fo_next(fo)) ++ready;
     GC_printf("%u objects are eligible for immediate finalization\n", ready);
 }

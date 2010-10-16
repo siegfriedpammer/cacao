@@ -68,7 +68,7 @@ typedef struct thread_local_freelists {
 	void * normal_freelists[TINY_FREELISTS];
 #	ifdef GC_GCJ_SUPPORT
 	  void * gcj_freelists[TINY_FREELISTS];
-#	  define ERROR_FL (void *)(-1)
+#	  define ERROR_FL ((void *)(word)-1)
 	  	/* Value used for gcj_freelist[-1]; allocation is 	*/
 	  	/* erroneous.						*/
 #	endif
@@ -133,7 +133,7 @@ void GC_destroy_thread_local(GC_tlfs p);
 
 /* The thread support layer must arrange to mark thread-local	*/
 /* free lists explicitly, since the link field is often 	*/
-/* invisible to the marker.  It knows hoe to find all threads;	*/
+/* invisible to the marker.  It knows how to find all threads;	*/
 /* we take care of an individual thread freelist structure.	*/
 void GC_mark_thread_local_fls_for(GC_tlfs p);
 

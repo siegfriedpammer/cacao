@@ -26,13 +26,15 @@
  * This implements standard-conforming allocators that interact with
  * the garbage collector.  Gc_alloctor<T> allocates garbage-collectable
  * objects of type T.  Traceable_allocator<T> allocates objects that
- * are not temselves garbage collected, but are scanned by the
+ * are not themselves garbage collected, but are scanned by the
  * collector for pointers to collectable objects.  Traceable_alloc
  * should be used for explicitly managed STL containers that may
  * point to collectable objects.
  *
  * This code was derived from an earlier version of the GNU C++ standard
  * library, which itself was derived from the SGI STL implementation.
+ *
+ * Ignore-off-page allocator: George T. Talbot
  */
 
 #ifndef GC_ALLOCATOR_H
@@ -82,13 +84,15 @@ GC_DECLARE_PTRFREE(long double);
 // In the following GC_Tp is GC_true_type iff we are allocating a
 // pointerfree object.
 template <class GC_Tp>
-inline void * GC_selective_alloc(size_t n, GC_Tp) {
-    return GC_MALLOC(n);
+inline void * GC_selective_alloc(size_t n, GC_Tp, bool ignore_off_page) {
+    return ignore_off_page?GC_MALLOC_IGNORE_OFF_PAGE(n):GC_MALLOC(n);
 }
 
 template <>
-inline void * GC_selective_alloc<GC_true_type>(size_t n, GC_true_type) {
-    return GC_MALLOC_ATOMIC(n);
+inline void * GC_selective_alloc<GC_true_type>(size_t n, GC_true_type,
+                                               bool ignore_off_page) {
+    return ignore_off_page? GC_MALLOC_ATOMIC_IGNORE_OFF_PAGE(n)
+                          : GC_MALLOC_ATOMIC(n);
 }
 
 /* Now the public gc_allocator<T> class:
@@ -125,7 +129,7 @@ public:
     GC_type_traits<GC_Tp> traits;
     return static_cast<GC_Tp *>
 	    (GC_selective_alloc(GC_n * sizeof(GC_Tp),
-			        traits.GC_is_ptr_free));
+			        traits.GC_is_ptr_free, false));
   }
 
   // __p is not permitted to be a null pointer.
@@ -161,6 +165,82 @@ inline bool operator==(const gc_allocator<GC_T1>&, const gc_allocator<GC_T2>&)
 
 template <class GC_T1, class GC_T2>
 inline bool operator!=(const gc_allocator<GC_T1>&, const gc_allocator<GC_T2>&)
+{
+  return false;
+}
+
+
+/* Now the public gc_allocator_ignore_off_page<T> class:
+ */
+template <class GC_Tp>
+class gc_allocator_ignore_off_page {
+public:
+  typedef size_t     size_type;
+  typedef ptrdiff_t  difference_type;
+  typedef GC_Tp*       pointer;
+  typedef const GC_Tp* const_pointer;
+  typedef GC_Tp&       reference;
+  typedef const GC_Tp& const_reference;
+  typedef GC_Tp        value_type;
+
+  template <class GC_Tp1> struct rebind {
+    typedef gc_allocator_ignore_off_page<GC_Tp1> other;
+  };
+
+  gc_allocator_ignore_off_page()  {}
+    gc_allocator_ignore_off_page(const gc_allocator_ignore_off_page&) throw() {}
+# if !(GC_NO_MEMBER_TEMPLATES || 0 < _MSC_VER && _MSC_VER <= 1200)
+  // MSVC++ 6.0 do not support member templates
+  template <class GC_Tp1>
+    gc_allocator_ignore_off_page(const gc_allocator_ignore_off_page<GC_Tp1>&)
+    	throw() {}
+# endif
+  ~gc_allocator_ignore_off_page() throw() {}
+
+  pointer address(reference GC_x) const { return &GC_x; }
+  const_pointer address(const_reference GC_x) const { return &GC_x; }
+
+  // GC_n is permitted to be 0.  The C++ standard says nothing about what
+  // the return value is when GC_n == 0.
+  GC_Tp* allocate(size_type GC_n, const void* = 0) {
+    GC_type_traits<GC_Tp> traits;
+    return static_cast<GC_Tp *>
+	    (GC_selective_alloc(GC_n * sizeof(GC_Tp),
+			        traits.GC_is_ptr_free, true));
+  }
+
+  // __p is not permitted to be a null pointer.
+  void deallocate(pointer __p, size_type GC_ATTR_UNUSED GC_n)
+    { GC_FREE(__p); }
+
+  size_type max_size() const throw()
+    { return size_t(-1) / sizeof(GC_Tp); }
+
+  void construct(pointer __p, const GC_Tp& __val) { new(__p) GC_Tp(__val); }
+  void destroy(pointer __p) { __p->~GC_Tp(); }
+};
+
+template<>
+class gc_allocator_ignore_off_page<void> {
+  typedef size_t      size_type;
+  typedef ptrdiff_t   difference_type;
+  typedef void*       pointer;
+  typedef const void* const_pointer;
+  typedef void        value_type;
+
+  template <class GC_Tp1> struct rebind {
+    typedef gc_allocator_ignore_off_page<GC_Tp1> other;
+  };
+};
+
+template <class GC_T1, class GC_T2>
+inline bool operator==(const gc_allocator_ignore_off_page<GC_T1>&, const gc_allocator_ignore_off_page<GC_T2>&)
+{
+  return true;
+}
+
+template <class GC_T1, class GC_T2>
+inline bool operator!=(const gc_allocator_ignore_off_page<GC_T1>&, const gc_allocator_ignore_off_page<GC_T2>&)
 {
   return false;
 }

@@ -17,17 +17,15 @@ dnl Process this file with autoconf to produce configure.
 # Initialization
 # ==============
 
-AC_INIT(gc,7.1,Hans.Boehm@hp.com) 
+AC_INIT(gc,7.2alpha3,Hans.Boehm@hp.com) 
     ## version must conform to [0-9]+[.][0-9]+(alpha[0-9]+)?
 AC_CONFIG_SRCDIR(gcj_mlc.c)
 AC_CANONICAL_TARGET 
 AC_PREREQ(2.53)
-AC_REVISION($Revision: 1.35 $)
+AC_REVISION($Revision: 1.44 $)
 GC_SET_VERSION
 AM_INIT_AUTOMAKE([foreign dist-bzip2 subdir-objects nostdinc])
 AM_MAINTAINER_MODE
-
-AM_CONFIG_HEADER([include/config.h])
 
 AC_SUBST(PACKAGE)
 AC_SUBST(GC_VERSION)
@@ -40,7 +38,6 @@ AM_PROG_AS
 AC_CHECK_TOOL(AR, ar)
 AC_CHECK_TOOL(RANLIB, ranlib, :)  # :)
 
-AC_PROG_LIBTOOL
 AC_PROG_INSTALL
 
 . ${srcdir}/configure.host
@@ -48,8 +45,8 @@ AC_PROG_INSTALL
 GC_CFLAGS=${gc_cflags}
 AC_SUBST(GC_CFLAGS)
 
-AC_ARG_ENABLE(boehm-threads,
-  [AC_HELP_STRING([--enable-boehm-threads=TYPE], [choose threading package])],
+AC_ARG_ENABLE(threads,
+  [AC_HELP_STRING([--enable-threads=TYPE], [choose threading package])],
   THREADS=$enableval,
   [ AC_MSG_CHECKING([for thread model used by GCC])
     THREADS=`$CC -v 2>&1 | sed -n 's/^Thread model: //p'`
@@ -83,31 +80,31 @@ case "$THREADS" in
     THREADS=posix
     THREADDLLIBS=-lpthread
     case "$host" in
-     x86-*-linux* | ia64-*-linux* | i586-*-linux* | i686-*-linux* | x86_64-*-linux* | alpha-*-linux*)
-	AC_DEFINE([GC_LINUX_THREADS], 1, [gc linux threads])
-	AC_DEFINE([_REENTRANT], 1, [reentrant])
+     x86-*-linux* | ia64-*-linux* | i586-*-linux* | i686-*-linux* | x86_64-*-linux* | alpha-*-linux* | sparc*-*-linux*)
+	AC_DEFINE(GC_LINUX_THREADS)
+	AC_DEFINE(_REENTRANT)
         if test "${enable_parallel_mark}" = yes; then
-	  AC_DEFINE([PARALLEL_MARK], 1, [parallel mark])
+	  AC_DEFINE(PARALLEL_MARK)
 	fi
-	AC_DEFINE([THREAD_LOCAL_ALLOC], 1, [thread local alloc])
+	AC_DEFINE(THREAD_LOCAL_ALLOC)
 	AC_MSG_WARN("Explict GC_INIT() calls may be required.");
 	;;
      *-*-linux*)
-	AC_DEFINE([GC_LINUX_THREADS], 1, [gc linux threads])
-	AC_DEFINE([_REENTRANT], 1, [reentrant])
+	AC_DEFINE(GC_LINUX_THREADS)
+	AC_DEFINE(_REENTRANT)
 	;;
      *-*-aix*)
-	AC_DEFINE([GC_AIX_THREADS], 1, [gc aix threads])
-	AC_DEFINE([_REENTRANT], 1, [reentrant])
+	AC_DEFINE(GC_AIX_THREADS)
+	AC_DEFINE(_REENTRANT)
 	;;
      *-*-hpux11*)
 	AC_MSG_WARN("Only HP/UX 11 POSIX threads are supported.")
-	AC_DEFINE([GC_HPUX_THREADS], 1, [gc hpux threads])
-	AC_DEFINE([_POSIX_C_SOURCE], 199506L, [posix c source])
+	AC_DEFINE(GC_HPUX_THREADS)
+	AC_DEFINE(_POSIX_C_SOURCE,199506L)
 	if test "${enable_parallel_mark}" = yes; then
-	  AC_DEFINE([PARALLEL_MARK], 1, [parallel mark])
+	  AC_DEFINE(PARALLEL_MARK)
 	fi
-	AC_DEFINE([THREAD_LOCAL_ALLOC], 1, [thread local alloc])
+	AC_DEFINE(THREAD_LOCAL_ALLOC)
 	AC_MSG_WARN("Explict GC_INIT() calls may be required.");
 	THREADDLLIBS="-lpthread -lrt"
 	# HPUX needs REENTRANT for the _r calls.
@@ -118,35 +115,35 @@ case "$THREADS" in
 	;;
      *-*-freebsd*)
 	AC_MSG_WARN("FreeBSD does not yet fully support threads with Boehm GC.")
-	AC_DEFINE([GC_FREEBSD_THREADS], 1, [gc freebsd threads])
+	AC_DEFINE(GC_FREEBSD_THREADS)
 	INCLUDES="$INCLUDES -pthread"
       	;;
      *-*-kfreebsd*-gnu)
-	AC_DEFINE([GC_FREEBSD_THREADS], 1, [gc freebsd threads])
+	AC_DEFINE(GC_FREEBSD_THREADS)
 	INCLUDES="$INCLUDES -pthread"
 	THREADDLLIBS=-pthread
-	AC_DEFINE([_REENTRANT], 1, [reentrant])
+	AC_DEFINE(_REENTRANT)
         if test "${enable_parallel_mark}" = yes; then
-	  AC_DEFINE([PARALLEL_MARK], 1, [parallel mark])
+	  AC_DEFINE(PARALLEL_MARK)
 	fi
-	AC_DEFINE([THREAD_LOCAL_ALLOC], 1, [thread local alloc])
-	AC_DEFINE([USE_COMPILER_TLS], 1, [use compiler tls])
+	AC_DEFINE(THREAD_LOCAL_ALLOC)
+	AC_DEFINE(USE_COMPILER_TLS)
       	;;
      *-*-gnu*)
-	AC_DEFINE([GC_GNU_THREADS], 1, [GC GNU threads])
+	AC_DEFINE(GC_GNU_THREADS)
 	AC_DEFINE(_REENTRANT)
 	AC_DEFINE(THREAD_LOCAL_ALLOC)
 	;;
      *-*-netbsd*)
 	AC_MSG_WARN("Only on NetBSD 2.0 or later.")
-	AC_DEFINE([GC_NETBSD_THREADS], 1, [GC NetBSD threads])
-	AC_DEFINE([_REENTRANT], 1, [reentrant])
-	AC_DEFINE([_PTHREADS], 1, [pthreads])
+	AC_DEFINE(GC_NETBSD_THREADS)
+	AC_DEFINE(_REENTRANT)
+	AC_DEFINE(_PTHREADS)
 	THREADDLLIBS="-lpthread -lrt"
 	;;
      *-*-solaris*)
-	AC_DEFINE([GC_SOLARIS_THREADS], 1, [gc solaris threads])
-	AC_DEFINE([THREAD_LOCAL_ALLOC], 1, [thread local alloc])
+	AC_DEFINE(GC_SOLARIS_THREADS)
+	AC_DEFINE(THREAD_LOCAL_ALLOC)
 	THREADDLLIBS="-lpthread -lrt"
 	if test "$GCC" != yes; then
           CFLAGS="$CFLAGS -O"
@@ -154,28 +151,28 @@ case "$THREADS" in
         fi
 	;;
      *-*-irix*)
-	AC_DEFINE([GC_IRIX_THREADS], 1, [gc irix threads])
+	AC_DEFINE(GC_IRIX_THREADS)
 	;;
      *-*-cygwin*)
-	AC_DEFINE([GC_WIN32_THREADS], 1, [gc win32 threads])
-	AC_DEFINE([THREAD_LOCAL_ALLOC], 1, [thread local alloc])
+	AC_DEFINE(GC_WIN32_THREADS)
+	AC_DEFINE(THREAD_LOCAL_ALLOC)
 	win32_threads=true
 	;;
      *-*-darwin*)
-	AC_DEFINE([GC_DARWIN_THREADS], 1, [gc darwin threads])
-	AC_DEFINE([THREAD_LOCAL_ALLOC], 1, [thread local alloc])
+	AC_DEFINE(GC_DARWIN_THREADS)
+	AC_DEFINE(THREAD_LOCAL_ALLOC)
 	AC_MSG_WARN("Explict GC_INIT() calls may be required.");
-        # Parallel-mark is currently unreliable on Darwin; ignore request
-        # if test "${enable_parallel_mark}" = yes; then
-        #   AC_DEFINE(PARALLEL_MARK)
-        # fi
+	# Parallel-mark is currently unreliable on Darwin; ignore request
+	# if test "${enable_parallel_mark}" = yes; then
+	#   AC_DEFINE(PARALLEL_MARK)
+	# fi
 	darwin_threads=true
 	;;
      *-*-osf*)
-	AC_DEFINE([GC_OSF1_THREADS], 1, [gc osf1 threads])
+	AC_DEFINE(GC_OSF1_THREADS)
         if test "${enable_parallel_mark}" = yes; then
-	  AC_DEFINE([PARALLEL_MARK], 1, [parallel mark])
-	  AC_DEFINE([THREAD_LOCAL_ALLOC], 1, [thread local alloc])
+	  AC_DEFINE(PARALLEL_MARK)
+	  AC_DEFINE(THREAD_LOCAL_ALLOC)
 	  AC_MSG_WARN("Explict GC_INIT() calls may be required.");
 	  # May want to enable it in other cases, too.
 	  # Measurements havent yet been done.
@@ -189,9 +186,10 @@ case "$THREADS" in
     esac
     ;;
  win32)
-    AC_DEFINE([GC_WIN32_THREADS], 1, [gc win32 threads])
+    AC_DEFINE(GC_WIN32_THREADS)
+    win32_threads=true
     dnl Wine getenv may not return NULL for missing entry
-    AC_DEFINE([NO_GETENV], 1, [no getenv])
+    AC_DEFINE(NO_GETENV)
     ;;
  dgux386)
     THREADS=dgux386
@@ -199,20 +197,20 @@ case "$THREADS" in
     # Use pthread GCC  switch
     THREADDLLIBS=-pthread
     if test "${enable_parallel_mark}" = yes; then
-        AC_DEFINE([PARALLEL_MARK], 1, [parallel mark])
+        AC_DEFINE(PARALLEL_MARK)
     fi
-    AC_DEFINE([THREAD_LOCAL_ALLOC], 1, [thread local alloc])
+    AC_DEFINE(THREAD_LOCAL_ALLOC)
     AC_MSG_WARN("Explict GC_INIT() calls may be required.");
-    AC_DEFINE([GC_DGUX386_THREADS], 1, [gc dgux386 threads])
-    AC_DEFINE([DGUX_THREADS], 1, [dgux threads])
+    AC_DEFINE(GC_DGUX386_THREADS)
+    AC_DEFINE(DGUX_THREADS)
     # Enable _POSIX4A_DRAFT10_SOURCE with flag -pthread
     INCLUDES="-pthread $INCLUDES"
     ;;
  aix)
     THREADS=posix
     THREADDLLIBS=-lpthread
-    AC_DEFINE([GC_AIX_THREADS], 1, [gc aix threads])
-    AC_DEFINE([_REENTRANT], 1, [reentrant])
+    AC_DEFINE(GC_AIX_THREADS)
+    AC_DEFINE(_REENTRANT)
     ;;
  decosf1 | irix | mach | os2 | solaris | dce | vxworks)
     AC_MSG_ERROR(thread package $THREADS not yet supported)
@@ -230,8 +228,6 @@ AM_CONDITIONAL(WIN32_THREADS, test x$win32_threads = xtrue)
 case "$host" in 
    powerpc-*-darwin*)
       powerpc_darwin=true
-      dnl CACAO: disable this for now
-      AC_DEFINE([DARWIN_DONT_PARSE_STACK], 1, [don't use FindTopOfStack])
       ;;
 esac
 
@@ -344,7 +340,7 @@ case "$TARGET_ECOS" in
    no)
       ;;
    *)
-      AC_DEFINE([ECOS], 1, [ecos])
+      AC_DEFINE(ECOS)
       CXXINCLUDES="-I${TARGET_ECOS}/include"
       addobjs="$addobjs ecos.lo"
       ;;
@@ -387,12 +383,12 @@ case "$host" in
     machdep="mach_dep.lo"
     ;;
  i?86-*-solaris2.[[89]] | i?86-*-solaris2.1?)
-    AC_DEFINE([SOLARIS25_PROC_VDB_BUG_FIXED], 1, [solaris 2.5 proc vdb bug fixed])
+    AC_DEFINE(SOLARIS25_PROC_VDB_BUG_FIXED)
     ;;
  mipstx39-*-elf*)
     machdep="mach_dep.lo"
-    AC_DEFINE([STACKBASE], __stackbase, [stackbase])
-    AC_DEFINE([DATASTART_IS_ETEXT], 1, [datastart is etext])
+    AC_DEFINE(STACKBASE, __stackbase)
+    AC_DEFINE(DATASTART_IS_ETEXT)
     ;;
  mips-dec-ultrix*)
     machdep="mach-dep.lo"
@@ -403,18 +399,24 @@ case "$host" in
     ;; 
  mips-*-*)
     machdep="mach_dep.lo"
-    AC_DEFINE([NO_EXECUTE_PERMISSION], 1, [no execute permission])
+    dnl AC_DEFINE(NO_EXECUTE_PERMISSION)
     dnl This is now redundant, but it is also important for incremental GC
     dnl performance under Irix.
+    ;;
+ sparc*-*-linux*)
+    machdep="mach_dep.lo sparc_mach_dep.lo"
     ;;
  sparc-*-netbsd*)
     machdep="mach_dep.lo sparc_netbsd_mach_dep.lo"
     ;;
+ sparc64-*-netbsd*)
+    machdep="mach_dep.lo sparc_mach_dep.lo"
+    ;;
  sparc-sun-solaris2.3)
     machdep="mach_dep.lo sparc_mach_dep.lo"
-    AC_DEFINE([SUNOS53_SHARED_LIB], 1, [sun os 5.3 shared lib])
+    AC_DEFINE(SUNOS53_SHARED_LIB)
     ;;
- sparc*-sun-solaris2.*)
+ sparc*-sun-solaris2*)
     machdep="mach_dep.lo sparc_mach_dep.lo"
     ;;
  ia64-*-*)
@@ -433,6 +435,7 @@ AC_PROG_LIBTOOL
 
 #
 # Check for AViiON Machines running DGUX
+# FIXME: Should this be moved down to below the gc-debug processing?
 #
 ac_is_dgux=no
 AC_CHECK_HEADER(sys/dg_sys_info.h,
@@ -440,7 +443,7 @@ AC_CHECK_HEADER(sys/dg_sys_info.h,
 
     ## :GOTCHA: we do not check anything but sys/dg_sys_info.h
 if test $ac_is_dgux = yes; then
-    if test "$enable_full_debug" = "yes"; then
+    if test "$enable_gc_debug" = "yes"; then
       CFLAGS="-g -mstandard -DDGUX -D_DGUX_SOURCE -Di386 -mno-legend -O2"
       CXXFLAGS="-g -mstandard -DDGUX -D_DGUX_SOURCE -Di386 -mno-legend -O2"
     else
@@ -497,8 +500,8 @@ esac
 
 dnl Include defines that have become de facto standard.
 dnl ALL_INTERIOR_POINTERS can be overridden in startup code.
-AC_DEFINE([NO_EXECUTE_PERMISSION], 1, [no exceute permission])
-AC_DEFINE([ALL_INTERIOR_POINTERS], 1, [all interior pointers])
+AC_DEFINE(NO_EXECUTE_PERMISSION)
+AC_DEFINE(ALL_INTERIOR_POINTERS)
 
 
 dnl Interface Selection
@@ -515,11 +518,43 @@ if test x"$enable_gcj_support" != xno; then
     AC_DEFINE(GC_GCJ_SUPPORT, 1, [Define to include support for gcj])
 fi
 
+dnl Debugging
+dnl ---------
+
+UNWINDLIBS=
+AC_ARG_ENABLE(gc-debug,
+[AC_HELP_STRING([--enable-gc-debug],
+    [include full support for pointer backtracing etc.])],
+[ if test "$enable_gc_debug" = "yes"; then
+    AC_MSG_WARN("Should define GC_DEBUG and use debug alloc. in clients.")
+    AC_DEFINE(KEEP_BACK_PTRS)
+    AC_DEFINE(DBG_HDRS_ALL)
+    case $host in
+      ia64-*-linux* )
+	AC_DEFINE(MAKE_BACK_GRAPH)
+	AC_DEFINE(SAVE_CALL_COUNT, 8)
+        AC_CHECK_LIB(unwind, backtrace, [
+	  AC_DEFINE(GC_HAVE_BUILTIN_BACKTRACE)
+	  UNWINDLIBS=-lunwind
+	  AC_MSG_WARN("Client code may need to link against libunwind.")
+	])
+      ;;
+      x86-*-linux* | i586-*-linux* | i686-*-linux* | x86_64-*-linux* )
+	AC_DEFINE(MAKE_BACK_GRAPH)
+	AC_MSG_WARN("Client must not use -fomit-frame-pointer.")
+	AC_DEFINE(SAVE_CALL_COUNT, 8)
+      ;;
+      i[3456]86-*-dgux*)
+	AC_DEFINE(MAKE_BACK_GRAPH)
+      ;;
+    esac ]
+  fi)
+
 AC_ARG_ENABLE(java-finalization,
     [AC_HELP_STRING([--disable-java-finalization],
 	[Disable support for java finalization.])])
 if test x"$enable_java_finalization" != xno; then
-    AC_DEFINE([JAVA_FINALIZATION], 1, [java finalization])
+    AC_DEFINE(JAVA_FINALIZATION)
 fi
 
 AC_ARG_ENABLE(atomic-uncollectable,
@@ -535,14 +570,14 @@ AC_ARG_ENABLE(redirect-malloc,
 	[Redirect malloc and friends to GC routines])])
 
 if test "${enable_redirect_malloc}" = yes; then
-    if test "${enable_full_debug}" = yes; then
-	AC_DEFINE([REDIRECT_MALLOC], GC_debug_malloc_replacement, [redirect malloc])
-	AC_DEFINE([REDIRECT_REALLOC], GC_debug_realloc_replacement, [redirect realloc])
-	AC_DEFINE([REDIRECT_FREE], GC_debug_free, [redirect free])
+    if test "${enable_gc_debug}" = yes; then
+	AC_DEFINE(REDIRECT_MALLOC, GC_debug_malloc_replacement)
+	AC_DEFINE(REDIRECT_REALLOC, GC_debug_realloc_replacement)
+	AC_DEFINE(REDIRECT_FREE, GC_debug_free)
     else
-	AC_DEFINE([REDIRECT_MALLOC], GC_malloc, [redirect malloc])
+	AC_DEFINE(REDIRECT_MALLOC, GC_malloc)
     fi
-    AC_DEFINE([GC_USE_DLOPEN_WRAP], 1, [gc use dlopen wrap])
+    AC_DEFINE(GC_USE_DLOPEN_WRAP)
 fi
 
 AC_ARG_ENABLE(large-config,
@@ -557,43 +592,11 @@ dnl This is something of a hack.  When cross-compiling we turn off
 dnl some functionality.  We also enable the "small" configuration.
 dnl These is only correct when targetting an embedded system.  FIXME.
 if test -n "${with_cross_host}"; then
-   AC_DEFINE([NO_CLOCK], 1, [no clock])
-   AC_DEFINE([SMALL_CONFIG], 1, [small config])
-   AC_DEFINE([NO_DEBUGGING], 1, [no debugging])
+   AC_DEFINE(NO_CLOCK)
+   AC_DEFINE(SMALL_CONFIG)
+   AC_DEFINE(NO_DEBUGGING)
 fi
 
-
-dnl Debugging
-dnl ---------
-
-UNWINDLIBS=
-AC_ARG_ENABLE(gc-debug,
-[AC_HELP_STRING([--enable-gc-debug],
-    [include full support for pointer backtracing etc.])],
-[ if test "$enable_gc_debug" = "yes"; then
-    AC_MSG_WARN("Should define GC_DEBUG and use debug alloc. in clients.")
-    AC_DEFINE([KEEP_BACK_PTRS], 1, [keep back ptrs])
-    AC_DEFINE([DBG_HDRS_ALL], 1, [dbg hdrs all])
-    case $host in
-      ia64-*-linux* )
-	AC_DEFINE([MAKE_BACK_GRAPH], 1, [make back graph])
-	AC_DEFINE([SAVE_CALL_COUNT], 8, [save call count])
-        AC_CHECK_LIB(unwind, backtrace, [
-	  AC_DEFINE([GC_HAVE_BUILTIN_BACKTRACE], 1, [have builtin backtrace])
-	  UNWINDLIBS=-lunwind
-	  AC_MSG_WARN("Client code may need to link against libunwind.")
-	])
-      ;;
-      x86-*-linux* | i586-*-linux* | i686-*-linux* | x86_64-*-linux* )
-	AC_DEFINE([MAKE_BACK_GRAPH], 1, [make back graph])
-	AC_MSG_WARN("Client must not use -fomit-frame-pointer.")
-	AC_DEFINE([SAVE_CALL_COUNT], 8, [save call count])
-      ;;
-      i[3456]86-*-dgux*)
-	AC_DEFINE([MAKE_BACK_GRAPH], 1, [make back graph])
-      ;;
-    esac ]
-  fi)
 
 AC_SUBST(UNWINDLIBS)
 
@@ -601,7 +604,7 @@ AC_ARG_ENABLE(gc-assertions,
     [AC_HELP_STRING([--enable-gc-assertions],
 	[collector-internal assertion checking])])
 if test "${enable_gc_assertions}" = yes; then
-    AC_DEFINE([GC_ASSERTIONS], 1, [gc assertions])
+    AC_DEFINE(GC_ASSERTIONS)
 fi
 
 AC_ARG_ENABLE(munmap,
@@ -615,12 +618,12 @@ AC_ARG_ENABLE(munmap,
     esac]
    )
 if test "${enable_munmap}" != ""; then
-    AC_DEFINE([USE_MMAP], 1, [use mmap])
-    AC_DEFINE([USE_MUNMAP], 1, [ use munmap])
+    AC_DEFINE(USE_MMAP)
+    AC_DEFINE(USE_MUNMAP)
     if test "${MUNMAP_THRESHOLD}" = "yes"; then
       MUNMAP_THRESHOLD=6
     fi
-    AC_DEFINE_UNQUOTED([MUNMAP_THRESHOLD], ${MUNMAP_THRESHOLD}, [munmap threshold])
+    AC_DEFINE_UNQUOTED(MUNMAP_THRESHOLD, ${MUNMAP_THRESHOLD})
 fi
 
 AM_CONDITIONAL(USE_LIBDIR, test -z "$with_cross_host")

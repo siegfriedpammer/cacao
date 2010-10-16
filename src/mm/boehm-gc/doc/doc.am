@@ -16,7 +16,7 @@
 
 # installed documentation
 #
-dist_noinst_DATA = \
+dist_pkgdata_DATA = \
 	doc/barrett_diagram \
 	doc/debugging.html \
 	doc/gc.man \

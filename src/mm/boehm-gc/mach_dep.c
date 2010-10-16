@@ -12,9 +12,6 @@
  * modified is included with the above copyright notice.
  */
 /* Boehm, November 17, 1995 12:13 pm PST */
-
-#include "config.h"
-
 # include "private/gc_priv.h"
 # include <stdio.h>
 # include <setjmp.h>
@@ -72,7 +69,7 @@ asm static void PushMacRegisters()
 # endif
 
 /* Routine to mark from registers that are preserved by the C compiler. */
-/* This must be ported to every new architecture.  It is noe optional,	*/
+/* This must be ported to every new architecture.  It is not optional,	*/
 /* and should not be used on platforms that are either UNIX-like, or	*/
 /* require thread support.						*/
 
@@ -162,8 +159,20 @@ void GC_push_regs()
 # undef HAVE_PUSH_REGS
 #endif
 
+#if defined(UNIX_LIKE) && !defined(NO_GETCONTEXT) &&  \
+	(defined(DARWIN) || defined(HURD) || defined(ARM32) || defined(MIPS))
+#  define NO_GETCONTEXT
+#endif
+
+#if defined(LINUX) && defined(SPARC) && !defined(NO_GETCONTEXT)
+#  define NO_GETCONTEXT
+#endif
+
 #if !defined(HAVE_PUSH_REGS) && defined(UNIX_LIKE)
-# include <ucontext.h>
+# include <signal.h>
+# ifndef NO_GETCONTEXT
+#   include <ucontext.h>
+# endif
 #endif
 
 /* Ensure that either registers are pushed, or callee-save registers	*/
@@ -177,10 +186,10 @@ void GC_with_callee_saves_pushed(void (*fn)(ptr_t, void *),
 
 #   if defined(HAVE_PUSH_REGS)
       GC_push_regs();
-#   elif defined(UNIX_LIKE) && !defined(DARWIN) && !defined(ARM32) && \
-	 !defined(MIPS) && !defined(HURD)
+#   elif defined(UNIX_LIKE) && !defined(NO_GETCONTEXT)
       /* Older versions of Darwin seem to lack getcontext(). */
-      /* ARM Linux often doesn't support a real getcontext(). */
+      /* ARM and MIPS Linux often doesn't support a real     */
+      /* getcontext(). 					     */
       ucontext_t ctxt;
       if (getcontext(&ctxt) < 0)
 	ABORT ("Getcontext failed: Use another register retrieval method?");
@@ -193,10 +202,13 @@ void GC_with_callee_saves_pushed(void (*fn)(ptr_t, void *),
           GC_save_regs_ret_val = GC_save_regs_in_stack();
         }
 #     endif /* register windows. */
-#   elif defined(HAVE_BUILTIN_UNWIND_INIT)
+#   elif defined(HAVE_BUILTIN_UNWIND_INIT) && \
+ 	 !(defined(POWERPC) && defined(DARWIN))
       /* This was suggested by Richard Henderson as the way to	*/
       /* force callee-save registers and register windows onto	*/
       /* the stack.						*/
+      /* Mark Sibly points out that this doesn't seem to work	*/
+      /* on MacOS 10.3.9/PowerPC.				*/
       __builtin_unwind_init();
 #   else /* !HAVE_BUILTIN_UNWIND_INIT && !UNIX_LIKE  */
          /* && !HAVE_PUSH_REGS			     */
@@ -230,11 +242,6 @@ void GC_with_callee_saves_pushed(void (*fn)(ptr_t, void *),
     /* as a tail-call, since that would pop the register 	*/
     /* contents before we get a chance to look at them.		*/
     GC_noop1((word)(&dummy));
-}
-
-void GC_push_regs_and_stack(ptr_t cold_gc_frame)
-{
-    GC_with_callee_saves_pushed(GC_push_current_stack, cold_gc_frame);
 }
 
 #if defined(ASM_CLEAR_CODE)

@@ -40,17 +40,6 @@
 # define GC_USE_LD_WRAP
 #endif
 
-#if !defined(_REENTRANT) && (defined(GC_SOLARIS_THREADS) \
-			     || defined(GC_HPUX_THREADS) \
-			     || defined(GC_AIX_THREADS) \
-			     || defined(GC_LINUX_THREADS) \
-			     || defined(GC_NETBSD_THREADS) \
-			     || defined(GC_GNU_THREADS))
-# define _REENTRANT
-	/* Better late than never.  This fails if system headers that	*/
-	/* depend on this were previously included.			*/
-#endif
-
 #if !defined(_PTHREADS) && defined(GC_NETBSD_THREADS)
 # define _PTHREADS
 #endif
@@ -94,7 +83,8 @@
 #   define GC_PTHREADS
 # endif
 # if defined(__sparc) && !defined(__linux__) \
-     || defined(sun) && (defined(i386) || defined(__i386__))
+     || defined(sun) && (defined(i386) || defined(__i386__) \
+     			|| defined(__amd64__))
 #   define GC_SOLARIS_THREADS
 #   define GC_PTHREADS
 # endif
@@ -120,6 +110,17 @@
 # endif
 #endif /* GC_THREADS */
 
+#if !defined(_REENTRANT) && (defined(GC_SOLARIS_THREADS) \
+			     || defined(GC_HPUX_THREADS) \
+			     || defined(GC_AIX_THREADS) \
+			     || defined(GC_LINUX_THREADS) \
+			     || defined(GC_NETBSD_THREADS) \
+			     || defined(GC_GNU_THREADS))
+# define _REENTRANT
+	/* Better late than never.  This fails if system headers that	*/
+	/* depend on this were previously included.			*/
+#endif
+
 #if defined(GC_THREADS) && !defined(GC_PTHREADS) && !defined(GC_WIN32_THREADS) \
     && (defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) \
      || defined(__MINGW32__) || defined(__BORLANDC__) \
@@ -140,7 +141,7 @@
       /* as well?						    */
 #   endif
 # else /* ! _WIN32_WCE */
-/* Yet more kluges for WinCE */
+/* Yet more kludges for WinCE */
 #   include <stdlib.h>		/* size_t is defined here */
     typedef long ptrdiff_t;	/* ptrdiff_t is not defined */
 # endif
@@ -157,7 +158,8 @@
 # endif
 #endif
 
-#if (defined(__DMC__) || defined(_MSC_VER)) && defined(GC_DLL)
+#if (defined(__DMC__) || defined(_MSC_VER) || defined(__BORLANDC__)) \
+    && defined(GC_DLL)
 # ifdef GC_BUILD
 #   define GC_API extern __declspec(dllexport)
 # else
@@ -174,6 +176,13 @@
 #endif
 
 #ifndef GC_API
-#define GC_API extern
+# define GC_API extern
 #endif
 
+#ifndef GC_CALL
+# define GC_CALL
+#endif
+
+#ifndef GC_CALLBACK
+# define GC_CALLBACK GC_CALL
+#endif
