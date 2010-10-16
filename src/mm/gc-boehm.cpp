@@ -1,6 +1,6 @@
 /* src/mm/gc-boehm.cpp - interface for boehm gc
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -35,6 +35,9 @@
 #endif
 #if defined(ENABLE_THREADS) && defined(__DARWIN__)
 #define GC_DARWIN_THREADS
+#endif
+#if defined(ENABLE_THREADS) && defined(__SOLARIS__)
+#define GC_SOLARIS_THREADS
 #endif
 
 #include "boehm-gc/include/gc.h"
@@ -270,4 +273,5 @@ void *gc_out_of_memory(size_t bytes_requested)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

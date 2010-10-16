@@ -98,6 +98,8 @@ typedef struct {
 # define GC_IRIX_THREADS
 #elif defined(__DARWIN__)
 # define GC_DARWIN_THREADS
+#elif defined(__SOLARIS__)
+# define GC_SOLARIS_THREADS
 #endif
 
 #if defined(ENABLE_GC_BOEHM)
