@@ -23,7 +23,7 @@ dnl 02110-1301, USA.
 dnl Process this file with autoconf to produce a configure script.
 
 
-AC_INIT(cacao, 1.1.0pre1, cacao@cacaojvm.org)
+AC_INIT(cacao, 1.1.0pre2, cacao@cacaojvm.org)
 AC_CONFIG_SRCDIR(src/cacao/cacao.cpp)
 AC_CONFIG_AUX_DIR([.])
 AC_CANONICAL_HOST
@@ -579,6 +579,7 @@ AC_CHECK_ENABLE_ASSERTION
 
 dnl This one depends on AC_CHECK_ENABLE_ZLIB.
 AC_CHECK_WITH_VM_ZIP
+AC_CHECK_WITH_HGREV
 
 AC_CHECK_WITH_JAVA_RUNTIME_LIBRARY
 

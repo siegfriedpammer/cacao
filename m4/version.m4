@@ -37,11 +37,16 @@ else
     micro=0
     extra=`echo "$version" | $SED -e 's/^[[0-9]]*\.[[0-9]]*//'`
 fi
+if test ! "x$CACAO_HGREV" = "x";
+then
+    extra="$extra.hg$CACAO_HGREV"
+fi
 
 AC_DEFINE_UNQUOTED(VERSION_MAJOR, $major, [major version number])
 AC_DEFINE_UNQUOTED(VERSION_MINOR, $minor, [minor version number])
 AC_DEFINE_UNQUOTED(VERSION_MICRO, $micro, [micro version number])
 AC_DEFINE_UNQUOTED(VERSION_EXTRA, "$extra", [extra version info])
+AC_DEFINE_UNQUOTED(VERSION_FULL, "$major.$minor.$micro$extra", [full version info])
 ])
 
 

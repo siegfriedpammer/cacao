@@ -314,7 +314,7 @@ Properties::Properties()
 	put("java.vm.specification.version", "1.0");
 	put("java.vm.specification.vendor", "Sun Microsystems Inc.");
 	put("java.vm.specification.name", "Java Virtual Machine Specification");
-	put("java.vm.version", VERSION);
+	put("java.vm.version", VERSION_FULL);
 	put("java.vm.vendor", "CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO");
 	put("java.vm.name", "CACAO");
 
@@ -346,7 +346,7 @@ Properties::Properties()
 
 	uname(utsnamebuf);
 
-	put("java.runtime.version", VERSION);
+	put("java.runtime.version", VERSION_FULL);
 	put("java.runtime.name", "CACAO");
 
 	put("java.specification.version", "1.5");

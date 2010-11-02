@@ -64,7 +64,7 @@ void ThreadList::dump_threads()
 	// Lock the thread lists.
 	lock();
 
-	printf("Full thread dump CACAO "VERSION":\n");
+	printf("Full thread dump CACAO "VERSION_FULL":\n");
 
 	// Iterate over all started threads.
 	threadobject* self = THREADOBJECT;
