@@ -25,7 +25,7 @@ aclocal$am_version
 autoconf
 autoheader
 automake$am_version -ac
-libtoolize --automake --force
+libtoolize --automake --force --copy
 set +x
 echo
 echo "Ready to run './configure'."
