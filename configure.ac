@@ -44,7 +44,7 @@ alpha | alphaev56 | alphapca56 )
     JAVA_ARCH="alpha"
     ;;
 
-arm | armv4* | armv5* | armv6* )
+arm | armv4* | armv5* | armv6* | armv7* )
     ARCH_DIR="arm"
     ARCH_FLAGS="-D__ARM__"
     JAVA_ARCH="arm"
