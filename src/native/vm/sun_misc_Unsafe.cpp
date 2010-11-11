@@ -1013,12 +1013,34 @@ JNIEXPORT jboolean JNICALL Java_sun_misc_Unsafe_getBooleanVolatile(JNIEnv* env, 
 
 /*
  * Class:     sun/misc/Unsafe
+ * Method:    putBooleanVolatile
+ * Signature: (Ljava/lang/Object;JZ)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putBooleanVolatile (JNIEnv *env, jobject _this, jobject o, jlong offset, jboolean x)
+{
+	FieldAccess::set_volatile(o, offset, x);
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
  * Method:    getByteVolatile
  * Signature: (Ljava/lang/Object;J)B
  */
 JNIEXPORT jbyte JNICALL Java_sun_misc_Unsafe_getByteVolatile(JNIEnv* env, jobject _this, jobject o, jlong offset)
 {
 	return FieldAccess::get_volatile<int32_t>(o, offset);
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    putByteVolatile
+ * Signature: (Ljava/lang/Object;JB)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putByteVolatile (JNIEnv *env, jobject _this, jobject o, jlong offset, jbyte x)
+{
+	FieldAccess::set_volatile(o, offset, x);
 }
 
 
@@ -1035,12 +1057,34 @@ JNIEXPORT jshort JNICALL Java_sun_misc_Unsafe_getShortVolatile(JNIEnv* env, jobj
 
 /*
  * Class:     sun/misc/Unsafe
+ * Method:    putShortVolatile
+ * Signature: (Ljava/lang/Object;JS)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putShortVolatile (JNIEnv *env, jobject _this, jobject o, jlong offset, jshort x)
+{
+	FieldAccess::set_volatile(o, offset, x);
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
  * Method:    getCharVolatile
  * Signature: (Ljava/lang/Object;J)C
  */
 JNIEXPORT jchar JNICALL Java_sun_misc_Unsafe_getCharVolatile(JNIEnv* env, jobject _this, jobject o, jlong offset)
 {
 	return FieldAccess::get_volatile<int32_t>(o, offset);
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    putCharVolatile
+ * Signature: (Ljava/lang/Object;JC)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putCharVolatile (JNIEnv *env, jobject _this, jobject o, jlong offset, jchar x)
+{
+	FieldAccess::set_volatile(o, offset, x);
 }
 
 
@@ -1101,12 +1145,34 @@ JNIEXPORT jfloat JNICALL Java_sun_misc_Unsafe_getFloatVolatile(JNIEnv* env, jobj
 
 /*
  * Class:     sun/misc/Unsafe
+ * Method:    putFloatVolatile
+ * Signature: (Ljava/lang/Object;JF)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putFloatVolatile (JNIEnv *env, jobject _this, jobject o, jlong offset, jfloat x)
+{
+	FieldAccess::set_volatile(o, offset, x);
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
  * Method:    getDoubleVolatile
  * Signature: (Ljava/lang/Object;J)D
  */
 JNIEXPORT jdouble JNICALL Java_sun_misc_Unsafe_getDoubleVolatile(JNIEnv *env, jobject _this, jobject o, jlong offset)
 {
 	return FieldAccess::get_volatile<double>(o, offset);
+}
+
+
+/*
+ * Class:     sun/misc/Unsafe
+ * Method:    putDoubleVolatile
+ * Signature: (Ljava/lang/Object;JD)V
+ */
+JNIEXPORT void JNICALL Java_sun_misc_Unsafe_putDoubleVolatile (JNIEnv *env, jobject _this, jobject o, jlong offset, jdouble x)
+{
+	FieldAccess::set_volatile(o, offset, x);
 }
 
 
@@ -1266,15 +1332,21 @@ static JNINativeMethod methods[] = {
 	{ (char*) "getObjectVolatile",      (char*) "(Ljava/lang/Object;J)Ljava/lang/Object;",                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_getObjectVolatile                },
 	{ (char*) "putObjectVolatile",      (char*) "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void*) (uintptr_t) &Java_sun_misc_Unsafe_putObjectVolatile                },
 	{ (char*) "getBooleanVolatile",     (char*) "(Ljava/lang/Object;J)Z",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getBooleanVolatile               },
+	{ (char*) "putBooleanVolatile",     (char*) "(Ljava/lang/Object;JZ)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putBooleanVolatile               },
 	{ (char*) "getByteVolatile",        (char*) "(Ljava/lang/Object;J)B",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getByteVolatile                  },
+	{ (char*) "putByteVolatile",        (char*) "(Ljava/lang/Object;JB)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putByteVolatile                  },
 	{ (char*) "getShortVolatile",       (char*) "(Ljava/lang/Object;J)S",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getShortVolatile                 },
+	{ (char*) "putShortVolatile",       (char*) "(Ljava/lang/Object;JS)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putShortVolatile                 },
 	{ (char*) "getCharVolatile",        (char*) "(Ljava/lang/Object;J)C",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getCharVolatile                  },
+	{ (char*) "putCharVolatile",        (char*) "(Ljava/lang/Object;JC)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putCharVolatile                  },
 	{ (char*) "getIntVolatile",         (char*) "(Ljava/lang/Object;J)I",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getIntVolatile                   },
 	{ (char*) "putIntVolatile",         (char*) "(Ljava/lang/Object;JI)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putIntVolatile                   },
 	{ (char*) "getLongVolatile",        (char*) "(Ljava/lang/Object;J)J",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getLongVolatile                  },
 	{ (char*) "putLongVolatile",        (char*) "(Ljava/lang/Object;JJ)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putLongVolatile                  },
 	{ (char*) "getFloatVolatile",       (char*) "(Ljava/lang/Object;J)F",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getFloatVolatile                 },
+	{ (char*) "putFloatVolatile",       (char*) "(Ljava/lang/Object;JF)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putFloatVolatile                 },
 	{ (char*) "getDoubleVolatile",      (char*) "(Ljava/lang/Object;J)D",                                     (void*) (uintptr_t) &Java_sun_misc_Unsafe_getDoubleVolatile                },
+	{ (char*) "putDoubleVolatile",      (char*) "(Ljava/lang/Object;JD)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putDoubleVolatile                },
 	{ (char*) "putOrderedObject",       (char*) "(Ljava/lang/Object;JLjava/lang/Object;)V",                   (void*) (uintptr_t) &Java_sun_misc_Unsafe_putOrderedObject                 },
 	{ (char*) "putOrderedInt",          (char*) "(Ljava/lang/Object;JI)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putOrderedInt                    },
 	{ (char*) "putOrderedLong",         (char*) "(Ljava/lang/Object;JJ)V",                                    (void*) (uintptr_t) &Java_sun_misc_Unsafe_putOrderedLong                   },
