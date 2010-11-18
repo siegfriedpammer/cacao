@@ -1,9 +1,7 @@
 /* src/vm/jit/arm/arch.h - architecture defines for arm
 
-   Copyright (C) 1996-2005, 2006, 2007 R. Grafl, A. Krall, C. Kruegel,
-   C. Oates, R. Obermaisser, M. Platter, M. Probst, S. Ring,
-   E. Steiner, C. Thalinger, D. Thuernbeck, P. Tomsich, C. Ullrich,
-   J. Wenninger, Institut f. Computersprachen - TU Wien
+   Copyright (C) 1996-2010
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
 
@@ -49,7 +47,7 @@
 #define SUPPORT_D2L                      0
 
 #define SUPPORT_LONG_ADD                 1
-#define SUPPORT_LONG_CMP                 1
+#define SUPPORT_LONG_CMP                 0
 #define SUPPORT_LONG_CMP_CONST           1
 #define SUPPORT_LONG_LOGICAL             1
 #define SUPPORT_LONG_SHIFT               0

@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/arch.h - architecture defines for x86_64
 
-   Copyright (C) 1996-2008, 2009
+   Copyright (C) 1996-2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -49,7 +49,7 @@
 #define SUPPORT_D2L                      0
 
 #define SUPPORT_LONG_ADD                 1
-#define SUPPORT_LONG_CMP                 1
+#define SUPPORT_LONG_CMP                 0
 #define SUPPORT_LONG_CMP_CONST           1
 #define SUPPORT_LONG_LOGICAL             1
 #define SUPPORT_LONG_SHIFT               1
