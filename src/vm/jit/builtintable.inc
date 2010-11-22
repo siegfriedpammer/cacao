@@ -1,6 +1,6 @@
 /* src/vm/jit/builtintable.inc - tables of builtin functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -95,6 +95,21 @@ static builtintable_entry builtintable_internal[] = {
 		NULL
 	},
 #endif
+
+	{
+		ICMD_LCMP,
+		0,
+		BUILTIN_lcmp,
+		NULL,
+		NULL,
+		"lcmp",
+		"(JJ)I",
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL
+	},
 
 #if !SUPPORT_DIVISION || defined(DISABLE_GC)
 	{

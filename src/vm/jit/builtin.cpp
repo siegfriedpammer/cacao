@@ -1409,7 +1409,6 @@ s8 builtin_lxor(s8 a, s8 b)
 #endif /* !(SUPPORT_LONG && SUPPORT_LONG_LOGICAL) */
 
 
-#if !(SUPPORT_LONG && SUPPORT_LONG_CMP)
 s4 builtin_lcmp(s8 a, s8 b)
 { 
 	if (a < b)
@@ -1420,7 +1419,6 @@ s4 builtin_lcmp(s8 a, s8 b)
 
 	return 0;
 }
-#endif /* !(SUPPORT_LONG && SUPPORT_LONG_CMP) */
 
 
 /* functions for unsupported floating instructions ****************************/

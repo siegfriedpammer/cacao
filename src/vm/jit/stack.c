@@ -4003,7 +4003,15 @@ icmd_DUP_X2:
 						break;
 normal_LCMP:
 #endif /* SUPPORT_LONG_CMP_CONST */
-							OP2_1(TYPE_LNG, TYPE_LNG, TYPE_INT);
+						bte = builtintable_get_internal(BUILTIN_lcmp);
+
+						iptr->opc            = ICMD_BUILTIN;
+						iptr->flags.bits    &= INS_FLAG_ID_MASK;
+						iptr->sx.s23.s3.bte  = bte;
+						/* iptr->line is already set */
+						code_unflag_leafmethod(code);
+						goto icmd_BUILTIN;
+
 						break;
 
 					case ICMD_FCMPL:
