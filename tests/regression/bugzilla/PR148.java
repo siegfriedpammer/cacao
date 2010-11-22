@@ -1,6 +1,6 @@
-/* tests/regression/bugzilla/All.java - runs all CACAO regression unit tests
+/* tests/regression/bugzilla/PR148.java
 
-   Copyright (C) 2008, 2009
+   Copyright (C) 2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -23,27 +23,12 @@
 */
 
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-@RunWith(Suite.class)
-
-@Suite.SuiteClasses({
-PR52.class,
-PR57.class,
-PR58.class,
-PR65.class,
-PR80.class,
-PR89.class,
-PR112.class,
-PR113.class,
-PR114.class,
-PR116.class,
-PR119.class,
-PR125.class,
-PR131.class,
-PR148.class
-})
-
-public class All {
+public class PR148 {
+    @Test
+    public void test() {
+        assertEquals(-1L, (long) testlcmp.compare(5, 7));
+    }
 }

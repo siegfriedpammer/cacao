@@ -34,7 +34,8 @@ CLEANFILES = \
 check: build run
 
 build:
-	$(JAVACCMD) -classpath $(JUNIT_JAR) -d . $(srcdir)/*.java
+	$(JAVACMD) -cp $(JASMIN_JAR) jasmin.Main $(srcdir)/*.j
+	$(JAVACCMD) -classpath $(JUNIT_JAR):$(srcdir) -d . $(srcdir)/*.java
 
 run:
 	$(JAVACMD) -classpath $(JUNIT_JAR):. org.junit.runner.JUnitCore All
