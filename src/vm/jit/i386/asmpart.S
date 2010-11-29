@@ -177,8 +177,20 @@ L_asm_vm_call_method_return:
 	ret
 
 asm_vm_call_method_exception_handler:
+#if defined(ENABLE_PIC_ASM)
+	sub     $12, %esp
+	push    %ebx
+#endif
 	push    xptr                        /* pass exception pointer             */
+#if defined(ENABLE_PIC_ASM)
+	call    .GETPC
+	add     $_GLOBAL_OFFSET_TABLE_, %ebx
+	call    builtin_throw_exception@PLT
+	pop     %ebx
+	add     $12, %esp
+#else
 	call    builtin_throw_exception
+#endif
 	add     $4,sp
 asm_vm_call_method_end:
 	jmp     L_asm_vm_call_method_return
@@ -217,7 +229,13 @@ L_asm_handle_exception_stack_loop:
 	mov     t0,8*4(sp)                  /* save maybe-leaf flag               */
 
 	mov     xpc,0*4(sp)                 /* pass exception pc                  */
+#if defined(ENABLE_PIC_ASM)
+	call    .GETPC
+	add     $_GLOBAL_OFFSET_TABLE_, %ebx
+	call    methodtree_find@PLT
+#else
 	call    methodtree_find
+#endif
 	mov     v0,6*4(sp)                  /* save data segment pointer          */
 
 	mov     4*4(sp),itmp3               /* pass exception pointer             */
@@ -227,7 +245,12 @@ L_asm_handle_exception_stack_loop:
 	mov     v0,2*4(sp)                  /* pass data segment pointer          */
 	mov     7*4(sp),itmp3               /* pass Java stack pointer            */
 	mov     itmp3,3*4(sp)
+#if defined(ENABLE_PIC_ASM)
+	/* GOT still in %ebx */
+	call    exceptions_handle_exception@PLT
+#else
 	call    exceptions_handle_exception
+#endif
 
 	test    v0,v0
 	jz      L_asm_handle_exception_not_catched
@@ -337,7 +360,13 @@ asm_abstractmethoderror:
 	mov     3*4(sp),itmp2               /* pass exception address             */
 	sub     $2,itmp2
 	mov     itmp2,1*4(sp)
+#if defined(ENABLE_PIC_ASM)
+	call    .GETPC
+	add     $_GLOBAL_OFFSET_TABLE_, %ebx
+	call	exceptions_asm_new_abstractmethoderror@PLT
+#else
 	call	exceptions_asm_new_abstractmethoderror
+#endif
 	                                    /* exception pointer is return value  */
 	add     $(3*4),sp                   /* remove stack frame                 */
 
@@ -352,31 +381,81 @@ asm_abstractmethoderror:
 *                                                                              *
 *******************************************************************************/
 
+#if defined(ENABLE_PIC_ASM)
+.GETPC:
+	mov     (%esp), %ebx
+	ret
+#endif
+
 asm_builtin_f2i:
 	sub     $(3*4),%esp
+#if defined(ENABLE_PIC_ASM)
+	sub     $12, %esp
+	push    %ebx
+	fsts    (%esp)
+	call    .GETPC
+	add     $_GLOBAL_OFFSET_TABLE_, %ebx
+	call    builtin_f2i@PLT
+	pop     %ebx
+	add     $12, %esp
+#else
 	fsts    (%esp)
 	call    builtin_f2i
+#endif
 	add     $(3*4),%esp
 	ret
 
 asm_builtin_d2i:
 	sub     $(3*4),%esp
+#if defined(ENABLE_PIC_ASM)
+	sub     $12, %esp
+	push    %ebx
+	fstl    (%esp)
+	call    .GETPC
+	add     $_GLOBAL_OFFSET_TABLE_, %ebx
+	call    builtin_d2i@PLT
+	pop     %ebx
+	add     $12, %esp
+#else
 	fstl    (%esp)
 	call    builtin_d2i
+#endif
 	add     $(3*4),%esp
 	ret
 
 asm_builtin_f2l:
 	sub     $(3*4),%esp
+#if defined(ENABLE_PIC_ASM)
+	sub     $12, %esp
+	push    %ebx
+	fsts    (%esp)
+	call    .GETPC
+	add     $_GLOBAL_OFFSET_TABLE_, %ebx
+	call    builtin_f2l@PLT
+	pop     %ebx
+	add     $12, %esp
+#else
 	fsts    (%esp)
 	call    builtin_f2l
+#endif
 	add     $(3*4),%esp
 	ret
 
 asm_builtin_d2l:
 	sub     $(3*4),%esp
+#if defined(ENABLE_PIC_ASM)
+	sub     $12, %esp
+	push    %ebx
+	fstl    (%esp)
+	call    .GETPC
+	add     $_GLOBAL_OFFSET_TABLE_, %ebx
+	call    builtin_d2l@PLT
+	pop     %ebx
+	add     $12, %esp
+#else
 	fstl    (%esp)
 	call    builtin_d2l
+#endif
 	add     $(3*4),%esp
 	ret
 

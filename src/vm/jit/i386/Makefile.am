@@ -33,6 +33,10 @@ SUBDIRS = $(OS_DIR)
 AM_CPPFLAGS = -I$(top_srcdir)/src -I$(top_builddir) -I$(top_builddir)/src -I$(top_srcdir)/src/vm/jit/$(ARCH_DIR)/$(OS_DIR)
 AM_CCASFLAGS = $(AM_CPPFLAGS)
 
+if ENABLE_PIC_ASM
+AM_CCASFLAGS += -DENABLE_PIC_ASM
+endif
+
 LIBS =
 
 noinst_HEADERS = \
