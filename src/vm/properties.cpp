@@ -332,6 +332,14 @@ Properties::Properties()
 		put("java.vm.info", "compiled mode");
 	}
 
+	// Get and set java.library.path.
+	const char* java_library_path = os::getenv("LD_LIBRARY_PATH");
+
+	if (java_library_path == NULL)
+		java_library_path = "";
+
+	put("java.library.path", java_library_path);
+
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
 	/* Get properties from system. */
@@ -360,14 +368,6 @@ Properties::Properties()
 	put("java.class.version", CLASS_VERSION);
 
 	put("gnu.classpath.boot.library.path", boot_library_path);
-
-	// Get and set java.library.path.
-	const char* java_library_path = os::getenv("LD_LIBRARY_PATH");
-
-	if (java_library_path == NULL)
-		java_library_path = "";
-
-	put("java.library.path", java_library_path);
 
 	put("java.io.tmpdir", "/tmp");
 
