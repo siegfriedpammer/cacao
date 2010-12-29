@@ -1,6 +1,6 @@
 dnl configure.ac
 dnl
-dnl Copyright (C) 1996-2005, 2006, 2007, 2008
+dnl Copyright (C) 1996-2010
 dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl 
 dnl This file is part of CACAO.
@@ -278,6 +278,7 @@ AC_CHECK_HEADERS([errno.h])
 AC_CHECK_HEADERS([execinfo.h])
 AC_CHECK_HEADERS([fcntl.h])
 AC_CHECK_HEADERS([libgen.h])
+AC_CHECK_HEADERS([locale.h])
 AC_CHECK_HEADERS([netdb.h])
 AC_CHECK_HEADERS([signal.h])
 AC_CHECK_HEADERS([stdarg.h])
@@ -377,6 +378,7 @@ AC_CHECK_FUNCS([recv])
 AC_CHECK_FUNCS([scandir])
 AC_CHECK_FUNCS([select])
 AC_CHECK_FUNCS([send])
+AC_CHECK_FUNCS([setlocale])
 AC_CHECK_FUNCS([setsockopt])
 AC_CHECK_FUNCS([shutdown])
 AC_CHECK_FUNCS([socket])
@@ -394,6 +396,7 @@ AC_CHECK_FUNCS([strstr])
 AC_CHECK_FUNCS([time])
 AC_CHECK_FUNCS([write])
 
+AM_LC_MESSAGES
 
 dnl Checks for libraries.
 

@@ -1,6 +1,6 @@
 /* src/vm/properties.cpp - handling commandline properties
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2010
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -48,6 +48,9 @@
 
 #include "vm/jit/asmpart.h"
 
+#ifdef HAVE_LOCALE_H
+#include <locale.h>
+#endif
 
 /**
  * Constructor fills the properties list with default values.
@@ -433,28 +436,33 @@ Properties::Properties()
 
 	/* get locale */
 
+	bool use_en_US = true;
 	if (env_lang != NULL) {
-		/* get the local stuff from the environment */
+#if defined(HAVE_SETLOCALE) && defined(HAVE_LC_MESSAGES)
+		/* get the locale stuff from the environment */
+		char *locale;
 
-		if (strlen(env_lang) <= 2) {
-			put("user.language", env_lang);
-		}
-		else {
-			if ((env_lang[2] == '_') && (strlen(env_lang) >= 5)) {
+		if ((locale = setlocale(LC_MESSAGES, ""))) {
+			int len = strlen(locale);
+			if (((len >= 5) && (locale[2] == '_')) || len == 2)  {
+				use_en_US = false;
 				char* lang = MNEW(char, 3);
-				strncpy(lang, (char*) &env_lang[0], 2);
+				strncpy(lang, (char*) &locale[0], 2);
 				lang[2] = '\0';
-
-				char* country = MNEW(char, 3);
-				strncpy(country, (char*) &env_lang[3], 2);
-				country[2] = '\0';
-
 				put("user.language", lang);
-				put("user.country", country);
+
+				if (len >= 5) {
+					char* country = MNEW(char, 3);
+					strncpy(country, (char*) &locale[3], 2);
+					country[2] = '\0';
+
+					put("user.country", country);
+				}
 			}
 		}
+#endif
 	}
-	else {
+	if (use_en_US) {
 		/* if no default locale was specified, use `en_US' */
 
 		put("user.language", "en");
