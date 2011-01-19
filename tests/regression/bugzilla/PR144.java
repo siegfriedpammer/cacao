@@ -1,4 +1,4 @@
-/* tests/regression/bugzilla/All.java - runs all CACAO regression unit tests
+/* tests/regression/bugzilla/PR144.java
 
    Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -23,28 +23,45 @@
 */
 
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
-@RunWith(Suite.class)
-
-@Suite.SuiteClasses({
-PR52.class,
-PR57.class,
-PR58.class,
-PR65.class,
-PR80.class,
-PR89.class,
-PR112.class,
-PR113.class,
-PR114.class,
-PR116.class,
-PR119.class,
-PR125.class,
-PR131.class,
-PR144.class,
-PR148.class
-})
-
-public class All {
+interface test_summable {
+    long sum();
 }
+
+class y implements test_summable {
+    public long l;
+    public int i;
+    public long sum() {
+        return l+i;
+    }
+}
+
+public class PR144 {
+    static long do_test(Object o, int val) {
+        y vy = (y) o;
+        test_summable sm = null;
+        if (o instanceof test_summable)
+            sm = (test_summable) o;
+        vy.l = 0x123456789L;
+        vy.i = 0x98765;
+        long r = sm.sum();
+        vy.l = val;
+        vy.i = val;
+        return r + sm.sum();
+    }
+
+    @Test
+    public void test() {
+        try {
+            do_test(null, 0);
+        } catch (NullPointerException e) {
+        }
+        assertEquals(4887631770L, do_test(new y(), 0x23456));
+    }
+}
+
+
+
+

@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/codegen.c - machine code generator for x86_64
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -205,6 +205,21 @@ void codegen_emit_patchable_barrier(instruction *iptr, codegendata *cd, patchref
 }
 
 /**
+ * Ensures that the patched location (an int32_t) is aligned.
+ */
+static void codegen_fixup_alignment(codegendata *cd, patchref_t *pr, u1 *mcodeptr_save)
+{
+	u1 *codeptr = cd->mcodeptr;
+	int disp = PATCH_ALIGNMENT((uintptr_t) cd->mcodeptr, 0, sizeof(int32_t));
+	memmove(mcodeptr_save + disp, mcodeptr_save, cd->mcodeptr - mcodeptr_save);
+	pr->patch_align += cd->mcodeptr - mcodeptr_save + disp;
+
+	cd->mcodeptr = mcodeptr_save;
+	emit_arbitrary_nop(cd, disp);
+	cd->mcodeptr = codeptr + disp;
+}
+
+/**
  * Generates machine code for one ICMD.
  */
 void codegen_emit_instruction(jitdata* jd, instruction* iptr)
@@ -220,6 +235,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 	int32_t             fieldtype;
 	int32_t             s1, s2, s3, d;
 	int32_t             disp;
+	u1*                 mcodeptr_save;
 
 	// Get required compiler data.
 	codegendata*  cd = jd->cd;
@@ -1562,7 +1578,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 /* 				PROFILE_CYCLE_STOP; */
 
-				patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
+				pr = patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
+				mcodeptr_save = cd->mcodeptr;
 
 /* 				PROFILE_CYCLE_START; */
 
@@ -1572,6 +1589,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				fi        = iptr->sx.s23.s3.fmiref->p.field;
 				fieldtype = fi->type;
 				disp      = fi->offset;
+
+				pr = 0;
 			}
 
 			/* implicit null-pointer check */
@@ -1597,6 +1616,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				// Silence compiler warning.
 				d = 0;
 			}
+			if (pr)
+				codegen_fixup_alignment(cd, pr, mcodeptr_save);
 			emit_store_dst(jd, iptr, d);
 			break;
 
@@ -1613,6 +1634,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 /* 				PROFILE_CYCLE_STOP; */
 
 				pr = patcher_add_patch_ref(jd, PATCHER_get_putfield, uf, 0);
+				mcodeptr_save = cd->mcodeptr;
 
 /* 				PROFILE_CYCLE_START; */
 
@@ -1642,6 +1664,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				M_DST32(s2, s1, disp);
 				break;
 			}
+			if (pr)
+				codegen_fixup_alignment(cd, pr, mcodeptr_save);
 			codegen_emit_patchable_barrier(iptr, cd, pr, fi);
 			break;
 
@@ -1659,6 +1683,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 /* 				PROFILE_CYCLE_STOP; */
 
 				pr = patcher_add_patch_ref(jd, PATCHER_putfieldconst, uf, 0);
+				mcodeptr_save = cd->mcodeptr;
 
 /* 				PROFILE_CYCLE_START; */
 
@@ -1685,10 +1710,14 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				M_MOV_IMM(iptr->sx.s23.s2.constval, REG_ITMP2);
 				if (disp)  /* resolved, disp can never be 0 */
 					M_LST(REG_ITMP2, s1, disp);
-				else       /* unresolved */
+				else {     /* unresolved */
 					M_LST32(REG_ITMP2, s1, disp);
+					pr->patch_align = 4;
+				}
 				break;
 			}
+			if (pr)
+				codegen_fixup_alignment(cd, pr, mcodeptr_save);
 			codegen_emit_patchable_barrier(iptr, cd, pr, fi);
 			break;
 
@@ -1813,6 +1842,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				um = iptr->sx.s23.s3.um;
 				patcher_add_patch_ref(jd, PATCHER_invokevirtual, um, 0);
+				emit_arbitrary_nop(cd, PATCH_ALIGNMENT((uintptr_t) cd->mcodeptr, 6, sizeof(int32_t)));
 
 				s1 = 0;
 			}
@@ -1832,6 +1862,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			if (INSTRUCTION_IS_UNRESOLVED(iptr)) {
 				um = iptr->sx.s23.s3.um;
 				patcher_add_patch_ref(jd, PATCHER_invokeinterface, um, 0);
+				emit_arbitrary_nop(cd, PATCH_ALIGNMENT((uintptr_t) cd->mcodeptr, 6, sizeof(int32_t)));
 
 				s1 = 0;
 				s2 = 0;
@@ -1847,6 +1878,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			/* implicit null-pointer check */
 			M_ALD(REG_METHODPTR, REG_A0, OFFSET(java_object_t, vftbl));
 			M_ALD32(REG_METHODPTR, REG_METHODPTR, s1);
+			if (INSTRUCTION_IS_UNRESOLVED(iptr))
+				emit_arbitrary_nop(cd, PATCH_ALIGNMENT((uintptr_t) cd->mcodeptr, 3, sizeof(int32_t)));
 			M_ALD32(REG_ITMP3, REG_METHODPTR, s2);
 			M_CALL(REG_ITMP3);
 			break;
@@ -1879,6 +1912,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 					patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_flags,
 										  iptr->sx.s23.s3.c.ref, 0);
 
+					emit_arbitrary_nop(cd, PATCH_ALIGNMENT((uintptr_t) cd->mcodeptr, 2, sizeof(int32_t)));
+
 					M_IMOV_IMM(0, REG_ITMP2);                 /* super->flags */
 					M_IAND_IMM(ACC_INTERFACE, REG_ITMP2);
 					emit_label_beq(cd, BRANCH_LABEL_2);
@@ -1898,6 +1933,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 						patcher_add_patch_ref(jd, PATCHER_checkcast_interface,
 											  iptr->sx.s23.s3.c.ref,
 											  0);
+						emit_arbitrary_nop(cd, PATCH_ALIGNMENT((uintptr_t) cd->mcodeptr, 10, sizeof(int32_t)));
 					}
 
 					M_ILD32(REG_ITMP3,
@@ -1905,6 +1941,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 					M_ICMP_IMM32(superindex, REG_ITMP3);
 					emit_classcast_check(cd, iptr, BRANCH_LE, REG_ITMP3, s1);
 
+					if (super == NULL)
+						emit_arbitrary_nop(cd, PATCH_ALIGNMENT((uintptr_t) cd->mcodeptr, 3, sizeof(int32_t)));
 					M_ALD32(REG_ITMP3, REG_ITMP2, 
 							OFFSET(vftbl_t, interfacetable[0]) -
 							superindex * sizeof(methodptr*));
@@ -2055,6 +2093,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				patcher_add_patch_ref(jd, PATCHER_resolve_classref_to_flags,
 									  iptr->sx.s23.s3.c.ref, 0);
 
+				emit_arbitrary_nop(cd, PATCH_ALIGNMENT((uintptr_t) cd->mcodeptr, 2, sizeof(int32_t)));
+
 				M_IMOV_IMM(0, REG_ITMP3);                     /* super->flags */
 				M_IAND_IMM(ACC_INTERFACE, REG_ITMP3);
 				emit_label_beq(cd, BRANCH_LABEL_2);
@@ -2063,6 +2103,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			/* interface instanceof code */
 
 			if ((super == NULL) || (super->flags & ACC_INTERFACE)) {
+				int nops;
 				if (super != NULL) {
 					M_TEST(s1);
 					emit_label_beq(cd, BRANCH_LABEL_3);
@@ -2073,15 +2114,19 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 				if (super == NULL) {
 					patcher_add_patch_ref(jd, PATCHER_instanceof_interface,
 										  iptr->sx.s23.s3.c.ref, 0);
+					emit_arbitrary_nop(cd, PATCH_ALIGNMENT((uintptr_t) cd->mcodeptr, 10, sizeof(int32_t)));
 				}
 
 				M_ILD32(REG_ITMP3,
 						REG_ITMP1, OFFSET(vftbl_t, interfacetablelength));
 				M_ICMP_IMM32(superindex, REG_ITMP3);
 
-				int a = 3 + 4 /* mov_membase32_reg */ + 3 /* test */ + 4 /* setcc */;
+				nops = super == NULL ? PATCH_ALIGNMENT((uintptr_t) (cd->mcodeptr + 6), 3, sizeof(int32_t)) : 0;
+
+				int a = 3 + 4 /* mov_membase32_reg */ + 3 /* test */ + 4 /* setcc */ + nops;
 
 				M_BLE(a);
+				emit_arbitrary_nop(cd, nops);
 				M_ALD32(REG_ITMP1, REG_ITMP1,
 						OFFSET(vftbl_t, interfacetable[0]) -
 						superindex * sizeof(methodptr*));

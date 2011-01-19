@@ -1,6 +1,6 @@
 /* src/vm/jit/patcher-common.cpp - architecture independent code patching stuff
 
-   Copyright (C) 2007, 2008, 2009
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -237,14 +237,15 @@ patchref_t *patcher_add_patch_ref(jitdata *jd, functionptr patcher, void* ref, s
 	// Set patcher information (mpc is resolved later).
 	patchref_t pr;
 
-	pr.mpc     = patchmpc;
-	pr.datap   = 0;
-	pr.disp    = disp;
-	pr.disp_mb = 0;
-	pr.patcher = patcher;
-	pr.ref     = ref;
-	pr.mcode   = 0;
-	pr.done    = false;
+	pr.mpc         = patchmpc;
+	pr.datap       = 0;
+	pr.disp        = disp;
+	pr.disp_mb     = 0;
+	pr.patch_align = 0;
+	pr.patcher     = patcher;
+	pr.ref         = ref;
+	pr.mcode       = 0;
+	pr.done        = false;
 
 	// Store patcher in the list (NOTE: structure is copied).
 	code->patchers->push_back(pr);

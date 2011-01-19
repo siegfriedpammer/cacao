@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/patcher.c - x86_64 code patching functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -57,6 +57,21 @@ void patcher_patch_code(patchref_t *pr)
 {
 	*((uint16_t*) pr->mpc) = (uint16_t) pr->mcode;
 	md_icacheflush((void*) pr->mpc, PATCHER_CALL_SIZE);
+}
+
+static int32_t *patch_checked_location(int32_t *p, int32_t val)
+{
+	assert(*p == 0);
+	// verify that it's aligned
+	assert((((uintptr_t) p) & (4-1)) == 0);
+	*p = val;
+	return p;
+}
+
+static void checked_icache_flush(int32_t *addr, int nbytes, int32_t *check_loc)
+{
+	assert((int8_t*) addr + nbytes - sizeof(int32_t) >= (int8_t*) check_loc);
+	md_icacheflush(addr, nbytes);
 }
 
 /**
@@ -196,10 +211,11 @@ bool patcher_resolve_classref_to_flags(patchref_t *pr)
 		return false;
 
 	ra += PATCHER_CALL_SIZE;
+	ra += PATCH_ALIGNMENT((uintptr_t) ra, 2, sizeof(int32_t));
 
 	// Patch class flags.
 /* 	*datap = c->flags; */
-	*((int32_t*) (ra + 2)) = c->flags;
+	patch_checked_location((int32_t*) (ra + 2), c->flags);
 
 	// Synchronize data cache.
 /* 	md_dcacheflush(datap, sizeof(int32_t)); */
@@ -279,28 +295,14 @@ bool patcher_get_putfield(patchref_t *pr)
 
 	pc += PATCHER_CALL_SIZE;
 
-	// Patch the field's offset: we check for the field type, because
-	// the instructions have different lengths.
-	if (IS_INT_LNG_TYPE(fi->type)) {
-		// Check for special case: %rsp or %r12 as base register.
-		if (pc[3] == 0x24)
-			*((int32_t*) (pc + 4)) = fi->offset;
-		else
-			*((int32_t*) (pc + 3)) = fi->offset;
-	}
-	else {
-		// Check for special case: %rsp or %r12 as base register.
-		if (pc[5] == 0x24)
-			*((int32_t*) (pc + 6)) = fi->offset;
-		else
-			*((int32_t*) (pc + 5)) = fi->offset;
-	}
+	int disp = -sizeof(int32_t) + pr->patch_align;
+	patch_checked_location((int32_t*) (pc + disp), fi->offset);
 
 	if (pr->disp_mb && !(fi->flags & ACC_VOLATILE))
 		patch_out_mfence(pc + pr->disp_mb - 2);
 
 	// Synchronize instruction cache.
-	md_icacheflush(pc, 6 + sizeof(int32_t));
+	md_icacheflush(pc, disp + sizeof(int32_t));
 
 	// Patch back the original code.
 	patcher_patch_code(pr);
@@ -331,27 +333,14 @@ bool patcher_putfieldconst(patchref_t *pr)
 
 	pc += PATCHER_CALL_SIZE;
 
-	// Patch the field's offset.
-	if (IS_2_WORD_TYPE(fi->type) || IS_ADR_TYPE(fi->type)) {
-		// Handle special case when the base register is %r12.
-		if (pc[12] == 0x94)
-			*((uint32_t*) (pc + 14)) = fi->offset;
-		else
-			*((uint32_t*) (pc + 13)) = fi->offset;
-	}
-	else {
-		// Handle special case when the base register is %r12.
-		if (pc[2] == 0x84)
-			*((uint32_t*) (pc + 4)) = fi->offset;
-		else
-			*((uint32_t*) (pc + 3)) = fi->offset;
-	}
+	int disp = -2*sizeof(int32_t) + pr->patch_align;
+	patch_checked_location((int32_t*) (pc + disp), fi->offset);
 
 	if (pr->disp_mb && !(fi->flags & ACC_VOLATILE))
 		patch_out_mfence(pc + pr->disp_mb - 2);
 
 	// Synchronize instruction cache.
-	md_icacheflush(pc, 14 + sizeof(int32_t));
+	md_icacheflush(pc, disp + sizeof(int32_t));
 
 	// Patch back the original code.
 	patcher_patch_code(pr);
@@ -417,9 +406,10 @@ bool patcher_invokevirtual(patchref_t *pr)
 		return false;
 
 	pc += PATCHER_CALL_SIZE;
+	pc += PATCH_ALIGNMENT((uintptr_t) pc, 6, sizeof(int32_t));
 
 	// Patch vftbl index.
-	*((int32_t*) (pc + 3 + 3)) = (int32_t) (OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * m->vftblindex);
+	patch_checked_location((int32_t*) (pc + 6), (int32_t) (OFFSET(vftbl_t, table[0]) + sizeof(methodptr) * m->vftblindex));
 
 	// Synchronize instruction cache.
 	md_icacheflush(pc + 3 + 3, SIZEOF_VOID_P);
@@ -455,15 +445,18 @@ bool patcher_invokeinterface(patchref_t *pr)
 		return false;
 
 	pc += PATCHER_CALL_SIZE;
+	pc += PATCH_ALIGNMENT((uintptr_t) pc, 6, sizeof(int32_t));
 
 	// Patch interfacetable index.
-	*((int32_t*) (pc + 3 + 3)) = (int32_t) (OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * m->clazz->index);
+	patch_checked_location((int32_t*) (pc + 6), (int32_t) (OFFSET(vftbl_t, interfacetable[0]) - sizeof(methodptr) * m->clazz->index));
 
+	int disp = PATCH_ALIGNMENT((uintptr_t) (pc + 3 + 7), 3, sizeof(int32_t));
+	pc += disp;
 	// Patch method offset.
-	*((int32_t*) (pc + 3 + 7 + 3)) = (int32_t) (sizeof(methodptr) * (m - m->clazz->methods));
+	int32_t *loc = patch_checked_location((int32_t*) (pc + 3 + 7 + 3), (int32_t) (sizeof(methodptr) * (m - m->clazz->methods)));
 
 	// Synchronize instruction cache.
-	md_icacheflush(pc + 3 + 3, SIZEOF_VOID_P + 3 + SIZEOF_VOID_P);
+	checked_icache_flush(pc + 6, SIZEOF_VOID_P + 3 + SIZEOF_VOID_P + disp, loc);
 
 	// Patch back the original code.
 	patcher_patch_code(pr);
@@ -497,14 +490,17 @@ bool patcher_checkcast_interface(patchref_t *pr)
 		return false;
 
 	pc += PATCHER_CALL_SIZE;
+	pc += PATCH_ALIGNMENT((uintptr_t) pc, 10, sizeof(int32_t));
 
 	// Patch super class index.
-	*((int32_t*) (pc + 7 + 3)) = c->index;
+	patch_checked_location((int32_t*) (pc + 10), c->index);
 
-	*((int32_t*) (pc + 7 + 7 + 6 + 8 + 3)) = (int32_t) (OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*));
+	int disp = PATCH_ALIGNMENT((uintptr_t) (pc + 7 + 7 + 6 + 8), 3, sizeof(int32_t));
+	pc += disp;
+	int32_t *loc = patch_checked_location((int32_t*) (pc + 7 + 7 + 6 + 8 + 3), (int32_t) (OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*)));
 
 	// Synchronize instruction cache.
-	md_icacheflush(pc + 7 + 3, sizeof(int32_t) + 6 + 8 + 3 + sizeof(int32_t));
+	checked_icache_flush(pc + 10, sizeof(int32_t) + 6 + 8 + 3 + sizeof(int32_t) + disp, loc);
 
 	// Patch back the original code.
 	patcher_patch_code(pr);
@@ -537,14 +533,17 @@ bool patcher_instanceof_interface(patchref_t *pr)
 		return false;
 
 	pc += PATCHER_CALL_SIZE;
+	pc += PATCH_ALIGNMENT((uintptr_t) pc, 10, sizeof(int32_t));
 
 	// Patch super class index.
-	*((int32_t*) (pc + 7 + 3)) = c->index;
+	patch_checked_location((int32_t*) (pc + 10), c->index);
 
-	*((int32_t*) (pc + 7 + 7 + 6 + 3)) = (int32_t) (OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*));
+	int disp = PATCH_ALIGNMENT((uintptr_t) (pc + 7 + 7 + 6), 3, sizeof(int32_t));
+	pc += disp;
+	int32_t *loc = patch_checked_location((int32_t*) (pc + 7 + 7 + 6 + 3), (int32_t) (OFFSET(vftbl_t, interfacetable[0]) - c->index * sizeof(methodptr*)));
 
 	// Synchronize instruction cache.
-	md_icacheflush(pc + 7 + 3, sizeof(int32_t) + 6 + 3 + sizeof(int32_t));
+	checked_icache_flush(pc + 10, sizeof(int32_t) + 6 + 3 + sizeof(int32_t) + disp, loc);
 
 	// Patch back the original code.
 	patcher_patch_code(pr);

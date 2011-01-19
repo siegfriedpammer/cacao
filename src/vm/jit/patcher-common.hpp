@@ -1,6 +1,6 @@
 /* src/vm/jit/patcher-common.hpp - architecture independent code patching stuff
 
-   Copyright (C) 2007, 2008, 2009
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -51,7 +51,8 @@ struct patchref_t {
 	uintptr_t    mpc;           /* absolute position in code segment          */
 	uintptr_t    datap;         /* absolute position in data segment          */
 	int32_t      disp;          /* displacement of ref in the data segment    */
-	int32_t      disp_mb;       /* auxiliary code displacement (for membar)   */
+	int16_t      disp_mb;       /* auxiliary code displacement (for membar)   */
+	int16_t      patch_align;   /* auxiliary displacement for alignment       */
 	functionptr  patcher;       /* patcher function to call                   */
 	void*        ref;           /* reference passed                           */
 	uint32_t     mcode;         /* machine code to be patched back in         */

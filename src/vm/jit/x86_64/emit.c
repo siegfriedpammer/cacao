@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/emit.c - x86_64 code emitter functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -1273,6 +1273,15 @@ void emit_nop(codegendata *cd, int length)
         *(cd->mcodeptr++) = 0x00;
         break;
     }
+}
+ 
+void emit_arbitrary_nop(codegendata *cd, int disp)
+{
+	while (disp) {
+		int x = disp < 9 ? disp : 9;
+		emit_nop(cd, x);
+		disp -= x;
+	}
 }
 
 void emit_mov_reg_reg(codegendata *cd, s8 reg, s8 dreg)

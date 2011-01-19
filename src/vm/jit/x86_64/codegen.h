@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/codegen.h - code generation macros for x86_64
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -54,6 +54,10 @@
         if (len) \
             emit_nop(cd, len); \
     } while (0)
+
+
+#define PATCH_ALIGNMENT(addr, offset, size) \
+	((((addr)+(offset)+(size)-1) & ~((size)-1)) - ((addr)+(offset)))
 
 
 #define ICONST(r,c) \
