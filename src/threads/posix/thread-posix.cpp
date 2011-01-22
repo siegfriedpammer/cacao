@@ -533,47 +533,6 @@ void threads_impl_thread_reuse(threadobject *t)
 }
 
 
-/* threads_impl_thread_free ****************************************************
-
-   Cleanup thread stuff.
-
-   IN:
-      t....the threadobject
-
-*******************************************************************************/
-
-#if 0
-/* never used */
-void threads_impl_thread_free(threadobject *t)
-{
-	int result;
-
-	/* Destroy the mutex and the condition. */
-
-	delete t->flc_lock;
-
-	result = pthread_cond_destroy(&(t->flc_cond));
-
-	if (result != 0)
-		os::abort_errnum(result, "threads_impl_thread_free: pthread_cond_destroy failed");
-
-	delete t->waitmutex;
-
-	result = pthread_cond_destroy(&(t->waitcond));
-
-	if (result != 0)
-		os::abort_errnum(result, "threads_impl_thread_free: pthread_cond_destroy failed");
-
-	delete t->suspendmutex;
-
-	result = pthread_cond_destroy(&(t->suspendcond));
-
-	if (result != 0)
-		os::abort_errnum(result, "threads_impl_thread_free: pthread_cond_destroy failed");
-}
-#endif
-
-
 /* threads_impl_preinit ********************************************************
 
    Do some early initialization of stuff required.

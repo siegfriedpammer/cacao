@@ -287,7 +287,6 @@ void          threads_mutex_join_unlock(void);
 
 void          threads_impl_thread_clear(threadobject *t);
 void          threads_impl_thread_reuse(threadobject *t);
-void          threads_impl_thread_free(threadobject *t);
 void          threads_impl_thread_start(threadobject *thread, functionptr f);
 
 void          threads_yield(void);
