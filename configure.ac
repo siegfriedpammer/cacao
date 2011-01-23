@@ -134,7 +134,7 @@ case "$host_os" in
 
 *darwin* )
     OS_DIR="darwin"
-    OS_FLAGS="-D__DARWIN__"
+    OS_FLAGS="-D__DARWIN__ -D_XOPEN_SOURCE=600 -D_DARWIN_C_SOURCE"
     INTRP_CFLAGS="-Wall -Wno-long-long $ARCH_FLAGS $OS_FLAGS"
     ;;
 
