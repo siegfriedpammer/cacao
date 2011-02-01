@@ -150,7 +150,7 @@ void ThreadList::get_active_java_threads(List<threadobject*> &list)
 
 
 /**
- * Return a free thread object.
+ * Return a free thread object. Caller must hold the thread list lock.
  *
  * @return free thread object or NULL if none available
  */
@@ -161,7 +161,7 @@ threadobject* ThreadList::get_free_thread()
 	// Do we have free threads in the free-list?
 	if (_free_thread_list.empty() == false) {
 		// Yes, get the index and remove it from the free list.
-		threadobject* t = _free_thread_list.front();
+		t = _free_thread_list.front();
 		_free_thread_list.remove(t);
 	}
 
@@ -170,7 +170,7 @@ threadobject* ThreadList::get_free_thread()
 
 
 /**
- * Return a free thread index.
+ * Return a free thread index. Caller must hold the thread list lock.
  *
  * @return free thread index
  */
