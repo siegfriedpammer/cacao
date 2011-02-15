@@ -109,9 +109,9 @@ void log_start(void)
 void log_vprint(const char *text, va_list ap)
 {
 	if (logfile)
-		vfprintf(logfile, text, ap);
+		os::vfprintf(logfile, text, ap);
 	else
-		vfprintf(stdout, text, ap);
+		os::vfprintf(stdout, text, ap);
 }
 
 

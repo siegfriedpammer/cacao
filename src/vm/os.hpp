@@ -1,6 +1,6 @@
 /* src/vm/os.hpp - system (OS) functions
 
-   Copyright (C) 2007, 2008, 2009, 2010
+   Copyright (C) 2007, 2008, 2009, 2010, 2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008 Theobroma Systems Ltd.
 
@@ -144,7 +144,7 @@ public:
 	static inline void*   dlsym(void* handle, const char* symbol);
 	static inline int     fclose(FILE* fp);
 	static inline FILE*   fopen(const char* path, const char* mode);
-	static inline int     fprintf(FILE* stream, const char* format, ...);
+	static inline int     vfprintf ( FILE * stream, const char * format, va_list arg );
 	static inline size_t  fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
 	static inline void    free(void* ptr);
 	static inline char*   getcwd(char* buf, size_t size);
@@ -342,16 +342,18 @@ inline FILE* os::fopen(const char* path, const char* mode)
 #endif
 }
 
-inline int os::fprintf(FILE* stream, const char* format, ...)
+//fprintf is mandatory and can't be replaced with an equivalent fast wrapper
+#if !defined (HAVE_FPRINTF) 
+#error fprintf not available
+#endif
+
+inline int os::vfprintf ( FILE * stream, const char * format, va_list arg )
 {
-#if defined(HAVE_FPRINTF)
-	va_list ap;
-	va_start(ap, format);
-	int result = ::vfprintf(stream, format, ap);
-	va_end(ap);
+#if defined(HAVE_VFPRINTF)
+	int result = ::vfprintf(stream, format, arg);
 	return result;
 #else
-# error fprintf not available
+# error vfrpintf not available
 #endif
 }
 

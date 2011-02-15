@@ -542,7 +542,7 @@ static void version(bool opt_exit)
 	puts("java version \""JAVA_VERSION"\"");
 	puts("CACAO version "VERSION_FULL"\n");
 
-	puts("Copyright (C) 1996-2005, 2006, 2007, 2008, 2009, 2010");
+	puts("Copyright (C) 1996-2005, 2006, 2007, 2008, 2009, 2010, 2011");
 	puts("CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO");
 	puts("This is free software; see the source for copying conditions.  There is NO");
 	puts("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.");
