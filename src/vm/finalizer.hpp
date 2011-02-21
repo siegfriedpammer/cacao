@@ -1,6 +1,6 @@
-/* src/vm/finalizer.h - finalizer linked list and thread header
+/* src/vm/finalizer.hpp - finalizer linked list and thread header
 
-   Copyright (C) 1996-2005, 2006, 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -29,6 +29,13 @@
 #include "config.h"
 
 #ifdef __cplusplus
+
+struct Finalizer {
+	typedef void (*FinalizerFunc)(java_handle_t *h, void *data);
+	static void *attach_custom_finalizer(java_handle_t *h, FinalizerFunc f, void *data);
+	static void reinstall_custom_finalizer(java_handle_t *h);
+};
+
 extern "C" {
 #endif
 
@@ -57,7 +64,7 @@ void finalizer_run(void *o, void *p);
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4

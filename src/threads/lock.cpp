@@ -1,6 +1,6 @@
 /* src/threads/lock.cpp - lock implementation
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -420,7 +420,7 @@ void lock_hashtable_cleanup(void)
 *******************************************************************************/
 
 #if defined(ENABLE_GC_BOEHM)
-static void lock_record_finalizer(void *object, void *p);
+static void lock_record_finalizer(java_handle_t *object, void *p);
 #endif
 
 static lock_record_t *lock_hashtable_get(java_handle_t* o)
@@ -465,14 +465,7 @@ static lock_record_t *lock_hashtable_get(java_handle_t* o)
 #if defined(ENABLE_GC_BOEHM)
 		/* register new finalizer to clean up the lock record */
 
-		GC_finalization_proc ofinal = 0;
-		GC_REGISTER_FINALIZER_UNREACHABLE(LLNI_DIRECT(o), lock_record_finalizer, 0, &ofinal, 0);
-
-		/* There was a finalizer -- reinstall it. We do not want to disrupt the
-		   normal finalizer operation. We hold the monitor on this object, so
-		   this is thread-safe. */
-		if (ofinal)
-			GC_REGISTER_FINALIZER_NO_ORDER(LLNI_DIRECT(o), ofinal, 0, 0, 0);
+		Finalizer::attach_custom_finalizer(o, lock_record_finalizer, 0);
 #endif
 
 		/* enter it in the hashtable */
@@ -495,30 +488,6 @@ static lock_record_t *lock_hashtable_get(java_handle_t* o)
 
 	return lr;
 }
-
-/* lock_schedule_lockrecord_removal ********************************************
-
-   Gives the locking system a chance to schedule the removal of an unused lock
-   record. This function is called after an object's finalizer has run.
-
-   IN:
-	  o....the object which has been finalized
-
-*******************************************************************************/
-
-#if defined(ENABLE_GC_BOEHM)
-void lock_schedule_lockrecord_removal(java_handle_t *o)
-{
-	Lockword lockword(*lock_lockword_get(o));
-	if (!lockword.is_fat_lock())
-		/* there is no lock record */
-		return;
-
-	/* register new finalizer to clean up the lock record */
-	GC_REGISTER_FINALIZER_UNREACHABLE(LLNI_DIRECT(o), lock_record_finalizer, 0, 0, 0);
-}
-#endif
-
 
 /* lock_hashtable_remove *******************************************************
 
@@ -590,25 +559,16 @@ static void lock_hashtable_remove(threadobject *t, java_handle_t *o)
 
 *******************************************************************************/
 
-static void lock_record_finalizer(void *object, void *p)
+static void lock_record_finalizer(java_handle_t *o, void *p)
 {
-	java_handle_t *o;
+#if !defined(NDEBUG)
 	classinfo     *c;
-
-	o = (java_handle_t *) object;
-
-#if !defined(ENABLE_GC_CACAO) && defined(ENABLE_HANDLES)
-	/* XXX this is only a dirty hack to make Boehm work with handles */
-
-	o = LLNI_WRAP((java_object_t *) o);
-#endif
 
 	LLNI_class_get(o, c);
 
-#if !defined(NDEBUG)
 	if (opt_DebugFinalizer) {
 		log_start();
-		log_print("[finalizer lockrecord: o=%p p=%p class=", object, p);
+		log_print("[finalizer lockrecord: o=%p p=%p class=", o, p);
 		class_print(c);
 		log_print("]");
 		log_finish();

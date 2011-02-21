@@ -1,6 +1,6 @@
-/* src/vm/finalizer.c - finalizer linked list and thread
+/* src/vm/finalizer.cpp - finalizer linked list and thread
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -44,6 +44,13 @@
 
 #include "vm/jit/asmpart.h"
 
+#include "finalizer.hpp"
+
+#include <map>
+
+#if defined(ENABLE_GC_BOEHM)
+# include "mm/boehm-gc/include/gc.h"
+#endif
 
 /* global variables ***********************************************************/
 
@@ -52,9 +59,7 @@ static Mutex     *finalizer_thread_mutex;
 static Condition *finalizer_thread_cond;
 #endif
 
-#if defined(__cplusplus)
 extern "C" {
-#endif
 
 /* finalizer_init **************************************************************
 
@@ -223,11 +228,90 @@ void finalizer_run(void *o, void *p)
 	exceptions_clear_exception();
 
 #if defined(ENABLE_GC_BOEHM)
-    lock_schedule_lockrecord_removal(h);
+	Finalizer::reinstall_custom_finalizer(h);
 #endif
 }
 
-#if defined(__cplusplus)
+}
+
+#if defined(ENABLE_GC_BOEHM)
+
+struct FinalizerData {
+	Finalizer::FinalizerFunc f;
+	void *data;
+	FinalizerData(Finalizer::FinalizerFunc f, void *data): f(f), data(data) { }
+};
+
+Mutex final_mutex;
+// final_map contains registered custom finalizers for a given Java
+// object. Must be accessed with held final_mutex.
+std::multimap<java_handle_t *, FinalizerData> final_map;
+
+static void custom_finalizer_handler(void *object, void *data)
+{
+	typedef std::multimap<java_handle_t *, FinalizerData>::iterator MI;
+	java_handle_t *hdl = (java_handle_t *) object;
+	MutexLocker l(final_mutex);
+	MI it_first = final_map.lower_bound(hdl), it = it_first;
+	assert(it->first == hdl);
+	for (; it->first == hdl; ++it) {
+		final_mutex.unlock();
+		it->second.f(hdl, it->second.data);
+		final_mutex.lock();
+	}
+	final_map.erase(it_first, it);
+}
+
+/* attach_custom_finalizer *****************************************************
+
+   Register a custom handler that is run when the object becomes
+   unreachable. This is intended for internal cleanup actions. If the
+   handler already exists, it is not registered again, and its data
+   pointer is returned.
+
+*******************************************************************************/
+
+void *Finalizer::attach_custom_finalizer(java_handle_t *h, Finalizer::FinalizerFunc f, void *data)
+{
+	MutexLocker l(final_mutex);
+
+	GC_finalization_proc ofinal = 0;
+	void *odata = 0;
+
+	GC_REGISTER_FINALIZER_UNREACHABLE(LLNI_DIRECT(h), custom_finalizer_handler, 0, &ofinal, &odata);
+
+	/* There was a finalizer -- reinstall it. We do not want to
+	   disrupt the normal finalizer operation. This is thread-safe
+	   because the other finalizer is only installed at object
+	   creation time. */
+	if (ofinal && ofinal != custom_finalizer_handler)
+		GC_REGISTER_FINALIZER_NO_ORDER(LLNI_DIRECT(h), ofinal, odata, 0, 0);
+
+	typedef std::multimap<java_handle_t *, FinalizerData>::iterator MI;
+	std::pair<MI, MI> r = final_map.equal_range(h);
+	for (MI it = r.first; it != r.second; ++it)
+		if (it->second.f == f)
+			return it->second.data;
+	final_map.insert(r.first, std::make_pair(h, FinalizerData(f, data)));
+	return data;
+}
+
+/* reinstall_custom_finalizer **************************************************
+
+   Arranges for the custom finalizers to be called after the Java
+   finalizer, possibly much later, because the object needs to become
+   unreachable.
+
+*******************************************************************************/
+
+void Finalizer::reinstall_custom_finalizer(java_handle_t *h)
+{
+	MutexLocker l(final_mutex);
+	std::multimap<java_handle_t *, FinalizerData>::iterator it = final_map.find(h);
+	if (it == final_map.end())
+		return;
+
+	GC_REGISTER_FINALIZER_UNREACHABLE(LLNI_DIRECT(h), custom_finalizer_handler, 0, 0, 0);
 }
 #endif
 
@@ -237,7 +321,7 @@ void finalizer_run(void *o, void *p)
  * Emacs will automagically detect them.
  * ---------------------------------------------------------------------
  * Local variables:
- * mode: c
+ * mode: c++
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
