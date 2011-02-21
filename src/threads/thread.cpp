@@ -1,6 +1,6 @@
 /* src/threads/thread.cpp - machine independent thread functions
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -78,7 +78,6 @@ bool threads_pthreads_implementation_nptl;
 
 /* static functions ***********************************************************/
 
-static void          thread_create_initial_threadgroups(void);
 static void          thread_create_initial_thread(void);
 static threadobject *thread_new(int32_t flags);
 
@@ -168,40 +167,11 @@ void threads_init(void)
 
 	/* Create the system and main thread groups. */
 
-	thread_create_initial_threadgroups();
+	ThreadRuntime::thread_create_initial_threadgroups(&threadgroup_main, &threadgroup_system);
 
 	/* Cache the java.lang.Thread initialization method. */
 
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-
-	thread_method_init =
-		class_resolveclassmethod(class_java_lang_Thread,
-								 utf_init,
-								 utf_new_char("(Ljava/lang/VMThread;Ljava/lang/String;IZ)V"),
-								 class_java_lang_Thread,
-								 true);
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-
-	thread_method_init =
-		class_resolveclassmethod(class_java_lang_Thread,
-								 utf_init,
-								 utf_new_char("(Ljava/lang/ThreadGroup;Ljava/lang/String;)V"),
-								 class_java_lang_Thread,
-								 true);
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
-
-	thread_method_init =
-		class_resolveclassmethod(class_java_lang_Thread,
-								 utf_init,
-								 utf_java_lang_String__void,
-								 class_java_lang_Thread,
-								 true);
-
-#else
-# error unknown classpath configuration
-#endif
+	thread_method_init = ThreadRuntime::get_thread_init_method();
 
 	if (thread_method_init == NULL)
 		vm_abort("threads_init: failed to resolve thread init method");
@@ -240,153 +210,7 @@ static bool thread_create_object(threadobject *t, java_handle_t *name, java_hand
 	// indicates that the thread is attached to the VM.
 	thread_set_object(t, jlt.get_handle());
 
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-
-	h = builtin_new(class_java_lang_VMThread);
-
-	if (h == NULL)
-		return false;
-
-	// Create and initialize a java.lang.VMThread object.
-	java_lang_VMThread jlvmt(h, jlt.get_handle(), t);
-
-	/* Call:
-	   java.lang.Thread.<init>(Ljava/lang/VMThread;Ljava/lang/String;IZ)V */
-
-	bool isdaemon = thread_is_daemon(t);
-
-	(void) vm_call_method(thread_method_init, jlt.get_handle(), jlvmt.get_handle(),
-						  name, NORM_PRIORITY, isdaemon);
-
-	if (exceptions_get_exception())
-		return false;
-
-	// Set the ThreadGroup in the Java thread object.
-	jlt.set_group(group);
-
-	/* Add thread to the threadgroup. */
-
-	classinfo* c;
-	LLNI_class_get(group, c);
-
-	methodinfo* m = class_resolveclassmethod(c,
-											 utf_addThread,
-											 utf_java_lang_Thread__V,
-											 class_java_lang_ThreadGroup,
-											 true);
-
-	if (m == NULL)
-		return false;
-
-	(void) vm_call_method(m, group, jlt.get_handle());
-
-	if (exceptions_get_exception())
-		return false;
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-
-	/* Set the priority.  java.lang.Thread.<init> requires it because
-	   it sets the priority of the current thread to the parent's one
-	   (which is the current thread in this case). */
-	jlt.set_priority(NORM_PRIORITY);
-
-	// Call: java.lang.Thread.<init>(Ljava/lang/ThreadGroup;Ljava/lang/String;)V
-
-	(void) vm_call_method(thread_method_init, jlt.get_handle(), group, name);
-
-	if (exceptions_get_exception())
-		return false;
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
-
-	// Set the thread data-structure in the Java thread object.
-	jlt.set_vm_thread(t);
-
-	// Call: public Thread(Ljava/lang/String;)V
-	(void) vm_call_method(thread_method_init, jlt.get_handle(), name);
-
-	if (exceptions_get_exception())
-		return false;
-
-#else
-# error unknown classpath configuration
-#endif
-
-	return true;
-}
-
-
-/* thread_create_initial_threadgroups ******************************************
-
-   Create the initial threadgroups.
-
-   GNU Classpath:
-       Create the main threadgroup only and set the system
-       threadgroup to the main threadgroup.
-
-   SUN:
-       Create the system and main threadgroup.
-
-   CLDC:
-       This function is a no-op.
-
-*******************************************************************************/
-
-static void thread_create_initial_threadgroups(void)
-{
-#if defined(ENABLE_JAVASE)
-# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-
-	/* Allocate and initialize the main thread group. */
-
-	threadgroup_main = native_new_and_init(class_java_lang_ThreadGroup);
-
-	if (threadgroup_main == NULL)
-		vm_abort("thread_create_initial_threadgroups: failed to allocate main threadgroup");
-
-	/* Use the same threadgroup for system as for main. */
-
-	threadgroup_system = threadgroup_main;
-
-# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-
-	java_handle_t *name;
-	methodinfo    *m;
-
-	/* Allocate and initialize the system thread group. */
-
-	threadgroup_system = native_new_and_init(class_java_lang_ThreadGroup);
-
-	if (threadgroup_system == NULL)
-		vm_abort("thread_create_initial_threadgroups: failed to allocate system threadgroup");
-
-	/* Allocate and initialize the main thread group. */
-
-	threadgroup_main = builtin_new(class_java_lang_ThreadGroup);
-
-	if (threadgroup_main == NULL)
-		vm_abort("thread_create_initial_threadgroups: failed to allocate main threadgroup");
-
-	name = javastring_new(utf_main);
-
-	m = class_resolveclassmethod(class_java_lang_ThreadGroup,
-								 utf_init,
-								 utf_Ljava_lang_ThreadGroup_Ljava_lang_String__V,
-								 class_java_lang_ThreadGroup,
-								 true);
-
-	if (m == NULL)
-		vm_abort("thread_create_initial_threadgroups: failed to resolve threadgroup init method");
-
-	(void) vm_call_method(m, threadgroup_main, threadgroup_system, name);
-
-	if (exceptions_get_exception())
-		vm_abort("thread_create_initial_threadgroups: exception while initializing main threadgroup");
-
-# else
-#  error unknown classpath configuration
-# endif
-#endif
+	return ThreadRuntime::invoke_thread_initializer(jlt, t, thread_method_init, name, group);
 }
 
 
@@ -639,29 +463,7 @@ void threads_thread_start(java_handle_t *object)
 
 	thread_set_object(t, object);
 
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-
-	/* Get the java.lang.VMThread object and do some sanity checks. */
-	java_lang_VMThread jlvmt(jlt.get_vmThread());
-
-	assert(jlvmt.get_handle() != NULL);
-	assert(jlvmt.get_vmdata() == NULL);
-
-	ThreadList::lock();
-	jlvmt.set_vmdata(t);
-	ThreadList::unlock();
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-
-	// Nothing to do.
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
-
-	jlt.set_vm_thread(t);
-
-#else
-# error unknown classpath configuration
-#endif
+	ThreadRuntime::setup_thread_vmdata(jlt, t);
 
 	/* Start the thread.  Don't pass a function pointer (NULL) since
 	   we want Thread.run()V here. */
@@ -782,9 +584,7 @@ bool thread_attach_current_external_thread(JavaVMAttachArgs *vm_aargs, bool isda
 
 #if defined(ENABLE_GC_BOEHM)
 	struct GC_stack_base sb;
-#endif
 
-#if defined(ENABLE_GC_BOEHM)
 	/* Register the thread with Boehm-GC.  This must happen before the
 	   thread allocates any memory from the GC heap.*/
 
@@ -832,7 +632,7 @@ bool thread_detach_current_external_thread(void)
 	   the thread allocates any memory from the GC heap. */
 
 	/* Don't detach the main thread.  This is a workaround for
-	   OpenJDK's java binary. */
+	   OpenJDK's java launcher. */
 	if (thread_get_current()->index != 1)
 		GC_unregister_my_thread();
 #endif
@@ -858,22 +658,7 @@ void thread_fprint_name(threadobject *t, FILE *stream)
 
 	java_lang_Thread jlt(thread_get_object(t));
 
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-
-	java_handle_t* name = jlt.get_name();
-	javastring_fprint(name, stream);
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
-
-	/* FIXME: In OpenJDK and CLDC the name is a char[]. */
-	//java_chararray_t *name;
-
-	/* FIXME This prints to stdout. */
-	utf_display_printable_ascii(utf_null);
-
-#else
-# error unknown classpath configuration
-#endif
+	ThreadRuntime::print_thread_name(jlt, stream);
 }
 
 
@@ -989,12 +774,7 @@ static inline void thread_set_state(threadobject *t, int state)
 	// Set the state of our internal threadobject.
 	t->state = state;
 
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	// Set the state of the java.lang.Thread object.
-	java_lang_Thread thread(thread_get_object(t));
-	assert(thread.is_non_null());
-	thread.set_threadStatus(state);
-#endif
+	ThreadRuntime::set_javathread_state(t, state);
 }
 
 
@@ -1133,26 +913,7 @@ void thread_set_state_terminated(threadobject *t)
 
 threadobject *thread_get_thread(java_handle_t *h)
 {
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-
-	java_lang_VMThread jlvmt(h);
-	threadobject* t = jlvmt.get_vmdata();
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-
-	/* XXX This is just a quick hack. */
-	threadobject* t = ThreadList::get_thread_from_java_object(h);
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
-
-	log_println("thread_get_thread: IMPLEMENT ME!");
-	threadobject* t = NULL;
-
-#else
-# error unknown classpath configuration
-#endif
-
-	return t;
+	return ThreadRuntime::get_threadobject_from_thread(h);
 }
 
 

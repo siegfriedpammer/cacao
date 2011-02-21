@@ -60,6 +60,12 @@ libthreads_la_SOURCES = \
 	mutex.hpp \
 	threadlist.cpp \
 	threadlist.hpp \
+	thread-classpath.cpp \
+	thread-classpath.hpp \
+	thread-cldc11.cpp \
+	thread-cldc11.hpp \
+	thread-openjdk.cpp \
+	thread-openjdk.hpp \
 	thread.cpp \
 	thread.hpp
 else

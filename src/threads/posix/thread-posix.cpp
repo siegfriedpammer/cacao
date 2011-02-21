@@ -1,6 +1,6 @@
 /* src/threads/posix/thread-posix.cpp - POSIX thread functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -767,36 +767,14 @@ static void *threads_startup_thread(void *arg)
 	/* find and run the Thread.run()V method if no other function was passed */
 
 	if (function == NULL) {
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-		/* We need to start the run method of
-		   java.lang.VMThread. Since this is a final class, we can use
-		   the class object directly. */
-
-		c = class_java_lang_VMThread;
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
-		LLNI_class_get(object, c);
-#else
-# error unknown classpath configuration
-#endif
+		c = ThreadRuntime::get_thread_class_from_object(object);
 
 		m = class_resolveclassmethod(c, utf_run, utf_void__void, c, true);
 
 		if (m == NULL)
 			vm_abort("threads_startup_thread: run() method not found in class");
 
-#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-
-		// We need to start the run method of java.lang.VMThread.
-		java_lang_VMThread jlvmt(jlt.get_vmThread());
-		java_handle_t* h = jlvmt.get_handle();
-
-#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK) || defined(WITH_JAVA_RUNTIME_LIBRARY_CLDC1_1)
-
-		java_handle_t* h = jlt.get_handle();
-
-#else
-# error unknown classpath configuration
-#endif
+		java_handle_t *h = ThreadRuntime::get_vmthread_handle(jlt);
 
 		/* Run the thread. */
 
@@ -959,15 +937,7 @@ bool thread_detach_current_thread(void)
 		   to build the java_lang_Thread_UncaughtExceptionHandler
 		   header file with cacaoh. */
 
-# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-
-		java_handle_t* handler = jlt.get_exceptionHandler();
-
-# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-
-		java_handle_t* handler = jlt.get_uncaughtExceptionHandler();
-
-# endif
+		java_handle_t *handler = ThreadRuntime::get_thread_exception_handler(jlt);
 
 		classinfo*     c;
 		java_handle_t* h;
@@ -1004,21 +974,7 @@ bool thread_detach_current_thread(void)
 		classinfo* c;
 		LLNI_class_get(group, c);
 
-# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
-		methodinfo* m = class_resolveclassmethod(c,
-												 utf_removeThread,
-												 utf_java_lang_Thread__V,
-												 class_java_lang_ThreadGroup,
-												 true);
-# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-		methodinfo* m = class_resolveclassmethod(c,
-												 utf_remove,
-												 utf_java_lang_Thread__V,
-												 class_java_lang_ThreadGroup,
-												 true);
-# else
-#  error unknown classpath configuration
-# endif
+		methodinfo *m = ThreadRuntime::get_threadgroup_remove_method(c);
 
 		if (m == NULL)
 			return false;
