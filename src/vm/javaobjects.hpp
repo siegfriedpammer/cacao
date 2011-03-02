@@ -756,47 +756,19 @@ inline void java_lang_String::set_offset(int32_t value)
 
 /**
  * GNU Classpath java/lang/Thread
- *
- * Object layout:
- *
- *  0. object header
- *  1. java.lang.VMThread                        vmThread;
- *  2. java.lang.ThreadGroup                     group;
- *  3. java.lang.Runnable                        runnable;
- *  4. java.lang.String                          name;
- *  5. boolean                                   daemon;
- *  6. int                                       priority;
- *  7. long                                      stacksize;
- *  8. java.lang.Throwable                       stillborn;
- *  9. java.lang.ClassLoader                     contextClassLoader;
- * 10. boolean                                   contextClassLoaderIsSystemClassLoader;
- * 11. long                                      threadId;
- * 12. java.lang.Object                          parkBlocker;
- * 13. gnu.java.util.WeakIdentityHashMap         locals;
- * 14. java_lang_Thread_UncaughtExceptionHandler exceptionHandler;
  */
 class java_lang_Thread : public java_lang_Object, private FieldAccess {
 private:
 	// Static offsets of the object's instance fields.
-	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_vmThread                              = MEMORY_ALIGN(sizeof(java_object_t),                                          SIZEOF_VOID_P);
-	static const off_t offset_group                                 = MEMORY_ALIGN(offset_vmThread                              + SIZEOF_VOID_P,   SIZEOF_VOID_P);
-	static const off_t offset_runnable                              = MEMORY_ALIGN(offset_group                                 + SIZEOF_VOID_P,   SIZEOF_VOID_P);
-	static const off_t offset_name                                  = MEMORY_ALIGN(offset_runnable                              + SIZEOF_VOID_P,   SIZEOF_VOID_P);
-	static const off_t offset_daemon                                = MEMORY_ALIGN(offset_name                                  + SIZEOF_VOID_P,   sizeof(int32_t));
-	static const off_t offset_priority                              = MEMORY_ALIGN(offset_daemon                                + sizeof(int32_t), sizeof(int32_t));
-	static const off_t offset_stacksize                             = MEMORY_ALIGN(offset_priority                              + sizeof(int32_t), sizeof(int64_t));
-	static const off_t offset_stillborn                             = MEMORY_ALIGN(offset_stacksize                             + sizeof(int64_t), SIZEOF_VOID_P);
-	static const off_t offset_contextClassLoader                    = MEMORY_ALIGN(offset_stillborn                             + SIZEOF_VOID_P,   SIZEOF_VOID_P);
-	static const off_t offset_contextClassLoaderIsSystemClassLoader = MEMORY_ALIGN(offset_contextClassLoader                    + SIZEOF_VOID_P,   SIZEOF_VOID_P);
-	static const off_t offset_threadId                              = MEMORY_ALIGN(offset_contextClassLoaderIsSystemClassLoader + sizeof(int32_t), sizeof(int64_t));
-	static const off_t offset_parkBlocker                           = MEMORY_ALIGN(offset_threadId                              + sizeof(int64_t), SIZEOF_VOID_P);
-	static const off_t offset_locals                                = MEMORY_ALIGN(offset_parkBlocker                           + SIZEOF_VOID_P,   SIZEOF_VOID_P);
-	static const off_t offset_exceptionHandler                      = MEMORY_ALIGN(offset_locals                                + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static off_t offset_vmThread;
+	static off_t offset_group;
+	static off_t offset_name;
+	static off_t offset_daemon;
+	static off_t offset_priority;
+	static off_t offset_exceptionHandler;
 
 public:
 	java_lang_Thread(java_handle_t* h) : java_lang_Object(h) {}
-// 	java_lang_Thread(threadobject* t);
 
 	// Getters.
 	java_handle_t* get_vmThread        () const;
@@ -808,13 +780,15 @@ public:
 
 	// Setters.
 	void set_group(java_handle_t* value);
+
+	// Offset initializers
+	static void set_vmThread_offset(int32_t off)         { offset_vmThread = off; }
+	static void set_group_offset(int32_t off)            { offset_group = off; }
+	static void set_name_offset(int32_t off)             { offset_name = off; }
+	static void set_daemon_offset(int32_t off)           { offset_daemon = off; }
+	static void set_priority_offset(int32_t off)         { offset_priority = off; }
+	static void set_exceptionHandler_offset(int32_t off) { offset_exceptionHandler = off; }
 };
-
-
-// inline java_lang_Thread::java_lang_Thread(threadobject* t) : java_lang_Object(h)
-// {
-// 	java_lang_Thread(thread_get_object(t));
-// }
 
 
 inline java_handle_t* java_lang_Thread::get_vmThread() const
@@ -1987,65 +1961,17 @@ inline void java_lang_String::set_count(int32_t value)
 
 /**
  * OpenJDK java/lang/Thread
- *
- * Object layout:
- *
- * 0.  object header
- * 1.  char[]                                    name;
- * 2.  int                                       priority;
- * 3.  java_lang_Thread                          threadQ;
- * 4.  long                                      eetop;
- * 5.  boolean                                   single_step;
- * 6.  boolean                                   daemon;
- * 7.  boolean                                   stillborn;
- * 8.  java_lang_Runnable                        target;
- * 9.  java_lang_ThreadGroup                     group;
- * 10. java_lang_ClassLoader                     contextClassLoader;
- * 11. java_security_AccessControlContext        inheritedAccessControlContext;
- * 12. java_lang_ThreadLocal_ThreadLocalMap      threadLocals;
- * 13. java_lang_ThreadLocal_ThreadLocalMap      inheritableThreadLocals;
- * 14. long                                      stackSize;
- * 15. long                                      nativeParkEventPointer;
- * 16. long                                      tid;
- * 17. int                                       threadStatus;
- * 18. java_lang_Object                          parkBlocker;
- * 19. sun_nio_ch_Interruptible                  blocker;
- * 20. java_lang_Object                          blockerLock;
- * 21. boolean                                   stopBeforeStart;
- * 22. java_lang_Throwable                       throwableFromStop;
- * 23. java.lang.Thread.UncaughtExceptionHandler uncaughtExceptionHandler;
  */
 class java_lang_Thread : public java_lang_Object, private FieldAccess {
 private:
-	// Static offsets of the object's instance fields.
-	// TODO These offsets need to be checked on VM startup.
-	static const off_t offset_name                          = MEMORY_ALIGN(sizeof(java_object_t),                                  SIZEOF_VOID_P);
-	static const off_t offset_priority                      = MEMORY_ALIGN(offset_name                          + SIZEOF_VOID_P,   sizeof(int32_t));
-	static const off_t offset_threadQ                       = MEMORY_ALIGN(offset_priority                      + sizeof(int32_t), SIZEOF_VOID_P);
-	static const off_t offset_eetop                         = MEMORY_ALIGN(offset_threadQ                       + SIZEOF_VOID_P,   sizeof(int64_t));
-	static const off_t offset_single_step                   = MEMORY_ALIGN(offset_eetop                         + sizeof(int64_t), sizeof(int32_t));
-	static const off_t offset_daemon                        = MEMORY_ALIGN(offset_single_step                   + sizeof(int32_t), sizeof(int32_t));
-	static const off_t offset_stillborn                     = MEMORY_ALIGN(offset_daemon                        + sizeof(int32_t), sizeof(int32_t));
-	static const off_t offset_target                        = MEMORY_ALIGN(offset_stillborn                     + sizeof(int32_t), SIZEOF_VOID_P);
-	static const off_t offset_group                         = MEMORY_ALIGN(offset_target                        + SIZEOF_VOID_P,   SIZEOF_VOID_P);
-	static const off_t offset_contextClassLoader            = MEMORY_ALIGN(offset_group                         + SIZEOF_VOID_P,   SIZEOF_VOID_P);
-	static const off_t offset_inheritedAccessControlContext = MEMORY_ALIGN(offset_contextClassLoader            + SIZEOF_VOID_P,   SIZEOF_VOID_P);
-	static const off_t offset_threadLocals                  = MEMORY_ALIGN(offset_inheritedAccessControlContext + SIZEOF_VOID_P,   SIZEOF_VOID_P);
-	static const off_t offset_inheritableThreadLocals       = MEMORY_ALIGN(offset_threadLocals                  + SIZEOF_VOID_P,   SIZEOF_VOID_P);
-	static const off_t offset_stackSize                     = MEMORY_ALIGN(offset_inheritableThreadLocals       + SIZEOF_VOID_P,   sizeof(int64_t));
-	static const off_t offset_nativeParkEventPointer        = MEMORY_ALIGN(offset_stackSize                     + sizeof(int64_t), sizeof(int64_t));
-	static const off_t offset_tid                           = MEMORY_ALIGN(offset_nativeParkEventPointer        + sizeof(int64_t), sizeof(int64_t));
-	static const off_t offset_threadStatus                  = MEMORY_ALIGN(offset_tid                           + sizeof(int64_t), sizeof(int32_t));
-	static const off_t offset_parkBlocker                   = MEMORY_ALIGN(offset_threadStatus                  + sizeof(int32_t), SIZEOF_VOID_P);
-	static const off_t offset_blocker                       = MEMORY_ALIGN(offset_parkBlocker                   + SIZEOF_VOID_P,   SIZEOF_VOID_P);
-	static const off_t offset_blockerLock                   = MEMORY_ALIGN(offset_blocker                       + SIZEOF_VOID_P,   SIZEOF_VOID_P);
-	static const off_t offset_stopBeforeStart               = MEMORY_ALIGN(offset_blockerLock                   + SIZEOF_VOID_P,   sizeof(int32_t));
-	static const off_t offset_throwableFromStop             = MEMORY_ALIGN(offset_stopBeforeStart               + sizeof(int32_t), SIZEOF_VOID_P);
-	static const off_t offset_uncaughtExceptionHandler      = MEMORY_ALIGN(offset_throwableFromStop             + SIZEOF_VOID_P,   SIZEOF_VOID_P);
+	static off_t offset_priority;
+	static off_t offset_daemon;
+	static off_t offset_group;
+	static off_t offset_uncaughtExceptionHandler;
+	static off_t offset_threadStatus;
 
 public:
 	java_lang_Thread(java_handle_t* h) : java_lang_Object(h) {}
-// 	java_lang_Thread(threadobject* t);
 
 	// Getters.
 	int32_t        get_priority                () const;
@@ -2057,6 +1983,13 @@ public:
 	void set_priority    (int32_t value);
 	void set_group       (java_handle_t* value);
 	void set_threadStatus(int32_t value);
+
+	// Offset initializers
+	static void set_priority_offset(int32_t off)     { offset_priority = off; }
+	static void set_daemon_offset(int32_t off)       { offset_daemon = off; }
+	static void set_group_offset(int32_t off)        { offset_group = off; }
+	static void set_uncaughtExceptionHandler_offset(int32_t off) { offset_uncaughtExceptionHandler = off; }
+	static void set_threadStatus_offset(int32_t off) { offset_threadStatus = off; }
 };
 
 

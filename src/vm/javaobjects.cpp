@@ -227,9 +227,47 @@ bool jobjects_run_dynoffsets_hook(classinfo *c)
 	return true;
 }
 
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
+
+off_t java_lang_Thread::offset_vmThread;
+off_t java_lang_Thread::offset_group;
+off_t java_lang_Thread::offset_name;
+off_t java_lang_Thread::offset_daemon;
+off_t java_lang_Thread::offset_priority;
+off_t java_lang_Thread::offset_exceptionHandler;
+
+static DynOffsetEntry dyn_entries_java_lang_Thread[] = {
+	{ &java_lang_Thread::set_vmThread_offset,         "vmThread" },
+	{ &java_lang_Thread::set_group_offset,            "group" },
+	{ &java_lang_Thread::set_name_offset,             "name" },
+	{ &java_lang_Thread::set_daemon_offset,           "daemon" },
+	{ &java_lang_Thread::set_priority_offset,         "priority" },
+	{ &java_lang_Thread::set_exceptionHandler_offset, "exceptionHandler" },
+	{ 0, 0 }
+};
+
+#elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+
+off_t java_lang_Thread::offset_priority;
+off_t java_lang_Thread::offset_daemon;
+off_t java_lang_Thread::offset_group;
+off_t java_lang_Thread::offset_uncaughtExceptionHandler;
+off_t java_lang_Thread::offset_threadStatus;
+
+static DynOffsetEntry dyn_entries_java_lang_Thread[] = {
+	{ &java_lang_Thread::set_priority_offset,                 "priority" },
+	{ &java_lang_Thread::set_daemon_offset,                   "daemon" },
+	{ &java_lang_Thread::set_group_offset,                    "group" },
+	{ &java_lang_Thread::set_uncaughtExceptionHandler_offset, "uncaughtExceptionHandler" },
+	{ &java_lang_Thread::set_threadStatus_offset,             "threadStatus" },
+	{ 0, 0 }
+};
+
+#endif
 
 void jobjects_register_dyn_offsets()
 {
+	register_dyn_entry_table(class_java_lang_Thread, dyn_entries_java_lang_Thread);
 }
 
 #endif // ENABLE_JAVASE
