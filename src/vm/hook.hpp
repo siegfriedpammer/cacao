@@ -1,6 +1,6 @@
 /* src/vm/hook.hpp - hook points inside the VM
 
-   Copyright (C) 2009, 2010
+   Copyright (C) 2009, 2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -43,7 +43,7 @@
  */
 namespace Hook {
 	void breakpoint     (Breakpoint *bp);
-	void class_linked   (classinfo *c);
+	bool class_linked   (classinfo *c);
 	void class_loaded   (classinfo *c);
 	void jit_generated  (methodinfo *m, codeinfo *code);
 	void jit_recycled   (methodinfo *m, codeinfo *code);
@@ -56,6 +56,9 @@ namespace Hook {
 	void vm_init        ();
 	void vm_preinit     ();
 	void vm_shutdown    ();
+
+	// Non-inline functions
+	bool class_linked_dynoffsets(classinfo *c);
 }
 
 
@@ -70,10 +73,12 @@ inline void Hook::breakpoint(Breakpoint *bp)
 #endif
 }
 
-inline void Hook::class_linked(classinfo *c)
+inline bool Hook::class_linked(classinfo *c)
 {
 	if (c == class_java_lang_String)
 		linker_initialize_deferred_strings();
+
+	return class_linked_dynoffsets(c);
 }
 
 inline void Hook::class_loaded(classinfo *c)

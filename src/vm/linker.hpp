@@ -1,6 +1,6 @@
-/* src/vm/linker.h - class linker header
+/* src/vm/linker.hpp - class linker header
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
+   Copyright (C) 1996, 2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -111,4 +111,5 @@ void linker_initialize_deferred_strings();
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -1,5 +1,7 @@
 /* src/vm/javaobjects.cpp - functions to create and access Java objects
 
+   Copyright (C) 2010, 2011
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008, 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
@@ -35,6 +37,7 @@
 #include "vm/initialize.hpp"
 #include "vm/javaobjects.hpp"
 
+#include <map>
 
 #if defined(ENABLE_JAVASE)
 
@@ -188,6 +191,47 @@ java_handle_t* java_lang_reflect_Method::invoke(java_handle_t* o, java_handle_ob
 	return result;
 }
 
+struct DynOffsetEntry {
+	void (*setter)(int32_t);
+	const char *name;
+};
+
+typedef std::map<classinfo *, DynOffsetEntry *> RegisteredDynMap;
+static RegisteredDynMap dynEntryMap;
+
+static void register_dyn_entry_table(classinfo *c, DynOffsetEntry *entries)
+{
+	dynEntryMap.insert(std::make_pair(c, entries));
+}
+
+static bool runAllSetters(classinfo *c, DynOffsetEntry entries[])
+{
+	do {
+		fieldinfo *fi = class_findfield_by_name(c, utf_new_char(entries->name));
+		if (!fi)
+			return false;
+		entries->setter(fi->offset);
+	} while ((++entries)->setter);
+	return true;
+}
+
+bool jobjects_run_dynoffsets_hook(classinfo *c)
+{
+	RegisteredDynMap::const_iterator it = dynEntryMap.find(c);
+	if (it == dynEntryMap.end())
+		return true;
+
+	if (!runAllSetters(c, it->second))
+		return false;
+
+	return true;
+}
+
+
+void jobjects_register_dyn_offsets()
+{
+}
+
 #endif // ENABLE_JAVASE
 
 
@@ -202,4 +246,5 @@ java_handle_t* java_lang_reflect_Method::invoke(java_handle_t* o, java_handle_ob
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

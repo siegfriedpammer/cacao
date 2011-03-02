@@ -1,6 +1,6 @@
 /* src/toolbox/hashtable.hpp - hashtable classes
 
-   Copyright (C) 2009
+   Copyright (C) 2009, 2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -31,9 +31,6 @@
 
 #if __cplusplus
 
-// XXX This is a TR1 header and not (yet) part of the C++ standard, so we
-// should not use it. The solution is to implement the below stuff
-// ourselves. This will be done, sometimes, soon, I hope ...
 #include <tr1/unordered_map>
 
 

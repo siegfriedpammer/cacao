@@ -71,6 +71,7 @@
 #include "vm/globals.hpp"
 #include "vm/hook.hpp"
 #include "vm/initialize.hpp"
+#include "vm/javaobjects.hpp"
 #include "vm/options.h"
 #include "vm/os.hpp"
 #include "vm/primitive.hpp"
@@ -1347,6 +1348,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 	Primitive::initialize_table();
 
 	loader_init();
+	jobjects_register_dyn_offsets();
 	linker_init();
 
 	// AFTER: loader_init, linker_init

@@ -1,5 +1,7 @@
 /* src/vm/javaobjects.hpp - functions to create and access Java objects
 
+   Copyright (C) 2010, 2011
+   CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008, 2009 Theobroma Systems Ltd.
 
    This file is part of CACAO.
@@ -569,6 +571,8 @@ inline void sun_reflect_ConstantPool::set_constantPoolOop(jclass value)
 
 #endif // ENABLE_JAVASE
 
+void jobjects_register_dyn_offsets();
+bool jobjects_run_dynoffsets_hook(classinfo *c);
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 
@@ -2918,4 +2922,5 @@ inline void java_lang_Throwable::set_backtrace(java_handle_bytearray_t* value)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */

@@ -1,6 +1,6 @@
 /* src/vm/linker.cpp - class linker functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
+   Copyright (C) 1996, 2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -383,7 +383,7 @@ classinfo *link_class(classinfo *c)
 
 	if (c == NULL) {
 		exceptions_throw_nullpointerexception();
-		return NULL;
+		return 0;
 	}
 
 	LOCK_MONITOR_ENTER(c);
@@ -433,7 +433,8 @@ classinfo *link_class(classinfo *c)
 	RT_TIMING_TIME_DIFF(time_start,time_end,RT_TIMING_LINK_TOTAL);
 
 	// Hook point just after a class was linked.
-	Hook::class_linked(r);
+	if (!Hook::class_linked(r))
+		return 0;
 
 	return r;
 }
