@@ -34,13 +34,11 @@
 #ifndef _MD_ASM_H
 #define _MD_ASM_H
 
-#include <asm/ppc_asm.h>
-
+#include <ppc-asm.h>
 
 /* register defines ***********************************************************/
 
 #define zero  r0
-#define sp    r1
 
 /* #define XXX   r2  -  system reserved register */
 
@@ -89,39 +87,39 @@
 
 #define ftmp3 fr0
 
-#define fa0   fr1
-#define fa1   fr2
-#define fa2   fr3
-#define fa3   fr4
-#define fa4   fr5
-#define fa5   fr6
-#define fa6   fr7
-#define fa7   fr8
-#define fa8   fr9
-#define fa9   fr10
-#define fa10  fr11
-#define fa11  fr12
-#define fa12  fr13
+#define fa0   f1
+#define fa1   f2
+#define fa2   f3
+#define fa3   f4
+#define fa4   f5
+#define fa5   f6
+#define fa6   f7
+#define fa7   f8
+#define fa8   f9
+#define fa9   f10
+#define fa10  f11
+#define fa11  f12
+#define fa12  f13
 
-#define ftmp1 fr14
-#define ftmp2 fr15
+#define ftmp1 f14
+#define ftmp2 f15
 
-#define fs0   fr16
-#define fs1   fr17
-#define fs2   fr18
-#define fs3   fr19
-#define fs4   fr20
-#define fs5   fr21
-#define fs6   fr22
-#define fs7   fr23
-#define fs8   fr24
-#define fs9   fr25
-#define fs10  fr26
-#define fs11  fr27
-#define fs12  fr28
-#define fs13  fr29
-#define fs14  fr30
-#define fs15  fr31
+#define fs0   f16
+#define fs1   f17
+#define fs2   f18
+#define fs3   f19
+#define fs4   f20
+#define fs5   f21
+#define fs6   f22
+#define fs7   f23
+#define fs8   f24
+#define fs9   f25
+#define fs10  f26
+#define fs11  f27
+#define fs12  f28
+#define fs13  f29
+#define fs14  f30
+#define fs15  f31
 
 #define fv0   fa0
 

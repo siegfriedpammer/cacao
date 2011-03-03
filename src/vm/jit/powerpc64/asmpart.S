@@ -125,7 +125,7 @@
 
 
 	SAVE_TEMPORARY_REGISTERS(15)     
-	mr	s0, r1			/* save stack pointer */
+	mr	s0, sp			/* save stack pointer */
 
 	/* a1 contains a pointer to a unit64_t structure filled with all INT_ARG_REG,
 	followed by ADR_ARG_CNT and FLT_ARG_CNT, afterwards what else needs to be copied onto
@@ -203,9 +203,9 @@ L_asm_vm_call_method_return:
 
 	RESTORE_TEMPORARY_REGISTERS(15) 
 
-	ld     r0,40*8+LA_LR_OFFSET(r1)
+	ld     r0,40*8+LA_LR_OFFSET(sp)
 	mtlr   r0
-	addi   r1,r1,40*8
+	addi   sp,sp,40*8
 	blr
 
 asm_vm_call_method_exception_handler:
