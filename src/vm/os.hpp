@@ -353,7 +353,7 @@ inline int os::vfprintf ( FILE * stream, const char * format, va_list arg )
 	int result = ::vfprintf(stream, format, arg);
 	return result;
 #else
-# error vfrpintf not available
+# error vfprintf not available
 #endif
 }
 
