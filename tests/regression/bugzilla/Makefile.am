@@ -26,7 +26,7 @@ JAVACMD  = $(JAVA) -Xbootclasspath:$(BOOTCLASSPATH)
 JAVACCMD = $(JAVAC) -source 1.5 -target 1.5 -nowarn -bootclasspath $(BOOTCLASSPATH)
 
 EXTRA_DIST = \
-	$(srcdir)/*.java
+	$(srcdir)/*.java $(srcdir)/*.j
 
 CLEANFILES = \
 	*.class
