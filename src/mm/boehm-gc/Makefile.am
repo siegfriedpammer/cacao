@@ -31,6 +31,7 @@
 # SUBDIRS =
 # endif
 SUBDIRS =
+DIST_SUBDIRS = libatomic_ops
 
 ACLOCAL_AMFLAGS = -I m4
 AM_CPPFLAGS = -I$(top_builddir)/include -I$(top_srcdir)/include
