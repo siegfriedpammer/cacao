@@ -1169,7 +1169,7 @@ VM::VM(JavaVMInitArgs* vm_args)
 						opt_prof_bb = true;
 
 					else {
-						printf("Unknown option: -Xprof:%s\n", opt_arg + j);
+						fprintf(stderr, "Unknown option: -Xprof:%s\n", opt_arg + j);
 						usage();
 					}
 
@@ -1240,9 +1240,8 @@ VM::VM(JavaVMInitArgs* vm_args)
 
 #endif
 		default:
-			printf("Unknown option: %s\n",
-				   vm_args->options[opt_index].optionString);
-			usage();
+			fprintf(stderr, "Unknown option: %s\n",
+				   vm_args->options[opt_index++].optionString);
 		}
 	}
 
