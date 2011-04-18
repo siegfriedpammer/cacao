@@ -152,6 +152,11 @@ bool ThreadRuntimeOpenjdk::invoke_thread_initializer(java_lang_Thread& jlt, thre
 	return true;
 }
 
+void ThreadRuntimeOpenjdk::clear_heap_reference(java_lang_Thread& jlt)
+{
+	jlt.set_me(0);
+}
+
 #endif /* ENABLE_THREADS && WITH_JAVA_RUNTIME_LIBRARY_OPENJDK */
 
 

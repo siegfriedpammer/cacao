@@ -369,6 +369,10 @@ static threadobject *thread_new(int32_t flags)
 
 void thread_free(threadobject *t)
 {
+	java_handle_t *h = LLNI_WRAP(t->object);
+	java_lang_Thread jlt(h);
+	ThreadRuntime::clear_heap_reference(jlt);
+
 	/* Set the reference to the Java object to NULL. */
 
 	t->object = 0;

@@ -1969,6 +1969,7 @@ private:
 	static off_t offset_group;
 	static off_t offset_uncaughtExceptionHandler;
 	static off_t offset_threadStatus;
+	static off_t offset_me;
 
 public:
 	java_lang_Thread(java_handle_t* h) : java_lang_Object(h) {}
@@ -1983,6 +1984,7 @@ public:
 	void set_priority    (int32_t value);
 	void set_group       (java_handle_t* value);
 	void set_threadStatus(int32_t value);
+	void set_me          (java_handle_t* value);
 
 	// Offset initializers
 	static void set_priority_offset(int32_t off)     { offset_priority = off; }
@@ -1990,6 +1992,7 @@ public:
 	static void set_group_offset(int32_t off)        { offset_group = off; }
 	static void set_uncaughtExceptionHandler_offset(int32_t off) { offset_uncaughtExceptionHandler = off; }
 	static void set_threadStatus_offset(int32_t off) { offset_threadStatus = off; }
+	static void set_me_offset(int32_t off) { offset_me = off; }
 };
 
 
@@ -2027,6 +2030,11 @@ inline void java_lang_Thread::set_group(java_handle_t* value)
 inline void java_lang_Thread::set_threadStatus(int32_t value)
 {
 	set(_handle, offset_threadStatus, value);
+}
+
+inline void java_lang_Thread::set_me(java_handle_t* value)
+{
+	set(_handle, offset_me, value);
 }
 
 

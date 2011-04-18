@@ -99,6 +99,11 @@ bool ThreadRuntimeCldc11::invoke_thread_initializer(java_lang_Thread& jlt, threa
 		return false;
 }
 
+void ThreadRuntimeOpenjdk::clear_heap_reference(java_lang_Thread& jlt)
+{
+	// Nothing to do.
+}
+
 #endif /* ENABLE_THREADS && WITH_JAVA_RUNTIME_LIBRARY_OPENJDK */
 
 
