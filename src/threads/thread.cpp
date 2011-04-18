@@ -139,6 +139,10 @@ void threads_preinit(void)
 
 	mainthread = thread_new(THREAD_FLAG_JAVA);
 
+	/* Add the thread to the thread list. */
+
+	ThreadList::add_to_active_thread_list(mainthread);
+
 	/* The main thread should always have index 1. */
 
 	if (mainthread->index != 1)
@@ -280,6 +284,10 @@ static threadobject *thread_new(int32_t flags)
 
 	t = ThreadList::get_free_thread();
 
+	/* Unlock the thread lists. */
+
+	ThreadList::unlock();
+
 	if (t != NULL) {
 		/* Equivalent of MZERO on the else path */
 
@@ -343,14 +351,6 @@ static threadobject *thread_new(int32_t flags)
 
 	threads_impl_thread_reuse(t);
 
-	/* Add the thread to the thread list. */
-
-	ThreadList::add_to_active_thread_list(t);
-
-	/* Unlock the thread lists. */
-
-	ThreadList::unlock();
-
 	return t;
 }
 
@@ -403,6 +403,10 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 
 	t = thread_new(THREAD_FLAG_INTERNAL | THREAD_FLAG_DAEMON);
 
+	/* Add the thread to the thread list. */
+
+	ThreadList::add_to_active_thread_list(t);
+
 	/* The thread is flagged as (non-)daemon thread, we can leave the
 	   mutex. */
 
@@ -454,14 +458,15 @@ void threads_thread_start(java_handle_t *object)
 		t->flags |= THREAD_FLAG_DAEMON;
 #endif
 
-	/* The thread is flagged and (non-)daemon thread, we can leave the
-	   mutex. */
-
-	threads_mutex_join_unlock();
-
 	/* Link the two objects together. */
 
 	thread_set_object(t, object);
+
+	/* Add the thread to the thread list. */
+
+	ThreadList::add_to_active_thread_list(t);
+
+	threads_mutex_join_unlock();
 
 	ThreadRuntime::setup_thread_vmdata(jlt, t);
 
@@ -516,6 +521,10 @@ bool thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	/* The thread is flagged and (non-)daemon thread, we can leave the
 	   mutex. */
+
+	/* Add the thread to the thread list. */
+
+	ThreadList::add_to_active_thread_list(t);
 
 	threads_mutex_join_unlock();
 

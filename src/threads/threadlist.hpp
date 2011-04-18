@@ -1,6 +1,6 @@
 /* src/threads/threadlist.hpp - different thread-lists
 
-   Copyright (C) 2008, 2009
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -75,7 +75,6 @@ public:
 	static void                 lock()   { _mutex.lock(); }
 	static void                 unlock() { _mutex.unlock(); }
 
-	// TODO make private
 	static void                 add_to_active_thread_list(threadobject* t);
 
 	// Thread management methods.
@@ -113,6 +112,7 @@ struct ThreadListLocker {
 
 inline void ThreadList::add_to_active_thread_list(threadobject* t)
 {
+	lock();
 	_active_thread_list.push_back(t);
 
 	// Update counter variables.
@@ -121,6 +121,7 @@ inline void ThreadList::add_to_active_thread_list(threadobject* t)
 		_number_of_active_java_threads++;
 		_peak_of_active_java_threads = MAX(_peak_of_active_java_threads, _number_of_active_java_threads);
 	}
+	unlock();
 }
 
 inline void ThreadList::remove_from_active_thread_list(threadobject* t)
