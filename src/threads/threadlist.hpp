@@ -74,6 +74,7 @@ private:
 public:
 	static void                 lock()   { _mutex.lock(); }
 	static void                 unlock() { _mutex.unlock(); }
+	static void                 wait_cond(Condition *cond) { cond->wait(_mutex); }
 
 	static void                 add_to_active_thread_list(threadobject* t);
 

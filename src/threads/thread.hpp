@@ -248,9 +248,6 @@ void          threads_mutex_gc_lock(void);
 void          threads_mutex_gc_unlock(void);
 #endif
 
-void          threads_mutex_join_lock(void);
-void          threads_mutex_join_unlock(void);
-
 void          threads_impl_thread_clear(threadobject *t);
 void          threads_impl_thread_reuse(threadobject *t);
 void          threads_impl_clear_heap_pointers(threadobject *t);

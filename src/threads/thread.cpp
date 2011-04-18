@@ -398,12 +398,6 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 {
 	threadobject *t;
 
-	/* Enter the join-mutex, so if the main-thread is currently
-	   waiting to join all threads, the number of non-daemon threads
-	   is correct. */
-
-	threads_mutex_join_lock();
-
 	/* Create internal thread data-structure. */
 
 	t = thread_new(THREAD_FLAG_INTERNAL | THREAD_FLAG_DAEMON);
@@ -411,11 +405,6 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 	/* Add the thread to the thread list. */
 
 	ThreadList::add_to_active_thread_list(t);
-
-	/* The thread is flagged as (non-)daemon thread, we can leave the
-	   mutex. */
-
-	threads_mutex_join_unlock();
 
 	/* Create the Java thread object. */
 
@@ -450,22 +439,17 @@ void threads_thread_start(java_handle_t *object)
 {
 	java_lang_Thread jlt(object);
 
-	/* Enter the join-mutex, so if the main-thread is currently
-	   waiting to join all threads, the number of non-daemon threads
-	   is correct. */
-
-	threads_mutex_join_lock();
-
 	/* Create internal thread data-structure. */
 
-	threadobject* t = thread_new(THREAD_FLAG_JAVA);
-
+	u4 flags = THREAD_FLAG_JAVA;
 #if defined(ENABLE_JAVASE)
 	/* Is this a daemon thread? */
 
-	if (jlt.get_daemon() == true)
-		t->flags |= THREAD_FLAG_DAEMON;
+	if (jlt.get_daemon())
+		flags |= THREAD_FLAG_DAEMON;
 #endif
+
+	threadobject* t = thread_new(flags);
 
 	/* Link the two objects together. */
 
@@ -475,7 +459,7 @@ void threads_thread_start(java_handle_t *object)
 
 	ThreadList::add_to_active_thread_list(t);
 
-	threads_mutex_join_unlock();
+	Atomic::write_memory_barrier();
 
 	ThreadRuntime::setup_thread_vmdata(jlt, t);
 
@@ -513,18 +497,13 @@ bool thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	if (result == true)
 		return true;
 
-	/* Enter the join-mutex, so if the main-thread is currently
-	   waiting to join all threads, the number of non-daemon threads
-	   is correct. */
-
-	threads_mutex_join_lock();
-
 	/* Create internal thread data structure. */
 
-	t = thread_new(THREAD_FLAG_JAVA);
-
+	u4 flags = THREAD_FLAG_JAVA;
 	if (isdaemon)
-		t->flags |= THREAD_FLAG_DAEMON;
+		flags |= THREAD_FLAG_DAEMON;
+
+	t = thread_new(flags);
 
 	/* Store the internal thread data-structure in the TSD. */
 
@@ -536,8 +515,6 @@ bool thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	/* Add the thread to the thread list. */
 
 	ThreadList::add_to_active_thread_list(t);
-
-	threads_mutex_join_unlock();
 
 	DEBUGTHREADS("attaching", t);
 

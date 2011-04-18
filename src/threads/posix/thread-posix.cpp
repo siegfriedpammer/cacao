@@ -209,7 +209,6 @@ static Mutex* mutex_gc;
 #endif
 
 /* global mutex and condition for joining threads on exit */
-static Mutex* mutex_join;
 static Condition* cond_join;
 
 #if defined(ENABLE_GC_CACAO)
@@ -555,7 +554,6 @@ void threads_impl_preinit(void)
 	/* initialize exit mutex and condition (on exit we join all
 	   threads) */
 
-	mutex_join = new Mutex();
 	cond_join = new Condition();
 
 #if defined(ENABLE_GC_CACAO)
@@ -599,30 +597,6 @@ void threads_mutex_gc_unlock(void)
 	mutex_gc->unlock();
 }
 #endif
-
-/* threads_mutex_join_lock *****************************************************
-
-   Enter the join mutex.
-
-*******************************************************************************/
-
-void threads_mutex_join_lock(void)
-{
-	mutex_join->lock();
-}
-
-
-/* threads_mutex_join_unlock ***************************************************
-
-   Leave the join mutex.
-
-*******************************************************************************/
-
-void threads_mutex_join_unlock(void)
-{
-	mutex_join->unlock();
-}
-
 
 /* threads_impl_init ***********************************************************
 
@@ -1015,11 +989,7 @@ bool thread_detach_current_thread(void)
 	t->tid = 0;
 	t->waitmutex->unlock();
 
-	/* Enter the join-mutex before calling thread_free, so
-	   threads_join_all_threads gets the correct number of non-daemon
-	   threads. */
-
-	threads_mutex_join_lock();
+	ThreadList::lock();
 
 	/* Free the internal thread data-structure. */
 
@@ -1028,7 +998,7 @@ bool thread_detach_current_thread(void)
 	/* Signal that this thread has finished and leave the mutex. */
 
 	cond_join->signal();
-	threads_mutex_join_unlock();
+	ThreadList::unlock();
 
 	t->suspendmutex->lock();
 	t->suspendmutex->unlock();
@@ -1201,18 +1171,18 @@ void threads_join_all_threads(void)
 
 	/* enter join mutex */
 
-	threads_mutex_join_lock();
+	ThreadList::lock();
 
 	/* Wait for condition as long as we have non-daemon threads.  We
 	   compare against 1 because the current (main thread) is also a
 	   non-daemon thread. */
 
 	while (ThreadList::get_number_of_non_daemon_threads() > 1)
-		cond_join->wait(mutex_join);
+		ThreadList::wait_cond(cond_join);
 
 	/* leave join mutex */
 
-	threads_mutex_join_unlock();
+	ThreadList::unlock();
 }
 
 
