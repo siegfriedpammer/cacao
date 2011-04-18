@@ -1059,7 +1059,8 @@ static void threads_suspend_self()
 #endif
 
 	// Release the suspension mutex and wait till we are resumed.
-	thread->suspendcond->wait(thread->suspendmutex);
+	while (thread->suspend_reason != SUSPEND_REASON_NONE)
+		thread->suspendcond->wait(thread->suspendmutex);
 
 #if defined(ENABLE_GC_CACAO)
 	// XXX This is propably not ok!
@@ -1079,7 +1080,7 @@ static void threads_suspend_self()
 
 /**
  * Suspend the passed thread. Execution of that thread stops until the thread
- * is explicitly resumend again.
+ * is explicitly resumed again.
  *
  * @param thread The thread to be suspended.
  * @param reason Reason for suspending the given thread.
@@ -1117,9 +1118,8 @@ bool threads_suspend_thread(threadobject *thread, int32_t reason)
 			os::abort_errno("threads_suspend_thread: pthread_kill failed");
 
 		// Wait for the thread to acknowledge the suspension.
-		// XXX A possible optimization would be to not wait here, but you
-		//     better think this through twice before trying it!
-		thread->suspendcond->wait(thread->suspendmutex);
+		while (!thread->suspended)
+			thread->suspendcond->wait(thread->suspendmutex);
 	}
 
 	return true;

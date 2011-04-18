@@ -1,6 +1,6 @@
 /* src/vm/jit/stacktrace.cpp - machine independent stacktrace system
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -1402,7 +1402,8 @@ stacktrace_t* stacktrace_get_of_thread(threadobject* t)
 
 /* stacktrace_print_of_thread **************************************************
 
-   Print the current stacktrace of the given thread.
+   Print the current stacktrace of the given thread. It will only work
+   for suspended threads.
 
    ARGUMENTS:
        t ... thread
@@ -1422,7 +1423,7 @@ void stacktrace_print_of_thread(threadobject *t)
 
 	sfi = t->_stackframeinfo;
 	
-	if (sfi == NULL) {
+	if (!t->suspended || sfi == NULL) {
 		puts("\t<<No stacktrace available>>");
 		fflush(stdout);
 		return;
