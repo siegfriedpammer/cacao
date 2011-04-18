@@ -1005,6 +1005,10 @@ bool thread_detach_current_thread(void)
 	/* XXX Care about exceptions? */
 	(void) lock_monitor_exit(jlt.get_handle());
 
+	t->waitmutex->lock();
+	t->tid = 0;
+	t->waitmutex->unlock();
+
 	/* Enter the join-mutex before calling thread_free, so
 	   threads_join_all_threads gets the correct number of non-daemon
 	   threads. */
@@ -1019,6 +1023,9 @@ bool thread_detach_current_thread(void)
 
 	cond_join->signal();
 	threads_mutex_join_unlock();
+
+	t->suspendmutex->lock();
+	t->suspendmutex->unlock();
 
 	return true;
 }
@@ -1104,6 +1111,8 @@ bool threads_suspend_thread(threadobject *thread, int32_t reason)
 	}
 	else {
 		// Send the suspend signal to the other thread.
+		if (!thread->tid)
+			return false;
 		if (pthread_kill(thread->tid, SIGUSR1) != 0)
 			os::abort_errno("threads_suspend_thread: pthread_kill failed");
 
@@ -1401,7 +1410,8 @@ void threads_thread_interrupt(threadobject *t)
 
 	/* Interrupt blocking system call using a signal. */
 
-	pthread_kill(t->tid, Signal_INTERRUPT_SYSTEM_CALL);
+	if (t->tid)
+		pthread_kill(t->tid, Signal_INTERRUPT_SYSTEM_CALL);
 
 	t->waitcond->signal();
 
