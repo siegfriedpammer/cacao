@@ -83,7 +83,8 @@ public:
 	static int32_t              get_free_thread_index();
 	static threadobject*        get_thread_by_index(int32_t index);
 	static threadobject*        get_thread_from_java_object(java_handle_t* h);
-	static void                 release_thread(threadobject* t);
+	static void                 release_thread(threadobject* t, bool needs_deactivate);
+	static void                 deactivate_thread(threadobject *t);
 
 	// Thread listing methods.
 	static void                 get_active_threads(List<threadobject*> &list);
@@ -114,6 +115,7 @@ inline void ThreadList::add_to_active_thread_list(threadobject* t)
 {
 	lock();
 	_active_thread_list.push_back(t);
+	t->is_in_active_list = true;
 
 	// Update counter variables.
 	if ((t->flags & THREAD_FLAG_INTERNAL) == 0) {
@@ -126,52 +128,76 @@ inline void ThreadList::add_to_active_thread_list(threadobject* t)
 
 inline void ThreadList::remove_from_active_thread_list(threadobject* t)
 {
+	lock();
 	_active_thread_list.remove(t);
+	t->is_in_active_list = false;
 
 	// Update counter variables.
 	if ((t->flags & THREAD_FLAG_INTERNAL) == 0) {
 		_number_of_active_java_threads--;
 	}
+	unlock();
 }
 
 inline void ThreadList::add_to_free_thread_list(threadobject* t)
 {
+	lock();
 	_free_thread_list.push_back(t);
+	unlock();
 }
 
 inline void ThreadList::add_to_free_index_list(int32_t index)
 {
+	lock();
 	_free_index_list.push_back(index);
+	unlock();
 }
 
 inline threadobject* ThreadList::get_main_thread()
 {
-	return _active_thread_list.front();
+	lock();
+	threadobject *r = _active_thread_list.front();
+	unlock();
+	return r;
 }
 
 inline int32_t ThreadList::get_number_of_active_threads()
 {
-	return _active_thread_list.size();
+	lock();
+	int32_t size = _active_thread_list.size();
+	unlock();
+	return size;
 }
 
 inline int32_t ThreadList::get_number_of_started_java_threads()
 {
-	return _number_of_started_java_threads;
+	lock();
+	int32_t num = _number_of_started_java_threads;
+	unlock();
+	return num;
 }
 
 inline int32_t ThreadList::get_number_of_active_java_threads()
 {
-	return _number_of_active_java_threads;
+	lock();
+	int32_t num = _number_of_active_java_threads;
+	unlock();
+	return num;
 }
 
 inline int32_t ThreadList::get_peak_of_active_java_threads()
 {
-	return _peak_of_active_java_threads;
+	lock();
+	int32_t num = _peak_of_active_java_threads;
+	unlock();
+	return num;
 }
 
 inline void ThreadList::reset_peak_of_active_java_threads()
 {
+	lock();
 	_peak_of_active_java_threads = _number_of_active_java_threads;
+	unlock();
 }
 
 #else
@@ -181,7 +207,6 @@ typedef struct ThreadList ThreadList;
 void ThreadList_lock();
 void ThreadList_unlock();
 void ThreadList_dump_threads();
-void ThreadList_release_thread(threadobject* t);
 threadobject* ThreadList_get_free_thread();
 int32_t ThreadList_get_free_thread_index();
 void ThreadList_add_to_active_thread_list(threadobject* t);

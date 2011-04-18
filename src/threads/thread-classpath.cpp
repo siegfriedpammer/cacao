@@ -77,9 +77,7 @@ void ThreadRuntimeClasspath::setup_thread_vmdata(const java_lang_Thread& jlt, th
 	assert(jlvmt.get_handle() != NULL);
 	assert(jlvmt.get_vmdata() == NULL);
 
-	ThreadList::lock();
 	jlvmt.set_vmdata(t);
-	ThreadList::unlock();
 }
 
 void ThreadRuntimeClasspath::print_thread_name(const java_lang_Thread& jlt, FILE *stream)

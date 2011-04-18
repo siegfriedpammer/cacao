@@ -49,6 +49,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"
+#include "vm/finalizer.hpp"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/method.hpp"
@@ -372,9 +373,7 @@ void thread_free(threadobject *t)
 
 	thread_set_object(t, NULL);
 
-	/* Release the thread. */
-
-	ThreadList::release_thread(t);
+	ThreadList::deactivate_thread(t);
 }
 
 
@@ -388,6 +387,12 @@ void thread_free(threadobject *t)
       f..........function pointer to C function to start
 
 *******************************************************************************/
+
+static void thread_cleanup_finalizer(java_handle_t *h, void *data)
+{
+	threadobject *t = reinterpret_cast<threadobject*>(data);
+	ThreadList::release_thread(t, false);
+}
 
 bool threads_thread_start_internal(utf *name, functionptr f)
 {
@@ -414,8 +419,12 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 
 	/* Create the Java thread object. */
 
-	if (!thread_create_object(t, javastring_new(name), threadgroup_system))
+	if (!thread_create_object(t, javastring_new(name), threadgroup_system)) {
+		ThreadList::release_thread(t, true);
 		return false;
+	}
+
+	Finalizer::attach_custom_finalizer(thread_get_object(t), thread_cleanup_finalizer, t);
 
 	/* Start the thread. */
 
@@ -469,6 +478,8 @@ void threads_thread_start(java_handle_t *object)
 	threads_mutex_join_unlock();
 
 	ThreadRuntime::setup_thread_vmdata(jlt, t);
+
+	Finalizer::attach_custom_finalizer(thread_get_object(t), thread_cleanup_finalizer, t);
 
 	/* Start the thread.  Don't pass a function pointer (NULL) since
 	   we want Thread.run()V here. */
@@ -566,8 +577,10 @@ bool thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	/* Create the Java thread object. */
 
-	if (!thread_create_object(t, name, group))
+	if (!thread_create_object(t, name, group)) {
+		ThreadList::release_thread(t, true);
 		return false;
+	}
 
 	/* The thread is completely initialized. */
 
@@ -894,13 +907,9 @@ void thread_set_state_terminated(threadobject *t)
 {
 	/* Set the state inside a lock. */
 
-	ThreadList::lock();
-
 	thread_set_state(t, THREAD_STATE_TERMINATED);
 
 	DEBUGTHREADS("is TERMINATED", t);
-
-	ThreadList::unlock();
 }
 
 
@@ -1012,8 +1021,6 @@ void thread_set_interrupted(threadobject *t, bool interrupted)
 
 void thread_handle_set_priority(java_handle_t *th, int priority)
 {
-	ThreadListLocker l;
-	
 	threadobject *t = thread_get_thread(th);
 	/* For GNU classpath, this should not happen, because both
 	   setPriority() and start() are synchronized. */
@@ -1031,8 +1038,6 @@ void thread_handle_set_priority(java_handle_t *th, int priority)
 
 bool thread_handle_is_interrupted(java_handle_t *th)
 {
-	ThreadListLocker l;
-	
 	threadobject *t = thread_get_thread(th);
 	return t ? thread_is_interrupted(t) : false;
 }
@@ -1047,8 +1052,6 @@ bool thread_handle_is_interrupted(java_handle_t *th)
 
 void thread_handle_interrupt(java_handle_t *th)
 {
-	ThreadListLocker l;
-	
 	threadobject *t = thread_get_thread(th);
 	/* For GNU classpath, this should not happen, because both
 	   interrupt() and start() are synchronized. */
@@ -1066,8 +1069,6 @@ void thread_handle_interrupt(java_handle_t *th)
 
 int thread_handle_get_state(java_handle_t *th)
 {
-	ThreadListLocker l;
-
 	threadobject *t = thread_get_thread(th);
 	return t ? cacaothread_get_state(t) : THREAD_STATE_NEW;
 }

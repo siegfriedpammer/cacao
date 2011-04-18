@@ -1,6 +1,6 @@
 /* src/threads/posix/thread-posix.hpp - POSIX thread functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -74,6 +74,7 @@ struct threadobject {
 	s4                    index;        /* thread index, starting with 1      */
 	u4                    flags;        /* flag field                         */
 	u4                    state;        /* state field                        */
+	bool                  is_in_active_list; /* for debugging only            */
 
 	pthread_t             tid;          /* pthread id                         */
 

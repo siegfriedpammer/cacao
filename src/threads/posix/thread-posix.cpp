@@ -459,6 +459,7 @@ void threads_impl_thread_clear(threadobject *t)
 	t->index = 0;
 	t->flags = 0;
 	t->state = 0;
+	t->is_in_active_list = false;
 
 	t->tid = 0;
 
@@ -532,6 +533,11 @@ void threads_impl_thread_reuse(threadobject *t)
 #endif
 }
 
+void threads_impl_clear_heap_pointers(threadobject *t)
+{
+	t->object = 0;
+	t->flc_object = 0;
+}
 
 /* threads_impl_preinit ********************************************************
 

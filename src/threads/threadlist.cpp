@@ -150,13 +150,15 @@ void ThreadList::get_active_java_threads(List<threadobject*> &list)
 
 
 /**
- * Return a free thread object. Caller must hold the thread list lock.
+ * Return a free thread object.
  *
  * @return free thread object or NULL if none available
  */
 threadobject* ThreadList::get_free_thread()
 {
 	threadobject* t = NULL;
+
+	lock();
 
 	// Do we have free threads in the free-list?
 	if (_free_thread_list.empty() == false) {
@@ -165,18 +167,22 @@ threadobject* ThreadList::get_free_thread()
 		_free_thread_list.remove(t);
 	}
 
+	unlock();
+
 	return t;
 }
 
 
 /**
- * Return a free thread index. Caller must hold the thread list lock.
+ * Return a free thread index.
  *
  * @return free thread index
  */
 int32_t ThreadList::get_free_thread_index()
 {
 	int32_t index;
+
+	lock();
 
 	// Do we have free indexes in the free-list?
 	if (_free_index_list.empty() == false) {
@@ -188,6 +194,8 @@ int32_t ThreadList::get_free_thread_index()
 		// Get a new the thread index.
 		index = _active_thread_list.size() + 1;
 	}
+
+	unlock();
 
 	return index;
 }
@@ -313,18 +321,28 @@ threadobject* ThreadList::get_thread_from_java_object(java_handle_t* h)
 	return NULL;
 }
 
+void ThreadList::deactivate_thread(threadobject *t)
+{
+	ThreadListLocker lock;
+	remove_from_active_thread_list(t);
+	threads_impl_clear_heap_pointers(t); // allow it to be garbage collected
+}
 
 /**
  * Release the thread.
  *
  * @return free thread index
  */
-void ThreadList::release_thread(threadobject* t)
+void ThreadList::release_thread(threadobject* t, bool needs_deactivate)
 {
 	lock();
 
-	// Move thread from active thread list to free thread list.
-	remove_from_active_thread_list(t);
+	if (needs_deactivate)
+		// Move thread from active thread list to free thread list.
+		remove_from_active_thread_list(t);
+	else
+		assert(!t->is_in_active_list);
+
 	add_to_free_thread_list(t);
 
 	// Add thread index to free index list.
@@ -340,7 +358,6 @@ extern "C" {
 	void ThreadList_lock() { ThreadList::lock(); }
 	void ThreadList_unlock() { ThreadList::unlock(); }
 	void ThreadList_dump_threads() { ThreadList::dump_threads(); }
-	void ThreadList_release_thread(threadobject* t) { ThreadList::release_thread(t); }
 	threadobject* ThreadList_get_free_thread() { return ThreadList::get_free_thread(); }
 	int32_t ThreadList_get_free_thread_index() { return ThreadList::get_free_thread_index(); }
 	void ThreadList_add_to_active_thread_list(threadobject* t) { ThreadList::add_to_active_thread_list(t); }
