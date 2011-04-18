@@ -213,7 +213,7 @@ static bool thread_create_object(threadobject *t, java_handle_t *name, java_hand
 
 	// Set the Java object in the thread data-structure.  This
 	// indicates that the thread is attached to the VM.
-	thread_set_object(t, jlt.get_handle());
+	t->object = LLNI_DIRECT(jlt.get_handle());
 
 	return ThreadRuntime::invoke_thread_initializer(jlt, t, thread_method_init, name, group);
 }
@@ -371,7 +371,7 @@ void thread_free(threadobject *t)
 {
 	/* Set the reference to the Java object to NULL. */
 
-	thread_set_object(t, NULL);
+	t->object = 0;
 
 	ThreadList::deactivate_thread(t);
 }
@@ -424,7 +424,7 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 		return false;
 	}
 
-	Finalizer::attach_custom_finalizer(thread_get_object(t), thread_cleanup_finalizer, t);
+	Finalizer::attach_custom_finalizer(LLNI_WRAP(t->object), thread_cleanup_finalizer, t);
 
 	/* Start the thread. */
 
@@ -469,7 +469,7 @@ void threads_thread_start(java_handle_t *object)
 
 	/* Link the two objects together. */
 
-	thread_set_object(t, object);
+	t->object = LLNI_DIRECT(object);
 
 	/* Add the thread to the thread list. */
 
@@ -479,7 +479,7 @@ void threads_thread_start(java_handle_t *object)
 
 	ThreadRuntime::setup_thread_vmdata(jlt, t);
 
-	Finalizer::attach_custom_finalizer(thread_get_object(t), thread_cleanup_finalizer, t);
+	Finalizer::attach_custom_finalizer(LLNI_WRAP(t->object), thread_cleanup_finalizer, t);
 
 	/* Start the thread.  Don't pass a function pointer (NULL) since
 	   we want Thread.run()V here. */
@@ -675,10 +675,10 @@ bool thread_detach_current_external_thread(void)
 
 void thread_fprint_name(threadobject *t, FILE *stream)
 {
-	if (thread_get_object(t) == NULL)
+	if (LLNI_WRAP(t->object) == NULL)
 		vm_abort("");
 
-	java_lang_Thread jlt(thread_get_object(t));
+	java_lang_Thread jlt(LLNI_WRAP(t->object));
 
 	ThreadRuntime::print_thread_name(jlt, stream);
 }
@@ -695,7 +695,7 @@ void thread_fprint_name(threadobject *t, FILE *stream)
 
 void thread_print_info(threadobject *t)
 {
-	java_lang_Thread jlt(thread_get_object(t));
+	java_lang_Thread jlt(LLNI_WRAP(t->object));
 
 	/* Print as much as we can when we are in state NEW. */
 

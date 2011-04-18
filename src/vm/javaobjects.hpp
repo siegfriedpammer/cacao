@@ -1,6 +1,6 @@
 /* src/vm/javaobjects.hpp - functions to create and access Java objects
 
-   Copyright (C) 2010, 2011
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008, 2009 Theobroma Systems Ltd.
 
@@ -2763,12 +2763,6 @@ public:
 	// Setters.
 	void set_vm_thread(threadobject* value);
 };
-
-
-// inline java_lang_Thread::java_lang_Thread(threadobject* t) : java_lang_Object(h)
-// {
-// 	java_lang_Thread(thread_get_object(t));
-// }
 
 
 inline int32_t java_lang_Thread::get_priority() const

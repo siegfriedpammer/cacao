@@ -1,6 +1,6 @@
 /* src/native/vm/openjdk/jvm.cpp - HotSpot VM interface functions
 
-   Copyright (C) 2007, 2008, 2009
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -3250,7 +3250,7 @@ jobjectArray JVM_GetAllThreads(JNIEnv *env, jclass dummy)
 	for (List<threadobject*>::iterator it = active_threads.begin(); it != active_threads.end(); it++) {
 		threadobject* t = *it;
 
-		java_handle_t* h = thread_get_object(t);
+		java_handle_t* h = LLNI_WRAP(t->object);
 		assert(h != NULL);
 
 		oa.set_element(index, h);

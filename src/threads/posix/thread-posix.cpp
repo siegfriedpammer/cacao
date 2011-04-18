@@ -741,7 +741,7 @@ static void *threads_startup_thread(void *arg)
 #endif
 
 	// Get the java.lang.Thread object for this thread.
-	java_handle_t* object = thread_get_object(t);
+	java_handle_t* object = LLNI_WRAP(t->object);
 	java_lang_Thread jlt(object);
 
 	/* set our priority */
@@ -926,7 +926,7 @@ bool thread_detach_current_thread(void)
 
 	DEBUGTHREADS("detaching", t);
 
-	java_handle_t* object = thread_get_object(t);
+	java_handle_t* object = LLNI_WRAP(t->object);
 	java_lang_Thread jlt(object);
 
 #if defined(ENABLE_JAVASE)
