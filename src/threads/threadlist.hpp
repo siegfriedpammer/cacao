@@ -57,6 +57,8 @@ private:
 	// Thread counters for internal usage.
 	static int32_t             _number_of_non_daemon_threads;
 
+	static int32_t             _last_index;
+
 	static void                 remove_from_active_thread_list(threadobject* t);
 	static void                 add_to_free_thread_list(threadobject* t);
 	static void                 add_to_free_index_list(int32_t index);

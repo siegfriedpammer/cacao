@@ -52,6 +52,8 @@ int32_t             ThreadList::_number_of_active_java_threads;
 int32_t             ThreadList::_peak_of_active_java_threads;
 int32_t             ThreadList::_number_of_non_daemon_threads;
 
+int32_t             ThreadList::_last_index = 0;
+
 
 /**
  * Dumps info for all threads running in the VM.  This function is
@@ -192,7 +194,7 @@ int32_t ThreadList::get_free_thread_index()
 	}
 	else {
 		// Get a new the thread index.
-		index = _active_thread_list.size() + 1;
+		index = ++_last_index;
 	}
 
 	unlock();
