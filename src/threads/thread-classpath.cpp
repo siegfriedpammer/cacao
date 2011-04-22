@@ -77,9 +77,7 @@ void ThreadRuntimeClasspath::setup_thread_vmdata(const java_lang_Thread& jlt, th
 	assert(jlvmt.get_handle() != NULL);
 	assert(jlvmt.get_vmdata() == NULL);
 
-	ThreadList::lock();
 	jlvmt.set_vmdata(t);
-	ThreadList::unlock();
 }
 
 void ThreadRuntimeClasspath::print_thread_name(const java_lang_Thread& jlt, FILE *stream)
@@ -156,6 +154,11 @@ bool ThreadRuntimeClasspath::invoke_thread_initializer(java_lang_Thread& jlt, th
 		return false;
 
 	return true;
+}
+
+void ThreadRuntimeClasspath::clear_heap_reference(java_lang_Thread& jlt)
+{
+	// Nothing to do.
 }
 
 #endif /* ENABLE_THREADS && WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH */

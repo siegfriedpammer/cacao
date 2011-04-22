@@ -49,6 +49,7 @@
 #include "vm/jit/builtin.hpp"
 #include "vm/class.hpp"
 #include "vm/exceptions.hpp"
+#include "vm/finalizer.hpp"
 #include "vm/globals.hpp"
 #include "vm/javaobjects.hpp"
 #include "vm/method.hpp"
@@ -139,6 +140,10 @@ void threads_preinit(void)
 
 	mainthread = thread_new(THREAD_FLAG_JAVA);
 
+	/* Add the thread to the thread list. */
+
+	ThreadList::add_to_active_thread_list(mainthread);
+
 	/* The main thread should always have index 1. */
 
 	if (mainthread->index != 1)
@@ -208,7 +213,7 @@ static bool thread_create_object(threadobject *t, java_handle_t *name, java_hand
 
 	// Set the Java object in the thread data-structure.  This
 	// indicates that the thread is attached to the VM.
-	thread_set_object(t, jlt.get_handle());
+	t->object = LLNI_DIRECT(jlt.get_handle());
 
 	return ThreadRuntime::invoke_thread_initializer(jlt, t, thread_method_init, name, group);
 }
@@ -280,6 +285,10 @@ static threadobject *thread_new(int32_t flags)
 
 	t = ThreadList::get_free_thread();
 
+	/* Unlock the thread lists. */
+
+	ThreadList::unlock();
+
 	if (t != NULL) {
 		/* Equivalent of MZERO on the else path */
 
@@ -343,14 +352,6 @@ static threadobject *thread_new(int32_t flags)
 
 	threads_impl_thread_reuse(t);
 
-	/* Add the thread to the thread list. */
-
-	ThreadList::add_to_active_thread_list(t);
-
-	/* Unlock the thread lists. */
-
-	ThreadList::unlock();
-
 	return t;
 }
 
@@ -368,13 +369,15 @@ static threadobject *thread_new(int32_t flags)
 
 void thread_free(threadobject *t)
 {
+	java_handle_t *h = LLNI_WRAP(t->object);
+	java_lang_Thread jlt(h);
+	ThreadRuntime::clear_heap_reference(jlt);
+
 	/* Set the reference to the Java object to NULL. */
 
-	thread_set_object(t, NULL);
+	t->object = 0;
 
-	/* Release the thread. */
-
-	ThreadList::release_thread(t);
+	ThreadList::deactivate_thread(t);
 }
 
 
@@ -389,29 +392,32 @@ void thread_free(threadobject *t)
 
 *******************************************************************************/
 
+static void thread_cleanup_finalizer(java_handle_t *h, void *data)
+{
+	threadobject *t = reinterpret_cast<threadobject*>(data);
+	ThreadList::release_thread(t, false);
+}
+
 bool threads_thread_start_internal(utf *name, functionptr f)
 {
 	threadobject *t;
-
-	/* Enter the join-mutex, so if the main-thread is currently
-	   waiting to join all threads, the number of non-daemon threads
-	   is correct. */
-
-	threads_mutex_join_lock();
 
 	/* Create internal thread data-structure. */
 
 	t = thread_new(THREAD_FLAG_INTERNAL | THREAD_FLAG_DAEMON);
 
-	/* The thread is flagged as (non-)daemon thread, we can leave the
-	   mutex. */
+	/* Add the thread to the thread list. */
 
-	threads_mutex_join_unlock();
+	ThreadList::add_to_active_thread_list(t);
 
 	/* Create the Java thread object. */
 
-	if (!thread_create_object(t, javastring_new(name), threadgroup_system))
+	if (!thread_create_object(t, javastring_new(name), threadgroup_system)) {
+		ThreadList::release_thread(t, true);
 		return false;
+	}
+
+	Finalizer::attach_custom_finalizer(LLNI_WRAP(t->object), thread_cleanup_finalizer, t);
 
 	/* Start the thread. */
 
@@ -437,33 +443,31 @@ void threads_thread_start(java_handle_t *object)
 {
 	java_lang_Thread jlt(object);
 
-	/* Enter the join-mutex, so if the main-thread is currently
-	   waiting to join all threads, the number of non-daemon threads
-	   is correct. */
-
-	threads_mutex_join_lock();
-
 	/* Create internal thread data-structure. */
 
-	threadobject* t = thread_new(THREAD_FLAG_JAVA);
-
+	u4 flags = THREAD_FLAG_JAVA;
 #if defined(ENABLE_JAVASE)
 	/* Is this a daemon thread? */
 
-	if (jlt.get_daemon() == true)
-		t->flags |= THREAD_FLAG_DAEMON;
+	if (jlt.get_daemon())
+		flags |= THREAD_FLAG_DAEMON;
 #endif
 
-	/* The thread is flagged and (non-)daemon thread, we can leave the
-	   mutex. */
-
-	threads_mutex_join_unlock();
+	threadobject* t = thread_new(flags);
 
 	/* Link the two objects together. */
 
-	thread_set_object(t, object);
+	t->object = LLNI_DIRECT(object);
+
+	/* Add the thread to the thread list. */
+
+	ThreadList::add_to_active_thread_list(t);
+
+	Atomic::write_memory_barrier();
 
 	ThreadRuntime::setup_thread_vmdata(jlt, t);
+
+	Finalizer::attach_custom_finalizer(LLNI_WRAP(t->object), thread_cleanup_finalizer, t);
 
 	/* Start the thread.  Don't pass a function pointer (NULL) since
 	   we want Thread.run()V here. */
@@ -497,18 +501,13 @@ bool thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	if (result == true)
 		return true;
 
-	/* Enter the join-mutex, so if the main-thread is currently
-	   waiting to join all threads, the number of non-daemon threads
-	   is correct. */
-
-	threads_mutex_join_lock();
-
 	/* Create internal thread data structure. */
 
-	t = thread_new(THREAD_FLAG_JAVA);
-
+	u4 flags = THREAD_FLAG_JAVA;
 	if (isdaemon)
-		t->flags |= THREAD_FLAG_DAEMON;
+		flags |= THREAD_FLAG_DAEMON;
+
+	t = thread_new(flags);
 
 	/* Store the internal thread data-structure in the TSD. */
 
@@ -517,7 +516,9 @@ bool thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 	/* The thread is flagged and (non-)daemon thread, we can leave the
 	   mutex. */
 
-	threads_mutex_join_unlock();
+	/* Add the thread to the thread list. */
+
+	ThreadList::add_to_active_thread_list(t);
 
 	DEBUGTHREADS("attaching", t);
 
@@ -557,8 +558,10 @@ bool thread_attach_current_thread(JavaVMAttachArgs *vm_aargs, bool isdaemon)
 
 	/* Create the Java thread object. */
 
-	if (!thread_create_object(t, name, group))
+	if (!thread_create_object(t, name, group)) {
+		ThreadList::release_thread(t, true);
 		return false;
+	}
 
 	/* The thread is completely initialized. */
 
@@ -653,10 +656,10 @@ bool thread_detach_current_external_thread(void)
 
 void thread_fprint_name(threadobject *t, FILE *stream)
 {
-	if (thread_get_object(t) == NULL)
+	if (LLNI_WRAP(t->object) == NULL)
 		vm_abort("");
 
-	java_lang_Thread jlt(thread_get_object(t));
+	java_lang_Thread jlt(LLNI_WRAP(t->object));
 
 	ThreadRuntime::print_thread_name(jlt, stream);
 }
@@ -673,7 +676,7 @@ void thread_fprint_name(threadobject *t, FILE *stream)
 
 void thread_print_info(threadobject *t)
 {
-	java_lang_Thread jlt(thread_get_object(t));
+	java_lang_Thread jlt(LLNI_WRAP(t->object));
 
 	/* Print as much as we can when we are in state NEW. */
 
@@ -885,13 +888,9 @@ void thread_set_state_terminated(threadobject *t)
 {
 	/* Set the state inside a lock. */
 
-	ThreadList::lock();
-
 	thread_set_state(t, THREAD_STATE_TERMINATED);
 
 	DEBUGTHREADS("is TERMINATED", t);
-
-	ThreadList::unlock();
 }
 
 
@@ -1003,8 +1002,6 @@ void thread_set_interrupted(threadobject *t, bool interrupted)
 
 void thread_handle_set_priority(java_handle_t *th, int priority)
 {
-	ThreadListLocker l;
-	
 	threadobject *t = thread_get_thread(th);
 	/* For GNU classpath, this should not happen, because both
 	   setPriority() and start() are synchronized. */
@@ -1022,8 +1019,6 @@ void thread_handle_set_priority(java_handle_t *th, int priority)
 
 bool thread_handle_is_interrupted(java_handle_t *th)
 {
-	ThreadListLocker l;
-	
 	threadobject *t = thread_get_thread(th);
 	return t ? thread_is_interrupted(t) : false;
 }
@@ -1038,8 +1033,6 @@ bool thread_handle_is_interrupted(java_handle_t *th)
 
 void thread_handle_interrupt(java_handle_t *th)
 {
-	ThreadListLocker l;
-	
 	threadobject *t = thread_get_thread(th);
 	/* For GNU classpath, this should not happen, because both
 	   interrupt() and start() are synchronized. */
@@ -1057,8 +1050,6 @@ void thread_handle_interrupt(java_handle_t *th)
 
 int thread_handle_get_state(java_handle_t *th)
 {
-	ThreadListLocker l;
-
 	threadobject *t = thread_get_thread(th);
 	return t ? cacaothread_get_state(t) : THREAD_STATE_NEW;
 }

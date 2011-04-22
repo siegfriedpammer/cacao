@@ -57,6 +57,7 @@ struct ThreadRuntimeClasspath {
 	static threadobject *get_threadobject_from_thread(java_handle_t *h);
 	static void thread_create_initial_threadgroups(java_handle_t **threadgroup_system, java_handle_t **threadgroup_main);
 	static bool invoke_thread_initializer(java_lang_Thread& jlt, threadobject *t, methodinfo *thread_method_init, java_handle_t *name, java_handle_t *group);
+	static void clear_heap_reference(java_lang_Thread& jlt);
 };
 
 typedef ThreadRuntimeClasspath ThreadRuntime;

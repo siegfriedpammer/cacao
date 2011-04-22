@@ -1,6 +1,6 @@
 /* src/vm/exceptions.cpp - exception related functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -2021,7 +2021,7 @@ void exceptions_print_stacktrace(void)
 		   need it afterwards. */
 
 		t  = thread_get_current();
-		to = (java_lang_Thread *) thread_get_object(t);
+		to = (java_lang_Thread *) LLNI_WRAP(t->object);
 
 		if (to != NULL) {
 			fprintf(stderr, "in thread \"");

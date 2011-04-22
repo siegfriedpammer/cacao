@@ -1,6 +1,6 @@
 /* src/vm/javaobjects.cpp - functions to create and access Java objects
 
-   Copyright (C) 2010, 2011
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2008, 2009 Theobroma Systems Ltd.
 
@@ -253,6 +253,7 @@ off_t java_lang_Thread::offset_daemon;
 off_t java_lang_Thread::offset_group;
 off_t java_lang_Thread::offset_uncaughtExceptionHandler;
 off_t java_lang_Thread::offset_threadStatus;
+off_t java_lang_Thread::offset_me;
 
 static DynOffsetEntry dyn_entries_java_lang_Thread[] = {
 	{ &java_lang_Thread::set_priority_offset,                 "priority" },
@@ -260,6 +261,7 @@ static DynOffsetEntry dyn_entries_java_lang_Thread[] = {
 	{ &java_lang_Thread::set_group_offset,                    "group" },
 	{ &java_lang_Thread::set_uncaughtExceptionHandler_offset, "uncaughtExceptionHandler" },
 	{ &java_lang_Thread::set_threadStatus_offset,             "threadStatus" },
+	{ &java_lang_Thread::set_me_offset,                       "me" },
 	{ 0, 0 }
 };
 

@@ -100,40 +100,6 @@ extern "C" {
 
 /* inline functions ***********************************************************/
 
-/* thread_get_object ***********************************************************
-
-   Return the Java for the given thread.
-
-   ARGUMENTS:
-       t ... thread
-
-   RETURN:
-       the Java object
-
-*******************************************************************************/
-
-inline static java_handle_t *thread_get_object(threadobject *t)
-{
-	return LLNI_WRAP(t->object);
-}
-
-
-/* threads_thread_set_object ***************************************************
-
-   Set the Java object for the given thread.
-
-   ARGUMENTS:
-       t ... thread
-	   o ... Java object
-
-*******************************************************************************/
-
-inline static void thread_set_object(threadobject *t, java_handle_t *o)
-{
-	t->object = LLNI_DIRECT(o);
-}
-
-
 /* thread_get_current_object **************************************************
 
    Return the Java object of the current thread.
@@ -149,7 +115,7 @@ inline static java_handle_t *thread_get_current_object(void)
 	java_handle_t *o;
 
 	t = THREADOBJECT;
-	o = thread_get_object(t);
+	o = LLNI_WRAP(t->object);
 
 	return o;
 }
@@ -190,7 +156,7 @@ inline static bool thread_is_attached(threadobject *t)
 {
 	java_handle_t *o;
 
-	o = thread_get_object(t);
+	o = LLNI_WRAP(t->object);
 
 	return o != NULL;
 }
@@ -282,11 +248,9 @@ void          threads_mutex_gc_lock(void);
 void          threads_mutex_gc_unlock(void);
 #endif
 
-void          threads_mutex_join_lock(void);
-void          threads_mutex_join_unlock(void);
-
 void          threads_impl_thread_clear(threadobject *t);
 void          threads_impl_thread_reuse(threadobject *t);
+void          threads_impl_clear_heap_pointers(threadobject *t);
 void          threads_impl_thread_start(threadobject *thread, functionptr f);
 
 void          threads_yield(void);

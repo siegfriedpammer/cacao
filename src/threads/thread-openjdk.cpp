@@ -87,7 +87,7 @@ void ThreadRuntimeOpenjdk::print_thread_name(const java_lang_Thread& jlt, FILE *
 void ThreadRuntimeOpenjdk::set_javathread_state(threadobject *t, int state)
 {
 	// Set the state of the java.lang.Thread object.
-	java_lang_Thread thread(thread_get_object(t));
+	java_lang_Thread thread(LLNI_WRAP(t->object));
 	assert(thread.is_non_null());
 	thread.set_threadStatus(state);
 }
@@ -150,6 +150,11 @@ bool ThreadRuntimeOpenjdk::invoke_thread_initializer(java_lang_Thread& jlt, thre
 		return false;
 
 	return true;
+}
+
+void ThreadRuntimeOpenjdk::clear_heap_reference(java_lang_Thread& jlt)
+{
+	jlt.set_me(0);
 }
 
 #endif /* ENABLE_THREADS && WITH_JAVA_RUNTIME_LIBRARY_OPENJDK */

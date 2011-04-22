@@ -209,7 +209,6 @@ static Mutex* mutex_gc;
 #endif
 
 /* global mutex and condition for joining threads on exit */
-static Mutex* mutex_join;
 static Condition* cond_join;
 
 #if defined(ENABLE_GC_CACAO)
@@ -459,6 +458,7 @@ void threads_impl_thread_clear(threadobject *t)
 	t->index = 0;
 	t->flags = 0;
 	t->state = 0;
+	t->is_in_active_list = false;
 
 	t->tid = 0;
 
@@ -532,6 +532,11 @@ void threads_impl_thread_reuse(threadobject *t)
 #endif
 }
 
+void threads_impl_clear_heap_pointers(threadobject *t)
+{
+	t->object = 0;
+	t->flc_object = 0;
+}
 
 /* threads_impl_preinit ********************************************************
 
@@ -549,7 +554,6 @@ void threads_impl_preinit(void)
 	/* initialize exit mutex and condition (on exit we join all
 	   threads) */
 
-	mutex_join = new Mutex();
 	cond_join = new Condition();
 
 #if defined(ENABLE_GC_CACAO)
@@ -593,30 +597,6 @@ void threads_mutex_gc_unlock(void)
 	mutex_gc->unlock();
 }
 #endif
-
-/* threads_mutex_join_lock *****************************************************
-
-   Enter the join mutex.
-
-*******************************************************************************/
-
-void threads_mutex_join_lock(void)
-{
-	mutex_join->lock();
-}
-
-
-/* threads_mutex_join_unlock ***************************************************
-
-   Leave the join mutex.
-
-*******************************************************************************/
-
-void threads_mutex_join_unlock(void)
-{
-	mutex_join->unlock();
-}
-
 
 /* threads_impl_init ***********************************************************
 
@@ -735,7 +715,7 @@ static void *threads_startup_thread(void *arg)
 #endif
 
 	// Get the java.lang.Thread object for this thread.
-	java_handle_t* object = thread_get_object(t);
+	java_handle_t* object = LLNI_WRAP(t->object);
 	java_lang_Thread jlt(object);
 
 	/* set our priority */
@@ -920,7 +900,7 @@ bool thread_detach_current_thread(void)
 
 	DEBUGTHREADS("detaching", t);
 
-	java_handle_t* object = thread_get_object(t);
+	java_handle_t* object = LLNI_WRAP(t->object);
 	java_lang_Thread jlt(object);
 
 #if defined(ENABLE_JAVASE)
@@ -1005,11 +985,11 @@ bool thread_detach_current_thread(void)
 	/* XXX Care about exceptions? */
 	(void) lock_monitor_exit(jlt.get_handle());
 
-	/* Enter the join-mutex before calling thread_free, so
-	   threads_join_all_threads gets the correct number of non-daemon
-	   threads. */
+	t->waitmutex->lock();
+	t->tid = 0;
+	t->waitmutex->unlock();
 
-	threads_mutex_join_lock();
+	ThreadList::lock();
 
 	/* Free the internal thread data-structure. */
 
@@ -1018,7 +998,10 @@ bool thread_detach_current_thread(void)
 	/* Signal that this thread has finished and leave the mutex. */
 
 	cond_join->signal();
-	threads_mutex_join_unlock();
+	ThreadList::unlock();
+
+	t->suspendmutex->lock();
+	t->suspendmutex->unlock();
 
 	return true;
 }
@@ -1052,7 +1035,8 @@ static void threads_suspend_self()
 #endif
 
 	// Release the suspension mutex and wait till we are resumed.
-	thread->suspendcond->wait(thread->suspendmutex);
+	while (thread->suspend_reason != SUSPEND_REASON_NONE)
+		thread->suspendcond->wait(thread->suspendmutex);
 
 #if defined(ENABLE_GC_CACAO)
 	// XXX This is propably not ok!
@@ -1072,7 +1056,7 @@ static void threads_suspend_self()
 
 /**
  * Suspend the passed thread. Execution of that thread stops until the thread
- * is explicitly resumend again.
+ * is explicitly resumed again.
  *
  * @param thread The thread to be suspended.
  * @param reason Reason for suspending the given thread.
@@ -1104,13 +1088,14 @@ bool threads_suspend_thread(threadobject *thread, int32_t reason)
 	}
 	else {
 		// Send the suspend signal to the other thread.
+		if (!thread->tid)
+			return false;
 		if (pthread_kill(thread->tid, SIGUSR1) != 0)
 			os::abort_errno("threads_suspend_thread: pthread_kill failed");
 
 		// Wait for the thread to acknowledge the suspension.
-		// XXX A possible optimization would be to not wait here, but you
-		//     better think this through twice before trying it!
-		thread->suspendcond->wait(thread->suspendmutex);
+		while (!thread->suspended)
+			thread->suspendcond->wait(thread->suspendmutex);
 	}
 
 	return true;
@@ -1186,18 +1171,18 @@ void threads_join_all_threads(void)
 
 	/* enter join mutex */
 
-	threads_mutex_join_lock();
+	ThreadList::lock();
 
 	/* Wait for condition as long as we have non-daemon threads.  We
 	   compare against 1 because the current (main thread) is also a
 	   non-daemon thread. */
 
 	while (ThreadList::get_number_of_non_daemon_threads() > 1)
-		cond_join->wait(mutex_join);
+		ThreadList::wait_cond(cond_join);
 
 	/* leave join mutex */
 
-	threads_mutex_join_unlock();
+	ThreadList::unlock();
 }
 
 
@@ -1401,7 +1386,8 @@ void threads_thread_interrupt(threadobject *t)
 
 	/* Interrupt blocking system call using a signal. */
 
-	pthread_kill(t->tid, Signal_INTERRUPT_SYSTEM_CALL);
+	if (t->tid)
+		pthread_kill(t->tid, Signal_INTERRUPT_SYSTEM_CALL);
 
 	t->waitcond->signal();
 
