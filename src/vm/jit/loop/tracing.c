@@ -248,7 +248,7 @@ Trace* tracing(basicblock *block, int index, int temp)
 			if (temp > 0)		/* if the target argument is not on top			*/
 				return tracing(block, index-1, temp-1);	/* look further			*/
 			else
-				return create_trace(TRACE_ICONST, -1, iptr->val.i, index);
+				return create_trace(TRACE_ICONST, -1, iptr->sx.val.i, index);
 			break;				/* else, return the value, found at this instr.	*/
 
 		/* Load/Store															*/
@@ -265,14 +265,14 @@ Trace* tracing(basicblock *block, int index, int temp)
 			if (temp > 0)
 				return tracing(block, index-1, temp-1);
 		    else
-				return create_trace(TRACE_IVAR, iptr->op1, 0, index);
+				return create_trace(TRACE_IVAR, iptr->s1, 0, index);
 			break;
 
 		case ICMD_ALOAD:    
 			if (temp > 0)
 				return tracing(block, index-1, temp-1);
 			else
-				return create_trace(TRACE_AVAR, iptr->op1, 0, index);			
+				return create_trace(TRACE_AVAR, iptr->s1, 0, index);			
 			break;
 		
 		case ICMD_LSTORE:    
@@ -607,17 +607,17 @@ Trace* tracing(basicblock *block, int index, int temp)
 			break;
       
 		case ICMD_MULTIANEWARRAY:	/* ..., cnt1, [cnt2, ...] ==> ..., arrayref	*/
-									/* op1 = dimension                        */
+									/* s1 = dimension                        */
 
 			if (temp > 0)           /* temp increased by number of dimensions */
 									/* minus one for array ref                */
-				return tracing(block, index - 1, temp + (iptr->op1 - 1));
+				return tracing(block, index - 1, temp + (iptr->s1 - 1));
 			else
 				return create_trace(TRACE_UNKNOWN, -1, 0, index);
 			break;
        
 		case ICMD_BUILTIN:         /* ..., [arg1, [arg2 ...]] ==> ...         */
-			bte = iptr->val.a;
+			bte = iptr->sx.val.anyptr;
 			md = bte->md;
 			args = md->paramcount;
 			if (md->returntype.type != TYPE_VOID)
