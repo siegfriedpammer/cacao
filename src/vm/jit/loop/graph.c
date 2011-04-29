@@ -43,7 +43,7 @@
 #include "vm/jit/loop/loop.h"
 
 
-void LoopContainerInit(methodinfo *m, struct LoopContainer *lc, int i)
+void LoopContainerInit(jitdata *jd, struct LoopContainer *lc, int i)
 {
 	struct LoopElement *le = DMNEW(struct LoopElement, 1);
 
@@ -58,9 +58,9 @@ void LoopContainerInit(methodinfo *m, struct LoopContainer *lc, int i)
 
 	lc->in_degree = 0;
 	le->node = lc->loop_head = i;
-	le->block = &m->basicblocks[i];
+	le->block = &jd->basicblocks[i];
 
-	/* lc->nodes = (int *) malloc(sizeof(int)*m->basicblockcount);
+	/* lc->nodes = (int *) malloc(sizeof(int)*jd->basicblockcount);
 	lc->nodes[0] = i; */
 
 	lc->nodes = le;
@@ -70,41 +70,39 @@ void LoopContainerInit(methodinfo *m, struct LoopContainer *lc, int i)
 /*
    depthFirst() builds the control flow graph out of the intermediate code of  
    the procedure, that is to be optimized and stores the list in the global 
-   variable c_dTable 
+   variablejdc_dTable 
 */
 
 void depthFirst(jitdata *jd)
 {
-	methodinfo *m;
 	loopdata   *ld;
 	int i;
 
 	/* get required compiler data */
-
-	m  = jd->m;
+	
 	ld = jd->ld;
 
-/*	allocate memory and init gobal variables needed by function dF(m, int, int)	*/
+/*	allocate memory and init gobal variables needed by function dF(jd, int, int)	*/
   
-	ld->c_defnum = DMNEW(int, m->basicblockcount);
-	ld->c_numPre = DMNEW(int, m->basicblockcount);
-	ld->c_parent = DMNEW(int, m->basicblockcount);
-	ld->c_reverse = DMNEW(int, m->basicblockcount);
-	ld->c_pre = DMNEW(int *, m->basicblockcount);
-	ld->c_dTable = DMNEW(struct depthElement *, m->basicblockcount);
+	ld->c_defnum = DMNEW(int, jd->basicblockcount);
+	ld->c_numPre = DMNEW(int, jd->basicblockcount);
+	ld->c_parent = DMNEW(int, jd->basicblockcount);
+	ld->c_reverse = DMNEW(int, jd->basicblockcount);
+	ld->c_pre = DMNEW(int *, jd->basicblockcount);
+	ld->c_dTable = DMNEW(struct depthElement *, jd->basicblockcount);
 	
-	for (i = 0; i < m->basicblockcount; ++i) {
+	for (i = 0; i < jd->basicblockcount; ++i) {
 		ld->c_defnum[i] = ld->c_parent[i] = -1;
 		ld->c_numPre[i] = ld->c_reverse[i] = 0;
 
-		ld->c_pre[i] = DMNEW(int, m->basicblockcount);
+		ld->c_pre[i] = DMNEW(int, jd->basicblockcount);
 		ld->c_dTable[i] = NULL;
 	}
   
 	ld->c_globalCount = 0;
 	ld->c_allLoops = NULL;
   
-	dF(m, ld, -1, 0);	/* call helper function dF that traverses basic block structure	*/
+	dF(jd, ld, -1, 0);	/* call helper function dF that traverses basic block structure	*/
 }
 
 
@@ -114,7 +112,7 @@ void depthFirst(jitdata *jd)
    list c_dTable
 */ 
 
-void dF(methodinfo *m, loopdata *ld, int from, int blockIndex)
+void dF(jitdata *jd, loopdata *ld, int from, int blockIndex)
 {
 	instruction *ip;
 	s4 *s4ptr;
@@ -136,19 +134,19 @@ void dF(methodinfo *m, loopdata *ld, int from, int blockIndex)
   
 	if (from == blockIndex) {	/* insert one node loops into loop container	*/
 		tmp = DNEW(struct LoopContainer);
-		LoopContainerInit(m, tmp, blockIndex);
+		LoopContainerInit(jd, tmp, blockIndex);
 		tmp->next = ld->c_allLoops;
 		ld->c_allLoops = tmp;
 	}
 
 #ifdef C_DEBUG
-	if (blockIndex > m->basicblockcount) {
+	if (blockIndex > jd->basicblockcount) {
 		log_text("DepthFirst: BlockIndex exceeded\n");
 		assert(0);
 	}		
 #endif
 
-	ip = m->basicblocks[blockIndex].iinstr + m->basicblocks[blockIndex].icount -1;
+	ip = jd->basicblocks[blockIndex].iinstr + jd->basicblocks[blockIndex].icount -1;
 										/* set ip to last instruction			*/
 									
 	if (ld->c_defnum[blockIndex] == -1) {	/* current block has not been visited	*/
@@ -157,9 +155,9 @@ void dF(methodinfo *m, loopdata *ld, int from, int blockIndex)
 		ld->c_reverse[ld->c_globalCount] = blockIndex;
 		++ld->c_globalCount;
 		
-		if (!m->basicblocks[blockIndex].icount) {
+		if (!jd->basicblocks[blockIndex].icount) {
 										/* block does not contain instructions	*/
-			dF(m, ld, blockIndex, blockIndex+1);
+			dF(jd, ld, blockIndex, blockIndex+1);
 		    }
 		else { 							/* for all successors, do				*/
 			switch (ip->opc) {			/* check type of last instruction		*/
@@ -200,17 +198,17 @@ void dF(methodinfo *m, loopdata *ld, int from, int blockIndex)
 			case ICMD_IF_LCMPLE:
 			case ICMD_IF_ACMPEQ:
 			case ICMD_IF_ACMPNE:				/* branch -> check next block	*/
-			   dF(m, ld, blockIndex, blockIndex + 1);
+			   dF(jd, ld, blockIndex, blockIndex + 1);
 			   /* fall throu */
 			   
 			case ICMD_GOTO:
-				dF(m, ld, blockIndex, m->basicblockindex[ip->op1]);         
+				dF(jd, ld, blockIndex, jd->basicblockindex[ip->s1]);         
 				break;							/* visit branch (goto) target	*/
 				
 			case ICMD_TABLESWITCH:				/* switch statement				*/
-				s4ptr = ip->val.a;
+				s4ptr = ip->sx.val.anyptr;
 				
-				dF(m, ld, blockIndex, m->basicblockindex[*s4ptr]);	/* default branch		*/
+				dF(jd, ld, blockIndex, jd->basicblockindex[*s4ptr]);	/* default branch		*/
 				
 				s4ptr++;
 				low = *s4ptr;
@@ -221,35 +219,35 @@ void dF(methodinfo *m, loopdata *ld, int from, int blockIndex)
 				
 				while (--count >= 0) {
 					s4ptr++;
-					dF(m, ld, blockIndex, m->basicblockindex[*s4ptr]);
+					dF(jd, ld, blockIndex, jd->basicblockindex[*s4ptr]);
 				    }
 				break;
 				
 			case ICMD_LOOKUPSWITCH:				/* switch statement				*/
-				s4ptr = ip->val.a;
+				s4ptr = ip->sx.val.anyptr;
 			   
-				dF(m, ld, blockIndex, m->basicblockindex[*s4ptr]);	/* default branch		*/
+				dF(jd, ld, blockIndex, jd->basicblockindex[*s4ptr]);	/* default branch		*/
 				
 				++s4ptr;
 				count = *s4ptr++;
 				
 				while (--count >= 0) {
-					dF(m, ld, blockIndex, m->basicblockindex[s4ptr[1]]);
+					dF(jd, ld, blockIndex, jd->basicblockindex[s4ptr[1]]);
 					s4ptr += 2;
 				    }
 				break;
 
 			case ICMD_JSR:
 				ld->c_last_jump = blockIndex;
-				dF(m, ld, blockIndex, m->basicblockindex[ip->op1]);         
+				dF(jd, ld, blockIndex, jd->basicblockindex[ip->s1]);         
 				break;
 				
 			case ICMD_RET:
-				dF(m, ld, blockIndex, ld->c_last_jump+1);
+				dF(jd, ld, blockIndex, ld->c_last_jump+1);
 				break;
 				
 			default:
-				dF(m, ld, blockIndex, blockIndex + 1);
+				dF(jd, ld, blockIndex, blockIndex + 1);
 				break;	
 			    }                         
 		    }
@@ -271,12 +269,12 @@ void dF(methodinfo *m, loopdata *ld, int from, int blockIndex)
 
 
 /* 
-   a slightly modified version of dF(m, ld, int, int) that is used to traverse the part 
+   a slightly modified version of dF(jd, ld, int, int) that is used to traverse the part 
    of the control graph that is not reached by normal program flow but by the 
    raising of exceptions (code of catch blocks)
 */
 
-void dF_Exception(methodinfo *m, loopdata *ld, int from, int blockIndex)
+void dF_Exception(jitdata *jd, loopdata *ld, int from, int blockIndex)
 {
 	instruction *ip;
 	s4 *s4ptr;
@@ -301,16 +299,16 @@ void dF_Exception(methodinfo *m, loopdata *ld, int from, int blockIndex)
 	}
 	
 #ifdef C_DEBUG
-	if (blockIndex > m->basicblockcount) {
+	if (blockIndex > jd->basicblockcount) {
 		log_text("DepthFirst: BlockIndex exceeded");
 		assert(0);
 	}
 #endif
 
-	ip = m->basicblocks[blockIndex].iinstr + m->basicblocks[blockIndex].icount -1;
+	ip = jd->basicblocks[blockIndex].iinstr + jd->basicblocks[blockIndex].icount -1;
 	
-	if (!m->basicblocks[blockIndex].icount)
-		dF_Exception(m, ld, blockIndex, blockIndex+1);
+	if (!jd->basicblocks[blockIndex].icount)
+		dF_Exception(jd, ld, blockIndex, blockIndex+1);
 	else {
 		switch (ip->opc) {
 		case ICMD_RETURN:
@@ -350,18 +348,18 @@ void dF_Exception(methodinfo *m, loopdata *ld, int from, int blockIndex)
 		case ICMD_IF_LCMPLE:
 		case ICMD_IF_ACMPEQ:
 		case ICMD_IF_ACMPNE:                    /* branch -> check next block	*/
-			dF_Exception(m, ld, blockIndex, blockIndex + 1);
+			df_Exception(jd, ld, blockIndex, blockIndex + 1);
 			/* fall throu */
 	  
 		case ICMD_GOTO:
-			dF_Exception(m, ld, blockIndex, m->basicblockindex[ip->op1]);         
+			df_Exception(jd, ld, blockIndex, jd->basicblockindex[ip->s1]);         
 			break;
 	  
 		case ICMD_TABLESWITCH:
-			s4ptr = ip->val.a;
+			s4ptr = ip->sx.val.anyptr;
 			
 			/* default branch */
-			dF_Exception(m, ld, blockIndex, m->basicblockindex[*s4ptr]);
+			df_Exception(jd, ld, blockIndex, jd->basicblockindex[*s4ptr]);
 			
 			s4ptr++;
 			low = *s4ptr;
@@ -372,36 +370,36 @@ void dF_Exception(methodinfo *m, loopdata *ld, int from, int blockIndex)
 
 			while (--count >= 0) {
 				s4ptr++;
-				dF_Exception(m, ld, blockIndex, m->basicblockindex[*s4ptr]);
+				df_Exception(jd, ld, blockIndex, jd->basicblockindex[*s4ptr]);
 			    }
 			break;
 
 		case ICMD_LOOKUPSWITCH:
-			s4ptr = ip->val.a;
+			s4ptr = ip->sx.val.anyptr;
  
 			/* default branch */
-			dF_Exception(m, ld, blockIndex, m->basicblockindex[*s4ptr]);
+			df_Exception(jd, ld, blockIndex, jd->basicblockindex[*s4ptr]);
 			
 			++s4ptr;
 			count = *s4ptr++;
 
 			while (--count >= 0) {
-				dF_Exception(m, ld, blockIndex, m->basicblockindex[s4ptr[1]]);
+				df_Exception(jd, ld, blockIndex, jd->basicblockindex[s4ptr[1]]);
 				s4ptr += 2;
 			    }  
 			break;
 
 		case ICMD_JSR:
 			ld->c_last_jump = blockIndex;
-			dF_Exception(m, ld, blockIndex, m->basicblockindex[ip->op1]);
+			df_Exception(jd, ld, blockIndex, jd->basicblockindex[ip->s1]);
 			break;
 	
 		case ICMD_RET:
-			dF_Exception(m, ld, blockIndex, ld->c_last_jump+1);
+			df_Exception(jd, ld, blockIndex, ld->c_last_jump+1);
 			break;
 			
 		default:
-			dF_Exception(m, ld, blockIndex, blockIndex + 1);
+			df_Exception(jd, ld, blockIndex, blockIndex + 1);
 			break;	
 		    }                         
         }
@@ -412,7 +410,7 @@ void dF_Exception(methodinfo *m, loopdata *ld, int from, int blockIndex)
 /*
   Test function -> will be removed in final release
 */
-void resultPass1(methodinfo *m)
+void resultPass1(jitdata *jd)
 {
 	int i, j;
 	struct depthElement *hp;
@@ -421,7 +419,7 @@ void resultPass1(methodinfo *m)
 	printf("Number of Nodes: %d\n\n", ld->c_globalCount);
  
 	printf("Predecessors:\n");
-	for (i=0; i<m->basicblockcount; ++i) {
+	for (i=0; i<jd->basicblockcount; ++i) {
 		printf("Block %d:\t", i);
 		for (j=0; j<ld->c_numPre[i]; ++j)
 			printf("%d ", ld->c_pre[i][j]);
@@ -430,7 +428,7 @@ void resultPass1(methodinfo *m)
 	printf("\n");
 
 	printf("Graph:\n");
-	for (i=0; i<m->basicblockcount; ++i) {
+	for (i=0; i<jd->basicblockcount; ++i) {
 		printf("Block %d:\t", i);
 		hp = ld->c_dTable[i];
 		

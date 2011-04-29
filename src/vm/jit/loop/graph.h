@@ -36,10 +36,10 @@
 
 /* function prototypes ********************************************************/
 
-void LoopContainerInit(methodinfo *m, struct LoopContainer *lc, int i);
+void LoopContainerInit(jitdata *jd, struct LoopContainer *lc, int i);
 void depthFirst(jitdata *jd);
-void dF(methodinfo *m, loopdata *ld, int from, int blockIndex);
-void dF_Exception(methodinfo *m, loopdata *ld, int from, int blockIndex);
+void dF(jitdata *jd, loopdata *ld, int from, int blockIndex);
+void dF_Exception(jitdata *jd, loopdata *ld, int from, int blockIndex);
 
 void resultPass1(methodinfo *);
 
