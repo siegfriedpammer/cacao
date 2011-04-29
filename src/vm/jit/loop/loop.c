@@ -53,24 +53,24 @@
    This function allocates and initializes variables, that are used by the
    loop detection algorithm
 */
-void setup(methodinfo *m, loopdata *ld)
+void setup(jitdata *jd, loopdata *ld)
 {
 	int i;
 
-	ld->c_semi_dom = DMNEW(int, m->basicblockcount);
-	ld->c_idom = DMNEW(int, m->basicblockcount);
-	ld->c_same_dom = DMNEW(int, m->basicblockcount);
-	ld->c_numBucket = DMNEW(int, m->basicblockcount);
-	ld->c_ancestor = DMNEW(int, m->basicblockcount);
-	ld->c_contains = DMNEW(int, m->basicblockcount);
-	ld->c_stack = DMNEW(int, m->basicblockcount);
-	ld->c_bucket = DMNEW(int*, m->basicblockcount);
+	ld->c_semi_dom = DMNEW(int, jd->basicblockcount);
+	ld->c_idom = DMNEW(int, jd->basicblockcount);
+	ld->c_same_dom = DMNEW(int, jd->basicblockcount);
+	ld->c_numBucket = DMNEW(int, jd->basicblockcount);
+	ld->c_ancestor = DMNEW(int, jd->basicblockcount);
+	ld->c_contains = DMNEW(int, jd->basicblockcount);
+	ld->c_stack = DMNEW(int, jd->basicblockcount);
+	ld->c_bucket = DMNEW(int*, jd->basicblockcount);
   
-	for (i = 0; i < m->basicblockcount; ++i) {
+	for (i = 0; i < jd->basicblockcount; ++i) {
 		ld->c_numBucket[i] = 0;
 		ld->c_stack[i] = ld->c_ancestor[i] = ld->c_semi_dom[i] = ld->c_same_dom[i] = ld->c_idom[i] = -1;
 	  
-		ld->c_bucket[i] = DMNEW(int, m->basicblockcount);
+		ld->c_bucket[i] = DMNEW(int, jd->basicblockcount);
 	}
 }
 
@@ -187,7 +187,7 @@ int isBackEdge(loopdata *ld, int from, int to)
    to manage the set of nodes in the current loop.
 */
 
-void push(methodinfo *m, loopdata *ld, int i, struct LoopContainer *lc)
+void push(jitdata *jd, loopdata *ld, int i, struct LoopContainer *lc)
 {
 	struct LoopElement *le = lc->nodes, *t;
 
@@ -195,7 +195,7 @@ void push(methodinfo *m, loopdata *ld, int i, struct LoopContainer *lc)
 		t = DMNEW(struct LoopElement, 1);
 		
 		t->node = i;
-		t->block = &m->basicblocks[i];
+		t->block = &jd->basicblocks[i];
 
 		ld->c_contains[i] = 1;
 
@@ -236,26 +236,26 @@ int isFull(loopdata *ld)
    back edge between these two nodes).
 */
 
-void createLoop(methodinfo *m, loopdata *ld, int header, int member)
+void createLoop(jitdata *jd, loopdata *ld, int header, int member)
 {
 	int i, nextMember;
 
 	struct LoopContainer *currentLoop = (struct LoopContainer *) malloc(sizeof(struct LoopContainer));
 	LoopContainerInit(m, currentLoop, header);		/* set up loop structure		*/
 	
-	for (i=0; i<m->basicblockcount; ++i)
+	for (i=0; i<jd->basicblockcount; ++i)
 		ld->c_contains[i] = 0;
 	ld->c_contains[header] = 1;
 
 	ld->c_stackPointer = 0;				/* init stack with first node of the loop	*/
-	push(m, ld, member, currentLoop);
+	push(jd, ld, member, currentLoop);
 
 	while (isFull(ld)) {				/* while there are still unvisited nodes	*/
 		nextMember = pop(ld);
 		
 		/* push all predecessors, while they are not equal to loop header		*/
 		for (i=0; i<ld->c_numPre[nextMember]; ++i)			
-			push(m, ld, ld->c_pre[nextMember][i], currentLoop);		
+			push(jd, ld, ld->c_pre[nextMember][i], currentLoop);		
 		}
 
 	currentLoop->next = ld->c_allLoops;
@@ -267,19 +267,19 @@ void createLoop(methodinfo *m, loopdata *ld, int header, int member)
 	 added to the global list c_allLoops.
 */
 
-void detectLoops(methodinfo *m, loopdata *ld)
+void detectLoops(jitdata *jd, loopdata *ld)
 {
 	int i;
 	struct depthElement *h;
 
 	/* for all edges in the control flow graph do								*/
-	for (i=0; i<m->basicblockcount; ++i) {			
+	for (i=0; i<jd->basicblockcount; ++i) {			
 		h = ld->c_dTable[i];
 
 		while (h != NULL) {
 			/* if it's a backedge, than add a new loop to list					*/
 			if (isBackEdge(ld, i, h->value))	 
-				createLoop(m, ld, h->value, i);
+				createLoop(jd, ld, h->value, i);
 			h = h->next;
 			}
 		}
@@ -293,17 +293,15 @@ void detectLoops(methodinfo *m, loopdata *ld)
 
 void analyseGraph(jitdata *jd)
 {
-	methodinfo *m;
 	loopdata   *ld;
 
 	/* get required compiler data */
 
-	m  = jd->m;
 	ld = jd->ld;
 
-	setup(m, ld);
+	setup(jd, ld);
 	dominators(ld);
-	detectLoops(m, ld);
+	detectLoops(jd, ld);
 }
 
 
