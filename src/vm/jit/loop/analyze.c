@@ -105,30 +105,30 @@ show_varinfo(struct LoopVar *lv)
 	printf("Dynamic\t\t%d/%d\n", lv->dynamic_l, lv->dynamic_u);
 }
 
-void show_right_side(methodinfo *m)
+void show_right_side(jitdata *jd)
 {
 	int i;
 	printf("\n   *** Head ***   \nType:\t");
 	show_trace(m->loopdata->c_rightside);
 
 	printf("\n   *** Nested Loops: ***\n");
-	for (i=0; i<m->basicblockcount; ++i) 
+	for (i=0; i<jd->basicblockcount; ++i) 
 		printf("%d\t", m->loopdata->c_nestedLoops[i]);
 	printf("\n");
 
 	printf("\n   *** Hierarchie: ***\n");	
-	for (i=0; i<m->basicblockcount; ++i) 
+	for (i=0; i<jd->basicblockcount; ++i) 
 		printf("%d\t", m->loopdata->c_hierarchie[i]);
 	printf("\n");
 	
 
 	printf("\n   *** Current Loop ***\n");
-	for (i=0; i<m->basicblockcount; ++i)
+	for (i=0; i<jd->basicblockcount; ++i)
 	    printf("%d\t", m->loopdata->c_current_loop[i]);
 	printf("\n");
 }
 
-void resultPass3(methodinfo *m)
+void resultPass3(jitdata *jd)
 {
 	int i;
 	struct LoopContainer *lc = m->loopdata->c_allLoops;
@@ -148,10 +148,10 @@ void resultPass3(methodinfo *m)
 		}
 
 	printf("\nNested Loops:\n");
-	for (i=0; i<m->basicblockcount; ++i)
+	for (i=0; i<jd->basicblockcount; ++i)
 	    printf("%d ", m->loopdata->c_nestedLoops[i]);
 	printf("\n");
-	for (i=0; i<m->basicblockcount; ++i) 
+	for (i=0; i<jd->basicblockcount; ++i) 
 		printf("%d ", m->loopdata->c_hierarchie[i]);
 	printf("\n");
 	fflush(stdout);
@@ -310,7 +310,7 @@ void analyze_double_headers(loopdata *ld)
    into this tree. The exception ex is inserted into the subtree pointed to by
    LoopContainer lc.
 */
-void insert_exception(methodinfo *m, struct LoopContainer *lc, exceptiontable *ex)
+void insert_exception(jitdata *jd, struct LoopContainer *lc, exception_entry *ex)
 {
 	struct LoopContainer *temp;
 	struct LoopElement *le;
@@ -338,21 +338,21 @@ void insert_exception(methodinfo *m, struct LoopContainer *lc, exceptiontable *e
 			while (le != NULL) {
 
 #ifdef LOOP_DEBUG
-				printf("%d.%d\n", le->node, block_index[ex->startpc]);
+				printf("%d.%d\n", le->node, ex->start->nr);
 #endif
 				/* if the start of the exception is part of the loop, the     */
 				/* whole exception must be part of the loop                   */
-				if (le->node == m->basicblockindex[ex->startpc])
+				if (le->node == ex->start->nr)
 					break;
 				le = le->next;
 			    }
 			
 			/* Exception is part of a nested loop (Case 1) -> insert it there */
 			if (le != NULL) {
-				insert_exception(m, temp, ex);
+				insert_exception(jd, temp, ex);
 				return;
 			    }
-			else if ((temp->loop_head >= m->basicblockindex[ex->startpc]) && (temp->loop_head < m->basicblockindex[ex->endpc])) {
+			else if ((temp->loop_head >= ex->start->nr) && (temp->loop_head < ex->end->nr)) {
 				
 				/* optimization: if nested loop is part of the exception, the */
 				/* exception cannot be part of a differnet nested loop.       */
@@ -380,7 +380,7 @@ void insert_exception(methodinfo *m, struct LoopContainer *lc, exceptiontable *e
     parent. Top level loops have no parents.
 */
 
-void analyze_nested(methodinfo *m, codegendata *cd, loopdata *ld)
+void analyze_nested(jitdata *jd, codegendata *cd, loopdata *ld)
 {
 	/* i/count/tmp are counters                                               */
 	/* toOverwrite is used while loop hierarchie is built (see below)         */
@@ -393,9 +393,9 @@ void analyze_nested(methodinfo *m, codegendata *cd, loopdata *ld)
 	struct LoopElement *le; 
 
 	/* init global structures                                                 */
-	ld->c_nestedLoops = DMNEW(int, m->basicblockcount);
-	ld->c_hierarchie = DMNEW(int, m->basicblockcount); 	
-	for (i=0; i<m->basicblockcount; ++i) {
+	ld->c_nestedLoops = DMNEW(int, jd->basicblockcount);
+	ld->c_hierarchie = DMNEW(int, jd->basicblockcount); 	
+	for (i=0; i<jd->basicblockcount; ++i) {
 		ld->c_nestedLoops[i] = -1;
 		ld->c_hierarchie[i] = -1;
 	    }
@@ -438,7 +438,7 @@ void analyze_nested(methodinfo *m, codegendata *cd, loopdata *ld)
 
 	/* init root of hierarchie tree                                           */
 	ld->root = DMNEW(struct LoopContainer, 1);
-	LoopContainerInit(m, ld->root, -1);
+	LoopContainerInit(jd, ld->root, -1);
 
     /* obtain parent pointer and build hierarchie tree                        */
     start = ld->c_allLoops;    
@@ -487,7 +487,7 @@ void analyze_nested(methodinfo *m, codegendata *cd, loopdata *ld)
 	printf(" --- End ---\n");
 #endif
 	for (len = 0; len < jd->exceptiontablelength; ++len) 
-		insert_exception(m, ld->root, jd->exceptiontable + len);
+		insert_exception(jd, ld->root, jd->exceptiontable + len);
 
 
 	/* determine sequence of loops for optimization by topological sort       */
@@ -633,7 +633,7 @@ void add_to_vars(loopdata *ld, int var, int type, int direction)
 	a flag in c_var_modified is set.
 */
 
-int analyze_for_array_access(methodinfo *m, loopdata *ld, int node)
+int analyze_for_array_access(jitdata *jd, loopdata *ld, int node)
 {
 	basicblock bp;
 	instruction *ip;
@@ -644,7 +644,7 @@ int analyze_for_array_access(methodinfo *m, loopdata *ld, int node)
 	if (ld->c_toVisit[node] > 0) {          /* node has not been visited yet      */
 		ld->c_toVisit[node] = 0;
    
-		bp = m->basicblocks[node];               /* prepare an instruction scan        */
+		bp = jd->basicblocks[node];               /* prepare an instruction scan        */
 		ip = bp.iinstr;
 		ic = bp.icount;
 
@@ -691,45 +691,45 @@ int analyze_for_array_access(methodinfo *m, loopdata *ld, int node)
 				break;
 
 			case ICMD_ISTORE:				/* integer store					*/
-				ld->c_var_modified[ip->op1] = 1;
+				ld->c_var_modified[ip->s1.varindex] = 1;
 
 				/* try to find out, how it was modified							*/
 				t = tracing(&bp, i-1, 0);	
 				if (t->type == TRACE_IVAR) {
-					if ((t->constant > 0) && (t->var == ip->op1))
+					if ((t->constant > 0) && (t->var == ip->s1.varindex))
 						/* a constant was added	to the same var					*/
 						add_to_vars(ld, t->var, VAR_MOD, D_UP);
-					else if (t->var == ip->op1)	
+					else if (t->var == ip->s1.varindex)	
 						/* a constant was subtracted from the same var			*/
 						add_to_vars(ld, t->var, VAR_MOD, D_DOWN);
 					else
 						add_to_vars(ld, t->var, VAR_MOD, D_UNKNOWN);
 					}
 				else
-					add_to_vars(ld, ip->op1, VAR_MOD, D_UNKNOWN);
+					add_to_vars(ld, ip->s1.varindex, VAR_MOD, D_UNKNOWN);
 				break;
 
 			case ICMD_IINC:					/* simple add/sub of a constant		*/
-				ld->c_var_modified[ip->op1] = 1;
+				ld->c_var_modified[ip->s1.varindex] = 1;
 		
-				if (ip->val.i > 0)
-					add_to_vars(ld, ip->op1, VAR_MOD, D_UP);
+				if (ip->sx.val.i > 0)
+					add_to_vars(ld, ip->s1.varindex, VAR_MOD, D_UP);
 				else
-					add_to_vars(ld, ip->op1, VAR_MOD, D_DOWN);
+					add_to_vars(ld, ip->s1.varindex, VAR_MOD, D_DOWN);
 				break;
 
 			case ICMD_LSTORE:
 			case ICMD_FSTORE:
 			case ICMD_DSTORE:
 			case ICMD_ASTORE:
-				ld->c_var_modified[ip->op1] = 1;
+				ld->c_var_modified[ip->s1.varindex] = 1;
 				break;
 			}
 		}
 
 		d = ld->c_dTable[node];
 		while (d != NULL) {					/* check all successors of block	*/
-			access += analyze_for_array_access(m, ld, d->value);
+			access += analyze_for_array_access(jd, ld, d->value);
 			d = d->next;
 			}
 
@@ -745,7 +745,7 @@ int analyze_for_array_access(methodinfo *m, loopdata *ld, int node)
 	1 is returned, else 0.
 */
 
-int quick_scan(methodinfo *m, loopdata *ld, int node)
+int quick_scan(jitdata *jd, loopdata *ld, int node)
 {
 	basicblock bp;
 	instruction *ip;
@@ -759,7 +759,7 @@ int quick_scan(methodinfo *m, loopdata *ld, int node)
 	if (ld->c_exceptionVisit[node] > 0) {	/* node is part of exception graph		*/
 		ld->c_exceptionVisit[node] = -1;
 		
-		bp = m->basicblocks[node];				/* setup scan of all instructions		*/
+		bp = jd->basicblocks[node];				/* setup scan of all instructions		*/
 		ip = bp.iinstr;
 		count = bp.icount;				
 
@@ -770,7 +770,7 @@ int quick_scan(methodinfo *m, loopdata *ld, int node)
 	
 				lv = ld->c_loopvars;		/* is it an array index var ?			*/
 				while (lv != NULL) {
-					if ((lv->index) && (lv->value == ip->op1))
+					if ((lv->index) && (lv->value == ip->s1.varindex))
 						return 1;		/* yes, so return 1						*/
 					lv = lv->next;
 					}
@@ -780,7 +780,7 @@ int quick_scan(methodinfo *m, loopdata *ld, int node)
   
 	    d = ld->c_exceptionGraph[node];		/* check all successor nodes			*/
 		while (d != NULL) {
-			if (quick_scan(m, ld, d->value) > 0)
+			if (quick_scan(jd, ld, d->value) > 0)
 				return 1;				/* if an access is found return 1		*/
 			d = d->next;
 			}
@@ -797,7 +797,7 @@ int quick_scan(methodinfo *m, loopdata *ld, int node)
 	catch block within the loop.
 */
 
-int analyze_or_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, int head, struct LoopContainer *lc)
+int analyze_or_exceptions(jitdata *jd, codegendata *cd, loopdata *ld, int head, struct LoopContainer *lc)
 {
 	struct depthElement *d;
 	int i, k, value, flag, count;
@@ -843,12 +843,12 @@ int analyze_or_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, int head
 	if (!jd->exceptiontablelength)		/* when there are no exceptions, exit		*/
 		return 1;
 
-	if ((ld->c_exceptionGraph = (struct depthElement **) malloc(sizeof(struct depthElement *) * m->basicblockcount)) == NULL)
+	if ((ld->c_exceptionGraph = (struct depthElement **) malloc(sizeof(struct depthElement *) * jd->basicblockcount)) == NULL)
 		c_mem_error();
-	if ((ld->c_exceptionVisit = (int *) malloc(sizeof(int) * m->basicblockcount)) == NULL)
+	if ((ld->c_exceptionVisit = (int *) malloc(sizeof(int) * jd->basicblockcount)) == NULL)
 		c_mem_error();
 	
-	for (k=0; k<m->basicblockcount; ++k) {
+	for (k=0; k<jd->basicblockcount; ++k) {
 		ld->c_exceptionVisit[k] = -1;
 		ld->c_exceptionGraph[k] = NULL;
 		}
@@ -856,7 +856,7 @@ int analyze_or_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, int head
 
 	/* for all nodes that start catch block check whether they are part of loop	*/
 	for (i = 0; i < ld->c_old_xtablelength; i++) {	
-		value = m->basicblockindex[jd->exceptiontable[i].startpc];
+		value = jd->exceptiontable[i].start->nr;
    
 		le = lc->nodes;
 		while (le != NULL) {
@@ -869,10 +869,10 @@ int analyze_or_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, int head
 
 				/* build a graph structure, that contains all nodes that are	*/
 				/* part of the catc block										*/
-				dF_Exception(m, ld, -1, m->basicblockindex[jd->exceptiontable[i].handlerpc]);
+				dF_Exception(jd, ld, -1, jd->exceptiontable[i].handler->nr);
 
 				/* if array index variables are modified there, return 0		*/
-				if (quick_scan(m, ld, m->basicblockindex[jd->exceptiontable[i].handlerpc]) > 0) {
+				if (quick_scan(jd, ld, jd->exceptiontable[i].handler->nr) > 0) {
 #ifdef ENABLE_STATISTICS
 					ld->c_stat_exception++;
 #endif
@@ -913,7 +913,7 @@ void scan_global_list(loopdata *ld)
 	out, whether some dynamic guarantees can be set up.
 */
 
-void init_constraints(methodinfo *m, loopdata *ld, int head)
+void init_constraints(jitdata *jd, loopdata *ld, int head)
 {
 	basicblock bp;
 	instruction *ip;
@@ -927,7 +927,7 @@ void init_constraints(methodinfo *m, loopdata *ld, int head)
 	lv_left = NULL;
 	lv_right = NULL;
 
-	bp = m->basicblocks[head];
+	bp = jd->basicblocks[head];
 	ic = bp.icount;
 	ip = bp.iinstr+(ic-1);	/* set ip to last instruction in header node		*/
 
@@ -939,10 +939,10 @@ void init_constraints(methodinfo *m, loopdata *ld, int head)
 	case ICMD_IFLE:         /* ..., value ==> ...								*/
 	case ICMD_IFGT:         /* ..., value ==> ...								*/
 	case ICMD_IFGE:         /* ..., value ==> ...								*/
-							/* op1 = target JavaVM pc, val.i = constant			*/
+							/* op1 = target JavaVM pc, sx.val.i = constant			*/
 
 		left = tracing(&bp, ic-2, 0);	/* analyse left arg., right is constant	*/
-		right = create_trace(TRACE_ICONST, -1, ip->val.i, 0);
+		right = create_trace(TRACE_ICONST, -1, ip->sx.val.i, 0);
 		break;
 
 	/* standard comparison														*/
@@ -1125,7 +1125,7 @@ void init_constraints(methodinfo *m, loopdata *ld, int head)
 	constant value, that is tested.
 */
 
-void add_new_constraint(methodinfo *m,  codegendata *cd, loopdata *ld, int type, int arrayRef, int varRef, int constant)
+void add_new_constraint(jitdata *jd,  codegendata *cd, loopdata *ld, int type, int arrayRef, int varRef, int constant)
 {
 	struct Constraint *tc;
 
@@ -1360,7 +1360,7 @@ void add_new_constraint(methodinfo *m,  codegendata *cd, loopdata *ld, int type,
 	access (to safely remove bound checks).
 */
 
-int insert_static(methodinfo *m, codegendata *cd, loopdata *ld, int arrayRef, struct Trace *index, struct Changes *varChanges, int special)
+int insert_static(jitdata *jd, codegendata *cd, loopdata *ld, int arrayRef, struct Trace *index, struct Changes *varChanges, int special)
 {
 	struct LoopVar *lv;
 	int varRef;
@@ -1406,16 +1406,16 @@ int insert_static(methodinfo *m, codegendata *cd, loopdata *ld, int arrayRef, st
 				/* the var is never decremented, so we add a static test againt	*/
 				/* constant														*/
 				if (varChanges->lower_bound > varChanges->upper_bound)
-					add_new_constraint(m, cd, ld, TEST_ZERO, arrayRef, varRef, index->constant);
+					add_new_constraint(jd, cd, ld, TEST_ZERO, arrayRef, varRef, index->constant);
 				else
-					add_new_constraint(m, cd, ld, TEST_ZERO, arrayRef, varRef, varChanges->lower_bound+index->constant);
+					add_new_constraint(jd, cd, ld, TEST_ZERO, arrayRef, varRef, varChanges->lower_bound+index->constant);
 				low = 1;
 				}
 			else if ((lv->dynamic_l_v) && (!special)) {
 				/* the variable is decremented, but it is checked against a		*/
 				/* bound in the loop condition									*/
 				if (varChanges->lower_bound <= varChanges->upper_bound) {
-					add_new_constraint(m, cd, ld, TEST_RS_ZERO, arrayRef, varRef, varChanges->lower_bound+index->constant+lv->dynamic_l);
+					add_new_constraint(jd, cd, ld, TEST_RS_ZERO, arrayRef, varRef, varChanges->lower_bound+index->constant+lv->dynamic_l);
 					low = 1;
 					}
 				}
@@ -1424,23 +1424,23 @@ int insert_static(methodinfo *m, codegendata *cd, loopdata *ld, int arrayRef, st
 				/* the var is never incremented, so we add a static test againt	*/
 				/* constant														*/
 				if (varChanges->lower_bound > varChanges->upper_bound)
-					add_new_constraint(m, cd, ld, TEST_ALENGTH, arrayRef, varRef, index->constant);
+					add_new_constraint(jd, cd, ld, TEST_ALENGTH, arrayRef, varRef, index->constant);
 				else
-					add_new_constraint(m, cd, ld, TEST_ALENGTH, arrayRef, varRef, varChanges->upper_bound+index->constant);
+					add_new_constraint(jd, cd, ld, TEST_ALENGTH, arrayRef, varRef, varChanges->upper_bound+index->constant);
 				high = 1;
 				}
 			else if ((lv->dynamic_u_v) &&  (!special)) {
 				/* the variable is decremented, but it is checked against a		*/
 				/* bound in the loop condition									*/
 				if (varChanges->lower_bound <= varChanges->upper_bound) {
-					add_new_constraint(m, cd, ld, TEST_RS_ALENGTH, arrayRef, varRef, varChanges->upper_bound+index->constant+lv->dynamic_u);
+					add_new_constraint(jd, cd, ld, TEST_RS_ALENGTH, arrayRef, varRef, varChanges->upper_bound+index->constant+lv->dynamic_u);
 					high = 1;
 					}
 				}
 			}
 		else {							/* the var is never modified at all		*/
-			add_new_constraint(m, cd, ld, TEST_UNMOD_ZERO, arrayRef, index->var, index->constant);
-			add_new_constraint(m, cd, ld, TEST_UNMOD_ALENGTH, arrayRef, index->var, index->constant);
+			add_new_constraint(jd, cd, ld, TEST_UNMOD_ZERO, arrayRef, index->var, index->constant);
+			add_new_constraint(jd, cd, ld, TEST_UNMOD_ALENGTH, arrayRef, index->var, index->constant);
 			low = high = 1;
 			}
 		
@@ -1484,7 +1484,7 @@ int insert_static(methodinfo *m, codegendata *cd, loopdata *ld, int arrayRef, st
 			return OPT_NONE;	/* negative index -> bad						*/
 			}
 		else {
-			add_new_constraint(m, cd, ld, TEST_CONST_ALENGTH, arrayRef, 0, index->constant);
+			add_new_constraint(jd, cd, ld, TEST_CONST_ALENGTH, arrayRef, 0, index->constant);
 #ifdef ENABLE_STATISTICS
 			ld->c_stat_full_opt++;			
 #endif
@@ -1510,30 +1510,30 @@ int insert_static(methodinfo *m, codegendata *cd, loopdata *ld, int arrayRef, st
 /*	copy a stack and return the start pointer of the newly created one
 */
 stackelement_t* copy_stack_from(stackelement_t* source) { 
-	stackelement_t* current, top;
+	stackelement_t* current, *top;
 
 	if (source == NULL)
 		return NULL;
 
 	/* copy first element                                                       */
-	current = DMNEW(stackelement, 1);
+	current = DMNEW(struct stackelement_t, 1);
 	current->type = source->type;
 	current->flags = source->flags;
 	current->varkind = source->varkind;
 	current->varnum = source->varnum;
-	current->regoff = source->regoff;
+	/* current->regoff = source->regoff; */
 	
 	top = current;
 
 	/* if there exist more, then copy the rest                                  */
 	while (source->prev != NULL) {
 		source = source->prev;
-		current->prev = DMNEW(stackelement, 1);
+		current->prev = DMNEW(struct stackelement_t, 1);
 		current->type = source->type;
 		current->flags = source->flags;
 		current->varkind = source->varkind;
 		current->varnum = source->varnum;
-		current->regoff = source->regoff;
+		/* current->regoff = source->regoff; */
 		current = current->prev;
 		}
 
@@ -1558,9 +1558,9 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 /* Load a local integer variable v                                              */
 #define LOAD_VAR(v) { \
 	inst->opc = ICMD_ILOAD; \
-	inst->op1 = v; \
-	newstack = DMNEW(stackelement, 1); \
-    inst->dst = newstack; \
+	inst->s1.varindex = v; \
+	newstack = DMNEW(struct stackelement_t, 1); \
+    inst->dst.block = newstack; \
 	newstack->prev = tos; \
 	newstack->type = TYPE_INT; \
 	newstack->flags = 0; \
@@ -1574,16 +1574,16 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 /* Load a constant with value c                                                 */
 #define LOAD_CONST(c) { \
 	inst->opc = ICMD_ICONST; \
-	inst->op1 = 0; \
-	inst->val.i = (c); \
-	newstack = DMNEW(stackelement, 1); \
+	inst->s1.varindex = 0; \
+	inst->sx.val.i = (c); \
+	newstack = DMNEW(struct stackelement_t, 1); \
 	newstack->prev = tos; \
 	newstack->type = TYPE_INT; \
 	newstack->flags = 0; \
 	newstack->varkind = UNDEFVAR; \
 	newstack->varnum = stackdepth; \
 	tos = newstack; \
-	inst->dst = tos; \
+	inst->dst.block = tos; \
 	inst++; \
 	stackdepth++; \
 	}
@@ -1591,15 +1591,15 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 /* Load a local reference (adress) variable a                                   */
 #define LOAD_ADDR(a) { \
 	inst->opc = ICMD_ALOAD; \
-	inst->op1 = a; \
-	newstack = DMNEW(stackelement, 1); \
+	inst->s1.varindex = a; \
+	newstack = DMNEW(struct stackelement_t, 1); \
 	newstack->prev = tos; \
 	newstack->type = TYPE_ADR; \
 	newstack->flags = 0; \
 	newstack->varkind = LOCALVAR; \
 	newstack->varnum = a; \
 	tos = newstack; \
-	inst->dst = tos; \
+	inst->dst.block = tos; \
 	inst++; \
 	stackdepth++; \
 	}
@@ -1608,14 +1608,14 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 /* comparison is true                                                           */
 #define GOTO_NOOPT_IF_GE { \
 	inst->opc = ICMD_IF_ICMPGE; \
-    inst->target = original_start->copied_to; \
+    inst->dst.block = original_start->copied_to; \
 	if (tos->varkind == UNDEFVAR) \
 		tos->varkind = TEMPVAR;  \
     tos = tos->prev; \
     if (tos->varkind == UNDEFVAR) \
 		tos->varkind = TEMPVAR;  \
     tos = tos->prev; \
-	inst->dst = tos; \
+	inst->dst.block = tos; \
 	inst++; \
 	stackdepth -= 2; \
 	}
@@ -1624,14 +1624,14 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 /* comparison is true                                                           */
 #define GOTO_NOOPT_IF_GT { \
 	inst->opc = ICMD_IF_ICMPGT; \
-    inst->target = original_start->copied_to; \
+    inst->dst.block = original_start->copied_to; \
 	if (tos->varkind == UNDEFVAR) \
 		tos->varkind = TEMPVAR;  \
     tos = tos->prev; \
     if (tos->varkind == UNDEFVAR) \
 		tos->varkind = TEMPVAR;  \
     tos = tos->prev; \
-	inst->dst = tos; \
+	inst->dst.block = tos; \
 	inst++; \
 	stackdepth -= 2; \
 	}
@@ -1641,14 +1641,14 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 /* comparison is true                                                           */
 #define GOTO_NOOPT_IF_LT { \
 	inst->opc = ICMD_IF_ICMPLT; \
-    inst->target = original_start->copied_to; \
+    inst->dst.block = original_start->copied_to; \
 	if(tos->varkind == UNDEFVAR) \
 		tos->varkind = TEMPVAR;  \
     tos = tos->prev; \
     if(tos->varkind == UNDEFVAR) \
 		tos->varkind = TEMPVAR;  \
     tos = tos->prev; \
-	inst->dst = tos; \
+	inst->dst.block = tos; \
 	inst++; \
 	stackdepth -= 2; \
 	}
@@ -1657,11 +1657,11 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 /* comparison is true                                                           */
 #define GOTO_NOOPT_IF_NULL { \
 	inst->opc = ICMD_IFNULL; \
-    inst->target = original_start->copied_to; \
+    inst->dst.block = original_start->copied_to; \
     if(tos->varkind == UNDEFVAR) \
 		tos->varkind = TEMPVAR;  \
     tos = tos->prev; \
-	inst->dst = tos; \
+	inst->dst.block = tos; \
 	inst++; \
 	stackdepth -= 1; \
 	}
@@ -1676,14 +1676,14 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
     if(tos->varkind == UNDEFVAR) \
 		tos->varkind = TEMPVAR;  \
     tos = tos->prev; \
-	newstack = DMNEW(stackelement, 1); \
+	newstack = DMNEW(struct stackelement_t, 1); \
 	newstack->prev = tos; \
 	newstack->type = TYPE_INT; \
 	newstack->flags = 0; \
 	newstack->varkind = UNDEFVAR; \
 	newstack->varnum = stackdepth; \
 	tos = newstack; \
-	inst->dst = tos; \
+	inst->dst.block = tos; \
 	inst++; \
 	stackdepth--; \
 	}
@@ -1702,14 +1702,14 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 	if(tos->varkind == UNDEFVAR) \
 		tos->varkind = TEMPVAR;  \
     tos = tos->prev; \
-	newstack = DMNEW(stackelement, 1); \
+	newstack = DMNEW(struct stackelement_t, 1); \
 	newstack->prev = tos; \
 	newstack->type = TYPE_INT; \
 	newstack->flags = 0; \
 	newstack->varkind = UNDEFVAR; \
 	newstack->varnum = stackdepth; \
 	tos = newstack; \
-	inst->dst = tos; \
+	inst->dst.block = tos; \
 	inst++; \
 	}	
 
@@ -1798,30 +1798,35 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 			case ICMD_IF_LLE:
 
 			case ICMD_GOTO:
-			case ICMD_JSR:
 			case ICMD_IFNULL:
 			case ICMD_IFNONNULL:
 
 				/* jump to newly inserted loopheader has to be redirected       */
-				if (((basicblock *) inst->target) == loop_head)
-					inst->target = (void *) original_start;
+				if (((basicblock *) inst->dst.block) == loop_head)
+					inst->dst.block = (void *) original_start;
+				break;
+
+			case ICMD_JSR:
+
+				/* jump to newly inserted loopheader has to be redirected       */
+				if (((basicblock *) inst->sx.s23.s3.jsrtarget.block) == loop_head)
+					inst->sx.s23.s3.jsrtarget.block = (void *) original_start;
 				break;
 
 			case ICMD_TABLESWITCH:
 				{
-					s4 *s4ptr, l, i;
+					s4 l, i;
 					void **tptr;
 
-					tptr = (void **) inst->target;
+					tptr = (void **) inst->dst.table->block;
 
-					s4ptr = inst->val.a;
-					l = s4ptr[1];                          /* low     */
-					i = s4ptr[2];                          /* high    */
+					l = inst->sx.s23.s2.tablelow;                          /* low     */
+					i = inst->sx.s23.s3.tablehigh;                         /* high    */
 
 					i = i - l + 1;
 
 					/* jump to newly inserted loopheader has to be redirected   */
-					for (tptr = inst->target; i >= 0; --i, ++tptr) {
+					for (tptr = inst->dst.table->block; i >= 0; --i, ++tptr) {
 						if (((basicblock *) *tptr) == loop_head)
 							tptr[0] = (void *) original_start;
 						}
@@ -1830,17 +1835,15 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 
 			case ICMD_LOOKUPSWITCH:
 				{
-					s4 i, l, *s4ptr;
+					s4 i;
 					void **tptr;
 
-					tptr = (void **) inst->target;
+					tptr = (void **) inst->dst.lookup->target.block;
 
-					s4ptr = inst->val.a;
-					l = s4ptr[0];                          /* default  */
-					i = s4ptr[1];                          /* count    */
+					i = inst->sx.s23.s2.lookupcount;                     /* count    */
 
 					/* jump to newly inserted loopheader has to be redirected   */
-					for (tptr = inst->target; i >= 0; --i, ++tptr) {
+					for (tptr = inst->dst.lookup->target.block; i >= 0; --i, ++tptr) {
 						if (((basicblock *) *tptr) == loop_head)
 							tptr[0] = (void *) original_start;
 						}
@@ -1858,8 +1861,9 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 			bptr->iinstr = temp_instr;
 
 			bptr->iinstr[bptr->icount].opc = ICMD_GOTO;
-			bptr->iinstr[bptr->icount].target = original_start;
-			bptr->iinstr[bptr->icount].dst = NULL;
+			/*bptr->iinstr[bptr->icount].target = original_start;
+			bptr->iinstr[bptr->icount].dst.block = NULL;*/
+			bptr->iinstr[bptr->icount].dst.block = original_start;
 			++bptr->icount;
 			}	
 		
@@ -1867,6 +1871,7 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 		bptr = le->block->copied_to;
 		inst = bptr->iinstr;
 		for (i = 0; i < bptr->icount; ++i, ++inst) {
+
 
 			switch (inst->opc) {
 
@@ -1888,7 +1893,7 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 			case ICMD_SALOAD:
 
 				/* undo previous optimizations in new loop                      */
-				inst->op1 = 0;
+				inst->s1.varindex = 0;
 				break;
 
 			case ICMD_IF_ICMPEQ:
@@ -1923,31 +1928,40 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 			case ICMD_IF_LLE:
 
 			case ICMD_GOTO:
-			case ICMD_JSR:
 			case ICMD_IFNULL:
 			case ICMD_IFNONNULL:
 
 				/* jump to newly inserted loopheader has to be redirected       */
-				if (((basicblock *) inst->target) == loop_head)
-					inst->target = (void *) original_start->copied_to;
+				if (((basicblock *) inst->dst.block) == loop_head)
+					inst->dst.block = (void *) original_start->copied_to;
 				/* jump to loop internal nodes has to be redirected             */
-				else if (((basicblock *) inst->target)->lflags & LOOP_PART)
-					inst->target = (void *) ((basicblock *) inst->target)->copied_to;
+				else if (((basicblock *) inst->dst.block)->lflags & LOOP_PART)
+					inst->dst.block = (void *) ((basicblock *) inst->dst.block)->copied_to;
 				break;
 				
+			case ICMD_JSR:
+
+				/* jump to newly inserted loopheader has to be redirected       */
+				if (((basicblock *) inst->sx.s23.s3.jsrtarget.block) == loop_head)
+					inst->sx.s23.s3.jsrtarget.block = (void *) original_start->copied_to;
+				/* jump to loop internal nodes has to be redirected             */
+				else if (((basicblock *) inst->sx.s23.s3.jsrtarget.block)->lflags & LOOP_PART)
+					inst->sx.s23.s3.jsrtarget.block = (void *) ((basicblock *) inst->dst.block)->copied_to;
+				break;
+	
 			case ICMD_TABLESWITCH:
 				{
-					s4 *s4ptr, l, i;
+					s4 l, i;
 					
 					void **copy_ptr, *base_ptr;
 					void **tptr;
 
-					tptr = (void **) inst->target;
+					tptr = (void **) inst->dst.table->block;
 
-					s4ptr = inst->val.a;
-					l = s4ptr[1];                          /* low     */
-					i = s4ptr[2];                          /* high    */
 
+					l = inst->sx.s23.s2.tablelow;                          /* low     */
+					i = inst->sx.s23.s3.tablehigh;                         /* high    */
+					
 					i = i - l + 1;
 					
 					copy_ptr = (void**) DMNEW(void*, i+1);
@@ -1956,7 +1970,7 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 					/* Targets for switch instructions are stored in an extra   */
 					/* that must be copied for new inserted loop.               */
 
-					for (tptr = inst->target; i >= 0; --i, ++tptr, ++copy_ptr) {
+					for (tptr = inst->dst.table->block; i >= 0; --i, ++tptr, ++copy_ptr) {
 						/* jump to newly inserted loopheader must be redirected */
  						if (((basicblock *) *tptr) == loop_head)
 							copy_ptr[0] = (void *) original_start->copied_to;
@@ -1967,22 +1981,20 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 							copy_ptr[0] = tptr[0];
 						}
 
-					inst->target = base_ptr;
+					inst->dst.table->block = base_ptr;
 				}
 				break;
 
 			case ICMD_LOOKUPSWITCH:
 				{
-					s4 i, l, *s4ptr;
+					s4 i;
 
 					void **copy_ptr, **base_ptr;
 					void **tptr;
 
-					tptr = (void **) inst->target;
+					tptr = (void **) inst->dst.lookup->target.block;
 
-					s4ptr = inst->val.a;
-					l = s4ptr[0];                          /* default  */
-					i = s4ptr[1];                          /* count    */
+					i = inst->sx.s23.s2.lookupcount;                     /* count    */
 
 					copy_ptr = (void**) DMNEW(void*, i+1);
 					base_ptr = (void*) copy_ptr;
@@ -1990,7 +2002,7 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 					/* Targets for switch instructions are stored in an extra   */
 					/* that must be copied for new inserted loop.               */
 
-					for (tptr = inst->target; i >= 0; --i, ++tptr, ++copy_ptr) {
+					for (tptr = inst->dst.lookup->target.block; i >= 0; --i, ++tptr, ++copy_ptr) {
 						/* jump to newly inserted loopheader must be redirected */
 						if (((basicblock *) *tptr) == loop_head)
 							copy_ptr[0] = (void *) original_start->copied_to;
@@ -2001,7 +2013,7 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 							copy_ptr[0] = tptr[0];
 						}
 
-					inst->target = base_ptr;
+					inst->dst.lookup->target.block = base_ptr;
 				}
 				break;
 				
@@ -2011,8 +2023,9 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 		/* if fall through exits loop, goto is needed                           */
 		if (!(le->block->next->lflags & LOOP_PART)) {
 			bptr->iinstr[bptr->icount].opc = ICMD_GOTO;
-			bptr->iinstr[bptr->icount].dst = NULL;
-			bptr->iinstr[bptr->icount].target = le->block->next;
+			/*bptr->iinstr[bptr->icount].dst.block = NULL;
+			bptr->iinstr[bptr->icount].target = le->block->next;*/
+			bptr->iinstr[bptr->icount].dst.block = le->block->next;
 			bptr->icount++;
 			}
 		
@@ -2173,37 +2186,36 @@ void patch_handler(struct LoopContainer *lc, basicblock *bptr, basicblock *origi
 
 		case ICMD_GOTO:
 
-			patch_handler(lc, ip->target, original_head, new_head);
+			patch_handler(lc, ip->dst.block, original_head, new_head);
 
 			/* jumps to old header have to be redirected                        */
-			if (((basicblock *) ip->target) == original_head)
-				ip->target = (void *) new_head->copied_to;
+			if (((basicblock *) ip->dst.block) == original_head)
+				ip->dst.block = (void *) new_head->copied_to;
 			/* jumps to handler internal nodes have to be redirected            */
-			else if (((basicblock *) ip->target)->lflags & HANDLER_PART)
-				ip->target = (void *) ((basicblock *) ip->target)->copied_to;
+			else if (((basicblock *) ip->dst.block)->lflags & HANDLER_PART)
+				ip->dst.block = (void *) ((basicblock *) ip->dst.block)->copied_to;
 			/* jumps to loop internal nodes have to be redirected               */
-			else if (((basicblock *) ip->target)->lflags & LOOP_PART)
-				ip->target = (void *) ((basicblock *) ip->target)->copied_to;
+			else if (((basicblock *) ip->dst.block)->lflags & LOOP_PART)
+				ip->dst.block = (void *) ((basicblock *) ip->dst.block)->copied_to;
 		   
 		   
 			break;
 				
 		case ICMD_TABLESWITCH:
 			{
-				s4 *s4ptr, l, i;
+				s4 l, i;
 				void **tptr;
 				void **copy_ptr, **base_ptr;
  
-				tptr = (void **) ip->target;
-				s4ptr = ip->val.a;
-				l = s4ptr[1];                          /* low                   */
-				i = s4ptr[2];                          /* high                  */
+				tptr = (void **) ip->dst.table;
+				l = ip->sx.s23.s2.tablelow;                          /* low                   */
+				i = ip->sx.s23.s3.tablehigh;                          /* high                  */
 				i = i - l + 1;
 				
 				copy_ptr = (void**) DMNEW(void*, i+1);
 				base_ptr = (void*) copy_ptr;
 
-				for (tptr = ip->target; i >= 0; --i, ++tptr, ++copy_ptr) {
+				for (tptr = ip->dst.table->block; i >= 0; --i, ++tptr, ++copy_ptr) {
 					patch_handler(lc, ((basicblock *) *tptr), original_head, new_head);
 					/* jumps to old header have to be redirected                */
 					if (((basicblock *) *tptr) == original_head)
@@ -2212,32 +2224,30 @@ void patch_handler(struct LoopContainer *lc, basicblock *bptr, basicblock *origi
 					else if (((basicblock *) *tptr)->lflags & HANDLER_PART)
 						copy_ptr[0] = (void *) ((basicblock *) tptr[0])->copied_to;
 					/* jumps to loop internal nodes have to be redirected       */
-					else if (((basicblock *) ip->target)->lflags & LOOP_PART)
+					else if (((basicblock *) ip->dst.table->block)->lflags & LOOP_PART)
 						copy_ptr[0] = (void *) ((basicblock *) tptr[0])->copied_to;
 					else
 						copy_ptr[0] = tptr[0];
 				    }
 
-				ip->target = base_ptr;
+				ip->dst.table->block = base_ptr;
 			}
 			break;
 
 		case ICMD_LOOKUPSWITCH:
 			{
-				s4 i, l, *s4ptr;
+				s4 i;
 
 				void **tptr;
 				void **copy_ptr, **base_ptr;
 
-				tptr = (void **) ip->target;
-				s4ptr = ip->val.a;
-				l = s4ptr[0];                          /* default               */
-				i = s4ptr[1];                          /* count                 */
+				tptr = (void **) ip->dst.lookup->target.block;
+				i = ip->sx.s23.s2.lookupcount;                          /* count                 */
 
 				copy_ptr = (void**) DMNEW(void*, i+1);
 				base_ptr = (void*) copy_ptr;
 
-				for (tptr = ip->target; i >= 0; --i, ++tptr, ++copy_ptr) {
+				for (tptr = ip->dst.lookup->target.block; i >= 0; --i, ++tptr, ++copy_ptr) {
 
 					patch_handler(lc, ((basicblock *) *tptr), original_head, new_head);
 					/* jumps to old header have to be redirected                */
@@ -2247,13 +2257,13 @@ void patch_handler(struct LoopContainer *lc, basicblock *bptr, basicblock *origi
 					else if (((basicblock *) *tptr)->lflags & HANDLER_PART)
 						copy_ptr[0] = (void *) ((basicblock *) tptr[0])->copied_to;
 					/* jumps to loop internal nodes have to be redirected       */
-					else if (((basicblock *) ip->target)->lflags & LOOP_PART)
+					else if (((basicblock *) ip->dst.lookup->target.block)->lflags & LOOP_PART)
 						copy_ptr[0] = (void *) ((basicblock *) tptr[0])->copied_to;
 					else
 						copy_ptr[0] = tptr[0];
-				    }
+					    }
 
-				ip->target = base_ptr;
+				ip->dst.lookup->target.block = base_ptr;
 			}
 			break;
 				
@@ -2264,8 +2274,9 @@ void patch_handler(struct LoopContainer *lc, basicblock *bptr, basicblock *origi
 		/* if fall through exits loop, goto is needed                           */
 		if (!(bptr->next->lflags & HANDLER_PART)) {
 			bptr->copied_to->iinstr[bptr->copied_to->icount].opc = ICMD_GOTO;
-			bptr->copied_to->iinstr[bptr->copied_to->icount].dst = NULL;
-			bptr->copied_to->iinstr[bptr->copied_to->icount].target = bptr->next;
+			bptr->copied_to->iinstr[bptr->copied_to->icount].dst.block = bptr->next;
+			/* bptr->copied_to->iinstr[bptr->copied_to->icount].dst.block = NULL;
+			bptr->copied_to->iinstr[bptr->copied_to->icount].target = bptr->next; */
 			bptr->copied_to->icount++;
 			}		
 }
@@ -2279,10 +2290,9 @@ void patch_handler(struct LoopContainer *lc, basicblock *bptr, basicblock *origi
 
 *******************************************************************************/
 
-void copy_handler(methodinfo *m, loopdata *ld, struct LoopContainer *lc, basicblock *bptr, basicblock *original_head, basicblock *new_head)
+void copy_handler(jitdata *jd, loopdata *ld, struct LoopContainer *lc, basicblock *bptr, basicblock *original_head, basicblock *new_head)
 {
 	instruction *ip;
-	s4 *s4ptr;
 	void **tptr;
 	int high, low, count;
 	struct LoopElement *le;
@@ -2321,7 +2331,7 @@ void copy_handler(methodinfo *m, loopdata *ld, struct LoopContainer *lc, basicbl
 	bptr->copied_to = new;
 
 	/* append block to global list of basic blocks                            */
-	temp = m->basicblocks;
+	temp = jd->basicblocks;
 
 	while (temp->next)
 		temp = temp->next;
@@ -2332,7 +2342,7 @@ void copy_handler(methodinfo *m, loopdata *ld, struct LoopContainer *lc, basicbl
 
 	/* find next block to copy, depending on last instruction of BB             */
 	if (bptr->icount == 0) {
-		copy_handler(m, ld, lc, bptr->next, original_head, new_head);
+		copy_handler(jd, ld, lc, bptr->next, original_head, new_head);
 		return;
 	}
 
@@ -2380,33 +2390,30 @@ void copy_handler(methodinfo *m, loopdata *ld, struct LoopContainer *lc, basicbl
 	case ICMD_IF_ICMPLE:
 	case ICMD_IF_ACMPEQ:
 	case ICMD_IF_ACMPNE:
-		copy_handler(m, ld, lc, bptr->next, original_head, new_head);
+		copy_handler(jd, ld, lc, bptr->next, original_head, new_head);
 		/* fall through */
 	  
 	case ICMD_GOTO:
 
 		/* redirect jump from original_head to new_head                    */
-		if ((basicblock *) ip->target == original_head)
-			ip->target = (void *) new_head;
+		if ((basicblock *) ip->dst.block == original_head)
+			ip->dst.block = (void *) new_head;
 				
-		copy_handler(m, ld, lc, (basicblock *) (ip->target), original_head, new_head);
+		copy_handler(jd, ld, lc, (basicblock *) (ip->dst.block), original_head, new_head);
 			
 		break;
 	  
 	case ICMD_TABLESWITCH:
-		s4ptr = ip->val.a;
-		tptr = (void **) ip->target;
+		tptr = (void **) ip->dst.table->block;
 			
 		/* default branch */
 		if (((basicblock *) *tptr) == original_head)
 			tptr[0] = (void *) new_head;
 			
-		copy_handler(m, ld, lc, (basicblock *) *tptr, original_head, new_head);
+		copy_handler(jd, ld, lc, (basicblock *) *tptr, original_head, new_head);
 			
-		s4ptr++;
-		low = *s4ptr;
-		s4ptr++;
-		high = *s4ptr;
+		low = ip->sx.s23.s2.tablelow;
+		high = ip->sx.s23.s3.tablehigh;
 			
 		count = (high-low+1);
 			
@@ -2415,43 +2422,41 @@ void copy_handler(methodinfo *m, loopdata *ld, struct LoopContainer *lc, basicbl
 			/* redirect jump from original_head to new_head                 */
 			if (((basicblock *) *tptr) == original_head)
 				tptr[0] = (void *) new_head;
-			copy_handler(m, ld, lc, (basicblock *) *tptr, original_head, new_head);
+			copy_handler(jd, ld, lc, (basicblock *) *tptr, original_head, new_head);
 		}
 		break;
 
 	case ICMD_LOOKUPSWITCH:
-		s4ptr = ip->val.a;
-		tptr = (void **) ip->target;
+		tptr = (void **) ip->dst.lookup->target.block;
 			
 		/* default branch */
 		if (((basicblock *) *tptr) == original_head)
 			tptr[0] = (void *) new_head;
 			
-		copy_handler(m, ld, lc, (basicblock *) *tptr, original_head, new_head);
-			
-		++s4ptr;
-		count = *s4ptr;
+		copy_handler(jd, ld, lc, (basicblock *) *tptr, original_head, new_head);
+
+		count = ip->sx.s23.s2.lookupcount;
 			
 		while (--count >= 0) {
 			++tptr;
 			/* redirect jump from original_head to new_head                 */
 			if (((basicblock *) *tptr) == original_head)
 				tptr[0] = (void *) new_head;
-			copy_handler(m, ld, lc, (basicblock *) *tptr, original_head, new_head);
+			copy_handler(jd, ld, lc, (basicblock *) *tptr, original_head, new_head);
 		}  
 		break;
 
 	case ICMD_JSR:
 		ld->c_last_target = bptr;
-		copy_handler(m, ld, lc, (basicblock *) (ip->target), original_head, new_head);         
+		copy_handler(jd, ld, lc, (basicblock *) (ip->sx.s23.s3.jsrtarget.block), original_head, new_head);         
 		break;
 			
 	case ICMD_RET:
-		copy_handler(m, ld, lc, ld->c_last_target->next, original_head, new_head);
+		copy_handler(jd, ld, lc, ld->c_last_target->next, original_head, new_head);
 		break;
 			
 	default:
-		copy_handler(m, ld, lc, bptr->next, original_head, new_head);
+		copy_handler(jd, ld, lc, bptr->next, original_head, new_head);
 		break;	
 	} 
 }           
@@ -2462,9 +2467,9 @@ void copy_handler(methodinfo *m, loopdata *ld, struct LoopContainer *lc, basicbl
    two helper functions copy_handler and patch_handler perform this task.
 */
 
-void update_internal_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, struct LoopContainer *lc, basicblock *original_head, basicblock *new_head)
+void update_internal_exceptions(jitdata *jd, codegendata *cd, loopdata *ld, struct LoopContainer *lc, basicblock *original_head, basicblock *new_head)
 {
-	exceptiontable *ex, *new;
+	exception_entry *ex, *new;
 	struct LoopContainer *l;
 
 	/* Bottom of tree reached -> return                                         */
@@ -2474,7 +2479,7 @@ void update_internal_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, st
 	/* Call update_internal for all nested (=child) loops                       */
 	l = lc->tree_down;
 	while (l != NULL) {
-		update_internal_exceptions(m, cd, ld, l, original_head, new_head);
+		update_internal_exceptions(jd, cd, ld, l, original_head, new_head);
 		l = l->tree_right;
 	    }
 
@@ -2483,12 +2488,12 @@ void update_internal_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, st
 	while (ex != NULL) {
 		
 		/* Copy the exception and patch the jumps                               */
-		copy_handler(m, ld, lc, ex->handler, original_head, new_head);
+		copy_handler(jd, ld, lc, ex->handler, original_head, new_head);
 		patch_handler(lc, ex->handler, original_head, new_head);		
 
 		/* Insert a new exception into the global exception table               */
-		new = DNEW(exceptiontable);
-		memcpy(new, ex, sizeof(exceptiontable));
+		new = DNEW(exception_entry);
+		memcpy(new, ex, sizeof(exception_entry));
 
 		/* Increase number of exceptions                                        */
 		++jd->exceptiontablelength;
@@ -2515,9 +2520,9 @@ void update_internal_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, st
    by lc. If so, the exceptions are extended to contain all newly created nodes.
 */
 
-void update_external_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, struct LoopContainer *lc, int loop_head)
+void update_external_exceptions(jitdata *jd, codegendata *cd, loopdata *ld, struct LoopContainer *lc, int loop_head)
 {
-	exceptiontable *ex, *new;
+	exception_entry *ex, *new;
 
 	/* Top of tree reached -> return                                            */
 	if (lc == NULL)
@@ -2530,19 +2535,7 @@ void update_external_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, st
 		   
 		/* It is possible that the loop contains exceptions that do not protect */
 		/* the loop just duplicated. It must be checked, if this is the case    */
-		if ((loop_head >= m->basicblockindex[ex->startpc]) && (loop_head < m->basicblockindex[ex->endpc])) {
-
-			/* loop is really inside exception, so create new exception entry   */
-			/* in global exception list                                         */
-			new = DNEW(exceptiontable);
-			memcpy(new, ex, sizeof(exceptiontable));
-
-
-			/* Increase number of exceptions                                    */
-			++jd->exceptiontablelength;
-
-			ex->next = new;
-			ex->down = new;
+		if ((loop_head >= ex->start->nr) && (loop_head < ex->end->nr)) {
 
 			/* Set new start and end point of this exception                    */
 			new->start = ld->c_first_block_copied;
@@ -2556,7 +2549,7 @@ void update_external_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, st
 	    }
 
 	/* Call update_external for parent node                                     */
-	update_external_exceptions(m, cd, ld, lc->parent, loop_head);
+	update_external_exceptions(jd, cd, ld, lc->parent, loop_head);
 }
 	
 
@@ -2564,7 +2557,7 @@ void update_external_exceptions(methodinfo *m, codegendata *cd, loopdata *ld, st
 	into the intermediate code.
 */
 
-void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct LoopContainer *lc)
+void create_static_checks(jitdata *jd, codegendata *cd, loopdata *ld, struct LoopContainer *lc)
 {
 	int i, stackdepth, cnt;
 	struct Constraint *tc1;
@@ -2577,8 +2570,8 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 
 	/* tos and newstack are needed by the macros, that insert instructions into */
 	/* the new loop head                                                        */
-	stackelement_t* newstack, tos;
-	exceptiontable *ex;
+	stackelement_t* newstack, *tos;
+	exception_entry *ex;
 
 	/* prevent some compiler warnings */
 
@@ -2588,7 +2581,7 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 	/* show_loop_statistics(l); */ 
 #endif
 
-	loop_head = &m->basicblocks[ld->c_current_head];
+	loop_head = &jd->basicblocks[ld->c_current_head];
 	ld->c_first_block_copied = ld->c_last_block_copied = NULL;
 
 	/* the loop nodes are copied                                                */
@@ -2612,7 +2605,7 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 		le->block->copied_to = bptr;
 
 		/* add block to global list of BBs                                      */
-		temp = m->basicblocks;
+		temp = jd->basicblocks;
 
 		while (temp->next)
 			temp = temp->next;
@@ -2662,21 +2655,22 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 			/* jmp is automagically redirected during patch_handler and works   */
 			/* correct                                                          */
 			tiptr->opc = ICMD_GOTO;
-			tiptr->dst = NULL;
-			tiptr->target = (void*) loop_head;
-			
+/*			tiptr->dst.block = NULL;
+			tiptr->target = (void*) loop_head; */
+			tiptr->dst.block = (void*) loop_head;
+
 			++temp->icount;
 		    }
 		
 		
-		temp = m->basicblocks;
+		temp = jd->basicblocks;
 		/* if first loop block is first BB of global list, insert loop_head at  */
 		/* beginning of global BB list                                          */
 		if (temp == le->block) {
 			if (ld->c_newstart == NULL) {
 				ld->c_needs_redirection = true;
 				ld->c_newstart = loop_head;
-				loop_head->next = m->basicblocks;
+				loop_head->next = jd->basicblocks;
 		 	    }
 			else {
 				loop_head->next = ld->c_newstart;
@@ -2698,9 +2692,9 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 			/* goto / happens rather often due to loop layout                   */
 			tiptr = temp->iinstr + (temp->icount-1);
 		
-			if ((tiptr->opc == ICMD_GOTO) && (tiptr->target == loop_head)) {
+			if ((tiptr->opc == ICMD_GOTO) && (tiptr->dst.block == loop_head)) {
 				tiptr->opc = ICMD_NOP;
-				tiptr->dst = NULL;
+				/* tiptr->dst.block = NULL; */
 		        }
 			else {
 
@@ -2711,9 +2705,10 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 				tiptr = temp->iinstr + temp->icount;
 
 				tiptr->opc = ICMD_GOTO;
-				tiptr->dst = NULL;
-				tiptr->target = (void*) loop_head->next;
-
+				/*tiptr->dst.block = NULL;
+				tiptr->target = (void*) loop_head->next;*/
+				tiptr->dst.block = (void*) loop_head->next;
+		
 				++temp->icount;
 	            }
 		    }
@@ -2727,7 +2722,7 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 		/* has to be extended to cover the new first node as well               */
 		if (ex->start == le->block) {
 			
-			if ((lc->loop_head >= m->basicblockindex[ex->startpc]) && (lc->loop_head < m->basicblockindex[ex->endpc])) 
+			if ((lc->loop_head >= ex->start->nr) && (lc->loop_head < ex->end->nr)) 
 				ex->start = loop_head;
 		    }
 
@@ -2750,17 +2745,17 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 	/* init instruction array                                                   */
 	for (cnt=0; cnt<ld->c_needed_instr + 1; ++cnt) {
 		inst[0].opc = ICMD_NOP;
-		inst[0].dst = NULL;
+		inst[0].dst.block = NULL;
 	    }
 
 	loop_head->copied_to = NULL; 
 
 	/* prepare stack                                                            */
-	loop_head->instack = copy_stack_from(bptr->instack);
-	loop_head->outstack = copy_stack_from(bptr->instack);
+	/* loop_head->instack = copy_stack_from(bptr->instack);
+	loop_head->outstack = copy_stack_from(bptr->instack); 
 	
 	tos = loop_head->instack;
-	stackdepth = loop_head->indepth;
+	stackdepth = loop_head->indepth; */
 	
 	/* step through all inserted checks and create instructions for them        */
 	for (i=0; i<jd->maxlocals+1; ++i)
@@ -2854,8 +2849,9 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 	/* if all tests succeed, jump to optimized loop header                      */
 	if (loop_head->next != original_start) {
 		inst->opc = ICMD_GOTO;
-		inst->dst = NULL;
-		inst->target = original_start;
+		/*inst->dst.block = NULL;
+		inst->target = original_start;*/
+		inst->dst.block = original_start;
 	    }
 
 	/* redirect jumps from original loop head to newly inserted one             */
@@ -2863,8 +2859,8 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 
 	/* if exceptions have to be correct due to loop duplication these two       */
 	/* functions perform this task.                                             */
-	update_internal_exceptions(m, cd, ld, lc, loop_head, original_start);
-	update_external_exceptions(m, cd, ld, lc->parent, lc->loop_head);
+	update_internal_exceptions(jd, cd, ld, lc, loop_head, original_start);
+	update_external_exceptions(jd, cd, ld, lc->parent, lc->loop_head);
 }
 
 
@@ -2876,7 +2872,7 @@ void create_static_checks(methodinfo *m, codegendata *cd, loopdata *ld, struct L
 	represented by its lower bound being higher than the upper bound. The result 
 	of the union is stored in c1.
 */
-struct Changes ** constraints_unrestricted_merge(codegendata *cd, struct Changes **c1, struct Changes **c2)
+struct Changes ** constraints_unrestricted_merge(jitdata *jd, codegendata *cd, struct Changes **c1, struct Changes **c2)
 {
 	int i, changed;
 
@@ -2924,7 +2920,7 @@ struct Changes ** constraints_unrestricted_merge(codegendata *cd, struct Changes
 	represented by its lower bound being higher than the upper bound. The result 
 	of the union is stored in c1.
 */
-struct Changes ** constraints_merge(codegendata *cd, struct Changes **c1, struct Changes **c2)
+struct Changes ** constraints_merge(jitdata *jd, codegendata *cd, struct Changes **c1, struct Changes **c2)
 {
 	int i, changed;
 
@@ -2971,7 +2967,7 @@ struct Changes ** constraints_merge(codegendata *cd, struct Changes **c1, struct
 
 /*	This function simply copies an array of changes 
 */
-struct Changes** constraints_clone(codegendata *cd, struct Changes **c)
+struct Changes** constraints_clone(jitdata *jd, codegendata *cd, struct Changes **c)
 {
 	int i;
 	struct Changes **t;
@@ -2999,7 +2995,7 @@ struct Changes** constraints_clone(codegendata *cd, struct Changes **c)
 	correctly reflect its bounds the time, it was pushed onto the stack. This 
 	function corrects the situation.
 	*/
-struct Changes* backtrack_var(methodinfo *m, int node, int from, int to, int varRef, struct Changes *changes)
+struct Changes* backtrack_var(jitdata *jd, int node, int from, int to, int varRef, struct Changes *changes)
 {
 	struct Changes *tmp;
 	basicblock bp;
@@ -3019,28 +3015,28 @@ struct Changes* backtrack_var(methodinfo *m, int node, int from, int to, int var
 	if (tmp->upper_bound < tmp->lower_bound)
 		return tmp;			/* if it is unrestricted no backtracking can happen	*/
 
-	bp = m->basicblocks[node];
+	bp = jd->basicblocks[node];
 	ip = bp.iinstr + to;
 
 	for (; from < to; --to, --ip) {		/* scan instructions backwards			*/
 		switch (ip->opc) {
 		case ICMD_IINC:					/* a var has been modified				*/
-			if (varRef != ip->op1)		/* not the one, we are interested in	*/
+			if (varRef != ip->s1.varindex)		/* not the one, we are interested in	*/
 				break;
-			tmp->upper_bound -= ip->val.i;		/* take back modifications		*/
-			tmp->lower_bound -= ip->val.i;
+			tmp->upper_bound -= ip->sx.val.i;		/* take back modifications		*/
+			tmp->lower_bound -= ip->sx.val.i;
 			break;
 
 		case ICMD_ISTORE:				/* a var has been modified				*/
-			if (varRef != ip->op1)		/* not the one, we are interested in	*/
+			if (varRef != ip->s1.varindex)		/* not the one, we are interested in	*/
 				break;
 
 			/* it is our variable, so trace its origin							*/
-			t = tracing(&m->basicblocks[node],to, 0);		
+			t = tracing(&jd->basicblocks[node],to, 0);		
 	
 			switch (t->type) {
 				case TRACE_IVAR:  
-					if ((t->var = ip->op1) && (t->neg > 0)) {
+					if ((t->var = ip->s1.varindex) && (t->neg > 0)) {
 						/* it was the same var -> take back modifications		*/
 						tmp->upper_bound -= t->constant;
 						tmp->lower_bound -= t->constant;
@@ -3072,7 +3068,7 @@ struct Changes* backtrack_var(methodinfo *m, int node, int from, int to, int var
 	node.
 */
 
-void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, int from, struct Changes **change, int special)
+void remove_boundchecks(jitdata *jd, codegendata *cd, loopdata *ld, int node, int from, struct Changes **change, int special)
 {
 	basicblock bp;
 	instruction *ip;
@@ -3102,13 +3098,13 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 				/* we are looping in a nested loop, so made optimizations		*/
 				/* need to be reconsidered										*/
 					degrade_checks = 1;
-					if (constraints_unrestricted_merge(cd, t1, change) == NULL)	
+					if (constraints_unrestricted_merge(jd, cd, t1, change) == NULL)	
 						return;			/* no changes since previous visit		*/
 						/* if there have been changes, they are updated by		*/
 						/* constraints_unrestricted_merge in t1					*/
 					}
 				else {
-					if (constraints_merge(cd, t1, change) == NULL)
+					if (constraints_merge(jd, cd, t1, change) == NULL)
 						return;			/* no changes since previous visit		*/
 						/* if there have been changes, they are updated by		*/
 						/* constraints_merge in t1								*/
@@ -3116,21 +3112,21 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 				}
 			else {						/* first visit							*/
 				/* printf("first visit - constraints cloned\n");				*/
-				ld->c_dTable[node]->changes = constraints_clone(cd, change);
+				ld->c_dTable[node]->changes = constraints_clone(jd, cd, change);
 				}
 
 			/* tmp now holds a copy of the updated variable changes				*/
-			tmp = constraints_clone(cd, ld->c_dTable[node]->changes);	
+			tmp = constraints_clone(jd, cd, ld->c_dTable[node]->changes);	
 			}
 		else if (special) {				/* header and need special traetment	*/
 			/* printf("special treatment called\n");							*/
 			/* tmp now holds a copy of the current new variable changes			*/
-			tmp = constraints_clone(cd, change);
+			tmp = constraints_clone(jd, cd, change);
 			}
 		else
 			return;
 
-		bp = m->basicblocks[node];				/* scan all instructions				*/
+		bp = jd->basicblocks[node];				/* scan all instructions				*/
 		count = bp.icount;
 		ip = bp.iinstr;
 		ignore = 0;
@@ -3173,9 +3169,9 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 				*/
 
 #ifdef ENABLE_STATISTICS
-				if (ip->op1 == OPT_UNCHECKED) {		/* found new access			*/
+				if (ip->s1.varindex == OPT_UNCHECKED) {		/* found new access			*/
 				   ld->c_stat_array_accesses++;
-				   ip->op1 = OPT_NONE;
+				   ip->s1.varindex = OPT_NONE;
 				   ld->c_stat_no_opt++;
 				   }
 #endif
@@ -3188,7 +3184,7 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 				case TRACE_ICONST:			/* it is a constant value or an		*/
 				case TRACE_ALENGTH:			/* array length						*/
 #ifdef ENABLE_STATISTICS
-					switch (ip->op1) {		/* take back old optimzation		*/
+					switch (ip->s1.varindex) {		/* take back old optimzation		*/
 					case OPT_UNCHECKED:
 						break;
 					case OPT_NONE:
@@ -3206,26 +3202,26 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 						}
 #endif
 					if (degrade_checks)		/* replace existing optimization	*/
-						ip->op1 = insert_static(m, cd, ld, t_array->var, t_index, NULL, special);
+						ip->s1.varindex = insert_static(jd, cd, ld, t_array->var, t_index, NULL, special);
 					else {
 						/* Check current optimization and try to improve it	by	*/
 						/* inserting new checks									*/
-						switch (ip->op1) {	
+						switch (ip->s1.varindex) {	
 						case OPT_UNCHECKED:
-							ip->op1 = insert_static(m, cd, ld, t_array->var, t_index, NULL, special);
+							ip->s1.varindex = insert_static(jd, cd, ld, t_array->var, t_index, NULL, special);
 							break;
 						case OPT_NONE:		
-							ip->op1 = insert_static(m, cd, ld, t_array->var, t_index, NULL, special);
+							ip->s1.varindex = insert_static(jd, cd, ld, t_array->var, t_index, NULL, special);
 							break;
 						case OPT_UPPER:		
-							opt_level = insert_static(m, cd, ld, t_array->var, t_index, NULL, special);
+							opt_level = insert_static(jd, cd, ld, t_array->var, t_index, NULL, special);
 							if ((opt_level == OPT_FULL) || (opt_level == OPT_LOWER))
-								ip->op1 = OPT_FULL;
+								ip->s1.varindex = OPT_FULL;
 							break;
 						case OPT_LOWER:	
-							opt_level = insert_static(m, cd, ld, t_array->var, t_index, NULL, special);
+							opt_level = insert_static(jd, cd, ld, t_array->var, t_index, NULL, special);
 							if ((opt_level == OPT_FULL) || (opt_level == OPT_UPPER))
-								ip->op1 = OPT_FULL;
+								ip->s1.varindex = OPT_FULL;
 							break;
 						case OPT_FULL:
 #ifdef ENABLE_STATISTICS
@@ -3242,9 +3238,9 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 					/* of the array access and its push onto the stack, we have	*/
 					/* to set the changes back to the time, it is pushed onto	*/
 					/* the stack as an index variable.							*/
-					t = backtrack_var(m, node, t_index->nr, i-1, t_index->var, tmp[t_index->var]);
+					t = backtrack_var(jd, node, t_index->nr, i-1, t_index->var, tmp[t_index->var]);
 #ifdef ENABLE_STATISTICS
-					switch (ip->op1) {		/* take back old optimzation		*/
+					switch (ip->s1.varindex) {		/* take back old optimzation		*/
 					case OPT_UNCHECKED:
 						break;
 					case OPT_NONE:
@@ -3262,26 +3258,26 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 						}
 #endif
 					if (degrade_checks)
-						ip->op1 = insert_static(m, cd, ld, t_array->var, t_index, t, special);
+						ip->s1.varindex = insert_static(jd, cd, ld, t_array->var, t_index, t, special);
 					else {
 						/* Check current optimization and try to improve it	by	*/
 						/* insert new check. t reflects var changes for index	*/
-						switch (ip->op1) {
+						switch (ip->s1.varindex) {
 						case OPT_UNCHECKED:
-							ip->op1 = insert_static(m, cd, ld, t_array->var, t_index, t, special);
+							ip->s1.varindex = insert_static(jd, cd, ld, t_array->var, t_index, t, special);
 							break;
 						case OPT_NONE:
-							ip->op1 = insert_static(m, cd, ld, t_array->var, t_index, t, special);
+							ip->s1.varindex = insert_static(jd, cd, ld, t_array->var, t_index, t, special);
 							break;
 						case OPT_UPPER:
-							opt_level = insert_static(m, cd, ld, t_array->var, t_index, t, special);
+							opt_level = insert_static(jd, cd, ld, t_array->var, t_index, t, special);
 							if ((opt_level == OPT_FULL) || (opt_level == OPT_LOWER))
-								ip->op1 = OPT_FULL;
+								ip->s1.varindex = OPT_FULL;
 							break;
 						case OPT_LOWER:	
-							opt_level = insert_static(m, cd, ld, t_array->var, t_index, t, special);
+							opt_level = insert_static(jd, cd, ld, t_array->var, t_index, t, special);
 							if ((opt_level == OPT_FULL) || (opt_level == OPT_UPPER))
-								ip->op1 = OPT_FULL;
+								ip->s1.varindex = OPT_FULL;
 							break;
 						case OPT_FULL:
 #ifdef ENABLE_STATISTICS
@@ -3302,12 +3298,12 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 				t_index = tracing(&bp, i-1, 0);	/* trace back its origin		*/
 
 				/* the struct Changes for this variable needs to be updated		*/
-				t = tmp[ip->op1];
+				t = tmp[ip->s1.varindex];
 				if (t == NULL) {	/* if it's the first one, create new entry	*/
 					if ((t = (struct Changes *) malloc(sizeof(struct Changes))) == NULL)
 						c_mem_error();
 					t->upper_bound = t->lower_bound = 0;
-					tmp[ip->op1] = t;
+					tmp[ip->s1.varindex] = t;
 					}
 
 				switch (t_index->type) {		/* check origin of store		*/
@@ -3317,7 +3313,7 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 					break;	
 
 				case TRACE_IVAR:	/* if it's the same variable, update consts	*/  
-					if ((t_index->var = ip->op1) && (t_index->neg > 0)) {
+					if ((t_index->var = ip->s1.varindex) && (t_index->neg > 0)) {
 						t->upper_bound += t_index->constant;
 						t->lower_bound += t_index->constant;
 						}
@@ -3337,15 +3333,15 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 			case ICMD_IINC:			
 
 				/* the struct Changes for this variable needs to be updated		*/
-				if ((t = tmp[ip->op1]) == NULL) {	/* first one -> create new	*/
+				if ((t = tmp[ip->s1.varindex]) == NULL) {	/* first one -> create new	*/
 					if ((t = (struct Changes *) malloc(sizeof(struct Changes))) == NULL)
 						c_mem_error();
-					t->upper_bound = t->lower_bound = ip->val.i;
-					tmp[ip->op1] = t;
+					t->upper_bound = t->lower_bound = ip->sx.val.i;
+					tmp[ip->s1.varindex] = t;
 					}  
 				else {				/* update changes, made by iinc				*/
-					t->upper_bound += ip->val.i;
-					t->lower_bound += ip->val.i;
+					t->upper_bound += ip->sx.val.i;
+					t->lower_bound += ip->sx.val.i;
 					}
 				break;
 				}	/* switch */
@@ -3354,7 +3350,7 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 		if (!special) {				/* we are not interested in only the header	*/
 			d = ld->c_dTable[node];
 			while (d != NULL) {		/* check all sucessors of current node		*/
-				remove_boundchecks(m, cd, ld, d->value, node, tmp, special);	
+				remove_boundchecks(jd, cd, ld, d->value, node, tmp, special);	
 				d = d->next;
 				}
 			}
@@ -3368,9 +3364,9 @@ void remove_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, 
 	block end).
 */
 
-void remove_header_boundchecks(methodinfo *m, codegendata *cd, loopdata *ld, int node, struct Changes **changes)
+void remove_header_boundchecks(jitdata *jd, codegendata *cd, loopdata *ld, int node, struct Changes **changes)
 {
-	remove_boundchecks(m, cd, ld, node, -1, changes, BOUNDCHECK_SPECIAL);
+	remove_boundchecks(jd, cd, ld, node, -1, changes, BOUNDCHECK_SPECIAL);
 }
 
 
@@ -3405,7 +3401,7 @@ void unmark_loop_nodes(LoopContainer *lc)
 	identify array accesses suitable for optimization (bound check removal). The
 	intermediate code is then modified to reflect these optimizations.
 */
-void optimize_single_loop(methodinfo *m, codegendata *cd, loopdata *ld, LoopContainer *lc)
+void optimize_single_loop(jitdata *jd, codegendata *cd, loopdata *ld, LoopContainer *lc)
 {
 	struct LoopElement *le;
 	struct depthElement *d;
@@ -3429,7 +3425,7 @@ void optimize_single_loop(methodinfo *m, codegendata *cd, loopdata *ld, LoopCont
 
 	/* setup variables with initial values										*/
 	ld->c_loopvars = NULL;
-	for (i=0; i < m->basicblockcount; ++i) {
+	for (i=0; i < jd->basicblockcount; ++i) {
 		ld->c_toVisit[i] = 0;
 		ld->c_current_loop[i] = -1;
 		if ((d = ld->c_dTable[i]) != NULL)
@@ -3470,7 +3466,7 @@ void optimize_single_loop(methodinfo *m, codegendata *cd, loopdata *ld, LoopCont
 	fflush(stdout);
 #endif
 
-	if (analyze_for_array_access(m, ld, head) > 0) {/* loop contains array access		*/
+	if (analyze_for_array_access(jd, ld, head) > 0) {/* loop contains array access		*/
 
 #ifdef LOOP_DEBUG
 		struct LoopVar *lv;
@@ -3497,14 +3493,14 @@ void optimize_single_loop(methodinfo *m, codegendata *cd, loopdata *ld, LoopCont
 		/* if the loop header contains or-conditions or an index variable		*/
 		/* is modified in the catch-block within the loop, a conservative		*/
 		/* approach is taken and optimizations are cancelled					*/
-		if (analyze_or_exceptions(m, cd, ld, head, lc) > 0) {
+		if (analyze_or_exceptions(jd, cd, ld, head, lc) > 0) {
 
 #ifdef LOOP_DEBUG
 			printf("Analyzed for or/exception - no problems \n");            
 			fflush(stdout);
 #endif
 
-			init_constraints(m, ld, head);	/* analyze dynamic bounds in header			*/
+			init_constraints(jd, ld, head);	/* analyze dynamic bounds in header			*/
 
 #ifdef LOOP_DEBUG			
 			show_right_side();
@@ -3514,11 +3510,11 @@ void optimize_single_loop(methodinfo *m, codegendata *cd, loopdata *ld, LoopCont
 				return;
 
 			/* single pass bound check removal - for all successors, do			*/
-			remove_header_boundchecks(m, cd, ld, head, changes);
+			remove_header_boundchecks(jd, cd, ld, head, changes);
 
 			d = ld->c_dTable[head];
 			while (d != NULL) {
-				remove_boundchecks(m, cd, ld, d->value, -1, changes, BOUNDCHECK_REGULAR);
+				remove_boundchecks(jd, cd, ld, d->value, -1, changes, BOUNDCHECK_REGULAR);
    				d = d->next;
 				}
 	    
@@ -3534,7 +3530,7 @@ void optimize_single_loop(methodinfo *m, codegendata *cd, loopdata *ld, LoopCont
 			fflush(stdout);
 #endif
 
-			create_static_checks(m, cd, ld, lc);	/* create checks	  					*/
+			create_static_checks(jd, cd, ld, lc);	/* create checks	  					*/
 
 #ifdef LOOP_DEBUG
 			printf("END: create static checks\n");
@@ -3577,14 +3573,12 @@ void optimize_single_loop(methodinfo *m, codegendata *cd, loopdata *ld, LoopCont
 
 void optimize_loops(jitdata *jd)
 {
-	methodinfo    *m;
 	codegendata   *cd;
 	loopdata      *ld;
 	LoopContainer *lc;
 
 	/* get required compiler data */
 
-	m  = jd->m;
 	cd = jd->cd;
 	ld = jd->ld;
 
@@ -3610,7 +3604,7 @@ void optimize_loops(jitdata *jd)
 	fflush(stdout);
 #endif
 
-	analyze_nested(m,cd, ld);
+	analyze_nested(jd, cd, ld);
 
 #ifdef LOOP_DEBUG
 	printf("analyze nested done\n");
@@ -3618,8 +3612,8 @@ void optimize_loops(jitdata *jd)
 #endif
 
 	/* create array with entries for current loop								*/
-	ld->c_current_loop = DMNEW(int, m->basicblockcount);	
-	ld->c_toVisit = DMNEW(int, m->basicblockcount);
+	ld->c_current_loop = DMNEW(int, jd->basicblockcount);	
+	ld->c_toVisit = DMNEW(int, jd->basicblockcount);
 	ld->c_var_modified = DMNEW(int, jd->maxlocals);
 	ld->c_null_check = DMNEW(int, jd->maxlocals);
 
@@ -3645,7 +3639,7 @@ void optimize_loops(jitdata *jd)
 	/* loops have been topologically sorted                                     */
 	lc = ld->c_allLoops;
 	while (lc != NULL) {
-		optimize_single_loop(m, cd, ld, lc);
+		optimize_single_loop(jd, cd, ld, lc);
 
 #ifdef LOOP_DEBUG
 		printf(" *** Optimized loop *** \n");
@@ -3661,7 +3655,7 @@ void optimize_loops(jitdata *jd)
 
 	/* if global BB list start is modified, set block to new start              */
 	if (ld->c_needs_redirection == true)
-		m->basicblocks = ld->c_newstart;
+		jd->basicblocks = ld->c_newstart;
 
 }
 
