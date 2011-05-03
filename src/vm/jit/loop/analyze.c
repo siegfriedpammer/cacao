@@ -1559,14 +1559,6 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 #define LOAD_VAR(v) { \
 	inst->opc = ICMD_ILOAD; \
 	inst->s1.varindex = v; \
-	newstack = DMNEW(struct stackelement_t, 1); \
-    	inst->dst.block = newstack; \
-	newstack->prev = tos; \
-	newstack->type = TYPE_INT; \
-	newstack->flags = 0; \
-	newstack->varkind = LOCALVAR; \
-	newstack->varnum = v; \
-	tos = newstack; \
 	inst++; \
 	stackdepth++; \
 	}
@@ -1576,14 +1568,6 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 	inst->opc = ICMD_ICONST; \
 	inst->s1.varindex = 0; \
 	inst->sx.val.i = (c); \
-	newstack = DMNEW(struct stackelement_t, 1); \
-	newstack->prev = tos; \
-	newstack->type = TYPE_INT; \
-	newstack->flags = 0; \
-	newstack->varkind = UNDEFVAR; \
-	newstack->varnum = stackdepth; \
-	tos = newstack; \
-	inst->dst.block = tos; \
 	inst++; \
 	stackdepth++; \
 	}
@@ -1592,14 +1576,6 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 #define LOAD_ADDR(a) { \
 	inst->opc = ICMD_ALOAD; \
 	inst->s1.varindex = a; \
-	newstack = DMNEW(struct stackelement_t, 1); \
-	newstack->prev = tos; \
-	newstack->type = TYPE_ADR; \
-	newstack->flags = 0; \
-	newstack->varkind = LOCALVAR; \
-	newstack->varnum = a; \
-	tos = newstack; \
-	inst->dst.block = tos; \
 	inst++; \
 	stackdepth++; \
 	}
@@ -1608,14 +1584,7 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 /* comparison is true                                                           */
 #define GOTO_NOOPT_IF_GE { \
 	inst->opc = ICMD_IF_ICMPGE; \
-    inst->dst.block = original_start->copied_to; \
-	if (tos->varkind == UNDEFVAR) \
-		tos->varkind = TEMPVAR;  \
-    tos = tos->prev; \
-    if (tos->varkind == UNDEFVAR) \
-		tos->varkind = TEMPVAR;  \
-    tos = tos->prev; \
-	inst->dst.block = tos; \
+    	inst->dst.block = original_start->copied_to; \
 	inst++; \
 	stackdepth -= 2; \
 	}
@@ -1624,14 +1593,7 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 /* comparison is true                                                           */
 #define GOTO_NOOPT_IF_GT { \
 	inst->opc = ICMD_IF_ICMPGT; \
-    inst->dst.block = original_start->copied_to; \
-	if (tos->varkind == UNDEFVAR) \
-		tos->varkind = TEMPVAR;  \
-    tos = tos->prev; \
-    if (tos->varkind == UNDEFVAR) \
-		tos->varkind = TEMPVAR;  \
-    tos = tos->prev; \
-	inst->dst.block = tos; \
+    	inst->dst.block = original_start->copied_to; \
 	inst++; \
 	stackdepth -= 2; \
 	}
@@ -1641,14 +1603,7 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 /* comparison is true                                                           */
 #define GOTO_NOOPT_IF_LT { \
 	inst->opc = ICMD_IF_ICMPLT; \
-    inst->dst.block = original_start->copied_to; \
-	if(tos->varkind == UNDEFVAR) \
-		tos->varkind = TEMPVAR;  \
-    tos = tos->prev; \
-    if(tos->varkind == UNDEFVAR) \
-		tos->varkind = TEMPVAR;  \
-    tos = tos->prev; \
-	inst->dst.block = tos; \
+    	inst->dst.block = original_start->copied_to; \
 	inst++; \
 	stackdepth -= 2; \
 	}
@@ -1657,11 +1612,7 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 /* comparison is true                                                           */
 #define GOTO_NOOPT_IF_NULL { \
 	inst->opc = ICMD_IFNULL; \
-    inst->dst.block = original_start->copied_to; \
-    if(tos->varkind == UNDEFVAR) \
-		tos->varkind = TEMPVAR;  \
-    tos = tos->prev; \
-	inst->dst.block = tos; \
+    	inst->dst.block = original_start->copied_to; \
 	inst++; \
 	stackdepth -= 1; \
 	}
@@ -1670,20 +1621,6 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 /* together                                                                     */
 #define ADD { \
 	inst->opc = ICMD_IADD; \
-	if(tos->varkind == UNDEFVAR) \
-		tos->varkind = TEMPVAR;  \
-    tos = tos->prev; \
-    if(tos->varkind == UNDEFVAR) \
-		tos->varkind = TEMPVAR;  \
-    tos = tos->prev; \
-	newstack = DMNEW(struct stackelement_t, 1); \
-	newstack->prev = tos; \
-	newstack->type = TYPE_INT; \
-	newstack->flags = 0; \
-	newstack->varkind = UNDEFVAR; \
-	newstack->varnum = stackdepth; \
-	tos = newstack; \
-	inst->dst.block = tos; \
 	inst++; \
 	stackdepth--; \
 	}
@@ -1698,18 +1635,7 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 		ld->c_null_check[a] = 0; \
 	    }  \
 	LOAD_ADDR(a); \
-    inst->opc = ICMD_ARRAYLENGTH; \
-	if(tos->varkind == UNDEFVAR) \
-		tos->varkind = TEMPVAR;  \
-    tos = tos->prev; \
-	newstack = DMNEW(struct stackelement_t, 1); \
-	newstack->prev = tos; \
-	newstack->type = TYPE_INT; \
-	newstack->flags = 0; \
-	newstack->varkind = UNDEFVAR; \
-	newstack->varnum = stackdepth; \
-	tos = newstack; \
-	inst->dst.block = tos; \
+    	inst->opc = ICMD_ARRAYLENGTH; \
 	inst++; \
 	}	
 
@@ -1826,7 +1752,7 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 					i = i - l + 1;
 
 					/* jump to newly inserted loopheader has to be redirected   */
-					for (tptr = inst->dst.table->block; i >= 0; --i, ++tptr) {
+					for (tptr = (void **) inst->dst.table->block; i >= 0; --i, ++tptr) {
 						if (((basicblock *) *tptr) == loop_head)
 							tptr[0] = (void *) original_start;
 						}
@@ -1843,7 +1769,7 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 					i = inst->sx.s23.s2.lookupcount;                     /* count    */
 
 					/* jump to newly inserted loopheader has to be redirected   */
-					for (tptr = inst->dst.lookup->target.block; i >= 0; --i, ++tptr) {
+					for (tptr = (void **) inst->dst.lookup->target.block; i >= 0; --i, ++tptr) {
 						if (((basicblock *) *tptr) == loop_head)
 							tptr[0] = (void *) original_start;
 						}
@@ -1970,7 +1896,7 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 					/* Targets for switch instructions are stored in an extra   */
 					/* that must be copied for new inserted loop.               */
 
-					for (tptr = inst->dst.table->block; i >= 0; --i, ++tptr, ++copy_ptr) {
+					for (tptr = (void **) inst->dst.table->block; i >= 0; --i, ++tptr, ++copy_ptr) {
 						/* jump to newly inserted loopheader must be redirected */
  						if (((basicblock *) *tptr) == loop_head)
 							copy_ptr[0] = (void *) original_start->copied_to;
@@ -2002,7 +1928,7 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 					/* Targets for switch instructions are stored in an extra   */
 					/* that must be copied for new inserted loop.               */
 
-					for (tptr = inst->dst.lookup->target.block; i >= 0; --i, ++tptr, ++copy_ptr) {
+					for (tptr = (void **) inst->dst.lookup->target.block; i >= 0; --i, ++tptr, ++copy_ptr) {
 						/* jump to newly inserted loopheader must be redirected */
 						if (((basicblock *) *tptr) == loop_head)
 							copy_ptr[0] = (void *) original_start->copied_to;
@@ -2013,7 +1939,7 @@ void patch_jumps(basicblock *original_start, basicblock *loop_head, struct LoopC
 							copy_ptr[0] = tptr[0];
 						}
 
-					inst->dst.lookup->target.block = base_ptr;
+					inst->dst.lookup->target.block = (basicblock *) base_ptr;
 				}
 				break;
 				
@@ -2215,7 +2141,7 @@ void patch_handler(struct LoopContainer *lc, basicblock *bptr, basicblock *origi
 				copy_ptr = (void**) DMNEW(void*, i+1);
 				base_ptr = (void*) copy_ptr;
 
-				for (tptr = ip->dst.table->block; i >= 0; --i, ++tptr, ++copy_ptr) {
+				for (tptr = (void **) ip->dst.table->block; i >= 0; --i, ++tptr, ++copy_ptr) {
 					patch_handler(lc, ((basicblock *) *tptr), original_head, new_head);
 					/* jumps to old header have to be redirected                */
 					if (((basicblock *) *tptr) == original_head)
@@ -2230,7 +2156,7 @@ void patch_handler(struct LoopContainer *lc, basicblock *bptr, basicblock *origi
 						copy_ptr[0] = tptr[0];
 				    }
 
-				ip->dst.table->block = base_ptr;
+				ip->dst.table->block = (basicblock *) base_ptr;
 			}
 			break;
 
@@ -2247,7 +2173,7 @@ void patch_handler(struct LoopContainer *lc, basicblock *bptr, basicblock *origi
 				copy_ptr = (void**) DMNEW(void*, i+1);
 				base_ptr = (void*) copy_ptr;
 
-				for (tptr = ip->dst.lookup->target.block; i >= 0; --i, ++tptr, ++copy_ptr) {
+				for (tptr = (void **) ip->dst.lookup->target.block; i >= 0; --i, ++tptr, ++copy_ptr) {
 
 					patch_handler(lc, ((basicblock *) *tptr), original_head, new_head);
 					/* jumps to old header have to be redirected                */
@@ -2263,7 +2189,7 @@ void patch_handler(struct LoopContainer *lc, basicblock *bptr, basicblock *origi
 						copy_ptr[0] = tptr[0];
 					    }
 
-				ip->dst.lookup->target.block = base_ptr;
+				ip->dst.lookup->target.block = (basicblock *) base_ptr;
 			}
 			break;
 				
@@ -2538,6 +2464,7 @@ void update_external_exceptions(jitdata *jd, codegendata *cd, loopdata *ld, stru
 		if ((loop_head >= ex->start->nr) && (loop_head < ex->end->nr)) {
 
 			/* Set new start and end point of this exception                    */
+			new = DNEW(exception_entry);
 			new->start = ld->c_first_block_copied;
 			new->end = ld->c_last_block_copied;
 
@@ -2568,9 +2495,7 @@ void create_static_checks(jitdata *jd, codegendata *cd, loopdata *ld, struct Loo
 	basicblock *bptr, *loop_head, *original_start, *temp;
 	instruction *inst, *tiptr;
 
-	/* tos and newstack are needed by the macros, that insert instructions into */
 	/* the new loop head                                                        */
-	stackelement_t* newstack, *tos;
 	exception_entry *ex;
 
 	/* prevent some compiler warnings */
@@ -2694,7 +2619,7 @@ void create_static_checks(jitdata *jd, codegendata *cd, loopdata *ld, struct Loo
 		
 			if ((tiptr->opc == ICMD_GOTO) && (tiptr->dst.block == loop_head)) {
 				tiptr->opc = ICMD_NOP;
-				/* tiptr->dst.block = NULL; */
+				tiptr->dst.block = NULL;
 		        }
 			else {
 
@@ -2754,8 +2679,8 @@ void create_static_checks(jitdata *jd, codegendata *cd, loopdata *ld, struct Loo
 	/* loop_head->instack = copy_stack_from(bptr->instack);
 	loop_head->outstack = copy_stack_from(bptr->instack); 
 	
-	tos = loop_head->instack;
-	stackdepth = loop_head->indepth; */
+	tos = loop_head->instack; */
+	stackdepth = loop_head->indepth; 
 	
 	/* step through all inserted checks and create instructions for them        */
 	for (i=0; i<jd->maxlocals+1; ++i)
