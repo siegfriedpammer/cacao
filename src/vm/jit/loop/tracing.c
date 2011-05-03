@@ -610,13 +610,13 @@ Trace* tracing(basicblock *block, int index, int temp)
 
 			if (temp > 0)           /* temp increased by number of dimensions */
 									/* minus one for array ref                */
-				return tracing(block, index - 1, temp + (iptr->s1.varindex - 1));
+				return tracing(block, index - 1, temp + (iptr->s1.argcount - 1));
 			else
 				return create_trace(TRACE_UNKNOWN, -1, 0, index);
 			break;
        
 		case ICMD_BUILTIN:         /* ..., [arg1, [arg2 ...]] ==> ...         */
-			bte = iptr->sx.val.anyptr;
+			bte = iptr->sx.s23.s3.bte;
 			md = bte->md;
 			args = md->paramcount;
 			if (md->returntype.type != TYPE_VOID)
