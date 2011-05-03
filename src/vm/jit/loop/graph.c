@@ -347,17 +347,17 @@ void dF_Exception(jitdata *jd, loopdata *ld, int from, int blockIndex)
 		case ICMD_IF_ACMPEQ:
 		case ICMD_IF_ACMPNE:                    /* branch -> check next block	*/
 		
-			df_Exception(jd, ld, blockIndex, blockIndex + 1);
+			dF_Exception(jd, ld, blockIndex, blockIndex + 1);
 			/* fall throu */
 	  
 		case ICMD_GOTO:
-			df_Exception(jd, ld, blockIndex, ip->dst.block->nr);         
+			dF_Exception(jd, ld, blockIndex, ip->dst.block->nr);         
 			break;
 	  
 		case ICMD_TABLESWITCH:
 			
 			/* default branch */
-			df_Exception(jd, ld, blockIndex, ip->dst.table->block->nr);
+			dF_Exception(jd, ld, blockIndex, ip->dst.table->block->nr);
 			
 			tptr = (void**) ip->dst.table->block;
 
@@ -368,14 +368,14 @@ void dF_Exception(jitdata *jd, loopdata *ld, int from, int blockIndex)
 
 			while (--count >= 0) {
 				tptr++;
-				df_Exception(jd, ld, blockIndex, ((basicblock *) *tptr)->nr);
+				dF_Exception(jd, ld, blockIndex, ((basicblock *) *tptr)->nr);
 			    }
 			break;
 
 		case ICMD_LOOKUPSWITCH:
  
 			/* default branch */
-			df_Exception(jd, ld, blockIndex, ip->sx.s23.s3.lookupdefault.block->nr);
+			dF_Exception(jd, ld, blockIndex, ip->sx.s23.s3.lookupdefault.block->nr);
 		
 			tptr = (void**) ip->dst.lookup->target.block;
 
@@ -389,15 +389,15 @@ void dF_Exception(jitdata *jd, loopdata *ld, int from, int blockIndex)
 
 		case ICMD_JSR:
 			ld->c_last_jump = blockIndex;
-			df_Exception(jd, ld, blockIndex, ip->sx.s23.s3.jsrtarget.block->nr);
+			dF_Exception(jd, ld, blockIndex, ip->sx.s23.s3.jsrtarget.block->nr);
 			break;
 	
 		case ICMD_RET:
-			df_Exception(jd, ld, blockIndex, ld->c_last_jump+1);
+			dF_Exception(jd, ld, blockIndex, ld->c_last_jump+1);
 			break;
 			
 		default:
-			df_Exception(jd, ld, blockIndex, blockIndex + 1);
+			dF_Exception(jd, ld, blockIndex, blockIndex + 1);
 			break;	
 		    }                         
         }
