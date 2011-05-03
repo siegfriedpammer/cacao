@@ -241,7 +241,7 @@ void createLoop(jitdata *jd, loopdata *ld, int header, int member)
 	int i, nextMember;
 
 	struct LoopContainer *currentLoop = (struct LoopContainer *) malloc(sizeof(struct LoopContainer));
-	LoopContainerInit(m, currentLoop, header);		/* set up loop structure		*/
+	LoopContainerInit(jd, currentLoop, header);		/* set up loop structure		*/
 	
 	for (i=0; i<jd->basicblockcount; ++i)
 		ld->c_contains[i] = 0;

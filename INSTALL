@@ -1,80 +1,20 @@
-<<<<<<< local
-<<<<<<< local
 Installation Instructions
 *************************
-=======
-=======
->>>>>>> other
-Quick start instructions
-========================
-<<<<<<< local
->>>>>>> other
-=======
->>>>>>> other
 
-<<<<<<< local
-<<<<<<< local
 Copyright (C) 1994, 1995, 1996, 1999, 2000, 2001, 2002, 2004, 2005,
 2006, 2007 Free Software Foundation, Inc.
-=======
-=======
->>>>>>> other
-You can check the configure options via `./configure --help'. But the
-default settings should be ok. For building the package type:
-<<<<<<< local
->>>>>>> other
-=======
->>>>>>> other
 
-<<<<<<< local
-<<<<<<< local
 This file is free documentation; the Free Software Foundation gives
 unlimited permission to copy, distribute and modify it.
-=======
-=======
->>>>>>> other
-   $ ./configure
-   $ make
-   $ make install
-<<<<<<< local
->>>>>>> other
-=======
->>>>>>> other
 
-<<<<<<< local
-<<<<<<< local
 Basic Installation
 ==================
-=======
-=======
->>>>>>> other
-The default installation prefix is `/usr/local/cacao'. You can change
-this destination by providing the `--prefix=PATH' option to configure.
-<<<<<<< local
->>>>>>> other
-=======
->>>>>>> other
 
-<<<<<<< local
-<<<<<<< local
 Briefly, the shell commands `./configure; make; make install' should
 configure, build, and install this package.  The following
 more-detailed instructions are generic; see the `README' file for
 instructions specific to this package.
-=======
-=======
->>>>>>> other
-This version of cacao only supports the `--prefix' option, even if
-configure processes the other options (`--bindir', `--libdir', etc.),
-it will screw up your installation since CACAO tries to setup a
-directory tree like the JVMs from Sun or IBM do.
-<<<<<<< local
->>>>>>> other
-=======
->>>>>>> other
 
-<<<<<<< local
-<<<<<<< local
    The `configure' shell script attempts to guess correct values for
 various system-dependent variables used during compilation.  It uses
 those values to create a `Makefile' in each directory of the package.
@@ -83,30 +23,13 @@ definitions.  Finally, it creates a shell script `config.status' that
 you can run in the future to recreate the current configuration, and a
 file `config.log' containing compiler output (useful mainly for
 debugging `configure').
-=======
->>>>>>> other
-=======
->>>>>>> other
 
-<<<<<<< local
-<<<<<<< local
    It can also use an optional file (typically called `config.cache'
 and enabled with `--cache-file=config.cache' or simply `-C') that saves
 the results of its tests to speed up reconfiguring.  Caching is
 disabled by default to prevent problems with accidental use of stale
 cache files.
-=======
-=======
->>>>>>> other
-Requirements:
--------------
-<<<<<<< local
->>>>>>> other
-=======
->>>>>>> other
 
-<<<<<<< local
-<<<<<<< local
    If you need to do unusual things to compile the package, please try
 to figure out how `configure' could check whether to do them, and mail
 diffs or instructions to the address given in the `README' so they can
@@ -312,13 +235,3 @@ an Autoconf bug.  Until the bug is fixed you can use this workaround:
 `configure' also accepts some other, not widely useful, options.  Run
 `configure --help' for more details.
 
-=======
-=======
->>>>>>> other
-In order to build CACAO you need a Java runtime library such as GNU
-classpath or OpenJDK. Please refer to the respective project
-documentation for building.
-<<<<<<< local
->>>>>>> other
-=======
->>>>>>> other

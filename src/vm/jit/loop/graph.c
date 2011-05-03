@@ -115,7 +115,7 @@ void depthFirst(jitdata *jd)
 void dF(jitdata *jd, loopdata *ld, int from, int blockIndex)
 {
 	instruction *ip;
-	s4 *s4ptr;
+	void **tptr;
 	int high, low, count;
 	struct depthElement *hp;
 	struct LoopContainer *tmp; 
@@ -202,44 +202,42 @@ void dF(jitdata *jd, loopdata *ld, int from, int blockIndex)
 			   /* fall throu */
 			   
 			case ICMD_GOTO:
-				dF(jd, ld, blockIndex, jd->basicblockindex[ip->s1]);         
+				dF(jd, ld, blockIndex, ip->dst.block->nr);         
 				break;							/* visit branch (goto) target	*/
 				
 			case ICMD_TABLESWITCH:				/* switch statement				*/
-				s4ptr = ip->sx.val.anyptr;
 				
-				dF(jd, ld, blockIndex, jd->basicblockindex[*s4ptr]);	/* default branch		*/
-				
-				s4ptr++;
-				low = *s4ptr;
-				s4ptr++;
-				high = *s4ptr;
+				dF(jd, ld, blockIndex, ip->dst.table->block->nr);	/* default branch		*/
+			
+				tptr = (void **) ip->dst.table->block;	
+				low = ip->sx.s23.s2.tablelow;
+				high = ip->sx.s23.s3.tablehigh;
 				
 				count = (high-low+1);
 				
 				while (--count >= 0) {
-					s4ptr++;
-					dF(jd, ld, blockIndex, jd->basicblockindex[*s4ptr]);
+					tptr++;
+					dF(jd, ld, blockIndex, ((basicblock *) *tptr)->nr);
 				    }
 				break;
 				
 			case ICMD_LOOKUPSWITCH:				/* switch statement				*/
-				s4ptr = ip->sx.val.anyptr;
 			   
-				dF(jd, ld, blockIndex, jd->basicblockindex[*s4ptr]);	/* default branch		*/
+				dF(jd, ld, blockIndex, ip->sx.s23.s3.lookupdefault.block->nr);	/* default branch		*/
 				
-				++s4ptr;
-				count = *s4ptr++;
+				tptr = (void**) ip->dst.lookup->target.block;
+
+				count = ip->sx.s23.s2.lookupcount;
 				
 				while (--count >= 0) {
-					dF(jd, ld, blockIndex, jd->basicblockindex[s4ptr[1]]);
-					s4ptr += 2;
+					tptr++;
+					dF(jd, ld, blockIndex, ((basicblock*) *tptr)->nr);
 				    }
 				break;
 
 			case ICMD_JSR:
 				ld->c_last_jump = blockIndex;
-				dF(jd, ld, blockIndex, jd->basicblockindex[ip->s1]);         
+				dF(jd, ld, blockIndex, ip->sx.s23.s3.jsrtarget.block->nr);         
 				break;
 				
 			case ICMD_RET:
@@ -277,7 +275,7 @@ void dF(jitdata *jd, loopdata *ld, int from, int blockIndex)
 void dF_Exception(jitdata *jd, loopdata *ld, int from, int blockIndex)
 {
 	instruction *ip;
-	s4 *s4ptr;
+	void **tptr;
 	int high, low, count;
 	struct depthElement *hp;
 
@@ -348,50 +346,50 @@ void dF_Exception(jitdata *jd, loopdata *ld, int from, int blockIndex)
 		case ICMD_IF_LCMPLE:
 		case ICMD_IF_ACMPEQ:
 		case ICMD_IF_ACMPNE:                    /* branch -> check next block	*/
+		
 			df_Exception(jd, ld, blockIndex, blockIndex + 1);
 			/* fall throu */
 	  
 		case ICMD_GOTO:
-			df_Exception(jd, ld, blockIndex, jd->basicblockindex[ip->s1]);         
+			df_Exception(jd, ld, blockIndex, ip->dst.block->nr);         
 			break;
 	  
 		case ICMD_TABLESWITCH:
-			s4ptr = ip->sx.val.anyptr;
 			
 			/* default branch */
-			df_Exception(jd, ld, blockIndex, jd->basicblockindex[*s4ptr]);
+			df_Exception(jd, ld, blockIndex, ip->dst.table->block->nr);
 			
-			s4ptr++;
-			low = *s4ptr;
-			s4ptr++;
-			high = *s4ptr;
+			tptr = (void**) ip->dst.table->block;
+
+			low = ip->sx.s23.s2.tablelow; 
+			high = ip->sx.s23.s3.tablehigh;
 			
 			count = (high-low+1);
 
 			while (--count >= 0) {
-				s4ptr++;
-				df_Exception(jd, ld, blockIndex, jd->basicblockindex[*s4ptr]);
+				tptr++;
+				df_Exception(jd, ld, blockIndex, ((basicblock *) *tptr)->nr);
 			    }
 			break;
 
 		case ICMD_LOOKUPSWITCH:
-			s4ptr = ip->sx.val.anyptr;
  
 			/* default branch */
-			df_Exception(jd, ld, blockIndex, jd->basicblockindex[*s4ptr]);
-			
-			++s4ptr;
-			count = *s4ptr++;
+			df_Exception(jd, ld, blockIndex, ip->sx.s23.s3.lookupdefault.block->nr);
+		
+			tptr = (void**) ip->dst.lookup->target.block;
 
+			count = ip->sx.s23.s2.lookupcount;
+				
 			while (--count >= 0) {
-				df_Exception(jd, ld, blockIndex, jd->basicblockindex[s4ptr[1]]);
-				s4ptr += 2;
-			    }  
+				tptr++;
+				dF_Exception(jd, ld, blockIndex, ((basicblock*) *tptr)->nr);
+			    }
 			break;
 
 		case ICMD_JSR:
 			ld->c_last_jump = blockIndex;
-			df_Exception(jd, ld, blockIndex, jd->basicblockindex[ip->s1]);
+			df_Exception(jd, ld, blockIndex, ip->sx.s23.s3.jsrtarget.block->nr);
 			break;
 	
 		case ICMD_RET:

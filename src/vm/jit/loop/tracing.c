@@ -213,7 +213,6 @@ Trace* array_length(Trace* a)
 Trace* tracing(basicblock *block, int index, int temp)
 {
 	instruction        *iptr;
-	methodinfo         *m;
 	builtintable_entry *bte;
 	methoddesc         *md;
 	s4                  args;
@@ -265,14 +264,14 @@ Trace* tracing(basicblock *block, int index, int temp)
 			if (temp > 0)
 				return tracing(block, index-1, temp-1);
 		    else
-				return create_trace(TRACE_IVAR, iptr->s1, 0, index);
+				return create_trace(TRACE_IVAR, iptr->s1.varindex, 0, index);
 			break;
 
 		case ICMD_ALOAD:    
 			if (temp > 0)
 				return tracing(block, index-1, temp-1);
 			else
-				return create_trace(TRACE_AVAR, iptr->s1, 0, index);			
+				return create_trace(TRACE_AVAR, iptr->s1.varindex, 0, index);			
 			break;
 		
 		case ICMD_LSTORE:    
@@ -416,7 +415,7 @@ Trace* tracing(basicblock *block, int index, int temp)
 				return tracing(block, index-1, temp);
 			else					/* when a constant is added, create a		*/
 									/* constant-trace and use add function		*/
-				return add(tracing(block, index-1, 0), create_trace(TRACE_ICONST, -1, iptr->val.i, index));
+				return add(tracing(block, index-1, 0), create_trace(TRACE_ICONST, -1, iptr->sx.val.i, index));
 			break;
 
 		case ICMD_ISUB:				/* ..., val1, val2  ==> ..., val1 - val2	*/
@@ -430,7 +429,7 @@ Trace* tracing(basicblock *block, int index, int temp)
 			if (temp > 0)
 				return tracing(block, index-1, temp);
 			else
-				return sub(tracing(block, index-1, 0), create_trace(TRACE_ICONST, -1, iptr->val.i, index));
+				return sub(tracing(block, index-1, 0), create_trace(TRACE_ICONST, -1, iptr->sx.val.i, index));
 			break;
 
 		case ICMD_LADD:				/* ..., val1, val2  ==> ..., val1 + val2	*/
@@ -611,7 +610,7 @@ Trace* tracing(basicblock *block, int index, int temp)
 
 			if (temp > 0)           /* temp increased by number of dimensions */
 									/* minus one for array ref                */
-				return tracing(block, index - 1, temp + (iptr->s1 - 1));
+				return tracing(block, index - 1, temp + (iptr->s1.varindex - 1));
 			else
 				return create_trace(TRACE_UNKNOWN, -1, 0, index);
 			break;

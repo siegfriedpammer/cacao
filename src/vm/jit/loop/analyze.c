@@ -1560,7 +1560,7 @@ stackelement_t* copy_stack_from(stackelement_t* source) {
 	inst->opc = ICMD_ILOAD; \
 	inst->s1.varindex = v; \
 	newstack = DMNEW(struct stackelement_t, 1); \
-    inst->dst.block = newstack; \
+    	inst->dst.block = newstack; \
 	newstack->prev = tos; \
 	newstack->type = TYPE_INT; \
 	newstack->flags = 0; \
@@ -2207,7 +2207,7 @@ void patch_handler(struct LoopContainer *lc, basicblock *bptr, basicblock *origi
 				void **tptr;
 				void **copy_ptr, **base_ptr;
  
-				tptr = (void **) ip->dst.table;
+				tptr = (void **) ip->dst.table->block;
 				l = ip->sx.s23.s2.tablelow;                          /* low                   */
 				i = ip->sx.s23.s3.tablehigh;                          /* high                  */
 				i = i - l + 1;
