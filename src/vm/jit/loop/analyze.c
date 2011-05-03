@@ -22,7 +22,6 @@
 
 */
 
-
 #include "config.h"
 
 #include <assert.h>
