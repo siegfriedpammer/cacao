@@ -35,6 +35,9 @@
 
 
 /* function prototypes ********************************************************/
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void LoopContainerInit(jitdata *jd, struct LoopContainer *lc, int i);
 void depthFirst(jitdata *jd);
@@ -42,6 +45,10 @@ void dF(jitdata *jd, loopdata *ld, int from, int blockIndex);
 void dF_Exception(jitdata *jd, loopdata *ld, int from, int blockIndex);
 
 void resultPass1(methodinfo *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _GRAPH_H */
 

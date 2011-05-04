@@ -42,6 +42,9 @@
 #include "vm/jit/loop/loop.h"
 #include "vm/jit/loop/tracing.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
  
 #ifdef LOOP_DEBUG
 
@@ -3507,7 +3510,7 @@ void optimize_loops(jitdata *jd)
 	ld = jd->ld;
 
 	lc = ld->c_allLoops;
-
+	
 	/* first, merge loops with same header node - all loops with the same		*/
 	/* header node are optimizied in one pass, because they all depend on the	*/
 	/* same dynamic loop condition												*/
@@ -3583,6 +3586,9 @@ void optimize_loops(jitdata *jd)
 
 }
 
+#ifdef __cplusplus
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

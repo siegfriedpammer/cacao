@@ -41,7 +41,15 @@
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void optimize_loops(jitdata *jd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _ANALYZE_H */
 

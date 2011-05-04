@@ -42,6 +42,9 @@
 #include "vm/jit/loop/graph.h"
 #include "vm/jit/loop/loop.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void LoopContainerInit(jitdata *jd, struct LoopContainer *lc, int i)
 {
@@ -83,7 +86,6 @@ void depthFirst(jitdata *jd)
 	ld = jd->ld;
 
 /*	allocate memory and init gobal variables needed by function dF(jd, int, int)	*/
-  
 	ld->c_defnum = DMNEW(int, jd->basicblockcount);
 	ld->c_numPre = DMNEW(int, jd->basicblockcount);
 	ld->c_parent = DMNEW(int, jd->basicblockcount);
@@ -437,6 +439,10 @@ void resultPass1(jitdata *jd)
 		printf("\n");
 	    }
 	printf("\n");
+}
+#endif
+
+#ifdef __cplusplus
 }
 #endif
 

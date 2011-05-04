@@ -40,6 +40,9 @@
 #include "vm/jit/loop/loop.h"
 #include "vm/jit/loop/tracing.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*	Test function -> will be removed in final release
 */
@@ -643,6 +646,9 @@ Trace* tracing(basicblock *block, int index, int temp)
 		return create_trace(TRACE_UNKNOWN, -1, 0, index);
 }
 
+#ifdef __cplusplus
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

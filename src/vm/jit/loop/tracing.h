@@ -58,12 +58,20 @@ struct Trace {
 
 /* function protoypes *********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 Trace* create_trace(int type, int var, int constant, int nr);
 Trace* add(Trace* a, Trace* b);
 Trace* negate(Trace* a);
 Trace* sub(Trace* a, Trace* b);
 Trace* array_length(Trace* a);
 Trace* tracing(basicblock *block, int index, int temp);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _TRACING_H */
 

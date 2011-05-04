@@ -48,6 +48,9 @@
 #include "vm/jit/loop/graph.h"
 #include "vm/jit/loop/tracing.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*	
    This function allocates and initializes variables, that are used by the
@@ -298,7 +301,7 @@ void analyseGraph(jitdata *jd)
 	/* get required compiler data */
 
 	ld = jd->ld;
-
+	
 	setup(jd, ld);
 	dominators(ld);
 	detectLoops(jd, ld);
@@ -344,6 +347,9 @@ void c_mem_error()
 	assert(0);
 } 
 
+#ifdef __cplusplus
+}
+#endif
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -310,8 +310,16 @@ struct loopdata {
 
 /* function prototypes ********************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void analyseGraph(jitdata *jd);
 void c_mem_error(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _LOOP_H */
 
