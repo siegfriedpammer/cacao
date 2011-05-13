@@ -722,10 +722,6 @@ static void *threads_startup_thread(void *arg)
 
 	threads_set_thread_priority(t->tid, jlt.get_priority());
 
-	/* Thread is completely initialized. */
-
-	thread_set_state_runnable(t);
-
 	/* tell threads_startup_thread that we registered ourselves */
 	/* CAUTION: *startup becomes invalid with this!             */
 

@@ -469,6 +469,8 @@ void threads_thread_start(java_handle_t *object)
 
 	Finalizer::attach_custom_finalizer(LLNI_WRAP(t->object), thread_cleanup_finalizer, t);
 
+	thread_set_state_runnable(t);
+
 	/* Start the thread.  Don't pass a function pointer (NULL) since
 	   we want Thread.run()V here. */
 
