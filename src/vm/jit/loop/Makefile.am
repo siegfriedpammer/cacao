@@ -38,13 +38,9 @@ noinst_LTLIBRARIES = libloop.la
 
 libloop_la_SOURCES = \
 	analyze.c \
-	analyze.h \
 	graph.c \
-	graph.h \
 	loop.c \
-	loop.h \
-	tracing.c \
-	tracing.h
+	tracing.c
 
 
 ## Local variables:
