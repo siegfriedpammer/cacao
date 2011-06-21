@@ -46,6 +46,7 @@
 extern "C" {
 #endif
  
+#define LOOP_DEBUG
 #ifdef LOOP_DEBUG
 
 /*	Test functions -> will be removed in final release
@@ -98,7 +99,7 @@ void show_change(struct Changes *c)
 		printf("Unrestricted\n");
 }
 
-show_varinfo(struct LoopVar *lv)
+void show_varinfo(struct LoopVar *lv)
 {
 	printf("   *** Loop Info ***\n");
 	printf("Value:\t%d\n", lv->value);
@@ -107,6 +108,7 @@ show_varinfo(struct LoopVar *lv)
 	printf("Dynamic\t\t%d/%d\n", lv->dynamic_l, lv->dynamic_u);
 }
 
+#if 0
 void show_right_side(jitdata *jd)
 {
 	int i;
@@ -129,7 +131,9 @@ void show_right_side(jitdata *jd)
 	    printf("%d\t", m->loopdata->c_current_loop[i]);
 	printf("\n");
 }
+#endif
 
+#if 0
 void resultPass3(jitdata *jd)
 {
 	int i;
@@ -158,6 +162,7 @@ void resultPass3(jitdata *jd)
 	printf("\n");
 	fflush(stdout);
 }
+#endif
 
 void show_tree(struct LoopContainer *lc, int tabs) 
 {
@@ -198,6 +203,8 @@ void show_loop_statistics(loopdata *ld)
 
 void show_procedure_statistics(loopdata *ld)
 {
+	if (!ld->c_stat_num_loops)
+		return;
 	printf("\n\n****** PROCEDURE STATISTICS ****** \n\n");
 	printf("Number of loops:\t\t%d\n", ld->c_stat_num_loops);
 	printf("Number of array accesses:\t%d\n", ld->c_stat_sum_accesses);
@@ -2505,7 +2512,7 @@ void create_static_checks(jitdata *jd, codegendata *cd, loopdata *ld, struct Loo
 	bptr = NULL;
 
 #ifdef ENABLE_STATISTICS
-	/* show_loop_statistics(l); */ 
+	show_loop_statistics(ld);
 #endif
 
 	loop_head = &jd->basicblocks[ld->c_current_head];
@@ -3430,7 +3437,7 @@ void optimize_single_loop(jitdata *jd, codegendata *cd, loopdata *ld, LoopContai
 			init_constraints(jd, ld, head);	/* analyze dynamic bounds in header			*/
 
 #ifdef LOOP_DEBUG			
-			show_right_side();
+			//show_right_side();
 #endif    											
 
 			if (ld->c_rightside == NULL)
@@ -3584,6 +3591,7 @@ void optimize_loops(jitdata *jd)
 	if (ld->c_needs_redirection == true)
 		jd->basicblocks = ld->c_newstart;
 
+	show_procedure_statistics(ld);
 }
 
 #ifdef __cplusplus
