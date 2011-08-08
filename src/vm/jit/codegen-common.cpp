@@ -1,6 +1,6 @@
 /* src/vm/jit/codegen-common.cpp - architecture independent code generator stuff
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -989,6 +989,21 @@ s4 codegen_reg_of_dst(jitdata *jd, instruction *iptr, s4 tempregnum)
 	return codegen_reg_of_var(iptr->opc, VAROP(iptr->dst), tempregnum);
 }
 
+/**
+ * Fix up register locations in the case where control is transferred to an
+ * exception handler block via normal control flow (no exception).
+ */
+static void fixup_exc_handler_interface(jitdata *jd, basicblock *bptr)
+{
+	// Exception handlers have exactly 1 in-slot
+	assert(bptr->indepth == 1);
+	varinfo *var = VAR(bptr->invars[0]);
+	int32_t d = codegen_reg_of_var(0, var, REG_ITMP1_XPTR);
+	emit_load(jd, NULL, var, d);
+	// Copy the interface variable to ITMP1 (XPTR) because that's where
+	// the handler expects it.
+	emit_imove(jd->cd, d, REG_ITMP1_XPTR);
+}
 
 /**
  * Generates machine code.
@@ -1695,12 +1710,15 @@ bool codegen_emit(jitdata *jd)
 					codegen_emit_phi_moves(jd, bptr);
 				}
 #endif
+				if (iptr->dst.block->type == BBTYPE_EXH)
+					fixup_exc_handler_interface(jd, iptr->dst.block);
 				emit_br(cd, iptr->dst.block);
 				ALIGNCODENOP;
 				break;
 
 			case ICMD_JSR:        /* ... ==> ...                              */
 
+				assert(iptr->sx.s23.s3.jsrtarget.block->type != BBTYPE_EXH);
 				emit_br(cd, iptr->sx.s23.s3.jsrtarget.block);
 				ALIGNCODENOP;
 				break;
@@ -1708,6 +1726,7 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_IFNULL:     /* ..., value ==> ...                       */
 			case ICMD_IFNONNULL:
 
+				assert(iptr->dst.block->type != BBTYPE_EXH);
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 #if SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER
 				emit_bccz(cd, iptr->dst.block, iptr->opc - ICMD_IFNULL, s1, BRANCH_OPT_NONE);
@@ -1729,6 +1748,8 @@ bool codegen_emit(jitdata *jd)
 				// XXX Sparc64: int compares must not branch on the
 				// register directly. Reason is, that register content is
 				// not 32-bit clean. Fix this!
+
+				assert(iptr->dst.block->type != BBTYPE_EXH);
 
 #if SUPPORT_BRANCH_CONDITIONAL_ONE_INTEGER_REGISTER
 				if (iptr->sx.val.i == 0) {
@@ -1754,12 +1775,16 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_IF_LGT:
 			case ICMD_IF_LLE:
 
+				assert(iptr->dst.block->type != BBTYPE_EXH);
+
 				// Generate architecture specific instructions.
 				codegen_emit_instruction(jd, iptr);
 				break;
 
 			case ICMD_IF_ACMPEQ:  /* ..., value, value ==> ...                */
 			case ICMD_IF_ACMPNE:  /* op1 = target JavaVM pc                   */
+
+				assert(iptr->dst.block->type != BBTYPE_EXH);
 
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
@@ -1793,6 +1818,8 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_IF_ICMPEQ:  /* ..., value, value ==> ...                */
 			case ICMD_IF_ICMPNE:  /* op1 = target JavaVM pc                   */
 
+				assert(iptr->dst.block->type != BBTYPE_EXH);
+
 #if SUPPORT_BRANCH_CONDITIONAL_TWO_INTEGER_REGISTERS
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
@@ -1813,6 +1840,8 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_IF_ICMPGT:  /* op1 = target JavaVM pc                   */
 			case ICMD_IF_ICMPLE:
 			case ICMD_IF_ICMPGE:
+
+				assert(iptr->dst.block->type != BBTYPE_EXH);
 
 				s1 = emit_load_s1(jd, iptr, REG_ITMP1);
 				s2 = emit_load_s2(jd, iptr, REG_ITMP2);
@@ -1838,6 +1867,8 @@ bool codegen_emit(jitdata *jd)
 			case ICMD_IF_LCMPGT:
 			case ICMD_IF_LCMPLE:
 			case ICMD_IF_LCMPGE:
+
+				assert(iptr->dst.block->type != BBTYPE_EXH);
 
 				// Generate architecture specific instructions.
 				codegen_emit_instruction(jd, iptr);
@@ -2273,6 +2304,9 @@ gen_method:
 			}
 		}
 #endif
+
+		if (bptr->next && bptr->next->type == BBTYPE_EXH)
+			fixup_exc_handler_interface(jd, bptr->next);
 
 	} // for all basic blocks
 
