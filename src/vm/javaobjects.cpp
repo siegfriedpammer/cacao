@@ -169,11 +169,11 @@ java_handle_t* java_lang_reflect_Method::invoke(java_handle_t* o, java_handle_ob
 		if (!access_check_method(m, 2))
 			return NULL;
 #elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-		/* We only pass 1 here as stacktrace_get_caller_class, which
+		/* We only pass 0 here as stacktrace_get_caller_class, which
 		   is called from access_check_method, skips
 		   java.lang.reflect.Method.invoke(). */
 
-		if (!access_check_method(m, 1))
+		if (!access_check_method(m, 0))
 			return NULL;
 #else
 # error unknown classpath configuration
