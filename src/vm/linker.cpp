@@ -298,6 +298,12 @@ void linker_init(void)
 
 	if (!link_class(class_sun_reflect_MagicAccessorImpl))
 		vm_abort("linker_init: linking failed");
+
+	if (!link_class(class_sun_reflect_MethodAccessorImpl))
+		vm_abort("linker_init: linking failed");
+
+	if (!link_class(class_sun_reflect_ConstructorAccessorImpl))
+		vm_abort("linker_init: linking failed");
 # endif
 
 	if (!link_class(arrayclass_java_lang_Object))

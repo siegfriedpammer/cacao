@@ -1,6 +1,6 @@
 /* src/vm/globals.cpp - global variables
 
-   Copyright (C) 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -61,6 +61,8 @@ classinfo *class_java_lang_RuntimeException;
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
 classinfo *class_sun_misc_Signal;
 classinfo *class_sun_reflect_MagicAccessorImpl;
+classinfo *class_sun_reflect_MethodAccessorImpl;
+classinfo *class_sun_reflect_ConstructorAccessorImpl;
 #endif
 
 #if defined(ENABLE_JAVASE)

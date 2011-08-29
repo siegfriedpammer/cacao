@@ -1,6 +1,6 @@
 /* src/vm/loader.cpp - class loader functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -229,8 +229,10 @@ void loader_init(void)
 	class_java_util_Vector                 = load_class_bootstrap(utf_java_util_Vector);
 
 # if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
-	class_sun_misc_Signal                  = load_class_bootstrap(utf_new_char("sun/misc/Signal"));
-	class_sun_reflect_MagicAccessorImpl    = load_class_bootstrap(utf_new_char("sun/reflect/MagicAccessorImpl"));
+	class_sun_misc_Signal                     = load_class_bootstrap(utf_new_char("sun/misc/Signal"));
+	class_sun_reflect_MagicAccessorImpl       = load_class_bootstrap(utf_new_char("sun/reflect/MagicAccessorImpl"));
+	class_sun_reflect_MethodAccessorImpl      = load_class_bootstrap(utf_new_char("sun/reflect/MethodAccessorImpl"));
+	class_sun_reflect_ConstructorAccessorImpl = load_class_bootstrap(utf_new_char("sun/reflect/ConstructorAccessorImpl"));
 # endif
 
 	arrayclass_java_lang_Object =

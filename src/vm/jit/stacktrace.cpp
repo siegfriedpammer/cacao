@@ -904,6 +904,14 @@ classloader_t* stacktrace_first_nonnull_classloader(void)
 		m  = tmpsfi.code->m;
 		cl = class_get_classloader(m->clazz);
 
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+		/* NOTE: See hotspot/src/share/vm/runtime/vframe.cpp
+		   (vframeStreamCommon::skip_reflection_related_frames). */
+		if (class_issubclass(m->clazz, class_sun_reflect_MethodAccessorImpl) ||
+			class_issubclass(m->clazz, class_sun_reflect_ConstructorAccessorImpl))
+			continue;
+#endif
+
 		if (cl != NULL)
 			return cl;
 	}
