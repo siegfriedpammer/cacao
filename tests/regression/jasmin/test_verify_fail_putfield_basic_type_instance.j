@@ -1,7 +1,7 @@
 .class public test_verify_fail_putfield_basic_type_instance
 .super java/lang/Object
 
-.field public "intfield" I
+.field public intfield I
 
 ; ======================================================================
 

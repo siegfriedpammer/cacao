@@ -1,7 +1,7 @@
 .class public test_verify_fail_getfield_basic_type_lookup
 .super java/lang/Object
 
-.field public "f" Ljava/lang/String;
+.field public f Ljava/lang/String;
 
 ; ======================================================================
 

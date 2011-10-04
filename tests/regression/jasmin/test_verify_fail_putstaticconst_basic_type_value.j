@@ -1,7 +1,7 @@
 .class public test_verify_fail_putstaticconst_basic_type_value
 .super java/lang/Object
 
-.field public static "f" Ljava/lang/String;
+.field public static f Ljava/lang/String;
 
 ; ======================================================================
 
