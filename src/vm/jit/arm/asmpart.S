@@ -40,10 +40,15 @@
 /* export functions ***********************************************************/
 
 	.globl asm_vm_call_method
+	.type  asm_vm_call_method, %function
 	.globl asm_vm_call_method_int
+	.type  asm_vm_call_method_int, %function
 	.globl asm_vm_call_method_long
+	.type  asm_vm_call_method_long, %function
 	.globl asm_vm_call_method_float
+	.type  asm_vm_call_method_float, %function
 	.globl asm_vm_call_method_double
+	.type  asm_vm_call_method_double, %function
 	.globl asm_vm_call_method_exception_handler
 	.globl asm_vm_call_method_end
 
@@ -53,6 +58,7 @@
 	.globl asm_abstractmethoderror
 
 	.globl asm_cacheflush
+	.type  asm_cacheflush, %function
 
 
 /* asm_vm_call_method **********************************************************
