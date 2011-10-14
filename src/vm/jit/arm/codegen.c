@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/codegen.c - machine code generator for Arm
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -1206,39 +1206,6 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			s3 = emit_load_s3(jd, iptr, REG_ITMP3);
 			M_ADD(REG_ITMP1, s1, REG_LSL(s2, 2)); /* REG_ITMP1 = s1 + 4 * s2 */
 			M_STR_INTERN(s3, REG_ITMP1, OFFSET(java_objectarray_t, data[0]));
-			break;
-
-		case ICMD_GETSTATIC:  /* ...  ==> ..., value                          */
-			switch (fieldtype) {
-			case TYPE_INT:
-#if defined(ENABLE_SOFTFLOAT)
-			case TYPE_FLT:
-#endif
-			case TYPE_ADR:
-				d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
-				M_ILD_INTERN(d, REG_ITMP3, 0);
-				break;
-			case TYPE_LNG:
-#if defined(ENABLE_SOFTFLOAT)
-			case TYPE_DBL:
-#endif
-				d = codegen_reg_of_dst(jd, iptr, REG_ITMP12_PACKED);
-				M_LLD_INTERN(d, REG_ITMP3, 0);
-				break;
-#if !defined(ENABLE_SOFTFLOAT)
-			case TYPE_FLT:
-				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-				M_FLD_INTERN(d, REG_ITMP3, 0);
-				break;
-			case TYPE_DBL:
-				d = codegen_reg_of_dst(jd, iptr, REG_FTMP1);
-				M_DLD_INTERN(d, REG_ITMP3, 0);
-				break;
-#endif
-			default:
-				assert(0);
-			}
-			emit_store_dst(jd, iptr, d);
 			break;
 
 		case ICMD_GETFIELD:   /* ..., objectref, value  ==> ...               */
