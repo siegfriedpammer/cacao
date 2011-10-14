@@ -1708,28 +1708,6 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			M_MOV(REG_LR, REG_PC);
 			M_MOV(REG_PC, REG_PV);
 
-#if !defined(__SOFTFP__)
-			d = md->returntype.type;
-
-			/* TODO: this is only a hack, since we use R0/R1 for float
-			   return!  this depends on gcc; it is independent from
-			   our ENABLE_SOFTFLOAT define */
-			if (d != TYPE_VOID && IS_FLT_DBL_TYPE(d)) {
-#if 0 && !defined(NDEBUG)
-				dolog("BUILTIN that returns float or double (%s.%s)", m->clazz->name->text, m->name->text);
-#endif
-				/* we cannot use this macro, since it is not defined
-				   in ENABLE_SOFTFLOAT M_CAST_FLT_TO_INT_TYPED(d,
-				   REG_FRESULT, REG_RESULT_TYPED(d)); */
-				if (IS_2_WORD_TYPE(d)) {
-					DCD(0xed2d8102); /* stfd    f0, [sp, #-8]! */
-					M_LDRD_UPDATE(REG_RESULT_PACKED, REG_SP, 8);
-				} else {
-					DCD(0xed2d0101); /* stfs    f0, [sp, #-4]!*/
-					M_LDR_UPDATE(REG_RESULT, REG_SP, 4);
-				}
-			}
-#endif
 			break;
 
 		case ICMD_INVOKESPECIAL:
@@ -2506,25 +2484,6 @@ void codegen_emit_stub_native(jitdata *jd, methoddesc *nmd, functionptr f, int s
 	   really need it? */
 
 	emit_recompute_pv(cd);
-
-#if !defined(__SOFTFP__)
-	/* TODO: this is only a hack, since we use R0/R1 for float return! */
-	/* this depends on gcc; it is independent from our ENABLE_SOFTFLOAT define */
-	if (md->returntype.type != TYPE_VOID && IS_FLT_DBL_TYPE(md->returntype.type)) {
-#if 0 && !defined(NDEBUG)
-		dolog("NATIVESTUB that returns float or double (%s.%s)", m->clazz->name->text, m->name->text);
-#endif
-		/* we cannot use this macro, since it is not defined in ENABLE_SOFTFLOAT */
-		/* M_CAST_FLT_TO_INT_TYPED(md->returntype.type, REG_FRESULT, REG_RESULT_TYPED(md->returntype.type)); */
-		if (IS_2_WORD_TYPE(md->returntype.type)) {
-			DCD(0xed2d8102); /* stfd    f0, [sp, #-8]! */
-			M_LDRD_UPDATE(REG_RESULT_PACKED, REG_SP, 8);
-		} else {
-			DCD(0xed2d0101); /* stfs    f0, [sp, #-4]!*/
-			M_LDR_UPDATE(REG_RESULT, REG_SP, 4);
-		}
-	}
-#endif
 
 	/* remove native stackframe info */
 	/* TODO: improve this store/load */
