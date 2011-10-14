@@ -248,6 +248,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 {
 	varinfo*            var;
 	builtintable_entry* bte;
+	methoddesc*         md;
 	methodinfo*         lm;             // Local methodinfo for ICMD_INVOKE*.
 	unresolved_method*  um;
 	fieldinfo*          fi;
@@ -1693,6 +1694,7 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 
 		case ICMD_BUILTIN:
 			bte = iptr->sx.s23.s3.bte;
+			md = bte->md;
 			if (bte->stub == NULL) {
 				disp = dseg_add_functionptr(cd, bte->fp);
 			} else {
@@ -1707,6 +1709,8 @@ void codegen_emit_instruction(jitdata* jd, instruction* iptr)
 			M_MOV(REG_PC, REG_PV);
 
 #if !defined(__SOFTFP__)
+			d = md->returntype.type;
+
 			/* TODO: this is only a hack, since we use R0/R1 for float
 			   return!  this depends on gcc; it is independent from
 			   our ENABLE_SOFTFLOAT define */
