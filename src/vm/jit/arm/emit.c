@@ -794,7 +794,6 @@ void emit_verbosecall_enter(jitdata *jd)
 		if (!md->params[i].inmemory) {
 			s = md->params[i].regoff;
 
-#if defined(ENABLE_SOFTFLOAT)
 			switch (md->paramtypes[i].type) {
 			case TYPE_INT:
 			case TYPE_FLT:
@@ -806,23 +805,6 @@ void emit_verbosecall_enter(jitdata *jd)
 				M_LST(s, REG_SP, i * 8);
 				break;
 			}
-#else
-			switch (md->paramtypes[i].type) {
-			case TYPE_ADR:
-			case TYPE_INT:
-				M_IST(s, REG_SP, i * 8);
-				break;
-			case TYPE_LNG:
-				M_LST(s, REG_SP, i * 8);
-				break;
-			case TYPE_FLT:
-				M_FST(s, REG_SP, i * 8);
-				break;
-			case TYPE_DBL:
-				M_DST(s, REG_SP, i * 8);
-				break;
-			}
-#endif
 		}
 	}
 
@@ -838,7 +820,6 @@ void emit_verbosecall_enter(jitdata *jd)
 		if (!md->params[i].inmemory) {
 			s = md->params[i].regoff;
 
-#if defined(ENABLE_SOFTFLOAT)
 			switch (md->paramtypes[i].type) {
 			case TYPE_INT:
 			case TYPE_FLT:
@@ -850,23 +831,6 @@ void emit_verbosecall_enter(jitdata *jd)
 				M_LLD(s, REG_SP, i * 8);
 				break;
 			}
-#else
-			switch (md->paramtypes[i].type) {
-			case TYPE_ADR:
-			case TYPE_INT:
-				M_ILD(s, REG_SP, i * 8);
-				break;
-			case TYPE_LNG:
-				M_LLD(s, REG_SP, i * 8);
-				break;
-			case TYPE_FLT:
-				M_FLD(s, REG_SP, i * 8);
-				break;
-			case TYPE_DBL:
-				M_DLD(s, REG_SP, i * 8);
-				break;
-			}
-#endif
 		}
 	}
 
