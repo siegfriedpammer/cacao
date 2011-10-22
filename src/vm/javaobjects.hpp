@@ -2570,12 +2570,18 @@ public:
 
 	// Getters.
 	void* get_address() const;
+	int32_t get_capacity() const;
 };
 
 
 inline void* java_nio_Buffer::get_address() const
 {
 	return get<void*>(_handle, offset_address);
+}
+
+inline int32_t java_nio_Buffer::get_capacity() const
+{
+	return get<int32_t>(_handle, offset_capacity);
 }
 
 #endif // WITH_JAVA_RUNTIME_LIBRARY_OPENJDK

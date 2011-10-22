@@ -1,6 +1,6 @@
 /* src/native/jni.cpp - implementation of the Java Native Interface functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -3565,7 +3565,8 @@ void* jni_GetDirectBufferAddress(JNIEnv *env, jobject buf)
 
 jlong jni_GetDirectBufferCapacity(JNIEnv* env, jobject buf)
 {
-#if defined(ENABLE_JAVASE) && defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
+#if defined(ENABLE_JAVASE)
+# if defined(WITH_JAVA_RUNTIME_LIBRARY_GNU_CLASSPATH)
 	TRACEJNICALLS(("jni_GetDirectBufferCapacity(env=%p, buf=%p)", env, buf));
 
 	java_handle_t* h = (java_handle_t *) buf;
@@ -3577,6 +3578,23 @@ jlong jni_GetDirectBufferCapacity(JNIEnv* env, jobject buf)
 	jlong capacity = b.get_cap();
 
 	return capacity;
+# elif defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+
+	TRACEJNICALLS(("jni_GetDirectBufferCapacity(env=%p, buf=%p)", env, buf));
+
+	java_nio_Buffer jnb(buf);
+
+	if (!builtin_instanceof(jnb.get_handle(), class_sun_nio_ch_DirectBuffer))
+		return -1;
+
+	jlong capacity = jnb.get_capacity();
+
+	return capacity;
+
+# else
+#  error unknown classpath configuration
+# endif
+
 #else
 	vm_abort("jni_GetDirectBufferCapacity: not implemented in this configuration");
 
