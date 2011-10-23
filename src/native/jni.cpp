@@ -881,8 +881,31 @@ jclass jni_FindClass(JNIEnv *env, const char *name)
 
 	if (cc == NULL)
 		c = load_class_from_sysloader(u);
-	else
-		c = load_class_from_classloader(u, cc->classloader);
+	else {
+		classloader_t *cl = cc->classloader;
+#if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+		/* See jni_FindClass in Hotspot's src/share/vm/prims/jni.cpp */
+		if (!cl && cc->name == utf_java_lang_ClassLoader_NativeLibrary)
+		{
+			methodinfo *m = class_resolveclassmethod(
+				cc,
+				utf_new_char("getFromClass"),
+				utf_new_char("()Ljava/lang/Class;"),
+				NULL,
+				true);
+
+			java_handle_t *h;
+			if (m)
+				h = vm_call_method(m, NULL);
+
+			if (m && exceptions_get_exception() == NULL)
+				cl = ((classinfo *) LLNI_UNWRAP(h))->classloader;
+			else
+				return NULL;
+		}
+#endif
+		c = load_class_from_classloader(u, cl);
+	}
 
 	if (c == NULL) {
 		resolve_handle_pending_exception(true);

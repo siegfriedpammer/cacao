@@ -61,6 +61,7 @@ utf *utf_java_lang_Object;
 
 utf *utf_java_lang_Class;
 utf *utf_java_lang_ClassLoader;
+utf *utf_java_lang_ClassLoader_NativeLibrary;
 utf *utf_java_lang_Cloneable;
 utf *utf_java_lang_SecurityManager;
 utf *utf_java_lang_String;
@@ -262,6 +263,9 @@ void utf8_init(void)
 	utf_java_lang_SecurityManager  = utf_new_char("java/lang/SecurityManager");
 	utf_java_lang_String           = utf_new_char("java/lang/String");
 	utf_java_lang_ThreadGroup      = utf_new_char("java/lang/ThreadGroup");
+
+	utf_java_lang_ClassLoader_NativeLibrary =
+		utf_new_char("java/lang/ClassLoader$NativeLibrary");
 
 	utf_java_lang_ref_SoftReference =
 		utf_new_char("java/lang/ref/SoftReference");

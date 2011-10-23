@@ -58,6 +58,7 @@ extern utf *utf_java_lang_Object;
 
 extern utf *utf_java_lang_Class;
 extern utf *utf_java_lang_ClassLoader;
+extern utf *utf_java_lang_ClassLoader_NativeLibrary;
 extern utf *utf_java_lang_Cloneable;
 extern utf *utf_java_lang_SecurityManager;
 extern utf *utf_java_lang_String;
