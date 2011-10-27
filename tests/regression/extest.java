@@ -133,8 +133,8 @@ public class extest {
 
         try {
             p("OutOfMemoryError:");
-	    /* use twice the heap size */
-	    byte[] ba = new byte[maxmem * 2];
+	    /* maxmem + 1 should be enough and hopefully not overflow the int so it becomes negative */
+	    byte[] ba = new byte[maxmem];
             failed();
         } catch (OutOfMemoryError e) {
   	    ok();
