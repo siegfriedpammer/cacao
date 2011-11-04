@@ -417,7 +417,9 @@ bool threads_thread_start_internal(utf *name, functionptr f)
 		return false;
 	}
 
+#if defined(ENABLE_GC_BOEHM)
 	Finalizer::attach_custom_finalizer(LLNI_WRAP(t->object), thread_cleanup_finalizer, t);
+#endif
 
 	/* Start the thread. */
 
@@ -467,7 +469,9 @@ void threads_thread_start(java_handle_t *object)
 
 	ThreadRuntime::setup_thread_vmdata(jlt, t);
 
+#if defined(ENABLE_GC_BOEHM)
 	Finalizer::attach_custom_finalizer(LLNI_WRAP(t->object), thread_cleanup_finalizer, t);
+#endif
 
 	thread_set_state_runnable(t);
 
