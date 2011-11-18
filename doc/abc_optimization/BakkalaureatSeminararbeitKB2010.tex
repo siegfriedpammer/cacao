@@ -3,7 +3,7 @@
 \usepackage{gwa}
 \usepackage{graphicx}
 \usepackage{url}
-\usepackage{ngerman}
+%\usepackage{ngerman}
 \usepackage[latin1]{inputenc}
 \usepackage{textcomp}
 \usepackage{multicol}
@@ -81,12 +81,12 @@ But it must be kept in mind that an exhaustive explanation of the topic is
 far out of the documents scope so we will only touch on the general ideas.
 
 	\subsection{Implementation of Array Bounds Checking}
-	Before designing new optmization techniques for ABCs it's important to know
+	Before designing new optimization techniques for ABCs it's important to know
 	exactly how these checks are implemented. There are many ways to realize
 	ABCs. Elaborateness and performance are important to keep in mind when
 	choosing a technique and also the insertion method is interesting because
 	it is greatly connected to the language architecture. Should tests
-	be integreated automatically without developers knowledge or should
+	be integrated automatically without developers knowledge or should
 	ABCs only be integrated selectively by programmers or quality assurance.
 	
 		\subsubsection{Compare Instruction Strategy}
@@ -127,14 +127,14 @@ far out of the documents scope so we will only touch on the general ideas.
 	\subsection{The Real Overhead Introduced by ABCs}
 	Before crying out for costly and time-consuming optimizations for a specific
 	mechanism we will analyze the overhead caused by this. Is it
-	really worth while studying and researching the topic? This is in many cases a difficult
+	really worthwhile studying and researching the topic? This is in many cases a difficult
 	question because future trends must also be considered to get a clear result.
 	Concerning ABCs it depends on the ABC implementation, the language
 	design and architecture and on the application itself.
 	
 		\subsubsection{Overhead Reduction through Hardware}
 		For decades information processing machines were mainly designed as single
-		processor systems that didn't really considered modern programming techniques
+		processor systems that didn't really consider modern programming techniques
 		and patterns. Nearly all higher-level improvements that were reached in
 		computer programming were done in an abstract way using software
 		(virtual machines, multiprocessing, null pointer checks, ABCs\ldots). In the past
@@ -163,7 +163,7 @@ far out of the documents scope so we will only touch on the general ideas.
 		must use arrays frequently otherwise the overhead produced is insignificant
 		and not really measureable\cite{SafeMultiphaseBondsCheckEliminationInJava:2010}.
 		An important question is if these optimizations really pay for many
-		applications. For example Java is mainly used due to it's simple and clear
+		applications. For example Java is mainly used due to its simple and clear
 		object oriented and abstract nature. Most developers use Java only in
 		conjunction with powerful frameworks like Spring and many of them only for
 		web-based applications. The resulting ABC overhead in these strong object
@@ -178,11 +178,11 @@ far out of the documents scope so we will only touch on the general ideas.
 		mentions some libraries and also explain some new special data structures
 		that follow this approach.
 		
-		\subsubsection{Necessarity for ABC Optimization}
+		\subsubsection{Necessity for ABC Optimization}
 		It's difficult to argue pro/contra to ABC optimization and the approach that
 		should be taken to implement it because this strongly depends on the language
 		architecture and many other factors discussed here. But in general it should
-		be the architects and implementors target to evolve the language to the most
+		be the architect's and implementor's target to evolve the language to the most
 		effective, efficient and clear state. Even if hardware is capable of executing
 		ABCs without any resulting overhead it is better to eliminate unnecessary code
 		to improve low-level code quality cleanness and clearance. Program code at
@@ -209,7 +209,7 @@ far out of the documents scope so we will only touch on the general ideas.
 		furthermore signs of integral numerical types can also be treated differently.
 		In C/C++ integer types exist as signed or unsigned and the length is not specified
 		and depends mainly on the instruction length of the underlying hardware. 
-		On the other side Java declares it's integer type explicitly signed and
+		On the other side Java declares its integer type explicitly signed and
 		32bit wide (range from -2.147.483.648 to 2.147.483.647 in 2's complement).
 		The Java language furthermore declares that overflowing or underflowing values
 		are wrapped around which is not desired for array access index types because
@@ -262,7 +262,7 @@ far out of the documents scope so we will only touch on the general ideas.
 		\cite{AFrameworkForOptimizingJavaUsingAttributes:2000} describes an example
 		framework that follows the previously discussed one. Also
 		\cite{VerifiableAnnotationsForEmbeddedJavaEnvironments:2005} can be an
-		interesting source for the beginning because it focuses on especially on 
+		interesting source for the beginning because it focuses especially on
 		three important optimizations and on low cost checks. Furthermore
 		\cite{VerifiableRangeAnalysisAnnotationsForArrayBoundsCheckElimination:2007}
 		and \cite{SafeBoundsCheckAnnotations:2008} deal with annotations specifically
@@ -270,7 +270,7 @@ far out of the documents scope so we will only touch on the general ideas.
 		mentioned that are based on this construct.\par
 		
 		Another way to deal with the problem of IR is to use a completely new approach
-		and in the past several forms based on Static Single Assignment (SSA) where
+		and in the past several forms based on Static Single Assignment (SSA) were
 		researched and proven to be the commonly used ones in the future. The form is based on
 		the constraint that every variable can have only one point of assignment and
 		not more or less. But many more constraints and ideas were integrated into
@@ -326,7 +326,7 @@ far out of the documents scope so we will only touch on the general ideas.
 		calculated by the interpreter (virtual machine). This approach was
 		exhaustively researched by most recently published ABC optimization
 		techniques. At compile time some constraints and equalities/unequalities are
-		infered from high level code and intermediate representations through
+		inferred from high level code and intermediate representations through
 		theorem proving and even speculation and special optimizing virtual machines
 		interpret these constraints and annotations to calculate very effective
 		optimizations efficiently.
@@ -355,13 +355,13 @@ far out of the documents scope so we will only touch on the general ideas.
 	ABCs can always be found before array access instructions. In Java the
 	instructions are provided for every primitive type as xaload and xastore where
 	x represents the array type (integer, float, signed byte, character\ldots).
-	But not only the array access instructions itself are important for ABCs but
+	But not only the array access instructions themselves are important for ABCs but
 	also the context were they appear. Therefore some placements of
 	ABCs are of special significance. These are now described a little bit in
 	detail to understand which forms of interest can arise. The first three
 	classify if ABCs can be proven statically, dynamic or never as really
 	necessary during execution for keeping to the Java conventions. The second
-	three deal with the code structure where these ABCs occure. A good explanation
+	three deal with the code structure where these ABCs occur. A good explanation
 	concerning raw classification of ABCs in general can be found in 
 	\cite{AFreshLookAtOptimizingArrayBoundChecking:1990} and more recently by the
 	same author in
@@ -433,7 +433,7 @@ far out of the documents scope so we will only touch on the general ideas.
 		ABCs that are placed in loops deserve special attention because here
 		the biggest runtime overheads of all possible ABC types arise. If unnecessary ABCs
 		are placed in loops they are often repeated and result in huge
-		fractions of execution time. Sometimes Local and Global ABCs are found in
+		reductions of execution time. Sometimes Local and Global ABCs are found in
 		loops and can be eliminated or simplified and sometimes ABCs can even be moved
 		out of the loop using code motion techniques. This allows dramatic optimizations.
 		One problem that arises is that some optimizations change the program behavior
@@ -457,12 +457,12 @@ should be possible to quickly understand the raw idea described.
 
 	\subsection{The Early Beginning}
 	The first approaches for dealing with ABC optimization all operate on high level
-	code representation (no additional intermediate	representation necessary)and
+	code representation (no additional intermediate	representation necessary) and
 	use data flow graphs to represent program parts in an abstract manner. The real
 	ideas of ABCs and optimizations in this direction can't be explicitly
 	attributed to one person.\par
 	
-	In the authors opinion William H. Harrison was the
+	In the author's opinion William H. Harrison was the
 	first that directly covered the problem. In May 1977 he describes in 
 	\cite{CompilerAnalysisOfTheValueRangesForVariables:1977} the more
 	general problem of value range analysis of variables. Array bound checks are a
@@ -495,7 +495,7 @@ should be possible to quickly understand the raw idea described.
 	In 1979 E. Morel and C. Renvoise published
 	\cite{GlobalOptimizationBySuppressionOfPartialRedundancies:1979} that
 	introduced the idea of formal consideration of partial redundancies that are
-	also necessary for more elaborte analyzing of Global ABCs. For really
+	also necessary for more elaborate analyzing of Global ABCs. For really
 	understanding partial redundant ABCs this paper is a must.\par
 
 	In 1982 Victoria Markstein, John Cocke and Peter Markstein presented a new
@@ -641,7 +641,7 @@ should be possible to quickly understand the raw idea described.
 	from Java Byte Code to a slightly extended SSA form (eSSA) which is normaly a
 	very expensive procedure and applies a constraint analyzer and solver on it that
 	really achieves performance gain. The used constraint analyzer adds
-	constraints to the eSSA instructions and build up an inequality graph IG
+	constraints to the eSSA instructions and builds up an inequality graph IG
 	where only a shortest path finder (constraint solver) is applied to optimize
 	ABCs. This is very impressive because the whole approach is very costly but it
 	really pays like depicted in the results. Array Bound Check elimination on
@@ -670,7 +670,7 @@ should be possible to quickly understand the raw idea described.
 	directed weighted graph that reflects the relations and behavior of relevant
 	variables (array access indices). Array Field Analysis AFA and Rectangular
 	Array Analysis deal with special forms of array structures that are hard to
-	analyze but can in some circiumstances really allow good optimizations. \par
+	analyze but can in some circumstances really allow good optimizations. \par
 	
 	Gurd and Freeman et al. presented a further paper 
 	\cite{EliminationOfJavaArrayBoundsChecksInThePresenceOfIndirection:2002} that
@@ -684,7 +684,7 @@ should be possible to quickly understand the raw idea described.
 	\begin{description}
 		\item[ImmutableIntMultiarray:] The array is checked for invalid bounds and is
 	  	not allowed to be modified during index access operations!
-		\item[MutableImmutableStateIntMultiarray]: The array can be in two states, in
+		\item[MutableImmutableStateIntMultiarray:] The array can be in two states, in
 		the first (mutable) bounds are checked and in the second (immutable) no checks
 		occur.
 		\item[ValueBoundedIntMultiarray:] This array forces that all entries (indices)
@@ -712,7 +712,7 @@ should be possible to quickly understand the raw idea described.
 	a document that implements in a FORTRAN compiler (PIPS) some
 	optimizations of ABCs. The general ideas are well known but the detailed
 	and formal descriptions give further insights into the details of the
-	whole problem. The first idea is based on Guptas approach. Insert ABCs and
+	whole problem. The first idea is based on Gupta's approach. Insert ABCs and
 	eliminate redudant ones. Furthermore insert ABCs that can't be proven
 	unnecessary. And the last important thing is an algorithm for array size
 	checking and analysis to prove array access vioaltions over different procedure
@@ -724,7 +724,7 @@ should be possible to quickly understand the raw idea described.
 	was publisehd by Rugina and Rinard where they describe a new framework that
 	deals with general problems like access memory regions but also with bounds
 	analysis of pointer array indices. Due to the extensiveness of it any
-	explanation about this is widely out of this documents scope. \par
+	explanation about this is widely out of this document's scope. \par
 
 	In 2007 two new directions were started that are explained more precisely in the
 	next chapter. \par
@@ -844,11 +844,11 @@ should be possible to quickly understand the raw idea described.
 	not managed in an equality/inequality graph but for every instruction.
 	Interprocedural optimizations are not taken into account due to dynamic class
 	loading mechanism of Java. Loading new classes leads to more information about
-	array acessing and can lead to deoptimization (OSR at safepoint back to stack)
-	if the new conditions can't prove the previously optimizations. But several
+	array accessing and can lead to deoptimization (OSR at safepoint back to stack)
+	if the new conditions can't prove the previous optimizations. But several
 	ABCs can be grouped if proveable which leads to further optimizations. All
  	things considered a really suitable ABC optimization technique clearly
- 	embedded in the VM and very effective goind by the test results. \par
+ 	embedded in the VM and very effective going by the test results. \par
  	
  	\cite{ArrayBoundsCheckEliminationForJavaBasedOnSparseRepresentation:2009} from
  	Yang, Huang and Yang is another publication from 2009 that introduces new
@@ -903,7 +903,7 @@ should be possible to quickly understand the raw idea described.
 \section{ABCs in Cacao Java Virtual Machine}
 
 	\subsection{Introduction to Cacao Java Virtual Machine}
-	The work on the Cacao Java VM was started in 1996 by Rainhard Grafl and
+	The work on the Cacao Java VM was started in 1996 by Reinhard Grafl and
 	Andreas Krall. They wanted to create a free, efficient and stable Java VM for
 	a wide variety of processor architectures and platforms. In the following years
 	many people joined the development team and implemented several extensions,
@@ -950,7 +950,7 @@ should be possible to quickly understand the raw idea described.
 		by analysis and transformations of this quadruple related IR. The time consumption of the 
 		optimizer must be recognized.
 		Secondly the JIT compiler architecture limited the optimization scope to one local method.
-		This further constraints possibilities because no global ABCs can be removed. 
+		This further constrains possibilities because no global ABCs can be removed.
 		Due to the internal architecture of the Cacao Java VM
 		the structures and algorithms grew very complicated and so the developer only focused on the
 		most important facts concerning ABC optimization. The author concentrated only on optimization within 
@@ -959,7 +959,7 @@ should be possible to quickly understand the raw idea described.
 		the algorithm designer used the argument that many empirical tests in the past showed that these
 		kinds of loops introduce most of the execution time overhead because they are very often and commonly
 		used by programmers in many programming languages. The results he presented proved the concept to
-		be generally suitable. So he did not analyze detailed theoretical differences on redudant/
+		be generally suitable. So he did not analyze detailed theoretical differences on redudant/%
 		partial redudant or necessary/local/global ABCs. He simply concentrated on ABCs that seem to 
 		cause the most overhead in loops within normal applications.
 
@@ -972,12 +972,12 @@ should be possible to quickly understand the raw idea described.
 		\par
 		The general idea of the algorithm is to analyze a method during its JIT compilation process
 		for loops. This is accomplished by a depth first search of code blocks (basic blocks), then
-		calculating the domintators of the blocks using the Lengauer-Tarjan algorithm 
+		calculating the dominators of the blocks using the Lengauer-Tarjan algorithm 
 		\cite{AFastAlgorithmForFindingDominatorsInAFlowGraph:1979}
 		and detecting all loops by searching for back edges
 		\cite{ModernCompilerImplementationInC:1998}. These are very time consuming tasks because all
 		nodes (basic blocks) of the method must be iterated several times one every method compilation.
-		After this happend identical loops are merged, nested loops resolved and all together they are topologically sorted.
+		After this happened identical loops are merged, nested loops resolved and all together they are topologically sorted.
 		The loops are optimized in their sorted order by analyzing their loop headers and the variables/constants
 		involved in array access instructions. If properties are found that allow optimization the
 		loop and its header are adapted to suit optimal execution behavior. If nested loops exist their
@@ -1031,7 +1031,7 @@ should be possible to quickly understand the raw idea described.
 
 			\item[BasicBlocks (bb)] is a container that contains code of one
 				atomic code part of the method (no branch/jump) instruction
-				contained. So this means that a basic block is garanteed to
+				contained. So this means that a basic block is guaranteed to
 				be executed in one exact sequence.
 
 		\end{description}
@@ -1081,9 +1081,9 @@ should be possible to quickly understand the raw idea described.
 			    if ( both sides contain changing or both have no index variables ) {
 			        // no constraints can be proven valid
 			    } else {
-			    force index variable to be on left side
-			    ForceRightSideToBeConstant (ld, lc)
-			    obtainDynamicConstraints (ld, lc)
+			        // force index variable to be on left side
+			        ForceRightSideToBeConstant (ld, lc)
+			        obtainDynamicConstraints (ld, lc)
 			    }
 			}
 
@@ -1119,7 +1119,7 @@ should be possible to quickly understand the raw idea described.
 		
 		%% Codesection end -------------------------------------------------------------
 
-		Postconditions are that the methods jitdata structure holds correct, executable
+		Postconditions are that the method's jitdata structure holds correct, executable
 		and optimized loop code blocks that have no semantic differences to the original form.\newline
 		
 		Keep in mind that this pseudocode representation is due to the documents scope
@@ -1148,7 +1148,7 @@ should be possible to quickly understand the raw idea described.
 			\end{center}
 		\end{table}
 		
-		From this data with polynomic behavior a fixed per centage of speed acceleration should
+		From this data with polynomic behavior a fixed percentage of speed acceleration should
 		be proven but it's easy to see that there are no differences between these configurations.
 		This encourages the assumption that ABCs are always created within the Cacao Java VM whatever
 		arguments are passed. The proof for this assumption will be done using assembler code output
@@ -1162,7 +1162,7 @@ should be possible to quickly understand the raw idea described.
 		stack exploration. The implementation is done in C (structured programming technique) so
 		it's not really likely to find exhaustive performance improvements in its implementation, but like
 		always some possibilities remain that could lead to better results. A very expensive
-		part of the ABC optimization algorithm includes the necessarity for loop detection at the beginning. 
+		part of the ABC optimization algorithm includes the necessity for loop detection at the beginning. 
 		This is accomplished by usage of the Lengauer-Tarjan algorithm presented in
 		\cite{AFastAlgorithmForFindingDominatorsInAFlowGraph:1979}. 
 		This algorithm has good properties concerning asymptotic complexity and is especially 
@@ -1174,8 +1174,8 @@ should be possible to quickly understand the raw idea described.
 		\cite{ASImpleFastDominanceAlgorithm:2001} 
 		that an other algorithm that has higher asymptotic complexity than the Lengauer-Tarjan performs much 
 		better for smaller graphs because the complexity issue is only really valid for very big (asymptotic) graphs 
-		that normaly do not occur in most other programs. The authors claim that their algorithm is for
-		conventional method and loop graphs 2,5 times faster than the Lengauer-Tarjan algorithm. If the
+		that normally do not occur in most other programs. The authors claim that their algorithm is for
+		conventional method and loop graphs 2.5 times faster than the Lengauer-Tarjan algorithm. If the
 		experiments are valid, there exists a possibility to improve the whole ABC optimization algorithm by
 		using the simpler algorithm of Cooper, Harvey and Kennedy. The algorithm and especially its proof 
 		are also much simpler to understand and therefore to implement. \par
