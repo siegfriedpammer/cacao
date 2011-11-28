@@ -1,6 +1,6 @@
 /* src/vm/class.cpp - class related functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -2210,6 +2210,15 @@ int32_t class_get_modifiers(classinfo *c, bool ignoreInnerClassesAttrib)
 	return flags & ~ACC_SUPER & ACC_CLASS_REFLECT_MASK;
 }
 
+
+/**
+ * Helper function for the CLASS_IS_OR_ALMOST_INITIALIZED macro.
+ */
+bool class_initializing_thread_is_self(classinfo *c)
+{
+    threadobject *t = thread_get_current();
+    return t == c->initializing_thread;
+}
 
 /* class_get_signature *********************************************************
 

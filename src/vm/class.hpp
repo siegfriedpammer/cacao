@@ -1,6 +1,6 @@
 /* src/vm/class.hpp - class related functions header
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -67,7 +67,7 @@ typedef struct extra_classref extra_classref;
 /* some macros ****************************************************************/
 
 #define CLASS_IS_OR_ALMOST_INITIALIZED(c) \
-    (((c)->state & CLASS_INITIALIZING) || ((c)->state & CLASS_INITIALIZED))
+    (((c)->state & CLASS_INITIALIZED) || ((c)->state & CLASS_INITIALIZING && class_initializing_thread_is_self((c))))
 
 
 /* classinfo ******************************************************************/
@@ -89,6 +89,8 @@ typedef struct {
 # error unknown classpath configuration
 #endif
 } dummy_java_lang_Class;
+
+struct threadobject;
 
 struct classinfo {                /* class structure                          */
 	dummy_java_lang_Class object;
@@ -124,6 +126,7 @@ struct classinfo {                /* class structure                          */
 	                              /* (interfaces)                             */
 	s4          instancesize;     /* size of an instance of this class        */
 
+	struct threadobject *initializing_thread;
 	vftbl_t    *vftbl;            /* pointer to virtual function table        */
 
 	methodinfo *finalizer;        /* finalizer method                         */
@@ -424,6 +427,8 @@ java_handle_t             *class_get_name(classinfo *c);
 utf                       *class_get_signature(classinfo *c);
 #endif
 
+bool class_initializing_thread_is_self(classinfo *c);
+
 /* some debugging functions */
 
 #if !defined(NDEBUG)
@@ -457,5 +462,6 @@ void class_showconstantpool(classinfo *c);
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
+ * vim:noexpandtab:sw=4:ts=4:
  * End:
  */
