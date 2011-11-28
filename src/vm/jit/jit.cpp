@@ -1,6 +1,6 @@
 /* src/vm/jit/jit.cpp - Just-In-Time compiler
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -1036,9 +1036,14 @@ void *jit_compile_handle(methodinfo *m, void *pv, void *ra, void *mptr)
 
 	*p = (uintptr_t) newpv;
 
+#if !defined(JIT_COMPILER_VIA_SIGNAL)
 	/* Flush both caches. */
+	/* This might have been necessary before we had the compiler trap, but now
+	 * it's not. I don't care enough about the (broken) non-signal case to
+	 * investigate this. */
 
 	md_cacheflush(pa, SIZEOF_VOID_P);
+#endif
 
 	return newpv;
 }
