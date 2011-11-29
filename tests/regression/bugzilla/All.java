@@ -43,7 +43,8 @@ PR119.class,
 PR125.class,
 PR131.class,
 PR144.class,
-PR148.class
+PR148.class,
+PR162.class
 })
 
 public class All {

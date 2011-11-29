@@ -1,6 +1,6 @@
-/* tests/regression/bugzilla/PR119.java
+/* tests/regression/bugzilla/PR131.java
 
-   Copyright (C) 2009
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
