@@ -1,6 +1,6 @@
 /* src/vm/descriptor.c - checking and parsing of field / method descriptors
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -1114,39 +1114,6 @@ bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 #endif
 
 	return true;
-}
-
-
-/* descriptor_pool_get_parsed_descriptors **************************************
- 
-   Return a pointer to the block of parsed descriptors
-
-   IN:
-       pool.............the descriptor_pool
-
-   OUT:
-   	   *size............if size is non-NULL, this is set to the size of the
-	                    parsed descriptor block (in u1)
-
-   RETURN VALUE:
-       a pointer to the block of parsed descriptors
-
-   NOTE:
-       descriptor_pool_alloc_parsed_descriptors must be called (once)
-       before this function is used.
-
-*******************************************************************************/
-
-void * 
-descriptor_pool_get_parsed_descriptors(descriptor_pool *pool, s4 *size)
-{
-	assert(pool);
-	assert((!pool->fieldcount && !pool->methodcount) || pool->descriptors);
-	
-	if (size)
-		*size = pool->descriptorsize;
-
-	return pool->descriptors;
 }
 
 

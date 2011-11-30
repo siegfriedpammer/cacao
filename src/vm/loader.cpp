@@ -1593,7 +1593,6 @@ static bool load_class_from_classbuffer_intern(classbuffer *cb)
 	/* allocate space for the parsed descriptors */
 
 	descriptor_pool_alloc_parsed_descriptors(descpool);
-	c->parseddescs = (u1*) descriptor_pool_get_parsed_descriptors(descpool, &(c->parseddescsize));
 
 #if defined(ENABLE_STATISTICS)
 	if (opt_stat) {
@@ -2148,8 +2147,6 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 	/* array classes are not loaded from class files */
 
 	c->state          |= CLASS_LOADED;
-	c->parseddescs    = (u1 *) clonedesc;
-	c->parseddescsize = sizeof(methodinfo);
 	c->classrefs      = classrefs;
 	c->classrefcount  = 1;
 

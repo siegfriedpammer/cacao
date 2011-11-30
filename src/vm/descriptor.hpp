@@ -1,6 +1,6 @@
 /* src/vm/descriptor.h - checking and parsing of field / method descriptors
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -72,7 +72,6 @@ typedef struct methoddesc      methoddesc;
 /* 5. call descriptor_pool_alloc_parsed_descriptors                           */
 /* 6. for each field descriptor call descriptor_pool_parse_field_descriptor   */
 /*    for each method descriptor call descriptor_pool_parse_method_descriptor */
-/* 7. call descriptor_pool_get_parsed_descriptors                             */
 /*                                                                            */
 /* IMPORTANT: The descriptor_pool functions use DNEW and DMNEW for allocating */
 /*            memory which can be thrown away when the steps above have been  */
@@ -175,7 +174,6 @@ methoddesc *descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *
 
 bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags);
 
-void *descriptor_pool_get_parsed_descriptors(descriptor_pool *pool, s4 *size);
 void descriptor_pool_get_sizes(descriptor_pool *pool, u4 *classrefsize,
 							   u4 *descsize);
 

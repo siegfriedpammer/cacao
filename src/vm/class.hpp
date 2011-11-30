@@ -105,8 +105,6 @@ struct classinfo {                /* class structure                          */
 	s4          classrefcount;    /* number of symbolic class references      */
 	constant_classref *classrefs; /* table of symbolic class references       */
 	extra_classref *extclassrefs; /* additional classrefs                     */
-	s4          parseddescsize;   /* size of the parsed descriptors block     */
-	u1         *parseddescs;      /* parsed descriptors                       */
 
 	classinfo  *super;            /* super class                              */
 	classinfo  *sub;              /* sub class pointer                        */
@@ -462,6 +460,6 @@ void class_showconstantpool(classinfo *c);
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
- * vim:noexpandtab:sw=4:ts=4:
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
