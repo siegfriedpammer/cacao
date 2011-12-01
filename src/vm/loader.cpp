@@ -2137,8 +2137,7 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 
 	/* parse the descriptor to get the register allocation */
 
-	if (!descriptor_params_from_paramtypes(clonedesc, clone->flags))
-		return false;
+	descriptor_params_from_paramtypes(clonedesc, clone->flags);
 
 	clone->code = NativeStub::generate(clone, BUILTIN_clone);
 

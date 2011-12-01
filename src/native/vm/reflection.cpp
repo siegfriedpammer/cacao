@@ -1,6 +1,6 @@
 /* src/native/vm/reflection.cpp - helper functions for java/lang/reflect
 
-   Copyright (C) 2007, 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -217,9 +217,6 @@ java_handle_objectarray_t* Reflection::get_parameterannotations(java_handle_byte
 	/* get parameter count */
 
 	int32_t numParameters = method_get_parametercount(m);
-
-	if (numParameters < 0)
-		return NULL;
 
 	/* get ConstantPool */
 

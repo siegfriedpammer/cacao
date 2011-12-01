@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typecheck-invoke.inc - type checking for invocations
 
-   Copyright (C) 1996-2005, 2006, 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -101,9 +101,9 @@
 	/* allocate parameters if necessary */
 	
 	if (!md->params)
-		if (!descriptor_params_from_paramtypes(md,
-					(invokestatic) ? ACC_STATIC : ACC_NONE))
-			return false;
+		descriptor_params_from_paramtypes(
+			md,
+			(invokestatic) ? ACC_STATIC : ACC_NONE);
 
 	/* check parameter types */
 

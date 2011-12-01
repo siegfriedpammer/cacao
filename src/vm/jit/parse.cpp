@@ -1,6 +1,6 @@
 /* src/vm/jit/parse.c - parser for JavaVM to intermediate code translation
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2009
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -1221,8 +1221,7 @@ jsr_tail:
 			md = fmi->parseddesc.md;
 
 			if (md->params == NULL)
-				if (!descriptor_params_from_paramtypes(md, ACC_STATIC))
-					return false;
+				descriptor_params_from_paramtypes(md, ACC_STATIC);
 
 			goto invoke_method;
 
@@ -1255,8 +1254,7 @@ invoke_nonstatic_method:
 			md = fmi->parseddesc.md;
 
 			if (md->params == NULL)
-				if (!descriptor_params_from_paramtypes(md, 0))
-					return false;
+				descriptor_params_from_paramtypes(md, 0);
 
 invoke_method:
 			code_unflag_leafmethod(code);
@@ -1293,9 +1291,6 @@ invoke_method:
 					um = resolve_create_unresolved_method(m->clazz, m, fmi,
 							(opcode == BC_invokestatic),
 							(opcode == BC_invokespecial));
-
-					if (um == NULL)
-						return false;
 
 					/* store the unresolved_method pointer */
 

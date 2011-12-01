@@ -1038,16 +1038,12 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 	                    ACC_STATIC bit is checked.
 						The value ACC_UNDEF is NOT allowed.
 
-   RETURN VALUE:
-       true.............the paramdescs were created successfully
-	   false............an exception has been thrown
-
    POSTCONDITION:
        md->parms != NULL
 
 *******************************************************************************/
 
-bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
+void descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 {
 	typedesc *td;
 
@@ -1112,8 +1108,6 @@ bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 				md_param_alloc(md);
 		}
 #endif
-
-	return true;
 }
 
 

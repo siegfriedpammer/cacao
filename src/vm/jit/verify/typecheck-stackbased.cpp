@@ -1,6 +1,6 @@
 /* src/vm/jit/verify/typecheck-stackbased.c - stack-based verifier
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -733,8 +733,7 @@ bool typecheck_stackbased(jitdata *jd)
 	/* allocate parameter descriptors if necessary */
 
 	if (!state.m->parseddesc->params)
-		if (!descriptor_params_from_paramtypes(state.m->parseddesc,state.m->flags))
-			return false;
+		descriptor_params_from_paramtypes(state.m->parseddesc,state.m->flags);
 
 	/* allocate the stack buffers */
 

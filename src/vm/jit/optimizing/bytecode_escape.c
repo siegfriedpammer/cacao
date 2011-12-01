@@ -1,6 +1,6 @@
 /* src/vm/optimizing/bytecode_escape.c
 
-   Copyright (C) 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zu Foerderung der freien virtuellen Machine CACAO
 
    This file is part of CACAO.
@@ -775,12 +775,8 @@ static void bc_escape_analysis_parse_invoke(bc_escape_analysis_t *be, jcode_t *j
 
 	/* Parse parameters if not done yet. */
 
-	if (md->params == NULL) {
-		if (! descriptor_params_from_paramtypes(md, opc == BC_invokestatic ? ACC_STATIC : 0)) {
-			/* TODO */
-			assert(0);
-		}
-	}
+	if (md->params == NULL)
+		descriptor_params_from_paramtypes(md, opc == BC_invokestatic ? ACC_STATIC : 0);
 
 	/* Try to lazyly resolve method. */
 
@@ -1866,4 +1862,19 @@ void bc_escape_analysis_perform(methodinfo *m) {
 	bc_escape_analysis_perform_intern(m, 0);
 }
 
+
+
+/*
+ * These are local overrides for various environment variables in Emacs.
+ * Please do not remove this and leave it at the end of the file, where
+ * Emacs will automagically detect them.
+ * ---------------------------------------------------------------------
+ * Local variables:
+ * mode: c
+ * indent-tabs-mode: t
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ * vim:noexpandtab:sw=4:ts=4:
+ */
 

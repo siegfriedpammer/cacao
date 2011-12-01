@@ -1,6 +1,6 @@
 /* src/vm/resolve.cpp - resolving classes/interfaces/fields/methods
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -2068,8 +2068,7 @@ resolve_result_t resolve_method_lazy(methodinfo *refmethod,
 	/* have the method params already been parsed? no, do it. */
 
 	if (!mi->parseddesc->params)
-		if (!descriptor_params_from_paramtypes(mi->parseddesc, mi->flags))
-			return resolveFailed;
+		descriptor_params_from_paramtypes(mi->parseddesc, mi->flags);
 
 	/* cache the result of the resolution */
 
@@ -2192,8 +2191,7 @@ bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **re
 	/* have the method params already been parsed? no, do it. */
 
 	if (!mi->parseddesc->params)
-		if (!descriptor_params_from_paramtypes(mi->parseddesc, mi->flags))
-			return false;
+		descriptor_params_from_paramtypes(mi->parseddesc, mi->flags);
 
 	/* cache the resolution */
 
@@ -2653,8 +2651,7 @@ bool resolve_constrain_unresolved_field(unresolved_field *ref,
 	   iptr.............the INVOKE* instruction
 
    RETURN VALUE:
-       a pointer to a new unresolved_method struct, or
-	   NULL if an exception has been thrown
+       a pointer to a new unresolved_method struct
 
 *******************************************************************************/
 
@@ -2679,9 +2676,9 @@ unresolved_method * resolve_create_unresolved_method(classinfo *referer,
 
 	/* allocate params if necessary */
 	if (!methodref->parseddesc.md->params)
-		if (!descriptor_params_from_paramtypes(methodref->parseddesc.md,
-					(invokestatic) ? ACC_STATIC : ACC_NONE))
-			return NULL;
+		descriptor_params_from_paramtypes(
+			methodref->parseddesc.md,
+			(invokestatic) ? ACC_STATIC : ACC_NONE);
 
 	/* create the data structure */
 	ref = NEW(unresolved_method);

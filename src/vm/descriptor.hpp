@@ -172,7 +172,7 @@ typedesc *descriptor_pool_parse_field_descriptor(descriptor_pool *pool, utf *des
 methoddesc *descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc, s4 mflags,
 													constant_classref *thisclass);
 
-bool descriptor_params_from_paramtypes(methoddesc *md, s4 mflags);
+void descriptor_params_from_paramtypes(methoddesc *md, s4 mflags);
 
 void descriptor_pool_get_sizes(descriptor_pool *pool, u4 *classrefsize,
 							   u4 *descsize);

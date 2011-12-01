@@ -1,6 +1,6 @@
 /* src/vm/method.cpp - method functions
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2011
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -722,7 +722,7 @@ methodinfo *method_vftbl_lookup(vftbl_t *vftbl, methodinfo* m)
        m........the method of which the parameters should be counted
 
    RETURN VALUE:
-       The parameter count or -1 on error.
+       The parameter count.
 
 *******************************************************************************/
 
@@ -735,11 +735,8 @@ int32_t method_get_parametercount(methodinfo *m)
 	
 	/* is the descriptor fully parsed? */
 
-	if (md->params == NULL) {
-		if (!descriptor_params_from_paramtypes(md, m->flags)) {
-			return -1;
-		}
-	}
+	if (md->params == NULL)
+		descriptor_params_from_paramtypes(md, m->flags);
 
 	paramcount = md->paramcount;
 
@@ -775,8 +772,7 @@ java_handle_objectarray_t *method_get_parametertypearray(methodinfo *m)
 	/* is the descriptor fully parsed? */
 
 	if (m->parseddesc->params == NULL)
-		if (!descriptor_params_from_paramtypes(md, m->flags))
-			return NULL;
+		descriptor_params_from_paramtypes(md, m->flags);
 
 	paramtypes = md->paramtypes;
 	paramcount = md->paramcount;
