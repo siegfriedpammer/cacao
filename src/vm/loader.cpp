@@ -2119,6 +2119,7 @@ classinfo *load_newly_created_array(classinfo *c, classloader_t *loader)
 	clonedesc->paramslots = 0;
 	clonedesc->paramtypes[0].classref = classrefs + 0;
 	clonedesc->params = NULL;
+	clonedesc->pool_lock = NULL;
 
 	/* create methodinfo */
 

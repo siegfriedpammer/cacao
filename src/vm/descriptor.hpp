@@ -128,6 +128,7 @@ struct methoddesc {
 #endif
 	s4         memuse;          /* number of stack slots used                 */
 	paramdesc *params;          /* allocated parameter descriptions [3]       */
+	Mutex     *pool_lock;       /* synchronizes access to params              */
 	typedesc   returntype;      /* parsed descriptor of the return type       */
 	typedesc   paramtypes[1];   /* parameter types, variable length!          */
 };

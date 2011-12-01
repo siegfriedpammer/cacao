@@ -771,7 +771,11 @@ descriptor_pool_alloc_parsed_descriptors(descriptor_pool *pool)
 
 	pool->descriptorsize = size;
 	if (size) {
+		size += sizeof(Mutex);	/* prepend Mutex */
 		pool->descriptors = MNEW(u1, size);
+		/* call Mutex constructor */
+		new (reinterpret_cast<Mutex*>(pool->descriptors)) Mutex;
+		pool->descriptors += sizeof(Mutex);
 		pool->descriptors_next = pool->descriptors;
 	}
 
@@ -921,6 +925,7 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 	assert(d);
 
 	md = (methoddesc *) pool->descriptors_next;
+	md->pool_lock = reinterpret_cast<Mutex*>(pool->descriptors - sizeof(Mutex));
 	pool->descriptors_next += sizeof(methoddesc) - sizeof(typedesc);
 
 	utf_ptr = desc->text + 1; /* skip '(' */
@@ -1010,6 +1015,9 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 					md_param_alloc(md);
 			}
 #endif
+
+		/* params already initialized; no need to lock */
+		md->pool_lock = NULL;
 	}
 	else {
 		/* params will be allocated later by
@@ -1027,13 +1035,12 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 
 /* descriptor_params_from_paramtypes *******************************************
  
-   Create the paramdescs for a method descriptor. This function is called
-   when we know whether the method is static or not. This function may only
-   be called once for each methoddesc, and only if md->params == NULL.
+   Create the paramdescs for a method descriptor. This function is
+   called when we know whether the method is static or not. This
+   function does nothing if md->params != NULL (checked atomically).
 
    IN:
        md...............the parsed method descriptor
-	                    md->params MUST be NULL.
 	   mflags...........the ACC_* access flags of the method. Only the
 	                    ACC_STATIC bit is checked.
 						The value ACC_UNDEF is NOT allowed.
@@ -1045,13 +1052,20 @@ descriptor_pool_parse_method_descriptor(descriptor_pool *pool, utf *desc,
 
 void descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 {
-	typedesc *td;
+	bool has_lock = md->pool_lock;
 
 	assert(md);
+	if (md->pool_lock)
+		md->pool_lock->lock();
+	if (md->params) {
+		if (has_lock)
+			md->pool_lock->unlock();
+		return;
+	}
 	assert(md->params == NULL);
 	assert(mflags != ACC_UNDEF);
 
-	td = md->paramtypes;
+	typedesc *td = md->paramtypes;
 
 	/* check for `this' pointer */
 
@@ -1108,6 +1122,9 @@ void descriptor_params_from_paramtypes(methoddesc *md, s4 mflags)
 				md_param_alloc(md);
 		}
 #endif
+
+	if (has_lock)
+		md->pool_lock->unlock();
 }
 
 

@@ -735,8 +735,7 @@ int32_t method_get_parametercount(methodinfo *m)
 	
 	/* is the descriptor fully parsed? */
 
-	if (md->params == NULL)
-		descriptor_params_from_paramtypes(md, m->flags);
+	descriptor_params_from_paramtypes(md, m->flags);
 
 	paramcount = md->paramcount;
 
@@ -771,8 +770,7 @@ java_handle_objectarray_t *method_get_parametertypearray(methodinfo *m)
 
 	/* is the descriptor fully parsed? */
 
-	if (m->parseddesc->params == NULL)
-		descriptor_params_from_paramtypes(md, m->flags);
+	descriptor_params_from_paramtypes(md, m->flags);
 
 	paramtypes = md->paramtypes;
 	paramcount = md->paramcount;

@@ -2067,8 +2067,7 @@ resolve_result_t resolve_method_lazy(methodinfo *refmethod,
 
 	/* have the method params already been parsed? no, do it. */
 
-	if (!mi->parseddesc->params)
-		descriptor_params_from_paramtypes(mi->parseddesc, mi->flags);
+	descriptor_params_from_paramtypes(mi->parseddesc, mi->flags);
 
 	/* cache the result of the resolution */
 
@@ -2190,8 +2189,7 @@ bool resolve_method(unresolved_method *ref, resolve_mode_t mode, methodinfo **re
 
 	/* have the method params already been parsed? no, do it. */
 
-	if (!mi->parseddesc->params)
-		descriptor_params_from_paramtypes(mi->parseddesc, mi->flags);
+	descriptor_params_from_paramtypes(mi->parseddesc, mi->flags);
 
 	/* cache the resolution */
 
@@ -2675,10 +2673,9 @@ unresolved_method * resolve_create_unresolved_method(classinfo *referer,
 #endif
 
 	/* allocate params if necessary */
-	if (!methodref->parseddesc.md->params)
-		descriptor_params_from_paramtypes(
-			methodref->parseddesc.md,
-			(invokestatic) ? ACC_STATIC : ACC_NONE);
+	descriptor_params_from_paramtypes(
+		methodref->parseddesc.md,
+		(invokestatic) ? ACC_STATIC : ACC_NONE);
 
 	/* create the data structure */
 	ref = NEW(unresolved_method);

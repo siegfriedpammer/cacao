@@ -775,8 +775,7 @@ static void bc_escape_analysis_parse_invoke(bc_escape_analysis_t *be, jcode_t *j
 
 	/* Parse parameters if not done yet. */
 
-	if (md->params == NULL)
-		descriptor_params_from_paramtypes(md, opc == BC_invokestatic ? ACC_STATIC : 0);
+	descriptor_params_from_paramtypes(md, opc == BC_invokestatic ? ACC_STATIC : 0);
 
 	/* Try to lazyly resolve method. */
 

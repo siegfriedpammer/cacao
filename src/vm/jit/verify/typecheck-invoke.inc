@@ -100,10 +100,9 @@
 
 	/* allocate parameters if necessary */
 	
-	if (!md->params)
-		descriptor_params_from_paramtypes(
-			md,
-			(invokestatic) ? ACC_STATIC : ACC_NONE);
+	descriptor_params_from_paramtypes(
+		md,
+		(invokestatic) ? ACC_STATIC : ACC_NONE);
 
 	/* check parameter types */
 
