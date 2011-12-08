@@ -472,7 +472,6 @@ static java_handle_t *literalstring_u2(java_handle_chararray_t *a, int32_t lengt
 	literalstring    *s;                /* hashtable element                  */
 	u4                key;
 	u4                slot;
-	u2                i;
 
 	mutex->lock();
 
@@ -493,7 +492,7 @@ static java_handle_t *literalstring_u2(java_handle_chararray_t *a, int32_t lengt
 		if (length == js.get_count()) {
 			/* compare text */
 
-			for (i = 0; i < length; i++) {
+			for (int32_t i = 0; i < length; i++) {
 				// FIXME This is not handle capable!
 				CharArray jsca(js.get_value());
 				uint16_t* sptr = (uint16_t*) jsca.get_raw_data_ptr();
@@ -505,7 +504,7 @@ static java_handle_t *literalstring_u2(java_handle_chararray_t *a, int32_t lengt
 			/* string already in hashtable, free memory */
 
 			if (!copymode)
-				mem_free(a, sizeof(java_chararray_t) + sizeof(u2) * (length - 1) + 10);
+				mem_free(a, sizeof(java_chararray_t) + sizeof(u2) * (length - 1));
 
 			mutex->unlock();
 
@@ -520,11 +519,11 @@ static java_handle_t *literalstring_u2(java_handle_chararray_t *a, int32_t lengt
 	java_chararray_t* acopy;
 	if (copymode) {
 		/* create copy of u2-array for new javastring */
-		u4 arraysize = sizeof(java_chararray_t) + sizeof(u2) * (length - 1) + 10;
+		u4 arraysize = sizeof(java_chararray_t) + sizeof(u2) * (length - 1);
 		acopy = (java_chararray_t*) mem_alloc(arraysize);
 /*    		memcpy(ca, a, arraysize); */
 		memcpy(&(acopy->header), &(((java_chararray_t*) a)->header), sizeof(java_array_t));
-		memcpy(&(acopy->data), &(((java_chararray_t*) a)->data) + offset, sizeof(u2) * (length - 1) + 10);
+		memcpy(&(acopy->data), &(((java_chararray_t*) a)->data) + offset, sizeof(u2) * length);
 	}
 	else {
 		acopy = (java_chararray_t*) a;
@@ -630,18 +629,17 @@ java_object_t *literalstring_new(utf *u)
 {
 	char             *utf_ptr;       /* pointer to current unicode character  */
 	                                 /* utf string                            */
-	u4                utflength;     /* length of utf-string if uncompressed  */
+	int32_t           utflength;     /* length of utf-string if uncompressed  */
 	java_chararray_t *a;             /* u2-array constructed from utf string  */
-	u4                i;
 
 	utf_ptr = u->text;
 	utflength = utf_get_number_of_u2s(u);
 
 	/* allocate memory */ 
-	a = (java_chararray_t*) mem_alloc(sizeof(java_chararray_t) + sizeof(u2) * (utflength - 1) + 10);
+	a = (java_chararray_t*) mem_alloc(sizeof(java_chararray_t) + sizeof(u2) * (utflength - 1));
 
 	/* convert utf-string to u2-array */
-	for (i = 0; i < utflength; i++)
+	for (int32_t i = 0; i < utflength; i++)
 		a->data[i] = utf_nextu2(&utf_ptr);
 
 	return literalstring_u2((java_handle_chararray_t*) a, utflength, 0, false);
@@ -669,7 +667,7 @@ static void literalstring_free(java_object_t* string)
 	FREE(s, heapstring_t);
 
 	/* dispose memory of java-characterarray */
-	FREE(a, sizeof(java_chararray_t) + sizeof(u2) * (a->header.size - 1)); /* +10 ?? */
+	FREE(a, sizeof(java_chararray_t) + sizeof(u2) * (a->header.size - 1));
 }
 #endif
 
