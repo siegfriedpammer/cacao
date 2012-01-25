@@ -28,7 +28,7 @@ AC_ARG_WITH([jmm_h],
             [AS_HELP_STRING(--with-jmm_h=<dir>,path to jmm.h (only with --with-java-runtime-library=openjdk) [[default=${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/share/javavm/export]])],
             [WITH_JMM_H=${withval}],
             [case "${WITH_JAVA_RUNTIME_LIBRARY}" in
-                 openjdk)
+                 openjdk*)
                      WITH_JMM_H=${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/share/javavm/export
                      ;;
                  *)

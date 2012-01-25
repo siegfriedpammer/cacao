@@ -36,7 +36,9 @@
 #include "native/native.hpp"
 
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 # include "native/vm/openjdk/hpi.hpp"
+#endif
 # include "native/vm/openjdk/management.hpp"
 #endif
 
@@ -73,7 +75,11 @@ private:
 	Recompiler      _recompiler;      ///< JIT recompilation framework.
 #endif
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	HPI             _hpi;             ///< Host Porting Interface.
+#else
+	Mutex						_jniMutex;				///< XXX should be part of the not existing class wrapper for src/native/vm/openjdk/jvm.cpp
+#endif
 	Management      _management;      ///< Java management interface.
 #endif
 	NativeLibraries _nativelibraries; ///< Native library table.
@@ -107,7 +113,11 @@ public:
 	Properties&      get_properties     () { return _properties; }
 	Recompiler&      get_recompiler     () { return _recompiler; } // REMOVEME
 #if defined(WITH_JAVA_RUNTIME_LIBRARY_OPENJDK)
+#ifndef WITH_JAVA_RUNTIME_LIBRARY_OPENJDK_7
 	HPI&             get_hpi            () { return _hpi; }
+#else
+	Mutex&					 get_jniMutex			  () { return _jniMutex; }
+#endif
 	Management&      get_management     () { return _management; }
 #endif
 	NativeLibraries& get_nativelibraries() { return _nativelibraries; }
