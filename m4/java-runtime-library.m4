@@ -140,7 +140,7 @@ AC_ARG_WITH([java-runtime-library-libdir],
                  gnuclasspath)
                      JAVA_RUNTIME_LIBRARY_LIBDIR=${JAVA_RUNTIME_LIBRARY_PREFIX}/lib
                      ;;
-                 openjdk)
+                 openjdk*)
                      JAVA_RUNTIME_LIBRARY_LIBDIR=${JAVA_RUNTIME_LIBRARY_PREFIX}/control/build/${OS_DIR}-${JAVA_ARCH}/lib/${JAVA_ARCH}
                      ;;
                  *)
@@ -164,7 +164,7 @@ AC_ARG_WITH([jni_md_h],
             [AS_HELP_STRING(--with-jni_md_h=<dir>,path to jni_md.h [[default=(openjdk:${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/solaris/javavm/export,*:${JAVA_RUNTIME_LIBRARY_PREFIX}/include)]])],
             [WITH_JNI_MD_H=${withval}],
             [case "${WITH_JAVA_RUNTIME_LIBRARY}" in
-                 openjdk)
+                 openjdk*)
                      WITH_JNI_MD_H=${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/solaris/javavm/export
                      ;;
                  *)
@@ -190,7 +190,7 @@ AC_ARG_WITH([jni_h],
             [AS_HELP_STRING(--with-jni_h=<dir>,path to jni.h [[default=(openjdk:${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/share/javavm/export,*:${JAVA_RUNTIME_LIBRARY_PREFIX}/include)]])],
             [WITH_JNI_H=${withval}],
             [case "${WITH_JAVA_RUNTIME_LIBRARY}" in
-                 openjdk)
+                 openjdk*)
                      WITH_JNI_H=${JAVA_RUNTIME_LIBRARY_PREFIX}/jdk/src/share/javavm/export
                      ;;
                  *)
