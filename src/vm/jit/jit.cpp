@@ -82,9 +82,9 @@
 
 #include "vm/jit/ir/bytecode.h"
 
-#include "vm/jit/loop/analyze.h"
-#include "vm/jit/loop/graph.h"
-#include "vm/jit/loop/loop.h"
+//#include "vm/jit/loop/analyze.h"
+//#include "vm/jit/loop/graph.h"
+//#include "vm/jit/loop/loop.h"
 
 #if defined(ENABLE_IFCONV)
 # include "vm/jit/optimizing/ifconv.h"
@@ -212,7 +212,7 @@ jitdata *jit_jitdata_new(methodinfo *m)
 	jd->cd    = (codegendata*) DumpMemory::allocate(sizeof(codegendata));
 	jd->rd    = (registerdata*) DumpMemory::allocate(sizeof(registerdata));
 #if defined(ENABLE_LOOP)
-	jd->ld    = (loopdata*) DumpMemory::allocate(sizeof(loopdata));
+//	jd->ld    = (loopdata*) DumpMemory::allocate(sizeof(loopdata));
 #endif
 
 	/* Allocate codeinfo memory from the heap as we need to keep them. */
@@ -647,12 +647,13 @@ static u1 *jit_compile_intern(jitdata *jd)
 		RT_TIMING_GET_TIME(time_typecheck);
 
 #if defined(ENABLE_LOOP)
-		if (opt_loops) {
-			depthFirst(jd);
-			analyseGraph(jd);
-			optimize_loops(jd);
-			jit_renumber_basicblocks(jd);
-		}
+		loopFoo();
+//		if (opt_loops) {
+//			depthFirst(jd);
+//			analyseGraph(jd);
+//			optimize_loops(jd);
+//			jit_renumber_basicblocks(jd);
+//		}
 #endif
 		RT_TIMING_GET_TIME(time_loop);
 

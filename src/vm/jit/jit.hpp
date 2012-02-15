@@ -59,7 +59,7 @@ typedef struct exception_entry exception_entry;
 #include "vm/jit/ir/instruction.hpp"
 
 #if defined(ENABLE_LOOP)
-# include "vm/jit/loop/loop.h"
+# include "vm/jit/loop/loop.hpp"
 #endif
 #if defined(ENABLE_SSA) 
 # include "vm/jit/optimizing/lsra.h"
@@ -113,7 +113,7 @@ struct jitdata {
 	codegendata     *cd;
 	registerdata    *rd;
 #if defined(ENABLE_LOOP)
-	loopdata        *ld;
+//	loopdata        *ld;
 #endif
 #if defined(ENABLE_SSA) || defined(ENABLE_LSRA)
 	lsradata        *ls;

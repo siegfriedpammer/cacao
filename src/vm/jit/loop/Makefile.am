@@ -37,10 +37,11 @@ LIBS =
 noinst_LTLIBRARIES = libloop.la
 
 libloop_la_SOURCES = \
-	analyze.c \
-	graph.c \
-	loop.c \
-	tracing.c
+	dominator.cpp
+#	analyze.c \
+#	graph.c \
+#	loop.c \
+#	tracing.c
 
 
 ## Local variables:
