@@ -1,6 +1,6 @@
 dnl m4/version.m4
 dnl
-dnl Copyright (C) 2009
+dnl Copyright (C) 1996-2012
 dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl
 dnl This file is part of CACAO.
@@ -29,7 +29,7 @@ if test x`echo "$version" | $SED -e 's/[[0-9a-z+]]*//g'` = "x..";
 then
     major=`echo "$version" | $SED -e 's/\.[[0-9a-z.+]]*$//'`
     minor=`echo "$version" | $SED -e 's/^[[0-9]]*\.//' -e 's/\.[[0-9a-z.+]]*$//'`
-    micro=`echo "$version" | $SED -r -e 's/^[[0-9]]*\.[[0-9]]*\.([[0-9]]*).*/\1/'`
+    micro=`echo "$version" | $SED -e 's/^[[0-9]]*\.[[0-9]]*\.\([[0-9]]*\).*/\1/'`
     extra=`echo "$version" | $SED -e 's/^[[0-9]]*\.[[0-9]]*\.[[0-9]]*//'`
 else
     major=`echo "$version" | $SED -e 's/\.[[0-9a-z.+]]*$//'`
