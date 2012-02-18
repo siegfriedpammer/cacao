@@ -647,7 +647,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 		RT_TIMING_GET_TIME(time_typecheck);
 
 #if defined(ENABLE_LOOP)
-		loopFoo();
+		loopFoo(jd);
 //		if (opt_loops) {
 //			depthFirst(jd);
 //			analyseGraph(jd);

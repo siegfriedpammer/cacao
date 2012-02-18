@@ -1,2 +1,11 @@
+#include "vm/jit/jit.hpp"
 
-void loopFoo();
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void loopFoo(jitdata*);
+
+#ifdef __cplusplus
+}
+#endif
