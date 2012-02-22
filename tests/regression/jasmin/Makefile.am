@@ -1,6 +1,6 @@
 ## tests/regression/jasmin/Makefile.am
 ##
-## Copyright (C) 1996-2005, 2006, 2008
+## Copyright (C) 1996-2012
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -40,7 +40,7 @@ build:
 	$(JAVACMD) -cp $(JASMIN_JAR) jasmin.Main $(srcdir)/*.j
 
 run:
-	@LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs JAVA="$(top_builddir)/src/cacao/cacao -Xbootclasspath:$(BOOTCLASSPATH)" $(srcdir)/runtest $(srcdir)/*.j
+	JAVACMD="$(JAVACMD)" $(srcdir)/runtest $(srcdir)/*.j
 
 
 ## Local variables:

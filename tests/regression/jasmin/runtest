@@ -8,8 +8,8 @@ FAILCOLOR=''
 NOCOLOR=''
 ECHOFLAGS=''
 
-if [ -z "$JAVA" ] ; then
-	JAVA=../../../src/cacao/cacao
+if [ -z "$JAVACMD" ] ; then
+	JAVACMD=../../../src/cacao/cacao
 fi
 
 if [ -z "$TIMEOUT" ] ; then
@@ -44,7 +44,7 @@ if [ "$1" = "--color" ] ; then
 	ECHOFLAGS='-e'
 fi
 
-echo "java command: $JAVA $JAVAFLAGS"
+echo "java command: $JAVACMD $JAVAFLAGS"
 
 while [ -n "$1" ]
 do
@@ -72,7 +72,11 @@ do
 
 	# run the test
 
-	$TIMEOUTRUN $JAVA $JAVAFLAGS "$TESTBASENAME" >"$TESTOUT" 2>"$TESTERR"
+	if [ -z "$TIMEOUTRUN" ] ; then
+		eval $JAVACMD $JAVAFLAGS "$TESTBASENAME" >"$TESTOUT" 2>"$TESTERR"
+	else
+		$TIMEOUTRUN $JAVACMD $JAVAFLAGS "$TESTBASENAME" >"$TESTOUT" 2>"$TESTERR"
+	fi
 	TESTSTATUS=$?
 
 	if [ $TESTSTATUS -ne $EXPECTSTATUS ] ; then
@@ -93,7 +97,7 @@ do
 		fi
 
 		if [ "$VERBOSE" -eq "1" ] ; then
-			$JAVA $JAVAFLAGS -sia "$TESTBASENAME" >"$TESTLOG" || exit 2
+			eval $JAVACMD $JAVAFLAGS -sia "$TESTBASENAME" >"$TESTLOG" || exit 2
 			./show "$TESTLOG"
 		fi
 	else
@@ -108,7 +112,7 @@ do
 	if [ "$CHECKICMD" -ne 0 ] ; then
 		rm -f "$TESTSIA"
 		touch "$TESTSIA"
-		$JAVA $JAVAFLAGS -sia "$TESTBASENAME" >"$TESTSIA" 2>/dev/null
+		eval $JAVACMD $JAVAFLAGS -sia "$TESTBASENAME" >"$TESTSIA" 2>/dev/null
 		cat "$TESTSIA" | sed -n '/^'"$TESTBASENAME"'\.main/,$p' | sed '/^=====.*flags: -1/,$d' | grep "$EXPECTICMD"
 	fi
 
