@@ -682,4 +682,5 @@ void md_return_alloc(jitdata *jd, stackelement_t *stackslot)
  * c-basic-offset: 4
  * tab-width: 4
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
