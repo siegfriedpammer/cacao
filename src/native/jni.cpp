@@ -1,6 +1,6 @@
 /* src/native/jni.cpp - implementation of the Java Native Interface functions
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -1424,9 +1424,6 @@ jclass jni_GetObjectClass(JNIEnv *env, jobject obj)
 	TRACEJNICALLS(("jni_GetObjectClass(env=%p, obj=%p)", env, obj));
 
 	o = (java_handle_t *) obj;
-
-	if ((o == NULL) || (LLNI_vftbl_direct(o) == NULL))
-		return NULL;
 
 	LLNI_class_get(o, c);
 
