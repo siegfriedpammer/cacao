@@ -82,10 +82,6 @@
 
 #include "vm/jit/ir/bytecode.h"
 
-//#include "vm/jit/loop/analyze.h"
-//#include "vm/jit/loop/graph.h"
-//#include "vm/jit/loop/loop.h"
-
 #if defined(ENABLE_IFCONV)
 # include "vm/jit/optimizing/ifconv.h"
 #endif
@@ -212,6 +208,7 @@ jitdata *jit_jitdata_new(methodinfo *m)
 	jd->cd    = (codegendata*) DumpMemory::allocate(sizeof(codegendata));
 	jd->rd    = (registerdata*) DumpMemory::allocate(sizeof(registerdata));
 #if defined(ENABLE_LOOP)
+	jd->ld    = (LoopData*) DumpMemory::allocate(sizeof(LoopData));
 //	jd->ld    = (loopdata*) DumpMemory::allocate(sizeof(loopdata));
 #endif
 
@@ -646,17 +643,6 @@ static u1 *jit_compile_intern(jitdata *jd)
 #endif
 		RT_TIMING_GET_TIME(time_typecheck);
 
-#if defined(ENABLE_LOOP)
-		loopFoo(jd);
-//		if (opt_loops) {
-//			depthFirst(jd);
-//			analyseGraph(jd);
-//			optimize_loops(jd);
-//			jit_renumber_basicblocks(jd);
-//		}
-#endif
-		RT_TIMING_GET_TIME(time_loop);
-
 #if defined(ENABLE_IFCONV)
 		if (JITDATA_HAS_FLAG_IFCONV(jd)) {
 			if (!ifconv_static(jd))
@@ -686,6 +672,17 @@ static u1 *jit_compile_intern(jitdata *jd)
 
 		if (!cfg_build(jd))
 			return NULL;
+
+#if defined(ENABLE_LOOP)
+		removeArrayBoundChecks(jd);
+//		if (opt_loops) {
+//			depthFirst(jd);
+//			analyseGraph(jd);
+//			optimize_loops(jd);
+//			jit_renumber_basicblocks(jd);
+//		}
+#endif
+		RT_TIMING_GET_TIME(time_loop);
 
 #if defined(ENABLE_PROFILING)
 		/* Basic block reordering.  I think this should be done after
