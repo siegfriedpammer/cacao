@@ -49,9 +49,12 @@ EXTRA_DIST = \
 	Test.sh \
 	\
 	jctest.output \
-	fptest.output \
-	fp.output\
-	extest.2output \
+	fptest.output.cp \
+	fptest.output.ojdk \
+	fp.output.cp \
+	fp.output.ojdk \
+	extest.2output.cp \
+	extest.2output.ojdk \
 	LoadDisplacementOverflow.output \
 	FieldDisplacementOverflow.output \
 	StackDisplacementOverflow.output \
