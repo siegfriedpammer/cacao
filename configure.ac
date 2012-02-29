@@ -1,6 +1,6 @@
 dnl configure.ac
 dnl
-dnl Copyright (C) 1996-2010
+dnl Copyright (C) 1996-2012
 dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl 
 dnl This file is part of CACAO.
@@ -193,19 +193,39 @@ dnl Must be BEFORE *linux*.
 esac
 
 
+AC_MSG_CHECKING(whether to disable optimizations and build with -g -O0)
+AC_ARG_ENABLE([optimizations],
+              [AS_HELP_STRING(--disable-optimizations,build with -g -O0 [[default=no]])],
+              [case "${enableval}" in
+                   no) disable_optimizations=yes;;
+                   *) disable_optimizations=no;;
+               esac],
+              [disable_optimizations=no])
+AC_MSG_RESULT(${disable_optimizations})
+
 dnl Set optimization and debugging for all architectures and systems.
 dnl NOTE: Setting the CFLAGS/CXXFLAGS only works before calling AC_PROG_CC/AC_PROG_CXX.
 if test x"$CFLAGS" = "x"; then
-    OPT_CFLAGS="-g -O2"
+    OPT_CFLAGS="-g"
 else
     OPT_CFLAGS=$CFLAGS
+fi
+if test x"${disable_optimizations}" = "xyes"; then
+    OPT_CFLAGS="$OPT_CFLAGS -O0"
+else
+    OPT_CFLAGS="$OPT_CFLAGS -O2"
 fi
 OPT_CFLAGS="$OPT_CFLAGS -fno-strict-aliasing"
 
 if test x"$CXXFLAGS" = "x"; then
-    OPT_CXXFLAGS="-g -O2"
+    OPT_CXXFLAGS="-g"
 else
     OPT_CXXFLAGS=$CXXFLAGS
+fi
+if test x"${disable_optimizations}" = "xyes"; then
+    OPT_CXXFLAGS="$OPT_CXXFLAGS -O0"
+else
+    OPT_CXXFLAGS="$OPT_CXXFLAGS -O2"
 fi
 OPT_CXXFLAGS="$OPT_CXXFLAGS -fno-strict-aliasing"
 
