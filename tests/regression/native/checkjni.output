@@ -20,7 +20,6 @@ PASS, java.lang.Exception: Exception from JNI
 GetObjectClass:
 PASS
 PASS
-PASS
 Field Access:
 PASS
 PASS

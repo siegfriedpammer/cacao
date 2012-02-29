@@ -1,6 +1,6 @@
 /* src/vm/jit/x86_64/asmpart.S - Java-C interface functions for x86_64
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -314,12 +314,14 @@ noflt:
 *******************************************************************************/
 
 asm_abstractmethoderror:
+	sub     $8,sp                       /* keep stack aligned                 */
 	mov     sp,a0                       /* pass java sp                       */
-	add     $1*8,a0
-	mov     0*8(sp),a1                  /* pass exception address             */
+	add     $2*8,a0
+	mov     1*8(sp),a1                  /* pass exception address             */
 	sub     $3,a1
 	call	exceptions_asm_new_abstractmethoderror@PLT
 	                                    /* exception pointer is return value  */
+	pop     xpc                         /* dummy pop                          */
 	pop     xpc                         /* get exception address              */
 	sub     $3,xpc                      /* exception address is ra - 3        */
 	jmp     L_asm_handle_exception
