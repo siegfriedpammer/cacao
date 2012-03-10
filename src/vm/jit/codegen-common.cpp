@@ -1,6 +1,6 @@
 /* src/vm/jit/codegen-common.cpp - architecture independent code generator stuff
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -1549,10 +1549,6 @@ bool codegen_emit(jitdata *jd)
 
 					pr = NULL;		/* Silence compiler warning */
 				}
-
-#if defined(USES_PATCHABLE_MEMORY_BARRIER)
-				codegen_emit_patchable_barrier(iptr, cd, pr, fi);
-#endif
 
 				// XXX X86_64: Here We had this:
 				/* This approach is much faster than moving the field
