@@ -1,6 +1,6 @@
 dnl m4/hgrev.m4
 dnl
-dnl Copyright (C) 2010
+dnl Copyright (C) 1996-2012
 dnl CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 dnl 
 dnl This file is part of CACAO.
@@ -23,11 +23,12 @@ dnl 02110-1301, USA.
 
 dnl Mercurial revision
 
-AC_DEFUN([AC_CHECK_WITH_HGREV],[
+AC_DEFUN([AC_CHECK_HGREV],[
 AC_MSG_CHECKING(for the Mercurial revision)
-AC_ARG_WITH([hg-revision],
-            [AS_HELP_STRING(--with-hg-revision=<hash>, the Mercurial revision used for this CACAO build)],
-            [CACAO_HGREV=${withval}])
+CACAO_HGREV=`grep ^node: "$srcdir"/.hg_archival.txt 2>/dev/null | awk '{print substr($[]2, 1, 12)}'`
+if test x"$CACAO_HGREV" = "x"; then
+    CACAO_HGREV=`cd "$srcdir" && hg id -i`
+fi
 AC_MSG_RESULT(${CACAO_HGREV-not specified})
 AC_DEFINE_UNQUOTED([CACAO_HGREV], "${CACAO_HGREV}", [CACAO's Mercurial revision])
 AC_SUBST(CACAO_HGREV)

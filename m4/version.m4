@@ -39,7 +39,7 @@ else
 fi
 if test ! "x$CACAO_HGREV" = "x";
 then
-    extra="$extra.hg$CACAO_HGREV"
+    extra="${extra}+r$CACAO_HGREV"
 fi
 
 AC_DEFINE_UNQUOTED(VERSION_MAJOR, $major, [major version number])
