@@ -1,6 +1,6 @@
 /* src/threads/thread.cpp - machine independent thread functions
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -34,6 +34,17 @@
 #include "mm/memory.hpp"
 
 #if defined(ENABLE_GC_BOEHM)
+
+#if defined(__LINUX__)
+# define GC_LINUX_THREADS
+#elif defined(__IRIX__)
+# define GC_IRIX_THREADS
+#elif defined(__DARWIN__)
+# define GC_DARWIN_THREADS
+#elif defined(__SOLARIS__)
+# define GC_SOLARIS_THREADS
+#endif
+
 /* We need to include Boehm's gc.h here for GC_register_my_thread and
    friends. */
 # include "mm/boehm-gc/include/gc.h"
