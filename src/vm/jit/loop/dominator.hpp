@@ -10,6 +10,4 @@ void createRoot(jitdata*);
 void calculateDominators(jitdata*);
 void buildDominatorTree(jitdata*);
 
-void printBasicBlocks(jitdata*);
-
 #endif
