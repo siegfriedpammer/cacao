@@ -2,8 +2,8 @@
 #define _LOOP_HPP
 
 
-typedef struct LoopData LoopData;
-typedef struct DominatorData DominatorData;
+typedef struct MethodLoopData MethodLoopData;
+typedef struct BasicblockLoopData BasicblockLoopData;
 typedef struct LoopContainer LoopContainer;
 typedef struct Edge Edge;
 
@@ -18,7 +18,7 @@ typedef struct Edge Edge;
 /**
  * Per-method data used in jitdata.
  */
-struct LoopData
+struct MethodLoopData
 {
 	std::vector<basicblock*>	vertex;
 	s4 							n;
@@ -32,10 +32,13 @@ struct LoopData
 	// Contains all edges (a,b) from depthBackEdges where b dominates a.
 	std::vector<Edge>			loopBackEdges;
 
+	// Contains pointers to all loops in this method.
+	std::vector<LoopContainer*>	loops;
+
 	// Every method has exactly one (pseudo) root loop that is executed exactly once.
 	LoopContainer*				rootLoop;
 
-	LoopData()
+	MethodLoopData()
 		: n(0)
 		, root(0)
 		, rootLoop(0)
@@ -46,7 +49,7 @@ struct LoopData
  * Per-basicblock data used in basicblock.
  * Contains information about the dominator tree.
  */
-struct DominatorData
+struct BasicblockLoopData
 {
 	basicblock*					parent;
 	std::vector<basicblock*>	pred;
@@ -58,12 +61,17 @@ struct DominatorData
 	basicblock*					dom;		// after calculateDominators: the immediate dominator
 	std::vector<basicblock*>	children;	// the children of a node in the dominator tree
 
-	DominatorData()
+	// Used to prevent this basicblock to be visited again during a traversal.
+	// This is NOT a pointer to the loop this basicblock belongs to because such a loop is not unique.
+	LoopContainer*				visited;	
+
+	BasicblockLoopData()
 		: parent(0)
 		, semi(0)
 		, ancestor(0)
 		, label(0)
 		, dom(0)
+		, visited(0)
 	{}
 };
 
@@ -75,7 +83,8 @@ struct LoopContainer
 	LoopContainer*					parent;		// the parent loop or 0 if this is the root loop
 	std::vector<LoopContainer*>		children;	// all loops contained in this loop
 
-	basicblock*						header;
+	basicblock*						header;		// the unique entry point of this loop
+	std::vector<basicblock*>		nodes;		// all nodes contained in this loop except the header
 
 	LoopContainer()
 		: parent(0)

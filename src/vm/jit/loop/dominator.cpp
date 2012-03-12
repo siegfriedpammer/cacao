@@ -61,11 +61,11 @@ void calculateDominators(jitdata* jd)
 
 	for (basicblock* block = jd->basicblocks; block != 0; block = block->next)
 	{
-		block->dominatorData = new DominatorData;
+		block->ld = new BasicblockLoopData;
 	}
 
 	// jd->ld->root is not contained in the linked list jd->basicblocks.
-	jd->ld->root->dominatorData = new DominatorData;
+	jd->ld->root->ld = new BasicblockLoopData;
 	
 	depthFirstTraversal(jd, jd->ld->root);
 
@@ -80,32 +80,32 @@ void calculateDominators(jitdata* jd)
 
 		typedef std::vector<basicblock*>::iterator Iterator;
 
-		for (Iterator it = w->dominatorData->pred.begin(); it != w->dominatorData->pred.end(); ++it)
+		for (Iterator it = w->ld->pred.begin(); it != w->ld->pred.end(); ++it)
 		{
 			basicblock* v = *it;
 
 			basicblock* u = eval(v);
-			if (u->dominatorData->semi < w->dominatorData->semi)
-				w->dominatorData->semi = u->dominatorData->semi;
+			if (u->ld->semi < w->ld->semi)
+				w->ld->semi = u->ld->semi;
 		}
 
-		jd->ld->vertex[w->dominatorData->semi]->dominatorData->bucket.push_back(w);
-		link(w->dominatorData->parent, w);
+		jd->ld->vertex[w->ld->semi]->ld->bucket.push_back(w);
+		link(w->ld->parent, w);
 
 		/******************
 		 *     Step 3     *
 		 ******************/
 
-		std::vector<basicblock*>& bucket = w->dominatorData->parent->dominatorData->bucket;
+		std::vector<basicblock*>& bucket = w->ld->parent->ld->bucket;
 		for (Iterator it = bucket.begin(); it != bucket.end(); ++it)
 		{
 			basicblock* v = *it;
 
 			basicblock* u = eval(v);
-			if (u->dominatorData->semi < v->dominatorData->semi)
-				v->dominatorData->dom = u;
+			if (u->ld->semi < v->ld->semi)
+				v->ld->dom = u;
 			else
-				v->dominatorData->dom = w->dominatorData->parent;
+				v->ld->dom = w->ld->parent;
 		}
 		bucket.clear();
 	}
@@ -118,17 +118,17 @@ void calculateDominators(jitdata* jd)
 	{
 		basicblock* w = jd->ld->vertex[i];
 
-		if (w->dominatorData->dom != jd->ld->vertex[w->dominatorData->semi])
-			w->dominatorData->dom = w->dominatorData->dom->dominatorData->dom;
+		if (w->ld->dom != jd->ld->vertex[w->ld->semi])
+			w->ld->dom = w->ld->dom->ld->dom;
 	}
-	jd->ld->root->dominatorData->dom = 0;
+	jd->ld->root->ld->dom = 0;
 }
 
 void depthFirstTraversal(jitdata* jd, basicblock* block)
 {
-	block->dominatorData->semi = ++jd->ld->n;
+	block->ld->semi = ++jd->ld->n;
 	jd->ld->vertex.push_back(block);
-	block->dominatorData->label = block;
+	block->ld->label = block;
 
 	// Check if jd->ld->vertex[jd->ld->n] == block
 	assert(static_cast<s4>(jd->ld->vertex.size()) == jd->ld->n + 1);
@@ -137,9 +137,9 @@ void depthFirstTraversal(jitdata* jd, basicblock* block)
 	{
 		basicblock* successor = block->successors[i];
 
-		if (successor->dominatorData->semi == 0)   // visited the first time?
+		if (successor->ld->semi == 0)   // visited the first time?
 		{
-			successor->dominatorData->parent = block;
+			successor->ld->parent = block;
 			depthFirstTraversal(jd, successor);
 		}
 		else   // back edge found
@@ -147,7 +147,7 @@ void depthFirstTraversal(jitdata* jd, basicblock* block)
 			jd->ld->depthBackEdges.push_back(Edge(block, successor));
 		}
 
-		successor->dominatorData->pred.push_back(block);
+		successor->ld->pred.push_back(block);
 	}
 }
 
@@ -156,38 +156,38 @@ void link(basicblock* v, basicblock* w)
 	assert(v);
 	assert(w);
 
-	w->dominatorData->ancestor = v;
+	w->ld->ancestor = v;
 }
 
 basicblock* eval(basicblock* block)
 {
 	assert(block);
 
-	if (block->dominatorData->ancestor == 0)
+	if (block->ld->ancestor == 0)
 	{
 		return block;
 	}
 	else
 	{
 		compress(block);
-		return block->dominatorData->label;
+		return block->ld->label;
 	}
 }
 
 void compress(basicblock* block)
 {
-	basicblock* ancestor = block->dominatorData->ancestor;
+	basicblock* ancestor = block->ld->ancestor;
 
 	assert(ancestor != 0);
 
-	if (ancestor->dominatorData->ancestor != 0)
+	if (ancestor->ld->ancestor != 0)
 	{
 		compress(ancestor);
-		if (ancestor->dominatorData->label->dominatorData->semi < block->dominatorData->label->dominatorData->semi)
+		if (ancestor->ld->label->ld->semi < block->ld->label->ld->semi)
 		{
-			block->dominatorData->label = ancestor->dominatorData->label;
+			block->ld->label = ancestor->ld->label;
 		}
-		block->dominatorData->ancestor = ancestor->dominatorData->ancestor;
+		block->ld->ancestor = ancestor->ld->ancestor;
 	}
 }
 
@@ -198,8 +198,8 @@ void buildDominatorTree(jitdata* jd)
 {
 	for (basicblock* block = jd->basicblocks; block != 0; block = block->next)
 	{
-		if (block->dominatorData->dom)
-			block->dominatorData->dom->dominatorData->children.push_back(block);
+		if (block->ld->dom)
+			block->ld->dom->ld->children.push_back(block);
 	}
 }
 

@@ -113,7 +113,7 @@ struct jitdata {
 	codegendata     *cd;
 	registerdata    *rd;
 #if defined(ENABLE_LOOP)
-	LoopData        *ld;
+	MethodLoopData  *ld;
 #endif
 #if defined(ENABLE_SSA) || defined(ENABLE_LSRA)
 	lsradata        *ls;
@@ -324,7 +324,7 @@ struct basicblock {
 	s4            mpc;          /* machine code pc at start of block          */
 
 #if defined(ENABLE_LOOP)
-	DominatorData *dominatorData;
+	BasicblockLoopData *ld;
 #endif
 
 	/* TODO: those fields are probably usefull for other passes as well. */
