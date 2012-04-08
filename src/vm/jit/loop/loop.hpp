@@ -61,7 +61,7 @@ struct BasicblockLoopData
 	basicblock*					dom;		// after calculateDominators: the immediate dominator
 	std::vector<basicblock*>	children;	// the children of a node in the dominator tree
 
-	// Used to prevent this basicblock to be visited again during a traversal.
+	// Used to prevent this basicblock from being visited again during a traversal.
 	// This is NOT a pointer to the loop this basicblock belongs to because such a loop is not unique.
 	LoopContainer*				visited;	
 
