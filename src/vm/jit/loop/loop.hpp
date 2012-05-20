@@ -14,6 +14,7 @@ typedef struct Edge Edge;
 #include <vector>
 
 #include "vm/jit/jit.hpp"
+#include "VariableSet.hpp"
 
 /**
  * Per-method data used in jitdata.
@@ -58,12 +59,19 @@ struct BasicblockLoopData
 	basicblock*					ancestor;
 	basicblock*					label; 
 
-	basicblock*					dom;		// after calculateDominators: the immediate dominator
-	std::vector<basicblock*>	children;	// the children of a node in the dominator tree
+	basicblock*					dom;			// after calculateDominators: the immediate dominator
+	basicblock*					nextSibling;	// pointer to the next sibling in the dominator tree or 0.
+	std::vector<basicblock*>	children;		// the children of a node in the dominator tree
 
 	// Used to prevent this basicblock from being visited again during a traversal.
 	// This is NOT a pointer to the loop this basicblock belongs to because such a loop is not unique.
 	LoopContainer*				visited;	
+
+	// Used to prevent this basicblock from being visited again during a traversal in analyze.cpp.
+	basicblock*					analyzeVisited;
+
+	// Contains all variables that are possibly assigned/changed between this block and its dominator.
+	VariableSet					changedVariables;
 
 	BasicblockLoopData()
 		: parent(0)
@@ -71,7 +79,9 @@ struct BasicblockLoopData
 		, ancestor(0)
 		, label(0)
 		, dom(0)
+		, nextSibling(0)
 		, visited(0)
+		, analyzeVisited(0)
 	{}
 };
 

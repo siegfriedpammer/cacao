@@ -199,7 +199,15 @@ void buildDominatorTree(jitdata* jd)
 	for (basicblock* block = jd->basicblocks; block != 0; block = block->next)
 	{
 		if (block->ld->dom)
-			block->ld->dom->ld->children.push_back(block);
+		{
+			std::vector<basicblock*>& children = block->ld->dom->ld->children;
+			
+			// Every basicblock has a pointer to the next sibling in the dominator tree.
+			if (!children.empty())
+				children.back()->ld->nextSibling = block;
+
+			children.push_back(block);
+		}
 	}
 }
 

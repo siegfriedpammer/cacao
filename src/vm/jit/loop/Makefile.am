@@ -41,7 +41,11 @@ libloop_la_SOURCES = \
 	dominator.cpp \
 	dominator.hpp \
 	loop.cpp \
-	loop.hpp
+	loop.hpp \
+	analyze.cpp \
+	analyze.hpp \
+	VariableSet.cpp \
+	VariableSet.hpp
 
 
 ## Local variables:

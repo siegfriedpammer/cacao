@@ -3,6 +3,7 @@
 
 #include "loop.hpp"
 #include "dominator.hpp"
+#include "analyze.hpp"
 #include "toolbox/logging.hpp"
 
 #define INDENT 2
@@ -31,6 +32,12 @@ namespace
 
 	void printBasicBlocks(jitdata* jd)
 	{
+		/*
+		std::stringstream s;
+		s << "Variables: " << jd->varcount;
+		log_text(s.str().c_str());
+		*/
+
 		// print basic block graph
 		log_text("----- Basic Blocks -----");
 		for (basicblock* bb = jd->basicblocks; bb != 0; bb = bb->next)
@@ -59,6 +66,10 @@ namespace
 				str << bb->ld->dom->nr;
 			else
 				str << "X";
+
+			// print variable assignments
+			str << " " << bb->ld->changedVariables;
+
 			log_text(str.str().c_str());
 		}
 
@@ -305,10 +316,13 @@ void removeArrayBoundChecks(jitdata* jd)
 	createRoot(jd);
 	calculateDominators(jd);
 	buildDominatorTree(jd);
+	
 	findLoopBackEdges(jd);
 	findLoops(jd);
 	mergeLoops(jd);
 	buildLoopTree(jd);
+	
+	findVariableAssignments(jd);
 
 	printBasicBlocks(jd);		// for debugging
 }
