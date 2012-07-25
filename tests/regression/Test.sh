@@ -7,7 +7,7 @@ SRCDIR=$3
 #
 # test which classlibrary was used
 # depending on whether classpath or openjdk class library was used we may expect different results from the tests, this may e.g.
-# by simple things like intentation when printing stack traces or even more subtile stuff ...
+# by simple things like intentation when printing stack traces or even more subtle stuff ...
 #
 $JAVA -XX:+PrintConfig 2>&1 | grep gnu.classpath.boot.library.path: > /dev/null
 if [ $? -eq "0" ]; then
@@ -47,9 +47,9 @@ if [ $? -eq "0" ]; then
         # Error should have been returned
         echo "OK, but wrong return value: $?"
         head $TEST.thisoutput
-        exit
+        test -z "$CHECK_NO_FAIL_FAST" && exit 1 || exit
     fi
-	
+
     cmp -s $REFERENCE_OUTPUT $TEST.thisoutput
 
     if [ $? -eq "0" ]; then
@@ -57,6 +57,7 @@ if [ $? -eq "0" ]; then
     else
         echo "FAILED"
         diff -u $REFERENCE_OUTPUT $TEST.thisoutput
+        test -z "$CHECK_NO_FAIL_FAST" && exit 1
     fi
 
 else
@@ -65,7 +66,7 @@ else
         # No Error should have been returned
         echo "FAILED, but wrong return value: $?"
         head $TEST.this2output
-        exit
+        test -z "$CHECK_NO_FAIL_FAST" && exit 1 || exit
     fi
 
     cmp -s $REFERENCE_2OUTPUT $TEST.thisoutput
@@ -75,7 +76,8 @@ else
     else
         echo "FAILED"
         diff -u $REFERENCE_2OUTPUT $TEST.thisoutput
+        test -z "$CHECK_NO_FAIL_FAST" && exit 1
     fi
-fi		
+fi
 
 rm -f $TEST.thisoutput

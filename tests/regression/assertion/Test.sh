@@ -16,9 +16,9 @@ if [ $? -eq "0" ]; then
         # Error should have been returned
         echo "OK, but wrong return value: $?"
         head $TEST.thisoutput
-        exit
+        test -z "$CHECK_NO_FAIL_FAST" && exit 1 || exit
     fi
-	
+
     cmp -s $SRCDIR/$TEST.output $TEST.thisoutput
 
     if [ $? -eq "0" ]; then
@@ -26,6 +26,7 @@ if [ $? -eq "0" ]; then
     else
         echo "FAILED"
         diff -u $SRCDIR/$TEST.output $TEST.thisoutput
+        test -z "$CHECK_NO_FAIL_FAST" && exit 1
     fi
 
 else
@@ -34,7 +35,7 @@ else
         # No Error should have been returned
         echo "FAILED, but wrong return value: $?"
         head $TEST.this2output
-        exit
+        test -z "$CHECK_NO_FAIL_FAST" && exit 1 || exit
     fi
 
     cmp -s $SRCDIR/$TEST.2output $TEST.thisoutput
@@ -44,7 +45,8 @@ else
     else
         echo "FAILED"
         diff -u $SRCDIR/$TEST.2output $TEST.thisoutput
+        test -z "$CHECK_NO_FAIL_FAST" && exit 1
     fi
-fi		
+fi
 
 rm -f $TEST.thisoutput
