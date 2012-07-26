@@ -1,6 +1,6 @@
 ## tests/regression/resolving/Makefile.am
 ##
-## Copyright (C) 2007, 2008
+## Copyright (C) 1996-2012
 ## CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 ##
 ## This file is part of CACAO.
@@ -64,7 +64,7 @@ CLEANFILES = \
 	*.class
 
 check: $(HARNESS_CLASS_FILES)
-	@for t in $(TEST_NAMES) ; do echo "TEST $$t" ; { $(JAVACCMD) -d . -classpath . $(srcdir)/$$t.java && LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(JAVACMD) $$t ; } || exit 1 ; done
+	@for t in $(TEST_NAMES) ; do echo "TEST $$t" ; if ! { $(JAVACCMD) -d . -classpath . $(srcdir)/$$t.java && LD_LIBRARY_PATH=$(top_builddir)/src/cacao/.libs $(JAVACMD) $$t ; }; then test -z "$(CHECK_NO_FAIL_FAST)" && exit 1 || echo FAIL; fi; done
 
 $(HARNESS_CLASS_FILES): $(HARNESS_SOURCE_FILES)
 	$(JAVACCMD) -d . $(HARNESS_SOURCE_FILES)
