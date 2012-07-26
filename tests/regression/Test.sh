@@ -39,9 +39,11 @@ fi
 
 echo -n "$TEST: "
 
-$JAVA $TEST > $TEST.thisoutput 2>&1
+$JAVA $TEST > $TEST.thisoutputraw 2>&1
+result=$?
+sed 's/^[[:space:]][[:space:]]*\(at [^:]*\):\(.*\)/   \1)/' < $TEST.thisoutputraw > $TEST.thisoutput && rm -f $TEST.thisoutputraw
 
-if [ $? -eq "0" ]; then
+if [ $result -eq "0" ]; then
     # no Error returned
     if [ -f $REFERENCE_2OUTPUT ]; then
         # Error should have been returned
