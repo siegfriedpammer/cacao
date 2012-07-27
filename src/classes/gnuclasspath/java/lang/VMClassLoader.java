@@ -359,15 +359,19 @@ final class VMClassLoader
 
   /**
    * The system default for assertion status. This is used for all system
-   * classes (those with a null ClassLoader), as well as the initial value for
+   * classes (those with a null ClassLoader).
+   *
+   * @return the system-wide default assertion status
+   */
+  static native final boolean getSystemAssertionStatus();
+
+  /**
+   * The default for assertion status. This is used as the initial value for
    * every ClassLoader's default assertion status.
    *
    * @return the system-wide default assertion status
    */
   static native final boolean defaultAssertionStatus();
-
-  static native final boolean defaultUserAssertionStatus();
-
 
   static final Map packageAssertionMap = 
     Collections.unmodifiableMap(packageAssertionStatus0(Boolean.TRUE, Boolean.FALSE));

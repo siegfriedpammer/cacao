@@ -388,10 +388,10 @@ return_NULL:
 
 /*
  * Class:     java/lang/VMClassLoader
- * Method:    defaultAssertionStatus
+ * Method:    getStystemAssertionStatus
  * Signature: ()Z
  */
-JNIEXPORT jboolean JNICALL Java_java_lang_VMClassLoader_defaultAssertionStatus(JNIEnv *env, jclass clazz)
+JNIEXPORT jboolean JNICALL Java_java_lang_VMClassLoader_getSystemAssertionStatus(JNIEnv *env, jclass clazz)
 {
 #if defined(ENABLE_ASSERTION)
 	return assertion_system_enabled;
@@ -402,10 +402,10 @@ JNIEXPORT jboolean JNICALL Java_java_lang_VMClassLoader_defaultAssertionStatus(J
 
 /*
  * Class:     java/lang/VMClassLoader
- * Method:    userAssertionStatus
+ * Method:    defaultAssertionStatus
  * Signature: ()Z
  */
-JNIEXPORT jboolean JNICALL Java_java_lang_VMClassLoader_defaultUserAssertionStatus(JNIEnv *env, jclass clazz)
+JNIEXPORT jboolean JNICALL Java_java_lang_VMClassLoader_defaultAssertionStatus(JNIEnv *env, jclass clazz)
 {
 #if defined(ENABLE_ASSERTION)
 	return assertion_user_enabled;
@@ -587,8 +587,8 @@ static JNINativeMethod methods[] = {
 	{ (char*) "resolveClass",               (char*) "(Ljava/lang/Class;)V",                                                                             (void*) (uintptr_t) &Java_java_lang_VMClassLoader_resolveClass               },
 	{ (char*) "loadClass",                  (char*) "(Ljava/lang/String;Z)Ljava/lang/Class;",                                                           (void*) (uintptr_t) &Java_java_lang_VMClassLoader_loadClass                  },
 	{ (char*) "nativeGetResources",         (char*) "(Ljava/lang/String;)Ljava/util/Vector;",                                                           (void*) (uintptr_t) &Java_java_lang_VMClassLoader_nativeGetResources         },
-	{ (char*) "defaultAssertionStatus",     (char*) "()Z",                                                                                              (void*) (uintptr_t) &Java_java_lang_VMClassLoader_defaultAssertionStatus     },
-	{ (char*) "defaultUserAssertionStatus", (char*) "()Z",                                                                                              (void*) (uintptr_t) &Java_java_lang_VMClassLoader_defaultUserAssertionStatus },
+	{ (char*) "getSystemAssertionStatus",   (char*) "()Z",                                                                                              (void*) (uintptr_t) &Java_java_lang_VMClassLoader_getSystemAssertionStatus     },
+	{ (char*) "defaultAssertionStatus",     (char*) "()Z",                                                                                              (void*) (uintptr_t) &Java_java_lang_VMClassLoader_defaultAssertionStatus },
 	{ (char*) "packageAssertionStatus0",    (char*) "(Ljava/lang/Boolean;Ljava/lang/Boolean;)Ljava/util/Map;",                                          (void*) (uintptr_t) &Java_java_lang_VMClassLoader_packageAssertionStatus0    },
 	{ (char*) "classAssertionStatus0",      (char*) "(Ljava/lang/Boolean;Ljava/lang/Boolean;)Ljava/util/Map;",                                          (void*) (uintptr_t) &Java_java_lang_VMClassLoader_classAssertionStatus0      },
 	{ (char*) "findLoadedClass",            (char*) "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/lang/Class;",                                     (void*) (uintptr_t) &Java_java_lang_VMClassLoader_findLoadedClass            },
