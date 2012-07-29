@@ -1,6 +1,6 @@
 /* src/vm/jit/trap.cpp - hardware traps
 
-   Copyright (C) 2008, 2009, 2010
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
    Copyright (C) 2009 Theobroma Systems Ltd.
 
@@ -344,7 +344,10 @@ void trap_handle(int sig, void *xpc, void *context)
 		// the execution state. We assume that there was no exception.
 
 		if (was_replaced) {
-			assert(exceptions_get_exception() == NULL);
+			java_object_t *e = exceptions_get_exception();
+			if (e)
+				exceptions_print_stacktrace();
+			assert(e == NULL);
 			break;
 		}
 #endif
@@ -354,7 +357,10 @@ void trap_handle(int sig, void *xpc, void *context)
 		// trap instruction, so we reset it here.
 
 		if (was_patched) {
-			assert(exceptions_get_exception() == NULL);
+			java_object_t *e = exceptions_get_exception();
+			if (e)
+				exceptions_print_stacktrace();
+			assert(e == NULL);
 			es.pc = (uint8_t *) (uintptr_t) xpc;
 			break;
 		}
