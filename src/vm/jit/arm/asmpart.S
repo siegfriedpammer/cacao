@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/asmpart.S - Java-C interface functions for ARM
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -231,7 +231,7 @@ asm_abstractmethoderror:
 	stmfd sp!, {lr}                     /* save return address                */
 	add   a0, sp, #(1*4)                /* pass java sp                       */
 	mov   a1, lr                        /* pass exception address             */
-	bl    exceptions_asm_new_abstractmethoderror
+	blx   exceptions_asm_new_abstractmethoderror
 	ldmfd sp!, {lr}                     /* restore return address             */
 
 	mov   xptr, res1                    /* get exception pointer              */
@@ -273,7 +273,7 @@ asm_cacheflush:
 	swi   __ARM_NR_cacheflush
 #endif
 
-	mov   pc, lr
+	bx    lr
 
 
 /* disable exec-stacks ********************************************************/

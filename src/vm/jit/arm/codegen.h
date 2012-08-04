@@ -1,6 +1,6 @@
 /* src/vm/jit/arm/codegen.h - code generation macros and definitions for ARM
 
-   Copyright (C) 1996-2005, 2006, 2007, 2008, 2010
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -212,6 +212,19 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
     do { \
         *((u4 *) cd->mcodeptr) = (((cond) << 28) | (1 << 27) | ((L) << 20) | ((S) << 22) | ((n) << 16) | ((regs) & 0xffff) | ((P) << 24) | ((U) << 23) | ((W) << 21)); \
         cd->mcodeptr += 4; \
+    } while (0)
+
+
+/* branch and branch with link X (instruction set exchange)
+   cond ... conditional execution
+   L ...... branch with link (L=1)
+   reg .... register
+*/
+
+#define M_BRAX(cond,L,reg) \
+    do { \
+		*((u4 *) cd->mcodeptr) = (((cond) << 28) | (0x12 << 20) | (0xfff << 8) | (L << 5) | (1 << 4) | ((reg) & 0xf)); \
+		cd->mcodeptr += 4; \
     } while (0)
 
 
@@ -474,6 +487,9 @@ void asm_debug_intern(int a1, int a2, int a3, int a4);
 #define M_BHS(off)         M_BRA(COND_CS,0,off)
 #define M_BLO(off)         M_BRA(COND_CC,0,off)
 #define M_BLS(off)         M_BRA(COND_LS,0,off)
+
+#define M_BX(a)            M_BRAX(COND_AL,0,a)
+#define M_BLX(a)           M_BRAX(COND_AL,1,a)
 
 
 /******************************************************************************/
