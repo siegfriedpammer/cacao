@@ -27,7 +27,9 @@ AC_DEFUN([AC_CHECK_HGREV],[
 AC_MSG_CHECKING(for the Mercurial revision)
 CACAO_HGREV=`grep ^node: "$srcdir"/.hg_archival.txt 2>/dev/null | awk '{print substr($[]2, 1, 12)}'`
 if test x"$CACAO_HGREV" = "x"; then
-    CACAO_HGREV=`cd "$srcdir" && hg id -i`
+    if test -d "$srcdir"/.hg; then
+        CACAO_HGREV=`cd "$srcdir" && hg id -i`
+    fi
 fi
 AC_MSG_RESULT(${CACAO_HGREV-not specified})
 AC_DEFINE_UNQUOTED([CACAO_HGREV], "${CACAO_HGREV}", [CACAO's Mercurial revision])
