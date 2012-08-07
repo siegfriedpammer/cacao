@@ -1,6 +1,6 @@
 /* src/vm/initialize.cpp - static class initializer functions
 
-   Copyright (C) 1996-2011
+   Copyright (C) 1996-2012
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
 
    This file is part of CACAO.
@@ -281,6 +281,6 @@ static bool initialize_class_intern(classinfo *c)
  * indent-tabs-mode: t
  * c-basic-offset: 4
  * tab-width: 4
- * vim:noexpandtab:sw=4:ts=4:
  * End:
+ * vim:noexpandtab:sw=4:ts=4:
  */
