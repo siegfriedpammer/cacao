@@ -28,10 +28,11 @@ AC_MSG_CHECKING(for the Mercurial revision)
 CACAO_HGREV=`grep ^node: "$srcdir"/.hg_archival.txt 2>/dev/null | awk '{print substr($[]2, 1, 12)}'`
 if test x"$CACAO_HGREV" = "x"; then
     if test -d "$srcdir"/.hg; then
-        CACAO_HGREV=`cd "$srcdir" && hg id -i`
+        dnl Strip the "+" suffix because icedtea builds are always slightly modified
+        CACAO_HGREV=`cd "$srcdir" && hg id -i | sed -e 's/\([[0-9a-f]]*\).*/\1/'`
     fi
 fi
-AC_MSG_RESULT(${CACAO_HGREV-not specified})
+AC_MSG_RESULT(${CACAO_HGREV-none})
 AC_DEFINE_UNQUOTED([CACAO_HGREV], "${CACAO_HGREV}", [CACAO's Mercurial revision])
 AC_SUBST(CACAO_HGREV)
 ])
