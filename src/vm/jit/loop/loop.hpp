@@ -15,6 +15,7 @@ typedef struct Edge Edge;
 
 #include "vm/jit/jit.hpp"
 #include "VariableSet.hpp"
+#include "IntervalMap.hpp"
 
 /**
  * Per-method data used in jitdata.
@@ -39,10 +40,14 @@ struct MethodLoopData
 	// Every method has exactly one (pseudo) root loop that is executed exactly once.
 	LoopContainer*				rootLoop;
 
+	// Maintains a condition stack for every variable.
+	//ConditionStackCollection*	conditions;
+
 	MethodLoopData()
 		: n(0)
 		, root(0)
 		, rootLoop(0)
+		//, conditions(0)
 	{}
 };
 
@@ -67,11 +72,25 @@ struct BasicblockLoopData
 	// This is NOT a pointer to the loop this basicblock belongs to because such a loop is not unique.
 	LoopContainer*				visited;	
 
-	// Used to prevent this basicblock from being visited again during a traversal in analyze.cpp.
-	basicblock*					analyzeVisited;
+	// The loop which this basicblock is the header of. Can be 0.
+	LoopContainer*				loop;
+
+	// The number of loop back edges that leave this basicblock.
+	s4							outgoingBackEdgeCount;
+
+	bool						leaf;
+
+	// true if analyze has been called for this node, false otherwise.
+	bool						analyzed;
+
+	basicblock*					jumpTarget;
+	IntervalMap					targetIntervals;
+	IntervalMap					intervals;
 
 	// Contains all variables that are possibly assigned/changed between this block and its dominator.
-	VariableSet					changedVariables;
+	//VariableSet					changedVariables;
+
+	//IntervalMap					intervals;
 
 	BasicblockLoopData()
 		: parent(0)
@@ -81,7 +100,14 @@ struct BasicblockLoopData
 		, dom(0)
 		, nextSibling(0)
 		, visited(0)
-		, analyzeVisited(0)
+		, loop(0)
+		, outgoingBackEdgeCount(0)
+		, leaf(false)
+		, analyzed(false)
+		, jumpTarget(0)
+		, targetIntervals(0)
+		, intervals(0)
+		//, intervals(0)
 	{}
 };
 
@@ -95,6 +121,8 @@ struct LoopContainer
 
 	basicblock*						header;		// the unique entry point of this loop
 	std::vector<basicblock*>		nodes;		// all nodes contained in this loop except the header
+
+	VariableSet						writtenVariables;	// Contains all variables that are possibly assigned/changed in this loop.
 
 	LoopContainer()
 		: parent(0)

@@ -19,6 +19,7 @@ namespace
 	void reverseDepthFirstTraversal(basicblock* next, LoopContainer* loop);
 	void mergeLoops(jitdata* jd);
 	void buildLoopTree(jitdata* jd);
+	void storeLoopsInHeaders(jitdata* jd);
 
 
 	struct LoopHeaderCompare
@@ -44,15 +45,26 @@ namespace
 		{
 			std::stringstream str;
 			str << bb->nr;
+
 			if (bb->type == BBTYPE_EXH)
 				str << "*";
 			else
 				str << " ";
+			if (bb->ld->loop)
+				str << "H";
+			else
+				str << " ";
+			if (bb->ld->leaf)
+				str << "L";
+			else
+				str << " ";
+
 			str << " --> ";
 			for (s4 i = 0; i < bb->successorcount; i++)
 			{
 				str << bb->successors[i]->nr << " ";
 			}
+
 			log_text(str.str().c_str());
 		}
 
@@ -68,7 +80,7 @@ namespace
 				str << "X";
 
 			// print variable assignments
-			str << " " << bb->ld->changedVariables;
+			//str << " " << bb->ld->writtenVariables;
 
 			log_text(str.str().c_str());
 		}
@@ -88,6 +100,10 @@ namespace
 			{
 				str << " " << loop->nodes[j]->nr;
 			}
+
+			// print variable assignments
+			str << " " << loop->writtenVariables;
+
 			log_text(str.str().c_str());
 		}
 
@@ -306,6 +322,14 @@ namespace
 				loop->parent->children.push_back(loop);
 		}
 	}
+
+	void storeLoopsInHeaders(jitdata* jd)
+	{
+		for (std::vector<LoopContainer*>::const_iterator it = jd->ld->loops.begin(); it != jd->ld->loops.end(); ++it)
+		{
+			(*it)->header->ld->loop = (*it);
+		}
+	}
 }
 
 
@@ -321,10 +345,14 @@ void removeArrayBoundChecks(jitdata* jd)
 	findLoops(jd);
 	mergeLoops(jd);
 	buildLoopTree(jd);
-	
-	findVariableAssignments(jd);
+	storeLoopsInHeaders(jd);
+
+	analyzeLoops(jd);
+	findLeaves(jd);
 
 	printBasicBlocks(jd);		// for debugging
+	
+	removeFullyRedundantChecks(jd);
 }
 
 

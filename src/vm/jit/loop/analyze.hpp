@@ -3,10 +3,12 @@
 
 #include "loop.hpp"
 
+void analyzeLoops(jitdata* jd);
+void findLeaves(jitdata* jd);
+
 /**
- * For all basicblocks B except the root, finds all variable assignments
- * occuring between B and idom(B) and stores the variable names in B.
+ * Removes all array bound checks that are fully redundant.
  */
-void findVariableAssignments(jitdata*);
+void removeFullyRedundantChecks(jitdata*);
 
 #endif

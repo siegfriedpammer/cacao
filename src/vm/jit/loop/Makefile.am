@@ -45,7 +45,13 @@ libloop_la_SOURCES = \
 	analyze.cpp \
 	analyze.hpp \
 	VariableSet.cpp \
-	VariableSet.hpp
+	VariableSet.hpp \
+	Interval.cpp \
+	Interval.hpp \
+	IntervalMap.cpp \
+	IntervalMap.hpp \
+	Scalar.cpp \
+	Scalar.hpp
 
 
 ## Local variables:
