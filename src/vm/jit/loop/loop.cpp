@@ -204,6 +204,7 @@ namespace
 			jd->ld->loops.push_back(loop);
 			
 			loop->header = head;
+			loop->footers.push_back(foot);
 
 			// find all basicblocks contained in this loop
 			reverseDepthFirstTraversal(foot, loop);
@@ -245,12 +246,16 @@ namespace
 
 			if (first->header == second->header)
 			{
+				// Copy footer of second loop into first loop
+				assert(second->footers.size() == 1);
+				first->footers.push_back(second->footers.front());
+
 				// merge loops
 				for (std::vector<basicblock*>::const_iterator it2 = second->nodes.begin(); it2 != second->nodes.end(); ++it2)
 				{
 					basicblock* node = *it2;
 
-					// Put node into the first loop if does not already contain it.
+					// Put node into the first loop if it does not already contain it.
 					if (find(first->nodes.begin(), first->nodes.end(), node) == first->nodes.end())
 					{
 						first->nodes.push_back(node);

@@ -121,8 +121,12 @@ struct LoopContainer
 
 	basicblock*						header;		// the unique entry point of this loop
 	std::vector<basicblock*>		nodes;		// all nodes contained in this loop except the header
+	std::vector<basicblock*>		footers;	// all nodes from which there is a back edge to the header
+
+	//bool							merged;		// true if this loop was merged with another loop
 
 	VariableSet						writtenVariables;	// Contains all variables that are possibly assigned/changed in this loop.
+	VariableSet						counterVariables;
 
 	LoopContainer()
 		: parent(0)

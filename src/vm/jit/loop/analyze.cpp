@@ -9,6 +9,7 @@ namespace
 {
 	void analyzeLoops(jitdata* jd);
 	void analyzeBasicblockInLoop(basicblock* block, LoopContainer* loop);
+	void analyzeFooter(jitdata* jd, LoopContainer* loop);
 	void findLeaves(jitdata* jd);
 
 	bool isRegularPredecessor(jitdata* jd, basicblock* node, basicblock* pred);
@@ -21,7 +22,7 @@ namespace
 	/**
 	 * Analyzes a single basicblock that belongs to a loop and finds
 	 *
-	 *   -) all written variables,
+	 *   -) all written variables.
 	 */
 	void analyzeBasicblockInLoop(basicblock* block, LoopContainer* loop)
 	{
@@ -50,6 +51,48 @@ namespace
 						loop->writtenVariables.insert(instr->dst.varindex);
 						break;
 				}
+			}
+		}
+	}
+
+	/**
+	 * Analyzes the footer of the specified loop (Only the first footer is considered) and
+	 * finds all counter variables.
+	 *
+	 * It is important that analyzeBasicblockInLoop has been called for every basicblock
+	 * in this loop except the footer.
+	 */
+	void analyzeFooter(jitdata* jd, LoopContainer* loop)
+	{
+		assert(!loop->footers.empty());
+		
+		basicblock* footer = loop->footers.front();
+		bool jumpFound = false;
+
+		for (s4 i = footer->icount - 1; i >= 0; i--)
+		{
+			instruction* instr = &footer->iinstr[i];
+
+			if (jumpFound)
+			{
+				s4 var = instr->dst.varindex;
+				if (instr->opc == ICMD_IINC &&   // For simplicity only IINC-instructions are considered.
+					isLocalIntVar(jd, var) &&
+					!loop->writtenVariables.contains(var) &&   // A counter variable is written only once in the whole loop.
+					!loop->counterVariables.contains(var))   // A counter variable cannot be incremented multiple times.
+				{
+					loop->counterVariables.insert(var);
+				}
+				else
+				{
+					break;
+				}
+			}
+			else
+			{
+				// Skip NOPs at the end of the basicblock until the jump instruction is found.
+				if (icmd_table[instr->opc].controlflow != CF_NORMAL)
+					jumpFound = true;
 			}
 		}
 	}
@@ -819,6 +862,7 @@ namespace
  * Analyzes all loops and for every loop it finds
  *
  *   -) all written variables,
+ *   -) all counter variables.
  */
 void analyzeLoops(jitdata* jd)
 {
@@ -826,12 +870,20 @@ void analyzeLoops(jitdata* jd)
 	{
 		LoopContainer* loop = *it;
 
+		assert(!loop->footers.empty());
+
+		// For simplicity we consider only one back edge per loop
+		basicblock* footer = loop->footers.front();
+
 		// Analyze all blocks contained in this loop.
 		analyzeBasicblockInLoop(loop->header, loop);
 		for (std::vector<basicblock*>::iterator blockIt = loop->nodes.begin(); blockIt != loop->nodes.end(); ++blockIt)
 		{
-			analyzeBasicblockInLoop(*blockIt, loop);
+			if (*blockIt != footer)
+				analyzeBasicblockInLoop(*blockIt, loop);
 		}
+		analyzeFooter(jd, loop);					// Find counter variables.
+		analyzeBasicblockInLoop(footer, loop);	// The footer must be the last node to be analyzed.
 	}
 }
 
