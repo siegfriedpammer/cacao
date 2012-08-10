@@ -3,21 +3,22 @@
 
 #include <limits>
 #include <iostream>
+#include <cassert>
 
 #include "vm/types.h"
+#include "NumericInstruction.hpp"
+
 
 /**
  * An integral value of the form
- * Constant [ + Array.length ].
+ * Constant + NumericInstruction.
  */
 class Scalar
 {
-	s4 _constant;
-	s4 _array;
+	s4					_constant;
+	NumericInstruction	_instruction;
 
 public:
-
-	static const s4 NO_ARRAY = -1;
 
 	static s4 Min() { return std::numeric_limits<s4>::min(); }
 	static s4 Max() { return std::numeric_limits<s4>::max(); }
@@ -27,19 +28,40 @@ public:
 	 */
 	Scalar()
 		: _constant(0)
-		, _array(NO_ARRAY)
+		, _instruction(NumericInstruction::newZero())
 	{}
 
-	Scalar(s4 constant, s4 arrayVariable)
+	explicit Scalar(s4 constant)
 		: _constant(constant)
-		, _array(arrayVariable)
+		, _instruction(NumericInstruction::newZero())
 	{}
+
+	explicit Scalar(const NumericInstruction& instruction)
+		: _constant(0)
+		, _instruction(instruction)
+	{}
+
+	/**
+	 * Creates a scalar which equals constant + instruction.
+	 * The expression must not over- or underflow!
+	 */
+	Scalar(s4 constant, const NumericInstruction& instruction)
+		: _constant(constant)
+		, _instruction(instruction)
+	{
+		s8 cu = static_cast<s8>(constant) + instruction.upper();
+		s8 cl = static_cast<s8>(constant) + instruction.lower();
+
+		// check for overflow
+		assert(std::numeric_limits<s4>::min() <= cu && cu <= std::numeric_limits<s4>::max());
+		assert(std::numeric_limits<s4>::min() <= cl && cl <= std::numeric_limits<s4>::max());
+	}
 
 	s4 constant() const { return _constant; }
-	void constant(s4 value) { _constant = value; }
+	NumericInstruction instruction() const { return _instruction; }
 
-	s4 array() const { return _array; }
-	void array(s4 value) { _array = value; }
+	s4 lower() const { return _constant + _instruction.lower(); }
+	s4 upper() const { return _constant + _instruction.upper(); }
 	
 	/**
 	 * Computes an upper bound of the minimum of this and the specified scalar.
@@ -67,30 +89,44 @@ public:
 
 	/**
 	 * Tries to add a scalar to this scalar.
-	 * If an overflow can happen, this scalar will not be changed and false will be returned.
+	 * If an overflow can happen or the result is not representable as a scalar,
+	 * this scalar will not be changed and false will be returned.
 	 * Otherwise the return value is true.
 	 */
 	bool tryAdd(const Scalar&);
 
 	/**
 	 * Tries to subtract a scalar from this scalar.
-	 * If an overflow can happen, this scalar will not be changed and false will be returned.
+	 * If an overflow can happen or the result is not representable as a scalar,
+	 * this scalar will not be changed and false will be returned.
 	 * Otherwise the return value is true.
 	 */
 	bool trySubtract(const Scalar&);
 };
 
 
-// True if a equals b for every possible array length, false otherwise.
-inline bool operator==(const Scalar& a, const Scalar& b)
+inline void Scalar::upperBoundOfMinimumWith(const Scalar& other)
 {
-	return a.constant() == b.constant() && a.array() == b.array();
+	if (_constant > other._constant)
+		*this = other;
 }
 
-// True if a does not equal b for every possible array length, false otherwise.
+inline void Scalar::lowerBoundOfMaximumWith(const Scalar& other)
+{
+	if (_constant < other._constant)
+		*this = other;
+}
+
+// True if a equals b for every possible value of the instruction, false otherwise.
+inline bool operator==(const Scalar& a, const Scalar& b)
+{
+	return a.constant() == b.constant() && a.instruction() == b.instruction();
+}
+
+// True if a does not equal b for every possible value of the instruction, false otherwise.
 inline bool operator!=(const Scalar& a, const Scalar& b)
 {
-	return a.constant() != b.constant() || a.array() != b.array();
+	return a.constant() != b.constant() || a.instruction() != b.instruction();
 }
 
 std::ostream& operator<<(std::ostream&, const Scalar&);

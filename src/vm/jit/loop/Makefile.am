@@ -51,7 +51,9 @@ libloop_la_SOURCES = \
 	IntervalMap.cpp \
 	IntervalMap.hpp \
 	Scalar.cpp \
-	Scalar.hpp
+	Scalar.hpp \
+	NumericInstruction.cpp \
+	NumericInstruction.hpp
 
 
 ## Local variables:

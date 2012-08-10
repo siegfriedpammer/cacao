@@ -176,14 +176,7 @@ namespace
 				case ICMD_ICONST:
 					if (isLocalIntVar(jd, dst_index))
 					{
-						Scalar s;
-						s.constant(value);
-
-						// create interval [value,value]
-						Interval i;
-						i.lower(s);
-						i.upper(s);
-						intervals[dst_index] = i;
+						intervals[dst_index] = Interval(Scalar(value));
 					}
 					break;
 
@@ -207,15 +200,8 @@ namespace
 				case ICMD_ARRAYLENGTH:
 					if (isLocalIntVar(jd, dst_index))
 					{
-						Scalar s;
-						s.array(s1_index);
-
 						// Create interval [s1.length, s1.length]
-						Interval i;
-						i.lower(s);
-						i.upper(s);
-
-						intervals[dst_index] = i;
+						intervals[dst_index] = Interval(Scalar(NumericInstruction::newArrayLength(s1_index)));
 					}
 					break;
 
@@ -225,18 +211,13 @@ namespace
 					{
 						Scalar l = intervals[s1_index].lower();
 						Scalar u = intervals[s1_index].upper();
-
-						Scalar offset;
-						offset.constant(value);
+						Scalar offset(value);
 
 						if (l.tryAdd(offset) && u.tryAdd(offset))
 						{
-							Interval i;
-							i.lower(l);
-							i.upper(u);
-							intervals[dst_index] = i;
+							intervals[dst_index] = Interval(l, u);
 						}
-						else   // overflow/underflow
+						else   // overflow
 						{
 							intervals[dst_index] = Interval();
 						}
@@ -248,18 +229,13 @@ namespace
 					{
 						Scalar l = intervals[s1_index].lower();
 						Scalar u = intervals[s1_index].upper();
-
-						Scalar offset;
-						offset.constant(value);
+						Scalar offset(value);
 
 						if (l.trySubtract(offset) && u.trySubtract(offset))
 						{
-							Interval i;
-							i.lower(l);
-							i.upper(u);
-							intervals[dst_index] = i;
+							intervals[dst_index] = Interval(l, u);
 						}
-						else   // overflow/underflow
+						else   // overflow
 						{
 							intervals[dst_index] = Interval();
 						}
@@ -292,12 +268,8 @@ namespace
 				{
 					node->ld->jumpTarget = instr->dst.block;
 
-					Scalar s;
-					s.constant(value);
-
-					Interval i;
-					i.lower(s);
-					i.upper(s);
+					Scalar s(value);
+					Interval i(s);
 
 					// TRUE BRANCH
 					targetIntervals = intervals;
@@ -312,12 +284,8 @@ namespace
 				{
 					node->ld->jumpTarget = instr->dst.block;
 
-					Scalar s;
-					s.constant(value);
-
-					Interval i;
-					i.lower(s);
-					i.upper(s);
+					Scalar s(value);
+					Interval i(s);
 
 					// TRUE BRANCH
 					targetIntervals = intervals;
@@ -334,16 +302,11 @@ namespace
 
 					// TRUE BRANCH
 					{
-						Scalar l;
-						l.constant(Scalar::Min());
-
-						Scalar u;
-						u.constant(value);
+						Scalar l(Scalar::Min());
+						Scalar u(value);
 
 						// interval [MIN,value-1]
-						Interval i;
-						i.lower(l);
-						i.upper(u);
+						Interval i(l, u);
 						i.tryRemove(u);
 
 						targetIntervals = intervals;
@@ -352,16 +315,11 @@ namespace
 
 					// FALSE BRANCH
 					{
-						Scalar l;
-						l.constant(value);
-
-						Scalar u;
-						u.constant(Scalar::Max());
+						Scalar l(value);
+						Scalar u(Scalar::Max());
 
 						// interval [value,MAX].
-						Interval i;
-						i.lower(l);
-						i.upper(u);
+						Interval i(l, u);
 
 						intervals[s1_index].intersectWith(i);
 					}
@@ -374,16 +332,11 @@ namespace
 
 					// TRUE BRANCH
 					{
-						Scalar l;
-						l.constant(Scalar::Min());
-
-						Scalar u;
-						u.constant(value);
+						Scalar l(Scalar::Min());
+						Scalar u(value);
 
 						// interval [MIN,value]
-						Interval i;
-						i.lower(l);
-						i.upper(u);
+						Interval i(l, u);
 
 						targetIntervals = intervals;
 						targetIntervals[s1_index].intersectWith(i);
@@ -391,16 +344,11 @@ namespace
 
 					// FALSE BRANCH
 					{
-						Scalar l;
-						l.constant(value);
-
-						Scalar u;
-						u.constant(Scalar::Max());
+						Scalar l(value);
+						Scalar u(Scalar::Max());
 
 						// interval [value+1,MAX].
-						Interval i;
-						i.lower(l);
-						i.upper(u);
+						Interval i(l, u);
 						i.tryRemove(l);
 
 						intervals[s1_index].intersectWith(i);
@@ -414,16 +362,11 @@ namespace
 
 					// TRUE BRANCH
 					{
-						Scalar l;
-						l.constant(value);
-
-						Scalar u;
-						u.constant(Scalar::Max());
+						Scalar l(value);
+						Scalar u(Scalar::Max());
 
 						// interval [value+1,MAX]
-						Interval i;
-						i.lower(l);
-						i.upper(u);
+						Interval i(l, u);
 						i.tryRemove(l);
 
 						targetIntervals = intervals;
@@ -432,16 +375,11 @@ namespace
 
 					// FALSE BRANCH
 					{
-						Scalar l;
-						l.constant(Scalar::Min());
-
-						Scalar u;
-						u.constant(value);
+						Scalar l(Scalar::Min());
+						Scalar u(value);
 
 						// interval [MIN,value].
-						Interval i;
-						i.lower(l);
-						i.upper(u);
+						Interval i(l, u);
 
 						intervals[s1_index].intersectWith(i);
 					}
@@ -454,16 +392,11 @@ namespace
 
 					// TRUE BRANCH
 					{
-						Scalar l;
-						l.constant(value);
-
-						Scalar u;
-						u.constant(Scalar::Max());
+						Scalar l(value);
+						Scalar u(Scalar::Max());
 
 						// interval [value,MAX]
-						Interval i;
-						i.lower(l);
-						i.upper(u);
+						Interval i(l, u);
 
 						targetIntervals = intervals;
 						targetIntervals[s1_index].intersectWith(i);
@@ -471,16 +404,11 @@ namespace
 
 					// FALSE BRANCH
 					{
-						Scalar l;
-						l.constant(Scalar::Min());
-
-						Scalar u;
-						u.constant(value);
+						Scalar l(Scalar::Min());
+						Scalar u(value);
 
 						// interval [MIN,value-1].
-						Interval i;
-						i.lower(l);
-						i.upper(u);
+						Interval i(l, u);
 						i.tryRemove(u);
 
 						intervals[s1_index].intersectWith(i);
@@ -819,17 +747,27 @@ namespace
 							// TODO: [MIN,MAX] is too conservative!
 							for (size_t i = 0; i < intervals.size(); i++)
 							{
-								if (intervals[i].lower().array() == dst_index || intervals[i].upper().array() == dst_index)
+								if (intervals[i].lower().instruction().kind() == NumericInstruction::ARRAY_LENGTH &&
+									intervals[i].lower().instruction().variable() == dst_index)
+								{
 									intervals[i] = Interval();
+								}
+								else if (intervals[i].upper().instruction().kind() == NumericInstruction::ARRAY_LENGTH &&
+									intervals[i].upper().instruction().variable() == dst_index)
+								{
+									intervals[i] = Interval();
+								}
 							}
 						}
 					}
 			}
 		}
 
+		/*
 		std::stringstream str;
 		str << "# " << node->nr << " #  [F] " << intervals << "| [T] " << targetIntervals;
 		log_text(str.str().c_str());
+		*/
 
 		if (target == node->ld->jumpTarget)
 			return targetIntervals;

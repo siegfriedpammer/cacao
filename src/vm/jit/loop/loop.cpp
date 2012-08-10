@@ -340,7 +340,7 @@ namespace
 
 void removeArrayBoundChecks(jitdata* jd)
 {
-	log_message_method("removeArrayBoundChecks: ", jd->m);
+	//log_message_method("removeArrayBoundChecks: ", jd->m);
 
 	createRoot(jd);
 	calculateDominators(jd);
@@ -355,7 +355,7 @@ void removeArrayBoundChecks(jitdata* jd)
 	analyzeLoops(jd);
 	findLeaves(jd);
 
-	printBasicBlocks(jd);		// for debugging
+	//printBasicBlocks(jd);		// for debugging
 	
 	removeFullyRedundantChecks(jd);
 }
